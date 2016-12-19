@@ -1,70 +1,195 @@
 Availability:Public
 Title:Animation System Overview
 Crumbs: %ROOT%, Engine, Engine/Animation
-Description:Overview of the system for deforming SkeletalMeshes based on animation data using Animation Blueprints, Blendspaces, and AnimationSequences.
+Description:Overview of the system for deforming Skeletal Meshes based on animation data using Animation Blueprints, Blendspaces, and Animation Sequences.
+Related: Engine/Content/FBX/Animations
+Related: Engine/Animation/PhysicallyDrivenAnimation
+Related: Engine/Content/Tools/MayaRiggingTool
+version: 4.14
+type:overview
+topic-image:AnimationToolsTopic.png
+tags:Animation
+
 
 [TOC(start:2 end:2)]
 
-
 [EXCERPT:Intro]
-**Unreal Engine 4's** (**UE4**) animation system allows for a deep level of control for your characters and Skeletal Meshes. In this document, we will provide a high level overview  of how animation works in UE4, and the base concepts that drive it. <!---In the documents that follow, we'll cover the---> 
-
-
-
-The **Animation** system mixes skeletal-based deformation of meshes with morph-based vertex deformation to 
-allow for complex animation. This system can be used to make basic player movement appear much more realistic 
-by playing and blending between canned AnimationSequences, create customized special moves such as scaling 
-ledges and walls using AnimMontages, apply damage effects or facial expressions through MorphTargets, or 
-directly control the transformations of bones using SkeletalControls.
+The animation system in Unreal Engine 4 (UE4) is comprised of several Animation Tools and Editors which mixes skeletal-based deformation of meshes with morph-based vertex deformation to allow for complex animation. 
+This system can be used to make basic player movement appear much more realistic by playing and blending between canned **Animation Sequences**, create customized special moves such as scaling 
+ledges and walls using **Anim Montages**, apply damage effects or facial expressions through **Morph Targets**, directly control the transformations of bones using **Skeletal Controls**, or create logic based **State Machines** that determine which animation a character should use in a given situation. 
 [/EXCERPT:Intro]
 
 
 The purpose of this document is to offer a high-level overview of UE4's animation system, geared primarily toward users who are new to animating in UE4. However, this should not be considered the comprehensive manual for how to animate skeletal assets in the UE4. Rather, think of this as a primer to familiarize you with the various pieces of the animation system, providing an illustration of how they all fit together and showing how animation in UE4 is more powerful flexible than ever before. 
 
-We will start by identifying the primary terms and concepts of UE4's animation system:
+## Terms and Concepts
 
+We will start by identifying the primary terms and concepts of UE4's animation system (click each header to view more documentation):
 
 (#Skeleton)
 [OBJECT:IconSection]
 	[PARAM:icon]
-		[![](PersonaIcon.png)(w:192)](Engine/Animation/Persona)
+		![](AnimationToolsTopic.png)
 	[/PARAM]
 	[PARAM:title]
-		[Persona](Engine/Animation/Persona)
+		[](Engine/Animation/Persona/Modes)
 	[/PARAM]
 	[PARAM:description]
-	[INCLUDE:Engine/Animation/Persona#Intro]
-		
+	[INCLUDE:Engine/Animation/Persona/Modes#overview]
 	[/PARAM]
 [/OBJECT]
 
-
-
 [OBJECT:IconSection]
 	[PARAM:icon]
-		[![](SkeletonImage.png)(w:192)](Engine/Content\Types\SkeletalMeshes)
+		![](SkeletonTopic.png)
 	[/PARAM]
 	[PARAM:title]
-		[Skeleton](Engine/Content\Types\SkeletalMeshes)
+		[](Engine/Animation/Skeleton)
 	[/PARAM]
 	[PARAM:description]
 		A **Skeleton** is a hierarchy of bone locations and rotations used to deform a Skeletal Mesh. In UE4, Skeletons are abstracted from Skeletal Meshes in their own asset. This means that animations are applied to the Skeleton, rather than the Skeletal Mesh. By using the same Skeleton, multiple Skeletal Meshes can share animations.
-		
-		
 	[/PARAM]
 [/OBJECT]
 
 [OBJECT:IconSection]
 	[PARAM:icon]
-		![](AnimSequenceIcon.png)
+		![](AnimationSeqTopic.png)
 	[/PARAM]
 	[PARAM:title]
 		[](Engine/Animation/Sequences)
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Engine/Animation/Sequences#Intro]
-		
+	[/PARAM]
+[/OBJECT]
 
+[OBJECT:IconSection]
+	[PARAM:icon]
+		![](AnimNotifiesTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/Sequences/Notifies)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/Sequences/Notifies#Intro]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		![](AnimationBlueprintTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/AnimBlueprints)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		![](BlendSpaceTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/Blendspaces)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/Blendspaces#Intro]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		![](MontageTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/AnimMontage)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/AnimMontage#Intro]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		![](SkeletonControlTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/NodeReference/SkeletalControls)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#Intro]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		![](StateMachineTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/StateMachines)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/StateMachines#overview]
+	[/PARAM]
+[/OBJECT]
+
+[REGION:note]
+Examples of some of the animation features can also be found in the [Content Examples](https://docs.unrealengine.com/latest/INT/Resources/ContentExamples/) project available for free from the **Learn Tab** of the Epic Games Launcher. 
+[/REGION]
+
+## System Breakdown
+
+The following is a breakdown of where certain parts of the animation system are created and edited.
+
+[REGION:raw]
+![](CreationDiagram.png)
+[/REGION] 
+
+This diagram illustrates the flow and ownership of data for a typical animated character in Unreal.
+
+[REGION:raw]
+![](AnimationDiagram.png)
+[/REGION] 
+
+
+
+## Animation Debug Features
+
+Debug features can be accessed by pressing the **`** key to bring up the console while in play mode. 
+
+### Rendering Skeletal Mesh Bones
+
+![](AnimationShowDebugBones.jpg)(h:320)
+
+To display the Skeletal Mesh Bones, enter the `ShowDebug Bones` command inside the console. As seen in the image above the bones are represented by individual white lines. 
+
+The `ShowDebug Bones` command will display the information for the playable character during a play session. To view the debug animation for another character (other than the player character), you can use the `viewactor ExampleCharacterID` command, where _ExampleCharacterID_ refers to the Character ID assigned to the character you wish to view. You can find this ID by hovering over a character in the [World Outliner](Engine/UI/LevelEditor/SceneOutliner) which will display its ID name. 
+
+[REGION:note]
+At this time when using the `viewactor` command, the camera will be moved to and locked on the Actor you are currently viewing. If you need to manipulate the camera while debugging still, a work around for this is to create a [Play in Editor](Engine/UI/LevelEditor/InEditorTesting) session with more than one player from the dropdown menu using one window for debugging and the other for controlling a player character. 
+[/REGION]
+
+Instead of displaying white lines for bones, you can enable 3D bones with the `ShowDebugToggleSubCategory 3DBones` command inside the console. 
+
+### Animation Debug Output
+
+![](AnimationShowDebugToggle.jpg)
+
+The **Animation Debug Output** information can be enabled by using the `ShowDebug Animation` command inside the console. 
+
+The information displayed is split up into 5 sections, each of which can be toggled on and off using the `ShowDebugToggleSubCategory` command followed by the category name listed below (e.g. `ShowDebugToggleSubCategory SyncGroups`). 
+
+| Button | Description |
+|-------|------|
+| **SyncGroups** | Displays the animation assets currently contributing to the final pose, organized by their sync group (or Ungrouped if they do not belong to a group). By default Blendspaces listed in this section show all their contributing animations/weights. To reduce screen space used by the output this can be toggled off with `ShowDebugToggleSubCategory FullBlendspaceDisplay`. |
+| **Montages** | Lists the montages currently being used by the character. The active montage is highlighted in green. |
+| **Curves** | Lists the curve values (in Name: Value pairs) that have been activated by the playing animation(s). |
+| **Notifies** | Display any notify states that are currently in effect. |
+| **Graph** | Displays the active pose graph. The display starts with the last node (the root node) which represents the final pose and goes on to list all the nodes that go into making that final pose. Nodes are represented in such a way as to keep their hierarchy, allowing the user to see which nodes are connected to what without having to refer to the original Blueprint asset. Active nodes are colored green and (if they have been toggled to display using `ShowDebugToggleSubCategory FullGraph`) inactive nodes are colored gray. |
+
+<!-- Pulled from the intro section (overkill for overview page).
 		
 		**Additive Animation**
 		
@@ -108,143 +233,4 @@ We will start by identifying the primary terms and concepts of UE4's animation s
 		**Morph Targets**
 
 		[INCLUDE:Engine/Content\FBX\MorphTargets#Intro]
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](ParticleEffectNotify.png)(w:192)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Sequences/Notifies)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/Sequences/Notifies#Intro]
-	[/PARAM]
-[/OBJECT]
-
-
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![Vim Blueprint](Engine/Animation/AnimBlueprints/EventGraph/eventgraph_thumb.png)(w:192)](Engine/Animation/AnimBlueprints)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/AnimBlueprints)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
-
-		
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![Blendspace](Engine/Animation/Blendspaces/edit.png)(w:192)](Engine/Animation/Blendspaces)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Blendspaces)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/Blendspaces#Intro]
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](MontageIcon.png)(w:192)](Engine/Animation/AnimMontage)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/AnimMontage)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/AnimMontage#Intro]
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![SkelControl](Engine/Animation/NodeReference/SkeletalControls/skelcontrol.png)(w:192)](Engine/Animation/NodeReference/SkeletalControls)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/NodeReference/SkeletalControls)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#Intro]
-	[/PARAM]
-[/OBJECT]
-
-
-<!--
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](StateMachines.png)(w:192)](Engine/Animation/StateMachines)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/StateMachines)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/StateMachines#Intro]
-	[/PARAM]
-[/OBJECT]
 -->
-
-
-## System Breakdown
-
-The following is a simple breakdown of where certain parts of the animation system are created and edited.
-
-[REGION:raw]
-![](CreationDiagram.png)
-[/REGION] 
-
-This diagram illustrates the flow and ownership of data for a typical animated character in Unreal.
-
-[REGION:raw]
-![](AnimationDiagram.png)
-[/REGION] 
-
-## Animation Content Examples
-
-A practical application of the animation system and its features are on display inside the [Animation Content Examples](Resources\ContentExamples\Animation) page. 
-
-Here you will be able to follow along by looking at bite-sized examples of each feature along with additional details. 
-
-For more information on Content Examples and how to use them, refer to the [Content Examples Overview](Resources\ContentExamples) page. 
-
-
-## Animation Debug Features
-
-Debug features can be accessed by pressing the **`** key to bring up the console while in play mode. 
-
-### Rendering Skeletal Mesh Bones
-
-![](AnimationShowDebugBones.jpg)(h:320)
-
-To display the Skeletal Mesh Bones, enter the `ShowDebug Bones` command inside the console. As seen in the image above the bones are represented by individual white lines. 
-
-The `ShowDebug Bones` command will display the information for the playable character during a play session. To view the debug animation for another character (other than the player character), you can use the `viewactor ExampleCharacterID` command, where _ExampleCharacterID_ refers to the Character ID assigned to the character you wish to view. You can find this ID by hovering over a character in the [World Outliner](Engine/UI/LevelEditor/SceneOutliner) which will display its ID name. 
-
-[REGION:note]
-At this time when using the `viewactor` command, the camera will be moved to and locked on the Actor you are currently viewing. If you need to manipulate the camera while debugging still, a work around for this is to create a [Play in Editor](Engine/UI/LevelEditor/InEditorTesting) session with more than one player from the dropdown menu using one window for debugging and the other for controlling a player character. 
-[/REGION]
-
-An alternative look, matching the bones displayed in Persona, can be enabled by entering the `ShowDebugToggleSubCategory 3DBones` command inside the console. 
-
-
-
-### Animation Debug Output
-
-![](AnimationShowDebugToggle.jpg)
-
-The **Animation Debug Output** information can be enabled by using the `ShowDebug Animation` command inside the console. 
-
-The information displayed is split up into 5 sections, each of which can be toggled on and off using the `ShowDebugToggleSubCategory` command followed by the category name listed below (e.g. `ShowDebugToggleSubCategory SyncGroups`). 
-
-| Button | Description |
-|-------|------|
-| **SyncGroups** | Displays the animation assets currently contributing to the final pose, organized by their sync group (or Ungrouped if they do not belong to a group). By default Blendspaces listed in this section show all their contributing animations/weights. To reduce screen space used by the output this can be toggled off with `ShowDebugToggleSubCategory FullBlendspaceDisplay`. |
-| **Montages** | Lists the montages currently being used by the character. The active montage is highlighted in green. |
-| **Curves** | Lists the curve values (in Name: Value pairs) that have been activated by the playing animation(s). |
-| **Notifies** | Display any notify states that are currently in effect. |
-| **Graph** | Displays the active pose graph. The display starts with the last node (the root node) which represents the final pose and goes on to list all the nodes that go into making that final pose. Nodes are represented in such a way as to keep their hierarchy, allowing the user to see which nodes are connected to what without having to refer to the original Blueprint asset. Active nodes are colored green and (if they have been toggled to display using `ShowDebugToggleSubCategory FullGraph`) inactive nodes are colored grey. |

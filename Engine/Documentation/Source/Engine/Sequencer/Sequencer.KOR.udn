@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3038067
+﻿INTSourceChangelist:3178047
 Availability:Public
 Title: 시퀀스 에디터
 Crumbs: %ROOT%, Engine
 Description:시퀀서는 언리얼 엔진 4 의 멀티 트랙 에디터로, 시네마틱 시퀀스의 실시간 생성 및 미리보기에 사용됩니다.
 Navigation:topic
 parent:Engine
-order:3
+order:4
 social-image:sequencer_social.png
 related: Engine/Matinee
 

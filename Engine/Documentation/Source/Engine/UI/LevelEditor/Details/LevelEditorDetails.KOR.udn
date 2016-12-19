@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3047974
+﻿INTSourceChangelist:3180166
 Availability:Public
 Title:디테일 패널
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
@@ -76,25 +76,29 @@ Version: 4.12
 위에서, 두 옵션을 **즐겨찾기** 로 체크했는데, 프로퍼티 이름 옆의 별 아이콘으로 쉽게 접근할 수 있음을 알 수 있습니다.
 [/REGION]
 
-**에디터 개인설정** 안에서 **즐겨찾기** 기능을 켤 수 있습니다.
+**즐겨찾기를 켜려면:**
 
-![](EditorPrefs.png)
+1. **편집** 메뉴에서 **에디터 개인설정** 을 선택합니다.
 
-**실험단계** 아래, **Enable Details Panel Favorites** (디테일 패널 즐겨찾기 켜기) 옵션을 켜면 됩니다.
+	![](EditorPrefs.png)
 
-![](Experimental.png)
+1. **실험단계** 아래, **Enable Details Panel Favorites** (디테일 패널 즐겨찾기 켜기) 옵션을 켜면 됩니다.
+
+	![](Experimental.png)
 
 [REGION:note]
 변경사항 적용을 위해서는 에디터를 재시작해야 할 수 있습니다.
 [/REGION]
 
-옵션을 켜고 프로퍼티 옆의 별 아이콘을 클릭하면 즐겨찾기에 등록하면 됩니다.
+**프로퍼티를 즐겨찾기로 마킹하려면:**
 
-![](ClickFavorite.png)
+1. 옵션을 켜고, 디테일 패널에서 프로퍼티 옆의 별 아이콘을 클릭하여 즐겨찾기에 등록합니다.
+
+	![](ClickFavorite.png)
 
 그러면 그 프로퍼티는 (즐겨찾기 등록된 다른 것들과 함께) 패널의 **즐겨찾기** 섹션 아래 표시됩니다.
 
-![](MarkedFavorites.png)
+	![](MarkedFavorites.png)
 
 [REGION:note]
 프로퍼티 중 일부는 그 커스터마이제이션 복잡도로 인해 즐겨찾기 기능이 제공되지 않을 수 있습니다.
@@ -198,6 +202,28 @@ Version: 4.12
 	[/PARAM]
 	[PARAM:path]
 	[RELATIVE:Engine/UI/LevelEditor/Details/Properties/Array]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Properties/Map/map_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Properties/Map:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Properties/Map]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Properties/Set/set_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Properties/Set:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Properties/Set]
 	[/PARAM]
 [/OBJECT]
 [/REGION]

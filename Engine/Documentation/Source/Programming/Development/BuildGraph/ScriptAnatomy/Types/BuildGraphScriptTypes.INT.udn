@@ -1,11 +1,10 @@
-Availability: Docs
+Availability: Public
 Title: BuildGraph Script Types
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/ScriptAnatomy
+Crumbs:
 Description:Learn about valid data types for BuildGraph attributes.
 version: 4.13
 parent:Programming/Development/BuildGraph
 type:Reference
-related: Programming/Development/BuildGraph/ScriptAnatomy
 tags:BuildGraph
 
 [VAR:TopicCompact]

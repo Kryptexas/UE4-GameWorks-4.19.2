@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2816279
+﻿INTSourceChangelist:3108692
 Availability: Public
-Title:3D 위젯 생성
+Title:3D 위젯 제작
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:2D 스크린 스페이스가 아닌 게임 월드에 나타나는 대화식 3D 메뉴를 만듭니다.
 Version: 4.10

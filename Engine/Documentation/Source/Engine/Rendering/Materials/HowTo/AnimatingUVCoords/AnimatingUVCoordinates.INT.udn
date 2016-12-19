@@ -1,7 +1,7 @@
 Availability: Public
-Title:Material Editor - How To animate UV Coordinates
+Title:Animating UV Coordinates
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
-Description:A How To Guide for animating UV Coordinates
+Description:Guide for animating UV Coordinates
 Related: Engine/Rendering/Materials/ExpressionReference/Coordinates
 Related: Engine/Rendering/Materials/CustomizedUVs
 Related: Engine/Rendering/LightingAndShadows/LightFunctions

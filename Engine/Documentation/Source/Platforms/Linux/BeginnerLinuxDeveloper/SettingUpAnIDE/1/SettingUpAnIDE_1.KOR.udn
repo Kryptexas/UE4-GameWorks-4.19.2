@@ -1,0 +1,114 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title: 1 - Configuring your IDE to Build UE4
+Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
+Description:Learn how to configure your IDE to build UE4 in Debug and Release mode.
+Version: 4.13
+type:how to
+parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
+order: 1
+tags:Linux
+SkillLevel:Beginner
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/2 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+While some developers prefer to use standalone text editors and command line debuggers to modify their game's source code, most developers 
+prefer to use an Integrated Development Environment (IDE) to edit, debug, and compile their code. If you're a game developer looking to setup 
+an IDE to work with Unreal Engine 4 (UE4) in a Linux environment, this guide is for you. 
+
+Although we recognize that chosing an IDE is a matter of individual preference, we've configured UE4 to interface with three IDEs in Linux; 
+specifically, Qt Creator, KDevelop, and Codelite. We don't endorse one IDE over another; however, as an example for learning purposes, we've chosen to 
+show you how to configure Qt Creator to build and run UE4. By the end of this guide, you'll know how to configure the IDE to build and run UE4. Finally, 
+you'll also learn how to setup the IDE to build and run new C++ (CPP) projects that you create from the Unreal Editor.
+
+[REGION:note]
+Before we begin, please make sure that you've already downloaded and built UE4 on Linux. Also, please make sure that Qt Creator is installed on your machine.
+[/REGION]
+
+1.	Launch Qt Creator, opening the **Qt Welcome** menu.
+
+	![](SetupIDE_Step1.png)
+
+1.	Click the **Open Project** button to open the Qt Project file browser.
+
+	![](SetupIDE_Step2.png)
+
+1.	Navigate to the directory where you built UE4, select the UE4 Qt Project (**UE4.pro**) file, and click the **Open** button.
+
+	![](SetupIDE_Step3.png)	
+
+1.	At this point, Qt Creator hasn't been configured to build UE4 in Debug and Release Mode. To get started, click the **Configure Project** button located in the **Configure Project** menu.
+
+	![](SetupIDE_Step4.png)
+
+1.	Now, click the **Projects** button to enter into Projects mode, opening the **Build Settings** menu.
+
+	![](SetupIDE_Step5.png)
+
+	[REGION:note]
+	When you open the **Build Settings** menu, you'll notice that Qt Creator defaults its **Edit build configuration: ** to **Debug** mode.
+	[region: lightbox]
+	[![](SetupIDE_Step5_Note.png)(w:347 h:249)](SetupIDE_Step5_Note.png)
+	[/region]
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+	[/REGION]
+
+1.	Under the **Build Steps** section, clear the **qmake** build step by clicking on the **X** button next to the **Details** drop down menu.
+
+	![](SetupIDE_Step6Alt.png)
+
+1.	Clear the **Shadow build** checkbox to cancel the selection. 
+
+	![](SetupIDE_Step7.png)
+
+	[REGION:note]
+	Shadow building allows you to build projects in a separate build directory with Qt Creator's qmake utility. Because UE4 is distributed with a custom Make file that makes use of 
+	Unreal Build Tool (UBT), you don't need to use Qt Creator's qmake utility.
+	[/REGION]
+
+1.	Now, click the **Details** drop down menu to open the input form for the **Make** build step.
+
+1.	Enter `UE4Editor` into the **Make arguments:** text field.
+
+	![](SetupIDE_Step9.png)
+
+1.	Under the **Clean Steps** section, click the **Details** drop down menu to open the input form for the **Make** clean step.
+
+1.	Replace `clean` by entering `UE4Editor ARGS="-clean"` into the text field.
+
+	![](SetupIDE_Step11.png)
+
+1.	Now, click the build mode drop down menu and select **Release** to open the **Build Settings** for Release mode.
+
+	![](SetupIDE_Step12.png)
+
+1.	Repeat Steps 6 through 11 to edit the build configuration settings for Release mode.
+
+	![](SetupIDE_Step13.png)
+
+	[REGION:note]
+	Read through our [](Programming/Development/BuildConfigurations) to learn more about the different configurations you can set your build environment to.
+	[/REGION]
+
+## End Result
+
+At this point, you've configured UE4 to build in both Debug and Release mode. Now, you're ready to configure Qt Creator to run UE4.
+
+%Steps%

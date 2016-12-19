@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:수학 표현식 노드
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:수학 표현식 노드는 수식을 직접 입력하면 적합한 서브 그래프를 만들어 해당 표현식을 생성해 줍니다.
 version: 4.9
 Parent:Engine/Blueprints
-Type:guide
+type:overview
 
 [VAR:Topic]
 [OBJECT:Topic]

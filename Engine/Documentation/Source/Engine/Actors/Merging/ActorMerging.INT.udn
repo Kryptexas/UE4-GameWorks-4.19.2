@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title:Actor Merging
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/Merging
 Description:How to use the Actor Merge tool to combine multiple Static Meshes into one in UE4.

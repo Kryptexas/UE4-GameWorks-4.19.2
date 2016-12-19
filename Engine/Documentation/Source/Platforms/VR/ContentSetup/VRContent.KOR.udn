@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3032506
+﻿INTSourceChangelist:3172421
 Availability:Public
 Title:가상 현실 실전 사례
 Crumbs:%ROOT%, Platforms, Platforms/VR
@@ -69,7 +69,6 @@ VR 프로젝트를 새로 만들 때, 프로젝트가 블루프린트 기반이�
 	r.screenpercentage=130
 	r.SeparateTranslucency=0
 	r.HZBOcclusion=0
-	r.FinishCurrentFrame=1
 	r.MotionBlurQuality=0
 	r.PostProcessAAQuality=3
 	r.BloomQuality=1
@@ -123,6 +122,17 @@ VR 에 쓰기에 너무 비싼 애셋을 찾아내기 위해서는, 프로파일
 	![](VR_GPU_Profiler.png)
 
 * **CPU 프로파일러** - 프로젝트의 CPU 비용을 알아내는 작업은 GPU 보다는 약간 복잡합니다. 그 자세한 방법은 [](Engine/Performance/Profiler) documents. 
+
+## VR 포워드 렌더링
+
+![](Engine\Performance\ForwardRenderer\ForwardRenderingBanner.png)(w:840)
+
+[INCLUDE:Engine\Performance\ForwardRenderer#intro]
+
+[REGION:note]
+이 기능에 대한 상세 정보는 [](Engine\Performance\ForwardRenderer) 문서를 참고하세요.
+[/REGION]
+
 
 ## VR 포스트 프로세스 세팅
 
@@ -339,4 +349,4 @@ VR 에서 오브젝트의 노멀 맵을 볼 때, 그 임팩트가 예전만 못�
 |셰이더 유형 | 설명 |
 |---|---|
 |[패럴랙스 매핑](http://en.wikipedia.org/wiki/Parallax_mapping)| 패럴랙스 매핑은 노멀 매핑이 고려하지 않는 뎁스 큐를 고려하여 한 단계 발전된 것입니다. 패럴랙스 매핑 셰이더는 오브젝트의 디테일을 원래보다 살려 주어 깊이 정보를 더욱 잘 표시해 줍니다. 그 이유는 어느 각도에서 보든, 패럴랙스 맵은 그 시점에서 올바른 깊이 정보를 표시하는 데 그 자체적으로는 항상 맞기 때문입니다. 패럴랙스 맵을 사용하기 가장 좋은 곳은, 자갈밭 길이나 디테일이 세밀한 표면입니다.
-|[테셀레이션 셰이더 디스플레이스먼트](Resources/ContentExamples/MaterialNodes/1_11) | 테셀레이션 셰이더 디스플레이스먼트는 모델링되지 않은 디테일을 오브젝트 속에 추가하여 3D 지오메트리를 실시간 대체하는 것입니다. 테셀레이션 셰이더는 정보 표시에 정말이지 뛰어난데, 테셀레이션 셰이더가 실시간으로 버텍스를 추가 생성하여 3D 스페이스에 대체시켜 실제로 빠져있는 디테일을 만들어내 주기 때문입니다. |
+

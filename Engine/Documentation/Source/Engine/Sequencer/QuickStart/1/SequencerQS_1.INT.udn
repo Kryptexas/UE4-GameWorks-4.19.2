@@ -8,7 +8,7 @@ Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
 checkpoint: sequencerqs
 parent:Engine/Sequencer/QuickStart
-type:sequential
+type:multi-step
 order:1
  
 [NAV]

@@ -1,8 +1,11 @@
 Title:TSet
 Crumbs:
-Description:
-Availability:Docs
-Version:4.12
+Description:TSets are a fast container class to store (usually) unique elements in a context where the order is irrelevant. 
+Availability:Public
+Version:4.14
+Related:Engine/UI/LevelEditor/Details/Properties/Set
+
+[TOC]
 
 **TSet** is similar to **TMap** and **TMultiMap**, but with an important difference: Rather than associating elements with separately-provided keys, a TSet uses the element itself as the key, via an overridable function that evaluates the element. TSets are very fast (constant time) for adding, finding, and removing elements. By default, TSets do not permit duplicate keys, but this behavior is supported, should it be desired.
 
@@ -10,7 +13,7 @@ Version:4.12
 
 TSets are a fast container class to store (usually) unique elements in a context where the order is irrelevant. For most use cases, just one parameter - the element type - is needed. However, TSet can be set up with different template parameters to change its behavior and make it more versatile. a derived struct based on `DefaultKeyFuncs` can be specified to provide hashing functionality, as well as permitting multiple keys with the same value to exist in the set. Finally, like the other container classes, a custom allocator for the elements can be specified.
 
-Like TArray, TSet is a homogeneous container, meaning that all of its elements are strictly the same type.  TSet is also a value type and supports the usual copying, assignment, and destructor operations, as well as strong ownership of its elements, which will be destroyed when the set is destroyed. The key type must also be a value type.
+Like TArray, TSet is a homogeneous container, meaning that all of its elements are strictly the same type.  TSet is also a value type and supports the usual copying, assignment, and destructor operations, as well as strong ownership of its elements, which will be destroyed when the set is destroyed. The key type is also required to be a value type.
 
 TSet uses hashes, which means that the **KeyFuncs** template parameter if provided, tells the set how to determine the key from an element, how to compare two keys for equality, how to hash the key, and whether or not duplicate keys will be permitted.  These have defaults which will just return a reference to the key, use `operator==` for equality, and the non-member `GetTypeHash` function for hashing.  If your key type supports these functions, it is usable as a set key without the need to provide a custom KeyFuncs. To write a custom KeyFuncs, extend the `DefaultKeyFuncs` struct.
 
@@ -63,6 +66,15 @@ It's also possible to insert all the elements from another set by using the Appe
 
 Here, the resulting set is equivalent to using Add/Emplace to add them individually, so that duplicate keys from the source set replace ones in the target.
 
+### Editing UPROPERTY TSets
+
+If you mark the TSet with the `UPROPERTY()` macro and one of the editable keywords (`EditAnywhere`, `EditDefaultsOnly`, `EditInstanceOnly`), you can [add and edit elements in Unreal Editor](Engine/UI/LevelEditor/Details/Properties/Set).
+
+	UPROPERTY(Category = SetExample, EditAnywhere)
+	TSet<FString> FruitSet;
+
+
+
 ## Iteration
 
 Iteration over TSets is similar to TArrays.  You can use C++'s ranged-for feature:
@@ -95,7 +107,7 @@ We can ask the set how many elements it holds by using the **Num** function:
 	int32 Count = FruitSet.Num();
 	// Count == 8
 
-We can use the `FSetElementId` struct to find the index of a key within the set. This enables us to look at that element via the indexing operator[]. Calling operator[] on a non-const set will return a non-const reference and calling it on a const set will return a const reference.
+We can use the `FSetElementId` struct to find the index of a key within the set. This enables us to look at that element via the indexing **operator[]**. Calling operator[] on a non-const set will return a non-const reference and calling it on a const set will return a const reference.
 
 	FSetElementId BananaIndex = FruitSet.Index(TEXT("Banana"));
 	// BananaIndex is a value between 0 and (FruitSet.Num() - 1)
@@ -132,27 +144,27 @@ Most of the time, you will want to look up elements without knowing whether or n
 
 If called on a const set, the returned pointer will also be const.
 
-The **Array** function returns a TArray populated with a copy of all the elements in the TSet.  In both cases, the array being passed is emptied before population, so the resulting number of elements will always equal the number of elements in the set:
+The **Array** function returns a TArray populated with a copy of all the elements in the TSet.  The array being passed is emptied before population, so the resulting number of elements will always equal the number of elements in the set:
 
 	TArray<FString> FruitArray = FruitSet.Array();
 	// FruitArray == [ "Banana","Grapefruit","Pineapple","Pear","Orange","Kiwi","Melon","Mango" ] (order may vary)
 
 ## Removal
 
-Elements can be removed by key with the **Remove** function:
+Elements can be removed by index with the **Remove** function, though this is recommended only for use while iterating through the elements:
 
-	FruitSet.Remove(TEXT("Banana");
+	FruitSet.Remove(0);
 	// FruitSet == [ "Grapefruit","Pineapple","Pear","Orange","Kiwi","Melon","Mango" ]
 
 Removing elements will actually leave holes in the data structure, which you can see when visualizing the set in Visual Studio's watch window, but they have been omitted here for clarity. If a TSet supports duplicate keys, **Remove** will remove all keys that match the input parameter. The Remove function returns the number of elements removed, and will be 0 if the key provided was not contained in the set.
 
-	int32 RemovedAmountPineapple = FruitSet.FindAndRemoveChecked(TEXT("Pineapple"));
+	int32 RemovedAmountPineapple = FruitSet.Remove(TEXT("Pineapple"));
 	// RemovedAmountPineapple == 1
 	// FruitSet == [ "Grapefruit","Pear","Orange","Kiwi","Melon","Mango" ]
-	FString RemovedAmountLemon = FruitSet.FindAndRemoveChecked("Lemon"); // assert!
+	FString RemovedAmountLemon = FruitSet.Remove(TEXT("Lemon"));
 	// RemovedAmountLemon == 0
 
-Finally, all elements can be removed by using the **Empty** function:
+Finally, all elements can be removed by using the **Empty** or **Reset** function:
 
 	TSet<FString> FruitSetCopy = FruitSet;
 	// FruitSetCopy == [ "Grapefruit","Pear","Orange","Kiwi","Melon","Mango" ]
@@ -160,11 +172,11 @@ Finally, all elements can be removed by using the **Empty** function:
 	FruitSetCopy.Empty();
 	// FruitSetCopy == []
 
-Like TArray, Empty takes an optional slack value which can be used to optimize the case when you are about to repopulate the set with a given number of elements.
+Like the TArray equivalent, Empty takes an optional slack value (the default is zero) which is used to resize the internal storage array after emptying the set. This value is used as the array's new maximum size. No reallocation occurs if the array's current maximum size is the same as the slack argument.
 
 ## Sorting
 
-TSets can temporarily be sorted with the **Sort** function.  The next iteration over the set will present the elements in sorted order, though future modifications to the set will likely result in the set being unsorted again.  Sorting is unstable, so equivalent elements (in a TSet that permits duplicate keys) may appear in any order.
+TSets can temporarily be sorted with the **Sort** function.  The next iteration over the set will present the elements in sorted order, though future modifications to the set will likely result in the set being unsorted again. Sorting is unstable, so equivalent elements (in a TSet that permits duplicate keys) may appear in any order.
 
 The Sort function takes a binary predicate which specifies the sort order:
 
@@ -191,12 +203,12 @@ Like TArray, TSet is a regular value type and as such can be copied via the stan
 
 ## Slack
 
-TSets also have a notion of **slack** and this can be used to optimize the population of the set.  The **Reset** function acts like an Empty() call, but does not free the memory that was previously used by the elements:
+TSets have a notion of **slack**, and this can be used to optimize the population of the set.  The **Reset** function acts like an Empty() call, but does not free the memory that was previously used by the elements:
 
 	FruitSet.Reset();
 	// FruitSet == [ <invalid>, <invalid>, <invalid>, <invalid>, <invalid>, <invalid> ]
 
-Here the set is emptied in the same way as Empty would, but the memory used for storage is not freed and remains as slack.
+Here the set is emptied in the same way as Empty would, but the memory used for storage is not freed and remains as slack. If a slack value greater than the array's current maximum size is specified, memory will be reallocated to increase the array's capacity up to that slack value.
 
 TSet does not provide a way of checking how many elements are preallocated, like TArray::Max() does, but still supports preallocating slack.  The Reserve function can be used to preallocate slack for a particular number of elements before adding:
 
@@ -221,9 +233,9 @@ The **Shrink** function also works like the TArray equivalent in that it removes
 	FruitSet.Shrink();
 	// FruitSet == ["Fruit8", <invalid>, "Fruit6", <invalid>, "Fruit4", <invalid>, "Fruit2", <invalid>, "Fruit0" ]
 
-Note that only one invalid element has been removed by the Shrink call, because there was only one hole at the end.  The **Compact** function can be used to remove all the holes before shrinking:
+Note that only one invalid element has been removed by the Shrink call, because there was only one hole at the end.  The **Compact** function can be used to remove all the holes before shrinking. If preserving order is important, the **CompactStable** function can be used, but remember that many other TSet operations do not guarantee order stability:
 
-	FruitSet.Compact();
+	FruitSet.CompactStable();
 	// FruitSet == ["Fruit8", "Fruit6", "Fruit4", "Fruit2", "Fruit0", <invalid>, <invalid>, <invalid>, <invalid> ]
 	FruitSet.Shrink();
 	// FruitSet == ["Fruit8", "Fruit6", "Fruit4", "Fruit2", "Fruit0" ]
@@ -248,5 +260,6 @@ A note about providing your own DefaultKeyFuncs: be aware that TSet assumes that
 
 The **CountBytes** and **GetAllocatedSize** functions are used to estimate how much memory is currently being utilized by the internal array.  CountBytes takes an FArchive and GetAllocatedSize can be called directly.  They are typically used for stats reporting.
 
-The **Dump** function takes an FOutputDevice and writes out some implementation information about the contents of the set.  It's usually used for debugging.
+The **Dump** function takes an FOutputDevice and writes out some implementation information about the contents of the set. There is also a **DumpHashElements** function, which lists all elements from all hash entries. These are usually used for debugging.
 
+TSets can be tagged with UPROPERTY for the purposes of automatic serialization, garbage collection, .ini file settings, and editing via the Details panel or as Blueprint defaults. Currently, inline editing of sets is limited to treating the set as a list of values. For example, a TSet of int32s might look like **(1,2,3)**, while a TSet of FNames might appear as **("One","Two","Three")**. Similar to TMap, TSet properties do not currently work as replicated members, and they cannot be accessed by Blueprints.

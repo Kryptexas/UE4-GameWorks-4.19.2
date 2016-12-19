@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2872097
+﻿INTSourceChangelist:3151855
 Availability:Docs
 Title:파티클 모듈 테크니컬 가이드
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:새로운 파티클 모듈을 추가하여 파티클 시스템 작동방식을 임의로 수정하는 법에 대한 프로그래머 안내서입니다.
 Version: 4.9
+tags:Rendering
 
 [TOC (start:2 end:3)]
 

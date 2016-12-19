@@ -4,46 +4,32 @@ Crumbs: %ROOT%, Programming
 Description:Setting up your code environment, creating code projects, and working with Unreal Engine source.
 version: 4.9
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		General Developer Information
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Programming/Development/VisualStudioSetup "%Programming/Development/VisualStudioSetup:description%")
-		* [](Programming/Development/Tools "%Programming/Development/Tools:description%")
-		* [](Programming/Development/CodingStandard "%Programming/Development/CodingStandard:description%")
-	[/PARAM]
-[/OBJECT]
+## General Developer Information
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		Working With Code Projects
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Programming/Development/ManagingGameCode "%Programming/Development/ManagingGameCode:description%")
-			* [](Programming/Development/ManagingGameCode/CppClassWizard "%Programming/Development/ManagingGameCode/CppClassWizard:description%")
-		* [](Programming/Development/CompilingProjects "%Programming/Development/CompilingProjects:description%")
-	[/PARAM]
-[/OBJECT]
+[REGION:buttonlist]
+* [](Programming/Development/VisualStudioSetup "%Programming/Development/VisualStudioSetup:description%")
+* [](Programming/Development/Tools "%Programming/Development/Tools:description%")
+* [](Programming/Development/CodingStandard "%Programming/Development/CodingStandard:description%")
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		Working With Engine Source
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](GettingStarted/DownloadingUnrealEngine "%GettingStarted/DownloadingUnrealEngine:description%")
-		* [](Programming/Development/BuildingUnrealEngine "%Programming/Development/BuildingUnrealEngine:description%")
-	[/PARAM]
-[/OBJECT]
+## Working With Code Projects
+
+[REGION:buttonlist]
+* [](Programming/Development/ManagingGameCode "%Programming/Development/ManagingGameCode:description%")
+	* [](Programming/Development/ManagingGameCode/CppClassWizard "%Programming/Development/ManagingGameCode/CppClassWizard:description%")
+* [](Programming/Development/CompilingProjects "%Programming/Development/CompilingProjects:description%")
+[/REGION]
+
+## Working With Engine Source
+
+[REGION:buttonlist]
+* [](GettingStarted/DownloadingUnrealEngine "%GettingStarted/DownloadingUnrealEngine:description%")
+* [](Programming/Development/BuildingUnrealEngine "%Programming/Development/BuildingUnrealEngine:description%")
+[/REGION]
+
+## Creating Engine Builds
+
+[REGION:buttonlist]
+* [](Programming/Development/BuildGraph "%Programming/Development/BuildGraph:description%")
+* [](Programming/Development/InstalledBuildReference "%Programming/Development/InstalledBuildReference:description%")
+[/REGION]

@@ -1,0 +1,161 @@
+﻿INTSourceChangeList:3227669
+Availability:Docs
+Title:VR ステレオ レイヤー
+Crumbs:%ROOT%, Platforms, Platforms/VR
+Description:VR ステレオ レイヤーの設定と操作方法
+Navigation:platform
+Version:4.14
+parent:Platforms/VR
+type:overview
+Skilllevel:Intermediate
+
+[TOC(start:2)]
+
+Virtuality Reality (VR) ステレオ レイヤーは、別々のテクスチャを VR ヘッドマウント ディスプレイ (HMD) に送り、そのまま個別のレンダリング パスに再投影する機能です。ポストプロセスやアンチ エイリアシングの影響を受けずに User Interface (UI) エレメントを HMD にアタッチしたい場合に非常に便利です。以下の操作ガイドでは、サポートされているすべての VR プラットフォームでステレオ レイヤーを設定および使用する方法について説明します。  
+
+
+## サポート対象プラットフォーム 
+
+VR Stereo Layers 以下の VR と使用した場合のみ機能します。 
+
+* **Oculus VR**
+* **Gear VR**
+* **Steam VR**
+* **PSVR**
+
+## ステレオ レイヤーの設定
+
+プロジェクトでこの機能を使用するには、以下の手順を行います。
+
+1. Stereo Layers を使いたいポーンを開いて **[Viewport]** パネルを開きます。
+
+    [REGION:lightbox]
+    [![](VRSL_Pawn_Setup_01.png)(w:667)](VRSL_Pawn_Setup_01.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. **[Add Components (コンポーネントを追加)]** ボタンをクリックして、表示されたドロップダウン リストの中で **Stereo Layer** コンポーネントを探します。クリックしてポーンに追加します。
+
+    [REGION:lightbox]
+    [![](VRSL_Pawn_Setup_02.png)(w:667)](VRSL_Pawn_Setup_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. Stereo Layer コンポーネントをポーンのカメラ上にドラッグして、カメラの子アクタを作成します。
+
+    [REGION:lightbox]
+    [![](VRSL_Pawn_Setup_03.png)](VRSL_Pawn_Setup_03.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. コンポーネント リストから Stereo Layer コンポーネントを選択し、**[Details (詳細)]** パネルの **[Transform]** セクションで、**[Location]** の **[X]** 値を **「100」** にして VR で見やすいようにします。
+
+    [REGION:lightbox]
+    [![](VRSL_Pawn_Setup_04.png)(w:667)](VRSL_Pawn_Setup_04.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. **[Details (詳細)]** パネルで、**[Stereo Layer]** セクションを展開します。
+
+    [REGION:lightbox]
+    [![](VRSL_Pawn_Setup_05.png)(w:667)](VRSL_Pawn_Setup_05.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. **コンテンツ ブラウザ** で、表示したいテクスチャをクリックして選択します。Pawn ブループリントの [Stereo Layers] セクションに戻って、**Texture** 入力の横の **白い三角** を押して Stereo Layer が表示するテクスチャの使用を指定します。
+
+    [REGION:lightbox]
+    [![](VRSL_Pawn_Setup_06.png)(w:522)](VRSL_Pawn_Setup_06.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. **[Play in VR]** ボタンを押して VR でプロジェクトを起動します。HMD を装着すると、Texture 入力で指定したテクスチャが正面に表示されます。そのテクスチャは以下の動画のように、頭の動きに合わせて、できるだけ早くぴったりと HMD に付いてきます。
+
+    [OBJECT:EmbeddedVideo]
+        [PARAMLITERAL:width]
+        640
+        [/PARAMLITERAL]
+        [PARAMLITERAL:height]
+        360
+        [/PARAMLITERAL]
+        [PARAMLITERAL:videoid]
+        Eb_kndx6tac
+        [/PARAMLITERAL]
+    [/OBJECT]
+
+    [region:note]
+    プロジェクトを VR で表示した時に選択したテクスチャが現れない場合は、Texture Compressions 設定が正しくされているかを確認してください。使用する HMD の設定は、[Stereo Layers Texture Compression 設定] セクションで確認することができます。
+    [/region]
+
+## Stereo Layers Texture Compression 設定
+
+使用する HMD によっては、表示するテクスチャの Compression 設定を調整する必要な場合があります。各種 HMD で正確に表示するために、ステレオ レイヤーに必要な Texture Compression 設定に関する情報をご覧いただけます。
+
+[REGION:lightbox]
+[![](VRSL_Texture_Settings.png)(w:667)](VRSL_Texture_Settings.png)
+[/REGION]
+
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
+
+|HMD 名| 必要な Texture Compression 設定|
+|---------------|----------------------------------------------------|
+|Oculus Rift| なし|
+|Gear VR| なし|
+| HTC Vive| UserInterFace2D (RGBA)|
+|PSVR| なし|
+
+## Stereo Layer のプロパティの詳細
+
+Stereo Layer にはレンダリング方法を設定するプロパティが数多くあります。これらの設定名およびステレオ レイヤーに与える影響をまとめた表がこちらです。
+
+![](VRSL_Prop_Breakdown_00.png)
+
+|設定名| 説明|
+|---------------|----------------------------------------------------|
+|Live Texture|ステレオ レイヤー テクスチャ自体をフレームごと (シーン、キャプチャ、ビデオなど) に更新する必要があれば True を設定します。|
+|Supports Depth|プラットフォームで使用可能な場合、ステレオ レイヤーがシーン ジオメトリとの深度交差をサポートする必要があれば True を設定します。|
+|No Alpha Channel|テクスチャがそのアルファ チャネルを使用すべきでない場合 (1.0 を代用) は True を設定します。|
+|Texture|ステレオ レイヤーに表示するテクスチャ (ステレオスコピック テクスチャがプラットフォームでサポートされ、2 つ以上のテクスチャが提供されている場合は右目用になります)。|
+|Quad Preserve Texture Ratio|設定されたテクスチャのディメンションを基に、クワッドが Y 値を内部設定する必要があれば True を設定します。|
+|Stereo Layer Type|クワッドの画面へのレンダリング方法とレンダリング場所を指定します。|
+|Stereo Layer Shape|レイヤーのタイプを指定します。形状によっては、一定のプラットフォームのみしかサポートしていない場合もあるのでご注意ください！|
+|Priority|すべてのステレオのレンダリング優先度です。高い方が低い方に優先します。|
+|Left Texture|プラットフォームがステレオスコピック テクスチャをサポートしている場合、左目用のステレオ レイヤーに表示されるテクスチャです。|
+|Quad Size|レンダリングされたステレオ レイヤー クワッドのサイズです。|
+|UVRect|クワッド フェースにマップされた UV 座標です。|
+|Cylinder Radius|レンダリングされたステレオ レイヤー シリンダーの半径です。|
+|Cylinder Overly Arc|ステレオ レイヤー シリンダーの円弧の角度です。|
+|Cylinder Height|ステレオ レイヤー シリンダーの高さです。|
+
+
+
+
+
+
+
+
+
+
+
+
+

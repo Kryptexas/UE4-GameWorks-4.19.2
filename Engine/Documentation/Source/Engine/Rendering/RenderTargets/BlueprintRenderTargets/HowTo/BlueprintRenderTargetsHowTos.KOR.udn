@@ -1,57 +1,23 @@
-﻿INTSourceChangelist:0
-availability:docs
-title: Blueprint and Render Targets - How Tos
-description: A How To Guide for using Blueprints to manipulate render targets. 
-crumbs:
+﻿INTSourceChangelist:3216146
+availability:Docs
+title: Blueprint and Render Targets How To's
+description: How to guides for using Blueprints to manipulate render targets. 
+crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
-Type:topic
-SkillLevel:Intermediate
-parent:Engine
-order:2
-Navigation:topic
+Type:how-to
+parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets
+Navigation:landing
+tags: Render Targets
+tags: Blueprint
+topic-image:Engine/Rendering/RenderTargets/Render_Targets_Best_Practies.png
 
-The **Blueprint and Render Targets - How To** pages provide step by step examples on how to use Blueprints to work with render targets. Whether you want to use Blueprints and render targets to create Textures for use in your project's Materials, or you want to create a surface that deforms when the player shoots at it, these pages will guide you on how to accomplish this. Reference links are also included to provi
+The following **Blueprint and Render Targets - How To** pages provide step-by-step examples on how to use Blueprints and render targets together in your Unreal Engine 4 (UE4) projects. 
+<!--Reference links are also included to provide you with additional information.-->
 
 ## Intermediate
-[REGION:wrapper transparent]
-[](FANCY:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\CreatingTextures "%Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\CreatingTextures:description%")
 
-[/REGION]
-
+[DIR(output:"fancy" parent:"Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo" skill_level:"Intermediate")]
 
 ## Advanced
-[REGION:wrapper transparent]
-[](FANCY:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter "%Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter:description%")
-[/REGION]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+[DIR(output:"fancy" parent:"Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo" skill_level:"Advanced")]

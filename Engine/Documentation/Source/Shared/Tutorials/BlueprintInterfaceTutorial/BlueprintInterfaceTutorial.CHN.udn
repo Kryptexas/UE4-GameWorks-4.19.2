@@ -1,19 +1,19 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:NoPublish
-Title:Blueprint Classes: Editor Overview
+Title:蓝图类：编辑器总览
 Crumbs:
-Description: The contents of all introductory tutorials for Unreal Engine 4
+Description:所有虚幻引擎 4 指导教程的内容
 
 [EXCERPT:Stage1]
 [VAR:StageTitle]
-Blueprint Class Walkthrough
+蓝图接口解读
 [/VAR]
 
-You have opened a Blueprint Class. 
+您已打开一个蓝图类。 
 
-The Blueprint Editor adapts to the type of Blueprint you are editing. This tutorial will walk you through the interface elements available to you when you edit Level Blueprints.
+蓝图编辑器自适应于正在编辑的蓝图类型。此教程将一一说明编辑关卡蓝图时可用的接口元素。
 
-[Read more about Blueprint Classes.](DOCLINK:Engine/Blueprints/UserGuide/Types/ClassBlueprint)
+[查阅更多蓝图类的相关内容](DOCLINK:Engine/Blueprints/UserGuide/Types/ClassBlueprint)
 
 
 
@@ -23,13 +23,13 @@ The Blueprint Editor adapts to the type of Blueprint you are editing. This tutor
 
 [EXCERPT:Stage15]
 [VAR:StageTitle]
-Defaults Mode
+默认（Defaults）模式
 [/VAR]
-When working with Blueprint Classes, there are three modes available in the Blueprint Editor. To switch between the modes, use the buttons on the right side of the Toolbar.
+使用蓝图类时，蓝图编辑器中有三种模式可用。使用工具栏右侧的按钮在模式之间进行切换。
 
-This button switches the Blueprint Editor to Defaults Mode. 
+此按钮将蓝图编辑器切换至 Defaults 模式。 
 
-**Click it now to switch to Defaults Mode, then click "Next" to continue.**
+**立即点击切换至 Defaults 模式，然后点击“Next”继续。**
 
 [/EXCERPT:Stage15]
 
@@ -37,12 +37,12 @@ This button switches the Blueprint Editor to Defaults Mode.
 
 [EXCERPT:Stage2]
 [VAR:StageTitle]
-Defaults
+默认
 [/VAR]
 
-The Class Defaults or Defaults mode displays all of the properties of the Blueprint. The values set for these properties in the Defaults mode will be used when new instances of the Blueprint are created.
+Class Defaults 或 Defaults 模式中显示蓝图的全部属性。Defaults 模式中为这些属性设置的值将在蓝图的新实例创建时使用。
 
-[Read more about Defaults mode.](DOCLINK:Engine/Blueprints/Editor/Modes/Defaults/DefaultsTab)
+[查阅更多 Defaults 模式的相关内容](DOCLINK:Engine/Blueprints/Editor/Modes/Defaults/DefaultsTab)
 
 
 
@@ -53,12 +53,12 @@ The Class Defaults or Defaults mode displays all of the properties of the Bluepr
 
 [EXCERPT:Stage3]
 [VAR:StageTitle]
-Components Mode
+组件（Components）模式
 [/VAR]
 
-This button switches the Blueprint Editor to Components Mode.
+此按钮将蓝图编辑器切换至 Components 模式。
 
-**Click it now to switch to Components Mode, then click "Next" to continue.**
+**立即点击切换至 Components 模式，然后点击“Next”继续。**
 
 [/EXCERPT:Stage3]
 
@@ -66,10 +66,10 @@ This button switches the Blueprint Editor to Components Mode.
 
 [EXCERPT:Stage3.1]
 [VAR:StageTitle]
-Components Mode
+组件（Components）模式
 [/VAR]
 
-In Components Mode, you can add components to your Blueprint, manage the details of existing components, and arrange components. The list of components in Components Mode is hierarchical.
+在 Components 模式中，可将组件添加到蓝图、管理现有组件的细节，并排列组件。Components 模式中的组件列表为层级结构。
 
 
 
@@ -79,12 +79,12 @@ In Components Mode, you can add components to your Blueprint, manage the details
 
 [EXCERPT:Stage3.2]
 [VAR:StageTitle]
-Viewport
+视口
 [/VAR]
 
-In the Viewport, you can view and manipulate your Blueprint's components. 
+可在视口中查看并操作蓝图的组件。 
 
-[Read more about the Viewport.](DOCLINK:Engine/Blueprints/Editor/UIComponents/Viewport)
+[查阅更多视口的相关内容](DOCLINK:Engine/Blueprints/Editor/UIComponents/Viewport)
 
 
 
@@ -95,12 +95,12 @@ In the Viewport, you can view and manipulate your Blueprint's components.
 
 [EXCERPT:Stage4]
 [VAR:StageTitle]
-Components
+组件
 [/VAR]
 
-The Components pane allows components to be added to the Blueprint upon creation. This provides a means of adding collision geometry via CapsuleComponents, BoxComponents, or SphereComponents, adding rendered geometry in the form of StaticMeshComponents or SkeletalMeshComponents, controlling movement using MovementComponents, etc. The components added in the Components list can also be assigned to instance variables providing access to them in the graphs of this or other Blueprints.
+蓝图创建后，可通过组件窗格添加至蓝图。这提供了通过 CapsuleComponents、BoxComponents 或 SphereComponents 添加碰撞几何体、以 StaticMeshComponents 或 SkeletalMeshComponents 的形式添加渲染几何体，使用 MovementComponents 控制运动等操作的方法。组件列表中添加的组件也可被指定到实例变量，以在这个或其他蓝图的图表中对它们进行访问。
 
-[Would you like to know more?](DOCLINK:Engine/Blueprints/UserGuide/Components)
+[您需要了解更多内容吗？](DOCLINK:Engine/Blueprints/UserGuide/Components)
 
 
 
@@ -111,12 +111,12 @@ The Components pane allows components to be added to the Blueprint upon creation
 
 [EXCERPT:Stage5]
 [VAR:StageTitle]
-Details
+细节（Details）
 [/VAR]
 
-The Details panel is a context-sensitive area that provides editing access to the properties of selected items within the Blueprint Editor. It contains a search bar for fast access to specific properties, and will generally contain one or more collapsible categories to organize the included properties.
+Details 面板时一个上下问相关的区域，可对蓝图编辑器中所选项目的属性进行编辑访问。它拥有一个搜索栏，便于快速访问特定属性。通常包含一个或多个可重叠类目，以便对所含的属性进行组织。
 
-[Read more about the Details panel.](DOCLINK:Engine/Blueprints/Editor/UIComponents/Details)
+[查阅更多 Details 面板的相关内容](DOCLINK:Engine/Blueprints/Editor/UIComponents/Details)
 
 
 
@@ -128,12 +128,12 @@ The Details panel is a context-sensitive area that provides editing access to th
 
 [EXCERPT:Stage6]
 [VAR:StageTitle]
-Graph Mode
+图表模式（Graph Mode）
 [/VAR]
 
-This button switches the Blueprint Editor to Graph Mode.
+此按钮将蓝图编辑器切换至 Graph 模式。
 
-**Click it now to switch to Graph Mode, then click "Next" to continue.**
+**立即点击切换至 Graph 模式，然后点击“Next”继续。**
 
 [/EXCERPT:Stage6]
 
@@ -143,10 +143,10 @@ This button switches the Blueprint Editor to Graph Mode.
 
 [EXCERPT:Stage7]
 [VAR:StageTitle]
-Graph Mode
+图表模式（Graph Mode）
 [/VAR]
 
-This is the Blueprint Editor's Graph Mode, where you can add and remove nodes, create variables and functions, and wire nodes together to create gameplay-driven functionality. Breakpoints can also be set in the Graph Mode to aid in debugging Blueprints.
+这便是蓝图编辑器的 Graph 模式，在此处可添加并移除节点、创建变量和函数、并将节点连接在一起创建游戏驱动的功能。也可在 Graph 模式中设置断点，帮助调试蓝图。
 
 
 
@@ -155,12 +155,12 @@ This is the Blueprint Editor's Graph Mode, where you can add and remove nodes, c
 
 [EXCERPT:Stage8]
 [VAR:StageTitle]
-The Graph
+图表
 [/VAR]
 
-The Graph Editor panel is the heart of the Blueprint system. It is here that you will create the networks of nodes and wires that will define your scripted behavior. Nodes can quickly be selected by clicking on them and repositioned via dragging. To switch to a new EventGraph, function graph, or macro graph, either select its tab at the top of the Graph Editor panel or double-click its name in the My Blueprint panel.
+Graph Editor 面板是蓝图系统的核心。可在此处创建定义脚本行为的节点和引线网络。点击可快速选中节点，拖拽可重新放置位置。如需切换至一个新事件图表、函数图表、或宏图表，可在 Graph Editor 面板顶部选择其标签，或在 My Blueprint 面板中双击其名称。
 
-[Read more about the Graph Editor panel.](DOCLINK:Engine/Blueprints/Editor/UIComponents/GraphEditor)
+[查阅更多 Graph Editor 面板的相关内容](DOCLINK:Engine/Blueprints/Editor/UIComponents/GraphEditor)
 
 
 
@@ -170,12 +170,12 @@ The Graph Editor panel is the heart of the Blueprint system. It is here that you
 
 [EXCERPT:Stage9]
 [VAR:StageTitle]
-My Blueprint
+我的蓝图（My Blueprint）
 [/VAR]
 
-The My Blueprint panel displays the variables, functions, graphs, macros, and events available to be used in the Level Blueprint. This is essentially an outline of the Blueprint that lets you easily view existing elements of the Blueprint, as well as create new ones.
+My Blueprint 面板显示关卡蓝图中可用的变量、函数、图表、宏和事件。这即为蓝图的概要，以便于您轻松查看蓝图的现有元素，并创建新元素。
 
-[Read more about the My Blueprint panel.](DOCLINK:Engine/Blueprints/Editor/UIComponents/MyBlueprint)
+[查阅更多 My Blueprint 面板的相关内容](DOCLINK:Engine/Blueprints/Editor/UIComponents/MyBlueprint)
 
 
 
@@ -186,14 +186,14 @@ The My Blueprint panel displays the variables, functions, graphs, macros, and ev
 
 [EXCERPT:Stage10]
 [VAR:StageTitle]
-Details
+细节（Details）
 [/VAR]
 
-The Details panel is a context-sensitive area that provides editing access to the properties of selected items within the Blueprint Editor. It contains a search bar for fast access to specific properties, and will generally contain one or more collapsible categories to organize the included properties.
+Details 面板时一个上下问相关的区域，可对蓝图编辑器中所选项目的属性进行编辑访问。它拥有一个搜索栏，便于快速访问特定属性。通常包含一个或多个可重叠类目，以便对所含的属性进行组织。
 
-When you first add a new variable to a Blueprint, you will need to compile the Blueprint once before you can edit the variable's value in the Details panel.
+首次为蓝图添加新变量时，需要对蓝图进行一次编译，然后才可在 Details 面板中编辑变量值。
 
-[Read more about the Details panel.](DOCLINK:Engine/Blueprints/Editor/UIComponents/Details)
+[查阅更多 Details 面板的相关内容](DOCLINK:Engine/Blueprints/Editor/UIComponents/Details)
 
 
 
@@ -203,14 +203,14 @@ When you first add a new variable to a Blueprint, you will need to compile the B
 
 [EXCERPT:Stage11]
 [VAR:StageTitle]
-Palette
+调色板（Palette）
 [/VAR]
 
-The Palette is like a toolbox, containing all the nodes you could add to your Blueprint. For easy access to the nodes you use most often, you can search, add nodes to your Favorites, or filter to show only nodes that are compatible with a specific class type. Adding nodes to a graph from the Palette is as simple as dragging and dropping.
+Palette 就像是一个工具箱，包含可添加到蓝图的所有节点。为便于访问最常使用的节点，您可搜索、添加节点到 Favorites，或进行过滤，只显示与特定类类型相兼容的节点。从 Palette 添加节点到图表的操作十分简单，进行拖放即可。
 
-The Palette is divided into two sections: Favorites and Find a Node.
+Palette 划分为两个部分：Favorites 和 Find a Node。
 
-[Read more about the Palette.](DOCLINK:Engine/Blueprints/Editor/UIComponents/Palette)
+[查阅更多 Palette 的相关内容](DOCLINK:Engine/Blueprints/Editor/UIComponents/Palette)
 
 
 
@@ -220,12 +220,12 @@ The Palette is divided into two sections: Favorites and Find a Node.
 
 [EXCERPT:Stage12]
 [VAR:StageTitle]
-Palette: Favorites
+Palette:Favorites
 [/VAR]
 
-You can save your most commonly used nodes in the Favorites section for quick access.  To add a node from the Find a Node section, right-click and select Add to Favorites from the menu. 
+可将最常用的节点保存在 Favorites 部分中，以便快速访问。如需从 Find a Node 部分添加节点，点击右键并从菜单中选择 Add to Favorites。 
 
-When using the Graph Editor panel's context menu, you can star nodes to add them to your favorites as well. 
+使用 Graph Editor 面板的快捷菜单时，也可将节点设为星标，将其添加到 favorites。 
 
 
 
@@ -235,10 +235,10 @@ When using the Graph Editor panel's context menu, you can star nodes to add them
 
 [EXCERPT:Stage13]
 [VAR:StageTitle]
-Palette: Find a Node
+Palette:Find a Node
 [/VAR]
 
-The Find a Node section of the Palette is an extensive directory of nodes. To refine this list, you can search, filter by compatible class, or browse by category. This section of the Palette also gives quick access to adding comments and Timelines. 
+Palette 的 Find a Node 部分是节点的延伸目录。如需对列表进行精简，可按兼容类进行搜索、过滤，或按类目进行浏览。Palette 的该部分也可快速添加评论和时间轴。 
 
 
 
@@ -249,13 +249,13 @@ The Find a Node section of the Palette is an extensive directory of nodes. To re
 
 [EXCERPT:Stage14]
 [VAR:StageTitle]
-Toolbar
+工具栏
 [/VAR]
-Much like the Blueprint Editor as a whole adapts to the type of Blueprint you are editing, the buttons on the Toolbar change depending on your current task.
+和蓝图编辑器作为整体自适应正在编辑的蓝图类型相似，工具栏上的按钮将基于当前任务发生变化。
 
-The Compile button highlighted here will compile your Blueprint, and will display warnings or errors if there is an issue you need to address. 
+此处高亮的 Compile 按钮将对蓝图进行编译，存在需要处理的问题时将显示警告或错误。 
 
-[Read more about the Toolbar.](DOCLINK:Engine/Blueprints/Editor/UIComponents/Toolbar)
+[查阅更多工具栏的相关内容](DOCLINK:Engine/Blueprints/Editor/UIComponents/Toolbar)
 
 
 
@@ -264,12 +264,12 @@ The Compile button highlighted here will compile your Blueprint, and will displa
 
 [EXCERPT:Stage20]
 [VAR:StageTitle]
-Complete
+完成
 [/VAR]
 
-You have now completed the Blueprint Class's Editor Overview.
+蓝图类的编辑器总览现已讲述完毕。
 
-To get started with your Blueprint Class, just close the tutorial window. If you are interested in reading more about Blueprints, click the link below.
+关闭教程窗口即可开始使用蓝图类。如有兴趣查阅关于蓝图的更多内容，请点击下方的链接。
 
 [Blueprints](DOCLINK:Engine/Blueprints)
 [/EXCERPT:Stage20]

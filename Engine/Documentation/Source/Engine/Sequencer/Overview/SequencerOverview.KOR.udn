@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3075953
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title: 시퀀서 개요
 Crumbs: %ROOT%, Engine
@@ -257,6 +257,17 @@ EDL 사용법 단계별 안내는 [](Engine/Sequencer/HowTo/ImportExportEDLs) �
 [/REGION]
 [/PUBLISH:docs]
 
+[PUBLISH:docs]
+### 커스텀 렌더 패스
+
+시네마틱을 다른 렌더 패스로 익스포트하려는 경우, **Render Movie Settings** (렌더 무비 세팅) 창에서 할 수 있습니다.
+여기서 시퀀스를 익스포트할 때 사용할 렌더 패스를 지정할 수 있습니다. HDR 데이터를 .exr 파일로 익스포트하여 압축 방식이나 색 공간 세팅을 정의할 수 있습니다.
+
+
+[REGION:note]
+자세한 정보는 [](Engine\Sequencer\Workflow\CustomRenderPass) 문서를 참고하세요.
+[/REGION]
+[/PUBLISH:docs]
 
 
 ## 작업방식 고려사항

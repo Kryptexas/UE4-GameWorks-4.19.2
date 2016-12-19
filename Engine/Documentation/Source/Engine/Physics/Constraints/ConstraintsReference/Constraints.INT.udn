@@ -2,58 +2,22 @@ Availability: Public
 Title:Physics Constraint Reference
 Crumbs: %ROOT%, Engine, Engine/Physics
 Description:A reference for all the properties available on Physics Constraints in Unreal Editor.
-Version: 4.9
+parent:Engine/Physics/Constraints
+order:1
+Version: 4.13
+topic-image:Engine/Physics/physics_topic.png
+tags:Physics
+SkillLevel: Beginner
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/Constraints/ConstraintsReference:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/Constraints/ConstraintsReference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/Constraints/ConstraintsReference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Constraints/ConstraintsReference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/Constraints/ConstraintsReference:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/Constraints/ConstraintsReference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/Constraints/ConstraintsReference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Constraints/ConstraintsReference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
 
-
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
 This page contains a reference listing of properties in the Physics Constraints. 
 
 ## Properties
 
 Below are the properties for Physics Constraints separated by major category.
-
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
-
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
@@ -74,14 +38,13 @@ Below are the properties for Physics Constraints separated by major category.
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Constraint Actor 1** || %doxygen:UPhysicsConstraintComponent::ConstraintActor1% |
-| **Component Name 1** || %doxygen:UPhysicsConstraintComponent::ComponentName1% |
-| **Constraint Actor 2** || %doxygen:UPhysicsConstraintComponent::ConstraintActor2% |
-| **Component Name 2** || %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
-| **Joint Name** || %doxygen:FConstraintInstance::JointName% |
-| **Constraint Bone 1** || %doxygen:FConstraintInstance::ConstraintBone1% |
-| **Constraint Bone 2** || %doxygen:FConstraintInstance::ConstraintBone2% |
-| **Disable Collision** || %doxygen:FConstraintInstance::bDisableCollision% |
+| **Constraint Actor 1** || When a **Physics Constraint** is placed into the level editor you must specify **Actors** to constrain. This is the first of 2 **Actors**. |
+| **Component Name 1** || The first target component that will be constrained. This can be specified when using **Actors** to constrain only a specific component and not the **Actor** root. |
+| **Constraint Actor 2** || When a **Physics Constraint** is placed into the level editor you must specify **Actors** to constrain. This is the second of 2 **Actors**. |
+| **Component Name 2** || The second target component that will be constrained. This can be specified when using **Actors** to constrain only a specific component and not the **Actor** root.  |
+| **Joint Name** || When constraining in the **Physics Asset Tool**, this is the name of the Bone that is initially constrained. |
+| **Constraint Bone 1** || When constraining in the **Physics Asset Tool**, this is the name of the first joint to constrain. |
+| **Constraint Bone 2** || When constraining in the **Physics Asset Tool**, this is the name of the second joint to constrain. |
 [/REGION]
 
 [/VAR]
@@ -93,7 +56,7 @@ Below are the properties for Physics Constraints separated by major category.
 		proj
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Projection
+		Constraint Behavior
 	[/PARAM]
 	[PARAM:content]
 		%p2%
@@ -107,16 +70,17 @@ Below are the properties for Physics Constraints separated by major category.
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Enable Projection** || %doxygen:FConstraintInstance::bEnableProjection% |
-| **Projection Linear Tolerance** || %doxygen:FConstraintInstance::ProjectionLinearTolerance% |
-| **Projection Angular Tolerance** || %doxygen:FConstraintInstance::ProjectionAngularTolerance% |
+| **Disable Collision** || This disables collision between the constrained components. |
+| **Enable Projection** || If the distance error between bodies exceeds **Projection Linear Tolerance** value, or rotational error exceeds **Projection Angular Tolerance**, the Physics Body will be projected to fix this. This fixes cases where the visuals look disconnected, such as individual chain links breaking away from each other. |
+| **Projection Linear Tolerance** || If the distance error exceeds this value, in world units, the body will be projected. |
+| **Projection Angular Tolerance** || If the rotational error exceeds this value, in degrees, the body will be projected. |
 [/REGION]
 
 [/VAR]
 
 
 
-
+<!--
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		join
@@ -142,6 +106,7 @@ Below are the properties for Physics Constraints separated by major category.
 [/REGION]
 
 [/VAR]
+-->
 
 
 
@@ -164,10 +129,11 @@ Below are the properties for Physics Constraints separated by major category.
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Linear XMotion** || %doxygen:FConstraintInstance::LinearXMotion% |
-| **Linear YMotion** || %doxygen:FConstraintInstance::LinearYMotion% |
-| **Linear ZMotion** || %doxygen:FConstraintInstance::LinearZMotion% |
-| **Linear Limit Size** || %doxygen:FConstraintInstance::LinearLimitSize% |
+| **XMotion** || Indicates the linear constraint applied along the X-axis. [INCLUDE:#linearMotionEnum] |
+| **YMotion** || Indicates the linear constraint applied along the Y-axis. [INCLUDE:#linearMotionEnum] |
+| **ZMotion** || Indicates the linear constraint applied along the Z-axis. [INCLUDE:#linearMotionEnum] |
+| **Limit** || The distance allowed between the two joint reference frames. |
+| **Scale Linear Limits** || If true, linear limits scale using the absolute min of the 3D scale of the owning component. |
 [/REGION]
 
 ### Advanced
@@ -177,11 +143,13 @@ Below are the properties for Physics Constraints separated by major category.
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Linear Limit Soft** || %doxygen:FConstraintInstance::bLinearLimitSoft% |
-| **Linear Limit Stiffness** || %doxygen:FConstraintInstance::LinearLimitStiffness% |
-| **Linear Limit Damping** || %doxygen:FConstraintInstance::LinearLimitDamping% |
-| **Linear Breakable** || %doxygen:FConstraintInstance::bLinearBreakable% |
-| **Linear Break Threshold** || %doxygen:FConstraintInstance::LinearBreakThreshold% |
+| **Soft Constraint** || Whether we want to use a soft constraint (spring). |
+| **Stiffness** || Stiffness of the soft constraint. Only used when Soft Constraint is on. |
+| **Damping** || Damping of the soft constraint. |
+| **Restitution** || Controls the amount of bounce when the constraint is violated. |
+| **Contact Distance** || Determines how close to the limit we have to get before turning the joint on. |
+| **Linear Breakable** || Whether it is possible to break the joint with linear force. |
+| **Linear Break Threshold** || Force needed to break the distance constraint.  |
 [/REGION]
 
 [/VAR]
@@ -210,13 +178,13 @@ Below are the properties for Physics Constraints separated by major category.
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Angular Swing 1Motion** || %doxygen:FConstraintInstance::AngularSwing1Motion% |
-| **Angular Twist Motion** || %doxygen:FConstraintInstance::AngularTwistMotion% |
-| **Angular Swing 2Motion** || %doxygen:FConstraintInstance::AngularSwing2Motion% |
-| **Swing 1Limit Angle** || %doxygen:FConstraintInstance::Swing1LimitAngle% |
-| **Twist Limit Angle** || %doxygen:FConstraintInstance::TwistLimitAngle% |
-| **Swing 2Limit Angle** || %doxygen:FConstraintInstance::Swing2LimitAngle% |
-| **Angular Rotation Offset** || %doxygen:FConstraintInstance::AngularRotationOffset% |
+| **Swing 1Motion** || Indicates whether the Swing1 limit is used. [INCLUDE:#angularMotionEnum]  |
+| **Swing 2Motion** || Indicates whether the Swing2 limit is used. [INCLUDE:#angularMotionEnum] |
+| **Twist Motion** || Indicates whether the Twist limit is used. [INCLUDE:#angularMotionEnum] |
+| **Swing 1Limit Angle** || Angle of movement along the **XY** Plane. |
+| **Twist Limit Angle** || Angle of movement along the **XZ** Plane. |
+| **Swing 2Limit Angle** || Symmetric angle of roll along the X-axis. |
+| **Angular Rotation Offset** || Specifies the angular offset between the two frames of reference. By default this limit goes from (-Angle, +Angle). |
 [/REGION]
 
 ### Advanced
@@ -226,14 +194,21 @@ Below are the properties for Physics Constraints separated by major category.
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Swing Limit Soft** || %doxygen:FConstraintInstance::bSwingLimitSoft% |
-| **Swing Limit Stiffness** || %doxygen:FConstraintInstance::SwingLimitStiffness% |
-| **Swing Limit Damping** || %doxygen:FConstraintInstance::SwingLimitDamping% |
-| **Twist Limit Soft** || %doxygen:FConstraintInstance::bTwistLimitSoft% |
-| **Twist Limit Stiffness** || %doxygen:FConstraintInstance::TwistLimitStiffness% |
-| **Twist Limit Damping** || %doxygen:FConstraintInstance::TwistLimitDamping% |
-| **Angular Breakable** || %doxygen:FConstraintInstance::bAngularBreakable% |
-| **Angular Break Threshold** || %doxygen:FConstraintInstance::AngularBreakThreshold% |
+| [REGION:tablesection]**Swing Limits**[/REGION] |||
+| **Soft Constraint** || Whether we want to use a soft constraint (spring). |
+| **Stiffness** || Stiffness of the soft constraint. Only used when Soft Constraint is on. |
+| **Damping** || Damping of the soft constraint. |
+| **Restitution** || Controls the amount of bounce when the constraint is violated. |
+| **Contact Distance** || Determines how close to the limit we have to get before turning the joint on. |
+| [REGION:tablesection]**Twist Limits**[/REGION] |||
+| **Soft Constraint** || Whether we want to use a soft constraint (spring). |
+| **Stiffness** || Stiffness of the soft constraint. Only used when Soft Constraint is on. |
+| **Damping** || Damping of the soft constraint. |
+| **Restitution** || Controls the amount of bounce when the constraint is violated. |
+| **Contact Distance** || Determines how close to the limit we have to get before turning the joint on. |
+| [REGION:tablesection]**Breakable**[/REGION] |||
+| **Angular Breakable** || Whether it is possible to break the joint with angular force. |
+| **Angular Break Threshold** || Torque needed to break the joint. |
 [/REGION]
 
 [/VAR]
@@ -260,13 +235,21 @@ Below are the properties for Physics Constraints separated by major category.
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Linear Position Drive** || %doxygen:FConstraintInstance::bLinearPositionDrive% |
-| **Linear Position Target** || %doxygen:FConstraintInstance::LinearPositionTarget% |
-| **Linear Position Strength** || %doxygen:FConstraintInstance::LinearDriveSpring% |
-| **Linear Velocity Drive** || %doxygen:FConstraintInstance::bLinearVelocityDrive% |
-| **Linear Velocity Target** || %doxygen:FConstraintInstance::LinearVelocityTarget% |
-| **Linear Velocity Strength** || %doxygen:FConstraintInstance::LinearDriveDamping% |
-| **Max Linear Force** || %doxygen:FConstraintInstance::LinearDriveForceLimit% |
+| **Position Target** || Enables the position linear motor on one or more axes and sets the local position desired. |
+| **Strength** || How much force to apply to reach the desired position. |
+| **Velocity Target** || Enables the velocity linear motor on one or more axes and sets the desired velocity. |
+| **Strength** || How much force to apply to reach the desired velocity. |
+[/REGION]
+
+
+### Advanced
+
+![](PhysCon_MotorADV.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Max Force** || The force limit of the drive.|
 [/REGION]
 
 [/VAR]
@@ -293,14 +276,24 @@ Below are the properties for Physics Constraints separated by major category.
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Angular Orientation Drive** || %doxygen:FConstraintInstance::bAngularOrientationDrive% |
-| **Angular Orientation Target** || %doxygen:FConstraintInstance::AngularOrientationTarget% |
-| **Angular Orientation Strength** || %doxygen:FConstraintInstance::AngularDriveSpring% |
-| **Angular Velocity Drive** || %doxygen:FConstraintInstance::bAngularVelocityDrive% |
-| **Angular Velocity Target** || %doxygen:FConstraintInstance::AngularVelocityTarget% |
-| **Angular Velocity Strength** || %doxygen:FConstraintInstance::AngularDriveDamping% |
-| **Max Angular Force** || %doxygen:FConstraintInstance::AngularDriveForceLimit% |
-| **Angular Drive Mode** || %doxygen:FConstraintInstance::AngularDriveMode% |
+| **Angular Drive Mode** || [INCLUDE:#AngMotorMode] |
+| **Target Orientation** || Target proemtatopm relative to the body reference frame. |
+| **Drives** || Depending on the Angular Drive Mode setting, you can enable or disable the different motors for that mode. |
+| **Strength** || The force applied to reach the target orientation. |
+| **Target Velocity** || Target angular velocity relative to the body reference frame |
+| **Drives** || Depending on the Angular Drive Mode setting, you can enable or disable the different motors for that mode. |
+| **Stength** || The force applied to reach the target velocity. |
+[/REGION]
+
+
+### Advanced
+
+![](PhysCon_MotorADV.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Max Force** || The force limit of the drive.|
 [/REGION]
 
 [/VAR]
@@ -308,6 +301,18 @@ Below are the properties for Physics Constraints separated by major category.
 
 
 <!--
+
+[EXCERPT:AngMotorMode]
+
+Whether this angular motor uses SLERP (Sphereical Linear Interpolation) or decompose into a Swing Motor and a Twist Motor (cone and roll constraints). SLERP will not work if any of the angular constraints are locked.
+
+| Property | %spacer2% | Description |
+| --- | :---: | :--- |
+| **SLERP** || Sets the motor to SLERP (Sphereical Linear Interpolation) mode. SLERP mode will not work if any of axis of the angular constraint is locked. |
+| **Twist and Swing** || Sets the motor to **Twist and Swing** (cone and roll constraints) mode.|
+
+[/EXCERPT]
+
 ![](PhysCon_JointPresets.png)(convert:false) 
 
 [INCLUDE:#presetTable]
@@ -328,12 +333,12 @@ Below are the properties for Physics Constraints separated by major category.
 | Property | Description |
 | -------- | ----------- |
 |[REGION:tablesection]Constraint[/REGION]||
-| **Component Name 1** | %doxygen:UPhysicsConstraintComponent::ComponentName1% |
-| **Component Name 2** | %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
-| **Joint Name** | %doxygen:FConstraintInstance::JointName% |
-| **Constraint Bone 1** | %doxygen:FConstraintInstance::ConstraintBone1% |
-| **Constraint Bone 2** | %doxygen:FConstraintInstance::ConstraintBone2% |
-| **Disable Collision** | %doxygen:FConstraintInstance::bDisableCollision% |
+| **Component Name 1** |  |
+| **Component Name 2** |   |
+| **Joint Name** |  |
+| **Constraint Bone 1** |  |
+| **Constraint Bone 2** |  |
+| **Disable Collision** |  |
 
 * For information on using **Physics Constraints** as a Blueprint Component, see: [**%Engine/Physics\Constraints\ConstraintsBlueprints:title%**](Engine/Physics\Constraints\ConstraintsBlueprints)
 
@@ -342,10 +347,10 @@ Below are the properties for Physics Constraints separated by major category.
 | Property | Description |
 | -------- | ----------- |
 |[REGION:tablesection]Constraint[/REGION]||
-| **Joint Name** | %doxygen:FConstraintInstance::JointName% |
-| **Constraint Bone 1** | %doxygen:FConstraintInstance::ConstraintBone1% |
-| **Constraint Bone 2** | %doxygen:FConstraintInstance::ConstraintBone2% |
-| **Disable Collision** | %doxygen:FConstraintInstance::bDisableCollision% |
+| **Joint Name** |  |
+| **Constraint Bone 1** |  |
+| **Constraint Bone 2** |  |
+| **Disable Collision** |  |
 
 * For further reference on the **Physics Asset Tool** (**PhAT**), see: [**%Engine/Physics\PhAT\Reference:title%**](Engine/Physics\PhAT\Reference)
 
@@ -358,53 +363,53 @@ Below are the properties for Physics Constraints separated by major category.
 | Property | Description |
 | -------- | ----------- |
 |[REGION:tablesection]Linear Limits[/REGION]||
-| **Linear XMotion** | %doxygen:FConstraintInstance::LinearXMotion% |
-| **Linear YMotion** | %doxygen:FConstraintInstance::LinearYMotion% |
-| **Linear ZMotion** | %doxygen:FConstraintInstance::LinearZMotion% |
+| **Linear XMotion** |  |
+| **Linear YMotion** |  |
+| **Linear ZMotion** |  |
 | **Linear Limit Types** | [INCLUDE:#linearMotionEnum] |
-| **Linear Limit Size** | %doxygen:FConstraintInstance::LinearLimitSize% |
-| **Linear Limit Soft** | %doxygen:FConstraintInstance::bLinearLimitSoft% |
-| **Linear Limit Stiffness** | %doxygen:FConstraintInstance::LinearLimitStiffness% |
-| **Linear Limit Damping** | %doxygen:FConstraintInstance::LinearLimitDamping% |
-| **Linear Breakable** | %doxygen:FConstraintInstance::bLinearBreakable% |
-| **Linear Break Threshold** | %doxygen:FConstraintInstance::LinearBreakThreshold% |
+| **Linear Limit Size** |  |
+| **Linear Limit Soft** |  |
+| **Linear Limit Stiffness** |  |
+| **Linear Limit Damping** |  |
+| **Linear Breakable** |  |
+| **Linear Break Threshold** |  |
 |[REGION:tablesection]Projection[/REGION]||
-| **Enable Projection** | %doxygen:FConstraintInstance::bEnableProjection% |
-| **Projection Linear Tolerance** | %doxygen:FConstraintInstance::ProjectionLinearTolerance% |
-| **Projection Angular Tolerance** | %doxygen:FConstraintInstance::ProjectionAngularTolerance% |
+| **Enable Projection** |  |
+| **Projection Linear Tolerance** |  |
+| **Projection Angular Tolerance** |  |
 |[REGION:tablesection]Angular Limits[/REGION]||
-| **Angular Swing 1Motion** | %doxygen:FConstraintInstance::AngularSwing1Motion% |
-| **Angular Swing 2Motion** | %doxygen:FConstraintInstance::AngularSwing2Motion% |
-| **Angular Twist Motion** | %doxygen:FConstraintInstance::AngularTwistMotion% |
+| **Angular Swing 1Motion** |  |
+| **Angular Swing 2Motion** |  |
+| **Angular Twist Motion** |  |
 | **Angular Limit Types** | [INCLUDE:#angularMotionEnum] |
-| **Swing 1Limit Angle** | %doxygen:FConstraintInstance::Swing1LimitAngle% |
-| **Swing 2Limit Angle** | %doxygen:FConstraintInstance::Swing2LimitAngle% |
-| **Twist Limit Angle** | %doxygen:FConstraintInstance::TwistLimitAngle% |
-| **Swing Limit Soft** | %doxygen:FConstraintInstance::bSwingLimitSoft% |
-| **Swing Limit Stiffness** | %doxygen:FConstraintInstance::SwingLimitStiffness% |
-| **Swing Limit Damping** | %doxygen:FConstraintInstance::SwingLimitDamping% |
-| **Twist Limit Soft** | %doxygen:FConstraintInstance::bTwistLimitSoft% |
-| **Twist Limit Stiffness** | %doxygen:FConstraintInstance::TwistLimitStiffness% |
-| **Twist Limit Damping** | %doxygen:FConstraintInstance::TwistLimitDamping% |
-| **Angular Breakable** | %doxygen:FConstraintInstance::bAngularBreakable% |
-| **Angular Break Threshold** | %doxygen:FConstraintInstance::AngularBreakThreshold% |
+| **Swing 1Limit Angle** |  |
+| **Swing 2Limit Angle** |  |
+| **Twist Limit Angle** |  |
+| **Swing Limit Soft** |  |
+| **Swing Limit Stiffness** |  |
+| **Swing Limit Damping** |  |
+| **Twist Limit Soft** |  |
+| **Twist Limit Stiffness** |  |
+| **Twist Limit Damping** |  |
+| **Angular Breakable** |  |
+| **Angular Break Threshold** |  |
 |[REGION:tablesection]Linear Motor[/REGION]||
-| **Linear Position Drive** | %doxygen:FConstraintInstance::bLinearPositionDrive% |
-| **Linear XPosition Drive** | %doxygen:FConstraintInstance::bLinearXPositionDrive% |
-| **Linear YPosition Drive** | %doxygen:FConstraintInstance::bLinearYPositionDrive% |
-| **Linear ZPosition Drive** | %doxygen:FConstraintInstance::bLinearZPositionDrive% |
-| **Linear Position Target** | %doxygen:FConstraintInstance::LinearPositionTarget% |
+| **Linear Position Drive** |  |
+| **Linear XPosition Drive** |  |
+| **Linear YPosition Drive** |  |
+| **Linear ZPosition Drive** |  |
+| **Linear Position Target** |  |
 | **Linear Position Strength** | Spring to apply to the linear drive.  |
-| **Linear Velocity Drive** | %doxygen:FConstraintInstance::bLinearVelocityDrive% |
-| **Linear Velocity Target** | %doxygen:FConstraintInstance::LinearVelocityTarget% |
+| **Linear Velocity Drive** |  |
+| **Linear Velocity Target** |  |
 | **Linear Velocity Strength** | Damping to apply to the linear drive. |
 | **Max Linear Force** | Limit to the force the linear drive can apply. |
 |[REGION:tablesection]Angular Motor[/REGION]||
-| **Angular Orientation Drive** | %doxygen:FConstraintInstance::bAngularOrientationDrive% |
-| **Angular Orientation Target** | %doxygen:FConstraintInstance::AngularOrientationTarget% |
+| **Angular Orientation Drive** |  |
+| **Angular Orientation Target** |  |
 | **Angular Position Strength** | Spring value to apply for the angular drive. |
-| **Angular Velocity Drive** | %doxygen:FConstraintInstance::bAngularVelocityDrive% |
-| **Angular Velocity Target** | %doxygen:FConstraintInstance::AngularVelocityTarget% |
+| **Angular Velocity Drive** |  |
+| **Angular Velocity Target** |  |
 | **Angular Velocity Strength** | Damping value to apply for the angular drive. |
 | **Max Angular Force ** | Limit to the force the angular drive can apply. |
 
@@ -414,17 +419,17 @@ Below are the properties for Physics Constraints separated by major category.
 [EXCERPT:linearMotionEnum]
 | **Type** | **Description** |
 | --- | ---- |
-| **LCM_Limited** | Limited freedom along this axis. The limit is defined for all axes by the **Linear Limit Size** property. |
-| **LCM_Locked** | Fully constraint along this axis. |
-| **LCM_Free** | No constraint along this axis. |
+| **Free** | No constraint along this axis. |
+| **Limited** | Limited freedom along this axis. The limit is defined for all axes by the **Linear Limit Size** property. |
+| **Locked** | Fully constraint along this axis. |
 [/EXCERPT:linearMotionEnum]
 
 [EXCERPT:angularMotionEnum]
 | **Type** | **Description** |
 | --- | ---- |
-| **ACM_Limited** | Limited freedom around this axis. The limit for each Angular Motion is controlled individually by a correspondingly named Limit property: **Swing 1Limit Angle**, **Swing 2Limit Angle**, and **Twist Limit Angle**. |
-| **ACM_Locked** | Fully constraint around this axis. |
-| **ACM_Free** | No constraint around this axis. |
+| **Free** | No constraint around this axis. |
+| **Limited** | Limited freedom around this axis. The limit for each Angular Motion is controlled individually by a correspondingly named Limit property: **Swing 1Limit Angle**, **Swing 2Limit Angle**, and **Twist Limit Angle**. |
+| **Locked** | Fully constraint around this axis. |
 [/EXCERPT:angularMotionEnum]
 
 -->

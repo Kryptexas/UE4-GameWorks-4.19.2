@@ -6,12 +6,14 @@ Related: Engine\Animation\Sequences
 Related: Engine\Animation\AnimBlueprints
 Related: Engine\Animation\Skeleton
 Related: Engine\Animation\Overview
-version: 4.9
+version: 4.14
 skilllevel: Advanced
+type:howto
+topic-image:animbpoverride_topic.png
+tags:Animation
+tags:Animation Blueprint
 
 When setting up characters and animation for those characters, there may be instances where you want to have one character perform an animation for an action and have another character perform a different animation for the same action. By using the **Asset Override Editor** inside of a child [Animation Blueprint](Engine/Animation/AnimBlueprints), you can override any previously set animation asset used in a [Sequence Player Node](Engine/Animation/Sequences/UserGuide) allowing you to quickly create variations of Animation Blueprints that each of your characters can use. 
-
-
 
 [REGION:note]
 For this guide, we are using the **Blueprint Third Person** template and included the **Infinity Blade: Warriors** and **Animation Starter Pack** assets which are available for free via the Marketplace. We also performed some [Animation Retargeting](Engine/Animation/AnimHowTo/Retargeting) and retargeted the Animation Blueprint and Animations that came with the Animation Starter Pack for use with the Infinity Blade characters. 
@@ -57,7 +59,7 @@ Below is an example where a character's default movement (assigned as Jog) in th
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-MuQ5VQIGfY4
+2BNKUuTLGMM
 [/PARAMLITERAL]
 [/OBJECT]
 

@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3032506
+﻿INTSourceChangelist:3178047
 Availability: Public
 Title:레벨 스트리밍
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:메모리 사용량을 줄이고 심리스, 로딩화면 없는 월드를 만들기 위해 플레이 도중 레벨을 비동기 로드/언로드하는 기법입니다.
+Version: 4.12
 parent:Engine
-order:10
+order:12
 tags:Level Streaming
 
 [VAR:Topic]
@@ -52,10 +53,10 @@ tags:Level Streaming
 여기서는 플레이어가 난장이 세상같은 크기의 월드에서 플레이하는 것과 같은 느낌을 줄 수 있습니다.
 [/EXCERPT:Intro]
 
-[DIR(output:"listbutton" parent:"Engine/LevelStreaming" tags:"Level Streaming" org:"hierarchy" end:0)]
+[DIR(output:"listbutton" parent:"Engine/LevelStreaming" tags:"Level Streaming" org:"hierarchy")]
 
 ## 월드 컴포지션
 
 World Composition(월드 컴포지션)은 거대한 월드 제작에 사용되는 특정한 형태의 레벨 스트리밍 시스템입니다. 평면형 그리드에 레벨을 배치해 두고, 플레이어가 다가가면 스트림 인 시키는 방식입니다.
 
-[DIR(output:"listbutton" parent:"Engine/LevelStreaming" tags:"World Composition")]
+[DIR(output:"listbutton" parent:"Engine/LevelStreaming" tags:"World Composition" org:"hierarchy")]

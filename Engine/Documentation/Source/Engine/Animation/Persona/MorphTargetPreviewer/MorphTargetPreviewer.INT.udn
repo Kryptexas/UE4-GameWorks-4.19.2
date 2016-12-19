@@ -1,37 +1,23 @@
 Availability:Public
 Title:Morph Target Previewer
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:User guide for the editing modes available in the Persona animation editor.
-Related: Engine/Content/FBX/Animations
+Description:User guide for the editing modes available in the Animation Editor.
 Related: Engine/Content/FBX/MorphTargets
 Related: Engine/Content/Types/SkeletalMeshes
 Related: Engine/Content/Tools/MayaRiggingTool
 Related: Engine/Content/Types/StaticMeshes/MorphTargets
-Related: Engine/Animation/AnimBlueprints
-version: 4.9
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/MorphTargetPreviewer:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/MorphTargetPreviewer:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/MorphTargetPreviewer:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/MorphTargetPreviewer]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+Related: Resources/ContentExamples/MorphTargets
+version: 4.14
+type:reference
+topic-image:MorphTargetSmall.png
+tags:Animation
+tags:Morph Target
+tags:Skeletal Mesh
+tags:FBX Importing
 
-[TOC (start:2 end:3)]
-
-
+<!--
+[TOC (start:2)]
+-->
 
 [EXCERPT:Overview]
 
@@ -43,14 +29,14 @@ version: 4.9
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-CfAI0c-Br8Y
+YoEQYVEEcKo
 [/PARAMLITERAL]
 [/OBJECT]
 
 The **Morph Target Previewer** allows you to preview any morph targets (also known as "morphs" and "blend shapes", depending on what 3D animation package you are using) that are applied to your Skeletal Meshes. Each Morph Target is additively blended into the existing Skeletal Mesh geometry. This allows for multiple morph targets to be combined to create complex vertex-driven animation, which is often ideal for such things as facial expressions.
 [/EXCERPT:Overview]
 
-The **Morph Target Previewer** is visible by default when Persona is in **Mesh** mode.
+The **Morph Target Previewer** window is visible by default whenever the [](Engine\Animation\Persona\Modes\Mesh) is open. 
 
 [REGION:tip]
 To see an example of a Morph Target applied to a character, refer to the [Animation Content Examples](Resources\ContentExamples\Animation) page under section 1.6.
@@ -59,30 +45,30 @@ To see an example of a Morph Target applied to a character, refer to the [Animat
 
 ## Interface
 
-The **Morph Target Previewer** panel has a fairly straightforward interface:
+The **Morph Target Previewer** panel has two main sections: 
 
 ![](MorphTargetPreviewerInterface.png)
 
 1. Search Bar
 1. Morph Target List
 
-The Search Bar allows you to quickly filter the list of Morph Targets to quickly find the one you need. Simply type the first few letters of the desired target and the list will begin filtering.
+The Search Bar allows you to filter the list of Morph Targets to quickly find the one you need. To filter, type the first few letters of the desired target and the list will begin filtering.
 
-You can also **Right-click** on a Morph Target which will pop-up a dialog box with additional actions such as **Delete**. 
+You can also **Right-click** on a Morph Target which will pop-up a dialog box with additional actions such as **Delete** or **Copy Morph Target Names**. 
 
 ![](RightClickDelete.png)
 
 ## Creating Morph Targets
 
-Morph Targets are importable as a part of a Skeletal Mesh, as well as independently of a given mesh. This is supported via the FBX file format. For more information on the setup procedure, as well as how to import Morph Targets into Unreal, please see [](Engine/Content\FBX\MorphTargets).
+You can import Morph Targets as a part of a Skeletal Mesh, as well as independently of a given mesh. This is supported via the FBX file format. 
 
-[REGION:tip]
-To delete a Morph Target, **Right-click** its name in the **Morph Target Previewer** window, and click **Delete** on the context menu that appears.
+[REGION:note]
+For more information on the setup procedure, as well as how to import Morph Targets into Unreal, please see [](Engine/Content\FBX\MorphTargets).
 [/REGION]
 
 ## Using Morph Targets
 
-Once your Morph Targets are in place, you will need to set up your Animation Blueprint to utilize them. This is done within your Event Graph via the **Set Morph Target** node.
+Once your Morph Targets are in place, you will need to set up your [Animation Blueprint](Engine/Animation/AnimBlueprints) to utilize them. This is done within your Event Graph via the **Set Morph Target** node.
 
 ![](SetMorphTarget.png)
 
@@ -97,7 +83,18 @@ Once your Morph Targets are in place, you will need to set up your Animation Blu
 | Execution | Passes execution on to the next node. |
 
 
+## Optimization
 
+For target platforms that support Shader Model 5, you can enable Morph Targets being calculated on the GPU. This means that the CPU does not have to perform the calculations.
+
+To enable this setting:
+1. On the file menu, go to **Edit** > **Project Settings**.
+1. Open the **Rendering** section of **Project Settings**.
+1. In the **Optimizations** category, find the **Use GPU for computing morph targets** checkbox and enable it. 
+
+[REGION:lightbox]
+[![](ProjectSettingsMorphGPU.png)(w:600)](ProjectSettingsMorphGPU.png)
+[/REGION]
 
 
 

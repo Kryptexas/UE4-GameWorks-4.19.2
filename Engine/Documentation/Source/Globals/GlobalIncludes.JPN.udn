@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2743439
+﻿INTSourceChangelist:3160346
 Availability:NoPublish
 Title:
 Crumbs:
@@ -17,7 +17,7 @@ Description:
 [VAR:OSSelect]
 [REGION:section]
 	[REGION:titlesection]
-	オペレーションシステムを選択してください。
+	オペレーション システムを選択してください。
 	[/REGION]
 	[OBJECT:ToggleButton]
 		[PARAMLITERAL:category]
@@ -52,14 +52,14 @@ Description:
 [VAR:OSSelect_Linux]
 [REGION:section]
 	[REGION:titlesection]
-	オペレーションシステムを選択してください。
+	オペレーション システムを選択してください。
 	[/REGION]
 	[OBJECT:ToggleButton]
 		[PARAMLITERAL:category]
 		OS
 		[/PARAMLITERAL]
 		[PARAMLITERAL:id]
-		Windows
+		windows
 		[/PARAMLITERAL]
 		[PARAMLITERAL:active]
 		active_button
@@ -186,7 +186,7 @@ Description:
 		active_button
 		[/PARAMLITERAL]
 		[PARAM:label]
-		Blueprints
+		ブループリント
 		[/PARAM]
 	[/OBJECT]
 	[OBJECT:ToggleButton]
@@ -205,6 +205,40 @@ Description:
 [/REGION]
 [/VAR]
 
+[VAR:MobileSelect]
+[REGION:section]
+	[REGION:titlesection]
+	モバイル プラットフォームを選択してください。
+	[/REGION]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		Platform
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		android
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		active_button
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Android
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		Platform
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		ios
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:label]
+		iOS
+		[/PARAM]
+	[/OBJECT]
+[/REGION]
+[/VAR]
 
 [EXCERPT:bpModesRemoved]
 [REGION:note]

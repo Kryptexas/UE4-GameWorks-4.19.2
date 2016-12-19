@@ -6,6 +6,7 @@ Navigation:platform
 version: 4.9
 parent:%ROOT%
 order:8
+type:landing
 
 [VAR:Params]
 [PARAM:image]

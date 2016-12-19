@@ -1,21 +1,22 @@
-﻿Availability:docs
+﻿INTSourceChangelist:3183591
+Availability:docs
 Title:Ambient Zones
 Crumbs: %ROOT%, Engine, Engine/Audio
-Description:Audio Volumes の AmbientZones プロパティを使ってアンビエント オーディオ ゾーンを作成する
+Description:Audio Volumes の AmbientZones プロパティを使ってアンビエント オーディオ ゾーンを作成します。
 
 [TOC(start:2 end:2)]
 
-**AmbientZones** は安価な内部 / 外部のアンビエント オーディオ ソリューションです。Ambient Zones には以下の利点があります。
+**AmbientZone** は低コストの内部 / 外部のアンビエント オーディオ ソリューションです。Ambient Zone には以下の利点があります。
 
-* 内部から外部エリアへスムーズな音を遷移する
-* 内部 / 外部空間に配置およびイタレートする必要のある **サウンド アクタ** の削減によりオーディオ デザイナーの作業を軽減
-* 内部と外部を定義するために必要な サウンド アクタ の節約により、ゲームシステムのオーバーヘッドの削減
+* 内部から外部エリアへ音をスムーズに遷移する
+* 内部 / 外部空間に配置およびイタレートする必要のある **Sound アクタ** の削減によりオーディオ デザイナーの作業を軽減
+* 内部と外部を定義するために必要な Sound アクタ の節約により、ゲームシステムのオーバーヘッドの削減
 
 
 
 ## Ambient Zone の設定
 
-Ambient Zone は、関連する Audio Volume 内外に置かれている **Sound  アクタ** がプレイヤーの位置によってどのように変化するかを定義します。
+Ambient Zone は、関連する Audio Volume 内外に置かれている **Sound アクタ** がプレイヤーの位置によってどのように変化するかを定義します。
 
 これがどのように機能するかを以下のサンプルで説明します。 
 
@@ -23,13 +24,13 @@ Ambient Zone は、関連する Audio Volume 内外に置かれている **Sound
 
 上図では、「Inside」とマークされたセクションの周りの金色のボックスが Ambient Zone ボリュームで、2 つのスピーカーのアイコンが Sound アクタです。ご覧の通り、Sound アクタは Ambient Zone の内側に 1 人、 Ambient Zone の外側に 1 人配置されています。
 
-レベルにおいて再生されると、AmbientZone ボリュームのビヘイビアはこうなります。
+レベルで再生されると、AmbientZone ボリュームのビヘイビアはこうなります。
 
-* プレイヤーが AmbientZone の外側にいると、 AmbientZone の内側に置かれた SoundActor はそれらに適用するボリューム乗数と LPF エフェクトを持ちます。 
+* プレイヤーが AmbientZone の外側にいると、 AmbientZone の内側に置かれた Sound アクタはそれらに適用するボリューム乗数と LPF エフェクトを持ちます。 
 * プレイヤーが AmbientZone に入ると、その AmbientZone の内側にある Sound アクタは指定したフェード時間をかけてボリュームと LPF に対して 乗数が 1.0 に戻ります。同時に、AmbientZone の外側にあるすべての Sound アクタは指定したフェード時間をかけてそれらに適用するボリュームと LPF 乗数をもちます。  
 * プレイヤーが AmbientZone から出ると、 AmbientZone の外側にある Sound アクタは、以前のフェード時間を使用して以前のデフォルトのボリュームと LPF 値に戻ります。 AmbientZone の内側にある Sound アクタは、AmbientZone に対する AmbientZoneSettings 経由でボリューム乗数と LPF 値を変更します。
 
-**Audio Volume** の **[Details]** パネルから**Ambient Zone Settings** を利用できます。展開すると以下にようになります。 
+**Audio Volume** の **[Details]** パネルから **[Ambient Zone Settings]** を利用できます。展開すると以下のようになります。 
 
 ![](AmbientZone_Settings.png)
 
@@ -49,30 +50,32 @@ Ambient Zone は、関連する Audio Volume 内外に置かれている **Sound
 
 1. **Audio Volume** を作成し、レベル内に 2 つの **Ambient Sound Actors** を置きます。 1 つはボリューム内、もう 1 つはボリューム外です。 
 1. 両方の **Ambient Sound Actors** に対して半径の大きいループ サウンドを割り当てます。 
-1. **[Audio Volume]** の **[Details]** パネルで、 **Audio Volume** プロパティを展開します。
-1. **Ambient Zone Settings** を展開してプロパティを表示します。
+1. **[Audio Volume]** の **[Details]** パネルで、 **[Audio Volume]** プロパティを展開します。
+1. **[Ambient Zone Settings]** を展開してプロパティを表示します。
 
 	![](AmbientZone_Settings.png)
-1. **Ambient Zone** プロパティで、 **Exterior Volume** を .5 に設定します。  
+1. **[Ambient Zone]** プロパティで、 **[Exterior Volume]** を .5 に設定します。  
 	* プレイヤーが Ambient Zone の内側にいる場合、これが Ambient Zone の外側の Ambient Sounds の最終的なボリュームとなります。
 1. **Exterior LPF** を .5 に設定します。  
 	* プレイヤーが Ambient Zone の内側にいる場合、これが Ambient Zone の外側の Ambient Sounds の最終的な LowPassFilter となります。
-1. **Interior Volume** を .2 に設定します。  
+1. **[Interior Volume]** を .2 に設定します。  
 	* プレイヤーが Ambient Zone の外側にいる場合、これが Ambient Zone の内側の Ambient Sounds の最終的なボリュームとなります。
-1. **Interior LPF** を .2 に設定します。 
+1. **[Interior LPF]** を .2 に設定します。 
 	* プレイヤーが Ambient Zone の外側にいる場合、これが Ambient Zone の内側の Ambient Sounds の最終的な LowPassFilter となります。
-1. 新規 **Sound Class** を作成し、そのプロパティの中で **Apply Ambient Volumes** をクリックします。 
+1. 新規 **Sound Class** を作成し、そのプロパティの中で **Apply Ambient Volumes** にチェックを入れます。 
+
 	![](AmbientZone_SoundClass.png)
 1. 各サウンドの **[Details (詳細)]** パネルから内側と外側の両方のサウンドに **Sound Class** を割り当てます。 
+
 	![](SoundClass_Override.png)
 1. ジオメトリをリビルドし、設定したばかりの **AmbientZone** で **Audio Volume** を入力します。
-	* AmbientZone の外側の AmbientSoundSimple は .5 を乗じたボリュームと LowPassFilter となります。
-1. **オーディオボリューム** を終了します。  
-	* Audio Volume の外側の **AmbientSoundSimple** が以前のボリュームと **LPF** 設定にリストアされるようになりました。  
-	* Audido Volume の内側に置かれている AmbientSoundSimple はボリュームと LPF に .2 を乗じ、非常に静かにしました。
+	* AmbientZone の外側の AmbientSound は .5 を乗じたボリュームと LowPassFilter となります。
+1. **Audio ボリューム** を終了します。  
+	* Audio ボリュームの外側の **AmbientSound** が以前のボリュームと **LPF** 設定にリストアされるようになりました。  
+	* Audido Volume の内側に置かれている AmbientSound はボリュームと LPF に .2 を乗じ、非常に静かにしました。
 
 [Region: note]
-注記：この時に位置を判断するために **Sound アクタ** 上でのチェックが実行されるので、 **AmbientZone** ボリュームの内側に **Sound アクタ** を置いた場合はレベルのジオメトリをリビルドしなければなりません。ジオメトリがリビルドされたら、すべての **AmbientZone** をエディタ内で自由に変更することができます。
+注意：この時に位置を判断するために **Sound アクタ** 上でのチェックが実行されるので、 **AmbientZone** ボリュームの内側に **Sound アクタ** を置いた場合はレベルのジオメトリをリビルドしなければなりません。ジオメトリがリビルドされたら、すべての **AmbientZone** パラメータをエディタ内で自由に変更することができます。
 [/Region]
  
 

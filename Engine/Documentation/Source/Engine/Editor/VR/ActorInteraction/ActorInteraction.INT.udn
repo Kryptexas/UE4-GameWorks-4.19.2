@@ -3,7 +3,7 @@ Description: Learn how to place, transform, and modify Actors when working in VR
 Crumbs:
 Availability: public
 parent: Engine/Editor/VR
-type: howto
+type:how-to
 order: 4
 tags: VR
 tags: Level Editing

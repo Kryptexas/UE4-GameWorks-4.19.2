@@ -1,4 +1,4 @@
-Availability:Docs
+Availability:Public
 Title: Sequence Recorder
 Crumbs: %ROOT%, Engine
 Description:Overview of the Sequence Recorder tool and recording options to capture gameplay. 
@@ -62,7 +62,7 @@ Please see each of the tables below for a list of properties along with a descri
 | ---- | ----------- |
 | **Create Level Sequence** | Whether to create a Level Sequence when recording or not. Actors and animations will be inserted into this sequence if enabled. |
 | **Immersive Mode** | Whether to maximize the viewport when recording. |
-| **Sequence Length** | Defines the maximum length of the sequence to record. |
+| **Sequence Length** | Defines the maximum length of the sequence to record (setting to 0 recording will continue until Stop is invoked). |
 | **Recording Delay** | Delay that will be used before starting the recording. |
 | **Sequence Name** | The name of the sequence to record to. This name will also be used to auto-generate any assets created by this recording. |
 | **Sequence Recording Base Path** | Defines the location within the project to save the recording. Sub-assets will be created in subdirectories within the base path specified. |
@@ -98,6 +98,15 @@ Please see each of the tables below for a list of properties along with a descri
 ## Tips & Tricks
 
 This section contains some workflow tips & tricks you can use when working with the Sequence Recorder. 
+
+### Continuous Recording
+
+In the **Sequence Recorder** window, you can set the **Sequence Length** to **0** to perform continuous recording. 
+
+![](NoLength.png)
+
+When set to 0, recording will not stop unless you manually choose to stop recording by hitting the **Esc** key. 
+
 
 ### Right-click Recording
 
@@ -180,5 +189,6 @@ The **Immersive Mode** option inside the Sequence Recorder window will automatic
 ![](ImmersiveMode.png)
 
 Once you stop recording, the viewport will return back to its normal size. 
+
 
 

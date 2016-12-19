@@ -1,9 +1,15 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3158648
 Availability:Public
 Title:물리 기반 머티리얼
 Crumbs: %ROOT%, Engine
 Description:주요 머티리얼 입력에 대한 개요 및 그 최적 사용법입니다.
 Version: 4.9
+parent:Engine/Rendering/Materials
+order:13
+topic-image:physically_based_topic.png
+type:overview
+tags:Physically Based Shading
+tags:PBR
 
 [REGION:fullwidth]
 ![](PhysMatHeader.png)

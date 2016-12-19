@@ -1,86 +1,80 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Rewind & Fast Forward Playback
+﻿INTSourceChangelist:3108692
+Availability:Public
+Title:再生の巻き戻しと早送り操作
 Crumbs:%ROOT%, Engine
-Description:Example of how you can control playback of your media assets.
-parent:Engine/MediaFramework/HowTo
+Description:メディア アセットの再生の調節方法の例
+parent:Engine/MediaFramework
 order:3
 checkpoint: editorqs
-Version: 4.13
-SkillLevel: Intermediate
-Related: Engine\MediaFramework
+Version:4.13
+SkillLevel:Intermediate
+Related:Engine\MediaFramework
 
-In addition to playing a video with Media Framework, you can grant players the ability to control the Playback Rate to rewind, pause or fast forward videos. 
-In this how-to we allow the player to press a button to rewind, a different button to fast forward and another button to play a video playing in the level. 
+Media Framework は、プレイヤーによるビデオの再生だけでなく、ビデオの巻き戻し、停止、早送りの再生レートの調節を可能にします。 
+この操作ガイドでは、プレイヤーはレベル内でプレイするビデオの再生ボタンとは別のボタンを使って巻き戻し、さらに別のボタンを使って早送りの操作をします。 
 
 [REGION:note]
-For this how-to we are using the **Blueprint Third Person Template** project with **Starter Content** enabled.
-You will also need a few [Supported Video Files](Engine\MediaFramework\TechReference) saved on our computer that you want to add to the playlist for playback. You can use your own or **Right-click** and download this [Sample Video](Infiltrator Demo.mp4). 
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。
+再生するプレイリストを追加するコンピュータ上に [サポートされているビデオ ファイル](Engine\MediaFramework\TechReference) がいくつか必要です。お持ちのビデオを使用するか、あるいは **右クリック** して [サンプル ビデオ](Infiltrator Demo.mp4) をダウンロードすることもできます。 
 [/REGION]
 
 
-## Steps
+## ステップ
 
-1.	In your project create a folder called **Movies**, then in explorer add your video to the **Movies** folder. 
+1.	プロジェクト内に **「Movies」** という名前のフォルダを作ります。そしてエクスプローラーを使ってビデオをその **「Movies」** フォルダに追加します。 
 
 	![](ControllingPlayback_01.png)
 
-1.	Create a **File Media Source** (or any other source asset) and point the asset to your video. 
+1.	 **「File Media Source」** (または何か別のソースアセット) を作成して、そのアセットをビデオに設定します。 
 
 	![](ControllingPlayback_02.png)
 
-1.	Create a **Media Player** asset called **VideoPlayer** and associated **Media Sound Wave** and **Media Texture** assets.
+1.	**Media Sound Wave** と **Media Texture** アセットに関連づいている **VideoPlayer** という名前の **Media Player** アセットを作成します。
 
 	![](ControllingPlayback_03.png)
 
-1.	Inside the **Media Player** asset, uncheck the **Play on Open** option. 
+1.	**Media Player** アセット内の **[Play on Open]** オプションのチェックを外します。 
 
 	![](ControllingPlayback_04.png)
 
-1.	In the **Content Browser** under **StarterContent/Shapes** drag a **Shape_Plane** into the level.  
+1.	**コンテンツ ブラウザ** の **StarterContent/Shapes** で **Shape_Plane** をレベルにドラッグします。  
 
 	![](ControllingPlayback_05.png)
 
-1.	Use the **Translate (W)**, **Rotation (E)** and **Scale (R)** tools to adjust the size and location of the Static Mesh as desired. 
+1.	**Translate (W)**、**Rotation (E)**、**Scale (R)** ツールを使って、スタティックメッシュのサイズと位置を自由に調節します。 
 
-1.	Hold **Ctrl** then select both the **Sound Wave** and **Media Texture** assets and drop them on top of the **Static Mesh** in the level. 
+1.	**[Ctrl]** を押しながら、**Sound Wave** アセットと **Media Texture** アセットを両方選択して、レベル内の **スタティックメッシュ** 上にリリースします。すると **マテリアル** が自動作成され、スタティックメッシュに適用されます。 
 
 	![](ControllingPlayback_06.png)
 
-	This will automatically create a **Material** and apply it to the Static Mesh. 
-
-1.	From the Toolbar, click the **Blueprints** button and **Open Level Blueprint**. 
+1.	メイン ツールバー で **[ブループリント]** ボタンをクリックして、**[Open Level Blueprint]** を選択します。 
 
 	![](ControllingPlayback_07.png)
 
-1.	Add a **Variable** of the **Media Player Reference** type called **MediaPlayer** and set it to your **VideoPlayer** Media Player asset. 
+1.	**「MediaPlayer」** という名前の **Media Player Reference** タイプの **変数** を追加し、**VideoPlayer** Media Player アセットに設定します。**Default Value** を代入するには、その前に **コンパイル** する必要があります。 
 
 	![](ControllingPlayback_08.png)
 
-	You may need to **Compile** before you can assign the **Default Value**. 
-
-1.	Add an **Event Begin Play** node, your **Media Player** variable and use **Open Source** to open the **MyVideo** File Media Source asset.
+1.	**Event Begin Play** ノード、**Media Player** 変数を追加し、**Open Source** を使って **MyVideo** File Media Source アセットを開きます。
 
 	![](ControllingPlayback_09.png)
 
-1.	Add a **2** Keyboard Event with **Pressed** set to **Play** the **MediaPlayer** asset. 
+1.	**MediaPlayer** アセットに **Pressed** を設定して **2** Keyboard Event を追加します。 
 
 	![](ControllingPlayback_10.png)
 
-1.	Add **1** and **3** Keyboard Events both using **Set Rate** off the **MediaPlayer** asset and adjust each node's **Rate** value. 
+1.	**MediaPlayer** アセットの **Set Rate** を使って **1** と **3** Keyboard Events を追加し、各ノードの **Rate** 値を調節します。レートを **-1.0** に設定すると、ビデオは逆送りで再生し、**2.0** にすると順送りにスクラブして早送り速度が倍になります。 
 
 	![](ControllingPlayback_11.png)
 
-	By setting Rate to **-1.0** this will play the video in reverse while a Rate of **2.0** doubles the forward playback speed, scrubbing forward. 
-
 	[REGION:warning]
-	Currently you may experience audio synch loss when issuing commands to the Media Player asset. You can insert short delays between commands to allow the player has time to process them. We are aware of these issues and are investigating possible fixes to accompany future engine updates. 
+	現時点では、Media Player アセットへのコマンド発行時に、オーディオ同期が失敗する場合があります。プレイヤーがそれらを処理するために、コマンド間に短い遅延を挿入することができます。これらの問題については、今後のエンジンのアップデートで修正可能な方法を調査中です。 
 	[/REGION]
 
-1.	Close the **Level Blueprint** and click the **Play** button to play in the editor. 
+1.	**Level ブループリント** を閉じて、**[Play (プレイ)]** ボタンをクリックしてエディタで再生します。 
 
 
-## End Result
+## 最終結果
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -94,12 +88,35 @@ s6rTrV5-Mdo
 [/PARAMLITERAL]
 [/OBJECT]
 
-When playing in the editor, the video playback will not initially start when the level is loaded. When the player presses the **2** key, the video will start playing. 
-Pressing the **1** key, the video will start to rewind while pressing the **3** key fast forwards the video. 
+エディタでプレイする場合、ビデオ再生はレベルがロードされてもすぐには始まりません。プレイヤーが **2** キーを押すと、ビデオのプレイが始まります。 
+**1** キーを押すと巻き戻しが始まり、**3** キーを押すとビデオの早送りが始まります。 
 
-The rate at which we rewind or fast forward is determined by the **Rate** value on the **Set Rate** node. Adjust those values to speed up the play back rate when going in reverse or forward. 
+巻き戻しおよび早送りの速度は、**Set Rate** ノードの **Rate** 値で決定されます。この値を調節して、順送りまたは逆送りでの再生速度を速くします。 
 
-While our example is bound to keyboard presses, you could execute the same functionality within a User Interface built with UMG where the player clicks on a button to execute the same commands. 
+ここではキーボードを使った操作例を紹介しましたが、同じコマンドを実行するためのボタンをプレイヤーが押すことで、UMG でビルトしたユーザー インターフェース内で同じ機能を実行できます。 
+
+## その他の検討事項
+
+高度な再生機能は、使用しているプレイヤー プラグインおよび Media Source によっては利用できない場合があります。 
+例えば、すべての Media Source が再生レートの調整や変更に対応しているわけではありませんし、すべてのプラグインがこれらの機能をサポートしているわけでもありません。 
+
+Media Source とプレイヤーの組み合わせによっては速度変更ができる場合もありますが、一定の変更幅のみで、再生がとぎれる可能性があります (フレームが飛んで切れます)。 
+再生機能の中には、例えば CanPause、GetForwardRates、GetReverseRates など、ブループリント経由でクエリを実行できるものもあります。 
+すべての再生機能 (Play、Rewind、Pause、SetRate など) には、意図している演算の成功 / 失敗を示す Boolean の戻り値が含まれています。
+
+現時点では、再生関数コールの連鎖を防ぐ WmfMedia プレイヤー プラグインにも制限があります。例えば、Play -> SetRate -> Pause -> SetRate -> Play というようにコマンドの連鎖をまとめて文字列にすると： 
+
+[REGION:lightbox]
+[![](ExampleChain.png)](ExampleChain.png)
+[/REGION]
+
+_図をクリックしてフルサイズ表示_
+
+Media Player 用ステートマシンは壊れる可能性があります。復旧させる唯一の方法は、Media Source あるいは Playlist を開くことです。 
+
+コールの連鎖を希望する場合、手段の 1 つとして、各コール間にDelay ノードを挿入して、プレイヤーに現在のコマンドの処理時間を十分に与えることです。 
+
+![](ExampleChainDelays.png)
 
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2945303
+﻿INTSourceChangelist:3150518
 Title: 구글 플레이 업적 사용법
 Description:구글 플레이 업적을 사용하여 플레이어 참여도를 높이는 방법입니다.
 Crumbs:
@@ -7,7 +7,7 @@ version:4.10
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
-type:howto
+type:how-to
 
 [VAR:Topic]
 [OBJECT:Topic]

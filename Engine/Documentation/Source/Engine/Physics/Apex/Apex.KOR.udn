@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:APEX
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:Nvidia APEX 툴세트를 사용한 디스트럭터블 애셋 생성 및 임포트 방법입니다.
+Description:NVIDIA APEX 툴세트를 사용한 디스트럭터블 애셋 생성 및 임포트 방법입니다.
 Version: 4.9
 
 [VAR:Topic]
@@ -49,8 +49,8 @@ Version: 4.9
 [/REGION]
 
 
-Nvidia 에서는 디스트럭터블 메시 / 클로스 애셋과 APEX 파티클 시스템을 만드는 데 사용할 수 있는 **APEX PhysX Lab** 이라는 툴을 제작했습니다. 
-그 사용법은 APEX PhysX Lab 툴 관련 Nvidia 문서에서 찾을 수 있습니다. 참고로 현재 언리얼 엔진 4 에서는 **APEX Destructibles** (디스트럭터블)과 
+NVIDIA 에서는 디스트럭터블 메시 / 클로스 애셋과 APEX 파티클 시스템을 만드는 데 사용할 수 있는 **APEX PhysX Lab** 이라는 툴을 제작했습니다. 
+그 사용법은 APEX PhysX Lab 툴 관련 NVIDIA 문서에서 찾을 수 있습니다. 참고로 현재 언리얼 엔진 4 에서는 **APEX Destructibles** (디스트럭터블)과 
 **APEX Cloth** (클로스)만 지원하고 있습니다. 이 툴은 APEX 클로스 애셋을 만드는 데만 필요합니다.
 
 Destructible Actor (디스트럭터블 액터)는 언리얼 에디터 4 에서 Voronoi (보로노이)를 단일 뎁스 레벨로 사용하여 생성할 수 있습니다. APEX Destructible (APEX 디스트럭터블) 애셋은 

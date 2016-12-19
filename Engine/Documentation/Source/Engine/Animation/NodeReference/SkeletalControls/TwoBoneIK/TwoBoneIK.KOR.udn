@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:Public
-Title:Two Bone IK
+Title:투 본 IK
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
-Description:Describes how the Two Bone IK control can be used to apply IK to a 3-joint chain. 
+Description:투 본 IK 를 사용해서 3 조인트 체인에 IK 를 적용하는 법입니다.
 version: 4.12
 
 [VAR:Topic]
@@ -41,11 +41,11 @@ version: 4.12
 
 
 
-The **Two Bone IK** control applies an Inverse Kinematic (IK) solver to a 3-joint chain, such as the limbs of a character.
+**Two Bone IK** (투 본 IK) 콘트롤은 캐릭터의 사지와 같은 3 조인트 체인에 Inverse Kinematics(역운동학, IK)를 적용합니다.
 
 ![](node_twobone.png)
 
-Below a series of **Two Bone IK** controllers are used, along with [](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting) to control how the character holds a weapon. 
+아래는 [](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting) 와 함께 일련의 **투 본 IK** 콘트롤러를 사용하여 캐릭터가 무기를 잡는 방식을 제어하는 예제입니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -59,40 +59,44 @@ JxzEo3wUSWw
 [/PARAMLITERAL]
 [/OBJECT]
 
-Variables are used to drive the **Join Target Location** properties on the controller for the **hand_l** and **hand_r** bones of our character. 
-By adjusting these values we can determine how the character holds the weapon without having to hand-animate different poses based on different characters. 
+변수를 사용해여 캐릭터 **hand_l** 및 **hand_r** 본에 대한 콘트롤러의 **Join Target Location** 프로퍼티를 구동시킵니다.
+이 값을 조절하여 캐릭터마다 다른 포즈 애니메이션 작업을 손수 해 줄 필요 없이 캐릭터가 무기를 잡는 방식을 결정할 수 있습니다.
 
-| Property | Description |
+| 프로퍼티 | 설명 |
 | -------- | ----------- |
 | [REGION:tablesection]**IK**[/REGION] ||
-| **IK Bone** | Name of the bone to apply the IK solver to. This should be the bone at the end of the bone chain, i.e. the ankle or wrist bone. |
-| [REGION:tablesection]**Stretch Limits**[/REGION] ||
-| **X** | The ratio of the Max Limb Length, which is used to determine when to scale the bones. |
-| **Y** | The maximum allowable amount of scaling of the translation component. |
-| **Allow Stretching** | If true, allows the bones to be stretched. |
-| [REGION:tablesection]**End Effector**[/REGION] ||
-| **Effector Space Bone Name** | The name of the bone to use as the effector location when Effector Location Space is set to BCS_BoneSpace. |
-| **Take Rotation from Effector Space** | If enabled, the Rotation of the effector (component, parent, or bone) is applied to the IK Bone.  |
-| **Maintain Effector Rel Rot** | If enabled, the IK Bone will maintain its Rotation relative to the effector. [REGION:note]This is overridden when Take Rotation from Effector Space is enabled.[/REGION] |
-| **Effector Location Space** | The reference frame for the Effector Location. [INCLUDE:#LocationSpace] |
-| [REGION:tablesection]**Join Target**[/REGION] ||
-| **Joint Target Location Space** | The reference frame for the Joint Target Location. [INCLUDE:#LocationSpace] |
-| **Joint Target Space Bone Name** | The name of the bone to use as the joint target location when Joint Target Location Space is set to BCS_BoneSpace. |
+| **IK Bone** | IK 본 - IK 솔버에 적용할 본 이름입니다. 본 체인의 끝에 있는 본, 즉 발목이나 손목 본이어야 합니다. |
+| [REGION:tablesection]**Stretch Limits** 스트레치 제한[/REGION] ||
+| **X** | X - Max Limb Length (최대 사지 길이)의 일정 비율로, 본 스케일을 결정하는 데 사용됩니다. |
+| **Y** | Y - 위치 컴포넌트의 스케일 최대 허용치입니다. |
+| **Allow Stretching** | 스트레칭 허용 - true 면 본을 늘일 수 있습니다. |
+| [REGION:tablesection]**End Effector** 엔드 이펙터[/REGION] ||
+| **Effector Space Bone Name** | 이펙터 스페이스 본 이름 - Effector Location Space (이펙터 위치 스페이스)가 BCS_BoneSpace (본 스페이스)로 설정되었을 때 이펙터 위치로 사용할 본 이름입니다. |
+| **Take Rotation from Effector Space** | 이펙터 스페이스에서 로테이션 받기 - 켜면 이펙터(컴포넌트, 부모, 또는 본)의 로테이션을 IK 본에 적용합니다. |
+| **Maintain Effector Rel Rot** | 이펙터 기준 로테이션 유지 - 켜면 IK 본은 이펙터를 기준으로 한 로테이션을 유지합니다. [REGION:note]Take Rotation from Effector Space 옵션이 이 옵션보다 우선합니다.[/REGION] |
+| **Effector Location Space** | 이펙터 위치 스페이스 - 이펙터 위치에 대한 기준 프레임입니다. [INCLUDE:#LocationSpace] |
+| [REGION:tablesection]**Join Target** 조인 타겟[/REGION] ||
+| **Joint Target Location Space** | 조인 타겟 위치 스페이스 - Joint Target Location 에 대한 기준 프레임입니다. [INCLUDE:#LocationSpace] |
+| **Joint Target Space Bone Name** | 조인 타겟 스페이스 본 이름 - Joint Target Location Space 가 BCS_BoneSpace 로 설정되어 있을 때 조인트 타겟 위치로 사용할 본 이름입니다. |
 
-| Pin | Description |
+| 핀 | 설명 |
 | --- | ----------- |
-| [REGION:tablesection]**Input Pins**[/REGION] ||
-| **Effector Location** | A Vector specifying the location effector in the Effector Location Space. |
-| **Joint Target Location** | A Vector specifying the location joint target in the Joint Target Location Space. |
+| [REGION:tablesection]**입력 핀**[/REGION] ||
+| **Effector Location** | 이펙터 위치 - Effector Location Space 로 위치 이펙터를 지정하는 벡터입니다. |
+| **Joint Target Location** | 조인 타겟 위치 - Joint Target Location Space 로 위치 조인트 타겟을 지정하는 벡터입니다. |
+
+**Two Bone IK** 노드는 4.11 에 도입된 **LOD Threshold** (LOD 한계치) 시스템에도 영향을 받습니다. **Two Bone IK** 노드의 **디테일 패널** 에서 이 세팅을 찾을 수 있습니다.
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 
 <!--
 [EXCERPT:LocationSpace]
 [REGION:simpletable]
-| Value | Effect |
+| 값 | 효과 |
 | ----- | ------ |
-| **Translation** | The XYZ component of translation on the target bone. |
-| **Rotation** | The XYZ component of rotation on the target bone. |
-| **Scale** | The XYZ component of scale on the target bone. |
+| **Translation** | 위치 - 타겟 본의 위치 XYZ 컴포넌트입니다. |
+| **Rotation** | 회전 - 타겟 본의 회전 XYZ 컴포넌트입니다. |
+| **Scale** | 스케일 - 타겟 본의 스케일 XYZ 컴포넌트입니다. |
 [/REGION] 
 [/EXCERPT:LocationSpace]
 -->

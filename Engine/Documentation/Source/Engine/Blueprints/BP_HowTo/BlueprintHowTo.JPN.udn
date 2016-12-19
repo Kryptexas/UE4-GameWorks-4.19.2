@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2738359
+﻿INTSourceChangelist:3155346
 Availability:Public
 Title:ブループリントの操作ガイド
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -9,7 +9,7 @@ Related:Gameplay
 version:4.9
 parent:Engine/Blueprints
 order:2
-type:howto
+type:landing
 tags:Blueprints
 
 [VAR:Topic]
@@ -56,11 +56,10 @@ tags:Blueprints
 ブループリントの重要項目を理解している場合は、アクタのスポーン/破壊、再スポーン (OnDestroyed) 、タイマーの使用などゲームプレイ関連エレメントを説明している [](Gameplay) においてゲームプレイ用のブループリントの操作ガイドがカバーされています。 
 
 
-## 初心者向け
+## Beginner
+[DIR(output:"fancy" type:"how-to" skill:"Beginner" parent:"Engine/Blueprints/BP_HowTo" org:"hierarchy")]
 
-[DIR(output:"fancy" type:"howto" skill:"Beginner" parent:"Engine/Blueprints/BP_HowTo" org:"hierarchy")]
-
-## 中級者向け
+## Intermediate
 [REGION:wrapper transparent]
 [](FANCY:Engine/Blueprints/BP_HowTo/ActorReference "%Engine/Blueprints/BP_HowTo/ActorReference:description%")
 [](FANCY:Engine/Blueprints/BP_HowTo/MakingFunctions "%Engine/Blueprints/BP_HowTo/MakingFunctions:description%")

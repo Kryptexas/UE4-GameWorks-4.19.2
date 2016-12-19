@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:2968976
+﻿INTSourceChangelist:3151855
 Availability:Public
-Title:ブループリント・ビジュアル・スクリプティング
+Title:ブループリント ビジュアル スクリプティング
 Crumbs: %ROOT%, Engine
 Description:ブループリントの使い方をみてきましょう。
 version:4.9
 parent:%ROOT%
 order:5
 social-image:bp_social_image.png
+type:landing
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -77,8 +78,11 @@ social-image:bp_social_image.png
 
 [EXCERPT:Intro]
 アンリアル エンジンの **ブループリント ビジュアル スクリプティング システム** は、アンリアル エディタを使用したゲームプレイ エレメントの作成に、 
-ノードをベースとするインターフェースの概念を基礎としたゲームプレイ スクリプティング システム一式です。通常はプログラマー専用である幅広いコンセプトおよびツールをデザイナーが使用できるようにする 
-柔軟性に優れた高性能システムです。
+ノードをベースとするインターフェースの概念を基礎としたゲームプレイ スクリプティング システム一式です。一般的な多くのスクリプト処理言語と同様に、エンジンでオブジェクト指向 (OC) クラスまたはオブジェクトを定義します。 
+UE4 を使う場合、ブループリントを使って定義したオブジェクトは通常口語的に「ブループリント」と呼ばれます。 
+
+非常に柔軟かつパワフルなシステムで、一般的にプログラマーだけが使用できるとされてきたコンセプトとツールをデザイナーが事実上すべて使うことができます。さらに、
+アンリアル エンジンの C++ インプリメンテーションで利用できるブループリント固有のマークアップにより、プログラマーはデザイナーが拡張する基本システムを作成することができます。
 [/EXCERPT:Intro]
 
 ## はじめよう
@@ -127,6 +131,7 @@ social-image:bp_social_image.png
 %Engine/Blueprints/Anatomy:TopicCompact%
 %Engine/Blueprints/Workflow:TopicCompact%
 %Engine/Blueprints/BP_HowTo:TopicCompact%
+%Engine/Blueprints/UserGuide/CheatSheet:TopicCompact%
 %Engine/Blueprints/BestPractices:TopicCompact%
 [OBJECT:TopicCompact]
 	[PARAM:image]
@@ -188,11 +193,11 @@ social-image:bp_social_image.png
 [/OBJECT]
 [/REGION]
 
-[DIR(output:"listbutton" parent:"Engine/Blueprints" type:"guide")]
+[DIR(output:"listbutton" parent:"Engine/Blueprints" type:"overview" org:"hierarchy")]
 
 
 <!--
-## 開始する
+## はじめよう
 
 [DIR(end:"1" output:"topic" type:"quickstart" parent:"Engine/Blueprints")]
 

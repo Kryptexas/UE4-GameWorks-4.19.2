@@ -1,113 +1,90 @@
 Availability:Public
 Title:AnimGraph
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
-Description:Graph used to sample, blend, and manipulate poses to be applied to SkeletalMeshes by the Animation Blueprint.
-version: 4.12
+Description:Graph used to sample, blend, and manipulate poses to be applied to Skeletal Meshes by the Animation Blueprint.
 related:Engine\Animation\AnimBlueprints
 related:Engine\Animation\AnimBlueprints\EventGraph
 related:Engine\Animation\AnimBlueprints\Interface
 related:Engine\Animation\AnimBlueprints\Creation
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Animation\AnimBlueprints\AnimGraph:title%](AnimGraphTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\AnimBlueprints\AnimGraph:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\AnimBlueprints\AnimGraph:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimBlueprints\AnimGraph]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Animation\AnimBlueprints\AnimGraph:title%](AnimGraphTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\AnimBlueprints\AnimGraph:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\AnimBlueprints\AnimGraph:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimBlueprints\AnimGraph]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+version: 4.14
+type:reference
+topic-image:AnimGraphTopic.png
+tags:Animation
+tags:Animation Blueprint
+tags:Blueprints
 
 [TOC(start:2 end:3)]
 
 [EXCERPT:Intro]
-The **AnimGraph** is used to evaluate a final pose for the SkeletalMesh for the current frame. By default, 
-each Animation Blueprint has an AnimGraph which can have [**Animation Nodes**](Engine/Animation/AnimBlueprints/AnimGraph#AnimationNodes) placed within it 
-to sample AnimationSequences, perform animation blends, or control bone transforms using SkeletalControls. 
-The resulting pose is then applied to the SkeletalMesh each frame.
+The **AnimGraph** is used to evaluate a final pose for the Skeletal Mesh for the current frame. By default, 
+each Animation Blueprint has an AnimGraph which can have [Animation Nodes](Engine/Animation/NodeReference) placed within it 
+to sample Animation Sequences, perform animation blends or control bone transforms using Skeletal Controls. 
+The resulting pose is then applied to the Skeletal Mesh each frame.
 [/EXCERPT:Intro]
 
-![Anim Graph](animgraph.png)(w:720)
+![AnimGraph](animgraph.png)
 
-Inside the AnimGraph you can use values calculated in the **EventGraph** or elsewhere, likely in code, 
-and use those as inputs for BlendSpaces or other blend nodes. Of course, you can also just sample 
-AnimationSequences directly without any special blending. The AnimGraph also allows for the use of 
-SkeletalControls to modify bone positions, rotations, and scales directly.
+Inside the AnimGraph, you can use values calculated in the **EventGraph** or elsewhere, likely in code, 
+and use those as inputs for Blend Spaces or other blend nodes. Of course, you can also just sample 
+Animation Sequences directly without any special blending. The AnimGraph also allows for the use of 
+Skeletal Controls to modify bone positions, rotations, and scales directly.
 
 ## Execution Flow
 
 All graphs have a flow of execution shown as pulsing links between exec pins on the graph's nodes. For 
-regular graphs, such as the **EventGraph** of a Blueprint, this flow is visualized during play as it is 
-dependent on the firing of events. The **AnimGraph** is different in that it displays the flow of execution 
+regular graphs, such as the EventGraph of a Blueprint, this flow is visualized during play as it is 
+dependent on the firing of events. The AnimGraph is different in that it displays the flow of execution 
 at all times since it is not event-based and is being evaluated each frame.
 
 ![Blend - Alpha 0.0](exec_flow_0.png)(w:720)
 
-In the **AnimGraph**, the flow of execution represents poses being passed from one node to another. Some 
-nodes, such as [**Blends**](Engine/Animation/NodeReference/Blend), have multiple inputs and make a 
+In the AnimGraph, the flow of execution represents poses being passed from one node to another. Some 
+nodes, such as [Blends](Engine/Animation/NodeReference/Blend), have multiple inputs and make a 
 decision internally on which input is currently part of the flow of execution. This determination is usually 
 dependent on some external input, like the value passed to a data pin.
 
 In the example below, the same blend node from above switched the execution flow between its inputs based on 
-the value of its Alpha pin (the value is being manually set for simplicity):
+the value of its Alpha pin (which is being manually set):
 
 ![Blend - Alpha 1.0](exec_flow_1.png)(w:720)
 [REGION:caption]Blend with Alpha of 1.0 - Input B is used[/REGION]
 
 ## Working with the AnimGraph
 
-The **AnimGraph** works by evaluating a graph of nodes. Some of these nodes perform some specific operation 
-on one or more input poses, while others are used to access or sample other types of assets, such as AnimationSequences, 
-BlendSpaces, or AnimMontages. These assets and nodes, as well as how they fit into the **AnimGraph**, are described below.
+The AnimGraph works by evaluating a graph of nodes. Some of these nodes perform some specific operation 
+on one or more input poses, while others are used to access or sample other types of assets, such as Animation Sequences, 
+Blend Spaces or Anim Montages. State Machines, which contain their own graph networks can exist within the AnimGraph, and multiple State Machines can be blended together to produce a final output pose. 
+Please refer to each link below for information on how each works within the context of the AnimGraph. 
 
-### AnimationSequences
+* [Animation Blending](Engine/Animation/NodeReference/Blend) - can be accomplished through the use of various Blend Nodes. 
+* [Animation Nodes](Engine/Animation/NodeReference) - are used to perform operations on input poses, such as blending, direct bone manipulation and more. 
+* [Animation Sequences](Engine/Animation/Sequences/UserGuide) - can be placed directly within the AnimGraph to drive a Final Animation Pose. 
+* [Blend Spaces](Engine/Animation/Blendspaces/UserGuide) - can be used within the AnimGraph to blend poses based on variables. 
+* [Skeletal Controls](Engine/Animation/NodeReference/SkeletalControls) - are nodes which can be used to directly drive the bones within a Skeleton. 
+* [Space Conversion](Engine/Animation/NodeReference/SpaceConversion) - are nodes that can change whether a pose is in local-space or component-space. 
+* [State Machines](Engine/Animation/StateMachines) - are a series of graphs, rules and variables that determine an animation state for a character to enter. 
+* [Sync Groups](Engine\Animation\SyncGroups) - can be used to keep related animation that may have different lengths synchronized. 
+
+
+<!-- includes were just duplicating information when arriving at the linked page, commenting out. 
+### Animation Sequences
 
 [INCLUDE:Engine/Animation/Sequences/UserGuide#Intro]
 
 ![Animation Sequences](Engine/Animation/Sequences/UserGuide/CE_anim_sample.png)
 
 [REGION:note]
-See the [**Animation Sequence User Guide**](Engine/Animation/Sequences/UserGuide) for more details.
+See the [Animation Sequence User Guide](Engine/Animation/Sequences/UserGuide) for more details.
 [/REGION]
 
-### Blendspaces
+### Blend Spaces
 
 [INCLUDE:Engine/Animation/Blendspaces/UserGuide#Intro]
 
 ![Output Pose - Result](Engine/Animation/Blendspaces/UserGuide/bs_output_result.png)
 
 [REGION:note]
-See [**Using Blend Spaces**](Engine/Animation/Blendspaces/UserGuide) for more details.
+See [Using Blend Spaces](Engine/Animation/Blendspaces/UserGuide) for more details.
 [/REGION]
 
 ### Animation Nodes
@@ -115,7 +92,7 @@ See [**Using Blend Spaces**](Engine/Animation/Blendspaces/UserGuide) for more de
 [INCLUDE:Engine/Animation/NodeReference#Intro]
 
 [REGION:note]
-See [**Animation Node Reference**](Engine/Animation/NodeReference) for more descriptions of all available nodes.
+See [Animation Node Reference](Engine/Animation/NodeReference) for more descriptions of all available nodes.
 [/REGION]
 
 #### Animation Blending
@@ -125,7 +102,7 @@ See [**Animation Node Reference**](Engine/Animation/NodeReference) for more desc
 ![Two-way Blend](Engine/Animation/NodeReference/Blend/CE_blend_twoway.png)
 
 [REGION:note]
-See [**Blend Nodes**](Engine/Animation/NodeReference/Blend) for more information on the space conversion nodes.
+See [Blend Nodes](Engine/Animation/NodeReference/Blend) for more information on the space conversion nodes.
 [/REGION]
 
 #### Skeletal Controls
@@ -133,7 +110,7 @@ See [**Blend Nodes**](Engine/Animation/NodeReference/Blend) for more information
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#intro]
 
 [REGION:note]
-See [**Skeletal Controls**](Engine/Animation/NodeReference/SkeletalControls) for more information on the various types of SkeletalControls available.
+See [Skeletal Controls](Engine/Animation/NodeReference/SkeletalControls) for more information on the various types of Skeletal Controls available.
 [/REGION]
 
 #### Space Conversion
@@ -145,7 +122,7 @@ See [**Skeletal Controls**](Engine/Animation/NodeReference/SkeletalControls) for
 [/REGION]
 
 [REGION:note]
-See [**Convert Space Nodes**](Engine/Animation/NodeReference/SpaceConversion) for more information on the space conversion nodes.
+See [Convert Space Nodes](Engine/Animation/NodeReference/SpaceConversion) for more information on the space conversion nodes.
 [/REGION]
 
 #### Sync Groups
@@ -155,18 +132,24 @@ See [**Convert Space Nodes**](Engine/Animation/NodeReference/SpaceConversion) fo
 ![Usage in graph](Engine\Animation\SyncGroups\AnimationSyncGroup.png)(w:480)
 
 [REGION:note]
-See [**Sync Groups**](Engine\Animation\SyncGroups) for more information on Sync Group usage and additional details.
+See [Sync Groups](Engine\Animation\SyncGroups) for more information on Sync Group usage and additional details.
 [/REGION]
+-->
 
 ## Thread Safety
 
-AnimGraph logic can be run on worker threads using the "Use Multi Threaded Animation Update" setting found in "Class Defaults". This can
-significantly improve the perfomance of games on multi-core machines by allowing animation work to complete in parallel with other
+AnimGraph logic can be run on worker threads using the "Use Multi-Threaded Animation Update" setting found in "Class Defaults". This can
+significantly improve the performance of games on multi-core machines by allowing animation work to complete in parallel with other
 updates.
 
 If this setting is enabled (it is by default) then the compiler will warn if 'unsafe' operations are performed in the AnimGraph. Generally,
 safe operations are:
 
-* Using most AnimGRaph nodes.
+* Using most AnimGraph nodes.
 * Directly accessing member variables of your Animation Blueprint (including members of structures).
-* Calling Blueprint 'pure' functions that dont modify state (such as most math functions).
+* Calling Blueprint 'pure' functions that don't modify state (such as most math functions).
+
+
+
+
+

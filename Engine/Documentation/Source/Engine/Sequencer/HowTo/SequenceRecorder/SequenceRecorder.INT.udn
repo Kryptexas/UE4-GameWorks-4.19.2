@@ -27,10 +27,6 @@ For this how-to, we are using the **Blueprint Third Person Template** project wi
 	![](RecorderStep1.png)
 
 	The Sequence Recorder window will automatically open. There are some options under **Sequence Recording** which will determine how (and where) the new Level Sequence asset will be saved. You can choose to record Actors that are spawned (such as particle effects, other characters, etc.), determine the naming convention and save location, and change other settings like the duration to record or delay before starting to record. 
-
-	[REGION:note]
-	See the [](Engine\Sequencer\Features\SequenceRecorder) page for more information about each option.
-	[/REGION]
 	
 1.	From the Main Editor Toolbar, click the **Play** button to start a Play in Editor session. 
 

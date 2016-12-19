@@ -3,6 +3,10 @@ Title:Material Properties
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials
 Description:An introductory document on UE4 Materials and how they work.
 Version: 4.9
+topic-image:Engine/Rendering/Materials/MatProps.png
+parent:Engine/Rendering/Materials
+order:4
+type:reference
 
 [TOC(start:2 end:2)]
 
@@ -76,6 +80,7 @@ The base material node has a number of properties which affect how the material 
 | **Translucency Directional Lighting Intensity** | Useful for artificially increasing the influence of the normal on the lighting result for translucency. A value larger than 1 increases the influence for the normal, a value smaller than 1 makes the lighting more ambient. |
 | **Disable Depth Test** |  Allows the Material to disable depth tests, which is only meaningful with translucent blend modes.  Disabling depth tests will make rendering significantly slower since no occluded pixels can get Z-culled.<!--- In short, you'll be able to--->  |
 | **Use Translucency Vertex Fog** | When _true_, translucent materials are fogged. Defaults to _true_. |
+
 
 ## Translucency Self Shadowing
 
@@ -259,9 +264,12 @@ This allows for control over the lighting mode used by Translucency within this 
 [REGION:simpletable]
 | Mode | Description |
 | ---- | ----------- |
-| **TLM_VolumetricNonDirectional** | Lighting will be calculated for a volume, without directionality.  Use this on particle effects like smoke and dust.  This is the cheapest lighting method, however the material normal is not taken into account. |
-| **TLM_VolumetricDirectional** | Lighting will be calculated for a volume, with directionality so that the normal of the material is taken into account.  Note that the default particle tangent space is facing the camera, so enable bGenerateSphericalParticleNormals to get a more useful tangent space. |
-| **TLM_Surface** |Lighting will be calculated for a surface.  Use this on translucent surfaces like glass and water. |
+| **Volumetric NonDirectional** | Lighting will be calculated for a volume, without directionality.  Use this on particle effects like smoke and dust.  This is the cheapest lighting method, however, the material normal is not taken into account. |
+| **Volumetric Directional** | Lighting will be calculated for a volume, with directionality so that the normal of the material is taken into account.  Note that the default particle tangent space is facing the camera, so enable **bGenerateSphericalParticleNormals** to get a more useful tangent space. |
+| **Volumetric PerVertex NonDirectional** |Same as Volumetric NonDirectional, but lighting is only evaluated at vertices so the pixel shader cost is significantly less. Note that lighting still comes from a volume texture, so it is limited in range. Directional lights become unshadowed in the distance. |
+| **Volumetric PerVertex Directional** |Same as Volumetric Directional, but lighting is only evaluated at vertices so the pixel shader cost is significantly less. Note that lighting still comes from a volume texture, so it is limited in range. Directional lights become unshadowed in the distance. |
+| **Surface Translucency Volume** |Lighting will be calculated for a surface. The light in accumulated in a volume so the result is blurry, limited distance but the per pixel cost is very low. Use this on translucent surfaces like glass and water. Only Diffuse lighting is supported. |
+| **Surface Forward Shading** |Lighting will be calculated for a surface. Use this on translucent surfaces like glass and water. This is implemented with forward shading so Specular highlights from local lights are supported, however, many deferred-only features are not. This is the **most expensive** translucency lighting method as each light's contribution is computed per-pixel. |
 [/REGION]
 [/EXCERPT:TransLightingMode]
 

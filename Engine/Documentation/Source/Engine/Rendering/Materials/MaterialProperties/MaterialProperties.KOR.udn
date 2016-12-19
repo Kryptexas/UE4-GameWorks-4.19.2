@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3151855
 Availability: Public
 Title:머티리얼 프로퍼티
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials
 Description:UE4 머티리얼과 그 작동방식에 대한 입문서입니다.
 Version: 4.9
+topic-image:Engine/Rendering/Materials/MatProps.png
+parent:Engine/Rendering/Materials
+order:4
+type:reference
 
 [TOC(start:2 end:2)]
 

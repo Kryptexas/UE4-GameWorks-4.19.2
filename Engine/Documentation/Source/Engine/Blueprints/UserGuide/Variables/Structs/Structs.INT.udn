@@ -6,7 +6,7 @@ version: 4.12
 skilllevel:Intermediate
 Parent:Engine/Blueprints/Scripting
 tag:Arrays and Structures
-type:guide
+type:overview
 
 [TOC]
 

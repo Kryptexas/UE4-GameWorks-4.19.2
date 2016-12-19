@@ -3,6 +3,7 @@ Title:Material Expressions Technical Guide
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:Guide to creating new material expressions for use in the Material Editor.
 Version: 4.9
+tags:Rendering
 
 [TOC (start:2 end:3)]
 

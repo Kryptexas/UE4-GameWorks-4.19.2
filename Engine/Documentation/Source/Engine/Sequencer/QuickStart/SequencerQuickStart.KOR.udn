@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3042730
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title: 시퀀서 퀵스타트
 Crumbs: %ROOT%, Engine
@@ -7,7 +7,7 @@ Navigation:topic
 parent:Engine/Sequencer
 order:1
 Version: 4.12
-type:quickstart
+type:quick start
 checkpoint:sequencerqs
 
 [VAR:Topic]

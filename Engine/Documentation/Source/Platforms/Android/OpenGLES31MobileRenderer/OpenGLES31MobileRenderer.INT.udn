@@ -1,7 +1,7 @@
 Title: Android OpenGL ES 3.1 Mobile Renderer
 Description:Setting up your UE4 Android project to work with the OpenGL ES 3.1 mobile render
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/OpenGLES31MobileRenderer/
-Availability:Docs
+Availability:Public
 version:4.12
 Parent:Platforms/Android
 tags:Mobile

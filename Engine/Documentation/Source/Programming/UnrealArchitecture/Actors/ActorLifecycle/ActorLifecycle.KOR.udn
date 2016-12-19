@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2959450
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title: 액터의 생명 주기
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Actors
@@ -63,7 +63,7 @@ version: 4.11
 
 "Expose on Spawn" (스폰시 노출) 설정된 프로퍼티가 있으면 액터는 디퍼드(유예시켜 나중에 한 번에 몰아서) 스폰이 가능합니다.
 
-1. **SpawnActorDeferred** 액터 디퍼드 스폰 - 순차적 액터 스폰을 뜻하는 것으로, 블루프린트 컨스트럭션 스크립트 이전 추가적인 구성이 가능합니다.
+1. **SpawnActorDeferred** 액터 디퍼드 스폰 - 액터의 절차적 생성을 뜻하는 것으로, 블루프린트 컨스트럭션 스크립트 이전 추가적인 구성이 가능합니다.
 1. SpawnActor (액터 스폰) 안의 모든 것이 일어나지만, PostActorCreated (액터 생성 이후) 뒤에는 다음과 같은 일이 일어납니다:
 	1. 유효하지만 완료되지는 않은 액터 인스턴스로 다양한 "초기화 함수" 구성 / 호출을 합니다.
 	1. **FinishSpawningActor** 액터 스폰 마무리 - 액터를 마무리시키기 위해 호출되며, SpawnActor (액터 스폰) 줄의 ExecuteConstruction (생성 실행)을 집어듭니다.

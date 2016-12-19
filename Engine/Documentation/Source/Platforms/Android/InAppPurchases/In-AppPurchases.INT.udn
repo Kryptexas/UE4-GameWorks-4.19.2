@@ -6,7 +6,7 @@ version:4.10
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
-type:howto
+type:how-to
 Related:Platforms/Mobile/InAppPurchases/
 
 ## Configuration

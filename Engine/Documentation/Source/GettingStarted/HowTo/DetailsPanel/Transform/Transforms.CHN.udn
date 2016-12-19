@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:2827260
+﻿INTSourceChangelist:3108692
 Availability:Public
-Title:1.处理 Actor 转换
+Title: 1.处理 Actor 转换
 Crumbs:%ROOT%, Gameplay, GettingStarted\HowTo, GettingStarted\HowTo\DetailsPanel
-Description:使用“细节”（Details）面板的“转换”（Transforms）部分可处理 Actor 的位置、旋转及比例。 
-Related:Engine/UI/LevelEditor/Details
-Related:Engine/Actors/Transform
-Version:4.10
-SkillLevel:Beginner
+Description: 使用“细节”（Details）面板的“转换”（Transforms）部分可处理 Actor 的位置、旋转及比例。 
+Related: Engine/UI/LevelEditor/Details
+Related: Engine/Actors/Transform
+Version: 4.10
+SkillLevel: Beginner
 checkpoint: editorqs
 
 [VAR:Steps]
@@ -58,7 +58,7 @@ checkpoint: editorqs
 
 	![](Details4.png)
 
-1. 	将 **XYZ** 的 **位置（Location）**值分别设置为 **-140.0**、**380.0** 和 **350.0**，并将 **可移动性（Mobility）**设置为**可移动（Movable）**。 
+1. 	将 **XYZ** 的 **位置（Location）** 值分别设置为 **-140.0**、**380.0** 和 **350.0**，并将 **可移动性（Mobility）** 设置为 **可移动（Movable）**。 
 
 	![](Details_Add.png)
 
@@ -67,7 +67,7 @@ checkpoint: editorqs
 
 ## 最终结果
 
-我们已直接通过“细节”（Details）面板设置 Actor 的位置、比例和可移动性，但您还可以在视口中使用 [转换工具](GettingStarted/HowTo/ManipulatingActors) 来操纵 Actor。当您需要让物体精确对齐，或需要使用准确的数值时，最好使用“细节”（Details）面板属性。 
+我们已直接通过“细节”（Details）面板设置 Actor 的位置、比例和可移动性，但您还可以在视口中使用 [](GettingStarted/HowTo/ManipulatingActors) 来操纵 Actor。当您需要让物体精确对齐，或需要使用准确的数值时，最好使用“细节”（Details）面板属性。 
 
 接下来，我们将通过“细节”（Details）面板更新应用于 Actor 的 **材质**。 
 

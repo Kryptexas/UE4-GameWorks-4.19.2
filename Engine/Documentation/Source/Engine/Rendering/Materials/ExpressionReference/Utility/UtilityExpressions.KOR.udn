@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2875940
+﻿INTSourceChangelist:3188564
 Availability:Public
 Title:Utility 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
@@ -228,7 +228,7 @@ LinearInterpolate 는 세 번째 값을 마스크로 사용하여 두 입력 값
 
 ## Noise
 
-Noise 표현식은 제어할 수 있는 방식으로 순차적 노이즈 필드를 생성합니다.
+Noise 표현식은 제어할 수 있는 방식으로 프로시저럴 노이즈 필드를 생성합니다.
 
 | 항목 | 설명 |
 | ---- | ---- |
@@ -241,11 +241,32 @@ Noise 표현식은 제어할 수 있는 방식으로 순차적 노이즈 필드�
 | **Output Min** | 노이즈 계산에 의한 최소값입니다. |
 | **Output Max** | 노이즈 계산에 의한 최대값입니다. |
 | **Level Scale** | Turbulence 가 켜졌을 때 각 레벨의 스케일을 조절합니다. 기본값은 2 이지만, 값이 클 수록 적은 수의 레벨을 더욱 효율적으로 사용하게 됩니다. |
+| **Tiling** | 노이즈를 지원하는 함수에 타일링을 허용합니다. 비용은 올라가지만, 노이즈를 심리스 래핑 텍스처에 구을 때 좋습니다. |
+| **Repeat Size** | 타일링할 때, 노이즈를 얼마나 자주 반복시킬지 입니다. |
 || [REGION:tablesection]입력[/REGION] ||
 | **Position** | 3D 벡터를 통해 텍스처 크기를 조절할 수 있습니다. |
 | **FilterWidth** | 실제로는 노이즈 텍스처를 얼마나 뿌옇게 만들지 조절합니다. |
 
 ![NoiseExample.png](NoiseExample.png)
+
+
+## Vector Noise
+
+Vector Noise (벡터 노이즈) 표현식은 3D 출력으로 절차적 노이즈 이펙트의 변종을 만듭니다.
+
+| 항목 | 설명 |
+| -------- | ----------- |
+| [REGION:tablesection]프로퍼티[/REGION] ||
+| **Function** | [INCLUDE:#VectorNoiseFunctions] |
+| **Quality** | 모양/퍼포먼스 세팅입니다. 값이 작으면 빨라지지만 모양이 떨어지고, 값이 크면 느려지지만 모양은 나아집니다. |
+| **Tiling** | 노이즈를 지원하는 함수에 타일링을 허용합니다. 비용은 올라가지만, 노이즈를 심리스 래핑 텍스처에 구을 때 좋습니다. |
+| **Tile Size** | 타일링할 때, 노이즈를 얼마나 자주 반복시킬지 입니다. 펄린 노이즈 변종의 경우, Tile Size 는 3 의 배수여야 합니다. |
+|| [REGION:tablesection]입력[/REGION] ||
+| **Position** | 3D 벡터를 통해 텍스처 크기를 조정할 수 있도록 합니다. |
+
+![Cellnoise.png](Cellnoise.png)
+![PerlinGradient.png](PerlinGradient.png)
+![Voronoi.png](Voronoi.png)
 
 
 ## QualitySwitch
@@ -400,3 +421,33 @@ Mask Channel Parameter 를 추가한 것은 머티리얼 인스턴스 내 RGB �
 | **1**  | R 채널을 켜고 다른 모든 채널을 끕니다. |
 | **2**  | G 채널을 켜고 다른 모든 채널을 끕니다. |
 | **3**  | B 채널을 켜고 다른 모든 채널을 끕니다. |
+
+
+
+
+<!--
+[EXCERPT:NoiseFunctions]
+
+| Function |     | 설명 |
+| -------- | --- | ----------- |
+|Simplex | 텍스처 기반 |직접 사용 및 범프는 하이 퀄리티로 출력됩니다. 대략 레벨 당 인스트럭션 77, 텍스처 룩업 4 입니다. 타일링은 불가능합니다. |
+|Gradient | 텍스처 기반| 직접 사용 및 범프에 하이 퀄리티로 출력됩니다. 비타일링: 대략 레벨 당 인스트럭션 61, 텍스처 룩업 8 입니다. 타일링: 대략 레벨 당 인스트럭션 74, 텍스처 룩업 8 입니다. "비타일링" 모드에서도 반복은 128 입니다. 반복 크기 범위는 128 이하로 하는 게 좋습니다. 전에는 Perlin Noise (펄린 노이즈)라는 이름이었습니다.|
+|Fast Gradient | 3D 텍스처 | 직접 사용에는 하이 퀄리티로 출력되나, 범프에는 **나쁩니다**. 대략 레벨 당 인스트럭션 16, 텍스처 룩업 1 입니다. 항상 16 으로 반복 타일링되며, "타일링" 모드는 이 Fast Gradient 노이즈에는 옵션이 아닙니다. |
+| Gradient | 계산형 | 직접 사용 및 범프에 하이 퀄리티로 출력됩니다. 비타일링: 대략 레벨 당 인스트럭션 80, 텍스처 없습니다. 타일링: 대략 레벨 당 인스트럭션 143, 텍스처 없습니다. |
+| Value | 계산형 | 퀄리티가 낮지만, 순수한 계산형입니다. 비타일링: 대략 레벨 당 인스트럭션 53, 텍스처 없습니다. 타일링: 대략 레벨 당 인스트럭션 118, 텍스처 없습니다. 전에는 Gradient 노이즈라고 라벨이 잘못 붙어 있었습니다. |
+| Voronoi | | Worley (월리) 또는 Cellular (셀룰러) 노이즈라고도 합니다. Quality=1 은 8 셀 검색, Quality=2 는 16 셀 검색, Quality=3 는 27 셀 검색, Quality=4 는 32 셀 검색입니다. 전부 검색되는 셀마다 대략 20 인스트럭션 입니다. |
+[/EXCERPT]
+-->
+
+<!--
+[EXCERPT:VectorNoiseFunctions]
+
+| 함수 | 설명 |
+|---------|-----------|
+| Cellnoise | 3D 스페이스의 인티저 그리드 셀 각각에 무작위 컬러입니다. 대략 10 인스트럭션 입니다. |
+| Perlin 3D Noise | 3D 출력 계산형 펄린 노이즈로, 각 채널 출력 범위는 -1 에서 1 입니다. 빨강 채널만 사용한다면 대략 83 인스트럭션이며, 세 채널 모두 사용하는 경우 125 인스트럭션입니다. |
+| Perlin Gradient | 펄린 노이즈 함수의 그레디언트를 계산합니다. RGB 출력에는 그레디언트 벡터가, A 에는 스칼라 노이즈가 들어있습니다. 대략 106 인스트럭션입니다. |
+| Perlin Curl | 3D 컬(곱슬) 노이즈를 계산합니다. 펄린 3D 노이즈의 수학적인 곱슬 버전이 출력됩니다. 대략 162 인스트럭션입니다. |
+| Voronoi | *Noise* 표현식의 Voronoi 함수와 같은 알고리즘을 사용하며, 인스트럭션 수도 같습니다. 하지만 RGB 는 각 보로노이 셀의 가장 가까운 시드 포인트 위치이며, A 는 그 시드 포인트까지의 거리입니다. |
+[/EXCERPT]
+-->

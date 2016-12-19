@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2728602
+﻿INTSourceChangelist:3160114
 Availability:Public
 Title:3.メインメニューを作成する
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:このステップではメインメニューの視覚的レイアウトを行います。
-version:4.9
+version:4.13
 
 
 [VAR:Steps]
@@ -17,7 +17,7 @@ version:4.9
 		[クイックスタート ホーム](Engine/UMG\QuickStart) 
 	[/PARAM]
 	[PARAM:next]
-		[次のステップ](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
+		[前のステップ](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -30,7 +30,7 @@ version:4.9
 
 1.	**MainMenu** Widget ブループリントを開きます。 
 
-1.	**Designer** タブで、**Palette** からウィジェットを **Hierarchy** にドラッグ＆ドロップして以下のようにセットアップします。 
+1.	**[Designer (デザイナ)]** タブで、**パレット** からウィジェットを **Hierarchy** にドラッグ＆ドロップして以下のようにセットアップします。 
 
 	![](Hierarchy1.png)
 
@@ -46,13 +46,13 @@ version:4.9
 
 	![](Hierarchy3.png)
 
-1.	ひとつめの **Vertical Box** を選択し、**[詳細]** パネルでそれを **MainMenu** に名前変更し、**isVariable** オプションにチェックを入れて **ZOrder** を **1** に設定します。 
+1.	ひとつめの **Vertical Box** を選択し、**[Details (詳細)]** パネルでそれを **MainMenu** に名前変更し、**isVariable** オプションにチェックを入れて **ZOrder** を **1** に設定します。 
 
 	![](Hierarchy4.png)
 
 	わかりやすくするためにウィジェットに名前を付けてそれを変数に設定して、アクセスできるようにするとともに、**ZOrder** を設定してこれから設定する画像の上に表示されるようにします。 
 
-1.	もうひとつの **Vertical Box** を選択し、**[詳細]** パネルでそれを **Options** に名前変更し、**isVariable** オプションにチェックを入れて **ZOrder** を **1** に設定します。 
+1.	もうひとつの **Vertical Box** を選択し、**[Details]** パネルでそれを **Options** に名前変更し、**isVariable** オプションにチェックを入れて **ZOrder** を **1** に設定します。 
 
 1.	以下の画像のように各 **ボタン** の名前を変更します。 
 
@@ -60,33 +60,33 @@ version:4.9
 
 	ボタン名を更新し、各ボタンが何を行うかがわかるようにします。これにより、各ボタンの機能のスクリプティングが簡単になります。 
 
-1.	 **[詳細]** パネルの **Content** の **Text** セクションで、各 **Text** ウィジェットを以下のように更新します。 
+1.	 **[Details]** パネルの **Content** の **Text** セクションで、各 **Text** ウィジェットを以下のように更新します。 
 
 	![](Hierarchy6.png)
 
 	各ボタンに表示されるテキストとメニューのヘッダーを更新します。 
 
-1.	**Ctrl** を押したまま各 **Button** を選択します。**[詳細]** パネルで、 **Hovered** に **Tint** カラーを設定し、それぞれの **Size** を **Fill** に設定します。 
+1.	**Ctrl** を押したまま各 **ボタン** を選択します。**[Details]** パネルで、 **Hovered** に **Tint** カラーを設定し、それぞれの **Size** を **Fill** に設定します。 
 
 	![](Hierarchy7.png)
 
 	ここでは、すべてのボタンのサイズを調整し、マウスをかざしたときのボタンの色を定義します。 
 
-1.	**Hierarchy** で **Image** を選択します。次に **[詳細]** パネルの **Appearance** と **Brush** で、使用する **Texture** または **Material** を選択します。 
+1.	**Hierarchy** で **Image** を選択します。次に **[Details]** パネルの **Appearance** と **Brush** で、使用する **Texture**、**Sprite** または **Material** を選択します。 
 
 	![](Hierarchy8.png)
 
 	[REGION:note]
-	このガイドと同じものをご利用になりたい場合は、[バックグラウンドの例](ExampleBackground.png) からダウンロードできます。
-	バックグラウンドの例を **Unreal Engine** にドラッグ＆ドロップしてインポートします (確認メッセージが表示されるたびに **Yes** をクリックしてください)。 
+	このガイドと同じものをご利用になりたい場合は、[バックグラウンドのサンプル](ExampleBackground.png) からダウンロードできます。
+	**アンリアル エンジン** にドラッグ＆ドロップしてインポートします (確認メッセージが表示されるたびに **Yes** をクリックしてください)。 
 
 	[/REGION]
 
-1.	**Designer** ウィンドウで、画像をサイズ調整してレイアウト全体を占有するようにします。 
+1.	**[Designer]** ウィンドウで、画像をサイズ調整してレイアウト全体を占めるようにします。
 
 	![](Hierarchy9.png)
 
-1.	**Image** の**[詳細]** パネルで、**Anchor** ボタンをクリックして画面を満たすオプションを選択します。 
+1.	**Image** の **[Details]** パネルで、**[Anchor]** ボタンをクリックして画面を満たすオプションを選択します。Scalebox を使って画像を保持することもできます。アスペクト比に適切にマッチするように画像を確実にスケーリング、リサイズします。
 
 	![](Hierarchy10.png)
 
@@ -104,11 +104,11 @@ version:4.9
 
 	![](Hierarchy13.png)
 
-1.	各 **Text** ウィジェットの **[詳細]** パネルから、**Font**、**Size**、および **Alignment** を調整することができます。 
+1.	各 **Text** ウィジェットの **[Details (詳細)]** パネルから、**Font**、**Size**、および **Alignment** を調整することができます。 
 
 	![](Hierarchy14.png)
 
-	こうした設定を色々試して必要な効果を得ることができます。 
+	こうした設定を色々試して必要なエフェクトを得ることができます。 
 
 1.	**Options** Vertical Box をお好きなようにセットアップして、 **Main Menu** Vertical Box のすぐ後ろに移動します。 
 

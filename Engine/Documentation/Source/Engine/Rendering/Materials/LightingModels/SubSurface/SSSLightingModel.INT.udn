@@ -3,6 +3,10 @@ Title:Subsurface Shading Model
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:Description and technical details of the subsurface shading model available in materials.
 Version: 4.9
+parent:Engine/Rendering/Materials/LightingModels
+order:1
+topic-image:sss_topic.png
+type:overview
 
 Materials have a new subsurface shading model (**_MLM_Subsurface_**) which is intended for materials like wax or jade which appear opaque, but lighting scatters inside them allowing a portion of the light from the opposite side of the surface to show through.
 
@@ -37,4 +41,5 @@ Additionally there are some limitations with the current implementation:
 * Cascaded Shadow Map seams.
 * SSS materials can still receive leaked lighting through fully opaque materials if they are close enough to the shadow caster.
 * Soft shadows from low opacity are limited in how soft they can be and have aliasing.
+
 

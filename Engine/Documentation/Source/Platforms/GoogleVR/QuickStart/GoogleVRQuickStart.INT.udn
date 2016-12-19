@@ -5,7 +5,7 @@ Availability:Public
 Version: 4.12
 SkillLevel: Intermediate
 parent:Platforms/GoogleVR
-type:quickstart
+type:quick start
 tags:VR
 tags:Google VR
 

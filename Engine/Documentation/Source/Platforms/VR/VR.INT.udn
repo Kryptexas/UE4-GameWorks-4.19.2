@@ -4,7 +4,7 @@ Crumbs:%ROOT%, Platforms
 Description:Information over developing for virtual reality platforms.
 Navigation:platform
 Version: 4.9
-type:landing
+Type:landing
 parent:Platforms
 order:2
 
@@ -50,15 +50,15 @@ vr
 
 ## Starting Out
 
-[DIR(output:"listbutton" type:"quickstart" tags:"vr")]
+[DIR(output:"listbutton" type:"quick start" tags:"vr")]
 
 ## Virtual Reality Platforms
 
-[DIR(end:"1" output:"listbutton" type:"landing" parent:"Platforms/VR")]
+[DIR(end:"1" output:"listbutton" type:"landing" tags:"platform" parent:"Platforms/VR")]
 
 ## Virtual Reality Topics
 
-[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/VR")]
+[DIR(end:"1" output:"listbutton" parent:"Platforms/VR" tags:"!platform")]
 
 ## Training Streams
 

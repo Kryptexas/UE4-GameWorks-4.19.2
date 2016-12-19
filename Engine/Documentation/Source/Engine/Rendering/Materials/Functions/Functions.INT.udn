@@ -3,6 +3,10 @@ Title:Material Functions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:Snippets of material graphs that can be saved in packages and reused across multiple materials.
 Version: 4.9
+parent:Engine/Rendering/Materials
+order:10
+topic-image:Engine/Rendering/Materials/FunctionTopic.png
+type:overview
 
 [REGION:full_feature]
 [/REGION]

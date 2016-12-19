@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2749579
+﻿INTSourceChangelist:3156615
 Availability:Public
-Title: 머티리얼 에디터 - 머티리얼에 서브서피스 프로파일 사용
+Title: 머티리얼에 서브서피스 프로파일 사용법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description: 머티리얼에 서브서피스 프로파일을 구성하여 피부나 밀랍같은 표면 렌더링을 개선시키는 방법입니다.
 Related: Engine/Rendering/Materials/LightingModels/SubSurfaceProfile
@@ -24,9 +24,11 @@ SkillLevel: Intermediate
 1. 먼저 **콘텐츠 브라우저** 에 **우클릭** 한 다음 **기본 애셋 생성** 아래 **머티리얼** 을 선택하여 새 머티리얼을 만듭니다.
 생성된 이후 머티리얼 이름을 짓습니다. 이 예제에서는 **MAT_Subsurface_Profile_00** 라 합니다. 
 완료된 **콘텐츠 브라우저** 모습은 다음과 같을 것입니다.
+	
 	![](SSP_Create_New_Material.png)
 
 1. 다음, **콘텐츠 브라우저** 에서 머티리얼에 **더블클릭** 하여 엽니다.
+	
 	[REGION:lightbox]
 	![](SSP_Open_New_Material.png)
 	[/REGION]
@@ -45,6 +47,7 @@ SkillLevel: Intermediate
 	[/OBJECT]
 
 1. 이 시점에서 **디테일** 패널의 **Subsurface Profile** 섹션에 **Subsurface Profile** 을 입력하는 것으로 할당해 줄 수 있습니다.
+	
 	![](SSP_Apply_SSP.png)
 
 1. 이제 머티리얼을 서브서피스 프로파일과 사용할 준비가 되었습니다.
@@ -90,6 +93,7 @@ SkillLevel: Intermediate
 | **Subsurface_Amount**| 0.5|
 
 	모든 것을 채운 이후의 셰이더 그래프 모습은 다음과 같을 것입니다.
+	
 	![](SSP_Named_Value_Nodes.png)
 
 1. 머티리얼 표현식 노드 구성이 완료되었으니, 전부 메인 머티리얼 노드에 연결해 줄 차례입니다.
@@ -211,6 +215,7 @@ SkillLevel: Intermediate
 	메시를 찾았으면 **콘텐츠 브라우저** 에서 끌어 레벨에 놓습니다.
 	레벨에 배치했으면 그 위치를 월드의 **0,0,0** 으로 설정합니다.
 	완료된 레벨 뷰포트는 다음과 같은 모습입니다.
+	
 	![](Engine\Rendering\Materials\HowTo\Subsurface_Scattering\SSM_Adding_Meshes.png)
 
 1. 레벨에 스태틱 메시가 배치되었으면, 이제 서브서피스 머티리얼을 적용해 주면 됩니다.

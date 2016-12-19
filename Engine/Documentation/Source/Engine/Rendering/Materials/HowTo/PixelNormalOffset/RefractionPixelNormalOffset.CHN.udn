@@ -1,0 +1,97 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title:Refraction Mode: Pixel Normal Offset
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
+Description:How to use the Refraction mode for Pixel Normal Offset in your Materials.
+Related: Engine/REndering/Materials/HowTo/Refraction
+Version: 4.13
+SkillLevel: Intermediate
+
+
+[TOC(start:2 end:3)]
+
+
+
+The Refraction in Unreal Engine 4 is based on how light rays refract as they are transferred between mediums with different Indices of Refraction that acts as a physical model
+for refraction, which can have unforeseen artifacts for large surfaces. In Unreal Engine 4.13 and higher, you now can select a non-physical refraction model that uses the vertex 
+normal as a reference and then computes the difference to have better results for large surfaces, like water or glass panes. 
+
+
+## Steps
+
+To use the Refraction Mode for Pixel Offset Normal select the main material inputs node then in the Detail's panel use the drop-down selection for Refraction Mode to select between the
+built-in **Index of Refraction** or the **Pixel Normal Offset** model.
+
+1. Select the **Main Material Node** and in the **Detail's** panel scroll down to the section named **Refraction**. Use the drop-down next to **Refraction Mode** to choose
+between the Index of Refraction and Pixel Normal Offset. 
+
+	![](RefractionSettingsSelection.png)(w:350)
+
+	Select **Pixel Normal Offset**.
+
+	![](RefractionSettingPNO.png)(w:350)
+
+2. In the Material Graph, use the following setup to control the amount of refraction for your material. Use a **Scalar Parameter** plugged into the **Lerp's** input **B** to 
+control the amount of refraction.
+
+	[REGION:lightbox]
+	[![](RefractionInput.png)(w:350)](RefractionInput.png)
+	[/REGION]
+	_You can use a constant value or a Lerp node to get a nice variation between the surface detail and defined Index of Refraction._
+
+By using a Scalar Parameter that can be dynamically adjusted, the [Index of Refraction](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/Refraction/#indexofrefractionorior)
+can easily be controlled like the example here that uses a sliding range between 1.0 and 10.0. 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	6UnuWlr0C5Y
+	[/PARAMLITERAL]
+[/OBJECT]
+
+
+## Key Benefits
+
+The benefit of using the Refraction Mode for Pixel Normal Offset can instantly be seen when using large flat surfaces where refraction is used since it is not going to read from outside
+the scene. This provides a leap in quality for fluid water surfaces over the built-in model that is really good for smaller objects, like glassware.
+
+![](2_Ref1.5_Default.png)(w:640)
+[REGION:caption]
+_Index of Refraction model with artist defined value of 1.5_
+[/REGION]
+
+In this example, the built-in Refraction model for **Index of Refraction** causes an offset that is based on the camera angle and an artist defined value. This is a physical model of 
+Refraction that is well suited for smaller objects where the offset is needed. 
+
+![](4_Ref1.5_PNO.png)(w:640)
+[REGION:caption]
+_Pixel Normal Offset model with artist defined value of 1.5_
+[/REGION]
+
+In this example, the Refraction model for **Pixel Normal Offset** doesn't reach outside of the scene when calculating the refraction and is controlled by an artist defined value. 
+This is a non-physical model of refraction that is more accurate for large flat surfaces like the water in this scene.
+
+
+## Final Result
+
+The Material's Refraction input has been defined by a constant to show the visual difference that you can have with no refraction and by using the [Index of Refraction](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/Refraction/#indexofrefractionorior) 
+for water of 1.33 when it is not reading information from offscreen. The subtle differences in the values shifting can help better define flat surfaces that make use of Refraction
+in your game.
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Pixel Normal Offset = 1.0](NoRefraction.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![Pixel Normal Offset = 1.33](Refraction133.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+
+
+

@@ -5,6 +5,7 @@ Description:Information for programmers developing with Unreal Engine.
 version: 4.9
 parent:%ROOT%
 order:4
+type:landing
 
 [VAR:Params]
 [PARAM:image]

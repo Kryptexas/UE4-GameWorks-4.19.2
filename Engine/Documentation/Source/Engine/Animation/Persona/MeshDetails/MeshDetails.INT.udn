@@ -1,37 +1,161 @@
 Availability:Public
-Title:Persona Mesh Details
+Title:Skeletal Mesh Asset Details
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:User guide for the Mesh Details panel in the Persona animation editor.
-version: 4.9
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Rendering/Materials
+Related: Engine/Content/Types/StaticMeshes/HowTo/LODCollision
+Related: Resources/ContentExamples/Cloth
+Related: Engine/Content/FBX/SkeletalMeshes
+version: 4.14
+type:reference
+topic-image:SkeletalMeshAssetDetails.png
+tags:Animation
+tags:Skeletal Mesh
+tags:FBX Importing
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/MeshDetails:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/MeshDetails:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/MeshDetails:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/MeshDetails]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+![](MeshDetails.png)(w:940)
 
 [EXCERPT:Overview]
-![](MeshDetails.png)
-
-
-The **Mesh Details** panel shows specific properties pertaining to the mesh of a Skeletal Mesh, such as the Materials applied to the surface, as well as skinning and LOD options. This panel is only visible when Persona is in **Mesh** mode. 
+The **Asset Details** panel inside the **Skeletal Mesh Editor** shows specific properties pertaining to the Skeletal Mesh, such as the Materials applied to the surface, as well as skinning and LOD options. 
+You can also assign and adjust APEX clothing or define and associate a **Physics Asset** for the Skeletal Mesh which is needed for creating ragdoll type motions. 
 [/EXCERPT:Overview]
 
-Outside the fact that this panel is reserved for specific mesh editing actions within Persona, it is functionally identical to the standard **Details** panel of the main editor. 
+This page highlights each section within the Asset Details panel with links to additional documentation, please see each section below: 
 
-For more information about the basics of using this panel, please see the [Editor Details Panel](Engine/UI/LevelEditor\Details) documentation.
+[TOC (start:2)]
+
+## Materials 
+
+![](MaterialsTable.png)
+
+Any materials applied to meshes modeled in external applications will be exported along with the mesh. 
+When importing that mesh into Unreal Engine 4, you can automatically import those materials as part of the [FBX Import Process.](Engine/Content/FBX/Materials)
+Those materials will appear inside the Skeletal Mesh Editor under this **Materials** section and can be overridden by any other Materials that exist within your project. 
+You can add **Material Slots** which can be used to override a LODs section (not the base LOD). 
+
+## LODs
+
+![](LODSection.png)
+
+When importing a Skeletal Mesh, you can also import any [Level of Details](Engine/Content/ImportingContent/ImportingSkeletalLODs/) (**LODs**) that you may have created and associated with your mesh. 
+You can **Highlight** portions of the mesh or **Isolate** portions to only show certain sections by clicking your desired option's checkbox. You can also assign the Material Elements from the Material section to **Material Slots** or override sections on a per LOD basis.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Highlight On](HighlightOption.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Isolate On](IsolateOption.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+Above we toggle between highlighting the helmet of our character to displaying only the helmet. 
+
+The LODs section also allows you to define when to use your LODs through the **Screen Size** option (how close or far away should the LOD become visible) as well as defining the amount of **LODHysteresis** to avoid "flickering" when on an LOD boundary. 
+Inside the **Viewport**, you can click the **Preview LODs** button (below) to switch between the available LODs (it may also help to enable the **Display Info** for statistical information). 
+
+![](previewLODs.png)
+
+Below using the LOD Previewer, we can see the visual difference between the LODs. 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![LOD 0](LOD0.png)
+	[/PARAM]
+	[PARAM:after]
+	![LOD 2](LOD2.png)
+	[/PARAM]
+[/OBJECT]
+
+With our stats being displayed we can also see statistical information about each LOD. Above, the amount of triangles in LOD 2 is almost half the amount of triangles in LOD 0. 
+
+You can also turn on/off the ability for sections within an LOD to **Cast Shadows** or not. 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Cast Shadows On](castshadows1.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Cast Shadows Off](castshadows2.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+You can turn on/off casting shadows on a per element, per LOD basis (some areas you may not need to cast shadows). 
+
+## Clothing
+
+The **Clothing** section allows you to add an [](Engine/Physics/Apex) clothing file to associate with the mesh. 
+
+Click the **Add APEX clothing file...** button to begin importing an .apb or .apx file which follows the same pipeline as importing an FBX file. 
+
+![](AddApex.png)
+
+Once you've imported your Apex file, you can adjust the [Physics Properties](Engine/Physics/PhAT/Reference) to achieve your desired results. 
+
+![](OwenApexCloth.png)
+
+Above our character has two Apex files associated with it, one for the character's tie and the other for the character's coat. 
+
+## Mesh
+
+![](MeshSection.png)
+
+In the **Mesh** section, you can see what [Skeleton](Engine/Animation/Skeleton) asset the mesh is using and browse to it in the **Content Browser**. 
+There are also options for setting **Positive Bounds Extension** and **Negative Bounds Extension** values which you can use to offset the bounds values of the mesh when you import it. 
+The other option, **Use Full Precision UVs** can be turned on to use 32 bit UVs (or left off to use 16 bit UVs to save memory). 
+
+## Physics
+
+![](PhysicsSection.png)
+
+The **Physics** section allows you to **Enable Per Poly Collision** for the mesh which uses skinned data for collision data. Per Poly Collision cannot be used for simulation, in most cases, you are better off using a **Physics Asset** instead. 
+There is also the ability to assign a [Physics Asset](Engine/Physics/PhAT) to the Skeletal Mesh which is used for processing physics and collision information. This is used for per-bone hit detection, accurate bounding box calculation, and ragdoll physics. 
+
+## Lighting
+
+![](Lighting.png)
+
+The **Shadow Physics Asset** option in the Lighting section allows you to specify a Physics Asset whose shapes will be used for shadowing when components have their **Cast Character Capsule Direct Shadow** or **Cast Character Capsule Indirect Shadow** options enabled. 
+Only spheres and sphyl shapes in the Physics Asset are supported and the more shapes used, the higher the cost the capsule shadows will be. 
+
+In-game, indirect capsule shadows are a good way to ground characters to the environment: 
+
+![](IndirectShadows.png)(w:840)
+
+Direct capsule shadows can be used to achieve extremely soft character shadows in an efficient baked lighting environment. 
+
+![](DirectShadows.png)(w:840)
+
+The light's **Source Radius** or **Source Angle** determines how soft the shadows will be. Capsule shadowing is very efficient as it computes shadowing at half resolution with a depth-aware upsample and uses screen tile culling to limit the shadowing work to where it is needed. 
+The GPU cost is proportional to the number of capsules and the number of pixels affected by the casted shadow. 
+
+## Skeletal Mesh
+
+![](SkeletalMesh.png)
+
+In this section, you can assign a **Post Process Anim Blueprint** which is an [Animation Blueprint](Engine/Animation/AnimBlueprints) class to run as a Post Process for the mesh. This Blueprint will be run before Physics, but after the Main Anim Instance for any Skeletal Mesh component using the mesh. 
+To assign an Animation Blueprint, click the drop-down menu and specify your desired Animation Blueprint. 
+
+You can also assign **Asset User Data** from the expanded menu option and click the **+** sign to add elements to the array. Any additions will be stored along with the Skeletal Mesh asset. 
+
+## Transform
+
+![](TransformSection.png)
+
+The **Transform** section inside the Skeletal Mesh Editor allows you to offset the mesh from the world origin when imported to match its position in the source art program through the **Import Translation** option. 
+The **Import Rotation** will rotate the mesh when imported to match its position in the source art program while the **Import Uniform Scale** option will import the uniform scaling of the mesh from the source art program. 
+
+## Thumbnail
+
+![](ThumbnailSection.png)
+
+The **Thumbnail** options allow you to modify how the mesh is framed in the thumbnail that appears in the **Content Browser** or **Editor Toolbar**. 
+
+## Import Settings
+
+![](ImportSettingsSection.png)
+
+The **Import Settings** section allows you to modify any of the settings used during the initial [FBX Skeletal Mesh Import Process](https://docs.unrealengine.com/latest/INT/Engine/Content/FBX/ImportOptions/#skeletalmeshoptions) for the mesh. 
+
 

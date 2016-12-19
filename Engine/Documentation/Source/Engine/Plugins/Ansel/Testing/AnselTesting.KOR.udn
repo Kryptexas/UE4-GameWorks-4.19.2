@@ -1,0 +1,115 @@
+﻿INTSourceChangelist:0
+Availability:Public
+TItle:Ansel Capture Testing
+Description:Overview of the Unreal Engine 4 integration of Nvidia's Ansel in-game photography tool that enables capturing and sharing enhanced images from games
+Crumbs:
+Parent:Engine/Plugins/Ansel
+Order:1
+type:overview
+tags:Plugins
+tags:Ansel
+version:4.14
+topic-image:Ansel_Testing_Topic.png
+
+**To test the Nvidia Ansel Photography Plugin with your game:**
+
+1. Run the NvCameraConfiguration.exe application and ensure that **NvCamera Status** is set to _Enable_, which is the default.
+
+		C:\Program Files\NVIDIA Corporation\Ansel\Tools\NvCameraConfiguration.exe
+
+1. Run the CameraEnable.exe application passing it `whitelisting-everything` to allow your game to use Ansel. This persists across reboots and may be reset by typing `whitelisting-default` in place of `whitelisting-everything`.
+
+		"C:\Program Files\NVIDIA Corporation\Ansel\Tools\CameraEnable.exe" whitelisting-everything
+
+1. In Unreal Editor, select **Play > Standalone Game** in the Level Editor toolbar to run as a Standalone Game. Ansel will not activate when playing in the Editor.
+
+1. Press **Alt + F2** to activate Ansel photography in the game. When a Session has been successfully started, the game world pauses and the Ansel UI will appear over the game view.
+
+	![](Engine/Plugins/Ansel/Testing/unlit.png)(w:640)
+
+	[REGION:note]
+	Ansel will not activate while VR or Split-screen are active in the game
+	[/REGION]
+
+	[REGION:note]
+	In Editor builds, **F2** is the keybinding that switches to Unlit rendering mode.  To restore the more photo-friendly Lit mode, press **F3**.
+	[/REGION]
+
+1. Select a capture type using the **Capture type** slider. 
+
+1. Press the **Snap** button. 
+
+	[REGION:note]
+	Some pictures may take significant time to produce, especially highres shots of large dimensions. If the game uses streaming the streaming performance may be affected when shots involving many parts are being stitched together.
+	[/REGION]
+
+
+## In-Game Controls
+
+| Keyboard / Mouse | Gamepad | Description |
+| --- | --- | --- |
+| [REGION:tablesection]Camera Movement[/REGION] |||
+| W | Left Analog Stick Up | Moves the Camera forward |
+| A | Left Joystick Left | Moves the Camera left |
+| S | Left Joystick Down | Moves the Camera backward |
+| D | Left Joystick Right | Moves the Camera right |
+| X | Left Trigger | Moves the Camera up |
+| Y | Right Trigger | Moves the Camera down |
+| Shift (Hold) | Right Analog Stick (Press) | Accelerates Camera movement speed |
+| [REGION:tablesection]Camera Movement[/REGION] |||
+| Left-Click + Move Mouse | Right Analog Stick | Rotates the Camera (yaw and pitch) |
+
+## Capture Types
+
+Ansel offers the following capture types:
+
+| Capture Type | Example | Description |
+| --- | --- | --- |
+| **Screenshot** | [REGION:lightbox][![](capture_normal.png)(w:320)](capture_normal.png)[/REGION] | A standard screenshot using the current viewport resolution |
+| **Superresolution** | [REGION:lightbox][![](capture_super.jpg)(w:320)](capture_super.jpg)[/REGION] | A high resolution screenshot using a configurable multiple of the current viewport resolution |
+| **360** | [REGION:lightbox][![](capture_360.jpg)(w:320)](capture_360.jpg)[/REGION] | A 360 degree view screenshot using a configurable resolution |
+| **Stereo** | [REGION:lightbox][![](capture_stereo.jpg)(w:320)](capture_stereo.jpg)[/REGION] | A stereo screenshot using the current viewport resolution for each viewpoint |
+| **360 Stereo** | [REGION:lightbox][![](capture_360stereo.jpg)(w:320)](capture_360stereo.jpg)[/REGION] | A 360 degree view stereo screenshot using a configurable resolution  |
+
+
+[REGION:note]
+Not all filters are valid with multipart Capture types, e.g. 360 and Highres. You may therefore see filters, or aspects of a filter, removed in the final picture.
+
+Similarly, not all UE4 postprocessing effects are valid with multipart Capture types.  Standard UE4 postprocessing effects which are problematic in this case are automatically removed in the final picture.
+[/REGION]
+
+## Filters
+
+A number of filters can be applied using the **Filter** slider.
+
+[REGION:fullwidth]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:id]
+	filter_slider
+	[/PARAMLITERAL]
+	[PARAMLITERAL:max]
+	8
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	Drag to see the available filters in action
+	[/PARAM]
+	[PARAM:image_list]
+	![](filter_slider_1.png)
+	![](filter_slider_2.png)
+	![](filter_slider_3.png)
+	![](filter_slider_4.png)
+	![](filter_slider_5.png)
+	![](filter_slider_6.png)
+	![](filter_slider_7.png)
+	![](filter_slider_8.png)
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+
+Some filters, such as the **Custom** filter, have additional settings that can be used to adjust the filter even further.
+
+
+

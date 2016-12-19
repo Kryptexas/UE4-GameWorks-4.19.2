@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:How-To Edit a Spline Component in the Level Editor
+﻿INTSourceChangelist:3149199
+Availability:Public
+Title:如何在视口中编辑样条组件
 Crumbs: %ROOT%, Engine
 Description:Null
 Navigation:topic
@@ -8,6 +8,10 @@ parent:Engine/BlueprintSplines/HowTo
 order:2
 social-image:Splines_social.png
 related:Engine/BlueprintSplines/HowTo/EditSplineInConstScript
+version:4.13
+skilllevel:Beginner
+reference-image:FullEdit.gif
+tags:Splines
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -48,41 +52,48 @@ related:Engine/BlueprintSplines/HowTo/EditSplineInConstScript
 [/OBJECT]
 [/VAR]
 
-This how-to will step through editing **Blueprint Spline Component** curves while they are in the Level Editor. **Spline Mesh Components** can also be set so they can be edited in the Level Editor, but only have two points to use, and you cannot add any more points.
+此指南将说明如何编辑关卡编辑器中的 **蓝图样条组件** 曲线。**蓝图样条网格体组件** 也可设为可在关卡编辑器中进行编辑，但仅有两点可用，且无法添加更多点。
 
-## Steps
+[REGION:note]
+此指南说明如何编辑关卡编辑器中的样条。实际上也可使用相同方法和工具在蓝图编辑器的视口中对 **蓝图样条组件** 和 **蓝图样条网格体组件** 进行完整编辑。
+[/REGION]
 
-1. Place Blueprint with a **Spline Component** into your Level.
+
+## 步骤
+
+1. 将带 **样条组件** 的蓝图放置到关卡中。
 
 	![](PlaceActor.png)
 
-1. Select Actor with Spline Component in your level. If you just placed it into the level, it will already be selected.
+1. 完成的放置的 actor 应为选中状态。如未选中，则选中关卡中带样条组件的 actor。
 
-	If your Blueprint Actor has no other visible Components (Meshes, billboards, etc...) it may be difficult to select, however, you can always select it from the **World Outliner**.
+	如蓝图组件无其他可见组件（网格体、布告板等），则可能难以选中。然而也可在 **World Outliner** 中进行选择。
 
 	[REGION:note]
-	If you are using a **Spline Mesh Component** you'll need to enable **Allow Spline Editing Per Instance** on the Blueprint in the Blueprint Editor to see its **Curve Points**.
+	如使用的是 **样条网格体组件**，则需要在蓝图编辑器的蓝图上启用 **Allow Spline Editing Per Instance**，以便查看其 **曲线点**。
 	[/REGION]
 	
-1. Select a **Curve Point** on the spline, and using the Move, Rotate, and Scale tools, manipulate the Curve Points and Tangent Points into the desired shape.
+1. 在样条上选择一个 **曲线点**，然后使用移动、旋转和缩放工具，将曲线点和切线点处理为所需的形状。
 
-	![](FullEdit.gif)(convert:false)
+	[REGION:asyncgif]
+	![](FullEdit.gif)
+	[/REGION]
 
-	You can also use the following features to edit the curve:
+	也可使用以下功能编辑曲线：
 	
-	* To Add a point, right-click on a **Curve Section** and select **Add Spline Point Here**.
-	* To Duplicate a point, right-click the **Curve Point** you want to duplicate and select **Duplicate Spline Point**
-	* To Remove a point, right-click on a **Curve Point** and select **Delete Spline Point**
+	* 如需添加一个点，右键点击 **曲线段** 并选择 **Add Spline Point Here**。
+	* 如需复制一个点，右键点击需要复制的 **曲线点** 并选择 **Duplicate Spline Point**。
+	* 如需移除一个点，右键点击 **曲线点** 并选择 **Delete Spline Point Here**。
 	
-	For more information on all the tools available to edit Spline Components see [](Engine/BlueprintSplines/Reference/SplineEditorTool).
+	如需了解可用于编辑样条组件的所有工具，请查阅 [](Engine/BlueprintSplines/Reference/SplineEditorTool)。
 	
 	[REGION:note]
-	Once you start editing the Spline Component, the **Override Construction Script** property will be set to **True** to prevent it from overwriting your work. 
+	开始编辑样条组件后，**Override Construction Script** 属性将设为 **True**，防止其覆盖内容。 
 	[/REGION]
 	
-## Result
+## 结果
 
-While above, we are just editing a spline that doesn't affect anything, there are a number of uses for this data. See [](Resources/ContentExamples/Blueprint_Splines) documentation and the **Content Examples** project for additional information.
+编辑的样条虽不会对内容产生影响，但此数据有多种用途。查阅 [](Resources/ContentExamples/Blueprint_Splines) 文档和 **Content Examples** 项目中的额外信息。
 
 
 

@@ -1,95 +1,109 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:NoPublish
 Title:EAlphaBlendOption
 Crumbs:
-Description: Enum describing the type of blending curve to use for an FAlphaBlend
+Description:描述 FAlphaBlend 所使用混合曲线类型的枚举
 
 [EXCERPT:Linear]
 
-Blend using a linear curve.
+混合使用线性曲线。
 
+![](Linear_Easing.png)
 [/EXCERPT:Linear]
 
 [EXCERPT:Cubic]
 
-Blend using a cubic curve.
+混合使用三次曲线。
 
+![](Cubic_Ease_In_Out.png)
 [/EXCERPT:Cubic]
 
 [EXCERPT:HermiteCubic]
 
-Blend using a Hermite cubic curve (see FMath::SmoothStep).
+混合使用埃尔米特三次曲线（见 FMath::SmoothStep）。
 
+![](Hermite_Cubic_Ease_In_Out.png)
 [/EXCERPT:HermiteCubic]
 
 [EXCERPT:Sinusoidal]
 
-Blend using a sinusoidal curve.
+混合使用正弦曲线。
 
+![](Sinusoidal_Ease_In_Out.png)
 [/EXCERPT:Sinusoidal]
 
 [EXCERPT:QuadraticInOut]
 
-Blend using a quadratic in/out curve.
+混合使用二次内弯/外弯曲线。
 
+![](Quadratic_Ease_In_Out.png)
 [/EXCERPT:QuadraticInOut]
 
 [EXCERPT:CubicInOut]
 
-Blend using a cubic in/out curve.
+混合使用三次内弯/外弯曲线。
 
+![](Cubic_Ease_In_Out.png)
 [/EXCERPT:CubicInOut]
 
 [EXCERPT:QuarticInOut]
 
-Blend using a quartic in/out curve.
+混合使用四次内弯/外弯曲线。
 
+![](Quadratic_Ease_In_Out.png)
 [/EXCERPT:QuarticInOut]
 
 [EXCERPT:QuinticInOut]
 
-Blend using a quintic in/out curve.
+混合使用五次内弯/外弯曲线。
 
+![](Quintic_Ease_In_Out.png)
 [/EXCERPT:QuinticInOut]
 
 [EXCERPT:CircularIn]
 
-Blend using a circular in curve.
+混合使用圆周内弯曲线。
 
+![](Circular_Ease_In.png)
 [/EXCERPT:CircularIn]
 
 [EXCERPT:CircularOut]
 
-Blend using a circular out curve.
+混合使用圆周外弯曲线。
 
+![](Circular_Ease_Out.png)
 [/EXCERPT:CircularOut]
 
 [EXCERPT:CircularInOut]
 
-Blend using a circular in/out curve.
+混合使用圆周内弯/外弯曲线。
 
+![](Circular_Ease_In_Out.png)
 [/EXCERPT:CircularInOut]
 
 [EXCERPT:ExpIn]
 
-Blend using a exponential in curve.
+混合使用指数内弯曲线
 
+![](Exponential_Ease_In.png)
 [/EXCERPT:ExpIn]
 
 [EXCERPT:ExpOut]
 
-Blend using a exponential out curve.
+混合使用指数外弯曲线
 
+![](Exponential_Ease_Out.png)
 [/EXCERPT:ExpOut]
 
 [EXCERPT:ExpInOut]
 
-Blend using a exponential in/out curve.
+混合使用指数内弯/外弯曲线。
 
+![](Exponential_Ease_In_Out.png)
 [/EXCERPT:ExpInOut]
 
 [EXCERPT:Custom]
 
-Blend using a custom curve.
+混合使用自定义曲线。
 
 [/EXCERPT:Custom]

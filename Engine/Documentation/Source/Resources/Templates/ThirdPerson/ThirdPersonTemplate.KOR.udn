@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3112268
+﻿INTSourceChangelist:3112291
 Availability: Public
 Title:삼인칭
 Crumbs:%ROOT%
@@ -70,7 +70,7 @@ resources
 	* 인벤토리 시스템
 	* 고급 동작
 	* 무기 전환 시스템
-	* 순차적 콘텐츠
+	* 프로시저럴 콘텐츠
 	* 커버 시스템
 
 <!--

@@ -5,7 +5,7 @@ Description:Using Actor Reference to move different Actors around in a level.
 Related: Gameplay/HowTo/ReferenceAssets/Blueprints
 version: 4.9
 skilllevel:Intermediate
-type:howto
+type:how-to
 parent:Engine/Blueprints/BP_HowTo
 order:1
 tags:Data Types

@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title: Installed Build Reference
 Crumbs: %ROOT%, Programming, Programming/Development
 Description:This page describes the Installed Build process, including an overview of how to write Installed Build scripts.
@@ -33,163 +33,60 @@ tags: BuildGraph
 [/VAR]
 
 Developers are always looking for ways to efficiently deliver build solutions for a variety of hardware profiles and operating systems. 
-With the release of our BuildGraph scripting system, you'll be able to create custom sequences of Unreal Engine 4 (UE4) build commands, 
-harnessing the Installed Build process that we've developed for your use. As you read through the following reference page, you'll learn 
-about the Installed Build process, including how to run scripts that make Installed Builds for targeted build solutions.
+An **Installed Build** is a fully featured engine build that can be redistributed to quickly get your team up and running with the engine. 
+From a technical standpoint, an Installed build contains precompiled binaries for Unreal Editor and a static library for each target platform 
+in development and shipping configurations. 
 
-## What's an Installed Build?
-
-An **Installed Build** of UE4 is the same as a version that's distributed using the [Epic Games Launcher](GettingStarted/Installation).
-
-![](InstalledBuilds.png)
-
-This version of the engine is shipped with each release of UE4. Although the Installed Build is fully featured, its features are streamlined by an 
-Installed Build process that quickly gets users up and running with the engine. Additionally, the Unreal Editor is distributed as 
-precompiled binaries with a static library for each target platform in development and shipping configurations.
-
-[REGION:note]
-Contents found in the `Engine` folder should be treated as `read-only` because rebuilding game projects will not attempt to rebuild Engine code.
-[/REGION] 
-
-## About the Installed Build Process
-
-The Installed Build process automates build packages and tools that are needed to make an Installed Build version of UE4. 
-In summary, making an Installed Build is the process of setting up default target platforms, compiling UE4 with its tools and 
-editor, running tests, and deploying the Installed Build version of UE4 for targeted platforms.
+The Installed Build process automates build packages and tools that are needed to make an Installed Build version of Unreal Engine 4 (UE4). In summary, 
+making an Installed Build is the process of setting up default target platforms, compiling UE4 with its tools and editor, running tests, 
+and deploying the Installed Build version of UE4 to targeted platforms. 
 
 ## Making an Installed Build
 
-The Installed Build process is made with our BuildGraph scripting system. BuildGraph scripts create custom sequences 
-of UE4 build commands for build automation. You can declare graphs by scripting an XML file with syntax (using [XML Schema v1.0](https://www.w3.org/TR/NOTE-dcd])) 
-similar to MSBuild, Apache ANT, and NAnt. Scripted XML files define a network of node dependencies containing tasks that will be executed during the Installed Build process.
+You can create Installed Builds using the [](Programming/Development/BuildGraph) scripting system with the Installed Build script located at 
+`[UE4Root]/Engine/Build/InstalledBuild.xml`.
 
-If you're interested in reading through example BuildGraph scripts, navigate to the `[UE4Root]/Engine/Build/Graph/Examples` folder, where you'll find: 
+**To create an Installed Build:**
 
-* `AllExamples.xml`
-* `Building.xml`
-* `TagsAndFiles.xml`
+1.	Run the Installed Build Script by invoking the **AutomationTool** with the following command line, replacing `[PLATFORM]` with either `Win64` or `Mac`. You can also configure the build using the available [Installed Build Script Options](#bookmark1).
 
-### Running the Installed Build Script
+		BuildGraph -target="Make Installed Build [PLATFORM]" -script=Engine/Build/InstalledEngineBuild.xml -clean
 
-The Installed Build script is located at `[UE4Root]/Engine/Build/InstalledEngineBuild.xml`. You can run the Installed Build script by invoking the 
-**AutomationTool** with the following command line:
+1.	Navigate to the `LocalBuilds/Engine/` folder in your Unreal Engine directory to view the Installed Build that you created. If you specified a different directory to publish to, navigate to that directory instead.
 
-%Globals:osselect%
+## Installed Build Script Options
 
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	windows
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	`BuildGraph -target=”Make Installed Build Win64” -script=Engine/Build/InstalledEngineBuild.xml -clean`
-	[/PARAM]
-[/OBJECT]
+(#bookmark1)
 
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	mac
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	`BuildGraph -target=”Make Installed Build Mac” -script=Engine/Build/InstalledEngineBuild.xml -clean`
-	[/PARAM]
-[/OBJECT]
+The `InstalledEngineBuild.xml` script makes an Installed Build with all of the default options and platforms enabled; however, it can be configured using a set 
+of specified options, enabling you to target which platforms to include, where to publish the build to, etc. You can view a list of available options for customizing the 
+build process (along with a list of nodes that will be built), by passing the `-listonly` option to the script. 
 
-In summary, running `InstalledEngineBuild.xml` makes an Installed Build with all of the default options and platforms enabled. 
+The available options are: 
 
-#### Installed Build Script Options
 
-If you want to see a list of available options for customizing the build process (along with a list of nodes that'll be built), 
-you'll want to append the `-listonly` option before running the script. Subsequently, the list output should look something like this: 
+| Option | Default | Description |
+| ------ | ------- | ----------- |
+| `-set:HostPlatformOnly=[true/false]` | false | A helper option to make an installed build for your host platform only, so that you don't have to disable each platform individually |
+| `-set:WithWin64=[true/false]` | true | Include the Win64 target platform |
+| `-set:WithWin32=[true/false]` | true | Include the Win32 target platform |
+| `-set:WithMac=[true/false]` | true |  Include the Mac target platform |
+| `-set:WithAndroid=[true/false]` | true | Include the Android target platform |
+| `-set:WithIOS=[true/false]` | true | Include the iOS target platform [REGION:note]Enabling this option requires a Mac set up for remote building.[/REGION] |
+| `-set:WithTVOS=[true/false]` | true | Include the tvOS target platform [REGION:note]Enabling this option requires a Mac set up for remote building.[/REGION] |
+| `-set:WithLinux=[true/false]` | true | Include the Linux target platform |
+| `-set:WithHTML5=[true/false]` | true | Include the HTML5 target platform |
+| `-set:WithPS4=[true/false]` | false | Include the PS4 target platform [REGION:note]Enabling this option requires the PS4 SDK.[/REGION] |
+| `-set:WithXboxOne=[true/false]` | false | Include the XboxOne target platform [REGION:note]Enabling this option requires the Xbox One SDK.[/REGION] |
+| `-set:WithDDC=[true/false]` | true | Build a stand-alone derived-data cache for the engine content and templates [REGION:note]Building a stand-alone [Derived Data Cache (DDC)](Engine/Basics/DerivedDataCache) for the Engine and Template content can be one of the slowest aspects of the build. If you don't need a stand-alone DDC, you can skip this step by appending `-set:WithDDC=false` to the command line.[/REGION] |
+| `-set:SignExecutables=[true/false]` | false | Sign the executables produced if you have to set up your machine to sign executables as part of the build process |
+| `-set:AnalyticsTypeOverride=[ID]` | N/A | Identifier for analytic events to send |
 
-	Options:
-	
-	    -set:PublishDir=...            Root directory to contain published builds and symbols (Default: $(RootDir)/LocalBuilds/Engine) 
-	    -set:WithWin64=...             Include the Win64 target platform (Default: true) 
-	    -set:WithWin32=...             Include the Win32 target platform (Default: true) 
-	    -set:WithMac=...               Include the Mac target platform (Default: true) 
-	    -set:WithAndroid=...           Include the Android target platform (Default: true) 
-	    -set:WithIOS=...               Include the iOS target platform (Default: true) 
-	    -set:WithTVOS=...              Include the tvOS target platform (Default: true) 
-	    -set:WithLinux=...             Include the Linux target platform (Default: true) 
-	    -set:WithHTML5=...             Include the HTML5 target platform (Default: true) 
-	    -set:WithPS4=...               Include the PS4 target platform (Default: false) 
-	    -set:WithXboxOne=...           Include the XboxOne target platform (Default: false) 
-	    -set:WithDDC=...               Build a stand-alone derived-data cache for the engine content and templates (Default: true) 
-	    -set:AnalyticsTypeOverride=... Identifier for analytic events to send 
-	
-	Graph:
-	    Trigger: None
-	        Agent: Editor Win64 (CompileWin64)
-	            Node: Update Version Files
-	            Node: Compile UnrealHeaderTool Win64
-	            Node: Compile UE4Editor Win64
-	        Agent: Editor Mac (CompileMac)
-	            Node: Compile UnrealHeaderTool Mac
-	        Agent: Target Platforms Win64 (CompileWin64)
-	            Node: Compile UE4Game Win64
-	            Node: Compile UE4Game Win32
-	            Node: Compile UE4Game Linux
-	            Node: Compile UE4Game Android
-	            Node: Compile UE4Game HTML5
-	        Agent: Target Platforms Mac (CompileMac)
-	            Node: Compile UE4Game IOS
-	            Node: Compile UE4Game TVOS
-	        Agent: Tools Group Win64 (CompileWin64)
-	            Node: Build Tools Win64
-	            Node: Build Tools CS
-	            Node: Make Feature Packs
-	        Agent: DDC Group Win64 (Win64)
-	            Node: Build DDC Win64
-	        Agent: Installed Build Group Win64 (Win64)
-	            Node: Make Installed Build Win64
-
-Please note that some portions of the node graph can be ignored because they're only relevant to Epic's internal build system. For example, 
-the Agent descriptions, namely `CompileWin64` and `CompileMac`, refer to the type of machine they're meant to run on; however, the script 
-can still be run from a single build machine. 
-
-### Some Additional Commands
-
-Depending on your targeted platform and available Software Development Kit (SDK), we're providing some useful commands that you should take note of.
-
-#### Making an Installed Build for your Current Platform
-
-If you want to make an Installed Build for your current platform, thereby avoiding the need to set all of the platform options to `false`, append 
-`-set:HostPlatformOnly=true` to the command line.
-
-##### IOS and TVOS
-
-If you want to include IOS and TVOS in your Installed Build, you'll have to have a Mac set up for remote building. Otherwise, append the following to your command line:
-`-set:WithIOS=false -setWithTVOS=false`.
-
-##### Playstation 4 and XboxOne
-
-If you have the required SDKs, you can add Playstation 4 (PS4) and XboxOne as target platforms (although, this is untested). To add PS4 and XboxOne 
-as target platforms, append `-set:WithPS4=true -set:WithXboxOne=true` to the command line.
-
-#### Excluding the Derived Data Cache
-
-Building a stand-alone [Derived Data Cache (DDC)](Engine/Basics/DerivedDataCache) for the Engine and Template content can be one of the slowest aspects of the build. 
-If you don't need a stand-alone DDC, you can skip this step by appending `-set:WithDDC=false` to the command line.
-
-#### Signing Executables
-
-If you have to set up your machine to sign executables as part of the build process, append `-set:SignExecutables=true` to the command line.
 
 ### Including Additional Files
 
 RuntimeDependencies (set in `build.cs` files for each module) automatically collate and determine which files are included in an Installed Build. 
 However, there are some required files that cannot be included this way, so they're defined in `[UE4Root]/Engine/Build/InstalledEngineFilters.xml`. 
-The `InstalledEngineFilters` XML file also lists patterns of files that should be excluded from the build, determining the types of files that need to be stripped or signed, and finally, deciding 
-what projects to build the DDC for. If you need to add any additional files to the Installed Build, the `InstalledEngineFilters` XML file is a great place to start.
+The `InstalledEngineFilters` XML file also lists patterns of files that should be excluded from the build, determining the types of files that need to be 
+stripped or signed, and finally, deciding what projects to build the DDC for. If you need to include any additional files with the Installed Build, the `InstalledEngineFilters` 
+XML file is a great place to start.

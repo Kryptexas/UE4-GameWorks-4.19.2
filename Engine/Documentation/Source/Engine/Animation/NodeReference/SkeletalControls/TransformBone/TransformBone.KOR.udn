@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:Public
-Title:Transform Bone
+Title:본 트랜스폼
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
-Description:Describes the Transform (Modify) Bone control which can be used to modify the transform of a specified bone. 
+Description:지정된 본의 트랜스폼을 변경하는 데 사용되는 Transform Modify Bone 콘트롤에 대한 설명입니다.
 version: 4.12
 
 [VAR:Topic]
@@ -39,11 +39,11 @@ version: 4.12
 [/OBJECT]
 [/VAR]
 
-The **Transform (Modify) Bone** control can be used to modify the transform of a specified bone. 
+**Transform (Modify) Bone** 콘트롤은 지정된 본의 트랜스폼을 변경하는 데 사용됩니다.
 
 ![](node_modifybone.png)
 
-Below we use two Transform Modify Bone controllers to affect the Spine and Neck of our character. 
+아래는 두 개의 Transform Modify Bone 콘트롤러를 사용하여 캐릭터의 척추와 목에 영향을 끼치는 모습입니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -57,20 +57,24 @@ Below we use two Transform Modify Bone controllers to affect the Spine and Neck 
 [/PARAMLITERAL]
 [/OBJECT]
 
-We can use variables to drive the changes in Translation, Rotation or Scale on the Transform Modify Bone to affect our character.
-In the video above, the **Rotation Value** variable drives the rotation of the **MF_Spine_01** and **b_MF_Neck** Bones in our character. 
-The scale of our character is also driven by a float variable (**Scale Multiplier**) which affects the spine of our character, increase/decreases the size of the bone and scaling our character. 
+Transform Modify Bone 의 이동, 위치, 회전 값 변화를 변수로 구동시켜 캐릭터에 영향을 끼칠 수 있습니다.
+위 비디오에서, **Rotation Value** 변수는 캐릭터의 **MF_Spine_01** 및 **b_MF_Neck** 본의 회전을 구동시킵니다.
+캐릭터의 스케일 역시 플로트 변수로 (**Scale Multiplier**) 구동되는데, 캐릭터의 척추에 영향을 끼치고, 캐릭터의 본 크기와 스케일을 높이고 낮춥니다.
 
 
-| Property | Description |
+| 프로퍼티 | 설명 |
 | -------- | ----------- |
-| [REGION:tablesection]**Skeletal Control**[/REGION] ||
-| **Bone To Modify** | Name of the target bone to modify the Transform of. |
+| [REGION:tablesection]**Skeletal Control** 스켈레탈 콘트롤[/REGION] ||
+| **Bone To Modify** | 변경할 본 - 트랜스폼을 변경할 타겟 본 이름입니다. |
 
-| Pin | Description |
+| 핀 | 설명 |
 | --- | ----------- |
-| [REGION:tablesection]**Input Pins**[/REGION] ||
-| **Translation** | A Vector specifying the Translation to apply to the target bone. |
-| **Rotation** | A Rotator specifying the Rotation to apply to the target bone. |
-| **Scale** | A Vector specifying the Scale to apply to the target bone. |
+| [REGION:tablesection]**입력 핀**[/REGION] ||
+| **Translation** | 이동 - 타겟 본에 적용할 이동을 나타내는 벡터입니다. |
+| **Rotation** | 회전 - 타겟 본에 적용할 회전을 나타내는 로테이터입니다.|
+| **Scale** | 스케일 - 타겟 본에 적용할 스케일을 나타내는 벡터입니다. |
+
+**Transform (Modify) Bone** 노드는 4.11 에 도입된 **LOD Threshold** (LOD 한계치) 시스템의 영향을 받기도 합니다. 이 세팅은 **Transform (Modify) Bone** 노드의 **디테일 패널** 에서 찾아볼 수 있습니다.
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 

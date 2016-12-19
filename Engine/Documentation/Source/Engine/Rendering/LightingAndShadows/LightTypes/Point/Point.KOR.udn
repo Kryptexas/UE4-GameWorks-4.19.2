@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2954984
+﻿INTSourceChangelist:3215424
 Availability: Public
 Title:포인트 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
 Description:포인트 라이트 기초입니다.
-Version: 4.9
+Version: 4.14
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -76,7 +76,7 @@ Version: 4.9
 [/OBJECT]
 [/EXCERPT:Intro]
 
-**포인트 라이트** 를 레벨에 배치한 예제 둘은 아래와 같습니다.
+아래는 **포인트 라이트** 를 레벨에 배치한 예제 둘입니다.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -114,6 +114,7 @@ _왼쪽의 이미지는 반경을 표시하지 않은 **포인트 라이트**, �
 | **Min Roughness** | 최소 러프니스 - 이 라이트의 실제적인 최소 거칠기로, 스페큘러 하이라이트를 부드럽게 만드는 데 쓰입니다. |
 | **Shadow Bias** | 그림자 편향 - 이 라이트의 그림자가 정확히 붙도록 조절합니다. |
 | **Shadow Filter Sharpen** | 섀도 필터 선명화 - 이 라이트에 대한 섀도 필터링을 얼마나 선명하게 할지입니다. |
+| **Contact Shadow Length** | 컨택트 섀도 길이 - 선명한 컨택트 섀도를 위해 레이 트레이싱을 할 스크린 스페이스 길이입니다. 값이 0 이면 꺼집니다. |
 | **Cast Translucent Shadows** | 반투명 그림자 드리우기 - 이 라이트가 반투명 오브젝트를 통과하는 다이내믹 섀도를 드리우도록 할것인지 입니다. |
 | **Affect Dynamic Indirect Lighting** | 동적인 간접광 영향 - 라이트를 **Light Propagation Volume** 에 주입시킬지 입니다. |
 | **Cast Static Shadows** | 스태틱 섀도 드리우기 - 이 라이트가 스태틱 섀도를 드리울지 입니다. |

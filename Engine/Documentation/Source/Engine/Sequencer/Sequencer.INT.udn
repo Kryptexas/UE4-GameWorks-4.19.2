@@ -4,7 +4,7 @@ Crumbs: %ROOT%, Engine
 Description:Sequencer is Unreal Engine 4's mult-track editor used for creating and previewing cinematic sequences in real time. 
 Navigation:topic
 parent:Engine
-order:3
+order:4
 social-image:sequencer_social.png
 related: Engine/Matinee
 

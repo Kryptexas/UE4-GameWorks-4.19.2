@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2945857
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:2.Animation ブループリントをセットアップする
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\PropertyBasedBlending
@@ -11,7 +11,7 @@ Related:Engine/Animation/StateMachines
 version:4.10
 skilllevel:Intermediate
 checkpoint: animpropertyblend
-type:sequential
+type:multi-step
 order:2
 parent:Engine/Animation/AnimHowTo/PropertyBasedBlending
 
@@ -21,7 +21,7 @@ parent:Engine/Animation/AnimHowTo/PropertyBasedBlending
 
 ## ステップ
 
-1.**コンテンツ ブラウザ** の **Content/AnimStarterPack** で **UE4ASP_HeroTPP_AnimBlueprint** を開きます。
+1. **コンテンツ ブラウザ** の **Content/AnimStarterPack** で **UE4ASP_HeroTPP_AnimBlueprint** を開きます。
 
 1.	 Animation ブループリント内で、**MyBlueprint** タブをクリックします。次に **AnimGraph** を展開し、 **Locomotion をダブルクリック** します。 
 

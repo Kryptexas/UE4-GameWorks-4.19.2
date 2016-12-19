@@ -1,8 +1,13 @@
 title:Hierarchical LOD Reference
 description:A reference of the interface elements and properties found in the Hierarchical LOD Outliner.
 crumbs:
-availability:docs
+availability:Public
 version:4.13
+parent:Engine/HLOD
+order:2
+type:reference
+tags:HLOD
+topic-image:Engine/HLOD/defaultHLOD_topic.png
 
 This page details the buttons and properties that exist on the **Hierarchical LOD Outliner**.
 
@@ -10,8 +15,10 @@ This page details the buttons and properties that exist on the **Hierarchical LO
 
 ![HLOD Outliner Fully Expanded](image_2.png)
 
-[REGION:raw]
-### Interface Elements
+
+### HLOD Actions
+
+![](InterfaceElements.png)
 
 Below are the descriptions for the 3 buttons and slider that exist in the **Hierarchical LOD Outliner**.
 
@@ -24,39 +31,39 @@ Below are the descriptions for the 3 buttons and slider that exist in the **Hier
 | | %spacer%  | |
 [/REGION]
 
-### Context Menus
+### Hierarchical LOD Outliner Context Menus
 
 The Hierarchical LOD Outliner has a few right-click context menus, below are how to access them and the options they present.
 
-* The first is accessed by right-clicking on a **Cluster Entry** in the HLOD Outliner:
+#### LOD Actor Context Menu
 
-	[REGION:raw]
-	![](ContextMenu1.png)
-	[/REGION]
+[REGION:raw]
+![](ContextMenu1.png)
+[/REGION]
 
-	[REGION:raw]
-	| Option | %spacer% | Description |
-	| --- | :---: | :--- |
-	| **Select LOD Actor** || Selects the LOD Actor in the viewport (same effect as left-clicking the cluster). |
-	| **Select Contained Actors** || Selects all the **Actors** contained in the **LOD Cluster**. |
-	| **ForceView** || Toggles the view of the **HLOD Actor** in the viewport. |
-	| **Rebuild Proxy Mesh** || Forces the right-clicked cluster to rebuild its proxy mesh. |
-	| **Create Containing Hierarchical Volume** || Creates a **Hierarchical Volume** around the **Actors** contained in the **Cluster** that can then be modified to encompass greater or fewer **Actors**. |
-	| **Delete Cluster** || Deletes the right-clicked Cluster. |
-	[/REGION]
+[REGION:raw]
+| Option | %spacer% | Description |
+| --- | :---: | :--- |
+| **Select LOD Actor** || Selects the LOD Actor in the viewport (same effect as left-clicking the cluster). |
+| **Select Contained Actors** || Selects all the **Actors** contained in the **LOD Cluster**. |
+| **ForceView** || Toggles the view of the **HLOD Actor** in the viewport. |
+| **Rebuild Proxy Mesh** || Forces the right-clicked cluster to rebuild its proxy mesh. |
+| **Create Containing Hierarchical Volume** || Creates a **Hierarchical Volume** around the **Actors** contained in the **Cluster** that can then be modified to encompass greater or fewer **Actors**. |
+| **Delete Cluster** || Deletes the right-clicked Cluster. |
+[/REGION]
 
-* The next is accessed by right-clicking on an **Actor** entry contained within an **Cluster Entry** in the HLOD Outliner:
+#### Actor Context Menu
 
-	[REGION:raw]
-	![](ContextMenu2.png)
-	[/REGION]
+[REGION:raw]
+![](ContextMenu2.png)
+[/REGION]
 
-	[REGION:raw]
-	| Option | %spacer% | Description |
-	| --- | :---: | :--- |
-	| **Remove From Cluster** || Removes the right-clicked **Actor** from the **Cluster**. |
-	| **Exclude From Cluster Generation** || Excludes the right-clicked **Actor** from **Cluster** generation. If you wish to re-add the excluded **Actor** click and drag it from the **World Outliner** into the **Cluster** in the **Hierarchical LOD Outliner**. |
-	[/REGION]
+[REGION:raw]
+| Option | %spacer% | Description |
+| --- | :---: | :--- |
+| **Remove From Cluster** || Removes the right-clicked **Actor** from the **Cluster**. |
+| **Exclude From Cluster Generation** || Excludes the right-clicked **Actor** from **Cluster** generation. If you wish to re-add the excluded **Actor** click and drag it from the **World Outliner** into the **Cluster** in the **Hierarchical LOD Outliner**. |
+[/REGION]
 
 ### Properties
 
@@ -64,14 +71,21 @@ Below, broken out by major section, are the properties that can be found in a **
 
 ### Cluster Generation Settings
 
+![](cluster.png)
+
+[REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
 | **Desired Bound Radius** || This is not guaranteed but used to calculate filling factor for auto clustering. |
 | **Desired Filling Percentage** || This is not guaranteed but used to calculate filling factor for auto clustering. |
 | **Min Number of Actors to Build** || Min number of **Actors** to build LODActor. |
+[/REGION]
 
 ### Mesh Generation Settings
 
+![](meshSettings.png)
+
+[REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
 | **Transition Screen Size** || The screen radius a mesh object should reach before swapping to the LOD **Actor**. When the parent LOD displays it won’t display any of the children. |
@@ -80,15 +94,19 @@ Below, broken out by major section, are the properties that can be found in a **
 | **Target Light Map UVChannel** || The target UV channel to assign the lightmap UV. |
 | **Target Light Map Resolution** || The lightmap resolution set for the merged mesh. |
 | **Pivot Point at Zero** || Whether a merged mesh should have a pivot at the World Origin, or at the first merged **Actor** from a generated cluster. |
-| **Merge Physics Data:** || Whether to merge the collision primitives when combining the **Actors**. |
+| **Merge Physics Data** || Whether to merge the collision primitives when combining the **Actors**. |
 | **Merge Materials** || Whether to merge source materials into one flat material. |
 | [REGION:tablesection]**[Material Settings See Below](#materialsettings)**[/REGION] |||
 | **Bake Vertex Data ** || Incorporates painted vertex colours into model/baked out material. |
 | **Use Vertex Data for Baking Material** || Whether or not vertex data such as vertex colours should be used when baking out materials. |
-| **Use Landscape Culling** || Whether or note to use available landscape geometry to cull away invisible triangles. |
+| **Use Landscape Culling** || Whether or not to use available landscape geometry to cull away invisible triangles. |
+[/REGION]
 
 ### Material Settings
 
+![](material.png)
+
+[REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
 | **Texture Size** || Size of the generated BaseColor texture map. |
@@ -100,7 +118,7 @@ Below, broken out by major section, are the properties that can be found in a **
 | **Roughness Constant** || Allows to you set a roughness constant value in place of a texture map. |
 | **Specular Map** || Whether to generate a Specular map. |
 | **Specular Constant** || Allows to you set a roughness constant value in place of a texture map. |
-| **Emissive Map** || Whether to generate aa Emissive map. |
+| **Emissive Map** || Whether to generate a Emissive map. |
 | **Diffuse Texture Size** || Override for the Diffuse Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
 | **Normal Texture Size** || Override for the Normal Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
 | **Metallic Texture Size** || Override for the Metallic Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
@@ -108,6 +126,7 @@ Below, broken out by major section, are the properties that can be found in a **
 | **Specular Texture Size** || Override for the Specular Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
 | **Emissive Texture Size** || Override for the Emissive Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
 [/REGION]
+
 
 [VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
 

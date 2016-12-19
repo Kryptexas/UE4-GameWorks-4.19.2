@@ -1,48 +1,14 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3158648
 Availability: Public
 Title:Customized UV
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:버텍스 셰이더 내 계산 퍼포먼스를 픽셀 단위로 할 때보다 향상시킬 수 있는 기능입니다.
 Version: 4.9
+parent:Engine/Rendering/Materials
+order:12
+topic-image:CUVs_topic.png
+type:overview
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/Materials/CustomizedUVs:title%](Engine/Rendering/Materials/CustomizedUVs/CUVs_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/Materials/CustomizedUVs:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/Materials/CustomizedUVs:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/Materials/CustomizedUVs]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/Materials/CustomizedUVs:title%](Engine/Rendering/Materials/CustomizedUVs/CUVs_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/Materials/CustomizedUVs:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/Materials/CustomizedUVs:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/Materials/CustomizedUVs]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2)]
 

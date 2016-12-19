@@ -3,7 +3,7 @@ Title: 5 - On Your Own!
 Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 Description:Do some exercises on your own.
 Version: 4.13
-type:QuickStart
+type:quick start
 parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 order: 5
 tags:Linux

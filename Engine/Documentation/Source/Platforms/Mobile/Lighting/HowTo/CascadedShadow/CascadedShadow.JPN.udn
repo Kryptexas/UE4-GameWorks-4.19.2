@@ -1,74 +1,74 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangeList:3108692
 Availability:Public
-Title:How To: Use Cascaded Shadows
+Title:カスケード シャドウの使用方法
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
-Description:Setting up Cascaded Shadows for mobile games.
+Description:モバイル ゲーム向けのカスケード シャドウ設定
 Platform:Mobile
-Related: Platforms/Mobile/Performance
-Related: Platforms/Mobile/Textures
-Related: Engine/Rendering/Materials/CustomizedUVs
-Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
-Related: Engine/Rendering/Materials/ExpressionReference/Utility
-version: 4.12
+Related:Platforms/Mobile/Performance
+Related:Platforms/Mobile/Textures
+Related:Engine/Rendering/Materials/CustomizedUVs
+Related:Engine/Rendering/Materials/MaterialProperties/BlendModes
+Related:Engine/Rendering/Materials/ExpressionReference/Utility
+version:4.12
 parent:Platforms/Mobile
 order:3
 type:overview
 tags:mobile
 
-### Enabling Dynamic Cascaded Shadow Maps
+### 動的カスケード シャドウ マップを有効にする
 
-To use Dynamic Cascaded Shadow maps in your UE4 mobile project, you will need to perform the following steps.
+UE4 モバイル プロジェクトでこの機能を使用するには、以下の手順を行います。
 
-1. Open up the **Project Settings** and then go to the **Engine** > **Rendering** >  **Mobile** section and make sure that **Enable Combined Static and CSM Shadowing** is enabled. 
-	
+1. **[Project Settings (プロジェクト設定)]** で **[Engine]** > **[Rendering]** >  **[Mobile]** セクションの順に選択し、**[Enable Combined Static and CSM Shadowing (静的シャドウインと CSM シャドウイングの結合を有効にする)]** にチェックが入っていることを確認しまうｓ。 
+
 	[region:lightbox]
 	[![](Platforms\Mobile\Lighting\CSM_Setup_00.png)(w:562 h:310)](Platforms\Mobile\Lighting\CSM_Setup_00.png)
 	[/region]
 
 	[REGION:caption]
-	Click for full image.
+	クリックしてフルサイズで表示
 	[/REGION]
 
 
-1. CSM will only work if you have a **Directional Light** in your scene. If you do not have one, add one now and make sure it is selected. Then under the **Transform** section ensure that the **Mobility** setting has been set to **Stationary**.
-	
+1. CSM はシーンに **指向性ライト** がある場合のみ使用できます。指向性ライトがない場合は、1 つ追加し、それを選択しておくようにしてください。次に **[Transform (トランスフォーム)]** セクションの **[Mobility (可動性)]** 設定を **[Stationary (固定)]** にしてください。
+
 	[region:lightbox]
 	[![](Platforms\Mobile\Lighting\CSM_Setup_01.png)(w:300 h:400)](Platforms\Mobile\Lighting\CSM_Setup_01.png)
 	[/region]
 
 	[REGION:caption]
-	Click for full image.
+	クリックしてフルサイズで表示
 	[/REGION]
 
-1. With the Directional Light still selected, go to the **Details** panel and locate the **Cascaded Shadows Maps** section and adjust the following properties on your Directional Light.
-	
+1. 指向性ライトを選択したまま、**[Details (詳細)]** パネルの **[Cascaded Shadows Maps]** セクションで、選択した指向性ライトの以下のプロパティを調節します。
+
 	[region:lightbox]
 	[![](Platforms\Mobile\Lighting\CSM_Setup_02.png)(w:300 h:400)](Platforms\Mobile\Lighting\CSM_Setup_02.png)
 	[/region]
 
 	[REGION:caption]
-	Click for full image.
+	クリックしてフルサイズで表示
 	[/REGION]
 
-	* **Dynamic Shadow Distance Stationary Light:** 2,000
-	* **Num Dynamic Shadows Cascades:** 1
-	* **Insert Shadows For Movable Objects:** False
+	* **Dynamic Shadow Distance Stationary Light (動的シャドウ ディスタンス固定ライト):** 2,000
+	* **Num Dynamic Shadows Cascades (動的シャドウ カスケード数):** 1
+	* **Insert Shadows For Movable Objects (可動オブジェクトへのシャドウの挿入):** False
 	[region:note]
-	Make sure to use only the settings above as adjusting anything else might cause the CSM not to work.
+	これは提案にすぎませんので、いろいろ変更して試してプロジェクトに一番合う設定を見つけてください。 
 	[/region]
 
-1. Inside of you project's level select any Static Meshes you want to receive CSM and in the **Details** panel under the **Mobile** section, enable the **Receive Combined Static and CSM Shadows from Stationary Lights** option.
-	
+1. プロジェクトのレベル内で、CSM を受け取りたいスタティックメッシュを選択して **[Details (詳細)]** パネルの **[Mobile]** セクションの **[Receive Combined Static and CSM Shadows from Stationary Lights]** オプションを有効にします。
+
 	[region:lightbox]
 	[![](Platforms\Mobile\Lighting\CSM_Setup_03.png)(w:300 h:400)](Platforms\Mobile\Lighting\CSM_Setup_03.png)
 	[/region]
 
 	[REGION:caption]
-	Click for full image.
+	クリックしてフルサイズで表示
 	[/REGION]
 
 	[region:note]
-	The following video demonstrates what the Receive Combined Static and CSM Shadows from Stationary Lights option does. In this video the Receive Combined Static and CSM Shadows from Stationary Lights is turned on for the Static Mesh that makes up the floor but not on the Static Mesh that makes up the stairs. Notice how when the player is on the floor they have a shadow but not when they are on the stairs. This is because the floor has the  Receive Combined Static and CSM Shadows from Stationary Lights option enabled while the stairs do not.
+	以下の動画で [Receive Combined Static and CSM Shadows from Stationary Lights] の機能をご覧いただけます。この動画では、[Receive Combined Static and CSM Shadows from Stationary Lights] がフロアの構成要素であるスタティックメッシュに対してオンにされていますが、階段の構成要素であるスタティックメッシュにはオンにされていません。プレイヤーがフロア上にいる時はシャドウがありますが、階段上ではシャドウのないことに注目してください。これは、フロアには [Receive Combined Static and CSM Shadows from Stationary Lights] がオンにされ、階段にはオンにされていないためです。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -84,26 +84,30 @@ To use Dynamic Cascaded Shadow maps in your UE4 mobile project, you will need to
 
 	[/region]
 
-1. From the **Main Toolbar**, change the **Play Mode** to **Mobile Preview** and press the **Play** button to launch the level.
+1. **メインツールバー** で **[Play Mode]** を **[Mobile Preview]** に変更し、**[Play]** ボタンを押してレベルを起動します。
 
 	[region:lightbox]
 	[![](Platforms\Mobile\Lighting\CSM_Setup_04.png)(w:800 h:400)](Platforms\Mobile\Lighting\CSM_Setup_04.png)
 	[/region]
 
 	[REGION:caption]
-	Click for full image.
+	クリックしてフルサイズで表示
 	[/REGION]
 
 	[region:tip]
-	If you do not see the Mobile Preview window being displayed, make sure to check that it did not launch behind the Unreal Editor window.
+	[Mobile Preview (モバイル プレビュー)] ウィンドウが表示されない場合は、アンリアル エディタ ウィンドウの裏で起動していないか確認してください。
 	[/region]
 
-1. Once your level successfully launches, position your character in a location that has static shadows and when you go in and out of the shadow, your character's Dynamic Shadows should now blend seamlessly with any baked shadows in the level like in the image below.
-	
+1. 正常に起動したら、静的シャドウのある場所にキャラクターを配置し、シャドウに出入りすると、キャラクターの動的シャドウは以下の画像のようにレベル内にベイクされたシャドウと滑らかにブレンドされます。
+
 	[REGION:lightbox]
 	[![](Platforms\Mobile\Lighting\CSM_Final_Result.png)(w:262 h:281)](Platforms\Mobile\Lighting\CSM_Final_Result.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	クリックしてフルサイズで表示
 	[/REGION]
+
+	[region:note]
+	背景に置かれたスタティックメッシュのシャドウをキャラクターにキャストしたい場合は、スタティックメッシュの **[Mobility (可動性)]** 設定を ***[Static (静的)]** から **[Movable (可動)]** に変更します。
+	[/region]

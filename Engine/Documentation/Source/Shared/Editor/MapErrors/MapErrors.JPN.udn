@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2726600
-Availability:Public
+﻿Availability:Public
 Title:マップ チェック エラー
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:アンリアル エディタでマップのビルドまたはマップのチェック実行中に生成されるエラーの説明。
@@ -108,6 +107,13 @@ DrawScale、DrawScale3D X、DrawScale3D Y、および DrawScale3D Z のいずれ
 インスタンスの頂点カラーがペイントされて以降、オリジナルのメッシュが変更されたようです。リフレッシュが必要かもしれません。
 [/EXCERPT:VertexColorsNotMatchOriginalMesh]
 
+(#CollisionEnabledNoCollisionGeom)
+[EXCERPT:CollisionEnabledNoCollisionGeom]
+**[Actor] はコリジョンを有効にしますが、StaticMesh [StaticMeshName] にはシンプルなコリジョンも複雑なコリジョンも存在しません。**
+
+[Collision Enabled (コリジョンを有効にする)] を [No Collision (コリジョンなし)] に設定するか、コリジョンをメッシュに追加したい場合があります。
+[/EXCERPT:CollisionEnabledNoCollisionGeom]
+
 (#ShadowCasterUsingBoundsScale)
 [EXCERPT:ShadowCasterUsingBoundsScale]
 **Actor casts dynamic shadows and has a BoundsScale greater than 1!This will have a large performance hit** (アクタが動的シャドウをキャストし、 1 よりも大きい BoundsScale を持っています。パフォーマンス ヒットが生じます。)
@@ -191,7 +197,7 @@ DrawScale、DrawScale3D X、DrawScale3D Y、および DrawScale3D Z のいずれ
 <!-- TODO -->
 [/EXCERPT:FoliageMissingClusterComponent]
 
-### Landscape
+### ランドスケープ
 
 (#FixedUpDeletedLayerWeightmap)
 [EXCERPT:FixedUpDeletedLayerWeightmap]
@@ -261,7 +267,7 @@ LightComponent が None に設定されているライト アクタがある場�
 <!-- TODO -->
 [/EXCERPT:StaticComponentHasInvalidLightmapSettings]
 
-### Navigation
+### ナビゲーション
 
 (#RebuildPaths)
 [EXCERPT:RebuildPaths]

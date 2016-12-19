@@ -1,12 +1,19 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Blueprint Spline Editor Tool Reference
+﻿INTSourceChangeList:3149199
+Availability:Public
+Title:ブループリント スプライン エディタ および ツールのリファレンス
 Crumbs: %ROOT%, Engine
-Description:A quick reference of the tools and procedures for editing Blueprint Spline Components while in the Level Editor.
+Description:レベル エディタ内での Blueprint Spline コンポーネントの編集ツールと手順のクリック リファレンス
 Navigation:topic
 parent:Engine/BlueprintSplines
 order:1
 social-image:Splines_social.png
+version:4.13
+type:reference
+reference-image:MovePoint.gif
+reference-image:MoveTangent.gif
+reference-image:RotatePoint.gif
+reference-image:ScalePoint.gif
+tags:Splines
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -51,79 +58,84 @@ social-image:Splines_social.png
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-This page contains information on tools and procedures for editing **Blueprint Spline Components** and **Blueprint Spline Mesh Components** in the Level Editor.
+このページでは、**Blueprint Spline コンポーネント** と **Blueprint Spline Mesh コンポーネント** をレベル エディタで編集するツールおよび手順を説明します。4.13 では、以下のツールと手順を使って **Blueprint Spline コンポーネント** は **ブループリント エディタ ビューポート** でも編集ができます。
 
-## Tools
+## ツール
 
-With a Spline Point (selecting a Spline Curve selects the last point on it) selected in the editor, you can use the standard manipulation tools (move, rotate, and scale) to adjust positions and tangents of the points.
+エディタでスプライン ポイント (スプライン カーブが選択する最後のポイント) を選択すると、標準の操作ツール (移動、回転、スケール) を使用して、スプライン カーブのポイントの位置とタンジェントの選択と調整ができるようになります。
 
-| Tool | Result |
-| --- | :--- |
-| **Move Selected Point** | ![](MovePoint.gif)(convert:false) |
-| **Move Selected Tangent** | ![](MoveTangent.gif)(convert:false) |
-| **Rotate** | ![](RotatePoint.gif)(convert:false) |
-| **Scale** | ![](ScalePoint.gif)(convert:false) |
+| ツール | 結果 |
+| --- |  :--- |
+| **Move Selected Point** | [REGION:asyncgif]![](MovePoint.gif)[/REGION] |
+| **Move Selected Tangent** | [REGION:asyncgif]![](MoveTangent.gif)[/REGION] |
+| **Rotate** | [REGION:asyncgif]![](RotatePoint.gif)[/REGION] |
+| **Scale** | [REGION:asyncgif]![](ScalePoint.gif)[/REGION] |
 
 
-## Procedures
+## 手順
 
-There are a few menus accessable by right-clicking on the spline either on a point, on the curve inbetween points.
+ポイント、またはポイント間のカーブ上のスプラインを右クリックすると、利用できるメニューがいくつかあります。
 
-### Right-Click on a Spline Point
+### スプライン ポイントを右クリック
 
-Right-clicking on a **point** will give you the following menu and options.
+ポイントを右クリックすると、以下のメニューとオプションが表示されます。
 
 ![](Spline_RC_Point.png)
 
 [REGION:raw]
-| Option | %spacer% | Description |
-| --- | :---: | :--- |
-| **Delete Spline Point** || Removes the selected Spline Point. |
-| **Duplicate Spline Point** || Duplicates the currently selected Spline Point. |
-| **Spline Point Type** || [INCLUDE:#SplinePointType] |
-| **Reset to Automatic Tangent** || [INCLUDE:#ResetToAutomaticTanget] |
-| **Reset to Default** || Resets the Spline to its archetype default. |
-| **Visualize Roll and Scale** || Whether or not the spline should visualize roll and scale in the editor. |
+| オプション| 説明 |
+| --- |  :--- |
+| **Delete Spline Point** | 選択したスプライン ポイントを削除します。 |
+| **Duplicate Spline Point** | 選択したスプライン ポイントを複製します。 |
+| **Spline Point Type** | [INCLUDE:#SplinePointType] |
+| **Reset to Automatic Tangent** | [INCLUDE:#ResetToAutomaticTanget] |
+| **Reset to Default** | スプラインをアーキタイプ デフォルトにリセットします。 |
+| **Visualize Roll and Scale** | エディタでスプラインがロールとスケールを視覚化するかどうか設定します。 |
+| **Allow Discontinous Splines** | 視覚化により **Arrive** と **Leave** タンジェントを別々に設定できるようにするかトグルします。 |
 [/REGION]
 
 <!--
 [EXCERPT:SplinePointType]
 
-Changes the interpolation style for the selected Spline Point. The Spline Curve associated with the Spline Curve point is displayed in red (by default). It will be the curve affected by changing this. The default **Point Type** is **Curve**. Below are examples of what 
+選択したスプライン ポイントの補間形式を変更します。スプライン カーブ ポイントに関連したスプライン カーブが赤く表示されます (デフォルト設定)。この変更によって影響されるカーブです。デフォルトの **ポイント タイプ** は **Curve** です。各タイプの見え方のサンプルです。
 
 ![](Spline_RC_Point_Type.png)
 
-| Option | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Curve** || ![](PointTypeCurve.png)(convert:false) |
-| **Linear** || ![](PointTypeLinear.png)(convert:false) |
-| **Constant** || ![](PointTypeConstant.png)(convert:false) |
+[REGION:transparenttable]
+| オプション| 説明 |
+| --- | --- |
+| **Curve** | ![](PointTypeCurve.PNG)(convert:false) |
+| **Linear** | ![](PointTypeLinear.PNG)(convert:false) |
+| **Constant** | ![](PointTypeConstant.PNG)(convert:false) |
+[/REGION]
 [/EXCERPT]
 
 [EXCERPT:ResetToAutomaticTanget]
 
 ![](Spline_RC_Point_Reset.png)
 
-| Option | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Unclamped Tangent** || Resets the tangents of the selected **Curve Point** to their **Unclamped Tangent** values. |
-| **Clamped Tangent** || Resets the tangents of the selected **Curve Point** to their **Clamped Tangent** values. |
-
+[REGION:transparenttable]
+| オプション| 説明 |
+| --- |  :--- |
+| **Unclamped Tangent** | 選択した **Curve Point** のタンジェントを **Unclamped Tangent** 値にリセットします。 |
+| **Clamped Tangent** | 選択した **Curve Point** を **Clamped Tangent** 値にリセットします。 |
+[/REGION]
 [/EXCERPT]
 -->
 
-### Right-Click on a Spline Curve
+### スプライン カーブを右クリック
 
-Right-clicking on a **curve** will give you the following menu and options.
+カーブを右クリックすると、以下のメニューとオプションが表示されます。
 
 ![](Spline_RC_Curve.png)
 
 [REGION:raw]
-| Option | %spacer% | Description |
+| オプション | %spacer% | 説明 |
 | --- | :---: | :--- |
-| **Add Spline Point Here** || Adds a new Spline Point at the cursor's location. |
-| **Reset to Default** || Resets the Spline to its archetype default. |
-| **Visualize Roll and Scale** || Whether or not the spline should visualize roll and scale in the editor. |
+| **Add Spline Point Here** || 新しいスプライン ポイントをカーソル位置に追加します。 |
+| **Reset to Default** || スプラインをアーキタイプ デフォルトにリセットします。 |
+| **Visualize Roll and Scale** || エディタでスプラインがロールとスケールを視覚化するかどうか設定します。 |
+| **Allow Discontinous Splines** || 視覚化により **Arrive** と **Leave** タンジェントを別々に設定できるようにするかトグルします。 |
 [/REGION]
 
 

@@ -1,18 +1,19 @@
 Availability: Public
 Title:Previewing Animations
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:Shows how to preview animations and control animation previews and toggle animation information. 
+Description:Shows how to preview animations, control animation previews and toggle animation information. 
 Related: Engine/Animation/Overview
 Related: Engine/Animation/Persona/Viewport
 Related: Engine/Animation/Sequences
 Related: Engine/Animation/AnimMontage
 Related: Engine/Animation/Blendspaces
 Related: Engine/Animation/AimOffset
-version: 4.9
+version: 4.14
 skilllevel: Beginner
 
 
-This page covers the different methods in which you can load and preview animation assets inside the [Persona Animation Editor](Engine/Animation/Persona), which is Unreal Engine 4's Animation Editing Tool. The controls used to manipulate the playback or information displayed about the animation currently being previewed is also covered and additional links to more information are provided. 
+This page covers the different methods in which you can load and preview animation assets inside the **Animation Editor** within Unreal Engine 4. 
+The controls used to manipulate the playback or information displayed about the animation currently being previewed is also covered and additional links to more information are provided. 
 
 
 [TOC(start:2 end:2)]
@@ -21,139 +22,110 @@ This page covers the different methods in which you can load and preview animati
 
 The most common method of opening and previewing an animation asset is by **Double-clicking** on it inside the **Content Browser**. 
 
-![](PA_Intro.jpg)
+![](PA_Intro.png)
 
-This will open the asset selected inside the **Persona Animation Editor**. 
+This will open the asset selected inside the **Animation Editor**. 
 
-![](pa_DoubleClickOpen.jpg)
+![](pa_DoubleClickOpen.png)
 
-The selected asset will automatically start playing inside the [](Engine/Animation/Persona/Viewport) and auto-loop playback of the motion. 
+The selected asset will automatically start playing inside the [Animation Editor's Viewport](Engine/Animation/Persona/Viewport) and auto-loop playback of the motion. 
 
-## Preview from Persona
+## Preview from Animation Editor
 
-If **Persona** is already open, on the **Animation** tab, you can **Double-click** an asset in the **Asset Browser** to preview it in the Viewport. 
+If the **Animation Editor** is already open, you can **Double-click** an asset in the **Asset Browser** to preview it in the Viewport. 
 
-[REGION:lightbox]
-[![](PA_SwitchingAnim.jpg)](PA_SwitchingAnim.jpg)
-[/REGION:lightbox]
+![](PA_SwitchingAnim.png)
 
-_Click for full image._
+Also while in the **Animation Editor**, you can set the preview animation from the asset pop-up menu. 
 
-Also while on the **Animation** tab of **Persona**, you can set the preview animation from the asset pop-up menu. 
-
-![](Preview6.png)
-
-After clicking the pick asset button, a pop-up menu will appear where you can select the animation asset to preview. 
-
-![](PA_AssetToPreview.jpg)
-
-If you are on a different tab of **Persona**, you can enable the **Asset Browser** window from the **Menu Toolbar** / **Window** option. 
-
-[REGION:lightbox]
-[![](PA_Skeleton.jpg)](PA_Skeleton.jpg)
-[/REGION:lightbox]
-
-_Click for full image._
-
-The **Asset Browser** window will then appear, which you can dock to any other window. 
-
-[REGION:lightbox]
-[![](PA_SkelAssetBrowser.jpg)](PA_SkelAssetBrowser.jpg)
-[/REGION:lightbox]
-
-_Click for full image._
-
-You can also get a smaller, looping preview directly inside the **Asset Browser** when highlighting an animation asset. 
-
-![](PA_AssetPreview.jpg)
+![](PA_AssetToPreview.png)
 
 
-## Persona Viewport Controls
+## Viewport Options
 
-Below are the controls for navigating the **Persona Viewport**, allowing you to move the camera around. 
+In addition to the standard [Editor Viewport](Engine/UI/LevelEditor/Viewports) controls and options, there are a few settings in particular that you may want to pay attention to when previewing animations. 
 
-### Standard
+![](PreviewModeOptions.png)
 
-These controls represent the default behavior when clicking and dragging in the viewports with no other keys or buttons pressed. These are also the only controls that can be used to navigate the orthographic viewports.
+When clicking the ![](DownArrow.png) in the viewport, you will have the option of defining the **Preview Scene Settings**, **Scene Setup** and **Turn Table** options. 
 
-| Control | Action |
-| ------- | ------- |
-| **LMB + Drag** | Moves the camera forward and backward and rotates left and right. |
-| **RMB + Drag** | Rotates the viewport camera. |
-| **LMB + RMB + Drag** | Moves up and down. |
-| **F** |Focuses the camera on the Mesh in the viewport. |
+### Preview Scene Settings
 
-### Game-style
+![](PreviewSceneSettings.png)
 
-The **WASD** keys will feel natural to those who are used to playing shooter games on the PC. They are enabled by default and can be used whenever you are holding the **Right Mouse Button** (**RMB**). This means you will still use the mouse to turn the camera while navigating in this way.
+| Option | Description |
+|-------|------|
+| **Profile Name** | Name to identify the profile. |
+| **Directional Light Intensity** | Manually set the directional light intensity (0.0 - 20.0). |
+| **Direction Light Color** | Manually set the directional light color. |
+| **Sky Light Intensity** | Manually set the sky light intensity (0.0 - 20.0). |
+| **Rotate Sky and Directional Lighting** | Toggle rotating of the sky and directional lighting. Press **K** and drag for manual rotating of Sky and **L** for Directional Lighting. |
+| **Show Environment** | Toggle visibility of the environment sphere. |
+| **Show Floor** | Toggle visibility of the floor mesh. |
+| **Environment Cube Map** | Sets the environment cube map used for sky lighting and reflections. |
+| **Pose Process Settings** | Manually set [Post Process Settings](Engine/Rendering/PostProcessEffects). |
+| **Post Processing Enabled** | Whether or not the Post Processing should influence the scene. |
+| **Lighting Rig Rotation** | Current rotation value of the sky in degrees (0 - 360). |
+| **Rotation Speed** | Speed at which the sky rotates when rotating is toggled. |
 
-These controls are mirrored on the arrow keys and num pad to provide alternate access to them.
+Your settings can be saved as a **Profile** and you can add and switch between Profiles from the Profiles menu at the top of the window. 
 
-| Control | Action |
-| ------- | ------ |
-| **W** &#124; **Numpad8** &#124; **Up** | Moves the camera forward. |
-| **S** &#124; **Numpad2** &#124; **Down** | Moves the camera backward. |
-| **A** &#124; **Numpad4** &#124; **Left** | Moves the camera left. |
-| **D** &#124; **Numpad6** &#124; **Right** | Moves the camera right. |
-| **E** &#124; **Numpad9** &#124; **Page Up** | Moves the camera up. |
-| **Q** &#124; **Numpad7** &#124; **Page Dn** | Moves the camera down. |
-| **Z** &#124; **Numpad1** | Zooms the camera out (raises FOV). |
-| **C** &#124; **Numpad3** | Zooms the camera in (lowers FOV). |
+![](Profiles.png)
 
-### Pan, Orbit, and Zoom
+### Scene Setup
 
-[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#mayalikecontrols]
+![](SceneSetup.png)
+
+This window is where you can define the animation mode used (toggle between Reference Pose or Animation Asset). There is also an option for assigning the current animation to preview (which is the same as **Double-clicking** an animation asset from the **Asset Browser**. 
+
+Another important feature of the Scene Setup window is the ability to change the **Preview Mesh** for your animation. If you have multiple Skeletal Meshes that share animations with one another and want to preview the animation using a different mesh, you can do so from the **Preview Mesh (Animation)** drop-down menu. 
+
+You can also setup and define **Preview Mesh Collections** to use as **Additional Meshes**. These are used to build collections of related Skeletal Meshes that are animated together (such as components of a character). You can create a new collection from this window or assign a previously created collection. 
 
 
-## Persona Viewport Options
+### Turn Table
 
-This section illustrates the options contained within the **Persona Viewport**. 
+This option allows you to set up auto-rotation of the preview mesh. 
 
-![](PA_PersonaViewportOptions.jpg)
+![](TurnTable.png)
 
-1.	View Options Toolbar
-2.	Movement Toolbar
-3.	Animation Display Information
-
-### View Options Toolbar
-
-[INCLUDE:Engine/Animation/Persona/Viewport#viewoptions]
-
-### Movement Toolbar
-
-[INCLUDE:Engine/Animation/Persona/Viewport#movement]
+You can **Play**, **Pause** or **Stop** the **Turn Table Mode** as well as define the **Turn Table Speed**. 
 
 ### Animation Display Information
 
 You can toggle the information displayed in the viewport from the **Show** option under **Display info**. 
 
-![](PA_AnimationDisplay.jpg)
+![](PA_AnimationDisplay.png)
 
 **Basic** will show a condensed version of the display info, while **Detailed** will show more information and **None** will hide the display info. 
 
-## Persona Playback Controls
+## Playback Controls
 
-When you open an **AnimSequence** or **AnimMontage**, at the bottom of the center window you will see the **Timeline** and **Control Bar** used to controlling the playback of the animation asset. You can play, pause, skip, scrub and loop the animation from the Timeline and Control Bar options highlighted in yellow below. 
+When you open an **AnimSequence** or **AnimMontage**, at the bottom of the center window you will see the **Timeline** and **Control Bar** used to control the playback of the animation asset. 
+You can play, pause, skip, scrub and loop the animation from the Timeline and Control Bar options highlighted in yellow below. You can also record and create a new animation based on your currently selected animation. 
 
 ![](Preview9.png)
 
-[INCLUDE:Engine\Animation\Persona\Viewport#previewcontrols]
+[INCLUDE:Engine\Animation\Sequences\Editor#timeline]
 
-## Blend Space & Aim Offsets
 
-You can preview the blending of animations when applied to a [Blend Space](Engine/Animation/Blendspaces) or [](Engine/Animation/AimOffset) inside **Persona** as long as the **Enable Preview BlendSpace** option is checked. 
+## Preview Blend Space & Aim Offsets
 
-![](Preview10_1.jpg)
+You can preview the blending of animations when applied to a [Blend Space](Engine/Animation/Blendspaces) or [](Engine/Animation/AimOffset) in the **Animation Editor** as long as the **Enable Preview BlendSpace** option is enabled.
+
+![](Preview10_1.png)
 
 To see the blending between animations, move the **Mouse Cursor** inside the **Parameters** grid. 
 
-![](Preview11_1.jpg)
+![](Preview11_1.png)
 
 Remove the Tooltip Display by unchecking the **Enable Tooltip Display** option. 
 
 ![](Preview12.png)
 
 Both **Blend Spaces** and **Aim Offsets** can be previewed in the same fashion as cited above. 
+
+
 
 
 

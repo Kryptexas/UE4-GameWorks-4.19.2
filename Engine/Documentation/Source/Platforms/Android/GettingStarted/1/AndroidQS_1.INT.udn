@@ -5,7 +5,7 @@ Description: Install the CodeWorks for Android 1R4 SDK.
 Version:4.12
 Skilllevel:Intermediate
 Tags:Android
-type:sequential
+type:multi-step
 parent:Platforms/Android/GettingStarted
 order:1
 Checkpoint:AndroidQS

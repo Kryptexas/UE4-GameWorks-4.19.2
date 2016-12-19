@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3150518
 Title:モバイル サービスのリーダーボードを使用する
 Description:ゲームでリーダーボードを使用する
 Crumbs:
 Availability:Public
 parent:Platforms/Mobile
 order:4
-type:howto
+type:how-to
 tags:mobile
 
 [VAR:Topic]
@@ -70,7 +70,7 @@ tags:mobile
 
 **Read Leaderboard Integer** はプラットフォームのゲーム サービス (現在の iOS ゲームセンターあるいは Google Play サービス) から提供されている **Player Controller** の所定の **Stat Name** に保存されている値を要求します。
 
-これは **latent** ノードなので、実行出力ピンが多いことに注目してください。一番上は「通過」ですが、他の実行出力ピンと何ら変わりはありません。その下の 2 つのピン (**On Success** と **On Failure**) は、オンライン サービスが値を返す (または返すことに失敗する) と実行されます。正常に値を戻す (またはサービスが応答に失敗する) 前の **Leaderboard Value** は 0 です。
+これは **潜在的な** ノードなので、実行出力ピンが多いことに注目してください。一番上は「通過」ですが、他の実行出力ピンと何ら変わりはありません。その下の 2 つのピン (**On Success** と **On Failure**) は、オンライン サービスが値を返す (または返すことに失敗する) と実行されます。正常に値を戻す (またはサービスが応答に失敗する) 前の **Leaderboard Value** は 0 です。
 
 **ブループリント内:**
 

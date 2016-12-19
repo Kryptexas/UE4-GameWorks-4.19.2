@@ -3,6 +3,9 @@ Title: Rendering Overview
 Crumbs: %ROOT%, Engine
 Description:Overview of the main features of the rendering subsystem.
 Version: 4.9
+parent:Engine/Rendering
+order:1
+type:landing
 
 [VAR:Topic]
 [OBJECT:Topic]

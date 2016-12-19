@@ -3,6 +3,10 @@ Title:Layered Materials
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:An introductory document on the Layered Materials technique in UE4.
 Version: 4.9
+parent:Engine/Rendering/Materials
+order:8
+topic-image:Engine/Rendering/Materials/LayeredMaterialsTopic.png
+type:overview
 
 [REGION:fullwidth]
 ![](LayeredMaterials.png)

@@ -1,7 +1,7 @@
 Availability: Public
-Title:Material Editor - How To Place Material Expression and Functions
+Title:Placing Material Expression and Functions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
-Description:A How To Guide for how to place Material Expression and Functions inside the Material graph.
+Description:Guide for placing Material Expression and Functions inside the Material graph.
 Related: Engine/Rendering/Materials/ExpressionReference/Functions
 Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/UI/KeyBindings

@@ -21,10 +21,13 @@ If you are familiar with digital content creation, you may already feel like you
 A typical character skeleton as you might see in Maya.
 [/REGION]
 
-
 An important distinction is that a Skeleton asset is not the same thing as the bone hierarchy found within a Skeletal Mesh. In Unreal Engine 4, the Skeleton asset is less like a 3D representation of an actual skeleton and more like a list which holds bone and hierarchy information for a specific type of character or Skeletal Mesh. It is through this list that animation associations are made. 
 
 In terms of its place in the animation system, it is probably best to think of a Skeleton asset as an intermediary between Skeletal Meshes and animations. Multiple Skeletal Meshes can use the same Skeleton asset, and any Skeletal Meshes using the same Skeleton asset will be able to share animations.
+
+[REGION:tip]
+See the [Working with Skeletons](https://docs.unrealengine.com/latest/INT/Videos/PLZlv_N0_O1gbwdyIm78w42fZ1t8dDClsI/index.html) tutorial series for more information and what you can do with Skeleton assets.
+[/REGION]
 
 ## Basic Rules
 
@@ -78,5 +81,7 @@ You could use the same Skeleton asset with all of these characters, and the resu
 Any time animation data is received for a bone that is not included in the Skeletal Mesh (say, if ponytail animation was used on a character that used the same Skeleton asset but did not have a ponytail), then that animation data is ignored.
 
 There is very little performance overhead with this system, though in terms of production, it is generally a good idea to only share Skeleton assets between Skeletal Meshes with similar bone hierarchies.
+
+
 
 

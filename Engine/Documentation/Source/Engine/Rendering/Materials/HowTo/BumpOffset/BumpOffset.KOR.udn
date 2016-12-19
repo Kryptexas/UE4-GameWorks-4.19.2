@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3156615
 Availability: Public
-Title:머티리얼 에디터 - 범프 오프셋 사용 비법
+Title:범프 오프셋 사용법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
 Description: 머티리얼에서 Bump Offset 노드를 사용하는 비법 안내입니다.
 Related: Resources/Showcases/RealisticRendering

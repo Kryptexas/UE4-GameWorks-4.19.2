@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2827260
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:调整 Actor 属性
 Crumbs:%ROOT%, Gameplay, GettingStarted\HowTo
 Description:修改 Actor 属性，例如，通过 **详细信息（Details）** 面板应用材质、物理、尺寸。 
-Version:4.10
-SkillLevel:Beginner
+Version: 4.10
+SkillLevel: Beginner
 parent:Engine/Editor
 order:1
 checkpoint: editorqs

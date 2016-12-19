@@ -4,6 +4,7 @@ Crumbs:%ROOT%
 Description:Release notes for Unreal Engine builds.
 parent:%ROOT%
 order:9
+type:landing
 
 [VAR:Params]
 [PARAM:image]

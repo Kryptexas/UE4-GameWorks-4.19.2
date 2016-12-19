@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2951974
+﻿INTSourceChangelist:3151855
 Availability:Public
-Title: 开始 虚幻 4 之旅
+Title: 开始 虚幻4 之旅
 Crumbs: %ROOT%
 Description: 为刚开始使用虚幻引擎的游戏开发者提供的入门信息。
 Navigation:start
@@ -8,6 +8,7 @@ version: 4.9
 parent:%ROOT%
 order:1
 tags:Getting Started
+type:landing
 
 [VAR:Params]
 [PARAM:image]
@@ -161,7 +162,7 @@ gettingstarted
 		![](%ROOT%/levels_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Actors & 几何体
+		Actor & 几何体
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Engine/UI/LevelEditor#actors]
@@ -226,7 +227,7 @@ gettingstarted
 		![](%ROOT%/rendering_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		材质和着色
+		材质 & 着色
 	[/PARAM]
 	[PARAM:description]	
 
@@ -283,7 +284,7 @@ gettingstarted
 	[PARAM:links]
 		* [](Programming/QuickStart "%Programming/QuickStart:description%")
 		* [](Programming/Basics "%Programming/Basics:description%")
-		* [学习游戏架构](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
+		* [学习游戏框架](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
 	
 		[REGION:gallery]
 		[REGION:normaltitle]

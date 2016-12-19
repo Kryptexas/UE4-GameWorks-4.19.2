@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:2939982
+﻿INTSourceChangelist:3150518
 Title: 언리얼 엔진 VR 에디터
-Description: VR 전용으로 디자인된 조작 방식으로 에디터 툴세트의 모든 기능을 사용하여 가상 현실에서 월드를 제작합니다.
+Description: 에디터 툴세트의 모든 기능을 VR 에 특화된 방식으로 사용하여, 가상현실 안에서 가상현실 월드를 제작합니다.
 Crumbs:
 Availability:public
 parent:Engine/Editor
 type:overview
 order:10
 tags:VR
-version:4.11
+version:4.12
 skilllevel:intermediate
+social-image:vreditor_social.png
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,7 +48,7 @@ skilllevel:intermediate
 [EXCERPT:main]
 VR 에디터는 VR 월드 제작 전용으로 디자인된 특수 상호작용 모델과 결합된 에디터 툴세트의 모든 기능을 활용하여 가상현실 환경에서 월드를 디자인하고 제작할 수 있는 기능입니다.
 
-VR 에서 바로 작업하면 현실적으로 그럴싸한 월드를 만드는 데 필요한 적당한 스케일 감각으로 제작이 가능하며, 모션 콘트롤러 사용을 통해 자연스러운 동작이나 상호작용으로 환경을 제작할 수 있습니다.
+VR 에서 바로 작업하면 사실적인 월드를 만드는 데 필요한 적당한 스케일 감각으로 제작이 가능하며, 모션 컨트롤러 사용을 통해 자연스러운 동작이나 상호작용으로 환경을 제작할 수 있습니다.
 
 [PUBLISH:rocket,licensee]
 [OBJECT:EmbeddedVideo]
@@ -81,24 +82,25 @@ VR 에서 바로 작업하면 현실적으로 그럴싸한 월드를 만드는 �
 
 ## 시작하기
 
-[DIR(end:"1" output:"topic" type:"howto" tags:"Getting Started" parent:"Engine/Editor/VR")]
+[DIR(end:"1" output:"topic" type:"how-to" tags:"Getting Started" parent:"Engine/Editor/VR")]
 
 ## 가이드
 
-[DIR(end:"1" output:"topic" type:"howto" tags:"Level Editing" parent:"Engine/Editor/VR")]
+[DIR(end:"1" output:"topic" type:"how-to" tags:"Level Editing, GitHub" parent:"Engine/Editor/VR")]
 
 ## 참고서
 
 [DIR(end:"1" output:"topic" type:"reference" parent:"Engine/Editor/VR")]
 
+
 <!--
 [EXCERPT:VRHardware]
 [REGION:plainlist]
-* Oculus Rift 와 Oculus Touch 콘트롤러
-* HTC Vive 와 콘트롤러
+* Oculus Rift 와 Oculus Touch 컨트롤러
+* HTC Vive 와 컨트롤러
 [/REGION]
 [REGION:note]
-현재 VR 에디터에는 모션 콘트롤러가 필수입니다. 헤드셋만으로는 이 기능을 사용할 수 없습니다.
+현재 VR 에디터에는 모션 컨트롤러가 필수입니다. 헤드셋만으로는 이 기능을 사용할 수 없습니다.
 [/REGION]
 [/EXCERPT:VRHardware] 
 

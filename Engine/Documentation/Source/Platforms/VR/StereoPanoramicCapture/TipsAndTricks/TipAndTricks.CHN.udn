@@ -1,0 +1,155 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title:Stereo Panoramic Capture Tips & Tricks
+Crumbs:%ROOT%, Platforms, Platforms/VR
+Description:Taking a look at how to fix some common issues with the Stereo Panoramic capture tool
+Navigation:platform
+Version: 4.13
+parent:Platforms/VR/StereoPanoramicCapture
+type:overview
+
+
+In the following section we will go over some of the most common errors and issues that you might run into when using the Stereo Panoramic plugin and how to go about solving or getting around them.
+
+## Capturing Movies in Stereo
+You can also use the Stereo Panoramic capture tool to output an image sequence that can then be turned into a Stereo Movie by using the following command.
+
+* SP.PanoramicMovie (Frame range you want to capture)
+
+For example if you wanted to capture a stereo movie that runs at 60 FPS and is 60 seconds long you would input the command in the following manner.
+
+* SP.PanoramicMovie 0 3600
+
+This will then output two images, one for the left eye and one for the right eye, for each frame you have. When completed you can then import the image sequence into your DCC of choice to combined it into a stereo video.
+
+## Image Seams
+
+When viewing images using the Stereo Image Material you might notice a seam where the left and right eye Textures met like in the image below.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Seam](TP_Seam_Example.png)
+	[/PARAM]
+	[PARAM:after]
+	![No Seam](TP_No_Seam.png)
+	[/PARAM]
+[/OBJECT]
+
+To remove these seams you will need to open up your Left and Right eye images in the UE4 Texture Viewer and in the **Level of Detail** section, change the value for **Mip Gen Settings** to **NoMipmaps**. 
+
+[REGION:lightbox]
+[![](Platforms\VR\StereoPanoramicCapture\HowTo\CreatingViewerMaterial\SPHT_Mip_Gen_Settings.png)(w:439)](Platforms\VR\StereoPanoramicCapture\HowTo\CreatingViewerMaterial\SPHT_Mip_Gen_Settings.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+## Image Darkness
+
+ Depending on how you did your projects lighting setup you might notice that the images that are output are extremely dark. One way to get around this is to open up the UE4 console and input **r.tonemapperfilm=1**. Then inside of your Post Process (PP) volume adjust the parameters in the following PP categories to your liking.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![r.ToneMapperFilm Off](TP_No_PP.png)
+	[/PARAM]
+	[PARAM:after]
+	![r.ToneMapperFilm On](TP_PP.png)
+	[/PARAM]
+[/OBJECT]
+
+ * White Balance
+ * Color Grading
+ * Film
+ * Scene Color
+ * Global Illumination
+
+	[region:note]
+	Please note that while a lot of the above categories have settings in them that will change how the screen will look, you might find some settings that do not work.
+	[/region]
+
+## Image Distortion 
+
+Due to the manner in which the Stereo images are created you will get some image distortion / pinching at the top and bottom of the image. You can see an example of what this distortion / pinching looks like in the following image.
+
+[REGION:lightbox]
+[![](TP_Image_Distortion.png)(w:256)](TP_Image_Distortion.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+While you can not completely eliminate this distortion there are a few things you can do to help minimize it. Below you will find a few tips on how to address this distortion / pinching issue. 
+
+* You can add a small gradient that fades to black at the bottom and or top of the image to help hide this  distortion / pinching issue like in the image below.
+
+	[REGION:lightbox]
+	[![](TP_Image_Distortion_Fix.png)(w:256)](TP_Image_Distortion_Fix.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+* Objects that are very close to the camera that is capturing can cause divergence which makes it hard for user to focus on the 3D image. To avoid this make sure the camera is as far away from the objects you wish to capture as possible. While in some cases image divergence will not be possible to avoid, thinking about your camera placement can help lessen the effect. The following video shows how you can have different levels divergence in your images. 
+
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:width]
+		640
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		360
+		[/PARAMLITERAL]
+		[PARAMLITERAL:videoid]
+		sjwiAQW90qg
+		[/PARAMLITERAL]
+	[/OBJECT]
+
+	When the user looks up they will have issues getting the top part of the image to be in focus due to how close the top of the hang glider was to the capture camera. However when the user looks down they will have no focus issues as as the ground was far enough away from the camera to not cause divergence.
+
+## Not all Effects Work
+
+Effects that are done in screen space or effects that are camera facing will not work with the Stereo Panoramic image capture tool. This means that the following types of effects should be turned off so that your images do not have any errors in them. 
+
+* Light Shafts
+* Screen based Distortion effects
+* Camera Facing Meshes or Particles
+* Vignette 
+
+[region:note]
+Please note that there could be other effects that are not listed here that also do not capture as well. If you are seeing any type of similar artifacts in your images try disabling the effect and re-capturing the image to see if the artifact goes away or not.
+[/region]
+
+In the following image you can see what happens when you try and capture something that makes use of  screen based effects or is camera facing. If you take a look at the highlighted areas of the image you will notice what appears to be a hard line in the clouds that are off in the distance. This line is there because the capture tool works by capturing your scene in a series of zoomed in image for both the horizontal and vertical axis. Because of this effects that face the camera do not know that the camera has moved and do not update their orientation to reflect this resulting in artifacts like you see in the image. 
+
+[REGION:lightbox]
+[![](TP_Screen_Based_Effects_Not_Working.png)(w:806)](TP_Screen_Based_Effects_Not_Working.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+## Making Sure you Capture it All
+
+By default, UE4 has a number of built in optimizations that help reduce the rendering cost of any UE4 project. However when you are trying to capture stereo images these optimizations could lead to the images missing objects or capturing objects that do not use the highest quality settings.  To avoid this and make sure the images are the highest quality they can be try enabling the following settings.
+
+* Command Line Options: These commands should be added to your game / editor.exe so they are enabled when your project is loaded.
+	* -usefixedtimestep 
+	* -fps=60
+	* -notexturestreaming
+
+* Console Commands: These commands should be entered into the UE4 console while your project is loaded in the UE4 Editor.
+	* r.AllowOcclusionQueries= 0
+
+## Additional Resources
+
+Ninja Theory did a great write up on how they used the Stereo Panoramic tool to capture images and movies in stereo. If you have not checked out their blog post you should do so as it is packed with useful information. You can view the blog post using the following link.
+
+* [https://www.unrealengine.com/blog/capturing-stereoscopic-360-screenshots-videos-movies-unreal-engine-4](https://www.unrealengine.com/blog/capturing-stereoscopic-360-screenshots-videos-movies-unreal-engine-4)
+
+
+
+
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:블루프린트 통신 방법
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -10,7 +10,7 @@ Related: Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
 Version: 4.9
 parent:Engine/Blueprints
 order:4
-type:howto
+type:how-to
 
 [VAR:Topic]
 [OBJECT:Topic]

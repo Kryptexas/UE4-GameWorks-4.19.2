@@ -1,0 +1,55 @@
+﻿INTSourceChangeList:3181495
+Availability:Docs
+Title:VR プリファイリング ツール
+Crumbs:%ROOT%, Platforms
+Description:アンリアル エンジン VR プロジェクトのプロファイリングに使用可能な内部および外部ツールt
+Version:4.14
+Skilllevel:Advanced
+Parent:Platforms/VR/Profiling
+order:2
+related:Engine/Performance
+related:Engine/Performance/Profiler
+related:Engine/Performance/GPU
+related:Platforms/VR/Profiling/Overview
+related:Platforms/VR/Profiling/Considerations
+
+
+アンリアル エンジン 4 には、プロジェクト工数の明示的な教え込みに役立つ [CPU および GPU プロファイリング ツール](Engine/Performance) が付いています。 
+CPU プロファイリング ツールは、[CPU プロファイリング ツール](Engine/Performance/Profiler) を使って特定のイベントとタイミングを教え込み、それがリモート プロセスにつながります。 
+GPU プロファイリング ツールには、さらに多くのオプションがあります。まず、非常に特異的なオプションとして、アンリアル エンジン 4 の [GPU プロファイラ](Engine/Performance/GPU) は、 
+`-game` エミュレーションで動くエディタ ビルドの **Ctrl + Shift + Comma** 操作で起動することができます。  
+
+さらに、GPUView と Nsight を両方使用することで、システム関連の問題をさらに教え込むことができます。 
+
+## RenderDoc
+
+アンリアル エンジンのプロジェクトのプロファイリングにも使用できる外部ツールです。 
+UE4 での使用方法です。
+
+1. 最新版は [こちら](https://renderdoc.org/builds) からダウンロードできます。
+1. RenderDoc で、ゲームを起動するように設定します (例えば、正しいコマンドライン引数を使った UE4Editor.exe などで)。
+1. アプリケーションのコマンドラインから `ToggleDrawEvents` を実行して、人間が読み取れるイベントを取得します。
+1. F12 を押してフレームをキャプチャします。
+
+
+## Oculus PerfHud
+
+Oculus PerfHud は、エディタでもパッケージ済みビルドでもゲーム内で表示可能なので、アプリケーションによるスロットル処理を除く CPU および GPU の実時間の検証に役立ちます。画面、そして 
+その値が Oculus の [ドキュメント](https://developer3.oculus.com/documentation/pcsdk/latest/concepts/dg-hud/) で意味する内容を全体的に把握することができます。
+
+一般的に、**Application Render Timing** 画面のグラフと値を確認します。Oculus コンポジタがそれらを確認して CPU と GPU のタイミングを表示するので、Draw と GPU タイミングの精度が高くなります。
+
+UE4 の PerfHud を有効にするには、コンソールに以下を入力します。
+
+	hmd setint PerfHudMode N
+
+N は以下の通りです。
+
+| N | 表示する種類|
+| --- | -----------|
+|	0	| パフォーマンス HUD をオフにします |
+|	1	| パフォーマンス サマリとヘッドルームを表示します |
+|	2	| タイミング情報に関係したレイテンシを表示します |
+|	3	| アプリケーションのレンダリング タイミング情報を表示します |
+|	4	| OVR コンポジタのレンダリング タイミング情報を表示します |
+|	5	| SDK & HMD バージョン情報を表示します |

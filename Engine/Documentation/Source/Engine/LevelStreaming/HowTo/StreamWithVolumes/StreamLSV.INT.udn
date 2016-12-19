@@ -4,7 +4,7 @@ Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:How to use volumes to control the streaming of Levels based on the player's viewpoint.
 Version: 4.12
 parent:Engine/LevelStreaming/HowTo
-type:howto
+type:how-to
 order:1
 tags:Level Streaming
 
@@ -32,6 +32,8 @@ tags:Level Streaming
 	![](Engine/Levels/LevelsWindow/WindowLevels.png)
 	
 1. Select **SunTemple_Streaming**, then click on the **Level Details** icon.
+
+	![](LevelDetails.png)
 
 1. Next to **Streaming Volumes**, click on the plus sign (**+**) to add a new volume. Then, use the dropdown menu or the eyedropper to select the **Level Streaming Volume** you just placed in the level.
 	![](AddLSV.png)

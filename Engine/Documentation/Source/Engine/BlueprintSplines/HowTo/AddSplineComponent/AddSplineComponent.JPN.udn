@@ -1,14 +1,17 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:How-To Add a Spline Component to a Blueprint
+﻿INTSourceChangeList:3149199
+Availability:Public
+Title: ブループリントにコンポーネントを追加する
 Crumbs: %ROOT%, Engine
-Description:This how-to will show you how to add a Spline or Spline Mesh Component to a Blueprint.
+Description:以下は、Blueprint アクタに Spline または Spline Mesh コンポーネントを追加するステップです。
 Navigation:topic
 parent:Engine/BlueprintSplines/HowTo
 order:1
 social-image:Splines_social.png
+version:4.13
+skilllevel:Beginner
 related:Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor
 related:Engine/BlueprintSplines/HowTo/EditSplineInConstScript
+tags:Splines
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,25 +53,25 @@ related:Engine/BlueprintSplines/HowTo/EditSplineInConstScript
 [/VAR]
 
 
-This page will take you through the steps necessary to add a **Blueprint Spline Component** or **Blueprint Spline Mesh Component** to any Blueprint you have available. Both of these components require that your Blueprint inherits from any class that can trace its linage back to **Actor** (Pawn, Character, etc...).
+**Blueprint Spline コンポーネント** あるいは **Blueprint Spline Mesh コンポーネント** を利用できるすべてのブループリントに追加するために必要なステップを説明します。この 2 つのコンポーネントには、リンクを **Actor** (ポーン、キャラクターなど) へ再度トレース可能なクラスから継承されたブループリントが必要です。
 
-## Steps
+## ステップ
 
-1. Create a new **Blueprint** or Open a **Blueprint** in the **Blueprint Editor**.
+1. **ブループリント** を作成する、または **ブループリント エディタ** で **ブループリント** を開きます。
 
-1. **Add Component** ![](AddComp_Button.png) -> Spline **or** Add Component -> Spline Mesh.
+1. **[Add Component (コンポーネントを追加)]** ![](AddComp_Button.png) -> [Spline] ** または ** [Add Component] -> [Spline Mesh]
 
 	[REGION:raw]
 	![](AddSplineComp.png)
 	[/REGION]
-	
-1. Adjust any settings for the added component. See [](Engine/BlueprintSplines/Reference/ComponentProperties) or [](Engine/BlueprintSplines/Reference/MeshComponentProperties) for more information on the properties available.
 
-	You won't be able to directly edit the Spline's or Spline Mesh's points in the **Blueprint Editor Viewport**. You'll either need define the curve in the **Construction Script** of your Blueprint or place your Blueprint in your level and edit the points there.
-	
-## Result
+1. 追加したコンポーネントの設定を調節します。利用できるプロパティの詳細は、[](Engine/BlueprintSplines/Reference/ComponentProperties) または [](Engine/BlueprintSplines/Reference/MeshComponentProperties) をご覧ください。
 
-You will have added a **Spline Component** or **Spline Mesh Component** to your Blueprint, see the next how-to's for more information on how to manipulate them.
+	**Blueprint Spline コンポーネントの** 点を **ブループリント エディタ ビューポート** で直接編集することができます。
+
+## 結果
+
+これで **Blueprint Spline コンポーネント** または **Blueprint Spline Mesh コンポーネント** がブループリントに追加されました。それでは次のステップで実際の操作を見てみましょう。
 
 
 

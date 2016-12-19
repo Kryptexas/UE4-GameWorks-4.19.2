@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3108692
 Availability: Public
 title:그레디언트
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -9,7 +9,7 @@ Version: 4.9
 
 
 
-그레디언트 함수는 Texture Coordinate 표현식에서 만들어진 순차 생성 그레디언트를 내는 함수입니다. 텍스처 기반 그레디언트를 만들지 않아도 되니 메모리가 절약됩니다.
+그레디언트 함수는 Texture Coordinate 표현식으로부터 그레디언트를 절차적으로 생성해 내는 함수입니다. 텍스처 기반 그레디언트를 만들지 않아도 되니 메모리가 절약됩니다.
 
 ## 그레디언트 함수
 
@@ -86,7 +86,7 @@ UV 채널 0 을 사용하여 어느 출력이 사용되는가에 따라 U 나 V 
 
 ### Smooth Curve
 
-기존 텍스처 채널이나 그레디언트를 받아 순차 커브를 사용하여 어두움에서 밝음으로의 전환을 제어하는 함수입니다. 사용자가 이 커브의 탄젠트를 조절하여 결과를 변경할 수 있습니다.
+기존 텍스처 채널이나 그레디언트를 받아 프로시저럴 커브를 사용하여 어두움에서 밝음으로의 전환을 제어하는 함수입니다. 사용자가 이 커브의 탄젠트를 조절하여 결과를 변경할 수 있습니다.
 
 | 항목 | 설명 |
 | ---- | ---- |

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3107981
+﻿INTSourceChangelist:3114699
 Availability:Public
 Title:Animation ノードの参照
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -43,30 +43,6 @@ Animation ブループリントは、ブレンディング、直接的な骨格�
 	[/PARAM]
 [/OBJECT]
 
-## Animation ノードの Pose Watching
-
-Animation ノードの **Pose Watching** では、**AnimGraph** の任意のポイントで動的に生成されているポーズを見ることができます。 
-一度に複数の Pose Watch をアクティブにして様々なポイントのポーズを比較して、現在のポーズでエラーが発生した正確なポイントを見つけることができます。 
-
-これを有効にするには、ポーズ データを含むノードの **AnimGraph** 内で、ノード上で **右クリック** して、**Toggle Pose Watch** を選択します。 
-
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-nabapYAeE7c
-[/PARAMLITERAL]
-[/OBJECT]
-
-ノードの左上隅にあるアイコンをクリックして watched pose を色分けすることができます。 
-
-![](PoseWatchA.png) ![](PoseWatchB.png)
-
-カラー ピッカー ウィンドウから **Remove Pose Watch (Pose Watch を削除)** するか、Animation ノードで **Toggle Pose Watch** を再選択することができます。 
 
 ## ピンとプロパティ
 
@@ -86,4 +62,29 @@ Animation ノードには、入力、出力両方のピンがあります。ピ�
 上の図の Blendspace Player ノードには、ピンとして設定可能なプロパティが **[Details]** パネルにあります。 
 ブレンドスペースの **Speed** プロパティを構成する X と Y の座標のピンおよび Play Rate と Loop は **[Details]** パネルでチェックが入っているため、このノードでエクスポーズされます。 
 
+
+## Animation ノードの Pose Watching
+
+Animation ノードの **Pose Watching** では、**AnimGraph** の任意のポイントで動的に生成されているポーズを見ることができます。 
+一度に複数の Pose Watch をアクティブにして様々なポイントのポーズを比較して、現在のポーズでエラーが発生した正確なポイントを見つけることができます。 
+
+これを有効にするには、**AnimGraph** 内で、ポーズ データを含むノード上で **右クリック** して、**Toggle Pose Watch** を選択します。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+nabapYAeE7c
+[/PARAMLITERAL]
+[/OBJECT]
+
+ノードの左上隅にあるアイコンをクリックして watched pose を色分けすることができます。 
+
+![](PoseWatchA.png) ![](PoseWatchB.png)
+
+カラー ピッカー ウィンドウから **Remove Pose Watch (Pose Watch を削除)** するか、Animation ノードで **Toggle Pose Watch** を再選択することができます。 
 

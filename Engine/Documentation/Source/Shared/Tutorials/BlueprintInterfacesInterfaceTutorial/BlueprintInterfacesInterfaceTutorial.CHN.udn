@@ -1,19 +1,19 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:NoPublish
-Title:Blueprint Interfaces: Editor Overview
+Title:蓝图接口：编辑器总览
 Crumbs:
-Description: The contents of all introductory tutorials for Unreal Engine 4
+Description:虚幻引擎 4 全部指导教程内容
 
 [EXCERPT:Stage1]
 [VAR:StageTitle]
-Blueprint Interface Walkthrough 
+的全部教程内容 
 [/VAR]
 
-You have opened a Blueprint Interface. This is an advanced feature of the Blueprints system, allowing you to create a collection of functions that can be called and implemented in different Blueprints.
+您已打开一个蓝图接口。这是蓝图系统的一个高级功能，可创建在不同蓝图中调用和实现的函数合集。
 
-The Blueprint Editor adapts to the type of Blueprint you are editing. This tutorial will walk you through the interface elements available to you when you edit Level Blueprints.
+蓝图编辑器自适应于正在编辑的蓝图类型。此教程将一一说明编辑关卡蓝图时可用的接口元素。
 
-[Read more about Blueprint Interfaces](DOCLINK:Engine/Blueprints/UserGuide/Types/Interface)
+[查阅更多蓝图接口的相关内容](DOCLINK:Engine/Blueprints/UserGuide/Types/Interface)
 
 
 
@@ -23,12 +23,12 @@ The Blueprint Editor adapts to the type of Blueprint you are editing. This tutor
 
 [EXCERPT:Stage2]
 [VAR:StageTitle]
-Graph Mode
+图表模式（Graph Mode）
 [/VAR]
 
-Blueprint Interfaces are collections of interface functions, so when working with them, the Blueprint Editor is in Graph Mode.
+蓝图接口时接口函数的合集。因此使用它们时蓝图编辑器处于图表模式中。
 
-However, because functions are not edited within the Blueprint Interface, only a subset of the panels are available. 
+然而，因为函数未在蓝图接口中编辑，只有面板的一个子集可用。 
 
 
 
@@ -38,12 +38,12 @@ However, because functions are not edited within the Blueprint Interface, only a
 
 [EXCERPT:Stage3]
 [VAR:StageTitle]
-My Blueprint
+我的蓝图（My Blueprint）
 [/VAR]
 
-The My Blueprint panel displays the functions stored in the Blueprint Interface. This is essentially a directory that lets you easily view existing functions, as well as create new ones.
+My Blueprint 面板显示保存在蓝图接口中的函数。此目录可便于您轻松查看现有函数，并创建新函数。
 
-[Read more about the My Blueprint panel.](DOCLINK:Engine/Blueprints/Editor/UIComponents/MyBlueprint)
+[查阅更多 My Blueprint 面板的相关内容](DOCLINK:Engine/Blueprints/Editor/UIComponents/MyBlueprint)
 
 
 
@@ -54,14 +54,14 @@ The My Blueprint panel displays the functions stored in the Blueprint Interface.
 
 [EXCERPT:Stage4]
 [VAR:StageTitle]
-Details
+细节（Details）
 [/VAR]
 
-The Details panel is a context-sensitive area that provides editing access to the properties of selected items within the Blueprint Editor. It contains a search bar for fast access to specific properties, and will generally contain one or more collapsible categories to organize the included properties.
+Details 面板时一个上下问相关的区域，可对蓝图编辑器中所选项目的属性进行编辑访问。它拥有一个搜索栏，便于快速访问特定属性。通常包含一个或多个可重叠类目，以便对所含的属性进行组织。
 
-To add and remove inputs and outputs for a function in the interface, or set other properties of the function, select the function's name in the My Blueprint panel and then use the Details panel to change the properties.
+如需添加和移除接口中函数的输入和输出，或设置函数的其他属性，先在 My Blueprint 面板中选中函数名，然后使用 Details 面板变更属性。
 
-[Read more about the Details panel.](DOCLINK:Engine/Blueprints/Editor/UIComponents/Details)
+[查阅更多 Details 面板的相关内容](DOCLINK:Engine/Blueprints/Editor/UIComponents/Details)
 
 
 
@@ -70,12 +70,12 @@ To add and remove inputs and outputs for a function in the interface, or set oth
 
 [EXCERPT:Stage5]
 [VAR:StageTitle]
-The Graph
+图表
 [/VAR]
 
-By default, there are no Functions in the Blueprint Interface's My Blueprint Panel. Go ahead and create one now by clicking the "Add Function" button in the My Blueprint Panel.
+蓝图接口的 My Blueprint 面板中默认不含函数。点击 My Blueprint 面板中的“Add Function”按钮创建一个函数。
 
-**Click the "Add Function" button, then click "Next" to continue.**
+**点击“Add Function”按钮，然后点击“Next”继续。**
 
 [/EXCERPT:Stage5]
 
@@ -83,12 +83,12 @@ By default, there are no Functions in the Blueprint Interface's My Blueprint Pan
 
 [EXCERPT:Stage9]
 [VAR:StageTitle]
-The Graph
+图表
 [/VAR]
 
-Creating a function in a Blueprint Interface creates a graph and opens the Graph Editor panel, but you will not be able to add nodes or edit the graph. 
+在蓝图接口中创建一个函数将创建一个图表并打开图表编辑器面板，但您将无法添加节点或编辑图表。 
 
-Each Blueprint that uses a function from a Blueprint Interface can have different implementations, which are set up in the individual Blueprints.
+从蓝图接口使用函数的每个蓝图可拥有不同实现（这些实现在单独的蓝图中进行设置）。
 
 
 
@@ -98,13 +98,13 @@ Each Blueprint that uses a function from a Blueprint Interface can have differen
 
 [EXCERPT:Stage10]
 [VAR:StageTitle]
-Toolbar
+工具栏
 [/VAR]
-Much like the Blueprint Editor as a whole adapts to the type of Blueprint you are editing, the buttons on the Toolbar change depending on your current task.
+和蓝图编辑器作为整体自适应正在编辑的蓝图类型相似，工具栏上的按钮将基于当前任务发生变化。
 
-The Compile button highlighted here will compile your Blueprint, and will display warnings or errors if there is an issue you need to address. 
+此处高亮的 Compile 按钮将对蓝图进行编译，存在需要处理的问题时将显示警告或错误。 
 
-[Read more about the Toolbar.](DOCLINK:Engine/Blueprints/Editor/UIComponents/Toolbar)
+[查阅更多工具栏的相关内容](DOCLINK:Engine/Blueprints/Editor/UIComponents/Toolbar)
 
 
 
@@ -113,12 +113,12 @@ The Compile button highlighted here will compile your Blueprint, and will displa
 
 [EXCERPT:Stage11]
 [VAR:StageTitle]
-Complete
+完成
 [/VAR]
 
-You have now completed the Blueprint Interface's Editor Overview.
+蓝图接口的编辑器总览现已讲述完毕。
 
-To get started with the Blueprint Interface, just close the tutorial window. If you are interested in reading more about Blueprints, click the link below.
+关闭教程窗口即可开始使用蓝图接口。如有兴趣阅读关于蓝图的更多内容，请点击下方的链接。
 
 [Blueprints](DOCLINK:Engine/Blueprints)
 [/EXCERPT:Stage11]

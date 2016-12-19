@@ -2,6 +2,7 @@ Availability:Docs
 Title:Primitive Types Technical Guide
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:Programmer's guide to creating new types of render primitives.
+tags:Rendering
 
 [REGION:todo]
 	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.

@@ -1,0 +1,140 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title: Forward Shading Renderer for VR
+Crumbs: %ROOT%, Engine, Engine/Performance
+Description:Describes the advantages of using the Forward Shading Renderer for increased VR performance.
+type: overview
+version: 4.14
+parent:Engine/Performance
+tags:Performance and Profiling
+tags: Rendering
+tags: VR
+topic-image: ForwardRenderingTopic.png
+social-image: ForwardRenderingSocial.png
+related: Engine/Performance
+related: Engine/Performance/GPU
+related: Engine/Rendering
+
+[REGION:banner]
+![](ForwardRenderingBanner.png)
+[/REGION]
+
+[REGION:warning]
+This feature is currently considered experimental and some aspects may not work as expected or may be altered in future updates. 
+[/REGION]
+
+[EXCERPT:intro]
+By default, Unreal Engine 4 uses a Deferred Renderer as it provides the most versatility and grants access to more rendering features. 
+However, there are some trade-offs in using the Deferred Render that might not be right for all VR experiences. 
+**Forward Rendering** provides a faster baseline with faster rendering passes which may lead to better performance on VR platforms. 
+Not only is Forward Rendering faster, it also provides better anti-aliasing options than the Deferred Render which may lead to more crisp visuals. 
+[/EXCERPT]
+
+[TOC(start:2 end:2)]
+
+## Enabling Forward Shading
+
+To enable the Forward Shading Renderer, open your **Project Settings** then under **Rendering**, enable **Forward Shading**. 
+
+![](EnableForwardShading.png)
+
+You will be prompted to restart the editor where after the restart, you can begin using the Forward Renderer options and features. 
+
+## Enabling Multisample Anti-Aliasing
+
+To use Multisample Anti-Aliasing (MSAA), open your **Project Settings** then under **Rendering** and **Default Settings**, change the **Anti-Aliasing Method** to **MSAA**.
+
+![](EnableMSAA.png)
+
+With the Deferred Renderer, Temporal AA works well at reducing flickering and jaggy edges on 2D monitors but introduces unwanted blurriness with VR headsets due to the low effective resolution, and the constant sub-pixel movement introduced by head tracking. 
+MSAA gives much sharper results but requires all shading to be done in one forward pass to be performant. 
+
+Below an example is given with Temporal AA enabled versus 2X MSAA enabled. 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![With Temporal AA](TemporalAA.png)(w:1020)
+	[/PARAM]
+	[PARAM:after]
+	![With 2X MSAA](MSAA.png)(w:1020)
+	[/PARAM]
+[/OBJECT]
+
+[REGION:note]
+You can use the console variable `r.MSAACount` to control how many MSAA samples are computed for every pixel. 
+Assigning `r.MSAACount 1` will fall back to using Temporal AA, which allows for convenient toggling between Anti-Aliasing methods. 
+[/REGION]
+
+## Performance and Features
+
+Switching from the Deferred Renderer to the Forward Renderer may provide you with an increase in performance for your project. 
+
+Most of the performance improvement comes from features that are disabled by default in the Forward Renderer.
+Only the nearest Reflection Capture will be applied without parallax correction unless the material opts-in to High-Quality Reflections. 
+Similarly, Planar Reflection receiving must be enabled on materials and Height Fog is computed per-vertex. 
+
+![](ExampleImage.png)
+
+The Forward Renderer works by culling lights and Reflection Captures to a frustum-space grid. Each pixel in the forward pass then iterates over the lights and Reflection Captures affecting it, sharing the material with them. 
+Dynamic Shadows for Stationary Lights are computed beforehand and packed into channels of a screen-space shadow mask, leveraging the existing limit of 4 overlapping Stationary Lights. 
+
+Be sure to use Unreal Engine's [](Engine/Performance) Tools to gauge the performance of your game when switching from the Deferred Renderer to the Forward Renderer. 
+You will want to pay special attention to [](Engine/Performance/GPU) to see where GPU cost is going, as well as using the [](Engine/Performance/StatCommands) to aid with your profiling efforts.
+Another tool you may want to use is [Shader Complexity View Mode](https://docs.unrealengine.com/latest/INT/Engine/UI/LevelEditor/Viewports/ViewModes/#shadercomplexity) to visualize the number of shader instructions being used to calculate each pixel of your scene. 
+
+### Currently Supported Features
+
+This list comprises the currently supported features of the Forward Renderer: 
+
+* Full support for Stationary Lights, including Dynamic Shadows from Movable objects which blend together with precomputed environment shadows. 
+* Multiple Reflection Captures blended together with parallax correction. 
+* Planar Reflections of a partial scene composited into Reflection Captures. 
+* DBuffer Decals
+* Precomputed Lighting and Sky Lights. 
+* Unshadowed Movable Lights.
+* Capsule Shadows
+* Instanced Stereo Compatible. 
+
+In the Deferred Renderer, **Surface Forward Shading** can be used on translucent surfaces (like glass or water) to get specular highlights from multiple lights and image-based reflections from parallax-corrected Reflection Captures. 
+This is implemented with forward shading so specular highlights from local lights are supported, however, many deferred-only features are not. 
+
+You can enable this in the **Translucency** section of your **Material** under the **Lighting Mode** section: 
+
+![](LightingModeFowardShading.png)
+
+[REGION:warning]
+This is the most expensive translucency lighting method as each light's contribution is computed per-pixel. 
+[/REGION]
+
+
+## Known Issues & Common Questions
+
+The following features are **not yet supported** while using the Forward Renderer: 
+
+* Screen Space Techniques (SSR, SSAO, Contact Shadows). 
+* Shadow Casting Movable Lights. 
+* Dynamically Shadowed Translucency. 
+* Translucency receiving environment shadows from a Stationary Light. 
+* Light Functions and IES Profiles. 
+* DBuffer Decals, Dynamic Shadows, Capsule Shadows and Atmospheric Fog do not handle MSAA correctly with this experimental release and may exhibit artifacts along object edges. 
+
+Below are some common questions/issues that may arise when using the experimental version of the Forward Renderer. 
+
+* **My Material is broken when switching to the Forward Renderer, something about GBuffer scene textures?** 
+	* Access to the GBuffer is not available for texture sampling in the Forward Renderer and is only available with the Deferred Renderer. 
+* **Does the Forward Renderer allow fewer texture samples than the Deferred Render?** 
+	* The Forward Renderer packs all features into one shader so there are fewer texture samplers available for your material. 
+	* You can usually solve this by using Shared Samplers. 
+* **Does Forward Rendering MSAA support alpha to coverage for alpha masked materials?** 
+	* Yes, any masked materials automatically use **OpacityMaskToCoverage** as the opacity mask input gets turned into MSAA coverage. 
+	* You can use it to do Dithered Transparency with 4 levels for 4x MSAA (which is very useful for foliage). 
+	* Since it is cheap, it is enabled by default rather than it being a material option. 
+* **How come I have issues with MSAA not being able to find samples against Atmospheric Fog?** 
+	* Atmospheric Fog does not handle MSAA correctly yet. 
+	* For Height Fog, you can get around this by defaulting to Vertex Fogging in your **Project Settings**. 
+	* This means it is computed in the Forward BasePass and therefore anti-aliased correctly. 
+	* Atmosphere is still computed in a Deferred Pass off of resolved scene depths so it does not anti-alias correctly (which we hope to fix in future updates). 
+
+
+
+	

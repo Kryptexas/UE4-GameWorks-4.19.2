@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3152403
 Availability:Public
 Title: 폰트
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
@@ -6,7 +6,7 @@ Description:폰트 임포트 프로세스, 폰트 에디터 작업 방법, UMG �
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide/WidgetBlueprints
 Related: Engine/UMG/UserGuide/WidgetTypeReference
-Version: 4.9
+Version: 4.14
 
 [TOC(start:2 end:2)]
 
@@ -98,25 +98,25 @@ _이미지를 클릭하면 원래 크기로 봅니다._
 
 [위젯 블루프린트](Engine/UMG/UserGuide/WidgetBlueprints) 를 생성하고 (Text Box 나 Text Widget 처럼) Text 가 들어있는 위젯을 배치한 뒤, 그것을 클릭하고 **디테일** 패널에서 접근해 보면, **Appearance** 아래 **Font** option 가 보일 것입니다. 
 
-![](UMGFonts1.png)
+![](FontWithNewOptions.png)
 
 엔진에서는 기본적으로 **Roboto** 를 사용하나, 드롭다운 메뉴를 클릭하면 미리 만들어둔 컴포짓 폰트 애셋을 선택하여 사용할 수도 있습니다.
 
-![](UMGFonts2.png)
+![](NewFontWithNewOptions.png)
 
 이 메뉴에서 컴포짓 폰트를 생성하여 새 애셋을 저장할 위치를 지정할 수도 있습니다 (기본적으로 비어있으며, 채워줘야 합니다).
 
 컴포짓 폰트를 선택하고 나면, 두 번째 드롭다운 메뉴를 통해 **디폴트 폰트 패밀리** 에서 사용할 폰트를 선택할 수 있습니다.
 
-![](UMGFonts3.png)
+![](FontStyleNewOptions.png)
 
 입력 상자에서 폰트 크기를 지정할 수도 있습니다.
 
-![](UMGFonts4.png)
+![](FontSizeNewOptions.png)
 
 현재 UMG 는 **런타임** 캐시 폰트 애셋만 지원합니다. 또한, 구형 방식을 사용하여 폰트를 할당한다 해도 기존 파일 기반 세팅을 잃게 되지는 않지만, 앞으로는 UMG 에서 커스텀 폰트를 사용하려면 컴포짓 폰트 애셋을 만들어야 합니다.
 
-
+[색, 머티리얼, 윤곽선 프로퍼티 설정](Engine/UMG/UserGuide/Fonts/Materials) 및 그림자를 사용해서 **폰트** 스타일을 잡을 수 있습니다.
 
 
 

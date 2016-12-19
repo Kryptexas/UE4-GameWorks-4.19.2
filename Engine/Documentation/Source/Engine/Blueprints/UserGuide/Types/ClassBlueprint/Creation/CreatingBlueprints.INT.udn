@@ -9,7 +9,7 @@ Related: Engine/Blueprints/Editor
 version: 4.9
 skilllevel:Beginner
 parent:Engine/Blueprints/BP_HowTo
-type:howto
+type:how-to
 order:1
 
 

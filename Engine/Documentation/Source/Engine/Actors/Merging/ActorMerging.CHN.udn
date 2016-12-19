@@ -1,24 +1,26 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Actor Merging
+﻿INTSourceChangelist:3122737
+Availability:Public
+Title:Actor 合并
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/Merging
-Description:How to use the Actor Merge tool to combine multiple Static Meshes into one in UE4.
-Version: 4.12
+Description:如何使用 Actor 合并工具来在 UE4 中将多个静态网格体合并在一起。
+Related:Engine/Actors/StaticMeshActor
+Version:4.12
 
 
 
 [TOC(start:2 end:2)]
 
-The Merge Actors tool enables the user to combine multiple Static Meshes into a single new Actor. Materials can also be baked together into a single Material with a series of custom textures using a new UV layout, and the original Static Meshes used can even be completely replaced by the newly merged asset.
+Merge Actors 工具可将多个静态网格体合并为一个新的 Actor。多个材质也可通过使用新 UV 排列的一系列自定义纹理被烘焙为一个单一材质，而原来使用的静态网格体甚至可以被新合并的资源完全替代。
 
 [REGION:warning]
-The Merge Actor feature is officially supported in 4.12 and later. In 4.8 to 4.11, it must be activated from the Editor Settings under the Experimental tab. If you are using a version of the engine earlier than 4.12, this feature is considered experimental and is not officially supported.
+4.12 以及之后的新版本正式包含合并 Actor 功能。在 4.8 到 4.11 版本中，它必须在 Experimental 标签下的 Editor Settings 中启用。在低于 4.12 的引擎版本中，该功能应被视为实验性功能，而非正式功能。
 [/REGION]
 
 ![](MergeActorsWindow.png)
 
-## Actor Merging Worklow
+## Actor 合并工作流
 
+<!--
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:videoid]
 _fTSGN8HGu8
@@ -30,60 +32,71 @@ _fTSGN8HGu8
 568
 [/PARAMLITERAL]
 [/OBJECT]
+-->
 
-Merging Static Meshes in your scene is handled like so:
+在场景中合并静态网格体的处理过程如下：
 
-1. Select a number of Static Meshes in your level that your would like to merge. 
+1. 在场景中选择数个要合并的静态网格体。 
 
-2. From the main menubar choose **Window > Developer Tools > Merge Actors.**
+2. 从主菜单栏中选择 **Window > Developer Tools > Merge Actors**。
 
-3. Choose the appropriate options (explained below).
+3. 选择相应选项（后文将说明）。
 
-4. Click the Merge Actors button.
+4. 点击“Merge Actors”按钮。
 
-[REGION:tip]If you select fewer than **two** Static Meshes, you will get a warning saying there are insufficient meshes to merge.[/REGION]
+[REGION:tip]如果选择的静态网格体少于 **两个**，系统将警告要合并的网格体不足。[/REGION]
 
-## Merge Actors Tool Options
+## Merge Actors 工具选项
 
-At the top of the Merge Actors window is a list of all the Static Meshes selected in the viewport. Here you can check which meshes will be included in the final merge. 
+Merge Actors 窗口顶端列出了视口中选中的所有静态网格体。您可以在此选择最终合并包含哪些网格体。 
 
-If you have one or fewer meshes selected, you will see a yellow warning near the bottom of the window stating that you have insufficient mesh components for merging.
+如果您未选择或只选择了一个网格体，窗口底部附近会出现黄色的警告，告知您选择合并的网格体组件不足。
 
 
-| Option | Description |
+| 选项 | 描述 |
 |--------|-------------|
-|[REGION:tablesection]Mesh Settings[/REGION]|||
-|**Pivot Point at Zero**|If set to true, the pivot point of the final merged actor will be set to the scene's origin <0,0,0>. If set to false, the pivot will be located at the pivot location of the first Static Mesh Actor selected for the merge.
-|**Merge Physics Data**|If true, this will merge together all of the physics primitives into a single physics object.|
-|**Export Specific LOD**| Use this to force the selected meshes to a specific LOD prior to merging.|
+|[REGION:tablesection]Mesh Components List[/REGION]|该区域中有一个选择清单，您可以从中选择合并时包含的网格体。|
+|[REGION:tablesection]Mesh Settings[/REGION]||
+|**Pivot Point at Zero**|如设为 true，最终合并的 actor 的枢轴点将为场景的原点 <0,0,0>。如设为 false，旋转点将创建在为合并选择的第一个静态网格体 Actor 的枢轴点处。
+|**Merge Physics Data**|如设为 true，这会将所有物理基元整合到一个单一物理对象中。|
+|**Bake Vertex Data**|将顶点数据（包括顶点颜色和法线）烘焙到新获得的网格体中。|
+|**LOD Selection Type**| 用此选项控制将哪些 LOD 添加到合并得到的对象中。|
+|[REGION:tablesection]Advanced Options[/REGION]|可通过展开选项列表中的白色小三角图标来显示这些选项|
+|**Generate Lightmap UVs**|使用现有的 UV 岛状区为合并的网格体新建光照图 UV 布局。这一新布局将被置入 Target Light Map UVChannel 中。|
+|**Target Light Map UVChannel**|指定将新光照图 UV 存入的 UV 通道。|
+|**Target Light Map Resolution**|指定新光照图 UV 的分辨率，从而控制布局中各个岛状区之间的距离的计算。分辨率越高，岛状区之间的距离越短。|
 |[REGION:tablesection]Material Settings[/REGION]||
-|**Merge Materials**|If checked, the Materials of all the merged assets will be combined into a single Material with new UV layout. The following subsettings apply only if Merge Materials is checked. |
+|**Merge Materials**|选中后，所有合并的资源将整合到一个带有新 UV 布局的材质中。以下子设置仅在 Merge Materials 选中时适用。|
 | |[INCLUDE:#materialsettings]|
+|[REGION:tablesection]Landscape Culling[/REGION]||
+|**Use Landscape Culling**|选中后，现有的地形几何体将被用于剔除完全遮挡的三角形。例如，有一个树木网格体最底端的三角形位于地形表面之下，则合并时这些被遮挡的三角形将被移除。|
+|[REGION:tablesection]Standard Options[/REGION]||
+|**Replace Source Actors**|选中后，在视口中选中的 Actor 会被移除，并以新合并的版本替代。这不会影响内容浏览器中的原对象。| 
 
 
 <!--
 [EXCERPT:MaterialSettings]
 [REGION:simpletable]
 |----|----|
-|**Texture Size**|This provides access to the X and Y pixel dimensions (resolution) for the final merged Material's textures.|
-|**Texture Sizing Type**| The settings for this property are explained in the table below.|
-| **Normal Map**| If checked, a Normal map will be baked out for the resulting merged Actor.|
-|** Metallic Map** |If checked, a Metallic map will be baked out for the resulting merged Actor. This nullifies the Metallic Constant property.|
-| **Metallic Constant**|Only enabled if Metallic Map is unchecked, this sets a constant value for the Metallic property of the resulting merged Actor's Material.|
-| **Roughness Map** |If checked, a Roughness map will be baked out for the resulting merged Actor. This nullifies the Roughness Constant property.|
-| **Roughness Constant**|Only enabled if Roughness Map is unchecked, this sets a constant value for the Roughness property of the resulting merged Actor's Material.| 
-| **Specular Map** |If checked, a Specular map will be baked out for the resulting merged Actor. This nullifies the Specular Constant property.|
-| **Specular Constant**|Only enabled if Specular Map is unchecked, this sets a constant value for the Specular property of the resulting merged Actor's Material.|
-| **Emissive Map** |If checked, an Emissive map will be baked out for the resulting merged Actor.|
-|**Bake Vertex Data**|Bakes vertex data including vertex color and normals into the new resulting mesh.|
+|**Texture Size**|这可用于控制最后合并材质的纹理的 X 和 Y 像素尺寸（分辨率）。|
+|**Texture Sizing Type**| 此属性的设置将在下方的表格中说明。|
+| **Normal Map**| 选中后，将为合并得出的 Actor 烘焙法线贴图。|
+| **Metallic Map**| 选中后，将为合并得出的 Actor 烘焙金属贴图。这会使 Metallic Constant 属性失效。|
+| **Metallic Constant**|仅在未选中 Metallic Map 的情况下启用，这将为合并得到的 Actor 材质的 Metallic 属性设置一个常量值。|
+| **Roughness Map**| 选中后，将为合并得到的 Actor 烘焙粗糙贴图。这会使 Roughness Constant 属性失效。|
+| **Roughness Constant**|仅在未选中 Roughness Map 的情况下启用，这将为合并得到的 Actor 材质的 Roughness 属性设置一个常量值。| 
+| **Specular Map**| 选中后，将为合并得到的 Actor 烘焙反射贴图。这会使 Specular Constant 属性失效。|
+| **Specular Constant**|仅在未选中 Specular Map 的情况下启用，这将为合并得到的 Actor 材质的 Specular 属性设置一个常量值。|
+| **Emissive Map**| 选中后，将为合并得到的 Actor 烘焙自发光贴图。|
+|**Use Vertex Data for Baking Material**|是否使用顶点数据（如顶点颜色）烘焙生成的材质。如果材质受到顶点颜色某种方式的控制，此项将十分实用。|
 [/REGION]
 [/EXCERPT:MaterialSettings]
 -->
 
 |[REGION:tablesection]Texture Sizing Type Settings[/REGION]||
 |-----|-----|
-|**Use TextureSize for all material properties**|This uses the resolution set in the Texture Size property for all baked textures.|
-|**Use automatically biased texture sizes based on TextureSize**|This creates a 1:0.5:0.25 bias for all textures such that Normal gets 100% of the resolution set in Texture Size, Diffuse (Base Color) gets 50% of Texture Size, and all other properties get 25% of TextureSize|
-|**Use per property manually overriden texture sizes**|This provides individual number entry fields for explicitly providing the resolution for each map being baked.|
-|**Use Simplygon's automatic texture sizing**|This uses Simplygon's algorithm for texture sizing based on its decimation settings. This should only be used if you are already using Simplygon.|
+|**Use TextureSize for all material properties**|这会将 Texture Size 属性中设置的分辨率应用到所有烘焙的纹理中。|
+|**Use automatically biased texture sizes based on TextureSize**|这会对所有纹理产生 1:0.5:0.25 的偏移，使得 Normal 得到 Texture Size 中设置分辨率的 100%，Diffuse (Base Color) 得到 Texture Size 的 50%，而所有其他属性得到 Texture Size 的 25%|
+|**Use per property manually overriden texture sizes**|该项提供单独的数字输入域，以便显式提供每张烘焙贴图的分辨率|
+|**Use Simplygon's automatic texture sizing**|此项使用 Simplygon 算法，根据抽取设置来调整纹理的大小。仅限在已使用 Simplygon 的前提下使用此项。|
 

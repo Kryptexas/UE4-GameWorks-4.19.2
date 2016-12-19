@@ -1,40 +1,20 @@
-availability:docs
+availability:Docs
 title: Render Targets
-description:Using Render Targets in Unreal Engine 4
-crumbs:
+description:Using Render Targets in Unreal Engine 4.
+crumbs:%ROOT%, Engine, Engine/Rendering
 version:4.13
 Type:landing
-SkillLevel:Intermediate
-parent:Engine
-order:1
+parent:Engine/Rendering
+order:7
 Navigation:topic
+tags: Render Targets
+tags: Blueprint
 
 ![](BlueprintRenderTarget.png)
 
-A render target is a buffer where the video card draws pixels for a scene that is being rendered. render targets are used extensively throughout Unreal Engine 4 (UE4) and in the following set of documents we will take a look at how to use and manipulate render targets inside UE4.
+Render targets are used quite extensively throughout Unreal Engine 4 (UE4) for a wide variety of different tasks. From storing the various buffers that are needed for a deferred renderer to helping display various complex effects like the ripples that happen when you throw an object into a pool of water, render targets can be leveraged to perform all kinds of interesting and useful effects.   In the following set of documents, we will take a look at how to use and manipulate render targets inside of UE4.
 
-
-
-
-[REGION:topics third]
-[OBJECT:Topic]
-	[PARAM:image]
-		![Engine\Rendering\RenderTargets\BlueprintRenderTargets:description%](Engine/Rendering/RenderTargets/Render_Targets_Overview.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Rendering\RenderTargets\BlueprintRenderTargets/:description%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Rendering\RenderTargets\BlueprintRenderTargets:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Rendering\RenderTargets\BlueprintRenderTargets/]
-	[/PARAM]
-[/OBJECT]
-[/REGION]
+[DIR(output:"topic" parent:"Engine/Rendering/RenderTargets")]
 
 
 

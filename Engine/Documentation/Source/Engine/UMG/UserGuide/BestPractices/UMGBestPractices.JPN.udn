@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2802414
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:UMG のベスト プラクティス
 Crumbs:%ROOT%, Engine\UMG\UserGuide
@@ -6,7 +6,7 @@ Description:UMG で作業をするためのヒントとコツ
 version:4.10
 parent:Engine/UMG	
 order:2
-type:howto
+type:how-to
 
 
 [VAR:Topic]

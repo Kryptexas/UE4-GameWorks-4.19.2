@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:Public
-Title:How To: Use Cascaded Shadows
+Title: 캐스케이드 섀도 사용법
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
-Description:Setting up Cascaded Shadows for mobile games.
+Description:모바일 게임에서 캐스케이드 섀도를 사용할 수 있도록 구성하는 방법입니다.
 Platform:Mobile
 Related: Platforms/Mobile/Performance
 Related: Platforms/Mobile/Textures
@@ -15,60 +15,60 @@ order:3
 type:overview
 tags:mobile
 
-### Enabling Dynamic Cascaded Shadow Maps
+### 다이내믹 캐스케이드 섀도 맵 켜기
 
-To use Dynamic Cascaded Shadow maps in your UE4 mobile project, you will need to perform the following steps.
+UE4 모바일 프로젝트에서 Dynamic Cascaded Shadow Map (다이내믹 캐스케이드 섀도 맵, CSM)을 켜는 방법은 다음과 같습니다.
 
-1. Open up the **Project Settings** and then go to the **Engine** > **Rendering** >  **Mobile** section and make sure that **Enable Combined Static and CSM Shadowing** is enabled. 
+1. **프로젝트 세팅** 창을 열고 **엔진** > **Rendering** (렌더링) > **Mobile** (모바일) 섹션에서 **Enable Combined Static and CSM Shadowing** (스태틱 및 CSM 섀도 조합 활성화) 옵션을 켭니다.
 	
 	[region:lightbox]
 	[![](Platforms\Mobile\Lighting\CSM_Setup_00.png)(w:562 h:310)](Platforms\Mobile\Lighting\CSM_Setup_00.png)
 	[/region]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 봅니다.
 	[/REGION]
 
 
-1. CSM will only work if you have a **Directional Light** in your scene. If you do not have one, add one now and make sure it is selected. Then under the **Transform** section ensure that the **Mobility** setting has been set to **Stationary**.
+1. CSM 은 씬에 **디렉셔널 라이트** 가 있을 경우에만 작동합니다. 없다면 지금 하나 추가한 뒤 선택해 주세요. 그런 다음 **트랜스폼** 섹션 아래 **모빌리티** 세팅이 **스테이셔너리** 로 설정되었는지 확인합니다.
 	
 	[region:lightbox]
 	[![](Platforms\Mobile\Lighting\CSM_Setup_01.png)(w:300 h:400)](Platforms\Mobile\Lighting\CSM_Setup_01.png)
 	[/region]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 봅니다.
 	[/REGION]
 
-1. With the Directional Light still selected, go to the **Details** panel and locate the **Cascaded Shadows Maps** section and adjust the following properties on your Directional Light.
+1. 디렉셔널 라이트를 선택한 채, **디테일** 패널에서 **Cascaded Shadows Maps** (캐스케이드 섀도 맵) 섹션을 찾은 다음 디렉셔널 라이트의 다음 프로퍼티를 조절합니다.
 	
 	[region:lightbox]
 	[![](Platforms\Mobile\Lighting\CSM_Setup_02.png)(w:300 h:400)](Platforms\Mobile\Lighting\CSM_Setup_02.png)
 	[/region]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 봅니다.
 	[/REGION]
 
-	* **Dynamic Shadow Distance Stationary Light:** 2,000
-	* **Num Dynamic Shadows Cascades:** 1
-	* **Insert Shadows For Movable Objects:** False
+	* **Dynamic Shadow Distance Stationary Light:** (다이내믹 섀도의 스테이셔너리 라이트 거리) 2,000
+	* **Num Dynamic Shadows Cascades:** (다이내믹 섀도 캐스케이드 수) 1
+	* **Insert Shadows For Movable Objects:** (무버블 오브젝트에 그림자 삽입) False
 	[region:note]
-	Make sure to use only the settings above as adjusting anything else might cause the CSM not to work.
+	위 세팅은 제안일 뿐이니, 직접 실험을 통해 프로젝트에 잘 맞는 값을 찾으시기 바랍니다.
 	[/region]
 
-1. Inside of you project's level select any Static Meshes you want to receive CSM and in the **Details** panel under the **Mobile** section, enable the **Receive Combined Static and CSM Shadows from Stationary Lights** option.
+1. 프로젝트의 레벨 안에서 CSM 을 받고자 하는 스태틱 메시를 선택하고 **디테일** 패널의 **Mobile** 섹션 아래 **Receive Combined Static and CSM Shadows from Stationary Lights** 옵션을 체크합니다.
 	
 	[region:lightbox]
 	[![](Platforms\Mobile\Lighting\CSM_Setup_03.png)(w:300 h:400)](Platforms\Mobile\Lighting\CSM_Setup_03.png)
 	[/region]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 봅니다.
 	[/REGION]
 
 	[region:note]
-	The following video demonstrates what the Receive Combined Static and CSM Shadows from Stationary Lights option does. In this video the Receive Combined Static and CSM Shadows from Stationary Lights is turned on for the Static Mesh that makes up the floor but not on the Static Mesh that makes up the stairs. Notice how when the player is on the floor they have a shadow but not when they are on the stairs. This is because the floor has the  Receive Combined Static and CSM Shadows from Stationary Lights option enabled while the stairs do not.
+	다음 비디오는 Receive Combined Static and CSM Shadows from Stationary Lights 옵션의 역할을 보여줍니다. 이 비디오에서는 바닥을 이루는 스태틱 메시에만 그 옵션을 켜주고, 계단 스태틱 메시에는 켜지 않았습니다. 그로 인해 플레이어가 바닥에 있을 때는 그림자가 생기지만 계단에 있을 때는 생기지 않는 것을 볼 수 있습니다.
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -84,26 +84,29 @@ To use Dynamic Cascaded Shadow maps in your UE4 mobile project, you will need to
 
 	[/region]
 
-1. From the **Main Toolbar**, change the **Play Mode** to **Mobile Preview** and press the **Play** button to launch the level.
+1. **메인 툴바** 에서 **플레이 모드** 를 **모바일 프리뷰** 로 변경하고 **플레이** 버튼을 눌러 레벨을 실행합니다.
 
 	[region:lightbox]
 	[![](Platforms\Mobile\Lighting\CSM_Setup_04.png)(w:800 h:400)](Platforms\Mobile\Lighting\CSM_Setup_04.png)
 	[/region]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 봅니다.
 	[/REGION]
 
 	[region:tip]
-	If you do not see the Mobile Preview window being displayed, make sure to check that it did not launch behind the Unreal Editor window.
+	모바일 프리뷰 창이 나타나지 않는다면, 언리얼 에디터 창에 가려지지 않았는지 확인해 주세요.
 	[/region]
 
-1. Once your level successfully launches, position your character in a location that has static shadows and when you go in and out of the shadow, your character's Dynamic Shadows should now blend seamlessly with any baked shadows in the level like in the image below.
+1. 레벨이 성공적으로 실행되면, 캐릭터를 스태틱 섀도 안에 두었다가 그 그림자 밖으로 나가도록 해 보세요. 아래 그림처럼 캐릭터의 다이내믹 섀도가 레벨에 미리 구워진 스태틱 섀도와 잘 어우러지는 것을 확인할 수 있습니다.
 	
 	[REGION:lightbox]
 	[![](Platforms\Mobile\Lighting\CSM_Final_Result.png)(w:262 h:281)](Platforms\Mobile\Lighting\CSM_Final_Result.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 봅니다.
 	[/REGION]
+	[region:note]
+	배경에 배치한 스태틱 메시에서 캐릭터에 그림자를 드리우도록 하려면, 그 스태틱 메시의 **모빌리티** 세팅을 **스태틱** 에서 **무버블** 로 변경해 줘야 합니다.
+	[/region]

@@ -1,7 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2719359
+Availability:Public
 Title: 在编辑器中进行测试(运行&模拟)
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description: Description: 关于直接在编辑器中测试关卡及游戏性的指南。
+Version: 4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]

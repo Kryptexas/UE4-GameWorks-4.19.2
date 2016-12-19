@@ -4,6 +4,7 @@ Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:Information for graphics programmers working with the rendering systems and writing shaders.
 Version: 4.9
 Order:0
+tags:Rendering
 
 
 ## Getting Started

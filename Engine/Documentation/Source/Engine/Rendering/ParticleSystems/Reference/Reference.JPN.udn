@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2738595
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:パーティクル システムのリファレンス
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
@@ -28,7 +28,7 @@ Version:4.9
 [/OBJECT]
 
 
-## TypeDataモジュール
+## TypeData モジュール
 
 ParticleSystem への追加時のエミッタのデフォルト タイプはスプライト エミッタと同じです。TypeData モジュールの使用によりエミッタの他のタイプを作成することもできます。これらのモジュールは、ビーム、メッシュ、リボンなど他のタイプのパーティクルを放射するための特定の機能を提供します。
 
@@ -368,7 +368,7 @@ ParticleSystem への追加時のエミッタのデフォルト タイプはス�
 [REGION:simpletable]
 | **プロパティ** | **説明** |
 | --- | --- |
-|_Get Seed From Instance_| _true_ の場合、モジュールはオーナー インスタンスからシードを取得しようとします。失敗すると、 _Random Seeds_ 配列からシードを取得するためにフォールバックします。
+|_Get Seed From Instance_| _true_ の場合、モジュールはオーナー インスタンスからシードを取得しようとします。失敗すると、 _Random Seeds_ 配列からシードを取得するためにフォールバックします。|
 |_Instance Seed Is Index_| _true_ の場合、インスタンスから抽出したシード値は _Random Seeds_ 配列のインデックスとなります。|
 |_Parameter Name_| このシードを設定するために配置されたインスタンスにエクスポーズする名前です。|
 |_Random Seeds_| このモジュールを使用するためのランダムシード値です。複数の値を指定すると、インスタンスがランダムに値を選択します。|

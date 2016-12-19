@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2697061
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:뷰포트 표시 플래그
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
@@ -154,7 +154,6 @@ Show Flag (표시 플래그)는 뷰포트 **표시** 메뉴 아래에서 찾을 
 |**테스트 이미지**|모니터와 그래픽 세팅 환경설정을 위한 테스트 이미지를 표시합니다.|
 |**벡터 필드**|씬에 있는 벡터 필드를 표시/숨깁니다.|
 
-|**Blur GBuffer**|포스트 프로세스 볼륨 아래 프로퍼티인 **Blur GBuffer Intensity** 결과를 표시/숨깁니다. 이 기능은 GBuffer 노멀에 블러를 적용하고 GBuffer 러프니스를 조절하여 스페큘러 앨리어싱을 감소시키는 기능입니다. 그러나 퍼포먼스 비용이 높기에 템포럴 AA 만 사용할 것을 미리 고려해 보는 것이 좋습니다. |
 
 ## 시각화
 

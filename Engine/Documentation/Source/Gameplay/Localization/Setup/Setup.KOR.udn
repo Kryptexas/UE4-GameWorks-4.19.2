@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title: 셋업
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
 Description:프로젝트의 현지화 셋업 방법입니다.
 version: 4.9
+Parent:Gameplay/Localization
+Order:2
 
 [TOC (start:2)]
 

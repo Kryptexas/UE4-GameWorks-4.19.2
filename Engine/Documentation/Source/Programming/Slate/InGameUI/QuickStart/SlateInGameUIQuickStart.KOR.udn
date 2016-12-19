@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3151861
 Availability:Docs
 Title:슬레이트 게임내 UI 퀵스타트
 Crumbs:
@@ -90,7 +90,7 @@ Version:4.9
 
 	#pragma once
 
-	#include "GameFramework/GameMode.h"
+	#include "GameFramework/GameModeBase.h"
 	#include "MainMenuGameMode.generated.h"
 
 	class MainMenu;
@@ -99,7 +99,7 @@ Version:4.9
 	 * 
 	 */
 	UCLASS()
-	class AMainMenuGameMode : public AGameMode
+	class AMainMenuGameMode : public AGameModeBase
 	{
 		GENERATED_UCLASS_BODY()
 

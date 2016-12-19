@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3151855
 Availability:Public
 Title:HLSL 크로스 컴파일러
 Crumbs:%ROOT%, Programming, Programming/Rendering, Programming/Rendering/ShaderDevelopment
 Description:HLSL 을 GLSL 로 변환하는 데 사용되는 HLSLCC 툴에 대한 정보입니다.
 Version: 4.9
+tags:Rendering
 
 
 이 라이브러리는 High Level Shading Language (HLSL) 셰이더 소스 코드를 하이 레벨 중개 표현물로 컴파일하고, 디바이스 독립적인 최적화를 수행하여, OpenGL Shading Language (GLSL) 호환 소스 코드를 생성해 줍니다. 이 라이브러리는 Mesa 의 GLSL 컴파일러에 크게 의존합니다. 프론트엔드는 HLSL 파싱 및 HLSL Abstract Syntax Tree (AST) 에서 Mesa IR 생성을 위해 거의 새로 작성했습니다. 이 라이브러리는 Mesa 의 IR 최적화를 적극 활용하여 코드를 단순화시키고, Mesa IR 에서 GLSL 소스 코드를 최종적으로 생성합니다. GLSL 생성은 glsl-옵티마이저의 작업을 기반으로 합니다.

@@ -2,7 +2,7 @@ Availability: Public
 Title:3. Creating a Main Menu
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:In this step we will create the visual layout for our Main Menu.
-version: 4.9
+version: 4.13
 
 
 [VAR:Steps]
@@ -71,7 +71,7 @@ First bit of business is to create the layout of our Main Menu which we will do 
 
 	Here we are adjusting the size of all of our buttons as well as defining a color for the button to take when mousing over it. 
 
-1.	Select the **Image** in the **Hierarchy** then in the **Details** under **Appearance** and **Brush**, select a **Texture** or **Material** to use. 
+1.	Select the **Image** in the **Hierarchy** then in the **Details** under **Appearance** and **Brush**, select a **Texture**, **Sprite**, or **Material** to use. 
 
 	![](Hierarchy8.png)
 
@@ -81,11 +81,11 @@ First bit of business is to create the layout of our Main Menu which we will do 
 	Drag-and-drop the Example Background into **Unreal Engine** to import it (click **Yes** at any confirmation messages). 
 	[/REGION]
 
-1.	In the **Designer** window, resize the image so that it takes up the entire layout. 
+1.	In the **Designer** window, resize the image so that it takes up the entire layout.
 
 	![](Hierarchy9.png)
 
-1.	In the **Details** panel for the **Image**, click the **Anchor** button and choose the fill screen option. 
+1.	In the **Details** panel for the **Image**, click the **Anchor** button and choose the fill screen option. You can also use a Scalebox to hold the image, which will ensure that the image scales and resizes appropriately to match the aspect ratio.
 
 	![](Hierarchy10.png)
 

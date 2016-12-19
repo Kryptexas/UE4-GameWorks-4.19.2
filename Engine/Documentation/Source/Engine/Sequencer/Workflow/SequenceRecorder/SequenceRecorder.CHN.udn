@@ -1,119 +1,128 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Sequence Recorder
+﻿INTSourceChangelist:3124629
+Availability:Public
+Title:Sequence Recorder
 Crumbs: %ROOT%, Engine
-Description:Overview of the Sequence Recorder tool and recording options to capture gameplay. 
+Description:Sequence Recorder 工具和捕捉游戏进程的录制选项总览。 
 Navigation:topic
 parent:Engine/Sequencer/Workflow
 order:1
-Version: 4.13
-Related: Engine\Sequencer\Overview
-Related: Engine/Sequencer/HowTo
+Version:4.13
+Related:Engine\Sequencer\Overview
+Related:Engine/Sequencer/HowTo
 
-The **Sequence Recorder** allows you to record Actor(s) from gameplay or level editing into Skeletal Animation, Transform, Event and Audio Tracks into a Level Sequence which can then be edited inside the **Sequencer Editor**. 
+**Sequence Recorder** 可用于录制游戏进程中的 Actor，或对关卡序列中的骨架动画、变形、时间和音轨进行关卡编辑。 
+随后可在 **Sequencer Editor** 中编辑关卡序列，以便基于录制创建过场动画。 
 
 [TOC(start:2 end:2)]
 
 
-## Opening the Sequence Recorder
+## 打开 Sequence Recorder
 
-You can open the Sequence Recorder from the main **Menu Bar** under the **Window** tab: 
+可从 **Window** 选项卡下的主 **菜单栏** 打开 Sequence Recorder： 
 
 ![](EnableSequenceWindow.png)
 
-After selecting Sequence Recorder, the Sequence Recorder window will open: 
+点击 Sequence Recorder 后，Sequence Recorder 窗口将打开： 
 
 ![](NoActorRecordWindow.png)
 
-## Tracking Actors for Recording
+## 跟踪 Actors 进行录制
 
-When you first open the Sequence Recorder, you will notice three buttons across the top of the window: 
+Sequence Recorder 顶部有三个按钮：Record、Add 和 Remove。 
 
 ![](RecorderToolbar1.png)
 
-These are used to start recording, add Actors to track for recording or remove Actors from the recording list. 
-After clicking the **Add** button, both the **Record** option as well as the **Remove** option will become accessible. 
-This will also add an **Actor Recording** field to the Actor Tracking window with the Actor to track listed as **None**. 
+它们分别用于开始录制、添加跟踪录制的 Actor，以及从录制列表中移除 Actor。 
+点击 **Add** 按钮后，**Record** 选项及 **Remove** 选项将变为可用。 
+此操作还将在 Actor Tracking 窗口中增加一个 **Actor Recording** 域，需要跟踪的 Actor 将列为 **None**（如下所示）。 
 
 ![](RecorderToolbar2.png)
 
-Selecting the Actor Recording in the window will populate the Sequence Recorder with additional options related to that recording.
+选择 Actor Recording 将对 Sequence Recorder 填入与该录制相关的额外选项（如下所示）。
 
 ![](SequenceRecorderWindow.png)
 
-Above we have set the **Actor to Track** to the **ThirdPersonCharacter** Actor (which is our playable character). 
+可通过这些选项定义需要在录制过程中跟踪的 Actor 及其动画设置。 
+可向 Tracking Window 添加多个 Actor Tracking 域，将 **Actor to Record** 设置为跟踪不同的 Actor。 
 
 [REGION:note]
-Please see the [](Engine\Sequencer\HowTo\SequenceRecorder) page for a step-by-step guide to recording Actors with the Sequence Recorder. 
+请参见 [](Engine\Sequencer\HowTo\SequenceRecorder) 页面，查阅使用 Sequence Recorder 进行 Actor 录制的详细指南。 
 [/REGION]
 
 
-## Sequence Recorder Options
+## Sequence Recorder 选项
 
-Once you have the Sequence Recorder open, there are several properties you can adjust to determine how the Sequence Recorder records its Actors. 
-When first opening the Sequence Recorder, you will only be presented with the default **Sequence Recording** options. After adding Actor(s) to track for recording, the **Actor Recording** and **Animation Recording** sections become available on a per Actor basis. 
+打开 Sequence Recorder 后可对几个属性进行调整，确定 Sequence Recorder 录制 Actor 的方式。 
+首次打开 Sequence Recorder 时只有默认的 **Sequence Recording** 选项。添加要跟踪的 Actor 以进行录制时，**Actor Recording** 和 **Animation Recording** 部分将对每个 Actor 可用。 
 
-Please see each of the tables below for a list of properties along with a description of each:
+请参考以下各表，了解各种属性及其说明：
 
-### Sequence Recording
+### 序列录制
 
-| Option | Description |
+| 选项 | 描述 |
 | ---- | ----------- |
-| **Create Level Sequence** | Whether to create a Level Sequence when recording or not. Actors and animations will be inserted into this sequence if enabled. |
-| **Immersive Mode** | Whether to maximize the viewport when recording. |
-| **Sequence Length** | Defines the maximum length of the sequence to record. |
-| **Recording Delay** | Delay that will be used before starting the recording. |
-| **Sequence Name** | The name of the sequence to record to. This name will also be used to auto-generate any assets created by this recording. |
-| **Sequence Recording Base Path** | Defines the location within the project to save the recording. Sub-assets will be created in subdirectories within the base path specified. |
-| **Record Nearby Spawned Actors** | Whether or not to record nearby spawned Actors as part of this recording. |
-| **Nearby Actor Recording Proximity** | Defines the proximity to currently recorded Actors to record newly spawned Actors. |
-| **Record World Settings Actor** | Whether to record the World Settings Actor in the sequence (some games use this to attach world SFX). |
-| **Actor Filter** | Filter to check spawned Actors against to see if they should be recorded. You can specify which Actor classes to record from the expandable option. |
-| **Level Sequence Actors to Trigger** | Sequence Actors to trigger playback on when recording starts (for example, this can be used for recording synchronized sequences). |
-| **Default Animation Settings** | The default settings applied to animation recording. Expand to see options for recording in World Space, Removing Root Animation whether or not to Auto Save the asset when recording is complete and the ability to Sample Rate and Length.  |
-| **Classes and Properties to Record** | The properties to record for specified classes. Component classes specified here will be recorded. If an Actor does not contain one of these classes it will be ignored. Expanded to define the classes and associated properties. |
-| **Animation Sub Directory** | The name of the subdirectory animations will be placed in. Leave this empty to place them into the same directory as the Sequence base path. |
-| **Record Sequencer Spawned Actors** | Whether to record Actors that are spawned by Sequencer itself (this is usually disabled as results can be unexpected). |
-| **Per Actor Settings** | Settings applied to Actors of a specified class. For each class you can define whether to record to a possessable (level-owned) or spawnable (sequence-owned).  |
+| **Create Level Sequence** | 录制时是否创建关卡序列。启用后，Actor 和动画将插入此序列中。|
+| **Immersive Mode** | 录制时是否最大化视口。|
+| **Sequence Length** | 定义录制序列的最大长度（设置为 0 时录制将持续进行，直到按 Stop 为止）。|
+| **Recording Delay** | 开始录制前的延迟。|
+| **Sequence Name** | 录制序列的名称。该名称还将用于自动生成由此录制创建的所有资源。|
+| **Sequence Recording Base Path** | 定义项目中存放录制的位置。子资源将创建在指定基本路径下的子目录中。|
+| **Record Nearby Spawned Actors** | 是否将附近生成的 Actor 作为此录制的一部分。|
+| **Nearby Actor Recording Proximity** | 定义当前正在录制 Actor 的临近区域，以录制新生成的 Actor。|
+| **Record World Settings Actor** | 是否在序列中录制世界设置 Actor（某些游戏使用此功能来连接世界 SFX）。|
+| **Actor Filter** | 用于检查生成的 Actor，确定是否需要对其进行录制。可通过展开选项指定录制的 Actor 类。|
+| **Level Sequence Actors to Trigger** | 录制开始时触发播放的序列 Actor（例如这可用于录制同步的序列）。|
+| **Default Animation Settings** | 应用到动画录制的默认设置。展开查看世界空间中的录制选项：完成录制后移除根动画是否自动保存资源，以及对帧率和长度取样的功能。|
+| **Classes and Properties to Record** | 用于录制特定类的属性。此处指定的组件类将被录制。如某个 Actor 未包含这些类中的任意一个，则其将被忽略。展开对类和相关属性进行定义。|
+| **Animation Sub Directory** | 将放入动画的子目录名称。如果留空则将动画放置在与序列基础路径相同的目录中。|
+| **Record Sequencer Spawned Actors** | 是否录制 Sequencer 自身生成的 Actor（通常禁用此选项，因可能造成意外结果）。|
+| **Per Actor Settings** | 应用到特定类的 Actor 设置。对于每种类，可定义是录制为可拥有（关卡拥有）还是可生成（序列拥有）Actor。|
 
-### Actor Recording
+### Actor 录制
 
-| Option | Description |
+| 选项 | 描述 |
 | ---- | ----------- |
-| **Record Visibility** | Whether to record the Actors visibility or not. |
-| **Record Transforms** | Whether to record Actor transforms. This can be useful if you want the Actors to end up in specific locations after the sequence. By default we rely on animations to provide transforms, but this can be changed using the **Record in World Space** animation setting. |
-| **Actor to Record** | This option is used to define which Actor you want to record. |
+| **Record Visibility** | 是否录制 Actor 可见性。|
+| **Record Transforms** | 是否录制 Actor 变形。如果需要 Actor 在序列结束后处于特定位置，此选项将十分实用。默认将依赖动画来提供变形，但可通过 **Record in World Space** 动画设置来做出改变。|
+| **Actor to Record** | 此选项可用于定义要录制的 Actor。|
 
-### Animation Recording
+### 动画录制
 
-| Option | Description |
+| 选项 | 描述 |
 | ---- | ----------- |
-| **Specify Target Animation** | Whether we should specify the target animation or auto-create it. |
-| **Target Animation** | Enabled when **Specify Target Animation** is enabled and is used to specify the animation you want to record to. |
-| **Animation Settings** | See **Default Animation Settings** under **Sequence Recording**. These are applied to the **Actor to Record**.  |
-| **Record to Possessable** | Whether to record possessable (level-owned) or spawnable (sequence-owned) Actors. Defaults to the global setting. |
+| **Specify Target Animation** | 确定指定目标动画还是自动创建。|
+| **Target Animation** | **Specify Target Animation** 启用时启用，用于指定需要录制的动画。|
+| **Animation Settings** | 参见 **Sequence Recording** 下的 **Default Animation Settings**。这些将应用到 **Actor to Record**。|
+| **Record to Possessable** | 确定录制可拥有（关卡拥有）还是可生成（序列拥有）Actor。全局设置的默认值。|
 
 
-## Tips & Tricks
+## 提示和技巧
 
-This section contains some workflow tips & tricks you can use when working with the Sequence Recorder. 
+本部分将介绍一些使用 Sequence Recorder 的工作流提示和技巧。 
 
-### Right-click Recording
+### 连续录制
 
-If you have an active **Level Sequence** open, rather than clicking the **Add** button inside the Sequence Recorder, you can **Right-click** on an Actor in your level and initiate recording of the Actor from the context menu (or press **Alt + R**). 
-This will add the Actor to the Actor Tracking window of the Sequence Recorder and automatically start recording after the set **Recording Delay** expires. 
+在 **Sequence Recorder** 窗口中，将 **Sequence Length** 设为 **0** 即可执行连续录制。 
+
+![](NoLength.png)
+
+设为 0 后，只有按 **Esc** 键选择停止时录制才会停止。 
+
+
+### 单击右键录制
+
+如果打开了活动的 **关卡序列**，除了点击 Sequence Recorder 中的 **Add** 按钮，还可以 **右键单击** 关卡中的 Actor 并从快捷菜单中启动 Actor 的录制（或按 **Alt + R**）。此操作将把该 Actor 添加到 Sequence Recorder 的 Actor Tracking 窗口中，并在设置的 **Recording Delay** 结束后自动开始录制。 
 
 ![](RightClickRecord.png)
 
 [REGION:note]
-Please note that this will initiate Editor Recording and not [Gameplay Recording](Engine\Sequencer\HowTo\SequenceRecorder) with the Sequence Recorder.
+请注意，这会启动编辑器录制而非通过 Sequence Recorder 启动 [游戏进程录制](Engine\Sequencer\HowTo\SequenceRecorder)。
 [/REGION]
 
 
-### Subscene Recording Gameplay
+### 子场景录制游戏进程
 
-While it is perfectly okay to use the Sequence Recorder to assign an Actor and initiate gameplay recording, there is another method that you can take to record your gameplay using Sequence Recorder. 
-If you create a [Subscene Track](Engine\Sequencer\HowTo\TracksSub) inside a Level Sequence, you can add a primed **Recorded Sequence** on the Subscene Track during gameplay set to record your playable character.
+使用 Sequence Recorder 录制游戏进程将（默认）新建一个关卡序列，以便将录制内容保存在其中。如果已有需要添加录制的内容的关卡序列，可使用 [子场景追踪](Engine\Sequencer\HowTo\TracksSub) 并录制当前玩家 pawn。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -127,39 +136,55 @@ Wab8bB69TIo
 [/PARAMLITERAL]
 [/OBJECT]
 
-Above we create a new Level Sequence along with a Subscene Track, then during gameplay we hit **Shift + F1** to gain Mouse Control and add a primed Recorded Sequence based on our current player pawn. 
-When can then press the **Record** button in the viewport while playing our game to start recording and hit **Esc** to end recording. 
+在以上片段中，我们新建了一个新关卡序列和一个子场景轨迹，然后在游戏进程中按下 **Shift + F1** 蝴蝶鼠标控制，然后基于当前玩家 pawn 添加一个准备好的录制序列。随后即可游戏进程中按下视口内的 **Record** 按钮开始录制，并按下 **Esc** 停止录制。 
 
+[REGION:note]
+此种录制方式和通过 Sequence Recorder 窗口手动添加 **Actor to Record** 并在 Sequence Recorder 中开始录制相同。
+需要牢记的一点，使用这种子场景录制方法时将使用在 Sequence Recorder 中定义的设置。 
+[/REGION]
 
-### Recording Class Properties
+### 录制类属性
 
-Want to record a change in a specific property value for an Actor during your Sequence Recording? 
-You can use the **Classes and Properties to Record** setting in the Sequence Recorder window to specify which class and its associated property (or properties) you want to track for recording.
+需要在序列录制过程中记录某个 Actor 特定属性值的变化？可使用 Sequence Recorder 窗口中的 **Classes and Properties to Record** 设置指定跟踪录制的类及其相关属性。
 
 ![](PropertyRecording.png)
 
-If that property changes at all during recording it will automatically be keyframed reflecting the changes during the recording. 
-If the Actor you are tracking does not contain one of the defined classes it will just be ignored. There are also some default elements added to this option which you can use or delete. 
+如该属性在录制过程中发生变化，将自动设置关键帧，反映录制过程中的变化。如果正在跟踪的 Actor 不包含任意一个定义的类，则其将被忽略。 
 
-### Recording to Possessable
+Sequence Recorder 默认包含以下跟踪录制的类： 
 
-By default when you elect to perform a recording the Actors you have tagged for tracking will automatically have a **Spawnable** version of that Actor created and added to your recording. 
-While the Spawnable version will only exist while the Level Sequence is open, there may be times when you want to "write" directly to an Actor in your level instead of creating a new Spawnable. 
-You can do so by checking the **Record to Possessable** option under the **Animation Recording** section in the Sequence Recorder. 
+* SkeletalMeshComponent
+* StaticMeshComponent
+* ParticleSystemComponent
+* LightComponent
+* CameraComponent
+* CineCameraComponent
+
+可在录制过程中使用这些类和其中的跟踪属性，或将其删除使用自定的类。 
+
+
+
+### 录制到可拥有 Actor
+
+默认情况下，选择执行录制时，标记为跟踪的 Actor 会自动创建该 Actor 的 **可生成** 版本，并添加到录制中。 
+可生成版本仅在关卡序列打开时存在，但是有时您可能需要直接“写入”关卡中的 Actor，而不新建可生成 Actor。 
+勾选 Sequence Recorder **Animation Recording** 部分下的 **Record to Possessable** 选项即可实现。 
 
 ![](RecordToPossessable.png)
 
-Checking this option will no longer create a Spawnable but instead will be using a Possessable Actor to apply the recording to. 
+勾选此选项后将不再创建可生成 Actor，而将录制应用到可拥有 Actor。 
 
 [REGION:note]
-Please see [Possessables vs. Spawnables](https://docs.unrealengine.com/latest/INT/Engine/Sequencer/Overview/index.html#possessablesvsstopspawnables) for more information on each.
+有关两者的详细信息，请参阅 [可拥有与可生成 Actor](https://docs.unrealengine.com/latest/INT/Engine/Sequencer/Overview/index.html#possessablesvsstopspawnables)。
 [/REGION]
-### Immersive Mode
+### 最大化模式
 
-When recording your gameplay, you may want a larger viewport to "play" your game while recording. 
-The **Immersive Mode** option inside the Sequence Recorder window will automatically maximize your viewport for you while recording is active. 
+录制游戏进程时可能需要以更大的视口“游玩”游戏。 
+Sequence Recorder 窗口中的 **Immersive Mode** 选项可在录制进行时自动最大化视口。 
 
 ![](ImmersiveMode.png)
 
-Once you stop recording, the viewport will return back to its normal size. 
+录制停止后，视口将自动变回正常大小。 
+
+
 

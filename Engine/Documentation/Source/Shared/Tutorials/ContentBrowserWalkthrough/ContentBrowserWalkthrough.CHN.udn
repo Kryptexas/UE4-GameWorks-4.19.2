@@ -1,16 +1,16 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:NoPublish
-Title:Content Browser Walkthrough
-Description: Highlight Driven walkthrough of all the interface elements of the Content Browser.
+Title:解读 Content Browser
+Description:Content Browser 所有接口元素的详解。
 Crumbs:
 
 [EXCERPT:Stage1]
 
 [VAR:StageTitle]
-The Content Browser
+Content Browser
 [/VAR]
 
-This is a brief walkthrough of all the interface elements of the Content Browser.
+Content Browser 所有接口元素的简易指导。
 
 ![](Stage1.png)
 
@@ -28,9 +28,9 @@ This is a brief walkthrough of all the interface elements of the Content Browser
 Content Browser
 [/VAR]
 
-The Content Browser is the primary area of the Unreal Editor for creating, importing, organizing, viewing, and modifying content assets within Unreal Editor. It also provides the ability to manage content folders and perform other useful operations on assets, such as renaming, moving, copying, and viewing references.
+Content Browser 是虚幻编辑器的主要部分，用于在虚幻编辑器中创建、导入、组织、查看并修改内容资源。它可管理内容文件夹，在资源上执行其他实用操作，如重命名、移动、复制和查看参考。
 
-[Would you like to know more?](DOCLINK:Engine/Content/Browser)
+[您需要了解更多内容吗？](DOCLINK:Engine/Content/Browser)
 
 
 
@@ -43,7 +43,7 @@ The Content Browser is the primary area of the Unreal Editor for creating, impor
 New Asset
 [/VAR]
 
-Clicking the New button brings up a context menu with all of the types of assets you can create. You can create new Blueprints, Materials, particle systems, and more.
+点击 New 按钮呼出快捷菜单，显示可创建的所有资源类型。可新建蓝图、材质、粒子系统等。
 
 
 
@@ -56,7 +56,7 @@ Clicking the New button brings up a context menu with all of the types of assets
 Import
 [/VAR]
 
-Clicking the Import button opens the Import Asset dialog. You can import Static Meshes, Skeletal Meshes, textures, audio files, and more.
+点击 Import 按钮打开 Import Asset 对话。可导入静态网格体、骨架网格体、纹理、音频文件等。
 
 
 
@@ -70,7 +70,7 @@ Clicking the Import button opens the Import Asset dialog. You can import Static 
 Save Modified Assets
 [/VAR]
 
-Clicking the Save Modified Assets button will save all modified assets, except the map.
+点击 Save Modified Assets 按钮将保存所有修改的资源（除地图外）。
 
 
 
@@ -80,10 +80,10 @@ Clicking the Save Modified Assets button will save all modified assets, except t
 [EXCERPT:Stage5]
 
 [VAR:StageTitle]
-Path History: Back
+Path History:Back
 [/VAR]
 
-Like a web browser's back button, the Content Browser's Back button will step back through the folders you have been browsing through.
+和网络浏览器的返回按钮相似，使用 Content Browser 的 Back 按钮可逐步返回您之前浏览过的文件夹。
 
 
 
@@ -93,10 +93,10 @@ Like a web browser's back button, the Content Browser's Back button will step ba
 [EXCERPT:Stage6]
 
 [VAR:StageTitle]
-Path History: Forward
+Path History:Forward
 [/VAR]
 
-Conversely, the Content Browser's Forward button will step forward through the folders you have backed out of.
+相反，使用 Content Browser 的 Forward 按钮将在已退出的文件夹中前移。
 
 
 
@@ -109,7 +109,7 @@ Conversely, the Content Browser's Forward button will step forward through the f
 Path Chooser
 [/VAR]
 
-The Path Chooser provides quick access to all accessible folders within your game project, in the form of an expanding folder tree.
+使用 Path Chooser 可快速访问游戏项目中所有可访问的文件夹（形式为展开的文件夹树）。
 
 
 
@@ -122,7 +122,7 @@ The Path Chooser provides quick access to all accessible folders within your gam
 Path
 [/VAR]
 
-This shows the current file path. You can click on each folder in the path to quickly navigate down the hierarchy.
+此按钮显示当前的文件路径。点击路径中的每个文件夹可在层级中快速向下浏览。
 
 [/EXCERPT:Stage8]
 
@@ -133,9 +133,9 @@ This shows the current file path. You can click on each folder in the path to qu
 Lock
 [/VAR]
 
-The Lock button keeps the Content Browser from navigating to different locations when using the "Find in Content Browser" command. If a Content Browser is locked, using "Find in Content Browser" will instead open a fresh Content Browser, which navigates to the desired asset.
+使用“Find in Content Browser”命令时，Lock 按钮可防止 Content Browser 导航到不同位置。如 Content Browser 被锁定，使用“Find in Content Browser”将打开一个新的 Content Browser，导航至所需的资源。
 
-From the Window Menu you can open up to 4 Content Browsers.
+在 Window 菜单中可打开最多 4 个 Content Browser。
 
 
 
@@ -145,12 +145,12 @@ From the Window Menu you can open up to 4 Content Browsers.
 [EXCERPT:Stage10]
 
 [VAR:StageTitle]
-Sources Panel Toggle
+Sources 面板开关
 [/VAR]
 
-The Sources Panel button toggles the Sources View and Collections area, allowing those parts of the browser to be quickly collapsed for more screen real estate space.
+Sources Panel 按钮开关 Sources View 和 Collections 区域，使浏览器的这些部分快速重叠，空出更多屏幕空间。
 
-If the Sources Panel is not visible, click the Sources Panel button before proceeding.
+如 Sources 面板不可见，点击 Sources Panel 按钮然后继续。
 
 
 
@@ -160,12 +160,12 @@ If the Sources Panel is not visible, click the Sources Panel button before proce
 [EXCERPT:Stage11]
 
 [VAR:StageTitle]
-Sources Panel
+Sources 面板
 [/VAR]
 
-The Sources Panel provides a list of all folders and Collections within your game project.
+Sources 面板显示游戏项目中所有文件夹和合集的列表。
 
-When there are many folders that extend beyond the bottom of the panel, the list may be scrolled by way of a scroll bar. Users may also use the mouse wheel, or may drag with the right-mouse button to move the list up and down.
+当文件夹数量过多超过面板底部的显示时，将以滚动条对列表进行滚动。用户也可使用鼠标滚轮，或使用鼠标右键上下移动列表。
 
 
 
@@ -175,10 +175,10 @@ When there are many folders that extend beyond the bottom of the panel, the list
 [EXCERPT:Stage12]
 
 [VAR:StageTitle]
-Collections Panel
+Collections 面板
 [/VAR]
 
-The Collections Panel provides a quick-access list of all the collections created on your workstation or set up via Perforce source control.
+利用 Collections 面板可快速访问工作站上创建的所有合集的列表，或通过 Perforce 源控制进行设置。
 
 
 
@@ -191,9 +191,9 @@ The Collections Panel provides a quick-access list of all the collections create
 Filters Selector
 [/VAR]
 
-The Filters Selector button opens up the filter selection panel, where you can choose what asset filters you would like to apply to the Asset View.
+Filters Selector 按钮可打开过滤器选择面板，可在此处选择需要应用到 Asset View 的资源过滤器。
 
-[Would you like to know more?](DOCLINK:Engine/Content/Browser/UserGuide/Filters)
+[您需要了解更多内容吗？](DOCLINK:Engine/Content/Browser/UserGuide/Filters)
 
 
 
@@ -203,10 +203,10 @@ The Filters Selector button opens up the filter selection panel, where you can c
 [EXCERPT:Stage13.1]
 
 [VAR:StageTitle]
-Add a Filter
+添加过滤器
 [/VAR]
 
-Left-click the Filters button and then left click "Static Mesh" to add the Static Mesh filter to the Asset View.
+左键点击 Filters 按钮，然后左键点击“Static Mesh”将静态网格体过滤器添加到 Asset View。
 
 ![](addFilter.png)
 
@@ -218,10 +218,10 @@ Left-click the Filters button and then left click "Static Mesh" to add the Stati
 [EXCERPT:Stage14]
 
 [VAR:StageTitle]
-Filters
+过滤器
 [/VAR]
 
-Shows all active filters on the current folder of assets. You can left-click any filter to disable it but leave it showing in the filters area, middle-clicking a filter will remove it from the filters area, and right-clicking a filter will bring up a context menu. 
+显示当前资源文件夹上所有启用的过滤器。可左键点击过滤器将其禁用，但任其显示在过滤器区域中；中键点击过滤器可将其从过滤器区域中移除；右键点击过滤器将呼出快捷菜单。 
 
 
 
@@ -236,7 +236,7 @@ Shows all active filters on the current folder of assets. You can left-click any
 Search Assets
 [/VAR]
 
-The Search Assets field narrows down the list of available assets by entering a search criteria. Each character entered will reduce the Asset View to show only assets including the entered string.
+在 Search Assets 域中输入搜索条件可缩小可用资源列表的范围。输入字符后，Asset View 只会显示包含输入字符的资源。
 
 
 
@@ -251,9 +251,9 @@ The Search Assets field narrows down the list of available assets by entering a 
 Asset View
 [/VAR]
 
-The Asset View is the primary region of the Content Browser UI. This region provides a grid or list of all available assets within a folder, once all filters and searches have been applied.
+Asset View 是 Content Browser UI 的主要区域。应用所有过滤器和搜素后，此区域将显示一个文件夹中所有可用资源的网格或列表。
 
-The assets available in the Asset View can be dragged and dropped into a scene for fast deployment. New assets can be created within the Asset View by right-clicking and choosing the desired asset from the context menu. The list of assets can be navigated via scroll bar, the mouse wheel, or by dragging with the right-mouse button.
+Asset View 中可用的资源可被拖放到场景中，以便快速部署。点击右键并从快捷菜单中选择所需的资源即可在 Asset View 中创建新资源。可通过滚动条、鼠标滚轮或鼠标右键拖动对资源列表进行导航。
 
 
 
@@ -269,7 +269,7 @@ View Options
 
 ![](viewOptions.png)
 
-The View Options in the lower right corner of the Content Browser contains various options for how the Asset View should display its contents. Including thumbnail size, displaying folders, and enabling Thumbnail Edit Mode.
+Content Browser 右下角的 View Options 包含 Asset View 内容显示方式的诸多选项。包括缩略图大小、显示文件夹，以及启用 Thumbnail Edit 模式。
 
 ![](viewOptionsFull.png)
 
@@ -283,10 +283,10 @@ The View Options in the lower right corner of the Content Browser contains vario
 [EXCERPT:Stage17]
 
 [VAR:StageTitle]
-Complete
+完成
 [/VAR]
 
-This completes the Content Browser Walkthrough. You can click the "Home" button at the bottom of this window to try out other tutorials and walkthroughs, or you can simply close this tutorial to jump into using the Unreal Editor.
+对 Content Browser 的解读到此结束。点击此窗口底部的“Home”按钮查看其它教程和解读，或直接关闭此教程开始使用虚幻编辑器。
 
 ![](Stage1.png)
 

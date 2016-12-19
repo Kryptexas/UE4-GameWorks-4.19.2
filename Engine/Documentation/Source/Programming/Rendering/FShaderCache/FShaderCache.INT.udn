@@ -3,6 +3,7 @@ Title:FShaderCache
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:The FShaderCache provides mechanisms for reducing shader hitching in-game.
 Version: 4.9
+tags:Rendering
 
 
 ## Overview

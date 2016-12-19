@@ -5,7 +5,7 @@ Availability:Docs
 Navigation:platform
 Platform:OSVR
 Version: 4.12
-type:QuickStart
+type:quick start
 parent:Platforms/OSVR
 tags:VR
 tags:OSVR

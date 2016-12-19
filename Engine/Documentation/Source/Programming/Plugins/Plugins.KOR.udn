@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2752357
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:플러그인
 Crumbs:%ROOT%, Programming
@@ -161,27 +161,23 @@ Source 서브 폴더가 없는 플러그인은 프로젝트 생성기에 무시�
 
 플러그인 배포를 위한 절차입니다.
 
-1. **플러그인 설명 (.uplugin) 파일을 편집** 하여 플러그인 이름, 모듈, 버전, 다른 세팅이 원하는 대로 환경설정되어 있는지 확인합니다.
-1. 플러그인의 **Binaries** 및 **Intermediate** 폴더를 삭제합니다. 깨끗한 상태로 시작하도록 하기 위한 조치입니다.
-1. 플러그인에 **Source** 디렉토리가 들어있는 경우, **Win64 Development** 환경설정으로 **플러그인 바이너리를 컴파일** 합니다. 이 환경설정은 PC 플랫폼에서 에디터가 플러그인을 로드하기 위해 항상 필요한 것입니다.
-1. **Source** 포함 플러그인의 경우, 맥과 같은 추가 환경설정 지원을 하려면 그 빌드도 해 줘야합니다.
-1. 프로젝트 디렉토리 밖의 새 "staging" 폴더에 플러그인 사본을 만듭니다. 어디든 상관없지만, 여기서 플러그인에 변경을 가하게 됩니다.
-1. 플러그인의 staging 디렉토리에서 **Intermediate** 디렉토리를 삭제합니다. 배포될 일이 없는 임시 파일입니다.
-1. 플러그인에 배포하지 않았으면 하는 소스 코드가 들어있는 경우, 플러그인 staging 폴더에서 **Source** 디렉토리를 삭제합니다.
-1. 플러그인 staging 디렉토리에서 배포하지 않았으면 하는 파일을 전부 삭제합니다.
-1. 이제 플러그인을 배포하면 됩니다!
+1. Make sure the modules list in your .uplugin file has a correct list of whitelisted and blacklisted platforms.
+1. Find your plugin in the editor's plugin browser, and click the '**Edit...**' link to update the metadata associated with your plugin
+   (description, link to documentation, and so on).
+1. Click the '**Package...*' link to package your plugin into a folder for distribution.
 
+By default, only source code, binaries and content will be packaged with your plugin. If you have additional files you need to include,
+create a file called Config/FilterPlugin.ini in your plugin folder which lists additional paths to include, like this:
+
+	[FilterPlugin]
+	/ThirdParty/...
+	/MyOtherFolder/...
 
 [REGION:warning]
 중요 참고사항:
 
-* 배포 플러그인에 Public 헤더만 포함시키는 것은 아직 지원하지 않습니다. 현재로선 전체 소스 디렉토리를 포함시키거나, 소스 디렉토리를 전혀 포함시키지 않는 
-방법 뿐입니다. 나중에 Public 소스(는 물론 *.Build.cs 파일도) 지원을 할 
-계획입니다.
-* 이 프로세스 대부분을 자동화시킬 툴이 있는지 조사중입니다. 자세한 내용은 추후 확인해 주십시오.
 * 콘텐츠 포함 플러그인의 경우, 플러그인에 생성 파생 데이터(DDC)를 포함시켜 최종 사용자가 필요시 
-생성할 필요가 없도록 하고싶을 수가 있습니다.
-이 기능은 아직 지원되지 않지만, 나중에 추가될 것입니다. 기대해 주세요.
+생성할 필요가 없도록 하고싶을 수가 있습니다. 이 기능은 아직 지원되지 않지만, 나중에 추가될 것입니다. 기대해 주세요.
 * 배포 플러그인에 EULA 또는 다른 문서를 포함시키는 것이 아직 지원되지 않습니다. 나중에 지원할 수 있습니다.
 [/REGION]
 
@@ -224,26 +220,15 @@ Source 서브 폴더가 없는 플러그인은 프로젝트 생성기에 무시�
 | **FileVersion**					| _필수_	| 이 플러그인 설명 파일 자체 버전입니다. 플러그인 시스템에 신기능 추가시의 하위 호환성 유지에 사용됩니다. 보통 사용중인 엔진 버전에 허용되는 최신 버전으로 설정해야 합니다. 최신 버전은 현재 **3** 으로, 이 문서에 기록된 포맷 버전입니다. 이 버전이 매우 자주 바뀔 것으로는 생각지 않습니다. 소스 코드에서 **EProjectDescriptorVersion** 를 보시면 실제 값을 확인할 수 있습니다. 엔진 구버전과 최대한 호환되도록 하기 위해서는, 포맷 구버전을 사용하면 되지만 추천하지는 않습니다. |
 | **Version**						| _옵션_    | 플러그인 이 빌드의 버전입니다. 이 값은 계속해서 증가할 것입니다. 이 버전은 보통 최종 사용자에게 표시되지 않습니다. |
 | **VersionName**					| _옵션_    | 에디터 UI 에 표시되는 플러그인 버전입니다. 어떤 버전 검사에도 사용되지 않으며, 포맷은 어떻게 해도 상관없지만, 주요.사소 포맷으로 하는 것이 좋습니다. Version 이 오르면 VersionName 도 업데이트하는 것이 좋습니다. |
-| **PackageFileUE4Version**			| _옵션_    | 이 플러그인의 콘텐츠 로드에 필요한 최소 패키지 파일 버전입니다. 여기 지정된 값 보다 낮은 버전의 패키지 파일을 사용한 프로젝트에 설치된 경우 플러그인이 로드되지 않습니다. |
-| **PackageFileLicenseeUE4Version**	| _옵션_    | 이 플러그인의 콘텐츠 로드에 필요한 부차적 최소 패키지 파일 버전입니다. 여기 지정된 값 보다 낮은 버전의 라이선시 패키지 파일을 사용한 프로젝트에 설치된 경우 플러그인이 로드되지 않습니다. |
 | **FriendlyName**					| _옵션_	| 에디터 UI 에 표시되는 플러그인 이름입니다. 지정되지 않으면, .uplugin 파일명이 기본으로 사용됩니다. |
 | **Description**					| _옵션_	| 이 플러그인의 용도를 설명하는 문구입니다. 에디터 플러그인 창에 표시됩니다. |
 | **Category**						| _옵션_	| 플러그인을 에디터 UI 의 카테고리에 할당할 수 있도록 해 주는 점 구분 경로 문자열입니다. 순전히 체계를 위한 용도입니다. 카테고리 경로 예제는 **"Editor Features.Level Editing.Mesh Painting"** 식입니다. 각 카테고리는 점으로 구분되며, 트리 구조의 단계를 나타냅니다. |
 | **CreatedBy**						| _옵션_	| 이 플러그인을 만든 개인 또는 회사 이름입니다. 플러그인 UI 또는 다른 위치에 표시될 수 있습니다. |
 | **CreatedByURL**					| _옵션_	| 이 플러그인을 만든 개인 또는 회사 웹 링크입니다. 지정된 경우 사용자가 웹 페이지를 방문할 수 있도록 에디터 UI 에 링크가 표시됩니다. |
+| **DocsURL**						| _옵션_	| 플러그인 문서에 대한 웹 링크입니다. 지정된 경우 에디터의 플러그인 브라우저에 하이퍼링크가 표시되어 사용자가 이 웹 페이지를 볼 수 있게 될 것입니다. |
+| **SupportURL**					| _옵션_	| 플러그인 기술지원 페이지 링크입니다. 지정된 경우 에디터의 플러그인 브라우저에 표시됩니다. |
 | **CanContainContent**				| _옵션_	| 지정되어 **true** 설정되면, 이 플러그인에 Content 가 지원됩니다. 기본 세팅은 **false** 입니다. 자세한 정보는 [플러그인의 콘텐츠](#ContentInPlugins) 부분을 참고하세요. | 
 | **Modules**						| _옵션_	| 소스 코드(와 바이너리)가 포함된 플러그인의 경우, 시작시 로드할 모듈 목록입니다. 자세한 정보는 아래를 참고하세요. |
-
-
-[REGION:warning]
-이 .uplugin 파일 포맷은 아직 개발중이라 바뀔 소지가 높습니다. 예를 들어, 버전 처리 방식이 
-앞으로의 릴리즈에 바뀔 수 있습니다.
-[/REGION]
-
-[REGION:warning]
-플러그인 이름 및 설명 문자열, 또는 플러그인에 구현된 GUI 에 표시되는 텍스트에 대한 현지화가 
-아직 지원되지 않습니다.
-[/REGION]
 
 
 #### 모듈 설명
@@ -260,8 +245,9 @@ Source 서브 폴더가 없는 플러그인은 프로젝트 생성기에 무시�
 | **Name**			| _필수_	| 플러그인과 함께 로드될 이 플러그인 모듈의 고유명입니다. 실행시간에, 엔진은 여기 지정된 것과 같은 모듈명으로 플러그인의 Binaries 폴더에 적합한 플러그인 바이너리가 있을 것으로 기대합니다. Source 디렉토리가 있는 모듈의 경우, 모듈의 서브 폴더 트리 안에 일치하는 *.Build.cs 파일이 존재할 것으로 기대합니다. |
 | **Type**			| _필수_	| 모듈 유형을 설정합니다. 유효한 옵션은 **Runtime**, **RuntimeNoCommandlet**, **Developer**, **Editor**, **EditorNoCommandlet**, **Program** 입니다. 이 유형은 이 플러그인의 모듈을 로드하기에 적합한 어플리케이션 유형을 결정합니다. 예를 들어 어떤 플러그인은 에디터 실행중에만 로드되도록 디자인된 모듈이 포함되어 있을 수가 있습니다. **Runtime** 모듈은 발매 게임에서도 모든 경우에 로드됩니다. **Developer** 모듈은 개발 런타임 또는 에디터 빌드에만 로드되나, 쉬핑 빌드에는 로드되지 않습니다. **Editor** 모듈은 에디터 시작시에만 로드됩니다. 플러그인은 다양한 유형의 모듈 조합을 사용할 수 있습니다. |
 | **LoadingPhase**	| _옵션_	| 지정되면, 시작시 플러그인 로드 시점을 제어합니다. 일반적으로는 필요치 않은 고급 옵션입니다. 유효한 옵션은 **Default** (LandingPhase 가 지정되지 않았을 때 사용), **PreDefault**, **PostConfigInit** 입니다. **PostConfigInit** 는 엔진이 핵심 서브 시스템 시동을 마치기 전 모듈 로드가 가능합니다. **PreDefault** 는 보통 페이즈 바로 직전에 로드합니다. 전형적으로 게임 모듈이 플러그인 내 콘텐츠나 플러그인 코드 내 선언된 유형에 직접 의존할 필요가 있을 때만 필요합니다. |
-
-		 
+| **WhitelistPlatforms**	| _옵션_	| 지정되면, 이 모듈 컴파일 대상이 되는 플랫폼 목록을 제공합니다. 지정되지 않으면, 모든 플랫폼에 대해 컴파일합니다. |
+| **BlacklistPlatforms**	| _옵션_	| 지정되면, 이 모듈 컴파일 대상에서 제외되는 플랫폼 목록을 제공합니다. 지정되지 않으면, 모든 플랫폼에 대해 컴파일합니다. |
+	 
 
 ## 아이콘 파일
 

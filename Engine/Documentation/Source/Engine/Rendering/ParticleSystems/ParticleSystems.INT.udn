@@ -4,6 +4,9 @@ Crumbs: %ROOT%, Engine, Engine/Rendering
 Description:Assets the contain any number of particle emitters used to create effects in the world.
 Version: 4.9
 SkillLevel: Beginner
+parent:Engine/Rendering
+order:4
+type:landing
 
 [VAR:Topic]
 [OBJECT:Topic]

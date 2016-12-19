@@ -9,11 +9,12 @@ type:landing
 parent:Platforms/VR
 tags:VR
 tags:Oculus Rift
+tags:Platform
 
 
 ## Starting Out
 
-[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/Oculus")]
+[DIR(output:"listbutton" type:"quick start" parent:"Platforms/Oculus")]
 
 ## Oculus Rift Topics
 

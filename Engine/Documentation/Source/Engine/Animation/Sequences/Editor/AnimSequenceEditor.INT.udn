@@ -1,105 +1,132 @@
 Availability:Public
-Title:Editing Animation Sequences
+Title:Animation Sequence Editor
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
-Description:Guide to using Persona to edit Animation Sequences and add animation notification events.
-version: 4.9
-
-[REGION:banner]
-![](persona_sequence_banner.png)(convert:false)
-[/REGION]
+Description:Guide to using the Animation Editor to edit Animation Sequences and add animation notification events.
+version: 4.14
+Related:Engine/Animation/AnimHowTo/LayerEditing
+Related:Engine/Animation/Sequences\Notifies
+Related:Engine/Animation/Sequences
+Related:Engine\Animation\AnimMontage
 
 [TOC(start:2)]
 
 [EXCERPT:overview]
-The **Animation Sequence Editor** provides functionality for previewing and editing individual **Animation Sequence** assets. The properties, including compression scheme, of the Animation Sequence can be set, and animation notification events - also called Notifies - can be added to allow camera effects, particle effects, sounds, and more to be triggered based on the animation.
+The **Animation Editor** provides functionality for previewing and editing individual **Animation Sequence** assets. The properties, including compression scheme, of the Animation Sequence can be set, and animation notification events - also called Notifies - can be added to allow camera effects, particle effects, sounds, and more to be triggered based on the animation.
 [/EXCERPT:overview]
 
 ## Interface
 
-The **Animation Sequence Editor** consists of the following:
+The **Animation Editor** consists of the following sections:
 
 ![](AnimationSequenceEditor.png)
 
 1. **Name** - Displays the name of the AnimationSequence currently being edited.
 1. **Notifies** - Editable list of tracks for creating/editing notifies. See below for instructions on creating and removing tracks as well as creating and working with notifies.
 1. **Curves** - A graph-like area for adding and editing animation curves
-1. **Tracks** - A field used for editing Animation Layers. For more information, please visit the [](Engine/Animation/AnimHowTo/LayerEditing) page.
-1. **Timeline** - Displays information about, and provides controls for, playback of the preview in the **Viewport** panel of **Persona**.
+1. **Tracks** - A field used for editing [Animation Layers](Engine/Animation/AnimHowTo/LayerEditing). 
+1. **Timeline** - Displays information about, and provides controls for, playback of the preview in the viewport of the **Animation Editor**.
 
 
 ## Notifies
 
 An **Animation Notify** is an event along a particular animation at which you can cause something to happen. For instance, the moment a character's foot hits the floor, you can create a Notify along the timeline to play a footstep sound. Other notifies are available as well, allowing for particle, camera, and sound effects. You may also create custom notifies that trigger your own events.
 
+[REGION:note]
 For more information on Animation Notifies, please see the [](Engine/Animation/Sequences\Notifies) page.
+[/REGION]
 
 
 ## Notify Tracks
 
-Notifies are stored in **Tracks** within Animation Sequences. A track is essentially a container that can hold any number of Notifies, and an Animation Sequences can have any number of tracks. Using multiple tracks makes it easier to organize and visualize Notifies, especially in cases where an Animation Sequences requires large numbers or several different types of Notifies.
+Notifies are stored in **Tracks** within Animation Sequences. A track is essentially a container that can hold any number of Notifies, and Animation Sequences can have any number of tracks. Using multiple tracks makes it easier to organize and visualize Notifies, especially in cases where an Animation Sequences requires large numbers or several different types of Notifies.
 
-Every Animation Sequences has a single track by default; however, additional tracks can be added to the sequence and existing tracks can be removed using the controls to the right of the tracks.
+Every Animation Sequence has a single notify track by default. Tracks can be added to the sequence or existing tracks can be removed using the controls to the right of the tracks.
 
-To add a new Track; In the **Track List**, click the ![](button_track_add.png) button next to an existing track:
+To add a new Track:
 
-![](AddTrack.png)
+* In the **Track List**, click the ![](button_track_add.png) button next to an existing track:
 
-A new track is added above the existing track in the list:
+	![](AddTrack.png)
 
-![](TrackAdded.png)
+	A new track is added above the existing track in the list:
 
-To remove an existing Track; In the **Track List**, click the ![](button_track_remove.png) button next to the track you want to remove:
+	![](TrackAdded.png)
 
-![](RemoveTrack.png)
+To remove an existing Track:
 
-The track is removed from the list:
+* In the **Track List**, click the ![](button_track_remove.png) button next to the track you want to remove:
 
-![](TrackRemoved.png)
+	![](RemoveTrack.png)
+
+	The track is removed from the list:
+
+	![](TrackRemoved.png)
 
 ## Working with Notifies
 
-Notifies can be added to tracks, moved around inside a track, and moved back and forth between different tracks within the **Track List**. This makes it extremely easy to tweak the position of a Notify or quickly arrange them logically.
+Notifies can be added to tracks, moved around inside a track, and moved back and forth between different tracks within the **Track List**. 
+This allows you to quickly tweak the position of a Notify or quickly arrange them logically.
 
 ### Creating a Notify
 
-Notifies of any existing type or custom Notifies can be added through the context menu. **Right-clicking** on a track displays the context menu. All available types of Notifies are listed in the **Add Notify...** context menu. Select the type of notify to add to the track:
+Notifies of any existing type or custom Notifies can be added through the context menu. 
 
-![](AddNotify.png)
+To create a new Notify:
 
-The new Notify is added to the track at the location where you **Right-clicked**:
+* **Right-click** on a track to display the context menu then select the type of notify to add. 
 
-![](NotifyAdded.png)
+	![](AddNotify.png)
+
+	The new Notify is added to the track at the location where you **Right-clicked**:
+
+	![](NotifyAdded.png)
 
 ### Positioning a Notify
 
-The position of a Notify within the track is extremely important as it determines when the event that corresponds to the Notify is triggered. Moving a Notify around is easy; just click and hold the **Left Mouse Button** on the Notify and drag the mouse.
+The position of a Notify within the track is extremely important as it determines when the event that corresponds to the Notify is triggered. 
 
-![](MovingNotify.png)
+To move a Notify around: 
 
-Release the **Left Mouse Button** to drop the Notify at that location:
+* **Left-click** and hold the **Left Mouse Button** on the Notify and drag to the desired location.
 
-![](NotifyMoved.png)
+	![](MovingNotify.png)
+
+* Release the **Left Mouse Button** to drop the Notify at that location:
+
+	![](NotifyMoved.png)
 
 ### Switching Tracks
 
-Moving notifies between tracks is extremely easy. In fact, it is essentially the same as the process for positioning Notifies described above. The only difference is you release the notify on a different track than where it started.
+Moving notifies between tracks is essentially the same as the process for positioning Notifies described above. 
 
-![](TrackSwitch1.png)
+To switch Notify Tracks:
 
-![](TrackSwitch2.png)
+* **Left-click** and hold the **Left Mouse Button** on the Notify to move to a new track. 
 
-![](TrackSwitch3.png) 
+	![](TrackSwitch1.png)
+
+* The Notify will turn yellow at which point you can drag and drop it on a different track. 
+
+	![](TrackSwitch2.png)
+
+	The Notify will turn red when you release the **Left Mouse Button** at the new location.
+
+	![](TrackSwitch3.png) 
 
 
 ### Copy/Pasting Notifies
 
-By **Right-clicking** on a notify, you can copy it to the clipboard for pasting elsewhere along the animation, or even into entirely different Animation Sequences. 
+You can copy a Notify to the clipboard for pasting elsewhere along the animation, or inside different Animation Sequences. 
 
-![](CopyAnimNotify.png)
+To copy a Notify: 
 
-You can paste by also **Right-clicking** within a notify track. When pasting, you may choose between 2 options:
+* **Right-click** on the Notify and select **Copy**. 
 
-![](PasteOptions.png)
+	![](CopyAnimNotify.png)
+
+* **Right-click** and select the desired **Paste** option:
+
+	![](PasteOptions.png)
 
 * **Paste** - Paste the notify at the current location of the time slider.
 * **Paste at Original Time** - Pastes the notify at the same time as when it was copied. 
@@ -129,8 +156,9 @@ Additional Notes:
 
 ## Timeline
 
-![](timeline.png)
 
+![](timeline.png)
+[EXCERPT:timeline]
 The information bar in the **Timeline** displays the following playback information:
 
 | Info | Description |
@@ -140,4 +168,18 @@ The information bar in the **Timeline** displays the following playback informat
 | **Current Time** | The current playback position expressed in seconds. |
 | **Current Frame** | The current playback position expressed in frames. |
 
-[INCLUDE:Engine/Animation/Persona/Viewport#PreviewControls]
+The playback controls perform the following actions: 
+
+| Option | Description |
+| ---- | ----------- |
+|![](TimelineWindow.png) | The timeline. This shows and allows scrubbing through the frames of the AnimationSequence or AnimationMontage. A red bar is displayed at the current position. **Drag** the red bar to scrub. |
+|![](FirstFrameButton.png) | Skips to the first frame in the AnimationSequence or AnimationMontage. |
+|![](StepBackButton.png)| Skips to the previous frame in the AnimationSequence or AnimationMontage.|
+|![](ReversePlay.png)![](PauseButton.png) | Begins playback of the AnimationSequence or AnimationMontage in reverse. When playing, the pause button is displayed. |
+|![](RecordButton.png)| Creates a new animation object in the specified location. Click to start recording, click again to stop the recording.  |
+|![](PlayButton.png) ![](PauseButton.png)| Begins playback of the AnimationSequence or AnimationMontage. When playing, the pause button is displayed. |
+|![](StepForward.png) | Skips to the next frame in the AnimationSequence or AnimationMontage.  |
+|![](SkipToEndButton.png)| Skips to the last frame in the AnimationSequence or AnimationMontage.|
+|![](LoopButton.png)| Toggles playback between play once and looping. When looping is enabled, the button turns red.|
+[/EXCERPT:timeline]
+

@@ -6,7 +6,7 @@ version: 4.10
 skilllevel: Intermediate
 order:1
 checkpoint: animpropertyblend
-type:howto
+type:how-to
 
 
 [Blend Spaces](Engine/Animation/Blendspaces) are special assets which can be sampled in **AnimGraphs** that allow for blending of animations based on the values of two inputs. Simple blending between two animations based on a single input can be performed using one of the standard [blend nodes](Engine/Animation/NodeReference/Blend) available in Animation Blueprints. Blend Spaces provide a means of doing more complex blending between multiple animations based on multiple values (currently limited to two).

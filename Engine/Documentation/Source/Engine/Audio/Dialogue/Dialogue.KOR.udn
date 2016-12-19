@@ -1,0 +1,399 @@
+﻿INTSourceChangelist:3160921
+Availability: Docs
+Title:다이얼로그 보이스 및 웨이브
+Crumbs: %ROOT%, Engine, Engine/Audio
+Description:청자 및 대화의 맥락이 여럿인 대화의 구성 예입니다.
+version: 4.13
+prereq: Engine/Blueprints/QuickStart
+related:Engine/Audio
+related:Engine/Audio/Overview
+related:Engine/Audio/SoundCues/Editor
+related:Engine/Audio/SoundCues/NodeReference
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Audio/Overview:title%](Engine/Audio/audio_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/audio_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Audio/Overview:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Audio/Overview:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Audio/Overview]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Audio/Overview:title%](Engine/Audio/audio_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/audio_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Audio/Overview:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Audio/Overview:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Audio/Overview]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC]
+
+
+
+매우 기본적인 대화 구성에 대한 예제입니다. 긴 대화의 경우 보통 컨버세이션 매니저 시스템을 사용하여 만드는 것이 좋습니다.
+이 상황에서는, 퀘스트 NPC 와 두 가지 플레이가능 캐릭터를 구성하고, Dialogue Voices (다이얼로그 보이스)와 Dialogue Waves (다이얼로그 웨이브)를 사용하여 
+누구와 이야기중인지에 때라 퀘스트를 주는 사람의 톤을 조정하는 방법을 살펴보도록 하겠습니다.
+
+[REGION:imagetable]
+| ![](QuestGiver.png)(h:300)| ![](Adam.png)(h:300)|![](Zoe.png)(h:300) |
+|---|----|----|
+|퀘스트 NPC | 아담 | 조 | 
+[/REGION]
+
+예제 디자인 문서의 개요는 이렇습니다:
+
+		- 퀘스트 NPC 는 여성 군인으로, 아담의 팀에 호위 임무 제공을 위한 지원군을 채용하려 합니다.
+		- 아담은 잠입을 주로 하는 용병으로, 꼭 필요할 때만 공격한다는 주의입니다.
+		- 조는 퇴역 군인으로, 지난 번 있었던 은하계 내전 이후 아담의 팀에 합류했습니다.
+
+
+## 다이얼로그 보이스
+
+이 예제에서는 언리얼 엔진 마켓플레이스에서 무료로 받을 수 있는 [Mixamo Animation Pack](https://www.unrealengine.com/marketplace/mixamo-animation-pack) 의 캐릭터를 사용합니다.
+Mixamo Animation Pack 에서 모든 캐릭터는 범용 캐릭터 블루프린트를 상속합니다. 별도의 프로젝트에서 작업을 하거나, 
+C++ 구성 상태에서는, 여기 나열된 단계에 조정이 필요하겠지만, 핵심 개념은 똑같이 적용됩니다.
+
+각 캐릭터는 다이얼로그 보이스 변수에 대해 별도의 값을 갖습니다. 오디오 콘텐츠 로컬리제이션이 없다 할지라도, 캐릭터마다 별개의 보이스를 둔다는 것은, 
+해당 보이스에 주어진 성우 녹화를 할당할 수 있다는 것이므로, 조는 항상 조의 목소리로 들릴 것입니다.
+
+
+1. **콘텐츠 브라우저** 에서 **MixamoAnimPack** 폴더 안에, **MixamoCharacter_Master** 를 더블클릭하여 블루프린트를 엽니다.
+
+	![](MixamoMaster.png)(w:700)
+
+1. 블루프린트에 새 [변수](Engine/Blueprints/UserGuide/Variables) 를 추가합니다.
+	
+	![](NewVariable.png)
+
+1. 새 변수 이름을 **DialogueVoice** 라 하고, 그 유형을 **DialogueVoice Reference** 로 설정합니다. 
+
+	![](DialogueVoiceRef.png)
+
+1. 블루프린트를 컴파일 후 저장합니다.
+
+	이제 세 캐릭터 각각에 사용할 다이얼로그 보이스 애셋을 만들어줘야 합니다.
+
+1. **콘텐츠 브라우저** 로 돌아가서, **다이얼로그 보이스** 애셋을 새로 만듭니다.
+
+	![](DialogueVoiceNew.png)
+
+1. 새 애셋 이름을 **QuestNPC** 라 하고 **더블클릭** 하여 엽니다.
+
+1. 디자인 문서에 의하면, 퀘스트 NPC 의 음성은 **Feminine** (여성)이고 **Singular** (단수)임을 알 수 있습니다. 드롭다운 메뉴를 사용하여 **Gender** (성별)과 **Plurality** (수)를 알맞게 입력합니다.
+	
+	![](QuestNPC.png)
+
+1. 아담의 **다이얼로그 보이스** 애셋은 **Masculine** (남성)에 **단수** 로, 조의 **다이얼로그 보이스** 는 **여성** 에 **단수** 로, 위 과정을 두 번 더 반복해 줍니다.
+
+	![](AdamVoice.png)
+
+	![](ZoeVoice.png)
+
+1. 새로운 **다이얼로그 보이스** 애셋을 전부 저장하고 닫습니다.
+
+**다이얼로그 보이스** 애셋을 생성했으니, 이제 캐릭터에 할당해 주면 됩니다.
+
+1. **콘텐츠 브라우저** 로 돌아와 **Mixamo_SWAT** 폴더에서 **Mixamo_SWAT** 블루프린트를 엽니다.
+
+	![](MixamoSWAT.png)
+
+1. 데이터 전용 블루프린트가 아니고 기본값이 이미 보이지 않는 경우, **툴바** 의 **클래스 디폴트** 버튼을 클릭하여 블루프린트의 기본 프로퍼티 값이 표시되는 창을 엽니다.
+
+	![](ClassDefaults.png)
+
+1. **디테일** 패널에서 **Dialogue Voice** (다이얼로그 보이스)를 **Quest NPC** 로 설정합니다.
+
+	![](DialogueVoiceSetSwat.png)
+
+1. 위 과정을 반복하여 **Mixamo_Adam** 블루프린트의 **Dialogue Voice** 는 **Adam** 으로, **Mixamo_Zoe** 블루프린트의 **Dialogue Voice** 는 **Zoe** 로 설정합니다.
+
+	![](AdamVoiceSet.png)
+
+	![](ZoeVoiceSet.png)
+
+[REGION:tip]
+다이얼로그 보이스 캐릭터 식별을 돕기 위해:
+
+1. 월드에 캐릭터를 놓고, 뷰포트 프레임에 잡습니다.
+1. **콘텐츠 브라우저** 에서 **다이얼로그 보이스** 애셋에 우클릭합니다.
+1. **애셋 액션 >> 썸네일 캡처** 를 선택합니다.
+
+	![](ThumbnailCapture.png)(w:500)
+
+[/REGION]
+
+## 다이얼로그 웨이브
+
+이 예제에서는 단순히 퀘스트 NPC 에서 아담과 조에게 인사를 건네는 것만 구현하도록 하겠습니다. 복잡한 대화 관련 상세 정보는, [사운드 큐 및 다이얼로그](#사운드큐및다이얼로그) 부분을 참고하세요.
+각 대사 줄은 거기에 할당된 **다이얼로그 웨이브** 애셋이 필요합니다.
+
+1. **콘텐츠 브라우저** 로 돌아가, **다이얼로그 웨이브** 애셋을 새로 만듭니다.
+
+	![](DialogueWaveNew.png)
+
+1. 새로운 애셋 이름을 **QuestGreeting** 이라 하고 **더블클릭** 하여 엽니다.
+
+1. **Spoken Text** 칸에 "Hey! Could you come over here? I need your help with something important." 라 입력합니다.
+
+	NPC 가 아담과 조에게 얘기할 때 똑같은 텍스트가 쓰이긴 하지만, 게임 디자인 문서에 따르면 각각의 청자에게 말하는 방식에 있어 차이가 있음을 알 수 있습니다. 
+	즉 **Dialogue Contexts** (다이얼로그 컨텍스트)가 두 개 별도로 구성해야 한다는 뜻입니다.
+
+1. 컨텍스트 하나는 이미 기본으로 생성되었습니다. **Speaker** (화자) 칸을 **Quest NPC** 로 채웁니다.
+
+	![](Context1Speaker.png)
+1. 더하기 부호를 클릭하여 청자를 추가합니다.
+
+	![](Context1ListenerAdd.png)
+1. **Directed At** (지시 대상) 항목을 **Adam** 으로 설정합니다.
+
+	![](Context1Listener.png)
+
+1. **Add Dialogue Context** (다이얼로그 컨텍스트 추가)를 클릭하고 **다이얼로크 컨텍스트** 를 새로 추가합니다.
+
+	![](AddDialogueContext.png)
+
+1. 이 컨텍스트의 **Speaker** 를 **Quest NPC** 로, **Directed At** 을 **Zoe** 로 설정합니다.
+
+	![](ZoeContext.png)
+
+성우가 조에게 얘기할 때는 군대라는 공통의 배경이 있어 조금 더 친근하게 해야 한다고, 아담은 용병 경력때문에 신뢰하지 않아 약간 퉁명스럽게 해야 한다고 노트를 남길 수 있습니다. 이러한 것들은 **Voice Actor Direction** 칸에 넣습니다.
+마지막으로 성우 녹음이 도착하면, **사운드 웨이브** 로 임포트하여 각 컨텍스트의 **Sound Wave** 칸에 설정합니다.
+이 예제에서는 **사운드 웨이브** 를 생성하지는 않겠지만, **시작용 콘텐츠** 의 **사운드 웨이브** 를 사용하여 테스트할 수 있습니다.
+
+![](GreetingAudio.png)
+
+
+[REGION:tip]
+**다이얼로그 웨이브** 에서는 **Subtitle Override** (자막 덮어쓰기) 설정도 가능합니다. 플레이어가 알지 못하는 외계어로 캐릭터가 말한다던가, 의성어 같은 소리에 좋습니다.
+[/REGION]
+
+## 컨텍스트 설정
+
+**다이얼로그 보이스** 와 **다이얼로그 웨이브** 구성이 끝났으니, 퀘스트 NPC 에게 인사말에 적합한 맥락을 선택하는 로직을 추가해 주면 되겠습니다.
+다시 강조하지만, **다이얼로그 컨텍스트** 는 최소 두 개의 **다이얼로그 보이스**, **화자** 와, 대화의 **지시 대상** 인 **다이얼로그 보이스** 최소 하나로 이루어져 있습니다.
+
+1. **Mixamo_SWAT** 블루프린트에 **박스** 컴포넌트를 추가합니다.
+	
+	![](AddBoxComponent.png)
+1. **뷰포트** 에서 **박스** 컴포넌트를 조절하여 캐릭터 높이와 그 앞까지 살짝 두르도록 합니다. 캐릭터에 겹치지는 않도록 하거나, 캐릭터의 캡슐 컴포넌트가 오버랩 이벤트를 생성하지 않도록 합니다. 그렇지 않으면 대화 로직을 
+스스로 발동시키게 됩니다.
+
+	![](TriggerVolume.png)
+
+1. **다이얼로그 웨이브** 변수를 새로 추가하여 이름을 **Greeting** 이라 합니다.
+
+1. 블루프린트를 컴파일하고 기본값을 아까 만든 **QuestGreeting** **다이얼로그 웨이브** 로 설정합니다.
+
+	![](QuestGreetingDetails.png)
+
+1. 블루프린트 그래프를 다음과 같이 구성합니다.
+
+	[INCLUDE:#graph]
+
+	이 그래프는:
+	* 무언가가 박스 컴포넌트에 겹치면 발동됩니다.
+	* **겹치는 액터** 를 **다이얼로그 웨이브**를 추가시켰던 **MixamoCharacter_Master** 로 형변환합니다.
+	* **겹치는 액터** 에서 보이스를 구하여 **다이얼로그 컨텍스트** 에 대한 **타겟** 으로 사용합니다.
+	* **다이얼로그 컨텍스트** 의 **Speaker** (화자)에 대해 퀘스트 NPC 의 음성을 사용합니다.
+	* 퀘스트 NPC 위치에서 **Greeting** 이라는 **다이얼로그 웨이브** 를, 올바른 **다이얼로그 컨텍스트** 를 사용하여 재생합니다.
+
+	Mixamo Animation 팩에는 우리 다이얼로그 구성을 테스트할 수 있는 게임 모드가 포함되어 있습니다.
+
+1. **월드 세팅** 을 엽니다.
+
+1. **GameMode Override** 를 **MixamoGame** 로 설정합니다.
+
+1. **Default Pawn Class** 를 **Mixamo_Adam** 또는 **Mixamo_Zoe** 로 설정합니다.
+
+	![](SetDefaultPawn.png)
+
+	이제 QuestNPC 를 레벨에 배치하고, 아담이나 조로 그 근처에 가면 대화가 발동됩니다.
+
+## 자막
+
+자막은 기본으로 켜져있을 것이나, 확인할 필요가 있다면 **프로젝트 세팅** 에 체크박스가 있습니다.
+
+1. **프로젝트 세팅** 을 엽니다.
+
+1. **일반 세팅** 아래 **Subtitles** (자막) 섹션을 찾아 **Subtitles Enabled** (자막 활성화) 박스가 체크되었는지 확인합니다.
+
+	![](SubtitlesOn.png)
+
+이제 퀘스트 NPC 의 대화를  발동시키면, 그에 해당하는 자막 텍스트가 화면 하단에 표시됩니다.
+
+![](SubtitlesPlaying.png)
+
+[REGION:note]
+자막은 현재 발생하고 있는 컨텍스트에 대한 **다이얼로그 웨이브** 에 설정된 **사운드 웨이브** 가 없으면 표시되지 않습니다.
+[/REGION]
+
+## 사운드 큐 및 다이얼로그
+
+보다 복잡한 대화의 경우, 사운드 큐 및 오디오 컴포넌트를 사용하는 것이 좋습니다.
+오디오 컴포넌트는 **On Audio Finished** 델리게이트를 사용하여 오디오 재생이 완료되었을 때 어떠한 
+함수성을 바인딩해 줄 수 있습니다.
+
+[REGION:note]
+여기서 한 가지 고려할 것은, 사운드 큐를 사용할 때는 **다이얼로그 컨텍스트** 를 동적으로 변경할 수 없기에, 블루프린트 또는 C++ 로직은 
+위 예제와 달라보일 수 있습니다.
+[/REGION]
+
+**사운드 큐** 를 사용하여 **다이얼로그 웨이브** 를 재생하기 위해서는, **사운드 큐 에디터** 에 **Dialogue Player** 노드가 있습니다.
+
+![](DialoguePlayerNode.png)
+
+**Dialogue Player** 노드를 선택하고 **디테일** 패널을 살펴봅니다. 여기서 사용할 **다이얼로그 웨이브** 설정은 물론, **컨텍스트** 에 대한 **화자** 와 **지시 대상** 항목을 설정할 수 있습니다.
+
+![](DialogueNodeDetails.png)
+
+예전 오디오 재생이 완료된 이후 대화 다음 분량 재생을 위한 이벤트를 묶는 방법을 보여주는 블루프린트 로직 예제입니다.
+
+![](AudioNextSteps.png)
+
+<!--
+[EXCERPT:graph]
+[OBJECT:Snippet]
+[PARAMLITERAL:id]
+	context_graph
+[/PARAMLITERAL]
+[PARAMLITERAL:type]
+	blueprint
+[/PARAMLITERAL]
+[PARAM:image]
+	![](DialogueContextBP.png)
+[/PARAM]
+[PARAM:snippet]
+			Begin Object Class=K2Node_ComponentBoundEvent Name="K2Node_ComponentBoundEvent_0"
+				DelegatePropertyName="OnComponentBeginOverlap"
+				DelegateOwnerClass=Class'/Script/Engine.PrimitiveComponent'
+				ComponentPropertyName="Box"
+				EventReference=(MemberParent=Package'"/Script/Engine"',MemberName="ComponentBeginOverlapSignature__DelegateSignature")
+				bInternalEvent=True
+				CustomFunctionName="BndEvt__Box_K2Node_ComponentBoundEvent_0_ComponentBeginOverlapSignature__DelegateSignature"
+				NodePosX=-112
+				NodePosY=-448
+				NodeGuid=D087184B4C2B1B05E6A2A1AB00A26C42
+				CustomProperties Pin (PinId=E866117345318568604A69A3076763A1,PinName="OutputDelegate",Direction="EGPD_Output",PinType.PinCategory="delegate",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(MemberParent=BlueprintGeneratedClass'/Game/MixamoAnimPack/Mixamo_SWAT/Mixamo_Swat.Mixamo_SWAT_C',MemberName="BndEvt__Box_K2Node_ComponentBoundEvent_0_ComponentBeginOverlapSignature__DelegateSignature"),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=6DEDBA6643D23A32098E0C9C21918E7B,PinName="then",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_DynamicCast_0 9FA3C5F145140730615EAC8FE8B066D4,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=6B8FDAB54EA97A386349329F683972B5,PinName="OverlappedComponent",PinToolTip="Overlapped Component\nPrimitive Component Reference",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.PrimitiveComponent',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=FA98EBC24CE57779C26D37B6C8A5A07E,PinName="OtherActor",PinToolTip="Other Actor\nActor Reference",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.Actor',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_DynamicCast_0 297553CF423272FD6F7651A9862FE558,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=1249BE8B4E4CDA85BDD5C185C6184A71,PinName="OtherComp",PinToolTip="Other Comp\nPrimitive Component Reference",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.PrimitiveComponent',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=291C0338444A141C042D07AAC8465708,PinName="OtherBodyIndex",PinToolTip="Other Body Index\nInteger",Direction="EGPD_Output",PinType.PinCategory="int",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="0",AutogeneratedDefaultValue="0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=A1DCF200485AB0D9206183B1796790B2,PinName="bFromSweep",PinToolTip="From Sweep\nBoolean",Direction="EGPD_Output",PinType.PinCategory="bool",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="false",AutogeneratedDefaultValue="false",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=0C0FB5914D618708589BB1AB046B2ED9,PinName="SweepResult",PinToolTip="Sweep Result\nHit Result Structure (by ref)",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/Engine.HitResult',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=True,PinType.bIsConst=True,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			End Object
+			Begin Object Class=K2Node_DynamicCast Name="K2Node_DynamicCast_0"
+				TargetType=BlueprintGeneratedClass'/Game/MixamoAnimPack/MixamoCharacter_Master.MixamoCharacter_Master_C'
+				NodePosX=288
+				NodePosY=-432
+				NodeGuid=C3BBF9AF4063E0563F4598A1A94ACC9F
+				CustomProperties Pin (PinId=9FA3C5F145140730615EAC8FE8B066D4,PinName="execute",PinType.PinCategory="exec",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_ComponentBoundEvent_0 6DEDBA6643D23A32098E0C9C21918E7B,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=2FF491354C6DDCFAA3AFABB985033BDD,PinName="then",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_1 BB5259D94F82BDBC0A387183C5F5E437,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=68A7707049401F66992BE38B1BF9CABC,PinName="CastFailed",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=297553CF423272FD6F7651A9862FE558,PinName="Object",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/CoreUObject.Object',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_ComponentBoundEvent_0 FA98EBC24CE57779C26D37B6C8A5A07E,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=14F1798D43AD8DD3D7DE159D0864B636,PinName="AsMixamo Character Master",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategoryObject=BlueprintGeneratedClass'/Game/MixamoAnimPack/MixamoCharacter_Master.MixamoCharacter_Master_C',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_VariableGet_1 9F01E92D48B086458B3D4AB930E0154D,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=1BB8547443D862EAE219CABB96DB3895,PinName="bSuccess",Direction="EGPD_Output",PinType.PinCategory="bool",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=True,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			End Object
+			Begin Object Class=K2Node_VariableGet Name="K2Node_VariableGet_1"
+				VariableReference=(MemberParent=BlueprintGeneratedClass'/Game/MixamoAnimPack/MixamoCharacter_Master.MixamoCharacter_Master_C',MemberName="DialogueVoice",MemberGuid=C94B9FF543714FB54D60D1A32479775C)
+				NodePosX=640
+				NodePosY=-352
+				NodeGuid=39D6824C4D9E98B608CEE5BF3C0D3070
+				CustomProperties Pin (PinId=E01C87EB4530E79DF0A6148EE6CFD3EE,PinName="DialogueVoice",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.DialogueVoice',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_MakeArray_1 B1C3DD614FDE14143191C2B23A0CB676,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=9F01E92D48B086458B3D4AB930E0154D,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinType.PinCategory="object",PinType.PinSubCategoryObject=BlueprintGeneratedClass'/Game/MixamoAnimPack/MixamoCharacter_Master.MixamoCharacter_Master_C',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_DynamicCast_0 14F1798D43AD8DD3D7DE159D0864B636,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			End Object
+			Begin Object Class=K2Node_CallFunction Name="K2Node_CallFunction_1"
+				FunctionReference=(MemberParent=Class'/Script/Engine.GameplayStatics',MemberName="PlayDialogueAtLocation")
+				NodePosX=1392
+				NodePosY=-448
+				NodeGuid=7082B74841AB3F5AF934AF895B47BCD6
+				AdvancedPinDisplay=Hidden
+				CustomProperties Pin (PinId=BB5259D94F82BDBC0A387183C5F5E437,PinName="execute",PinToolTip="\nExec",PinType.PinCategory="exec",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_DynamicCast_0 2FF491354C6DDCFAA3AFABB985033BDD,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=B7B051DF4D5FE3697A3D5F87E7DAF3D2,PinName="then",PinToolTip="\nExec",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=0E3069E043FE55FAE21403996D817775,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinToolTip="Target\nGameplay Statics Reference",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.GameplayStatics',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultObject="/Script/Engine.Default__GameplayStatics",PersistentGuid=00000000000000000000000000000000,bHidden=True,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=B43B784D4F93500A969171A1E78A600F,PinName="WorldContextObject",PinToolTip="World Context Object\nObject Reference",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/CoreUObject.Object',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=True,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=B3E56AC842A70ED970E39BB7E3B34B30,PinName="Dialogue",PinToolTip="Dialogue\nDialogue Wave Reference\n\ndialogue to play",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.DialogueWave',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_VariableGet_125 53A041D1499B24649BB4B98FD26436A8,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=67183F194B2F52BBAFF414BE16C3DDF5,PinName="Context",PinToolTip="Context\nDialogue Context Structure (by ref)\n\ncontext the dialogue is to play in",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/Engine.DialogueContext',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=True,PinType.bIsConst=True,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_MakeStruct_0 F991E59A41605C37B2DFCEA0BC272194,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=True,bAdvancedView=False,)
+				CustomProperties Pin (PinId=B7C2ACA343F80406F380C78747F40AAD,PinName="Location",PinToolTip="Location\nVector \n\nWorld position to play dialogue at",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="0, 0, 0",AutogeneratedDefaultValue="0, 0, 0",LinkedTo=(K2Node_CallFunction_2 002C2B1D4C40B9581A095C84138B928D,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=DC41F40E45DED62F748A888B2080937C,PinName="Rotation",PinToolTip="Rotation\nRotator \n\nWorld rotation to play dialogue at",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Rotator',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="0, 0, 0",AutogeneratedDefaultValue="0, 0, 0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=True,)
+				CustomProperties Pin (PinId=159A66C44DFE832C98FD6E80ACD80374,PinName="VolumeMultiplier",PinToolTip="Volume Multiplier\nFloat\n\nVolume multiplier",PinType.PinCategory="float",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="1.000000",AutogeneratedDefaultValue="1.000000",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=True,)
+				CustomProperties Pin (PinId=D9F0955F46B638BADA1AFEBE0F96FD97,PinName="PitchMultiplier",PinToolTip="Pitch Multiplier\nFloat\n\nPitch multiplier",PinType.PinCategory="float",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="1.000000",AutogeneratedDefaultValue="1.000000",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=True,)
+				CustomProperties Pin (PinId=AF1FB93341C9C31DD7B8088ACE6E4025,PinName="StartTime",PinToolTip="Start Time\nFloat\n\nHow far in to the dialogue to begin playback at",PinType.PinCategory="float",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="0.000000",AutogeneratedDefaultValue="0.000000",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=True,)
+				CustomProperties Pin (PinId=654B34F748F75705DAC4AE930D4892CD,PinName="AttenuationSettings",PinToolTip="Attenuation Settings\nSound Attenuation Reference\n\nOverride attenuation settings package to play sound with",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.SoundAttenuation',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=True,)
+			End Object
+			Begin Object Class=K2Node_CallFunction Name="K2Node_CallFunction_2"
+				bIsPureFunc=True
+				bIsConstFunc=True
+				FunctionReference=(MemberName="K2_GetActorLocation",bSelfContext=True)
+				NodePosX=464
+				NodePosY=-160
+				NodeGuid=EFFECE1D446CA14B120F28AFF854FF5C
+				CustomProperties Pin (PinId=B50B101C42A61708AAC0398DC15687AD,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinToolTip="Target\nActor Reference",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.Actor',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=002C2B1D4C40B9581A095C84138B928D,PinName="ReturnValue",PinToolTip="Return Value\nVector ",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,AutogeneratedDefaultValue="0, 0, 0",LinkedTo=(K2Node_CallFunction_1 B7C2ACA343F80406F380C78747F40AAD,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			End Object
+			Begin Object Class=K2Node_MakeStruct Name="K2Node_MakeStruct_0"
+				bMadeAfterOverridePinRemoval=True
+				ShowPinForProperties(0)=(PropertyName="Speaker",PropertyFriendlyName="Speaker",PropertyTooltip=NSLOCTEXT("UObjectToolTips", "DialogueContext:Speaker", "The person speaking the dialogue."),bShowPin=True,bCanToggleVisibility=True,bPropertyIsCustomized=True,CategoryName="DialogueContext")
+				ShowPinForProperties(1)=(PropertyName="Targets",PropertyFriendlyName="Targets",PropertyTooltip=NSLOCTEXT("UObjectToolTips", "DialogueContext:Targets", "The people being spoken to."),bShowPin=True,bCanToggleVisibility=True,bPropertyIsCustomized=True,CategoryName="DialogueContext")
+				StructType=ScriptStruct'/Script/Engine.DialogueContext'
+				NodePosX=976
+				NodePosY=-384
+				bHasCompilerMessage=True
+				ErrorType=3
+				ErrorMsg="Warning  Speaker  - the native property is not tagged as BlueprintReadWrite, the pin will be removed in a future release.\nWarning  Targets  - the native property is not tagged as BlueprintReadWrite, the pin will be removed in a future release.\nWarning  K2Node_MakeStruct_0  has no property tagged as BlueprintReadWrite. The node will be removed in a future release."
+				NodeGuid=008F6A574C6FA4B2561B57A77BCA1E48
+				CustomProperties Pin (PinId=F991E59A41605C37B2DFCEA0BC272194,PinName="DialogueContext",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/Engine.DialogueContext',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_1 67183F194B2F52BBAFF414BE16C3DDF5,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=CDFE76BB4A0C7A3A699B4D8BEB7B684C,PinName="Speaker",PinFriendlyName=NSLOCTEXT("", "A6BD052743422BBCD8BA208C6569C2A5", "Speaker"),PinToolTip="Speaker\nDialogue Voice Reference\n\nThe person speaking the dialogue.",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.DialogueVoice',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_VariableGet_5 D6C1A07046B65B3E8CF5AFB691087C9D,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=9FB6EB844C8A89056EFFD4A68EB33E82,PinName="Targets",PinFriendlyName=NSLOCTEXT("", "08F2369A40811DC5A47D24ABD7F2FB7A", "Targets"),PinToolTip="Targets\nArray of Dialogue Voice References\n\nThe people being spoken to.",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.DialogueVoice',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=True,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_MakeArray_1 375D77E547627D97D0861B909893B26C,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			End Object
+			Begin Object Class=K2Node_VariableGet Name="K2Node_VariableGet_5"
+				VariableReference=(MemberName="DialogueVoice",MemberGuid=C94B9FF543714FB54D60D1A32479775C,bSelfContext=True)
+				NodePosX=656
+				NodePosY=-544
+				NodeGuid=9495246E4FB8C1F1C96AE4AC015124BA
+				CustomProperties Pin (PinId=D6C1A07046B65B3E8CF5AFB691087C9D,PinName="DialogueVoice",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.DialogueVoice',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_MakeStruct_0 CDFE76BB4A0C7A3A699B4D8BEB7B684C,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=6AB7071343FD459EF40370B7AEAA2F0D,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinType.PinCategory="object",PinType.PinSubCategoryObject=BlueprintGeneratedClass'/Game/MixamoAnimPack/MixamoCharacter_Master.MixamoCharacter_Master_C',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=True,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			End Object
+			Begin Object Class=K2Node_MakeArray Name="K2Node_MakeArray_1"
+				NodePosX=672
+				NodePosY=-320
+				NodeGuid=3DBCE66345A3AC43437A4BB8AC264C4B
+				CustomProperties Pin (PinId=375D77E547627D97D0861B909893B26C,PinName="Array",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.DialogueVoice',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=True,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_MakeStruct_0 9FB6EB844C8A89056EFFD4A68EB33E82,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=B1C3DD614FDE14143191C2B23A0CB676,PinName="[0]",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.DialogueVoice',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_VariableGet_1 E01C87EB4530E79DF0A6148EE6CFD3EE,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			End Object
+			Begin Object Class=K2Node_VariableGet Name="K2Node_VariableGet_125"
+				VariableReference=(MemberName="Greeting",bSelfContext=True)
+				NodePosX=1200
+				NodePosY=-448
+				NodeGuid=DA2B19AA4859BAE664346FB8F9552B60
+				CustomProperties Pin (PinId=53A041D1499B24649BB4B98FD26436A8,PinName="Greeting",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.DialogueWave',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_1 B3E56AC842A70ED970E39BB7E3B34B30,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+				CustomProperties Pin (PinId=570FAEAE4E3FFD616AB85B92D72DF118,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinType.PinCategory="object",PinType.PinSubCategoryObject=BlueprintGeneratedClass'/Game/MixamoAnimPack/Mixamo_SWAT/Mixamo_Swat.Mixamo_SWAT_C',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=True,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			End Object
+
+[/PARAM]
+[/OBJECT]
+[/EXCERPT]
+-->

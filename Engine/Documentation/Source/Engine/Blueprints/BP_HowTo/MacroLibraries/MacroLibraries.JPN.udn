@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2679100
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:マクロ ライブラリの使用方法
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -6,8 +6,8 @@ Description:マクロ ライブラリのマクロを使って、アクタのヘ�
 Related:Engine/Blueprints/UserGuide/Macros
 Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related:Engine/Blueprints
-バージョン:4.8
-SkillLevel:上級
+version:4.8
+skilllevel:Advanced
 
 **マクロ ライブラリ** は、他のブループリントへノードとして配置可能なマクロのコレクションや自己完結型のグラフを保持するコンテナです。実行とデータ転送の両方の入出力を備えた一般的に使用するノードのシーケンスを格納できるため、時間節約の手段となります。
 
@@ -36,13 +36,13 @@ _ここでは **スターター コンテンツ** を有効にした状態で **
 
 	![](CreateLib4.png)(w:640)
 
-1.	右上の **[MyBluprint]** ウィンドウで、デフォルトのマクロ名の上で **F2** を押して「 **ScaleUp** 」に変更します。 
+1.	右上の **[MyBluprint]** ウィンドウで、デフォルトのマクロ名の上で **F2** を押して「**ScaleUp**」に変更します。 
 
 1.	**ScaleUp** マクロの **[Details (詳細)]** パネルで、以下のように **Inputs** と **Outputs** を追加します。 
 
 	![](CreateLib5.png)
 
-	ここでは **Exec** タイプの _In_ というインプットと、 **Actor** タイプの_InActor_ というインプットの 2 つを作成しました。アウトプットは _Out_ と追加し、タイプを **Exec** に設定しました。これらを使って、マクロで影響を与えたいアクタを判断します。 
+	ここでは **Exec** タイプの _In_ というインプットと、 **Actor** タイプの　_InActor_ というインプットの 2 つを作成しました。アウトプットは _Out_ と追加し、タイプを **Exec** に設定しました。これらを使って、マクロで影響を与えたいアクタを判断します。 
 
 1.	**ScaleUp** マクロのグラフ内に以下のようなノード ネットワークを再度作成します。 
 

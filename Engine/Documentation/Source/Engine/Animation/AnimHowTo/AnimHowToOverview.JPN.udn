@@ -1,12 +1,11 @@
-﻿INTSourceChangelist:3094382
+﻿INTSourceChangelist:3231230
 Availability:Public
 Title:アニメーションの基本操作方法
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:アンリアル エンジン 4 のアニメーション システムの様々な側面の例を段階的操作ガイドで説明します。
-version:4.12
 
-アニメーションの操作ガイドでは、アンリアル エンジン 4 (UE4) 内のアニメーション ツールである [**ペルソナ**](Engine/Animation) の様々な機能を使用して作業する手順の例を説明します。 
-UE4 でのアニメーションの操作が初めての場合、またはペルソナの機能で作業する方法を学習したい場合のいずれであっても、以下の操作ガイドでは幅広いトピックを扱い、学習の開始点、または知識を拡げる場所を提供します。 
+アニメーションの操作ガイドでは、アンリアル エンジン 4 (UE4) 内の様々な [](Engine\Animation\Persona\Modes) を使用して作業する手順の例を説明します。 
+UE4 でのアニメーションの操作が初めての場合、または様々なツールで作業する方法を学習したい場合のいずれであっても、以下の操作ガイドでは幅広いトピックを扱い、学習の開始点、または知識を拡げる場所を提供します。 
 
 詳細は以下の表を参照してください。リンクをクリックすると、それぞれのコンテンツが表示されます。 
 
@@ -23,6 +22,7 @@ UE4 でのアニメーションの操作が初めての場合、またはペル�
 | [](Engine\Animation\AnimHowTo\AimOffset) | %Engine\Animation\AnimHowTo\AimOffset:description% |
 | [](Engine\Animation\AnimHowTo\Retargeting) | %Engine\Animation\AnimHowTo\Retargeting:description% |
 | [](Engine\Animation\AnimHowTo\CreatePoseAsset) | %Engine\Animation\AnimHowTo\CreatePoseAsset:description% |
+| [](Engine\Animation\AnimHowTo\SubAnimInstance) | %Engine\Animation\AnimHowTo\SubAnimInstance:description% |
 
 
 ## Advanced

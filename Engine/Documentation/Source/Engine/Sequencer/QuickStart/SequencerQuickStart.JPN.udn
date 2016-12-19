@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3042730
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:シーケンサー クイック スタート
 Crumbs: %ROOT%, Engine
@@ -7,7 +7,7 @@ Navigation:topic
 parent:Engine/Sequencer
 order:1
 Version:4.12
-type:quickstart
+type:quick start
 checkpoint:sequencerqs
 
 [VAR:Topic]
@@ -56,7 +56,7 @@ Z2E4lcodFww
 [/PARAMLITERAL]
 [/OBJECT]
 
-_このガイドを終える頃には、上図のようなシーンが出来上がります。_
+_このガイドを終える頃には、上の画面のようなシーンが出来上がります。_
 
 ## 目標
 

@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3155346
 Availability:Public
 Title: Scalability, 엔진 퀄리티
 Crumbs: %ROOT%, Engine, Engine/Performance
 Description:퀄리티와 퍼포먼스 조절을 위한 옵션입니다.
 version: 4.9
+parent:Engine/Performance
+tags:Performance and Profiling
+tags:scalability
 
 [VAR:Topic]
 [OBJECT:Topic]

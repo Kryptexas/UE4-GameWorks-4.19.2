@@ -1,25 +1,28 @@
-﻿INTSourceChangelist:3106123
+﻿INTSourceChangelist:3178044
 title:HLOD （Hierarchical Level of Detail）
 Description:UE4 のHLOD システムのランディング ページです。
 crumbs:
-availability:docs
+availability:Public
 version:4.13
+parent:Engine
+order:13
+type:landing
+tags:HLOD
+topic-image:defaultHLOD_topic.png
+social-image:HLOD_social.png
 
-**Hierarchical Level of Detail (HLOD)** メッシュは、アンリアル エンジン 4.11 以降を使うプロジェクトの、パフォーマンスを高め、クオリティを高く保つために開発されてきました。HLOD は、表示距離が遠い場合に複数の **Static Mesh アクタ** を、結合された単一の **Static Mesh アクタ** に置き換えることができます。HLOD を使うと、シーンに対してレンダリングする必要がある **アクタ** 数を減らし、1 フレームあたりのドローコール数を少なくしてパフォーマンスを高めることができます。 
+![](HLOD_header.png)
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		HLOD Topics
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/HLOD/Overview "%Engine/HLOD/Overview:description%")
-	* [](Engine/HLOD/Reference "%Engine/HLOD/Reference:description%")
-	* [](Engine/HLOD/HowTo "%Engine/HLOD/HowTo:description%")
-	[/PARAM]
-[/OBJECT]
+**Hierarchical Level of Detail (HLOD)** メッシュは、アンリアル エンジン 4.11 以降を使うプロジェクトの、パフォーマンスを高め、クオリティを高く保つために開発されました。HLOD は、表示距離が遠い場合に複数の **Static Mesh アクタ** を、単一に結合された **Static Mesh アクタ** に置き換えることができます。HLOD を使うと、シーンに対してレンダリングする必要がある **アクタ** 数を減らし、1 フレームあたりのドローコール数を少なくしてパフォーマンスを高めることができます。 
 
+## はじめよう
+
+[DIR(output:"topic" type:"overview" parent:"Engine/HLOD")]
+
+## ガイド
+
+[DIR(output:"topic" type:"sequential landing" parent:"Engine/HLOD")]
+
+## リファレンス
+
+[DIR(output:"topic" type:"reference" parent:"Engine/HLOD")]

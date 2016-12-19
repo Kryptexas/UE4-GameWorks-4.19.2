@@ -1,12 +1,11 @@
-﻿INTSourceChangelist:3091977
-Availability:Docs
+﻿INTSourceChangelist:3126630
+Availability:Public
 Title:BuildGraph スクリプトの条件文
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/ScriptAnatomy
+Crumbs: 
 Description:BuildGraph スクリプトの条件文を記述するために必要なシンタックスを学習しましょう。
 version:4.13
 parent:Programming/Development/BuildGraph
 type:Reference
-related:Programming/Development/BuildGraph/ScriptAnatomy
 tags:BuildGraph
 
 [VAR:TopicCompact]
@@ -44,11 +43,7 @@ BuildGraph スクリプトの条件文は、アトムと `true` または `false
 
 アトムはそれらを使う演算子に対して適切な型に強制的に型変換する数字、文字列、識別子になります。 
 アトムは単一引用符 (') または二重引用符 (") を使って引用することができます。アトムは、引用されない文字、桁、 
-アンダースコアの文字のシーケンスにもなります。 
-
-### リテラル
-
-すべてのリテラルは、どのように宣言されたかに関係なく同一とみなされます。さらにリテラルは 
+アンダースコアの文字のシーケンスにもなります。すべてのアトムは、どのように宣言されたかに関係なく同じ型とみなされます。さらに、アトムは 
 比較のために大文字・小文字を区別しないとみなされます。つまり、文字列の "True" と 'true' は、識別子 `true` と同一です 
  (引用符の存在と大文字、小文字の違いは関係ありません)。
 
@@ -72,7 +67,7 @@ BuildGraph スクリプトの条件文は、アトムと `true` または `false
 | **x or y**              | いずれかの引数が `true` である場合に true になります。                                          | 4               |
 
 [REGION:note]
-`'<'` および `'>'` の文字は、XML ([XML Schema v1.0](https://www.w3.org/TR/NOTE-dcd]) を参照) では `"&lt;"` および `"&gt;"` としてエスケープしなければなりません。
+`'<'` および `'>'` の文字は、XML では `"&lt;"` および `"&gt;"` としてエスケープしなければなりません。
 [/REGION]
 
 [/EXCERPT:BuildGraphScriptConditions]

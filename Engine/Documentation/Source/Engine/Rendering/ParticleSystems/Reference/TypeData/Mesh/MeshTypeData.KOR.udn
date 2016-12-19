@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2750847
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:Mesh 타입데이터
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -26,7 +26,7 @@ Version: 4.9
 | **Pitch** | 핏치 - 사용되는 스태틱 메시에 적용할 '미리' 회전 핏치(각도)입니다. |
 | **Roll** | 롤 - 사용되는 스태틱 메시에 적용할 '미리' 회전 롤(각도)입니다. |
 | **Yaw** | 요 - 사용되는 스태틱 메시에 적용할 '미리' 회전 요(각도)입니다. |
-| **Axis Lock Option** | 축 잠금 옵션 - 메시를 잠글 축입니다. TypeSpecific 메시 정렬과 LockAxis 모듈을 덮어씁니다. 제공되는 옵션은 다음과 같습니다: [INCLUDE:#CameraFacingOption] |
+| **Axis Lock Option** | 축 잠금 옵션 - 메시를 잠글 축입니다. TypeSpecific 메시 정렬과 LockAxis 모듈을 덮어씁니다. 제공되는 옵션은 다음과 같습니다: [INCLUDE:#AxisLockOption] |
 | [REGION:tablesection]CameraFacing (카메라 방향)[/REGION] ||
 | **Camera Facing** | 카메라 향 - _True_ 면 메시의 X축은 항상 카메라를 향합니다. _Axis Lock Option_ (축 잠금 옵션)이나 기타 축/화면 정렬 세팅도 무시됩니다. |
 | **Camera Facing Option** | 카메라 향 옵션 - _카메라 향_ 옵션을 켰을 때 메시의 방향을 잡는 방법을 정합니다. 가능한 옵션은: [INCLUDE:#CameraFacingOption] |

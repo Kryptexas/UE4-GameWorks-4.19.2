@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3069479
+﻿INTSourceChangelist:3147055
 Availability:Public
 Title:GitHub 에서 언리얼 엔진 Fork 및 Clone
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
@@ -23,20 +23,21 @@ GitHub 에서 소스 코드를 Fork 및 Clone 하는 것으로 언리얼 작업�
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	[GitHub for Windows](https://windows.github.com/) 를 설치합니다.
-	1.	[repository](https://github.com/EpicGames/UnrealEngine) (저장소)를 **Fork** & **Clone** (갈라서 복제)합니다.
+	1.	[GitHub for Windows](https://windows.github.com/) 를 설치합니다. 
+	1.	[repository](https://github.com/EpicGames/UnrealEngine) (저장소)를 **Fork** & **Clone** (갈라서 복제)합니다. 
+
 		![](UnrealRepo.png)
 		[REGION:tip]
-		*	GitHub 를 갈라서 복제하는 법은 [Forking Projects Guide](https://guides.github.com/activities/forking/) 문서를 참고하세요.
-		*	명령줄에서 Git 를 사용하는 방법은, [Setting-up Git](https://help.github.com/articles/set-up-git/) & [Forking a Repository](https://help.github.com/articles/fork-a-repo/) 문서를 참고하세요.
+		*	GitHub 를 갈라서 복제하는 법은 [Forking Projects Guide](https://guides.github.com/activities/forking/) 문서를 참고하세요. 
+		*	명령줄에서 Git 를 사용하는 방법은, [Setting-up Git](https://help.github.com/articles/set-up-git/) & [Forking a Repository](https://help.github.com/articles/fork-a-repo/) 문서를 참고하세요. 
 		[/REGION]
-	1.	Visual Studio 2013 을 설치하지 않았다면 설치합니다. MFC 라이브러리가 기본 설치 세팅에 포함되어 있기는 하지만, ATL 지원을 위해 MFC 라이브러리가 포함되어 있는지 확인합니다.
+	1.	Visual Studio 2013 을 설치하지 않았다면 설치합니다. MFC 라이브러리가 기본 설치 세팅에 포함되어 있기는 하지만, ATL 지원을 위해 MFC 라이브러리가 포함되어 있는지 확인합니다. 
 		[REGION:note]
-		Visual Studio 는 무료 버전으로도 ([Visual Studio Community 2013](https://www.visualstudio.com/products/visual-studio-community-vs)) UE4 빌드가 가능합니다 .
+		Visual Studio 는 무료 버전으로도 ([Visual Studio Community 2013](https://www.visualstudio.com/products/visual-studio-community-vs)) UE4 빌드가 가능합니다 . 
 		[/REGION]
-	1.	탐색기에서 소스 폴더를 열어 **run Setup.bat** 명령을 내립니다.
+	1.	탐색기에서 소스 폴더를 열어 **run Setup.bat** 명령을 내립니다. 
 		[REGION:note]
-		이 셋업 뱃치 파일은 엔진의 바이너리 콘텐츠를 다운로드하고 사전 요구사항을 설치한 뒤 언리얼 파일에 대한 연결 프로그램을 구성합니다. 엔진 바이너리 파일은 현재 디스크 공간을 3-4 기가 차지하므로 다운로드에 시간이 조금 걸릴 수 있습니다. 그 이후의 체크아웃은 보통 다운로드 시간이 적게 걸립니다.
+		이 셋업 뱃치 파일은 엔진의 바이너리 콘텐츠를 다운로드하고 사전 요구사항을 설치한 뒤 언리얼 파일에 대한 연결 프로그램을 구성합니다. 엔진 바이너리 파일은 현재 디스크 공간을 3-4 기가 차지하므로 다운로드에 시간이 조금 걸릴 수 있습니다. 그 이후의 체크아웃은 보통 다운로드 시간이 적게 걸립니다. 
 		[/REGION]
 		[REGION:warning]
 		윈도우 8 에서는 스마트 스크린에 경고가 뜰 수 있습니다. **More Info** 를 클릭한 다음 **Run Anyway** 를 선택하여 셋업 뱃치 파일 실행을 계속합니다.
@@ -57,13 +58,14 @@ GitHub 에서 소스 코드를 Fork 및 Clone 하는 것으로 언리얼 작업�
 	[PARAM:content]
 	1.	[GitHub for Mac](https://mac.github.com/) 을 설치합니다. 
 	1.	[repository](https://github.com/EpicGames/UnrealEngine) (저장소)를 **Fork** & **Clone** (갈라서 복제)합니다.
+	 
 		![](UnrealRepo.png)
 		[REGION:tip]
 		*	GitHub 를 갈라서 복제하는 법은 [Forking Projects Guide](https://guides.github.com/activities/forking/) 문서를 참고하세요.
-		*	명령줄에서 Git 를 사용하는 방법은, [Setting-up Git](https://help.github.com/articles/set-up-git/) & [Forking a Repository](https://help.github.com/articles/fork-a-repo/) 문서를 참고하세요.
+		*	명령줄에서 Git 를 사용하는 방법은, [Setting-up Git](https://help.github.com/articles/set-up-git/) & [Forking a Repository](https://help.github.com/articles/fork-a-repo/) 문서를 참고하세요. 
 		[/REGION]
-	1.	최신 버전 [Xcode](https://itunes.apple.com/us/app/xcode/id497799835) 를 설치하지 않았다면, 먼저 설치합니다.
-	1.	Finder 에서 소스 폴더를 연 다음 **run Setup.command** 명령을 내립니다.
+	1.	최신 버전 [Xcode](https://itunes.apple.com/us/app/xcode/id497799835) 를 설치하지 않았다면, 먼저 설치합니다. 
+	1.	Finder 에서 소스 폴더를 연 다음 **run Setup.command** 명령을 내립니다. 
 		[REGION:note]
 		*	셋업 파일이 엔진의 바이너리 콘텐츠를 다운로드하고 사전 요구사항을 설치한 뒤 언리얼 파일에 대한 연결 프로그램을 구성해 줍니다. 엔진 바이너리는 현재 디스크 공간을 3-4 기가 차지하므로 다운로드하는 데 시간이 조금 걸릴 수 있습니다.
 		*	Setup.command 가 엔진 바이너리 콘텐츠 다운로드, 사전 요구사항 설치, 언리얼 파일 연결 프로그램 구성 작업을 완료하면 터미널 창을 닫습니다.
@@ -87,14 +89,15 @@ GitHub 에서 소스 코드를 Fork 및 Clone 하는 것으로 언리얼 작업�
 	저희 개발자와 기술지원 팀에서는 현재 Ubuntu 최신 버전을 사용합니다. 그로 인해 (Ubuntu 다른 버전을 포함한) 다른 리눅스 배포판을 지원하지 못할 수 있습니다.
 	[/REGION]
 
-	1.	[Git](https://help.github.com/articles/set-up-git/) 구성을 합니다.
-	1.	[repository](https://github.com/EpicGames/UnrealEngine) (저장소)를 **Fork** & **Clone** (갈라서 복제)합니다.
+	1.	[Git](https://help.github.com/articles/set-up-git/) 구성을 합니다. 
+	1.	[repository](https://github.com/EpicGames/UnrealEngine) (저장소)를 **Fork** & **Clone** (갈라서 복제)합니다. 
+
 		![](UnrealRepo.png)
 		[REGION:tip]
-		*	GitHub 의 [Forking Projects Guide](https://guides.github.com/activities/forking/) 에서 저장소 fork 및 clone 방법을 참고하세요.
-		*	명령줄에서 Git 를 사용하는 법은, GitHub 의 글 [Setting-up Git](https://help.github.com/articles/set-up-git/) 와 [Forking a Repository](https://help.github.com/articles/fork-a-repo/) 문서를 참고하세요.
+		*	GitHub 의 [Forking Projects Guide](https://guides.github.com/activities/forking/) 에서 저장소 fork 및 clone 방법을 참고하세요. 
+		*	명령줄에서 Git 를 사용하는 법은, GitHub 의 글 [Setting-up Git](https://help.github.com/articles/set-up-git/) 와 [Forking a Repository](https://help.github.com/articles/fork-a-repo/) 문서를 참고하세요. 
 		[/REGION]
-	1.	루트 폴더 안에서, 터미널 창에 **Setup.sh** 를 실행시키면 엔진의 바이너리 콘텐츠가 다운로드됩니다.
+	1.	루트 폴더 안에서, 터미널 창에 **Setup.sh** 를 실행시키면 엔진의 바이너리 콘텐츠가 다운로드됩니다. 
 		![](RunSetupShellScript_Linux.png)
 		[REGION:note]
 		*	셋업 셸 스크립트가 엔진의 바이너리 콘텐츠를 다운로드하고 사전 요구사항을 설치해 줍니다. 엔진 바이너리는 현재 디스크 공간을 3-4 기가 차지하므로 다운로드하는 데 시간이 조금 걸릴 수 있습니다. 그 이후의 체크아웃은 일반적으로 다운로드 시간이 덜 걸립니다.

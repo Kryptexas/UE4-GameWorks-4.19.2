@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3178047
 Availability:Public
 Title:マチネ & シネマティクス
 Crumbs: %ROOT%, Engine
 Description:動的なゲームプレイあるいはシネマティックなインゲームのシーケンスを作成するために、時間経過に伴いアクタのプロパティをアニメートすることができるアニメーション ツールです。
 Version:4.9
 parent:Engine
-order:11
+order:15
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -59,12 +59,12 @@ order:11
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Essentials
+		基本
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [マチネ ツールの使用](Engine/Matinee/UserGuide "%Engine/Matinee/UserGuide:description%")
+		* [Using the Matinee Tool](Engine/Matinee/UserGuide "%Engine/Matinee/UserGuide:description%")
 		* [](Engine/Matinee/UserGuide/BlueprintComponents "%Engine/Matinee/UserGuide/BlueprintComponents:description%")
 		* [](Engine/Matinee/UI "%Engine/Matinee/UI:description%")
 		* [](Engine/Matinee/TrackReference "%Engine/Matinee/TrackReference:description%")
@@ -77,7 +77,7 @@ order:11
 		![](%ROOT%/related_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Related Links
+		関連リンク
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

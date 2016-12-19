@@ -1,0 +1,36 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title:How-To Get UVs From Hit Results
+Crumbs: %ROOT%, Engine
+Description:This how-to will step you through enabling the Support UV From Hit Results feature of Unreal Engine 4.13.
+parent:Gameplay/HowTo/UseRaycasts
+order:1
+Version: 4.13
+
+The **Support UV From Hit Results** feature of Unreal Engine 4.13 is easy to enable, and only has one Blueprint node to utilize it. This how-to will walk you through enabling the feature and then show you an example graph that utilizes the **Find Collision UV** node.
+
+## Steps
+
+1. Access your **Project Settings** from the **Edit Menu**.
+
+	![](accessProj.png)
+
+1. You'll need to enable the **Support UV From Hit Results** feature in the **Physics Section** of your **Project Settings**.
+
+	![](ProjectSettings.png)
+
+1. Restart the Editor.
+
+	[REGION:note]
+	Technically you don't have to restart the editor to gain access to the Blueprint node you'll need to use this feature, however, the node will only return `0.0, 0.0`  untill you do restart.
+	[/REGION]
+
+## Result
+
+With the feature enabled, you'll now be able input a **Hit Result Struct** in to a **Find Collision UV** node in your Blueprints.
+
+![](traceExample.png)
+
+The only real caveat here is you must **Trace Complex** or else you're not hitting the mesh to get UV data from it. What you do with this data is up to you. The obvious uses are with materials and the new **Blueprint Render to Texture** feature in 4.13.
+
+

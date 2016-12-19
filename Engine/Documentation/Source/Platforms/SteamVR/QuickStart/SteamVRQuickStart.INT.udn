@@ -4,7 +4,7 @@ Description: A How To guide for setting up SteamVR to work with UE4
 Availability:public
 Navigation:platform
 Platform:SteamVR
-type:quickstart
+type:quick start
 parent:Platforms/SteamVR
 tags:VR
 tags:SteamVR

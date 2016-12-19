@@ -1,12 +1,15 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Blueprint Spline Component Property Reference
+﻿INTSourceChangeList:3149199
+Availability:Public
+Title:蓝图样条组件属性参考
 Crumbs: %ROOT%, Engine
-Description:Contains a reference of all properties available in the editor for Blueprint Spline Components.
+Description:蓝图样条组件编辑器中所有可用属性的参考。
 Navigation:topic
 parent:Engine/BlueprintSplines
 order:1
 social-image:Splines_social.png
+version:4.13
+type:reference
+tags:Splines
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -51,12 +54,12 @@ social-image:Splines_social.png
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-This page contains a reference listing of properties available on **Spline Components**. The properties displayed will be slightly different if the **Blueprint Spline Component** is selected in the **Blueprint Editor**, is a **Root Component**, or if the component is selected in the **Level Editor**.
+本页面中的参考列出了 **蓝图样条组件（Blueprint Spline Components）** 上可用的各项属性。**蓝图样条组件** 在 **蓝图编辑器** 中被选中且为 **根组件** 时，或组件在 **关卡编辑器** 中被选中时，显示的属性将有些许不同。
 
-## Properties
+## 属性
 
 [EXCERPT:PropTransformCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		TransformCat
 	[/PARAMLITERAL]
@@ -73,11 +76,11 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](TransformCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Location** || The location of the **Actor** or **Component** in **World Space** or **Relative** to its parent. |
-| **Rotation** || The rotation of the **Actor** or **Component** in **World Space** or **Relative** to its parent. |
-| **Scale** || The Scale of the **Actor** or **Component** in **World Space** or **Relative** to its parent. |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
+| **Location** || **Actor** 或 **组件** 在 **世界空间** 或 **相对** 其父项的位置。|
+| **Rotation** || **Actor** 或 **组件** 在 **世界空间** 或 **相对** 其父项的旋转。|
+| **Scale** || **Actor** 或 **组件** 在 **世界空间** 或 **相对** 其父项的缩放。|
 [/REGION]
 
 [/VAR]
@@ -86,7 +89,7 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 [EXCERPT:PropSocketsCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		SocketsCat
 	[/PARAMLITERAL]
@@ -103,9 +106,9 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](SocketsCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Parent Socket** || When a this component is the **Child** of a **Skeletal Mesh Component** (or **Static Mesh Component** with a **Socket**) you can specify a **Socket** or **Joint** to attach this component to. |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
+| **Parent Socket** || 此组件为 **骨架网格体组件** 的 **子项**（或带 **套接字** 的 **静态网格体组件**）时，可指定一个 **套接字** 或 **关节** 附加到此组件。|
 [/REGION]
 
 [/VAR]
@@ -131,8 +134,8 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](BPS_SplineCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Duration** || %doxygen:USplineComponent::Duration% |
 | **Override Construction Script** || %doxygen:USplineComponent::bSplineHasBeenEdited% |
 | **Input Spline Points to Construction Script** || %doxygen:USplineComponent::bInputSplinePointsToConstructionScript% |
@@ -146,8 +149,8 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](BPS_SplineCatRefAdv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Reparam Steps Per Segment** || %doxygen:USplineComponent::ReparamStepsPerSegment% |
 | **Stationary Endpoints** || %doxygen:USplineComponent::bStationaryEndpoints% |
 [/REGION]
@@ -175,12 +178,12 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](BPS_EditorCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Editor Unselected Spline Segment Color** || Color of an unselected spline component segment in the editor. |
-| **Editor Selected Spline Segment Color** || Color of a selected spline component segment in the editor. |
-| **Should Visualize Scale** || Whether or not scale visualization should be displayed in the editor. |
-| **Scale Visualization Width** || Width of the spline when scale visualization is enabled in the editor. |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
+| **Editor Unselected Spline Segment Color** || 编辑器中未选中的样条组件部分的颜色。|
+| **Editor Selected Spline Segment Color** || 编辑器中选中的样条组件部分的颜色。|
+| **Should Visualize Scale** || 编辑器中是否显示缩放可视。|
+| **Scale Visualization Width** || 在编辑器中启用缩放可视时的样条宽度。|
 [/REGION]
 
 [/VAR]
@@ -188,83 +191,34 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 
-[OBJECT:modulesection]
+
+[EXCERPT:PropSelectedPointsCat]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
-		PhysicsCat
+		SelectedPointsCat
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Physics
+		Selected Points
 	[/PARAM]
 	[PARAM:content]
-		%Engine/Physics/PhysicsBodies/Reference:c3%
+		%sp3%
 	[/PARAM]
 [/OBJECT]
 
+[VAR:sp3]
 
-
-
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		CollisionCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Collision
-	[/PARAM]
-	[PARAM:content]
-		%Engine/Physics/PhysicsBodies/Reference:p2%
-	[/PARAM]
-[/OBJECT]
-
-
-
-
-
-[EXCERPT:PropLightingCat]
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		LightingCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Lighting
-	[/PARAM]
-	[PARAM:content]
-		%c5%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c5]
-
-![](LightingCatRef.png)
+![](BPS_SelectedPointsRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Cast Shadow** || %doxygen:UPrimitiveComponent::CastShadow% |
-[/REGION]
-
-###Advanced
-
-![](LightingCatRefAdv.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Affect Dynamic Indirect Lighting** || %doxygen:UPrimitiveComponent::bAffectDynamicIndirectLighting% |
-| **Affect Distance Field Lighting** || %doxygen:UPrimitiveComponent::bAffectDistanceFieldLighting% |
-| **Cast Dynamic Shadow** || %doxygen:UPrimitiveComponent::bCastDynamicShadow% |
-| **Cast Static Shadow** || %doxygen:UPrimitiveComponent::bCastStaticShadow% |
-| **Cast Volumetric Translucent Shadow** || %doxygen:UPrimitiveComponent::bCastVolumetricTranslucentShadow% |
-| **Self Shadow Only** || %doxygen:UPrimitiveComponent::bSelfShadowOnly% |
-| **Cast Far Shadow** || %doxygen:UPrimitiveComponent::bCastFarShadow% |
-| **Cast Inset Shadow** || %doxygen:UPrimitiveComponent::bCastInsetShadow% |
-| **Cast Cinematic Shadow** || %doxygen:UPrimitiveComponent::bCastCinematicShadow% |
-| **Cast Hidden Shadow** || %doxygen:UPrimitiveComponent::bCastHiddenShadow% |
-| **Cast Shadow as Two Sided** || %doxygen:UPrimitiveComponent::bCastShadowAsTwoSided% |
-| **Light as if Static** || %doxygen:UPrimitiveComponent::bLightAsIfStatic% |
-| **Light Attachments as Group** || %doxygen:UPrimitiveComponent::bLightAttachmentsAsGroup% |
-| **Indirect Lighting Cache Quality** || %doxygen:UPrimitiveComponent::IndirectLightingCacheQuality% |
-| **Single Sample Shadow From Stationary Lights** || %doxygen:UPrimitiveComponent::bSingleSampleShadowFromStationaryLights% |
-| **Lighting Channles** || %doxygen:UPrimitiveComponent::LightingChannels% |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
+| **Input Key** || 这是曲线上选中的 **曲线点** 的索引。|
+| **Position** || 这是局部空间中选中的 **曲线点** 的位置。|
+| **Arrive Tangent** || 曲线的切线靠近选中的 **曲线点** 时，该矢量将对其进行定义。|
+| **Leave Tangent** || 曲线的切线离开选中的 **曲线点** 时，该矢量将对其进行定义。|
+| **Rotation** || 旋转可应用至一个 **曲线点**，以便修改其切线。该值的应用与切线相分离，因此可对两者进行修改，达到所需的效果。|
+| **Scale** || 缩放可应用至一个 **曲线点**，以便修改其切线。该值的应用与切线相分离，因此可对两者进行修改，达到所需的效果。|
+| **Type** || [INCLUDE:#PointsType] |
 [/REGION]
 
 [/VAR]
@@ -272,84 +226,9 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 
-[EXCERPT:PropRenderingCat]
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		RenderingCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Rendering
-	[/PARAM]
-	[PARAM:content]
-		%c6%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c6]
-
-![](RenderingCatRef.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Visible** || %doxygen:USceneComponent::bVisible% |
-| **Hidden in Game** ||  %doxygen:USceneComponent::bHiddenInGame%|
-[/REGION]
-
-###Advanced
-
-![](RenderingCatRefAdv.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Texture Streaming** || [INCLUDE:#TextureStreamingProp] |
-| **LOD** || [INCLUDE:#LODProp] |
-| **Render In Main Pass** || %doxygen:UPrimitiveComponent::bRenderInMainPass% |
-| **Receives Decals** || %doxygen:UPrimitiveComponent::bReceivesDecals% |
-| **Owner No See** || %doxygen:UPrimitiveComponent::bOwnerNoSee% |
-| **Only Owner See** || %doxygen:UPrimitiveComponent::bOnlyOwnerSee% |
-| **Treat As Background for Occlusion** || %doxygen:UPrimitiveComponent::bTreatAsBackgroundForOcclusion% |
-| **Use As Occluder** || %doxygen:UPrimitiveComponent::bUseAsOccluder% |
-| **Render CustomDepth Pass** || %doxygen:UPrimitiveComponent::bRenderCustomDepth% |
-| **CustomDepth Stencil Value** || %doxygen:UPrimitiveComponent::CustomDepthStencilValue% |
-| **Translucency Sort Priority** || Translucent objects with a lower sort priority draw behind objects with a higher priority. Translucent objects with the same priority are rendered from back-to-front based on their bounds origin. |
-| **Lpv Bias Multiplier** || %doxygen:UPrimitiveComponent::LpvBiasMultiplier% |
-| **Bounds Scale** || %doxygen:UPrimitiveComponent::BoundsScale% |
-| **Use Attach Parent Bound** || %doxygen:USceneComponent::bUseAttachParentBound% |
-[/REGION]
-
-[/VAR]
-[/EXCERPT]
-
-<!--
-[EXCERPT:TextureStreamingProp]
-
-[REGION:raw]
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Force Mip Streaming** || %doxygen:UPrimitiveComponent::bForceMipStreaming% |
-[/REGION]
-
-[/EXCERPT]
-
-[EXCERPT:LODProp]
-
-[REGION:raw]
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Min Draw Distance** || %doxygen:UPrimitiveComponent::MinDrawDistance% |
-| **Desired Max Draw Distance** || %doxygen:UPrimitiveComponent::LDMaxDrawDistance% |
-| **Current Max Draw Distance** || %doxygen:UPrimitiveComponent::CachedMaxDrawDistance% |
-| **Allow Cull Distance Volume** || %doxygen:UPrimitiveComponent::bAllowCullDistanceVolume% |
-| **Detail Mode** || %doxygen:USceneComponent::DetailMode% |
-[/REGION]
-
-[/EXCERPT]
--->
 
 [EXCERPT:PropTagsCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		TagsCat
 	[/PARAMLITERAL]
@@ -366,8 +245,8 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](TagsCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Component Tags** || %doxygen:UActorComponent::ComponentTags% |
 [/REGION]
 
@@ -377,7 +256,7 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 [EXCERPT:PropActivationCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		ActivationCat
 	[/PARAMLITERAL]
@@ -394,8 +273,8 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](ActivationCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Auto Activate** || %doxygen:UActorComponent::bAutoActivate% |
 [/REGION]
 
@@ -405,7 +284,7 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 [EXCERPT:PropEventsCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		EventsCat
 	[/PARAMLITERAL]
@@ -422,8 +301,8 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](EventsCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **On Component Hit** || %doxygen:UPrimitiveComponent::OnComponentHit% |
 | **On Component Begin Overlap** || %doxygen:UPrimitiveComponent::OnComponentBeginOverlap% |
 | **On Component End Overlap** || %doxygen:UPrimitiveComponent::OnComponentEndOverlap% |
@@ -437,38 +316,24 @@ This page contains a reference listing of properties available on **Spline Compo
 | **On Input Touch End** || %doxygen:UPrimitiveComponent::OnInputTouchEnd% |
 | **On Input Touch Enter** || %doxygen:UPrimitiveComponent::OnInputTouchEnter% |
 | **On Input Touch Leave** || %doxygen:UPrimitiveComponent::OnInputTouchLeave% |
-| **Physics Volume Changed** || Delegate that will be called when PhysicsVolume has been changed. |
+| **Physics Volume Changed** || 物理体积域发生变化时调用的委托。|
 [/REGION]
 
 [/VAR]
 [/EXCERPT]
 
 
+<!--
+[EXCERPT:PointsType]
+定义位于选中 **曲线点** 的曲线类型。
 
-[EXCERPT:PropMobileCat]
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		MobileCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Mobile
-	[/PARAM]
-	[PARAM:content]
-		%c10%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c10]
-
-![](MobileCatRef.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Receive Combined Static and CSM Shadows from Stationary Lights** || %doxygen:UPrimitiveComponent::bReceiveCombinedCSMAndStaticShadowsFromStationaryLights%  |
-[/REGION]
-
-[/VAR]
+| 类型 | %spacer2% | 描述 |
+| --- | :---:| :--- |
+| **Linear** || 从选中 **曲线点** 到下一个曲线点的曲线将为直线。这将影响切线进入选中的 **曲线点** 和切线约束离开下一个曲线点。|
+| **Curve** || 默认值。**曲线点** 的位置（在选中点的前后）定义选中 **曲线点** 的切线。|
+| **Constant** || 和 **Linear** 相似，但 **并不** 影响切线进入选中的 **曲线点** 和切线约束离开下一个曲线点。|
+| **CurveClamped** || 和 **Curve** 相似，但它将固定曲线的切线。|
+| **CurveCustomTangent** || 在 **曲线点** 上调整任意切线时，它将设为此值。|
 [/EXCERPT]
-
+-->
 

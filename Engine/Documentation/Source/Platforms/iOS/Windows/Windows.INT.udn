@@ -5,7 +5,7 @@ Description:How to remotely compile on a Mac from a Windows machine to create an
 Platform:iOS
 Navigation:platform
 Version: 4.9
-type:howto
+type:how-to
 parent:Platforms/iOS
 tags:Mobile
 tags:iOS

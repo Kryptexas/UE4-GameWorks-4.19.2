@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:3094382
+﻿INTSourceChangelist:3231087
 Availability:Public
-Title:ペルソナ：スケルタルメッシュのアニメーション
+Title:スケルタルメッシュのアニメーション システム
 Crumbs: %ROOT%, Engine
 Description:キーフレーム アニメーション データとモーフ ターゲットに基いてスケルタル メッシュを変形するシステム
 Navigation:topic
@@ -61,7 +61,7 @@ order:3
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Animation/Overview "%Engine/Animation/Overview:description%")
-		* [](Engine/Animation/Persona "%Engine/Animation/Persona:description%")
+		* [](Engine\Animation\Persona\Modes "%Engine\Animation\Persona\Modes:description%")
 		* [](Engine\Animation\AnimHowTo "%Engine\Animation\AnimHowTo:description%")
 	[/PARAM]
 [/OBJECT]
@@ -100,10 +100,10 @@ order:3
 		機能
 	[/PARAM]
 	[PARAM:links]
+		* [](Engine\Animation\AnimPose "%Engine\Animation\AnimPose:description%")
 		* [](Engine/Animation/Persona/BoneManipulation "%Engine/Animation/Persona/BoneManipulation:description%")
 		* [](Engine/Animation/AnimationBlending "%Engine/Animation/AnimationBlending:description%")
 		* [](Engine/Animation/AnimationRetargeting "%Engine/Animation/AnimationRetargeting:description%")
-		* [](Engine/Animation/RetargetingDifferentSkeletons "%Engine/Animation/RetargetingDifferentSkeletons:description%")
 		* [](Engine/Animation/PhysicallyDrivenAnimation "%Engine/Animation/PhysicallyDrivenAnimation:description%")
 		* [](Engine/Animation/RootMotion "%Engine/Animation/RootMotion:description%")
 		* [](Engine/Animation/NonUniformScale "%Engine/Animation/NonUniformScale:description%")

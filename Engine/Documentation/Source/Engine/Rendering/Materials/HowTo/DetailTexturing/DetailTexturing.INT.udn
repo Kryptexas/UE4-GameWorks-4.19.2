@@ -1,7 +1,7 @@
 Availability: Public
-Title:Material Editor - How To add Detail Textures
+Title:Adding Detail Textures
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
-Description:A How To Guide for adding Detail Textures to your Materials
+Description:Guide for adding Detail Textures to your Materials
 Related: Engine/Rendering/Materials/ExpressionReference/Coordinates
 Related: Engine/Rendering/Materials/CustomizedUVs
 Related: Engine/Rendering/Materials/Functions/Reference/Texturing

@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:블루프린트 매크로 라이브러리
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
 Description:다른 블루프린트에서 재사용할 매크로를 선언하고 정의하는 블루프린트 입니다.
 version: 4.9
 Parent:Engine/Blueprints
-Type:guide
+type:overview
 
 [VAR:Topic]
 [OBJECT:Topic]

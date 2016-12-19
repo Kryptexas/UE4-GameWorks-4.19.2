@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:블루프린트 테크니컬 가이드
 Crumbs: %ROOT%, Programming
 Description:블루프린트 작업을 하는 프로그래머를 위한 테크니컬 가이드입니다.
 version: 4.9
 Parent:Engine/Blueprints
-Type:guide
+type:overview
 
 Blueprint (블루프린트)는 언리얼 엔진 4 에 도입된 강력한 신기능입니다.
 

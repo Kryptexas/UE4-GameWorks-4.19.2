@@ -11,9 +11,12 @@ social-image:home_social.png
 
 [REGION:frontpage]
 	[OBJECT:SearchBox]
-		[PARAM:path]
-		[RELATIVE:Search]
-		[/PARAM]
+		[PARAMLITERAL:path]
+		https://www.unrealengine.com/bingSearch
+		[/PARAMLITERAL]
+		[PARAMLITERAL:variable]
+		keyword
+		[/PARAMLITERAL]
 		[PARAMLITERAL:placeholder]
 		需要帮助吗？可以通过搜索文档来查找主题。
 		[/PARAMLITERAL]

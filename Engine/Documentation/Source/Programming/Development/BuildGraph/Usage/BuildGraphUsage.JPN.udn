@@ -1,11 +1,11 @@
-﻿Availability:Docs
+﻿INTSourceChangelist:3126630
+Availability:Public
 Title:BuildGraph の使用方法
 Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph
 Description:BuildGraph の使用方法を説明します。
 version:4.13
 parent:Programming/Development/BuildGraph
 type:Overview
-related:Programming/Development/BuildGraph/ScriptAnatomy
 related:Programming/Development/InstalledBuildReference
 tags:BuildGraph
 
@@ -74,7 +74,7 @@ BuildGraph スクリプトで利用可能なすべてのノードとオプショ
 
 ## プリプロセスされたグラフを JSON にエクスポートする
 
- プリプロセスされたグラフを JSON にエクスポートするには以下のようにします (ビルド システムで動的コンフィギュレーションをするため)。
+プリプロセスされたグラフを JSON にエクスポートするには以下のようにします (ビルド システムで動的コンフィギュレーションをするため)。
 
 	BuildGraph -Script=Engine\Build\Graph\Examples\AllExamples.xml -Target="All Examples" -Export=D:\ExportedGraph.json
 

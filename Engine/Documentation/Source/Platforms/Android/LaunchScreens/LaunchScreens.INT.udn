@@ -6,7 +6,7 @@ version:4.10
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
-type:howto
+type:how-to
 
 If you would like to have a custom launch screen for your Android project, support is available inside the **Project Settings** under the **Platforms/Android/Launch Images** section of your project. 
 You can set the background, portrait, or landscape images used as well as whether or not the feature is enabled/disabled (refer to the table below for more information). 

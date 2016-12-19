@@ -1,169 +1,110 @@
 Availability:Public
-Title:Persona Toolbar
+Title:Animation Toolbars
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:User guide for the Toolbar in the Persona animation editor.
-version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/Toolbar:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/Toolbar:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/Toolbar:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/Toolbar]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[REGION:fullwidth]
-![](PersonaToolbar.png)
-
-[TOC(start:2)]
-
+Description:Overview of the different Toolbars used in each of the Animation Tool Editors. 
+Related: Engine/Animation/Persona/Modes/Skeleton
+Related: Engine/Animation/Persona/Modes/Mesh
+Related: Engine/Animation/Persona/Modes/Animation
+Related: Engine/Animation/Persona/Modes/Graph
+version: 4.14
+type:reference
+topic-image:Engine/Animation/animation_topic.png
+tags:animation
 
 
 [EXCERPT:Overview]
-The **Toolbar** is displayed along the top of the Persona interface window by default. It contains a variety of common functions you will need when editing animation assets.
+Regardless of what Animation Tool you are working in, each Editor will feature a **Toolbar** which can be located at the top, however, the options on the Toolbar will vary based on the type of Editor you are currently working in.
+The Toolbar is comprised of two main areas, the **Asset Toolbar** which contains several options related to the Editor you are working with and the **Editor Toolbar** which allows you to quickly switch between the different Animation Tool Editors. 
 [/EXCERPT:Overview]
 
-[REGION:tip]
-If you do not see the Toolbar, you can show it using the **Window** menu within Persona.
+
+[TOC(start:2)]
+
+ 
+## Asset Toolbar
+
+Located along the left side of the Toolbar are the options that are available based on the type of Editor you are working with, refer to the sections below: 
+
+### Skeleton Editor Toolbar
+
+![](SkeletonToolbar.png)
+
+The Skeleton Editor Toolbar is shown whenever you open [](Engine/Animation/Skeleton) and contains the following options: 
+
+|Option | Description |
+| ------- | ------------ |
+| ![](saveIcon.png) | Saves any changes made to the current Skeleton asset.  |
+| ![](findincbIcon.png) | Opens the **Content Browser** and automatically navigates to the current Skeleton asset. |
+| ![](animnotifiesIcon.png) | Opens the [Anim Notifies](Engine/Animation/Persona/AnimationNotifies) window that displays all the custom Animation Notifies for the current Skeleton. |
+| ![](retargetmanagerIcon.png) | Opens the [](Engine/Animation/Persona/BasePoseManager) which allows you to manage your retarget sources, set up rigs and define retarged base poses for use with Animation Retargeting. |
+| ![](importmeshIcon.png) | Begins the [](Engine/Content/FBX/SkeletalMeshes) and allows you to import a new Skeletal Mesh for the current Skeleton.  |
+| ![](makestaticmeshIcon.png) | Allows you to create a **Static Mesh** out of the current preview pose. |
+
+### Skeletal Mesh Editor Toolbar
+
+![](MeshToolbar.png)
+
+The Skeletal Mesh Editor Toolbar is shown whenever you open a [Skeletal Mesh](Engine/Content/Types/SkeletalMeshes) asset and contains the following options: 
+
+|Option | Description |
+| ------- | ------------ |
+| ![](saveIcon.png) | Saves any changes made to the current Skeletal Mesh asset.  |
+| ![](findincbIcon.png) | Opens the **Content Browser** and automatically navigates to the current Skeletal Mesh asset. |
+| ![](reimportmeshIcon.png) | Allows you to reimport the current Skeletal Mesh and starts the FBX Import Process.  |
+| ![](makestaticmeshIcon.png) | Allows you to create a **Static Mesh** out of the current preview pose. |
+
+### Animation Editor Toolbar
+
+![](AnimationToolbar.png)
+
+The Animation Editor Toolbar is shown whenever you open any animation assets (Animation Sequences, Anim Montages, Blend Spaces, etc.) and contains the following options: 
+
+|Option | Description |
+| ------- | ------------ |
+| ![](saveIcon.png) | Saves any changes made to the current animation asset.  |
+| ![](findincbIcon.png) | Opens the **Content Browser** and automatically navigates to the current animation asset. |
+| ![](createassetIcon.png) | Allows you to create new animation assets based on the current Skeleton asset. |
+| ![](compressionIcon.png) | Allows you to apply different [Compression](Engine/Animation/Sequences) settings to the animation (available for Animation Sequences). |
+| ![](keyIcon.png) | Allows you to add the current Bone Transform of a selected Bone to an [Additive Layer Track.](Engine/Animation/AnimHowTo/LayerEditing)  |
+| ![](applyIcon.png) | Applies [Additive Layer Tracks](Engine/Animation/AnimHowTo/LayerEditing) to Runtime Animation Data. |
+| ![](makestaticmeshIcon.png) | Allows you to create a **Static Mesh** out of the current preview pose. |
+
+### Animation Blueprint Editor Toolbar
+
+![](AnimBPToolbar.png)
+
+The Animation Blueprint Editor Toolbar is shown whenever you open any [](Engine/Animation/AnimBlueprints) and allows you to Save, Find the Animation Blueprint in the Content Browser or create a Static Mesh from the current preview pose. 
+The rest of the options utilize the same functionality found in the normal **Blueprint Editor Toolbar**. 
+
+[REGION:note]
+Please see the [Blueprint Editor Toolbar](Engine/Blueprints/Editor/UIComponents/Toolbar) page for more information on each option.
 [/REGION]
 
-## Toolbar Modes
 
-As you may know, Persona has four different _modes_ that it uses to selectively display aspects of its interface based on what the user is currently doing. This also means that the common commands you will use within Persona will change along with the modes. The Toolbar intuitively updates to hide away any commands that would not be useful in the current mode. For instance:
+## Editor Toolbar
 
-When in **Skeleton**, **Mesh**, or **Animation** modes, the Toolbar will look something like this:
+Located along the right side of each editor toolbar is the **Editor Toolbar** which allows you to switch between each of the Animation Tool Editors. 
 
+The currently open editor will be highlighted: 
+  
+ ![](skeletoneditoropen.png)
+ 
+ When clicking one of the other Editors, the new tab will open and the new editor will be highlighted: 
 
-![](Toolbar_01.png)
+ ![](mesheditoropen.png)
 
- However, when in **Graph** mode, the toolbar expands with further features, looking like this:
+ The **Animation Editor** includes an animation selection drop-down button next to the icon to quickly change the preview animation: 
 
-![](PersonaToolbar.png)
+![](animationdropdownmenu.png)
 
-You may notice that many of the additional buttons are the same as those used in the Blueprint Editor window. 
+An ** * ** symbol in the lower left corner of the icon indicates that the asset has changes that have not been saved. 
 
+![](unsavedasset.png)
 
-## Toolbar Buttons
+Based on the assets in your project, some of the editors may not appear on the toolbar. 
 
-Persona toolbar buttons provide easy access to switching between asset modes, such as Skeleton, Mesh, and Animations. It also contains common commands needed when editing Animation Blueprints.
+For example, if you have imported a Skeletal Mesh and created a Skeleton, but have no animations or Animation Blueprints, your toolbar may look like below. 
 
+![](limitedtoolbar.png)
 
-| Button																						| Description														|
-| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | 
-| ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compilesuccessful]	|
-| ![Compile Needed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_needs_compile.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compileneeded]		|
-| ![Compile Warning Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_warning.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compilewarning]		|
-| ![Compile Failed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_failed.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compilefailed]		|
-| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#save]					|
-| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#findincb]				| 
-| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png)			| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#blueprintprops]		|
-| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/defaults.png)				| Shows the Class Defaults Panel in the Details Tab |
-| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#search]				|
-| ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png)							| [INCLUDE:Engine/UI/LevelEditor/Toolbar#simulate]			|
-| ![Play In Editor Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_play_in.png)					| [INCLUDE:Engine/UI/LevelEditor/Toolbar#playin]				|
-| ![Pause Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_pause.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#pause]				|
-| ![Resume Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_resume.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#resume]				|
-| ![Frame Skip Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_frameskip.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#frameskip]			|
-| ![Stop Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_stop.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#stop]					|
-| ![Possess Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_possess.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#possess]				|
-| ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#eject]				|
-| ![Find Node Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_node.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#findnode]				|
-| ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#step]					|
-| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)					| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#debugobject]			|
-| ![](button_Preview.png)																					| Displays a preview of the currently selected animation asset. |
-| ![](button_RefPose.png)																					| Displays the skeletal mesh in it's reference pose. |
-| ![](button_Import.png)																					| Brings up the Import dialogue. |
-| ![](button_ImportMesh.png)																				| Brings up the Import dialogue. |
-| ![](button_Reimport.png)																					| Brings up the Browse dialogue to select an asset to reimport. |
-| ![](button_ReimportMesh.png)																				| Brings up the Browse dialogue to select an asset to reimport. |
-| ![](button_Export.png)																					| Brings up the Export dialogue. |
-| ![](button_Record.png)																					| Allows for the recording of an animation to be saved at another location. |
-| ![](button_CreateAsset.png)																				| Brings a menu with multiple options for creating a new asset. |
-| ![](button_Compression.png)																				| Brings multiple options of compression for the currently selected animation. |
-| ![](button_AnimNotifies.png)																				| Brings up the Anim Notifies window, which displays all Anim Notifies. |
-| ![](button_Key.png)																						| Adds a key to the Additive Layer Track of the currently selected bone for the currently selected animation. |
-| ![](button_Apply.png)																						| Applies added keys to the currently selected animation. |
-
-## Mode Switching Tabs
-
-![](ModeTabPersona.png)
-
-The Persona Toolbar also contains buttons to switch between each of its four modes. These buttons have some functionality in and of themselves that can be useful when trying to track down a particular animation asset. You change Persona modes by simply clicking on the button for the desired mode.
-
-| Button | Description |
-|-------|------|
-| ![](button_SkeletonMode.png)| [INCLUDE:#skeletonbutton] |
-| ![](button_MeshMode.png) | [INCLUDE:#meshbutton] |
-| ![](button_AnimationMode.png) | [INCLUDE:#animationbutton] |
-| ![](button_GraphMode.png) | [INCLUDE:#graphbutton] |
-
-
-
-
-
-<!--
-[EXCERPT:SkeletonButton]
-This switches Persona to [Skeleton mode](Engine/Animation/Persona#PersonaModesandUserInterface).
-
-[REGION:simpletable]
-| Element | Description |
-|---|---|
-|![](button_SkeletonField.png)| Shows the name of the Skeleton asset currently used by Persona. |
-%search%
-[/REGION]
-[/EXCERPT:SkeletonButton]
-
-
-[EXCERPT:MeshButton]
-This switches Persona to [Mesh mode](Engine/Animation/Persona#PersonaModesandUserInterface).
-
-[REGION:simpletable]
-| Element | Description |
-|---|---|
-|![](button_MeshField.png)| Shows the name of the Skeletal Mesh asset currently being edited by Persona. |
-%pickasset%
-%search%
-[/REGION]
-[/EXCERPT:MeshButton]
-
-[EXCERPT:AnimationButton]
-This switches Persona to [Animation mode](Engine/Animation/Persona#PersonaModesandUserInterface).
-
-[REGION:simpletable]
-| Element | Description |
-|---|---|
-|![](button_AnimationField.png)| Shows the name of the animation asset currently being edited within Persona. |
-%pickasset%
-%search%
-[/REGION]
-[/EXCERPT:AnimationButton]
-
-[EXCERPT:GraphButton]
-This switches Persona to [Graph mode](Engine/Animation/Persona#PersonaModesandUserInterface).
-
-[REGION:simpletable]
-| Element | Description |
-|---|---|
-|![](button_GraphField.png)| Shows the name of the Animation Blueprint asset currently being edited by Persona. |
-%search%
-[/REGION]
-[/EXCERPT:GraphButton]
-
-[VAR:PickAsset]|![](button_AssetSelection.png)|Allows you to quickly select any compatible assets in the current project. |[/VAR]
-[VAR:Search]|![](button_Search.png)| Clicking this brings up the **Content Browser** and shows and highlights the asset currently shown in the respective field. |[/VAR]
-
--->
-
-[/REGION]
+Creating an Animation Blueprint with the associated Skeleton and importing animations linked to the Skeleton will allow you to access the other editors for that asset. 

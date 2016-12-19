@@ -1,92 +1,98 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Formatting User-Facing Text
+﻿INTSourceChangeList:3124629
+Availability:Public
+Title:设置面向用户文本的格式
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
-Description:Using the Format function to present localized text to your users
+Description:使用 Format 函数向用户显示本地化文本
 Parent:Gameplay/Localization
 Order:3
-version: 4.13
+version:4.13
+Related:Programming/UnrealArchitecture/StringHandling/FText
 
-FText is used to create user-facing text, which is often localized. This means that user interface text that changes dynamically over the course of gameplay can also be subject to grammar rules from a number of different languages. Using `FText::Format` and the corresponding 
-**Format Text** Blueprint node enables you to construct reusable format patterns to make the localization process easier and less prone to edge-case errors. Both functions support ordered arguments, named arguments, and specialized arguments based on plural forms, gender forms, 
-and Hangul post-positions.
+FText 用于创建面向用户的文本，这些文本通常已被本地化。这意味着在游戏过程中不断变化的用户界面文本也能遵循多种语言的语法规则。使用 `FText::Format` 及相应的 **Format Text** 蓝图节点能构造出可重复使用的格式规范，简化本地化流程并减少出界错误。两个函数都支持排序参数、命名参数和基于复数形态、性别形态及谚文字母后位的特定参数。
 
-FText::Format is also available in Blueprints. The Format text can be a literal or connected to a pin. When used as a literal, it will auto-generate arguments for formatting. So by entering the literal "There are {number} days until {day}.", a Number pin and a Day pin will be 
-automatically added to the node. These pins can be filled in as a literal or from a variable and the output Text will replace the arguments with whatever values are hooked to the pins.
+在 C++ 中，您可以预先将 `FText` 格式规范编译到 `FTextFormat` 中，以便重复使用编译的格式规范。这在需要频繁重复使用某个格式规范时十分实用，如原文格式因文化差异发生变化时，它还能自动重新编译。
 
-When the Format pin is connected, the Format can not be deciphered because it is variable. In this case, you can add pins yourself and name them after the possible arguments. In this way, you can set up the Format Text node to be ready for multiple possibilities. Whenever an argument 
-matches an argument in the Format variable, it will utilize the provided information.
+还可以使用 **Format Text** 节点在 Blueprint 中设置 FText 的格式。**Format** 文本可为文字，或连接到某个引脚。作为文字使用时，它将自动生成格式设置的参数。输入文字“There are {number} days until {day}.”，自动对节点加入一个 **Number** 引脚和一个 **Day** 引脚。这些引脚可以作为文字填写，也可以从变量输入，且输出的 **Text** 将以这些引脚所挂钩的值替代参数。
 
-Pin names can be changed, added, and removed from the Details Panel.
+当 **Format** 引脚连接到某个变量时，**Format** 将无法解密，因其可能随游戏过程发生变化。因此，您可自行添加引脚并以可能的参数对它们进行命名。这样便可以将 **Format Text** 节点设置好，以应对多种可能。当某个参数与 Format 变量中的参数匹配时，它将应用提供的信息。
 
-[REGION:tip]
-For users using a source build of Unreal Engine, `TextTest.cpp` can show you examples of how to perform valid culture aware formatting, comparison, and sorting.
+可在 **Details** 面板中对引脚名进行变更、添加和移除。
+
+[REGION:imagetable]
+|![](FormatNode.png)(h:400) | ![](FormatNodeDetails.png)(h:400)|
+|--- |---- |
+|**Format Text** 节点 | **Details** 面板 | 
 [/REGION]
 
-## Ordered Arguments
+
+[REGION:tip]
+对于使用源码版本虚幻引擎的用户而言，`TextTest.cpp`可提供范例，说明如何有效地进行针对文化差异的格式设置、对比和排序。
+[/REGION]
+
+### 排序参数
  
- When building a format argument with ordered arguments, curly braces denote the beginning and end of the format argument and the number indicates the parameter passed.
- Arguments start at {0} and proceed sequentially ( {0}, {1}, {2}, etc.). The `Format` function and **Format Text** node slot variables into the format argument in the order 
- they are provided. 
+ 使用排序参数构建格式参数时，大括号代表格式参数的开头和结尾，数值代表传递的参数。
+ 参数从 {0} 开始，并依次排列（{0}、{1}、{2} 等）。`Format` 函数和 **Format Text** 节点会将变量按其被提供的顺序插入到 
+ 格式参数中。 
 
- The following C++ and Blueprint snippets show an ordered format argument to display the player's current health and maximum health.
+ 以下 C++ 和 Blueprint 片段显示已排序的格式参数，显示玩家当前的生命值和生命值上限。
 
-### C++ Example
+### C++ 示例
 
 	FText::Format( LOCTEXT( "HealthFormatStr",  "{0} / {1}" ), FText::AsNumber( CurrentHealth ), FText::AsNumber( MaxHealth )  ) 
 		
-### Blueprint Example
+### Blueprint 示例
 
 ![](OrderedArgs.png)
 
-## Named Arguments 
+### 命名参数 
 
-When building a format argument with named arguments, curly braces denote the beginning and end of the format argument and the text in the braces is the name of the argument to be found in the arguments passed in.
-Common argument examples are {Name}, {ID}, {Health}, etc.
+以命名参数构建格式参数时，大括号表示格式参数的开头和结尾，大括号之间的文本是传入参数中的参数名称。
+常用参数的示例有 {Name}、{ID}、{Health} 等。
 
-The following C++ and Blueprint snippets show a named format argument to display the player's current health.
+随后的 C++ 和 Blueprint 片段会显示命名的格式参数，显示玩家当前的生命值。
 
-### C++ Example
+### C++ 示例
 
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("CurrentHealth"), FText::AsNumber( CurrentHealth ));
 	EditorErrors.Error(FText::Format(LOCTEXT("ExampleFText", "You currently have {CurrentHealth} health left."), Arguments ) );
 
-### Blueprint Example
+### Blueprint 示例
 			
 ![](CurrentHealth.png)
 
-## Specialized Arguments
+## 特定参数
 
-To allow you to pass in the numeric/gender values needed for plural/gender form support, all of the FText::Format(...) family of functions now take their values as FFormatArgumentValue rather than FText. This can be implicitly constructed from any numeric type, ETextGender, or FText.
+为传入复数/性别形态支持所需的数字/性别值，所有 `FText::Format(...)` 系列函数现均将其值作为 FFormatArgumentValue，而非 FText。这可以通过任何数字类型、ETextGender 或 Ftext 进行隐式构造。 
 
-The ability to set these value types in Blueprints has been exposed using wildcard pins on the **Format Text** node.
+在蓝图中设置这些数值类型的功能已通过 **Format Text** 节点上的万能引脚公开。
 
-Following from the examples above, these format patterns can be supplied as arguments to `FText::Format` or to **Format Text**. 
+根据上面的示例，这些格式规范可以作为参数提供给 `FText::Format` 或 **Format Text**。 
 
-### Plural Forms
+### 复数形态
 
-Plural forms allow you to use different text based upon a numeric variable given to your text format. Plural forms may be cardinal, such as "There is 1 cat" or "There are 4 cats", or ordinal, such as "You came 1st!" or "You came 2nd!".
+复数形态能基于提供给文本格式的数字变量来使用不同文本。复数形态可能是基数词，如“有 1 只猫”或“有 4 只猫”，也可以是序数词，如“你得到了第 1 名！”或“你得到了第 2 名！”
 
-Plural forms are specified as key->value pairs, and support any of the following keywords (as defined for your culture by the [CLDR data](http://www.unicode.org/cldr/charts/29/supplemental/language_plural_rules.html)): zero, one, two, few, many, other. Values are an optionally quoted string 
-that may also contain format markers.
+复数形态将以“关键字->值”对的形式指定，且支持以下所有关键字（由 [CLDR 数据] 根据所选文化进行定义(http://www.unicode.org/cldr/charts/29/supplemental/language_plural_rules.html)）：0、1、2、few、many、other。值是可选择引用的字符串， 
+它们可能还包含格式标记。
 
-Cardinal Format Example: `"There {NumCats}|plural(one=is,other=are) {NumCats} {NumCats}|plural(one=cat,other=cats)"`
+基数词格式示例：`"There {NumCats}|plural(one=is,other=are) {NumCats} {NumCats}|plural(one=cat,other=cats)"`
 
-Ordinal Format Example: `"You came {Place}{Place}|ordinal(one=st,two=nd,few=rd,other=th)!"`
+序数词格式示例：`"You came {Place}{Place}|ordinal(one=st,two=nd,few=rd,other=th)!"`
 
 
-### Gender Forms
+### 性别形态
 
-Gender forms allow you to use different text based upon an ETextGender value given to your text format, such as "Le guerrier est fort" or "La guerrière est forte".
-Gender forms are specified as a list of values in the order of [masculine, feminine, neuter], where neuter is optional. Values are an optionally quoted string that may also contain format markers.
+性别形态可基于为文字格式赋予的 ETextGender 值使用不同文本，如“Le guerrier est fort”或“La guerrière est forte”。
+性别形态为一系列顺序为 [masculine, feminine, neuter] 的值，其中 neuter 为可选。值为可选择引用的字符串，其中可能还包含格式标记。
 
-Format Example: `"{Gender}|gender(Le,La) {Gender}|gender(guerrier,guerrière) est {Gender}|gender(fort,forte)"`
+格式示例：`"{Gender}|gender(Le,La) {Gender}|gender(guerrier,guerrière) est {Gender}|gender(fort,forte)"`
 
-### Hangul Post-Positions
+### 谚文字母后位
 
-Hangul post-positions help you deal with the grammar rules present in Korean, and will insert the correct glyph(s) based upon whether the value being inserted ends in a consonant or a verb, such as "사람은" or "사자는".
-Hangul post-positions are specified as a list of values in the order of [consonant, verb]. Values are an optionally quoted string.
+谚文字母后位可帮助您应对韩语中的语法规则，根据插入值的结尾是辅音还是动词来插入正确的字符，如“사람은”或“사자는”。
+谚文字母后位为一系列顺序为 [consonant, verb] 的值。值是可选择引用的字符串。
 
-Format Example: `"{Arg}|hpp(은,는)"`
+格式示例：`"{Arg}|hpp(은,는)"`
 

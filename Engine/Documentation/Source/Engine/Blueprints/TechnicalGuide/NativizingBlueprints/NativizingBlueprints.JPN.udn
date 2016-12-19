@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3007724
-Availability:Docs
+﻿INTSourceChangelist:3108692
+Availability:Public
 Title:ブループリントのネイティブ化
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
-Description:ゲームプレイ要素をブループリントに公開するゲームプレイ プログラマのためのテクニカル ガイド
+Description:ゲームプレイ要素をブループリントに公開するゲームプレイ プログラマーのためのテクニカル ガイド
 Version:4.12
 Parent:Engine/Blueprints/TechnicalGuide
 type:overview

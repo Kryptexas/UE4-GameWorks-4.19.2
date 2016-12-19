@@ -1,19 +1,19 @@
-﻿INTSourceChangelist:2620449
+﻿INTSourceChangelist:3213718
 Availability:Public
 Title:6.応用編
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
-Description:詳細を追求するためのアイデア
-バージョン:4.9
+Description:実践してみましょう。
+version:4.14
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[前の手順](Programming\Tutorials\UMG\5 "%Programming\Tutorials\UMG\5:title%")
+		[前のステップ](Programming\Tutorials\UMG\5 "%Programming\Tutorials\UMG\5:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[UMG チュートリアルのホームページ](Programming\Tutorials\UMG)
+		[](Programming\Tutorials\UMG)
 	[/PARAM]
 	[PARAM:next]
 	[/PARAM]
@@ -26,17 +26,17 @@ Description:詳細を追求するためのアイデア
 ここまでで学んだ知識を活かして、以下の操作をしてみましょう。
 
 * 同時に複数のメニューを開く。
-* 単に表示する代わりに、**ウィジェット** をスクリーン上にスライドしたりフェードさせる。
-* ウィジェットでサポートするさまざまなサウンド、スタイル、カラーを詳しく調べる。
-* メニューから困難なレベルやキャラクター クラスなど、**Game Mode** に変数を設定する。
-* プレイヤーがキーを押した時にゲームに表示したりゲームを一時停止させてから、メニューを閉じたらゲームプレイを再開するインゲームメニューを作成する。
-* これまでに構成した機能と接続するか、前回のチュートリアルで **Unreal Motion Graphics** に構成したメニューを学習する。
+* 単に表示させるのではなく、**ウィジェット** を画面上にスライド、または画面上からフェードさせる。
+* ウィジェットでサポートするさまざまなサウンド、スタイル、カラーのプロパティを見る。
+* メニューから難易度やキャラクター クラスなど、**Game Mode** に変数を設定する。
+* プレイヤーがキーを押すとポップアップし、ゲームを一時停止させ、メニューを閉じたらゲームプレイを再開するインゲームメニューを作成する。
+* これまでに構成した機能や、前回のチュートリアルで学んだ機能を **Unreal Motion Graphics** で作ったメニューに接続する。
 
-以下はこのチュートリアルで取り扱った詳細です。
+以下はこのチュートリアルの内容の詳しい情報のリンク先です。
 
-* UMG にゲームプレイスクリーンをデザインしたり、利用できるウィジェットに関する詳細は、 [%Engine/UMG/UserGuide:title%](Engine/UMG/UserGuide) または [%Engine/UMG/UserGuide/WidgetTypeReference:title%](Engine/UMG/UserGuide/WidgetTypeReference) ページを参照してください。
+* UMG でゲームプレイスクリーンをデザインしたり、利用できるウィジェットに関する詳細は、 [%Engine/UMG/UserGuide:title%](Engine/UMG/UserGuide) または [%Engine/UMG/UserGuide/WidgetTypeReference:title%](Engine/UMG/UserGuide/WidgetTypeReference) ページを参照してください。
 * 変数や関数を公開したり、メニューで **タイマー** や **イベント** を使用する方法に関しては、 [%Programming/Tutorials/VariablesTimersEvents:title%](Programming/Tutorials/VariablesTimersEvents) ページを参照してください。
-* さらに詳しいチュートリアルは [%Programming/Tutorials:title%](Programming/Tutorials) ページを参照してください。
+* 詳しいチュートリアルは [%Programming/Tutorials:title%](Programming/Tutorials) ページをご覧ください。
 
 
 %Steps%

@@ -18,7 +18,7 @@
 	[
 		{
 			"Language": "en",
-      "Text": "Static Mesh, Animation Blueprint, Physics Asset, Physics Material, Skeleton, Skeletal Mesh, Material, Material instance, Texture"
+			"Text": "Static Mesh, Animation Blueprint, Physics Asset, Physics Material, Skeleton, Skeletal Mesh, Material, Material instance, Texture"
 		}
 	],
 	"SearchTags":
@@ -44,8 +44,8 @@
 			"DetailLevels":
 			[
 				"Standard",
-				"High",
+				"High"
 			]
-		},		
+		}
 	]
 }

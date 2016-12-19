@@ -8,7 +8,7 @@ Related: Gameplay
 version: 4.9
 parent:Engine/Blueprints
 order:2
-type:howto
+type:landing
 tags:Blueprints
 
 [VAR:Topic]
@@ -56,7 +56,7 @@ When you are ready and have an understanding of the core aspects behind Blueprin
 
 
 ## Beginner
-[DIR(output:"fancy" type:"howto" skill:"Beginner" parent:"Engine/Blueprints/BP_HowTo" org:"hierarchy")]
+[DIR(output:"fancy" type:"how-to" skill:"Beginner" parent:"Engine/Blueprints/BP_HowTo" org:"hierarchy")]
 
 ## Intermediate
 [REGION:wrapper transparent]

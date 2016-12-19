@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:3051445
-Availability: Docs
+﻿INTSourceChangelist:3150518
+Availability: Public
 Title: 윈도우에서 iOS 용 빌드
 Crumbs:%ROOT%, Platforms
 Description:윈도우 머신에서 맥 원격 컴파일을 통해 iOS 빌드를 만드는 법입니다.d. 
 Platform:iOS
 Navigation:platform
 Version: 4.9
-type:howto
+type:how-to
 parent:Platforms/iOS
 tags:Mobile
 tags:iOS
@@ -64,13 +64,11 @@ SSH 셋업은 주로 표시되는 창에 안내된 대로 따르면 됩니다. �
 
 이 데이터를 공유하여 앞으로 모든 프로젝트에 사용할 수 있도록 하려면, 컴퓨터에 있는 하나 이상의 `*Engine.ini` 파일에 **Remote Server Name** 과 **Remote User Name** 을 지정해 주면 될 것입니다.
 
-1. 프로퍼티 옆 복수선택 버튼을 선택합니다.
+1. 프로퍼티 옆 점이 여럿 찍힌 버튼을 클릭하여 **Configuration Editor** (환경설정 에디터)를 엽니다.
 
 	![](ConfigFiles.png)
-
-	그러면 **Configuration Editor** 가 뜹니다.
 	
-1. 원하는 `.ini` 파일 각각에 대해 프로퍼티를 설정합니다.
+1. SSH 데이터를 전달하고자 하는 `.ini` 파일 각각에 대한 프로퍼티를 설정합니다.
 
 	![](inifileexample.png)
 

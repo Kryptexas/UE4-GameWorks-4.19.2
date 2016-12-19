@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3032506
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:스켈레탈 콘트롤
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
@@ -14,7 +14,7 @@ version: 4.12
 수 있습니다. _Animation Blueprint_ (애니메이션 블루프린트) 안에서 사용되며, 개별 본 제어, IK 체인 생성 등의 작업에 쓰입니다.
 내재된 _스켈레톤_ 에 대한 직접 제어할 수 있다는 것은, 절차적이고 동적으로 구동되는 애니메이션을 만들 수 있다는 
 것입니다. 하나의 본에 대한 _Transform_ (트랜스폼) 작업이 다른 본을 움직일 수도 있고, 캐릭터에 일반적인 걷기 애니메이션을 
-재생하면서도 트레이스로 땅에 발을 일치시킬 수도 있습니다. _AnimationSequence_ (애니메이션 시퀀스)에 의해 적용된 
+재생할 때 땅에 발을 일치시킬 수도 있습니다. _AnimationSequence_ (애니메이션 시퀀스)에 의해 적용된 
 본 _트랜스폼_ 을 조정하거나 완전 덮어쓰는 데 있어 어떠한 종류의 변경도 가능합니다.
 [/EXCERPT:Intro]
 
@@ -30,6 +30,15 @@ version: 4.12
 | Alpha | 알파 - _스켈레탈 콘트롤_ 로 적용할 `트랜스폼` 비중 결정을 위한 알파 값으로 사용할 **[0.0, 1.0]** 범위의 `float` (실수) 값입니다. 값이 **0.0** 이면 인풋 포즈에 최대 비중을, **1.0** 이면 콘트롤이 계산한 `트랜스폼` 에 최대 비중을 둡니다. |
 | [REGION:tablesection]**출력 핀**[/REGION] ||
 | Pose (공백) | 포즈 - `트랜스폼` 적용 이후 최종 포즈입니다. |
+
+[EXCERPT:LODThresh]
+![](perf.png)
+
+| 프로퍼티 | 설명 |
+| --- | --- |
+| **LOD Threshold** | LOD 한계치 - 이 노드의 실행 대상이 될 수 있는 최대 레벨 오브 디테일 (**LOD**) 입니다. 예: LOD 한계치가 **2** 로 설정된 경우, **LOD 2** 까지만 실행되고, 컴포넌트의 LOD 가 **3** 이 되면 스스로 꺼집니다. |
+[/EXCERPT]
+
 
 ## 컴포넌트 스페이스
 

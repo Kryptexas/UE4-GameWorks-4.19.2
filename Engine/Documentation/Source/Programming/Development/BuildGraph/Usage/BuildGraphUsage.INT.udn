@@ -1,11 +1,10 @@
-Availability: Docs
+Availability: Public
 Title: BuildGraph Usage
 Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph
 Description:This page shows you how to use BuildGraph Scripts.
 version: 4.13
 parent:Programming/Development/BuildGraph
 type:Overview
-related: Programming/Development/BuildGraph/ScriptAnatomy
 related: Programming/Development/InstalledBuildReference
 tags:BuildGraph
 

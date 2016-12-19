@@ -1,9 +1,14 @@
-﻿INTSourceChangelist:2806926
+﻿INTSourceChangelist:3108692
 Title: 모바일 퍼포먼스 팁과 꼼수
 Description:Unreal Match 3 게임에서 지원되는 모바일 디바이스에 최적의 퍼포먼스를 내기 위해 활용했던 최적화 기법입니다.
-Crumbs:
-Parent:Platforms/Mobile/Performance
+Crumbs:%ROOT%, Platforms, Platforms/Mobile
 Availability:Public
+Version: 4.9
+Platform:Mobile
+parent:Platforms/Mobile
+order:6
+type:overview
+tags:mobile
 
 [VAR:Topic]
 [OBJECT:Topic]

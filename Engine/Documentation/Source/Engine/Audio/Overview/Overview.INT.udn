@@ -149,7 +149,7 @@ Inside the Sound Classes section, you set which Sound Classes are to be affected
 The Sound Mix section allows you to specify how the Sound Mix properties are applied or removed.  **Delay** indicates how long before the mix properties should begin being applied.  **Fade in Time** and **Fade out Time** specify how quickly to transition from no effect to the specified properties.  **Duration** allows a pushed Sound Mix to automatically pop itself after the specified duration.  A value of -1 indicates to never automatically pop and passively applied Sound Mixes will not automatically pop.
 
 
-### Dialogue Voice & Dialogue Wave
+### Dialogue Voice and Dialogue Wave
 The **Dialogue Voice** and **Dialogue Wave** assets are used for generating in-game dialogue events, crafting subtitles, and for supplementing localization efforts. 
 
 When editing a newly created Dialogue Voice asset, you can define the **Gender** and **Plurality** of a voice actor and although you do not specify any audio assets inside the Dialogue Voice, the information provided here can be referenced inside the Dialogue Wave. 
@@ -169,6 +169,8 @@ Dialogue Wave assets can also be applied to a Sound Cue by using the Dialogue Pl
 
 In addition to Dialogue Contexts, you can apply a **Mature** filter which flags the dialogue as containing mature/adult content. Under **Script**, you can enter the text that is spoken in the attached audio inside the **Spoken Text** section. 
 You can also enter contextual information for the audio for translation purposes or for notes to a voice actor in the **Voice Actor Direction** section. 
+
+For more information, see the [](Engine/Audio/Dialogue) example.
 
 
 ## Strategies

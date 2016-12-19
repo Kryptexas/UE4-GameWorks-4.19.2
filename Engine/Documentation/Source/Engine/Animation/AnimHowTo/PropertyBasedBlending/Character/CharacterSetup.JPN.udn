@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2945857
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:3.Character ブループリントを設定する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\PropertyBasedBlending
@@ -11,7 +11,7 @@ Related:Engine/Animation/StateMachines
 version:4.10
 skilllevel:Intermediate
 checkpoint: animpropertyblend
-type:sequential
+type:multi-step
 order:3
 parent:Engine/Animation/AnimHowTo/PropertyBasedBlending
 
@@ -91,7 +91,7 @@ parent:Engine/Animation/AnimHowTo/PropertyBasedBlending
 
 	このキャラクターを削除することで、ゲームをプレイするときにアニメーション スターターパックのキャラクターを使用してスポーンするようになります。 
 
-1.	エディタでプレイするには **Play (プレイ)** をクリックします。 
+1.	エディタでプレイするには **[Play (プレイ)]** をクリックします。 
 
 
 ## 最終結果

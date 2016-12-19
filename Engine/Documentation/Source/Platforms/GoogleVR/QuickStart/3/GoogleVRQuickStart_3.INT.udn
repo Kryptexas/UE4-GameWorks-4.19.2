@@ -7,7 +7,7 @@ Skilllevel: Intermediate
 Version: 4.12
 Parent:Platforms/GoogleVR/QuickStart
 order:3
-type:step
+type:multi-step
 tags:VR
 tags:Google VR
 

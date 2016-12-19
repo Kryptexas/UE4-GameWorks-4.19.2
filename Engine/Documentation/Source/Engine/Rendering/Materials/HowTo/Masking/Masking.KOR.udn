@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3156615
 Availability: Public
-Title:머티리얼 에디터 - 텍스처 마스킹 사용 비법
+Title:텍스처 마스크 사용법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
 Description:머티리얼에 텍스처 마스킹을 사용하는 방법 안내입니다.
 Related: Engine/Content/Types/Textures/Properties

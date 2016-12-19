@@ -5,7 +5,7 @@ Description: Blueprint integer variables can be declared as bitmasks to store bi
 version: 4.12
 skilllevel:Intermediate
 Parent:Engine/Blueprints
-type:guide
+type:overview
 
 [TOC (start:2)]
 
@@ -23,7 +23,9 @@ Enumeration Editor_. You could also use an existing bitflag enumeration type tha
 
 1. In your _Blueprint_, create an integer variable and then enable the **Bitmask** attribute in the **Details** panel. 
 
-	![image alt text](image_2.png)	This equates to the `Bitmask` metadata in C++ code. 
+	![image alt text](image_2.png)
+
+	This equates to the `Bitmask` metadata in C++ code. 
 
 1. Select your _Blueprint Enumeration_ (or existing bitflag enumeration) in the **Bitmask Enum** dropdown menu in the **Details** panel.
 

@@ -12,7 +12,7 @@ Availability:NoPublish
 	[PARAM:Definition]
 
 [EXCERPT:Glossary_safe_area]
-マチネで **セーフ フレーム** は表示を表します。ビューポートカメラの FOV で定義されて、シネマティックの最中に見ることができます。
+マチネで **セーフ フレーム** は表示を表します。視点カメラの FOV で定義されて、シネマティックの最中に見ることができます。
 [/EXCERPT:Glossary_safe_area]
 
 	[/PARAM]
@@ -25,7 +25,7 @@ Availability:NoPublish
 	[PARAM:Definition]
 
 [EXCERPT:Glossary_Scale_tool]
-**スケーリング ツール** は、シーンのアクタを X 、 Y 、 Z 軸に沿ってスケーリングさせる変換ウィジェットです。
+**スケールツール** は、シーンのアクタを X 、 Y 、 Z 軸に沿ってスケーリングさせる変換ウィジェットです。
 [/EXCERPT:Glossary_Scale_tool]
 
 	[/PARAM]
