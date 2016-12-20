@@ -1,6 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PLUGIN_NAMEPrivatePCH.h"
+#include "PLUGIN_NAME.h"
 #include "Core.h"
 #include "ModuleManager.h"
 #include "IPluginManager.h"
