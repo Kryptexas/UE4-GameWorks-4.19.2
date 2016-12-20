@@ -22,6 +22,7 @@
 #include "AI/Navigation/AvoidanceManager.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 
+
 #define LOCTEXT_NAMESPACE "UWheeledVehicleMovementComponent"
 
 #if WITH_VEHICLE
