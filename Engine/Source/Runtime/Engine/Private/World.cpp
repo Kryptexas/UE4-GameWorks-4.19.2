@@ -2723,16 +2723,18 @@ void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 	bool bShouldBlockOnLoad	= StreamingLevel->bShouldBlockOnLoad || StreamingLevel->ShouldBeAlwaysLoaded();
 
 	// Don't update if the code requested this level object to be unloaded and removed or it has an invisibility request pending
-	if ( bHasInvisibilityRequestPending )
-	{
-		// If we have an invisibily request pending, we can't make the level visible again until the request is completed
-		bShouldBeVisible = false;
-	}
-	else if (!bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval)
+	if (!bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval)
 	{
 		bShouldBeLoaded		= bShouldBeLoaded  || !IsGameWorld() || StreamingLevel->ShouldBeLoaded();
 		bShouldBeVisible	= bShouldBeVisible || (bShouldBeLoaded && StreamingLevel->ShouldBeVisible());
 	}
+
+	// If we have an invisibility request pending, we can't make the level visible again until the request is completed
+	if ( bHasInvisibilityRequestPending )
+	{
+		bShouldBeVisible = false;
+	}
+
 	// We want to give the garbage collector a chance to remove levels before we stream in more. We can't do this in the
 	// case of a blocking load as it means those requests should be fulfilled right away. By waiting on GC before kicking
 	// off new levels we potentially delay streaming in maps, but AllowLevelLoadRequests already looks and checks whether
