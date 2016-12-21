@@ -262,6 +262,13 @@ public:
 	/** All of the objects we're currently interacting with, such as selected actors */
 	TArray< TUniquePtr< class FViewportTransformable > > Transformables;
 
+	/** Spawns a transient actor that we can use in the editor world (templated for convenience) */
+	template<class T>
+	T* SpawnTransientSceneActor(const FString& ActorName, const bool bWithSceneComponent) const
+	{
+		return CastChecked<T>(SpawnTransientSceneActor(T::StaticClass(), ActorName, bWithSceneComponent));
+	}
+
 protected:
 
 	/** Allow base class to refresh on selection changed */
@@ -351,13 +358,6 @@ private:
 
 	/** Gets the inertie contribution of another interactor */
 	UViewportInteractor* GetOtherInteractorIntertiaContribute( UViewportInteractor* Interactor );
-
-	/** Spawns a transient actor that we can use in the editor world (templated for convenience) */
-	template<class T>
-	T* SpawnTransientSceneActor( const FString& ActorName, const bool bWithSceneComponent ) const
-	{
-		return CastChecked<T>( SpawnTransientSceneActor( T::StaticClass(), ActorName, bWithSceneComponent ) );
-	}
 
 	/** Spawns a transient actor that we can use in the editor world */
 	AActor* SpawnTransientSceneActor( TSubclassOf<AActor> ActorClass, const FString& ActorName, const bool bWithSceneComponent ) const;

@@ -6,7 +6,6 @@
 
 #pragma once
 
-
 #include "CoreMinimal.h"
 #include "Input/Reply.h"
 #include "Widgets/SWidget.h"
@@ -77,6 +76,7 @@ public:
 	virtual TSharedPtr< class FAssetThumbnailPool > GetThumbnailPool() const override;
 	virtual void AppendCommands( const TSharedRef<FUICommandList>& InCommandsToAppend ) override;
 	virtual void AddStandaloneLevelViewport( const TSharedRef<SLevelViewport>& LevelViewport ) override;
+	virtual TSharedPtr<SWidget> GetSequencerWidgetForLevelEditor() override;
 
 	/**
 	 * Given a tab ID, summons a new tab in the position saved in the current layout, or in a default position.
@@ -246,6 +246,9 @@ private:
 
 	/** Attached sequencer asset editor */
 	TWeakPtr<IAssetEditorInstance> SequencerAssetEditor;
+
+	/** Weak pointer to the level editor's Sequencer widget */
+	TWeakPtr<SWidget> SequencerWidgetPtr;
 };
 
 

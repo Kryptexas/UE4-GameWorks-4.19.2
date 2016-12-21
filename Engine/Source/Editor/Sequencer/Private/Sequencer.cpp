@@ -4286,6 +4286,13 @@ void FSequencer::OnSelectedOutlinerNodesChanged()
 		SynchronizeExternalSelectionWithSequencerSelection();
 		bUpdatingExternalSelection = false;
 	}
+	FSequencerEdMode* SequencerEdMode = (FSequencerEdMode*)(GLevelEditorModeTools().GetActiveMode(FSequencerEdMode::EM_SequencerMode));
+	AActor* NewlySelectedActor = GEditor->GetSelectedActors()->GetTop<AActor>();
+	// If we selected an Actor or a node for an Actor that is a potential autokey candidate, clean up any existing mesh trails
+	if (NewlySelectedActor && !NewlySelectedActor->IsEditorOnly())
+	{
+		SequencerEdMode->CleanUpMeshTrails();
+	}
 	OnSelectionChangedObjectGuidsDelegate.Broadcast(Selection.GetBoundObjectsGuids());
 }
 

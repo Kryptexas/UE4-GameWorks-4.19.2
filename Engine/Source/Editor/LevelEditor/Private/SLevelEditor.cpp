@@ -521,13 +521,16 @@ void SLevelEditor::AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TShared
 			SequencerAssetEditor.Pin()->CloseWindow();
 		}
 
-		TSharedRef<SDockTab> Tab = InvokeTab("Sequencer");
-
+		TSharedRef<SDockTab> Tab = SNew(SDockTab);
+		if(!FGlobalTabmanager::Get()->OnOverrideDockableAreaRestore_Handler.IsBound())
+		{
+			Tab = InvokeTab("Sequencer");
+			Tab->SetOnTabClosed(SDockTab::FOnTabClosedCallback::CreateStatic(&Local::OnSequencerClosed, TWeakPtr<IAssetEditorInstance>(NewSequencerAssetEditor)));
+		}
 		if(SequencerWidget.IsValid() && NewSequencerAssetEditor.IsValid())
 		{
-			Tab->SetOnTabClosed(SDockTab::FOnTabClosedCallback::CreateStatic(&Local::OnSequencerClosed, TWeakPtr<IAssetEditorInstance>(NewSequencerAssetEditor)));
 			Tab->SetContent(SequencerWidget.ToSharedRef());
-
+			SequencerWidgetPtr = SequencerWidget;
 			SequencerAssetEditor = NewSequencerAssetEditor;
 		}
 		else
@@ -739,8 +742,8 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 		{
 			// @todo sequencer: remove when world-centric mode is added
 			return SNew(SDockTab)
-				.Icon( FSlateStyleRegistry::FindSlateStyle("LevelSequenceEditorStyle")->GetBrush("LevelSequenceEditor.Tabs.Sequencer") )
-				.Label( NSLOCTEXT("Sequencer", "SequencerMainTitle", "Sequencer") )
+				.Icon(FSlateStyleRegistry::FindSlateStyle("LevelSequenceEditorStyle")->GetBrush("LevelSequenceEditor.Tabs.Sequencer"))
+				.Label(NSLOCTEXT("Sequencer", "SequencerMainTitle", "Sequencer"))
 				[
 					SNullWidget::NullWidget
 				];
@@ -1523,4 +1526,9 @@ TSharedRef<SWidget> SLevelEditor::CreateToolBox()
 	ToolBoxTabs.Add( NewToolBox );
 
 	return NewToolBox;
+}
+
+TSharedPtr<SWidget> SLevelEditor::GetSequencerWidgetForLevelEditor()
+{
+	return SequencerWidgetPtr.Pin();
 }

@@ -78,7 +78,6 @@
 #include "GenericCommands.h"
 #include "SVRRadialPanel.h"
 
-
 #define LOCTEXT_NAMESPACE "VREditor"
 
 namespace VREd
@@ -192,6 +191,12 @@ void UVREditorUISystem::Init()
 	// Bind the color picker creation & destruction overrides
 	SColorPicker::OnColorPickerNonModalCreateOverride.BindUObject(this, &UVREditorUISystem::CreateVRColorPicker);
 	SColorPicker::OnColorPickerDestroyOverride.BindUObject(this, &UVREditorUISystem::DestroyVRColorPicker);
+
+	// Bind the global tab manager's dockable area restore override
+	FGlobalTabmanager::Get()->OnOverrideDockableAreaRestore_Handler.BindUObject(this, &UVREditorUISystem::DockableAreaRestored);
+
+	FVREditorActionCallbacks::GizmoCoordinateSystemText = FVREditorActionCallbacks::GetGizmoCoordinateSystemText();
+	FVREditorActionCallbacks::GizmoModeText = FVREditorActionCallbacks::GetGizmoModeText();
 }
 
 
@@ -206,6 +211,7 @@ void UVREditorUISystem::Shutdown()
 	// Unbind the color picker creation & destruction overrides
 	SColorPicker::OnColorPickerNonModalCreateOverride.Unbind();
 	SColorPicker::OnColorPickerDestroyOverride.Unbind();
+	FGlobalTabmanager::Get()->OnOverrideDockableAreaRestore_Handler.Unbind();
 
 	CleanUpActorsBeforeMapChangeOrSimulate();
 
@@ -1106,6 +1112,29 @@ void UVREditorUISystem::CreateUIs()
 
 			EditorUIPanels[ (int32)EEditorUIPanel::WorldSettings ] = WorldSettingsUI;
 		}
+
+		{
+			const TSharedRef< ILevelEditor >& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor").GetFirstLevelEditor().ToSharedRef();
+
+			const FName TabIdentifier = NAME_None;	// No tab for us!
+			TSharedRef<SWidget> SequencerWidget = SNullWidget::NullWidget;
+			
+			TSharedRef<SWidget> WidgetToDraw =
+				SNew(SDPIScaler)
+				.DPIScale(VREd::EditorUIScale->GetFloat())
+				[
+					SequencerWidget
+				]
+			;
+
+			const bool bWithSceneComponent = false;
+			AVREditorFloatingUI* SequencerUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >(TEXT("SequencerUI"), bWithSceneComponent);
+			SequencerUI->SetSlateWidget(*this, WidgetToDraw, FIntPoint(VREd::ContentBrowserUIResolutionX->GetFloat(), VREd::ContentBrowserUIResolutionY->GetFloat()), VREd::ContentBrowserUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
+			SequencerUI->ShowUI(false);
+			FloatingUIs.Add(SequencerUI);
+
+			EditorUIPanels[(int32)EEditorUIPanel::SequencerUI] = SequencerUI;
+		}
 	}
 }
 
@@ -1138,7 +1167,15 @@ void UVREditorUISystem::OnAssetEditorOpened(UObject* Asset)
 	TArray<IAssetEditorInstance*> Editors = FAssetEditorManager::Get().FindEditorsForAsset(Asset);
 	for ( IAssetEditorInstance* Editor : Editors )
 	{
-		Editor->GetAssociatedTabManager()->SetCanDoDragOperation(false);
+		if (Editor->GetAssociatedTabManager().IsValid())
+		{
+			Editor->GetAssociatedTabManager()->SetCanDoDragOperation(false);
+		}
+		else
+		{
+			FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+			LevelEditorModule.GetLevelEditorTabManager().ToSharedRef()->SetCanDoDragOperation(false);
+		}
 	}
 }
 
@@ -1643,6 +1680,10 @@ void UVREditorUISystem::SetDefaultWindowLayout()
 		}
 	}
 }
+void UVREditorUISystem::DockableAreaRestored()
+{
+}
+
 void UVREditorUISystem::CreateVRColorPicker(const TSharedRef<SColorPicker>& ColorPicker)
 {
 	// Check that the Color Picker Panel isn't currently showing. Also handles the EEditorUIPanel::ColorPicker being null.
@@ -2066,6 +2107,16 @@ TSharedRef<SWidget> UVREditorUISystem::BuildQuickMenuWidget()
 			),
 		NAME_None,
 		EUserInterfaceActionType::Check
+		);
+	InterfaceMenuBuilder.AddMenuEntry(
+		LOCTEXT("CreateNewSequence", "Create Sequence"),
+		LOCTEXT("CreateNewSequenceTooltip", "Create a new Level Sequence and open it"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::CreateNewSequence, VRMode),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
+			)
 		);
 	InterfaceMenuBuilder.AddMenuEntry(
 		LOCTEXT("ToggleAllUI", "Toggle All UI"),
@@ -2523,6 +2574,8 @@ const TSharedRef<SWidget>& UVREditorUISystem::FindWidgetOfType(const TSharedRef<
 	return SNullWidget::NullWidget;
 }
 
+
+
 void UVREditorUISystem::OnHoverBeginEffect(TSharedRef<SButton> Button)
 {
 	FVRButton* ButtonToAnimate = VRButtons.FindByPredicate([&Button](const FVRButton& ButtonData)
@@ -2582,6 +2635,38 @@ void UVREditorUISystem::SwapRadialMenu()
 	QuickRadialMenu->GetWidgetComponent()->SetOpacityFromTexture( 1.0f );
 	QuickRadialMenu->GetWidgetComponent()->SetBackgroundColor( FLinearColor::Transparent );
 	QuickRadialMenu->GetWidgetComponent()->SetBlendMode( EWidgetBlendMode::Masked );
+}
+
+void UVREditorUISystem::UpdateSequencerUI()
+{
+	if (EditorUIPanels[(int32)EEditorUIPanel::SequencerUI] != nullptr)
+	{
+		AVREditorFloatingUI* SequencerPanel = EditorUIPanels[(int32)EEditorUIPanel::SequencerUI];
+		const FIntPoint DefaultResolution(VREd::DefaultEditorUIResolutionX->GetInt(), VREd::DefaultEditorUIResolutionY->GetInt());
+		const TSharedRef< ILevelEditor >& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor").GetFirstLevelEditor().ToSharedRef();
+
+		const FName TabIdentifier = NAME_None;	// No tab for us!
+		TSharedRef<SWidget> SequencerWidget = LevelEditor->GetSequencerWidgetForLevelEditor().ToSharedRef();
+
+		TSharedRef<SWidget> WidgetToDraw =
+			SNew(SDPIScaler)
+			.DPIScale(VREd::EditorUIScale->GetFloat())
+			[
+				SequencerWidget
+			]
+		;
+
+		const bool bWithSceneComponent = false;
+		SequencerPanel->SetSlateWidget(*this, WidgetToDraw, FIntPoint(VREd::ContentBrowserUIResolutionX->GetFloat(), VREd::ContentBrowserUIResolutionY->GetFloat()), VREd::ContentBrowserUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
+		UVREditorInteractor* VREditorInteractor = VRMode->GetHandInteractor(EControllerHand::Left);
+		if (!VREditorInteractor->IsHoveringOverUI())
+		{
+			VREditorInteractor = VRMode->GetHandInteractor(EControllerHand::Right);
+
+		}
+		ShowEditorUIPanel(UVREditorUISystem::EEditorUIPanel::SequencerUI, VREditorInteractor, true);
+
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

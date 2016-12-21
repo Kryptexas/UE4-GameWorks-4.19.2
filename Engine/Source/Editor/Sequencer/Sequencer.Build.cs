@@ -34,7 +34,8 @@ public class Sequencer : ModuleRules
 				"EditorWidgets", 
 				"SequencerWidgets",
 				"BlueprintGraph",
-				"LevelSequence"
+				"LevelSequence",
+                "ViewportInteraction"
 			}
 		);
 

@@ -22,7 +22,9 @@ namespace UnrealBuildTool.Rules
 					"LevelEditor",
 					"HeadMountedDisplay",
                     "ViewportInteraction",
-					"Analytics"
+					"Analytics",
+                    "LevelSequence",
+                    "Sequencer"
 				}
 			);
 

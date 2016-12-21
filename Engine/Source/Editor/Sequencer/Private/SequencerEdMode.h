@@ -34,16 +34,31 @@ public:
 	virtual bool InputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event ) override;
 	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI) override;
 	virtual void DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) override;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	void SetSequencer(const TWeakPtr<FSequencer>& InSequencer) { SequencerPtr = InSequencer; }
 
 	void OnKeySelected(FViewport* Viewport, HMovieSceneKeyProxy* KeyProxy);
 
+	/** Draw a single mesh transform track, given a key that is on that track */
+	void DrawMeshTransformTrailFromKey(const class ASequencerKeyActor* KeyActor);
+
+	/** Clean up any mesh trails and their associated key actors */
+	void CleanUpMeshTrails();
+
 protected:
-	void DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterface* PDI);
+	void DrawTracks3D(FPrimitiveDrawInterface* PDI);
+
+	void DrawTransformTrack(FPrimitiveDrawInterface* PDI, class UMovieScene3DTransformTrack* TransformTrack, const TArray<TWeakObjectPtr<UObject>>& BoundObjects, const bool& bIsSelected);
 
 private:
 	TWeakPtr<FSequencer> SequencerPtr;
+
+	/**The map of any transform tracks with mesh trails, and their mesh trail representations */
+	TArray<TTuple<class UMovieScene3DTransformTrack*,class ASequencerMeshTrail*>> MeshTrails;
+
+	/** True when drawing mesh trails instead of debug trails */
+	bool bDrawMeshTrails;
 };
 
 /**

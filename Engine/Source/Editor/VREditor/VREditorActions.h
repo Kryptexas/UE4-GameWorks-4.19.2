@@ -3,15 +3,6 @@
 
 #include "VREditorUISystem.h"
 
-namespace EVREditorActions
-{
-	//Gizmo coordinate button text starts blank before it is initialized
-	static FText GizmoCoordinateSystemText = NSLOCTEXT("GizmoCoordinateDefault", "", "");
-
-	//Gizmo mode button text starts blank before it is initialized
-	static FText GizmoModeText = NSLOCTEXT("GizmoModeDefault", "", "");;
-}
-
 /**
 * Implementation of various VR editor action callback functions
 */
@@ -137,16 +128,22 @@ public:
 	 * @param Key Key to press
 	 * @param bRepeat Whether or not to repeat
 	 */
-	static void SimulateKeyDown( FKey Key, bool bRepeat );
+	static void SimulateKeyDown( const FKey Key, const bool bRepeat );
 
 	/**
 	 * Simulates the user releasing a key
 	 * @param Key Key to release
 	 */
-	static void SimulateKeyUp( FKey Key );
+	static void SimulateKeyUp( const FKey Key );
 
+	/** Create a new level sequence with an auto-generated name */
+	static void CreateNewSequence(class UVREditorMode* InVRMode);
+
+public:
+	
+	static FText GizmoCoordinateSystemText;
+
+	static FText GizmoModeText;
 }
 ;
-
-
 

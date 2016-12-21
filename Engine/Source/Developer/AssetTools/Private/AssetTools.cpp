@@ -716,7 +716,7 @@ void FAssetTools::CreateUniqueAssetName(const FString& InBasePackageName, const 
 	const FString BaseAssetNameWithSuffix = FPackageName::GetLongPackageAssetName(SanitizedBasePackageName) + InSuffix;
 	const FString SanitizedBaseAssetName = ObjectTools::SanitizeObjectName(BaseAssetNameWithSuffix);
 
-	int32 IntSuffix = 1;
+	int32 IntSuffix = 0;
 	bool bObjectExists = false;
 
 	int32 CharIndex = SanitizedBaseAssetName.Len() - 1;
@@ -744,7 +744,7 @@ void FAssetTools::CreateUniqueAssetName(const FString& InBasePackageName, const 
 	do
 	{
 		bObjectExists = false;
-		if ( IntSuffix <= 1 )
+		if ( IntSuffix < 1 )
 		{
 			OutAssetName = SanitizedBaseAssetName;
 		}

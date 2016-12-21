@@ -59,6 +59,11 @@ public:
 
 	/** AActor overrides */
 	virtual void Destroyed() override;
+	virtual bool IsEditorOnly() const final
+	{
+		return true;
+	}
+	//~ End AActor interface
 
 	/** Returns the owner of this object */
 	UVREditorUISystem& GetOwner()
@@ -86,6 +91,7 @@ public:
 
 	/** Gets the initial size of this UI */
 	float GetInitialScale() const;
+
 
 protected:
 

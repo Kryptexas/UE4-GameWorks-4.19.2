@@ -98,6 +98,7 @@ public:
 		AssetEditor,
 		WorldSettings,
 		ColorPicker,
+		SequencerUI,
 		// ...
 
 		TotalCount,
@@ -199,6 +200,8 @@ public:
 	 */
 	static const TSharedRef<SWidget>& FindWidgetOfType(const TSharedRef<SWidget>& Content, FName WidgetType);
 
+	/** Function to force an update of the Sequencer UI based on a change */
+	void UpdateSequencerUI();
 
 protected:
 
@@ -230,6 +233,8 @@ protected:
 	/** Sets the main windows to their default transform */
 	void SetDefaultWindowLayout();
 
+	/** Can be used when the tab manager is restoring a dockable tab area */
+	void DockableAreaRestored();
 
 	/** Creates a VR-specific color picker. Gets bound to SColorPicker's creation override delegate */
 	void CreateVRColorPicker(const TSharedRef<SColorPicker>& ColorPicker);

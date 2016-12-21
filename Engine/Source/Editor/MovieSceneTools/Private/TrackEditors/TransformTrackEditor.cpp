@@ -408,11 +408,12 @@ TSharedRef<ISequencerSection> F3DTransformTrackEditor::MakeSectionInterface(UMov
 void F3DTransformTrackEditor::OnPreTransformChanged( UObject& InObject )
 {
 	float AutoKeyTime = GetTimeForKey();
-
-	if( IsAllowedToAutoKey() )
+	AActor* Actor = Cast<AActor>(&InObject);
+	// If Sequencer is allowed to autokey and we are clicking on an Actor that can be autokeyed
+	if( IsAllowedToAutoKey() && (Actor && !Actor->IsEditorOnly() ) )
 	{
 		USceneComponent* SceneComponent = nullptr;
-		AActor* Actor = Cast<AActor>( &InObject );
+		
 		if( Actor && Actor->GetRootComponent() )
 		{
 			SceneComponent = Actor->GetRootComponent();
@@ -428,8 +429,8 @@ void F3DTransformTrackEditor::OnPreTransformChanged( UObject& InObject )
 			// Cache off the existing transform so we can detect which components have changed
 			// and keys only when something has changed
 			FTransformData Transform( SceneComponent );
-
-			ObjectToExistingTransform.Add( &InObject, Transform );
+			
+			ObjectToExistingTransform.Add(&InObject, Transform);
 		}
 	}
 }
@@ -456,7 +457,8 @@ void F3DTransformTrackEditor::OnTransformChanged( UObject& InObject )
 	USceneComponent* SceneComponentThatChanged = nullptr;
 	GetActorAndSceneComponentFromObject(&InObject, Actor, SceneComponentThatChanged);
 
-	if( SceneComponentThatChanged != nullptr && Actor != nullptr )
+	// If the Actor that just finished transforming doesn't have autokey disabled
+	if( SceneComponentThatChanged != nullptr && (Actor && !Actor->IsEditorOnly()))
 	{
 		// Find an existing transform if possible.  If one exists we will compare against the new one to decide what components of the transform need keys
 		FTransformData ExistingTransform = ObjectToExistingTransform.FindRef( &InObject );

@@ -34,6 +34,8 @@
 
 #include "ViewportWorldInteractionManager.h"
 
+#include "ISequencer.h"
+
 #define LOCTEXT_NAMESPACE "VREditorMode"
 
 namespace VREd
@@ -452,6 +454,7 @@ void UVREditorMode::Exit(const bool bHMDShouldExitStereo)
 						VRViewportClient.GetWorld()->GetWorldSettings()->WorldToMeters = SavedEditorState.WorldToMetersScale;
 						ENGINE_API extern float GNewWorldToMetersScale;
 						GNewWorldToMetersScale = 0.0f;
+						OnVREditingModeExit_Handler.ExecuteIfBound();
 					}
 				}
 
@@ -909,6 +912,12 @@ float UVREditorMode::GetDefaultVRNearClipPlane() const
 	return VREd::VRNearClipPlane->GetFloat();
 }
 
+void UVREditorMode::RefreshVREditorSequencer()
+{
+	// Tell the VR Editor UI system to refresh the Sequencer UI
+	GetUISystem().UpdateSequencerUI();
+}
+
 bool UVREditorMode::IsHandAimingTowardsCapsule( UViewportInteractor* Interactor, const FTransform& CapsuleTransform, FVector CapsuleStart, const FVector CapsuleEnd, const float CapsuleRadius, const float MinDistanceToCapsule, const FVector CapsuleFrontDirection, const float MinDotForAimingAtCapsule ) const
 {
 	bool bIsAimingTowards = false;
@@ -991,6 +1000,12 @@ void UVREditorMode::SnapSelectedActorsToGround()
 const UVREditorMode::FSavedEditorState& UVREditorMode::GetSavedEditorState() const
 {
 	return SavedEditorState;
+}
+
+void UVREditorMode::SaveSequencerSettings(bool bInKeyAllEnabled, EAutoKeyMode InAutoKeyMode)
+{
+	SavedEditorState.bKeyAllEnabled = bInKeyAllEnabled;
+	SavedEditorState.AutoKeyMode = InAutoKeyMode;
 }
 
 #undef LOCTEXT_NAMESPACE

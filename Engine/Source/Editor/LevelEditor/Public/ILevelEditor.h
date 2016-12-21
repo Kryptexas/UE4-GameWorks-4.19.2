@@ -63,6 +63,9 @@ public:
 	/** Spawns a level editor ToolBox widget (aka. "Modes") */
 	virtual TSharedRef<SWidget> CreateToolBox() = 0;
 
+	/** Return the level editor's Sequencer widget */
+	virtual TSharedPtr<SWidget> GetSequencerWidgetForLevelEditor() = 0;
+
 };
 
 

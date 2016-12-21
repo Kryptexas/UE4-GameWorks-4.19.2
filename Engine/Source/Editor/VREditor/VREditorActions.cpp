@@ -10,11 +10,21 @@
 #include "VREditorFloatingUI.h"
 #include "VREditorTransformGizmo.h"
 #include "SLevelViewport.h"
+#include "SlateApplication.h"
 #include "ImageUtils.h"
 #include "FileHelper.h"
 
+#include "AssetEditorManager.h"
+#include "Developer/AssetTools/Public/IAssetTools.h"
+#include "Developer/AssetTools/Public/AssetToolsModule.h"
+#include "ModuleManager.h"
+#include "LevelSequence.h"
+#include "LevelSequenceActor.h"
 
 #define LOCTEXT_NAMESPACE "VREditorActions"
+
+FText FVREditorActionCallbacks::GizmoCoordinateSystemText;
+FText FVREditorActionCallbacks::GizmoModeText;
 
 ECheckBoxState FVREditorActionCallbacks::GetTranslationSnapState()
 {
@@ -108,13 +118,13 @@ void FVREditorActionCallbacks::OnGizmoCoordinateSystemButtonClicked(class UVREdi
 
 FText FVREditorActionCallbacks::GetGizmoCoordinateSystemText()
 {
-	return EVREditorActions::GizmoCoordinateSystemText;
+	return FVREditorActionCallbacks::GizmoCoordinateSystemText;
 }
 
 void FVREditorActionCallbacks::UpdateGizmoCoordinateSystemText(class UVREditorMode* InVRMode) 
 {
 	const ECoordSystem CurrentCoordSystem = InVRMode->GetWorldInteraction().GetTransformGizmoCoordinateSpace(); //@todo VREditor
-	EVREditorActions::GizmoCoordinateSystemText = (CurrentCoordSystem == COORD_World ? LOCTEXT("WorldCoordinateSystem", "World Space") : LOCTEXT("LocalCoordinateSystem", "Local Space"));
+	FVREditorActionCallbacks::GizmoCoordinateSystemText = (CurrentCoordSystem == COORD_World ? LOCTEXT("WorldCoordinateSystem", "World Space") : LOCTEXT("LocalCoordinateSystem", "Local Space"));
 }
 
 void FVREditorActionCallbacks::OnGizmoModeButtonClicked(class UVREditorMode* InVRMode)
@@ -128,7 +138,7 @@ void FVREditorActionCallbacks::OnGizmoModeButtonClicked(class UVREditorMode* InV
 
 FText FVREditorActionCallbacks::GetGizmoModeText()
 {
-	return EVREditorActions::GizmoModeText;
+	return FVREditorActionCallbacks::GizmoModeText;
 }
 
 void FVREditorActionCallbacks::UpdateGizmoModeText(class UVREditorMode* InVRMode) 
@@ -158,7 +168,7 @@ void FVREditorActionCallbacks::UpdateGizmoModeText(class UVREditorMode* InVRMode
 		break;
 	}
 
-	EVREditorActions::GizmoModeText = GizmoTypeText;
+	FVREditorActionCallbacks::GizmoModeText = GizmoTypeText;
 }
 
 void FVREditorActionCallbacks::OnGizmoCycle(class UVREditorMode* InVRMode)
@@ -270,7 +280,7 @@ void FVREditorActionCallbacks::SimulateCharacterEntry(const FString InChar)
 
 }
 
-void FVREditorActionCallbacks::SimulateKeyDown(FKey Key, bool bRepeat)
+void FVREditorActionCallbacks::SimulateKeyDown(const FKey Key, const bool bRepeat)
 {
 	const uint32* KeyCodePtr;
 	const uint32* CharCodePtr;
@@ -289,7 +299,7 @@ void FVREditorActionCallbacks::SimulateKeyDown(FKey Key, bool bRepeat)
 	}
 }
 
-void FVREditorActionCallbacks::SimulateKeyUp(FKey Key)
+void FVREditorActionCallbacks::SimulateKeyUp(const FKey Key)
 {
 	const uint32* KeyCodePtr;
 	const uint32* CharCodePtr;
@@ -300,6 +310,50 @@ void FVREditorActionCallbacks::SimulateKeyUp(FKey Key)
 
 	FKeyEvent KeyEvent( Key, FModifierKeysState::FModifierKeysState(), 0, false, KeyCode, CharCode );
 	FSlateApplication::Get().ProcessKeyUpEvent( KeyEvent );
+}
+
+void FVREditorActionCallbacks::CreateNewSequence(class UVREditorMode* InVRMode)
+{
+	// Create a new level sequence
+	IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
+
+	UObject* NewAsset = nullptr;
+
+	// Attempt to create a new asset
+	for (TObjectIterator<UClass> It; It; ++It)
+	{
+		UClass* CurrentClass = *It;
+		if (CurrentClass->IsChildOf(UFactory::StaticClass()) && !(CurrentClass->HasAnyClassFlags(CLASS_Abstract)))
+		{
+			UFactory* Factory = Cast<UFactory>(CurrentClass->GetDefaultObject());
+			if (Factory->CanCreateNew() && Factory->ImportPriority >= 0 && Factory->SupportedClass == ULevelSequence::StaticClass())
+			{
+				FString NewPackageName;
+				FString NewAssetName;
+				// Sequences created in VR editor will have a sequential VRSequencer00X naming scheme and be stored in Game/Sequences
+				AssetTools.CreateUniqueAssetName(TEXT("/Game/Cinematics/Sequences/VRSequence"), TEXT("001"), NewPackageName, NewAssetName);
+				NewAsset = AssetTools.CreateAsset(NewAssetName, TEXT("/Game/Cinematics/Sequences"), ULevelSequence::StaticClass(), Factory);
+				break;
+			}
+		}
+	}
+
+	if (!NewAsset)
+	{
+		return;
+	}
+
+	// Spawn an actor at the origin, and move in front of the camera and open for edit
+	UActorFactory* ActorFactory = GEditor->FindActorFactoryForActorClass(ALevelSequenceActor::StaticClass());
+	if (!ensure(ActorFactory))
+	{
+		return;
+	}
+
+	ALevelSequenceActor* NewActor = CastChecked<ALevelSequenceActor>(GEditor->UseActorFactory(ActorFactory, FAssetData(NewAsset), &FTransform::Identity));
+
+	// Open the Sequencer window
+	FAssetEditorManager::Get().OpenEditorForAsset(NewAsset);
 }
 
 #undef LOCTEXT_NAMESPACE

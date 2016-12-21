@@ -2267,6 +2267,7 @@ void UViewportWorldInteraction::StartDraggingActors( UViewportInteractor* Intera
 			// using the laser impact point as the target transform
 			if ( bIsPlacingActors )
 			{
+				GEditor->BroadcastBeginObjectMovement(*Actor);
 				bIsInterpolatingTransformablesFromSnapshotTransform = true;
 				const FTimespan CurrentTime = FTimespan::FromSeconds( FPlatformTime::Seconds() );
 				TransformablesInterpolationStartTime = CurrentTime;
@@ -2325,6 +2326,12 @@ void UViewportWorldInteraction::StopDragging( UViewportInteractor* Interactor )
 				InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsFreely ||
 				InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact )
 			{
+				// vreditor todo: Move this to where we detect a move from inertia finishes
+				FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
+				if (HitResult.Actor.IsValid())
+				{
+					GEditor->BroadcastEndObjectMovement(*HitResult.Actor);
+				}
 				// No hand is dragging the objects anymore.
 				if ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo &&
 					InteractorData.TransformGizmoInteractionType == ETransformGizmoInteractionType::RotateOnAngle )
@@ -2340,7 +2347,7 @@ void UViewportWorldInteraction::StopDragging( UViewportInteractor* Interactor )
 					--TrackingTransaction.TransCount;
 					TrackingTransaction.End();
 					GEditor->DisableDeltaModification( false );
-				}
+				}	
 			}
 		}
 		

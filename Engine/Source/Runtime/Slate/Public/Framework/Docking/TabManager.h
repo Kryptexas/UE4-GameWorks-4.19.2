@@ -904,6 +904,10 @@ public:
 
 	void SetProxyTabManager(TSharedPtr<FProxyTabmanager> InProxyTabManager);
 
+	DECLARE_DELEGATE(FOnOverrideDockableAreaRestore);
+	/** Used to override dockable area restoration behavior */
+	FOnOverrideDockableAreaRestore OnOverrideDockableAreaRestore_Handler;
+
 protected:
 	virtual void OnTabForegrounded( const TSharedPtr<SDockTab>& NewForegroundTab, const TSharedPtr<SDockTab>& BackgroundedTab ) override;
 	virtual void OnTabRelocated( const TSharedRef<SDockTab>& RelocatedTab, const TSharedPtr<SWindow>& NewOwnerWindow ) override;

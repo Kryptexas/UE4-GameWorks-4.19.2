@@ -18,7 +18,7 @@
 class AActor;
 class FEditorViewportClient;
 class SLevelViewport;
-enum class EGizmoHandleTypes : uint8;
+enum class EAutoKeyMode : uint8;
 
 // Forward declare the GizmoHandleTypes that is defined in VIBaseTransformGizmo.h
 enum class EGizmoHandleTypes : uint8;
@@ -267,27 +267,38 @@ public:
 		bool bOnScreenMessages;
 		EHMDTrackingOrigin::Type TrackingOrigin;
 		float WorldToMetersScale;
+		bool bKeyAllEnabled;
+		EAutoKeyMode AutoKeyMode;
 
 		FSavedEditorState()
-			: ViewportType( LVT_Perspective ),
-			  ViewLocation( FVector::ZeroVector ),
-			  ViewRotation( FRotator::ZeroRotator ),
-			  ShowFlags( ESFIM_Editor ),
-			  bLockedPitch( false ),
-			  bGameView( false ),
-			  bAlwaysShowModeWidgetAfterSelectionChanges( false ),
-			  NearClipPlane( 0.0f ),
-			  bRealTime( false ),
-			  DragTriggerDistance( 0.0f ),
-			  bOnScreenMessages( false ),
-			  TrackingOrigin( EHMDTrackingOrigin::Eye ),
-			  WorldToMetersScale( 100.0f )
+			: ViewportType(LVT_Perspective),
+			ViewLocation(FVector::ZeroVector),
+			ViewRotation(FRotator::ZeroRotator),
+			ShowFlags(ESFIM_Editor),
+			bLockedPitch(false),
+			bGameView(false),
+			bAlwaysShowModeWidgetAfterSelectionChanges(false),
+			NearClipPlane(0.0f),
+			bRealTime(false),
+			DragTriggerDistance(0.0f),
+			bOnScreenMessages(false),
+			TrackingOrigin(EHMDTrackingOrigin::Eye),
+			WorldToMetersScale(100.0f),
+			bKeyAllEnabled(false),
+			AutoKeyMode()
 		{
 		}
 	};
 
 	/** Gets the saved editor state from entering the mode */
 	const FSavedEditorState& GetSavedEditorState() const;
+
+	DECLARE_DELEGATE(FOnVREditingModeExit);
+	/** Used to override dockable area restoration behavior */
+	FOnVREditingModeExit OnVREditingModeExit_Handler;
+
+	void SaveSequencerSettings(bool bInKeyAllEnabled, EAutoKeyMode InAutoKeyMode);
+
 
 private:
 
@@ -444,6 +455,9 @@ public:
 
 	// Get the default near clipping plane for VR editing
 	float GetDefaultVRNearClipPlane() const;
+
+	/** Runtime and plugin modules can force VR Editor to refresh using this function */
+	void RefreshVREditorSequencer();
 
 private:
 

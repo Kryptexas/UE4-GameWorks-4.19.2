@@ -50,6 +50,13 @@ public:
 	/** Deconstructor */
 	virtual ~ABaseTransformGizmo();
 
+	//~ Begin AActor interface
+	virtual bool IsEditorOnly() const final
+	{
+		return true;
+	}
+	//~ End AActor interface
+
 	/** Call this when new objects become selected.  This triggers an animation transition. */
 	void OnNewObjectsSelected();
 
