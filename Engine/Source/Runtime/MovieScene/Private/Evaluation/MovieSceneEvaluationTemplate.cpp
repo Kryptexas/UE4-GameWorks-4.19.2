@@ -26,15 +26,18 @@ void FCachedMovieSceneEvaluationTemplate::Regenerate(const FMovieSceneTrackCompi
 {
 	if (IsOutOfDate(Params))
 	{
-		ForceRegenerate(Params);
+		RegenerateImpl(Params);
 	}
 }
 
 void FCachedMovieSceneEvaluationTemplate::ForceRegenerate(const FMovieSceneTrackCompilationParams& Params)
 {
-	// Reassign the template back to default
-	static_cast<FMovieSceneEvaluationTemplate&>(*this) = FMovieSceneEvaluationTemplate();
+	ResetGeneratedData();
+	RegenerateImpl(Params);
+}
 
+void FCachedMovieSceneEvaluationTemplate::RegenerateImpl(const FMovieSceneTrackCompilationParams& Params)
+{
 	CachedSignatures.Reset();
 	CachedCompilationParams = Params;
 
@@ -163,6 +166,18 @@ void FMovieSceneGenerationLedger::AddTrack(const FGuid& InSignature, FMovieScene
 {
 	TrackSignatureToTrackIdentifier.FindOrAdd(InSignature).Add(Identifier);
 	++TrackReferenceCounts.FindOrAdd(Identifier);
+}
+
+void FMovieSceneEvaluationTemplate::ResetGeneratedData()
+{
+	Ledger.TrackSignatureToTrackIdentifier.Reset();
+	Ledger.TrackReferenceCounts.Reset();
+
+	Tracks.Reset();
+	StaleTracks.Reset();
+	EvaluationField = FMovieSceneEvaluationField();
+	Hierarchy = FMovieSceneSequenceHierarchy();
+	bHasLegacyTrackInstances = false;
 }
 
 FMovieSceneTrackIdentifier FMovieSceneEvaluationTemplate::AddTrack(const FGuid& InSignature, FMovieSceneEvaluationTrack&& InTrack)
