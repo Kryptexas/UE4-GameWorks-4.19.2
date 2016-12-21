@@ -394,7 +394,56 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 		UE_LOG(LogLevelStreaming, Verbose, TEXT("Delaying load of new level %s, because %s still processing visibility request."), *DesiredPackageName.ToString(), *CachedLoadedLevelPackageName.ToString());
 		return false;
 	}
-		
+
+	EPackageFlags PackageFlags = PKG_ContainsMap;
+	int32 PIEInstanceID = INDEX_NONE;
+
+	// copy streaming level on demand if we are in PIE
+	// (the world is already loaded for the editor, just find it and copy it)
+	if ( PersistentWorld->IsPlayInEditor() )
+	{
+		if (PersistentWorld->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor))
+		{
+			PackageFlags |= PKG_PlayInEditor;
+		}
+		PIEInstanceID = PersistentWorld->GetOutermost()->PIEInstanceID;
+
+		const FString NonPrefixedLevelName = UWorld::StripPIEPrefixFromPackageName(DesiredPackageName.ToString(), PersistentWorld->StreamingLevelsPrefix);
+		UPackage* EditorLevelPackage = FindObjectFast<UPackage>(nullptr, FName(*NonPrefixedLevelName));
+
+		bool bShouldDuplicate = EditorLevelPackage && (BlockPolicy == AlwaysBlock || EditorLevelPackage->IsDirty() || !GEngine->PreferToStreamLevelsInPIE());
+		if (bShouldDuplicate)
+		{
+			// Do the duplication
+			UWorld* PIELevelWorld = UWorld::DuplicateWorldForPIE(NonPrefixedLevelName, PersistentWorld);
+			if (PIELevelWorld)
+			{
+				PIELevelWorld->PersistentLevel->bAlreadyMovedActors = true; // As we have duplicated the world, the actors will already have been transformed
+				check(PendingUnloadLevel == NULL);
+				SetLoadedLevel(PIELevelWorld->PersistentLevel);
+
+				// Broadcast level loaded event to blueprints
+				{
+					QUICK_SCOPE_CYCLE_COUNTER(STAT_OnLevelLoaded_Broadcast);
+					OnLevelLoaded.Broadcast();
+				}
+
+				return true;
+			}
+			else if (PersistentWorld->WorldComposition == NULL) // In world composition streaming levels are not loaded by default
+			{
+				if ( bAllowLevelLoadRequests )
+				{
+					UE_LOG(LogLevelStreaming, Log, TEXT("World to duplicate for PIE '%s' not found. Attempting load."), *NonPrefixedLevelName);
+				}
+				else
+				{
+					UE_LOG(LogLevelStreaming, Warning, TEXT("Unable to duplicate PIE World: '%s'"), *NonPrefixedLevelName);
+				}
+			}
+		}
+	}
+
 	// Try to find the [to be] loaded package.
 	UPackage* LevelPackage = (UPackage*)StaticFindObjectFast(UPackage::StaticClass(), NULL, DesiredPackageName, 0, 0, RF_NoFlags, EInternalObjectFlags::PendingKill);
 
@@ -446,55 +495,6 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 			}
 			
 			return true;
-		}
-	}
-
-	EPackageFlags PackageFlags = PKG_ContainsMap;
-	int32 PIEInstanceID = INDEX_NONE;
-
-	// copy streaming level on demand if we are in PIE
-	// (the world is already loaded for the editor, just find it and copy it)
-	if ( PersistentWorld->IsPlayInEditor() )
-	{
-		if (PersistentWorld->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor))
-		{
-			PackageFlags |= PKG_PlayInEditor;
-		}
-		PIEInstanceID = PersistentWorld->GetOutermost()->PIEInstanceID;
-
-		const FString NonPrefixedLevelName = UWorld::StripPIEPrefixFromPackageName(DesiredPackageName.ToString(), PersistentWorld->StreamingLevelsPrefix);
-		UPackage* EditorLevelPackage = FindObjectFast<UPackage>(nullptr, FName(*NonPrefixedLevelName));
-		
-		bool bShouldDuplicate = EditorLevelPackage && (BlockPolicy == AlwaysBlock || EditorLevelPackage->IsDirty() || !GEngine->PreferToStreamLevelsInPIE());
-		if (bShouldDuplicate)
-		{
-			// Do the duplication
-			UWorld* PIELevelWorld = UWorld::DuplicateWorldForPIE(NonPrefixedLevelName, PersistentWorld);
-			if (PIELevelWorld)
-			{
-				PIELevelWorld->PersistentLevel->bAlreadyMovedActors = true; // As we have duplicated the world, the actors will already have been transformed
-				check(PendingUnloadLevel == NULL);
-				SetLoadedLevel(PIELevelWorld->PersistentLevel);
-
-				// Broadcast level loaded event to blueprints
-				{
-					QUICK_SCOPE_CYCLE_COUNTER(STAT_OnLevelLoaded_Broadcast);
-					OnLevelLoaded.Broadcast();
-				}
-
-				return true;
-			}
-			else if (PersistentWorld->WorldComposition == NULL) // In world composition streaming levels are not loaded by default
-			{
-				if ( bAllowLevelLoadRequests )
-				{
-					UE_LOG(LogLevelStreaming, Log, TEXT("World to duplicate for PIE '%s' not found. Attempting load."), *NonPrefixedLevelName);
-				}
-				else
-				{
-					UE_LOG(LogLevelStreaming, Warning, TEXT("Unable to duplicate PIE World: '%s'"), *NonPrefixedLevelName);
-				}
-			}
 		}
 	}
 

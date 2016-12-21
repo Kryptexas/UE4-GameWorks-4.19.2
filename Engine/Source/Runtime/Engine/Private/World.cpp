@@ -4875,7 +4875,8 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 				LoadPackageAsync(TransitionMap, 
 					FLoadPackageAsyncDelegate::CreateRaw(this, &FSeamlessTravelHandler::SeamlessTravelLoadCallback),
 					0, 
-					(CurrentWorld->WorldType == EWorldType::PIE ? PKG_PlayInEditor : PKG_None)
+					(CurrentWorld->WorldType == EWorldType::PIE ? PKG_PlayInEditor : PKG_None),
+					Context.PIEInstance
 					);
 			}
 
@@ -4977,9 +4978,9 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 			UPackage* EditorLevelPackage = (UPackage*)StaticFindObjectFast(UPackage::StaticClass(), NULL, URLMapFName, 0, 0, RF_NoFlags, EInternalObjectFlags::PendingKill);
 			if (EditorLevelPackage)
 			{
-				PIEInstanceID = WorldContext.PIEInstance;
 				URLMapPackageName = UWorld::ConvertToPIEPackageName(URLMapPackageName, PIEInstanceID);
 			}
+			PIEInstanceID = WorldContext.PIEInstance;
 		}
 #endif
 		LoadPackageAsync(
@@ -5606,7 +5607,7 @@ FConstLevelIterator	UWorld::GetLevelIterator() const
 ULevel* UWorld::GetLevel( int32 InLevelIndex ) const
 {
 	check( InLevelIndex < Levels.Num() );
-	check(Levels[ InLevelIndex ]);
+		check(Levels[InLevelIndex]);
 	return Levels[ InLevelIndex ];
 }
 
