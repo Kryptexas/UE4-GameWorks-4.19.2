@@ -33,17 +33,20 @@ struct HActor : public HHitProxy
 	DECLARE_HIT_PROXY( ENGINE_API )
 	AActor* Actor;
 	const UPrimitiveComponent* PrimComponent;
+	int32 SectionIndex;
 	int32 MaterialIndex;
 
 	HActor( AActor* InActor, const UPrimitiveComponent* InPrimComponent )
 		: Actor( InActor ) 
 		, PrimComponent( InPrimComponent )
+		, SectionIndex( -1 )
 		, MaterialIndex( -1 )
 		{}
 
-	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, int32 InMaterialIndex)
+	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, int32 InSectionIndex, int32 InMaterialIndex)
 		: Actor( InActor )
 		, PrimComponent( InPrimComponent )
+		, SectionIndex(InSectionIndex)
 		, MaterialIndex( InMaterialIndex )
 		{}
 
@@ -51,13 +54,15 @@ struct HActor : public HHitProxy
 		: HHitProxy( InPriority )
 		, Actor( InActor )
 		, PrimComponent( InPrimComponent )
+		, SectionIndex( -1 )
 		, MaterialIndex( -1 )
 		{}
 
-	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, EHitProxyPriority InPriority, int32 InMaterialIndex)
+	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, EHitProxyPriority InPriority, int32 InSectionIndex, int32 InMaterialIndex)
 		: HHitProxy(InPriority)
 		, Actor(InActor)
 		, PrimComponent(InPrimComponent)
+		, SectionIndex(InSectionIndex)
 		, MaterialIndex(InMaterialIndex)
 		{}
 
