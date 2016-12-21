@@ -14,6 +14,11 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Serialization/MemoryWriter.h"
 
+#include "DetailCategoryBuilder.h"
+#include "DetailLayoutBuilder.h"
+#include "IDetailsView.h"
+#include "SlateApplication.h"
+
 #define LOCTEXT_NAMESPACE "MovieSceneEventParameters"
 
 TSharedRef<IPropertyTypeCustomization> FMovieSceneEventParametersCustomization::MakeInstance()
@@ -68,6 +73,19 @@ void FMovieSceneEventParametersCustomization::CustomizeChildren(TSharedRef<IProp
 			Handle->SetOnChildPropertyValueChanged(OnEditStructChildContentsChangedDelegate);
 		}
 	}
+
+	TSharedRef<const SWidget> DetailsView = ChildBuilder.GetParentCategory().GetParentLayout().GetDetailsView().AsShared();
+
+	PropertyUtilities->EnqueueDeferredAction(FSimpleDelegate::CreateLambda(
+		[DetailsView]
+		{
+			FWidgetPath WidgetPath;
+			bool bFound = FSlateApplication::Get().FindPathToWidget(DetailsView, WidgetPath);
+			if (bFound)
+			{
+				FSlateApplication::Get().SetAllUserFocus(WidgetPath, EFocusCause::SetDirectly);
+			}
+		}));
 }
 
 void FMovieSceneEventParametersCustomization::OnStructChanged(const FAssetData& AssetData)
