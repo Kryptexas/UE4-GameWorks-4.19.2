@@ -3073,11 +3073,10 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 #if !UE_BUILD_SHIPPING
 	TArray<FAudioStats::FStatSoundInfo> StatSoundInfos;
 	TArray<FAudioStats::FStatSoundMix> StatSoundMixes;
+	const FVector ListenerPosition = Listeners[0].Transform.GetTranslation();
 	const bool bStatsStale = (RequestedAudioStats == 0);
 	if (RequestedAudioStats != 0)
 	{
-		const FVector ListenerPosition = Listeners[0].Transform.GetTranslation();
-
 		TMap<FActiveSound*, int32> ActiveSoundToInfoIndex;
 
 		const bool bDebug = (RequestedAudioStats & ERequestedAudioStats::DebugSounds) != 0;
@@ -3154,7 +3153,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 
 	FAudioThread::RunCommandOnGameThread([AudioDeviceID, ReverbEffect
 #if !UE_BUILD_SHIPPING
-											, StatSoundInfos, StatSoundMixes, bStatsStale
+											, ListenerPosition, StatSoundInfos, StatSoundMixes, bStatsStale
 #endif
 													]()
 	{
@@ -3164,6 +3163,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 			{
 				AudioDevice->CurrentReverbEffect = ReverbEffect;
 #if !UE_BUILD_SHIPPING
+				AudioDevice->AudioStats.ListenerLocation = ListenerPosition;
 				AudioDevice->AudioStats.StatSoundInfos = MoveTemp(StatSoundInfos);
 				AudioDevice->AudioStats.StatSoundMixes = MoveTemp(StatSoundMixes);
 				AudioDevice->AudioStats.bStale = bStatsStale;
