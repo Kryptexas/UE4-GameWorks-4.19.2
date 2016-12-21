@@ -12614,6 +12614,36 @@ void FAudioDevice::ResolveDesiredStats(FViewportClient* ViewportClient)
 		ClearStats |= ERequestedAudioStats::SoundMixes;
 	}
 
+	if (ViewportClient->IsStatEnabled(TEXT("Sounds")))
+	{
+		const FViewportClient::ESoundShowFlags::Type SoundShowFlags = ViewportClient->GetSoundShowFlags();
+		SetStats |= ERequestedAudioStats::Sounds;
+		
+		if (SoundShowFlags & FViewportClient::ESoundShowFlags::Debug)
+		{
+			SetStats |= ERequestedAudioStats::DebugSounds;
+		}
+		else
+		{
+			ClearStats |= ERequestedAudioStats::DebugSounds;
+		}
+
+		if (SoundShowFlags & FViewportClient::ESoundShowFlags::Long_Names)
+		{
+			SetStats |= ERequestedAudioStats::LongSoundNames;
+		}
+		else
+		{
+			ClearStats |= ERequestedAudioStats::LongSoundNames;
+		}
+	}
+	else
+	{
+		ClearStats |= ERequestedAudioStats::Sounds;
+		ClearStats |= ERequestedAudioStats::DebugSounds;
+		ClearStats |= ERequestedAudioStats::LongSoundNames;
+	}
+
 	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.ResolveDesiredStats"), STAT_AudioResolveDesiredStats, STATGROUP_TaskGraphTasks);
 
 	FAudioDevice* AudioDevice = this;
