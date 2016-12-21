@@ -3958,7 +3958,7 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 		const UEnum* EnumPtr = Cast<const UEnum>(PinSubCategoryObject);
 		if (EnumPtr)
 		{
-			if (EnumPtr->FindEnumIndex(*NewDefaultValue) == INDEX_NONE)
+			if ( NewDefaultValue == TEXT("(INVALID)") || EnumPtr->FindEnumIndex(*NewDefaultValue) == INDEX_NONE)
 			{
 				DVSV_RETURN_MSG(FString::Printf(TEXT("'%s' is not a valid enumerant of '<%s>'"), *NewDefaultValue, *(EnumPtr->GetName())));
 			}
