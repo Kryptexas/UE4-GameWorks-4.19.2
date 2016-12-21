@@ -1302,7 +1302,6 @@ class BuildPhysX : BuildCommand
 				case UnrealTargetPlatform.PS4:
 				case UnrealTargetPlatform.XboxOne:
 				case UnrealTargetPlatform.Mac:
-				case UnrealTargetPlatform.HTML5:
 					return true;
 				case UnrealTargetPlatform.Linux:
 					// only x86_64 Linux supports it.
