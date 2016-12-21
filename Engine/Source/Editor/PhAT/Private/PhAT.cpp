@@ -631,6 +631,8 @@ void FPhAT::RefreshHierachyTreeSelection()
 		return;
 	}
 
+	InsideSelChanged = true;
+
 	if(Hierarchy.Get())
 	{
 		for(int32 i=0; i<TreeElements.Num(); ++i)
@@ -638,6 +640,8 @@ void FPhAT::RefreshHierachyTreeSelection()
 			Hierarchy->SetItemSelection(TreeElements[i], TreeElemSelected(TreeElements[i], SharedData, Hierarchy), ESelectInfo::Direct);
 		}
 	}
+
+	InsideSelChanged = false;
 }
 
 bool FPhAT::FilterTreeElement(FTreeElemPtr TreeElem) const
