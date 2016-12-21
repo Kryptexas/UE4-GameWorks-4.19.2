@@ -5,6 +5,7 @@
 #include "IAnalyticsProviderET.h"
 #include "WatchdogAnalytics.h"
 #include "ExceptionHandling.h"
+#include "Misc/EngineBuildSettings.h"
 
 IMPLEMENT_APPLICATION(UnrealWatchdog, "UnrealWatchdog");
 DEFINE_LOG_CATEGORY(UnrealWatchdogLog);

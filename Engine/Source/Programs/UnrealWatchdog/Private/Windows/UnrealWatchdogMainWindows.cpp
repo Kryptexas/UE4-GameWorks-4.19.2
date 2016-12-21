@@ -2,6 +2,7 @@
 
 #include "UnrealWatchdog.h"
 #include "WatchdogAnalytics.h"
+#include "Windows/WindowsHWrapper.h"
 
 /**
 * WinMain, called when the application is started
