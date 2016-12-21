@@ -1023,6 +1023,11 @@ bool AActor::IsBasedOnActor(const AActor* Other) const
 
 bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )
 {
+	if (!CanModify())
+	{
+		return false;
+	}
+
 	// Any properties that reference a blueprint constructed component needs to avoid creating a reference to the component from the transaction
 	// buffer, so we temporarily switch the property to non-transactional while the modify occurs
 	TArray<UObjectProperty*> TemporarilyNonTransactionalProperties;
@@ -1055,8 +1060,6 @@ bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )
 	{
 		bSavedToTransactionBuffer = RootComponent->Modify( bAlwaysMarkDirty ) || bSavedToTransactionBuffer;
 	}
-
-	ULevel* Level = GetLevel();
 
 	return bSavedToTransactionBuffer;
 }

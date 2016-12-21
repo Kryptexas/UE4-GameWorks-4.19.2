@@ -2466,7 +2466,7 @@ UObject* StaticAllocateObject
 	if (!bSubObject)
 	{
 		FMemory::Memzero((void *)Obj, TotalSize);
-		new ((void *)Obj) UObjectBase(InClass, InFlags, InternalSetFlags, InOuter, InName);
+		new ((void *)Obj) UObjectBase(InClass, InFlags|RF_NeedInitialization, InternalSetFlags, InOuter, InName);
 	}
 	else
 	{
@@ -2950,7 +2950,9 @@ void FObjectInitializer::PostConstructInit()
 		Obj->CheckDefaultSubobjects();
 	}
 
-	// clear the object pointer so we can guard against runing this function again
+	Obj->ClearFlags(RF_NeedInitialization);
+
+	// clear the object pointer so we can guard against running this function again
 	Obj = nullptr;
 }
 

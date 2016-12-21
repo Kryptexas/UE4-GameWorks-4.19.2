@@ -963,11 +963,16 @@ void UObject::PreSave(const class ITargetPlatform* TargetPlatform)
 #endif
 }
 
+bool UObject::CanModify() const
+{
+	return (!HasAnyFlags(RF_NeedInitialization) && !IsGarbageCollecting());
+}
+
 bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 {
 	bool bSavedToTransactionBuffer = false;
 
-	if (!IsGarbageCollecting())
+	if (CanModify())
 	{
 		// Do not consider PIE world objects or script packages, as they should never end up in the
 		// transaction buffer and we don't want to mark them dirty here either.
