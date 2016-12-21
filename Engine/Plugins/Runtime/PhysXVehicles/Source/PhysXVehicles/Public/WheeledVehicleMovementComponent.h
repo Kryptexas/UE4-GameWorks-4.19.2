@@ -20,6 +20,8 @@ namespace physx
 	class PxVehicleWheelsSimData;
 }
 
+struct FBodyInstance;
+
 /**
  * Values passed from PhysX to generate tire forces
  */
@@ -627,6 +629,7 @@ protected:
 	/** Get the mesh this vehicle is tied to */
 	class USkinnedMeshComponent* GetMesh();
 
+	void UpdateMassProperties(FBodyInstance* BI);
 	
 
 };

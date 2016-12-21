@@ -3784,6 +3784,9 @@ void FBodyInstance::UpdateMassProperties()
 		BodyInstancePtr->ResetMassData();
 	}
 #endif
+
+	//Let anyone who cares about mass properties know they've been updated
+	OnRecalculatedMassProperties.Broadcast(this);
 }
 
 void FBodyInstance::UpdateDebugRendering()

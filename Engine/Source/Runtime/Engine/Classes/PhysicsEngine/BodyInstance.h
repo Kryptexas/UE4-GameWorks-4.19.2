@@ -38,6 +38,9 @@ DECLARE_DELEGATE_TwoParams(FCalculateCustomPhysics, float, FBodyInstance*);
   * Since this could be called many times by GetWorldTransform any expensive computations should be cached if possible.*/
 DECLARE_DELEGATE_TwoParams(FCalculateCustomProjection, const FBodyInstance*, FTransform&);
 
+/** Delegate for when the mass properties of a body instance have been re-calculated. This can be useful for systems that need to set specific physx settings on actors, or systems that rely on the mass information in some way*/
+DECLARE_MULTICAST_DELEGATE_OneParam(FRecalculatedMassProperties, FBodyInstance*);
+
 #if WITH_PHYSX
 struct FShapeData;
 
@@ -784,6 +787,9 @@ public:
 
 	/** Custom projection for physics (callback to update component transform based on physics data) */
 	FCalculateCustomProjection OnCalculateCustomProjection;
+
+	/** Called whenever mass properties have been re-calculated. */
+	FRecalculatedMassProperties OnRecalculatedMassProperties;
 
 	/** See if this body is valid. */
 	bool IsValidBodyInstance() const;
