@@ -2220,7 +2220,7 @@ void FOculusRiftHMD::UpdateStereoRenderingParams()
 			}
 		}
 
-		if (CurrentSettings->PixelDensityAdaptive)
+		if (CurrentSettings->PixelDensityAdaptive && pCustomPresent && pCustomPresent->IsReadyToSubmitFrame())
 		{
 			ovrPerfStats perfStats;
 			ovrResult result = ovr_GetPerfStats(OvrSession, &perfStats);
