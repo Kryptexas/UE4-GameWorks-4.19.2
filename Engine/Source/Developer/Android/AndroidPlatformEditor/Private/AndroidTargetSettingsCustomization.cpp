@@ -519,8 +519,8 @@ static EVisibility GraphicsDebuggerSettingsVisibility(EAndroidGraphicsDebugger::
 
 static FText GetMaliGraphicsDebuggerHelpText()
 {
-	const static FText InstallText(LOCTEXT("MGDInstallText", "Run the following command from a host command line from the target/android-non-root directory located in the installation directory of the MGD tool, to install the MGD Daemon application on your device."));
-	const static FString InstallCommand(TEXT("adb install -r MGDDaemon.apk"));
+	const static FText InstallText(LOCTEXT("MGDInstallText", "Run the following command from a host command line from the target/unrooted directory located in the installation directory of the MGD tool, to install the MGD Daemon application on your device."));
+	const static FString InstallCommand(TEXT("adb install -r MGD.apk"));
 	const static FText RunText1(LOCTEXT("MGDIRunText1", "Run the following command from your host to establish a tunnel between your PC and the MGD Daemon. This needs to be done each time you connect your device by USB."));
 	const static FString RunCommand(TEXT("adb forward tcp:5002 tcp:5002"));
 	const static FText RunText2(LOCTEXT("MGDIRunText2", "Next, ensure you are running the daemon. Run the MGD Daemon application and switch it to the \"ON\" state"));

@@ -639,6 +639,11 @@ namespace UnrealBuildTool
 						{
 							Directory.CreateDirectory(Path.Combine(UE4BuildPath, "libs", NDKArch));
 							string MaliLibSrcPath = Path.Combine(MaliGraphicsDebuggerPath, @"target\android-non-root\arm", NDKArch, "libMGD.so");
+							if (!File.Exists(MaliLibSrcPath))
+							{
+								// in v4.3.0 library location was changed
+								MaliLibSrcPath = Path.Combine(MaliGraphicsDebuggerPath, @"target\android\arm\unrooted", NDKArch, "libMGD.so");
+							}
 							string MaliLibDstPath = Path.Combine(UE4BuildPath, "libs", NDKArch, "libMGD.so");
 
 							Console.WriteLine("Copying {0} to {1}", MaliLibSrcPath, MaliLibDstPath);
