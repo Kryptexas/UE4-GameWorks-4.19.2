@@ -268,14 +268,22 @@ bool FD3D11Viewport::PresentChecked(int32 SyncInterval)
 {
 	HRESULT Result = S_OK;
 	bool bNeedNativePresent = true;
-	if (IsValidRef(CustomPresent))
+
+	const bool bHasCustomPresent = IsValidRef(CustomPresent);
+	if (bHasCustomPresent)
 	{
 		bNeedNativePresent = CustomPresent->Present(SyncInterval);
 	}
+
 	if (bNeedNativePresent)
 	{
 		// Present the back buffer to the viewport window.
 		Result = SwapChain->Present(SyncInterval, 0);
+
+		if (bHasCustomPresent)
+		{
+			CustomPresent->PostPresent();
+		}
 	}
 
 	VERIFYD3D11RESULT_EX(Result, D3DRHI->GetDevice());
