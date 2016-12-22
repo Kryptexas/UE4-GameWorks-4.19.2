@@ -119,13 +119,16 @@ struct FMonoscopicFarFieldParameters
 
 	EMonoscopicFarFieldMode Mode;
 
+	bool bEnabled;
+
 	FMonoscopicFarFieldParameters() :
 		CullingDistance(0.0f),
 		StereoDepthClip(0.0f),
 		MonoDepthClip(0.0f), 
 		LateralOffset(0.0f),
 		OverlapDistance(50.0f),
-		Mode(EMonoscopicFarFieldMode::Off)
+		Mode(EMonoscopicFarFieldMode::Off),
+		bEnabled(false)
 	{
 	}
 };
@@ -1388,6 +1391,11 @@ public:
 
 	/** Returns the appropriate view for a given eye in a stereo pair. */
 	const FSceneView& GetStereoEyeView(const EStereoscopicPass Eye) const;
+
+	const bool IsMonoscopicFarFieldEnabled() const
+	{
+		return MonoParameters.bEnabled && MonoParameters.Mode != EMonoscopicFarFieldMode::Off;
+	}
 };
 
 /**

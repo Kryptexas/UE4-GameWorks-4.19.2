@@ -88,7 +88,9 @@ public:
 		const FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 		const FSamplerStateRHIRef Filter = TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
-		SetTextureParameter(RHICmdList, GetPixelShader(), MonoColorTextureParameter, MonoColorTextureParameterSampler, Filter, SceneContext.GetSceneColorSurface());
+
+		const FTextureRHIParamRef SceneColor = (View.Family->bUseSeparateRenderTarget) ? static_cast<FTextureRHIRef>(View.Family->RenderTarget->GetRenderTargetTexture()) : SceneContext.GetSceneColorTexture();
+		SetTextureParameter(RHICmdList, GetPixelShader(), MonoColorTextureParameter, MonoColorTextureParameterSampler, Filter, SceneColor);
 		
 		SetShaderValue(RHICmdList, GetPixelShader(), LeftViewWidthNDCParameter, LeftViewWidthNDC);
 		SetShaderValue(RHICmdList, GetPixelShader(), LateralOffsetNDCParameter, LateralOffsetNDC);

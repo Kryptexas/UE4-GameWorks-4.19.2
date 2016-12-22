@@ -362,6 +362,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired = true))
 		uint32 bMobileMultiView : 1;
 
+	UPROPERTY(config, EditAnywhere, Category = VR, meta = (
+		ConsoleVariable = "vr.MonoscopicFarField", DisplayName = "Monoscopic Far Field (Experimental)",
+		ToolTip = "Enable monoscopic far field rendering (only available for mobile).",
+		ConfigRestartRequired = true))
+		uint32 bMonoscopicFarField : 1;
+
 	UPROPERTY(config, EditAnywhere, Category=Editor, meta=(
 		ConsoleVariable="r.WireframeCullThreshold",DisplayName="Wireframe Cull Threshold",
 		ToolTip="Screen radius at which wireframe objects are culled. Larger values can improve performance when viewing a scene in wireframe."))

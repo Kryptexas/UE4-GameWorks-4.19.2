@@ -630,8 +630,9 @@ void Main(
 		OutColor.rgb = sqrt(OutColor.rgb);
 	#endif
 
-	// TODO RyanV: This needs to be gated by a read only cvar and only enabled for opaque objects
-	// We write to alpha here for mono far field mask computation.
-	//OutColor.a = 1.0;
+	// We write to alpha here for mono far field mask computation
+	#if MONOSCOPIC_FAR_FIELD && !MATERIALBLENDING_ANY_TRANSLUCENT
+	OutColor.a = 1.0;
+	#endif
 #endif
 }

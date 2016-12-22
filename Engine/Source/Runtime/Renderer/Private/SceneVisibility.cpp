@@ -318,7 +318,7 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 			uint8 CustomVisibilityFlags = EOcclusionFlags::CanBeOccluded | EOcclusionFlags::HasPrecomputedVisibility;
 
 			// Primitives may be explicitly removed from stereo views when using mono
-			const bool UseMonoCulling = View.Family->MonoParameters.Mode != EMonoscopicFarFieldMode::Off && (View.StereoPass == eSSP_LEFT_EYE || View.StereoPass == eSSP_RIGHT_EYE);
+			const bool UseMonoCulling = View.Family->IsMonoscopicFarFieldEnabled() && (View.StereoPass == eSSP_LEFT_EYE || View.StereoPass == eSSP_RIGHT_EYE);
 
 			const int32 TaskWordOffset = TaskIndex * FrustumCullNumWordsPerTask;
 

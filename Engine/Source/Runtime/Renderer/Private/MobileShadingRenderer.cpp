@@ -217,7 +217,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	RenderModulatedShadowProjections(RHICmdList);
 
-	if (ViewFamily.MonoParameters.Mode != EMonoscopicFarFieldMode::Off)
+	if (ViewFamily.IsMonoscopicFarFieldEnabled())
 	{
 		CompositeMonoscopicFarField(RHICmdList);
 	}

@@ -831,7 +831,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	}
 
 	// Monoscopic far field setup
-	if (ViewFamily->MonoParameters.Mode != EMonoscopicFarFieldMode::Off && StereoPass == eSSP_MONOSCOPIC_EYE)
+	if (ViewFamily->IsMonoscopicFarFieldEnabled() && StereoPass == eSSP_MONOSCOPIC_EYE)
 	{
 		SetupMonoParameters(*ViewFamily, *View);
 	}

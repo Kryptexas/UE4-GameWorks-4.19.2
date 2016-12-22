@@ -670,7 +670,7 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 		const FMobileCSMVisibilityInfo* MobileCSMVisibilityInfo = View.MobileCSMVisibilityInfo.bMobileDynamicCSMInUse ? &View.MobileCSMVisibilityInfo : nullptr;
 		const FMobileCSMVisibilityInfo* MobileCSMVisibilityInfoStereo = (View.bIsMobileMultiViewEnabled && View.MobileCSMVisibilityInfo.bMobileDynamicCSMInUse && Views.Num() > 1) ? &Views[1].MobileCSMVisibilityInfo : nullptr;
 
-		if (ViewIndex == 2 && ViewFamily.MonoParameters.Mode != EMonoscopicFarFieldMode::Off)
+		if (View.StereoPass == eSSP_MONOSCOPIC_EYE && ViewFamily.IsMonoscopicFarFieldEnabled())
 		{
 			RenderMonoscopicFarFieldMask(RHICmdList);
 		}

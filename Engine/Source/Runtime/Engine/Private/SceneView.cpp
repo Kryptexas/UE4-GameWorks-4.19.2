@@ -907,7 +907,7 @@ void FSceneView::UpdateViewMatrix()
 	ViewMatrices.UpdateViewMatrix(StereoViewLocation, ViewRotation);
 
 	// Derive the view frustum from the view projection matrix.
-	if ((StereoPass == eSSP_LEFT_EYE || StereoPass == eSSP_RIGHT_EYE) && Family->MonoParameters.Mode != EMonoscopicFarFieldMode::Off)
+	if ((StereoPass == eSSP_LEFT_EYE || StereoPass == eSSP_RIGHT_EYE) && Family->IsMonoscopicFarFieldEnabled())
 	{
 		// Stereo views use mono far field plane when using mono far field rendering
 		const FPlane FarPlane(ViewMatrices.GetViewOrigin() + GetViewDirection() * Family->MonoParameters.CullingDistance, GetViewDirection());
@@ -2314,6 +2314,7 @@ FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 
 	// Setup mono far field for VR
 	static const auto CVarMono = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MonoscopicFarField"));
+	static const auto CVarMonoMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MonoscopicFarFieldMode"));
 	bool bIsStereoEnabled = false;
 	if (GEngine != nullptr && GEngine->StereoRenderingDevice.IsValid())
 	{
@@ -2322,32 +2323,10 @@ FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 
 	const bool bIsMobile = FSceneInterface::GetShadingPath(GetFeatureLevel()) == EShadingPath::Mobile;
 
-	if (bIsStereoEnabled && bIsMobile && CVarMono)
+	if (bIsStereoEnabled && bIsMobile && CVarMono && CVarMonoMode)
 	{
-		const int32 MonoMode = CVarMono->GetValueOnAnyThread();
-		switch (MonoMode)
-		{
-		case 1:
-			MonoParameters.Mode = EMonoscopicFarFieldMode::On;
-			break;
-
-		case 2:
-			MonoParameters.Mode = EMonoscopicFarFieldMode::StereoOnly;
-			break;
-
-		case 3:
-			MonoParameters.Mode = EMonoscopicFarFieldMode::StereoNoClipping;
-			break;
-
-		case 4:
-			MonoParameters.Mode = EMonoscopicFarFieldMode::MonoOnly;
-			break;
-
-		default:
-			MonoParameters.Mode = EMonoscopicFarFieldMode::Off;
-			break;
-		}
-
+		MonoParameters.bEnabled = CVarMono->GetValueOnAnyThread() != 0;
+		MonoParameters.Mode = static_cast<EMonoscopicFarFieldMode>(FMath::Clamp(CVarMonoMode->GetValueOnAnyThread(), 0, 4));
 		MonoParameters.CullingDistance = CVS.MonoFarFieldCullingDistance;
 	}
 }
