@@ -15,6 +15,19 @@ class FSequencer;
 class FViewport;
 struct HMovieSceneKeyProxy;
 
+/** Stores the transform track and associated mesh trail for each drawn track */
+struct FMeshTrailData
+{
+	class UMovieScene3DTransformTrack* Track;
+	class ASequencerMeshTrail* Trail;
+
+	FMeshTrailData(class UMovieScene3DTransformTrack* InTrack, class ASequencerMeshTrail* InTrail) :
+		Track(InTrack),
+		Trail(InTrail)
+	{
+	}
+};
+
 /**
  * FSequencerEdMode is the editor mode for additional drawing and handling sequencer hotkeys in the editor
  */
@@ -54,8 +67,8 @@ protected:
 private:
 	TWeakPtr<FSequencer> SequencerPtr;
 
-	/**The map of any transform tracks with mesh trails, and their mesh trail representations */
-	TArray<TTuple<class UMovieScene3DTransformTrack*,class ASequencerMeshTrail*>> MeshTrails;
+	/**The array of any transform tracks with mesh trails, and their mesh trail representations */
+	TArray<FMeshTrailData> MeshTrails;
 
 	/** True when drawing mesh trails instead of debug trails */
 	bool bDrawMeshTrails;

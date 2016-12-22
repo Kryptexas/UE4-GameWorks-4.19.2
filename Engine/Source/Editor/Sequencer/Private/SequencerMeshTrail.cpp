@@ -15,9 +15,9 @@ ASequencerMeshTrail::ASequencerMeshTrail()
 void ASequencerMeshTrail::Cleanup()
 {
 	// Destroy all the key actors this trail created
-	for (auto& KeyMesh : KeyMeshActors)
+	for (FKeyActorData KeyMesh : KeyMeshActors)
 	{
-		KeyMesh.Get<1>()->Destroy();
+		KeyMesh.KeyActor->Destroy();
 	}
 	this->Destroy();
 }
@@ -28,9 +28,9 @@ void ASequencerMeshTrail::AddKeyMeshActor(float KeyTime, const FTransform KeyTra
 	UStaticMesh* KeyEditorMesh = nullptr;
 	UMaterialInstance* KeyEditorMaterial = nullptr;
 
-	TTuple<float, ASequencerKeyActor*>* KeyPtr = KeyMeshActors.FindByPredicate([KeyTime](const TTuple<float, ASequencerKeyActor*> InKey)
+	FKeyActorData* KeyPtr = KeyMeshActors.FindByPredicate([KeyTime](const FKeyActorData InKey)
 	{
-		return FMath::IsNearlyEqual(KeyTime, InKey.Get<0>());
+		return FMath::IsNearlyEqual(KeyTime, InKey.Time);
 	});
 
 	// If we don't currently have an actor for this time, create one
@@ -42,13 +42,13 @@ void ASequencerMeshTrail::AddKeyMeshActor(float KeyTime, const FTransform KeyTra
 		KeyMeshActor->SetActorTransform(KeyTransform);
 		KeyMeshActor->SetKeyData(TrackSection, KeyTime);
 		KeyMeshActor->SetOwner(this);
-		TTuple<float, ASequencerKeyActor*> NewKey = MakeTuple(KeyTime, KeyMeshActor);
+		FKeyActorData NewKey = FKeyActorData(KeyTime, KeyMeshActor);
 		KeyMeshActors.Add(NewKey);
 	}
 	else
 	{
 		// Just update the transform
-		KeyPtr->Get<1>()->SetActorTransform(KeyTransform);
+		KeyPtr->KeyActor->SetActorTransform(KeyTransform);
 	}
 }
 
@@ -58,9 +58,9 @@ void ASequencerMeshTrail::AddFrameMeshComponent(const float FrameTime, const FTr
 	UStaticMesh* KeyEditorMesh = nullptr;
 	UMaterialInterface* KeyEditorMaterial = nullptr;
 
-	TTuple<float, UStaticMeshComponent*>* FramePtr = FrameMeshComponents.FindByPredicate([FrameTime](const TTuple<float, UStaticMeshComponent*> InFrame)
+	FFrameComponentData* FramePtr = FrameMeshComponents.FindByPredicate([FrameTime](const FFrameComponentData InFrame)
 	{
-		return FMath::IsNearlyEqual(FrameTime, InFrame.Get<0>());
+		return FMath::IsNearlyEqual(FrameTime, InFrame.Time);
 	});
 
 	// If we don't currently have a component for this time, create one
@@ -79,12 +79,12 @@ void ASequencerMeshTrail::AddFrameMeshComponent(const float FrameTime, const FTr
 		FrameMeshComponent->SetWorldTransform(FrameTransform);
 		FrameMeshComponent->SetMobility(EComponentMobility::Movable);
 		FrameMeshComponent->bSelectable = false;
-		TTuple<float, UStaticMeshComponent*> NewFrame = MakeTuple(FrameTime, FrameMeshComponent);
+		FFrameComponentData NewFrame = FFrameComponentData(FrameTime, FrameMeshComponent);
 		FrameMeshComponents.Add(NewFrame);
 	}
 	else
 	{
 		// Just update the transform
-		FramePtr->Get<1>()->SetWorldTransform(FrameTransform);
+		FramePtr->FrameComponent->SetWorldTransform(FrameTransform);
 	}
 }

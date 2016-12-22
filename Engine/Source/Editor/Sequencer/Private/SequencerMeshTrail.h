@@ -3,6 +3,32 @@
 #pragma once
 #include "SequencerMeshTrail.generated.h"
 
+/** Stores time and actor reference for each key Actor on the trail */
+struct FKeyActorData
+{
+	float Time;
+	class ASequencerKeyActor* KeyActor;
+
+	FKeyActorData(float InTime, class ASequencerKeyActor* InKeyActor) :
+		Time(InTime),
+		KeyActor(InKeyActor)
+	{
+	}
+};
+
+/** Stores time and component reference for each frame Component on the trail */
+struct FFrameComponentData
+{
+	float Time;
+	class UStaticMeshComponent* FrameComponent;
+
+	FFrameComponentData(float InTime, class UStaticMeshComponent* InFrameComponent) :
+		Time(InTime),
+		FrameComponent(InFrameComponent)
+	{
+	}
+};
+
 UCLASS()
 class ASequencerMeshTrail : public AActor
 {
@@ -27,11 +53,11 @@ public:
 
 private:
 
-	/** Map of all Key Mesh Actors for a given trail, mapped to the key time they represent */
-	TArray<TTuple<float, class ASequencerKeyActor*>> KeyMeshActors;
+	/** Array of all Key Mesh Actors for a given trail and the key time they represent */
+	TArray<FKeyActorData> KeyMeshActors;
 
-	/** Map of all Frame Mesh Components for a given trail, mapped to the frame time they represent */
-	TArray<TTuple<float, UStaticMeshComponent*>> FrameMeshComponents;
+	/** Array of all Frame Mesh Components for a given trail and the frame time they represent */
+	TArray<FFrameComponentData> FrameMeshComponents;
 
 	TSharedPtr<class FSequencer> Sequencer;
 };

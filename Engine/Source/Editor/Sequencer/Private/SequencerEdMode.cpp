@@ -122,10 +122,10 @@ void FSequencerEdMode::DrawHUD(FEditorViewportClient* ViewportClient,FViewport* 
 
 void FSequencerEdMode::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	for (auto MeshTrail : MeshTrails)
+	for (FMeshTrailData MeshTrail : MeshTrails)
 	{
-		Collector.AddReferencedObject(MeshTrail.Get<0>());
-		Collector.AddReferencedObject(MeshTrail.Get<1>());
+		Collector.AddReferencedObject(MeshTrail.Track);
+		Collector.AddReferencedObject(MeshTrail.Trail);
 	}
 }
 
@@ -149,14 +149,14 @@ void FSequencerEdMode::OnKeySelected(FViewport* Viewport, HMovieSceneKeyProxy* K
 void FSequencerEdMode::DrawMeshTransformTrailFromKey(const class ASequencerKeyActor* KeyActor)
 {
 	ASequencerMeshTrail* Trail = Cast<ASequencerMeshTrail>(KeyActor->GetOwner());
-	TTuple<UMovieScene3DTransformTrack*, ASequencerMeshTrail*>* TrailPtr = MeshTrails.FindByPredicate([Trail](const TTuple<UMovieScene3DTransformTrack*, ASequencerMeshTrail*> InTrail)
+	FMeshTrailData* TrailPtr = MeshTrails.FindByPredicate([Trail](const FMeshTrailData InTrail)
 	{
-		return Trail == InTrail.Get<1>();
+		return Trail == InTrail.Trail;
 	});
 	if(TrailPtr)
 	{
 		// From the key, get the mesh trail, and then the track associated with that mesh trail
-		UMovieScene3DTransformTrack* Track = TrailPtr->Get<0>();
+		UMovieScene3DTransformTrack* Track = TrailPtr->Track;
 		// Draw a mesh trail for the key's associated actor
 		TArray<TWeakObjectPtr<UObject>> KeyObjects;
 		AActor* TrailActor = KeyActor->GetAssociatedActor();
@@ -169,9 +169,9 @@ void FSequencerEdMode::DrawMeshTransformTrailFromKey(const class ASequencerKeyAc
 void FSequencerEdMode::CleanUpMeshTrails()
 {
 	// Clean up any existing trails
-	for (auto& MeshTrail : MeshTrails)
+	for (FMeshTrailData& MeshTrail : MeshTrails)
 	{
-		MeshTrail.Get<1>()->Cleanup();
+		MeshTrail.Trail->Cleanup();
 	}
 	MeshTrails.Empty();
 }
@@ -215,13 +215,13 @@ void FSequencerEdMode::DrawTransformTrack(FPrimitiveDrawInterface* PDI, UMovieSc
 	// Get the Trail Actor associated with this track if we are drawing mesh trails
 	if (bDrawMeshTrails)
 	{
-		TTuple<UMovieScene3DTransformTrack*, ASequencerMeshTrail*>* TrailPtr = MeshTrails.FindByPredicate([TransformTrack](const TTuple<UMovieScene3DTransformTrack*, ASequencerMeshTrail*> InTrail)
+		FMeshTrailData* TrailPtr = MeshTrails.FindByPredicate([TransformTrack](const FMeshTrailData InTrail)
 		{
-			return InTrail.Get<0>() == TransformTrack;
+			return InTrail.Track == TransformTrack;
 		});
 		if (TrailPtr != nullptr)
 		{
-			TrailActor = TrailPtr->Get<1>();
+			TrailActor = TrailPtr->Trail;
 		}
 	}
 
@@ -540,15 +540,15 @@ void FSequencerEdMode::DrawTracks3D(FPrimitiveDrawInterface* PDI)
 					// If we are drawing mesh trails but we haven't made one for this track yet
 					if (bDrawMeshTrails)
 					{
-						TTuple<UMovieScene3DTransformTrack*, ASequencerMeshTrail*>* TrailPtr = MeshTrails.FindByPredicate([TransformTrack](const TTuple<UMovieScene3DTransformTrack*, ASequencerMeshTrail*> InTrail)
+						FMeshTrailData* TrailPtr = MeshTrails.FindByPredicate([TransformTrack](const FMeshTrailData InTrail)
 						{
-							return InTrail.Get<0>() == TransformTrack;
+							return InTrail.Track == TransformTrack;
 						});
 						if (TrailPtr == nullptr)
 						{
 							UViewportWorldInteraction* ViewportWorldInteraction = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GEditor->GetActiveViewport()->GetClient()->GetWorld())->GetViewportWorldInteraction();
 							ASequencerMeshTrail* TrailActor = ViewportWorldInteraction->SpawnTransientSceneActor<ASequencerMeshTrail>(TEXT("SequencerMeshTrail"), true);
-							TTuple<UMovieScene3DTransformTrack*, ASequencerMeshTrail*> MeshTrail = MakeTuple(TransformTrack, TrailActor);
+							FMeshTrailData MeshTrail = FMeshTrailData(TransformTrack, TrailActor);
 							MeshTrails.Add(MeshTrail);
 						}
 					}
