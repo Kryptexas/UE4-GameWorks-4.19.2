@@ -910,6 +910,11 @@ public:
 	virtual bool IsStatEnabled(const FString& InName) const { return false; }
 
 	/**
+	* Sets whether stats should be visible for the viewport
+	*/
+	virtual void SetShowStats(bool bWantStats) { }
+
+	/**
 	 * Get the sound stat flags enabled for this viewport
 	 */
 	virtual ESoundShowFlags::Type GetSoundShowFlags() const { return ESoundShowFlags::Disabled; }
