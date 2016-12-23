@@ -897,7 +897,9 @@ public:
 	{
 		
 
-		if (CombinedLUTRenderTarget.IsValid() == false|| CombinedLUTRenderTarget->GetDesc().Extent.Y != LUTSize) 
+		if (CombinedLUTRenderTarget.IsValid() == false || 
+			CombinedLUTRenderTarget->GetDesc().Extent.Y != LUTSize ||
+			((CombinedLUTRenderTarget->GetDesc().Depth != 0) != bUseVolumeLUT))
 		{
 			// Create the texture needed for the tonemapping LUT
 
