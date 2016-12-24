@@ -1873,18 +1873,25 @@ FString FDependenciesGlobalMapHelper::EmitBodyCode()
 			DependenciesGlobalMap.GenerateValueArray(DependenciesArray);
 		}
 
-		DependenciesArray.Sort(
-			[](const FNativizationSummary::FDependencyRecord& A, const FNativizationSummary::FDependencyRecord& B) -> bool
+		if (DependenciesArray.Num() > 0)
 		{
-			return A.Index < B.Index;
-		});
-		int32 Index = 0;
-		for (FNativizationSummary::FDependencyRecord& Record : DependenciesArray)
+			DependenciesArray.Sort(
+				[](const FNativizationSummary::FDependencyRecord& A, const FNativizationSummary::FDependencyRecord& B) -> bool
+			{
+				return A.Index < B.Index;
+			});
+			int32 Index = 0;
+			for (FNativizationSummary::FDependencyRecord& Record : DependenciesArray)
+			{
+				ensure(!Record.NativeLine.IsEmpty());
+				ensure(Record.Index == Index);
+				Index++;
+				CodeText.AddLine(Record.NativeLine);
+			}
+		}
+		else
 		{
-			ensure(!Record.NativeLine.IsEmpty());
-			ensure(Record.Index == Index);
-			Index++;
-			CodeText.AddLine(Record.NativeLine);
+			CodeText.AddLine(TEXT("FBlueprintDependencyObjectRef()"));
 		}
 
 		CodeText.AddLine(TEXT("};"));
