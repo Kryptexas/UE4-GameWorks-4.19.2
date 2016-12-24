@@ -367,6 +367,8 @@ void FBasePinChangeHelper::Broadcast(UBlueprint* InBlueprint, UK2Node_EditablePi
 			? Func->GetOwnerClass()
 			: (UClass*)(FunctionDefNode ? FunctionDefNode->SignatureClass : nullptr);
 
+		const bool bIsInterface = FBlueprintEditorUtils::IsInterfaceBlueprint(InBlueprint);
+
 		// Reconstruct all function call sites that call this function (in open blueprints)
 		for (TObjectIterator<UK2Node_CallFunction> It(RF_Transient); It; ++It)
 		{
@@ -381,17 +383,31 @@ void FBasePinChangeHelper::Broadcast(UBlueprint* InBlueprint, UK2Node_EditablePi
 					// been removed by the user (and moved off the Blueprint)
 					continue;
 				}
-
-				const bool bNameMatches = (CallSite->FunctionReference.GetMemberName() == FuncName);
-				const UClass* MemberParentClass = CallSite->FunctionReference.GetMemberParentClass(CallSite->GetBlueprintClassFromNode());
-				const bool bClassMatchesEasy = (MemberParentClass != nullptr) && (MemberParentClass->IsChildOf(SignatureClass) || MemberParentClass->IsChildOf(InBlueprint->GeneratedClass));
-				const bool bClassMatchesHard = (CallSite->FunctionReference.IsSelfContext()) && (SignatureClass == nullptr) 
-					&& (CallSiteBlueprint == InBlueprint || CallSiteBlueprint->SkeletonGeneratedClass->IsChildOf(InBlueprint->SkeletonGeneratedClass));
+				
 				const bool bValidSchema = CallSite->GetSchema() != nullptr;
-
-				if (bNameMatches && bValidSchema && (bClassMatchesEasy || bClassMatchesHard))
+				const bool bNameMatches = (CallSite->FunctionReference.GetMemberName() == FuncName);
+				if (bNameMatches && bValidSchema)
 				{
-					EditCallSite(CallSite, CallSiteBlueprint);
+					if (bIsInterface)
+					{
+						if (FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(CallSiteBlueprint, FuncName))
+						{
+							EditCallSite(CallSite, CallSiteBlueprint);
+						}
+					}
+					else
+					{
+						const UClass* MemberParentClass = CallSite->FunctionReference.GetMemberParentClass(CallSite->GetBlueprintClassFromNode());
+						const bool bClassMatchesEasy = (MemberParentClass != nullptr)
+							&& (MemberParentClass->IsChildOf(SignatureClass) || MemberParentClass->IsChildOf(InBlueprint->GeneratedClass));
+						const bool bClassMatchesHard = !bClassMatchesEasy && CallSite->FunctionReference.IsSelfContext() && (SignatureClass == nullptr)
+							&& (CallSiteBlueprint == InBlueprint || CallSiteBlueprint->SkeletonGeneratedClass->IsChildOf(InBlueprint->SkeletonGeneratedClass));
+
+						if (bClassMatchesEasy || bClassMatchesHard)
+						{
+							EditCallSite(CallSite, CallSiteBlueprint);
+						}
+					}
 				}
 			}
 		}
