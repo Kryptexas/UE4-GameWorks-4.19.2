@@ -95,7 +95,8 @@ void SSCSEditorDragDropTree::Construct( const FArguments& InArgs )
 			.SelectionMode( InArgs._SelectionMode )
 			.HeaderRow( InArgs._HeaderRow )
 			.ClearSelectionOnClick( InArgs._ClearSelectionOnClick )
-			.ExternalScrollbar( InArgs._ExternalScrollbar );
+			.ExternalScrollbar( InArgs._ExternalScrollbar )
+			.OnEnteredBadState( InArgs._OnTableViewBadState );
 
 	STreeView<FSCSEditorTreeNodePtrType>::Construct( BaseArgs );
 }
@@ -3337,6 +3338,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 		.OnItemScrolledIntoView(this, &SSCSEditor::OnItemScrolledIntoView)
 		.OnMouseButtonDoubleClick(this, &SSCSEditor::HandleItemDoubleClicked)
 		.ClearSelectionOnClick(InArgs._EditorMode == EComponentEditorMode::BlueprintSCS ? true : false)
+		.OnTableViewBadState(this, &SSCSEditor::DumpTree)
 		.ItemHeight(24)
 		.HeaderRow
 		(
@@ -4426,6 +4428,169 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 
 	// refresh widget
 	SCSTreeWidget->RequestTreeRefresh();
+}
+
+void SSCSEditor::DumpTree()
+{
+	/* Example:
+
+		[ACTOR] MyBlueprint (self)
+		|
+		[SEPARATOR]
+		|
+		DefaultSceneRoot (Inherited)
+		|
+		+- StaticMesh (Inherited)
+		|  |
+		|  +- Scene4 (Inherited)
+		|  |
+		|  +- Scene (Inherited)
+		|     |
+		|     +- Scene1 (Inherited)
+		|  
+		+- Scene2 (Inherited)
+		|  |
+		|  +- Scene3 (Inherited)
+		|
+		[SEPARATOR]
+		|
+		ProjectileMovement (Inherited)
+	*/
+
+	UE_LOG(LogSCSEditor, Log, TEXT("---------------------"));
+	UE_LOG(LogSCSEditor, Log, TEXT(" STreeView NODE DUMP"));
+	UE_LOG(LogSCSEditor, Log, TEXT("---------------------"));
+
+	const UBlueprint* BlueprintContext = nullptr;
+	const AActor* ActorInstance = GetActorContext();
+	if (ActorInstance)
+	{
+		BlueprintContext = UBlueprint::GetBlueprintFromClass(ActorInstance->GetClass());
+	}
+
+	TArray<TArray<FSCSEditorTreeNodePtrType>> NodeListStack;
+	NodeListStack.Push(RootNodes);
+
+	auto LineSpacingLambda = [&NodeListStack](const TArray<FSCSEditorTreeNodePtrType>& NodeList, int32 CurrentDepth, const FString& Prefix)
+	{
+		bool bAddLineSpacing = false;
+		for (int Depth = 0; Depth <= CurrentDepth && !bAddLineSpacing; ++Depth)
+		{
+			bAddLineSpacing = NodeListStack[Depth].Num() > 0;
+		}
+
+		if (bAddLineSpacing)
+		{
+			UE_LOG(LogSCSEditor, Log, TEXT(" %s%s"), *Prefix, NodeList.Num() > 0 ? TEXT("|") : TEXT(""));
+		}
+	};
+
+	while (NodeListStack.Num() > 0)
+	{
+		const int32 CurrentDepth = NodeListStack.Num() - 1;
+		TArray<FSCSEditorTreeNodePtrType>& NodeList = NodeListStack[CurrentDepth];
+		if (NodeList.Num() > 0)
+		{
+			FString Prefix;
+			for (int32 Depth = 1; Depth < CurrentDepth; ++Depth)
+			{
+				int32 NodeCount = NodeListStack[Depth].Num();
+				if (Depth == 1)
+				{
+					NodeCount += NodeListStack[0].Num();
+				}
+
+				Prefix += (NodeCount > 0) ? TEXT("|  ") : TEXT("   ");
+			}
+
+			FString NodePrefix;
+			if (CurrentDepth > 0)
+			{
+				NodePrefix = TEXT("+- ");
+			}
+
+			FSCSEditorTreeNodePtrType Node = NodeList[0];
+			NodeList.RemoveAt(0);
+
+			if (Node.IsValid())
+			{
+				FString NodeLabel = TEXT("[UNKNOWN]");
+				switch (Node->GetNodeType())
+				{
+				case FSCSEditorTreeNode::ENodeType::RootActorNode:
+					switch (EditorMode)
+					{
+					case EComponentEditorMode::ActorInstance:
+						NodeLabel = TEXT("[ACTOR]");
+						break;
+
+					case EComponentEditorMode::BlueprintSCS:
+						NodeLabel = TEXT("[BLUEPRINT]");
+						break;
+					}
+
+					if (BlueprintContext)
+					{
+						NodeLabel += FString::Printf(TEXT(" %s (self)"), *BlueprintContext->GetName());
+					}
+					else if (ActorInstance)
+					{
+						NodeLabel += FString::Printf(TEXT(" %s (Instance)"), *ActorInstance->GetActorLabel());
+					}
+					break;
+
+				case FSCSEditorTreeNode::ENodeType::SeparatorNode:
+					NodeLabel = TEXT("[SEPARATOR]");
+					break;
+
+				case FSCSEditorTreeNode::ENodeType::ComponentNode:
+					NodeLabel = Node->GetDisplayString();
+					if (Node->IsInherited())
+					{
+						NodeLabel += TEXT(" (Inherited)");
+					}
+					break;
+				}
+
+				UE_LOG(LogSCSEditor, Log, TEXT(" %s%s%s"), *Prefix, *NodePrefix, *NodeLabel);
+
+				const TArray<FSCSEditorTreeNodePtrType>& Children = Node->GetChildren();
+				if (Children.Num() > 0)
+				{
+					if (CurrentDepth > 1)
+					{
+						UE_LOG(LogSCSEditor, Log, TEXT(" %s%s|"), *Prefix, NodeListStack[CurrentDepth].Num() > 0 ? TEXT("|  ") : TEXT("   "));
+					}
+					else if (CurrentDepth == 1)
+					{
+						UE_LOG(LogSCSEditor, Log, TEXT(" %s%s|"), *Prefix, NodeListStack[0].Num() > 0 ? TEXT("|  ") : TEXT("   "));
+					}
+					else
+					{
+						UE_LOG(LogSCSEditor, Log, TEXT(" %s|"), *Prefix);
+					}
+
+					NodeListStack.Push(Children);
+				}
+				else
+				{
+					LineSpacingLambda(NodeList, CurrentDepth, Prefix);
+				}
+			}
+			else
+			{
+				UE_LOG(LogSCSEditor, Log, TEXT(" %s%s[INVALID]"), *Prefix, *NodePrefix);
+				
+				LineSpacingLambda(NodeList, CurrentDepth, Prefix);
+			}
+		}
+		else
+		{
+			NodeListStack.Pop();
+		}
+	}
+
+	UE_LOG(LogSCSEditor, Log, TEXT("--------(end)--------"));
 }
 
 const TArray<FSCSEditorTreeNodePtrType>& SSCSEditor::GetRootNodes() const
