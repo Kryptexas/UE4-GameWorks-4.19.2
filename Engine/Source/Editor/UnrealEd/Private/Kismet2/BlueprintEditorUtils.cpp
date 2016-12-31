@@ -2310,6 +2310,13 @@ UFunction* FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(const UBlu
 		{
 			if( SearchClass )
 			{
+				// Use the skeleton class if possible, as the generated class may not always be up-to-date (e.g. if the compile state is dirty).
+				UBlueprint* InterfaceBlueprint = CastChecked<UBlueprint>(SearchClass->ClassGeneratedBy);
+				if (InterfaceBlueprint->SkeletonGeneratedClass)
+				{
+					SearchClass = InterfaceBlueprint->SkeletonGeneratedClass;
+				}
+
 				do
 				{
 					if( UFunction* OverriddenFunction = SearchClass->FindFunctionByName(FunctionName, EIncludeSuperFlag::ExcludeSuper) )
@@ -2598,17 +2605,29 @@ void FBlueprintEditorUtils::RenameGraph(UEdGraph* Graph, const FString& NewNameS
 				}
 			}
 		}
-
-		// Rename any function call points
-		TArray<UK2Node_CallFunction*> AllFunctionCalls;
-		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_CallFunction>(Blueprint, AllFunctionCalls);
 	
-		for (UK2Node_CallFunction* FunctionNode : AllFunctionCalls)
+		// Rename any function call points
+		for (TObjectIterator<UK2Node_CallFunction> It(RF_Transient); It; ++It)
 		{
-			if (FunctionNode->FunctionReference.IsSelfContext() && (FunctionNode->FunctionReference.GetMemberName() == OldGraphName))
+			UK2Node_CallFunction* FunctionNode = *It;
+			if (FunctionNode && !FunctionNode->HasAnyFlags(RF_Transient) && Cast<UEdGraph>(FunctionNode->GetOuter()))
 			{
-				FunctionNode->Modify();
-				FunctionNode->FunctionReference.SetSelfMember(NewName);
+				if (UBlueprint* FunctionNodeBlueprint = FBlueprintEditorUtils::FindBlueprintForNode(FunctionNode))
+				{
+					if (FunctionNode->FunctionReference.GetMemberName() == OldGraphName)
+					{
+						if (FunctionNode->FunctionReference.IsSelfContext())
+						{
+							FunctionNode->Modify();
+							FunctionNode->FunctionReference.SetSelfMember(NewName);
+						}
+						else if (FunctionNode->FunctionReference.GetMemberParentClass() == Blueprint->GeneratedClass)
+						{
+							FunctionNode->Modify();
+							FunctionNode->FunctionReference.SetExternalMember(NewName, Blueprint->GeneratedClass);
+						}
+					}
+				}
 			}
 		}
 
