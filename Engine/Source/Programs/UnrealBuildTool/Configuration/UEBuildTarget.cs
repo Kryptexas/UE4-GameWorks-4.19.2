@@ -1750,7 +1750,8 @@ namespace UnrealBuildTool
 					}
 
 					// don't add any installed binary and the build product path matches the engine install location, we don't want to delete them
-					if (UnrealBuildTool.IsEngineInstalled() && BuildProduct.Path.Contains(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
+					FileReference BuildProductFile = new FileReference(BuildProduct.Path);
+					if (UnrealBuildTool.IsEngineInstalled() && BuildProductFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
 					{
 						continue;
 					}
