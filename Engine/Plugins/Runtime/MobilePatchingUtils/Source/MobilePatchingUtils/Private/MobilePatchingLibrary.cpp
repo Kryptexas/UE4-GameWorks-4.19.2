@@ -381,3 +381,5 @@ TArray<FString> UMobilePatchingLibrary::GetSupportedPlatformNames()
 	FPlatformMisc::GetValidTargetPlatforms(Result);
 	return Result;
 }
+
+#undef LOCTEXT_NAMESPACE

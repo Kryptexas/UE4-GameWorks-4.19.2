@@ -46,3 +46,5 @@ public:
 };
 
 IMPLEMENT_MODULE(FGameCircleRuntimeSettingsModule, GameCircleRuntimeSettings)
+
+#undef LOCTEXT_NAMESPACE
