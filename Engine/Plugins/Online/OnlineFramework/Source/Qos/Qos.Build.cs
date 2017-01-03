@@ -7,6 +7,7 @@ public class Qos : ModuleRules
 	public Qos(TargetInfo Target)
 	{
 		Definitions.Add("QOS_PACKAGE=1");
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PrivateIncludePaths.AddRange(
 			new string[] {

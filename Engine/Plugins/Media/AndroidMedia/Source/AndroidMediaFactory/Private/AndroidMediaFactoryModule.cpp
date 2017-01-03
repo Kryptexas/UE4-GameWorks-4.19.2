@@ -79,7 +79,7 @@ public:
 
 	virtual FText GetDisplayName() const override
 	{
-		return LOCTEXT("MediaPlayerDisplayName", "Android Media Player");
+		return LOCTEXT("MediaPlayerDisplayName", "Android Media");
 	}
 
 	virtual FName GetName() const override

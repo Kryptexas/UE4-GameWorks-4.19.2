@@ -15,6 +15,12 @@ struct CORE_API FSequencerObjectVersion
 		// Per-platform overrides player overrides for media sources changed name and type.
 		RenameMediaSourcePlatformPlayers,
 
+		// Enable root motion isn't the right flag to use, but force root lock
+		ConvertEnableRootMotionToForceRootLock,
+
+		// Convert multiple rows to tracks
+		ConvertMultipleRowsToTracks,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

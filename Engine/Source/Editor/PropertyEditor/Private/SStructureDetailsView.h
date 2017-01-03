@@ -94,7 +94,7 @@ public:
 
 	virtual void ForceRefresh() override;
 	virtual void MoveScrollOffset(int32 DeltaOffset) override {}
-	virtual void AddExternalRootPropertyNode(TSharedRef<FPropertyNode> ExternalRootNode) override {}
+	virtual void AddExternalRootPropertyNode(TSharedRef<FPropertyNode> ExternalRootNode) override;
 	virtual void ClearSearch() override;
 public:
 

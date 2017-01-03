@@ -7,7 +7,8 @@ public class OnlineSubsystemAmazon : ModuleRules
 {
 	public OnlineSubsystemAmazon(TargetInfo Target)
 	{
-		Definitions.Add("ONLINESUBSYSTEMAMAZON_PACKAGE=1");		
+		Definitions.Add("ONLINESUBSYSTEMAMAZON_PACKAGE=1");	
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

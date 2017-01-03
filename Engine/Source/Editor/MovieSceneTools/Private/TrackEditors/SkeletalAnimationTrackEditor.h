@@ -13,6 +13,7 @@
 #include "MovieSceneTrackEditor.h"
 
 class FAssetData;
+class FFloatCurveKeyArea;
 class FMenuBuilder;
 class FSequencerSectionPainter;
 class UMovieSceneSkeletalAnimationSection;
@@ -57,21 +58,24 @@ public:
 private:
 
 	/** Animation sub menu */
-	TSharedRef<SWidget> BuildAnimationSubMenu(FGuid ObjectBinding, USkeleton* Skeleton);
-	void AddAnimationSubMenu(FMenuBuilder& MenuBuilder, FGuid ObjectBinding, USkeleton* Skeleton);
+	TSharedRef<SWidget> BuildAnimationSubMenu(FGuid ObjectBinding, USkeleton* Skeleton, UMovieSceneTrack* Track);
+	void AddAnimationSubMenu(FMenuBuilder& MenuBuilder, FGuid ObjectBinding, USkeleton* Skeleton, UMovieSceneTrack* Track);
+
+	/** Animation sub menu filter function */
+	bool ShouldFilterAsset(const FAssetData& AssetData);
 
 	/** Animation asset selected */
-	void OnAnimationAssetSelected(const FAssetData& AssetData, FGuid ObjectBinding);
+	void OnAnimationAssetSelected(const FAssetData& AssetData, FGuid ObjectBinding, UMovieSceneTrack* Track);
 
 	/** Delegate for AnimatablePropertyChanged in AddKey */
-	bool AddKeyInternal(float KeyTime, UObject* Object, class UAnimSequenceBase* AnimSequence);
+	bool AddKeyInternal(float KeyTime, UObject* Object, class UAnimSequenceBase* AnimSequence, UMovieSceneTrack* Track);
 
 	/** Gets a skeleton from an object guid in the movie scene */
 	class USkeleton* AcquireSkeletonFromObjectGuid(const FGuid& Guid);
 };
 
 
-/** Class for animation sections, handles drawing of all waveform previews */
+/** Class for animation sections */
 class FSkeletalAnimationSection
 	: public ISequencerSection
 	, public TSharedFromThis<FSkeletalAnimationSection>
@@ -92,7 +96,7 @@ public:
 	virtual FText GetDisplayName() const override;
 	virtual FText GetSectionTitle() const override;
 	virtual float GetSectionHeight() const override;
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override {}
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;
 	virtual int32 OnPaintSection( FSequencerSectionPainter& Painter ) const override;
 	virtual void BeginResizeSection() override;
 	virtual void ResizeSection(ESequencerSectionResizeMode ResizeMode, float ResizeTime) override;
@@ -101,6 +105,9 @@ private:
 
 	/** The section we are visualizing */
 	UMovieSceneSkeletalAnimationSection& Section;
+
+	/** Weight key areas. */
+	mutable TSharedPtr<FFloatCurveKeyArea> WeightArea;
 
 	/** Cached start offset value valid only during resize */
 	float InitialStartOffsetDuringResize;

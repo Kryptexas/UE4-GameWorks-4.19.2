@@ -791,6 +791,7 @@ FReply FSequencerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, const 
 				TRange<float> SelectionRange = TimeSliderArgs.SelectionRange.Get();
 				TRange<float> PlaybackRange = TimeSliderArgs.PlaybackRange.Get();
 				float LocalMouseDownPos = RangeToScreen.InputToLocalX(MouseDownRange[0]);
+				const bool bIsPlaybackRangeLocked = TimeSliderArgs.IsPlaybackRangeLocked.Get();
 
 				// Disable selection range test if it's empty so that the playback range scrubbing gets priority
 				if (!SelectionRange.IsEmpty() && HitTestScrubberEnd(RangeToScreen, SelectionRange, LocalMouseDownPos, ScrubPosition))
@@ -805,13 +806,13 @@ FReply FSequencerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, const 
 					MouseDragType = DRAG_SELECTION_START;
 					TimeSliderArgs.OnSelectionRangeBeginDrag.ExecuteIfBound();
 				}
-				else if (HitTestScrubberEnd(RangeToScreen, PlaybackRange, LocalMouseDownPos, ScrubPosition))
+				else if (!bIsPlaybackRangeLocked && HitTestScrubberEnd(RangeToScreen, PlaybackRange, LocalMouseDownPos, ScrubPosition))
 				{
 					// playback range end scrubber
 					MouseDragType = DRAG_PLAYBACK_END;
 					TimeSliderArgs.OnPlaybackRangeBeginDrag.ExecuteIfBound();
 				}
-				else if (HitTestScrubberStart(RangeToScreen, PlaybackRange, LocalMouseDownPos, ScrubPosition))
+				else if (!bIsPlaybackRangeLocked && HitTestScrubberStart(RangeToScreen, PlaybackRange, LocalMouseDownPos, ScrubPosition))
 				{
 					// playback range start scrubber
 					MouseDragType = DRAG_PLAYBACK_START;
@@ -947,6 +948,7 @@ FCursorReply FSequencerTimeSliderController::OnCursorQuery( TSharedRef<const SWi
 	TRange<float> PlaybackRange = TimeSliderArgs.PlaybackRange.Get();
 	TRange<float> SelectionRange = TimeSliderArgs.SelectionRange.Get();
 	const float ScrubPosition = TimeSliderArgs.ScrubPosition.Get();
+	const bool bIsPlaybackRangeLocked = TimeSliderArgs.IsPlaybackRangeLocked.Get();
 
 	// Use L/R resize cursor if we're dragging or hovering a playback range bound
 	float HitTestPosition = MyGeometry.AbsoluteToLocal(CursorEvent.GetScreenSpacePosition()).X;
@@ -954,8 +956,8 @@ FCursorReply FSequencerTimeSliderController::OnCursorQuery( TSharedRef<const SWi
 		(MouseDragType == DRAG_PLAYBACK_START) ||
 		(MouseDragType == DRAG_SELECTION_START) ||
 		(MouseDragType == DRAG_SELECTION_END) ||
-		HitTestScrubberStart(RangeToScreen, PlaybackRange, HitTestPosition, ScrubPosition) ||
-		HitTestScrubberEnd(RangeToScreen, PlaybackRange, HitTestPosition, ScrubPosition) ||
+		(!bIsPlaybackRangeLocked && HitTestScrubberStart(RangeToScreen, PlaybackRange, HitTestPosition, ScrubPosition)) ||
+		(!bIsPlaybackRangeLocked && HitTestScrubberEnd(RangeToScreen, PlaybackRange, HitTestPosition, ScrubPosition)) ||
 		(!SelectionRange.IsEmpty() && HitTestScrubberStart(RangeToScreen, SelectionRange, HitTestPosition, ScrubPosition)) ||
 		(!SelectionRange.IsEmpty() && HitTestScrubberEnd(RangeToScreen, SelectionRange, HitTestPosition, ScrubPosition)))
 	{
@@ -1060,7 +1062,7 @@ TSharedRef<SWidget> FSequencerTimeSliderController::OpenSetPlaybackRangeMenu(flo
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateLambda([=]{ SetPlaybackRangeStart(MouseTime); }),
-				FCanExecuteAction::CreateLambda([=]{ return MouseTime <= PlaybackRange.GetUpperBoundValue(); })
+				FCanExecuteAction::CreateLambda([=]{ return !TimeSliderArgs.IsPlaybackRangeLocked.Get() && MouseTime <= PlaybackRange.GetUpperBoundValue(); })
 			)
 		);
 
@@ -1070,8 +1072,21 @@ TSharedRef<SWidget> FSequencerTimeSliderController::OpenSetPlaybackRangeMenu(flo
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateLambda([=]{ SetPlaybackRangeEnd(MouseTime); }),
-				FCanExecuteAction::CreateLambda([=]{ return MouseTime >= PlaybackRange.GetLowerBoundValue(); })
+				FCanExecuteAction::CreateLambda([=]{ return !TimeSliderArgs.IsPlaybackRangeLocked.Get() && MouseTime >= PlaybackRange.GetLowerBoundValue(); })
 			)
+		);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ToggleLocked", "Locked"),
+			LOCTEXT("ToggleLockedTooltip", "Lock/Unlock the playback range"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateLambda([=] { TimeSliderArgs.OnTogglePlaybackRangeLocked.ExecuteIfBound(); }),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateLambda([=] { return TimeSliderArgs.IsPlaybackRangeLocked.Get(); })
+			),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
 		);
 	}
 	MenuBuilder.EndSection(); // SequencerPlaybackRangeMenu

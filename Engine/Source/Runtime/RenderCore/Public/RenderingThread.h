@@ -178,7 +178,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 			RETURN_QUICK_DECLARE_CYCLE_STAT(TypeName, STATGROUP_RenderThreadCommands); \
 		}
 
-template<typename LAMBDA>
+template<typename TSTR, typename LAMBDA>
 class TEnqueueUniqueRenderCommandType : public FRenderCommand
 {
 public:
@@ -193,7 +193,6 @@ public:
 	FORCEINLINE_DEBUGGABLE TStatId GetStatId() const
 	{
 #if STATS
-		FStat_EnqueueUniqueRenderCommandType::TypeName = TypeName;
 		static struct FThreadSafeStaticStat<FStat_EnqueueUniqueRenderCommandType> StatPtr_EnqueueUniqueRenderCommandType;
 		return StatPtr_EnqueueUniqueRenderCommandType.GetStatId();
 #else
@@ -208,11 +207,11 @@ private:
 		typedef FStatGroup_STATGROUP_RenderThreadCommands TGroup;
 		static FORCEINLINE const char* GetStatName()
 		{
-			return TypeName;
+			return TSTR::CStr();
 		}
 		static FORCEINLINE const TCHAR* GetDescription()
 		{
-			return ANSI_TO_TCHAR(TypeName);
+			return TSTR::TStr();
 		}
 		static FORCEINLINE EStatDataType::Type GetStatType()
 		{
@@ -230,34 +229,20 @@ private:
 		{
 			return FPlatformMemory::MCR_Invalid;
 		}
-
-		static const char* TypeName;
 	};
 #endif
-
-public:
-	static const char* TypeName;
 
 private:
 	LAMBDA Lambda;
 };
 
-template<typename LAMBDA> 
-const char* TEnqueueUniqueRenderCommandType<LAMBDA>::TypeName = "Undefined_TEnqueueUniqueRenderCommandType";
-
-#if STATS
-template<typename LAMBDA>
-const char* TEnqueueUniqueRenderCommandType<LAMBDA>::FStat_EnqueueUniqueRenderCommandType::TypeName = "Undefined_TEnqueueUniqueRenderCommandType";
-#endif
-
-template<typename LAMBDA>
-FORCEINLINE_DEBUGGABLE void EnqueueUniqueRenderCommand(const char* TypeName, LAMBDA&& Lambda)
+template<typename TSTR, typename LAMBDA>
+FORCEINLINE_DEBUGGABLE void EnqueueUniqueRenderCommand(LAMBDA&& Lambda)
 {
-	typedef TEnqueueUniqueRenderCommandType<LAMBDA> EURCType;
-	EURCType::TypeName = TypeName;
+	typedef TEnqueueUniqueRenderCommandType<TSTR, LAMBDA> EURCType;
 
 #if 0 // UE_SERVER && UE_BUILD_DEBUG
-	UE_LOG(LogRHI, Warning, TEXT("Render command '%s' is being executed on a dedicated server."), ANSI_TO_TCHAR(TypeName))
+	UE_LOG(LogRHI, Warning, TEXT("Render command '%s' is being executed on a dedicated server."), TSTR::TStr())
 #endif
 	if (ShouldExecuteOnRenderThread())
 	{
@@ -272,19 +257,18 @@ FORCEINLINE_DEBUGGABLE void EnqueueUniqueRenderCommand(const char* TypeName, LAM
 	}
 }
 
-namespace Detail
-{
-	template<typename T>
-	struct FalseType
-	{
-		static CONSTEXPR const bool False = false;
-	};
-}
+#define ENQUEUE_RENDER_COMMAND(Type) \
+	struct Type##Name \
+	{  \
+		static const char* CStr() { return #Type; } \
+		static const TCHAR* TStr() { return TEXT(#Type); } \
+	}; \
+	EnqueueUniqueRenderCommand<Type##Name>
 
 template<typename LAMBDA>
-FORCEINLINE_DEBUGGABLE void EnqueueUniqueRenderCommand(const char* TypeName, LAMBDA& Lambda)
+FORCEINLINE_DEBUGGABLE void EnqueueUniqueRenderCommand(LAMBDA& Lambda)
 {
-	static_assert(Detail::FalseType<LAMBDA>::False, "EnqueueUniqueRenderCommand enforces use of rvalue and therefore move to avoid an extra copy of the Lambda");
+	static_assert(sizeof(LAMBDA) == 0, "EnqueueUniqueRenderCommand enforces use of rvalue and therefore move to avoid an extra copy of the Lambda");
 }
 
 /**

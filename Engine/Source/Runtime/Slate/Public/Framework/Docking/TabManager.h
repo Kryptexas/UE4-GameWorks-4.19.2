@@ -15,6 +15,7 @@ class FMultiBox;
 class FProxyTabmanager;
 class SDockingArea;
 class SDockingTabStack;
+class FLayoutExtender;
 struct FTabMatcher;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(
@@ -68,6 +69,11 @@ struct FTabId
 		return (InstanceId == INDEX_NONE)
 			? FText::FromName( TabType )
 			: FText::Format( NSLOCTEXT("TabManager", "TabIdFormat", "{TabType} : {InstanceIdNumber}"), Args );
+	}
+
+	friend uint32 GetTypeHash(const FTabId& In)
+	{
+		return GetTypeHash(In.TabType) ^ In.InstanceId;
 	}
 
 	FName TabType;
@@ -453,7 +459,9 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 				FName GetLayoutName() const;
 				FString ToString() const;
 
-			protected:				
+				void ProcessExtensions(const FLayoutExtender& Extender);
+
+			protected:
 				static TSharedRef<class FJsonObject> PersistToString_Helper(const TSharedRef<FLayoutNode>& NodeToPersist);
 				static TSharedRef<FLayoutNode> NewFromString_Helper( TSharedPtr<FJsonObject> JsonObject );
 

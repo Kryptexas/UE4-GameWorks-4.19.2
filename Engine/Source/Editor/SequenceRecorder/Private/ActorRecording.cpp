@@ -675,12 +675,20 @@ void UActorRecording::StartRecordingNewComponents(ULevelSequence* CurrentSequenc
 
 			for (USceneComponent* SceneComponent : NewComponents)
 			{
-				// new component, so we need to add this to our BP if it didn't come from SCS
+				// new component, so we need to add this to our BP if its not native
 				FName NewName;
-				if (SceneComponent->CreationMethod != EComponentCreationMethod::SimpleConstructionScript)
+				if (SceneComponent->CreationMethod != EComponentCreationMethod::Native)
 				{
 					// Give this component a unique name within its parent
-					NewName = *FString::Printf(TEXT("Dynamic%s"), *SceneComponent->GetFName().GetPlainNameString());
+					if (SceneComponent->CreationMethod != EComponentCreationMethod::SimpleConstructionScript)
+					{
+						NewName = *FString::Printf(TEXT("Dynamic%s"), *SceneComponent->GetFName().GetPlainNameString());
+					}
+					else
+					{
+						NewName = SceneComponent->GetFName();
+					}					
+					
 					NewName.SetNumber(1);
 					while (FindObjectFast<UObject>(ObjectTemplate, NewName))
 					{

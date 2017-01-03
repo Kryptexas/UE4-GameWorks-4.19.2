@@ -180,7 +180,7 @@ void FSkeletalMeshObjectGPUSkin::ReleaseResources()
 	// also release morph resources
 	ReleaseMorphResources();
 	FSkeletalMeshObjectGPUSkin* MeshObject = this;
-	EnqueueUniqueRenderCommand("WaitRHIThreadFenceForDynamicData",
+	ENQUEUE_RENDER_COMMAND(WaitRHIThreadFenceForDynamicData)(
 		[MeshObject](FRHICommandList& RHICmdList)
 		{
 			FScopeCycleCounter Context(MeshObject->GetStatId());
@@ -210,7 +210,7 @@ void FSkeletalMeshObjectGPUSkin::InitMorphResources(bool bInUsePerBoneMotionBlur
 	{
 		int32 NumWeights = MorphTargetWeights.Num();
 		FVertexBufferAndSRV* MorphWeightsVertexBufferPtr = &MorphWeightsVertexBuffer;
-		EnqueueUniqueRenderCommand("InitMorphWeightsVertexBuffer",
+		ENQUEUE_RENDER_COMMAND(InitMorphWeightsVertexBuffer)(
 			[NumWeights, MorphWeightsVertexBufferPtr](FRHICommandList& RHICmdList)
 			{
 				const uint32 Size = (uint32)NumWeights * sizeof(float);
@@ -234,7 +234,7 @@ void FSkeletalMeshObjectGPUSkin::ReleaseMorphResources()
 	if (MorphWeightsVertexBuffer.VertexBufferRHI)
 	{
 		FVertexBufferAndSRV* MorphWeightsVertexBufferPtr = &MorphWeightsVertexBuffer;
-		EnqueueUniqueRenderCommand("InitMorphWeightsVertexBuffer",
+		ENQUEUE_RENDER_COMMAND(InitMorphWeightsVertexBuffer)(
 			[MorphWeightsVertexBufferPtr](FRHICommandList& RHICmdList)
 			{
 				MorphWeightsVertexBufferPtr->VertexBufferRHI.SafeRelease();
@@ -266,7 +266,7 @@ void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 
 	// queue a call to update this data
 	FSkeletalMeshObjectGPUSkin* MeshObject = this;
-	EnqueueUniqueRenderCommand("SkelMeshObjectUpdateDataCommand",
+	ENQUEUE_RENDER_COMMAND(SkelMeshObjectUpdateDataCommand)(
 		[MeshObject, FrameNumberToPrepare, NewDynamicData](FRHICommandListImmediate& RHICmdList)
 		{
 			FScopeCycleCounter Context(MeshObject->GetStatId());
@@ -288,7 +288,7 @@ void FSkeletalMeshObjectGPUSkin::UpdateRecomputeTangent(int32 MaterialIndex, int
 {
 	// queue a call to update this data
 	FSkeletalMeshObjectGPUSkin* MeshObject = this;
-	EnqueueUniqueRenderCommand("SkelMeshObjectUpdateMaterialDataCommand",
+	ENQUEUE_RENDER_COMMAND(SkelMeshObjectUpdateMaterialDataCommand)(
 		[MeshObject, MaterialIndex, LODIndex, bRecomputeTangent](FRHICommandList& RHICmdList)
 		{
 			// iterate through section and find the section that matches MaterialIndex, if so, set that flag
@@ -915,7 +915,7 @@ static VertexFactoryType* CreateVertexFactory(TArray<TUniquePtr<VertexFactoryTyp
 	TDynamicUpdateVertexFactoryData<VertexFactoryType> VertexUpdateData(VertexFactory,InVertexBuffers);
 
 	// update vertex factory components and sync it
-	EnqueueUniqueRenderCommand("InitGPUSkinVertexFactory",
+	ENQUEUE_RENDER_COMMAND(InitGPUSkinVertexFactory)(
 		[VertexUpdateData](FRHICommandList& CmdList)
 		{
 			typename VertexFactoryType::FDataType Data;
@@ -940,7 +940,7 @@ static void CreatePassthroughVertexFactory(TArray<TUniquePtr<FGPUSkinPassthrough
 	PassthroughVertexFactories.Add(TUniquePtr<FGPUSkinPassthroughVertexFactory>(NewPassthroughVertexFactory));
 
 	// update vertex factory components and sync it
-	EnqueueUniqueRenderCommand("InitPassthroughGPUSkinVertexFactory",
+	ENQUEUE_RENDER_COMMAND(InitPassthroughGPUSkinVertexFactory)(
 		[NewPassthroughVertexFactory, SourceVertexFactory](FRHICommandList& RHICmdList)
 		{
 			SourceVertexFactory->CopyDataTypeForPassthroughFactory(NewPassthroughVertexFactory);
@@ -968,7 +968,7 @@ static VertexFactoryType* CreateVertexFactoryMorph(TArray<TUniquePtr<VertexFacto
 	TDynamicUpdateVertexFactoryData<VertexFactoryType> VertexUpdateData(VertexFactory, InVertexBuffers);
 
 	// update vertex factory components and sync it
-	EnqueueUniqueRenderCommand("InitGPUSkinVertexFactoryMorph",
+	ENQUEUE_RENDER_COMMAND(InitGPUSkinVertexFactoryMorph)(
 		[VertexUpdateData](FRHICommandList& RHICmdList)
 		{
 			typename VertexFactoryType::FDataType Data;
@@ -1005,7 +1005,7 @@ static void CreateVertexFactoryCloth(TArray<TUniquePtr<VertexFactoryTypeBase>>& 
 	TDynamicUpdateVertexFactoryData<VertexFactoryType> VertexUpdateData(VertexFactory, InVertexBuffers);
 
 	// update vertex factory components and sync it
-	EnqueueUniqueRenderCommand("InitGPUSkinAPEXClothVertexFactory",
+	ENQUEUE_RENDER_COMMAND(InitGPUSkinAPEXClothVertexFactory)(
 		[VertexUpdateData](FRHICommandList& RHICmdList)
 		{
 			typename VertexFactoryType::FDataType Data;

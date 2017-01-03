@@ -2,6 +2,8 @@
 #pragma once
 
 #include "VREditorUISystem.h"
+#include "SlateTypes.h"
+#include "InputCoreTypes.h"
 
 /**
 * Implementation of various VR editor action callback functions

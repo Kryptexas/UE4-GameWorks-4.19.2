@@ -5,6 +5,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "IMovieScenePlayer.h"
 #include "Misc/Guid.h"
 #include "Widgets/SWidget.h"
 #include "Containers/ArrayView.h"
@@ -343,8 +344,6 @@ public:
 	virtual FSequencerSelection& GetSelection() = 0;
 	virtual FSequencerSelectionPreview& GetSelectionPreview() = 0;
 
-	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType) = 0;
-
 	/** Gets a multicast delegate which is executed whenever the global time changes. */
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() = 0;
 
@@ -366,11 +365,14 @@ public:
 	/** @return Returns a widget containing the sequencer's playback controls */
 	virtual TSharedRef<SWidget> MakeTransportControls(bool bExtended) = 0;
 
-	/** Turn viewport transport controls on or off */
-	virtual void SetViewportTransportControlsVisibility(bool bVisible) = 0;
-
 	/** Attempt to find a spawned object in the currently focused movie scene, or the template object for the specified binding ID, if possible */
 	virtual UObject* FindSpawnedObjectOrTemplate(const FGuid& BindingId) = 0;
+
+	/** Called when the external selection has changed in such a way that sequencer should re-synchronize its selection states */
+	virtual void ExternalSelectionHasChanged() = 0;
+
+	/** Whether the sequence is read-only */
+	virtual bool IsReadOnly() const = 0;
 
 	/**
 	 * Create a widget containing the spinboxes for setting the working and playback range

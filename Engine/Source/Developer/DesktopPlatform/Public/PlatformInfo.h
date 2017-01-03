@@ -157,6 +157,9 @@ namespace PlatformInfo
 		/** Name of sub-folder where binaries will be placed */
 		FString BinaryFolderName;
 
+		/** Name of this platform when loading INI files */
+		FString IniPlatformName;
+
 		/** Enabled for use */
 		bool bEnabledForUse;
 

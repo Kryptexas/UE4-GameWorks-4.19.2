@@ -7,6 +7,7 @@ public class OnlineSubsystemFacebook : ModuleRules
     public OnlineSubsystemFacebook(TargetInfo Target)
 	{
 		Definitions.Add("ONLINESUBSYSTEMFACEBOOK_PACKAGE=1");
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
         PrivateIncludePaths.Add("Private");
 

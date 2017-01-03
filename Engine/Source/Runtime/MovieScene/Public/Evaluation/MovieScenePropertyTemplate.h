@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Stats/Stats.h"
 #include "UObject/ObjectMacros.h"
+#include "IMovieScenePlayer.h"
 #include "MovieSceneFwd.h"
 #include "MovieSceneCommonHelpers.h"
 #include "Evaluation/MovieSceneAnimTypeID.h"

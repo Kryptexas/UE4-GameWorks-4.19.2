@@ -9,6 +9,8 @@
 #include "Widgets/SWidget.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "WorkflowOrientedApp/WorkflowTabFactory.h"
+#include "WorkflowTabFactory.h"
+
 
 /////////////////////////////////////////////////////
 // FTabPayload_UObject

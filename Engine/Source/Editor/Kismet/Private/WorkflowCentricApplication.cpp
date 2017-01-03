@@ -42,8 +42,15 @@ void FWorkflowCentricApplication::SetCurrentMode(FName NewMode)
 
 		TSharedPtr<FApplicationMode> NewModePtr = ApplicationModeList.FindRef(NewMode);
 
+		LayoutExtenders.Reset();
+
 		if (NewModePtr.IsValid())
 		{
+			if (NewModePtr->LayoutExtender.IsValid())
+			{
+				LayoutExtenders.Add(NewModePtr->LayoutExtender);
+			}
+			
 			// Deactivate the old mode
 			if (CurrentAppModePtr.IsValid())
 			{
@@ -77,33 +84,13 @@ void FWorkflowCentricApplication::SetCurrentMode(FName NewMode)
 	}
 }
 
-
-TSharedRef<SDockTab> FWorkflowCentricApplication::CreatePanelTab(const FSpawnTabArgs& Args, TSharedPtr<FWorkflowTabFactory> TabFactory)
-{
-	FWorkflowTabSpawnInfo SpawnInfo;
-
-	return TabFactory->SpawnTab(SpawnInfo);
-}
-
 void FWorkflowCentricApplication::PushTabFactories(FWorkflowAllowedTabSet& FactorySetToPush)
 {
-	FWorkflowTabSpawnInfo SpawnInfo;
-
+	check(TabManager.IsValid());
 	for (auto FactoryIt = FactorySetToPush.CreateIterator(); FactoryIt; ++FactoryIt)
 	{
-		TSharedPtr<FWorkflowTabFactory> SomeFactory = FactoryIt.Value();
-		FTabSpawnerEntry& SpawnerEntry = TabManager->RegisterTabSpawner(SomeFactory->GetIdentifier(), FOnSpawnTab::CreateRaw(this, &FWorkflowCentricApplication::CreatePanelTab, SomeFactory))
-			.SetDisplayName(SomeFactory->ConstructTabName(SpawnInfo).Get())
-			.SetTooltipText(SomeFactory->GetTabToolTipText(SpawnInfo))
-			.SetGroup(CurrentAppModePtr->GetWorkspaceMenuCategory());
-		
-		// Add the tab icon to the menu entry if one was provided
-		const FSlateIcon& TabSpawnerIcon = SomeFactory->GetTabSpawnerIcon(SpawnInfo);
-		if (TabSpawnerIcon.IsSet())
-		{
-			SpawnerEntry.SetIcon(TabSpawnerIcon);
-		}
-	} 
+		FactoryIt.Value()->RegisterTabSpawner(TabManager.ToSharedRef(), CurrentAppModePtr.Get());
+	}
 }
 
 bool FWorkflowCentricApplication::OnRequestClose()

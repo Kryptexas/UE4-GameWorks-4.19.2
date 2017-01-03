@@ -2,6 +2,9 @@
 
 #include "Evaluation/MovieSceneCameraCutTemplate.h"
 #include "Sections/MovieSceneCameraCutSection.h"
+#include "MovieSceneEvaluation.h"
+#include "IMovieScenePlayer.h"
+
 
 DECLARE_CYCLE_STAT(TEXT("Camera Cut Track Token Execute"), MovieSceneEval_CameraCutTrack_TokenExecute, STATGROUP_MovieSceneEval);
 

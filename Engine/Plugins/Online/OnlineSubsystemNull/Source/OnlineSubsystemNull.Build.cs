@@ -8,6 +8,7 @@ public class OnlineSubsystemNull : ModuleRules
 	public OnlineSubsystemNull(TargetInfo Target)
 	{
 		Definitions.Add("ONLINESUBSYSTEMNULL_PACKAGE=1");
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

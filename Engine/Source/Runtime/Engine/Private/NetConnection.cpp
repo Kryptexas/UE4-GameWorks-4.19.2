@@ -2027,9 +2027,9 @@ void UNetConnection::FlushDormancy(class AActor* Actor)
 	// here, the server will not add the actor to the dormancy list when he closes the channel 
 	// after he gets the client ack. The result is the channel will close but be open again
 	// right away
-	UActorChannel * Ch = ActorChannels.FindRef(Actor);
+	UActorChannel* Ch = ActorChannels.FindRef(Actor);
 
-	if ( Ch != NULL )
+	if ( Ch != nullptr )
 	{
 		UE_LOG( LogNetDormancy, Verbose, TEXT( "    Found Channel[%d] '%s'. Reseting Dormancy. Ch->Closing: %d" ), Ch->ChIndex, *Ch->Describe(), Ch->Closing );
 
@@ -2037,6 +2037,16 @@ void UNetConnection::FlushDormancy(class AActor* Actor)
 		Ch->bPendingDormancy = 0;
 	}
 
+}
+
+void UNetConnection::ForcePropertyCompare( AActor* Actor )
+{
+	UActorChannel* Ch = ActorChannels.FindRef( Actor );
+
+	if ( Ch != nullptr )
+	{
+		Ch->bForceCompareProperties = true;
+	}
 }
 
 /** Wrapper for validating an objects dormancy state, and to prepare the object for replication again */

@@ -667,7 +667,7 @@ bool FOnlineSessionIOS::GetResolvedConnectString(FName SessionName, FString& Con
 }
 
 
-bool FOnlineSessionIOS::GetResolvedConnectString(const class FOnlineSessionSearchResult& SearchResult, FName PortType, FString& ConnectInfo)
+bool FOnlineSessionIOS::GetResolvedConnectString(const FOnlineSessionSearchResult& SearchResult, FName PortType, FString& ConnectInfo)
 {
 	return false;
 }

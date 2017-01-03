@@ -1207,7 +1207,7 @@ bool FOnlineSessionSteam::GetResolvedConnectString(FName SessionName, FString& C
 	return bSuccess;
 }
 
-bool FOnlineSessionSteam::GetResolvedConnectString(const class FOnlineSessionSearchResult& SearchResult, const FName PortType, FString& ConnectInfo)
+bool FOnlineSessionSteam::GetResolvedConnectString(const FOnlineSessionSearchResult& SearchResult, const FName PortType, FString& ConnectInfo)
 {
 	bool bSuccess = false;
 	if (SearchResult.Session.SessionInfo.IsValid())
@@ -1216,14 +1216,13 @@ bool FOnlineSessionSteam::GetResolvedConnectString(const class FOnlineSessionSea
 
 		if (PortType == BeaconPort)
 		{
-			int32 BeaconListenPort = 15000;
+			int32 BeaconListenPort = DEFAULT_BEACON_PORT;
 			if (!SearchResult.Session.SessionSettings.Get(SETTING_BEACONPORT, BeaconListenPort) || BeaconListenPort <= 0)
 			{
-				// Reset the default BeaconListenPort back to 15000 because the SessionSettings value does not exist or was not valid
-				BeaconListenPort = 15000;
+				// Reset the default BeaconListenPort back to DEFAULT_BEACON_PORT because the SessionSettings value does not exist or was not valid
+				BeaconListenPort = DEFAULT_BEACON_PORT;
 			}
 			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo, BeaconListenPort);
-
 		}
 		else if (PortType == GamePort)
 		{

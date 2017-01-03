@@ -7,10 +7,11 @@ public class OnlineSubsystemUtils : ModuleRules
 	public OnlineSubsystemUtils(TargetInfo Target)
 	{
 		Definitions.Add("ONLINESUBSYSTEMUTILS_PACKAGE=1");
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
         PrivateIncludePaths.Add("OnlineSubsystemUtils/Private");
 
-        PrivateDependencyModuleNames.AddRange(
+		PrivateDependencyModuleNames.AddRange(
 			new string[] { 
 				"Core", 
 				"CoreUObject",

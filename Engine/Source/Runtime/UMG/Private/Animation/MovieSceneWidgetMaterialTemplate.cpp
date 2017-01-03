@@ -4,6 +4,7 @@
 #include "Animation/WidgetMaterialTrackUtilities.h"
 #include "Animation/MovieSceneWidgetMaterialTrack.h"
 #include "Components/Widget.h"
+#include "MovieSceneEvaluation.h"
 
 // Container to ensure unique IDs per property path
 TMovieSceneAnimTypeIDContainer<TArray<FName>> BrushPropertyIDs;

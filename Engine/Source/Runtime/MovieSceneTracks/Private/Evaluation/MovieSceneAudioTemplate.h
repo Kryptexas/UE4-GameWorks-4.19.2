@@ -26,17 +26,21 @@ struct FMovieSceneAudioSectionTemplateData
 	UPROPERTY()
 	USoundBase* Sound;
 
-	/** The absolute time that the sound starts playing at */
+	/** The offset into the beginning of the audio clip */
 	UPROPERTY()
-	float AudioStartTime;
+	float AudioStartOffset;
 	
+	/** The time range this audio plays */
+	UPROPERTY()
+	FFloatRange AudioRange;
+
 	/** The amount which this audio is time dilated by */
 	UPROPERTY()
-	float AudioDilationFactor;
+	FRichCurve AudioPitchMultiplierCurve;
 
 	/** The volume the sound will be played with. */
 	UPROPERTY()
-	float AudioVolume;
+	FRichCurve AudioVolumeCurve;
 
 	/** The row index of the section */
 	UPROPERTY()

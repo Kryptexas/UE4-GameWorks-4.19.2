@@ -7,8 +7,12 @@
 #include "MovieSceneCommonHelpers.h"
 #include "Components/LightComponent.h"
 #include "Styling/SlateColor.h"
+#include "MovieSceneEvaluation.h"
+#include "IMovieScenePlayer.h"
+
 
 DECLARE_CYCLE_STAT(TEXT("Color Track Token Execute"), MovieSceneEval_ColorTrack_TokenExecute, STATGROUP_MovieSceneEval);
+
 
 enum class EColorType : uint8
 {

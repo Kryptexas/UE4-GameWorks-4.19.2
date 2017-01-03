@@ -19,18 +19,7 @@
 #include "BlueprintCompilerCppBackend.h"
 #include "Animation/AnimBlueprint.h"
 
-FString GetPathPostfix(const UObject* ForObject)
-{
-	FString FullAssetName = ForObject->GetOutermost()->GetPathName();
-	if (FullAssetName.StartsWith(TEXT("/Temp/__TEMP_BP__"), ESearchCase::CaseSensitive))
-	{
-		FullAssetName.RemoveFromStart(TEXT("/Temp/__TEMP_BP__"), ESearchCase::CaseSensitive);
-	}
-	FString AssetName = FPackageName::GetLongPackageAssetName(FullAssetName);
-	// append a hash of the path, this uniquely identifies assets with the same name, but different folders:
-	FullAssetName.RemoveFromEnd(AssetName);
-	return FString::Printf(TEXT("%u"), FCrc::MemCrc32(*FullAssetName, FullAssetName.Len()*sizeof(TCHAR)));
-}
+extern ENGINE_API FString GetPathPostfix(const UObject* ForObject);
 
 FString FEmitterLocalContext::GenerateUniqueLocalName()
 {

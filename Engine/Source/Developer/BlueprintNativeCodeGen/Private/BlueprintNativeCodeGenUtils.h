@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "IBlueprintCompilerCppBackendModule.h"
 #include "Misc/FeedbackContext.h"
+#include "Engine/Blueprint.h" // for FCompilerNativizationOptions
 
 class SBuildProgressWidget;
 struct FBlueprintNativeCodeGenManifest;

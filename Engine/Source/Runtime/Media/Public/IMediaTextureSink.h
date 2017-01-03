@@ -44,7 +44,7 @@ enum class EMediaTextureSinkFormat
 	FloatRGB,
 
 	/** Four floating point components (Red, Green, Blue, Alpha) per pixel. */
-	FloatRGBA,
+	FloatRGBA
 };
 
 
@@ -126,7 +126,7 @@ public:
 	/**
 	 * Get the sink's current texture format.
 	 *
-	 * @return texture format.
+	 * @return Texture format.
 	 * @see GetTextureSinkDimensions, GetTextureSinkMode, InitializeTextureSink
 	 */
 	virtual EMediaTextureSinkFormat GetTextureSinkFormat() const = 0;
@@ -286,37 +286,6 @@ public:
 	virtual void UpdateTextureSinkResource(FRHITexture* RenderTarget, FRHITexture* ShaderResource) = 0;
 
 #endif //WITH_ENGINE
-
-public:
-
-	DEPRECATED(4.15, "This overload of InitializeTextureSink has been deprecated. Please use the other one!")
-	bool InitializeTextureSink(FIntPoint Dimensions, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode)
-	{
-		FIntPoint BufferDim;
-
-		switch (Format)
-		{
-		case EMediaTextureSinkFormat::CharNV12:
-		case EMediaTextureSinkFormat::CharNV21:
-			BufferDim = FIntPoint(Align(Dimensions.X, 16), Align(Dimensions.Y, 2) * 3 / 2);
-			break;
-
-		case EMediaTextureSinkFormat::CharUYVY:
-		case EMediaTextureSinkFormat::CharYUY2:
-		case EMediaTextureSinkFormat::CharYVYU:
-			BufferDim = FIntPoint(Align(Dimensions.X, 16) / 2, Dimensions.Y);
-			break;
-
-		case EMediaTextureSinkFormat::CharAYUV:
-		case EMediaTextureSinkFormat::CharBGRA:
-		case EMediaTextureSinkFormat::FloatRGB:
-		case EMediaTextureSinkFormat::FloatRGBA:
-			BufferDim = Dimensions;
-			break;
-		}
-
-		return InitializeTextureSink(Dimensions, BufferDim, Format, Mode);
-	}
 
 public:
 

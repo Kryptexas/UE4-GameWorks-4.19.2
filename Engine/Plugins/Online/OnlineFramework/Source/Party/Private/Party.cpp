@@ -1207,15 +1207,16 @@ void UParty::LeaveAndRestorePersistentPartyInternal()
 	check(GameInstance);
 
 	TSharedPtr<const FUniqueNetId> PrimaryUserId = GameInstance->GetPrimaryPlayerUniqueId();
-	check(PrimaryUserId.IsValid() && PrimaryUserId->IsValid());
+	if (ensure(PrimaryUserId.IsValid() && PrimaryUserId->IsValid()))
+	{
+		UPartyDelegates::FOnLeaveUPartyComplete CompletionDelegate;
+		CompletionDelegate.BindUObject(this, &ThisClass::OnLeavePersistentPartyAndRestore);
 
-	UPartyDelegates::FOnLeaveUPartyComplete CompletionDelegate;
-	CompletionDelegate.BindUObject(this, &ThisClass::OnLeavePersistentPartyAndRestore);
-
-	// Unset this here, wouldn't be here if we were unable to call LeaveAndRestorePersistentParty, it will be reset inside
-	ensure(bLeavingPersistentParty);
-	bLeavingPersistentParty = false;
-	LeavePersistentParty(*PrimaryUserId, CompletionDelegate);
+		// Unset this here, wouldn't be here if we were unable to call LeaveAndRestorePersistentParty, it will be reset inside
+		ensure(bLeavingPersistentParty);
+		bLeavingPersistentParty = false;
+		LeavePersistentParty(*PrimaryUserId, CompletionDelegate);
+	}
 }
 
 void UParty::OnLeavePersistentPartyAndRestore(const FUniqueNetId& LocalUserId, const ELeavePartyCompletionResult Result)

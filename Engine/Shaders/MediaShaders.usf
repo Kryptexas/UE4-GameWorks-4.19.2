@@ -8,53 +8,26 @@
 #include "GammaCorrectionCommon.usf"
 
 
-/* Constants
-=============================================================================*/
-
-static const float3x3 YUV_TO_RGB_BT601 =
-{
-	1.000000, 0.000000, 1.139830,
-	1.000000,-0.394650,-0.580600,
-	1.000000, 2.032110, 0.000000,
-};
-
-static const float3x3 YUV_TO_RGB_BT709 =
-{
-	1.000000, 0.000000, 1.280330,
-	1.000000,-0.214820,-0.380590,
-	1.000000, 2.127980, 0.000000,
-};
-
-static const float3x3 YUV_TO_RGB_JPEG =
-{
-	1.000000, 0.000000, 1.402000,
-	1.000000,-0.344140,-0.714140,
-	1.000000, 1.772000, 0.000000,
-};
-
-static const float3x3 YUV_TO_RGB_MSDN =
-{
-	1.164383, 0.000000, 1.596027,
-	1.164383,-0.391762,-0.812968,
-	1.164383, 2.017232, 0.000000,
-};
-
-static const float3x3 YUV_TO_RGB_PS4 =
-{
-	1.164400, 0.000000, 1.792700,
-	1.164400,-0.213300,-0.532900,
-	1.164400, 2.112400, 0.000000,
-};
-
-
 /* Helpers
 =============================================================================*/
 
-float3 YuvToRgb(float3 YUV, float3x3 Coeff)
+float3 YuvToRgb(float3 YUV, float4x4 ColorTransform, uint SrgbToLinear)
 {
+	float3x3 Coeff = float3x3(
+		ColorTransform[0].xyz,
+		ColorTransform[1].xyz,
+		ColorTransform[2].xyz
+	);
+
 	YUV -= float3(0.0625, 0.5, 0.5);
-	float3 RGB = mul(Coeff, YUV);
-	return sRGBToLinear(RGB);
+	float3 sRGB = mul(Coeff, YUV);
+
+	if (SrgbToLinear == 0)
+	{
+		return sRGB;
+	}
+
+	return sRGBToLinear(sRGB);
 }
 
 
@@ -81,9 +54,9 @@ void AYUVConvertPS(
 	float2 InUV : TEXCOORD0,
 	out float4 OutColor : SV_Target0)
 {
-	float4 AYUV = AYUVConvertUB.AYUVTexture.Sample(AYUVConvertUB.AYUVSampler, InUV.xy);
+	float4 AYUV = AYUVConvertUB.Texture.Sample(AYUVConvertUB.Sampler, InUV.xy);
 	
-	OutColor.xyz = YuvToRgb(AYUV.zyx, YUV_TO_RGB_MSDN);
+	OutColor.xyz = YuvToRgb(AYUV.zyx, AYUVConvertUB.ColorTransform, AYUVConvertUB.SrgbToLinear);
 	OutColor.w = AYUV.w;
 }
 
@@ -96,7 +69,7 @@ void BMPConvertPS(
 {
 	InUV.y = 1.0f - InUV.y;
 	float2 ScaledUV = InUV * BMPConvertUB.UVScale;
-	OutColor = BMPConvertUB.BMPTexture.Sample(BMPConvertUB.BMPSampler, ScaledUV);
+	OutColor = BMPConvertUB.Texture.Sample(BMPConvertUB.Sampler, ScaledUV);
 }
 
 
@@ -109,7 +82,7 @@ void NV12ConvertPS(
 	float2 ScaledUV = InUV * NV12ConvertUB.UVScale;
 
 	float3 YUV;
-	YUV.x = NV12ConvertUB.NV12Texture.Sample(NV12ConvertUB.NV12SamplerB, ScaledUV).x;
+	YUV.x = NV12ConvertUB.Texture.Sample(NV12ConvertUB.SamplerB, ScaledUV).x;
 
 	ScaledUV.y *= 0.5f;
 	ScaledUV.y += 2.0f / 3.0f;
@@ -118,10 +91,10 @@ void NV12ConvertPS(
 	float UPos = (float(UVOffs * NV12ConvertUB.UVScale.x) + 0.5f) / NV12ConvertUB.OutputWidth;
 	float VPos = (float(UVOffs * NV12ConvertUB.UVScale.x) + 1.5f) / NV12ConvertUB.OutputWidth;
 
-	YUV.y = NV12ConvertUB.NV12Texture.Sample(NV12ConvertUB.NV12SamplerP, float2(UPos, ScaledUV.y)).x;
-	YUV.z = NV12ConvertUB.NV12Texture.Sample(NV12ConvertUB.NV12SamplerP, float2(VPos, ScaledUV.y)).x;
+	YUV.y = NV12ConvertUB.Texture.Sample(NV12ConvertUB.SamplerP, float2(UPos, ScaledUV.y)).x;
+	YUV.z = NV12ConvertUB.Texture.Sample(NV12ConvertUB.SamplerP, float2(VPos, ScaledUV.y)).x;
 
-	OutColor.xyz = YuvToRgb(YUV, YUV_TO_RGB_MSDN);
+	OutColor.xyz = YuvToRgb(YUV, NV12ConvertUB.ColorTransform, NV12ConvertUB.SrgbToLinear);
 	OutColor.w = 1.0f;
 }
 
@@ -135,7 +108,7 @@ void NV21ConvertPS(
 	float2 ScaledUV = InUV * NV21ConvertUB.UVScale;
 
 	float3 YUV;
-	YUV.x = NV21ConvertUB.NV21Texture.Sample(NV21ConvertUB.NV21SamplerB, ScaledUV).x;
+	YUV.x = NV21ConvertUB.Texture.Sample(NV21ConvertUB.SamplerB, ScaledUV).x;
 
 	ScaledUV.y *= 0.5f;
 	ScaledUV.y += 2.0f / 3.0f;
@@ -144,10 +117,10 @@ void NV21ConvertPS(
 	float UPos = (float(UVOffs * NV21ConvertUB.UVScale.x) + 1.5f) / NV21ConvertUB.OutputWidth;
 	float VPos = (float(UVOffs * NV21ConvertUB.UVScale.x) + 0.5f) / NV21ConvertUB.OutputWidth;
 
-	YUV.y = NV21ConvertUB.NV21Texture.Sample(NV21ConvertUB.NV21SamplerP, float2(UPos, ScaledUV.y)).x;
-	YUV.z = NV21ConvertUB.NV21Texture.Sample(NV21ConvertUB.NV21SamplerP, float2(VPos, ScaledUV.y)).x;
+	YUV.y = NV21ConvertUB.Texture.Sample(NV21ConvertUB.SamplerP, float2(UPos, ScaledUV.y)).x;
+	YUV.z = NV21ConvertUB.Texture.Sample(NV21ConvertUB.SamplerP, float2(VPos, ScaledUV.y)).x;
 
-	OutColor.xyz = YuvToRgb(YUV, YUV_TO_RGB_MSDN);
+	OutColor.xyz = YuvToRgb(YUV, NV21ConvertUB.ColorTransform, NV21ConvertUB.SrgbToLinear);
 	OutColor.w = 1.0f;
 }
 
@@ -159,8 +132,9 @@ void RGBConvertPS(
 	out float4 OutColor : SV_Target0)
 {
 	float2 ScaledUV = InUV * RGBConvertUB.UVScale;
-	float4 RGB = RGBConvertUB.RGBTexture.Sample(RGBConvertUB.RGBSampler, ScaledUV);
-	OutColor.xyz = sRGBToLinear(RGB);
+	float4 RGB = RGBConvertUB.Texture.Sample(RGBConvertUB.Sampler, ScaledUV);
+
+	OutColor.xyz = (RGBConvertUB.SrgbToLinear == 1) ? sRGBToLinear(RGB) : RGB;
 }
 
 
@@ -174,7 +148,7 @@ void YCbCrConvertPS(
 	YUV.x = YCbCrConvertUB.LumaTexture.Sample(YCbCrConvertUB.LumaSampler, InUV.xy).x;
 	YUV.yz = YCbCrConvertUB.CbCrTexture.Sample(YCbCrConvertUB.CbCrSampler, InUV.xy).xy;
 	
-	OutColor.xyz = YuvToRgb(YUV, YUV_TO_RGB_PS4);
+	OutColor.xyz = YuvToRgb(YUV, YCbCrConvertUB.ColorTransform, YCbCrConvertUB.SrgbToLinear);
 	OutColor.w = 1.0f;
 }
 
@@ -185,8 +159,8 @@ void UYVYConvertPS(
 	float2 InUV : TEXCOORD0,
 	out float4 OutColor : SV_Target0)
 {
-	float4 UYVYB = UYVYConvertUB.UYVYTexture.Sample(UYVYConvertUB.UYVYSamplerB, float2(InUV.x, InUV.y));
-	float4 UYVYP = UYVYConvertUB.UYVYTexture.Sample(UYVYConvertUB.UYVYSamplerP, float2(InUV.x, InUV.y));
+	float4 UYVYB = UYVYConvertUB.Texture.Sample(UYVYConvertUB.SamplerB, float2(InUV.x, InUV.y));
+	float4 UYVYP = UYVYConvertUB.Texture.Sample(UYVYConvertUB.SamplerP, float2(InUV.x, InUV.y));
 
 	float Pos = 2.0f * InUV.x * UYVYConvertUB.Width;
 	float3 YUV;
@@ -194,7 +168,7 @@ void UYVYConvertPS(
 	YUV.x = (floor(Pos % 2.0f) == 0) ? UYVYP.y : UYVYP.w;
 	YUV.yz = UYVYB.zx;
 
-	OutColor.xyz = YuvToRgb(YUV, YUV_TO_RGB_MSDN);
+	OutColor.xyz = YuvToRgb(YUV, UYVYConvertUB.ColorTransform, UYVYConvertUB.SrgbToLinear);
 	OutColor.w = 1.0f;
 }
 
@@ -210,7 +184,7 @@ void YUVConvertPS(
 	YUV.y = YUVConvertUB.UTexture.Sample(YUVConvertUB.USampler, InUV.xy).x;
 	YUV.z = YUVConvertUB.VTexture.Sample(YUVConvertUB.VSampler, InUV.xy).x;
 	
-	OutColor.xyz = YuvToRgb(YUV, YUV_TO_RGB_MSDN);
+	OutColor.xyz = YuvToRgb(YUV, YUVConvertUB.ColorTransform, YUVConvertUB.SrgbToLinear);
 	OutColor.w = 1.0f;
 }
 
@@ -224,13 +198,13 @@ void YUY2ConvertPS(
 	float2 ScaledUV = InUV * YUY2ConvertUB.UVScale;
 
 	float3 YUV;
-	YUV.yz = YUY2ConvertUB.YUY2Texture.Sample(YUY2ConvertUB.YUY2SamplerB, ScaledUV).yw;
+	YUV.yz = YUY2ConvertUB.Texture.Sample(YUY2ConvertUB.SamplerB, ScaledUV).yw;
 
-	float4 YUY2P = YUY2ConvertUB.YUY2Texture.Sample(YUY2ConvertUB.YUY2SamplerP, ScaledUV);
+	float4 YUY2P = YUY2ConvertUB.Texture.Sample(YUY2ConvertUB.SamplerP, ScaledUV);
 	float Pos = InUV.x * YUY2ConvertUB.OutputWidth;
 	YUV.x = (floor(Pos % 2.0f) == 0) ? YUY2P.z : YUY2P.x;
 
-	OutColor.xyz = YuvToRgb(YUV, YUV_TO_RGB_MSDN);
+	OutColor.xyz = YuvToRgb(YUV, YUY2ConvertUB.ColorTransform, YUY2ConvertUB.SrgbToLinear);
 	OutColor.w = 1.0f;
 }
 
@@ -241,8 +215,8 @@ void YVYUConvertPS(
 	float2 InUV : TEXCOORD0,
 	out float4 OutColor : SV_Target0)
 {
-	float4 YVYUB = YVYUConvertUB.YVYUTexture.Sample(YVYUConvertUB.YVYUSamplerB, float2(InUV.x, InUV.y));
-	float4 YVYUP = YVYUConvertUB.YVYUTexture.Sample(YVYUConvertUB.YVYUSamplerP, float2(InUV.x, InUV.y));
+	float4 YVYUB = YVYUConvertUB.Texture.Sample(YVYUConvertUB.SamplerB, float2(InUV.x, InUV.y));
+	float4 YVYUP = YVYUConvertUB.Texture.Sample(YVYUConvertUB.SamplerP, float2(InUV.x, InUV.y));
 
 	float Pos = 2.0f * InUV.x * YVYUConvertUB.Width;
 	float3 YUV;
@@ -250,6 +224,6 @@ void YVYUConvertPS(
 	YUV.x = (floor(Pos % 2.0f) == 0) ? YVYUP.z : YVYUP.x;
 	YUV.yz = YVYUB.wy;
 
-	OutColor.xyz = YuvToRgb(YUV, YUV_TO_RGB_MSDN);
+	OutColor.xyz = YuvToRgb(YUV, YVYUConvertUB.ColorTransform, YVYUConvertUB.SrgbToLinear);
 	OutColor.w = 1.0f;
 }

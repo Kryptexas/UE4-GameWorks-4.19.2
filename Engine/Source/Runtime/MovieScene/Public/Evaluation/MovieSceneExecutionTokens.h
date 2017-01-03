@@ -6,6 +6,7 @@
 #include "Evaluation/MovieSceneEvaluationKey.h"
 #include "Misc/InlineValue.h"
 #include "MovieSceneExecutionToken.h"
+#include "MovieSceneSection.h"
 #include "Evaluation/PersistentEvaluationData.h"
 #include "Evaluation/MovieScenePlayback.h"
 

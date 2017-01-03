@@ -18,6 +18,7 @@ class KISMETWIDGETS_API SSingleObjectDetailsPanel : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS(SSingleObjectDetailsPanel) {}
 		SLATE_ARGUMENT(TSharedPtr<class FUICommandList>, HostCommandList)
+		SLATE_ARGUMENT(TSharedPtr<class FTabManager>, HostTabManager)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, bool bAutomaticallyObserveViaGetObjectToObserve = true, bool bAllowSearch = false);

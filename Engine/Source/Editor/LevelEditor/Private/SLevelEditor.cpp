@@ -46,6 +46,7 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "SActorDetails.h"
 #include "GameFramework/WorldSettings.h"
+#include "LayoutExtender.h"
 #include "HierarchicalLODOutlinerModule.h"
 
 
@@ -522,9 +523,10 @@ void SLevelEditor::AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TShared
 		}
 
 		TSharedRef<SDockTab> Tab = SNew(SDockTab);
+		Tab = InvokeTab("Sequencer");
 		if(!FGlobalTabmanager::Get()->OnOverrideDockableAreaRestore_Handler.IsBound())
 		{
-			Tab = InvokeTab("Sequencer");
+			// Don't allow standard tab closing behavior when the override is active
 			Tab->SetOnTabClosed(SDockTab::FOnTabClosedCallback::CreateStatic(&Local::OnSequencerClosed, TWeakPtr<IAssetEditorInstance>(NewSequencerAssetEditor)));
 		}
 		if(SequencerWidget.IsValid() && NewSequencerAssetEditor.IsValid())
@@ -532,6 +534,12 @@ void SLevelEditor::AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TShared
 			Tab->SetContent(SequencerWidget.ToSharedRef());
 			SequencerWidgetPtr = SequencerWidget;
 			SequencerAssetEditor = NewSequencerAssetEditor;
+			if (FGlobalTabmanager::Get()->OnOverrideDockableAreaRestore_Handler.IsBound())
+			{
+				// @todo vreditor: more general vr editor tab manager should handle windows instead
+				// Destroy the original window so we just work with the override window
+				Tab->GetParentWindow().Get()->RequestDestroyWindow();
+			}
 		}
 		else
 		{
@@ -1111,6 +1119,8 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 
 		FTabSpawnerEntry& BuildAndSubmitEntry = LevelEditorTabManager->RegisterTabSpawner(LevelEditorBuildAndSubmitTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, LevelEditorBuildAndSubmitTab, FString()));
 		BuildAndSubmitEntry.SetAutoGenerateMenuEntry(false);
+
+		LevelEditorModule.OnRegisterTabs().Broadcast(LevelEditorTabManager);
 	}
 
 	// Rebuild the editor mode commands and their tab spawners before we restore the layout,
@@ -1191,6 +1201,9 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 			
 		));
 	
+	FLayoutExtender LayoutExtender;
+	LevelEditorModule.OnRegisterLayoutExtensions().Broadcast(LayoutExtender);
+	Layout->ProcessExtensions(LayoutExtender);
 
 	return LevelEditorTabManager->RestoreFrom( Layout, OwnerWindow ).ToSharedRef();
 }
@@ -1492,7 +1505,7 @@ void SLevelEditor::AddStandaloneLevelViewport( const TSharedRef<SLevelViewport>&
 
 TSharedRef<SWidget> SLevelEditor::CreateActorDetails( const FName TabIdentifier )
 {
-	TSharedRef<SActorDetails> ActorDetails = SNew( SActorDetails, TabIdentifier, LevelEditorCommands );
+	TSharedRef<SActorDetails> ActorDetails = SNew( SActorDetails, TabIdentifier, LevelEditorCommands, GetTabManager() );
 
 	// Immediately update it (otherwise it will appear empty)
 	{

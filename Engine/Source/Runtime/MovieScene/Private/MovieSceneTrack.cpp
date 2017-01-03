@@ -17,6 +17,17 @@ UMovieSceneTrack::UMovieSceneTrack(const FObjectInitializer& InInitializer)
 #endif
 }
 
+void UMovieSceneTrack::PostInitProperties()
+{
+	// Propagate sub object flags from our outer (movie scene) to ourselves. This is required for tracks that are stored on blueprints (archetypes) so that they can be referenced in worlds.
+	if (GetOuter()->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))
+	{
+		SetFlags(GetOuter()->GetMaskedFlags(RF_PropagateToSubObjects));
+	}
+	
+	Super::PostInitProperties();
+}
+
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneTrack::CreateLegacyInstance() const
 {

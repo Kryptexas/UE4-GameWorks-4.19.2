@@ -670,6 +670,9 @@ public:
 
 	ENGINE_API virtual void FlushDormancy(class AActor* Actor);
 
+	/** Forces properties on this actor to do a compare for one frame (rather than share shadow state) */
+	ENGINE_API void ForcePropertyCompare( AActor* Actor );
+
 	/** Wrapper for validating an objects dormancy state, and to prepare the object for replication again */
 	void FlushDormancyForObject( UObject* Object );
 

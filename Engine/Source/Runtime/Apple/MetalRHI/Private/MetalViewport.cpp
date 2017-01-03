@@ -108,7 +108,7 @@ uint32 FMetalViewport::GetViewportIndex(EMetalViewportAccessFlag Accessor) const
 	{
 		case EMetalViewportAccessRHI:
 			check(IsInRHIThread() || IsInRenderingThread());
-			return Accessor;
+            return GRHISupportsRHIThread ? Accessor : EMetalViewportAccessRenderer;
 		case EMetalViewportAccessRenderer:
 			check(IsInRenderingThread());
 			return Accessor;
@@ -173,6 +173,7 @@ void FMetalViewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen
 		  FMath::TruncToInt(ScalingFactor * ViewFrame.size.height) == InSizeY);
 #endif
 	BackBuffer[Index]->Surface.Viewport = this;
+    if (GRHISupportsRHIThread)
 	{
 		FScopeLock Lock(&Mutex);
 		BackBuffersQueue.Insert(BackBuffer[Index], 0);

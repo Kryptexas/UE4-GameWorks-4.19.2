@@ -59,13 +59,13 @@ void FMovieSceneEventParametersCustomization::CustomizeChildren(TSharedRef<IProp
 
 	if (EditStructData->GetStructMemory())
 	{
-		FSimpleDelegate OnEditStructContentsChangedDelegate = FSimpleDelegate::CreateSP(this, &FMovieSceneEventParametersCustomization::OnEditStructContentsChanged);
+		FSimpleDelegate OnEditStructChildContentsChangedDelegate = FSimpleDelegate::CreateSP(this, &FMovieSceneEventParametersCustomization::OnEditStructChildContentsChanged);
 
 		TArray<TSharedPtr<IPropertyHandle>> ExternalHandles = ChildBuilder.AddChildStructure(EditStructData.ToSharedRef());
 		for (TSharedPtr<IPropertyHandle> Handle : ExternalHandles)
 		{
-			Handle->SetOnPropertyValueChanged(OnEditStructContentsChangedDelegate);
-			Handle->SetOnChildPropertyValueChanged(OnEditStructContentsChangedDelegate);
+			Handle->SetOnPropertyValueChanged(OnEditStructChildContentsChangedDelegate);
+			Handle->SetOnChildPropertyValueChanged(OnEditStructChildContentsChangedDelegate);
 		}
 	}
 }
@@ -97,7 +97,7 @@ void FMovieSceneEventParametersCustomization::OnStructChanged(const FAssetData& 
 	PropertyUtilities->ForceRefresh();
 }
 
-void FMovieSceneEventParametersCustomization::OnEditStructContentsChanged()
+void FMovieSceneEventParametersCustomization::OnEditStructChildContentsChanged()
 {
 	// @todo: call modify on the outer object if possible
 	UScriptStruct* Struct = Cast<UScriptStruct>((UStruct*)EditStructData->GetStruct());

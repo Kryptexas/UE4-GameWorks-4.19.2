@@ -183,7 +183,7 @@ public:
 	{
 		FlipbookEditorPtr = InFlipbookEditor;
 
-		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments().HostCommandList(InFlipbookEditor->GetToolkitCommands()), /*bAutomaticallyObserveViaGetObjectToObserve=*/ true, /*bAllowSearch=*/ true);
+		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments().HostCommandList(InFlipbookEditor->GetToolkitCommands()).HostTabManager(InFlipbookEditor->GetTabManager()), /*bAutomaticallyObserveViaGetObjectToObserve=*/ true, /*bAllowSearch=*/ true);
 	}
 
 	// SSingleObjectDetailsPanel interface

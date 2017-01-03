@@ -182,7 +182,7 @@ public:
 	{
 		TileMapEditorPtr = InTileMapEditor;
 
-		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments().HostCommandList(InTileMapEditor->GetToolkitCommands()), /*bAutoObserve=*/ true, /*bAllowSearch=*/ true);
+		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments().HostCommandList(InTileMapEditor->GetToolkitCommands()).HostTabManager(InTileMapEditor->GetTabManager()), /*bAutoObserve=*/ true, /*bAllowSearch=*/ true);
 	}
 
 	// SSingleObjectDetailsPanel interface

@@ -7,6 +7,7 @@
 #include "NetcodeUnitTest.h"
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
+#include "Misc/OutputDeviceError.h"
 
 class UNetDriver;
 class UUnitTest;
@@ -30,7 +31,6 @@ extern TMap<void*, InternalProcessEventCallback> ActiveProcessEventCallbacks;
 /**
  * Output device for allowing quick/dynamic creation of a customized output device, using lambda's passed to delegates
  */
-
 class FDynamicOutputDevice : public FOutputDevice
 {
 public:
@@ -64,6 +64,156 @@ public:
 	FOnFlushOrTearDown OnFlush;
 
 	FOnFlushOrTearDown OnTearDown;
+};
+
+/**
+ * Output device for hijacking/hooking an existing output device (e.g. to hijack GError, to block specific asserts)
+ * Inherit this class, to implement desired hook behaviour in subclass
+ */
+class FHookOutputDevice : public FOutputDeviceError
+{
+public:
+	FHookOutputDevice()
+		: OriginalDevice(nullptr)
+	{
+	}
+
+	void HookDevice(FOutputDeviceError* OldDevice)
+	{
+		check(OriginalDevice == nullptr);
+
+		OriginalDevice = OldDevice;
+	}
+
+	virtual void Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category) override
+	{
+		if (OriginalDevice != nullptr)
+		{
+			OriginalDevice->Serialize(V, Verbosity, Category);
+		}
+	}
+
+	virtual void Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time) override
+	{
+		if (OriginalDevice != nullptr)
+		{
+			OriginalDevice->Serialize(V, Verbosity, Category, Time);
+		}
+	}
+
+	virtual void Flush() override
+	{
+		if (OriginalDevice != nullptr)
+		{
+			OriginalDevice->Flush();
+		}
+	}
+
+	virtual void TearDown() override
+	{
+		if (OriginalDevice != nullptr)
+		{
+			OriginalDevice->TearDown();
+		}
+	}
+
+	virtual void Dump(class FArchive& Ar) override
+	{
+		if (OriginalDevice != nullptr)
+		{
+			OriginalDevice->Dump(Ar);
+		}
+	}
+
+	virtual bool IsMemoryOnly() const override
+	{
+		bool bReturnVal = false;
+
+		if (OriginalDevice != nullptr)
+		{
+			bReturnVal = OriginalDevice->IsMemoryOnly();
+		}
+
+		return bReturnVal;
+	}
+
+	virtual bool CanBeUsedOnAnyThread() const override
+	{
+		bool bReturnVal = false;
+
+		if (OriginalDevice != nullptr)
+		{
+			bReturnVal = OriginalDevice->CanBeUsedOnAnyThread();
+		}
+
+		return bReturnVal;
+	}
+
+	virtual void HandleError() override
+	{
+		if (OriginalDevice != nullptr)
+		{
+			OriginalDevice->HandleError();
+		}
+	}
+
+
+private:
+	/** The original output device */
+	FOutputDeviceError* OriginalDevice;
+};
+
+
+/**
+ * Output device for replacing GError, and catching specific asserts so they don't crash the game.
+ */
+class FAssertHookDevice : public FHookOutputDevice
+{
+public:
+	FAssertHookDevice()
+	{
+	}
+
+	/**
+	 * Adds a string to the list of disabled asserts - does a partial match when watching for the disabled assert
+	 */
+	static void AddAssertHook(FString Assert);
+
+	FORCEINLINE bool IsAssertDisabled(const TCHAR* V)
+	{
+		bool bReturnVal = false;
+
+		for (auto CurEntry : DisabledAsserts)
+		{
+			if (FCString::Stristr(V, *CurEntry))
+			{
+				bReturnVal = true;
+				break;
+			}
+		}
+
+		return bReturnVal;
+	}
+
+	virtual void Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category) override
+	{
+		if (!IsAssertDisabled(V))
+		{
+			FHookOutputDevice::Serialize(V, Verbosity, Category);
+		}
+	}
+
+	virtual void Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time) override
+	{
+		if (!IsAssertDisabled(V))
+		{
+			FHookOutputDevice::Serialize(V, Verbosity, Category, Time);
+		}
+	}
+
+public:
+	/** List of disabled asserts */
+	TArray<FString> DisabledAsserts;
 };
 
 

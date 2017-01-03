@@ -1926,6 +1926,25 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 			Ar.Logf(TEXT("Need to specify '-Data=DatAddress' and '-DataLen=Len'."));
 		}
 	}
+	/**
+	 * Watches for the specified assert log, and then blocks it to prevent the game from crashing.
+	 * Does a partial match for the assert, rather than an exact match.
+	 */
+	else if (FParse::Command(&Cmd, TEXT("AssertDisable")))
+	{
+		FString Assert = Cmd;
+
+		if (Assert.Len() > 0)
+		{
+			FAssertHookDevice::AddAssertHook(Assert);
+
+			Ar.Logf(TEXT("Blocking asserts matching '%s'."), *Assert);
+		}
+		else
+		{
+			Ar.Logf(TEXT("Need to specify the log string that should be matched, for detecting the assert."));
+		}
+	}
 
 	return bReturnVal;
 }

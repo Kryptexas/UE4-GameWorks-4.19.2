@@ -37,22 +37,6 @@ FWmfMediaPlayer::~FWmfMediaPlayer()
 }
 
 
-/* FTickerObjectBase interface
- *****************************************************************************/
-
-bool FWmfMediaPlayer::Tick(float DeltaTime)
-{
-	TFunction<void()> Task;
-
-	while (GameThreadTasks.Dequeue(Task))
-	{
-		Task();
-	}
-
-	return true;
-}
-
-
 /* IMediaPlayer interface
  *****************************************************************************/
 
@@ -152,9 +136,9 @@ bool FWmfMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 		return false;
 	}
 
+	// open local files via platform file system
 	bool Resolving = false;
 
-	// open local files via platform file system
 	if (Url.StartsWith(TEXT("file://")))
 	{
 		TSharedPtr<FArchive, ESPMode::ThreadSafe> Archive;
@@ -214,12 +198,30 @@ bool FWmfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Arch
 }
 
 
+void FWmfMediaPlayer::TickPlayer(float DeltaTime)
+{
+	TFunction<void()> Task;
+
+	while (PlayerTasks.Dequeue(Task))
+	{
+		Task();
+	}
+}
+
+
+void FWmfMediaPlayer::TickVideo(float DeltaTime)
+{
+	// do nothing
+}
+
+
+
 /* IWmfMediaResolverCallbacks interface
  *****************************************************************************/
 
 void FWmfMediaPlayer::ProcessResolveComplete(TComPtr<IUnknown> SourceObject, FString ResolvedUrl)
 {
-	GameThreadTasks.Enqueue([=]() {
+	PlayerTasks.Enqueue([=]() {
 		MediaEvent.Broadcast(
 			InitializeMediaSession(SourceObject, ResolvedUrl)
 				? EMediaEvent::MediaOpened
@@ -231,7 +233,7 @@ void FWmfMediaPlayer::ProcessResolveComplete(TComPtr<IUnknown> SourceObject, FSt
 
 void FWmfMediaPlayer::ProcessResolveFailed(FString FailedUrl)
 {
-	GameThreadTasks.Enqueue([=]() {
+	PlayerTasks.Enqueue([=]() {
 		MediaSession = new FWmfMediaSession(EMediaState::Closed);
 		MediaEvent.Broadcast(EMediaEvent::MediaOpenFailed);
 	});
@@ -341,7 +343,7 @@ void FWmfMediaPlayer::HandleSessionEvent(MediaEventType EventType)
 	// forward event to game thread
 	if (Event.IsSet())
 	{
-		GameThreadTasks.Enqueue([=]() {
+		PlayerTasks.Enqueue([=]() {
 			MediaEvent.Broadcast(Event.GetValue());
 		});
 	}

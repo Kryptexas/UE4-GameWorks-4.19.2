@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "KismetCompiledFunctionContext.h"
 #include "BlueprintCompilerCppBackendInterface.h"
+#include "Engine/Blueprint.h" // for FCompilerNativizationOptions
 
 class UUserDefinedEnum;
 class UUserDefinedStruct;

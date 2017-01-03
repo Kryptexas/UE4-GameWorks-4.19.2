@@ -3,6 +3,13 @@
 //Google Play Services
 
 #include "OnlineSubsystemGooglePlay.h"
+#include "OnlineIdentityInterfaceGooglePlay.h"
+#include "OnlineStoreGooglePlayCommon.h"
+#include "OnlineAchievementsInterfaceGooglePlay.h"
+#include "OnlineLeaderboardInterfaceGooglePlay.h"
+#include "OnlineExternalUIInterfaceGooglePlay.h"
+#include "OnlinePurchaseGooglePlay.h"
+#include "OnlineStoreGooglePlay.h"
 #include "AndroidApplication.h"
 #include "Android/AndroidJNI.h"
 #include "OnlineAsyncTaskManagerGooglePlay.h"
@@ -12,12 +19,14 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Async/TaskGraphInterfaces.h"
 
+THIRD_PARTY_INCLUDES_START
 #include <android_native_app_glue.h>
 
 #include "gpg/android_initialization.h"
 #include "gpg/builder.h"
 #include "gpg/debug.h"
 #include "gpg/android_support.h"
+THIRD_PARTY_INCLUDES_END
 
 using namespace gpg;
 
@@ -41,6 +50,16 @@ IOnlineIdentityPtr FOnlineSubsystemGooglePlay::GetIdentityInterface() const
 IOnlineStorePtr FOnlineSubsystemGooglePlay::GetStoreInterface() const
 {
 	return StoreInterface;
+}
+
+IOnlineStoreV2Ptr FOnlineSubsystemGooglePlay::GetStoreV2Interface() const
+{
+	return StoreV2Interface;
+}
+
+IOnlinePurchasePtr FOnlineSubsystemGooglePlay::GetPurchaseInterface() const
+{
+	return PurchaseInterface;
 }
 
 IOnlineSessionPtr FOnlineSubsystemGooglePlay::GetSessionInterface() const
@@ -113,7 +132,7 @@ static bool WaitingForLogin = false;
 
 bool FOnlineSubsystemGooglePlay::Init() 
 {
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FOnlineSubsystemAndroid::Init"));
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FOnlineSubsystemGooglePlay::Init"));
 	
 	OnlineAsyncTaskThreadRunnable.Reset(new FOnlineAsyncTaskManagerGooglePlay);
 	OnlineAsyncTaskThread.Reset(FRunnableThread::Create(OnlineAsyncTaskThreadRunnable.Get(), *FString::Printf(TEXT("OnlineAsyncTaskThread %s"), *InstanceName.ToString())));
@@ -125,7 +144,18 @@ bool FOnlineSubsystemGooglePlay::Init()
 
 	if (IsInAppPurchasingEnabled())
 	{
-		StoreInterface = MakeShareable(new FOnlineStoreGooglePlay(this));
+		if (IsV2StoreEnabled())
+		{
+			StoreV2Interface = MakeShareable(new FOnlineStoreGooglePlayV2(this));
+			StoreV2Interface->Init();
+			PurchaseInterface = MakeShareable(new FOnlinePurchaseGooglePlay(this));
+			PurchaseInterface->Init();
+		}
+		else
+		{
+			StoreInterface = MakeShareable(new FOnlineStoreGooglePlay(this));
+			StoreInterface->Init();
+		}
 	}
 	
 	extern struct android_app* GNativeAndroidApp;
@@ -158,7 +188,7 @@ bool FOnlineSubsystemGooglePlay::Tick(float DeltaTime)
 
 bool FOnlineSubsystemGooglePlay::Shutdown() 
 {
-	UE_LOG(LogOnline, Log, TEXT("FOnlineSubsystemAndroid::Shutdown()"));
+	UE_LOG(LogOnline, Log, TEXT("FOnlineSubsystemGooglePlay::Shutdown()"));
 
 	FOnlineSubsystemImpl::Shutdown();
 
@@ -173,6 +203,8 @@ bool FOnlineSubsystemGooglePlay::Shutdown()
 
 	// Destruct the interfaces
 	DESTRUCT_INTERFACE(StoreInterface);
+	DESTRUCT_INTERFACE(StoreV2Interface);
+	DESTRUCT_INTERFACE(PurchaseInterface);
 	DESTRUCT_INTERFACE(ExternalUIInterface);
 	DESTRUCT_INTERFACE(AchievementsInterface);
 	DESTRUCT_INTERFACE(LeaderboardsInterface);
@@ -204,16 +236,28 @@ bool FOnlineSubsystemGooglePlay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutput
 
 bool FOnlineSubsystemGooglePlay::IsEnabled(void)
 {
-	bool bEnabled = true;
-	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bEnableGooglePlaySupport"), bEnabled, GEngineIni);
-	return bEnabled;
+	bool bEnableGooglePlaySupport = true;
+	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bEnableGooglePlaySupport"), bEnableGooglePlaySupport, GEngineIni);
+
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FOnlineSubsystemGooglePlay::IsEnabled %d"), bEnableGooglePlaySupport);
+	return bEnableGooglePlaySupport;
+}
+
+bool FOnlineSubsystemGooglePlay::IsV2StoreEnabled()
+{
+	bool bUseStoreV2 = false;
+	GConfig->GetBool(TEXT("OnlineSubsystemGooglePlay.Store"), TEXT("bUseStoreV2"), bUseStoreV2, GEngineIni);
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FOnlineSubsystemGooglePlay::IsV2StoreEnabled %d"), bUseStoreV2);
+	return bUseStoreV2;
 }
 
 bool FOnlineSubsystemGooglePlay::IsInAppPurchasingEnabled()
 {
-	bool bEnabledIAP = false;
-	GConfig->GetBool(TEXT("OnlineSubsystemGooglePlay.Store"), TEXT("bSupportsInAppPurchasing"), bEnabledIAP, GEngineIni);
-	return bEnabledIAP;
+	bool bSupportsInAppPurchasing = false;
+	GConfig->GetBool(TEXT("OnlineSubsystemGooglePlay.Store"), TEXT("bSupportsInAppPurchasing"), bSupportsInAppPurchasing, GEngineIni);
+
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FOnlineSubsystemGooglePlay::IsInAppPurchasingEnabled %d"), bSupportsInAppPurchasing);
+	return bSupportsInAppPurchasing;
 }
 
 void FOnlineSubsystemGooglePlay::StartShowLoginUITask(int PlayerId, const FOnLoginUIClosedDelegate& Delegate)

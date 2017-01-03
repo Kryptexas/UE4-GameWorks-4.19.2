@@ -46,6 +46,7 @@ TSharedRef<SWidget> FSequencerSectionKeyAreaNode::GetCustomOutlinerContent()
 				.VAlign(VAlign_Center)
 				[
 					SNew(SBox)
+					.IsEnabled(!GetSequencer().IsReadOnly())
 					.WidthOverride(100)
 					.HAlign(HAlign_Left)
 					[

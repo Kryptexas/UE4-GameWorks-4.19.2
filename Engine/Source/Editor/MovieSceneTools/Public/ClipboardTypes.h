@@ -8,6 +8,7 @@
 
 #if WITH_EDITOR
 
+#include "MovieSceneEventSection.h"
 #include "MovieSceneClipboard.h"
 
 namespace MovieSceneClipboard
@@ -46,6 +47,10 @@ namespace MovieSceneClipboard
 	{
 		static FName Name("Guid");
 		return Name;
+	}
+	template<> inline FName GetKeyTypeName<FEventPayload>()
+	{
+		return "EventPayload";
 	}
 }
 

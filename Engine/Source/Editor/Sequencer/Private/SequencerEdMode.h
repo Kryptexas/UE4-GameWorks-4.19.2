@@ -49,7 +49,10 @@ public:
 	virtual void DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) override;
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
-	void SetSequencer(const TWeakPtr<FSequencer>& InSequencer) { SequencerPtr = InSequencer; }
+	void AddSequencer(TWeakPtr<FSequencer> InSequencer) { Sequencers.AddUnique(InSequencer); }
+	void RemoveSequencer(TWeakPtr<FSequencer> InSequencer) { Sequencers.Remove(InSequencer); }
+
+	void OnSequencerReceivedFocus(TWeakPtr<FSequencer> InSequencer) { Sequencers.Sort([=](TWeakPtr<FSequencer> A, TWeakPtr<FSequencer> B){ return A == InSequencer; }); }
 
 	void OnKeySelected(FViewport* Viewport, HMovieSceneKeyProxy* KeyProxy);
 
@@ -65,12 +68,12 @@ protected:
 	void DrawTransformTrack(FPrimitiveDrawInterface* PDI, class UMovieScene3DTransformTrack* TransformTrack, const TArray<TWeakObjectPtr<UObject>>& BoundObjects, const bool& bIsSelected);
 
 private:
-	TWeakPtr<FSequencer> SequencerPtr;
+	TArray<TWeakPtr<FSequencer>> Sequencers;
 
-	/**The array of any transform tracks with mesh trails, and their mesh trail representations */
+	/**Array of the transform tracks and their associated mesh trails */
 	TArray<FMeshTrailData> MeshTrails;
 
-	/** True when drawing mesh trails instead of debug trails */
+	/** If true, draw mesh trails instead of debug lines*/
 	bool bDrawMeshTrails;
 };
 

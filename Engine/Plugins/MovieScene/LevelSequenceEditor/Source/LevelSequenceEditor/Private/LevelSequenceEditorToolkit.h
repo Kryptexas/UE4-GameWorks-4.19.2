@@ -62,9 +62,8 @@ public:
 	 * @param InitToolkitHost When Mode is WorldCentric, this is the level editor instance to spawn this editor within.
 	 * @param LevelSequence The animation to edit.
 	 * @param TrackEditorDelegates Delegates to call to create auto-key handlers for this sequencer.
-	 * @param bEditWithinLevelEditor Whether or not sequencer should be edited within the level editor.
 	 */
-	void Initialize(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, ULevelSequence* LevelSequence, bool bEditWithinLevelEditor);
+	void Initialize(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, ULevelSequence* LevelSequence);
 
 	/**
 	 * Get the sequencer object being edited in this tool kit.
@@ -111,6 +110,9 @@ protected:
 	
 	/** Add a shot to a master sequence */
 	void AddShot(UMovieSceneCinematicShotTrack* ShotTrack, const FString& ShotAssetName, const FString& ShotPackagePath, float ShotStartTime, float ShotEndTime, UObject* AssetToDuplicate);
+
+	/** Called whenever sequencer has received focus */
+	void OnSequencerReceivedFocus();
 
 private:
 

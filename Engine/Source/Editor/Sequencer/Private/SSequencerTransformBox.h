@@ -31,7 +31,10 @@ private:
 	/** Callback for transform operations. */
 	FReply OnPlusButtonClicked();
 	FReply OnMinusButtonClicked();
+	FReply OnMultiplyButtonClicked();
+	FReply OnDivideButtonClicked();
 	void OnDeltaChanged(float Value, ETextCommit::Type CommitType);
+	void OnScaleChanged(float Value, ETextCommit::Type CommitType);
 
 	/** Callback for when the close button is clicked. */
 	FReply OnCloseButtonClicked();
@@ -58,4 +61,7 @@ private:
 
 	/** Cached delta time. */
 	float DeltaTime;
+
+	/** Cached scale factor. */
+	float ScaleFactor;
 };

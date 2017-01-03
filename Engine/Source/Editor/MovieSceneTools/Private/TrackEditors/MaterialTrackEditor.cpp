@@ -126,7 +126,7 @@ void FMaterialTrackEditor::AddScalarParameter( FGuid ObjectBinding, UMovieSceneM
 {
 	float KeyTime = GetTimeForKey();
 
-	UMaterial* Material = GetMaterialForTrack(ObjectBinding, MaterialTrack);
+	UMaterialInterface* Material = GetMaterialInterfaceForTrack(ObjectBinding, MaterialTrack);
 	if (Material != nullptr)
 	{
 		const FScopedTransaction Transaction( LOCTEXT( "AddScalarParameter", "Add scalar parameter" ) );
@@ -143,7 +143,7 @@ void FMaterialTrackEditor::AddColorParameter( FGuid ObjectBinding, UMovieSceneMa
 {
 	float KeyTime = GetTimeForKey();
 
-	UMaterial* Material = GetMaterialForTrack( ObjectBinding, MaterialTrack );
+	UMaterialInterface* Material = GetMaterialInterfaceForTrack( ObjectBinding, MaterialTrack );
 	if ( Material != nullptr )
 	{
 		const FScopedTransaction Transaction( LOCTEXT( "AddVectorParameter", "Add vector parameter" ) );

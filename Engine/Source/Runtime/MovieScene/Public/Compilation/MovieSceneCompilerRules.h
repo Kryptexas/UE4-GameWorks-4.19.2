@@ -63,6 +63,11 @@ namespace MovieSceneSegmentCompiler
 			}
 		}
 	}
+
+	static void BlendSegmentUpperBoundExclusive(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData)
+	{
+		Segment.Range = FFloatRange(Segment.Range.GetLowerBoundValue(), Segment.Range.GetUpperBoundValue());
+	}
 }
 
 class FMovieSceneAdditiveCameraRules : public FMovieSceneSegmentCompilerRules

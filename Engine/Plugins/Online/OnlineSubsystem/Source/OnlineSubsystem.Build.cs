@@ -6,13 +6,15 @@ public class OnlineSubsystem : ModuleRules
 {
 	public OnlineSubsystem(TargetInfo Target)
 	{
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+		
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
 				"Json",
 			}
 		);
 
-        PublicIncludePaths.Add("OnlineSubsystem/Public/Interfaces");
+		PublicIncludePaths.Add("OnlineSubsystem/Public/Interfaces");
 
         PrivateIncludePaths.Add("OnlineSubsystem/Private");
 

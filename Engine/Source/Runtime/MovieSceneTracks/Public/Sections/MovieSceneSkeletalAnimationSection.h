@@ -45,6 +45,10 @@ struct FMovieSceneSkeletalAnimationParams
 	/** The slot name to use for the animation */
 	UPROPERTY( EditAnywhere, Category = "Animation" )
 	FName SlotName;
+
+	/** The weight curve for this animation section */
+	UPROPERTY( EditAnywhere, Category = "Animation" )
+	FRichCurve Weight;	
 };
 
 /**
@@ -73,10 +77,11 @@ public:
 	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override { return TOptional<float>(); }
 	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override { }
 	virtual FMovieSceneEvalTemplatePtr GenerateTemplate() const override;
+	virtual void PostLoadUpgradeTrackRow(const TRange<float>& InEvaluationRange) override;
 
 	/** ~UObject interface */
 	virtual void PostLoad() override;
-	
+	virtual void Serialize(FArchive& Ar) override;
 private:
 
 	//~ UObject interface

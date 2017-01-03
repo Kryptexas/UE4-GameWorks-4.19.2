@@ -7,6 +7,7 @@
 #include "UObject/AssetPtr.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
+#include "Engine/Blueprint.h"
 
 class UBlueprint;
 enum class ESavePackageResult;

@@ -348,7 +348,7 @@ FReplicationChangelistMgr::~FReplicationChangelistMgr()
 {
 }
 
-void FReplicationChangelistMgr::Update( const UObject* InObject, const uint32 ReplicationFrame, const int32 LastCompareIndex, const FReplicationFlags& RepFlags )
+void FReplicationChangelistMgr::Update( const UObject* InObject, const uint32 ReplicationFrame, const int32 LastCompareIndex, const FReplicationFlags& RepFlags, const bool bForceCompare )
 {
 	// See if we can re-use the work already done on a previous connection
 	// Rules:
@@ -356,7 +356,7 @@ void FReplicationChangelistMgr::Update( const UObject* InObject, const uint32 Re
 	//	2. We check LastCompareIndex > 1 so we can do at least one pass per connection to compare all properties
 	//		This is necessary due to how RemoteRole is manipulated per connection, so we need to give all connections a chance to see if it changed
 	//	3. We ALWAYS compare on bNetInitial to make sure we have a fresh changelist of net initial properties in this case
-	if ( CVarShareShadowState.GetValueOnAnyThread() && !RepFlags.bNetInitial && LastCompareIndex > 1 && LastReplicationFrame == ReplicationFrame )
+	if ( !bForceCompare && CVarShareShadowState.GetValueOnAnyThread() && !RepFlags.bNetInitial && LastCompareIndex > 1 && LastReplicationFrame == ReplicationFrame )
 	{
 		INC_DWORD_STAT_BY( STAT_NetSkippedDynamicProps, 1 );
 		return;
@@ -1140,7 +1140,7 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 	FNetBitWriter Writer( Bunch.PackageMap, 0 );
 
 	// Update change list (this will re-use work done by previous connections)
-	ChangelistMgr->Update( Object, Connection->Driver->ReplicationFrame, RepState->LastCompareIndex, RepFlags );
+	ChangelistMgr->Update( Object, Connection->Driver->ReplicationFrame, RepState->LastCompareIndex, RepFlags, OwningChannel->bForceCompareProperties );
 
 	// Replicate properties in the layout
 	const bool bHasRepLayout = RepLayout->ReplicateProperties( RepState, ChangelistMgr->GetRepChangelistState(), ( uint8* )Object, ObjectClass, OwningChannel, Writer, RepFlags );

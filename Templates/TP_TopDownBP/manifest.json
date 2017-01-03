@@ -54,7 +54,7 @@
 		{
 			"Language": "ko",
 			"Text": "롤, RPG, 롤플레잉, 내려보기, 탑다운"
-		},
+		}
 	],
 	"ClassTypes": "GameMode, Character, CameraComponent, SpringArmComponent, PlayerController",
 	"Category": "BlueprintFeature",
@@ -71,7 +71,7 @@
 			"DetailLevels":
 			[
 				"Standard",
-				"High",
+				"High"
 			]
 		},
 		{
@@ -79,8 +79,8 @@
 			"DetailLevels":
 			[
 				"Standard",
-				"High",
+				"High"
 			]
-		},
+		}
 	]
 }

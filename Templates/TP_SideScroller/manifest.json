@@ -55,7 +55,7 @@
 		{
 			"Language": "ko",
 			"Text": "횡,스크롤,플랫폼"
-		},
+		}
 	],	
 	"ClassTypes": "CameraComponent, SpringArmComponent, PaperFlipbook, PaperCharacter, GameMode",
 	"Category": "CodeFeature",
@@ -72,7 +72,7 @@
 			"MountName": "SideScroller",
 			"DetailLevels":
 			[
-				"Standard",
+				"Standard"
 			]
 		},
 		{
@@ -80,7 +80,7 @@
 			"DetailLevels":
 			[
 				"Standard",
-				"High",
+				"High"
 			]
 		},
 		{
@@ -88,8 +88,8 @@
 			"DetailLevels":
 			[
 				"Standard",
-				"High",
+				"High"
 			]
-		},
+		}
 	]
 }

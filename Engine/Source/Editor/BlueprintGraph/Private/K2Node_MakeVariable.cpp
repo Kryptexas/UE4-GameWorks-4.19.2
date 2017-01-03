@@ -7,10 +7,11 @@
 #include "EdGraphUtilities.h"
 #include "EdGraph/EdGraphNodeUtils.h"
 #include "Kismet2/BlueprintEditorUtils.h"
-
+#include "Templates/SharedPointer.h"
 #include "KismetCompiledFunctionContext.h"
 #include "KismetCompiler.h"
 #include "KismetCompilerMisc.h"
+#include "UObject/StructOnScope.h"
 
 static const TCHAR* MakeVariableOutputPinName = TEXT("MakeVariableOutput");
 
@@ -98,7 +99,6 @@ void UK2Node_MakeVariable::SetupVariable(const FBPVariableDescription& InVariabl
 	UEdGraphPin* VariableOutputPin = CreatePin(EGPD_Output, InVariableType.VarType, MakeVariableOutputPinName);
 
 	// make input pins for every value in the default value, for map pins we'll make a pair of inputs:
-	
 	TSharedPtr<FStructOnScope> StructData = MakeShareable(new FStructOnScope(Scope));
 	FBlueprintEditorUtils::PropertyValueFromString(Property, VariableType.DefaultValue, StructData->GetStructMemory());
 
@@ -194,5 +194,3 @@ UEdGraphPin* UK2Node_MakeVariable::GetOutputPin() const
 {
 	return FindPinChecked(MakeVariableOutputPinName);
 }
-
-#undef LOCTEXT_NAMESPACE

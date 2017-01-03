@@ -6,11 +6,12 @@
 #include "Stats/Stats.h"
 #include "UObject/ObjectMacros.h"
 #include "MovieSceneFwd.h"
-
 #include "MovieSceneExecutionToken.h"
 #include "Evaluation/MovieSceneEvalTemplate.h"
 #include "Sections/MovieSceneParameterSection.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "IMovieScenePlayer.h"
+
 #include "MovieSceneParameterTemplate.generated.h"
 
 class UMovieSceneComponentMaterialTrack;

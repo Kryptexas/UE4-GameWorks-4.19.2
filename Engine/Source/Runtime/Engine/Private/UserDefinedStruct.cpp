@@ -8,6 +8,7 @@
 #include "UObject/LinkerLoad.h"
 #include "Misc/SecureHash.h"
 #include "UObject/PropertyPortFlags.h"
+#include "Misc/PackageName.h" // for FPackageName::GetLongPackageAssetName()
 
 #if WITH_EDITOR
 #include "UserDefinedStructure/UserDefinedStructEditorData.h"
@@ -256,7 +257,7 @@ FGuid UUserDefinedStruct::GetCustomGuid() const
 	return Guid;
 }
 
-FString GetPathPostfix(const UObject* ForObject)
+ENGINE_API FString GetPathPostfix(const UObject* ForObject)
 {
 	FString FullAssetName = ForObject->GetOutermost()->GetPathName();
 	if (FullAssetName.StartsWith(TEXT("/Temp/__TEMP_BP__"), ESearchCase::CaseSensitive))

@@ -29,6 +29,12 @@ const TArray<UMovieSceneSection*>& UMovieSceneAudioTrack::GetAllSections() const
 }
 
 
+bool UMovieSceneAudioTrack::SupportsMultipleRows() const
+{
+	return true;
+}
+
+
 void UMovieSceneAudioTrack::RemoveAllAnimationData()
 {
 	// do nothing
@@ -116,7 +122,6 @@ void UMovieSceneAudioTrack::AddNewSound(USoundBase* Sound, float Time)
 	// add the section
 	UMovieSceneAudioSection* NewSection = NewObject<UMovieSceneAudioSection>(this);
 	NewSection->InitialPlacement( AudioSections, Time, Time + DurationToUse, SupportsMultipleRows() );
-	NewSection->SetAudioStartTime(Time);
 	NewSection->SetSound(Sound);
 
 	AudioSections.Add(NewSection);
@@ -126,12 +131,6 @@ void UMovieSceneAudioTrack::AddNewSound(USoundBase* Sound, float Time)
 bool UMovieSceneAudioTrack::IsAMasterTrack() const
 {
 	return Cast<UMovieScene>(GetOuter())->IsAMasterTrack(*this);
-}
-
-
-bool UMovieSceneAudioTrack::SupportsMultipleRows() const
-{
-	return true;
 }
 
 

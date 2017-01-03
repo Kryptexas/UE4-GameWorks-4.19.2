@@ -2,8 +2,12 @@
 
 #include "OnlineAsyncTaskGooglePlayReadLeaderboard.h"
 #include "OnlineSubsystemGooglePlay.h"
+#include "OnlineIdentityInterfaceGooglePlay.h"
+#include "OnlineLeaderboardInterfaceGooglePlay.h"
 
+THIRD_PARTY_INCLUDES_START
 #include "gpg/leaderboard_manager.h"
+THIRD_PARTY_INCLUDES_END
 
 using namespace gpg;
 

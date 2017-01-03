@@ -7,6 +7,7 @@ public class OnlineSubsystemOculus : ModuleRules
 	public OnlineSubsystemOculus(TargetInfo Target)
 	{		
 		Definitions.Add("ONLINESUBSYSTEMOCULUS_PACKAGE=1");
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
 		PrivateIncludePaths.AddRange(
 			new string[] {

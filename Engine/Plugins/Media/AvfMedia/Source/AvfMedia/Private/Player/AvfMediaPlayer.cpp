@@ -156,15 +156,14 @@ void FAvfMediaPlayer::HandleStatusNotification(AVPlayerItemStatus Status)
 			{
 				Tracks.Initialize(PlayerItem, Info);
 			 
-				AVF_GAME_THREAD_CALL(^AVF_GAME_THREAD_BLOCK{
+				PlayerTasks.Enqueue([=]() {
 					MediaEvent.Broadcast(EMediaEvent::TracksChanged);
-					AVF_GAME_THREAD_RETURN;
 				});
 				
 				Duration = FTimespan::FromSeconds(CMTimeGetSeconds(PlayerItem.asset.duration));
 				State = (State == EMediaState::Closed) ? EMediaState::Preparing : State;
 				
-				AVF_GAME_THREAD_CALL(^AVF_GAME_THREAD_BLOCK{
+				PlayerTasks.Enqueue([=]() {
 					if (!bPrerolled)
 					{
 						// Preroll for playback.
@@ -173,7 +172,7 @@ void FAvfMediaPlayer::HandleStatusNotification(AVPlayerItemStatus Status)
 							bPrerolled = true;
 							if (bFinished)
 							{
-								AVF_GAME_THREAD_CALL(^AVF_GAME_THREAD_BLOCK{
+								PlayerTasks.Enqueue([=]() {
 									MediaEvent.Broadcast(EMediaEvent::MediaOpened);
 									if (CurrentTime != FTimespan::Zero())
 									{
@@ -183,20 +182,17 @@ void FAvfMediaPlayer::HandleStatusNotification(AVPlayerItemStatus Status)
 									{
 										SetRate(CurrentRate);
 									}
-									AVF_GAME_THREAD_RETURN;
 								});
 							}
 							else
 							{
 								State = EMediaState::Error;
-								AVF_GAME_THREAD_CALL(^AVF_GAME_THREAD_BLOCK{
+								PlayerTasks.Enqueue([=]() {
 									MediaEvent.Broadcast(EMediaEvent::MediaOpenFailed);
-									AVF_GAME_THREAD_RETURN;
 								});
 							}
 						}];
 					}
-					AVF_GAME_THREAD_RETURN;
 				});
 			}
 			break;
@@ -206,17 +202,15 @@ void FAvfMediaPlayer::HandleStatusNotification(AVPlayerItemStatus Status)
 			if (Duration == 0.0f || State == EMediaState::Closed)
 			{
 				State = EMediaState::Error;
-				AVF_GAME_THREAD_CALL(^AVF_GAME_THREAD_BLOCK{
+				PlayerTasks.Enqueue([=]() {
 					MediaEvent.Broadcast(EMediaEvent::MediaOpenFailed);
-					AVF_GAME_THREAD_RETURN;
 				});
 			}
 			else
 			{
 				State = EMediaState::Error;
-				AVF_GAME_THREAD_CALL(^AVF_GAME_THREAD_BLOCK{
+				PlayerTasks.Enqueue([=]() {
 					MediaEvent.Broadcast(EMediaEvent::PlaybackSuspended);
-					AVF_GAME_THREAD_RETURN;
 				});
 			}
 			break;
@@ -232,38 +226,23 @@ void FAvfMediaPlayer::HandleDidReachEnd()
 {
 	if (ShouldLoop)
 	{
-		AVF_GAME_THREAD_CALL(^AVF_GAME_THREAD_BLOCK{
+		PlayerTasks.Enqueue([=]() {
 			MediaEvent.Broadcast(EMediaEvent::PlaybackEndReached);
 			Seek(FTimespan::FromSeconds(0.0f));
 			SetRate(CurrentRate);
-			AVF_GAME_THREAD_RETURN;
 		});
 	}
 	else
 	{
 		State = EMediaState::Paused;
 		CurrentRate = 0.0f;
-		AVF_GAME_THREAD_CALL(^AVF_GAME_THREAD_BLOCK{
+
+		PlayerTasks.Enqueue([=]() {
 			Seek(FTimespan::FromSeconds(0.0f));
 			MediaEvent.Broadcast(EMediaEvent::PlaybackEndReached);
 			MediaEvent.Broadcast(EMediaEvent::PlaybackSuspended);
-			AVF_GAME_THREAD_RETURN;
 		});
 	}
-}
-
-
-/* FTickerObjectBase interface
- *****************************************************************************/
-
-bool FAvfMediaPlayer::Tick(float DeltaTime)
-{
-	if (GetState() > EMediaState::Error && Duration > 0.0f)
-	{
-		Tracks.Tick(DeltaTime);
-	}
-
-	return true;
 }
 
 
@@ -593,9 +572,8 @@ bool FAvfMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 
 			UE_LOG(LogAvfMedia, Warning, TEXT("Failed to load video tracks. [%s]"), *FString(errstr));
 	 
-			AVF_GAME_THREAD_CALL(^AVF_GAME_THREAD_BLOCK{
+			PlayerTasks.Enqueue([=]() {
 				MediaEvent.Broadcast(EMediaEvent::MediaOpenFailed);
-				AVF_GAME_THREAD_RETURN;
 			});
 		}
 	}];
@@ -613,4 +591,28 @@ bool FAvfMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 bool FAvfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions& Options)
 {
 	return false; // not supported
+}
+
+
+void FAvfMediaPlayer::TickPlayer(float DeltaTime)
+{
+	// process deferred tasks
+	TFunction<void()> Task;
+
+	while (PlayerTasks.Dequeue(Task))
+	{
+		Task();
+	}
+
+	// tick tracks (for audio output)
+	if ((GetState() > EMediaState::Error) && (Duration > 0.0f))
+	{
+		Tracks.Tick(DeltaTime);
+	}
+}
+
+
+void FAvfMediaPlayer::TickVideo(float DeltaTime)
+{
+	// do nothing
 }

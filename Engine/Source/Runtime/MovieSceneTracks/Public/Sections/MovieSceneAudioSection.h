@@ -27,41 +27,67 @@ public:
 	/** Gets the sound for this section */
 	class USoundBase* GetSound() const {return Sound;}
 	
-	/** Sets the time that the sound is supposed to be played at */
-	void SetAudioStartTime(float InAudioStartTime) {AudioStartTime = InAudioStartTime;}
+	/** Set the offset into the beginning of the audio clip */
+	void SetStartOffset(float InStartOffset) {StartOffset = InStartOffset;}
 	
-	/** Gets the (absolute) time that the sound is supposed to be played at */
-	float GetAudioStartTime() const {return AudioStartTime;}
+	/** Get the offset into the beginning of the audio clip */
+	float GetStartOffset() const {return StartOffset;}
 	
 	/**
 	 * @return The range of times that the sound plays, truncated by the section limits
 	 */
 	TRange<float> MOVIESCENETRACKS_API GetAudioRange() const;
 	
-	/**
-	 * @return The range of times that the sound plays, not truncated by the section limits
-	 */
-	TRange<float> MOVIESCENETRACKS_API GetAudioTrueRange() const;
+	DEPRECATED(4.15, "Audio true range no longer supported.")
+	TRange<float> GetAudioTrueRange() const;
 	
 	/**
-	 * @return The dilation multiplier of the sound
+	 * Gets the sound volume curve
+	 *
+	 * @return The rich curve for this sound volume
 	 */
-	float GetAudioDilationFactor() const {return AudioDilationFactor;}
+	FRichCurve& GetSoundVolumeCurve() { return SoundVolume; }
+	const FRichCurve& GetSoundVolumeCurve() const { return SoundVolume; }
 
 	/**
-	* Sets the dilation multiplier of the sound
-	*/
-	void SetAudioDilationFactor( float InAudioDilationFactor ) { AudioDilationFactor = InAudioDilationFactor; }
+	 * Gets the sound pitch curve
+	 *
+	 * @return The rich curve for this sound pitch
+	 */
+	FRichCurve& GetPitchMultiplierCurve() { return PitchMultiplier; }
+	const FRichCurve& GetPitchMultiplierCurve() const { return PitchMultiplier; }
 
 	/**
-	* @return The volume the sound will be played with.
-	*/
-	float GetAudioVolume() const { return AudioVolume; }
+	 * Return the sound volume
+	 *
+	 * @param InTime	The position in time within the movie scene
+	 * @return The volume the sound will be played with.
+	 */
+	float GetSoundVolume(float InTime) const { return SoundVolume.Eval(InTime); }
 
 	/**
-	* Sets the volume the sound will be played with.
-	*/
-	void SetAudioVolume( float InAudioVolume ) { AudioVolume = InAudioVolume; }
+	 * Sets the sound volume
+	 *
+	 * @param InTime	The position in time within the movie scene
+	 * @param InVolume	The volume to set
+	 */
+	void SetSoundVolume(float InTime, float InVolume) { SoundVolume.AddKey(InTime, InVolume); }
+
+	/**
+	 * Return the pitch multiplier
+	 *
+	 * @param Position	The position in time within the movie scene
+	 * @return The pitch multiplier the sound will be played with.
+	 */
+	float GetPitchMultiplier(float InTime) const { return PitchMultiplier.Eval(InTime); }
+
+	/**
+	 * Set the pitch multiplier
+	 *
+	 * @param Position	The position in time within the movie scene
+	 * @param InPitch The pitch multiplier to set
+	 */
+	void SetPitchMultiplier(float InTime, float InPitchMultiplier) { PitchMultiplier.AddKey(InTime, InPitchMultiplier); }
 
 	/**
 	 * Returns whether or not a provided position in time is within the timespan of the audio range
@@ -92,6 +118,8 @@ public:
 	{
 		return bSuppressSubtitles;
 	}
+	/** ~UObject interface */
+	virtual void PostLoad() override;
 
 public:
 
@@ -99,6 +127,7 @@ public:
 
 	virtual void MoveSection( float DeltaPosition, TSet<FKeyHandle>& KeyHandles ) override;
 	virtual void DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles ) override;
+	virtual UMovieSceneSection* SplitSection(float SplitTime) override;
 	virtual void GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const override;
 	virtual void GetSnapTimes(TArray<float>& OutSnapTimes, bool bGetSectionBorders) const override;
 	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override { return TOptional<float>(); }
@@ -111,17 +140,29 @@ private:
 	UPROPERTY(EditAnywhere, Category="Audio")
 	USoundBase* Sound;
 
-	/** The absolute time that the sound starts playing at */
+	/** The offset into the beginning of the audio clip */
 	UPROPERTY(EditAnywhere, Category="Audio")
-	float AudioStartTime;
+	float StartOffset;
+
+	/** The absolute time that the sound starts playing at */
+	UPROPERTY( )
+	float AudioStartTime_DEPRECATED;
 	
 	/** The amount which this audio is time dilated by */
-	UPROPERTY(EditAnywhere, Category="Audio")
-	float AudioDilationFactor;
+	UPROPERTY( )
+	float AudioDilationFactor_DEPRECATED;
+
+	/** The volume the sound will be played with. */
+	UPROPERTY( )
+	float AudioVolume_DEPRECATED;
 
 	/** The volume the sound will be played with. */
 	UPROPERTY( EditAnywhere, Category = "Audio" )
-	float AudioVolume;
+	FRichCurve SoundVolume;
+
+	/** The pitch multiplier the sound will be played with. */
+	UPROPERTY( EditAnywhere, Category = "Audio" )
+	FRichCurve PitchMultiplier;
 
 #if WITH_EDITORONLY_DATA
 	/** Whether to show the actual intensity of the wave on the thumbnail, as well as the smoothed RMS */

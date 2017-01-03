@@ -10,6 +10,29 @@
 #include "ClientUnitTest.h"
 
 
+// Globals
+
+static FAssertHookDevice GAssertHook;
+
+
+/**
+ * FAssertHookDevice
+ */
+
+void FAssertHookDevice::AddAssertHook(FString Assert)
+{
+	// Hook GError when an assert hook is first added
+	if (GError != &GAssertHook)
+	{
+		GAssertHook.HookDevice(GError);
+
+		GError = &GAssertHook;
+	}
+
+	GAssertHook.DisabledAsserts.Add(Assert);
+}
+
+
 /**
  * NUTUtil
  */

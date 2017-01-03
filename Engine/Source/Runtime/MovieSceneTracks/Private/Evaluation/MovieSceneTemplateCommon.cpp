@@ -2,6 +2,7 @@
 
 #include "Evaluation/MovieSceneTemplateCommon.h"
 #include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
 
 /** A movie scene pre-animated token that stores a pre-animated mobility */
 struct FMobilityPreAnimatedToken : IMovieScenePreAnimatedToken
@@ -39,7 +40,13 @@ void F3DTransformTrackToken::Apply(USceneComponent& SceneComponent, float DeltaT
 	/* Cache initial absolute position */
 	FVector PreviousPosition = SceneComponent.GetComponentLocation();
 
-	SceneComponent.SetRelativeLocationAndRotation(Translation, Rotation);
+	// If this is a simulating component, teleport since sequencer takes over. 
+	// Teleport will not have no velocity, but it's computed below by sequencer so that it will be correct for physics.
+	AActor* Actor = SceneComponent.GetOwner();
+	USceneComponent* RootComponent = Actor ? Actor->GetRootComponent() : nullptr;
+	bool bIsSimulatingPhysics = RootComponent ? RootComponent->IsSimulatingPhysics() : false;
+
+	SceneComponent.SetRelativeLocationAndRotation(Translation, Rotation, false, nullptr, bIsSimulatingPhysics ? ETeleportType::TeleportPhysics : ETeleportType::None);
 	SceneComponent.SetRelativeScale3D(Scale);
 
 	// Force the location and rotation values to avoid Rot->Quat->Rot conversions

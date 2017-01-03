@@ -573,6 +573,9 @@ public:
 	/** Flushes actor from NetDriver's dormancy list, but does not change any state on the Actor itself */
 	ENGINE_API void FlushActorDormancy(class AActor *Actor);
 
+	/** Forces properties on this actor to do a compare for one frame (rather than share shadow state) */
+	ENGINE_API void ForcePropertyCompare( AActor* Actor );
+
 	/** Called when a spawned actor is destroyed. */
 	ENGINE_API virtual void NotifyActorDestroyed( AActor* Actor, bool IsSeamlessTravel=false );
 

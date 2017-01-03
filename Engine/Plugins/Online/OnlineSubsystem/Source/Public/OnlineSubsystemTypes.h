@@ -126,7 +126,7 @@ namespace ELoginStatus
 /** Possible connection states */
 namespace EOnlineServerConnectionStatus
 {
-	enum Type : unsigned int
+	enum Type : uint8
 	{
 		/** System normal (used for default state) */
 		Normal = 0,
@@ -811,8 +811,80 @@ public:
 	/** Holds the net id for a player */
 	FString UniqueNetIdStr;
 
+#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+	FUniqueNetIdString() = default;
+	virtual ~FUniqueNetIdString() = default;
+	FUniqueNetIdString(const FUniqueNetIdString&) = default;
+	FUniqueNetIdString(FUniqueNetIdString&&) = default;
+	FUniqueNetIdString& operator=(const FUniqueNetIdString&) = default;
+	FUniqueNetIdString& operator=(FUniqueNetIdString&&) = default;
+#else
 	/** Default constructor */
 	FUniqueNetIdString()
+	{
+	}
+
+	/** Destructor */
+	virtual ~FUniqueNetIdString()
+	{
+	}
+
+	/**
+	 * Copy Constructor
+	 *
+	 * @param Src the id to copy
+	 */
+	explicit FUniqueNetIdString(const FUniqueNetIdString& Src)
+		: UniqueNetIdStr(Src.UniqueNetIdStr)
+	{
+	}
+
+	/**
+	 * Move Constructor
+	 *
+	 * @param Src the id to copy
+	 */
+	explicit FUniqueNetIdString(FUniqueNetIdString&& Src)
+		: UniqueNetIdStr(MoveTemp(Src.UniqueNetIdStr))
+	{
+	}
+
+	/**
+	 * Copy Assignment Operator
+	 *
+	 * @param Src the id to copy
+	 */
+	FUniqueNetIdString& operator=(const FUniqueNetIdString& Src)
+	{
+		if (this != &Src)
+		{
+			UniqueNetIdStr = Src.UniqueNetIdStr;
+		}
+		return *this;
+	}
+
+	/**
+	 * Move Assignment Operator
+	 *
+	 * @param Src the id to copy
+	 */
+	FUniqueNetIdString& operator=(FUniqueNetIdString&& Src)
+	{
+		if (this != &Src)
+		{
+			UniqueNetIdStr = MoveTemp(Src.UniqueNetIdStr);
+		}
+		return *this;
+	}
+#endif
+
+	/**
+	 * Constructs this object with the specified net id
+	 *
+	 * @param InUniqueNetId the id to set ours to
+	 */
+	explicit FUniqueNetIdString(const FString& InUniqueNetId)
+		: UniqueNetIdStr(InUniqueNetId)
 	{
 	}
 
@@ -821,28 +893,18 @@ public:
 	 *
 	 * @param InUniqueNetId the id to set ours to
 	 */
-	explicit FUniqueNetIdString(const FString& InUniqueNetId) 
-		: UniqueNetIdStr(InUniqueNetId)
+	explicit FUniqueNetIdString(FString&& InUniqueNetId)
+		: UniqueNetIdStr(MoveTemp(InUniqueNetId))
 	{
 	}
 
 	/**
-	 * Copy Constructor
+	 * Constructs this object with the string value of the specified net id
 	 *
 	 * @param Src the id to copy
 	 */
-	explicit FUniqueNetIdString(const FUniqueNetId& Src) 
+	explicit FUniqueNetIdString(const FUniqueNetId& Src)
 		: UniqueNetIdStr(Src.ToString())
-	{
-	}
-
-	/**
-	 * Copy Constructor
-	 *
-	 * @param Src the id to copy
-	 */
-	explicit FUniqueNetIdString(const FUniqueNetIdString& Src) 
-		: UniqueNetIdStr(Src.UniqueNetIdStr)
 	{
 	}
 

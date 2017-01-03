@@ -6,6 +6,7 @@
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
 #include "KismetCompiledFunctionContext.h"
+#include "Engine/Blueprint.h" // for FCompilerNativizationOptions
 
 class UUserDefinedEnum;
 class UUserDefinedStruct;

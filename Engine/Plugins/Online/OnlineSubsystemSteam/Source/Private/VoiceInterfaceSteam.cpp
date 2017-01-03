@@ -408,18 +408,23 @@ bool FOnlineVoiceSteam::IsRemotePlayerTalking(const FUniqueNetId& UniqueId)
 
 bool FOnlineVoiceSteam::IsMuted(uint32 LocalUserNum, const FUniqueNetId& UniqueId) const
 {
-	int32 Index = INDEX_NONE;
 	if (LocalUserNum >= 0 && LocalUserNum < MAX_LOCAL_PLAYERS)
 	{
-		Index = MuteList.Find((const FUniqueNetIdSteam&)UniqueId);
+		return IsLocallyMuted(UniqueId);
 	}
 
-	return Index != INDEX_NONE;
+	return false;
 }
 
 bool FOnlineVoiceSteam::IsLocallyMuted(const FUniqueNetId& UniqueId) const
 {
 	int32 Index = MuteList.Find((const FUniqueNetIdSteam&)UniqueId);
+	return Index != INDEX_NONE;
+}
+
+bool FOnlineVoiceSteam::IsSystemWideMuted(const FUniqueNetId& UniqueId) const
+{
+	int32 Index = SystemMuteList.Find((const FUniqueNetIdSteam&)UniqueId);
 	return Index != INDEX_NONE;
 }
 
@@ -430,7 +435,9 @@ bool FOnlineVoiceSteam::MuteRemoteTalker(uint8 LocalUserNum, const FUniqueNetId&
 	{
 		if (bIsSystemWide)
 		{
+			// Add them to the system wide mute list
 			SystemMuteList.AddUnique((const FUniqueNetIdSteam&)PlayerId);
+			// Should update MuteList after going up to the server and coming back down
 			ProcessMuteChangeNotification();
 		}
 		else
@@ -472,6 +479,7 @@ bool FOnlineVoiceSteam::UnmuteRemoteTalker(uint8 LocalUserNum, const FUniqueNetI
 		{
 			// Remove them from the mute list
 			SystemMuteList.RemoveSingleSwap((const FUniqueNetIdSteam&)PlayerId);
+			// Should update MuteList after going up to the server and coming back down
 			ProcessMuteChangeNotification();
 		}
 		else
@@ -486,8 +494,8 @@ bool FOnlineVoiceSteam::UnmuteRemoteTalker(uint8 LocalUserNum, const FUniqueNetI
 				if (Talker != NULL)
 				{
 					// Make sure there isn't a system mute
-					bool bIsMuted = IsMuted(LocalUserNum, PlayerId);
-					if (!bIsMuted)
+					bool bIsSystemMuted = IsSystemWideMuted(PlayerId);
+					if (!bIsSystemMuted)
 					{
 						// Remove them from the mute list
 						MuteList.RemoveSingleSwap((const FUniqueNetIdSteam&)PlayerId);

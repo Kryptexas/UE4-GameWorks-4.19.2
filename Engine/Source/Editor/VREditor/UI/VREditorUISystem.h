@@ -6,12 +6,18 @@
 #include "SlateFwd.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
+#include "Widgets/SOverlay.h"
 #include "VREditorUISystem.generated.h"
 
 class AVREditorDockableWindow;
 class AVREditorFloatingUI;
 class FProxyTabmanager;
 class SColorPicker;
+class SBorder;
+class SButton;
+class FMultiBox;
+class SMultiBoxWidget;
+class SWidget;
 class UViewportInteractor;
 class UVREditorInteractor;
 

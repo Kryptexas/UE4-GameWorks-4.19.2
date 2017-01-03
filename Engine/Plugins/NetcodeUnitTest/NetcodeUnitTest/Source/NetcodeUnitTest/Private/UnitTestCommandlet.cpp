@@ -125,6 +125,8 @@ int32 UUnitTestCommandlet::Main(const FString& Params)
 		// Now, after init stages are done, enable GIsClient for netcode and such
 		GIsClient = true;
 
+		// Required for the unit test commandlet
+		PRIVATE_GAllowCommandletRendering = true;
 
 		// Before running any unit tests, create a world object, which will contain the unit tests manager etc.
 		//	(otherwise, when the last unit test world is cleaned up, the unit test manager stops functioning)

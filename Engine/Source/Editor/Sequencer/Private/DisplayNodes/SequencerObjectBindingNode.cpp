@@ -169,17 +169,17 @@ void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			FUIAction(
 				FExecuteAction::CreateLambda([=]{ GetSequencer().ExportFBX(); })
 			));
-
-		MenuBuilder.BeginSection("Organize", LOCTEXT("OrganizeContextMenuSectionName", "Organize"));
-		{
-			MenuBuilder.AddSubMenu(
-				LOCTEXT("LabelsSubMenuText", "Labels"),
-				LOCTEXT("LabelsSubMenuTip", "Add or remove labels on this track"),
-				FNewMenuDelegate::CreateSP(this, &FSequencerObjectBindingNode::HandleLabelsSubMenuCreate)
-			);
-		}
-		MenuBuilder.EndSection();
 	}
+
+	MenuBuilder.BeginSection("Organize", LOCTEXT("OrganizeContextMenuSectionName", "Organize"));
+	{
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("LabelsSubMenuText", "Labels"),
+			LOCTEXT("LabelsSubMenuTip", "Add or remove labels on this track"),
+			FNewMenuDelegate::CreateSP(this, &FSequencerObjectBindingNode::HandleLabelsSubMenuCreate)
+		);
+	}
+	MenuBuilder.EndSection();
 
 	FSequencerDisplayNode::BuildContextMenu(MenuBuilder);
 }
@@ -260,6 +260,11 @@ bool FSequencerObjectBindingNode::CanRenameNode() const
 
 TSharedRef<SWidget> FSequencerObjectBindingNode::GetCustomOutlinerContent()
 {
+	if (GetSequencer().IsReadOnly())
+	{
+		return SNullWidget::NullWidget;
+	}
+	
 	// Create a container edit box
 	TSharedRef<SHorizontalBox> BoxPanel = SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -440,7 +445,6 @@ const UClass* FSequencerObjectBindingNode::GetClassForObjectBinding() const
 	
 	// should exist, but also shouldn't be both a spawnable and a possessable
 	check((Spawnable != nullptr) ^ (Possessable != nullptr));
-	check((nullptr == Spawnable) || (nullptr != Spawnable->GetObjectTemplate())  );
 	const UClass* ObjectClass = Spawnable ? Spawnable->GetObjectTemplate()->GetClass() : Possessable->GetPossessedObjectClass();
 
 	return ObjectClass;

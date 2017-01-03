@@ -3,14 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "MovieSceneFwd.h"
 #include "Evaluation/MovieSceneSequenceTransform.h"
-#include "IMovieScenePlayer.h"
+
 
 /** Enumeration specifying whether we're playing forwards or backwards */
 enum class EPlayDirection
 {
 	Forwards, Backwards
 };
+
 
 /** MovieScene evaluation context. Should remain bitwise copyable, and contain no external state since this has the potential to be used on a thread */
 struct MOVIESCENE_API FMovieSceneEvaluationRange

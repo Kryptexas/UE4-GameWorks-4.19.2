@@ -52,7 +52,7 @@ struct FMovieSceneSectionEvalOptions
 /**
  * Base class for movie scene sections
  */
-UCLASS(abstract, MinimalAPI)
+UCLASS(abstract, DefaultToInstanced, MinimalAPI)
 class UMovieSceneSection
 	: public UMovieSceneSignedObject
 {
@@ -327,6 +327,17 @@ public:
 	/** Sets the time for the key referenced by the supplied key handle. */
 	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) PURE_VIRTUAL( UAISenseEvent::SetKeyTime, );
 	
+	/** For backwards compatibility, allow this section to do work when upgrading the section's track rows
+	 *
+	 * @param InEvaluationRange The new evaluation range for this section
+	 */
+	virtual void PostLoadUpgradeTrackRow(const TRange<float>& InEvaluationRange) { }
+
+protected:
+
+	//~ UObject interface
+	MOVIESCENE_API virtual void PostInitProperties() override;
+
 private:
 
 	/** The start time of the section */

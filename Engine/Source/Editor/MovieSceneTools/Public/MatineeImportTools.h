@@ -17,6 +17,7 @@ class UInterpTrackFloatBase;
 class UInterpTrackLinearColorProp;
 class UInterpTrackMove;
 class UInterpTrackSound;
+class UInterpTrackVectorProp;
 class UInterpTrackVisibility;
 class UMovieScene3DTransformTrack;
 class UMovieSceneAudioTrack;
@@ -28,6 +29,7 @@ class UMovieSceneFadeTrack;
 class UMovieSceneFloatTrack;
 class UMovieSceneParticleTrack;
 class UMovieSceneSkeletalAnimationTrack;
+class UMovieSceneVectorTrack;
 class UMovieSceneVisibilityTrack;
 
 class MOVIESCENETOOLS_API FMatineeImportTools
@@ -52,8 +54,11 @@ public:
 	/** Copies keys from a matinee float track to a sequencer float track. */
 	static bool CopyInterpFloatTrack( UInterpTrackFloatBase* MatineeFloatTrack, UMovieSceneFloatTrack* FloatTrack );
 
+	/** Copies keys from a matinee vector track to a sequencer vector track. */
+	static bool CopyInterpVectorTrack( UInterpTrackVectorProp* MatineeVectorTrack, UMovieSceneVectorTrack* VectorTrack );
+
 	/** Copies keys from a matinee move track to a sequencer transform track. */
-	static bool CopyInterpMoveTrack( UInterpTrackMove* MoveTrack, UMovieScene3DTransformTrack* TransformTrack );
+	static bool CopyInterpMoveTrack( UInterpTrackMove* MoveTrack, UMovieScene3DTransformTrack* TransformTrack, const FVector& DefaultScale = FVector(1.f) );
 
 	/** Copies keys from a matinee color track to a sequencer color track. */
 	static bool CopyInterpColorTrack( UInterpTrackColorProp* ColorPropTrack, UMovieSceneColorTrack* ColorTrack );

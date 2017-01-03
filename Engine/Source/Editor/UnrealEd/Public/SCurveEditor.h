@@ -177,6 +177,7 @@ public:
 		, _OutputSnap(0.05f)
 		, _InputSnappingEnabled(false)
 		, _OutputSnappingEnabled(false)
+		, _ShowTimeInFrames(false)
 		, _TimelineLength(5.0f)
 		, _DesiredSize(FVector2D::ZeroVector)
 		, _DrawCurve(true)
@@ -204,6 +205,7 @@ public:
 		SLATE_ATTRIBUTE( float, OutputSnap )
 		SLATE_ATTRIBUTE( bool, InputSnappingEnabled )
 		SLATE_ATTRIBUTE( bool, OutputSnappingEnabled )
+		SLATE_ATTRIBUTE( bool, ShowTimeInFrames )
 		SLATE_ATTRIBUTE( float, TimelineLength )
 		SLATE_ATTRIBUTE( FVector2D, DesiredSize )
 		SLATE_ARGUMENT( bool, DrawCurve )
@@ -411,12 +413,17 @@ private:
 
 	void ToggleInputSnapping();
 	void ToggleOutputSnapping();
-	bool IsInputSnappingEnabled();
-	bool IsOutputSnappingEnabled();
+	bool IsInputSnappingEnabled() const;
+	bool IsOutputSnappingEnabled() const;
+	bool ShowTimeInFrames() const;
 
 	TOptional<float> OnGetTime() const;
 	void OnTimeComitted(float NewValue, ETextCommit::Type CommitType);
 	void OnTimeChanged(float NewValue);
+
+	TOptional<int32> OnGetTimeInFrames() const;
+	void OnTimeInFramesComitted(int32 NewValue, ETextCommit::Type CommitType);
+	void OnTimeInFramesChanged(int32 NewValue);
 
 	TOptional<float> OnGetValue() const;
 	void OnValueComitted(float NewValue, ETextCommit::Type CommitType);
@@ -424,12 +431,15 @@ private:
 
 	void OnBeginSliderMovement(FText TransactionName);
 	void OnEndSliderMovement(float NewValue);
+	void OnEndSliderMovement(int32 NewValue);
 
 	EVisibility GetCurveAreaVisibility() const;
 	EVisibility GetCurveSelectorVisibility() const;
 	EVisibility GetEditVisibility() const;
 	EVisibility GetColorGradientVisibility() const;
 	EVisibility GetZoomButtonVisibility() const;
+	EVisibility GetTimeEditVisibility() const;
+	EVisibility GetFrameEditVisibility() const;
 
 	bool GetInputEditEnabled() const;
 
@@ -585,6 +595,8 @@ private:
 	FText GetCurveToolTipInputText() const;
 	FText GetCurveToolTipOutputText() const;
 
+	FText GetInputAxisName() const;
+
 	void UpdateCurveToolTip( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
 	TSharedPtr<FCurveViewModel> GetViewModelForCurve(FRichCurve* InCurve);
@@ -626,6 +638,10 @@ protected:
 	
 	/** Closes the popup created by GenericTextEntryModeless*/
 	void CloseEntryPopupMenu();
+
+	/** Convert time to frames and vice versa */
+	int32 TimeToFrame(float InTime) const;
+	float FrameToTime(int32 InFrame) const;
 
 private:
 
@@ -725,6 +741,9 @@ protected:
 	/** Whether or not output snapping is enabled. */
 	TAttribute<bool> bOutputSnappingEnabled;
 
+	/** Show time in frames. */
+	TAttribute<bool> bShowTimeInFrames;
+
 	/** True if you want the curve editor to fit to zoom **/
 	bool bZoomToFitVertical;
 
@@ -766,6 +785,8 @@ protected:
 
 	/** The text to display for the input axis. */
 	FText InputAxisName;
+	/** The text to display for the input (frame) axis. */
+	FText InputFrameAxisName;
 	/** The text to display for the output axis. */
 	FText OutputAxisName;
 

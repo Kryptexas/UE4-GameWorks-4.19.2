@@ -17,7 +17,6 @@
 #include "Misc/LevelSequenceEditorSettings.h"
 #include "Misc/LevelSequenceEditorHelpers.h"
 #include "Styles/LevelSequenceEditorStyle.h"
-#include "Customizations/LevelSequencePlaybackSettingsCustomization.h"
 #include "CineCameraActor.h"
 #include "CameraRig_Crane.h"
 #include "CameraRig_Rail.h"
@@ -54,7 +53,6 @@ public:
 		FLevelSequenceEditorStyle::Get();
 
 		RegisterAssetTools();
-		RegisterCustomizations();
 		RegisterMenuExtensions();
 		RegisterLevelEditorExtensions();
 		RegisterPlacementModeExtensions();
@@ -64,7 +62,6 @@ public:
 	virtual void ShutdownModule() override
 	{
 		UnregisterAssetTools();
-		UnregisterCustomizations();
 		UnregisterMenuExtensions();
 		UnregisterLevelEditorExtensions();
 		UnregisterPlacementModeExtensions();
@@ -90,14 +87,6 @@ protected:
 	{
 		AssetTools.RegisterAssetTypeActions(Action);
 		RegisteredAssetTypeActions.Add(Action);
-	}
-
-	/** Register details view customizations. */
-	void RegisterCustomizations()
-	{
-		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		LevelSequencePlayingSettingsName = FLevelSequencePlaybackSettings::StaticStruct()->GetFName();
-		PropertyModule.RegisterCustomPropertyTypeLayout(LevelSequencePlayingSettingsName, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FLevelSequencePlaybackSettingsCustomization::MakeInstance));
 	}
 
 	/** Registers level editor extensions. */
@@ -182,16 +171,6 @@ protected:
 			{
 				AssetTools.UnregisterAssetTypeActions(Action);
 			}
-		}
-	}
-
-	/** Unregister details view customizations. */
-	void UnregisterCustomizations()
-	{
-		FPropertyEditorModule* PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor");
-		if (PropertyModule)
-		{
-			PropertyModule->UnregisterCustomPropertyTypeLayout(LevelSequencePlayingSettingsName);
 		}
 	}
 
@@ -311,9 +290,6 @@ private:
 	TSharedPtr<FExtender> CinematicsMenuExtender;
 
 	TSharedPtr<FUICommandList> CommandList;
-
-	/** Captured name of the FLevelSequencePlaybackSettings struct */
-	FName LevelSequencePlayingSettingsName;
 
 	FOnMasterSequenceCreated OnMasterSequenceCreatedEvent;
 };

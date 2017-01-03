@@ -1,11 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "VREditorStyle.h"
-#include "VREditorModule.h"
 #include "SlateTypes.h"
-#include "SlateGameResources.h"
+#include "EditorStyleSet.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "SUniformGridPanel.h"
+#include "Brushes/SlateImageBrush.h"
+#include "Brushes/SlateBoxBrush.h"
+#include "Brushes/SlateBorderBrush.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Framework/Application/SlateApplication.h"
 
 TSharedPtr< FSlateStyleSet > FVREditorStyle::VREditorStyleInstance = NULL;
 

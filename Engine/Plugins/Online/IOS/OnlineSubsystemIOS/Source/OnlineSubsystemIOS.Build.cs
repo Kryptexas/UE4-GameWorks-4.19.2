@@ -6,6 +6,7 @@ public class OnlineSubsystemIOS : ModuleRules
 {
     public OnlineSubsystemIOS(TargetInfo Target)
 	{
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		PrivateIncludePaths.AddRange( 
             new string[] {
                 "Private",             

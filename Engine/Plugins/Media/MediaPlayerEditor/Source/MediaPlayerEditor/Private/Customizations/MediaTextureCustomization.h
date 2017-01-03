@@ -4,11 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "UObject/WeakObjectPtr.h"
-#include "Widgets/SWidget.h"
 #include "IDetailCustomization.h"
 
 class IDetailLayoutBuilder;
 class IPropertyHandle;
+class SWidget;
+
 
 /**
  * Implements a details view customization for the UMediaTexture class.

@@ -711,9 +711,10 @@ TSharedRef<ITableRow> SSequencerTreeView::OnGenerateRow(FDisplayNodeRef InDispla
 		if (!TrackLane.IsValid())
 		{
 			// Add a track slot for the row
-			TAttribute<TRange<float>> ViewRange = FAnimatedRange::WrapAttribute( TAttribute<FAnimatedRange>::Create(TAttribute<FAnimatedRange>::FGetter::CreateSP(&SequencerNodeTree->GetSequencer(), &FSequencer::GetViewRange)) );	
+			TAttribute<TRange<float>> ViewRange = FAnimatedRange::WrapAttribute( TAttribute<FAnimatedRange>::Create(TAttribute<FAnimatedRange>::FGetter::CreateSP(&SequencerNodeTree->GetSequencer(), &FSequencer::GetViewRange)) );
 
 			TrackLane = SNew(SSequencerTrackLane, SectionAuthority.ToSharedRef(), SharedThis(this))
+			.IsEnabled(!InDisplayNode->GetSequencer().IsReadOnly())
 			[
 				SectionAuthority->GenerateWidgetForSectionArea(ViewRange)
 			];

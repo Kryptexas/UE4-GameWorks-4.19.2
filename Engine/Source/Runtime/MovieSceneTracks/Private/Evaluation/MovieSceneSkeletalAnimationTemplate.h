@@ -14,15 +14,19 @@ struct FMovieSceneSkeletalAnimationSectionTemplateParameters : public FMovieScen
 	GENERATED_BODY()
 
 	FMovieSceneSkeletalAnimationSectionTemplateParameters() {}
-	FMovieSceneSkeletalAnimationSectionTemplateParameters(const FMovieSceneSkeletalAnimationParams& BaseParams, float InSectionStartTime)
+	FMovieSceneSkeletalAnimationSectionTemplateParameters(const FMovieSceneSkeletalAnimationParams& BaseParams, float InSectionStartTime, float InSectionEndTime)
 		: FMovieSceneSkeletalAnimationParams(BaseParams)
 		, SectionStartTime(InSectionStartTime)
+		, SectionEndTime(InSectionEndTime)
 	{}
 
 	float MapTimeToAnimation(float InPosition) const;
 
 	UPROPERTY()
 	float SectionStartTime;
+
+	UPROPERTY()
+	float SectionEndTime;
 };
 
 USTRUCT()
@@ -34,8 +38,29 @@ struct FMovieSceneSkeletalAnimationSectionTemplate : public FMovieSceneEvalTempl
 	FMovieSceneSkeletalAnimationSectionTemplate(const UMovieSceneSkeletalAnimationSection& Section);
 
 	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
+
+	virtual void SetupOverrides() override
+	{
+		EnableOverrides(RequiresTearDownFlag);
+	}
+	
 	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
+	virtual void TearDown(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override;
 
 	UPROPERTY()
 	FMovieSceneSkeletalAnimationSectionTemplateParameters Params;
+};
+
+USTRUCT()
+struct FMovieSceneSkeletalAnimationSharedTrack
+	: public FMovieSceneEvalTemplate
+{
+	GENERATED_BODY()
+
+	MOVIESCENETRACKS_API static FSharedPersistentDataKey GetSharedDataKey();
+
+private:
+
+	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
+	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
 };

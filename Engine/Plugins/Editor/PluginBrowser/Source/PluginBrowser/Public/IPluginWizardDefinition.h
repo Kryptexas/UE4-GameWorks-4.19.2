@@ -2,10 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Framework/Views/ITypedTableView.h"
 #include "ModuleDescriptor.h"
-#include "SlateEnums.h"
-#include "SlateTypes.h"
-#include "ITypedTableView.h"
+#include "Styling/SlateTypes.h"
+#include "Types/SlateEnums.h"
+
+
+struct FSlateDynamicImageBrush;
+
 
 /**
  * Description of a plugin template
@@ -22,7 +27,7 @@ struct FPluginTemplateDescription
 	FString OnDiskPath;
 
 	/** Brush resource for the image that is dynamically loaded */
-	TSharedPtr< struct FSlateDynamicImageBrush > PluginIconDynamicImageBrush;
+	TSharedPtr< FSlateDynamicImageBrush > PluginIconDynamicImageBrush;
 
 	/** Can the plugin contain content? */
 	bool bCanContainContent;

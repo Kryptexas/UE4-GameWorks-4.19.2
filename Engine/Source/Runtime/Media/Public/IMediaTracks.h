@@ -12,11 +12,11 @@ enum class EMediaTrackType
 	/** Audio track. */
 	Audio,
 
-	/** Binary data track. */
-	Binary,
-
 	/** Closed caption track. */
 	Caption,
+
+	/** Metadata track. */
+	Metadata,
 
 	/** Script track. */
 	Script,

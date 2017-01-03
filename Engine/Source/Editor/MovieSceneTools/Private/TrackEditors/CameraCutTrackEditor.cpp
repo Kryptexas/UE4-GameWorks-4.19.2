@@ -23,6 +23,39 @@
 #define LOCTEXT_NAMESPACE "FCameraCutTrackEditor"
 
 
+class FCameraCutTrackCommands
+	: public TCommands<FCameraCutTrackCommands>
+{
+public:
+
+	FCameraCutTrackCommands()
+		: TCommands<FCameraCutTrackCommands>
+	(
+		"CameraCutTrack",
+		NSLOCTEXT("Contexts", "CameraCutTrack", "CameraCutTrack"),
+		NAME_None, // "MainFrame" // @todo Fix this crash
+		FEditorStyle::GetStyleSetName() // Icon Style Set
+	)
+		, BindingCount(0)
+	{ }
+		
+	/** Toggle the camera lock */
+	TSharedPtr< FUICommandInfo > ToggleLockCamera;
+
+	/**
+	 * Initialize commands
+	 */
+	virtual void RegisterCommands() override;
+
+	mutable uint32 BindingCount;
+};
+
+
+void FCameraCutTrackCommands::RegisterCommands()
+{
+	UI_COMMAND( ToggleLockCamera, "Toggle Lock Camera", "Toggle locking the viewport to the camera cut track.", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::L) );
+}
+
 /* FCameraCutTrackEditor structors
  *****************************************************************************/
 
@@ -30,8 +63,20 @@ FCameraCutTrackEditor::FCameraCutTrackEditor(TSharedRef<ISequencer> InSequencer)
 	: FMovieSceneTrackEditor(InSequencer) 
 {
 	ThumbnailPool = MakeShareable(new FTrackEditorThumbnailPool(InSequencer));
+
+	FCameraCutTrackCommands::Register();
 }
 
+void FCameraCutTrackEditor::OnRelease()
+{
+	const FCameraCutTrackCommands& Commands = FCameraCutTrackCommands::Get();
+	Commands.BindingCount--;
+	
+	if (Commands.BindingCount < 1)
+	{
+		FCameraCutTrackCommands::Unregister();
+	}
+}
 
 TSharedRef<ISequencerTrackEditor> FCameraCutTrackEditor::CreateTrackEditor(TSharedRef<ISequencer> InSequencer)
 {
@@ -41,6 +86,17 @@ TSharedRef<ISequencerTrackEditor> FCameraCutTrackEditor::CreateTrackEditor(TShar
 
 /* ISequencerTrackEditor interface
  *****************************************************************************/
+
+void FCameraCutTrackEditor::BindCommands(TSharedRef<FUICommandList> SequencerCommandBindings)
+{
+	const FCameraCutTrackCommands& Commands = FCameraCutTrackCommands::Get();
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleLockCamera,
+		FExecuteAction::CreateSP( this, &FCameraCutTrackEditor::ToggleLockCamera) );
+
+	Commands.BindingCount++;
+}
 
 void FCameraCutTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
@@ -299,6 +355,11 @@ void FCameraCutTrackEditor::OnLockCameraClicked(ECheckBoxState CheckBoxState)
 	}
 
 	GetSequencer()->ForceEvaluate();
+}
+
+void FCameraCutTrackEditor::ToggleLockCamera()
+{
+	OnLockCameraClicked(IsCameraLocked() == ECheckBoxState::Checked ?  ECheckBoxState::Unchecked :  ECheckBoxState::Checked);
 }
 
 FText FCameraCutTrackEditor::GetLockCameraToolTip() const

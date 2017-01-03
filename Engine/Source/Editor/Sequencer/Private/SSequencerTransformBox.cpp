@@ -17,6 +17,7 @@ void SSequencerTransformBox::Construct(const FArguments& InArgs, const TSharedRe
 	NumericTypeInterface = InNumericTypeInterface;
 	
 	DeltaTime = 1.f;
+	ScaleFactor = 1.f;
 
 	// Initialize to 10 frames if showing frame numbers
 	float TimeSnapInterval = SequencerPtr.Pin()->GetSettings()->GetTimeSnapInterval();
@@ -63,8 +64,39 @@ void SSequencerTransformBox::Construct(const FArguments& InArgs, const TSharedRe
 						SAssignNew(EntryBox, SNumericEntryBox<float>)
 							.MinDesiredValueWidth(32.0f)
 							.TypeInterface(NumericTypeInterface)
+							.ToolTipText(LOCTEXT("Delta_Tooltip", "The amount to offset the keys/sections by"))
 							.OnValueCommitted(this, &SSequencerTransformBox::OnDeltaChanged)
 							.Value_Lambda([this](){ return DeltaTime; })
+					]
+
+				+ SHorizontalBox::Slot()
+					.Padding(6.0f, 0.0f, 0.0f, 0.0f)
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(SButton)
+							.Text(LOCTEXT("MultiplyLabel", "*"))
+							.OnClicked(this, &SSequencerTransformBox::OnMultiplyButtonClicked)
+					]
+
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(SButton)
+							.Text(LOCTEXT("DivideLabel", "/"))
+							.OnClicked(this, &SSequencerTransformBox::OnDivideButtonClicked)
+					]
+
+				+ SHorizontalBox::Slot()
+					.Padding(6.0f, 0.0f, 0.0f, 0.0f)
+					.AutoWidth()
+					[
+						SAssignNew(EntryBox, SNumericEntryBox<float>)
+							.MinDesiredValueWidth(32.0f)
+							.ToolTipText(LOCTEXT("Scale_Tooltip", "The amount to scale the keys/section by (about the local time)"))
+							.OnValueCommitted(this, &SSequencerTransformBox::OnScaleChanged)
+							.Value_Lambda([this](){ return ScaleFactor; })
 					]
 
 				+ SHorizontalBox::Slot()
@@ -114,21 +146,60 @@ void SSequencerTransformBox::OnDeltaChanged(float Value, ETextCommit::Type Commi
 	DeltaTime = Value;
 }
 
+void SSequencerTransformBox::OnScaleChanged(float Value, ETextCommit::Type CommitType)
+{
+	if (CommitType != ETextCommit::OnEnter)
+	{
+		return;
+	}
+
+	ScaleFactor = Value;
+}
+
 FReply SSequencerTransformBox::OnPlusButtonClicked()
 {
-	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+	if (DeltaTime != 0.f)
+	{
+		TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
 
-	Sequencer->TransformSelectedKeysAndSections(DeltaTime);
+		Sequencer->TransformSelectedKeysAndSections(DeltaTime, 1.f);
+	}
 
 	return FReply::Handled();
 }
 
 FReply SSequencerTransformBox::OnMinusButtonClicked()
 {
-	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+	if (DeltaTime != 0.f)
+	{
+		TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+	
+		Sequencer->TransformSelectedKeysAndSections(-DeltaTime, 1.f);
+	}
 
-	Sequencer->TransformSelectedKeysAndSections(-DeltaTime);
+	return FReply::Handled();
+}
 
+FReply SSequencerTransformBox::OnMultiplyButtonClicked()
+{
+	if (ScaleFactor != 0.f && ScaleFactor != 1.f)
+	{
+		TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+		
+		Sequencer->TransformSelectedKeysAndSections(0, ScaleFactor);
+	}
+
+	return FReply::Handled();
+}
+
+FReply SSequencerTransformBox::OnDivideButtonClicked()
+{
+	if (ScaleFactor != 0.f && ScaleFactor != 1.f)
+	{
+		TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+
+		Sequencer->TransformSelectedKeysAndSections(0, 1.f/ScaleFactor);
+	}
 	return FReply::Handled();
 }
 

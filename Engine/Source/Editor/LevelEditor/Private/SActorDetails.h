@@ -9,14 +9,17 @@
 #include "Framework/Text/SlateHyperlinkRun.h"
 #include "EditorUndoClient.h"
 
+
 class AActor;
 class FSCSEditorTreeNode;
+class FTabManager;
 class FUICommandList;
 class IDetailsView;
 class SBox;
 class SSCSEditor;
 class SSplitter;
 class UBlueprint;
+
 
 /**
  * Wraps a details panel customized for viewing actors
@@ -27,7 +30,7 @@ public:
 	SLATE_BEGIN_ARGS(SActorDetails) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, const FName TabIdentifier, TSharedPtr<FUICommandList> InCommandList);
+	void Construct(const FArguments& InArgs, const FName TabIdentifier, TSharedPtr<FUICommandList> InCommandList, TSharedPtr<FTabManager> InTabManager);
 	~SActorDetails();
 
 	/**

@@ -201,7 +201,7 @@ private:
 		{
 			const FTimespan Difference = Other.Context->GetTimeSent() - Context->GetTimeSent();
 
-			if (Difference == FTimespan::Zero())
+			if (Difference.IsZero())
 			{
 				return (Sequence < Other.Sequence);
 			}

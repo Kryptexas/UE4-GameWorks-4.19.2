@@ -126,6 +126,6 @@ private:
 	FString BindingName;
 
 	/** All tracks in this binding */
-	UPROPERTY()
+	UPROPERTY(Instanced)
 	TArray<UMovieSceneTrack*> Tracks;
 };

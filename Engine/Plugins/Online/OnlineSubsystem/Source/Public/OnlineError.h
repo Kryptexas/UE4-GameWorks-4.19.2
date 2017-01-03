@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 
 namespace EOnlineServerConnectionStatus {
-	enum Type : unsigned int;
+	enum Type : uint8;
 }
 
 /** Generic Error response for OSS calls */

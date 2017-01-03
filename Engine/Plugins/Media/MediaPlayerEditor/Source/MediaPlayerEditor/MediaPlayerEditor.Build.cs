@@ -40,6 +40,7 @@ public class MediaPlayerEditor : ModuleRules
 				"Engine",
 				"InputCore",
 				"MediaAssets",
+                "MediaUtils",
 				"PropertyEditor",
 				"RenderCore",
 				"RHI",

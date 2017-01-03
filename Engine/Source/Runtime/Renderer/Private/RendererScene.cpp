@@ -2070,7 +2070,7 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 	UniformParameters.Prev##name = *(FVector4*)(WindShaderValues + FSpeedTreeWind::offset + FSpeedTreeWind::NUM_SHADER_VALUES);
 
 	FScene* Scene = this;
-	EnqueueUniqueRenderCommand("FUpdateSpeedTreeWindCommand",
+	ENQUEUE_RENDER_COMMAND(FUpdateSpeedTreeWindCommand)(
 		[Scene, CurrentTime](FRHICommandListImmediate& RHICmdList)
 		{
 			FVector WindDirection;

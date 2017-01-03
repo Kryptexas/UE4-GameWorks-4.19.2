@@ -8,6 +8,7 @@
 #include "Textures/SlateIcon.h"
 #include "Toolkits/AssetEditorToolkit.h"
 
+class FApplicationMode;
 class FMenuBuilder;
 class FTabInfo;
 class SToolTip;
@@ -53,6 +54,9 @@ public:
 
 	// The TabInfo being used to spawn this
 	TSharedPtr<class FTabInfo> TabInfo;
+
+	/** The parent tab manager */
+	TSharedPtr<FTabManager> TabManager;
 
 public:
 	FWorkflowTabSpawnInfo()
@@ -103,6 +107,9 @@ public:
 	// Creates a view menu entry for this factory
 	virtual void CreateViewMenuEntry(FMenuBuilder& MenuBuilder, const FUIAction& Action) const;
 
+	/** Register a tab spawner for this factory */
+	virtual FTabSpawnerEntry& RegisterTabSpawner(TSharedRef<FTabManager> TabManager, const FApplicationMode* CurrentApplicationMode) const;
+
 public:
 	// Constructor
 	FWorkflowTabFactory(FName InIdentifier, TSharedPtr<class FAssetEditorToolkit> InHostingApp);
@@ -122,6 +129,9 @@ public:
 protected:
 	// Call this to enable the default padding surrounding the tab contents
 	void EnableTabPadding();
+
+	/** Callback function for spawning the tab */
+	TSharedRef<SDockTab> OnSpawnTab(const FSpawnTabArgs& SpawnArgs, TWeakPtr<FTabManager> WeakTabManager) const;
 
 public:
 	// Creates the widget that will be the body of the new tab

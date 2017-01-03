@@ -4,13 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "MediaSource.h"
+#include "BaseMediaSource.h"
+
 #include "StreamMediaSource.generated.h"
 
 
 UCLASS(BlueprintType)
 class MEDIAASSETS_API UStreamMediaSource
-	: public UMediaSource
+	: public UBaseMediaSource
 {
 	GENERATED_BODY()
 

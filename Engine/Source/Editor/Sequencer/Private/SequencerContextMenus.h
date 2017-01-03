@@ -61,7 +61,11 @@ private:
 
 	void SplitSection();
 
+	void ReduceKeys();
+
 	bool IsTrimmable() const;
+
+	bool CanReduceKeys() const;
 
 	void SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity);
 

@@ -43,7 +43,7 @@ public:
 
 	virtual bool IsKeyEnabled(EPianoKey Key) const override
 	{
-		if (KeyResetDelay == FTimespan::Zero())
+		if (KeyResetDelay.IsZero())
 		{
 			return true;
 		}

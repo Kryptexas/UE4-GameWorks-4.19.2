@@ -2632,9 +2632,14 @@ void USkeletalMeshComponent::ValidateAnimation()
 		{
 			AnimationData.AnimToPlay = nullptr;
 		}
-		else
+		else if(AnimationMode == EAnimationMode::AnimationBlueprint)
 		{
 			AnimClass = nullptr;
+		}
+		else
+		{
+			// if custom mode, you still can't use the animation instance
+			AnimScriptInstance = nullptr;
 		}
 		return;
 	}
@@ -2655,7 +2660,7 @@ void USkeletalMeshComponent::ValidateAnimation()
 			AnimationData.AnimToPlay = nullptr;
 		}
 	}
-	else
+	else if (AnimationMode == EAnimationMode::AnimationBlueprint)
 	{
 		IAnimClassInterface* AnimClassInterface = IAnimClassInterface::GetFromClass(AnimClass);
 		if (AnimClassInterface && SkeletalMesh && AnimClassInterface->GetTargetSkeleton() != SkeletalMesh->Skeleton)

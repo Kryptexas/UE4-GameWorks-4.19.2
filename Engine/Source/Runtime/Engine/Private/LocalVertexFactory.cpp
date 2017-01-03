@@ -96,7 +96,7 @@ void FLocalVertexFactory::Copy(const FLocalVertexFactory& Other)
 {
 	FLocalVertexFactory* VertexFactory = this;
 	const FDataType* DataCopy = &Other.Data;
-	EnqueueUniqueRenderCommand("FLocalVertexFactoryCopyData",
+	ENQUEUE_RENDER_COMMAND(FLocalVertexFactoryCopyData)(
 		[VertexFactory, DataCopy](FRHICommandListImmediate& RHICmdList)
 		{
 			VertexFactory->Data = *DataCopy;

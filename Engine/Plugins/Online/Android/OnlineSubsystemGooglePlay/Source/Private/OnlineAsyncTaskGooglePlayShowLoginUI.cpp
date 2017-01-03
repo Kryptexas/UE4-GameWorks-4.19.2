@@ -2,9 +2,11 @@
 
 #include "OnlineAsyncTaskGooglePlayShowLoginUI.h"
 #include "OnlineSubsystemGooglePlay.h"
+#include "OnlineIdentityInterfaceGooglePlay.h"
 
+THIRD_PARTY_INCLUDES_START
 #include "gpg/player_manager.h"
-
+THIRD_PARTY_INCLUDES_END
 
 FOnlineAsyncTaskGooglePlayShowLoginUI::FOnlineAsyncTaskGooglePlayShowLoginUI(
 	FOnlineSubsystemGooglePlay* InSubsystem,

@@ -3,6 +3,8 @@
 #include "Evaluation/MovieSceneParameterTemplate.h"
 #include "Tracks/MovieSceneMaterialTrack.h"
 #include "Components/PrimitiveComponent.h"
+#include "MovieSceneEvaluation.h"
+
 
 FMovieSceneParameterSectionTemplate::FMovieSceneParameterSectionTemplate(const UMovieSceneParameterSection& Section)
 	: Scalars(Section.GetScalarParameterNamesAndCurves())

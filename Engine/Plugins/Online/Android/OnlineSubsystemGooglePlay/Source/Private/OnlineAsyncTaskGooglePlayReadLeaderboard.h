@@ -6,7 +6,9 @@
 #include "OnlineAsyncTaskManager.h"
 #include "OnlineStats.h"
 
+THIRD_PARTY_INCLUDES_START
 #include "gpg/leaderboard_manager.h"
+THIRD_PARTY_INCLUDES_END
 
 class FOnlineSubsystemGooglePlay;
 

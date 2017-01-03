@@ -226,6 +226,11 @@ void SStructureDetailsView::ForceRefresh()
 	SetStructureData(StructData);
 }
 
+void SStructureDetailsView::AddExternalRootPropertyNode(TSharedRef<FPropertyNode> ExternalRootNode)
+{
+	ExternalRootPropertyNodes.Add( ExternalRootNode );
+}
+
 void SStructureDetailsView::ClearSearch()
 {
 	CurrentFilter.FilterStrings.Empty();

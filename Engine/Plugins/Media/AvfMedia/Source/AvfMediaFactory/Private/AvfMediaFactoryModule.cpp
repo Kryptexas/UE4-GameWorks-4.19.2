@@ -1,13 +1,22 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
+#include "AvfMediaFactoryPrivate.h"
+
 #include "CoreMinimal.h"
+#include "IAvfMediaModule.h"
+#include "IMediaModule.h"
+#include "IMediaPlayerFactory.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
-#include "IMediaModule.h"
-#include "IAvfMediaModule.h"
-#include "AvfMediaFactoryPrivate.h"
-#include "IMediaPlayerFactory.h"
+#include "AvfMediaSettings.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
+
+#if WITH_EDITOR
+	#include "ISettingsModule.h"
+	#include "ISettingsSection.h"
+#endif
 
 
 DEFINE_LOG_CATEGORY(LogAvfMediaFactory);
@@ -79,7 +88,7 @@ public:
 
 	virtual FText GetDisplayName() const override
 	{
-		return LOCTEXT("MediaPlayerDisplayName", "AVF Media Player");
+		return LOCTEXT("MediaPlayerDisplayName", "Apple AV Foundation");
 	}
 
 	virtual FName GetName() const override
@@ -113,8 +122,8 @@ public:
 		SupportedFileExtensions.Add(TEXT("3gpp"));
 		SupportedFileExtensions.Add(TEXT("ac3"));
 		SupportedFileExtensions.Add(TEXT("aif"));
-		SupportedFileExtensions.Add(TEXT("aiff"));
 		SupportedFileExtensions.Add(TEXT("aifc"));
+		SupportedFileExtensions.Add(TEXT("aiff"));
 		SupportedFileExtensions.Add(TEXT("amr"));
 		SupportedFileExtensions.Add(TEXT("au"));
 		SupportedFileExtensions.Add(TEXT("bwf"));
@@ -130,6 +139,20 @@ public:
 		SupportedFileExtensions.Add(TEXT("snd"));
 		SupportedFileExtensions.Add(TEXT("wav"));
 		SupportedFileExtensions.Add(TEXT("wave"));
+
+#if WITH_EDITOR
+		// register settings
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+		if (SettingsModule != nullptr)
+		{
+			ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings("Project", "Plugins", "AvfMedia",
+				LOCTEXT("AvfMediaSettingsName", "AVF Media"),
+				LOCTEXT("AvfMediaSettingsDescription", "Configure the AVF Media plug-in."),
+				GetMutableDefault<UAvfMediaSettings>()
+			);
+		}
+#endif //WITH_EDITOR
 
 		// register player factory
 		auto MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
@@ -149,6 +172,16 @@ public:
 		{
 			MediaModule->UnregisterPlayerFactory(*this);
 		}
+
+#if WITH_EDITOR
+		// unregister settings
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+		if (SettingsModule != nullptr)
+		{
+			SettingsModule->UnregisterSettings("Project", "Plugins", "AvfMedia");
+		}
+#endif //WITH_EDITOR
 	}
 
 private:

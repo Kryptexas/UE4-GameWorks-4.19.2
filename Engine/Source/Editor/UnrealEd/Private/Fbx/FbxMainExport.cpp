@@ -70,6 +70,7 @@
 #include "CineCameraComponent.h"
 #include "Math/UnitConversion.h"
 
+#include "IMovieScenePlayer.h"
 #include "MovieScene.h"
 #include "Tracks/MovieScene3DTransformTrack.h"
 #include "Tracks/MovieSceneFloatTrack.h"

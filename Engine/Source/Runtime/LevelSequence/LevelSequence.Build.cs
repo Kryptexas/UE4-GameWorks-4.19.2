@@ -9,14 +9,30 @@ public class LevelSequence : ModuleRules
 		PrivateIncludePaths.Add("Runtime/LevelSequence/Private");
 
 		PublicDependencyModuleNames.AddRange(
-            new string[] {
-                "Core",
-                "CoreUObject",
-                "Engine",
+			new string[] {
+				"Core",
+				"CoreUObject",
+				"Engine",
 				"MovieScene",
 				"MovieSceneTracks",
 				"UMG",
-            }
-        );
+			}
+		);
+
+		if (UEBuildConfiguration.bBuildEditor == true)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+					"ActorPickerMode",
+					"PropertyEditor",
+				}
+			);
+
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"SceneOutliner"
+				}
+			);
+		}
 	}
 }

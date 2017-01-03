@@ -277,7 +277,7 @@ public:
 	virtual void SetReplicateMovement(bool bInReplicateMovement);
 
 	/** Sets whether or not this Actor is an autonomous proxy, which is an actor on a network client that is controlled by a user on that client. */
-	void SetAutonomousProxy(bool bInAutonomousProxy);
+	void SetAutonomousProxy(const bool bInAutonomousProxy, const bool bAllowForcePropertyCompare=true);
 	
 	/** Copies RemoteRole from another Actor and adds this actor to the list of network actors if necessary. */
 	void CopyRemoteRoleFrom(const AActor* CopyFromActor);
@@ -2157,6 +2157,9 @@ public:
 	/** Forces dormant actor to replicate but doesn't change NetDormancy state (i.e., they will go dormant again if left dormant) */
 	UFUNCTION(BlueprintAuthorityOnly, BlueprintCallable, Category="Networking")
 	void FlushNetDormancy();
+
+	/** Forces properties on this actor to do a compare for one frame (rather than share shadow state) */
+	void ForcePropertyCompare();
 
 	/** Returns whether this Actor was spawned by a child actor component */
 	UFUNCTION(BlueprintCallable, Category="Actor")

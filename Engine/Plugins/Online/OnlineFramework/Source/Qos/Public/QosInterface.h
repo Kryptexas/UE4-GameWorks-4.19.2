@@ -8,6 +8,8 @@
 
 class IAnalyticsProvider;
 
+#define NO_REGION TEXT("NONE")
+
 /**
  * Main Qos interface for actions related to server quality of service
  */

@@ -608,6 +608,14 @@ bool FRepLayout::ReplicateProperties(
 
 	FRepChangedPropertyTracker*	ChangeTracker = RepState->RepChangedPropertyTracker.Get();
 
+	// Rebuild conditional state if needed
+	if ( RepState->RepFlags.Value != RepFlags.Value )
+	{
+		RebuildConditionalProperties( RepState, *ChangeTracker, RepFlags );
+
+		RepState->RepFlags.Value = RepFlags.Value;
+	}
+
 	if ( OwningChannel->Connection->bResendAllDataSinceOpen )
 	{
 		check( OwningChannel->Connection->InternalAck );
@@ -643,14 +651,6 @@ bool FRepLayout::ReplicateProperties(
 			UpdateChangelistHistory( RepState, ObjectClass, Data, OwningChannel->Connection->OutAckPacketId, NULL );
 			return false;
 		}
-	}
-
-	// Rebuild conditional state if needed
-	if ( RepState->RepFlags.Value != RepFlags.Value )
-	{
-		RebuildConditionalProperties( RepState, *ChangeTracker, RepFlags );
-
-		RepState->RepFlags.Value = RepFlags.Value;
 	}
 
 	// Clamp to the valid history range (and warn if we end up sending entire history, this should only happen if we get really far behind)

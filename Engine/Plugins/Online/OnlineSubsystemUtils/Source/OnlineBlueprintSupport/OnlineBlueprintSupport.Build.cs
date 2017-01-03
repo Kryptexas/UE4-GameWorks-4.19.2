@@ -6,6 +6,8 @@ public class OnlineBlueprintSupport : ModuleRules
 {
 	public OnlineBlueprintSupport(TargetInfo Target)
 	{
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+		
         PrivateDependencyModuleNames.AddRange(
 			new string[] { 
 				"Core", 

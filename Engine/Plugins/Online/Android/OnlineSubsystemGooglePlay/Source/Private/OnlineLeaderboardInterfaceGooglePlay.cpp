@@ -6,7 +6,9 @@
 #include "UObject/Class.h"
 #include "OnlineSubsystemGooglePlay.h"
 
+THIRD_PARTY_INCLUDES_START
 #include "gpg/leaderboard_manager.h"
+THIRD_PARTY_INCLUDES_END
 
 FOnlineLeaderboardsGooglePlay::FOnlineLeaderboardsGooglePlay(FOnlineSubsystemGooglePlay* InSubsystem)
 	: Subsystem(InSubsystem)
@@ -78,7 +80,7 @@ bool FOnlineLeaderboardsGooglePlay::WriteLeaderboards(const FName& SessionName, 
 				FOnlinePendingLeaderboardWrite* UnreportedScore = new (UnreportedScores) FOnlinePendingLeaderboardWrite();
 				UnreportedScore->LeaderboardName = LeaderboardName;
 				UnreportedScore->Score = Score;
-				UE_LOG_ONLINE(Display, TEXT("FOnlineLeaderboardsAndroid::WriteLeaderboards() Int64 value Score: %d"), Score);
+				UE_LOG_ONLINE(Display, TEXT("FOnlineLeaderboardsGooglePlay::WriteLeaderboards() Int64 value Score: %d"), Score);
 
 				bWroteAnyLeaderboard = true;
 			}
@@ -92,7 +94,7 @@ bool FOnlineLeaderboardsGooglePlay::WriteLeaderboards(const FName& SessionName, 
 				FOnlinePendingLeaderboardWrite* UnreportedScore = new (UnreportedScores) FOnlinePendingLeaderboardWrite();
 				UnreportedScore->LeaderboardName = LeaderboardName;
 				UnreportedScore->Score = Score;
-				UE_LOG_ONLINE(Display, TEXT("FOnlineLeaderboardsAndroid::WriteLeaderboards() Int32 value Score: %d "), Score);
+				UE_LOG_ONLINE(Display, TEXT("FOnlineLeaderboardsGooglePlay::WriteLeaderboards() Int32 value Score: %d "), Score);
 
 				bWroteAnyLeaderboard = true;
 			}

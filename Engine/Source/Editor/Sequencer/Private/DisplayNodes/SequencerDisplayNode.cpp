@@ -464,6 +464,9 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 {
 	TSharedRef<FSequencerDisplayNode> ThisNode = SharedThis(this);
 
+	bool bIsReadOnly = !GetSequencer().IsReadOnly();
+	FCanExecuteAction CanExecute = FCanExecuteAction::CreateLambda([bIsReadOnly]{ return bIsReadOnly; });
+
 	MenuBuilder.BeginSection("Edit", LOCTEXT("EditContextMenuSectionName", "Edit"));
 	{
 		MenuBuilder.AddMenuEntry(
@@ -472,7 +475,7 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::ToggleNodeActive),
-				FCanExecuteAction(),
+				CanExecute,
 				FIsActionChecked::CreateSP(&GetSequencer(), &FSequencer::IsNodeActive)
 			),
 			NAME_None,
@@ -485,7 +488,7 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::ToggleNodeLocked),
-				FCanExecuteAction(),
+				CanExecute,
 				FIsActionChecked::CreateSP(&GetSequencer(), &FSequencer::IsNodeLocked)
 			),
 			NAME_None,
@@ -504,7 +507,7 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			LOCTEXT("DeleteNode", "Delete"),
 			LOCTEXT("DeleteNodeTooltip", "Delete this or selected tracks"),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::DeleteNode, ThisNode))
+			FUIAction(FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::DeleteNode, ThisNode), CanExecute)
 		);
 
 		MenuBuilder.AddMenuEntry(

@@ -10,9 +10,9 @@
 #include "VREditorFloatingUI.h"
 #include "VREditorTransformGizmo.h"
 #include "SLevelViewport.h"
-#include "SlateApplication.h"
 #include "ImageUtils.h"
 #include "FileHelper.h"
+#include "Framework/Application/SlateApplication.h"
 
 #include "AssetEditorManager.h"
 #include "Developer/AssetTools/Public/IAssetTools.h"

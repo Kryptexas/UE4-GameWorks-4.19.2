@@ -7,6 +7,8 @@
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
 #include "GameFramework/PlayerController.h"
+#include "IMovieScenePlayer.h"
+#include "MovieSceneEvaluation.h"
 
 DECLARE_CYCLE_STAT(TEXT("Fade Track Token Execute"), MovieSceneEval_FadeTrack_TokenExecute, STATGROUP_MovieSceneEval);
 
@@ -34,24 +36,18 @@ struct FFadeTrackToken
 		Player.GetViewportSettings(ViewportParamsMap);
 		for (auto ViewportParamsPair : ViewportParamsMap)
 		{
-			ViewportParamsMap[ViewportParamsPair.Key] = ViewportParams;
+			ViewportParamsMap[ViewportParamsPair.Key] = ViewportParams;	
 		}
 		Player.SetViewportSettings(ViewportParamsMap);
 
 		// Set runtime fade
-		for (const FWorldContext& Context : GEngine->GetWorldContexts())
+		UWorld* World = Cast<UWorld>(Player.GetPlaybackContext());
+		if (World && (World->WorldType == EWorldType::Game || World->WorldType == EWorldType::PIE))
 		{
-			if (Context.WorldType == EWorldType::Game || Context.WorldType == EWorldType::PIE)
+			APlayerController* PlayerController = World->GetGameInstance()->GetFirstLocalPlayerController();
+			if (PlayerController != nullptr && PlayerController->PlayerCameraManager && !PlayerController->PlayerCameraManager->IsPendingKill())
 			{
-				UWorld* World = Context.World();
-				if (World != nullptr)
-				{
-					APlayerController* PlayerController = World->GetGameInstance()->GetFirstLocalPlayerController();
-					if (PlayerController != nullptr && PlayerController->PlayerCameraManager && !PlayerController->PlayerCameraManager->IsPendingKill())
-					{
-						PlayerController->PlayerCameraManager->SetManualCameraFade(FadeValue, FadeColor, bFadeAudio);
-					}
-				}
+				PlayerController->PlayerCameraManager->SetManualCameraFade(FadeValue, FadeColor, bFadeAudio);
 			}
 		}
 	}

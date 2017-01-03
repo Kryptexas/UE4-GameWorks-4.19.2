@@ -1024,6 +1024,10 @@ protected:
 		restore focus to a widget after a popup has been dismissed. */
 	TWeakPtr< SWidget > WidgetToFocusOnActivate;
 
+	/** Widget that had keyboard focus when this window was last de-activated, if any.  This is used to
+		restore focus to a widget after the window regains focus. */
+	TWeakPtr< SWidget > WidgetFocusedOnDeactivate;
+
 	/** Style used to draw this window */
 	const FWindowStyle* Style;
 	const FSlateBrush* WindowBackground;

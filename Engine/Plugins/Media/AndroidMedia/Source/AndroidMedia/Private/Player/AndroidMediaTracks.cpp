@@ -150,6 +150,12 @@ void FAndroidMediaTracks::SetAudioSink(IMediaAudioSink* Sink)
 }
 
 
+void FAndroidMediaTracks::SetMetadataSink(IMediaBinarySink* Sink)
+{
+	// not supported
+}
+
+
 void FAndroidMediaTracks::SetOverlaySink(IMediaOverlaySink* Sink)
 {
 	// not implemented yet
@@ -436,7 +442,13 @@ void FAndroidMediaTracks::InitializeVideoSink()
 	}
 
 	const auto& VideoTrack = VideoTracks[SelectedVideoTrack];
-	VideoSink->InitializeTextureSink(VideoTrack.Dimensions, VideoTrack.Dimensions, EMediaTextureSinkFormat::CharBGRA, EMediaTextureSinkMode::Unbuffered);
+
+	VideoSink->InitializeTextureSink(
+		VideoTrack.Dimensions,
+		VideoTrack.Dimensions,
+		EMediaTextureSinkFormat::CharBGRA,
+		EMediaTextureSinkMode::Unbuffered
+	);
 }
 
 

@@ -313,13 +313,39 @@ const FComplexPropertyNode* FPropertyNode::FindComplexParent() const
 class FObjectPropertyNode* FPropertyNode::FindObjectItemParent()
 {
 	auto ComplexParent = FindComplexParent();
-	return ComplexParent ? ComplexParent->AsObjectNode() : NULL;
+	if (!ComplexParent)
+	{
+		return nullptr;
+	}
+
+	if (FObjectPropertyNode* ObjectNode = ComplexParent->AsObjectNode())
+	{
+		return ObjectNode;
+	}
+	else if (FPropertyNode* ParentNodePtr = ComplexParent->GetParentNode())
+	{
+		return ParentNodePtr->FindObjectItemParent();
+	}
+	return nullptr;
 }
 
 const class FObjectPropertyNode* FPropertyNode::FindObjectItemParent() const
 {
 	const auto ComplexParent = FindComplexParent();
-	return ComplexParent ? ComplexParent->AsObjectNode() : NULL;
+	if (!ComplexParent)
+	{
+		return nullptr;
+	}
+
+	if (const FObjectPropertyNode* ObjectNode = ComplexParent->AsObjectNode())
+	{
+		return ObjectNode;
+	}
+	else if (const FPropertyNode* ParentNodePtr = ComplexParent->GetParentNode())
+	{
+		return ParentNodePtr->FindObjectItemParent();
+	}
+	return nullptr;
 }
 
 /**

@@ -312,6 +312,9 @@ protected:
 	/** The asset editor mode manager */
 	FAssetEditorModeManager* AssetEditorModeManager;
 
+	/** Array of layout extenders */
+	TArray<TSharedPtr<FLayoutExtender>> LayoutExtenders;
+
 private:
 	/** The toolkit standalone host; may be nullptr */
 	TWeakPtr<SStandaloneAssetEditorToolkitHost> StandaloneHost;

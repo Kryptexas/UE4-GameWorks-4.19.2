@@ -473,6 +473,11 @@ public:
 	virtual bool Init() = 0;
 
 	/** 
+	 * Perform any shutdown actions prior to any other modules being unloaded/shutdown
+	 */
+	virtual void PreUnload() = 0;
+
+	/** 
 	 * Shutdown the underlying subsystem APIs
 	 * @return true if the subsystem shutdown successfully, false otherwise
 	 */

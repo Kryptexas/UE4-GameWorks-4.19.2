@@ -65,7 +65,7 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 
 	// initialize media player asset
 	MediaPlayer->OnMediaEvent().AddSP(this, &SMediaPlayerEditorViewer::HandleMediaPlayerMediaEvent);
-	MediaPlayer->DesiredPlayerName = NAME_None;
+	MediaPlayer->SetDesiredPlayerName(NAME_None);
 
 	FName DesiredPlayerName = GetDefault<UMediaPlayerEditorSettings>()->DesiredPlayerName;
 
@@ -75,7 +75,7 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 
 		if ((MediaModule != nullptr) && (MediaModule->GetPlayerFactory(DesiredPlayerName) != nullptr))
 		{
-			MediaPlayer->DesiredPlayerName = DesiredPlayerName;
+			MediaPlayer->SetDesiredPlayerName(DesiredPlayerName);
 		}
 	}
 
@@ -186,14 +186,20 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 							[
 								// url box
 								SAssignNew(UrlTextBox, SEditableTextBox)
+									.BackgroundColor_Lambda([this]() -> FSlateColor {
+										return (!MediaPlayer->IsPreparing() && (MediaPlayer->GetUrl() != MediaPlayer->GetLastUrl()))
+											? FLinearColor::Red
+											: FLinearColor::White;
+									})
 									.ClearKeyboardFocusOnCommit(true)
 									.HintText(LOCTEXT("UrlTextBoxHint", "Media URL"))
+									.Text_Lambda([this]() -> FText { return FText::FromString(MediaPlayer->GetLastUrl()); })
 									.ToolTipText(LOCTEXT("UrlTextBoxToolTip", "Enter the URL of a media source"))
 									.OnKeyDownHandler(this, &SMediaPlayerEditorViewer::HandleUrlBoxKeyDown)
 									.OnTextCommitted_Lambda([this](const FText& InText, ETextCommit::Type InCommitType){
 										if (InCommitType == ETextCommit::OnEnter)
 										{
-											OpenUrlTextBoxUrl();
+											OpenUrl(InText);
 										}
 									})
 							]
@@ -213,7 +219,7 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 										return !UrlTextBox->GetText().IsEmpty();
 									})
 									.OnClicked_Lambda([this]{
-										OpenUrlTextBoxUrl();
+										OpenUrl(UrlTextBox->GetText());
 										return FReply::Handled();
 									})
 									[
@@ -499,9 +505,9 @@ FReply SMediaPlayerEditorViewer::OnDrop(const FGeometry& MyGeometry, const FDrag
 /* SMediaPlayerEditorPlayer implementation
  *****************************************************************************/
 
-void SMediaPlayerEditorViewer::OpenUrlTextBoxUrl()
+void SMediaPlayerEditorViewer::OpenUrl(const FText& TextUrl)
 {
-	FString Url = UrlTextBox->GetText().ToString();
+	FString Url = TextUrl.ToString();
 	{
 		Url.Trim();
 		Url.TrimTrailing();
@@ -518,9 +524,9 @@ void SMediaPlayerEditorViewer::OpenUrlTextBoxUrl()
 
 void SMediaPlayerEditorViewer::SetDesiredPlayerName(FName PlayerName)
 {
-	if (PlayerName != MediaPlayer->DesiredPlayerName)
+	if (PlayerName != MediaPlayer->GetDesiredPlayerName())
 	{
-		MediaPlayer->DesiredPlayerName = PlayerName;
+		MediaPlayer->SetDesiredPlayerName(PlayerName);
 
 		if ((PlayerName != NAME_None) && (PlayerName != MediaPlayer->GetPlayerName()))
 		{
@@ -547,29 +553,14 @@ EActiveTimerReturnType SMediaPlayerEditorViewer::HandleActiveTimer(double InCurr
 
 void SMediaPlayerEditorViewer::HandleMediaPlayerMediaEvent(EMediaEvent Event)
 {
-	switch (Event)
-	{
-	case EMediaEvent::MediaClosed:
-	case EMediaEvent::MediaOpened:
-	case EMediaEvent::MediaOpenFailed:
-		UrlTextBox->SetText(FText::FromString(MediaPlayer->GetUrl()));
-		break;
-	}
-
 	if (Event == EMediaEvent::MediaOpenFailed)
 	{
-		UrlTextBox->SetBorderBackgroundColor(FLinearColor::Red);
-
 		FNotificationInfo NotificationInfo(LOCTEXT("MediaOpenFailedError", "The media failed to open. Check Output Log for details!"));
 		{
 			NotificationInfo.ExpireDuration = 2.0f;
 		}
 
 		FSlateNotificationManager::Get().AddNotification(NotificationInfo)->SetCompletionState(SNotificationItem::CS_Fail);
-	}
-	else if ((Event == EMediaEvent::MediaClosed) || (Event == EMediaEvent::MediaOpened))
-	{
-		UrlTextBox->SetBorderBackgroundColor(FLinearColor::White);
 	}
 }
 
@@ -585,12 +576,14 @@ FText SMediaPlayerEditorViewer::HandleOverlayPlayerNameText() const
 
 	if ((PlayerName == NAME_None) || MediaPlayer->GetUrl().IsEmpty())
 	{
-		if (MediaPlayer->DesiredPlayerName == NAME_None)
+		const FName DesiredPlayerName = MediaPlayer->GetDesiredPlayerName();
+
+		if (DesiredPlayerName == NAME_None)
 		{
 			return LOCTEXT("AutoPlayerName", "Auto");
 		}
 
-		return FText::FromName(MediaPlayer->DesiredPlayerName);
+		return FText::FromName(DesiredPlayerName);
 	}
 
 	return FText::FromName(PlayerName);
@@ -673,7 +666,7 @@ void SMediaPlayerEditorViewer::HandlePlayerMenuNewMenu(FMenuBuilder& MenuBuilder
 		FUIAction(
 			FExecuteAction::CreateLambda([this] { SetDesiredPlayerName(NAME_None); }),
 			FCanExecuteAction(),
-			FIsActionChecked::CreateLambda([this] { return MediaPlayer->DesiredPlayerName == NAME_None; })
+			FIsActionChecked::CreateLambda([this] { return MediaPlayer->GetDesiredPlayerName() == NAME_None; })
 		),
 		NAME_None,
 		EUserInterfaceActionType::RadioButton
@@ -689,18 +682,22 @@ void SMediaPlayerEditorViewer::HandlePlayerMenuNewMenu(FMenuBuilder& MenuBuilder
 		return;
 	}
 
-	const TArray<IMediaPlayerFactory*>& PlayerFactories = MediaModule->GetPlayerFactories();
+	TArray<IMediaPlayerFactory*> PlayerFactories = MediaModule->GetPlayerFactories();
 
 	if (PlayerFactories.Num() == 0)
 	{
 		TSharedRef<SWidget> NoPlayersAvailableWidget = SNew(STextBlock)
 			.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-			.Text(LOCTEXT("NoPlayersAvailableLabel", "No players available"));
+			.Text(LOCTEXT("NoPlayerPluginsInstalled", "No media player plug-ins installed"));
 
 		MenuBuilder.AddWidget(NoPlayersAvailableWidget, FText::GetEmpty(), true, false);
 
 		return;
 	}
+
+	PlayerFactories.Sort([](IMediaPlayerFactory& A, IMediaPlayerFactory& B) -> bool {
+		return (A.GetDisplayName().CompareTo(B.GetDisplayName()) < 0);
+	});
 
 	// add option for each player
 	const FString PlatformName(FPlatformProperties::IniPlatformName());
@@ -717,7 +714,7 @@ void SMediaPlayerEditorViewer::HandlePlayerMenuNewMenu(FMenuBuilder& MenuBuilder
 			FUIAction(
 				FExecuteAction::CreateLambda([=]{ SetDesiredPlayerName(PlayerName); }),
 				FCanExecuteAction::CreateLambda([=]{ return SupportsRunningPlatform; }),
-				FIsActionChecked::CreateLambda([=]{ return MediaPlayer->DesiredPlayerName == PlayerName; })
+				FIsActionChecked::CreateLambda([=]{ return MediaPlayer->GetDesiredPlayerName() == PlayerName; })
 			),
 			NAME_None,
 			EUserInterfaceActionType::RadioButton
@@ -908,6 +905,8 @@ void SMediaPlayerEditorViewer::HandleTrackMenuNewMenu(FMenuBuilder& MenuBuilder,
 			EUserInterfaceActionType::RadioButton
 		);
 
+		MenuBuilder.AddMenuSeparator();
+
 		FInternationalization& I18n = FInternationalization::Get();
 
 		for (int32 TrackIndex = 0; TrackIndex < NumTracks; ++TrackIndex)
@@ -953,7 +952,7 @@ FReply SMediaPlayerEditorViewer::HandleUrlBoxKeyDown(const FGeometry&, const FKe
 {
 	if (KeyEvent.GetKey() == EKeys::Escape)
 	{
-		UrlTextBox->SetText(FText::FromString(MediaPlayer->GetUrl()));
+		UrlTextBox->SetText(FText::FromString(MediaPlayer->GetLastUrl()));
 
 		return FReply::Handled().ClearUserFocus(true);
 	}

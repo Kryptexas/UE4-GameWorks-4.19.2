@@ -5,8 +5,11 @@
 #include "CoreMinimal.h"
 #include "Framework/Docking/WorkspaceItem.h"
 #include "Framework/Docking/TabManager.h"
+#include "LayoutExtender.h"
+
 
 class FExtender;
+
 
 /////////////////////////////////////////////////////
 // FApplicationMode
@@ -55,5 +58,8 @@ public:
 	TSharedPtr<FExtender> GetToolbarExtender() { return ToolbarExtender; }
 
 	/** @return The the workspace category for this asset editor */
-	TSharedRef<FWorkspaceItem> GetWorkspaceMenuCategory() { return WorkspaceMenuCategory.ToSharedRef(); }
+	TSharedRef<FWorkspaceItem> GetWorkspaceMenuCategory() const { return WorkspaceMenuCategory.ToSharedRef(); }
+
+	/** Extender for adding to the default layout for this mode */
+	TSharedPtr<FLayoutExtender> LayoutExtender;
 };

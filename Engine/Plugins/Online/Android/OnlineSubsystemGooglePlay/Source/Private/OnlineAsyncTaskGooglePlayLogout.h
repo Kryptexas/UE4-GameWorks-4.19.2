@@ -7,8 +7,10 @@
 #include "OnlineAsyncTaskGooglePlayAuthAction.h"
 #include "OnlineSubsystemGooglePlayPackage.h"
 
+THIRD_PARTY_INCLUDES_START
 #include "gpg/status.h"
 #include "gpg/types.h"
+THIRD_PARTY_INCLUDES_END
 
 class FOnlineSubsystemGooglePlay;
 

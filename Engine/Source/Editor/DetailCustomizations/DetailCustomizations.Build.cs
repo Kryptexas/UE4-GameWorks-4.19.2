@@ -25,6 +25,7 @@ public class DetailCustomizations : ModuleRules
 				"KismetWidgets",
 				"MovieSceneCapture",
 				"MovieSceneTools",
+				"MovieScene",
 				"SharedSettingsWidgets",
                 "ContentBrowser",
 				"BlueprintGraph",

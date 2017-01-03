@@ -1424,7 +1424,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 	bool bAllowDependencyPreloading = !InOuter && ((LoadFlags & (LOAD_DisableDependencyPreloading | LOAD_ForFileDiff)) == 0);
 	static auto CVarPreloadDependencies = IConsoleManager::Get().FindConsoleVariable(TEXT("s.PreloadPackageDependencies"));
 	
-	if (bAllowDependencyPreloading && CVarPreloadDependencies && CVarPreloadDependencies->GetInt() != 0)
+	if (!GEventDrivenLoaderEnabled && bAllowDependencyPreloading && CVarPreloadDependencies && CVarPreloadDependencies->GetInt() != 0)
 	{		
 		if (IsPlatformFileCompatibleWithDependencyPreloading())
 		{

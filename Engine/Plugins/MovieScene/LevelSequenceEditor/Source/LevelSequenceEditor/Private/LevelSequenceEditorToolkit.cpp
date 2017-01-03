@@ -42,8 +42,10 @@
 #include "SceneOutlinerPublicTypes.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "SequencerSettings.h"
+#include "LevelEditorSequencerIntegration.h"
 #include "MovieSceneCaptureDialogModule.h"
 #include "MovieScene.h"
+#include "UnrealEdMisc.h"
 
 // @todo sequencer: hack: setting defaults for transform tracks
 
@@ -169,6 +171,8 @@ FLevelSequenceEditorToolkit::FLevelSequenceEditorToolkit(const TSharedRef<ISlate
 
 FLevelSequenceEditorToolkit::~FLevelSequenceEditorToolkit()
 {
+	FLevelEditorSequencerIntegration::Get().RemoveSequencer(Sequencer.ToSharedRef());
+
 	Sequencer->Close();
 
 	// unregister delegates
@@ -196,7 +200,7 @@ FLevelSequenceEditorToolkit::~FLevelSequenceEditorToolkit()
 /* FLevelSequenceEditorToolkit interface
  *****************************************************************************/
 
-void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, ULevelSequence* InLevelSequence, bool bEditWithinLevelEditor)
+void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, ULevelSequence* InLevelSequence)
 {
 	// create tab layout
 	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_LevelSequenceEditor")
@@ -223,9 +227,10 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 	FSequencerInitParams SequencerInitParams;
 	{
 		SequencerInitParams.RootSequence = LevelSequence;
-		SequencerInitParams.bEditWithinLevelEditor = bEditWithinLevelEditor;
+		SequencerInitParams.bEditWithinLevelEditor = true;
 		SequencerInitParams.ToolkitHost = InitToolkitHost;
 		SequencerInitParams.SpawnRegister = SpawnRegister;
+
 		SequencerInitParams.EventContexts.BindStatic(GetLevelSequenceEditorEventContexts);
 		SequencerInitParams.PlaybackContext.BindStatic(GetLevelSequenceEditorPlaybackContext);
 
@@ -247,26 +252,31 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 
 		SequencerInitParams.ViewParams.AddMenuExtender = AddMenuExtender;
 		SequencerInitParams.ViewParams.UniqueName = "LevelSequenceEditor";
+		SequencerInitParams.ViewParams.OnReceivedFocus.BindRaw(this, &FLevelSequenceEditorToolkit::OnSequencerReceivedFocus);
 	}
 
 	Sequencer = FModuleManager::LoadModuleChecked<ISequencerModule>("Sequencer").CreateSequencer(SequencerInitParams);
 	SpawnRegister->SetSequencer(Sequencer);
 	Sequencer->OnActorAddedToSequencer().AddSP(this, &FLevelSequenceEditorToolkit::HandleActorAddedToSequencer);
 
-	if (bEditWithinLevelEditor)
-	{
-		// @todo remove when world-centric mode is added
-		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+	FLevelEditorSequencerIntegrationOptions Options;
+	Options.bRequiresLevelEvents = true;
+	Options.bRequiresActorEvents = true;
+	Options.bCanRecord = true;
 
-		LevelEditorModule.AttachSequencer(Sequencer->GetSequencerWidget(), SharedThis(this));
+	FLevelEditorSequencerIntegration::Get().AddSequencer(Sequencer.ToSharedRef(), Options);
 
-		// We need to find out when the user loads a new map, because we might need to re-create puppet actors
-		// when previewing a MovieScene
-		LevelEditorModule.OnMapChanged().AddRaw(this, &FLevelSequenceEditorToolkit::HandleMapChanged);
+	// @todo remove when world-centric mode is added
+	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 
-		ILevelSequenceEditorModule& LevelSequenceEditorModule = FModuleManager::LoadModuleChecked<ILevelSequenceEditorModule>("LevelSequenceEditor");
-		LevelSequenceEditorModule.OnMasterSequenceCreated().AddRaw(this, &FLevelSequenceEditorToolkit::HandleMasterSequenceCreated);
-	}
+	LevelEditorModule.AttachSequencer(Sequencer->GetSequencerWidget(), SharedThis(this));
+
+	// We need to find out when the user loads a new map, because we might need to re-create puppet actors
+	// when previewing a MovieScene
+	LevelEditorModule.OnMapChanged().AddRaw(this, &FLevelSequenceEditorToolkit::HandleMapChanged);
+
+	ILevelSequenceEditorModule& LevelSequenceEditorModule = FModuleManager::LoadModuleChecked<ILevelSequenceEditorModule>("LevelSequenceEditor");
+	LevelSequenceEditorModule.OnMasterSequenceCreated().AddRaw(this, &FLevelSequenceEditorToolkit::HandleMasterSequenceCreated);
 
 	FLevelSequenceEditorToolkit::OnOpened().Broadcast(*this);
 	
@@ -675,6 +685,14 @@ void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& Men
 /* FLevelSequenceEditorToolkit callbacks
  *****************************************************************************/
 
+void FLevelSequenceEditorToolkit::OnSequencerReceivedFocus()
+{
+	if (Sequencer.IsValid())
+	{
+		FLevelEditorSequencerIntegration::Get().OnSequencerReceivedFocus(Sequencer.ToSharedRef());
+	}
+}
+
 void FLevelSequenceEditorToolkit::HandleAddComponentActionExecute(UActorComponent* Component)
 {
 	Sequencer->GetHandleToObject(Component);
@@ -721,7 +739,12 @@ void FLevelSequenceEditorToolkit::HandleVREditorModeExit()
 
 void FLevelSequenceEditorToolkit::HandleMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType)
 {
-	Sequencer->NotifyMapChanged(NewWorld, MapChangeType);
+	// @todo sequencer: We should only wipe/respawn puppets that are affected by the world that is being changed! (multi-UWorld support)
+	if( ( MapChangeType == EMapChangeType::LoadMap || MapChangeType == EMapChangeType::NewMap || MapChangeType == EMapChangeType::TearDownWorld) )
+	{
+		Sequencer->GetSpawnRegister().CleanUp(*Sequencer);
+		Sequencer->UpdateRuntimeInstances();
+	}
 }
 
 void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTrack, const FString& ShotAssetName, const FString& ShotPackagePath, float ShotStartTime, float ShotEndTime, UObject* AssetToDuplicate)

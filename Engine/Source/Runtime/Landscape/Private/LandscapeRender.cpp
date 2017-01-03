@@ -463,23 +463,35 @@ UMaterialInterface* GLandscapeLayerUsageMaterial = nullptr;
 // Game thread update
 void FLandscapeEditToolRenderData::Update(UMaterialInterface* InToolMaterial)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		UpdateEditToolRenderData,
 		FLandscapeEditToolRenderData*, LandscapeEditToolRenderData, this,
+		FPrimitiveSceneProxy*, SceneProxy, LandscapeComponent->SceneProxy,
 		UMaterialInterface*, NewToolMaterial, InToolMaterial,
 		{
 			LandscapeEditToolRenderData->ToolMaterial = NewToolMaterial;
+
+			if (SceneProxy)
+			{
+				SceneProxy->AddUsedMaterialForVerification(NewToolMaterial);
+			}
 		});
 }
 
 void FLandscapeEditToolRenderData::UpdateGizmo(UMaterialInterface* InGizmoMaterial)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		UpdateEditToolRenderData,
 		FLandscapeEditToolRenderData*, LandscapeEditToolRenderData, this,
+		FPrimitiveSceneProxy*, SceneProxy, LandscapeComponent->SceneProxy,
 		UMaterialInterface*, NewGizmoMaterial, InGizmoMaterial,
 		{
 			LandscapeEditToolRenderData->GizmoMaterial = NewGizmoMaterial;
+
+			if (SceneProxy)
+			{
+				SceneProxy->AddUsedMaterialForVerification(NewGizmoMaterial);
+			}
 		});
 }
 
@@ -536,6 +548,43 @@ void FLandscapeEditToolRenderData::UpdateSelectionMaterial(int32 InSelectedType)
 }
 #endif
 
+void ULandscapeComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+{
+	OutMaterials.Append(MaterialInstances.FilterByPredicate([](UMaterialInstance* MaterialInstance) { return MaterialInstance != nullptr; }));
+
+	if (OverrideMaterial)
+	{
+		OutMaterials.Add(OverrideMaterial);
+	}
+
+	if (OverrideHoleMaterial)
+	{
+		OutMaterials.Add(OverrideHoleMaterial);
+	}
+
+#if WITH_EDITORONLY_DATA
+	if (EditToolRenderData)
+	{
+		if (EditToolRenderData->ToolMaterial)
+		{
+			OutMaterials.Add(EditToolRenderData->ToolMaterial);
+		}
+
+		if (EditToolRenderData->GizmoMaterial)
+		{
+			OutMaterials.Add(EditToolRenderData->GizmoMaterial);
+		}
+	}
+#endif
+
+#if WITH_EDITOR
+	OutMaterials.Add(GLayerDebugColorMaterial);
+	OutMaterials.Add(GSelectionColorMaterial);
+	OutMaterials.Add(GSelectionRegionMaterial);
+	OutMaterials.Add(GMaskRegionMaterial);
+	OutMaterials.Add(GLandscapeLayerUsageMaterial);
+#endif
+}
 
 //
 // FLandscapeComponentSceneProxy

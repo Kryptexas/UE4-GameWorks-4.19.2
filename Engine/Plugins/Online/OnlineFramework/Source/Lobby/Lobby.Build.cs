@@ -5,8 +5,9 @@ using UnrealBuildTool;
 public class Lobby : ModuleRules
 {
 	public Lobby(TargetInfo Target)
-	{
+	{		
 		Definitions.Add("LOBBY_PACKAGE=1");
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PrivateIncludePaths.AddRange(
 			new string[] {

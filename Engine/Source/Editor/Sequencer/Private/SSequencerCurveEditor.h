@@ -54,6 +54,9 @@ private:
 	/** Gets the value snapping interval. */
 	float GetCurveValueSnapInterval() const;
 
+	/** Gets whether to show time in frames.*/
+	bool GetShowTimeInFrames() const;
+
 	/** Run whenever the selection on the FSequencerNodeTree changes. */
 	void NodeTreeSelectionChanged();
 

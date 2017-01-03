@@ -67,7 +67,7 @@ static FText GetFriendlyNameFromRHIName(const FString& InRHIName)
 	}
 	else if (InRHIName == TEXT("GLSL_150_ES31"))
 	{
-		FriendlyRHIName = LOCTEXT("OpenGL3ES2", "OpenGL 3 (ES3.1, Experimental)");
+		FriendlyRHIName = LOCTEXT("OpenGL3ES31", "OpenGL 3 (ES3.1, Experimental)");
 	}
 	else if (InRHIName == TEXT("GLSL_430"))
 	{

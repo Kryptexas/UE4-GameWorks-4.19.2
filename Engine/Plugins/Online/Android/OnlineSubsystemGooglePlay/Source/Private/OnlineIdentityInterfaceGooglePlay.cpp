@@ -13,9 +13,8 @@ FOnlineIdentityGooglePlay::FOnlineIdentityGooglePlay(FOnlineSubsystemGooglePlay*
 	, MainSubsystem(InSubsystem)
 	, bRegisteringUser(false)
 	, bLoggingInUser(false)
-
 {
-	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::FOnlineIdentityAndroid()"));
+	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityGooglePlay::FOnlineIdentityGooglePlay()"));
 	check(MainSubsystem != nullptr);
 	PendingConnectRequest.ConnectionInterface = this;
 }
@@ -32,7 +31,6 @@ TArray<TSharedPtr<FUserOnlineAccount> > FOnlineIdentityGooglePlay::GetAllUserAcc
 
 	return Result;
 }
-
 
 bool FOnlineIdentityGooglePlay::Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials) 
 {
@@ -136,19 +134,19 @@ TSharedPtr<const FUniqueNetId> FOnlineIdentityGooglePlay::CreateUniquePlayerId(c
 
 FString FOnlineIdentityGooglePlay::GetPlayerNickname(int32 LocalUserNum) const
 {
-	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::GetPlayerNickname"));
+	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityGooglePlay::GetPlayerNickname"));
 	return PlayerAlias;
 }
 
 FString FOnlineIdentityGooglePlay::GetPlayerNickname(const FUniqueNetId& UserId) const
 {
-	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::GetPlayerNickname"));
+	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityGooglePlay::GetPlayerNickname"));
 	return PlayerAlias;
 }
 
 FString FOnlineIdentityGooglePlay::GetAuthToken(int32 LocalUserNum) const
 {
-	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::GetAuthToken"));
+	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityGooglePlay::GetAuthToken"));
 	return AuthToken;
 }
 

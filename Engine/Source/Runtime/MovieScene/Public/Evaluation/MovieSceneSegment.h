@@ -99,5 +99,5 @@ struct FMovieSceneSegment
 
 template<> struct TStructOpsTypeTraits<FMovieSceneSegment> : public TStructOpsTypeTraitsBase
 {
-	enum { WithSerializer = true };
+	enum { WithSerializer = true, WithCopy = true };
 };

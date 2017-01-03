@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "OnlineSubsystem.h"
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
