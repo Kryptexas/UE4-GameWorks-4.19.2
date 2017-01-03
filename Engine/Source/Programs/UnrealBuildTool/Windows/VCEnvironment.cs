@@ -89,8 +89,15 @@ namespace UnrealBuildTool
 			WindowsSDKExtensionDir = bSupportWindowsXP ? "" : FindWindowsSDKExtensionInstallationFolder(Compiler);
 			NetFxSDKExtensionDir = bSupportWindowsXP ? "" : FindNetFxSDKExtensionInstallationFolder(Compiler);
 			WindowsSDKExtensionHeaderLibVersion = bSupportWindowsXP ? new Version(0, 0, 0, 0) : FindWindowsSDKExtensionLatestVersion(WindowsSDKExtensionDir);
-			UniversalCRTDir = bSupportWindowsXP ? "" : FindUniversalCRTInstallationFolder(Compiler);
-			UniversalCRTVersion = bSupportWindowsXP ? "0.0.0.0" : FindUniversalCRTVersion(UniversalCRTDir);
+			if(bSupportWindowsXP)
+			{
+				UniversalCRTDir = "";
+				UniversalCRTVersion = "0.0.0.0";
+			}
+			else
+			{
+				FindUniversalCRT(Compiler, out UniversalCRTDir, out UniversalCRTVersion);
+			}
 
 			VCToolPath32 = GetVCToolPath32(Compiler, VCInstallDir, VCToolChainDir);
 			VCToolPath64 = GetVCToolPath64(Compiler, VCInstallDir, VCToolChainDir);
@@ -622,43 +629,50 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Finds the directory containing the Universal CRT installation. Returns null for Visual Studio versions before 2015
+		/// Gets the version of the Universal CRT to use. As per VCVarsQueryRegistry.bat, this is the directory name that sorts last.
 		/// </summary>
-		static string FindUniversalCRTInstallationFolder(WindowsCompiler Compiler)
+		static void FindUniversalCRT(WindowsCompiler Compiler, out string UniversalCRTDir, out string UniversalCRTVersion)
 		{
 			if (Compiler < WindowsCompiler.VisualStudio2015)
 			{
-				return null;
+				UniversalCRTDir = null;
+				UniversalCRTVersion = null;
+				return;
 			}
 
-			object Value =
-				Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", null) ??
-				Registry.GetValue("HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", null) ??
-				Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", null) ??
-				Registry.GetValue("HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", null);
-
-			return (Value as string);
-		}
-
-		/// <summary>
-		/// Gets the version of the Universal CRT to use. As per VCVarsQueryRegistry.bat, this is the directory name that sorts last.
-		/// </summary>
-		static string FindUniversalCRTVersion(string UniversalCRTDir)
-		{
-			string UniversalCRTVersion = null;
-			if (UniversalCRTDir != null)
+			string[] RootKeys =
 			{
-				DirectoryInfo IncludeDir = new DirectoryInfo(Path.Combine(UniversalCRTDir, "include"));
-				if (IncludeDir.Exists)
+				"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots",
+				"HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots",
+				"HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows Kits\\Installed Roots",
+				"HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows Kits\\Installed Roots",
+			};
+
+			List<DirectoryInfo> IncludeDirs = new List<DirectoryInfo>();
+			foreach(string RootKey in RootKeys)
+			{
+				string IncludeDirString = Registry.GetValue(RootKey, "KitsRoot10", null) as string;
+				if(IncludeDirString != null)
 				{
-					DirectoryInfo LatestIncludeDir = IncludeDir.EnumerateDirectories().OrderBy(x => x.Name).LastOrDefault(n => n.Name.All(s => (s >= '0' && s <= '9') || s == '.') && Directory.Exists(n.FullName + "\\ucrt"));
-					if (LatestIncludeDir != null)
+					DirectoryInfo IncludeDir = new DirectoryInfo(Path.Combine(IncludeDirString, "include"));
+					if (IncludeDir.Exists)
 					{
-						UniversalCRTVersion = LatestIncludeDir.Name;
+						IncludeDirs.AddRange(IncludeDir.EnumerateDirectories());
 					}
 				}
 			}
-			return UniversalCRTVersion;
+
+			DirectoryInfo LatestIncludeDir = IncludeDirs.OrderBy(x => x.Name).LastOrDefault(n => n.Name.All(s => (s >= '0' && s <= '9') || s == '.') && Directory.Exists(n.FullName + "\\ucrt"));
+			if(LatestIncludeDir == null)
+			{
+				UniversalCRTDir = null;
+				UniversalCRTVersion = null;
+			}
+			else
+			{
+				UniversalCRTDir = LatestIncludeDir.Parent.Parent.FullName;
+				UniversalCRTVersion = LatestIncludeDir.Name;
+			}
 		}
 
 		/// <summary>
