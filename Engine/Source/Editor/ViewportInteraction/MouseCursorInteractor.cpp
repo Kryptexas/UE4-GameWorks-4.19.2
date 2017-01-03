@@ -9,6 +9,9 @@
 UMouseCursorInteractor::UMouseCursorInteractor( const FObjectInitializer& Initializer ) 
 	: UViewportInteractor( Initializer )
 {
+	// Grabber spheres don't really work well with mouse cursor interactors, because the origin of the
+	// interactor is right on the near view plane.
+	bAllowGrabberSphere = false;
 }
 
 
@@ -26,32 +29,47 @@ void UMouseCursorInteractor::Init()
 
 void UMouseCursorInteractor::PollInput()
 {
-	FEditorViewportClient& ViewportClient = *WorldInteraction->GetViewportClient();
-
 	InteractorData.LastTransform = InteractorData.Transform;
 	InteractorData.LastRoomSpaceTransform = InteractorData.RoomSpaceTransform;
 
-	// Only if we're not tracking (RMB looking)
-	if( !ViewportClient.IsTracking() )
+	// Make sure we have a valid viewport with a cursor over it, and that the viewport's world is the same as ours
+	FEditorViewportClient* ViewportClientPtr = GCurrentLevelEditingViewportClient;
+	if( ViewportClientPtr != nullptr && ViewportClientPtr->GetWorld() == WorldInteraction->GetWorld() )
 	{
-		FViewport* Viewport = ViewportClient.Viewport;
+		FEditorViewportClient& ViewportClient = *ViewportClientPtr;
 
-		// Make sure we have a valid viewport, otherwise we won't be able to construct an FSceneView.  The first time we're ticked we might not be properly setup. (@todo mesheditor)
-		if( Viewport != nullptr && Viewport->GetSizeXY().GetMin() > 0 )
+		// Only if we're not tracking (RMB looking)
+		if( !ViewportClient.IsTracking() )
 		{
-			const int32 ViewportInteractX = Viewport->GetMouseX();
-			const int32 ViewportInteractY = Viewport->GetMouseY();
+			FViewport* Viewport = ViewportClient.Viewport;
 
-			FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues(
-				Viewport,
-				ViewportClient.GetScene(),
-				ViewportClient.EngineShowFlags )
-				.SetRealtimeUpdate( ViewportClient.IsRealtime() ) );
-			FSceneView* SceneView = ViewportClient.CalcSceneView( &ViewFamily );
+			// Make sure we have a valid viewport, otherwise we won't be able to construct an FSceneView.  The first time we're ticked we might not be properly setup. (@todo viewportinteraction)
+			if( Viewport != nullptr && Viewport->GetSizeXY().GetMin() > 0 )
+			{
+				const int32 ViewportInteractX = Viewport->GetMouseX();
+				const int32 ViewportInteractY = Viewport->GetMouseY();
 
-			const FViewportCursorLocation MouseViewportRay( SceneView, &ViewportClient, ViewportInteractX, ViewportInteractY );
+				FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues(
+					Viewport,
+					ViewportClient.GetScene(),
+					ViewportClient.EngineShowFlags )
+					.SetRealtimeUpdate( ViewportClient.IsRealtime() ) );
+				FSceneView* SceneView = ViewportClient.CalcSceneView( &ViewFamily );
 
-			InteractorData.Transform = FTransform( MouseViewportRay.GetDirection().ToOrientationQuat(), MouseViewportRay.GetOrigin(), FVector( 1.0f ) );
+				const FViewportCursorLocation MouseViewportRay( SceneView, &ViewportClient, ViewportInteractX, ViewportInteractY );
+
+				FVector RayOrigin = MouseViewportRay.GetOrigin();
+
+				// If we're dealing with an orthographic view, push the origin of the ray backward along the viewport forward axis
+				// to make sure that we can select objects that are behind the origin!
+				if( !ViewportClient.IsPerspective() )
+				{
+					const float HalfLaserPointerLength = this->GetLaserPointerMaxLength() * 0.5f;
+					RayOrigin -= MouseViewportRay.GetDirection() * HalfLaserPointerLength;
+				}
+
+				InteractorData.Transform = FTransform( MouseViewportRay.GetDirection().ToOrientationQuat(), RayOrigin, FVector( 1.0f ) );
+			}
 		}
 	}
 	InteractorData.RoomSpaceTransform = InteractorData.Transform * WorldInteraction->GetRoomTransform().Inverse();

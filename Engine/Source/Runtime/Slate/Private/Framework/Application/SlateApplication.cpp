@@ -4856,6 +4856,12 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 	}
 	PressedMouseButtons.Add( MouseEvent.GetEffectingButton() );
 
+	// Input preprocessor gets first chance at the input
+	if( InputPreProcessor.IsValid() && InputPreProcessor->HandleMouseButtonDownEvent( *this, MouseEvent ) )
+	{
+		return true;
+	}
+
 	bool bInGame = false;
 
 	// Only process mouse down messages if we are not drag/dropping
@@ -5489,6 +5495,12 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 	SetLastUserInteractionTime(this->GetCurrentTime());
 	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 	PressedMouseButtons.Remove( MouseEvent.GetEffectingButton() );
+
+	// Input preprocessor gets first chance at the input
+	if( InputPreProcessor.IsValid() && InputPreProcessor->HandleMouseButtonUpEvent( *this, MouseEvent ) )
+	{
+		return true;
+	}
 
 	if ( DragDetector.DetectDragForWidget.IsValid() )
 	{

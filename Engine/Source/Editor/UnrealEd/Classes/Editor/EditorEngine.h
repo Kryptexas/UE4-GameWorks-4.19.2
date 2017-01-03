@@ -1819,7 +1819,7 @@ public:
 	/**
 	*  Returns the Editors world manager instance.
 	*/
-	TSharedRef<class FEditorWorldManager> GetEditorWorldManager() { return EditorWorldManager.ToSharedRef(); }
+	TSharedRef<class FEditorWorldExtensionManager> GetEditorWorldExtensionsManager() { return EditorWorldExtensionsManager.ToSharedRef(); }
 
 	// Editor specific
 
@@ -2824,7 +2824,7 @@ private:
 	TSharedPtr<class FTimerManager> TimerManager;
 
 	/** Manager that holds all the worlds contexts with viewport interaction */
-	TSharedPtr<class FEditorWorldManager> EditorWorldManager;
+	TSharedPtr<class FEditorWorldExtensionManager> EditorWorldExtensionsManager;
 
 	/** The output log -> message log redirector for use during PIE */
 	TSharedPtr<class FOutputLogErrorsToMessageLogProxy> OutputLogErrorsToMessageLogProxyPtr;

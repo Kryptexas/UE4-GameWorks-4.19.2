@@ -6,7 +6,6 @@
 #include "VREditorMode.h"
 #include "ViewportWorldInteraction.h"
 #include "VREditorInteractor.h"
-#include "EditorWorldManager.h"
 #include "VREditorFloatingUI.h"
 #include "VREditorTransformGizmo.h"
 #include "SLevelViewport.h"

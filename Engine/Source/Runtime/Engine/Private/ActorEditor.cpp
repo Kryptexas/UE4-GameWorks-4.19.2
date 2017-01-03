@@ -592,8 +592,11 @@ bool AActor::IsHiddenEd() const
 
 void AActor::SetIsTemporarilyHiddenInEditor( bool bIsHidden )
 {
-	bHiddenEdTemporary = bIsHidden;
-	MarkComponentsRenderStateDirty();
+	if( bHiddenEdTemporary != bIsHidden )
+	{
+		bHiddenEdTemporary = bIsHidden;
+		MarkComponentsRenderStateDirty();
+	}
 }
 
 bool AActor::IsEditable() const

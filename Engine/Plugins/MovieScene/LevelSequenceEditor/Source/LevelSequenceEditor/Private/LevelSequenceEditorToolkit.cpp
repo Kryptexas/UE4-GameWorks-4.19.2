@@ -53,9 +53,7 @@
 #include "Tracks/MovieScene3DTransformTrack.h"
 
 // To override Sequencer editor behavior for VR Editor 
-#include "IVREditorModule.h"
 #include "VREditorMode.h"
-#include "EditorWorldManager.h"
 
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
@@ -279,20 +277,20 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 	LevelSequenceEditorModule.OnMasterSequenceCreated().AddRaw(this, &FLevelSequenceEditorToolkit::HandleMasterSequenceCreated);
 
 	FLevelSequenceEditorToolkit::OnOpened().Broadcast(*this);
-	
-	// If we are currently in the VR editor
-	bool bIsInVREditor = IVREditorModule::Get().IsVREditorModeActive();
-	if (bIsInVREditor)
+
 	{
-		const UWorld* World = Cast<UWorld>(GetLevelSequenceEditorPlaybackContext());
-		UVREditorMode* VRMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(World)->GetVREditorMode();
-		VRMode->OnVREditingModeExit_Handler.BindSP(this, &FLevelSequenceEditorToolkit::HandleVREditorModeExit);
-		VRMode->SaveSequencerSettings(Sequencer->GetKeyAllEnabled(), Sequencer->GetAutoKeyMode());
-		// Override currently set autokey behavior to always autokey all
-		Sequencer->SetAutoKeyMode(EAutoKeyMode::KeyAll);
-		Sequencer->SetKeyAllEnabled(true);
-		// Tell the VR Editor mode that Sequencer has refreshed
-		VRMode->RefreshVREditorSequencer();
+		const UWorld* World = CastChecked<UWorld>( GetLevelSequenceEditorPlaybackContext() );
+		UVREditorMode* VRMode = CastChecked<UVREditorMode>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( World )->FindExtension( UVREditorMode::StaticClass() ) );
+		if (VRMode != nullptr)
+		{
+			VRMode->OnVREditingModeExit_Handler.BindSP(this, &FLevelSequenceEditorToolkit::HandleVREditorModeExit);
+			VRMode->SaveSequencerSettings(Sequencer->GetKeyAllEnabled(), Sequencer->GetAutoKeyMode());
+			// Override currently set autokey behavior to always autokey all
+			Sequencer->SetAutoKeyMode(EAutoKeyMode::KeyAll);
+			Sequencer->SetKeyAllEnabled(true);
+			// Tell the VR Editor mode that Sequencer has refreshed
+			VRMode->RefreshVREditorSequencer();
+		}
 	}
 }
 
@@ -728,7 +726,7 @@ void FLevelSequenceEditorToolkit::HandleActorAddedToSequencer(AActor* Actor, con
 void FLevelSequenceEditorToolkit::HandleVREditorModeExit()
 {
 	const UWorld* World = Cast<UWorld>(GetLevelSequenceEditorPlaybackContext());
-	UVREditorMode* VRMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(World)->GetVREditorMode();
+	UVREditorMode* VRMode = CastChecked<UVREditorMode>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( World )->FindExtension( UVREditorMode::StaticClass() ) );
 
 	// Reset auto key settings
 	Sequencer->SetAutoKeyMode(VRMode->GetSavedEditorState().AutoKeyMode);

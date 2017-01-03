@@ -243,7 +243,7 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 {
 	UVREditorMotionControllerInteractor* VREditorInteractor = Cast<UVREditorMotionControllerInteractor>( Interactor );
 	if( VREditorInteractor && 
-		!( VREditorInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::ActorsWithGizmo ||
+		!( VREditorInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::TransformablesWithGizmo ||
 		  VREditorInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::Interactable ) )
 	{
 		if ( !bWasHandled )
@@ -277,11 +277,11 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 			if ( Action.ActionType == VRActionTypes::ConfirmRadialSelection )
 			{
 				const EViewportInteractionDraggingMode DraggingMode = Interactor->GetDraggingMode();
-				// Toggle the radial menu by pressing the touchpad or thumb stick
+				// Toggle the radial menu by pressing the touchpad or thumb stick, as long as we're not busy dragging something
 				if ( Action.Event == IE_Pressed && 
-					 ( DraggingMode != EViewportInteractionDraggingMode::ActorsFreely && DraggingMode != EViewportInteractionDraggingMode::World && 
-					   ( DraggingMode != EViewportInteractionDraggingMode::AssistingDrag &&
-						 Interactor->GetOtherInteractor() != nullptr ) ) )
+					 DraggingMode != EViewportInteractionDraggingMode::TransformablesFreely &&
+					 DraggingMode != EViewportInteractionDraggingMode::World &&
+					 DraggingMode != EViewportInteractionDraggingMode::AssistingDrag )
 				{
 					if ( !IsShowingRadialMenu(VREditorInteractor) )
 					{
@@ -549,7 +549,7 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 }
 
 
-void UVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled )
+void UVREditorUISystem::OnVRHoverUpdate( UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled )
 {
 	UVREditorMotionControllerInteractor* VREditorInteractor = Cast<UVREditorMotionControllerInteractor>( Interactor );
 	if( VREditorInteractor != nullptr )
@@ -886,7 +886,7 @@ void UVREditorUISystem::CreateUIs()
 		const bool bWithSceneComponent = false;
 		// @todo vreditor: Tweak
 		{
-			QuickMenuUI = GetOwner().SpawnTransientSceneActor< AVREditorFloatingUI >(TEXT("QuickMenu"), bWithSceneComponent);
+			QuickMenuUI = UViewportWorldInteraction::SpawnTransientSceneActor< AVREditorFloatingUI >(GetOwner().GetWorld(), TEXT("QuickMenu"), bWithSceneComponent);
 			QuickMenuUI->SetSlateWidget(*this, BuildQuickMenuWidget(), Resolution, 40.0f, AVREditorFloatingUI::EDockedTo::Nothing);
 			QuickMenuUI->ShowUI(false);
 			QuickMenuUI->SetRelativeOffset(FVector(-12.0f, 0.0f, 5.0f));
@@ -898,7 +898,7 @@ void UVREditorUISystem::CreateUIs()
 		}
 		// Create the radial UI
 		{
-			QuickRadialMenu = GetOwner().SpawnTransientSceneActor< AVREditorFloatingUI >(TEXT("QuickRadialmenu"), bWithSceneComponent);
+			QuickRadialMenu = UViewportWorldInteraction::SpawnTransientSceneActor< AVREditorFloatingUI >(GetOwner().GetWorld(), TEXT("QuickRadialmenu"), bWithSceneComponent);
 			QuickRadialMenu->SetSlateWidget(*this, BuildRadialMenuWidget(), DefaultResolution, 40.0f, AVREditorFloatingUI::EDockedTo::Nothing);
 			QuickRadialMenu->ShowUI(false);
 			QuickRadialMenu->SetActorEnableCollision(false);
@@ -961,7 +961,7 @@ void UVREditorUISystem::CreateUIs()
 			;
 
 			const bool bWithSceneComponent = false;
-			AVREditorFloatingUI* ContentBrowserUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >( TEXT( "ContentBrowserUI" ), bWithSceneComponent );
+			AVREditorFloatingUI* ContentBrowserUI = UViewportWorldInteraction::SpawnTransientSceneActor< AVREditorDockableWindow >( GetOwner().GetWorld(), TEXT( "ContentBrowserUI" ), bWithSceneComponent );
 			ContentBrowserUI->SetSlateWidget( *this, WidgetToDraw, Resolution, VREd::ContentBrowserUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing );
 			ContentBrowserUI->ShowUI( false );
 			FloatingUIs.Add( ContentBrowserUI );
@@ -985,7 +985,7 @@ void UVREditorUISystem::CreateUIs()
 			;
 
 			const bool bWithSceneComponent = false;
-			AVREditorFloatingUI* WorldOutlinerUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >( TEXT( "WorldOutlinerUI" ), bWithSceneComponent );
+			AVREditorFloatingUI* WorldOutlinerUI = UViewportWorldInteraction::SpawnTransientSceneActor< AVREditorDockableWindow >( GetOwner().GetWorld(), TEXT( "WorldOutlinerUI" ), bWithSceneComponent );
 			WorldOutlinerUI->SetSlateWidget( *this, WidgetToDraw, DefaultResolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing );
 			WorldOutlinerUI->ShowUI( false );
 			FloatingUIs.Add( WorldOutlinerUI );
@@ -1008,7 +1008,7 @@ void UVREditorUISystem::CreateUIs()
 			;
 
 			const bool bWithSceneComponent = false;
-			AVREditorFloatingUI* ActorDetailsUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >( TEXT( "ActorDetailsUI" ), bWithSceneComponent );
+			AVREditorFloatingUI* ActorDetailsUI = UViewportWorldInteraction::SpawnTransientSceneActor< AVREditorDockableWindow >( GetOwner().GetWorld(), TEXT( "ActorDetailsUI" ), bWithSceneComponent );
 			ActorDetailsUI->SetSlateWidget( *this, WidgetToDraw, DefaultResolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing );
 			ActorDetailsUI->ShowUI( false );
 			FloatingUIs.Add( ActorDetailsUI );
@@ -1030,7 +1030,7 @@ void UVREditorUISystem::CreateUIs()
 			;
 
 			const bool bWithSceneComponent = false;
-			AVREditorFloatingUI* ModesUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >( TEXT( "ModesUI" ), bWithSceneComponent );
+			AVREditorFloatingUI* ModesUI = UViewportWorldInteraction::SpawnTransientSceneActor< AVREditorDockableWindow >( GetOwner().GetWorld(), TEXT( "ModesUI" ), bWithSceneComponent );
 			ModesUI->SetSlateWidget( *this, WidgetToDraw, DefaultResolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing );
 			ModesUI->ShowUI( false );
 			FloatingUIs.Add( ModesUI );
@@ -1048,7 +1048,7 @@ void UVREditorUISystem::CreateUIs()
 				GetOwner().IsActuallyUsingVR() &&	// Don't show tutorial at startup when in "forced VR" mode, because you can't interact with UI using the mouse currently
 				(GetDefault<UEditorExperimentalSettings>()->bAlwaysShowVRTutorial); // Only show tutorial at startup if the user has this enabled
 
-			AVREditorFloatingUI* TutorialUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >( TEXT( "TutorialUI" ), false );
+			AVREditorFloatingUI* TutorialUI = UViewportWorldInteraction::SpawnTransientSceneActor< AVREditorDockableWindow >( GetOwner().GetWorld(), TEXT( "TutorialUI" ), false );
 			TutorialUI->SetUMGWidget( *this, TutorialWidgetClass, FIntPoint( VREd::TutorialUIResolutionX->GetFloat(), VREd::TutorialUIResolutionY->GetFloat() ), VREd::TutorialUISize->GetFloat(), bShowAtStart ? AVREditorFloatingUI::EDockedTo::Room : AVREditorFloatingUI::EDockedTo::Nothing );
 
 			if( bShowAtStart )
@@ -1068,7 +1068,7 @@ void UVREditorUISystem::CreateUIs()
 			const FIntPoint Resolution = FIntPoint(VREd::AssetEditorUIResolutionX->GetInt(), VREd::AssetEditorUIResolutionY->GetInt());
 
 			const bool bWithSceneComponent = false;
-			AVREditorDockableWindow* TabManagerUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >( TEXT( "AssetEditor" ), bWithSceneComponent );
+			AVREditorDockableWindow* TabManagerUI = UViewportWorldInteraction::SpawnTransientSceneActor< AVREditorDockableWindow >( GetOwner().GetWorld(), TEXT( "AssetEditor" ), bWithSceneComponent );
 			TabManagerUI->SetSlateWidget( *this, SNullWidget::NullWidget, Resolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing );
 			TabManagerUI->ShowUI( false );
 
@@ -1115,7 +1115,7 @@ void UVREditorUISystem::CreateUIs()
 			;
 
 			const bool bWithSceneComponent = false;
-			AVREditorFloatingUI* WorldSettingsUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >( TEXT( "WorldSettingsUI" ), bWithSceneComponent );
+			AVREditorFloatingUI* WorldSettingsUI = UViewportWorldInteraction::SpawnTransientSceneActor< AVREditorDockableWindow >( World, TEXT( "WorldSettingsUI" ), bWithSceneComponent );
 			WorldSettingsUI->SetSlateWidget( *this, WidgetToDraw, DefaultResolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing );
 			WorldSettingsUI->ShowUI( false );
 			FloatingUIs.Add( WorldSettingsUI );
@@ -1138,7 +1138,7 @@ void UVREditorUISystem::CreateUIs()
 			;
 
 			const bool bWithSceneComponent = false;
-			AVREditorFloatingUI* SequencerUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >(TEXT("SequencerUI"), bWithSceneComponent);
+			AVREditorFloatingUI* SequencerUI = UViewportWorldInteraction::SpawnTransientSceneActor< AVREditorDockableWindow >( GetOwner().GetWorld(), TEXT("SequencerUI"), bWithSceneComponent);
 			SequencerUI->SetSlateWidget(*this, WidgetToDraw, FIntPoint(VREd::ContentBrowserUIResolutionX->GetFloat(), VREd::ContentBrowserUIResolutionY->GetFloat()), VREd::ContentBrowserUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
 			SequencerUI->ShowUI(false);
 			FloatingUIs.Add(SequencerUI);
@@ -1329,9 +1329,9 @@ void UVREditorUISystem::TryToSpawnRadialMenu( UVREditorInteractor* Interactor, c
 
 			bool bNeedsSpawn =
 				( QuickRadialMenu->bHidden || DockedToInteractor != Interactor ) &&
-				DraggingMode != EViewportInteractionDraggingMode::ActorsAtLaserImpact &&	// Don't show radial menu if the hand is busy dragging something around
-				DraggingMode != EViewportInteractionDraggingMode::ActorsFreely &&
-				DraggingMode != EViewportInteractionDraggingMode::ActorsWithGizmo &&
+				DraggingMode != EViewportInteractionDraggingMode::TransformablesAtLaserImpact &&	 // Don't show radial menu if the hand is busy dragging something around
+				DraggingMode != EViewportInteractionDraggingMode::TransformablesFreely &&
+				DraggingMode != EViewportInteractionDraggingMode::TransformablesWithGizmo &&
 				DraggingMode != EViewportInteractionDraggingMode::World &&
 				DraggingMode != EViewportInteractionDraggingMode::AssistingDrag &&
 				( InteractorDraggingUI == nullptr || InteractorDraggingUI != Interactor ) &&
@@ -1712,7 +1712,7 @@ void UVREditorUISystem::CreateVRColorPicker(const TSharedRef<SColorPicker>& Colo
 	if( ColorPickerUI == nullptr )
 	{
 		const bool bWithSceneComponent = false;
-		ColorPickerUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >( TEXT( "ColorPickerUI" ), bWithSceneComponent );
+		ColorPickerUI = UViewportWorldInteraction::SpawnTransientSceneActor< AVREditorDockableWindow >( GetOwner().GetWorld(), TEXT( "ColorPickerUI" ), bWithSceneComponent );
 		FloatingUIs.Add( ColorPickerUI );
 		EditorUIPanels[ (int32)EEditorUIPanel::ColorPicker ] = ColorPickerUI;
 		bJustSpawned = true;

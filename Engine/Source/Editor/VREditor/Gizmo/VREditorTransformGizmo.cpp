@@ -139,10 +139,10 @@ ATransformGizmo::ATransformGizmo()
 }
 
 
-void ATransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, 
+void ATransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, const float ScaleMultiplier, bool bAllHandlesVisible,
 	UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, const float GizmoHoverScale, const float GizmoHoverAnimationDuration )
 {
-	Super::UpdateGizmo( GizmoType, GizmoCoordinateSpace, LocalToWorld, LocalBounds, ViewLocation, bAllHandlesVisible,
+	Super::UpdateGizmo( GizmoType, GizmoCoordinateSpace, LocalToWorld, LocalBounds, ViewLocation, ScaleMultiplier, bAllHandlesVisible,
 		DraggingHandle, HoveringOverHandles, GizmoHoverScale, GizmoHoverAnimationDuration );
 
 	const float WorldScaleFactor = GetWorld()->GetWorldSettings()->WorldToMeters / 100.0f;
@@ -167,7 +167,7 @@ void ATransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoo
 	// @todo vreditor: Should take FOV into account (especially in non-stereo/HMD mode)
 	const float WorldSpaceDistanceToGizmoBounds = FMath::Sqrt( WorldSpaceBounds.ComputeSquaredDistanceToPoint( ViewLocation ) );
 	const float GizmoScaleUpClose = VREd::GizmoScale->GetFloat();
-	const float GizmoScale( ( GizmoScaleUpClose + ( WorldSpaceDistanceToGizmoBounds / WorldScaleFactor ) * VREd::GizmoDistanceScaleFactor->GetFloat() ) * ScaleCompensationForTinyGizmo * WorldScaleFactor );
+	const float GizmoScale( ScaleMultiplier * ( GizmoScaleUpClose + ( WorldSpaceDistanceToGizmoBounds / WorldScaleFactor ) * VREd::GizmoDistanceScaleFactor->GetFloat() ) * ScaleCompensationForTinyGizmo * WorldScaleFactor );
 
 	// Update animation
 	float AnimationAlpha = GetAnimationAlpha();

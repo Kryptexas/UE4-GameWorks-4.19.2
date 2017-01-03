@@ -16,8 +16,8 @@
 #include "SubtitleManager.h"
 #include "SequencerMeshTrail.h"
 #include "SequencerKeyActor.h"
+#include "EditorWorldExtension.h"
 #include "ViewportWorldInteraction.h"
-#include "EditorWorldManager.h"
 
 const FEditorModeID FSequencerEdMode::EM_SequencerMode(TEXT("EM_SequencerMode"));
 
@@ -545,8 +545,7 @@ void FSequencerEdMode::DrawTracks3D(FPrimitiveDrawInterface* PDI)
 							});
 							if (TrailPtr == nullptr)
 							{
-								UViewportWorldInteraction* ViewportWorldInteraction = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GEditor->GetActiveViewport()->GetClient()->GetWorld())->GetViewportWorldInteraction();
-								ASequencerMeshTrail* TrailActor = ViewportWorldInteraction->SpawnTransientSceneActor<ASequencerMeshTrail>(TEXT("SequencerMeshTrail"), true);
+								ASequencerMeshTrail* TrailActor = UViewportWorldInteraction::SpawnTransientSceneActor<ASequencerMeshTrail>(GetWorld(), TEXT("SequencerMeshTrail"), true);
 								FMeshTrailData MeshTrail = FMeshTrailData(TransformTrack, TrailActor);
 								MeshTrails.Add(MeshTrail);
 							}

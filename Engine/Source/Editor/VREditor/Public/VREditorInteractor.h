@@ -45,7 +45,7 @@ public:
 	virtual FHitResult GetHitResultFromLaserPointer( TArray<AActor*>* OptionalListOfIgnoredActors = nullptr, const bool bIgnoreGizmos = false,
 		TArray<UClass*>* ObjectsInFrontOfGizmo = nullptr, const bool bEvenIfBlocked = false, const float LaserLengthOverride = 0.0f ) override;
 	virtual void ResetHoverState( const float DeltaTime ) override;
-	virtual void OnStartDragging( UActorComponent* ClickedComponent, const FVector& HitLocation, const bool bIsPlacingActors ) override;
+	virtual void OnStartDragging( const FVector& HitLocation, const bool bIsPlacingNewObjects ) override;
 
 	/** Returns the slide delta for pushing and pulling objects. Needs to be implemented by derived classes (e.g. touchpad for vive controller or scrollweel for mouse ) */
 	virtual float GetSlideDelta();
@@ -109,7 +109,7 @@ public:
 	float GetSelectAndMoveTriggerValue() const;
 	
 	/* ViewportInteractor overrides, checks if the laser is blocked by UI */
-	virtual bool GetIsLaserBlocked() override;
+	virtual bool GetIsLaserBlocked() const override;
 	
 protected:
 

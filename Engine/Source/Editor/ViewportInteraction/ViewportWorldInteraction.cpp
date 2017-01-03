@@ -21,7 +21,8 @@
 #include "Gizmo/VIPivotTransformGizmo.h"
 #include "ViewportWorldInteractionManager.h"
 #include "IViewportInteractionModule.h"
-
+#include "ViewportTransformer.h"
+#include "ActorTransformer.h"
 #include "SnappingUtils.h"
 #include "ScopedTransaction.h"
 
@@ -49,16 +50,17 @@ namespace VI
 	static FAutoConsoleVariable DragAtLaserImpactInterpolationDuration( TEXT( "VI.DragAtLaserImpactInterpolationDuration" ), 0.1f, TEXT( "How long we should interpolate objects between positions when dragging under the laser's impact point" ) );
 	static FAutoConsoleVariable DragAtLaserImpactInterpolationThreshold( TEXT( "VI.DragAtLaserImpactInterpolationThreshold" ), 5.0f, TEXT( "Minimum distance jumped between frames before we'll force interpolation mode to activated" ) );
 
-	static FAutoConsoleVariable ForceGizmoPivotToCenterOfSelectedActorsBounds( TEXT( "VI.ForceGizmoPivotToCenterOfSelectedActorsBounds" ), 0, TEXT( "When enabled, the gizmo's pivot will always be centered on the selected actors.  Otherwise, we use the pivot of the last selected actor." ) );
+	static FAutoConsoleVariable ForceGizmoPivotToCenterOfObjectsBounds( TEXT( "VI.ForceGizmoPivotToCenterOfObjectsBounds" ), 0, TEXT( "When enabled, the gizmo's pivot will always be centered on the selected objects.  Otherwise, we use the pivot of the last selected object." ) );
 	static FAutoConsoleVariable GizmoHandleHoverScale( TEXT( "VI.GizmoHandleHoverScale" ), 1.5f, TEXT( "How much to scale up transform gizmo handles when hovered over" ) );
 	static FAutoConsoleVariable GizmoHandleHoverAnimationDuration( TEXT( "VI.GizmoHandleHoverAnimationDuration" ), 0.1f, TEXT( "How quickly to animate gizmo handle hover state" ) );
 	static FAutoConsoleVariable ShowTransformGizmo( TEXT( "VI.ShowTransformGizmo" ), 1, TEXT( "Whether the transform gizmo should be shown for selected objects" ) );
-
-	//Grid
+	static FAutoConsoleVariable DragTranslationVelocityStopEpsilon( TEXT( "VI.DragTranslationVelocityStopEpsilon" ), KINDA_SMALL_NUMBER, TEXT( "When dragging inertia falls below this value (cm/frame), we'll stop inertia and finalize the drag" ) );
 	static FAutoConsoleVariable SnapGridSize( TEXT( "VI.SnapGridSize" ), 3.0f, TEXT( "How big the snap grid should be, in multiples of the gizmo bounding box size" ) );
 	static FAutoConsoleVariable SnapGridLineWidth( TEXT( "VI.SnapGridLineWidth" ), 3.0f, TEXT( "Width of the grid lines on the snap grid" ) );
-	static FAutoConsoleVariable MinVelocityForInertia( TEXT( "VREd.MinVelocityForInertia" ), 1.0f, TEXT( "Minimum velocity (in cm/frame in unscaled room space) before inertia will kick in when releasing objects (or the world)" ) );
+	static FAutoConsoleVariable MinVelocityForInertia( TEXT( "VI.MinVelocityForInertia" ), 1.0f, TEXT( "Minimum velocity (in cm/frame in unscaled room space) before inertia will kick in when releasing objects (or the world)" ) );
 	static FAutoConsoleVariable GridHapticFeedbackStrength( TEXT( "VI.GridHapticFeedbackStrength" ), 0.4f, TEXT( "Default strength for haptic feedback when moving across grid points" ) );
+
+	static FAutoConsoleVariable UseTransientActors( TEXT( "VI.UseTransientActors" ), 1, TEXT( "For debugging only, allows you to turn off transient on newly-spawned VR editor actors." ) );
 }
 
 // @todo vreditor: Hacky inline implementation of a double vector.  Move elsewhere and polish or get rid.
@@ -218,17 +220,19 @@ static void SegmentDistToSegmentDouble( DVector A1, DVector B1, DVector A2, DVec
 	OutP2 = A2 + S2 * T2;
 }
 
-UViewportWorldInteraction::UViewportWorldInteraction( const FObjectInitializer& Initializer ):
-	Super( Initializer ),
+
+UViewportWorldInteraction::UViewportWorldInteraction():
+	Super(),
 	bDraggedSinceLastSelection( false ),
 	LastDragGizmoStartTransform( FTransform::Identity ),
 	TrackingTransaction( FTrackingTransaction() ),
 	AppTimeEntered( FTimespan::Zero() ),
-	EditorViewportClient( nullptr ),
+	DefaultOptionalViewportClient( nullptr ),
 	LastFrameNumberInputWasPolled( 0 ),
 	MotionControllerID( 0 ),	// @todo ViewportInteraction: We only support a single controller, and we assume the first controller are the motion controls
 	LastWorldToMetersScale( 100.0f ),
 	bSkipInteractiveWorldMovementThisFrame( false ),
+	bAreTransformablesMoving( false ),
 	bIsInterpolatingTransformablesFromSnapshotTransform( false ),
 	TransformablesInterpolationStartTime( FTimespan::Zero() ),
 	TransformablesInterpolationDuration( 1.0f ),
@@ -237,25 +241,22 @@ UViewportWorldInteraction::UViewportWorldInteraction( const FObjectInitializer& 
 	GizmoLocalBounds( FBox( 0 ) ),
 	StartDragAngleOnRotation(),
 	StartDragHandleDirection(),
-	CurrentGizmoType( EGizmoHandleTypes::All ),
-	bIsTransformGizmoVisible( true ),
+	bShouldTransformGizmoBeVisible( true ),
+	TransformGizmoScale( 0.5f ),
 	SnapGridActor( nullptr ),
 	SnapGridMeshComponent( nullptr ),
 	SnapGridMID( nullptr ),
 	DraggedInteractable( nullptr ),
-	bActive( false )
+	DefaultMouseCursorInteractor( nullptr ),
+	DefaultMouseCursorInteractorRefCount( 0 ),
+	bActive( false ),
+	bUseInputProcessor( false )
 {
 }
 
-UViewportWorldInteraction::~UViewportWorldInteraction()
-{
-	Shutdown();
-}
 
-void UViewportWorldInteraction::Init( UWorld* InWorld )
+void UViewportWorldInteraction::Init()
 {
-	World = InWorld;
-
 	Colors.SetNumZeroed( (int32)EColors::TotalCount );
 	{
 		Colors[ (int32)EColors::DefaultColor ] = FLinearColor( 0.7f, 0.7f, 0.7f, 1.0f );;
@@ -267,10 +268,34 @@ void UViewportWorldInteraction::Init( UWorld* InWorld )
 	}
 
 	AppTimeEntered = FTimespan::FromSeconds( FApp::GetCurrentTime() );
+
+	IViewportWorldInteractionManager& WorldInteractionManager = IViewportInteractionModule::Get().GetWorldInteractionManager();
+	WorldInteractionManager.SetCurrentViewportWorldInteraction( this );
+
+	// Start with the default transformer
+	SetTransformer( nullptr );
+
+	//Spawn the transform gizmo at init so we do not hitch when selecting our first object
+	SpawnTransformGizmoIfNeeded();
+	TransformGizmoActor->SetIsTemporarilyHiddenInEditor( true );
+
+
+	/** This will make sure this is not ticking after the editor has been closed. */
+	GEditor->OnEditorClose().AddUObject( this, &UViewportWorldInteraction::Shutdown );
+
+	bActive = true;
 }
 
 void UViewportWorldInteraction::Shutdown()
 {
+	bActive = false;
+
+	DestroyActors();
+	DefaultOptionalViewportClient = nullptr;
+
+	IViewportWorldInteractionManager& WorldInteractionManager = IViewportInteractionModule::Get().GetWorldInteractionManager();
+	WorldInteractionManager.SetCurrentViewportWorldInteraction( nullptr );
+
 	AppTimeEntered = FTimespan::Zero();
 
 	for ( UViewportInteractor* Interactor : Interactors )
@@ -289,43 +314,18 @@ void UViewportWorldInteraction::Shutdown()
 	OnAxisInputEvent.Clear();
 	OnStopDraggingEvent.Clear();
 
-	World = nullptr;
 	TransformGizmoActor = nullptr;
 	SnapGridActor = nullptr;
 	SnapGridMeshComponent = nullptr;
 	SnapGridMID = nullptr;
-	EditorViewportClient = nullptr;
 	DraggedInteractable = nullptr;
+	if( ViewportTransformer != nullptr )
+	{
+		ViewportTransformer->Shutdown();
+		ViewportTransformer = nullptr;
+	}
 
-	bActive = false;
 	USelection::SelectionChangedEvent.RemoveAll( this );
-}
-
-void UViewportWorldInteraction::Enter()
-{
-	IViewportWorldInteractionManager& WorldInteractionManager = IViewportInteractionModule::Get().GetWorldInteractionManager();
-	WorldInteractionManager.SetCurrentViewportWorldInteraction( this );
-
-	// Find out about selection changes
-	USelection::SelectionChangedEvent.AddUObject( this, &UViewportWorldInteraction::OnActorSelectionChanged ); 
-	
-    //Spawn the transform gizmo at init so we do not hitch when selecting our first object
-	SpawnTransformGizmoIfNeeded();
-	TransformGizmoActor->SetIsTemporarilyHiddenInEditor( true );
-
-	/** This will make sure this is not ticking after the editor has been closed. */
-	GEditor->OnEditorClose().AddUObject( this, &UViewportWorldInteraction::Shutdown );
-}
-
-void UViewportWorldInteraction::Exit()
-{
-	DestroyActors();
-	USelection::SelectionChangedEvent.RemoveAll( this );
-	EditorViewportClient = nullptr;
-	
-	IViewportWorldInteractionManager& WorldInteractionManager = IViewportInteractionModule::Get().GetWorldInteractionManager();
-	WorldInteractionManager.SetCurrentViewportWorldInteraction( nullptr );
-
 	GEditor->OnEditorClose().RemoveAll( this );
 }
 
@@ -333,18 +333,13 @@ void UViewportWorldInteraction::OnEditorClosed()
 {
 	if( bActive )
 	{
-		Exit();
 		Shutdown();
 	}
 }
 
-void UViewportWorldInteraction::Tick( const float DeltaTime )
+void UViewportWorldInteraction::Tick( float DeltaSeconds )
 {
-	// Only if this is our viewport. Remember, editor modes get a chance to tick and receive input for each active viewport.
-	if ( EditorViewportClient == nullptr || !bActive )
-	{
-		return;
-	}
+	OnPreWorldInteractionTickEvent.Broadcast( DeltaSeconds );
 
 	// Cancel any haptic effects that have been playing too long
 	//StopOldHapticEffects(); //@todo ViewportInteraction
@@ -353,15 +348,17 @@ void UViewportWorldInteraction::Tick( const float DeltaTime )
 	PollInputIfNeeded();
 
 	// Update hover. Note that hover can also be updated when ticking our sub-systems below.
-	HoverTick( DeltaTime );
+	HoverTick( DeltaSeconds );
 
-	InteractionTick( DeltaTime );
+	InteractionTick( DeltaSeconds );
 
 	// Update all the interactors
 	for ( UViewportInteractor* Interactor : Interactors )
 	{
-		Interactor->Tick( DeltaTime );
+		Interactor->Tick( DeltaSeconds );
 	}
+
+	OnPostWorldInteractionTickEvent.Broadcast( DeltaSeconds );
 }
 
 void UViewportWorldInteraction::AddInteractor( UViewportInteractor* Interactor )
@@ -376,26 +373,51 @@ void UViewportWorldInteraction::RemoveInteractor( UViewportInteractor* Interacto
 	Interactors.Remove( Interactor );
 }
 
-void UViewportWorldInteraction::SetViewport(const TSharedPtr<class FEditorViewportClient>& InEditorViewportClient)
+
+void UViewportWorldInteraction::SetTransformer( UViewportTransformer* NewTransformer )
 {
-	EditorViewportClient = InEditorViewportClient.Get();
+	// Clear all existing transformables
+	SetTransformables( TArray< TUniquePtr< class FViewportTransformable > >() );
+
+	if( ViewportTransformer != nullptr )
+	{
+		ViewportTransformer->Shutdown();
+		ViewportTransformer = nullptr;
+	}
+
+	this->ViewportTransformer = NewTransformer;
+
+	if( ViewportTransformer == nullptr )
+	{
+		ViewportTransformer = NewObject<UActorTransformer>();
+	}
+	check( ViewportTransformer != nullptr );
+
+	ViewportTransformer->Init( this );
 }
 
-void UViewportWorldInteraction::Activate(const bool bInActivate)
-{
-	if( bActive != bInActivate )
-	{
-		if( bInActivate )
-		{
-			Enter();
-		}
-		else
-		{
-			Exit();
-		}
 
-		bActive = bInActivate;
-	}
+void UViewportWorldInteraction::SetTransformables( TArray< TUniquePtr< class FViewportTransformable > >&& NewTransformables )
+{
+	// We're dealing with a new set of transformables, so clear out anything that was going on with the old ones.
+	bDraggedSinceLastSelection = false;
+	LastDragGizmoStartTransform = FTransform::Identity;
+	bIsInterpolatingTransformablesFromSnapshotTransform = false;
+	TransformablesInterpolationStartTime = FTimespan::Zero();
+	TransformablesInterpolationDuration = 1.0f;
+
+	Transformables = MoveTemp( NewTransformables );
+
+	const bool bNewObjectsSelected = true;
+	const bool bAllHandlesVisible = true;
+	UActorComponent* SingleVisibleHandle = nullptr;
+	TArray<UActorComponent*> HoveringOverHandles;
+	RefreshTransformGizmo( bNewObjectsSelected, bAllHandlesVisible, SingleVisibleHandle, HoveringOverHandles );
+}
+
+void UViewportWorldInteraction::SetDefaultOptionalViewportClient(const TSharedPtr<class FEditorViewportClient>& InEditorViewportClient)
+{
+	DefaultOptionalViewportClient = InEditorViewportClient.Get();
 }
 
 bool UViewportWorldInteraction::IsActive() const
@@ -409,20 +431,23 @@ void UViewportWorldInteraction::PairInteractors( UViewportInteractor* FirstInter
 	SecondInteractor->SetOtherInteractor( FirstInteractor );
 }
 
-bool UViewportWorldInteraction::HandleInputKey( const FKey Key, const EInputEvent Event )
+bool UViewportWorldInteraction::InputKey( FEditorViewportClient* InViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
 {
 	bool bWasHandled = false;
+
 	if( bActive )
 	{
-		OnKeyInputEvent.Broadcast( *EditorViewportClient, Key, Event, bWasHandled );
+		check( InViewportClient != nullptr );
+		OnKeyInputEvent.Broadcast( InViewportClient, Key, Event, bWasHandled );
+
 		if( !bWasHandled || !bActive )
 		{
 			for( UViewportInteractor* Interactor : Interactors )
 			{
-				bWasHandled = Interactor->HandleInputKey( Key, Event );
-				
+				bWasHandled = Interactor->HandleInputKey( *InViewportClient, Key, Event );
+
 				// Stop iterating if the input was handled by an Interactor
-				if(bWasHandled || !bActive)
+				if( bWasHandled || !bActive )
 				{
 					break;
 				}
@@ -430,25 +455,47 @@ bool UViewportWorldInteraction::HandleInputKey( const FKey Key, const EInputEven
 		}
 	}
 
+	if( bWasHandled )
+	{
+		// This is a temporary workaround so that we don't steal the handling of the drag tool from the viewport client
+		FInputEventState InputState( InViewportClient->Viewport, Key, Event );
+		const bool bMarqueeSelecting = InputState.IsAltButtonPressed() && InputState.IsCtrlButtonPressed() && Key == EKeys::LeftMouseButton;
+		if( bMarqueeSelecting )
+		{
+			bWasHandled = false;
+		}
+	}
+
 	return bWasHandled;
 }
 
-bool UViewportWorldInteraction::HandleInputAxis( const int32 ControllerId, const FKey Key, const float Delta, const float DeltaTime )
+bool UViewportWorldInteraction::PreprocessedInputKey( const FKey Key, const EInputEvent Event )
+{
+	if( DefaultOptionalViewportClient != nullptr && bUseInputProcessor == true )
+	{
+		return InputKey( DefaultOptionalViewportClient, DefaultOptionalViewportClient->Viewport, Key, Event );
+	}
+
+	return false;
+}
+
+bool UViewportWorldInteraction::InputAxis( FEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime )
 {
 	bool bWasHandled = false;
 
-	if(bActive)
+	if( bActive )
 	{
-		OnAxisInputEvent.Broadcast( *EditorViewportClient, ControllerId, Key, Delta, DeltaTime, bWasHandled );
+		check( InViewportClient != nullptr );
+		OnAxisInputEvent.Broadcast( InViewportClient, ControllerId, Key, Delta, DeltaTime, bWasHandled );
 
-		if( !bWasHandled || !bActive)
+		if( !bWasHandled || !bActive )
 		{
 			for( UViewportInteractor* Interactor : Interactors )
 			{
-				bWasHandled = Interactor->HandleInputAxis( Key, Delta, DeltaTime );
+				bWasHandled = Interactor->HandleInputAxis( *InViewportClient, Key, Delta, DeltaTime );
 
 				// Stop iterating if the input was handled by an interactor
-				if(bWasHandled || !bActive)
+				if( bWasHandled || !bActive )
 				{
 					break;
 				}
@@ -459,22 +506,33 @@ bool UViewportWorldInteraction::HandleInputAxis( const int32 ControllerId, const
 	return bWasHandled;
 }
 
+bool UViewportWorldInteraction::PreprocessedInputAxis( const int32 ControllerId, const FKey Key, const float Delta, const float DeltaTime )
+{
+	if( DefaultOptionalViewportClient != nullptr && bUseInputProcessor == true )
+	{
+		return InputAxis( DefaultOptionalViewportClient, DefaultOptionalViewportClient->Viewport, ControllerId, Key, Delta, DeltaTime );
+	}
+
+	return false;
+}
 
 FTransform UViewportWorldInteraction::GetRoomTransform() const
 {
-	check( EditorViewportClient );
-
-	const FTransform RoomTransform(
-		EditorViewportClient->GetViewRotation().Quaternion(),
-		EditorViewportClient->GetViewLocation(),
-		FVector( 1.0f ) );
+	FTransform RoomTransform;
+	if( DefaultOptionalViewportClient != nullptr )
+	{
+		RoomTransform = FTransform(
+			DefaultOptionalViewportClient->GetViewRotation().Quaternion(),
+			DefaultOptionalViewportClient->GetViewLocation(),
+			FVector( 1.0f ) );
+	}
 	return RoomTransform;
 }
 
 FTransform UViewportWorldInteraction::GetRoomSpaceHeadTransform() const
 {
 	FTransform HeadTransform = FTransform::Identity;
-	if ( GEngine->HMDDevice.IsValid() )
+	if( HaveHeadTransform() )
 	{
 		FQuat RoomSpaceHeadOrientation;
 		FVector RoomSpaceHeadLocation;
@@ -495,74 +553,84 @@ FTransform UViewportWorldInteraction::GetHeadTransform() const
 	return GetRoomSpaceHeadTransform() * GetRoomTransform();
 }
 
+
+bool UViewportWorldInteraction::HaveHeadTransform() const
+{
+	return DefaultOptionalViewportClient != nullptr && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsStereoEnabled();
+}
+
+
 void UViewportWorldInteraction::SetRoomTransform( const FTransform& NewRoomTransform )
 {
-	EditorViewportClient->SetViewLocation( NewRoomTransform.GetLocation() );
-	EditorViewportClient->SetViewRotation( NewRoomTransform.GetRotation().Rotator() );
+	if( DefaultOptionalViewportClient != nullptr )
+	{
+		DefaultOptionalViewportClient->SetViewLocation( NewRoomTransform.GetLocation() );
+		DefaultOptionalViewportClient->SetViewRotation( NewRoomTransform.GetRotation().Rotator() );
 
-	// Forcibly dirty the viewport camera location
-	const bool bDollyCamera = false;
-	EditorViewportClient->MoveViewportCamera( FVector::ZeroVector, FRotator::ZeroRotator, bDollyCamera );
+		// Forcibly dirty the viewport camera location
+		const bool bDollyCamera = false;
+		DefaultOptionalViewportClient->MoveViewportCamera( FVector::ZeroVector, FRotator::ZeroRotator, bDollyCamera );
+	}
 }
 
 float UViewportWorldInteraction::GetWorldScaleFactor() const
 {
-	return GetViewportWorld()->GetWorldSettings()->WorldToMeters / 100.0f;
+	return GetWorld()->GetWorldSettings()->WorldToMeters / 100.0f;
 }
 
-UWorld* UViewportWorldInteraction::GetViewportWorld() const
+UWorld* UViewportWorldInteraction::GetWorld() const
 {
 	UWorld* ResultWorld = nullptr;
 	
-	if( World )
+	if( UEditorWorldExtension::GetWorld() != nullptr )
 	{
-		ResultWorld = World;
+		ResultWorld = UEditorWorldExtension::GetWorld();
 	}
-	else if ( EditorViewportClient != nullptr )
+	else if ( DefaultOptionalViewportClient != nullptr )
 	{
-		ResultWorld = EditorViewportClient->GetWorld();
+		ResultWorld = DefaultOptionalViewportClient->GetWorld();
 	}
 
 	return ResultWorld;
 }
 
-FEditorViewportClient* UViewportWorldInteraction::GetViewportClient() const
+FEditorViewportClient* UViewportWorldInteraction::GetDefaultOptionalViewportClient() const
 {
-	return EditorViewportClient;
+	return DefaultOptionalViewportClient;
 }
 
 void UViewportWorldInteraction::Undo()
 {
-	GUnrealEd->Exec( GetViewportWorld(), TEXT( "TRANSACTION UNDO" ) );
+	GUnrealEd->Exec( GetWorld(), TEXT( "TRANSACTION UNDO" ) );
 }
 
 void UViewportWorldInteraction::Redo()
 {
-	GUnrealEd->Exec( GetViewportWorld(), TEXT( "TRANSACTION REDO" ) );
+	GUnrealEd->Exec( GetWorld(), TEXT( "TRANSACTION REDO" ) );
 }
 
 void UViewportWorldInteraction::DeleteSelectedObjects()
 {
-	GUnrealEd->Exec(GetViewportWorld(), TEXT("DELETE"));
+	GUnrealEd->Exec(GetWorld(), TEXT("DELETE"));
 }
 
 void UViewportWorldInteraction::Copy()
 {
 	// @todo vreditor: Needs CanExecute()  (see LevelEditorActions.cpp)
-	GUnrealEd->Exec( GetViewportWorld(), TEXT( "EDIT COPY" ) );
+	GUnrealEd->Exec( GetWorld(), TEXT( "EDIT COPY" ) );
 }
 
 void UViewportWorldInteraction::Paste()
 {
 	// @todo vreditor: Needs CanExecute()  (see LevelEditorActions.cpp)
 	// @todo vreditor: Needs "paste here" style pasting (TO=HERE), but with ray
-	GUnrealEd->Exec( GetViewportWorld(), TEXT( "EDIT PASTE" ) );
+	GUnrealEd->Exec( GetWorld(), TEXT( "EDIT PASTE" ) );
 }
 
 void UViewportWorldInteraction::Duplicate()
 {
 	// @todo vreditor: Needs CanExecute()  (see LevelEditorActions.cpp)
-	GUnrealEd->Exec( GetViewportWorld(), TEXT( "DUPLICATE" ) );
+	GUnrealEd->Exec( GetWorld(), TEXT( "DUPLICATE" ) );
 }
 
 void UViewportWorldInteraction::Deselect()
@@ -582,9 +650,22 @@ void UViewportWorldInteraction::HoverTick( const float DeltaTime )
 		//Update the state of the interactor here
 		FHitResult HitHoverResult;
 		Interactor->UpdateHoverResult( HitHoverResult );
-
 		FVector HoverImpactPoint = HitHoverResult.ImpactPoint;
-		OnHoverUpdateEvent.Broadcast( *EditorViewportClient, Interactor, /* In/Out */ HoverImpactPoint, /* In/Out */ bWasHandled);
+
+		const bool bIsHoveringOverTransformGizmo =
+			HitHoverResult.Actor.IsValid() &&
+			HitHoverResult.Actor == TransformGizmoActor;
+
+		// Prefer transform gizmo hover over everything else
+		if( !bIsHoveringOverTransformGizmo )
+		{
+			OnHoverUpdateEvent.Broadcast( Interactor, /* In/Out */ HoverImpactPoint, /* In/Out */ bWasHandled );
+			if( bWasHandled )
+			{
+				InteractorData.bIsHovering = true;
+				InteractorData.HoverLocation = HoverImpactPoint;
+			}
+		}
 		
 		if ( bWasHandled )
 		{
@@ -664,20 +745,19 @@ void UViewportWorldInteraction::HoverTick( const float DeltaTime )
 void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 {
 	const FTimespan CurrentTime = FTimespan::FromSeconds( FPlatformTime::Seconds() );
-	const float WorldToMetersScale = GetViewportWorld()->GetWorldSettings()->WorldToMeters;
+	const float WorldToMetersScale = GetWorld()->GetWorldSettings()->WorldToMeters;
 
 	// Update viewport with any objects that are currently hovered over
 	{
-		const bool bUseEditorSelectionHoverFeedback = GEditor != NULL && GetDefault<ULevelEditorViewportSettings>()->bEnableViewportHoverFeedback;
-		if( bUseEditorSelectionHoverFeedback )
+		if( DefaultOptionalViewportClient != nullptr )
 		{
-			if( EditorViewportClient->IsLevelEditorClient() )
+			const bool bUseEditorSelectionHoverFeedback = GEditor != NULL && GetDefault<ULevelEditorViewportSettings>()->bEnableViewportHoverFeedback;
+			if( bUseEditorSelectionHoverFeedback && DefaultOptionalViewportClient->IsLevelEditorClient())
 			{
-				FLevelEditorViewportClient* LevelEditorViewportClient = static_cast<FLevelEditorViewportClient*>( EditorViewportClient );
+				FLevelEditorViewportClient* LevelEditorViewportClient = static_cast<FLevelEditorViewportClient*>( DefaultOptionalViewportClient );
 				LevelEditorViewportClient->UpdateHoveredObjects( HoveredObjects );
 			}
 		}
-
 		// This will be filled in again during the next input update
 		HoveredObjects.Reset();
 	}
@@ -685,22 +765,22 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 	const float WorldScaleFactor = GetWorldScaleFactor();
 
 	// Move selected actors
-	TOptional< UViewportInteractor* > DraggingActorsWithInteractor;
-	TOptional< UViewportInteractor* > AssistingDragWithInteractor;
+	UViewportInteractor* DraggingTransformablesWithInteractor = nullptr;
+	UViewportInteractor* AssistingDragWithInteractor = nullptr;
 
 	for ( UViewportInteractor* Interactor : Interactors )
 	{
 		bool bCanSlideRayLength = false;
 		FViewportInteractorData& InteractorData = Interactor->GetInteractorData();
 
-		if ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo ||
-			InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsFreely ||
-			InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact )
+		if( InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesWithGizmo ||
+			InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesFreely ||
+			InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact )
 		{
-			check( !DraggingActorsWithInteractor.IsSet() );	// Only support dragging one thing at a time right now!
-			DraggingActorsWithInteractor = Interactor;
+			check( DraggingTransformablesWithInteractor == nullptr );	// Only support dragging one thing at a time right now!
+			DraggingTransformablesWithInteractor = Interactor;
 
-			if ( InteractorData.DraggingMode != EViewportInteractionDraggingMode::ActorsAtLaserImpact )
+			if ( InteractorData.DraggingMode != EViewportInteractionDraggingMode::TransformablesAtLaserImpact )
 			{
 				bCanSlideRayLength = true;
 			}
@@ -708,7 +788,7 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 
 		if ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag )
 		{
-			check( !AssistingDragWithInteractor.IsSet() );	// Only support assisting one thing at a time right now!
+			check( AssistingDragWithInteractor == nullptr );	// Only support assisting one thing at a time right now!
 			AssistingDragWithInteractor = Interactor;
 
 			bCanSlideRayLength = true;
@@ -719,21 +799,24 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 			Interactor->CalculateDragRay();
 		}
 	}
-	
+
+	const bool bIsStillDraggingTransformables = DraggingTransformablesWithInteractor != nullptr;
+
+	bool bAllInteractorsThatWereDraggingTransformablesHaveZeroVelocity = true;	
 	for ( UViewportInteractor* Interactor : Interactors )
 	{
 		FViewportInteractorData& InteractorData = Interactor->GetInteractorData();
 			
-		if( InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo ||
-			InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsFreely ||
-			InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact ||
+		if( InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesWithGizmo ||
+			InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesFreely ||
+			InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact ||
 			InteractorData.DraggingMode == EViewportInteractionDraggingMode::World )
 		{
 			// Are we dragging with two interactors ?
 			UViewportInteractor* OtherInteractor = nullptr;
-			if ( AssistingDragWithInteractor.IsSet() )
+			if ( AssistingDragWithInteractor != nullptr )
 			{
-				OtherInteractor = AssistingDragWithInteractor.GetValue();
+				OtherInteractor = AssistingDragWithInteractor;
 			}
 
 			UViewportInteractor* OtherInteractorThatWasAssistingDrag = GetOtherInteractorIntertiaContribute( Interactor );
@@ -763,16 +846,16 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 			FVector LaserPointerDirection = InteractorData.Transform.GetUnitAxis( EAxis::X );
 			FVector LaserPointerEnd = InteractorData.Transform.GetLocation();
 
-			if( InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo ||
-				InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsFreely ||
-				InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact )
+			if( InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesWithGizmo ||
+				InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesFreely ||
+				InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact )
 			{
 				// Move objects using the laser pointer (in world space)
 				if( Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd ) )
 				{
 					LaserPointerDirection = ( LaserPointerEnd - LaserPointerStart ).GetSafeNormal();
 
-					if( InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact )
+					if( InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact )
 					{
 						// Check to see if the laser pointer is over something we can drop on
 						FVector HitLocation = FVector::ZeroVector;
@@ -901,19 +984,18 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 
 			{
 				const bool bIsMouseCursorInteractor = Cast<UMouseCursorInteractor>( Interactor ) != nullptr;
-				// @todo vreditor: We could do a world space distance test (times world scale factor) when forcing VR mode to get similar (but not quite the same) behavior
 				{
 					// Don't bother with inertia if we're not moving very fast.  This filters out tiny accidental movements.
 					const FVector RoomSpaceHandDelta = bIsMouseCursorInteractor ?
-						( InteractorData.Transform.GetLocation() - InteractorData.LastTransform.GetLocation() ) :
+						( DragDelta ) :	// For the mouse cursor the interactor origin won't change unless the camera moves, so just test the distance we dragged instead.
 						( InteractorData.RoomSpaceTransform.GetLocation() - InteractorData.LastRoomSpaceTransform.GetLocation() );
 					if( RoomSpaceHandDelta.Size() < VI::MinVelocityForInertia->GetFloat() * WorldScaleFactor )
 					{
 						InteractorData.DragTranslationVelocity = FVector::ZeroVector;
 					}
-					if( AssistingDragWithInteractor.IsSet() )
+					if( AssistingDragWithInteractor != nullptr )
 					{
-						FViewportInteractorData& AssistingOtherInteractorData = AssistingDragWithInteractor.GetValue()->GetInteractorData();
+						FViewportInteractorData& AssistingOtherInteractorData = AssistingDragWithInteractor->GetInteractorData();
 						const FVector OtherHandRoomSpaceHandDelta = ( AssistingOtherInteractorData.RoomSpaceTransform.GetLocation() - AssistingOtherInteractorData.LastRoomSpaceTransform.GetLocation() );
 						if( OtherHandRoomSpaceHandDelta.Size() < VI::MinVelocityForInertia->GetFloat() * WorldScaleFactor )
 						{
@@ -923,7 +1005,8 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 				}
 			}
 
-			const FVector OldViewLocation = EditorViewportClient->GetViewLocation();
+			const FVector OldViewLocation = DefaultOptionalViewportClient != nullptr ? DefaultOptionalViewportClient->GetViewLocation() : FVector::ZeroVector;
+
 			// Dragging transform gizmo handle
 			const bool bWithTwoHands = ( OtherInteractor != nullptr || OtherInteractorThatWasAssistingDrag != nullptr );
 			const bool bIsLaserPointerValid = true;
@@ -934,7 +1017,7 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 				InteractorData.DraggingMode, 
 				InteractorData.TransformGizmoInteractionType, 
 				bWithTwoHands,
-				*EditorViewportClient, 
+				*DefaultOptionalViewportClient, 
 				InteractorData.OptionalHandlePlacement, 
 				DragDelta, 
 				OtherHandDragDelta,
@@ -944,6 +1027,7 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 				OtherHandDragDeltaFromStart,
 				LaserPointerStart, 
 				LaserPointerDirection, 
+				Interactor->GetLaserPointerMaxLength(),
 				bIsLaserPointerValid, 
 				InteractorData.GizmoStartTransform, 
 				InteractorData.GizmoStartLocalBounds,
@@ -956,7 +1040,7 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 
 			// Make sure the hover point is right on the position that we're dragging the object to.  This is important
 			// when constraining dragged objects to a single axis or a plane
-			if( InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo )
+			if( InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesWithGizmo )
 			{
 				InteractorData.HoverLocation = FMath::ClosestPointOnSegment( UnsnappedDraggedTo, LaserPointerStart, LaserPointerEnd );
 			}
@@ -973,7 +1057,7 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 			// If we were dragging the world, then play some haptic feedback
 			if( InteractorData.DraggingMode == EViewportInteractionDraggingMode::World )
 			{
-				const FVector NewViewLocation = EditorViewportClient->GetViewLocation();
+				const FVector NewViewLocation = DefaultOptionalViewportClient != nullptr ? DefaultOptionalViewportClient->GetViewLocation() : FVector::ZeroVector;
 
 				// @todo vreditor: Consider doing this for inertial moves too (we need to remember the last hand that invoked the move.)
 
@@ -1025,10 +1109,17 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 		// If we're not actively dragging, apply inertia to any selected elements that we've dragged around recently
 		else 
 		{
-			if( !InteractorData.DragTranslationVelocity.IsNearlyZero( KINDA_SMALL_NUMBER ) &&
+			if( !InteractorData.DragTranslationVelocity.IsNearlyZero( VI::DragTranslationVelocityStopEpsilon->GetFloat() ) &&
 				!InteractorData.bWasAssistingDrag && 	// If we were only assisting, let the other hand take care of doing the update
 				!InteractorData.bIsDrivingVelocityOfSimulatedTransformables )	// If simulation mode is on, let the physics engine take care of inertia
 			{
+				if( InteractorData.LastDraggingMode == EViewportInteractionDraggingMode::TransformablesWithGizmo ||
+					InteractorData.LastDraggingMode == EViewportInteractionDraggingMode::TransformablesFreely ||
+					InteractorData.LastDraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact )
+				{
+					bAllInteractorsThatWereDraggingTransformablesHaveZeroVelocity = false;
+				}
+
 				const FVector DragDelta = InteractorData.DragTranslationVelocity;
 				const FVector DraggedTo = InteractorData.LastDragToLocation + DragDelta;
 				const FVector DragDeltaFromStart = DraggedTo - InteractorData.LaserPointerImpactAtDragStart;
@@ -1056,7 +1147,7 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 					InteractorData.LastDraggingMode, 
 					InteractorData.TransformGizmoInteractionType, 
 					bWithTwoHands, 
-					*EditorViewportClient, 
+					*DefaultOptionalViewportClient, 
 					InteractorData.OptionalHandlePlacement, 
 					DragDelta, 
 					OtherHandDragDelta,
@@ -1066,6 +1157,7 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 					OtherHandDragDeltaFromStart,
 					FVector::ZeroVector,	// No valid laser pointer during inertia
 					FVector::ZeroVector,	// No valid laser pointer during inertia
+					0.0f,		// No valid laser pointer during inertia
 					bIsLaserPointerValid, 
 					InteractorData.GizmoStartTransform, 
 					InteractorData.GizmoStartLocalBounds, 
@@ -1098,8 +1190,8 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 	// measurement text labels), so it just makes sense to keep it up to date.
 	{
 		const bool bNewObjectsSelected = false;
-		const bool bAllHandlesVisible = ( !DraggingActorsWithInteractor.IsSet() );
-		UActorComponent* SingleVisibleHandle = ( DraggingActorsWithInteractor.IsSet() ) ? DraggingActorsWithInteractor.GetValue()->GetInteractorData().DraggingTransformGizmoComponent.Get() : nullptr;
+		const bool bAllHandlesVisible = ( DraggingTransformablesWithInteractor == nullptr );
+		UActorComponent* SingleVisibleHandle = ( DraggingTransformablesWithInteractor != nullptr ) ? DraggingTransformablesWithInteractor->GetInteractorData().DraggingTransformGizmoComponent.Get() : nullptr;
 
 		static TArray< UActorComponent* > HoveringOverHandles;
 		HoveringOverHandles.Reset();
@@ -1118,17 +1210,28 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 
 
 	// Update transformables
-	//UpdateTransformables( DeltaTime );
 	const bool bSmoothSnappingEnabled = IsSmoothSnappingEnabled();
-	if ( bSmoothSnappingEnabled || bIsInterpolatingTransformablesFromSnapshotTransform )
+	if ( bAreTransformablesMoving && ( bSmoothSnappingEnabled || bIsInterpolatingTransformablesFromSnapshotTransform ) )
 	{
 		const float SmoothSnapSpeed = VI::SmoothSnapSpeed->GetFloat();
-		const bool bUseElasticSnapping = bSmoothSnappingEnabled && VI::ElasticSnap->GetInt() > 0 && TrackingTransaction.IsActive();	// Only while we're still dragging stuff!
+		const bool bUseElasticSnapping = bSmoothSnappingEnabled && VI::ElasticSnap->GetInt() > 0 && bIsStillDraggingTransformables;	// Only while we're still dragging stuff!
 		const float ElasticSnapStrength = VI::ElasticSnapStrength->GetFloat();
 
-		// NOTE: We never sweep while smooth-snapping as the object will never end up where we want it to
-		// due to friction with the ground and other objects.
-		const bool bSweep = false;
+		bool bIsStillSmoothSnapping = false;
+
+		float InterpProgress = 1.0f;
+		const bool bWasInterpolationNeeded = bIsInterpolatingTransformablesFromSnapshotTransform;
+		bool bDidInterpolationFinishThisUpdate = false;
+		if( bIsInterpolatingTransformablesFromSnapshotTransform )
+		{
+			InterpProgress = FMath::Clamp( (float)( CurrentTime - TransformablesInterpolationStartTime ).GetTotalSeconds() / TransformablesInterpolationDuration, 0.0f, 1.0f );
+			if( InterpProgress >= 1.0f - KINDA_SMALL_NUMBER )
+			{
+				// Finished interpolating
+				bIsInterpolatingTransformablesFromSnapshotTransform = false;
+				bDidInterpolationFinishThisUpdate = true;
+			}
+		}
 
 		for ( TUniquePtr<FViewportTransformable>& TransformablePtr : Transformables )
 		{
@@ -1154,6 +1257,8 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 				}
 				else
 				{
+					bIsStillSmoothSnapping = true;
+
 					InterpolatedTransform.Blend(
 						Transformable.LastTransform,
 						ActualTargetTransform,
@@ -1164,135 +1269,40 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 
 			if ( bIsInterpolatingTransformablesFromSnapshotTransform )
 			{
-				const float InterpProgress = FMath::Clamp( ( float ) ( CurrentTime - TransformablesInterpolationStartTime ).GetTotalSeconds() / TransformablesInterpolationDuration, 0.0f, 1.0f );
 				InterpolatedTransform.BlendWith( Transformable.InterpolationSnapshotTransform, 1.0f - InterpProgress );
-				if ( InterpProgress >= 1.0f - KINDA_SMALL_NUMBER )
-				{
-					// Finished interpolating
-					bIsInterpolatingTransformablesFromSnapshotTransform = false;
-				}
 			}
 
-			// Got an actor?
-			AActor* Actor = Cast<AActor>( Transformable.Object.Get() );
-			if ( Actor != nullptr )
-			{
-				const FTransform& ExistingTransform = Actor->GetActorTransform();
-				if ( !ExistingTransform.Equals( InterpolatedTransform, 0.0f ) )
-				{
-					const bool bOnlyTranslationChanged =
-						ExistingTransform.GetRotation() == InterpolatedTransform.GetRotation() &&
-						ExistingTransform.GetScale3D() == InterpolatedTransform.GetScale3D();
+			// Update the transform!
+			// NOTE: We never sweep while smooth-snapping as the object will never end up where we want it to
+			// due to friction with the ground and other objects.
+			const bool bSweep = false;
+			Transformable.ApplyTransform( InterpolatedTransform, bSweep );
+		}
 
-					Actor->SetActorTransform( InterpolatedTransform, bSweep );
-					//GWarn->Logf( TEXT( "SMOOTH: Actor %s to %s" ), *Actor->GetName(), *Transformable.TargetTransform.ToString() );
-
-					Actor->InvalidateLightingCacheDetailed( bOnlyTranslationChanged );
-
-					const bool bFinished = false;
-					Actor->PostEditMove( bFinished );
-				}
-			}
-			else
-			{
-				// Some other object that we don't know how to drag
-			}
+		// Did we finish interpolating in this update?  If so, we need to finalize things and notify everyone
+		if( bAreTransformablesMoving &&
+			!bIsStillDraggingTransformables &&
+			bAllInteractorsThatWereDraggingTransformablesHaveZeroVelocity &&
+			( !bWasInterpolationNeeded || bDidInterpolationFinishThisUpdate ) && 
+			!bIsStillSmoothSnapping )
+		{
+			FinishedMovingTransformables();
+		}
+	}
+	else
+	{
+		// Neither smooth snapping or interpolation is enabled right now, but the transformables could have some velocity
+		// applied.  We'll check to see whether they've come to a rest, and if so finalize their positions.
+		if( bAreTransformablesMoving && 
+			!bIsStillDraggingTransformables &&
+			bAllInteractorsThatWereDraggingTransformablesHaveZeroVelocity )
+		{
+			FinishedMovingTransformables();
 		}
 	}
 
 	LastWorldToMetersScale = WorldToMetersScale;
 } 
-
-void UViewportWorldInteraction::UpdateTransformables( const float DeltaTime )
-{
-	const FTimespan CurrentTime = FTimespan::FromSeconds( FPlatformTime::Seconds() );
-
-	const bool bSmoothSnappingEnabled = IsSmoothSnappingEnabled();
-	if ( bSmoothSnappingEnabled || bIsInterpolatingTransformablesFromSnapshotTransform )
-	{
-		const float SmoothSnapSpeed = VI::SmoothSnapSpeed->GetFloat();
-		const bool bUseElasticSnapping = bSmoothSnappingEnabled && VI::ElasticSnap->GetInt() > 0 && TrackingTransaction.IsActive();	// Only while we're still dragging stuff!
-		const float ElasticSnapStrength = VI::ElasticSnapStrength->GetFloat();
-
-		// NOTE: We never sweep while smooth-snapping as the object will never end up where we want it to
-		// due to friction with the ground and other objects.
-		const bool bSweep = false;
-
-		for ( TUniquePtr<FViewportTransformable>& TransformablePtr : Transformables )
-		{
-			FViewportTransformable& Transformable = *TransformablePtr;
-
-			FTransform ActualTargetTransform = Transformable.TargetTransform;
-
-			// If 'elastic snapping' is turned on, we'll have the object 'reach' toward its unsnapped position, so
-			// that the user always has visual feedback when they are dragging something around, even if they
-			// haven't dragged far enough to overcome the snap threshold.
-			if ( bUseElasticSnapping )
-			{
-				ActualTargetTransform.BlendWith( Transformable.UnsnappedTargetTransform, ElasticSnapStrength );
-			}
-
-			FTransform InterpolatedTransform = ActualTargetTransform;
-			if ( !ActualTargetTransform.Equals( Transformable.LastTransform, 0.0f ) )
-			{
-				// If we're really close, just snap it.
-				if ( ActualTargetTransform.Equals( Transformable.LastTransform, KINDA_SMALL_NUMBER ) )
-				{
-					InterpolatedTransform = Transformable.LastTransform = Transformable.UnsnappedTargetTransform = ActualTargetTransform;
-				}
-				else
-				{
-					InterpolatedTransform.Blend(
-						Transformable.LastTransform,
-						ActualTargetTransform,
-						FMath::Min( 1.0f, SmoothSnapSpeed * FMath::Min( DeltaTime, 1.0f / 30.0f ) ) );
-				}
-				Transformable.LastTransform = InterpolatedTransform;
-			}
-
-			if ( bIsInterpolatingTransformablesFromSnapshotTransform )
-			{
-				const float InterpProgress = FMath::Clamp( ( float ) ( CurrentTime - TransformablesInterpolationStartTime ).GetTotalSeconds() / TransformablesInterpolationDuration, 0.0f, 1.0f );
-				InterpolatedTransform.BlendWith( Transformable.InterpolationSnapshotTransform, 1.0f - InterpProgress );
-				if ( InterpProgress >= 1.0f - KINDA_SMALL_NUMBER )
-				{
-					// Finished interpolating
-					bIsInterpolatingTransformablesFromSnapshotTransform = false;
-				}
-			}
-
-			// Got an actor?
-			AActor* Actor = Cast<AActor>( Transformable.Object.Get() );
-			if ( Actor != nullptr )
-			{
-				const FTransform& ExistingTransform = Actor->GetActorTransform();
-				if ( !ExistingTransform.Equals( InterpolatedTransform, 0.0f ) )
-				{
-					const bool bOnlyTranslationChanged =
-						ExistingTransform.GetRotation() == InterpolatedTransform.GetRotation() &&
-						ExistingTransform.GetScale3D() == InterpolatedTransform.GetScale3D();
-
-					Actor->SetActorTransform( InterpolatedTransform, bSweep );
-					Actor->InvalidateLightingCacheDetailed( bOnlyTranslationChanged );
-
-					const bool bFinished = false;
-					Actor->PostEditMove( bFinished );
-				}
-			}
-			else
-			{
-				// Some other object that we don't know how to drag
-			}
-		}
-	}
-}
-
-void UViewportWorldInteraction::RefreshOnSelectionChanged( const bool bNewObjectsSelected, bool bAllHandlesVisible, class UActorComponent* SingleVisibleHandle, const TArray< UActorComponent* >& HoveringOverHandles )
-{
-	//@todo: ViewportInteraction: Call listeners for this event
-
-	RefreshTransformGizmo( bNewObjectsSelected, bAllHandlesVisible, SingleVisibleHandle, HoveringOverHandles );
-}
 
 bool UViewportWorldInteraction::IsInteractableComponent( const UActorComponent* Component ) const
 {
@@ -1337,6 +1347,7 @@ void UViewportWorldInteraction::UpdateDragging(
 	const FVector& OtherHandDragDeltaFromStart,
 	const FVector& LaserPointerStart,
 	const FVector& LaserPointerDirection,
+	const float LaserPointerMaxLength,
 	const bool bIsLaserPointerValid,
 	const FTransform& GizmoStartTransform,
 	const FBox& GizmoStartLocalBounds,
@@ -1363,14 +1374,14 @@ void UViewportWorldInteraction::UpdateDragging(
 	// NOTE: While placing objects, we always snap in world space, since the initial position isn't really at all useful
 	const bool bLocalSpaceSnapping =
 		GetTransformGizmoCoordinateSpace() == COORD_Local &&
-		DraggingMode != EViewportInteractionDraggingMode::ActorsAtLaserImpact;
-	const FVector SnapGridBase = ( DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact||  bLocalSpaceSnapping ) ? FVector::ZeroVector : GizmoStartTransform.GetLocation(); //@todo ViewportInteraction
+		DraggingMode != EViewportInteractionDraggingMode::TransformablesAtLaserImpact;
+	const FVector SnapGridBase = ( DraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact ||  bLocalSpaceSnapping ) ? FVector::ZeroVector : GizmoStartTransform.GetLocation(); //@todo ViewportInteraction
 
 
 	// Okay, time to move stuff!  We'll do this part differently depending on whether we're dragging actual actors around
 	// or we're moving the camera (aka. dragging the world)
-	if ( DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo ||
-		DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact )
+	if ( DraggingMode == EViewportInteractionDraggingMode::TransformablesWithGizmo ||
+		DraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact )
 	{
 		FVector OutClosestPointOnLaser;
 		FVector ConstrainedDragDeltaFromStart = ComputeConstrainedDragDeltaFromStart(
@@ -1382,6 +1393,7 @@ void UViewportWorldInteraction::UpdateDragging(
 			LaserPointerDirection,
 			bIsLaserPointerValid,
 			GizmoStartTransform,
+			LaserPointerMaxLength,
 			/* In/Out */ GizmoSpaceFirstDragUpdateOffsetAlongAxis,
 			/* In/Out */ DragDeltaFromStartOffset,
 			/* Out */ OutClosestPointOnLaser);
@@ -1716,8 +1728,8 @@ void UViewportWorldInteraction::UpdateDragging(
 			}
 		}
 	}
-	else if ( DraggingMode == EViewportInteractionDraggingMode::ActorsFreely ||
-		DraggingMode == EViewportInteractionDraggingMode::World )
+	else if ( DraggingMode == EViewportInteractionDraggingMode::TransformablesFreely ||
+			  DraggingMode == EViewportInteractionDraggingMode::World )
 	{
 		FVector TranslationOffset = FVector::ZeroVector;
 		FQuat RotationOffset = FQuat::Identity;
@@ -1766,10 +1778,10 @@ void UViewportWorldInteraction::UpdateDragging(
 			if ( false )
 			{
 				const FTransform LinesRelativeTo = DraggingMode == EViewportInteractionDraggingMode::World ? GetRoomTransform() : FTransform::Identity;
-				DrawDebugLine( GetViewportWorld(), LinesRelativeTo.TransformPosition( LineStart ), LinesRelativeTo.TransformPosition( LineEnd ), FColor::Green, false, 0.0f );
-				DrawDebugLine( GetViewportWorld(), LinesRelativeTo.TransformPosition( LastLineStart ), LinesRelativeTo.TransformPosition( LastLineEnd ), FColor::Red, false, 0.0f );
+				DrawDebugLine( GetWorld(), LinesRelativeTo.TransformPosition( LineStart ), LinesRelativeTo.TransformPosition( LineEnd ), FColor::Green, false, 0.0f );
+				DrawDebugLine( GetWorld(), LinesRelativeTo.TransformPosition( LastLineStart ), LinesRelativeTo.TransformPosition( LastLineEnd ), FColor::Red, false, 0.0f );
 
-				DrawDebugSphere( GetViewportWorld(), LinesRelativeTo.TransformPosition( PivotLocation ), 2.5f * GetWorldScaleFactor(), 32, FColor::White, false, 0.0f );
+				DrawDebugSphere( GetWorld(), LinesRelativeTo.TransformPosition( PivotLocation ), 2.5f * GetWorldScaleFactor(), 32, FColor::White, false, 0.0f );
 			}
 
 			const float LastLineLength = ( LastLineEnd - LastLineStart ).Size();
@@ -1798,7 +1810,7 @@ void UViewportWorldInteraction::UpdateDragging(
 		}
 
 
-		if ( DraggingMode == EViewportInteractionDraggingMode::ActorsFreely )
+		if ( DraggingMode == EViewportInteractionDraggingMode::TransformablesFreely )
 		{
 			for ( TUniquePtr<FViewportTransformable>& TransformablePtr : Transformables )
 			{
@@ -1897,7 +1909,7 @@ void UViewportWorldInteraction::UpdateDragging(
 			const float WorldScaleOffset = ScaleOffset.GetAbsMax();
 			if ( WorldScaleOffset != 0.0f )
 			{
-				const float OldWorldToMetersScale = GetViewportWorld()->GetWorldSettings()->WorldToMeters;
+				const float OldWorldToMetersScale = GetWorld()->GetWorldSettings()->WorldToMeters;
 				const float NewWorldToMetersScale = OldWorldToMetersScale / WorldScaleOffset;
 
 				// NOTE: Instead of clamping, we simply skip changing the W2M this frame if it's out of bounds.  Clamping makes our math more complicated.
@@ -1960,27 +1972,20 @@ void UViewportWorldInteraction::UpdateDragging(
 			{
 				FViewportTransformable& Transformable = *TransformablePtr;
 
-				AActor* Actor = Cast<AActor>( Transformable.Object.Get() );
-				if ( Actor != nullptr )
+				// @todo VREditor physics: When freely transforming, should set angular velocity too (will pivot be the same though??)
+				if( Transformable.IsPhysicallySimulated() )
 				{
-					UPrimitiveComponent* RootPrimitiveComponent = Cast<UPrimitiveComponent>( Actor->GetRootComponent() );
-					if ( RootPrimitiveComponent != nullptr )
+					FVector MoveDelta = Transformable.UnsnappedTargetTransform.GetLocation() - Transformable.LastTransform.GetLocation();
+					if ( bShouldApplyVelocitiesFromDrag )
 					{
-						// @todo VREditor physics: When freely transforming, should set angular velocity too (will pivot be the same though??)
-						if ( RootPrimitiveComponent->IsSimulatingPhysics() )
-						{
-							FVector MoveDelta = Transformable.UnsnappedTargetTransform.GetLocation() - Transformable.LastTransform.GetLocation();
-							if ( bShouldApplyVelocitiesFromDrag )
-							{
-								bIsDrivingVelocityOfSimulatedTransformables = true;
-							}
-							else
-							{
-								MoveDelta = FVector::ZeroVector;
-							}
-							RootPrimitiveComponent->SetAllPhysicsLinearVelocity( MoveDelta * DeltaTime * VI::InertiaVelocityBoost->GetFloat() );
-						}
+						bIsDrivingVelocityOfSimulatedTransformables = true;
 					}
+					else
+					{
+						MoveDelta = FVector::ZeroVector;
+					}
+
+					Transformable.SetLinearVelocity( MoveDelta * DeltaTime * VI::InertiaVelocityBoost->GetFloat() );
 				}
 			}
 		}
@@ -1995,27 +2000,8 @@ void UViewportWorldInteraction::UpdateDragging(
 
 				Transformable.LastTransform = Transformable.TargetTransform;
 
-				// Got an actor?
-				AActor* Actor = Cast<AActor>( Transformable.Object.Get() );
-				if ( Actor != nullptr )
-				{
-					const FTransform& ExistingTransform = Actor->GetTransform();
-
-					const bool bOnlyTranslationChanged =
-						ExistingTransform.GetRotation() == Transformable.TargetTransform.GetRotation() &&
-						ExistingTransform.GetScale3D() == Transformable.TargetTransform.GetScale3D();
-
-					Actor->SetActorTransform( Transformable.TargetTransform, bSweep );
-
-					Actor->InvalidateLightingCacheDetailed( bOnlyTranslationChanged );
-
-					const bool bFinished = false;
-					Actor->PostEditMove( bFinished );
-				}
-				else
-				{
-					// Some other object that we don't know how to drag
-				}
+				// Update the transform!
+				Transformable.ApplyTransform( Transformable.TargetTransform, bSweep );
 			}
 		}
 	}
@@ -2034,6 +2020,7 @@ FVector UViewportWorldInteraction::ComputeConstrainedDragDeltaFromStart(
 	const FVector& LaserPointerDirection, 
 	const bool bIsLaserPointerValid, 
 	const FTransform& GizmoStartTransform, 
+	const float LaserPointerMaxLength,
 	FVector& GizmoSpaceFirstDragUpdateOffsetAlongAxis, 
 	FVector& GizmoSpaceDragDeltaFromStartOffset,
 	FVector& OutClosestPointOnLaser) const
@@ -2055,8 +2042,6 @@ FVector UViewportWorldInteraction::ComputeConstrainedDragDeltaFromStart(
 		{
 			const FVector GizmoSpaceLaserPointerStart = GizmoStartTransform.InverseTransformPosition( LaserPointerStart );
 			const FVector GizmoSpaceLaserPointerDirection = GizmoStartTransform.InverseTransformVectorNoScale( LaserPointerDirection );
-
-			const float LaserPointerMaxLength = 1000; //Owner.GetLaserPointerMaxLength(); //@todo viewportinteraction: Needs proper way of getting distance
 
 			FVector GizmoSpaceConstraintAxis =
 				FacingAxisIndex == 0 ? FVector::ForwardVector : ( FacingAxisIndex == 1 ? FVector::RightVector : FVector::UpVector );
@@ -2096,7 +2081,7 @@ FVector UViewportWorldInteraction::ComputeConstrainedDragDeltaFromStart(
 
 				DVector GizmoSpaceClosestPointOnLaserDouble, GizmoSpaceClosestPointOnAxisDouble;
 				SegmentDistToSegmentDouble(
-					GizmoSpaceLaserPointerStart, DVector( GizmoSpaceLaserPointerStart ) + DVector( GizmoSpaceLaserPointerDirection ) * LaserPointerMaxLength,	// @todo vreditor: Should store laser pointer length rather than hard code
+					GizmoSpaceLaserPointerStart, DVector( GizmoSpaceLaserPointerStart ) + DVector( GizmoSpaceLaserPointerDirection ) * LaserPointerMaxLength,
 					DVector( GizmoSpaceConstraintAxis ) * -AxisSegmentLength, DVector( GizmoSpaceConstraintAxis ) * AxisSegmentLength,
 					/* Out */ GizmoSpaceClosestPointOnLaserDouble,
 					/* Out */ GizmoSpaceClosestPointOnAxisDouble );
@@ -2174,43 +2159,42 @@ FVector UViewportWorldInteraction::ComputeConstrainedDragDeltaFromStart(
 	return ConstrainedWorldSpaceDeltaFromStart;
 }
 
-void UViewportWorldInteraction::StartDraggingActors( UViewportInteractor* Interactor, const FViewportActionKeyInput& Action, UActorComponent* ClickedComponent, const FVector& HitLocation, const bool bIsPlacingActors )
+bool UViewportWorldInteraction::StartDragging( UViewportInteractor* Interactor, UActorComponent* ClickedTransformGizmoComponent, const FVector& HitLocation, const bool bIsPlacingNewObjects, const bool bStartTransaction )
 {
-	if ( IsInteractableComponent( ClickedComponent ) )
+	bool bStartedDragging = false;
 	{
 		FVector LaserPointerStart, LaserPointerEnd;
 		const bool bHaveLaserPointer = Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd );
 		if ( bHaveLaserPointer )
 		{
-			AActor* Actor = ClickedComponent->GetOwner(); 
 			FViewportInteractorData& InteractorData = Interactor->GetInteractorData();
 
-			// Capture undo state
-			if ( bIsPlacingActors )
+			if( bStartTransaction )
 			{
-				// When placing actors, a transaction should already be in progress
-				check( TrackingTransaction.IsActive() );
-			}
-			else
-			{
+				// Capture undo state
 				TrackingTransaction.TransCount++;
-				TrackingTransaction.Begin( LOCTEXT( "MovingActors", "Moving Selected Actors" ) );
+				TrackingTransaction.Begin( LOCTEXT( "MovingObjects", "Move Object" ) );
 
 				// Suspend actor/component modification during each delta step to avoid recording unnecessary overhead into the transaction buffer
 				GEditor->DisableDeltaModification( true );
 			}
+			else
+			{
+				// A transaction should already be in progress
+				check( GEditor->IsTransactionActive() );
+			}
 
-			// Give the interacter a chance to do something when starting dragging
-			Interactor->OnStartDragging( ClickedComponent, HitLocation, bIsPlacingActors );
+			// Give the interactor a chance to do something when starting dragging
+			Interactor->OnStartDragging( HitLocation, bIsPlacingNewObjects );
 
-			const bool bUsingGizmo =
-				Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed &&		// Only use the gizmo when lightly pressed
-				( Actor == TransformGizmoActor ) &&
-				ClickedComponent != nullptr;
+			const bool bUsingGizmo = ClickedTransformGizmoComponent != nullptr;
+			check( !bUsingGizmo || ( ClickedTransformGizmoComponent->GetOwner() == TransformGizmoActor ) );
 
 			// Start dragging the objects right away!
-			InteractorData.DraggingMode = InteractorData.LastDraggingMode = bIsPlacingActors ? EViewportInteractionDraggingMode::ActorsAtLaserImpact : 
-				( bUsingGizmo ? EViewportInteractionDraggingMode::ActorsWithGizmo : EViewportInteractionDraggingMode::ActorsFreely );
+			InteractorData.DraggingMode = InteractorData.LastDraggingMode = bIsPlacingNewObjects ? EViewportInteractionDraggingMode::TransformablesAtLaserImpact :
+				( bUsingGizmo ? EViewportInteractionDraggingMode::TransformablesWithGizmo : EViewportInteractionDraggingMode::TransformablesFreely );
+
+			bAreTransformablesMoving = true;
 
 			// Starting a new drag, so make sure the other hand doesn't think it's assisting us
 			if( Interactor->GetOtherInteractor() != nullptr )
@@ -2233,7 +2217,7 @@ void UViewportWorldInteraction::StartDraggingActors( UViewportInteractor* Intera
 			// the gizmo to transform it.
 			if ( bUsingGizmo )
 			{
-				InteractorData.DraggingTransformGizmoComponent = Cast<USceneComponent>( ClickedComponent );
+				InteractorData.DraggingTransformGizmoComponent = Cast<USceneComponent>( ClickedTransformGizmoComponent );
 			}
 			else
 			{
@@ -2258,16 +2242,16 @@ void UViewportWorldInteraction::StartDraggingActors( UViewportInteractor* Intera
 			bDraggedSinceLastSelection = true;
 			LastDragGizmoStartTransform = InteractorData.GizmoStartTransform;
 
-			SetupTransformablesForSelectedActors();
+			// Make sure all of our transformables are reset to their initial transform before we start dragging them
+			ResetTransformables();
 
 			// Calculate the offset between the average location and the hit location after setting the transformables for the new selected objects
 			InteractorData.StartHitLocationToTransformableCenter = CalculateAverageLocationOfTransformables() - HitLocation;
 
 			// If we're placing actors, start interpolating to their actual location.  This helps smooth everything out when
 			// using the laser impact point as the target transform
-			if ( bIsPlacingActors )
+			if( bIsPlacingNewObjects )
 			{
-				GEditor->BroadcastBeginObjectMovement(*Actor);
 				bIsInterpolatingTransformablesFromSnapshotTransform = true;
 				const FTimespan CurrentTime = FTimespan::FromSeconds( FPlatformTime::Seconds() );
 				TransformablesInterpolationStartTime = CurrentTime;
@@ -2276,16 +2260,24 @@ void UViewportWorldInteraction::StartDraggingActors( UViewportInteractor* Intera
 
 			// Play a haptic effect when objects are picked up
 			Interactor->PlayHapticEffect( Interactor->GetDragHapticFeedbackStrength() );
+
+			OnStartDraggingEvent.Broadcast( Interactor );
+
+			bStartedDragging = true;
 		}
 	}
+
+	return bStartedDragging;
 }
+
+
 void UViewportWorldInteraction::StopDragging( UViewportInteractor* Interactor )
 {
-	OnStopDraggingEvent.Broadcast( Interactor );
-
 	FViewportInteractorData& InteractorData = Interactor->GetInteractorData();
 	if ( InteractorData.DraggingMode != EViewportInteractionDraggingMode::Nothing )
 	{
+		OnStopDraggingEvent.Broadcast( Interactor );
+
 		// If the other hand started dragging after we started, allow that hand to "take over" the drag, so the user
 		// doesn't have to click again to continue their action.  Inertial effects of the hand that stopped dragging
 		// will still be in effect.
@@ -2322,9 +2314,9 @@ void UViewportWorldInteraction::StopDragging( UViewportInteractor* Interactor )
 					}
 				}
 			}
-			else if ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo ||
-				InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsFreely ||
-				InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact )
+			else if ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesWithGizmo ||
+					  InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesFreely ||
+					  InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact )
 			{
 				// vreditor todo: Move this to where we detect a move from inertia finishes
 				FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
@@ -2333,20 +2325,23 @@ void UViewportWorldInteraction::StopDragging( UViewportInteractor* Interactor )
 					GEditor->BroadcastEndObjectMovement(*HitResult.Actor);
 				}
 				// No hand is dragging the objects anymore.
-				if ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo &&
-					InteractorData.TransformGizmoInteractionType == ETransformGizmoInteractionType::RotateOnAngle )
+				if ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesWithGizmo &&
+					 InteractorData.TransformGizmoInteractionType == ETransformGizmoInteractionType::RotateOnAngle )
 				{
 					StartDragAngleOnRotation.Reset();
 					StartDragHandleDirection.Reset();
 				}
 
-				// Finalize undo
+				// If we're not dragging anything around, check to see if transformables have come to a rest.
+				const bool bTransformablesStillMoving =
+					bAreTransformablesMoving &&
+					( IsSmoothSnappingEnabled() ||
+					  !InteractorData.DragTranslationVelocity.IsNearlyZero( VI::DragTranslationVelocityStopEpsilon->GetFloat() ) ||
+					  bIsInterpolatingTransformablesFromSnapshotTransform );
+				if( !bTransformablesStillMoving )
 				{
-					// @todo vreditor undo: This doesn't actually encapsulate any inertial movement that happens after the drag is released! 
-					// We need to figure out whether that matters or not.  Also, look into PostEditMove( bFinished=true ) and how that relates to this.
-					--TrackingTransaction.TransCount;
-					TrackingTransaction.End();
-					GEditor->DisableDeltaModification( false );
+					// Finalize the drag
+					FinishedMovingTransformables();
 				}	
 			}
 		}
@@ -2357,31 +2352,30 @@ void UViewportWorldInteraction::StopDragging( UViewportInteractor* Interactor )
 	// NOTE: Even though we're done dragging, we keep our list of transformables so that inertial drag can still push them around!
 }
 
-void UViewportWorldInteraction::SetupTransformablesForSelectedActors()
+
+void UViewportWorldInteraction::FinishedMovingTransformables()
 {
-	//@todo ViewportInteraction: Make sure this is not only for actors
+	bAreTransformablesMoving = false;
 	bIsInterpolatingTransformablesFromSnapshotTransform = false;
 	TransformablesInterpolationStartTime = FTimespan::Zero();
 	TransformablesInterpolationDuration = 1.0f;
 
-	Transformables.Reset();
+	OnFinishedMovingTransformablesEvent.Broadcast();
 
-	USelection* ActorSelectionSet = GEditor->GetSelectedActors();
-
-	static TArray<UObject*> SelectedActorObjects;
-	SelectedActorObjects.Reset();
-	ActorSelectionSet->GetSelectedObjects( AActor::StaticClass(), /* Out */ SelectedActorObjects );
-
-	for ( UObject* SelectedActorObject : SelectedActorObjects )
+	// Finalize undo
 	{
-		AActor* SelectedActor = CastChecked<AActor>( SelectedActorObject );
-
-		Transformables.Add( TUniquePtr< FViewportTransformable>( new FViewportTransformable() ) );
-		FViewportTransformable& Transformable = *Transformables[ Transformables.Num() - 1 ];
-
-		Transformable.Object = SelectedActor;
-		Transformable.StartTransform = Transformable.LastTransform = Transformable.TargetTransform = Transformable.UnsnappedTargetTransform = Transformable.InterpolationSnapshotTransform = SelectedActor->GetTransform();
+		// @todo vreditor undo: This doesn't actually encapsulate any inertial movement that happens after the drag is released! 
+		// We need to figure out whether that matters or not.  Also, look into PostEditMove( bFinished=true ) and how that relates to this.
+		--TrackingTransaction.TransCount;
+		TrackingTransaction.End();
+		GEditor->DisableDeltaModification( false );
 	}
+}
+
+
+void UViewportWorldInteraction::SetUseInputProcessor( bool bInUseInputProcessor )
+{
+	bUseInputProcessor = bInUseInputProcessor;
 }
 
 bool UViewportWorldInteraction::FindPlacementPointUnderLaser( UViewportInteractor* Interactor, FVector& OutHitLocation )
@@ -2399,12 +2393,7 @@ bool UViewportWorldInteraction::FindPlacementPointUnderLaser( UViewportInteracto
 		{
 			FViewportTransformable& Transformable = *TransformablePtr;
 
-			// Got an actor?
-			AActor* Actor = Cast<AActor>( Transformable.Object.Get() );
-			if( Actor != nullptr )
-			{
-				IgnoredActors.Add( Actor );
-			}
+			Transformable.UpdateIgnoredActorList( IgnoredActors );
 		} 
 	}
 
@@ -2455,23 +2444,6 @@ FTrackingTransaction& UViewportWorldInteraction::GetTrackingTransaction()
 	return TrackingTransaction;
 }
 
-bool UViewportWorldInteraction::IsTransformingActor( AActor* Actor ) const
-{
-	bool bFoundActor = false;
-	for ( const TUniquePtr<FViewportTransformable>& TransformablePtr : Transformables )
-	{
-		const FViewportTransformable& Transformable = *TransformablePtr;
-
-		if ( Transformable.Object.Get() == Actor )
-		{
-			bFoundActor = true;
-			break;
-		}
-	}
-
-	return bFoundActor;
-}
-
 bool UViewportWorldInteraction::IsSmoothSnappingEnabled() const
 {
 	const float SmoothSnapSpeed = VI::SmoothSnapSpeed->GetFloat();
@@ -2497,30 +2469,19 @@ void UViewportWorldInteraction::PollInputIfNeeded()
 	}
 }
 
-void UViewportWorldInteraction::OnActorSelectionChanged( UObject* ChangedObject )
+
+void UViewportWorldInteraction::ResetTransformables()
 {
-	if ( EditorViewportClient != nullptr )
+	for( TUniquePtr<FViewportTransformable>& Transformable : Transformables )
 	{
-		const bool bNewObjectsSelected = true;
-		const bool bAllHandlesVisible = true;
-		UActorComponent* SingleVisibleHandle = nullptr;
-		TArray<UActorComponent*> HoveringOverHandles;
-		RefreshOnSelectionChanged( bNewObjectsSelected, bAllHandlesVisible, SingleVisibleHandle, HoveringOverHandles );
-
-		// Clear our transformables.  They'll be doing things relative to the gizmo, which will now be in a different place.
-		// @todo vreditor: We could solve this by moving GizmoLocalBounds into the a Transformables base structure, and making sure
-		// that we never talk to TransformGizmoActor (or selected actors) when updating in tick (currently safe!)
-		Transformables.Reset();
-
-		bDraggedSinceLastSelection = false;
-		LastDragGizmoStartTransform = FTransform::Identity;
+		Transformable->StartTransform = Transformable->LastTransform = Transformable->UnsnappedTargetTransform = Transformable->InterpolationSnapshotTransform = Transformable->TargetTransform = Transformable->GetTransform();
 	}
 }
 
 
 void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSelected, bool bAllHandlesVisible, class UActorComponent* SingleVisibleHandle, const TArray< UActorComponent* >& HoveringOverHandles )
 {
-	if ( GEditor->GetSelectedActorCount() > 0 && VI::ShowTransformGizmo->GetInt() != 0 && bIsTransformGizmoVisible )
+	if ( IsTransformGizmoVisible() )
 	{
 		SpawnTransformGizmoIfNeeded();
 
@@ -2530,16 +2491,10 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 		const ECoordSystem CurrentCoordSystem = GetTransformGizmoCoordinateSpace();
 		const bool bIsWorldSpaceGizmo = ( CurrentCoordSystem == COORD_World );
 
-		USelection* ActorSelectionSet = GEditor->GetSelectedActors();
+		FViewportTransformable& LastTransformable = *Transformables.Last();
 
-		static TArray<UObject*> SelectedActorObjects;
-		SelectedActorObjects.Reset();
-		ActorSelectionSet->GetSelectedObjects( AActor::StaticClass(), /* Out */ SelectedActorObjects );
-
-		AActor* LastSelectedActor = CastChecked<AActor>( SelectedActorObjects.Last() );
-
-		// Use the location and orientation of the last selected actor, to be consistent with the regular editor's gizmo
-		FTransform GizmoToWorld = LastSelectedActor->GetTransform();
+		// Use the location and orientation of the last selected object, to be consistent with the regular editor's gizmo
+		FTransform GizmoToWorld = LastTransformable.GetTransform();
 		GizmoToWorld.RemoveScaling();	// We don't need the pivot itself to be scaled
 
 		if ( bIsWorldSpaceGizmo )
@@ -2547,33 +2502,32 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 			GizmoToWorld.SetRotation( FQuat::Identity );
 		}
 
-		// Create a gizmo-local bounds around all of the selected actors
-		FBox GizmoSpaceSelectedActorsBounds;
-		GizmoSpaceSelectedActorsBounds.Init();
+		// Create a gizmo-local bounds around all of the selected objects
+		FBox GizmoSpaceSelectedObjectsBounds;
+		GizmoSpaceSelectedObjectsBounds.Init();
 		{
 			const FTransform WorldToGizmo = GizmoToWorld.Inverse();
-			for ( UObject* SelectedActorObject : SelectedActorObjects )
+			for ( TUniquePtr<FViewportTransformable>& TransformablePtr : Transformables )
 			{
-				AActor* SelectedActor = CastChecked<AActor>( SelectedActorObject );
+				FViewportTransformable& Transformable = *TransformablePtr;
 
-				// Figure out the local space bounds of the entire actor
-				const bool bIncludeNonCollidingComponents = false;	// @todo vreditor: Disabled this because it causes lights to have huge bounds
-				const FBox ActorSpaceBounds = SelectedActor->CalculateComponentsBoundingBoxInLocalSpace( bIncludeNonCollidingComponents );
+				// Figure out the local space bounds of the entire object
+				const FBox LocalSpaceBounds = Transformable.GetLocalSpaceBoundingBox();
 
 				// Transform the bounds into the gizmo's space
-				const FTransform ActorToWorld = SelectedActor->GetTransform();
-				const FTransform ActorToGizmo = ActorToWorld * WorldToGizmo;
-				const FBox GizmoSpaceBounds = ActorSpaceBounds.TransformBy( ActorToGizmo );
+				const FTransform TransformableToWorld = Transformable.GetTransform();
+				const FTransform TransformableToGizmo = TransformableToWorld * WorldToGizmo;
+				const FBox GizmoSpaceBounds = LocalSpaceBounds.TransformBy( TransformableToGizmo );
 
 				// Get that bounding box into the local space of the gizmo
-				GizmoSpaceSelectedActorsBounds += GizmoSpaceBounds;
+				GizmoSpaceSelectedObjectsBounds += GizmoSpaceBounds;
 			}
 		}
 
-		if ( VI::ForceGizmoPivotToCenterOfSelectedActorsBounds->GetInt() > 0 )
+		if ( VI::ForceGizmoPivotToCenterOfObjectsBounds->GetInt() > 0 )
 		{
-			GizmoToWorld.SetLocation( GizmoToWorld.TransformPosition( GizmoSpaceSelectedActorsBounds.GetCenter() ) );
-			GizmoSpaceSelectedActorsBounds = GizmoSpaceSelectedActorsBounds.ShiftBy( -GizmoSpaceSelectedActorsBounds.GetCenter() );
+			GizmoToWorld.SetLocation( GizmoToWorld.TransformPosition( GizmoSpaceSelectedObjectsBounds.GetCenter() ) );
+			GizmoSpaceSelectedObjectsBounds = GizmoSpaceSelectedObjectsBounds.ShiftBy( -GizmoSpaceSelectedObjectsBounds.GetCenter() );
 		}
 
 		if ( bNewObjectsSelected )
@@ -2584,9 +2538,22 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 		const EGizmoHandleTypes GizmoType = GetCurrentGizmoType();
 		const ECoordSystem GizmoCoordinateSpace = GetTransformGizmoCoordinateSpace();
 
-		GizmoLocalBounds = GizmoSpaceSelectedActorsBounds;
+		GizmoLocalBounds = GizmoSpaceSelectedObjectsBounds;
 
-		TransformGizmoActor->UpdateGizmo( GizmoType, GizmoCoordinateSpace, GizmoToWorld, GizmoSpaceSelectedActorsBounds, GetHeadTransform().GetLocation(), bAllHandlesVisible, SingleVisibleHandle,
+		// If the user has an HMD on, use the head location for gizmo distance-based sizing, otherwise use the active
+		// level editing viewport's camera location.
+		// @todo gizmo: Ideally the gizmo would be sized separately for every viewport it's visible within
+		FVector ViewerLocation = GizmoToWorld.GetLocation();
+		if( HaveHeadTransform() )
+		{
+			ViewerLocation = GetHeadTransform().GetLocation();
+		}
+		else if( GCurrentLevelEditingViewportClient != nullptr )
+		{
+			ViewerLocation = GCurrentLevelEditingViewportClient->GetViewLocation();
+		}
+
+		TransformGizmoActor->UpdateGizmo( GizmoType, GizmoCoordinateSpace, GizmoToWorld, GizmoSpaceSelectedObjectsBounds, ViewerLocation, TransformGizmoScale, bAllHandlesVisible, SingleVisibleHandle,
 			HoveringOverHandles, VI::GizmoHandleHoverScale->GetFloat(), VI::GizmoHandleHoverAnimationDuration->GetFloat() );
 
 		// Only draw if snapping is turned on
@@ -2619,18 +2586,18 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 			for ( UViewportInteractor* Interactor : Interactors )
 			{
 				const FViewportInteractorData& InteractorData = Interactor->GetInteractorData();
-				if ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsFreely ||
-					InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo ||
-					InteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact )
+				if ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesFreely ||
+					InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesWithGizmo ||
+					InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact )
 				{
 					DraggingMode = InteractorData.DraggingMode;
 					GizmoStartLocationWhileDragging = InteractorData.GizmoStartTransform.GetLocation();
 					break;
 				}
 				else if ( bDraggedSinceLastSelection &&
-					( InteractorData.LastDraggingMode == EViewportInteractionDraggingMode::ActorsFreely ||
-					InteractorData.LastDraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo ||
-					InteractorData.LastDraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact ) )
+					( InteractorData.LastDraggingMode == EViewportInteractionDraggingMode::TransformablesFreely ||
+					InteractorData.LastDraggingMode == EViewportInteractionDraggingMode::TransformablesWithGizmo ||
+					InteractorData.LastDraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact ) )
 				{
 					DraggingMode = InteractorData.LastDraggingMode;
 					GizmoStartLocationWhileDragging = LastDragGizmoStartTransform.GetLocation();
@@ -2730,23 +2697,45 @@ void UViewportWorldInteraction::SpawnTransformGizmoIfNeeded()
 
 		// Create the correct gizmo
 		const bool bWithSceneComponent = false;	// We already have our own scene component
-		TransformGizmoActor = CastChecked<ABaseTransformGizmo>( SpawnTransientSceneActor( TransformGizmoClass, TEXT( "PivotTransformGizmo" ), bWithSceneComponent ) );
+		TransformGizmoActor = CastChecked<ABaseTransformGizmo>( SpawnTransientSceneActor( GetWorld(), TransformGizmoClass, TEXT( "PivotTransformGizmo" ), bWithSceneComponent ) );
 
 		check( TransformGizmoActor != nullptr );
 		TransformGizmoActor->SetOwnerWorldInteraction( this );
+
+		if ( !IsTransformGizmoVisible() )
+		{
+			TransformGizmoActor->SetIsTemporarilyHiddenInEditor( true );
+		}
 	}
 }
 
 void UViewportWorldInteraction::SetTransformGizmoVisible( const bool bShouldBeVisible )
 {
-	bIsTransformGizmoVisible = bShouldBeVisible;
+	bShouldTransformGizmoBeVisible = bShouldBeVisible;
 
 	// NOTE: The actual visibility change will be applied the next tick when RefreshTransformGizmo() is called
 }
 
+bool UViewportWorldInteraction::ShouldTransformGizmoBeVisible() const
+{
+	return bShouldTransformGizmoBeVisible;
+}
+
 bool UViewportWorldInteraction::IsTransformGizmoVisible() const
 {
-	return bIsTransformGizmoVisible;
+	return ( Transformables.Num() > 0 && VI::ShowTransformGizmo->GetInt() != 0 && bShouldTransformGizmoBeVisible );
+}
+
+void UViewportWorldInteraction::SetTransformGizmoScale( const float NewScale )
+{
+	TransformGizmoScale = NewScale;
+
+	// NOTE: The actual scale change will be applied the next tick when RefreshTransformGizmo() is called
+}
+
+float UViewportWorldInteraction::GetTransformGizmoScale() const
+{
+	return TransformGizmoScale;
 }
 
 void UViewportWorldInteraction::ApplyVelocityDamping( FVector& Velocity, const bool bVelocitySensitive )
@@ -2789,7 +2778,7 @@ void UViewportWorldInteraction::SetTransformGizmoCoordinateSpace( const ECoordSy
 
 ECoordSystem UViewportWorldInteraction::GetTransformGizmoCoordinateSpace() const
 {
-	const bool bGetRawValue = true;
+	const bool bGetRawValue = false;
 	const ECoordSystem CurrentCoordSystem = GLevelEditorModeTools().GetCoordSystem( bGetRawValue );
 	return CurrentCoordSystem;
 }
@@ -2828,7 +2817,7 @@ UViewportInteractor* UViewportWorldInteraction::GetOtherInteractorIntertiaContri
 			// to contribute inertia!
 			if ( OtherHandInteractorData.DraggingMode == EViewportInteractionDraggingMode::Nothing && OtherHandInteractorData.bWasAssistingDrag )
 			{
-				if ( !OtherHandInteractorData.DragTranslationVelocity.IsNearlyZero( KINDA_SMALL_NUMBER ) )
+				if ( !OtherHandInteractorData.DragTranslationVelocity.IsNearlyZero( VI::DragTranslationVelocityStopEpsilon->GetFloat() ) )
 				{
 					OtherInteractorThatWasAssistingDrag = OtherInteractor;
 				}
@@ -2839,15 +2828,19 @@ UViewportInteractor* UViewportWorldInteraction::GetOtherInteractorIntertiaContri
 	return OtherInteractorThatWasAssistingDrag;
 }
 
-AActor* UViewportWorldInteraction::SpawnTransientSceneActor( TSubclassOf<AActor> ActorClass, const FString& ActorName, const bool bWithSceneComponent ) const
+AActor* UViewportWorldInteraction::SpawnTransientSceneActor( UWorld* World, TSubclassOf<AActor> ActorClass, const FString& ActorName, const bool bWithSceneComponent )
 {
+	check( World != nullptr );
 	const bool bWasWorldPackageDirty = World->GetOutermost()->IsDirty();
 
-	// @todo vreditor: Needs respawn if world changes (map load, etc.)  Will that always restart the editor mode anyway?
 	FActorSpawnParameters ActorSpawnParameters;
-	ActorSpawnParameters.Name = MakeUniqueObjectName( World, ActorClass, *ActorName );	// @todo vreditor: Without this, SpawnActor() can return us an existing PendingKill actor of the same name!  WTF?
+	ActorSpawnParameters.Name = MakeUniqueObjectName( World, ActorClass, *ActorName );
 	ActorSpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	ActorSpawnParameters.ObjectFlags = EObjectFlags::RF_Transient;
+
+	if( VI::UseTransientActors->GetInt() != 0 )
+	{
+		ActorSpawnParameters.ObjectFlags = EObjectFlags::RF_Transient;
+	}
 
 	check( ActorClass != nullptr );
 	AActor* NewActor = World->SpawnActor< AActor >( ActorClass, ActorSpawnParameters );
@@ -2876,13 +2869,13 @@ void UViewportWorldInteraction::DestroyActors()
 {
 	if(TransformGizmoActor != nullptr)
 	{
-		DestroyTransientActor( TransformGizmoActor );
+		DestroyTransientActor( GetWorld(), TransformGizmoActor );
 		TransformGizmoActor = nullptr;
 	}
 
 	if(SnapGridActor != nullptr)
 	{
-		DestroyTransientActor( SnapGridActor );
+		DestroyTransientActor( GetWorld(), SnapGridActor );
 		SnapGridActor = nullptr;
 		SnapGridMeshComponent = nullptr;
 	}
@@ -2894,8 +2887,9 @@ void UViewportWorldInteraction::DestroyActors()
 	}
 }
 
-void UViewportWorldInteraction::DestroyTransientActor( AActor* Actor ) const
+void UViewportWorldInteraction::DestroyTransientActor( UWorld* World, AActor* Actor )
 {
+	check( World != nullptr );
 	if ( Actor != nullptr )
 	{
 		const bool bWasWorldPackageDirty = World->GetOutermost()->IsDirty();
@@ -2915,12 +2909,47 @@ void UViewportWorldInteraction::DestroyTransientActor( AActor* Actor ) const
 
 EGizmoHandleTypes UViewportWorldInteraction::GetCurrentGizmoType() const
 {
-	return CurrentGizmoType;
+	switch( GLevelEditorModeTools().GetWidgetMode() )
+	{
+		case FWidget::WM_TranslateRotateZ:
+			return EGizmoHandleTypes::All;
+
+		case FWidget::WM_Translate:
+			return EGizmoHandleTypes::Translate;
+
+		case FWidget::WM_Rotate:
+			return EGizmoHandleTypes::Rotate;
+
+		case FWidget::WM_Scale:
+			return EGizmoHandleTypes::Scale;
+	}
+
+	return EGizmoHandleTypes::Translate;
 }
 
 void UViewportWorldInteraction::SetGizmoHandleType( const EGizmoHandleTypes InGizmoHandleType )
 {
-	CurrentGizmoType = InGizmoHandleType;
+	switch( InGizmoHandleType )
+	{
+		case EGizmoHandleTypes::All:
+			// @todo gizmo: This handle type requires an editor preference to be enabled.  Think about how we actually want to expose the 'universal' gizmo type
+			GLevelEditorModeTools().SetWidgetMode( FWidget::WM_TranslateRotateZ );
+			break;
+
+		case EGizmoHandleTypes::Translate:
+			GLevelEditorModeTools().SetWidgetMode( FWidget::WM_Translate );
+			break;
+
+		case EGizmoHandleTypes::Rotate:
+			GLevelEditorModeTools().SetWidgetMode( FWidget::WM_Rotate );
+			break;
+
+		case EGizmoHandleTypes::Scale:
+			GLevelEditorModeTools().SetWidgetMode( FWidget::WM_Scale );
+			break;
+
+		check(0);
+	}
 }
 
 void UViewportWorldInteraction::SetTransformGizmoClass( const TSubclassOf<ABaseTransformGizmo>& NewTransformGizmoClass )
@@ -2962,7 +2991,7 @@ void UViewportWorldInteraction::SpawnGridMeshActor()
 	if( SnapGridActor == nullptr )
 	{
 		const bool bWithSceneComponent = false;
-		SnapGridActor = SpawnTransientSceneActor<AActor>( TEXT( "SnapGrid" ), bWithSceneComponent );
+		SnapGridActor = SpawnTransientSceneActor<AActor>( GetWorld(), TEXT( "SnapGrid" ), bWithSceneComponent );
 
 		SnapGridMeshComponent = NewObject<UStaticMeshComponent>( SnapGridActor );
 		SnapGridActor->AddOwnedComponent( SnapGridMeshComponent );
@@ -3005,5 +3034,34 @@ FLinearColor UViewportWorldInteraction::GetColor( const EColors Color ) const
 {
 	return Colors[ (int32)Color ];
 }
+
+void UViewportWorldInteraction::AddMouseCursorInteractor()
+{
+	if( ++DefaultMouseCursorInteractorRefCount == 1 )
+	{
+		// Add a mouse cursor
+		DefaultMouseCursorInteractor = NewObject<UMouseCursorInteractor>();
+		DefaultMouseCursorInteractor->Init();
+		this->AddInteractor( DefaultMouseCursorInteractor );
+	}
+}
+
+void UViewportWorldInteraction::ReleaseMouseCursorInteractor()
+{
+	if( --DefaultMouseCursorInteractorRefCount == 0 )
+	{
+		DefaultMouseCursorInteractorRefCount = 0;
+
+		// Remove mouse cursor
+		DefaultMouseCursorInteractor->Shutdown();
+		this->RemoveInteractor( DefaultMouseCursorInteractor );
+		DefaultMouseCursorInteractor = nullptr;
+	}
+	else
+	{
+		check( DefaultMouseCursorInteractorRefCount >= 0 );
+	}
+}
+
 
 #undef LOCTEXT_NAMESPACE

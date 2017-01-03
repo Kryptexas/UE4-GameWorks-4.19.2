@@ -3,7 +3,7 @@
 #include "SequencerMeshTrail.h"
 #include "SequencerKeyActor.h"
 #include "ViewportWorldInteraction.h"
-#include "EditorWorldManager.h"
+#include "EditorWorldExtension.h"
 #include "Materials/MaterialInstance.h" 
 
 ASequencerMeshTrail::ASequencerMeshTrail()
@@ -36,8 +36,7 @@ void ASequencerMeshTrail::AddKeyMeshActor(float KeyTime, const FTransform KeyTra
 	// If we don't currently have an actor for this time, create one
 	if (KeyPtr == nullptr)
 	{
-		UViewportWorldInteraction* ViewportWorldInteraction = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GEditor->GetActiveViewport()->GetClient()->GetWorld())->GetViewportWorldInteraction();
-		KeyMeshActor = ViewportWorldInteraction->SpawnTransientSceneActor<ASequencerKeyActor>(TEXT("KeyMesh"), false);
+		KeyMeshActor = UViewportWorldInteraction::SpawnTransientSceneActor<ASequencerKeyActor>(GetWorld(), TEXT("KeyMesh"), false);
 		KeyMeshActor->SetMobility(EComponentMobility::Movable);
 		KeyMeshActor->SetActorTransform(KeyTransform);
 		KeyMeshActor->SetKeyData(TrackSection, KeyTime);

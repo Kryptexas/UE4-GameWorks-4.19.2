@@ -39,6 +39,13 @@ public class Sequencer : ModuleRules
 			}
 		);
 
+		CircularlyReferencedDependentModules.AddRange(
+			new string[]
+			{
+				"ViewportInteraction",
+			}
+		);
+
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
                 "ContentBrowser",

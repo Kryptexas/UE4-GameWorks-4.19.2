@@ -43,6 +43,7 @@
 #include "ComponentRecreateRenderStateContext.h"
 #include "EditorBuildUtils.h"
 #include "AudioDevice.h"
+#include "EditorWorldExtension.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
@@ -2266,6 +2267,12 @@ bool FEditorViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, 
 
 	// Let the current mode have a look at the input before reacting to it.
 	if (ModeTools->InputKey(this, Viewport, Key, Event))
+	{
+		return true;
+	}
+
+	FEditorWorldExtensionCollection& EditorWorldExtensionCollection = *GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( GetWorld() );
+	if( EditorWorldExtensionCollection.InputKey(this, Viewport, Key, Event))
 	{
 		return true;
 	}

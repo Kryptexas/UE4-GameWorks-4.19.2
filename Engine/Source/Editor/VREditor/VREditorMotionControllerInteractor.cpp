@@ -19,7 +19,6 @@
 #include "UObject/Package.h"
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
-
 #include "IMotionController.h"
 #include "IHeadMountedDisplay.h"
 #include "MotionControllerComponent.h"
@@ -463,10 +462,10 @@ void UVREditorMotionControllerInteractor::Tick( const float DeltaTime )
 			ResultColorType = UVREditorMode::EColors::WorldDraggingColor_OneHand;
 			//			}
 		}
-		else if ( DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact ||
+		else if ( DraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact ||
 			DraggingMode == EViewportInteractionDraggingMode::Material ||
-			DraggingMode == EViewportInteractionDraggingMode::ActorsFreely ||
-			DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo ||
+			DraggingMode == EViewportInteractionDraggingMode::TransformablesFreely ||
+			DraggingMode == EViewportInteractionDraggingMode::TransformablesWithGizmo ||
 			DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ||
 			DraggingMode == EViewportInteractionDraggingMode::Interactable ||
 			( GetVRMode().GetUISystem().IsInteractorDraggingDockUI( this ) && GetVRMode().GetUISystem().IsDraggingDockUI() ) )
@@ -551,7 +550,7 @@ EHMDDeviceType::Type UVREditorMotionControllerInteractor::GetHMDDeviceType() con
 }
 
 
-void UVREditorMotionControllerInteractor::HandleInputKey( FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled )
+void UVREditorMotionControllerInteractor::HandleInputKey( FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled )
 {
 	if ( !bOutWasHandled )
 	{
@@ -567,7 +566,7 @@ void UVREditorMotionControllerInteractor::HandleInputKey( FViewportActionKeyInpu
 				const float TimeSinceLightlyPressed = ( float ) ( FPlatformTime::Seconds() - GetRealTimeTriggerWasLightlyPressed() );
 				if ( !IsClickingOnUI() &&	// @todo vreditor: UI clicks happen with light presses; we never want to convert to a hard press!
 					GetDraggingMode() != EViewportInteractionDraggingMode::Material &&	// @todo vreditor: Material dragging happens with light presses, don't convert to a hard press!
-					GetDraggingMode() != EViewportInteractionDraggingMode::ActorsAtLaserImpact &&	// @todo vreditor: Actor dragging happens with light presses, don't convert to a hard press!
+					GetDraggingMode() != EViewportInteractionDraggingMode::TransformablesAtLaserImpact &&	// @todo vreditor: Actor dragging happens with light presses, don't convert to a hard press!
 					AllowTriggerFullPress() &&
 					( !AllowTriggerLightPressLocking() || TimeSinceLightlyPressed < VREd::TriggerLightlyPressedLockTime->GetFloat() ) )
 				{
@@ -577,7 +576,7 @@ void UVREditorMotionControllerInteractor::HandleInputKey( FViewportActionKeyInpu
 					// Synthesize an input key for releasing the light press
 					// NOTE: Intentionally re-entrant call here.
 					const EInputEvent InputEvent = IE_Released;
-					const bool bWasLightReleaseHandled = UViewportInteractor::HandleInputKey( GetControllerSide() == EControllerHand::Left ? VREditorKeyNames::MotionController_Left_LightlyPressedTriggerAxis : VREditorKeyNames::MotionController_Right_LightlyPressedTriggerAxis, InputEvent );
+					const bool bWasLightReleaseHandled = UViewportInteractor::HandleInputKey( ViewportClient, GetControllerSide() == EControllerHand::Left ? VREditorKeyNames::MotionController_Left_LightlyPressedTriggerAxis : VREditorKeyNames::MotionController_Right_LightlyPressedTriggerAxis, InputEvent );
 				}
 				else
 				{
@@ -639,20 +638,20 @@ void UVREditorMotionControllerInteractor::HandleInputKey( FViewportActionKeyInpu
 		if( Event == IE_Pressed )
 		{ 
 			// Start dragging at laser impact when already dragging actors freely
-			if( DraggingMode == EViewportInteractionDraggingMode::ActorsFreely )
+			if( DraggingMode == EViewportInteractionDraggingMode::TransformablesFreely )
 			{
 				FVector PlaceAt = GetHoverLocation();
 				const bool bIsPlacingActors = true;
-				const FViewportActionKeyInput FakeSelectAndMoveAction( ViewportWorldActionTypes::SelectAndMove_LightlyPressed );
-				WorldInteraction->StartDraggingActors( this, FakeSelectAndMoveAction, WorldInteraction->GetTransformGizmoActor()->GetRootComponent(), PlaceAt, bIsPlacingActors );
+				const bool bStartTransaction = true;
+				WorldInteraction->StartDragging( this, WorldInteraction->GetTransformGizmoActor()->GetRootComponent(), PlaceAt, bIsPlacingActors, bStartTransaction );
 			}
 		}
 		else if( Event == IE_Released )
 		{
 			// Disable dragging at laser impact when releasing
-			if( DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact )
+			if( DraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact )
 			{
-				SetDraggingMode( EViewportInteractionDraggingMode::ActorsFreely );
+				SetDraggingMode( EViewportInteractionDraggingMode::TransformablesFreely );
 			}
 		}
 	}
@@ -660,7 +659,7 @@ void UVREditorMotionControllerInteractor::HandleInputKey( FViewportActionKeyInpu
 	ApplyButtonPressColors( Action );
 }
 
-void UVREditorMotionControllerInteractor::HandleInputAxis( FViewportActionKeyInput& Action, const FKey Key, const float Delta, const float DeltaTime, bool& bOutWasHandled )
+void UVREditorMotionControllerInteractor::HandleInputAxis( FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const float Delta, const float DeltaTime, bool& bOutWasHandled )
 {
 	if ( Action.ActionType == TriggerAxis )
 	{
@@ -674,7 +673,7 @@ void UVREditorMotionControllerInteractor::HandleInputAxis( FViewportActionKeyInp
 
 			FViewportActionKeyInput* OptionalAction = GetActionWithName( ViewportWorldActionTypes::SelectAndMove );
 			const bool bIsFullPressAlreadyCapturing = OptionalAction && OptionalAction->bIsInputCaptured;
-				
+
 			if ( !bIsFullPressAlreadyCapturing &&		// Don't fire if we're already capturing input for a full press
 				!bIsTriggerAtLeastLightlyPressed &&	// Don't fire unless we are already pressed
 				bHasTriggerBeenReleasedSinceLastPress &&	// Only if we've been fully released since the last time we fired
@@ -688,7 +687,7 @@ void UVREditorMotionControllerInteractor::HandleInputAxis( FViewportActionKeyInp
 
 				// Synthesize an input key for this light press
 				const EInputEvent InputEvent = IE_Pressed;
-				const bool bWasLightPressHandled = UViewportInteractor::HandleInputKey( ControllerHandSide == EControllerHand::Left ? MotionController_Left_LightlyPressedTriggerAxis : MotionController_Right_LightlyPressedTriggerAxis, InputEvent );
+				const bool bWasLightPressHandled = UViewportInteractor::HandleInputKey( ViewportClient, ControllerHandSide == EControllerHand::Left ? MotionController_Left_LightlyPressedTriggerAxis : MotionController_Right_LightlyPressedTriggerAxis, InputEvent );
 			}
 			else if ( bIsTriggerAtLeastLightlyPressed && Delta < TriggerLightlyPressedThreshold )
 			{
@@ -696,7 +695,7 @@ void UVREditorMotionControllerInteractor::HandleInputAxis( FViewportActionKeyInp
 
 				// Synthesize an input key for this light press
 				const EInputEvent InputEvent = IE_Released;
-				const bool bWasLightReleaseHandled = UViewportInteractor::HandleInputKey( ControllerHandSide == EControllerHand::Left ? MotionController_Left_LightlyPressedTriggerAxis : MotionController_Right_LightlyPressedTriggerAxis, InputEvent );
+				const bool bWasLightReleaseHandled = UViewportInteractor::HandleInputKey( ViewportClient, ControllerHandSide == EControllerHand::Left ? MotionController_Left_LightlyPressedTriggerAxis : MotionController_Right_LightlyPressedTriggerAxis, InputEvent );
 			}
 		}
 
@@ -715,7 +714,7 @@ void UVREditorMotionControllerInteractor::HandleInputAxis( FViewportActionKeyInp
 
 				// Synthesize an input key for this full press
 				const EInputEvent InputEvent = IE_Pressed;
-				UViewportInteractor::HandleInputKey( ControllerHandSide == EControllerHand::Left ? MotionController_Left_FullyPressedTriggerAxis : MotionController_Right_FullyPressedTriggerAxis, InputEvent );
+				UViewportInteractor::HandleInputKey( ViewportClient, ControllerHandSide == EControllerHand::Left ? MotionController_Left_FullyPressedTriggerAxis : MotionController_Right_FullyPressedTriggerAxis, InputEvent );
 			}
 			else if ( bIsTriggerFullyPressed && Delta < VREd::TriggerFullyPressedReleaseThreshold->GetFloat() )
 			{
@@ -723,7 +722,7 @@ void UVREditorMotionControllerInteractor::HandleInputAxis( FViewportActionKeyInp
 
 				// Synthesize an input key for this full press
 				const EInputEvent InputEvent = IE_Released;
-				UViewportInteractor::HandleInputKey( ControllerHandSide == EControllerHand::Left ? MotionController_Left_FullyPressedTriggerAxis : MotionController_Right_FullyPressedTriggerAxis, InputEvent );
+				UViewportInteractor::HandleInputKey( ViewportClient, ControllerHandSide == EControllerHand::Left ? MotionController_Left_FullyPressedTriggerAxis : MotionController_Right_FullyPressedTriggerAxis, InputEvent );
 			}
 		}
 	}
@@ -753,7 +752,7 @@ void UVREditorMotionControllerInteractor::HandleInputAxis( FViewportActionKeyInp
 		}
 	}
 
-	Super::HandleInputAxis( Action, Key, Delta, DeltaTime, bOutWasHandled );
+	Super::HandleInputAxis( ViewportClient, Action, Key, Delta, DeltaTime, bOutWasHandled );
 }
 
 void UVREditorMotionControllerInteractor::PollInput()
@@ -901,7 +900,7 @@ void UVREditorMotionControllerInteractor::StopOldHapticEffects()
 	}
 }
 
-bool UVREditorMotionControllerInteractor::GetTransformAndForwardVector( FTransform& OutHandTransform, FVector& OutForwardVector )
+bool UVREditorMotionControllerInteractor::GetTransformAndForwardVector( FTransform& OutHandTransform, FVector& OutForwardVector ) const
 {
 	if ( bHaveMotionController )
 	{
@@ -1108,7 +1107,7 @@ void UVREditorMotionControllerInteractor::ShowHelpForHand( const bool bShowIt )
 
 					const bool bWithSceneComponent = false;	// Nope, we'll spawn our own inside AFloatingText
 					check( VRMode );
-					AFloatingText* FloatingText = GetVRMode().SpawnTransientSceneActor<AFloatingText>( ComponentName, bWithSceneComponent );
+					AFloatingText* FloatingText = UViewportWorldInteraction::SpawnTransientSceneActor<AFloatingText>( GetWorld(), ComponentName, bWithSceneComponent );
 					FloatingText->SetText( LabelText );
 
 					HelpLabels.Add( Key, FloatingText );
@@ -1147,7 +1146,7 @@ void UVREditorMotionControllerInteractor::UpdateHelpLabels()
 		for ( auto& KeyAndValue : HelpLabels )
 		{
 			AFloatingText* FloatingText = KeyAndValue.Value;
-			GetVRMode().DestroyTransientActor( FloatingText );
+			UViewportWorldInteraction::DestroyTransientActor( GetWorld(), FloatingText );
 		}
 		HelpLabels.Reset();
 	}
@@ -1314,9 +1313,9 @@ void UVREditorMotionControllerInteractor::UpdateRadialMenuInput( const float Del
 	EViewportInteractionDraggingMode DraggingMode = GetDraggingMode();
 	if ( !HasUIInFront() &&
 		( bIsTrackpadPositionValid[ 0 ] && bIsTrackpadPositionValid[ 1 ] ) &&
-		DraggingMode != EViewportInteractionDraggingMode::ActorsWithGizmo &&
-		DraggingMode != EViewportInteractionDraggingMode::ActorsFreely &&
-		DraggingMode != EViewportInteractionDraggingMode::ActorsAtLaserImpact &&
+		DraggingMode != EViewportInteractionDraggingMode::TransformablesWithGizmo &&
+		DraggingMode != EViewportInteractionDraggingMode::TransformablesFreely &&
+		DraggingMode != EViewportInteractionDraggingMode::TransformablesAtLaserImpact &&
 		DraggingMode != EViewportInteractionDraggingMode::AssistingDrag &&
 		!UISystem.IsInteractorDraggingDockUI( this ) &&
 		!UISystem.IsShowingRadialMenu( Cast<UVREditorInteractor>( OtherInteractor ) ) )

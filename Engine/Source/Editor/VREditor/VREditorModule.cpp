@@ -8,6 +8,7 @@
 #include "TickableEditorObject.h"
 #include "VREditorModeManager.h"
 #include "VREditorStyle.h"
+#include "VREditorMode.h"
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"	// For EHMDWornState::Type
 
 class FVREditorModule : public IVREditorModule, public FTickableEditorObject
@@ -31,6 +32,7 @@ public:
 	virtual bool IsVREditorAvailable() const override;
 	virtual void EnableVREditor( const bool bEnable, const bool bForceWithoutHMD ) override;
 	virtual bool IsVREditorModeActive() override;
+	virtual UVREditorMode* GetVRMode() override;
 
 	// FTickableEditorObject overrides
 	virtual void Tick( float DeltaTime ) override;
@@ -98,6 +100,11 @@ void FVREditorModule::EnableVREditor( const bool bEnable, const bool bForceWitho
 bool FVREditorModule::IsVREditorModeActive()
 {
 	return ModeManager.IsVREditorActive();
+}
+
+UVREditorMode* FVREditorModule::GetVRMode()
+{
+	return ModeManager.GetCurrentVREditorMode();
 }
 
 void FVREditorModule::ToggleForceVRMode()

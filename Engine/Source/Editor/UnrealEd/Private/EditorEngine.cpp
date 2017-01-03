@@ -134,7 +134,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "EngineModule.h"
 
-#include "EditorWorldManager.h"
+#include "EditorWorldExtension.h"
 
 #if PLATFORM_WINDOWS
 	#include "WindowsHWrapper.h"
@@ -613,7 +613,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	TimerManager = MakeShareable(new FTimerManager());
 
 	// create the editor world manager
-	EditorWorldManager = MakeShareable(new FEditorWorldManager());
+	EditorWorldExtensionsManager = MakeShareable(new FEditorWorldExtensionManager());
 
 	// Settings.
 	FBSPOps::GFastRebuild = 0;
@@ -1700,7 +1700,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 
 	// Updates the ViewportWorldInteraction
-	EditorWorldManager->Tick( DeltaSeconds );
+	EditorWorldExtensionsManager->Tick( DeltaSeconds );
 
 	bool bIsMouseOverAnyLevelViewport = false;
 

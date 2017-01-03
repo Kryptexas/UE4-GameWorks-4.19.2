@@ -8,6 +8,7 @@
 #include "InputCoreTypes.h"
 #include "Templates/SubclassOf.h"
 #include "Editor/UnrealEdTypes.h"
+#include "EditorWorldExtension.h"
 #include "ShowFlags.h"
 #include "Misc/App.h"
 #include "Widgets/SWindow.h"
@@ -46,18 +47,38 @@ namespace VRActionTypes
 }
 
 /**
- * VR Editor Mode.  Extends editor viewports with functionality for VR controls and object manipulation
+ * VR Editor Mode. Extends editor viewports with functionality for VR controls and object manipulation
  */
 UCLASS()
-class VREDITOR_API UVREditorMode : public UObject
+class VREDITOR_API UVREditorMode : public UEditorWorldExtension
 {
-
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
 
+	/** Default constructor */
+	UVREditorMode();
+
 	/** Cleans up this mode, called when the editor is shutting down */
 	virtual ~UVREditorMode();
+
+	/** Initialize the VREditor */
+	virtual void Init() override;
+
+	/** Shutdown the VREditor */
+	virtual void Shutdown() override;	
+	
+	/** When the user actually enters the VR Editor mode */
+	void Enter(const bool bReenteringVREditing);
+
+	/** When the user leaves the VR Editor mode */
+	void Exit(const bool bHMDShouldExitStereo);
+
+	/** Tick before the ViewportWorldInteraction is ticked */
+	void PreTick( const float DeltaTime );
+
+	/** Tick after the ViewportWorldInteraction is ticked */
+	void PostTick( const float DeltaTime );
 
 	/** Static: Sets whether we should actually use an HMD.  Call this before activating VR mode */
 	void SetActuallyUsingVR( const bool bShouldActuallyUseVR )
@@ -85,24 +106,6 @@ public:
 	{
 		return ExitType;
 	}
-
-	/** EditorWorldManager initializes the start of the editor */
-	void Init( class UViewportWorldInteraction* InViewportWorldInteraction );
-
-	/** EditorWorldManager shuts down the VREditor when closing the editor */
-	void Shutdown();
-
-	/** When the user actually enters the VR Editor mode */
-	void Enter(const bool bReenteringVREditing);
-
-	/** When the user leaves the VR Editor mode */
-	void Exit(const bool bHMDShouldExitStereo);
-
-	/** Tick before the ViewportWorldInteraction is ticked */
-	void PreTick( const float DeltaTime );
-
-	/** Tick after the ViewportWorldInteraction is ticked */
-	void Tick( const float DeltaTime );
 	
 	//bool InputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event );
 	//bool InputAxis( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime );
@@ -117,7 +120,7 @@ public:
 	AActor* GetAvatarMeshActor();
 
 	/** Gets the World from the ViewportWorldInteraction used by this mode */
-	UWorld* GetWorld() const;
+	virtual UWorld* GetWorld() const override;
 
 	/** Gets the world space transform of the calibrated VR room origin.  When using a seated VR device, this will feel like the
 	camera's world transform (before any HMD positional or rotation adjustments are applied.) */
@@ -181,19 +184,6 @@ public:
 		Alpha--;
 		return 1.0f - ( ( Alpha * ( ( OvershootAmount + 1 ) * Alpha + OvershootAmount ) + 1 ) - 1.0f );
 	}
-
-	/** Spawns a transient actor that we can use in the editor world (templated for convenience) */
-	template<class T>
-	T* SpawnTransientSceneActor( const FString& ActorName, const bool bWithSceneComponent ) const
-	{
-		return CastChecked<T>( SpawnTransientSceneActor( T::StaticClass(), ActorName, bWithSceneComponent ) );
-	}
-
-	/** Spawns a transient actor that we can use in the editor world */
-	AActor* SpawnTransientSceneActor( TSubclassOf<class AActor> ActorClass, const FString& ActorName, const bool bWithSceneComponent ) const;
-
-	/** Destroys a transient actor we created earlier and nulls out the pointer */
-	void DestroyTransientActor( AActor* Actor ) const;
 
 	/** Gets access to the VR UI system (const) */
 	const class UVREditorUISystem& GetUISystem() const
@@ -264,6 +254,7 @@ public:
 		float NearClipPlane;
 		bool bRealTime;
 		float DragTriggerDistance;
+		float TransformGizmoScale;
 		bool bOnScreenMessages;
 		EHMDTrackingOrigin::Type TrackingOrigin;
 		float WorldToMetersScale;
@@ -272,20 +263,21 @@ public:
 
 		FSavedEditorState()
 			: ViewportType(LVT_Perspective),
-			ViewLocation(FVector::ZeroVector),
-			ViewRotation(FRotator::ZeroRotator),
-			ShowFlags(ESFIM_Editor),
-			bLockedPitch(false),
-			bGameView(false),
-			bAlwaysShowModeWidgetAfterSelectionChanges(false),
-			NearClipPlane(0.0f),
-			bRealTime(false),
-			DragTriggerDistance(0.0f),
-			bOnScreenMessages(false),
-			TrackingOrigin(EHMDTrackingOrigin::Eye),
-			WorldToMetersScale(100.0f),
-			bKeyAllEnabled(false),
-			AutoKeyMode()
+			  ViewLocation(FVector::ZeroVector),
+			  ViewRotation(FRotator::ZeroRotator),
+ 			  ShowFlags(ESFIM_Editor),
+			  bLockedPitch(false),
+			  bGameView(false),
+			  bAlwaysShowModeWidgetAfterSelectionChanges(false),
+			  NearClipPlane(0.0f),
+			  bRealTime(false),
+			  DragTriggerDistance(0.0f),
+			  bOnScreenMessages(false),
+			  TransformGizmoScale( 1.0f ),
+			  TrackingOrigin(EHMDTrackingOrigin::Eye),
+			  WorldToMetersScale(100.0f),
+			  bKeyAllEnabled(false),
+			  AutoKeyMode()
 		{
 		}
 	};
@@ -306,7 +298,7 @@ private:
 	void OnEditorClosed();
 
 	//Handles closing the VR mode by escape key
-	void InputKey(const FEditorViewportClient& InViewportClient, const FKey InKey, const EInputEvent InEvent, bool& bOutWasHandled);
+	virtual bool InputKey( FEditorViewportClient* InViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event ) override;
 
 	/** Called when someone closes a standalone VR Editor window */
 	void OnVREditorWindowClosed( const TSharedRef<SWindow>& ClosedWindow );
@@ -413,10 +405,6 @@ protected:
 	// Interactors
 	//
 
-	/** The mouse cursor interactor (currently only available when not in VR) */
-	UPROPERTY()
-	class UMouseCursorInteractor* MouseCursorInteractor;
-
 	/** The right motion controller */
 	UPROPERTY()
 	class UVREditorMotionControllerInteractor* LeftHandInteractor; //@todo vreditor: Hardcoded interactors
@@ -466,9 +454,6 @@ private:
 
 	/** If this is the first tick or before */
 	bool bFirstTick;
-
-	/** If the coordinate system was in world space before entering (local) scale mode */
-	bool bWasInWorldSpaceBeforeScaleMode;
 
 	/** If this current mode is running */
 	bool bIsActive;

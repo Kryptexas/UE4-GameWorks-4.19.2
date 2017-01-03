@@ -9,9 +9,9 @@
 
 namespace VREd
 {
-	static FAutoConsoleVariable GizmoSelectionAnimationDuration( TEXT( "VREd.GizmoSelectionAnimationDuration" ), 0.15f, TEXT( "How long to animate the gizmo after objects are selected" ) );
-	static FAutoConsoleVariable GizmoSelectionAnimationCurvePower( TEXT( "VREd.GizmoSelectionAnimationCurvePower" ), 2.0f, TEXT( "Controls the animation curve for the gizmo after objects are selected" ) );
-	static FAutoConsoleVariable GizmoShowMeasurementText( TEXT( "VREd.GizmoShowMeasurementText" ), 0, TEXT( "When enabled, gizmo measurements will always be visible.  Otherwise, only when hovering over a scale/stretch gizmo handle" ) );
+	static FAutoConsoleVariable GizmoSelectionAnimationDuration( TEXT( "VI.GizmoSelectionAnimationDuration" ), 0.15f, TEXT( "How long to animate the gizmo after objects are selected" ) );
+	static FAutoConsoleVariable GizmoSelectionAnimationCurvePower( TEXT( "VI.GizmoSelectionAnimationCurvePower" ), 2.0f, TEXT( "Controls the animation curve for the gizmo after objects are selected" ) );
+	static FAutoConsoleVariable GizmoShowMeasurementText( TEXT( "VI.GizmoShowMeasurementText" ), 0, TEXT( "When enabled, gizmo measurements will always be visible.  Otherwise, only when hovering over a scale/stretch gizmo handle" ) );
 }
 
 ABaseTransformGizmo::ABaseTransformGizmo( ) :

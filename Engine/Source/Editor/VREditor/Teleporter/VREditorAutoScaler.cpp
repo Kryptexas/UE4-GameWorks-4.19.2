@@ -38,7 +38,7 @@ void UVREditorAutoScaler::Scale( const float NewWorldToMetersScale )
 	UViewportWorldInteraction* WorldInteraction = &VRMode->GetWorldInteraction();
 
 	// Set the new world to meters scale.
-	const float OldWorldToMetersScale = WorldInteraction->GetViewportWorld()->GetWorldSettings()->WorldToMeters;
+	const float OldWorldToMetersScale = WorldInteraction->GetWorld()->GetWorldSettings()->WorldToMeters;
 	WorldInteraction->SetWorldToMetersScale( NewWorldToMetersScale );
 	WorldInteraction->SkipInteractiveWorldMovementThisFrame();
 

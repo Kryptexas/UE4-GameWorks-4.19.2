@@ -18,7 +18,10 @@ class FVREditorModeManager : public FGCObject
 
 public:
 
+	/** Default constructor */
 	FVREditorModeManager();
+
+	/** Default destructor */
 	~FVREditorModeManager();
 
 	/** Ticks to detect entering and closing the VR Editor */
@@ -33,7 +36,12 @@ public:
 	/** If the VR Editor is currently available */
 	bool IsVREditorAvailable() const;
 
+	/** Gets the current VR Editor mode that was enabled */
+	UVREditorMode* GetCurrentVREditorMode();
+
+	// FGCObject
 	virtual void AddReferencedObjects( FReferenceCollector& Collector );
+	// End FGCObject
 
 private:
 

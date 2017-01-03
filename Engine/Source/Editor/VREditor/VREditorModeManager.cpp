@@ -12,7 +12,8 @@
 #include "EngineGlobals.h"
 #include "LevelEditor.h"
 #include "IHeadMountedDisplay.h"
-#include "EditorWorldManager.h"
+#include "EditorWorldExtension.h"
+#include "ViewportWorldInteraction.h"
 
 FVREditorModeManager::FVREditorModeManager() :
 	CurrentVREditorMode( nullptr ),
@@ -151,6 +152,11 @@ bool FVREditorModeManager::IsVREditorAvailable() const
 }
 
 
+UVREditorMode* FVREditorModeManager::GetCurrentVREditorMode()
+{
+	return CurrentVREditorMode;
+}
+
 void FVREditorModeManager::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	Collector.AddReferencedObject( CurrentVREditorMode );
@@ -168,8 +174,13 @@ void FVREditorModeManager::StartVREditorMode( const bool bForceWithoutHMD )
 		bPlayStartedFromVREditor = false;
 	}
 
-	TSharedPtr<FEditorWorldWrapper> EditorWorld = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper( GWorld );
-	UVREditorMode* ModeFromWorld = EditorWorld->GetVREditorMode();
+	UVREditorMode* VRMode = nullptr;
+	{
+		TSharedPtr<FEditorWorldExtensionCollection> Collection = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( GWorld );
+		Collection->AddExtension( UViewportWorldInteraction::StaticClass() );
+		VRMode = Cast<UVREditorMode>( Collection->AddExtension( UVREditorMode::StaticClass() ) );
+		check( VRMode != nullptr );
+	}
 
 	// Tell the level editor we want to be notified when selection changes
 	{
@@ -177,7 +188,7 @@ void FVREditorModeManager::StartVREditorMode( const bool bForceWithoutHMD )
 		LevelEditor.OnMapChanged().AddRaw( this, &FVREditorModeManager::OnMapChanged );
 	}
 	
-	CurrentVREditorMode = ModeFromWorld;
+	CurrentVREditorMode = VRMode;
 	CurrentVREditorMode->SetActuallyUsingVR( !bForceWithoutHMD );
 	CurrentVREditorMode->Enter(bReenteringVREditing);
 }
@@ -199,6 +210,10 @@ void FVREditorModeManager::CloseVREditor( const bool bHMDShouldExitStereo )
 		PreviousVREditorMode = CurrentVREditorMode;
 		CurrentVREditorMode = nullptr;
 	}
+
+	TSharedPtr<FEditorWorldExtensionCollection> Collection = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( GWorld );
+	Collection->RemoveExtension( Collection->FindExtension( UVREditorMode::StaticClass() ) );
+	Collection->RemoveExtension( Collection->FindExtension( UViewportWorldInteraction::StaticClass() ) );
 }
 
 void FVREditorModeManager::SetDirectWorldToMeters( const float NewWorldToMeters )

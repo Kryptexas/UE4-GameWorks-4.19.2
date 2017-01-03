@@ -26,6 +26,9 @@ public:
 	/** Gets the private data for this interactor */
 	struct FViewportInteractorData& GetInteractorData();
 
+	/** Gets the private data for this interactor (const) */
+	const struct FViewportInteractorData& GetInteractorData() const;
+
 	/** Sets the world interaction */
 	void SetWorldInteraction( class UViewportWorldInteraction* InWorldInteraction );
 
@@ -60,10 +63,10 @@ public:
 	virtual void PollInput() {}
 
 	/** Handles axis input and translates it actions */
-	bool HandleInputKey( const FKey Key, const EInputEvent Event );
+	bool HandleInputKey( class FEditorViewportClient& ViewportClient, const FKey Key, const EInputEvent Event );
 
 	/** Handles axis input and translates it to actions */
-	bool HandleInputAxis( const FKey Key, const float Delta, const float DeltaTime );
+	bool HandleInputAxis( class FEditorViewportClient& ViewportClient, const FKey Key, const float Delta, const float DeltaTime );
 
 	/** Gets the world transform of this interactor */
 	FTransform GetTransform() const;
@@ -83,12 +86,22 @@ public:
 	 * @param HandIndex				Index of the hand to use
 	 * @param LasertPointerStart	(Out) The start location of the laser pointer in world space
 	 * @param LasertPointerEnd		(Out) The end location of the laser pointer in world space
-	 * @param bEvenIfUIIsInFront	If true, returns a laser pointer even if the hand has UI in front of it (defaults to false)
+	 * @param bEvenIfBlocked		If true, returns a laser pointer even if the hand has UI in front of it (defaults to false)
 	 * @param LaserLengthOverride	If zero the default laser length (VREdMode::GetLaserLength) is used
 	 *
 	 * @return	True if we have motion controller data for this hand and could return a valid result
 	 */
-	bool GetLaserPointer( FVector& LaserPointerStart, FVector& LaserPointerEnd, const bool bEvenIfBlocked = false, const float LaserLengthOverride = 0.0f );
+	bool GetLaserPointer( FVector& LaserPointerStart, FVector& LaserPointerEnd, const bool bEvenIfBlocked = false, const float LaserLengthOverride = 0.0f ) const;
+
+	/**
+	 * Gets a sphere on this interactor that can be used to interact with objects in close proximity
+	 *
+	 * @param	OutGrabberSphere	The sphere in world space
+	 * @param	bEvenIfBlocked	When set to true, a valid sphere may be returned even if there is UI attached in front of this interactor
+	 *
+	 * @return	True if the sphere is available and valid, or false is the interactor was busy or we could not determine a valid position for the interactor
+	 */
+	bool GetGrabberSphere( FSphere& OutGrabberSphere, const bool bEvenIfBlocked = false ) const;
 
 	/** Gets the maximum length of a laser pointer */
 	float GetLaserPointerMaxLength() const;
@@ -99,7 +112,6 @@ public:
 	/**
 	 * Traces along the laser pointer vector and returns what it first hits in the world
 	 *
-	 * @param HandIndex	Index of the hand that uses has the laser pointer to trace
 	 * @param OptionalListOfIgnoredActors Actors to exclude from hit testing
 	 * @param bIgnoreGizmos True if no gizmo results should be returned, otherwise they are preferred (x-ray)
 	 * @param bEvenIfUIIsInFront If true, ignores any UI that might be blocking the ray
@@ -125,10 +137,10 @@ public:
 	 *
 	 * @return	True if we have motion controller data for this hand and could return a valid result
 	 */
-	virtual bool GetTransformAndForwardVector( FTransform& OutHandTransform, FVector& OutForwardVector );
+	virtual bool GetTransformAndForwardVector( FTransform& OutHandTransform, FVector& OutForwardVector ) const;
 
-	/** Called by StartDragging in world interaction to give the interator a chance of acting upon starting a drag operation */
-	virtual void OnStartDragging( UActorComponent* ClickedComponent, const FVector& HitLocation, const bool bIsPlacingActors ) {};
+	/** Called by StartDragging in world interaction to give the interactor a chance of acting upon starting a drag operation */
+	virtual void OnStartDragging( const FVector& HitLocation, const bool bIsPlacingNewObjects ) {};
 
 	/** Gets the interactor laser hover location */
 	FVector GetHoverLocation() const;
@@ -143,7 +155,7 @@ public:
 	void SetDraggingMode( const EViewportInteractionDraggingMode NewDraggingMode );
 
 	/** To be overridden by base class. Called by GetLaserPointer to give the derived interactor a chance to disable the laser. By default it is not blocked */
-	virtual bool GetIsLaserBlocked() { return false; }
+	virtual bool GetIsLaserBlocked() const { return false; }
 
 	/** Gets a certain action by iterating through the map looking for the same ActionType */
 	// @todo ViewportInteractor: This should be changed to return a const pointer, but we need to fix up some dragging code in WorldInteraction first
@@ -183,10 +195,10 @@ public:
 protected:
 
 	/** To be overridden by base class. Called by HandleInputKey before delegates and default input implementation */
-	virtual void HandleInputKey( FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled ) {};
+	virtual void HandleInputKey( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled ) {};
 	
 	/** To be overridden by base class. Called by HandleInputAxis before delegates and default input implementation */
-	virtual void HandleInputAxis( FViewportActionKeyInput& Action, const FKey Key, const float Delta, const float DeltaTime, bool& bOutWasHandled ) {};
+	virtual void HandleInputAxis( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const float Delta, const float DeltaTime, bool& bOutWasHandled ) {};
 
 protected:
 
@@ -203,4 +215,7 @@ protected:
 	/** The paired interactor by the world interaction */
 	UPROPERTY()
 	UViewportInteractor* OtherInteractor;
+
+	/** True if this interactor supports 'grabber sphere' interaction.  Usually disabled for mouse cursors */
+	bool bAllowGrabberSphere;
 };

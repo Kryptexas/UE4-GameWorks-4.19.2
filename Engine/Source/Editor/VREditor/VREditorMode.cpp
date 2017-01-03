@@ -29,10 +29,10 @@
 #include "Interfaces/IAnalyticsProvider.h"
 
 #include "IViewportInteractionModule.h"
-#include "MouseCursorInteractor.h"
 #include "VREditorMotionControllerInteractor.h"
 
 #include "ViewportWorldInteractionManager.h"
+#include "EditorWorldExtension.h"
 
 #include "ISequencer.h"
 
@@ -47,25 +47,23 @@ namespace VREd
 
 // @todo vreditor: Hacky that we have to import these this way. (Plugin has them in a .cpp, not exported)
 
-UVREditorMode::UVREditorMode( const FObjectInitializer& ObjectInitializer ) : 
-	Super( ObjectInitializer ),
+UVREditorMode::UVREditorMode() : 
+	Super(),
 	bWantsToExitMode( false ),
 	ExitType( EVREditorExitType::Normal ),
 	bIsFullyInitialized( false ),
 	AppTimeModeEntered( FTimespan::Zero() ),
 	AvatarActor( nullptr ),
-    	FlashlightComponent( nullptr ),
+   	FlashlightComponent( nullptr ),
 	bIsFlashlightOn( false ),
 	MotionControllerID( 0 ),	// @todo vreditor minor: We only support a single controller, and we assume the first controller are the motion controls
 	UISystem( nullptr ),
 	TeleporterSystem( nullptr ),
 	AutoScalerSystem( nullptr ),
 	WorldInteraction( nullptr ),
-	MouseCursorInteractor( nullptr ),
 	LeftHandInteractor( nullptr ),
 	RightHandInteractor( nullptr ),
 	bFirstTick( true ),
-	bWasInWorldSpaceBeforeScaleMode( false ),
 	bIsActive( false )
 {
 }
@@ -76,7 +74,8 @@ UVREditorMode::~UVREditorMode()
 	Shutdown();
 }
 
-void UVREditorMode::Init( UViewportWorldInteraction* InViewportWorldInteraction )
+
+void UVREditorMode::Init()
 {
 	// @todo vreditor urgent: Turn on global editor hacks for VR Editor mode
 	GEnableVREditorHacks = true;
@@ -112,7 +111,11 @@ void UVREditorMode::Init( UViewportWorldInteraction* InViewportWorldInteraction 
 		Colors[ (int32)EColors::UICloseButtonHoverColor ] = FLinearColor( 1.0f, 1.0f, 1.0f, 1.0f );
 	}
 
-	WorldInteraction = InViewportWorldInteraction;
+	{
+		TSharedPtr<FEditorWorldExtensionCollection> Collection = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( GetWorld() );
+		WorldInteraction = Cast<UViewportWorldInteraction>( Collection->FindExtension( UViewportWorldInteraction::StaticClass() ) );
+		check( WorldInteraction != nullptr );
+	}
 
 	bIsFullyInitialized = true;
 }
@@ -127,7 +130,6 @@ void UVREditorMode::Shutdown()
 	TeleporterSystem = nullptr;
 	AutoScalerSystem = nullptr;
 	WorldInteraction = nullptr;
-	MouseCursorInteractor = nullptr;
 	LeftHandInteractor = nullptr;
 	RightHandInteractor = nullptr;
 
@@ -141,9 +143,8 @@ void UVREditorMode::Enter(const bool bReenteringVREditing)
 	ExitType = EVREditorExitType::Normal;
 
 	{
-		IViewportWorldInteractionManager& ViewportWorldInteraction = IViewportInteractionModule::Get().GetWorldInteractionManager();
-		ViewportWorldInteraction.OnPreWorldInteractionTick().AddUObject( this, &UVREditorMode::PreTick );
-		ViewportWorldInteraction.OnPostWorldInteractionTick().AddUObject( this, &UVREditorMode::Tick );
+		WorldInteraction->OnPreWorldInteractionTick().AddUObject( this, &UVREditorMode::PreTick );
+		WorldInteraction->OnPostWorldInteractionTick().AddUObject( this, &UVREditorMode::PostTick );
 	}
 
 	// @todo vreditor: We need to make sure the user can never switch to orthographic mode, or activate settings that
@@ -326,6 +327,10 @@ void UVREditorMode::Enter(const bool bReenteringVREditing)
 			// like Content Browser drag and drop.
 			SavedEditorState.DragTriggerDistance = FSlateApplication::Get().GetDragTriggerDistance();
 			FSlateApplication::Get().SetDragTriggerDistance( 100.0f );	// @todo vreditor tweak
+
+			// When actually in VR, make sure the transform gizmo is big!
+			SavedEditorState.TransformGizmoScale = WorldInteraction->GetTransformGizmoScale();
+			WorldInteraction->SetTransformGizmoScale( 1.0f );
 		}
 	}
 
@@ -333,32 +338,35 @@ void UVREditorMode::Enter(const bool bReenteringVREditing)
 	{
 		// Setup world interaction
 		TSharedPtr<FEditorViewportClient> ViewportClient = VREditorLevelViewportWeakPtr.Pin()->GetViewportClient();
-		WorldInteraction->SetViewport( ViewportClient );
-		WorldInteraction->Activate( true );
 
-		WorldInteraction->OnHandleKeyInput().AddUObject( this, &UVREditorMode::InputKey );
+		// We're not expecting anyone to have already set a default viewport client
+		check( WorldInteraction->GetDefaultOptionalViewportClient() == nullptr );
+		WorldInteraction->SetDefaultOptionalViewportClient( ViewportClient );
+
+		// We need input preprocessing for VR so that we can receive motion controller input without any viewports having 
+		// to be focused.  This is mainly because Slate UI injected into the 3D world can cause focus to be lost unexpectedly,
+		// but we need the user to still be able to interact with UI.
+		WorldInteraction->SetUseInputProcessor( true );
 
 		// Motion controllers
-		if(bActuallyUsingVR)
 		{
-			LeftHandInteractor = NewObject<UVREditorMotionControllerInteractor>( WorldInteraction );
+			LeftHandInteractor = NewObject<UVREditorMotionControllerInteractor>();
 			LeftHandInteractor->SetControllerHandSide( EControllerHand::Left );
 			LeftHandInteractor->Init( this );
 			WorldInteraction->AddInteractor( LeftHandInteractor );
 
-			RightHandInteractor = NewObject<UVREditorMotionControllerInteractor>( WorldInteraction );
+			RightHandInteractor = NewObject<UVREditorMotionControllerInteractor>();
 			RightHandInteractor->SetControllerHandSide( EControllerHand::Right );
 			RightHandInteractor->Init( this );
 			WorldInteraction->AddInteractor( RightHandInteractor );
 
 			WorldInteraction->PairInteractors( LeftHandInteractor, RightHandInteractor );
 		}
-		else
+
+		if( !bActuallyUsingVR )
 		{
-			// Register an interactor for the mouse cursor
-			MouseCursorInteractor = NewObject<UMouseCursorInteractor>( WorldInteraction );
-			MouseCursorInteractor->Init();
-			WorldInteraction->AddInteractor( MouseCursorInteractor );
+			// When not actually using VR devices, we want an interactor for our mouse cursor!
+			WorldInteraction->AddMouseCursorInteractor();
 		}
 
 		// Setup the UI system
@@ -395,7 +403,7 @@ void UVREditorMode::Exit(const bool bHMDShouldExitStereo)
 	{
 		//Destroy the avatar
 		{
-			DestroyTransientActor( AvatarActor );
+			UViewportWorldInteraction::DestroyTransientActor( GetWorld(), AvatarActor );
 			AvatarActor = nullptr;
 			FlashlightComponent = nullptr;
 		}
@@ -411,6 +419,9 @@ void UVREditorMode::Exit(const bool bHMDShouldExitStereo)
 			{
 				// Restore Slate drag trigger distance
 				FSlateApplication::Get().SetDragTriggerDistance( SavedEditorState.DragTriggerDistance );
+
+				// Restore gizmo size
+				WorldInteraction->SetTransformGizmoScale( SavedEditorState.TransformGizmoScale );
 			}
 
 			TSharedPtr<SLevelViewport> VREditorLevelViewport( VREditorLevelViewportWeakPtr.Pin() );
@@ -488,7 +499,7 @@ void UVREditorMode::Exit(const bool bHMDShouldExitStereo)
 	}
 	//Destroy the avatar
 	{
-		DestroyTransientActor( AvatarActor );
+		UViewportWorldInteraction::DestroyTransientActor( GetWorld(), AvatarActor );
 		AvatarActor = nullptr;
 		FlashlightComponent = nullptr;
 	}
@@ -503,7 +514,6 @@ void UVREditorMode::Exit(const bool bHMDShouldExitStereo)
 
 	if( VRWorldInteractionExtension != nullptr )
 	{
-		VRWorldInteractionExtension->Shutdown();
 		VRWorldInteractionExtension->MarkPendingKill();
 		VRWorldInteractionExtension = nullptr;
 	}
@@ -522,26 +532,28 @@ void UVREditorMode::Exit(const bool bHMDShouldExitStereo)
 		AutoScalerSystem = nullptr;
 	}
 
-	{
-		IViewportWorldInteractionManager& ViewportWorldInteraction = IViewportInteractionModule::Get().GetWorldInteractionManager();
-		ViewportWorldInteraction.OnPreWorldInteractionTick().RemoveAll( this );
-		ViewportWorldInteraction.OnPostWorldInteractionTick().RemoveAll( this );
-	}
-
 	if( WorldInteraction != nullptr )
 	{
 		WorldInteraction->OnHandleKeyInput().RemoveAll( this );
+		WorldInteraction->OnPreWorldInteractionTick().RemoveAll( this );
+		WorldInteraction->OnPostWorldInteractionTick().RemoveAll( this );
 
 		WorldInteraction->RemoveInteractor( LeftHandInteractor );
 		LeftHandInteractor->MarkPendingKill();
 		LeftHandInteractor->Shutdown();
 		LeftHandInteractor = nullptr;
+
 		WorldInteraction->RemoveInteractor( RightHandInteractor );
 		RightHandInteractor->Shutdown();
 		RightHandInteractor->MarkPendingKill();
 		RightHandInteractor = nullptr;
+		
+		if( !bActuallyUsingVR )
+		{
+			WorldInteraction->ReleaseMouseCursorInteractor();
+		}
 
-		WorldInteraction->Activate( false );
+		WorldInteraction->SetDefaultOptionalViewportClient( nullptr );
 	}
 
 	GEditor->OnEditorClose().RemoveAll( this );
@@ -573,7 +585,7 @@ void UVREditorMode::SpawnAvatarMeshActor()
 	{
 		{
 			const bool bWithSceneComponent = true;
-			AvatarActor = SpawnTransientSceneActor<AVREditorAvatarActor>( TEXT( "AvatarActor" ), bWithSceneComponent );
+			AvatarActor = UViewportWorldInteraction::SpawnTransientSceneActor<AVREditorAvatarActor>( GetWorld(), TEXT( "AvatarActor" ), bWithSceneComponent );
 			AvatarActor->Init( this );
 		}
 
@@ -619,7 +631,7 @@ void UVREditorMode::PreTick( const float DeltaTime )
 
 }
 
-void UVREditorMode::Tick( float DeltaTime )
+void UVREditorMode::PostTick( float DeltaTime )
 {
 	if( !bIsFullyInitialized || !bIsActive || bWantsToExitMode || !VREditorLevelViewportWeakPtr.IsValid() )
 	{
@@ -650,59 +662,19 @@ void UVREditorMode::Tick( float DeltaTime )
 	bFirstTick = false;
 }
 
-
-void UVREditorMode::InputKey(const FEditorViewportClient& InViewportClient, const FKey InKey, const EInputEvent InEvent, bool& bOutWasHandled)
+bool UVREditorMode::InputKey( FEditorViewportClient* InViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
 {
-	if(InKey == EKeys::Escape)
+	bool bHandled = false;
+	if( Key == EKeys::Escape )
 	{
 		// User hit escape, so bail out of VR mode
 		StartExitingVRMode();
+		bHandled = true;
 	}
+
+	return bHandled;
 }
 
-//bool UVREditorMode::InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
-//{
-//	// Only if this is our VR viewport. Remember, editor modes get a chance to tick and receive input for each active viewport.
-//	if ( ViewportClient != GetLevelViewportPossessedForVR().GetViewportClient().Get() )
-//	{
-//		return InputKey(GetLevelViewportPossessedForVR().GetViewportClient().Get(), Viewport, Key, Event);
-//	}
-//
-//	if ( Key == EKeys::Escape )
-//	{
-//		// User hit escape, so bail out of VR mode
-//		StartExitingVRMode();
-//	}
-//	else if( Key.IsMouseButton() )	// Input preprocessor cannot handle mouse buttons, so we'll route those the normal way
-//	{
-//		return WorldInteraction->HandleInputKey( Key, Event );
-//	}
-//
-//	return FEdMode::InputKey(ViewportClient, Viewport, Key, Event);
-//}
-//
-//
-//bool UVREditorMode::InputAxis(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime)
-//{
-//	// Only if this is our VR viewport. Remember, editor modes get a chance to tick and receive input for each active viewport.
-//	if ( ViewportClient != GetLevelViewportPossessedForVR().GetViewportClient().Get() )
-//	{
-//		return InputAxis(GetLevelViewportPossessedForVR().GetViewportClient().Get(), Viewport, ControllerId, Key, Delta, DeltaTime);
-//	}
-//
-//	return FEdMode::InputAxis(ViewportClient, Viewport, ControllerId, Key, Delta, DeltaTime);
-//}
-
-//void UVREditorMode::Render( const FSceneView* SceneView, FViewport* Viewport, FPrimitiveDrawInterface* PDI )
-//{
-//	//StopOldHapticEffects(); //@todo vreditor
-//
-//	if( bIsFullyInitialized )
-//	{
-//		// Let our subsystems render, too
-//		UISystem->Render( SceneView, Viewport, PDI );
-//	}
-//}
 
 /************************************************************************/
 /* IVREditorMode interface                                              */
@@ -715,7 +687,17 @@ AActor* UVREditorMode::GetAvatarMeshActor()
 
 UWorld* UVREditorMode::GetWorld() const
 {
-	return WorldInteraction->GetViewportWorld();
+	UWorld* ResultedWorld = nullptr;
+	if( WorldInteraction )
+	{
+		ResultedWorld = WorldInteraction->GetWorld();
+	}
+	else
+	{
+		ResultedWorld = UEditorWorldExtension::GetWorld();
+	}
+
+	return ResultedWorld;
 }
 
 FTransform UVREditorMode::GetRoomTransform() const
@@ -758,44 +740,6 @@ bool UVREditorMode::IsActive() const
 	return bIsActive;
 }
 
-AActor* UVREditorMode::SpawnTransientSceneActor(TSubclassOf<AActor> ActorClass, const FString& ActorName, const bool bWithSceneComponent) const
-{
-	const bool bWasWorldPackageDirty = GetWorld()->GetOutermost()->IsDirty();
-
-	// @todo vreditor: Needs respawn if world changes (map load, etc.)  Will that always restart the editor mode anyway?
-	FActorSpawnParameters ActorSpawnParameters;
-	ActorSpawnParameters.Name = MakeUniqueObjectName( GetWorld(), ActorClass, *ActorName );	// @todo vreditor: Without this, SpawnActor() can return us an existing PendingKill actor of the same name!  WTF?
-	ActorSpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	ActorSpawnParameters.ObjectFlags = EObjectFlags::RF_Transient;
-
-	check( ActorClass != nullptr );
-	AActor* NewActor = GetWorld()->SpawnActor< AActor >( ActorClass, ActorSpawnParameters );
-	NewActor->SetActorLabel( ActorName );
-
-	if( bWithSceneComponent )
-	{
-		// Give the new actor a root scene component, so we can attach multiple sibling components to it
-		USceneComponent* SceneComponent = NewObject<USceneComponent>( NewActor );
-		NewActor->AddOwnedComponent( SceneComponent );
-		NewActor->SetRootComponent( SceneComponent );
-		SceneComponent->RegisterComponent();
-	}
-
-	// Don't dirty the level file after spawning a transient actor
-	if( !bWasWorldPackageDirty )
-	{
-		GetWorld()->GetOutermost()->SetDirtyFlag( false );
-	}
-
-	return NewActor;
-}
-
-
-void UVREditorMode::DestroyTransientActor( AActor* Actor ) const
-{
-	WorldInteraction->DestroyTransientActor( Actor );
-}
-
 bool UVREditorMode::IsShowingRadialMenu(const UVREditorInteractor* Interactor) const
 {
 	return UISystem->IsShowingRadialMenu(Interactor);
@@ -823,7 +767,7 @@ void UVREditorMode::CleanUpActorsBeforeMapChangeOrSimulate()
 	if ( WorldInteraction != nullptr )
 	{
 		// NOTE: This will be called even when this mode is not currently active!
-		DestroyTransientActor( AvatarActor );
+		UViewportWorldInteraction::DestroyTransientActor( GetWorld(), AvatarActor );
 		AvatarActor = nullptr;
 		FlashlightComponent = nullptr;
 
@@ -873,27 +817,6 @@ void UVREditorMode::CycleTransformGizmoHandleType()
 		NewGizmoType = EGizmoHandleTypes::All;
 	}
 
-	// Set coordinate system to local if the next gizmo will be for non-uniform scaling 
-	if ( NewGizmoType == EGizmoHandleTypes::Scale )
-	{
-		const ECoordSystem CurrentCoordSystem = WorldInteraction->GetTransformGizmoCoordinateSpace();
-		if ( CurrentCoordSystem == COORD_World )
-		{
-			GLevelEditorModeTools().SetCoordSystem( COORD_Local );
-			// Remember if coordinate system was in world space before scaling
-			bWasInWorldSpaceBeforeScaleMode = true;
-		}
-		else if ( CurrentCoordSystem == COORD_Local )
-		{
-			bWasInWorldSpaceBeforeScaleMode = false;
-		}
-	} 
-	else if ( WorldInteraction->GetCurrentGizmoType() == EGizmoHandleTypes::Scale && bWasInWorldSpaceBeforeScaleMode )
-	{
-		// Set the coordinate system to world space if the coordinate system was world before scaling
-		WorldInteraction->SetTransformGizmoCoordinateSpace( COORD_World );
-	}
-	
 	WorldInteraction->SetGizmoHandleType( NewGizmoType );
 }
 

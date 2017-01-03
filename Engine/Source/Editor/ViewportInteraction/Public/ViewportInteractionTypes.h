@@ -44,17 +44,17 @@ enum class EViewportInteractionDraggingMode : uint8
 	/** Not dragging right now with this hand */
 	Nothing,
 
-	/** Dragging actors around using the transform gizmo */
-	ActorsWithGizmo,
+	/** Dragging transformables (e.g. actors, components, geometry elements) around using the transform gizmo */
+	TransformablesWithGizmo,
 
-	/** Actors locked to the impact point under the laser */
-	ActorsAtLaserImpact,
+	/** Transformables locked to the impact point under the laser */
+	TransformablesAtLaserImpact,
 
 	/** We're grabbing an object (or the world) that was already grabbed by the other hand */
 	AssistingDrag,
 
-	/** Freely moving, rotating and scaling objects with one or two hands */
-	ActorsFreely,
+	/** Freely moving, rotating and scaling transformables with one or two hands */
+	TransformablesFreely,
 
 	/** Moving the world itself around (actually, moving the camera in such a way that it feels like you're moving the world) */
 	World,

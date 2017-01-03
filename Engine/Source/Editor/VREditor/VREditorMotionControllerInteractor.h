@@ -45,8 +45,8 @@ public:
 	EHMDDeviceType::Type GetHMDDeviceType() const;
 
 	// UViewportInteractor
-	virtual void HandleInputKey( FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled ) override;
-	virtual bool GetTransformAndForwardVector( FTransform& OutHandTransform, FVector& OutForwardVector ) override;
+	virtual void HandleInputKey( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled ) override;
+	virtual bool GetTransformAndForwardVector( FTransform& OutHandTransform, FVector& OutForwardVector ) const override;
 
 	/** Gets the Y delta of the trackpad */
 	float GetTrackpadSlideDelta();
@@ -81,7 +81,7 @@ public:
 protected:
 
 	// ViewportInteractor
-	virtual void HandleInputAxis( FViewportActionKeyInput& Action, const FKey Key, const float Delta, const float DeltaTime, bool& bOutWasHandled ) override;
+	virtual void HandleInputAxis( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const float Delta, const float DeltaTime, bool& bOutWasHandled ) override;
 
 	/** Polls input for the motion controllers transforms */
 	virtual void PollInput() override;

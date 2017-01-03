@@ -47,7 +47,7 @@ void UVREditorInteractor::Shutdown()
 	for ( auto& KeyAndValue : HelpLabels )
 	{
 		AFloatingText* FloatingText = KeyAndValue.Value;
-		GetVRMode().DestroyTransientActor( FloatingText );
+		UViewportWorldInteraction::DestroyTransientActor( GetWorld(), FloatingText );
 	}
 
 	HelpLabels.Empty();	
@@ -75,9 +75,9 @@ FHitResult UVREditorInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 	OptionalListOfIgnoredActors->Add( GetVRMode().GetAvatarMeshActor() );
 	
 	// Ignore UI widgets too
-	if ( GetDraggingMode() == EViewportInteractionDraggingMode::ActorsAtLaserImpact )
+	if ( GetDraggingMode() == EViewportInteractionDraggingMode::TransformablesAtLaserImpact )
 	{
-		for( TActorIterator<AVREditorFloatingUI> UIActorIt( WorldInteraction->GetViewportWorld() ); UIActorIt; ++UIActorIt )
+		for( TActorIterator<AVREditorFloatingUI> UIActorIt( WorldInteraction->GetWorld() ); UIActorIt; ++UIActorIt )
 		{
 			OptionalListOfIgnoredActors->Add( *UIActorIt );
 		}
@@ -102,12 +102,11 @@ void UVREditorInteractor::ResetHoverState( const float DeltaTime )
 	bIsHoveringOverUI = false;
 }	
 
-void UVREditorInteractor::OnStartDragging( UActorComponent* ClickedComponent, const FVector& HitLocation, const bool bIsPlacingActors )
+void UVREditorInteractor::OnStartDragging( const FVector& HitLocation, const bool bIsPlacingNewObjects )
 {
-	// If the user is holding down the modifier key, go ahead and duplicate the selection first.  This needs to
-	// happen before we create our transformables, because duplicating actors will change which actors are
-	// selected!  Don't do this if we're placing objects right now though.
-	if ( bIsModifierPressed && !bIsPlacingActors )
+	// If the user is holding down the modifier key, go ahead and duplicate the selection first.  Don't do this if we're
+	// placing objects right now though.
+	if ( bIsModifierPressed && !bIsPlacingNewObjects )
 	{
 		WorldInteraction->Duplicate();
 	}
@@ -208,7 +207,7 @@ float UVREditorInteractor::GetSelectAndMoveTriggerValue() const
 	return SelectAndMoveTriggerValue;
 }
 
-bool UVREditorInteractor::GetIsLaserBlocked()
+bool UVREditorInteractor::GetIsLaserBlocked() const
 {
 	return bHasUIInFront;
 }

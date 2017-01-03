@@ -119,8 +119,8 @@ void UVREditorWorldInteraction::StopDragging( UViewportInteractor* Interactor )
 
 	// If we were placing something, bring the window back
 	if ( FloatingUIAssetDraggedFrom != nullptr && 
-		( InteractorDraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact ||
-		InteractorDraggingMode == EViewportInteractionDraggingMode::Material ) )
+		( InteractorDraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact ||
+		  InteractorDraggingMode == EViewportInteractionDraggingMode::Material ) )
 	{
 		Owner->GetUISystem().ShowEditorUIPanel( FloatingUIAssetDraggedFrom, Cast<UVREditorInteractor>( Interactor->GetOtherInteractor() ), 
 			true, false, false, false );
@@ -264,7 +264,7 @@ void UVREditorWorldInteraction::OnAssetDragStartedFromContentBrowser( const TArr
 			bool bCanPlace = true;
 
 			UObject* AssetObj = AssetData.GetAsset();
-			if( !ObjectTools::IsAssetValidForPlacing( ViewportWorldInteraction->GetViewportWorld(), AssetData.ObjectPath.ToString() ) )
+			if( !ObjectTools::IsAssetValidForPlacing( ViewportWorldInteraction->GetWorld(), AssetData.ObjectPath.ToString() ) )
 			{
 				bCanPlace = false;
 			}
@@ -320,7 +320,7 @@ void UVREditorWorldInteraction::OnAssetDragStartedFromContentBrowser( const TArr
 				const bool bSelectNewActors = true;
 				const EObjectFlags NewObjectFlags = bIsPreview ? RF_Transient : RF_Transactional;
 
-				TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject( ViewportWorldInteraction->GetViewportWorld()->GetCurrentLevel(), AssetObj, bSelectNewActors, NewObjectFlags, FactoryToUse );
+				TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject( ViewportWorldInteraction->GetWorld()->GetCurrentLevel(), AssetObj, bSelectNewActors, NewObjectFlags, FactoryToUse );
 
 				if( NewActors.Num() > 0 )
 				{
@@ -370,32 +370,30 @@ void UVREditorWorldInteraction::OnAssetDragStartedFromContentBrowser( const TArr
 
 		if( AllNewActors.Num() > 0 )
 		{
-			const FViewportActionKeyInput Action( ViewportWorldActionTypes::SelectAndMove_LightlyPressed );
-
 			// Start dragging the new actor(s)
-			const bool bIsPlacingActors = true;
-			ViewportWorldInteraction->StartDraggingActors( PlacingWithInteractor, Action, ViewportWorldInteraction->GetTransformGizmoActor()->GetRootComponent(), PlaceAt, bIsPlacingActors );
-
-			// If we're interpolating, update the target transform of the actors to use our overridden size.  When
-			// we placed them we set their size to be 'thumbnail sized', and we want them to interpolate to
-			// their actual size in the world
-			if( bShouldInterpolateFromDragLocation )
+			UPrimitiveComponent* ClickedTransformGizmoComponent = nullptr;
+			const bool bIsPlacingNewObjects = true;
+			const bool bStartTransaction = false;
+			if( ViewportWorldInteraction->StartDragging( PlacingWithInteractor, ClickedTransformGizmoComponent, PlaceAt, bIsPlacingNewObjects, bStartTransaction ) )
 			{
-				for( TUniquePtr<FViewportTransformable>& TransformablePtr : ViewportWorldInteraction->Transformables )
+				// Dragging started!
+
+				// If we're interpolating, update the target transform of the actors to use our overridden size.  When
+				// we placed them we set their size to be 'thumbnail sized', and we want them to interpolate to
+				// their actual size in the world
+				if( bShouldInterpolateFromDragLocation )
 				{
-					FViewportTransformable& Transformable = *TransformablePtr;
-
-					float ObjectSize = 1.0f;
-
-					if( VREd::OverrideSizeOfPlacedActors->GetFloat() > KINDA_SMALL_NUMBER )
+					for( TUniquePtr<FViewportTransformable>& TransformablePtr : ViewportWorldInteraction->GetTransformables() )
 					{
-						ObjectSize = 1.0f * ViewportWorldInteraction->GetWorldScaleFactor();
+						FViewportTransformable& Transformable = *TransformablePtr;
 
-						// Got an actor?
-						AActor* Actor = Cast<AActor>( Transformable.Object.Get() );
-						if( Actor != nullptr )
+						float ObjectSize = 1.0f;
+
+						if( VREd::OverrideSizeOfPlacedActors->GetFloat() > KINDA_SMALL_NUMBER )
 						{
-							const FBox LocalSpaceBounds = Actor->CalculateComponentsBoundingBoxInLocalSpace();
+							ObjectSize = 1.0f * ViewportWorldInteraction->GetWorldScaleFactor();
+
+							const FBox LocalSpaceBounds = Transformable.GetLocalSpaceBoundingBox();
 							const float LocalBoundsSize = LocalSpaceBounds.GetSize().GetAbsMax();
 
 							const float DesiredSize = VREd::OverrideSizeOfPlacedActors->GetFloat() * ViewportWorldInteraction->GetWorldScaleFactor();
@@ -470,7 +468,7 @@ void UVREditorWorldInteraction::PlaceDraggedMaterialOrTexture( UViewportInteract
 
 			if( DroppedObjAsMaterial || DroppedObjAsTexture )
 			{
-				UGameplayStatics::PlaySound2D( ViewportWorldInteraction->GetViewportWorld(), DropMaterialOrMaterialSound );
+				UGameplayStatics::PlaySound2D( ViewportWorldInteraction->GetWorld(), DropMaterialOrMaterialSound );
 			}
 		}
 	}
@@ -480,7 +478,7 @@ void UVREditorWorldInteraction::PlaceDraggedMaterialOrTexture( UViewportInteract
 
 void UVREditorWorldInteraction::SnapSelectedActorsToGround()
 {
-	TSharedPtr<SLevelViewport> LevelEditorViewport = StaticCastSharedPtr<SLevelViewport>( ViewportWorldInteraction->GetViewportClient()->GetEditorViewportWidget() );
+	TSharedPtr<SLevelViewport> LevelEditorViewport = StaticCastSharedPtr<SLevelViewport>( ViewportWorldInteraction->GetDefaultOptionalViewportClient()->GetEditorViewportWidget() );
 	if ( LevelEditorViewport.IsValid() )
 	{
 		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT( "LevelEditor" ) );
@@ -489,8 +487,8 @@ void UVREditorWorldInteraction::SnapSelectedActorsToGround()
 
 		CommandList->ExecuteAction( Commands.SnapBottomCenterBoundsToFloor.ToSharedRef() );
 
-		// @todo vreditor: This should not be needed after to allow transformables to stop animating the transforms of actors after they come to rest
-		ViewportWorldInteraction->SetupTransformablesForSelectedActors();
+		// Selected objects have been moved, so make sure our transformables are all reset to the object's new location
+		ViewportWorldInteraction->ResetTransformables();
 	}
 }
 
