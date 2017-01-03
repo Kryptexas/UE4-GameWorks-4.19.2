@@ -254,8 +254,8 @@ public:
 		float NearClipPlane;
 		bool bRealTime;
 		float DragTriggerDistance;
-		float TransformGizmoScale;
 		bool bOnScreenMessages;
+		float TransformGizmoScale;
 		EHMDTrackingOrigin::Type TrackingOrigin;
 		float WorldToMetersScale;
 		bool bKeyAllEnabled;
