@@ -1715,10 +1715,10 @@ namespace PostProcessTonemap_ES2Util
 
 
 FRCPassPostProcessTonemapES2::FRCPassPostProcessTonemapES2(const FViewInfo& View, FIntRect InViewRect, FIntPoint InDestSize, bool bInUsedFramebufferFetch) 
-	:
-	ViewRect(InViewRect),
-	DestSize(InDestSize),
-	bUsedFramebufferFetch(bInUsedFramebufferFetch)
+	: bEnableExtentOverride(true)
+	, ViewRect(InViewRect)
+	, DestSize(InDestSize)
+	, bUsedFramebufferFetch(bInUsedFramebufferFetch)
 {
 	uint32 ConfigBitmask = TonemapperGenerateBitmaskMobile(&View, false);
 	ConfigIndexMobile = TonemapperFindLeastExpensive(TonemapperConfBitmaskMobile, sizeof(TonemapperConfBitmaskMobile)/4, TonemapperCostTab, ConfigBitmask);
@@ -1851,8 +1851,10 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemapES2::ComputeOutputDesc(EPassOut
 	Ret.Reset();
 	Ret.Format = PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
-	Ret.Extent = DestSize;
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
-
+	if (bEnableExtentOverride)
+	{
+		Ret.Extent = DestSize;
+	}
 	return Ret;
 }

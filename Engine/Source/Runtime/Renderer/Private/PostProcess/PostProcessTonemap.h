@@ -86,6 +86,8 @@ public:
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 
+	// temporary for 4.15. 4.16 includes a better fix supporting ScreenPercentage
+	bool bEnableExtentOverride;
 private:
 
 

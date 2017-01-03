@@ -2306,6 +2306,10 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 		
 		static const auto VarTonemapperFilm = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperFilm"));
 		const bool bUseTonemapperFilm = IsMobileHDR() && GSupportsRenderTargetFormat_PF_FloatRGBA && (VarTonemapperFilm && VarTonemapperFilm->GetValueOnRenderThread());
+
+		// Temporary for 4.15. Remember the non-filmic tonemapper so we can disable the extent override if necessary.
+		FRCPassPostProcessTonemapES2* PostProcessTonemapES2 = nullptr;
+
 		if (bUseTonemapperFilm)
 		{
 			//@todo Ronin Set to EAutoExposureMethod::AEM_Basic for PC vk crash.
@@ -2319,6 +2323,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			PostProcessTonemap->SetInput(ePId_Input1, BloomOutput);
 			PostProcessTonemap->SetInput(ePId_Input2, DofOutput);
 			Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessTonemap);
+			PostProcessTonemapES2 = (FRCPassPostProcessTonemapES2*)PostProcessTonemap;
 		}
 			
 		// if Context.FinalOutput was the clipped result of sunmask stage then this stage also restores Context.FinalOutput back original target size.
@@ -2329,6 +2334,13 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			if (IsMobileHDR() && !IsMobileHDRMosaic())
 			{
 				AddPostProcessMaterial(Context, BL_AfterTonemapping, nullptr);
+
+				// Temporary for 4.15 to disable setting the extent in ComputeOutputDesc when there is a custom PP material.
+				// 4.16 has full support for ScreenPercentage
+				if (PostProcessTonemapES2 && Context.FinalOutput.GetPass() != PostProcessTonemapES2)
+				{
+					PostProcessTonemapES2->bEnableExtentOverride = false;
+				}
 			}
 	
 			if (bUseAa)
