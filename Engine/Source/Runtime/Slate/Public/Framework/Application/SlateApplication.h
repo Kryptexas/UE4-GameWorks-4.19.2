@@ -422,6 +422,14 @@ public:
 	/** @return	Returns true if there are any pop-up menus summoned */
 	bool AnyMenusVisible() const;
 
+	/**
+	 * Attempt to locate a menu that contains the specified widget
+	 *
+	 * @param InWidgetPath Path to the widget to use for the search
+	 * @return the menu in which the widget resides, or nullptr
+	 */
+	TSharedPtr<IMenu> FindMenuInWidgetPath(const FWidgetPath& InWidgetPath) const;
+
 	/** @return	Returns a ptr to the window that is currently the host of the menu stack or null if no menus are visible */
 	TSharedPtr<SWindow> GetVisibleMenuWindow() const;
 

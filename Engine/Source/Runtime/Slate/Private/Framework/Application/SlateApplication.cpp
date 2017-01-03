@@ -2202,6 +2202,11 @@ bool FSlateApplication::AnyMenusVisible() const
 	return MenuStack.HasMenus();
 }
 
+TSharedPtr<IMenu> FSlateApplication::FindMenuInWidgetPath(const FWidgetPath& InWidgetPath) const
+{
+	return MenuStack.FindMenuInWidgetPath(InWidgetPath);
+}
+
 TSharedPtr<SWindow> FSlateApplication::GetVisibleMenuWindow() const
 {
 	return MenuStack.GetHostWindow();
