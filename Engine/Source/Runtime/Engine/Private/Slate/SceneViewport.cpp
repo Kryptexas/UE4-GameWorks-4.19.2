@@ -56,6 +56,7 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 
 	if(FSlateApplication::IsInitialized())
 	{
+		FSlateApplication::Get().GetRenderer()->OnSlateWindowDestroyed().AddRaw(this, &FSceneViewport::OnWindowBackBufferResourceDestroyed);
 		FSlateApplication::Get().GetRenderer()->OnPreResizeWindowBackBuffer().AddRaw(this, &FSceneViewport::OnPreResizeWindowBackbuffer);
 		FSlateApplication::Get().GetRenderer()->OnPostResizeWindowBackBuffer().AddRaw(this, &FSceneViewport::OnPostResizeWindowBackbuffer);
 	}
@@ -1604,7 +1605,7 @@ void FSceneViewport::WindowRenderTargetUpdate(FSlateRenderer* Renderer, SWindow*
 	}
 }
 
-void FSceneViewport::OnPreResizeWindowBackbuffer(void* Backbuffer)
+void FSceneViewport::OnWindowBackBufferResourceDestroyed(void* Backbuffer)
 {
 	check(IsInGameThread());
 	FViewportRHIRef TestReference = *(FViewportRHIRef*)Backbuffer;
@@ -1613,6 +1614,11 @@ void FSceneViewport::OnPreResizeWindowBackbuffer(void* Backbuffer)
 	{
 		ViewportRHI.SafeRelease();
 	}
+}
+
+void FSceneViewport::OnPreResizeWindowBackbuffer(void* Backbuffer)
+{
+	OnWindowBackBufferResourceDestroyed(Backbuffer);
 }
 
 void FSceneViewport::OnPostResizeWindowBackbuffer(void* Backbuffer)
