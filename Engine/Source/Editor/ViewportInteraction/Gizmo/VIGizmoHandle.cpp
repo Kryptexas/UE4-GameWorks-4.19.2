@@ -9,9 +9,15 @@
 
 UGizmoHandleGroup::UGizmoHandleGroup()
 	: Super(),
-	bShowOnUniversalGizmo( true )
+	bShowOnUniversalGizmo(true),
+	OwningTransformGizmoActor(nullptr)
 {
 
+}
+
+UGizmoHandleGroup::~UGizmoHandleGroup()
+{
+	OwningTransformGizmoActor = nullptr;
 }
 
 FTransformGizmoHandlePlacement UGizmoHandleGroup::MakeHandlePlacementForIndex( const int32 HandleIndex ) const
@@ -115,7 +121,7 @@ ETransformGizmoInteractionType UGizmoHandleGroup::GetInteractionType() const
 	return ETransformGizmoInteractionType::Translate;
 }
 
-void UGizmoHandleGroup::UpdateGizmoHandleGroup(const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, 
+void UGizmoHandleGroup::UpdateGizmoHandleGroup(const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, class UActorComponent* DraggingHandle, 
 	const TArray< UActorComponent* >& HoveringOverHandles, float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
 {
 	UpdateHoverAnimation(DraggingHandle, HoveringOverHandles, GizmoHoverAnimationDuration, bOutIsHoveringOrDraggingThisHandleGroup);
@@ -161,6 +167,11 @@ void UGizmoHandleGroup::SetShowOnUniversalGizmo( const bool bInShowOnUniversal )
 bool UGizmoHandleGroup::GetShowOnUniversalGizmo() const
 {
 	return bShowOnUniversalGizmo;
+}
+
+void UGizmoHandleGroup::SetOwningTransformGizmo(class ABaseTransformGizmo* TransformGizmo)
+{
+	OwningTransformGizmoActor = TransformGizmo;
 }
 
 void UGizmoHandleGroup::UpdateHandleColor( const int32 AxisIndex, FGizmoHandle& Handle, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles )
@@ -217,6 +228,25 @@ void UGizmoHandleGroup::UpdateHandleColor( const int32 AxisIndex, FGizmoHandle& 
 			static FName StaticHandleColorParameter( "Color" );
 			MID0->SetVectorParameterValue( StaticHandleColorParameter, HandleColor );
 			MID1->SetVectorParameterValue( StaticHandleColorParameter, HandleColor );
+		}
+	}
+}
+
+void UGizmoHandleGroup::UpdateVisibilityAndCollision(const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, const bool bAllHandlesVisible, UActorComponent* DraggingHandle)
+{
+	const bool bIsTypeSupported = (GizmoType == EGizmoHandleTypes::All && GetShowOnUniversalGizmo()) || GetHandleType() == GizmoType;
+	const bool bSupportsCurrentCoordinateSpace = SupportsWorldCoordinateSpace() || GizmoCoordinateSpace != COORD_World;
+
+	for (FGizmoHandle& Handle : GetHandles())
+	{
+		if (Handle.HandleMesh != nullptr)
+		{
+			const bool bShowIt = (bIsTypeSupported && bSupportsCurrentCoordinateSpace && bAllHandlesVisible) || (DraggingHandle != nullptr && DraggingHandle == Handle.HandleMesh);
+
+			Handle.HandleMesh->SetVisibility(bShowIt);
+
+			// Never allow ray queries to impact hidden handles
+			Handle.HandleMesh->SetCollisionEnabled(bShowIt ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
 		}
 	}
 }
