@@ -2669,7 +2669,7 @@ void UVREditorUISystem::UpdateSequencerUI()
 		const bool bWithSceneComponent = false;
 		SequencerPanel->SetSlateWidget(*this, WidgetToDraw, FIntPoint(VREd::ContentBrowserUIResolutionX->GetFloat(), VREd::ContentBrowserUIResolutionY->GetFloat()), VREd::ContentBrowserUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
 		UVREditorInteractor* VREditorInteractor = VRMode->GetHandInteractor(EControllerHand::Left);
-		if (!VREditorInteractor->IsHoveringOverUI())
+		if (VREditorInteractor->IsHoveringOverUI())
 		{
 			VREditorInteractor = VRMode->GetHandInteractor(EControllerHand::Right);
 
