@@ -440,7 +440,7 @@ public:
 			const FKSphereElem ScaledSphereElem = SphereElem.GetFinalScaled(Scale3D, RelativeTM);
 
 			PxSphereGeometry PSphereGeom;
-			PSphereGeom.radius = ScaledSphereElem.Radius;
+			PSphereGeom.radius = FMath::Max(ScaledSphereElem.Radius, KINDA_SMALL_NUMBER);
 
 			if (ensure(PSphereGeom.isValid()))
 			{
@@ -467,9 +467,9 @@ public:
 			const FTransform& BoxTransform = ScaledBoxElem.GetTransform();
 			
 			PxBoxGeometry PBoxGeom;
-			PBoxGeom.halfExtents.x = ScaledBoxElem.X * 0.5f;
-			PBoxGeom.halfExtents.y = ScaledBoxElem.Y * 0.5f;
-			PBoxGeom.halfExtents.z = ScaledBoxElem.Z * 0.5f;
+			PBoxGeom.halfExtents.x = FMath::Max(ScaledBoxElem.X * 0.5f, KINDA_SMALL_NUMBER);
+			PBoxGeom.halfExtents.y = FMath::Max(ScaledBoxElem.Y * 0.5f, KINDA_SMALL_NUMBER);
+			PBoxGeom.halfExtents.z = FMath::Max(ScaledBoxElem.Z * 0.5f, KINDA_SMALL_NUMBER);
 
 			if (PBoxGeom.isValid() && BoxTransform.IsValid())
 			{
@@ -498,8 +498,8 @@ public:
 			const FKSphylElem ScaledSphylElem = SphylElem.GetFinalScaled(Scale3D, RelativeTM);
 
 			PxCapsuleGeometry PCapsuleGeom;
-			PCapsuleGeom.halfHeight = ScaledSphylElem.Length * 0.5f;
-			PCapsuleGeom.radius = ScaledSphylElem.Radius;
+			PCapsuleGeom.halfHeight = FMath::Max(ScaledSphylElem.Length * 0.5f, KINDA_SMALL_NUMBER);
+			PCapsuleGeom.radius = FMath::Max(ScaledSphylElem.Radius, KINDA_SMALL_NUMBER);
 
 			if (PCapsuleGeom.isValid())
 			{

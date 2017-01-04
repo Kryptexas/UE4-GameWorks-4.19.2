@@ -2541,7 +2541,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D, bool bForceUpdate)
 
 					PShape->getSphereGeometry(PSphereGeom);
 					 
-					PSphereGeom.radius = SphereElem->Radius * AdjustedScale3DAbs.X;
+					PSphereGeom.radius = FMath::Max(SphereElem->Radius * AdjustedScale3DAbs.X, KINDA_SMALL_NUMBER);
 					PLocalPose.p = U2PVector(RelativeTM.TransformPosition(SphereElem->Center));
 					PLocalPose.p *= AdjustedScale3D.X;
 
@@ -2561,9 +2561,9 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D, bool bForceUpdate)
 					FKBoxElem* BoxElem = ShapeElem->GetShapeCheck<FKBoxElem>();
 					PShape->getBoxGeometry(PBoxGeom);
 
-					PBoxGeom.halfExtents.x = (0.5f * BoxElem->X * AdjustedScale3DAbs.X);
-					PBoxGeom.halfExtents.y = (0.5f * BoxElem->Y * AdjustedScale3DAbs.Y);
-					PBoxGeom.halfExtents.z = (0.5f * BoxElem->Z * AdjustedScale3DAbs.Z);
+					PBoxGeom.halfExtents.x = FMath::Max((0.5f * BoxElem->X * AdjustedScale3DAbs.X), KINDA_SMALL_NUMBER);
+					PBoxGeom.halfExtents.y = FMath::Max((0.5f * BoxElem->Y * AdjustedScale3DAbs.Y), KINDA_SMALL_NUMBER);
+					PBoxGeom.halfExtents.z = FMath::Max((0.5f * BoxElem->Z * AdjustedScale3DAbs.Z), KINDA_SMALL_NUMBER);
 
 					FTransform BoxTransform = BoxElem->GetTransform() * RelativeTM;
 					PLocalPose = PxTransform(U2PTransform(BoxTransform));
@@ -2601,8 +2601,8 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D, bool bForceUpdate)
 					float HalfHeight = HalfLength - Radius;
 					HalfHeight = FMath::Max(0.1f, HalfHeight);
 
-					PCapsuleGeom.halfHeight = HalfHeight;
-					PCapsuleGeom.radius = Radius;
+					PCapsuleGeom.halfHeight = FMath::Max(HalfHeight, KINDA_SMALL_NUMBER);
+					PCapsuleGeom.radius = FMath::Max(Radius, KINDA_SMALL_NUMBER);
 
 					PLocalPose = PxTransform(U2PVector(RelativeTM.TransformPosition(SphylElem->Center)), U2PQuat(SphylElem->Orientation) * U2PSphylBasis);
 					PLocalPose.p.x *= AdjustedScale3D.X;
