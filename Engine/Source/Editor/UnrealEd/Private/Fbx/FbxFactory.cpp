@@ -291,6 +291,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 						if (FbxMeshArray.Num() > 0)
 						{
 							NewStaticMesh = FbxImporter->ImportStaticMeshAsSingle(InParent, FbxMeshArray, Name, Flags, ImportUI->StaticMeshImportData, NULL, 0);
+							FbxImporter->ReorderMaterialToFbxOrder(NewStaticMesh, FbxMeshArray);
 						}
 
 						ImportedMeshCount = NewStaticMesh ? 1 : 0;
@@ -590,6 +591,17 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 				}
 			}
 		}
+		
+		if (NewObject)
+		{
+			//Reorder the material
+			TArray<FbxNode*> Nodes;
+			FbxImporter->FindAllLODGroupNode(Nodes, Node, 0);
+			if (Nodes.Num() > 0)
+			{
+				FbxImporter->ReorderMaterialToFbxOrder(Cast<UStaticMesh>(NewObject), Nodes);
+			}
+		}
 	}
 	else
 	{
@@ -601,6 +613,11 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 
 			if ( NewObject )
 			{
+				//Reorder the material
+				TArray<FbxNode*> Nodes;
+				Nodes.Add(Node);
+				FbxImporter->ReorderMaterialToFbxOrder(Cast<UStaticMesh>(NewObject), Nodes);
+
 				OutNewAssets.Add(NewObject);
 			}
 		}

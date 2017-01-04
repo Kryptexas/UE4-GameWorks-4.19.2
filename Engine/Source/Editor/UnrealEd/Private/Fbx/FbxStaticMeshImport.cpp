@@ -932,6 +932,7 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 	{
 		FbxNode* NodeParent = RecursiveFindParentLodGroup(Node->GetParent());
 
+		TArray<FbxNode*> LodZeroNodes;
 		// if the Fbx mesh is a part of LODGroup, update LOD
 		if (NodeParent && NodeParent->GetNodeAttribute() && NodeParent->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 		{
@@ -939,6 +940,7 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 			FindAllLODGroupNode(AllNodeInLod, NodeParent, 0);
 			if (AllNodeInLod.Num() > 0)
 			{
+				LodZeroNodes = AllNodeInLod;
 				NewMesh = ImportStaticMeshAsSingle(Mesh->GetOuter(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0, ExistMeshDataPtr);
 			}
 
@@ -960,8 +962,10 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 		}
 		else
 		{
+			LodZeroNodes.Add(Node);
 			NewMesh = ImportStaticMesh(Mesh->GetOuter(), Node, *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData, Mesh, 0, ExistMeshDataPtr);
 		}
+		ReorderMaterialToFbxOrder(NewMesh, LodZeroNodes);
 	}
 	else
 	{
@@ -969,6 +973,7 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 		if (FbxMeshArray.Num() > 0)
 		{
 			NewMesh = ImportStaticMeshAsSingle(Mesh->GetOuter(), FbxMeshArray, *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData, Mesh, 0, ExistMeshDataPtr);
+			ReorderMaterialToFbxOrder(NewMesh, FbxMeshArray);
 		}
 		else // no mesh found in the FBX file
 		{
@@ -1567,6 +1572,74 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 	}
 
 	return StaticMesh;
+}
+
+void UnFbx::FFbxImporter::ReorderMaterialToFbxOrder(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray)
+{
+	TArray<FString> MeshMaterials;
+	for (int32 MeshIndex = 0; MeshIndex < MeshNodeArray.Num(); MeshIndex++)
+	{
+		FbxNode* Node = MeshNodeArray[MeshIndex];
+		if (Node->GetMesh())
+		{
+			int32 MaterialCount = Node->GetMaterialCount();
+
+			for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; MaterialIndex++)
+			{
+				//Get the original fbx import name
+				FbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
+				FString FbxMaterialName = FbxMaterial ? ANSI_TO_TCHAR(FbxMaterial->GetName()) : TEXT("None");
+				if (!MeshMaterials.Contains(FbxMaterialName))
+				{
+					MeshMaterials.Add(FbxMaterialName);
+				}
+			}
+		}
+	}
+
+	//Reorder the StaticMaterials array to reflect the order in the fbx file
+	//So we make sure the order reflect the material ID in the DCCs
+	FMeshSectionInfoMap OldSectionInfoMap = StaticMesh->SectionInfoMap;
+	TArray<int32> FbxRemapMaterials;
+	TArray<FStaticMaterial> NewStaticMaterials;
+	for (int32 FbxMaterialIndex = 0; FbxMaterialIndex < MeshMaterials.Num(); ++FbxMaterialIndex)
+	{
+		const FString &FbxMaterial = MeshMaterials[FbxMaterialIndex];
+		int32 FoundMaterialIndex = INDEX_NONE;
+		for (int32 BuildMaterialIndex = 0; BuildMaterialIndex < StaticMesh->StaticMaterials.Num(); ++BuildMaterialIndex)
+		{
+			FStaticMaterial &BuildMaterial = StaticMesh->StaticMaterials[BuildMaterialIndex];
+			if (FbxMaterial.Compare(BuildMaterial.ImportedMaterialSlotName.ToString()) == 0)
+			{
+				FoundMaterialIndex = BuildMaterialIndex;
+				break;
+			}
+		}
+		FbxRemapMaterials.Add(FoundMaterialIndex);
+		NewStaticMaterials.Add(StaticMesh->StaticMaterials[FoundMaterialIndex]);
+	}
+	StaticMesh->StaticMaterials.Empty();
+	for (const FStaticMaterial &BuildMaterial : NewStaticMaterials)
+	{
+		StaticMesh->StaticMaterials.Add(BuildMaterial);
+	}
+
+	//Remap the material instance of the staticmaterial array and remap the material index of all sections
+	for (int32 LODResoureceIndex = 0; LODResoureceIndex < StaticMesh->RenderData->LODResources.Num(); ++LODResoureceIndex)
+	{
+		FStaticMeshLODResources& LOD = StaticMesh->RenderData->LODResources[LODResoureceIndex];
+		int32 NumSections = LOD.Sections.Num();
+		for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+		{
+			FMeshSectionInfo Info = OldSectionInfoMap.Get(LODResoureceIndex, SectionIndex);
+			int32 RemapIndex = FbxRemapMaterials.Find(Info.MaterialIndex);
+			if (StaticMesh->StaticMaterials.IsValidIndex(RemapIndex))
+			{
+				Info.MaterialIndex = RemapIndex;
+				StaticMesh->SectionInfoMap.Set(LODResoureceIndex, SectionIndex, Info);
+			}
+		}
+	}
 }
 
 bool UnFbx::FFbxImporter::ImportSubDSurface(USubDSurface* Out, UObject* InParent, TArray<FbxNode*>& MeshNodeArray, const FName InName, EObjectFlags Flags, UFbxStaticMeshImportData* TemplateImportData)
