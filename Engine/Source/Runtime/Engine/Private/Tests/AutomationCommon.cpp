@@ -17,6 +17,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "Scalability.h"
 #include "Matinee/MatineeActor.h"
+#include "IHeadMountedDisplay.h"
 
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 
@@ -66,11 +67,6 @@ namespace AutomationCommon
 			HardwareDetailsString = ( HardwareDetailsString + TEXT("_") ) + FeatureLevelString;
 		}
 
-		if ( GEngine->StereoRenderingDevice.IsValid() )
-		{
-			HardwareDetailsString = ( HardwareDetailsString + TEXT("_") ) + TEXT("STEREO");
-		}
-
 		if ( HardwareDetailsString.Len() > 0 )
 		{
 			//Get rid of the leading "_"
@@ -108,7 +104,7 @@ namespace AutomationCommon
 		Data.Platform = FPlatformProperties::PlatformName();
 		Data.Rhi = FHardwareInfo::GetHardwareInfo(NAME_RHI);
 		GetFeatureLevelName(GMaxRHIFeatureLevel, Data.FeatureLevel);
-		Data.bIsStereo = GEngine->StereoRenderingDevice.IsValid();
+		Data.bIsStereo = GEngine->HMDDevice.IsValid() ? GEngine->HMDDevice->IsStereoEnabled() : false;
 		Data.Vendor = RHIVendorIdToString();
 		Data.AdapterName = GRHIAdapterName;
 		Data.AdapterInternalDriverVersion = GRHIAdapterInternalDriverVersion;

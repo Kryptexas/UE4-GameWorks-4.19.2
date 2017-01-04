@@ -6998,11 +6998,9 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 		}
 	}
 
-	//should really be wait until the map is properly loaded....in PIE or gameplay....
 	if (bNeedPieStart)
 	{
-		//TODO NICKD We need a better way to determine when to start the map.
-		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
+		ADD_LATENT_AUTOMATION_COMMAND(FWaitForMapToLoadCommand);
 	}
 #endif
 	return;
