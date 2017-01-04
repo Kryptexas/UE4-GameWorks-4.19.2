@@ -5,11 +5,15 @@
 #include "ViewportWorldInteraction.h"
 #include "EditorWorldExtension.h"
 #include "Materials/MaterialInstance.h" 
+#include "Components/BillboardComponent.h"
 
 ASequencerMeshTrail::ASequencerMeshTrail()
 	: Super()
 {
-	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+	UBillboardComponent* PrimitiveRootComponent = CreateDefaultSubobject<UBillboardComponent>(TEXT("RootComponent"));
+	PrimitiveRootComponent->bSelectable = false;
+	PrimitiveRootComponent->bVisible = false;
+	SetRootComponent(PrimitiveRootComponent);
 }
 
 void ASequencerMeshTrail::Cleanup()
