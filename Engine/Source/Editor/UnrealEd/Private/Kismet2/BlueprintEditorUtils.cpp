@@ -2311,8 +2311,8 @@ UFunction* FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(const UBlu
 			if( SearchClass )
 			{
 				// Use the skeleton class if possible, as the generated class may not always be up-to-date (e.g. if the compile state is dirty).
-				UBlueprint* InterfaceBlueprint = CastChecked<UBlueprint>(SearchClass->ClassGeneratedBy);
-				if (InterfaceBlueprint->SkeletonGeneratedClass)
+				UBlueprint* InterfaceBlueprint = Cast<UBlueprint>(SearchClass->ClassGeneratedBy);
+				if (InterfaceBlueprint && InterfaceBlueprint->SkeletonGeneratedClass)
 				{
 					SearchClass = InterfaceBlueprint->SkeletonGeneratedClass;
 				}
