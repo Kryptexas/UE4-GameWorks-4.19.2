@@ -322,7 +322,6 @@ private:
 		const EViewportInteractionDraggingMode DraggingMode, 
 		const ETransformGizmoInteractionType InteractionType, 
 		const bool bWithTwoHands, 
-		class FEditorViewportClient& ViewportClient, 
 		const TOptional<FTransformGizmoHandlePlacement> OptionalHandlePlacement, 
 		const FVector& DragDelta, 
 		const FVector& OtherHandDragDelta, 
