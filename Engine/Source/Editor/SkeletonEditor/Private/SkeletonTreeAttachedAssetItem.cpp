@@ -19,6 +19,7 @@
 
 FSkeletonTreeAttachedAssetItem::FSkeletonTreeAttachedAssetItem(UObject* InAsset, const FName& InAttachedTo, const TSharedRef<class ISkeletonTree>& InSkeletonTree)
 	: FSkeletonTreeItem(InSkeletonTree)
+	, AttachedTo(InAttachedTo)
 	, Asset(InAsset)
 {
 	AssetComponent = PersonaUtils::GetComponentForAttachedObject(InSkeletonTree->GetPreviewScene()->GetPreviewMeshComponent(), InAsset, InAttachedTo);

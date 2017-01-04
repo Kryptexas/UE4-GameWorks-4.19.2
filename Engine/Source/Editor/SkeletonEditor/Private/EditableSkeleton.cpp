@@ -741,7 +741,7 @@ void FEditableSkeleton::HandleAttachAssets(const TArray<UObject*>& InObjects, co
 				{
 					InPreviewScene->AttachObjectToPreviewComponent(Object, InAttachToName);
 				}
-				SkeletalMesh->PreviewAttachedAssetContainer.AddUniqueAttachedObject(Object, InAttachToName);
+				SkeletalMesh->PreviewAttachedAssetContainer.AddAttachedObject(Object, InAttachToName);
 			}
 		}
 		else
@@ -752,7 +752,7 @@ void FEditableSkeleton::HandleAttachAssets(const TArray<UObject*>& InObjects, co
 			{
 				InPreviewScene->AttachObjectToPreviewComponent(Object, InAttachToName);
 			}
-			Skeleton->PreviewAttachedAssetContainer.AddUniqueAttachedObject(Object, InAttachToName);
+			Skeleton->PreviewAttachedAssetContainer.AddAttachedObject(Object, InAttachToName);
 		}
 	}
 }

@@ -256,7 +256,7 @@ void FSkeletonTreeBuilder::AddAttachedAssetContainer(const FPreviewAssetAttachCo
 	{
 		const FPreviewAttachedObjectPair& Pair = (*Iter);
 
-		Output.Add(CreateAttachedAssetTreeItem(Pair.GetAttachedObject(), Pair.AttachedTo), Pair.AttachedTo, { FSkeletonTreeSocketItem::GetTypeId(), FSkeletonTreeSocketItem::GetTypeId() });
+		Output.Add(CreateAttachedAssetTreeItem(Pair.GetAttachedObject(), Pair.AttachedTo), Pair.AttachedTo, { FSkeletonTreeBoneItem::GetTypeId(), FSkeletonTreeSocketItem::GetTypeId() });
 	}
 }
 
