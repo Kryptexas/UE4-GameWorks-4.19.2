@@ -145,6 +145,13 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const FObject
 	MaxNormalizedTireLoadFiltered = PTireLoadFilterDef.mMaxFilteredNormalisedLoad;
 }
 
+void UWheeledVehicleMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
+{
+	//Skip PawnMovementComponent and simply set PawnOwner to null if we don't have a PawnActor as owner
+	UNavMovementComponent::SetUpdatedComponent(NewUpdatedComponent);
+	PawnOwner = NewUpdatedComponent ? Cast<APawn>(NewUpdatedComponent->GetOwner()) : nullptr;
+}
+
 bool UWheeledVehicleMovementComponent::CanCreateVehicle() const
 {
 	if ( UpdatedComponent == NULL )
