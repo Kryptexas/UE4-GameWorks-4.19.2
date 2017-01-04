@@ -502,6 +502,8 @@ void FSequencer::ResetToNewRootSequence(UMovieSceneSequence& NewSequence)
 	RootSequence = &NewSequence;
 	RestorePreAnimatedState();
 
+	RootTemplateInstance.Finish(*this);
+
 	TemplateStore->Reset();
 
 	ActiveTemplateIDs.Reset();
