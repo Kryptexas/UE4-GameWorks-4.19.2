@@ -196,7 +196,6 @@ bool AutomationOpenMap(const FString& MapName)
 			GEngine->Exec(TestWorld, *OpenCommand);
 		}
 
-		//Wait for map to load - need a better way to determine if loaded
 		ADD_LATENT_AUTOMATION_COMMAND(FWaitForMapToLoadCommand());
 	}
 
@@ -256,9 +255,6 @@ bool FRequestExitCommand::Update()
 
 bool FWaitForMapToLoadCommand::Update()
 {
-	//TODO Automation we need a better way to know when the map finished loading.
-
-	//TODO - Is there a better way to see if the map is loaded?  Are Actors Initialized isn't right in Fortnite...
 	UWorld* TestWorld = AutomationCommon::GetAnyGameWorld();
 
 	if ( TestWorld && TestWorld->AreActorsInitialized() )

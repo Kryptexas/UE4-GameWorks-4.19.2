@@ -206,7 +206,7 @@ TSharedRef<SWidget> SScreenComparisonRow::BuildAddedView()
 	TArray<FString> Images;
 
 	FString AddedFolder = ComparisonDirectory / Comparisons->IncomingPath / Model->Folder;
-	IFileManager::Get().FindFilesRecursive(ExternalFiles, *AddedFolder, TEXT("*.png"), true, false);
+	IFileManager::Get().FindFilesRecursive(Images, *AddedFolder, TEXT("*.png"), true, false);
 
 	//TODO Automation this is no good, we need to clear out the incoming directory beforehand.
 	if ( Images.Num() > 0 )
@@ -218,6 +218,7 @@ TSharedRef<SWidget> SScreenComparisonRow::BuildAddedView()
 		SNew(SVerticalBox)
 		
 		+ SVerticalBox::Slot()
+		.AutoHeight()
 		[
 			SNew(SBox)
 			.MaxDesiredHeight(100)
@@ -241,6 +242,8 @@ TSharedRef<SWidget> SScreenComparisonRow::BuildAddedView()
 		]
 		
 		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.HAlign(HAlign_Center)
 		[
 			SNew(SButton)
 			.IsEnabled(this, &SScreenComparisonRow::CanUseSourceControl)
