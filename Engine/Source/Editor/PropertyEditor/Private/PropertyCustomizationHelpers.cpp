@@ -178,8 +178,8 @@ namespace PropertyCustomizationHelpers
 	}
 
 	TSharedRef<SWidget> MakeInsertDeleteDuplicateButton(FExecuteAction OnInsertClicked, FExecuteAction OnDeleteClicked, FExecuteAction OnDuplicateClicked)
-	{	
-		FMenuBuilder MenuContentBuilder( true, NULL );
+	{
+		FMenuBuilder MenuContentBuilder( true, nullptr, nullptr, true );
 		{
 			if (OnInsertClicked.IsBound())
 			{
