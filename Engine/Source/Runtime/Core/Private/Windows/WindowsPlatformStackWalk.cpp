@@ -585,7 +585,12 @@ static void LoadProcessModules(const FString &RemoteStorage)
 		if( !BaseAddress )
 		{
 			ErrorCode = GetLastError();
-			UE_LOG(LogWindows, Warning, TEXT("SymLoadModuleExW. Error: %d"), GetLastError());
+
+			// If the module is already loaded, the return value is zero and GetLastError returns ERROR_SUCCESS.
+			if ( ErrorCode != ERROR_SUCCESS )
+			{
+				UE_LOG(LogWindows, Warning, TEXT("SymLoadModuleExW. Error: %d"), ErrorCode);
+			}
 		}
 #else
 		SymSetSearchPath(ProcessHandle, TCHAR_TO_ANSI(*SearchPathList));
@@ -595,7 +600,12 @@ static void LoadProcessModules(const FString &RemoteStorage)
 		if (!BaseAddress)
 		{
 			ErrorCode = GetLastError();
-			UE_LOG(LogWindows, Warning, TEXT("SymLoadModuleEx. Error: %d"), GetLastError());
+
+			// If the module is already loaded, the return value is zero and GetLastError returns ERROR_SUCCESS.
+			if ( ErrorCode != ERROR_SUCCESS )
+			{
+				UE_LOG(LogWindows, Warning, TEXT("SymLoadModuleEx. Error: %d"), ErrorCode);
+			}
 		}
 #endif
 	} 

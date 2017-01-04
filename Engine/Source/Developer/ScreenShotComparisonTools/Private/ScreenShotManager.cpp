@@ -267,7 +267,7 @@ FImageComparisonResult FScreenShotManager::CompareScreensot(FString ExistingImag
 	{
 		for ( FString ApprovedShot : ApprovedDeviceShots )
 		{
-			FString ApprovedShotFile = FPaths::GetCleanFilename(ApprovedDeviceShots[0]);
+			FString ApprovedShotFile = FPaths::GetCleanFilename(ApprovedShot);
 			FString ApprovedShotFileFull = FPaths::Combine(TestApprovedFolder, ApprovedShotFile);
 
 			FString ApprovedMetadataFile = FPaths::ChangeExtension(ApprovedShotFileFull, ".json");
