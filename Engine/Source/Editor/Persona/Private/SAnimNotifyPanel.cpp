@@ -4192,6 +4192,7 @@ void SAnimNotifyPanel::RefreshNotifyTracks()
 			.OnPasteNodes(this, &SAnimNotifyPanel::OnPasteNodes)
 			.OnSetInputViewRange(this, &SAnimNotifyPanel::InputViewRangeChanged)
 			.OnGetTimingNodeVisibility(OnGetTimingNodeVisibility)
+			.OnInvokeTab(OnInvokeTab)
 		];
 
 		NotifyAnimTracks.Add(EdTrack->NotifyTrack);
