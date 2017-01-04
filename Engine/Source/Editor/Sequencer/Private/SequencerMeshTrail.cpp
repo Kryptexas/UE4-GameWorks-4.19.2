@@ -12,7 +12,7 @@ ASequencerMeshTrail::ASequencerMeshTrail()
 {
 	UBillboardComponent* PrimitiveRootComponent = CreateDefaultSubobject<UBillboardComponent>(TEXT("RootComponent"));
 	PrimitiveRootComponent->bSelectable = false;
-	PrimitiveRootComponent->bVisible = false;
+	PrimitiveRootComponent->SetVisibility(false, false);
 	SetRootComponent(PrimitiveRootComponent);
 }
 
