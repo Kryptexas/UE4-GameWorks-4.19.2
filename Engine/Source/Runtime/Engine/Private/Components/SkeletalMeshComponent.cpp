@@ -458,6 +458,7 @@ void USkeletalMeshComponent::OnUnregister()
 	{
 		SubInstance->UninitializeAnimation();
 	}
+	SubInstances.Reset();
 
 	if(PostProcessAnimInstance)
 	{
@@ -800,20 +801,21 @@ void USkeletalMeshComponent::LoadedFromAnotherClass(const FName& OldClassName)
 
 void USkeletalMeshComponent::TickAnimation(float DeltaTime, bool bNeedsValidRootMotion)
 {
-
 	SCOPE_CYCLE_COUNTER(STAT_AnimGameThreadTime);
 	SCOPE_CYCLE_COUNTER(STAT_AnimTickTime);
 	if (SkeletalMesh != nullptr)
 	{
+		// We update sub instances first incase we're using either root motion or non-threaded update.
+		// This ensures that we go through the pre update process and initialize the proxies correctly.
+		for(UAnimInstance* SubInstance : SubInstances)
+		{
+			SubInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, false);
+		}
+
 		if (AnimScriptInstance != nullptr)
 		{
 			// Tick the animation
 			AnimScriptInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, bNeedsValidRootMotion);
-		}
-
-		for(UAnimInstance* SubInstance : SubInstances)
-		{
-			SubInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, false);
 		}
 
 		if(PostProcessAnimInstance)
