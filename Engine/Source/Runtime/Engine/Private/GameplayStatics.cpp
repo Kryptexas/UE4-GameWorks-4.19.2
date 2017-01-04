@@ -1975,9 +1975,8 @@ bool UGameplayStatics::PredictProjectilePath(const UObject* WorldContextObject, 
 
 		FCollisionQueryParams QueryParams(NAME_PredictProjectilePath, PredictParams.bTraceComplex);
 		FCollisionObjectQueryParams ObjQueryParams;
-		const bool bTraceWithChannel = (PredictParams.TraceChannel != ECC_MAX);
 		const bool bTraceWithObjectType = (PredictParams.ObjectTypes.Num() > 0);
-		const bool bTracePath = PredictParams.bTraceWithCollision && (bTraceWithChannel || bTraceWithObjectType);
+		const bool bTracePath = PredictParams.bTraceWithCollision && (PredictParams.bTraceWithChannel || bTraceWithObjectType);
 		if (bTracePath)
 		{
 			QueryParams.AddIgnoredActors(PredictParams.ActorsToIgnore);
@@ -2026,7 +2025,7 @@ bool UGameplayStatics::PredictProjectilePath(const UObject* WorldContextObject, 
 				{
 					bObjectHit = World->SweepSingleByObjectType(ObjectTraceHit, TraceStart, TraceEnd, FQuat::Identity, ObjQueryParams, FCollisionShape::MakeSphere(ProjectileRadius), QueryParams);
 				}
-				if (bTraceWithChannel)
+				if (PredictParams.bTraceWithChannel)
 				{
 					bChannelHit = World->SweepSingleByChannel(ChannelTraceHit, TraceStart, TraceEnd, FQuat::Identity, PredictParams.TraceChannel, FCollisionShape::MakeSphere(ProjectileRadius), QueryParams);
 				}
@@ -2145,6 +2144,7 @@ bool UGameplayStatics::Blueprint_PredictProjectilePath_ByObjectType(
 	Params.SimFrequency = SimFrequency;
 	Params.OverrideGravityZ = OverrideGravityZ;
 	Params.ObjectTypes = ObjectTypes; // Object trace
+	Params.bTraceWithChannel = false;
 
 	// Do the trace
 	FPredictProjectilePathResult PredictResult;

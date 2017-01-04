@@ -41,8 +41,12 @@ struct FPredictProjectilePathParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PredictProjectilePathParams)
 	float MaxSimTime;
 
+	// Whether or not to use TraceChannel, if tracing with collision.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PredictProjectilePathParams)
+	bool bTraceWithChannel;
+
 	// Trace channel to use, if tracing with collision.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PredictProjectilePathParams)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PredictProjectilePathParams)
 	TEnumAsByte<ECollisionChannel> TraceChannel;
 
 	// Object type to use, if tracing with collision.
@@ -90,6 +94,7 @@ struct FPredictProjectilePathParams
 	{
 		Init(InProjectileRadius, InStartLocation, InLaunchVelocity, InMaxSimTime, true);
 		ObjectTypes.Add(ObjectType);
+		bTraceWithChannel = false;
 		if (ActorToIgnore)
 		{
 			ActorsToIgnore.Add(ActorToIgnore);
@@ -119,7 +124,8 @@ private:
 		SimFrequency = 20.f;
 		OverrideGravityZ = 0.f;
 		DrawDebugTime = 1.f;
-		TraceChannel = ECC_MAX;
+		bTraceWithChannel = true;
+		TraceChannel = ECC_WorldStatic;
 		DrawDebugType = EDrawDebugTrace::None;
 		bTraceComplex = false;
 	}
