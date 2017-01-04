@@ -47,7 +47,7 @@ void UVREditorInteractor::Shutdown()
 	for ( auto& KeyAndValue : HelpLabels )
 	{
 		AFloatingText* FloatingText = KeyAndValue.Value;
-		UViewportWorldInteraction::DestroyTransientActor( GetWorld(), FloatingText );
+		UViewportWorldInteraction::DestroyTransientActor( GetVRMode().GetWorld(), FloatingText );
 	}
 
 	HelpLabels.Empty();	
