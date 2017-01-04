@@ -224,6 +224,7 @@ public:
 DECLARE_CYCLE_STAT(TEXT("PhysX Single Thread Task"), STAT_PhysXSingleThread, STATGROUP_Physics);
 
 /** Used to dispatch physx tasks to the game thread */
+template <bool IsClothDispatcher>
 class FPhysXCPUDispatcherSingleThread : public PxCpuDispatcher
 {
 	TArray<PxBaseTask*> TaskStack;
@@ -231,7 +232,13 @@ class FPhysXCPUDispatcherSingleThread : public PxCpuDispatcher
 	virtual void submitTask(PxBaseTask& Task) override
 	{
 		SCOPE_CYCLE_COUNTER(STAT_PhysXSingleThread);
-		check(IsInGameThread());
+		
+		if(!IsClothDispatcher)
+		{
+			// Clothing will always be running from a worker, and the tasks
+			// are safe to run off the game thread.
+			check(IsInGameThread());
+		}
 
 		TaskStack.Push(&Task);
 		if (TaskStack.Num() > 1)
@@ -1699,7 +1706,14 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	// Create dispatcher for tasks
 	if (PhysSingleThreadedMode())
 	{
-		CPUDispatcher[SceneType] = new FPhysXCPUDispatcherSingleThread();
+		if(SceneType == PST_Cloth)
+		{
+			CPUDispatcher[SceneType] = new FPhysXCPUDispatcherSingleThread<true>();
+		}
+		else
+		{
+			CPUDispatcher[SceneType] = new FPhysXCPUDispatcherSingleThread<false>();
+		}
 	}
 	else
 	{
