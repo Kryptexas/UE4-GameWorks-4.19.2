@@ -2247,11 +2247,11 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 
 		if ( ViewState )
 		{
-			// In case world origin was rebased, reset previous view transformations
-			if (View.bOriginOffsetThisFrame)
+			// update previous frame matrices in case world origin was rebased on this frame
+			if (!View.OriginOffsetThisFrame.IsZero())
 			{
-				ViewState->PrevViewMatrices = View.ViewMatrices;
-				ViewState->PendingPrevViewMatrices = View.ViewMatrices;
+				ViewState->PrevViewMatrices.ApplyWorldOffset(View.OriginOffsetThisFrame);
+				ViewState->PendingPrevViewMatrices.ApplyWorldOffset(View.OriginOffsetThisFrame);
 			}
 			
 			// determine if we are initializing or we should reset the persistent state

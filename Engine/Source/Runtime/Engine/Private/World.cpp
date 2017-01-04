@@ -4595,6 +4595,7 @@ bool UWorld::SetNewWorldOrigin(FIntVector InNewOriginLocation)
 	FCoreDelegates::PreWorldOriginOffset.Broadcast(this, OriginLocation, InNewOriginLocation);
 
 	FVector Offset(OriginLocation - InNewOriginLocation);
+	OriginOffsetThisFrame = Offset;
 
 	// Send offset command to rendering thread
 	Scene->ApplyWorldOffset(Offset);

@@ -701,7 +701,7 @@ void UWorldComposition::UpdateStreamingState()
 	if (Locations.Num())
 	{
 		CentroidLocation/= Locations.Num();
-		if (PlayWorld->GetWorldSettings()->bEnableWorldOriginRebasing && !PlayWorld->bOriginOffsetThisFrame)
+		if (PlayWorld->GetWorldSettings()->bEnableWorldOriginRebasing && PlayWorld->OriginOffsetThisFrame.IsZero())
 		{
 			EvaluateWorldOriginLocation(CentroidLocation);
 		}
