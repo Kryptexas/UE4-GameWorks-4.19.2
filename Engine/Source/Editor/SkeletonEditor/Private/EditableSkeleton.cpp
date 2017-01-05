@@ -905,6 +905,11 @@ int32 FEditableSkeleton::DeleteAnimNotifies(const TArray<FName>& InNotifyNames)
 	const FScopedTransaction Transaction(LOCTEXT("DeleteAnimNotify", "Delete Anim Notify"));
 	Skeleton->Modify();
 
+	for (FName Notify : InNotifyNames)
+	{
+		Skeleton->AnimationNotifies.Remove(Notify);
+	}
+
 	TArray<FAssetData> CompatibleAnimSequences;
 	GetCompatibleAnimSequences(CompatibleAnimSequences);
 
@@ -915,25 +920,9 @@ int32 FEditableSkeleton::DeleteAnimNotifies(const TArray<FName>& InNotifyNames)
 		const FAssetData& PossibleAnimSequence = CompatibleAnimSequences[AssetIndex];
 		UAnimSequenceBase* Sequence = Cast<UAnimSequenceBase>(PossibleAnimSequence.GetAsset());
 
-		bool SequenceModified = false;
-		for (int32 NotifyIndex = Sequence->Notifies.Num() - 1; NotifyIndex >= 0; --NotifyIndex)
+		if (Sequence->RemoveNotifies(InNotifyNames))
 		{
-			FAnimNotifyEvent& AnimNotify = Sequence->Notifies[NotifyIndex];
-			if (InNotifyNames.Contains(AnimNotify.NotifyName))
-			{
-				if (!SequenceModified)
-				{
-					Sequence->Modify();
-					++NumAnimationsModified;
-					SequenceModified = true;
-				}
-				Sequence->Notifies.RemoveAtSwap(NotifyIndex);
-			}
-		}
-
-		if (SequenceModified)
-		{
-			Sequence->MarkPackageDirty();
+			++NumAnimationsModified;
 		}
 	}
 
