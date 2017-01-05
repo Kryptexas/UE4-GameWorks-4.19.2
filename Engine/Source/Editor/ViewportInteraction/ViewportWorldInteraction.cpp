@@ -2327,12 +2327,6 @@ void UViewportWorldInteraction::StopDragging( UViewportInteractor* Interactor )
 					  InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesFreely ||
 					  InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact )
 			{
-				// vreditor todo: Move this to where we detect a move from inertia finishes
-				FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
-				if (HitResult.Actor.IsValid())
-				{
-					GEditor->BroadcastEndObjectMovement(*HitResult.Actor);
-				}
 				// No hand is dragging the objects anymore.
 				if ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesWithGizmo &&
 					 InteractorData.TransformGizmoInteractionType == ETransformGizmoInteractionType::RotateOnAngle )

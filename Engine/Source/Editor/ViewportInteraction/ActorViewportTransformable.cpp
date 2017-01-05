@@ -11,6 +11,7 @@ void FActorViewportTransformable::ApplyTransform( const FTransform& NewTransform
 		const FTransform& ExistingTransform = Actor->GetActorTransform();
 		if( !ExistingTransform.Equals( NewTransform, 0.0f ) )
 		{
+			GEditor->BroadcastBeginObjectMovement(*Actor);
 			const bool bOnlyTranslationChanged =
 				ExistingTransform.GetRotation() == NewTransform.GetRotation() &&
 				ExistingTransform.GetScale3D() == NewTransform.GetScale3D();
@@ -22,6 +23,7 @@ void FActorViewportTransformable::ApplyTransform( const FTransform& NewTransform
 
 			const bool bFinished = false;	// @todo gizmo now: PostEditChange never called; and bFinished=true never known!!
 			Actor->PostEditMove( bFinished );
+			GEditor->BroadcastEndObjectMovement(*Actor);
 		}
 	}
 }
@@ -98,4 +100,3 @@ void FActorViewportTransformable::UpdateIgnoredActorList( TArray<AActor*>& Ignor
 		IgnoredActors.Add( Actor );
 	}
 }
-
