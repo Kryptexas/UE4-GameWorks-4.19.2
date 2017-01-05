@@ -1880,7 +1880,10 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 			}
 
 			// import morph target
-			if ( NewMesh)
+			if ((ImportOptions->bImportSkeletalMeshLODs || LODIndex == 0) &&
+				NewMesh &&
+				NewMesh->GetImportedResource() &&
+				NewMesh->GetImportedResource()->LODModels.IsValidIndex(LODIndex))
 			{
 				// @fixme: @question : where do they import this morph? where to? What morph target sets?
 				ImportFbxMorphTarget(SkelMeshNodeArray, NewMesh, NewMesh->GetOutermost(), LODIndex);
