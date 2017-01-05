@@ -607,7 +607,7 @@ void UVREditorUISystem::OnVRHoverUpdate( UViewportInteractor* Interactor, FVecto
 								PressedButtons,
 								FModifierKeysState());
 
-							FSlateApplication::Get().RoutePointerMoveEvent(WidgetPathUnderFinger, PointerEvent, false);
+							FSlateApplication::Get().RoutePointerMoveEvent(WidgetPathUnderFinger, PointerEvent, true);
 							
 							bWasHandled = true;
 							HoverImpactPoint = HitResult.ImpactPoint;
@@ -730,7 +730,7 @@ void UVREditorUISystem::OnVRHoverUpdate( UViewportInteractor* Interactor, FVecto
 				PressedButtons,
 				FModifierKeysState() );
 
-			FSlateApplication::Get().RoutePointerMoveEvent( FWidgetPath(), PointerEvent, false );
+			FSlateApplication::Get().RoutePointerMoveEvent( FWidgetPath(), PointerEvent, true );
 		}
 	}
 }
