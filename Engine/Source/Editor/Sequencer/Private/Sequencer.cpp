@@ -986,6 +986,14 @@ void FSequencer::NotifyMovieSceneDataChanged( EMovieSceneDataChangeType DataChan
 		bNeedInstanceRefresh = true;
 	}
 
+	if (DataChangeType == EMovieSceneDataChangeType::TrackValueChanged || 
+		DataChangeType == EMovieSceneDataChangeType::TrackValueChangedRefreshImmediately || 
+		DataChangeType == EMovieSceneDataChangeType::Unknown)
+	{
+		FSequencerEdMode* SequencerEdMode = (FSequencerEdMode*)(GLevelEditorModeTools().GetActiveMode(FSequencerEdMode::EM_SequencerMode));
+		SequencerEdMode->CleanUpMeshTrails();
+	}
+
 	bNeedsEvaluate = true;
 	State.ClearObjectCaches();
 
@@ -1938,6 +1946,11 @@ void FSequencer::SetViewportSettings(const TMap<FViewportClient*, EMovieSceneVie
 					LevelVC->ColorScale = ViewportParams->ColorScale;
 				}
 			}
+		}
+		else
+		{
+			LevelVC->bEnableFading = false;
+			LevelVC->bEnableColorScaling = false;
 		}
 	}
 }

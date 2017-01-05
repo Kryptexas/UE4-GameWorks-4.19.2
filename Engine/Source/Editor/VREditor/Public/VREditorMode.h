@@ -258,6 +258,7 @@ public:
 		float TransformGizmoScale;
 		EHMDTrackingOrigin::Type TrackingOrigin;
 		float WorldToMetersScale;
+		bool bCinematicPreviewViewport;
 		bool bKeyAllEnabled;
 		EAutoKeyMode AutoKeyMode;
 
@@ -276,6 +277,7 @@ public:
 			  TransformGizmoScale( 1.0f ),
 			  TrackingOrigin(EHMDTrackingOrigin::Eye),
 			  WorldToMetersScale(100.0f),
+			  bCinematicPreviewViewport(false),
 			  bKeyAllEnabled(false),
 			  AutoKeyMode()
 		{

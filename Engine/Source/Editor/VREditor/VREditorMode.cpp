@@ -301,10 +301,19 @@ void UVREditorMode::Enter(const bool bReenteringVREditing)
 			// Enable selection outline right away
 			VREditorViewportClient.EngineShowFlags.SetSelection( true );
 			VREditorViewportClient.EngineShowFlags.SetSelectionOutline( true );
+
+			// Change viewport settings to more VR-friendly sequencer settings
+			SavedEditorState.bCinematicPreviewViewport = VRViewportClient.AllowsCinematicPreview();
+			VRViewportClient.SetAllowCinematicPreview(false);
+			// Need to force fading and color scaling off in case we enter VR editing mode with a sequence open
+			VRViewportClient.bEnableFading = false;
+			VRViewportClient.bEnableColorScaling = false;
+			VRViewportClient.Invalidate(true);
 		}
 
 		VREditorLevelViewport->EnableStereoRendering( bActuallyUsingVR );
 		VREditorLevelViewport->SetRenderDirectlyToWindow( bActuallyUsingVR );
+
 
 		if( bActuallyUsingVR )
 		{
@@ -429,7 +438,6 @@ void UVREditorMode::Exit(const bool bHMDShouldExitStereo)
 			{
 				VREditorLevelViewport->EnableStereoRendering( false );
 				VREditorLevelViewport->SetRenderDirectlyToWindow( false );
-
 				{
 					FLevelEditorViewportClient& VRViewportClient = VREditorLevelViewport->GetLevelViewportClient();
 					FEditorViewportClient& VREditorViewportClient = VRViewportClient;
@@ -440,6 +448,10 @@ void UVREditorMode::Exit(const bool bHMDShouldExitStereo)
 					VRViewportClient.bAlwaysShowModeWidgetAfterSelectionChanges = SavedEditorState.bAlwaysShowModeWidgetAfterSelectionChanges;
 					VRViewportClient.EngineShowFlags = SavedEditorState.ShowFlags;
 					VRViewportClient.SetGameView( SavedEditorState.bGameView );
+					VRViewportClient.SetAllowCinematicPreview(SavedEditorState.bCinematicPreviewViewport);
+					VRViewportClient.bEnableFading = true;
+					VRViewportClient.bEnableColorScaling = true;
+					VRViewportClient.Invalidate(true);
 
 					if(bActuallyUsingVR)
 					{
