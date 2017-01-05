@@ -1615,8 +1615,12 @@ void UnFbx::FFbxImporter::ReorderMaterialToFbxOrder(UStaticMesh* StaticMesh, TAr
 				break;
 			}
 		}
-		FbxRemapMaterials.Add(FoundMaterialIndex);
-		NewStaticMaterials.Add(StaticMesh->StaticMaterials[FoundMaterialIndex]);
+
+		if (FoundMaterialIndex != INDEX_NONE)
+		{
+			FbxRemapMaterials.Add(FoundMaterialIndex);
+			NewStaticMaterials.Add(StaticMesh->StaticMaterials[FoundMaterialIndex]);
+		}
 	}
 	StaticMesh->StaticMaterials.Empty();
 	for (const FStaticMaterial &BuildMaterial : NewStaticMaterials)
