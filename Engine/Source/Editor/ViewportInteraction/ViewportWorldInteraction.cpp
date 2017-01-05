@@ -242,7 +242,7 @@ UViewportWorldInteraction::UViewportWorldInteraction():
 	StartDragAngleOnRotation(),
 	StartDragHandleDirection(),
 	bShouldTransformGizmoBeVisible( true ),
-	TransformGizmoScale( 0.5f ),
+	TransformGizmoScale( 0.35f ),
 	SnapGridActor( nullptr ),
 	SnapGridMeshComponent( nullptr ),
 	SnapGridMID( nullptr ),
