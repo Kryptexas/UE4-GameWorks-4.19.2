@@ -144,9 +144,6 @@ public:
 	    up our spawned actors */
 	void CleanUpActorsBeforeMapChangeOrSimulate();
 
-	/** Searches to see if the specified widget component is from our editor UI */
-	bool IsWidgetAnEditorUIWidget( const class UActorComponent* WidgetComponent ) const;
-
 	/** Returns true if the specified editor UI panel is currently visible */
 	bool IsShowingEditorUIPanel( const EEditorUIPanel EditorUIPanel ) const;
 

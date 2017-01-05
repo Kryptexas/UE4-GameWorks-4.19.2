@@ -384,8 +384,8 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 						if ( HitResult.Actor.IsValid() )
 						{
 							// Only allow clicks to our own widget components
-							UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>( HitResult.GetComponent() );
-							if ( WidgetComponent != nullptr && IsWidgetAnEditorUIWidget( WidgetComponent ) )
+							UVREditorWidgetComponent* WidgetComponent = Cast<UVREditorWidgetComponent>( HitResult.GetComponent() );
+							if ( WidgetComponent != nullptr )
 							{
 								// Always mark the event as handled so that the editor doesn't try to select the widget component
 								bWasHandled = true;
@@ -575,8 +575,8 @@ void UVREditorUISystem::OnVRHoverUpdate( UViewportInteractor* Interactor, FVecto
 					}
 
 					// Only allow clicks to our own widget components
-					UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>( HitResult.GetComponent() );
-					if( WidgetComponent != nullptr && IsWidgetAnEditorUIWidget( WidgetComponent ) )
+					UVREditorWidgetComponent* WidgetComponent = Cast<UVREditorWidgetComponent>( HitResult.GetComponent() );
+					if( WidgetComponent != nullptr )
 					{
 						FVector2D LastLocalHitLocation = WidgetComponent->GetLastLocalHitLocation();
 
@@ -1190,26 +1190,6 @@ void UVREditorUISystem::OnAssetEditorOpened(UObject* Asset)
 		}
 	}
 }
-
-bool UVREditorUISystem::IsWidgetAnEditorUIWidget( const UActorComponent* WidgetComponent ) const
-{
-	if( WidgetComponent != nullptr && WidgetComponent->IsA( UWidgetComponent::StaticClass() ) )
-	{
-		for( AVREditorFloatingUI* FloatingUIPtr : FloatingUIs )
-		{
-			if( FloatingUIPtr != nullptr )
-			{
-				if( WidgetComponent == FloatingUIPtr->GetWidgetComponent() )
-				{
-					return true;
-				}
-			}
-		}
-	}
-
-	return false;
-}
-
 
 bool UVREditorUISystem::IsShowingEditorUIPanel( const EEditorUIPanel EditorUIPanel ) const
 {

@@ -30,9 +30,6 @@ public:
 	/** Removes registered event */
 	void Shutdown();
 
-	/** If this component is interactable by an interactor */
-	bool IsInteractableComponent( const UActorComponent* Component ) const;
-
 	/** Snaps the selected objects to the ground */
 	void SnapSelectedActorsToGround();
 
