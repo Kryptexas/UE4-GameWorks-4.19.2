@@ -304,7 +304,10 @@ UObject* UFbxFactory::FactoryCreateBinary
 						if (FbxMeshArray.Num() > 0)
 						{
 							NewStaticMesh = FbxImporter->ImportStaticMeshAsSingle(InParent, FbxMeshArray, Name, Flags, ImportUI->StaticMeshImportData, NULL, 0);
-							FbxImporter->ReorderMaterialToFbxOrder(NewStaticMesh, FbxMeshArray);
+							if (NewStaticMesh != nullptr)
+							{
+								FbxImporter->ReorderMaterialToFbxOrder(NewStaticMesh, FbxMeshArray);
+							}
 						}
 
 						ImportedMeshCount = NewStaticMesh ? 1 : 0;

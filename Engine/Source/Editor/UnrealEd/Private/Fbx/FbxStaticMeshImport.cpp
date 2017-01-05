@@ -1590,6 +1590,11 @@ StaticMesh->LightMapCoordinateIndex = FirstOpenUVChannel;
 
 void UnFbx::FFbxImporter::ReorderMaterialToFbxOrder(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray)
 {
+	if (StaticMesh == nullptr)
+	{
+		return;
+	}
+
 	TArray<FString> MeshMaterials;
 	for (int32 MeshIndex = 0; MeshIndex < MeshNodeArray.Num(); MeshIndex++)
 	{
