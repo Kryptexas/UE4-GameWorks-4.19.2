@@ -201,7 +201,12 @@ half3 BlendReflectionCaptures(FMaterialPixelParameters MaterialParameters, half 
 
 float4 GetPlanarReflection(float3 WorldPosition, float3 WorldNormal, float Roughness)
 {
-	return ComputePlanarReflections(WorldPosition, WorldNormal, Roughness, PlanarReflectionSampler);
+	float4 PlanarReflection = ComputePlanarReflections(WorldPosition, WorldNormal, Roughness, PlanarReflectionSampler);
+#if OUTPUT_GAMMA_SPACE
+	// the capture will also be in gamma space, convert to linear:
+	PlanarReflection.rgb *= PlanarReflection.rgb;
+#endif
+	return PlanarReflection;
 }
 
 half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameters, half Roughness)
