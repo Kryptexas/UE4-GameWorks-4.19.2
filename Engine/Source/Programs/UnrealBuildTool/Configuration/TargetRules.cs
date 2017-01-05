@@ -203,7 +203,7 @@ namespace UnrealBuildTool
 		/// <param name="InPlatform">The platform being built</param>
 		/// <param name="InConfiguration">The configuration being built</param>
 		/// <returns>true if it should, false if not</returns>
-		[Obsolete, ObsoleteOverride("ShouldCompileMonolithic() is deprecated in 4.15. Please set LinkType = TargetLinkType.Monolithic or LinkType = TargetLinkType.Modular in your target's constructor instead.")]
+		[ObsoleteOverride("ShouldCompileMonolithic() is deprecated in 4.15. Please set LinkType = TargetLinkType.Monolithic or LinkType = TargetLinkType.Modular in your target's constructor instead.")]
 		public virtual bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			return Type != TargetType.Editor;
@@ -225,7 +225,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="OutPlatforms">The list of platforms supported</param>
 		/// <returns>true if successful, false if not</returns>
-		[Obsolete, ObsoleteOverride("GetSupportedPlatforms() is deprecated in the 4.15 release. Add a [SupportedPlatforms(...)] attribute to your TargetRules class instead.")]
+		[ObsoleteOverride("GetSupportedPlatforms() is deprecated in the 4.15 release. Add a [SupportedPlatforms(...)] attribute to your TargetRules class instead.")]
 		public virtual bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
 		{
 			if (Type == TargetType.Program)
@@ -250,7 +250,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="OutConfigurations">The list of configurations supported</param>
 		/// <returns>true if successful, false if not</returns>
-		[Obsolete, ObsoleteOverride("GetSupportedConfigurations() is deprecated in the 4.15 release. Add a [SupportedConfigurations(...)] attribute to your TargetRules class instead.")]
+		[ObsoleteOverride("GetSupportedConfigurations() is deprecated in the 4.15 release. Add a [SupportedConfigurations(...)] attribute to your TargetRules class instead.")]
 		public virtual bool GetSupportedConfigurations(ref List<UnrealTargetConfiguration> OutConfigurations, bool bIncludeTestAndShippingConfigs)
 		{
 			if (Type == TargetType.Program)
@@ -336,7 +336,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Target">The target information, such as platform and configuration</param>
 		/// <param name="ModuleNames">List which receives module names to precompile</param>
-		[Obsolete, ObsoleteOverride("GetModulesToPrecompile() is deprecated in the 4.11 release. The -precompile option to UBT now automatically compiles all engine modules compatible with the current target.")]
+		[ObsoleteOverride("GetModulesToPrecompile() is deprecated in the 4.11 release. The -precompile option to UBT now automatically compiles all engine modules compatible with the current target.")]
 		public virtual void GetModulesToPrecompile(TargetInfo Target, List<string> ModuleNames)
 		{
 		}
@@ -344,7 +344,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Allow target module to override UHT code generation version.
 		/// </summary>
-		[Obsolete, ObsoleteOverride("GetGeneratedCodeVersion() is deprecated in the 4.15 release. Set the GeneratedCodeVersion field from the TargetRules constructor instead.")]
+		[ObsoleteOverride("GetGeneratedCodeVersion() is deprecated in the 4.15 release. Set the GeneratedCodeVersion field from the TargetRules constructor instead.")]
 		public virtual EGeneratedCodeVersion GetGeneratedCodeVersion()
 		{
 			return GeneratedCodeVersion;
