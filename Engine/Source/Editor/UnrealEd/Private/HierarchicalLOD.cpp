@@ -525,38 +525,20 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 
 void FHierarchicalLODBuilder::DeleteLODActors(ULevel* InLevel, const bool bPreviewOnly)
 {
+	FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+	IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+
 	// you still have to delete all objects just in case they had it and didn't want it anymore
 	TArray<UObject*> AssetsToDelete;
 	for (int32 ActorId = InLevel->Actors.Num() - 1; ActorId >= 0; --ActorId)
 	{
 		ALODActor* LodActor = Cast<ALODActor>(InLevel->Actors[ActorId]);
-		if (LodActor && ( ( LodActor->GetStaticMeshComponent()->GetStaticMesh() == nullptr && bPreviewOnly) || !bPreviewOnly ))
+		if (LodActor && ((LodActor->GetStaticMeshComponent()->GetStaticMesh() == nullptr && bPreviewOnly) || !bPreviewOnly))
 		{
-			for (auto& Asset : LodActor->SubObjects)
-			{
-				// @TOOD: This is not permanent fix
-				if (Asset)
-				{
-					AssetsToDelete.Add(Asset);
-				}
-			}
-			World->DestroyActor(LodActor);
+			Utilities->DestroyLODActor(LodActor);
 		}
 	}
-
-	ULevel::BuildStreamingData(InLevel->OwningWorld, InLevel);
-
-	for (auto& Asset : AssetsToDelete)
-	{
-		Asset->MarkPendingKill();
-		ObjectTools::DeleteSingleObject(Asset, false);
-	}
-
-	// garbage collect
-	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
 }
-
-
 
 void FHierarchicalLODBuilder::BuildMeshForLODActor(ALODActor* LODActor, const uint32 LODLevel)
 {
