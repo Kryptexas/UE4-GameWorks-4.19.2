@@ -89,10 +89,13 @@ void FMovieSceneRootEvaluationTemplateInstance::Initialize(UMovieSceneSequence& 
 {
 	Reset();
 
-	// Always ensure that there is no persistent data when initializing a new sequence
-	// to ensure we don't collide with the previous sequence's entity keys
-	Player.State.PersistentEntityData.Reset();
-	Player.State.PersistentSharedData.Reset();
+	if (RootSequence.Get() != &InRootSequence)
+	{
+		// Always ensure that there is no persistent data when initializing a new sequence
+		// to ensure we don't collide with the previous sequence's entity keys
+		Player.State.PersistentEntityData.Reset();
+		Player.State.PersistentSharedData.Reset();
+	}
 
 	const bool bAddEvents = TemplateStore->AreTemplatesVolatile();
 	
