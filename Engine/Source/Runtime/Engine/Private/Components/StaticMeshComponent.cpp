@@ -42,18 +42,18 @@
 DECLARE_MEMORY_STAT( TEXT( "StaticMesh VxColor Inst Mem" ), STAT_InstVertexColorMemory, STATGROUP_MemoryStaticMesh );
 DECLARE_MEMORY_STAT( TEXT( "StaticMesh PreCulled Index Memory" ), STAT_StaticMeshPreCulledIndexMemory, STATGROUP_MemoryStaticMesh );
 
-class FStaticMeshComponentInstanceData : public FSceneComponentInstanceData
+class FStaticMeshComponentInstanceData : public FPrimitiveComponentInstanceData
 {
 public:
 	FStaticMeshComponentInstanceData(const UStaticMeshComponent* SourceComponent)
-		: FSceneComponentInstanceData(SourceComponent)
+		: FPrimitiveComponentInstanceData(SourceComponent)
 		, StaticMesh(SourceComponent->GetStaticMesh())
 	{
 	}
 
 	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
 	{
-		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
+		FPrimitiveComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
 		if (CacheApplyPhase == ECacheApplyPhase::PostUserConstructionScript)
 		{
 			CastChecked<UStaticMeshComponent>(Component)->ApplyComponentInstanceData(this);
@@ -62,7 +62,7 @@ public:
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
-		FSceneComponentInstanceData::AddReferencedObjects(Collector);
+		FPrimitiveComponentInstanceData::AddReferencedObjects(Collector);
 
 		Collector.AddReferencedObject(StaticMesh);
 	}
