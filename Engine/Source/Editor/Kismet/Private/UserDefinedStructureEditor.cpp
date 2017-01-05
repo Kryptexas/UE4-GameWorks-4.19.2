@@ -23,6 +23,7 @@
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "Widgets/Layout/SSplitter.h"
 
 #include "PropertyCustomizationHelpers.h"
 #include "SPinTypeSelector.h"
