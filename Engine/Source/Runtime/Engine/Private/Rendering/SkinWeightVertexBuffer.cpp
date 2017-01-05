@@ -93,7 +93,7 @@ FArchive& operator<<(FArchive& Ar, FSkinWeightVertexBuffer& VertexBuffer)
 	Ar << VertexBuffer.bExtraBoneInfluences;
 	Ar << VertexBuffer.NumVertices;
 
-	if (Ar.IsLoading())
+	if (Ar.IsLoading() || VertexBuffer.WeightData == NULL)
 	{
 		// allocate vertex data on load
 		VertexBuffer.AllocateData();
