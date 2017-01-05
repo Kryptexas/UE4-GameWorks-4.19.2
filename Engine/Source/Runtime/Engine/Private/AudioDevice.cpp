@@ -3175,7 +3175,18 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 
 void FAudioDevice::StopAllSounds(bool bShouldStopUISounds)
 {
-	check(IsInAudioThread());
+	if (!IsInAudioThread())
+	{
+		DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.StopAllSounds"), STAT_AudioStopAllSounds, STATGROUP_AudioThreadCommands);
+
+		FAudioDevice* AudioDevice = this;
+		FAudioThread::RunCommandOnAudioThread([AudioDevice, bShouldStopUISounds]()
+		{
+			AudioDevice->StopAllSounds(bShouldStopUISounds);
+		}, GET_STATID(STAT_AudioStopAllSounds));
+
+		return;		
+	}
 
 	for (int32 SoundIndex=ActiveSounds.Num() - 1; SoundIndex >= 0; --SoundIndex)
 	{
