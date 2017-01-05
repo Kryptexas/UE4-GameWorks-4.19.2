@@ -2886,6 +2886,12 @@ void FEngineLoop::Tick()
 	// Send a heartbeat for the diagnostics thread
 	FThreadHeartBeat::Get().HeartBeat();
 
+	// Make sure something is ticking the rendering tickables in -onethread mode to avoid leaks/bugs.
+	if (!GUseThreadedRendering && !GIsRenderingThreadSuspended)
+	{
+		TickRenderingTickables();
+	}
+
 	// Ensure we aren't starting a frame while loading or playing a loading movie
 	ensure(GetMoviePlayer()->IsLoadingFinished() && !GetMoviePlayer()->IsMovieCurrentlyPlaying());
 
