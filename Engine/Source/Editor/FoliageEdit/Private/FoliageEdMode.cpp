@@ -1258,7 +1258,7 @@ void FEdModeFoliage::AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageI
 static void SpawnFoliageInstance(UWorld* InWorld, const UFoliageType* Settings, const FFoliageUISettings* UISettings, const FFoliageInstance& Instance, UActorComponent* BaseComponent)
 {
 	// We always spawn instances in base component level
-	ULevel* TargetLevel = UISettings->GetIsInSpawnInCurrentLevelMode() ? InWorld->GetCurrentLevel() : BaseComponent->GetComponentLevel();
+	ULevel* TargetLevel = (UISettings != nullptr && UISettings->GetIsInSpawnInCurrentLevelMode()) ? InWorld->GetCurrentLevel() : BaseComponent->GetComponentLevel();
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(TargetLevel, true);
 
 	FFoliageMeshInfo* MeshInfo;
