@@ -1381,6 +1381,11 @@ public:
 		return false;
 	}
 
+	inline bool CanUse16BitObjectIndices() const
+	{
+		return NumObjectsInBuffer < (1 << 16);
+	}
+
 	int32 NumObjectsInBuffer;
 	class FDistanceFieldObjectBuffers* ObjectBuffers;
 

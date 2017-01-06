@@ -558,7 +558,7 @@ NS_ASSUME_NONNULL_BEGIN
                 else if (ShaderTextures[Frequency].Textures[Arg.index].textureType != Arg.textureType)
                 {
                     bOK = false;
-                    UE_LOG(LogMetal, Warning, TEXT("Incorrect texture type bound at Metal index %u which will crash the driver: %s"), (uint32)Arg.index, *FString([Arg description]));
+                    UE_LOG(LogMetal, Warning, TEXT("Incorrect texture type bound at Metal index %u which will crash the driver: %s\n%s"), (uint32)Arg.index, *FString([Arg description]), *FString([ShaderTextures[Frequency].Textures[Arg.index] description]));
                 }
                 break;
             }

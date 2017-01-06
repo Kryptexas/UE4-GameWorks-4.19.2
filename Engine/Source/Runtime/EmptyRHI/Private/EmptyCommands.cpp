@@ -379,12 +379,12 @@ void FEmptyDynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 }
 
 
-void FEmptyDynamicRHI::RHIClear(bool bClearColor,const FLinearColor& Color, bool bClearDepth,float Depth, bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
+void FEmptyDynamicRHI::RHIClear(bool bClearColor,const FLinearColor& Color, bool bClearDepth,float Depth, bool bClearStencil,uint32 Stencil)
 {
-	FEmptyDynamicRHI::RHIClearMRT(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+	FEmptyDynamicRHI::RHIClearMRT(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil);
 }
 
-void FEmptyDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
+void FEmptyDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil)
 {
 
 }
@@ -426,14 +426,14 @@ void FEmptyDynamicRHI::RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, fl
 {
 }
 
-void FEmptyDynamicRHI::RHIClearColor(const FLinearColor& Color, FIntRect ExcludeRect)
+void FEmptyDynamicRHI::RHIClearColor(const FLinearColor& Color)
 {
 }
 
-void FEmptyDynamicRHI::RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil, FIntRect ExcludeRect)
+void FEmptyDynamicRHI::RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil)
 {
 }
 
-void FEmptyDynamicRHI::RHIClearColor(int32 NumClearColors, const FLinearColor* ColorArray, FIntRect ExcludeRect)
+void FEmptyDynamicRHI::RHIClearColor(int32 NumClearColors, const FLinearColor* ColorArray)
 {
 }

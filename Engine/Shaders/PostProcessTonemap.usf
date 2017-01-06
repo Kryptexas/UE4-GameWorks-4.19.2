@@ -410,18 +410,18 @@ void MainPS(
 //		half A0 = max3(SceneColor);
 //		half4 LuminanceNeightbors = half4(max3(C1), max3(C2), max3(C3), max3(C4));
 		// 5 instructiopns less than reference
-//		half A0 = Luminance(SceneColor);
-//		half4 LuminanceNeightbors = half4(Luminance(C1), Luminance(C2), Luminance(C3), Luminance(C4));
+		half A0 = Luminance(SceneColor);
+		half4 LuminanceNeightbors = half4(Luminance(C1), Luminance(C2), Luminance(C3), Luminance(C4));
 		// 9 instructions less than reference (green is often a good approximation for the luminance)
-		half A0 = SceneColor.g;
-		half4 LuminanceNeightbors = half4(C1.g, C2.g, C3.g, C4.g);
+		//half A0 = SceneColor.g;
+		//half4 LuminanceNeightbors = half4(C1.g, C2.g, C3.g, C4.g);
 
 		// compute mask to not sharpen near very bright HDR content
 		// Note: using max instead of summming up saves 1 instruction
 		// Note: We could multiply this to tweak the edge weight but it might instroduce a cost
-//		half HDREdge = ExposureScale * max4(abs(A0 - LuminanceNeightbors));
+		half HDREdge = ExposureScale * max4(abs(A0 - LuminanceNeightbors));
 		// 3 instructions less but less accurate (faint black dots near bright edges)
-		half HDREdge = ExposureScale * max(abs(A0 * 2 - (LuminanceNeightbors.r + LuminanceNeightbors.g)), abs(A0 * 2 - (LuminanceNeightbors.b + LuminanceNeightbors.a)));
+		//half HDREdge = ExposureScale * max(abs(A0 * 2 - (LuminanceNeightbors.r + LuminanceNeightbors.g)), abs(A0 * 2 - (LuminanceNeightbors.b + LuminanceNeightbors.a)));
 
 		// 0..1
 		half EdgeMask = saturate(1.0f - HDREdge);

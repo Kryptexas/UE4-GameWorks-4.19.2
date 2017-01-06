@@ -710,7 +710,7 @@ void FDeferredShadingSceneRenderer::RenderStationaryLightOverlap(FRHICommandList
 		FSceneRenderTargets::Get(RHICmdList).BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 
 		// Clear to discard base pass values in scene color since we didn't skip that, to have valid scene depths
-		RHICmdList.ClearColorTexture(FSceneRenderTargets::Get(RHICmdList).GetSceneColorSurface(), FLinearColor::Black, FIntRect());
+		RHICmdList.ClearColorTexture(FSceneRenderTargets::Get(RHICmdList).GetSceneColorSurface(), FLinearColor::Black);
 
 		RenderLightArrayForOverlapViewmode(RHICmdList, Scene->Lights);
 
@@ -995,7 +995,7 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 	if (bStencilDirty)
 	{
 		// Clear the stencil buffer to 0.
-		RHICmdList.ClearDepthStencilTexture(FSceneRenderTargets::Get(RHICmdList).GetSceneDepthTexture(), EClearDepthStencil::Stencil, (float)ERHIZBuffer::FarPlane, 0, FIntRect());
+		RHICmdList.ClearDepthStencilTexture(FSceneRenderTargets::Get(RHICmdList).GetSceneDepthTexture(), EClearDepthStencil::Stencil, (float)ERHIZBuffer::FarPlane, 0);
 	}
 }
 

@@ -238,7 +238,6 @@ private:
 		const TArray<EBlendMode>& MaterialBlendModes,
 		const FBoxSphereBounds& Bounds,
 		float DistanceFieldResolutionScale,
-		float DistanceFieldBias,
 		bool bGenerateAsIfTwoSided,
 		FDistanceFieldVolumeData& OutData) override;
 
@@ -690,7 +689,6 @@ public:
 		FBox InVolumeBounds,
 		FIntVector InVolumeDimensions,
 		float InVolumeMaxDistance,
-		float InDistanceFieldBias,
 		int32 InZIndex,
 		TArray<FFloat16>* DistanceFieldVolume)
 		:
@@ -699,7 +697,6 @@ public:
 		VolumeBounds(InVolumeBounds),
 		VolumeDimensions(InVolumeDimensions),
 		VolumeMaxDistance(InVolumeMaxDistance),
-		DistanceFieldBias(InDistanceFieldBias),
 		ZIndex(InZIndex),
 		OutDistanceFieldVolume(DistanceFieldVolume),
 		bNegativeAtBorder(false)
@@ -725,7 +722,6 @@ private:
 	FBox VolumeBounds;
 	FIntVector VolumeDimensions;
 	float VolumeMaxDistance;
-	float DistanceFieldBias;
 	int32 ZIndex;
 
 	// Output
@@ -802,7 +798,7 @@ void FMeshDistanceFieldAsyncTask::DoWork()
 				MinDistance = -UnsignedDistance;
 			}
 
-			MinDistance = FMath::Min(MinDistance + DistanceFieldBias, VolumeMaxDistance);
+			MinDistance = FMath::Min(MinDistance, VolumeMaxDistance);
 			const float VolumeSpaceDistance = MinDistance / VolumeBounds.GetExtent().GetMax();
 
 			if (MinDistance < 0 &&
@@ -824,7 +820,6 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 	const TArray<EBlendMode>& MaterialBlendModes,
 	const FBoxSphereBounds& Bounds,
 	float DistanceFieldResolutionScale,
-	float DistanceFieldBias,
 	bool bGenerateAsIfTwoSided,
 	FDistanceFieldVolumeData& OutData)
 {
@@ -941,7 +936,8 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 
 			OutData.Size = VolumeDimensions;
 			OutData.LocalBoundingBox = DistanceFieldVolumeBounds;
-			OutData.DistanceFieldVolume.AddZeroed(VolumeDimensions.X * VolumeDimensions.Y * VolumeDimensions.Z);
+			TArray<FFloat16> DistanceFieldVolume;
+			DistanceFieldVolume.AddZeroed(VolumeDimensions.X * VolumeDimensions.Y * VolumeDimensions.Z);
 
 			TIndirectArray<FAsyncTask<FMeshDistanceFieldAsyncTask>> AsyncTasks;
 
@@ -953,9 +949,8 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 					DistanceFieldVolumeBounds,
 					VolumeDimensions,
 					DistanceFieldVolumeMaxDistance,
-					DistanceFieldBias,
 					ZIndex,
-					&OutData.DistanceFieldVolume);
+					&DistanceFieldVolume);
 
 				Task->StartBackgroundTask(&ThreadPool);
 
@@ -986,10 +981,16 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 			if (bNegativeAtBorder)
 			{
 				OutData.Size = FIntVector(0, 0, 0);
-				OutData.DistanceFieldVolume.Empty();
+				DistanceFieldVolume.Empty();
 
 				UE_LOG(LogMeshUtilities, Log, TEXT("Discarded distance field as mesh was not closed!  Assign a two-sided material to fix."));
 			}
+
+			OutData.DistanceFieldVolume.Lock(LOCK_READ_WRITE);
+			FFloat16* DataPtr = (FFloat16*)OutData.DistanceFieldVolume.Realloc(DistanceFieldVolume.Num());
+			check(OutData.DistanceFieldVolume.GetBulkDataSize() == DistanceFieldVolume.GetTypeSize() * DistanceFieldVolume.Num());
+			FPlatformMemory::Memcpy(DataPtr, DistanceFieldVolume.GetData(), OutData.DistanceFieldVolume.GetBulkDataSize());
+			OutData.DistanceFieldVolume.Unlock();
 		}
 	}
 }
@@ -1002,7 +1003,6 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 	const TArray<EBlendMode>& MaterialBlendModes,
 	const FBoxSphereBounds& Bounds,
 	float DistanceFieldResolutionScale,
-	float DistanceFieldBias,
 	bool bGenerateAsIfTwoSided,
 	FDistanceFieldVolumeData& OutData)
 {

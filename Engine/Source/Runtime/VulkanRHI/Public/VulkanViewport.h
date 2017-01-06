@@ -28,12 +28,12 @@ public:
 	//#todo-rco
 	void IssueFrameEvent() {}
 
-	FIntPoint GetSizeXY() const
+	inline FIntPoint GetSizeXY() const
 	{
 		return FIntPoint(SizeX, SizeY);
 	}
 
-	FVulkanSwapChain* GetSwapChain()
+	inline FVulkanSwapChain* GetSwapChain()
 	{
 		return SwapChain;
 	}
@@ -85,6 +85,7 @@ protected:
 	void AcquireBackBuffer(FRHICommandListBase& CmdList, FVulkanBackBuffer* NewBackBuffer);
 
 	void RecreateSwapchain(void* NewNativeWindow);
+	void Resize(uint32 InSizeX, uint32 InSizeY, bool bIsFullscreen);
 
 	friend class FVulkanDynamicRHI;
 	friend class FVulkanCommandListContext;

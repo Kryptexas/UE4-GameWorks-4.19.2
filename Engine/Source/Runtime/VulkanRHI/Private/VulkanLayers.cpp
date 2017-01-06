@@ -22,7 +22,7 @@ TAutoConsoleVariable<int32> GValidationCvar(
 // List of validation layers which we want to activate for the instance
 static const ANSICHAR* GRequiredLayersInstance[] =
 {
-	"VK_LAYER_LUNARG_swapchain",
+	nullptr,
 };
 
 #define VULKAN_ENABLE_STANDARD_VALIDATION	1
@@ -37,16 +37,15 @@ static const ANSICHAR* GValidationLayersInstance[] =
 #if VULKAN_ENABLE_STANDARD_VALIDATION
 	"VK_LAYER_LUNARG_standard_validation",
 #else
-	"VK_LAYER_GOOGLE_threading",
+	//"VK_LAYER_GOOGLE_threading",
 	"VK_LAYER_LUNARG_parameter_validation",
-	"VK_LAYER_LUNARG_object_tracker",
-	"VK_LAYER_LUNARG_image",
+	//"VK_LAYER_LUNARG_object_tracker",
+	//"VK_LAYER_LUNARG_image",
 	"VK_LAYER_LUNARG_core_validation",
-	"VK_LAYER_LUNARG_swapchain",
-	"VK_LAYER_GOOGLE_unique_objects",
+	//"VK_LAYER_LUNARG_swapchain",
+	//"VK_LAYER_GOOGLE_unique_objects",
 #endif
 
-	"VK_LAYER_LUNARG_device_limits",
 	//"VK_LAYER_LUNARG_screenshot",
 	//"VK_LAYER_NV_optimus",
 	//"VK_LAYER_LUNARG_vktrace",		// Useful for future
@@ -55,7 +54,7 @@ static const ANSICHAR* GValidationLayersInstance[] =
 // List of validation layers which we want to activate for the device
 static const ANSICHAR* GRequiredLayersDevice[] =
 {
-	"VK_LAYER_LUNARG_swapchain",
+	nullptr,
 };
 
 // List of validation layers which we want to activate for the device
@@ -80,9 +79,6 @@ static const ANSICHAR* GValidationLayersDevice[] =
 	"VK_LAYER_LUNARG_core_validation",
 #endif
 
-#if VK_HEADER_VERSION < 17
-	"VK_LAYER_LUNARG_device_limits",
-#endif
 	//"VK_LAYER_LUNARG_screenshot",
 	//"VK_LAYER_NV_optimus",
 	//"VK_LAYER_NV_nsight",
@@ -115,6 +111,11 @@ static const ANSICHAR* GDeviceExtensions[] =
 	//	VK_KHR_WIN32_SURFACE_EXTENSION_NAME,	// Not supported, even if it's reported as a valid extension... (SDK/driver bug?)
 #endif
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+
+#if PLATFORM_WINDOWS
+	//"VK_KHX_device_group",
+	//"VK_KHR_maintenance1",
+#endif
 };
 
 
@@ -212,21 +213,24 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 	// Verify that all required instance layers are available
 	for (uint32 LayerIndex = 0; LayerIndex < ARRAY_COUNT(GRequiredLayersInstance); ++LayerIndex)
 	{
-		bool bValidationFound = false;
 		const ANSICHAR* CurrValidationLayer = GRequiredLayersInstance[LayerIndex];
-		for (int32 Index = 0; Index < GlobalLayers.Num(); ++Index)
+		if (CurrValidationLayer)
 		{
-			if (!FCStringAnsi::Strcmp(GlobalLayers[Index].LayerProps.layerName, CurrValidationLayer))
+			bool bValidationFound = false;
+			for (int32 Index = 0; Index < GlobalLayers.Num(); ++Index)
 			{
-				bValidationFound = true;
-				OutInstanceLayers.Add(CurrValidationLayer);
-				break;
+				if (!FCStringAnsi::Strcmp(GlobalLayers[Index].LayerProps.layerName, CurrValidationLayer))
+				{
+					bValidationFound = true;
+					OutInstanceLayers.Add(CurrValidationLayer);
+					break;
+				}
 			}
-		}
 
-		if (!bValidationFound)
-		{
-			UE_LOG(LogVulkanRHI, Warning, TEXT("Unable to find Vulkan required instance layer '%s'"), ANSI_TO_TCHAR(CurrValidationLayer));
+			if (!bValidationFound)
+			{
+				UE_LOG(LogVulkanRHI, Warning, TEXT("Unable to find Vulkan required instance layer '%s'"), ANSI_TO_TCHAR(CurrValidationLayer));
+			}
 		}
 	}
 
@@ -301,8 +305,12 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 		check(Count == LayerProperties.Num());
 	}
 
+	for (int32 Index = 0; Index < LayerProperties.Num(); ++Index)
+	{
+		UE_LOG(LogVulkanRHI, Display, TEXT("- Found Device Layer %s"), ANSI_TO_TCHAR(LayerProperties[Index].layerName));
+	}
+
 #if VULKAN_HAS_DEBUGGING_ENABLED
-	
 	bool bRenderDocFound = false;
 	#if VULKAN_ENABLE_DRAW_MARKERS
 		bool bDebugExtMarkerFound = false;
@@ -324,21 +332,24 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 	// Verify that all required device layers are available
 	for (uint32 LayerIndex = 0; LayerIndex < ARRAY_COUNT(GRequiredLayersDevice); ++LayerIndex)
 	{
-		bool bValidationFound = false;
 		const ANSICHAR* CurrValidationLayer = GRequiredLayersDevice[LayerIndex];
-		for (int32 Index = 0; Index < LayerProperties.Num(); ++Index)
+		if (CurrValidationLayer)
 		{
-			if (!FCStringAnsi::Strcmp(LayerProperties[Index].layerName, CurrValidationLayer))
+			bool bValidationFound = false;
+			for (int32 Index = 0; Index < LayerProperties.Num(); ++Index)
 			{
-				bValidationFound = true;
-				OutDeviceLayers.Add(CurrValidationLayer);
-				break;
+				if (!FCStringAnsi::Strcmp(LayerProperties[Index].layerName, CurrValidationLayer))
+				{
+					bValidationFound = true;
+					OutDeviceLayers.Add(CurrValidationLayer);
+					break;
+				}
 			}
-		}
 
-		if (!bValidationFound)
-		{
-			UE_LOG(LogVulkanRHI, Warning, TEXT("Unable to find Vulkan required device layer '%s'"), ANSI_TO_TCHAR(CurrValidationLayer));
+			if (!bValidationFound)
+			{
+				UE_LOG(LogVulkanRHI, Warning, TEXT("Unable to find Vulkan required device layer '%s'"), ANSI_TO_TCHAR(CurrValidationLayer));
+			}
 		}
 	}
 
@@ -370,6 +381,11 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 	FLayerExtension Extensions;
 	FMemory::Memzero(Extensions.LayerProps);
 	GetDeviceLayerExtensions(Gpu, nullptr, Extensions);
+
+	for (int32 Index = 0; Index < Extensions.ExtensionProps.Num(); ++Index)
+	{
+		UE_LOG(LogVulkanRHI, Display, TEXT("- Found Device Extension %s"), ANSI_TO_TCHAR(Extensions.ExtensionProps[Index].extensionName));
+	}
 
 	for (uint32 Index = 0; Index < ARRAY_COUNT(GDeviceExtensions); ++Index)
 	{

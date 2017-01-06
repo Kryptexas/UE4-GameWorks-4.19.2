@@ -1503,6 +1503,34 @@ void FFloatBulkData::SerializeElement( FArchive& Ar, void* Data, int32 ElementIn
 	Ar << FloatData;
 }
 
+
+/*-----------------------------------------------------------------------------
+	float 16 version of bulk data.
+-----------------------------------------------------------------------------*/
+
+/**
+ * Returns size in bytes of single element.
+ *
+ * @return Size in bytes of single element
+ */
+int32 FFloat16BulkData::GetElementSize() const
+{
+	return sizeof(FFloat16);
+}
+
+/**
+ * Serializes an element at a time allowing and dealing with endian conversion and backward compatiblity.
+ * 
+ * @param Ar			Archive to serialize with
+ * @param Data			Base pointer to data
+ * @param ElementIndex	Element index to serialize
+ */
+void FFloat16BulkData::SerializeElement( FArchive& Ar, void* Data, int32 ElementIndex )
+{
+	FFloat16& FloatData = *((FFloat16*)Data + ElementIndex);
+	Ar << FloatData;
+}
+
 void FFormatContainer::Serialize(FArchive& Ar, UObject* Owner, const TArray<FName>* FormatsToSave, bool bSingleUse, uint32 InAlignment)
 {
 	if (Ar.IsLoading())

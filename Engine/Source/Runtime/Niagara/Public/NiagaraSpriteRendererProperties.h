@@ -7,16 +7,20 @@
 #include "NiagaraEffectRendererProperties.h"
 #include "NiagaraSpriteRendererProperties.generated.h"
 
-UCLASS()
+UCLASS(editinlinenew)
 class UNiagaraSpriteRendererProperties : public UNiagaraEffectRendererProperties
 {
 public:
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
-	UNiagaraSpriteRendererProperties()
-	{
-		SubImageInfo = FVector2D(1.0f, 1.0f);
-	}
+	UNiagaraSpriteRendererProperties();
+
+	//~ UNiagaraEffectRendererProperties interface
+	virtual NiagaraEffectRenderer* CreateEffectRenderer(ERHIFeatureLevel::Type FeatureLevel) override;
+#if WITH_EDITORONLY_DATA
+	virtual bool IsMaterialValidForRenderer(UMaterial* Material, FText& InvalidMessage) override;
+	virtual void FixMaterial(UMaterial* Material) override;
+#endif // WITH_EDITORONLY_DATA
 
 	UPROPERTY(EditAnywhere, Category = "Sprite Rendering")
 	FVector2D SubImageInfo;

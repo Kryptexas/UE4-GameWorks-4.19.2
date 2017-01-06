@@ -2087,7 +2087,7 @@ public:
 		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-		RHICmdList.ClearColorTexture(BackBuffer, FLinearColor::Black, FIntRect());
+		RHICmdList.ClearColorTexture(BackBuffer, FLinearColor::Black);
 	}
 
 	float FOVInDegrees;		// max(HFOV, VFOV) in degrees of imaginable HMD

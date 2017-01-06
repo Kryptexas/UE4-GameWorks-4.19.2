@@ -1373,8 +1373,8 @@ void _mesa_glsl_initialize_functions(exec_list *ir, _mesa_glsl_parse_state *stat
 	make_intrinsic_genType(ir, state, "rsqrt", ir_unop_rsq, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_MATRIX, 1);
 
 	// 8.3 Common Functions.
-	make_intrinsic_genType(ir, state, "abs", ir_unop_abs, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_INT | IR_INTRINSIC_UINT_THRU | IR_INTRINSIC_MATRIX, 1);
-	make_intrinsic_genType(ir, state, "sign", ir_unop_sign, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_INT | IR_INTRINSIC_UINT_THRU | IR_INTRINSIC_MATRIX, 1);
+	make_intrinsic_genType(ir, state, "abs", ir_unop_abs, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_INT | IR_INTRINSIC_UINT | IR_INTRINSIC_MATRIX, 1);
+	make_intrinsic_genType(ir, state, "sign", ir_unop_sign, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_INT | IR_INTRINSIC_UINT | IR_INTRINSIC_MATRIX, 1);
 	make_intrinsic_genType(ir, state, "floor", ir_unop_floor, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_MATRIX, 1);
 	if (state->bGenerateES)
 	{

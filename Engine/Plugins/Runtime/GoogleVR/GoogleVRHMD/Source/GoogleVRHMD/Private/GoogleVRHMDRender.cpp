@@ -253,7 +253,7 @@ static void ResolvePendingRenderTarget(FRHICommandListImmediate& RHICmdList, IRe
 	}
 	else
 	{
-		RHICmdList.ClearColorTextures(0, nullptr, nullptr, FIntRect());
+		RHICmdList.ClearColorTextures(0, nullptr, nullptr);
 	}
 
 	RHICmdList.ImmediateFlush(EImmediateFlushType::FlushRHIThread);

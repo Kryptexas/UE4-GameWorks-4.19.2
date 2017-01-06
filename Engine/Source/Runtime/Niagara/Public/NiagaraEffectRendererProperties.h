@@ -13,15 +13,22 @@
 * of those specific properties is stored on UNiagaraEmitterProperties (on the effect) for serialization 
 * and handed back to the effect renderer on load.
 */
-UCLASS()
+
+class NiagaraEffectRenderer;
+
+UCLASS(ABSTRACT)
 class NIAGARA_API UNiagaraEffectRendererProperties : public UObject
 {
-	GENERATED_UCLASS_BODY()
-	UNiagaraEffectRendererProperties()
-	{}
+	GENERATED_BODY()
 
-	UPROPERTY()
-	FName dummy;
+public:
+	virtual NiagaraEffectRenderer* CreateEffectRenderer(ERHIFeatureLevel::Type FeatureLevel) PURE_VIRTUAL ( UNiagaraEffectRendererProperties::CreateEffectRenderer, return nullptr;);
+
+#if WITH_EDITORONLY_DATA
+	virtual bool IsMaterialValidForRenderer(UMaterial* Material, FText& InvalidMessage) { return true; }
+
+	virtual void FixMaterial(UMaterial* Material) { }
+#endif // WITH_EDITORONLY_DATA
 };
 
 

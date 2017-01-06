@@ -1080,7 +1080,7 @@ void FD3D12CommandContext::RHISetRenderTargetsAndClear(const FRHISetRenderTarget
 			ClearValue.GetDepthStencil(DepthClear, StencilClear);
 		}
 
-		this->RHIClearMRTImpl(RenderTargetsInfo.bClearColor, RenderTargetsInfo.NumColorRenderTargets, ClearColors, RenderTargetsInfo.bClearDepth, DepthClear, RenderTargetsInfo.bClearStencil, StencilClear, FIntRect());
+		this->RHIClearMRTImpl(RenderTargetsInfo.bClearColor, RenderTargetsInfo.NumColorRenderTargets, ClearColors, RenderTargetsInfo.bClearDepth, DepthClear, RenderTargetsInfo.bClearStencil, StencilClear);
 	}
 }
 
@@ -1769,29 +1769,23 @@ void FD3D12CommandContext::RHIEndDrawIndexedPrimitiveUP()
 }
 
 // Raster operations.
-void FD3D12CommandContext::RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
+void FD3D12CommandContext::RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
 {
-	RHIClearMRTImpl(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+	RHIClearMRTImpl(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil);
 }
 
-void FD3D12CommandContext::RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
+void FD3D12CommandContext::RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
 {
-	RHIClearMRTImpl(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+	RHIClearMRTImpl(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil);
 }
 
-void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
+void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
 {
 	SCOPE_CYCLE_COUNTER(STAT_D3D12ClearMRT);
 
 	uint32 NumViews = 1;
 	D3D12_VIEWPORT Viewport;
 	StateCache.GetViewports(&NumViews, &Viewport);
-
-	if (ExcludeRect.Min.X == 0 && ExcludeRect.Width() == Viewport.Width && ExcludeRect.Min.Y == 0 && ExcludeRect.Height() == Viewport.Height)
-	{
-		// no need to do anything
-		return;
-	}
 
 	D3D12_RECT ScissorRect;
 	StateCache.GetScissorRect(&ScissorRect);
@@ -1831,31 +1825,6 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 	// Only pass a rect down to the driver if we specifically want to clear a sub-rect
 	if (!bSupportsFastClear || !bClearCoversEntireSurface)
 	{
-// TODO: Exclude rects are an optional optimzation, need to make them work with the scissor rect as well
-#if 0
-		// Add clear rects only if fast clears are not supported.
-		if (ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0)
-		{
-			if (ExcludeRect.Min.Y > 0)
-			{
-				ClearRects[ClearRectCount] = CD3DX12_RECT(0, 0, D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION, ExcludeRect.Min.Y);
-				ClearRectCount++;
-			}
-
-			ClearRects[ClearRectCount] = CD3DX12_RECT(0, ExcludeRect.Max.Y, D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION, D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION);
-			ClearRectCount++;
-
-			if (ExcludeRect.Min.X > 0)
-			{
-				ClearRects[ClearRectCount] = CD3DX12_RECT(0, ExcludeRect.Min.Y, ExcludeRect.Min.X, ExcludeRect.Max.Y);
-				ClearRectCount++;
-			}
-
-			ClearRects[ClearRectCount] = CD3DX12_RECT(ExcludeRect.Max.X, ExcludeRect.Min.Y, D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION, ExcludeRect.Max.Y);
-			ClearRectCount++;
-		}
-		else
-#endif
 		{
 			ClearRects[ClearRectCount] = ScissorRect;
 			ClearRectCount++;

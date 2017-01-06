@@ -1327,7 +1327,7 @@ void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, class FSceneR
 		
 		if (bClearColor)
 		{
-			RHICmdList.ClearColorTextures(NumClearColors, ColorTextures, Colors, FIntRect());
+			RHICmdList.ClearColorTextures(NumClearColors, ColorTextures, Colors);
 		}
 		DrawClearQuadMRT(RHICmdList, SceneRenderer->FeatureLevel, bClearColor, NumClearColors, Colors, true, 1.0f, false, 0);
 	}

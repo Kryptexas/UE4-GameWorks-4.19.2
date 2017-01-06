@@ -70,8 +70,8 @@ static const VkImageTiling GVulkanViewTypeTilingMode[VK_IMAGE_VIEW_TYPE_RANGE_SI
     VK_IMAGE_TILING_OPTIMAL,	// VK_IMAGE_VIEW_TYPE_3D
     VK_IMAGE_TILING_OPTIMAL,	// VK_IMAGE_VIEW_TYPE_CUBE
     VK_IMAGE_TILING_LINEAR,		// VK_IMAGE_VIEW_TYPE_1D_ARRAY
-    VK_IMAGE_TILING_OPTIMAL,		// VK_IMAGE_VIEW_TYPE_2D_ARRAY
-    VK_IMAGE_TILING_LINEAR,		// VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
+    VK_IMAGE_TILING_OPTIMAL,	// VK_IMAGE_VIEW_TYPE_2D_ARRAY
+    VK_IMAGE_TILING_OPTIMAL,	// VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
 };
 
 
@@ -147,7 +147,7 @@ VkImage FVulkanSurface::CreateImage(
 	ImageCreateInfo.extent.height = SizeY;
 	ImageCreateInfo.extent.depth = ResourceType == VK_IMAGE_VIEW_TYPE_3D ? SizeZ : 1;
 	ImageCreateInfo.mipLevels = NumMips;
-	uint32 LayerCount = (ResourceType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1;
+	uint32 LayerCount = (ResourceType == VK_IMAGE_VIEW_TYPE_CUBE || ResourceType == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY) ? 6 : 1;
 	ImageCreateInfo.arrayLayers = (bArray ? SizeZ : 1) * LayerCount;
 	check(ImageCreateInfo.arrayLayers <= DeviceProperties.limits.maxImageArrayLayers);
 
@@ -1333,7 +1333,7 @@ FVulkanTexture2D::~FVulkanTexture2D()
 {
 	if ((Surface.UEFlags & (TexCreate_DepthStencilTargetable | TexCreate_RenderTargetable)) != 0)
 	{
-		Surface.Device->NotifyDeletedRenderTarget(this);
+		Surface.Device->NotifyDeletedRenderTarget(Surface.Image);
 	}
 }
 
@@ -1345,7 +1345,7 @@ FVulkanBackBuffer::FVulkanBackBuffer(FVulkanDevice& Device, EPixelFormat Format,
 
 FVulkanBackBuffer::~FVulkanBackBuffer()
 {
-	Surface.Device->NotifyDeletedRenderTarget(this);
+	Surface.Device->NotifyDeletedRenderTarget(Surface.Image);
 	// Clear flags so ~FVulkanTexture2D() doesn't try to re-destroy it
 	Surface.UEFlags = 0;
 	DefaultView.View = VK_NULL_HANDLE;
@@ -1362,7 +1362,7 @@ void FVulkanTextureReference::SetReferencedTexture(FRHITexture* InTexture)
 FVulkanTextureCube::FVulkanTextureCube(FVulkanDevice& Device, EPixelFormat Format, uint32 Size, bool bArray, uint32 ArraySize, uint32 NumMips, uint32 Flags, FResourceBulkDataInterface* BulkData, const FClearValueBinding& InClearValue)
 :	 FRHITextureCube(Size, NumMips, Format, Flags, InClearValue)
 	//#todo-rco: Array/slices count
-,	FVulkanTextureBase(Device, VK_IMAGE_VIEW_TYPE_CUBE, Format, Size, Size, 1, bArray, ArraySize, NumMips, /*NumSamples=*/ 1, Flags, BulkData)
+,	FVulkanTextureBase(Device, bArray ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_CUBE, Format, Size, Size, 1, bArray, ArraySize, NumMips, /*NumSamples=*/ 1, Flags, BulkData)
 {
 }
 
@@ -1370,7 +1370,7 @@ FVulkanTextureCube::~FVulkanTextureCube()
 {
 	if ((GetFlags() & (TexCreate_DepthStencilTargetable | TexCreate_RenderTargetable)) != 0)
 	{
-		Surface.Device->NotifyDeletedRenderTarget(this);
+		Surface.Device->NotifyDeletedRenderTarget(Surface.Image);
 	}
 }
 
@@ -1387,7 +1387,7 @@ FVulkanTexture3D::~FVulkanTexture3D()
 {
 	if ((GetFlags() & (TexCreate_DepthStencilTargetable | TexCreate_RenderTargetable)) != 0)
 	{
-		Surface.Device->NotifyDeletedRenderTarget(this);
+		Surface.Device->NotifyDeletedRenderTarget(Surface.Image);
 	}
 
 	delete Texture2DArray;
@@ -1451,7 +1451,7 @@ void FVulkanDynamicRHI::RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef Texture
 
 	VkImageSubresourceRange SubresourceRange;
 	FMemory::Memzero(SubresourceRange);
-	SubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	SubresourceRange.aspectMask = Texture->Surface.GetPartialAspectMask();
 	SubresourceRange.baseMipLevel = MipIndex;
 	SubresourceRange.levelCount = 1;
 	SubresourceRange.baseArrayLayer = FaceIndex;
@@ -1464,7 +1464,7 @@ void FVulkanDynamicRHI::RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef Texture
 	//Region.bufferOffset = 0;
 	//Region.bufferRowLength = 0;
 	//Region.bufferImageHeight = 0;
-	Region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	Region.imageSubresource.aspectMask = Texture->Surface.GetPartialAspectMask();
 	Region.imageSubresource.mipLevel = MipIndex;
 	Region.imageSubresource.baseArrayLayer = FaceIndex;
 	Region.imageSubresource.layerCount = 1;

@@ -113,6 +113,28 @@ float3 GetCubemapVector(float2 ScaledUVs)
 	return CubeCoordinates;
 }
 
+float CubeTexelWeight( float3 N )
+{
+	uint Axis = 2;
+	if( abs(N.x) >= abs(N.y) && abs(N.x) >= abs(N.z) )
+	{
+		Axis = 0;
+	}
+	else if( abs(N.y) > abs(N.z) )
+	{
+		Axis = 1;
+	}
+
+	N = Axis == 0 ? N.zyx : N;
+	N = Axis == 1 ? N.xzy : N;
+
+	float2 UV = N.xy / N.z;
+
+	float VecLengthSqr = 1 + dot( UV, UV );
+	return 4.0 / ( sqrt( VecLengthSqr ) * VecLengthSqr );
+}
+
+
 TextureCube SourceTexture;
 SamplerState SourceTextureSampler;
 float2 SinCosSourceCubemapRotation;
@@ -141,12 +163,8 @@ void CopyCubemapToCubeFaceColorPS(
 	OutColor.a = 1;
 }
 
-int SourceMipIndex;
-
-float4 SampleCubemap(float3 Coordinates)
-{
-	return TextureCubeSampleLevel(SourceTexture, SourceTextureSampler, Coordinates, SourceMipIndex);
-}
+uint MipIndex;
+uint NumMips;
 
 void DownsamplePS(
 	FScreenVertexOutput Input,
@@ -156,7 +174,41 @@ void DownsamplePS(
 	float2 ScaledUVs = Input.UV * 2 - 1;
 	float3 CubeCoordinates = GetCubemapVector(ScaledUVs);
 
-	OutColor = SampleCubemap(CubeCoordinates);
+	uint MipSize = 1 << ( NumMips - MipIndex - 1 );
+
+	float3 TangentZ = normalize( CubeCoordinates );
+	float3 TangentX = normalize( cross( GetCubemapVector( ScaledUVs + float2(0,1) ), TangentZ ) );
+	float3 TangentY = cross( TangentZ, TangentX );
+
+	const float SampleOffset = 2.0 * 2 / MipSize;
+
+	float2 Offsets[] =
+	{
+		float2(-1, -1) * 0.7,
+		float2( 1, -1) * 0.7,
+		float2(-1,  1) * 0.7,
+		float2( 1,  1) * 0.7,
+		
+		float2( 0, -1),
+		float2(-1,  0),
+		float2( 1,  0),
+		float2( 0,  1),
+	};
+
+	OutColor = SourceTexture.Sample( SourceTextureSampler, CubeCoordinates );
+
+	UNROLL
+	for( uint i = 0; i < 8; i++ )
+	{
+		float Weight = 0.375;
+
+		float3 SampleDir = CubeCoordinates;
+		SampleDir += TangentX * ( Offsets[i].x * SampleOffset );
+		SampleDir += TangentY * ( Offsets[i].y * SampleOffset );
+		OutColor += SourceTexture.Sample( SourceTextureSampler, SampleDir ) * Weight;
+	}
+
+	OutColor *= rcp( 1.0 + 1.0 + 2.0 );
 }
 
 int NumCaptureArrayMips;
@@ -185,9 +237,18 @@ void ComputeBrightnessMain(
 
 #endif
 
-#define NUM_FILTER_SAMPLES 1024
+float4 SampleCubemap(float3 Coordinates, uint InMipIndex)
+{
+	return TextureCubeSampleLevel(SourceTexture, SourceTextureSampler, Coordinates, InMipIndex);
+}
 
-float CubemapMaxMip;
+uint SourceMipIndex;
+float4 SampleCubemap(float3 Coordinates)
+{
+	return SampleCubemap(Coordinates, SourceMipIndex);
+}
+
+
 
 void FilterPS(
 	FScreenVertexOutput Input,
@@ -207,31 +268,93 @@ void FilterPS(
 #if FILTER_CUBEMAP
 
 	float3 N = normalize(CubeCoordinates);
-	float Roughness = ComputeReflectionCaptureRoughnessFromMip(SourceMipIndex, CubemapMaxMip);
+	float3x3 TangentToWorld = GetTangentBasis( N );
 
-	float4 FilteredColor = 0;
-	float Weight = 0;
-		
-	LOOP
-	for( int i = 0; i < NUM_FILTER_SAMPLES; i++ )
+	float Roughness = ComputeReflectionCaptureRoughnessFromMip( MipIndex, NumMips - 1 );
+
+	if( Roughness < 0.01 )
 	{
-		float2 E = Hammersley( i, NUM_FILTER_SAMPLES, 0 );
-		float3 H = TangentToWorld( ImportanceSampleGGX( E, Roughness ).xyz, N );
-		float3 L = 2 * dot( N, H ) * H - N;
-
-		float NoL = saturate( dot( N, L ) );
-		if( NoL > 0 )
-		{
-			FilteredColor += SampleCubemap(L) * NoL;
-			Weight += NoL;
-		}
+		OutColor = SourceTexture.SampleLevel( SourceTextureSampler, CubeCoordinates, 0 );
+		return;
 	}
 
-	OutColor = FilteredColor / max( Weight, 0.001 );
+	uint CubeSize = 1 << ( NumMips - 1 );
+	const float SolidAngleTexel = 4*PI / ( 6 * CubeSize * CubeSize ) * 2;
+
+	//const uint NumSamples = 1024;
+	const uint NumSamples = Roughness < 0.1 ? 32 : 64;
+	
+	float4 FilteredColor = 0;
+	BRANCH
+	if( Roughness > 0.99 )
+	{
+		// Roughness=1, GGX is constant. Use cosine distribution instead
+
+		LOOP
+		for( uint i = 0; i < NumSamples; i++ )
+		{
+			float2 E = Hammersley( i, NumSamples, 0 );
+
+			float3 L = CosineSampleHemisphere( E ).xyz;
+
+			float NoL = L.z;
+
+			float PDF = NoL / PI;
+			float SolidAngleSample = 1.0 / ( NumSamples * PDF );
+			float Mip = 0.5 * log2( SolidAngleSample / SolidAngleTexel );
+
+			L = mul( L, TangentToWorld );
+			FilteredColor += SourceTexture.SampleLevel( SourceTextureSampler, L, Mip );
+		}
+
+		OutColor = FilteredColor / NumSamples;
+	}
+	else
+	{
+		float Weight = 0;
+
+		LOOP
+		for( uint i = 0; i < NumSamples; i++ )
+		{
+			float2 E = Hammersley( i, NumSamples, 0 );
+
+			// 6x6 Offset rows. Forms uniform star pattern
+			//uint2 Index = uint2( i % 6, i / 6 );
+			//float2 E = ( Index + 0.5 ) / 5.8;
+			//E.x = frac( E.x + (Index.y & 1) * (0.5 / 6.0) );
+
+			E.y *= 0.995;
+
+			float3 H = ImportanceSampleGGX( E, Roughness ).xyz;
+			float3 L = 2 * H.z * H - float3(0,0,1);
+
+			float NoL = L.z;
+			float NoH = H.z;
+
+			if( NoL > 0 )
+			{
+				//float TexelWeight = CubeTexelWeight( L );
+				//float SolidAngleTexel = SolidAngleAvgTexel * TexelWeight;
+
+				//float PDF = D_GGX( Roughness, NoH ) * NoH / (4 * VoH);
+				float PDF = D_GGX( Roughness, NoH ) * 0.25;
+				float SolidAngleSample = 1.0 / ( NumSamples * PDF );
+				float Mip = 0.5 * log2( SolidAngleSample / SolidAngleTexel );
+
+				float ConeAngle = acos( 1 - SolidAngleSample / (2*PI) );
+
+				L = mul( L, TangentToWorld );
+				FilteredColor += SourceTexture.SampleLevel( SourceTextureSampler, L, Mip ) * NoL;
+				Weight += NoL;
+			}
+		}
+
+		OutColor = FilteredColor / Weight;
+	}
 
 #else
 
-	OutColor = SampleCubemap(CubeCoordinates);
+	OutColor = SampleCubemap(CubeCoordinates, MipIndex);
 
 #endif
 }
@@ -460,6 +583,12 @@ void ReflectionApplyPS(
 		SpecularLighting.a *= 1 - SSR.a;
 #endif
 		
+		if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
+		{
+			const float ClearCoat = GBuffer.CustomData.x;
+			SpecularLighting = lerp( SpecularLighting, float4(0,0,0,1), ClearCoat );
+		}
+		
 		SpecularLighting.rgb *= SpecularColor;
 
 #if APPLY_SKYLIGHT
@@ -467,7 +596,7 @@ void ReflectionApplyPS(
 		BRANCH
 		if (SpecularLighting.a > .001f)
 		{			
-			float3 SkyLighting = float3(1,1,1);
+			float4 SkyLighting = float4(1,1,1,1);
 			float SkyAverageBrightness = 1.0f;
 
 			BRANCH
@@ -481,8 +610,8 @@ void ReflectionApplyPS(
 				ReflectionVector = 2 * dot(V, ClearCoatUnderNormal) * ClearCoatUnderNormal - V;
 #endif				
 
-				SkyLighting = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, SkyAverageBrightness);
-				SkyLighting *= SpecularColor;
+				SkyLighting.rgb = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, SkyAverageBrightness);
+				SkyLighting.rgb *= SpecularColor;
 
 				const float ClearCoat			= GBuffer.CustomData.x;
 				const float ClearCoatRoughness	= GBuffer.CustomData.y;
@@ -495,20 +624,21 @@ void ReflectionApplyPS(
 
 				float LayerAttenuation = (1 - F);
 				SkyLighting.rgb *= LayerAttenuation;
+				SkyLighting.a = F;
 
-				#if APPLY_SSR
-					F *= 1 - SSR.a;
-				#endif				
+				SkyLighting.rgb += SSR.rgb * F;
+				SkyLighting.a *= 1 - SSR.a;
+			
+				SkyLighting.a *= SpecularOcclusion;	
 
 				float3 TopLayerR = 2 * dot(V, GBuffer.WorldNormal) * N - V;
 				float3 SampleColor = GetSkyLightReflectionSupportingBlend(TopLayerR, ClearCoatRoughness, SkyAverageBrightness);
-				SkyLighting += SampleColor * F;
+				SkyLighting.rgb += SampleColor * SkyLighting.a;
 			}
 			else
 			{
-				SkyLighting = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, SkyAverageBrightness);
-				SkyLighting *= SpecularColor;
-
+				SkyLighting.rgb = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, SkyAverageBrightness);
+				SkyLighting.rgb *= SpecularColor;
 			}
 
 		    float DirectionalOcclusion = ScreenSpaceData.DirectionalOcclusion.g;
@@ -523,7 +653,7 @@ void ReflectionApplyPS(
 				SkyLighting *= IndirectIrradiance / max(SkyAverageBrightness, .001f);
 			}
 
-			SpecularLighting.rgb += SpecularLighting.a * (SkyLighting * IndirectSpecularOcclusion + ExtraIndirectSpecular * SpecularColor);
+			SpecularLighting.rgb += SpecularLighting.a * (SkyLighting.rgb * IndirectSpecularOcclusion + ExtraIndirectSpecular * SpecularColor);
 		}
 #endif
 

@@ -317,7 +317,7 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(
 					if( !bLightAttenuationCleared )
 					{
 						LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View);
-						RHICmdList.ClearColorTexture(FSceneRenderTargets::Get(RHICmdList).GetLightAttenuationSurface(), FLinearColor::White, FIntRect());
+						RHICmdList.ClearColorTexture(FSceneRenderTargets::Get(RHICmdList).GetLightAttenuationSurface(), FLinearColor::White);
 					}
 				}
 				else

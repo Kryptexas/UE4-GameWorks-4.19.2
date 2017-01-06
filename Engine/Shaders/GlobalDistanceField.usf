@@ -279,7 +279,7 @@ void CompositeObjectDistanceFieldsCS(
 		BRANCH
 		if (BoxDistance < AOGlobalMaxSphereQueryRadius)
 		{
-			float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+			float3 UVAdd = LoadObjectUVAddAndSelfShadowBias(ObjectIndex).xyz;
 
 			float3 ClampedSamplePosition = clamp(VolumePosition, -LocalPositionExtent, LocalPositionExtent);
 			float DistanceToClamped = length(VolumePosition - ClampedSamplePosition);

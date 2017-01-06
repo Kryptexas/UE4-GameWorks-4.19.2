@@ -59,14 +59,14 @@ public:
 	virtual void SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData) = 0;
 	virtual void CreateRenderThreadResources() = 0;
 	virtual void ReleaseRenderThreadResources() = 0;
-	virtual FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraDataSet &Data) = 0;
+	virtual FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraSceneProxy* Proxy, const FNiagaraDataSet &Data) = 0;
 	virtual int GetDynamicDataSize() = 0;
 
 	virtual bool HasDynamicData() = 0;
 
 	virtual bool SetMaterialUsage() = 0;
 
-	virtual const TArray<FNiagaraVariableInfo>& GetRequiredAttributes() = 0;
+	virtual const TArray<FNiagaraVariable>& GetRequiredAttributes() = 0;
 
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View, const FNiagaraSceneProxy *SceneProxy)
 	{
@@ -106,10 +106,13 @@ public:
 	float GetCPUTimeMS() { return CPUTimeMS; }
 	FBox GetBounds()	{ return CachedBounds;  }
 
-protected:
-	NiagaraEffectRenderer()	
-		: TickState(NTS_Running)
+	void SetLocalSpace(bool bInLocalSpace) { bLocalSpace = bInLocalSpace; }
 
+protected:
+	NiagaraEffectRenderer()
+		: CPUTimeMS(0.0f)
+		, CachedBounds(ForceInit)
+		, TickState(NTS_Running)
 	{
 		Material = UMaterial::GetDefaultMaterial(MD_Surface);
 	}
@@ -117,6 +120,7 @@ protected:
 	mutable float CPUTimeMS;
 	UMaterial* Material;
 	FBox CachedBounds;
+	bool bLocalSpace;
 
 private:
 	FMaterialRelevance MaterialRelevance;
@@ -148,7 +152,7 @@ public:
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector, const FNiagaraSceneProxy *SceneProxy) const override;
 	virtual bool SetMaterialUsage() override;
 	/** Update render data buffer from attributes */
-	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraDataSet &Data) override;
+	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraSceneProxy* Proxy, const FNiagaraDataSet &Data) override;
 
 	virtual void SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData) override;
 	int GetDynamicDataSize() override;
@@ -157,7 +161,7 @@ public:
 	UClass *GetPropertiesClass() override { return UNiagaraSpriteRendererProperties::StaticClass(); }
 	void SetRendererProperties(UNiagaraEffectRendererProperties *Props) override { Properties = Cast<UNiagaraSpriteRendererProperties>(Props); }
 
-	virtual const TArray<FNiagaraVariableInfo>& GetRequiredAttributes() override;
+	virtual const TArray<FNiagaraVariable>& GetRequiredAttributes() override;
 
 private:
 	UNiagaraSpriteRendererProperties *Properties;
@@ -192,7 +196,7 @@ public:
 	virtual bool SetMaterialUsage() override;
 
 	/** Update render data buffer from attributes */
-	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraDataSet &Data) override;
+	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraSceneProxy* Proxy, const FNiagaraDataSet &Data) override;
 
 	void AddRibbonVert(TArray<FParticleBeamTrailVertex>& RenderData, FVector ParticlePos, const FNiagaraDataSet &Data, FVector2D UV1,
 		const FVector4 &Color, const FVector4 &Age, const FVector4 &Rotation)
@@ -218,7 +222,7 @@ public:
 	int GetDynamicDataSize() override;
 	bool HasDynamicData() override;
 
-	virtual const TArray<FNiagaraVariableInfo>& GetRequiredAttributes() override;
+	virtual const TArray<FNiagaraVariable>& GetRequiredAttributes() override;
 
 	UClass *GetPropertiesClass() override { return UNiagaraRibbonRendererProperties::StaticClass(); }
 	void SetRendererProperties(UNiagaraEffectRendererProperties *Props) override { Properties = Cast<UNiagaraRibbonRendererProperties>(Props); }
@@ -257,7 +261,7 @@ public:
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector, const FNiagaraSceneProxy *SceneProxy) const override;
 	virtual bool SetMaterialUsage() override;
 	/** Update render data buffer from attributes */
-	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraDataSet &Data) override;
+	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraSceneProxy* Proxy, const FNiagaraDataSet &Data) override;
 
 	virtual void SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData) override;
 	int GetDynamicDataSize() override;
@@ -265,7 +269,7 @@ public:
 
 	UClass *GetPropertiesClass() override { return UNiagaraMeshRendererProperties::StaticClass(); }
 	void SetRendererProperties(UNiagaraEffectRendererProperties *Props) override { Properties = Cast<UNiagaraMeshRendererProperties>(Props); }
-	virtual const TArray<FNiagaraVariableInfo>& GetRequiredAttributes() override;
+	virtual const TArray<FNiagaraVariable>& GetRequiredAttributes() override;
 
 	void SetupVertexFactory(FMeshParticleVertexFactory *InVertexFactory, const FStaticMeshLODResources& LODResources) const;
 private:

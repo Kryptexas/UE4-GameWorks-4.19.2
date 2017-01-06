@@ -641,7 +641,7 @@ void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERe
 				Textures[i] = RenderTargets[i].Texture;
 			}
 			//depth/stencil should have been handled by the fast clear.  only color for RT0 can get changed.
-			RHICmdList.ClearColorTextures(MRTCount, Textures, ClearColors, FIntRect());
+			RHICmdList.ClearColorTextures(MRTCount, Textures, ClearColors);
 		}
 
 		//bind any clear data that won't be bound automatically by the preceding SetRenderTargetsAndClear

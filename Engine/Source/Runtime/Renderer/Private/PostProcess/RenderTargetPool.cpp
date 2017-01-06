@@ -399,6 +399,15 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 						(FTextureCubeRHIRef&)Found->RenderTargetItem.TargetableTexture,
 						(FTextureCubeRHIRef&)Found->RenderTargetItem.ShaderResourceTexture
 						);
+
+					if( Desc.NumMips > 1 )
+					{
+						Found->RenderTargetItem.MipSRVs.SetNum( Desc.NumMips );
+						for( uint16 i = 0; i < Desc.NumMips; i++ )
+						{
+							Found->RenderTargetItem.MipSRVs[i] = RHICreateShaderResourceView( (FTextureCubeRHIRef&)Found->RenderTargetItem.ShaderResourceTexture, i );
+						}
+					}
 				}
 
 			}
@@ -474,7 +483,7 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 			if(Found->GetDesc().TargetableFlags & TexCreate_RenderTargetable)
 			{
 				SetRenderTarget(RHICmdList, Found->RenderTargetItem.TargetableTexture, FTextureRHIRef());
-				RHICmdList.ClearColorTexture(Found->RenderTargetItem.TargetableTexture, FLinearColor(1000, 1000, 1000, 1000), FIntRect());
+				RHICmdList.ClearColorTexture(Found->RenderTargetItem.TargetableTexture, FLinearColor(1000, 1000, 1000, 1000));
 			}
 			else if(Found->GetDesc().TargetableFlags & TexCreate_UAV)
 			{
@@ -485,7 +494,7 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 			if(Desc.TargetableFlags & TexCreate_DepthStencilTargetable)
 			{
 				SetRenderTarget(RHICmdList, FTextureRHIRef(), Found->RenderTargetItem.TargetableTexture);
-				RHICmdList.ClearDepthStencilTexture(Found->RenderTargetItem.TargetableTexture, EClearDepthStencil::Depth, 0.0, 0, FIntRect());
+				RHICmdList.ClearDepthStencilTexture(Found->RenderTargetItem.TargetableTexture, EClearDepthStencil::Depth, 0.0, 0);
 			}
 		}
 	}

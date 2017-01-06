@@ -776,3 +776,6 @@ private:
 #else
 #define DUMP_TRANSITION(ResourceName, TransitionType)
 #endif
+
+extern RHI_API void EnableDepthBoundsTest(FRHICommandList& RHICmdList, float WorldSpaceDepthNear, float WorldSpaceDepthFar, const FMatrix& ProjectionMatrix);
+extern RHI_API void DisableDepthBoundsTest(FRHICommandList& RHICmdList);

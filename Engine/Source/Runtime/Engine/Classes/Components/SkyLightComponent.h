@@ -123,6 +123,10 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light)
 	float SkyDistanceThreshold;
 
+	/** Only capture emissive materials. Skips all lighting making the capture cheaper. Recomended when using CaptureEveryFrame */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Light, AdvancedDisplay)
+	bool bCaptureEmissiveOnly;
+
 	/** 
 	 * Whether all distant lighting from the lower hemisphere should be set to LowerHemisphereColor.  
 	 * Enabling this is accurate when lighting a scene on a planet where the ground blocks the sky, 

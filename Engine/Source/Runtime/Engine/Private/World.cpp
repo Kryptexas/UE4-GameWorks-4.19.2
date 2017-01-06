@@ -6381,28 +6381,35 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bSho
             FeatureLevel = InFeatureLevel;
 
             SlowTask.EnterProgressFrame(10.0f);
-            if (Scene)
-            {
-				for (ULevel* Level : Levels)
-				{
-					Level->ReleaseRenderingResources();
-				}
-
-                Scene->Release();
-                GetRendererModule().RemoveScene(Scene);
-                GetRendererModule().AllocateScene(this, bRequiresHitProxies, FXSystem != nullptr, InFeatureLevel );
-
-				for (ULevel* Level : Levels)
-				{
-					Level->InitializeRenderingResources();
-					Level->PrecomputedVisibilityHandler.UpdateScene(Scene);
-					Level->PrecomputedVolumeDistanceField.UpdateScene(Scene);
-				}
-            }
+			RecreateScene(InFeatureLevel);
 
             SlowTask.EnterProgressFrame(10.0f);
             TriggerStreamingDataRebuild();
         }
+	}
+}
+
+void UWorld::RecreateScene(ERHIFeatureLevel::Type InFeatureLevel)
+{
+	if (Scene)
+	{
+		ensure(InFeatureLevel == FeatureLevel);
+		for (ULevel* Level : Levels)
+		{
+			Level->ReleaseRenderingResources();
+		}
+
+		Scene->Release();
+		IRendererModule& RendererModule = GetRendererModule();
+		RendererModule.RemoveScene(Scene);
+		RendererModule.AllocateScene(this, bRequiresHitProxies, FXSystem != nullptr, InFeatureLevel);
+
+		for (ULevel* Level : Levels)
+		{
+			Level->InitializeRenderingResources();
+			Level->PrecomputedVisibilityHandler.UpdateScene(Scene);
+			Level->PrecomputedVolumeDistanceField.UpdateScene(Scene);
+		}
 	}
 }
 #endif // WITH_EDITOR

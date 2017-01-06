@@ -39,7 +39,8 @@ public:
 	void SetBoundShaderState(FMetalBoundShaderState* BoundShaderState);
 	void SetComputeShader(FMetalComputeShader* InComputeShader);
 	bool SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRenderTargets, id<MTLBuffer> const QueryBuffer, bool const bReset);
-	void SetHasValidRenderTarget(bool const bIsValid);
+	void InvalidateRenderTargets(void);
+	void SetRenderTargetsActive(bool const bActive);
 	void SetViewport(const MTLViewport& InViewport);
 	void SetVertexStream(uint32 const Index, id<MTLBuffer> Buffer, NSData* Bytes, uint32 const Stride, uint32 const Offset, uint32 const Length);
 #if PLATFORM_MAC
@@ -132,6 +133,8 @@ public:
     bool GetUsingTessellation() const { return bUsingTessellation; }
     bool CanRestartRenderPass() const { return bCanRestartRenderPass; }
 	MTLRenderPassDescriptor* GetRenderPassDescriptor(void) const { return RenderPassDesc; }
+	
+	FTexture2DRHIRef CreateFallbackDepthStencilSurface(uint32 Width, uint32 Height);
 	
 private:
 	void ConditionalUpdateBackBuffer(FMetalSurface& Surface);
@@ -233,8 +236,11 @@ private:
 	
 	FRHISetRenderTargetsInfo RenderTargetsInfo;
 	FTextureRHIRef DepthStencilSurface;
+	/** A fallback depth-stencil surface for draw calls that write to depth without a depth-stencil surface bound. */
+	FTexture2DRHIRef FallbackDepthStencilSurface;
 	MTLRenderPassDescriptor* RenderPassDesc;
 	uint32 RasterBits;
+	bool bIsRenderTargetActive;
 	bool bHasValidRenderTarget;
 	bool bHasValidColorTarget;
 	bool bScissorRectEnabled;

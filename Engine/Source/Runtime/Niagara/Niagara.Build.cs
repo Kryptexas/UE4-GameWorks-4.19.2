@@ -9,7 +9,6 @@ public class Niagara : ModuleRules
         PrivateDependencyModuleNames.AddRange(
             new string[] {
 				"Core",
-				"CoreUObject",
                 "Engine",
 				"RenderCore",
                 "ShaderCore",
@@ -22,6 +21,7 @@ public class Niagara : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new string[] {
                 "MovieScene",
+                "CoreUObject",
                 "VectorVM",
                 "RHI",
             }

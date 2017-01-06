@@ -914,7 +914,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		// clear out emissive and baked lighting (not too efficient but simple and only needed for this debug view)
 		SceneContext.BeginRenderingSceneColor(RHICmdList);
-		RHICmdList.ClearColorTexture(SceneContext.GetSceneColorSurface(), FLinearColor(0, 0, 0, 0), FIntRect());
+		RHICmdList.ClearColorTexture(SceneContext.GetSceneColorSurface(), FLinearColor(0, 0, 0, 0));
 	}
 
 	SceneContext.DBufferA.SafeRelease();

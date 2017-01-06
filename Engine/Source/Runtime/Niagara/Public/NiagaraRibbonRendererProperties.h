@@ -7,15 +7,12 @@
 #include "NiagaraEffectRendererProperties.h"
 #include "NiagaraRibbonRendererProperties.generated.h"
 
-UCLASS()
+UCLASS(editinlinenew)
 class UNiagaraRibbonRendererProperties : public UNiagaraEffectRendererProperties
 {
 public:
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
-	UNiagaraRibbonRendererProperties()
-	{
-	}
-
-//	UPROPERTY(EditAnywhere, Category = "Ribbon Rendering")
+	//~ UNiagaraEffectRendererProperties interface
+	virtual NiagaraEffectRenderer* CreateEffectRenderer(ERHIFeatureLevel::Type FeatureLevel) override;
 };

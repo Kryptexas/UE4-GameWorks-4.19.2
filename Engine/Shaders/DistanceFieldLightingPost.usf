@@ -29,8 +29,8 @@ void AOCombinePS(
 	float3 WorldNormal;
 	float SceneDepth;
 	bool bHasDistanceFieldRepresentation;
-	bool bHasHeightfieldRepresentation;
-	GetDownsampledGBuffer(UVAndScreenPos.xy, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
+	bool bLit;
+	GetDownsampledGBuffer(UVAndScreenPos.xy, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bLit);
 
 #define VISUALIZE_ACCUMULATED_WEIGHTS 0
 #if VISUALIZE_ACCUMULATED_WEIGHTS
@@ -57,7 +57,7 @@ void AOCombinePS(
 		#if SUPPORT_IRRADIANCE
 			OutIrradiance.rgb = Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, UVAndScreenPos.xy, 0).xyz / BentNormalAccumulation.w;
 
-			if (!bHasDistanceFieldRepresentation && !bHasHeightfieldRepresentation)
+			if (!bHasDistanceFieldRepresentation/* && !bHasHeightfieldRepresentation*/)
 			{
 				OutIrradiance.rgb *= SelfOcclusionReplacement;
 			}
@@ -612,8 +612,12 @@ void AOUpsamplePS(
 #endif
 
 #if OUTPUT_AO
-	OutBentNormal = float4(length(BentNormal).xxx, 1);
-	//OutBentNormal = float4(BentNormal, 1);
+
+	#if PASS_THROUGH_DEBUG_VALUE
+		OutBentNormal = float4(BentNormal, 1);
+	#else
+		OutBentNormal = float4(length(BentNormal).xxx, 1);
+	#endif
 #else
 	#if OUTPUT_BENT_NORMAL
 		OutBentNormal = float4(BentNormal, SpecularOcclusion);

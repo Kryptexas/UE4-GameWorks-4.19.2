@@ -195,7 +195,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	if (GIsEditor && !View.bIsSceneCapture)
 	{
-		RHICmdList.ClearColorTexture(SceneColor, Views[0].BackgroundColor, FIntRect());
+		RHICmdList.ClearColorTexture(SceneColor, Views[0].BackgroundColor);
 	}
 
 	RenderMobileBasePass(RHICmdList);

@@ -42,10 +42,10 @@ FIntPoint GetBufferSizeForConeTracing()
 
 FVector2D JitterOffsets[4] = 
 {
-	FVector2D(1, 0),
-	FVector2D(3, 1),
-	FVector2D(2, 3),
-	FVector2D(0, 2)
+	FVector2D(.25f, 0),
+	FVector2D(.75f, .25f),
+	FVector2D(.5f, .75f),
+	FVector2D(0, .5f)
 };
 
 extern int32 GAOUseHistory;
@@ -54,7 +54,7 @@ FVector2D GetJitterOffset(int32 SampleIndex)
 {
 	if (GAOUseJitter && GAOUseHistory)
 	{
-		return JitterOffsets[SampleIndex];
+		return JitterOffsets[SampleIndex] * GConeTraceDownsampleFactor;
 	}
 
 	return FVector2D(0, 0);
@@ -849,8 +849,8 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ConeTraceGlobal);
 
-		const uint32 GroupSizeX = FMath::DivideAndRoundUp(View.ViewRect.Size().X / GAODownsampleFactor, GConeTraceGlobalDFTileSize);
-		const uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor, GConeTraceGlobalDFTileSize);
+		const uint32 GroupSizeX = FMath::DivideAndRoundUp(View.ViewRect.Size().X / GAODownsampleFactor / GConeTraceDownsampleFactor, GConeTraceGlobalDFTileSize);
+		const uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor / GConeTraceDownsampleFactor, GConeTraceGlobalDFTileSize);
 
 		check(View.GlobalDistanceFieldInfo.Clipmaps.Num() > 0);
 

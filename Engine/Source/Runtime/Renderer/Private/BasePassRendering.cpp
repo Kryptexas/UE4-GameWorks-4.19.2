@@ -95,14 +95,16 @@ bool GVisualizeMipLevels = false;
 #define IMPLEMENT_BASEPASS_VERTEXSHADER_TYPE(LightMapPolicyType,LightMapPolicyName) \
 	typedef TBasePassVS< LightMapPolicyType, false > TBasePassVS##LightMapPolicyName ; \
 	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVS##LightMapPolicyName,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex); \
-	typedef TBasePassHS< LightMapPolicyType > TBasePassHS##LightMapPolicyName; \
+	typedef TBasePassHS< LightMapPolicyType, false > TBasePassHS##LightMapPolicyName; \
 	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassHS##LightMapPolicyName,TEXT("BasePassTessellationShaders"),TEXT("MainHull"),SF_Hull); \
 	typedef TBasePassDS< LightMapPolicyType > TBasePassDS##LightMapPolicyName; \
 	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassDS##LightMapPolicyName,TEXT("BasePassTessellationShaders"),TEXT("MainDomain"),SF_Domain); 
 
 #define IMPLEMENT_BASEPASS_VERTEXSHADER_ONLY_TYPE(LightMapPolicyType,LightMapPolicyName,AtmosphericFogShaderName) \
 	typedef TBasePassVS<LightMapPolicyType,true> TBasePassVS##LightMapPolicyName##AtmosphericFogShaderName; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVS##LightMapPolicyName##AtmosphericFogShaderName,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex)
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVS##LightMapPolicyName##AtmosphericFogShaderName,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex)	\
+	typedef TBasePassHS< LightMapPolicyType, true> TBasePassHS##LightMapPolicyName##AtmosphericFogShaderName; \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassHS##LightMapPolicyName##AtmosphericFogShaderName,TEXT("BasePassTessellationShaders"),TEXT("MainHull"),SF_Hull);
 
 #define IMPLEMENT_BASEPASS_PIXELSHADER_TYPE(LightMapPolicyType,LightMapPolicyName,bEnableSkyLight,SkyLightName) \
 	typedef TBasePassPS<LightMapPolicyType, bEnableSkyLight> TBasePassPS##LightMapPolicyName##SkyLightName; \
@@ -303,10 +305,10 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FPixelShad
 	}
 }
 
-static void SetDepthStencilStateForBasePass(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FSceneView& View, const FMeshBatch& Mesh, const FPrimitiveSceneProxy* PrimitiveSceneProxy, bool bEnableReceiveDecalOutput, bool bUseDebugViewPS, FDepthStencilStateRHIParamRef LodFadeOverrideDepthStencilState)
+static void SetDepthStencilStateForBasePass(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FSceneView& View, const FMeshBatch& Mesh, const FPrimitiveSceneProxy* PrimitiveSceneProxy, bool bEnableReceiveDecalOutput, bool bUseDebugViewPS, FDepthStencilStateRHIParamRef LodFadeOverrideDepthStencilState, bool bEnableEditorPrimitiveDepthTest)
 {
 	static IConsoleVariable* EarlyZPassOnlyMaterialMaskingCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.EarlyZPassOnlyMaterialMasking"));
-	bool bMaskInEarlyPass = (EarlyZPassOnlyMaterialMaskingCVar && Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel())->IsMasked() && EarlyZPassOnlyMaterialMaskingCVar->GetInt());
+	bool bMaskInEarlyPass = (EarlyZPassOnlyMaterialMaskingCVar && Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel())->IsMasked() && EarlyZPassOnlyMaterialMaskingCVar->GetInt()) && !bEnableEditorPrimitiveDepthTest;
 
 	if (bEnableReceiveDecalOutput && !bUseDebugViewPS)
 	{
@@ -386,7 +388,7 @@ void FBasePassDrawingPolicy::ApplyDitheredLODTransitionState(FRHICommandList& RH
 		}
 	}
 
-	SetDepthStencilStateForBasePass(RHICmdList, DrawRenderState, ViewInfo, Mesh, Mesh.PrimitiveSceneInfo->Proxy, bEnableReceiveDecalOutput, UseDebugViewPS(), DepthStencilState);
+	SetDepthStencilStateForBasePass(RHICmdList, DrawRenderState, ViewInfo, Mesh, Mesh.PrimitiveSceneInfo->Proxy, bEnableReceiveDecalOutput, UseDebugViewPS(), DepthStencilState, bEnableEditorPrimitiveDepthTest);
 }
 
 /** The action used to draw a base pass static mesh element. */
@@ -586,7 +588,7 @@ public:
 			bEnableReceiveDecalOutput
 			);
 
-		SetDepthStencilStateForBasePass(RHICmdList, DrawRenderState, View, Parameters.Mesh, Parameters.PrimitiveSceneProxy, bEnableReceiveDecalOutput, DrawingPolicy.UseDebugViewPS(), nullptr);
+		SetDepthStencilStateForBasePass(RHICmdList, DrawRenderState, View, Parameters.Mesh, Parameters.PrimitiveSceneProxy, bEnableReceiveDecalOutput, DrawingPolicy.UseDebugViewPS(), nullptr, Parameters.bEditorCompositeDepthTest);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(Parameters.bIsInstancedStereo), DrawRenderState);
 
@@ -730,8 +732,17 @@ void GetUniformBasePassShaders(
 {
 	if (bNeedsHSDS)
 	{
-		HullShader = Material.GetShader<TBasePassHS<TUniformLightMapPolicy<Policy> > >(VertexFactoryType);
 		DomainShader = Material.GetShader<TBasePassDS<TUniformLightMapPolicy<Policy> > >(VertexFactoryType);
+		
+		// Metal requires matching permutations, but no other platform should worry about this complication.
+		if (bEnableAtmosphericFog && DomainShader && IsMetalPlatform(EShaderPlatform(DomainShader->GetTarget().Platform)))
+		{
+			HullShader = Material.GetShader<TBasePassHS<TUniformLightMapPolicy<Policy>, true > >(VertexFactoryType);
+		}
+		else
+		{
+			HullShader = Material.GetShader<TBasePassHS<TUniformLightMapPolicy<Policy>, false > >(VertexFactoryType);
+		}
 	}
 
 	if (bEnableAtmosphericFog)

@@ -144,6 +144,7 @@ bool UEdGraphNode::RemovePin(UEdGraphPin* Pin)
 			Pins.Remove(ChildPin);
 			ChildPin->MarkPendingKill();
 		}
+		OnPinRemoved(Pin);
 		return true;
 	}
 

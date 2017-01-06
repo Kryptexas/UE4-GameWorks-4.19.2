@@ -61,8 +61,6 @@ void ObjectCullPS(
 	float4 WorldSphereCenterAndRadius = Input.PositionAndRadius;
 	float3 ViewSpaceSphereCenter = mul(float4(WorldSphereCenterAndRadius.xyz + View.PreViewTranslation.xyz, 1), View.TranslatedWorldToView).xyz;
 	
-#if USE_DEPTH_RANGE_LISTS
-
 	// A value of 1 is conservative, but has a huge impact on performance
 	float RadiusScale = .5f;
 
@@ -77,43 +75,6 @@ void ObjectCullPS(
 		IntersectObjectWithConeDepthRange(TileConeVertex, TileConeAxis, TileConeAngleCos, TileConeAngleSin, ConeAxisDepthRanges.xy, ConeAxisDistanceMinMax, TileIndex, 0, Input.ObjectIndex, TotalNumGroups);
 		IntersectObjectWithConeDepthRange(TileConeVertex, TileConeAxis, TileConeAngleCos, TileConeAngleSin, ConeAxisDepthRanges.zw, ConeAxisDistanceMinMax, TileIndex, 1, Input.ObjectIndex, TotalNumGroups);
 	}
-
-#else
-
-	// A value of 1 is conservative, but has a huge impact on performance
-	float RadiusScale = .5f;
-
-	int SmallestGroupIndex = -1;
-
-	UNROLL
-	for (int GroupIndex = NUM_CULLED_OBJECT_LISTS - 1; GroupIndex >= 0; GroupIndex--)
-	{
-		uint StartIndex;
-		uint EndIndex;
-		GetPhaseParameters(GroupIndex, StartIndex, EndIndex);
-		float GroupMaxSampleRadius = GetStepOffset(EndIndex) * 2 * RadiusScale;
-	
-		BRANCH
-		if (SphereIntersectConeWithDepthRanges(float4(ViewSpaceSphereCenter, WorldSphereCenterAndRadius.w + GroupMaxSampleRadius), TileConeVertex, TileConeAxis, TileConeAngleCos, TileConeAngleSin, ConeAxisDepthRanges))
-		{
-			SmallestGroupIndex = GroupIndex;
-		}
-	}
-
-	if (SmallestGroupIndex >= 0)
-	{
-		uint ArrayIndex;
-		InterlockedAdd(RWTileHeadDataUnpacked[TileIndex * 4 + 1 + (uint)SmallestGroupIndex], 1U, ArrayIndex);
-
-		if (ArrayIndex < MAX_OBJECTS_PER_TILE)
-		{
-			// Note: indexing so that threads are writing to RWTileArrayData coherently, has a huge impact on speed, even though the array data for one record is no longer dense
-			uint DataIndex = (ArrayIndex * (uint)(NumGroups.x * NumGroups.y + .5f) + TileIndex) * NUM_CULLED_OBJECT_LISTS + SmallestGroupIndex;
-
-			RWTileArrayData[DataIndex] = Input.ObjectIndex;
-		}
-	}
-#endif
 }
 
 /** Computes the distance field normal, using a search through all the nearby objects to find the closest one, whose normal is used. */
@@ -284,8 +245,8 @@ void IrradianceCacheSplatPS(
 	float3 WorldNormal;
 	float SceneDepth;
 	bool bHasDistanceFieldRepresentation;
-	bool bHasHeightfieldRepresentation;
-	GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
+	bool bLit;
+	GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bLit);
 
 #if USE_SCREENVECTOR_WORLD_POSITION
 
@@ -374,7 +335,7 @@ void RayTraceThroughTileCulledDistanceFields(float3 WorldRayStart, float3 WorldR
 		float3 LocalPositionExtent = LoadObjectLocalPositionExtent(ObjectIndex);
 		float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
 		float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
-		float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+		float3 UVAdd = LoadObjectUVAddAndSelfShadowBias(ObjectIndex).xyz;
 
 		float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
 		float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;

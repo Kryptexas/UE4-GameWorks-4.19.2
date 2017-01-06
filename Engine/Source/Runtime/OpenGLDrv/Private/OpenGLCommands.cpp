@@ -1928,7 +1928,7 @@ void FOpenGLDynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsIn
 			ClearValue.GetDepthStencil(DepthClear, StencilClear);
 		}
 
-		this->RHIClearMRT(RenderTargetsInfo.bClearColor, RenderTargetsInfo.NumColorRenderTargets, ClearColors, RenderTargetsInfo.bClearDepth, DepthClear, RenderTargetsInfo.bClearStencil, StencilClear, FIntRect());
+		this->RHIClearMRT(RenderTargetsInfo.bClearColor, RenderTargetsInfo.NumColorRenderTargets, ClearColors, RenderTargetsInfo.bClearDepth, DepthClear, RenderTargetsInfo.bClearStencil, StencilClear);
 	}
 }
 
@@ -3245,9 +3245,9 @@ void FOpenGLDynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 
 
 // Raster operations.
-void FOpenGLDynamicRHI::RHIClear(bool bClearColor,const FLinearColor& Color,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
+void FOpenGLDynamicRHI::RHIClear(bool bClearColor,const FLinearColor& Color,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil)
 {
-	FOpenGLDynamicRHI::RHIClearMRT(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+	FOpenGLDynamicRHI::RHIClearMRT(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil);
 }
 
 static inline void ClearCurrentDepthStencilWithCurrentScissor( int8 ClearType, float Depth, uint32 Stencil )
@@ -3350,8 +3350,9 @@ void FOpenGLDynamicRHI::ClearCurrentFramebufferWithCurrentScissor(FOpenGLContext
 	REPORT_GL_CLEAR_EVENT_FOR_FRAME_DUMP( ClearType, NumClearColors, (const float*)ClearColorArray, Depth, Stencil );
 }
 
-void FOpenGLDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
+void FOpenGLDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil)
 {
+	FIntRect ExcludeRect;
 	VERIFY_GL_SCOPE();
 
 	check((GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5) || !PendingState.bFramebufferSetupInvalid);
@@ -3381,27 +3382,6 @@ void FOpenGLDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const 
 	bool bPrevScissorEnabled = PendingState.bScissorEnabled;
 
 	bool bClearAroundExcludeRect = false;
-	if( ExcludeRect.Max.X > ExcludeRect.Min.X && ExcludeRect.Max.Y > ExcludeRect.Min.Y )
-	{
-		// ExcludeRect has some area
-		bClearAroundExcludeRect = true;
-		if( ExcludeRect.Min.X >= PendingState.Viewport.Max.X
-			|| ExcludeRect.Min.Y >= PendingState.Viewport.Max.Y
-			|| ExcludeRect.Max.X <= PendingState.Viewport.Min.X
-			|| ExcludeRect.Max.Y <= PendingState.Viewport.Min.Y )
-		{
-			// but it's completely outside of viewport
-			bClearAroundExcludeRect = false;
-		}
-		else if( ExcludeRect.Min.X <= PendingState.Viewport.Min.X
-			&& ExcludeRect.Min.Y <= PendingState.Viewport.Min.Y
-			&& ExcludeRect.Max.X >= PendingState.Viewport.Max.X
-			&& ExcludeRect.Max.Y >= PendingState.Viewport.Max.Y )
-		{
-			// and it covers all we could clear, so there's nothing to clear
-			return;
-		}
-	}
 
 	bool bScissorChanged = false;
 	GPUProfilingData.RegisterGPUWork(0);
@@ -3472,66 +3452,8 @@ void FOpenGLDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const 
 		}
 	}
 
-	if ( bClearAroundExcludeRect )
-	{
-		// This requires clearing four rectangles, like this:
-		// -----------------------------------------------
-		// |            |                  |             |
-		// |            |        3         |             |
-		// |            |                  |             |
-		// |            |------------------|             |
-		// |            |XXXXXXXXXXXXXXXXXX|             |
-		// |    1       |XXXXXXXXXXXXXXXXXX|     2       |
-		// |            |XXXXXXXXXXXXXXXXXX|             |
-		// |            |XXXXXXXXXXXXXXXXXX|             |
-		// |            |XXXXXXXXXXXXXXXXXX|             |
-		// |            |------------------|             |
-		// |            |                  |             |
-		// |            |         4        |             |
-		// |            |                  |             |
-		// -----------------------------------------------
-
-		if( ExcludeRect.Min.X > PendingState.Viewport.Min.X )
-		{
-			// Rectangle 1
-			RHISetScissorRect(true,PendingState.Viewport.Min.X, PendingState.Viewport.Min.Y, ExcludeRect.Min.X, PendingState.Viewport.Max.Y);
-			UpdateScissorRectInOpenGLContext(ContextState);
-			bScissorChanged = true;
-			ClearCurrentFramebufferWithCurrentScissor(ContextState, ClearType, NumClearColors, ClearColorArray, Depth, Stencil);
-		}
-
-		if( ExcludeRect.Max.X < PendingState.Viewport.Max.X )
-		{
-			// Rectangle 2
-			RHISetScissorRect(true,ExcludeRect.Max.X, PendingState.Viewport.Min.Y, PendingState.Viewport.Max.X, PendingState.Viewport.Max.Y);
-			UpdateScissorRectInOpenGLContext(ContextState);
-			bScissorChanged = true;
-			ClearCurrentFramebufferWithCurrentScissor(ContextState,  ClearType, NumClearColors, ClearColorArray, Depth, Stencil);
-		}
-
-		if( ExcludeRect.Max.Y < PendingState.Viewport.Max.Y )
-		{
-			// Rectangle 3
-			RHISetScissorRect(true,ExcludeRect.Min.X, ExcludeRect.Max.Y, ExcludeRect.Max.X, PendingState.Viewport.Max.Y);
-			UpdateScissorRectInOpenGLContext(ContextState);
-			bScissorChanged = true;
-			ClearCurrentFramebufferWithCurrentScissor(ContextState,  ClearType, NumClearColors, ClearColorArray, Depth, Stencil);
-		}
-
-		if( PendingState.Viewport.Min.Y < ExcludeRect.Min.Y )
-		{
-			// Rectangle 4
-			RHISetScissorRect(true,ExcludeRect.Min.X, PendingState.Viewport.Min.Y, ExcludeRect.Max.X, ExcludeRect.Min.Y);
-			UpdateScissorRectInOpenGLContext(ContextState);
-			bScissorChanged = true;
-			ClearCurrentFramebufferWithCurrentScissor(ContextState,  ClearType, NumClearColors, ClearColorArray, Depth, Stencil);
-		}
-	}
-	else
-	{
-		// Just one clear
-		ClearCurrentFramebufferWithCurrentScissor(ContextState, ClearType, NumClearColors, ClearColorArray, Depth, Stencil);
-	}
+	// Just one clear
+	ClearCurrentFramebufferWithCurrentScissor(ContextState, ClearType, NumClearColors, ClearColorArray, Depth, Stencil);
 
 	if (bScissorChanged)
 	{

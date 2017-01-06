@@ -231,7 +231,7 @@ void PreCullTrianglesCS(
 						}*/
 
 						{
-							float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+							float3 UVAdd = LoadObjectUVAddAndSelfShadowBias(ObjectIndex).xyz;
 							float3 VolumeSamplePosition = mul(float4(InterpolatedPosition, 1), WorldToVolume).xyz;
 							float3 ClampedSamplePosition = clamp(VolumeSamplePosition, -LocalPositionExtent, LocalPositionExtent);
 							float DistanceToClamped = length(VolumeSamplePosition - ClampedSamplePosition);

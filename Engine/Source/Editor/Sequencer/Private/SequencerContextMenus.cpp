@@ -521,8 +521,39 @@ void FSectionContextMenu::AddExtrapolationMenu(FMenuBuilder& MenuBuilder, bool b
 }
 
 
+/** A widget which wraps the section details view which is an FNotifyHook which is used to forward
+	changes to the section to sequencer. */
+class SSectionDetailsNotifyHookWrapper : public SCompoundWidget, public FNotifyHook
+{
+public:
+	SLATE_BEGIN_ARGS(SSectionDetailsNotifyHookWrapper) {}
+	SLATE_END_ARGS();
+
+	void Construct(FArguments InArgs) { }
+
+	void SetDetailsAndSequencer(TSharedRef<SWidget> InDetailsPanel, TSharedRef<ISequencer> InSequencer)
+	{
+		ChildSlot
+		[
+			InDetailsPanel
+		];
+		Sequencer = InSequencer;
+	}
+
+	//~ FNotifyHook interface
+	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override
+	{
+		Sequencer->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::TrackValueChanged);
+	}
+
+private:
+	TSharedPtr<ISequencer> Sequencer;
+};
+
+
 void FSectionContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
 {
+	TSharedRef<SSectionDetailsNotifyHookWrapper> DetailsNotifyWrapper = SNew(SSectionDetailsNotifyHookWrapper);
 	FDetailsViewArgs DetailsViewArgs;
 	{
 		DetailsViewArgs.bAllowSearch = false;
@@ -534,6 +565,7 @@ void FSectionContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
 		DetailsViewArgs.bUpdatesFromSelection = false;
 		DetailsViewArgs.bShowOptions = false;
 		DetailsViewArgs.bShowModifiedPropertiesOption = false;
+		DetailsViewArgs.NotifyHook = &DetailsNotifyWrapper.Get();
 	}
 
 	TArray<TWeakObjectPtr<UObject>> Sections;
@@ -551,8 +583,9 @@ void FSectionContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
 	{
 		DetailsView->SetObjects(Sections);
 	}
-	
-	MenuBuilder.AddWidget(DetailsView, FText::GetEmpty(), true);
+
+	DetailsNotifyWrapper->SetDetailsAndSequencer(DetailsView, Sequencer);
+	MenuBuilder.AddWidget(DetailsNotifyWrapper, FText::GetEmpty(), true);
 }
 
 

@@ -486,6 +486,14 @@ void FMetalCommandEncoder::SetShaderBuffer(MTLFunctionType const FunctionType, i
 void FMetalCommandEncoder::SetShaderData(MTLFunctionType const FunctionType, NSData* Data, NSUInteger const Offset, NSUInteger const Index)
 {
 	check(Index < ML_MaxBuffers);
+	
+#if METAL_DEBUG_OPTIONS
+	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() > EMetalDebugLevelResetOnBind)
+	{
+		SetShaderBuffer(FunctionType, nil, 0, 0, Index);
+	}
+#endif
+	
 	if(Data)
 	{
 		ShaderBuffers[FunctionType].Bound |= (1 << Index);
@@ -506,6 +514,14 @@ void FMetalCommandEncoder::SetShaderData(MTLFunctionType const FunctionType, NSD
 void FMetalCommandEncoder::SetShaderBytes(MTLFunctionType const FunctionType, uint8 const* Bytes, NSUInteger const Length, NSUInteger const Index)
 {
 	check(Index < ML_MaxBuffers);
+	
+#if METAL_DEBUG_OPTIONS
+	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() > EMetalDebugLevelResetOnBind)
+	{
+		SetShaderBuffer(FunctionType, nil, 0, 0, Index);
+	}
+#endif
+	
 	if(Bytes && Length)
 	{
 		ShaderBuffers[FunctionType].Bound |= (1 << Index);
@@ -689,25 +705,16 @@ void FMetalCommandEncoder::SetShaderBufferInternal(MTLFunctionType Function, uin
 				case MTLFunctionTypeVertex:
 					ShaderBuffers[Function].Bound |= (1 << Index);
 					check(RenderCommandEncoder);
-#if METAL_DEBUG_OPTIONS
-					[RenderCommandEncoder setVertexBuffer:nil offset:0 atIndex:Index];
-#endif
 					[RenderCommandEncoder setVertexBytes:Bytes length:Len atIndex:Index];
 					break;
 				case MTLFunctionTypeFragment:
 					ShaderBuffers[Function].Bound |= (1 << Index);
 					check(RenderCommandEncoder);
-#if METAL_DEBUG_OPTIONS
-					[RenderCommandEncoder setFragmentBuffer:nil offset:0 atIndex:Index];
-#endif
 					[RenderCommandEncoder setFragmentBytes:Bytes length:Len atIndex:Index];
 					break;
 				case MTLFunctionTypeKernel:
 					ShaderBuffers[Function].Bound |= (1 << Index);
 					check(ComputeCommandEncoder);
-#if METAL_DEBUG_OPTIONS
-					[ComputeCommandEncoder setBuffer:nil offset:0 atIndex:Index];
-#endif
 					[ComputeCommandEncoder setBytes:Bytes length:Len atIndex:Index];
 					break;
 				default:

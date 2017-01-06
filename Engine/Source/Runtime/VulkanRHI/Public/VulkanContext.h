@@ -75,17 +75,17 @@ public:
 	virtual void RHIEndDrawPrimitiveUP() final override;
 	virtual void RHIBeginDrawIndexedPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData, uint32 MinVertexIndex, uint32 NumIndices, uint32 IndexDataStride, void*& OutIndexData) final override;
 	virtual void RHIEndDrawIndexedPrimitiveUP() final override;
-	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color, FIntRect ExcludeRect) final override
+	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color) final override
 	{
-		RHIClear(true, Color, false, 0, false, 0, ExcludeRect);
+		RHIClear(true, Color, false, 0, false, 0);
 	}
-	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil, FIntRect ExcludeRect) final override
+	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil) final override
 	{
-		RHIClear(false, FLinearColor::Black, ClearDepthStencil != EClearDepthStencil::Stencil, Depth, ClearDepthStencil != EClearDepthStencil::Depth, Stencil, ExcludeRect);
+		RHIClear(false, FLinearColor::Black, ClearDepthStencil != EClearDepthStencil::Stencil, Depth, ClearDepthStencil != EClearDepthStencil::Depth, Stencil);
 	}
-	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray, FIntRect ExcludeRect) final override
+	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray) final override
 	{
-		RHIClearMRT(true, NumTextures, ColorArray, false, 0, false, 0, ExcludeRect);
+		RHIClearMRT(true, NumTextures, ColorArray, false, 0, false, 0);
 	}
 	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) final override;
 	virtual void RHIPushEvent(const TCHAR* Name, FColor Color) final override;
@@ -144,7 +144,10 @@ public:
 	// OutSets must have been previously pre-allocated
 	FVulkanDescriptorPool* AllocateDescriptorSets(const VkDescriptorSetAllocateInfo& DescriptorSetAllocateInfo, const FVulkanDescriptorSetsLayout& Layout, VkDescriptorSet* OutSets);
 
-	void NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture);
+	inline void NotifyDeletedRenderTarget(VkImage Image)
+	{
+		TransitionState.NotifyDeletedRenderTarget(*Device, Image);
+	}
 
 	inline FVulkanRenderPass* GetCurrentRenderPass()
 	{
@@ -242,8 +245,8 @@ protected:
 		};
 		TMap<uint32, FFramebufferList*> Framebuffers;
 
-		void NotifyDeletedRenderTarget(FVulkanDevice& InDevice, const FVulkanTextureBase* Texture);
-		
+		void NotifyDeletedRenderTarget(FVulkanDevice& InDevice, VkImage Image);
+
 		VkImageLayout FindOrAddLayout(VkImage Image, VkImageLayout LayoutIfNotFound)
 		{
 			VkImageLayout* Found = CurrentLayout.Find(Image);
@@ -303,11 +306,11 @@ protected:
 	void PrepareForCPURead();
 	void RequestSubmitCurrentCommands();
 
-	void InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
+	void InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 
 private:
-	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
-	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
+	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
+	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 
 	inline bool SafePointSubmit()
 	{

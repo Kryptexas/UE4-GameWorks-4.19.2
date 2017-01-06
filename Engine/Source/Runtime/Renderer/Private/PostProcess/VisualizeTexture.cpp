@@ -374,7 +374,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 	const FSceneRenderTargetItem& DestRenderTarget = VisualizeTextureContent->GetRenderTargetItem();
 
 	SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), true);
-	RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor(1, 1, 0, 1), FIntRect());
+	RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor(1, 1, 0, 1));
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());

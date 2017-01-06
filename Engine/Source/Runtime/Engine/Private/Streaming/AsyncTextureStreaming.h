@@ -11,8 +11,10 @@ AsyncTextureStreaming.h: Definitions of classes used for texture streaming async
 #include "ContentStreaming.h"
 #include "Async/AsyncWork.h"
 #include "Streaming/StreamingTexture.h"
-#include "Streaming/TextureInstanceManager.h"
+#include "Streaming/TextureInstanceView.h"
 
+class FLevelTextureManager;
+class FDynamicTextureInstanceManager;
 struct FStreamingManagerTexture;
 
 /** Thread-safe helper struct for streaming information. */
@@ -21,7 +23,7 @@ class FAsyncTextureStreamingData
 public:
 
 	/** Set the data but do as little as possible, called from the game thread. */
-	void Init(TArray<FStreamingViewInfo> InViewInfos, float InWorldTime, TIndirectArray<FLevelTextureManager>& LevelTextureManagers, FDynamicComponentTextureManager& DynamicComponentManager);
+	void Init(TArray<FStreamingViewInfo> InViewInfos, float InWorldTime, TIndirectArray<FLevelTextureManager>& LevelTextureManagers, FDynamicTextureInstanceManager& DynamicComponentManager);
 
 	/** Update everything internally so to allow calls to CalcWantedMips */
 	void UpdateBoundSizes_Async(const FTextureStreamingSettings& Settings);
@@ -35,6 +37,23 @@ public:
 	FORCEINLINE const TArray<FStreamingViewInfo>& GetViewInfos() const { return ViewInfos; }
 
 	FORCEINLINE bool HasAnyView() const { return ViewInfos.Num() > 0; }
+
+	// Release the view. Decrementing the refcounts. 
+	// This must be done on the gamethread as the refcount are not threadsafe.
+	void ReleaseViews()
+	{
+		DynamicInstancesView = FTextureInstanceAsyncView();
+		StaticInstancesViews.Reset();
+	}
+
+	void OnTaskDone_Async() 
+	{ 
+		DynamicInstancesView.OnTaskDone();
+		for (FTextureInstanceAsyncView& StaticView : StaticInstancesViews)
+		{
+			StaticView.OnTaskDone();
+		}
+	}
 
 private:
 
@@ -94,6 +113,11 @@ public:
 	void DoWork();
 
 	bool HasAnyView() const { return StreamingData.HasAnyView(); }
+
+	void ReleaseAsyncViews()
+	{
+		StreamingData.ReleaseViews();
+	}
 
 private:
 

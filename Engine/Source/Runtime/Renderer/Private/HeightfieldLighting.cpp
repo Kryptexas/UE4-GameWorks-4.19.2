@@ -869,6 +869,11 @@ public:
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldGI(Platform);
 	}
 
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FLightTileIntersectionParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
+	}
+
 	/** Default constructor. */
 	FRayTracedShadowHeightfieldsPS() {}
 
@@ -882,9 +887,7 @@ public:
 		LightDirection.Bind(Initializer.ParameterMap, TEXT("LightDirection"));
 		TanLightAngle.Bind(Initializer.ParameterMap, TEXT("TanLightAngle"));
 		CascadeDepthMinMax.Bind(Initializer.ParameterMap, TEXT("CascadeDepthMinMax"));
-		ShadowTileHeadDataUnpacked.Bind(Initializer.ParameterMap, TEXT("ShadowTileHeadDataUnpacked"));
-		ShadowTileArrayData.Bind(Initializer.ParameterMap, TEXT("ShadowTileArrayData"));
-		ShadowTileListGroupSize.Bind(Initializer.ParameterMap, TEXT("ShadowTileListGroupSize"));
+		LightTileIntersectionParameters.Bind(Initializer.ParameterMap);
 		WorldToShadow.Bind(Initializer.ParameterMap, TEXT("WorldToShadow"));
 		TwoSidedMeshDistanceBias.Bind(Initializer.ParameterMap, TEXT("TwoSidedMeshDistanceBias"));
 	}
@@ -912,13 +915,11 @@ public:
 
 		SetShaderValue(RHICmdList, ShaderRHI, CascadeDepthMinMax, FVector2D(ProjectedShadowInfo->CascadeSettings.SplitNear, ProjectedShadowInfo->CascadeSettings.SplitFar));
 
-		check(TileIntersectionResources || !ShadowTileHeadDataUnpacked.IsBound());
+		check(TileIntersectionResources || !LightTileIntersectionParameters.IsBound());
 
 		if (TileIntersectionResources)
 		{
-			SetSRVParameter(RHICmdList, ShaderRHI, ShadowTileHeadDataUnpacked, TileIntersectionResources->TileHeadDataUnpacked.SRV);
-			SetSRVParameter(RHICmdList, ShaderRHI, ShadowTileArrayData, TileIntersectionResources->TileArrayData.SRV);
-			SetShaderValue(RHICmdList, ShaderRHI, ShadowTileListGroupSize, TileIntersectionResources->TileDimensions);
+			LightTileIntersectionParameters.Set(RHICmdList, ShaderRHI, *TileIntersectionResources);
 		}
 
 		FMatrix WorldToShadowMatrixValue = FTranslationMatrix(ProjectedShadowInfo->PreShadowTranslation) * ProjectedShadowInfo->SubjectAndReceiverMatrix;
@@ -937,9 +938,7 @@ public:
 		Ar << LightDirection;
 		Ar << TanLightAngle;
 		Ar << CascadeDepthMinMax;
-		Ar << ShadowTileHeadDataUnpacked;
-		Ar << ShadowTileArrayData;
-		Ar << ShadowTileListGroupSize;
+		Ar << LightTileIntersectionParameters;
 		Ar << WorldToShadow;
 		Ar << TwoSidedMeshDistanceBias;
 		return bShaderHasOutdatedParameters;
@@ -953,9 +952,7 @@ private:
 	FShaderParameter LightDirection;
 	FShaderParameter TanLightAngle;
 	FShaderParameter CascadeDepthMinMax;
-	FShaderResourceParameter ShadowTileHeadDataUnpacked;
-	FShaderResourceParameter ShadowTileArrayData;
-	FShaderParameter ShadowTileListGroupSize;
+	FLightTileIntersectionParameters LightTileIntersectionParameters;
 	FShaderParameter WorldToShadow;
 	FShaderParameter TwoSidedMeshDistanceBias;
 };

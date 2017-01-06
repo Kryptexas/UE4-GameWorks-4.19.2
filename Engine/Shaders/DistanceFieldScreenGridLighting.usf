@@ -30,15 +30,10 @@ void HemisphereConeTraceAgainstTileCulledObjects(uint2 OutputCoordinate, uint Sh
 	uint2 TileCoordinate = ComputeTileCoordinateFromScreenGrid(OutputCoordinate);
 	uint4 TileHead = GetTileHead(TileCoordinate);
 
-#if USE_DEPTH_RANGE_LISTS
-		
 	uint TileIndex = TileCoordinate.y * TileListGroupSize.x + TileCoordinate.x;
 	float4 ConeAxisDepthRanges = TileConeDepthRanges.Load(TileIndex);
 	uint ListIndex = SceneDepth < ConeAxisDepthRanges.y ? 0 : 1;
 	uint NumObjectsAffectingTile = SceneDepth < ConeAxisDepthRanges.y ? TileHead.y : TileHead.z;
-#else
-	uint NumObjectsAffectingTile = TileHead.y + TileHead.z + TileHead.w;
-#endif
 
 	uint NumCulledObjects = NumObjectsAffectingTile;
 	float MaxWorldStepOffset = GetStepOffset(NUM_CONE_STEPS);
@@ -51,25 +46,7 @@ void HemisphereConeTraceAgainstTileCulledObjects(uint2 OutputCoordinate, uint Sh
 	LOOP 
 	for (uint ListObjectIndex = ThreadIndex; ListObjectIndex < NumCulledObjects; ListObjectIndex += NUM_THREADS_PER_RECORD)
 	{
-		#if USE_DEPTH_RANGE_LISTS
-			uint ArrayIndex = ListObjectIndex;
-		#else
-			uint ListIndex = 0;
-			uint ArrayIndex = ListObjectIndex;
-
-			FLATTEN
-			if (ListObjectIndex >= TileHead.y + TileHead.z)
-			{
-				ListIndex = 2;
-				ArrayIndex = ListObjectIndex - TileHead.y - TileHead.z;
-			}
-			else if (ListObjectIndex >= TileHead.y)
-			{
-				ListIndex = 1;
-				ArrayIndex = ListObjectIndex - TileHead.y;
-			}
-		#endif
-
+		uint ArrayIndex = ListObjectIndex;
 		uint ObjectIndex = TileArrayData.Load((ArrayIndex * TileListGroupSize.x * TileListGroupSize.y + TileHead.x) * NUM_CULLED_OBJECT_LISTS + ListIndex);
 
 		float4 ObjectPositionAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
@@ -89,23 +66,11 @@ void HemisphereConeTraceAgainstTileCulledObjects(uint2 OutputCoordinate, uint Sh
 			BRANCH
 			if (BoxDistance < AOObjectMaxDistance)
 			{
-				float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+				float4 UVAddAndSelfShadowBias = LoadObjectUVAddAndSelfShadowBias(ObjectIndex);
 
 				uint StartStepIndex = 0;
-			
-				#if !USE_DEPTH_RANGE_LISTS
-					FLATTEN
-					if (ListObjectIndex >= TileHead.y + TileHead.z)
-					{
-						StartStepIndex = 8;
-					}
-					else if (ListObjectIndex >= TileHead.y)
-					{
-						StartStepIndex = 5;
-					}
-				#endif
-
 				float ObjectOccluderRadius = length(LocalPositionExtent) * .5f * UVScaleAndVolumeScale.w;
+				float SelfShadowScale = 1.0f / max(UVAddAndSelfShadowBias.w, .0001f);
 
 				LOOP
 				for (uint ConeIndex = 0; ConeIndex < NUM_CONE_DIRECTIONS; ConeIndex++)
@@ -138,8 +103,9 @@ void HemisphereConeTraceAgainstTileCulledObjects(uint2 OutputCoordinate, uint Sh
 						float3 ClampedSamplePosition = clamp(StepSamplePosition, -LocalPositionExtent, LocalPositionExtent);
 						float DistanceToClamped = length(StepSamplePosition - ClampedSamplePosition);
 
-						float3 StepVolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
+						float3 StepVolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAddAndSelfShadowBias.xyz);
 						float DistanceToOccluder = (Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, StepVolumeUV, 0).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
+
 						float SphereRadius = WorldStepOffset * TanConeHalfAngle;
 						//@todo - have to bias away from surface further for this to work
 						float ShadingSphereRadius = SphereRadius * 1.0f;
@@ -149,6 +115,10 @@ void HemisphereConeTraceAgainstTileCulledObjects(uint2 OutputCoordinate, uint Sh
 
 						// Don't allow small objects to fully occlude a cone step
 						Visibility = max(Visibility, 1 - saturate(ObjectOccluderRadius / SphereRadius));
+
+						// Don't allow occlusion within an object's self shadow distance
+						float SelfShadowVisibility = 1 - saturate(WorldStepOffset * SelfShadowScale);
+						Visibility = max(Visibility, SelfShadowVisibility);
 
 						#if SUPPORT_IRRADIANCE
 							uint VisibilityIndex = NUM_VISIBILITY_STEPS * WorldStepOffset * InvMaxOcclusionDistance;
@@ -225,8 +195,8 @@ void ConeTraceObjectOcclusionCS(
 	float3 WorldNormal;
 	float SceneDepth;
 	bool bHasDistanceFieldRepresentation;
-	bool bHasHeightfieldRepresentation;
-	GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
+	bool bLit;
+	GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bLit);
 
 	float3 TangentX;
 	float3 TangentY;
@@ -256,6 +226,18 @@ void ConeTraceObjectOcclusionCS(
 		for (uint ConeIndex = ThreadIndex; ConeIndex < NUM_CONE_DIRECTIONS; ConeIndex += NUM_THREADS_PER_RECORD)
 		{
 			float ConeVisibility = asfloat(SharedConeVisibility[SharedVisibilityBaseIndex + ConeIndex]);
+
+#if PASS_THROUGH_DEBUG_VALUE
+			uint2 TileCoordinate = ComputeTileCoordinateFromScreenGrid(OutputCoordinate);
+			uint4 TileHead = GetTileHead(TileCoordinate);
+
+			uint TileIndex = TileCoordinate.y * TileListGroupSize.x + TileCoordinate.x;
+			float4 ConeAxisDepthRanges = TileConeDepthRanges.Load(TileIndex);
+			uint ListIndex = SceneDepth < ConeAxisDepthRanges.y ? 0 : 1;
+			uint NumObjectsAffectingTile = SceneDepth < ConeAxisDepthRanges.y ? TileHead.y : TileHead.z;
+			ConeVisibility = NumObjectsAffectingTile / 100.0f;
+#endif
+
 			RWScreenGridConeVisibility[OutputBaseIndex + ConeIndex] = ConeVisibility;
 
 			#if SUPPORT_IRRADIANCE
@@ -386,8 +368,8 @@ void ConeTraceGlobalOcclusionCS(
 		float3 WorldNormal;
 		float SceneDepth;
 		bool bHasDistanceFieldRepresentation;
-		bool bHasHeightfieldRepresentation;
-		GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
+		bool bLit;
+		GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bLit);
 
 		float3 TangentX;
 		float3 TangentY;
@@ -426,8 +408,8 @@ void CombineConeVisibilityCS(
 	float3 WorldNormal;
 	float SceneDepth;
 	bool bHasDistanceFieldRepresentation;
-	bool bHasHeightfieldRepresentation;
-	GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
+	bool bLit;
+	GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bLit);
 
 	float3 TangentX;
 	float3 TangentY;
@@ -435,8 +417,12 @@ void CombineConeVisibilityCS(
 
 	uint InputBaseIndex = (OutputCoordinate.y * ScreenGridConeVisibilitySize.x + OutputCoordinate.x) * NUM_CONE_DIRECTIONS;
 
+#if PASS_THROUGH_DEBUG_VALUE
+	float temp = ScreenGridConeVisibility[InputBaseIndex + 0];
+	RWDistanceFieldBentNormal[OutputCoordinate] = float4(temp.xxx, SceneDepth);
+#else
 	float3 UnoccludedDirection = 0;
-
+	
 	for (uint ConeIndex = 0; ConeIndex < NUM_CONE_DIRECTIONS; ConeIndex++)
 	{
 		float ConeVisibility = ScreenGridConeVisibility[InputBaseIndex + ConeIndex];
@@ -449,6 +435,7 @@ void CombineConeVisibilityCS(
 	float3 BentNormal = UnoccludedDirection * (BentNormalNormalizeFactor * InvNumSamples);
 
 	RWDistanceFieldBentNormal[OutputCoordinate] = float4(BentNormal, SceneDepth);
+#endif
 }
 
 float2 DistanceFieldGBufferTexelSize;
@@ -505,8 +492,8 @@ void GeometryAwareUpsamplePS(
 	float3 WorldNormal;
 	float SceneDepth;
 	bool bHasDistanceFieldRepresentation;
-	bool bHasHeightfieldRepresentation;
-	GetDownsampledGBuffer(UVAndScreenPos.xy, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
+	bool bLit;
+	GetDownsampledGBuffer(UVAndScreenPos.xy, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bLit);
 
 	float2 LowResBufferSize = BentNormalBufferAndTexelSize.xy;
 	float2 LowResTexelSize = BentNormalBufferAndTexelSize.zw;
@@ -547,6 +534,7 @@ void GeometryAwareUpsamplePS(
 	
 	float BentNormalLength = length(AverageBentNormal);
 	
+#if !PASS_THROUGH_DEBUG_VALUE
 	float AverageLength = 
 		(FinalWeights.x * length(TextureValues00.xyz) 
 		+ FinalWeights.y * length(TextureValues10.xyz)
@@ -559,7 +547,7 @@ void GeometryAwareUpsamplePS(
 		// Fixup normal shortening due to weighted average of vectors
 		AverageBentNormal = AverageBentNormal / BentNormalLength * AverageLength;
 	}
-
+#endif
 	OutBentNormal = float4(AverageBentNormal, SceneDepth);
 
 	// Fade to unoccluded in the distance

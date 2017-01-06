@@ -157,6 +157,8 @@ public:
 
 	ENGINE_API void RemoveFromScene(FSceneInterface* Scene);
 	
+	ENGINE_API void SetData(const FPrecomputedLightVolumeData* NewData, FSceneInterface* Scene);
+
 	/** Interpolates incident radiance to Position. */
 	ENGINE_API void InterpolateIncidentRadiancePoint(
 		const FVector& Position, 

@@ -392,16 +392,24 @@ void FPrecomputedLightVolume::AddToScene(FSceneInterface* Scene, UMapBuildDataRe
 {
 	check(!bAddedToScene);
 
+	const FPrecomputedLightVolumeData* NewData = NULL;
+
 	if (Registry)
 	{
-		Data = Registry->GetLevelBuildData(LevelBuildDataId);
+		NewData = Registry->GetLevelBuildData(LevelBuildDataId);
 	}
 
-	if (Data && Data->bInitialized && Scene)
+	if (NewData && NewData->bInitialized && Scene)
 	{
 		bAddedToScene = true;
 
-		OctreeForRendering = AllowHighQualityLightmaps(Scene->GetFeatureLevel()) ? &Data->HighQualityLightmapOctree : &Data->LowQualityLightmapOctree;
+		FPrecomputedLightVolume* Volume = this;
+
+		ENQUEUE_RENDER_COMMAND(SetVolumeDataCommand)
+			([Volume, NewData, Scene](FRHICommandListImmediate& RHICmdList) 
+			{
+				Volume->SetData(NewData, Scene);
+			});
 		Scene->AddPrecomputedLightVolume(this);
 	}
 }
@@ -419,6 +427,12 @@ void FPrecomputedLightVolume::RemoveFromScene(FSceneInterface* Scene)
 	}
 
 	WorldOriginOffset = FVector::ZeroVector;
+}
+
+void FPrecomputedLightVolume::SetData(const FPrecomputedLightVolumeData* NewData, FSceneInterface* Scene)
+{
+	Data = NewData;
+	OctreeForRendering = AllowHighQualityLightmaps(Scene->GetFeatureLevel()) ? &Data->HighQualityLightmapOctree : &Data->LowQualityLightmapOctree;
 }
 
 void FPrecomputedLightVolume::InterpolateIncidentRadiancePoint(

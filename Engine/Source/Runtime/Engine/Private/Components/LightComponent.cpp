@@ -342,6 +342,9 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 
 	RayStartOffsetDepthScale = .003f;
 	bAddedToSceneVisible = false;
+
+	MaxDrawDistance = 0.0f;
+	MaxDistanceFadeRange = 0.0f;
 }
 
 

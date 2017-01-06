@@ -10,10 +10,6 @@
 #include "GlobalShader.h"
 #include "Serialization/MemoryReader.h"
 
-#if (!PLATFORM_ANDROID)
-#include <vulkan/icd-spv.h>
-#endif
-
 static TAutoConsoleVariable<int32> GStripGLSL(
 	TEXT("r.Vulkan.StripGlsl"),
 	1,
@@ -237,9 +233,7 @@ FVulkanComputeShaderState::FVulkanComputeShaderState(FVulkanDevice* InDevice, FC
 	NEWPackedUniformBufferStagingDirty = 0;
 
 	check(InComputeShader);
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	ShaderHash = ComputeShader->CodeHeader.SourceHash;
-#endif
 
 	InitGlobalUniformsForStage(ComputeShader->CodeHeader, NEWPackedUniformBufferStaging, NEWPackedUniformBufferStagingDirty);
 	GenerateLayoutBindingsForStage(VK_SHADER_STAGE_COMPUTE_BIT, EDescriptorSetStage::Compute, ComputeShader->CodeHeader, Layout);
@@ -450,9 +444,7 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 	, BindingsNum(0)
 	, BindingsMask(0)
 	, AttributesNum(0)
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	, GlobalListLink(this)
-#endif
 {
 	static int32 sID = 0;
 	ID = sID++;
@@ -478,31 +470,23 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 	DomainShader = InDomainShader;
 	GeometryShader = InGeometryShader;
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	GlobalListLink.LinkHead(FVulkanPipelineStateCache::GetBSSList());
-#endif
 
 	// Setup working areas for the global uniforms
 	check(VertexShader);
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	ShaderHashes[SF_Vertex] = VertexShader->CodeHeader.SourceHash;
-#endif
 	InitGlobalUniformsForStage(VertexShader->CodeHeader, NEWPackedUniformBufferStaging[SF_Vertex], NEWPackedUniformBufferStagingDirty[SF_Vertex]);
 	GenerateLayoutBindingsForStage(VK_SHADER_STAGE_VERTEX_BIT, EDescriptorSetStage::Vertex, VertexShader->CodeHeader, Layout);
 
 	if (PixelShader)
 	{
-#if VULKAN_ENABLE_PIPELINE_CACHE
 		ShaderHashes[SF_Pixel] = PixelShader->CodeHeader.SourceHash;
-#endif
 		InitGlobalUniformsForStage(PixelShader->CodeHeader, NEWPackedUniformBufferStaging[SF_Pixel], NEWPackedUniformBufferStagingDirty[SF_Pixel]);
 		GenerateLayoutBindingsForStage(VK_SHADER_STAGE_FRAGMENT_BIT, EDescriptorSetStage::Pixel, PixelShader->CodeHeader, Layout);
 	}
 	if (GeometryShader)
 	{
-#if VULKAN_ENABLE_PIPELINE_CACHE
 		ShaderHashes[SF_Geometry] = GeometryShader->CodeHeader.SourceHash;
-#endif
 		InitGlobalUniformsForStage(GeometryShader->CodeHeader, NEWPackedUniformBufferStaging[SF_Geometry], NEWPackedUniformBufferStagingDirty[SF_Geometry]);
 		GenerateLayoutBindings(SF_Geometry, GeometryShader->CodeHeader);
 		GenerateLayoutBindingsForStage(VK_SHADER_STAGE_GEOMETRY_BIT, EDescriptorSetStage::Geometry, GeometryShader->CodeHeader, Layout);
@@ -511,10 +495,8 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 	{
 		// Can't have Hull w/o Domain
 		check(DomainShader);
-#if VULKAN_ENABLE_PIPELINE_CACHE
 		ShaderHashes[SF_Hull] = HullShader->CodeHeader.SourceHash;
 		ShaderHashes[SF_Domain] = DomainShader->CodeHeader.SourceHash;
-#endif
 		InitGlobalUniformsForStage(HullShader->CodeHeader, NEWPackedUniformBufferStaging[SF_Hull], NEWPackedUniformBufferStagingDirty[SF_Hull]);
 		InitGlobalUniformsForStage(DomainShader->CodeHeader, NEWPackedUniformBufferStaging[SF_Domain], NEWPackedUniformBufferStagingDirty[SF_Domain]);
 		GenerateLayoutBindingsForStage(VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, EDescriptorSetStage::Hull, HullShader->CodeHeader, Layout);
@@ -534,9 +516,7 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 
 FVulkanBoundShaderState::~FVulkanBoundShaderState()
 {
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	GlobalListLink.Unlink();
-#endif
 
 	for (int32 Index = 0; Index < DescriptorSetsEntries.Num(); ++Index)
 	{
@@ -547,12 +527,8 @@ FVulkanBoundShaderState::~FVulkanBoundShaderState()
 	// toss the pipeline states
 	for (auto& Pair : PipelineCache)
 	{
-#if VULKAN_ENABLE_PIPELINE_CACHE
 		// Reference is decremented inside the Destroy function
 		Device->PipelineStateCache->DestroyPipeline(Pair.Value);
-#else
-		Pair.Value->Destroy();
-#endif
 	}
 
 	DEC_DWORD_STAT(STAT_VulkanNumBoundShaderState);
@@ -568,7 +544,6 @@ FVulkanGfxPipeline* FVulkanBoundShaderState::PrepareForDraw(FVulkanRenderPass* R
 	// make one if not
 	if (Pipeline == nullptr)
 	{
-#if VULKAN_ENABLE_PIPELINE_CACHE
 		// Try the device cache
 		FVulkanGfxPipelineStateKey PipelineCreateInfo(PipelineKey, VertexInputKey, this);
 		Pipeline = Device->PipelineStateCache->Find(PipelineCreateInfo);
@@ -579,15 +554,10 @@ FVulkanGfxPipeline* FVulkanBoundShaderState::PrepareForDraw(FVulkanRenderPass* R
 			Pipeline->AddRef();
 		}
 		else
-#endif
 		{
 			// Create a new one
 			Pipeline = new FVulkanGfxPipeline(Device);
-#if VULKAN_ENABLE_PIPELINE_CACHE
 			Device->PipelineStateCache->CreateAndAdd(RenderPass, PipelineCreateInfo, Pipeline, State, *this);
-#else
-			Pipeline->Create(State);
-#endif
 
 			// Add it to the local cache; manually control RefCount
 			PipelineCache.Add(PipelineKey, Pipeline);

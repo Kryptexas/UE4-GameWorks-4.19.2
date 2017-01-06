@@ -26,15 +26,10 @@ void ConeTraceAgainstTileCulledObjects(uint2 OutputCoordinate, uint SharedVisibi
 	uint2 TileCoordinate = ComputeTileCoordinateFromScreenGrid(OutputCoordinate);
 	uint4 TileHead = GetTileHead(TileCoordinate);
 
-#if USE_DEPTH_RANGE_LISTS
-		
 	uint TileIndex = TileCoordinate.y * TileListGroupSize.x + TileCoordinate.x;
 	float4 ConeAxisDepthRanges = TileConeDepthRanges.Load(TileIndex);
 	uint ListIndex = SceneDepth < ConeAxisDepthRanges.y ? 0 : 1;
 	uint NumObjectsAffectingTile = SceneDepth < ConeAxisDepthRanges.y ? TileHead.y : TileHead.z;
-#else
-	uint NumObjectsAffectingTile = TileHead.y + TileHead.z + TileHead.w;
-#endif
 
 	uint NumCulledObjects = NumObjectsAffectingTile;
 	float MaxWorldStepOffset = GetStepOffset(NUM_CONE_STEPS);
@@ -42,30 +37,14 @@ void ConeTraceAgainstTileCulledObjects(uint2 OutputCoordinate, uint SharedVisibi
 
 	float3 CameraToPixel = normalize(WorldShadingPosition - View.WorldCameraOrigin);
 	float3 ReflectionVector = reflect(CameraToPixel, WorldNormal);
-	float TanConeHalfAngle = tan(View.GeneralPurposeTweak);
+
+	//@todo - derive from roughness
+	float TanConeHalfAngle = tan(1.0f);
 
 	LOOP 
 	for (uint ListObjectIndex = ThreadIndex; ListObjectIndex < NumCulledObjects; ListObjectIndex += NUM_THREADS_PER_RECORD)
 	{
-		#if USE_DEPTH_RANGE_LISTS
-			uint ArrayIndex = ListObjectIndex;
-		#else
-			uint ListIndex = 0;
-			uint ArrayIndex = ListObjectIndex;
-
-			FLATTEN
-			if (ListObjectIndex >= TileHead.y + TileHead.z)
-			{
-				ListIndex = 2;
-				ArrayIndex = ListObjectIndex - TileHead.y - TileHead.z;
-			}
-			else if (ListObjectIndex >= TileHead.y)
-			{
-				ListIndex = 1;
-				ArrayIndex = ListObjectIndex - TileHead.y;
-			}
-		#endif
-
+		uint ArrayIndex = ListObjectIndex;
 		uint ObjectIndex = TileArrayData.Load((ArrayIndex * TileListGroupSize.x * TileListGroupSize.y + TileHead.x) * NUM_CULLED_OBJECT_LISTS + ListIndex);
 
 		float4 ObjectPositionAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
@@ -85,22 +64,9 @@ void ConeTraceAgainstTileCulledObjects(uint2 OutputCoordinate, uint SharedVisibi
 			BRANCH
 			if (BoxDistance < AOObjectMaxDistance)
 			{
-				float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+				float3 UVAdd = LoadObjectUVAddAndSelfShadowBias(ObjectIndex).xyz;
 
 				uint StartStepIndex = 0;
-			
-				#if !USE_DEPTH_RANGE_LISTS
-					FLATTEN
-					if (ListObjectIndex >= TileHead.y + TileHead.z)
-					{
-						StartStepIndex = 8;
-					}
-					else if (ListObjectIndex >= TileHead.y)
-					{
-						StartStepIndex = 5;
-					}
-				#endif
-
 				float ObjectOccluderRadius = length(LocalPositionExtent) * .5f * UVScaleAndVolumeScale.w;
 
 				//float3 ConeDirection = AOSamples2.SampleDirections[0].xyz;
@@ -175,8 +141,8 @@ void ConeTraceSpecularOcclusionCS(
 	float3 WorldNormal;
 	float SceneDepth;
 	bool bHasDistanceFieldRepresentation;
-	bool bHasHeightfieldRepresentation;
-	GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
+	bool bLit;
+	GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bLit);
 
 	float3 TangentX;
 	float3 TangentY;

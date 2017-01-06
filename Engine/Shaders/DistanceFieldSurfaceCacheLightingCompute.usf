@@ -469,8 +469,6 @@ void DistanceFieldAOBuildTileListMain(
 		TileConeVertex = float3(0, 0, 0) - TileConeAxis * VertexPullbackLength;
 	}
 	
-#if USE_DEPTH_RANGE_LISTS
-
 	// A value of 1 is conservative, but has a huge impact on performance
 	float RadiusScale = .5f;
 	uint TileIndex = GroupId.y * (uint)NumGroups.x + GroupId.x;
@@ -500,110 +498,6 @@ void DistanceFieldAOBuildTileListMain(
 	{
 		RWTileHeadDataUnpacked[TileIndex * 4 + 0] = TileIndex;
 	}
-
-#else
-	// A value of 1 is conservative, but has huge impact on performance
-	float RadiusScale = .5f;
-	float SmallGroupMaxSampleRadius;
-	{
-		uint StartIndex;
-		uint EndIndex;
-		GetPhaseParameters(0, StartIndex, EndIndex);
-		SmallGroupMaxSampleRadius = GetStepOffset(EndIndex) * 2 * RadiusScale;
-	}
-
-	float MediumGroupMaxSampleRadius;
-	{
-		uint StartIndex;
-		uint EndIndex;
-		GetPhaseParameters(1, StartIndex, EndIndex);
-		MediumGroupMaxSampleRadius = GetStepOffset(EndIndex) * 2 * RadiusScale;
-	}
-
-	float LargeGroupMaxSampleRadius;
-	{
-		uint StartIndex;
-		uint EndIndex;
-		GetPhaseParameters(2, StartIndex, EndIndex);
-		LargeGroupMaxSampleRadius = GetStepOffset(EndIndex) * 2 * RadiusScale;
-	}
-
-	uint NumCulledObjects = GetCulledNumObjects();
-
-	// Compute per-tile lists of affecting objects through bounds culling
-	// Each thread now operates on a sample instead of a pixel
-	LOOP
-	for (uint ObjectIndex = ThreadIndex; ObjectIndex < NumCulledObjects; ObjectIndex += THREADGROUP_TOTALSIZE)
-	{
-		float4 SphereCenterAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
-		float3 ViewSpaceSphereCenter = mul(float4(SphereCenterAndRadius.xyz + View.PreViewTranslation.xyz, 1), View.TranslatedWorldToView).xyz;
-		
-		if (SphereIntersectConeWithDepthRanges(float4(ViewSpaceSphereCenter, SphereCenterAndRadius.w + SmallGroupMaxSampleRadius), TileConeVertex, TileConeAxis, TileConeAngleCos, TileConeAngleSin, ConeAxisDepthRanges))
-		{
-			uint ListIndex;
-			InterlockedAdd(SmallTileNumObjects, 1U, ListIndex);
-			SmallTileObjectIndices[ListIndex] = ObjectIndex; 
-		}
-		else if (SphereIntersectConeWithDepthRanges(float4(ViewSpaceSphereCenter, SphereCenterAndRadius.w + MediumGroupMaxSampleRadius), TileConeVertex, TileConeAxis, TileConeAngleCos, TileConeAngleSin, ConeAxisDepthRanges))
-		{
-			uint ListIndex;
-			InterlockedAdd(MediumTileNumObjects, 1U, ListIndex);
-			MediumTileObjectIndices[ListIndex] = ObjectIndex; 
-		}
-		else if (SphereIntersectConeWithDepthRanges(float4(ViewSpaceSphereCenter, SphereCenterAndRadius.w + LargeGroupMaxSampleRadius), TileConeVertex, TileConeAxis, TileConeAngleCos, TileConeAngleSin, ConeAxisDepthRanges))
-		{
-			uint ListIndex;
-			InterlockedAdd(LargeTileNumObjects, 1U, ListIndex);
-			LargeTileObjectIndices[ListIndex] = ObjectIndex; 
-		}
-	}
-	
-	GroupMemoryBarrierWithGroupSync();
-
-	if (ThreadIndex == 0) 
-	{
-		SmallTileNumObjects = min(SmallTileNumObjects, MAX_OBJECTS_PER_TILE);
-		MediumTileNumObjects = min(MediumTileNumObjects, MAX_OBJECTS_PER_TILE);
-		LargeTileNumObjects = min(LargeTileNumObjects, MAX_OBJECTS_PER_TILE);
-
-		uint ArrayStart;
-		uint NumObjectsIntersecting = SmallTileNumObjects + MediumTileNumObjects + LargeTileNumObjects;
-		InterlockedAdd(RWTileArrayNextAllocation[0], NumObjectsIntersecting, ArrayStart);
-		TileArrayDataStart = ArrayStart;
-
-		uint HeadIndex = GroupId.y * (uint)NumGroups.x + GroupId.x;
-		RWTileHeadDataUnpacked[HeadIndex * 4 + 0] = TileArrayDataStart;
-		RWTileHeadDataUnpacked[HeadIndex * 4 + 1] = SmallTileNumObjects;
-		RWTileHeadDataUnpacked[HeadIndex * 4 + 2] = MediumTileNumObjects;
-		RWTileHeadDataUnpacked[HeadIndex * 4 + 3] = LargeTileNumObjects;
-	}
-	
-	GroupMemoryBarrierWithGroupSync();
-
-	uint ArrayDataStart = TileArrayDataStart;
-	
-	LOOP
-	for (uint SmallListIndex = ThreadIndex; SmallListIndex < SmallTileNumObjects; SmallListIndex += THREADGROUP_TOTALSIZE)
-	{
-		RWTileArrayData[ArrayDataStart + SmallListIndex] = SmallTileObjectIndices[SmallListIndex];
-	}
-
-	ArrayDataStart += SmallTileNumObjects;
-
-	LOOP
-	for (uint MediumListIndex = ThreadIndex; MediumListIndex < MediumTileNumObjects; MediumListIndex += THREADGROUP_TOTALSIZE)
-	{
-		RWTileArrayData[ArrayDataStart + MediumListIndex] = MediumTileObjectIndices[MediumListIndex];
-	}
-
-	ArrayDataStart += MediumTileNumObjects;
-
-	LOOP
-	for (uint LargeListIndex = ThreadIndex; LargeListIndex < LargeTileNumObjects; LargeListIndex += THREADGROUP_TOTALSIZE)
-	{
-		RWTileArrayData[ArrayDataStart + LargeListIndex] = LargeTileObjectIndices[LargeListIndex];
-	}
-#endif
 }
 
 /** View rect min in xy, max in zw. */
@@ -668,8 +562,8 @@ void PopulateCacheCS(
 			float3 WorldNormal;
 			float Unused;
 			bool bHasDistanceFieldRepresentation;
-			bool bHasHeightfieldRepresentation;
-			GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, Unused, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
+			bool bLit;
+			GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, Unused, bHasDistanceFieldRepresentation, bLit);
 
 			//@todo - offset shading position along normal to avoid incorrect self-occlusion?
 			float3 WorldShadingPosition = OpaqueWorldPosition;
@@ -685,8 +579,8 @@ void PopulateCacheCS(
 				// Sign of W stores whether the sample is fading in or out
 				float RadiusSign = 1;
 				CachedIrradianceCachePositionRadius[NextSampleIndex] = float4(WorldShadingPosition, RadiusSign * SceneDepth * CurrentLevelDownsampleFactor * MaxRadiusScale);
-				// sign(w) stores bHasHeightfieldRepresentation
-				CachedIrradianceCacheNormal[NextSampleIndex] = float4(WorldNormal, (bHasHeightfieldRepresentation ? 1 : -1));
+				// sign(w) stores bLit
+				CachedIrradianceCacheNormal[NextSampleIndex] = float4(WorldNormal, (bLit ? 1 : -1));
 				CachedIrradianceCacheTileCoordinate[NextSampleIndex] = TileCoordinate;
 			}
 		}
@@ -794,18 +688,11 @@ void ConeTraceOcclusionCS(
 		uint2 TileCoordinate = IrradianceCacheTileCoordinate[RecordIndex];
 
 		uint4 TileHead = GetTileHead(TileCoordinate);
-		
-		#if USE_DEPTH_RANGE_LISTS
-		
-			uint TileIndex = TileCoordinate.y * TileListGroupSize.x + TileCoordinate.x;
-			float4 ConeAxisDepthRanges = TileConeDepthRanges.Load(TileIndex);
-			float SceneDepth = mul(float4(WorldShadingPosition, 1), View.WorldToClip).w;
-			uint ListIndex = SceneDepth < ConeAxisDepthRanges.y ? 0 : 1;
-			uint NumObjectsAffectingTile = SceneDepth < ConeAxisDepthRanges.y ? TileHead.y : TileHead.z;
-		#else
-			uint NumObjectsAffectingTile = TileHead.y + TileHead.z + TileHead.w;
-		#endif
-
+		uint TileIndex = TileCoordinate.y * TileListGroupSize.x + TileCoordinate.x;
+		float4 ConeAxisDepthRanges = TileConeDepthRanges.Load(TileIndex);
+		float SceneDepth = mul(float4(WorldShadingPosition, 1), View.WorldToClip).w;
+		uint ListIndex = SceneDepth < ConeAxisDepthRanges.y ? 0 : 1;
+		uint NumObjectsAffectingTile = SceneDepth < ConeAxisDepthRanges.y ? TileHead.y : TileHead.z;
 		uint NumCulledObjects = NumObjectsAffectingTile;
 
 		FindBestAxisVectors2(WorldNormal, TangentX, TangentY);
@@ -843,25 +730,7 @@ void ConeTraceOcclusionCS(
 				// Ignore extra threads
 				&& ObjectOffsetIndex < SIMULTANEOUSLY_TRACED_OBJECTS)
 			{
-				#if USE_DEPTH_RANGE_LISTS
-					uint ArrayIndex = EffectiveListObjectIndex;
-				#else
-					uint ListIndex = 0;
-					uint ArrayIndex = EffectiveListObjectIndex;
-
-					FLATTEN
-					if (EffectiveListObjectIndex >= TileHead.y + TileHead.z)
-					{
-						ListIndex = 2;
-						ArrayIndex = EffectiveListObjectIndex - TileHead.y - TileHead.z;
-					}
-					else if (EffectiveListObjectIndex >= TileHead.y)
-					{
-						ListIndex = 1;
-						ArrayIndex = EffectiveListObjectIndex - TileHead.y;
-					}
-				#endif
-
+				uint ArrayIndex = EffectiveListObjectIndex;
 				uint ObjectIndex = TileArrayData.Load((ArrayIndex * TileListGroupSize.x * TileListGroupSize.y + TileHead.x) * NUM_CULLED_OBJECT_LISTS + ListIndex);
 
 				float4 ObjectPositionAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
@@ -883,22 +752,9 @@ void ConeTraceOcclusionCS(
 					BRANCH
 					if (BoxDistance < AOObjectMaxDistance)
 					{
-						float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+						float3 UVAdd = LoadObjectUVAddAndSelfShadowBias(ObjectIndex).xyz;
 
 						uint StartStepIndex = 0;
-			
-						#if !USE_DEPTH_RANGE_LISTS
-							FLATTEN
-							if (EffectiveListObjectIndex >= TileHead.y + TileHead.z)
-							{
-								StartStepIndex = 8;
-							}
-							else if (EffectiveListObjectIndex >= TileHead.y)
-							{
-								StartStepIndex = 5;
-							}
-						#endif
-
 						float WorldStepOffset = GetStepOffset(StartStepIndex);
 
 						LOOP

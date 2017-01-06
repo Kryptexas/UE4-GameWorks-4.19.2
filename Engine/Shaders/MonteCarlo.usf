@@ -8,12 +8,17 @@
 	MonteCarlo.usf: Monte Carlo integration of distributions
 =============================================================================*/
 
-float3 TangentToWorld( float3 Vec, float3 TangentZ )
+float3x3 GetTangentBasis( float3 TangentZ )
 {
 	float3 UpVector = abs(TangentZ.z) < 0.999 ? float3(0,0,1) : float3(1,0,0);
 	float3 TangentX = normalize( cross( UpVector, TangentZ ) );
 	float3 TangentY = cross( TangentZ, TangentX );
-	return TangentX * Vec.x + TangentY * Vec.y + TangentZ * Vec.z;
+	return float3x3( TangentX, TangentY, TangentZ );
+}
+
+float3 TangentToWorld( float3 Vec, float3 TangentZ )
+{
+	return mul( Vec, GetTangentBasis( TangentZ ) );
 }
 
 float2 Hammersley( uint Index, uint NumSamples, uint2 Random )

@@ -1586,26 +1586,26 @@ int64 FScene::GetCachedWholeSceneShadowMapsSize() const
 
 void FScene::AddPrecomputedLightVolume(const FPrecomputedLightVolume* Volume)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		AddVolumeCommand,
-		const FPrecomputedLightVolume*,Volume,Volume,
-		FScene*,Scene,this,
-	{
-		Scene->PrecomputedLightVolumes.Add(Volume);
-		Scene->IndirectLightingCache.SetLightingCacheDirty(Scene, Volume);
-	});
+	FScene* Scene = this;
+
+	ENQUEUE_RENDER_COMMAND(AddVolumeCommand)
+		([Scene, Volume](FRHICommandListImmediate& RHICmdList) 
+		{
+			Scene->PrecomputedLightVolumes.Add(Volume);
+			Scene->IndirectLightingCache.SetLightingCacheDirty(Scene, Volume);
+		});
 }
 
 void FScene::RemovePrecomputedLightVolume(const FPrecomputedLightVolume* Volume)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		RemoveVolumeCommand,
-		const FPrecomputedLightVolume*,Volume,Volume,
-		FScene*,Scene,this,
-	{
-		Scene->PrecomputedLightVolumes.Remove(Volume);
-		Scene->IndirectLightingCache.SetLightingCacheDirty(Scene, Volume);
-	});
+	FScene* Scene = this; 
+
+	ENQUEUE_RENDER_COMMAND(RemoveVolumeCommand)
+		([Scene, Volume](FRHICommandListImmediate& RHICmdList) 
+		{
+			Scene->PrecomputedLightVolumes.Remove(Volume);
+			Scene->IndirectLightingCache.SetLightingCacheDirty(Scene, Volume);
+		});
 }
 
 struct FUpdateLightTransformParameters

@@ -8,8 +8,7 @@
 #include "SceneUtils.h"
 #include "ScenePrivate.h"
 #include "DecalRenderingShared.h"
-
-
+#include "ClearQuad.h"
 
 
 static TAutoConsoleVariable<int32> CVarGenerateDecalRTWriteMaskTexture(
@@ -660,7 +659,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		if (ViewFamily.EngineShowFlags.Decals)
 	    {
 		    FScene& Scene = *(FScene*)ViewFamily.Scene;
-		    if (Scene.Decals.Num() > 0)
+		    if (Scene.Decals.Num() > 0 || Context.View.MeshDecalPrimSet.NumPrims() > 0)
 		    {
 				bNeedsDBufferTargets = true;
 			}
@@ -730,7 +729,11 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 	{
 		if (CurrentStage == DRS_BeforeBasePass || CurrentStage == DRS_BeforeLighting)
 		{
-			RenderMeshDecals(Context, DrawRenderState, CurrentStage);
+			if (Context.View.MeshDecalPrimSet.NumPrims() > 0)
+			{
+				check(bNeedsDBufferTargets || CurrentStage != DRS_BeforeBasePass);
+				RenderMeshDecals(Context, DrawRenderState, CurrentStage);
+			}
 		}
 
 		FScene& Scene = *(FScene*)ViewFamily.Scene;
@@ -866,7 +869,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 				// we don't modify stencil but if out input was having stencil for us (after base pass - we need to clear)
 				// Clear stencil to 0, which is the assumed default by other passes
-				RHICmdList.ClearDepthStencilTexture(SceneContext.GetSceneDepthSurface(), EClearDepthStencil::Stencil, 0, 0, FIntRect());
+				DrawClearQuad(RHICmdList, SMFeatureLevel, false, FLinearColor(), false, 0, true, 0, SceneContext.GetSceneDepthSurface()->GetSizeXY(), FIntRect());					
 			}
 
 			if (CurrentStage == DRS_BeforeBasePass)

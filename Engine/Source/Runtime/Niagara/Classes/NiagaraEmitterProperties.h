@@ -5,23 +5,13 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "Runtime/Niagara/NiagaraConstantSet.h"
 #include "NiagaraScript.h"
+#include "NiagaraCollision.h"
 #include "NiagaraEmitterProperties.generated.h"
 
 class UMaterial;
 class UNiagaraEmitterProperties;
 class UNiagaraEventReceiverEmitterAction;
-
-UENUM()
-enum EEmitterRenderModuleType
-{
-	RMT_None = 0,
-	RMT_Sprites,
-	RMT_Ribbon,
-	RMT_Trails,
-	RMT_Meshes
-};
 
 //TODO: Event action that spawns other whole effects?
 //One that calls a BP exposed delegate?
@@ -64,7 +54,7 @@ struct FNiagaraEventReceiverProperties
 };
 
 USTRUCT()
-struct FNiagaraEventGeneratorProperties : public FNiagaraDataSetProperties
+struct FNiagaraEventGeneratorProperties
 {
 	GENERATED_BODY()
 
@@ -74,9 +64,10 @@ struct FNiagaraEventGeneratorProperties : public FNiagaraDataSetProperties
 
 	}
 
-	FNiagaraEventGeneratorProperties(FNiagaraDataSetProperties& Props, int32 InMaxEventsPerFrame)
-	: FNiagaraDataSetProperties(Props)
-	, MaxEventsPerFrame(InMaxEventsPerFrame)
+	FNiagaraEventGeneratorProperties(FNiagaraDataSetProperties &Props, FName InEventGenerator, FName InSourceEmitter)
+		: ID(Props.ID.Name)
+		, SourceEmitter(InSourceEmitter)
+		, SetProps(Props)		
 	{
 
 	}
@@ -84,6 +75,21 @@ struct FNiagaraEventGeneratorProperties : public FNiagaraDataSetProperties
 	/** Max Number of Events that can be generated per frame. */
 	UPROPERTY(EditAnywhere, Category = "Event Receiver")
 	int32 MaxEventsPerFrame; //TODO - More complex allocation so that we can grow dynamically if more space is needed ?
+
+	FName ID;
+	FName SourceEmitter;
+
+	UPROPERTY()
+	FNiagaraDataSetProperties SetProps;
+};
+
+
+UENUM()
+enum class EScriptExecutionMode : uint8
+{
+	EveryParticle = 0,
+	SpawnedParticles,
+	SingleParticle
 };
 
 USTRUCT()
@@ -94,16 +100,60 @@ struct FNiagaraEmitterScriptProperties
  	UPROPERTY(EditAnywhere, Category = "Script")
  	UNiagaraScript *Script;
 
-	UPROPERTY(EditAnywhere, Category = "Script")
- 	FNiagaraConstants ExternalConstants;
-
 	UPROPERTY(EditAnywhere, EditFixedSize, Category = "Script")
 	TArray<FNiagaraEventReceiverProperties> EventReceivers;
 
 	UPROPERTY(EditAnywhere, EditFixedSize, Category = "Script")
 	TArray<FNiagaraEventGeneratorProperties> EventGenerators;
 
-	NIAGARA_API void Init(UNiagaraEmitterProperties* EmitterProps);
+	NIAGARA_API void InitDataSetAccess();
+};
+
+USTRUCT()
+struct FNiagaraEventScriptProperties : public FNiagaraEmitterScriptProperties
+{
+	GENERATED_BODY()
+			
+	UPROPERTY(EditAnywhere, Category="Event Handling Type")
+	EScriptExecutionMode ExecutionMode;
+
+	UPROPERTY(EditAnywhere, Category = "Event spawning")
+	uint32 SpawnNumber;
+
+	UPROPERTY(EditAnywhere, Category = "Event spawning")
+	uint32 MaxEventsPerFrame;
+
+	UPROPERTY(EditAnywhere, Category = "Source Emitter")
+	FGuid SourceEmitterID;
+
+	UPROPERTY(EditAnywhere, Category = "Source Event")
+	FName SourceEventName;
+};
+
+/** Represents timed burst of particles in an emitter. */
+USTRUCT()
+struct FNiagaraEmitterBurst
+{
+	GENERATED_BODY()
+
+	/** The base time of the burst absolute emitter time. */
+	UPROPERTY(EditAnywhere, Category = "Burst")
+	float Time;
+
+	/** 
+	 * A range around the base time which can be used to randomize burst timing.  The resulting range is 
+	 * from Time - (TimeRange / 2) to Time + (TimeRange / 2).
+	 */
+	UPROPERTY(EditAnywhere, Category = "Burst")
+	float TimeRange;
+
+	/** The minimum number of particles to spawn. */
+	UPROPERTY(EditAnywhere, Category = "Burst")
+	uint32 SpawnMinimum;
+
+	/** The maximum number of particles to spawn. */
+	UPROPERTY(EditAnywhere, Category = "Burst")
+	uint32 SpawnMaximum;
 };
 
 /** 
@@ -121,36 +171,40 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
+	virtual void PostInitProperties() override;
+	virtual void PostLoad() override;
 	//End UObject Interface
 
 	UPROPERTY(EditAnywhere, Category = "Emitter")
-	FString EmitterName;
-	UPROPERTY(EditAnywhere, Category = "Emitter")
-	bool bIsEnabled;
-	UPROPERTY(EditAnywhere, Category = "Emitter")
 	float SpawnRate;
 	UPROPERTY(EditAnywhere, Category = "Emitter")
+	bool bLocalSpace;
+	UPROPERTY(EditAnywhere, Category = "Render")
 	UMaterial *Material;
-	UPROPERTY(EditAnywhere, Category = "Emitter")
-	TEnumAsByte<EEmitterRenderModuleType> RenderModuleType;
 
 	UPROPERTY(EditAnywhere, Category = "Emitter")
 	float StartTime;
 	UPROPERTY(EditAnywhere, Category = "Emitter")
 	float EndTime;
-
-	//Can get rid of the enum and just have users select a class for this directly in the UI?
-	UPROPERTY(VisibleAnywhere, Instanced, Category = "Emitter")
-	class UNiagaraEffectRendererProperties *RendererProperties;
-
 	UPROPERTY(EditAnywhere, Category = "Emitter")
 	int32 NumLoops;
+	UPROPERTY(EditAnywhere, Category = "Emitter")
+	ENiagaraCollisionMode CollisionMode;
 
-	UPROPERTY(EditAnywhere, Category = "Emitter", meta = (ShowOnlyInnerProperties))
+	UPROPERTY(EditAnywhere, Instanced, Category = "Render")
+	class UNiagaraEffectRendererProperties *RendererProperties;
+
+	UPROPERTY()
 	FNiagaraEmitterScriptProperties UpdateScriptProps;
 
-	UPROPERTY(EditAnywhere, Category = "Emitter", meta = (ShowOnlyInnerProperties))
+	UPROPERTY()
 	FNiagaraEmitterScriptProperties SpawnScriptProps;
+
+	UPROPERTY(EditAnywhere, Category="Event Handler")
+	FNiagaraEventScriptProperties EventHandlerScriptProps;
+
+	UPROPERTY(EditAnywhere, Category = "Emitter")
+	TArray<FNiagaraEmitterBurst> Bursts;
 };
 
 

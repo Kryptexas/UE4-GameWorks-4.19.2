@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "NiagaraEditorCommon.h"
 #include "NiagaraNode.h"
+#include "NiagaraNodeInput.h"
 #include "NiagaraNodeFunctionCall.generated.h"
 
 class UNiagaraScript;
@@ -20,6 +21,17 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Function")
 	UNiagaraScript* FunctionScript;
 
+	/** 
+	 * A path to a script asset which can be used to assign the function script the first time that
+	 * default pins are generated. This is used so that the function nodes can be populated in the graph context
+	 * menu without having to load all of the actual script assets.
+	 */
+	UPROPERTY(Transient)
+	FName FunctionScriptAssetObjectPath;
+
+	/** Some functions can be provided a signature directly rather than a script. */
+	UPROPERTY()
+	FNiagaraFunctionSignature Signature;
 
 	//Begin UObject interface
 	virtual void PostLoad()override;
@@ -27,7 +39,11 @@ public:
 	//End UObject interface
 
 	//~ Begin UNiagaraNode Interface
-	virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs)override;
+	virtual void Compile(class INiagaraCompiler* Compiler, TArray<int32>& Outputs)override;
+	virtual UObject* GetReferencedAsset() const override;
+	virtual void RefreshFromExternalChanges() override;
+	virtual ENiagaraNumericOutputTypeSelectionMode GetNumericOutputTypeSelectionMode() const override;
+	virtual bool CanAddToGraph(UNiagaraGraph* TargetGraph, FString& OutErrorMsg) const override;
 	//End UNiagaraNode interface
 
 	//~ Begin EdGraphNode Interface
@@ -36,5 +52,7 @@ public:
 	virtual FText GetTooltipText() const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	//~ End EdGraphNode Interface
+
+	bool FindAutoBoundInput(UNiagaraNodeInput* InputNode, UEdGraphPin* PinToAutoBind, FNiagaraVariable& OutFoundVar, ENiagaraInputNodeUsage& OutNodeUsage);
 };
 

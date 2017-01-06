@@ -35,6 +35,7 @@
 #include "PostProcess/SceneFilterRendering.h"
 #include "ScreenRendering.h"
 #include "MobileSceneCaptureRendering.h"
+#include "ClearQuad.h"
 
 const TCHAR* GShaderSourceModeDefineName[] =
 {
@@ -236,7 +237,7 @@ static void UpdateSceneCaptureContentDeferred_RenderThread(
 		FIntRect ViewRect = View.ViewRect;
 		FIntRect UnconstrainedViewRect = View.UnconstrainedViewRect;
 		SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), nullptr, true);
-		RHICmdList.ClearColorTexture(Target->GetRenderTargetTexture(), FLinearColor::Black, ViewRect);
+		DrawClearQuad(RHICmdList, SceneRenderer->FeatureLevel, true, FLinearColor::Black, false, 0, false, 0, Target->GetSizeXY(), ViewRect);
 
 		// Render the scene normally
 		{
@@ -247,7 +248,7 @@ static void UpdateSceneCaptureContentDeferred_RenderThread(
 		// Note: When the ViewFamily.SceneCaptureSource requires scene textures (i.e. SceneCaptureSource != SCS_FinalColorLDR), the copy to RenderTarget 
 		// will be done in CopySceneCaptureComponentToTarget while the GBuffers are still alive for the frame.
 		RHICmdList.CopyToResolveTarget(RenderTarget->GetRenderTargetTexture(), RenderTargetTexture->TextureRHI, false, ResolveParams);
-			}
+	}
 
 	FSceneRenderer::WaitForTasksClearSnapshotsAndDeleteSceneRenderer(RHICmdList, SceneRenderer);
 }
@@ -562,15 +563,12 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureCompone
 
 		FTextureRenderTargetResource* TextureRenderTarget = CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource();
 		const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;
-
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-			CaptureCommand,
-			FSceneRenderer*, SceneRenderer, SceneRenderer,
-			FTextureRenderTargetResource*, TextureRenderTarget, TextureRenderTarget,
-			FName, OwnerName, OwnerName,
-		{
-			UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, TextureRenderTarget, OwnerName, FResolveParams());
-		});
+		ENQUEUE_RENDER_COMMAND(CaptureCommand)(
+			[SceneRenderer, TextureRenderTarget, OwnerName](FRHICommandListImmediate& RHICmdList)
+			{
+				UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, TextureRenderTarget, OwnerName, FResolveParams());
+			}
+		);
 	}
 }
 
@@ -638,16 +636,12 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponentCube* CaptureCompo
 
 			FTextureRenderTargetCubeResource* TextureRenderTarget = static_cast<FTextureRenderTargetCubeResource*>(CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource());
 			const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;
-
-			ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
-				CaptureCommand,
-				FSceneRenderer*, SceneRenderer, SceneRenderer,
-				FTextureRenderTargetCubeResource*, TextureRenderTarget, TextureRenderTarget,
-				FName, OwnerName, OwnerName,
-				ECubeFace, TargetFace, TargetFace,
-			{
-				UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, TextureRenderTarget, OwnerName, FResolveParams(FResolveRect(), TargetFace));
-			});
+			ENQUEUE_RENDER_COMMAND(CaptureCommand)(
+				[SceneRenderer, TextureRenderTarget, OwnerName, TargetFace](FRHICommandListImmediate& RHICmdList)
+				{
+					UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, TextureRenderTarget, OwnerName, FResolveParams(FResolveRect(), TargetFace));
+				}
+			);
 		}
 	}
 }

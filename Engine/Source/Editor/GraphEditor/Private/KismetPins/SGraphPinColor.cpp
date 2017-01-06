@@ -1,7 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "KismetPins/SGraphPinColor.h"
+#include "SGraphPinColor.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Colors/SColorBlock.h"
 #include "Engine/Engine.h"

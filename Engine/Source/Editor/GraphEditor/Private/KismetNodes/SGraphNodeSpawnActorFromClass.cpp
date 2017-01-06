@@ -8,7 +8,7 @@
 #include "Editor.h"
 #include "EdGraphSchema_K2.h"
 #include "K2Node_SpawnActorFromClass.h"
-#include "KismetPins/SGraphPinObject.h"
+#include "SGraphPinObject.h"
 #include "NodeFactory.h"
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"

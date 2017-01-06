@@ -264,37 +264,42 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 
 				tessellationDesc.TessellationPatchConstOutSize = BSS->VertexShader->TessellationOutputAttribs.HSOutSize;
 				MTLVertexStepFunction stepFunction = MTLVertexStepFunctionPerPatch;
-				uint32 bufferIndex = BSS->DomainShader->TessellationHSOutBuffer;
-				uint32 bufferSize = BSS->VertexShader->TessellationOutputAttribs.HSOutSize;
+                
+                static MTLVertexFormat Formats[(uint8)EMetalComponentType::Max][4] = {
+                    {MTLVertexFormatUInt, MTLVertexFormatUInt2, MTLVertexFormatUInt3, MTLVertexFormatUInt4},
+                    {MTLVertexFormatInt, MTLVertexFormatInt2, MTLVertexFormatInt3, MTLVertexFormatInt4},
+                    {MTLVertexFormatInvalid, MTLVertexFormatHalf2, MTLVertexFormatHalf3, MTLVertexFormatHalf4},
+                    {MTLVertexFormatFloat, MTLVertexFormatFloat2, MTLVertexFormatFloat3, MTLVertexFormatFloat4},
+                    {MTLVertexFormatInvalid, MTLVertexFormatUChar2, MTLVertexFormatUChar3, MTLVertexFormatUChar4},
+                };
+                
+                if (BSS->DomainShader->TessellationHSOutBuffer != UINT_MAX)
+                {
+                    check(BSS->DomainShader->TessellationHSOutBuffer < ML_MaxBuffers);
+                    uint32 bufferIndex = BSS->DomainShader->TessellationHSOutBuffer;
+                    uint32 bufferSize = BSS->VertexShader->TessellationOutputAttribs.HSOutSize;
+                    
+                    PipelineDescriptor.vertexDescriptor.layouts[bufferIndex].stride = bufferSize;
+                    PipelineDescriptor.vertexDescriptor.layouts[bufferIndex].stepFunction = stepFunction;
+                    PipelineDescriptor.vertexDescriptor.layouts[bufferIndex].stepRate = 1;
 				
-				PipelineDescriptor.vertexDescriptor.layouts[bufferIndex].stride = bufferSize;
-				PipelineDescriptor.vertexDescriptor.layouts[bufferIndex].stepFunction = stepFunction;
-				PipelineDescriptor.vertexDescriptor.layouts[bufferIndex].stepRate = 1;
-				
-				static MTLVertexFormat Formats[(uint8)EMetalComponentType::Max][4] = {
-					{MTLVertexFormatUInt, MTLVertexFormatUInt2, MTLVertexFormatUInt3, MTLVertexFormatUInt4},
-					{MTLVertexFormatInt, MTLVertexFormatInt2, MTLVertexFormatInt3, MTLVertexFormatInt4},
-					{MTLVertexFormatInvalid, MTLVertexFormatHalf2, MTLVertexFormatHalf3, MTLVertexFormatHalf4},
-					{MTLVertexFormatFloat, MTLVertexFormatFloat2, MTLVertexFormatFloat3, MTLVertexFormatFloat4},
-					{MTLVertexFormatInvalid, MTLVertexFormatUChar2, MTLVertexFormatUChar3, MTLVertexFormatUChar4},
-				};
-				
-				for (FMetalAttribute const& Attrib : BSS->VertexShader->TessellationOutputAttribs.HSOut)
-				{
-					int attributeIndex = Attrib.Index;
-					check(attributeIndex >= 0 && attributeIndex <= 31);
-					check(Attrib.Components > 0 && Attrib.Components <= 4);
-					MTLVertexFormat format = Formats[(uint8)Attrib.Type][Attrib.Components-1];
-					check(format != MTLVertexFormatInvalid); // TODO support more cases
-					PipelineDescriptor.vertexDescriptor.attributes[attributeIndex].format = format;
-					PipelineDescriptor.vertexDescriptor.attributes[attributeIndex].offset = Attrib.Offset;
-					PipelineDescriptor.vertexDescriptor.attributes[attributeIndex].bufferIndex = bufferIndex;
-				}
+                    for (FMetalAttribute const& Attrib : BSS->VertexShader->TessellationOutputAttribs.HSOut)
+                    {
+                        int attributeIndex = Attrib.Index;
+                        check(attributeIndex >= 0 && attributeIndex <= 31);
+                        check(Attrib.Components > 0 && Attrib.Components <= 4);
+                        MTLVertexFormat format = Formats[(uint8)Attrib.Type][Attrib.Components-1];
+                        check(format != MTLVertexFormatInvalid); // TODO support more cases
+                        PipelineDescriptor.vertexDescriptor.attributes[attributeIndex].format = format;
+                        PipelineDescriptor.vertexDescriptor.attributes[attributeIndex].offset = Attrib.Offset;
+                        PipelineDescriptor.vertexDescriptor.attributes[attributeIndex].bufferIndex = bufferIndex;
+                    }
+                }
 				
 				tessellationDesc.TessellationPatchControlPointOutSize = BSS->VertexShader->TessellationOutputAttribs.PatchControlPointOutSize;
 				stepFunction = MTLVertexStepFunctionPerPatchControlPoint;
-				bufferIndex = BSS->DomainShader->TessellationControlPointOutBuffer;
-				bufferSize = BSS->VertexShader->TessellationOutputAttribs.PatchControlPointOutSize;
+				uint32 bufferIndex = BSS->DomainShader->TessellationControlPointOutBuffer;
+				uint32 bufferSize = BSS->VertexShader->TessellationOutputAttribs.PatchControlPointOutSize;
 				
 				PipelineDescriptor.vertexDescriptor.layouts[bufferIndex].stride = bufferSize;
 				PipelineDescriptor.vertexDescriptor.layouts[bufferIndex].stepFunction = stepFunction;

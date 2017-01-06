@@ -475,6 +475,10 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=StaticMesh, meta=(ToolTip="The light map coordinate index"))
 	int32 LightMapCoordinateIndex;
 
+	/** Useful for reducing self shadowing from distance field methods when using world position offset to animate the mesh's vertices. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = StaticMesh)
+	float DistanceFieldSelfShadowBias;
+
 	/** 
 	 * Whether to generate a distance field for this mesh, which can be used by DistanceField Indirect Shadows.
 	 * This is ignored if the project's 'Generate Mesh Distance Fields' setting is enabled.

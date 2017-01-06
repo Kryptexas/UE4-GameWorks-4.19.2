@@ -347,6 +347,11 @@ private:
 class FTileIntersectionResources : public FRenderResource
 {
 public:
+
+	FTileIntersectionResources() :
+		b16BitIndices(false)
+	{}
+
 	virtual void InitDynamicRHI() override;
 
 	virtual void ReleaseDynamicRHI() override
@@ -365,6 +370,7 @@ public:
 	FRWBuffer TileHeadDataUnpacked;
 	FRWBuffer TileArrayData;
 	FRWBuffer TileArrayNextAllocation;
+	bool b16BitIndices;
 
 	size_t GetSizeBytes() const
 	{

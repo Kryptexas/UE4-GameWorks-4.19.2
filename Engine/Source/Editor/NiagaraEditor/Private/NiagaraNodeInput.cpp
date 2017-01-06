@@ -5,16 +5,21 @@
 #include "INiagaraCompiler.h"
 #include "NiagaraGraph.h"
 
+#include "NiagaraNodeOutput.h"
+#include "NiagaraNodeOp.h"
+#include "NiagaraNodeFunctionCall.h"
 #include "EdGraphSchema_Niagara.h"
+#include "NiagaraDataInterface.h"
+
+
+#define LOCTEXT_NAMESPACE "NiagaraNodeInput"
+
 
 UNiagaraNodeInput::UNiagaraNodeInput(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
-, Input(NAME_None, ENiagaraDataType::Vector)
-, FloatDefault(1.0f)
-, VectorDefault(1.0f, 1.0f, 1.0f, 1.0f)
-, MatrixDefault(FMatrix::Identity)
-, bCanBeExposed(true)
-, bExposeWhenConstant(true)
+	: Super(ObjectInitializer)
+	, DataInterface(nullptr)
+	, Usage(ENiagaraInputNodeUsage::Undefined)	
+	, CallSortPriority(0)
 {
 }
 
@@ -22,6 +27,32 @@ void UNiagaraNodeInput::PostEditChangeProperty(struct FPropertyChangedEvent& Pro
 {
 	if (PropertyChangedEvent.Property != nullptr)
 	{
+		if (UClass* Class = const_cast<UClass*>(Input.GetType().GetClass()))
+		{
+			check(Class->IsChildOf(UNiagaraDataInterface::StaticClass()));
+			if (DataInterface)
+			{
+				if (DataInterface->GetClass() != Class)
+				{
+					//Class has changed so clear this out and allocate pins will create a new instance of the correct type.
+					//Should we preserve old objects somewhere so settings aren't lost when switching around types?
+					DataInterface = nullptr;
+				}
+				else
+				{
+					//Keep it with the same name as the input 
+					if (PropertyChangedEvent.Property->GetName() == TEXT("Input"))
+					{
+						DataInterface->Rename(*Input.GetName().ToString());
+					}
+				}
+			}
+		}
+		else
+		{
+			DataInterface = nullptr;
+		}
+
 		ReallocatePins();
 	}
 
@@ -30,44 +61,48 @@ void UNiagaraNodeInput::PostEditChangeProperty(struct FPropertyChangedEvent& Pro
 
 void UNiagaraNodeInput::AllocateDefaultPins()
 {
-	const UEdGraphSchema_Niagara* Schema = GetDefault<UEdGraphSchema_Niagara>();
-	switch (Input.Type)
+	if (UClass* Class = const_cast<UClass*>(Input.GetType().GetClass()))
 	{
-		case ENiagaraDataType::Scalar:
+		check(Class->IsChildOf(UNiagaraDataInterface::StaticClass()));
+		if (!DataInterface)
 		{
-			CreatePin(EGPD_Output, Schema->PC_Float, TEXT(""), NULL, false, false, TEXT("Input"));
+			DataInterface = NewObject<UNiagaraDataInterface>(this, Class);
 		}
-			break;
-		case ENiagaraDataType::Vector:
-		{
-			CreatePin(EGPD_Output, Schema->PC_Vector, TEXT(""), NULL, false, false, TEXT("Input"));
-		}
-			break;
-		case ENiagaraDataType::Matrix:
-		{
-			CreatePin(EGPD_Output, Schema->PC_Matrix, TEXT(""), NULL, false, false, TEXT("Input"));
-		}
-			break;
-	};
+	}
+
+	const UEdGraphSchema_Niagara* Schema = GetDefault<UEdGraphSchema_Niagara>();
+
+	//If we're a parameter node for a funciton or a module the we allow a "default" input pin.
+	UNiagaraScript* OwnerScript = GetTypedOuter<UNiagaraScript>();
+	check(OwnerScript);
+	if ((!IsRequired() && IsExposed()) && DataInterface == nullptr && Usage == ENiagaraInputNodeUsage::Parameter && (OwnerScript->Usage == ENiagaraScriptUsage::Function || OwnerScript->Usage == ENiagaraScriptUsage::Module))
+	{
+		UEdGraphPin* NewPin = CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Input.GetType()), TEXT("Default"));
+		NewPin->bDefaultValueIsIgnored = true;
+	}
+
+	CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Input.GetType()), TEXT("Input"));
 }
 
 FText UNiagaraNodeInput::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FText::FromName(Input.Name);
+	return FText::FromName(Input.GetName());
 }
 
 FLinearColor UNiagaraNodeInput::GetNodeTitleColor() const
 {
 	const UEdGraphSchema_Niagara* Schema = CastChecked<UEdGraphSchema_Niagara>(GetSchema());
-	if (IsConstant())
+	switch (Usage)
 	{
-		return Schema->IsSystemConstant(Input) ? 
-			CastChecked<UEdGraphSchema_Niagara>(GetSchema())->NodeTitleColor_SystemConstant :
-			CastChecked<UEdGraphSchema_Niagara>(GetSchema())->NodeTitleColor_Constant ;
-	}
-	else
-	{
-		return CastChecked<UEdGraphSchema_Niagara>(GetSchema())->NodeTitleColor_Attribute;
+	case ENiagaraInputNodeUsage::Parameter:
+		return Schema->NodeTitleColor_Constant;
+	case ENiagaraInputNodeUsage::SystemConstant:
+		return Schema->NodeTitleColor_SystemConstant;
+	case ENiagaraInputNodeUsage::Attribute:
+		return Schema->NodeTitleColor_Attribute;
+	default:
+		// TODO: Do something better here.
+		return FLinearColor::Black;
 	}
 }
 
@@ -77,64 +112,92 @@ void UNiagaraNodeInput::AutowireNewNode(UEdGraphPin* FromPin)
 	{
 		const UEdGraphSchema_Niagara* Schema = CastChecked<UEdGraphSchema_Niagara>(GetSchema());
 		check(Schema);
-		if (Input.Name == NAME_None)
+		if (Usage == ENiagaraInputNodeUsage::Parameter)
 		{
-			Input.Name = FName(*FromPin->PinName);
-			Input.Type = Schema->GetPinDataType(FromPin);
+			FNiagaraTypeDefinition Type = Input.GetType();
+			if (Type == FNiagaraTypeDefinition::GetGenericNumericDef())
+			{
+				//Try to get a real type if we've been set to numeric
+				Type = Schema->PinToTypeDefinition(FromPin);
+			}
+
+			if (UNiagaraNodeOp* OpNode = Cast<UNiagaraNodeOp>(FromPin->GetOwningNode()))
+			{
+				const FNiagaraOpInfo* OpInfo = FNiagaraOpInfo::GetOpInfo(OpNode->OpName);
+				check(OpInfo);
+				Input.SetType(Type);
+				Input.SetName(*(OpInfo->FriendlyName.ToString() + TEXT(" ") + FromPin->PinName));
+			}
+			else if (UNiagaraNodeFunctionCall* FuncNode = Cast<UNiagaraNodeFunctionCall>(FromPin->GetOwningNode()))
+			{
+				Input.SetType(Type);
+				Input.SetName(*(FuncNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString() + TEXT(" ") + FromPin->PinName));
+			}
+			else
+			{
+				Input.SetType(Type);
+				Input.SetName(*FromPin->PinName);
+			}
 			ReallocatePins();
 		}
-		check(Pins.Num() == 1 && Pins[0] != NULL);
+
+		TArray<UEdGraphPin*> OutPins;
+		GetOutputPins(OutPins);
+		check(OutPins.Num() == 1 && OutPins[0] != NULL);
 		
-		if (GetSchema()->TryCreateConnection(FromPin, Pins[0]))
+		if (GetSchema()->TryCreateConnection(FromPin, OutPins[0]))
 		{
 			FromPin->GetOwningNode()->NodeConnectionListChanged();
 		}
 	}
 }
 
-void UNiagaraNodeInput::Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs)
+void UNiagaraNodeInput::NotifyInputTypeChanged()
 {
-	//Input nodes in scripts being used as functions by other scripts will actually never get this far.
-	//The compiler will find them and replace them with direct links between the pins going in and the nodes connected to the corresponding input.
+	ReallocatePins();
+}
 
-	const UEdGraphSchema_Niagara* Schema = CastChecked<UEdGraphSchema_Niagara>(GetSchema());
-	if (IsConstant())
+void UNiagaraNodeInput::Compile(class INiagaraCompiler* Compiler, TArray<int32>& Outputs)
+{
+	int32 FunctionParam = INDEX_NONE;
+	if (IsExposed() && Compiler->GetFunctionParameter(Input, FunctionParam))
 	{
-		if (IsExposedConstant() || Schema->IsSystemConstant(Input))
+		//If we're in a function and this parameter hasn't been provided, compile the local default.
+		if (FunctionParam == INDEX_NONE)
 		{
-			//treat this input as an external constant.
-			switch (Input.Type)
+			TArray<UEdGraphPin*> InputPins;
+			GetInputPins(InputPins);
+			int32 Default = InputPins.Num() > 0 ? Compiler->CompilePin(InputPins[0]) : INDEX_NONE;
+			if (Default == INDEX_NONE)
 			{
-			case ENiagaraDataType::Scalar:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, FloatDefault), Pins[0]));	break;
-			case ENiagaraDataType::Vector:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, VectorDefault), Pins[0]));	break;
-			case ENiagaraDataType::Matrix:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, MatrixDefault), Pins[0]));	break;
+				//We failed to compile the default pin so just use the value of the input.
+				Default = Compiler->GetConstant(Input);
 			}
+			Outputs.Add(Default);
+			return;
+		}
+	}
+
+	switch (Usage)
+	{
+	case ENiagaraInputNodeUsage::Parameter:
+		if (DataInterface)
+		{
+			check(Input.GetType().GetClass());
+			Outputs.Add(Compiler->RegisterDataInterface(Input, DataInterface)); break;
 		}
 		else
 		{
-			//treat this input as an internal constant.
-			switch (Input.Type)
-			{
-			case ENiagaraDataType::Scalar:	Outputs.Add(FNiagaraNodeResult(Compiler->GetInternalConstant(Input, FloatDefault), Pins[0]));	break;
-			case ENiagaraDataType::Vector:	Outputs.Add(FNiagaraNodeResult(Compiler->GetInternalConstant(Input, VectorDefault), Pins[0]));	break;
-			case ENiagaraDataType::Matrix:	Outputs.Add(FNiagaraNodeResult(Compiler->GetInternalConstant(Input, MatrixDefault), Pins[0]));	break;
-			}
+			Outputs.Add(Compiler->GetParameter(Input)); break;
 		}
-	}
-	else
-	{
-		//This input is an attribute.
-		Outputs.Add(FNiagaraNodeResult(Compiler->GetAttribute(Input), Pins[0]));
+	case ENiagaraInputNodeUsage::SystemConstant:
+		Outputs.Add(Compiler->GetParameter(Input)); break;
+	case ENiagaraInputNodeUsage::Attribute:
+		Outputs.Add(Compiler->GetAttribute(Input)); break;
+	default:
+		check(false);
 	}
 }
 
-bool UNiagaraNodeInput::IsConstant()const
-{
-	//This input is a constant if it does not match an attribute for the current script.
-	return GetNiagaraGraph()->GetAttributeIndex(Input) == INDEX_NONE;
-}
 
-bool UNiagaraNodeInput::IsExposedConstant()const
-{
-	return bExposeWhenConstant && IsConstant();
-}
+#undef LOCTEXT_NAMESPACE

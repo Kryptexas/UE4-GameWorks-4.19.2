@@ -36,7 +36,7 @@ FAutoConsoleVariableRef CVarAOLogObjectBufferReallocation(
 	);
 
 // Must match equivalent shader defines
-int32 FDistanceFieldObjectBuffers::ObjectDataStride = 16;
+int32 FDistanceFieldObjectBuffers::ObjectDataStride = 17;
 int32 FDistanceFieldCulledObjectBuffers::ObjectDataStride = 16;
 int32 FDistanceFieldCulledObjectBuffers::ObjectBoxBoundsStride = 5;
 
@@ -763,7 +763,8 @@ void ProcessPrimitiveUpdate(
 	FIntVector BlockSize;
 	bool bBuiltAsIfTwoSided;
 	bool bMeshWasPlane;
-	PrimitiveSceneInfo->Proxy->GetDistancefieldAtlasData(LocalVolumeBounds, BlockMin, BlockSize, bBuiltAsIfTwoSided, bMeshWasPlane, ObjectLocalToWorldTransforms);
+	float SelfShadowBias;
+	PrimitiveSceneInfo->Proxy->GetDistancefieldAtlasData(LocalVolumeBounds, BlockMin, BlockSize, bBuiltAsIfTwoSided, bMeshWasPlane, SelfShadowBias, ObjectLocalToWorldTransforms);
 
 	if (BlockMin.X >= 0 
 		&& BlockMin.Y >= 0 
@@ -871,17 +872,17 @@ void ProcessPrimitiveUpdate(
 
 					// Clamp to texel center by subtracting a half texel in the [-1,1] position space
 					// LocalPositionExtent
-					UploadObjectData.Add(FVector4(LocalPositionExtent - InvBlockSize, LocalVolumeBounds.Min.X));
+					UploadObjectData.Add(FVector4(LocalPositionExtent - InvBlockSize, 0));
 
 					// UVScale, VolumeScale and sign gives bGeneratedAsTwoSided
 					const float WSign = bBuiltAsIfTwoSided ? -1 : 1;
 					UploadObjectData.Add(FVector4(FVector(BlockSize) * InvTextureDim * .5f / LocalPositionExtent, WSign * VolumeScale));
 
 					// UVAdd
-					UploadObjectData.Add(FVector4(FVector(BlockMin) * InvTextureDim + .5f * UVScale, LocalVolumeBounds.Min.Y));
+					UploadObjectData.Add(FVector4(FVector(BlockMin) * InvTextureDim + .5f * UVScale, SelfShadowBias));
 
 					// Box bounds
-					UploadObjectData.Add(FVector4(LocalVolumeBounds.Max, LocalVolumeBounds.Min.Z));
+					UploadObjectData.Add(FVector4(LocalVolumeBounds.Max, 0));
 
 					UploadObjectData.Add(*(FVector4*)&UniformScaleVolumeToWorld.M[0]);
 					UploadObjectData.Add(*(FVector4*)&UniformScaleVolumeToWorld.M[1]);
@@ -893,6 +894,8 @@ void ProcessPrimitiveUpdate(
 					UploadObjectData.Add(*(FVector4*)&LocalToWorld.M[3]);
 
 					UploadObjectData.Add(FVector4(Allocation.Offset, Allocation.NumLOD0, Allocation.NumSurfels, InstancedAllocation.Offset + InstancedAllocation.NumSurfels * TransformIndex));
+
+					UploadObjectData.Add(FVector4(LocalVolumeBounds.Min, 0));
 
 					checkSlow(UploadObjectData.Num() % UploadObjectDataStride == 0);
 

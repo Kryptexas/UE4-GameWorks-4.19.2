@@ -7,8 +7,9 @@ AsyncTextureStreaming.cpp: Definitions of classes used for texture streaming asy
 #include "Streaming/AsyncTextureStreaming.h"
 #include "Misc/App.h"
 #include "Streaming/StreamingManagerTexture.h"
+#include "Engine/World.h"
 
-void FAsyncTextureStreamingData::Init(TArray<FStreamingViewInfo> InViewInfos, float InLastUpdateTime, TIndirectArray<FLevelTextureManager>& LevelTextureManagers, FDynamicComponentTextureManager& DynamicComponentManager)
+void FAsyncTextureStreamingData::Init(TArray<FStreamingViewInfo> InViewInfos, float InLastUpdateTime, TIndirectArray<FLevelTextureManager>& LevelTextureManagers, FDynamicTextureInstanceManager& DynamicComponentManager)
 {
 	ViewInfos = InViewInfos;
 	LastUpdateTime = InLastUpdateTime;
@@ -33,7 +34,6 @@ void FAsyncTextureStreamingData::UpdateBoundSizes_Async(const FTextureStreamingS
 	}
 	DynamicInstancesView.UpdateBoundSizes_Async(ViewInfos, LastUpdateTime, Settings);
 }
-
 
 void FAsyncTextureStreamingData::UpdatePerfectWantedMips_Async(FStreamingTexture& StreamingTexture, const FTextureStreamingSettings& Settings, bool bOutputToLog) const
 {
@@ -89,17 +89,6 @@ void FAsyncTextureStreamingData::UpdatePerfectWantedMips_Async(FStreamingTexture
 			MaxSize_VisibleOnly *= CumBoostFactor;
 		}
 
-		StreamingTexture.bUseLastRenderTimeHeuristic = (StreamingTexture.LastRenderTimeRefCount > 0 || FApp::GetCurrentTime() - StreamingTexture.LastRenderTimeRefCountTimestamp < 91.0);
-		if (StreamingTexture.bUseLastRenderTimeHeuristic)
-		{
-			if (bOutputToLog) UE_LOG(LogContentStreaming, Log,  TEXT("  LastRenderTime"));
-			MaxSize = FMath::Max<int32>(MaxSize, MaxAllowedSize); // affected by HiddenPrimitiveScale
-			if (StreamingTexture.LastRenderTime < 5.0f)
-			{
-				MaxSize_VisibleOnly = FMath::Max<int32>(MaxSize_VisibleOnly, MaxAllowedSize);
-			}
-		}
-
 		// Last part checks that it has been used since the last reference was removed.
 		const float TimeSinceRemoved = (float)(FApp::GetCurrentTime() - StreamingTexture.InstanceRemovedTimestamp);
 		StreamingTexture.bUseUnkownRefHeuristic = MaxSize == 0 && MaxSize_VisibleOnly == 0 && StreamingTexture.LastRenderTime < TimeSinceRemoved - 5.f;
@@ -113,10 +102,23 @@ void FAsyncTextureStreamingData::UpdatePerfectWantedMips_Async(FStreamingTexture
 			}
 		}
 
-		if (StreamingTexture.bForceFullyLoad)
+		if (StreamingTexture.bForceFullyLoad || (StreamingTexture.LODGroup == TEXTUREGROUP_HierarchicalLOD && Settings.HLODStrategy == 2))
 		{
 			if (bOutputToLog) UE_LOG(LogContentStreaming, Log,  TEXT("  Forced FullyLoad"));
 			MaxSize = FLT_MAX; // Forced load ensure the texture gets fully loaded but after what is visible/required by the other logic.
+		}
+		else if (StreamingTexture.LODGroup == TEXTUREGROUP_HierarchicalLOD && Settings.HLODStrategy == 1)
+		{
+			if (bOutputToLog) UE_LOG(LogContentStreaming, Log,  TEXT("  HLOD Strategy"));
+
+			if (Settings.bUseNewMetrics)
+			{
+				MaxSize = FMath::Max<int32>(MaxSize, MaxAllowedSize); // Affected by HiddenPrimitiveScale
+			}
+			else
+			{
+				MaxSize = FMath::Max<int32>(MaxSize, MaxAllowedSize * .5f);
+			}
 		}
 	}
 
@@ -525,6 +527,8 @@ void FAsyncTextureStreamingTask::DoWork()
 	// Update bHasStreamingUpdatePending
 	UpdatePendingStreamingStatus_Async();
 
+	StreamingData.OnTaskDone_Async();
+
 	STAT(UpdateStats_Async());
 }
 
@@ -551,7 +555,6 @@ void FAsyncTextureStreamingTask::UpdateStats_Async()
 
 	Stats.ForcedMips = 0;
 	Stats.UnkownRefMips = 0;
-	Stats.LastRenderTimeMips = 0;
 
 	Stats.CachedMips = 0;
 
@@ -589,9 +592,9 @@ void FAsyncTextureStreamingTask::UpdateStats_Async()
 		Stats.WantedMips += UsedSize;
 		Stats.CachedMips += FMath::Max<int64>(ResidentSize - UsedSize, 0);
 
-		if (StreamingTexture.bUseLastRenderTimeHeuristic)
+		if (GIsEditor && StreamingTexture.bForceFullyLoadHeuristic)
 		{
-			Stats.LastRenderTimeMips += UsedSize;
+			Stats.ForcedMips += UsedSize;
 		}
 		else if (StreamingTexture.bUseUnkownRefHeuristic)
 		{
@@ -608,7 +611,7 @@ void FAsyncTextureStreamingTask::UpdateStats_Async()
 				Stats.VisibleMips += VisibleWantedSize;
 
 				// Forced mips are not the same as hidden mips as they are loaded because the user wants them absolutly
-				if (StreamingTexture.bForceFullyLoadHeuristic)
+				if (StreamingTexture.bForceFullyLoadHeuristic || (StreamingTexture.LODGroup == TEXTUREGROUP_HierarchicalLOD && Settings.HLODStrategy > 0))
 				{
 					Stats.ForcedMips += UsedSize - VisibleWantedSize;
 				}

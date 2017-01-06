@@ -68,7 +68,6 @@ private:
 	VkDynamicState DynamicStatesEnabled[VK_DYNAMIC_STATE_RANGE_SIZE];
 };
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 struct FVulkanGfxPipelineStateKey
 {
 	FVulkanGfxPipelineStateKey(const FVulkanPipelineGraphicsKey& InPipelineKey, uint32 InVertexInputKey, const FSHAHash* InShaderHashes) :
@@ -100,7 +99,6 @@ inline uint32 GetTypeHash(const FVulkanGfxPipelineStateKey& Key)
 	return (uint32)GetTypeHash(Key.PipelineKey) ^ *(uint32*)&Key.ShaderHashes[SF_Vertex];
 }
 
-#endif
 
 class FVulkanPipeline : public VulkanRHI::FRefCount
 {
@@ -116,11 +114,7 @@ public:
 protected:
 	FVulkanDevice* Device;
 	VkPipeline Pipeline;
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	friend class FVulkanPipelineStateCache;
-#else
-	VkPipelineCache PipelineCache;
-#endif
 };
 
 class FVulkanComputePipeline : public FVulkanPipeline
@@ -137,11 +131,6 @@ public:
 	{
 	}
 
-#if !VULKAN_ENABLE_PIPELINE_CACHE
-	void Create(const FVulkanGfxPipelineState& State);
-	void Destroy();
-#endif
-
 	inline void UpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkanGfxPipelineState& State)
 	{
 		if (State.bNeedsViewportUpdate || State.bNeedsScissorUpdate || State.bNeedsStencilRefUpdate || Cmd->bNeedsDynamicStateSet)
@@ -154,7 +143,6 @@ private:
 	void InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkanGfxPipelineState& State, bool bNeedsViewportUpdate, bool bNeedsScissorUpdate, bool bNeedsStencilRefUpdate, bool bCmdNeedsDynamicState);
 };
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 
 class FVulkanPipelineStateCache
 {
@@ -199,7 +187,7 @@ public:
 	enum
 	{
 		// Bump every time serialization changes
-		VERSION = 4
+		VERSION = 5
 	};
 
 	struct FDescriptorSetLayoutBinding
@@ -417,8 +405,9 @@ public:
 
 			uint8 NumAttachments;
 			uint8 NumColorAttachments;
-			bool bHasDepthStencil;
-			bool bHasResolveAttachments;
+			uint8 bHasDepthStencil;
+			uint8 bHasResolveAttachments;
+			uint8 NumUsedClearValues;
 			uint32 Hash;
 			FVector Extent3D;
 
@@ -435,6 +424,7 @@ public:
 					NumColorAttachments == In.NumColorAttachments &&
 					bHasDepthStencil == In.bHasDepthStencil &&
 					bHasResolveAttachments == In.bHasResolveAttachments &&
+					NumUsedClearValues == In.NumUsedClearValues &&
 					Hash == In.Hash &&
 					Extent3D == In.Extent3D;
 			}
@@ -563,5 +553,3 @@ private:
 	bool Load(const TArray<FString>& CacheFilenames, TArray<uint8>& OutDeviceCache);
 	void DestroyCache();
 };
-
-#endif	// VULKAN_ENABLE_PIPELINE_CACHE

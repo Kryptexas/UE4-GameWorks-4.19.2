@@ -105,6 +105,7 @@ public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		FLightTileIntersectionParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GDistanceFieldAOTileSizeX);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GDistanceFieldAOTileSizeY);
 	}
@@ -124,9 +125,7 @@ public:
 		LightDirectionAndTraceDistance.Bind(Initializer.ParameterMap, TEXT("LightDirectionAndTraceDistance"));
 		LightColor.Bind(Initializer.ParameterMap, TEXT("LightColor"));
 		ObjectParameters.Bind(Initializer.ParameterMap);
-		ShadowTileHeadDataUnpacked.Bind(Initializer.ParameterMap, TEXT("ShadowTileHeadDataUnpacked"));
-		ShadowTileArrayData.Bind(Initializer.ParameterMap, TEXT("ShadowTileArrayData"));
-		ShadowTileListGroupSize.Bind(Initializer.ParameterMap, TEXT("ShadowTileListGroupSize"));
+		LightTileIntersectionParameters.Bind(Initializer.ParameterMap);
 		VPLPlacementCameraRadius.Bind(Initializer.ParameterMap, TEXT("VPLPlacementCameraRadius"));
 	}
 
@@ -157,13 +156,11 @@ public:
 		VPLParameterBuffer.SetBuffer(RHICmdList, ShaderRHI, GVPLResources.VPLParameterBuffer);
 		VPLData.SetBuffer(RHICmdList, ShaderRHI, GVPLResources.VPLData);
 
-		check(TileIntersectionResources || !ShadowTileHeadDataUnpacked.IsBound());
+		check(TileIntersectionResources || !LightTileIntersectionParameters.IsBound());
 
 		if (TileIntersectionResources)
 		{
-			SetSRVParameter(RHICmdList, ShaderRHI, ShadowTileHeadDataUnpacked, TileIntersectionResources->TileHeadDataUnpacked.SRV);
-			SetSRVParameter(RHICmdList, ShaderRHI, ShadowTileArrayData, TileIntersectionResources->TileArrayData.SRV);
-			SetShaderValue(RHICmdList, ShaderRHI, ShadowTileListGroupSize, TileIntersectionResources->TileDimensions);
+			LightTileIntersectionParameters.Set(RHICmdList, ShaderRHI, *TileIntersectionResources);
 		}
 
 		SetShaderValue(RHICmdList, ShaderRHI, VPLPlacementCameraRadius, GVPLPlacementCameraRadius);
@@ -192,9 +189,7 @@ public:
 		Ar << LightDirectionAndTraceDistance;
 		Ar << LightColor;
 		Ar << ObjectParameters;
-		Ar << ShadowTileHeadDataUnpacked;
-		Ar << ShadowTileArrayData;
-		Ar << ShadowTileListGroupSize;
+		Ar << LightTileIntersectionParameters;
 		Ar << VPLPlacementCameraRadius;
 		return bShaderHasOutdatedParameters;
 	}
@@ -209,9 +204,7 @@ private:
 	FShaderParameter LightDirectionAndTraceDistance;
 	FShaderParameter LightColor;
 	FDistanceFieldCulledObjectBufferParameters ObjectParameters;
-	FShaderResourceParameter ShadowTileHeadDataUnpacked;
-	FShaderResourceParameter ShadowTileArrayData;
-	FShaderParameter ShadowTileListGroupSize;
+	FLightTileIntersectionParameters LightTileIntersectionParameters;
 	FShaderParameter VPLPlacementCameraRadius;
 };
 
@@ -632,6 +625,7 @@ public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		FLightTileIntersectionParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("LIGHT_VPLS_THREADGROUP_SIZE"), LightVPLsThreadGroupSize);
 	}
 
@@ -650,9 +644,7 @@ public:
 		LightColor.Bind(Initializer.ParameterMap, TEXT("LightColor"));
 		ObjectParameters.Bind(Initializer.ParameterMap);
 		SurfelParameters.Bind(Initializer.ParameterMap);
-		ShadowTileHeadDataUnpacked.Bind(Initializer.ParameterMap, TEXT("ShadowTileHeadDataUnpacked"));
-		ShadowTileArrayData.Bind(Initializer.ParameterMap, TEXT("ShadowTileArrayData"));
-		ShadowTileListGroupSize.Bind(Initializer.ParameterMap, TEXT("ShadowTileListGroupSize"));
+		LightTileIntersectionParameters.Bind(Initializer.ParameterMap);
 		WorldToShadow.Bind(Initializer.ParameterMap, TEXT("WorldToShadow"));
 		ShadowObjectIndirectArguments.Bind(Initializer.ParameterMap, TEXT("ShadowObjectIndirectArguments"));
 		ShadowCulledObjectBounds.Bind(Initializer.ParameterMap, TEXT("ShadowCulledObjectBounds"));
@@ -699,13 +691,11 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, TanLightAngleAndNormalThreshold, TanLightAngleAndNormalThresholdValue);
 		SetShaderValue(RHICmdList, ShaderRHI, LightColor, LightSceneProxy->GetColor() * LightSceneProxy->GetIndirectLightingScale());
 
-		check(TileIntersectionResources || !ShadowTileHeadDataUnpacked.IsBound());
+		check(TileIntersectionResources || !LightTileIntersectionParameters.IsBound());
 
 		if (TileIntersectionResources)
 		{
-			SetSRVParameter(RHICmdList, ShaderRHI, ShadowTileHeadDataUnpacked, TileIntersectionResources->TileHeadDataUnpacked.SRV);
-			SetSRVParameter(RHICmdList, ShaderRHI, ShadowTileArrayData, TileIntersectionResources->TileArrayData.SRV);
-			SetShaderValue(RHICmdList, ShaderRHI, ShadowTileListGroupSize, TileIntersectionResources->TileDimensions);
+			LightTileIntersectionParameters.Set(RHICmdList, ShaderRHI, *TileIntersectionResources);
 		}
 
 		SetShaderValue(RHICmdList, ShaderRHI, WorldToShadow, WorldToShadowMatrixValue);
@@ -735,9 +725,7 @@ public:
 		Ar << LightColor;
 		Ar << ObjectParameters;
 		Ar << SurfelParameters;
-		Ar << ShadowTileHeadDataUnpacked;
-		Ar << ShadowTileArrayData;
-		Ar << ShadowTileListGroupSize;
+		Ar << LightTileIntersectionParameters;
 		Ar << WorldToShadow;
 		Ar << ShadowObjectIndirectArguments;
 		Ar << ShadowCulledObjectBounds;
@@ -757,9 +745,7 @@ private:
 	FShaderParameter LightColor;
 	FDistanceFieldCulledObjectBufferParameters ObjectParameters;
 	FSurfelBufferParameters SurfelParameters;
-	FShaderResourceParameter ShadowTileHeadDataUnpacked;
-	FShaderResourceParameter ShadowTileArrayData;
-	FShaderParameter ShadowTileListGroupSize;
+	FLightTileIntersectionParameters LightTileIntersectionParameters;
 	FShaderParameter WorldToShadow;
 	FShaderResourceParameter ShadowObjectIndirectArguments;
 	FShaderResourceParameter ShadowCulledObjectBounds;

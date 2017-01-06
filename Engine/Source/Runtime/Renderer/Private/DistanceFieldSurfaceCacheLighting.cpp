@@ -346,7 +346,7 @@ void FTileIntersectionResources::InitDynamicRHI()
 	TileHeadDataUnpacked.Initialize(sizeof(uint32), TileDimensions.X * TileDimensions.Y * 4, PF_R32_UINT, BUF_Static);
 
 	//@todo - handle max exceeded
-	TileArrayData.Initialize(sizeof(uint32), GMaxNumObjectsPerTile * TileDimensions.X * TileDimensions.Y * 3, PF_R32_UINT, BUF_Static);
+	TileArrayData.Initialize(b16BitIndices ? sizeof(uint16) : sizeof(uint32), GMaxNumObjectsPerTile * TileDimensions.X * TileDimensions.Y * 3, b16BitIndices ? PF_R16_UINT : PF_R32_UINT, BUF_Static);
 	TileArrayNextAllocation.Initialize(sizeof(uint32), 1, PF_R32_UINT, BUF_Static);
 }
 
@@ -2269,34 +2269,36 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 
 	FIntPoint TileListGroupSize;
 
-	if (GAOScatterTileCulling)
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
-		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		const FViewInfo& View = Views[ViewIndex];
+
+		uint32 GroupSizeX = FMath::DivideAndRoundUp(View.ViewRect.Size().X / GAODownsampleFactor, GDistanceFieldAOTileSizeX);
+		uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor, GDistanceFieldAOTileSizeY);
+		TileListGroupSize = FIntPoint(GroupSizeX, GroupSizeY);
+
+		FTileIntersectionResources*& TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
+		const bool b16BitObjectIndices = Scene->DistanceFieldSceneData.CanUse16BitObjectIndices();
+
+		if (!TileIntersectionResources || TileIntersectionResources->TileDimensions != TileListGroupSize || TileIntersectionResources->b16BitIndices != b16BitObjectIndices)
 		{
-			const FViewInfo& View = Views[ViewIndex];
-
-			uint32 GroupSizeX = FMath::DivideAndRoundUp(View.ViewRect.Size().X / GAODownsampleFactor, GDistanceFieldAOTileSizeX);
-			uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor, GDistanceFieldAOTileSizeY);
-			TileListGroupSize = FIntPoint(GroupSizeX, GroupSizeY);
-
-			FTileIntersectionResources*& TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
-
-			if (!TileIntersectionResources || TileIntersectionResources->TileDimensions != TileListGroupSize)
+			if (TileIntersectionResources)
 			{
-				if (TileIntersectionResources)
-				{
-					TileIntersectionResources->ReleaseResource();
-				}
-				else
-				{
-					TileIntersectionResources = new FTileIntersectionResources();
-				}
-
-				TileIntersectionResources->TileDimensions = TileListGroupSize;
-
-				TileIntersectionResources->InitResource();
+				TileIntersectionResources->ReleaseResource();
+			}
+			else
+			{
+				TileIntersectionResources = new FTileIntersectionResources();
 			}
 
+			TileIntersectionResources->TileDimensions = TileListGroupSize;
+			TileIntersectionResources->b16BitIndices = b16BitObjectIndices;
+
+			TileIntersectionResources->InitResource();
+		}
+
+		if (GAOScatterTileCulling)
+		{
 			{
 				SCOPED_DRAW_EVENT(RHICmdList, BuildTileCones);
 				TShaderMapRef<FBuildTileConesCS> ComputeShader(View.ShaderMap);
@@ -2343,35 +2345,8 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 				RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, UAVs.GetData(), UAVs.Num());
 			}
 		}
-	}
-	else
-	{
-		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		else
 		{
-			const FViewInfo& View = Views[ViewIndex];
-
-			uint32 GroupSizeX = (View.ViewRect.Size().X / GAODownsampleFactor + GDistanceFieldAOTileSizeX - 1) / GDistanceFieldAOTileSizeX;
-			uint32 GroupSizeY = (View.ViewRect.Size().Y / GAODownsampleFactor + GDistanceFieldAOTileSizeY - 1) / GDistanceFieldAOTileSizeY;
-			TileListGroupSize = FIntPoint(GroupSizeX, GroupSizeY);
-
-			FTileIntersectionResources*& TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
-
-			if (!TileIntersectionResources || TileIntersectionResources->TileDimensions != TileListGroupSize)
-			{
-				if (TileIntersectionResources)
-				{
-					TileIntersectionResources->ReleaseResource();
-				}
-				else
-				{
-					TileIntersectionResources = new FTileIntersectionResources();
-				}
-
-				TileIntersectionResources->TileDimensions = TileListGroupSize;
-
-				TileIntersectionResources->InitResource();
-			}
-
 			// Indicates the clear value for each channel of the UAV format
 			uint32 ClearValues[4] = { 0 };
 			RHICmdList.ClearUAV(TileIntersectionResources->TileArrayNextAllocation.UAV, ClearValues);
@@ -2401,7 +2376,7 @@ void SetupDepthStencil(
 	SCOPED_DRAW_EVENT(RHICmdList, SetupDepthStencil);
 
 	SetRenderTarget(RHICmdList, nullptr, SplatDepthStencilBuffer.TargetableTexture);
-	RHICmdList.ClearDepthStencilTexture(SplatDepthStencilBuffer.TargetableTexture, EClearDepthStencil::DepthStencil, 0, 0, FIntRect());
+	RHICmdList.ClearDepthStencilTexture(SplatDepthStencilBuffer.TargetableTexture, EClearDepthStencil::DepthStencil, 0, 0);
 
 	{		
 		RHICmdList.SetViewport(0, 0, 0.0f, View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor, 1.0f);
@@ -2667,7 +2642,7 @@ void RenderIrradianceCacheInterpolation(
 	}
 }
 
-void ListDistanceFieldLightingMemory(const FViewInfo& View)
+void ListDistanceFieldLightingMemory(const FViewInfo& View, FSceneRenderer& SceneRenderer)
 {
 	const FScene* Scene = (const FScene*)View.Family->Scene;
 	UE_LOG(LogTemp, Log, TEXT("Shared GPU memory (excluding render targets)"));
@@ -2705,6 +2680,27 @@ void ListDistanceFieldLightingMemory(const FViewInfo& View)
 		UE_LOG(LogTemp, Log, TEXT("   Screen grid temporaries %.3fMb"), ScreenGridResources->GetSizeBytesForAO() / 1024.0f / 1024.0f);
 	}
 	
+	UE_LOG(LogTemp, Log, TEXT(""));
+	UE_LOG(LogTemp, Log, TEXT("Ray Traced Distance Field Shadows"));
+
+	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
+	{
+		const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
+		FLightSceneInfo* LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
+
+		FVisibleLightInfo& VisibleLightInfo = SceneRenderer.VisibleLightInfos[LightSceneInfo->Id];
+
+		for (int32 ShadowIndex = 0; ShadowIndex < VisibleLightInfo.ShadowsToProject.Num(); ShadowIndex++)
+		{
+			FProjectedShadowInfo* ProjectedShadowInfo = VisibleLightInfo.ShadowsToProject[ShadowIndex];
+
+			if (ProjectedShadowInfo->bRayTracedDistanceField && LightSceneInfo->TileIntersectionResources)
+			{
+				UE_LOG(LogTemp, Log, TEXT("   Light Tile Culled objects %.3fMb"), LightSceneInfo->TileIntersectionResources->GetSizeBytes() / 1024.0f / 1024.0f);
+			}
+		}
+	}
+
 	extern void ListGlobalDistanceFieldMemory();
 	ListGlobalDistanceFieldMemory();
 
@@ -2737,7 +2733,6 @@ bool SupportsDistanceFieldAO(ERHIFeatureLevel::Type FeatureLevel, EShaderPlatfor
 		// Better to disble entirely than to display garbage
 		&& !GRHIDeviceIsAMDPreGCNArchitecture
 		&& FeatureLevel >= ERHIFeatureLevel::SM5
-		&& (!IsMetalPlatform(ShaderPlatform) || !IsRHIDeviceIntel())
 		&& DoesPlatformSupportDistanceFieldAO(ShaderPlatform);
 }
 
@@ -3092,7 +3087,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 			if (bListMemoryNextFrame)
 			{
 				bListMemoryNextFrame = false;
-				ListDistanceFieldLightingMemory(View);
+				ListDistanceFieldLightingMemory(View, *this);
 			}
 
 			{
@@ -3219,7 +3214,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 					NumRenderTargets++;
 				}
 
-				SetRenderTargets(RHICmdList, NumRenderTargets, RenderTargets, FTextureRHIParamRef(), 0, NULL);
+				SetRenderTargets(RHICmdList, NumRenderTargets, RenderTargets, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilNop);
 			}
 
 			// Upsample to full resolution, write to output

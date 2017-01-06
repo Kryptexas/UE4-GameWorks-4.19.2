@@ -172,7 +172,23 @@ class FRHIComputeShader : public FRHIShader {};
 //
 
 class FRHIGraphicsPipelineState : public FRHIResource {};
-class FRHIComputePipelineState : public FRHIResource {};
+class FRHIComputePipelineState : public FRHIResource
+{
+public:
+	FRHIComputePipelineState(FRHIComputeShader* InComputeShader)
+		: ComputeShader(InComputeShader)
+	{
+		check(InComputeShader);
+	}
+
+	FRHIComputeShader* GetComputeShader()
+	{
+		return ComputeShader;
+	}
+
+protected:
+	TRefCountPtr<FRHIComputeShader> ComputeShader;
+};
 
 //
 // Buffers
@@ -551,6 +567,11 @@ public:
 	
 	/** @return The height of the texture. */
 	uint32 GetSizeY() const { return SizeY; }
+
+	inline FIntPoint GetSizeXY() const
+	{
+		return FIntPoint(SizeX, SizeY);
+	}
 
 private:
 

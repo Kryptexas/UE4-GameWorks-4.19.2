@@ -70,6 +70,14 @@ public:
 	*/
 	virtual void RHISetComputeShader(FComputeShaderRHIParamRef ComputeShader) = 0;
 
+	virtual void RHISetComputePipelineState(FRHIComputePipelineState* ComputePipelineState)
+	{
+		if (ComputePipelineState)
+		{
+			RHISetComputeShader(ComputePipelineState->GetComputeShader());
+		}
+	}
+
 	virtual void RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ) = 0;
 
 	virtual void RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) = 0;
@@ -535,16 +543,12 @@ public:
 
 	/*
 	* This method clears all MRT's, but to only one color value
-	* @param ExcludeRect within the viewport in pixels, is only a hint to optimize - if a fast clear can be done this is preferred
 	*/
-	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color, FIntRect ExcludeRect) = 0;
+	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color) = 0;
 
-	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil, FIntRect ExcludeRect) = 0;
+	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil) = 0;
 
-	/*
-	* @param ExcludeRect within the viewport in pixels, is only a hint to optimize - if a fast clear can be done this is preferred
-	*/
-	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray, FIntRect ExcludeRect) = 0;
+	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray) = 0;
 
 	/**
 	 * Enabled/Disables Depth Bounds Testing with the given min/max depth.
@@ -658,6 +662,11 @@ public:
 	virtual FGraphicsPipelineStateRHIRef RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer& Initializer)
 	{
 		return new FRHIGraphicsPipelineStateFallBack(Initializer);
+	}
+
+	virtual TRefCountPtr<FRHIComputePipelineState> RHICreateComputePipelineState(FRHIComputeShader* ComputeShader)
+	{
+		return new FRHIComputePipelineState(ComputeShader);
 	}
 
 	/**
@@ -1321,6 +1330,11 @@ FORCEINLINE FBoundShaderStateRHIRef RHICreateBoundShaderState(FVertexDeclaration
 FORCEINLINE FGraphicsPipelineStateRHIRef RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer& Initializer)
 {
 	return GDynamicRHI->RHICreateGraphicsPipelineState(Initializer);
+}
+
+FORCEINLINE TRefCountPtr<FRHIComputePipelineState> RHICreateComputePipelineState(FRHIComputeShader* ComputeShader)
+{
+	return GDynamicRHI->RHICreateComputePipelineState(ComputeShader);
 }
 
 FORCEINLINE FUniformBufferRHIRef RHICreateUniformBuffer(const void* Contents, const FRHIUniformBufferLayout& Layout, EUniformBufferUsage Usage)

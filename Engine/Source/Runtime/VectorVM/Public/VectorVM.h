@@ -12,16 +12,36 @@
 
 class FVectorVMSharedDataView;
 
+struct FVMExternalFunctionInput
+{
+	TArray<const uint8*, TInlineAllocator<64>> ComponentPtrs;
+	bool bIsConstant;
+};
+
+struct FVMExternalFunctionOutput
+{
+	TArray<uint8*, TInlineAllocator<64>> ComponentPtrs;
+};
+
+typedef TArray<FVMExternalFunctionInput, TInlineAllocator<64>> FVMExternalFuncInputs;
+typedef TArray<FVMExternalFunctionOutput, TInlineAllocator<64>> FVMExternalFuncOutputs;
+
+DECLARE_DELEGATE_ThreeParams(FVMExternalFunction, FVMExternalFuncInputs& /*Inputs*/, FVMExternalFuncOutputs& /*Outputs*/, uint32 /*NumInstances*/);
+
+UENUM()
+enum class EVectorVMBaseTypes : uint8
+{
+	Float,
+	Int,
+	Bool,
+	Num UMETA(Hidden),
+};
+
 UENUM()
 enum class EVectorVMOperandLocation : uint8
 {
-	TemporaryRegister,
-	InputRegister,
-	OutputRegister,
+	Register,
 	Constant,
-	DataObjConstant,
-	SharedData,
-	Undefined,
 	Num
 };
 
@@ -32,6 +52,7 @@ enum class EVectorVMOp : uint8
 	add,
 	sub,
 	mul,
+	div,
 	mad,
 	lerp,
 	rcp,
@@ -61,37 +82,91 @@ enum class EVectorVMOp : uint8
 	pow,
 	sign,
 	step,
-	dot,
-	cross,
-	normalize,
 	random,
-	length,
 	noise,
-	splatx,
-	splaty,
-	splatz,
-	splatw,
-	compose,
-	composex,
-	composey,
-	composez,
-	composew,
 	output,
-	lessthan,
+
+	//Comparison ops.
+	cmplt,
+	cmple,
+	cmpgt,
+	cmpge,
+	cmpeq,
+	cmpneq,
 	select,
-	sample,
-	bufferwrite,
-	easein,
-	easeinout,
-	div,
-	aquireshareddataindex,
-	aquireshareddataindexwrap,
-	consumeshareddataindex,
-	consumeshareddataindexwrap,
-	shareddataread,
-	shareddatawrite,
-	shareddataindexvalid,
+
+// 	easein,  Pretty sure these can be replaced with just a single smoothstep implementation.
+// 	easeinout,
+
+	//Integer ops
+	addi,
+	subi,
+	muli,
+	//divi,//SSE Integer division is not implemented as an intrinsic. Will have to do some manual implementation.
+	clampi,
+	mini,
+	maxi,
+	absi,
+	negi,
+	signi,
+	cmplti,
+	cmplei,
+	cmpgti,
+	cmpgei,
+	cmpeqi,
+	cmpneqi,
+	bit_and,
+	bit_or,
+	bit_xor,
+	bit_not,
+
+	//"Boolean" ops. Currently handling bools as integers.
+	logic_and,
+	logic_or,
+	logic_xor,
+	logic_not,
+
+	//conversions
+	f2i,
+	i2f,
+	f2b,
+	b2f,
+	i2b,
+	b2i,
+
+	// data read/write
+	inputdata_32bit,
+	inputdata_noadvance_32bit,
+	outputdata_32bit,
+	acquireindex,
+
+	external_func_call,
+
+	/** Returns the index of each instance in the current execution context. */
+	exec_index,
+
+	noise2D,
+	noise3D,
+
 	NumOpcodes
+};
+
+
+struct FDataSetMeta
+{
+	uint8 **InputRegisters;
+	uint8 NumVariables;
+	uint32 DataSetSizeInBytes;
+	int32 DataSetAccessIndex;	// index for individual elements of this set
+	int32 DataSetOffset;		// offset in the register table
+
+	FDataSetMeta(uint32 DataSetSize, uint8 **Data = nullptr, uint8 InNumVariables = 0)
+		: InputRegisters(Data), NumVariables(InNumVariables), DataSetSizeInBytes(DataSetSize)
+	{}
+
+	FDataSetMeta()
+		: InputRegisters(nullptr), NumVariables(0), DataSetSizeInBytes(0), DataSetAccessIndex(0), DataSetOffset(0)
+	{}
 };
 
 namespace VectorVM
@@ -103,9 +178,9 @@ namespace VectorVM
 		MaxInputRegisters = 100,
 		MaxOutputRegisters = MaxInputRegisters,
 		MaxConstants = 256,
+		FirstTempRegister = 0,
 		FirstInputRegister = NumTempRegisters,
 		FirstOutputRegister = FirstInputRegister + MaxInputRegisters,
-		FirstConstantRegister = FirstOutputRegister + MaxOutputRegisters,
 		MaxRegisters = NumTempRegisters + MaxInputRegisters + MaxOutputRegisters + MaxConstants,
 	};
 
@@ -117,82 +192,25 @@ namespace VectorVM
 	VECTORVM_API FString GetOperandLocationName(EVectorVMOperandLocation Location);
 #endif
 
-	VECTORVM_API uint8 CreateSrcOperandMask(EVectorVMOperandLocation Type1, EVectorVMOperandLocation Type2 = EVectorVMOperandLocation::TemporaryRegister, EVectorVMOperandLocation Type3 = EVectorVMOperandLocation::TemporaryRegister, EVectorVMOperandLocation Type4 = EVectorVMOperandLocation::TemporaryRegister);
+	VECTORVM_API uint8 CreateSrcOperandMask(EVectorVMOperandLocation Type0, EVectorVMOperandLocation Type1 = EVectorVMOperandLocation::Register, EVectorVMOperandLocation Type2 = EVectorVMOperandLocation::Register);
 
 	/**
 	 * Execute VectorVM bytecode.
 	 */
 	VECTORVM_API void Exec(
 		uint8 const* Code,
-		VectorRegister** InputRegisters,
+		uint8** InputRegisters,
+		uint8* InputRegisterSizes,
 		int32 NumInputRegisters,
-		VectorRegister** OutputRegisters,
+		uint8** OutputRegisters,
+		uint8* OutputRegisterSizes,
 		int32 NumOutputRegisters,
-		FVector4 const* ConstantTable,
-		FVectorVMSharedDataView* SharedDataTable,
-		int32 NumVectors
+		uint8 const* ConstantTable,
+		TArray<FDataSetMeta> &DataSetMetaTable,
+		FVMExternalFunction* ExternalFunctionTable,
+		int32 NumInstances
 		);
 
 	VECTORVM_API void Init();
 } // namespace VectorVM
-
-
-/**
-Encapsulates a view of a number of shared data buffers with a shared counter and size.
-This is temporary until we can use integers in the constants for the size and counter.
-*/
-class FVectorVMSharedDataView
-{
-private:
-	/** Array of data buffers.*/
-	TArray<FVector4*> Buffers;
-	/** Total size of buffer in vectors. */
-	int32 Size;
-	/** Counter used to acquire and release slots for reading and writing. */
-	int32 Counter;//Need to ensure this is atomically updated if threading withing a single VM script run. Though I don't think we should do that.
-
-	// Dummy read and write data for when the VM requests an invalid buffer pointer.
-	// This can happen because we have no branching currently. Writing to OOB indices must still continue but just not do any damage.
-	FVector4 DummyRead;
-	FVector4 DummyWrite;
-
-public:
-	FVectorVMSharedDataView(int32 InSize, int32 InCounter)
-		: Size(InSize)
-		, Counter(InCounter)
-		, DummyRead(FVector4(0.0f, 0.0f, 0.0f, 0.0f))
-	{
-	}
-
-	FORCEINLINE bool ValidIndex(int32 Index){ return Index >= 0 && Index < Size; }
-
-	FORCEINLINE FVector4* GetReadBuffer(int32 BufferIndex, int32 DataIndex) { return ValidIndex(DataIndex) && Buffers[BufferIndex] ? Buffers[BufferIndex] + DataIndex : &DummyRead; }
-	FORCEINLINE FVector4* GetWriteBuffer(int32 BufferIndex, int32 DataIndex) { return ValidIndex(DataIndex) && Buffers[BufferIndex] ? Buffers[BufferIndex] + DataIndex : &DummyWrite; }
-
-	FORCEINLINE void AddBuffer(FVector4* Buffer)
-	{
-		Buffers.Add(Buffer);
-	}
-
-	FORCEINLINE int32 GetCounter(){ return Counter; }
-	FORCEINLINE int32 GetSize(){ return Size; }
-
-	FORCEINLINE int32 AcquireIndexWrap(){ int32 Index = Counter; IncrementWrap(); return Index; }
-	FORCEINLINE int32 AcquireIndex(){ int32 Index = Counter; Increment(); return Index; }
-
-	FORCEINLINE int32 ConsumeIndexWrap(){ int32 Index = Counter; DecrementWrap(); return Index; }
-	FORCEINLINE int32 ConsumeIndex(){ int32 Index = Counter; Decrement(); return Index; }
-
-	FORCEINLINE void Increment(){ Counter = FMath::Min(Counter + 1, Size); }
-	FORCEINLINE void Decrement(){ Counter = FMath::Max(Counter - 1, 0); }
-
-	FORCEINLINE int32 Modulo(int32 X, int32 Max)
-	{
-		return Max == 0
-			? 0
-			: (X < 0 ? (X % Max) + Max : (X % Max));
-	}
-	FORCEINLINE void IncrementWrap(){ Counter = Size == 0 ? INDEX_NONE : Modulo(Counter + 1, Size - 1); }
-	FORCEINLINE void DecrementWrap(){ Counter = Size == 0 ? INDEX_NONE : Modulo(Counter - 1, Size - 1); }
-};
 

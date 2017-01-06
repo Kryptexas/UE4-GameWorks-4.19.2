@@ -688,6 +688,12 @@ struct FOpenGLVertexElement
 	uint8 bNormalized;
 	uint8 AttributeIndex;
 	uint8 bShouldConvertToFloat;
+	uint8 Padding;
+
+	FOpenGLVertexElement()
+		: Padding(0)
+	{
+	}
 };
 
 /** Convenience typedef: preallocated array of OpenGL input element descriptions. */

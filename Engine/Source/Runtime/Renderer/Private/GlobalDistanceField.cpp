@@ -73,7 +73,7 @@ FAutoConsoleVariableRef CVarAOGlobalDFResolution(
 	ECVF_RenderThreadSafe
 	);
 
-float GAOGlobalDFStartDistance = 200;
+float GAOGlobalDFStartDistance = 100;
 FAutoConsoleVariableRef CVarAOGlobalDFStartDistance(
 	TEXT("r.AOGlobalDFStartDistance"),
 	GAOGlobalDFStartDistance,

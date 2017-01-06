@@ -173,6 +173,7 @@ public class Engine : ModuleRules
 				"MovieSceneTracks",
 				"HeadMountedDisplay",
 				"StreamingPauseRendering",
+                "Niagara"
 			}
 		);
 

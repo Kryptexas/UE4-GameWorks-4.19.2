@@ -6700,6 +6700,8 @@ bool UEditorEngine::HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDev
 
 bool UEditorEngine::HandleBuildMaterialTextureStreamingData( const TCHAR* Cmd, FOutputDevice& Ar )
 {
+	const bool bForceRebuild = FParse::Command(&Cmd, TEXT("ALL"));
+
 	const EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::High;
 	const ERHIFeatureLevel::Type FeatureLevel = GMaxRHIFeatureLevel;
 
@@ -6709,7 +6711,7 @@ bool UEditorEngine::HandleBuildMaterialTextureStreamingData( const TCHAR* Cmd, F
 	for (TObjectIterator<UMaterialInterface> MaterialIt; MaterialIt; ++MaterialIt)
 	{
 		UMaterialInterface* Material = *MaterialIt;
-		if (Material && Material->GetOutermost() != GetTransientPackage() && Material->HasAnyFlags(RF_Public) && Material->UseAnyStreamingTexture() && !Material->HasTextureStreamingData()) 
+		if (Material && Material->GetOutermost() != GetTransientPackage() && Material->HasAnyFlags(RF_Public) && Material->UseAnyStreamingTexture() && (bForceRebuild || !Material->HasTextureStreamingData())) 
 		{
 			Materials.Add(Material);
 		}

@@ -897,6 +897,8 @@ public:
 	/** Change the feature level that this world is current rendering with */
 	void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bShowSlowProgressDialog = true);
 
+	void RecreateScene(ERHIFeatureLevel::Type InFeatureLevel);
+
 #endif // WITH_EDITOR
 
 	/**

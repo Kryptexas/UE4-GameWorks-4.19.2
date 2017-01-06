@@ -38,15 +38,11 @@ float GetAOMaxDistance()
 	return max(AOObjectMaxDistance, AOGlobalMaxOcclusionDistance);
 }
 
-#define USE_DEPTH_RANGE_LISTS 1
+// Pass a debug value through the pipeline instead of a bent normal
+#define PASS_THROUGH_DEBUG_VALUE 0
 
-#if USE_DEPTH_RANGE_LISTS
-	// One for near, one for far
-	#define NUM_CULLED_OBJECT_LISTS 2
-#else
-	// Objects are culled into one of 3 lists based on depth from the tile
-	#define NUM_CULLED_OBJECT_LISTS 3
-#endif
+// One for near, one for far
+#define NUM_CULLED_OBJECT_LISTS 2
 
 void GetPhaseParameters(uint Phase, out uint StartIndex, out uint EndIndex)
 {
@@ -93,19 +89,17 @@ SamplerState DistanceFieldNormalSampler;
 float4 EncodeDownsampledGBuffer(FGBufferData GBufferData, float SceneDepth)
 {
 	float DepthSign = HasDistanceFieldRepresentation(GBufferData) > 0 ? 1 : -1;
-	//float ZSign = HasHeightfieldRepresentation(GBufferData)> 0 ? 1 : -1;
-	//@todo - restore HasHeightfieldRepresentation support from GBuffer
-	float ZSign = -1;
+	float ZSign = GBufferData.ShadingModelID == SHADINGMODELID_UNLIT ? -1 : 1;
 	float ZChannel = GBufferData.WorldNormal.z > 0 ? .5f : 1;
 	float4 OutValue = float4(GBufferData.WorldNormal.xy, ZChannel * ZSign, DepthSign * SceneDepth);
 	return OutValue;
 }
 
-void GetDownsampledGBuffer(float2 ScreenUV, out float3 OutNormal, out float OutDepth, out bool bHasDistanceFieldRepresentation, out bool bHasHeightfieldRepresentation)
+void GetDownsampledGBuffer(float2 ScreenUV, out float3 OutNormal, out float OutDepth, out bool bHasDistanceFieldRepresentation, out bool bLit)
 {
 	float4 TextureValue = Texture2DSampleLevel(DistanceFieldNormalTexture, DistanceFieldNormalSampler, ScreenUV, 0);
 	bHasDistanceFieldRepresentation = TextureValue.w > 0;
-	bHasHeightfieldRepresentation = TextureValue.z > 0; 
+	bLit = TextureValue.z > 0; 
 	OutDepth = abs(TextureValue.w);
 	OutNormal = float3(TextureValue.xy, sqrt(1 - dot(TextureValue.xy, TextureValue.xy)));
 	OutNormal.z *= abs(TextureValue.z) > .75f ? -1 : 1;
@@ -274,7 +268,7 @@ void IntersectObjectWithConeDepthRange(
 		BRANCH
 		if (BoxDistance < TileBoundingSphereRadius + AOObjectMaxDistance)
 		{
-			float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+			float3 UVAdd = LoadObjectUVAddAndSelfShadowBias(ObjectIndex).xyz;
 
 			float3 ClampedSamplePosition = clamp(VolumeTileBoundingSphereCenter, -LocalPositionExtent, LocalPositionExtent);
 			float DistanceToClamped = length(VolumeTileBoundingSphereCenter - ClampedSamplePosition);

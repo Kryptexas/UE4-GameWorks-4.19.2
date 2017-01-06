@@ -1170,7 +1170,7 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 				SCOPED_DRAW_EVENT(RHICmdList, ClearIndirectOcclusion);
 				// We are the first users of the indirect occlusion texture so we must clear to unoccluded
 				SetRenderTargets(RHICmdList, RenderTargets.Num(), RenderTargets.GetData(), FTextureRHIParamRef(), 0, NULL, true);
-				RHICmdList.ClearColorTexture(SceneContext.ScreenSpaceAO->GetRenderTargetItem().TargetableTexture, FLinearColor::White, FIntRect());
+				RHICmdList.ClearColorTexture(SceneContext.ScreenSpaceAO->GetRenderTargetItem().TargetableTexture, FLinearColor::White);
 			}
 							
 			check(RenderTargets.Num() > 0);

@@ -28,44 +28,65 @@ UNiagaraScriptFactoryNew::UNiagaraScriptFactoryNew(const FObjectInitializer& Obj
 	bCreateNew = bEnableNiagara;
 }
 
-UObject* UNiagaraScriptFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
+UObject* UNiagaraScriptFactoryNew::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
 	check(Class->IsChildOf(UNiagaraScript::StaticClass()));
+	
+	const UNiagaraSettings* Settings = GetDefault<UNiagaraSettings>();
+	check(Settings);
 
-	// First allocate runtime script 
-	UNiagaraScript* NewScript = NewObject<UNiagaraScript>(InParent, Class, Name, Flags);
+	UNiagaraScript* NewScript;
+
+	if (UNiagaraScript* Default = Cast<UNiagaraScript>(Settings->DefaultScript.TryLoad()))
+	{
+		NewScript = Cast<UNiagaraScript>(StaticDuplicateObject(Default, InParent, Name, Flags, Class));
+	}
+	else
+	{
+		NewScript = NewObject<UNiagaraScript>(InParent, Class, Name, Flags | RF_Transactional);
+		InitializeScript(NewScript);
+	}
+
+	return NewScript;
+}
+
+void UNiagaraScriptFactoryNew::InitializeScript(UNiagaraScript* NewScript)
+{
 	if(NewScript != NULL)
 	{
-		// Then allocate editor-only 'source' object
 		UNiagaraScriptSource* Source = NewObject<UNiagaraScriptSource>(NewScript, NAME_None, RF_Transactional);
 		if(Source)
 		{
-			// Create 'update graph'
 			UNiagaraGraph* CreatedGraph = NewObject<UNiagaraGraph>(Source, NAME_None, RF_Transactional);
 			Source->NodeGraph = CreatedGraph;
 
 			FGraphNodeCreator<UNiagaraNodeOutput> OutputNodeCreator(*CreatedGraph);
 			UNiagaraNodeOutput* OutputNode = OutputNodeCreator.CreateNode();
 
-			//Automatically add attributes that the current render modules rely on. Not sure what we'll want to do here in the end.
-			OutputNode->Outputs.Add(FNiagaraVariableInfo(FName(TEXT("Position")), ENiagaraDataType::Vector));
-			OutputNode->Outputs.Add(FNiagaraVariableInfo(FName(TEXT("Velocity")), ENiagaraDataType::Vector));
-			OutputNode->Outputs.Add(FNiagaraVariableInfo(FName(TEXT("Acceleration")), ENiagaraDataType::Vector));
-			OutputNode->Outputs.Add(FNiagaraVariableInfo(FName(TEXT("Rotation")), ENiagaraDataType::Vector));
-			OutputNode->Outputs.Add(FNiagaraVariableInfo(FName(TEXT("Color")), ENiagaraDataType::Vector));
-			OutputNode->Outputs.Add(FNiagaraVariableInfo(FName(TEXT("Age")), ENiagaraDataType::Vector));
+			FNiagaraVariable PosAttrib(FNiagaraTypeDefinition::GetVec3Def(), "Position");
+			FNiagaraVariable VelAttrib(FNiagaraTypeDefinition::GetVec3Def(), "Velocity");
+			FNiagaraVariable RotAttrib(FNiagaraTypeDefinition::GetFloatDef(), "Rotation");
+			FNiagaraVariable AgeAttrib(FNiagaraTypeDefinition::GetFloatDef(), "Age");
+			FNiagaraVariable ColAttrib(FNiagaraTypeDefinition::GetColorDef(), "Color");
+			FNiagaraVariable SizeAttrib(FNiagaraTypeDefinition::GetVec2Def(), "Size");
+	
+			OutputNode->Outputs.Add(PosAttrib);
+			OutputNode->Outputs.Add(VelAttrib);
+			OutputNode->Outputs.Add(RotAttrib);
+			OutputNode->Outputs.Add(ColAttrib);
+			OutputNode->Outputs.Add(SizeAttrib);
+			OutputNode->Outputs.Add(AgeAttrib);
 
 			OutputNodeCreator.Finalize();
 
 			// Set pointer in script to source
 			NewScript->Source = Source;
 
+			FString ErrorMessages;
 			FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
-			NiagaraEditorModule.CompileScript(NewScript);
+			NiagaraEditorModule.CompileScript(NewScript, ErrorMessages);
 		}
 	}
-
-	return NewScript;
 }
 
 #undef LOCTEXT_NAMESPACE

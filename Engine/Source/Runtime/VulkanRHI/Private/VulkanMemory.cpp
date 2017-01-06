@@ -1390,7 +1390,7 @@ namespace VulkanRHI
 
 	void FDeferredDeletionQueue::EnqueueGenericResource(EType Type, uint64 Handle)
 	{
-		FVulkanQueue* Queue = Device->GetQueue();
+		FVulkanQueue* Queue = Device->GetGraphicsQueue();
 
 		FEntry Entry;
 		Queue->GetLastSubmittedInfo(Entry.CmdBuffer, Entry.FenceCounter);

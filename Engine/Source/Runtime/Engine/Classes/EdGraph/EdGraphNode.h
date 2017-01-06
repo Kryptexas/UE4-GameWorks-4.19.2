@@ -517,6 +517,9 @@ public:
 	// called when the node's comment bubble is toggled
 	virtual void OnCommentBubbleToggled( bool bInCommentBubbleVisible ) {}
 
+	// called when a pin is removed
+	virtual void OnPinRemoved( UEdGraphPin* InRemovedPin ) {}
+
 	/** Return whether to draw this node as a comment node */
 	virtual bool ShouldDrawNodeAsComment() const { return false; }
 

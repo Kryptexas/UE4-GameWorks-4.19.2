@@ -2473,13 +2473,8 @@ struct FMeshBuildSettings
 	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Two-Sided Distance Field Generation"))
 	bool bGenerateDistanceFieldAsIfTwoSided;
 
-	/** 
-	 * Adding a constant distance effectively shrinks the distance field representation.  
-	 * This is useful for preventing self shadowing aritfacts when doing some minor ambient animation.
-	 * Thin walls will be affected more severely than large hollow objects, because thin walls don't have a large negative region.
-	 */
-	UPROPERTY(EditAnywhere, Category = BuildSettings)
-	float DistanceFieldBias;
+	UPROPERTY()
+	float DistanceFieldBias_DEPRECATED;
 
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	class UStaticMesh* DistanceFieldReplacementMesh;
@@ -2502,7 +2497,7 @@ struct FMeshBuildSettings
 		, BuildScale3D(1.0f, 1.0f, 1.0f)
 		, DistanceFieldResolutionScale(1.0f)
 		, bGenerateDistanceFieldAsIfTwoSided(false)
-		, DistanceFieldBias(0.0f)
+		, DistanceFieldBias_DEPRECATED(0.0f)
 		, DistanceFieldReplacementMesh(NULL)
 	{ }
 
@@ -2524,7 +2519,6 @@ struct FMeshBuildSettings
 			&& BuildScale3D == Other.BuildScale3D
 			&& DistanceFieldResolutionScale == Other.DistanceFieldResolutionScale
 			&& bGenerateDistanceFieldAsIfTwoSided == Other.bGenerateDistanceFieldAsIfTwoSided
-			&& DistanceFieldBias == Other.DistanceFieldBias
 			&& DistanceFieldReplacementMesh == Other.DistanceFieldReplacementMesh;
 	}
 

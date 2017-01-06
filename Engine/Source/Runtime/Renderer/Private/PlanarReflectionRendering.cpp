@@ -245,7 +245,7 @@ static void UpdatePlanarReflectionContents_RenderThread(
 
 				// Note: relying on GBuffer SceneColor alpha being cleared to 1 in the main scene rendering
 				check(GetSceneColorClearAlpha() == 1.0f);
-				RHICmdList.ClearColorTexture(Target->GetRenderTargetTexture(), FLinearColor(0, 0, 0, 1), FIntRect());
+				RHICmdList.ClearColorTexture(Target->GetRenderTargetTexture(), FLinearColor(0, 0, 0, 1));
 
 				// Reflection view late update
 				if (SceneRenderer->Views.Num() > 1)
@@ -557,7 +557,7 @@ bool FDeferredShadingSceneRenderer::RenderDeferredPlanarReflections(FRHICommandL
 
 		if (!bSSRAsInput)
 		{
-			RHICmdList.ClearColorTexture(Output->GetRenderTargetItem().TargetableTexture, FLinearColor(0, 0, 0, 0), FIntRect());
+			RHICmdList.ClearColorTexture(Output->GetRenderTargetItem().TargetableTexture, FLinearColor(0, 0, 0, 0));
 		}
 
 		{

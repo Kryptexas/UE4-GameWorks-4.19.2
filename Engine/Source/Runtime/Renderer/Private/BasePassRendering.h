@@ -476,7 +476,7 @@ public:
 /**
  * The base shader type for hull shaders.
  */
-template<typename LightMapPolicyType>
+template<typename LightMapPolicyType, bool bEnableAtmosphericFog>
 class TBasePassHS : public FBaseHS
 {
 	DECLARE_SHADER_TYPE(TBasePassHS,MeshMaterial);
@@ -492,14 +492,16 @@ protected:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Re-use vertex shader gating
-		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& TBasePassVS<LightMapPolicyType,false>::ShouldCache(Platform,Material,VertexFactoryType);
+		// Metal requires matching permutations, but no other platform should worry about this complication.
+		return (bEnableAtmosphericFog == false || IsMetalPlatform(Platform))
+			&& FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
+			&& TBasePassVS<LightMapPolicyType,bEnableAtmosphericFog>::ShouldCache(Platform,Material,VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		// Re-use vertex shader compilation environment
-		TBasePassVS<LightMapPolicyType,false>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		TBasePassVS<LightMapPolicyType,bEnableAtmosphericFog>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
 
 	// Don't implement : void SetParameters(...) or SetMesh() unless changing the shader reference in TBasePassDrawingPolicy
@@ -872,8 +874,17 @@ void GetBasePassShaders(
 {
 	if (bNeedsHSDS)
 	{
-		HullShader = Material.GetShader<TBasePassHS<LightMapPolicyType> >(VertexFactoryType);
-		DomainShader = Material.GetShader<TBasePassDS<LightMapPolicyType> >(VertexFactoryType);
+		DomainShader = Material.GetShader<TBasePassDS<LightMapPolicyType > >(VertexFactoryType);
+		
+		// Metal requires matching permutations, but no other platform should worry about this complication.
+		if (bEnableAtmosphericFog && DomainShader && IsMetalPlatform(EShaderPlatform(DomainShader->GetTarget().Platform)))
+		{
+			HullShader = Material.GetShader<TBasePassHS<LightMapPolicyType, true > >(VertexFactoryType);
+		}
+		else
+		{
+			HullShader = Material.GetShader<TBasePassHS<LightMapPolicyType, false > >(VertexFactoryType);
+		}
 	}
 
 	if (bEnableAtmosphericFog)
@@ -917,7 +928,8 @@ public:
 		const FMaterial& InMaterialResource, 
 		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		EDebugViewShaderMode InDebugViewShaderMode,
-		bool bInEnableReceiveDecalOutput) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode), bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput)
+		bool bInEnableReceiveDecalOutput,
+		bool bInEnableEditorPrimitiveDepthTest) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode), bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput), bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest)
 	{}
 
 	void ApplyDitheredLODTransitionState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither);
@@ -926,6 +938,8 @@ protected:
 
 	/** Whether or not outputing the receive decal boolean */
 	uint32 bEnableReceiveDecalOutput : 1;
+	/** Whether or not this policy is compositing editor primitives and needs to depth test against the scene geometry in the base pass pixel shader */
+	uint32 bEnableEditorPrimitiveDepthTest : 1;
 };
 
 /**
@@ -970,12 +984,11 @@ public:
 		bool bInEnableEditorPrimitiveDepthTest = false,
 		bool bInEnableReceiveDecalOutput = false
 		):
-		FBasePassDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode, bInEnableReceiveDecalOutput),
+		FBasePassDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode, bInEnableReceiveDecalOutput, bInEnableEditorPrimitiveDepthTest),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode), 
 		SceneTextureMode(InSceneTextureMode),
 		bEnableSkyLight(bInEnableSkyLight),
-		bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest),
 		bEnableAtmosphericFog(bInEnableAtmosphericFog)
 	{
 		HullShader = NULL;
@@ -1224,8 +1237,6 @@ protected:
 
 	uint32 bEnableSkyLight : 1;
 
-	/** Whether or not this policy is compositing editor primitives and needs to depth test against the scene geometry in the base pass pixel shader */
-	uint32 bEnableEditorPrimitiveDepthTest : 1;
 	/** Whether or not this policy enables atmospheric fog */
 	uint32 bEnableAtmosphericFog : 1;
 };

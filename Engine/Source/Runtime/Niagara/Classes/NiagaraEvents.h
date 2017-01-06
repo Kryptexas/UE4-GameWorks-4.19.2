@@ -14,6 +14,33 @@ NiagaraSimulation.h: Niagara emitter simulation class
 #include "NiagaraEvents.generated.h"
 
 struct FNiagaraEventReceiverProperties;
+
+#define NIAGARA_BUILTIN_EVENTNAME_COLLISION FName("Collision")
+#define NIAGARA_BUILTIN_EVENTNAME_SPAWN FName("Spawn")
+#define NIAGARA_BUILTIN_EVENTNAME_DEATH FName("Death")
+
+/**
+ *	Type struct for collision event payloads; collision event data set is based on this
+ *  TODO: figure out how we can pipe attributes from the colliding particle in here
+ */
+USTRUCT()
+struct FNiagaraCollisionEventPayload
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FVector CollisionPos;
+	UPROPERTY()
+	FVector CollisionNormal;
+	UPROPERTY()
+	int32 PhysicalMaterialIndex;
+	UPROPERTY()
+	FVector CollisionVelocity;
+	UPROPERTY()
+	int32 ParticleIndex;
+};
+
+
 struct FNiagaraSimulation;
 
 /**
@@ -24,7 +51,7 @@ class UNiagaraEventReceiverEmitterAction : public UObject
 {
 	GENERATED_BODY()
 public:
-	virtual void PerformAction(FNiagaraSimulation& OwningSim, FNiagaraEventReceiverProperties& OwningEventReceiver){}
+	virtual void PerformAction(FNiagaraSimulation& OwningSim, const FNiagaraEventReceiverProperties& OwningEventReceiver){}
 };
 
 UCLASS(EditInlineNew)
@@ -38,81 +65,128 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Spawn")
 	uint32 NumParticles;
 
-	virtual void PerformAction(FNiagaraSimulation& OwningSim, FNiagaraEventReceiverProperties& OwningEventReceiver)override;
+	virtual void PerformAction(FNiagaraSimulation& OwningSim, const FNiagaraEventReceiverProperties& OwningEventReceiver)override;
 };
 
-/*
-* Generates an event for every particle death in an emitter. Each event contains all particle attributes at the moment of death.
-*/
-class FNiagaraDeathEventGenerator
-{
-	/** The owning simulation. */
-	FNiagaraSimulation* OwnerSim;
 
-	/** Storage for dead particles. Source of event data. */
-	FNiagaraDataSet DataSet;
+
+typedef TMap<FName, FNiagaraDataSet*> PerEmitterEventDataSetMap;
+typedef TMap<FName, PerEmitterEventDataSetMap> PerEffectInstanceDataSetMap;
+
+class FNiagaraEventDataSetMgr
+{
+public:
+	FNiagaraEventDataSetMgr()
+	{
+	}
+
+	// call this to allocate a data set for a specific emitter and event
+	// if the data set already exists, returns the existing one
+	static FNiagaraDataSet *CreateEventDataSet(FName OwnerEffectInstanceName, FName EmitterName, FName EventName)
+	{
+		PerEffectInstanceDataSetMap *EffectInstanceMap = EmitterEventDataSets.Find(OwnerEffectInstanceName);
+		if (!EffectInstanceMap)
+		{
+			EffectInstanceMap = &EmitterEventDataSets.Add(OwnerEffectInstanceName);
+		}
+
+		// find the emitter's map
+		PerEmitterEventDataSetMap *Map = EffectInstanceMap->Find(EmitterName);
+		if (!Map)
+		{
+			Map = &EffectInstanceMap->Add(EmitterName);
+		}
+
+		// TODO: find a better way of multiple events trying to write to the same data set; 
+		// for example, if two analytical collision primitives want to send collision events, they need to push to the same data set
+
+		FNiagaraDataSet **DataSetPtr = Map->Find(EventName);
+		FNiagaraDataSet *OutSet = nullptr;
+		if (DataSetPtr == nullptr)
+		{
+			OutSet = new FNiagaraDataSet();
+			Map->Add(EventName) = OutSet;
+		}
+		else
+		{
+			OutSet = *DataSetPtr;
+		}
+		return OutSet;
+	}
+
+	// deletes and cleans up all event data sets for an emitter
+	//  should be called when the emitter is destroyed
+	static void Reset(FName OwnerEffectInstanceName, FName EmitterName)
+	{
+		PerEffectInstanceDataSetMap *EffectInstanceMap = EmitterEventDataSets.Find(OwnerEffectInstanceName);
+		if (EffectInstanceMap)
+		{
+			PerEmitterEventDataSetMap *Map = EffectInstanceMap->Find(EmitterName);
+			if (Map)
+			{
+				for (TPair<FName, FNiagaraDataSet *> Pair : *Map)
+				{
+					delete Pair.Value;
+				}
+				Map->Empty();
+				EffectInstanceMap->Remove(EmitterName);
+			}
+			if (EffectInstanceMap->Num() == 0)
+			{
+				EmitterEventDataSets.Remove(OwnerEffectInstanceName);
+			}
+		}
+	}
 
 	/*
-	Temp storage for writing the attribute data of dead particles.
-	Can likely get rid of this and write directly to the DataSet with a bit more work.
+	static void AddEventSet(FName EmitterName, FName EventName, const FNiagaraDataSet *DataSet)
+	{
+		// find the emitter's map
+		PerEmitterEventDataSetMap *Map = EmitterEventDataSets.Find(EmitterName);
+		if(!Map)
+		{
+			Map = &EmitterEventDataSets.Add(EmitterName);
+		}
+
+		// TODO: find a better way of multiple events trying to write to the same data set; 
+		// for example, if two analytical collision primitives want to send collision events, they need to push to the same data set
+		ensure(Map->Find(EventName) == nullptr);
+
+		if (Map->Find(EventName) == nullptr)
+		{
+			Map->Add(EventName) = DataSet;
+		}
+	}
 	*/
-	TArray<TArray<FVector4>> TempStorage;
 
-	/** The number of dead particles we've seen this frame. */
-	int32 NumDead;
-public:
-
-	FNiagaraDeathEventGenerator(FNiagaraSimulation* InOwnerSim)
-		: OwnerSim(InOwnerSim)
-		, DataSet(FNiagaraDataSetID::DeathEvent)
-		, NumDead(0)
+	static PerEmitterEventDataSetMap * GetEmitterMap(FName OwnerEffectInstanceName, FName EmitterName)
 	{
+		TMap<FName, PerEmitterEventDataSetMap> *EffectMap = EmitterEventDataSets.Find(OwnerEffectInstanceName);
+		if (EffectMap)
+		{
+			return EffectMap->Find(EmitterName);
+		}
 
+		return nullptr;
 	}
 
-	void Reset()
+	static FNiagaraDataSet * GetEventDataSet(FName OwnerEffectInstanceName, FName EmitterName, FName EventName)
 	{
-		DataSet.Reset();
-		NumDead = 0;
-		TempStorage.Empty();
+		PerEmitterEventDataSetMap *SetMap = GetEmitterMap(OwnerEffectInstanceName, EmitterName);
+		if (!SetMap)
+		{
+			return nullptr;
+		}
+
+		FNiagaraDataSet **FoundSet = SetMap->Find(EventName);
+		if (!FoundSet)
+		{
+			return nullptr;
+		}
+
+		return *FoundSet;
 	}
 
-	FNiagaraDataSet& GetDataSet(){ return DataSet; }
-	void BeginTrackingDeaths();
-	void OnDeath(int32 DeadIndex);
-	void EndTrackingDeaths();
+private:
+	static TMap<FName, TMap<FName, PerEmitterEventDataSetMap>> EmitterEventDataSets;
 };
-
-/**
-* Generates events for every particle spawned in an emitter. Each event contains the particles attriubtes as initialised by the spawn script.
-*/
-class FNiagaraSpawnEventGenerator
-{
-	FNiagaraSimulation* OwnerSim;
-
-	/**
-	Storage for spawned particles. Source of event data.
-	For quickness, we currently make a copy of all spawned particles.
-	It may be possible in future to remove this and access the Particle data directly with some refactoring of the events stuff.
-	*/
-	FNiagaraDataSet DataSet;
-public:
-
-	void Reset()
-	{
-		DataSet.Reset();
-	}
-
-	FNiagaraDataSet& GetDataSet(){ return DataSet; }
-
-	void OnSpawned(int32 SpawnIndex, int32 NumSpawned);
-
-	FNiagaraSpawnEventGenerator(FNiagaraSimulation* InOwnerSim)
-		: OwnerSim(InOwnerSim)
-		, DataSet(FNiagaraDataSetID::SpawnEvent)
-	{
-
-	}
-};
-
-

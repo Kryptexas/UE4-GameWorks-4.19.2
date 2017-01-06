@@ -1752,16 +1752,6 @@ static TAutoConsoleVariable<int32> CVarUniformBufferPooling(
 	TEXT(" 1: on (optimization)"),
 	ECVF_RenderThreadSafe);
 
-// The following console variable should never be compiled out ------------------
-static TAutoConsoleVariable<int32> CVarClearWithExcludeRects(
-	TEXT("r.ClearWithExcludeRects"),
-	2,
-	TEXT("Control the use of exclude rects when using RHIClear\n")
-	TEXT(" 0: Force off (can be faster on hardware that has fast clears)\n")
-	TEXT(" 1: Use exclude rect if supplied\n")
-	TEXT(" 2: Auto (default is 2, pick what is considered best on this hardware)"),
-	ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarTranslucentSortPolicy(
 	TEXT("r.TranslucentSortPolicy"),
 	0,

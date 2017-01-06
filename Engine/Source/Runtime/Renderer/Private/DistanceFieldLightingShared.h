@@ -467,16 +467,23 @@ public:
 	}
 };
 
+static int32 LightTileDataStride = 1;
+
 /**  */
 class FLightTileIntersectionResources
 {
 public:
+
+	FLightTileIntersectionResources() :
+		b16BitIndices(false)
+	{}
+
 	void Initialize()
 	{
 		TileHeadDataUnpacked.Initialize(sizeof(uint32), TileDimensions.X * TileDimensions.Y * 2, PF_R32_UINT, BUF_Static);
 
 		//@todo - handle max exceeded
-		TileArrayData.Initialize(sizeof(uint32), GMaxNumObjectsPerTile * TileDimensions.X * TileDimensions.Y, PF_R32_UINT, BUF_Static);
+		TileArrayData.Initialize(b16BitIndices ? sizeof(uint16) : sizeof(uint32), GMaxNumObjectsPerTile * TileDimensions.X * TileDimensions.Y * LightTileDataStride, b16BitIndices ? PF_R16_UINT : PF_R32_UINT, BUF_Static);
 	}
 
 	void Release()
@@ -494,6 +501,79 @@ public:
 
 	FRWBuffer TileHeadDataUnpacked;
 	FRWBuffer TileArrayData;
+	bool b16BitIndices;
+};
+
+class FLightTileIntersectionParameters
+{
+public:
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("SHADOW_TILE_ARRAY_DATA_STRIDE"), LightTileDataStride);
+	}
+
+	void Bind(const FShaderParameterMap& ParameterMap)
+	{
+		ShadowTileHeadDataUnpacked.Bind(ParameterMap, TEXT("ShadowTileHeadDataUnpacked"));
+		ShadowTileArrayData.Bind(ParameterMap, TEXT("ShadowTileArrayData"));
+		ShadowTileListGroupSize.Bind(ParameterMap, TEXT("ShadowTileListGroupSize"));
+	}
+
+	bool IsBound() const
+	{
+		return ShadowTileHeadDataUnpacked.IsBound() || ShadowTileArrayData.IsBound() || ShadowTileListGroupSize.IsBound();
+	}
+
+	template<typename TParamRef>
+	void Set(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FLightTileIntersectionResources& LightTileIntersectionResources)
+	{
+		ShadowTileHeadDataUnpacked.SetBuffer(RHICmdList, ShaderRHI, LightTileIntersectionResources.TileHeadDataUnpacked);
+
+		extern int32 GShadowCullingSortObjectsFromLight;
+		// Bind sorted array data if we are after the sort pass
+		ShadowTileArrayData.SetBuffer(RHICmdList, ShaderRHI, LightTileIntersectionResources.TileArrayData);
+
+		SetShaderValue(RHICmdList, ShaderRHI, ShadowTileListGroupSize, LightTileIntersectionResources.TileDimensions);
+	}
+
+	void GetUAVs(FLightTileIntersectionResources& TileIntersectionResources, TArray<FUnorderedAccessViewRHIParamRef>& UAVs)
+	{
+		int32 MaxIndex = FMath::Max(ShadowTileHeadDataUnpacked.GetUAVIndex(), ShadowTileArrayData.GetUAVIndex());
+		UAVs.AddZeroed(MaxIndex + 1);
+
+		if (ShadowTileHeadDataUnpacked.IsBound())
+		{
+			UAVs[ShadowTileHeadDataUnpacked.GetUAVIndex()] = TileIntersectionResources.TileHeadDataUnpacked.UAV;
+		}
+
+		if (ShadowTileArrayData.IsBound())
+		{
+			UAVs[ShadowTileArrayData.GetUAVIndex()] = TileIntersectionResources.TileArrayData.UAV;
+		}
+
+		check(UAVs.Num() > 0);
+	}
+
+	template<typename TParamRef>
+	void UnsetParameters(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI, FLightTileIntersectionResources& TileIntersectionResources)
+	{
+		ShadowTileHeadDataUnpacked.UnsetUAV(RHICmdList, ShaderRHI);
+		ShadowTileArrayData.UnsetUAV(RHICmdList, ShaderRHI);
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FLightTileIntersectionParameters& P)
+	{
+		Ar << P.ShadowTileHeadDataUnpacked;
+		Ar << P.ShadowTileArrayData;
+		Ar << P.ShadowTileListGroupSize;
+		return Ar;
+	}
+
+private:
+	FRWShaderParameter ShadowTileHeadDataUnpacked;
+	FRWShaderParameter ShadowTileArrayData;
+	FShaderParameter ShadowTileListGroupSize;
 };
 
 extern void CullDistanceFieldObjectsForLight(

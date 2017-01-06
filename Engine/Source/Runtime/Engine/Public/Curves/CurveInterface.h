@@ -55,6 +55,7 @@ public:
 
 	TCurveInterface(const TCurveInterface&) = default;
 	TCurveInterface& operator=(const TCurveInterface&) = default;
+	virtual ~TCurveInterface() {}
 
 	/**
 	  * Add a new key to the curve with the supplied Time and Value. Returns the handle of the new key.
@@ -174,6 +175,11 @@ protected:
 	virtual void OnKeyRemoved(int32 Index) override
 	{
 		KeyValues->RemoveAtSwap(Index, 1, false);
+	}
+
+	virtual void OnReset() override
+	{
+		KeyValues->Empty();
 	}
 
 private:

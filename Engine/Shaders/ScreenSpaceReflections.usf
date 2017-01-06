@@ -187,7 +187,7 @@ void ScreenSpaceReflectionsPS(in noperspective float4 UVAndScreenPos : TEXCOORD0
 //		uint2 Random = PseudoRandom(SvPosition.xy + View.StateFrameIndexMod8 * float2(97, 71)) * uint2(12, 25);	// SSR_QUALITY=3 instructions=253 but looks bad
 		uint2 Random = PseudoRandom(SvPosition.xy + View.StateFrameIndexMod8 * float2(97, 71)) * uint2(0x3127352, 0x11229256);		// doesn't compile with external HLSL with obscure error message but the line above does
 #else
-		uint2 Random = ScrambleTEA( uint2( PixelPos ) ^ (uint)FrameRandom, 3 );	// reference, SSR_QUALITY=3 instructions=296 
+		uint2 Random = Rand3DPCG16(uint3(PixelPos, View.StateFrameIndexMod8)).xy;	// reference, SSR_QUALITY=3
 #endif
 		
 		// Shoot multiple rays

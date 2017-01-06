@@ -27,5 +27,4 @@ class UNiagaraScriptSourceBase : public UObject
 
 	TArray<TSharedPtr<EditorExposedVectorConstant> > ExposedVectorConstants;
 	TArray<TSharedPtr<EditorExposedVectorCurveConstant> > ExposedVectorCurveConstants;
-	virtual void Compile() {};
 };

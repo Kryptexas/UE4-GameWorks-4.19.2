@@ -94,6 +94,7 @@ protected:
 	friend class FVulkanPipelineStateCache;
 	friend class FVulkanComputeShaderState;
 	friend class FVulkanBoundShaderState;
+	friend class FVulkanComputePipeline;
 };
 
 /** This represents a vertex shader that hasn't been combined with a specific declaration to create a bound shader. */
@@ -998,9 +999,7 @@ protected:
 	uint32 Hash;
 
 	friend class FVulkanBoundShaderState;
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	friend class FVulkanPipelineStateCache;
-#endif
 };
 
 struct FVulkanPipelineGraphicsKey
@@ -1369,9 +1368,7 @@ public:
 
 protected:
 	TRefCountPtr<FVulkanComputeShader> ComputeShader;
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	FSHAHash ShaderHash;
-#endif
 
 	FNEWPackedUniformBufferStaging NEWPackedUniformBufferStaging;
 	uint64 NEWPackedUniformBufferStagingDirty;
@@ -1434,12 +1431,10 @@ public:
 		return VertexInputStateInfo;
 	}
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	inline FSHAHash const* GetShaderHashes() const
 	{
 		return ShaderHashes;
 	}
-#endif
 
 	// Binding
 	inline void SetShaderParameter(EShaderFrequency Stage, uint32 BufferIndex, uint32 ByteOffset, uint32 NumBytes, const void* NewValue)
@@ -1546,13 +1541,11 @@ private:
 	/** Cached vertex structure */
 	TRefCountPtr<FVulkanVertexDeclaration> VertexDeclaration;
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	friend class FVulkanPipelineStateCache;
 
 	FSHAHash ShaderHashes[SF_NumFrequencies];
 
 	TLinkedList<FVulkanBoundShaderState*> GlobalListLink;
-#endif
 
 	/** Cached shaders */
 	TRefCountPtr<FVulkanVertexShader> VertexShader;

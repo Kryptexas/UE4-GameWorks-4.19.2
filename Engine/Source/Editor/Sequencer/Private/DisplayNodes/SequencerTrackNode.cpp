@@ -360,5 +360,6 @@ void FSequencerTrackNode::SetDisplayName(const FText& NewDisplayName)
 	if (NameableTrack != nullptr)
 	{
 		NameableTrack->SetDisplayName(NewDisplayName);
+		GetSequencer().NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::TrackValueChanged);
 	}
 }

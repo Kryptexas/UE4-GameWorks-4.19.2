@@ -4,7 +4,7 @@
 #include "NiagaraEffect.h"
 #include "NiagaraEffectRendererProperties.h"
 #include "NiagaraEffectRenderer.h"
-
+#include "NiagaraConstants.h"
 
 
 UNiagaraEffect::UNiagaraEffect(const FObjectInitializer& ObjectInitializer)
@@ -12,205 +12,88 @@ UNiagaraEffect::UNiagaraEffect(const FObjectInitializer& ObjectInitializer)
 {
 }
 
-
-
-UNiagaraEmitterProperties *UNiagaraEffect::AddEmitterProperties(UNiagaraEmitterProperties *Props)
+void UNiagaraEffect::PostInitProperties()
 {
-	if (Props == nullptr)
+	Super::PostInitProperties();
+	if (HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad) == false)
 	{
-		Props = NewObject<UNiagaraEmitterProperties>(this);
+		EffectScript = NewObject<UNiagaraScript>(this, "EffectScript", RF_Transactional);
+		EffectScript->Usage = ENiagaraScriptUsage::EffectScript;
 	}
-	EmitterProps.Add(Props);
-	return Props;
-}
-
-void UNiagaraEffect::DeleteEmitterProperties(UNiagaraEmitterProperties *Props)
-{
-	EmitterProps.Remove(Props);
-}
-
-
-void UNiagaraEffect::CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Sim)
-{
-	UClass *RendererProps = Sim->GetEffectRenderer()->GetPropertiesClass();
-	if (RendererProps)
-	{
-		Sim->GetProperties()->RendererProperties = NewObject<UNiagaraEffectRendererProperties>(this, RendererProps);
-	}
-	else
-	{
-		Sim->GetProperties()->RendererProperties = nullptr;
-	}
-	Sim->GetEffectRenderer()->SetRendererProperties(Sim->GetProperties()->RendererProperties);
 }
 
 void UNiagaraEffect::PostLoad()
 {
 	Super::PostLoad();
-}
 
-//////////////////////////////////////////////////////////////////////////
-
-TSharedPtr<FNiagaraSimulation> FNiagaraEffectInstance::AddEmitter(UNiagaraEmitterProperties *Properties)
-{
-	FNiagaraSimulation *SimPtr = new FNiagaraSimulation(Properties, this);
-	TSharedPtr<FNiagaraSimulation> Sim = MakeShareable(SimPtr);
-	Sim->SetRenderModuleType(Properties->RenderModuleType, Component->GetWorld()->FeatureLevel);
-	Emitters.Add(Sim);
-	FNiagaraSceneProxy *SceneProxy = static_cast<FNiagaraSceneProxy*>(Component->SceneProxy);
-	SceneProxy->UpdateEffectRenderers(this);
-
-	return Sim;
-}
-
-void FNiagaraEffectInstance::DeleteEmitter(TSharedPtr<FNiagaraSimulation> Emitter)
-{
-	Emitters.Remove(Emitter);
-	FNiagaraSceneProxy *SceneProxy = static_cast<FNiagaraSceneProxy*>(Component->SceneProxy);
-	SceneProxy->UpdateEffectRenderers(this);
-}
-
-void FNiagaraEffectInstance::Tick(float DeltaSeconds)
-{
-	// pass the constants down to the emitter
-	// TODO: should probably just pass a pointer to the table
-	EffectBounds.Init();
-
-	for (TPair<FNiagaraDataSetID, FNiagaraDataSet>& EventSetPair : ExternalEvents)
+	if (GIsEditor)
 	{
-		EventSetPair.Value.Tick();
-	}
-
-	for (TSharedPtr<FNiagaraSimulation>&it : Emitters)
-	{
-		UNiagaraEmitterProperties *Props = it->GetProperties().Get();
-		check(Props);
-
-		int Duration = Props->EndTime - Props->StartTime;
-		int LoopedStartTime = Props->StartTime + Duration*it->GetLoopCount();
-		int LoopedEndTime = Props->EndTime + Duration*it->GetLoopCount();
-
-		// manage emitter lifetime
-		//
-		if ((Props->StartTime == 0.0f && Props->EndTime == 0.0f)
-			|| (LoopedStartTime<Age && LoopedEndTime>Age)
-			)
+		SetFlags(RF_Transactional);
+		// In the past, these may have been saved with non-transactional flags. This fixes that.
+		if (EffectScript)
 		{
-			it->SetTickState(NTS_Running);
-		}
-		else
-		{
-			// if we're past end time, manage looping; we reset the emitters age constant
-			// if it has one
-			if (Props->NumLoops > 1 && it->GetLoopCount() < Props->NumLoops)
-			{
-				it->LoopRestart();
-			}
-			else
-			{
-				it->SetTickState(NTS_Dieing);
-			}
-		}
-
-		//TODO - Handle constants better. Like waaaay better.
-		it->GetConstants().Merge(it->GetProperties()->SpawnScriptProps.ExternalConstants);
-		it->GetConstants().Merge(it->GetProperties()->UpdateScriptProps.ExternalConstants);
-		it->GetConstants().Merge(InstanceConstants);
-
-		it->PreTick();
-	}
-
-	for (TSharedPtr<FNiagaraSimulation>&it : Emitters)
-	{
-		if (it->GetTickState() != NTS_Dead && it->GetTickState() != NTS_Suspended)
-		{
-			it->Tick(DeltaSeconds);
-		}
-
-		EffectBounds += it->GetEffectRenderer()->GetBounds();
-	}
-
-	Age += DeltaSeconds;
-}
-
-FNiagaraSimulation* FNiagaraEffectInstance::GetEmitter(FString Name)
-{
-	for (TSharedPtr<FNiagaraSimulation> Sim : Emitters)
-	{
-		UNiagaraEmitterProperties* Props = Sim->GetProperties().Get();
-		if (Props && Props->EmitterName == Name)
-		{
-			return Sim.Get();//We really need to sort out the ownership of objects in naigara. Am I free to pass a raw ptr here?
+			EffectScript->SetFlags(RF_Transactional);
 		}
 	}
-	return NULL;
 }
 
-void FNiagaraEffectInstance::RenderModuleupdate()
+const TArray<FNiagaraEmitterHandle>& UNiagaraEffect::GetEmitterHandles()
 {
-	FNiagaraSceneProxy *NiagaraProxy = static_cast<FNiagaraSceneProxy*>(Component->SceneProxy);
-	if (NiagaraProxy)
-	{
-		NiagaraProxy->UpdateEffectRenderers(this);
-	}
+	return EmitterHandles;
 }
 
-void FNiagaraEffectInstance::InitEmitters(UNiagaraEffect *InAsset)
+FNiagaraEmitterHandle UNiagaraEffect::AddEmitterHandle(const UNiagaraEmitterProperties& SourceEmitter, FName EmitterName)
 {
-	check(InAsset);
-	for (int i = 0; i < InAsset->GetNumEmitters(); i++)
-	{
-		UNiagaraEmitterProperties *Props = InAsset->GetEmitterProperties(i);
-		Props->Init();//Init these to be sure any cached data from the scripts is up to date.
-
-		FNiagaraSimulation *Sim = new FNiagaraSimulation(Props, this);
-		Emitters.Add(MakeShareable(Sim));
-	}
-
-	for (TSharedPtr<FNiagaraSimulation> Emitter : Emitters)
-	{
-		Emitter->PostInit();
-	}
+	FNiagaraEmitterHandle EmitterHandle(SourceEmitter, EmitterName, *this);
+	EmitterHandles.Add(EmitterHandle);
+	return EmitterHandle;
 }
 
-void FNiagaraEffectInstance::ReInitEmitters()
+FNiagaraEmitterHandle UNiagaraEffect::AddEmitterHandleWithoutCopying(UNiagaraEmitterProperties& Emitter)
 {
-	for (TSharedPtr<FNiagaraSimulation> Emitter : Emitters)
-	{
-		UNiagaraEmitterProperties* Props = Emitter->GetProperties().Get();
-		check(Props);
-		Props->Init();//Init these to be sure any cached data from the scripts is up to date.
-		Emitter->Init();
-	}
-
-	for (TSharedPtr<FNiagaraSimulation> Emitter : Emitters)
-	{
-		Emitter->PostInit();
-	}
+	FNiagaraEmitterHandle EmitterHandle(Emitter);
+	EmitterHandles.Add(EmitterHandle);
+	return EmitterHandle;
 }
 
-FNiagaraDataSet* FNiagaraEffectInstance::GetDataSet(FNiagaraDataSetID SetID, FName EmitterName)
+FNiagaraEmitterHandle UNiagaraEffect::DuplicateEmitterHandle(const FNiagaraEmitterHandle& EmitterHandleToDuplicate, FName EmitterName)
 {
-	if (EmitterName == NAME_None)
-	{
-		if (FNiagaraDataSet* ExternalSet = ExternalEvents.Find(SetID))
-		{
-			return ExternalSet;
-		}
-	}
-	for (TSharedPtr<FNiagaraSimulation> Emitter : Emitters)
-	{
-		check(Emitter.IsValid());
-		if (Emitter->IsEnabled())
-		{
-			UNiagaraEmitterProperties* PinnedProps = Emitter->GetProperties().Get();
-			check(PinnedProps);
-			if (*PinnedProps->EmitterName == EmitterName)
-			{
-				return Emitter->GetDataSet(SetID);
-			}
-		}
-	}
+	FNiagaraEmitterHandle EmitterHandle(EmitterHandleToDuplicate, EmitterName, *this);
+	EmitterHandles.Add(EmitterHandle);
+	return EmitterHandle;
+}
 
-	return NULL;
+void UNiagaraEffect::RemoveEmitterHandle(const FNiagaraEmitterHandle& EmitterHandleToDelete)
+{
+	auto RemovePredicate = [&](const FNiagaraEmitterHandle& EmitterHandle) { return EmitterHandle.GetId() == EmitterHandleToDelete.GetId(); };
+	EmitterHandles.RemoveAll(RemovePredicate);
+}
+
+void UNiagaraEffect::RemoveEmitterHandlesById(const TSet<FGuid>& HandlesToRemove)
+{
+	auto RemovePredicate = [&](const FNiagaraEmitterHandle& EmitterHandle)
+	{
+		return HandlesToRemove.Contains(EmitterHandle.GetId());
+	};
+	EmitterHandles.RemoveAll(RemovePredicate);
+}
+
+const TArray<FNiagaraParameterBinding>& UNiagaraEffect::GetParameterBindings() const
+{
+	return ParameterBindings;
+}
+
+void UNiagaraEffect::AddParameterBinding(FNiagaraParameterBinding InParameterBinding)
+{
+	ParameterBindings.Add(InParameterBinding);
+}
+
+void UNiagaraEffect::ClearParameterBindings()
+{
+	ParameterBindings.Empty();
+}
+
+UNiagaraScript* UNiagaraEffect::GetEffectScript()
+{
+	return EffectScript;
 }

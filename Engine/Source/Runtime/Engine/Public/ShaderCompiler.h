@@ -529,7 +529,7 @@ extern ENGINE_API FShaderCompilingManager* GShaderCompilingManager;
 extern class FConsoleShaderPrecompiler* GConsoleShaderPrecompilers[SP_NumPlatforms];
 
 /** Enqueues a shader compile job with GShaderCompilingManager. */
-extern void GlobalBeginCompileShader(
+extern ENGINE_API void GlobalBeginCompileShader(
 	const FString& DebugGroupName,
 	class FVertexFactoryType* VFType,
 	class FShaderType* ShaderType,

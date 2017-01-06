@@ -47,7 +47,7 @@ uint GetCulledNumObjects()
 }
 
 // In float4's.  Must match equivalent C++ variables.
-#define OBJECT_DATA_STRIDE 16
+#define OBJECT_DATA_STRIDE 17
 
 uint NumSceneObjects;
 
@@ -97,6 +97,15 @@ float3 LoadGlobalObjectUVAdd(uint ObjectIndex)
 	return float3(ObjectData[VectorIndex + 0], ObjectData[VectorIndex + 1], ObjectData[VectorIndex + 2]);
 }
 
+void LoadGlobalObjectLocalVolumeBoundsMinMax(uint ObjectIndex, out float3 LocalVolumeBoundsMin, out float3 LocalVolumeBoundsMax)
+{
+	uint VectorIndex = 4 * (ObjectIndex * OBJECT_DATA_STRIDE + 16);
+	LocalVolumeBoundsMin = float3(ObjectData[VectorIndex + 0], ObjectData[VectorIndex + 1], ObjectData[VectorIndex + 2]);
+
+	VectorIndex = 4 * (ObjectIndex * OBJECT_DATA_STRIDE + 7);
+	LocalVolumeBoundsMax = float3(ObjectData[VectorIndex + 0], ObjectData[VectorIndex + 1], ObjectData[VectorIndex + 2]);
+}
+
 // In float4's.  Must match equivalent C++ variables.
 #define CULLED_OBJECT_DATA_STRIDE 16
 #define CULLED_OBJECT_BOX_BOUNDS_STRIDE 5
@@ -128,9 +137,9 @@ float4 LoadObjectUVScaleFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer, ou
 	return float4(Value.xyz, abs(Value.w));
 }
 
-float3 LoadObjectUVAddFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
+float4 LoadObjectUVAddAndSelfShadowBiasFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
 {
-	return InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 6).xyz;
+	return InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 6);
 }
 
 float3x3 LoadObjectVolumeToWorldFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
@@ -182,9 +191,9 @@ float4 LoadObjectUVScale(uint ObjectIndex, out bool bGeneratedAsTwoSided)
 	return LoadObjectUVScaleFromBuffer(ObjectIndex, CulledObjectData, bGeneratedAsTwoSided);
 }
 
-float3 LoadObjectUVAdd(uint ObjectIndex)
+float4 LoadObjectUVAddAndSelfShadowBias(uint ObjectIndex)
 {
-	return LoadObjectUVAddFromBuffer(ObjectIndex, CulledObjectData);
+	return LoadObjectUVAddAndSelfShadowBiasFromBuffer(ObjectIndex, CulledObjectData);
 }
 
 float3x3 LoadObjectVolumeToWorld(uint ObjectIndex)

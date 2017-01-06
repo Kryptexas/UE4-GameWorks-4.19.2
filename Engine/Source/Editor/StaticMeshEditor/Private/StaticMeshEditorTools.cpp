@@ -556,38 +556,18 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 		
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Generate Distance Field as if TwoSided") )
+		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Two-Sided Distance Field Generation") )
 		.NameContent()
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Generate Distance Field as if TwoSided"))
+			.Text(LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Two-Sided Distance Field Generation"))
 		]
 		.ValueContent()
 		[
 			SNew(SCheckBox)
 			.IsChecked(this, &FMeshBuildSettingsLayout::ShouldGenerateDistanceFieldAsIfTwoSided)
 			.OnCheckStateChanged(this, &FMeshBuildSettingsLayout::OnGenerateDistanceFieldAsIfTwoSidedChanged)
-		];
-	}
-
-	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("DistanceFieldBias", "Distance Field Bias") )
-		.NameContent()
-		[
-			SNew(STextBlock)
-			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("DistanceFieldBias", "Distance Field Bias"))
-		]
-		.ValueContent()
-		[
-			SNew(SSpinBox<float>)
-			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.MinValue(0.0f)
-			.MaxValue(1000.0f)
-			.Value(this, &FMeshBuildSettingsLayout::GetDistanceFieldBias)
-			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnDistanceFieldBiasChanged)
-			.OnValueCommitted(this, &FMeshBuildSettingsLayout::OnDistanceFieldBiasCommitted)
 		];
 	}
 
@@ -725,11 +705,6 @@ TOptional<float> FMeshBuildSettingsLayout::GetBuildScaleZ() const
 float FMeshBuildSettingsLayout::GetDistanceFieldResolutionScale() const
 {
 	return BuildSettings.DistanceFieldResolutionScale;
-}
-
-float FMeshBuildSettingsLayout::GetDistanceFieldBias() const
-{
-	return BuildSettings.DistanceFieldBias;
 }
 
 void FMeshBuildSettingsLayout::OnRecomputeNormalsChanged(ECheckBoxState NewState)
@@ -942,16 +917,6 @@ void FMeshBuildSettingsLayout::OnDistanceFieldResolutionScaleCommitted(float New
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("DistanceFieldResolutionScale"), FString::Printf(TEXT("%.3f"), NewValue));
 	}
 	OnDistanceFieldResolutionScaleChanged(NewValue);
-}
-
-void FMeshBuildSettingsLayout::OnDistanceFieldBiasChanged(float NewValue)
-{
-	BuildSettings.DistanceFieldBias = NewValue;
-}
-
-void FMeshBuildSettingsLayout::OnDistanceFieldBiasCommitted(float NewValue, ETextCommit::Type TextCommitType)
-{
-	OnDistanceFieldBiasChanged(NewValue);
 }
 
 FMeshReductionSettingsLayout::FMeshReductionSettingsLayout( TSharedRef<FLevelOfDetailSettingsLayout> InParentLODSettings )

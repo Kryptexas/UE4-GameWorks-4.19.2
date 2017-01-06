@@ -2,100 +2,75 @@
 
 
 #include "NiagaraEmitterProperties.h"
+#include "NiagaraSpriteRendererProperties.h"
 
-void FNiagaraEmitterScriptProperties::Init(UNiagaraEmitterProperties* EmitterProps)
+void FNiagaraEmitterScriptProperties::InitDataSetAccess()
 {
+	EventReceivers.Empty();
+	EventGenerators.Empty();
+
 	if (Script)
 	{
-		//TODO - Don't need to do this for every init. Only when the script has changed.
-		//Store a guid or something
-
-		ExternalConstants.Init(EmitterProps, this);
-
-		TArray<FNiagaraEventGeneratorProperties> NewEventGenerators;
-		TArray<FNiagaraDataSetProperties>& EventGeneratorDataSets = Script->EventGenerators;
-		for (int32 i = 0; i < EventGeneratorDataSets.Num(); ++i)
+		// TODO: add event receiver and generator lists to the script properties here
+		//
+		for (FNiagaraDataSetID &ReadID : Script->ReadDataSets)
 		{
-			FNiagaraDataSetProperties& CurrGeneratorSet = EventGeneratorDataSets[i];
-
-			//If we already had customized data for this generator then use that, otherwise add a new defaulted one.
-			FNiagaraEventGeneratorProperties* ExistingEventGenerator = EventGenerators.FindByPredicate(
-				[&](FNiagaraEventGeneratorProperties& Generator)
-			{
-				return Generator.ID == CurrGeneratorSet.ID;
-			}
-			);
-
-			if (ExistingEventGenerator)
-			{
-				NewEventGenerators.Add(*ExistingEventGenerator);
-			}
-			else
-			{
-				FNiagaraEventGeneratorProperties NewGenerator;
-				NewGenerator.ID = CurrGeneratorSet.ID;
-				NewGenerator.Variables = CurrGeneratorSet.Variables;
-				NewEventGenerators.Add(NewGenerator);
-			}
-		}
-		EventGenerators = NewEventGenerators;
-
-		TArray<FNiagaraEventReceiverProperties> NewEventReceivers;
-		TArray<FNiagaraDataSetProperties>& EventReceiverDataSets = Script->EventReceivers;
-		for (int32 i = 0; i < EventReceiverDataSets.Num(); ++i)
-		{
-			FNiagaraDataSetProperties& CurrReceiverSet = EventReceiverDataSets[i];
-
-			//If we already had customized data for this receiver then use that, otherwise add a new defaulted one.
-			FNiagaraEventReceiverProperties* ExistingEventReceiver = EventReceivers.FindByPredicate(
-				[&](FNiagaraEventReceiverProperties& Receiver)
-			{
-				return Receiver.Name == CurrReceiverSet.ID.Name;
-			}
-			);
-
-			if (ExistingEventReceiver)
-			{
-				NewEventReceivers.Add(*ExistingEventReceiver);
-			}
-			else
-			{
-				FNiagaraEventReceiverProperties NewEventReceiver;
-				NewEventReceiver.Name = CurrReceiverSet.ID.Name;
-				NewEventReceivers.Add(NewEventReceiver);
-			}
+			EventReceivers.Add( FNiagaraEventReceiverProperties(ReadID.Name, "", "") );
 		}
 
-		EventReceivers = NewEventReceivers;
-	}
-	else
-	{
-		ExternalConstants.Empty();
-		EventReceivers.Empty();
-		EventGenerators.Empty();
+		for (FNiagaraDataSetProperties &WriteID : Script->WriteDataSets)
+		{
+			FNiagaraEventGeneratorProperties Props(WriteID, "", "");
+			EventGenerators.Add(Props);
+		}
 	}
 }
 
 //////////////////////////////////////////////////////////////////////////
 
-UNiagaraEmitterProperties::UNiagaraEmitterProperties(const FObjectInitializer& Initiilaizer)
-: Super(Initiilaizer)
-, EmitterName(TEXT("New Emitter"))
-, bIsEnabled(true)
+UNiagaraEmitterProperties::UNiagaraEmitterProperties(const FObjectInitializer& Initializer)
+: Super(Initializer)
 , SpawnRate(50)
 , Material(nullptr)
-, RenderModuleType(RMT_Sprites)
 , StartTime(0.0f)
 , EndTime(0.0f)
-, RendererProperties(nullptr)
 , NumLoops(0)
+, CollisionMode(ENiagaraCollisionMode::None)
+, RendererProperties(nullptr)
 {
+}
+
+void UNiagaraEmitterProperties::PostInitProperties()
+{
+	Super::PostInitProperties();
+	if (HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad) == false)
+	{
+		RendererProperties = NewObject<UNiagaraSpriteRendererProperties>(this, "Renderer");
+
+		SpawnScriptProps.Script = NewObject<UNiagaraScript>(this, "SpawnScript", EObjectFlags::RF_Transactional);
+		SpawnScriptProps.Script->Usage = ENiagaraScriptUsage::SpawnScript;
+
+		UpdateScriptProps.Script = NewObject<UNiagaraScript>(this, "UpdateScript", EObjectFlags::RF_Transactional);
+		UpdateScriptProps.Script->Usage = ENiagaraScriptUsage::UpdateScript;
+	}
+}
+
+
+void UNiagaraEmitterProperties::PostLoad()
+{
+	Super::PostLoad();
+
+	if (GIsEditor)
+	{
+		SetFlags(RF_Transactional);
+	}
 }
 
 void UNiagaraEmitterProperties::Init()
 {
-	SpawnScriptProps.Init(this);
-	UpdateScriptProps.Init(this);
+	//SpawnScriptProps.Init(this);
+	//UpdateScriptProps.Init(this);
+	return;
 }
 
 #if WITH_EDITOR

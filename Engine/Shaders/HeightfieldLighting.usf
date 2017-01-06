@@ -694,8 +694,8 @@ void CalculateHeightfieldOcclusionScreenGridCS(
 		float3 WorldNormal;
 		float SceneDepth;
 		bool bHasDistanceFieldRepresentation;
-		bool bHasHeightfieldRepresentation;
-		GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
+		bool bLit;
+		GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bLit);
 
 		float3 TangentX;
 		float3 TangentY;
@@ -709,7 +709,7 @@ void CalculateHeightfieldOcclusionScreenGridCS(
 
 		uint OutputBaseIndex = (OutputCoordinate.y * ScreenGridConeVisibilitySize.x + OutputCoordinate.x) * NUM_CONE_DIRECTIONS;
 
-		if (!bHasHeightfieldRepresentation)
+		/*if (!bHasHeightfieldRepresentation)*/
 		{
 			LOOP
 			for (uint HeightfieldIndex = 0; HeightfieldIndex < NumHeightfields; HeightfieldIndex++)
@@ -777,8 +777,8 @@ void CalculateHeightfieldIrradianceScreenGridCS(
 		float3 WorldNormal;
 		float SceneDepth;
 		bool bHasDistanceFieldRepresentation;
-		bool bHasHeightfieldRepresentation;
-		GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
+		bool bLit;
+		GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bLit);
 
 		float2 ScreenUV = GetScreenUVFromScreenGrid(OutputCoordinate);
 		float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;

@@ -19,6 +19,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SSpinBox.h"
 #include "SequencerClipboardReconciler.h"
+#include "IDetailsView.h"
 #include "GenericKeyArea.generated.h"
 
 class ISequencer;
@@ -273,7 +274,12 @@ private:
 		{
 			IDetailCategoryBuilder& GeneralCategory = DetailBuilder.EditCategory("General");
 
-			auto OnValueChanged = [=](TimeType InTime){ this->SetKeyTime(KeyHandle, InTime); };
+			IDetailsView* DetailsView = const_cast<IDetailsView*>(&DetailBuilder.GetDetailsView());
+			auto OnValueChanged = [=](TimeType InTime)
+			{
+				this->SetKeyTime(KeyHandle, InTime);
+				DetailsView->OnFinishedChangingProperties().Broadcast(FPropertyChangedEvent(nullptr));
+			};
 
 			FText TimeText = NSLOCTEXT("GenericKeyArea", "TimeParameter", "Time");
 			FText TimeTooltipText = NSLOCTEXT("GenericKeyArea", "TimeParameter_ToolTip", "The time of this key");

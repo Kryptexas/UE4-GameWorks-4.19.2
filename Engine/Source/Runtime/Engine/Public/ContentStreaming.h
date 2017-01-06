@@ -229,28 +229,6 @@ struct IStreamingManager
 	}
 
 	/**
-	 * Called when a LastRenderTime primitive is attached to an actor or another component.
-	 * Modifies the LastRenderTimeRefCount for the textures used, so that those textures can
-	 * use both distance-based and LastRenderTime heuristics.
-	 *
-	 * @param InPrimitive	Newly attached dynamic/spawned primitive
-	 */
-	virtual void NotifyTimedPrimitiveAttached( const UPrimitiveComponent* InPrimitive, EDynamicPrimitiveType DynamicType )
-	{
-	}
-
-	/**
-	 * Called when a LastRenderTime primitive is detached from an actor or another component.
-	 * Modifies the LastRenderTimeRefCount for the textures used, so that those textures can
-	 * use both distance-based and LastRenderTime heuristics.
-	 *
-	 * @param InPrimitive	Newly detached dynamic/spawned primitive
-	 */
-	virtual void NotifyTimedPrimitiveDetached( const UPrimitiveComponent* InPrimitive )
-	{
-	}
-
-	/**
 	 * Called when a primitive has had its textured changed.
 	 * Only affects primitives that were already attached.
 	 * Replaces previous info.
