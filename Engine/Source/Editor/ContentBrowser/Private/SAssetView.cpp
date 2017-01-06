@@ -159,12 +159,6 @@ void SAssetView::Construct( const FArguments& InArgs )
 	TileViewThumbnailSize = 128;
 	TileViewThumbnailPadding = 5;
 
-	const bool bIsVREditorDemo = FParse::Param( FCommandLine::Get(), TEXT( "VREditorDemo" ) );	// @todo vreditor: Remove this when no longer needed
-	if( bIsVREditorDemo )
-	{
-		TileViewThumbnailPadding = 0;
-	}
-
 	TileViewNameHeight = 36;
 	ThumbnailScaleSliderValue = InArgs._ThumbnailScale; 
 
@@ -1050,12 +1044,6 @@ void SAssetView::CalculateFillScale( const FGeometry& AllottedGeometry )
 	if ( bFillEmptySpaceInTileView && CurrentViewType == EAssetViewType::Tile )
 	{
 		float ItemWidth = GetTileViewItemBaseWidth();
-
- 		const bool bIsVREditorDemo = FParse::Param( FCommandLine::Get(), TEXT( "VREditorDemo" ) );	// @todo vreditor: Remove this when no longer needed
-		if( bIsVREditorDemo )
-		{
-			ItemWidth /= AllottedGeometry.Scale;
-		}
 
 		// Scrollbars are 16, but we add 1 to deal with half pixels.
 		const float ScrollbarWidth = 16 + 1;

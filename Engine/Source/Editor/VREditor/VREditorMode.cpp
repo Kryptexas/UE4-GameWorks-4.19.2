@@ -319,13 +319,6 @@ void UVREditorMode::Enter(const bool bReenteringVREditing)
 			{
 				GEngine->HMDDevice->EnableStereo( true );
 			}
-			// @todo vreditor: Force single eye, undistorted mirror for demos
-			const bool bIsVREditorDemo = FParse::Param( FCommandLine::Get(), TEXT( "VREditorDemo" ) );	// @todo vreditor: Remove this when no longer needed (console variable, too!)
-			if( bIsVREditorDemo && GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift )
-			{
-				// If we're using an Oculus Rift, go ahead and set the mirror mode to a single undistorted eye
-				GEngine->DeferredCommands.Add( FString::Printf( TEXT( "HMD MIRROR MODE %i" ), VREd::ForceOculusMirrorMode->GetInt() ) );
-			}
 		}
 
 		if( bActuallyUsingVR )

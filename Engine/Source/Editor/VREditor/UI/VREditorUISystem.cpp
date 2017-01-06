@@ -954,7 +954,6 @@ void UVREditorUISystem::CreateUIs()
 {
 	const FIntPoint DefaultResolution( VREd::DefaultEditorUIResolutionX->GetInt(), VREd::DefaultEditorUIResolutionY->GetInt() );
 
-	const bool bIsVREditorDemo = FParse::Param( FCommandLine::Get(), TEXT( "VREditorDemo" ) );	// @todo vreditor: Remove this when no longer needed
 	{
 		const FIntPoint Resolution(VREd::QuickMenuUIResolutionX->GetInt(), VREd::QuickMenuUIResolutionY->GetInt());
 		const bool bWithSceneComponent = false;
@@ -1004,23 +1003,11 @@ void UVREditorUISystem::CreateUIs()
 			Config.bExpandSourcesView = true;
 			Config.ThumbnailLabel = EThumbnailLabel::NoLabel;
 			Config.ThumbnailScale = 0.4f;
+			Config.bCanShowFilters = true;
+			Config.bUsePathPicker = true;
+			Config.bShowAssetPathTree = true;
+			Config.bAlwaysShowCollections = false;
 
-			if( bIsVREditorDemo )
-			{
-				Config.bUsePathPicker = false;
-				Config.bCanShowFilters = false;
-				Config.bShowAssetPathTree = false;
-				Config.bAlwaysShowCollections = true;
-				Config.SelectedCollectionName.Name = FName( "Meshes" );	// @todo vreditor: hard-coded collection name and type
-				Config.SelectedCollectionName.Type = ECollectionShareType::CST_Shared;
-			}
-			else
-			{
-				Config.bCanShowFilters = true;
-				Config.bUsePathPicker = true;
-				Config.bShowAssetPathTree = true;
-				Config.bAlwaysShowCollections = false;
-			}
 
 			Config.bShowBottomToolbar = false;
 			Config.bCanShowLockButton = false;
@@ -1118,7 +1105,6 @@ void UVREditorUISystem::CreateUIs()
 		// Create the tutorial dockable window
 		{
 			const bool bShowAtStart = 
-				!bIsVREditorDemo && 
 				GetOwner().IsActuallyUsingVR() &&	// Don't show tutorial at startup when in "forced VR" mode, because you can't interact with UI using the mouse currently
 				(GetDefault<UEditorExperimentalSettings>()->bAlwaysShowVRTutorial); // Only show tutorial at startup if the user has this enabled
 
