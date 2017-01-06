@@ -447,7 +447,10 @@ public:
 	float GetDefaultVRNearClipPlane() const;
 
 	/** Runtime and plugin modules can force VR Editor to refresh using this function */
-	void RefreshVREditorSequencer();
+	void RefreshVREditorSequencer(class ISequencer* InCurrentSequencer);
+
+	/** Returns the currently active sequencer */
+	class ISequencer* GetCurrentSequencer();
 
 private:
 
@@ -459,4 +462,7 @@ private:
 
 	/** If this current mode is running */
 	bool bIsActive;
+
+	/** Pointer to the current Sequencer */
+	class ISequencer* CurrentSequencer;
 };

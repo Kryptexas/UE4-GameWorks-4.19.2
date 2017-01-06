@@ -76,7 +76,6 @@ public:
 	virtual TSharedPtr< class FAssetThumbnailPool > GetThumbnailPool() const override;
 	virtual void AppendCommands( const TSharedRef<FUICommandList>& InCommandsToAppend ) override;
 	virtual void AddStandaloneLevelViewport( const TSharedRef<SLevelViewport>& LevelViewport ) override;
-	virtual TSharedPtr<SWidget> GetSequencerWidgetForLevelEditor() override;
 
 	/**
 	 * Given a tab ID, summons a new tab in the position saved in the current layout, or in a default position.

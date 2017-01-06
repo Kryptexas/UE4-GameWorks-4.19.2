@@ -212,6 +212,8 @@ protected:
 	void OnVRAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor,
 		const struct FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled );
 
+	void SequencerPlayback(UViewportInteractor* Interactor, class UVREditorMotionControllerInteractor* VREditorInteractor);
+
 	/** Called every frame to update hover state */
 	void OnVRHoverUpdate( UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled );
 

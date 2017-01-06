@@ -43,6 +43,8 @@ void FSequencerEdMode::Enter()
 
 void FSequencerEdMode::Exit()
 {
+	CleanUpMeshTrails();
+
 	Sequencers.Reset();
 
 	FEdMode::Exit();

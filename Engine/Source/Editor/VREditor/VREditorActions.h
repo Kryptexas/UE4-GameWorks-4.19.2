@@ -141,6 +141,9 @@ public:
 	/** Create a new level sequence with an auto-generated name */
 	static void CreateNewSequence(class UVREditorMode* InVRMode);
 
+	/** Close the sequencer instance */
+	static void CloseSequencer(class UMovieSceneSequence* OpenSequence);
+
 public:
 	
 	static FText GizmoCoordinateSystemText;

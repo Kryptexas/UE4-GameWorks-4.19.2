@@ -355,4 +355,13 @@ void FVREditorActionCallbacks::CreateNewSequence(class UVREditorMode* InVRMode)
 	FAssetEditorManager::Get().OpenEditorForAsset(NewAsset);
 }
 
+void FVREditorActionCallbacks::CloseSequencer(class UMovieSceneSequence* OpenSequence)
+{
+	IAssetEditorInstance* SequencerEditor = FAssetEditorManager::Get().FindEditorForAsset(OpenSequence, false);
+	if (SequencerEditor != nullptr)
+	{
+		SequencerEditor->CloseWindow();
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

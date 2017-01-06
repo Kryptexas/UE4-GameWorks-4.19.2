@@ -1541,7 +1541,3 @@ TSharedRef<SWidget> SLevelEditor::CreateToolBox()
 	return NewToolBox;
 }
 
-TSharedPtr<SWidget> SLevelEditor::GetSequencerWidgetForLevelEditor()
-{
-	return SequencerWidgetPtr.Pin();
-}

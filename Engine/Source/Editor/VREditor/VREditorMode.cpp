@@ -34,8 +34,6 @@
 #include "ViewportWorldInteractionManager.h"
 #include "EditorWorldExtension.h"
 
-#include "ISequencer.h"
-
 #define LOCTEXT_NAMESPACE "VREditorMode"
 
 namespace VREd
@@ -847,13 +845,19 @@ float UVREditorMode::GetDefaultVRNearClipPlane() const
 	return VREd::VRNearClipPlane->GetFloat();
 }
 
-void UVREditorMode::RefreshVREditorSequencer()
+void UVREditorMode::RefreshVREditorSequencer(class ISequencer* InCurrentSequencer)
 {
+	CurrentSequencer = InCurrentSequencer;
 	// Tell the VR Editor UI system to refresh the Sequencer UI
 	GetUISystem().UpdateSequencerUI();
 }
 
-bool UVREditorMode::IsHandAimingTowardsCapsule( UViewportInteractor* Interactor, const FTransform& CapsuleTransform, FVector CapsuleStart, const FVector CapsuleEnd, const float CapsuleRadius, const float MinDistanceToCapsule, const FVector CapsuleFrontDirection, const float MinDotForAimingAtCapsule ) const
+class ISequencer* UVREditorMode::GetCurrentSequencer()
+{
+	return CurrentSequencer;
+}
+
+bool UVREditorMode::IsHandAimingTowardsCapsule(UViewportInteractor* Interactor, const FTransform& CapsuleTransform, FVector CapsuleStart, const FVector CapsuleEnd, const float CapsuleRadius, const float MinDistanceToCapsule, const FVector CapsuleFrontDirection, const float MinDotForAimingAtCapsule) const
 {
 	bool bIsAimingTowards = false;
 	const float WorldScaleFactor = GetWorldScaleFactor();

@@ -637,12 +637,6 @@ void UVREditorMotionControllerInteractor::HandleInputKey( FEditorViewportClient&
 
 		if( Event == IE_Pressed )
 		{ 
-			// We may be activating sequencer scrub mode
-			if (DraggingMode == EViewportInteractionDraggingMode::Nothing && bIsTrackpadPositionValid[0] && bIsTrackpadPositionValid[1])
-			{
-				
-			}
-
 			// Start dragging at laser impact when already dragging actors freely
 			if( DraggingMode == EViewportInteractionDraggingMode::TransformablesFreely )
 			{

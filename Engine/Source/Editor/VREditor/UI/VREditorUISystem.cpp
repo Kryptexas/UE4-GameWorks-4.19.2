@@ -88,6 +88,8 @@
 #include "GenericCommands.h"
 #include "SVRRadialPanel.h"
 
+#include "ISequencer.h"
+
 #define LOCTEXT_NAMESPACE "VREditor"
 
 namespace VREd
@@ -279,6 +281,16 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 			if ( Action.ActionType == VRActionTypes::ConfirmRadialSelection )
 			{
 				const EViewportInteractionDraggingMode DraggingMode = Interactor->GetDraggingMode();
+
+				// We may be activating sequencer scrub mode
+				if (DraggingMode == EViewportInteractionDraggingMode::Nothing && 
+					IsShowingEditorUIPanel(EEditorUIPanel::SequencerUI) && 
+					Action.Event == IE_Pressed && 
+					GetOwner().GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR )
+				{
+					SequencerPlayback(Interactor, VREditorInteractor);
+				}
+
 				// Toggle the radial menu by pressing the touchpad or thumb stick, as long as we're not busy dragging something
 				if ( Action.Event == IE_Pressed && 
 					 DraggingMode != EViewportInteractionDraggingMode::TransformablesFreely &&
@@ -551,11 +563,71 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 }
 
 
-void UVREditorUISystem::OnVRHoverUpdate( UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled )
+void UVREditorUISystem::SequencerPlayback(UViewportInteractor* Interactor, UVREditorMotionControllerInteractor* VREditorInteractor)
+{
+	ISequencer* CurrentSequencer = GetOwner().GetCurrentSequencer();
+	if (Interactor->GetOtherInteractor() != nullptr && CurrentSequencer != nullptr)
+	{
+		if (!VREditorInteractor->IsTouchingTrackpad())
+		{
+			// Pause: For releasing touchpad on Vive
+			FVREditorActionCallbacks::SimulateKeyDown(EKeys::K, false);
+			FVREditorActionCallbacks::SimulateKeyUp(EKeys::K);
+
+		}
+		UVREditorMotionControllerInteractor* OtherMotionController = CastChecked<UVREditorMotionControllerInteractor>(Interactor->GetOtherInteractor());
+		if (!OtherMotionController->IsTouchingTrackpad())
+		{
+			// Basic Sequencer Playback
+			
+			if (VREditorInteractor->GetTrackpadPosition().Y > 0.5f && FMath::Abs(VREditorInteractor->GetTrackpadPosition().X) < 0.15)
+			{
+				// FF
+				
+				CurrentSequencer->OnPlay(false, 2.0f);
+				
+			}
+			else if (VREditorInteractor->GetTrackpadPosition().Y <= -0.5f && FMath::Abs(VREditorInteractor->GetTrackpadPosition().X) < 0.15)
+			{
+				// Fast Reverse
+				CurrentSequencer->OnPlay(false, -2.0f);
+			}
+			else if (VREditorInteractor->GetTrackpadPosition().X > 0.5f)
+			{
+				// Play
+				CurrentSequencer->OnPlay(false, 1.0f);
+			}
+			else if (VREditorInteractor->GetTrackpadPosition().X < -0.5f)
+			{
+				// Reverse
+				CurrentSequencer->OnPlay(false, -1.0f);
+			}
+			
+			else
+			{
+				// Pause: Center of touchpad, center of thumbstick
+				CurrentSequencer->Pause();
+			}
+		}
+		else
+		{
+			// Two-Handed Sequencer Playback
+		}
+	}
+}
+
+void UVREditorUISystem::OnVRHoverUpdate(UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled)
 {
 	UVREditorMotionControllerInteractor* VREditorInteractor = Cast<UVREditorMotionControllerInteractor>( Interactor );
 	if( VREditorInteractor != nullptr )
 	{
+		// We may be activating sequencer scrub mode
+		if (Interactor->GetDraggingMode() == EViewportInteractionDraggingMode::Nothing &&
+			IsShowingEditorUIPanel(EEditorUIPanel::SequencerUI) &&
+			GetOwner().GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift)
+		{
+			SequencerPlayback(Interactor, VREditorInteractor);
+		}
 		if( !bWasHandled && Interactor->GetDraggingMode() != EViewportInteractionDraggingMode::Interactable )
 		{
 			FVector LaserPointerStart, LaserPointerEnd;
@@ -1126,10 +1198,8 @@ void UVREditorUISystem::CreateUIs()
 		}
 
 		{
-			const TSharedRef< ILevelEditor >& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor").GetFirstLevelEditor().ToSharedRef();
-
 			const FName TabIdentifier = NAME_None;	// No tab for us!
-			TSharedRef<SWidget> SequencerWidget = SNullWidget::NullWidget;
+			const TSharedRef<SWidget> SequencerWidget = SNullWidget::NullWidget;
 			
 			TSharedRef<SWidget> WidgetToDraw =
 				SNew(SDPIScaler)
@@ -1141,7 +1211,7 @@ void UVREditorUISystem::CreateUIs()
 
 			const bool bWithSceneComponent = false;
 			AVREditorFloatingUI* SequencerUI = UViewportWorldInteraction::SpawnTransientSceneActor< AVREditorDockableWindow >( GetOwner().GetWorld(), TEXT("SequencerUI"), bWithSceneComponent);
-			SequencerUI->SetSlateWidget(*this, WidgetToDraw, FIntPoint(VREd::ContentBrowserUIResolutionX->GetFloat(), VREd::ContentBrowserUIResolutionY->GetFloat()), VREd::ContentBrowserUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
+			SequencerUI->SetSlateWidget(*this, WidgetToDraw, FIntPoint(VREd::SequencerUIResolutionX->GetFloat(), VREd::SequencerUIResolutionY->GetFloat()), VREd::ContentBrowserUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
 			SequencerUI->ShowUI(false);
 			FloatingUIs.Add(SequencerUI);
 
@@ -1152,6 +1222,13 @@ void UVREditorUISystem::CreateUIs()
 
 void UVREditorUISystem::CleanUpActorsBeforeMapChangeOrSimulate()
 {
+	// If we have a sequence tab open, reset its widget and close the associated Sequencer
+	if (GetOwner().GetCurrentSequencer() != nullptr)
+	{
+		EditorUIPanels[(int32)EEditorUIPanel::SequencerUI]->SetSlateWidget(*this, SNullWidget::NullWidget, FIntPoint(VREd::SequencerUIResolutionX->GetFloat(), VREd::SequencerUIResolutionY->GetFloat()), VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
+		FVREditorActionCallbacks::CloseSequencer(GetOwner().GetCurrentSequencer()->GetRootMovieSceneSequence());
+	}
+
 	for( AVREditorFloatingUI* FloatingUIPtr : FloatingUIs )
 	{
 		if( FloatingUIPtr != nullptr )
@@ -1265,7 +1342,14 @@ void UVREditorUISystem::ShowEditorUIPanel( AVREditorFloatingUI* Panel, UVREditor
 			Panel->SetLocalRotation( FRotator( 90.0f, 180.0f, 0.0f ) ); // @todo vreditor: needs initial rotation
 		}
 
-		Panel->ShowUI( bShouldShow );
+		// If we are closing the sequencer panel, then also null out the sequencer widget and close the Sequencer instance
+		if (!bShouldShow && Panel == EditorUIPanels[(int32)EEditorUIPanel::SequencerUI] && GetOwner().GetCurrentSequencer() != nullptr)
+		{
+			Panel->SetSlateWidget(*this, SNullWidget::NullWidget, FIntPoint(VREd::SequencerUIResolutionX->GetFloat(), VREd::SequencerUIResolutionY->GetFloat()), VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
+			FVREditorActionCallbacks::CloseSequencer(GetOwner().GetCurrentSequencer()->GetRootMovieSceneSequence());
+		}
+
+		Panel->ShowUI(bShouldShow);
 
 		if ( Panel->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftHand || Panel->GetDockedTo() == AVREditorFloatingUI::EDockedTo::RightHand )
 		{
@@ -2634,29 +2718,29 @@ void UVREditorUISystem::UpdateSequencerUI()
 	if (EditorUIPanels[(int32)EEditorUIPanel::SequencerUI] != nullptr)
 	{
 		AVREditorFloatingUI* SequencerPanel = EditorUIPanels[(int32)EEditorUIPanel::SequencerUI];
-		const TSharedRef< ILevelEditor >& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor").GetFirstLevelEditor().ToSharedRef();
-
 		const FName TabIdentifier = NAME_None;	// No tab for us!
-		TSharedRef<SWidget> SequencerWidget = LevelEditor->GetSequencerWidgetForLevelEditor().ToSharedRef();
-
-		TSharedRef<SWidget> WidgetToDraw =
-			SNew(SDPIScaler)
-			.DPIScale(1.0f)
-			[
-				SequencerWidget
-			]
-		;
-
-		const bool bWithSceneComponent = false;
-		SequencerPanel->SetSlateWidget(*this, WidgetToDraw, FIntPoint(VREd::SequencerUIResolutionX->GetFloat(), VREd::SequencerUIResolutionY->GetFloat()), VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
-		UVREditorInteractor* VREditorInteractor = VRMode->GetHandInteractor(EControllerHand::Left);
-		if (VREditorInteractor->IsHoveringOverUI())
+		if(GetOwner().GetCurrentSequencer() != nullptr)
 		{
-			VREditorInteractor = VRMode->GetHandInteractor(EControllerHand::Right);
+			const TSharedRef<SWidget> SequencerWidget = GetOwner().GetCurrentSequencer()->GetSequencerWidget();
 
+			TSharedRef<SWidget> WidgetToDraw =
+				SNew(SDPIScaler)
+				.DPIScale(1.0f)
+				[
+					SequencerWidget
+				]
+			;
+
+			const bool bWithSceneComponent = false;
+			SequencerPanel->SetSlateWidget(*this, WidgetToDraw, FIntPoint(VREd::SequencerUIResolutionX->GetFloat(), VREd::SequencerUIResolutionY->GetFloat()), VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
+			UVREditorInteractor* VREditorInteractor = VRMode->GetHandInteractor(EControllerHand::Left);
+			if (VREditorInteractor->IsHoveringOverUI())
+			{
+				VREditorInteractor = VRMode->GetHandInteractor(EControllerHand::Right);
+
+			}
+			ShowEditorUIPanel(UVREditorUISystem::EEditorUIPanel::SequencerUI, VREditorInteractor, true);
 		}
-		ShowEditorUIPanel(UVREditorUISystem::EEditorUIPanel::SequencerUI, VREditorInteractor, true);
-
 	}
 }
 

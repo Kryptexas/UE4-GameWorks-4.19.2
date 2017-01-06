@@ -289,7 +289,7 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 			Sequencer->SetAutoKeyMode(EAutoKeyMode::KeyAll);
 			Sequencer->SetKeyAllEnabled(true);
 			// Tell the VR Editor mode that Sequencer has refreshed
-			VRMode->RefreshVREditorSequencer();
+			VRMode->RefreshVREditorSequencer(Sequencer.Get());
 		}
 	}
 }
@@ -967,6 +967,13 @@ void FLevelSequenceEditorToolkit::HandleTrackMenuExtensionAddTrack(FMenuBuilder&
 
 bool FLevelSequenceEditorToolkit::OnRequestClose()
 {
+	const UWorld* World = CastChecked<UWorld>(GetLevelSequenceEditorPlaybackContext());
+	UVREditorMode* VRMode = Cast<UVREditorMode>(GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(World)->FindExtension(UVREditorMode::StaticClass()));
+	if (VRMode != nullptr)
+	{
+		// Null out the VR Mode's sequencer pointer
+		VRMode->RefreshVREditorSequencer(nullptr);
+	}
 	OpenToolkits.Remove(this);
 	OnClosedEvent.Broadcast();
 	return true;
