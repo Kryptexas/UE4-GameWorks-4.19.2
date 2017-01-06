@@ -2527,6 +2527,13 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 			}
 		}
 
+		// Don't show gizmo rotation and scale handles when we're dealing with a single unoriented
+		// point in space (such as a mesh vertex), which can't reasonably be rotated or scaled.
+		const bool bHaveSingleUnorientedPoint =
+			Transformables.Num() == 1 &&
+			Transformables[ 0 ]->IsUnorientedPoint();
+		const bool bAllowRotationAndScaleHandles = !bHaveSingleUnorientedPoint;
+
 		if ( VI::ForceGizmoPivotToCenterOfObjectsBounds->GetInt() > 0 )
 		{
 			GizmoToWorld.SetLocation( GizmoToWorld.TransformPosition( GizmoSpaceSelectedObjectsBounds.GetCenter() ) );
@@ -2556,8 +2563,19 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 			ViewerLocation = GCurrentLevelEditingViewportClient->GetViewLocation();
 		}
 
-		TransformGizmoActor->UpdateGizmo( GizmoType, GizmoCoordinateSpace, GizmoToWorld, GizmoSpaceSelectedObjectsBounds, ViewerLocation, TransformGizmoScale, bAllHandlesVisible, SingleVisibleHandle,
-			HoveringOverHandles, VI::GizmoHandleHoverScale->GetFloat(), VI::GizmoHandleHoverAnimationDuration->GetFloat() );
+		TransformGizmoActor->UpdateGizmo( 
+			GizmoType, 
+			GizmoCoordinateSpace, 
+			GizmoToWorld, 
+			GizmoSpaceSelectedObjectsBounds, 
+			ViewerLocation, 
+			TransformGizmoScale, 
+			bAllHandlesVisible, 
+			bAllowRotationAndScaleHandles,
+			SingleVisibleHandle,
+			HoveringOverHandles, 
+			VI::GizmoHandleHoverScale->GetFloat(), 
+			VI::GizmoHandleHoverAnimationDuration->GetFloat() );
 
 		// Only draw if snapping is turned on
 		SpawnGridMeshActor();

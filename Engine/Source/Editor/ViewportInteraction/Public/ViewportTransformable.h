@@ -30,6 +30,13 @@ public:
 	/** Returns the bounding box of this transformable in local space */
 	virtual FBox GetLocalSpaceBoundingBox() const = 0;
 
+	/** Returns true if this transformable is a single, unoriented point in space, thus never
+	    supports being rotated or scaled when only a single transformable is selected. */
+	virtual bool IsUnorientedPoint() const
+	{
+		return false;
+	}
+
 	/** Returns true if this transformable is a physically simulated kinematic object */
 	virtual bool IsPhysicallySimulated() const
 	{
