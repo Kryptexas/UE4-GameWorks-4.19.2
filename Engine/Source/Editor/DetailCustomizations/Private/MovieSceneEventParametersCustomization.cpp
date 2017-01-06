@@ -18,6 +18,7 @@
 #include "DetailLayoutBuilder.h"
 #include "IDetailsView.h"
 #include "SlateApplication.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneEventParameters"
 
@@ -102,6 +103,28 @@ void FMovieSceneEventParametersCustomization::OnStructChanged(const FAssetData& 
 		}
 	}
 
+	// Open a transaction
+	FScopedTransaction Transaction(LOCTEXT("SetParameterStructText", "Set Parameter Structure"));
+
+	FEditPropertyChain PropertyChain;
+	PropertyChain.SetActivePropertyNode(PropertyHandle->GetProperty());
+
+	// Fire off the pre-notify
+	FNotifyHook* Hook = PropertyUtilities->GetNotifyHook();
+	if (Hook)
+	{
+		Hook->NotifyPreChange(&PropertyChain);
+	}
+
+	// Modify outer objects
+	TArray<UObject*> Outers;
+	PropertyHandle->GetOuterObjects(Outers);
+	for (UObject* Object : Outers)
+	{
+		Object->Modify();
+	}
+
+	// Reassign the struct
 	TArray<void*> RawData;
 	PropertyHandle->AccessRawData(RawData);
 	for (void* Value : RawData)
@@ -110,8 +133,16 @@ void FMovieSceneEventParametersCustomization::OnStructChanged(const FAssetData& 
 	}
 
 	FPropertyChangedEvent BubbleChangeEvent(PropertyHandle->GetProperty(), EPropertyChangeType::ValueSet, nullptr);
+
+	// post notify
+	if (Hook)
+	{
+		Hook->NotifyPostChange(BubbleChangeEvent, &PropertyChain);
+	}
+
+	// Force refresh
 	PropertyUtilities->NotifyFinishedChangingProperties(BubbleChangeEvent);
-	
+
 	PropertyUtilities->ForceRefresh();
 }
 
