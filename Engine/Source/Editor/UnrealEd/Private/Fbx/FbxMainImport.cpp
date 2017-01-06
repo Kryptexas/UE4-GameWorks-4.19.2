@@ -440,7 +440,7 @@ int32 FFbxImporter::GetImportType(const FString& InFilename)
 		}
 
 		FbxSceneInfo SceneInfo;
-		if (GetSceneInfo(Filename, SceneInfo))
+		if (GetSceneInfo(Filename, SceneInfo, true))
 		{
 			if (SceneInfo.SkinnedMeshNum > 0)
 			{

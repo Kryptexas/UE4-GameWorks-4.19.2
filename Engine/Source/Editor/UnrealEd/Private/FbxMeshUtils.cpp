@@ -105,7 +105,7 @@ namespace FbxMeshUtils
 			ImportOptions->bImportTextures = false;
 		}
 
-		if ( !FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
+		if ( !FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ), true ) )
 		{
 			// Log the error message and fail the import.
 			// @todo verify if the message works
@@ -245,7 +245,7 @@ namespace FbxMeshUtils
 			}
 			ImportOptions->bImportAnimations = false;
 
-			if ( !FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
+			if ( !FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ), true ) )
 			{
 				// Log the error message and fail the import.
 				FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("FBXImport_ParseFailed", "FBX file parsing failed.")), FFbxErrors::Generic_FBXFileParseFailed);

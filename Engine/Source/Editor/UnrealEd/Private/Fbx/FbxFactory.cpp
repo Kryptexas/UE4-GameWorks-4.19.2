@@ -225,7 +225,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 	{
 
 		Warn->BeginSlowTask( NSLOCTEXT("FbxFactory", "BeginImportingFbxMeshTask", "Importing FBX mesh"), true );
-		if ( !FbxImporter->ImportFromFile( *UFactory::CurrentFilename, Type ) )
+		if ( !FbxImporter->ImportFromFile( *UFactory::CurrentFilename, Type, true ) )
 		{
 			// Log the error message and fail the import.
 			Warn->Log(ELogVerbosity::Error, FbxImporter->GetErrorMessage() );
