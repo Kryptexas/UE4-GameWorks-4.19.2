@@ -128,7 +128,8 @@ private:
 	TRefCountPtr<FD3D11Texture2D> BackBuffer;
 
 	// Support for selecting non-default output for display in fullscreen exclusive
-	TRefCountPtr<IDXGIOutput> Output;
+	TRefCountPtr<IDXGIOutput>	ForcedFullscreenOutput;
+	bool						bForcedFullscreenDisplay;
 
 	/** An event used to track the GPU's progress. */
 	FD3D11EventQuery FrameSyncEvent;

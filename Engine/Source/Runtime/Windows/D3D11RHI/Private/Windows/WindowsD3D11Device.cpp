@@ -240,81 +240,65 @@ const DisplayChromacities DisplayChromacityList[] =
 	{ 0.71300f, 0.29300f, 0.16500f, 0.83000f, 0.12800f, 0.04400f, 0.32168f, 0.33767f }, // DG_ACEScg
 };
 
-static void SetHDRMonitorMode(IDXGIOutput *Output, bool bEnableHDR, EDisplayGamut DisplayGamut, float MaxOutputNits, float MinOutputNits, float MaxCLL, float MaxFALL)
+static void SetHDRMonitorModeNVIDIA(NvU32 IHVDisplayIndex, bool bEnableHDR, EDisplayGamut DisplayGamut, float MaxOutputNits, float MinOutputNits, float MaxCLL, float MaxFALL)
 {
 	NvAPI_Status NvStatus = NVAPI_OK;
 	NvDisplayHandle hNvDisplay = NULL;
+	NvU32 DisplayId = IHVDisplayIndex;
 
-	DXGI_OUTPUT_DESC OutputDesc;
+	NV_HDR_CAPABILITIES HDRCapabilities = {};
+	HDRCapabilities.version = NV_HDR_CAPABILITIES_VER;
 
-	Output->GetDesc(&OutputDesc);
-	NvU32 DisplayId = 0;
+	NvStatus = NvAPI_Disp_GetHdrCapabilities(DisplayId, &HDRCapabilities);
 
-	// Technically, the DeviceName is a WCHAR however, UE4 makes the assumption elsewhere that TCHAR == WCHAR on Windows
-	NvAPI_Status Status = NvAPI_DISP_GetDisplayIdByDisplayName(TCHAR_TO_ANSI(OutputDesc.DeviceName), &DisplayId);
-
-	if (Status == NVAPI_OK)
+	if (NvStatus == NVAPI_OK)
 	{
-		NV_HDR_CAPABILITIES HDRCapabilities = {};
-		HDRCapabilities.version = NV_HDR_CAPABILITIES_VER;
-
-		NvStatus = NvAPI_Disp_GetHdrCapabilities(DisplayId, &HDRCapabilities);
-
-		if (NvStatus == NVAPI_OK)
+		if (HDRCapabilities.isST2084EotfSupported)
 		{
-			if (HDRCapabilities.isST2084EotfSupported)
+			NV_HDR_COLOR_DATA HDRColorData = {};
+			memset(&HDRColorData, 0, sizeof(HDRColorData));
+
+			HDRColorData.version = NV_HDR_COLOR_DATA_VER;
+			HDRColorData.cmd = NV_HDR_CMD_SET;
+			HDRColorData.static_metadata_descriptor_id = NV_STATIC_METADATA_TYPE_1;
+			HDRColorData.hdrMode = bEnableHDR ? NV_HDR_MODE_UHDBD : NV_HDR_MODE_OFF;
+
+			const DisplayChromacities& Chroma = DisplayChromacityList[DisplayGamut];
+
+			HDRColorData.mastering_display_data.displayPrimary_x0 = NvU16(Chroma.RedX * 50000.0f);
+			HDRColorData.mastering_display_data.displayPrimary_y0 = NvU16(Chroma.RedY * 50000.0f);
+			HDRColorData.mastering_display_data.displayPrimary_x1 = NvU16(Chroma.GreenX * 50000.0f);
+			HDRColorData.mastering_display_data.displayPrimary_y1 = NvU16(Chroma.GreenY * 50000.0f);
+			HDRColorData.mastering_display_data.displayPrimary_x2 = NvU16(Chroma.BlueX * 50000.0f);
+			HDRColorData.mastering_display_data.displayPrimary_y2 = NvU16(Chroma.BlueY * 50000.0f);
+			HDRColorData.mastering_display_data.displayWhitePoint_x = NvU16(Chroma.WpX * 50000.0f);
+			HDRColorData.mastering_display_data.displayWhitePoint_y = NvU16(Chroma.WpY * 50000.0f);
+			HDRColorData.mastering_display_data.max_display_mastering_luminance = NvU16(MaxOutputNits);
+			HDRColorData.mastering_display_data.min_display_mastering_luminance = NvU16(MinOutputNits);
+			HDRColorData.mastering_display_data.max_content_light_level = NvU16(MaxCLL);
+			HDRColorData.mastering_display_data.max_frame_average_light_level = NvU16(MaxFALL);
+
+			NvStatus = NvAPI_Disp_HdrColorControl(DisplayId, &HDRColorData);
+
+			if (NVAPI_OK != NvStatus)
 			{
-				NV_HDR_COLOR_DATA HDRColorData = {};
-				memset(&HDRColorData, 0, sizeof(HDRColorData));
-
-				HDRColorData.version = NV_HDR_COLOR_DATA_VER;
-				HDRColorData.cmd = NV_HDR_CMD_SET;
-				HDRColorData.static_metadata_descriptor_id = NV_STATIC_METADATA_TYPE_1;
-				HDRColorData.hdrMode = bEnableHDR ? NV_HDR_MODE_UHDBD : NV_HDR_MODE_OFF;
-
-				const DisplayChromacities& Chroma = DisplayChromacityList[DisplayGamut];
-
-				HDRColorData.mastering_display_data.displayPrimary_x0 = NvU16(Chroma.RedX * 50000.0f);
-				HDRColorData.mastering_display_data.displayPrimary_y0 = NvU16(Chroma.RedY * 50000.0f);
-				HDRColorData.mastering_display_data.displayPrimary_x1 = NvU16(Chroma.GreenX * 50000.0f);
-				HDRColorData.mastering_display_data.displayPrimary_y1 = NvU16(Chroma.GreenY * 50000.0f);
-				HDRColorData.mastering_display_data.displayPrimary_x2 = NvU16(Chroma.BlueX * 50000.0f);
-				HDRColorData.mastering_display_data.displayPrimary_y2 = NvU16(Chroma.BlueY * 50000.0f);
-				HDRColorData.mastering_display_data.displayWhitePoint_x = NvU16(Chroma.WpX * 50000.0f);
-				HDRColorData.mastering_display_data.displayWhitePoint_y = NvU16(Chroma.WpY * 50000.0f);
-				HDRColorData.mastering_display_data.max_display_mastering_luminance = NvU16(MaxOutputNits);
-				HDRColorData.mastering_display_data.min_display_mastering_luminance = NvU16(MinOutputNits);
-				HDRColorData.mastering_display_data.max_content_light_level = NvU16(MaxCLL);
-				HDRColorData.mastering_display_data.max_frame_average_light_level = NvU16(MaxFALL);
-
-				NvStatus = NvAPI_Disp_HdrColorControl(DisplayId, &HDRColorData);
-
-				if (NVAPI_OK != NvStatus)
-				{
-					NvAPI_ShortString SzDesc;
-					NvAPI_GetErrorMessage(NvStatus, SzDesc);
-					UE_LOG(LogD3D11RHI, Warning, TEXT("NvAPI_Disp_HdrColorControl returned %s (%x)"), ANSI_TO_TCHAR(SzDesc), int(NvStatus));
-				}
+				NvAPI_ShortString SzDesc;
+				NvAPI_GetErrorMessage(NvStatus, SzDesc);
+				UE_LOG(LogD3D11RHI, Warning, TEXT("NvAPI_Disp_HdrColorControl returned %s (%x)"), ANSI_TO_TCHAR(SzDesc), int(NvStatus));
 			}
 		}
-		// Ignore expected failures caused by insufficient driver version and remote desktop connections
-		else if (NvStatus != NVAPI_ERROR && NvStatus != NVAPI_NVIDIA_DEVICE_NOT_FOUND)
-		{
-			NvAPI_ShortString SzDesc;
-			NvAPI_GetErrorMessage(NvStatus, SzDesc);
-			UE_LOG(LogD3D11RHI, Warning, TEXT("NvAPI_Disp_GetHdrCapabilities returned %s (%x)"), ANSI_TO_TCHAR(SzDesc), int(NvStatus));
-		}
 	}
+	// Ignore expected failures caused by insufficient driver version and remote desktop connections
 	else if (NvStatus != NVAPI_ERROR && NvStatus != NVAPI_NVIDIA_DEVICE_NOT_FOUND)
 	{
 		NvAPI_ShortString SzDesc;
-		NvAPI_GetErrorMessage(Status, SzDesc);
-		UE_LOG(LogD3D11RHI, Log, TEXT("Failed to enumerate display ID for NVAPI (%s) (%s) unable to"), OutputDesc.DeviceName, ANSI_TO_TCHAR(SzDesc));
+		NvAPI_GetErrorMessage(NvStatus, SzDesc);
+		UE_LOG(LogD3D11RHI, Warning, TEXT("NvAPI_Disp_GetHdrCapabilities returned %s (%x)"), ANSI_TO_TCHAR(SzDesc), int(NvStatus));
 	}
 }
 
 /** Enable HDR meta data transmission */
-void FD3D11DynamicRHI::EnableHDR(IDXGIOutput* Output)
+void FD3D11DynamicRHI::EnableHDR()
 {
 	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
 	static const auto CVarHDRColorGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.ColorGamut"));
@@ -331,8 +315,8 @@ void FD3D11DynamicRHI::EnableHDR(IDXGIOutput* Output)
 
 		if (IsRHIDeviceNVIDIA())
 		{
-			SetHDRMonitorMode(
-				Output,
+			SetHDRMonitorModeNVIDIA(
+				(NvU32)HDRDetectedDisplayIHVIndex,
 				true,
 				EDisplayGamut(CVarHDRColorGamut->GetValueOnAnyThread()),
 				DisplayMaxOutputNits,
@@ -352,73 +336,112 @@ void FD3D11DynamicRHI::EnableHDR(IDXGIOutput* Output)
 }
 
 /** Disable HDR meta data transmission */
-void FD3D11DynamicRHI::ShutdownHDR(IDXGIOutput* Output)
+void FD3D11DynamicRHI::ShutdownHDR()
 {
-	// Default SDR display data
-	const float DisplayMaxOutputNits = 100.0f;	// Max output of the display
-	const float DisplayMinOutputNits = 0.0f;	// Min output of the display
-	const float DisplayMaxCLL = 100.0f;			// Max content light level in lumens
-	const float DisplayFALL = 20.0f;			// Frame average light level
+	if (GRHISupportsHDROutput)
+	{
+		// Default SDR display data
+		const float DisplayMaxOutputNits = 100.0f;	// Max output of the display
+		const float DisplayMinOutputNits = 0.0f;	// Min output of the display
+		const float DisplayMaxCLL = 100.0f;			// Max content light level in lumens
+		const float DisplayFALL = 20.0f;			// Frame average light level
 
-	if (IsRHIDeviceNVIDIA())
-	{
-		SetHDRMonitorMode(
-			Output,
-			false,
-			DG_Rec709,
-			DisplayMaxOutputNits,
-			DisplayMinOutputNits,
-			DisplayMaxCLL,
-			DisplayFALL);
-	}
-	else if (IsRHIDeviceAMD())
-	{
-		// Not yet implemented
-	}
-	else if (IsRHIDeviceIntel())
-	{
-		// Not yet implemented
+		if (IsRHIDeviceNVIDIA())
+		{
+			SetHDRMonitorModeNVIDIA(
+				(NvU32)HDRDetectedDisplayIHVIndex,
+				false,
+				DG_Rec709,
+				DisplayMaxOutputNits,
+				DisplayMinOutputNits,
+				DisplayMaxCLL,
+				DisplayFALL);
+		}
+		else if (IsRHIDeviceAMD())
+		{
+			// Not yet implemented
+		}
+		else if (IsRHIDeviceIntel())
+		{
+			// Not yet implemented
+		}
 	}
 }
 
-static bool SupportsHDROutput(IDXGIOutput* Output)
+static bool SupportsHDROutput(FD3D11DynamicRHI* D3DRHI)
 {
-	if (IsRHIDeviceNVIDIA())
+	check(D3DRHI && D3DRHI->GetDevice());
+	ID3D11Device* Direct3DDevice = D3DRHI->GetDevice();
+
+	// Default to primary display
+	D3DRHI->SetHDRDetectedDisplayIndices(0, 0);
+	
+	// Grab the adapter
+	TRefCountPtr<IDXGIDevice> DXGIDevice;
+	VERIFYD3D11RESULT(Direct3DDevice->QueryInterface(IID_IDXGIDevice, (void**)DXGIDevice.GetInitReference()));
+
+	TRefCountPtr<IDXGIAdapter> DXGIAdapter;
+	DXGIDevice->GetAdapter((IDXGIAdapter**)DXGIAdapter.GetInitReference());
+		
+	uint32 DisplayIndex = 0;
+	uint32 ForcedDisplayIndex = 0;
+	bool bForcedDisplay = FParse::Value(FCommandLine::Get(), TEXT("FullscreenDisplay="), ForcedDisplayIndex);
+
+	for (; true; ++DisplayIndex)
 	{
-		DXGI_OUTPUT_DESC OutputDesc;
-
-		Output->GetDesc(&OutputDesc);
-		NvU32 DisplayId = 0;
-
-		// Technically, the DeviceName is a WCHAR however, UE4 makes the assumption elsewhere that TCHAR == WCHAR on Windows
-		NvAPI_Status Status = NvAPI_DISP_GetDisplayIdByDisplayName(TCHAR_TO_ANSI(OutputDesc.DeviceName), &DisplayId);
-
-		if (Status == NVAPI_OK)
+		TRefCountPtr<IDXGIOutput> DXGIOutput;
+		if (S_OK != DXGIAdapter->EnumOutputs(DisplayIndex, DXGIOutput.GetInitReference()))
 		{
-			NV_HDR_CAPABILITIES HdrCapabilities = {};
+			break;
+		}
 
-			HdrCapabilities.version = NV_HDR_CAPABILITIES_VER;
+		// Query requested display only
+		if (bForcedDisplay && DisplayIndex != ForcedDisplayIndex)
+		{
+			continue;
+		}
 
-			if (NVAPI_OK == NvAPI_Disp_GetHdrCapabilities(DisplayId, &HdrCapabilities))
+		DXGI_OUTPUT_DESC OutputDesc;
+		DXGIOutput->GetDesc(&OutputDesc);
+		
+		if (IsRHIDeviceNVIDIA())
+		{		
+			NvU32 DisplayId = 0;
+
+			// Technically, the DeviceName is a WCHAR however, UE4 makes the assumption elsewhere that TCHAR == WCHAR on Windows
+			NvAPI_Status Status = NvAPI_DISP_GetDisplayIdByDisplayName(TCHAR_TO_ANSI(OutputDesc.DeviceName), &DisplayId);
+
+			if (Status == NVAPI_OK)
 			{
-				UE_LOG(LogD3D11RHI, Log, TEXT("HDR output is %s on current display"), HdrCapabilities.isST2084EotfSupported ? TEXT("supported") : TEXT("unsupported"));
-				return HdrCapabilities.isST2084EotfSupported;
+				NV_HDR_CAPABILITIES HdrCapabilities = {};
+
+				HdrCapabilities.version = NV_HDR_CAPABILITIES_VER;
+
+				if (NVAPI_OK == NvAPI_Disp_GetHdrCapabilities(DisplayId, &HdrCapabilities))
+				{		
+					if (HdrCapabilities.isST2084EotfSupported)
+					{
+						UE_LOG(LogD3D11RHI, Log, TEXT("HDR output is supported on display %i (NvId: 0x%x)."), DisplayIndex, DisplayId);
+						D3DRHI->SetHDRDetectedDisplayIndices(DisplayIndex, DisplayId);
+						return true;
+					}
+				}
+			}
+			else if (Status != NVAPI_ERROR && Status != NVAPI_NVIDIA_DEVICE_NOT_FOUND)
+			{
+				NvAPI_ShortString szDesc;
+				NvAPI_GetErrorMessage(Status, szDesc);
+				UE_LOG(LogD3D11RHI, Log, TEXT("Failed to enumerate display ID for NVAPI (%s) (%s) unable to"), OutputDesc.DeviceName, ANSI_TO_TCHAR(szDesc));
 			}
 		}
-		else if (Status != NVAPI_ERROR && Status != NVAPI_NVIDIA_DEVICE_NOT_FOUND)
+		else if (IsRHIDeviceAMD())
 		{
-			NvAPI_ShortString szDesc;
-			NvAPI_GetErrorMessage(Status, szDesc);
-			UE_LOG(LogD3D11RHI, Log, TEXT("Failed to enumerate display ID for NVAPI (%s) (%s) unable to"), OutputDesc.DeviceName, ANSI_TO_TCHAR(szDesc));
+			// Not yet implemented
 		}
-	}
-	else if (IsRHIDeviceAMD())
-	{
-		// Not yet implemented
-	}
-	else if (IsRHIDeviceIntel())
-	{
-		// Not yet implemented
+		else if (IsRHIDeviceIntel())
+		{
+			// Not yet implemented
+		}
 	}
 
 	return false;
@@ -1025,32 +1048,8 @@ void FD3D11DynamicRHI::InitD3DDevice()
 #endif
 		
 		{
-			// TODO: This might be best placed in Viewport, since that is usually where the display is accessed
-			TRefCountPtr<IDXGIDevice> DXGIDevice;
-			VERIFYD3D11RESULT(Direct3DDevice->QueryInterface(IID_IDXGIDevice, (void**)DXGIDevice.GetInitReference()));
-			
-			uint32 DisplayIndex = 0;
-			FParse::Value(FCommandLine::Get(), TEXT("FullscreenDisplay="), DisplayIndex);
-
-			// Grab the adapter
-			TRefCountPtr<IDXGIAdapter> DXGIAdapter;
-			DXGIDevice->GetAdapter((IDXGIAdapter**)DXGIAdapter.GetInitReference());
-
-			// Try to get the requested display, fall back to 0 on failure
-			TRefCountPtr<IDXGIOutput> DXGIOutput;
-			HRESULT HRes = DXGIAdapter->EnumOutputs(DisplayIndex, DXGIOutput.GetInitReference());
-
-			if (S_OK != HRes)
-			{
-				UE_LOG(LogD3D11RHI, Log, TEXT("Failed to find requested output display (%i), falling back to default."), DisplayIndex);
-				HRes = DXGIAdapter->EnumOutputs(0, DXGIOutput.GetInitReference());
-			}
-
-			if (S_OK == HRes)
-			{
-				GRHISupportsHDROutput = SupportsHDROutput(DXGIOutput);
-				GRHIHDRDisplayOutputFormat = PF_FloatRGBA;
-			}
+			GRHISupportsHDROutput = SupportsHDROutput(this);
+			GRHIHDRDisplayOutputFormat = PF_FloatRGBA;	
 		}
 
 		FHardwareInfo::RegisterHardwareInfo( NAME_RHI, TEXT( "D3D11" ) );
