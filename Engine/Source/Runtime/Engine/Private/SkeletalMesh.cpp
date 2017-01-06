@@ -1471,19 +1471,21 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 					}
 				}
 			}
-
-			// last section is special case
-			FSkelMeshSection & Section = Sections[ Sections.Num() - 1 ];
-			if (TRISORT_CustomLeftRight == Section.TriangleSorting)
+			if (Sections.Num() > 0)
 			{
-				uint32 IndicesInSection = MultiSizeIndexContainer.GetIndexBuffer()->Num() - Sections[ Sections.Num() - 1 ].BaseIndex;
-				if (Section.NumTriangles * kNumIndicesPerPrimitive * kNumSetsOfIndices > IndicesInSection)
+				// last section is special case
+				FSkelMeshSection & Section = Sections[Sections.Num() - 1];
+				if (TRISORT_CustomLeftRight == Section.TriangleSorting)
 				{
-					UE_LOG(LogSkeletalMesh, Warning, TEXT( "Section %d in LOD model %d of object %s doesn't have enough indices (%d, while %d are needed) to allow TRISORT_CustomLeftRight mode, resetting to TRISORT_None" ),
-						Sections.Num() - 1, Idx, *Owner->GetName(),
-						IndicesInSection, Section.NumTriangles * kNumIndicesPerPrimitive * kNumSetsOfIndices
-						);
-					Section.TriangleSorting = TRISORT_None;
+					uint32 IndicesInSection = MultiSizeIndexContainer.GetIndexBuffer()->Num() - Sections[Sections.Num() - 1].BaseIndex;
+					if (Section.NumTriangles * kNumIndicesPerPrimitive * kNumSetsOfIndices > IndicesInSection)
+					{
+						UE_LOG(LogSkeletalMesh, Warning, TEXT("Section %d in LOD model %d of object %s doesn't have enough indices (%d, while %d are needed) to allow TRISORT_CustomLeftRight mode, resetting to TRISORT_None"),
+							Sections.Num() - 1, Idx, *Owner->GetName(),
+							IndicesInSection, Section.NumTriangles * kNumIndicesPerPrimitive * kNumSetsOfIndices
+							);
+						Section.TriangleSorting = TRISORT_None;
+					}
 				}
 			}
 		}
