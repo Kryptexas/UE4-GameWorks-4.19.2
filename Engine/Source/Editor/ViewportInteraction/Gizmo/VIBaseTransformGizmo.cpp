@@ -113,6 +113,11 @@ class UViewportWorldInteraction* ABaseTransformGizmo::GetOwnerWorldInteraction()
 	return WorldInteraction;
 }
 
+EGizmoHandleTypes ABaseTransformGizmo::GetGizmoType() const
+{
+	return GizmoType;
+}
+
 void ABaseTransformGizmo::GetBoundingBoxEdge( const FBox& Box, const int32 AxisIndex, const int32 EdgeIndex, FVector& OutVertex0, FVector& OutVertex1 )
 {
 	check( AxisIndex >= 0 && AxisIndex < 3 );

@@ -80,6 +80,10 @@ public:
 	virtual void UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, const float ScaleMultiplier, bool bAllHandlesVisible,
 		const bool bAllowRotationAndScaleHandles, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, const float GizmoHoverScale, const float GizmoHoverAnimationDuration ) {}
 
+
+	/** Gets the current gizmo handle type */
+	EGizmoHandleTypes GetGizmoType() const;
+
 protected:
 
 	/** Static: Given a bounding box and information about which edge to query, returns the vertex positions of that edge */
@@ -113,4 +117,7 @@ protected:
 	/** Owning object */
 	UPROPERTY()
 	class UViewportWorldInteraction* WorldInteraction;
+	
+	/** Current gizmo type */
+	EGizmoHandleTypes GizmoType;
 };	
