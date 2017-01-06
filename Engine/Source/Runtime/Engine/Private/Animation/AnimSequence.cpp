@@ -946,9 +946,17 @@ FTransform UAnimSequence::ExtractRootMotion(float StartTime, float DeltaTime, bo
 
 FTransform UAnimSequence::ExtractRootMotionFromRange(float StartTrackPosition, float EndTrackPosition) const
 {
+	const FVector DefaultScale(1.f);
+
 	FTransform InitialTransform = ExtractRootTrackTransform(0.f, NULL);
 	FTransform StartTransform = ExtractRootTrackTransform(StartTrackPosition, NULL);
 	FTransform EndTransform = ExtractRootTrackTransform(EndTrackPosition, NULL);
+
+	if(IsValidAdditive())
+	{
+		StartTransform.SetScale3D(StartTransform.GetScale3D() + DefaultScale);
+		EndTransform.SetScale3D(EndTransform.GetScale3D() + DefaultScale);
+	}
 
 	// Transform to Component Space Rotation (inverse root transform from first frame)
 	const FTransform RootToComponentRot = FTransform(InitialTransform.GetRotation().Inverse());
@@ -1047,6 +1055,12 @@ void UAnimSequence::ResetRootBoneForRootMotion(FTransform& BoneTransform, const 
 		case ERootMotionRootLock::Zero: BoneTransform = FTransform::Identity; break;
 		default:
 		case ERootMotionRootLock::RefPose: BoneTransform = RequiredBones.GetRefPoseArray()[0]; break;
+	}
+
+	if (IsValidAdditive() && InRootMotionRootLock != ERootMotionRootLock::AnimFirstFrame)
+	{
+		//Need to remove default scale here for additives
+		BoneTransform.SetScale3D(BoneTransform.GetScale3D() - FVector(1.f));
 	}
 }
 
