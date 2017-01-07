@@ -24,6 +24,7 @@
 #include "Sections/MovieSceneSubSection.h"
 #include "Sections/MovieSceneCinematicShotSection.h"
 #include "Curves/IntegralCurve.h"
+#include "Editor.h"
 #include "NotifyHook.h"
 #include "EditorUndoClient.h"
 

@@ -19,6 +19,7 @@
 #include "IDetailsView.h"
 #include "SlateApplication.h"
 #include "ScopedTransaction.h"
+#include "NotifyHook.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneEventParameters"
 
