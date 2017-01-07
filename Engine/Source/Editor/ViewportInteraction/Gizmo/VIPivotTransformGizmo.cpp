@@ -72,8 +72,7 @@ APivotTransformGizmo::APivotTransformGizmo() :
 	OnNewObjectsSelected();
 }
 
-void APivotTransformGizmo::UpdateGizmo( const EGizmoHandleTypes InGizmoType, const ECoordSystem GizmoCoordinateSpace, const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, const float ScaleMultiplier, bool bAllHandlesVisible, 
-	const bool bAllowRotationAndScaleHandles, UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, const float GizmoHoverScale, const float GizmoHoverAnimationDuration )
+void APivotTransformGizmo::UpdateGizmo(const EGizmoHandleTypes InGizmoType, const ECoordSystem InGizmoCoordinateSpace, const FTransform& InLocalToWorld, const FBox& InLocalBounds, const FVector& InViewLocation, const float InScaleMultiplier, bool bInAllHandlesVisible, const bool bInAllowRotationAndScaleHandles, class UActorComponent* DraggingHandle, const TArray<UActorComponent*>& InHoveringOverHandles, const float InGizmoHoverScale, const float InGizmoHoverAnimationDuration)
 {
 	GizmoType = InGizmoType;
 
@@ -81,34 +80,34 @@ void APivotTransformGizmo::UpdateGizmo( const EGizmoHandleTypes InGizmoType, con
 
 	// Position the gizmo at the location of the first selected actor
 	const bool bSweep = false;
-	this->SetActorTransform( LocalToWorld, bSweep );
+	this->SetActorTransform(InLocalToWorld, bSweep);
 
 
 	// Increase scale with distance, to make gizmo handles easier to click on
-	const float WorldSpaceDistanceToToPivot = FMath::Max( VREd::PivotGizmoMinDistanceForScaling->GetFloat(), FMath::Sqrt( FVector::DistSquared( GetActorLocation(), ViewLocation ) ) );
+	const float WorldSpaceDistanceToToPivot = FMath::Max(VREd::PivotGizmoMinDistanceForScaling->GetFloat(), FMath::Sqrt(FVector::DistSquared( GetActorLocation(), InViewLocation )));
 
 	// @todo gizmo: Scale causes bounds-based features to look wrong
-	const float GizmoScale( ScaleMultiplier * ( ( WorldSpaceDistanceToToPivot / WorldScaleFactor ) * VREd::PivotGizmoDistanceScaleFactor->GetFloat() ) * WorldScaleFactor );
+	const float GizmoScale(InScaleMultiplier * ((WorldSpaceDistanceToToPivot / WorldScaleFactor) * VREd::PivotGizmoDistanceScaleFactor->GetFloat() ) * WorldScaleFactor);
 
 	// Update animation
 	float AnimationAlpha = GetAnimationAlpha();
 
 	// Update all the handles
 	bool bIsHoveringOrDraggingScaleGizmo = false;
-	for ( UGizmoHandleGroup* HandleGroup : AllHandleGroups )
+	for (UGizmoHandleGroup* HandleGroup : AllHandleGroups)
 	{
-		if ( HandleGroup != nullptr)
+		if (HandleGroup != nullptr)
 		{
-			if ( DraggingHandle == nullptr || HandleGroup == StretchGizmoHandleGroup || HandleGroup == RotationGizmoHandleGroup)
+			if (DraggingHandle == nullptr || HandleGroup == StretchGizmoHandleGroup || HandleGroup == RotationGizmoHandleGroup)
 			{
 				bool bIsHoveringOrDraggingThisHandleGroup = false;
-				HandleGroup->UpdateGizmoHandleGroup( LocalToWorld, LocalBounds, ViewLocation, bAllHandlesVisible, DraggingHandle,
-					HoveringOverHandles, AnimationAlpha, GizmoScale, GizmoHoverScale, GizmoHoverAnimationDuration, /* Out */ bIsHoveringOrDraggingThisHandleGroup );
+				HandleGroup->UpdateGizmoHandleGroup(InLocalToWorld, InLocalBounds, InViewLocation, bInAllHandlesVisible, DraggingHandle,
+					InHoveringOverHandles, AnimationAlpha, GizmoScale, InGizmoHoverScale, InGizmoHoverAnimationDuration, /* Out */ bIsHoveringOrDraggingThisHandleGroup );
 			}
 			
 			if (HandleGroup != RotationGizmoHandleGroup)
 			{
-				HandleGroup->UpdateVisibilityAndCollision(GizmoType, GizmoCoordinateSpace, bAllHandlesVisible, bAllowRotationAndScaleHandles, DraggingHandle);
+				HandleGroup->UpdateVisibilityAndCollision(InGizmoType, InGizmoCoordinateSpace, bInAllHandlesVisible, bInAllowRotationAndScaleHandles, DraggingHandle);
 			}
 		}
 	}
