@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "SCompoundWidget.h"
+
 class FNiagaraScriptGraphViewModel;
 
 /** A widget for editing a UNiagaraScript with a graph. */
