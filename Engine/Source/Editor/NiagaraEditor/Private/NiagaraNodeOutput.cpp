@@ -3,6 +3,7 @@
 #include "NiagaraNodeOutput.h"
 #include "UObject/UnrealType.h"
 #include "INiagaraCompiler.h"
+#include "NiagaraScript.h"
 
 #include "EdGraphSchema_Niagara.h"
 
