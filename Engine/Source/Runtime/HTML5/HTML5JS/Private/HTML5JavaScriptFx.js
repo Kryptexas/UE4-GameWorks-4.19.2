@@ -104,6 +104,17 @@ var UE_JavaScriptLibary = {
     var _headers = Pointer_stringify(headers);
 
     var xhr = new XMLHttpRequest();
+    xhr.UE_fetch = {
+        verb : _verb
+      , url : _url
+      , async : !!async
+      , postData: null
+      , timeout : 2 // allow 2 retries
+    }
+    if (_verb === "POST") {
+      xhr.UE_fetch.postData = Module.HEAP8.subarray(payload, payload + payloadsize);
+    }
+
     xhr.open(_verb, _url, !!async);
     xhr.responseType = 'arraybuffer';
 
@@ -156,9 +167,16 @@ var UE_JavaScriptLibary = {
 
     // Ontimeout event handler
     xhr.addEventListener('timeout', function (e) {
+      if ( ! this.UE_fetch.timeout ) {
       console.log("Fetching " + this.UE_fetch.url + " timed out");
-      if (onprogress)
-        Runtime.dynCall('viii', onprogress, [ctx, e.loaded, e.lengthComputable || e.lengthComputable === undefined ? e.total : 0]);
+        if (onerror)
+          Runtime.dynCall('viii', onerror, [ctx, xhr.status, xhr.statusText]);
+        return;
+      }
+      this.UE_fetch.timeout--;
+      xhr.open(this.UE_fetch.verb, this.UE_fetch.url, this.UE_fetch.async);
+      xhr.responseType = 'arraybuffer';
+      xhr.send(xhr.UE_fetch.postData);
     });
 
     // Bypass possible browser redirection limit
@@ -167,12 +185,7 @@ var UE_JavaScriptLibary = {
         xhr.channel.redirectionLimit = 0;
     } catch (ex) { }
 
-    if (_verb === "POST") {
-      var postData = Module.HEAP8.subarray(payload, payload + payloadsize);
-      xhr.send(postData);
-    } else {
-      xhr.send(null);
-    }
+    xhr.send(xhr.UE_fetch.postData);
   },
 
   // ================================================================================
