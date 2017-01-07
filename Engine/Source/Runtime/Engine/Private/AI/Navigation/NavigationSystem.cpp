@@ -845,7 +845,7 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 	if (!bAsyncBuildPaused && (bNavigationAutoUpdateEnabled || bIsGame 
 #if WITH_EDITOR
 		// continue ticking if build is in progress
-		|| (GIsEditor && IsNavigationBuildInProgress())
+		|| (GIsEditor && IsNavigationBuildInProgress(/*bCheckDirtyToo=*/false))
 #endif // WITH_EDITOR
 		))
 	{
