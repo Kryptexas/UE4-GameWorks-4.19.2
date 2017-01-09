@@ -64,9 +64,21 @@ namespace MovieSceneSegmentCompiler
 		}
 	}
 
-	static void BlendSegmentUpperBoundExclusive(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData)
+	// Reduces the evaluated sections to only the section that resides last in the source data. Legacy behaviour from various track instances.
+	static void BlendSegmentLegacySectionOrder(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData)
 	{
-		Segment.Range = FFloatRange(Segment.Range.GetLowerBoundValue(), Segment.Range.GetUpperBoundValue());
+		if (Segment.Impls.Num() <= 1)
+		{
+			return;
+		}
+
+		Segment.Impls.Sort(
+			[&](const FSectionEvaluationData& A, const FSectionEvaluationData& B)
+			{
+				return A.ImplIndex > B.ImplIndex;
+			}
+		);
+		Segment.Impls.SetNum(1, false);
 	}
 }
 

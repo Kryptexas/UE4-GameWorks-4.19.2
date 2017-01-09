@@ -132,37 +132,16 @@ TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneSkeletalAnimationTrack:
 	// Apply an upper bound exclusive blend
 	struct FSkeletalAnimationRowCompilerRules : FMovieSceneSegmentCompilerRules
 	{
-		FSkeletalAnimationRowCompilerRules(TInlineValue<FMovieSceneSegmentCompilerRules>&& InParentCompilerRules) { ParentCompilerRules = MoveTemp(InParentCompilerRules); }
-
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-		FSkeletalAnimationRowCompilerRules(FSkeletalAnimationRowCompilerRules&&) = default;
-		FSkeletalAnimationRowCompilerRules& operator=(FSkeletalAnimationRowCompilerRules&&) = default;
-#else
-		FSkeletalAnimationRowCompilerRules(FSkeletalAnimationRowCompilerRules&& RHS)
-			: FMovieSceneSegmentCompilerRules(MoveTemp(RHS))
-			, ParentCompilerRules(MoveTemp(RHS.ParentCompilerRules))
-		{}
-		FSkeletalAnimationRowCompilerRules& operator=(FSkeletalAnimationRowCompilerRules&& RHS)
-		{
-			FMovieSceneSegmentCompilerRules::operator=(MoveTemp(RHS));
-			ParentCompilerRules = MoveTemp(RHS.ParentCompilerRules);
-			return *this;
-		}
-#endif
 		virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const
-		{
-			// Make the skeletal animation sections upper bound exclusive so that when you place animation 
-			// sections back to back, they don't blend at the transition times. This might be an option that 
-			// is exposed to the user in the future.
+		{	
+			// Run the default high pass filter for overlap priority
+			MovieSceneSegmentCompiler::BlendSegmentHighPass(Segment, SourceData);
 
-			MovieSceneSegmentCompiler::BlendSegmentUpperBoundExclusive(Segment, SourceData);
-
-			ParentCompilerRules.GetValue().BlendSegment(Segment, SourceData);
+			// Weed out based on array index (legacy behaviour)
+			MovieSceneSegmentCompiler::BlendSegmentLegacySectionOrder(Segment, SourceData);
 		}
-
-		TInlineValue<FMovieSceneSegmentCompilerRules> ParentCompilerRules;
 	};
-	return FSkeletalAnimationRowCompilerRules(Super::GetRowCompilerRules());
+	return FSkeletalAnimationRowCompilerRules();
 }
 
 void UMovieSceneSkeletalAnimationTrack::PostCompile(FMovieSceneEvaluationTrack& OutTrack, const FMovieSceneTrackCompilerArgs& Args) const

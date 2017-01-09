@@ -761,18 +761,12 @@ void UMovieScene::UpgradeTrackRow(UMovieSceneTrack* InTrack)
 			continue;
 		}
 
-		// Last element in original source section array wins. This is a carry over from legacy behavior whereby the last
-		// section in the array would override others, regardless of where it sat organizationally in the sequence.
-		int32 WinningImplIndex = -1;
-		for (const FSectionEvaluationData& EvalData : EvalSegment.Impls)
+		for (FSectionEvaluationData EvalData : EvalSegment.Impls)
 		{
-			WinningImplIndex = FMath::Max(WinningImplIndex, EvalData.ImplIndex);
+			UMovieSceneSection* Section = InTrack->GetAllSections()[EvalData.ImplIndex];
+			Section->ConditionalPostLoad();
+			Section->PostLoadUpgradeTrackRow(EvalSegment.Range);
 		}
-
-		UMovieSceneSection* Section = InTrack->GetAllSections()[WinningImplIndex];
-		Section->ConditionalPostLoad();
-
-		Section->PostLoadUpgradeTrackRow(EvalSegment.Range);
 	}
 
 	InTrack->MarkAsChanged();
