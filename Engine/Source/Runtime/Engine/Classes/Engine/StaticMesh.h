@@ -238,6 +238,7 @@ struct FMeshSectionInfoMap
 	GENERATED_USTRUCT_BODY()
 
 	/** Maps an LOD+Section to the material it should render with. */
+	UPROPERTY()
 	TMap<uint32,FMeshSectionInfo> Map;
 
 	/** Serialize. */
