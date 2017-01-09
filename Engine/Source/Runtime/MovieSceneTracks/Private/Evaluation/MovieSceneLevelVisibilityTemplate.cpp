@@ -78,23 +78,19 @@ FString MakeSafeLevelName(const FName& InLevelName, UWorld& World)
 	return InLevelName.ToString();
 }
 
-ULevelStreaming* GetStreamingLevel(FName LevelName, UWorld& World)
+ULevelStreaming* GetStreamingLevel(FString SafeLevelName, UWorld& World)
 {
-	if (LevelName != NAME_None)
+	if (FPackageName::IsShortPackageName(SafeLevelName))
 	{
-		FString SafeLevelName = MakeSafeLevelName(LevelName, World);
-		if (FPackageName::IsShortPackageName(SafeLevelName))
-		{
-			// Make sure MyMap1 and Map1 names do not resolve to a same streaming level
-			SafeLevelName = TEXT("/") + SafeLevelName;
-		}
+		// Make sure MyMap1 and Map1 names do not resolve to a same streaming level
+		SafeLevelName = TEXT("/") + SafeLevelName;
+	}
 
-		for (ULevelStreaming* LevelStreaming : World.StreamingLevels)
+	for (ULevelStreaming* LevelStreaming : World.StreamingLevels)
+	{
+		if (LevelStreaming && LevelStreaming->GetWorldAssetPackageName().EndsWith(SafeLevelName, ESearchCase::IgnoreCase))
 		{
-			if (LevelStreaming && LevelStreaming->GetWorldAssetPackageName().EndsWith(SafeLevelName, ESearchCase::IgnoreCase))
-			{
-				return LevelStreaming;
-			}
+			return LevelStreaming;
 		}
 	}
 
@@ -239,7 +235,12 @@ private:
 			NameToLevelMap.Remove(SafeLevelName);
 		}
 
-		ULevelStreaming* Level = GetStreamingLevel(SafeLevelName, World);
+		if (SafeLevelName == NAME_None)
+		{
+			return nullptr;
+		}
+
+		ULevelStreaming* Level = GetStreamingLevel(SafeLevelName.ToString(), World);
 		if (Level)
 		{
 			NameToLevelMap.Add(SafeLevelName, Level);
