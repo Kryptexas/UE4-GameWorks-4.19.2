@@ -221,20 +221,20 @@ void ABaseTransformGizmo::GetBoundingBoxEdge( const FBox& Box, const int32 AxisI
 
 
 
-void ABaseTransformGizmo::UpdateHandleVisibility( const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, const bool bAllHandlesVisible, UActorComponent* DraggingHandle )
+void ABaseTransformGizmo::UpdateHandleVisibility(const EGizmoHandleTypes InGizmoType, const ECoordSystem InGizmoCoordinateSpace, const bool bInAllHandlesVisible, UActorComponent* DraggingHandle)
 {
 	for ( UGizmoHandleGroup* HandleGroup : AllHandleGroups )
 	{
 		if ( HandleGroup != nullptr )
 		{
-			const bool bIsTypeSupported = ( GizmoType == EGizmoHandleTypes::All && HandleGroup->GetShowOnUniversalGizmo() ) || HandleGroup->GetHandleType() == GizmoType;
-			const bool bSupportsCurrentCoordinateSpace = HandleGroup->SupportsWorldCoordinateSpace() || GizmoCoordinateSpace != COORD_World;
+			const bool bIsTypeSupported = ( InGizmoType == EGizmoHandleTypes::All && HandleGroup->GetShowOnUniversalGizmo() ) || HandleGroup->GetHandleType() == InGizmoType;
+			const bool bSupportsCurrentCoordinateSpace = HandleGroup->SupportsWorldCoordinateSpace() || InGizmoCoordinateSpace != COORD_World;
 
 			for ( FGizmoHandle& Handle : HandleGroup->GetHandles() )
 			{
 				if( Handle.HandleMesh != nullptr )
 				{
-					const bool bShowIt = ( bIsTypeSupported && bSupportsCurrentCoordinateSpace && bAllHandlesVisible ) || ( DraggingHandle != nullptr && DraggingHandle == Handle.HandleMesh );
+					const bool bShowIt = ( bIsTypeSupported && bSupportsCurrentCoordinateSpace && bInAllHandlesVisible ) || ( DraggingHandle != nullptr && DraggingHandle == Handle.HandleMesh );
 
 					Handle.HandleMesh->SetVisibility( bShowIt );
 
