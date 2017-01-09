@@ -266,6 +266,7 @@ void FEdModeLandscape::AddReferencedObjects(FReferenceCollector& Collector)
 	Collector.AddReferencedObject(GSelectionRegionMaterial);
 	Collector.AddReferencedObject(GMaskRegionMaterial);
 	Collector.AddReferencedObject(GLandscapeBlackTexture);
+	Collector.AddReferencedObject(GLandscapeLayerUsageMaterial);
 }
 
 void FEdModeLandscape::InitializeToolModes()
