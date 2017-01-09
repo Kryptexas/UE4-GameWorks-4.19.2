@@ -365,6 +365,9 @@ void UAnimSequence::PostLoad()
 	{
 		RemoveNaNTracks();
 	}
+
+	VerifyTrackMap(nullptr);
+
 #endif // WITH_EDITOR
 
 	Super::PostLoad();
@@ -554,7 +557,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 {
 	USkeleton* UseSkeleton = (MySkeleton)? MySkeleton: GetSkeleton();
 
-	if( AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && UseSkeleton!=NULL)
+	if( AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && UseSkeleton!=nullptr)
 	{
 		ShowResaveMessage(this);
 
@@ -566,7 +569,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 			AnimationTrackNames[I] = UseSkeleton->GetReferenceSkeleton().GetBoneName(TrackMap.BoneTreeIndex);
 		}
 	}
-	else if (UseSkeleton != NULL)
+	else if (UseSkeleton != nullptr)
 	{
 		// first check if any of them needs to be removed
 		{
@@ -580,7 +583,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 			{
 				int32 SkeletonBoneIndex = TrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
 				// invalid index found
-				if(NumSkeletonBone <= SkeletonBoneIndex)
+				if(SkeletonBoneIndex == INDEX_NONE || NumSkeletonBone <= SkeletonBoneIndex)
 				{
 					// if one is invalid, fix up for all.
 					// you don't know what index got messed up
