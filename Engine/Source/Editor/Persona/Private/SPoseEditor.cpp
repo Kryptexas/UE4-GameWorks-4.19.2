@@ -304,7 +304,7 @@ void SPoseViewer::Construct(const FArguments& InArgs, const TSharedRef<IPersonaT
 	InPreviewScene->RegisterOnPreviewMeshChanged(FOnPreviewMeshChanged::CreateSP(this, &SPoseViewer::OnPreviewMeshChanged));
 	InPreviewScene->RegisterOnAnimChanged(FOnAnimChanged::CreateSP(this, &SPoseViewer::OnAssetChanged));
 
-	OnDelegatePoseListChangedDelegateHandle = PoseAssetPtr->RegisterOnPoseListChanged(UPoseAsset::FOnPoseListChanged::CreateSP(this, &SPoseViewer::RefreshList));
+	OnDelegatePoseListChangedDelegateHandle = PoseAssetPtr->RegisterOnPoseListChanged(UPoseAsset::FOnPoseListChanged::CreateSP(this, &SPoseViewer::OnPoseAssetModified));
 
 	// Register and bind all our menu commands
 	FPoseEditorCommands::Register();
@@ -792,10 +792,22 @@ SPoseViewer::~SPoseViewer()
 	}
 }
 
-void SPoseViewer::RefreshList()
+void SPoseViewer::OnPoseAssetModified()
 {
 	CreatePoseList(NameFilterBox->GetText().ToString());
 	CreateCurveList(NameFilterBox->GetText().ToString());
+
+	// it needs reinitialization of animation system
+	// so that pose blender can reinitialize names and so on correctly
+	if (PreviewScenePtr.IsValid())
+	{
+		UDebugSkelMeshComponent* PreviewComponent = PreviewScenePtr.Pin()->GetPreviewMeshComponent();
+		if (PreviewComponent)
+		{
+			PreviewComponent->InitAnim(true);
+		}
+	}
+	
 }
 
 void SPoseViewer::ApplyCustomCurveOverride(UAnimInstance* AnimInstance) const
