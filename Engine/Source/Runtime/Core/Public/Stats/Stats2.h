@@ -1172,7 +1172,7 @@ private:
 		 *  Should be enough to handle all threads.
 		 *  Increase if you encounter a crash.
 		 */
-		NUM_ELEMENTS_IN_POOL = 128,
+		NUM_ELEMENTS_IN_POOL = 512
 	};
 
 	/** Lock free pool of FThreadStats instances. */
