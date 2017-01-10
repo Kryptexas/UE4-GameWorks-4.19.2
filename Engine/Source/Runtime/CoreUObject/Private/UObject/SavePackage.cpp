@@ -1186,6 +1186,9 @@ public:
 			(*MutableArchive) << TempObject;
 		}
 
+		// Manually mark the name as referenced, in case it got skipped due to delta serialization
+		SavePackageState->MarkNameAsReferenced(ValueName);
+
 		Linker->SearchableNamesObjectMap.FindOrAdd(TypeObject).AddUnique(ValueName);
 	}
 
