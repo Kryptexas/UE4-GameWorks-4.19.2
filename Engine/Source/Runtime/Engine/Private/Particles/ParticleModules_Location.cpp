@@ -2919,44 +2919,54 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBone(FParticl
 		}
 
 		return Model.SkinWeightVertexBuffer.HasExtraBoneInfluences()
-			? VertInfluencedByActiveBoneTyped<true>(Model, Section, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex)
-			: VertInfluencedByActiveBoneTyped<false>(Model, Section, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex);
+			? VertInfluencedByActiveBoneTyped<true>(Model, 0, Section, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex)
+			: VertInfluencedByActiveBoneTyped<false>(Model, 0, Section, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex);
 	}
 	return false;
 }
 
 template<bool bExtraBoneInfluencesT>
-bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(FStaticLODModel& Model, const FSkelMeshSection& Section, int32 VertIndex, USkeletalMeshComponent* InSkelMeshComponent, FModuleLocationVertSurfaceInstancePayload* InstancePayload, int32* OutBoneIndex)
+bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(
+	FStaticLODModel& Model, 
+	int32 LODIndex,
+	const FSkelMeshSection& Section, 
+	int32 VertIndex, 
+	USkeletalMeshComponent* InSkelMeshComponent, 
+	FModuleLocationVertSurfaceInstancePayload* InstancePayload, 
+	int32* OutBoneIndex)
 {
 	const TArray<int32>& MasterBoneMap = InSkelMeshComponent->GetMasterBoneMap();
 	// Get weights on this vertex
-	const TSkinWeightInfo<bExtraBoneInfluencesT>* SrcSkinWeights = Model.SkinWeightVertexBuffer.GetSkinWeightPtr<bExtraBoneInfluencesT>(Section.GetVertexBufferIndex() + VertIndex);
+	FSkinWeightVertexBuffer* WeightBuffer = InSkelMeshComponent->GetSkinWeightBuffer(LODIndex);
+	if (WeightBuffer)
+	{
+		const TSkinWeightInfo<bExtraBoneInfluencesT>* SrcSkinWeights = WeightBuffer->GetSkinWeightPtr<bExtraBoneInfluencesT>(Section.GetVertexBufferIndex() + VertIndex);
 
 #if !PLATFORM_LITTLE_ENDIAN
-	// uint8[] elements in LOD.VertexBufferGPUSkin have been swapped for VET_UBYTE4 vertex stream use
-	for(int32 InfluenceIndex = MAX_INFLUENCES-1;InfluenceIndex >=  MAX_INFLUENCES- Section.MaxBoneInfluences;InfluenceIndex--)
+		// uint8[] elements in LOD.VertexBufferGPUSkin have been swapped for VET_UBYTE4 vertex stream use
+		for (int32 InfluenceIndex = MAX_INFLUENCES - 1; InfluenceIndex >= MAX_INFLUENCES - Section.MaxBoneInfluences; InfluenceIndex--)
 #else
-	for(int32 InfluenceIndex = 0;InfluenceIndex < Section.MaxBoneInfluences;InfluenceIndex++)
+		for (int32 InfluenceIndex = 0; InfluenceIndex < Section.MaxBoneInfluences; InfluenceIndex++)
 #endif
-	{
-		int32 BoneIndex = Section.BoneMap[SrcSkinWeights->InfluenceBones[InfluenceIndex]];
-		if(InSkelMeshComponent->MasterPoseComponent.IsValid())
-		{		
-			check(MasterBoneMap.Num() == InSkelMeshComponent->SkeletalMesh->RefSkeleton.GetNum());
-			BoneIndex = MasterBoneMap[BoneIndex];
-		}
-
-		if(!InstancePayload->NumValidAssociatedBoneIndices || InstancePayload->ValidAssociatedBoneIndices.Contains(BoneIndex))
 		{
-			if(OutBoneIndex)
+			int32 BoneIndex = Section.BoneMap[SrcSkinWeights->InfluenceBones[InfluenceIndex]];
+			if (InSkelMeshComponent->MasterPoseComponent.IsValid())
 			{
-				*OutBoneIndex = BoneIndex;
+				check(MasterBoneMap.Num() == InSkelMeshComponent->SkeletalMesh->RefSkeleton.GetNum());
+				BoneIndex = MasterBoneMap[BoneIndex];
 			}
 
-			return true;
+			if (!InstancePayload->NumValidAssociatedBoneIndices || InstancePayload->ValidAssociatedBoneIndices.Contains(BoneIndex))
+			{
+				if (OutBoneIndex)
+				{
+					*OutBoneIndex = BoneIndex;
+				}
+
+				return true;
+			}
 		}
 	}
-
 
 	return false;
 }

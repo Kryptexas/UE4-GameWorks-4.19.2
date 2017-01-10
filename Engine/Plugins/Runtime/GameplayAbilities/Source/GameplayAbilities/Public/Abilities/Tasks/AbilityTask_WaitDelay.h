@@ -29,7 +29,6 @@ private:
 
 	void OnTimeFinish();
 
-	virtual void OnDestroy(bool AbilityEnded) override;
 	float Time;
 	float TimeStarted;
 };

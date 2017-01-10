@@ -20,6 +20,11 @@ void FAnimPreviewInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 	// link up our curve post-process mini-graph
 	PoseBlendNode.SourcePose.SetLinkNode(&CurveSource);
 	CurveSource.SourcePose.SetLinkNode(&SingleNode);
+
+	// initialize node manually 
+	FAnimationInitializeContext InitContext(this);
+	// since curve source is linked to pose blend node, it won't need initialize
+	PoseBlendNode.Initialize(InitContext);
 }
 
 void FAnimPreviewInstanceProxy::ResetModifiedBone(bool bCurveController)

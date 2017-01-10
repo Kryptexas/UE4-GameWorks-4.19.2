@@ -347,12 +347,6 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	MaxDistanceFadeRange = 0.0f;
 }
 
-
-void ULightComponent::UpdateLightGUIDs()
-{
-	Super::UpdateLightGUIDs();
-}
-
 bool ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive) const
 {
 	// Check whether the light affects the primitive's bounding volume.

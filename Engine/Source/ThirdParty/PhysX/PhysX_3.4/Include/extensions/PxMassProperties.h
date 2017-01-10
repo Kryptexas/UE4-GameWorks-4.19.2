@@ -98,7 +98,7 @@ public:
 				const PxBoxGeometry& b = static_cast<const PxBoxGeometry&>(geometry);
 				mass = b.halfExtents.x * b.halfExtents.y * b.halfExtents.z * 8.0f;
 				PxVec3 d2 = b.halfExtents.multiply(b.halfExtents);
-				inertiaTensor = PxMat33::createDiagonal(PxVec3(d2.y + d2.z, d2.x + d2.z, d2.x + d2.y)) * (mass * 2.0f / 3.0f);
+				inertiaTensor = PxMat33::createDiagonal(PxVec3(d2.y + d2.z, d2.x + d2.z, d2.x + d2.y)) * (mass * 1.0f / 3.0f);
 				centerOfMass = PxVec3(0.0f);
 			}
 			break;

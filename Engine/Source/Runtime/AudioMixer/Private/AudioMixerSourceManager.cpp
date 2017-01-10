@@ -122,6 +122,8 @@ namespace Audio
 
 		PostEffectBuffers.AddDefaulted(InNumSources);
 		OutputBuffer.AddDefaulted(InNumSources);
+		bIs3D.AddDefaulted(InNumSources);
+		bIsCenterChannelOnly.AddDefaulted(InNumSources);
 		bIsActive.AddDefaulted(InNumSources);
 		bIsPlaying.AddDefaulted(InNumSources);
 		bIsPaused.AddDefaulted(InNumSources);
@@ -138,6 +140,7 @@ namespace Audio
 
 		GameThreadInfo.bIsBusy.AddDefaulted(InNumSources);
 		GameThreadInfo.bIsDone.AddDefaulted(InNumSources);
+		GameThreadInfo.bNeedsSpeakerMap.AddDefaulted(InNumSources);
 		GameThreadInfo.bIsDebugMode.AddDefaulted(InNumSources);
 		GameThreadInfo.FreeSourceIndices.Reset(InNumSources);
 		for (int32 i = InNumSources - 1; i >= 0; --i)
@@ -187,6 +190,14 @@ namespace Audio
 		}
 #endif
 
+		// Call OnRelease on the BufferQueueListener to give it a chance 
+		// to release any resources it owns on the audio render thread
+		if (BufferQueueListener[SourceId])
+		{
+			BufferQueueListener[SourceId]->OnRelease();
+			BufferQueueListener[SourceId] = nullptr;
+		}
+
 		// Remove the mixer source from its submix sends
 		TMap<uint32, FMixerSourceSubmixSend>& SubmixSends = MixerSources[SourceId]->GetSubmixSends();
 		for (auto SubmixSendItem : SubmixSends)
@@ -206,7 +217,6 @@ namespace Audio
 		LowPassFilters[SourceId].Reset();
 		ChannelMapParam[SourceId].Reset();
 		BufferQueue[SourceId].Empty();
-		BufferQueueListener[SourceId] = nullptr;
 		CurrentPCMBuffer[SourceId] = nullptr;
 		CurrentAudioChunkNumFrames[SourceId] = 0;
 		SourceBuffer[SourceId].Reset();
@@ -217,6 +227,8 @@ namespace Audio
 		NumFramesPlayed[SourceId] = 0;
 		PostEffectBuffers[SourceId].Reset();
 		OutputBuffer[SourceId].Reset();
+		bIs3D[SourceId] = false;
+		bIsCenterChannelOnly[SourceId] = false;
 		bIsActive[SourceId] = false;
 		bIsPlaying[SourceId] = false;
 		bIsDone[SourceId] = true;
@@ -229,6 +241,8 @@ namespace Audio
 		DebugName[SourceId] = FString();
 		NumInputChannels[SourceId] = 0;
 		NumPostEffectChannels[SourceId] = 0;
+
+		GameThreadInfo.bNeedsSpeakerMap[SourceId] = false;
 	}
 
 	bool FMixerSourceManager::GetFreeSourceId(int32& OutSourceId)
@@ -273,7 +287,6 @@ namespace Audio
 		AudioMixerThreadCommand([this, SourceId, InitParams]()
 		{
 			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
-			AUDIO_MIXER_CHECK(InitParams.OwningSubmix != nullptr);
 			AUDIO_MIXER_CHECK(InitParams.SourceVoice != nullptr);
 
 			bIsPlaying[SourceId] = false;
@@ -434,17 +447,49 @@ namespace Audio
 		});
 	}
 
-	void FMixerSourceManager::SetChannelMap(const int32 SourceId, const TArray<float>& ChannelMap)
+	void FMixerSourceManager::SetChannelMap(const int32 SourceId, const TArray<float>& ChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly)
 	{
 		AUDIO_MIXER_CHECK(SourceId < NumTotalSources);
 		AUDIO_MIXER_CHECK(GameThreadInfo.bIsBusy[SourceId]);
 		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
 
-		AudioMixerThreadCommand([this, SourceId, ChannelMap]()
+		AudioMixerThreadCommand([this, SourceId, ChannelMap, bInIs3D, bInIsCenterChannelOnly]()
 		{
 			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
-			ChannelMapParam[SourceId].SetChannelMap(ChannelMap);
+			// Set whether or not this is a 3d channel map and if its center channel only. Used for reseting channel maps on device change.
+			bIs3D[SourceId] = bInIs3D;
+			bIsCenterChannelOnly[SourceId] = bInIsCenterChannelOnly;
+
+			// Fix up the channel map in case device output count changed
+			const int32 NumSourceChannels = bUseHRTFSpatializer[SourceId] ? 2 : NumInputChannels[SourceId];
+			const int32 NumOutputChannels = MixerDevice->GetNumDeviceChannels();
+			const int32 ChannelMapSize = NumSourceChannels * NumOutputChannels;
+
+			// If this is true, then the device changed while the command was in-flight
+			if (ChannelMap.Num() != ChannelMapSize)
+			{
+				TArray<float> NewChannelMap;
+
+				// If 3d then just zero it out, we'll get another channel map shortly
+				if (bInIs3D)
+				{
+					NewChannelMap.AddZeroed(ChannelMapSize);
+					GameThreadInfo.bNeedsSpeakerMap[SourceId] = true;
+				}
+				// Otherwise, get an appropriate channel map for the new device configuration
+				else
+				{
+					MixerDevice->Get2DChannelMap(NumSourceChannels, NumOutputChannels, bInIsCenterChannelOnly, NewChannelMap);
+				}
+				ChannelMapParam[SourceId].SetChannelMap(NewChannelMap);
+			}
+			else
+			{
+				GameThreadInfo.bNeedsSpeakerMap[SourceId] = false;
+				ChannelMapParam[SourceId].SetChannelMap(ChannelMap);
+			}
+
 		});
 	}
 
@@ -517,6 +562,12 @@ namespace Audio
 		return GameThreadInfo.bIsDone[SourceId];
 	}
 
+	bool FMixerSourceManager::NeedsSpeakerMap(const int32 SourceId) const
+	{
+		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
+		return GameThreadInfo.bNeedsSpeakerMap[SourceId];
+	}
+
 	void FMixerSourceManager::ReadSourceFrame(const int32 SourceId)
 	{
 		const int32 NumChannels = NumInputChannels[SourceId];
@@ -553,7 +604,7 @@ namespace Audio
 				{
 					AUDIO_MIXER_DEBUG_LOG(SourceId, TEXT("Hit Loop boundary, looping."));
 
-					CurrentFrameIndex[SourceId] = CurrentFrameIndex[SourceId] - CurrentAudioChunkNumFrames[SourceId];
+					CurrentFrameIndex[SourceId] = FMath::Max(CurrentFrameIndex[SourceId] - CurrentAudioChunkNumFrames[SourceId], 0);
 					break;
 				}
 
@@ -568,7 +619,6 @@ namespace Audio
 				CurrentPCMBuffer[SourceId] = NewBufferPtr;
 
 				AUDIO_MIXER_CHECK(MixerSources[SourceId]->NumBuffersQueued.GetValue() > 0);
-				AUDIO_MIXER_CHECK(CurrentPCMBuffer[SourceId]->AudioBytes <= (uint32)CurrentPCMBuffer[SourceId]->AudioData.Num());
 
 				MixerSources[SourceId]->NumBuffersQueued.Decrement();
 
@@ -576,7 +626,16 @@ namespace Audio
 
 				// Subtract the number of frames in the current buffer from our frame index.
 				// Note: if this is the first time we're playing, CurrentFrameIndex will be 0
-				CurrentFrameIndex[SourceId] = FMath::Max(CurrentFrameIndex[SourceId] - CurrentAudioChunkNumFrames[SourceId] - 1, 0);
+				if (bReadCurrentFrame)
+				{
+					CurrentFrameIndex[SourceId] = FMath::Max(CurrentFrameIndex[SourceId] - CurrentAudioChunkNumFrames[SourceId], 0);
+				}
+				else
+				{
+					// Since we're not reading the current frame, we allow the current frame index to be negative (NextFrameIndex will then be 0)
+					// This prevents dropping a frame of audio on the buffer boundary
+					CurrentFrameIndex[SourceId] = -1;
+				}
 			}
 			else
 			{
@@ -626,6 +685,8 @@ namespace Audio
 	void FMixerSourceManager::ComputeSourceBuffers()
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
+
+		SCOPE_CYCLE_COUNTER(STAT_AudioMixerSourceBuffers);
 
 		const int32 NumFrames = MixerDevice->GetNumOutputFrames();
 
@@ -715,6 +776,8 @@ namespace Audio
 	void FMixerSourceManager::ComputePostSourceEffectBuffers()
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
+
+		SCOPE_CYCLE_COUNTER(STAT_AudioMixerSourceEffectBuffers);
 
 		// First run each source buffer through it's default source effects (e.g. LPF)
 
@@ -806,6 +869,8 @@ namespace Audio
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
+		SCOPE_CYCLE_COUNTER(STAT_AudioMixerSourceOutputBuffers);
+
 		const int32 NumFrames = MixerDevice->GetNumOutputFrames();
 		const int32 NumOutputChannels = MixerDevice->GetNumDeviceChannels();
 
@@ -881,7 +946,6 @@ namespace Audio
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 		AUDIO_MIXER_CHECK(SourceId < NumTotalSources);
-		AUDIO_MIXER_CHECK(OutputBuffer.Num() == OutputBuffer[SourceId].Num());
 
 		if (DryLevel > 0.0f)
 		{
@@ -901,9 +965,42 @@ namespace Audio
 
 	}
 
+	void FMixerSourceManager::UpdateDeviceChannelCount(const int32 InNumOutputChannels)
+	{
+		// Update all source's to appropriate channel maps
+		for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
+		{
+			// Don't need to do anything if it's not active
+			if (!bIsActive[SourceId])
+			{
+				continue;
+			}
+
+			ScratchChannelMap.Reset();
+			const int32 NumSoureChannels = bUseHRTFSpatializer[SourceId] ? 2 : NumInputChannels[SourceId];
+
+			// If this is a 3d source, then just zero out the channel map, it'll cause a temporary blip
+			// but it should reset in the next tick
+			if (bIs3D[SourceId])
+			{
+				GameThreadInfo.bNeedsSpeakerMap[SourceId] = true;
+				ScratchChannelMap.AddZeroed(NumSoureChannels * InNumOutputChannels);
+			}
+			// If it's a 2D sound, then just get a new channel map appropriate for the new device channel count
+			else
+			{			
+				ScratchChannelMap.Reset();
+				MixerDevice->Get2DChannelMap(NumSoureChannels, InNumOutputChannels, bIsCenterChannelOnly[SourceId], ScratchChannelMap);
+			}
+			ChannelMapParam[SourceId].SetChannelMap(ScratchChannelMap);
+		}
+	}
+
 	void FMixerSourceManager::ComputeNextBlockOfSamples()
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
+
+		SCOPE_CYCLE_COUNTER(STAT_AudioMixerSourceManagerUpdate);
 
 		if (bPumpQueue)
 		{

@@ -1,10 +1,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
+#include "Rendering/PositionVertexBuffer.h"
+
 #include "CoreMinimal.h"
 #include "RHI.h"
 #include "Components.h"
 
-#include "StaticMeshResources.h"
 #include "StaticMeshVertexData.h"
 
 /*-----------------------------------------------------------------------------

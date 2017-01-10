@@ -12,11 +12,6 @@ USoundEffectPreset::USoundEffectPreset(const FObjectInitializer& ObjectInitializ
 {
 }
 
-void USoundEffectPreset::BeginDestroy()
-{
-	Super::BeginDestroy();
-}
-
 void USoundEffectPreset::Init()
 {
 	PresetSettings.Data = GetSettings();

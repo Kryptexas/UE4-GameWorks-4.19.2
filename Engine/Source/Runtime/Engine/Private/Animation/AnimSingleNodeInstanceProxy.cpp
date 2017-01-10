@@ -19,6 +19,10 @@ void FAnimSingleNodeInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 	// it's already doing it when evaluate
 	BlendSpaceInput = FVector::ZeroVector;
 	CurrentTime = 0.f;
+
+	// initialize node manually 
+	FAnimationInitializeContext InitContext(this);
+	SingleNode.Initialize(InitContext);
 }
 
 bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)

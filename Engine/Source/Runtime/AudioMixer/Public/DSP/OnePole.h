@@ -8,7 +8,7 @@
 namespace Audio
 {
 	// Simple 1-pole lowpass filter
-	class FOnePoleLPF
+	class AUDIOMIXER_API FOnePoleLPF
 	{
 	public:
 
@@ -53,7 +53,7 @@ namespace Audio
 			float Yn = InputSample*A0 + B1*Z1;
 
 			// Underflow check
-			UnderflowClamp(Yn);
+			Yn = UnderflowClamp(Yn);
 
 			// Write to z1 delayed sample
 			Z1 = Yn;

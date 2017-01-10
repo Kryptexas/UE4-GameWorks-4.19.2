@@ -70,8 +70,3 @@ void UAbilityTask_WaitInputPress::Activate()
 		}
 	}
 }
-
-void UAbilityTask_WaitInputPress::OnDestroy(bool AbilityEnded)
-{
-	Super::OnDestroy(AbilityEnded);
-}

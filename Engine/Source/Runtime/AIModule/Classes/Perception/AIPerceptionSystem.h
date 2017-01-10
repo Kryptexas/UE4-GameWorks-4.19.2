@@ -101,9 +101,6 @@ protected:
 	TArray<FPerceptionSourceRegistration> SourcesToRegister;
 
 public:
-	/** UObject begin */
-	virtual void PostInitProperties() override;
-	/* UObject end */
 
 	FORCEINLINE bool IsSenseInstantiated(const FAISenseID& SenseID) const { return SenseID.IsValid() && Senses.IsValidIndex(SenseID) && Senses[SenseID] != nullptr; }
 

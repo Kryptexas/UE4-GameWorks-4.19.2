@@ -310,4 +310,33 @@ void UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(UObject* WorldContextO
 	}
 }
 
+FSkelMeshSkinWeightInfo UKismetRenderingLibrary::MakeSkinWeightInfo(int32 Bone0, uint8 Weight0, int32 Bone1, uint8 Weight1, int32 Bone2, uint8 Weight2, int32 Bone3, uint8 Weight3)
+{
+	FSkelMeshSkinWeightInfo Info;
+	FMemory::Memzero(&Info, sizeof(FSkelMeshSkinWeightInfo));
+	Info.Bones[0] = Bone0;
+	Info.Weights[0] = Weight0;
+	Info.Bones[1] = Bone1;
+	Info.Weights[1] = Weight1;
+	Info.Bones[2] = Bone2;
+	Info.Weights[2] = Weight2;
+	Info.Bones[3] = Bone3;
+	Info.Weights[3] = Weight3;
+	return Info;
+}
+
+
+void UKismetRenderingLibrary::BreakSkinWeightInfo(FSkelMeshSkinWeightInfo InWeight, int32& Bone0, uint8& Weight0, int32& Bone1, uint8& Weight1, int32& Bone2, uint8& Weight2, int32& Bone3, uint8& Weight3)
+{
+	FMemory::Memzero(&InWeight, sizeof(FSkelMeshSkinWeightInfo));
+	Bone0 = InWeight.Bones[0];
+	Weight0 = InWeight.Weights[0];
+	Bone1 = InWeight.Bones[1];
+	Weight1 = InWeight.Weights[1];
+	Bone2 = InWeight.Bones[2];
+	Weight2 = InWeight.Weights[2];
+	Bone3 = InWeight.Bones[3];
+	Weight3 = InWeight.Weights[3];
+}
+
 #undef LOCTEXT_NAMESPACE

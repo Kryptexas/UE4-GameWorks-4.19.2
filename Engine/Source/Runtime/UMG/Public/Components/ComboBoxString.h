@@ -131,10 +131,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="ComboBox")
 	int32 GetOptionCount() const;
 
-	//~ Begin UWidget Interface
-	virtual void SynchronizeProperties() override;
-	//~ End UWidget Interface
-
 	//~ Begin UVisual Interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 	//~ End UVisual Interface

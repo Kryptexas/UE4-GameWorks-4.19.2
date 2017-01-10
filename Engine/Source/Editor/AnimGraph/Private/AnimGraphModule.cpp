@@ -12,6 +12,7 @@
 #include "EditModes/ModifyBoneEditMode.h"
 #include "EditModes/FabrikEditMode.h"
 #include "EditModes/PoseDriverEditMode.h"
+#include "EditModes/SplineIKEditMode.h"
 
 IMPLEMENT_MODULE(FAnimGraphModule, AnimGraph);
 
@@ -28,11 +29,13 @@ void FAnimGraphModule::StartupModule()
 	FEditorModeRegistry::Get().RegisterMode<FModifyBoneEditMode>(AnimNodeEditModes::ModifyBone, LOCTEXT("ModifyBoneEditMode", "Modify Bone"), FSlateIcon(), false);
 	FEditorModeRegistry::Get().RegisterMode<FFabrikEditMode>(AnimNodeEditModes::Fabrik, LOCTEXT("FabrikEditMode", "Fabrik"), FSlateIcon(), false);
 	FEditorModeRegistry::Get().RegisterMode<FPoseDriverEditMode>(AnimNodeEditModes::PoseDriver, LOCTEXT("PoseDriverEditMode", "PoseDriver"), FSlateIcon(), false);
+	FEditorModeRegistry::Get().RegisterMode<FSplineIKEditMode>(AnimNodeEditModes::SplineIK, LOCTEXT("SplineIKEditMode", "Spline IK"), FSlateIcon(), false);
 }
 
 void FAnimGraphModule::ShutdownModule()
 {
 	// Unregister the editor modes
+	FEditorModeRegistry::Get().UnregisterMode(AnimNodeEditModes::SplineIK);
 	FEditorModeRegistry::Get().UnregisterMode(AnimNodeEditModes::PoseDriver);
 	FEditorModeRegistry::Get().UnregisterMode(AnimNodeEditModes::Fabrik);
 	FEditorModeRegistry::Get().UnregisterMode(AnimNodeEditModes::ModifyBone);

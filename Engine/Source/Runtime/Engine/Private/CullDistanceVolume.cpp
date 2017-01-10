@@ -58,16 +58,16 @@ bool ACullDistanceVolume::CanBeAffectedByVolumes( UPrimitiveComponent* Primitive
 	// Skip primitives that is hidden set as we don't want to cull out brush rendering or other helper objects.
 	&&	PrimitiveComponent->IsVisible()
 	// Disregard prefabs.
-	&& !PrimitiveComponent->IsTemplate()
-	// Only operate on primitives attached to the owners world.			
-	&&	PrimitiveComponent->GetScene() == Owner->GetWorld()->Scene)
+	&& !PrimitiveComponent->IsTemplate())
 	{
-		return true;
+		// Only operate on primitives attached to the owners world.
+		UWorld* OwnerWorld = Owner->GetWorld();
+		if (OwnerWorld && (PrimitiveComponent->GetScene() == Owner->GetWorld()->Scene))
+		{
+			return true;
+		}
 	}
-	else
-	{
-		return false;
-	}	
+	return false;
 }
 
 void ACullDistanceVolume::GetPrimitiveMaxDrawDistances(TMap<UPrimitiveComponent*,float>& OutCullDistances)

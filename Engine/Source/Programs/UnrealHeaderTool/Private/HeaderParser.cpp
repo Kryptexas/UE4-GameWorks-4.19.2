@@ -5663,7 +5663,9 @@ void FHeaderParser::ParseParameterList(FClasses& AllClasses, UFunction* Function
 					FString InnerDefaultValue;
 					const bool bDefaultValueParsed = DefaultValueStringCppFormatToInnerFormat(Prop, DefaultArgText, InnerDefaultValue);
 					if (!bDefaultValueParsed)
+					{
 						FError::Throwf(TEXT("C++ Default parameter not parsed: %s \"%s\" "), *Prop->GetName(), *DefaultArgText);
+					}
 
 					if (InnerDefaultValue.IsEmpty())
 					{
@@ -8237,27 +8239,43 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 		const UStructProperty* StructProperty = CastChecked<UStructProperty>(Property);
 		if( StructProperty->Struct == VectorStruct )
 		{
+			FString Parameters;
 			if(FDefaultValueHelper::Is( CppForm, TEXT("FVector::ZeroVector") ))
 			{
 				return true;
 			}
-			if(FDefaultValueHelper::Is(CppForm, TEXT("FVector::UpVector")))
+			else if(FDefaultValueHelper::Is(CppForm, TEXT("FVector::UpVector")))
 			{
 				OutForm = FString::Printf(TEXT("%f,%f,%f"),
 					FVector::UpVector.X, FVector::UpVector.Y, FVector::UpVector.Z);
 			}
-			FString Parameters;
-			if( FDefaultValueHelper::GetParameters(CppForm, TEXT("FVector"), Parameters) )
+			else if(FDefaultValueHelper::Is(CppForm, TEXT("FVector::ForwardVector")))
+			{
+				OutForm = FString::Printf(TEXT("%f,%f,%f"),
+					FVector::ForwardVector.X, FVector::ForwardVector.Y, FVector::ForwardVector.Z);
+			}
+			else if(FDefaultValueHelper::Is(CppForm, TEXT("FVector::RightVector")))
+			{
+				OutForm = FString::Printf(TEXT("%f,%f,%f"),
+					FVector::RightVector.X, FVector::RightVector.Y, FVector::RightVector.Z);
+			}
+			else if( FDefaultValueHelper::GetParameters(CppForm, TEXT("FVector"), Parameters) )
 			{
 				if( FDefaultValueHelper::Is(Parameters, TEXT("ForceInit")) )
 				{
 					return true;
 				}
 				FVector Vector;
-				if(FDefaultValueHelper::ParseVector(Parameters, Vector))
+				float Value;
+				if (FDefaultValueHelper::ParseVector(Parameters, Vector))
 				{
 					OutForm = FString::Printf(TEXT("%f,%f,%f"),
 						Vector.X, Vector.Y, Vector.Z);
+				}
+				else if (FDefaultValueHelper::ParseFloat(Parameters, Value))
+				{
+					OutForm = FString::Printf(TEXT("%f,%f,%f"),
+						Value, Value, Value);
 				}
 			}
 		}

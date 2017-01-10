@@ -1644,11 +1644,6 @@ TSharedPtr< SWindow > UWidgetComponent::GetVirtualWindow() const
 	return StaticCastSharedPtr<SWindow>(SlateWindow);
 }
 
-void UWidgetComponent::PostLoad()
-{
-	Super::PostLoad();
-}
-
 UMaterialInterface* UWidgetComponent::GetMaterial(int32 MaterialIndex) const
 {
 	if ( OverrideMaterials.IsValidIndex(MaterialIndex) && ( OverrideMaterials[MaterialIndex] != nullptr ) )

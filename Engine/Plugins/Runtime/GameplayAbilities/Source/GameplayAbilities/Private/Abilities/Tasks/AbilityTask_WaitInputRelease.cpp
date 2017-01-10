@@ -70,8 +70,3 @@ void UAbilityTask_WaitInputRelease::Activate()
 		}
 	}
 }
-
-void UAbilityTask_WaitInputRelease::OnDestroy(bool AbilityEnded)
-{
-	Super::OnDestroy(AbilityEnded);
-}

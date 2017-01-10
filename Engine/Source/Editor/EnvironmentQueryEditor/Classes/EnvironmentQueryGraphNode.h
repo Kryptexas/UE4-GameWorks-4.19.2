@@ -9,6 +9,15 @@
 
 class UEdGraphSchema;
 
+struct FEnvionmentQueryNodeStats
+{
+	float MaxTime;
+	float AvgTime;
+	int32 MaxNumProcessedItems;
+
+	FEnvionmentQueryNodeStats() : MaxTime(0.0f), AvgTime(0.0f), MaxNumProcessedItems(0) {}
+};
+
 UCLASS()
 class UEnvironmentQueryGraphNode : public UAIGraphNode
 {

@@ -16,11 +16,6 @@ USoundSubmix::USoundSubmix(const FObjectInitializer& ObjectInitializer)
 {
 }
 
-void USoundSubmix::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-}
-
 FString USoundSubmix::GetDesc()
 {
 	return FString(TEXT("Sound submix"));
@@ -55,15 +50,6 @@ void USoundSubmix::PostLoad()
 }
 
 #if WITH_EDITOR
-
-void USoundSubmix::PreEditChange(UProperty* PropertyAboutToChange)
-{
-}
-
-void USoundSubmix::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-}
 
 bool USoundSubmix::RecurseCheckChild(USoundSubmix* ChildSoundSubmix)
 {

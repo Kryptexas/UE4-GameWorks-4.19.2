@@ -63,10 +63,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Camera")
 	UCineCameraComponent* GetCineCameraComponent() const { return CineCameraComponent; }
 
-#if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
-
 protected:
 	/** Set to true to skip any interpolations on the next update. Resets to false automatically. */
 	uint8 bResetInterplation : 1;

@@ -682,6 +682,17 @@ protected:
 	/** debug point reach test values */
 	void DebugReachTest(float& CurrentDot, float& CurrentDistance, float& CurrentHeight, uint8& bDotFailed, uint8& bDistanceFailed, uint8& bHeightFailed) const;
 
+	/** called when NavigationSystem finishes initial navigation data registration.
+	 *	This is usually required by AI agents hand-placed on levels to find MyNavData */
+	virtual void OnNavigationInitDone();
+
+	/** called when NavigationSystem registers new navigation data type while this component
+	 *	instance has empty MyNavData. This is usually the case for AI agents hand-placed
+	 *	on levels. */
+	UFUNCTION()
+	void OnNavDataRegistered(ANavigationData* NavData);
+
+
 	/** used to keep track of which subsystem requested this AI resource be locked */
 	FAIResourceLock ResourceLock;
 

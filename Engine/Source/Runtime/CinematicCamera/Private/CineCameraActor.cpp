@@ -20,13 +20,6 @@ ACineCameraActor::ACineCameraActor(const FObjectInitializer& ObjectInitializer)
 	SetActorTickEnabled(true);
 }
 
-#if WITH_EDITOR
-void ACineCameraActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-}
-#endif
-
 void ACineCameraActor::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();

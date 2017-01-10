@@ -57,11 +57,6 @@ void UVREditorInteractor::Shutdown()
 	Super::Shutdown();
 }
 
-void UVREditorInteractor::Tick( const float DeltaTime )
-{
-	Super::Tick( DeltaTime );
-}
-
 FHitResult UVREditorInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* OptionalListOfIgnoredActors /*= nullptr*/, const bool bIgnoreGizmos /*= false*/,
 	TArray<UClass*>* ObjectsInFrontOfGizmo /*= nullptr */, const bool bEvenIfBlocked /*= false */, const float LaserLengthOverride /*= 0.0f */ )
 {

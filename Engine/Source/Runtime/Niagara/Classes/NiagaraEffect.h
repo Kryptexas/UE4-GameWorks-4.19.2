@@ -51,13 +51,13 @@ struct NIAGARA_API FNiagaraParameterBinding
 			DestinationParameterId == Other.DestinationParameterId;
 	}
 
+
 private:
 	UPROPERTY()
 	FGuid SourceParameterId;
 
 	UPROPERTY()
 	FGuid DestinationEmitterId;
-
 	UPROPERTY()
 	FGuid DestinationParameterId;
 };

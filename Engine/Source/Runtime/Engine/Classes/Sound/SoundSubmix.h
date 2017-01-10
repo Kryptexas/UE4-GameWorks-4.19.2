@@ -51,15 +51,10 @@ class ENGINE_API USoundSubmix : public UObject
 protected:
 
 	//~ Begin UObject Interface.
-	virtual void Serialize(FArchive& Ar) override;
 	virtual FString GetDesc() override;
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
 
-#if WITH_EDITOR
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
 	//~ End UObject Interface.
 
 public:

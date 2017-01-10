@@ -18,7 +18,7 @@ namespace Audio
 		int32 Azimuth;
 
 		FChannelPositionInfo()
-			: Channel(EAudioMixerChannel::Unused)
+			: Channel(EAudioMixerChannel::Unknown)
 			, Azimuth(0)
 		{}
 
@@ -57,8 +57,6 @@ namespace Audio
 		bool IsExernalBackgroundSoundActive() override;
 		void Precache(USoundWave* InSoundWave, bool bSynchronous = false, bool bTrackMemory = true) override;
 		void ResumeContext() override;
-		void SetMaxChannels(int) override;
-		void StopAllSounds(bool) override;
 		void SuspendContext() override;
 		void EnableDebugAudioOutput() override;
 
@@ -93,8 +91,8 @@ namespace Audio
 		const TArray<FChannelPositionInfo>& GetCurrentChannelPositions() const { return CurrentChannelAzimuthPositions; }
 
 		void Get3DChannelMap(const FWaveInstance* InWaveInstance, const float EmitterAzimuth, const float NormalizedOmniRadius, TArray<float>& OutChannelMap);
-		void Get2DChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, TArray<float>& OutChannelMap) const;
-		const float* Get2DChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels) const;
+		void Get2DChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly, TArray<float>& OutChannelMap) const;
+		const float* Get2DChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly) const;
 
 		void SetChannelAzimuth(EAudioMixerChannel::Type ChannelType, int32 Azimuth);
 
@@ -110,10 +108,10 @@ namespace Audio
 	private:
 		void ResetAudioPlatformThreadId();
 
-		void Get2DChannelMapInternal(const int32 NumSourceChannels, const int32 NumOutputChannels, TArray<float>& OutChannelMap) const;
+		void Get2DChannelMapInternal(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly, TArray<float>& OutChannelMap) const;
 		void InitializeChannelMaps();
-		int32 GetChannelMapCacheId(const int32 NumSourceChannels, const int32 NumOutputChannels) const;
-		void CacheChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels);
+		int32 GetChannelMapCacheId(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly) const;
+		void CacheChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly);
 		void InitializeChannelAzimuthMap(const int32 NumChannels);
 
 		int32 GetAzimuthForChannelType(EAudioMixerChannel::Type ChannelType);

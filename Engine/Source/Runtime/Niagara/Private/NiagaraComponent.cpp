@@ -169,11 +169,6 @@ void UNiagaraComponent::OnRegister()
 }
 
 
-void UNiagaraComponent::OnUnregister()
-{
-	Super::OnUnregister();
-}
-
 void UNiagaraComponent::SendRenderDynamicData_Concurrent()
 {
 	if (EffectInstance.IsValid() && SceneProxy)

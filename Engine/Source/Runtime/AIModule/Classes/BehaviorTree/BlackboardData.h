@@ -88,7 +88,6 @@ public:
 
 	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void PreEditChange(class FEditPropertyChain& PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	void PropagateKeyChangesToDerivedBlackboardAssets();

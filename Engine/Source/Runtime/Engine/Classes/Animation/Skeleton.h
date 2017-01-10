@@ -224,6 +224,14 @@ public:
 	}
 };
 
+namespace VirtualBoneNameHelpers
+{
+	const FString VirtualBonePrefix(TEXT("VB "));
+
+	ENGINE_API FString AddVirtualBonePrefix(const FString& InName);
+	ENGINE_API FName RemoveVirtualBonePrefix(const FString& InName);
+}
+
 USTRUCT()
 struct FVirtualBone
 {
@@ -245,11 +253,8 @@ public:
 		: SourceBoneName(InSource)
 		, TargetBoneName(InTarget)
 	{
-		// VB Prefix including space after VB so that it will never collide with 
-		// an actual bone name (as they cannot contain spaces)
-		static FString VirtualBonePrefix(TEXT("VB "));
-
-		VirtualBoneName = FName( *(VirtualBonePrefix + SourceBoneName.ToString() + TEXT("_") + TargetBoneName.ToString()) );
+		FString VBNameString = VirtualBoneNameHelpers::AddVirtualBonePrefix(SourceBoneName.ToString() + TEXT("_") + TargetBoneName.ToString());
+		VirtualBoneName = FName(*VBNameString);
 	}
 };
 
@@ -348,6 +353,8 @@ public:
 	ENGINE_API bool AddNewVirtualBone(const FName SourceBoneName, const FName TargetBoneName, FName& NewVirtualBoneName);
 
 	ENGINE_API void RemoveVirtualBones(const TArray<FName>& BonesToRemove);
+
+	ENGINE_API void RenameVirtualBone(const FName OriginalBoneName, const FName NewBoneName);
 	
 	void HandleVirtualBoneChanges();
 

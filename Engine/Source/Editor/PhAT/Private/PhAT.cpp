@@ -631,6 +631,8 @@ void FPhAT::RefreshHierachyTreeSelection()
 		return;
 	}
 
+	InsideSelChanged = true;
+
 	if(Hierarchy.Get())
 	{
 		for(int32 i=0; i<TreeElements.Num(); ++i)
@@ -638,6 +640,8 @@ void FPhAT::RefreshHierachyTreeSelection()
 			Hierarchy->SetItemSelection(TreeElements[i], TreeElemSelected(TreeElements[i], SharedData, Hierarchy), ESelectInfo::Direct);
 		}
 	}
+
+	InsideSelChanged = false;
 }
 
 bool FPhAT::FilterTreeElement(FTreeElemPtr TreeElem) const
@@ -2591,7 +2595,7 @@ void FPhAT::OnResetEntireAsset()
 		SharedData->PhysicsAsset->ConstraintSetup.Empty();
 
 		FText ErrorMessage;
-		if (FPhysicsAssetUtils::CreateFromSkeletalMesh(SharedData->PhysicsAsset, SharedData->EditorSkelMesh, SharedData->NewBodyData, ErrorMessage) == false)
+		if (FPhysicsAssetUtils::CreateFromSkeletalMesh(SharedData->PhysicsAsset, SharedData->EditorSkelMesh, SharedData->NewBodyData, ErrorMessage, /*bSetToMesh=*/false) == false)
 		{
 			FMessageDialog::Open(EAppMsgType::Ok, ErrorMessage);
 		}
@@ -2630,10 +2634,12 @@ void FPhAT::OnResetBoneCollision()
 			int32 BoneIndex = SharedData->EditorSkelMesh->RefSkeleton.FindBoneIndex(BodySetup->BoneName);
 			check(BoneIndex != INDEX_NONE);
 
-			if(FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, SharedData->EditorSkelMesh, BoneIndex, SharedData->NewBodyData, (SharedData->NewBodyData.VertWeight == EVW_DominantWeight)? SharedData->DominantWeightBoneInfos: SharedData->AnyWeightBoneInfos))
+			const FBoneVertInfo& UseVertInfo = SharedData->NewBodyData.VertWeight == EVW_DominantWeight ? SharedData->DominantWeightBoneInfos[BoneIndex] : SharedData->AnyWeightBoneInfos[BoneIndex];
+			if(FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, SharedData->EditorSkelMesh, BoneIndex, SharedData->NewBodyData, UseVertInfo))
 			{
 				BodyIndices.AddUnique(SharedData->SelectedBodies[i].Index);
-			}else
+			}
+			else
 			{
 				FPhysicsAssetUtils::DestroyBody(SharedData->PhysicsAsset, SharedData->SelectedBodies[i].Index);
 			}

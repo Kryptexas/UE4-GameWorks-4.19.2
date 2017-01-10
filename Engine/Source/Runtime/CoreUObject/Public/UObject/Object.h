@@ -196,6 +196,11 @@ public:
 	 */
 	virtual bool Modify( bool bAlwaysMarkDirty=true );
 
+	/** 
+	 * Utility to allow overrides of Modify to avoid doing work if the base class is not going modify anyways.
+	 */
+	bool CanModify() const;
+
 #if WITH_EDITOR
 	/** 
 	 * Called when the object was loaded from another class via active class redirects.

@@ -21,7 +21,6 @@ class UK2Node_Copy : public UK2Node
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void PinTypeChanged(UEdGraphPin* Pin) override;
-	virtual void PostPasteNode() override;
 	//~ End UEdGraphNode Interface
 
 	//~ Begin UK2Node Interface

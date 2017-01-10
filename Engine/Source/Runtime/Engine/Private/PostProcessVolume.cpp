@@ -19,7 +19,8 @@ APostProcessVolume::APostProcessVolume(const FObjectInitializer& ObjectInitializ
 
 bool APostProcessVolume::EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float* OutDistanceToPoint)
 {
-	return Super::EncompassesPoint(Point, SphereRadius, OutDistanceToPoint);
+	// Redirect IInterface_PostProcessVolume's non-const pure virtual EncompassesPoint virtual in to AVolume's non-virtual const EncompassesPoint
+	return AVolume::EncompassesPoint(Point, SphereRadius, OutDistanceToPoint);
 }
 
 #if WITH_EDITOR

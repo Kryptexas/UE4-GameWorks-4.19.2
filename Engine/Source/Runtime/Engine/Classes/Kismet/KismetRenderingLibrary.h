@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "RHI.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Components/SkinnedMeshComponent.h"
 #include "KismetRenderingLibrary.generated.h"
 
 class UCanvas;
@@ -81,4 +82,12 @@ class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, Category="Rendering", meta=(Keywords="EndDrawCanvasToRenderTarget", WorldContext="WorldContextObject", UnsafeDuringActorConstruction="true"))
 	static ENGINE_API void EndDrawCanvasToRenderTarget(UObject* WorldContextObject, const FDrawToRenderTargetContext& Context);
+
+	/** Create FSkelMeshSkinWeightInfo */
+	UFUNCTION(BlueprintPure, Category = "Rendering", meta=(NativeMakeFunc))
+	static ENGINE_API FSkelMeshSkinWeightInfo MakeSkinWeightInfo(int32 Bone0, uint8 Weight0, int32 Bone1, uint8 Weight1, int32 Bone2, uint8 Weight2, int32 Bone3, uint8 Weight3);
+
+	/** Break FSkelMeshSkinWeightInfo */
+	UFUNCTION(BlueprintPure, Category = "Rendering", meta=(NativeBreakFunc))
+	static ENGINE_API void BreakSkinWeightInfo(FSkelMeshSkinWeightInfo InWeight, int32& Bone0, uint8& Weight0, int32& Bone1, uint8& Weight1, int32& Bone2, uint8& Weight2, int32& Bone3, uint8& Weight3);
 };

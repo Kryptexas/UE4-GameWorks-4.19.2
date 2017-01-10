@@ -6,7 +6,7 @@ namespace UnrealBuildTool.Rules
 	{
 		public AudioMixer(TargetInfo Target)
 		{
-			//OptimizeCode = CodeOptimization.Always;
+			OptimizeCode = CodeOptimization.Always;
 
 			PrivateIncludePathModuleNames.Add("TargetPlatform");
 

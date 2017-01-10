@@ -299,7 +299,7 @@ void SSkeletonTree::BindCommands()
 
 	CommandList.MapAction(
 		FGenericCommands::Get().Rename,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::OnRenameSocket ),
+		FExecuteAction::CreateSP( this, &SSkeletonTree::OnRenameSelected ),
 		FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanRenameSelected ) );
 
 	CommandList.MapAction(
@@ -589,25 +589,37 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 			MenuBuilder.EndSection();
 		}
 
-		if(BoneTreeSelection.HasSelectedOfType<FSkeletonTreeBoneItem>())
+		const bool bNeedsBoneActionsHeading = BoneTreeSelection.HasSelectedOfType<FSkeletonTreeBoneItem>() || BoneTreeSelection.HasSelectedOfType<FSkeletonTreeVirtualBoneItem>();
+
+		if (bNeedsBoneActionsHeading)
 		{
-			MenuBuilder.BeginSection("SkeletonTreeBonesAction", LOCTEXT( "BoneActions", "Selected Bone Actions" ) );
-			MenuBuilder.AddMenuEntry( Actions.CopyBoneNames );
-			MenuBuilder.AddMenuEntry( Actions.ResetBoneTransforms );
+			MenuBuilder.BeginSection("SkeletonTreeBonesAction", LOCTEXT("BoneActions", "Selected Bone Actions"));
+		}
+		
+		if (BoneTreeSelection.HasSelectedOfType<FSkeletonTreeBoneItem>())
+		{
+			MenuBuilder.AddMenuEntry(Actions.CopyBoneNames);
+			MenuBuilder.AddMenuEntry(Actions.ResetBoneTransforms);
 
-			if(BoneTreeSelection.IsSingleOfTypeSelected<FSkeletonTreeBoneItem>())
+			if (BoneTreeSelection.IsSingleOfTypeSelected<FSkeletonTreeBoneItem>())
 			{
-				MenuBuilder.AddMenuEntry( Actions.AddSocket );
-				MenuBuilder.AddMenuEntry( Actions.PasteSockets );
-				MenuBuilder.AddMenuEntry( Actions.PasteSocketsToSelectedBone );
+				MenuBuilder.AddMenuEntry(Actions.AddSocket);
+				MenuBuilder.AddMenuEntry(Actions.PasteSockets);
+				MenuBuilder.AddMenuEntry(Actions.PasteSocketsToSelectedBone);
 			}
+		}
 
+		if (bNeedsBoneActionsHeading)
+		{
 			MenuBuilder.AddSubMenu(LOCTEXT("AddVirtualBone", "Add Virtual Bone"),
 				LOCTEXT("AddVirtualBone_ToolTip", "Adds a virtual bone to the skeleton."),
-				FNewMenuDelegate::CreateSP(this, &SSkeletonTree::FillVirtualBoneSubmenu, BoneTreeSelection.SelectedBones));
+				FNewMenuDelegate::CreateSP(this, &SSkeletonTree::FillVirtualBoneSubmenu, BoneTreeSelection.SelectedItems));
 
 			MenuBuilder.EndSection();
+		}
 
+		if(BoneTreeSelection.HasSelectedOfType<FSkeletonTreeBoneItem>())
+		{
 			UBlendProfile* const SelectedBlendProfile = BlendProfilePicker->GetSelectedBlendProfile();
 			if(SelectedBlendProfile && BoneTreeSelection.IsSingleOfTypeSelected<FSkeletonTreeBoneItem>())
 			{
@@ -692,6 +704,18 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 			MenuBuilder.EndSection();
 		}
 
+		if (BoneTreeSelection.HasSelectedOfType<FSkeletonTreeVirtualBoneItem>())
+		{
+			MenuBuilder.BeginSection("SkeletonTreeVirtualBoneActions", LOCTEXT("VirtualBoneActions", "Selected Virtual Bone Actions"));
+
+			if (BoneTreeSelection.IsSingleOfTypeSelected<FSkeletonTreeVirtualBoneItem>())
+			{
+				MenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename, NAME_None, LOCTEXT("RenameVirtualBone_Label", "Rename Virtual Bone"), LOCTEXT("RenameVirtualBone_Tooltip", "Rename this virtual bone"));
+			}
+
+			MenuBuilder.EndSection();
+		}
+
 		if(BoneTreeSelection.HasSelectedOfType<FSkeletonTreeSocketItem>())
 		{
 			MenuBuilder.BeginSection("SkeletonTreeSocketsActions", LOCTEXT( "SocketActions", "Selected Socket Actions" ) );
@@ -750,7 +774,22 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 	return MenuBuilder.MakeWidget();
 }
 
-void SSkeletonTree::FillVirtualBoneSubmenu(FMenuBuilder& MenuBuilder, TArray<TSharedPtr<FSkeletonTreeBoneItem>> SourceBones)
+bool GetSourceNameFromItem(TSharedPtr<ISkeletonTreeItem> SourceBone, FName& OutName)
+{
+	if (SourceBone->IsOfType<FSkeletonTreeBoneItem>())
+	{
+		OutName = SourceBone->GetRowItemName();
+		return true;
+	}
+	if (SourceBone->IsOfType<FSkeletonTreeVirtualBoneItem>())
+	{
+		OutName = SourceBone->GetRowItemName();
+		return true;
+	}
+	return false;
+}
+
+void SSkeletonTree::FillVirtualBoneSubmenu(FMenuBuilder& MenuBuilder, TArray<TSharedPtr<ISkeletonTreeItem>> SourceBones)
 {
 	const bool bShowVirtualBones = false;
 	TSharedRef<SWidget> MenuContent = SNew(SBoneTreeMenu, GetEditableSkeletonInternal())
@@ -760,18 +799,18 @@ void SSkeletonTree::FillVirtualBoneSubmenu(FMenuBuilder& MenuBuilder, TArray<TSh
 	MenuBuilder.AddWidget(MenuContent, FText::GetEmpty(), true);
 }
 
-void SSkeletonTree::OnVirtualTargetBonePicked(FName TargetBoneName, TArray<TSharedPtr<FSkeletonTreeBoneItem>> SourceBones)
+void SSkeletonTree::OnVirtualTargetBonePicked(FName TargetBoneName, TArray<TSharedPtr<ISkeletonTreeItem>> SourceBones)
 {
 	FSlateApplication::Get().DismissAllMenus();
 
 	TArray<FName> VirtualBoneNames;
 
-	for (const TSharedPtr<FSkeletonTreeBoneItem>& SourceBone : SourceBones)
+	for (const TSharedPtr<ISkeletonTreeItem>& SourceBone : SourceBones)
 	{
-		if(SourceBone.IsValid())
+		FName SourceBoneName;
+		if(GetSourceNameFromItem(SourceBone, SourceBoneName))
 		{
 			FName NewVirtualBoneName;
-			FName SourceBoneName = SourceBone->GetRowItemName();
 			if(!GetEditableSkeletonInternal()->HandleAddVirtualBone(SourceBoneName, TargetBoneName, NewVirtualBoneName))
 			{
 				UE_LOG(LogAnimation, Log, TEXT("Could not create space switch bone from %s to %s, it already exists"), *SourceBoneName.ToString(), *TargetBoneName.ToString());
@@ -798,6 +837,7 @@ void SSkeletonTree::OnVirtualTargetBonePicked(FName TargetBoneName, TArray<TShar
 					if (RowName == VB)
 					{
 						SkeletonTreeView->SetItemSelection(SkeletonRow, true);
+						SkeletonTreeView->RequestScrollIntoView(SkeletonRow);
 						break;
 					}
 				}
@@ -1032,7 +1072,7 @@ void SSkeletonTree::OnAddSocket()
 			{
 				if (Item->GetRowItemName() == NewSocket->SocketName)
 				{
-					OnRenameSocket();
+					OnRenameSelected();
 					break;
 				}
 			}
@@ -1129,14 +1169,14 @@ bool SSkeletonTree::CanRemoveAllAssets() const
 bool SSkeletonTree::CanRenameSelected() const
 {
 	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
-	return TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeSocketItem>();
+	return TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeSocketItem>() || TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeVirtualBoneItem>();
 }
 
-void SSkeletonTree::OnRenameSocket()
+void SSkeletonTree::OnRenameSelected()
 {
 	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
 
-	if(TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeSocketItem>())
+	if(TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeSocketItem>() || TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeVirtualBoneItem>())
 	{
 		SkeletonTreeView->RequestScrollIntoView(TreeSelection.GetSingleSelectedItem());
 		DeferredRenameRequest = TreeSelection.GetSingleSelectedItem();
@@ -1842,7 +1882,7 @@ ESkeletonTreeFilterResult SSkeletonTree::HandleFilterSkeletonTreeItem(const TSha
 			Result = ESkeletonTreeFilterResult::Hidden;
 		}
 
-		if (SocketFilter == ESocketFilter::Active && SocketItem->GetParentType() == ESocketParentType::Mesh && SocketItem->IsSocketCustomized())
+		if (SocketFilter == ESocketFilter::Active && SocketItem->GetParentType() == ESocketParentType::Skeleton && SocketItem->IsSocketCustomized())
 		{
 			// Don't add the skeleton socket if it's already added for the mesh
 			Result = ESkeletonTreeFilterResult::Hidden;

@@ -149,8 +149,6 @@ public:
 	MOVIESCENE_API virtual void PostDuplicate(bool bDuplicateForPIE) override;
 #endif
 
-	MOVIESCENE_API virtual void PreSave(const ITargetPlatform* TargetPlatform) override;
-
 	MOVIESCENE_API virtual void GenerateEvaluationTemplate(FMovieSceneEvaluationTemplate& Template, const FMovieSceneTrackCompilationParams& Params, FMovieSceneSequenceTemplateStore& Store);
 
 	UPROPERTY()

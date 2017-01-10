@@ -34,7 +34,6 @@ private:
 	//~ Begin UActorComponent Interface.
 protected:
 	virtual void OnRegister() override;
-	virtual void OnUnregister()  override;
 	virtual void SendRenderDynamicData_Concurrent() override;
 public:
 	UPROPERTY(EditAnywhere, Category="Niagara")

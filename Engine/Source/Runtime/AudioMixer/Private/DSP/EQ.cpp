@@ -31,11 +31,11 @@ namespace Audio
 
 		NumBands = InNumBands;
 		NumChannels = InNumChannels;
-		FilterBands = new FFilter[NumBands];
+		FilterBands = new FBiquadFilter[NumBands];
 
 		for (int32 Band = 0; Band < NumBands; ++Band)
 		{
-			FilterBands[Band].Init(InSampleRate, InNumChannels, EFilter::ParametricEQ, 500.0f, 1.0f, 0.0f);
+			FilterBands[Band].Init(InSampleRate, InNumChannels, EBiquadFilter::ParametricEQ, 500.0f, 1.0f, 0.0f);
 		}
 
 	}
@@ -57,7 +57,7 @@ namespace Audio
 			return;
 		}
 
-		FilterBands[InBand].SetParams(EFilter::ParametricEQ, InFrequency, InBandwidth, InGainDB);
+		FilterBands[InBand].SetParams(EBiquadFilter::ParametricEQ, InFrequency, InBandwidth, InGainDB);
 	}
 
 	void FEqualizer::SetBandFrequency(const int32 InBand, const float InFrequency)

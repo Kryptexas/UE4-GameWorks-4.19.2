@@ -576,10 +576,11 @@ int32 FGPUSkinCache::StartCacheMesh(FRHICommandListImmediate& RHICmdList, uint32
 	check(!GSkinCacheSafety || DispatchData.InputVertexBufferSRV);
 
 	// weight buffer
-	uint32 WeightStride = LodModel.SkinWeightVertexBuffer.GetStride();
+	FSkinWeightVertexBuffer* WeightBuffer = Skin->GetSkinWeightVertexBuffer(LODIndex);
+	uint32 WeightStride = WeightBuffer->GetStride();
 	DispatchData.InputWeightStart = (WeightStride * BatchElement.BaseVertexIndex) / sizeof(float);
 	DispatchData.InputWeightStride = WeightStride;
-	DispatchData.InputWeightStreamSRV = LodModel.SkinWeightVertexBuffer.GetSRV();
+	DispatchData.InputWeightStreamSRV = WeightBuffer->GetSRV();
 
 	DispatchSkinCacheProcess(
 		ShaderData.GetBoneBufferForReading(false, FrameNumber), ShaderData.GetUniformBuffer(),

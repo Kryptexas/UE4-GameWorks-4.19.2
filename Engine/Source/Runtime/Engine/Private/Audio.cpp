@@ -517,8 +517,11 @@ FSpatializationParams FSoundSource::GetSpatializationParams()
 void FSoundSource::InitCommon()
 {
 	PlaybackTime = 0.0f;
-}
 
+	// Reset pause state
+	bIsPausedByGame = false;
+	bIsManuallyPaused = false;
+}
 
 void FSoundSource::UpdateCommon()
 {

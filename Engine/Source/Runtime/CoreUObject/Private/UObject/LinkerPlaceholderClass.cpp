@@ -19,12 +19,6 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(ULinkerPlaceholderClass, UClass,
 );
 
 //------------------------------------------------------------------------------
-void ULinkerPlaceholderClass::PostInitProperties()
-{
-	Super::PostInitProperties();
-}
-
-//------------------------------------------------------------------------------
 void ULinkerPlaceholderClass::BeginDestroy()
 {
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS

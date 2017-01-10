@@ -337,6 +337,13 @@ struct FBoneReference
 	{
 	}
 
+	FBoneReference(const FName& InBoneName)
+		: BoneName(InBoneName)
+		, BoneIndex(INDEX_NONE)
+		, bUseSkeletonIndex(false)
+	{
+	}
+
 	bool operator==(const FBoneReference& Other) const
 	{
 		// faster to compare, and BoneName won't matter

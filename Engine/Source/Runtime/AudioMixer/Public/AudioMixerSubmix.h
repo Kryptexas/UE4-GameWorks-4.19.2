@@ -3,7 +3,6 @@
 #pragma once
 
 #include "AudioMixer.h"
-#include "AudioMixerSourceManager.h"
 #include "Sound/SoundSubmix.h"
 
 class USoundEffectSubmix;

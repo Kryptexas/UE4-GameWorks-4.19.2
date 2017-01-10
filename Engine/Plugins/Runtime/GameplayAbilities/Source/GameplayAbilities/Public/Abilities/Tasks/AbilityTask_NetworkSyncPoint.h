@@ -54,8 +54,6 @@ class UAbilityTask_NetworkSyncPoint : public UAbilityTask
 
 protected:
 
-	virtual void OnDestroy(bool AbilityEnded) override;
-
 	void SyncFinished();
 
 	/** The event we replicate */

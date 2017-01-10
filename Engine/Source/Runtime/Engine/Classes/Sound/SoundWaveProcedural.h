@@ -57,7 +57,6 @@ public:
 	//~ Begin UObject Interface. 
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	//~ End UObject Interface. 
 
 	//~ Begin USoundWave Interface.
@@ -69,6 +68,8 @@ public:
 	virtual int32 GetResourceSizeForFormat(FName Format) override;
 	//~ End USoundWave Interface.
 
+	// Virtual function to generate PCM audio from the audio render thread. 
+	virtual bool OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples) { return false; }
 
 	/** Add data to the FIFO that feeds the audio device. */
 	void QueueAudio(const uint8* AudioData, const int32 BufferSize);

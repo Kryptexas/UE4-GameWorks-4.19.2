@@ -34,5 +34,6 @@ namespace EnvironmentQueryColors
 		const FLinearColor DragMarker(1.0f, 1.0f, 0.2f);
 		const FLinearColor Weight(0.0f, 1.0f, 1.0f);
 		const FLinearColor WeightNamed(0.2f, 0.2f, 0.2f);
+		const FLinearColor Profiler(0.1f, 0.1f, 0.1f, 1.0f);
 	}
 }

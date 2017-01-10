@@ -648,8 +648,46 @@ void UPathFollowingComponent::SetMovementComponent(UNavMovementComponent* MoveCo
 
 		UWorld* MyWorld = GetWorld();
 		if (MyWorld && MyWorld->GetNavigationSystem())
-		{	
+		{
 			MyNavData = MyWorld->GetNavigationSystem()->GetNavDataForProps(NavAgentProps);
+			if (MyNavData == nullptr)
+			{
+				if (MyWorld->GetNavigationSystem()->IsInitialized() == false)
+				{
+					MyWorld->GetNavigationSystem()->OnNavigationInitDone.AddUObject(this, &UPathFollowingComponent::OnNavigationInitDone);
+				}
+				else
+				{
+					MyWorld->GetNavigationSystem()->OnNavDataRegisteredEvent.AddUniqueDynamic(this, &UPathFollowingComponent::OnNavDataRegistered);
+				}
+			}
+		}
+	}
+}
+
+void UPathFollowingComponent::OnNavigationInitDone()
+{
+	UWorld* MyWorld = GetWorld();
+	if (MovementComp && MyWorld)
+	{
+		check(MyWorld->GetNavigationSystem());
+		const FNavAgentProperties& NavAgentProps = MovementComp->GetNavAgentPropertiesRef();
+		MyNavData = MyWorld->GetNavigationSystem()->GetNavDataForProps(NavAgentProps);
+		MyWorld->GetNavigationSystem()->OnNavigationInitDone.RemoveAll(this);
+	}
+}
+
+void UPathFollowingComponent::OnNavDataRegistered(ANavigationData* NavData)
+{
+	if (NavData && MovementComp)
+	{
+		const FNavAgentProperties& NavAgentProps = MovementComp->GetNavAgentPropertiesRef();
+		if (NavData->DoesSupportAgent(NavAgentProps))
+		{
+			MyNavData = NavData;
+			UWorld* MyWorld = GetWorld();
+			check(MyWorld && MyWorld->GetNavigationSystem());
+			MyWorld->GetNavigationSystem()->OnNavDataRegisteredEvent.RemoveAll(this);
 		}
 	}
 }

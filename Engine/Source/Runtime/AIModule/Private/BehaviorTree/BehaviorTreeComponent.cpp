@@ -2034,7 +2034,7 @@ bool SetDynamicSubtreeHelper(const UBTCompositeNode* TestComposite,
 		const FBTCompositeChild& ChildInfo = TestComposite->Children[Idx];
 		if (ChildInfo.ChildComposite)
 		{
-			bInjected = (bInjected || SetDynamicSubtreeHelper(ChildInfo.ChildComposite, InstanceInfo, OwnerComp, InjectTag, BehaviorAsset));
+			bInjected = (SetDynamicSubtreeHelper(ChildInfo.ChildComposite, InstanceInfo, OwnerComp, InjectTag, BehaviorAsset) || bInjected);
 		}
 		else
 		{
@@ -2067,7 +2067,7 @@ void UBehaviorTreeComponent::SetDynamicSubtree(FGameplayTag InjectTag, UBehavior
 	for (int32 InstanceIndex = 0; InstanceIndex < InstanceStack.Num(); InstanceIndex++)
 	{
 		const FBehaviorTreeInstance& InstanceInfo = InstanceStack[InstanceIndex];
-		bInjected = (bInjected || SetDynamicSubtreeHelper(InstanceInfo.RootNode, InstanceInfo, this, InjectTag, BehaviorAsset));
+		bInjected = (SetDynamicSubtreeHelper(InstanceInfo.RootNode, InstanceInfo, this, InjectTag, BehaviorAsset) || bInjected);
 	}
 
 	// restart subtree if it was replaced

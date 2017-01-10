@@ -80,13 +80,13 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "OrientAlongBoneLabel", "Orient Along Bone:"))
+					.Text(NSLOCTEXT("PhAT", "AutoOrientLabel", "Auto Orient:"))
 				]
 				+SUniformGridPanel::Slot(1, 1)
 				[
 					SNew(SCheckBox)
-					.IsChecked(NewBodyData->bAlignDownBone ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-					.OnCheckStateChanged(this, &SPhATNewAssetDlg::OnToggleOrientAlongBone)
+					.IsChecked(NewBodyData->bAutoOrientToBone ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+					.OnCheckStateChanged(this, &SPhATNewAssetDlg::OnToggleAutoOrient)
 				]
 				+SUniformGridPanel::Slot(0, 2)
 				.VAlign(VAlign_Center)
@@ -320,9 +320,9 @@ void SPhATNewAssetDlg::OnAngularConstraintModeSelectionChanged(TSharedPtr<FStrin
 	}
 }
 
-void SPhATNewAssetDlg::OnToggleOrientAlongBone(ECheckBoxState InCheckboxState)
+void SPhATNewAssetDlg::OnToggleAutoOrient(ECheckBoxState InCheckboxState)
 {
-	NewBodyData->bAlignDownBone = (InCheckboxState == ECheckBoxState::Checked);
+	NewBodyData->bAutoOrientToBone = (InCheckboxState == ECheckBoxState::Checked);
 }
 
 void SPhATNewAssetDlg::OnToggleCreateJoints(ECheckBoxState InCheckboxState)

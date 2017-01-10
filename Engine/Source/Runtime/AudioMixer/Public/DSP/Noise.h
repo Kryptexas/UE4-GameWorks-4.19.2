@@ -10,7 +10,7 @@ namespace Audio
 	* White noise generator 
 	* Flat spectrum
 	*/
-	class FWhiteNoise
+	class AUDIOMIXER_API FWhiteNoise
 	{
 	public:
 		/** Constructor with a default scale add parameter */
@@ -19,7 +19,7 @@ namespace Audio
 		void SetScaleAdd(const float InScale, const float InAdd);
 
 		/** Generate next sample of white noise */
-		float operator()();
+		float Generate();
 
 	private:
 		float Scale;
@@ -30,7 +30,7 @@ namespace Audio
 	* Pink noise generator
 	* 1/Frequency noise spectrum
 	*/
-	class FPinkNoise
+	class AUDIOMIXER_API FPinkNoise
 	{
 	public:
 		/** Constructor. */
@@ -40,7 +40,7 @@ namespace Audio
 		void SetScaleAdd(const float InScale, const float InAdd);
 
 		/** Generate next sample of pink noise. */
-		float operator()();
+		float Generate();
 
 	private:
 

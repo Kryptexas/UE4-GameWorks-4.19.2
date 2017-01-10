@@ -2723,16 +2723,18 @@ void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 	bool bShouldBlockOnLoad	= StreamingLevel->bShouldBlockOnLoad || StreamingLevel->ShouldBeAlwaysLoaded();
 
 	// Don't update if the code requested this level object to be unloaded and removed or it has an invisibility request pending
-	if ( bHasInvisibilityRequestPending )
-	{
-		// If we have an invisibily request pending, we can't make the level visible again until the request is completed
-		bShouldBeVisible = false;
-	}
-	else if (!bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval)
+	if (!bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval)
 	{
 		bShouldBeLoaded		= bShouldBeLoaded  || !IsGameWorld() || StreamingLevel->ShouldBeLoaded();
 		bShouldBeVisible	= bShouldBeVisible || (bShouldBeLoaded && StreamingLevel->ShouldBeVisible());
 	}
+
+	// If we have an invisibility request pending, we can't make the level visible again until the request is completed
+	if ( bHasInvisibilityRequestPending )
+	{
+		bShouldBeVisible = false;
+	}
+
 	// We want to give the garbage collector a chance to remove levels before we stream in more. We can't do this in the
 	// case of a blocking load as it means those requests should be fulfilled right away. By waiting on GC before kicking
 	// off new levels we potentially delay streaming in maps, but AllowLevelLoadRequests already looks and checks whether
@@ -4875,7 +4877,8 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 				LoadPackageAsync(TransitionMap, 
 					FLoadPackageAsyncDelegate::CreateRaw(this, &FSeamlessTravelHandler::SeamlessTravelLoadCallback),
 					0, 
-					(CurrentWorld->WorldType == EWorldType::PIE ? PKG_PlayInEditor : PKG_None)
+					(CurrentWorld->WorldType == EWorldType::PIE ? PKG_PlayInEditor : PKG_None),
+					Context.PIEInstance
 					);
 			}
 
@@ -4977,9 +4980,9 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 			UPackage* EditorLevelPackage = (UPackage*)StaticFindObjectFast(UPackage::StaticClass(), NULL, URLMapFName, 0, 0, RF_NoFlags, EInternalObjectFlags::PendingKill);
 			if (EditorLevelPackage)
 			{
-				PIEInstanceID = WorldContext.PIEInstance;
 				URLMapPackageName = UWorld::ConvertToPIEPackageName(URLMapPackageName, PIEInstanceID);
 			}
+			PIEInstanceID = WorldContext.PIEInstance;
 		}
 #endif
 		LoadPackageAsync(
@@ -5606,7 +5609,7 @@ FConstLevelIterator	UWorld::GetLevelIterator() const
 ULevel* UWorld::GetLevel( int32 InLevelIndex ) const
 {
 	check( InLevelIndex < Levels.Num() );
-	check(Levels[ InLevelIndex ]);
+		check(Levels[InLevelIndex]);
 	return Levels[ InLevelIndex ];
 }
 

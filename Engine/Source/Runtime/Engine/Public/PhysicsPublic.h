@@ -10,7 +10,6 @@
 #include "CoreMinimal.h"
 #include "Stats/Stats.h"
 #include "Engine/EngineTypes.h"
-#include "Engine/World.h"
 #include "Misc/CoreMisc.h"
 #include "EngineDefines.h"
 #include "RenderResource.h"
@@ -541,19 +540,7 @@ public:
 	static bool SupportsOriginShifting() { return true; }
 
 	/** @return Whether physics scene is using substepping */
-	bool IsSubstepping(uint32 SceneType) const
-	{
-		// Substepping relies on interpolating transforms over frames, but only game worlds will be ticked,
-		// so we disallow this feature in non-game worlds.
-		if( !GetOwningWorld()->IsGameWorld() )
-		{
-			return false;
-		}
-
-		if (SceneType == PST_Sync) return bSubstepping;
-		if (SceneType == PST_Async) return bSubsteppingAsync;
-		return false;
-	}
+	bool IsSubstepping(uint32 SceneType) const;
 	
 	/** Shifts physics scene origin by specified offset */
 	void ApplyWorldOffset(FVector InOffset);

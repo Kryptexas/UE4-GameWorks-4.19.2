@@ -460,7 +460,7 @@ void UCrowdFollowingComponent::Initialize()
 			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 			if (NavSys && !NavSys->IsInitialized())
 			{
-				NavSys->OnNavigationInitDone.AddUObject(this, &UCrowdFollowingComponent::OnPendingNavigationInit);
+				NavSys->OnNavigationInitDone.AddUObject(this, &UCrowdFollowingComponent::OnNavigationInitDone);
 			}
 			else
 			{
@@ -1068,8 +1068,10 @@ void UCrowdFollowingComponent::RegisterCrowdAgent()
 	}
 }
 
-void UCrowdFollowingComponent::OnPendingNavigationInit()
+void UCrowdFollowingComponent::OnNavigationInitDone()
 {
+	Super::OnNavigationInitDone();
+
 	RegisterCrowdAgent();
 	
 	if (!bRegisteredWithCrowdSimulation)

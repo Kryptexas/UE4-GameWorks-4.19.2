@@ -825,7 +825,8 @@ static float GetClampedDeltaSeconds( UWorld* World, const float DeltaSeconds )
 	const float RealDeltaSeconds = DeltaSeconds;
 
 	// Clamp delta seconds
-	const float ClampedDeltaSeconds = World->GetWorldSettings()->FixupDeltaSeconds( DeltaSeconds * World->GetWorldSettings()->GetEffectiveTimeDilation(), RealDeltaSeconds );
+	AWorldSettings* WorldSettings = World->GetWorldSettings();
+	const float ClampedDeltaSeconds = WorldSettings->FixupDeltaSeconds( DeltaSeconds * WorldSettings->GetEffectiveTimeDilation(), RealDeltaSeconds );
 	check( ClampedDeltaSeconds >= 0.0f );
 
 	return ClampedDeltaSeconds;
@@ -962,11 +963,6 @@ bool UDemoNetDriver::ShouldSkipRepNotifies() const
 	}
 
 	return false;
-}
-
-bool UDemoNetDriver::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	return Super::Exec( InWorld, Cmd, Ar);
 }
 
 void UDemoNetDriver::StopDemo()

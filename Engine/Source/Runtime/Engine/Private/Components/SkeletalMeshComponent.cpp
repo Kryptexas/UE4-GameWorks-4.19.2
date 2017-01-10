@@ -1577,7 +1577,8 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 	const bool bInvalidCachedCurve = bDoEvaluationRateOptimization && 
 									CurrentAnimCurveMappingNameUids != nullptr &&
-									(CachedCurve.UIDList != CurrentAnimCurveMappingNameUids || CachedCurve.UIDList->Num() != CurrentCurveCount  || (AnimCurves.Num() != CurrentCurveCount));
+									(CachedCurve.UIDList != CurrentAnimCurveMappingNameUids || CachedCurve.UIDList->Num() != CurrentCurveCount  || 
+									AnimCurves.UIDList != CurrentAnimCurveMappingNameUids || AnimCurves.Num() != CurrentCurveCount);
 
 	const bool bShouldDoEvaluation = !bDoEvaluationRateOptimization || bInvalidCachedBones || bInvalidCachedCurve || !AnimUpdateRateParams->ShouldSkipEvaluation();
 
@@ -1753,6 +1754,8 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 
 	if (EvaluationContext.bDuplicateToCacheCurve)
 	{
+		ensureAlwaysMsgf(AnimCurves.IsValid(), TEXT("Animation Curve is invalid (%s). TotalCount(%d) "),
+			*GetNameSafe(SkeletalMesh), (AnimCurves.UIDList) ? AnimCurves.UIDList->Num() : -1);
 		CachedCurve.CopyFrom(AnimCurves);
 	}
 	
@@ -2948,6 +2951,17 @@ void USkeletalMeshComponent::UnregisterOnPhysicsCreatedDelegate(const FDelegateH
 	OnSkelMeshPhysicsCreated.Remove(DelegateHandle);
 }
 
+FDelegateHandle USkeletalMeshComponent::RegisterOnTeleportDelegate(const FOnSkelMeshTeleported& Delegate)
+{
+	return OnSkelMeshPhysicsTeleported.Add(Delegate);
+}
+
+void USkeletalMeshComponent::UnregisterOnTeleportDelegate(const FDelegateHandle& DelegateHandle)
+{
+	OnSkelMeshPhysicsTeleported.Remove(DelegateHandle);
+}
+
+
 bool USkeletalMeshComponent::MoveComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit /*= nullptr*/, EMoveComponentFlags MoveFlags /*= MOVECOMP_NoFlags*/, ETeleportType Teleport /*= ETeleportType::None*/)
 {
 #if WITH_EDITOR
@@ -2966,7 +2980,13 @@ bool USkeletalMeshComponent::MoveComponentImpl(const FVector& Delta, const FQuat
 	}
 #endif
 
-	return Super::MoveComponentImpl(Delta, NewRotation, bSweep, OutHit, MoveFlags, Teleport);
+	bool bSuccess = Super::MoveComponentImpl(Delta, NewRotation, bSweep, OutHit, MoveFlags, Teleport);
+	if(bSuccess && Teleport == ETeleportType::TeleportPhysics)
+	{
+		OnSkelMeshPhysicsTeleported.Broadcast();
+	}
+
+	return bSuccess;
 }
 
 void USkeletalMeshComponent::AddSlavePoseComponent(USkinnedMeshComponent* SkinnedMeshComponent)

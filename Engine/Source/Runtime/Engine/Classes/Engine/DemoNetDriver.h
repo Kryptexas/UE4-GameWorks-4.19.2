@@ -431,12 +431,6 @@ public:
 
 public:
 
-	// FExec interface
-
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
-
-public:
-
 	/** @todo document */
 	bool UpdateDemoTime( float* DeltaTime, float TimeDilation );
 

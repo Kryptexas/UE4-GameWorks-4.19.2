@@ -20,6 +20,8 @@ UAudioSettings::UAudioSettings(const FObjectInitializer& ObjectInitializer)
 	SectionName = TEXT("Audio");
 
 	AddDefaultSettings();
+
+	bAllowVirtualizedSounds = true;
 }
 
 void UAudioSettings::AddDefaultSettings()

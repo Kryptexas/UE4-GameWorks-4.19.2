@@ -33,6 +33,9 @@ struct FNavigableGeometryExport;
 DECLARE_MULTICAST_DELEGATE(FOnSkelMeshPhysicsCreatedMultiCast);
 typedef FOnSkelMeshPhysicsCreatedMultiCast::FDelegate FOnSkelMeshPhysicsCreated;
 
+DECLARE_MULTICAST_DELEGATE(FOnSkelMeshTeleportedMultiCast);
+typedef FOnSkelMeshTeleportedMultiCast::FDelegate FOnSkelMeshTeleported;
+
 namespace nvidia
 { 
 	namespace apex 
@@ -1790,10 +1793,17 @@ public:
 	FDelegateHandle RegisterOnPhysicsCreatedDelegate(const FOnSkelMeshPhysicsCreated& Delegate);
 	void UnregisterOnPhysicsCreatedDelegate(const FDelegateHandle& DelegateHandle);
 
+	/** Register/Unregister for teleport callback */
+	FDelegateHandle RegisterOnTeleportDelegate(const FOnSkelMeshTeleported& Delegate);
+	void UnregisterOnTeleportDelegate(const FDelegateHandle& DelegateHandle);
+
 private:
 
 	/** Multicaster fired when this component creates physics state (in case external objects rely on physics state)*/
 	FOnSkelMeshPhysicsCreatedMultiCast OnSkelMeshPhysicsCreated;
+
+	/** Multicaster fired when this component teleports */
+	FOnSkelMeshTeleportedMultiCast OnSkelMeshPhysicsTeleported;
 
 	/** Mark current anim UID version to up-to-date. Called when it's recalcualted */
 	void MarkRequiredCurveUpToDate();

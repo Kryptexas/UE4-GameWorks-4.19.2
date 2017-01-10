@@ -66,6 +66,7 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	virtual void OnPathUpdated() override;
 	virtual void OnPathfindingQuery(FPathFindingQuery& Query) override;
 	virtual int32 GetCurrentPathElement() const override { return LastPathPolyIndex; }
+	virtual void OnNavigationInitDone() override;
 	// PathFollowingComponent END
 
 	/** update params in crowd manager */
@@ -234,7 +235,6 @@ protected:
 	virtual bool UpdateCachedGoal(FVector& NewGoalPos);
 	virtual bool ShouldTrackMovingGoal(FVector& OutGoalLocation) const;
 	
-	void OnPendingNavigationInit();
 	void RegisterCrowdAgent();
 
 	friend UCrowdManager;

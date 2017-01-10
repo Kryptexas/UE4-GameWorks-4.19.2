@@ -147,7 +147,6 @@ public:
 	UUserWidget(const FObjectInitializer& ObjectInitializer);
 
 	//UObject interface
-	virtual void PostInitProperties() override;
 	virtual class UWorld* GetWorld() const override;
 	virtual void PostEditImport() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;

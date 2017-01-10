@@ -28,7 +28,6 @@ public class CrashReportClient : ModuleRules
 				"Analytics",
 				"AnalyticsET",
 				"DesktopPlatform",
-				"QoSReporter",
 			}
 			);
 

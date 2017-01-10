@@ -29,6 +29,7 @@
 #include "GameFramework/WorldSettings.h"
 
 #if WITH_EDITOR
+#include "AssetRegistryModule.h"
 #include "Developer/AssetTools/Public/IAssetTools.h"
 #include "Developer/AssetTools/Public/AssetToolsModule.h"
 #include "Editor/EditorEngine.h"
@@ -96,7 +97,6 @@ void FDynamicParameter::Update(float DeltaTime)
 
 FAudioDevice::FAudioDevice()
 	: MaxChannels(0)
-	, SampleRate(0)
 	, BufferLength(0)
 	, CommonAudioPool(nullptr)
 	, CommonAudioPoolFreeBytes(0)
@@ -126,6 +126,7 @@ FAudioDevice::FAudioDevice()
 	, bIsDeviceMuted(false)
 	, bIsInitialized(false)
 	, AudioClock(0.0)
+	, bAllowCenterChannel3DPanning(false)
 	, bHasActivatedReverb(false)
 	, bAllowVirtualizedSounds(true)
 #if !UE_BUILD_SHIPPING
@@ -160,7 +161,6 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 	MaxChannels = InMaxChannels;
 
 	// Setup the desired sample rate and buffer length
-	SampleRate = 44100;
 	BufferLength = 1024;
 
 	verify(GConfig->GetInt(TEXT("Audio"), TEXT("CommonAudioPoolSize"), CommonAudioPoolSize, GEngineIni));
@@ -175,6 +175,8 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 		// Convert dB to linear volume
 		PlatformAudioHeadroom = FMath::Pow(10.0f, Headroom / 20.0f);
 	}
+
+	bAllowCenterChannel3DPanning = GetDefault<UAudioSettings>()->bAllowCenterChannel3DPanning;
 
 	bAllowVirtualizedSounds = GetDefault<UAudioSettings>()->bAllowVirtualizedSounds;
 
@@ -967,6 +969,66 @@ bool FAudioDevice::HandleAudioMixerDebugSound(const TCHAR* Cmd, FOutputDevice& A
 	return true;
 }
 
+bool FAudioDevice::HandleSoundClassFixup(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+#if WITH_EDITOR
+	// Get asset registry module
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+	TArray<FAssetData> AssetDataArray;
+	AssetRegistryModule.Get().GetAssetsByClass(USoundClass::StaticClass()->GetFName(), AssetDataArray);
+
+	static const FString EngineDir = TEXT("/Engine/");
+	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+	TArray<FAssetRenameData> RenameData;
+	for (FAssetData AssetData : AssetDataArray)
+	{
+		USoundClass* SoundClass = Cast<USoundClass>(AssetData.GetAsset());
+		if (SoundClass != nullptr && !SoundClass->GetPathName().Contains(EngineDir))
+		{
+			// If this sound class is within another sound class package, create a new uniquely named sound class
+			FString OutermostFullName = SoundClass->GetOutermost()->GetName();
+			FString ExistingSoundClassFullName = SoundClass->GetPathName();
+			int32 CharPos = INDEX_NONE;
+
+			FString OutermostShortName = FPaths::GetCleanFilename(OutermostFullName);
+
+			OutermostShortName = FString::Printf(TEXT("%s.%s"), *OutermostShortName, *OutermostShortName);
+
+			FString ExistingSoundClassShortName = FPaths::GetCleanFilename(ExistingSoundClassFullName);
+			if (ExistingSoundClassShortName != OutermostShortName)
+			{
+				// Construct a proper new asset name/path 
+				FString ExistingSoundClassPath = ExistingSoundClassFullName.Left(CharPos);
+
+				ExistingSoundClassShortName.FindLastChar('.', CharPos);
+
+				// Get the name of the new sound class
+				FString NewSoundClassName = ExistingSoundClassShortName.RightChop(CharPos + 1);
+
+				const FString PackagePath = FPackageName::GetLongPackagePath(AssetData.GetAsset()->GetOutermost()->GetName());
+
+				// Use the asset tool module to get a unique name based on the existing name
+ 				FString OutNewPackageName;
+				FString OutAssetName;
+ 				AssetToolsModule.Get().CreateUniqueAssetName(PackagePath + "/" + NewSoundClassName, TEXT(""), OutNewPackageName, OutAssetName);
+
+				const FString LongPackagePath = FPackageName::GetLongPackagePath(OutNewPackageName);
+
+				// Immediately perform the rename since there could be a naming conflict in the list and CreateUniqueAssetName won't be able to resolve
+				// unless the assets are renamed immediately
+				RenameData.Reset();
+				RenameData.Add(FAssetRenameData(AssetData.GetAsset(), LongPackagePath, OutAssetName));
+				AssetToolsModule.Get().RenameAssets(RenameData);
+			}		
+		}
+	}
+	return true;
+#else
+	return false;
+#endif
+}
+
 bool FAudioDevice::HandleAudioMemoryInfo(const TCHAR* Cmd, FOutputDevice& Ar)
 {
 	struct FSoundWaveInfo
@@ -1352,6 +1414,10 @@ bool FAudioDevice::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("AudioMixerDebugSound")))
 	{
 		return HandleAudioMixerDebugSound(Cmd, Ar);
+	}
+	else if (FParse::Command(&Cmd, TEXT("SoundClassFixup")))
+	{
+		return HandleSoundClassFixup(Cmd, Ar);
 	}
 #endif // !UE_BUILD_SHIPPING
 
@@ -2696,15 +2762,6 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 		ConcurrencyManager.StopQuietSoundsDueToMaxConcurrency();
 	}
 	
-	// Remove all wave instances from the wave instance list that are stopping due to max concurrency
-	for (int32 i = WaveInstances.Num() - 1; i >= 0; --i)
-	{
-		if (WaveInstances[i]->ShouldStopDueToMaxConcurrency())
-		{
-			WaveInstances.RemoveAtSwap(i, 1, false);
-		}
-	}
-
 	// Remove all wave instances from the wave instance list that are stopping due to max concurrency
 	for (int32 i = WaveInstances.Num() - 1; i >= 0; --i)
 	{
@@ -4513,3 +4570,5 @@ void FAudioDevice::DumpActiveSounds() const
 
 }
 #endif
+
+PRAGMA_ENABLE_OPTIMIZATION

@@ -993,8 +993,8 @@ struct FXAudioDeviceProperties : public IDeviceChangedListener
 };
 
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
-	#define UE4_XAUDIO2_NUMCHANNELS		FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.nChannels
-	#define UE4_XAUDIO2_CHANNELMASK		FXAudioDeviceProperties::DeviceDetails.OutputFormat.dwChannelMask
+	#define UE4_XAUDIO2_NUMCHANNELS		FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.nChannels > 6 ? 6 : FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.nChannels
+	#define UE4_XAUDIO2_CHANNELMASK		FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.nChannels > 6 ? SPEAKER_5POINT1 : FXAudioDeviceProperties::DeviceDetails.OutputFormat.dwChannelMask
 	#define UE4_XAUDIO2_SAMPLERATE		FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.nSamplesPerSec
 #else	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 #define UE4_XAUDIO2_NUMCHANNELS		6

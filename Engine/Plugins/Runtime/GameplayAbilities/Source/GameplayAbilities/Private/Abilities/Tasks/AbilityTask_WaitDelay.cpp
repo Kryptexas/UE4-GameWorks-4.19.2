@@ -30,11 +30,6 @@ void UAbilityTask_WaitDelay::Activate()
 	World->GetTimerManager().SetTimer(TimerHandle, this, &UAbilityTask_WaitDelay::OnTimeFinish, Time, false);
 }
 
-void UAbilityTask_WaitDelay::OnDestroy(bool AbilityEnded)
-{
-	Super::OnDestroy(AbilityEnded);
-}
-
 void UAbilityTask_WaitDelay::OnTimeFinish()
 {
 	OnFinish.Broadcast();

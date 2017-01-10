@@ -26,10 +26,13 @@ class UEnvQueryItemType_VectorBase;
 class UEnvQueryTest;
 struct FEnvQueryInstance;
 
-AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Warning, All);
+AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Display, All);
 
 // If set, execution details will be processed by debugger
 #define USE_EQS_DEBUGGER				(1 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
+
+// If set, execution stats will also gather EQS tick load data (16k memory for each query record)
+#define USE_EQS_TICKLOADDATA			(1 && USE_EQS_DEBUGGER && WITH_EDITOR)
 
 DECLARE_STATS_GROUP(TEXT("Environment Query"), STATGROUP_AI_EQS, STATCAT_Advanced);
 
@@ -262,7 +265,7 @@ namespace EEnvQueryTestClamping
 USTRUCT(BlueprintType)
 struct AIMODULE_API FEnvNamedValue
 {
-	GENERATED_USTRUCT_BODY();
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Param)
 	FName ParamName;
@@ -610,6 +613,9 @@ struct AIMODULE_API FEnvQueryOptionInstance
 	/** test objects, raw pointer can be used safely because it will be always referenced by EnvQueryManager */
 	TArray<UEnvQueryTest*> Tests;
 
+	/** index of option in source asset */
+	int32 SourceOptionIndex;
+
 	/** type of generated items */
 	TSubclassOf<UEnvQueryItemType> ItemType;
 
@@ -625,26 +631,68 @@ struct AIMODULE_API FEnvQueryOptionInstance
 #define EQSHEADERLOG(msg) Log(msg)
 #endif // NO_LOGGING
 
-struct FEQSQueryDebugData
+struct FEnvQueryDebugProfileData
+{
+	struct FStep
+	{
+		float ExecutionTime;
+		int32 NumProcessedItems;
+
+		FStep() : ExecutionTime(0.0f), NumProcessedItems(0) {}
+	};
+
+	// runtime stats, can be merged
+	struct FOptionStat
+	{
+		TArray<FStep> StepData;
+		int32 NumRuns;
+
+		FOptionStat() : NumRuns(0) {}
+	};
+
+	// setup data
+	struct FOptionData
+	{
+		int32 NumGenerators;
+		TArray<FName> GeneratorNames;
+
+		int32 OptionIdx;
+		TArray<int32> TestIndices;
+
+		FOptionData() : NumGenerators(1), OptionIdx(INDEX_NONE) {}
+	};
+
+	TArray<FOptionStat> OptionStats;
+	TArray<FOptionData> OptionData;
+
+	void Add(const FEnvQueryDebugProfileData& Other);
+};
+
+FArchive& operator<<(FArchive& Ar, FEnvQueryDebugProfileData::FStep& Data);
+FArchive& operator<<(FArchive& Ar, FEnvQueryDebugProfileData::FOptionStat& Data);
+FArchive& operator<<(FArchive& Ar, FEnvQueryDebugProfileData::FOptionData& Data);
+FArchive& operator<<(FArchive& Ar, FEnvQueryDebugProfileData& Data);
+
+struct FEnvQueryDebugData : public FEnvQueryDebugProfileData
 {
 	TArray<FEnvQueryItem> DebugItems;
 	TArray<FEnvQueryItemDetails> DebugItemDetails;
 	TArray<uint8> RawData;
 	TArray<FString> PerformedTestNames;
+
 	// indicates the query was run in a single-item mode and that it has been found
 	uint32 bSingleItemResult : 1;
 
-	void Store(const FEnvQueryInstance* QueryInstance);
-	void Reset()
-	{
-		DebugItems.Reset();
-		DebugItemDetails.Reset();
-		RawData.Reset();
-		PerformedTestNames.Reset();
-		bSingleItemResult = false;
-	}
+	FEnvQueryDebugData() : bSingleItemResult(false) {}
+	
+	void Store(const FEnvQueryInstance& QueryInstance, const float ExecutionTime, const bool bStepDone);
+	void PrepareOption(const FEnvQueryInstance& QueryInstance, const TArray<UEnvQueryGenerator*>& Generators, const int32 NumTests);
 };
 
+// This struct is now deprecated, please use FEnvQueryDebugData instead.
+struct FEQSQueryDebugData : public FEnvQueryDebugData
+{
+};
 
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryTypes : public UObject
@@ -654,6 +702,9 @@ class AIMODULE_API UEnvQueryTypes : public UObject
 public:
 	/** special test value assigned to items skipped by condition check */
 	static float SkippedItemValue;
+
+	/** special value used for executing query steps to prevent them from being time sliced */
+	static float UnlimitedStepTime;
 
 	static FText GetShortTypeName(const UObject* Ob);
 	static FText DescribeContext(TSubclassOf<UEnvQueryContext> ContextClass);
@@ -700,37 +751,31 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	/** size of current value */
 	uint16 ValueSize;
 
+#if USE_EQS_DEBUGGER
+	/** number of items processed in current step */
+	int32 NumProcessedItems;
+
+	/** set to true to store additional debug info */
+	uint8 bStoreDebugInfo : 1;
+#endif // USE_EQS_DEBUGGER
+
 	/** used to breaking from item iterator loops */
 	uint8 bFoundSingleResult : 1;
 
-private:
 	/** set when testing final condition of an option */
 	uint8 bPassOnSingleResult : 1;
 
 	/** true if this query has logged a warning that it overran the time limit */
 	uint8 bHasLoggedTimeLimitWarning : 1;
 
-	/** platform time when this query was started */
+	/** timestamp of creating query instance */
 	double StartTime;
 
-	/** if > 0 then it's how much time query has for performing current step */
-	double CurrentStepTimeLimit;
-
 	/** time spent executing this query */
-	double TotalExecutionTime;
+	float TotalExecutionTime;
 
-	/** time spent doing generation for this query */
-	double GenerationExecutionTime;
-
-	// @todo do we really need this data in shipped builds?
-	/** time spent on each test of this query */
-	TArray<double> PerStepExecutionTime;
-
-public:
-#if USE_EQS_DEBUGGER
-	/** set to true to store additional debug info */
-	uint8 bStoreDebugInfo : 1;
-#endif // USE_EQS_DEBUGGER
+	/** if > 0 then it's how much time query has for performing current step */
+	float CurrentStepTimeLimit;
 
 	/** run mode */
 	EEnvQueryRunMode::Type Mode;
@@ -746,25 +791,7 @@ public:
 	~FEnvQueryInstance();
 
 	/** execute single step of query */
-	void ExecuteOneStep(double InCurrentStepTimeLimit);
-
-	/** set when we started the query */
-	void SetQueryStartTime() { StartTime = FPlatformTime::Seconds(); }
-
-	/** get when we started the query */
-	double GetQueryStartTime() const { return StartTime; }
-
-	/** have we logged that we overran time the time limit? */
-	bool HasLoggedTimeLimitWarning() const { return !!bHasLoggedTimeLimitWarning; }
-
-	/** set that we logged that we overran time the time limit. */
-	void SetHasLoggedTimeLimitWarning() { bHasLoggedTimeLimitWarning = true; }
-
-	/** get the amount of time spent executing query */
-	double GetTotalExecutionTime() const { return TotalExecutionTime; }
-
-	/** describe for logging purposes what the query spent time on */
-	FString GetExecutionTimeDescription() const;
+	void ExecuteOneStep(float TimeLimit);
 
 	/** update context cache */
 	bool PrepareContext(UClass* Context, FEnvQueryContextData& ContextData);
@@ -904,6 +931,9 @@ public:
 #	define UE_EQS_DBGMSG(Condition, Format, ...)
 #	define UE_EQS_LOG(CategoryName, Verbosity, Format, ...) UE_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__); 
 #endif
+
+	/** describe for logging purposes what the query spent time on */
+	FString GetExecutionTimeDescription() const;
 
 #if CPP || UE_BUILD_DOCS
 	struct AIMODULE_API ItemIterator
@@ -1146,7 +1176,7 @@ public:
 #undef UE_EQS_DBGMSG
 
 #if USE_EQS_DEBUGGER
-	FEQSQueryDebugData DebugData;
+	FEnvQueryDebugData DebugData;
 	static bool bDebuggingInfoEnabled;
 #endif // USE_EQS_DEBUGGER
 

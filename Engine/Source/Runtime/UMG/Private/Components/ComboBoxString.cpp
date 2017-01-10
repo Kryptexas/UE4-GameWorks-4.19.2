@@ -108,11 +108,6 @@ TSharedRef<SWidget> UComboBoxString::RebuildWidget()
 	return MyComboBox.ToSharedRef();
 }
 
-void UComboBoxString::SynchronizeProperties()
-{
-	Super::SynchronizeProperties();
-}
-
 void UComboBoxString::AddOption(const FString& Option)
 {
 	Options.Add(MakeShareable(new FString(Option)));

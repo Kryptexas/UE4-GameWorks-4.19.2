@@ -27,7 +27,7 @@ namespace Audio
 	class FMixerDevice;
 	class FMixerBuffer;
 
-	typedef FAsyncRealtimeAudioTaskProxy<FMixerBuffer> FAsyncRealtimeAudioTask;
+	typedef FAsyncTask<FAsyncRealtimeAudioTaskWorker<FMixerBuffer>> FAsyncRealtimeAudioTask;
 
 	class FMixerBuffer : public FSoundBuffer
 	{

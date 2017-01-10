@@ -95,7 +95,7 @@ FArchive& operator<<(FArchive& Ar, FSkinWeightVertexBuffer& VertexBuffer)
 
 	if (Ar.IsLoading() || VertexBuffer.WeightData == NULL)
 	{
-		// allocate vertex data on load
+		// If we're loading, or we have no valid buffer, allocate container.
 		VertexBuffer.AllocateData();
 	}
 

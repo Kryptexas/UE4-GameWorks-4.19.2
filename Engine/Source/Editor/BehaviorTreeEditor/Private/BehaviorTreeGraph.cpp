@@ -649,7 +649,7 @@ namespace BTGraphHelpers
 			return;
 		}
 
-		// collect services
+		// collect services: composite
 		if (RootEdNode->Services.Num())
 		{
 			for (int32 i = 0; i < RootEdNode->Services.Num(); i++)
@@ -706,6 +706,20 @@ namespace BTGraphHelpers
 				if (SubtreeTask)
 				{
 					*ExecutionIndex += SubtreeTask->GetInjectedNodesCount();
+				}
+
+				// collect services: task
+				if (TaskInstance && GraphNode->Services.Num())
+				{
+					for (int32 ServiceIdx = 0; ServiceIdx < GraphNode->Services.Num(); ServiceIdx++)
+					{
+						UBTService* ServiceInstance = GraphNode->Services[ServiceIdx] ? Cast<UBTService>(GraphNode->Services[ServiceIdx]->NodeInstance) : NULL;
+						if (ServiceInstance)
+						{
+							ServiceInstance->InitializeNode(RootNode, *ExecutionIndex, 0, TreeDepth);
+							*ExecutionIndex += 1;
+						}
+					}
 				}
 
 				ChildNode->InitializeNode(RootNode, *ExecutionIndex, 0, TreeDepth);

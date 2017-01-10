@@ -211,11 +211,6 @@ void UUserWidget::SetPadding(FMargin InPadding)
 	}
 }
 
-void UUserWidget::PostInitProperties()
-{
-	Super::PostInitProperties();
-}
-
 UWorld* UUserWidget::GetWorld() const
 {
 	if ( UWorld* LastWorld = CachedWorld.Get() )

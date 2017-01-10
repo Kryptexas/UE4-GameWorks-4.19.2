@@ -857,6 +857,27 @@ void FEditableSkeleton::HandleDeleteVirtualBones(const TArray<FName>& InVirtualB
 	OnTreeRefresh.Broadcast();
 }
 
+bool FEditableSkeleton::DoesVirtualBoneAlreadyExist(const FString& InVBName) const
+{
+	FName NewVBName = FName(*InVBName);
+	for (const FVirtualBone& VB : Skeleton->GetVirtualBones())
+	{
+		if (VB.VirtualBoneName == NewVBName)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void FEditableSkeleton::RenameVirtualBone(const FName& OriginalName, const FName& InVBName)
+{
+	FScopedTransaction Transaction(LOCTEXT("RenameVirtualBone", "Rename Virtual Bone in Skeleton"));
+	Skeleton->RenameVirtualBone(OriginalName, InVBName);
+
+	OnTreeRefresh.Broadcast();
+}
+
 void FEditableSkeleton::RecursiveSetBlendProfileScales(const FName& InBlendProfileName, const TArray<FName>& InBoneNames, float InScaleToSet)
 {
 	const FScopedTransaction Transaction(LOCTEXT("SetBlendScalesRecursive", "Recursively Set Blend Profile Scales"));

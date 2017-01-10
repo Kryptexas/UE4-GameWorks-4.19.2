@@ -1350,13 +1350,13 @@ void UK2Node_CallFunction::GeneratePinTooltipFromFunction(UEdGraphPin& Pin, cons
 				}
 
 				// replace the newline with a single space
-				if(!FChar::IsLinebreak(FunctionToolTipText[CurStrPos]))
+				if(CurStrPos < FullToolTipLen && !FChar::IsLinebreak(FunctionToolTipText[CurStrPos]))
 				{
 					ParamDesc.AppendChar(TEXT(' '));
 				}
 			}
 
-			if (FunctionToolTipText[CurStrPos] != TEXT('@'))
+			if (CurStrPos < FullToolTipLen && FunctionToolTipText[CurStrPos] != TEXT('@'))
 			{
 				ParamDesc.AppendChar(FunctionToolTipText[CurStrPos++]);
 			}

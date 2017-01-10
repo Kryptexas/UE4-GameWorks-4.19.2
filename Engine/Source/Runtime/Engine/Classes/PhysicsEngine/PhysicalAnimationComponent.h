@@ -128,11 +128,16 @@ private:
 	TArray<FPhysicalAnimationInstanceData> RuntimeInstanceData;
 	TArray<FPhysicalAnimationData> DriveData;
 
+	FDelegateHandle OnTeleportDelegateHandle;
+
 	int32 SceneIndex;
 
 	void UpdatePhysicsEngine();
 	void ReleasePhysicsEngine();
 	void InitComponent();
+
+	void OnTeleport();
+	void UpdateTargetActors(ETeleportType TeleportType);
 
 	static const FConstraintProfileProperties PhysicalAnimationProfile;
 };

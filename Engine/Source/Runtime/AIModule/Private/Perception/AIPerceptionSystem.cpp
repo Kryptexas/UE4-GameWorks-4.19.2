@@ -93,11 +93,6 @@ UWorld* UAIPerceptionSystem::GetWorld() const
 	return Cast<UWorld>(GetOuter());
 }
 
-void UAIPerceptionSystem::PostInitProperties() 
-{
-	Super::PostInitProperties();
-}
-
 TStatId UAIPerceptionSystem::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UAIPerceptionSystem, STATGROUP_Tickables);

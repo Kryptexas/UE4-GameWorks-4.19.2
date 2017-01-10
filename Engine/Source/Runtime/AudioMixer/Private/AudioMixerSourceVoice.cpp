@@ -3,6 +3,7 @@
 #include "AudioMixerSourceVoice.h"
 #include "AudioMixerSource.h"
 #include "AudioMixerSourceManager.h"
+#include "AudioMixerDevice.h"
 
 namespace Audio
 {
@@ -111,15 +112,12 @@ namespace Audio
 		}
 	}
 
-	void FMixerSourceVoice::SetChannelMap(TArray<float>& InChannelMap)
+	void FMixerSourceVoice::SetChannelMap(TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly)
 	{
 		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
 
-		if (ChannelMap != InChannelMap)
-		{
-			ChannelMap = InChannelMap;
-			SourceManager->SetChannelMap(SourceId, InChannelMap);
-		}
+		ChannelMap = InChannelMap;
+		SourceManager->SetChannelMap(SourceId, InChannelMap, bInIs3D, bInIsCenterChannelOnly);
 	}
 
 	void FMixerSourceVoice::SetSpatializationParams(const FSpatializationParams& InParams)
@@ -186,6 +184,13 @@ namespace Audio
 		return SourceManager->IsDone(SourceId);
 	}
 
+	bool FMixerSourceVoice::NeedsSpeakerMap() const
+	{
+		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
+
+		return SourceManager->NeedsSpeakerMap(SourceId);
+	}
+
 	int64 FMixerSourceVoice::GetNumFramesPlayed() const
 	{
 		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
@@ -202,7 +207,7 @@ namespace Audio
 
 	void FMixerSourceVoice::SetSubmixSendInfo(FMixerSubmixPtr Submix, const float DryLevel, const float WetLevel)
 	{
-		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
+		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
 
 		FMixerSourceSubmixSend* SubmixSend = SubmixSends.Find(Submix->GetId());
 		if (!SubmixSend)

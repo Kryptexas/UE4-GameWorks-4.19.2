@@ -83,10 +83,6 @@ public:
 	void ApplyComponentInstanceData(class FWidgetComponentInstanceData* ComponentInstanceData);
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
 
-	// Begin UObject
-	virtual void PostLoad() override;
-	// End UObject
-
 #if WITH_EDITORONLY_DATA
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif

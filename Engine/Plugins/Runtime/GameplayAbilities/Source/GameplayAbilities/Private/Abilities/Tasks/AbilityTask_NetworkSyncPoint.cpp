@@ -71,11 +71,6 @@ void UAbilityTask_NetworkSyncPoint::Activate()
 	}
 }
 
-void UAbilityTask_NetworkSyncPoint::OnDestroy(bool AbilityEnded)
-{
-	Super::OnDestroy(AbilityEnded);
-}
-
 void UAbilityTask_NetworkSyncPoint::SyncFinished()
 {
 	if (!IsPendingKill())

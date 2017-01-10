@@ -47,7 +47,14 @@ FColorVertexBuffer::FColorVertexBuffer( const FColorVertexBuffer &rhs ):
 	Stride(0),
 	NumVertices(0)
 {
-	InitFromColorArray(TArray<FColor>(*rhs.VertexData));
+	if (rhs.VertexData)
+	{
+		InitFromColorArray(TArray<FColor>(*rhs.VertexData));
+	}
+	else
+	{
+		CleanUp();
+	}
 }
 
 FColorVertexBuffer::~FColorVertexBuffer()

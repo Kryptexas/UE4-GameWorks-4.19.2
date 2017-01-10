@@ -1662,6 +1662,29 @@ void FPhysScene::AddDebugLines(uint32 SceneType, class ULineBatchComponent* Line
 	}
 }
 
+bool FPhysScene::IsSubstepping(uint32 SceneType) const
+{
+	// Substepping relies on interpolating transforms over frames, but only game worlds will be ticked,
+	// so we disallow this feature in non-game worlds.
+	if (!OwningWorld || !OwningWorld->IsGameWorld())
+	{
+		return false;
+	}
+
+	if (SceneType == PST_Sync)
+	{
+		return bSubstepping;
+	}
+
+	if (SceneType == PST_Async)
+	{
+		return bSubsteppingAsync;
+	}
+
+	return false;
+}
+
+
 void FPhysScene::ApplyWorldOffset(FVector InOffset)
 {
 #if WITH_PHYSX

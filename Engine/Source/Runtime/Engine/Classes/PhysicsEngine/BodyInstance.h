@@ -38,6 +38,9 @@ DECLARE_DELEGATE_TwoParams(FCalculateCustomPhysics, float, FBodyInstance*);
   * Since this could be called many times by GetWorldTransform any expensive computations should be cached if possible.*/
 DECLARE_DELEGATE_TwoParams(FCalculateCustomProjection, const FBodyInstance*, FTransform&);
 
+/** Delegate for when the mass properties of a body instance have been re-calculated. This can be useful for systems that need to set specific physx settings on actors, or systems that rely on the mass information in some way*/
+DECLARE_MULTICAST_DELEGATE_OneParam(FRecalculatedMassProperties, FBodyInstance*);
+
 #if WITH_PHYSX
 struct FShapeData;
 
@@ -142,10 +145,9 @@ private:
 #endif
 
 	/** Types of objects that this physics objects will collide with. */
-	// @todo : make this to be transient, so that it doesn't have to save anymore
 	// we have to still load them until resave
 	UPROPERTY(transient)
-	struct FCollisionResponseContainer ResponseToChannels;
+	FCollisionResponseContainer ResponseToChannels;
 
 	/** Custom Channels for Responses */
 	UPROPERTY(EditAnywhere, Category = Custom)
@@ -785,6 +787,9 @@ public:
 	/** Custom projection for physics (callback to update component transform based on physics data) */
 	FCalculateCustomProjection OnCalculateCustomProjection;
 
+	/** Called whenever mass properties have been re-calculated. */
+	FRecalculatedMassProperties OnRecalculatedMassProperties;
+
 	/** See if this body is valid. */
 	bool IsValidBodyInstance() const;
 
@@ -1239,3 +1244,6 @@ FORCEINLINE_DEBUGGABLE bool FBodyInstance::IsInstanceSimulatingPhysics() const
 {
 	return ShouldInstanceSimulatingPhysics() && IsValidBodyInstance();
 }
+
+extern template ENGINE_API bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*>& Bodies) const;
+extern template ENGINE_API bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*, TInlineAllocator<1>>& Bodies) const;

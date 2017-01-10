@@ -765,6 +765,12 @@ const FVertexFactory* FSkeletalMeshObjectGPUSkin::GetSkinVertexFactory(const FSc
 	return LOD.GPUSkinVertexFactories.VertexFactories[ChunkIdx].Get();
 }
 
+FSkinWeightVertexBuffer* FSkeletalMeshObjectGPUSkin::GetSkinWeightVertexBuffer(int32 LODIndex) const
+{
+	checkSlow(LODs.IsValidIndex(LODIndex));
+	return LODs[LODIndex].MeshObjectWeightBuffer;
+}
+
 /** 
  * Initialize the stream components common to all GPU skin vertex factory types 
  *
@@ -1026,27 +1032,11 @@ static void CreateVertexFactoryCloth(TArray<TUniquePtr<VertexFactoryTypeBase>>& 
  *
  * @param OutVertexBuffers output vertex buffers
  */
-void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::GetVertexBuffers(
-	FVertexFactoryBuffers& OutVertexBuffers,
-	FStaticLODModel& LODModel,
-	const FSkelMeshObjectLODInfo& MeshLODInfo,
-	FSkelMeshComponentLODInfo* CompLODInfo)
+void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::GetVertexBuffers(FVertexFactoryBuffers& OutVertexBuffers, FStaticLODModel& LODModel)
 {
 	OutVertexBuffers.VertexBufferGPUSkin = &LODModel.VertexBufferGPUSkin;
-	OutVertexBuffers.SkinWeightVertexBuffer = &LODModel.SkinWeightVertexBuffer;
-
-	// If we have a vertex color override buffer (and it's the right size) use it
-	if (CompLODInfo && 
-		CompLODInfo->OverrideVertexColors && 
-		CompLODInfo->OverrideVertexColors->GetNumVertices() == LODModel.VertexBufferGPUSkin.GetNumVertices())
-	{
-		OutVertexBuffers.ColorVertexBuffer = CompLODInfo->OverrideVertexColors;
-	}
-	else
-	{
-		OutVertexBuffers.ColorVertexBuffer = &LODModel.ColorVertexBuffer;
-	}
-
+	OutVertexBuffers.ColorVertexBuffer = MeshObjectColorBuffer;
+	OutVertexBuffers.SkinWeightVertexBuffer = MeshObjectWeightBuffer;
 	OutVertexBuffers.MorphVertexBuffer = &MorphVertexBuffer;
 	OutVertexBuffers.APEXClothVertexBuffer = &LODModel.APEXClothVertexBuffer;
 }
@@ -1184,9 +1174,34 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::InitResources(const FSk
 	// vertex buffer for each lod has already been created when skelmesh was loaded
 	FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
 	
+	// If we have a skin weight override buffer (and it's the right size) use it
+	if (CompLODInfo &&
+		CompLODInfo->OverrideSkinWeights &&
+		CompLODInfo->OverrideSkinWeights->GetNumVertices() == LODModel.VertexBufferGPUSkin.GetNumVertices())
+	{
+		check(LODModel.SkinWeightVertexBuffer.HasExtraBoneInfluences() == CompLODInfo->OverrideSkinWeights->HasExtraBoneInfluences());
+		MeshObjectWeightBuffer = CompLODInfo->OverrideSkinWeights;
+	}
+	else
+	{
+		MeshObjectWeightBuffer = &LODModel.SkinWeightVertexBuffer;
+	}
+
+	// If we have a vertex color override buffer (and it's the right size) use it
+	if (CompLODInfo &&
+		CompLODInfo->OverrideVertexColors &&
+		CompLODInfo->OverrideVertexColors->GetNumVertices() == LODModel.VertexBufferGPUSkin.GetNumVertices())
+	{
+		MeshObjectColorBuffer = CompLODInfo->OverrideVertexColors;
+	}
+	else
+	{
+		MeshObjectColorBuffer = &LODModel.ColorVertexBuffer;
+	}
+
 	// Vertex buffers available for the LOD
 	FVertexFactoryBuffers VertexBuffers;
-	GetVertexBuffers(VertexBuffers, LODModel, MeshLODInfo, CompLODInfo);
+	GetVertexBuffers(VertexBuffers, LODModel);
 
 	// init gpu skin factories
 	GPUSkinVertexFactories.InitVertexFactories(VertexBuffers,LODModel.Sections, InFeatureLevel);
@@ -1221,7 +1236,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::InitMorphResources(cons
 
 	// Vertex buffers available for the LOD
 	FVertexFactoryBuffers VertexBuffers;
-	GetVertexBuffers(VertexBuffers,LODModel,MeshLODInfo, nullptr);
+	GetVertexBuffers(VertexBuffers,LODModel);
 	// init morph skin factories
 	GPUSkinVertexFactories.InitMorphVertexFactories(VertexBuffers, LODModel.Sections, bInUsePerBoneMotionBlur, InFeatureLevel);
 }

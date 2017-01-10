@@ -41,7 +41,6 @@ public:
 
 	// ViewportInteractorInterface overrides
 	virtual void Shutdown() override;
-	virtual void Tick( const float DeltaTime ) override;
 	virtual FHitResult GetHitResultFromLaserPointer( TArray<AActor*>* OptionalListOfIgnoredActors = nullptr, const bool bIgnoreGizmos = false,
 		TArray<UClass*>* ObjectsInFrontOfGizmo = nullptr, const bool bEvenIfBlocked = false, const float LaserLengthOverride = 0.0f ) override;
 	virtual void ResetHoverState( const float DeltaTime ) override;

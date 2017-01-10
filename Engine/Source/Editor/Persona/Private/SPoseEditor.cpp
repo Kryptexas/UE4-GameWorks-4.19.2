@@ -484,6 +484,19 @@ bool SPoseViewer::IsCurveSelected() const
 	return SelectedRows.Num() > 0;
 }
 
+// Restart Animation state for all instnace that belong to the current Skeleton
+void RestartAnimations(const USkeleton* CurrentSkeleton) 
+{
+	for (FObjectIterator Iter(USkeletalMeshComponent::StaticClass()); Iter; ++Iter)
+	{
+		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(*Iter);
+		if (SkeletalMeshComponent->SkeletalMesh && SkeletalMeshComponent->SkeletalMesh->Skeleton == CurrentSkeleton)
+		{
+			SkeletalMeshComponent->InitAnim(true);
+		}
+	}
+}
+
 void SPoseViewer::OnDeletePoses()
 {
 	TArray< TSharedPtr< FDisplayedPoseInfo > > SelectedRows = PoseListView->GetSelectedItems();
@@ -498,6 +511,9 @@ void SPoseViewer::OnDeletePoses()
 	}
 
 	PoseAssetPtr.Get()->DeletePoses(PosesToDelete);
+
+	// reinit animation
+	RestartAnimations(&(EditableSkeletonPtr.Pin()->GetSkeleton()));
 
 	CreatePoseList(NameFilterBox->GetText().ToString());
 }

@@ -18,9 +18,10 @@ public class EnvironmentQueryEditor : ModuleRules
             new string[] {
 				"AssetRegistry",
 				"AssetTools",
-                "PropertyEditor"
-			}
-		);
+                "PropertyEditor",
+                "DesktopPlatform",
+            }
+        );
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

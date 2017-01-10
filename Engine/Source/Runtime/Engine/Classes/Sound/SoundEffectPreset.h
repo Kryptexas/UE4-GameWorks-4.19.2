@@ -33,10 +33,6 @@ class ENGINE_API USoundEffectPreset : public UObject
 public:
 	void Init();
 
-	//~ Begin UObject
-	virtual void BeginDestroy() override;
-	//~ End UObject
-
 	virtual void* GetSettings() PURE_VIRTUAL(USoundEffectPreset::GetSettings, return nullptr;);
 	virtual uint32 GetSettingsSize() const PURE_VIRTUAL(USoundEffectPreset::GetSettingsSize, return 0;);
 	virtual UScriptStruct* GetSettingsStruct() const PURE_VIRTUAL(USoundEffectPreset::GetSettingsStruct, return nullptr;);

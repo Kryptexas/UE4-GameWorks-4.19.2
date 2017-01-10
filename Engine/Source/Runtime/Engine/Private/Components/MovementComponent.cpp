@@ -509,7 +509,7 @@ bool UMovementComponent::K2_MoveUpdatedComponent(FVector Delta, FRotator NewRota
 // Typically we want to depenetrate regardless of direction, so we can get all the way out of penetration quickly.
 // Our rules for "moving with depenetration normal" only get us so far out of the object. We'd prefer to pop out by the full MTD amount.
 // Depenetration moves (in ResolvePenetration) then ignore blocking overlaps to be able to move out by the MTD amount.
-static int32 MoveIgnoreFirstBlockingOverlap = 0;
+static int32 MoveIgnoreFirstBlockingOverlap = 1;
 
 static FAutoConsoleVariableRef CVarMoveIgnoreFirstBlockingOverlap(
 	TEXT("p.MoveIgnoreFirstBlockingOverlap"),

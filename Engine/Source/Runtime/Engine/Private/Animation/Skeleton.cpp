@@ -60,6 +60,23 @@ FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 	return Ar;
 }
 
+const TCHAR* SkipPrefix(const FString& InName)
+{
+	const int32 PrefixLength = VirtualBoneNameHelpers::VirtualBonePrefix.Len();
+	check(InName.Len() > PrefixLength);
+	return &InName[PrefixLength];
+}
+
+FString VirtualBoneNameHelpers::AddVirtualBonePrefix(const FString& InName)
+{
+	return VirtualBoneNameHelpers::VirtualBonePrefix + InName;
+}
+
+FName VirtualBoneNameHelpers::RemoveVirtualBonePrefix(const FString& InName)
+{
+	return FName(SkipPrefix(InName));
+}
+
 USkeleton::USkeleton(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -1546,13 +1563,75 @@ bool USkeleton::AddNewVirtualBone(const FName SourceBoneName, const FName Target
 	return true;
 }
 
+int32 FindBoneByName(const FName& BoneName, TArray<FVirtualBone>& Bones)
+{
+	for (int32 Idx = 0; Idx < Bones.Num(); ++Idx)
+	{
+		if (Bones[Idx].VirtualBoneName == BoneName)
+		{
+			return Idx;
+		}
+	}
+	return INDEX_NONE;
+}
+
 void USkeleton::RemoveVirtualBones(const TArray<FName>& BonesToRemove)
 {
 	Modify();
-	VirtualBones.RemoveAllSwap([&BonesToRemove](const FVirtualBone& VB) { return BonesToRemove.Contains(VB.VirtualBoneName); });
+	for (const FName& BoneName : BonesToRemove)
+	{
+		int32 Idx = FindBoneByName(BoneName, VirtualBones);
+		if (Idx != INDEX_NONE)
+		{
+			FName Parent = VirtualBones[Idx].SourceBoneName;
+			for (FVirtualBone& VB : VirtualBones)
+			{
+				if (VB.SourceBoneName == BoneName)
+				{
+					VB.SourceBoneName = Parent;
+				}
+			}
+			VirtualBones.RemoveAt(Idx,1,false);
+		}
+	}
 
 	RegenerateVirtualBoneGuid();
 	HandleVirtualBoneChanges();
+}
+
+void USkeleton::RenameVirtualBone(const FName OriginalBoneName, const FName NewBoneName)
+{
+	bool bModified = false;
+
+	for (FVirtualBone& VB : VirtualBones)
+	{
+		if (VB.VirtualBoneName == OriginalBoneName)
+		{
+			if (!bModified)
+			{
+				bModified = true;
+				Modify();
+			}
+
+			VB.VirtualBoneName = NewBoneName;
+		}
+
+		if (VB.SourceBoneName == OriginalBoneName)
+		{
+			if (!bModified)
+			{
+				bModified = true;
+				Modify();
+			}
+			VB.SourceBoneName = NewBoneName;
+		}
+	}
+
+	if (bModified)
+	{
+		RegenerateVirtualBoneGuid();
+		HandleVirtualBoneChanges();
+	}
 }
 
 void USkeleton::HandleVirtualBoneChanges()
