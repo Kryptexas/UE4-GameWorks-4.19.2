@@ -1367,6 +1367,7 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	// Invalidate cached bones.
 	CachedBoneSpaceTransforms.Empty();
 	CachedComponentSpaceTransforms.Empty();
+	CachedCurve.Empty();
 }
 
 void USkeletalMeshComponent::MarkRequiredCurveUpToDate()
@@ -1579,7 +1580,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 	const bool bInvalidCachedCurve = bDoEvaluationRateOptimization && 
 									CurrentAnimCurveMappingNameUids != nullptr &&
-									(CachedCurve.UIDList != CurrentAnimCurveMappingNameUids || CachedCurve.UIDList->Num() != CurrentCurveCount  || (AnimCurves.Num() != CurrentCurveCount));
+									(CachedCurve.UIDList != CurrentAnimCurveMappingNameUids || CachedCurve.Num() != CurrentCurveCount);
 
 	const bool bShouldDoEvaluation = !bDoEvaluationRateOptimization || bInvalidCachedBones || bInvalidCachedCurve || !AnimUpdateRateParams->ShouldSkipEvaluation();
 
@@ -1601,15 +1602,21 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	AnimEvaluationContext.SkeletalMesh = SkeletalMesh;
 	AnimEvaluationContext.AnimInstance = AnimScriptInstance;
 
-	if (CurrentAnimCurveMappingNameUids && 
-		((AnimEvaluationContext.Curve.Num() != CurrentCurveCount) || (AnimEvaluationContext.Curve.UIDList != CurrentAnimCurveMappingNameUids)))
+	if (CurrentAnimCurveMappingNameUids)
 	{
-		AnimEvaluationContext.Curve.InitFrom(CurrentAnimCurveMappingNameUids);
+		if ((AnimEvaluationContext.Curve.Num() != CurrentCurveCount) || (AnimEvaluationContext.Curve.UIDList != CurrentAnimCurveMappingNameUids))
+		{
+			AnimEvaluationContext.Curve.InitFrom(CurrentAnimCurveMappingNameUids);
+		}
+		if (AnimCurves.UIDList != CurrentAnimCurveMappingNameUids || AnimCurves.Num() != CurrentCurveCount)
+		{
+			AnimCurves.InitFrom(CurrentAnimCurveMappingNameUids);
+		}
 	}
-	else if(CurrentAnimCurveMappingNameUids == nullptr)
+	else
 	{
 		AnimEvaluationContext.Curve.Empty();
-		CachedCurve.Empty();
+		AnimCurves.Empty();
 	}
 
 	AnimEvaluationContext.bDoEvaluation = bShouldDoEvaluation;
