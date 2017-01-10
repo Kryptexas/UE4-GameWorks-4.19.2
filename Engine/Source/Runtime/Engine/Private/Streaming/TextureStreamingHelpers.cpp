@@ -185,7 +185,7 @@ TAutoConsoleVariable<int32> CVarStreamingNumStaticComponentsProcessedPerFrame(
 
 TAutoConsoleVariable<int32> CVarStreamingDefragDynamicBounds(
 	TEXT("r.Streaming.DefragDynamicBounds"),
-	1,
+	0,
 	TEXT("If non-zero, unused dynamic bounds will be removed from the update loop"),
 	ECVF_Default);
 
