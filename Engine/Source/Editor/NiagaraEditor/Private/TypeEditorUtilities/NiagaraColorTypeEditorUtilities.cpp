@@ -4,7 +4,7 @@
 #include "SNiagaraParameterEditor.h"
 #include "NiagaraTypes.h"
 #include "NiagaraEditorStyle.h"
-#include "Engine.h"
+#include "Classes/Engine/Engine.h"
 
 #include "SColorPicker.h"
 #include "SNumericEntryBox.h"
