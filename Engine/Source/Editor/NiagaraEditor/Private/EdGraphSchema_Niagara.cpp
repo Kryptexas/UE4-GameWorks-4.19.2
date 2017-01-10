@@ -555,7 +555,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 		}
 	}
 
-	const FText MenuCat = LOCTEXT("NiagaraEventMenuCat", "Logic");
+	const FText MenuCat = LOCTEXT("NiagaraLogicMenuCat", "Logic");
 	{
 		const FText MenuDesc = LOCTEXT("If", "If");
 
