@@ -1688,10 +1688,10 @@ TArray<FSectionHandle> SSequencer::GetSectionHandles(const TSet<TWeakObjectPtr<U
 				{
 					FSequencerTrackNode& TrackNode = static_cast<FSequencerTrackNode&>(InNode);
 
-					const auto& AllSections = TrackNode.GetTrack()->GetAllSections();
+					const auto& AllSections = TrackNode.GetSections();
 					for (int32 Index = 0; Index < AllSections.Num(); ++Index)
 					{
-						if (DesiredSections.Contains(TWeakObjectPtr<UMovieSceneSection>(AllSections[Index])))
+						if (DesiredSections.Contains(TWeakObjectPtr<UMovieSceneSection>(AllSections[Index]->GetSectionObject())))
 						{
 							SectionHandles.Emplace(StaticCastSharedRef<FSequencerTrackNode>(TrackNode.AsShared()), Index);
 						}

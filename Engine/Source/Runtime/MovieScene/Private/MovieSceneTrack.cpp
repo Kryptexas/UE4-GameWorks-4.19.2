@@ -209,3 +209,60 @@ FMovieSceneEvalTemplatePtr UMovieSceneTrack::CreateTemplateForSection(const UMov
 {
 	return InSection.GenerateTemplate();
 }
+
+int32 UMovieSceneTrack::GetMaxRowIndex() const
+{
+	int32 MaxRowIndex = 0;
+	for (UMovieSceneSection* Section : GetAllSections())
+	{
+		MaxRowIndex = FMath::Max(MaxRowIndex, Section->GetRowIndex());
+	}
+
+	return MaxRowIndex;
+}
+
+bool UMovieSceneTrack::FixRowIndices()
+{
+	bool bFixesMade = false;
+	TArray<UMovieSceneSection*> Sections = GetAllSections();
+	if (SupportsMultipleRows())
+	{
+		// remove any empty track rows by waterfalling down sections to be as compact as possible
+		TArray<TArray<UMovieSceneSection*>> RowIndexToSectionsMap;
+		RowIndexToSectionsMap.AddZeroed(GetMaxRowIndex() + 1);
+
+		for (UMovieSceneSection* Section : Sections)
+		{
+			RowIndexToSectionsMap[Section->GetRowIndex()].Add(Section);
+		}
+
+		int32 NewIndex = 0;
+		for (const TArray<UMovieSceneSection*>& SectionsForIndex : RowIndexToSectionsMap)
+		{
+			if (SectionsForIndex.Num() > 0)
+			{
+				for (UMovieSceneSection* SectionForIndex : SectionsForIndex)
+				{
+					if (SectionForIndex->GetRowIndex() != NewIndex)
+					{
+						SectionForIndex->SetRowIndex(NewIndex);
+						bFixesMade = true;
+					}
+				}
+				++NewIndex;
+			}
+		}
+	}
+	else
+	{
+		for (int32 i = 0; i < Sections.Num(); ++i)
+		{
+			if (Sections[i]->GetRowIndex() != 0)
+			{
+				Sections[i]->SetRowIndex(0);
+				bFixesMade = true;
+			}
+		}
+	}
+	return bFixesMade;
+}

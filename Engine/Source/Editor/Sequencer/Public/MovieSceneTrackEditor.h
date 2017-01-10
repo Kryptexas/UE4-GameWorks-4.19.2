@@ -232,6 +232,7 @@ public:
 
 	virtual bool SupportsType( TSubclassOf<class UMovieSceneTrack> TrackClass ) const = 0;
 	virtual void Tick(float DeltaTime) override { }
+	virtual EMultipleRowMode GetMultipleRowMode() const { return EMultipleRowMode::SingleTrack; }
 
 protected:
 

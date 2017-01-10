@@ -56,6 +56,7 @@ public:
 	virtual bool SupportsType(TSubclassOf<UMovieSceneTrack> Type) const override;
 	virtual void BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track ) override;
 	virtual const FSlateBrush* GetIconBrush() const override;
+	virtual EMultipleRowMode GetMultipleRowMode() const override;
 	
 protected:
 

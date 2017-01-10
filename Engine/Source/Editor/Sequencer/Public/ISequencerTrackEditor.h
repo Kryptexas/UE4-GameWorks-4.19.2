@@ -23,6 +23,15 @@ struct FBuildEditWidgetParams
 	TAttribute<bool> NodeIsHovered;
 };
 
+/** Defines different modes for editing sections on multiple rows. */
+enum class EMultipleRowMode
+{
+	/** Edit sections on multiple rows in a single track.  This does support editing keys in each section but results in a more compact UI. */
+	SingleTrack,
+	/** Edit sections on multiple sub-tracks contained in a single top level track.  The supports editing keys in sections, but results in a less compact UI. */
+	MultipleTrack
+};
+
 /**
  * Interface for sequencer track editors.
  */
@@ -140,6 +149,9 @@ public:
 	 * @param DeltaTime The time since the last tick.
 	 */
 	virtual void Tick(float DeltaTime) = 0;
+
+	/** Gets the mode used when supporting sections on multiple rows. */
+	virtual EMultipleRowMode GetMultipleRowMode() const = 0;
 
 public:
 

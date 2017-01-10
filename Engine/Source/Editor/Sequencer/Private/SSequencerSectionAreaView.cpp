@@ -152,17 +152,18 @@ void SSequencerSectionAreaView::Tick(const FGeometry& AllottedGeometry, const do
 void SSequencerSectionAreaView::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	int32 MaxRowIndex = 0;
-	for( int32 WidgetIndex = 0; WidgetIndex < Children.Num(); ++WidgetIndex )
+	if (SectionAreaNode->GetSubTrackMode() == FSequencerTrackNode::ESubTrackMode::None)
 	{
-		const TSharedRef<SSequencerSection>& Widget = Children[WidgetIndex];
+		for (int32 WidgetIndex = 0; WidgetIndex < Children.Num(); ++WidgetIndex)
+		{
+			const TSharedRef<SSequencerSection>& Widget = Children[WidgetIndex];
 
-		TSharedPtr<ISequencerSection> SectionInterface = Widget->GetSectionInterface();
+			TSharedPtr<ISequencerSection> SectionInterface = Widget->GetSectionInterface();
 
-		MaxRowIndex = FMath::Max(MaxRowIndex, SectionInterface->GetSectionObject()->GetRowIndex());
+			MaxRowIndex = FMath::Max(MaxRowIndex, SectionInterface->GetSectionObject()->GetRowIndex());
+		}
 	}
 	int32 MaxTracks = MaxRowIndex + 1;
-
-
 
 	FTimeToPixel TimeToPixelConverter = GetTimeToPixel( AllottedGeometry );
 
@@ -172,7 +173,7 @@ void SSequencerSectionAreaView::OnArrangeChildren( const FGeometry& AllottedGeom
 
 		TSharedPtr<ISequencerSection> SectionInterface = Widget->GetSectionInterface();
 
-		int32 RowIndex = SectionInterface->GetSectionObject()->GetRowIndex();
+		int32 RowIndex = SectionAreaNode->GetSubTrackMode() == FSequencerTrackNode::ESubTrackMode::None ? SectionInterface->GetSectionObject()->GetRowIndex() : 0;
 
 		EVisibility WidgetVisibility = Widget->GetVisibility();
 		if( ArrangedChildren.Accepts( WidgetVisibility ) )

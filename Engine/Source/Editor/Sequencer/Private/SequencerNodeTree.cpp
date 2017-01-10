@@ -117,10 +117,10 @@ void FSequencerNodeTree::Update()
 		{
 			UMovieSceneTrack& TrackRef = *Track;
 
-			TSharedRef<FSequencerTrackNode> SectionNode = MakeShareable(new FSequencerTrackNode(TrackRef, *FindOrAddTypeEditor(TrackRef), true, nullptr, *this));
-			MasterTrackNodes.Add(SectionNode);
-	
-			MakeSectionInterfaces(TrackRef, SectionNode);
+			TSharedRef<FSequencerTrackNode> TrackNode = MakeShareable(new FSequencerTrackNode(TrackRef, *FindOrAddTypeEditor(TrackRef), true, nullptr, *this));
+			MasterTrackNodes.Add(TrackNode);
+
+			MakeSubTracksAndSectionInterfaces(TrackNode);
 		}
 	}
 
@@ -143,8 +143,8 @@ void FSequencerNodeTree::Update()
 		for( UMovieSceneTrack* Track : Tracks )
 		{
 			UMovieSceneTrack& TrackRef = *Track;
-			TSharedRef<FSequencerTrackNode> SectionAreaNode = ObjectBindingNode->AddSectionAreaNode(TrackRef, *FindOrAddTypeEditor(TrackRef));
-			MakeSectionInterfaces( TrackRef, SectionAreaNode );
+			TSharedRef<FSequencerTrackNode> TrackNode = ObjectBindingNode->AddTrackNode(TrackRef, *FindOrAddTypeEditor(TrackRef));
+			MakeSubTracksAndSectionInterfaces(TrackNode);
 		}
 	}
 
@@ -218,6 +218,8 @@ void FSequencerNodeTree::Update()
 	// Re-filter the tree after updating 
 	// @todo sequencer: Newly added sections may need to be visible even when there is a filter
 	FilterNodes( FilterString );
+
+	OnUpdatedDelegate.Broadcast();
 }
 
 
@@ -248,32 +250,61 @@ TSharedRef<ISequencerTrackEditor> FSequencerNodeTree::FindOrAddTypeEditor( UMovi
 	return Editor.ToSharedRef();
 }
 
+void FSequencerNodeTree::MakeSubTracksAndSectionInterfaces(TSharedRef<FSequencerTrackNode> TrackNode)
+{
+	UMovieSceneTrack* Track = TrackNode->GetTrack();
+	ISequencerTrackEditor& TrackEditor = TrackNode->GetTrackEditor();
+	if (Track->SupportsMultipleRows() && TrackEditor.GetMultipleRowMode() == EMultipleRowMode::MultipleTrack)
+	{
+		TrackNode->SetSubTrackMode(FSequencerTrackNode::ESubTrackMode::ParentTrack);
+		TArray<UMovieSceneSection*> Sections = Track->GetAllSections();
+		int32 MaxRowIndex = 0;
+		for (UMovieSceneSection* Section : Sections)
+		{
+			MaxRowIndex = FMath::Max(MaxRowIndex, Section->GetRowIndex());
+		}
+		for (int32 i = 0; i <= MaxRowIndex; i++)
+		{
+			TSharedRef<FSequencerTrackNode> SubTrackNode = MakeShareable(new FSequencerTrackNode(*Track, TrackEditor, true, TrackNode, *this));
+			SubTrackNode->SetSubTrackMode(FSequencerTrackNode::ESubTrackMode::SubTrack);
+			SubTrackNode->SetRowIndex(i);
 
-void FSequencerNodeTree::MakeSectionInterfaces( UMovieSceneTrack& Track, TSharedRef<FSequencerTrackNode>& SectionAreaNode )
+			TrackNode->AddChildTrack(SubTrackNode);
+			MakeSectionInterfaces(*Track, SubTrackNode);
+		}
+	}
+	else
+	{
+		MakeSectionInterfaces(*Track, TrackNode);
+	}
+}
+
+void FSequencerNodeTree::MakeSectionInterfaces( UMovieSceneTrack& Track, TSharedRef<FSequencerTrackNode>& TrackNode )
 {
 	const TArray<UMovieSceneSection*>& MovieSceneSections = Track.GetAllSections();
 
 	TSharedRef<ISequencerTrackEditor> Editor = FindOrAddTypeEditor( Track );
 
-	for (int32 SectionIndex = 0; SectionIndex < MovieSceneSections.Num(); ++SectionIndex )
+	for (int32 SectionIndex = 0; SectionIndex < MovieSceneSections.Num(); ++SectionIndex)
 	{
-		FGuid ObjectBinding;
-		if (SectionAreaNode->GetParent().IsValid() && SectionAreaNode->GetParent()->GetType() == ESequencerNode::Object)
-		{
-			TSharedPtr<FSequencerObjectBindingNode> ParentObjectNode = StaticCastSharedPtr<FSequencerObjectBindingNode>(SectionAreaNode->GetParent());
-			ObjectBinding = ParentObjectNode->GetObjectBinding();
-		}
-
 		UMovieSceneSection* SectionObject = MovieSceneSections[SectionIndex];
-		TSharedRef<ISequencerSection> Section = Editor->MakeSectionInterface( *SectionObject, Track, ObjectBinding );
+		if (TrackNode->GetSubTrackMode() != FSequencerTrackNode::ESubTrackMode::SubTrack || TrackNode->GetRowIndex() == SectionObject->GetRowIndex())
+		{
+			FGuid ObjectBinding;
+			if (TrackNode->GetParent().IsValid() && TrackNode->GetParent()->GetType() == ESequencerNode::Object)
+			{
+				TSharedPtr<FSequencerObjectBindingNode> ParentObjectNode = StaticCastSharedPtr<FSequencerObjectBindingNode>(TrackNode->GetParent());
+				ObjectBinding = ParentObjectNode->GetObjectBinding();
+			}
 
-		// Ask the section to generate it's inner layout
-		FSequencerSectionLayoutBuilder Builder( SectionAreaNode );
-		Section->GenerateSectionLayout( Builder );
-		SectionAreaNode->AddSection( Section );
+			TSharedRef<ISequencerSection> Section = Editor->MakeSectionInterface(*SectionObject, Track, ObjectBinding);
+
+			// Ask the section to generate it's inner layout
+			FSequencerSectionLayoutBuilder Builder(TrackNode);
+			Section->GenerateSectionLayout(Builder);
+			TrackNode->AddSection(Section);
+		}
 	}
-
-	SectionAreaNode->FixRowIndices();
 }
 
 

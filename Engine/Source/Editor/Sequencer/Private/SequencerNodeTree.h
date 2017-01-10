@@ -20,6 +20,9 @@ struct FMovieSceneBinding;
 class FSequencerNodeTree : public TSharedFromThis<FSequencerNodeTree>
 {
 public:
+	DECLARE_MULTICAST_DELEGATE(FOnUpdated);
+
+public:
 	FSequencerNodeTree( class FSequencer& InSequencer )
 		: Sequencer( InSequencer )
 	{}
@@ -97,6 +100,11 @@ public:
 	 */
 	const TMap< FGuid, TSharedPtr<FSequencerObjectBindingNode> > GetObjectBindingMap() const { return ObjectBindingMap; }
 
+	/*
+	 * Gets a multicast delegate which is called whenever the node tree has been updated.
+	 */
+	FOnUpdated& OnUpdated() { return OnUpdatedDelegate; }
+
 private:
 	/**
 	 * Finds or adds a type editor for the track
@@ -106,13 +114,19 @@ private:
 	 */
 	TSharedRef<ISequencerTrackEditor> FindOrAddTypeEditor( UMovieSceneTrack& Track );
 
+	/* 
+	 * Makes sub-track nodes and section interfaces for a track node.
+	 * @param The track node to create sub-tracks and section interfaces for.
+	 */
+	void MakeSubTracksAndSectionInterfaces(TSharedRef<FSequencerTrackNode> TrackNode);
+
 	/**
 	 * Makes section interfaces for all sections in a track
 	 *
 	 * @param Track	The type to get sections from
 	 * @param SectionAreaNode	The section area which section interfaces belong to
 	 */
-	void MakeSectionInterfaces( UMovieSceneTrack& Track, TSharedRef<class FSequencerTrackNode>& SectionAreaNode );
+	void MakeSectionInterfaces( UMovieSceneTrack& Track, TSharedRef<class FSequencerTrackNode>& TrackNode );
 
 	/**
 	 * Creates a new object binding node and any parent binding nodes.
@@ -140,4 +154,6 @@ private:
 	FString FilterString;
 	/** Sequencer interface */
 	FSequencer& Sequencer;
+	/** A multicast delegate which is called whenever the node tree has been updated. */
+	FOnUpdated OnUpdatedDelegate;
 };

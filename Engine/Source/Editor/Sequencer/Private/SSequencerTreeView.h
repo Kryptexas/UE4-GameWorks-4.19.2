@@ -170,7 +170,10 @@ public:
 protected:
 	
 	/** Linear, sorted array of nodes that we currently have generated widgets for */
-	TArray<FCachedGeometry> PhysicalNodes;
+	mutable TArray<FCachedGeometry> PhysicalNodes;
+
+	/** A flag indicating that the physical nodes need to be updated. */
+	mutable bool bPhysicalNodesNeedUpdate;
 
 	/** Map of cached geometries for visible nodes */
 	TMap<FDisplayNodeRef, FCachedGeometry> CachedRowGeometry;

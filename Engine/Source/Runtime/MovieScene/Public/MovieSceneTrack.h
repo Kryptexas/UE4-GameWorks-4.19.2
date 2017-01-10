@@ -241,6 +241,15 @@ public:
 		return false;
 	}
 
+	/** Gets the greatest row index of all the sections owned by this track. */
+	MOVIESCENE_API int32 GetMaxRowIndex() const;
+
+	/**
+	 * Updates the row indices of sections owned by this track so that all row indices which are used are consecutive with no gaps. 
+	 * @return Whether or not fixes were made. 
+	 */
+	MOVIESCENE_API bool FixRowIndices();
+
 	/**
 	 * @return Whether or not this track's section bounds should be added to the play range
 	 */
