@@ -9,8 +9,8 @@
 ATP_FirstPersonHUD::ATP_FirstPersonHUD()
 {
 	// Set the crosshair texture
-	static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshiarTexObj(TEXT("/Game/FirstPerson/Textures/FirstPersonCrosshair"));
-	CrosshairTex = CrosshiarTexObj.Object;
+	static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTexObj(TEXT("/Game/FirstPerson/Textures/FirstPersonCrosshair"));
+	CrosshairTex = CrosshairTexObj.Object;
 }
 
 
@@ -32,4 +32,3 @@ void ATP_FirstPersonHUD::DrawHUD()
 	TileItem.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem( TileItem );
 }
-
