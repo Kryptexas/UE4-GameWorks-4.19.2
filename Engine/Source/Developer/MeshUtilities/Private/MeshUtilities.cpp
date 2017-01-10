@@ -936,8 +936,7 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 
 			OutData.Size = VolumeDimensions;
 			OutData.LocalBoundingBox = DistanceFieldVolumeBounds;
-			TArray<FFloat16> DistanceFieldVolume;
-			DistanceFieldVolume.AddZeroed(VolumeDimensions.X * VolumeDimensions.Y * VolumeDimensions.Z);
+			OutData.DistanceFieldVolume.AddZeroed(VolumeDimensions.X * VolumeDimensions.Y * VolumeDimensions.Z);
 
 			TIndirectArray<FAsyncTask<FMeshDistanceFieldAsyncTask>> AsyncTasks;
 
@@ -950,7 +949,7 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 					VolumeDimensions,
 					DistanceFieldVolumeMaxDistance,
 					ZIndex,
-					&DistanceFieldVolume);
+					&OutData.DistanceFieldVolume);
 
 				Task->StartBackgroundTask(&ThreadPool);
 
@@ -981,16 +980,10 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 			if (bNegativeAtBorder)
 			{
 				OutData.Size = FIntVector(0, 0, 0);
-				DistanceFieldVolume.Empty();
+				OutData.DistanceFieldVolume.Empty();
 
 				UE_LOG(LogMeshUtilities, Log, TEXT("Discarded distance field as mesh was not closed!  Assign a two-sided material to fix."));
 			}
-
-			OutData.DistanceFieldVolume.Lock(LOCK_READ_WRITE);
-			FFloat16* DataPtr = (FFloat16*)OutData.DistanceFieldVolume.Realloc(DistanceFieldVolume.Num());
-			check(OutData.DistanceFieldVolume.GetBulkDataSize() == DistanceFieldVolume.GetTypeSize() * DistanceFieldVolume.Num());
-			FPlatformMemory::Memcpy(DataPtr, DistanceFieldVolume.GetData(), OutData.DistanceFieldVolume.GetBulkDataSize());
-			OutData.DistanceFieldVolume.Unlock();
 		}
 	}
 }

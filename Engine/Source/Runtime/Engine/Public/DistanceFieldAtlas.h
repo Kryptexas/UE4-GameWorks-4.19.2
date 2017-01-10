@@ -16,10 +16,9 @@
 #include "RenderingThread.h"
 #include "TextureLayout3d.h"
 #include "UniquePtr.h"
-#include "BulkData.h"
 
 // DDC key for distance field data, must be changed when modifying the generation code or data format
-#define DISTANCEFIELD_DERIVEDDATA_VER TEXT("7768798764B545A9543C94442EA899D")
+#define DISTANCEFIELD_DERIVEDDATA_VER TEXT("7768798764B445A9543C94442EA899D")
 
 class FDistanceFieldVolumeData;
 class UStaticMesh;
@@ -119,7 +118,7 @@ class FDistanceFieldVolumeData : public FDeferredCleanupInterface
 public:
 
 	/** Signed distance field volume stored in local space. */
-	FFloat16BulkData DistanceFieldVolume;
+	TArray<FFloat16> DistanceFieldVolume;
 
 	/** Dimensions of DistanceFieldVolume. */
 	FIntVector Size;
@@ -162,7 +161,7 @@ public:
 	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
 	{
 		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(*this));
-		CumulativeResourceSize.AddUnknownMemoryBytes(DistanceFieldVolume.GetBulkDataSize());
+		CumulativeResourceSize.AddUnknownMemoryBytes(DistanceFieldVolume.GetAllocatedSize());
 	}
 
 	SIZE_T GetResourceSizeBytes() const
@@ -181,8 +180,7 @@ public:
 	friend FArchive& operator<<(FArchive& Ar,FDistanceFieldVolumeData& Data)
 	{
 		// Note: this is derived data, no need for versioning (bump the DDC guid)
-		Data.DistanceFieldVolume.Serialize(Ar, NULL);
-		Ar << Data.Size << Data.LocalBoundingBox << Data.bMeshWasClosed << Data.bBuiltAsIfTwoSided << Data.bMeshWasPlane;
+		Ar << Data.DistanceFieldVolume << Data.Size << Data.LocalBoundingBox << Data.bMeshWasClosed << Data.bBuiltAsIfTwoSided << Data.bMeshWasPlane;
 		return Ar;
 	}
 };

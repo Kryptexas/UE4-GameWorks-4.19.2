@@ -221,9 +221,7 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 			const int32 FormatSize = GPixelFormats[Format].BlockBytes;
 
 			// Update the volume texture atlas
-			const void* DataPtr = Texture->VolumeData.DistanceFieldVolume.LockReadOnly();
-			RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Size.X * FormatSize, Size.X * Size.Y * FormatSize, (const uint8*)DataPtr);
-			Texture->VolumeData.DistanceFieldVolume.Unlock();
+			RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Size.X * FormatSize, Size.X * Size.Y * FormatSize, (const uint8*)Texture->VolumeData.DistanceFieldVolume.GetData());
 		}
 
 		CurrentAllocations.Append(PendingAllocations);
