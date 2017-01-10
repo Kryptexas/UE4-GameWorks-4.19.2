@@ -495,3 +495,12 @@ void UNavCollision::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(FmtData.GetElementSize() * FmtData.GetElementCount());
 	}
 }
+
+void UNavCollision::CopyUserSettings(const UNavCollision& OtherData)
+{
+	CylinderCollision = OtherData.CylinderCollision;
+	BoxCollision = OtherData.BoxCollision;
+	AreaClass = OtherData.AreaClass;
+	bIsDynamicObstacle = OtherData.bIsDynamicObstacle;
+	bGatherConvexGeometry = OtherData.bGatherConvexGeometry;
+}

@@ -2880,10 +2880,18 @@ void UStaticMesh::CreateNavCollision(const bool bIsUpdate)
 	// do NOT test properties of BodySetup at load time, they still can change between PostLoad and component's OnRegister
 	if (bHasNavigationData && BodySetup != nullptr && (!bIsUpdate || NavigationHelper::IsBodyNavigationRelevant(*BodySetup)))
 	{
+		UNavCollision* PrevNavCollision = NavCollision;
+
 		if (NavCollision == nullptr || bIsUpdate)
 		{
 			NavCollision = NewObject<UNavCollision>(this);
 		}
+
+		if (PrevNavCollision)
+		{
+			NavCollision->CopyUserSettings(*PrevNavCollision);
+		}
+
 		NavCollision->Setup(BodySetup);
 	}
 	else
