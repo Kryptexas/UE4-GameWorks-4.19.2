@@ -1117,12 +1117,14 @@ void FSequencer::SelectInSelectionRange(const TSharedRef<FSequencerDisplayNode>&
 
 		if (bSelectSections)
 		{
+			// Use an exclusive selection range to prevent the selection of a section that ends right at the selection range start
+			TRange<float> ExclusiveSectionRange = TRange<float>(TRangeBound<float>::Exclusive(SelectionRange.GetLowerBoundValue()), TRangeBound<float>::Exclusive(SelectionRange.GetUpperBoundValue()));
 			TSet<TWeakObjectPtr<UMovieSceneSection>> OutSections;
 			SequencerHelpers::GetAllSections(DisplayNode, OutSections);
 
 			for (auto Section : OutSections)
 			{
-				if (Section.IsValid())
+				if (Section.IsValid() && Section->GetRange().Overlaps(ExclusiveSectionRange))
 				{
 					Selection.AddToSelection(Section.Get());
 				}
