@@ -1,11 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "SCompoundWidget.h"
+#include "DeclarativeSyntaxSupport.h"
 
 class SCurveEditor;
 struct FNiagaraSimulation;
 class FNiagaraEffectInstance;
 class UNiagaraEffect;
+class UCurveBase;
 
 class SNiagaraTimeline : public SCompoundWidget
 {

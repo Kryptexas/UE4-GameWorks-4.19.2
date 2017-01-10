@@ -4,7 +4,11 @@
 #include "NiagaraNodeWithDynamicPins.h"
 #include "EdGraphSchema_Niagara.h"
 
+#include "UIAction.h"
 #include "ScopedTransaction.h"
+#include "MultiBoxBuilder.h"
+#include "SEditableTextBox.h"
+#include "SBox.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraNodeWithDynamicPins"
 

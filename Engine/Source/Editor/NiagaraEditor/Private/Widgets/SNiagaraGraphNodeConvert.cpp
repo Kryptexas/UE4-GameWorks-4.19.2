@@ -8,6 +8,7 @@
 #include "SNiagaraConvertPinSocket.h"
 
 #include "GraphEditorSettings.h"
+#include "DrawElements.h"
 #include "SGraphPin.h"
 
 void SNiagaraGraphNodeConvert::Construct(const FArguments& InArgs, UEdGraphNode* InGraphNode)

@@ -2,6 +2,8 @@
 
 #pragma once
 #include "NiagaraSettings.h"
+#include "Factories/Factory.h"
+
 #include "NiagaraEmitterFactoryNew.generated.h"
 
 

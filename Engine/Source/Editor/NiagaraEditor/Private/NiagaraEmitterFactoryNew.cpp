@@ -5,6 +5,8 @@
 #include "NiagaraEditorModule.h"
 #include "NiagaraScriptFactoryNew.h"
 
+#include "ConfigCacheIni.h"
+
 #define LOCTEXT_NAMESPACE "NiagaraEmitterFactory"
 
 UNiagaraEmitterFactoryNew::UNiagaraEmitterFactoryNew(const FObjectInitializer& ObjectInitializer)

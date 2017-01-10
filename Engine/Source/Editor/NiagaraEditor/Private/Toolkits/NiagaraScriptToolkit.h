@@ -7,6 +7,7 @@
 #include "Toolkits/IToolkitHost.h"
 #include "Misc/NotifyHook.h"
 #include "EditorUndoClient.h"
+#include "AssetEditorToolkit.h"
 
 class IDetailsView;
 class SGraphEditor;

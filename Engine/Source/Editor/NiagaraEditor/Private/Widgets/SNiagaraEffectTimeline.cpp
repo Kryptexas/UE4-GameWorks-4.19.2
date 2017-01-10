@@ -3,6 +3,7 @@
 #include "SNiagaraEffectTimeline.h"
 
 #include "SCurveEditor.h"
+#include "SOverlay.h"
 
 void SNiagaraTimeline::Construct(const FArguments& InArgs)
 {

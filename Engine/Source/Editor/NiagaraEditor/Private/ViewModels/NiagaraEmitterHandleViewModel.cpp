@@ -12,6 +12,7 @@
 #include "NiagaraScriptOutputCollectionViewModel.h"
 
 #include "ScopedTransaction.h"
+#include "AssetEditorManager.h"
 
 #define LOCTEXT_NAMESPACE "EmitterHandleViewModel"
 

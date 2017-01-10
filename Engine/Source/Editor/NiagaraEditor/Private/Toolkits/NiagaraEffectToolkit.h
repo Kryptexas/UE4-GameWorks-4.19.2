@@ -8,6 +8,8 @@
 #include "UObject/GCObject.h"
 #include "Toolkits/IToolkitHost.h"
 
+#include "AssetEditorToolkit.h"
+
 #include "ISequencer.h"
 #include "ISequencerTrackEditor.h"
 
@@ -20,6 +22,7 @@ class SNiagaraEffectViewport;
 class SNiagaraEffectEditor;
 class UNiagaraEffect;
 class UNiagaraSequence;
+class FAssetData;
 
 /** Viewer/editor for a NiagaraEffect
 */

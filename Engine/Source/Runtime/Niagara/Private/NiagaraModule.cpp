@@ -4,6 +4,8 @@
 #include "Modules/ModuleManager.h"
 #include "NiagaraTypes.h"
 #include "NiagaraEvents.h"
+#include "Class.h"
+#include "Package.h"
 
 IMPLEMENT_MODULE(INiagaraModule, Niagara);
 

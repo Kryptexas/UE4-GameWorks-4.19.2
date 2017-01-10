@@ -3,6 +3,7 @@
 #include "NiagaraScript.h"
 #include "NiagaraScriptSourceBase.h"
 #include "NiagaraComponent.h"
+#include "Package.h"
 
 
 

@@ -5,6 +5,7 @@
 #include "DecoratedDragDropOp.h"
 
 class FNiagaraConvertPinSocketViewModel;
+class FMenuBuilder;
 
 /** Contains data for a socket drag and drop operation in the convert node. */
 class FNiagaraConvertDragDropOp : public FDecoratedDragDropOp

@@ -16,10 +16,13 @@
 #include "NiagaraEmitterTrackEditor.h"
 #include "NiagaraEffectInstance.h"
 
+#include "Editor.h"
+
 #include "ScopedTransaction.h"
 #include "MovieScene.h"
 #include "ISequencerModule.h"
 #include "EditorSupportDelegates.h"
+#include "ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraEffectViewModel"
 

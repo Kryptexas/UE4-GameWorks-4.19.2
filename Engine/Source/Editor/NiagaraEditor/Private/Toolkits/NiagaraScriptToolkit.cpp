@@ -15,7 +15,11 @@
 #include "Package.h"
 #include "NiagaraEditorStyle.h"
 
+#include "ModuleManager.h"
+
+#include "MultiBoxBuilder.h"
 #include "SScrollBox.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraScriptToolkit"
 

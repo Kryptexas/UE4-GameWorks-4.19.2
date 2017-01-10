@@ -8,6 +8,8 @@
 #include "SNiagaraParameterCollection.h"
 #include "SNiagaraScriptGraph.h"
 
+#include "SSplitter.h"
+
 void SNiagaraEffectScript::Construct(const FArguments& InArgs, TSharedRef<FNiagaraEffectViewModel> InEffectViewModel)
 {
 	EffectViewModel = InEffectViewModel;

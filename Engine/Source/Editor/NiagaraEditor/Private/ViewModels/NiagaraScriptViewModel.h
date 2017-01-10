@@ -4,6 +4,8 @@
 
 #include "NiagaraParameterEditMode.h"
 #include "INiagaraCompiler.h"
+#include "EditorUndoClient.h"
+#include "NotifyHook.h"
 
 class UNiagaraScript;
 class INiagaraParameterCollectionViewModel;

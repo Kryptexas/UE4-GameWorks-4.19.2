@@ -5,6 +5,8 @@
 #include "IMovieScenePlayer.h"
 
 #include "NiagaraParameterEditMode.h"
+#include "EditorUndoClient.h"
+#include "GCObject.h"
 
 class UNiagaraEffect;
 class UNiagaraComponent;
@@ -15,6 +17,7 @@ class FNiagaraEmitterHandleViewModel;
 class FNiagaraEffectScriptViewModel;
 class FNiagaraEffectInstance;
 class ISequencer;
+class FAssetData;
 
 /** Defines options for the niagara effect view model */
 struct FNiagaraEffectViewModelOptions

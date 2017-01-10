@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
+#include "RHIDefinitions.h"
 #include "NiagaraEffectRendererProperties.generated.h"
 
 /**
@@ -15,6 +16,7 @@
 */
 
 class NiagaraEffectRenderer;
+class UMaterial;
 
 UCLASS(ABSTRACT)
 class NIAGARA_API UNiagaraEffectRendererProperties : public UObject

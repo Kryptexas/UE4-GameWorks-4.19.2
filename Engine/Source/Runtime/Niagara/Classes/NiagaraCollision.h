@@ -1,7 +1,7 @@
 #pragma once
 
 #include "NiagaraEvents.h"
-
+#include "WorldCollision.h"
 
 UENUM()
 enum class ENiagaraCollisionMode : uint8

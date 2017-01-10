@@ -6,6 +6,8 @@
 #include "NiagaraNodeInput.h"
 #include "NiagaraDataInterface.h"
 #include "NiagaraComponent.h"
+#include "ModuleManager.h"
+#include "StructOnScope.h"
 
 FName FNiagaraEditorUtilities::GetUniqueName(FName CandidateName, const TSet<FName>& ExistingNames)
 {

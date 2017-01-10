@@ -10,6 +10,8 @@
 #include "GenericCommands.h"
 #include "ScopedTransaction.h"
 #include "EdGraphUtilities.h"
+#include "Editor.h"
+#include "EditorStyleSet.h"
 
 
 #define LOCTEXT_NAMESPACE "NiagaraScriptGraphViewModel"

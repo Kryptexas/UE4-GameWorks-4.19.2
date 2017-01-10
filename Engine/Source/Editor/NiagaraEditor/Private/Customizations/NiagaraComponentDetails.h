@@ -6,6 +6,8 @@
 #include "IDetailCustomization.h"
 #include "EditorUndoClient.h"
 #include "TickableEditorObject.h"
+#include "Reply.h"
+#include "Visibility.h"
 
 class IDetailLayoutBuilder;
 class IPropertyHandle;

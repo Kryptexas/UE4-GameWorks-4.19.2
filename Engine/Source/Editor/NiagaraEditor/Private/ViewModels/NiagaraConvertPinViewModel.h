@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "SharedPointer.h"
 
 class FNiagaraConvertNodeViewModel;
 class FNiagaraConvertPinSocketViewModel;
+class UEdGraphPin;
 
 /** A view model for a pin in a convert node. */
 class FNiagaraConvertPinViewModel : public TSharedFromThis<FNiagaraConvertPinViewModel>

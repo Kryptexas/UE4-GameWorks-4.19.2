@@ -5,7 +5,10 @@
 #include "NiagaraConvertPinViewModel.h"
 #include "NiagaraConvertPinSocketViewModel.h"
 
+#include "SlateApplication.h"
 #include "ScopedTransaction.h"
+#include "WidgetPath.h"
+#include "MultiBoxBuilder.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraConvertPinSocket"
 

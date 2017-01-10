@@ -3,6 +3,11 @@
 #pragma once
 
 #include "NiagaraParameterEditMode.h"
+#include "DelegateCombinations.h"
+#include "Delegate.h"
+#include "SlateTypes.h"
+#include "StructOnScope.h"
+#include "Text.h"
 
 struct FNiagaraTypeDefinition;
 struct FNiagaraVariable;

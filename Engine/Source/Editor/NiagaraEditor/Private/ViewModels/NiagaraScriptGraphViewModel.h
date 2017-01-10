@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "EdGraph/EdGraphNode.h"
 #include "NiagaraObjectSelection.h"
 #include "EditorUndoClient.h"
 #include "Styling/SlateColor.h"
+#include "UICommandList.h"
 
 class UNiagaraScript;
 class UNiagaraGraph;

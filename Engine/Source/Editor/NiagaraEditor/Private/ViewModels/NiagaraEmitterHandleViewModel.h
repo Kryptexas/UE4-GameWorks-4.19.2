@@ -2,7 +2,11 @@
 
 #pragma once
 
+#include "SharedPointer.h"
+#include "Delegate.h"
 #include "NiagaraParameterEditMode.h"
+#include "SlateEnums.h"
+#include "SlateTypes.h"
 
 class UNiagaraEffect;
 struct FNiagaraEmitterHandle;

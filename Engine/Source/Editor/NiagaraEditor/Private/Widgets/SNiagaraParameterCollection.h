@@ -2,12 +2,24 @@
 
 #pragma once
 
+#include "SCompoundWidget.h"
+#include "NotifyHook.h"
+#include "SListView.h"
+
+
 class INiagaraParameterCollectionViewModel;
 class INiagaraParameterViewModel;
 class IStructureDetailsView;
 class SNiagaraParameterEditor;
 struct FNiagaraTypeDefinition;
 struct FNiagaraVariable;
+
+class FUICommandList;
+class ITableRow;
+class STableViewBase;
+class SExpandableArea;
+class SBox;
+class SComboButton;
 
 /** A widget for editing parameter collections. */
 class SNiagaraParameterCollection : public SCompoundWidget, public FNotifyHook

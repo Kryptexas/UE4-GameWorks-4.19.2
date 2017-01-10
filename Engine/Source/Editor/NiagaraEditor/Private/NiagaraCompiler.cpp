@@ -21,6 +21,8 @@
 
 #include "ShaderFormatVectorVM.h"
 
+#include "ShaderCore.h"
+
 #define LOCTEXT_NAMESPACE "NiagaraCompiler"
 
 DEFINE_LOG_CATEGORY_STATIC(LogNiagaraCompiler, All, All);

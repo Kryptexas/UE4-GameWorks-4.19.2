@@ -19,6 +19,7 @@
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Input/SComboBox.h"
 #include "Widgets/Layout/SExpandableArea.h"
+#include "MultiBoxBuilder.h"
 #include "PropertyEditorModule.h"
 #include "IDetailsView.h"
 

@@ -15,6 +15,12 @@
 #include "IDetailPropertyRow.h"
 #include "DetailCategoryBuilder.h"
 #include "PropertyCustomizationHelpers.h"
+#include "ScopedTransaction.h"
+
+#include "SBorder.h"
+#include "STextBlock.h"
+#include "SButton.h"
+
 
 #define LOCTEXT_NAMESPACE "NiagaraEffectEditor"
 

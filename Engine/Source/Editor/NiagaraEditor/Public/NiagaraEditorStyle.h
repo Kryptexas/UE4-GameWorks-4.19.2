@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "ISlateStyle.h"
 
 /** Manages the style which provides resources for niagara editor widgets. */
 class FNiagaraEditorStyle

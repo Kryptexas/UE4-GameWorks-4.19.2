@@ -6,7 +6,15 @@
 #include "NiagaraGraph.h"
 #include "NiagaraNode.h"
 
+#include "AssetEditorManager.h"
 #include "GraphEditor.h"
+#include "EditorStyleSet.h"
+#include "SBorder.h"
+#include "SBoxPanel.h"
+#include "TextLayout.h"
+#include "SErrorText.h"
+#include "STextBlock.h"
+
 
 #define LOCTEXT_NAMESPACE "NiagaraScriptGraph"
 

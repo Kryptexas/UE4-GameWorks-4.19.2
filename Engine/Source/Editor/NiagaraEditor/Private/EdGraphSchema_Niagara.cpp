@@ -25,6 +25,7 @@
 #include "NiagaraEditorUtilities.h"
 #include "NiagaraDataInterface.h"
 #include "NiagaraNodeIf.h"
+#include "MessageDialog.h"
 
 #include "ModuleManager.h"
 #include "AssetRegistryModule.h"

@@ -3,6 +3,9 @@
 #pragma once
 
 #include "SCompoundWidget.h"
+#include "DeclarativeSyntaxSupport.h"
+#include "GraphEditor.h"
+#include "EdGraph/EdGraphNode.h"
 
 class FNiagaraScriptGraphViewModel;
 

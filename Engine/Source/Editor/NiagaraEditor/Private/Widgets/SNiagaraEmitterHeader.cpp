@@ -4,8 +4,10 @@
 #include "NiagaraEmitterHandleViewModel.h"
 #include "NiagaraEmitterViewModel.h"
 #include "NiagaraEditorStyle.h"
-
 #include "SInlineEditableTextBlock.h"
+#include "SBoxPanel.h"
+#include "SCheckBox.h"
+#include "STextBlock.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraEmitterHeader"
 

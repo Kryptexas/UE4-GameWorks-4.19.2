@@ -4,6 +4,10 @@
 #include "NiagaraNodeWithDynamicPins.h"
 
 #include "ScopedTransaction.h"
+#include "SComboButton.h"
+#include "SBoxPanel.h"
+#include "SImage.h"
+#include "MultiBoxBuilder.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraGraphPinAdd"
 

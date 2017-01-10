@@ -5,6 +5,7 @@
 #include "NiagaraTypes.h"
 
 #include "ScopedTransaction.h"
+#include "Editor.h"
 
 #define LOCTEXT_NAMESPACE "ScriptParameterViewModel"
 

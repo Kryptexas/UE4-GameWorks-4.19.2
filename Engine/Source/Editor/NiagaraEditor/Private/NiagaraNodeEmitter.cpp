@@ -5,6 +5,7 @@
 #include "NiagaraEmitterProperties.h"
 #include "NiagaraEditorUtilities.h"
 #include "EdGraphSchema_Niagara.h"
+#include "EdGraph/EdGraph.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraNodeEmitter"
 

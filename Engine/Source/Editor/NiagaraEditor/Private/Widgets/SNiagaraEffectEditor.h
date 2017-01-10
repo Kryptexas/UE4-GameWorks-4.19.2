@@ -3,10 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "SCompoundWidget.h"
+#include "DeclarativeSyntaxSupport.h"
 
 class FNiagaraEffectViewModel;
 class FNiagaraEmitterHandleViewModel;
 class SScrollBox;
+class SWidget;
 
 class SNiagaraEffectEditor : public SCompoundWidget
 {

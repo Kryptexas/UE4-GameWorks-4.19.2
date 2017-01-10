@@ -2,8 +2,11 @@
 
 #include "NiagaraEditorStyle.h"
 
+#include "SlateApplication.h"
+#include "EditorStyleSet.h"
 #include "Slate/SlateGameResources.h"
 #include "Styling/SlateStyleRegistry.h"
+#include "Styling/SlateTypes.h"
 
 TSharedPtr< FSlateStyleSet > FNiagaraEditorStyle::NiagaraEditorStyleInstance = NULL;
 

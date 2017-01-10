@@ -27,6 +27,7 @@
 #include "IDetailsView.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SEditableText.h"
+#include "Editor.h"
 #define LOCTEXT_NAMESPACE "NiagaraComponentDetails"
 
 class FNiagaraParameterViewModelCustomDetails : public FNiagaraParameterViewModel

@@ -15,6 +15,15 @@
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 
+#include "EditorStyleSet.h"
+#include "AssetEditorToolkit.h"
+#include "WorkspaceItem.h"
+
+#include "SlateApplication.h"
+#include "SBoxPanel.h"
+#include "SBox.h"
+#include "SDockTab.h"
+
 #define LOCTEXT_NAMESPACE "NiagaraEffectEditor"
 
 const FName FNiagaraEffectToolkit::ViewportTabID(TEXT("NiagaraEffectEditor_Viewport"));

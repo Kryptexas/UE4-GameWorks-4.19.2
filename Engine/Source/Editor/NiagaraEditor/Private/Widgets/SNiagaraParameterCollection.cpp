@@ -9,14 +9,20 @@
 #include "SNiagaraParameterEditor.h"
 #include "NiagaraEditorStyle.h"
 
+#include "SButton.h"
 #include "SExpandableArea.h"
 #include "SInlineEditableTextBlock.h"
 #include "SComboBox.h"
+#include "SImage.h"
+#include "SSplitter.h"
+#include "MultiBoxBuilder.h"
+
 #include "Modules/ModuleManager.h"
 #include "IStructureDetailsView.h"
 #include "GenericCommands.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "IDetailsView.h"
+
 
 #define LOCTEXT_NAMESPACE "NiagaraParameterCollectionEditor"
 

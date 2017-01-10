@@ -12,6 +12,7 @@
 #include "CompilerResultsLog.h"
 #include "GraphEditAction.h"
 #include "Package.h"
+#include "Editor.h"
 
 FNiagaraScriptViewModel::FNiagaraScriptViewModel(UNiagaraScript* InScript, FText DisplayName, ENiagaraParameterEditMode InParameterEditMode)
 	: Script(InScript)
