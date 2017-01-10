@@ -192,12 +192,16 @@ FKeyHandle FFloatCurveKeyArea::DilateKey(FKeyHandle KeyHandle, float Scale, floa
 {
 	float NewKeyTime = Curve->GetKeyTime(KeyHandle);
 	NewKeyTime = (NewKeyTime - Origin) * Scale + Origin;
-	return Curve->SetKeyTime(KeyHandle, NewKeyTime);
+	FKeyHandle NewKeyHandle = Curve->SetKeyTime(KeyHandle, NewKeyTime);
+	Curve->AutoSetTangents();
+	return NewKeyHandle;
 }
 
 FKeyHandle FFloatCurveKeyArea::MoveKey(FKeyHandle KeyHandle, float DeltaPosition)
 {
-	return Curve->SetKeyTime(KeyHandle, Curve->GetKeyTime(KeyHandle) + DeltaPosition);
+	FKeyHandle NewKeyHandle = Curve->SetKeyTime(KeyHandle, Curve->GetKeyTime(KeyHandle) + DeltaPosition);
+	Curve->AutoSetTangents();
+	return NewKeyHandle;
 }
 
 
@@ -239,6 +243,7 @@ void FFloatCurveKeyArea::SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTange
 void FFloatCurveKeyArea::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime)
 {
 	Curve->SetKeyTime(KeyHandle, NewKeyTime);
+	Curve->AutoSetTangents();
 }
 
 void FFloatCurveKeyArea::CopyKeys(FMovieSceneClipboardBuilder& ClipboardBuilder, const TFunctionRef<bool(FKeyHandle, const IKeyArea&)>& KeyMask) const
