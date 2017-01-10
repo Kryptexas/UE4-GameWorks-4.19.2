@@ -4,8 +4,6 @@
 PipelineStateCache.cpp: Pipeline state cache implementation.
 =============================================================================*/
 
-#pragma once
-
 #include "PipelineStateCache.h"
 #include "Misc/ScopeLock.h"
 
