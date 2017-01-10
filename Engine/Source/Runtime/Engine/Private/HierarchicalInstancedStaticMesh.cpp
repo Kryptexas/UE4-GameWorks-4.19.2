@@ -2899,11 +2899,11 @@ TArray<int32> UHierarchicalInstancedStaticMeshComponent::GetInstancesOverlapping
 			WorldSpaceBox = WorldSpaceBox.TransformBy(ComponentToWorld);
 		}
 
-		const FVector StaticMeshBoundsExtent = GetStaticMesh()->GetBounds().BoxExtent;
+		const FBox StaticMeshBox = GetStaticMesh()->GetBounds().GetBox();
 		GatherInstancesOverlappingArea(*this, WorldSpaceBox, 0,
-			[LocalSpaceSpaceBox, StaticMeshBoundsExtent](const FMatrix& InstanceTransform)->bool
+			[LocalSpaceSpaceBox, StaticMeshBox](const FMatrix& InstanceTransform)->bool
 			{
-				FBox InstanceBox(InstanceTransform.GetOrigin() - StaticMeshBoundsExtent, InstanceTransform.GetOrigin() + StaticMeshBoundsExtent);
+				FBox InstanceBox = StaticMeshBox.TransformBy(InstanceTransform);
 				return LocalSpaceSpaceBox.Intersect(InstanceBox);
 			},
 			Result);
