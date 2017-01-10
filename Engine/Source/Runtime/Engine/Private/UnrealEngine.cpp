@@ -810,6 +810,21 @@ void EngineMemoryWarningHandler(const FGenericMemoryWarningContext& GenericConte
 
 UEngine::FOnNewStatRegistered UEngine::NewStatDelegate;
 
+void UEngine::PreGarbageCollect()
+{
+	for (TObjectIterator<UWorld> WorldIt; WorldIt; ++WorldIt)
+	{
+		UWorld* World = *WorldIt;
+
+		if (World && World->HasEndOfFrameUpdates())
+		{
+			// Make sure deferred component updates have been sent to the rendering thread before deleting any UObjects which the rendering thread may be referencing
+			// This fixes rendering thread crashes in the following order of operations 1) UMeshComponent::SetMaterial 2) GC 3) Rendering command that dereferences the UMaterial
+			World->SendAllEndOfFrameUpdates();
+		}
+	}
+}
+
 //
 // Initialize the engine.
 //
@@ -848,6 +863,8 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Add to root.
 	AddToRoot();
+
+	FCoreUObjectDelegates::PreGarbageCollect.AddStatic(UEngine::PreGarbageCollect);
 
 	// Initialize the HMDs and motion controllers, if any
 	InitializeHMDDevice();

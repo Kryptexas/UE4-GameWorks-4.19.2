@@ -874,13 +874,18 @@ void UWorld::MarkActorComponentForNeededEndOfFrameUpdate(UActorComponent* Compon
 	}
 }
 
+bool UWorld::HasEndOfFrameUpdates()
+{
+	return ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Num() > 0 || ComponentsThatNeedEndOfFrameUpdate.Num() > 0;
+}
+
 /**
 	* Send all render updates to the rendering thread.
 	*/
 void UWorld::SendAllEndOfFrameUpdates()
 {
 	SCOPE_CYCLE_COUNTER(STAT_PostTickComponentUpdate);
-	if (!ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Num() && !ComponentsThatNeedEndOfFrameUpdate.Num())
+	if (!HasEndOfFrameUpdates())
 	{
 		return;
 	}

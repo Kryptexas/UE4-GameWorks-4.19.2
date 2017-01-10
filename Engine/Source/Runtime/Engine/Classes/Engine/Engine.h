@@ -1982,6 +1982,8 @@ public:
 	 */
 	static FGuid GetPackageGuid(FName PackageName, bool bForPIE);
 
+	static void PreGarbageCollect();
+
 	/**
 	 * Returns whether we are running on a console platform or on the PC.
 	 * @param ConsoleType - if specified, only returns true if we're running on the specified platform

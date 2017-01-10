@@ -2405,11 +2405,12 @@ public:
 	 */
 	void UpdateActorComponentEndOfFrameUpdateState(UActorComponent* Component) const;
 
+	bool HasEndOfFrameUpdates();
+
 	/**
 	 * Send all render updates to the rendering thread.
 	 */
 	void SendAllEndOfFrameUpdates();
-
 
 	/** Do per frame tick behaviors related to the network driver */
 	void TickNetClient( float DeltaSeconds );
