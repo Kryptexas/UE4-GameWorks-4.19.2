@@ -2,6 +2,7 @@
 
 
 #include "SEnvQueryProfiler.h"
+#include "Editor.h"
 #include "Types/SlateStructs.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Images/SImage.h"

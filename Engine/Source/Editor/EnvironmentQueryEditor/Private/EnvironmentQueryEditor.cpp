@@ -19,6 +19,7 @@
 #include "Framework/Commands/Commands.h"
 #include "Framework/Application/SlateApplication.h"
 #include "DesktopPlatformModule.h"
+#include "MultiBox/MultiBoxBuilder.h"
 
 #include "EnvironmentQuery/EnvQuery.h"
 #include "EnvironmentQuery/EnvQueryManager.h"

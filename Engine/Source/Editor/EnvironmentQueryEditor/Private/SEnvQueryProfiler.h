@@ -6,6 +6,8 @@
 #include "Layout/Visibility.h"
 #include "Styling/SlateColor.h"
 #include "SEnvQueryLoadGraph.h"
+#include "SCompoundWidget.h"
+#include "SListView.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 
 class SEnvQueryProfiler : public SCompoundWidget

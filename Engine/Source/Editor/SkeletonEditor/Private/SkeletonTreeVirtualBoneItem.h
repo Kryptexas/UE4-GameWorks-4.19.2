@@ -13,6 +13,8 @@
 #include "SkeletonTreeItem.h"
 #include "IEditableSkeleton.h"
 
+class SInlineEditableTextBlock;
+
 class FSkeletonTreeVirtualBoneItem : public FSkeletonTreeItem
 {
 public:

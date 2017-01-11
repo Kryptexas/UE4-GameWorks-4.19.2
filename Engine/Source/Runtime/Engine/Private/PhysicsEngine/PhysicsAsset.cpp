@@ -13,6 +13,7 @@
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "UObject/ReleaseObjectVersion.h"
 #include "Logging/MessageLog.h"
+#include "UObjectIterator.h"
 
 #define LOCTEXT_NAMESPACE "PhysicsAsset"
 

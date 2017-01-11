@@ -7,9 +7,11 @@
 #include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Layout/SSplitter.h"
 #include "Animation/DebugSkelMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "ScopedTransaction.h"
 #include "Widgets/Input/SSearchBox.h"
 #include "Animation/AnimSingleNodeInstance.h"
+#include "UObjectIterator.h"
 
 #include "Widgets/Text/SInlineEditableTextBlock.h"
 
