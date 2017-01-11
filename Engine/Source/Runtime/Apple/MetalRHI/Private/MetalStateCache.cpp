@@ -245,7 +245,7 @@ void FMetalStateCache::SetBlendState(FMetalBlendState* InBlendState)
 {
 	//current equality operator is comparing pointers which can be re-used causing an incorrect comparison.
 	//removing caching here until equality operator is updated.
-	//if(BlendState != InBlendState) // @todo zebra
+	// if(BlendState != InBlendState) // @todo zebra
 	{
 		BlendState = InBlendState;
 		if(InBlendState)
@@ -298,6 +298,9 @@ void FMetalStateCache::SetBoundShaderState(FMetalBoundShaderState* InBoundShader
 	if(BoundShaderState != InBoundShaderState) // @todo zebra
 	{
 		BoundShaderState = InBoundShaderState;
+		
+		PipelineState = nil;
+		RasterBits |= EMetalRenderFlagPipelineState;
         
         bool bNewUsingTessellation = (BoundShaderState && BoundShaderState->HullShader);
         if (bNewUsingTessellation != bUsingTessellation)

@@ -906,7 +906,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 #endif
 	
 	bool bUpdatedStrides = false;
-	uint32 StrideHash = 0;
+	uint32 StrideHash = CurrentBoundShaderState->VertexDeclaration->BaseHash;
 	
 	MTLVertexDescriptor* Layout = CurrentBoundShaderState->VertexDeclaration->Layout.VertexDesc;
 	if(Layout && Layout.layouts)
@@ -918,7 +918,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 			const FVertexElement& Element = CurrentBoundShaderState->VertexDeclaration->Elements[ElementIndex];
 			
 			uint32 StreamStride = StateCache.GetVertexStride(Element.StreamIndex);
-			StrideHash ^= (StreamStride << ElementIndex);
+			StrideHash = FCrc::MemCrc32(&StreamStride, sizeof(StreamStride), StrideHash);
 			
 			bool const bStrideMistmatch = (StreamStride > 0 && Element.Stride != StreamStride);
 			
@@ -952,7 +952,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 	FMetalHashedVertexDescriptor VertexDesc;
 	{
 		SCOPE_CYCLE_COUNTER(STAT_MetalPrepareVertexDescTime);
-		VertexDesc = !bUpdatedStrides ? CurrentBoundShaderState->VertexDeclaration->Layout : FMetalHashedVertexDescriptor(Layout, (CurrentBoundShaderState->VertexDeclaration->BaseHash ^ StrideHash));
+		VertexDesc = !bUpdatedStrides ? CurrentBoundShaderState->VertexDeclaration->Layout : FMetalHashedVertexDescriptor(Layout, StrideHash);
 	}
 	
 	// Validate the vertex layout in debug mode, or when the validation layer is enabled for development builds.

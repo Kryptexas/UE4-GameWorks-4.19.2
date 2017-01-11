@@ -129,9 +129,9 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 	FMetalRenderPipelineKey ComparableDesc;
 	ComparableDesc.RenderPipelineHash = GetHash();
 	ComparableDesc.VertexDescriptorHash = VertexDesc;
-	ComparableDesc.VertexFunction = BSS->VertexShader->Function;
-	ComparableDesc.PixelFunction = BSS->PixelShader ? BSS->PixelShader->Function : nil;
-	ComparableDesc.DomainFunction = BSS->DomainShader ? BSS->DomainShader->Function : nil;
+	ComparableDesc.VertexFunction = TPairInitializer<id<MTLFunction>, id<MTLLibrary>>(BSS->VertexShader->Function, BSS->VertexShader->Library);
+	ComparableDesc.PixelFunction = TPairInitializer<id<MTLFunction>, id<MTLLibrary>>(BSS->PixelShader ? BSS->PixelShader->Function : nil, BSS->PixelShader ? BSS->PixelShader->Library : nil);
+	ComparableDesc.DomainFunction = TPairInitializer<id<MTLFunction>, id<MTLLibrary>>(BSS->DomainShader ? BSS->DomainShader->Function : nil, BSS->DomainShader ? BSS->DomainShader->Library : nil);
 	ComparableDesc.FunctionConstants = FunctionConstants;
 	
 	FMetalShaderPipeline* statePack = MetalPipelineCache.FindRef(ComparableDesc);

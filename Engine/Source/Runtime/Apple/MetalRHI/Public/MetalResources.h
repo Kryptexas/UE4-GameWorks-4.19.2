@@ -70,6 +70,10 @@ public:
 
 	/** Initialization constructor. */
 	TMetalBaseShader()
+	: Function(nil)
+	, Library(nil)
+	, SideTableBinding(-1)
+	, GlslCodeNSString(nil)
 	{
 	}
 	TMetalBaseShader(const TArray<uint8>& InCode);
@@ -166,7 +170,7 @@ struct FMetalRenderPipelineHash
 {
 	friend uint32 GetTypeHash(FMetalRenderPipelineHash const& Hash)
 	{
-		return GetTypeHash(Hash.RasterBits) ^ GetTypeHash(Hash.TargetBits);
+		return HashCombine(GetTypeHash(Hash.RasterBits), GetTypeHash(Hash.TargetBits));
 	}
 	
 	friend bool operator==(FMetalRenderPipelineHash const& Left, FMetalRenderPipelineHash const& Right)

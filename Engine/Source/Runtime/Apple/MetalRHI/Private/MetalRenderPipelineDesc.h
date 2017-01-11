@@ -114,16 +114,28 @@ struct FMetalRenderPipelineDesc
 	{
 		FMetalRenderPipelineHash RenderPipelineHash;
 		FMetalHashedVertexDescriptor VertexDescriptorHash;
-		id<MTLFunction> VertexFunction;
-		id<MTLFunction> PixelFunction;
-		id<MTLFunction> DomainFunction;
+		TPair<id<MTLFunction>, id<MTLLibrary>> VertexFunction;
+		TPair<id<MTLFunction>, id<MTLLibrary>> PixelFunction;
+		TPair<id<MTLFunction>, id<MTLLibrary>> DomainFunction;
 		TArray<uint32> FunctionConstants;
 		
 		bool operator==(FMetalRenderPipelineKey const& Other) const;
 		
 		friend uint32 GetTypeHash(FMetalRenderPipelineKey const& Key)
 		{
-			return GetTypeHash(Key.RenderPipelineHash) ^ GetTypeHash(Key.VertexDescriptorHash) ^ GetTypeHash(Key.VertexFunction) ^ GetTypeHash(Key.PixelFunction) ^ GetTypeHash(Key.DomainFunction) ^ FCrc::MemCrc32(Key.FunctionConstants.GetData(), Key.FunctionConstants.Num() * sizeof(uint32));
+			uintptr_t Data[6];
+			Data[0] = (uintptr_t)(Key.VertexFunction.Key);
+			Data[1] = (uintptr_t)(Key.VertexFunction.Value);
+			Data[2] = (uintptr_t)(Key.PixelFunction.Key);
+			Data[3] = (uintptr_t)(Key.PixelFunction.Value);
+			Data[4] = (uintptr_t)(Key.DomainFunction.Key);
+			Data[5] = (uintptr_t)(Key.DomainFunction.Value);
+			
+			uint32 H = FCrc::MemCrc32(&Key.RenderPipelineHash, sizeof(Key.RenderPipelineHash), GetTypeHash(Key.VertexDescriptorHash));
+			H = FCrc::MemCrc32(Data, sizeof(Data), H);
+			H = Key.FunctionConstants.Num() ? FCrc::MemCrc32(Key.FunctionConstants.GetData(), Key.FunctionConstants.Num() * sizeof(uint32), H) : H;
+			
+			return H;
 		}
 	};
 	
