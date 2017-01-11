@@ -11395,14 +11395,14 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 		class FCopyPropertiesArchiveObjectWriter : public FObjectWriter
 		{
 		public:
-			FCopyPropertiesArchiveObjectWriter(UObject* InSrcObj, TArray<uint8>& InSrcBytes, UObject* InDstObject, bool bIgnoreClassRef, bool bIgnoreArchetypeRef, bool bDoDelta , uint32 AdditionalPortFlags, bool bInSkipCompilerGeneratedDefaults)
+			FCopyPropertiesArchiveObjectWriter(UObject* InSrcObj, TArray<uint8>& InSrcBytes, UObject* InDstObject, bool bIgnoreClassRef, bool bIgnoreArchetypeRef, bool bDoDelta , uint32 InAdditionalPortFlags, bool bInSkipCompilerGeneratedDefaults)
 				: FObjectWriter(InSrcBytes)
 			{	
 				bSkipCompilerGeneratedDefaults = bInSkipCompilerGeneratedDefaults;
 				ArIgnoreClassRef = bIgnoreClassRef;
 				ArIgnoreArchetypeRef = bIgnoreArchetypeRef;
 				ArNoDelta = !bDoDelta;
-				ArPortFlags |= AdditionalPortFlags;
+				ArPortFlags |= InAdditionalPortFlags;
 
 #if USE_STABLE_LOCALIZATION_KEYS
 				if (GIsEditor && !(ArPortFlags & PPF_DuplicateForPIE))
