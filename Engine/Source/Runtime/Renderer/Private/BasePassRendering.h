@@ -476,7 +476,7 @@ public:
 /**
  * The base shader type for hull shaders.
  */
-template<typename LightMapPolicyType>
+template<typename LightMapPolicyType, bool bEnableAtmosphericFog>
 class TBasePassHS : public FBaseHS
 {
 	DECLARE_SHADER_TYPE(TBasePassHS,MeshMaterial);
@@ -492,14 +492,16 @@ protected:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Re-use vertex shader gating
-		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& TBasePassVS<LightMapPolicyType,false>::ShouldCache(Platform,Material,VertexFactoryType);
+		// Metal requires matching permutations, but no other platform should worry about this complication.
+		return (bEnableAtmosphericFog == false || IsMetalPlatform(Platform))
+			&& FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
+			&& TBasePassVS<LightMapPolicyType,bEnableAtmosphericFog>::ShouldCache(Platform,Material,VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		// Re-use vertex shader compilation environment
-		TBasePassVS<LightMapPolicyType,false>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		TBasePassVS<LightMapPolicyType,bEnableAtmosphericFog>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
 
 	// Don't implement : void SetParameters(...) or SetMesh() unless changing the shader reference in TBasePassDrawingPolicy
@@ -872,8 +874,17 @@ void GetBasePassShaders(
 {
 	if (bNeedsHSDS)
 	{
-		HullShader = Material.GetShader<TBasePassHS<LightMapPolicyType> >(VertexFactoryType);
-		DomainShader = Material.GetShader<TBasePassDS<LightMapPolicyType> >(VertexFactoryType);
+		DomainShader = Material.GetShader<TBasePassDS<LightMapPolicyType > >(VertexFactoryType);
+		
+		// Metal requires matching permutations, but no other platform should worry about this complication.
+		if (bEnableAtmosphericFog && DomainShader && IsMetalPlatform(EShaderPlatform(DomainShader->GetTarget().Platform)))
+		{
+			HullShader = Material.GetShader<TBasePassHS<LightMapPolicyType, true > >(VertexFactoryType);
+		}
+		else
+		{
+			HullShader = Material.GetShader<TBasePassHS<LightMapPolicyType, false > >(VertexFactoryType);
+		}
 	}
 
 	if (bEnableAtmosphericFog)
