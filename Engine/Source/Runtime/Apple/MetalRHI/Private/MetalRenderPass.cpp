@@ -107,6 +107,7 @@ void FMetalRenderPass::BeginRenderPass(MTLRenderPassDescriptor* const RenderPass
 		CurrentEncoder.EndEncoding();
 	}
 	State.SetStateDirty();
+	State.SetRenderTargetsActive(true);
 	
 	RenderPassDesc = RenderPass;
 	
@@ -202,7 +203,7 @@ void FMetalRenderPass::RestartRenderPass(MTLRenderPassDescriptor* const RenderPa
 		CurrentEncoder.EndEncoding();
 	}
 	State.SetStateDirty();
-	State.SetHasValidRenderTarget(true);
+	State.SetRenderTargetsActive(true);
 	
 	CurrentEncoder.SetRenderPassDescriptor(RenderPassDesc);
 	CurrentEncoder.BeginRenderCommandEncoding();
@@ -581,6 +582,8 @@ id FMetalRenderPass::EndRenderPass(void)
 		{
 			CurrentEncoder.EndEncoding();
 		}
+		
+		State.SetRenderTargetsActive(false);
 	
 		RenderPassDesc = nil;
 		bWithinRenderPass = false;
@@ -765,7 +768,7 @@ void FMetalRenderPass::ConditionalSwitchToCompute(void)
 	
 	if (CurrentEncoder.IsRenderCommandEncoderActive() || CurrentEncoder.IsBlitCommandEncoderActive())
 	{
-		State.SetHasValidRenderTarget(false);
+		State.SetRenderTargetsActive(false);
 		CurrentEncoder.EndEncoding();
 	}
 	if (PrologueEncoder.IsComputeCommandEncoderActive() || PrologueEncoder.IsBlitCommandEncoderActive())
@@ -787,7 +790,7 @@ void FMetalRenderPass::ConditionalSwitchToBlit(void)
 	
 	if (CurrentEncoder.IsRenderCommandEncoderActive() || CurrentEncoder.IsComputeCommandEncoderActive())
 	{
-		State.SetHasValidRenderTarget(false);
+		State.SetRenderTargetsActive(false);
 		CurrentEncoder.EndEncoding();
 	}
 	if (!CurrentEncoder.IsBlitCommandEncoderActive())

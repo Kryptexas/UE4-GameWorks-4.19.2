@@ -41,7 +41,11 @@ enum EMetalFeatures
 	/** Supports tessellation rendering */
 	EMetalFeaturesTessellation = 1 << 13,
 	/** Supports arbitrary buffer/texture writes from graphics shaders */
-	EMetalFeaturesGraphicsUAVs = 1 << 14
+	EMetalFeaturesGraphicsUAVs = 1 << 14,
+	/** Supports framework-level validation */
+	EMetalFeaturesValidation = 1 << 15,
+	/** Supports detailed statistics */
+	EMetalFeaturesStatistics= 1 << 16,
 };
 
 /**

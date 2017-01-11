@@ -43,7 +43,15 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 	if(StatsModule && (![Device.name containsString:@"AMD"] || FParse::Param(FCommandLine::Get(),TEXT("metalstats"))))
 	{
 		Statistics = StatsModule->CreateMetalStatistics(CommandQueue);
-		if(!Statistics->SupportsStatistics())
+		if(Statistics->SupportsStatistics())
+		{
+			Features |= EMetalFeaturesStatistics;
+			if(StatsModule->IsValidationEnabled())
+			{
+				Features |= EMetalFeaturesValidation;
+			}
+		}
+		else
 		{
 			delete Statistics;
 			Statistics = nullptr;

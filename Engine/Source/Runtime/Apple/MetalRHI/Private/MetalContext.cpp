@@ -70,8 +70,9 @@ static FAutoConsoleVariableRef CVarMetalRuntimeDebugLevel(
 	TEXT("\t1: Enable validation checks for encoder resets,\n")
 	TEXT("\t2: Record the debug-groups issued into a command-buffer and report them on failure,\n")
 	TEXT("\t3: Record the draw, blit & dispatch commands issued into a command-buffer and report them on failure,\n")
-	TEXT("\t4: Allow rhi.Metal.CommandBufferCommitThreshold to break command-encoders (except when MSAA is enabled),\n")
-	TEXT("\t5: Wait for each command-buffer to complete immediately after submission."));
+	TEXT("\t4: Set buffer bindings to nil prior to binding raw bytes so that the GPU tool doesn't show incorrect data,\n")
+	TEXT("\t5: Allow rhi.Metal.CommandBufferCommitThreshold to break command-encoders (except when MSAA is enabled),\n")
+	TEXT("\t6: Wait for each command-buffer to complete immediately after submission."));
 
 #if SHOULD_TRACK_OBJECTS
 TMap<id, int32> ClassCounts;
@@ -752,20 +753,9 @@ FMetalContext::FMetalContext(FMetalCommandQueue& Queue, bool const bIsImmediate)
 , StateCache(bIsImmediate)
 , RenderPass(CommandList, StateCache)
 , QueryBuffer(new FMetalQueryBufferPool(this))
-, bValidationEnabled(false)
 {
 	// create a semaphore for multi-buffering the command buffer
 	CommandBufferSemaphore = dispatch_semaphore_create(FParse::Param(FCommandLine::Get(),TEXT("gpulockstep")) ? 1 : 3);
-	
-	bValidationEnabled = false;
-	
-#if METAL_STATISTICS
-	IMetalStatisticsModule* StatsModule = FModuleManager::Get().LoadModulePtr<IMetalStatisticsModule>(TEXT("MetalStatistics"));
-	if (StatsModule)
-	{
-		bValidationEnabled = StatsModule->IsValidationEnabled();
-	}
-#endif
 }
 
 FMetalContext::~FMetalContext()
@@ -860,7 +850,7 @@ void FMetalContext::InitFrame(bool const bImmediateContext)
 	RenderPass.Begin(nil);
 	
 	// make sure first SetRenderTarget goes through
-	StateCache.SetHasValidRenderTarget(false);
+	StateCache.InvalidateRenderTargets();
 }
 
 void FMetalContext::FinishFrame()
@@ -869,7 +859,7 @@ void FMetalContext::FinishFrame()
 	SubmitCommandsHint(EMetalSubmitFlagsNone);
 	
 	// make sure first SetRenderTarget goes through
-	StateCache.SetHasValidRenderTarget(false);
+	StateCache.InvalidateRenderTargets();
 	
 	// Drain the auto-release pool for this context
 	DrainAutoreleasePool();
@@ -894,7 +884,7 @@ void FMetalContext::ResetRenderCommandEncoder()
 {
 	SubmitCommandsHint();
 	
-	StateCache.SetHasValidRenderTarget(false);
+	StateCache.InvalidateRenderTargets();
 	
 	SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), false);
 }
@@ -1035,12 +1025,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 		
 		FRHISetRenderTargetsInfo Info = StateCache.GetRenderTargetsInfo();
 		
-		// Cache the fallback depth-stencil surface to reduce memory bloat - only need to recreate if size changes.
-		if (!IsValidRef(FallbackDepthStencilSurface) || FallbackDepthStencilSurface->GetSizeX() != FBSize.width || FallbackDepthStencilSurface->GetSizeY() != FBSize.height)
-		{
-			FRHIResourceCreateInfo TexInfo;
-			FallbackDepthStencilSurface = RHICreateTexture2D(FBSize.width, FBSize.height, PF_DepthStencil, 1, 1, TexCreate_DepthStencilTargetable, TexInfo);
-		}
+		FTexture2DRHIRef FallbackDepthStencilSurface = StateCache.CreateFallbackDepthStencilSurface(FBSize.width, FBSize.height);
 		check(IsValidRef(FallbackDepthStencilSurface));
 		
 		if (bNeedsDepthStencilWrite)
