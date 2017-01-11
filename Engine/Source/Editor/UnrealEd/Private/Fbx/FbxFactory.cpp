@@ -418,6 +418,8 @@ UObject* UFbxFactory::FactoryCreateBinary
 						bool bImportSkeletalMeshLODs = ImportUI->SkeletalMeshImportData->bImportMeshLODs;
 						for (LODIndex = 0; LODIndex < MaxLODLevel; LODIndex++)
 						{
+							//We need to know what is the imported lod index when importing the morph targets
+							int32 ImportedSuccessfulLodIndex = INDEX_NONE;
 							if ( !bImportSkeletalMeshLODs && LODIndex > 0) // not import LOD if UI option is OFF
 							{
 								break;
@@ -475,6 +477,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 
 									// Reapply the transforms for the rest of the import
 									FbxImporter->ApplyTransformSettingsToFbxNode(RootNodeToImport, ImportUI->SkeletalMeshImportData);
+									ImportedSuccessfulLodIndex = SuccessfulLodIndex;
 									SuccessfulLodIndex++;
 								}
 							}
@@ -488,6 +491,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 								if (bImportSucceeded)
 								{
 									BaseSkeletalMesh->LODInfo[SuccessfulLodIndex].ScreenSize = 1.0f / (MaxLODLevel * SuccessfulLodIndex);
+									ImportedSuccessfulLodIndex = SuccessfulLodIndex;
 									SuccessfulLodIndex++;
 								}
 								else
@@ -497,7 +501,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 							}
 						
 							// import morph target
-							if ( NewObject && ImportUI->SkeletalMeshImportData->bImportMorphTargets)
+							if ( NewObject && ImportUI->SkeletalMeshImportData->bImportMorphTargets && ImportedSuccessfulLodIndex != INDEX_NONE)
 							{
 								// Disable material importing when importing morph targets
 								uint32 bImportMaterials = ImportOptions->bImportMaterials;
@@ -505,7 +509,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 								uint32 bImportTextures = ImportOptions->bImportTextures;
 								ImportOptions->bImportTextures = 0;
 
-								FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), InParent, SuccessfulLodIndex);
+								FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), InParent, ImportedSuccessfulLodIndex);
 							
 								ImportOptions->bImportMaterials = !!bImportMaterials;
 								ImportOptions->bImportTextures = !!bImportTextures;
