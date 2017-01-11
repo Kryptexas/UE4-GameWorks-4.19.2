@@ -77,19 +77,23 @@ bool WaitForProcess(IAnalyticsProviderET& Analytics, const FWatchdogCommandLine&
 			if (FDateTime::UtcNow() >= NextHeartbeatCheck)
 			{
 				NextHeartbeatCheck += CheckParentHeartbeatPeriod;
-				bool bHangDetected = !CheckParentHeartbeat(Analytics, CommandLine, WatchdogSectionName);
 
-				if (bHangDetected && !bOutHang)
+				if (!GetWatchdogStoredDebuggerValue(WatchdogSectionName))
 				{
-					// New hang
-					SendHangDetectedEvent(Analytics, CommandLine);
-					bOutHang = true;
-				}
-				else if (!bHangDetected && bOutHang)
-				{
-					// Previous hang recovered
-					SendHangRecoveredEvent(Analytics, CommandLine);
-					bOutHang = false;
+					bool bHangDetected = !CheckParentHeartbeat(Analytics, CommandLine, WatchdogSectionName);
+
+					if (bHangDetected && !bOutHang)
+					{
+						// New hang
+						SendHangDetectedEvent(Analytics, CommandLine);
+						bOutHang = true;
+					}
+					else if (!bHangDetected && bOutHang)
+					{
+						// Previous hang recovered
+						SendHangRecoveredEvent(Analytics, CommandLine);
+						bOutHang = false;
+					}
 				}
 			}
 

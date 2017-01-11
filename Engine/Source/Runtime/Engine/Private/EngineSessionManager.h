@@ -48,6 +48,7 @@ private:
 		FDateTime Timestamp;
 		bool bCrashed;
 		bool bIsDebugger;
+		bool bWasEverDebugger;
 		bool bIsDeactivated;
 		bool bIsInBackground;
 		FString CurrentUserActivity;

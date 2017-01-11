@@ -22,9 +22,11 @@ namespace WatchdogDefs
 	static const FString TimestampStoreKey(TEXT("Timestamp"));
 	static const FString StatusStoreKey(TEXT("LastExecutionState"));
 	static const FString UserActivityStoreKey(TEXT("CurrentUserActivity"));
+	static const FString WasDebuggerStoreKey(TEXT("WasEverDebugger"));
 	static const FString RunningSessionToken(TEXT("Running"));
 	static const FString ShutdownSessionToken(TEXT("Shutdown"));
 	static const FString CrashSessionToken(TEXT("Crashed"));
+	static const FString TrueValueString(TEXT("1"));
 }
 
 struct FWatchdogStoredValues
@@ -34,6 +36,7 @@ struct FWatchdogStoredValues
 	FString LastTimestamp;
 	FString ExecutionStatus;
 	FString UserActivity;
+	FString WasDebugged;
 };
 
 void GetCommonEventAttributes(const FWatchdogCommandLine& CommandLine, TArray< FAnalyticsEventAttribute >& OutAttributes)
@@ -45,7 +48,14 @@ void GetCommonEventAttributes(const FWatchdogCommandLine& CommandLine, TArray< F
 	OutAttributes.Add(FAnalyticsEventAttribute(TEXT("EngineVersion"), CommandLine.EngineVersion));
 }
 
-FWatchdogStoredValues GetWatchdogStoredValues(const FString& WatchdogSectionName)
+bool GetWatchdogStoredDebuggerValue(const FString& WatchdogSectionName)
+{
+	FString WasDebuggedString;
+	FPlatformMisc::GetStoredValue(WatchdogDefs::StoreId, WatchdogSectionName, WatchdogDefs::WasDebuggerStoreKey, WasDebuggedString);
+	return WasDebuggedString == WatchdogDefs::TrueValueString;
+}
+
+FWatchdogStoredValues GetWatchdogStoredValuesAndDelete(const FString& WatchdogSectionName)
 {
 	FWatchdogStoredValues StoredValues;
 
@@ -54,12 +64,14 @@ FWatchdogStoredValues GetWatchdogStoredValues(const FString& WatchdogSectionName
 	FPlatformMisc::GetStoredValue(WatchdogDefs::StoreId, WatchdogSectionName, WatchdogDefs::TimestampStoreKey, StoredValues.LastTimestamp);
 	FPlatformMisc::GetStoredValue(WatchdogDefs::StoreId, WatchdogSectionName, WatchdogDefs::StatusStoreKey, StoredValues.ExecutionStatus);
 	FPlatformMisc::GetStoredValue(WatchdogDefs::StoreId, WatchdogSectionName, WatchdogDefs::UserActivityStoreKey, StoredValues.UserActivity);
+	FPlatformMisc::GetStoredValue(WatchdogDefs::StoreId, WatchdogSectionName, WatchdogDefs::WasDebuggerStoreKey, StoredValues.WasDebugged);
 
 	FPlatformMisc::DeleteStoredValue(WatchdogDefs::StoreId, WatchdogSectionName, WatchdogDefs::CommandLineStoreKey);
 	FPlatformMisc::DeleteStoredValue(WatchdogDefs::StoreId, WatchdogSectionName, WatchdogDefs::StartupTimeStoreKey);
 	FPlatformMisc::DeleteStoredValue(WatchdogDefs::StoreId, WatchdogSectionName, WatchdogDefs::TimestampStoreKey);
 	FPlatformMisc::DeleteStoredValue(WatchdogDefs::StoreId, WatchdogSectionName, WatchdogDefs::StatusStoreKey);
 	FPlatformMisc::DeleteStoredValue(WatchdogDefs::StoreId, WatchdogSectionName, WatchdogDefs::UserActivityStoreKey);
+	FPlatformMisc::DeleteStoredValue(WatchdogDefs::StoreId, WatchdogSectionName, WatchdogDefs::WasDebuggerStoreKey);
 
 	return StoredValues;
 }
@@ -172,7 +184,7 @@ void SendHangDetectedEvent(IAnalyticsProviderET& Analytics, const FWatchdogComma
 	// Internal builds should popup dialogs for hangs
 	FAnalyticsEventAttribute HangUserResponse(TEXT("HangUserResponse"), TEXT("Unattended"));
 	FAnalyticsEventAttribute RecoveredUserResponse(TEXT("AlreadyRecoveredUserResponse"), TEXT("Unattended"));
-	if (FEngineBuildSettings::IsInternalBuild())
+	if (CommandLine.bAllowDialogs)
 	{
 		FText SessionLabel = FText::Format(LOCTEXT("HangSessionLabel", "{0} ({1})"), FText::FromString(CommandLine.ProjectName), FText::FromString(CommandLine.RunType));
 		FText MessageTitleFormat(LOCTEXT("WatchdogPopupTitleHang", "{0} is unresponsive"));
@@ -266,7 +278,7 @@ void SendHangRecoveredEvent(IAnalyticsProviderET& Analytics, const FWatchdogComm
  * @EventParam LastUserActivity - The last updated user activity, if any, of the watched process.
  * @EventParam AbnormalShutdownUserResponse - Indicates the response, if any, from the user when asked about the shutdown by the watchdog (Unattended, Confirmed, False)
  */
-void SendShutdownEvent(IAnalyticsProviderET& Analytics, const FWatchdogCommandLine& CommandLine, bool bReturnCodeObtained, uint32 ReturnCode, FAnalyticsEventAttribute& UserResponse, const FWatchdogStoredValues& StoredValues)
+void SendShutdownEvent(IAnalyticsProviderET& Analytics, const FWatchdogCommandLine& CommandLine, bool bReturnCodeObtained, uint32 ReturnCode, FAnalyticsEventAttribute& UserResponse, const FWatchdogStoredValues& StoredValues, const FDateTime& StartupTime)
 {
 	TArray< FAnalyticsEventAttribute > ShutdownAttributes;
 	GetCommonEventAttributes(CommandLine, ShutdownAttributes);
@@ -277,6 +289,8 @@ void SendShutdownEvent(IAnalyticsProviderET& Analytics, const FWatchdogCommandLi
 	ShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("LastTimestamp"), StoredValues.LastTimestamp));
 	ShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("LastExecutionStatus"), StoredValues.ExecutionStatus));
 	ShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("LastUserActivity"), StoredValues.UserActivity));
+	ShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("WasDebugged"), StoredValues.WasDebugged));
+	ShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("TotalRunTimeSeconds"), (int)((FDateTime::UtcNow() - StartupTime).GetTotalSeconds())));
 	ShutdownAttributes.Add(UserResponse);
 
 	UE_LOG(UnrealWatchdogLog, Log, TEXT("Sending event UnrealWatchdog.Shutdown"));
@@ -302,6 +316,7 @@ int RunUnrealWatchdog(const TCHAR* CommandLine)
 {
 	// start up the main loop
 	GEngineLoop.PreInit(CommandLine);
+	FDateTime StartupTime = FDateTime::UtcNow();
 
 	check(GConfig && GConfig->IsReadyForUse());
 
@@ -334,7 +349,7 @@ int RunUnrealWatchdog(const TCHAR* CommandLine)
 	bool bReturnCodeObtained = WaitForProcess(Analytics, WatchdogCommandLine, ReturnCode, bHang, WatchdogSectionName);
 
 	// Read any stored values from process
-	FWatchdogStoredValues StoredValues = GetWatchdogStoredValues(WatchdogSectionName);
+	FWatchdogStoredValues StoredValues = GetWatchdogStoredValuesAndDelete(WatchdogSectionName);
 	if (bHang)
 	{
 		StoredValues.ExecutionStatus = TEXT("Hang");
@@ -342,7 +357,7 @@ int RunUnrealWatchdog(const TCHAR* CommandLine)
 
 	// Optional section for dialogs and CRC in internal builds
 	FAnalyticsEventAttribute UserResponse(TEXT("AbnormalShutdownUserResponse"), TEXT("Unattended"));
-	if (WatchdogCommandLine.bAllowDialogs && !bHang)
+	if (WatchdogCommandLine.bAllowDialogs && !bHang && StoredValues.WasDebugged != WatchdogDefs::TrueValueString)
 	{
 		EAppReturnType::Type UserAnswer = EAppReturnType::Cancel;
 		FText SessionLabel = FText::Format(LOCTEXT("SessionLabel", "{0} ({1})"), FText::FromString(WatchdogCommandLine.ProjectName), FText::FromString(WatchdogCommandLine.RunType));
@@ -461,7 +476,7 @@ int RunUnrealWatchdog(const TCHAR* CommandLine)
 	// Send watchdog shutdown event
 	UE_LOG(UnrealWatchdogLog, Log, TEXT("Watchdog watched process exited. bReturnCodeObtained=%s, ReturnCode=%u, RecordedShutdownType=%s"),
 		bReturnCodeObtained ? TEXT("1") : TEXT("0"), ReturnCode, *StoredValues.ExecutionStatus);
-	SendShutdownEvent(Analytics, WatchdogCommandLine, bReturnCodeObtained, ReturnCode, UserResponse, StoredValues);
+	SendShutdownEvent(Analytics, WatchdogCommandLine, bReturnCodeObtained, ReturnCode, UserResponse, StoredValues, StartupTime);
 
 	// Shutdown tool and engine
 	FWatchdogAnalytics::Shutdown();
