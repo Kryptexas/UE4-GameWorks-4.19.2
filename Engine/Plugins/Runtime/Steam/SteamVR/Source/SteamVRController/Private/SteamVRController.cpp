@@ -108,11 +108,6 @@ public:
 			DeviceToControllerMap[i] = INDEX_NONE;
 		}
 
-		for (int32 i=0; i < MaxControllers; ++i)
-		{
-			ControllerToDeviceMap[i] = INDEX_NONE;
-		}
-
 		for (int32 UnrealControllerIndex = 0; UnrealControllerIndex < MaxUnrealControllers; ++UnrealControllerIndex)
 		{
 			for (int32 HandIndex = 0; HandIndex < CONTROLLERS_PER_PLAYER; ++HandIndex)
@@ -272,7 +267,6 @@ public:
 					UnrealControllerHandUsageCount[(int32)ChosenHand] += 1;
 					
 					DeviceToControllerMap[DeviceIndex] = FMath::FloorToInt(NumControllersMapped / CONTROLLERS_PER_PLAYER);
-					ControllerToDeviceMap[NumControllersMapped] = DeviceIndex;
 					++NumControllersMapped;
 
 					// update the SteamVR plugin with the new mapping
@@ -489,12 +483,6 @@ public:
 #if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	void UpdateVibration( const int32 ControllerIndex )
 	{
-		// make sure there is a valid device for this controller
-		int32 DeviceIndex = ControllerToDeviceMap[ ControllerIndex ];
-		if (DeviceIndex < 0)
-		{
-			return;
-		}
 
 		const FControllerState& ControllerState = ControllerStates[ ControllerIndex ];
 		vr::IVRSystem* VRSystem = GetVRSystem();
@@ -508,7 +496,7 @@ public:
  		const float LeftIntensity = FMath::Clamp(ControllerState.ForceFeedbackValue * 2000.f, 0.f, 2000.f);
 		if (LeftIntensity > 0.f)
 		{
-			VRSystem->TriggerHapticPulse(DeviceIndex, TOUCHPAD_AXIS, LeftIntensity);
+			VRSystem->TriggerHapticPulse(ControllerIndex, TOUCHPAD_AXIS, LeftIntensity);
 		}
 	}
 #endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
@@ -621,7 +609,6 @@ private:
 
 	/** Mappings between tracked devices and 0 indexed controllers */
 	int32 NumControllersMapped;
-	int32 ControllerToDeviceMap[ MaxControllers ];
 	int32 DeviceToControllerMap[ vr::k_unMaxTrackedDeviceCount ];
 	int32 UnrealControllerIdAndHandToDeviceIdMap[ MaxUnrealControllers ][ CONTROLLERS_PER_PLAYER ];
 	int32 UnrealControllerHandUsageCount[CONTROLLERS_PER_PLAYER];
