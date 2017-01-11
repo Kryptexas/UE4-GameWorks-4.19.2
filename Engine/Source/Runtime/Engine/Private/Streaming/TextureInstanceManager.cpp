@@ -476,7 +476,7 @@ bool FTextureInstanceState::AddComponent(const UPrimitiveComponent* Component, F
 	if (!Component->IsRegistered())
 	{
 		// When the components are not registered, every entry must have a valid PackedRelativeBox since the bound is not reliable.
-		// it will not be possible to recreate the bounds corretly.
+		// it will not be possible to recreate the bounds correctly.
 		for (const FStreamingTexturePrimitiveInfo& Info : TextureInstanceInfos)
 		{
 			if (!Info.PackedRelativeBox)
@@ -1411,30 +1411,34 @@ void FLevelTextureManager::IncrementalBuild(FStreamingTextureLevelContext& Level
 			const AActor* StaticActor = UnprocessedStaticActors.Pop(false);
 			check(StaticActor);
 
-			TInlineComponentArray<UPrimitiveComponent*> Primitives;
-			StaticActor->GetComponents<UPrimitiveComponent>(Primitives);
-
-			bool bHasNonStaticPrimitives = false;
-			for (UPrimitiveComponent* Primitive : Primitives)
+			// Check if the actor is still static, as the mobility is allowed to change.
+			if (StaticActor->IsRootComponentStatic())
 			{
-				check(Primitive);
-				if (Primitive->Mobility == EComponentMobility::Static)
-				{
-					UnprocessedStaticComponents.Push(Primitive);
-				}
-				else
-				{
-					bHasNonStaticPrimitives = true;
-				}
-			}
+				TInlineComponentArray<UPrimitiveComponent*> Primitives;
+				StaticActor->GetComponents<UPrimitiveComponent>(Primitives);
 
-			// Mark this actor to process non static component later. (after visibility)
-			if (bHasNonStaticPrimitives)
-			{	
-				StaticActorsWithNonStaticPrimitives.Push(StaticActor);
-			}
+				bool bHasNonStaticPrimitives = false;
+				for (UPrimitiveComponent* Primitive : Primitives)
+				{
+					check(Primitive);
+					if (Primitive->Mobility == EComponentMobility::Static)
+					{
+						UnprocessedStaticComponents.Push(Primitive);
+					}
+					else
+					{
+						bHasNonStaticPrimitives = true;
+					}
+				}
 
-			NumStepsLeft -= (int64)FMath::Max<int32>(Primitives.Num() / 16, 1); // div 16 because this is light weight.
+				// Mark this actor to process non static component later. (after visibility)
+				if (bHasNonStaticPrimitives)
+				{	
+					StaticActorsWithNonStaticPrimitives.Push(StaticActor);
+				}
+
+				NumStepsLeft -= (int64)FMath::Max<int32>(Primitives.Num() / 16, 1); // div 16 because this is light weight.
+			}
 		}
 
 		if (!UnprocessedStaticActors.Num())
@@ -1449,7 +1453,7 @@ void FLevelTextureManager::IncrementalBuild(FStreamingTextureLevelContext& Level
 		while ((bForceCompletion || NumStepsLeft > 0) && UnprocessedStaticComponents.Num())
 		{
 			const UPrimitiveComponent* Primitive = UnprocessedStaticComponents.Pop(false);
-			check(Primitive && Primitive->Mobility == EComponentMobility::Static);
+			check(Primitive);
 
 			// Try to insert the component, this will fail if some texture entry has not PackedRelativeBounds.
 			if (!StaticInstances.AddComponent(Primitive, LevelContext))
@@ -1556,23 +1560,27 @@ void FLevelTextureManager::IncrementalUpdate(
 				for (int32 ActorIndex = 0; ActorIndex < StaticActorsWithNonStaticPrimitives.Num(); ++ActorIndex)
 				{
 					const AActor* Actor = StaticActorsWithNonStaticPrimitives[ActorIndex];
-					check(Actor && Actor->IsRootComponentStatic());
+					check(Actor);
 
+					// Check if the actor is still static as the mobility is allowed to change. If not, it will get processed in the next loop.
 					bool AnyComponentAdded = false;
-
-					Actor->GetComponents<UPrimitiveComponent>(Primitives);
-					for (const UPrimitiveComponent* Primitive : Primitives)
+					if (Actor->IsRootComponentStatic())
 					{
-						check(Primitive);
-						if (Primitive->IsRegistered() && Primitive->SceneProxy && Primitive->Mobility != EComponentMobility::Static)
+						Actor->GetComponents<UPrimitiveComponent>(Primitives);
+						for (const UPrimitiveComponent* Primitive : Primitives)
 						{
-							DynamicComponentManager.Add(Primitive, DPT_Level, RemovedTextures);
-							DynamicComponents.Add(Primitive); // Track component added form this level so we can remove them later.
-							AnyComponentAdded = true;
+							check(Primitive);
+							// Component with static mobility are already processed at this point.
+							if (Primitive->IsRegistered() && Primitive->SceneProxy && Primitive->Mobility != EComponentMobility::Static)
+							{
+								DynamicComponentManager.Add(Primitive, DPT_Level, RemovedTextures);
+								DynamicComponents.Add(Primitive); // Track component added form this level so we can remove them later.
+								AnyComponentAdded = true;
+							}
 						}
 					}
 
-					if (!AnyComponentAdded)
+					if (!AnyComponentAdded) // Either mobility has changed, or there are no components added.
 					{
 						StaticActorsWithNonStaticPrimitives.RemoveAtSwap(ActorIndex);
 						--ActorIndex;
