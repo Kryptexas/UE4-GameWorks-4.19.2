@@ -1,7 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "DSP/Envelope.h"
-#include "DSP/DSP.h"
+#include "DSP/Dsp.h"
 
 namespace Audio
 {

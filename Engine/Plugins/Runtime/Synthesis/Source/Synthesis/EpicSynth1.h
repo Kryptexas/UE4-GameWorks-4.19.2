@@ -6,7 +6,7 @@
 
 #include "DSP/Osc.h"
 #include "DSP/LFO.h"
-#include "DSP/DSP.h"
+#include "DSP/Dsp.h"
 #include "DSP/Envelope.h"
 #include "DSP/Amp.h"
 #include "DSP/DelayStereo.h"
