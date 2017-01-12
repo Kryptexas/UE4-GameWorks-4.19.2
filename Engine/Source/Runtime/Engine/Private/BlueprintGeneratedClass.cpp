@@ -31,6 +31,7 @@ UBlueprintGeneratedClass::UBlueprintGeneratedClass(const FObjectInitializer& Obj
 {
 	NumReplicatedProperties = 0;
 	bHasInstrumentation = false;
+	bHasNativizedParent = false;
 }
 
 void UBlueprintGeneratedClass::PostInitProperties()
@@ -937,6 +938,124 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass,
 			if (TimelineTemplate && TimelineTemplate->bValidatedAsWired)
 			{
 				CreateTimelineComponent(Actor, TimelineTemplate);
+			}
+		}
+	}
+}
+
+void UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(AActor* Actor)
+{
+	check(Actor != nullptr);
+
+	// Get the Blueprint class hierarchy (if valid).
+	TArray<const UBlueprintGeneratedClass*> ParentBPClassStack;
+	GetGeneratedClassesHierarchy(Actor->GetClass(), ParentBPClassStack);
+	if (ParentBPClassStack.Num() > 0)
+	{
+		// If the nearest native antecedent is also a nativized BP class, we may have an override
+		// in an ICH for some part of the non-native BP class hierarchy that also inherits from it.
+		if (UDynamicClass* ParentDynamicClass = Cast<UDynamicClass>(ParentBPClassStack[ParentBPClassStack.Num() - 1]->GetSuperClass()))
+		{
+			// Helper class for property checks during serialization.
+			class FComponentOverridePropertyArchive : public FArchive
+			{
+			public:
+				FComponentOverridePropertyArchive()
+					: FArchive()
+				{
+					ArIsSaving = true;
+
+					// Include properties that would normally skip tagged serialization (e.g. bulk serialization of array properties).
+					ArPortFlags |= PPF_ForceTaggedSerialization;
+				}
+
+				virtual bool ShouldSkipProperty(const UProperty* InProperty) const override
+				{
+					// These are properties that can be ignored at runtime in a cooked build (i.e. they indicate values that don't need to be checked or copied).
+					return (!InProperty
+						|| InProperty->IsEditorOnlyProperty()
+						|| InProperty->HasAnyPropertyFlags(CPF_Transient | CPF_ContainsInstancedReference | CPF_InstancedReference)
+						|| !InProperty->HasAnyPropertyFlags(CPF_Edit | CPF_Interp));
+				}
+			} ComponentOverridePropertyChecker;
+
+			// Get all default subobjects owned by the nativized antecedent's CDO.
+			// Note: This will also include all other inherited default subobjects.
+			TArray<UObject*> DefaultSubobjects;
+			ParentDynamicClass->GetDefaultObjectSubobjects(DefaultSubobjects);
+
+			// Pick out only the UActorComponent-based subobjects and cache them to use for checking below.
+			TArray<UActorComponent*> NativizedParentClassComponentSubobjects;
+			for (UObject* DefaultSubobject : DefaultSubobjects)
+			{
+				if (UActorComponent* ComponentSubobject = Cast<UActorComponent>(DefaultSubobject))
+				{
+					NativizedParentClassComponentSubobjects.Add(ComponentSubobject);
+				}
+			}
+
+			// Now check each non-native BP class (on up to the given Actor) for any inherited component template overrides, and manually apply default value overrides as we go.
+			for (int32 i = ParentBPClassStack.Num() - 1; i >= 0; i--)
+			{
+				const UBlueprintGeneratedClass* CurrentBPGClass = ParentBPClassStack[i];
+				check(CurrentBPGClass);
+
+				UInheritableComponentHandler* ICH = const_cast<UBlueprintGeneratedClass*>(CurrentBPGClass)->GetInheritableComponentHandler();
+				if (ICH && NativizedParentClassComponentSubobjects.Num() > 0)
+				{
+					// Check each default subobject that we've inherited from the antecedent class
+					for (UActorComponent* NativizedComponentSubobject : NativizedParentClassComponentSubobjects)
+					{
+						const FName NativizedComponentSubobjectName = NativizedComponentSubobject->GetFName();
+						FComponentKey ComponentKey = ICH->FindKey(NativizedComponentSubobjectName);
+						if (ComponentKey.IsValid() && ComponentKey.IsSCSKey())
+						{
+							const UClass* NativizedComponentSubobjectClass = NativizedComponentSubobject->GetClass();
+
+							// This is the override template object that's stored within the non-native Blueprint class
+							const UObject* NativizedComponentSubobjectTemplate = ICH->GetOverridenComponentTemplate(ComponentKey);
+
+							// This is the instance of the inherited component subobject that's owned by the given Actor instance
+							UObject* NativizedComponentSubobjectInstance = Actor->GetDefaultSubobjectByName(NativizedComponentSubobjectName);
+
+							// Preconditions (must be valid)
+							check(NativizedComponentSubobjectClass != nullptr);
+							check(NativizedComponentSubobjectTemplate != nullptr);
+							check(NativizedComponentSubobjectInstance != nullptr);
+							check(NativizedComponentSubobjectClass == NativizedComponentSubobjectTemplate->GetClass());
+							check(NativizedComponentSubobjectClass == NativizedComponentSubobjectInstance->GetClass());
+
+							// This is the native DSO (archetype) on which the component subobject instance is currently based
+							const UObject* NativizedComponentSubobjectArchetype = NativizedComponentSubobjectInstance->GetArchetype();
+							check(NativizedComponentSubobjectArchetype != nullptr);
+
+							// Apply override template defaults to the instance that's owned by the given Actor (when appropriate).
+							for (TFieldIterator<UProperty> PropertyIt(NativizedComponentSubobjectClass); PropertyIt; ++PropertyIt)
+							{
+								UProperty* Property = *PropertyIt;
+								if (Property->ShouldSerializeValue(ComponentOverridePropertyChecker))
+								{
+									for (int32 ArrayIdx = 0; ArrayIdx < Property->ArrayDim; ++ArrayIdx)
+									{
+										uint8* DstValuePtr = Property->ContainerPtrToValuePtr<uint8>(NativizedComponentSubobjectInstance, ArrayIdx);
+										const uint8* SrcValuePtr = Property->ContainerPtrToValuePtr<uint8>(NativizedComponentSubobjectTemplate, ArrayIdx);
+										const uint8* DefaultValuePtr = Property->ContainerPtrToValuePtr<uint8>(NativizedComponentSubobjectArchetype, ArrayIdx);
+
+										// Only copy the value (1) when it matches the archetype and (2) does not match the override template. Failing the
+										// first check indicates that it was already overridden at the instance level (and we don't want to overwrite that).
+										if (Property->Identical(DstValuePtr, DefaultValuePtr) && !Property->Identical(DstValuePtr, SrcValuePtr))
+										{
+											Property->CopySingleValue(DstValuePtr, SrcValuePtr);
+										}
+									}
+								}
+							}
+
+							// There can only be a single match, so we can stop searching now.
+							break;
+						}
+					}
+				}
 			}
 		}
 	}

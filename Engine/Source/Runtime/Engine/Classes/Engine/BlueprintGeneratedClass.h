@@ -665,6 +665,10 @@ public:
 	UPROPERTY()
 	TMap<FName, struct FBlueprintCookedComponentInstancingData> CookedComponentInstancingData;
 
+	/** Flag used to indicate if this class has a nativized parent in a cooked build. */
+	UPROPERTY()
+	bool bHasNativizedParent;
+
 	/** 
 	 * Gets an array of all BPGeneratedClasses (including InClass as 0th element) parents of given generated class 
 	 *
@@ -682,6 +686,9 @@ public:
 	/** Create Timeline objects for this Actor based on the Timelines array*/
 	static void CreateComponentsForActor(const UClass* ThisClass, AActor* Actor);
 	static void CreateTimelineComponent(AActor* Actor, const UTimelineTemplate* TimelineTemplate);
+
+	/** Check for and handle manual application of default value overrides to instanced component subobjects that were inherited from a nativized parent class */
+	static void CheckAndApplyComponentTemplateOverrides(AActor* Actor);
 
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;

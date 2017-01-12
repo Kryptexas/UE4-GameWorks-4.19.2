@@ -50,13 +50,13 @@ struct ENGINE_API FComponentKey
 	UActorComponent* GetOriginalTemplate() const;
 	bool RefreshVariableName();
 
-	class UBlueprintGeneratedClass* GetComponentOwner()  const { return OwnerClass; }
+	UClass* GetComponentOwner()  const { return OwnerClass; }
 	FName   GetSCSVariableName() const { return SCSVariableName; }
 	FGuid   GetAssociatedGuid()  const { return AssociatedGuid; }
 
 private: 
 	UPROPERTY()
-	class UBlueprintGeneratedClass* OwnerClass;
+	UClass* OwnerClass;
 
 	UPROPERTY()
 	FName SCSVariableName;

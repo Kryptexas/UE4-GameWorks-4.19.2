@@ -1092,62 +1092,81 @@ void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 {
 	Super::BeginCacheForCookedPlatformData(TargetPlatform);
 
-	// Only cook component data if the setting is enabled and this is an Actor-based Blueprint class.
-	if (GeneratedClass && GeneratedClass->IsChildOf<AActor>() && GetDefault<UCookerSettings>()->bCookBlueprintComponentTemplateData)
+	if (GeneratedClass && GeneratedClass->IsChildOf<AActor>())
 	{
-		int32 NumCookedComponents = 0;
-		const double StartTime = FPlatformTime::Seconds();
-
-		UBlueprintGeneratedClass* BPGClass = Cast<UBlueprintGeneratedClass>(*GeneratedClass);
-		if (BPGClass)
+		// Only cook component data if the setting is enabled and this is an Actor-based Blueprint class.
+		if (GetDefault<UCookerSettings>()->bCookBlueprintComponentTemplateData)
 		{
-			// Cook all overridden SCS component node templates inherited from the parent class hierarchy.
-			if (UInheritableComponentHandler* TargetInheritableComponentHandler = BPGClass->GetInheritableComponentHandler())
+			int32 NumCookedComponents = 0;
+			const double StartTime = FPlatformTime::Seconds();
+
+			UBlueprintGeneratedClass* BPGClass = Cast<UBlueprintGeneratedClass>(*GeneratedClass);
+			if (BPGClass)
 			{
-				for (auto RecordIt = TargetInheritableComponentHandler->CreateRecordIterator(); RecordIt; ++RecordIt)
+				// Cook all overridden SCS component node templates inherited from the parent class hierarchy.
+				if (UInheritableComponentHandler* TargetInheritableComponentHandler = BPGClass->GetInheritableComponentHandler())
 				{
-					if (!RecordIt->CookedComponentInstancingData.bIsValid)
+					for (auto RecordIt = TargetInheritableComponentHandler->CreateRecordIterator(); RecordIt; ++RecordIt)
+					{
+						if (!RecordIt->CookedComponentInstancingData.bIsValid)
+						{
+							// Note: This will currently block until finished.
+							// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
+							FBlueprintEditorUtils::BuildComponentInstancingData(RecordIt->ComponentTemplate, RecordIt->CookedComponentInstancingData);
+							++NumCookedComponents;
+						}
+					}
+				}
+
+				// Cook all SCS component templates that are owned by this class.
+				if (BPGClass->SimpleConstructionScript)
+				{
+					for (auto Node : BPGClass->SimpleConstructionScript->GetAllNodes())
+					{
+						if (!Node->CookedComponentInstancingData.bIsValid)
+						{
+							// Note: This will currently block until finished.
+							// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
+							FBlueprintEditorUtils::BuildComponentInstancingData(Node->ComponentTemplate, Node->CookedComponentInstancingData);
+							++NumCookedComponents;
+						}
+					}
+				}
+
+				// Cook all UCS/AddComponent node templates that are owned by this class.
+				for (UActorComponent* ComponentTemplate : BPGClass->ComponentTemplates)
+				{
+					FBlueprintCookedComponentInstancingData& CookedComponentInstancingData = BPGClass->CookedComponentInstancingData.FindOrAdd(ComponentTemplate->GetFName());
+					if (!CookedComponentInstancingData.bIsValid)
 					{
 						// Note: This will currently block until finished.
 						// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
-						FBlueprintEditorUtils::BuildComponentInstancingData(RecordIt->ComponentTemplate, RecordIt->CookedComponentInstancingData);
+						FBlueprintEditorUtils::BuildComponentInstancingData(ComponentTemplate, CookedComponentInstancingData);
 						++NumCookedComponents;
 					}
 				}
 			}
 
-			// Cook all SCS component templates that are owned by this class.
-			if (BPGClass->SimpleConstructionScript)
+			if (NumCookedComponents > 0)
 			{
-				for (auto Node : BPGClass->SimpleConstructionScript->GetAllNodes())
-				{
-					if (!Node->CookedComponentInstancingData.bIsValid)
-					{
-						// Note: This will currently block until finished.
-						// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
-						FBlueprintEditorUtils::BuildComponentInstancingData(Node->ComponentTemplate, Node->CookedComponentInstancingData);
-						++NumCookedComponents;
-					}
-				}
-			}
-
-			// Cook all UCS/AddComponent node templates that are owned by this class.
-			for (UActorComponent* ComponentTemplate : BPGClass->ComponentTemplates)
-			{
-				FBlueprintCookedComponentInstancingData& CookedComponentInstancingData = BPGClass->CookedComponentInstancingData.FindOrAdd(ComponentTemplate->GetFName());
-				if (!CookedComponentInstancingData.bIsValid)
-				{
-					// Note: This will currently block until finished.
-					// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
-					FBlueprintEditorUtils::BuildComponentInstancingData(ComponentTemplate, CookedComponentInstancingData);
-					++NumCookedComponents;
-				}
+				UE_LOG(LogBlueprint, Log, TEXT("%s: Cooked %d component(s) in %.02g ms"), *GetName(), NumCookedComponents, (FPlatformTime::Seconds() - StartTime) * 1000.0);
 			}
 		}
 
-		if (NumCookedComponents > 0)
+		// If we're using the "exclusive" nativization method and this Blueprint is not selected for nativization, determine if any of its parent Blueprints are selected.
+		if (GetDefault<UProjectPackagingSettings>()->BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Exclusive && !bSelectedForNativization)
 		{
-			UE_LOG(LogBlueprint, Log, TEXT("%s: Cooked %d component(s) in %.02g ms"), *GetName(), NumCookedComponents, (FPlatformTime::Seconds() - StartTime) * 1000.0);
+			TArray<UBlueprint*> ParentBlueprints;
+			GetBlueprintHierarchyFromClass(GeneratedClass, ParentBlueprints);
+			for (UBlueprint *ParentBP : ParentBlueprints)
+			{
+				if (ParentBP->bSelectedForNativization)
+				{
+					UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(GeneratedClass);
+					BPGC->bHasNativizedParent = true;
+					break;
+				}
+			}
 		}
 	}
 }
