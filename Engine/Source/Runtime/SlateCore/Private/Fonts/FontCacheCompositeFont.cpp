@@ -271,7 +271,7 @@ const FFontData& FCompositeFontCache::GetFontDataForCharacter(const FSlateFontIn
 TSharedPtr<FFreeTypeFace> FCompositeFontCache::GetFontFace(const FFontData& InFontData)
 {
 	TSharedPtr<FFreeTypeFace> FaceAndMemory = FontFaceMap.FindRef(InFontData);
-	if (!FaceAndMemory.IsValid())
+	if (!FaceAndMemory.IsValid() && InFontData.HasFont())
 	{
 		// IMPORTANT: Do not log from this function until the new font has been added to the FontFaceMap, as it may be the Output Log font being loaded, which would cause an infinite recursion!
 		FString LoadLogMessage;
