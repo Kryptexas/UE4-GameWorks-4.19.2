@@ -1043,7 +1043,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 
 			FParticleSpriteVertexFactory* SpriteVertexFactory = static_cast<FParticleSpriteVertexFactory*>(VertexFactory);
 
-			if (SpriteVertexFactory->CheckAndUpdateLastFrame(ViewFamily))
+			if (SpriteVertexFactory->CheckAndUpdateLastFrame(ViewFamily, View))
 			{
 
 				check(NumVerticesPerParticle == 4 || NumVerticesPerParticle == 8);
@@ -1579,7 +1579,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 
 			FMeshParticleInstanceVertices* InstanceVerticesCPU = nullptr;
 
-			if (MeshVertexFactory->CheckAndUpdateLastFrame(ViewFamily))
+			if (MeshVertexFactory->CheckAndUpdateLastFrame(ViewFamily, View))
 			{
 				FDynamicMeshEmitterCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FDynamicMeshEmitterCollectorResources>();
 				CollectorResources.VertexFactory = MeshVertexFactory;
@@ -2674,7 +2674,7 @@ void FDynamicBeam2EmitterData::GetDynamicMeshElementsEmitter(const FParticleSyst
 	FParticleBeamTrailVertexFactory* BeamTrailVertexFactory = static_cast<FParticleBeamTrailVertexFactory*>(VertexFactory);
 	const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
 
-	if (BeamTrailVertexFactory->CheckAndUpdateLastFrame(ViewFamily))
+	if (BeamTrailVertexFactory->CheckAndUpdateLastFrame(ViewFamily, View))
 	{
 
 	FGlobalDynamicVertexBuffer::FAllocation DynamicVertexAllocation;
@@ -5453,7 +5453,7 @@ void FDynamicTrailsEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 	int32 RenderedPrimitiveCount = 0;
 
 
-	if (BeamTrailVertexFactory->CheckAndUpdateLastFrame(ViewFamily))
+	if (BeamTrailVertexFactory->CheckAndUpdateLastFrame(ViewFamily, View))
 	{
 
 	FGlobalDynamicVertexBuffer::FAllocation DynamicVertexAllocation;
