@@ -86,6 +86,7 @@ public:
 		uint32 InSizeZ,
 		uint32 InNumMips,
 		uint32 InNumSamples,
+		uint32 InNumSamplesTileMem,
 		uint32 InArraySize,
 		EPixelFormat InFormat,
 		bool bInCubemap,
@@ -100,6 +101,7 @@ public:
 		FOpenGLDynamicRHI* InGLRHI,
 		uint32 SizeX, uint32 SizeY,
 		uint32 InNumSamples,
+		uint32 InNumSamplesTileMem,
 		EPixelFormat InFormat,
 		uint32 InFlags);
 };

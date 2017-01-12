@@ -399,6 +399,7 @@ FGoogleVRHMDTexture2DSet::FGoogleVRHMDTexture2DSet(
 	uint32 InSizeZ,
 	uint32 InNumMips,
 	uint32 InNumSamples,
+	uint32 InNumSamplesTileMem,
 	uint32 InArraySize,
 	EPixelFormat InFormat,
 	bool bInCubemap,
@@ -416,6 +417,7 @@ FGoogleVRHMDTexture2DSet::FGoogleVRHMDTexture2DSet(
 	InSizeZ,
 	InNumMips,
 	InNumSamples,
+	InNumSamplesTileMem,
 	InArraySize,
 	InFormat,
 	bInCubemap,
@@ -434,7 +436,7 @@ FGoogleVRHMDTexture2DSet::~FGoogleVRHMDTexture2DSet()
 FGoogleVRHMDTexture2DSet* FGoogleVRHMDTexture2DSet::CreateTexture2DSet(
 	FOpenGLDynamicRHI* InGLRHI,
 	uint32 DesiredSizeX, uint32 DesiredSizeY,
-	uint32 InNumSamples,
+	uint32 InNumSamples, uint32 InNumSamplesTileMem,
 	EPixelFormat InFormat,
 	uint32 InFlags)
 {
@@ -446,7 +448,7 @@ FGoogleVRHMDTexture2DSet* FGoogleVRHMDTexture2DSet::CreateTexture2DSet(
 
 	// Note that here we are passing a 0 as the texture resource id which means we are not creating the actually opengl texture resource here.
 	FGoogleVRHMDTexture2DSet* NewTextureSet = new FGoogleVRHMDTexture2DSet(
-		InGLRHI, 0, Target, Attachment, DesiredSizeX, DesiredSizeY, 0, NumMips, InNumSamples, 1, InFormat, false, bAllocatedStorage, InFlags, TextureRange);
+		InGLRHI, 0, Target, Attachment, DesiredSizeX, DesiredSizeY, 0, NumMips, InNumSamples, InNumSamplesTileMem, 1, InFormat, false, bAllocatedStorage, InFlags, TextureRange);
 
 	UE_LOG(LogHMD, Log, TEXT("Created FGoogleVRHMDTexture2DSet of size (%d, %d), NewTextureSet [%p]"), DesiredSizeX, DesiredSizeY, NewTextureSet);
 
@@ -491,7 +493,7 @@ bool FGoogleVRHMDCustomPresent::AllocateRenderTargetTexture(uint32 Index, uint32
 	TextureSet = FGoogleVRHMDTexture2DSet::CreateTexture2DSet(
 		GLRHI,
 		SizeX, SizeY,
-		1,
+		1, 1,
 		EPixelFormat(Format),
 		TexCreate_RenderTargetable | TexCreate_ShaderResource
 		);
