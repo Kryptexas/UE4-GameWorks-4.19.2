@@ -2314,6 +2314,7 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 	const bool bHasKeyboardFocus = OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet();
 	const bool bIsComposing = TextInputMethodContext->IsComposing();
 	const bool bHasSelection = SelectionLocation != CursorInteractionPosition;
+	const bool bIsReadOnly = OwnerWidget->IsTextReadOnly();
 
 	if (bIsComposing)
 	{
@@ -2379,7 +2380,7 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 		}
 	}
 
-	if (bHasKeyboardFocus)
+	if (bHasKeyboardFocus && !bIsReadOnly)
 	{
 		// The cursor mode uses the literal position rather than the interaction position
 		const FTextLocation CursorPosition = CursorInfo.GetCursorLocation();
