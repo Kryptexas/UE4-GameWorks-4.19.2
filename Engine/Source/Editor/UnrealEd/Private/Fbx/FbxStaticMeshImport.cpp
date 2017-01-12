@@ -1590,7 +1590,8 @@ StaticMesh->LightMapCoordinateIndex = FirstOpenUVChannel;
 
 void UnFbx::FFbxImporter::ReorderMaterialToFbxOrder(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray)
 {
-	if (StaticMesh == nullptr)
+	//If there is less the 2 materials in the fbx file there is no need to reorder them
+	if (StaticMesh == nullptr || StaticMesh->StaticMaterials.Num() < 2)
 	{
 		return;
 	}
@@ -1614,6 +1615,12 @@ void UnFbx::FFbxImporter::ReorderMaterialToFbxOrder(UStaticMesh* StaticMesh, TAr
 				}
 			}
 		}
+	}
+
+	//There is no material in the fbx node
+	if (MeshMaterials.Num() < 1)
+	{
+		return;
 	}
 
 	//Reorder the StaticMaterials array to reflect the order in the fbx file
