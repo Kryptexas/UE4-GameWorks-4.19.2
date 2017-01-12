@@ -28,7 +28,7 @@
 #if GEARVR_SUPPORTED_PLATFORMS
 extern bool AndroidThunkCpp_IsGearVRApplication();
 
-static TAutoConsoleVariable<int32> CVarGearVREnableMSAA(TEXT("gearvr.EnableMSAA"), 1, TEXT("Enable MSAA when rendering on GearVR"));
+static TAutoConsoleVariable<int32> CVarGearVREnableMSAA(TEXT("gearvr.EnableMSAA"), 1, TEXT("Enables 4xMSAA when rendering on GearVR."));
 
 static TAutoConsoleVariable<int32> CVarGearVREnableQueueAhead(TEXT("gearvr.EnableQueueAhead"), 1, TEXT("Enable full-frame queue ahead for rendering on GearVR"));
 
@@ -1046,11 +1046,11 @@ void FGearVR::Startup()
 
 	if(CVarGearVREnableMSAA.GetValueOnAnyThread())
 	{
-		static IConsoleVariable* CVarMobileOnChipMSAA = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileOnChipMSAA"));
-		if (CVarMobileOnChipMSAA)
+		static IConsoleVariable* CVarMobileMSAA = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileMSAA"));
+		if (CVarMobileMSAA && CVarMobileMSAA->GetInt() == 1)
 		{
-			UE_LOG(LogHMD, Log, TEXT("Enabling r.MobileOnChipMSAA, previous value %d"), CVarMobileOnChipMSAA->GetInt());
-			CVarMobileOnChipMSAA->Set(1);
+			UE_LOG(LogHMD, Log, TEXT("gearvr.EnableMSAA is enabled, applying r.MobileMSAA=4. Previous value was %d"), CVarMobileMSAA->GetInt());
+			CVarMobileMSAA->Set(4);
 		}
 	}
 	pGearVRBridge->bExtraLatencyMode = CVarGearVREnableQueueAhead.GetValueOnAnyThread() != 0;

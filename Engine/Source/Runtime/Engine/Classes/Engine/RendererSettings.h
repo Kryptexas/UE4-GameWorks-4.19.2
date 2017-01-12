@@ -44,6 +44,22 @@ namespace ECompositingSampleCount
 
 
 /**
+* Enumerates available mobile MSAA sample counts.
+*/
+UENUM()
+namespace EMobileMSAASampleCount
+{
+	enum Type
+	{
+		One = 1 UMETA(DisplayName = "No MSAA"),
+		Two = 2 UMETA(DisplayName = "2x MSAA"),
+		Four = 4 UMETA(DisplayName = "4x MSAA"),
+		Eight = 8 UMETA(DisplayName = "8x MSAA"),
+	};
+}
+
+
+/**
  * Enumerates available options for custom depth.
  */
 UENUM()
@@ -112,6 +128,11 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConsoleVariable = "r.Shadow.CSM.MaxMobileCascades", DisplayName = "Maximum number of CSM cascades to render", ClampMin = 1, ClampMax = 4,
 		ToolTip = "The maximum number of cascades with which to render dynamic directional light shadows when using the mobile renderer."))
 		int32 MaxMobileCascades;
+
+	UPROPERTY(config, EditAnywhere, Category = Mobile, meta = (
+		ConsoleVariable = "r.MobileMSAA", DisplayName = "Mobile MSAA",
+		ToolTip = "Multi-sample anti-aliasing setting to use on mobile. MSAA is currently supported using Metal on iOS, and on Android devices with the required support using ES 2 or ES 3.1.\nIf MSAA is not available, the current default AA method will be used."))
+	TEnumAsByte<EMobileMSAASampleCount::Type> MobileMSAASampleCount;
 
 	UPROPERTY(config, EditAnywhere, Category = Materials, meta = (
 		ConsoleVariable = "r.DiscardUnusedQuality", DisplayName = "Game Discards Unused Material Quality Levels",

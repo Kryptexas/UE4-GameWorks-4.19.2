@@ -516,12 +516,12 @@ void FGoogleVRHMDCustomPresent::CreateGVRSwapChain()
 		return;
 	}
 
-	static const auto CVarMobileOnChipMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileOnChipMSAA"));
-	static bool bEnableMobileOnChipMSAA = CVarMobileOnChipMSAA->GetValueOnRenderThread();
+	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+	static int32 MobileMSAAValue = CVarMobileMSAA->GetValueOnRenderThread();
 
 	// Create resource using GVR Api
 	gvr_buffer_spec* BufferSpec = gvr_buffer_spec_create(GVRAPI);
-	gvr_buffer_spec_set_samples(BufferSpec, bEnableMobileOnChipMSAA ? 2 : 1);
+	gvr_buffer_spec_set_samples(BufferSpec, MobileMSAAValue);
 	// No need to create the depth buffer in GVR FBO since we are only use the color_buffer from FBO not the entire FBO.
 	gvr_buffer_spec_set_depth_stencil_format(BufferSpec, GVR_DEPTH_STENCIL_FORMAT_NONE);
 	// We are using the default color buffer format in GVRSDK, which is RGBA8, and that is also the format passed in.

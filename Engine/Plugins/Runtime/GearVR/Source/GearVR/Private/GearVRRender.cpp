@@ -74,6 +74,7 @@ FOpenGLTexture2DSet* FOpenGLTexture2DSet::CreateTexture2DSet(
 	FOpenGLDynamicRHI* InGLRHI,
 	uint32 SizeX, uint32 SizeY,
 	uint32 InNumSamples,
+	uint32 InNumSamplesTileMem,
 	uint32 InNumMips,
 	EPixelFormat InFormat,
 	uint32 InFlags,
@@ -87,7 +88,7 @@ FOpenGLTexture2DSet* FOpenGLTexture2DSet::CreateTexture2DSet(
 	uint8* TextureRange = nullptr;
 
 	FOpenGLTexture2DSet* NewTextureSet = new FOpenGLTexture2DSet(
-		InGLRHI, 0, Target, Attachment, SizeX, SizeY, 0, InNumMips, InNumSamples, 1, InFormat, bInCubemap, bAllocatedStorage, InFlags, TextureRange);
+		InGLRHI, 0, Target, Attachment, SizeX, SizeY, 0, InNumMips, InNumSamples, InNumSamplesTileMem, 1, InFormat, bInCubemap, bAllocatedStorage, InFlags, TextureRange);
 
 	const int32 NumLevels = (InNumMips == 0) ? VRAPI_TEXTURE_SWAPCHAIN_FULL_MIP_CHAIN : int(InNumMips);
     if (bInCubemap)
@@ -635,6 +636,7 @@ FTexture2DSetProxyPtr FCustomPresent::CreateTextureSet(uint32 InSizeX, uint32 In
 	FOpenGLTexture2DSetRef texref = FOpenGLTexture2DSet::CreateTexture2DSet(
 		GLRHI,
 		InSizeX, InSizeY,
+		1,
 		1,
 		NumMips,
 		EPixelFormat(InFormat),

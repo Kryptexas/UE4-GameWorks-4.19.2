@@ -32,6 +32,7 @@ public:
 		uint32 InSizeZ,
 		uint32 InNumMips,
 		uint32 InNumSamples,
+		uint32 InNumSamplesTileMem,
 		uint32 InArraySize,
 		EPixelFormat InFormat,
 		bool bInCubemap,
@@ -49,6 +50,7 @@ public:
 		InSizeZ,
 		InNumMips,
 		InNumSamples,
+		InNumSamplesTileMem,
 		InArraySize,
 		InFormat,
 		bInCubemap,
@@ -78,6 +80,7 @@ public:
 		ovrTextureSwapChain InTextureSet,
 		const ovrTextureSwapChainDesc& InDesc,
 		uint32 InNumSamples,
+		uint32 InNumSamplesTileMem,
 		EPixelFormat InFormat,
 		uint32 InFlags);
 protected:
@@ -191,6 +194,7 @@ FOpenGLTexture2DSet* FOpenGLTexture2DSet::CreateTexture2DSet(
 	ovrTextureSwapChain InTextureSet,
 	const ovrTextureSwapChainDesc& InDesc,
 	uint32 InNumSamples,
+	uint32 InNumSamplesTileMem,
 	EPixelFormat InFormat,
 	uint32 InFlags
 	)
@@ -212,7 +216,7 @@ FOpenGLTexture2DSet* FOpenGLTexture2DSet::CreateTexture2DSet(
 	const uint32 SizeX = uint32(InDesc.Width);
 	const uint32 SizeY = uint32(InDesc.Height);
 	FOpenGLTexture2DSet* NewTextureSet = new FOpenGLTexture2DSet(
-		InGLRHI, 0, Target, Attachment, SizeX, SizeY, 0, InDesc.MipLevels, InNumSamples, 1, InFormat, false, bAllocatedStorage, InFlags, TextureRange);
+		InGLRHI, 0, Target, Attachment, SizeX, SizeY, 0, InDesc.MipLevels, InNumSamples, InNumSamplesTileMem, 1, InFormat, false, bAllocatedStorage, InFlags, TextureRange);
 	OpenGLTextureAllocated(NewTextureSet, InFlags);
 
 	UE_LOG(LogHMD, Log, TEXT("Allocated textureSet 0x%p (%d x %d)"), NewTextureSet, SizeX, SizeY);
@@ -270,6 +274,7 @@ static FOpenGLTexture2D* OpenGLCreateTexture2DAlias(
 	uint32 InSizeZ,
 	uint32 InNumMips,
 	uint32 InNumSamples,
+	uint32 InNumSamplesTileMem,
 	EPixelFormat InFormat,
 	uint32 InFlags)
 {
@@ -283,7 +288,7 @@ static FOpenGLTexture2D* OpenGLCreateTexture2DAlias(
 		InGLRHI,
 		InResource,
 		Target,
-		Attachment, InSizeX, InSizeY, 0, InNumMips, InNumSamples, 1, InFormat, false, bAllocatedStorage, InFlags, TextureRange, FClearValueBinding::None);
+		Attachment, InSizeX, InSizeY, 0, InNumMips, InNumSamples, InNumSamplesTileMem, 1, InFormat, false, bAllocatedStorage, InFlags, TextureRange, FClearValueBinding::None);
 
 	OpenGLTextureAllocated(NewTexture, InFlags);
 	return NewTexture;
@@ -358,6 +363,7 @@ FTexture2DSetProxyPtr FOculusRiftHMD::OGLBridge::CreateTextureSet(const uint32 I
 		Session,
 		textureSet,
 		desc,
+		1,
 		1,
 		Format,
 		TexCreate_Flags
@@ -434,6 +440,7 @@ void FOculusRiftHMD::OGLBridge::BeginRendering(FHMDViewExtension& InRenderContex
 			desc.Width,
 			desc.Height,
 			0,
+			1,
 			1,
 			1,
 			(EPixelFormat)PF_R8G8B8A8,

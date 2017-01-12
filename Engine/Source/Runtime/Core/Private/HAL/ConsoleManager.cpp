@@ -2145,14 +2145,6 @@ static TAutoConsoleVariable<float> CVarMobileContentScaleFactor(
 	TEXT("Content scale multiplier (equates to iOS's contentScaleFactor to support Retina displays"),
 	ECVF_Default);
 
-static TAutoConsoleVariable<int32> CVarMobileOnChipMSAA(
-	TEXT("r.MobileOnChipMSAA"),
-	0,
-	TEXT("Whether to enable on-chip MSAA for tile based mobile GPUs")
-	TEXT("0: disabed (default)\n")
-	TEXT("1: enabled\n"),
-	ECVF_Default);
-
 // this cvar can be removed in shipping to not compile shaders for development (faster)
 static TAutoConsoleVariable<int32> CVarCompileShadersForDevelopment(
 	TEXT("r.CompileShadersForDevelopment"),
