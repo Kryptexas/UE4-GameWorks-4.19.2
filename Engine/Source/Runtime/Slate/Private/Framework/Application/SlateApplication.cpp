@@ -897,6 +897,7 @@ FSlateApplication::FSlateApplication()
 	, AppIcon( FCoreStyle::Get().GetBrush("DefaultAppIcon") )
 	, VirtualDesktopRect( 0,0,0,0 )
 	, NavigationConfig(MakeShareable(new FNavigationConfig()))
+	, ProcessingInput(0)
 {
 #if WITH_UNREAL_DEVELOPER_TOOLS
 	FModuleManager::Get().LoadModule(TEXT("Settings"));
@@ -4549,6 +4550,8 @@ bool FSlateApplication::ProcessKeyCharEvent( FCharacterEvent& InCharacterEvent )
 {
 	SCOPE_CYCLE_COUNTER(STAT_ProcessKeyChar);
 
+	TScopeCounter<int32> BeginInput(ProcessingInput);
+
 	FReply Reply = FReply::Unhandled();
 
 	// NOTE: We intentionally don't reset LastUserInteractionTimeForThrottling here so that the UI can be responsive while typing
@@ -4588,6 +4591,8 @@ bool FSlateApplication::OnKeyDown( const int32 KeyCode, const uint32 CharacterCo
 
 bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 {
+	TScopeCounter<int32> BeginInput(ProcessingInput);
+
 	SCOPE_CYCLE_COUNTER(STAT_ProcessKeyDown);
 
 #if WITH_EDITOR
@@ -4701,6 +4706,8 @@ bool FSlateApplication::ProcessKeyUpEvent( FKeyEvent& InKeyEvent )
 {
 	SCOPE_CYCLE_COUNTER(STAT_ProcessKeyUp);
 
+	TScopeCounter<int32> BeginInput(ProcessingInput);
+
 	QueueSynthesizedMouseMove();
 
 	// Analog cursor gets first chance at the input
@@ -4739,6 +4746,8 @@ bool FSlateApplication::ProcessKeyUpEvent( FKeyEvent& InKeyEvent )
 bool FSlateApplication::ProcessAnalogInputEvent(FAnalogInputEvent& InAnalogInputEvent)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ProcessAnalogInput);
+
+	TScopeCounter<int32> BeginInput(ProcessingInput);
 
 	QueueSynthesizedMouseMove();
 
@@ -4936,6 +4945,8 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 
 FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent)
 {
+	TScopeCounter<int32> BeginInput(ProcessingInput);
+
 #if PLATFORM_MAC
 	NSWindow* ActiveWindow = [ NSApp keyWindow ];
 	const bool bNeedToActivateWindow = ( ActiveWindow == nullptr );
@@ -5027,6 +5038,8 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 
 FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent)
 {
+	TScopeCounter<int32> BeginInput(ProcessingInput);
+
 	FReply Reply = FReply::Unhandled();
 
 #if PLATFORM_MAC
@@ -5134,6 +5147,8 @@ FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, 
 
 bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent, bool bIsSynthetic)
 {
+	TScopeCounter<int32> BeginInput(ProcessingInput);
+
 	bool bHandled = false;
 
 	FWeakWidgetPath LastWidgetsUnderCursor;
@@ -5568,6 +5583,8 @@ bool FSlateApplication::ProcessMouseWheelOrGestureEvent( FPointerEvent& InWheelE
 
 FReply FSlateApplication::RouteMouseWheelOrGestureEvent(const FWidgetPath& WidgetsUnderPointer, const FPointerEvent& InWheelEvent, const FPointerEvent* InGestureEvent)
 {
+	TScopeCounter<int32> BeginInput(ProcessingInput);
+
 	FWidgetPath MouseCaptorPath;
 	if ( MouseCaptor.HasCaptureForPointerIndex(InWheelEvent.GetUserIndex(), InWheelEvent.GetPointerIndex()) )
 	{

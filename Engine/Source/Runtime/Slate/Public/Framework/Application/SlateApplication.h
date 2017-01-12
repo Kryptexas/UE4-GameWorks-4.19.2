@@ -1156,6 +1156,11 @@ public:
 	 */
 	void ProcessApplicationActivationEvent( bool InAppActivated );
 
+	/**
+	 * Returns true if the we're currently processing mouse, keyboard, touch or gamepad input.
+	 */
+	bool IsProcessingInput() const { return ProcessingInput > 0; }
+
 public:
 
 	void SetNavigationConfig( TSharedRef<FNavigationConfig> Config );
@@ -2008,6 +2013,9 @@ private:
 
 	/** Delegate for custom navigation behavior */
 	FCustomNavigationHandler CustomNavigationEvent;
+	
+	/** Are we currently processing input in slate?  If so this value will be greater than 0. */
+	int32 ProcessingInput;
 
 #if WITH_EDITOR
 	/**
