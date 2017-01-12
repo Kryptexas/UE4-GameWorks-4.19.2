@@ -59,6 +59,14 @@ public:
 	virtual void CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<class FBlueprintCompileReinstancer> ParentReinstancer = NULL, TArray<UObject*>* ObjLoaded = NULL)=0;
 
 	/**
+	 * Synchronizes Blueprint's GeneratedClass's properties with the NewVariable declarations in the blueprint
+	 * Used on load to ensure that all properties are present for instances.
+	 * 
+	 * @param Blueprint The blueprint that may be missing variables
+	 */
+	virtual void RefreshVariables(UBlueprint* Blueprint)=0;
+
+	/**
 	 * Compiles a user defined structure.
 	 *
 	 * @param	Struct		The structure to compile.

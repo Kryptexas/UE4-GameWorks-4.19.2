@@ -283,11 +283,14 @@ protected:
 	/** Creates a property with flags including PropertyFlags in the Scope structure for each entry in the Terms array */
 	void CreatePropertiesFromList(UStruct* Scope, UField**& PropertyStorageLocation, TIndirectArray<FBPTerminal>& Terms, uint64 PropertyFlags, bool bPropertiesAreLocal, bool bPropertiesAreParameters = false);
 
-	/** Creates the properties on a function that store the function parameters, results, and local variables */
-	void CreateLocalVariablesForFunction(FKismetFunctionContext& Context, UFunction* ParameterSignature);
+	/** Create the properties on a function for input/output parameters */
+	void CreateParametersForFunction(FKismetFunctionContext& Context, UFunction* ParameterSignature, UField**& FunctionPropertyStorageLocation);
+
+	/** Creates the properties on a function that store the local and event graph (if applicable) variables */
+	void CreateLocalVariablesForFunction(FKismetFunctionContext& Context, UField**& FunctionPropertyStorageLocation);
 
 	/** Creates user defined local variables for function */
-	void CreateUserDefinedLocalVariablesForFunction(FKismetFunctionContext& Context, UField**& PropertyStorageLocation);
+	void CreateUserDefinedLocalVariablesForFunction(FKismetFunctionContext& Context, UField**& FunctionPropertyStorageLocation);
 
 	/** Adds a default value entry into the DefaultPropertyValueMap for the property specified */
 	void SetPropertyDefaultValue(const UProperty* PropertyToSet, FString& Value);

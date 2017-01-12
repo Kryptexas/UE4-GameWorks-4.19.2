@@ -70,6 +70,8 @@ public:
 	virtual void PostEditUndo() override;
 	//~ End UObject Interface
 
+	virtual FText GetDisplayNameText(int32 NameIndex = INDEX_NONE) const;
+
 	FString GenerateNewEnumeratorName();
 #endif	// WITH_EDITOR
 };

@@ -749,6 +749,8 @@ bool FKismetEditorUtilities::IsReferencedByUndoBuffer(UBlueprint* Blueprint)
 	return (TotalReferenceCount > NonUndoReferenceCount);
 }
 
+extern COREUOBJECT_API bool GMinimalCompileOnLoad;
+
 void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad, bool bSkipGarbageCollection, bool bSaveIntermediateProducts, FCompilerResultsLog* pResults, bool bSkeletonUpToDate, bool bBatchCompile, bool bAddInstrumentation)
 {
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData); 
@@ -839,6 +841,16 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 
 	ReinstanceHelper->UpdateBytecodeReferences();
 
+	// in case any errors/warnings have been added since the call to Compiler.CompileBlueprint()
+	if (Results.NumErrors > 0)
+	{
+		BlueprintObj->Status = BS_Error;
+	}
+	else if (Results.NumWarnings > 0)
+	{
+		BlueprintObj->Status = BS_UpToDateWithWarnings;
+	}
+
 	const bool bIsInterface = FBlueprintEditorUtils::IsInterfaceBlueprint(BlueprintObj);
 	const bool bLetReinstancerRefreshDependBP = !bIsRegeneratingOnLoad && (OldClass != NULL) && !bIsInterface;
 	if (bLetReinstancerRefreshDependBP)
@@ -850,7 +862,8 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		ReinstanceHelper->ListDependentBlueprintsToRefresh(DependentBPs);
 	}
 
-	if (!bIsRegeneratingOnLoad && (OldClass != NULL))
+	// we always need to run reinstancing when using GMinimalCompileOnLoad pass:
+	if ( (!bIsRegeneratingOnLoad || GMinimalCompileOnLoad) && (OldClass != NULL))
 	{
 		// Strip off any external components from the CDO, if needed because of reparenting, etc
 		FKismetEditorUtilities::StripExternalComponents(BlueprintObj);

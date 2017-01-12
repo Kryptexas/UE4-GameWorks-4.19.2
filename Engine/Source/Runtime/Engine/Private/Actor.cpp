@@ -617,6 +617,17 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 
 	Super::PostLoadSubobjects(OuterInstanceGraph);
 
+	// If this is a Blueprint class, we may need to manually apply default value overrides to some inherited components in a cooked
+	// build scenario. This can occur, for example, if we have a nativized Blueprint class somewhere in the class inheritance hierarchy.
+	if (FPlatformProperties::RequiresCookedData())
+	{
+		const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(GetClass());
+		if (BPGC != nullptr && BPGC->bHasNativizedParent)
+		{
+			UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(this);
+		}
+	}
+
 	ResetOwnedComponents();
 
 	if (RootComponent && bHadRoot && OldRoot != RootComponent)
@@ -2748,6 +2759,18 @@ void AActor::PostSpawnInitialize(FTransform const& UserSpawnTransform, AActor* I
 
 	// Call OnComponentCreated on all default (native) components
 	DispatchOnComponentsCreated(this);
+
+	// If this is a Blueprint class, we may need to manually apply default value overrides to some inherited components in a
+	// cooked build scenario. This can occur, for example, if we have a nativized Blueprint class in the inheritance hierarchy.
+	// Note: This should be done prior to executing the construction script, in case there are any dependencies on default values.
+	if (FPlatformProperties::RequiresCookedData())
+	{
+		const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(GetClass());
+		if (BPGC != nullptr && BPGC->bHasNativizedParent)
+		{
+			UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(this);
+		}
+	}
 
 	// Register the actor's default (native) components, but only if we have a native scene root. If we don't, it implies that there could be only non-scene components
 	// at the native class level. In that case, if this is a Blueprint instance, we need to defer native registration until after SCS execution can establish a scene root.

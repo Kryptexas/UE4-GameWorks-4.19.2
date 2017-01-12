@@ -97,6 +97,17 @@ FString UUserDefinedEnum::GenerateNewEnumeratorName()
 	return EnumNameString;
 }
 
+FText UUserDefinedEnum::GetDisplayNameText(int32 NameIndex) const
+{
+	FText DisplayName = FEnumEditorUtils::GetEnumeratorDisplayName(this, NameIndex);
+	if (DisplayName.IsEmpty())
+	{
+		DisplayName = Super::GetDisplayNameText(NameIndex);
+	}
+
+	return DisplayName;
+}
+
 #endif	// WITH_EDITOR
 
 int64 UUserDefinedEnum::ResolveEnumerator(FArchive& Ar, int64 EnumeratorValue) const

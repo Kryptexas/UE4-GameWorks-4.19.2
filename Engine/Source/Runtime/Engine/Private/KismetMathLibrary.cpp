@@ -198,6 +198,20 @@ float UKismetMathLibrary::Hypotenuse(float Width, float Height)
 	return Max * FMath::Sqrt(1.f + Ratio * Ratio);
 }
 
+float UKismetMathLibrary::Log(float A, float Base)
+{
+	float Result = 0.f;
+	if(Base <= 0.f)
+	{
+		FFrame::KismetExecutionMessage(TEXT("Divide by zero: Log"), ELogVerbosity::Warning, DivideByZeroWarning);
+	}
+	else
+	{
+		Result = FMath::Loge(A) / FMath::Loge(Base);
+	}
+	return Result;
+}
+
 int32 UKismetMathLibrary::FMod(float Dividend, float Divisor, float& Remainder)
 {
 	int32 Result;

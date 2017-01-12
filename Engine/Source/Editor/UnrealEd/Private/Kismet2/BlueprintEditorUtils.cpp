@@ -113,6 +113,8 @@
 #include "Styling/SlateIconFinder.h"
 #define LOCTEXT_NAMESPACE "Blueprint"
 
+extern COREUOBJECT_API bool GMinimalCompileOnLoad;
+
 DEFINE_LOG_CATEGORY(LogBlueprintDebug);
 
 DEFINE_STAT(EKismetCompilerStats_NotifyBlueprintChanged);
@@ -367,6 +369,8 @@ void FBasePinChangeHelper::Broadcast(UBlueprint* InBlueprint, UK2Node_EditablePi
 			? Func->GetOwnerClass()
 			: (UClass*)(FunctionDefNode ? FunctionDefNode->SignatureClass : nullptr);
 
+		const bool bIsInterface = FBlueprintEditorUtils::IsInterfaceBlueprint(InBlueprint);
+
 		// Reconstruct all function call sites that call this function (in open blueprints)
 		for (TObjectIterator<UK2Node_CallFunction> It(RF_Transient); It; ++It)
 		{
@@ -381,17 +385,31 @@ void FBasePinChangeHelper::Broadcast(UBlueprint* InBlueprint, UK2Node_EditablePi
 					// been removed by the user (and moved off the Blueprint)
 					continue;
 				}
-
-				const bool bNameMatches = (CallSite->FunctionReference.GetMemberName() == FuncName);
-				const UClass* MemberParentClass = CallSite->FunctionReference.GetMemberParentClass(CallSite->GetBlueprintClassFromNode());
-				const bool bClassMatchesEasy = (MemberParentClass != nullptr) && (MemberParentClass->IsChildOf(SignatureClass) || MemberParentClass->IsChildOf(InBlueprint->GeneratedClass));
-				const bool bClassMatchesHard = (CallSite->FunctionReference.IsSelfContext()) && (SignatureClass == nullptr) 
-					&& (CallSiteBlueprint == InBlueprint || CallSiteBlueprint->SkeletonGeneratedClass->IsChildOf(InBlueprint->SkeletonGeneratedClass));
+				
 				const bool bValidSchema = CallSite->GetSchema() != nullptr;
-
-				if (bNameMatches && bValidSchema && (bClassMatchesEasy || bClassMatchesHard))
+				const bool bNameMatches = (CallSite->FunctionReference.GetMemberName() == FuncName);
+				if (bNameMatches && bValidSchema)
 				{
-					EditCallSite(CallSite, CallSiteBlueprint);
+					if (bIsInterface)
+					{
+						if (FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(CallSiteBlueprint, FuncName))
+						{
+							EditCallSite(CallSite, CallSiteBlueprint);
+						}
+					}
+					else
+					{
+						const UClass* MemberParentClass = CallSite->FunctionReference.GetMemberParentClass(CallSite->GetBlueprintClassFromNode());
+						const bool bClassMatchesEasy = (MemberParentClass != nullptr)
+							&& (MemberParentClass->IsChildOf(SignatureClass) || MemberParentClass->IsChildOf(InBlueprint->GeneratedClass));
+						const bool bClassMatchesHard = !bClassMatchesEasy && CallSite->FunctionReference.IsSelfContext() && (SignatureClass == nullptr)
+							&& (CallSiteBlueprint == InBlueprint || CallSiteBlueprint->SkeletonGeneratedClass->IsChildOf(InBlueprint->SkeletonGeneratedClass));
+
+						if (bClassMatchesEasy || bClassMatchesHard)
+						{
+							EditCallSite(CallSite, CallSiteBlueprint);
+						}
+					}
 				}
 			}
 		}
@@ -1270,6 +1288,12 @@ void FBlueprintEditorUtils::ForceLoadMembers(UObject* Object)
 	FRegenerationHelper::ForcedLoadMembers(Object);
 }
 
+void FBlueprintEditorUtils::RefreshVariables(UBlueprint* Blueprint)
+{
+	// module punchthrough:
+	IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
+	Compiler.RefreshVariables(Blueprint);
+}
 
 UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
 {
@@ -1314,21 +1338,27 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		int32 OldSkelLinkerIdx = INDEX_NONE;
 		int32 OldGenLinkerIdx = INDEX_NONE;
 		FLinkerLoad* OldLinker = Blueprint->GetLinker();
-		for( int32 i = 0; i < OldLinker->ExportMap.Num(); i++ )
+		// this linker related logic is not needed when running the 
+		// GMinimalCompileOnLoad pass, althoug hit is somewhat distressing
+		// that the linker is missing sometimes. Needs more investigation.
+		if(!GMinimalCompileOnLoad)
 		{
-			FObjectExport& ThisExport = OldLinker->ExportMap[i];
-			if( ThisExport.ObjectName == SkeletonName )
+			for( int32 i = 0; i < OldLinker->ExportMap.Num(); i++ )
 			{
-				OldSkelLinkerIdx = i;
-			}
-			else if( ThisExport.ObjectName == GeneratedName )
-			{
-				OldGenLinkerIdx = i;
-			}
+				FObjectExport& ThisExport = OldLinker->ExportMap[i];
+				if( ThisExport.ObjectName == SkeletonName )
+				{
+					OldSkelLinkerIdx = i;
+				}
+				else if( ThisExport.ObjectName == GeneratedName )
+				{
+					OldGenLinkerIdx = i;
+				}
 
-			if( OldSkelLinkerIdx != INDEX_NONE && OldGenLinkerIdx != INDEX_NONE )
-			{
-				break;
+				if( OldSkelLinkerIdx != INDEX_NONE && OldGenLinkerIdx != INDEX_NONE )
+				{
+					break;
+				}
 			}
 		}
 
@@ -1382,8 +1412,13 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			// that nodes have a chance to create all the pins they'll expect when they compile.
 			// A good example of why this is necessary is UK2Node_BaseAsyncTask::AllocateDefaultPins
 			// and it's companion function UK2Node_BaseAsyncTask::ExpandNode.
-			FBlueprintEditorUtils::ReconstructAllNodes(Blueprint);
-
+			// When running the GMinimalCompileOnLoad pass we will run node reconstruction explicitly
+			// in the compile manager:
+			if(!GMinimalCompileOnLoad)
+			{
+				FBlueprintEditorUtils::ReconstructAllNodes(Blueprint);
+			}
+			
 			FBlueprintEditorUtils::ReplaceDeprecatedNodes(Blueprint);
 
 			// Compile the actual blueprint
@@ -2058,6 +2093,8 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 
 						SkelBlueprint->BroadcastCompiled();
 
+						SkelBlueprint->MarkPackageDirty();
+
 						SkeletalRecompileChildren(ChildrenOfClass, bIsCompilingOnLoad);
 						SkelBlueprint->bIsRegeneratingOnLoad = bWasRegenerating;
 					}
@@ -2277,12 +2314,12 @@ UEdGraph* FBlueprintEditorUtils::CreateNewGraph(UObject* ParentScope, const FNam
 	return NewGraph;
 }
 
-UFunction* FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(const UBlueprint* Blueprint, const FName& FunctionName, bool * bOutInvalidInterface )
+UFunction* FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(const UBlueprint* Blueprint, const FName& FunctionName, bool * bOutInvalidInterface, bool bGetAllInterfaces)
 {
 	if(Blueprint)
 	{
 		TArray<UClass*> InterfaceClasses;
-		FindImplementedInterfaces(Blueprint, false, InterfaceClasses);
+		FindImplementedInterfaces(Blueprint, bGetAllInterfaces, InterfaceClasses);
 
 		if( bOutInvalidInterface )
 		{
@@ -2294,6 +2331,13 @@ UFunction* FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(const UBlu
 		{
 			if( SearchClass )
 			{
+				// Use the skeleton class if possible, as the generated class may not always be up-to-date (e.g. if the compile state is dirty).
+				UBlueprint* InterfaceBlueprint = Cast<UBlueprint>(SearchClass->ClassGeneratedBy);
+				if (InterfaceBlueprint && InterfaceBlueprint->SkeletonGeneratedClass)
+				{
+					SearchClass = InterfaceBlueprint->SkeletonGeneratedClass;
+				}
+
 				do
 				{
 					if( UFunction* OverriddenFunction = SearchClass->FindFunctionByName(FunctionName, EIncludeSuperFlag::ExcludeSuper) )
@@ -2582,17 +2626,29 @@ void FBlueprintEditorUtils::RenameGraph(UEdGraph* Graph, const FString& NewNameS
 				}
 			}
 		}
-
-		// Rename any function call points
-		TArray<UK2Node_CallFunction*> AllFunctionCalls;
-		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_CallFunction>(Blueprint, AllFunctionCalls);
 	
-		for (UK2Node_CallFunction* FunctionNode : AllFunctionCalls)
+		// Rename any function call points
+		for (TObjectIterator<UK2Node_CallFunction> It(RF_Transient); It; ++It)
 		{
-			if (FunctionNode->FunctionReference.IsSelfContext() && (FunctionNode->FunctionReference.GetMemberName() == OldGraphName))
+			UK2Node_CallFunction* FunctionNode = *It;
+			if (FunctionNode && !FunctionNode->HasAnyFlags(RF_Transient) && Cast<UEdGraph>(FunctionNode->GetOuter()))
 			{
-				FunctionNode->Modify();
-				FunctionNode->FunctionReference.SetSelfMember(NewName);
+				if (UBlueprint* FunctionNodeBlueprint = FBlueprintEditorUtils::FindBlueprintForNode(FunctionNode))
+				{
+					if (FunctionNode->FunctionReference.GetMemberName() == OldGraphName)
+					{
+						if (FunctionNode->FunctionReference.IsSelfContext())
+						{
+							FunctionNode->Modify();
+							FunctionNode->FunctionReference.SetSelfMember(NewName);
+						}
+						else if (FunctionNode->FunctionReference.GetMemberParentClass() == Blueprint->GeneratedClass)
+						{
+							FunctionNode->Modify();
+							FunctionNode->FunctionReference.SetExternalMember(NewName, Blueprint->GeneratedClass);
+						}
+					}
+				}
 			}
 		}
 
@@ -4811,7 +4867,7 @@ FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(UBlueprint* InB
 FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(const UBlueprint* InBlueprint, const UEdGraph* InScopeGraph, const FName InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry)
 {
 	FBPVariableDescription* ReturnVariable = nullptr;
-	if(DoesSupportLocalVariables(InScopeGraph))
+	if (DoesSupportLocalVariables(InScopeGraph))
 	{
 		UEdGraph* FunctionGraph = GetTopLevelGraph(InScopeGraph);
 		TArray<UK2Node_FunctionEntry*> GraphNodes;
@@ -4819,18 +4875,22 @@ FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(const UBlueprin
 
 		bool bFoundLocalVariable = false;
 
-		// There is only ever 1 function entry
-		check(GraphNodes.Num() == 1)
-		for( int32 VarIdx = 0; VarIdx < GraphNodes[0]->LocalVariables.Num(); ++VarIdx )
+		if (GraphNodes.Num() > 0)
 		{
-			if(GraphNodes[0]->LocalVariables[VarIdx].VarName == InVariableName)
+			// If there is an entry node, there should only be one
+			check(GraphNodes.Num() == 1);
+
+			for (int32 VarIdx = 0; VarIdx < GraphNodes[0]->LocalVariables.Num(); ++VarIdx)
 			{
-				if (OutFunctionEntry)
+				if (GraphNodes[0]->LocalVariables[VarIdx].VarName == InVariableName)
 				{
-					*OutFunctionEntry = GraphNodes[0];
+					if (OutFunctionEntry)
+					{
+						*OutFunctionEntry = GraphNodes[0];
+					}
+					ReturnVariable = &GraphNodes[0]->LocalVariables[VarIdx];
+					break;
 				}
-				ReturnVariable = &GraphNodes[0]->LocalVariables[VarIdx];
-				break;
 			}
 		}
 	}
@@ -6781,14 +6841,31 @@ bool FBlueprintEditorUtils::FixLevelScriptActorBindings(ALevelScriptActor* Level
 					}
 					else
 					{
-						UE_LOG(LogBlueprint, Error, TEXT("Unable to bind event for node: %s (Owner: %s)! Can't get FMulticastScriptDelegate Target Delegate"), *GetNameSafe(EventNode), *GetNameSafe(EventNode->EventOwner));
+						FString ErrorFormat = LOCTEXT("FailedLSABinding_NoDelegate", "Unable to bind event node %s. Target instance is missing the expected delegate - is it a Blueprint in need of compile?").ToString();
+						if (FCompilerResultsLog* ActiveLog = FCompilerResultsLog::GetEventTarget())
+						{
+							ActiveLog->Warning(*FString::Printf(*ErrorFormat, TEXT("@@")), EventNode);
+						}
+						else
+						{
+							// For some reason, we don't have a valid entry point for the event in the LSA...
+							UE_LOG(LogBlueprint, Warning, TEXT("%s"), *FString::Printf(*ErrorFormat, *EventNode->GetName()));
+						}
 						bWasSuccessful = false;
 					}
 				}
 				else
 				{
-					// For some reason, we don't have a valid entry point for the event in the LSA...
-					UE_LOG(LogBlueprint, Warning, TEXT("Unable to bind event for node %s!  Please recompile the level blueprint."), (EventNode ? *EventNode->GetName() : TEXT("unknown")));
+					FString ErrorFormat = LOCTEXT("FailedLSABinding_NoFunction", "Unable to bind event node %s. Please recompile the level Blueprint.").ToString();
+					if (FCompilerResultsLog* ActiveLog = FCompilerResultsLog::GetEventTarget())
+					{
+						ActiveLog->Warning(*FString::Printf(*ErrorFormat, TEXT("@@")), EventNode);
+					}
+					else
+					{
+						// For some reason, we don't have a valid entry point for the event in the LSA...
+						UE_LOG(LogBlueprint, Warning, TEXT("%s"), *FString::Printf(*ErrorFormat, (EventNode ? *EventNode->GetName() : TEXT("[unknown]"))));
+					}
 					bWasSuccessful = false;
 				}
 			}

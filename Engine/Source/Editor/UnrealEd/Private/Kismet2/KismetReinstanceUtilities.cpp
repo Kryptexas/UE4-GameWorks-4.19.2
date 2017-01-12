@@ -902,6 +902,21 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 					FKismetEditorUtilities::RecompileBlueprintBytecode(BP, nullptr, true);
 					ensure(0 == DependentBlueprintsToRecompile.Num());
 					CompiledBlueprints.Add(BP);
+
+					// We won't re-instance (and thus won't finalize) objects of this type, but we still need to know if the current
+					// Actor selection in the level editor includes instances of this type, and force a refresh on the selection if so.
+					// Note: If this is a Component BP instead of an Actor BP, the refresh is handled by IWCE's OnCompiled() BP delegate.
+					if (GEditor && BP->ParentClass && BP->ParentClass->IsChildOf<AActor>())
+					{
+						for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+						{
+							AActor* ActorInstance = CastChecked<AActor>(*It);
+							if (ActorInstance->IsA(BP->GeneratedClass))
+							{
+								GEditor->SelectActor(ActorInstance, /*bInSelected =*/true, /*bNotify =*/true, false, true);
+							}
+						}
+					}
 				}
 
 

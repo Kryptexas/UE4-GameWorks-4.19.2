@@ -179,6 +179,11 @@ public:
 	static void ForceLoadMembers(UObject* Object);
 
 	/**
+	 *  Synchronizes Blueprint's GeneratedClass's properties with the NewVariable declarations in the blueprint
+	 */
+	static void RefreshVariables(UBlueprint* Blueprint);
+
+	/**
 	 * Regenerates the class at class load time, and refreshes the blueprint
 	 */
 	static UClass* RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded);
@@ -1143,7 +1148,7 @@ public:
 	static void UpdateStalePinWatches( UBlueprint* Blueprint );
 
 	/** Return the first function from implemented interface with given name */
-	static UFunction* FindFunctionInImplementedInterfaces(const UBlueprint* Blueprint, const FName& FunctionName, bool* bOutInvalidInterface = NULL );
+	static UFunction* FindFunctionInImplementedInterfaces(const UBlueprint* Blueprint, const FName& FunctionName, bool* bOutInvalidInterface = nullptr, bool bGetAllInterfaces = false);
 
 	/** 
 	 * Build a list of all interface classes either implemented by this blueprint or through inheritance

@@ -43,6 +43,7 @@ class FKismet2CompilerModule : public IKismetCompilerInterface
 public:
 	// Implementation of the IKismetCompilerInterface
 	virtual void CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<class FBlueprintCompileReinstancer> ParentReinstancer = NULL, TArray<UObject*>* ObjLoaded = NULL) override;
+	virtual void RefreshVariables(UBlueprint* Blueprint) override final;
 	virtual void CompileStructure(class UUserDefinedStruct* Struct, FCompilerResultsLog& Results) override;
 	virtual void RecoverCorruptedBlueprint(class UBlueprint* Blueprint) override;
 	virtual void RemoveBlueprintGeneratedClasses(class UBlueprint* Blueprint) override;
@@ -306,6 +307,37 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 		UMetaData* MetaData =  Package->GetMetaData();
 		MetaData->RemoveMetaDataOutsidePackage();
 	}
+}
+
+void FKismet2CompilerModule::RefreshVariables(UBlueprint* Blueprint)
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	FCompilerResultsLog MessageLog;
+
+	for (int32 VarIndex = 0; VarIndex < Blueprint->NewVariables.Num(); ++VarIndex)
+	{
+		UProperty* ExistingVariable = Blueprint->GeneratedClass->FindPropertyByName(Blueprint->NewVariables[VarIndex].VarName);
+		if( ExistingVariable == nullptr || ExistingVariable->GetOuter() != Blueprint->GeneratedClass)
+		{
+			// this variable will need to be added, we can link it in where ever as the sort will fix everything:
+			UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(
+				Blueprint->GeneratedClass, 
+				Blueprint->NewVariables[VarIndex].VarName, 
+				Blueprint->NewVariables[VarIndex].VarType, 
+				Blueprint->GeneratedClass, 
+				0,
+				K2Schema,
+				MessageLog);
+
+			NewProperty->PropertyLinkNext = Blueprint->GeneratedClass->PropertyLink;
+			Blueprint->GeneratedClass->PropertyLink = NewProperty;
+		}
+	}
+
+	// we can't reliably remove properties because there are so 
+	// many nodes that create properties (e.g. anim blueprints, ubergraphframe)
+	// so just leave them.. we only need to prevent data loss
+	// Also note that property order is going to be insane
 }
 
 // Recover a corrupted blueprint

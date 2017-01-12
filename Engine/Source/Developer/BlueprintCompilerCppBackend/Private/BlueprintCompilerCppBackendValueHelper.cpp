@@ -732,6 +732,7 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 
 struct FNonativeComponentData
 {
+	const USCS_Node* SCSNode;
 	FString NativeVariablePropertyName;
 	UActorComponent* ComponentTemplate;
 	UObject* ObjectToCompare;
@@ -744,7 +745,8 @@ struct FNonativeComponentData
 	bool bIsRoot;
 
 	FNonativeComponentData()
-		: ComponentTemplate(nullptr)
+		: SCSNode(nullptr)
+		, ComponentTemplate(nullptr)
 		, ObjectToCompare(nullptr)
 		, bSetNativeCreationMethod(false)
 		, bIsRoot(false)
@@ -839,7 +841,10 @@ struct FNonativeComponentData
 	}
 };
 
-FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& Context, const USCS_Node* Node, TSet<const UProperty*>& OutHandledProperties, TArray<FString>& NativeCreatedComponentProperties, const USCS_Node* ParentNode, TArray<FNonativeComponentData>& ComponenntsToInit)
+FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& Context, const USCS_Node* Node
+	, TSet<const UProperty*>& OutHandledProperties, TArray<FString>& NativeCreatedComponentProperties
+	, const USCS_Node* ParentNode, TArray<FNonativeComponentData>& ComponenntsToInit
+	, bool bBlockRecursion)
 {
 	check(Node);
 	check(Context.CurrentCodeType == FEmitterLocalContext::EGeneratedCodeType::CommonConstructor);
@@ -861,11 +866,18 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 			NativeVariablePropertyName = VariableCleanName;
 		}
 
+		//TODO: UGLY HACK UE-40026
+		if (bBlockRecursion && Context.CommonSubobjectsMap.Contains(ComponentTemplate))
+		{
+			return FString();
+		}
+
 		Context.AddCommonSubObject_InConstructor(ComponentTemplate, NativeVariablePropertyName);
 
 		if (ComponentTemplate->GetOuter() == BPGC)
 		{
 			FNonativeComponentData NonativeComponentData;
+			NonativeComponentData.SCSNode = Node;
 			NonativeComponentData.NativeVariablePropertyName = NativeVariablePropertyName;
 			NonativeComponentData.ComponentTemplate = ComponentTemplate;
 			USCS_Node* RootComponentNode = nullptr;
@@ -911,9 +923,12 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 	}
 
 	// Recursively handle child nodes.
-	for (auto ChildNode : Node->ChildNodes)
+	if (!bBlockRecursion)
 	{
-		HandleNonNativeComponent(Context, ChildNode, OutHandledProperties, NativeCreatedComponentProperties, Node, ComponenntsToInit);
+		for (auto ChildNode : Node->ChildNodes)
+		{
+			HandleNonNativeComponent(Context, ChildNode, OutHandledProperties, NativeCreatedComponentProperties, Node, ComponenntsToInit, bBlockRecursion);
+		}
 	}
 
 	return NativeVariablePropertyName;
@@ -1183,7 +1198,7 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 		FakeImportTableHelper.FillDependencyData(InAsset, Result);
 		return Result;
 	};
-
+	const bool bBootTimeEDL = false;
 	auto AddAssetArray = [&](const TArray<const UObject*>& Assets)
 	{
 		if (Assets.Num())
@@ -1220,14 +1235,39 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 			Context.AddLine(TEXT("};"));
 			Context.AddLine(TEXT("for(const FCompactBlueprintDependencyData CompactData : LocCompactBlueprintDependencyData)"));
 			Context.AddLine(TEXT("{"));
-			Context.AddLine(TEXT("\tAssetsToLoad.Add(FBlueprintDependencyData("));
+			if (IsEventDrivenLoaderEnabledInCookedBuilds() && bBootTimeEDL)
+			{
+				Context.AddLine(TEXT("\tAssetsToLoad.Add(FBlueprintDependencyData("));
+			}
+			else
+			{
+				Context.AddLine(TEXT("\tAssetsToLoad.AddUnique(FBlueprintDependencyData("));
+			}
 			Context.AddLine(TEXT("\t\tF__NativeDependencies::Get(CompactData.ObjectRefIndex)"));
 			Context.AddLine(TEXT("\t\t,CompactData.ClassDependency"));
 			Context.AddLine(TEXT("\t\t,CompactData.CDODependency"));
+			Context.AddLine(TEXT("\t\t,CompactData.ObjectRefIndex"));
 			Context.AddLine(TEXT("\t));"));
 			Context.AddLine(TEXT("} "));
 		}
 	};
+
+	TSet<const UBlueprintGeneratedClass*> OtherBPGCs;
+	if (!IsEventDrivenLoaderEnabledInCookedBuilds() & !bBootTimeEDL)
+	{
+		for (const UObject* It : AllDependenciesToHandle)
+		{
+			if (const UBlueprintGeneratedClass* OtherBPGC = Cast<const UBlueprintGeneratedClass>(It))
+			{
+				const UBlueprint* BP = Cast<const UBlueprint>(OtherBPGC->ClassGeneratedBy);
+				if (Context.Dependencies.WillClassBeConverted(OtherBPGC) && BP && (BP->BlueprintType != EBlueprintType::BPTYPE_Interface))
+				{
+					OtherBPGCs.Add(OtherBPGC);
+				}
+			}
+		}
+	}
+
 
 	// 3. LIST OF UsedAssets
 	{
@@ -1252,7 +1292,72 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad)"), *CppClassName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
-		Context.AddLine(FString(TEXT("__StaticDependencies_DirectlyUsedAssets(AssetsToLoad);")));
+
+		if (!OtherBPGCs.Num() || (IsEventDrivenLoaderEnabledInCookedBuilds() && bBootTimeEDL))
+		{
+			Context.AddLine(FString(TEXT("__StaticDependencies_DirectlyUsedAssets(AssetsToLoad);")));
+		}
+		else
+		{
+			// To reduce the size of __StaticDependenciesAssets, all __StaticDependenciesAssets of listed BPs will be called.
+			FNativizationSummary::FDependencyRecord& DependencyRecord = FDependenciesGlobalMapHelper::FindDependencyRecord(OriginalClass);
+			ensure(DependencyRecord.Index >= 0); 
+			if (DependencyRecord.NativeLine.IsEmpty())
+			{
+				DependencyRecord.NativeLine = CreateAssetToLoadString(OriginalClass);
+			}
+			Context.AddLine(FString::Printf(TEXT("const int16 __OwnIndex = %d;"), DependencyRecord.Index));
+			Context.AddLine(FString(TEXT("if(FBlueprintDependencyData::ContainsDependencyData(AssetsToLoad, __OwnIndex)) { return; }")));
+			Context.AddLine(TEXT("if(GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME){ __StaticDependencies_DirectlyUsedAssets(AssetsToLoad); }"));
+			Context.AddLine(TEXT("else"));
+			Context.AddLine(TEXT("{"));
+			Context.IncreaseIndent();
+			Context.AddLine(FString(TEXT("const bool __FirstFunctionCall = !AssetsToLoad.Num();")));
+			Context.AddLine(FString(TEXT("TArray<FBlueprintDependencyData> Temp;")));
+			// Other __StaticDependenciesAssets fucntions should not see the assets added by __StaticDependencies_DirectlyUsedAssets
+			// But in the first function called the assets from __StaticDependencies_DirectlyUsedAssets must go first in unchanged order (to satisfy FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass)
+			Context.AddLine(FString(TEXT("__StaticDependencies_DirectlyUsedAssets(__FirstFunctionCall ? AssetsToLoad : Temp);")));
+			Context.AddLine(FString(TEXT("TArray<FBlueprintDependencyData>& ArrayUnaffectedByDirectlyUsedAssets = __FirstFunctionCall ? Temp : AssetsToLoad;")));
+
+			Context.AddLine(FString(TEXT("ArrayUnaffectedByDirectlyUsedAssets.AddUnique(FBlueprintDependencyData(F__NativeDependencies::Get(__OwnIndex), {}, {}, __OwnIndex));")));
+
+			for (const UBlueprintGeneratedClass* OtherBPGC : OtherBPGCs)
+			{
+				Context.AddLine(FString::Printf(TEXT("%s::__StaticDependenciesAssets(ArrayUnaffectedByDirectlyUsedAssets);"), *FEmitHelper::GetCppName(OtherBPGC)));
+			}
+			Context.AddLine(FString(TEXT("FBlueprintDependencyData::AppendUniquely(AssetsToLoad, Temp);")));
+			Context.DecreaseIndent();
+			Context.AddLine(TEXT("}"));
+		}
+
+		if (IsEventDrivenLoaderEnabledInCookedBuilds() && bBootTimeEDL)
+		{
+			//TODO: remove stuff from CoreUObject
+		}
+		else
+		{
+			//WIthout EDL we don't need the native stuff.
+			for (auto Iter = AllDependenciesToHandle.CreateIterator(); Iter; ++Iter)
+			{
+				const UObject* ItObj = *Iter;
+				if (auto ObjAsClass = Cast<const UClass>(ItObj))
+				{
+					if (ObjAsClass->HasAnyClassFlags(CLASS_Native))
+					{
+						Iter.RemoveCurrent();
+					}
+				}
+				else if (ItObj && ItObj->IsA<UScriptStruct>() && !ItObj->IsA<UUserDefinedStruct>())
+				{
+					Iter.RemoveCurrent();
+				}
+				else if (ItObj && ItObj->IsA<UEnum>() && !ItObj->IsA<UUserDefinedEnum>())
+				{
+					Iter.RemoveCurrent();
+				}
+			}
+		}
+		
 		AddAssetArray(AllDependenciesToHandle.Array());
 		Context.DecreaseIndent();
 		Context.AddLine(TEXT("}"));
@@ -1333,8 +1438,17 @@ void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterL
 				continue;
 			}
 
-			const FString ClassConstructor = FDependenciesHelper::GenerateZConstructor(ClassToLoad);
-			Context.AddLine(FString::Printf(TEXT("extern UClass* %s;"), *ClassConstructor));
+			FString ClassConstructor;
+			if (ClassToLoad->HasAnyClassFlags(CLASS_Interface))
+			{
+				const FString ClassZConstructor = FDependenciesHelper::GenerateZConstructor(ClassToLoad);
+				Context.AddLine(FString::Printf(TEXT("extern UClass* %s;"), *ClassZConstructor));
+				ClassConstructor = ClassZConstructor;
+			}
+			else
+			{
+				ClassConstructor = FString::Printf(TEXT("%s::StaticClass()"), *FEmitHelper::GetCppName(ClassToLoad));
+			}
 			Context.AddLine(FString::Printf(TEXT("InDynamicClass->%s.Add(%s);"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ReferencedConvertedFields), *ClassConstructor));
 
 			//Context.AddLine(FString::Printf(TEXT("InDynamicClass->ReferencedConvertedFields.Add(LoadObject<UClass>(nullptr, TEXT(\"%s\")));")
@@ -1530,11 +1644,11 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 			{
 				if (BPGCStack[i]->SimpleConstructionScript)
 				{
-					for (auto Node : BPGCStack[i]->SimpleConstructionScript->GetRootNodes())
+					for (USCS_Node* Node : BPGCStack[i]->SimpleConstructionScript->GetRootNodes())
 					{
 						if (Node)
 						{
-							const FString NativeVariablePropertyName = HandleNonNativeComponent(Context, Node, HandledProperties, NativeCreatedComponentProperties, nullptr, ComponentsToInit);
+							const FString NativeVariablePropertyName = HandleNonNativeComponent(Context, Node, HandledProperties, NativeCreatedComponentProperties, nullptr, ComponentsToInit, false);
 
 							if (bNeedsRootComponentAssignment && Node->ComponentTemplate && Node->ComponentTemplate->IsA<USceneComponent>() && !NativeVariablePropertyName.IsEmpty())
 							{
@@ -1550,6 +1664,20 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 							}
 						}
 					}
+
+					//TODO: UGLY HACK for "zombie" nodes - UE-40026
+					for (USCS_Node* Node : BPGCStack[i]->SimpleConstructionScript->GetAllNodes())
+					{
+						if (Node)
+						{
+							const bool bNodeWasProcessed = nullptr != ComponentsToInit.FindByPredicate([=](const FNonativeComponentData& InData) { return Node == InData.SCSNode; });
+							if (!bNodeWasProcessed)
+							{
+								HandleNonNativeComponent(Context, Node, HandledProperties, NativeCreatedComponentProperties, nullptr, ComponentsToInit, true);
+							}
+						}
+					}
+
 				}
 			}
 

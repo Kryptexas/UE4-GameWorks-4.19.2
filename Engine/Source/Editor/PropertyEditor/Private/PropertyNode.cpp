@@ -2419,6 +2419,8 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 		{
 			PropertyChain->SetActiveMemberPropertyNode( OriginalActiveProperty );
 			PropertyChain->SetActivePropertyNode( InPropertyChangedEvent.Property);
+		
+			InPropertyChangedEvent.SetActiveMemberProperty(OriginalActiveProperty);
 			InNotifyHook->NotifyPostChange( InPropertyChangedEvent, &PropertyChain.Get() );
 		}
 	}

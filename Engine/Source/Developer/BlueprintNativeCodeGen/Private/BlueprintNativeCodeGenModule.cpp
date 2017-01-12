@@ -323,6 +323,11 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray<FPl
 void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()
 {
 	TSharedPtr<FNativizationSummary> NativizationSummary(new FNativizationSummary());
+	{
+		IBlueprintCompilerCppBackendModule& CodeGenBackend = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+		CodeGenBackend.NativizationSummary() = NativizationSummary;
+	}
+
 	for (TAssetPtr<UBlueprint>& BPPtr : ToGenerate)
 	{
 		UBlueprint* BP = BPPtr.LoadSynchronous();

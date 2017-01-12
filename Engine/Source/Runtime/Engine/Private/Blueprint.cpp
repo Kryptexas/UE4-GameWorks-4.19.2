@@ -17,6 +17,7 @@
 #include "Components/TimelineComponent.h"
 
 #if WITH_EDITOR
+#include "BlueprintCompilationManager.h"
 #include "Editor/UnrealEd/Classes/Settings/ProjectPackagingSettings.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
@@ -564,9 +565,66 @@ void UBlueprint::PostDuplicate(bool bDuplicateForPIE)
 	}
 }
 
+extern COREUOBJECT_API bool GMinimalCompileOnLoad;
+
 UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
 {
-	return FBlueprintEditorUtils::RegenerateBlueprintClass(this, ClassToRegenerate, PreviousCDO, ObjLoaded);
+	if(GMinimalCompileOnLoad)
+	{
+		// ensure that we have UProperties for any properties declared in the blueprint:
+		check(GeneratedClass && !bHasBeenRegenerated); // we probably need to create a class if none was loaded off disk
+		
+		UPackage* Package = Cast<UPackage>(GetOutermost());
+		bool bIsPackageDirty = Package ? Package->IsDirty() : false;
+
+		FBlueprintEditorUtils::RefreshVariables(this);
+
+		// clone generated class into skeleton class:
+		FObjectDuplicationParameters Params(GeneratedClass, GeneratedClass->GetOuter());
+		if (SimpleConstructionScript)
+		{
+			Params.DuplicationSeed.Add(SimpleConstructionScript, SimpleConstructionScript);
+		}
+		Params.ApplyFlags = RF_Transient;
+		Params.DestName = *(FString("SKEL_") + GeneratedClass->GetName());
+		SkeletonGeneratedClass = (UClass*)StaticDuplicateObjectEx(Params);
+		SkeletonGeneratedClass->ClassDefaultObject = nullptr;
+		if (UClass* Super = SkeletonGeneratedClass->GetSuperClass())
+		{
+			if (UBlueprint* GeneratedByBP = Cast<UBlueprint>(Super->ClassGeneratedBy))
+			{
+				check(GeneratedByBP->SkeletonGeneratedClass != nullptr);
+				SkeletonGeneratedClass->SetSuperStruct(GeneratedByBP->SkeletonGeneratedClass);
+			}
+		}
+		SkeletonGeneratedClass->Bind();
+		SkeletonGeneratedClass->StaticLink(true);
+		if(UBlueprintGeneratedClass* BPGC_Skel = Cast<UBlueprintGeneratedClass>(SkeletonGeneratedClass))
+		{
+			if( BPGC_Skel->UberGraphFunction )
+			{
+				BPGC_Skel->UberGraphFunction->StaticLink(true);
+			}
+		}
+		SkeletonGeneratedClass->GetDefaultObject(); // forces CDO to generate
+
+		FBlueprintEditorUtils::PreloadConstructionScript( this );
+
+		FBlueprintCompilationManager::NotifyBlueprintLoaded( this ); 
+		
+		if( Package )
+		{
+			Package->SetDirtyFlag(bIsPackageDirty);
+		}
+
+		// give the world the generated class... The only time this will be changed is if the generated class
+		// was null:
+		return GeneratedClass;
+	}
+	else
+	{
+		return FBlueprintEditorUtils::RegenerateBlueprintClass(this, ClassToRegenerate, PreviousCDO, ObjLoaded);
+	}
 }
 
 void UBlueprint::RemoveGeneratedClasses()
@@ -1092,62 +1150,81 @@ void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 {
 	Super::BeginCacheForCookedPlatformData(TargetPlatform);
 
-	// Only cook component data if the setting is enabled and this is an Actor-based Blueprint class.
-	if (GeneratedClass && GeneratedClass->IsChildOf<AActor>() && GetDefault<UCookerSettings>()->bCookBlueprintComponentTemplateData)
+	if (GeneratedClass && GeneratedClass->IsChildOf<AActor>())
 	{
-		int32 NumCookedComponents = 0;
-		const double StartTime = FPlatformTime::Seconds();
-
-		UBlueprintGeneratedClass* BPGClass = Cast<UBlueprintGeneratedClass>(*GeneratedClass);
-		if (BPGClass)
+		// Only cook component data if the setting is enabled and this is an Actor-based Blueprint class.
+		if (GetDefault<UCookerSettings>()->bCookBlueprintComponentTemplateData)
 		{
-			// Cook all overridden SCS component node templates inherited from the parent class hierarchy.
-			if (UInheritableComponentHandler* TargetInheritableComponentHandler = BPGClass->GetInheritableComponentHandler())
+			int32 NumCookedComponents = 0;
+			const double StartTime = FPlatformTime::Seconds();
+
+			UBlueprintGeneratedClass* BPGClass = Cast<UBlueprintGeneratedClass>(*GeneratedClass);
+			if (BPGClass)
 			{
-				for (auto RecordIt = TargetInheritableComponentHandler->CreateRecordIterator(); RecordIt; ++RecordIt)
+				// Cook all overridden SCS component node templates inherited from the parent class hierarchy.
+				if (UInheritableComponentHandler* TargetInheritableComponentHandler = BPGClass->GetInheritableComponentHandler())
 				{
-					if (!RecordIt->CookedComponentInstancingData.bIsValid)
+					for (auto RecordIt = TargetInheritableComponentHandler->CreateRecordIterator(); RecordIt; ++RecordIt)
+					{
+						if (!RecordIt->CookedComponentInstancingData.bIsValid)
+						{
+							// Note: This will currently block until finished.
+							// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
+							FBlueprintEditorUtils::BuildComponentInstancingData(RecordIt->ComponentTemplate, RecordIt->CookedComponentInstancingData);
+							++NumCookedComponents;
+						}
+					}
+				}
+
+				// Cook all SCS component templates that are owned by this class.
+				if (BPGClass->SimpleConstructionScript)
+				{
+					for (auto Node : BPGClass->SimpleConstructionScript->GetAllNodes())
+					{
+						if (!Node->CookedComponentInstancingData.bIsValid)
+						{
+							// Note: This will currently block until finished.
+							// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
+							FBlueprintEditorUtils::BuildComponentInstancingData(Node->ComponentTemplate, Node->CookedComponentInstancingData);
+							++NumCookedComponents;
+						}
+					}
+				}
+
+				// Cook all UCS/AddComponent node templates that are owned by this class.
+				for (UActorComponent* ComponentTemplate : BPGClass->ComponentTemplates)
+				{
+					FBlueprintCookedComponentInstancingData& CookedComponentInstancingData = BPGClass->CookedComponentInstancingData.FindOrAdd(ComponentTemplate->GetFName());
+					if (!CookedComponentInstancingData.bIsValid)
 					{
 						// Note: This will currently block until finished.
 						// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
-						FBlueprintEditorUtils::BuildComponentInstancingData(RecordIt->ComponentTemplate, RecordIt->CookedComponentInstancingData);
+						FBlueprintEditorUtils::BuildComponentInstancingData(ComponentTemplate, CookedComponentInstancingData);
 						++NumCookedComponents;
 					}
 				}
 			}
 
-			// Cook all SCS component templates that are owned by this class.
-			if (BPGClass->SimpleConstructionScript)
+			if (NumCookedComponents > 0)
 			{
-				for (auto Node : BPGClass->SimpleConstructionScript->GetAllNodes())
-				{
-					if (!Node->CookedComponentInstancingData.bIsValid)
-					{
-						// Note: This will currently block until finished.
-						// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
-						FBlueprintEditorUtils::BuildComponentInstancingData(Node->ComponentTemplate, Node->CookedComponentInstancingData);
-						++NumCookedComponents;
-					}
-				}
-			}
-
-			// Cook all UCS/AddComponent node templates that are owned by this class.
-			for (UActorComponent* ComponentTemplate : BPGClass->ComponentTemplates)
-			{
-				FBlueprintCookedComponentInstancingData& CookedComponentInstancingData = BPGClass->CookedComponentInstancingData.FindOrAdd(ComponentTemplate->GetFName());
-				if (!CookedComponentInstancingData.bIsValid)
-				{
-					// Note: This will currently block until finished.
-					// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
-					FBlueprintEditorUtils::BuildComponentInstancingData(ComponentTemplate, CookedComponentInstancingData);
-					++NumCookedComponents;
-				}
+				UE_LOG(LogBlueprint, Log, TEXT("%s: Cooked %d component(s) in %.02g ms"), *GetName(), NumCookedComponents, (FPlatformTime::Seconds() - StartTime) * 1000.0);
 			}
 		}
 
-		if (NumCookedComponents > 0)
+		// If we're using the "exclusive" nativization method and this Blueprint is not selected for nativization, determine if any of its parent Blueprints are selected.
+		if (GetDefault<UProjectPackagingSettings>()->BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Exclusive && !bSelectedForNativization)
 		{
-			UE_LOG(LogBlueprint, Log, TEXT("%s: Cooked %d component(s) in %.02g ms"), *GetName(), NumCookedComponents, (FPlatformTime::Seconds() - StartTime) * 1000.0);
+			TArray<UBlueprint*> ParentBlueprints;
+			GetBlueprintHierarchyFromClass(GeneratedClass, ParentBlueprints);
+			for (UBlueprint *ParentBP : ParentBlueprints)
+			{
+				if (ParentBP->bSelectedForNativization)
+				{
+					UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(GeneratedClass);
+					BPGC->bHasNativizedParent = true;
+					break;
+				}
+			}
 		}
 	}
 }

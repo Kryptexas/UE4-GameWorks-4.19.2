@@ -1674,7 +1674,7 @@ public:
 	 *
 	 * @return The display name for this object.
 	 */
-	FText GetDisplayNameText(int32 NameIndex=INDEX_NONE) const;
+	virtual FText GetDisplayNameText(int32 NameIndex=INDEX_NONE) const;
 	FText GetDisplayNameTextByValue(int64 Value = INDEX_NONE) const;
 
 	/**

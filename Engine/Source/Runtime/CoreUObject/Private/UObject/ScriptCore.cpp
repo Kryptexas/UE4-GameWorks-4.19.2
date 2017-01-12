@@ -880,12 +880,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 	{
 		if (!GIsReinstancing)
 		{
-			static int32 num = 0;
-			num++;
-			if (num < 5)
-			{
-				ensureMsgf(!GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists), TEXT("Object '%s' is being used for execution, but its class is out of date and has been replaced with a recompiled class!"), *GetFullName());
-			}
+			ensureMsgf(!GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists), TEXT("Object '%s' is being used for execution, but its class is out of date and has been replaced with a recompiled class!"), *GetFullName());
 		}
 		return;
 	}

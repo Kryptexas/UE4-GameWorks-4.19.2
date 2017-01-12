@@ -1547,17 +1547,22 @@ FObjectImport* FAsyncPackage::FindExistingImport(int32 LocalImportIndex)
 				if (Import->XObject)
 				{
 //native blueprint 
+#if DO_CHECK
 					FName NameImportClass(Import->ClassName);
 					FName NameActualImportClass(Import->XObject->GetClass()->GetFName());
 					if (NameActualImportClass != NameImportClass)
 					{
 						static const FName NAME_BlueprintGeneratedClass("BlueprintGeneratedClass");
 						static const FName NAME_DynamicClass("DynamicClass");
-						bool bBroken = (NameImportClass != NAME_BlueprintGeneratedClass && NameImportClass != NAME_DynamicClass) ||
-							(NameActualImportClass != NAME_BlueprintGeneratedClass && NameActualImportClass != NAME_DynamicClass);
-						UE_CLOG(bBroken, LogStreaming, Fatal, TEXT("FAsyncPackage::FindExistingImport class mismatch %s != %s"), *NameActualImportClass.ToString(), *NameImportClass.ToString());
-					}
 
+						static const FName NAME_Function("Function");
+						static const FName NAME_DelegateFunction("DelegateFunction");
+
+						bool bSafeException = (NameImportClass == NAME_BlueprintGeneratedClass && NameActualImportClass == NAME_DynamicClass)
+							|| (NameImportClass == NAME_Function && NameActualImportClass == NAME_DelegateFunction);
+						UE_CLOG(!bSafeException, LogStreaming, Fatal, TEXT("FAsyncPackage::FindExistingImport class mismatch %s != %s"), *NameActualImportClass.ToString(), *NameImportClass.ToString());
+					}
+#endif //DO_CHECK
 					AddObjectReference(Import->XObject);
 				}
 			}
@@ -1765,7 +1770,7 @@ static bool IsFullyLoadedObj(UObject* Obj)
 		return true;
 	}
 
-	if (GEventDrivenLoaderEnabled)
+	if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
 	{
 		if (0 != (UD->ClassFlags & CLASS_Constructed))
 		{
@@ -5769,19 +5774,22 @@ void FAsyncPackage::CloseDelayedLinkers()
 	// Close any linkers that have been open as a result of blocking load while async loading
 	for (FLinkerLoad* LinkerToClose : DelayedLinkerClosePackages)
 	{
-		check(LinkerToClose);
-		check(LinkerToClose->LinkerRoot);
-		if (GEventDrivenLoaderEnabled)
+		if (LinkerToClose->LinkerRoot != nullptr)
 		{
-			FLinkerLoad* LinkerToReset = FLinkerLoad::FindExistingLinkerForPackage(CastChecked<UPackage>(LinkerToClose->LinkerRoot));
-			check(LinkerToReset == LinkerToClose);
-			if (LinkerToReset && LinkerToReset->AsyncRoot)
+			check(LinkerToClose);
+			//check(LinkerToClose->LinkerRoot);
+			if (GEventDrivenLoaderEnabled)
 			{
-				UE_LOG(LogStreaming, Error, TEXT("Linker cannot be reset right now...leaking %s"), *LinkerToReset->GetArchiveName());
-				continue;
+				FLinkerLoad* LinkerToReset = FLinkerLoad::FindExistingLinkerForPackage(CastChecked<UPackage>(LinkerToClose->LinkerRoot));
+				check(LinkerToReset == LinkerToClose);
+				if (LinkerToReset && LinkerToReset->AsyncRoot)
+				{
+					UE_LOG(LogStreaming, Error, TEXT("Linker cannot be reset right now...leaking %s"), *LinkerToReset->GetArchiveName());
+					continue;
+				}
 			}
+			FLinkerManager::Get().ResetLoaders(LinkerToClose->LinkerRoot);
 		}
-		FLinkerManager::Get().ResetLoaders(LinkerToClose->LinkerRoot);
 		check(LinkerToClose->LinkerRoot == nullptr);
 		check(LinkerToClose->AsyncRoot == nullptr);
 	}

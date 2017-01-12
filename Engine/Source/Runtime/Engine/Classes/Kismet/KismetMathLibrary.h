@@ -489,6 +489,10 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Float", meta=(CompactNodeTitle = "e"))
 	static float Exp(float A);
 
+	/* Returns log of A base B (if B^R == A, returns R)*/
+	UFUNCTION(BlueprintPure, Category = "Math|Float")
+	static float Log(float A, float Base = 1.f);
+
 	/* Returns natural log of A (if e^R == A, returns R)*/
 	UFUNCTION(BlueprintPure, Category="Math|Float")
 	static float Loge(float A);

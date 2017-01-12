@@ -667,6 +667,7 @@ public:
 		, _SelectionMode(ESelectionMode::Multi)
 		, _ClearSelectionOnClick(true)
 		, _ExternalScrollbar()
+		, _OnTableViewBadState()
 		{}
 
 		SLATE_ARGUMENT( SSCSEditor*, SCSEditor )
@@ -698,6 +699,8 @@ public:
 		SLATE_ARGUMENT ( bool, ClearSelectionOnClick )
 
 		SLATE_ARGUMENT( TSharedPtr<SScrollBar>, ExternalScrollbar )
+
+		SLATE_EVENT( FOnTableViewBadState, OnTableViewBadState )
 
 	SLATE_END_ARGS()
 	/** Object construction - mostly defers to the base STreeView */
@@ -841,6 +844,9 @@ public:
 
 	/** Refresh the tree control to reflect changes in the SCS */
 	void UpdateTree(bool bRegenerateTreeNodes = true);
+
+	/** Dumps out the tree view contents to the log (used to assist with debugging widget hierarchy issues) */
+	void DumpTree();
 
 	/** Forces the details panel to refresh on the same objects */
 	void RefreshSelectionDetails();

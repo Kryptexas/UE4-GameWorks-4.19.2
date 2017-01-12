@@ -634,6 +634,13 @@ void ULevel::PostLoad()
 		LevelSimplification[Index].PostLoadDeprecated();
 	}
 
+	if (LevelScriptActor)
+	{
+		if (ULevelScriptBlueprint* LevelBlueprint = Cast<ULevelScriptBlueprint>(LevelScriptActor->GetClass()->ClassGeneratedBy))
+		{
+			FBlueprintEditorUtils::FixLevelScriptActorBindings(LevelScriptActor, LevelBlueprint);
+		}
+	}
 #endif
 }
 
