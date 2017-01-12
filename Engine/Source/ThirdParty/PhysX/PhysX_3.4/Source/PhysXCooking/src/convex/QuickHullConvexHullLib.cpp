@@ -1738,17 +1738,30 @@ PxConvexMeshCookingResult::Enum QuickHullConvexHullLib::createConvexHull()
 	if ( vcount < 8 ) 
 		vcount = 8;
 
+	// Test
 	PxVec3* outvsource  = reinterpret_cast<PxVec3*> (PX_ALLOC_TEMP( sizeof(PxVec3)*vcount, "PxVec3"));
 	PxVec3 scale;	
 	PxVec3 center;
 	PxU32 outvcount;
 
 	// cleanup the vertices first
-	if(!cleanupVertices(mConvexMeshDesc.points.count, reinterpret_cast<const PxVec3*> (mConvexMeshDesc.points.data), mConvexMeshDesc.points.stride,
-		outvcount, outvsource, scale, center ))
+	if(mConvexMeshDesc.flags & PxConvexFlag::eSHIFT_VERTICES)
 	{
-		PX_FREE(outvsource);
-		return res;
+		if(!shiftAndcleanupVertices(mConvexMeshDesc.points.count, reinterpret_cast<const PxVec3*> (mConvexMeshDesc.points.data), mConvexMeshDesc.points.stride,
+			outvcount, outvsource, scale, center ))
+		{
+			PX_FREE(outvsource);
+			return res;
+		}
+	}
+	else
+	{
+		if(!cleanupVertices(mConvexMeshDesc.points.count, reinterpret_cast<const PxVec3*> (mConvexMeshDesc.points.data), mConvexMeshDesc.points.stride,
+			outvcount, outvsource, scale, center ))
+		{
+			PX_FREE(outvsource);
+			return res;
+		}
 	}
 
 	// scale vertices back to their original size.
@@ -2189,6 +2202,9 @@ void QuickHullConvexHullLib::fillConvexMeshDesc(PxConvexMeshDesc& desc)
 		fillConvexMeshDescFromCroppedHull(desc);
 	else
 		fillConvexMeshDescFromQuickHull(desc);
+
+	if(mConvexMeshDesc.flags & PxConvexFlag::eSHIFT_VERTICES)
+		shiftConvexMeshDesc(desc);
 }
 
 //////////////////////////////////////////////////////////////////////////

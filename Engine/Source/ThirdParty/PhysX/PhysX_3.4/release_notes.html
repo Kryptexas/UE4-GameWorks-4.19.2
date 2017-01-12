@@ -331,6 +331,7 @@
 			<li>Convex hull generator vertex limit has two different algorithms - plane shifting and OBB slicing.</li>
 			<li>PxConvexFlag::eFAST_INERTIA_COMPUTATION added. When enabled, the inertia tensor is computed faster but with less precision.</li>
 			<li>PxConvexFlag::eGPU_COMPATIBLE added. When enabled convex hulls are created with vertex limit set to 64 and vertex limit per face is 32.</li>
+			<li>PxConvexFlag::eSHIFT_VERTICES added. When enabled input points are shifted to be around origin to improve computation stability.</li>
 			<li>PxCookingParams::gaussMapLimit has been added. The limit can now be fully user-defined. Please refer to the migration guide and best practices sections of the manual.</li>
 		</ul>
 		<li>Changed:</li>
