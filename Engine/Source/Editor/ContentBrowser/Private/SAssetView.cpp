@@ -1625,8 +1625,9 @@ bool SAssetView::FilterOnContainerContentValid(const UClass* SearchingClass, con
 
 	if (AssetData != nullptr)
 	{
-		FString ParentClassPath = AssetData->GetTagValueRef<FString>(FName("ParentClass"));
-
+		static const FName ParentClassTagName = "ParentClass";
+		
+		FString ParentClassPath = AssetData->GetTagValueRef<FString>(ParentClassTagName);
 		if (!ParentClassPath.IsEmpty())
 		{
 			UClass* ParentClass = FindObject<UClass>(nullptr, *ParentClassPath);

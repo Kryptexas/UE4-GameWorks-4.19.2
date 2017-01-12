@@ -588,13 +588,15 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 		// Iterate over all in-memory assets to find the ones that pass the filter components
 		if(NumFilterClasses)
 		{
-			TArray<UObject*> InMemoryObjects;
+			TSet<UObject*> InMemoryObjects;
 			for (auto ClassNameIt = FilterClassNames.CreateConstIterator(); ClassNameIt; ++ClassNameIt)
 			{
 				UClass* Class = FindObjectFast<UClass>(nullptr, *ClassNameIt->ToString(), false, true, RF_NoFlags);
 				if(Class != nullptr)
 				{
-					GetObjectsOfClass(Class, InMemoryObjects, false, RF_NoFlags);
+					TArray<UObject*> InMemoryObjectsOfClass;
+					GetObjectsOfClass(Class, InMemoryObjectsOfClass, false, RF_NoFlags);
+					InMemoryObjects.Append(InMemoryObjectsOfClass);
 
 					if (Filter.OnContainerContentValid.IsBound())
 					{
