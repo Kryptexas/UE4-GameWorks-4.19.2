@@ -10917,7 +10917,7 @@ static void AsyncMapChangeLevelLoadCompletionCallback(const FName& PackageName, 
 			}
 		}
 
-		ULevel* Level = World ? World->PersistentLevel : NULL;	
+		ULevel* Level = World ? World->PersistentLevel : nullptr;	
 		
 		// Print out a warning and set the error if we couldn't find a level in this package.
 		if( !Level )
@@ -10935,7 +10935,7 @@ static void AsyncMapChangeLevelLoadCompletionCallback(const FName& PackageName, 
 	else
 	{
 		// Add NULL entry so we don't end up waiting forever on a level that is never going to be loaded.
-		Context.LoadedLevelsForPendingMapChange.Add( NULL );
+		Context.LoadedLevelsForPendingMapChange.Add( nullptr );
 		UE_LOG(LogEngine, Warning, TEXT("NULL LevelPackage as argument to AsyncMapChangeLevelCompletionCallback") );
 	}
 
@@ -10977,7 +10977,7 @@ bool UEngine::PrepareMapChange(FWorldContext &Context, const TArray<FName>& Leve
 #endif
 
 		// copy LevelNames into the WorldInfo's array to keep track of the map change that we're preparing (primarily for servers so clients that join in progress can be notified)
-		if (Context.World() != NULL)
+		if (Context.World() != nullptr)
 		{
 			Context.World()->PreparingLevelNames = LevelNames;
 		}
@@ -11142,7 +11142,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 
 		// The new fake persistent level is first in the LevelsToLoadForPendingMapChange array.
 		FName	FakePersistentLevelName = Context.LevelsToLoadForPendingMapChange[0];
-		ULevel*	FakePersistentLevel		= NULL;
+		ULevel*	FakePersistentLevel		= nullptr;
 		// copy to WorldInfo to keep track of the last map change we performed (primarily for servers so clients that join in progress can be notified)
 		// we don't need to remember secondary levels as the join code iterates over all streaming levels and updates them
 		Context.World()->CommittedPersistentLevelName = FakePersistentLevelName;
@@ -11163,7 +11163,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 
 		// Construct a new ULevelStreamingPersistent for the new persistent level.
 		ULevelStreamingPersistent* LevelStreamingPersistent = NewObject<ULevelStreamingPersistent>(
-			GetTransientPackage(),
+			Context.World(),
 			*FString::Printf(TEXT("LevelStreamingPersistent_%s"), *FakePersistentLevel->GetOutermost()->GetName()) );
 
 		// Propagate level and name to streaming object.
