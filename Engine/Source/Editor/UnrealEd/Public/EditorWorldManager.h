@@ -64,7 +64,7 @@ public:
 
 	/** Gets the editor world wrapper that is found with the world passed.
 	 * Adds one for this world if there was non found. */
-	TSharedPtr<FEditorWorldWrapper> GetEditorWorldWrapper(const UWorld* InWorld);
+	TSharedPtr<FEditorWorldWrapper> GetEditorWorldWrapper(const UWorld* InWorld, const bool bCreateIfNeeded = true);
 
 	void Tick( float DeltaTime );
 

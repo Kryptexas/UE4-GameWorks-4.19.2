@@ -73,7 +73,7 @@ FEditorWorldManager::~FEditorWorldManager()
 	EditorWorldMap.Empty();
 }
 
-TSharedPtr<FEditorWorldWrapper> FEditorWorldManager::GetEditorWorldWrapper(const UWorld* InWorld)
+TSharedPtr<FEditorWorldWrapper> FEditorWorldManager::GetEditorWorldWrapper(const UWorld* InWorld, const bool bCreateIfNeeded /**= true*/)
 {
 	// Try to find this world in the map and return it or create and add one if nothing found
 	TSharedPtr<FEditorWorldWrapper> Result;
@@ -84,7 +84,7 @@ TSharedPtr<FEditorWorldWrapper> FEditorWorldManager::GetEditorWorldWrapper(const
 		{
 			Result = *FoundWorld;
 		}
-		else
+		else if(bCreateIfNeeded)
 		{
 			FWorldContext* WorldContext = GEditor->GetWorldContextFromWorld(InWorld);
 			Result = OnWorldContextAdd(*WorldContext);
