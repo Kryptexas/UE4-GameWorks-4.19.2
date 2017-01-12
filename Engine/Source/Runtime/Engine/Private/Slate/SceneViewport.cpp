@@ -70,6 +70,7 @@ FSceneViewport::~FSceneViewport()
 
 	if(FSlateApplication::IsInitialized())
 	{
+		FSlateApplication::Get().GetRenderer()->OnSlateWindowDestroyed().RemoveAll(this);
 		FSlateApplication::Get().GetRenderer()->OnPreResizeWindowBackBuffer().RemoveAll(this);
 		FSlateApplication::Get().GetRenderer()->OnPostResizeWindowBackBuffer().RemoveAll(this);
 	}
