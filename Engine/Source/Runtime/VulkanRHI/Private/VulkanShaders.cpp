@@ -10,10 +10,6 @@
 #include "GlobalShader.h"
 #include "Serialization/MemoryReader.h"
 
-#if (!PLATFORM_ANDROID)
-#include <vulkan/icd-spv.h>
-#endif
-
 static TAutoConsoleVariable<int32> GStripGLSL(
 	TEXT("r.Vulkan.StripGlsl"),
 	1,
