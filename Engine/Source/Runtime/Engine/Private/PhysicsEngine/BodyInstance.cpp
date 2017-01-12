@@ -3668,7 +3668,7 @@ void FBodyInstance::UpdateMassProperties()
 		if(GetNumSimShapes_AssumesLocked(PRigidBody) > 0)
 		{
 			TArray<PxShape*> Shapes;
-			const uint32 NumShapes = RigidActorSync->getNbShapes();
+			const uint32 NumShapes = PRigidBody->getNbShapes();
 			Shapes.AddUninitialized(NumShapes);
 			PRigidBody->getShapes(Shapes.GetData(), NumShapes);
 
