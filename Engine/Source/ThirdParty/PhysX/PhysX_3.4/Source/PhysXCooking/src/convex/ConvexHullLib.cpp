@@ -170,14 +170,14 @@ void ConvexHullLib::shiftConvexMeshDesc(PxConvexMeshDesc& desc)
 		points[i] = points[i] + mOriginShift;
 	}
 
-#if _DEBUG
+#if PX_DEBUG
 	const PxU32* indices = reinterpret_cast<const PxU32*>(desc.indices.data);
 #endif
 	PxHullPolygon* polygons = reinterpret_cast<PxHullPolygon*>(const_cast<void*>(desc.polygons.data));
 	for(PxU32 i = 0; i < desc.polygons.count; i++)
 	{
 		polygons[i].mPlane[3] -= PxVec3(polygons[i].mPlane[0], polygons[i].mPlane[1], polygons[i].mPlane[2]).dot(mOriginShift);
-#if _DEBUG
+#if PX_DEBUG
 		PxPlane plane(polygons[i].mPlane[0], polygons[i].mPlane[1], polygons[i].mPlane[2], polygons[i].mPlane[3]);
 		for(PxU32 j = 0; j < polygons[i].mNbVerts; j++)
 		{
