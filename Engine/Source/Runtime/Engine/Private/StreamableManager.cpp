@@ -74,6 +74,12 @@ FStreamableManager::~FStreamableManager()
 	{
 		delete It.Value();
 	}
+	for (FCallback* Callback : ActiveCallbacks)
+	{
+		// This will stop the callback from going off
+		Callback->Manager = nullptr;
+	}
+
 	StreamableItems.Empty();
 }
 
@@ -243,7 +249,11 @@ struct FStreamable* FStreamableManager::StreamInternal(FStringAssetReference con
 		}
 
 		Existing->bAsyncLoadRequestOutstanding = true;
-		LoadPackageAsync(Package, FLoadPackageAsyncDelegate::CreateStatic(&AsyncLoadCallbackWrapper, new FCallback(TargetName, this)), Priority);
+		
+		FCallback* NewCallback = new FCallback(TargetName, this);
+		ActiveCallbacks.Add(NewCallback);
+
+		LoadPackageAsync(Package, FLoadPackageAsyncDelegate::CreateStatic(&AsyncLoadCallbackWrapper, NewCallback), Priority);
 	}
 	return Existing;
 }
