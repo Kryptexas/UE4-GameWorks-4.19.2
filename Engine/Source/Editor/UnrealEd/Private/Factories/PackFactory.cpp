@@ -154,11 +154,14 @@ namespace PackFactoryHelper
 	{
 		FPackConfigParameters()
 			: bContainsSource(false)
+			, bCompileSource(true)
 		{
 		}
 
-		bool bContainsSource;
+		uint8 bContainsSource:1;
+		uint8 bCompileSource:1;
 		FString GameName;
+		FString InstallMessage;
 		TArray<FString> AdditionalFilesToAdd;
 	};
 
@@ -300,6 +303,19 @@ namespace PackFactoryHelper
 						}
 					}
 				}
+			}
+		}
+
+		FConfigSection* FeaturePackSettingsSection = PackConfig.Find("FeaturePackSettings");
+		if (FeaturePackSettingsSection)
+		{
+			if (FConfigValue* CompileSource = FeaturePackSettingsSection->Find("CompileSource"))
+			{
+				ConfigParameters.bCompileSource = FCString::ToBool(*CompileSource->GetValue());
+			}
+			if (FConfigValue* InstallMessage = FeaturePackSettingsSection->Find("InstallMessage"))
+			{
+				ConfigParameters.InstallMessage = InstallMessage->GetValue();
 			}
 		}
 	}
@@ -650,25 +666,28 @@ UObject* UPackFactory::FactoryCreateBinary
 					SOutputLogDialog::Open(NSLOCTEXT("PackFactory", "CreateBinary", "Create binary"), FailReason, FailLog, FText::GetEmpty());
 				}
 
-				// Compile the new code, either using the in editor hot-reload (if an existing module), or as a brand new module (if no existing code)
-				IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-				if (bProjectHadSourceFiles)
+				if (ConfigParameters.bCompileSource)
 				{
-					// We can only hot-reload via DoHotReloadFromEditor when we already had code in our project
-					if (!HotReloadSupport.IsCurrentlyCompiling())
+					// Compile the new code, either using the in editor hot-reload (if an existing module), or as a brand new module (if no existing code)
+					IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+					if (bProjectHadSourceFiles)
 					{
-						const bool bWaitForCompletion = true;
-						HotReloadSupport.DoHotReloadFromEditor(bWaitForCompletion);
+						// We can only hot-reload via DoHotReloadFromEditor when we already had code in our project
+						if (!HotReloadSupport.IsCurrentlyCompiling())
+						{
+							const bool bWaitForCompletion = true;
+							HotReloadSupport.DoHotReloadFromEditor(bWaitForCompletion);
+						}
 					}
-				}
-				else
-				{
-					const bool bReloadAfterCompiling = true;
-					const bool bForceCodeProject = true;
-					const bool bFailIfGeneratedCodeChanges = false;
-					if (!HotReloadSupport.RecompileModule(FApp::GetGameName(), bReloadAfterCompiling, *GWarn, bFailIfGeneratedCodeChanges, bForceCodeProject))
+					else
 					{
-						FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("PackFactory", "FailedToCompileNewGameModule", "Failed to compile newly created game module."));
+						const bool bReloadAfterCompiling = true;
+						const bool bForceCodeProject = true;
+						const bool bFailIfGeneratedCodeChanges = false;
+						if (!HotReloadSupport.RecompileModule(FApp::GetGameName(), bReloadAfterCompiling, *GWarn, bFailIfGeneratedCodeChanges, bForceCodeProject))
+						{
+							FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("PackFactory", "FailedToCompileNewGameModule", "Failed to compile newly created game module."));
+						}
 					}
 				}
 
@@ -720,6 +739,12 @@ UObject* UPackFactory::FactoryCreateBinary
 					}
 				}
 			}
+		}
+
+		if (!ConfigParameters.InstallMessage.IsEmpty())
+		{
+			FMessageLog("AssetTools").Warning(FText::FromString(ConfigParameters.InstallMessage));
+			FMessageLog("AssetTools").Open();
 		}
 	}
 	else
