@@ -216,7 +216,7 @@ void AWorldSettings::Serialize( FArchive& Ar )
 			bGlobalGravitySet = true;
 		}
 	}
-
+#if WITH_EDITOR	
 	if (Ar.CustomVer(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::ConvertHLODScreenSize)
 	{
 		for (FHierarchicalSimplification& Setup : HierarchicalLODSetup)
@@ -236,6 +236,7 @@ void AWorldSettings::Serialize( FArchive& Ar )
 			Setup.TransitionScreenSize = ComputeBoundsScreenSize(FVector::ZeroVector, DummySphereRadius, FVector(0.0f, 0.0f, ScreenDistance), ProjMatrix);
 		}
 	}
+#endif
 }
 
 void AWorldSettings::AddAssetUserData(UAssetUserData* InUserData)
