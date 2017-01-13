@@ -281,7 +281,7 @@ FPrimitiveSceneProxy* UEQSRenderingComponent::CreateSceneProxy()
 	FEQSSceneProxy* NewSceneProxy = new FEQSSceneProxy(*this, DrawFlagName, DebugDataSolidSpheres, DebugDataTexts);
 
 #if  USE_EQS_DEBUGGER
-	if (NewSceneProxy->Texts.Num() > 0)
+	if (NewSceneProxy)
 	{
 		EQSRenderingDebugDrawDelegateHelper.InitDelegateHelper(NewSceneProxy);
 		EQSRenderingDebugDrawDelegateHelper.ReregisterDebugDrawDelgate();
