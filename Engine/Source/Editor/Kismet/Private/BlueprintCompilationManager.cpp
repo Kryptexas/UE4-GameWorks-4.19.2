@@ -4,6 +4,7 @@
 #include "BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/KismetReinstanceUtilities.h"
+#include "TickableEditorObject.h"
 
 struct FBlueprintCompilationManagerImpl : public FGCObject, FTickableEditorObject
 {
@@ -107,11 +108,6 @@ void FBlueprintCompilationManager::Shutdown()
 {
 	delete BPCMImpl;
 	BPCMImpl = nullptr;
-}
-
-FBlueprintCompilationManagerImpl* FBlueprintCompilationManager::DebugAccessImpl()
-{
-	return BPCMImpl;
 }
 
 // Forward to impl:

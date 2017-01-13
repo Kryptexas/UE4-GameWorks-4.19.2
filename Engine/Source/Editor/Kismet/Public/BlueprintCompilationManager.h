@@ -2,13 +2,12 @@
 
 #pragma once
 
-struct FBlueprintCompilationManagerImpl;
+class UBlueprint;
 
 struct KISMET_API FBlueprintCompilationManager
 {
 	static void Initialize();
 	static void Shutdown();
-	static FBlueprintCompilationManagerImpl* DebugAccessImpl();
 
 	static void QueueForCompilation(UBlueprint* BPToCompile);
 	static void NotifyBlueprintLoaded(UBlueprint* BPLoaded);
