@@ -20,6 +20,7 @@
 #include "Misc/MapErrors.h"
 #include "Particles/ParticleEventManager.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "ReleaseObjectVersion.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
@@ -205,12 +206,34 @@ void AWorldSettings::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
+
 	if (Ar.UE4Ver() < VER_UE4_ADD_OVERRIDE_GRAVITY_FLAG)
 	{
 		//before we had override flag we would use GlobalGravityZ != 0
 		if(GlobalGravityZ != 0.0f)
 		{
 			bGlobalGravitySet = true;
+		}
+	}
+
+	if (Ar.CustomVer(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::ConvertHLODScreenSize)
+	{
+		for (FHierarchicalSimplification& Setup : HierarchicalLODSetup)
+		{
+			const float OldScreenSize = Setup.TransitionScreenSize;
+
+			const float HalfFOV = PI * 0.25f;
+			const float ScreenWidth = 1920.0f;
+			const float ScreenHeight = 1080.0f;
+			const FPerspectiveMatrix ProjMatrix(HalfFOV, ScreenWidth, ScreenHeight, 1.0f);
+
+			const float DummySphereRadius = 16.0f;
+			const float ScreenArea = OldScreenSize * (ScreenWidth * ScreenHeight);
+			const float ScreenRadius = FMath::Sqrt(ScreenArea / PI);
+			const float ScreenDistance = FMath::Max(ScreenWidth / 2.0f * ProjMatrix.M[0][0], ScreenHeight / 2.0f * ProjMatrix.M[1][1]) * DummySphereRadius / ScreenRadius;
+
+			Setup.TransitionScreenSize = ComputeBoundsScreenSize(FVector::ZeroVector, DummySphereRadius, FVector(0.0f, 0.0f, ScreenDistance), ProjMatrix);
 		}
 	}
 }

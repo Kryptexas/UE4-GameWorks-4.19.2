@@ -28,6 +28,9 @@ struct CORE_API FReleaseObjectVersion
 		// Fix a serialization issue with static mesh FMeshSectionInfoMap UProperty
 		UPropertryForMeshSectionSerialize,
 
+		// Existing HLOD settings screen size to screen area conversion
+		ConvertHLODScreenSize,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
