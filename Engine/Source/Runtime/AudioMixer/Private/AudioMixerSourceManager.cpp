@@ -992,8 +992,6 @@ namespace Audio
 
 	void FMixerSourceManager::UpdateDeviceChannelCount(const int32 InNumOutputChannels)
 	{
-		TArray<float> ScratchChannelMap;
-
 		// Update all source's to appropriate channel maps
 		for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
 		{
