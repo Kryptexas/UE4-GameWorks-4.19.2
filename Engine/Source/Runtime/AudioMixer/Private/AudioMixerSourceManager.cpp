@@ -105,9 +105,6 @@ namespace Audio
 			return;
 		}
 
-		AUDIO_MIXER_CHECK(MixerDevice);
-		AUDIO_MIXER_CHECK(MixerDevice->GetSampleRate() > 0);
-
 #if ENABLE_AUDIO_OUTPUT_DEBUGGING
 		for (int32 i = 0; i < InNumSources; ++i)
 		{
