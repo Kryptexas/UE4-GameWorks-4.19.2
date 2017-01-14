@@ -8,19 +8,57 @@
 #include "AudioEffect.h"
 #include "AudioMixerTypes.h"
 #include "HAL/Runnable.h"
+#include "Stats/Stats.h"
 
 // defines used for AudioMixer.h
 #define AUDIO_PLATFORM_ERROR(INFO)			(OnAudioMixerPlatformError(INFO, FString(__FILE__), __LINE__))
 
 #ifndef AUDIO_MIXER_ENABLE_DEBUG_MODE
 // This define enables a bunch of more expensive debug checks and logging capabilities that are intended to be off most of the time even in debug builds of game/editor.
-#define AUDIO_MIXER_ENABLE_DEBUG_MODE 0
+#define AUDIO_MIXER_ENABLE_DEBUG_MODE 1
 #endif
+
+// Cycle stats for audio mixer
+DECLARE_STATS_GROUP(TEXT("AudioMixer"), STATGROUP_AudioMixer, STATCAT_Advanced);
+
+// Tracks the time for the full render block 
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Render Audio"), STAT_AudioMixerRenderAudio, STATGROUP_AudioMixer, AUDIOMIXER_API);
+
+// Tracks the time it takes to up the source manager (computes source buffers, source effects, sample rate conversion)
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Source Manager Update"), STAT_AudioMixerSourceManagerUpdate, STATGROUP_AudioMixer, AUDIOMIXER_API);
+
+// The time it takes to compute the source buffers (handle decoding tasks, resampling)
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Source Buffers"), STAT_AudioMixerSourceBuffers, STATGROUP_AudioMixer, AUDIOMIXER_API);
+
+// The time it takes to process the source buffers through their source effects
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Source Effect Buffers"), STAT_AudioMixerSourceEffectBuffers, STATGROUP_AudioMixer, AUDIOMIXER_API);
+
+// The time it takes to apply channel maps and get final pre-submix source buffers
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Source Output Buffers"), STAT_AudioMixerSourceOutputBuffers, STATGROUP_AudioMixer, AUDIOMIXER_API);
+
+// The time it takes to process the subix graph. Process submix effects, mix into the submix buffer, etc.
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Submix Graph"), STAT_AudioMixerSubmixes, STATGROUP_AudioMixer, AUDIOMIXER_API);
+
+// The time it takes to process the subix graph. Process submix effects, mix into the submix buffer, etc.
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Submix Graph Child Processing"), STAT_AudioMixerSubmixChildren, STATGROUP_AudioMixer, AUDIOMIXER_API);
+
+// The time it takes to process the subix graph. Process submix effects, mix into the submix buffer, etc.
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Submix Graph Source Mixing"), STAT_AudioMixerSubmixSource, STATGROUP_AudioMixer, AUDIOMIXER_API);
+
+// The time it takes to process the subix graph. Process submix effects, mix into the submix buffer, etc.
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Submix Graph Effect Processing"), STAT_AudioMixerSubmixEffectProcessing, STATGROUP_AudioMixer, AUDIOMIXER_API);
+
+// The time it takes to process the master reverb.
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Master Reverb"), STAT_AudioMixerMasterReverb, STATGROUP_AudioMixer, AUDIOMIXER_API);
+
+// The time it takes to process the master EQ effect.
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Master EQ"), STAT_AudioMixerMasterEQ, STATGROUP_AudioMixer, AUDIOMIXER_API);
+
 
 // Enable debug checking for audio mixer
 
 #if AUDIO_MIXER_ENABLE_DEBUG_MODE
-#define AUDIO_MIXER_CHECK(expr) check(expr)
+#define AUDIO_MIXER_CHECK(expr) ensure(expr)
 #define AUDIO_MIXER_CHECK_GAME_THREAD(_MixerDevice)			(_MixerDevice->CheckGameThread())
 #define AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(_MixerDevice)	(_MixerDevice->CheckAudioPlatformThread())
 #else
@@ -31,6 +69,7 @@
 
 #define AUDIO_MIXER_MIN_PITCH						0.1f
 #define AUDIO_MIXER_MAX_PITCH						4.0f
+#define AUDIO_MIXER_MAX_OUTPUT_CHANNELS				8			// Max number of speakers/channels supported (7.1)
 
 namespace Audio
 {
@@ -106,8 +145,6 @@ namespace Audio
 		virtual void OnDefaultDeviceOutputChanged(const FString& DeviceId) {}
 
 		virtual void OnDefaultInputOutputChanged(const FString& DeviceId) {}
-
-
 	};
 
 
@@ -126,11 +163,15 @@ namespace Audio
 		/** The desired sample rate */
 		uint32 SampleRate;
 
+		/** Whether or not to try and restore audio to this stream if the audio device is removed (and the device becomes available again). */
+		bool bRestoreIfRemoved;
+
 		FAudioMixerOpenStreamParams()
 			: OutputDeviceIndex(INDEX_NONE)
 			, NumFrames(1024)
 			, AudioMixer(nullptr)
 			, SampleRate(44100)
+			, bRestoreIfRemoved(false)
 		{}
 	};
 
@@ -181,9 +222,38 @@ namespace Audio
 		}
 	};
 
+	enum class EAudioDeviceRole
+	{
+		Console,
+		Multimedia,
+		Communications,
+	};
+
+	enum class EAudioDeviceState
+	{
+		Active,
+		Disabled,
+		NotPresent,
+		Unplugged,
+	};
+
+	/** Abstract interface for receiving audio device changed notifications */
+	class AUDIOMIXER_API IAudioMixerDeviceChangedLister
+	{
+	public:
+		virtual void RegisterDeviceChangedListener() {}
+		virtual void UnRegisterDeviceChangedListener() {}
+		virtual void OnDefaultCaptureDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId) {}
+		virtual void OnDefaultRenderDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId) {}
+		virtual void OnDeviceAdded(const FString& DeviceId) {}
+		virtual void OnDeviceRemoved(const FString& DeviceId) {}
+		virtual void OnDeviceStateChanged(const FString& DeviceId, const EAudioDeviceState InState) {}
+	};
+
 
 	/** Abstract interface for mixer platform. */
-	class AUDIOMIXER_API IAudioMixerPlatformInterface : public FRunnable
+	class AUDIOMIXER_API IAudioMixerPlatformInterface : public FRunnable,
+														public IAudioMixerDeviceChangedLister
 	{
 
 	public: // Virtual functions
@@ -196,6 +266,9 @@ namespace Audio
 
 		/** Initialize the hardware. */
 		virtual bool InitializeHardware() = 0;
+
+		/** Check if audio device changed if applicable. Return true if audio device changed. */
+		virtual bool CheckAudioDeviceChange() { return false; };
 
 		/** Teardown the hardware. */
 		virtual bool TeardownHardware() = 0;
@@ -224,6 +297,9 @@ namespace Audio
 		/** Stops the audio stream (but keeps the audio stream open). */
 		virtual bool StopAudioStream() = 0;
 
+		/** Resets the audio stream to use a new audio device with the given device ID (empty string means default). */
+		virtual bool MoveAudioStreamToNewAudioDevice(const FString& InNewDeviceId) { return true;  }
+
 		/** Returns the platform device info of the currently open audio stream. */
 		virtual FAudioPlatformDeviceInfo GetPlatformDeviceInfo() const = 0;
 
@@ -242,6 +318,9 @@ namespace Audio
 		/** Return any optional device name defined in platform configuratio. */
 		virtual FString GetDefaultDeviceName() = 0;
 
+		// Helper function to gets the channel map type at the given index.
+		static bool GetChannelTypeAtIndex(const int32 Index, EAudioMixerChannel::Type& OutType);
+
 	public: // Public Functions
 		//~ Begin FRunnable
 		uint32 Run() override;
@@ -249,9 +328,6 @@ namespace Audio
 
 		/** Constructor. */
 		IAudioMixerPlatformInterface();
-
-		/** Generate the next audio buffer into the given buffer array. */
-		void GenerateBuffer(TArray<float>& Buffer);
 
 		/** Retrieves the next generated buffer and feeds it to the platform mixer output stream. */
 		void ReadNextBuffer();
@@ -300,6 +376,9 @@ namespace Audio
 
 		/** String containing the last generated error. */
 		FString LastError;
+
+		/** Flag if the audio device is in the process of changing. Prevents more buffers from being submitted to platform. */
+		FThreadSafeBool bAudioDeviceChanging;
 	};
 
 

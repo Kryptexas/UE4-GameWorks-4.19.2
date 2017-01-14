@@ -1362,6 +1362,9 @@ protected:
 	/** The audio clock from the audio hardware. Not supported on all platforms. */
 	double AudioClock;
 
+	/** Whether or not we allow center channel panning (audio mixer only feature.) */
+	uint8 bAllowCenterChannel3DPanning : 1;
+
 private:
 
 	/** Whether the value in HighestPriorityActivatedReverb should be used - Audio Thread owned */

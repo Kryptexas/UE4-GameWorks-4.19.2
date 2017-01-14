@@ -102,6 +102,8 @@ namespace Audio
 			AUDIO_MIXER_CHECK(SampleRate != 0.0f);
 			AUDIO_MIXER_CHECK(BufferLength != 0);
 
+			AudioMixerPlatform->RegisterDeviceChangedListener();
+
 			OpenStreamParams.NumFrames = BufferLength;
 			OpenStreamParams.OutputDeviceIndex = 0; // Default device
 			OpenStreamParams.SampleRate = SampleRate;
@@ -128,6 +130,10 @@ namespace Audio
 					if (DeviceInfo.Name == DefaultDeviceName || DeviceInfo.DeviceId == DefaultDeviceName)
 					{
 						OpenStreamParams.OutputDeviceIndex = i;
+
+						// If we're intentionally selecting an audio device (and not just using the default device) then 
+						// lets try to restore audio to that device if it's removed and then later is restored
+						OpenStreamParams.bRestoreIfRemoved = true;
 						break;
 					}
 				}
@@ -146,20 +152,30 @@ namespace Audio
 				AudioClock = 0.0;
 				AudioClockDelta = (double)OpenStreamParams.NumFrames / OpenStreamParams.SampleRate;
 
+				// Create the master, master reverb, and master eq sound submixes
 				if (!FMixerDevice::MasterSoundSubmix)
 				{
-					FMixerDevice::MasterSoundSubmix = LoadObject<USoundSubmix>(nullptr, TEXT("/Engine/EngineSounds/MasterSubmix.MasterSubmix"));
+					FMixerDevice::MasterSoundSubmix = NewObject<USoundSubmix>(USoundSubmix::StaticClass());
+					FMixerDevice::MasterSoundSubmix->AddToRoot();
 				}
 
 				if (!FMixerDevice::MasterReverbSoundSubmix)
 				{
-					FMixerDevice::MasterReverbSoundSubmix = LoadObject<USoundSubmix>(nullptr, TEXT("/Engine/EngineSounds/MasterReverbSubmix.MasterReverbSubmix"));
+					FMixerDevice::MasterReverbSoundSubmix = NewObject<USoundSubmix>(USoundSubmix::StaticClass());
+					FMixerDevice::MasterReverbSoundSubmix->AddToRoot();
 				}
 
 				if (!FMixerDevice::MasterEQSoundSubmix)
 				{
-					FMixerDevice::MasterEQSoundSubmix = LoadObject<USoundSubmix>(nullptr, TEXT("/Engine/EngineSounds/MasterEQSubmix.MasterEQSubmix"));
+					FMixerDevice::MasterEQSoundSubmix = NewObject<USoundSubmix>(USoundSubmix::StaticClass());
+					FMixerDevice::MasterEQSoundSubmix->AddToRoot();
 				}
+
+				// Register the static USoundSubmix's for master effects
+				RegisterSoundSubmix(FMixerDevice::MasterSoundSubmix);
+				RegisterSoundSubmix(FMixerDevice::MasterReverbSoundSubmix);
+				RegisterSoundSubmix(FMixerDevice::MasterEQSoundSubmix);
+
 
 				AUDIO_MIXER_CHECK(!MasterSubmix.IsValid());
 				AUDIO_MIXER_CHECK(!MasterReverbSubmix.IsValid());
@@ -213,6 +229,7 @@ namespace Audio
 	{
 		if (AudioMixerPlatform)
 		{
+			AudioMixerPlatform->UnRegisterDeviceChangedListener();
 			AudioMixerPlatform->CloseAudioStream();
 			AudioMixerPlatform->TeardownHardware();
 		}
@@ -221,6 +238,19 @@ namespace Audio
 	void FMixerDevice::UpdateHardware()
 	{
 		SourceManager.Update();
+
+		if (AudioMixerPlatform->CheckAudioDeviceChange())
+		{
+			// Get the platform device info we're using
+			PlatformInfo = AudioMixerPlatform->GetPlatformDeviceInfo();
+
+			SampleRate = PlatformInfo.SampleRate;
+
+			// Initialize some data that depends on speaker configuration, etc.
+			InitializeChannelAzimuthMap(PlatformInfo.NumChannels);
+
+			SourceManager.UpdateDeviceChannelCount(PlatformInfo.NumChannels);
+		}
 	}
 
 	double FMixerDevice::GetAudioTime() const
@@ -276,6 +306,11 @@ namespace Audio
 
 	bool FMixerDevice::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 	{
+		if (FAudioDevice::Exec(InWorld, Cmd, Ar))
+		{
+			return true;
+		}
+
 		return false;
 	}
 
@@ -298,14 +333,6 @@ namespace Audio
 	{
 	}
 
-	void FMixerDevice::SetMaxChannels(int InMaxChannels)
-	{
-	}
-
-	void FMixerDevice::StopAllSounds(bool InStop)
-	{
-	}
-
 	void FMixerDevice::SuspendContext()
 	{
 	}
@@ -325,6 +352,8 @@ namespace Audio
 
 		if (MasterSubmix.IsValid())
 		{
+			SCOPE_CYCLE_COUNTER(STAT_AudioMixerSubmixes);
+
 			// Process the audio output from the master submix
 			MasterSubmix->ProcessAudio(Output);
 		}
@@ -509,15 +538,21 @@ namespace Audio
 		AUDIO_MIXER_CHECK(Fraction >= 0.0f && Fraction <= 1.0f);
 
 		// Compute the panning values using equal-power panning law
-		float PrevChannelPan = FMath::Cos(Fraction * 0.5f * PI);
-		float NextChannelPan = FMath::Sin(Fraction * 0.5f * PI);
+		float PrevChannelPan; 
+		float NextChannelPan;
+
+		FMath::SinCos(&NextChannelPan, &PrevChannelPan, Fraction * 0.5f * PI);
+
+		// Note that SinCos can return values slightly greater than 1.0 when very close to PI/2
+		NextChannelPan = FMath::Clamp(NextChannelPan, 0.0f, 1.0f);
+		PrevChannelPan = FMath::Clamp(PrevChannelPan, 0.0f, 1.0f);
 
 		float NormalizedOmniRadSquared = NormalizedOmniRadius * NormalizedOmniRadius;
 		float OmniAmount = 0.0f;
 
-		if (NormalizedOmniRadSquared > 0.0f)
+		if (NormalizedOmniRadSquared > 1.0f)
 		{
-			OmniAmount = 1.0f - FMath::Max(1.0f / NormalizedOmniRadSquared, 1.0f);
+			OmniAmount = 1.0f - 1.0f / NormalizedOmniRadSquared;
 		}
 
 		// OmniPan is the amount of pan to use if fully omni-directional
@@ -536,10 +571,6 @@ namespace Audio
 			{
 				EffectivePan = InWaveInstance->LFEBleed;
 			}
-			else if (Channel == EAudioMixerChannel::FrontCenter)
-			{
-				EffectivePan = InWaveInstance->VoiceCenterChannelVolume;
-			}
 			else if (Channel == PrevChannelInfo->Channel)
 			{
 				EffectivePan = !OmniAmount ? PrevChannelPan : FMath::Lerp(PrevChannelPan, OmniPanFactor, OmniAmount);
@@ -547,6 +578,11 @@ namespace Audio
 			else if (Channel == NextChannelInfo->Channel)
 			{
 				EffectivePan = !OmniAmount ? NextChannelPan : FMath::Lerp(NextChannelPan, OmniPanFactor, OmniAmount);
+			}
+
+			if (Channel == EAudioMixerChannel::FrontCenter)
+			{
+				EffectivePan = FMath::Max(InWaveInstance->VoiceCenterChannelVolume, EffectivePan);
 			}
 
 			AUDIO_MIXER_CHECK(EffectivePan >= 0.0f && EffectivePan <= 1.0f);

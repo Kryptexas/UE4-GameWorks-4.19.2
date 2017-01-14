@@ -126,6 +126,7 @@ FAudioDevice::FAudioDevice()
 	, bIsDeviceMuted(false)
 	, bIsInitialized(false)
 	, AudioClock(0.0)
+	, bAllowCenterChannel3DPanning(false)
 	, bHasActivatedReverb(false)
 	, bAllowVirtualizedSounds(true)
 #if !UE_BUILD_SHIPPING
@@ -175,6 +176,8 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 		// Convert dB to linear volume
 		PlatformAudioHeadroom = FMath::Pow(10.0f, Headroom / 20.0f);
 	}
+
+	bAllowCenterChannel3DPanning = GetDefault<UAudioSettings>()->bAllowCenterChannel3DPanning;
 
 	bAllowVirtualizedSounds = GetDefault<UAudioSettings>()->bAllowVirtualizedSounds;
 
