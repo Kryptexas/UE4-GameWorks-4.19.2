@@ -98,14 +98,15 @@ namespace Audio
 
 	void FMixerSourceManager::Init(const int32 InNumSources)
 	{
-		AUDIO_MIXER_CHECK(MixerDevice);
-		AUDIO_MIXER_CHECK(MixerDevice->GetSampleRate() > 0);
 		AUDIO_MIXER_CHECK(InNumSources > 0);
 
-		if (bInitialized)
+		if (!MixerDevice || bInitialized)
 		{
 			return;
 		}
+
+		AUDIO_MIXER_CHECK(MixerDevice);
+		AUDIO_MIXER_CHECK(MixerDevice->GetSampleRate() > 0);
 
 #if ENABLE_AUDIO_OUTPUT_DEBUGGING
 		for (int32 i = 0; i < InNumSources; ++i)

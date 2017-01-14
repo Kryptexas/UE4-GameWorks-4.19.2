@@ -655,7 +655,10 @@ namespace Audio
 
 		// Scale in the sound sample rate divided by device sample rate so pitch is 
 		// accurate independent of sound source sample rate or device sample rate
-		Pitch *= (MixerBuffer->GetSampleRate() / AudioDevice->GetSampleRate());
+		if (MixerBuffer)
+		{
+			Pitch *= (MixerBuffer->GetSampleRate() / AudioDevice->GetSampleRate());
+		}
 
 		MixerSourceVoice->SetPitch(Pitch);
 	}
