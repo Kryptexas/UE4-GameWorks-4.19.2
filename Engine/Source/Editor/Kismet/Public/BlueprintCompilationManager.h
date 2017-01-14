@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "HAL/Platform.h" // for DLLEXPORT (KISMET_API)
+
 class UBlueprint;
 
 struct KISMET_API FBlueprintCompilationManager
