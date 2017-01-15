@@ -21,6 +21,7 @@
 #include "Particles/ParticleEventManager.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "ReleaseObjectVersion.h"
+#include "SceneManagement.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
