@@ -2109,7 +2109,7 @@ void FSequencer::RecordSelectedActors()
 		return;
 	}
 
-	int32 MaxRow = 0;
+	int32 MaxRow = -1;
 	for (UMovieSceneSection* Section : DestinationTrack->GetAllSections())
 	{
 		MaxRow = FMath::Max(Section->GetRowIndex(), MaxRow);

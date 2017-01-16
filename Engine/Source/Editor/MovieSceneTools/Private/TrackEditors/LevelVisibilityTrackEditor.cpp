@@ -77,7 +77,7 @@ void FLevelVisibilityTrackEditor::AddNewSection( UMovieScene* MovieScene, UMovie
 	LevelVisibilitySection->SetStartTime( MovieScene->GetPlaybackRange().GetLowerBoundValue() );
 	LevelVisibilitySection->SetEndTime( MovieScene->GetPlaybackRange().GetUpperBoundValue() );
 
-	int32 RowIndex = 0;
+	int32 RowIndex = -1;
 	for ( const UMovieSceneSection* Section : LevelVisibilityTrack->GetAllSections() )
 	{
 		RowIndex = FMath::Max( RowIndex, Section->GetRowIndex() );
