@@ -35,7 +35,7 @@
 		},
 		{
 			"Name" : "MfMediaFactory",
-			"Type" : "Runtime",
+			"Type" : "RuntimeNoCommandlet",
 			"LoadingPhase" : "PostEngineInit",
 			"WhitelistPlatforms" : [ "XboxOne", "Win32", "Win64" ]
 		}
