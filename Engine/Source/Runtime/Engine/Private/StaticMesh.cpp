@@ -2561,7 +2561,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 			}
 		}
 	}
-#endif WITH_EDITOR
+#endif // WITH_EDITOR
 }
 
 //
