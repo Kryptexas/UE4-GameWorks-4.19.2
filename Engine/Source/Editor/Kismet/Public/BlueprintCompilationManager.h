@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "HAL/Platform.h" // for DLLEXPORT (KISMET_API)
+#include "CoreMinimal.h" // for DLLEXPORT (KISMET_API)
 
 class UBlueprint;
 
