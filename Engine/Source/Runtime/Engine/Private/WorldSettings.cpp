@@ -25,6 +25,7 @@
 
 #if WITH_EDITOR
 #include "Editor.h"
+#include "SceneManagement.h"
 #endif 
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
