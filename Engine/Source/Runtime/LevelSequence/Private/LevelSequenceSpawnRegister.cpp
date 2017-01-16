@@ -92,7 +92,7 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(FMovieSceneSpawnable& Spawnabl
 #endif
 
 	// tag this actor so we know it was spawned by sequencer
-	SpawnedActor->Tags.Add(SequencerActorTag);
+	SpawnedActor->Tags.AddUnique(SequencerActorTag);
 
 	const bool bIsDefaultTransform = true;
 	SpawnedActor->FinishSpawning(SpawnTransform, bIsDefaultTransform);
