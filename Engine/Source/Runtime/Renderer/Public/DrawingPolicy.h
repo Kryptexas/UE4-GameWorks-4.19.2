@@ -44,7 +44,7 @@ struct FDrawingPolicyRenderState
 #endif
 		  BlendState(nullptr)
 		, DepthStencilState(nullptr)
-		, ViewUniformBufferPtr(&SceneView.ViewUniformBuffer)
+		, ViewUniformBuffer(SceneView.ViewUniformBuffer)
 		, StencilRef(0)
 		, ViewOverrideFlags(EDrawingPolicyOverrideFlags::None)
 		, DitheredLODTransitionAlpha(0.0f)
@@ -64,7 +64,7 @@ struct FDrawingPolicyRenderState
 #endif
 		  BlendState(DrawRenderState.BlendState)
 		, DepthStencilState(DrawRenderState.DepthStencilState)
-		, ViewUniformBufferPtr(DrawRenderState.ViewUniformBufferPtr)
+		, ViewUniformBuffer(DrawRenderState.ViewUniformBuffer)
 		, StencilRef(DrawRenderState.StencilRef)
 		, ViewOverrideFlags(DrawRenderState.ViewOverrideFlags)
 		, DitheredLODTransitionAlpha(DrawRenderState.DitheredLODTransitionAlpha)
@@ -135,12 +135,12 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void SetViewUniformBuffer(const TUniformBufferRef<FViewUniformShaderParameters>& InViewUniformBuffer)
 	{
-		ViewUniformBufferPtr = &InViewUniformBuffer;
+		ViewUniformBuffer = InViewUniformBuffer;
 	}
 
 	FORCEINLINE_DEBUGGABLE const TUniformBufferRef<FViewUniformShaderParameters>& GetViewUniformBuffer() const
 	{
-		return *static_cast<const TUniformBufferRef<FViewUniformShaderParameters>*>(ViewUniformBufferPtr);
+		return ViewUniformBuffer;
 	}
 
 	FORCEINLINE_DEBUGGABLE uint32 GetStencilRef() const
@@ -188,8 +188,7 @@ private:
 	FBlendStateRHIParamRef			BlendState;
 	FDepthStencilStateRHIParamRef	DepthStencilState;
 
-	//TODO this is evil, put prevents us from calling add and remove ref all the time
-	const void*						ViewUniformBufferPtr;
+	TUniformBufferRef<FViewUniformShaderParameters>	ViewUniformBuffer;
 	uint32							StencilRef;
 
 	//not sure if those should belong here
