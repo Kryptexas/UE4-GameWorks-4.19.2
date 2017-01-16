@@ -17,6 +17,7 @@
 #include "Components/TimelineComponent.h"
 
 #if WITH_EDITOR
+#include "Blueprint/BlueprintSupport.h"
 #include "Editor/UnrealEd/Classes/Settings/ProjectPackagingSettings.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
@@ -1153,14 +1154,16 @@ void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 			}
 		}
 
-		// If we're using the "exclusive" nativization method and this Blueprint is not selected for nativization, determine if any of its parent Blueprints are selected.
-		if (GetDefault<UProjectPackagingSettings>()->BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Exclusive && !bSelectedForNativization)
+		// If nativization is enabled and this Blueprint class will NOT be nativized, we need to determine if any of its parent Blueprints will be nativized and flag it for the runtime code.
+		// Note: Currently, this flag is set on Actor-based Blueprint classes only. If it's ever needed for non-Actor-based Blueprint classes at runtime, then this needs to be updated to match.
+		const IBlueprintNativeCodeGenCore* NativeCodeGenCore = IBlueprintNativeCodeGenCore::Get();
+		if (GeneratedClass != nullptr && NativeCodeGenCore != nullptr && GetDefault<UProjectPackagingSettings>()->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled)
 		{
-			TArray<UBlueprint*> ParentBlueprints;
-			GetBlueprintHierarchyFromClass(GeneratedClass, ParentBlueprints);
-			for (UBlueprint *ParentBP : ParentBlueprints)
+			TArray<const UBlueprintGeneratedClass*> ParentBPClassStack;
+			UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(GeneratedClass->GetSuperClass(), ParentBPClassStack);
+			for (const UBlueprintGeneratedClass *ParentBPClass : ParentBPClassStack)
 			{
-				if (ParentBP->bSelectedForNativization)
+				if (NativeCodeGenCore->IsTargetedForReplacement(ParentBPClass) == EReplacementResult::ReplaceCompletely)
 				{
 					UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(GeneratedClass);
 					BPGC->bHasNativizedParent = true;
