@@ -1607,6 +1607,11 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 					LODModel->BuildSettings.bGenerateLightmapUVs = false;
 					LODModel->ScreenSize = 0.1f / FMath::Pow(2.0f, StaticMesh->SourceModels.Num() - 1);
 					LODModel->RawMeshBulkData->SaveRawMesh(RawMesh);
+					// Add mesh section info entry for billboard LOD (only one section/material index)
+					const int32 LODIndex = StaticMesh->SourceModels.Num() - 1;
+					FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(LODIndex, 0);
+					Info.MaterialIndex = MaterialIndex;
+					StaticMesh->SectionInfoMap.Set(LODIndex, 0, Info);
 				}
 
 				if (OldMaterials.Num() == StaticMesh->StaticMaterials.Num())

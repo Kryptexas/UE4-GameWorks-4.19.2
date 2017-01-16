@@ -2358,6 +2358,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
 	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
 	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
 
 	FStripDataFlags StripFlags( Ar );
 
@@ -2529,6 +2530,38 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		}
 		Materials_DEPRECATED.Empty();
 	}
+
+
+#if WITH_EDITOR
+	bool bHasSpeedTreeWind = SpeedTreeWind.IsValid();
+	if (Ar.CustomVer(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::SpeedTreeBillboardSectionInfoFixup && bHasSpeedTreeWind)
+	{
+		// Ensure we have multiple tree LODs
+		if (SourceModels.Num() > 1)
+		{
+			// Look a the last LOD model and check its vertices
+			const int32 LODIndex = SourceModels.Num() - 1;
+			FStaticMeshSourceModel& SourceModel = SourceModels[LODIndex];
+
+			FRawMesh RawMesh;
+			SourceModel.RawMeshBulkData->LoadRawMesh(RawMesh);
+
+			// Billboard LOD is made up out of quads so check for this
+			bool bQuadVertices = ((RawMesh.VertexPositions.Num() % 4) == 0);
+
+			// If there is no section info for the billboard LOD make sure we add it
+			uint32 Key = GetMeshMaterialKey(LODIndex, 0);
+			bool bSectionInfoExists = SectionInfoMap.Map.Contains(Key);
+			if (!bSectionInfoExists && bQuadVertices)
+			{
+				FMeshSectionInfo Info;
+				// Assuming billboard material is added last
+				Info.MaterialIndex = StaticMaterials.Num() - 1;
+				SectionInfoMap.Set(LODIndex, 0, Info);
+			}
+		}
+	}
+#endif WITH_EDITOR
 }
 
 //
