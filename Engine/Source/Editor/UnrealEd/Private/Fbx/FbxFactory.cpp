@@ -468,16 +468,20 @@ UObject* UFbxFactory::FactoryCreateBinary
 									return nullptr;
 								}
 
-								if ( NewMesh && ImportUI->bImportAnimations )
+								if ( NewMesh )
 								{
-									// We need to remove all scaling from the root node before we set up animation data.
-									// Othewise some of the global transform calculations will be incorrect.
-									FbxImporter->RemoveTransformSettingsFromFbxNode(RootNodeToImport, ImportUI->SkeletalMeshImportData);
-									FbxImporter->SetupAnimationDataFromMesh(NewMesh, InParent, SkelMeshNodeArray, ImportUI->AnimSequenceImportData, OutputName.ToString());
+									if (ImportUI->bImportAnimations)
+									{
+										// We need to remove all scaling from the root node before we set up animation data.
+										// Othewise some of the global transform calculations will be incorrect.
+										FbxImporter->RemoveTransformSettingsFromFbxNode(RootNodeToImport, ImportUI->SkeletalMeshImportData);
+										FbxImporter->SetupAnimationDataFromMesh(NewMesh, InParent, SkelMeshNodeArray, ImportUI->AnimSequenceImportData, OutputName.ToString());
 
-									// Reapply the transforms for the rest of the import
-									FbxImporter->ApplyTransformSettingsToFbxNode(RootNodeToImport, ImportUI->SkeletalMeshImportData);
-									ImportedSuccessfulLodIndex = SuccessfulLodIndex;
+										// Reapply the transforms for the rest of the import
+										FbxImporter->ApplyTransformSettingsToFbxNode(RootNodeToImport, ImportUI->SkeletalMeshImportData);
+										ImportedSuccessfulLodIndex = SuccessfulLodIndex;
+									}
+									//Increment the LOD index
 									SuccessfulLodIndex++;
 								}
 							}
