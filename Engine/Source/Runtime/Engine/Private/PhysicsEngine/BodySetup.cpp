@@ -19,6 +19,7 @@
 #include "Animation/AnimStats.h"
 #include "DerivedDataCacheInterface.h"
 #include "UObject/UObjectIterator.h"
+#include "UObject/PropertyPortFlags.h"
 
 #if WITH_PHYSX
 	#include "PhysXPublic.h"
@@ -800,8 +801,10 @@ void UBodySetup::Serialize(FArchive& Ar)
 	bool bCooked = Ar.IsCooking();
 	Ar << bCooked;
 
+	bool bDuplicating = (Ar.GetPortFlags() & PPF_Duplicate) != 0;
+
 #if !WITH_RUNTIME_PHYSICS_COOKING
-	if (FPlatformProperties::RequiresCookedData() && !bCooked && Ar.IsLoading())
+	if (FPlatformProperties::RequiresCookedData() && !bCooked && Ar.IsLoading() && !bDuplicating)
 	{
 		UE_LOG(LogPhysics, Fatal, TEXT("This platform requires cooked packages, and physX data was not cooked into %s."), *GetFullName());
 	}
