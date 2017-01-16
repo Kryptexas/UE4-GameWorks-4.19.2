@@ -21,7 +21,7 @@ public:
 	
  	DECLARE_DELEGATE_ThreeParams(FOnConvertMatineeTrack, UInterpTrack*, FGuid, UMovieScene*);
  
- 	FDelegateHandle RegisterTrackConverterForMatineeClass(TSubclassOf<UInterpTrack> InterpTrackClass, FOnConvertMatineeTrack);
- 	void UnregisterTrackConverterForMatineeClass(FDelegateHandle RemoveDelegate);
+ 	virtual FDelegateHandle RegisterTrackConverterForMatineeClass(TSubclassOf<UInterpTrack> InterpTrackClass, FOnConvertMatineeTrack) = 0;
+ 	virtual void UnregisterTrackConverterForMatineeClass(FDelegateHandle RemoveDelegate) = 0;
 };
 
