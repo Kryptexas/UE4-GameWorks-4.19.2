@@ -85,6 +85,7 @@ void FMfMediaTracks::Initialize(IMFPresentationDescriptor* InPresentationDescrip
 
 	SourceReader = InSourceReader;
 
+	// get number of streams
 	DWORD StreamCount = 0;
 	{
 		if (FAILED(InPresentationDescriptor->GetStreamDescriptorCount(&StreamCount)))
@@ -95,7 +96,8 @@ void FMfMediaTracks::Initialize(IMFPresentationDescriptor* InPresentationDescrip
 		}
 	}
 
-	for (uint32 StreamIndex = 0; StreamIndex < StreamCount; ++StreamIndex)
+	// add streams (Media Foundation reports them in reverse order)
+	for (int32 StreamIndex = StreamCount - 1; StreamIndex >= 0; --StreamIndex)
 	{
 		AddStreamToTracks(StreamIndex, InPresentationDescriptor, InMediaSource, OutInfo);
 		OutInfo += TEXT("\n");
