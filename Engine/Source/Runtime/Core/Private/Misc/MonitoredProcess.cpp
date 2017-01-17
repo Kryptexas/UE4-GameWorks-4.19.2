@@ -81,6 +81,10 @@ bool FMonitoredProcess::Launch()
 
 	bIsRunning = true;
 	Thread = FRunnableThread::Create(this, *MonitoredProcessName, 128 * 1024, TPri_AboveNormal);
+	if (Thread == nullptr)
+	{
+		bIsRunning = false;
+	}
 
 	return true;
 }
