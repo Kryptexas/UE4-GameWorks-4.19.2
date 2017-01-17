@@ -507,9 +507,12 @@ UObject* UPackFactory::FactoryCreateBinary
 					PackFactoryHelper::ExtractFileToString(Entry, PakReader, CopyBuffer, PersistentCompressionBuffer, SourceContents);
 
 					FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
-					FString StringToReplace = ConfigParameters.GameName;
-					StringToReplace += ".h";
-					SourceContents = SourceContents.Replace(*StringToReplace, *GameProjectModule.Get().DetermineModuleIncludePath(SourceModuleInfo, DestFilename), ESearchCase::CaseSensitive);
+
+					// Add the PCH for the project above the default pack include
+					const FString StringToReplace = FString::Printf(TEXT("%s.h"),*ConfigParameters.GameName);
+					const FString StringToReplaceWith = FString::Printf(TEXT("%s\"\n#include \"%s"),
+						*GameProjectModule.Get().DetermineModuleIncludePath(SourceModuleInfo, DestFilename),
+						*StringToReplace);
 
 					if (FFileHelper::SaveStringToFile(SourceContents, *DestFilename))
 					{
@@ -594,9 +597,14 @@ UObject* UPackFactory::FactoryCreateBinary
 						if (FFileHelper::LoadFileToString(SourceContents, *FileToCopy))
 						{
 							FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
-							FString StringToReplace = ConfigParameters.GameName;
-							StringToReplace += ".h";
-							SourceContents = SourceContents.Replace(*StringToReplace, *GameProjectModule.Get().DetermineModuleIncludePath(SourceModuleInfo, DestFilename), ESearchCase::CaseSensitive);
+							
+							// Add the PCH for the project above the default pack include
+							const FString StringToReplace = FString::Printf(TEXT("%s.h"),*ConfigParameters.GameName);
+							const FString StringToReplaceWith = FString::Printf(TEXT("%s\"\n#include \"%s"),
+								*GameProjectModule.Get().DetermineModuleIncludePath(SourceModuleInfo, DestFilename),
+								*StringToReplace);
+
+							SourceContents = SourceContents.Replace(*StringToReplace, *StringToReplaceWith, ESearchCase::CaseSensitive);
 
 							if (FFileHelper::SaveStringToFile(SourceContents, *DestFilename))
 							{
