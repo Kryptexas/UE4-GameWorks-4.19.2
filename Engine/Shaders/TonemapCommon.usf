@@ -128,7 +128,7 @@ half3 FilmToneMap( half3 LinearColor )
 	const float3x3 sRGB_2_AP1 = mul( XYZ_2_AP1_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
 	const float3x3 AP1_2_sRGB = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
 	
-#if 1
+#if !ES2_PROFILE //disabling this part for mobile, Adreno devices can't handle it (UE-40689)
 	float3 ACESColor = mul( sRGB_2_AP0, float3(LinearColor) );
 
 	// --- Red modifier --- //
