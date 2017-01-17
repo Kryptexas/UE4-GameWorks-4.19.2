@@ -23,7 +23,7 @@ class UNavArea;
 class UPrimitiveComponent;
 
 USTRUCT()
-struct FSupportedAreaData
+struct ENGINE_API FSupportedAreaData
 {
 	GENERATED_USTRUCT_BODY()
 
