@@ -1142,17 +1142,13 @@ public:
 		}
 
 		// Use a provided tonemaping LUT (provided by a CombineLUTs pass). 
-		{
-			
+		{		
 			FRenderingCompositeOutputRef* OutputRef = Context.Pass->GetInput(ePId_Input3);
 
 			// Indicates the Tonemapper combined LUT node was nominally in the network.
-			const bool bUseLUT = (OutputRef != NULL);
-
-			const FTextureRHIRef* SrcTexture = nullptr;
-			if (bUseLUT)
+			if (OutputRef && OutputRef->IsValid())
 			{
-				SrcTexture = Context.View.GetTonemappingLUTTexture();
+				const FTextureRHIRef* SrcTexture = Context.View.GetTonemappingLUTTexture();
 				
 				if (!SrcTexture)
 				{
@@ -1170,16 +1166,16 @@ public:
 						}
 					}
 				}
-			}
 
-			if (SrcTexture && *SrcTexture)
-			{
-				SetTextureParameter(Context.RHICmdList, ShaderRHI, ColorGradingLUT, ColorGradingLUTSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), *SrcTexture);
-			}
-			else
-			{
-				UE_LOG(LogRenderer, Error, TEXT("No Color LUT texture to sample: output will be invalid."));
-			}
+				if (SrcTexture && *SrcTexture)
+				{
+					SetTextureParameter(Context.RHICmdList, ShaderRHI, ColorGradingLUT, ColorGradingLUTSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), *SrcTexture);
+				}
+				else
+				{
+					UE_LOG(LogRenderer, Error, TEXT("No Color LUT texture to sample: output will be invalid."));
+				}
+			}	
 		}
 
 		{
