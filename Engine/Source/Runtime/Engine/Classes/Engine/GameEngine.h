@@ -77,6 +77,15 @@ public:
 	static void ConditionallyOverrideSettings( int32& ResolutionX, int32& ResolutionY, EWindowMode::Type& WindowMode );
 	
 	/**
+	 * Determines the resolution of the game window, ensuring that the requested size is never bigger than the available desktop size
+	 *
+	 * @param ResolutionX	[in/out] Width of the game window, in pixels
+	 * @param ResolutionY	[in/out] Height of the game window, in pixels
+	 * @param WindowMode	[in/out] What window mode the game should be in
+	 */
+	static void DetermineGameWindowResolution( int32& ResolutionX, int32& ResolutionY, EWindowMode::Type& WindowMode );
+
+	/**
 	 * Changes the game window to use the game viewport instead of any loading screen
 	 * or movie that might be using it instead
 	 */

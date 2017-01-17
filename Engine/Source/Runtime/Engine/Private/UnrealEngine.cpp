@@ -251,7 +251,6 @@ static FAutoConsoleVariable CVarSystemResolution(
 	TEXT("e.g. 1280x720w for windowed\n")
 	TEXT("     1920x1080f for fullscreen\n")
 	TEXT("     1920x1080wf for windowed fullscreen\n")
-	TEXT("     1920x1080wm for windowed mirror")
 	);
 
 #if !UE_BUILD_SHIPPING

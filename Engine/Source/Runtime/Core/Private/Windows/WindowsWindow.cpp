@@ -645,7 +645,7 @@ void FWindowsWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 			if (PreviousWindowMode == EWindowMode::Windowed)
 			{
 				PreFullscreenWindowPlacement.length = sizeof(WINDOWPLACEMENT);
-			::GetWindowPlacement(HWnd, &PreFullscreenWindowPlacement);
+				::GetWindowPlacement(HWnd, &PreFullscreenWindowPlacement);
 			}
 
 			// Setup Win32 flags for fullscreen window
@@ -705,10 +705,10 @@ void FWindowsWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 
 			if (PreFullscreenWindowPlacement.length) // Was PreFullscreenWindowPlacement initialized?
 			{
-			::SetWindowPlacement(HWnd, &PreFullscreenWindowPlacement);
+				::SetWindowPlacement(HWnd, &PreFullscreenWindowPlacement);
+			}
 		}
 	}
-}
 }
 
 /** @return true if the native window is maximized, false otherwise */

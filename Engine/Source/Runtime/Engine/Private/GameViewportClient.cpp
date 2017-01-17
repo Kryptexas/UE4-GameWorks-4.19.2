@@ -2772,12 +2772,13 @@ bool UGameViewportClient::HandleToggleFullscreenCommand()
 		UGameUserSettings* UserSettings = GameEngine->GetGameUserSettings();
 		if( UserSettings != nullptr )
 		{
-			UserSettings->SetFullscreenMode( FullScreenMode );
-			UserSettings->ConfirmVideoMode();
-
+			// Ensure that our desired screen size will fit on the display
 			ResolutionX = UserSettings->GetScreenResolution().X;
 			ResolutionY = UserSettings->GetScreenResolution().Y;
-			UGameEngine::ConditionallyOverrideSettings(ResolutionX, ResolutionY, FullScreenMode);
+			UGameEngine::DetermineGameWindowResolution(ResolutionX, ResolutionY, FullScreenMode);
+
+			UserSettings->SetFullscreenMode(FullScreenMode);
+			UserSettings->ConfirmVideoMode();
 		}
 	}
 
