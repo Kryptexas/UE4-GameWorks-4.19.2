@@ -13,7 +13,8 @@
 
 FString UPlatformMediaSource::GetUrl() const
 {
-	return (MediaSource != nullptr) ? MediaSource->GetUrl() : FString();
+	UMediaSource* PlatformMediaSource = GetMediaSource();
+	return (PlatformMediaSource != nullptr) ? PlatformMediaSource->GetUrl() : FString();
 }
 
 
@@ -53,7 +54,21 @@ void UPlatformMediaSource::Serialize(FArchive& Ar)
 
 bool UPlatformMediaSource::Validate() const
 {
+#if WITH_EDITORONLY_DATA
+	for (auto PlatformNameMediaSourcePair : PlatformMediaSources)
+	{
+		UMediaSource* PlatformMediaSource = PlatformNameMediaSourcePair.Value;
+		if (PlatformMediaSource != nullptr && PlatformMediaSource->Validate() == false)
+		{
+			// If any platform is specified but doesn't validate, the entire platform media source is not valid.
+			return false;
+		}
+	}
+	// If there are any platform media sources specified they will have been validated above.
+	return PlatformMediaSources.Num() > 0;
+#else
 	return (MediaSource != nullptr) ? MediaSource->Validate() : false;
+#endif
 }
 
 
