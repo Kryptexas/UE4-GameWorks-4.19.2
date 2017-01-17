@@ -82,6 +82,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bSupportsHeightfieldRepresentation(false)
 ,	bNeedsLevelAddedToWorldNotification(false)
 ,	bWantsSelectionOutline(true)
+,	bFlexFluidSurface(false)
 ,	bUseAsOccluder(InComponent->bUseAsOccluder)
 ,	bAllowApproximateOcclusion(InComponent->Mobility != EComponentMobility::Movable)
 ,	bSelectable(InComponent->bSelectable)

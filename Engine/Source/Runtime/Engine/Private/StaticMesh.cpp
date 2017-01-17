@@ -309,6 +309,15 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 	// TODO: Not needed in uncooked games either after PostLoad!
 	bool bNeedsCPUAccess = !FPlatformProperties::RequiresCookedData() || bMeshCPUAcces;
 
+#if WITH_FLEX
+	// cloth and soft bodies currently need access to data on the CPU
+	UStaticMesh* StaticMesh = Cast<UStaticMesh>(Owner);
+	if (StaticMesh && StaticMesh->FlexAsset)
+	{
+		bNeedsCPUAccess = true;
+	}
+#endif
+
 	bHasAdjacencyInfo = false;
 	bHasDepthOnlyIndices = false;
 	bHasReversedIndices = false;
@@ -1813,6 +1822,26 @@ void UStaticMesh::ReleaseResources()
 	ReleaseResourcesFence.BeginFence();
 }
 
+/**
+ * Callback used to allow object register its direct object references that are not already covered by
+ * the token stream.
+ *
+ * @param ObjectArray	array to add referenced objects to via AddReferencedObject
+ */
+void UStaticMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	UStaticMesh* This = CastChecked<UStaticMesh>(InThis);
+
+#if WITH_FLEX
+	if (This->FlexAsset != NULL)
+	{
+		Collector.AddReferencedObject(This->FlexAsset, This);
+	}
+#endif
+
+	Super::AddReferencedObjects( This, Collector );
+}
+
 #if WITH_EDITOR
 void UStaticMesh::PreEditChange(UProperty* PropertyAboutToChange)
 {
@@ -1857,6 +1886,13 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 	EnforceLightmapRestrictions();
 
 	Build(/*bSilent=*/ true);
+
+#if WITH_FLEX
+	if (FlexAsset)
+	{
+		FlexAsset->ReImport(this);
+	}
+#endif
 
 	// Only unbuild lighting for properties which affect static lighting
 	if (!PropertyThatChanged 
@@ -2322,6 +2358,15 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	{
 		BodySetup->DefaultInstance.SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	}
+
+#if 0// WITH_FLEX
+	// make old static meshs load until they can be resaved
+	if (Ar.UE4Ver() == VER_UE4_INTERPCURVE_SUPPORTS_LOOPING)
+	{
+		UFlexAsset* Dummy;
+		Ar << Dummy;
+	}
+#endif
 
 #if WITH_EDITORONLY_DATA
 	if( !StripFlags.IsEditorDataStripped() )

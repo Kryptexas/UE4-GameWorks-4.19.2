@@ -58,6 +58,9 @@
 #include "Engine/InterpCurveEdSetup.h"
 #include "GameFramework/GameState.h"
 #include "FrameworkObjectVersion.h"
+#include "PhysicsEngine/FlexFluidSurfaceComponent.h"
+#include "PhysicsPublic.h"
+
 
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent InitParticles"), STAT_ParticleSystemComponent_InitParticles, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderDynamicData"), STAT_ParticleSystemComponent_SendRenderDynamicData_Concurrent, STATGROUP_Particles);
@@ -747,6 +750,9 @@ UParticleEmitter::UParticleEmitter(const FObjectInitializer& ObjectInitializer)
 	EmitterEditorColor = FColor(0, 150, 150, 255);
 #endif // WITH_EDITORONLY_DATA
 
+	// Flex
+	Mass = 1.0f;
+	bLocalSpace = false;
 }
 
 FParticleEmitterInstance* UParticleEmitter::CreateInstance(UParticleSystemComponent* InComponent)
@@ -3603,6 +3609,9 @@ void UParticleSystemComponent::SendRenderDynamicData_Concurrent()
 	check(!bParallelRenderThreadUpdate);
 	bParallelRenderThreadUpdate = true;
 
+#if WITH_FLEX
+	ClearFlexSurfaceDynamicData();
+#endif
 
 	FParticleSystemSceneProxy* PSysSceneProxy = (FParticleSystemSceneProxy*)SceneProxy;
 	if (PSysSceneProxy != NULL)
@@ -3858,6 +3867,10 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData(ERHIFeatureLev
 						{
 							ParticleDynamicData->DynamicEmitterDataArray.Add(NewDynamicEmitterData);
 							NewDynamicEmitterData->EmitterIndex = CurEmitterIndex;
+
+#if WITH_FLEX
+							UpdateFlexSurfaceDynamicData(EmitterInstances[CurEmitter.OriginalEmitterIndex], NewDynamicEmitterData);
+#endif
 						}
 					}
 				}
@@ -3940,6 +3953,10 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData(ERHIFeatureLev
 						NewDynamicEmitterData->bValid = true;
 						ParticleDynamicData->DynamicEmitterDataArray.Add( NewDynamicEmitterData );
 						NewDynamicEmitterData->EmitterIndex = EmitterIndex;
+
+#if WITH_FLEX
+						UpdateFlexSurfaceDynamicData(EmitterInst, NewDynamicEmitterData);
+#endif
 
 						// Are we current capturing particle state?
 						if( ReplayState == PRS_Capturing )
@@ -4054,6 +4071,47 @@ void UParticleSystemComponent::UpdateDynamicData()
 		Proxy->UpdateData( ParticleDynamicData );
 	}
 }
+
+#if WITH_FLEX
+void UParticleSystemComponent::UpdateFlexSurfaceDynamicData(FParticleEmitterInstance* EmitterInstance, FDynamicEmitterDataBase* EmitterDynamicData)
+{
+	check(EmitterInstance);
+	check(EmitterDynamicData);
+
+	if (SceneProxy)
+	{
+		if (EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate)
+		{
+			UFlexFluidSurfaceComponent* SurfaceComponent = GetWorld()->GetFlexFluidSurface(EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate);
+			check(SurfaceComponent);
+			SurfaceComponent->SendRenderEmitterDynamicData_Concurrent(
+				(FParticleSystemSceneProxy*)SceneProxy,
+				EmitterDynamicData);
+		}
+	}
+}
+
+void UParticleSystemComponent::ClearFlexSurfaceDynamicData()
+{
+	if (SceneProxy)
+	{
+		for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); EmitterIndex++)
+		{
+			FParticleEmitterInstance* EmitterInstance = EmitterInstances[EmitterIndex];
+			if (EmitterInstance && EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate)
+			{
+				UFlexFluidSurfaceComponent* SurfaceComponent = GetWorld()->GetFlexFluidSurface(EmitterInstance->SpriteTemplate->FlexFluidSurfaceTemplate);
+				if (SurfaceComponent)
+				{
+					SurfaceComponent->SendRenderEmitterDynamicData_Concurrent(
+						(FParticleSystemSceneProxy*)SceneProxy,
+						nullptr);
+				}
+			}
+		}
+	}
+}
+#endif
 
 void UParticleSystemComponent::UpdateLODInformation()
 {
@@ -4423,6 +4481,26 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 	}
 	
+	bool bHasFlexEmitter = false;
+
+#if WITH_FLEX
+
+	for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); ++EmitterIndex)
+	{
+		FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
+		if (Instance && Instance->SpriteTemplate)
+		{
+			if (Instance->SpriteTemplate->FlexContainerTemplate != NULL)
+			{
+				bHasFlexEmitter = true;
+				bDisallowAsync = true;
+				break;
+			}
+		}
+	}
+
+#endif
+	
 	if (bRequiresReset)
 	{
 #if WITH_EDITOR
@@ -4605,6 +4683,13 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 #endif
 
+	}
+
+
+	// do not change the tick group if there is a Flex emitter
+	// present, as the component must be ticked in the EndPhysics phase
+	if (bHasFlexEmitter == false)
+	{
 		if(CVarFXEarlySchedule.GetValueOnGameThread())
 		{
 			PrimaryComponentTick.TickGroup = TG_PrePhysics; 
@@ -5038,6 +5123,10 @@ void UParticleSystemComponent::ResetParticles(bool bEmptyInstances)
 
 	const bool bIsGameWorld = OwningWorld ? OwningWorld->IsGameWorld() : !GIsEditor;
 
+#if WITH_FLEX
+	ClearFlexSurfaceDynamicData();
+#endif
+
 	// Remove instances from scene.
 	for( int32 InstanceIndex=0; InstanceIndex<EmitterInstances.Num(); InstanceIndex++ )
 	{
@@ -5422,6 +5511,10 @@ void UParticleSystemComponent::DeactivateSystem()
 		return;
 	}
 	ForceAsyncWorkCompletion(STALL);
+
+#if WITH_FLEX
+	ClearFlexSurfaceDynamicData();
+#endif
 
 	check(GetWorld());
 	UE_LOG(LogParticles,Verbose,

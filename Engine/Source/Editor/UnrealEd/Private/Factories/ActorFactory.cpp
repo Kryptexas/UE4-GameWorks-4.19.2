@@ -36,7 +36,6 @@ ActorFactory.cpp:
 #include "Engine/TextRenderActor.h"
 #include "Engine/SubDSurfaceActor.h"
 #include "Components/SubDSurfaceComponent.h"
-
 #include "Engine/DestructibleMesh.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Components/DecalComponent.h"
@@ -73,6 +72,10 @@ ActorFactory.cpp:
 #include "LevelSequence.h"
 #include "LevelSequenceActor.h"
 #include "ActorFactoryMovieScene.h"
+
+#if WITH_FLEX
+#include "PhysicsEngine/FlexActor.h"
+#endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogActorFactory, Log, All);
 
@@ -642,6 +645,7 @@ void UActorFactoryEmitter::PostCreateBlueprint( UObject* Asset, AActor* CDO )
 		Emitter->SetTemplate(ParticleSystem);
 	}
 }
+
 
 
 /*-----------------------------------------------------------------------------
@@ -1598,6 +1602,52 @@ UActorFactoryInteractiveFoliage::UActorFactoryInteractiveFoliage(const FObjectIn
 {
 	DisplayName = LOCTEXT("InteractiveFoliageDisplayName", "Interactive Foliage");
 	NewActorClass = AInteractiveFoliageActor::StaticClass();
+}
+
+/*-----------------------------------------------------------------------------
+UActorFactoryFlex
+-----------------------------------------------------------------------------*/
+UActorFactoryFlex::UActorFactoryFlex(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	DisplayName = LOCTEXT("FlexDisplayName", "Flex Actor");
+	NewActorClass = AFlexActor::StaticClass();
+}
+
+bool UActorFactoryFlex::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
+{
+	if (!AssetData.IsValid() || !AssetData.GetClass()->IsChildOf(UStaticMesh::StaticClass()))
+	{
+		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoStaticMesh", "A valid static mesh must be specified.");
+		return false;
+	}
+
+	return true;
+}
+
+void UActorFactoryFlex::PostSpawnActor(UObject* Asset, AActor* NewActor)
+{
+	Super::PostSpawnActor(Asset, NewActor);
+
+	UStaticMesh* StaticMesh = Cast<UStaticMesh>(Asset);
+
+	if (StaticMesh)
+	{
+		UE_LOG(LogActorFactory, Log, TEXT("Actor Factory created %s"), *StaticMesh->GetName());
+
+		// Change properties
+		AFlexActor* FlexActor = CastChecked<AFlexActor>(NewActor);
+		UStaticMeshComponent* StaticMeshComponent = FlexActor->GetStaticMeshComponent();
+		check(StaticMeshComponent);
+
+		StaticMeshComponent->UnregisterComponent();
+
+		StaticMeshComponent->SetStaticMesh(StaticMesh);
+		StaticMeshComponent->StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
+
+		// Init Component
+		StaticMeshComponent->RegisterComponent();
+	}
 }
 
 /*-----------------------------------------------------------------------------

@@ -90,6 +90,11 @@
 #include "NetworkReplayStreaming.h"
 #include "InGamePerformanceTracker.h"
 
+#if WITH_FLEX
+#include "PhysicsEngine/FlexFluidSurfaceActor.h"
+#include "PhysicsEngine/FlexFluidSurfaceComponent.h"
+#endif
+
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);
 
@@ -5127,6 +5132,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 				for (AActor* const TheActor : ActuallyKeptActors)
 				{
 					KeepAnnotation.Clear(TheActor);
+
 					TheActor->Rename(nullptr, LoadedWorld->PersistentLevel);
 					// if it's a Controller or a Pawn, add it to the appropriate list in the new world's WorldSettings
 					if (TheActor->IsA<AController>())
@@ -6304,6 +6310,48 @@ void UWorld::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	OutTags.Add(FAssetRegistryTag("MapFileSize", FText::AsMemory(IFileManager::Get().FileSize(*FullFilePath)).ToString(), FAssetRegistryTag::TT_Numerical));
 
 	FWorldDelegates::GetAssetTags.Broadcast(this, OutTags);
+}
+#endif
+
+#if WITH_FLEX
+UFlexFluidSurfaceComponent* UWorld::GetFlexFluidSurface(UFlexFluidSurface* FlexFluidSurface)
+{
+	check(FlexFluidSurface);
+
+	UFlexFluidSurfaceComponent** Component = FlexFluidSurfaceMap.Find(FlexFluidSurface);
+	return (Component != NULL) ? *Component : NULL;
+}
+
+UFlexFluidSurfaceComponent* UWorld::AddFlexFluidSurface(UFlexFluidSurface* FlexFluidSurface)
+{
+	check(FlexFluidSurface);
+
+	UFlexFluidSurfaceComponent** Component = FlexFluidSurfaceMap.Find(FlexFluidSurface);
+	if (Component)
+	{
+		return *Component;
+	}
+	else
+	{
+		FActorSpawnParameters ActorSpawnParameters;
+		//necessary for preview in blueprint editor
+		ActorSpawnParameters.bAllowDuringConstructionScript = true;
+		AFlexFluidSurfaceActor* NewActor = SpawnActor<AFlexFluidSurfaceActor>(AFlexFluidSurfaceActor::StaticClass(), ActorSpawnParameters);
+		check(NewActor);
+		UFlexFluidSurfaceComponent* NewComponent = NewActor->GetComponent();
+		//can't pass arbitrary parameters into SpawnActor
+		NewComponent->FlexFluidSurface = FlexFluidSurface;
+		FlexFluidSurfaceMap.Add(FlexFluidSurface, NewComponent);
+		return NewComponent;
+	}
+}
+
+void UWorld::RemoveFlexFluidSurface(UFlexFluidSurfaceComponent* Component)
+{
+	check(Component && Component->FlexFluidSurface);
+	FlexFluidSurfaceMap.Remove(Component->FlexFluidSurface);
+	AFlexFluidSurfaceActor* Actor = (AFlexFluidSurfaceActor*)Component->GetOwner();
+	Actor->Destroy();
 }
 #endif
 

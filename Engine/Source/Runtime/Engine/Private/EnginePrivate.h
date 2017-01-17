@@ -65,6 +65,20 @@ EnginePrivate.h: Unreal engine private header file.
 #include "Engine/NetDriver.h"
 #include "Engine/PendingNetGame.h"
 #include "PhysicalMaterials/PhysicalMaterialPropertyBase.h"
+
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicsEngine/PhysicsCollisionHandler.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+/* FLEX */
+#include "PhysicsEngine/FlexAsset.h"
+#include "PhysicsEngine/FlexContainer.h"
+#include "PhysicsEngine/FlexComponent.h"
+#include "PhysicsEngine/FlexAssetPreviewComponent.h"
+#include "PhysicsEngine/FlexRopeComponent.h"
+#include "PhysicsEngine/FlexFluidSurface.h"
+#include "PhysicsEngine/FlexFluidSurfaceComponent.h"
+/* END FLEX*/
 #include "Engine/PlatformInterfaceBase.h"
 #include "Engine/Player.h"
 #include "Engine/LocalPlayer.h"

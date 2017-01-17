@@ -93,6 +93,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogAssetTools, Log, All);
 #include "AssetTypeActions/AssetTypeActions_VectorFieldAnimated.h"
 #include "AssetTypeActions/AssetTypeActions_VectorFieldStatic.h"
 #include "AssetTypeActions/AssetTypeActions_World.h"
+#include "AssetTypeActions/AssetTypeActions_FlexContainer.h"
+#include "AssetTypeActions/AssetTypeActions_FlexFluidSurface.h"
 
 #include "SDiscoveringAssetsDialog.h"
 #include "AssetRenameManager.h"

@@ -194,6 +194,14 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 
 	bCachedAllCollideableDescendantsRelative = false;
 	LastCheckedAllCollideableDescendantsTime = 0.f;
+
+#if WITH_FLEX
+	FlexParticleCount = 0;
+
+	bIsFlexParent = 0;
+	bFlexParticleDrain = 0;
+	bFlexEnableParticleCounter = 0;
+#endif
 }
 
 bool UPrimitiveComponent::UsesOnlyUnlitMaterials() const

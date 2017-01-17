@@ -20,6 +20,10 @@
 #include "Editor/UnrealEd/Public/BSPOps.h"
 #include "Editor/LevelEditor/Public/DlgDeltaTransform.h"
 #include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
+#if WITH_FLEX
+#include "Runtime/Engine/Classes/PhysicsEngine/FlexComponent.h"
+#include "Runtime/Engine/Classes/PhysicsEngine/FlexActor.h"
+#endif
 #include "Editor/NewLevelDialog/Public/NewLevelDialogModule.h"
 #include "DelegateFilter.h"
 #include "BlueprintUtilities.h"
@@ -1984,6 +1988,120 @@ void FLevelEditorActionCallbacks::OnKeepSimulationChanges()
 	}
 }
 
+#if WITH_FLEX
+
+
+void FLevelEditorActionCallbacks::OnKeepFlexSimulationChanges()
+{
+	// @todo simulate: There are lots of types of changes that can't be "kept", like attachment or newly-spawned actors.  This
+	//    feature currently only supports propagating changes to regularly-editable properties on an instance of a PIE actor
+	//    that still exists in the editor world.
+
+	// Make sure we have some actors selected, and PIE is running
+	if (GEditor->GetSelectedActorCount() > 0 && GEditor->PlayWorld != NULL)
+	{
+		int32 UpdatedActorCount = 0;
+		int32 TotalCopiedPropertyCount = 0;
+		FString FirstUpdatedActorLabel;
+		{
+			for (auto ActorIt(GEditor->GetSelectedActorIterator()); ActorIt; ++ActorIt)
+			{
+				auto* SimWorldActor = CastChecked<AActor>(*ActorIt);
+
+				// Find our counterpart actor
+				AActor* EditorWorldActor = EditorUtilities::GetEditorWorldCounterpartActor(SimWorldActor);
+				if (EditorWorldActor != NULL)
+				{
+					// save flex actors' simulated positions, note does not support undo
+					AFlexActor* FlexEditorActor = Cast<AFlexActor>(EditorWorldActor);
+					AFlexActor* FlexSimActor = Cast<AFlexActor>(SimWorldActor);
+					if (FlexEditorActor != NULL && FlexSimActor != NULL)
+					{
+						UFlexComponent* FlexEditorComponent = (UFlexComponent*)(FlexEditorActor->GetRootComponent());
+						UFlexComponent* FlexSimComponent = (UFlexComponent*)(FlexSimActor->GetRootComponent());
+						if (FlexEditorComponent != NULL && FlexSimComponent != NULL)
+						{
+							FlexEditorComponent->PreSimPositions.SetNum(FlexSimComponent->SimPositions.Num());
+
+							for (int i = 0; i < FlexSimComponent->SimPositions.Num(); ++i)
+								FlexEditorComponent->PreSimPositions[i] = FlexSimComponent->SimPositions[i];
+
+							FlexEditorComponent->SavedRelativeLocation = FlexEditorComponent->RelativeLocation;
+							FlexEditorComponent->SavedRelativeRotation = FlexEditorComponent->RelativeRotation;
+							FlexEditorComponent->SavedTransform = FlexEditorComponent->ComponentToWorld;
+
+							FlexEditorComponent->PreSimRelativeLocation = FlexSimComponent->RelativeLocation;
+							FlexEditorComponent->PreSimRelativeRotation = FlexSimComponent->RelativeRotation;
+							FlexEditorComponent->PreSimTransform = FlexSimComponent->ComponentToWorld;
+
+							FlexEditorComponent->PreSimShapeTranslations = FlexSimComponent->PreSimShapeTranslations;
+							FlexEditorComponent->PreSimShapeRotations = FlexSimComponent->PreSimShapeRotations;
+
+							FlexEditorComponent->SendRenderTransform_Concurrent();
+
+							// not currently used
+							++UpdatedActorCount;
+							++TotalCopiedPropertyCount;
+
+							if (FirstUpdatedActorLabel.IsEmpty())
+							{
+								FirstUpdatedActorLabel = EditorWorldActor->GetActorLabel();
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void FLevelEditorActionCallbacks::OnClearFlexSimulationChanges()
+{
+	if (GEditor->GetSelectedActorCount() > 0)
+	{
+		for (auto ActorIt(GEditor->GetSelectedActorIterator()); ActorIt; ++ActorIt)
+		{
+			// Find our counterpart actor
+			AActor* EditorWorldActor = NULL;
+			
+			if (GEditor->PlayWorld != NULL)
+			{
+				// if PIE session active then find editor actor
+				auto* SimWorldActor = CastChecked<AActor>(*ActorIt);
+				EditorWorldActor = EditorUtilities::GetEditorWorldCounterpartActor(SimWorldActor);
+			}
+			else
+			{
+				EditorWorldActor = Cast<AActor>(*ActorIt);
+			}				
+
+			if (EditorWorldActor != NULL)
+			{
+				// clear flex actors' simulated positions, note does not support undo
+				AFlexActor* FlexEditorActor = Cast<AFlexActor>(EditorWorldActor);
+				if (FlexEditorActor != NULL)
+				{
+					UFlexComponent* FlexEditorComponent = (UFlexComponent*)(FlexEditorActor->GetRootComponent());
+					if (FlexEditorComponent != NULL && FlexEditorComponent->PreSimPositions.Num())
+					{
+						FlexEditorComponent->PreSimPositions.SetNum(0);
+						FlexEditorComponent->PreSimShapeTranslations.SetNum(0);
+						FlexEditorComponent->PreSimShapeRotations.SetNum(0);
+
+						FlexEditorComponent->RelativeLocation = FlexEditorComponent->SavedRelativeLocation;
+						FlexEditorComponent->RelativeRotation = FlexEditorComponent->SavedRelativeRotation;
+						FlexEditorComponent->ComponentToWorld = FlexEditorComponent->SavedTransform;
+
+						FlexEditorComponent->SendRenderTransform_Concurrent();
+					}
+				}
+			}
+		}
+	}
+}
+
+#endif
+
 
 bool FLevelEditorActionCallbacks::CanExecuteKeepSimulationChanges()
 {
@@ -3064,6 +3182,12 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( KeepSimulationChanges, "Keep Simulation Changes", "Saves the changes made to this actor in Simulate mode to the actor's default state.", EUserInterfaceActionType::Button, FInputChord( EKeys::K ) );
 
 	UI_COMMAND( MakeActorLevelCurrent, "Make Selected Actor's Level Current", "Makes the selected actor's level the current level", EUserInterfaceActionType::Button, FInputChord( EKeys::M ) );
+
+#if WITH_FLEX
+	UI_COMMAND(KeepFlexSimulationChanges, "Keep Flex Simulation Changes", "Saves the changes made to this actor in Simulate mode to the actor's default state.", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(ClearFlexSimulationChanges, "Clear Flex Simulation Changes", "Dicards any saved changes made to this actor in Simulate mode.", EUserInterfaceActionType::Button, FInputGesture());
+#endif
+
 #if PLATFORM_MAC
 	UI_COMMAND( MoveSelectedToCurrentLevel, "Move Selection to Current Level", "Moves the selected actors to the current level", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Command, EKeys::M ) );
 #else

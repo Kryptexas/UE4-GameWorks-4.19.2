@@ -21,8 +21,20 @@ void Main(
 	OPTIONAL_OutDepthConservative,
 #endif
 	out float4 OutColor : SV_Target0
+#if FLEX_FLUID_SURFACE_FACTORY
+   ,out float OutDepth : SV_DEPTH
+#endif
 	)
 {
+
+#if FLEX_FLUID_SURFACE_FACTORY
+
+	GetFlexFluidSurfaceCoverageAndClipping(FactoryInterpolants);
+	OutColor = 0;
+	OutDepth = GetFlexFluidSurfaceDepth(FactoryInterpolants);
+
+#else
+
 #if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
 	#if INSTANCED_STEREO
 		ResolvedView = ResolveView(GetEyeIndex(FactoryInterpolants.PackedEyeIndex));
@@ -47,4 +59,5 @@ void Main(
 #endif
 
 	OutColor = 0;
+#endif
 }

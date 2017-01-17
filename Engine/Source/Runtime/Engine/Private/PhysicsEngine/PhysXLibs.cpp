@@ -30,6 +30,12 @@
 				HMODULE	APEX_ClothingHandle = 0;
 		#endif  //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
+	#if WITH_FLEX
+		HMODULE CudaRtHandle = 0;
+		HMODULE FLEXCoreHandle = 0;
+		HMODULE FLEXExtHandle = 0;
+		HMODULE FLEXDeviceHandle = 0;
+	#endif // WITH_FLEX
 #elif PLATFORM_MAC
 	void* PxFoundationHandle = nullptr;
 	void* PhysX3CommonHandle = nullptr;
@@ -55,12 +61,12 @@
 void LoadPhysXModules()
 {
 
-
 #if PLATFORM_WINDOWS
 	FString PhysXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/");
 	FString APEXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/");
 	FString SharedBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/");
-
+	FString FLEXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/FLEX-1.1.0/");
+	
 	#if _MSC_VER >= 1900
 		FString VSDirectory(TEXT("VS2015/"));
 	#elif _MSC_VER >= 1800
@@ -73,12 +79,16 @@ void LoadPhysXModules()
 		FString RootPhysXPath(PhysXBinariesRoot + TEXT("Win64/") + VSDirectory);
 		FString RootAPEXPath(APEXBinariesRoot + TEXT("Win64/") + VSDirectory);
 		FString RootSharedPath(SharedBinariesRoot + TEXT("Win64/") + VSDirectory);
+		FString RootFLEXPath(FLEXBinariesRoot + TEXT("Win64/"));
+
 		FString ArchName(TEXT("_x64"));
 		FString ArchBits(TEXT("64"));
 	#else
 		FString RootPhysXPath(PhysXBinariesRoot + TEXT("Win32/") + VSDirectory);
 		FString RootAPEXPath(APEXBinariesRoot + TEXT("Win32/") + VSDirectory);
 		FString RootSharedPath(SharedBinariesRoot + TEXT("Win32/") + VSDirectory);
+		FString RootFLEXPath(FLEXBinariesRoot + TEXT("Win32/"));
+
 		FString ArchName(TEXT("_x86"));
 		FString ArchBits(TEXT("32"));
 	#endif
@@ -86,7 +96,7 @@ void LoadPhysXModules()
 #ifdef UE_PHYSX_SUFFIX
 	FString PhysXSuffix(TEXT(PREPROCESSOR_TO_STRING(UE_PHYSX_SUFFIX)) + ArchName + TEXT(".dll"));
 #else
-	FString PhysXSuffix(ArchName + TEXT(".dll"));
+
 #endif
 
 #ifdef UE_APEX_SUFFIX
@@ -128,6 +138,41 @@ void LoadPhysXModules()
 			APEX_ClothingHandle = LoadPhysicsLibrary(RootAPEXPath + "APEX_Clothing" + APEXSuffix);
 		#endif //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
+			
+	#if PLATFORM_64BITS
+
+		#if WITH_FLEX_CUDA
+			CudaRtHandle = LoadLibraryW(*(RootFLEXPath + "cudart64_80.dll"));
+			FLEXCoreHandle = LoadLibraryW(*(RootFLEXPath + "flex_cuda_release_x64.dll"));
+			FLEXExtHandle = LoadLibraryW(*(RootFLEXPath + "flexExt_cuda_release_x64.dll"));
+			FLEXDeviceHandle = LoadLibraryW(*(RootFLEXPath + "flexDevice_release_x64.dll"));
+		#endif // WITH_FLEX_CUDA
+
+		#if WITH_FLEX_DX
+			FPlatformProcess::PushDllDirectory(*RootFLEXPath);
+			FLEXCoreHandle = LoadLibraryW(*(RootFLEXPath + "flex_d3d11_release_x64.dll"));
+			FLEXExtHandle = LoadLibraryW(*(RootFLEXPath + "flexExt_d3d11_release_x64.dll"));
+			FPlatformProcess::PopDllDirectory(*RootFLEXPath);
+		#endif // WITH_FLEX_DX
+
+	#else 
+
+		#if WITH_FLEX_CUDA
+			CudaRtHandle = LoadLibraryW(*(RootFLEXPath + "cudart32_80.dll"));
+			FLEXCoreHandle = LoadLibraryW(*(RootFLEXPath + "flex_cuda_release_x86.dll"));
+			FLEXExtHandle = LoadLibraryW(*(RootFLEXPath + "flexExt_cuda_release_x86.dll"));
+			FLEXDeviceHandle = LoadLibraryW(*(RootFLEXPath + "flexDevice_release_x86.dll"));
+		#endif // WITH_FLEX_CUDA
+
+		#if WITH_FLEX_DX
+			FPlatformProcess::PushDllDirectory(*RootFLEXPath);
+			FLEXCoreHandle = LoadLibraryW(*(RootFLEXPath + "flex_d3d11_release_x86.dll"));
+			FLEXExtHandle = LoadLibraryW(*(RootFLEXPath + "flexExt_d3d11_release_x86.dll"));
+			FPlatformProcess::PopDllDirectory();
+		#endif // WITH_FLEX_DX
+
+	#endif // PLATFORM_64BITS
+
 #elif PLATFORM_MAC
 	FString PhysXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/Mac/");
 
@@ -183,6 +228,7 @@ void LoadPhysXModules()
 			APEX_ClothingHandle = LoadPhysicsLibrary(APEX_ClothingHandleLibName);
 		#endif //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
+
 #endif	//PLATFORM_WINDOWS
 }
 
@@ -207,6 +253,13 @@ void UnloadPhysXModules()
 			FreeLibrary(APEX_ClothingHandle);
 		#endif //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
+	#if WITH_FLEX
+		FreeLibrary(CudaRtHandle);
+		FreeLibrary(FLEXCoreHandle);
+		FreeLibrary(FLEXExtHandle);
+		FreeLibrary(FLEXDeviceHandle);
+	#endif // WITH_FLEX
+
 #elif PLATFORM_MAC
 	FPlatformProcess::FreeDllHandle(PxPvdSDKHandle);
 	FPlatformProcess::FreeDllHandle(PhysX3Handle);
@@ -225,5 +278,6 @@ void UnloadPhysXModules()
 	#endif	//WITH_APEX
 #endif
 }
+
 
 #endif // WITH_PHYSX

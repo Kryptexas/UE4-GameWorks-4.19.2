@@ -28,6 +28,18 @@ namespace UnrealBuildTool
 		public static bool bCompileAPEX;
 
 		/// <summary>
+		/// Whether to include Flex DX support
+		/// </summary>
+        [XmlConfig]
+        public static bool bCompileFLEX_DX;
+
+        /// <summary>
+        /// Whether to include Flex CUDA support
+        /// </summary>
+        [XmlConfig]
+        public static bool bCompileFLEX_CUDA;
+
+        /// <summary>
 		/// Whether to allow runtime cooking of physics
 		/// </summary>
 		[XmlConfig]
@@ -360,6 +372,8 @@ namespace UnrealBuildTool
 			// Currently, WITH_PHYSX is forced to true in Engine.h (as it isn't defined anywhere by the builder)
 			bCompilePhysX = true;
 			bCompileAPEX = true;
+            bCompileFLEX_DX = true;
+            bCompileFLEX_CUDA = false;
 			bRuntimePhysicsCooking = true;
 			bCompileBox2D = true;
 			bCompileICU = true;

@@ -16,6 +16,10 @@
 #endif
 #endif
 
+#if WITH_FLEX
+	#include "FlexContainerInstance.h"
+#endif
+
 #include "PhysSubstepTasks.h"	//needed even if not substepping, contains common utility class for PhysX
 #include "PhysicsEngine/PhysicsCollisionHandler.h"
 #include "Components/DestructibleComponent.h"
@@ -353,6 +357,19 @@ void FPhysScene::SetOwningWorld(UWorld* InOwningWorld)
 FPhysScene::~FPhysScene()
 {
 	FCoreUObjectDelegates::PreGarbageCollect.Remove(PreGarbageCollectDelegateHandle);
+
+#if WITH_FLEX
+	// Clean up Flex scenes
+	if (GFlexIsInitialized && FlexContainerMap.Num())
+	{
+		for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
+		{
+			delete It->Value;
+			It.RemoveCurrent();
+		}
+	}
+#endif
+
 	// Make sure no scenes are left simulating (no-ops if not simulating)
 	WaitPhysScenes();
 	// Loop through scene types to get all scenes
@@ -998,6 +1015,93 @@ void FPhysScene::KillVisualDebugger()
 	}
 }
 
+#if WITH_FLEX
+
+void FPhysScene::WaitFlexScenes()
+{
+	if (GFlexIsInitialized && FlexContainerMap.Num())
+	{
+		if (FlexSimulateTaskRef.IsValid())
+			FTaskGraphInterface::Get().WaitUntilTaskCompletes(FlexSimulateTaskRef);
+
+		// if debug draw enabled on any containers then ensure any persistent lines are flushed
+		bool NeedsFlushDebugLines = false;
+
+		for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
+		{
+			// The container instances can be removed, so we need to check and handle that case
+			if (!It->Value->TemplateRef.IsValid())
+			{
+				delete It->Value;
+				It.RemoveCurrent();
+			}
+			else if (It->Value->Template->DebugDraw)
+			{
+				NeedsFlushDebugLines = true;
+				break;
+			}
+		}
+
+		if (FFlexContainerInstance::sGlobalDebugDraw || NeedsFlushDebugLines)
+			FlushPersistentDebugLines(OwningWorld);
+
+		// synchronize flex components with results
+		for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
+			It->Value->Synchronize();
+	}
+
+}
+
+
+void FPhysScene::TickFlexScenesTask(float dt)
+{
+	// ensure we have the correct CUDA context set for Flex
+	// this would be done automatically when making a Flex API call
+	// but by acquiring explicitly in advance we save some unnecessary
+	// CUDA calls to repeatedly set/unset the context
+	flexAcquireContext(GFlexLib);
+
+	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
+	{
+		// if template has been garbage collected then remove container (need to use the thread safe IsValid() flag)
+		if (!It->Value->TemplateRef.IsValid(false, true))
+		{
+			delete It->Value;
+			It.RemoveCurrent();
+		}
+		else
+		{
+			It->Value->Simulate(dt);
+		}
+	}
+
+	flexRestoreContext(GFlexLib);
+}
+
+void FPhysScene::TickFlexScenes(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, float dt)
+{
+    if (GPhysXSDK)
+    if (GFlexIsInitialized)
+    {
+		// when true the Flex CPU update will be run as a task async to the game thread
+		// note that this is different from the async tick in LevelTick.cpp
+		const bool bFlexAsync = true;
+
+		if (bFlexAsync)
+		{
+			FlexSimulateTaskRef = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+				FSimpleDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::TickFlexScenesTask, dt),
+				GET_STATID(STAT_TotalPhysicsTime));
+		}
+		else
+		{
+			TickFlexScenesTask(dt);
+		}
+    }
+}
+#endif // WITH_FLEX
+
+
 void FPhysScene::WaitPhysScenes()
 {
 	check(IsInGameThread());
@@ -1595,6 +1699,68 @@ apex::Scene* FPhysScene::GetApexScene(uint32 SceneType)
 	return GetApexSceneFromIndex(PhysXSceneIndex[SceneType]);
 }
 #endif // WITH_APEX
+
+#if WITH_FLEX
+FFlexContainerInstance*	FPhysScene::GetFlexContainer(UFlexContainer* Template)
+{
+	if (GFlexIsInitialized == false)
+		return NULL;
+
+	FFlexContainerInstance** Instance = FlexContainerMap.Find(Template);
+	if (Instance)
+	{
+		return *Instance;
+	}
+	else
+	{
+		FFlexContainerInstance* NewInst = new FFlexContainerInstance(Template, this);
+		FlexContainerMap.Add(Template, NewInst);
+
+		return NewInst;
+	}
+}
+
+void FPhysScene::StartFlexRecord()
+{
+	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
+	{
+		FFlexContainerInstance* Container = It->Value;
+		FString Name = Container->Template->GetName();
+
+		flexStartRecord(Container->Solver, StringCast<ANSICHAR>(*(FString("flexCapture_") + Name + FString(".flx"))).Get());
+	}
+}
+
+void FPhysScene::StopFlexRecord()
+{
+	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
+	{
+		FFlexContainerInstance* Container = It->Value;
+		
+		flexStopRecord(Container->Solver);
+	}
+}
+
+
+void FPhysScene::AddRadialForceToFlex(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff)
+{
+	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
+	{
+		FFlexContainerInstance* Container = It->Value;
+		Container->AddRadialForce(Origin, Radius, Strength, Falloff);
+	}
+}
+
+void FPhysScene::AddRadialImpulseToFlex(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange)
+{
+	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
+	{
+		FFlexContainerInstance* Container = It->Value;
+		Container->AddRadialImpulse(Origin, Radius, Strength, Falloff, bVelChange);
+	}
+}
+#endif // WITH_FLEX
+
 
 static void BatchPxRenderBufferLines(class ULineBatchComponent& LineBatcherToUse, const PxRenderBuffer& DebugData)
 {
