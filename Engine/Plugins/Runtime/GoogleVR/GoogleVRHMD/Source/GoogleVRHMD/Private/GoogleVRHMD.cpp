@@ -419,6 +419,7 @@ FGoogleVRHMD::FGoogleVRHMD()
 		// Refresh delegate
 		FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddRaw(this, &FGoogleVRHMD::ApplicationResumeDelegate);
 
+		UpdateGVRViewportList();
 #endif // GOOGLEVRHMD_SUPPORTED_PLATFORMS
 
 		// Set the default rendertarget size to the default size in UE4
@@ -1012,6 +1013,8 @@ void FGoogleVRHMD::SetupViewFamily(FSceneViewFamily& InViewFamily)
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 FIntRect FGoogleVRHMD::CalculateGVRViewportRect(int RenderTargetSizeX, int RenderTargetSizeY, EStereoscopicPass StereoPassType)
 {
+	check(ActiveViewportList);
+	check(gvr_buffer_viewport_list_get_size(ActiveViewportList) == 2);
 	switch(StereoPassType)
 	{
 		case EStereoscopicPass::eSSP_LEFT_EYE:
@@ -1148,6 +1151,8 @@ FMatrix FGoogleVRHMD::GetStereoProjectionMatrix(const enum EStereoscopicPass Ste
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 
+	check(ActiveViewportList);
+	check(gvr_buffer_viewport_list_get_size(ActiveViewportList) == 2);
 	switch(StereoPassType)
 	{
 		case EStereoscopicPass::eSSP_LEFT_EYE:
