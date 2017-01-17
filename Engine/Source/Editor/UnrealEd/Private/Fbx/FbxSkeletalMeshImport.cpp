@@ -1321,6 +1321,9 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		}
 	}
 
+	// [from USkeletalMeshFactory::FactoryCreateBinary]
+	USkeletalMesh* SkeletalMesh = NewObject<USkeletalMesh>(InParent, Name, Flags);
+
 	FSkeletalMeshImportData TempData;
 	// Fill with data from buffer - contains the full .FBX file. 	
 	FSkeletalMeshImportData* SkelMeshImportDataPtr = &TempData;
@@ -1339,6 +1342,8 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	if (FillSkeletalMeshImportData(NodeArray, TemplateImportData, FbxShapeArray, SkelMeshImportDataPtr, LastImportedMaterialNames) == false)
 	{
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_FillupImportData", "Get Import Data has failed.")), FFbxErrors::SkeletalMesh_FillImportDataFailed);
+		SkeletalMesh->ClearFlags(RF_Standalone);
+		SkeletalMesh->Rename(NULL, GetTransientPackage());
 		return nullptr;
 	}
 
@@ -1358,6 +1363,8 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	if (SkelMeshImportDataPtr->Points.Num() > 2 && BoundingBoxSize.X < THRESH_POINTS_ARE_SAME && BoundingBoxSize.Y < THRESH_POINTS_ARE_SAME && BoundingBoxSize.Z < THRESH_POINTS_ARE_SAME)
 	{
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_ErrorMeshTooSmall", "Cannot import this mesh, the bounding box of this mesh is smaller then the supported threshold[{0}]."), FText::FromString(FString::Printf(TEXT("%f"), THRESH_POINTS_ARE_SAME)))), FFbxErrors::SkeletalMesh_FillImportDataFailed);
+		SkeletalMesh->ClearFlags(RF_Standalone);
+		SkeletalMesh->Rename(NULL, GetTransientPackage());
 		return nullptr;
 	}
 
@@ -1374,9 +1381,6 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		//If the import fail after this step the editor can crash when updating the bone later since the LODModel will not exist anymore
 		ExistSkelMeshDataPtr = SaveExistingSkelMeshData(ExistingSkelMesh, !ImportOptions->bImportMaterials);
 	}
-
-	// [from USkeletalMeshFactory::FactoryCreateBinary]
-	USkeletalMesh* SkeletalMesh = NewObject<USkeletalMesh>(InParent, Name, Flags);
 
 	SkeletalMesh->PreEditChange(NULL);
 
