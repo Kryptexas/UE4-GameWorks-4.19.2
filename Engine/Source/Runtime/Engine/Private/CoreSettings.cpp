@@ -89,6 +89,8 @@ UStreamingSettings::UStreamingSettings()
 	PriorityAsyncLoadingExtraTime = 20.0f;
 	LevelStreamingActorsUpdateTimeLimit = 5.0f;
 	LevelStreamingComponentsRegistrationGranularity = 10;
+	LevelStreamingUnregisterComponentsTimeLimit = 1.0f;
+	LevelStreamingComponentsUnregistrationGranularity = 5;
 	EventDrivenLoaderEnabled = false;
 }
 
