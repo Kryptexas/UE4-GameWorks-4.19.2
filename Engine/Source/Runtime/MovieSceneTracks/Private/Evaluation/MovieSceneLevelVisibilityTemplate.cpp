@@ -23,7 +23,7 @@ bool GetLevelVisibility(const ULevelStreaming& Level)
 	}
 }
 
-void SetLevelVisibility(ULevelStreaming& Level, bool bVisible)
+void SetLevelVisibility(ULevelStreaming& Level, bool bVisible, EFlushLevelStreamingType* FlushStreamingType = nullptr)
 {
 #if WITH_EDITOR
 	if (GIsEditor && !Level.GetWorld()->IsPlayInEditor())
@@ -57,6 +57,20 @@ void SetLevelVisibility(ULevelStreaming& Level, bool bVisible)
 #endif
 	{
 		Level.bShouldBeVisible = bVisible;
+
+		if (FlushStreamingType && (*FlushStreamingType == EFlushLevelStreamingType::None))
+		{
+			*FlushStreamingType = EFlushLevelStreamingType::Visibility;
+		}
+
+		if (bVisible && !Level.IsLevelLoaded())
+		{
+			Level.bShouldBeLoaded = true;
+			if (FlushStreamingType)
+			{
+				*FlushStreamingType = EFlushLevelStreamingType::Full;
+			}
+		}
 	}
 }
 
@@ -169,7 +183,7 @@ struct FLevelStreamingSharedTrackData : IPersistentEvaluationData
 
 		TArray<FName, TInlineAllocator<8>> LevelsToRestore;
 
-		bool bAnythingChanged = false;
+		EFlushLevelStreamingType FlushStreamingType = EFlushLevelStreamingType::None;
 		for (auto& Pair : VisibilityMap)
 		{
 			FName SafeLevelName(*MakeSafeLevelName(Pair.Key, *World));
@@ -187,8 +201,7 @@ struct FLevelStreamingSharedTrackData : IPersistentEvaluationData
 				// Restore the state from before our evaluation
 				if (Pair.Value.bPreviousState.IsSet())
 				{
-					SetLevelVisibility(*Level, Pair.Value.bPreviousState.GetValue());
-					bAnythingChanged = true;
+					SetLevelVisibility(*Level, Pair.Value.bPreviousState.GetValue(), &FlushStreamingType);
 				}
 			}
 			else
@@ -204,8 +217,7 @@ struct FLevelStreamingSharedTrackData : IPersistentEvaluationData
 
 					Player.SavePreAnimatedState(*Level, TMovieSceneAnimTypeID<FLevelStreamingSharedTrackData>(), TokenProducer);
 
-					SetLevelVisibility(*Level, bShouldBeVisible);
-					bAnythingChanged = true;
+					SetLevelVisibility(*Level, bShouldBeVisible, &FlushStreamingType);
 				}
 			}
 		}
@@ -215,9 +227,9 @@ struct FLevelStreamingSharedTrackData : IPersistentEvaluationData
 			VisibilityMap.Remove(Level);
 		}
 
-		if (bAnythingChanged)
+		if (FlushStreamingType != EFlushLevelStreamingType::None)
 		{
-			World->FlushLevelStreaming( EFlushLevelStreamingType::Visibility );
+			World->FlushLevelStreaming( FlushStreamingType );
 		}
 	}
 
