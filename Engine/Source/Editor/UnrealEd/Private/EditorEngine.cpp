@@ -4096,7 +4096,8 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 
 	if (bForceLoadStringAssetReferences)
 	{
-		GRedirectCollector.ResolveStringAssetReference(Filename);
+		const FString PackageName = FPackageName::FilenameToLongPackageName(Filename);
+		GRedirectCollector.ResolveStringAssetReference(PackageName);
 	}
 
 	UObject* Base = InBase;
