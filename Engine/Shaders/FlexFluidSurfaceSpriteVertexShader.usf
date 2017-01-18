@@ -24,14 +24,13 @@ void SphereMainVS(
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
 	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, TranslatedWorldPosition.xyz, TangentToLocal);
 
-	// Particle location and size
-	float4 ParticlePosSize = VertexParameters.Particle.TranslatedWorldPositionAndSize;
-	float4 ParticleTranslated = float4(ParticlePosSize.xyz - ResolvedView.WorldViewOrigin.xyz, 1.0f);
-
-	TranslatedWorldPosition = ParticleTranslated + (TranslatedWorldPosition - ParticleTranslated)*ParticleSizeScale;
+	// Vertex locations
 	OutPosition = mul(TranslatedWorldPosition, ResolvedView.TranslatedWorldToClip);
 	OutViewPos = mul(TranslatedWorldPosition, ResolvedView.TranslatedWorldToView);
-	OutParticleViewPosAndSize = float4(mul(ParticleTranslated, ResolvedView.TranslatedWorldToView).xyz, ParticlePosSize.w*ParticleSizeScale);
+
+	// Particle location and size
+	float4 TranslatedParticlePosSize = VertexParameters.Particle.TranslatedWorldPositionAndSize;
+	OutParticleViewPosAndSize = float4(mul(TranslatedParticlePosSize, ResolvedView.TranslatedWorldToView).xyz, TranslatedParticlePosSize.w*ParticleSizeScale);
 }
 
 float Sign(float x) { return x < 0.0 ? -1.0: 1.0; }

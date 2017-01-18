@@ -1354,12 +1354,13 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 #if WITH_FLEX
 
 			// tick Flex asynchronously over the course of the whole frame (adds 1 frame latency)
-			const bool bAsyncFlexUpdate = true;
+			// this is called an 'inverted' tick because it must first of all wait() and then tick()
+			const bool bInvertedFlexTick = true;
 
 			// only tick Flex for source levels
 			if (LC.GetType() == ELevelCollectionType::DynamicSourceLevels)
 			{
-				if (bAsyncFlexUpdate)
+				if (bInvertedFlexTick)
 				{
 					if (PhysicsScene != NULL)
 					{

@@ -24,7 +24,7 @@ void SphereDepthMainPS(
 	// Discard pixels outside of the sphere
 	if (Dist2 >= Radius2)
 		discard;
-	
+
 	float DepthOffset = sqrt(Radius2 - Dist2);
 
 	float4 SurfaceViewPos = float4(ViewPos.x, ViewPos.y, ViewPos.z - DepthOffset, 1.0f); 
