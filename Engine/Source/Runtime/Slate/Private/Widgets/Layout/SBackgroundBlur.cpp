@@ -86,7 +86,7 @@ void SBackgroundBlur::SetPadding(const TAttribute<FMargin>& InPadding)
 int32 SBackgroundBlur::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	int32 PostFXLayerId = LayerId;
-	if (bAllowBackgroundBlur)
+	if (bAllowBackgroundBlur && AllottedGeometry.GetLocalSize() > FVector2D::ZeroVector)
 	{
 		if (!bForceLowQualityBrushFallback)
 		{
