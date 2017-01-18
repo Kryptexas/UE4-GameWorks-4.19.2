@@ -6765,7 +6765,8 @@ void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& Ou
 							// See if there is a mesh material module.
 							if (Material == NULL)
 							{
-								for (int32 ModuleIndex = 0; ModuleIndex < LOD->Modules.Num(); ModuleIndex++)
+								// Walk in reverse order as in the case of multiple modules, only the final result will be applied
+								for (int32 ModuleIndex = LOD->Modules.Num()-1; ModuleIndex > 0; --ModuleIndex)
 								{
 									UParticleModuleMeshMaterial* MeshMatModule = Cast<UParticleModuleMeshMaterial>(LOD->Modules[ModuleIndex]);
 									if (MeshMatModule && MeshMatModule->bEnabled)
