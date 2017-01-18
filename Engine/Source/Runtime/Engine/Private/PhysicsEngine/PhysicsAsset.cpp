@@ -705,7 +705,7 @@ void UPhysicsAsset::RefreshPhysicsAssetChange() const
 		if (SkeletalMeshComponent->GetPhysicsAsset() == this)
 		{
 			// it needs to recreate IF it already has been created
-			if (SkeletalMeshComponent->IsPhysicsStateCreated())
+			if (SkeletalMeshComponent->IsPhysicsStateCreated() && SkeletalMeshComponent->Bodies.Num() > 0)
 			{
 				SkeletalMeshComponent->RecreatePhysicsState();
 				SkeletalMeshComponent->InvalidateCachedBounds();
