@@ -91,6 +91,9 @@ struct FEmitterLocalContext
 	// used to track the innermost FScopeBlock on the stack, so GenerateGetPropertyByName() can register added locals
 	FScopeBlock* ActiveScopeBlock;
 
+	// See TInlineValue. If the structure is initialized in constructor, then its header must be included.
+	TSet<UField*> StructsUsedAsInlineValues;
+
 private:
 	int32 LocalNameIndexMax;
 
@@ -363,6 +366,11 @@ struct FBackendHelperUMG
 	static void CreateClassSubobjects(FEmitterLocalContext& Context, bool bCreate, bool bInitialize);
 	static void EmitWidgetInitializationFunctions(FEmitterLocalContext& Context);
 
+	static bool SpecialStructureConstructorUMG(const UStruct* Struct, const uint8* ValuePtr, /*out*/ FString* OutResult);
+
+	static UScriptStruct* InlineValueStruct(UScriptStruct* OuterStruct, const uint8* ValuePtr);
+	static const uint8* InlineValueData(UScriptStruct* OuterStruct, const uint8* ValuePtr);
+	static bool IsTInlineStruct(UScriptStruct* OuterStruct);
 };
 
 struct FBackendHelperAnim

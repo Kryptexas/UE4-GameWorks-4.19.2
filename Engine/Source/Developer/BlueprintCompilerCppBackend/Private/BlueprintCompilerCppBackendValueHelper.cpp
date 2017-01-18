@@ -167,14 +167,39 @@ void FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruct* 
 
 void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const UProperty* Property, const FString& PathToMember, const uint8* ValuePtr, const uint8* DefaultValuePtr, bool bWithoutFirstConstructionLine)
 {
-	auto OneLineConstruction = [](FEmitterLocalContext& LocalContext, const UProperty* LocalProperty, const uint8* LocalValuePtr, FString& OutSingleLine, bool bGenerateEmptyStructConstructor) -> bool
+	auto InlineValueStruct = [&](UScriptStruct* OuterStruct, const uint8* LocalValuePtr) -> UScriptStruct*
+	{ 
+		UScriptStruct* InnerStruct = FBackendHelperUMG::InlineValueStruct(OuterStruct, LocalValuePtr);
+		if (InnerStruct)
+		{
+			Context.StructsUsedAsInlineValues.Add(InnerStruct);
+		}
+		return InnerStruct;
+	};
+	auto InlineValueData = [](UScriptStruct* OuterStruct, const uint8* LocalValuePtr) -> const uint8*{ return FBackendHelperUMG::InlineValueData(OuterStruct, LocalValuePtr); };
+	auto IsTInlineStruct = [](UScriptStruct* OuterStruct) -> bool { return FBackendHelperUMG::IsTInlineStruct(OuterStruct); };
+	auto OneLineConstruction = [&](FEmitterLocalContext& LocalContext, const UProperty* LocalProperty, const uint8* LocalValuePtr, FString& OutSingleLine, bool bGenerateEmptyStructConstructor) -> bool
 	{
 		bool bComplete = true;
 		FString ValueStr = HandleSpecialTypes(LocalContext, LocalProperty, LocalValuePtr);
 		if (ValueStr.IsEmpty())
 		{
-			ValueStr = LocalContext.ExportTextItem(LocalProperty, LocalValuePtr);
-			auto StructProperty = Cast<const UStructProperty>(LocalProperty);
+			const UStructProperty* StructProperty = Cast<const UStructProperty>(LocalProperty);
+			UScriptStruct* InnerInlineStruct = InlineValueStruct(StructProperty ? StructProperty->Struct : nullptr, LocalValuePtr);
+			if (StructProperty && StructProperty->Struct && InnerInlineStruct)
+			{
+				check(InnerInlineStruct);
+				FString StructConstructor;
+				bComplete = SpecialStructureConstructor(InnerInlineStruct, InlineValueData(StructProperty->Struct, LocalValuePtr), &StructConstructor);
+				const FString InnerConstructor = bComplete
+					? StructConstructor 
+					: FString::Printf(TEXT("%s%s"), *FEmitHelper::GetCppName(InnerInlineStruct), FEmitHelper::EmptyDefaultConstructor(InnerInlineStruct));
+				ValueStr = FString::Printf(TEXT("%s(%s)"), *FEmitHelper::GetCppName(StructProperty->Struct), *InnerConstructor);
+			}
+			else
+			{
+				ValueStr = LocalContext.ExportTextItem(LocalProperty, LocalValuePtr);
+			}
 			if (ValueStr.IsEmpty() && StructProperty)
 			{
 				check(StructProperty->Struct);
@@ -193,15 +218,6 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 		return bComplete;
 	};
 
-	const UStructProperty* StructProperty = Cast<const UStructProperty>(Property);
-	check(!StructProperty || StructProperty->Struct);
-	const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(Property);
-	check(!ArrayProperty || ArrayProperty->Inner);
-	const USetProperty* SetProperty = Cast<const USetProperty>(Property);
-	check(!SetProperty || SetProperty->ElementProp);
-	const UMapProperty* MapProperty = Cast<const UMapProperty>(Property);
-	check(!MapProperty || (MapProperty->KeyProp && MapProperty->ValueProp));
-
 	if (!bWithoutFirstConstructionLine)
 	{
 		FString ValueStr;
@@ -211,58 +227,100 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 			Context.AddLine(FString::Printf(TEXT("%s = %s;"), *PathToMember, *ValueStr));
 		}
 		// array initialization "array_var = TArray<..>()" is complete, but it still needs items.
-		if (bComplete && !ArrayProperty && !SetProperty && !MapProperty)
+		if (bComplete && !Property->IsA<UArrayProperty>() && !Property->IsA<USetProperty>() && !Property->IsA<UMapProperty>())
 		{
 			return;
 		}
 	}
 
-	if (StructProperty)
+	if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Property))
 	{
-		// Create default struct instance, only when DefaultValuePtr is null.
-		FStructOnScope DefaultStructOnScope(DefaultValuePtr ? nullptr : StructProperty->Struct);
+		check(StructProperty->Struct);
+		UScriptStruct* InnerInlineStruct = InlineValueStruct(StructProperty->Struct, ValuePtr);
 
-		for (auto LocalProperty : TFieldRange<const UProperty>(StructProperty->Struct))
+		UScriptStruct* ActualStruct = InnerInlineStruct ? InnerInlineStruct : StructProperty->Struct;
+		const uint8* ActualValuePtr = InnerInlineStruct ? InlineValueData(StructProperty->Struct, ValuePtr) : ValuePtr;
+		const uint8* ActualDefaultValuePtr = InnerInlineStruct ? InlineValueData(StructProperty->Struct, DefaultValuePtr) : DefaultValuePtr;
+		// Create default struct instance, only when DefaultValuePtr is null.
+		FStructOnScope DefaultStructOnScope(ActualDefaultValuePtr ? nullptr : ActualStruct);
+
+		const FString ActualPathToMember = InnerInlineStruct ? FString::Printf(TEXT("((%s*)%s.GetPtr())"), *FEmitHelper::GetCppName(InnerInlineStruct), *PathToMember) : PathToMember;
+
+		for (auto LocalProperty : TFieldRange<const UProperty>(ActualStruct))
 		{
-			OuterGenerate(Context, LocalProperty, PathToMember, ValuePtr
-				, (DefaultValuePtr ? DefaultValuePtr : DefaultStructOnScope.GetStructMemory())
-				, EPropertyAccessOperator::Dot);
+			OuterGenerate(Context, LocalProperty, ActualPathToMember, ActualValuePtr
+				, (ActualDefaultValuePtr ? ActualDefaultValuePtr : DefaultStructOnScope.GetStructMemory())
+				, InnerInlineStruct ? EPropertyAccessOperator::Pointer : EPropertyAccessOperator::Dot);
 		}
 	}
-	
-	if (ArrayProperty)
+
+	enum class EStructConstructionType
 	{
+		InitializeStruct,
+		EmptyConstructor,
+		Custom,
+	};
+
+	auto StructConstruction = [IsTInlineStruct](const UStructProperty* InnerStructProperty) -> EStructConstructionType
+	{
+		//TODO: if the struct has a custom ExportTextItem, that support PPF_ExportCpp, then ELocalConstructionType::Custom should be returned
+
+		//For regular native structs default constructor is not relaible, so we need to use InitializeStruct
+		const bool bUDS = InnerStructProperty && (nullptr != Cast<UUserDefinedStruct>(InnerStructProperty->Struct));
+		const bool bSpecialNativeStruct = InnerStructProperty && InnerStructProperty->Struct
+			&& InnerStructProperty->Struct->IsNative()
+			&& ((0 != (InnerStructProperty->Struct->StructFlags & STRUCT_NoExport)) || IsTInlineStruct(InnerStructProperty->Struct));
+		const bool bInitializeWithoutScriptStruct = bUDS || bSpecialNativeStruct;
+		if (!bInitializeWithoutScriptStruct)
+		{
+			if (InnerStructProperty && !FEmitDefaultValueHelper::SpecialStructureConstructor(InnerStructProperty->Struct, nullptr, nullptr))
+			{
+				return EStructConstructionType::InitializeStruct;
+			}
+		}
+		return bInitializeWithoutScriptStruct ? EStructConstructionType::EmptyConstructor : EStructConstructionType::Custom;
+	};
+
+	auto CreateElementSimple = [OneLineConstruction](FEmitterLocalContext& LocalContext, const UProperty* LocalProperty, const uint8* LocalValuePtr) -> FString
+	{
+		FString ValueStr;
+		const bool bComplete = OneLineConstruction(LocalContext, LocalProperty, LocalValuePtr, ValueStr, true);
+		ensure(!ValueStr.IsEmpty());
+		if (!bComplete)
+		{
+			const FString ElemLocName = LocalContext.GenerateUniqueLocalName();
+			LocalContext.AddLine(FString::Printf(TEXT("auto %s = %s;"), *ElemLocName, *ValueStr));
+			InnerGenerate(LocalContext, LocalProperty, ElemLocName, LocalValuePtr, nullptr, /*bWithoutFirstConstructionLine=*/true);
+			ValueStr = ElemLocName;
+		}
+		return ValueStr;
+	};
+
+	if (const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(Property))
+	{
+		check(ArrayProperty->Inner);
 		FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ValuePtr);
 		if (ScriptArrayHelper.Num())
 		{
-			const UStructProperty* InnerStructProperty = Cast<const UStructProperty>(ArrayProperty->Inner);
-			const bool bInitializeWithoutScriptStruct =  InnerStructProperty && InnerStructProperty->Struct
-				&& InnerStructProperty->Struct->IsNative()
-				&& (InnerStructProperty->Struct->StructFlags & STRUCT_NoExport);
-			const UScriptStruct* RegularInnerStruct = nullptr;
-			if(!bInitializeWithoutScriptStruct)
+			const UStructProperty* StructProperty = Cast<const UStructProperty>(ArrayProperty->Inner);
+			const EStructConstructionType Construction = StructConstruction(StructProperty);
+			if(EStructConstructionType::InitializeStruct == Construction)
 			{
-				if (InnerStructProperty && !FEmitDefaultValueHelper::SpecialStructureConstructor(InnerStructProperty->Struct, nullptr, nullptr))
-				{
-					RegularInnerStruct = InnerStructProperty->Struct;
-				}
-			}
-			
-			if(RegularInnerStruct)
-			{
+				const UScriptStruct* InnerStruct = StructProperty ? StructProperty->Struct : nullptr;
+				ensure(InnerStruct);
 				Context.AddLine(FString::Printf(TEXT("%s.%s(%d);"), *PathToMember, TEXT("AddUninitialized"), ScriptArrayHelper.Num()));
 				Context.AddLine(FString::Printf(TEXT("%s->%s(%s.GetData(), %d);")
-					, *Context.FindGloballyMappedObject(RegularInnerStruct, UScriptStruct::StaticClass())
+					, *Context.FindGloballyMappedObject(InnerStruct, UScriptStruct::StaticClass())
 					, GET_FUNCTION_NAME_STRING_CHECKED(UStruct, InitializeStruct)
 					, *PathToMember
 					, ScriptArrayHelper.Num()));
 
-				const FStructOnScope DefaultStruct(RegularInnerStruct);
 				for (int32 Index = 0; Index < ScriptArrayHelper.Num(); ++Index)
 				{
 					const FString ArrayElementRefName = Context.GenerateUniqueLocalName();
 					Context.AddLine(FString::Printf(TEXT("auto& %s = %s[%d];"), *ArrayElementRefName, *PathToMember, Index));
-					InnerGenerate(Context, ArrayProperty->Inner, ArrayElementRefName, ScriptArrayHelper.GetRawPtr(Index), nullptr, true);
+					// This is a Regular Struct (no special constructor), so we don't need to call constructor
+					InnerGenerate(Context, ArrayProperty->Inner, ArrayElementRefName, ScriptArrayHelper.GetRawPtr(Index), nullptr, /*bWithoutFirstConstructionLine=*/ true);
 				}
 			}
 			else
@@ -274,192 +332,153 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 					const uint8* LocalValuePtr = ScriptArrayHelper.GetRawPtr(Index);
 
 					FString ValueStr;
-					bool bComplete = OneLineConstruction(Context, ArrayProperty->Inner, LocalValuePtr, ValueStr, bInitializeWithoutScriptStruct);
-					ensure(bComplete || bInitializeWithoutScriptStruct);
+					bool bComplete = OneLineConstruction(Context, ArrayProperty->Inner, LocalValuePtr, ValueStr, true);
 					Context.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *PathToMember, *ValueStr));
-				
-					if (bInitializeWithoutScriptStruct && !bComplete)
+					if (!bComplete)
 					{
-						InnerGenerate(Context, ArrayProperty->Inner, FString::Printf(TEXT("%s[%d]"), *PathToMember, Index), LocalValuePtr, nullptr, true);
+						// The constructor was already called
+						InnerGenerate(Context, ArrayProperty->Inner, FString::Printf(TEXT("%s[%d]"), *PathToMember, Index), LocalValuePtr, nullptr, /*bWithoutFirstConstructionLine=*/ true);
 					}
 				}
 			}
 		}
 	}
-	else if(SetProperty)
+	else if(const USetProperty* SetProperty = Cast<const USetProperty>(Property))
 	{
+		check(SetProperty->ElementProp);
 		FScriptSetHelper ScriptSetHelper(SetProperty, ValuePtr);
-		
 		if (ScriptSetHelper.Num())
 		{
-			const UStructProperty* ElementStructProperty = Cast<const UStructProperty>(SetProperty->ElementProp);
-			
-			Context.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *PathToMember, ScriptSetHelper.Num()));
-
-			if(ElementStructProperty)
+			auto ForEachElementInSet = [&](TFunctionRef<void(int32)> Process)
 			{
-				// declare a temporary scratch struct for the purpose of initialization. We create a scope so that 
-				// we don't have to generate a new name for it every time we initialize a TSet:
-				Context.AddLine(TEXT("{"));
-				Context.IncreaseIndent();
-
-				Context.AddLine(FString::Printf(TEXT("%s SetMemberScratchInitializer;"), *FEmitHelper::GetCppName(ElementStructProperty->Struct)));
-
 				int32 Size = ScriptSetHelper.Num();
 				for (int32 I = 0; Size; ++I)
 				{
-					if(ScriptSetHelper.IsValidIndex(I))
+					if (ScriptSetHelper.IsValidIndex(I))
 					{
 						--Size;
-
-						// populate SetMemberScratchInitializer:
-						InnerGenerate(Context, SetProperty->ElementProp, TEXT("SetMemberScratchInitializer"), ScriptSetHelper.GetElementPtr(I), nullptr, true);
-
-						// Move into the TSet:
-						Context.AddLine(FString::Printf(TEXT("%s.Add(MoveTemp(SetMemberScratchInitializer));"), *PathToMember));
-
-						// reset SetMemberScratchInitializer:
-						Context.AddLine(FString::Printf(TEXT("SetMemberScratchInitializer = %s();"), *FEmitHelper::GetCppName(ElementStructProperty->Struct)));
+						Process(I);
 					}
 				}
+			};
+			Context.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *PathToMember, ScriptSetHelper.Num()));
 
-				Context.DecreaseIndent();
-				Context.AddLine(TEXT("}"));
+			const UStructProperty* StructProperty = Cast<const UStructProperty>(SetProperty->ElementProp);
+			const EStructConstructionType Construction = StructConstruction(StructProperty);
+			if (EStructConstructionType::InitializeStruct == Construction)
+			{
+				const UScriptStruct* InnerStruct = StructProperty ? StructProperty->Struct : nullptr;
+				ensure(InnerStruct);
+				const FString SetHelperName = Context.GenerateUniqueLocalName();
+				const FString PropertyLocalName = FEmitHelper::GenerateGetPropertyByName(Context, SetProperty);
+				const FString StructCppName = FEmitHelper::GetCppName(InnerStruct);
+				Context.AddLine(FString::Printf(TEXT("FScriptSetHelper %s(CastChecked<USetProperty>(%s), &%s);"), *SetHelperName, *PropertyLocalName, *PathToMember));
+				ForEachElementInSet([&](int32 Index)
+				{
+					const FString ElementName = Context.GenerateUniqueLocalName();
+					Context.AddLine(FString::Printf(TEXT("%s& %s = *(%s*)%s.GetElementPtr(%s.AddDefaultValue_Invalid_NeedsRehash());")
+						, *StructCppName, *ElementName, *StructCppName, *SetHelperName, *SetHelperName));
+					InnerGenerate(Context, StructProperty, ElementName, ScriptSetHelper.GetElementPtr(Index), nullptr, /*bWithoutFirstConstructionLine=*/true);
+				});
+				Context.AddLine(FString::Printf(TEXT("%s.Rehash();"), *SetHelperName));
 			}
 			else
 			{
-				int32 Size = ScriptSetHelper.Num();
-				for (int32 I = 0; Size; ++I)
+				ForEachElementInSet([&](int32 Index)
 				{
-					if(ScriptSetHelper.IsValidIndex(I))
-					{
-						--Size;
-
-						FString ValueStr;
-						ensure(OneLineConstruction(Context, SetProperty->ElementProp, ScriptSetHelper.GetElementPtr(I), ValueStr, false));
-						Context.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *PathToMember, *ValueStr));
-					}
-				}
+					const FString Element = CreateElementSimple(Context, SetProperty->ElementProp, ScriptSetHelper.GetElementPtr(Index));
+					Context.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *PathToMember, *Element));
+				});
 			}
 		}
 	}
-	else if(MapProperty)
+	else if(const UMapProperty* MapProperty = Cast<const UMapProperty>(Property))
 	{
+		check(MapProperty->KeyProp && MapProperty->ValueProp);
 		FScriptMapHelper ScriptMapHelper(MapProperty, ValuePtr);
 		if (ScriptMapHelper.Num())
 		{	
-			const UStructProperty* KeyStructProperty = Cast<const UStructProperty>(MapProperty->KeyProp);
-			const UStructProperty* ValueStructProperty = Cast<const UStructProperty>(MapProperty->ValueProp);
+			auto ForEachPairInMap = [&](TFunctionRef<void(int32)> Process)
+			{
+				int32 Size = ScriptMapHelper.Num();
+				for (int32 I = 0; Size; ++I)
+				{
+					if (ScriptMapHelper.IsValidIndex(I))
+					{
+						--Size;
+						Process(I);
+					}
+				}
+			};
 
 			Context.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *PathToMember, ScriptMapHelper.Num()));
 
-			// Split into 4 cases. They are all similar (add the Key/Value to the Map), but structs are significantly more complicated to initialize than primitives:
-			if(KeyStructProperty && ValueStructProperty)
+			const UStructProperty* KeyStructProperty = Cast<const UStructProperty>(MapProperty->KeyProp);
+			const EStructConstructionType KeyConstruction = StructConstruction(KeyStructProperty);
+			const UStructProperty* ValueStructProperty = Cast<const UStructProperty>(MapProperty->ValueProp);
+			const EStructConstructionType ValueConstruction = StructConstruction(ValueStructProperty);
+			if ((EStructConstructionType::InitializeStruct == KeyConstruction) || (EStructConstructionType::InitializeStruct == ValueConstruction))
 			{
-				// will add indentation and opening/closing brackets
-				// used to manage locals that were added via FEmitHelper::GenerateGetPropertyByName() 
-				// (removes them from the cache so we don't try to use them outside of the scope)
-				FScopeBlock NestedScopeBlock(Context);
-				
-				Context.AddLine(FString::Printf(TEXT("%s MapKeyScratchInitializer;"), *FEmitHelper::GetCppName(KeyStructProperty->Struct)));
-				Context.AddLine(FString::Printf(TEXT("%s MapValueScratchInitializer;"), *FEmitHelper::GetCppName(ValueStructProperty->Struct)));
+				const FString MapHelperName = Context.GenerateUniqueLocalName();
+				const FString PropertyLocalName = FEmitHelper::GenerateGetPropertyByName(Context, MapProperty);
+				Context.AddLine(FString::Printf(TEXT("FScriptMapHelper %s(CastChecked<UMapProperty>(%s), &%s);"), *MapHelperName, *PropertyLocalName, *PathToMember));
+				const uint32 ElementTypeCppExportFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst;
+				const FString ElementTypeStr = Context.ExportCppDeclaration(MapProperty, EExportedDeclaration::Member, ElementTypeCppExportFlags, FEmitterLocalContext::EPropertyNameInDeclaration::Skip).TrimTrailing()
+					+ TEXT("::ElementType");
 
-				int32 Size = ScriptMapHelper.Num();
-				for (int32 I = 0; Size; ++I)
+				ForEachPairInMap([&](int32 Index)
 				{
-					if(ScriptMapHelper.IsValidIndex(I))
+					const FString PairName = Context.GenerateUniqueLocalName();
+					Context.AddLine(FString::Printf(TEXT("%s& %s = *(%s*)%s.GetPairPtr(%s.AddDefaultValue_Invalid_NeedsRehash());")
+						, *ElementTypeStr, *PairName, *ElementTypeStr, *MapHelperName, *MapHelperName));
+
 					{
-						--Size;
-
-						// populate MapKeyScratchInitializer and MapValueScratchInitializer:
-						InnerGenerate(Context, MapProperty->KeyProp, TEXT("MapKeyScratchInitializer"), ScriptMapHelper.GetKeyPtr(I), nullptr, true);
-						InnerGenerate(Context, MapProperty->ValueProp, TEXT("MapValueScratchInitializer"), ScriptMapHelper.GetValuePtr(I), nullptr, true);
-
-						// Move into the TMap:
-						Context.AddLine(FString::Printf(TEXT("%s.Add(MoveTemp(MapKeyScratchInitializer), MoveTemp(MapValueScratchInitializer));"), *PathToMember));
-
-						// reset MapKeyScratchInitializer and MapValueScratchInitializer:
-						Context.AddLine(FString::Printf(TEXT("MapKeyScratchInitializer = %s();"), *FEmitHelper::GetCppName(KeyStructProperty->Struct)));
-						Context.AddLine(FString::Printf(TEXT("MapValueScratchInitializer = %s();"), *FEmitHelper::GetCppName(ValueStructProperty->Struct)));
+						bool bKeyComplete = false;
+						const FString KeyPath = FString::Printf(TEXT("%s.Key"), *PairName);
+						if (EStructConstructionType::Custom == KeyConstruction)
+						{
+							FString KeyStr;
+							bKeyComplete = OneLineConstruction(Context, MapProperty->KeyProp, ScriptMapHelper.GetKeyPtr(Index), KeyStr, /*bGenerateEmptyStructConstructor=*/ false);
+							if (!KeyStr.IsEmpty())
+							{
+								Context.AddLine(FString::Printf(TEXT("%s = %s;"), *KeyPath, *KeyStr));
+							}
+						}
+						if (!bKeyComplete)
+						{
+							InnerGenerate(Context, MapProperty->KeyProp, KeyPath, ScriptMapHelper.GetKeyPtr(Index), nullptr, /*bWithoutFirstConstructionLine=*/true);
+						}
 					}
-				}
-			}
-			else if( KeyStructProperty )
-			{
-				// will add indentation and opening/closing brackets
-				// used to manage locals that were added via FEmitHelper::GenerateGetPropertyByName() 
-				// (removes them from the cache so we don't try to use them outside of the scope)
-				FScopeBlock NestedScopeBlock(Context);
-				
-				Context.AddLine(FString::Printf(TEXT("%s MapKeyScratchInitializer;"), *FEmitHelper::GetCppName(KeyStructProperty->Struct)));
 
-				int32 Size = ScriptMapHelper.Num();
-				for (int32 I = 0; Size; ++I)
-				{
-					if(ScriptMapHelper.IsValidIndex(I))
 					{
-						--Size;
-
-						// populate MapKeyScratchInitializer:
-						InnerGenerate(Context, MapProperty->KeyProp, TEXT("MapKeyScratchInitializer"), ScriptMapHelper.GetKeyPtr(I), nullptr, true);
-						
-						FString ValueStr;
-						ensure(OneLineConstruction(Context, MapProperty->ValueProp, ScriptMapHelper.GetValuePtr(I), ValueStr, false));
-
-						// Move into the TMap:
-						Context.AddLine(FString::Printf(TEXT("%s.Add(MoveTemp(MapKeyScratchInitializer), %s);"), *PathToMember, *ValueStr));
-
-						// reset MapKeyScratchInitializer:
-						Context.AddLine(FString::Printf(TEXT("MapKeyScratchInitializer = %s();"), *FEmitHelper::GetCppName(KeyStructProperty->Struct)));
+						bool bValueComplete = false;
+						const FString ValuePath = FString::Printf(TEXT("%s.Value"), *PairName);
+						if (EStructConstructionType::Custom == ValueConstruction)
+						{
+							FString ValueStr;
+							bValueComplete = OneLineConstruction(Context, MapProperty->ValueProp, ScriptMapHelper.GetKeyPtr(Index), ValueStr, /*bGenerateEmptyStructConstructor=*/ false);
+							if (!ValueStr.IsEmpty())
+							{
+								Context.AddLine(FString::Printf(TEXT("%s = %s;"), *ValuePath, *ValueStr));
+							}
+						}
+						if (!bValueComplete)
+						{
+							InnerGenerate(Context, MapProperty->ValueProp, ValuePath, ScriptMapHelper.GetValuePtr(Index), nullptr, /*bWithoutFirstConstructionLine=*/true);
+						}
 					}
-				}
-			}
-			else if( ValueStructProperty )
-			{
-				// will add indentation and opening/closing brackets
-				// used to manage locals that were added via FEmitHelper::GenerateGetPropertyByName() 
-				// (removes them from the cache so we don't try to use them outside of the scope)
-				FScopeBlock NestedScopeBlock(Context);
-				
-				Context.AddLine(FString::Printf(TEXT("%s MapValueScratchInitializer;"), *FEmitHelper::GetCppName(ValueStructProperty->Struct)));
 
-				int32 Size = ScriptMapHelper.Num();
-				for (int32 I = 0; Size; ++I)
-				{
-					if(ScriptMapHelper.IsValidIndex(I))
-					{
-						--Size;
-
-						// populate MapValueScratchInitializer:
-						InnerGenerate(Context, MapProperty->ValueProp, TEXT("MapValueScratchInitializer"), ScriptMapHelper.GetValuePtr(I), nullptr, true);
-						
-						FString KeyStr;
-						ensure(OneLineConstruction(Context, MapProperty->KeyProp, ScriptMapHelper.GetKeyPtr(I), KeyStr, false));
-
-						// Move into the TMap:
-						Context.AddLine(FString::Printf(TEXT("%s.Add(%s, MoveTemp(MapValueScratchInitializer));"), *PathToMember, *KeyStr));
-
-						// reset MapValueScratchInitializer:
-						Context.AddLine(FString::Printf(TEXT("MapValueScratchInitializer = %s();"), *FEmitHelper::GetCppName(ValueStructProperty->Struct)));
-					}
-				}
+				});
+				Context.AddLine(FString::Printf(TEXT("%s.Rehash();"), *MapHelperName));
 			}
 			else
 			{
-				int32 Size = ScriptMapHelper.Num();
-				for (int32 I = 0; Size; ++I)
+				ForEachPairInMap([&](int32 Index)
 				{
-					if(ScriptMapHelper.IsValidIndex(I))
-					{
-						--Size;
-
-						FString KeyStr;
-						ensure(OneLineConstruction(Context, MapProperty->KeyProp, ScriptMapHelper.GetKeyPtr(I), KeyStr, false));
-						FString ValueStr;
-						ensure(OneLineConstruction(Context, MapProperty->ValueProp, ScriptMapHelper.GetValuePtr(I), ValueStr, false));
-						Context.AddLine(FString::Printf(TEXT("%s.Add(%s, %s);"), *PathToMember, *KeyStr, *ValueStr));
-					}
-				}
+					const FString KeyStr = CreateElementSimple(Context, MapProperty->KeyProp, ScriptMapHelper.GetKeyPtr(Index));
+					const FString ValueStr = CreateElementSimple(Context, MapProperty->ValueProp, ScriptMapHelper.GetValuePtr(Index));
+					Context.AddLine(FString::Printf(TEXT("%s.Add(%s, %s);"), *PathToMember, *KeyStr, *ValueStr));
+				});
 			}
 		}
 	}
@@ -468,6 +487,11 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UStruct* Struct, const uint8* ValuePtr, /*out*/ FString* OutResult)
 {
 	check(ValuePtr || !OutResult);
+
+	if (FBackendHelperUMG::SpecialStructureConstructorUMG(Struct, ValuePtr, OutResult))
+	{
+		return true;
+	}
 
 	if (FLatentActionInfo::StaticStruct() == Struct)
 	{

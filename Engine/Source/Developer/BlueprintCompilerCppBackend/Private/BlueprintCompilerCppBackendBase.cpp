@@ -167,6 +167,73 @@ void FBlueprintCompilerCppBackendBase::DeclareDelegates(FEmitterLocalContext& Em
 	}
 }
 
+struct FIncludeHeaderHelper
+{
+	static void EmitIncludeHeader(FCodeText& Dst, const TCHAR* Message, bool bAddDotH)
+	{
+		Dst.AddLine(FString::Printf(TEXT("#include \"%s%s\""), Message, bAddDotH ? TEXT(".h") : TEXT("")));
+	}
+
+	static void EmitInner(FCodeText& Dst, const TSet<UField*>& Src, const TSet<UField*>& Declarations, TSet<FString>& AlreadyIncluded)
+	{
+		auto EngineSourceDir = FPaths::EngineSourceDir();
+		auto GameSourceDir = FPaths::GameSourceDir();
+
+		for (UField* Field : Src)
+		{
+			if (!Field)
+			{
+				continue;
+			}
+			const bool bWantedType = Field->IsA<UBlueprintGeneratedClass>() || Field->IsA<UUserDefinedEnum>() || Field->IsA<UUserDefinedStruct>();
+
+			// Wanted no-native type, that will be converted
+			if (bWantedType)
+			{
+				// @TODO: Need to query if this asset will actually be converted
+
+				const FString Name = Field->GetPathName();
+				bool bAlreadyIncluded = false;
+				AlreadyIncluded.Add(Name, &bAlreadyIncluded);
+				if (!bAlreadyIncluded)
+				{
+					const FString GeneratedFilename = FEmitHelper::GetBaseFilename(Field);
+					FIncludeHeaderHelper::EmitIncludeHeader(Dst, *GeneratedFilename, true);
+				}
+			}
+			// headers for native items
+			else
+			{
+				FString PackPath;
+				if (FSourceCodeNavigation::FindClassHeaderPath(Field, PackPath))
+				{
+					if (!PackPath.RemoveFromStart(EngineSourceDir))
+					{
+						if (!PackPath.RemoveFromStart(GameSourceDir))
+						{
+							PackPath = FPaths::GetCleanFilename(PackPath);
+						}
+					}
+					bool bAlreadyIncluded = false;
+					AlreadyIncluded.Add(PackPath, &bAlreadyIncluded);
+					if (!bAlreadyIncluded)
+					{
+						FIncludeHeaderHelper::EmitIncludeHeader(Dst, *PackPath, false);
+					}
+				}
+			}
+		}
+
+		for (auto Type : Declarations)
+		{
+			if (auto ForwardDeclaredType = Cast<UClass>(Type))
+			{
+				Dst.AddLine(FString::Printf(TEXT("class %s;"), *FEmitHelper::GetCppName(ForwardDeclaredType)));
+			}
+		}
+	}
+};
+
 FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly, FCompilerNativizationOptions NativizationOptions, FString& OutCppBody)
 {
 	CleanBackend();
@@ -208,6 +275,13 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 
 	EmitFileBeginning(CleanCppClassName, EmitterContext);
 
+	const TCHAR* PlaceholderForInlinedStructInlude = TEXT("//PlaceholderForInlinedStructInlude");
+	const bool bIsInterface = SourceClass->IsChildOf<UInterface>();
+	if (!bIsInterface)
+	{
+		EmitterContext.Body.AddLine(PlaceholderForInlinedStructInlude);
+	}
+
 	const bool bHasStaticSearchableValues = FBackendHelperStaticSearchableValues::HasSearchableValues(SourceClass);
 
 	{
@@ -241,7 +315,6 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 		}
 
 		// Class declaration
-		const bool bIsInterface = SourceClass->IsChildOf<UInterface>();
 		if (bIsInterface)
 		{
 			EmitterContext.Header.AddLine(FString::Printf(TEXT("UINTERFACE(Blueprintable, %s)"), *FEmitHelper::ReplaceConvertedMetaData(OriginalSourceClass)));
@@ -370,6 +443,15 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 
 		FEmitHelper::EmitLifetimeReplicatedPropsImpl(EmitterContext);
 	}
+
+	if (!bIsInterface)
+	{
+		FCodeText AdditionalIncludes;
+		TSet<FString> DummyStrSet;
+		FIncludeHeaderHelper::EmitInner(AdditionalIncludes, EmitterContext.StructsUsedAsInlineValues, TSet<UField*>{}, DummyStrSet);
+		EmitterContext.Body.Result.ReplaceInline(PlaceholderForInlinedStructInlude, *AdditionalIncludes.Result);
+	}
+
 	CleanBackend();
 
 	OutCppBody = EmitterContext.Body.Result;
@@ -1186,14 +1268,10 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 {
 	EmitterContext.Header.AddLine(TEXT("#pragma once"));
 
-	auto EmitIncludeHeader = [&](FCodeText& Dst, const TCHAR* Message, bool bAddDotH)
-	{
-		Dst.AddLine(FString::Printf(TEXT("#include \"%s%s\""), Message, bAddDotH ? TEXT(".h") : TEXT("")));
-	};
 	const FString PCHFilename = FEmitHelper::GetPCHFilename();
 	if (!PCHFilename.IsEmpty())
 	{
-		EmitIncludeHeader(EmitterContext.Body, *PCHFilename, false);
+		FIncludeHeaderHelper::EmitIncludeHeader(EmitterContext.Body, *PCHFilename, false);
 	}
 	else
 	{
@@ -1201,76 +1279,18 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 		const FString MainHeaderFilename = FEmitHelper::GetGameMainHeaderFilename();
 		if (!MainHeaderFilename.IsEmpty())
 		{
-			EmitIncludeHeader(EmitterContext.Body, *MainHeaderFilename, false);
+			FIncludeHeaderHelper::EmitIncludeHeader(EmitterContext.Body, *MainHeaderFilename, false);
 		}
 	}
-	EmitIncludeHeader(EmitterContext.Body, *CleanName, true);
-	EmitIncludeHeader(bIncludeCodeHelpersInHeader ? EmitterContext.Header : EmitterContext.Body, TEXT("GeneratedCodeHelpers"), true);
-	EmitIncludeHeader(EmitterContext.Header, TEXT("Blueprint/BlueprintSupport"), true);
+	FIncludeHeaderHelper::EmitIncludeHeader(EmitterContext.Body, *CleanName, true);
+	FIncludeHeaderHelper::EmitIncludeHeader(bIncludeCodeHelpersInHeader ? EmitterContext.Header : EmitterContext.Body, TEXT("GeneratedCodeHelpers"), true);
+	FIncludeHeaderHelper::EmitIncludeHeader(EmitterContext.Header, TEXT("Blueprint/BlueprintSupport"), true);
 
 	FBackendHelperUMG::AdditionalHeaderIncludeForWidget(EmitterContext);
 	FBackendHelperAnim::AddHeaders(EmitterContext);
 
 	TSet<FString> AlreadyIncluded;
 	AlreadyIncluded.Add(CleanName);
-	auto EmitInner = [&](FCodeText& Dst, const TSet<UField*>& Src, const TSet<UField*>& Declarations)
-	{
-		auto EngineSourceDir = FPaths::EngineSourceDir();
-		auto GameSourceDir = FPaths::GameSourceDir();
-
-		for (UField* Field : Src)
-		{
-			if (!Field)
-			{
-				continue;
-			}
-			const bool bWantedType = Field->IsA<UBlueprintGeneratedClass>() || Field->IsA<UUserDefinedEnum>() || Field->IsA<UUserDefinedStruct>();
-
-			// Wanted no-native type, that will be converted
-			if (bWantedType)
-			{
-				// @TODO: Need to query if this asset will actually be converted
-
-				const FString Name = Field->GetPathName();
-				bool bAlreadyIncluded = false;
-				AlreadyIncluded.Add(Name, &bAlreadyIncluded);
-				if (!bAlreadyIncluded)
-				{
-					const FString GeneratedFilename = FEmitHelper::GetBaseFilename(Field);
-					EmitIncludeHeader(Dst, *GeneratedFilename, true);
-				}
-			}
-			// headers for native items
-			else
-			{
-				FString PackPath;
-				if (FSourceCodeNavigation::FindClassHeaderPath(Field, PackPath))
-				{
-					if (!PackPath.RemoveFromStart(EngineSourceDir))
-					{
-						if (!PackPath.RemoveFromStart(GameSourceDir))
-						{
-							PackPath = FPaths::GetCleanFilename(PackPath);
-						}
-					}
-					bool bAlreadyIncluded = false;
-					AlreadyIncluded.Add(PackPath, &bAlreadyIncluded);
-					if (!bAlreadyIncluded)
-					{
-						EmitIncludeHeader(Dst, *PackPath, false);
-					}
-				}
-			}
-		}
-
-		for (auto Type : Declarations)
-		{
-			if (auto ForwardDeclaredType = Cast<UClass>(Type))
-			{
-				Dst.AddLine(FString::Printf(TEXT("class %s;"), *FEmitHelper::GetCppName(ForwardDeclaredType)));
-			}
-		}
-	};
 
 	TSet<UField*> IncludeInBody = EmitterContext.Dependencies.IncludeInBody;
 	TSet<UField*> IncludeInHeader = EmitterContext.Dependencies.IncludeInHeader;
@@ -1278,16 +1298,16 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 	{
 		IncludeInHeader.Add(AdditionalFieldToIncludeInHeader);
 	}
-	EmitInner(EmitterContext.Header, IncludeInHeader, bFullyIncludedDeclaration ? TSet<UField*>() : EmitterContext.Dependencies.DeclareInHeader);
+	FIncludeHeaderHelper::EmitInner(EmitterContext.Header, IncludeInHeader, bFullyIncludedDeclaration ? TSet<UField*>() : EmitterContext.Dependencies.DeclareInHeader, AlreadyIncluded);
 	if (bFullyIncludedDeclaration)
 	{
-		EmitInner(EmitterContext.Header, EmitterContext.Dependencies.DeclareInHeader, TSet<UField*>());
+		FIncludeHeaderHelper::EmitInner(EmitterContext.Header, EmitterContext.Dependencies.DeclareInHeader, TSet<UField*>(), AlreadyIncluded);
 	}
 	else
 	{
 		IncludeInBody.Append(EmitterContext.Dependencies.DeclareInHeader);
 	}
-	EmitInner(EmitterContext.Body, IncludeInBody, TSet<UField*>());
+	FIncludeHeaderHelper::EmitInner(EmitterContext.Body, IncludeInBody, TSet<UField*>(), AlreadyIncluded);
 
 	if (bIncludeGeneratedH)
 	{

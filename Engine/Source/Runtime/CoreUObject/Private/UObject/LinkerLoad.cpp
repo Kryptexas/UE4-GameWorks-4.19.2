@@ -4258,7 +4258,7 @@ UObject* FLinkerLoad::CreateImport( int32 Index )
 						FindObject = FindImportFast(FindClass, FindOuter, Import.ObjectName);
 						if (UDynamicClass* FoundDynamicClass = Cast<UDynamicClass>(FindObject))
 						{
-							if (!FoundDynamicClass->GetDefaultObject(false))
+							if(0 == (FoundDynamicClass->ClassFlags & CLASS_Constructed))
 							{
 								// This class wasn't fully constructed yet. It will be properly constructed in CreateExport. 
 								FindObject = nullptr;

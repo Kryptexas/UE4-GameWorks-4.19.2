@@ -63,6 +63,11 @@ struct FMovieSceneSegment
 		}
 	}
 
+	FMovieSceneSegment(const TRange<float>& InRange, std::initializer_list<FSectionEvaluationData> InSectionEvaluationData)
+		: Range(InRange)
+		, Impls(InSectionEvaluationData)
+	{}
+
 	/** Custom serializer to accomodate the inline allocator on our array */
 	bool Serialize(FArchive& Ar)
 	{
