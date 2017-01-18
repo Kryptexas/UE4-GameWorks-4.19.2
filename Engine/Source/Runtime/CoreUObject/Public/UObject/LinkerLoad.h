@@ -350,6 +350,11 @@ public:
 	static void CreateActiveRedirectsMap(const FString& GEngineIniName);
 
 	/**
+	 * Test whether the given package index is a valid import or export in this package
+	 */
+	bool IsValidPackageIndex(FPackageIndex InIndex);
+
+	/**
 	 * Locates the class adjusted index and its package adjusted index for a given class name in the import map
 	 */
 	COREUOBJECT_API bool FindImportClassAndPackage( FName ClassName, FPackageIndex& ClassIdx, FPackageIndex& PackageIdx );
