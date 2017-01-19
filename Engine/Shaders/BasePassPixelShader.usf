@@ -283,6 +283,14 @@ void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuse
 #endif
 }
 
+#if SUPPORTS_INDEPENDENT_SAMPLERS
+	#define ILCSharedSampler1 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler0
+	#define ILCSharedSampler2 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler0
+#else
+	#define ILCSharedSampler1 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler1
+	#define ILCSharedSampler2 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler2
+#endif
+
 /** Calculates indirect lighting contribution on this object from precomputed data. */
 void GetPrecomputedIndirectLightingAndSkyLight(
 	FMaterialPixelParameters MaterialParameters, 
@@ -316,8 +324,8 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 
 		#else
 
-			float4 Vector1 = Texture3DSample(PrecomputedLightingBuffer.IndirectLightingCacheTexture1, PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler1, VolumeUVs);
-			float4 Vector2 = Texture3DSample(PrecomputedLightingBuffer.IndirectLightingCacheTexture2, PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler2, VolumeUVs);
+			float4 Vector1 = Texture3DSample(PrecomputedLightingBuffer.IndirectLightingCacheTexture1, ILCSharedSampler1, VolumeUVs);
+			float4 Vector2 = Texture3DSample(PrecomputedLightingBuffer.IndirectLightingCacheTexture2, ILCSharedSampler2, VolumeUVs);
 
 			// Construct the SH environment
 			FTwoBandSHVectorRGB CachedSH;
