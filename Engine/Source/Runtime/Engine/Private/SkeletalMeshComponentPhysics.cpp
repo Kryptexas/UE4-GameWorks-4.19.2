@@ -3365,7 +3365,7 @@ FApexClothCollisionInfo* USkeletalMeshComponent::CreateNewClothingCollsions(UPri
 		}
 	}
 
-	if(NewInfo)
+	if(NewInfo.ClothingCollisions.Num() > 0)
 	{
 		return &ClothOverlappedComponentsMap.Add(PrimitiveComponent, NewInfo);
 	}
