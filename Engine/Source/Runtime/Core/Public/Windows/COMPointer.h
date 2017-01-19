@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include <Unknwn.h>
+
+
 /**
 * Smart COM object pointer.
 */

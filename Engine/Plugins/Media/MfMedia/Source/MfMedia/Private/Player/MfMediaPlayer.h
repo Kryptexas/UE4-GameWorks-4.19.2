@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "../MfMediaPrivate.h"
+#include "MfMediaPrivate.h"
+
+#if MFMEDIA_SUPPORTED_PLATFORM
 
 #include "IMediaControls.h"
 #include "IMediaPlayer.h"
@@ -158,3 +160,5 @@ private:
 #else
 	#include "XboxOneHidePlatformTypes.h"
 #endif
+
+#endif //MFMEDIA_SUPPORTED_PLATFORM
