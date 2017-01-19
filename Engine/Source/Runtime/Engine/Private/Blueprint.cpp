@@ -1157,7 +1157,7 @@ void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 		// If nativization is enabled and this Blueprint class will NOT be nativized, we need to determine if any of its parent Blueprints will be nativized and flag it for the runtime code.
 		// Note: Currently, this flag is set on Actor-based Blueprint classes only. If it's ever needed for non-Actor-based Blueprint classes at runtime, then this needs to be updated to match.
 		const IBlueprintNativeCodeGenCore* NativeCodeGenCore = IBlueprintNativeCodeGenCore::Get();
-		if (GeneratedClass != nullptr && NativeCodeGenCore != nullptr && GetDefault<UProjectPackagingSettings>()->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled)
+		if (GeneratedClass != nullptr && NativeCodeGenCore != nullptr && FParse::Param(FCommandLine::Get(), TEXT("NativizeAssets")))
 		{
 			TArray<const UBlueprintGeneratedClass*> ParentBPClassStack;
 			UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(GeneratedClass->GetSuperClass(), ParentBPClassStack);
