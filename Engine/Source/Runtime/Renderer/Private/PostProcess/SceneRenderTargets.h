@@ -189,6 +189,7 @@ protected:
 		BufferSize(0, 0),
 		SeparateTranslucencyBufferSize(0, 0),
 		SeparateTranslucencyScale(1),
+		InitialFrameSceneColorFormatType(ESceneColorFormatType::Num),
 		SmallColorDepthDownsampleFactor(2),
 		bLightAttenuationEnabled(true),
 		bUseDownsizedOcclusionQueries(true),
@@ -674,10 +675,6 @@ private:
 	// release all allocated targets to the pool
 	void ReleaseAllTargets();
 
-	/** Get the current scene color target based on our current shading path. Will return a null ptr if there is no valid scene color target  */
-	const TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath() const { check(CurrentShadingPath < EShadingPath::Num); return SceneColor[(int32)GetSceneColorFormatType()]; }
-	TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath() { check(CurrentShadingPath < EShadingPath::Num); return SceneColor[(int32)GetSceneColorFormatType()]; }
-
 	/** Determine whether the render targets for a particular shading path have been allocated */
 	bool AreShadingPathRenderTargetsAllocated(ESceneColorFormatType InSceneColorFormatType) const;
 
@@ -695,7 +692,7 @@ private:
 	/** Gets all GBuffers to use.  Returns the number actually used. */
 	int32 GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FRHIRenderTargetView OutRenderTargets[MaxSimultaneousRenderTargets], int32& OutVelocityRTIndex);
 
-	ESceneColorFormatType GetSceneColorFormatType() const
+	inline ESceneColorFormatType GetSceneColorFormatType() const
 	{
 		if (CurrentShadingPath == EShadingPath::Mobile)
 		{
@@ -714,12 +711,41 @@ private:
 		return ESceneColorFormatType::Num;
 	}
 
+	/** Get the current scene color target based on our current shading path. Will return a null ptr if there is no valid scene color target  */
+	template<bool bDoCheck>
+	inline const TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath() const
+	{
+		check(CurrentShadingPath < EShadingPath::Num);
+		if (bDoCheck)
+		{
+			ESceneColorFormatType CurrentSceneColorFormatType = GetSceneColorFormatType();
+			check(CurrentSceneColorFormatType == InitialFrameSceneColorFormatType);
+		}
+		return SceneColor[(int32)GetSceneColorFormatType()];
+	}
+
+	template<bool bDoCheck>
+	inline TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath()
+	{
+		check(CurrentShadingPath < EShadingPath::Num);
+		if (bDoCheck)
+		{
+			ESceneColorFormatType CurrentSceneColorFormatType = GetSceneColorFormatType();
+			check(CurrentSceneColorFormatType == InitialFrameSceneColorFormatType);
+		}
+		return SceneColor[(int32)GetSceneColorFormatType()];
+	}
+
 	/** Uniform buffer containing GBuffer resources. */
 	FUniformBufferRHIRef GBufferResourcesUniformBuffer;
 	/** size of the back buffer, in editor this has to be >= than the biggest view port */
 	FIntPoint BufferSize;
 	FIntPoint SeparateTranslucencyBufferSize;
 	float SeparateTranslucencyScale;
+
+	// Track down any changes to the scene color format type w/o calling AllocSceneColor
+	ESceneColorFormatType InitialFrameSceneColorFormatType;
+
 	/** e.g. 2 */
 	uint32 SmallColorDepthDownsampleFactor;
 	/** if true we use the light attenuation buffer otherwise the 1x1 white texture is used */

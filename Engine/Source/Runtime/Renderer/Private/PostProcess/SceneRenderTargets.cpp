@@ -227,6 +227,7 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, BufferSize(SnapshotSource.BufferSize)
 	, SeparateTranslucencyBufferSize(SnapshotSource.SeparateTranslucencyBufferSize)
 	, SeparateTranslucencyScale(SnapshotSource.SeparateTranslucencyScale)
+	, InitialFrameSceneColorFormatType(SnapshotSource.InitialFrameSceneColorFormatType)
 	, SmallColorDepthDownsampleFactor(SnapshotSource.SmallColorDepthDownsampleFactor)
 	, bLightAttenuationEnabled(SnapshotSource.bLightAttenuationEnabled)
 	, bUseDownsizedOcclusionQueries(SnapshotSource.bUseDownsizedOcclusionQueries)
@@ -689,7 +690,9 @@ int32 FSceneRenderTargets::GetNumGBufferTargets() const
 
 void FSceneRenderTargets::AllocSceneColor(FRHICommandList& RHICmdList)
 {
-	TRefCountPtr<IPooledRenderTarget>& SceneColorTarget = GetSceneColorForCurrentShadingPath();
+	InitialFrameSceneColorFormatType = GetSceneColorFormatType();
+
+	TRefCountPtr<IPooledRenderTarget>& SceneColorTarget = GetSceneColorForCurrentShadingPath<false>();
 	if (SceneColorTarget && 
 		SceneColorTarget->GetRenderTargetItem().TargetableTexture->HasClearValue() && 
 		!(SceneColorTarget->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultColorClear))
@@ -708,7 +711,7 @@ void FSceneRenderTargets::AllocSceneColor(FRHICommandList& RHICmdList)
 		SceneColorTarget.SafeRelease();
 	}
 
-	if (GetSceneColorForCurrentShadingPath())
+	if (GetSceneColorForCurrentShadingPath<false>())
 	{
 		return;
 	}
@@ -728,10 +731,10 @@ void FSceneRenderTargets::AllocSceneColor(FRHICommandList& RHICmdList)
 			Desc.TargetableFlags |= TexCreate_UAV;
 		}
 
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GetSceneColorForCurrentShadingPath(), GetSceneColorTargetName(CurrentShadingPath));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GetSceneColorForCurrentShadingPath<false>(), GetSceneColorTargetName(CurrentShadingPath));
 	}
 
-	check(GetSceneColorForCurrentShadingPath());
+	check(GetSceneColorForCurrentShadingPath<false>());
 }
 
 void FSceneRenderTargets::AllocMobileMultiViewSceneColor(FRHICommandList& RHICmdList)
@@ -983,7 +986,7 @@ void FSceneRenderTargets::AllocGBufferTargets(FRHICommandList& RHICmdList)
 
 const TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSceneColor() const
 {
-	if (!GetSceneColorForCurrentShadingPath())
+	if (!GetSceneColorForCurrentShadingPath<false>())
 	{
 		// to avoid log/ensure spam
 		static bool bFirst = true;
@@ -992,23 +995,23 @@ const TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSceneColor() co
 			bFirst = false;
 
 			// the first called should be AllocSceneColor(), contact MartinM if that happens
-			ensure(GetSceneColorForCurrentShadingPath());
+			ensure(GetSceneColorForCurrentShadingPath<true>());
 		}
 
 		return GSystemTextures.BlackDummy;
 	}
 
-	return GetSceneColorForCurrentShadingPath();
+	return GetSceneColorForCurrentShadingPath<true>();
 }
 
 bool FSceneRenderTargets::IsSceneColorAllocated() const
 {
-	return GetSceneColorForCurrentShadingPath() != 0;
+	return GetSceneColorForCurrentShadingPath<false>() != 0;
 }
 
 TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSceneColor()
 {
-	if (!GetSceneColorForCurrentShadingPath())
+	if (!GetSceneColorForCurrentShadingPath<false>())
 	{
 		// to avoid log/ensure spam
 		static bool bFirst = true;
@@ -1017,13 +1020,13 @@ TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSceneColor()
 			bFirst = false;
 
 			// the first called should be AllocSceneColor(), contact MartinM if that happens
-			ensure(GetSceneColorForCurrentShadingPath());
+			ensure(GetSceneColorForCurrentShadingPath<true>());
 		}
 
 		return GSystemTextures.BlackDummy;
 	}
 
-	return GetSceneColorForCurrentShadingPath();
+	return GetSceneColorForCurrentShadingPath<true>();
 }
 
 void FSceneRenderTargets::SetSceneColor(IPooledRenderTarget* In)
@@ -2078,7 +2081,7 @@ FIntPoint FSceneRenderTargets::GetTranslucentShadowDepthTextureResolution() cons
 
 const FTextureRHIRef& FSceneRenderTargets::GetSceneColorSurface() const							
 {
-	if (!GetSceneColorForCurrentShadingPath())
+	if (!GetSceneColorForCurrentShadingPath<true>())
 	{
 		return GBlackTexture->TextureRHI;
 	}
@@ -2088,7 +2091,7 @@ const FTextureRHIRef& FSceneRenderTargets::GetSceneColorSurface() const
 
 const FTextureRHIRef& FSceneRenderTargets::GetSceneColorTexture() const
 {
-	if (!GetSceneColorForCurrentShadingPath())
+	if (!GetSceneColorForCurrentShadingPath<true>())
 	{
 		return GBlackTexture->TextureRHI;
 	}
@@ -2247,7 +2250,7 @@ bool FSceneRenderTargets::AreRenderTargetClearsValid(ESceneColorFormatType InSce
 	{
 	case ESceneColorFormatType::Mobile:
 		{
-			const TRefCountPtr<IPooledRenderTarget>& SceneColorTarget = GetSceneColorForCurrentShadingPath();
+			const TRefCountPtr<IPooledRenderTarget>& SceneColorTarget = GetSceneColorForCurrentShadingPath<true>();
 			const bool bColorValid = SceneColorTarget && (SceneColorTarget->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultColorClear);
 			const bool bDepthValid = SceneDepthZ && (SceneDepthZ->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultDepthClear);
 			return bColorValid && bDepthValid;
