@@ -44,6 +44,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_ModifyCurve : public FAnimNode_Base
 	FAnimNode_ModifyCurve();
 
 	// FAnimNode_Base interface
+	virtual void Initialize(const FAnimationInitializeContext& Context) override;
 	virtual void Evaluate(FPoseContext& Output) override;
 	virtual void Update(const FAnimationUpdateContext& Context) override;
 	// End of FAnimNode_Base interface

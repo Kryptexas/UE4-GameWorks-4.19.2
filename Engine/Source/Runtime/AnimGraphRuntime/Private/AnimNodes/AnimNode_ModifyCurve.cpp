@@ -10,6 +10,12 @@ FAnimNode_ModifyCurve::FAnimNode_ModifyCurve()
 	Alpha = 1.f;
 }
 
+void FAnimNode_ModifyCurve::Initialize(const FAnimationInitializeContext& Context)
+{
+	Super::Initialize(Context);
+	SourcePose.Initialize(Context);
+}
+
 void FAnimNode_ModifyCurve::Evaluate(FPoseContext& Output)
 {
 	FPoseContext SourceData(Output);
@@ -51,6 +57,9 @@ void FAnimNode_ModifyCurve::Evaluate(FPoseContext& Output)
 
 void FAnimNode_ModifyCurve::Update(const FAnimationUpdateContext& Context)
 {
+	// Run update on input pose nodes
+	SourcePose.Update(Context);
+
 	// Evaluate any BP logic plugged into this node
 	EvaluateGraphExposedInputs.Execute(Context);
 }
