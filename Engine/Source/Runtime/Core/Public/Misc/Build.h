@@ -20,9 +20,6 @@
 #ifndef UE_BUILD_SHIPPING
 	#define UE_BUILD_SHIPPING			0
 #endif
-#ifndef UE_BUILD_SHIPPING_EDITOR
-	#define UE_BUILD_SHIPPING_EDITOR	(#)
-#endif
 #ifndef UE_GAME
 	#define UE_GAME						0
 #endif
