@@ -1292,6 +1292,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 				}
 			}
 		}
+
 		for (int32 MaterialIndex = 0; MaterialIndex < MeshMaterials.Num(); ++MaterialIndex)
 		{
 			int32 SkinIndex = 0xffff;
@@ -1304,13 +1305,15 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 				}
 			}
 			int32 RemappedIndex = MaterialMap[MaterialIndex];
-			if (!SortedMaterialIndex.IsValidIndex(RemappedIndex))
+			uint32 SortedMaterialKey = ((uint32)SkinIndex << 16) | ((uint32)RemappedIndex & 0xffff);
+			if (!SortedMaterialIndex.IsValidIndex(SortedMaterialKey))
 			{
-				FString FbxMatName = UniqueMaterials[RemappedIndex].GetName();
-				SortedMaterialIndex.Add(((uint32)SkinIndex << 16) | ((uint32)RemappedIndex & 0xffff));
+				SortedMaterialIndex.Add(SortedMaterialKey);
 			}
 		}
+
 		SortedMaterialIndex.Sort();
+
 
 		UE_LOG(LogFbx, Verbose, TEXT("== After sorting:"));
 		TArray<FFbxMaterial> SortedMaterials;
