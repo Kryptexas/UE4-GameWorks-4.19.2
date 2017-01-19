@@ -27,6 +27,7 @@
 #include "StaticMeshResources.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedStaticMesh.h"
+#include "SceneManagement.h"
 
 static TAutoConsoleVariable<int32> CVarFoliageSplitFactor(
 	TEXT("foliage.SplitFactor"),
@@ -747,6 +748,7 @@ class FHierarchicalStaticMeshSceneProxy : public FInstancedStaticMeshSceneProxy
 	TMap<uint32, FFoliageOcclusionResults> OcclusionResults;
 	bool bIsGrass;
 	uint32 SceneProxyCreatedFrameNumberRenderThread;
+	bool bDitheredLODTransitions;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	mutable TArray<uint32> SingleDebugRuns[MAX_STATIC_MESH_LODS];
@@ -767,6 +769,7 @@ public:
 		, LastUnbuiltIndex(InComponent->GetNumRenderInstances()-1)
 		, bIsGrass(bInIsGrass)
 		, SceneProxyCreatedFrameNumberRenderThread(UINT32_MAX)
+		, bDitheredLODTransitions(InComponent->SupportsDitheredLODTransitions())
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		, CaptureTag(0)
 #endif
@@ -783,6 +786,8 @@ public:
 		, FirstUnbuiltIndex(InComponent->NumBuiltRenderInstances)
 		, LastUnbuiltIndex(InComponent->GetNumRenderInstances()-1)
 		, bIsGrass(bInIsGrass)
+		, SceneProxyCreatedFrameNumberRenderThread(UINT32_MAX)
+		, bDitheredLODTransitions(InComponent->SupportsDitheredLODTransitions())
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		, CaptureTag(0)
 #endif
@@ -1315,7 +1320,7 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_HierarchicalInstancedStaticMeshSceneProxy_GetMeshElements);
 
-	bool bMultipleSections = ALLOW_DITHERED_LOD_FOR_INSTANCED_STATIC_MESHES && CVarDitheredLOD.GetValueOnRenderThread() > 0;
+	bool bMultipleSections = ALLOW_DITHERED_LOD_FOR_INSTANCED_STATIC_MESHES && bDitheredLODTransitions && CVarDitheredLOD.GetValueOnRenderThread() > 0;
 	bool bSingleSections = !bMultipleSections;
 	bool bOverestimate = CVarOverestimateLOD.GetValueOnRenderThread() > 0;
 
@@ -1448,40 +1453,26 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 				float MaxDrawDistanceScale = GetCachedScalabilityCVars().ViewDistanceScale;
 				float SphereRadius = RenderData->Bounds.SphereRadius;
 
-				for (int32 LODIndex = 0; LODIndex < InstanceParams.LODs; LODIndex++)
+				float FinalCull = MAX_flt;
+				if (MinSize > 0.0)
 				{
-					InstanceParams.LODPlanesMax[LODIndex] = MIN_flt;
-					InstanceParams.LODPlanesMin[LODIndex] = MAX_flt;
+					FinalCull = ComputeBoundsDrawDistance(MinSize, SphereRadius, View->ViewMatrices.GetProjectionMatrix()) * LODScale;
 				}
-				ElementParams.FinalCullDistance = MIN_flt;
-				for (int32 SampleIndex = 0; SampleIndex < 2; SampleIndex++)
+				if (UserData_AllInstances.EndCullDistance > 0.0f)
 				{
-					// we aren't going to accurately figure out LOD planes for both samples and try all 4 possibilities, rather we just consider the worst case LOD range; the shaders will render correctly
-					float Fac = View->GetTemporalLODDistanceFactor(SampleIndex, bMultipleSections) * SphereRadius * LODScale;
-
-					float FinalCull = MAX_flt;
-
-					if (MinSize > 0.0)
-					{
-						FinalCull = FMath::Sqrt(Fac / MinSize);
-					}
-					if (UserData_AllInstances.EndCullDistance > 0.0f && UserData_AllInstances.EndCullDistance < FinalCull)
-					{
-						FinalCull = UserData_AllInstances.EndCullDistance;
-					}
-					FinalCull *= MaxDrawDistanceScale;
-					ElementParams.FinalCullDistance = FMath::Max(ElementParams.FinalCullDistance, FinalCull);
-
-					for (int32 LODIndex = 1; LODIndex < InstanceParams.LODs; LODIndex++)
-					{
-						float Val = FMath::Min(FMath::Sqrt(Fac / RenderData->ScreenSize[LODIndex]), FinalCull);
-						InstanceParams.LODPlanesMin[LODIndex - 1] = FMath::Min(InstanceParams.LODPlanesMin[LODIndex - 1], Val - LODRandom);
-						InstanceParams.LODPlanesMax[LODIndex - 1] = FMath::Max(InstanceParams.LODPlanesMax[LODIndex - 1], Val);
-					}
-					InstanceParams.LODPlanesMin[InstanceParams.LODs - 1] = FMath::Min(InstanceParams.LODPlanesMin[InstanceParams.LODs - 1], FinalCull - LODRandom);
-					InstanceParams.LODPlanesMax[InstanceParams.LODs - 1] = FMath::Max(InstanceParams.LODPlanesMax[InstanceParams.LODs - 1], FinalCull);
+					FinalCull = FMath::Min(FinalCull, UserData_AllInstances.EndCullDistance * MaxDrawDistanceScale);
 				}
+				ElementParams.FinalCullDistance = FinalCull;
 
+				for (int32 LODIndex = 1; LODIndex < InstanceParams.LODs; LODIndex++)
+				{
+					float Distance = ComputeBoundsDrawDistance(RenderData->ScreenSize[LODIndex], SphereRadius, View->ViewMatrices.GetProjectionMatrix()) * LODScale;
+					InstanceParams.LODPlanesMin[LODIndex - 1] = Distance - LODRandom;
+					InstanceParams.LODPlanesMax[LODIndex - 1] = Distance;
+				}
+				InstanceParams.LODPlanesMin[InstanceParams.LODs - 1] = FinalCull - LODRandom;
+				InstanceParams.LODPlanesMax[InstanceParams.LODs - 1] = FinalCull;
+			
 				for (int32 LODIndex = 0; LODIndex < InstanceParams.LODs; LODIndex++)
 				{
 					InstanceParams.MinInstancesToSplit[LODIndex] = 2;
@@ -1628,38 +1619,26 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 						const float SphereRadius = RenderData->Bounds.SphereRadius;
 
 						checkSlow(NumLODs > 0);
-						for (int32 LODIndex = 0; LODIndex < NumLODs; LODIndex++)
-						{
-							LODPlanesMax[LODIndex] = MIN_flt;
-							LODPlanesMin[LODIndex] = MAX_flt;
-						}
-						ElementParams.FinalCullDistance = MIN_flt;
-						for (int32 SampleIndex = 0; SampleIndex < 2; SampleIndex++)
-						{
-							// we aren't going to accurately figure out LOD planes for both samples and try all 4 possibilities, rather we just consider the worst case LOD range; the shaders will render correctly
-							float Fac = View->GetTemporalLODDistanceFactor(SampleIndex, bMultipleSections) * SphereRadius * LODScale;
-							float FinalCull = MAX_flt;
 
-							if (MinSize > 0.0)
-							{
-								FinalCull = FMath::Sqrt(Fac / MinSize);
-							}
-							if (UserData_AllInstances.EndCullDistance > 0.0f && UserData_AllInstances.EndCullDistance < FinalCull)
-							{
-								FinalCull = UserData_AllInstances.EndCullDistance;
-							}
-							FinalCull *= MaxDrawDistanceScale;
-							ElementParams.FinalCullDistance = FMath::Max(ElementParams.FinalCullDistance, FinalCull);
-
-							for (int32 LODIndex = 1; LODIndex < NumLODs; LODIndex++)
-							{
-								float Val = FMath::Min(FMath::Sqrt(Fac / RenderData->ScreenSize[LODIndex]), FinalCull);
-								LODPlanesMin[LODIndex - 1] = FMath::Min(LODPlanesMin[LODIndex - 1], Val - LODRandom);
-								LODPlanesMax[LODIndex - 1] = FMath::Max(LODPlanesMax[LODIndex - 1], Val);
-							}
-							LODPlanesMin[NumLODs - 1] = FMath::Min(LODPlanesMin[NumLODs - 1], FinalCull - LODRandom);
-							LODPlanesMax[NumLODs - 1] = FMath::Max(LODPlanesMax[NumLODs - 1], FinalCull);
+						float FinalCull = MAX_flt;
+						if (MinSize > 0.0)
+						{
+							FinalCull = ComputeBoundsDrawDistance(MinSize, SphereRadius, View->ViewMatrices.GetProjectionMatrix()) * LODScale;
 						}
+						if (UserData_AllInstances.EndCullDistance > 0.0f)
+						{
+							FinalCull = FMath::Min(FinalCull, UserData_AllInstances.EndCullDistance * MaxDrawDistanceScale);
+						}
+						ElementParams.FinalCullDistance = FinalCull;
+
+						for (int32 LODIndex = 1; LODIndex < NumLODs; LODIndex++)
+						{
+							float Distance = ComputeBoundsDrawDistance(RenderData->ScreenSize[LODIndex], SphereRadius, View->ViewMatrices.GetProjectionMatrix()) * LODScale;
+							LODPlanesMin[LODIndex - 1] = Distance - LODRandom;
+							LODPlanesMax[LODIndex - 1] = Distance;
+						}
+						LODPlanesMin[NumLODs - 1] = FinalCull - LODRandom;
+						LODPlanesMax[NumLODs - 1] = FinalCull;				
 
 						// calculate runs
 						int32 MinLOD = 0;

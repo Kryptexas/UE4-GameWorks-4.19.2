@@ -1580,6 +1580,20 @@ bool UStaticMeshComponent::SupportsDefaultCollision()
 	return GetStaticMesh() && GetBodySetup() == GetStaticMesh()->BodySetup;
 }
 
+bool UStaticMeshComponent::SupportsDitheredLODTransitions()
+{
+	// Only support dithered transitions if all materials do.
+	TArray<class UMaterialInterface*> Materials = GetMaterials();
+	for (UMaterialInterface* Material : Materials)
+	{
+		if (Material && !Material->IsDitheredLODTransition())
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 void UStaticMeshComponent::UpdateCollisionFromStaticMesh()
 {
 	if(bUseDefaultCollision && SupportsDefaultCollision())

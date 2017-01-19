@@ -22,6 +22,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "GameFramework/WorldSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "SceneManagement.h"
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;
 
@@ -2048,34 +2049,31 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 			for (int32 SampleIndex = 0; SampleIndex < 2; SampleIndex++)
 			{
 				FVector4& InstancingViewZCompare(SampleIndex ? InstancingViewZCompareOne : InstancingViewZCompareZero);
-				float Fac = View.GetTemporalLODDistanceFactor(SampleIndex) * SphereRadius * LODScale;
 
 				float FinalCull = MAX_flt;
 				if (MinSize > 0.0)
 				{
-					FinalCull = FMath::Sqrt(Fac / MinSize);
+					FinalCull = ComputeBoundsDrawDistance(MinSize, SphereRadius, View.ViewMatrices.GetProjectionMatrix()) * LODScale;
 				}
-				if (InstancingUserData->EndCullDistance > 0.0f && InstancingUserData->EndCullDistance < FinalCull)
+				if (InstancingUserData->EndCullDistance > 0.0f)
 				{
-					FinalCull = InstancingUserData->EndCullDistance;
+					FinalCull = FMath::Min(FinalCull, InstancingUserData->EndCullDistance * MaxDrawDistanceScale);
 				}
-				FinalCull *= MaxDrawDistanceScale;
 
 				InstancingViewZCompare.Z = FinalCull;
 				if (BatchElement.InstancedLODIndex < InstancingUserData->MeshRenderData->LODResources.Num() - 1)
 				{
-					float NextCut = InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex + 1];
-					InstancingViewZCompare.Z = FMath::Min(FMath::Sqrt(Fac / NextCut), FinalCull);
+					float NextCut = ComputeBoundsDrawDistance(InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex + 1], SphereRadius, View.ViewMatrices.GetProjectionMatrix()) * LODScale;
+					InstancingViewZCompare.Z = FMath::Min(NextCut, FinalCull);
 				}
 
 				InstancingViewZCompare.X = MIN_flt;
 				if (BatchElement.InstancedLODIndex > FirstLOD)
 				{
-					float CurCut = FMath::Sqrt(Fac / InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex]);
+					float CurCut = ComputeBoundsDrawDistance(InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex], SphereRadius, View.ViewMatrices.GetProjectionMatrix()) * LODScale;
 					if (CurCut < FinalCull)
 					{
 						InstancingViewZCompare.Y = CurCut;
-
 					}
 					else
 					{
