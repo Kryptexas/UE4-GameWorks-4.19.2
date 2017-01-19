@@ -10,7 +10,8 @@
 //   InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_WIN32_WINNT=0x0601");
 //   InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WINVER=0x0601");
 
-#define MFMEDIA_SUPPORTED_PLATFORM (PLATFORM_XBOXONE || (PLATFORM_WINDOWS && WINVER >= 0x0601))
+//#define MFMEDIA_SUPPORTED_PLATFORM (PLATFORM_XBOXONE || (PLATFORM_WINDOWS && WINVER >= 0x0601))
+#define MFMEDIA_SUPPORTED_PLATFORM PLATFORM_XBOXONE // Windows disabled until 4.16, because broken
 
 
 #include "Runtime/Core/Public/CoreMinimal.h"

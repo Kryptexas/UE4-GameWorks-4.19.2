@@ -145,7 +145,7 @@ public:
 		// supported platforms
 		SupportedPlatforms.Add(TEXT("XboxOne"));
 #if defined(WINVER) && WINVER >= 0x0601
-		SupportedPlatforms.Add(TEXT("Windows"));
+//		SupportedPlatforms.Add(TEXT("Windows")); // disabled until 4.16, because it's currently broken on Windows
 #endif
 
 		// supported schemes
