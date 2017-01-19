@@ -38,7 +38,7 @@ public:
 	
 	virtual void InitRHI()
 	{
-		if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM5)
 		{
 			ForwardLightingResources.ForwardLocalLightBuffer.Initialize(sizeof(FVector4), sizeof(FForwardLocalLightData) / sizeof(FVector4), PF_A32B32G32R32F, BUF_Dynamic);
 			ForwardLightingResources.ForwardGlobalLightData = TUniformBufferRef<FForwardGlobalLightData>::CreateUniformBufferImmediate(FForwardGlobalLightData(), UniformBuffer_MultiFrame);
