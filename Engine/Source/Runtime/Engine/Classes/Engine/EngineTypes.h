@@ -329,8 +329,8 @@ enum ESceneCaptureSource
 	SCS_FinalColorLDR UMETA(DisplayName="Final Color (LDR) in RGB"),
 	SCS_SceneColorSceneDepth UMETA(DisplayName="SceneColor (HDR) in RGB, SceneDepth in A"),
 	SCS_SceneDepth UMETA(DisplayName="SceneDepth in R"),
-	SCS_Normal UMETA(DisplayName="Normal in RGB"),
-	SCS_BaseColor UMETA(DisplayName="BaseColor in RGB")
+	SCS_Normal UMETA(DisplayName="Normal in RGB (Deferred Renderer only)"),
+	SCS_BaseColor UMETA(DisplayName="BaseColor in RGB (Deferred Renderer only)")
 };
 
 UENUM()
