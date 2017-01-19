@@ -650,7 +650,7 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 			continue;
 		}
 
-		FEdGraphPinType TimelinePinType(Schema->PC_Object, TEXT(""), UTimelineComponent::StaticClass(), false, false);
+		FEdGraphPinType TimelinePinType(Schema->PC_Object, TEXT(""), UTimelineComponent::StaticClass(), false, false, false, false, FEdGraphTerminalType());
 
 		// Previously UTimelineComponent object has exactly the same name as UTimelineTemplate object (that obj was in blueprint)
 		const FString TimelineVariableName = UTimelineTemplate::TimelineTemplateNameToVariableName(Timeline->GetFName());
@@ -663,22 +663,22 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 			TimelineToMemberVariableMap.Add(Timeline, TimelineProperty);
 		}
 
-		FEdGraphPinType DirectionPinType(Schema->PC_Byte, TEXT(""), FTimeline::GetTimelineDirectionEnum(), false, false);
+		FEdGraphPinType DirectionPinType(Schema->PC_Byte, TEXT(""), FTimeline::GetTimelineDirectionEnum(), false, false, false, false, FEdGraphTerminalType());
 		CreateVariable(Timeline->GetDirectionPropertyName(), DirectionPinType);
 
-		FEdGraphPinType FloatPinType(Schema->PC_Float, TEXT(""), NULL, false, false);
+		FEdGraphPinType FloatPinType(Schema->PC_Float, TEXT(""), NULL, false, false, false, false, FEdGraphTerminalType());
 		for(int32 i=0; i<Timeline->FloatTracks.Num(); i++)
 		{
 			CreateVariable(Timeline->GetTrackPropertyName(Timeline->FloatTracks[i].TrackName), FloatPinType);
 		}
 
-		FEdGraphPinType VectorPinType(Schema->PC_Struct, TEXT(""), VectorStruct, false, false);
+		FEdGraphPinType VectorPinType(Schema->PC_Struct, TEXT(""), VectorStruct, false, false, false, false, FEdGraphTerminalType());
 		for(int32 i=0; i<Timeline->VectorTracks.Num(); i++)
 		{
 			CreateVariable(Timeline->GetTrackPropertyName(Timeline->VectorTracks[i].TrackName), VectorPinType);
 		}
 
-		FEdGraphPinType LinearColorPinType(Schema->PC_Struct, TEXT(""), LinearColorStruct, false, false);
+		FEdGraphPinType LinearColorPinType(Schema->PC_Struct, TEXT(""), LinearColorStruct, false, false, false, false, FEdGraphTerminalType());
 		for(int32 i=0; i<Timeline->LinearColorTracks.Num(); i++)
 		{
 			CreateVariable(Timeline->GetTrackPropertyName(Timeline->LinearColorTracks[i].TrackName), LinearColorPinType);
@@ -701,7 +701,7 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 				FName VarName = Node->GetVariableName();
 				if ((VarName != NAME_None) && (Node->ComponentClass != nullptr))
 				{
-					FEdGraphPinType Type(Schema->PC_Object, TEXT(""), Node->ComponentClass, false, false);
+					FEdGraphPinType Type(Schema->PC_Object, TEXT(""), Node->ComponentClass, false, false, false, false, FEdGraphTerminalType());
 					UProperty* NewProperty = CreateVariable(VarName, Type);
 					if (NewProperty != NULL)
 					{
@@ -2450,11 +2450,11 @@ FPinConnectionResponse FKismetCompilerContext::CopyPinLinksToIntermediate(UEdGra
 	return ConnectionResult;
 }
 
-UK2Node_TemporaryVariable* FKismetCompilerContext::SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory, UObject* SubcategoryObject, bool bIsArray)
+UK2Node_TemporaryVariable* FKismetCompilerContext::SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory, UObject* SubcategoryObject, bool bIsArray, bool bIsSet, bool bIsMap, const FEdGraphTerminalType& ValueTerminalType)
 {
 	UK2Node_TemporaryVariable* Result = SpawnIntermediateNode<UK2Node_TemporaryVariable>(SourceNode);
 
-	Result->VariableType = FEdGraphPinType(Category, SubCategory, SubcategoryObject, bIsArray, false);
+	Result->VariableType = FEdGraphPinType(Category, SubCategory, SubcategoryObject, bIsArray, false, bIsSet, bIsMap, ValueTerminalType);
 	Result->AllocateDefaultPins();
 
 	return Result;
@@ -3685,7 +3685,7 @@ void FKismetCompilerContext::Compile()
 	if (UsePersistentUberGraphFrame() && UbergraphContext)
 	{
 		//UBER GRAPH PERSISTENT FRAME
-		FEdGraphPinType Type(TEXT("struct"), TEXT(""), FPointerToUberGraphFrame::StaticStruct(), false, false);
+		FEdGraphPinType Type(TEXT("struct"), TEXT(""), FPointerToUberGraphFrame::StaticStruct(), false, false, false, false, FEdGraphTerminalType());
 		UProperty* Property = CreateVariable(UBlueprintGeneratedClass::GetUberGraphFrameName(), Type);
 		Property->SetPropertyFlags(CPF_DuplicateTransient | CPF_Transient);
 	}

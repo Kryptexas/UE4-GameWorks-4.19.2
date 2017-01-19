@@ -63,7 +63,7 @@ void UK2Node_FormatText::SynchronizeArgumentPinType(UEdGraphPin* Pin)
 		bool bPinTypeChanged = false;
 		if (Pin->LinkedTo.Num() == 0)
 		{
-			static const FEdGraphPinType WildcardPinType = FEdGraphPinType(K2Schema->PC_Wildcard, TEXT(""), nullptr, false, false);
+			static const FEdGraphPinType WildcardPinType = FEdGraphPinType(K2Schema->PC_Wildcard, TEXT(""), nullptr, false, false, false, false, FEdGraphTerminalType());
 
 			// Ensure wildcard
 			if (Pin->PinType != WildcardPinType)

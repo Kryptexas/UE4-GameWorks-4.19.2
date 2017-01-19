@@ -57,29 +57,6 @@ FPinDeletionQueue* PinDeletionQueue = new FPinDeletionQueue();;
 TArray<TPair<UEdGraphPin*, FString>> PinAllocationTracking;
 #endif //TRACK_PINS
 
-FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& T)
-{
-	Ar << T.TerminalCategory;
-	Ar << T.TerminalSubCategory;
-
-	// See: FArchive& operator<<( FArchive& Ar, FWeakObjectPtr& WeakObjectPtr )
-	// The PinSubCategoryObject should be serialized into the package.
-	if (!Ar.IsObjectReferenceCollector() || Ar.IsModifyingWeakAndStrongReferences() || Ar.IsPersistent())
-	{
-		UObject* Object = T.TerminalSubCategoryObject.Get(true);
-		Ar << Object;
-		if (Ar.IsLoading() || Ar.IsModifyingWeakAndStrongReferences())
-		{
-			T.TerminalSubCategoryObject = Object;
-		}
-	}
-
-	Ar << T.bTerminalIsConst;
-	Ar << T.bTerminalIsWeakPointer;
-
-	return Ar;
-}
-
 /////////////////////////////////////////////////////
 // FEdGraphPinType
 

@@ -158,7 +158,12 @@ void UK2Node_CommutativeAssociativeBinaryOperator::AddInputPinInner(int32 Additi
 		InputType.PinSubCategoryObject.Get(), 
 		InputType.bIsArray, 
 		InputType.bIsReference, 
-		*GetNameForPin(AdditionalPinIndex + BinaryOperatorInputsNum)
+		*GetNameForPin(AdditionalPinIndex + BinaryOperatorInputsNum),
+		false,
+		INDEX_NONE,
+		InputType.bIsSet,
+		InputType.bIsMap,
+		InputType.PinValueType
 	);
 }
 

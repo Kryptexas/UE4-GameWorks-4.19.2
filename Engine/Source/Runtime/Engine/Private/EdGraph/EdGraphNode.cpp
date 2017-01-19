@@ -16,6 +16,29 @@
 
 #define LOCTEXT_NAMESPACE "EdGraph"
 
+FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& T)
+{
+	Ar << T.TerminalCategory;
+	Ar << T.TerminalSubCategory;
+
+	// See: FArchive& operator<<( FArchive& Ar, FWeakObjectPtr& WeakObjectPtr )
+	// The PinSubCategoryObject should be serialized into the package.
+	if (!Ar.IsObjectReferenceCollector() || Ar.IsModifyingWeakAndStrongReferences() || Ar.IsPersistent())
+	{
+		UObject* Object = T.TerminalSubCategoryObject.Get(true);
+		Ar << Object;
+		if (Ar.IsLoading() || Ar.IsModifyingWeakAndStrongReferences())
+		{
+			T.TerminalSubCategoryObject = Object;
+		}
+	}
+
+	Ar << T.bTerminalIsConst;
+	Ar << T.bTerminalIsWeakPointer;
+
+	return Ar;
+}
+
 FName const FNodeMetadata::DefaultGraphNode(TEXT("DefaultGraphNode"));
 
 /////////////////////////////////////////////////////
@@ -80,9 +103,9 @@ UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FEdGraphPin
 	return NewPin;
 }
 
-UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst /*= false*/, int32 Index /*= INDEX_NONE*/)
+UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst /*= false*/, int32 Index /*= INDEX_NONE*/, bool bIsSet /*= false*/, bool bIsMap /*= false*/, const FEdGraphTerminalType& ValueTerminalType /*= FEdGraphTerminalType()*/)
 {
-	FEdGraphPinType PinType(PinCategory, PinSubCategory, PinSubCategoryObject, bIsArray, bIsReference);
+	FEdGraphPinType PinType(PinCategory, PinSubCategory, PinSubCategoryObject, bIsArray, bIsReference, bIsSet, bIsMap, ValueTerminalType);
 	PinType.bIsConst = bIsConst;
 
 	return CreatePin(Dir, PinType, PinName, Index);
