@@ -525,7 +525,7 @@ namespace UnrealBuildTool
 
             if (UEBuildConfiguration.bCompileFLEX_DX == true || UEBuildConfiguration.bCompileFLEX_CUDA == true)
             {
-                AddThirdPartyPrivateStaticDependencies(Target, "FLEX");
+                AddEngineThirdPartyPrivateStaticDependencies(Target, "FLEX");
                 Definitions.Add("WITH_FLEX=1");
 
                 if(UEBuildConfiguration.bCompileFLEX_DX == true)
