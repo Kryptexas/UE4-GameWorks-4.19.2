@@ -1790,9 +1790,16 @@ namespace AutomationTool
 		/// <returns>True if param was found, false otherwise.</returns>
 		public static bool ParseParam(object[] ArgList, string Param)
 		{
-			foreach (object Arg in ArgList)
+            string ValueParam = Param;
+            if (!ValueParam.EndsWith("="))
+            {
+                ValueParam += "=";
+            }
+
+            foreach (object Arg in ArgList)
 			{
-				if (Arg.ToString().Equals(Param, StringComparison.InvariantCultureIgnoreCase))
+                string ArgStr = Arg.ToString();
+                if (ArgStr.Equals(Param, StringComparison.InvariantCultureIgnoreCase) || ArgStr.StartsWith(ValueParam, StringComparison.InvariantCultureIgnoreCase))
 				{
 					return true;
 				}

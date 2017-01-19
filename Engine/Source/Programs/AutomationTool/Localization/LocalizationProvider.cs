@@ -67,6 +67,7 @@ public abstract class LocalizationProvider
 	public struct LocalizationProviderArgs
 	{
 		public string RootWorkingDirectory;
+		public string RootLocalizationTargetDirectory;
 		public string RemoteFilenamePrefix;
 		public BuildCommand Command;
 		public int PendingChangeList;
