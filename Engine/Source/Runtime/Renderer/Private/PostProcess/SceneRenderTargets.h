@@ -190,6 +190,7 @@ protected:
 		SeparateTranslucencyBufferSize(0, 0),
 		SeparateTranslucencyScale(1),
 		InitialFrameSceneColorFormatType(ESceneColorFormatType::Num),
+		bInitialFrameRequireSceneColorAlpha(false),
 		SmallColorDepthDownsampleFactor(2),
 		bLightAttenuationEnabled(true),
 		bUseDownsizedOcclusionQueries(true),
@@ -716,24 +717,28 @@ private:
 	inline const TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath() const
 	{
 		check(CurrentShadingPath < EShadingPath::Num);
+		ESceneColorFormatType CurrentSceneColorFormatType = GetSceneColorFormatType();
 		if (bDoCheck)
 		{
-			ESceneColorFormatType CurrentSceneColorFormatType = GetSceneColorFormatType();
-			check(CurrentSceneColorFormatType == InitialFrameSceneColorFormatType);
+			checkf(CurrentSceneColorFormatType == InitialFrameSceneColorFormatType, TEXT("%d != %d"), CurrentSceneColorFormatType, InitialFrameSceneColorFormatType);
+			checkf(bInitialFrameRequireSceneColorAlpha == bRequireSceneColorAlpha, TEXT("%d != %d"), bInitialFrameRequireSceneColorAlpha, bRequireSceneColorAlpha);
+			check(SceneColor[CurrentSceneColorFormat]);
 		}
-		return SceneColor[(int32)GetSceneColorFormatType()];
+		return SceneColor[(int32)CurrentSceneColorFormatType];
 	}
 
 	template<bool bDoCheck>
 	inline TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath()
 	{
 		check(CurrentShadingPath < EShadingPath::Num);
+		ESceneColorFormatType CurrentSceneColorFormatType = GetSceneColorFormatType();
 		if (bDoCheck)
 		{
-			ESceneColorFormatType CurrentSceneColorFormatType = GetSceneColorFormatType();
-			check(CurrentSceneColorFormatType == InitialFrameSceneColorFormatType);
+			checkf(CurrentSceneColorFormatType == InitialFrameSceneColorFormatType, TEXT("%d != %d"), CurrentSceneColorFormatType, InitialFrameSceneColorFormatType);
+			checkf(bInitialFrameRequireSceneColorAlpha == bRequireSceneColorAlpha, TEXT("%d != %d"), bInitialFrameRequireSceneColorAlpha, bRequireSceneColorAlpha);
+			check(SceneColor[CurrentSceneColorFormat]);
 		}
-		return SceneColor[(int32)GetSceneColorFormatType()];
+		return SceneColor[(int32)CurrentSceneColorFormatType];
 	}
 
 	/** Uniform buffer containing GBuffer resources. */
@@ -745,6 +750,7 @@ private:
 
 	// Track down any changes to the scene color format type w/o calling AllocSceneColor
 	ESceneColorFormatType InitialFrameSceneColorFormatType;
+	bool bInitialFrameRequireSceneColorAlpha;
 
 	/** e.g. 2 */
 	uint32 SmallColorDepthDownsampleFactor;

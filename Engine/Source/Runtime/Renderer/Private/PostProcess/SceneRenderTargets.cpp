@@ -228,6 +228,7 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, SeparateTranslucencyBufferSize(SnapshotSource.SeparateTranslucencyBufferSize)
 	, SeparateTranslucencyScale(SnapshotSource.SeparateTranslucencyScale)
 	, InitialFrameSceneColorFormatType(SnapshotSource.InitialFrameSceneColorFormatType)
+	, bInitialFrameRequireSceneColorAlpha(SnapshotSource.bInitialFrameRequireSceneColorAlpha)
 	, SmallColorDepthDownsampleFactor(SnapshotSource.SmallColorDepthDownsampleFactor)
 	, bLightAttenuationEnabled(SnapshotSource.bLightAttenuationEnabled)
 	, bUseDownsizedOcclusionQueries(SnapshotSource.bUseDownsizedOcclusionQueries)
@@ -691,6 +692,7 @@ int32 FSceneRenderTargets::GetNumGBufferTargets() const
 void FSceneRenderTargets::AllocSceneColor(FRHICommandList& RHICmdList)
 {
 	InitialFrameSceneColorFormatType = GetSceneColorFormatType();
+	bInitialFrameRequireSceneColorAlpha = bRequireSceneColorAlpha;
 
 	TRefCountPtr<IPooledRenderTarget>& SceneColorTarget = GetSceneColorForCurrentShadingPath<false>();
 	if (SceneColorTarget && 
@@ -2086,7 +2088,9 @@ const FTextureRHIRef& FSceneRenderTargets::GetSceneColorSurface() const
 		return GBlackTexture->TextureRHI;
 	}
 
-	return (const FTextureRHIRef&)GetSceneColor()->GetRenderTargetItem().TargetableTexture;
+	const IPooledRenderTarget* SceneColor = GetSceneColor().GetReference();
+	check(SceneColor);
+	return (const FTextureRHIRef&)SceneColor->GetRenderTargetItem().TargetableTexture;
 }
 
 const FTextureRHIRef& FSceneRenderTargets::GetSceneColorTexture() const
