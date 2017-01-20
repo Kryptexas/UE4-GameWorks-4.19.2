@@ -2088,9 +2088,9 @@ const FTextureRHIRef& FSceneRenderTargets::GetSceneColorSurface() const
 		return GBlackTexture->TextureRHI;
 	}
 
-	const IPooledRenderTarget* SceneColor = GetSceneColor().GetReference();
-	check(SceneColor);
-	return (const FTextureRHIRef&)SceneColor->GetRenderTargetItem().TargetableTexture;
+	const IPooledRenderTarget* LocalSceneColor = GetSceneColor().GetReference();
+	check(LocalSceneColor);
+	return (const FTextureRHIRef&)LocalSceneColor->GetRenderTargetItem().TargetableTexture;
 }
 
 const FTextureRHIRef& FSceneRenderTargets::GetSceneColorTexture() const
