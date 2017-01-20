@@ -209,6 +209,10 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		AttachmentViews.Add(Texture->DefaultView.View);
 	}
 
+	const VkExtent3D& RTExtents = RTLayout.GetExtent3D();
+	// Adreno does not like zero size RTs
+	check(RTExtents.width != 0 && RTExtents.height != 0);
+
 #if !VULKAN_KEEP_CREATE_INFO
 	VkFramebufferCreateInfo CreateInfo;
 #endif
@@ -218,7 +222,6 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	CreateInfo.renderPass = RenderPass.GetHandle();
 	CreateInfo.attachmentCount = AttachmentViews.Num();
 	CreateInfo.pAttachments = AttachmentViews.GetData();
-	const VkExtent3D& RTExtents = RTLayout.GetExtent3D();
 	CreateInfo.width  = RTExtents.width;
 	CreateInfo.height = RTExtents.height;
 	CreateInfo.layers = RTExtents.depth;

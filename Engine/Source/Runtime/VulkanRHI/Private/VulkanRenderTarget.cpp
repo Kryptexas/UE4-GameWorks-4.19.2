@@ -247,8 +247,16 @@ void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRender
 
 	FVulkanRenderTargetLayout RTLayout(RenderTargetsInfo);
 	const uint32 RTLayoutHash = RTLayout.GetHash();
-	FVulkanRenderPass* RenderPass = TransitionState.GetOrCreateRenderPass(*Device, RTLayout, RTLayoutHash);
-	FVulkanFramebuffer* Framebuffer = TransitionState.GetOrCreateFramebuffer(*Device, RenderTargetsInfo, RTLayout, RenderPass);
+
+	FVulkanRenderPass* RenderPass = nullptr;
+	FVulkanFramebuffer* Framebuffer = nullptr;
+
+	if (RTLayout.GetExtent2D().width != 0 && RTLayout.GetExtent2D().height != 0)
+	{
+		RenderPass = TransitionState.GetOrCreateRenderPass(*Device, RTLayout, RTLayoutHash);
+		Framebuffer = TransitionState.GetOrCreateFramebuffer(*Device, RenderTargetsInfo, RTLayout, RenderPass);
+	}
+
 	if (Framebuffer == TransitionState.CurrentFramebuffer && RenderPass == TransitionState.CurrentRenderPass)
 	{
 		return;
@@ -265,13 +273,15 @@ void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRender
 		CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	}
 
-
-	// Verify we are not setting the same render targets again
-	if (RenderTargetsInfo.DepthStencilRenderTarget.Texture ||
-		RenderTargetsInfo.NumColorRenderTargets > 1 ||
-		RenderTargetsInfo.NumColorRenderTargets == 1 && RenderTargetsInfo.ColorRenderTarget[0].Texture)
+	if (RenderPass != nullptr && Framebuffer != nullptr)
 	{
-		TransitionState.BeginRenderPass(*this, PendingGfxState->CurrentKey, *Device, CmdBuffer, RenderTargetsInfo, RTLayout, RenderPass, Framebuffer);
+		// Verify we are not setting the same render targets again
+		if (RenderTargetsInfo.DepthStencilRenderTarget.Texture ||
+			RenderTargetsInfo.NumColorRenderTargets > 1 ||
+			RenderTargetsInfo.NumColorRenderTargets == 1 && RenderTargetsInfo.ColorRenderTarget[0].Texture)
+		{
+			TransitionState.BeginRenderPass(*this, PendingGfxState->CurrentKey, *Device, CmdBuffer, RenderTargetsInfo, RTLayout, RenderPass, Framebuffer);
+		}
 	}
 }
 
