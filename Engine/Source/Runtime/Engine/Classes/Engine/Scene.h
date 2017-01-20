@@ -678,7 +678,7 @@ struct FPostProcessSettings
 	FLinearColor Bloom6Tint;
 
 	/** BloomDirtMask intensity */
-	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Bloom", meta=(ClampMin = "0.0", UIMax = "8.0", editcondition = "bOverride_BloomDirtMaskIntensity", DisplayName = "Dirt Mask Intensity"))
+	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Dirt Mask", meta=(ClampMin = "0.0", UIMax = "8.0", editcondition = "bOverride_BloomDirtMaskIntensity", DisplayName = "Dirt Mask Intensity"))
 	float BloomDirtMaskIntensity;
 
 	/** BloomDirtMask tint color */
