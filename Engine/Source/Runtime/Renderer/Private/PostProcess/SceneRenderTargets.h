@@ -722,7 +722,7 @@ private:
 		{
 			checkf(CurrentSceneColorFormatType == InitialFrameSceneColorFormatType, TEXT("%d != %d"), CurrentSceneColorFormatType, InitialFrameSceneColorFormatType);
 			checkf(bInitialFrameRequireSceneColorAlpha == bRequireSceneColorAlpha, TEXT("%d != %d"), bInitialFrameRequireSceneColorAlpha, bRequireSceneColorAlpha);
-			check(SceneColor[CurrentSceneColorFormat]);
+			check(SceneColor[(int32)CurrentSceneColorFormatType]);
 		}
 		return SceneColor[(int32)CurrentSceneColorFormatType];
 	}
@@ -736,7 +736,7 @@ private:
 		{
 			checkf(CurrentSceneColorFormatType == InitialFrameSceneColorFormatType, TEXT("%d != %d"), CurrentSceneColorFormatType, InitialFrameSceneColorFormatType);
 			checkf(bInitialFrameRequireSceneColorAlpha == bRequireSceneColorAlpha, TEXT("%d != %d"), bInitialFrameRequireSceneColorAlpha, bRequireSceneColorAlpha);
-			check(SceneColor[CurrentSceneColorFormat]);
+			check(SceneColor[(int32)CurrentSceneColorFormatType]);
 		}
 		return SceneColor[(int32)CurrentSceneColorFormatType];
 	}
