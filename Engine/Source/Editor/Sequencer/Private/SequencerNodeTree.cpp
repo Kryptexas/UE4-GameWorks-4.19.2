@@ -258,19 +258,18 @@ void FSequencerNodeTree::MakeSubTracksAndSectionInterfaces(TSharedRef<FSequencer
 	{
 		TrackNode->SetSubTrackMode(FSequencerTrackNode::ESubTrackMode::ParentTrack);
 		TArray<UMovieSceneSection*> Sections = Track->GetAllSections();
-		int32 MaxRowIndex = 0;
-		for (UMovieSceneSection* Section : Sections)
+		if (Sections.Num() > 0)
 		{
-			MaxRowIndex = FMath::Max(MaxRowIndex, Section->GetRowIndex());
-		}
-		for (int32 i = 0; i <= MaxRowIndex; i++)
-		{
-			TSharedRef<FSequencerTrackNode> SubTrackNode = MakeShareable(new FSequencerTrackNode(*Track, TrackEditor, true, TrackNode, *this));
-			SubTrackNode->SetSubTrackMode(FSequencerTrackNode::ESubTrackMode::SubTrack);
-			SubTrackNode->SetRowIndex(i);
+			int32 MaxRowIndex = Track->GetMaxRowIndex();
+			for (int32 i = 0; i <= MaxRowIndex; i++)
+			{
+				TSharedRef<FSequencerTrackNode> SubTrackNode = MakeShareable(new FSequencerTrackNode(*Track, TrackEditor, true, TrackNode, *this));
+				SubTrackNode->SetSubTrackMode(FSequencerTrackNode::ESubTrackMode::SubTrack);
+				SubTrackNode->SetRowIndex(i);
 
-			TrackNode->AddChildTrack(SubTrackNode);
-			MakeSectionInterfaces(*Track, SubTrackNode);
+				TrackNode->AddChildTrack(SubTrackNode);
+				MakeSectionInterfaces(*Track, SubTrackNode);
+			}
 		}
 	}
 	else
@@ -464,8 +463,9 @@ bool FSequencerNodeTree::GetSavedExpansionState(const FSequencerDisplayNode& Nod
 
 bool FSequencerNodeTree::GetDefaultExpansionState( const FSequencerDisplayNode& Node ) const
 {
-	// For now, only object nodes are expanded by default
-	return Node.GetType() == ESequencerNode::Object;
+	// Object nodes, and track nodes that are parent tracks are expanded by default.
+	return Node.GetType() == ESequencerNode::Object ||
+		(Node.GetType() == ESequencerNode::Track && static_cast<const FSequencerTrackNode&>(Node).GetSubTrackMode() == FSequencerTrackNode::ESubTrackMode::ParentTrack);
 }
 
 
