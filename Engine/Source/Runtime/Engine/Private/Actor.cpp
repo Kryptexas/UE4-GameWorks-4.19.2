@@ -2953,7 +2953,7 @@ void AActor::PostActorConstruction()
 					if (AActor* ParentActor = GetParentActor())
 					{
 						// Child Actors cannot run begin play until their parent has run
-						bRunBeginPlay = ParentActor->HasActorBegunPlay();
+						bRunBeginPlay = (ParentActor->HasActorBegunPlay() || ParentActor->IsActorBeginningPlay());
 					}
 				}
 
