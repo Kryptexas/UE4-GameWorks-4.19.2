@@ -950,21 +950,21 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		if( IsRHIDeviceNVIDIA() )
 		{
 			GSupportsDepthBoundsTest = true;
-			NV_MULTIGPU_CAPS MultiGPUCaps;			
-			FMemory::Memzero(MultiGPUCaps);			
-
-			NvAPI_Status MultiGPUStatus = NvAPI_D3D11_MultiGPU_GetCaps(&MultiGPUCaps);			
-			if (MultiGPUStatus == NVAPI_OK)
+			NV_GET_CURRENT_SLI_STATE SLICaps;
+			FMemory::Memzero(SLICaps);
+			SLICaps.version = NV_GET_CURRENT_SLI_STATE_VER;
+			NvAPI_Status SLIStatus = NvAPI_D3D_GetCurrentSLIState(Direct3DDevice, &SLICaps);
+			if (SLIStatus == NVAPI_OK)
 			{
-				if (MultiGPUCaps.nSLIGPUs > 1)
+				if (SLICaps.numAFRGroups > 1)
 				{
-					GNumActiveGPUsForRendering = MultiGPUCaps.nSLIGPUs;
-					UE_LOG(LogD3D11RHI, Log, TEXT("Detected %i SLI GPUs, %i Total GPUs.  Setting GNumActiveGPUsForRendering to: %i."), MultiGPUCaps.nSLIGPUs, MultiGPUCaps.nTotalGPUs, GNumActiveGPUsForRendering);
+					GNumActiveGPUsForRendering = SLICaps.numAFRGroups;
+					UE_LOG(LogD3D11RHI, Log, TEXT("Detected %i SLI GPUs Setting GNumActiveGPUsForRendering to: %i."), SLICaps.numAFRGroups, GNumActiveGPUsForRendering);
 				}
 			}
 			else
 			{
-				UE_LOG(LogD3D11RHI, Log, TEXT("NvAPI_D3D11_MultiGPU_GetCaps failed: 0x%x"), (int32)MultiGPUStatus);
+				UE_LOG(LogD3D11RHI, Log, TEXT("NvAPI_D3D_GetCurrentSLIState failed: 0x%x"), (int32)SLIStatus);
 			}
 		}
 		else if( IsRHIDeviceAMD() )

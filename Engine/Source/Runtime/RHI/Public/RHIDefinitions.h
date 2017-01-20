@@ -557,6 +557,8 @@ enum ETextureCreateFlags
 	TexCreate_DepthStencilResolveTarget = 1 << 26,
 	// Render target will not FinalizeFastClear; Caches and meta data will be flushed, but clearing will be skipped (avoids potentially trashing metadata)
 	TexCreate_NoFastClearFinalize = 1 << 28,
+	// Hint to the driver that this resource is managed properly by the engine for Alternate-Frame-Rendering in mGPU usage.
+	TexCreate_AFRManual = 1 << 29,
 };
 
 enum EAsyncComputePriority

@@ -337,6 +337,8 @@ void FFXSystem::PreRender(FRHICommandListImmediate& RHICmdList, const FGlobalDis
 {
 	if (RHISupportsGPUParticles())
 	{
+		UpdateMultiGPUResources(RHICmdList);
+
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_FXPreRender_Prepare));
 		PrepareGPUSimulation(RHICmdList);
 

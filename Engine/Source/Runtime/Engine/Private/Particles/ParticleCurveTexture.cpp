@@ -190,6 +190,7 @@ static void InjectCurves(
 
 	FVertexBufferRHIParamRef ScratchVertexBufferRHI = GParticleScratchVertexBuffer.VertexBufferRHI;
 
+	RHICmdList.BeginUpdateMultiFrameResource(CurveTextureTargetRHI);
 	SetRenderTarget(RHICmdList, CurveTextureTargetRHI, FTextureRHIParamRef(), true);
 	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 	RHICmdList.SetViewport(0, 0, 0.0f, GParticleCurveTextureSizeX, GParticleCurveTextureSizeY, 1.0f);
@@ -272,6 +273,7 @@ static void InjectCurves(
 	}
 
 	RHICmdList.CopyToResolveTarget(CurveTextureTargetRHI, CurveTextureRHI, /*bKeepOriginalSurface=*/ false, FResolveParams());
+	RHICmdList.EndUpdateMultiFrameResource(CurveTextureTargetRHI);
 }
 
 /*------------------------------------------------------------------------------
