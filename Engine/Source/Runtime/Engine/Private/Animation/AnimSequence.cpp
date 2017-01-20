@@ -540,7 +540,7 @@ void ShowResaveMessage(const UAnimSequence* Sequence)
 {
 	if (!IsRunningGame())
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("RESAVE ANIMATION NEEDED(%s): Fixing track data."), *GetNameSafe(Sequence));
+		UE_LOG(LogAnimation, Log, TEXT("Resave Animation Required(%s): Fixing track data and recompressing."), *GetNameSafe(Sequence));
 
 		static FName NAME_LoadErrors("LoadErrors");
 		FMessageLog LoadErrors(NAME_LoadErrors);
