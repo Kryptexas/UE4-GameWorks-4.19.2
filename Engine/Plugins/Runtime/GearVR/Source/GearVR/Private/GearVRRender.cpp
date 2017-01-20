@@ -318,10 +318,10 @@ void FLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICm
 
 				if (!RenderLayer->TextureSet.IsValid())
 				{
-					RenderLayer->TextureSet = pPresentBridge->CreateTextureSet(SizeX, SizeY, VrApiFormat, 1, false, IsCubemap);
+					RenderLayer->TextureSet = pPresentBridge->CreateTextureSet(SizeX, SizeY, VrApiFormat, 1, 1, false, IsCubemap);
 					if (LeftTexture)
 					{
-						RenderLayer->LeftTextureSet = pPresentBridge->CreateTextureSet(SizeX, SizeY, VrApiFormat, 1, false, IsCubemap);
+						RenderLayer->LeftTextureSet = pPresentBridge->CreateTextureSet(SizeX, SizeY, VrApiFormat, 1, 1, false, IsCubemap);
 					}
 				
 					if (!RenderLayer->TextureSet.IsValid())
@@ -583,7 +583,7 @@ bool FGearVR::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 Siz
 #if !OVR_DEBUG_DRAW
 	UE_LOG(LogHMD, Log, TEXT("Allocating Render Target textures"));
 	// ignore NumMips for RT, use 1 
-	pGearVRBridge->AllocateRenderTargetTexture(SizeX, SizeY, Format, 1, InFlags, TargetableTextureFlags, OutTargetableTexture, OutShaderResourceTexture, NumSamples);
+	pGearVRBridge->AllocateRenderTargetTexture(SizeX, SizeY, Format, 1, InFlags, TargetableTextureFlags, OutTargetableTexture, OutShaderResourceTexture, GetSettings()->MaxFullspeedMSAASamples);
 	return true;
 #else
 	return false;
@@ -607,7 +607,7 @@ bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uin
 		TextureSet->ReleaseResources();
 	}
 
-	FTexture2DSetProxyPtr ColorTextureSet = CreateTextureSet(SizeX, SizeY, EPixelFormat(Format), NumMips, true, false);
+	FTexture2DSetProxyPtr ColorTextureSet = CreateTextureSet(SizeX, SizeY, EPixelFormat(Format), NumSamples, NumMips, true, false);
 	if (ColorTextureSet.IsValid())
 	{
 		OutTargetableTexture = ColorTextureSet->GetRHITexture2D();
@@ -620,7 +620,7 @@ bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uin
 
 		check(IsInGameThread() && IsInRenderingThread()); // checking if rendering thread is suspended
 
-		UE_LOG(LogHMD, Log, TEXT("New swap texture %p (%d x %d) has been allocated"), ColorTextureSet->GetTextureSet()->GetColorTextureSet(), SizeX, SizeY);
+		UE_LOG(LogHMD, Log, TEXT("New swap texture %p (%d x %d) has been allocated with %d samples"), ColorTextureSet->GetTextureSet()->GetColorTextureSet(), SizeX, SizeY, NumSamples);
 
 		return true;
 	}
@@ -628,7 +628,7 @@ bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uin
 	return false;
 }
 
-FTexture2DSetProxyPtr FCustomPresent::CreateTextureSet(uint32 InSizeX, uint32 InSizeY, uint8 InFormat, uint32 InNumMips, bool bBuffered, bool bInCubemap)
+FTexture2DSetProxyPtr FCustomPresent::CreateTextureSet(uint32 InSizeX, uint32 InSizeY, uint8 InFormat, uint32 NumSamples, uint32 InNumMips, bool bBuffered, bool bInCubemap)
 {
 	check(InSizeX != 0 && InSizeY != 0);
 	auto GLRHI = static_cast<FOpenGLDynamicRHI*>(GDynamicRHI);
@@ -637,7 +637,7 @@ FTexture2DSetProxyPtr FCustomPresent::CreateTextureSet(uint32 InSizeX, uint32 In
 		GLRHI,
 		InSizeX, InSizeY,
 		1,
-		1,
+		NumSamples,
 		NumMips,
 		EPixelFormat(InFormat),
 		TexCreate_RenderTargetable | TexCreate_ShaderResource,
@@ -1266,7 +1266,7 @@ void FCustomPresent::SetLoadingIconTexture_RenderThread(FTextureRHIRef InTexture
 		const uint32 SizeX = InTexture->GetTexture2D()->GetSizeX();
 		const uint32 SizeY = InTexture->GetTexture2D()->GetSizeY();
 
-		LoadingIconTextureSet = FCustomPresent::CreateTextureSet(SizeX, SizeY, EPixelFormat::PF_B8G8R8A8, 0, false, false);
+		LoadingIconTextureSet = FCustomPresent::CreateTextureSet(SizeX, SizeY, EPixelFormat::PF_B8G8R8A8, 1, 0, false, false);
 		CopyTexture_RenderThread(FRHICommandListExecutor::GetImmediateCommandList(), LoadingIconTextureSet->GetRHITexture2D(), InTexture->GetTexture2D() , SizeX, SizeY, FIntRect(), FIntRect(), false);
 	}
 }

@@ -149,6 +149,7 @@ public:
 
 	int				CpuLevel;
 	int				GpuLevel;
+	int				MaxFullspeedMSAASamples;
 
 	ovrHeadModelParms HeadModelParms;
 
@@ -485,7 +486,7 @@ public:
 	// If returns false then a default RT texture will be used.
 	bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples);
 
-	FTexture2DSetProxyPtr CreateTextureSet(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, bool bBuffered, bool bInCubemap);
+	FTexture2DSetProxyPtr CreateTextureSet(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumSamples, uint32 NumMips, bool bBuffered, bool bInCubemap);
 
 	void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTextureRHIParamRef SrcTexture, int SrcSizeX, int SrcSizeY, FIntRect DstRect = FIntRect(), FIntRect SrcRect = FIntRect(), bool bAlphaPremultiply = false) const;
 		

@@ -1003,10 +1003,11 @@ void FGearVR::Startup()
 	HeadModel.EyeHeight *= HeadModelScale;
 	HeadModel.HeadModelDepth *= HeadModelScale;
 	HeadModel.HeadModelHeight *= HeadModelScale;
-
+	
 	GetSettings()->MinimumVsyncs = MinimumVsyncs;
 	GetSettings()->CpuLevel = CpuLevel;
 	GetSettings()->GpuLevel = GpuLevel;
+	GetSettings()->MaxFullspeedMSAASamples = vrapi_GetSystemPropertyInt(&JavaGT, VRAPI_SYS_PROP_MAX_FULLSPEED_FRAMEBUFFER_SAMPLES);
 
 	FPlatformMisc::MemoryBarrier();
 
@@ -1049,8 +1050,8 @@ void FGearVR::Startup()
 		static IConsoleVariable* CVarMobileMSAA = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileMSAA"));
 		if (CVarMobileMSAA && CVarMobileMSAA->GetInt() == 1)
 		{
-			UE_LOG(LogHMD, Log, TEXT("gearvr.EnableMSAA is enabled, applying r.MobileMSAA=4. Previous value was %d"), CVarMobileMSAA->GetInt());
-			CVarMobileMSAA->Set(4);
+			UE_LOG(LogHMD, Log, TEXT("gearvr.EnableMSAA is enabled, applying r.MobileMSAA=%d. Previous value was %d"), GetSettings()->MaxFullspeedMSAASamples, CVarMobileMSAA->GetInt());
+			CVarMobileMSAA->Set(GetSettings()->MaxFullspeedMSAASamples);
 		}
 	}
 	pGearVRBridge->bExtraLatencyMode = CVarGearVREnableQueueAhead.GetValueOnAnyThread() != 0;
