@@ -909,7 +909,7 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 	{
 		AActor* Actor = Actors[CurrentActorIndexForUpdateComponents];
 		bool bAllComponentsRegistered = true;
-		if (Actor)
+		if (Actor && !Actor->IsPendingKill())
 		{
 #if PERF_TRACK_DETAILED_ASYNC_STATS
 			FScopeCycleCounterUObject ContextScope(Actor);
