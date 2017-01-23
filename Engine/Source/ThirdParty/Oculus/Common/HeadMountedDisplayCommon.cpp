@@ -188,7 +188,7 @@ void FHMDViewExtension::PostRenderViewFamily_RenderThread(FRHICommandListImmedia
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-	SetRenderTarget(RHICmdList, InViewFamily.RenderTarget->GetRenderTargetTexture(), SceneContext.GetSceneDepthSurface());
+	SetRenderTarget(RHICmdList, InViewFamily.RenderTarget->GetRenderTargetTexture(), SceneContext.GetSceneDepthTexture());
 
 	FHMDLayerManager *LayerMgr = HeadMountedDisplay->GetLayerManager();//->GetLayerMgr();
 	LayerMgr->PokeAHole(RHICmdList, RenderContext.RenderFrame.Get(), HeadMountedDisplay->GetRendererModule(), InViewFamily);
@@ -2463,7 +2463,7 @@ void FHMDLayerManager::PokeAHole(FRHICommandListImmediate& RHICmdList, const FHM
 
 					RHICmdList.SetBlendState(TStaticBlendState<CW_ALPHA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
 					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-						false, CF_DepthNearOrEqual
+						false, CF_Always
 					>::GetRHI());
 					DrawPokeAHoleQuadMesh(RHICmdList, FMatrix::Identity, -1, -1, 0, 2, 2, 0, false);
 
