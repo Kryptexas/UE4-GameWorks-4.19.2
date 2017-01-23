@@ -4859,6 +4859,8 @@ bool FSlateApplication::OnMouseDown( const TSharedPtr< FGenericWindow >& Platfor
 bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericWindow >& PlatformWindow, FPointerEvent& MouseEvent )
 {
 	SCOPE_CYCLE_COUNTER(STAT_ProcessMouseButtonDown);
+	
+	TScopeCounter<int32> BeginInput(ProcessingInput);
 
 	QueueSynthesizedMouseMove();
 	SetLastUserInteractionTime(this->GetCurrentTime());
@@ -5456,6 +5458,8 @@ bool FSlateApplication::ProcessMouseButtonDoubleClickEvent( const TSharedPtr< FG
 
 FReply FSlateApplication::RoutePointerDoubleClickEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent)
 {
+	TScopeCounter<int32> BeginInput(ProcessingInput);
+
 	FReply Reply = FReply::Unhandled();
 
 	// Switch worlds widgets in the current path
