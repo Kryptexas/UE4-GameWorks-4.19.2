@@ -15,6 +15,7 @@
 #include "AudioCurveSourceComponent.h"
 #include "WorkspaceMenuStructure.h"
 #include "EditorStyleSet.h"
+#include "Settings/EditorExperimentalSettings.h"
 
 #define LOCTEXT_NAMESPACE "FacialAnimationEditor"
 
@@ -66,26 +67,33 @@ void FFacialAnimationEditorModule::StartupModule()
 		}
 	};
 
-	// Register a tab spawner so that our tab can be automatically restored from layout files
-	FTabSpawnerEntry& TabSpawner = FGlobalTabmanager::Get()->RegisterNomadTabSpawner(FacialAnimationBulkImporterTabName, FOnSpawnTab::CreateStatic(&Local::SpawnFacialAnimationBulkImporterTab))
-		.SetDisplayName(LOCTEXT("FacialAnimationBulkImporterTabTitle", "Facial Anim Importer"))
-		.SetTooltipText(LOCTEXT("FacialAnimationBulkImporterTooltipText", "Open the Facial Animation Bulk Importer tab."))
-		.SetGroup(WorkspaceMenu::GetMenuStructure().GetDeveloperToolsMiscCategory())
-		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.ImportIcon"));
+	if (GetDefault<UEditorExperimentalSettings>()->bFacialAnimationImporter)
+	{
+		// Register a tab spawner so that our tab can be automatically restored from layout files
+		FTabSpawnerEntry& TabSpawner = FGlobalTabmanager::Get()->RegisterNomadTabSpawner(FacialAnimationBulkImporterTabName, FOnSpawnTab::CreateStatic(&Local::SpawnFacialAnimationBulkImporterTab))
+			.SetDisplayName(LOCTEXT("FacialAnimationBulkImporterTabTitle", "Facial Anim Importer"))
+			.SetTooltipText(LOCTEXT("FacialAnimationBulkImporterTooltipText", "Open the Facial Animation Bulk Importer tab."))
+			.SetGroup(WorkspaceMenu::GetMenuStructure().GetDeveloperToolsMiscCategory())
+			.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.ImportIcon"));
 
-	// register for when persona is loaded
-	OnModulesChangedDelegate = FModuleManager::Get().OnModulesChanged().AddRaw(this, &FFacialAnimationEditorModule::HandleModulesChanged);
+		// register for when persona is loaded
+		OnModulesChangedDelegate = FModuleManager::Get().OnModulesChanged().AddRaw(this, &FFacialAnimationEditorModule::HandleModulesChanged);
+	}
+
 }
 
 void FFacialAnimationEditorModule::ShutdownModule()
 {
 	FPersonaModule* PersonaModule = FModuleManager::GetModulePtr<FPersonaModule>(TEXT("Persona"));
-	if (PersonaModule)
+	if (PersonaModule && OnPreviewSceneCreatedDelegate.IsValid())
 	{
 		PersonaModule->OnPreviewSceneCreated().Remove(OnPreviewSceneCreatedDelegate);
 	}
 
-	FModuleManager::Get().OnModulesChanged().Remove(OnModulesChangedDelegate);
+	if (OnModulesChangedDelegate.IsValid())
+	{
+		FModuleManager::Get().OnModulesChanged().Remove(OnModulesChangedDelegate);
+	}
 
 	FGlobalTabmanager::Get()->UnregisterTabSpawner(FacialAnimationBulkImporterTabName);
 }

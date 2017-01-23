@@ -188,7 +188,11 @@ FReply SFacialAnimationBulkImporter::HandleImportClicked()
 					FString PartialPath = CurrentDirectory.RightChop(FacialAnimationBulkImporterSettings->SourceImportPath.Path.Len());
 					FString TargetPackageName = FacialAnimationBulkImporterSettings->TargetImportPath.Path / PartialPath / TargetAssetName;
 
-					ItemsToImport.Add({ FbxFilename, WaveFilename, TargetPackageName, TargetAssetName });
+					FString Filename;
+					if (FPackageName::TryConvertLongPackageNameToFilename(TargetPackageName, Filename))
+					{
+						ItemsToImport.Add({ FbxFilename, WaveFilename, TargetPackageName, TargetAssetName });
+					}
 				}
 			}
 			return true;

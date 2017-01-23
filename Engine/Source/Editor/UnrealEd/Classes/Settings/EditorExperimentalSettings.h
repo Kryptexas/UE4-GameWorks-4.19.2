@@ -141,6 +141,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Allow editing of potentially unsafe properties."))
 	bool bAllowPotentiallyUnsafePropertyEditing;
 
+	/** Enable experimental bulk facial animation importer (found in Developer Tools menu, requires editor restart) */
+	UPROPERTY(EditAnywhere, config, Category = Tools)
+	bool bFacialAnimationImporter;
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *

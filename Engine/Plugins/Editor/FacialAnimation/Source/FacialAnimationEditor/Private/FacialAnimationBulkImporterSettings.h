@@ -8,7 +8,7 @@
 #include "Engine/EngineTypes.h"
 #include "FacialAnimationBulkImporterSettings.generated.h"
 
-UCLASS(Config=EditorPerProjectUserSettings, MinimalAPI)
+UCLASS(Config=EditorPerProjectUserSettings, Experimental, MinimalAPI)
 class UFacialAnimationBulkImporterSettings : public UObject
 {
 public:
