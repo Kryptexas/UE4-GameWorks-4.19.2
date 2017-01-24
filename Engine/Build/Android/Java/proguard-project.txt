@@ -63,6 +63,18 @@
 	public *;
 }
 
+-keep class com.epicgames.ue4.WebViewControl {
+	public *;
+}
+
+-keep class com.epicgames.ue4.WebViewControl$ViewClient {
+	public *;
+}
+
+-keep class com.epicgames.ue4.WebViewControl$ChromeClient {
+	public *;
+}
+
 # If your project uses WebView with JS, uncomment the following
 # and specify the fully qualified class name to the JavaScript interface
 # class:
