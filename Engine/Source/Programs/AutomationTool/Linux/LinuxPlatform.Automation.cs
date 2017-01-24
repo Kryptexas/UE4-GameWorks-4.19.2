@@ -109,9 +109,9 @@ public abstract class BaseLinuxPlatform : Platform
 		Script.Append("#!/bin/sh" + EOL);
 		// allow running from symlinks
 		Script.AppendFormat("UE4_TRUE_SCRIPT_NAME=$(echo \\\"$0\\\" | xargs readlink -f)" + EOL);
-		Script.AppendFormat("UE4_PROJECT_ROOT=$(dirname $UE4_TRUE_SCRIPT_NAME)" + EOL);
-		Script.AppendFormat("chmod +x $UE4_PROJECT_ROOT/{0}" + EOL, StagedRelativeTargetPath);
-		Script.AppendFormat("$UE4_PROJECT_ROOT/{0} {1} $@ " + EOL, StagedRelativeTargetPath, StagedArguments);
+		Script.AppendFormat("UE4_PROJECT_ROOT=$(dirname \"$UE4_TRUE_SCRIPT_NAME\")" + EOL);
+		Script.AppendFormat("chmod +x \"$UE4_PROJECT_ROOT/{0}\"" + EOL, StagedRelativeTargetPath);
+		Script.AppendFormat("\"$UE4_PROJECT_ROOT/{0}\" {1} $@ " + EOL, StagedRelativeTargetPath, StagedArguments);
 
 		// write out the 
 		File.WriteAllText(IntermediateFile, Script.ToString());

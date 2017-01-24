@@ -1839,7 +1839,7 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 				BlockMemoryHighWater = BlockMemory;
 				SET_MEMORY_STAT(STAT_PakCacheHighWater, BlockMemoryHighWater);
 
-#if 1
+#if 0
 				static int64 LastPrint = 0;
 				if (BlockMemoryHighWater / 1024 / 1024 != LastPrint)
 				{
