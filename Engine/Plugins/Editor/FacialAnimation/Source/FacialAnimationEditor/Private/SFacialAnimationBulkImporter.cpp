@@ -24,6 +24,7 @@
 #include "HAL/PlatformFilemanager.h"
 #include "Utils.h"
 #include "Engine/CurveTable.h"
+#include "Misc/PackageName.h"
 
 #define LOCTEXT_NAMESPACE "SFacialAnimationBulkImporter"
 
