@@ -91,8 +91,11 @@ void UMovieSceneSequencePlayer::PlayInternal()
 		UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
 		TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
 
-		FMovieSceneEvaluationRange Range = PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
-		UpdateMovieSceneInstance(Range);
+		// Ensure we're at the current sequence position
+		PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
+
+		// We pass the range of PlayTo here in order to correctly update the last evaluated time in the playposition
+		UpdateMovieSceneInstance(PlayPosition.PlayTo(GetSequencePosition(), FixedFrameInterval));
 
 		if (OnPlay.IsBound())
 		{
