@@ -2971,7 +2971,7 @@ bool UWorld::AreAlwaysLoadedLevelsLoaded() const
 
 			if (LevelStreaming->bHasLoadRequestPending
 				|| !LoadedLevel
-				|| !LoadedLevel->bIsVisible)
+				|| LoadedLevel->bIsVisible != LevelStreaming->bShouldBeVisible)
 			{
 				return false;
 			}
