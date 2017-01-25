@@ -1655,6 +1655,24 @@ EClothUtilRetType ImportApexAssetFromApexFile(FString& ApexFile, USkeletalMesh* 
 		return CURT_Cancel;
 	}
 
+	const int32 NumLods = SkelMesh->GetImportedResource()->LODModels.Num();
+
+	TArray<FSubmeshInfo> AllInfos;
+
+	for(int32 CurrLodIdx = 0; CurrLodIdx < NumLods; ++CurrLodIdx)
+	{
+		TArray<FSubmeshInfo> CurrLodInfos;
+		ApexClothingUtils::GetSubmeshInfoFromApexAsset(ApexClothingAsset, CurrLodIdx, AllInfos);
+
+		AllInfos.Append(CurrLodInfos);
+	}
+
+	if(AllInfos.Num() == 0)
+	{
+		UE_LOG(LogApexClothingUtils, Warning, TEXT("Importing %s failed. Could not find any valid submeshes. Either there are no submeshes, or all submeshes have zero simulated vertices."), *ApexFile);
+		return CURT_Fail;
+	}
+
 	ApexClothingAsset = ApplyTransform(ApexClothingAsset);
 
 	FName AssetName = FName(*FPaths::GetCleanFilename(ApexFile));

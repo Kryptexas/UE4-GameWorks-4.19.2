@@ -68,11 +68,6 @@ namespace ETextKeyOperation
 	};
 }
 
-namespace BlackboardKeyUtils
-{
-	bool CalculateComparisonResult(EArithmeticKeyOperation::Type Operator, float A, float B);
-}
-
 struct FBlackboardInstancedKeyMemory
 {
 	/** index of instanced key in UBlackboardComponent::InstancedKeys */

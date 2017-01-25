@@ -587,6 +587,13 @@ void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 	}
 
 	static double LastHeartbeatTime = FPlatformTime::Seconds();
+
+	bool bIsDebuggerPresent = FPlatformMisc::IsDebuggerPresent();
+	static bool bWasDebuggerPresent = false;
+	if (!bWasDebuggerPresent)
+	{
+		bWasDebuggerPresent = bIsDebuggerPresent;
+	}
 	
 	double LastInteractionTime = FSlateApplication::Get().GetLastUserInteractionTime();
 	
@@ -607,7 +614,8 @@ void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 	}
 	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsVanilla"), (GEngine && GEngine->IsVanillaProduct())));
 	Attributes.Add(FAnalyticsEventAttribute(TEXT("IntervalSec"), UnrealEdMiscDefs::HeartbeatIntervalSeconds));
-	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsDebugger"), FPlatformMisc::IsDebuggerPresent()));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsDebugger"), bIsDebuggerPresent));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("WasDebuggerPresent"), bWasDebuggerPresent));
 	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Heartbeat"), Attributes);
 	
 	LastHeartbeatTime = FPlatformTime::Seconds();

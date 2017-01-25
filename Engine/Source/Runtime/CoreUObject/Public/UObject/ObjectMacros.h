@@ -38,7 +38,13 @@ typedef	uint64 ScriptPointerType;
 #define UCLASS_ISA_CLASSARRAY 3 // stores an array of parents per class and uses this to compare - faster than 1, slower but comparable with 2, and thread-safe
 
 // UCLASS_FAST_ISA_IMPL sets which implementation of IsA to use.
-#define UCLASS_FAST_ISA_IMPL UCLASS_ISA_CLASSARRAY
+#if UE_EDITOR
+	// On editor, we use the outerwalk implementation because BP reinstancing and hot reload
+	// mess up the class array
+	#define UCLASS_FAST_ISA_IMPL UCLASS_ISA_OUTERWALK
+#else
+	#define UCLASS_FAST_ISA_IMPL UCLASS_ISA_CLASSARRAY
+#endif
 
 // UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK, if set, does a checked comparison of the current implementation against the outer walk - used for testing.
 #define UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK 0

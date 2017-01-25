@@ -1142,20 +1142,15 @@ public:
 			SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, BloomDirtMaskParam, BloomDirtMaskUB);
 		}
 
-		// Use a provided tonemaping LUT (provided by a CombineLUTs pass). 
 		{
-			
 			FRenderingCompositeOutputRef* OutputRef = Context.Pass->GetInput(ePId_Input3);
 
-			// Indicates the Tonemapper combined LUT node was nominally in the network.
-			const bool bUseLUT = (OutputRef != NULL);
-
-			const FTextureRHIRef* SrcTexture = nullptr;
-			if (bUseLUT)
+			const FTextureRHIRef* SrcTexture = Context.View.GetTonemappingLUTTexture();
+			bool bShowErrorLog = false;
+			// Use a provided tonemaping LUT (provided by a CombineLUTs pass). 
+			if (!SrcTexture)
 			{
-				SrcTexture = Context.View.GetTonemappingLUTTexture();
-				
-				if (!SrcTexture)
+				if (OutputRef && OutputRef->IsValid())
 				{
 					FRenderingCompositeOutput* Input = OutputRef->GetOutput();
 					
@@ -1170,14 +1165,17 @@ public:
 							SrcTexture = &InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;
 						}
 					}
+
+					// Indicates the Tonemapper combined LUT node was nominally in the network, so error if it's not found
+					bShowErrorLog = true;
 				}
-			}
+			}	
 
 			if (SrcTexture && *SrcTexture)
 			{
 				SetTextureParameter(Context.RHICmdList, ShaderRHI, ColorGradingLUT, ColorGradingLUTSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), *SrcTexture);
 			}
-			else
+			else if (bShowErrorLog)
 			{
 				UE_LOG(LogRenderer, Error, TEXT("No Color LUT texture to sample: output will be invalid."));
 			}
@@ -1716,10 +1714,10 @@ namespace PostProcessTonemap_ES2Util
 
 
 FRCPassPostProcessTonemapES2::FRCPassPostProcessTonemapES2(const FViewInfo& View, FIntRect InViewRect, FIntPoint InDestSize, bool bInUsedFramebufferFetch) 
-	:
-	ViewRect(InViewRect),
-	DestSize(InDestSize),
-	bUsedFramebufferFetch(bInUsedFramebufferFetch)
+	: bEnableExtentOverride(true)
+	, ViewRect(InViewRect)
+	, DestSize(InDestSize)
+	, bUsedFramebufferFetch(bInUsedFramebufferFetch)
 {
 	uint32 ConfigBitmask = TonemapperGenerateBitmaskMobile(&View, false);
 	ConfigIndexMobile = TonemapperFindLeastExpensive(TonemapperConfBitmaskMobile, sizeof(TonemapperConfBitmaskMobile)/4, TonemapperCostTab, ConfigBitmask);
@@ -1852,8 +1850,10 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemapES2::ComputeOutputDesc(EPassOut
 	Ret.Reset();
 	Ret.Format = PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
-	Ret.Extent = DestSize;
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
-
+	if (bEnableExtentOverride)
+	{
+		Ret.Extent = DestSize;
+	}
 	return Ret;
 }

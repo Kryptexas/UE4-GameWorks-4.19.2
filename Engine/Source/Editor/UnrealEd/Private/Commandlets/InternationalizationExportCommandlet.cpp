@@ -473,6 +473,12 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 		}
 	}
 
+	// Warn about the using deprecating 4.14 export mode
+	if (TextCollapseMode == ELocalizedTextCollapseMode::IdenticalPackageIdTextIdAndSource)
+	{
+		UE_LOG(LogInternationalizationExportCommandlet, Warning, TEXT("The export mode 'ELocalizedTextCollapseMode::IdenticalPackageIdTextIdAndSource' is deprecated, and will be removed in a future version. Please consider using 'ELocalizedTextCollapseMode::IdenticalTextIdAndSource' instead."));
+	}
+
 	bool ShouldAddSourceLocationsAsComments = true;
 	GetBoolFromConfig(*SectionName, TEXT("ShouldAddSourceLocationsAsComments"), ShouldAddSourceLocationsAsComments, ConfigPath);
 

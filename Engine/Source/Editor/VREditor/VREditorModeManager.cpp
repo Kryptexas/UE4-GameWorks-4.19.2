@@ -151,6 +151,11 @@ bool FVREditorModeManager::IsVREditorAvailable() const
 }
 
 
+UVREditorMode* FVREditorModeManager::GetVREditorMode()
+{
+	return CurrentVREditorMode;
+}
+
 void FVREditorModeManager::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	Collector.AddReferencedObject( CurrentVREditorMode );

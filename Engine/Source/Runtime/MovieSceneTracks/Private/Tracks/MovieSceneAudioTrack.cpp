@@ -9,6 +9,9 @@
 #include "Sound/SoundNodeWavePlayer.h"
 #include "Kismet/GameplayStatics.h"
 #include "AudioDecompress.h"
+#include "Evaluation/MovieSceneSegment.h"
+#include "Compilation/MovieSceneSegmentCompiler.h"
+#include "Compilation/MovieSceneCompilerRules.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieSceneAudioTrack"
@@ -131,6 +134,23 @@ void UMovieSceneAudioTrack::AddNewSound(USoundBase* Sound, float Time)
 bool UMovieSceneAudioTrack::IsAMasterTrack() const
 {
 	return Cast<UMovieScene>(GetOuter())->IsAMasterTrack(*this);
+}
+
+
+TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneAudioTrack::GetRowCompilerRules() const
+{
+	struct FCompilerRules : FMovieSceneSegmentCompilerRules
+	{
+		virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const
+		{
+			// Run the default high pass filter for overlap priority
+			MovieSceneSegmentCompiler::BlendSegmentHighPass(Segment, SourceData);
+
+			// Weed out based on array index (legacy behaviour)
+			MovieSceneSegmentCompiler::BlendSegmentLegacySectionOrder(Segment, SourceData);
+		}
+	};
+	return FCompilerRules();
 }
 
 

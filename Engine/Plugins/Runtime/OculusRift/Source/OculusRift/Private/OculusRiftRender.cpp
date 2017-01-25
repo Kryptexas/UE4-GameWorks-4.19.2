@@ -1132,6 +1132,8 @@ void FCustomPresent::Reset_RenderThread()
 		RenderContext->bFrameBegun = false;
 		SetRenderContext(nullptr);
 	}
+
+	bReady = false;
 }
 
 void FCustomPresent::Reset()

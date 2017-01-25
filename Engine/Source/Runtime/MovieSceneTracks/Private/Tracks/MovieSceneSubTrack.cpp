@@ -106,7 +106,7 @@ UMovieSceneSubSection* UMovieSceneSubTrack::AddSequenceToRecord()
 	UMovieScene* MovieScene = CastChecked<UMovieScene>(GetOuter());
 	TRange<float> PlaybackRange = MovieScene->GetPlaybackRange();
 
-	int32 MaxRowIndex = 0;
+	int32 MaxRowIndex = -1;
 	for (auto Section : Sections)
 	{
 		MaxRowIndex = FMath::Max(Section->GetRowIndex(), MaxRowIndex);

@@ -197,7 +197,16 @@ FSlateColor SMultiLineEditableTextBox::DetermineForegroundColor() const
 
 	if ( EditableText->IsTextReadOnly() )
 	{
-		return ReadOnlyForegroundColorOverride.IsSet() ? ReadOnlyForegroundColorOverride.Get() : Style->ReadOnlyForegroundColor;
+		if (ReadOnlyForegroundColorOverride.IsSet())
+		{
+			return ReadOnlyForegroundColorOverride.Get();
+		}
+		if (ForegroundColorOverride.IsSet())
+		{
+			return ForegroundColorOverride.Get();
+		}
+
+		return Style->ReadOnlyForegroundColor;
 	}
 	else
 	{

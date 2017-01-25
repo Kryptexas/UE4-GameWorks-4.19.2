@@ -65,5 +65,12 @@ public:
 	 * @return True if the VREditor is currently running 
 	 */
 	virtual bool IsVREditorModeActive() = 0;
+
+	/**
+	 * Gets the current VR Editor mode that is running
+	 *
+	 * @return The current VREditor
+	 */
+	virtual class UVREditorMode* GetVREditorMode() = 0;
 };
 

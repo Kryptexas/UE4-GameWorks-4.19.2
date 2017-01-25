@@ -329,8 +329,8 @@ enum ESceneCaptureSource
 	SCS_FinalColorLDR UMETA(DisplayName="Final Color (LDR) in RGB"),
 	SCS_SceneColorSceneDepth UMETA(DisplayName="SceneColor (HDR) in RGB, SceneDepth in A"),
 	SCS_SceneDepth UMETA(DisplayName="SceneDepth in R"),
-	SCS_Normal UMETA(DisplayName="Normal in RGB"),
-	SCS_BaseColor UMETA(DisplayName="BaseColor in RGB")
+	SCS_Normal UMETA(DisplayName="Normal in RGB (Deferred Renderer only)"),
+	SCS_BaseColor UMETA(DisplayName="BaseColor in RGB (Deferred Renderer only)")
 };
 
 UENUM()
@@ -2292,8 +2292,8 @@ public:
 		, MaxEvalRateForInterpolation(4)
 		, ShiftBucket(EUpdateRateShiftBucket::ShiftBucket0)
 	{ 
-		BaseVisibleDistanceFactorThesholds.Add(0.4f);
-		BaseVisibleDistanceFactorThesholds.Add(0.2f);
+		BaseVisibleDistanceFactorThesholds.Add(0.12f);
+		BaseVisibleDistanceFactorThesholds.Add(0.24f);
 	}
 
 	/** Set parameters and verify inputs for Trail Mode (original behaviour - skip frames, track skipped time and then catch up afterwards).

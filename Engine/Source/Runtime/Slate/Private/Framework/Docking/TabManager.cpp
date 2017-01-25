@@ -1010,11 +1010,17 @@ void FTabManager::DrawAttention( const TSharedRef<SDockTab>& TabToHighlight )
 		}
 
 		TSharedPtr<SWindow> OwnerWindow = DockingArea->GetParentWindow();
-		if ( OwnerWindow.IsValid() && ( OwnerWindow->IsActive() || OwnerWindow->HasActiveParent() ) )
+
+		if ( SWindow* OwnerWindowPtr = OwnerWindow.Get() )
 		{
-			// Only bring windows to the front and draw attention if that window is active.  If we don't do this,
-			// it's very easy to make code do annoying things, eg. stealing focus from PIE windows.
-			OwnerWindow->BringToFront();
+			// When should we force a window to the front?
+			// 1) The owner window is already active, so we know the user is using this screen.
+			// 2) This window is a child window of another already active window (same as 1).
+			// 3) Slate is currently processing input, which would imply we got this request at the behest of a user's click or press.
+			if ( OwnerWindowPtr->IsActive() || OwnerWindowPtr->HasActiveParent() || FSlateApplication::Get().IsProcessingInput() )
+			{
+				OwnerWindowPtr->BringToFront();
+			}
 		}
 
 		TabToHighlight->GetParentDockTabStack()->BringToFront(TabToHighlight);

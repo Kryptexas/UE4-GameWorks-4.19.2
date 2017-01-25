@@ -24,6 +24,9 @@
 #include "Sections/MovieSceneSubSection.h"
 #include "Sections/MovieSceneCinematicShotSection.h"
 #include "Curves/IntegralCurve.h"
+#include "Editor.h"
+#include "NotifyHook.h"
+#include "EditorUndoClient.h"
 
 #define LOCTEXT_NAMESPACE "SequencerContextMenus"
 
@@ -182,77 +185,152 @@ bool FKeyContextMenu::CanAddPropertiesMenu() const
 	return false;
 }
 
-void FKeyContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
+/** Widget that represents a details panel that refreshes on undo, and handles modification of the section on edit */
+class SInlineDetailsView : public SCompoundWidget, public FEditorUndoClient, public FNotifyHook
 {
-	FDetailsViewArgs DetailsViewArgs;
+public:
+	SLATE_BEGIN_ARGS(SInlineDetailsView){}
+	SLATE_END_ARGS()
+
+	~SInlineDetailsView()
 	{
-		DetailsViewArgs.bAllowSearch = false;
-		DetailsViewArgs.bCustomFilterAreaLocation = true;
-		DetailsViewArgs.bCustomNameAreaLocation = true;
-		DetailsViewArgs.bHideSelectionTip = true;
-		DetailsViewArgs.bLockable = false;
-		DetailsViewArgs.bSearchInitialKeyFocus = true;
-		DetailsViewArgs.bUpdatesFromSelection = false;
-		DetailsViewArgs.bShowOptions = false;
-		DetailsViewArgs.bShowModifiedPropertiesOption = false;
-		DetailsViewArgs.bShowScrollBar = false;
+		GEditor->UnregisterForUndo(this);
 	}
 
-	FStructureDetailsViewArgs StructureViewArgs;
+	void Construct(const FArguments&, TSharedRef<FSequencer> InSequencer)
 	{
-		StructureViewArgs.bShowObjects = false;
-		StructureViewArgs.bShowAssets = true;
-		StructureViewArgs.bShowClasses = true;
-		StructureViewArgs.bShowInterfaces = false;
+		GEditor->RegisterForUndo(this);
+		
+		WeakSequencer = InSequencer;
+		Initialize();
 	}
-
-	TArray<TPair<TSharedPtr<FStructOnScope>, const FSequencerSelectedKey&>> Keys;
+	
+	/** (Re)Initialize this widget's details panel */
+	void Initialize()
 	{
+		// Reset the section and widget content
+		WeakSection = nullptr;
+		ChildSlot
+		[
+			SNullWidget::NullWidget
+		];
+
+		TSharedPtr<FSequencer> Sequencer = WeakSequencer.Pin();
+		if (!Sequencer.IsValid())
+		{
+			return;
+		}
+
+		// Set up the details panel only if a single selected key with a valid key struct exists
+		TSharedPtr<FStructOnScope> SelectedKeyStruct;
+		FSequencerSelectedKey SelectedKey;
+
 		for (const FSequencerSelectedKey& Key : Sequencer->GetSelection().GetSelectedKeys())
 		{
 			if (Key.KeyArea.IsValid() && Key.KeyHandle.IsSet())
 			{
 				TSharedPtr<FStructOnScope> KeyStruct = Key.KeyArea->GetKeyStruct(Key.KeyHandle.GetValue());
-
 				if (KeyStruct.IsValid())
 				{
-					Keys.Add(TPairInitializer<TSharedPtr<FStructOnScope>, const FSequencerSelectedKey&>(KeyStruct, Key));
+					if (SelectedKey.IsValid())
+					{
+						// @todo sequencer: only one struct per structure view supported right now :/
+						return;
+					}
+
+					SelectedKey = Key;
+					SelectedKeyStruct = KeyStruct;
 				}
 			}
 		}
+
+		// If there're no selected keys, or too many, bail
+		if (!SelectedKey.IsValid())
+		{
+			return;
+		}
+
+		// Set up the details panel
+		WeakSection = SelectedKey.Section;
+
+		FDetailsViewArgs DetailsViewArgs;
+		{
+			DetailsViewArgs.bAllowSearch = false;
+			DetailsViewArgs.bCustomFilterAreaLocation = true;
+			DetailsViewArgs.bCustomNameAreaLocation = true;
+			DetailsViewArgs.bHideSelectionTip = true;
+			DetailsViewArgs.bLockable = false;
+			DetailsViewArgs.bSearchInitialKeyFocus = true;
+			DetailsViewArgs.bUpdatesFromSelection = false;
+			DetailsViewArgs.bShowOptions = false;
+			DetailsViewArgs.bShowModifiedPropertiesOption = false;
+			DetailsViewArgs.bShowScrollBar = false;
+			DetailsViewArgs.NotifyHook = this;
+		}
+
+		FStructureDetailsViewArgs StructureViewArgs;
+		{
+			StructureViewArgs.bShowObjects = false;
+			StructureViewArgs.bShowAssets = true;
+			StructureViewArgs.bShowClasses = true;
+			StructureViewArgs.bShowInterfaces = false;
+		}
+
+		TSharedRef<IStructureDetailsView> StructureDetailsView = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor")
+			.CreateStructureDetailView(DetailsViewArgs, StructureViewArgs, nullptr, LOCTEXT("MessageData", "Message Data"));
+
+		// register details customizations for this instance
+		StructureDetailsView->GetDetailsView().RegisterInstancedCustomPropertyLayout(FIntegralKey::StaticStruct(), FOnGetDetailCustomizationInstance::CreateStatic(&FIntegralKeyDetailsCustomization::MakeInstance, TWeakObjectPtr<const UMovieSceneSection>(WeakSection)));
+
+		StructureDetailsView->SetStructureData(SelectedKeyStruct);
+		StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddSP(this, &SInlineDetailsView::OnFinishedChangingProperties, SelectedKeyStruct);
+
+		ChildSlot
+		[
+			StructureDetailsView->GetWidget().ToSharedRef()
+		];
 	}
 
-	TSharedRef<IStructureDetailsView> StructureDetailsView = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor")
-		.CreateStructureDetailView(DetailsViewArgs, StructureViewArgs, nullptr, LOCTEXT("MessageData", "Message Data"));
+	void OnFinishedChangingProperties(const FPropertyChangedEvent& ChangeEvent, TSharedPtr<FStructOnScope> KeyStruct)
 	{
-		// @todo sequencer: only one struct per structure view supported right now :/
-		if (Keys.Num() == 1)
+		if (KeyStruct->GetStruct()->IsChildOf(FMovieSceneKeyStruct::StaticStruct()))
 		{
-			TSharedPtr<FStructOnScope> SharedKeyStruct = Keys[0].Key;
-			TWeakObjectPtr<UMovieSceneSection> WeakSection = Keys[0].Value.Section;
+			((FMovieSceneKeyStruct*)KeyStruct->GetStructMemory())->PropagateChanges(ChangeEvent);
+		}
 
-			// register details customizations for this instance
-			StructureDetailsView->GetDetailsView().RegisterInstancedCustomPropertyLayout(FIntegralKey::StaticStruct(), FOnGetDetailCustomizationInstance::CreateStatic(&FIntegralKeyDetailsCustomization::MakeInstance, TWeakObjectPtr<const UMovieSceneSection>(WeakSection)));
-
-			StructureDetailsView->SetStructureData(Keys[0].Key);
-			StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddLambda(
-				[=](const FPropertyChangedEvent& ChangeEvent) {
-
-					if (UMovieSceneSection* Section = WeakSection.Get())
-					{
-						Section->Modify();
-					}
-					if (SharedKeyStruct->GetStruct()->IsChildOf(FMovieSceneKeyStruct::StaticStruct()))
-					{
-						((FMovieSceneKeyStruct*)SharedKeyStruct->GetStructMemory())->PropagateChanges(ChangeEvent);
-					}
-					Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
-				}
-			);
+		TSharedPtr<FSequencer> Sequencer = WeakSequencer.Pin();
+		if (Sequencer.IsValid())
+		{
+			Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 		}
 	}
-	
-	MenuBuilder.AddWidget(StructureDetailsView->GetWidget().ToSharedRef(), FText::GetEmpty(), true);
+
+	virtual void NotifyPreChange( UProperty* PropertyAboutToChange )
+	{
+		if (UMovieSceneSection* Section = WeakSection.Get())
+		{
+			Section->Modify();
+		}
+	}
+
+	virtual void PostUndo(bool bSuccess) override
+	{
+		Initialize();
+	}
+
+	virtual void PostRedo(bool bSuccess) override
+	{
+		Initialize();
+	}
+
+private:
+	TWeakObjectPtr<UMovieSceneSection> WeakSection;
+	TWeakPtr<FSequencer> WeakSequencer;
+};
+
+void FKeyContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddWidget(SNew(SInlineDetailsView, Sequencer), FText::GetEmpty(), true);
 }
 
 

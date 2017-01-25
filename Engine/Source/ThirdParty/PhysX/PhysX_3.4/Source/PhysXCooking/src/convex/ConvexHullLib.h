@@ -45,7 +45,8 @@ namespace physx
 	public:
 		// functions
 		ConvexHullLib(const PxConvexMeshDesc& desc, const PxCookingParams& params)
-			: mConvexMeshDesc(desc), mCookingParams(params), mSwappedIndices(NULL)			
+			: mConvexMeshDesc(desc), mCookingParams(params), mSwappedIndices(NULL),
+			mShiftedVerts(NULL)
 		{
 		}
 
@@ -70,12 +71,25 @@ namespace physx
 			PxVec3& scale,		// scale
 			PxVec3& center);	// center
 
+		// shift vertices around origin and clean input vertices from duplicates, normalize etc.
+		bool shiftAndcleanupVertices(PxU32 svcount, // input vertex count
+			const PxVec3* svertices, // vertices
+			PxU32 stride,		// stride
+			PxU32& vcount,		// output number of vertices
+			PxVec3* vertices,	// location to store the results.			
+			PxVec3& scale,		// scale
+			PxVec3& center);	// center
+
 		void swapLargestFace(PxConvexMeshDesc& desc);
+
+		void shiftConvexMeshDesc(PxConvexMeshDesc& desc);
 
 	protected:
 		const PxConvexMeshDesc&			mConvexMeshDesc;
 		const PxCookingParams&			mCookingParams;
-		PxU32*							mSwappedIndices;		
+		PxU32*							mSwappedIndices;
+		PxVec3							mOriginShift;
+		PxVec3*							mShiftedVerts;
 	};
 }
 

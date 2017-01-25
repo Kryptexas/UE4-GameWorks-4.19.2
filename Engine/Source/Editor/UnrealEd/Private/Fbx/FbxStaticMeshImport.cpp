@@ -1292,6 +1292,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 				}
 			}
 		}
+
 		for (int32 MaterialIndex = 0; MaterialIndex < MeshMaterials.Num(); ++MaterialIndex)
 		{
 			int32 SkinIndex = 0xffff;
@@ -1304,13 +1305,15 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 				}
 			}
 			int32 RemappedIndex = MaterialMap[MaterialIndex];
-			if (!SortedMaterialIndex.IsValidIndex(RemappedIndex))
+			uint32 SortedMaterialKey = ((uint32)SkinIndex << 16) | ((uint32)RemappedIndex & 0xffff);
+			if (!SortedMaterialIndex.IsValidIndex(SortedMaterialKey))
 			{
-				FString FbxMatName = UniqueMaterials[RemappedIndex].GetName();
-				SortedMaterialIndex.Add(((uint32)SkinIndex << 16) | ((uint32)RemappedIndex & 0xffff));
+				SortedMaterialIndex.Add(SortedMaterialKey);
 			}
 		}
+
 		SortedMaterialIndex.Sort();
+
 
 		UE_LOG(LogFbx, Verbose, TEXT("== After sorting:"));
 		TArray<FFbxMaterial> SortedMaterials;
@@ -1590,6 +1593,12 @@ StaticMesh->LightMapCoordinateIndex = FirstOpenUVChannel;
 
 void UnFbx::FFbxImporter::ReorderMaterialToFbxOrder(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray)
 {
+	//If there is less the 2 materials in the fbx file there is no need to reorder them
+	if (StaticMesh == nullptr || StaticMesh->StaticMaterials.Num() < 2)
+	{
+		return;
+	}
+
 	TArray<FString> MeshMaterials;
 	for (int32 MeshIndex = 0; MeshIndex < MeshNodeArray.Num(); MeshIndex++)
 	{
@@ -1609,6 +1618,12 @@ void UnFbx::FFbxImporter::ReorderMaterialToFbxOrder(UStaticMesh* StaticMesh, TAr
 				}
 			}
 		}
+	}
+
+	//There is no material in the fbx node
+	if (MeshMaterials.Num() < 1)
+	{
+		return;
 	}
 
 	//Reorder the StaticMaterials array to reflect the order in the fbx file

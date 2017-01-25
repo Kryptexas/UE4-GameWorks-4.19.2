@@ -19,24 +19,15 @@ void UFontFace::Serialize(FArchive& Ar)
 {
 	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
 
-	const FString LocalSourceFilename = SourceFilename;
-
-	if (Ar.IsCooking())
-	{
-		// Set the cooked filename prior to serializing the properties
-		SourceFilename = GetCookedFilename();
-	}
-
 	Super::Serialize(Ar);
-
-	if (Ar.IsCooking())
-	{
-		// Restore the original filename after serializing the properties
-		SourceFilename = LocalSourceFilename;
-	}
 
 	if (Ar.IsLoading())
 	{
+		if (FPlatformProperties::RequiresCookedData())
+		{
+			SourceFilename = GetCookedFilename();
+		}
+
 		if (Ar.CustomVer(FEditorObjectVersion::GUID) < FEditorObjectVersion::AddedInlineFontFaceAssets)
 		{
 #if WITH_EDITORONLY_DATA

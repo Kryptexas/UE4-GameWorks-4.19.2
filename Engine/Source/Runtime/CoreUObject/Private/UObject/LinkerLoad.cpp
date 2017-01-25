@@ -101,6 +101,15 @@ Helpers
 ----------------------------------------------------------------------------*/
 
 /**
+* Test whether the given package index is a valid import or export in this package
+*/
+bool FLinkerLoad::IsValidPackageIndex(FPackageIndex InIndex)
+{
+	return (InIndex.IsImport() && ImportMap.IsValidIndex(InIndex.ToImport()))
+		|| (InIndex.IsExport() && ExportMap.IsValidIndex(InIndex.ToExport()));
+}
+
+/**
  * Add redirects to FLinkerLoad static map
  */
 void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
@@ -4249,7 +4258,7 @@ UObject* FLinkerLoad::CreateImport( int32 Index )
 						FindObject = FindImportFast(FindClass, FindOuter, Import.ObjectName);
 						if (UDynamicClass* FoundDynamicClass = Cast<UDynamicClass>(FindObject))
 						{
-							if (!FoundDynamicClass->GetDefaultObject(false))
+							if(0 == (FoundDynamicClass->ClassFlags & CLASS_Constructed))
 							{
 								// This class wasn't fully constructed yet. It will be properly constructed in CreateExport. 
 								FindObject = nullptr;
@@ -4983,6 +4992,11 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupExportMap()
 		for ( int32 ExportMapIdx = 0; ExportMapIdx < ExportMap.Num(); ExportMapIdx++ )
 		{
 			FObjectExport &Export = ExportMap[ExportMapIdx];
+			if (!IsValidPackageIndex(Export.ClassIndex))
+			{
+				UE_LOG(LogLinker, Warning, TEXT("Bad class index found on export %d"), ExportMapIdx);
+				return LINKER_Failed;
+			}
 			FName NameClass = GetExportClassName(ExportMapIdx);
 			FName NamePackage = GetExportClassPackage(ExportMapIdx);
 

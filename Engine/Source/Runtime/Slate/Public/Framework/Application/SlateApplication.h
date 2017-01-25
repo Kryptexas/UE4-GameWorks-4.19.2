@@ -422,6 +422,14 @@ public:
 	/** @return	Returns true if there are any pop-up menus summoned */
 	bool AnyMenusVisible() const;
 
+	/**
+	 * Attempt to locate a menu that contains the specified widget
+	 *
+	 * @param InWidgetPath Path to the widget to use for the search
+	 * @return the menu in which the widget resides, or nullptr
+	 */
+	TSharedPtr<IMenu> FindMenuInWidgetPath(const FWidgetPath& InWidgetPath) const;
+
 	/** @return	Returns a ptr to the window that is currently the host of the menu stack or null if no menus are visible */
 	TSharedPtr<SWindow> GetVisibleMenuWindow() const;
 
@@ -1147,6 +1155,11 @@ public:
 	 * @param InAppActivated Whether the application was activated.
 	 */
 	void ProcessApplicationActivationEvent( bool InAppActivated );
+
+	/**
+	 * Returns true if the we're currently processing mouse, keyboard, touch or gamepad input.
+	 */
+	bool IsProcessingInput() const { return ProcessingInput > 0; }
 
 public:
 
@@ -2000,6 +2013,9 @@ private:
 
 	/** Delegate for custom navigation behavior */
 	FCustomNavigationHandler CustomNavigationEvent;
+	
+	/** Are we currently processing input in slate?  If so this value will be greater than 0. */
+	int32 ProcessingInput;
 
 #if WITH_EDITOR
 	/**

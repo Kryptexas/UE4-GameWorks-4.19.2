@@ -594,10 +594,10 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, RoughnessOverrideParameter(FVector2D(0,1))
 	, HiddenPrimitives(InitOptions.HiddenPrimitives)
 	, ShowOnlyPrimitives(InitOptions.ShowOnlyPrimitives)
+	, OriginOffsetThisFrame(InitOptions.OriginOffsetThisFrame)
 	, LODDistanceFactor(InitOptions.LODDistanceFactor)
 	, LODDistanceFactorSquared(InitOptions.LODDistanceFactor*InitOptions.LODDistanceFactor)
 	, bCameraCut(InitOptions.bInCameraCut)
-	, bOriginOffsetThisFrame(InitOptions.bOriginOffsetThisFrame)
 	, CursorPos(InitOptions.CursorPos)
 	, bIsGameView(false)
 	, bIsViewInfo(false)
@@ -745,11 +745,11 @@ void FSceneView::SetupAntiAliasingMethod()
 	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
 	if (FeatureLevel <= ERHIFeatureLevel::ES3_1 && CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false)
 	{
-		//@todo Ronin check what we support under MSAA
+		// Using mobile MSAA, disable other AA methods.
+		AntiAliasingMethod = AAM_None;
 
 		// Turn off various features which won't work with mobile MSAA.
 		//FinalPostProcessSettings.DepthOfFieldScale = 0.0f;
-		AntiAliasingMethod = AAM_None;
 	}
 
 	if (Family)
@@ -765,7 +765,7 @@ void FSceneView::SetupAntiAliasingMethod()
 		static const auto PostProcessAAQualityCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PostProcessAAQuality"));
 		static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 		static auto* MobileMSAACvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
-		static uint32 MSAAValue = GShaderPlatformForFeatureLevel[FeatureLevel] == SP_OPENGL_ES2_IOS ? 1 : MobileMSAACvar->GetValueOnAnyThread();
+		static uint32 MobileMSAAValue = GShaderPlatformForFeatureLevel[FeatureLevel] == SP_OPENGL_ES2_IOS ? 1 : MobileMSAACvar->GetValueOnAnyThread();
 
 		int32 Quality = FMath::Clamp(PostProcessAAQualityCVar->GetValueOnAnyThread(), 0, 6);
 		const bool bWillApplyTemporalAA = Family->EngineShowFlags.PostProcessing || bIsPlanarReflection;
@@ -773,7 +773,7 @@ void FSceneView::SetupAntiAliasingMethod()
 		if (!bWillApplyTemporalAA || !Family->EngineShowFlags.AntiAliasing || Quality <= 0
 			// Disable antialiasing in GammaLDR mode to avoid jittering.
 			|| (FeatureLevel <= ERHIFeatureLevel::ES3_1 && MobileHDRCvar->GetValueOnAnyThread() == 0)
-			|| (FeatureLevel <= ERHIFeatureLevel::ES3_1 && (MSAAValue > 1))
+			|| (FeatureLevel <= ERHIFeatureLevel::ES3_1 && (MobileMSAAValue > 1))
 			|| Family->EngineShowFlags.VisualizeBloom
 			|| Family->EngineShowFlags.VisualizeDOF)
 		{
@@ -907,7 +907,7 @@ void FSceneView::UpdateViewMatrix()
 	ViewMatrices.UpdateViewMatrix(StereoViewLocation, ViewRotation);
 
 	// Derive the view frustum from the view projection matrix.
-	if ((StereoPass == eSSP_LEFT_EYE || StereoPass == eSSP_RIGHT_EYE) && Family->MonoParameters.Mode != EMonoscopicFarFieldMode::Off)
+	if ((StereoPass == eSSP_LEFT_EYE || StereoPass == eSSP_RIGHT_EYE) && Family->IsMonoscopicFarFieldEnabled())
 	{
 		// Stereo views use mono far field plane when using mono far field rendering
 		const FPlane FarPlane(ViewMatrices.GetViewOrigin() + GetViewDirection() * Family->MonoParameters.CullingDistance, GetViewDirection());
@@ -2314,6 +2314,7 @@ FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 
 	// Setup mono far field for VR
 	static const auto CVarMono = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MonoscopicFarField"));
+	static const auto CVarMonoMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MonoscopicFarFieldMode"));
 	bool bIsStereoEnabled = false;
 	if (GEngine != nullptr && GEngine->StereoRenderingDevice.IsValid())
 	{
@@ -2322,32 +2323,10 @@ FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 
 	const bool bIsMobile = FSceneInterface::GetShadingPath(GetFeatureLevel()) == EShadingPath::Mobile;
 
-	if (bIsStereoEnabled && bIsMobile && CVarMono)
+	if (bIsStereoEnabled && bIsMobile && CVarMono && CVarMonoMode)
 	{
-		const int32 MonoMode = CVarMono->GetValueOnAnyThread();
-		switch (MonoMode)
-		{
-		case 1:
-			MonoParameters.Mode = EMonoscopicFarFieldMode::On;
-			break;
-
-		case 2:
-			MonoParameters.Mode = EMonoscopicFarFieldMode::StereoOnly;
-			break;
-
-		case 3:
-			MonoParameters.Mode = EMonoscopicFarFieldMode::StereoNoClipping;
-			break;
-
-		case 4:
-			MonoParameters.Mode = EMonoscopicFarFieldMode::MonoOnly;
-			break;
-
-		default:
-			MonoParameters.Mode = EMonoscopicFarFieldMode::Off;
-			break;
-		}
-
+		MonoParameters.bEnabled = CVarMono->GetValueOnAnyThread() != 0;
+		MonoParameters.Mode = static_cast<EMonoscopicFarFieldMode>(FMath::Clamp(CVarMonoMode->GetValueOnAnyThread(), 0, 4));
 		MonoParameters.CullingDistance = CVS.MonoFarFieldCullingDistance;
 	}
 }

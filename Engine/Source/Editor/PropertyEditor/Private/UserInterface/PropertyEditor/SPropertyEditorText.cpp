@@ -71,8 +71,6 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 		// Object properties should display their entire text in a tooltip
 		PrimaryWidget->SetToolTipText( TAttribute<FText>( InPropertyEditor, &FPropertyEditor::GetValueAsText ) );
 	}
-
-	SetEnabled( TAttribute<bool>( this, &SPropertyEditorText::CanEdit ) );
 }
 
 void SPropertyEditorText::GetDesiredWidth( float& OutMinDesiredWidth, float& OutMaxDesiredWidth )
@@ -150,7 +148,7 @@ void SPropertyEditorText::OnSingleLineTextChanged( const FText& NewText )
 
 bool SPropertyEditorText::SupportsKeyboardFocus() const
 {
-	return PrimaryWidget.IsValid() && PrimaryWidget->SupportsKeyboardFocus();
+	return PrimaryWidget.IsValid() && PrimaryWidget->SupportsKeyboardFocus() && CanEdit();
 }
 
 FReply SPropertyEditorText::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )

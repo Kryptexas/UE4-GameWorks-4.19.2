@@ -1110,19 +1110,27 @@ bool UPrimitiveComponent::ShouldCreatePhysicsState() const
 		return false;
 	}
 
-	bool bShouldCreatePhysicsState = IsRegistered() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
+	bool bShouldCreatePhysicsState = IsRegistered() && (bAlwaysCreatePhysicsState || BodyInstance.GetCollisionEnabled() != ECollisionEnabled::NoCollision);
 
 #if WITH_EDITOR
-	if (BodyInstance.bSimulatePhysics && (GetCollisionEnabled() == ECollisionEnabled::NoCollision || GetCollisionEnabled() == ECollisionEnabled::QueryOnly))
+	if (BodyInstance.bSimulatePhysics)
 	{
-		FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidSimulateOptions", "Invalid Simulate Options: Body ({0}) is set to simulate physics but Collision Enabled is incompatible"),
-			FText::FromString(GetReadableName())));
+		const ECollisionEnabled::Type CollisionEnabled = GetCollisionEnabled();
+		if (CollisionEnabled == ECollisionEnabled::NoCollision || CollisionEnabled == ECollisionEnabled::QueryOnly)
+		{
+			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidSimulateOptions", "Invalid Simulate Options: Body ({0}) is set to simulate physics but Collision Enabled is incompatible"),
+				FText::FromString(GetReadableName())));
+		}
 	}
 
 	// if it shouldn't create physics state, but if world wants to enable trace collision for components, allow it
-	if (!bShouldCreatePhysicsState && GetWorld() && GetWorld()->bEnableTraceCollision)
+	if (!bShouldCreatePhysicsState)
 	{
-		bShouldCreatePhysicsState = true;
+		UWorld* World = GetWorld();
+		if (World && World->bEnableTraceCollision)
+		{
+			bShouldCreatePhysicsState = true;
+		}
 	}
 #endif
 	return bShouldCreatePhysicsState;

@@ -8,7 +8,7 @@ namespace UnrealBuildTool.Rules
 		{
 			OptimizeCode = CodeOptimization.Always;
 
-			PrivateIncludePathModuleNames.Add("TargetPlatform");
+            PrivateIncludePathModuleNames.Add("TargetPlatform");
 
 			PrivateIncludePaths.AddRange(
 				new string[] 

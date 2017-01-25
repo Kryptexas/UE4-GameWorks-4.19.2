@@ -189,7 +189,12 @@ FString FSandboxPlatformFile::ConvertToSandboxPath( const TCHAR* Filename ) cons
 			{
 				SeparatorIndex = SeparatorIndex2;
 			}
-			if( FPaths::IsDrive( SandboxPath.Mid( 0, SeparatorIndex ) ) == false )
+			FString DrivePath = SandboxPath;
+			if (SeparatorIndex != INDEX_NONE)
+			{
+				DrivePath = SandboxPath.Mid( 0, SeparatorIndex );
+			}
+			if( FPaths::IsDrive( DrivePath ) == false )
 			{
 				FString Dir = FPlatformProcess::BaseDir();
 				FPaths::MakeStandardFilename(Dir);

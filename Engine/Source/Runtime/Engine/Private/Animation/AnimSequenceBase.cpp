@@ -99,6 +99,31 @@ void UAnimSequenceBase::SortNotifies()
 	Notifies.Sort();
 }
 
+bool UAnimSequenceBase::RemoveNotifies(const TArray<FName>& NotifiesToRemove)
+{
+	bool bSequenceModified = false;
+	for (int32 NotifyIndex = Notifies.Num() - 1; NotifyIndex >= 0; --NotifyIndex)
+	{
+		FAnimNotifyEvent& AnimNotify = Notifies[NotifyIndex];
+		if (NotifiesToRemove.Contains(AnimNotify.NotifyName))
+		{
+			if (!bSequenceModified)
+			{
+				Modify();
+				bSequenceModified = true;
+			}
+			Notifies.RemoveAtSwap(NotifyIndex);
+		}
+	}
+
+	if (bSequenceModified)
+	{
+		MarkPackageDirty();
+		RefreshCacheData();
+	}
+	return bSequenceModified;
+}
+
 bool UAnimSequenceBase::IsNotifyAvailable() const
 {
 	return (Notifies.Num() != 0) && (SequenceLength > 0.f);

@@ -441,6 +441,7 @@ protected:
 
 	/** Track index to get marker data from. Samples are tested for the suitability of marker based sync
 	    during load and if we can use marker based sync we cache an index to a representative sample here */
+	UPROPERTY()
 	int32 SampleIndexWithMarkers;
 
 	/** Sample animation data **/

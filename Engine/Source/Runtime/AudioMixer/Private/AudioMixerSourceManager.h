@@ -98,6 +98,7 @@ namespace Audio
 		float NumInterpFrames;
 		float Frame;
 		bool bIsInit;
+		bool bIsDone;
 	};
 
 
@@ -238,6 +239,7 @@ namespace Audio
 		TArray<FMixerSourceBufferPtr> CurrentPCMBuffer;
 		TArray<int32> CurrentAudioChunkNumFrames;
 		TArray<TArray<float>> SourceBuffer;
+		TArray<TArray<float>> HRTFSourceBuffer;
 		TArray<TArray<float>> CurrentFrameValues;
 		TArray<TArray<float>> NextFrameValues;
 		TArray<float> CurrentFrameAlpha;
@@ -256,11 +258,8 @@ namespace Audio
 		TArray<float> ScratchChannelMap;
 
 		// Output data, after computing a block of sample data, this is read back from mixers
-		TArray<TArray<float>> PostEffectBuffers;
+		TArray<TArray<float>*> PostEffectBuffers;
 		TArray<TArray<float>> OutputBuffer;
-
-		// Buffer used as an intermediate buffer between effects
-		TArray<float> ScratchBuffer;
 
 		// State management
 		TArray<bool> bIs3D;

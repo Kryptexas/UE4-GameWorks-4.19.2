@@ -24,6 +24,8 @@ void FAnimNode_MultiWayBlend::Initialize(const FAnimationInitializeContext& Cont
 		DesiredAlphas.Init(0.f, Poses.Num());
 	}
 
+	UpdateCachedAlphas();
+
 	for (FPoseLink& Pose : Poses)
 	{
 		Pose.Initialize(Context);
@@ -109,18 +111,21 @@ void FAnimNode_MultiWayBlend::Evaluate(FPoseContext& Output)
 	SourceWeights.Reset();
 	SourceCurves.Reset();
 
-	for (int32 PoseIndex = 0; PoseIndex < Poses.Num(); ++PoseIndex)
+	if (ensure(Poses.Num() == CachedAlphas.Num()))
 	{
-		const float CurrentAlpha = CachedAlphas[PoseIndex];
-		if (CurrentAlpha > ZERO_ANIMWEIGHT_THRESH)
+		for (int32 PoseIndex = 0; PoseIndex < Poses.Num(); ++PoseIndex)
 		{
-			FPoseContext PoseContext(Output);
-			// total alpha shouldn't be zero
-			Poses[PoseIndex].Evaluate(PoseContext);
+			const float CurrentAlpha = CachedAlphas[PoseIndex];
+			if (CurrentAlpha > ZERO_ANIMWEIGHT_THRESH)
+			{
+				FPoseContext PoseContext(Output);
+				// total alpha shouldn't be zero
+				Poses[PoseIndex].Evaluate(PoseContext);
 
-			SourcePoses.Add(PoseContext.Pose);
-			SourceCurves.Add(PoseContext.Curve);
-			SourceWeights.Add(CurrentAlpha);
+				SourcePoses.Add(PoseContext.Pose);
+				SourceCurves.Add(PoseContext.Curve);
+				SourceWeights.Add(CurrentAlpha);
+			}
 		}
 	}
 

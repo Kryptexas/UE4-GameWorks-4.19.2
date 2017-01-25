@@ -458,6 +458,7 @@ void USkeletalMeshComponent::OnUnregister()
 	{
 		SubInstance->UninitializeAnimation();
 	}
+	SubInstances.Reset();
 
 	if(PostProcessAnimInstance)
 	{
@@ -800,20 +801,21 @@ void USkeletalMeshComponent::LoadedFromAnotherClass(const FName& OldClassName)
 
 void USkeletalMeshComponent::TickAnimation(float DeltaTime, bool bNeedsValidRootMotion)
 {
-
 	SCOPE_CYCLE_COUNTER(STAT_AnimGameThreadTime);
 	SCOPE_CYCLE_COUNTER(STAT_AnimTickTime);
 	if (SkeletalMesh != nullptr)
 	{
+		// We update sub instances first incase we're using either root motion or non-threaded update.
+		// This ensures that we go through the pre update process and initialize the proxies correctly.
+		for(UAnimInstance* SubInstance : SubInstances)
+		{
+			SubInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, false);
+		}
+
 		if (AnimScriptInstance != nullptr)
 		{
 			// Tick the animation
 			AnimScriptInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, bNeedsValidRootMotion);
-		}
-
-		for(UAnimInstance* SubInstance : SubInstances)
-		{
-			SubInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, false);
 		}
 
 		if(PostProcessAnimInstance)
@@ -1365,6 +1367,7 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	// Invalidate cached bones.
 	CachedBoneSpaceTransforms.Empty();
 	CachedComponentSpaceTransforms.Empty();
+	CachedCurve.Empty();
 }
 
 void USkeletalMeshComponent::MarkRequiredCurveUpToDate()
@@ -1577,8 +1580,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 	const bool bInvalidCachedCurve = bDoEvaluationRateOptimization && 
 									CurrentAnimCurveMappingNameUids != nullptr &&
-									(CachedCurve.UIDList != CurrentAnimCurveMappingNameUids || CachedCurve.UIDList->Num() != CurrentCurveCount  || 
-									AnimCurves.UIDList != CurrentAnimCurveMappingNameUids || AnimCurves.Num() != CurrentCurveCount);
+									(CachedCurve.UIDList != CurrentAnimCurveMappingNameUids || CachedCurve.Num() != CurrentCurveCount);
 
 	const bool bShouldDoEvaluation = !bDoEvaluationRateOptimization || bInvalidCachedBones || bInvalidCachedCurve || !AnimUpdateRateParams->ShouldSkipEvaluation();
 
@@ -1600,15 +1602,21 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	AnimEvaluationContext.SkeletalMesh = SkeletalMesh;
 	AnimEvaluationContext.AnimInstance = AnimScriptInstance;
 
-	if (CurrentAnimCurveMappingNameUids && 
-		((AnimEvaluationContext.Curve.Num() != CurrentCurveCount) || (AnimEvaluationContext.Curve.UIDList != CurrentAnimCurveMappingNameUids)))
+	if (CurrentAnimCurveMappingNameUids)
 	{
-		AnimEvaluationContext.Curve.InitFrom(CurrentAnimCurveMappingNameUids);
+		if ((AnimEvaluationContext.Curve.Num() != CurrentCurveCount) || (AnimEvaluationContext.Curve.UIDList != CurrentAnimCurveMappingNameUids))
+		{
+			AnimEvaluationContext.Curve.InitFrom(CurrentAnimCurveMappingNameUids);
+		}
+		if (AnimCurves.UIDList != CurrentAnimCurveMappingNameUids || AnimCurves.Num() != CurrentCurveCount)
+		{
+			AnimCurves.InitFrom(CurrentAnimCurveMappingNameUids);
+		}
 	}
-	else if(CurrentAnimCurveMappingNameUids == nullptr)
+	else
 	{
 		AnimEvaluationContext.Curve.Empty();
-		CachedCurve.Empty();
+		AnimCurves.Empty();
 	}
 
 	AnimEvaluationContext.bDoEvaluation = bShouldDoEvaluation;

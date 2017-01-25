@@ -205,7 +205,7 @@ bool FSteamVRHMD::D3D11Bridge::Present(int& SyncInterval)
 
 void FSteamVRHMD::D3D11Bridge::PostPresent()
 {
-	//Plugin->VRCompositor->PostPresentHandoff();
+	Plugin->VRCompositor->PostPresentHandoff();
 }
 
 #endif // PLATFORM_WINDOWS

@@ -365,6 +365,9 @@ void UAnimSequence::PostLoad()
 	{
 		RemoveNaNTracks();
 	}
+
+	VerifyTrackMap(nullptr);
+
 #endif // WITH_EDITOR
 
 	Super::PostLoad();
@@ -537,12 +540,12 @@ void ShowResaveMessage(const UAnimSequence* Sequence)
 {
 	if (!IsRunningGame())
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("RESAVE ANIMATION NEEDED(%s): Fixing track data."), *GetNameSafe(Sequence));
+		UE_LOG(LogAnimation, Log, TEXT("Resave Animation Required(%s): Fixing track data and recompressing."), *GetNameSafe(Sequence));
 
 		static FName NAME_LoadErrors("LoadErrors");
 		FMessageLog LoadErrors(NAME_LoadErrors);
 
-		TSharedRef<FTokenizedMessage> Message = LoadErrors.Warning();
+		TSharedRef<FTokenizedMessage> Message = LoadErrors.Info();
 		Message->AddToken(FTextToken::Create(LOCTEXT("AnimationNeedsResave1", "The Animation ")));
 		Message->AddToken(FAssetNameToken::Create(Sequence->GetPathName(), FText::FromString(GetNameSafe(Sequence))));
 		Message->AddToken(FTextToken::Create(LOCTEXT("AnimationNeedsResave2", " needs resave.")));
@@ -554,7 +557,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 {
 	USkeleton* UseSkeleton = (MySkeleton)? MySkeleton: GetSkeleton();
 
-	if( AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && UseSkeleton!=NULL)
+	if( AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && UseSkeleton!=nullptr)
 	{
 		ShowResaveMessage(this);
 
@@ -566,7 +569,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 			AnimationTrackNames[I] = UseSkeleton->GetReferenceSkeleton().GetBoneName(TrackMap.BoneTreeIndex);
 		}
 	}
-	else if (UseSkeleton != NULL)
+	else if (UseSkeleton != nullptr)
 	{
 		// first check if any of them needs to be removed
 		{
@@ -580,7 +583,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 			{
 				int32 SkeletonBoneIndex = TrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
 				// invalid index found
-				if(NumSkeletonBone <= SkeletonBoneIndex)
+				if(SkeletonBoneIndex == INDEX_NONE || NumSkeletonBone <= SkeletonBoneIndex)
 				{
 					// if one is invalid, fix up for all.
 					// you don't know what index got messed up
@@ -946,9 +949,17 @@ FTransform UAnimSequence::ExtractRootMotion(float StartTime, float DeltaTime, bo
 
 FTransform UAnimSequence::ExtractRootMotionFromRange(float StartTrackPosition, float EndTrackPosition) const
 {
+	const FVector DefaultScale(1.f);
+
 	FTransform InitialTransform = ExtractRootTrackTransform(0.f, NULL);
 	FTransform StartTransform = ExtractRootTrackTransform(StartTrackPosition, NULL);
 	FTransform EndTransform = ExtractRootTrackTransform(EndTrackPosition, NULL);
+
+	if(IsValidAdditive())
+	{
+		StartTransform.SetScale3D(StartTransform.GetScale3D() + DefaultScale);
+		EndTransform.SetScale3D(EndTransform.GetScale3D() + DefaultScale);
+	}
 
 	// Transform to Component Space Rotation (inverse root transform from first frame)
 	const FTransform RootToComponentRot = FTransform(InitialTransform.GetRotation().Inverse());
@@ -1047,6 +1058,12 @@ void UAnimSequence::ResetRootBoneForRootMotion(FTransform& BoneTransform, const 
 		case ERootMotionRootLock::Zero: BoneTransform = FTransform::Identity; break;
 		default:
 		case ERootMotionRootLock::RefPose: BoneTransform = RequiredBones.GetRefPoseArray()[0]; break;
+	}
+
+	if (IsValidAdditive() && InRootMotionRootLock != ERootMotionRootLock::AnimFirstFrame)
+	{
+		//Need to remove default scale here for additives
+		BoneTransform.SetScale3D(BoneTransform.GetScale3D() - FVector(1.f));
 	}
 }
 

@@ -209,6 +209,10 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		AttachmentViews.Add(Texture->DefaultView.View);
 	}
 
+	const VkExtent3D& RTExtents = RTLayout.GetExtent3D();
+	// Adreno does not like zero size RTs
+	check(RTExtents.width != 0 && RTExtents.height != 0);
+
 #if !VULKAN_KEEP_CREATE_INFO
 	VkFramebufferCreateInfo CreateInfo;
 #endif
@@ -218,7 +222,6 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	CreateInfo.renderPass = RenderPass.GetHandle();
 	CreateInfo.attachmentCount = AttachmentViews.Num();
 	CreateInfo.pAttachments = AttachmentViews.GetData();
-	const VkExtent3D& RTExtents = RTLayout.GetExtent3D();
 	CreateInfo.width  = RTExtents.width;
 	CreateInfo.height = RTExtents.height;
 	CreateInfo.layers = RTExtents.depth;
@@ -434,7 +437,9 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	//#todo-rco: Proper SyncInterval bLockToVsync ? RHIConsoleVariables::SyncInterval : 0
 	int32 SyncInterval = 0;
 	bool bNeedNativePresent = true;
-	if (IsValidRef(CustomPresent))
+
+	const bool bHasCustomPresent = IsValidRef(CustomPresent);
+	if (bHasCustomPresent)
 	{
 		bNeedNativePresent = CustomPresent->Present(SyncInterval);
 	}
@@ -444,6 +449,11 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	{
 		// Present the back buffer to the viewport window.
 		bResult = SwapChain->Present(Queue, RenderingDoneSemaphores[AcquiredImageIndex]);//, SyncInterval, 0);
+
+		if (bHasCustomPresent)
+		{
+			CustomPresent->PostPresent();
+		}
 
 		// Release the back buffer
 		RHIBackBuffer = nullptr;
@@ -591,16 +601,22 @@ void FVulkanDynamicRHI::Present()
 	//#todo-rco: Proper SyncInterval bLockToVsync ? RHIConsoleVariables::SyncInterval : 0
 	int32 SyncInterval = 0;
 	bool bNeedNativePresent = true;
-	if (IsValidRef(DrawingViewport->CustomPresent))
+
+	const bool bHasCustomPresent = IsValidRef(DrawingViewport->CustomPresent);
+	if (bHasCustomPresent)
 	{
 		bNeedNativePresent = DrawingViewport->CustomPresent->Present(SyncInterval);
 	}
-
 
 	if (bNeedNativePresent)
 	{
 		// Present the back buffer to the viewport window.
 		/*Result = */DrawingViewport->SwapChain->Present(SyncInterval, 0);
+
+		if (bHasCustomPresent)
+		{
+			DrawingViewport->CustomPresent->PostPresent();
+		}
 	}
 #endif
 	check(0);

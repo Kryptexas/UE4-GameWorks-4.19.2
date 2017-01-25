@@ -251,7 +251,6 @@ static FAutoConsoleVariable CVarSystemResolution(
 	TEXT("e.g. 1280x720w for windowed\n")
 	TEXT("     1920x1080f for fullscreen\n")
 	TEXT("     1920x1080wf for windowed fullscreen\n")
-	TEXT("     1920x1080wm for windowed mirror")
 	);
 
 #if !UE_BUILD_SHIPPING
@@ -810,6 +809,21 @@ void EngineMemoryWarningHandler(const FGenericMemoryWarningContext& GenericConte
 
 UEngine::FOnNewStatRegistered UEngine::NewStatDelegate;
 
+void UEngine::PreGarbageCollect()
+{
+	for (TObjectIterator<UWorld> WorldIt; WorldIt; ++WorldIt)
+	{
+		UWorld* World = *WorldIt;
+
+		if (World && World->HasEndOfFrameUpdates())
+		{
+			// Make sure deferred component updates have been sent to the rendering thread before deleting any UObjects which the rendering thread may be referencing
+			// This fixes rendering thread crashes in the following order of operations 1) UMeshComponent::SetMaterial 2) GC 3) Rendering command that dereferences the UMaterial
+			World->SendAllEndOfFrameUpdates();
+		}
+	}
+}
+
 //
 // Initialize the engine.
 //
@@ -848,6 +862,8 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Add to root.
 	AddToRoot();
+
+	FCoreUObjectDelegates::PreGarbageCollect.AddStatic(UEngine::PreGarbageCollect);
 
 	// Initialize the HMDs and motion controllers, if any
 	InitializeHMDDevice();
@@ -10900,7 +10916,7 @@ static void AsyncMapChangeLevelLoadCompletionCallback(const FName& PackageName, 
 			}
 		}
 
-		ULevel* Level = World ? World->PersistentLevel : NULL;	
+		ULevel* Level = World ? World->PersistentLevel : nullptr;	
 		
 		// Print out a warning and set the error if we couldn't find a level in this package.
 		if( !Level )
@@ -10918,7 +10934,7 @@ static void AsyncMapChangeLevelLoadCompletionCallback(const FName& PackageName, 
 	else
 	{
 		// Add NULL entry so we don't end up waiting forever on a level that is never going to be loaded.
-		Context.LoadedLevelsForPendingMapChange.Add( NULL );
+		Context.LoadedLevelsForPendingMapChange.Add( nullptr );
 		UE_LOG(LogEngine, Warning, TEXT("NULL LevelPackage as argument to AsyncMapChangeLevelCompletionCallback") );
 	}
 
@@ -10960,7 +10976,7 @@ bool UEngine::PrepareMapChange(FWorldContext &Context, const TArray<FName>& Leve
 #endif
 
 		// copy LevelNames into the WorldInfo's array to keep track of the map change that we're preparing (primarily for servers so clients that join in progress can be notified)
-		if (Context.World() != NULL)
+		if (Context.World() != nullptr)
 		{
 			Context.World()->PreparingLevelNames = LevelNames;
 		}
@@ -11125,7 +11141,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 
 		// The new fake persistent level is first in the LevelsToLoadForPendingMapChange array.
 		FName	FakePersistentLevelName = Context.LevelsToLoadForPendingMapChange[0];
-		ULevel*	FakePersistentLevel		= NULL;
+		ULevel*	FakePersistentLevel		= nullptr;
 		// copy to WorldInfo to keep track of the last map change we performed (primarily for servers so clients that join in progress can be notified)
 		// we don't need to remember secondary levels as the join code iterates over all streaming levels and updates them
 		Context.World()->CommittedPersistentLevelName = FakePersistentLevelName;
@@ -11146,7 +11162,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 
 		// Construct a new ULevelStreamingPersistent for the new persistent level.
 		ULevelStreamingPersistent* LevelStreamingPersistent = NewObject<ULevelStreamingPersistent>(
-			GetTransientPackage(),
+			Context.World(),
 			*FString::Printf(TEXT("LevelStreamingPersistent_%s"), *FakePersistentLevel->GetOutermost()->GetName()) );
 
 		// Propagate level and name to streaming object.
@@ -11370,22 +11386,22 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	// Serialize out the modified properties on the old default object
 	TArray<uint8> SavedProperties;
 	TIndirectArray<FInstancedObjectRecord> SavedInstances;
-	TMap<FName, int32> OldInstanceMap;
+	TMap<FString, int32> OldInstanceMap;
 
-	const uint32 AdditinalPortFlags = Params.bCopyDeprecatedProperties ? PPF_UseDeprecatedProperties : PPF_None;
+	const uint32 AdditionalPortFlags = Params.bCopyDeprecatedProperties ? PPF_UseDeprecatedProperties : PPF_None;
 	// Save the modified properties of the old CDO
 	{
 		class FCopyPropertiesArchiveObjectWriter : public FObjectWriter
 		{
 		public:
-			FCopyPropertiesArchiveObjectWriter(UObject* InSrcObj, TArray<uint8>& InSrcBytes, UObject* InDstObject, bool bIgnoreClassRef, bool bIgnoreArchetypeRef, bool bDoDelta , uint32 AdditionalPortFlags, bool bInSkipCompilerGeneratedDefaults)
+			FCopyPropertiesArchiveObjectWriter(UObject* InSrcObj, TArray<uint8>& InSrcBytes, UObject* InDstObject, bool bIgnoreClassRef, bool bIgnoreArchetypeRef, bool bDoDelta , uint32 InAdditionalPortFlags, bool bInSkipCompilerGeneratedDefaults)
 				: FObjectWriter(InSrcBytes)
 			{	
 				bSkipCompilerGeneratedDefaults = bInSkipCompilerGeneratedDefaults;
 				ArIgnoreClassRef = bIgnoreClassRef;
 				ArIgnoreArchetypeRef = bIgnoreArchetypeRef;
 				ArNoDelta = !bDoDelta;
-				ArPortFlags |= AdditionalPortFlags;
+				ArPortFlags |= InAdditionalPortFlags;
 
 #if USE_STABLE_LOCALIZATION_KEYS
 				if (GIsEditor && !(ArPortFlags & PPF_DuplicateForPIE))
@@ -11409,7 +11425,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 			bool bSkipCompilerGeneratedDefaults;
 		};
 
-		FCopyPropertiesArchiveObjectWriter Writer(OldObject, SavedProperties, NewObject, true, true, Params.bDoDelta, AdditinalPortFlags, Params.bSkipCompilerGeneratedDefaults);
+		FCopyPropertiesArchiveObjectWriter Writer(OldObject, SavedProperties, NewObject, true, true, Params.bDoDelta, AdditionalPortFlags, Params.bSkipCompilerGeneratedDefaults);
 	}
 
 	{
@@ -11422,8 +11438,8 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 			FInstancedObjectRecord* pRecord = new(SavedInstances) FInstancedObjectRecord();
 			UObject* OldInstance = Components[Index];
 			pRecord->OldInstance = OldInstance;
-			OldInstanceMap.Add(OldInstance->GetFName(), SavedInstances.Num() - 1);
-			FObjectWriter Writer(OldInstance, pRecord->SavedProperties, true, true, true, AdditinalPortFlags);
+			OldInstanceMap.Add(OldInstance->GetPathName(OldObject), SavedInstances.Num() - 1);
+			FObjectWriter Writer(OldInstance, pRecord->SavedProperties, true, true, true, AdditionalPortFlags);
 		}
 	}
 
@@ -11446,7 +11462,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 		for (int32 Index = 0; Index < ComponentsOnNewObject.Num(); Index++)
 		{
 			UObject* NewInstance = ComponentsOnNewObject[Index];
-			if (int32* pOldInstanceIndex = OldInstanceMap.Find(NewInstance->GetFName()))
+			if (int32* pOldInstanceIndex = OldInstanceMap.Find(NewInstance->GetPathName(NewObject)))
 			{
 				FInstancedObjectRecord& Record = SavedInstances[*pOldInstanceIndex];
 				ReferenceReplacementMap.Add(Record.OldInstance, NewInstance);
@@ -11503,7 +11519,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 		for (int32 Index = 0; Index < ComponentsOnNewObject.Num(); Index++)
 		{
 			UObject* NewInstance = ComponentsOnNewObject[Index];
-			if (int32* pOldInstanceIndex = OldInstanceMap.Find(NewInstance->GetFName()))
+			if (int32* pOldInstanceIndex = OldInstanceMap.Find(NewInstance->GetPathName(NewObject)))
 			{
 				// Restore modified properties into the new instance
 				FInstancedObjectRecord& Record = SavedInstances[*pOldInstanceIndex];
@@ -12614,6 +12630,36 @@ void FAudioDevice::ResolveDesiredStats(FViewportClient* ViewportClient)
 		ClearStats |= ERequestedAudioStats::SoundMixes;
 	}
 
+	if (ViewportClient->IsStatEnabled(TEXT("Sounds")))
+	{
+		const FViewportClient::ESoundShowFlags::Type SoundShowFlags = ViewportClient->GetSoundShowFlags();
+		SetStats |= ERequestedAudioStats::Sounds;
+		
+		if (SoundShowFlags & FViewportClient::ESoundShowFlags::Debug)
+		{
+			SetStats |= ERequestedAudioStats::DebugSounds;
+		}
+		else
+		{
+			ClearStats |= ERequestedAudioStats::DebugSounds;
+		}
+
+		if (SoundShowFlags & FViewportClient::ESoundShowFlags::Long_Names)
+		{
+			SetStats |= ERequestedAudioStats::LongSoundNames;
+		}
+		else
+		{
+			ClearStats |= ERequestedAudioStats::LongSoundNames;
+		}
+	}
+	else
+	{
+		ClearStats |= ERequestedAudioStats::Sounds;
+		ClearStats |= ERequestedAudioStats::DebugSounds;
+		ClearStats |= ERequestedAudioStats::LongSoundNames;
+	}
+
 	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.ResolveDesiredStats"), STAT_AudioResolveDesiredStats, STATGROUP_TaskGraphTasks);
 
 	FAudioDevice* AudioDevice = this;
@@ -12780,7 +12826,7 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 // SOUNDS
 bool UEngine::ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
-	if( ViewportClient == nullptr )
+	if (ViewportClient == nullptr)
 	{
 		// Ignore if all Viewports are closed.
 		return false;
@@ -12805,7 +12851,7 @@ bool UEngine::ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportCli
 	uint32 OldSoundShowFlags = ViewportClient->GetSoundShowFlags();
 
 	uint32 ShowSounds = FViewportClient::ESoundShowFlags::Disabled;
-	
+
 	if (Stream)
 	{
 		const bool bHide = FParse::Command(&Stream, TEXT("off"));
@@ -12852,6 +12898,38 @@ bool UEngine::ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportCli
 		}
 	}
 
+	if (OldSoundShowFlags != FViewportClient::ESoundShowFlags::Disabled)
+	{
+		if (ShowSounds != FViewportClient::ESoundShowFlags::Disabled && ShowSounds != FViewportClient::ESoundShowFlags::Sort_Disabled)
+		{
+			if (!ViewportClient->IsStatEnabled(TEXT("Sounds")))
+			{
+				if (const TArray<FString>* CurrentStats = ViewportClient->GetEnabledStats())
+				{
+					TArray<FString> NewStats = *CurrentStats;
+					NewStats.Add(TEXT("Sounds"));
+					ViewportClient->SetEnabledStats(NewStats);
+					ViewportClient->SetShowStats(true);
+				}
+			}
+		}
+		else
+		{
+			ShowSounds = FViewportClient::ESoundShowFlags::Disabled;
+		}
+	}
+	else if (ShowSounds == FViewportClient::ESoundShowFlags::Disabled)
+	{
+		if (ViewportClient->IsStatEnabled(TEXT("Sounds")))
+		{
+			if (const TArray<FString>* CurrentStats = ViewportClient->GetEnabledStats())
+			{
+				TArray<FString> NewStats = *CurrentStats;
+				NewStats.Remove(TEXT("Sounds"));
+				ViewportClient->SetEnabledStats(NewStats);
+			}
+		}
+	}
 	ViewportClient->SetSoundShowFlags((FViewportClient::ESoundShowFlags::Type)ShowSounds);
 
 	if (FAudioDevice* AudioDevice = World->GetAudioDevice())

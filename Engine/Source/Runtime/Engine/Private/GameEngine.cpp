@@ -184,12 +184,12 @@ const FSceneViewport* UGameEngine::GetGameSceneViewport(UGameViewportClient* Vie
 
 void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& ResolutionY, EWindowMode::Type& WindowMode)
 {
-	if (FParse::Param(FCommandLine::Get(),TEXT("Windowed")) || FParse::Param(FCommandLine::Get(), TEXT("SimMobile")))
+	if (FParse::Param(FCommandLine::Get(), TEXT("Windowed")) || FParse::Param(FCommandLine::Get(), TEXT("SimMobile")))
 	{
 		// -Windowed or -SimMobile
 		WindowMode = EWindowMode::Windowed;
 	}
-	else if (FParse::Param(FCommandLine::Get(),TEXT("FullScreen")))
+	else if (FParse::Param(FCommandLine::Get(), TEXT("FullScreen")))
 	{
 		// -FullScreen
 		static auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
@@ -208,6 +208,11 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 		}
 	}
 
+	DetermineGameWindowResolution(ResolutionX, ResolutionY, WindowMode);
+}
+
+void UGameEngine::DetermineGameWindowResolution( int32& ResolutionX, int32& ResolutionY, EWindowMode::Type& WindowMode )
+{
 	//fullscreen is always supported, but don't allow windowed mode on platforms that dont' support it.
 	WindowMode = (!FPlatformProperties::SupportsWindowedMode() && (WindowMode == EWindowMode::Windowed || WindowMode == EWindowMode::WindowedFullscreen)) ? EWindowMode::Fullscreen : WindowMode;
 
@@ -296,7 +301,7 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	}
 
 
-	if (FParse::Param(FCommandLine::Get(),TEXT("Portrait")))
+	if (FParse::Param(FCommandLine::Get(), TEXT("Portrait")))
 	{
 		Swap(ResolutionX, ResolutionY);
 	}

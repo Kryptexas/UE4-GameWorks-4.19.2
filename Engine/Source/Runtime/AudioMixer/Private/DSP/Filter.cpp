@@ -135,7 +135,7 @@ namespace Audio
 
 	void FBiquadFilter::CalculateBiquadCoefficients()
 	{
-		const float NaturalLog2 = 0.69314718055994530942f;
+		static const float NaturalLog2 = 0.69314718055994530942f;
 
 		const float Omega = 2.0f * PI * Frequency / SampleRate;
 		const float Sn = FMath::Sin(Omega);

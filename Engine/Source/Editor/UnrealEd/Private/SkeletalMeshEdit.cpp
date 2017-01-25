@@ -39,7 +39,7 @@ UAnimSequence * UEditorEngine::ImportFbxAnimation( USkeleton* Skeleton, UObject*
 
 	const bool bPrevImportMorph = FFbxImporter->ImportOptions->bImportMorph;
 	FFbxImporter->ImportOptions->bImportMorph = bImportMorphTracks;
-	if ( !FFbxImporter->ImportFromFile( InFilename, FPaths::GetExtension( InFilename ) ) )
+	if ( !FFbxImporter->ImportFromFile( InFilename, FPaths::GetExtension( InFilename ), true ) )
 	{
 		// Log the error message and fail the import.
 		FFbxImporter->FlushToTokenizedErrorMessage(EMessageSeverity::Error);
@@ -129,7 +129,7 @@ bool UEditorEngine::ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* An
 		FbxImporter->ImportOptions->ResetForReimportAnimation();	
 	}
 
-	if ( !FbxImporter->ImportFromFile( InFilename, FPaths::GetExtension( InFilename ) ) )
+	if ( !FbxImporter->ImportFromFile( InFilename, FPaths::GetExtension( InFilename ), true ) )
 	{
 		// Log the error message and fail the import.
 		FbxImporter->FlushToTokenizedErrorMessage(EMessageSeverity::Error);

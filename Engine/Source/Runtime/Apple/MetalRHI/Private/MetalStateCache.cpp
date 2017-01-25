@@ -245,7 +245,7 @@ void FMetalStateCache::SetBlendState(FMetalBlendState* InBlendState)
 {
 	//current equality operator is comparing pointers which can be re-used causing an incorrect comparison.
 	//removing caching here until equality operator is updated.
-	//if(BlendState != InBlendState) // @todo zebra
+	// if(BlendState != InBlendState) // @todo zebra
 	{
 		BlendState = InBlendState;
 		if(InBlendState)
@@ -298,6 +298,9 @@ void FMetalStateCache::SetBoundShaderState(FMetalBoundShaderState* InBoundShader
 	if(BoundShaderState != InBoundShaderState) // @todo zebra
 	{
 		BoundShaderState = InBoundShaderState;
+		
+		PipelineState = nil;
+		RasterBits |= EMetalRenderFlagPipelineState;
         
         bool bNewUsingTessellation = (BoundShaderState && BoundShaderState->HullShader);
         if (bNewUsingTessellation != bUsingTessellation)
@@ -732,7 +735,9 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				
 				bHasValidRenderTarget = true;
 				
-				bCanRestartRenderPass &= (PipelineDesc.SampleCount <= 1) && ((RenderTargetsInfo.DepthStencilRenderTarget.Texture == FallbackDepthStencilSurface) || ((StencilAttachment.loadAction == MTLLoadActionLoad) && (!RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess().IsStencilWrite() || (RenderTargetsInfo.DepthStencilRenderTarget.GetStencilStoreAction() == ERenderTargetStoreAction::EStore))));
+				// @todo Stencil writes that need to persist must use ERenderTargetStoreAction::EStore on iOS.
+				// We should probably be using deferred store actions so that we can safely lazily instantiate encoders.
+				bCanRestartRenderPass &= (PipelineDesc.SampleCount <= 1) && ((RenderTargetsInfo.DepthStencilRenderTarget.Texture == FallbackDepthStencilSurface) || ((StencilAttachment.loadAction == MTLLoadActionLoad) && (PLATFORM_MAC || !RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess().IsStencilWrite() || (RenderTargetsInfo.DepthStencilRenderTarget.GetStencilStoreAction() == ERenderTargetStoreAction::EStore))));
 				
 				// and assign it
 				RenderPass.stencilAttachment = StencilAttachment;
@@ -1422,7 +1427,9 @@ bool FMetalStateCache::PrepareToRestart(void)
 				Info.bClearDepth = false;
 				
 				Info.DepthStencilRenderTarget.StencilLoadAction = ERenderTargetLoadAction::ELoad;
-				check(!Info.DepthStencilRenderTarget.GetDepthStencilAccess().IsStencilWrite() || Info.DepthStencilRenderTarget.GetStencilStoreAction() == ERenderTargetStoreAction::EStore);
+				// @todo Stencil writes that need to persist must use ERenderTargetStoreAction::EStore on iOS.
+				// We should probably be using deferred store actions so that we can safely lazily instantiate encoders.
+				check(PLATFORM_MAC || !Info.DepthStencilRenderTarget.GetDepthStencilAccess().IsStencilWrite() || Info.DepthStencilRenderTarget.GetStencilStoreAction() == ERenderTargetStoreAction::EStore);
 				Info.bClearStencil = false;
 			}
 			

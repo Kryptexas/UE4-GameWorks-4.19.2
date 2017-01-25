@@ -440,7 +440,7 @@ int32 FFbxImporter::GetImportType(const FString& InFilename)
 		}
 
 		FbxSceneInfo SceneInfo;
-		if (GetSceneInfo(Filename, SceneInfo))
+		if (GetSceneInfo(Filename, SceneInfo, true))
 		{
 			if (SceneInfo.SkinnedMeshNum > 0)
 			{
@@ -887,10 +887,13 @@ void FFbxImporter::FixMaterialClashName()
 			}
 			//Rename the Material
 			Material->SetName(TCHAR_TO_UTF8(*MaterialName));
-			AddTokenizedErrorMessage(
-				FTokenizedMessage::Create(EMessageSeverity::Warning,
-										  FText::Format(LOCTEXT("FbxImport_MaterialNameClash", "FBX Scene Loading: Found material name clash, name clash can be wrongly reassign at reimport , material '{0}' was rename '{1}'"), FText::FromString(OriginalMaterialName), FText::FromString(MaterialName))),
-										  FFbxErrors::Generic_LoadingSceneFailed);
+			if (!GIsAutomationTesting)
+			{
+				AddTokenizedErrorMessage(
+					FTokenizedMessage::Create(EMessageSeverity::Warning,
+						FText::Format(LOCTEXT("FbxImport_MaterialNameClash", "FBX Scene Loading: Found material name clash, name clash can be wrongly reassign at reimport , material '{0}' was rename '{1}'"), FText::FromString(OriginalMaterialName), FText::FromString(MaterialName))),
+					FFbxErrors::Generic_LoadingSceneFailed);
+			}
 		}
 		AllMaterialName.Add(MaterialName);
 	}

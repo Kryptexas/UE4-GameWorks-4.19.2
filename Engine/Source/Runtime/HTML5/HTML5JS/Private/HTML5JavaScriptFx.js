@@ -2,50 +2,36 @@
 
 var UE_JavaScriptLibary = {
   UE_SendAndRecievePayLoad: function (url, indata, insize, outdataptr, outsizeptr) {
+
+    // NOTE: C++ calling this function are written with syncronus logic
+    // otherwise, use: UE_MakeHTTPDataRequest() -- see below
+
     var _url = Pointer_stringify(url);
 
     var request = new XMLHttpRequest();
+    request.UE_fetch = {
+        url : _url
+      , outsizeptr : outsizeptr
+      , outdataptr : outdataptr
+      , timeout : 2 // allow 2 retries
+    }
+
+    request.ontimeout = function(e) {
+      if ( ! this.UE_fetch.timeout ) {
+        console.log("Fetching " + this.UE_fetch.url + " timed out");
+        Module.HEAP32[this.UE_fetch.outsizeptr >> 2] = 0;
+        Module.HEAP32[this.UE_fetch.outdataptr >> 2] = 0;
+        return;
+      }
+      this.UE_fetch.timeout--;
+      return UE_JSlib.UE_SendAndRecievePayLoad( this );
+    }
+
     if (insize && indata) {
       var postData = Module.HEAP8.subarray(indata, indata + insize);
-      request.open('POST', _url, false);
-      request.overrideMimeType('text\/plain; charset=x-user-defined');
-      request.send(postData);
-    } else {
-      request.open('GET', _url, false);
-      request.send();
+      request.UE_fetch.postData = postData;
     }
-
-    if (request.status != 200) {
-      console.log("Fetching " + _url + " failed: " + request.responseText);
-
-      Module.HEAP32[outsizeptr >> 2] = 0;
-      Module.HEAP32[outdataptr >> 2] = 0;
-
-      return;
-    }
-
-    // we got the XHR result as a string.  We need to write this to Module.HEAP8[outdataptr]
-    var replyString = request.responseText;
-    var replyLength = replyString.length;
-
-    var outdata = Module._malloc(replyLength);
-    if (!outdata) {
-      console.log("Failed to allocate " + replyLength + " bytes in heap for reply");
-
-      Module.HEAP32[outsizeptr >> 2] = 0;
-      Module.HEAP32[outdataptr >> 2] = 0;
-
-      return;
-    }
-
-    // tears and crying.  Copy from the result-string into the heap.
-    var replyDest = Module.HEAP8.subarray(outdata, outdata + replyLength);
-    for (var i = 0; i < replyLength; ++i) {
-      replyDest[i] = replyString.charCodeAt(i) &  0xff;
-    }
-
-    Module.HEAP32[outsizeptr >> 2] = replyLength;
-    Module.HEAP32[outdataptr >> 2] = outdata;
+    return UE_JSlib.UE_SendAndRecievePayLoad( request );
   },
 
   // ================================================================================
@@ -118,6 +104,17 @@ var UE_JavaScriptLibary = {
     var _headers = Pointer_stringify(headers);
 
     var xhr = new XMLHttpRequest();
+    xhr.UE_fetch = {
+        verb : _verb
+      , url : _url
+      , async : !!async
+      , postData: null
+      , timeout : 2 // allow 2 retries
+    }
+    if (_verb === "POST") {
+      xhr.UE_fetch.postData = Module.HEAP8.subarray(payload, payload + payloadsize);
+    }
+
     xhr.open(_verb, _url, !!async);
     xhr.responseType = 'arraybuffer';
 
@@ -168,18 +165,27 @@ var UE_JavaScriptLibary = {
         Runtime.dynCall('viii', onprogress, [ctx, e.loaded, e.lengthComputable || e.lengthComputable === undefined ? e.total : 0]);
     });
 
+    // Ontimeout event handler
+    xhr.addEventListener('timeout', function (e) {
+      if ( ! this.UE_fetch.timeout ) {
+      console.log("Fetching " + this.UE_fetch.url + " timed out");
+        if (onerror)
+          Runtime.dynCall('viii', onerror, [ctx, xhr.status, xhr.statusText]);
+        return;
+      }
+      this.UE_fetch.timeout--;
+      xhr.open(this.UE_fetch.verb, this.UE_fetch.url, this.UE_fetch.async);
+      xhr.responseType = 'arraybuffer';
+      xhr.send(xhr.UE_fetch.postData);
+    });
+
     // Bypass possible browser redirection limit
     try {
       if (xhr.channel instanceof Ci.nsIHttpChannel)
         xhr.channel.redirectionLimit = 0;
     } catch (ex) { }
 
-    if (_verb === "POST") {
-      var postData = Module.HEAP8.subarray(payload, payload + payloadsize);
-      xhr.send(postData);
-    } else {
-      xhr.send(null);
-    }
+    xhr.send(xhr.UE_fetch.postData);
   },
 
   // ================================================================================
@@ -189,9 +195,58 @@ var UE_JavaScriptLibary = {
   $UE_JSlib: {
 
     // --------------------------------------------------------------------------------
+    // UE_SendAndRecievePayLoad -- FOR REAL
+    // --------------------------------------------------------------------------------
+
+    UE_SendAndRecievePayLoad: function (request) {
+  
+      if ( request.UE_fetch.postData ) {
+        request.open('POST', request.UE_fetch.url, false);
+        request.overrideMimeType('text\/plain; charset=x-user-defined');
+        request.send(request.UE_fetch.postData);
+      } else {
+        request.open('GET', request.UE_fetch.url, false);
+        request.send();
+      }
+  
+      if (request.status != 200) {
+        console.log("Fetching " + _url + " failed: " + request.responseText);
+  
+        Module.HEAP32[request.UE_fetch.outsizeptr >> 2] = 0;
+        Module.HEAP32[request.UE_fetch.outdataptr >> 2] = 0;
+  
+        return;
+      }
+  
+      // we got the XHR result as a string.  We need to write this to Module.HEAP8[outdataptr]
+      var replyString = request.responseText;
+      var replyLength = replyString.length;
+  
+      var outdata = Module._malloc(replyLength);
+      if (!outdata) {
+        console.log("Failed to allocate " + replyLength + " bytes in heap for reply");
+  
+        Module.HEAP32[request.UE_fetch.outsizeptr >> 2] = 0;
+        Module.HEAP32[request.UE_fetch.outdataptr >> 2] = 0;
+  
+        return;
+      }
+  
+      // Copy from the result-string into the heap.
+      var replyDest = Module.HEAP8.subarray(outdata, outdata + replyLength);
+      for (var i = 0; i < replyLength; ++i) {
+        replyDest[i] = replyString.charCodeAt(i) &  0xff;
+      }
+  
+      Module.HEAP32[request.UE_fetch.outsizeptr >> 2] = replyLength;
+      Module.HEAP32[request.UE_fetch.outdataptr >> 2] = outdata;
+    },
+
+
+    // --------------------------------------------------------------------------------
     // onBeforeUnload
     // --------------------------------------------------------------------------------
-  	
+
     onBeforeUnload_callbacks:[], // ARRAY of {callback:c++function, ctx:[c++objects]}
     // ........................................
     onBeforeUnload_debug_helper: function(dummyfile) {
@@ -241,6 +296,7 @@ var UE_JavaScriptLibary = {
     onBeforeUnload_setup: function() {
       window.addEventListener("beforeunload", UE_JSlib.onBeforeUnload);
     },
+
 
     // --------------------------------------------------------------------------------
     // GSystemResolution - helpers to obtain game's resolution for JS

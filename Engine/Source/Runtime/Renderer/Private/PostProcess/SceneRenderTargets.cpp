@@ -247,6 +247,8 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, bGBuffersFastCleared(SnapshotSource.bGBuffersFastCleared)	
 	, bSceneDepthCleared(SnapshotSource.bSceneDepthCleared)	
 	, bSnapshot(true)
+	, DefaultColorClear(SnapshotSource.DefaultColorClear)
+	, DefaultDepthClear(SnapshotSource.DefaultDepthClear)
 	, QuadOverdrawIndex(SnapshotSource.QuadOverdrawIndex)
 {
 	SnapshotArray(SceneColor, SnapshotSource.SceneColor);
@@ -418,7 +420,7 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 	int GBufferFormat = CVarGBufferFormat.GetValueOnRenderThread();
 
 	// Set default clear values
-	const bool bUseMonoClearValue = ViewFamily.MonoParameters.Mode != EMonoscopicFarFieldMode::Off && ViewFamily.MonoParameters.Mode != EMonoscopicFarFieldMode::StereoNoClipping;
+	const bool bUseMonoClearValue = ViewFamily.IsMonoscopicFarFieldEnabled() && ViewFamily.MonoParameters.Mode != EMonoscopicFarFieldMode::StereoNoClipping;
 	SetDefaultColorClear(bUseMonoClearValue ? FClearValueBinding() : FClearValueBinding::Black);
 	SetDefaultDepthClear(bUseMonoClearValue ? FClearValueBinding(ViewFamily.MonoParameters.StereoDepthClip, 0) : FClearValueBinding::DepthFar);
 
@@ -505,7 +507,7 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 	// Do allocation of render targets if they aren't available for the current shading path
 	CurrentFeatureLevel = NewFeatureLevel;
 	AllocateRenderTargets(RHICmdList);
-	if (ViewFamily.MonoParameters.Mode != EMonoscopicFarFieldMode::Off)
+	if (ViewFamily.IsMonoscopicFarFieldEnabled())
 	{
 		AllocSceneMonoRenderTargets(RHICmdList, *ViewFamily.Views[2]);
 	}

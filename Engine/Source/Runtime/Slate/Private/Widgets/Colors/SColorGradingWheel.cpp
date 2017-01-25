@@ -134,6 +134,11 @@ FVector2D SColorGradingWheel::CalcRelativePositionFromCenter() const
 {
 	float Hue = SelectedColor.Get().R;
 	float Saturation = SelectedColor.Get().G;
+	if (ExponentDisplacement.IsSet() && ExponentDisplacement.Get() != 1.0f && !FMath::IsNearlyEqual(ExponentDisplacement.Get(), 0.0f, 0.00001f))
+	{
+		//Use log curve to set the distance G value
+		Saturation = FMath::Pow(Saturation, 1.0f / ExponentDisplacement.Get());
+	}
 	float Angle = Hue / 180.0f * PI;
 	float Radius = Saturation;
 

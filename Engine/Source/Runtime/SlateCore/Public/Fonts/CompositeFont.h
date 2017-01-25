@@ -141,6 +141,9 @@ struct SLATECORE_API FFontData
 	DEPRECATED(4.15, "FFontData no longer uses UFontBulkData. Update your code to provide just the filename.")
 	FFontData(FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting);
 
+	/** Is this font data set to a font? (either by filename or by inline data) */
+	bool HasFont() const;
+
 	/** Get the filename of the font to use. This may not actually exist on disk in editor builds and we should load the face buffer instead. */
 	const FString& GetFontFilename() const;
 

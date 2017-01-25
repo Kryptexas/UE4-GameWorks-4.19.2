@@ -134,6 +134,9 @@ public:
 	 */
 	static void SimulateCharacterEntry(const FString InChar);
 
+	/** Send a backspace event. Slate editable text fields handle backspace as a TCHAR(8) character entry */
+	static void SimulateBackspace();
+
 	/**
 	 * Simulates the user pressing a key down
 	 * @param Key Key to press

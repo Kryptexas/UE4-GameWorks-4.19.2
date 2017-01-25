@@ -40,7 +40,7 @@ public:
 
 	friend uint32 GetTypeHash(const FMetalCompiledShaderKey &Key)
 	{
-		return GetTypeHash(Key.CodeSize) ^ GetTypeHash(Key.CodeCRC);
+		return HashCombine(GetTypeHash(Key.CodeSize), GetTypeHash(Key.CodeCRC));
 	}
 
 private:
@@ -101,6 +101,10 @@ static FMetalCompiledShaderCache& GetMetalCompiledShaderCache()
 /** Initialization constructor. */
 template<typename BaseResourceType, int32 ShaderType>
 TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<uint8>& InShaderCode)
+: Function(nil)
+, Library(nil)
+, SideTableBinding(-1)
+, GlslCodeNSString(nil)
 {
 	FShaderCodeReader ShaderCode(InShaderCode);
 

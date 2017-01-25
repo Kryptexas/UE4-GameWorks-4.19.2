@@ -79,7 +79,7 @@ UEdGraphPin* UNiagaraNodeWithDynamicPins::RequestNewTypedPin(EEdGraphPinDirectio
 
 void UNiagaraNodeWithDynamicPins::CreateAddPin(EEdGraphPinDirection Direction)
 {
-	CreatePin(Direction, FEdGraphPinType(UEdGraphSchema_Niagara::PinCategoryMisc, AddPinSubCategory, nullptr, false, false), TEXT("Add"));
+	CreatePin(Direction, FEdGraphPinType(UEdGraphSchema_Niagara::PinCategoryMisc, AddPinSubCategory, nullptr, false, false, false, false, FEdGraphTerminalType()), TEXT("Add"));
 }
 
 bool IsAddPin(const UEdGraphPin* Pin) 

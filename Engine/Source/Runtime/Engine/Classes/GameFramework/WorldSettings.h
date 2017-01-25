@@ -245,7 +245,7 @@ struct ENGINE_API FHierarchicalSimplification
 	int32 MinNumberOfActorsToBuild;	
 
 	FHierarchicalSimplification()
-		: TransitionScreenSize(0.0435f)
+		: TransitionScreenSize(0.315f)
 		, bSimplifyMesh(false)		
 		, DesiredBoundRadius(2000) 
 		, DesiredFillingPercentage(50)

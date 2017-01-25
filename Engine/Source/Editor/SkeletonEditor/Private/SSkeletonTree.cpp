@@ -827,10 +827,12 @@ void SSkeletonTree::OnVirtualTargetBonePicked(FName TargetBoneName, TArray<TShar
 		CreateFromSkeleton();
 		SkeletonTreeView->ClearSelection();
 
+		TSharedPtr<ISkeletonTreeItem> LastItem;
 		for (TSharedPtr<ISkeletonTreeItem> SkeletonRow : LinearItems)
 		{
 			if (SkeletonRow->IsOfType<FSkeletonTreeVirtualBoneItem>())
 			{
+				LastItem = SkeletonRow;
 				FName RowName = SkeletonRow->GetRowItemName();
 				for (const FName& VB : VirtualBoneNames)
 				{
@@ -842,6 +844,11 @@ void SSkeletonTree::OnVirtualTargetBonePicked(FName TargetBoneName, TArray<TShar
 					}
 				}
 			}
+		}
+
+		if (LastItem.IsValid())
+		{
+			SkeletonTreeView->RequestScrollIntoView(LastItem);
 		}
 	}
 

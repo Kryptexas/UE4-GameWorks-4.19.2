@@ -120,14 +120,23 @@ public:
 			{
 				const PxConvexMeshGeometry& c = static_cast<const PxConvexMeshGeometry&>(geometry);
 				PxVec3 unscaledCoM;
-				PxMat33 unscaledInertiaTensor;
+				PxMat33 unscaledInertiaTensorNonCOM; // inertia tensor of convex mesh in mesh local space
+				PxMat33 unscaledInertiaTensorCOM;
 				PxReal unscaledMass;
-				c.convexMesh->getMassInformation(unscaledMass, unscaledInertiaTensor, unscaledCoM);
+				c.convexMesh->getMassInformation(unscaledMass, unscaledInertiaTensorNonCOM, unscaledCoM);				
+
+				// inertia tensor relative to center of mass
+				unscaledInertiaTensorCOM[0][0] = unscaledInertiaTensorNonCOM[0][0] - unscaledMass*PxReal((unscaledCoM.y*unscaledCoM.y+unscaledCoM.z*unscaledCoM.z));
+				unscaledInertiaTensorCOM[1][1] = unscaledInertiaTensorNonCOM[1][1] - unscaledMass*PxReal((unscaledCoM.z*unscaledCoM.z+unscaledCoM.x*unscaledCoM.x));
+				unscaledInertiaTensorCOM[2][2] = unscaledInertiaTensorNonCOM[2][2] - unscaledMass*PxReal((unscaledCoM.x*unscaledCoM.x+unscaledCoM.y*unscaledCoM.y));
+				unscaledInertiaTensorCOM[0][1] = unscaledInertiaTensorCOM[1][0] = (unscaledInertiaTensorNonCOM[0][1] + unscaledMass*PxReal(unscaledCoM.x*unscaledCoM.y));
+				unscaledInertiaTensorCOM[1][2] = unscaledInertiaTensorCOM[2][1] = (unscaledInertiaTensorNonCOM[1][2] + unscaledMass*PxReal(unscaledCoM.y*unscaledCoM.z));
+				unscaledInertiaTensorCOM[0][2] = unscaledInertiaTensorCOM[2][0] = (unscaledInertiaTensorNonCOM[0][2] + unscaledMass*PxReal(unscaledCoM.z*unscaledCoM.x));
 
 				const PxMeshScale& s = c.scale;
 				mass = unscaledMass * s.scale.x * s.scale.y * s.scale.z;
 				centerOfMass = s.rotation.rotate(s.scale.multiply(s.rotation.rotateInv(unscaledCoM)));
-				inertiaTensor = scaleInertia(unscaledInertiaTensor, s.rotation, s.scale);
+				inertiaTensor = scaleInertia(unscaledInertiaTensorCOM, s.rotation, s.scale);
 			}
 			break;
 

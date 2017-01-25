@@ -31,6 +31,7 @@ public:
 	virtual bool IsVREditorAvailable() const override;
 	virtual void EnableVREditor( const bool bEnable, const bool bForceWithoutHMD ) override;
 	virtual bool IsVREditorModeActive() override;
+	virtual class UVREditorMode* GetVREditorMode() override;
 
 	// FTickableEditorObject overrides
 	virtual void Tick( float DeltaTime ) override;
@@ -98,6 +99,11 @@ void FVREditorModule::EnableVREditor( const bool bEnable, const bool bForceWitho
 bool FVREditorModule::IsVREditorModeActive()
 {
 	return ModeManager.IsVREditorActive();
+}
+
+class UVREditorMode* FVREditorModule::GetVREditorMode()
+{
+	return ModeManager.GetVREditorMode();
 }
 
 void FVREditorModule::ToggleForceVRMode()

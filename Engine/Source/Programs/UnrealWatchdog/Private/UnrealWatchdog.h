@@ -34,6 +34,7 @@ struct FWatchdogCommandLine
 	}
 };
 
+bool GetWatchdogStoredDebuggerValue(const FString& WatchdogSectionName);
 int RunUnrealWatchdog(const TCHAR* CommandLine);
 bool WaitForProcess(class IAnalyticsProviderET& Analytics, const FWatchdogCommandLine& CommandLine, int32& OutReturnCode, bool& bOutHang, const FString& WatchdogSectionName);
 void SendHeartbeatEvent(class IAnalyticsProviderET& Analytics, const FWatchdogCommandLine& CommandLine);

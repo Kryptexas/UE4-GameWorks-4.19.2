@@ -86,7 +86,7 @@ EBuildConfigurations::Type FApp::GetBuildConfiguration()
 		return bUsingDebugGame? EBuildConfigurations::DebugGame : EBuildConfigurations::Development;
 	#endif
 
-#elif UE_BUILD_SHIPPING || UI_BUILD_SHIPPING_EDITOR
+#elif UE_BUILD_SHIPPING
 	return EBuildConfigurations::Shipping;
 
 #elif UE_BUILD_TEST

@@ -987,7 +987,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 			APlayerController* PlayerController = LocalPlayer->PlayerController;
 
 			const bool bEnableStereo = GEngine->IsStereoscopic3D(InViewport);
-			const int32 NumViews = bStereoRendering ? ((ViewFamily.MonoParameters.Mode != EMonoscopicFarFieldMode::Off) ? 3 : 2) : 1;
+			const int32 NumViews = bStereoRendering ? ((ViewFamily.IsMonoscopicFarFieldEnabled()) ? 3 : 2) : 1;
 
 			for (int32 i = 0; i < NumViews; ++i)
 			{
@@ -2772,12 +2772,13 @@ bool UGameViewportClient::HandleToggleFullscreenCommand()
 		UGameUserSettings* UserSettings = GameEngine->GetGameUserSettings();
 		if( UserSettings != nullptr )
 		{
-			UserSettings->SetFullscreenMode( FullScreenMode );
-			UserSettings->ConfirmVideoMode();
-
+			// Ensure that our desired screen size will fit on the display
 			ResolutionX = UserSettings->GetScreenResolution().X;
 			ResolutionY = UserSettings->GetScreenResolution().Y;
-			UGameEngine::ConditionallyOverrideSettings(ResolutionX, ResolutionY, FullScreenMode);
+			UGameEngine::DetermineGameWindowResolution(ResolutionX, ResolutionY, FullScreenMode);
+
+			UserSettings->SetFullscreenMode(FullScreenMode);
+			UserSettings->ConfirmVideoMode();
 		}
 	}
 

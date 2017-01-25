@@ -270,6 +270,14 @@ void FVREditorActionCallbacks::SimulateCharacterEntry(const FString InChar)
 
 }
 
+void FVREditorActionCallbacks::SimulateBackspace()
+{
+		// Slate editable text fields handle backspace as a character entry
+		FString BackspaceString = FString(TEXT("\b"));
+		bool bRepeat = false;
+		SimulateCharacterEntry(BackspaceString);
+}
+
 void FVREditorActionCallbacks::SimulateKeyDown(FKey Key, bool bRepeat)
 {
 	const uint32* KeyCodePtr;

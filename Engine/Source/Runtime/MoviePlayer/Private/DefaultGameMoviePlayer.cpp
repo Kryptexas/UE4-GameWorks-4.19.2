@@ -551,9 +551,12 @@ void FDefaultGameMoviePlayer::SetupLoadingScreenFromIni()
 		// fill out the attributes
 		FLoadingScreenAttributes LoadingScreen;
 
+		bool bWaitForMoviesToComplete = false;
 		// Note: this code is executed too early so we cannot access UMoviePlayerSettings because the configs for that object have not been loaded and coalesced .  Have to read directly from the configs instead
-		GConfig->GetBool(TEXT("/Script/MoviePlayer.MoviePlayerSettings"), TEXT("bWaitForMoviesToComplete"), LoadingScreen.bAutoCompleteWhenLoadingCompletes, GGameIni);
+		GConfig->GetBool(TEXT("/Script/MoviePlayer.MoviePlayerSettings"), TEXT("bWaitForMoviesToComplete"), bWaitForMoviesToComplete, GGameIni);
 		GConfig->GetBool(TEXT("/Script/MoviePlayer.MoviePlayerSettings"), TEXT("bMoviesAreSkippable"), LoadingScreen.bMoviesAreSkippable, GGameIni);
+
+		LoadingScreen.bAutoCompleteWhenLoadingCompletes = !bWaitForMoviesToComplete;
 
 		TArray<FString> StartupMovies;
 		GConfig->GetArray(TEXT("/Script/MoviePlayer.MoviePlayerSettings"), TEXT("StartupMovies"), StartupMovies, GGameIni);

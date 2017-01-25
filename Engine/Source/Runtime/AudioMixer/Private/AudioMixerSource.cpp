@@ -137,7 +137,7 @@ namespace Audio
 			if (MixerSourceVoice->Init(InitParams))
 			{
 				AUDIO_MIXER_CHECK(WaveInstance);
-				if (WaveInstance->StartTime)
+				if (WaveInstance->StartTime > 0.0f)
 				{
 					MixerBuffer->Seek(WaveInstance->StartTime);
 				}
@@ -493,7 +493,7 @@ namespace Audio
 			}
 		}
 
-		if (SourceVoiceBuffers[CurrentBuffer]->AudioData.Num() > 0)
+		if (MixerSourceVoice && SourceVoiceBuffers[CurrentBuffer]->AudioData.Num() > 0)
 		{
 			MixerSourceVoice->SubmitBufferAudioThread(SourceVoiceBuffers[CurrentBuffer]);
 		}
@@ -650,9 +650,12 @@ namespace Audio
 
 		Pitch = FMath::Clamp<float>(Pitch, AUDIO_MIXER_MIN_PITCH, AUDIO_MIXER_MAX_PITCH);
 
-		// Scale the pitch by the ratio of the audio buffer sample rate and the actual sample rate of the hardware
-		float DeviceSampleRate = MixerDevice->GetDeviceSampleRate();
-		Pitch *= (MixerBuffer->GetSampleRate() / DeviceSampleRate);
+		// Scale in the sound sample rate divided by device sample rate so pitch is 
+		// accurate independent of sound source sample rate or device sample rate
+		if (MixerBuffer)
+		{
+			Pitch *= (MixerBuffer->GetSampleRate() / AudioDevice->GetSampleRate());
+		}
 
 		MixerSourceVoice->SetPitch(Pitch);
 	}

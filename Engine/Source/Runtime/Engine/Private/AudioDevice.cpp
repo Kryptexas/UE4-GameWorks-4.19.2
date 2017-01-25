@@ -3130,11 +3130,10 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 #if !UE_BUILD_SHIPPING
 	TArray<FAudioStats::FStatSoundInfo> StatSoundInfos;
 	TArray<FAudioStats::FStatSoundMix> StatSoundMixes;
+	const FVector ListenerPosition = Listeners[0].Transform.GetTranslation();
 	const bool bStatsStale = (RequestedAudioStats == 0);
 	if (RequestedAudioStats != 0)
 	{
-		const FVector ListenerPosition = Listeners[0].Transform.GetTranslation();
-
 		TMap<FActiveSound*, int32> ActiveSoundToInfoIndex;
 
 		const bool bDebug = (RequestedAudioStats & ERequestedAudioStats::DebugSounds) != 0;
@@ -3211,7 +3210,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 
 	FAudioThread::RunCommandOnGameThread([AudioDeviceID, ReverbEffect
 #if !UE_BUILD_SHIPPING
-											, StatSoundInfos, StatSoundMixes, bStatsStale
+											, ListenerPosition, StatSoundInfos, StatSoundMixes, bStatsStale
 #endif
 													]()
 	{
@@ -3221,6 +3220,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 			{
 				AudioDevice->CurrentReverbEffect = ReverbEffect;
 #if !UE_BUILD_SHIPPING
+				AudioDevice->AudioStats.ListenerLocation = ListenerPosition;
 				AudioDevice->AudioStats.StatSoundInfos = MoveTemp(StatSoundInfos);
 				AudioDevice->AudioStats.StatSoundMixes = MoveTemp(StatSoundMixes);
 				AudioDevice->AudioStats.bStale = bStatsStale;
@@ -3232,7 +3232,18 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 
 void FAudioDevice::StopAllSounds(bool bShouldStopUISounds)
 {
-	check(IsInAudioThread());
+	if (!IsInAudioThread())
+	{
+		DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.StopAllSounds"), STAT_AudioStopAllSounds, STATGROUP_AudioThreadCommands);
+
+		FAudioDevice* AudioDevice = this;
+		FAudioThread::RunCommandOnAudioThread([AudioDevice, bShouldStopUISounds]()
+		{
+			AudioDevice->StopAllSounds(bShouldStopUISounds);
+		}, GET_STATID(STAT_AudioStopAllSounds));
+
+		return;		
+	}
 
 	for (int32 SoundIndex=ActiveSounds.Num() - 1; SoundIndex >= 0; --SoundIndex)
 	{

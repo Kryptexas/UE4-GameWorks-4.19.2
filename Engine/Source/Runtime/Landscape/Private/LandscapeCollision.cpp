@@ -216,7 +216,7 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 			const float SimpleCollisionScale = bCreateSimpleCollision ? CollisionScale * CollisionSizeQuads / SimpleCollisionSizeQuads : 0;
 
 			// Create the geometry
-			PxHeightFieldGeometry LandscapeComponentGeom(HeightfieldRef->RBHeightfield, PxMeshGeometryFlags(), LandscapeScale.Z * LANDSCAPE_ZSCALE, LandscapeScale.Y * CollisionScale, LandscapeScale.X * CollisionScale);
+			PxHeightFieldGeometry LandscapeComponentGeom(HeightfieldRef->RBHeightfield, PxMeshGeometryFlag::eDOUBLE_SIDED, LandscapeScale.Z * LANDSCAPE_ZSCALE, LandscapeScale.Y * CollisionScale, LandscapeScale.X * CollisionScale);
 
 			if (LandscapeComponentGeom.isValid())
 			{
@@ -1282,6 +1282,8 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& I
 
 				bool bFirst = true;
 				TArray<int32> InstancesToRemove;
+				TSet<UHierarchicalInstancedStaticMeshComponent*> AffectedFoliageComponets;
+
 				for (int32 InstanceIndex : *InstanceSet)
 				{
 					FFoliageInstance& Instance = MeshInfo.Instances[InstanceIndex];
@@ -1343,8 +1345,6 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& I
 									check(MeshInfo.Component);
 									MeshInfo.Component->Modify();
 									MeshInfo.Component->UpdateInstanceTransform(InstanceIndex, Instance.GetInstanceWorldTransform(), true);
-									MeshInfo.Component->InvalidateLightingCache();
-
 									// Re-add the new instance location to the hash
 									MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIndex);
 								}
@@ -1357,11 +1357,18 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& I
 							// Couldn't find new spot - remove instance
 							InstancesToRemove.Add(InstanceIndex);
 						}
+
+						AffectedFoliageComponets.Add(MeshInfo.Component);
 					}
 				}
 
 				// Remove any unused instances
 				MeshInfo.RemoveInstances(IFA, InstancesToRemove);
+
+				for (UHierarchicalInstancedStaticMeshComponent* FoliageComp : AffectedFoliageComponets)
+				{
+					FoliageComp->InvalidateLightingCache();
+				}
 			}
 		}
 	}

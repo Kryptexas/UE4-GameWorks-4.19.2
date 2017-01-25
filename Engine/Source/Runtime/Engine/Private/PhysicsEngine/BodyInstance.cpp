@@ -3058,7 +3058,7 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, ETeleportTy
 						if(!PhysScene->IsPendingSimulationTransforms( RigidActorSync ? PST_Sync : PST_Async ))
 						{
 							PRigidDynamic->setGlobalPose(PNewPose);
-						}else
+						}else if(!bIsRigidBodyKinematic)
 						{
 							UE_LOG(LogPhysics, Warning, TEXT("SetTransformWhileSimulating: Setting body transform on a simulated body of component (%s) while the physics simulation is running. This will be ignored. You may want to change the component's TickGroup or consider moving the simulated body using a physical constraint"), OwnerComponent.Get() ? *OwnerComponent->GetPathName() : TEXT("NONE"));
 						}
@@ -3668,7 +3668,7 @@ void FBodyInstance::UpdateMassProperties()
 		if(GetNumSimShapes_AssumesLocked(PRigidBody) > 0)
 		{
 			TArray<PxShape*> Shapes;
-			const uint32 NumShapes = RigidActorSync->getNbShapes();
+			const uint32 NumShapes = PRigidBody->getNbShapes();
 			Shapes.AddUninitialized(NumShapes);
 			PRigidBody->getShapes(Shapes.GetData(), NumShapes);
 

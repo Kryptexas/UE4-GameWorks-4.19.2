@@ -35,13 +35,17 @@ struct FPluginTemplateDescription
 	/** What is the expected ModuleDescriptor type for this plugin?*/
 	EHostType::Type ModuleDescriptorType;
 
+	/** What is the expected Loading Phase for this plugin? */
+	ELoadingPhase::Type LoadingPhase;
+
 	/** Constructor */
-	FPluginTemplateDescription(FText InName, FText InDescription, FString InOnDiskPath, bool InCanContainContent, EHostType::Type InModuleDescriptorType)
+	FPluginTemplateDescription(FText InName, FText InDescription, FString InOnDiskPath, bool InCanContainContent, EHostType::Type InModuleDescriptorType, ELoadingPhase::Type InLoadingPhase = ELoadingPhase::Default)
 		: Name(InName)
 		, Description(InDescription)
 		, OnDiskPath(InOnDiskPath)
 		, bCanContainContent(InCanContainContent)
 		, ModuleDescriptorType(InModuleDescriptorType)
+		, LoadingPhase(InLoadingPhase)
 	{
 	}
 };

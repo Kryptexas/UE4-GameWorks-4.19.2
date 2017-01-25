@@ -312,8 +312,8 @@ public:
 	virtual const TCHAR* GetName() override { return TEXT("D3D11"); }
 
 	// HDR display output
-	virtual void EnableHDR( IDXGIOutput* Output);
-	virtual void ShutdownHDR(IDXGIOutput* Output);
+	virtual void EnableHDR();
+	virtual void ShutdownHDR();
 
 	virtual void FlushPendingLogs() override;
 
@@ -337,8 +337,8 @@ public:
 	virtual void RHIBeginUpdateMultiFrameResource(FTextureRHIParamRef Texture) override;
 	virtual void RHIEndUpdateMultiFrameResource(FTextureRHIParamRef Texture) override;
 
-	virtual void FD3D11DynamicRHI::RHIBeginUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAV) override;
-	virtual void FD3D11DynamicRHI::RHIEndUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAV) override;
+	virtual void RHIBeginUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAV) override;
+	virtual void RHIEndUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAV) override;
 
 	virtual FSamplerStateRHIRef RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer) final override;
 	virtual FRasterizerStateRHIRef RHICreateRasterizerState(const FRasterizerStateInitializerRHI& Initializer) final override;
@@ -588,6 +588,17 @@ public:
 	virtual bool HandleSpecialUnlock(uint32 MipIndex, uint32 Flags, void* D3DTextureResource, void* RawTextureMemory) = 0;
 #endif
 
+	uint32 GetHDRDetectedDisplayIndex() const
+	{
+		return HDRDetectedDisplayIndex;
+	}
+
+	void SetHDRDetectedDisplayIndices(const uint32 DisplayIndex, const uint32 IHVIndex)
+	{
+		HDRDetectedDisplayIndex = DisplayIndex;
+		HDRDetectedDisplayIHVIndex = IHVIndex;
+	}
+
 protected:
 	/** The global D3D interface. */
 	TRefCountPtr<IDXGIFactory1> DXGIFactory1;
@@ -690,6 +701,10 @@ protected:
 	/** A history of the most recently used bound shader states, used to keep transient bound shader states from being recreated for each use. */
 	TGlobalResource< TBoundShaderStateHistory<10000> > BoundShaderStateHistory;
 	FComputeShaderRHIRef CurrentComputeShader;
+
+	/** If HDR display detected, we store the output device. */
+	uint32 HDRDetectedDisplayIndex;
+	uint32 HDRDetectedDisplayIHVIndex;
 
 #if CHECK_SRV_TRANSITIONS
 	/*

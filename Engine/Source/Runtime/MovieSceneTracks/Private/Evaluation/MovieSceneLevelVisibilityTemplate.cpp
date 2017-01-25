@@ -23,7 +23,7 @@ bool GetLevelVisibility(const ULevelStreaming& Level)
 	}
 }
 
-void SetLevelVisibility(ULevelStreaming& Level, bool bVisible)
+void SetLevelVisibility(ULevelStreaming& Level, bool bVisible, EFlushLevelStreamingType* FlushStreamingType = nullptr)
 {
 #if WITH_EDITOR
 	if (GIsEditor && !Level.GetWorld()->IsPlayInEditor())
@@ -57,6 +57,20 @@ void SetLevelVisibility(ULevelStreaming& Level, bool bVisible)
 #endif
 	{
 		Level.bShouldBeVisible = bVisible;
+
+		if (FlushStreamingType && (*FlushStreamingType == EFlushLevelStreamingType::None))
+		{
+			*FlushStreamingType = EFlushLevelStreamingType::Visibility;
+		}
+
+		if (bVisible && !Level.IsLevelLoaded())
+		{
+			Level.bShouldBeLoaded = true;
+			if (FlushStreamingType)
+			{
+				*FlushStreamingType = EFlushLevelStreamingType::Full;
+			}
+		}
 	}
 }
 
@@ -78,23 +92,19 @@ FString MakeSafeLevelName(const FName& InLevelName, UWorld& World)
 	return InLevelName.ToString();
 }
 
-ULevelStreaming* GetStreamingLevel(FName LevelName, UWorld& World)
+ULevelStreaming* GetStreamingLevel(FString SafeLevelName, UWorld& World)
 {
-	if (LevelName != NAME_None)
+	if (FPackageName::IsShortPackageName(SafeLevelName))
 	{
-		FString SafeLevelName = MakeSafeLevelName(LevelName, World);
-		if (FPackageName::IsShortPackageName(SafeLevelName))
-		{
-			// Make sure MyMap1 and Map1 names do not resolve to a same streaming level
-			SafeLevelName = TEXT("/") + SafeLevelName;
-		}
+		// Make sure MyMap1 and Map1 names do not resolve to a same streaming level
+		SafeLevelName = TEXT("/") + SafeLevelName;
+	}
 
-		for (ULevelStreaming* LevelStreaming : World.StreamingLevels)
+	for (ULevelStreaming* LevelStreaming : World.StreamingLevels)
+	{
+		if (LevelStreaming && LevelStreaming->GetWorldAssetPackageName().EndsWith(SafeLevelName, ESearchCase::IgnoreCase))
 		{
-			if (LevelStreaming && LevelStreaming->GetWorldAssetPackageName().EndsWith(SafeLevelName, ESearchCase::IgnoreCase))
-			{
-				return LevelStreaming;
-			}
+			return LevelStreaming;
 		}
 	}
 
@@ -173,7 +183,7 @@ struct FLevelStreamingSharedTrackData : IPersistentEvaluationData
 
 		TArray<FName, TInlineAllocator<8>> LevelsToRestore;
 
-		bool bAnythingChanged = false;
+		EFlushLevelStreamingType FlushStreamingType = EFlushLevelStreamingType::None;
 		for (auto& Pair : VisibilityMap)
 		{
 			FName SafeLevelName(*MakeSafeLevelName(Pair.Key, *World));
@@ -191,8 +201,7 @@ struct FLevelStreamingSharedTrackData : IPersistentEvaluationData
 				// Restore the state from before our evaluation
 				if (Pair.Value.bPreviousState.IsSet())
 				{
-					SetLevelVisibility(*Level, Pair.Value.bPreviousState.GetValue());
-					bAnythingChanged = true;
+					SetLevelVisibility(*Level, Pair.Value.bPreviousState.GetValue(), &FlushStreamingType);
 				}
 			}
 			else
@@ -208,8 +217,7 @@ struct FLevelStreamingSharedTrackData : IPersistentEvaluationData
 
 					Player.SavePreAnimatedState(*Level, TMovieSceneAnimTypeID<FLevelStreamingSharedTrackData>(), TokenProducer);
 
-					SetLevelVisibility(*Level, bShouldBeVisible);
-					bAnythingChanged = true;
+					SetLevelVisibility(*Level, bShouldBeVisible, &FlushStreamingType);
 				}
 			}
 		}
@@ -219,9 +227,9 @@ struct FLevelStreamingSharedTrackData : IPersistentEvaluationData
 			VisibilityMap.Remove(Level);
 		}
 
-		if (bAnythingChanged)
+		if (FlushStreamingType != EFlushLevelStreamingType::None)
 		{
-			World->FlushLevelStreaming( EFlushLevelStreamingType::Visibility );
+			World->FlushLevelStreaming( FlushStreamingType );
 		}
 	}
 
@@ -239,7 +247,12 @@ private:
 			NameToLevelMap.Remove(SafeLevelName);
 		}
 
-		ULevelStreaming* Level = GetStreamingLevel(SafeLevelName, World);
+		if (SafeLevelName == NAME_None)
+		{
+			return nullptr;
+		}
+
+		ULevelStreaming* Level = GetStreamingLevel(SafeLevelName.ToString(), World);
 		if (Level)
 		{
 			NameToLevelMap.Add(SafeLevelName, Level);

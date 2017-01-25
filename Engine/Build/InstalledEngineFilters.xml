@@ -171,7 +171,6 @@
 		<!-- Extra tools -->
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/3dsMaxScripts/..."/>
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/VisualStudioDebugging/UE4.natvis"/>
-		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/Maya_AnimationRiggingTools/MayaTools/..."/>
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/MayaVelocityGridExporter/..."/>
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/UnrealVS/..."/>
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/Redist/en-us/*"/>
@@ -199,7 +198,6 @@
 
 		<!-- Extra tools -->
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/LLDBDataFormatters/UE4DataFormatters.py"/>
-		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/Maya_AnimationRiggingTools/ArtToolsOSX/..."/>
 
 		<!-- Don't want these folders, even if they're part of Windows tools -->
 		<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Binaries/Win64/...;Engine/Binaries/Win32/..."/>

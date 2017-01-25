@@ -1904,8 +1904,16 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 		{
 			if (Pkg == nullptr)
 				continue;
-			// TODO: Disable material importing when importing morph targets
-			FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), Pkg, LODIndex);
+			
+			USkeletalMesh *NewSkelMesh = Cast<USkeletalMesh>(NewObject);
+			if ((GlobalImportSettings->bImportSkeletalMeshLODs || LODIndex == 0) &&
+				NewSkelMesh &&
+				NewSkelMesh->GetImportedResource() &&
+				NewSkelMesh->GetImportedResource()->LODModels.IsValidIndex(LODIndex))
+			{
+				// TODO: Disable material importing when importing morph targets
+				FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, NewSkelMesh, Pkg, LODIndex);
+			}
 		}
 	}
 	//Put back the options

@@ -340,6 +340,11 @@ private:
 		return bUseSeparateRenderTarget || bForceSeparateRenderTarget;
 	}
 
+	/**
+	 * Called right before a slate window is destroyed so we can free up the backbuffer resource before the window backing it is destroyed
+	 */
+	void OnWindowBackBufferResourceDestroyed(void* Backbuffer);
+
 	/** 
 	 * Called right before a backbuffer is resized. If this viewport is using this backbuffer 
 	 * it will release its resource here

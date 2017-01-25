@@ -33,6 +33,9 @@ public:
 	/** If the VR Editor is currently available */
 	bool IsVREditorAvailable() const;
 
+	/** Gets the current VR Editor mode */
+	UVREditorMode* GetVREditorMode();
+
 	virtual void AddReferencedObjects( FReferenceCollector& Collector );
 
 private:

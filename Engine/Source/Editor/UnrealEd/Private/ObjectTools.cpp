@@ -731,9 +731,16 @@ namespace ObjectTools
 					TArray<UProperty*> CurReferencedProperties;
 					CurReferencingPropertiesMMap.GenerateValueArray( CurReferencedProperties );
 					ReferencingPropertiesMap.Add( CurObject, CurReferencedProperties );
-					for ( TArray<UProperty*>::TConstIterator RefPropIter( CurReferencedProperties ); RefPropIter; ++RefPropIter )
+					if ( CurReferencedProperties.Num() > 0)
 					{
-						CurObject->PreEditChange( *RefPropIter );
+						for ( TArray<UProperty*>::TConstIterator RefPropIter( CurReferencedProperties ); RefPropIter; ++RefPropIter )
+						{
+							CurObject->PreEditChange( *RefPropIter );
+						}
+					}
+					else
+					{
+						CurObject->PreEditChange(nullptr);
 					}
 				}
 			}
@@ -752,10 +759,18 @@ namespace ObjectTools
 
 			FArchiveReplaceObjectRef<UObject> ReplaceAr( CurReplaceObj, ReplacementMap, false, true, false );
 
-			for ( TArray<UProperty*>::TConstIterator RefPropIter( RefPropArray ); RefPropIter; ++RefPropIter )
+			if (RefPropArray.Num() > 0)
 			{
-				FPropertyChangedEvent PropertyEvent(*RefPropIter, EPropertyChangeType::Redirected);
-				CurReplaceObj->PostEditChangeProperty( PropertyEvent );
+				for ( TArray<UProperty*>::TConstIterator RefPropIter( RefPropArray ); RefPropIter; ++RefPropIter )
+				{
+					FPropertyChangedEvent PropertyEvent(*RefPropIter, EPropertyChangeType::Redirected);
+					CurReplaceObj->PostEditChangeProperty( PropertyEvent );
+				}
+			}
+			else
+			{
+				FPropertyChangedEvent PropertyEvent(nullptr, EPropertyChangeType::Redirected);
+				CurReplaceObj->PostEditChangeProperty(PropertyEvent);
 			}
 
 			if ( !CurReplaceObj->HasAnyFlags(RF_Transient) && CurReplaceObj->GetOutermost() != GetTransientPackage() )
@@ -1549,6 +1564,7 @@ namespace ObjectTools
 		if ( PackagesToDelete.Num() > 0 )
 		{
 			PackageTools::UnloadPackages(PackagesToDelete);
+			PackagesToDelete.Reset();
 		}
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 

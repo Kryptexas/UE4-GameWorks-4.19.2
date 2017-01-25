@@ -242,15 +242,14 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 	{
 		if ( !bWasHandled )
 		{
-			// If the numpad is currently showing
-			if (bRadialMenuIsNumpad)
+			// If the numpad is currently showing and we press a button (only on press to avoid duplicate calls)
+			if (bRadialMenuIsNumpad && Action.Event == IE_Pressed)
 			{
 				// Modifier button is backspace
 				if (Action.ActionType == VRActionTypes::Modifier)
 				{
 					const bool bRepeat = false;
-					FVREditorActionCallbacks::SimulateKeyDown( EKeys::BackSpace, bRepeat );
-					FVREditorActionCallbacks::SimulateKeyUp( EKeys::BackSpace );
+					FVREditorActionCallbacks::SimulateBackspace();
 					bWasHandled = true;
 				}
 				// Side triggers function as enter keys

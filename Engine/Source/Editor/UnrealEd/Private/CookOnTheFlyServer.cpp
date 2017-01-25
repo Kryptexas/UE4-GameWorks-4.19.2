@@ -2754,15 +2754,13 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 	bIsSavingPackage = true;
 	FString Filename(GetCachedPackageFilename(Package));
 
-	if (IsCookByTheBookMode())
+	//if (IsCookByTheBookMode())
 	{
 		GIsCookerLoadingPackage = true;
 
 		SCOPE_TIMER(ResolveRedirectors);
 		COOK_STAT(FScopedDurationTimer ResolveRedirectorsTimer(DetailedCookStats::TickCookOnTheSideResolveRedirectorsTimeSec));
-		FString RelativeFilename = Filename;
-		FPaths::MakeStandardFilename(RelativeFilename);
-		GRedirectCollector.ResolveStringAssetReference(RelativeFilename);
+		GRedirectCollector.ResolveStringAssetReference(Package->GetPathName());
 
 		GIsCookerLoadingPackage = false;
 	}

@@ -58,6 +58,7 @@
 #include "Engine/ChildConnection.h"
 #include "VisualLogger/VisualLogger.h"
 #include "Logging/MessageLog.h"
+#include "SceneViewport.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);
 
@@ -3723,7 +3724,22 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 	bool bRightHapticsNeedUpdate = false;
 	bool bGunHapticsNeedUpdate = false;
 
-	if (!bGamePaused)
+	bool bProcessFeedback = !bGamePaused;
+#if WITH_EDITOR
+	if (bProcessFeedback)
+	{
+		const ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+		if (LocalPlayer && LocalPlayer->ViewportClient)
+		{
+			if (FSceneViewport* Viewport = LocalPlayer->ViewportClient->GetGameViewport())
+			{
+				bProcessFeedback = !Viewport->GetPlayInEditorIsSimulate();
+			}
+		}
+	}	
+#endif
+
+	if (bProcessFeedback)
 	{
 		// --- Force Feedback --------------------------
 		for (int32 Index = ActiveForceFeedbackEffects.Num() - 1; Index >= 0; --Index)
@@ -3998,7 +4014,7 @@ void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGa
 			// Only send mouse hit events if we're directly over the viewport.
 			if ( IsInViewportClient(ViewportClient) )
 			{
-				if ( LocalPlayer->ViewportClient->GetMousePosition(MousePosition) )
+				if ( ViewportClient->GetMousePosition(MousePosition) )
 				{
 					bHit = GetHitResultAtScreenPosition(MousePosition, CurrentClickTraceChannel, true, /*out*/ HitResult);
 				}

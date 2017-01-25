@@ -42,11 +42,11 @@ struct FPredictProjectilePathParams
 	float MaxSimTime;
 
 	// Whether or not to use TraceChannel, if tracing with collision.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PredictProjectilePathParams)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PredictProjectilePathParams)
 	bool bTraceWithChannel;
 
 	// Trace channel to use, if tracing with collision.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PredictProjectilePathParams)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PredictProjectilePathParams)
 	TEnumAsByte<ECollisionChannel> TraceChannel;
 
 	// Object type to use, if tracing with collision.

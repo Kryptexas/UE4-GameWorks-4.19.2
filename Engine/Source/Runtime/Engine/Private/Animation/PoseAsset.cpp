@@ -1201,6 +1201,7 @@ void UPoseAsset::RecacheTrackmap()
 		{
 			const FName& TrackName = PoseContainer.Tracks[TrackIndex];
 			const int32 SkeletonTrackIndex = RefSkeleton.FindBoneIndex(TrackName);
+			ensureAlways(SkeletonTrackIndex != INDEX_NONE);
 			PoseContainer.TrackMap.Add(TrackName, SkeletonTrackIndex);
 		}
 	}

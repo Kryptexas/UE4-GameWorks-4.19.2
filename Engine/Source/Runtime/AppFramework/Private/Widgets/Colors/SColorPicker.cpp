@@ -26,6 +26,7 @@
 #include "Widgets/Colors/SColorSpectrum.h"
 #include "Widgets/Colors/SColorThemes.h"
 #include "Widgets/Layout/SExpandableArea.h"
+#include "MenuStack.h"
 
 #define LOCTEXT_NAMESPACE "ColorPicker"
 
@@ -1669,16 +1670,41 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 	const bool bOverrideNonModalCreation = (SColorPicker::OnColorPickerNonModalCreateOverride.IsBound() && !Args.bIsModal);
 
 	TSharedPtr<SWindow> Window = nullptr;
+	TSharedRef<SBorder> WindowContent = SNew(SBorder)
+			.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
+			.Padding(FMargin(8.0f, 8.0f));
 	
+	bool bNeedToAddWindow = true;
 	if (!bOverrideNonModalCreation)
 	{
-		Window = SNew(SWindow)
-			.AutoCenter(EAutoCenter::None)
-			.ScreenPosition(AdjustedSummonLocation)
-			.SupportsMaximize(false)
-			.SupportsMinimize(false)
-			.SizingRule(ESizingRule::Autosized)
-			.Title(LOCTEXT("WindowHeader", "Color Picker"));
+		if (Args.bOpenAsMenu && !Args.bIsModal && Args.ParentWidget.IsValid())
+		{
+			Window = FSlateApplication::Get().PushMenu(
+				Args.ParentWidget.ToSharedRef(),
+				FWidgetPath(),
+				WindowContent,
+				AdjustedSummonLocation,
+				FPopupTransitionEffect(FPopupTransitionEffect::None),
+				false,
+				FVector2D(0.f,0.f),
+				EPopupMethod::CreateNewWindow,
+				false)->GetOwnedWindow();
+
+			bNeedToAddWindow = false;
+		}
+		else
+		{
+			Window = SNew(SWindow)
+				.AutoCenter(EAutoCenter::None)
+				.ScreenPosition(AdjustedSummonLocation)
+				.SupportsMaximize(false)
+				.SupportsMinimize(false)
+				.SizingRule(ESizingRule::Autosized)
+				.Title(LOCTEXT("WindowHeader", "Color Picker"))
+				[
+					WindowContent
+				];
+		}
 	}
 
 	TSharedRef<SColorPicker> ColorPicker = SNew(SColorPicker)
@@ -1713,23 +1739,13 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 	}
 	else
 	{
-		Window->SetContent(
-			SNew(SBox)
-			[
-				SNew(SBorder)
-				.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
-			.Padding(FMargin(8.0f, 8.0f))
-			[
-				ColorPicker
-			]
-			]
-		);
+		WindowContent->SetContent(ColorPicker);
 
 		if (Args.bIsModal)
 		{
 			FSlateApplication::Get().AddModalWindow(Window.ToSharedRef(), Args.ParentWidget);
 		}
-		else
+		else if (bNeedToAddWindow)
 		{
 			if (Args.ParentWidget.IsValid())
 			{

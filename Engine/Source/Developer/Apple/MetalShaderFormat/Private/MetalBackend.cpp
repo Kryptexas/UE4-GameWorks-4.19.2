@@ -4666,7 +4666,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 								uint32 MemberSize = FMath::RoundUpToPowerOfTwo(TypeSizes[(uint8)Attr.Type] * Attr.Components);
 								Attr.Offset = Align(TessAttribs.PatchControlPointOutSize, MemberSize);
 								TessAttribs.PatchControlPointOutSize = Attr.Offset + MemberSize;
-								if (PatchControlPointOutAlignment == 0)
+								if (PatchControlPointOutAlignment < MemberSize)
 								{
 									PatchControlPointOutAlignment = MemberSize;
 								}
@@ -5020,7 +5020,7 @@ void FMetalCodeBackend::CallPatchConstantFunction(_mesa_glsl_parse_state* ParseS
 						uint32 MemberSize = FMath::RoundUpToPowerOfTwo(TypeSizes[(uint8)Attr.Type] * Attr.Components);
 						Attr.Offset = Align(TessAttribs.HSOutSize, MemberSize);
 						TessAttribs.HSOutSize = Attr.Offset + MemberSize;
-						if (HSOutAlignment == 0)
+						if (HSOutAlignment < MemberSize)
 						{
 							HSOutAlignment = MemberSize;
 						}

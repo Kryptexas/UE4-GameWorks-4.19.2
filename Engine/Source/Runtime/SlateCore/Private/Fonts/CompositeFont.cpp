@@ -73,6 +73,12 @@ FFontData::FFontData(FString InFontFilename, const UFontBulkData* const InBulkDa
 {
 }
 
+bool FFontData::HasFont() const
+{
+	FFontFaceDataConstPtr FontFaceData = GetFontFaceData();
+	return (FontFaceData.IsValid() && FontFaceData->HasData()) || (!GetFontFilename().IsEmpty());
+}
+
 const FString& FFontData::GetFontFilename() const
 {
 	if (FontFaceAsset)

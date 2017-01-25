@@ -514,22 +514,25 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 	}
 	
 	EHostType::Type ModuleDescriptorType;
+	ELoadingPhase::Type LoadingPhase;
 
 	TArray<TSharedPtr<FPluginTemplateDescription>> SelectedTemplates = PluginWizardDefinition->GetSelectedTemplates();
 	// @todo For now assume there is one module type and all templates share it
 	if(SelectedTemplates.Num() > 0 )
 	{
 		ModuleDescriptorType = SelectedTemplates[0]->ModuleDescriptorType;
+		LoadingPhase = SelectedTemplates[0]->LoadingPhase;
 	}
 	else
 	{
 		// Default to runtime
 		ModuleDescriptorType = EHostType::Runtime;
+		LoadingPhase = ELoadingPhase::Default;
 	}
 
 	// Save descriptor file as .uplugin file
 	const FString UPluginFilePath = GetPluginFilenameWithPath();
-	bSucceeded = bSucceeded && WritePluginDescriptor(AutoPluginName, UPluginFilePath, PluginWizardDefinition->CanContainContent(), bHasModules, ModuleDescriptorType);
+	bSucceeded = bSucceeded && WritePluginDescriptor(AutoPluginName, UPluginFilePath, PluginWizardDefinition->CanContainContent(), bHasModules, ModuleDescriptorType, LoadingPhase);
 
 	// Main plugin dir
 	const FString BasePluginFolder = GetPluginDestinationPath().ToString();
@@ -617,7 +620,7 @@ bool SNewPluginWizard::CopyFile(const FString& DestinationFile, const FString& S
 	}
 }
 
-bool SNewPluginWizard::WritePluginDescriptor(const FString& PluginModuleName, const FString& UPluginFilePath, bool bCanContainContent, bool bHasModules, EHostType::Type ModuleDescriptorType)
+bool SNewPluginWizard::WritePluginDescriptor(const FString& PluginModuleName, const FString& UPluginFilePath, bool bCanContainContent, bool bHasModules, EHostType::Type ModuleDescriptorType, ELoadingPhase::Type LoadingPhase)
 {
 	FPluginDescriptor Descriptor;
 
@@ -628,7 +631,7 @@ bool SNewPluginWizard::WritePluginDescriptor(const FString& PluginModuleName, co
 
 	if (bHasModules)
 	{
-		Descriptor.Modules.Add(FModuleDescriptor(*PluginModuleName, ModuleDescriptorType));
+		Descriptor.Modules.Add(FModuleDescriptor(*PluginModuleName, ModuleDescriptorType, LoadingPhase));
 	}
 	Descriptor.bCanContainContent = bCanContainContent;
 

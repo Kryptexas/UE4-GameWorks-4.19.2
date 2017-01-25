@@ -58,7 +58,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Master EQ"), STAT_AudioMixerMasterEQ, STATGROUP_
 // Enable debug checking for audio mixer
 
 #if AUDIO_MIXER_ENABLE_DEBUG_MODE
-#define AUDIO_MIXER_CHECK(expr) check(expr)
+#define AUDIO_MIXER_CHECK(expr) ensure(expr)
 #define AUDIO_MIXER_CHECK_GAME_THREAD(_MixerDevice)			(_MixerDevice->CheckGameThread())
 #define AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(_MixerDevice)	(_MixerDevice->CheckAudioPlatformThread())
 #else

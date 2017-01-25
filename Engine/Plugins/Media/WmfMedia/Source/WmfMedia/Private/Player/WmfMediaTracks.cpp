@@ -154,7 +154,7 @@ bool FWmfMediaTracks::Initialize(IMFMediaSource& InMediaSource, IMFPresentationD
 		UE_LOG(LogWmfMedia, Verbose, TEXT("Found %i streams"), StreamCount);
 	}
 
-	// initialize streams (note: in reverse order to match actual encoding order in file like other players)
+	// add streams (Media Foundation reports them in reverse order)
 	for (int32 StreamIndex = StreamCount - 1; StreamIndex >= 0; --StreamIndex)
 	{
 		AddStreamToTracks(StreamIndex, InMediaSource, InPresentationDescriptor, OutInfo);	

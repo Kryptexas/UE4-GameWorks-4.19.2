@@ -22,6 +22,10 @@ extern void LaunchStaticShutdownAfterError();
 // Has to be .exe module to be correctly detected.
 extern "C" { _declspec(dllexport) uint32 NvOptimusEnablement = 0x00000001; }
 
+// And the AMD equivalent
+// Also has to be .exe module to be correctly detected.
+extern "C" { _declspec(dllexport) uint32 AmdPowerXpressRequestHighPerformance = 0x00000001; }
+
 /**
  * Maintain a named mutex to detect whether we are the first instance of this game
  */

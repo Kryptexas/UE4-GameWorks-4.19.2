@@ -168,7 +168,7 @@ private:
 	void Add(const FMeshBoneInfo& BoneInfo, const FTransform& BonePose)
 	{
 		// Adding a bone that already exists is illegal
-		check(FindBoneIndex(BoneInfo.Name) == INDEX_NONE);
+		check(FindRawBoneIndex(BoneInfo.Name) == INDEX_NONE);
 
 		// Make sure our arrays are in sync.
 		checkSlow((RawRefBoneInfo.Num() == RawRefBonePose.Num()) && (RawRefBoneInfo.Num() == RawNameToIndexMap.Num()));

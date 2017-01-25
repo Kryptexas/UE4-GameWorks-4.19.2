@@ -6,9 +6,9 @@
 FMovieSceneEvaluationTemplate& FMovieSceneSequenceTemplateStore::GetCompiledTemplate(UMovieSceneSequence& Sequence)
 {
 #if WITH_EDITORONLY_DATA
-	if (AreTemplatesVolatile())
+	if (AreTemplatesVolatile() && Sequence.EvaluationTemplate.IsOutOfDate(Sequence.TemplateParameters))
 	{
-		Sequence.EvaluationTemplate.Regenerate(Sequence.TemplateParameters);
+		Sequence.EvaluationTemplate.ForceRegenerate(Sequence.TemplateParameters);
 	}
 #endif
 	return Sequence.EvaluationTemplate;

@@ -557,6 +557,8 @@ enum ETextureCreateFlags
 	TexCreate_DepthStencilResolveTarget = 1 << 26,
 	// Render target will not FinalizeFastClear; Caches and meta data will be flushed, but clearing will be skipped (avoids potentially trashing metadata)
 	TexCreate_NoFastClearFinalize = 1 << 28,
+	// Hint to the driver that this resource is managed properly by the engine for Alternate-Frame-Rendering in mGPU usage.
+	TexCreate_AFRManual = 1 << 29,
 };
 
 enum EAsyncComputePriority
@@ -676,6 +678,11 @@ inline bool IsVulkanPlatform(const EShaderPlatform Platform)
 	return Platform == SP_VULKAN_SM5 || Platform == SP_VULKAN_SM4 || Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID;
 }
 
+inline bool IsAndroidOpenGLESPlatform(const EShaderPlatform Platform)
+{
+	return Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES3_1_ANDROID;
+}
+
 inline bool IsVulkanMobilePlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID;
@@ -756,8 +763,8 @@ inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
 
 inline bool RHISupportsSeparateMSAAAndResolveTextures(const EShaderPlatform Platform)
 {
-	// Metal and Vulkan needs to handle MSAA and resolve textures internally (unless RHICreateTexture2D was changed to take an optional resolve target)
-	return !IsMetalPlatform(Platform) && !IsVulkanPlatform(Platform);
+	// Metal, Vulkan and Android ES2/3.1 need to handle MSAA and resolve textures internally (unless RHICreateTexture2D was changed to take an optional resolve target)
+	return !IsMetalPlatform(Platform) && !IsVulkanPlatform(Platform) && !IsAndroidOpenGLESPlatform(Platform);
 }
 
 inline bool RHISupportsMSAA(EShaderPlatform Platform)

@@ -77,15 +77,27 @@ protected:
 
 	/** Maximum allowed time to spend for actor registration steps during level streaming (ms per frame)*/
 	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay, meta = (
-		ConsoleVariable = "s.LevelStreamingActorsUpdateTimeLimit", DisplayName = "Level Streaming Actors Update Time Limit",
+		ConsoleVariable = "s.LevelStreamingActorsUpdateTimeLimit", DisplayName = "Actor Initialization Update Time Limit",
 		ToolTip = "Maximum allowed time to spend for actor registration steps during level streaming (ms per frame)."))
 	float LevelStreamingActorsUpdateTimeLimit;
 
 	/** Batching granularity used to register actor components during level streaming */
 	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay, meta = (
-		ConsoleVariable = "s.LevelStreamingComponentsRegistrationGranularity", DisplayName = "Level Streaming Components Registration Granularity",
+		ConsoleVariable = "s.LevelStreamingComponentsRegistrationGranularity", DisplayName = "Components Registration Granularity",
 		ToolTip = "Batching granularity used to register actor components during level streaming."))
 	int32 LevelStreamingComponentsRegistrationGranularity;
+
+	/** Maximum allowed time to spend while unregistering components during level streaming (ms per frame) */
+	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay, meta = (
+		ConsoleVariable = "s.UnregisterComponentsTimeLimit", DisplayName = "Component Unregister Update Time Limit",
+		ToolTip = "Maximum allowed time to spend while unregistering components during level streaming (ms per frame)."))
+		float LevelStreamingUnregisterComponentsTimeLimit;
+
+	/** Batching granularity used to unregister actor components during level streaming */
+	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay, meta = (
+		ConsoleVariable = "s.LevelStreamingComponentsUnregistrationGranularity", DisplayName = "Components Unregistration Granularity",
+		ToolTip = "Batching granularity used to unregister actor components during level streaming."))
+	int32 LevelStreamingComponentsUnregistrationGranularity;
 
 	UPROPERTY(config, EditAnywhere, Category = PackageStreaming, meta = (
 		ConsoleVariable = "s.EventDrivenLoaderEnabled", DisplayName = "Event Driven Loader Enabled",

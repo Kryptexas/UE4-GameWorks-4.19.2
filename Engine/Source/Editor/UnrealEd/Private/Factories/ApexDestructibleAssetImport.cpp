@@ -1026,6 +1026,11 @@ UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InPa
 				LODModel.ReleaseResources();
 			}
 
+			// Although we flushed above to make sure the resources weren't being used, we need
+			// to flush again as the call to Empty below will call destructors on the lod models.
+			// The renderer must release the resources before that happens.
+			FlushRenderingCommands();
+
 			ImportedResource->LODModels.Empty(1);
 		}
 	}

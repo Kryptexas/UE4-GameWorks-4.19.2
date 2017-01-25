@@ -597,7 +597,15 @@ void FMetalRenderPass::CopyFromTextureToBuffer(id<MTLTexture> Texture, uint32 so
 	id<MTLBlitCommandEncoder> Encoder = CurrentEncoder.GetBlitCommandEncoder();
 	check(Encoder);
 	
-	[Encoder copyFromTexture:Texture sourceSlice:sourceSlice sourceLevel:sourceLevel sourceOrigin:sourceOrigin sourceSize:sourceSize toBuffer:toBuffer destinationOffset:destinationOffset destinationBytesPerRow:destinationBytesPerRow destinationBytesPerImage:destinationBytesPerImage options:options];
+	if (CmdList.GetCommandQueue().SupportsFeature(EMetalFeaturesDepthStencilBlitOptions))
+	{
+		[Encoder copyFromTexture : Texture sourceSlice : sourceSlice sourceLevel : sourceLevel sourceOrigin : sourceOrigin sourceSize : sourceSize toBuffer : toBuffer destinationOffset : destinationOffset destinationBytesPerRow : destinationBytesPerRow destinationBytesPerImage : destinationBytesPerImage options : options];
+	}
+	else
+	{
+		check(options == MTLBlitOptionNone);
+		[Encoder copyFromTexture : Texture sourceSlice : sourceSlice sourceLevel : sourceLevel sourceOrigin : sourceOrigin sourceSize : sourceSize toBuffer : toBuffer destinationOffset : destinationOffset destinationBytesPerRow : destinationBytesPerRow destinationBytesPerImage : destinationBytesPerImage];
+	}
 	ConditionalSubmit();
 }
 

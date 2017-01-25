@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "Misc/Guid.h"
+#include "UObject/WeakObjectPtr.h"
 #include "EdGraphNode.generated.h"
 
 class INameValidatorInterface;
@@ -19,6 +20,49 @@ class UEdGraphSchema;
 struct FEdGraphPinType;
 struct FPropertyChangedEvent;
 struct FSlateIcon;
+
+/**
+  * Struct used to define information for terminal types, e.g. types that can be contained
+  * by a container. Currently can represent strong/weak references to a type (only UObjects), 
+  * a structure, or a primitive. Support for "Container of Containers" is done by wrapping 
+  * a structure, rather than implicitly defining names for containers.
+  */
+USTRUCT()
+struct FEdGraphTerminalType
+{
+	GENERATED_USTRUCT_BODY()
+
+	FEdGraphTerminalType()
+		: TerminalCategory()
+		, TerminalSubCategory()
+		, TerminalSubCategoryObject(nullptr)
+		, bTerminalIsConst(false)
+		, bTerminalIsWeakPointer(false)
+	{
+	}
+
+	/** Category */
+	UPROPERTY()
+	FString TerminalCategory;
+
+	/** Sub-category */
+	UPROPERTY()
+	FString TerminalSubCategory;
+
+	/** Sub-category object */
+	UPROPERTY()
+	TWeakObjectPtr<UObject> TerminalSubCategoryObject;
+
+	/** Whether or not this pin is a immutable const value */
+	UPROPERTY()
+	bool bTerminalIsConst;
+
+	/** Whether or not this is a weak reference */
+	UPROPERTY()
+	bool bTerminalIsWeakPointer;
+
+	ENGINE_API friend FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& P);
+};
 
 /** Enum used to define which way data flows into or out of this pin. */
 UENUM()
@@ -240,7 +284,19 @@ public:
 	TArray<UEdGraphPin*> GetAllPins() { return Pins; }
 
 	/** Create a new pin on this node using the supplied info, and return the new pin */
-	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst = false, int32 Index = INDEX_NONE);
+	UEdGraphPin* CreatePin(
+		EEdGraphPinDirection Dir, 
+		const FString& PinCategory, 
+		const FString& PinSubCategory, 
+		UObject* PinSubCategoryObject, 
+		bool bIsArray, 
+		bool bIsReference, 
+		const FString& PinName, 
+		bool bIsConst = false, 
+		int32 Index = INDEX_NONE, 
+		bool bIsSet = false, 
+		bool bIsMap = false,
+		const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
 
 	/** Create a new pin on this node using the supplied pin type, and return the new pin */
 	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FEdGraphPinType& InPinType, const FString& PinName, int32 Index = INDEX_NONE);

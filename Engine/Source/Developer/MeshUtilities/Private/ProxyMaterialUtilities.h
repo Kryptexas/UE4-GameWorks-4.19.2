@@ -24,6 +24,7 @@ namespace ProxyMaterialUtilities
 		SwitchParameter.bOverride = true; \
 		NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter); \
 		a##Texture->PostEditChange(); \
+		OutAssetsToSync.Add(a##Texture); \
 	} 
 
 #define TEXTURE_MACRO_VECTOR(a, b, c) TEXTURE_MACRO_BASE(a, b, c)\
@@ -98,12 +99,13 @@ namespace ProxyMaterialUtilities
 		return NumPacked >= 2;
 	}
 
-	static UMaterialInstanceConstant* CreateProxyMaterialInstance(UPackage* InOuter, const FMaterialProxySettings& InMaterialProxySettings, FFlattenMaterial& FlattenMaterial, const FString& AssetBasePath, const FString& AssetBaseName)
+	static UMaterialInstanceConstant* CreateProxyMaterialInstance(UPackage* InOuter, const FMaterialProxySettings& InMaterialProxySettings, FFlattenMaterial& FlattenMaterial, const FString& AssetBasePath, const FString& AssetBaseName, TArray<UObject*>& OutAssetsToSync)
 	{
 		UMaterial* BaseMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EngineMaterials/BaseFlattenMaterial.BaseFlattenMaterial"), NULL, LOAD_None, NULL);
 		check(BaseMaterial);
 
 		UMaterialInstanceConstant* OutMaterial = FMaterialUtilities::CreateInstancedMaterial(BaseMaterial, InOuter, AssetBasePath + AssetBaseName, RF_Public | RF_Standalone);
+		OutAssetsToSync.Add(OutMaterial);
 
 		OutMaterial->BasePropertyOverrides.TwoSided = false;
 		OutMaterial->BasePropertyOverrides.bOverride_TwoSided = true;
@@ -180,6 +182,7 @@ namespace ProxyMaterialUtilities
 			// Create texture using the merged property data
 			UTexture2D* PackedTexture = FMaterialUtilities::CreateTexture(InOuter, AssetBasePath + TEXT("T_") + AssetBaseName + TEXT("_MRS"), PackedSize, MergedTexture, TC_Default, TEXTUREGROUP_HierarchicalLOD, RF_Public | RF_Standalone, bSRGB);
 			checkf(PackedTexture, TEXT("Failed to create texture"));
+			OutAssetsToSync.Add(PackedTexture);
 
 			// Setup switches for whether or not properties will be packed into one texture
 			FStaticSwitchParameter SwitchParameter;

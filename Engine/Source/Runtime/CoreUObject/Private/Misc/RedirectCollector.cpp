@@ -68,7 +68,7 @@ void FRedirectCollector::OnStringAssetReferenceLoaded(const FString& InString)
 		FLinkerLoad* Linker = ThreadContext.SerializedObject->GetLinker();
 		if (Linker)
 		{
-			ContainingPackageAndProperty.SetPackage(FName(*Linker->Filename));
+			ContainingPackageAndProperty.SetPackage(FName(*FPackageName::FilenameToLongPackageName(Linker->Filename)));
 			if (Linker->GetSerializedProperty())
 			{
 				ContainingPackageAndProperty.SetProperty( FName(*FString::Printf(TEXT("%s:%s"), *ThreadContext.SerializedObject->GetPathName(), *Linker->GetSerializedProperty()->GetName())));

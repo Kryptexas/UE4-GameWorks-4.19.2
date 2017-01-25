@@ -122,11 +122,6 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 		return GL_NONE;
 	}
 
-#if PLATFORM_ANDROID
-	static const auto CVarMobileOnChipMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileOnChipMSAA"));
-	static const auto CVarMobileMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
-#endif
-
 	// Not found. Preparing new one.
 	GLuint Framebuffer;
 	glGenFramebuffers(1, &Framebuffer);
@@ -135,6 +130,8 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 	VERIFY_GL(glBindFramebuffer)
 
 #if PLATFORM_ANDROID
+	static const auto CVarMobileMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
+
 	// Allocate mobile multi-view frame buffer if enabled and supported.
 	// Multi-view doesn't support read buffers, explicitly disable and only bind GL_DRAW_FRAMEBUFFER
 	// TODO: We can't reliably use packed depth stencil?
@@ -143,21 +140,18 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 
 	if (bUsingArrayTextures && FOpenGL::SupportsMobileMultiView() && (CVarMobileMultiView && CVarMobileMultiView->GetValueOnAnyThread() != 0))
 	{
-		const bool bUsingMobileOnChipMSAA = CVarMobileOnChipMSAA && CVarMobileOnChipMSAA->GetValueOnAnyThread() != 0 && NumSimultaneousRenderTargets == 1;
-
 		const FOpenGLTextureBase* const RenderTarget = RenderTargets[0];
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, Framebuffer);
 
-		if (bUsingMobileOnChipMSAA)
+		FOpenGLTexture2D* RenderTarget2D = (FOpenGLTexture2D*)RenderTarget;
+		const uint32 NumSamplesTileMem = RenderTarget2D->GetNumSamplesTileMem();
+		if (NumSamplesTileMem > 1)
 		{
-			// TODO: Mali supports 4x with similar hit as 2x, should we do something smarter here? Hard coded to 2 everywhere else
-			const uint32 SampleCount = 2;
-
-			glFramebufferTextureMultisampleMultiviewOVR(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, RenderTarget->Resource, 0, SampleCount, 0, 2);
+			glFramebufferTextureMultisampleMultiviewOVR(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, RenderTarget->Resource, 0, NumSamplesTileMem, 0, 2);
 			VERIFY_GL(glFramebufferTextureMultisampleMultiviewOVR);
 
-			glFramebufferTextureMultisampleMultiviewOVR(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, DepthStencilTarget->Resource, 0, SampleCount, 0, 2);
+			glFramebufferTextureMultisampleMultiviewOVR(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, DepthStencilTarget->Resource, 0, NumSamplesTileMem, 0, 2);
 			VERIFY_GL(glFramebufferTextureMultisampleMultiviewOVR);
 		}
 		else
@@ -192,16 +186,19 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 		if (ArrayIndices == NULL || ArrayIndices[RenderTargetIndex] == -1)
 		{
 			// If no index was specified, bind the entire object, rather than a slice
-			switch( RenderTarget->Target )
+			switch (RenderTarget->Target)
 			{
 			case GL_TEXTURE_2D:
 			case GL_TEXTURE_2D_MULTISAMPLE:
+			{
 #if PLATFORM_ANDROID
-				if (FOpenGL::SupportsMultisampledRenderToTexture() && CVarMobileOnChipMSAA->GetValueOnRenderThread() && NumSimultaneousRenderTargets == 1)
+				FOpenGLTexture2D* RenderTarget2D = (FOpenGLTexture2D*)RenderTarget;
+				const uint32 NumSamplesTileMem = RenderTarget2D->GetNumSamplesTileMem();
+				if (NumSamplesTileMem > 1)
 				{
 					// GL_EXT_multisampled_render_to_texture requires GL_COLOR_ATTACHMENT0
-					check(RenderTargetIndex==0);
-					glFramebufferTexture2DMultisampleEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + RenderTargetIndex, RenderTarget->Target, RenderTarget->Resource, MipmapLevels[RenderTargetIndex], 2);
+					check(RenderTargetIndex == 0);
+					glFramebufferTexture2DMultisampleEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + RenderTargetIndex, RenderTarget->Target, RenderTarget->Resource, MipmapLevels[RenderTargetIndex], NumSamplesTileMem);
 					VERIFY_GL(glFramebufferTexture2DMultisampleEXT);
 				}
 				else
@@ -210,6 +207,7 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 					FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + RenderTargetIndex, RenderTarget->Target, RenderTarget->Resource, MipmapLevels[RenderTargetIndex]);
 				}
 				break;
+			}
 			case GL_TEXTURE_3D:
 			case GL_TEXTURE_2D_ARRAY:
 			case GL_TEXTURE_CUBE_MAP:
@@ -228,13 +226,16 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 			{
 			case GL_TEXTURE_2D:
 			case GL_TEXTURE_2D_MULTISAMPLE:
-				check( ArrayIndices[RenderTargetIndex] == 0);
+			{
+				check(ArrayIndices[RenderTargetIndex] == 0);
 #if PLATFORM_ANDROID
-				if (FOpenGL::SupportsMultisampledRenderToTexture() && CVarMobileOnChipMSAA->GetValueOnRenderThread() && NumSimultaneousRenderTargets == 1)
+				FOpenGLTexture2D* RenderTarget2D = (FOpenGLTexture2D*)RenderTarget;
+				const uint32 NumSamplesTileMem = RenderTarget2D->GetNumSamplesTileMem();
+				if (NumSamplesTileMem > 1)
 				{
 					// GL_EXT_multisampled_render_to_texture requires GL_COLOR_ATTACHMENT0
-					check(RenderTargetIndex==0);
-					glFramebufferTexture2DMultisampleEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + RenderTargetIndex, RenderTarget->Target, RenderTarget->Resource, MipmapLevels[RenderTargetIndex], 2);
+					check(RenderTargetIndex == 0);
+					glFramebufferTexture2DMultisampleEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + RenderTargetIndex, RenderTarget->Target, RenderTarget->Resource, MipmapLevels[RenderTargetIndex], NumSamplesTileMem);
 					VERIFY_GL(glFramebufferTexture2DMultisampleEXT);
 				}
 				else
@@ -243,6 +244,7 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 					FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + RenderTargetIndex, RenderTarget->Target, RenderTarget->Resource, MipmapLevels[RenderTargetIndex]);
 				}
 				break;
+			}
 			case GL_TEXTURE_3D:
 				FOpenGL::FramebufferTexture3D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0 + RenderTargetIndex, RenderTarget->Target, RenderTarget->Resource, MipmapLevels[RenderTargetIndex], ArrayIndices[RenderTargetIndex]);
 				break;
@@ -265,18 +267,20 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 
 	if (DepthStencilTarget)
 	{
-		switch( DepthStencilTarget->Target )
+		switch (DepthStencilTarget->Target)
 		{
 		case GL_TEXTURE_2D:
 		case GL_TEXTURE_2D_MULTISAMPLE:
+		{
 #if PLATFORM_ANDROID
-			if (FOpenGL::SupportsMultisampledRenderToTexture() && CVarMobileOnChipMSAA->GetValueOnRenderThread() && NumSimultaneousRenderTargets == 1)
+			FOpenGLTexture2D* DepthStencilTarget2D = (FOpenGLTexture2D*)DepthStencilTarget;
+			const uint32 NumSamplesTileMem = DepthStencilTarget2D->GetNumSamplesTileMem();
+			if (NumSamplesTileMem > 1)
 			{
-				FOpenGLTexture2D* DepthStencilTarget2D = (FOpenGLTexture2D*)DepthStencilTarget;
 				GLuint DepthBuffer;
 				glGenRenderbuffers(1, &DepthBuffer);
 				glBindRenderbuffer(GL_RENDERBUFFER, DepthBuffer);
-				glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER, 2, FOpenGL::SupportsPackedDepthStencil() ? GL_DEPTH24_STENCIL8 : GL_DEPTH_COMPONENT24, DepthStencilTarget2D->GetSizeX(), DepthStencilTarget2D->GetSizeY());
+				glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER, NumSamplesTileMem, FOpenGL::SupportsPackedDepthStencil() ? GL_DEPTH24_STENCIL8 : GL_DEPTH_COMPONENT24, DepthStencilTarget2D->GetSizeX(), DepthStencilTarget2D->GetSizeY());
 				VERIFY_GL(glRenderbufferStorageMultisampleEXT);
 				glBindRenderbuffer(GL_RENDERBUFFER, 0);
 				glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DepthBuffer);
@@ -300,6 +304,7 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 				}
 			}
 			break;
+		}
 		case GL_TEXTURE_3D:
 		case GL_TEXTURE_2D_ARRAY:
 		case GL_TEXTURE_CUBE_MAP:

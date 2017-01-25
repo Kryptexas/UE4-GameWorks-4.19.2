@@ -13,9 +13,16 @@ void UAIPerceptionStimuliSourceComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	RegisterAsSourceForSenses.RemoveAllSwap([](TSubclassOf<UAISense> SenseClass){
-		return SenseClass == nullptr;
-	});
+#if WITH_EDITOR
+	// when in the editor world we don't remove the null entries
+	// since those can get changed to something else by the user
+	if (!GIsEditor || GIsPlayInEditorWorld)
+#endif // WITH_EDITOR
+	{
+		RegisterAsSourceForSenses.RemoveAllSwap([](TSubclassOf<UAISense> SenseClass) {
+			return SenseClass == nullptr;
+		});
+	}
 
 	if (bAutoRegisterAsSource)
 	{

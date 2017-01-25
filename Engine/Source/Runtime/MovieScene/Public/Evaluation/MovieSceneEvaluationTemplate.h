@@ -96,6 +96,11 @@ struct FMovieSceneEvaluationTemplate
 public:
 
 	/**
+	 * Reset this evaluation template, whilst ensuring that track identifiers do not get reused
+	 */
+	MOVIESCENE_API void ResetGeneratedData();
+
+	/**
 	 * Attempt to locate a track with the specified identifier
 	 */
 	FMovieSceneEvaluationTrack* FindTrack(FMovieSceneTrackIdentifier Identifier)
@@ -235,6 +240,8 @@ struct FCachedMovieSceneEvaluationTemplate : public FMovieSceneEvaluationTemplat
 	MOVIESCENE_API bool IsOutOfDate(const FMovieSceneTrackCompilationParams& NewParams) const;
 
 private:
+
+	void RegenerateImpl(const FMovieSceneTrackCompilationParams& NewParams);
 
 	/** Transient data */
 	TWeakObjectPtr<UMovieSceneSequence> SourceSequence;

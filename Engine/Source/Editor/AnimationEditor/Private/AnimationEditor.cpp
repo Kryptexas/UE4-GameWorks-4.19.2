@@ -181,6 +181,10 @@ void FAnimationEditor::BindCommands()
 		FExecuteAction::CreateSP(this, &FAnimationEditor::OnSetKey),
 		FCanExecuteAction::CreateSP(this, &FAnimationEditor::CanSetKey));
 
+	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().ReimportAnimation,
+		FExecuteAction::CreateSP(this, &FAnimationEditor::OnReimportAnimation),
+		FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence));
+
 	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().ApplyAnimation,
 		FExecuteAction::CreateSP(this, &FAnimationEditor::OnApplyRawAnimChanges),
 		FCanExecuteAction::CreateSP(this, &FAnimationEditor::CanApplyRawAnimChanges));
@@ -241,7 +245,9 @@ void FAnimationEditor::ExtendToolbar()
 						);
 				}
 
+				ToolbarBuilder.AddToolBarButton(FAnimationEditorCommands::Get().ReimportAnimation);
 				ToolbarBuilder.AddToolBarButton(FAnimationEditorCommands::Get().ApplyCompression, NAME_None, LOCTEXT("Toolbar_ApplyCompression", "Compression"));
+				ToolbarBuilder.AddToolBarButton(FAnimationEditorCommands::Get().ExportToFBX);
 			}
 			ToolbarBuilder.EndSection();
 
@@ -487,6 +493,15 @@ void FAnimationEditor::OnApplyRawAnimChanges()
 				AnimSequence->RequestSyncAnimRecompression(false);
 			}
 		}
+	}
+}
+
+void FAnimationEditor::OnReimportAnimation()
+{
+	UAnimSequence* AnimSequence = Cast<UAnimSequence>(AnimationAsset);
+	if (AnimSequence)
+	{
+		FReimportManager::Instance()->Reimport(AnimSequence, true);
 	}
 }
 

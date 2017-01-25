@@ -34,6 +34,7 @@ namespace UnrealBuildTool.Rules
 				{
 					"UMG",
                     "SlateCore",
+                    "MovieScene",
 				}
                 );
 		}

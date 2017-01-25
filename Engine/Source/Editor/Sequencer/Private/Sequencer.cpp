@@ -502,6 +502,8 @@ void FSequencer::ResetToNewRootSequence(UMovieSceneSequence& NewSequence)
 	RootSequence = &NewSequence;
 	RestorePreAnimatedState();
 
+	RootTemplateInstance.Finish(*this);
+
 	TemplateStore->Reset();
 
 	ActiveTemplateIDs.Reset();
@@ -1115,12 +1117,14 @@ void FSequencer::SelectInSelectionRange(const TSharedRef<FSequencerDisplayNode>&
 
 		if (bSelectSections)
 		{
+			// Use an exclusive selection range to prevent the selection of a section that ends right at the selection range start
+			TRange<float> ExclusiveSectionRange = TRange<float>(TRangeBound<float>::Exclusive(SelectionRange.GetLowerBoundValue()), TRangeBound<float>::Exclusive(SelectionRange.GetUpperBoundValue()));
 			TSet<TWeakObjectPtr<UMovieSceneSection>> OutSections;
 			SequencerHelpers::GetAllSections(DisplayNode, OutSections);
 
 			for (auto Section : OutSections)
 			{
-				if (Section.IsValid())
+				if (Section.IsValid() && Section->GetRange().Overlaps(ExclusiveSectionRange))
 				{
 					Selection.AddToSelection(Section.Get());
 				}
@@ -2105,7 +2109,7 @@ void FSequencer::RecordSelectedActors()
 		return;
 	}
 
-	int32 MaxRow = 0;
+	int32 MaxRow = -1;
 	for (UMovieSceneSection* Section : DestinationTrack->GetAllSections())
 	{
 		MaxRow = FMath::Max(Section->GetRowIndex(), MaxRow);

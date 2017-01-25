@@ -144,6 +144,8 @@ private:
 	/** Add tick prerequisites so that the level sequence actor ticks before all the actors it controls */
 	void SetTickPrerequisites(bool bAddTickPrerequisites);
 
+	void SetTickPrerequisites(FMovieSceneSequenceID SequenceID, UMovieSceneSequence* Sequence, bool bAddTickPrerequisites);
+
 private:
 
 	/** The world this player will spawn actors in, if needed */

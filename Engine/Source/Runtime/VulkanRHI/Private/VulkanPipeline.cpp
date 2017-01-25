@@ -844,7 +844,7 @@ void FVulkanPipelineStateCache::CreateGfxPipelineFromEntry(const FGfxPipelineEnt
 	double Delta = EndTime - BeginTime;
 	if (Delta > HitchTime)
 	{
-		UE_LOG(LogVulkanRHI, Warning, TEXT("Hitchy pipeline key 0x%08x%08x 0x%08x%08x VtxInKey 0x%08x VS %s GS %s PS %s (%.3f ms)"), 
+		UE_LOG(LogVulkanRHI, Verbose, TEXT("Hitchy pipeline key 0x%08x%08x 0x%08x%08x VtxInKey 0x%08x VS %s GS %s PS %s (%.3f ms)"), 
 			(uint32)((GfxEntry->GraphicsKey.Key[0] >> 32) & 0xffffffff), (uint32)(GfxEntry->GraphicsKey.Key[0] & 0xffffffff),
 			(uint32)((GfxEntry->GraphicsKey.Key[1] >> 32) & 0xffffffff), (uint32)(GfxEntry->GraphicsKey.Key[1] & 0xffffffff),
 			GfxEntry->VertexInputKey,

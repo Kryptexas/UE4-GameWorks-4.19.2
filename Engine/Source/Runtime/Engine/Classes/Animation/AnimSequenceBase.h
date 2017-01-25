@@ -62,6 +62,9 @@ class UAnimSequenceBase : public UAnimationAsset
 	/** Sort the Notifies array by time, earliest first. */
 	ENGINE_API void SortNotifies();	
 
+	/** Remove the notifies specified */
+	ENGINE_API bool RemoveNotifies(const TArray<FName>& NotifiesToRemove);
+
 	/** 
 	 * Retrieves AnimNotifies given a StartTime and a DeltaTime.
 	 * Time will be advanced and support looping if bAllowLooping is true.

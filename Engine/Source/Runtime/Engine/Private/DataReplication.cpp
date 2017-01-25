@@ -135,6 +135,12 @@ void FObjectReplicator::InitRecentProperties( uint8* Source )
 	RepLayout->InitRepState( RepState, InObjectClass, Source, RepChangedPropertyTracker );
 	RepState->RepLayout = RepLayout;
 
+	if ( !Connection->Driver->IsServer() )
+	{
+		// Clients don't need to initialize shadow state (and in fact it causes issues in replays)
+		return;
+	}
+
 	// Init custom delta property state
 	for ( TFieldIterator<UProperty> It( InObjectClass ); It; ++It )
 	{

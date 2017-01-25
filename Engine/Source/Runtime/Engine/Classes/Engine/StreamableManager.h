@@ -90,9 +90,19 @@ private:
 	static void AsyncLoadCallbackWrapper(const FName& PackageName, UPackage* LevelPackage, EAsyncLoadingResult::Type Result, FCallback* Handler)
 	{
 		FCallback* Callback = Handler;
-		Callback->Manager->AsyncLoadCallback(Callback->Request);
+
+		if (Callback->Manager)
+		{
+			Callback->Manager->AsyncLoadCallback(Callback->Request);
+			Callback->Manager->ActiveCallbacks.Remove(Callback);
+		}
+
 		delete Callback;
 	}
+
+	friend FCallback;
+
+	TArray<FCallback*> ActiveCallbacks;
 
 	typedef TMap<FStringAssetReference, struct FStreamable*> TStreamableMap;
 	TStreamableMap StreamableItems;

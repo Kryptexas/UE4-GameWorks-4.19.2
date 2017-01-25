@@ -182,19 +182,19 @@ void FCEFJSStructSerializerBackend::WriteProperty(const FStructSerializerState& 
 	// booleans
 	if (State.ValueType == UBoolProperty::StaticClass())
 	{
-		Add(State, Cast<UBoolProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, CastChecked<UBoolProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 
 	// unsigned bytes & enumerations
 	else if (State.ValueType == UEnumProperty::StaticClass())
 	{
-		UEnumProperty* EnumProperty = Cast<UEnumProperty>(State.ValueProperty);
+		UEnumProperty* EnumProperty = CastChecked<UEnumProperty>(State.ValueProperty);
 
 		Add(State, EnumProperty->GetEnum()->GetEnumName(EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(EnumProperty->ContainerPtrToValuePtr<void>(State.ValueData, ArrayIndex))));
 	}
 	else if (State.ValueType == UByteProperty::StaticClass())
 	{
-		UByteProperty* ByteProperty = Cast<UByteProperty>(State.ValueProperty);
+		UByteProperty* ByteProperty = CastChecked<UByteProperty>(State.ValueProperty);
 
 		if (ByteProperty->IsEnum())
 		{
@@ -209,67 +209,67 @@ void FCEFJSStructSerializerBackend::WriteProperty(const FStructSerializerState& 
 	// floating point numbers
 	else if (State.ValueType == UDoubleProperty::StaticClass())
 	{
-		Add(State, Cast<UDoubleProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, CastChecked<UDoubleProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	else if (State.ValueType == UFloatProperty::StaticClass())
 	{
-		Add(State, Cast<UFloatProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, CastChecked<UFloatProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 
 	// signed integers
 	else if (State.ValueType == UIntProperty::StaticClass())
 	{
-		Add(State, (int32)Cast<UIntProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, (int32)CastChecked<UIntProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	else if (State.ValueType == UInt8Property::StaticClass())
 	{
-		Add(State, (int32)Cast<UInt8Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, (int32)CastChecked<UInt8Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	else if (State.ValueType == UInt16Property::StaticClass())
 	{
-		Add(State, (int32)Cast<UInt16Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, (int32)CastChecked<UInt16Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	else if (State.ValueType == UInt64Property::StaticClass())
 	{
-		Add(State, (double)Cast<UInt64Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, (double)CastChecked<UInt64Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 
 	// unsigned integers
 	else if (State.ValueType == UUInt16Property::StaticClass())
 	{
-		Add(State, (int32)Cast<UUInt16Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, (int32)CastChecked<UUInt16Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	else if (State.ValueType == UUInt32Property::StaticClass())
 	{
-		Add(State, (double)Cast<UUInt32Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, (double)CastChecked<UUInt32Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	else if (State.ValueType == UUInt64Property::StaticClass())
 	{
-		Add(State, (double)Cast<UUInt64Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, (double)CastChecked<UUInt64Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 
 	// names & strings
 	else if (State.ValueType == UNameProperty::StaticClass())
 	{
-		Add(State, Cast<UNameProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex).ToString());
+		Add(State, CastChecked<UNameProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex).ToString());
 	}
 	else if (State.ValueType == UStrProperty::StaticClass())
 	{
-		Add(State, Cast<UStrProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, CastChecked<UStrProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	else if (State.ValueType == UTextProperty::StaticClass())
 	{
-		Add(State, Cast<UTextProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex).ToString());
+		Add(State, CastChecked<UTextProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex).ToString());
 	}
 
 	// classes & objects
 	else if (State.ValueType == UClassProperty::StaticClass())
 	{
-		Add(State, Cast<UClassProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex)->GetPathName());
+		Add(State, CastChecked<UClassProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex)->GetPathName());
 	}
 	else if (State.ValueType == UObjectProperty::StaticClass())
 	{
-		Add(State, Cast<UObjectProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, CastChecked<UObjectProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 
 	// unsupported property type

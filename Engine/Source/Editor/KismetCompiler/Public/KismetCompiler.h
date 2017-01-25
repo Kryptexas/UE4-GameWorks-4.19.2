@@ -187,7 +187,7 @@ public:
 	 */
 	FPinConnectionResponse CopyPinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin);
 
-	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory = TEXT(""), UObject* SubcategoryObject = NULL, bool bIsArray = false);
+	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory = TEXT(""), UObject* SubcategoryObject = NULL, bool bIsArray = false, bool bIsSet = false, bool bIsMap = false, const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
 
 	bool UsePersistentUberGraphFrame() const;
 

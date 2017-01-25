@@ -613,13 +613,14 @@ HHitProxy* FStaticMeshSceneProxy::CreateHitProxies(UPrimitiveComponent* Componen
 			{
 				HHitProxy* ActorHitProxy;
 
+				int32 MaterialIndex = LODModel.Sections[SectionIndex].MaterialIndex;
 				if ( Component->GetOwner()->IsA(ABrush::StaticClass()) && Component->IsA(UBrushComponent::StaticClass()) )
 				{
-					ActorHitProxy = new HActor(Component->GetOwner(), Component, HPP_Wireframe, SectionIndex);
+					ActorHitProxy = new HActor(Component->GetOwner(), Component, HPP_Wireframe, SectionIndex, MaterialIndex);
 				}
 				else
 				{
-					ActorHitProxy = new HActor(Component->GetOwner(), Component, SectionIndex);
+					ActorHitProxy = new HActor(Component->GetOwner(), Component, SectionIndex, MaterialIndex);
 				}
 
 				FLODInfo::FSectionInfo& Section = LODs[LODIndex].Sections[SectionIndex];

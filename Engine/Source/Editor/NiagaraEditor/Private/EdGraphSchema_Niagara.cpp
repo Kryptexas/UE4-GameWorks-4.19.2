@@ -918,12 +918,12 @@ FEdGraphPinType UEdGraphSchema_Niagara::TypeDefinitionToPinType(FNiagaraTypeDefi
 {
 	if (TypeDef.GetClass())
 	{
-		return FEdGraphPinType(PinCategoryClass, TEXT(""), const_cast<UClass*>(TypeDef.GetClass()), false, false);
+		return FEdGraphPinType(PinCategoryClass, TEXT(""), const_cast<UClass*>(TypeDef.GetClass()), false, false, false, false, FEdGraphTerminalType());
 	}
 	else
 	{
 		//TODO: Are base types better as structs or done like BPS as a special name?
-		return FEdGraphPinType(PinCategoryType, TEXT(""), const_cast<UScriptStruct*>(TypeDef.GetScriptStruct()), false, false);
+		return FEdGraphPinType(PinCategoryType, TEXT(""), const_cast<UScriptStruct*>(TypeDef.GetScriptStruct()), false, false, false, false, FEdGraphTerminalType());
 	}
 }
 

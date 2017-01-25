@@ -1705,12 +1705,15 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		static const auto CVarInstancedStereo = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
 		static const auto CVarMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
 		static const auto CVarMobileMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
+		static const auto CVarMonoscopicFarField = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MonoscopicFarField"));
 
 		const bool bIsInstancedStereo = ((Platform == EShaderPlatform::SP_PCD3D_SM5 || Platform == EShaderPlatform::SP_PS4) && (CVarInstancedStereo && CVarInstancedStereo->GetValueOnGameThread() != 0));
 		const bool bIsMultiView = (Platform == EShaderPlatform::SP_PS4 && (CVarMultiView && CVarMultiView->GetValueOnGameThread() != 0));
 
 		const bool bIsAndroidGLES = (Platform == EShaderPlatform::SP_OPENGL_ES3_1_ANDROID || Platform == EShaderPlatform::SP_OPENGL_ES2_ANDROID);
 		const bool bIsMobileMultiView = (bIsAndroidGLES && (CVarMobileMultiView && CVarMobileMultiView->GetValueOnGameThread() != 0));
+
+		const bool bIsMonoscopicFarField = CVarMonoscopicFarField && (CVarMonoscopicFarField->GetValueOnGameThread() != 0);
 
 		if (bIsInstancedStereo)
 		{
@@ -1725,6 +1728,11 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		if (bIsMobileMultiView)
 		{
 			KeyString += TEXT("_MMVIEW");
+		}
+
+		if (bIsMonoscopicFarField)
+		{
+			KeyString += TEXT("_MONO");
 		}
 	}
 

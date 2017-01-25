@@ -74,12 +74,12 @@ void UK2Node_ConvertAsset::RefreshPinTypes()
 		const FString InputCategory = bIsConnected
 			? (bIsAssetClass ? K2Schema->PC_AssetClass : K2Schema->PC_Asset)
 			: K2Schema->PC_Wildcard;
-		InutPin->PinType = FEdGraphPinType(InputCategory, FString(), TargetType, false, false);
+		InutPin->PinType = FEdGraphPinType(InputCategory, FString(), TargetType, false, false, false, false, FEdGraphTerminalType() );
 
 		const FString OutputCategory = bIsConnected
 			? (bIsAssetClass ? K2Schema->PC_Class : K2Schema->PC_Object)
 			: K2Schema->PC_Wildcard;
-		OutputPin->PinType = FEdGraphPinType(OutputCategory, FString(), TargetType, false, false);
+		OutputPin->PinType = FEdGraphPinType(OutputCategory, FString(), TargetType, false, false, false, false, FEdGraphTerminalType() );
 
 		PinTypeChanged(InutPin);
 		PinTypeChanged(OutputPin);

@@ -11,6 +11,7 @@
 #include "DetailLayoutBuilder.h"
 #include "IPropertyUtilities.h"
 #include "Widgets/Colors/SColorPicker.h"
+#include "SlateApplication.h"
 
 
 #define LOCTEXT_NAMESPACE "FColorStructCustomization"
@@ -207,6 +208,12 @@ void FColorStructCustomization::CreateColorPicker(bool bUseAlpha)
 		PickerArgs.OnInteractivePickEnd = FSimpleDelegate::CreateSP(this, &FColorStructCustomization::OnColorPickerInteractiveEnd);
 		PickerArgs.InitialColorOverride = InitialColor;
 		PickerArgs.ParentWidget = ColorPickerParentWidget;
+
+		FWidgetPath ParentWidgetPath;
+		if (FSlateApplication::Get().FindPathToWidget(ColorPickerParentWidget.ToSharedRef(), ParentWidgetPath))
+		{
+			PickerArgs.bOpenAsMenu = FSlateApplication::Get().FindMenuInWidgetPath(ParentWidgetPath).IsValid();
+		}
 	}
 
 	OpenColorPicker(PickerArgs);

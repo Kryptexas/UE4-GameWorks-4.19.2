@@ -909,6 +909,20 @@ FString FEmitHelper::FloatToString(float Value)
 		UE_LOG(LogK2Compiler, Warning, TEXT("A NotANNumber value cannot be nativized. It is changed into 0.0f."));
 		return TEXT("/*The original value was NaN!*/ 0.0f");
 	}
+	/*
+	if (TNumericLimits<float>::Lowest() == Value)
+	{
+		return TEXT("TNumericLimits<float>::Lowest()");
+	}
+	if (TNumericLimits<float>::Min() == Value)
+	{
+		return TEXT("TNumericLimits<float>::Min()");
+	}
+	if (TNumericLimits<float>::Max() == Value)
+	{
+		return TEXT("TNumericLimits<float>::Max()");
+	}
+	*/
 	return FString::Printf(TEXT("%f"), Value);
 }
 

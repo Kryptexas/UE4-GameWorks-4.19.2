@@ -744,7 +744,7 @@ public:
 	 *
 	 * @param	bWantStats	true if stats should be displayed
 	 */
-	void SetShowStats( bool bWantStats );
+	virtual void SetShowStats( bool bWantStats ) override;
 	
 	/**
 	 * Sets how the viewport is displayed (lit, wireframe, etc) for the current viewport type

@@ -341,15 +341,22 @@ namespace Audio
 			}
 		}
 
-		check(XAudio2System);
-		XAudio2System->StopEngine();
-		check(OutputAudioStreamSourceVoice);
-		OutputAudioStreamSourceVoice->DestroyVoice();
-		OutputAudioStreamSourceVoice = nullptr;
+		if (XAudio2System)
+		{
+			XAudio2System->StopEngine();
+		}
 
-		check(OutputAudioStreamMasteringVoice);
-		OutputAudioStreamMasteringVoice->DestroyVoice();
-		OutputAudioStreamMasteringVoice = nullptr;
+		if (OutputAudioStreamSourceVoice)
+		{
+			OutputAudioStreamSourceVoice->DestroyVoice();
+			OutputAudioStreamSourceVoice = nullptr;
+		}
+
+		if (OutputAudioStreamMasteringVoice)
+		{
+			OutputAudioStreamMasteringVoice->DestroyVoice();
+			OutputAudioStreamMasteringVoice = nullptr;
+		}
 
 		bIsDeviceOpen = false;
 

@@ -236,7 +236,7 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 			continue;
 		}
 
-		FEdGraphPinType WidgetPinType(Schema->PC_Object, TEXT(""), WidgetClass, false, false);
+		FEdGraphPinType WidgetPinType(Schema->PC_Object, TEXT(""), WidgetClass, false, false, false, false, FEdGraphTerminalType());
 		
 		// Always name the variable according to the underlying FName of the widget object
 		UProperty* WidgetProperty = CreateVariable(Widget->GetFName(), WidgetPinType);
@@ -257,7 +257,7 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 	// Add movie scenes variables here
 	for(UWidgetAnimation* Animation : WidgetBP->Animations)
 	{
-		FEdGraphPinType WidgetPinType(Schema->PC_Object, TEXT(""), Animation->GetClass(), false, true);
+		FEdGraphPinType WidgetPinType(Schema->PC_Object, TEXT(""), Animation->GetClass(), false, true, false, false, FEdGraphTerminalType());
 		UProperty* AnimationProperty = CreateVariable(Animation->GetFName(), WidgetPinType);
 
 		if ( AnimationProperty != nullptr )
@@ -426,7 +426,7 @@ void FWidgetBlueprintCompiler::VerifyEventReplysAreNotEmpty(FKismetFunctionConte
 	Context.SourceGraph->GetNodesOfClass<UK2Node_FunctionResult>(FunctionResults);
 
 	UScriptStruct* EventReplyStruct = FEventReply::StaticStruct();
-	FEdGraphPinType EventReplyPinType(Schema->PC_Struct, TEXT(""), EventReplyStruct, /*bIsArray =*/false, /*bIsReference =*/false);
+	FEdGraphPinType EventReplyPinType(Schema->PC_Struct, TEXT(""), EventReplyStruct, /*bIsArray =*/false, /*bIsReference =*/false, /*bIsSet =*/false, /*bIsMap =*/ false, /*InValueTerminalType =*/FEdGraphTerminalType());
 
 	for ( UK2Node_FunctionResult* FunctionResult : FunctionResults )
 	{

@@ -318,7 +318,7 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 			uint8 CustomVisibilityFlags = EOcclusionFlags::CanBeOccluded | EOcclusionFlags::HasPrecomputedVisibility;
 
 			// Primitives may be explicitly removed from stereo views when using mono
-			const bool UseMonoCulling = View.Family->MonoParameters.Mode != EMonoscopicFarFieldMode::Off && (View.StereoPass == eSSP_LEFT_EYE || View.StereoPass == eSSP_RIGHT_EYE);
+			const bool UseMonoCulling = View.Family->IsMonoscopicFarFieldEnabled() && (View.StereoPass == eSSP_LEFT_EYE || View.StereoPass == eSSP_RIGHT_EYE);
 
 			const int32 TaskWordOffset = TaskIndex * FrustumCullNumWordsPerTask;
 
@@ -2247,11 +2247,11 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 
 		if ( ViewState )
 		{
-			// In case world origin was rebased, reset previous view transformations
-			if (View.bOriginOffsetThisFrame)
+			// update previous frame matrices in case world origin was rebased on this frame
+			if (!View.OriginOffsetThisFrame.IsZero())
 			{
-				ViewState->PrevViewMatrices = View.ViewMatrices;
-				ViewState->PendingPrevViewMatrices = View.ViewMatrices;
+				ViewState->PrevViewMatrices.ApplyWorldOffset(View.OriginOffsetThisFrame);
+				ViewState->PendingPrevViewMatrices.ApplyWorldOffset(View.OriginOffsetThisFrame);
 			}
 			
 			// determine if we are initializing or we should reset the persistent state

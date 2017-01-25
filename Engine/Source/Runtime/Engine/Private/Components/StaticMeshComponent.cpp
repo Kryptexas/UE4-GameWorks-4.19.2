@@ -42,18 +42,18 @@
 DECLARE_MEMORY_STAT( TEXT( "StaticMesh VxColor Inst Mem" ), STAT_InstVertexColorMemory, STATGROUP_MemoryStaticMesh );
 DECLARE_MEMORY_STAT( TEXT( "StaticMesh PreCulled Index Memory" ), STAT_StaticMeshPreCulledIndexMemory, STATGROUP_MemoryStaticMesh );
 
-class FStaticMeshComponentInstanceData : public FSceneComponentInstanceData
+class FStaticMeshComponentInstanceData : public FPrimitiveComponentInstanceData
 {
 public:
 	FStaticMeshComponentInstanceData(const UStaticMeshComponent* SourceComponent)
-		: FSceneComponentInstanceData(SourceComponent)
+		: FPrimitiveComponentInstanceData(SourceComponent)
 		, StaticMesh(SourceComponent->GetStaticMesh())
 	{
 	}
 
 	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
 	{
-		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
+		FPrimitiveComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
 		if (CacheApplyPhase == ECacheApplyPhase::PostUserConstructionScript)
 		{
 			CastChecked<UStaticMeshComponent>(Component)->ApplyComponentInstanceData(this);
@@ -62,7 +62,7 @@ public:
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
-		FSceneComponentInstanceData::AddReferencedObjects(Collector);
+		FPrimitiveComponentInstanceData::AddReferencedObjects(Collector);
 
 		Collector.AddReferencedObject(StaticMesh);
 	}
@@ -1578,6 +1578,20 @@ bool UStaticMeshComponent::CanEditChange(const UProperty* InProperty) const
 bool UStaticMeshComponent::SupportsDefaultCollision()
 {
 	return GetStaticMesh() && GetBodySetup() == GetStaticMesh()->BodySetup;
+}
+
+bool UStaticMeshComponent::SupportsDitheredLODTransitions()
+{
+	// Only support dithered transitions if all materials do.
+	TArray<class UMaterialInterface*> Materials = GetMaterials();
+	for (UMaterialInterface* Material : Materials)
+	{
+		if (Material && !Material->IsDitheredLODTransition())
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 void UStaticMeshComponent::UpdateCollisionFromStaticMesh()

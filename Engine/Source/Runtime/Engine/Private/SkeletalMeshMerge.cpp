@@ -784,7 +784,7 @@ void FSkeletalMeshMerge::BuildReferenceSkeleton(const TArray<USkeletalMesh*>& So
 
 			int32 SourceParentIndex = SourceMesh->RefSkeleton.GetParentIndex(i);
 			FName SourceParentName = SourceMesh->RefSkeleton.GetBoneName(SourceParentIndex);
-			int32 TargetParentIndex = RefSkeleton.FindBoneIndex(SourceParentName);
+			int32 TargetParentIndex = RefSkeleton.FindRawBoneIndex(SourceParentName);
 
 			if (TargetParentIndex == INDEX_NONE)
 			{

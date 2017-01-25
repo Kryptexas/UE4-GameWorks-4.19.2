@@ -147,12 +147,21 @@ void PrefilterPlanarReflection(FRHICommandListImmediate& RHICmdList, FViewInfo& 
 		PixelShader->SetParameters(RHICmdList, View, ReflectionSceneProxy, SceneColorInput);
 		VertexShader->SetSimpleLightParameters(RHICmdList, View, FSphere(0));
 
+		FIntPoint UV = View.ViewRect.Min;
+		FIntPoint UVSize = View.ViewRect.Size();
+
+		if (RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[View.FeatureLevel]) && !IsMobileHDR())
+		{
+			UV.Y = UV.Y + UVSize.Y;
+			UVSize.Y = -UVSize.Y;
+		}
+
 		DrawRectangle(
 			RHICmdList,
 			0, 0,
 			View.ViewRect.Width(), View.ViewRect.Height(),
-			View.ViewRect.Min.X, View.ViewRect.Min.Y,
-			View.ViewRect.Width(), View.ViewRect.Height(),
+			UV.X, UV.Y,
+			UVSize.X, UVSize.Y,
 			View.ViewRect.Size(),
 			FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY(),
 			*VertexShader,

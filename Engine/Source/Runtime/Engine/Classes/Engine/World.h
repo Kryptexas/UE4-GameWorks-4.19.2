@@ -1163,8 +1163,8 @@ public:
 	/** Requested new world origin location */
 	FIntVector RequestedOriginLocation;
 
-	/** Whether world origin was rebased this frame */
-	bool bOriginOffsetThisFrame;
+	/** World origin offset value. Non-zero only for a single frame when origin is rebased */
+	FVector OriginOffsetThisFrame;
 		
 	/** All levels information from which our world is composed */
 	UPROPERTY()
@@ -2407,11 +2407,12 @@ public:
 	 */
 	void UpdateActorComponentEndOfFrameUpdateState(UActorComponent* Component) const;
 
+	bool HasEndOfFrameUpdates();
+
 	/**
 	 * Send all render updates to the rendering thread.
 	 */
 	void SendAllEndOfFrameUpdates();
-
 
 	/** Do per frame tick behaviors related to the network driver */
 	void TickNetClient( float DeltaSeconds );

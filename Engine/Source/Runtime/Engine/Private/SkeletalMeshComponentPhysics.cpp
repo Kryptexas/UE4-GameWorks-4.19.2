@@ -3293,113 +3293,85 @@ FApexClothCollisionInfo* USkeletalMeshComponent::CreateNewClothingCollsions(UPri
 	if (Channel == ECollisionChannel::ECC_WorldStatic)
 	{
 		if (!GetClothCollisionDataFromStaticMesh(PrimitiveComponent, CollisionPrims))
-	{
-		return NULL;
-	}
+		{
+			return nullptr;
+		}
 
 		NewInfo.OverlapCompType = FApexClothCollisionInfo::OCT_STATIC;
 
-	int32 NumActors = ClothingActors.Num();
+		int32 NumActors = ClothingActors.Num();
 
-	for(FClothingActor& ClothingActor : ClothingActors)
-	{
-		apex::ClothingActor* Actor = ClothingActor.ApexClothingActor;
+		for(FClothingActor& ClothingActor : ClothingActors)
+		{
+			apex::ClothingActor* Actor = ClothingActor.ApexClothingActor;
 
-		if(Actor)
-		{	
-			for(int32 PrimIndex=0; PrimIndex < CollisionPrims.Num(); PrimIndex++)
-			{
-				apex::ClothingCollision* ClothCol = NULL;
-
-				switch(CollisionPrims[PrimIndex].PrimType)
+			if(Actor)
+			{	
+				for(int32 PrimIndex=0; PrimIndex < CollisionPrims.Num(); PrimIndex++)
 				{
-				case FClothCollisionPrimitive::SPHERE:
-					ClothCol = Actor->createCollisionSphere(U2PVector(CollisionPrims[PrimIndex].Origin), CollisionPrims[PrimIndex].Radius);
-					if(ClothCol)
-					{
-						NewInfo.ClothingCollisions.Add(ClothCol);
-					}
-					break;
-				case FClothCollisionPrimitive::CAPSULE:
-					{
-						float Radius = CollisionPrims[PrimIndex].Radius;
-						apex::ClothingSphere* Sphere1 = Actor->createCollisionSphere(U2PVector(CollisionPrims[PrimIndex].SpherePos1), Radius);
-						apex::ClothingSphere* Sphere2 = Actor->createCollisionSphere(U2PVector(CollisionPrims[PrimIndex].SpherePos2), Radius);
+					apex::ClothingCollision* ClothCol = NULL;
 
-						ClothCol = Actor->createCollisionCapsule(*Sphere1, *Sphere2);
+					switch(CollisionPrims[PrimIndex].PrimType)
+					{
+					case FClothCollisionPrimitive::SPHERE:
+						ClothCol = Actor->createCollisionSphere(U2PVector(CollisionPrims[PrimIndex].Origin), CollisionPrims[PrimIndex].Radius);
 						if(ClothCol)
 						{
 							NewInfo.ClothingCollisions.Add(ClothCol);
 						}
+						break;
+					case FClothCollisionPrimitive::CAPSULE:
+						{
+							float Radius = CollisionPrims[PrimIndex].Radius;
+							apex::ClothingSphere* Sphere1 = Actor->createCollisionSphere(U2PVector(CollisionPrims[PrimIndex].SpherePos1), Radius);
+							apex::ClothingSphere* Sphere2 = Actor->createCollisionSphere(U2PVector(CollisionPrims[PrimIndex].SpherePos2), Radius);
+
+							ClothCol = Actor->createCollisionCapsule(*Sphere1, *Sphere2);
+							if(ClothCol)
+							{
+								NewInfo.ClothingCollisions.Add(ClothCol);
+							}
+						}
+						break;
+					case FClothCollisionPrimitive::CONVEX:
+
+						int32 NumPlanes = CollisionPrims[PrimIndex].ConvexPlanes.Num();
+
+						TArray<apex::ClothingPlane*> ClothingPlanes;
+
+						//can not exceed 32 planes
+						NumPlanes = FMath::Min(NumPlanes, 32);
+
+						ClothingPlanes.AddUninitialized(NumPlanes);
+
+						for(int32 PlaneIdx=0; PlaneIdx < NumPlanes; PlaneIdx++)
+						{
+							PxPlane PPlane = U2PPlane(CollisionPrims[PrimIndex].ConvexPlanes[PlaneIdx]);
+
+							ClothingPlanes[PlaneIdx] = Actor->createCollisionPlane(PPlane);
+						}
+
+						ClothCol = Actor->createCollisionConvex(ClothingPlanes.GetData(), ClothingPlanes.Num());
+
+						if(ClothCol)
+						{
+							NewInfo.ClothingCollisions.Add(ClothCol);
+						}
+
+						break;
 					}
-					break;
-				case FClothCollisionPrimitive::CONVEX:
-
-					int32 NumPlanes = CollisionPrims[PrimIndex].ConvexPlanes.Num();
-
-					TArray<apex::ClothingPlane*> ClothingPlanes;
-
-					//can not exceed 32 planes
-					NumPlanes = FMath::Min(NumPlanes, 32);
-
-					ClothingPlanes.AddUninitialized(NumPlanes);
-
-					for(int32 PlaneIdx=0; PlaneIdx < NumPlanes; PlaneIdx++)
-					{
-						PxPlane PPlane = U2PPlane(CollisionPrims[PrimIndex].ConvexPlanes[PlaneIdx]);
-
-						ClothingPlanes[PlaneIdx] = Actor->createCollisionPlane(PPlane);
-					}
-
-					ClothCol = Actor->createCollisionConvex(ClothingPlanes.GetData(), ClothingPlanes.Num());
-
-					if(ClothCol)
-					{
-						NewInfo.ClothingCollisions.Add(ClothCol);
-					}
-
-					break;
 				}
 			}
 		}
 	}
-	}
-	else if (Channel == ECollisionChannel::ECC_PhysicsBody) // creates new clothing collisions for clothing objects
+
+	if(NewInfo.ClothingCollisions.Num() > 0)
 	{
-		bool bCreatedCollisions = false;
-		// if a component is a skeletal mesh component with clothing, add my collisions to the component
-		USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>(PrimitiveComponent);
-
-		if (SkelMeshComp && SkelMeshComp->SkeletalMesh)
-		{
-			// if a casted skeletal mesh component is myself, then skip
-			if (SkelMeshComp == this)
-			{
-				return NULL;
-			}
-
-			if (SkelMeshComp->ClothingActors.Num() > 0)
-			{
-				TArray<FApexClothCollisionVolumeData> NewCollisions;
-				// get collision infos computed by current bone transforms
-				FindClothCollisions(NewCollisions);
-				
-				if (NewCollisions.Num() > 0)
-				{
-					NewInfo.OverlapCompType = FApexClothCollisionInfo::OCT_CLOTH;
-					SkelMeshComp->CreateInternalClothCollisions(NewCollisions, NewInfo.ClothingCollisions);
-					bCreatedCollisions = true;
-				}
-			}
-		}
-
-		if (bCreatedCollisions == false)
-		{
-			return NULL;
-		}
+		return &ClothOverlappedComponentsMap.Add(PrimitiveComponent, NewInfo);
 	}
 
-	return &ClothOverlappedComponentsMap.Add(PrimitiveComponent, NewInfo);
+	// No collisions were generated
+	return nullptr;
 }
 
 void USkeletalMeshComponent::RemoveAllOverlappedComponentMap()

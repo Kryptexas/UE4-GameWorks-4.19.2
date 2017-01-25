@@ -110,6 +110,8 @@ private:
 
 	void OnApplyRawAnimChanges();
 
+	void OnReimportAnimation();
+
 	void OnApplyCompression();
 
 	void OnExportToFBX();

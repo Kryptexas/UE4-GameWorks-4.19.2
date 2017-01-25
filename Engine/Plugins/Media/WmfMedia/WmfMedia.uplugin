@@ -30,7 +30,7 @@
 		},
 		{
 			"Name" : "WmfMediaFactory",
-			"Type" : "Runtime",
+			"Type" : "RuntimeNoCommandlet",
 			"LoadingPhase" : "PostEngineInit",
 			"WhitelistPlatforms" : [ "Mac", "Linux", "Win32", "Win64" ]
 		}

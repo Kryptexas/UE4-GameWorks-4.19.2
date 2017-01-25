@@ -281,7 +281,7 @@ TSharedRef<FSequencerSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode
 }
 
 
-TSharedRef<FSequencerTrackNode> FSequencerDisplayNode::AddSectionAreaNode(UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor)
+TSharedRef<FSequencerTrackNode> FSequencerDisplayNode::AddTrackNode(UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor)
 {
 	TSharedPtr<FSequencerTrackNode> SectionNode;
 
