@@ -11172,8 +11172,16 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 		Context.World()->StreamingLevels.Add( LevelStreamingPersistent );
 
 		UWorld* FakeWorld = CastChecked<UWorld>(FakePersistentLevel->GetOuter());
-		// Add secondary levels to the world info levels array.
-		Context.World()->StreamingLevels += FakeWorld->StreamingLevels;
+
+		// Rename the newly loaded streaming levels so that their outer is correctly set to the main context's world,
+		// rather than the fake world.
+		for (ULevelStreaming* const FakeWorldStreamingLevel : FakeWorld->StreamingLevels)
+		{
+			FakeWorldStreamingLevel->Rename(nullptr, Context.World(), REN_ForceNoResetLoaders | REN_DontCreateRedirectors);
+		}
+
+		// Move the secondary levels to the world info levels array.
+		Context.World()->StreamingLevels += MoveTemp(FakeWorld->StreamingLevels);
 
 		// fixup up any kismet streaming objects to force them to be loaded if they were preloaded, this
 		// will keep streaming volumes from immediately unloading the levels that were just loaded
