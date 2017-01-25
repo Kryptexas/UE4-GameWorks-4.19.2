@@ -1171,6 +1171,9 @@ void FProjectedShadowInfo::UpdateShaderDepthBias()
 			// * 2.0f to be compatible with the system we had before ShadowBias
 			DepthBias *= 2.0f * LightSceneInfo->Proxy->GetUserShadowBias();
 		}
+
+		// Prevent a large depth bias due to low resolution from causing near plane clipping
+		DepthBias = FMath::Min(DepthBias, .1f);
 	}
 
 	ShaderDepthBias = FMath::Max(DepthBias, 0.0f);
