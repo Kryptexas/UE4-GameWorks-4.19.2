@@ -61,7 +61,6 @@ public:
 		, _ShowPathInColumnView(false)
 		, _ShowTypeInColumnView(true)
 		, _SortByPathInColumnView(false)
-		, _SearchInBlueprint(false)
 		{}
 
 		/** Called to check if an asset should be filtered out by external code */
@@ -177,9 +176,6 @@ public:
 
 		/** Sort by path in the column view. Only works if the initial view type is Column */
 		SLATE_ARGUMENT(bool, SortByPathInColumnView)
-
-		/** Indicates whether we should filter using the blueprint parent class or ignore blueprint */
-		SLATE_ARGUMENT(bool, SearchInBlueprint)	
 
 		/** Called to check if an asset tag should be display in details view. */
 		SLATE_EVENT( FOnShouldDisplayAssetTag, OnAssetTagWantsToBeDisplayed )
@@ -696,10 +692,6 @@ private:
 
 	/** Creates the row header context menu allowing for hiding individually clicked columns*/
 	TSharedRef<SWidget> CreateRowHeaderMenuContent(const FString ColumnName);
-
-	/** Filtering callback to know if the container root is of searching class*/
-	bool FilterOnContainerContentValid(const UClass* SearchingClass, const UObject* Container, const FAssetData* AssetData);
-
 private:
 
 	/** The asset items being displayed in the view and the filtered list */
@@ -928,9 +920,6 @@ private:
 	
 	/** Whether or not to notify about newly selected items on on the next asset sync */
 	bool bShouldNotifyNextAssetSync;
-
-	/** Indicates whether we should filter using the blueprint parent class or ignore blueprint */
-	bool bSearchInBlueprint;
 
 	/** A struct to hold data for the deferred creation of assets */
 	struct FCreateDeferredAssetData

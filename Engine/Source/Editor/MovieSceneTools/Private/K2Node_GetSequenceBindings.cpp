@@ -185,7 +185,6 @@ void UK2Node_GetSequenceBindings::GetContextMenuActions(const FGraphNodeContextM
 					TSharedRef<SWidget> MenuContent = PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
 						FAssetData(Sequence),
 						true /* bAllowClear */,
-						false /* bSearchInBlueprint */, 
 						AllowedClasses,
 						PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(AllowedClasses),
 						FOnShouldFilterAsset(),

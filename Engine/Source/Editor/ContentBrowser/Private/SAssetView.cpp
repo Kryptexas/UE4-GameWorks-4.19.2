@@ -105,7 +105,6 @@ void SAssetView::Construct( const FArguments& InArgs )
 	MaxSecondsPerFrame = 0.015;
 
 	bFillEmptySpaceInTileView = InArgs._FillEmptySpaceInTileView;
-	bSearchInBlueprint = InArgs._SearchInBlueprint;
 	FillScale = 1.0f;
 
 	ThumbnailHintFadeInSequence.JumpToStart();
@@ -1618,39 +1617,6 @@ bool SAssetView::IsValidSearchToken(const FString& Token) const
 	return true;
 }
 
-bool SAssetView::FilterOnContainerContentValid(const UClass* SearchingClass, const UObject* Container, const FAssetData* AssetData)
-{
-	check(SearchingClass != nullptr);
-	check(Container == nullptr && AssetData != nullptr || Container != nullptr && AssetData == nullptr);
-
-	if (AssetData != nullptr)
-	{
-		static const FName ParentClassTagName = "ParentClass";
-		
-		FString ParentClassPath = AssetData->GetTagValueRef<FString>(ParentClassTagName);
-		if (!ParentClassPath.IsEmpty())
-		{
-			UClass* ParentClass = FindObject<UClass>(nullptr, *ParentClassPath);
-
-			if (ParentClass == SearchingClass)
-			{
-				return true;
-			}
-		}
-	}
-	else
-	{
-		const UBlueprint* Blueprint = Cast<UBlueprint>(Container);
-
-		if (Blueprint != nullptr && Blueprint->GetParentClass() == SearchingClass)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
 void SAssetView::RefreshSourceItems()
 {
 	// Load the asset registry module
@@ -1703,12 +1669,6 @@ void SAssetView::RefreshSourceItems()
 			}
 			return false;
 		});
-
-		if (bSearchInBlueprint && Filter.ClassNames.Num() > 0)
-		{
-			Filter.ContainerClassNames.Add(UBlueprint::StaticClass()->GetFName());
-			Filter.OnContainerContentValid = FOnContainerContentValid::CreateSP(this, &SAssetView::FilterOnContainerContentValid);
-		}
 
 		// Only show classes if we have class paths, and the filter allows classes to be shown
 		const bool bFilterAllowsClasses = Filter.ClassNames.Num() == 0 || Filter.ClassNames.Contains(NAME_Class);

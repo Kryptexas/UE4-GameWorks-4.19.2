@@ -126,7 +126,6 @@ void SPropertyMenuAssetPicker::Construct( const FArguments& InArgs )
 		AssetPickerConfig.bAllowDragging = false;
 		// Save the settings into a special section for asset pickers for properties
 		AssetPickerConfig.SaveSettingsName = TEXT("AssetPropertyPicker");
-		AssetPickerConfig.bSearchInBlueprint = InArgs._SearchInBlueprint;
 
 		MenuContent =
 			SNew(SBox)

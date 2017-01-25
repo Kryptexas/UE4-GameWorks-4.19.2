@@ -225,9 +225,6 @@ struct FAssetPickerConfig
 	/** Indicates that we would like to build the filter UI with the Asset Picker */
 	bool bAddFilterUI;
 
-	/** Indicates whether we should filter using the blueprint parent class or ignore blueprint */
-	bool bSearchInBlueprint;
-
 	/** If true, show path in column view */
 	bool bShowPathInColumnView; 
 	/** If true, show class in column view */
@@ -254,7 +251,6 @@ struct FAssetPickerConfig
 		, bCanShowDevelopersFolder(false)
 		, bPreloadAssetsForContextMenu(true)
 		, bAddFilterUI(false)
-		, bSearchInBlueprint(false)
 		, bShowPathInColumnView(false)
 		, bShowTypeInColumnView(true)
 		, bSortByPathInColumnView(false)

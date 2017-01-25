@@ -252,7 +252,6 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		.AllowFocusOnSync(false)	// Stop the asset view from stealing focus (we're in control of that)
 		.OnPathSelected(this, &SAssetPicker::FolderEntered)
 		.HiddenColumnNames(InArgs._AssetPickerConfig.HiddenColumnNames)
-		.SearchInBlueprint(InArgs._AssetPickerConfig.bSearchInBlueprint)
 	];
 
 	LoadSettings();

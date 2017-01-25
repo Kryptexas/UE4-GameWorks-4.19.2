@@ -70,8 +70,6 @@ void FStringAssetReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHa
 		.AllowedClass( ClassFilter )
 		.OnShouldFilterAsset( AssetFilter )
 		.AllowClear( bAllowClear )
-		.AllowActorPicker(false)
-		.SearchInBlueprint(true)
 	];
 }
 
