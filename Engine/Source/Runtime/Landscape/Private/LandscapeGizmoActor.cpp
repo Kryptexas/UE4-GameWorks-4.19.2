@@ -365,6 +365,22 @@ FPrimitiveSceneProxy* ULandscapeGizmoRenderComponent::CreateSceneProxy()
 	return new FLandscapeGizmoRenderSceneProxy(this);
 }
 
+void ULandscapeGizmoRenderComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const 
+{
+	ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(GetOwner());
+	if (Gizmo)
+	{
+		UMaterialInterface* GizmoMat = (Gizmo->DataType != LGT_None) ?
+			(UMaterialInterface*)Gizmo->GizmoDataMaterial :
+			(UMaterialInterface*)Gizmo->GizmoMaterial;
+
+		if (GizmoMat)
+		{
+			OutMaterials.Add(GizmoMat);
+		}
+	}
+}
+
 FBoxSphereBounds ULandscapeGizmoRenderComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 #if WITH_EDITOR
