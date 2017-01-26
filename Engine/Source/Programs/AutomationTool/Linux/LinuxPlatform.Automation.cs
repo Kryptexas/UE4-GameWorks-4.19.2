@@ -187,7 +187,7 @@ public abstract class BaseLinuxPlatform : Platform
 				{
 					// if stage directory does not end with "\\", insert one
 					string Separator = "";
-					if (Params.BaseStageDirectory.Length > 0 && !(Params.BaseStageDirectory.EndsWith("/") || Params.BaseStageDirectory.EndsWith("\\")))
+					if (Params.BaseStageDirectory.Length > 0 && (Params.BaseStageDirectory.EndsWith("/") || Params.BaseStageDirectory.EndsWith("\\")))
 					{
 						Separator = "/";
 					}
