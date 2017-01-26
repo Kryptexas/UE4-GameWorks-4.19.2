@@ -28,7 +28,8 @@ void UUserDefinedEnum::Serialize(FArchive& Ar)
 
 		if (Ar.CustomVer(FEditorObjectVersion::GUID) < FEditorObjectVersion::StableUserDefinedEnumDisplayNames)
 		{
-			FEnumEditorUtils::UpgradeDisplayNamesFromMetaData(this);
+			// Make sure DisplayNameMap is empty so we perform the meta-data upgrade in PostLoad
+			DisplayNameMap.Reset();
 		}
 	}
 #endif // WITH_EDITOR
@@ -75,6 +76,10 @@ void UUserDefinedEnum::PostLoad()
 {
 	Super::PostLoad();
 	FEnumEditorUtils::UpdateAfterPathChanged(this);
+	if (NumEnums() > 1 && DisplayNameMap.Num() == 0) // >1 because User Defined Enums always have a "MAX" entry
+	{
+		FEnumEditorUtils::UpgradeDisplayNamesFromMetaData(this);
+	}
 	FEnumEditorUtils::EnsureAllDisplayNamesExist(this);
 }
 
