@@ -387,6 +387,9 @@ void FUntypedBulkData::GetCopy( void** Dest, bool bDiscardInternalCopy )
 	check( LockStatus == LOCKSTATUS_Unlocked );
 	check( Dest );
 
+	// Make sure any async loads have completed and moved the data into BulkData
+	FlushAsyncLoading();
+
 	// Passed in memory is going to be used.
 	if( *Dest )
 	{
@@ -411,13 +414,6 @@ void FUntypedBulkData::GetCopy( void** Dest, bool bDiscardInternalCopy )
 	// Passed in memory is NULL so we need to allocate some.
 	else
 	{
-		// Check for any pending async requests
-		if (!BulkData && SerializeFuture.IsValid())
-		{
-			WaitForAsyncLoading();
-			BulkData = MoveTemp(BulkDataAsync);
-			ResetAsyncData();
-		}
 		// The data is already loaded so we can simply use a mempcy.
 		if( BulkData )
 		{
@@ -1306,13 +1302,15 @@ void FUntypedBulkData::WaitForAsyncLoading()
 	check(BulkDataAsync);
 }
 
-bool FUntypedBulkData::FlushAsyncLoading(void* Dest)
+bool FUntypedBulkData::FlushAsyncLoading()
 {
 	bool bIsLoadingAsync = SerializeFuture.IsValid();
 	if (bIsLoadingAsync)
 	{
 		WaitForAsyncLoading();
-		FMemory::Memcpy(Dest, BulkDataAsync.Get(), GetBulkDataSize());
+		check(!BulkData);
+		BulkData = MoveTemp(BulkDataAsync);
+		ResetAsyncData();
 	}
 	return bIsLoadingAsync;
 }
@@ -1326,8 +1324,9 @@ bool FUntypedBulkData::FlushAsyncLoading(void* Dest)
 void FUntypedBulkData::LoadDataIntoMemory( void* Dest )
 {
 	// Try flushing async loading before attempting to load
-	if (FlushAsyncLoading(Dest))
+	if (FlushAsyncLoading())
 	{
+		FMemory::Memcpy(Dest, BulkData.Get(), GetBulkDataSize());
 		return;
 	}
 
