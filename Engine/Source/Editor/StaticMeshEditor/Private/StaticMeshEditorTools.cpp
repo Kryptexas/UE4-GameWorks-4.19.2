@@ -2874,7 +2874,7 @@ void FLevelOfDetailSettingsLayout::OnLODScreenSizeChanged( float NewValue, int32
 		// Make sure we aren't trying to ovelap or have more than one LOD for a value
 		for (int32 i = 1; i < MAX_STATIC_MESH_LODS; ++i)
 		{
-			float MaxValue = FMath::Clamp(LODScreenSizes[i-1] - MinimumDifferenceInScreenSize, 0.0f, 1.0f);
+			float MaxValue = FMath::Max(LODScreenSizes[i-1] - MinimumDifferenceInScreenSize, 0.0f);
 			LODScreenSizes[i] = FMath::Min(LODScreenSizes[i], MaxValue);
 		}
 
