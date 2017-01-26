@@ -487,16 +487,31 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 		FCompressedChunkInfo Summary;
 		*this << Summary;
 
+		bool bHeaderWasValid = true;
+
 		if (bWasByteSwapped)
 		{
-			check( PackageFileTag.CompressedSize   == PACKAGE_FILE_TAG_SWAPPED );
-			Summary.CompressedSize = BYTESWAP_ORDER64(Summary.CompressedSize);
-			Summary.UncompressedSize = BYTESWAP_ORDER64(Summary.UncompressedSize);
-			PackageFileTag.UncompressedSize = BYTESWAP_ORDER64(PackageFileTag.UncompressedSize);
+			bHeaderWasValid = PackageFileTag.CompressedSize == PACKAGE_FILE_TAG_SWAPPED;
+			if (bHeaderWasValid)
+			{
+				Summary.CompressedSize = BYTESWAP_ORDER64(Summary.CompressedSize);
+				Summary.UncompressedSize = BYTESWAP_ORDER64(Summary.UncompressedSize);
+				PackageFileTag.UncompressedSize = BYTESWAP_ORDER64(PackageFileTag.UncompressedSize);
+			}
 		}
 		else
 		{
-			check( PackageFileTag.CompressedSize   == PACKAGE_FILE_TAG );
+			bHeaderWasValid = PackageFileTag.CompressedSize == PACKAGE_FILE_TAG;
+		}
+
+		if (!bHeaderWasValid)
+		{
+			UE_LOG(LogSerialization, Log, TEXT("ArchiveName: %s"), *GetArchiveName());
+			UE_LOG(LogSerialization, Log, TEXT("Archive UE4 Version: %d"), UE4Ver());
+			UE_LOG(LogSerialization, Log, TEXT("Archive Licensee Version: %d"), LicenseeUE4Ver());
+			UE_LOG(LogSerialization, Log, TEXT("Position: %lld"), Tell());
+			UE_LOG(LogSerialization, Log, TEXT("Read Size: %lld"), Length);
+			UE_LOG(LogSerialization, Fatal, TEXT("BulkData compressed header read error. This package may be corrupt!"));
 		}
 
 		// Handle change in compression chunk size in backward compatible way.
