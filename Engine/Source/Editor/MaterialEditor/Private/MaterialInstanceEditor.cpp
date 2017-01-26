@@ -710,6 +710,13 @@ void FMaterialInstanceEditor::NotifyPostChange( const FPropertyChangedEvent& Pro
 		{
 			// Just default to the sphere if the preview asset is null or missing
 			PreviewAsset = GUnrealEd->GetThumbnailManager()->EditorSphere;
+
+			USceneThumbnailInfoWithPrimitive* ThumbnailInfo = Cast<USceneThumbnailInfoWithPrimitive>(MaterialEditorInstance->SourceInstance->ThumbnailInfo);
+			if (ThumbnailInfo)
+			{
+				ThumbnailInfo->PreviewMesh.Reset();
+			}
+
 		}
 		PreviewVC->SetPreviewAsset(PreviewAsset);
 	}
