@@ -97,8 +97,7 @@ public:
 
 	FSteamVRController(const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler)
 		: MessageHandler(InMessageHandler),
-		  SteamVRPlugin(nullptr),
-		  UnrealControllerHandUsageCount{0}
+		  SteamVRPlugin(nullptr)
 	{
 #if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 		FMemory::Memzero(ControllerStates, sizeof(ControllerStates));
@@ -114,6 +113,11 @@ public:
 			{
 				UnrealControllerIdAndHandToDeviceIdMap[UnrealControllerIndex][HandIndex] = INDEX_NONE;
 			}
+		}
+
+		for (int32& Count : UnrealControllerHandUsageCount)
+		{
+			Count = 0;
 		}
 
 		NumControllersMapped = 0;
