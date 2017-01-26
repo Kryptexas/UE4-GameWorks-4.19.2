@@ -240,7 +240,6 @@ void FAudioThread::StopAudioThread()
 
 	if (!bIsAudioThreadRunning && CachedAudioThreadId == 0)
 	{
-		check(!bUseThreadedAudio);
 		return;
 	}
 
