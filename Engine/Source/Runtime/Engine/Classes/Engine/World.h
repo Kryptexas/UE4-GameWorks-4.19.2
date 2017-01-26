@@ -3279,7 +3279,7 @@ FORCEINLINE_DEBUGGABLE float UWorld::GetUnpausedTimeSeconds() const
 
 FORCEINLINE_DEBUGGABLE float UWorld::GetRealTimeSeconds() const
 {
-	checkSlow(IsInGameThread());
+	checkSlow(!IsInActualRenderingThread());
 	return RealTimeSeconds;
 }
 

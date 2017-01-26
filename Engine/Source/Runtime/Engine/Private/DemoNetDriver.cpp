@@ -1681,7 +1681,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 bool UDemoNetDriver::ShouldSaveCheckpoint()
 {
-	const double CHECKPOINT_DELAY = CVarCheckpointUploadDelayInSeconds.GetValueOnGameThread();
+	const double CHECKPOINT_DELAY = CVarCheckpointUploadDelayInSeconds.GetValueOnAnyThread();
 
 	if (DemoCurrentTime - LastCheckpointTime > CHECKPOINT_DELAY)
 	{
