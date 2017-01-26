@@ -441,8 +441,8 @@ void UBlueprint::Serialize(FArchive& Ar)
 			{
 				// Migrate to the new transient flag.
 				bNativize_DEPRECATED = false;
-				bSelectedForNativization = true;
 
+				NativizationFlag = EBlueprintNativizationFlag::ExplicitlyEnabled;
 				// Add this Blueprint asset to the exclusive list in the Project Settings (in case it doesn't exist).
 				bSettingsChanged |= PackagingSettings->AddBlueprintAssetToNativizationList(this);
 			}
@@ -453,7 +453,7 @@ void UBlueprint::Serialize(FArchive& Ar)
 				{
 					if (PackagingSettings->NativizeBlueprintAssets[AssetIndex].FilePath.Equals(PackageName, ESearchCase::IgnoreCase))
 					{
-						bSelectedForNativization = true;
+						NativizationFlag = EBlueprintNativizationFlag::ExplicitlyEnabled;
 						break;
 					}
 				}
@@ -461,24 +461,7 @@ void UBlueprint::Serialize(FArchive& Ar)
 		}
 		else if (Ar.IsSaving())
 		{
-			if (bSelectedForNativization)
-			{
-				// Auto-enable the exclusive method, but only if Blueprint nativization is not already turned on, and only if this will be the first asset selected for nativization.
-				if (PackagingSettings->BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Disabled && !PackagingSettings->NativizeBlueprintAssets.Num())
-				{
-					PackagingSettings->BlueprintNativizationMethod = EProjectPackagingBlueprintNativizationMethod::Exclusive;
-
-					bSettingsChanged = true;
-				}
-
-				// Add this Blueprint asset to the exclusive list in the Project Settings.
-				bSettingsChanged |= PackagingSettings->AddBlueprintAssetToNativizationList(this);
-			}
-			else
-			{
-				// Remove this Blueprint asset from the exclusive list in the Project Settings.
-				bSettingsChanged |= PackagingSettings->RemoveBlueprintAssetFromNativizationList(this);
-			}
+			bSettingsChanged |= FBlueprintEditorUtils::PropagateNativizationSetting(this);
 		}
 
 		if (bSettingsChanged)
@@ -1321,22 +1304,6 @@ bool UBlueprint::NeedsLoadForEditorGame() const
 	return true;
 }
 
-#if WITH_EDITOR
-bool UBlueprint::CanEditChange(const UProperty* InProperty) const
-{
-	bool bIsEditable = Super::CanEditChange(InProperty);
-	if (bIsEditable && InProperty)
-	{
-		const FName PropertyName = InProperty->GetFName();
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(UBlueprint, bSelectedForNativization))
-		{
-			return (BlueprintType != BPTYPE_LevelScript) && (BlueprintType != BPTYPE_MacroLibrary);
-		}
-	}
-	return bIsEditable;
-}
-#endif // WITH_EDITOR
-
 void UBlueprint::TagSubobjects(EObjectFlags NewFlags)
 {
 	Super::TagSubobjects(NewFlags);
@@ -1622,39 +1589,6 @@ UInheritableComponentHandler* UBlueprint::GetInheritableComponentHandler(bool bC
 #endif
 
 #if WITH_EDITOR
-void UBlueprint::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	UProperty* ChangedProperty = PropertyChangedEvent.Property;
-	if (ChangedProperty != nullptr)
-	{
-		if (ChangedProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UBlueprint, bSelectedForNativization) && bSelectedForNativization)
-		{
-			// Toggle the 'bSelectedForNativization' flag on for all parent class and interface dependencies.
-			TArray<UClass*> NativizeClassDependencies;
-			FBlueprintEditorUtils::FindImplementedInterfaces(this, false, NativizeClassDependencies);
-			NativizeClassDependencies.AddUnique(ParentClass);
-
-			for (UClass* NativizeClassDependency : NativizeClassDependencies)
-			{
-				if (UBlueprint* BP = GetBlueprintFromClass(NativizeClassDependency))
-				{
-					// Only toggle if not already turned on.
-					if (!BP->bSelectedForNativization)
-					{
-						BP->PreEditChange(ChangedProperty);
-						BP->bSelectedForNativization = true;
-
-						// This will recursively handle parent classes (as well as any interface classes they might implement).
-						BP->PostEditChangeProperty(PropertyChangedEvent);
-					}
-				}
-			}
-		}
-	}
-}
-
 FName UBlueprint::GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid)
 {
 	return FBlueprintEditorUtils::GetFunctionNameFromClassByGuid(InClass, FunctionGuid);

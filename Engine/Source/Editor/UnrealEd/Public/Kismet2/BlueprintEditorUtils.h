@@ -1084,6 +1084,12 @@ public:
 	/** Attempts to match up the FComponentKey with a ComponentTemplate from the Blueprint's UCS */
 	static UActorComponent* FindUCSComponentTemplate(const FComponentKey& ComponentKey);
 
+	/** Takes the Blueprint's NativizedFlag property and applies it to the authoritative config (does the same for flagged dependencies) */
+	static bool PropagateNativizationSetting(UBlueprint* Blueprint);
+
+	/** Retrieves all dependencies that need to be nativized for this to work as a nativized Blueprint */
+	static void FindNativizationDependencies(UBlueprint* Blueprint, TArray<UClass*>& NativizeDependenciesOut);
+
 	//////////////////////////////////////////////////////////////////////////
 	// Interface
 

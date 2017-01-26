@@ -40,7 +40,7 @@
 #include "EdMode.h"
 #include "Dialogs/Dialogs.h"
 #include "UnrealEdGlobals.h"
-
+#include "Settings/ProjectPackagingSettings.h"
 #include "Matinee/MatineeActor.h"
 #include "Engine/LevelScriptBlueprint.h"
 
@@ -5314,6 +5314,83 @@ void FBlueprintEditorUtils::ExportPropertyToKismetDefaultValue(UEdGraphPin* Targ
 	SourceProperty->ExportTextItem(TargetPin->DefaultValue, SourceAddress, nullptr, OwnerObject, PortFlags);
 }
 
+void FBlueprintEditorUtils::FindNativizationDependencies(UBlueprint* Blueprint, TArray<UClass*>& NativizeDependenciesOut)
+{
+	FBlueprintEditorUtils::FindImplementedInterfaces(Blueprint, /*bGetAllInterfaces =*/false, NativizeDependenciesOut);
+	NativizeDependenciesOut.AddUnique(Blueprint->ParentClass);
+}
+
+/** Shared function for posting notification toasts (utilized by the nativization property system) */
+static void PostNativizationWarning(const FText& Message)
+{
+	FNotificationInfo Warning(Message);
+	Warning.ExpireDuration = 5.0f;
+	Warning.bFireAndForget = true;
+	Warning.Image = FCoreStyle::Get().GetBrush(TEXT("MessageLog.Warning"));
+	FSlateNotificationManager::Get().AddNotification(Warning);
+}
+
+bool FBlueprintEditorUtils::PropagateNativizationSetting(UBlueprint* Blueprint)
+{
+	bool bSettingsChanged = false;
+	UProjectPackagingSettings* PackagingSettings = GetMutableDefault<UProjectPackagingSettings>();
+
+	switch (Blueprint->NativizationFlag)
+	{
+	case EBlueprintNativizationFlag::Disabled:
+		bSettingsChanged |= PackagingSettings->RemoveBlueprintAssetFromNativizationList(Blueprint);
+		break;
+
+	case EBlueprintNativizationFlag::ExplicitlyEnabled:
+		{
+			bSettingsChanged |= PackagingSettings->AddBlueprintAssetToNativizationList(Blueprint);
+
+			TArray<UClass*> NativizationDependencies;
+			FindNativizationDependencies(Blueprint, NativizationDependencies);
+
+			bool bAddedDependencies = false;
+
+			for (UClass* Dependency : NativizationDependencies)
+			{
+				if (UBlueprint* DependencyBp = UBlueprint::GetBlueprintFromClass(Dependency))
+				{
+					// if the user hasn't manually altered the setting (chosen 
+					// for themselves), then let's apply the auto-setting
+					if (DependencyBp->NativizationFlag == EBlueprintNativizationFlag::Dependency)
+					{
+						DependencyBp->NativizationFlag = EBlueprintNativizationFlag::ExplicitlyEnabled;
+						// recurse and propagate this setting to dependencies once removed
+						bAddedDependencies |= PropagateNativizationSetting(DependencyBp);
+					}
+					else if (DependencyBp->NativizationFlag == EBlueprintNativizationFlag::ExplicitlyEnabled &&
+						!PackagingSettings->IsBlueprintAssetInNativizationList(DependencyBp))
+					{
+						bAddedDependencies |= PropagateNativizationSetting(DependencyBp);
+						// this is a hairy case, because the user could have changes pending to the DependencyBp
+						// that they will end up discarding... is it their intension to discard the "nativize"  
+						// setting as well? was it set before or after this dependent? maybe they set it before,
+						// and want to discard the change, but didn't realize it was a dependency?
+						// here we'll favor correctness, and save it to the config now
+					}
+				}
+			}
+			bSettingsChanged |= bAddedDependencies;
+			if (bAddedDependencies)
+			{
+				PostNativizationWarning(LOCTEXT("DependenciesSavedForNativization", "Saved extra (required dependency) Blueprints for nativization."));
+			}
+		}
+		break;
+
+	default:
+	case EBlueprintNativizationFlag::Dependency:
+		// the Blueprint which set this flag is responsible for applying this change
+		break;
+	}
+
+	return bSettingsChanged;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Interfaces
 
@@ -5405,6 +5482,20 @@ bool FBlueprintEditorUtils::ImplementNewInterface(UBlueprint* Blueprint, const F
 	{
 		Blueprint->ImplementedInterfaces.Add(NewInterface);
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+
+		if (Blueprint->NativizationFlag != EBlueprintNativizationFlag::Disabled)
+		{
+			UBlueprint* InterfaceBlueprint = UBlueprint::GetBlueprintFromClass(InterfaceClass);
+			if (InterfaceBlueprint && InterfaceBlueprint->NativizationFlag == EBlueprintNativizationFlag::Disabled)
+			{
+				InterfaceBlueprint->NativizationFlag = EBlueprintNativizationFlag::Dependency;
+				PostNativizationWarning(FText::Format(
+					LOCTEXT("InterfaceFlaggedForNativization", "{0} flagged for nativization (as a required dependency)."),
+					FText::FromName(InterfaceBlueprint->GetFName())
+					)
+				);
+			}
+		}
 	}
 	return bAllFunctionsAdded;
 }

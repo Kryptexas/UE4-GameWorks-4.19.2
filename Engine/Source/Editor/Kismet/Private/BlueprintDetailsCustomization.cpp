@@ -40,7 +40,8 @@
 #include "K2Node_FunctionResult.h"
 #include "K2Node_MacroInstance.h"
 #include "K2Node_MathExpression.h"
-
+#include "Notifications/NotificationManager.h"
+#include "Notifications/SNotificationList.h"
 #include "ScopedTransaction.h"
 #include "PropertyRestriction.h"
 #include "BlueprintEditorModes.h"
@@ -4986,6 +4987,12 @@ FText FBlueprintGlobalOptionsDetails::GetDeprecatedTooltip() const
 	return LOCTEXT("DisabledDeprecateBlueprintTooltip", "This Blueprint is deprecated because of a parent, it is not possible to remove deprecation from it!");
 }
 
+/** Shared tooltip text for both the label and the value field */
+static FText GetNativizeLabelTooltip()
+{
+	return LOCTEXT("NativizeTooltip", "When exclusive nativization is enabled, then this asset will be nativized. NOTE: All super classes must be also nativized.");
+}
+
 void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 {
 	const UBlueprint* Blueprint = GetBlueprintObj();
@@ -4997,7 +5004,7 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 			UProperty* Property = *PropertyIt;
 			FString Category = Property->GetMetaData(TEXT("Category"));
 
-			if (Category != TEXT("BlueprintOptions") && Category != TEXT("ClassOptions") && Category != TEXT("Packaging"))
+			if (Category != TEXT("BlueprintOptions") && Category != TEXT("ClassOptions"))
 			{
 				DetailLayout.HideProperty(DetailLayout.GetProperty(Property->GetFName()));
 			}
@@ -5081,6 +5088,128 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 					.ToolTipText( this, &FBlueprintGlobalOptionsDetails::GetDeprecatedTooltip )
 				];
 		}
+
+		IDetailCategoryBuilder& PkgCategory = DetailLayout.EditCategory("Packaging", LOCTEXT("BlueprintPackagingCategory", "Packaging"));
+		PkgCategory.AddCustomRow(LOCTEXT("NativizeLabel", "Nativize"))
+			.NameContent()
+			[
+				SNew(STextBlock)
+					.Text(LOCTEXT("NativizeLabel", "Nativize"))
+					.ToolTipText_Static(&GetNativizeLabelTooltip)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
+			.ValueContent()
+			[
+				SNew(SCheckBox)
+				.IsEnabled(this, &FBlueprintGlobalOptionsDetails::IsNativizeEnabled)
+				.IsChecked(this, &FBlueprintGlobalOptionsDetails::GetNativizeState)
+				.OnCheckStateChanged(this, &FBlueprintGlobalOptionsDetails::OnNativizeToggled)
+				.ToolTipText(this, &FBlueprintGlobalOptionsDetails::GetNativizeTooltip)
+			];
+	}
+}
+
+bool FBlueprintGlobalOptionsDetails::IsNativizeEnabled() const
+{
+	bool bIsEnabled = false;
+	if (UBlueprint* Blueprint = GetBlueprintObj())
+	{
+		bIsEnabled = (Blueprint->BlueprintType != BPTYPE_MacroLibrary) && (Blueprint->BlueprintType != BPTYPE_LevelScript);
+	}
+	return bIsEnabled;
+}
+
+ECheckBoxState FBlueprintGlobalOptionsDetails::GetNativizeState() const
+{
+	ECheckBoxState CheckboxState = ECheckBoxState::Undetermined;
+	if (UBlueprint* Blueprint = GetBlueprintObj())
+	{
+		switch (Blueprint->NativizationFlag)
+		{
+		case EBlueprintNativizationFlag::Disabled:
+			CheckboxState = ECheckBoxState::Unchecked;
+			break;
+
+		case EBlueprintNativizationFlag::ExplicitlyEnabled:
+			CheckboxState = ECheckBoxState::Checked;
+			break;
+
+		case EBlueprintNativizationFlag::Dependency:
+		default:
+			// leave "Undetermined"
+			break;
+		}
+	}
+	return CheckboxState;	
+}
+
+FText FBlueprintGlobalOptionsDetails::GetNativizeTooltip() const
+{
+	if (!IsNativizeEnabled())
+	{
+		return LOCTEXT("NativizeDisabledTooltip", "Macro libraries and level Blueprints cannot be nativized.");
+	}
+	else if (GetNativizeState() == ECheckBoxState::Undetermined)
+	{
+		return LOCTEXT("NativizeAsDependencyTooltip", "This Blueprint has been flagged to nativize as a dependency needed by another Blueprint. This will be applied once that Blueprint is saved.");
+	}
+	return GetNativizeLabelTooltip();
+}
+
+void FBlueprintGlobalOptionsDetails::OnNativizeToggled(ECheckBoxState NewState) const
+{
+	if (UBlueprint* Blueprint = GetBlueprintObj())
+	{
+		if (NewState == ECheckBoxState::Checked)
+		{
+			Blueprint->NativizationFlag = EBlueprintNativizationFlag::ExplicitlyEnabled;
+
+			TArray<UClass*> NativizationDependencies;
+			FBlueprintEditorUtils::FindNativizationDependencies(Blueprint, NativizationDependencies);
+
+			int32 bDependenciesFlagged = 0;
+			// tag all dependencies as needing nativization
+			for (int32 DependencyIndex = 0; DependencyIndex < NativizationDependencies.Num(); ++DependencyIndex)
+			{
+				UClass* Dependency = NativizationDependencies[DependencyIndex];
+				if (UBlueprint* DependentBp = UBlueprint::GetBlueprintFromClass(Dependency))
+				{
+					if (DependentBp->NativizationFlag == EBlueprintNativizationFlag::Disabled)
+					{
+						DependentBp->NativizationFlag = EBlueprintNativizationFlag::Dependency;
+						++bDependenciesFlagged;
+					}
+					// recursively tag dependencies up the chain...
+					// relying on the fact that this only adds to the array via AddUnique()
+					FBlueprintEditorUtils::FindNativizationDependencies(DependentBp, NativizationDependencies);
+				}
+			}
+
+
+			if (bDependenciesFlagged > 0)
+			{
+				FNotificationInfo Warning(LOCTEXT("DependenciesMarkedForNativization", "Flagged extra (required dependency) Blueprints for nativization."));
+				Warning.ExpireDuration = 5.0f;
+				Warning.bFireAndForget = true;
+				Warning.Image = FCoreStyle::Get().GetBrush(TEXT("MessageLog.Warning"));
+				FSlateNotificationManager::Get().AddNotification(Warning);
+			}
+		}
+		else
+		{
+			Blueprint->NativizationFlag = EBlueprintNativizationFlag::Disabled;
+		}
+
+		// don't need to alter (dirty) compilation state, just the package's save state (since we save this setting to a config on save)
+// 		UProperty* NativizeProperty = UBlueprint::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UBlueprint, NativizationFlag));
+// 		if (ensure(NativizeProperty != nullptr))
+// 		{
+// 			FPropertyChangedEvent PropertyChangedEvent(NativizeProperty);
+// 			PropertyChangedEvent.ChangeType = EPropertyChangeType::ValueSet;
+// 
+// 			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint, PropertyChangedEvent);
+// 		}
+		Blueprint->MarkPackageDirty();
 	}
 }
 

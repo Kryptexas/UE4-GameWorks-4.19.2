@@ -627,20 +627,9 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 					if (UBlueprint* Blueprint = FindObject<UBlueprint>(Package, *FPaths::GetBaseFilename(PackageName)))
 					{
 						// We're toggling the transient flag on or off.
-						if (Blueprint->bSelectedForNativization != bSelect)
+						if ((Blueprint->NativizationFlag == EBlueprintNativizationFlag::ExplicitlyEnabled) != bSelect)
 						{
-							// Get a reference to the property.
-							UProperty* PropertyToChange = UBlueprint::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UBlueprint, bSelectedForNativization));
-							check(PropertyToChange != nullptr);
-
-							// Update the transient property's value.
-							Blueprint->PreEditChange(PropertyToChange);
-							Blueprint->bSelectedForNativization = bSelect;
-
-							// If selecting for nativization, this will propagate the transient flag to any dependencies. Note that we don't reverse-propagate here
-							// back to the config settings until/unless Blueprint assets are saved, so this will only set the transient flag and mark dependencies dirty.
-							FPropertyChangedEvent BlueprintPropertyChangedEvent(PropertyToChange);
-							Blueprint->PostEditChangeProperty(BlueprintPropertyChangedEvent);
+							Blueprint->NativizationFlag = bSelect ? EBlueprintNativizationFlag::ExplicitlyEnabled : EBlueprintNativizationFlag::Disabled;
 						}
 					}
 				}
@@ -737,16 +726,7 @@ bool UProjectPackagingSettings::AddBlueprintAssetToNativizationList(const class 
 		const FString PackageName = InBlueprint->GetOutermost()->GetName();
 
 		// Make sure it's not already in the exclusive list. This can happen if the user previously added this asset in the Project Settings editor.
-		bool bFound = false;
-		for (int AssetIndex = 0; AssetIndex < NativizeBlueprintAssets.Num(); ++AssetIndex)
-		{
-			if (NativizeBlueprintAssets[AssetIndex].FilePath.Equals(PackageName, ESearchCase::IgnoreCase))
-			{
-				bFound = true;
-				break;
-			}
-		}
-
+		const bool bFound = IsBlueprintAssetInNativizationList(InBlueprint);
 		if (!bFound)
 		{
 			// Add this Blueprint asset to the exclusive list.
@@ -770,23 +750,39 @@ bool UProjectPackagingSettings::RemoveBlueprintAssetFromNativizationList(const c
 	{
 		const FString PackageName = InBlueprint->GetOutermost()->GetName();
 
-		// Remove this Blueprint asset from the exclusive list (if found).
-		for (int AssetIndex = 0; AssetIndex < NativizeBlueprintAssets.Num(); ++AssetIndex)
+		int32 AssetIndex = FindBlueprintInNativizationList(InBlueprint);
+		if (AssetIndex >= 0)
 		{
-			if (NativizeBlueprintAssets[AssetIndex].FilePath.Equals(PackageName, ESearchCase::IgnoreCase))
-			{
-				// Note: Intentionally not using RemoveAtSwap() here, so that the order is preserved.
-				NativizeBlueprintAssets.RemoveAt(AssetIndex);
+			// Note: Intentionally not using RemoveAtSwap() here, so that the order is preserved.
+			NativizeBlueprintAssets.RemoveAt(AssetIndex);
 
-				// Also remove it from the mirrored list (for tracking edits).
-				CachedNativizeBlueprintAssets.RemoveAt(AssetIndex);
-				
-				return true;
-			}
+			// Also remove it from the mirrored list (for tracking edits).
+			CachedNativizeBlueprintAssets.RemoveAt(AssetIndex);
+
+			return true;
 		}
 	}
 
 	return false;
+}
+
+int32 UProjectPackagingSettings::FindBlueprintInNativizationList(const UBlueprint* InBlueprint) const
+{
+	int32 ListIndex = INDEX_NONE;
+	if (InBlueprint)
+	{
+		const FString PackageName = InBlueprint->GetOutermost()->GetName();
+
+		for (int32 AssetIndex = 0; AssetIndex < NativizeBlueprintAssets.Num(); ++AssetIndex)
+		{
+			if (NativizeBlueprintAssets[AssetIndex].FilePath.Equals(PackageName, ESearchCase::IgnoreCase))
+			{
+				ListIndex = AssetIndex;
+				break;
+			}
+		}
+	}
+	return ListIndex;
 }
 
 /* UCrashReporterSettings interface
