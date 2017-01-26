@@ -273,7 +273,7 @@ void FBlueprintCompilerCppBackend::EmitAddMulticastDelegateStatement(FEmitterLoc
 	const FString Delegate = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::UnspecifiedOrReference, false);
 	const FString DelegateToAdd = TermToText(EmitterContext, Statement.RHS[0], ENativizedTermUsage::Getter);
 
-	EmitterContext.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *Delegate, *DelegateToAdd));
+	EmitterContext.AddLine(FString::Printf(TEXT("%s.AddUnique(%s);"), *Delegate, *DelegateToAdd));
 }
 
 void FBlueprintCompilerCppBackend::EmitRemoveMulticastDelegateStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
