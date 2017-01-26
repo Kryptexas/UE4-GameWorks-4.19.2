@@ -188,4 +188,4 @@ private:
 
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(FEditorAutomationModule, EditorAutomation);
+IMPLEMENT_MODULE(FEditorAutomationModule, FunctionalTestingEditor);
