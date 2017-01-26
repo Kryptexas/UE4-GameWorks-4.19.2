@@ -21,6 +21,7 @@ class UMaterialExpressionPreviousFrameSwitch : public UMaterialExpression
 #if WITH_EDITOR
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual void GetExpressionToolTip(TArray<FString>& OutToolTip) override;
 #endif // WITH_EDITOR
 	virtual FString GetInputName(int32 InputIndex) const override;
 #if WITH_EDITOR
