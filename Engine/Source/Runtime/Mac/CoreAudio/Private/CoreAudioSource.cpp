@@ -117,15 +117,6 @@ void FCoreAudioSoundSource::SubmitPCMBuffers( void )
 {
 	SCOPE_CYCLE_COUNTER( STAT_AudioSubmitBuffersTime );
 
-	for (int32 Index = 0; Index < 3; Index++)
-	{
-		if (CoreAudioBuffers[Index].AudioData)
-		{
-			FMemory::Free((void*)CoreAudioBuffers[Index].AudioData);
-			CoreAudioBuffers[Index].AudioData = nullptr;
-		}
-	}
-
 	FMemory::Memzero( CoreAudioBuffers, sizeof( CoreAudioBuffers ) );
 	
 	bStreamedSound = false;
@@ -187,15 +178,6 @@ bool FCoreAudioSoundSource::ReadMorePCMData( const int32 BufferIndex, EDataReadM
 void FCoreAudioSoundSource::SubmitPCMRTBuffers( void )
 {
 	SCOPE_CYCLE_COUNTER( STAT_AudioSubmitBuffersTime );
-
-	for (int32 Index = 0; Index < 3; Index++)
-	{
-		if (CoreAudioBuffers[Index].AudioData)
-		{
-			FMemory::Free((void*)CoreAudioBuffers[Index].AudioData);
-			CoreAudioBuffers[Index].AudioData = nullptr;
-		}
-	}
 
 	FMemory::Memzero( CoreAudioBuffers, sizeof( CoreAudioBuffers ) );
 
