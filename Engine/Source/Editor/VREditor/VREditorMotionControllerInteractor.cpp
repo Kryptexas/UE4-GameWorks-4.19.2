@@ -356,7 +356,7 @@ void UVREditorMotionControllerInteractor::Tick( const float DeltaTime )
 		if ( GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd ) )
 		{
 			// Only show the laser if we're actually in VR
-			LaserPointerMeshComponent->SetVisibility(GetVRMode().IsActuallyUsingVR() && !GetIsLaserBlocked());
+			LaserPointerMeshComponent->SetVisibility(GetVRMode().IsActuallyUsingVR());
 
 			// NOTE: We don't need to set the laser pointer location and rotation, as the MotionControllerComponent will do
 			// that later in the frame.  
