@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Object.h"
+#include "UObject/ObjectMacros.h" 
 #include "GoogleVRTransition2DCallbackProxy.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGoogleVRTransition2DDelegate);
