@@ -335,6 +335,10 @@ public:
 	virtual void OverrideScalarParameterDefault(FName ParameterName, float Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) PURE_VIRTUAL(UMaterialInterface::OverrideTexture, return;);
 
 	/**
+	 * Returns default value of the given parameter
+	 */
+	virtual float GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel::Type FeatureLevel) PURE_VIRTUAL(UMaterialInterface::GetScalarParameterDefault, return 0.f;);
+	/**
 	 * Checks if the material can be used with the given usage flag.  
 	 * If the flag isn't set in the editor, it will be set and the material will be recompiled with it.
 	 * @param Usage - The usage flag to check

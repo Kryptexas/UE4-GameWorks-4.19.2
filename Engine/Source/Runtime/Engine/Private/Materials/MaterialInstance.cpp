@@ -1026,6 +1026,34 @@ void UMaterialInstance::OverrideScalarParameterDefault(FName ParameterName, floa
 #endif // #if WITH_EDITOR
 }
 
+float UMaterialInstance::GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel::Type InFeatureLevel)
+{
+	if (bHasStaticPermutationResource)
+	{
+		const FMaterialResource* SourceMaterialResource = GetMaterialResource(InFeatureLevel);
+		const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = SourceMaterialResource->GetUniformScalarParameterExpressions();
+
+		// Iterate over each of the material's texture expressions.
+		for (int32 ExpressionIndex = 0; ExpressionIndex < UniformExpressions.Num(); ExpressionIndex++)
+		{
+			FMaterialUniformExpression* UniformExpression = UniformExpressions[ExpressionIndex];
+			if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
+			{
+				FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+
+				if (ScalarExpression->GetParameterName() == ParameterName)
+				{
+					float Value = 0.f;
+					ScalarExpression->GetDefaultValue(Value);
+					return Value;
+				}
+			}
+		}
+	}
+
+	return 0.f;
+}
+
 bool UMaterialInstance::CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim)
 {
 	check(IsInGameThread());
