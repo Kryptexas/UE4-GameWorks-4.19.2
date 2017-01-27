@@ -2,6 +2,7 @@
 
 #include "GoogleVRTransition2DBPLibrary.h"
 #include "Classes/GoogleVRTransition2DCallbackProxy.h"
+#include "GoogleVRTransition2D.h"
 
 #if PLATFORM_ANDROID
 #include "Android/AndroidJNI.h"
