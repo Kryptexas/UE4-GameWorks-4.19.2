@@ -8696,15 +8696,16 @@ struct FComponentInstancingDataUtils
 	}
 };
 
-void FBlueprintEditorUtils::BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData)
+void FBlueprintEditorUtils::BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData, bool bUseTemplateArchetype)
 {
 	if (ComponentTemplate)
 	{
 		UClass* ComponentTemplateClass = ComponentTemplate->GetClass();
+		const UObject* ComponentDefaults = bUseTemplateArchetype ? ComponentTemplate->GetArchetype() : ComponentTemplateClass->GetDefaultObject(false);
 
-		// Gather the set of properties that differ from the template CDO.
+		// Gather the set of properties that differ from the defaults.
 		OutData.ChangedPropertyList.Empty();
-		FComponentInstancingDataUtils::RecursivePropertyGather(ComponentTemplateClass, (uint8*)ComponentTemplate, (uint8*)ComponentTemplateClass->GetDefaultObject(false), OutData);
+		FComponentInstancingDataUtils::RecursivePropertyGather(ComponentTemplateClass, (uint8*)ComponentTemplate, (uint8*)ComponentDefaults, OutData);
 
 		// Flag that cooked data has been built and is now considered to be valid.
 		OutData.bIsValid = true;

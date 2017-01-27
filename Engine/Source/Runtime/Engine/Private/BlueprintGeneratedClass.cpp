@@ -7,6 +7,7 @@
 #include "UObject/CoreNet.h"
 #include "UObject/Package.h"
 #include "UObject/LinkerLoad.h"
+#include "Serialization/ObjectReader.h"
 #include "Serialization/ObjectWriter.h"
 #include "Engine/Blueprint.h"
 #include "Components/ActorComponent.h"
@@ -956,29 +957,6 @@ void UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(AActor* A
 		// in an ICH for some part of the non-native BP class hierarchy that also inherits from it.
 		if (UDynamicClass* ParentDynamicClass = Cast<UDynamicClass>(ParentBPClassStack[ParentBPClassStack.Num() - 1]->GetSuperClass()))
 		{
-			// Helper class for property checks during serialization.
-			class FComponentOverridePropertyArchive : public FArchive
-			{
-			public:
-				FComponentOverridePropertyArchive()
-					: FArchive()
-				{
-					ArIsSaving = true;
-
-					// Include properties that would normally skip tagged serialization (e.g. bulk serialization of array properties).
-					ArPortFlags |= PPF_ForceTaggedSerialization;
-				}
-
-				virtual bool ShouldSkipProperty(const UProperty* InProperty) const override
-				{
-					// These are properties that can be ignored at runtime in a cooked build (i.e. they indicate values that don't need to be checked or copied).
-					return (!InProperty
-						|| InProperty->IsEditorOnlyProperty()
-						|| InProperty->HasAnyPropertyFlags(CPF_Transient | CPF_ContainsInstancedReference | CPF_InstancedReference)
-						|| !InProperty->HasAnyPropertyFlags(CPF_Edit | CPF_Interp));
-				}
-			} ComponentOverridePropertyChecker;
-
 			// Get all default subobjects owned by the nativized antecedent's CDO.
 			// Note: This will also include all other inherited default subobjects.
 			TArray<UObject*> DefaultSubobjects;
@@ -1010,44 +988,37 @@ void UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(AActor* A
 						FComponentKey ComponentKey = ICH->FindKey(NativizedComponentSubobjectName);
 						if (ComponentKey.IsValid() && ComponentKey.IsSCSKey())
 						{
-							const UClass* NativizedComponentSubobjectClass = NativizedComponentSubobject->GetClass();
-
-							// This is the override template object that's stored within the non-native Blueprint class
-							const UObject* NativizedComponentSubobjectTemplate = ICH->GetOverridenComponentTemplate(ComponentKey);
-
-							// This is the instance of the inherited component subobject that's owned by the given Actor instance
-							UObject* NativizedComponentSubobjectInstance = Actor->GetDefaultSubobjectByName(NativizedComponentSubobjectName);
-
-							// Preconditions (must be valid)
-							check(NativizedComponentSubobjectClass != nullptr);
-							check(NativizedComponentSubobjectTemplate != nullptr);
-							check(NativizedComponentSubobjectInstance != nullptr);
-							check(NativizedComponentSubobjectClass == NativizedComponentSubobjectTemplate->GetClass());
-							check(NativizedComponentSubobjectClass == NativizedComponentSubobjectInstance->GetClass());
-
-							// This is the native DSO (archetype) on which the component subobject instance is currently based
-							const UObject* NativizedComponentSubobjectArchetype = NativizedComponentSubobjectInstance->GetArchetype();
-							check(NativizedComponentSubobjectArchetype != nullptr);
-
-							// Apply override template defaults to the instance that's owned by the given Actor (when appropriate).
-							for (TFieldIterator<UProperty> PropertyIt(NativizedComponentSubobjectClass); PropertyIt; ++PropertyIt)
+							const FBlueprintCookedComponentInstancingData* OverrideData = ICH->GetOverridenComponentTemplateData(ComponentKey);
+							if (OverrideData != nullptr && OverrideData->bIsValid)
 							{
-								UProperty* Property = *PropertyIt;
-								if (Property->ShouldSerializeValue(ComponentOverridePropertyChecker))
+								// This is the instance of the inherited component subobject that's owned by the given Actor instance
+								if (UObject* NativizedComponentSubobjectInstance = Actor->GetDefaultSubobjectByName(NativizedComponentSubobjectName))
 								{
-									for (int32 ArrayIdx = 0; ArrayIdx < Property->ArrayDim; ++ArrayIdx)
+									// Nativized component override data loader implementation.
+									class FNativizedComponentOverrideDataLoader : public FObjectReader
 									{
-										uint8* DstValuePtr = Property->ContainerPtrToValuePtr<uint8>(NativizedComponentSubobjectInstance, ArrayIdx);
-										const uint8* SrcValuePtr = Property->ContainerPtrToValuePtr<uint8>(NativizedComponentSubobjectTemplate, ArrayIdx);
-										const uint8* DefaultValuePtr = Property->ContainerPtrToValuePtr<uint8>(NativizedComponentSubobjectArchetype, ArrayIdx);
-
-										// Only copy the value (1) when it matches the archetype and (2) does not match the override template. Failing the
-										// first check indicates that it was already overridden at the instance level (and we don't want to overwrite that).
-										if (Property->Identical(DstValuePtr, DefaultValuePtr) && !Property->Identical(DstValuePtr, SrcValuePtr))
+									public:
+										FNativizedComponentOverrideDataLoader(const TArray<uint8>& InSrcBytes, const FCustomPropertyListNode* InPropertyList)
+											:FObjectReader(const_cast<TArray<uint8>&>(InSrcBytes))
 										{
-											Property->CopySingleValue(DstValuePtr, SrcValuePtr);
+											ArCustomPropertyList = InPropertyList;
+											ArUseCustomPropertyList = true;
+											ArWantBinaryPropertySerialization = true;
+
+											// Set this flag to emulate things that would happen in the SDO case when this flag is set (e.g. - not setting 'bHasBeenCreated').
+											ArPortFlags |= PPF_Duplicate;
+
+											// Set this flag to ensure that we also serialize any deprecated properties.
+											ArPortFlags |= PPF_UseDeprecatedProperties;
 										}
-									}
+									};
+
+									// Ensure that the ICH has gotten a PostLoad() call - we need to ensure that any cooked data will have been fully processed before proceeding.
+									ICH->ConditionalPostLoad();
+
+									// Serialize cached override data to the instanced subobject that's based on the default subobject from the nativized parent class and owned by the Actor instance.
+									FNativizedComponentOverrideDataLoader OverrideDataLoader(OverrideData->GetCachedPropertyDataForSerialization(), OverrideData->GetCachedPropertyListForSerialization());
+									NativizedComponentSubobjectInstance->Serialize(OverrideDataLoader);
 								}
 							}
 

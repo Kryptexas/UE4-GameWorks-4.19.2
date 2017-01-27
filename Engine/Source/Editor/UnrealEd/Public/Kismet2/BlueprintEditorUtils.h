@@ -1361,11 +1361,12 @@ public:
 	/**
 	 * Generate component instancing data (for cooked builds).
 	 *
-	 * @param ComponentTemplate	The component template to generate instancing data for.
-	 * @param OutData			The generated component instancing data.
-	 * @return					TRUE if component instancing data was built, FALSE otherwise.
+	 * @param ComponentTemplate		The component template to generate instancing data for.
+	 * @param OutData				The generated component instancing data.
+	 * @param bUseTemplateArchetype	Whether or not to use the template archetype or the template CDO for delta serialization (default is to use the template CDO).
+	 * @return						TRUE if component instancing data was built, FALSE otherwise.
 	 */
-	static void BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData);
+	static void BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData, bool bUseTemplateArchetype = false);
 
 protected:
 	// Removes all NULL graph references from the SubGraphs array and recurses thru the non-NULL ones

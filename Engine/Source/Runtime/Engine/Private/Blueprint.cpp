@@ -1078,14 +1078,74 @@ void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 
 	if (GeneratedClass && GeneratedClass->IsChildOf<AActor>())
 	{
+		int32 NumCookedComponents = 0;
+		const double StartTime = FPlatformTime::Seconds();
+
+		// If nativization is enabled and this Blueprint class will NOT be nativized, we need to determine if any of its parent Blueprints will be nativized and flag it for the runtime code.
+		// Note: Currently, this flag is set on Actor-based Blueprint classes only. If it's ever needed for non-Actor-based Blueprint classes at runtime, then this needs to be updated to match.
+		const IBlueprintNativeCodeGenCore* NativeCodeGenCore = IBlueprintNativeCodeGenCore::Get();
+		if (GeneratedClass != nullptr && NativeCodeGenCore != nullptr && FParse::Param(FCommandLine::Get(), TEXT("NativizeAssets")))
+		{
+			TArray<const UBlueprintGeneratedClass*> ParentBPClassStack;
+			UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(GeneratedClass->GetSuperClass(), ParentBPClassStack);
+			for (const UBlueprintGeneratedClass *ParentBPClass : ParentBPClassStack)
+			{
+				if (NativeCodeGenCore->IsTargetedForReplacement(ParentBPClass) == EReplacementResult::ReplaceCompletely)
+				{
+					if (UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(*GeneratedClass))
+					{
+						// Flag that this BP class will have a nativized parent class.
+						BPGC->bHasNativizedParent = true;
+
+						// Cache the IsTargetedForReplacement() result for the parent BP class that we know to be nativized.
+						TMap<const UClass*, bool> ParentBPClassNativizationResultMap;
+						ParentBPClassNativizationResultMap.Add(ParentBPClass, true);
+
+						// Cook all overridden SCS component node templates inherited from parent BP classes that will be nativized.
+						if (UInheritableComponentHandler* TargetInheritableComponentHandler = BPGC->GetInheritableComponentHandler())
+						{
+							for (auto RecordIt = TargetInheritableComponentHandler->CreateRecordIterator(); RecordIt; ++RecordIt)
+							{
+								if (!RecordIt->CookedComponentInstancingData.bIsValid)
+								{
+									// Get the original class that we're overriding a template from.
+									const UClass* ComponentTemplateOwnerClass = RecordIt->ComponentKey.GetComponentOwner();
+
+									// Check to see if we've already checked this class for nativization; if not, then cache the result of a new query and return the result.
+									bool bIsOwnerClassTargetedForReplacement = false;
+									bool* bCachedResult = ParentBPClassNativizationResultMap.Find(ComponentTemplateOwnerClass);
+									if (bCachedResult)
+									{
+										bIsOwnerClassTargetedForReplacement = *bCachedResult;
+									}
+									else
+									{
+										bool bResult = (NativeCodeGenCore->IsTargetedForReplacement(RecordIt->ComponentKey.GetComponentOwner()) == EReplacementResult::ReplaceCompletely);
+										bIsOwnerClassTargetedForReplacement = ParentBPClassNativizationResultMap.Add(ComponentTemplateOwnerClass, bResult);
+									}
+
+									if (bIsOwnerClassTargetedForReplacement)
+									{
+										// Use the template's archetype for the delta serialization here; remaining properties will have already been set via native subobject instancing at runtime.
+										const bool bUseTemplateArchetype = true;
+										FBlueprintEditorUtils::BuildComponentInstancingData(RecordIt->ComponentTemplate, RecordIt->CookedComponentInstancingData, bUseTemplateArchetype);
+										++NumCookedComponents;
+									}
+								}
+							}
+						}
+					}
+					
+					// All remaining antecedent classes should be native or nativized; no need to continue.
+					break;
+				}
+			}
+		}
+
 		// Only cook component data if the setting is enabled and this is an Actor-based Blueprint class.
 		if (GetDefault<UCookerSettings>()->bCookBlueprintComponentTemplateData)
 		{
-			int32 NumCookedComponents = 0;
-			const double StartTime = FPlatformTime::Seconds();
-
-			UBlueprintGeneratedClass* BPGClass = Cast<UBlueprintGeneratedClass>(*GeneratedClass);
-			if (BPGClass)
+			if (UBlueprintGeneratedClass* BPGClass = CastChecked<UBlueprintGeneratedClass>(*GeneratedClass))
 			{
 				// Cook all overridden SCS component node templates inherited from the parent class hierarchy.
 				if (UInheritableComponentHandler* TargetInheritableComponentHandler = BPGClass->GetInheritableComponentHandler())
@@ -1130,29 +1190,11 @@ void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 					}
 				}
 			}
-
-			if (NumCookedComponents > 0)
-			{
-				UE_LOG(LogBlueprint, Log, TEXT("%s: Cooked %d component(s) in %.02g ms"), *GetName(), NumCookedComponents, (FPlatformTime::Seconds() - StartTime) * 1000.0);
-			}
 		}
 
-		// If nativization is enabled and this Blueprint class will NOT be nativized, we need to determine if any of its parent Blueprints will be nativized and flag it for the runtime code.
-		// Note: Currently, this flag is set on Actor-based Blueprint classes only. If it's ever needed for non-Actor-based Blueprint classes at runtime, then this needs to be updated to match.
-		const IBlueprintNativeCodeGenCore* NativeCodeGenCore = IBlueprintNativeCodeGenCore::Get();
-		if (GeneratedClass != nullptr && NativeCodeGenCore != nullptr && FParse::Param(FCommandLine::Get(), TEXT("NativizeAssets")))
+		if (NumCookedComponents > 0)
 		{
-			TArray<const UBlueprintGeneratedClass*> ParentBPClassStack;
-			UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(GeneratedClass->GetSuperClass(), ParentBPClassStack);
-			for (const UBlueprintGeneratedClass *ParentBPClass : ParentBPClassStack)
-			{
-				if (NativeCodeGenCore->IsTargetedForReplacement(ParentBPClass) == EReplacementResult::ReplaceCompletely)
-				{
-					UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(GeneratedClass);
-					BPGC->bHasNativizedParent = true;
-					break;
-				}
-			}
+			UE_LOG(LogBlueprint, Log, TEXT("%s: Cooked %d component(s) in %.02g ms"), *GetName(), NumCookedComponents, (FPlatformTime::Seconds() - StartTime) * 1000.0);
 		}
 	}
 }
