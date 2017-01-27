@@ -24,7 +24,7 @@ void FAssetTypeActions_ForceFeedbackEffect::GetActions( const TArray<UObject*>& 
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("ForceFeedbackEffect_PlayEffect", "Play"),
 		LOCTEXT("ForceFeedbackEffect_PlayEffectTooltip", "Plays the selected force feedback effect."),
-		FSlateIcon(FEditorStyle::GetStyleSetName(), "MediaAsset.AssetActions.Play"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "MediaAsset.AssetActions.Play.Small"),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetTypeActions_ForceFeedbackEffect::ExecutePlayEffect, Effects ),
 			FCanExecuteAction::CreateSP( this, &FAssetTypeActions_ForceFeedbackEffect::CanExecutePlayCommand, Effects )
@@ -34,7 +34,7 @@ void FAssetTypeActions_ForceFeedbackEffect::GetActions( const TArray<UObject*>& 
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("ForceFeedbackEffect_StopEffect", "Stop"),
 		LOCTEXT("ForceFeedbackEffect_StopEffectTooltip", "Stops the selected force feedback effect."),
-		FSlateIcon(FEditorStyle::GetStyleSetName(), "MediaAsset.AssetActions.Stop"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "MediaAsset.AssetActions.Stop.Small"),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetTypeActions_ForceFeedbackEffect::ExecuteStopEffect, Effects ),
 			FCanExecuteAction()
@@ -144,10 +144,10 @@ TSharedPtr<SWidget> FAssetTypeActions_ForceFeedbackEffect::GetThumbnailOverlay(c
 	{
 		if (IsEffectPlaying(EffectList))
 		{
-			return FEditorStyle::GetBrush("MediaAsset.AssetActions.Stop");
+			return FEditorStyle::GetBrush("MediaAsset.AssetActions.Stop.Large");
 		}
 
-	return FEditorStyle::GetBrush("MediaAsset.AssetActions.Play");
+	return FEditorStyle::GetBrush("MediaAsset.AssetActions.Play.Large");
 	};
 
 	auto IsEnabledLambda = [this, EffectList]() -> bool
@@ -179,28 +179,43 @@ TSharedPtr<SWidget> FAssetTypeActions_ForceFeedbackEffect::GetThumbnailOverlay(c
 		return LOCTEXT("Thumbnail_PlayForceFeedbackToolTip", "Play selected force feedback effect");
 	};
 
-	return SNew(SBox)
+	TSharedRef<SBox> Box = SNew(SBox)
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
-		.Padding(FMargin(2))
+		.Padding(FMargin(2));
+
+	auto OnGetVisibilityLambda = [this, Box, EffectList]() -> EVisibility
+	{
+		if (Box->IsHovered() || IsEffectPlaying(EffectList))
+		{
+			return EVisibility::Visible;
+		}
+
+		return EVisibility::Hidden;
+	};
+		
+	TSharedRef<SButton> BoxContent = SNew(SButton)
+		.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+		.ToolTipText_Lambda(OnToolTipTextLambda)
+		.Cursor(EMouseCursor::Default) // The outer widget can specify a DragHand cursor, so we need to override that here
+		.ForegroundColor(FSlateColor::UseForeground())		
+		.IsEnabled_Lambda(IsEnabledLambda)
+		.OnClicked_Lambda(OnClickedLambda)
+		.Visibility_Lambda(OnGetVisibilityLambda)
 		[
-			SNew(SButton)
-			.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-			.ToolTipText_Lambda(OnToolTipTextLambda)
-			.Cursor(EMouseCursor::Default) // The outer widget can specify a DragHand cursor, so we need to override that here
-			.ForegroundColor(FSlateColor::UseForeground())		
-			.IsEnabled_Lambda(IsEnabledLambda)
-			.OnClicked_Lambda(OnClickedLambda)
+			SNew(SBox)
+			.MinDesiredWidth(16)
+			.MinDesiredHeight(16)
 			[
-				SNew(SBox)
-				.MinDesiredWidth(16)
-				.MinDesiredHeight(16)
-				[
-					SNew(SImage)
-					.Image_Lambda(OnGetDisplayBrushLambda)
-				]
+				SNew(SImage)
+				.Image_Lambda(OnGetDisplayBrushLambda)
 			]
 		];
+
+	Box->SetContent(BoxContent);
+	Box->SetVisibility(EVisibility::Visible);
+
+	return Box;
 }
 
 bool FPreviewForceFeedbackEffect::IsTickable() const
