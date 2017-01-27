@@ -9,13 +9,18 @@
 
 void FDynamicTextureInstanceManager::FTasks::SyncResults()
 {
-	// Processed first as it updates the dirty index required for the create view.
-	RefreshFullTask->TryWork();
-	CreateViewTask->TryWork();
+	// Update the bounds first as we want the async view to be fully up-to-date.
+	RefreshFullTask->TryWork(false);
+	CreateViewTask->TryWork(false);
+	// All (async) work must be completed before synching the results as the work assume a constant state.
+	RefreshFullTask->TrySync();
+	CreateViewTask->TrySync();
 }
 
 FDynamicTextureInstanceManager::FDynamicTextureInstanceManager()
 	: DirtyIndex(0)
+	, PendingDefragSrcBoundIndex(INDEX_NONE)
+	, PendingDefragDstBoundIndex(INDEX_NONE)
 {
 	FTasks& Tasks = StateSync.GetTasks();
 	Tasks.RefreshFullTask = new FRefreshFullTask(TextureInstanceTask::FRefreshFull::FOnWorkDone::CreateLambda([this](int32 InBeginIndex, int32 InEndIndex, const TArray<int32>& SkippedIndices, int32 FirstFreeBound, int32 LastUsedBound){ this->OnRefreshVisibilityDone(InBeginIndex, InEndIndex, SkippedIndices, FirstFreeBound, LastUsedBound); }));
@@ -32,6 +37,18 @@ void FDynamicTextureInstanceManager::RegisterTasks(TextureInstanceTask::FDoWorkT
 void FDynamicTextureInstanceManager::IncrementalUpdate(FRemovedTextureArray& RemovedTextures, float Percentage)
 {
 	FTextureInstanceState* State = StateSync.SyncAndGetState();
+
+	// First try to apply the pending defrag.
+	if (PendingDefragSrcBoundIndex != INDEX_NONE && PendingDefragDstBoundIndex != INDEX_NONE)
+	{
+		if (State->MoveBound(PendingDefragSrcBoundIndex, PendingDefragDstBoundIndex))
+		{
+			State->TrimBounds(); //Release any trailing bounds.
+		}
+		PendingDefragSrcBoundIndex = INDEX_NONE;
+		PendingDefragDstBoundIndex = INDEX_NONE;
+	}
+
 	TSet<const UPrimitiveComponent*> TempComponents;
 	
 	for (const UPrimitiveComponent* Component : PendingComponents)
@@ -91,11 +108,10 @@ void FDynamicTextureInstanceManager::OnRefreshVisibilityDone(int32 BeginIndex, i
 	DirtyIndex = EndIndex;
 
 	// Move the last valid bound to the first empty place, trying to free the tail.
-	if (FirstFreeBound != INDEX_NONE && LastUsedBound != INDEX_NONE && CVarStreamingDefragDynamicBounds.GetValueOnGameThread() > 0)
+	if (CVarStreamingDefragDynamicBounds.GetValueOnGameThread() > 0)
 	{
-		State->MoveBound(LastUsedBound, FirstFreeBound);
-		// Now check if the tail is free.
-		State->TrimBounds();
+		PendingDefragDstBoundIndex = FirstFreeBound;
+		PendingDefragSrcBoundIndex = LastUsedBound;
 	}
 }
 

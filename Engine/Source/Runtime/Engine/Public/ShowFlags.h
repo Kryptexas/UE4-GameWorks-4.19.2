@@ -376,6 +376,7 @@ private:
 		// we enable it manually on the editor view ports
 		SetSnap(false);
 		SetVisualizeMeshDistanceFields(false);
+		SetVisualizeGlobalDistanceField(false);
 		SetVisualizeDistanceFieldAO(false);
 		SetVisualizeDistanceFieldGI(false);
 		SetVisualizeSSR(false);

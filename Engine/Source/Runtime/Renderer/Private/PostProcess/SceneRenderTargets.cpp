@@ -63,9 +63,10 @@ static TAutoConsoleVariable<int32> CVarMSAACount(
 	TEXT("r.MSAACount"),
 	4,
 	TEXT("Number of MSAA samples to use with the forward renderer.  Only used when MSAA is enabled in the rendering project settings.\n")
-	TEXT("1: Use Temporal AA (MSAA disabled)\n")
-	TEXT("2: Use 2x MSAA (Temporal AA disabled)\n")
-	TEXT("4: Use 4x MSAA (Temporal AA disabled)"),
+	TEXT("0: MSAA disabled (Temporal AA enabled)\n")
+	TEXT("1: MSAA disabled\n")
+	TEXT("2: Use 2x MSAA\n")
+	TEXT("4: Use 4x MSAA"),
 	ECVF_RenderThreadSafe | ECVF_Scalability
 	);
 

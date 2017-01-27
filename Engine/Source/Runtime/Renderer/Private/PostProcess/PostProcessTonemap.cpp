@@ -86,7 +86,6 @@ typedef enum {
 	TonemapperColorFringe       = (1<<12),
 	TonemapperMsaa              = (1<<13),
 	TonemapperSharpen           = (1<<14),
-	TonemapperInverseTonemapping = (1 << 15),
 } TonemapperOption;
 
 // Tonemapper option cost (0 = no cost, 255 = max cost).
@@ -108,7 +107,6 @@ static uint8 TonemapperCostTab[] = {
 	1, //TonemapperColorFringe
 	1, //TonemapperMsaa
 	1, //TonemapperSharpen
-	1, //TonemapperInverseTonemapping
 };
 
 // Edit the following to add and remove configurations.
@@ -174,45 +172,6 @@ static uint32 TonemapperConfBitmaskPC[15] = {
 
 	TonemapperBloom + 
 	TonemapperVignette +
-	0,
-
-	// with TonemapperInverseTonemapping
-
-	TonemapperBloom +
-	TonemapperGrainJitter +
-	TonemapperGrainIntensity +
-	TonemapperGrainQuantization +
-	TonemapperVignette +
-	TonemapperColorFringe +
-	TonemapperSharpen +
-	TonemapperInverseTonemapping +
-	0,
-
-	TonemapperBloom +
-	TonemapperGrainJitter +
-	TonemapperGrainIntensity +
-	TonemapperGrainQuantization +
-	TonemapperVignette +
-	TonemapperColorFringe +
-	TonemapperInverseTonemapping +
-	0,
-
-	TonemapperBloom +
-	TonemapperVignette +
-	TonemapperGrainQuantization +
-	TonemapperColorFringe +
-	TonemapperInverseTonemapping +
-	0,
-
-	TonemapperBloom +
-	TonemapperVignette +
-	TonemapperGrainQuantization +
-	TonemapperInverseTonemapping +
-	0,
-
-	TonemapperBloom +
-	TonemapperSharpen +
-	TonemapperInverseTonemapping +
 	0,
 
 	//
@@ -654,17 +613,6 @@ static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool b
 		}
 	}
 
-	// Inverse Tonemapping
-	{
-		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
-		int32 Value = CVar->GetValueOnRenderThread();
-
-		if (Value > 0)
-		{
-			Bitmask |= TonemapperInverseTonemapping;
-		}
-	}
-
 	if( View->FinalPostProcessSettings.SceneFringeIntensity > 0.01f)
 	{
 		Bitmask |= TonemapperColorFringe;
@@ -948,7 +896,6 @@ class FPostProcessTonemapPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE"),           TonemapperIsDefined(ConfigBitmask, TonemapperVignette));
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_FRINGE"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorFringe));
 		OutEnvironment.SetDefine(TEXT("USE_SHARPEN"),	         TonemapperIsDefined(ConfigBitmask, TonemapperSharpen));
-		OutEnvironment.SetDefine(TEXT("USE_INVERSE_TONEMAPPING"), TonemapperIsDefined(ConfigBitmask, TonemapperInverseTonemapping));
 		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"), UseVolumeTextureLUT(Platform));
 	}
 

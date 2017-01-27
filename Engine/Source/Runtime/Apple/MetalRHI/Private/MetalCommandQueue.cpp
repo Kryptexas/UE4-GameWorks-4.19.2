@@ -104,6 +104,11 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
     {
     	Features |= EMetalFeaturesSetBytes;
     }
+	// Time query emulation breaks on AMD - disable by default until they can explain why, should work everywhere else.
+	if ([Device.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location == NSNotFound || FParse::Param(FCommandLine::Get(),TEXT("metaltimequery")))
+	{
+		Features |= EMetalFeaturesAbsoluteTimeQueries;
+	}
 #endif
 }
 

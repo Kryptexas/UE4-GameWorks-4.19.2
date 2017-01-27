@@ -1305,50 +1305,53 @@ void FMetalStateCache::SetResourcesFromTables(ShaderType Shader, uint32 ShaderSt
 {
 	checkSlow(Shader);
 	
-	EShaderFrequency Frequency;
-	switch(ShaderStage)
+	if (!FShaderCache::IsPredrawCall())
 	{
-		case CrossCompiler::SHADER_STAGE_VERTEX:
-			Frequency = SF_Vertex;
-			break;
-		case CrossCompiler::SHADER_STAGE_HULL:
-			Frequency = SF_Hull;
-			break;
-		case CrossCompiler::SHADER_STAGE_DOMAIN:
-			Frequency = SF_Domain;
-			break;
-		case CrossCompiler::SHADER_STAGE_PIXEL:
-			Frequency = SF_Pixel;
-			break;
-		case CrossCompiler::SHADER_STAGE_COMPUTE:
-			Frequency = SF_Compute;
-			break;
-		default:
-			Frequency = SF_NumFrequencies; //Silence a compiler warning/error
-			check(false);
-			break;
+		EShaderFrequency Frequency;
+		switch(ShaderStage)
+		{
+			case CrossCompiler::SHADER_STAGE_VERTEX:
+				Frequency = SF_Vertex;
+				break;
+			case CrossCompiler::SHADER_STAGE_HULL:
+				Frequency = SF_Hull;
+				break;
+			case CrossCompiler::SHADER_STAGE_DOMAIN:
+				Frequency = SF_Domain;
+				break;
+			case CrossCompiler::SHADER_STAGE_PIXEL:
+				Frequency = SF_Pixel;
+				break;
+			case CrossCompiler::SHADER_STAGE_COMPUTE:
+				Frequency = SF_Compute;
+				break;
+			default:
+				Frequency = SF_NumFrequencies; //Silence a compiler warning/error
+				check(false);
+				break;
+		}
+
+		// Mask the dirty bits by those buffers from which the shader has bound resources.
+		uint32 DirtyBits = Shader->Bindings.ShaderResourceTable.ResourceTableBits & GetDirtyUniformBuffers(Frequency);
+		while (DirtyBits)
+		{
+			// Scan for the lowest set bit, compute its index, clear it in the set of dirty bits.
+			const uint32 LowestBitMask = (DirtyBits)& (-(int32)DirtyBits);
+			const int32 BufferIndex = FMath::FloorLog2(LowestBitMask); // todo: This has a branch on zero, we know it could never be zero...
+			DirtyBits ^= LowestBitMask;
+			FMetalUniformBuffer* Buffer = (FMetalUniformBuffer*)GetBoundUniformBuffers(Frequency)[BufferIndex].GetReference();
+			check(Buffer);
+			check(BufferIndex < Shader->Bindings.ShaderResourceTable.ResourceTableLayoutHashes.Num());
+			check(Buffer->GetLayout().GetHash() == Shader->Bindings.ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex]);
+			
+			// todo: could make this two pass: gather then set
+			SetShaderResourcesFromBuffer<FRHITexture>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.TextureMap.GetData(), BufferIndex);
+			SetShaderResourcesFromBuffer<FMetalShaderResourceView>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.ShaderResourceViewMap.GetData(), BufferIndex);
+			SetShaderResourcesFromBuffer<FMetalSamplerState>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.SamplerMap.GetData(), BufferIndex);
+			SetShaderResourcesFromBuffer<FMetalUnorderedAccessView>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.UnorderedAccessViewMap.GetData(), BufferIndex);
+		}
+		SetDirtyUniformBuffers(Frequency, 0);
 	}
-	
-	// Mask the dirty bits by those buffers from which the shader has bound resources.
-	uint32 DirtyBits = Shader->Bindings.ShaderResourceTable.ResourceTableBits & GetDirtyUniformBuffers(Frequency);
-	while (DirtyBits)
-	{
-		// Scan for the lowest set bit, compute its index, clear it in the set of dirty bits.
-		const uint32 LowestBitMask = (DirtyBits)& (-(int32)DirtyBits);
-		const int32 BufferIndex = FMath::FloorLog2(LowestBitMask); // todo: This has a branch on zero, we know it could never be zero...
-		DirtyBits ^= LowestBitMask;
-		FMetalUniformBuffer* Buffer = (FMetalUniformBuffer*)GetBoundUniformBuffers(Frequency)[BufferIndex].GetReference();
-		check(Buffer);
-		check(BufferIndex < Shader->Bindings.ShaderResourceTable.ResourceTableLayoutHashes.Num());
-		check(Buffer->GetLayout().GetHash() == Shader->Bindings.ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex]);
-		
-		// todo: could make this two pass: gather then set
-		SetShaderResourcesFromBuffer<FRHITexture>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.TextureMap.GetData(), BufferIndex);
-		SetShaderResourcesFromBuffer<FMetalShaderResourceView>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.ShaderResourceViewMap.GetData(), BufferIndex);
-		SetShaderResourcesFromBuffer<FMetalSamplerState>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.SamplerMap.GetData(), BufferIndex);
-		SetShaderResourcesFromBuffer<FMetalUnorderedAccessView>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.UnorderedAccessViewMap.GetData(), BufferIndex);
-	}
-	SetDirtyUniformBuffers(Frequency, 0);
 }
 
 void FMetalStateCache::CommitRenderResources(FMetalCommandEncoder* Raster)
@@ -1491,7 +1494,7 @@ void FMetalStateCache::SetRenderState(FMetalCommandEncoder& CommandEncoder, FMet
 		check(IsValidRef(RasterizerState));
         CommandEncoder.SetDepthBias(RasterizerState->State.DepthBias, RasterizerState->State.SlopeScaleDepthBias, FLT_MAX);
     }
-    if (RasterBits & EMetalRenderFlagScissorRect)
+    if ((RasterBits & EMetalRenderFlagScissorRect) && !FShaderCache::IsPredrawCall())
     {
         CommandEncoder.SetScissorRect(Scissor);
     }

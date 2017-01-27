@@ -1195,9 +1195,10 @@ protected:
 	{
 		if (FeatureLevel < RequiredFeatureLevel)
 		{
-			FString FeatureLevelName;
+			FString FeatureLevelName, RequiredLevelName;
 			GetFeatureLevelName(FeatureLevel, FeatureLevelName);
-			return Errorf(TEXT("Node not supported in feature level %s"), *FeatureLevelName);
+			GetFeatureLevelName(RequiredFeatureLevel, RequiredLevelName);
+			return Errorf(TEXT("Node not supported in feature level %s. %s required."), *FeatureLevelName, *RequiredLevelName);
 		}
 
 		return 0;

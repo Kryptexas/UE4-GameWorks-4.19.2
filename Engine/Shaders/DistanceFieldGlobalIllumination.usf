@@ -313,8 +313,8 @@ float4 LightPositionAndInvRadius;
 float LightSourceRadius;
 float2 TanLightAngleAndNormalThreshold;
 
-Buffer<float4> ShadowCulledObjectBounds;
-Buffer<float4> ShadowCulledObjectData;
+StructuredBuffer<float4> ShadowCulledObjectBounds;
+StructuredBuffer<float4> ShadowCulledObjectData;
 
 float RayTraceThroughLightTileCulledObjects(
 	float3 WorldRayStart, 
@@ -906,7 +906,7 @@ float3 GatherIrradianceFromVPLs(float3 WorldPosition, float3 WorldNormal, uint R
 	float3 Irradiance = 0;
 
 #if IRRADIANCE_FROM_SURFELS
-
+	/*
 	uint4 TileHead = GetTileHead(TileCoordinate);
 	uint TileIndex = TileCoordinate.y * TileListGroupSize.x + TileCoordinate.x;
 	float4 ConeAxisDepthRanges = TileConeDepthRanges.Load(TileIndex);
@@ -944,7 +944,7 @@ float3 GatherIrradianceFromVPLs(float3 WorldPosition, float3 WorldNormal, uint R
 				Irradiance += ComputeVirtualPointLighting(VPLIndex + SurfelOffsetAndNum.x, VPLIndex + InstancedSurfelOffsetAndNum.x, RelativeRecordIndex, WorldPosition, WorldNormal, ObjectInstanceToWorld);
 			}
 		}
-	}
+	}*/
 
 #else
 

@@ -185,17 +185,16 @@ FComputeShaderRHIRef FVulkanDynamicRHI::RHICreateComputeShader(const TArray<uint
 	return Shader;
 }
 
-FVulkanShaderState::FVulkanShaderState(FVulkanDevice* InDevice)
-	: Device(InDevice)
+FVulkanDescriptorSetUpdater::FVulkanDescriptorSetUpdater(FVulkanDevice* InDevice)
+	: VulkanRHI::FDeviceChild(InDevice)
 	, PipelineLayout(VK_NULL_HANDLE)
 	, Layout(nullptr)
 	, CurrDescriptorSets(nullptr)
-	, LastBoundPipeline(VK_NULL_HANDLE)
 {
 	Layout = new FVulkanDescriptorSetsLayout(Device);
 }
 
-FVulkanShaderState::~FVulkanShaderState()
+FVulkanDescriptorSetUpdater::~FVulkanDescriptorSetUpdater()
 {
 	check(Layout);
 	delete Layout;
@@ -205,6 +204,12 @@ FVulkanShaderState::~FVulkanShaderState()
 		Device->GetDeferredDeletionQueue().EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::PipelineLayout, PipelineLayout);
 		PipelineLayout = VK_NULL_HANDLE;
 	}
+}
+
+FVulkanShaderState::FVulkanShaderState(FVulkanDevice* InDevice)
+	: FVulkanDescriptorSetUpdater(InDevice)
+	, LastBoundPipeline(VK_NULL_HANDLE)
+{
 }
 
 inline void FVulkanShaderState::GenerateLayoutBindingsForStage(VkShaderStageFlagBits StageFlags, EDescriptorSetStage DescSet, const FVulkanCodeHeader& CodeHeader, FVulkanDescriptorSetsLayout* OutLayout)
@@ -488,7 +493,6 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 	{
 		ShaderHashes[SF_Geometry] = GeometryShader->CodeHeader.SourceHash;
 		InitGlobalUniformsForStage(GeometryShader->CodeHeader, NEWPackedUniformBufferStaging[SF_Geometry], NEWPackedUniformBufferStagingDirty[SF_Geometry]);
-		GenerateLayoutBindings(SF_Geometry, GeometryShader->CodeHeader);
 		GenerateLayoutBindingsForStage(VK_SHADER_STAGE_GEOMETRY_BIT, EDescriptorSetStage::Geometry, GeometryShader->CodeHeader, Layout);
 	}
 	if (HullShader)
@@ -622,26 +626,6 @@ VkPipelineLayout FVulkanShaderState::GetPipelineLayout() const
 	VERIFYVULKANRESULT(VulkanRHI::vkCreatePipelineLayout(Device->GetInstanceHandle(), &CreateInfo, nullptr, &PipelineLayout));
 
 	return PipelineLayout;
-}
-
-void FVulkanBoundShaderState::GenerateLayoutBindings(EShaderFrequency Stage, const FVulkanCodeHeader& CodeHeader)
-{
-	VkShaderStageFlagBits StageFlags = UEFrequencyToVKStageBit(Stage);
-
-	//#todo-rco: Mobile assumption!
-	EDescriptorSetStage DescSet = GetDescriptorSetForStage(Stage);
-	int32 DescriptorSetIndex = (int32)DescSet;
-
-	VkDescriptorSetLayoutBinding Binding;
-	FMemory::Memzero(Binding);
-	Binding.descriptorCount = 1;
-	Binding.stageFlags = StageFlags;
-	for (int32 Index = 0; Index < CodeHeader.NEWDescriptorInfo.DescriptorTypes.Num(); ++Index)
-	{
-		Binding.binding = Index;
-		Binding.descriptorType = CodeHeader.NEWDescriptorInfo.DescriptorTypes[Index];
-		Layout->AddDescriptor(DescriptorSetIndex, Binding, Index);
-	}
 }
 
 void FVulkanBoundShaderState::CreateDescriptorWriteInfos()
@@ -947,7 +931,7 @@ FVulkanShaderState::FDescriptorSetsPair::~FDescriptorSetsPair()
 	delete DescriptorSets;
 }
 
-inline FVulkanDescriptorSets* FVulkanShaderState::RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer)
+inline FVulkanDescriptorSets* FVulkanDescriptorSetUpdater::RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer)
 {
 	FDescriptorSetsEntry* FoundEntry = nullptr;
 	for (FDescriptorSetsEntry* DescriptorSetsEntry : DescriptorSetsEntries)
@@ -985,62 +969,6 @@ inline FVulkanDescriptorSets* FVulkanShaderState::RequestDescriptorSets(FVulkanC
 	NewEntry->FenceCounter = CmdBufferFenceSignaledCounter;
 	return NewEntry->DescriptorSets;
 }
-
-FORCEINLINE_DEBUGGABLE void FVulkanShaderState::UpdateDescriptorSetsForStage(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer,
-	FVulkanGlobalUniformPool* GlobalUniformPool, VkDescriptorSet DescriptorSet, FVulkanShader* StageShader,
-	uint32 RemainingGlobalUniformMask, VkDescriptorBufferInfo* BufferInfo, TArray<uint8>* PackedUniformBuffer, 
-	FVulkanRingBuffer* RingBuffer, uint8* RingBufferBase, int32& WriteIndex)
-{
-	check(0);
-#if 0
-	//if (bRequiresUpdate)
-	{
-#if VULKAN_ENABLE_AGGRESSIVE_STATS
-		SCOPE_CYCLE_COUNTER(STAT_VulkanApplyDSResources);
-#endif
-		const uint32 NumDescriptorsForStageWithoutPackedUBs = StageShader->GetNumDescriptorsExcludingPackedUniformBuffers();
-		for (uint32 Index = 0; Index < NumDescriptorsForStageWithoutPackedUBs; ++Index)
-		{
-			VkWriteDescriptorSet* WriteDesc = &DescriptorWrites[WriteIndex++];
-			WriteDesc->dstSet = DescriptorSet;
-		}
-	}
-
-	{
-		SCOPE_CYCLE_COUNTER(STAT_VulkanApplyDSUniformBuffers);
-		while (RemainingGlobalUniformMask)
-		{
-			if (RemainingGlobalUniformMask & 1)
-			{
-				//Get a uniform buffer from the dynamic pool
-				int32 UBSize = PackedUniformBuffer->Num();
-
-				// get offset into the RingBufferBase pointer
-				uint64 RingBufferOffset = RingBuffer->AllocateMemory(UBSize, Device->GetLimits().minUniformBufferOffsetAlignment);
-
-				// get location in the ring buffer to use
-				FMemory::Memcpy(RingBufferBase + RingBufferOffset, PackedUniformBuffer->GetData(), UBSize);
-
-				// Here we can specify a more precise buffer update
-				// However, this need to complemented with the buffer map/unmap functionality.
-				//@NOTE: bufferView is for texel buffers
-				BufferInfo->buffer = RingBuffer->GetHandle();
-				BufferInfo->offset = RingBufferOffset + RingBuffer->GetBufferOffset();
-				BufferInfo->range = UBSize;
-
-				VkWriteDescriptorSet* WriteDesc = &DescriptorWrites[WriteIndex++];
-				WriteDesc->dstSet = DescriptorSet;
-
-				check(WriteDesc->descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-				++BufferInfo;
-			}
-			RemainingGlobalUniformMask = RemainingGlobalUniformMask >> 1;
-			++PackedUniformBuffer;
-		}
-	}
-#endif
-}
-
 
 void FVulkanShaderState::UpdatePackedUniformBuffers(FVulkanDevice* Device, const FVulkanCodeHeader& CodeHeader, FNEWPackedUniformBufferStaging& NEWPackedUniformBufferStaging, 
 	FNEWVulkanShaderDescriptorState& NEWShaderDescriptorState, FVulkanUniformBufferUploader* UniformBufferUploader, uint8* CPURingBufferBase, uint64 RemainingPackedUniformsMask)

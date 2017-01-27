@@ -187,8 +187,13 @@ public:
 	FWorldInGamePerformanceTrackers();
 	~FWorldInGamePerformanceTrackers();
 
-	FInGamePerformanceTracker& GetInGamePerformanceTracker(EInGamePerfTrackers Tracker, EInGamePerfTrackerThreads Thread)
+	FInGamePerformanceTracker& GetInGamePerformanceTracker(EInGamePerfTrackers InTracker, EInGamePerfTrackerThreads InThread)
 	{
-		return InGamePerformanceTrackers[(int32)Tracker][(int32)Thread];
+		//UE-38057 - Additional checks to catch bug.
+		int32 Tracker = (int32)InTracker;
+		int32 Thread = (int32)InThread;
+		check(Tracker >= 0 && Tracker < (int32)EInGamePerfTrackers::Num);
+		check(Thread >= 0 && Thread < (int32)EInGamePerfTrackerThreads::Num);
+		return InGamePerformanceTrackers[Tracker][Thread];
 	}
 };

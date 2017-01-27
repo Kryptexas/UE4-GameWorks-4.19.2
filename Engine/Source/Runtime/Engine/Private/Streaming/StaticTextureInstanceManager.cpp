@@ -9,8 +9,12 @@
 
 void FStaticTextureInstanceManager::FTasks::SyncResults()
 {
-	RefreshVisibilityTask->TryWork();
-	NormalizeLightmapTexelFactorTask->TryWork();
+	RefreshVisibilityTask->TryWork(false);
+	NormalizeLightmapTexelFactorTask->TryWork(false);
+	// All (async) work must be completed before synching the results as the work assume a constant state.
+	RefreshVisibilityTask->TrySync();
+	NormalizeLightmapTexelFactorTask->TrySync();
+
 }
 
 FStaticTextureInstanceManager::FStaticTextureInstanceManager(TextureInstanceTask::FDoWorkTask& AsyncTask)

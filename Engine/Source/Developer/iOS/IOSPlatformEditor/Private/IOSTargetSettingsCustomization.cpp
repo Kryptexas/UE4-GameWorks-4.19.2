@@ -1296,7 +1296,7 @@ bool FIOSTargetSettingsCustomization::UpdateStatusDelegate(float DeltaTime)
 {
 	if (IPPProcess.IsValid())
 	{
-		if (IPPProcess->IsRunning())
+		if (IPPProcess->Update())
 		{
 			return true;
 		}

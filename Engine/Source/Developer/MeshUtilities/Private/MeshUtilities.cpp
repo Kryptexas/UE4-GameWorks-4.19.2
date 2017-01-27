@@ -233,6 +233,7 @@ private:
 	virtual bool GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup) override;
 
 	virtual void GenerateSignedDistanceFieldVolumeData(
+		FString MeshName,
 		const FStaticMeshLODResources& LODModel,
 		class FQueuedThreadPool& ThreadPool,
 		const TArray<EBlendMode>& MaterialBlendModes,
@@ -815,6 +816,7 @@ void FMeshDistanceFieldAsyncTask::DoWork()
 }
 
 void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
+	FString MeshName,
 	const FStaticMeshLODResources& LODModel,
 	class FQueuedThreadPool& ThreadPool,
 	const TArray<EBlendMode>& MaterialBlendModes,
@@ -936,7 +938,9 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 
 			OutData.Size = VolumeDimensions;
 			OutData.LocalBoundingBox = DistanceFieldVolumeBounds;
-			OutData.DistanceFieldVolume.AddZeroed(VolumeDimensions.X * VolumeDimensions.Y * VolumeDimensions.Z);
+
+			TArray<FFloat16> DistanceFieldVolume;
+			DistanceFieldVolume.AddZeroed(VolumeDimensions.X * VolumeDimensions.Y * VolumeDimensions.Z);
 
 			TIndirectArray<FAsyncTask<FMeshDistanceFieldAsyncTask>> AsyncTasks;
 
@@ -949,7 +953,7 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 					VolumeDimensions,
 					DistanceFieldVolumeMaxDistance,
 					ZIndex,
-					&OutData.DistanceFieldVolume);
+					&DistanceFieldVolume);
 
 				Task->StartBackgroundTask(&ThreadPool);
 
@@ -969,21 +973,48 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 			OutData.bBuiltAsIfTwoSided = bGenerateAsIfTwoSided;
 			OutData.bMeshWasPlane = bMeshWasPlane;
 
-			UE_LOG(LogMeshUtilities, Log, TEXT("Finished distance field build in %.1fs - %ux%ux%u distance field, %u triangles"),
-				(float)(FPlatformTime::Seconds() - StartTime),
-				VolumeDimensions.X,
-				VolumeDimensions.Y,
-				VolumeDimensions.Z,
-				Indices.Num() / 3);
-
 			// Toss distance field if mesh was not closed
 			if (bNegativeAtBorder)
 			{
 				OutData.Size = FIntVector(0, 0, 0);
-				OutData.DistanceFieldVolume.Empty();
+				DistanceFieldVolume.Empty();
 
-				UE_LOG(LogMeshUtilities, Log, TEXT("Discarded distance field as mesh was not closed!  Assign a two-sided material to fix."));
+				UE_LOG(LogMeshUtilities, Log, TEXT("Discarded distance field for %s as mesh was not closed!  Assign a two-sided material to fix."), *MeshName);
 			}
+
+			if (DistanceFieldVolume.Num() > 0)
+			{
+				const int32 UncompressedSize = DistanceFieldVolume.Num() * DistanceFieldVolume.GetTypeSize();
+				TArray<uint8> TempCompressedMemory;
+				// Compressed can be slightly larger than uncompressed
+				TempCompressedMemory.Empty(UncompressedSize * 4 / 3);
+				TempCompressedMemory.AddUninitialized(UncompressedSize * 4 / 3);
+				int32 CompressedSize = TempCompressedMemory.Num() * TempCompressedMemory.GetTypeSize();
+
+				verify(FCompression::CompressMemory(
+					(ECompressionFlags)(COMPRESS_ZLIB | COMPRESS_BiasMemory), 
+					TempCompressedMemory.GetData(), 
+					CompressedSize, 
+					DistanceFieldVolume.GetData(), 
+					UncompressedSize));
+
+				OutData.CompressedDistanceFieldVolume.Empty(CompressedSize);
+				OutData.CompressedDistanceFieldVolume.AddUninitialized(CompressedSize);
+
+				FPlatformMemory::Memcpy(OutData.CompressedDistanceFieldVolume.GetData(), TempCompressedMemory.GetData(), CompressedSize);
+			}
+			else
+			{
+				OutData.CompressedDistanceFieldVolume.Empty();
+			}
+
+			UE_LOG(LogMeshUtilities, Log, TEXT("Finished distance field build in %.1fs - %ux%ux%u distance field, %u triangles, %s"),
+				(float)(FPlatformTime::Seconds() - StartTime),
+				VolumeDimensions.X,
+				VolumeDimensions.Y,
+				VolumeDimensions.Z,
+				Indices.Num() / 3,
+				*MeshName);
 		}
 	}
 }
@@ -991,6 +1022,7 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 #else
 
 void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
+	FString MeshName,
 	const FStaticMeshLODResources& LODModel,
 	class FQueuedThreadPool& ThreadPool,
 	const TArray<EBlendMode>& MaterialBlendModes,

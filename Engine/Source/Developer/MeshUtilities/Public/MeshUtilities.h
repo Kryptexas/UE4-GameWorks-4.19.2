@@ -173,6 +173,7 @@ public:
 
 	/** Builds a signed distance field volume for the given LODModel. */
 	virtual void GenerateSignedDistanceFieldVolumeData(
+		FString MeshName,
 		const FStaticMeshLODResources& LODModel,
 		class FQueuedThreadPool& ThreadPool,
 		const TArray<EBlendMode>& MaterialBlendModes,

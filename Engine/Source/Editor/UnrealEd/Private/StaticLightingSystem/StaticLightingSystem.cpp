@@ -2088,7 +2088,7 @@ void FStaticLightingSystem::KickoffSwarm()
 	}
 	else
 	{
-		FStaticLightingManager::Get()->FailLightingBuild(LOCTEXT("SwarmKickoffFailedMessage", "Lighting build failed. Swarm failed to kick off."));
+		FStaticLightingManager::Get()->FailLightingBuild(LOCTEXT("SwarmKickoffFailedMessage", "Lighting build failed. Swarm failed to kick off.  Compile Unreal Lightmass."));
 	}
 }
 

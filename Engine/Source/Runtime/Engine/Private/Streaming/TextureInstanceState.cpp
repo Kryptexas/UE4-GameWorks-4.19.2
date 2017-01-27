@@ -550,44 +550,57 @@ int32 FTextureInstanceState::CheckRegistrationAndUnpackBounds()
 	return Bounds4Components.Num();
 }
 
-void FTextureInstanceState::MoveBound(int32 OldBoundIndex, int32 NewBoundIndex)
+bool FTextureInstanceState::MoveBound(int32 SrcBoundIndex, int32 DstBoundIndex)
 {
-	check(!HasCompiledElements() && !Bounds4Components[NewBoundIndex] && Bounds4Components[OldBoundIndex]); // This should only run for the dynamic path in order to be thread safe.
+	check(!HasCompiledElements()); // Defrag is for the dynamic elements which does not support dynamic compiled elements.
 
-	const UPrimitiveComponent* Component = Bounds4Components[OldBoundIndex];
-
-	// Update the elements.
-	int32* ComponentLink = ComponentMap.Find(Component);
-	if (ComponentLink)
+	if (Bounds4Components.IsValidIndex(DstBoundIndex) && Bounds4Components.IsValidIndex(SrcBoundIndex) && !Bounds4Components[DstBoundIndex] && Bounds4Components[SrcBoundIndex])
 	{
-		int32 ElementIndex = *ComponentLink;
-		while (ElementIndex != INDEX_NONE)
+		const UPrimitiveComponent* Component = Bounds4Components[SrcBoundIndex];
+
+		// Update the elements.
+		int32* ComponentLink = ComponentMap.Find(Component);
+		if (ComponentLink)
 		{
-			FElement& Element = Elements[ElementIndex];
-			if (Element.BoundsIndex == OldBoundIndex)
+			int32 ElementIndex = *ComponentLink;
+			while (ElementIndex != INDEX_NONE)
 			{
-				Element.BoundsIndex = NewBoundIndex;
+				FElement& Element = Elements[ElementIndex];
+				
+				// Sanity check to ensure elements and bounds are still linked correctly!
+				check(Element.Component == Component);
+
+				if (Element.BoundsIndex == SrcBoundIndex)
+				{
+					Element.BoundsIndex = DstBoundIndex;
+				}
+				ElementIndex = Element.NextComponentLink;
 			}
-			ElementIndex = Element.NextComponentLink;
 		}
-	}
 
-	// Update the componenets.
-	Bounds4Components[NewBoundIndex] = Component;
-	Bounds4Components[OldBoundIndex] = nullptr;
+		// Update the component ptrs.
+		Bounds4Components[DstBoundIndex] = Component;
+		Bounds4Components[SrcBoundIndex] = nullptr;
 
-	// Update the free list.
-	for (int32& BoundIndex : FreeBoundIndices)
-	{
-		if (BoundIndex == NewBoundIndex)
+		// Update the free list.
+		for (int32& BoundIndex : FreeBoundIndices)
 		{
-			BoundIndex = OldBoundIndex;
-			break;
+			if (BoundIndex == DstBoundIndex)
+			{
+				BoundIndex = SrcBoundIndex;
+				break;
+			}
 		}
-	}
 
-	UpdateBounds(NewBoundIndex); // Update the bounds using the component.
-	Bounds4[OldBoundIndex / 4].Clear(OldBoundIndex % 4);
+		UpdateBounds(DstBoundIndex); // Update the bounds using the component.
+		Bounds4[SrcBoundIndex / 4].Clear(SrcBoundIndex % 4);	
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 void FTextureInstanceState::TrimBounds()

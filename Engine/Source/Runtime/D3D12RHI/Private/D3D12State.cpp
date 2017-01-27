@@ -323,7 +323,7 @@ FGraphicsPipelineStateRHIRef FD3D12DynamicRHI::RHICreateGraphicsPipelineState(co
 	GraphicsDesc.PrimitiveTopologyType = D3D12PrimitiveTypeToTopologyType(TranslatePrimitiveType(Initializer.PrimitiveType));
 
 	TranslateRenderTargetFormats(Initializer, GraphicsDesc.RTVFormats, GraphicsDesc.DSVFormat);
-	GraphicsDesc.NumRenderTargets = Initializer.RenderTargetsEnabled;
+	GraphicsDesc.NumRenderTargets = Initializer.ComputeNumValidRenderTargets();
 	GraphicsDesc.SampleDesc.Count = Initializer.NumSamples;
 	GraphicsDesc.SampleDesc.Quality = GetMaxMSAAQuality(Initializer.NumSamples);
 

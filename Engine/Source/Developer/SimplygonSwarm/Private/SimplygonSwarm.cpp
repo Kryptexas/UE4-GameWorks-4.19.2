@@ -978,7 +978,7 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 
 		UatProcess->OnOutput().BindLambda([&](FString Message) {UE_CLOG(bEnableDebugging, LogSimplygonSwarm, Log, TEXT("UatTask Output %s"), *Message); });
 
-		while (UatProcess->IsRunning())
+		while (UatProcess->Update())
 		{
 			FPlatformProcess::Sleep(0.1f);
 		}

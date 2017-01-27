@@ -756,7 +756,7 @@ void FSceneView::SetupAntiAliasingMethod()
 	{
 		static IConsoleVariable* CVarMSAACount = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MSAACount"));
 
-		if (AntiAliasingMethod == AAM_MSAA && IsForwardShadingEnabled(FeatureLevel) && CVarMSAACount->GetInt() <= 1)
+		if (AntiAliasingMethod == AAM_MSAA && IsForwardShadingEnabled(FeatureLevel) && CVarMSAACount->GetInt() <= 0)
 		{
 			// Fallback to temporal AA so we can easily toggle methods with r.MSAACount
 			AntiAliasingMethod = AAM_TemporalAA;

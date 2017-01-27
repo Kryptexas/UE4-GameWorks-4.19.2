@@ -194,7 +194,7 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
 	OutputMessage = TEXT("");
 	IPPProcess->OnOutput().BindStatic(&OnOutput);
 	IPPProcess->Launch();
-	while(IPPProcess->IsRunning())
+	while(IPPProcess->Update())
 	{
 		FPlatformProcess::Sleep(0.01f);
 	}

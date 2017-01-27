@@ -92,6 +92,7 @@ public:
 		D3D12_HEAP_FLAGS HeapFlags,
 		D3D12_RESOURCE_FLAGS Flags,
 		uint32 MaxSizeForPooling,
+		uint32 InAllocatorID,
 		uint32 InMaxBlockSize,
 		uint32 InMinBlockSize = MIN_PLACED_BUFFER_SIZE);
 
@@ -130,6 +131,7 @@ protected:
 	const uint32 MinBlockSize;
 	const D3D12_HEAP_FLAGS HeapFlags;
 	const eBuddyAllocationStrategy AllocationStrategy;
+	const uint32 AllocatorID;
 
 	TRefCountPtr<FD3D12Resource> BackingResource;
 	TRefCountPtr<FD3D12Heap> BackingHeap;
@@ -198,6 +200,7 @@ public:
 		D3D12_HEAP_FLAGS InHeapFlags,
 		D3D12_RESOURCE_FLAGS Flags,
 		uint32 MaxSizeForPooling,
+		uint32 InAllocatorID,
 		uint32 InMaxBlockSize,
 		uint32 InMinBlockSize = MIN_PLACED_BUFFER_SIZE);
 
@@ -222,6 +225,7 @@ protected:
 	const D3D12_HEAP_FLAGS HeapFlags;
 	const uint32 MaxBlockSize;
 	const uint32 MinBlockSize;
+	const uint32 AllocatorID;
 
 	FD3D12BuddyAllocator* CreateNewAllocator();
 

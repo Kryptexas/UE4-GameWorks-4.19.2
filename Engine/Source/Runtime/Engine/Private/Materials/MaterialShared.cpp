@@ -1150,22 +1150,9 @@ void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TMap<FName, 
 		}
 		else
 		{
-			if (IsUsedWithStaticLighting())
-			{
-				//lit materials are usually lightmapped
-				static FName TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQName = TEXT("TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQ");
-				ShaderTypeNamesAndDescriptions.Add(TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQName, TEXT("Base pass shader with static lighting"));
-			}
-
 			//also show a dynamically lit shader
 			static FName TBasePassPSFNoLightMapPolicyName = TEXT("TBasePassPSFNoLightMapPolicy");
-			ShaderTypeNamesAndDescriptions.Add(TBasePassPSFNoLightMapPolicyName, TEXT("Base pass shader with only dynamic lighting"));
-
-			if (IsTranslucentBlendMode(GetBlendMode()))
-			{
-				static FName TBasePassPSFSelfShadowedTranslucencyPolicyName = TEXT("TBasePassPSFSelfShadowedTranslucencyPolicy");
-				ShaderTypeNamesAndDescriptions.Add(TBasePassPSFSelfShadowedTranslucencyPolicyName, TEXT("Base pass shader for self shadowed translucency"));
-			}
+			ShaderTypeNamesAndDescriptions.Add(TBasePassPSFNoLightMapPolicyName, TEXT("Base pass shader"));
 		}
 
 		static FName TBasePassVSFNoLightMapPolicyName = TEXT("TBasePassVSFNoLightMapPolicy");

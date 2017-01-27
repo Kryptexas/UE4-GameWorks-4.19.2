@@ -32,25 +32,20 @@ public:
 	virtual ~TDoWorkTask() {}
 
 	// Whether to run the work
-	FORCEINLINE_DEBUGGABLE void TryAsyncWork() 
+	FORCEINLINE_DEBUGGABLE void TryWork(bool bAsync) 
 	{ 
 		// Force inline as this is only called from a single place.
 		if (FPlatformAtomics::InterlockedCompareExchange(&TaskState, TS_WorkInProgress, TS_WorkPending) == TS_WorkPending)
 		{
-			Work(true);
+			Work(bAsync);
 			TaskState = TS_SyncPending;
 		}
 	}
 
 	// Force inline as this is only called from a single place.
-	FORCEINLINE_DEBUGGABLE void TryWork()
+	FORCEINLINE_DEBUGGABLE void TrySync()
 	{ 
-		if (FPlatformAtomics::InterlockedCompareExchange(&TaskState, TS_WorkInProgress, TS_WorkPending) == TS_WorkPending)
-		{
-			Work(false);
-			Work.Sync();
-		}
-		else if (TaskState != TS_Done)
+		if (TaskState != TS_Done)
 		{
 			while (TaskState != TS_SyncPending)
 			{

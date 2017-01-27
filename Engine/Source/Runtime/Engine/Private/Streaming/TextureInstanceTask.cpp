@@ -163,14 +163,14 @@ void FDoWorkTask::ProcessTasks(TArray< TRefCountPtr<TTask> >& Tasks)
 	{
 		TTask* Task = Tasks[Index].GetReference();
 
-		if (Task->GetRefCount() == 1) // Release it since it is.
-		{
+		if (Task->GetRefCount() == 1)
+		{	 // Release it since this is the only reference.
 			Tasks.RemoveAtSwap(Index);
 			--Index;
 		}
 		else
 		{
-			Task->TryAsyncWork();
+			Task->TryWork(true);
 		}
 	}
 }

@@ -170,8 +170,8 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 
 	GMaxTextureMipCount = FMath::CeilLogTwo(GMaxTextureDimensions) + 1;
 	GMaxTextureMipCount = FMath::Min<int32>(MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount);
-	GMaxShadowDepthBufferSizeX = 4096;
-	GMaxShadowDepthBufferSizeY = 4096;
+	GMaxShadowDepthBufferSizeX = GMaxTextureDimensions;
+	GMaxShadowDepthBufferSizeY = GMaxTextureDimensions;
 
 	// Enable multithreading if not in the editor (editor crashes with multithreading enabled).
 	if (!GIsEditor)

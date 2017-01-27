@@ -448,6 +448,7 @@ FExponentialHeightFogSceneInfo::FExponentialHeightFogSceneInfo(const UExponentia
 {
 	FogColor = InComponent->InscatteringColorCubemap ? InComponent->InscatteringTextureTint : InComponent->FogInscatteringColor;
 	InscatteringColorCubemap = InComponent->InscatteringColorCubemap;
+	InscatteringColorCubemapAngle = InComponent->InscatteringColorCubemapAngle * (PI / 180.f);
 	FullyDirectionalInscatteringColorDistance = InComponent->FullyDirectionalInscatteringColorDistance;
 	NonDirectionalInscatteringColorDistance = InComponent->NonDirectionalInscatteringColorDistance;
 }

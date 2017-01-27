@@ -112,20 +112,6 @@ public:
 
 	void ComputeLighting(const FViewInfo& View, FRHICommandListImmediate& RHICmdList, const FLightSceneInfo& LightSceneInfo) const;
 
-	void ComputeOcclusionForSamples(
-		const FViewInfo& View, 
-		FRHICommandListImmediate& RHICmdList, 
-		const class FTemporaryIrradianceCacheResources& TemporaryIrradianceCacheResources,
-		int32 DepthLevel,
-		const class FDistanceFieldAOParameters& Parameters) const;
-
-	void ComputeIrradianceForSamples(
-		const FViewInfo& View, 
-		FRHICommandListImmediate& RHICmdList, 
-		const class FTemporaryIrradianceCacheResources& TemporaryIrradianceCacheResources,
-		int32 DepthLevel,
-		const class FDistanceFieldAOParameters& Parameters) const;
-
 	void ComputeOcclusionForScreenGrid(
 		const FViewInfo& View, 
 		FRHICommandListImmediate& RHICmdList, 
@@ -139,14 +125,6 @@ public:
 		FSceneRenderTargetItem& DistanceFieldNormal, 
 		const FAOScreenGridResources& ScreenGridResources,
 		const FDistanceFieldAOParameters& Parameters) const;
-
-	void PreCullTriangles(
-		const FViewInfo& View, 
-		FRHICommandListImmediate& RHICmdList,
-		class FPreCulledTriangleBuffers& PreCulledTriangleBuffers,
-		int32 StartIndexValue,
-		int32 NumTrianglesValue,
-		const class FUniformMeshBuffers& UniformMeshBuffers) const;
 
 	void CompositeHeightfieldsIntoGlobalDistanceField(
 		FRHICommandList& RHICmdList,

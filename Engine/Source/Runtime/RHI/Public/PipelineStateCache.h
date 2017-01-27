@@ -9,4 +9,8 @@ PipelineStateCache.h: Pipeline state cache definition.
 #include "CoreMinimal.h"
 #include "RHI.h"
 
-extern RHI_API TRefCountPtr<FRHIComputePipelineState> GetComputePipelineState(FRHICommandList& RHICmdList, FRHIComputeShader* ComputeShader);
+class FComputePipelineState;
+class FGraphicsPipelineState;
+
+extern RHI_API FComputePipelineState* GetOrCreateComputePipelineState(FRHICommandList& RHICmdList, FRHIComputeShader* ComputeShader);
+extern RHI_API FGraphicsPipelineState* GetOrCreateGraphicsPipelineState(FRHICommandList& RHICmdList, const FGraphicsPipelineStateInitializer& Initializer);

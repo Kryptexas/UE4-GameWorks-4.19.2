@@ -8,6 +8,8 @@
 
 class FMetalCommandList;
 class FMetalCommandQueue;
+struct MTLCommandBufferRef;
+struct FMetalCommandBufferFence;
 
 /**
  * Enumeration for submission hints to avoid unclear bool values.
@@ -108,6 +110,9 @@ public:
 	
 	/** Declare that all command generation from this encoder is complete, and detach from the MTLCommandBuffer if there is an encoder active or does nothing if there isn't. */
 	void EndEncoding(void);
+	
+	/** Initialises a fence for the current command-buffer optionally adding a command-buffer completion handler to the command-buffer */
+	void InsertCommandBufferFence(FMetalCommandBufferFence& Fence, MTLCommandBufferHandler Handler);
 
 #pragma mark - Public Debug Support -
 	
@@ -315,6 +320,7 @@ private:
 	MTLRenderPassDescriptor* RenderPassDesc;
 	NSUInteger RenderPassDescApplied;
 	
+	TSharedPtr<MTLCommandBufferRef, ESPMode::ThreadSafe> CommandBufferPtr;
 	id<MTLCommandBuffer> CommandBuffer;
 	id<MTLRenderCommandEncoder> RenderCommandEncoder;
 	id<MTLComputeCommandEncoder> ComputeCommandEncoder;

@@ -44,7 +44,7 @@ public:
 	int32 CheckRegistrationAndUnpackBounds();
 
 	/** Move around one bound to free the last bound indices. This allows to keep the number of dynamic bounds low. */
-	void MoveBound(int32 OldBoundIndex, int32 NewBoundIndex);
+	bool MoveBound(int32 SrcBoundIndex, int32 DstBoundIndex);
 	void TrimBounds();
 
 	FORCEINLINE int32 NumBounds() const { return Bounds4Components.Num(); }

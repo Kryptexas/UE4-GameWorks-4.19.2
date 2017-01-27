@@ -1540,6 +1540,7 @@ bool FStreamingManagerTexture::HandleInvestigateTextureCommand( const TCHAR* Cmd
 	if ( InvestigateTextureName.Len() )
 	{
 		// Make sure the async task is idle (also implies Update_Async is finished and that the distances are valid).
+		UpdateResourceStreaming(0, true);
 		AsyncWork->EnsureCompletion();
 		FAsyncTextureStreamingData& StreamingData = AsyncWork->GetTask().StreamingData;
 		StreamingData.UpdateBoundSizes_Async(Settings);
@@ -1597,7 +1598,7 @@ bool FStreamingManagerTexture::HandleInvestigateTextureCommand( const TCHAR* Cmd
 				{
 					// Calculate distance of viewer to bounding sphere.
 					const FStreamingViewInfo& ViewInfo = StreamingData.GetViewInfos()[ViewIndex];
-					UE_LOG(LogContentStreaming, Log,  TEXT("  View%d: Position=(%s) ScreenSize=%f Boost=%f"), ViewIndex, *ViewInfo.ViewOrigin.ToString(), ViewInfo.ScreenSize, ViewInfo.BoostFactor);
+					UE_LOG(LogContentStreaming, Log,  TEXT("  View%d: Position=(%s) ScreenSize=%f MaxEffectiveScreenSize=%f Boost=%f"), ViewIndex, *ViewInfo.ViewOrigin.ToString(), ViewInfo.ScreenSize, Settings.MaxEffectiveScreenSize, ViewInfo.BoostFactor);
 				}
 
 				StreamingData.UpdatePerfectWantedMips_Async(StreamingTexture, Settings, true);

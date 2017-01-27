@@ -815,10 +815,20 @@ void FD3D11DynamicRHI::RHISetDepthStencilState(FDepthStencilStateRHIParamRef New
 	StateCache.SetDepthStencilState(NewState->Resource, StencilRef);
 }
 
+void FD3D11DynamicRHI::RHISetStencilRef(uint32 StencilRef)
+{
+	StateCache.SetStencilRef(StencilRef);
+}
+
 void FD3D11DynamicRHI::RHISetBlendState(FBlendStateRHIParamRef NewStateRHI,const FLinearColor& BlendFactor)
 {
 	FD3D11BlendState* NewState = ResourceCast(NewStateRHI);
 	StateCache.SetBlendState(NewState->Resource, (const float*)&BlendFactor, 0xffffffff);
+}
+
+void FD3D11DynamicRHI::RHISetBlendFactor(const FLinearColor& BlendFactor)
+{
+	StateCache.SetBlendFactor((const float*)&BlendFactor, 0xffffffff);
 }
 
 void FD3D11DynamicRHI::CommitRenderTargetsAndUAVs()

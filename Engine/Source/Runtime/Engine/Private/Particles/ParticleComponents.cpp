@@ -4962,7 +4962,6 @@ void UParticleSystemComponent::InitParticles()
 		int32 NumInstances = EmitterInstances.Num();
 		int32 NumEmitters = Template->Emitters.Num();
 		const bool bIsFirstCreate = NumInstances == 0;
-		check(bIsFirstCreate || NumInstances == NumEmitters);
 		EmitterInstances.SetNumZeroed(NumEmitters);
 
 		bWasCompleted = bIsFirstCreate ? false : bWasCompleted;

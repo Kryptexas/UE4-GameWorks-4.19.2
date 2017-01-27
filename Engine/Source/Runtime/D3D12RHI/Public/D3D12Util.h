@@ -455,6 +455,14 @@ inline bool IsCPUWritable(D3D12_HEAP_TYPE HeapType, const D3D12_HEAP_PROPERTIES 
 			(pCustomHeapProperties->CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE || pCustomHeapProperties->CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_BACK));
 }
 
+inline bool IsCPUInaccessible(D3D12_HEAP_TYPE HeapType, const D3D12_HEAP_PROPERTIES *pCustomHeapProperties = nullptr)
+{
+	check(HeapType == D3D12_HEAP_TYPE_CUSTOM ? pCustomHeapProperties != nullptr : true);
+	return HeapType == D3D12_HEAP_TYPE_DEFAULT ||
+		(HeapType == D3D12_HEAP_TYPE_CUSTOM &&
+		(pCustomHeapProperties->CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_NOT_AVAILABLE));
+}
+
 inline D3D12_RESOURCE_STATES DetermineInitialResourceState(D3D12_HEAP_TYPE HeapType, const D3D12_HEAP_PROPERTIES *pCustomHeapProperties = nullptr)
 {
 	if (HeapType == D3D12_HEAP_TYPE_DEFAULT || IsCPUWritable(HeapType, pCustomHeapProperties))
@@ -858,13 +866,13 @@ inline bool HasStencilBits(DXGI_FORMAT InFormat)
 	switch (InFormat)
 	{
 	case DXGI_FORMAT_D24_UNORM_S8_UINT:
-		return true;
 #if  DEPTH_32_BIT_CONVERSION
 		// Changing Depth Buffers to 32 bit on Dingo as D24S8 is actually implemented as a 32 bit buffer in the hardware
 	case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
-		return true;
 #endif
+		return true;
 	};
+
 	return false;
 }
 

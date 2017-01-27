@@ -7,10 +7,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
+#include "DistanceFieldAmbientOcclusion.h"
 
 extern int32 GAOGlobalDistanceField;
-extern int32 GAOVisualizeGlobalDistanceField;
 
 inline bool UseGlobalDistanceField()
 {

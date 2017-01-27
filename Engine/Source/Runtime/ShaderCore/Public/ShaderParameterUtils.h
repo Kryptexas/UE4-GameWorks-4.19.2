@@ -383,6 +383,13 @@ inline void FRWShaderParameter::SetBuffer(TRHICmdList& RHICmdList, TShaderRHIRef
 }
 
 template<typename TShaderRHIRef, typename TRHICmdList>
+inline void FRWShaderParameter::SetBuffer(TRHICmdList& RHICmdList, TShaderRHIRef Shader, const FRWBufferStructured& RWBuffer) const
+{
+	SetSRVParameter(RHICmdList, Shader,SRVParameter,RWBuffer.SRV);
+	SetUAVParameterIfCS(RHICmdList, Shader,UAVParameter,RWBuffer.UAV);
+}
+
+template<typename TShaderRHIRef, typename TRHICmdList>
 inline void FRWShaderParameter::SetTexture(TRHICmdList& RHICmdList, TShaderRHIRef Shader, const FTextureRHIParamRef Texture, FUnorderedAccessViewRHIParamRef UAV) const
 {
 	SetTextureParameter(RHICmdList, Shader,SRVParameter,Texture);

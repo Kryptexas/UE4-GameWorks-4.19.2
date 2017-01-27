@@ -54,7 +54,7 @@ void FD3D12Viewport::Init(IDXGIFactory* Factory, bool AssociateWindow)
 {
 	FD3D12Adapter* Adapter = GetParentAdapter();
 
-	Fence.CreateFence(0);
+	Fence.CreateFence();
 
 	CalculateSwapChainDepth();
 

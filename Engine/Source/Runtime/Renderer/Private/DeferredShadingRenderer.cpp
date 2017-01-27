@@ -15,7 +15,7 @@
 #include "FXSystem.h"
 #include "OneColorShader.h"
 #include "CompositionLighting/PostProcessDeferredDecals.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
+#include "DistanceFieldAmbientOcclusion.h"
 #include "GlobalDistanceField.h"
 #include "PostProcess/PostProcessing.h"
 #include "DistanceFieldAtlas.h"
@@ -1223,7 +1223,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	// Draw visualizations just before use to avoid target contamination
-	if (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields)
+	if (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields || ViewFamily.EngineShowFlags.VisualizeGlobalDistanceField)
 	{
 		RenderMeshDistanceFieldVisualization(RHICmdList, FDistanceFieldAOParameters(Scene->DefaultMaxDistanceFieldOcclusionDistance));
 		ServiceLocalQueue();

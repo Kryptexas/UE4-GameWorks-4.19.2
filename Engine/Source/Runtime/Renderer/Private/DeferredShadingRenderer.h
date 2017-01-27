@@ -126,9 +126,6 @@ public:
 	void RenderVisualizeTexturePool(FRHICommandListImmediate& RHICmdList);
 #endif
 
-	/** Offline culling of static triangles that won't be seen at runtime. */
-	void PreCullStaticMeshes(FRHICommandListImmediate& RHICmdList, const TArray<UStaticMeshComponent*>& ComponentsToPreCull, const TArray<TArray<FPlane> >& CullVolumes);
-
 	/** bound shader state for occlusion test prims */
 	static FGlobalBoundShaderState OcclusionTestBoundShaderState;
 
@@ -230,14 +227,6 @@ private:
 		const TRefCountPtr<IPooledRenderTarget>& DistanceFieldNormal, 
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicBentNormalAO, 
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicIrradiance);
-
-	void RenderDistanceFieldSpecularOcclusion(
-		FRHICommandListImmediate& RHICmdList, 
-		const FViewInfo& View,
-		FIntPoint TileListGroupSize,
-		const FDistanceFieldAOParameters& Parameters, 
-		const TRefCountPtr<IPooledRenderTarget>& DistanceFieldNormal, 
-		TRefCountPtr<IPooledRenderTarget>& OutSpecularOcclusion);
 
 	void RenderMeshDistanceFieldVisualization(FRHICommandListImmediate& RHICmdList, const FDistanceFieldAOParameters& Parameters);
 

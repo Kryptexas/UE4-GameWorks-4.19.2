@@ -7,6 +7,7 @@
 Buffer<uint> ShadowTileHeadDataUnpacked;
 Buffer<uint> ShadowTileArrayData;
 uint2 ShadowTileListGroupSize;
+uint ShadowMaxObjectsPerTile;
 
 #ifndef SHADOW_TILE_ARRAY_DATA_STRIDE
 #define SHADOW_TILE_ARRAY_DATA_STRIDE 0
@@ -18,7 +19,7 @@ uint2 GetShadowTileHead(uint2 TileCoordinate)
 
 	return uint2(
 		ShadowTileHeadDataUnpacked[TileIndex * 2 + 0], 
-		min(ShadowTileHeadDataUnpacked[TileIndex * 2 + 1], (uint)MAX_OBJECTS_PER_TILE)); 
+		min(ShadowTileHeadDataUnpacked[TileIndex * 2 + 1], (uint)ShadowMaxObjectsPerTile)); 
 }
 
 float4x4 WorldToShadow;

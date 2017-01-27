@@ -653,6 +653,9 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 			SrcAccess = VK_ACCESS_SHADER_READ_BIT;
 			DestAccess = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 			break;
+		case EResourceTransitionAccess::ERWNoBarrier:
+			//#todo-rco: Skip for now
+			continue;
 		default:
 			ensure(0);
 			break;

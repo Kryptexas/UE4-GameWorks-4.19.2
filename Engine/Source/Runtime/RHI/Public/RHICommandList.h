@@ -52,6 +52,8 @@ enum class EAsyncComputeBudget;
 enum class EClearDepthStencil;
 enum class EResourceTransitionAccess;
 enum class EResourceTransitionPipeline;
+class FComputePipelineState;
+class FGraphicsPipelineState;
 
 DECLARE_STATS_GROUP(TEXT("RHICmdList"), STATGROUP_RHICMDLIST, STATCAT_Advanced);
 
@@ -180,6 +182,7 @@ public:
 	void QueueAsyncCommandListSubmit(FGraphEventRef& AnyThreadCompletionEvent, class FRHICommandList* CmdList);
 	void QueueParallelAsyncCommandListSubmit(FGraphEventRef* AnyThreadCompletionEvents, bool bIsPrepass, class FRHICommandList** CmdLists, int32* NumDrawsIfKnown, int32 Num, int32 MinDrawsPerTranslate, bool bSpewMerge);
 	void QueueRenderThreadCommandListSubmit(FGraphEventRef& RenderThreadCompletionEvent, class FRHICommandList* CmdList);
+	void QueueAsyncPipelineStateCompile(FGraphEventRef& AsyncCompileCompletionEvent);
 	void QueueCommandListSubmit(class FRHICommandList* CmdList);
 	void WaitForTasks(bool bKnownToBeComplete = false);
 	void WaitForDispatch();
@@ -880,9 +883,19 @@ struct FRHICommandSetComputeShader : public FRHICommand<FRHICommandSetComputeSha
 template<ECmdList CmdListType>
 struct FRHICommandSetComputePipelineState : public FRHICommand<FRHICommandSetComputePipelineState<CmdListType>>
 {
-	TRefCountPtr<FRHIComputePipelineState> ComputePipelineState;
-	FORCEINLINE_DEBUGGABLE FRHICommandSetComputePipelineState(FRHIComputePipelineState* InComputePipelineState)
+	FComputePipelineState* ComputePipelineState;
+	FORCEINLINE_DEBUGGABLE FRHICommandSetComputePipelineState(FComputePipelineState* InComputePipelineState)
 		: ComputePipelineState(InComputePipelineState)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHICommandSetGraphicsPipelineState : public FRHICommand<FRHICommandSetGraphicsPipelineState>
+{
+	FGraphicsPipelineState* GraphicsPipelineState;
+	FORCEINLINE_DEBUGGABLE FRHICommandSetGraphicsPipelineState(FGraphicsPipelineState* InGraphicsPipelineState)
+		: GraphicsPipelineState(InGraphicsPipelineState)
 	{
 	}
 	RHI_API void Execute(FRHICommandListBase& CmdList);
@@ -2196,14 +2209,28 @@ public:
 		new (AllocCommand<FRHICommandSetComputeShader<ECmdList::EGfx>>()) FRHICommandSetComputeShader<ECmdList::EGfx>(ComputeShader);
 	}
 
-	FORCEINLINE_DEBUGGABLE void SetComputePipelineState(FRHIComputePipelineState* ComputePipelineState)
+	FORCEINLINE_DEBUGGABLE void SetComputePipelineState(FComputePipelineState* ComputePipelineState)
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(RHISetComputePipelineState)(ComputePipelineState);
+			extern RHI_API FRHIComputePipelineState* ExecuteSetComputePipelineState(FComputePipelineState* ComputePipelineState);
+			FRHIComputePipelineState* RHIComputePipelineState = ExecuteSetComputePipelineState(ComputePipelineState);
+			CMD_CONTEXT(RHISetComputePipelineState)(RHIComputePipelineState);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetComputePipelineState<ECmdList::EGfx>>()) FRHICommandSetComputePipelineState<ECmdList::EGfx>(ComputePipelineState);
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetGraphicsPipelineState(FGraphicsPipelineState* GraphicsPipelineState)
+	{
+		if (Bypass())
+		{
+			extern RHI_API FRHIGraphicsPipelineState* ExecuteSetGraphicsPipelineState(FGraphicsPipelineState* GraphicsPipelineState);
+			FRHIGraphicsPipelineState* RHIGraphicsPipelineState = ExecuteSetGraphicsPipelineState(GraphicsPipelineState);
+			CMD_CONTEXT(RHISetGraphicsPipelineState)(RHIGraphicsPipelineState);
+			return;
+		}
+		new (AllocCommand<FRHICommandSetGraphicsPipelineState>()) FRHICommandSetGraphicsPipelineState(GraphicsPipelineState);
 	}
 
 	FORCEINLINE_DEBUGGABLE void DispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
@@ -2606,11 +2633,13 @@ public:
 		new (AllocCommand<FRHICommandSetComputeShader<ECmdList::ECompute> >()) FRHICommandSetComputeShader<ECmdList::ECompute>(ComputeShader);
 	}
 
-	FORCEINLINE_DEBUGGABLE void SetComputePipelineState(FRHIComputePipelineState* ComputePipelineState)
+	FORCEINLINE_DEBUGGABLE void SetComputePipelineState(FComputePipelineState* ComputePipelineState)
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(RHISetComputePipelineState)(ComputePipelineState);
+			extern FRHIComputePipelineState* ExecuteSetComputePipelineState(FComputePipelineState* ComputePipelineState);
+			FRHIComputePipelineState* RHIComputePipelineState = ExecuteSetComputePipelineState(ComputePipelineState);
+			COMPUTE_CONTEXT(RHISetComputePipelineState)(RHIComputePipelineState);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetComputePipelineState<ECmdList::ECompute> >()) FRHICommandSetComputePipelineState<ECmdList::ECompute>(ComputePipelineState);

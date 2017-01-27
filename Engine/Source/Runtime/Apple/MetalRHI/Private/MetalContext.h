@@ -36,7 +36,7 @@ public:
 	FMetalStateCache& GetCurrentState() { return StateCache; }
 	FMetalRenderPass& GetCurrentRenderPass() { return RenderPass; }
 	
-	void InsertCommandBufferFence(FMetalCommandBufferFence& Fence);
+	void InsertCommandBufferFence(FMetalCommandBufferFence& Fence, MTLCommandBufferHandler Handler = nil);
 	
 	/**
 	 * Handle rendering thread starting/stopping

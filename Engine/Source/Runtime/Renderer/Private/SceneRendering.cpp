@@ -420,6 +420,7 @@ void FViewInfo::Init()
 	ExponentialFogColor = FVector::ZeroVector;
 	FogMaxOpacity = 1;
 	ExponentialFogParameters3 = FVector4(0, 0, 0, 0);
+	SinCosInscatteringColorCubemapRotation = FVector2D(0, 0);
 	FogInscatteringColorCubemap = NULL;
 	FogInscatteringTextureParameters = FVector::ZeroVector;
 
@@ -1269,7 +1270,7 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 		}
 		
 		extern int32 GDistanceFieldAO;
-		const bool bShowDFAODisabledWarning = !GDistanceFieldAO && (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields || ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO);
+		const bool bShowDFAODisabledWarning = !GDistanceFieldAO && (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields || ViewFamily.EngineShowFlags.VisualizeGlobalDistanceField || ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO);
 
 		const bool bShowAtmosphericFogWarning = Scene->AtmosphericFog != nullptr && !Scene->ReadOnlyCVARCache.bEnableAtmosphericFog;
 		const bool bShowSkylightWarning = (Scene->ShouldRenderSkylight_Internal(BLEND_Opaque) || Scene->ShouldRenderSkylight_Internal(BLEND_Translucent)) && !Scene->ReadOnlyCVARCache.bEnableStationarySkylight;
@@ -1725,7 +1726,10 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 		}
 
 		// Only reset per-frame scene state once all views have processed their frame, including those in planar reflections
-		SceneRenderer->Scene->DistanceFieldSceneData.PrimitiveModifiedBounds.Reset();
+		for (int32 CacheType = 0; CacheType < ARRAY_COUNT(SceneRenderer->Scene->DistanceFieldSceneData.PrimitiveModifiedBounds); CacheType++)
+		{
+			SceneRenderer->Scene->DistanceFieldSceneData.PrimitiveModifiedBounds[CacheType].Reset();
+		}
 
 #if STATS
 		{

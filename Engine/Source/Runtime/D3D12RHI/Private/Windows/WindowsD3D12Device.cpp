@@ -380,6 +380,34 @@ FDynamicRHI* FD3D12DynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type RequestedF
 	return new FD3D12DynamicRHI(RawPointers);
 }
 
+void FD3D12DynamicRHIModule::StartupModule()
+{
+#if USE_PIX
+	static FString WindowsPixDllRelativePath("../../Binaries/ThirdParty/Windows/DirectX/x64");
+	static FString WindowsPixDll("WinPixEventRuntime.dll");
+	UE_LOG(LogD3D12RHI, Log, TEXT("Loading %s for PIX profiling (from %s)."), WindowsPixDll.GetCharArray().GetData(), WindowsPixDllRelativePath.GetCharArray().GetData());
+	WindowsPixDllHandle = FPlatformProcess::GetDllHandle(*FPaths::Combine(*WindowsPixDllRelativePath, *WindowsPixDll));
+	if (WindowsPixDllHandle == nullptr)
+	{
+		const int32 ErrorNum = FPlatformMisc::GetLastError();
+		TCHAR ErrorMsg[1024];
+		FPlatformMisc::GetSystemErrorMessage(ErrorMsg, 1024, ErrorNum);
+		UE_LOG(LogD3D12RHI, Error, TEXT("Failed to get %s handle: %s (%d)"), WindowsPixDll.GetCharArray().GetData(), ErrorMsg, ErrorNum);
+	}
+#endif
+}
+
+void FD3D12DynamicRHIModule::ShutdownModule()
+{
+#if USE_PIX
+	if (WindowsPixDllHandle)
+	{
+		FPlatformProcess::FreeDllHandle(WindowsPixDllHandle);
+		WindowsPixDllHandle = nullptr;
+	}
+#endif
+}
+
 void FD3D12DynamicRHI::Init()
 {
 	for (FD3D12Adapter*& Adapter : ChosenAdapters)

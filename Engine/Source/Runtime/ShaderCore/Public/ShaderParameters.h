@@ -120,6 +120,11 @@ public:
 		return SRVParameter.IsBound() || UAVParameter.IsBound();
 	}
 
+	bool IsUAVBound() const
+	{
+		return UAVParameter.IsBound();
+	}
+
 	uint32 GetUAVIndex() const
 	{
 		return UAVParameter.GetBaseIndex();
@@ -132,6 +137,9 @@ public:
 
 	template<typename TShaderRHIRef, typename TRHICmdList>
 	inline void SetBuffer(TRHICmdList& RHICmdList, TShaderRHIRef Shader, const FRWBuffer& RWBuffer) const;
+
+	template<typename TShaderRHIRef, typename TRHICmdList>
+	inline void SetBuffer(TRHICmdList& RHICmdList, TShaderRHIRef Shader, const FRWBufferStructured& RWBuffer) const;
 
 	template<typename TShaderRHIRef, typename TRHICmdList>
 	inline void SetTexture(TRHICmdList& RHICmdList, TShaderRHIRef Shader, const FTextureRHIParamRef Texture, FUnorderedAccessViewRHIParamRef UAV) const;

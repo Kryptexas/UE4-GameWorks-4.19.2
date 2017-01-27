@@ -17,7 +17,7 @@
 #include "DeferredShadingRenderer.h"
 #include "ScenePrivate.h"
 #include "DistanceFieldLightingShared.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
+#include "DistanceFieldAmbientOcclusion.h"
 
 float GAOMaxObjectBoundingRadius = 50000;
 FAutoConsoleVariableRef CVarAOMaxObjectBoundingRadius(
@@ -191,7 +191,7 @@ private:
 	FDistanceFieldObjectBufferParameters ObjectBufferParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FUploadObjectsToBufferCS,TEXT("DistanceFieldSurfaceCacheLightingCompute"),TEXT("UploadObjectsToBufferCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FUploadObjectsToBufferCS,TEXT("DistanceFieldObjectCulling"),TEXT("UploadObjectsToBufferCS"),SF_Compute);
 
 class FCopyObjectBufferCS : public FGlobalShader
 {
@@ -264,7 +264,7 @@ private:
 	FDistanceFieldObjectBufferParameters ObjectBufferParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCopyObjectBufferCS,TEXT("DistanceFieldSurfaceCacheLightingCompute"),TEXT("CopyObjectBufferCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCopyObjectBufferCS,TEXT("DistanceFieldObjectCulling"),TEXT("CopyObjectBufferCS"),SF_Compute);
 
 class FCopySurfelBufferCS : public FGlobalShader
 {
@@ -480,8 +480,8 @@ private:
 	FShaderResourceParameter ObjectData2;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TRemoveObjectsFromBufferCS<true>,TEXT("DistanceFieldSurfaceCacheLightingCompute"),TEXT("RemoveObjectsFromBufferCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TRemoveObjectsFromBufferCS<false>,TEXT("DistanceFieldSurfaceCacheLightingCompute"),TEXT("RemoveObjectsFromBufferCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TRemoveObjectsFromBufferCS<true>,TEXT("DistanceFieldObjectCulling"),TEXT("RemoveObjectsFromBufferCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TRemoveObjectsFromBufferCS<false>,TEXT("DistanceFieldObjectCulling"),TEXT("RemoveObjectsFromBufferCS"),SF_Compute);
 
 void FSurfelBufferAllocator::RemovePrimitive(const FPrimitiveSceneInfo* Primitive)
 {
@@ -586,7 +586,8 @@ void UpdateGlobalDistanceFieldObjectRemoves(FRHICommandListImmediate& RHICmdList
 				// InstanceIndex will be -1 with zero scale meshes
 				if (InstanceIndex >= 0)
 				{
-					DistanceFieldSceneData.PrimitiveModifiedBounds.Add(DistanceFieldSceneData.PrimitiveInstanceMapping[InstanceIndex].BoundingSphere);
+					FGlobalDFCacheType CacheType = DistanceFieldSceneData.PendingRemoveOperations[RemoveIndex].bOftenMoving ? GDF_Full : GDF_MostlyStatic;
+					DistanceFieldSceneData.PrimitiveModifiedBounds[CacheType].Add(DistanceFieldSceneData.PrimitiveInstanceMapping[InstanceIndex].BoundingSphere);
 					PendingRemoveOperations.Add(InstanceIndex);
 				}
 			}
@@ -772,6 +773,7 @@ void ProcessPrimitiveUpdate(
 		&& ObjectLocalToWorldTransforms.Num() > 0)
 	{
 		const float BoundingRadius = PrimitiveSceneInfo->Proxy->GetBounds().SphereRadius;
+		const FGlobalDFCacheType CacheType = PrimitiveSceneInfo->Proxy->IsOftenMoving() ? GDF_Full : GDF_MostlyStatic;
 
 		// Proxy bounds are only useful if single instance
 		if (ObjectLocalToWorldTransforms.Num() > 1 || BoundingRadius < GAOMaxObjectBoundingRadius)
@@ -882,7 +884,8 @@ void ProcessPrimitiveUpdate(
 					UploadObjectData.Add(FVector4(FVector(BlockMin) * InvTextureDim + .5f * UVScale, SelfShadowBias));
 
 					// Box bounds
-					UploadObjectData.Add(FVector4(LocalVolumeBounds.Max, 0));
+					const float OftenMovingWSign = CacheType == GDF_Full ? 1.0f : -1.0f;
+					UploadObjectData.Add(FVector4(LocalVolumeBounds.Max, OftenMovingWSign));
 
 					UploadObjectData.Add(*(FVector4*)&UniformScaleVolumeToWorld.M[0]);
 					UploadObjectData.Add(*(FVector4*)&UniformScaleVolumeToWorld.M[1]);
@@ -912,12 +915,12 @@ void ProcessPrimitiveUpdate(
 						if (InstanceIndex >= 0)
 						{
 							// For an update transform we have to dirty the previous bounds and the new bounds, in case of large movement (teleport)
-							DistanceFieldSceneData.PrimitiveModifiedBounds.Add(DistanceFieldSceneData.PrimitiveInstanceMapping[InstanceIndex].BoundingSphere);
+							DistanceFieldSceneData.PrimitiveModifiedBounds[CacheType].Add(DistanceFieldSceneData.PrimitiveInstanceMapping[InstanceIndex].BoundingSphere);
 							DistanceFieldSceneData.PrimitiveInstanceMapping[InstanceIndex].BoundingSphere = ObjectBoundingSphere;
 						}
 					}
 
-					DistanceFieldSceneData.PrimitiveModifiedBounds.Add(ObjectBoundingSphere);
+					DistanceFieldSceneData.PrimitiveModifiedBounds[CacheType].Add(ObjectBoundingSphere);
 
 					extern int32 GAOLogGlobalDistanceFieldModifiedPrimitives;
 

@@ -76,6 +76,16 @@ public:
 		return ShaderModule;
 	}
 
+	inline const FString& GetDebugName() const
+	{
+		return DebugName;
+	}
+
+	const FVulkanCodeHeader& GetCodeHeader() const
+	{
+		return CodeHeader;
+	}
+
 protected:
 	/** External bindings for this shader. */
 	FVulkanCodeHeader CodeHeader;
@@ -1195,13 +1205,11 @@ protected:
 };
 
 
-
-// Common functionality for shader state (BSS for Gfx and Compute)
-class FVulkanShaderState
+class FVulkanDescriptorSetUpdater : public VulkanRHI::FDeviceChild
 {
 public:
-	FVulkanShaderState(FVulkanDevice* InDevice);
-	virtual ~FVulkanShaderState();
+	FVulkanDescriptorSetUpdater(FVulkanDevice* InDevice);
+	virtual ~FVulkanDescriptorSetUpdater();
 
 	inline const FVulkanDescriptorSetsLayout& GetDescriptorSetsLayout() const
 	{
@@ -1209,16 +1217,9 @@ public:
 	}
 
 protected:
-	TArray<VkDescriptorImageInfo> DescriptorImageInfo;
-	TArray<VkDescriptorBufferInfo> DescriptorBufferInfo;
-	TArray<VkWriteDescriptorSet> DescriptorWrites;
-
-	FVulkanDevice* Device;
 	mutable VkPipelineLayout PipelineLayout;
-
 	FVulkanDescriptorSetsLayout* Layout;
 	FVulkanDescriptorSets* CurrDescriptorSets;
-	VkPipeline LastBoundPipeline;
 
 	struct FDescriptorSetsPair
 	{
@@ -1247,11 +1248,21 @@ protected:
 	TArray<FDescriptorSetsEntry*> DescriptorSetsEntries;
 
 	FVulkanDescriptorSets* RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer);
+};
 
-	void UpdateDescriptorSetsForStage(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer,
-		FVulkanGlobalUniformPool* GlobalUniformPool, VkDescriptorSet DescriptorSet, FVulkanShader* StageShader,
-		uint32 RemainingGlobalUniformMask, VkDescriptorBufferInfo* BufferInfo, TArray<uint8>* PackedUniformBuffer,
-		FVulkanRingBuffer* RingBuffer, uint8* RingBufferBase, int32& WriteIndex);
+
+// Common functionality for shader state (BSS for Gfx and Compute)
+class FVulkanShaderState : public FVulkanDescriptorSetUpdater
+{
+public:
+	FVulkanShaderState(FVulkanDevice* InDevice);
+
+protected:
+	TArray<VkDescriptorImageInfo> DescriptorImageInfo;
+	TArray<VkDescriptorBufferInfo> DescriptorBufferInfo;
+	TArray<VkWriteDescriptorSet> DescriptorWrites;
+
+	VkPipeline LastBoundPipeline;
 
 	// Querying GetPipelineLayout() generates VkPipelineLayout on the first time
 	VkPipelineLayout GetPipelineLayout() const;
@@ -1532,7 +1543,6 @@ public:
 	}
 
 private:
-	void GenerateLayoutBindings(EShaderFrequency Stage, const FVulkanCodeHeader& CodeHeader);
 	void GenerateVertexInputStateInfo();
 
 	void InternalBindVertexStreams(FVulkanCmdBuffer* Cmd, const void* VertexStreams);

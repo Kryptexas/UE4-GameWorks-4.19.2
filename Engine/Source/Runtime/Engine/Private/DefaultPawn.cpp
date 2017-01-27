@@ -64,6 +64,7 @@ ADefaultPawn::ADefaultPawn(const FObjectInitializer& ObjectInitializer)
 		MeshComponent->bOwnerNoSee = true;
 		MeshComponent->bCastDynamicShadow = true;
 		MeshComponent->bAffectDynamicIndirectLighting = false;
+		MeshComponent->bAffectDistanceFieldLighting = false;
 		MeshComponent->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 		MeshComponent->SetupAttachment(RootComponent);
 		MeshComponent->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);

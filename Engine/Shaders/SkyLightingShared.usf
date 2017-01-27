@@ -41,7 +41,7 @@ void GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVecto
 		{
 			IndirectSpecularOcclusion = BentNormalLength;
 		}
-		else if (View.DistanceFieldAOSpecularOcclusionMode == 1)
+		else
 		{
 			BRANCH
 			if (bTwoSidedFoliage)
@@ -58,11 +58,6 @@ void GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVecto
 				// Can't rely on the direction of the bent normal when close to fully occluded, lerp to shadowed
 				IndirectSpecularOcclusion = lerp(0, IndirectSpecularOcclusion, saturate((UnoccludedAngle - .1f) / .2f));
 			}
-		}
-		else if (View.DistanceFieldAOSpecularOcclusionMode == 2)
-		{
-			// Cone traced specular occlusion in w
-			IndirectSpecularOcclusion = TextureValue.w;
 		}
 
 		IndirectSpecularOcclusion = lerp(IndirectSpecularOcclusion, 1, OcclusionTintAndMinOcclusion.w);

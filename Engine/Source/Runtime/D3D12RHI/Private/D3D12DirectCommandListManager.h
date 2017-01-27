@@ -61,7 +61,7 @@ public:
 
 	FD3D12FenceCorePool(FD3D12Adapter* Parent) : FD3D12AdapterChild(Parent) {};
 
-	FD3D12FenceCore* ObtainFenceCore(uint64 InitialValue);
+	FD3D12FenceCore* ObtainFenceCore();
 	void ReleaseFenceCore(FD3D12FenceCore* Fence, uint64 CurrentFenceValue);
 	void Destroy();
 
@@ -77,7 +77,7 @@ public:
 	FD3D12Fence(FD3D12Adapter* Parent = nullptr, const FName& Name = L"<unnamed>");
 	~FD3D12Fence();
 
-	void CreateFence(uint64 InitialValue = 0);
+	void CreateFence();
 	uint64 Signal(ID3D12CommandQueue* pCommandQueue);
 	void GpuWait(ID3D12CommandQueue* pCommandQueue, uint64 FenceValue);
 	bool IsFenceComplete(uint64 FenceValue);

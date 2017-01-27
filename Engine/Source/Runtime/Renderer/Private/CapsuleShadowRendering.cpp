@@ -21,7 +21,7 @@
 #include "ShadowRendering.h"
 #include "DeferredShadingRenderer.h"
 #include "MaterialShaderType.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
+#include "DistanceFieldAmbientOcclusion.h"
 #include "DistanceFieldLightingPost.h"
 #include "DistanceFieldLightingShared.h"
 

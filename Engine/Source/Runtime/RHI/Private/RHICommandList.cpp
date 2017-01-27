@@ -341,7 +341,7 @@ public:
 
 void FRHICommandListExecutor::ExecuteInner(FRHICommandListBase& CmdList)
 {
-	check(CmdList.RTTasks.Num() == 0 && CmdList.HasCommands()); 
+	check(CmdList.HasCommands()); 
 
 	bool bIsInRenderingThread = IsInRenderingThread();
 	bool bIsInGameThread = IsInGameThread();
@@ -373,6 +373,8 @@ void FRHICommandListExecutor::ExecuteInner(FRHICommandListBase& CmdList)
 		if (CVarRHICmdUseThread.GetValueOnRenderThread() > 0 && bIsInRenderingThread && !bIsInGameThread)
 		{
 			FRHICommandList* SwapCmdList;
+			FGraphEventArray Prereq;
+			Exchange(Prereq, CmdList.RTTasks); 
 			{
 				QUICK_SCOPE_CYCLE_COUNTER(STAT_FRHICommandListExecutor_SwapCmdLists);
 				SwapCmdList = new FRHICommandList;
@@ -389,7 +391,7 @@ void FRHICommandListExecutor::ExecuteInner(FRHICommandListBase& CmdList)
 			//if we use a FExecuteRHIThreadTask directly we pass the same event just to keep things consistent.
 			if (AllOutstandingTasks.Num() || RenderThreadSublistDispatchTask.GetReference())
 			{
-				FGraphEventArray Prereq(AllOutstandingTasks);
+				Prereq.Append(AllOutstandingTasks);
 				AllOutstandingTasks.Reset();
 				if (RenderThreadSublistDispatchTask.GetReference())
 				{
@@ -400,7 +402,6 @@ void FRHICommandListExecutor::ExecuteInner(FRHICommandListBase& CmdList)
 			else
 			{
 				check(!RenderThreadSublistDispatchTask.GetReference()); // if we are doing submits, there better not be any of these in flight since then the RHIThreadTask would get out of order.
-				FGraphEventArray Prereq;
 				if (RHIThreadTask.GetReference())
 				{
 					Prereq.Add(RHIThreadTask);
@@ -432,12 +433,23 @@ void FRHICommandListExecutor::ExecuteInner(FRHICommandListBase& CmdList)
 		}
 		if (bIsInRenderingThread)
 		{
+			if (CmdList.RTTasks.Num())
+			{
+				if (FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local))
+				{
+					// this is a deadlock. RT tasks must be done by now or they won't be done. We could add a third queue...
+					UE_LOG(LogRHI, Fatal, TEXT("Deadlock in FRHICommandListExecutor::ExecuteInner (RTTasks)."));
+				}
+				FTaskGraphInterface::Get().WaitUntilTasksComplete(CmdList.RTTasks, ENamedThreads::RenderThread_Local);
+				CmdList.RTTasks.Reset();
+
+			}
 			if (RenderThreadSublistDispatchTask.GetReference())
 			{
 				if (FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local))
 				{
 					// this is a deadlock. RT tasks must be done by now or they won't be done. We could add a third queue...
-					UE_LOG(LogRHI, Fatal, TEXT("Deadlock in FRHICommandListExecutor::ExecuteInner 3."));
+					UE_LOG(LogRHI, Fatal, TEXT("Deadlock in FRHICommandListExecutor::ExecuteInner (RenderThreadSublistDispatchTask)."));
 				}
 				FTaskGraphInterface::Get().WaitUntilTaskCompletes(RenderThreadSublistDispatchTask, ENamedThreads::RenderThread_Local);
 				RenderThreadSublistDispatchTask = nullptr;
@@ -447,7 +459,7 @@ void FRHICommandListExecutor::ExecuteInner(FRHICommandListBase& CmdList)
 				if (FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local))
 				{
 					// this is a deadlock. RT tasks must be done by now or they won't be done. We could add a third queue...
-					UE_LOG(LogRHI, Fatal, TEXT("Deadlock in FRHICommandListExecutor::ExecuteInner 3."));
+					UE_LOG(LogRHI, Fatal, TEXT("Deadlock in FRHICommandListExecutor::ExecuteInner (RHIThreadTask)."));
 				}
 				FTaskGraphInterface::Get().WaitUntilTaskCompletes(RHIThreadTask, ENamedThreads::RenderThread_Local);
 				if (RHIThreadTask.GetReference() && RHIThreadTask->IsComplete())
@@ -1265,8 +1277,19 @@ void FRHICommandListBase::QueueRenderThreadCommandListSubmit(FGraphEventRef& Ren
 		check(!IsInActualRenderingThread() && !IsInGameThread() && !IsImmediate());
 		RTTasks.Add(RenderThreadCompletionEvent);
 	}
+	RTTasks.Append(CmdList->RTTasks);
+	CmdList->RTTasks.Empty();
 	new (AllocCommand<FRHICommandWaitForAndSubmitRTSubList>()) FRHICommandWaitForAndSubmitRTSubList(RenderThreadCompletionEvent, CmdList);
 }
+
+void FRHICommandListBase::QueueAsyncPipelineStateCompile(FGraphEventRef& AsyncCompileCompletionEvent)
+{
+	if (AsyncCompileCompletionEvent.GetReference())
+	{
+		RTTasks.AddUnique(AsyncCompileCompletionEvent);
+	}
+}
+
 
 #if RHI_PSO_X_VALIDATION
 void FRHICommandListBase::ValidatePsoState(const FBlendStateRHIParamRef BlendState, const FDepthStencilStateRHIParamRef DepthStencilState)
@@ -1283,6 +1306,7 @@ struct FRHICommandSubmitSubList : public FRHICommand<FRHICommandSubmitSubList>
 		: RHICmdList(InRHICmdList)
 	{
 	}
+
 	void Execute(FRHICommandListBase& CmdList)
 	{
 		INC_DWORD_STAT_BY(STAT_ChainLinkCount, 1);

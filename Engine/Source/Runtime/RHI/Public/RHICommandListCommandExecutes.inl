@@ -346,10 +346,20 @@ template<ECmdList CmdListType>
 void FRHICommandSetComputePipelineState<CmdListType>::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(SetComputePipelineState);
-	INTERNAL_DECORATOR_CONTEXT(RHISetComputePipelineState)(ComputePipelineState);
+	extern FRHIComputePipelineState* ExecuteSetComputePipelineState(FComputePipelineState* ComputePipelineState);
+	FRHIComputePipelineState* RHIComputePipelineState = ExecuteSetComputePipelineState(ComputePipelineState);
+	INTERNAL_DECORATOR_CONTEXT(RHISetComputePipelineState)(RHIComputePipelineState);
 }
 template struct FRHICommandSetComputePipelineState<ECmdList::EGfx>;
 template struct FRHICommandSetComputePipelineState<ECmdList::ECompute>;
+
+void FRHICommandSetGraphicsPipelineState::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(SetGraphicsPipelineState);
+	extern FRHIGraphicsPipelineState* ExecuteSetGraphicsPipelineState(FGraphicsPipelineState* GraphicsPipelineState);
+	FRHIGraphicsPipelineState* RHIGraphicsPipelineState = ExecuteSetGraphicsPipelineState(GraphicsPipelineState);
+	INTERNAL_DECORATOR(RHISetGraphicsPipelineState)(RHIGraphicsPipelineState);
+}
 
 template<ECmdList CmdListType>
 void FRHICommandDispatchComputeShader<CmdListType>::Execute(FRHICommandListBase& CmdList)

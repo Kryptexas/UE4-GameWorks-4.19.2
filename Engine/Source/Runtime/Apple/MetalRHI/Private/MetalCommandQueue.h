@@ -44,8 +44,10 @@ enum EMetalFeatures
 	EMetalFeaturesGraphicsUAVs = 1 << 14,
 	/** Supports framework-level validation */
 	EMetalFeaturesValidation = 1 << 15,
+	/** Supports absolute-time emulation using command-buffer completion handlers */
+	EMetalFeaturesAbsoluteTimeQueries = 1 << 16,
 	/** Supports detailed statistics */
-	EMetalFeaturesStatistics= 1 << 16,
+	EMetalFeaturesStatistics= 1 << 17,
 };
 
 /**

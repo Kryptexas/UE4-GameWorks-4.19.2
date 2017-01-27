@@ -8,6 +8,7 @@
 
 #include "CoreMinimal.h"
 #include "HAL/Runnable.h"
+#include "HAL/ThreadManager.h"
 
 #define ALTERNATE_TIMESTAMP_METRIC 0
 

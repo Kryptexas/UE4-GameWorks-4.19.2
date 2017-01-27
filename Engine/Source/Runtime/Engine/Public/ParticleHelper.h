@@ -1924,7 +1924,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	TArray<UMaterialInterface*, TInlineAllocator<2> > MeshMaterials;
 
 	/** mesh particle uniform buffer reference. */
-	FMeshParticleUniformBufferRef UniformBuffer;
+	//FMeshParticleUniformBufferRef UniformBuffer;
 
 	/** offset to FMeshTypeDataPayload */
 	uint32 MeshTypeDataOffset;

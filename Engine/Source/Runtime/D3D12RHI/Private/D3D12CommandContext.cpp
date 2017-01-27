@@ -31,6 +31,9 @@ FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllo
 	bDiscardSharedConstants(false),
 	bIsDefaultContext(InIsDefaultContext),
 	bIsAsyncComputeContext(InIsAsyncComputeContext),
+#if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
+	bNeedFlushTextureCache(false),
+#endif
 	CommandListHandle(),
 	CommandAllocator(nullptr),
 	CommandAllocatorManager(InParent, InIsAsyncComputeContext ? D3D12_COMMAND_LIST_TYPE_COMPUTE : D3D12_COMMAND_LIST_TYPE_DIRECT),
@@ -530,7 +533,7 @@ FD3D12TemporalEffect::FD3D12TemporalEffect(const FD3D12TemporalEffect& Other)
 
 void FD3D12TemporalEffect::Init()
 {
-	EffectFence.CreateFence(1);
+	EffectFence.CreateFence();
 }
 
 void FD3D12TemporalEffect::Destroy()

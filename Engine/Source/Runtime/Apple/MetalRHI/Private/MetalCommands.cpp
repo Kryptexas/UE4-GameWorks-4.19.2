@@ -464,6 +464,11 @@ void FMetalRHICommandContext::RHISetDepthStencilState(FDepthStencilStateRHIParam
 	FShaderCache::SetDepthStencilState(NewStateRHI);
 }
 
+void FMetalRHICommandContext::RHISetStencilRef(uint32 StencilRef)
+{
+	Context->GetCurrentState().SetStencilRef(StencilRef);
+}
+
 void FMetalRHICommandContext::RHISetBlendState(FBlendStateRHIParamRef NewStateRHI, const FLinearColor& BlendFactor)
 {
 	FMetalBlendState* NewState = ResourceCast(NewStateRHI);
@@ -474,6 +479,10 @@ void FMetalRHICommandContext::RHISetBlendState(FBlendStateRHIParamRef NewStateRH
 	FShaderCache::SetBlendState(NewStateRHI);
 }
 
+void FMetalRHICommandContext::RHISetBlendFactor(const FLinearColor& BlendFactor)
+{
+	Context->GetCurrentState().SetBlendFactor(BlendFactor);
+}
 
 void FMetalRHICommandContext::RHISetRenderTargets(uint32 NumSimultaneousRenderTargets, const FRHIRenderTargetView* NewRenderTargets,
 	const FRHIDepthRenderTargetView* NewDepthStencilTargetRHI, uint32 NumUAVs, const FUnorderedAccessViewRHIParamRef* UAVs)

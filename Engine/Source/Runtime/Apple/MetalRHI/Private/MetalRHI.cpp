@@ -527,7 +527,7 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	GDynamicRHI = this;
 	
 #if PLATFORM_DESKTOP
-	if (!GRHISupportsRHIThread) // Can't use the shader cache with RHI thread yet, but SM5 is not a problem.
+	if (!GRHISupportsRHIThread || FParse::Param(FCommandLine::Get(),TEXT("norhithread"))) // Can't use the shader cache with RHI thread yet, but SM5 is not a problem.
 	{
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
 		

@@ -86,6 +86,11 @@ private:
 	/** Ranges from 0 to Bounds4Components.Num(). Used in the incremental update to update bounds and visibility. */
 	int32 DirtyIndex;
 
+	/** The valid bound index to be moved for defrag. */
+	int32 PendingDefragSrcBoundIndex;
+	/** The free bound index to be used as defrag destination. */
+	int32 PendingDefragDstBoundIndex;
+
 	/** The list of components to be processed. */
 	TSet<const UPrimitiveComponent*> PendingComponents;
 };

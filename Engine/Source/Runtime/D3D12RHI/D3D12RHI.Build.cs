@@ -16,7 +16,7 @@ public class D3D12RHI : ModuleRules
 				"RenderCore",
 				"ShaderCore",
 				"UtilityShaders",
-			    }
+				}
 			);
 
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
@@ -36,9 +36,9 @@ public class D3D12RHI : ModuleRules
 
 		// This is a value that should be tweaked to fit the app, lower numbers will have better performance
 		Definitions.Add("MAX_SRVS=32");
-        Definitions.Add("MAX_SAMPLERS=16");
-        Definitions.Add("MAX_UAVS=8");
-        Definitions.Add("MAX_CBS=8");
+		Definitions.Add("MAX_SAMPLERS=16");
+		Definitions.Add("MAX_UAVS=8");
+		Definitions.Add("MAX_CBS=8");
 
 		// This value controls how many root constant buffers can be used per shader stage in a root signature.
 		// Note: Using root descriptors significantly increases the size of root signatures (each root descriptor is 2 DWORDs).
@@ -52,16 +52,16 @@ public class D3D12RHI : ModuleRules
 		// enough to ensure that the GPU is rarely blocked by residency work
 		Definitions.Add("RESIDENCY_PIPELINE_DEPTH=6");
 
-        ///////////////////////////////////////////////////////////////
-        // Platform specific defines
-        ///////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////
+		// Platform specific defines
+		///////////////////////////////////////////////////////////////
 
-        if (Target.Platform != UnrealTargetPlatform.Win64 && Target.Platform != UnrealTargetPlatform.XboxOne)
-        {
-            PrecompileForTargets = PrecompileTargetsType.None;
-        }
+		if (Target.Platform != UnrealTargetPlatform.Win64 && Target.Platform != UnrealTargetPlatform.XboxOne)
+		{
+			PrecompileForTargets = PrecompileTargetsType.None;
+		}
 
-        if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
+		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
 		{
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
@@ -74,6 +74,8 @@ public class D3D12RHI : ModuleRules
 			Definitions.Add("PLATFORM_SUPPORTS_MGPU=1");
 
 			Definitions.Add("PIPELINE_STATE_FILE_LOCATION=FPaths::GameSavedDir()");
+
+			Definitions.Add("USE_PIX=D3D12_PROFILING_ENABLED");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{
@@ -95,6 +97,7 @@ public class D3D12RHI : ModuleRules
 
 			Definitions.Add("PIPELINE_STATE_FILE_LOCATION=FPaths::GameContentDir()");
 
+			Definitions.Add("USE_PIX=XBOXONE_PROFILING_ENABLED");
 		}
 	}
 }

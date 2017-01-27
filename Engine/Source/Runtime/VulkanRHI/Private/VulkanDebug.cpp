@@ -51,6 +51,12 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 				//VulkanRHI: ERROR[DS:97] Object 0x000000001c96f450: vkCreateSwapchainKHR() called with pCreateInfo->imageExtent = (8,8), which is not equal to the currentExtent = (0,0) returned by vkGetPhysicalDeviceSurfaceCapabilitiesKHR().
 				SeenCodes.Add(LayerCode);
 			}
+			else if (!FCStringAnsi::Strcmp(LayerPrefix, "SC") && MsgCode == 3)
+			{
+				// Ignore some warning which we can't fix:
+				//VulkanRHI: ERROR[SC:3] Object 0x0000000000000000: Attachment 5 not written by fragment shader
+				SeenCodes.Add(LayerCode);
+			}
 			else
 			{
 #if VULKAN_ENABLE_DUMP_LAYER

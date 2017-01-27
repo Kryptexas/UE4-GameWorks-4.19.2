@@ -85,6 +85,7 @@ void FMetalCommandEncoder::StartCommandBuffer(void)
 
 	CommandBuffer = CommandList.GetCommandQueue().CreateCommandBuffer();
 	TRACK_OBJECT(STAT_MetalCommandBufferCount, CommandBuffer);
+	CommandBufferPtr = TSharedPtr<MTLCommandBufferRef, ESPMode::ThreadSafe>(new MTLCommandBufferRef([CommandBuffer retain], dispatch_semaphore_create(0)));
 	
 	if ([DebugGroups count] > 0)
 	{
@@ -137,9 +138,20 @@ void FMetalCommandEncoder::CommitCommandBuffer(uint32 const Flags)
 			delete WeakRingBufferRef;
 		}];
 	}
+	
+	TSharedPtr<MTLCommandBufferRef, ESPMode::ThreadSafe>* CmdBufRef = new TSharedPtr<MTLCommandBufferRef, ESPMode::ThreadSafe>(CommandBufferPtr);
+	[CommandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull CompletedBuffer)
+	{
+		if(CommandBuffer.status == MTLCommandBufferStatusError)
+		{
+			FMetalCommandList::HandleMetalCommandBufferFailure(CommandBuffer);
+		}
+		delete CmdBufRef;
+	}];
 
 	CommandList.Commit(CommandBuffer, bWait);
 	
+	CommandBufferPtr.Reset();
 	CommandBuffer = nil;
 	if (Flags & EMetalSubmitFlagsCreateCommandBuffer)
 	{
@@ -284,6 +296,24 @@ void FMetalCommandEncoder::EndEncoding(void)
 	}
     
     FMemory::Memzero(ShaderBuffers);
+}
+
+void FMetalCommandEncoder::InsertCommandBufferFence(FMetalCommandBufferFence& Fence, MTLCommandBufferHandler Handler)
+{
+	check(CommandBuffer);
+	check(CommandBufferPtr.IsValid());
+	
+	Fence.CommandBufferRef = CommandBufferPtr;
+	
+	dispatch_semaphore_t Semaphore = *(CommandBufferPtr->Semaphore);
+	[CommandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull CompletedBuffer)
+	{
+		if (Handler)
+		{
+			Handler(CompletedBuffer);
+		}
+		dispatch_semaphore_signal(Semaphore);
+	}];
 }
 
 #pragma mark - Public Debug Support -

@@ -682,6 +682,11 @@ id FMetalRenderPass::End(EMetalSubmitFlags Flags)
 	return CurrentEncoderFence;
 }
 
+void FMetalRenderPass::InsertCommandBufferFence(FMetalCommandBufferFence& Fence, MTLCommandBufferHandler Handler)
+{
+	CurrentEncoder.InsertCommandBufferFence(Fence, Handler);
+}
+
 #pragma mark - Public Debug Support -
 	
 void FMetalRenderPass::InsertDebugSignpost(NSString* const String)

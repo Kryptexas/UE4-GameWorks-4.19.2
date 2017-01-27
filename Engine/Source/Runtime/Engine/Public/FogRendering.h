@@ -28,6 +28,7 @@ public:
 		SetShaderValue(RHICmdList, Shader, ExponentialFogParameters, ViewInfo->ExponentialFogParameters);
 		SetShaderValue(RHICmdList, Shader, ExponentialFogColorParameter, FVector4(ViewInfo->ExponentialFogColor, 1.0f - ViewInfo->FogMaxOpacity));
 		SetShaderValue(RHICmdList, Shader, ExponentialFogParameters3, ViewInfo->ExponentialFogParameters3);
+		SetShaderValue(RHICmdList, Shader, SinCosInscatteringColorCubemapRotation, ViewInfo->SinCosInscatteringColorCubemapRotation);
 
 		const FTexture* Cubemap = GWhiteTextureCube;
 
@@ -57,6 +58,7 @@ public:
 	FShaderParameter ExponentialFogParameters;
 	FShaderParameter ExponentialFogColorParameter;
 	FShaderParameter ExponentialFogParameters3;
+	FShaderParameter SinCosInscatteringColorCubemapRotation;
 	FShaderResourceParameter FogInscatteringColorCubemap;
 	FShaderResourceParameter FogInscatteringColorSampler;
 	FShaderParameter FogInscatteringTextureParameters;

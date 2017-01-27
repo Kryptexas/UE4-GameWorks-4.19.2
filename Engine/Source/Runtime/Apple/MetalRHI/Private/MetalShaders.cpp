@@ -803,7 +803,7 @@ void FMetalShaderParameterCache::CommitPackedUniformBuffers(TRefCountPtr<FMetalB
 		}
 	}();
 
-	if (!Bindings.bHasRegularUniformBuffers)
+	if (!Bindings.bHasRegularUniformBuffers && !FShaderCache::IsPredrawCall())
 	{
 		check(Bindings.NumUniformBuffers <= RHIUniformBuffers.Num());
 		int32 LastInfoIndex = 0;

@@ -237,46 +237,6 @@ float RemapScalar(float Low, float High, float x)
 
 uint OutputGamut;
 
-// Doesn't work with PQ output
-float3 InvertACESTonemapping( float3 OutColor )
-{
-	const float3x3 AP1_2_sRGB    = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
-	const float3x3 sRGB_2_AP1    = mul( XYZ_2_AP1_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
-
-	const float3x3 AP1_2_Output = OuputGamutMappingMatrix( OutputGamut );
-	const float3x3 Output_2_AP1  = OuputInverseGamutMappingMatrix( OutputGamut );
-
-	const float3x3 sRGB_2_Output = mul( AP1_2_Output, sRGB_2_AP1 );
-	const float3x3 Output_2_sRGB = mul( AP1_2_Output, Output_2_AP1 );
-
-	half3 PseudoLinearColor, Approach0, Approach1;
-	PseudoLinearColor = saturate(sRGBToLinear( OutColor.rgb ));
-
-	// Approximate inversion
-	//Approach0 = mul( Output_2_AP1, PseudoLinearColor );
-
-	// FIXME: Workaround for UE-29935, pushing all colors with a 0 component to black output
-	// Workaround in PostProcessCombineLUTs.usf mean that the output color is always in the
-	// sRGB gamut. Once that is resolved, the matrix multiply above should be re-enabled.
-	Approach0 = PseudoLinearColor;
-
-	Approach0 = aces100nitFitInverse( Approach0 );
-	Approach0 = max(0, mul( AP1_2_Output, Approach0 ));
-
-	// Exact inversion
-	//Approach1 = mul(Output_2_sRGB, PseudoLinearColor);
-
-	// FIXME: Workaround for UE-29935, pushing all colors with a 0 component to black output
-	// Workaround in PostProcessCombineLUTs.usf mean that the output color is always in the
-	// sRGB gamut. Once that is resolved, the matrix multiply above should be re-enabled.
-	//Approach1 = PseudoLinearColor;
-
-	//Approach1 = InverseACESOutputTransformsRGBD65( Approach1 );
-	//Approach1 = max(0, mul( sRGB_2_Output, Approach1 ));
-
-	return Approach0;//lerp(Approach0, Approach1, ACESInversion);
-}
-
 float max4(float4 x)
 {
 	return max(max(x.r, x.g), max(x.b, x.a));
@@ -515,11 +475,6 @@ void MainPS(
 
 		// RETURN_COLOR not needed unless writing to SceneColor
 		OutColor = float4(OutDeviceColor, saturate(LuminanceForPostProcessAA));
-
-		#if USE_INVERSE_TONEMAPPING
-			// Post-tonemap linearization. Used when writing out EXRs
-			OutColor.rgb = InvertACESTonemapping( OutColor.rgb );
-		#endif
 
 		// We always process in PQ for precision but can output in ScRGB
 		BRANCH

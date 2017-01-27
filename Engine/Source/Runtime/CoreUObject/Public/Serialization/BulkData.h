@@ -607,29 +607,6 @@ struct COREUOBJECT_API FFloatBulkData : public FUntypedBulkData
 	virtual void SerializeElement( FArchive& Ar, void* Data, int32 ElementIndex );
 };
 
-/*-----------------------------------------------------------------------------
-	float 16 version of bulk data.
------------------------------------------------------------------------------*/
-
-struct COREUOBJECT_API FFloat16BulkData : public FUntypedBulkData
-{
-	/**
-	 * Returns size in bytes of single element.
-	 *
-	 * @return Size in bytes of single element
-	 */
-	virtual int32 GetElementSize() const;
-
-	/**
-	 * Serializes an element at a time allowing and dealing with endian conversion and backward compatiblity.
-	 * 
-	 * @param Ar			Archive to serialize with
-	 * @param Data			Base pointer to data
-	 * @param ElementIndex	Element index to serialize
-	 */
-	virtual void SerializeElement( FArchive& Ar, void* Data, int32 ElementIndex );
-};
-
 class FFormatContainer
 {
 	TMap<FName, FByteBulkData*> Formats;

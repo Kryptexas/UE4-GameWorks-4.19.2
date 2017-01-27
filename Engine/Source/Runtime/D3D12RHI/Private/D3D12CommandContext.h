@@ -20,12 +20,9 @@ D3D12CommandContext.h: D3D12 Command Context Interfaces
 THIRD_PARTY_INCLUDES_START
 #include <delayimp.h>
 
-#if D3D12_PROFILING_ENABLED || (defined(XBOXONE_PROFILING_ENABLED) && XBOXONE_PROFILING_ENABLED)
+#if USE_PIX
 	static_assert(WITH_PROFILEGPU == 1, "PIX profiling is requested/enabled, however the engine is compiling out draw events. See Build.h.");
-#define USE_PIX 1
-#include "pix.h"
-#else
-#define USE_PIX 0
+	#include "pix3.h"
 #endif
 #include "HideWindowsPlatformTypes.h"
 THIRD_PARTY_INCLUDES_END
@@ -113,6 +110,21 @@ public:
 	const bool bIsDefaultContext;
 	const bool bIsAsyncComputeContext;
 
+#if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
+	bool bNeedFlushTextureCache;
+	void InvalidateTextureCache() { bNeedFlushTextureCache = true; }
+	inline void FlushTextureCacheIfNeeded()
+	{
+		if (bNeedFlushTextureCache)
+		{
+			FlushTextureCache();
+
+			bNeedFlushTextureCache = false;
+		}
+	}
+	virtual void FlushTextureCache() {};
+#endif
+
 	uint32 numDraws;
 	uint32 numDispatches;
 	uint32 numClears;
@@ -168,6 +180,7 @@ public:
 	template<typename TPixelShader>
 	void ResolveTextureUsingShader(
 		FRHICommandList_RecursiveHazardous& RHICmdList,
+		FGlobalBoundShaderState& ResolveBoundShaderState,
 		FD3D12Texture2D* SourceTexture,
 		FD3D12Texture2D* DestTexture,
 		FD3D12RenderTargetView* DestSurfaceRTV,
@@ -189,9 +202,12 @@ public:
 		return bIsDefaultContext;
 	}
 
+	virtual void SetDepthBounds(float MinDepth, float MaxDepth);
+
 	// IRHIComputeContext interface
 	virtual void RHIWaitComputeFence(FComputeFenceRHIParamRef InFence) final override;
 	virtual void RHISetComputeShader(FComputeShaderRHIParamRef ComputeShader) final override;
+	virtual void RHISetComputePipelineState(FRHIComputePipelineState* ComputePipelineState) final override;
 	virtual void RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ) final override;
 	virtual void RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) final override;
 	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteComputeFenceRHI) final override;
@@ -283,7 +299,7 @@ public:
 	{
 		RHIClearMRT(true, NumTextures, ColorArray, false, 0, false, 0);
 	}
-	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) override;
+	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) final override;
 	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) final override;
 
 	virtual void RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
@@ -387,6 +403,10 @@ public:
 	FORCEINLINE virtual void RHISetComputeShader(FComputeShaderRHIParamRef ComputeShader) final override
 	{
 		ContextRedirect(RHISetComputeShader(ComputeShader));
+	}
+	FORCEINLINE virtual void RHISetComputePipelineState(FRHIComputePipelineState* ComputePipelineState) final override
+	{
+		ContextRedirect(RHISetComputePipelineState(ComputePipelineState));
 	}
 	FORCEINLINE virtual void RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ) final override
 	{

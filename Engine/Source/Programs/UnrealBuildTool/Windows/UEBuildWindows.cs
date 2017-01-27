@@ -177,10 +177,15 @@ namespace UnrealBuildTool
 
 			if (ModuleName == "D3D12RHI")
 			{
-				if (bPixProfilingEnabled && Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test)
+				if (bPixProfilingEnabled && Target.Platform == UnrealTargetPlatform.Win64 && Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test)
 				{
+					// Define to indicate profiling enabled (64-bit only)
 					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=1");
 					Rules.Definitions.Add("PROFILE");
+					Rules.PublicAdditionalLibraries.Add("WinPixEventRuntime.lib");
+
+					Rules.PublicDelayLoadDLLs.Add("WinPixEventRuntime.dll");
+					Rules.RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Windows/DirectX/x64/WinPixEventRuntime.dll"));
 				}
 				else
 				{
@@ -193,11 +198,11 @@ namespace UnrealBuildTool
 
 			if (SupportWindowsXP)
 			{
-                // Change libcurl path for XP as the default Win32 lib calls functions not supported on the platform
-                // Remove path must exactly match what is created in libcurl.Build.cs
-                string LibCurlOriginalLibPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/lib/" + ((Target.Platform == UnrealTargetPlatform.Win64) ? "Win64/" : "Win32/") + "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
-                Rules.PublicLibraryPaths.Remove(LibCurlOriginalLibPath);
-                Rules.PublicLibraryPaths.Add(LibCurlOriginalLibPath + "_xp");
+				// Change libcurl path for XP as the default Win32 lib calls functions not supported on the platform
+				// Remove path must exactly match what is created in libcurl.Build.cs
+				string LibCurlOriginalLibPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/lib/" + ((Target.Platform == UnrealTargetPlatform.Win64) ? "Win64/" : "Win32/") + "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+				Rules.PublicLibraryPaths.Remove(LibCurlOriginalLibPath);
+				Rules.PublicLibraryPaths.Add(LibCurlOriginalLibPath + "_xp");
 
 				Rules.DynamicallyLoadedModuleNames.Remove("D3D12RHI");
 				Rules.DynamicallyLoadedModuleNames.Remove("D3D11RHI");
@@ -447,7 +452,7 @@ namespace UnrealBuildTool
 			if (InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("USE_NULL_RHI=1"))
 			{
 				UEBuildConfiguration.bCompileSimplygon = false;
-                UEBuildConfiguration.bCompileSimplygonSSF = false;
+				UEBuildConfiguration.bCompileSimplygonSSF = false;
 			}
 
 			// For 64-bit builds, we'll forcibly ignore a linker warning with DirectInput.  This is
@@ -1132,7 +1137,7 @@ namespace UnrealBuildTool
 				// There are still issues with VS2015's support for XP. For now we need to lock it to the 2013 toolchain.
 				Compiler = WindowsCompiler.VisualStudio2013;
 			}
-            return Context;
+			return Context;
 		}
 
 		/// <summary>

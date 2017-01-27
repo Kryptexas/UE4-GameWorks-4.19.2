@@ -74,7 +74,8 @@ public:
 	{
 		if (ComputePipelineState)
 		{
-			RHISetComputeShader(ComputePipelineState->GetComputeShader());
+			FRHIComputePipelineStateFallback* FallbackState = static_cast<FRHIComputePipelineStateFallback*>(ComputePipelineState);
+			RHISetComputeShader(FallbackState->GetComputeShader());
 		}
 	}
 
@@ -666,7 +667,7 @@ public:
 
 	virtual TRefCountPtr<FRHIComputePipelineState> RHICreateComputePipelineState(FRHIComputeShader* ComputeShader)
 	{
-		return new FRHIComputePipelineState(ComputeShader);
+		return new FRHIComputePipelineStateFallback(ComputeShader);
 	}
 
 	/**

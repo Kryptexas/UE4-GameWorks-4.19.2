@@ -135,7 +135,7 @@ TAutoConsoleVariable<float> CVarStreamingMipBias(
 
 TAutoConsoleVariable<int32> CVarStreamingUsePerTextureBias(
 	TEXT("r.Streaming.UsePerTextureBias"),
-	0,
+	1,
 	TEXT("If non-zero, each texture will be assigned a mip bias between 0 and MipBias as required to fit in budget."),
 	ECVF_Default);
 
@@ -185,7 +185,7 @@ TAutoConsoleVariable<int32> CVarStreamingNumStaticComponentsProcessedPerFrame(
 
 TAutoConsoleVariable<int32> CVarStreamingDefragDynamicBounds(
 	TEXT("r.Streaming.DefragDynamicBounds"),
-	0,
+	1,
 	TEXT("If non-zero, unused dynamic bounds will be removed from the update loop"),
 	ECVF_Default);
 

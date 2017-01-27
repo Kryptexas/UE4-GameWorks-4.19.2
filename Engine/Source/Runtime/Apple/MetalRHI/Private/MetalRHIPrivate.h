@@ -48,7 +48,7 @@ const uint32 MaxMetalStreams = 30;
 #define METAL_STATISTICS 0
 #endif
 
-#define METAL_DEBUG_OPTIONS !(UE_BUILD_SHIPPING)
+#define METAL_DEBUG_OPTIONS !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #if METAL_DEBUG_OPTIONS
 #define METAL_DEBUG_OPTION(Code) Code
 #else

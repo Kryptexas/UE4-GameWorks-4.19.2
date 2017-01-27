@@ -44,8 +44,12 @@ static TCHAR const* GShaderCodeCacheFileName = TEXT("ByteCodeCache.ushadercode")
 static TCHAR const* GCookedCodeCacheFileName = TEXT("ByteCodeCache.ushadercode");
 #endif
 
+#define SHADER_CACHE_ENABLED (!WITH_EDITOR && PLATFORM_MAC)
+
+static const ECompressionFlags ShaderCacheCompressionFlag = ECompressionFlags::COMPRESS_ZLIB;
+
 // Only the Mac build defaults to using the shader cache for now, Editor uses a separate cache from the game to avoid ever-growing cache being propagated to the game.
-int32 FShaderCache::bUseShaderCaching = 0;
+int32 FShaderCache::bUseShaderCaching = SHADER_CACHE_ENABLED;
 FAutoConsoleVariableRef FShaderCache::CVarUseShaderCaching(
 	TEXT("r.UseShaderCaching"),
 	bUseShaderCaching,
@@ -55,7 +59,7 @@ FAutoConsoleVariableRef FShaderCache::CVarUseShaderCaching(
 
 // Predrawing takes an existing shader cache with draw log & renders each shader + draw-state combination before use to avoid in-driver recompilation
 // This requires plenty of setup & is done in batches at frame-end.
-int32 FShaderCache::bUseShaderPredraw = 0;
+int32 FShaderCache::bUseShaderPredraw = SHADER_CACHE_ENABLED;
 FAutoConsoleVariableRef FShaderCache::CVarUseShaderPredraw(
 	TEXT("r.UseShaderPredraw"),
 	bUseShaderPredraw,
@@ -64,7 +68,7 @@ FAutoConsoleVariableRef FShaderCache::CVarUseShaderPredraw(
 	);
 
 // The actual draw loggging is even more expensive as it has to cache all the RHI draw state & is disabled by default.
-int32 FShaderCache::bUseShaderDrawLog = 0;
+int32 FShaderCache::bUseShaderDrawLog = SHADER_CACHE_ENABLED;
 FAutoConsoleVariableRef FShaderCache::CVarUseShaderDrawLog(
 	TEXT("r.UseShaderDrawLog"),
 	bUseShaderDrawLog,
@@ -82,7 +86,7 @@ FAutoConsoleVariableRef FShaderCache::CVarPredrawBatchTime(
 	);
 
 // A separate cache of used shader binaries for even earlier submission - may be platform or even device specific.
-int32 FShaderCache::bUseShaderBinaryCache = 0;
+int32 FShaderCache::bUseShaderBinaryCache = SHADER_CACHE_ENABLED;
 FAutoConsoleVariableRef FShaderCache::CVarUseShaderBinaryCache(
 	TEXT("r.UseShaderBinaryCache"),
 	bUseShaderBinaryCache,
@@ -129,6 +133,14 @@ FAutoConsoleVariableRef FShaderCache::CVarInitialShaderLoadTime(
 	TEXT("r.InitialShaderLoadTime"),
 	InitialShaderLoadTime,
 	TEXT("Time to spend loading the shader cache synchronously on startup before falling back to asynchronous precompilation/predraw. Defaults to -1 which will perform all work synchronously."),
+	ECVF_RenderThreadSafe
+	);
+
+int32 GShaderCacheBinaryCacheLogging = 0;
+FAutoConsoleVariableRef GCVarShaderCacheBinaryCacheLogging(
+	TEXT("r.BinaryShaderCacheLogging"),
+	GShaderCacheBinaryCacheLogging,
+	TEXT("Log duplicate shader code entries within a project and report on shader code details when generating the binary shader cache. Defaults to 0."),
 	ECVF_RenderThreadSafe
 	);
 
@@ -287,11 +299,9 @@ void FShaderCache::LoadBinaryCache()
 					{
 						if(!bUseAsyncShaderPrecompilation)
 						{
-							TArray<uint8> Code;
-							FArchiveLoadCompressedProxy DecompressArchive(Entry.Value, (ECompressionFlags)(COMPRESS_ZLIB));
-							DecompressArchive << Code;
-							
-							Cache->InternalLogShader(Entry.Key.Platform, Entry.Key.Frequency, Entry.Key.SHAHash, Code);
+							uint32 UncompressedLen = Entry.Value.Key;
+							TArray<uint8>& Code = Entry.Value.Value;
+							Cache->InternalLogShader(Entry.Key.Platform, Entry.Key.Frequency, Entry.Key.SHAHash, UncompressedLen, Code);
 						}
 						else
 						{
@@ -327,8 +337,52 @@ void FShaderCache::CacheCookedShaderPlatforms(FName PlatformName, TArray<FName> 
 #endif
 }
 
+void FShaderCache::DumpCookCache()
+{
+#if WITH_EDITORONLY_DATA
+	if (CookCache && GShaderCacheBinaryCacheLogging > 0)
+	{
+		TMap<int32, int32> NumRepetitions;
+		uint32 NumShaders = 0;
+		uint32 NumCounts = 0;
+		uint64 UniqueSize = 0;
+		uint64 TotalSize = 0;
+		uint32 MinShaderSize = UINT32_MAX;
+		uint32 MaxShaderSize = 0;
+		for (auto& Pair : CookCache->CodeCache.Counts)
+		{
+			++NumShaders;
+			auto& List = Pair.Value;
+			for (int32 Index = 0; Index < List.Num(); ++Index)
+			{
+				NumCounts += List[Index].Key;
+				uint32 Size = List[Index].Value.Num();
+				
+				MinShaderSize = FMath::Min(Size, MinShaderSize);
+				MaxShaderSize = FMath::Max(Size, MaxShaderSize);
+				
+				UniqueSize += Size;
+				TotalSize += Size * List[Index].Key;
+				
+				++NumRepetitions.FindOrAdd(List[Index].Key);
+			}
+		}
+		
+		UE_LOG(LogShaders, Warning, TEXT("*** Unique Shaders %d, Instances %d, avg shaders per unique %.2f"), NumShaders, NumCounts, (float)NumCounts / (float)NumShaders);
+		UE_LOG(LogShaders, Warning, TEXT("*** Min Shader Size %d, Max Shader Size %d"), MinShaderSize, MaxShaderSize);
+		UE_LOG(LogShaders, Warning, TEXT("*** Unique Shaders Size %f (%.2fmb), Total Shader Size %f (%.2fmb), Avg Size per shader %f (%.2fkb)"), (float)UniqueSize, (float)UniqueSize / 1024.0 / 1024.0, (float)TotalSize, (float)TotalSize / 1024.0 / 1024.0, (float)UniqueSize / (float)CookCache->CodeCache.Counts.Num(), (float)UniqueSize / (float)CookCache->CodeCache.Counts.Num() / 1024.0);
+		UE_LOG(LogShaders, Warning, TEXT("*** # Repetitions / Frequency"));
+		for (auto& Pair : NumRepetitions)
+		{
+			UE_LOG(LogShaders, Warning, TEXT("*** %d / %d"), Pair.Key, Pair.Value);
+		}
+	}
+#endif
+}
+
 void FShaderCache::SaveBinaryCache(FString OutputDir, FName PlatformName)
 {
+	DumpCookCache();
 	if((bUseShaderBinaryCache && Cache)
 #if WITH_EDITORONLY_DATA
 	   || CookCache
@@ -391,6 +445,7 @@ void FShaderCache::ShutdownShaderCache()
 		Cache = nullptr;
 	}
 #if WITH_EDITORONLY_DATA
+	DumpCookCache();
 	if (CookCache)
 	{
 		delete CookCache;
@@ -472,6 +527,7 @@ FShaderCache::FShaderCache(uint32 InOptions, uint32 InMaxResources)
 
 FShaderCache::~FShaderCache()
 {
+	DumpCookCache();
 	FString BinaryShaderFile = FPaths::GameSavedDir() / GShaderCacheFileName;
 	SaveShaderCache(BinaryShaderFile, &Caches);
 	
@@ -653,7 +709,7 @@ void FShaderCache::InternalLogStreamingKey(uint32 StreamKey, bool const bActive)
 	});
 }
 
-void FShaderCache::InternalLogShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, TArray<uint8> const& Code)
+void FShaderCache::InternalLogShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, uint32 UncompressedSize, TArray<uint8> const& Code)
 {
 	bool bUsable = FShaderResource::ArePlatformsCompatible(GMaxRHIShaderPlatform, Platform);
 	switch (Frequency)
@@ -683,22 +739,29 @@ void FShaderCache::InternalLogShader(EShaderPlatform Platform, EShaderFrequency 
 		Key.Frequency = Frequency;
 		Key.bActive = true;
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(LogShader, FShaderCache*,ShaderCache,this, FShaderCacheKey,Key,Key, TArray<uint8>,Code,Code, {
+		ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(LogShader, FShaderCache*,ShaderCache,this, FShaderCacheKey,Key,Key, uint32, UncompressedSize,UncompressedSize, TArray<uint8>,Code,Code, {
 			bool bSubmit = !ShaderCache->bUseShaderBinaryCache || !ShaderCache->bUseAsyncShaderPrecompilation;
 			if(ShaderCache->bUseShaderBinaryCache && !ShaderCache->CodeCache.Shaders.Contains(Key))
 			{
-				TArray<uint8> CompressedData;
-				FArchiveSaveCompressedProxy CompressArchive(CompressedData, (ECompressionFlags)(COMPRESS_ZLIB|COMPRESS_BiasMemory));
-				CompressArchive << Code;
-				CompressArchive.Flush();
-				
-				ShaderCache->CodeCache.Shaders.Add(Key, CompressedData);
+				ShaderCache->CodeCache.Shaders.Add(Key, TPairInitializer<uint32, TArray<uint8>>(UncompressedSize, Code));
 				
 				bSubmit |= true;
 			}
 			if(!(ShaderCache->Options & SCO_NoShaderPreload) && bSubmit)
 			{
-				ShaderCache->SubmitShader(Key, Code);
+				if (Code.Num() != UncompressedSize && RHISupportsShaderCompression(Key.Platform))
+				{
+					TArray<uint8> UncompressedCode;
+					UncompressedCode.SetNum(UncompressedSize);
+					bool bSucceed = FCompression::UncompressMemory(ShaderCacheCompressionFlag, UncompressedCode.GetData(), UncompressedSize, Code.GetData(), Code.Num());
+					check(bSucceed);
+					
+					ShaderCache->SubmitShader(Key, UncompressedCode);
+				}
+				else
+				{
+					ShaderCache->SubmitShader(Key, Code);
+				}
 			}
 		});
 	}
@@ -1230,13 +1293,22 @@ void FShaderCache::InternalPreDrawShaders(FRHICommandList& RHICmdList, float Del
 			for( uint32 Index = 0; (GetTargetPrecompileFrameTime() == -1 || NumCompiled < NumShadersToCompile) && Index < (uint32)ShadersToPrecompile.Num(); ++Index )
 			{
 				FShaderCacheKey& Key = ShadersToPrecompile[Index];
-				TArray<uint8>& CompressedCode = CodeCache.Shaders[Key];
+				uint32 UncompressedSize = CodeCache.Shaders[Key].Key;
+				TArray<uint8>& CompressedCode = CodeCache.Shaders[Key].Value;
 				
-				TArray<uint8> Code;
-				FArchiveLoadCompressedProxy DecompressArchive(CompressedCode, (ECompressionFlags)(COMPRESS_ZLIB));
-				DecompressArchive << Code;
+				if (CompressedCode.Num() != UncompressedSize && RHISupportsShaderCompression(Key.Platform))
+				{
+					TArray<uint8> Code;
+					Code.SetNum(UncompressedSize);
+					bool bSucceed = FCompression::UncompressMemory(ShaderCacheCompressionFlag, Code.GetData(), UncompressedSize, CompressedCode.GetData(), CompressedCode.Num());
+					check(bSucceed);
+					SubmitShader(Key, Code);
+				}
+				else
+				{
+					SubmitShader(Key, CompressedCode);
+				}
 				
-				SubmitShader(Key, Code);
 				INC_DWORD_STAT(STATGROUP_NumPrecompiled);
 				INC_DWORD_STAT(STATGROUP_TotalPrecompiled);
 				
@@ -1426,7 +1498,7 @@ uint32 FShaderCache::NumShaderPrecompilesRemaining()
 	return 0;
 }
 
-void FShaderCache::CookShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, TArray<uint8> const& Code)
+void FShaderCache::CookShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, uint32 UncompressedSize, TArray<uint8> const& Code)
 {
 #if WITH_EDITORONLY_DATA
 	if ( CookCache && CookCache->AllCachedPlatforms.Contains(Platform) )
@@ -1436,13 +1508,27 @@ void FShaderCache::CookShader(EShaderPlatform Platform, EShaderFrequency Frequen
 		Key.Platform = Platform;
 		Key.Frequency = Frequency;
 		Key.bActive = true;
+		CookCache->CodeCache.Shaders.Add(Key, TPairInitializer<uint32, TArray<uint8>>(UncompressedSize, Code));
 		
-		TArray<uint8> CompressedData;
-		FArchiveSaveCompressedProxy CompressArchive(CompressedData, (ECompressionFlags)(COMPRESS_ZLIB|COMPRESS_BiasMemory));
-		CompressArchive << const_cast<TArray<uint8>&>(Code);
-		CompressArchive.Flush();
-		
-		CookCache->CodeCache.Shaders.Add(Key, CompressedData);
+		if (GShaderCacheBinaryCacheLogging > 0)
+		{
+			auto& List = CookCache->CodeCache.Counts.FindOrAdd(Key);
+			bool bFound = false;
+			for (int32 Index = 0; Index < List.Num(); ++Index)
+			{
+				if (Code == List[Index].Value)
+				{
+					++List[Index].Key;
+					bFound = true;
+				}
+			}
+			if (!bFound)
+			{
+				int32 Index = List.AddDefaulted();
+				List[Index].Value = Code;
+				List[Index].Key = 1;
+			}
+		}
 	}
 #endif
 }

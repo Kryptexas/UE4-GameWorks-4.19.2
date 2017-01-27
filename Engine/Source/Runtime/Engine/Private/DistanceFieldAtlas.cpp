@@ -93,8 +93,29 @@ FString FDistanceFieldVolumeTextureAtlas::GetSizeString() const
 	if (VolumeTextureRHI)
 	{
 		const int32 FormatSize = GPixelFormats[Format].BlockBytes;
-		float MemorySize = VolumeTextureRHI->GetSizeX() * VolumeTextureRHI->GetSizeY() * VolumeTextureRHI->GetSizeZ() * FormatSize / 1024.0f / 1024.0f;
-		return FString::Printf(TEXT("Allocated %ux%ux%u distance field atlas = %.1fMb"), VolumeTextureRHI->GetSizeX(), VolumeTextureRHI->GetSizeY(), VolumeTextureRHI->GetSizeZ(), MemorySize);
+
+		size_t BackingDataBytes = 0;
+
+		for (int32 AllocationIndex = 0; AllocationIndex < CurrentAllocations.Num(); AllocationIndex++)
+		{
+			FDistanceFieldVolumeTexture* Texture = CurrentAllocations[AllocationIndex];
+			BackingDataBytes += Texture->VolumeData.CompressedDistanceFieldVolume.Num() * Texture->VolumeData.CompressedDistanceFieldVolume.GetTypeSize();
+		}
+
+		for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)
+		{
+			FDistanceFieldVolumeTexture* Texture = PendingAllocations[AllocationIndex];
+			BackingDataBytes += Texture->VolumeData.CompressedDistanceFieldVolume.Num() * Texture->VolumeData.CompressedDistanceFieldVolume.GetTypeSize();
+		}
+
+		float AtlasMemorySize = VolumeTextureRHI->GetSizeX() * VolumeTextureRHI->GetSizeY() * VolumeTextureRHI->GetSizeZ() * FormatSize / 1024.0f / 1024.0f;
+		return FString::Printf(TEXT("Allocated %ux%ux%u distance field atlas = %.1fMb, with %u objects containing %.1fMb backing data"), 
+			VolumeTextureRHI->GetSizeX(), 
+			VolumeTextureRHI->GetSizeY(), 
+			VolumeTextureRHI->GetSizeZ(), 
+			AtlasMemorySize,
+			CurrentAllocations.Num() + PendingAllocations.Num(),
+			BackingDataBytes / 1024.0f / 1024.0f);
 	}
 	else
 	{
@@ -132,6 +153,8 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 {
 	if (PendingAllocations.Num() > 0)
 	{
+		const double StartTime = FPlatformTime::Seconds();
+
 		// Sort largest to smallest for best packing
 		PendingAllocations.Sort(FCompareVolumeAllocation());
 
@@ -199,7 +222,7 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 				TexCreate_ShaderResource,
 				CreateInfo);
 
-			UE_LOG(LogStaticMesh,Log,TEXT("Allocated %s"), *GetSizeString());
+			UE_LOG(LogStaticMesh,Log,TEXT("%s"),*GetSizeString());
 		}
 
 		for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)
@@ -219,13 +242,28 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 				Size.Z);
 
 			const int32 FormatSize = GPixelFormats[Format].BlockBytes;
+			const int32 UncompressedSize = Size.X * Size.Y * Size.Z * FormatSize;
+
+			TArray<FFloat16> UncompressedData;
+			UncompressedData.Empty(Size.X * Size.Y * Size.Z);
+			UncompressedData.AddUninitialized(Size.X * Size.Y * Size.Z);
+
+			verify(FCompression::UncompressMemory((ECompressionFlags)COMPRESS_ZLIB, UncompressedData.GetData(), UncompressedSize, Texture->VolumeData.CompressedDistanceFieldVolume.GetData(), Texture->VolumeData.CompressedDistanceFieldVolume.Num()));
 
 			// Update the volume texture atlas
-			RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Size.X * FormatSize, Size.X * Size.Y * FormatSize, (const uint8*)Texture->VolumeData.DistanceFieldVolume.GetData());
+			RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Size.X * FormatSize, Size.X * Size.Y * FormatSize, (const uint8*)UncompressedData.GetData());
 		}
 
 		CurrentAllocations.Append(PendingAllocations);
 		PendingAllocations.Empty();
+
+		const double EndTime = FPlatformTime::Seconds();
+		const float UpdateDurationMs = (float)(EndTime - StartTime) * 1000.0f;
+
+		if (UpdateDurationMs > 10.0f)
+		{
+			UE_LOG(LogStaticMesh,Verbose,TEXT("FDistanceFieldVolumeTextureAtlas::UpdateAllocations took %.1fms"), UpdateDurationMs);
+		}
 	}	
 }
 
@@ -535,6 +573,7 @@ void FDistanceFieldAsyncQueue::Build(FAsyncDistanceFieldTask* Task, FQueuedThrea
 	const FStaticMeshLODResources& LODModel = Task->GenerateSource->RenderData->LODResources[0];
 
 	MeshUtilities->GenerateSignedDistanceFieldVolumeData(
+		Task->StaticMesh->GetName(),
 		LODModel,
 		ThreadPool,
 		Task->MaterialBlendModes,

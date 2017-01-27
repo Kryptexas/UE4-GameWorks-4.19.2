@@ -174,6 +174,9 @@ void FD3D12StateCacheBase::ClearState()
 
 	PipelineState.Graphics.CurrentPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
+	PipelineState.Graphics.MinDepth = 0.0f;
+	PipelineState.Graphics.MaxDepth = 1.0f;
+
 	bAutoFlushComputeShaderCache = false;
 
 	DirtyState();
@@ -194,6 +197,7 @@ void FD3D12StateCacheBase::DirtyState()
 	bNeedSetPrimitiveTopology = true;
 	bNeedSetBlendFactor = true;
 	bNeedSetStencilRef = true;
+	bNeedSetDepthBounds = true;
 	PipelineState.Common.SRVCache.DirtyAll();
 	PipelineState.Common.UAVCache.DirtyAll();
 	PipelineState.Common.CBVCache.DirtyAll();
@@ -294,6 +298,10 @@ void FD3D12StateCacheBase::ApplyState()
 		DirtyState();
 	}
 
+#if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
+	CmdContext->FlushTextureCacheIfNeeded();
+#endif
+
 	FD3D12CommandListHandle& CommandList = CmdContext->CommandListHandle;
 	const FD3D12RootSignature* const pRootSignature = IsCompute ?
 		PipelineState.Compute.CurrentComputeShader->pRootSignature : PipelineState.Graphics.HighLevelDesc.BoundShaderState->pRootSignature;
@@ -387,7 +395,7 @@ void FD3D12StateCacheBase::ApplyState()
 		}
 	}
 
-	SetPipelineState(Pso, IsCompute);
+	SetPipelineState<IsCompute>(Pso);
 
 	if (!IsCompute)
 	{
@@ -440,6 +448,11 @@ void FD3D12StateCacheBase::ApplyState()
 		{
 			DescriptorCache.SetRenderTargets(PipelineState.Graphics.RenderTargetArray, PipelineState.Graphics.HighLevelDesc.NumRenderTargets, PipelineState.Graphics.CurrentDepthStencilTarget);
 			bNeedSetRTs = false;
+		}
+		if (bNeedSetDepthBounds)
+		{
+			CmdContext->SetDepthBounds(PipelineState.Graphics.MinDepth, PipelineState.Graphics.MaxDepth);
+			bNeedSetDepthBounds = false;
 		}
 	}
 
@@ -1173,6 +1186,8 @@ void FD3D12StateCacheBase::SetShaderResourceView(FD3D12ShaderResourceView* SRV, 
 					// Unbind the DSV because it's being used for depth write
 					check(bWritableDepth || bWritableStencil);
 					PipelineState.Graphics.CurrentDepthStencilTarget = nullptr;
+					PipelineState.Graphics.bNeedRebuildPSO = true;
+					bNeedSetRTs = true;
 					if (Cache.ViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex])
 					{
 						Cache.ViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex] = false;
@@ -1219,32 +1234,40 @@ void FD3D12StateCacheBase::SetRenderTargets(uint32 NumSimultaneousRenderTargets,
 	PipelineState.Graphics.HighLevelDesc.NumRenderTargets = ActiveNumSimultaneousRenderTargets;
 }
 
-void FD3D12StateCacheBase::SetPipelineState(FD3D12PipelineState* PSO, bool IsCompute)
+template <bool IsCompute>
+void FD3D12StateCacheBase::SetPipelineState(FD3D12PipelineState* PSO)
 {
+	// Save the PSO
+	if (PSO)
+	{
+		if (IsCompute)
+		{
+			PipelineState.Compute.CurrentPipelineStateObject = PSO->GetPipelineState();
+			check(!PipelineState.Compute.bNeedRebuildPSO);
+		}
+		else
+		{
+			PipelineState.Graphics.CurrentPipelineStateObject = PSO->GetPipelineState();
+			check(!PipelineState.Graphics.bNeedRebuildPSO);
+		}
+	}
+
 	// See if we need to set our PSO:
 	// In D3D11, you could Set dispatch arguments, then set Draw arguments, then call Draw/Dispatch/Draw/Dispatch without setting arguments again.
 	// In D3D12, we need to understand when the app switches between Draw/Dispatch and make sure the correct PSO is set.
-	if (PipelineState.Common.bNeedSetPSO)
+	bool bNeedSetPSO = PipelineState.Common.bNeedSetPSO;
+	auto& CurrentPSO = PipelineState.Common.CurrentPipelineStateObject;
+	auto& RequiredPSO = IsCompute ? PipelineState.Compute.CurrentPipelineStateObject : PipelineState.Graphics.CurrentPipelineStateObject;
+	if (CurrentPSO != RequiredPSO)
 	{
-		if (PSO)
-		{
-			// Save the current PSO
-			if (IsCompute)
-			{
-				PipelineState.Compute.CurrentPipelineStateObject = PSO->GetPipelineState();
-				check(!PipelineState.Compute.bNeedRebuildPSO);
-			}
-			else
-			{
-				PipelineState.Graphics.CurrentPipelineStateObject = PSO->GetPipelineState();
-				check(!PipelineState.Graphics.bNeedRebuildPSO);
-			}
+		CurrentPSO = RequiredPSO;
+		bNeedSetPSO = true;
+	}
 
-			PipelineState.Common.CurrentPipelineStateObject = PSO->GetPipelineState();
-		}
-
-		CmdContext->CommandListHandle->SetPipelineState(PipelineState.Common.CurrentPipelineStateObject);
-
+	// Set the PSO on the command list if necessary.
+	if (bNeedSetPSO)
+	{
+		CmdContext->CommandListHandle->SetPipelineState(CurrentPSO);
 		PipelineState.Common.bNeedSetPSO = false;
 	}
 }

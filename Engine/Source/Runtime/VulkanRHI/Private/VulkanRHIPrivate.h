@@ -459,6 +459,7 @@ struct FVulkanDescriptorSets
 private:
 	friend class FVulkanDescriptorPool;
 	friend class FVulkanShaderState;
+	friend class FVulkanDescriptorSetUpdater;
 
 	FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanDescriptorSetsLayout& InLayout, FVulkanCommandListContext* InContext);
 

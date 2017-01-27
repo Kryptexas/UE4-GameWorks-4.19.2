@@ -24,7 +24,7 @@
 #include "PostProcess/PostProcessing.h"
 #include "PostProcess/SceneFilterRendering.h"
 #include "DistanceFieldLightingShared.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
+#include "DistanceFieldAmbientOcclusion.h"
 
 int32 GDistanceFieldShadowing = 1;
 FAutoConsoleVariableRef CVarDistanceFieldShadowing(
@@ -98,10 +98,7 @@ public:
 		: FGlobalShader(Initializer)
 	{
 		ObjectBufferParameters.Bind(Initializer.ParameterMap);
-		ObjectIndirectArguments.Bind(Initializer.ParameterMap, TEXT("ObjectIndirectArguments"));
-		CulledObjectBounds.Bind(Initializer.ParameterMap, TEXT("CulledObjectBounds"));
-		CulledObjectData.Bind(Initializer.ParameterMap, TEXT("CulledObjectData"));
-		CulledObjectBoxBounds.Bind(Initializer.ParameterMap, TEXT("CulledObjectBoxBounds"));
+		CulledObjectParameters.Bind(Initializer.ParameterMap);
 		ObjectBoundingGeometryIndexCount.Bind(Initializer.ParameterMap, TEXT("ObjectBoundingGeometryIndexCount"));
 		WorldToShadow.Bind(Initializer.ParameterMap, TEXT("WorldToShadow"));
 		NumShadowHullPlanes.Bind(Initializer.ParameterMap, TEXT("NumShadowHullPlanes"));
@@ -126,10 +123,7 @@ public:
 		OutUAVs[3] = GShadowCulledObjectBuffers.Buffers.BoxBounds.UAV;		
 		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
 
-		ObjectIndirectArguments.SetBuffer(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments);
-		CulledObjectBounds.SetBuffer(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers.Bounds);
-		CulledObjectData.SetBuffer(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers.Data);
-		CulledObjectBoxBounds.SetBuffer(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers.BoxBounds);
+		CulledObjectParameters.Set(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers);
 
 		SetShaderValue(RHICmdList, ShaderRHI, ObjectBoundingGeometryIndexCount, StencilingGeometry::GLowPolyStencilSphereIndexBuffer.GetIndexCount());
 		SetShaderValue(RHICmdList, ShaderRHI, WorldToShadow, WorldToShadowValue);
@@ -149,10 +143,7 @@ public:
 	void UnsetParameters(FRHICommandList& RHICmdList, const FScene* Scene)
 	{
 		ObjectBufferParameters.UnsetParameters(RHICmdList, GetComputeShader(), *(Scene->DistanceFieldSceneData.ObjectBuffers));
-		ObjectIndirectArguments.UnsetUAV(RHICmdList, GetComputeShader());
-		CulledObjectBounds.UnsetUAV(RHICmdList, GetComputeShader());
-		CulledObjectData.UnsetUAV(RHICmdList, GetComputeShader());
-		CulledObjectBoxBounds.UnsetUAV(RHICmdList, GetComputeShader());
+		CulledObjectParameters.UnsetParameters(RHICmdList, GetComputeShader());
 
 		FUnorderedAccessViewRHIParamRef OutUAVs[4];
 		OutUAVs[0] = GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments.UAV;
@@ -166,10 +157,7 @@ public:
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << ObjectBufferParameters;
-		Ar << ObjectIndirectArguments;
-		Ar << CulledObjectBounds;
-		Ar << CulledObjectData;
-		Ar << CulledObjectBoxBounds;
+		Ar << CulledObjectParameters;
 		Ar << ObjectBoundingGeometryIndexCount;
 		Ar << WorldToShadow;
 		Ar << NumShadowHullPlanes;
@@ -181,10 +169,7 @@ public:
 private:
 
 	FDistanceFieldObjectBufferParameters ObjectBufferParameters;
-	FRWShaderParameter ObjectIndirectArguments;
-	FRWShaderParameter CulledObjectBounds;
-	FRWShaderParameter CulledObjectData;
-	FRWShaderParameter CulledObjectBoxBounds;
+	FDistanceFieldCulledObjectBufferParameters CulledObjectParameters;
 	FShaderParameter ObjectBoundingGeometryIndexCount;
 	FShaderParameter WorldToShadow;
 	FShaderParameter NumShadowHullPlanes;
@@ -239,7 +224,7 @@ public:
 
 	void UnsetParameters(FRHICommandList& RHICmdList, FLightTileIntersectionResources* TileIntersectionResources)
 	{
-		LightTileIntersectionParameters.UnsetParameters(RHICmdList, GetComputeShader(), *TileIntersectionResources);
+		LightTileIntersectionParameters.UnsetParameters(RHICmdList, GetComputeShader());
 
 		TArray<FUnorderedAccessViewRHIParamRef> UAVs;
 		LightTileIntersectionParameters.GetUAVs(*TileIntersectionResources, UAVs);

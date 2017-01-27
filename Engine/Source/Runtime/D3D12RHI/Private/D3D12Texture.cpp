@@ -1663,7 +1663,7 @@ void TD3D12Texture2D<RHIResourceType>::UnlockInternal(class FRHICommandListImmed
 	check(LockedResource);
 
 #if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
-	if (GetParentDevice()->GetOwningRHI()->HandleSpecialUnlock(MipIndex, GetFlags(), GetTextureLayout(), RawTextureMemory))
+	if (GetParentDevice()->GetOwningRHI()->HandleSpecialUnlock(RHICmdList, MipIndex, GetFlags(), GetTextureLayout(), RawTextureMemory))
 	{
 		// nothing left to do...
 	}
@@ -1743,9 +1743,11 @@ void TD3D12Texture2D<RHIResourceType>::UpdateTexture2D(class FRHICommandListImme
 
 		byte* pRowData = (byte*)pData;
 		byte* pSourceRowData = (byte*)SourceData;
+		uint32 CopyPitch = UpdateRegion.Width * GPixelFormats[GetFormat()].BlockBytes;
+		check(CopyPitch <= SourcePitch);
 		for (uint32 i = 0; i < UpdateRegion.Height; i++)
 		{
-			FMemory::Memcpy(pRowData, pSourceRowData, SourcePitch);
+			FMemory::Memcpy(pRowData, pSourceRowData, CopyPitch);
 			pSourceRowData += SourcePitch;
 			pRowData += AlignedSourcePitch;
 		}
@@ -1873,11 +1875,14 @@ void FD3D12DynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI, uint
 	byte* pRowData = (byte*)pData;
 	byte* pSourceRowData = (byte*)SourceData;
 	byte* pSourceDepthSlice = (byte*)SourceData;
+
+	uint32 CopyPitch = UpdateRegion.Width * GPixelFormats[Texture->GetFormat()].BlockBytes;
+	check(CopyPitch <= SourceRowPitch);
 	for (uint32 i = 0; i < UpdateRegion.Depth; i++)
 	{
 		for (uint32 j = 0; j < UpdateRegion.Height; j++)
 		{
-			FMemory::Memcpy(pRowData, pSourceRowData, SourceRowPitch);
+			FMemory::Memcpy(pRowData, pSourceRowData, CopyPitch);
 			pSourceRowData += SourceRowPitch;
 			pRowData += AlignedSourcePitch;
 		}
@@ -1978,12 +1983,9 @@ void FD3D12DynamicRHI::RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef TextureC
 
 void FD3D12DynamicRHI::RHIBindDebugLabelName(FTextureRHIParamRef TextureRHI, const TCHAR* Name)
 {
-#if !UE_BUILD_SHIPPING
-
-#if !UE_BUILD_TEST
+#if NAME_OBJECTS
 	FName DebugName(Name);
 	TextureRHI->SetName(DebugName);
-#endif
 
 	FD3D12Resource* Resource = GetD3D12TextureFromRHITexture(TextureRHI)->GetResource();
 	SetName(Resource, Name);

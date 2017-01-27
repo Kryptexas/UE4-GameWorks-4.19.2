@@ -1153,7 +1153,8 @@ bool FPostProcessing::AllowFullPostProcessing(const FViewInfo& View, ERHIFeature
 		&& !View.Family->EngineShowFlags.VisualizeDistanceFieldAO
 		&& !View.Family->EngineShowFlags.VisualizeDistanceFieldGI
 		&& !View.Family->EngineShowFlags.VisualizeShadingModels
-		&& !View.Family->EngineShowFlags.VisualizeMeshDistanceFields;
+		&& !View.Family->EngineShowFlags.VisualizeMeshDistanceFields
+		&& !View.Family->EngineShowFlags.VisualizeGlobalDistanceField;
 }
 
 void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT)

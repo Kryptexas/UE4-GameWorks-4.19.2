@@ -783,7 +783,7 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 
 			if (VolumeData.Size.GetMax() > 0)
 			{
-				float MemoryMb = (VolumeData.Size.X * VolumeData.Size.Y * VolumeData.Size.Z * VolumeData.DistanceFieldVolume.GetTypeSize()) / (1024.0f * 1024.0f);
+				float MemoryMb = (VolumeData.Size.X * VolumeData.Size.Y * VolumeData.Size.Z * sizeof(FFloat16)) / (1024.0f * 1024.0f);
 
 				FNumberFormattingOptions NumberOptions;
 				NumberOptions.MinimumFractionalDigits = 2;

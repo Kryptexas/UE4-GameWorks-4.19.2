@@ -1345,6 +1345,12 @@ void FOpenGLDynamicRHI::RHISetDepthStencilState(FDepthStencilStateRHIParamRef Ne
 	FShaderCache::SetDepthStencilState(NewStateRHI);
 }
 
+void FOpenGLDynamicRHI::RHISetStencilRef(uint32 StencilRef)
+{
+	VERIFY_GL_SCOPE();
+	PendingState.StencilRef = StencilRef;
+}
+
 void FOpenGLDynamicRHI::UpdateDepthStencilStateInOpenGLContext( FOpenGLContextState& ContextState )
 {
 	if (ContextState.DepthStencilState.bZEnable != PendingState.DepthStencilState.bZEnable)

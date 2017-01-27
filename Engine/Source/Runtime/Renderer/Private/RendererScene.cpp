@@ -42,7 +42,7 @@
 #include "RendererModule.h"
 #include "StaticMeshResources.h"
 #include "ParameterCollection.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
+#include "DistanceFieldAmbientOcclusion.h"
 #include "EngineModule.h"
 #include "FXSystem.h"
 #include "DistanceFieldLightingShared.h"
@@ -302,7 +302,8 @@ void FDistanceFieldSceneData::AddPrimitive(FPrimitiveSceneInfo* InPrimitive)
 		{
 			HeightfieldPrimitives.Add(InPrimitive);
 			FBoxSphereBounds PrimitiveBounds = Proxy->GetBounds();
-			PrimitiveModifiedBounds.Add(FVector4(PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius));
+			FGlobalDFCacheType CacheType = Proxy->IsOftenMoving() ? GDF_Full : GDF_MostlyStatic;
+			PrimitiveModifiedBounds[CacheType].Add(FVector4(PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius));
 		}
 
 		if (Proxy->SupportsDistanceFieldRepresentation())
@@ -357,7 +358,8 @@ void FDistanceFieldSceneData::RemovePrimitive(FPrimitiveSceneInfo* InPrimitive)
 			HeightfieldPrimitives.Remove(InPrimitive);
 
 			FBoxSphereBounds PrimitiveBounds = Proxy->GetBounds();
-			PrimitiveModifiedBounds.Add(FVector4(PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius));
+			FGlobalDFCacheType CacheType = Proxy->IsOftenMoving() ? GDF_Full : GDF_MostlyStatic;
+			PrimitiveModifiedBounds[CacheType].Add(FVector4(PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius));
 		}
 	}
 }
@@ -571,7 +573,6 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	SunLight(NULL)
 ,	ReflectionSceneData(InFeatureLevel)
 ,	IndirectLightingCache(InFeatureLevel)
-,	SurfaceCacheResources(NULL)
 ,	DistanceFieldSceneData(GShaderPlatformForFeatureLevel[InFeatureLevel])
 ,	PreshadowCacheLayout(0, 0, 0, 0, false, false)
 ,	AtmosphericFog(NULL)
@@ -640,13 +641,6 @@ FScene::~FScene()
 	ReflectionSceneData.CubemapArray.ReleaseResource();
 	IndirectLightingCache.ReleaseResource();
 	DistanceFieldSceneData.Release();
-
-	if (SurfaceCacheResources)
-	{
-		SurfaceCacheResources->ReleaseResource();
-		delete SurfaceCacheResources;
-		SurfaceCacheResources = NULL;
-	}
 
 	if (AtmosphericFog)
 	{

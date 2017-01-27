@@ -64,8 +64,8 @@ Below an example is given with Temporal AA enabled versus 4X MSAA enabled.
 [/OBJECT]
 
 [REGION:note]
-You can use the console variable `r.MSAACount` to control how many MSAA samples are computed for every pixel. 
-Assigning `r.MSAACount 1` will fall back to using Temporal AA, which allows for convenient toggling between Anti-Aliasing methods. 
+You can use the console variable `r.MSAACount` to control how many MSAA samples are computed for every pixel. `r.MSAACount 1` disables MSAA.
+Assigning `r.MSAACount 0` will fall back to using Temporal AA, which allows for convenient toggling between Anti-Aliasing methods. 
 [/REGION]
 
 ## Performance and Features

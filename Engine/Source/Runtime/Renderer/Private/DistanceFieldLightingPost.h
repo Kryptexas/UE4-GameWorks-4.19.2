@@ -30,23 +30,11 @@ extern void UpdateHistory(
 	TRefCountPtr<IPooledRenderTarget>& BentNormalHistoryOutput,
 	TRefCountPtr<IPooledRenderTarget>& IrradianceHistoryOutput);
 
-extern void PostProcessBentNormalAOSurfaceCache(
-	FRHICommandList& RHICmdList, 
-	const FDistanceFieldAOParameters& Parameters, 
-	const FViewInfo& View, 
-	IPooledRenderTarget* VelocityTexture,
-	FSceneRenderTargetItem& BentNormalInterpolation, 
-	IPooledRenderTarget* IrradianceInterpolation,
-	FSceneRenderTargetItem& DistanceFieldNormal,
-	TRefCountPtr<IPooledRenderTarget>& BentNormalOutput,
-	TRefCountPtr<IPooledRenderTarget>& IrradianceOutput);
-
 extern void UpsampleBentNormalAO(
 	FRHICommandList& RHICmdList, 
 	const TArray<FViewInfo>& Views, 
 	TRefCountPtr<IPooledRenderTarget>& DistanceFieldAOBentNormal, 
 	TRefCountPtr<IPooledRenderTarget>& DistanceFieldIrradiance,
-	TRefCountPtr<IPooledRenderTarget>& DistanceFieldSpecularOcclusion,
 	bool bModulateSceneColor,
 	bool bVisualizeAmbientOcclusion,
 	bool bVisualizeGlobalIllumination);
