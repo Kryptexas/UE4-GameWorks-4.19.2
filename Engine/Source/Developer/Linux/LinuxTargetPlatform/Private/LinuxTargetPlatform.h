@@ -191,7 +191,7 @@ public:
 			
 			// else check for legacy LINUX_ROOT
 			ToolchainRoot[ 0 ] = 0;
-			FPlatformMisc::GetEnvironmentVariable(TEXT("LINUX_MULTIARCH_ROOT"), ToolchainRoot, ARRAY_COUNT(ToolchainRoot));            
+			FPlatformMisc::GetEnvironmentVariable(TEXT("LINUX_ROOT"), ToolchainRoot, ARRAY_COUNT(ToolchainRoot));            
 			FString ToolchainCompiler = ToolchainRoot;
 			if (PLATFORM_WINDOWS)
 			{
