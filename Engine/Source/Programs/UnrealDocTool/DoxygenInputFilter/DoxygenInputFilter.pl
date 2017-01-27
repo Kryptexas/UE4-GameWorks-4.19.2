@@ -6,6 +6,7 @@
 # If it's a "///" or "/**" (Doxygen's "comment" code), ignore it.
 # Otherwise, transform it into the appropriate Doxygen "comment" code.
 # For .cpp files, ignore all comment-modification code as it's causing undesired comments (e.g. copyright notices) to be captured.
+# Convert "GENERATED_UCLASS_BODY()" macros to "GENERATED_BODY()", set access level to public, and declare the old-style UE4 constructor, all on the same line.
 
 my $line = "";
 my $lastclassname;
@@ -19,18 +20,43 @@ while (<FILE1>)
 	if ($line =~ /\/\/ Copyright .+ Epic Games, Inc. All Rights Reserved./)
 	{
 		# Discard copyright line.
-		$line = " ";
+		$line = " \n";
 	}
 	else
 	{
-		if ($line =~ /class .+ :.*/)
+		if (index($line, "class ") eq 0)
 		{
-			$lastclassname = substr($line, index($line, "class ") + 6, index($line, ":") - 6);
+			if ($line =~ /class \w+_API \w+/)
+			{
+				$tempvalue = index($line, "_API") + 5;
+				if (index($line, ":") >= 0)
+				{
+					$lastclassname = substr($line, $tempvalue, index($line, ":") - $tempvalue);
+				}
+				else
+				{
+					$lastclassname = substr($line, $tempvalue);
+				}
+#print "lcn0 = " . $lastclassname . "\n";
+			}
+			elsif (index($line, ":") >= 0)
+			{
+				$tempvalue = index($line, "class ") + 6;
+				$lastclassname = substr($line, $tempvalue, index($line, ":") - $tempvalue);
+#print "lcn1 = " . $lastclassname . "\n";
+			}
+			else
+			{
+				# This will catch forward-declared classes, but should not be a problem because these should never immediately precede a GENERATED_UCLASS_BODY() line.
+				$lastclassname = substr($line, index($line, "class ") + 6);
+#print "lcn2 = " . $lastclassname . "\n";
+			}
 		}
 		else
 		{
 			if (index($line, "GENERATED_UCLASS_BODY()") >= 0)
 			{
+				# $lastclassname might not be initialized. If so, the previous logic block failed to catch a class name, or "GENERATED_UCLASS_BODY()" is floating around loose in a file somewhere.
 				$line = "GENERATED_BODY() public: " . $lastclassname . "(const FObjectInitializer& ObjectInitializer);\n";
 			}
 		}

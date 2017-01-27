@@ -89,7 +89,8 @@ namespace DoxygenLib
 
 				// List of valid file patterns
 				Output.WriteLine();
-				FormatSetting(Output, "FILE_PATTERNS", new List<string> { "*.h", "*.c", "*.hpp", "*.cpp", "*.inl", "*.inc" });
+				//FormatSetting(Output, "FILE_PATTERNS", new List<string> { "*.h", "*.c", "*.hpp", "*.cpp", "*.inl", "*.inc" });
+                FormatSetting(Output, "FILE_PATTERNS", new List<string> { "*.h", "*.hpp", "*.inl", "*.inc" });
 
 				// List of tag files
 				Output.WriteLine();
