@@ -3,12 +3,14 @@
 //#include "OrionGame.h"
 #include "PerformanceMonitor.h"
 #include "CoreGlobals.h"
-#include "EngineGlobals.h"
-#include "Engine/Engine.h"
 #include "HAL/FileManager.h"
 #include "Misc/Paths.h"
-#include "Engine/GameViewportClient.h"
 #include "Containers/Ticker.h"
+
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
+#include "Engine/GameViewportClient.h"
+
 
 #define SUPER_DETAILED_AUTOMATION_STATS 1
 PERFORMANCEMONITOR_API int ExportedInt;
@@ -138,9 +140,9 @@ bool FPerformanceMonitorModule::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputD
 
 
 
+#if STATS
 void FPerformanceMonitorModule::StartRecordingPerfTimers(FString FileNameToUse, TArray<FString> StatsToRecord)
 {
-#if STATS
 	for (const FWorldContext& WorldContext : GEngine->GetWorldContexts())
 	{
 		if (WorldContext.WorldType == EWorldType::Game || WorldContext.WorldType == EWorldType::PIE)
@@ -213,9 +215,9 @@ void FPerformanceMonitorModule::StartRecordingPerfTimers(FString FileNameToUse, 
 	//		PlayerWorld->SetTimeUntilNextGarbageCollection(300.f);
 	//	}
 	//}
-#endif
 }
 
+#endif
 void FPerformanceMonitorModule::RecordFrame()
 {
 	if (!bRecording)

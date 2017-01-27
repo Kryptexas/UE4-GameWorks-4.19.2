@@ -22,7 +22,9 @@ class FPerformanceMonitorModule : public IModuleInterface, public FSelfRegisteri
 	};
 private: 
 	TArray<FString> DesiredStats;
+#if STATS
 	TArray<TArray<FStatMessage>> StoredMessages;
+#endif
 	TMap<FString, TArray<float>> GeneratedStats;
 	FArchive * FileToLogTo;
 	FString LogFileName;
@@ -76,7 +78,9 @@ public:
 
 
 	bool IsRecordingPerfTimers() { return bRecording; }
+#if STATS
 	void StartRecordingPerfTimers(FString FileName, TArray<FString> StatsToRecord);
+#endif
 	void SetRecordInterval(float NewInterval);
 
 	void RecordFrame();
