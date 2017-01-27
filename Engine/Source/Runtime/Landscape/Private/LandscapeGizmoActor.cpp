@@ -365,7 +365,7 @@ FPrimitiveSceneProxy* ULandscapeGizmoRenderComponent::CreateSceneProxy()
 	return new FLandscapeGizmoRenderSceneProxy(this);
 }
 
-void ULandscapeGizmoRenderComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const 
+void ULandscapeGizmoRenderComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials) const 
 {
 #if WITH_EDITORONLY_DATA
 	ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(GetOwner());

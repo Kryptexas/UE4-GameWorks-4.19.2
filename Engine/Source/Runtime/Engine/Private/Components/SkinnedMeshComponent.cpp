@@ -1806,7 +1806,7 @@ void USkinnedMeshComponent::ShowMaterialSection(int32 MaterialID, bool bShow, in
 }
 
 
-void USkinnedMeshComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const
+void USkinnedMeshComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials ) const
 {
 	if( SkeletalMesh )
 	{
@@ -1818,6 +1818,16 @@ void USkinnedMeshComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMa
 			UMaterialInterface* MaterialInterface = GetMaterial( MatIdx );
 			OutMaterials.Add( MaterialInterface );
 		}
+	}
+
+	if (bGetDebugMaterials)
+	{
+#if WITH_EDITOR
+		if (UPhysicsAsset* PhysicsAssetForDebug = GetPhysicsAsset())
+		{
+			PhysicsAssetForDebug->GetUsedMaterials(OutMaterials);
+		}
+#endif
 	}
 }
 

@@ -338,7 +338,7 @@ bool UModelComponent::IsNameStableForNetworking() const
 	return true;
 }
 
-void UModelComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+void UModelComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials) const
 {
 	for( int32 ElementIndex = 0; ElementIndex < Elements.Num(); ++ElementIndex )
 	{

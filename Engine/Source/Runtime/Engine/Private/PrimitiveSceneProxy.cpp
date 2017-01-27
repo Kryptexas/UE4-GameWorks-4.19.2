@@ -173,7 +173,8 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 	bIsComponentLevelVisible = (!ComponentLevel || ComponentLevel->bIsVisible);
 
 #if WITH_EDITOR
-	InComponent->GetUsedMaterials(UsedMaterialsForVerification);
+	const bool bGetDebugMaterials = true;
+	InComponent->GetUsedMaterials(UsedMaterialsForVerification, bGetDebugMaterials);
 #endif
 }
 

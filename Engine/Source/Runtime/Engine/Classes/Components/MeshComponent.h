@@ -62,7 +62,7 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const override;
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
 	virtual void SetMaterialByName(FName MaterialSlotName, class UMaterialInterface* Material) override;
-	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;	
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;	
 	//~ End UPrimitiveComponent Interface
 
 	/** Accesses the scene relevance information for the materials applied to the mesh. Valid from game thread only. */

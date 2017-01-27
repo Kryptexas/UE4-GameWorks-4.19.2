@@ -192,7 +192,7 @@ class UMaterialInstanceDynamic* UDecalComponent::CreateDynamicMaterialInstance()
 	return Instance;
 }
 
-void UDecalComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const
+void UDecalComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials ) const
 {
 	OutMaterials.Add( GetDecalMaterial() );
 }

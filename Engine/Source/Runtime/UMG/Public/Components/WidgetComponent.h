@@ -81,7 +81,7 @@ public:
 
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
 	void ApplyComponentInstanceData(class FWidgetComponentInstanceData* ComponentInstanceData);
-	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 
 	// Begin UObject
 	virtual void PostLoad() override;

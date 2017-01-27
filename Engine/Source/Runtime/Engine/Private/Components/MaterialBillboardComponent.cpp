@@ -346,7 +346,7 @@ void UMaterialBillboardComponent::SetMaterial(int32 ElementIndex, class UMateria
 	}
 }
 
-void UMaterialBillboardComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+void UMaterialBillboardComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials) const
 {
 	for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ElementIndex++)
 	{

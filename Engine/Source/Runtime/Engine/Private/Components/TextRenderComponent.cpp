@@ -1123,7 +1123,7 @@ FPrimitiveSceneProxy* UTextRenderComponent::CreateSceneProxy()
 	return new FTextRenderSceneProxy(this);
 }
 
-void UTextRenderComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const
+void UTextRenderComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials ) const
 {
 	OutMaterials.Add(TextMaterial);
 }

@@ -119,7 +119,7 @@ public:
 	 *
 	 * @param OutMaterials	The list of used materials.
 	 */
-	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const;
+	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false ) const;
 	
 	virtual FDeferredDecalProxy* CreateSceneProxy();
 	virtual int32 GetNumMaterials() const

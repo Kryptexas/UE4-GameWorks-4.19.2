@@ -141,7 +141,7 @@ int32 UMeshComponent::GetNumMaterials() const
 	return 0;
 }
 
-void UMeshComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+void UMeshComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials) const
 {
 	for (int32 ElementIndex = 0; ElementIndex < GetNumMaterials(); ElementIndex++)
 	{

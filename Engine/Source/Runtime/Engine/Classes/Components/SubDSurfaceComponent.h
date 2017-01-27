@@ -47,7 +47,7 @@ public:
 	// End UObject interface.
 
 	// Begin UPrimitiveComponent interface.
-	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const;
+	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false ) const;
 	virtual int32 GetNumMaterials() const;
 	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const;
 	virtual bool ShouldRecreateProxyOnUpdateTransform() const override;
