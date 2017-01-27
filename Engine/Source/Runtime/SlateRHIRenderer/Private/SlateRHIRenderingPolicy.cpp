@@ -501,9 +501,17 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				{
 					ActiveSceneIndex = NumScenes - 1;
 				}
-				else
+				else if (RenderBatch.SceneIndex >= ResourceManager->GetSceneCount())
 				{
-					ensure(RenderBatch.SceneIndex < ResourceManager->GetSceneCount());
+					// Ideally we should never hit this scenario, but just to be safe, we will prevent a crash.
+					// Note that the MaterialParameterCollections will not be correct for this scene, should they be
+					// used.
+					ActiveSceneIndex = NumScenes - 1;
+//#if UE_BUILD_DEBUG
+	#if WITH_EDITOR
+					UE_LOG(LogSlate, Error, TEXT("Invalid scene index in batch: %d of %d known scenes!"), RenderBatch.SceneIndex, ResourceManager->GetSceneCount());
+	#endif
+//#endif
 				}
 
 				// Handle the case where we skipped out early above

@@ -1594,7 +1594,10 @@ int32 FSlateRHIRenderer::RegisterCurrentScene(FSceneInterface* Scene)
 		FSceneInterface*, InScene, Scene,
 		int32, InSceneIndex, CurrentSceneIndex,
 	{
-		InRenderPolicy->AddSceneAt(InScene, InSceneIndex);
+		if (InSceneIndex != -1)
+		{
+			InRenderPolicy->AddSceneAt(InScene, InSceneIndex);
+		}
 	});
 	return CurrentSceneIndex;
 }
