@@ -1,5 +1,7 @@
 #include "Classes/GoogleVRTransition2DCallbackProxy.h"
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "LogMacros.h"
+#include "GoogleVRTransition2D.h"
 
 #if PLATFORM_ANDROID
 #include "Android/AndroidJNI.h"
