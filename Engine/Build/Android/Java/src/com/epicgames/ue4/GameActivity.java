@@ -1205,7 +1205,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 		// @HSL_BEGIN - Josh.May - 11/01/2016 - Ensure the input mode of the text box is set before setting the contents.
 		// configure for type of input
-		virtualKeyboardInputBox.setInputType(InputType);
+		virtualKeyboardInputBox.setRawInputType(InputType);
 		
 		virtualKeyboardInputBox.setText("");
 		virtualKeyboardInputBox.append(Contents);
