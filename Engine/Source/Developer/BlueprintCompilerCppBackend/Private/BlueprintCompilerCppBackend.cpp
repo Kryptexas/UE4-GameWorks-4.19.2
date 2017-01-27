@@ -804,7 +804,6 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 		if (bUnconvertedClass)
 		{
 			ensure(!Statement.bIsParentContext); //unsupported yet
-			ensure(!bStaticCall); //unsupported yet
 			ensure(bCallOnDifferentObject); //unexpected
 			const FString WrapperName = FString::Printf(TEXT("FUnconvertedWrapper__%s"), *FEmitHelper::GetCppName(OwnerBPGC));
 			const FString CalledObject = bCallOnDifferentObject ? TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::UnspecifiedOrReference, false) : TEXT("this");
