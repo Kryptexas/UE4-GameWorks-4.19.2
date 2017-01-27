@@ -5577,7 +5577,7 @@ void FSequencer::CreateCamera()
 		Spawnable->SetSpawnOwnership(SavedOwnership);
 	}
 
-	bNeedInstanceRefresh = true;
+	NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded);
 }
 
 void FSequencer::NewCameraAdded(ACineCameraActor* NewCamera, FGuid CameraGuid, bool bLockToCamera)
