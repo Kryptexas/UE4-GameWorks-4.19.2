@@ -350,47 +350,11 @@ void FAnimNode_SingleNode::Evaluate(FPoseContext& Output)
 				Proxy->SlotEvaluatePose(Montage->SlotAnimTracks[0].SlotName, LocalSourcePose, LocalSourceCurve, Proxy->WeightInfo.SourceWeight, Output.Pose, Output.Curve, Proxy->WeightInfo.SlotNodeWeight, Proxy->WeightInfo.TotalNodeWeight);
 			}
 		}
-		else if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(Proxy->CurrentAsset))
+		else 
 		{
-			const TArray<FSmartName>& PoseNames = PoseAsset->GetPoseNames();
-
-			int32 TotalPoses = PoseNames.Num();
-			FAnimExtractContext ExtractContext;
-			ExtractContext.PoseCurves.AddZeroed(TotalPoses);
-
-			USkeleton* MySkeleton = PoseAsset->GetSkeleton();
- 			for (auto Iter= Proxy->PreviewCurveOverride.CreateConstIterator(); Iter; ++Iter)
- 			{
- 				const FName& Name = Iter.Key();
-				const float Value = Iter.Value();
-				
-				FSmartName PoseName;
-				
-				if (MySkeleton->GetSmartNameByName(USkeleton::AnimCurveMappingName, Name, PoseName))
-				{
-					int32 PoseIndex = PoseNames.Find(PoseName);
-					if (PoseIndex != INDEX_NONE)
-					{
-						ExtractContext.PoseCurves[PoseIndex] = Value;
-					}
-				}
- 			}
-
- 			if (PoseAsset->IsValidAdditive())
- 			{
- 				PoseAsset->GetBaseAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext());
-
-				FCompactPose AdditivePose;
-				FBlendedCurve AdditiveCurve;
-				AdditivePose.SetBoneContainer(&Output.Pose.GetBoneContainer());
-				AdditiveCurve.InitFrom(Output.Curve);
-				float Weight = PoseAsset->GetAnimationPose(AdditivePose, AdditiveCurve, ExtractContext);
-				FAnimationRuntime::AccumulateAdditivePose(Output.Pose, AdditivePose, Output.Curve, AdditiveCurve, 1.f, EAdditiveAnimationType::AAT_LocalSpaceBase);
- 			}
- 			else
- 			{
- 				PoseAsset->GetAnimationPose(Output.Pose, Output.Curve, ExtractContext);
- 			}
+			// pose asset is handled by preview instance : pose blend node
+			// and you can't drag pose asset to level to create single node instance. 
+			Output.ResetToRefPose();
 		}
 
 #if WITH_EDITORONLY_DATA
