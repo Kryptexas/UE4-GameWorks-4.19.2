@@ -486,7 +486,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 		GEditor->RegisterForUndo(this);
 	}
 
-	FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &SCurveEditor::OnObjectPropertyChanged);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.AddSP(this, &SCurveEditor::OnObjectPropertyChanged);
 }
 
 FText SCurveEditor::GetIsCurveVisibleToolTip(TSharedPtr<FCurveViewModel> CurveViewModel) const
