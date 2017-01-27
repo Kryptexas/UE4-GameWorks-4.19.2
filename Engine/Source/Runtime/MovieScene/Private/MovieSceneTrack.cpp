@@ -245,6 +245,7 @@ bool UMovieSceneTrack::FixRowIndices()
 				{
 					if (SectionForIndex->GetRowIndex() != NewIndex)
 					{
+						SectionForIndex->Modify();
 						SectionForIndex->SetRowIndex(NewIndex);
 						bFixesMade = true;
 					}
@@ -259,6 +260,7 @@ bool UMovieSceneTrack::FixRowIndices()
 		{
 			if (Sections[i]->GetRowIndex() != 0)
 			{
+				Sections[i]->Modify();
 				Sections[i]->SetRowIndex(0);
 				bFixesMade = true;
 			}
