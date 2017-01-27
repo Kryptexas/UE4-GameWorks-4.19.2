@@ -383,7 +383,7 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	 
 	/** When exclusive nativization is enabled, then this asset will be nativized. All super classes must be also nativized. */
 	UPROPERTY(transient)
-	TEnumAsByte<EBlueprintNativizationFlag> NativizationFlag;
+	EBlueprintNativizationFlag NativizationFlag;
 
 	/** TRUE to show a warning when attempting to start in PIE and there is a compiler error on this Blueprint */
 	UPROPERTY(transient)
