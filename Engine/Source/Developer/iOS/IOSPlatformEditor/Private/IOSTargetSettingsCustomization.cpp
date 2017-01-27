@@ -710,6 +710,16 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 
 	const UIOSRuntimeSettings& Settings = *GetDefault<UIOSRuntimeSettings>();
 
+	FSimpleDelegate OnUpdateShaderStandardWarning = FSimpleDelegate::CreateSP(this, &FIOSTargetSettingsCustomization::UpdateShaderStandardWarning);
+
+	GLES2PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsOpenGLES2));
+	GLES2PropertyHandle->SetOnPropertyValueChanged(OnUpdateShaderStandardWarning);
+	RenderCategory.AddProperty(GLES2PropertyHandle);
+
+	MinOSPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MinimumiOSVersion));
+	MinOSPropertyHandle->SetOnPropertyValueChanged(OnUpdateShaderStandardWarning);
+	OSInfoCategory.AddProperty(MinOSPropertyHandle);
+
 	SETUP_PLIST_PROP(BundleDisplayName, BundleCategory);
 	SETUP_PLIST_PROP(BundleName, BundleCategory);
 	SETUP_STATUS_PROP(BundleIdentifier, BundleCategory);
@@ -721,12 +731,6 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	
 	SETUP_PLIST_PROP(bSupportsMetal, RenderCategory);
 	
-	FSimpleDelegate OnUpdateShaderStandardWarning = FSimpleDelegate::CreateSP(this, &FIOSTargetSettingsCustomization::UpdateShaderStandardWarning);
-	
-	GLES2PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsOpenGLES2));
-	GLES2PropertyHandle->SetOnPropertyValueChanged(OnUpdateShaderStandardWarning);
-	RenderCategory.AddProperty(GLES2PropertyHandle);
-    
     // Handle max. shader version a little specially.
     {
         ShaderVersionPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MaxShaderLanguageVersion));
@@ -771,11 +775,6 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 
 	SETUP_PLIST_PROP(bSupportsIPad, DeviceCategory);
 	SETUP_PLIST_PROP(bSupportsIPhone, DeviceCategory);
-
-	MinOSPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MinimumiOSVersion));
-	MinOSPropertyHandle->SetOnPropertyValueChanged(OnUpdateShaderStandardWarning);
-	OSInfoCategory.AddProperty(MinOSPropertyHandle);
-
 	SETUP_PLIST_PROP(AdditionalPlistData, ExtraCategory);
 
 #undef SETUP_SOURCEONLY_PROP
@@ -1573,7 +1572,7 @@ FText FIOSTargetSettingsCustomization::GetShaderVersionDesc() const
 
 void FIOSTargetSettingsCustomization::SetShaderStandard(int32 Value)
 {
-    if (Value >= 1)
+    if (Value >= 1 && MinOSPropertyHandle.IsValid() && GLES2PropertyHandle.IsValid())
     {
         FText Message;
         
