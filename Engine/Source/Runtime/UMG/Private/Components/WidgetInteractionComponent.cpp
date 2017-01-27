@@ -93,6 +93,18 @@ void UWidgetInteractionComponent::SetCustomHitResult(const FHitResult& HitResult
 	CustomHitResult = HitResult;
 }
 
+FWidgetPath UWidgetInteractionComponent::FindHoveredWidgetPath(const FWidgetTraceResult& TraceResult) const
+{
+	if (TraceResult.HitWidgetComponent)
+	{
+		return FWidgetPath(TraceResult.HitWidgetComponent->GetHitWidgetPath(TraceResult.LocalHitLocation, /*bIgnoreEnabledStatus*/ false));
+	}
+	else
+	{
+		return FWidgetPath();
+	}
+}
+
 UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::PerformTrace() const
 {
 	FWidgetTraceResult TraceResult;
@@ -186,8 +198,7 @@ UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::Per
 				ensure(TraceResult.HitWidgetComponent->GetGeometryMode() == EWidgetGeometryMode::Plane);
 				TraceResult.HitWidgetComponent->GetLocalHitLocation(LastHitResult.ImpactPoint, TraceResult.LocalHitLocation);
 			}
-
-			TraceResult.HitWidgetPath = FWidgetPath(TraceResult.HitWidgetComponent->GetHitWidgetPath(TraceResult.LocalHitLocation, /*bIgnoreEnabledStatus*/ false));
+			TraceResult.HitWidgetPath = FindHoveredWidgetPath(TraceResult);
 		}
 	}
 

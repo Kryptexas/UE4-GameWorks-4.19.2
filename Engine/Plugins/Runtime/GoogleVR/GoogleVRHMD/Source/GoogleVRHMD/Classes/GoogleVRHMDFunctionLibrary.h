@@ -47,6 +47,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static bool IsGoogleVRStereoRenderingEnabled();
 
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	/** Set if the app use sustained performance mode. This can be toggled at run time but note that this function only works on Android build*/
+	static void SetSustainedPerformanceModeEnabled(bool bEnable);
+
 	/** Enable/disable distortion correction */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static void SetDistortionCorrectionEnabled(bool bEnable);
@@ -74,6 +78,10 @@ public:
 	/** Was the application launched in Vr. */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static bool IsVrLaunch();
+
+	/** Is the application running in Daydream mode. */
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	static bool IsInDaydreamMode();
 
 	/** Get the RenderTarget size GoogleVRHMD is using for rendering the scene.
 	 *  @return The render target size that is used when rendering the scene.
@@ -130,11 +138,11 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static FString GetIntentData();
-	
+
 	/**
 	 * Set whether to enable the loading splash screen in daydream app.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
 	static void SetDaydreamLoadingSplashScreenEnable(bool enable);
 
 	/**
@@ -145,13 +153,49 @@ public:
 	 * @param UVOffset		A 2D vector for offset the splash screen texture. Default value is (0.0, 0.0)
 	 * @param UVSize		A 2D vector specifies which part of the splash texture will be rendered on the screen. Default value is (1.0, 1.0)
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
 	static void SetDaydreamLoadingSplashScreenTexture(class UTexture2D* Texture, FVector2D UVOffset = FVector2D(0.0f, 0.0f), FVector2D UVSize = FVector2D(1.0f, 1.0f));
+
+	/**
+	 * Get the distance in meter the daydream splash screen will be rendered at
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
+	static float GetDaydreamLoadingSplashScreenDistance();
+
+	/**
+	 * Set the distance in meter the daydream splash screen will be rendered at
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
+	static void SetDaydreamLoadingSplashScreenDistance(float NewDistance);
+
+	/**
+	 * Get the render scale of the dayderam splash screen
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
+	static float GetDaydreamLoadingSplashScreenScale();
+
+	/**
+	 * Set the render scale of the dayderam splash screen
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
+	static void SetDaydreamLoadingSplashScreenScale(float NewSize);
+
+	/**
+	 * Get the view angle of the dayderam splash screen
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
+	static float GetDaydreamLoadingSplashScreenViewAngle();
+
+	/**
+	 * Set the view angle of the dayderam splash screen
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
+	static void SetDaydreamLoadingSplashScreenViewAngle(float NewViewAngle);
 
 	/**
 	 * Clear the loading splash texture it is current using. This will make the loading screen to black if the loading splash screen is still enabled.
 	 * Note that this function only works for daydream app.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
 	static void ClearDaydreamLoadingSplashScreenTexture();
 };

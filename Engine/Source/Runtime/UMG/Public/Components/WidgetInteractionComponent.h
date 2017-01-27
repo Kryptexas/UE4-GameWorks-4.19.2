@@ -271,6 +271,10 @@ protected:
 		FWidgetPath HitWidgetPath;
 		bool bWasHit;
 	};
+
+	/** Gets the WidgetPath for the widget being hovered over based on the hit result. */
+	virtual FWidgetPath FindHoveredWidgetPath(const FWidgetTraceResult& TraceResult)  const;
+
 	/** Performs the trace and gets the hit result under the specified InteractionSource */
 	virtual FWidgetTraceResult PerformTrace() const;
 	

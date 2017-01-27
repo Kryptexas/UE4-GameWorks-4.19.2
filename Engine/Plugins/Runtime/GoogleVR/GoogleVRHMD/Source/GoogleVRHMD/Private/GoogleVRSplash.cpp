@@ -19,9 +19,17 @@
 #include "GoogleVRHMD.h"
 #include "ScreenRendering.h"
 
+static constexpr gvr_mat4f GVRHeadPoseIdentity = {{{1.0f, 0.0f, 0.0f, 0.0f},
+											       {0.0f, 1.0f, 0.0f, 0.0f},
+											       {0.0f, 0.0f, 1.0f, 0.0f},
+											       {0.0f, 0.0f, 0.0f, 1.0f}}};
+
 FGoogleVRSplash::FGoogleVRSplash(FGoogleVRHMD* InGVRHMD)
 	: bEnableSplashScreen(true)
 	, SplashTexture(nullptr)
+	, RenderDistanceInMeter(2.0f)
+	, RenderScale(1.0f)
+	, ViewAngleInDegree(180.0f)
 	, GVRHMD(InGVRHMD)
 	, RendererModule(nullptr)
 	, GVRCustomPresent(nullptr)
@@ -94,6 +102,23 @@ void FGoogleVRSplash::Show()
 
 	bSplashScreenRendered = false;
 
+	GVRHMD->UpdateGVRViewportList();
+
+	// Render the splash screen in the front direction in start space
+	// In this case, recenter will always put the splash screen in front of the user.
+	SplashScreenRenderingHeadPose = GVRHeadPoseIdentity;
+	SplashScreenRenderingOrientation = FRotator(0.0f, 0.0f, 0.0f);
+
+	// Uncomment the following code if you want to put the splash screen using the current
+	// head pose.
+	// Be aware, if you do this, when user recenter the hmd using the controller when
+	// the splash screen displaying, the splash screen may not be in front of the user.
+	// You probably want to call ForceRerenderSplashScreen to rerender the splash screen after
+	// the recentering happens.
+	//GVRHMD->UpdateHeadPose();
+	//SplashScreenRenderingHeadPose = GVRHMD->CachedHeadPose;
+	//SplashScreenRenderingOrientation = FRotator(GVRHMD->CachedFinalHeadRotation);
+
 	RenderThreadTicker = MakeShareable(new FGoogleVRSplashTicker(this));
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(RegisterAsyncTick,
 	FTickableObjectRenderThread*, RenderThreadTicker, RenderThreadTicker.Get(),
@@ -138,22 +163,23 @@ void FGoogleVRSplash::Tick(float DeltaTime)
 {
 	check(IsInRenderingThread());
 
-	// Update Resources (ex. render, copy, etc.)
+	GVRHMD->UpdateHeadPose();
+	FRotator CurrentHeadOrientation = FRotator(GVRHMD->CachedFinalHeadRotation);
+	// Use the user defined angle to hide the splash screen.
+	// Note that if we do not hide the splash screen at all, users will see a flipped splash screen
+	// when they look backward due to artifact of the async reprojection
+	float HalfViewAngle = ViewAngleInDegree * 0.5f;
+	bool bHideSplashScreen = FMath::Abs(CurrentHeadOrientation.Yaw - SplashScreenRenderingOrientation.Yaw) > HalfViewAngle;
 
-	if(!bSplashScreenRendered)
+	if (!bSplashScreenRendered && !bHideSplashScreen)
 	{
-		// Make sure we have a valid render target
-		check(GVRCustomPresent->TextureSet.IsValid());
-
-		GVRHMD->UpdateHeadPose();
-		GVRHMD->UpdateGVRViewportList();
-
-		// Bind GVR RenderTarget
-		GVRCustomPresent->BeginRendering(GVRHMD->CachedHeadPose);
 		RenderStereoSplashScreen(FRHICommandListExecutor::GetImmediateCommandList(), GVRCustomPresent->TextureSet->GetTexture2D());
-		GVRCustomPresent->FinishRendering();
-
 		bSplashScreenRendered = true;
+	}
+	else if (bSplashScreenRendered && bHideSplashScreen)
+	{
+		SubmitBlackFrame();
+		bSplashScreenRendered = false;
 	}
 }
 
@@ -164,7 +190,15 @@ bool FGoogleVRSplash::IsTickable() const
 
 void FGoogleVRSplash::RenderStereoSplashScreen(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture)
 {
+	UpdateSplashScreenEyeOffset();
+
 	check(IsInRenderingThread());
+
+	// Make sure we have a valid render target
+	check(GVRCustomPresent->TextureSet.IsValid());
+
+	// Bind GVR RenderTarget
+	GVRCustomPresent->BeginRendering(SplashScreenRenderingHeadPose);
 
 	const uint32 ViewportWidth = DstTexture->GetSizeX();
 	const uint32 ViewportHeight = DstTexture->GetSizeY();
@@ -175,10 +209,8 @@ void FGoogleVRSplash::RenderStereoSplashScreen(FRHICommandListImmediate& RHICmdL
 	RHICmdList.ClearColorTexture(DstTexture, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), FIntRect());
 
 	// If the texture is not avaliable, we just clear the DstTexture with black.
-	if (SplashTexture &&  SplashTexture->IsValidLowLevel())
+	if (SplashTexture && SplashTexture->IsValidLowLevel())
 	{
-		FRHITexture* SrcTextureRHI = SplashTexture->Resource->TextureRHI;
-
 		RHICmdList.SetViewport(DstRect.Min.X, DstRect.Min.Y, 0, DstRect.Max.X, DstRect.Max.Y, 1.0f);
 		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
@@ -193,7 +225,7 @@ void FGoogleVRSplash::RenderStereoSplashScreen(FRHICommandListImmediate& RHICmdL
 		static FGlobalBoundShaderState BoundShaderState;
 		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-		PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), SrcTextureRHI);
+		PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), SplashTexture->Resource->TextureRHI);
 
 		// Modify the v to flip the texture. Somehow it renders flipped if not.
 		float U = SplashTextureUVOffset.X;
@@ -201,11 +233,18 @@ void FGoogleVRSplash::RenderStereoSplashScreen(FRHICommandListImmediate& RHICmdL
 		float USize = SplashTextureUVSize.X;
 		float VSize = -SplashTextureUVSize.Y;
 
+		float ViewportWidthPerEye = ViewportWidth * 0.5f;
+
+		float RenderOffsetX = SplashScreenEyeOffset.X * ViewportWidthPerEye + (1.0f - RenderScale) * ViewportWidthPerEye * 0.5f;
+		float RenderOffsetY = SplashScreenEyeOffset.Y * ViewportHeight + (1.0f - RenderScale) * ViewportHeight * 0.5f;;
+		float RenderSizeX = ViewportWidthPerEye * RenderScale;
+		float RenderSizeY = ViewportHeight * RenderScale;
+
 		// Render left eye texture
 		RendererModule->DrawRectangle(
 			RHICmdList,
-			0, 0,
-			ViewportWidth / 2, ViewportHeight,
+			RenderOffsetX , RenderOffsetY,
+			RenderSizeX, RenderSizeY,
 			U, V,
 			USize, VSize,
 			FIntPoint(ViewportWidth, ViewportHeight),
@@ -213,11 +252,20 @@ void FGoogleVRSplash::RenderStereoSplashScreen(FRHICommandListImmediate& RHICmdL
 			*VertexShader,
 			EDRF_Default);
 
+		RenderOffsetX = -SplashScreenEyeOffset.X * ViewportWidthPerEye + (1.0f - RenderScale) * ViewportWidthPerEye * 0.5f;
+
+		// In case the right eye offset is excceed the borader
+		if (RenderOffsetX < 0)
+		{
+			U = U - RenderOffsetX / RenderSizeX;
+			RenderOffsetX = 0;
+		}
+
 		// Render right eye texture
 		RendererModule->DrawRectangle(
 			RHICmdList,
-			ViewportWidth / 2, 0,
-			ViewportWidth / 2, ViewportHeight,
+			ViewportWidthPerEye + RenderOffsetX, RenderOffsetY,
+			RenderSizeX, RenderSizeY,
 			U, V,
 			USize, VSize,
 			FIntPoint(ViewportWidth, ViewportHeight),
@@ -225,6 +273,14 @@ void FGoogleVRSplash::RenderStereoSplashScreen(FRHICommandListImmediate& RHICmdL
 			*VertexShader,
 			EDRF_Default);
 	}
+
+	// Submit frame to async reprojection
+	GVRCustomPresent->FinishRendering();
+}
+
+void FGoogleVRSplash::ForceRerenderSplashScreen()
+{
+	bSplashScreenRendered = false;
 }
 
 void FGoogleVRSplash::SubmitBlackFrame()
@@ -244,18 +300,29 @@ void FGoogleVRSplash::SubmitBlackFrame()
 
 bool FGoogleVRSplash::LoadDefaultSplashTexturePath()
 {
+	// Default Setting for Daydream splash screen
 	SplashTexturePath = "";
 	SplashTextureUVOffset = FVector2D(0.0f, 0.0f);
 	SplashTextureUVSize = FVector2D(1.0f, 1.0f);
+	RenderDistanceInMeter = 2.0f;
+	RenderScale = 1.0f;
+	ViewAngleInDegree = 180.0f;
 
 	const TCHAR* SplashSettings = TEXT("Daydream.Splash.Settings");
 	GConfig->GetString(SplashSettings, *FString("TexturePath"), SplashTexturePath, GEngineIni);
 	GConfig->GetVector2D(SplashSettings, *FString("TextureUVOffset"), SplashTextureUVOffset, GEngineIni);
 	GConfig->GetVector2D(SplashSettings, *FString("TextureUVSize"), SplashTextureUVSize, GEngineIni);
+	GConfig->GetFloat(SplashSettings, *FString("RenderDistanceInMeter"), RenderDistanceInMeter, GEngineIni);
+	GConfig->GetFloat(SplashSettings, *FString("RenderScale"), RenderScale, GEngineIni);
+	GConfig->GetFloat(SplashSettings, *FString("ViewAngleInDegree"), ViewAngleInDegree, GEngineIni);
 
-	UE_LOG(LogHMD, Log, TEXT("Set default splash texture path to %s from GEngineIni."), *SplashTexturePath);
-	UE_LOG(LogHMD, Log, TEXT("Set default splash texture UV offset to (%f, %f) from GEngineIni."), SplashTextureUVOffset.X, SplashTextureUVOffset.Y);
-	UE_LOG(LogHMD, Log, TEXT("Set default splash texture UV size to (%f, %f) from GEngineIni."), SplashTextureUVSize.X, SplashTextureUVSize.Y);
+	UE_LOG(LogHMD, Log, TEXT("Daydream Splash Screen Settings:"), *SplashTexturePath);
+	UE_LOG(LogHMD, Log, TEXT("TexturePath:%s"), *SplashTexturePath);
+	UE_LOG(LogHMD, Log, TEXT("TextureUVOffset: (%f, %f)"), SplashTextureUVOffset.X, SplashTextureUVOffset.Y);
+	UE_LOG(LogHMD, Log, TEXT("TextureUVSize: (%f, %f)"), SplashTextureUVSize.X, SplashTextureUVSize.Y);
+	UE_LOG(LogHMD, Log, TEXT("RenderDistance: %f"), RenderDistanceInMeter);
+	UE_LOG(LogHMD, Log, TEXT("RenderScale: %f"), RenderScale);
+	UE_LOG(LogHMD, Log, TEXT("ViewAngleInDegree: %f"), ViewAngleInDegree);
 
 	return true;
 }
@@ -263,6 +330,7 @@ bool FGoogleVRSplash::LoadDefaultSplashTexturePath()
 bool FGoogleVRSplash::LoadTexture()
 {
 	SplashTexture = LoadObject<UTexture2D>(nullptr, *SplashTexturePath, nullptr, LOAD_None, nullptr);
+	SplashTexture->AddToRoot();
 
 	if (SplashTexture && SplashTexture->IsValidLowLevel())
 	{
@@ -282,7 +350,33 @@ void FGoogleVRSplash::UnloadTexture()
 {
 	if (SplashTexture && SplashTexture->IsValidLowLevel())
 	{
+		SplashTexture->RemoveFromRoot();
 		SplashTexture = nullptr;
 	}
+}
+
+void FGoogleVRSplash::UpdateSplashScreenEyeOffset()
+{
+	// Get eye offset from GVR
+	float WorldToMeterScale = GVRHMD->GetWorldToMetersScale();
+	float HalfEyeDistance = GVRHMD->GetInterpupillaryDistance() * WorldToMeterScale * 0.5f;
+	float Depth = RenderDistanceInMeter * WorldToMeterScale;
+	// Get eye Fov from GVR
+	gvr_rectf LeftEyeFOV = GVRHMD->GetGVREyeFOV(0);
+
+	// Have to flip left/right and top/bottom to match UE4 expectations
+	float LeftTan = FPlatformMath::Tan(FMath::DegreesToRadians(LeftEyeFOV.left));
+	float RightTan = FPlatformMath::Tan(FMath::DegreesToRadians(LeftEyeFOV.right));
+	float TopTan = FPlatformMath::Tan(FMath::DegreesToRadians(LeftEyeFOV.top));
+	float BottomTan = FPlatformMath::Tan(FMath::DegreesToRadians(LeftEyeFOV.bottom));
+
+	float SumLR = LeftTan + RightTan;
+	float SubLR = RightTan - LeftTan;
+	float SumTB = TopTan + BottomTan;
+	float SubTB = BottomTan - TopTan;
+
+	// This calculate the offset to the center of the left eye area.
+	SplashScreenEyeOffset.X = HalfEyeDistance / SumLR / Depth - SubLR / SumLR * 0.5f;
+	SplashScreenEyeOffset.Y = SubTB / SumTB * 0.5f;
 }
 #endif //GOOGLEVRHMD_SUPPORTED_PLATFORMS

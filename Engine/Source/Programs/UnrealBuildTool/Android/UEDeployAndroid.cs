@@ -191,6 +191,25 @@ namespace UnrealBuildTool
 			return bUseExternalFilesDir;
 		}
 
+		public bool IsPackagingForDaydream(ConfigHierarchy Ini = null)
+		{
+			// make a new one if one wasn't passed in
+			if (Ini == null)
+			{
+				Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
+			}
+
+			string GoogleVRMode = "";
+			if(Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "GoogleVRMode", out GoogleVRMode))
+			{
+				return GoogleVRMode == "Daydream" || GoogleVRMode == "DaydreamAndCardboard";
+			}
+			else
+			{
+				return false;
+			}
+		}
+
 		public bool DisableVerifyOBBOnStartUp(ConfigHierarchy Ini = null)
 		{
 			// make a new one if one wasn't passed in
@@ -464,14 +483,43 @@ namespace UnrealBuildTool
 			string[] DestFileContent = File.Exists(ShimFileName) ? File.ReadAllLines(ShimFileName) : null;
 
 			StringBuilder ShimFileContent = new StringBuilder("package com.epicgames.ue4;\n\n");
+
 			ShimFileContent.AppendFormat("import {0}.OBBDownloaderService;\n", replacements["$$PackageName$$"]);
 			ShimFileContent.AppendFormat("import {0}.DownloaderActivity;\n", replacements["$$PackageName$$"]);
+
+			// Workaround to do OBB file checking without using DownloadActivity to avoid transit to another activity in Daydream
+			bool bPackageForDaydream = IsPackagingForDaydream();
+			if (bPackageForDaydream)
+			{
+				ShimFileContent.Append("import android.app.Activity;\n");
+				ShimFileContent.Append("import com.google.android.vending.expansion.downloader.Helpers;\n");
+				ShimFileContent.AppendFormat("import {0}.OBBData;\n", replacements["$$PackageName$$"]);
+			}
+
 			ShimFileContent.Append("\n\npublic class DownloadShim\n{\n");
 			ShimFileContent.Append("\tpublic static OBBDownloaderService DownloaderService;\n");
 			ShimFileContent.Append("\tpublic static DownloaderActivity DownloadActivity;\n");
 			ShimFileContent.Append("\tpublic static Class<DownloaderActivity> GetDownloaderType() { return DownloaderActivity.class; }\n");
-			ShimFileContent.Append("}\n");
 
+			// Workaround to do OBB file checking without using DownloadActivity to avoid a SPM bug
+			if (bPackageForDaydream)
+			{
+				ShimFileContent.Append("\tpublic static boolean expansionFilesDelivered(Activity activity) {\n");
+				ShimFileContent.Append("\t\tfor (OBBData.XAPKFile xf : OBBData.xAPKS) {\n");
+				ShimFileContent.Append("\t\t\tString fileName = Helpers.getExpansionAPKFileName(activity, xf.mIsMain, xf.mFileVersion);\n");
+				ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"Checking for file : \" + fileName);\n");
+				ShimFileContent.Append("\t\t\tString fileForNewFile = Helpers.generateSaveFileName(activity, fileName);\n");
+				ShimFileContent.Append("\t\t\tString fileForDevFile = Helpers.generateSaveFileNameDevelopment(activity, fileName);\n");
+				ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"which is really being resolved to : \" + fileForNewFile + \"\\n Or : \" + fileForDevFile);\n");
+				ShimFileContent.Append("\t\t\tif (!Helpers.doesFileExist(activity, fileName, xf.mFileSize, false) &&\n");
+				ShimFileContent.Append("\t\t\t\t!Helpers.doesFileExistDev(activity, fileName, xf.mFileSize, false))\n");
+				ShimFileContent.Append("\t\t\t\treturn false;\n");
+				ShimFileContent.Append("\t\t\t}\n");
+				ShimFileContent.Append("\t\treturn true;\n");
+				ShimFileContent.Append("\t}\n");
+			}
+
+			ShimFileContent.Append("}\n");
 			Log.TraceInformation("\n==== Writing to shim file {0} ====", ShimFileName);
 
 			// If they aren't the same then dump out the settings
@@ -1149,33 +1197,31 @@ namespace UnrealBuildTool
 				}
 			}
 		}
-		
+	
 		private void PackageForDaydream(string UE4BuildPath)
-        {
-            ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
-            bool bPackageForDaydream;
-            Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForDaydream", out bPackageForDaydream);
+		{
+			bool bPackageForDaydream = IsPackagingForDaydream();
 
-            if (!bPackageForDaydream)
-            {
-                // If this isn't a Daydream App, we need to make sure to remove
-                // Daydream specific assets.
+			if (!bPackageForDaydream)
+			{
+				// If this isn't a Daydream App, we need to make sure to remove
+				// Daydream specific assets.
 
-                // Remove the Daydream app  tile background.
-                string AppTileBackgroundPath = UE4BuildPath + "/res/drawable-nodpi/vr_icon_background.png";
-                if (File.Exists(AppTileBackgroundPath))
-                {
-                    File.Delete(AppTileBackgroundPath);
-                }
+				// Remove the Daydream app  tile background.
+				string AppTileBackgroundPath = UE4BuildPath + "/res/drawable-nodpi/vr_icon_background.png";
+				if (File.Exists(AppTileBackgroundPath))
+				{
+					File.Delete(AppTileBackgroundPath);
+				}
 
-                // Remove the Daydream app tile icon.
-                string AppTileIconPath = UE4BuildPath + "/res/drawable-nodpi/vr_icon.png";
-                if (File.Exists(AppTileIconPath))
-                {
-                    File.Delete(AppTileIconPath);
-                }
-            }
-        }
+				// Remove the Daydream app tile icon.
+				string AppTileIconPath = UE4BuildPath + "/res/drawable-nodpi/vr_icon.png";
+				if (File.Exists(AppTileIconPath))
+				{
+					File.Delete(AppTileIconPath);
+				}
+			}
+		}
 
 		private void PickSplashScreenOrientation(string UE4BuildPath, bool bNeedPortrait, bool bNeedLandscape)
 		{
@@ -1184,8 +1230,7 @@ namespace UnrealBuildTool
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bShowLaunchImage", out bShowLaunchImage);
 			bool bPackageForGearVR;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
-			bool bPackageForDaydream;
-            Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForDaydream", out bPackageForDaydream);
+			bool bPackageForDaydream = IsPackagingForDaydream();
 			
 			//override the parameters if we are not showing a launch image or are packaging for GearVR and Daydream
 			if (bPackageForGearVR || bPackageForDaydream || !bShowLaunchImage)
@@ -1342,8 +1387,6 @@ namespace UnrealBuildTool
 			Ini.GetArray("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "ExtraPermissions", out ExtraPermissions);
 			bool bPackageForGearVR;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
-			bool bPackageForDaydream;
-            Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForDaydream", out bPackageForDaydream);
 			bool bEnableIAP = false;
 			Ini.GetBool("OnlineSubsystemGooglePlay.Store", "bSupportsInAppPurchasing", out bEnableIAP);
 			bool bShowLaunchImage = false;
@@ -1396,6 +1439,7 @@ namespace UnrealBuildTool
 				}
 			}
 
+			bool bPackageForDaydream = IsPackagingForDaydream();
 			// disable splash screen for daydream
 			if (bPackageForDaydream)
 			{
@@ -2151,7 +2195,7 @@ namespace UnrealBuildTool
 			PickSplashScreenOrientation(UE4BuildPath, bNeedPortrait, bNeedLandscape);
 			
 			//Now package the app based on Daydream packaging settings 
-            PackageForDaydream(UE4BuildPath);
+			PackageForDaydream(UE4BuildPath);
 			
 			//Similarly, keep only the downloader screen image matching the orientation requested
 			PickDownloaderScreenOrientation(UE4BuildPath, bNeedPortrait, bNeedLandscape);

@@ -165,6 +165,14 @@
 	*;
 }
 
+-keep class com.android.vending.licensing.** {
+	*;
+}
+
+-keep class com.google.vending.licensing.** {
+	*;
+}
+
 -keep class epicgames.ue4.StoreHelper.** {
 	public *;
 }
@@ -172,3 +180,6 @@
 -keep class epicgames.ue4.GooglePlayStoreHelper.** {
 	public *;
 }
+
+-dontwarn com.google.vr.cardboard.AndroidNCompat
+-dontwarn com.google.vr.cardboard.StoragePermissionUtils

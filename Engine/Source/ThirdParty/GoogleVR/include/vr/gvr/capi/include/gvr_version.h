@@ -23,15 +23,15 @@ extern "C" {
 /// A string representation of the current GVR build version. This is of
 /// the form "MAJOR.MINOR.PATCH". Note that this may differ from the runtime
 /// GVR version as reported by gvr_get_version_string().
-#define GVR_SDK_VERSION_STRING "1.0.1"
+#define GVR_SDK_VERSION_STRING "1.10.0"
 
 /// Semantic components for the current GVR build version. Note that these
 /// values may differ from the runtime GVR version as reported by
 /// gvr_get_version().
 enum {
   GVR_SDK_MAJOR_VERSION = 1,
-  GVR_SDK_MINOR_VERSION = 0,
-  GVR_SDK_PATCH_VERSION = 1,
+  GVR_SDK_MINOR_VERSION = 10,
+  GVR_SDK_PATCH_VERSION = 0,
 };
 
 #ifdef __cplusplus

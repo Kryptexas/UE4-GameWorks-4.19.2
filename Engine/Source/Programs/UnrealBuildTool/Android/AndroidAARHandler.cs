@@ -386,7 +386,19 @@ namespace UnrealBuildTool
 				List<string> OutputFileNames = new List<string>();
 				foreach (Ionic.Zip.ZipEntry Entry in Zip.Entries)
 				{
+					// support-v4 and support-v13 has the jar file named with "internal_impl-XX.X.X.jar"
+					// this causes error "Found 2 versions of internal_impl-XX.X.X.jar"
+					// following codes adds "support-v4-..." to the output jar file name to avoid the collision
 					string OutputFileName = Path.Combine(BaseDirectory, Entry.FileName);
+					if (Entry.FileName.Contains("internal_impl"))
+					{
+						string _ZipName = Path.GetFileNameWithoutExtension(ZipFileName);
+						string NewOutputFileName = Path.Combine(Path.GetDirectoryName(OutputFileName),
+							_ZipName + '-' + Path.GetFileNameWithoutExtension(OutputFileName) + '.' + Path.GetExtension(OutputFileName));
+						Log.TraceInformation("Changed FileName {0} => {1}", Entry.FileName, NewOutputFileName);
+						OutputFileName = NewOutputFileName;
+					}
+
 					Directory.CreateDirectory(Path.GetDirectoryName(OutputFileName));
 					if (!Entry.IsDirectory)
 					{

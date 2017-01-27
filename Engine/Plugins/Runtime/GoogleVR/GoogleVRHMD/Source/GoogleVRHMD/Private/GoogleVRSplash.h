@@ -21,6 +21,7 @@
 
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 #include "TickableObjectRenderThread.h"
+#include "gvr.h"
 
 class IRendererModule;
 class UTexture2D;
@@ -42,6 +43,7 @@ public:
 	void Tick(float DeltaTime);
 	bool IsTickable() const;
 	void RenderStereoSplashScreen(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture);
+	void ForceRerenderSplashScreen();
 
 private:
 
@@ -66,13 +68,21 @@ private:
 	bool LoadDefaultSplashTexturePath();
 	bool LoadTexture();
 	void UnloadTexture();
+	void UpdateSplashScreenEyeOffset();
 
 public:
 	bool bEnableSplashScreen;
 	UTexture2D* SplashTexture;
+
 	FString SplashTexturePath;
 	FVector2D SplashTextureUVOffset;
 	FVector2D SplashTextureUVSize;
+	float RenderDistanceInMeter;
+	float RenderScale;
+	// View angle is used to reduce the async reprojection artifact
+	// The splash screen will be hidden when the head rotated beyond half of the view angle
+	// from its original orientation.
+	float ViewAngleInDegree;
 
 private:
 
@@ -83,6 +93,10 @@ private:
 	bool bInitialized;
 	bool bIsShown;
 	bool bSplashScreenRendered;
+	FVector2D SplashScreenEyeOffset;
 	TSharedPtr<FGoogleVRSplashTicker> RenderThreadTicker;
+
+	gvr_mat4f SplashScreenRenderingHeadPose;
+	FRotator SplashScreenRenderingOrientation;
 };
 #endif //GOOGLEVRHMD_SUPPORTED_PLATFORMS

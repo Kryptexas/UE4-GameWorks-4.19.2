@@ -211,7 +211,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public boolean VerifyOBBOnStartUp = false;
 
 	/** Use ExternalFilesDir for UE4Game files */
-	public boolean UseExternalFilesDir = false;
+    private boolean UseExternalFilesDir = false;
 
 	/** Flag to ensure we have finished startup before allowing nativeOnActivityResult to get called */
 	private boolean InitCompletedOK = false;
@@ -617,16 +617,15 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			{
 				Log.debug( "UI hiding not found. Leaving as " + ShouldHideUI);
 			}
-
 			if(bundle.containsKey("com.epicgames.ue4.GameActivity.bUseExternalFilesDir"))
-			{
-				UseExternalFilesDir = bundle.getBoolean("com.epicgames.ue4.GameActivity.bUseExternalFilesDir");
-				Log.debug( "UseExternalFilesDir set to " + UseExternalFilesDir);
-			}
-			else
-			{
-				Log.debug( "UseExternalFilesDir not found. Leaving as " + UseExternalFilesDir);
-			}
+            {
+                UseExternalFilesDir = bundle.getBoolean("com.epicgames.ue4.GameActivity.bUseExternalFilesDir");
+                Log.debug( "UseExternalFilesDir set to " + UseExternalFilesDir);
+            }
+            else
+            {
+                Log.debug( "bUseExternalFilesDir not found. Leaving as " + UseExternalFilesDir);
+            }
 
 //$${gameActivityReadMetadataAdditions}$$
 		}
