@@ -150,6 +150,7 @@ void UK2Node_MakeStruct::AllocateDefaultPins()
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	if(Schema && StructType)
 	{
+		PreloadObject(StructType);
 		CreatePin(EGPD_Output, Schema->PC_Struct, TEXT(""), StructType, false, false, StructType->GetName());
 		
 		bool bHasAdvancedPins = false;
