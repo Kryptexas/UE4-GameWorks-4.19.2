@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/Views/STreeView.h"
+
 /** Handles filtering and expanding a TreeView using an IFilter implementation. */
 template<typename ItemType>
 class TreeFilterHandler
