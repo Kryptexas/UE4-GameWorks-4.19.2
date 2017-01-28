@@ -258,6 +258,7 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
     , bKillOnDeactivate(0)
     , bKillOnCompleted(0)
 	, bHaltSpawning(0)
+	, bHaltSpawningExternal(0)
 	, bRequiresLoopNotification(0)
 	, bIgnoreComponentScale(0)
 	, bIsBeam(0)
@@ -883,7 +884,7 @@ float FParticleEmitterInstance::Tick_EmitterTimeSetup(float DeltaTime, UParticle
  */
 float FParticleEmitterInstance::Tick_SpawnParticles(float DeltaTime, UParticleLODLevel* InCurrentLODLevel, bool bSuppressSpawning, bool bFirstTime)
 {
-	if (!bHaltSpawning && !bSuppressSpawning && (EmitterTime >= 0.0f))
+	if (!bHaltSpawning && !bHaltSpawningExternal && !bSuppressSpawning && (EmitterTime >= 0.0f))
 	{
 		SCOPE_CYCLE_COUNTER(STAT_SpriteSpawnTime);
 		// If emitter is not done - spawn at current rate.

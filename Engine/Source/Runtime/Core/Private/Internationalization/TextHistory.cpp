@@ -981,3 +981,81 @@ FText FTextHistory_AsDateTime::ToText(bool bInAsSource) const
 	
 	return FText::AsDateTime(SourceDateTime, DateStyle, TimeStyle, TimeZone, TargetCulture);
 }
+
+///////////////////////////////////////
+// FTextHistory_Transform
+
+FTextHistory_Transform::FTextHistory_Transform(FText InSourceText, const ETransformType InTransformType)
+	: SourceText(MoveTemp(InSourceText))
+	, TransformType(InTransformType)
+{
+}
+
+FTextHistory_Transform::FTextHistory_Transform(FTextHistory_Transform&& Other)
+	: FTextHistory(MoveTemp(Other))
+	, SourceText(MoveTemp(Other.SourceText))
+	, TransformType(Other.TransformType)
+{
+}
+
+FTextHistory_Transform& FTextHistory_Transform::operator=(FTextHistory_Transform&& Other)
+{
+	FTextHistory::operator=(MoveTemp(Other));
+	if (this != &Other)
+	{
+		SourceText = MoveTemp(Other.SourceText);
+		TransformType = Other.TransformType;
+	}
+	return *this;
+}
+
+void FTextHistory_Transform::Serialize(FArchive& Ar)
+{
+	if (Ar.IsSaving())
+	{
+		int8 HistoryType = (int8)ETextHistoryType::Transform;
+		Ar << HistoryType;
+	}
+
+	Ar << SourceText;
+	Ar << (uint8&)TransformType;
+}
+
+FText FTextHistory_Transform::ToText(bool bInAsSource) const
+{
+	SourceText.Rebuild();
+
+	FText TextToTransform = SourceText;
+	if (bInAsSource)
+	{
+		TextToTransform = FText::FromString(SourceText.BuildSourceString());
+	}
+
+	switch(TransformType)
+	{
+	case ETransformType::ToLower:
+		{
+			return TextToTransform.ToLower();
+		}
+	case ETransformType::ToUpper:
+		{
+			return TextToTransform.ToUpper();
+		}
+	default:
+		{
+			// Should never reach this point
+			check(0);
+		}
+	}
+	return FText();
+}
+
+void FTextHistory_Transform::GetHistoricFormatData(const FText& InText, TArray<FHistoricTextFormatData>& OutHistoricFormatData) const
+{
+	FTextInspector::GetHistoricFormatData(SourceText, OutHistoricFormatData);
+}
+
+bool FTextHistory_Transform::GetHistoricNumericData(const FText& InText, FHistoricTextNumericData& OutHistoricNumericData) const
+{
+	return FTextInspector::GetHistoricNumericData(SourceText, OutHistoricNumericData);
+}

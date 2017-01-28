@@ -5055,6 +5055,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				{
 					//@todo optimization, this should just be stripped entirely from cooked packages
 					TArray<FPackageIndex> Depends; // empty array
+					Linker->Summary.DependsOffset = Linker->Tell();
 					for (int32 i = 0; i < Linker->ExportMap.Num(); i++)
 					{
 						*Linker << Depends;

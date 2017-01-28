@@ -71,6 +71,7 @@ void UNavLocalGridManager::RebuildGrids()
 	bNeedsRebuilds = false;
 	if (SourceGrids.Num() == 0)
 	{
+		VersionNum++;
 		return;
 	}
 
@@ -271,8 +272,25 @@ int32 UNavLocalGridManager::AddLocalNavigationGridForBox(UObject* WorldContext, 
 	if (GridManager)
 	{
 		FNavLocalGridData GridData(Location, FVector2D(Extent.X + UNavLocalGridManager::GridCellSize * Radius2D, Extent.Y + UNavLocalGridManager::GridCellSize * Radius2D));
-		GridData.SetHeight(Height);
+		GridData.SetHeight(Height + Extent.Z);
 		GridData.MarkBoxObstacle(Location, Extent, Rotation.Quaternion());
+
+		GridId = GridManager->AddGridData(GridData, bRebuildGrids);
+	}
+
+	return GridId;
+}
+
+int32 UNavLocalGridManager::AddLocalNavigationGridForCapsule(UObject* WorldContext, const FVector& Location, float CapsuleRadius, float CapsuleHalfHeight, const int32 Radius2D, const float Height, bool bRebuildGrids)
+{
+	int32 GridId = 0;
+
+	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContext);
+	if (GridManager)
+	{
+		FNavLocalGridData GridData(Location, FVector2D(CapsuleRadius + UNavLocalGridManager::GridCellSize * Radius2D, CapsuleRadius + UNavLocalGridManager::GridCellSize * Radius2D));
+		GridData.SetHeight(Height + CapsuleHalfHeight);
+		GridData.MarkCapsuleObstacle(Location, CapsuleRadius, CapsuleHalfHeight);
 
 		GridId = GridManager->AddGridData(GridData, bRebuildGrids);
 	}

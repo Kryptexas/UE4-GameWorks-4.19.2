@@ -1086,10 +1086,14 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Update subsystems.
 	{
 		// This assumes that UObject::StaticTick only calls ProcessAsyncLoading.
+		SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - StaticTick"));
 		StaticTick(DeltaSeconds, !!GAsyncLoadingUseFullTimeLimit, GAsyncLoadingTimeLimit / 1000.f);
 	}
 
-	FEngineAnalytics::Tick(DeltaSeconds);
+	{
+		SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - Analytics"));
+		FEngineAnalytics::Tick(DeltaSeconds);
+	}
 
 	// -----------------------------------------------------
 	// Begin ticking worlds
@@ -1138,6 +1142,8 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 		if (!bIdleMode)
 		{
+			SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - WorldTick"));
+
 			// Tick the world.
 			GameCycles=0;
 			CLOCK_CYCLES(GameCycles);
@@ -1193,8 +1199,10 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// ----------------------------
 	//	End per-world ticking
 	// ----------------------------
-
-	FTickableGameObject::TickObjects(nullptr, LEVELTICK_All, false, DeltaSeconds);
+	{
+		SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - TickObjects"));
+		FTickableGameObject::TickObjects(nullptr, LEVELTICK_All, false, DeltaSeconds);
+	}
 
 	// Restore original GWorld*. This will go away one day.
 	if (OriginalGWorldContext != NAME_None)
@@ -1206,6 +1214,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Tick the viewport
 	if ( GameViewport != NULL && !bIdleMode )
 	{
+		SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - TickViewport"));
 		SCOPE_CYCLE_COUNTER(STAT_GameViewportTick);
 		GameViewport->Tick(DeltaSeconds);
 	}
@@ -1243,6 +1252,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	FAudioDeviceManager* GameAudioDeviceManager = GEngine->GetAudioDeviceManager();
 	if (GameAudioDeviceManager)
 	{
+		SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - Update Audio"));
 		GameAudioDeviceManager->UpdateActiveAudioDevices(bIsAnyNonPreviewWorldUnpaused);
 	}
 

@@ -212,10 +212,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	EReplicationMode ReplicationMode;
 
-	/** PredictionKeys, see more info in GameplayPrediction.h */
-	UPROPERTY(ReplicatedUsing=OnRep_PredictionKey)
-	FPredictionKey	ReplicatedPredictionKey;
-
 	FPredictionKey	ScopedPredictionKey;
 
 	FPredictionKey GetPredictionKeyForNewAction() const
@@ -229,10 +225,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 		return ScopedPredictionKey.IsValidForMorePrediction();
 	}
 
-	bool HasAuthorityOrPredictionKey(const FGameplayAbilityActivationInfo* ActivationInfo) const;	
-
-	UFUNCTION()
-	void OnRep_PredictionKey();
+	bool HasAuthorityOrPredictionKey(const FGameplayAbilityActivationInfo* ActivationInfo) const;
 
 	// A pending activation that cannot be activated yet, will be rechecked at a later point
 	struct FPendingAbilityInfo
@@ -743,7 +736,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 		AddGameplayCue_Internal(GameplayCueTag, EffectContext, MinimalReplicationGameplayCues);
 	}
 
-	void AddGameplayCue_Internal(const FGameplayTag GameplayCueTag, const FGameplayEffectContextHandle& EffectContext, FActiveGameplayCueContainer& GameplayCueContainer );
+	void AddGameplayCue_Internal(const FGameplayTag GameplayCueTag, FGameplayEffectContextHandle& EffectContext, FActiveGameplayCueContainer& GameplayCueContainer );
 
 	// -------------------------
 	
@@ -780,6 +773,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	/** Will initialize gameplay cue parameters with this ASC's Owner (Instigator) and AvatarActor (EffectCauser) */
 	virtual void InitDefaultGameplayCueParameters(FGameplayCueParameters& Parameters);
+
+	/** Are we ready to invoke gameplaycues yet? */
+	virtual bool IsReadyForGameplayCues();
 
 	// ----------------------------------------------------------------------------------------------------------------
 
@@ -985,8 +981,19 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	void DebugLine(struct FAbilitySystemComponentDebugInfo& Info, FString Str, float XOffset, float YOffset);
 	FString CleanupName(FString Str);
 
+	/** Ask the server to send ability system debug information back to the client, via ClientPrintDebug_Response  */
 	UFUNCTION(Server, reliable, WithValidation)
 	void ServerPrintDebug_Request();
+
+	/** Same as ServerPrintDebug_Request but this includes the client debug strings so that the server can embed them in replays */
+	UFUNCTION(Server, reliable, WithValidation)
+	void ServerPrintDebug_RequestWithStrings(const TArray<FString>& Strings);
+
+	/** Virtual function games can override to do their own stuff when either ServerPrintDebug function runs on the server */
+	virtual void OnServerPrintDebug_Request();
+
+	/** Determines whether to call ServerPrintDebug_Request or ServerPrintDebug_RequestWithStrings.   */
+	virtual bool ShouldSendClientDebugStringsToServer() const;
 
 	UFUNCTION(Client, reliable)
 	void ClientPrintDebug_Response(const TArray<FString>& Strings, int32 GameFlags);
@@ -994,6 +1001,18 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	/** Called when the ability is forced cancelled due to replication */
 	void ForceCancelAbilityDueToReplication(UGameplayAbility* Instance);
+
+	UPROPERTY(ReplicatedUsing=OnRep_ClientDebugString)
+	TArray<FString>	ClientDebugStrings;
+
+	UPROPERTY(ReplicatedUsing=OnRep_ServerDebugString)
+	TArray<FString>	ServerDebugStrings;
+
+	UFUNCTION()
+	virtual void OnRep_ClientDebugString();
+
+	UFUNCTION()
+	virtual void OnRep_ServerDebugString();
 
 protected:
 
@@ -1427,6 +1446,9 @@ public:
 	/** Suppress all GameplayCues on this component */
 	bool bSuppressGameplayCues;
 
+	/** Handle GameplayCues that may have been deferred while doing the NetDeltaSerialize and waiting for the avatar actor to get loaded */
+	void HandleDeferredGameplayCues(const FActiveGameplayEffectsContainer* GameplayEffectsContainer);
+
 protected:
 
 	/** Actually pushes the final attribute value to the attribute set's property. Should not be called by outside code since this does not go through the attribute aggregator system. */
@@ -1502,4 +1524,13 @@ protected:
 private:
 	FDelegateHandle MonitoredTagChangedDelegateHandle;
 	FTimerHandle    OnRep_ActivateAbilitiesTimerHandle;
+
+	/** Caches the flags that indicate whether this component has network authority. */
+	void CacheIsNetSimulated();
+
+public:
+
+	/** PredictionKeys, see more info in GameplayPrediction.h. This has to come *last* in all replicated properties on the AbilitySystemComponent to ensure OnRep/callback order. */
+	UPROPERTY(Replicated)
+	FReplicatedPredictionKeyMap	ReplicatedPredictionKeyMap;
 };

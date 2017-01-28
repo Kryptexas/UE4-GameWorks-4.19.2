@@ -433,6 +433,15 @@ void SMaterialEditor3DPreviewViewport::OnSetPreviewPrimitive(EThumbnailPrimType 
 		if (Primitive != nullptr)
 		{
 			SetPreviewAsset(Primitive);
+			
+			// Clear the thumbnail preview mesh
+			if (UMaterialInterface* MaterialInterface = MaterialEditorPtr.Pin()->GetMaterialInterface())
+			{
+				MaterialInterface->PreviewMesh = nullptr;
+				FMaterialEditor::UpdateThumbnailInfoPreviewMesh(MaterialInterface);
+				MaterialInterface->MarkPackageDirty();
+			}
+			
 			RefreshViewport();
 		}
 	}

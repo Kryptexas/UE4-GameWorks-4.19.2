@@ -973,18 +973,24 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 		GWorld = World;
 
 		TArray<FString> SublevelFilenames;
-		
 		auto CheckOutLevelFile = [this,&bShouldProceedWithRebuild, &SublevelFilenames](ULevel* InLevel)
 		{
 			if (InLevel && InLevel->MapBuildData)
 			{
 				UPackage* MapBuildDataPackage = InLevel->MapBuildData->GetOutermost();
-				FString MapBuildDataPackageName = MapBuildDataPackage->GetName();
 				if (MapBuildDataPackage != InLevel->GetOutermost())
 				{
-					if (CheckoutFile(MapBuildDataPackageName))
+					FString MapBuildDataPackageName;
+					if (FPackageName::DoesPackageExist(MapBuildDataPackage->GetName(), NULL, &MapBuildDataPackageName))
 					{
-						SublevelFilenames.Add(MapBuildDataPackageName);
+						if (CheckoutFile(MapBuildDataPackageName))
+						{
+							SublevelFilenames.Add(MapBuildDataPackageName);
+						}
+						else
+						{
+							bShouldProceedWithRebuild = false;
+						}
 					}
 					else
 					{
@@ -1083,8 +1089,7 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 
 				FEditorDelegates::OnLightingBuildFailed.Remove(BuildFailedDelegateHandle);
 			}
-
-			auto SaveMapBuildData = [this, &SublevelFilenames] (ULevel* InLevel) 
+			auto SaveMapBuildData = [this, &SublevelFilenames](ULevel* InLevel)
 			{
 				if (InLevel && InLevel->MapBuildData && bShouldBuildLighting)
 				{
@@ -1095,10 +1100,10 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 					{
 						FString MapBuildDataFilename;
 
-						if ( FPackageName::TryConvertLongPackageNameToFilename(MapBuildDataPackageName, MapBuildDataFilename, FPackageName::GetMapPackageExtension() ) )
+							if (FPackageName::TryConvertLongPackageNameToFilename(MapBuildDataPackageName, MapBuildDataFilename, FPackageName::GetAssetPackageExtension()))
 						{
 							SavePackageHelper(MapBuildDataPackage, MapBuildDataFilename);
-							if ( IFileManager::Get().FileExists(*MapBuildDataFilename))
+								if ( IFileManager::Get().FileExists(*MapBuildDataFilename))
 							{
 								CheckoutFile(MapBuildDataFilename, true);
 							}

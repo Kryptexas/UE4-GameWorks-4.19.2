@@ -1067,7 +1067,6 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		
 		{
 			GRHISupportsHDROutput = SupportsHDROutput(this);
-			GRHIHDRDisplayOutputFormat = PF_FloatRGBA;	
 		}
 
 		FHardwareInfo::RegisterHardwareInfo( NAME_RHI, TEXT( "D3D11" ) );

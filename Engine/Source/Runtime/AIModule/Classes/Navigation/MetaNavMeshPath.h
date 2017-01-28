@@ -17,6 +17,21 @@ enum class EMetaPathUpdateReason : uint8
 	MoveTick,
 };
 
+struct FMetaPathWayPoint : public FVector
+{
+	uint32 UserFlags;
+
+	FMetaPathWayPoint()
+		: FVector()
+		, UserFlags(0)
+	{}
+
+	FMetaPathWayPoint(const FVector& Location, const uint32 InUserFlags = 0)
+		: FVector(Location)
+		, UserFlags(InUserFlags)
+	{}
+};
+
 /** 
  * FMetaNavMeshPath allows creating hierarchical or guided navmesh paths
  *  
@@ -34,6 +49,8 @@ struct AIMODULE_API FMetaNavMeshPath : public FNavMeshPath
 	static const FNavPathType Type;
 
 	FMetaNavMeshPath();
+	FMetaNavMeshPath(const TArray<FMetaPathWayPoint>& InWaypoints, const ANavigationData& NavData);
+	FMetaNavMeshPath(const TArray<FMetaPathWayPoint>& InWaypoints, const AController& Owner);
 	FMetaNavMeshPath(const TArray<FVector>& InWaypoints, const ANavigationData& NavData);
 	FMetaNavMeshPath(const TArray<FVector>& InWaypoints, const AController& Owner);
 
@@ -62,14 +79,17 @@ struct AIMODULE_API FMetaNavMeshPath : public FNavMeshPath
 	int32 GetNumWaypoints() const { return Waypoints.Num(); }
 
 	/** returns waypoint array */
-	const TArray<FVector>& GetWaypoints() const { return Waypoints; }
-
+	const TArray<FMetaPathWayPoint>& GetWaypointArray() const { return Waypoints; }
+	
 	/** returns cached path goal */
 	AActor* GetMetaPathGoal() const { return PathGoal.Get(); }
 
 	/** tries to set waypoints, fails when path is ready being followed */
-	bool SetWaypoints(const TArray<FVector>& InWaypoints);
+	bool SetWaypoints(const TArray<FMetaPathWayPoint>& InWaypoints);
 
+	/** tries to set waypoints, fails when path is ready being followed */
+	bool SetWaypoints(const TArray<FVector>& InWaypoints);
+	
 	/** returns radius for switching to next waypoint during path following */
 	float GetWaypointSwitchRadius() const { return WaypointSwitchRadius; }
 
@@ -90,7 +110,7 @@ struct AIMODULE_API FMetaNavMeshPath : public FNavMeshPath
 protected:
 
 	/** list of waypoints, including start and end of path */
-	TArray<FVector> Waypoints;
+	TArray<FMetaPathWayPoint> Waypoints;
 
 	/** sum of 3D distance along waypoints, used for approximating length of path */
 	float ApproximateLength;
@@ -109,4 +129,8 @@ protected:
 
 	/** switch to next waypoint  */
 	bool MoveToNextSection(const FVector& AgentLocation);
+
+public:
+	DEPRECATED(4.16, "Waypoint type of MetaPaths has been changed. Use the new GetWaypointArray")
+	TArray<FVector> GetWaypoints() const;
 };

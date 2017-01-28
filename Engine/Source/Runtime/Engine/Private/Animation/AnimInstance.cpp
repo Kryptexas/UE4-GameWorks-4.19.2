@@ -77,6 +77,12 @@ extern TAutoConsoleVariable<int32> CVarUseParallelAnimUpdate;
 extern TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation;
 extern TAutoConsoleVariable<int32> CVarForceUseParallelAnimUpdate;
 
+ENGINE_API float RK4_SPRING_INTERPOLATOR_UPDATE_RATE = 60.f;
+static FAutoConsoleVariableRef CVarRK4SpringInterpolatorUpdateRate(TEXT("p.RK4SpringInterpolator.UpdateRate"), RK4_SPRING_INTERPOLATOR_UPDATE_RATE, TEXT("RK4 Spring Interpolator's rate of update"), ECVF_Default);
+
+ENGINE_API int32 RK4_SPRING_INTERPOLATOR_MAX_ITER = 4;
+static FAutoConsoleVariableRef CVarRK4SpringInterpolatorMaxIter(TEXT("p.RK4SpringInterpolator.MaxIter"), RK4_SPRING_INTERPOLATOR_MAX_ITER, TEXT("RK4 Spring Interpolator's max number of iterations"), ECVF_Default);
+
 /////////////////////////////////////////////////////
 // UAnimInstance
 /////////////////////////////////////////////////////
@@ -1125,8 +1131,11 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 		const TArray<SmartName::UID_Type>& UIDList = *InCurve.UIDList;
 		for (int32 CurveId = 0; CurveId < InCurve.UIDList->Num(); ++CurveId)
 		{
-			// had to add to another data type
-			AddCurveValue(UIDList[CurveId], InCurve.Elements[CurveId].Value);
+			if (ensureAlwaysMsgf(InCurve.Elements.IsValidIndex(CurveId), TEXT("%s Animation Instance contains out of bound UIDList."), *GetClass()->GetName()))
+			{
+				// had to add to another data type
+				AddCurveValue(UIDList[CurveId], InCurve.Elements[CurveId].Value);
+			}
 		}
 	}	
 
@@ -1462,16 +1471,16 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 		ensure(MontageInstance);
 		if (MontageInstance)
 		{
-			bool const bUsingBlendedRootMotion = RootMotionMode == ERootMotionMode::RootMotionFromEverything;
-			bool const bNoRootMotionExtraction = RootMotionMode == ERootMotionMode::NoRootMotionExtraction;
+			bool const bUsingBlendedRootMotion = (RootMotionMode == ERootMotionMode::RootMotionFromEverything);
+			bool const bNoRootMotionExtraction = (RootMotionMode == ERootMotionMode::NoRootMotionExtraction);
 
 			// Extract root motion if we are using blend root motion (RootMotionFromEverything) or if we are set to extract root 
 			// motion AND we are the active root motion instance. This is so we can make root motion deterministic for networking when
 			// we are not using RootMotionFromEverything
-			bool const bExtractRootMotion = bUsingBlendedRootMotion || (!bNoRootMotionExtraction && MontageInstance == GetRootMotionMontageInstance());
+			bool const bExtractRootMotion = !MontageInstance->IsRootMotionDisabled() && (bUsingBlendedRootMotion || (!bNoRootMotionExtraction && (MontageInstance == GetRootMotionMontageInstance())));
 
 			FRootMotionMovementParams LocalExtractedRootMotion;
-			FRootMotionMovementParams* RootMotionParams = NULL;
+			FRootMotionMovementParams* RootMotionParams = nullptr;
 			if (bExtractRootMotion)
 			{
 				RootMotionParams = (RootMotionMode != ERootMotionMode::IgnoreRootMotion) ? &GetProxyOnGameThread<FAnimInstanceProxy>().GetExtractedRootMotion() : &LocalExtractedRootMotion;

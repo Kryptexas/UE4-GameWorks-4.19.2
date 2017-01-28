@@ -2,11 +2,26 @@
 
 #include "Abilities/Tasks/AbilityTask.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemStats.h"
+
+int32 UAbilityTask::GlobalAbilityTaskCount = 0;
 
 UAbilityTask::UAbilityTask(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	WaitStateBitMask = (uint8)EAbilityTaskWaitState::WaitingOnGame;
+	SET_DWORD_STAT(STAT_AbilitySystem_TaskCount, ++GlobalAbilityTaskCount);
+	if (!ensure(GlobalAbilityTaskCount < 1000))
+	{
+		ABILITY_LOG(Warning, TEXT("Way too many AbilityTasks are currently active! %d. %s"), GlobalAbilityTaskCount, *GetClass()->GetName());
+	}
+}
+
+void UAbilityTask::OnDestroy(bool bInOwnerFinished)
+{
+	
+	SET_DWORD_STAT(STAT_AbilitySystem_TaskCount, --GlobalAbilityTaskCount);
+	Super::OnDestroy(bInOwnerFinished);
 }
 
 FGameplayAbilitySpecHandle UAbilityTask::GetAbilitySpecHandle() const

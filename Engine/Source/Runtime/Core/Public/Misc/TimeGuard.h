@@ -92,10 +92,10 @@ protected:
 };
 
 #define SCOPE_TIME_GUARD(name) \
-	FLightweightTimeGuard TimeGuard_##Stat(name);
+	FLightweightTimeGuard ANONYMOUS_VARIABLE(TimeGuard)(name);
 
 #define SCOPE_TIME_GUARD_MS(name, timeMs) \
-	FLightweightTimeGuard TimeGuard_##Stat(name, timeMs);
+	FLightweightTimeGuard ANONYMOUS_VARIABLE(TimeGuard)(name, timeMs);
 
 
 #else

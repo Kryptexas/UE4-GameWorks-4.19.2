@@ -42,22 +42,32 @@ FText FText::AsDateTime( const FDateTime& DateTime, const EDateTimeStyle::Type D
 
 int32 FText::CompareTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel ) const
 {
-	return FCString::Strcmp( *TextData->GetDisplayString(), *Other.TextData->GetDisplayString() );
+	return ToString().Compare(Other.ToString(), ESearchCase::CaseSensitive);
 }
 
 int32 FText::CompareToCaseIgnored( const FText& Other ) const
 {
-	return FCString::Stricmp( *TextData->GetDisplayString(), *Other.TextData->GetDisplayString() );
+	return ToString().Compare(Other.ToString(), ESearchCase::IgnoreCase);
 }
 
 bool FText::EqualTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel ) const
 {
-	return FCString::Strcmp( *TextData->GetDisplayString(), *Other.TextData->GetDisplayString() ) == 0;
+	return ToString().Equals(Other.ToString(), ESearchCase::CaseSensitive);
 }
 
 bool FText::EqualToCaseIgnored( const FText& Other ) const
 {
-	return CompareToCaseIgnored( Other ) == 0;
+	return ToString().Equals(Other.ToString(), ESearchCase::IgnoreCase);
+}
+
+FText FText::ToLower() const
+{
+	return FText::FromString(ToString().ToLower());
+}
+
+FText FText::ToUpper() const
+{
+	return FText::FromString(ToString().ToUpper());
 }
 
 FText::FSortPredicate::FSortPredicate(const ETextComparisonLevel::Type ComparisonLevel)

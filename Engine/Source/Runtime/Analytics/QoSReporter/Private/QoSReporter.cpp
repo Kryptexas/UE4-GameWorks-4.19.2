@@ -94,7 +94,8 @@ QOSREPORTER_API void FQoSReporter::Initialize()
 		return;
 	}
 
-	SetBackendDeploymentName(StoredDeploymentName);
+	// set this directly as SetBackendDeploymentName will early-out on same value
+	Analytics->SetLocation(StoredDeploymentName);
 
 	// check if Configs override the heartbeat interval
 	float ConfigHeartbeatInterval = 0.0;
@@ -160,6 +161,11 @@ void FQoSReporter::ReportStartupCompleteEvent()
 
 void FQoSReporter::SetBackendDeploymentName(const FString & InDeploymentName)
 {
+	if (StoredDeploymentName == InDeploymentName)
+	{
+		return;
+	}
+
 	StoredDeploymentName = InDeploymentName;
 
 	if (Analytics.IsValid())

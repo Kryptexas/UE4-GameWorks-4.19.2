@@ -214,6 +214,7 @@ namespace AutomationTool
 
 			this.RawProjectPath = InParams.RawProjectPath;
 			this.MapsToCook = InParams.MapsToCook;
+			this.MapIniSectionsToCook = InParams.MapIniSectionsToCook;
 			this.DirectoriesToCook = InParams.DirectoriesToCook;
             this.InternationalizationPreset = InParams.InternationalizationPreset;
             this.CulturesToCook = InParams.CulturesToCook;
@@ -351,6 +352,7 @@ namespace AutomationTool
 			List<UnrealTargetConfiguration> ClientConfigsToBuild = null,
 			List<UnrealTargetConfiguration> ServerConfigsToBuild = null,
 			ParamList<string> MapsToCook = null,
+			ParamList<string> MapIniSectionsToCook = null,
 			ParamList<string> DirectoriesToCook = null,
             string InternationalizationPreset = null,
             ParamList<string> CulturesToCook = null,
@@ -764,7 +766,29 @@ namespace AutomationTool
                 this.MapsToCook = MapsToCook;
             }
 
-            if (String.IsNullOrEmpty(this.MapToRun) == false)
+			if (MapIniSectionsToCook == null)
+			{
+				if (Command != null)
+				{
+					this.MapIniSectionsToCook = new ParamList<string>();
+
+					var MapsString = Command.ParseParamValue("MapIniSectionsToCook");
+					if (String.IsNullOrEmpty(MapsString) == false)
+					{
+						var MapNames = new ParamList<string>(MapsString.Split('+'));
+						foreach (var M in MapNames)
+						{
+							this.MapIniSectionsToCook.Add(M);
+						}
+					}
+				}
+			}
+			else
+			{
+				this.MapIniSectionsToCook = MapIniSectionsToCook;
+			}
+
+			if (String.IsNullOrEmpty(this.MapToRun) == false)
             {
                 this.MapsToCook.Add(this.MapToRun);
             }
@@ -1208,6 +1232,13 @@ namespace AutomationTool
 		/// Cook: List of maps to cook.
 		/// </summary>
 		public ParamList<string> MapsToCook = new ParamList<string>();
+
+
+		/// <summary>
+		/// Cook: List of map inisections to cook (see allmaps)
+		/// </summary>
+		public ParamList<string> MapIniSectionsToCook = new ParamList<string>();
+		
 
 		/// <summary>
 		/// Cook: List of directories to cook.
@@ -1907,6 +1938,11 @@ namespace AutomationTool
 			get { return !CommandUtils.IsNullOrEmpty(MapsToCook); }
 		}
 
+		public bool HasMapIniSectionsToCook
+		{
+			get { return !CommandUtils.IsNullOrEmpty(MapIniSectionsToCook); }
+		}
+
 		public bool HasDirectoriesToCook
 		{
 			get { return !CommandUtils.IsNullOrEmpty(DirectoriesToCook); }
@@ -2350,6 +2386,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("NoCleanStage={0}", NoCleanStage);
 				CommandUtils.LogLog("NoXGE={0}", NoXGE);
 				CommandUtils.LogLog("MapsToCook={0}", MapsToCook.ToString());
+				CommandUtils.LogLog("MapIniSectionsToCook={0}", MapIniSectionsToCook.ToString());
 				CommandUtils.LogLog("Pak={0}", Pak);
 				CommandUtils.LogLog("Package={0}", Package);
 				CommandUtils.LogLog("NullRHI={0}", NullRHI);

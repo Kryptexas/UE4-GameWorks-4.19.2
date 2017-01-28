@@ -1771,6 +1771,12 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeDependsMap()
 		return LINKER_Loaded;
 	}
 
+	if ( Summary.DependsOffset == 0 )
+	{
+		// This package was saved baddly
+		return LINKER_Loaded;
+	}
+
 	// depends map size is same as export map size
 	if (DependsMapIndex == 0 && Summary.ExportCount > 0)
 	{
@@ -3420,6 +3426,14 @@ void FLinkerLoad::Preload( UObject* Object )
 					}
 					else
 					{
+
+#if WITH_EDITOR
+						static const FName NAME_UObjectSerialize = FName(TEXT("UObject::Serialize, Name, ClassName"));
+						FArchive::FScopeAddDebugData P(*this, NAME_UObjectSerialize);
+						FArchive::FScopeAddDebugData N(*this, Object->GetFName());
+						FArchive::FScopeAddDebugData C(*this, Object->GetClass()->GetFName());
+#endif
+
 						FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 						// Maintain the current SerializedObjects.
 						UObject* PrevSerializedObject = ThreadContext.SerializedObject;
@@ -3892,7 +3906,7 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 		// Find the Archetype object for the one we are loading.
 		UObject* Template = UObject::GetArchetypeFromRequiredInfo(LoadClass, ThisParent, Export.ObjectName, Export.ObjectFlags);
 
-		check(Template);
+		checkf(Template, TEXT("Failed to get template for class %s. ExportName=%s"), *LoadClass->GetPathName(), *Export.ObjectName.ToString());
 		checkfSlow(((Export.ObjectFlags&RF_ClassDefaultObject)!=0 || Template->IsA(LoadClass)), TEXT("Mismatch between template %s and load class %s.  If this is a legacy blueprint or map, it may need to be resaved with bRecompileOnLoad turned off."), *Template->GetPathName(), *LoadClass->GetPathName());
 		
 		// we also need to ensure that the template has set up any instances
@@ -5175,6 +5189,18 @@ void FLinkerLoad::FlushCache()
 	{
 		Loader->FlushCache();
 	}
+}
+
+bool FLinkerLoad::HasAnyObjectsPendingLoad() const
+{
+	for (const FObjectExport& Export : ExportMap)
+	{
+		if (Export.Object && Export.Object->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 #if WITH_EDITORONLY_DATA

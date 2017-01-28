@@ -34,9 +34,6 @@ UAbilityTask_ApplyRootMotionMoveToActorForce::UAbilityTask_ApplyRootMotionMoveTo
 	TimeMappingCurve = nullptr;
 	TargetLerpSpeedHorizontalCurve = nullptr;
 	TargetLerpSpeedVerticalCurve = nullptr;
-	VelocityOnFinishMode = ERootMotionFinishVelocityMode::MaintainLastRootMotionVelocity;
-	SetVelocityOnFinish = FVector::ZeroVector;
-	ClampVelocityOnFinish = 0.0f;
 }
 
 UAbilityTask_ApplyRootMotionMoveToActorForce* UAbilityTask_ApplyRootMotionMoveToActorForce::ApplyRootMotionMoveToActorForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, AActor* TargetActor, FVector TargetLocationOffset, ERootMotionMoveToActorTargetOffsetType OffsetAlignment, float Duration, UCurveFloat* TargetLerpSpeedHorizontal, UCurveFloat* TargetLerpSpeedVertical, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish, float ClampVelocityOnFinish, bool bDisableDestinationReachedInterrupt)
@@ -58,9 +55,9 @@ UAbilityTask_ApplyRootMotionMoveToActorForce* UAbilityTask_ApplyRootMotionMoveTo
 	MyTask->bRestrictSpeedToExpected = bRestrictSpeedToExpected;
 	MyTask->PathOffsetCurve = PathOffsetCurve;
 	MyTask->TimeMappingCurve = TimeMappingCurve;
-	MyTask->VelocityOnFinishMode = VelocityOnFinishMode;
-	MyTask->SetVelocityOnFinish = SetVelocityOnFinish;
-	MyTask->ClampVelocityOnFinish = ClampVelocityOnFinish;
+	MyTask->FinishVelocityMode = VelocityOnFinishMode;
+	MyTask->FinishSetVelocity = SetVelocityOnFinish;
+	MyTask->FinishClampVelocity = ClampVelocityOnFinish;
 	if (MyTask->GetAvatarActor() != nullptr)
 	{
 		MyTask->StartLocation = MyTask->GetAvatarActor()->GetActorLocation();
@@ -126,6 +123,9 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::SharedInitAndApply()
 			MoveToActorForce->bRestrictSpeedToExpected = bRestrictSpeedToExpected;
 			MoveToActorForce->PathOffsetCurve = PathOffsetCurve;
 			MoveToActorForce->TimeMappingCurve = TimeMappingCurve;
+			MoveToActorForce->FinishVelocityParams.Mode = FinishVelocityMode;
+			MoveToActorForce->FinishVelocityParams.SetVelocity = FinishSetVelocity;
+			MoveToActorForce->FinishVelocityParams.ClampVelocity = FinishClampVelocity;
 			RootMotionSourceID = MovementComponent->ApplyRootMotionSource(MoveToActorForce);
 
 			if (Ability)
@@ -253,8 +253,7 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::TickTask(float DeltaTime)
 	AActor* MyActor = GetAvatarActor();
 	if (MyActor)
 	{
-		float CurrentTime = GetWorld()->GetTimeSeconds();
-		const bool bTimedOut = CurrentTime >= EndTime;
+		const bool bTimedOut = HasTimedOut();
 
 		// Update target location
 		{
@@ -317,9 +316,6 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::GetLifetimeReplicatedProps(TA
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, bRestrictSpeedToExpected);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, PathOffsetCurve);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, TimeMappingCurve);
-	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, VelocityOnFinishMode);
-	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, SetVelocityOnFinish);
-	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, ClampVelocityOnFinish);
 }
 
 void UAbilityTask_ApplyRootMotionMoveToActorForce::PreDestroyFromReplication()
@@ -337,15 +333,6 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::OnDestroy(bool AbilityIsEndin
 		if (bSetNewMovementMode)
 		{
 			MovementComponent->SetMovementMode(NewMovementMode);
-		}
-
-		if (VelocityOnFinishMode == ERootMotionFinishVelocityMode::SetVelocity)
-		{
-			SetFinishVelocity(FName("AbilityTaskApplyRootMotionMoveToActorForce_EndForce"), SetVelocityOnFinish);
-		}
-		else if (VelocityOnFinishMode == ERootMotionFinishVelocityMode::ClampVelocity)
-		{
-			ClampFinishVelocity(FName("AbilityTaskApplyRootMotionMoveToActorForce_VelocityClamp"), ClampVelocityOnFinish);
 		}
 	}
 

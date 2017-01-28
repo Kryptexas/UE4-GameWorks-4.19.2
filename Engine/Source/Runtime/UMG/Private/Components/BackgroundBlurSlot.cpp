@@ -59,3 +59,42 @@ void UBackgroundBlurSlot::SynchronizeProperties()
 		SetVerticalAlignment(VerticalAlignment);
 	}
 }
+
+#if WITH_EDITOR
+
+void UBackgroundBlurSlot::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	static bool IsReentrant = false;
+
+	if ( !IsReentrant )
+	{
+		IsReentrant = true;
+
+		if ( PropertyChangedEvent.Property )
+		{
+			FName PropertyName = PropertyChangedEvent.Property->GetFName();
+
+			if ( UBackgroundBlur* ParentBackgroundBlur = CastChecked<UBackgroundBlur>(Parent) )
+			{
+				if ( PropertyName == "Padding" )
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, "Padding", ParentBackgroundBlur, "Padding");
+				}
+				else if ( PropertyName == "HorizontalAlignment" )
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, "HorizontalAlignment", ParentBackgroundBlur, "HorizontalAlignment");
+				}
+				else if ( PropertyName == "VerticalAlignment" )
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, "VerticalAlignment", ParentBackgroundBlur, "VerticalAlignment");
+				}
+			}
+		}
+
+		IsReentrant = false;
+	}
+}
+
+#endif

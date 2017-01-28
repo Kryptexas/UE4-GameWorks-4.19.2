@@ -915,8 +915,10 @@ void UBlueprintGeneratedClass::CreateTimelineComponent(AActor* Actor, const UTim
 void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass, AActor* Actor)
 {
 	check(ThisClass && Actor);
-	check(!Actor->IsTemplate());
-	check(!Actor->IsPendingKill());
+	if (Actor->IsTemplate() || Actor->IsPendingKill())
+	{
+		return;
+	}
 
 	if (const UBlueprintGeneratedClass* BPGC = Cast<const UBlueprintGeneratedClass>(ThisClass))
 	{

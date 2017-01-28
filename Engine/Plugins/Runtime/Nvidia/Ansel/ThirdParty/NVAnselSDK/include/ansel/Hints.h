@@ -26,14 +26,42 @@
 // Copyright 2015 NVIDIA Corporation. All rights reserved.
 
 #pragma once
-
+#include <cstdint>
 #include <ansel/Defines.h>
 
 namespace ansel
 {
+    enum HintType
+    {
+        kHintTypePreBind,
+        kHintTypePostBind
+    };
+
+    enum HintThreadingBehaviour
+    {
+        kThreadingBehaviourMatchAutomatic = 0,
+        kThreadingBehaviourNoMatching = 0xFFFFFFFFFFFFFFFFull
+    };
+
     // Call this right before setting HDR render target active
-    ANSEL_SDK_API void markHdrBufferBind();
+    // hintType is an optional argument specifying what type of hint is this -
+    // it could be called after or before the bind of a buffer that this hint marks.
+    // The default option is kHintTypePreBind, which means the hint should be called before 
+    // the render target is bound.
+    // threadId is an optional argument allowing Ansel to match the thread which calls
+    // SetRenderTarget (or analogous function, since this is graphics API dependent)
+    // to the thread which called the hint. The default value of kNoMatching
+    // means that no such matching is going to happen. The special value of 0 means that
+    // Ansel SDK is going to match thread ids automatically. Any other value means a specific thread id
+    // known at integration side.
+    ANSEL_SDK_API void markHdrBufferBind(HintType hintType = kHintTypePreBind, uint64_t threadId = kThreadingBehaviourNoMatching);
     // Call this right after the last draw call into the HDR render target
-    ANSEL_SDK_API void markHdrBufferFinished();
+    // threadId is an optional argument allowing Ansel to match the thread which calls
+    // SetRenderTarget (or analogous function, since this is graphics API dependent)
+    // to the thread which called the hint. The default value of kNoMatching
+    // means that no such matching is going to happen. The special value of 0 means that
+    // Ansel SDK is going to match thread ids automatically. Any other value means a specific thread id
+    // known at integration side.
+    ANSEL_SDK_API void markHdrBufferFinished(uint64_t threadId = kThreadingBehaviourNoMatching);
 }
 

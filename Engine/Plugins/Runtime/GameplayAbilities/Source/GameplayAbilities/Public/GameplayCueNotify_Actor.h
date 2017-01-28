@@ -66,6 +66,14 @@ public:
 	UPROPERTY(EditAnywhere, Category = Cleanup)
 	float AutoDestroyDelay;
 
+	/** Warn if we have a timeline running when we cleanup this gameplay cue (we will kill the timeline either way)  */
+	UPROPERTY(EditAnywhere, Category = Cleanup)
+	bool WarnIfTimelineIsStillRunning;
+
+	/** Warn if we have a latent action (delay, etc) running when we cleanup this gameplay cue (we will kill the latent action either way)  */
+	UPROPERTY(EditAnywhere, Category = Cleanup)
+	bool WarnIfLatentActionIsStillRunning;
+
 	/** Generic Event Graph event that will get called for every event type */
 	UFUNCTION(BlueprintImplementableEvent, Category = "GameplayCueNotify", DisplayName = "HandleGameplayCue")
 	void K2_HandleGameplayCue(AActor* MyTarget, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters);

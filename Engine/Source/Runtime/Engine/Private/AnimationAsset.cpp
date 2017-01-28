@@ -161,6 +161,16 @@ void FAnimGroupInstance::Prepare(const FAnimGroupInstance* PreviousGroup)
 			}
 		}
 	}
+	else
+	{
+		// Leader has no markers, we can't use SyncMarkers.
+		bCanUseMarkerSync = false;
+		ValidMarkers.Reset();
+		for (FAnimTickRecord& AnimTickRecord : ActivePlayers)
+		{
+			AnimTickRecord.MarkerTickRecord->Reset();
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////

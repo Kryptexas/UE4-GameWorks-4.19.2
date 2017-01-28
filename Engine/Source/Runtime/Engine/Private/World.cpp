@@ -4809,7 +4809,7 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 
 			if (CurrentWorld->DemoNetDriver && CurrentWorld->DemoNetDriver->IsRecording())
 			{
-				CurrentWorld->DemoNetDriver->PauseRecording(true);
+				CurrentWorld->DemoNetDriver->OnSeamlessTravelStartDuringRecording(InURL.Map);
 			}
 
 			checkSlow(LoadedPackage == NULL);

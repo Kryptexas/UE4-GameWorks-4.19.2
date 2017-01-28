@@ -211,17 +211,28 @@ UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
 {
 }
 
+void UNetDriver::InitPacketSimulationSettings()
+{
+#if DO_ENABLE_NET_TEST
+	// read the settings from .ini and command line, with the command line taking precedence	
+	PacketSimulationSettings = FPacketSimulationSettings();
+	PacketSimulationSettings.LoadConfig(*NetDriverName.ToString());
+	PacketSimulationSettings.RegisterCommands();
+	PacketSimulationSettings.ParseSettings(FCommandLine::Get(), *NetDriverName.ToString());
+#endif
+}
+
 void UNetDriver::PostInitProperties()
 {
 	Super::PostInitProperties();
+
+	// By default we're the game net driver and any child ones must override this
+	NetDriverName = NAME_GameNetDriver;
+
 	if ( !HasAnyFlags(RF_ClassDefaultObject) )
 	{
-#if DO_ENABLE_NET_TEST
-		// read the settings from .ini and command line, with the command line taking precedence
-		PacketSimulationSettings.LoadConfig();
-		PacketSimulationSettings.RegisterCommands();
-		PacketSimulationSettings.ParseSettings(FCommandLine::Get());
-#endif
+		InitPacketSimulationSettings();
+
 		RoleProperty		= FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("Role"      ) );
 		RemoteRoleProperty	= FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("RemoteRole") );
 
@@ -239,9 +250,6 @@ void UNetDriver::PostInitProperties()
 		bNoTimeouts = bNoTimeouts || (GEditor && GEditor->PlayWorld);
 #endif // WITH_EDITOR
 	}
-
-	// By default we're the game net driver and any child ones must override this
-	NetDriverName = NAME_GameNetDriver;
 }
 
 void UNetDriver::AssertValid()
@@ -1890,7 +1898,7 @@ bool UNetDriver::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 #if DO_ENABLE_NET_TEST
 	// This will allow changing the Pkt* options at runtime
-	else if (PacketSimulationSettings.ParseSettings(Cmd))
+	else if (PacketSimulationSettings.ParseSettings(Cmd, *NetDriverName.ToString()))
 	{
 		if (ServerConnection)
 		{
@@ -2170,28 +2178,64 @@ public:
 /** reads in settings from the .ini file 
  * @note: overwrites all previous settings
  */
-void FPacketSimulationSettings::LoadConfig()
+void FPacketSimulationSettings::LoadConfig(const TCHAR* OptionalQualifier)
 {
-	if (GConfig->GetInt(TEXT("PacketSimulationSettings"), TEXT("PktLoss"), PktLoss, GEngineIni))
+	if (ConfigHelperInt(TEXT("PktLoss"), PktLoss, OptionalQualifier))
 	{
 		PktLoss = FMath::Clamp<int32>(PktLoss, 0, 100);
 	}
 	
 	bool InPktOrder = !!PktOrder;
-	GConfig->GetBool(TEXT("PacketSimulationSettings"), TEXT("PktOrder"), InPktOrder, GEngineIni);
+	ConfigHelperBool(TEXT("PktOrder"), InPktOrder, OptionalQualifier);
 	PktOrder = int32(InPktOrder);
 	
-	GConfig->GetInt(TEXT("PacketSimulationSettings"), TEXT("PktLag"), PktLag, GEngineIni);
+	ConfigHelperInt(TEXT("PktLag"), PktLag, OptionalQualifier);
 	
-	if (GConfig->GetInt(TEXT("PacketSimulationSettings"), TEXT("PktDup"), PktDup, GEngineIni))
+	if (ConfigHelperInt(TEXT("PktDup"), PktDup, OptionalQualifier))
 	{
 		PktDup = FMath::Clamp<int32>(PktDup, 0, 100);
 	}
-
-	if (GConfig->GetInt(TEXT("PacketSimulationSettings"), TEXT("PktLagVariance"), PktLagVariance, GEngineIni))
+	
+	if (ConfigHelperInt(TEXT("PktLagVariance"), PktLagVariance, OptionalQualifier))
 	{
 		PktLagVariance = FMath::Clamp<int32>(PktLagVariance, 0, 100);
 	}
+}
+
+bool FPacketSimulationSettings::ConfigHelperInt(const TCHAR* Name, int32& Value, const TCHAR* OptionalQualifier)
+{
+	if (OptionalQualifier)
+	{
+		if (GConfig->GetInt(TEXT("PacketSimulationSettings"), *FString::Printf(TEXT("%s%s"), OptionalQualifier, Name), Value, GEngineIni))
+		{
+			return true;
+		}
+	}
+
+	if (GConfig->GetInt(TEXT("PacketSimulationSettings"), Name, Value, GEngineIni))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool FPacketSimulationSettings::ConfigHelperBool(const TCHAR* Name, bool& Value, const TCHAR* OptionalQualifier)
+{
+	if (OptionalQualifier)
+	{
+		if (GConfig->GetBool(TEXT("PacketSimulationSettings"), *FString::Printf(TEXT("%s%s"), OptionalQualifier, Name), Value, GEngineIni))
+		{
+			return true;
+		}
+	}
+
+	if (GConfig->GetBool(TEXT("PacketSimulationSettings"), Name, Value, GEngineIni))
+	{
+		return true;
+	}
+
+	return false;
 }
 
 void FPacketSimulationSettings::RegisterCommands()
@@ -2237,42 +2281,60 @@ void FPacketSimulationSettings::UnregisterCommands()
  *
  * @param Stream the string to read the settings from
  */
-bool FPacketSimulationSettings::ParseSettings(const TCHAR* Cmd)
+bool FPacketSimulationSettings::ParseSettings(const TCHAR* Cmd, const TCHAR* OptionalQualifier)
 {
+	UE_LOG(LogTemp, Warning, TEXT("ParseSettings for %s"), OptionalQualifier);
 	// note that each setting is tested.
 	// this is because the same function will be used to parse the command line as well
 	bool bParsed = false;
 
-	if( FParse::Value(Cmd,TEXT("PktLoss="), PktLoss) )
+	if( ParseHelper(Cmd, TEXT("PktLoss="), PktLoss, OptionalQualifier) )
 	{
 		bParsed = true;
 		FMath::Clamp<int32>( PktLoss, 0, 100 );
 		UE_LOG(LogNet, Log, TEXT("PktLoss set to %d"), PktLoss);
 	}
-	if( FParse::Value(Cmd,TEXT("PktOrder="), PktOrder) )
+	if( ParseHelper(Cmd, TEXT("PktOrder="), PktOrder, OptionalQualifier) )
 	{
 		bParsed = true;
 		FMath::Clamp<int32>( PktOrder, 0, 1 );
 		UE_LOG(LogNet, Log, TEXT("PktOrder set to %d"), PktOrder);
 	}
-	if( FParse::Value(Cmd,TEXT("PktLag="), PktLag) )
+	if( ParseHelper(Cmd, TEXT("PktLag="), PktLag, OptionalQualifier) )
 	{
 		bParsed = true;
 		UE_LOG(LogNet, Log, TEXT("PktLag set to %d"), PktLag);
 	}
-	if( FParse::Value(Cmd,TEXT("PktDup="), PktDup) )
+	if( ParseHelper(Cmd, TEXT("PktDup="), PktDup, OptionalQualifier) )
 	{
 		bParsed = true;
 		FMath::Clamp<int32>( PktDup, 0, 100 );
 		UE_LOG(LogNet, Log, TEXT("PktDup set to %d"), PktDup);
-	}
-	if( FParse::Value(Cmd,TEXT("PktLagVariance="), PktLagVariance) )
+	}	
+	if (ParseHelper(Cmd, TEXT("PktLagVariance="), PktLagVariance, OptionalQualifier))
 	{
 		bParsed = true;
 		FMath::Clamp<int32>( PktLagVariance, 0, 100 );
 		UE_LOG(LogNet, Log, TEXT("PktLagVariance set to %d"), PktLagVariance);
 	}
 	return bParsed;
+}
+
+bool FPacketSimulationSettings::ParseHelper(const TCHAR* Cmd, const TCHAR* Name, int32& Value, const TCHAR* OptionalQualifier)
+{
+	if (OptionalQualifier)
+	{
+		if (FParse::Value(Cmd, *FString::Printf(TEXT("%s%s"), OptionalQualifier, Name), Value))
+		{
+			return true;
+		}
+	}
+
+	if (FParse::Value(Cmd, Name, Value))
+	{
+		return true;
+	}
+	return false;
 }
 
 #endif
@@ -3187,6 +3249,11 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 #endif // WITH_SERVER_CODE
 }
 
+void UNetDriver::SetNetDriverName(FName NewNetDriverNamed)
+{
+	NetDriverName = NewNetDriverNamed;
+	InitPacketSimulationSettings();
+}
 
 void UNetDriver::PrintDebugRelevantActors()
 {

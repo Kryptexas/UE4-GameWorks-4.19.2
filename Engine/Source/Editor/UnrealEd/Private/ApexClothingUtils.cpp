@@ -978,10 +978,10 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	ClothSection.PhysicalMeshNormals = PhysicalMeshNormals;
 
 	//adjust index buffer
-	TArray<uint32> OutIndexBuffer;
-	LODModel.MultiSizeIndexContainer.GetIndexBuffer(OutIndexBuffer);
+	FMultiSizeIndexContainerData NewIndexData;
+	LODModel.MultiSizeIndexContainer.GetIndexBuffer(NewIndexData.Indices);
 
-	ClothSection.BaseIndex = OutIndexBuffer.Num();
+	ClothSection.BaseIndex = NewIndexData.Indices.Num();
 	ClothSection.NumTriangles = TempOrigSection.NumTriangles;
 
 	uint32 NumVertices = 0;
@@ -1000,13 +1000,23 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	const int32 BaseVertexOffset = ClothSection.BaseVertexIndex - TempOrigSection.BaseVertexIndex;
 	for(int32 CurrIdx = 0; CurrIdx < NumIndicesToCopy; ++CurrIdx)
 	{
-		int32 SourceIndex = OutIndexBuffer[BaseIndexToCopy + CurrIdx];
-		OutIndexBuffer.Add(SourceIndex + BaseVertexOffset);
+		int32 SourceIndex = NewIndexData.Indices[BaseIndexToCopy + CurrIdx];
+		NewIndexData.Indices.Add(SourceIndex + BaseVertexOffset);
+	}
+
+	LODModel.NumVertices += ClothSection.GetNumVertices();
+
+	if(LODModel.NumVertices > MAX_uint16)
+	{
+		NewIndexData.DataTypeSize = sizeof(uint32);
+	}
+	else
+	{
+		NewIndexData.DataTypeSize = sizeof(uint16);
 	}
 
 	// Copy back to LOD
-	LODModel.MultiSizeIndexContainer.CopyIndexBuffer(OutIndexBuffer);
-	LODModel.NumVertices += ClothSection.GetNumVertices();
+	LODModel.MultiSizeIndexContainer.RebuildIndexBuffer(NewIndexData);
 
 	// build adjacency information for this clothing section
 	{
@@ -1018,7 +1028,7 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 
 		LODModel.GetVertices(Vertices);
 		AdjacencyIndexData.DataTypeSize = LODModel.MultiSizeIndexContainer.GetDataTypeSize();
-		MeshUtilities.BuildSkeletalAdjacencyIndexBuffer(Vertices, LODModel.NumTexCoords, OutIndexBuffer, AdjacencyIndexData.Indices);
+		MeshUtilities.BuildSkeletalAdjacencyIndexBuffer(Vertices, LODModel.NumTexCoords, NewIndexData.Indices, AdjacencyIndexData.Indices);
 		LODModel.AdjacencyMultiSizeIndexContainer.RebuildIndexBuffer(AdjacencyIndexData);
 	}
 
@@ -1186,6 +1196,13 @@ apex::AssetAuthoring* ApexAuthoringFromAsset(apex::Asset* Asset, apex::ApexSDK* 
 	return ApexSDK->createAssetAuthoring(NewInterface, NULL);
 }
 
+// TEMPORARY - Transpose clothing bone matrices on import to 'fix' imported assets until Nvidia can get us a fix for our plugin version
+static TAutoConsoleVariable<int32> CVar_TransposeImportClothingMatrices(
+	TEXT("p.TransposeImportClothingMatrices"),
+	0,
+	TEXT("Should we transpose clothing matrices on import?\n")
+	TEXT(" default: 0"));
+
 apex::ClothingAsset* ApplyTransform(apex::ClothingAsset* ApexClothingAsset)
 {	
 	// create an apex::ClothingAssetAuthoring instance of the asset
@@ -1239,16 +1256,91 @@ apex::ClothingAsset* ApplyTransform(apex::ClothingAsset* ApexClothingAsset)
 		ApexClothingAssetAuthoring->applyTransformation(MeshTransform, 1.0f, true, true);
 
 		TArray<PxMat44> NewBindPoses;
-		
+		TArray<FTransform> DiffMatrices;
+
 		for (uint32 i=0; i<ApexClothingAsset->getNumUsedBones(); i++)
 		{
 			physx::PxMat44 BindPose;
 			ApexClothingAssetAuthoring->getBoneBindPose(i,BindPose);
 			physx::PxMat44 NewBindPose = BindPose * InvertYTransform;
+
+			// CVar selects hack to fix broken APEX import
+			if(CVar_TransposeImportClothingMatrices.GetValueOnAnyThread() == 1)
+			{
+				// We need to track the beginning transform, as some collision actors only have a local position offset
+				// in the old bind space, when we change the matrix below they will no longer be placed correctly. We
+				// need to generate a difference matrix to fix those up
+				FTransform BeginTransform(P2UMatrix(NewBindPose));
+
+				// Extract the upper 3x3 and transpose it to fix the upgrading error
+				physx::PxMat33 Basis(NewBindPose.column0.getXYZ(), NewBindPose.column1.getXYZ(), NewBindPose.column2.getXYZ());
+				Basis = Basis.getTranspose();
+				
+				// Set the pose back
+				NewBindPose = physx::PxMat44(Basis, NewBindPose.getPosition());
+
+				// Take a new transform pose-transpose
+				FTransform EndTransform(P2UMatrix(NewBindPose));
+
+				// Calculate a difference transform so we can move bone spheres into new bind space
+				DiffMatrices.Add(EndTransform.GetRelativeTransform(BeginTransform));
+			}
+
 			NewBindPoses.Add(NewBindPose);
 		}
 
 		ApexClothingAssetAuthoring->updateBindPoses(NewBindPoses.GetData(), NewBindPoses.Num(), true, true);
+
+		// Fix bone spheres if we transposed the bone matrices
+		if(CVar_TransposeImportClothingMatrices.GetValueOnAnyThread() == 1)
+		{
+			char Scratch[MAX_SPRINTF];
+
+			NvParameterized::ErrorType Error;
+			NvParameterized::Interface* AuthorInterface = ApexClothingAssetAuthoring->getNvParameterized();
+			NvParameterized::Handle Handle(*AuthorInterface);
+			NvParameterized::Interface* Param = nullptr;
+			FCStringAnsi::Sprintf(Scratch, "boneSpheres");
+			Param = NvParameterized::findParam(*AuthorInterface, Scratch, Handle);
+
+			// Grab number of spheres
+			int32 NumSpheres = 0;
+			Error = Handle.getArraySize(NumSpheres);
+
+			if(Error == NvParameterized::ERROR_NONE)
+			{
+				for(int32 SphereIndex = 0; SphereIndex < NumSpheres; ++SphereIndex)
+				{
+					FCStringAnsi::Sprintf(Scratch, "boneSpheres[%d].localPos", SphereIndex);
+					Param = NvParameterized::findParam(*AuthorInterface, Scratch, Handle);
+
+					// Get the local pose for the current sphere, this is in the old bind pose space
+					physx::PxVec3 LocalPos;
+					Error = Handle.getParamVec3(LocalPos);
+
+					if(Error == NvParameterized::ERROR_NONE)
+					{
+						FVector ULocalPos = P2UVector(LocalPos);
+
+						// Get the bone index so we know which difference matrix to use
+						NvParameterized::Handle IndexHandle(*AuthorInterface);
+						FCStringAnsi::Sprintf(Scratch, "boneSpheres[%d].boneIndex", SphereIndex);
+						Param = NvParameterized::findParam(*AuthorInterface, Scratch, IndexHandle);
+
+						int32 BoneIndex = INDEX_NONE;
+						Error = IndexHandle.getParamI32(BoneIndex);
+
+						if(Error == NvParameterized::ERROR_NONE && BoneIndex != INDEX_NONE && DiffMatrices.IsValidIndex(BoneIndex))
+						{
+							// Using the difference matrix, transform the local position into the new bind pose space
+							ULocalPos = DiffMatrices[BoneIndex].TransformVector(ULocalPos);
+							Handle.setParamVec3(U2PVector(ULocalPos));
+						}
+					}
+				}
+			}
+		}
+		
 
 		int32 NumLODs = ApexClothingAssetAuthoring->getNumLods();
 		// destroy and create a new asset based off the authoring version	

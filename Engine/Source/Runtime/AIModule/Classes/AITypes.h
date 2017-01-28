@@ -64,6 +64,16 @@ namespace EAIOptionFlag
 	};
 }
 
+UENUM()
+enum class FAIDistanceType : uint8
+{
+	Distance3D,
+	Distance2D,
+	DistanceZ,
+
+	MAX UMETA(Hidden)
+};
+
 namespace FAISystem
 {
 	FORCEINLINE bool PickAIOption(EAIOptionFlag::Type Option, bool DefaultOption)

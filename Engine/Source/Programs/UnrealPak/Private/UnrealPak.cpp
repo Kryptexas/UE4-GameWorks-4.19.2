@@ -1693,6 +1693,8 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		return 1;
 	}
 
+	double StartTime = FPlatformTime::Seconds();
+
 	FPakCommandLineParameters CmdLineParameters;
 	int32 Result = 0;
 	FString KeyFilename;
@@ -1811,6 +1813,9 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 			}
 		}
 	}
+
+	UE_LOG(LogPakFile, Display, TEXT("Unreal pak executed in %f seconds"), FPlatformTime::Seconds() - StartTime );
+
 	GLog->Flush();
 
 	return Result;

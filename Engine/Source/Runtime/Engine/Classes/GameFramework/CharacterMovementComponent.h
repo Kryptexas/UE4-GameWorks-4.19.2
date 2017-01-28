@@ -2171,6 +2171,9 @@ public:
 	UPROPERTY(Transient)
 	bool bWasSimulatingRootMotion;
 
+	UPROPERTY(Category = "RootMotion", EditAnywhere, BlueprintReadWrite)
+	uint32 bAllowPhysicsRotationDuringAnimRootMotion : 1;
+
 	/** @return true if we have Root Motion from animation to use in PerformMovement() physics. 
 		Not valid outside of the scope of that function. Since RootMotion is extracted and used in it. */
 	bool HasAnimRootMotion() const

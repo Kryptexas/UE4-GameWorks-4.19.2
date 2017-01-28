@@ -199,6 +199,12 @@ void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defau
 		// Serialize each item until we get to the end of the array
 		while (i < n)
 		{
+#if WITH_EDITOR
+			static const FName NAME_UArraySerialize = FName(TEXT("UArrayProperty::Serialize"));
+			FName NAME_UArraySerializeCount = FName(NAME_UArraySerialize);
+			NAME_UArraySerializeCount.SetNumber(i);
+			FArchive::FScopeAddDebugData P(Ar, NAME_UArraySerializeCount);
+#endif
 			Inner->SerializeItem(Ar, ArrayHelper.GetRawPtr(i++));
 		}
 

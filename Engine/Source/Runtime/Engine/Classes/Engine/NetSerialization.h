@@ -120,6 +120,10 @@ struct FExampleItemEntry : public FFastArraySerializerItem
 	void PreReplicatedRemove(const struct FExampleArray& InArraySerializer);
 	void PostReplicatedAdd(const struct FExampleArray& InArraySerializer);
 	void PostReplicatedChange(const struct FExampleArray& InArraySerializer);
+
+	// Optional: debug string used with LogNetFastTArray logging
+	FString GetDebugString();
+
 };
 
 /** Step 2: You MUST wrap your TArray in another struct that inherits from FFastArraySerializer */
@@ -341,6 +345,14 @@ struct FFastArraySerializerItem
 	 * NOTE: intentionally not virtual; invoked via templated code, @see FExampleItemEntry
 	 */
 	FORCEINLINE void PostReplicatedChange(const struct FFastArraySerializer& InArraySerializer) { }
+
+	/**
+	 * Called when logging LogNetFastTArray (log or lower verbosity)
+	 *
+	 * @param InArraySerializer	Array serializer that owns the item and has triggered the replication call
+	 * NOTE: intentionally not virtual; invoked via templated code, @see FExampleItemEntry
+	 */
+	FORCEINLINE FString GetDebugString() { return FString(TEXT("")); }
 };
 
 /** Struct for holding guid references */
@@ -405,24 +417,25 @@ struct FFastArraySerializer
 	template< typename Type, typename SerializerType >
 	static bool FastArrayDeltaSerialize( TArray<Type> &Items, FNetDeltaSerializeInfo& Parms, SerializerType& ArraySerializer );
 
-private:
-	// Cached item counts, used for fast sanity checking when writing.
-	int32				CachedNumItems;
-	int32				CachedNumItemsToConsiderForWriting;
-
 	/**
-	 * Helper function for FastArrayDeltaSerialize to consolidate the logic of whether to consider writing an item in a fast TArray during network serialization.
-	 * For client replay recording, we don't want to write any items that have been added to the array predictively.
-	 */ 
-	static bool ShouldWriteFastArrayItem(const int32 ItemReplicationID, const bool bIsWritingOnClient)
+	* Helper function for FastArrayDeltaSerialize to consolidate the logic of whether to consider writing an item in a fast TArray during network serialization.
+	* For client replay recording, we don't want to write any items that have been added to the array predictively.
+	*/
+	template< typename Type, typename SerializerType >
+	bool ShouldWriteFastArrayItem(const Type& Item, const bool bIsWritingOnClient)
 	{
 		if (bIsWritingOnClient)
 		{
-			return ItemReplicationID != INDEX_NONE;
+			return Item.ReplicationID != INDEX_NONE;
 		}
 
 		return true;
 	}
+
+private:
+	// Cached item counts, used for fast sanity checking when writing.
+	int32				CachedNumItems;
+	int32				CachedNumItemsToConsiderForWriting;
 };
 
 // Struct used only in FFastArraySerializer::FastArrayDeltaSerialize, however, declaring it within the templated function
@@ -440,6 +453,8 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 {
 	SCOPE_CYCLE_COUNTER(STAT_NetSerializeFastArray);
 	class UScriptStruct* InnerStruct = Type::StaticStruct();
+
+	UE_LOG(LogNetFastTArray, Log, TEXT("FastArrayDeltaSerialize for %s. %s. %s"), *InnerStruct->GetName(), *InnerStruct->GetOwnerStruct()->GetName(), Parms.Reader ? TEXT("Reading") : TEXT("Writing"));
 
 	if ( Parms.bUpdateUnmappedObjects || Parms.Writer == NULL )
 	{
@@ -636,7 +651,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 					// Count the number of items in the current array that may be written. On clients, items that were predicted will be skipped.
 					for (const Type& Item : Items)
 					{
-						if (ShouldWriteFastArrayItem(Item.ReplicationID, Parms.bIsWritingOnClient))
+						if (ArraySerializer.template ShouldWriteFastArrayItem<Type, SerializerType>(Item, Parms.bIsWritingOnClient))
 						{
 							ArraySerializer.CachedNumItemsToConsiderForWriting++;
 						}
@@ -684,7 +699,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		for (int32 i=0; i < Items.Num(); ++i)
 		{
 			UE_LOG(LogNetFastTArray, Log, TEXT("    Array[%d] - ID %d. CL %d."), i, Items[i].ReplicationID, Items[i].ReplicationKey);
-			if (!ShouldWriteFastArrayItem(Items[i].ReplicationID, Parms.bIsWritingOnClient))
+			if (!ArraySerializer.template ShouldWriteFastArrayItem<Type, SerializerType>(Items[i], Parms.bIsWritingOnClient))
 			{
 				// On clients, this will skip items that were added predictively.
 				continue;
@@ -707,7 +722,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				}
 				else
 				{
-					UE_LOG(LogNetFastTArray, Log, TEXT("       Changed! Was: %d. Element ID: %d"), *OldValuePtr, Items[i].ReplicationID);
+					UE_LOG(LogNetFastTArray, Log, TEXT("       Changed! Was: %d. Element ID: %d. %s"), *OldValuePtr, Items[i].ReplicationID, *Items[i].GetDebugString());
 
 					// Changed
 					ChangedElements.Add(FFastArraySerializer_FastArrayDeltaSerialize_FIdxIDPair(i, Items[i].ReplicationID));
@@ -715,7 +730,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			}
 			else
 			{
-				UE_LOG(LogNetFastTArray, Log, TEXT("       New! Element ID: %d"), Items[i].ReplicationID);
+				UE_LOG(LogNetFastTArray, Log, TEXT("       New! Element ID: %d. %s"), Items[i].ReplicationID, *Items[i].GetDebugString());
 				
 				// The item really should have a valid ReplicationID but in the case of loading from a save game,
 				// items may not have been marked dirty individually. Its ok to just assign them one here.

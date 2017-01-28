@@ -436,7 +436,6 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 					UWorld* World = Connection->Driver->GetWorld();
 					FVector SpawnLocation = FRepMovement::RebaseOntoLocalOrigin( Location, World->OriginLocation );
 					Actor = World->SpawnActorAbsolute(Archetype->GetClass(), FTransform( Rotation, SpawnLocation ), SpawnInfo );
-
 					// Velocity was serialized by the server
 					if (bSerializeVelocity)
 					{
@@ -2390,34 +2389,20 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 		if (!Package->IsFullyLoaded() 
 			&& !Package->HasAnyPackageFlags(EPackageFlags::PKG_CompiledIn)) //TODO: dependencies of CompiledIn could still be loaded asynchronously. Are they necessary at this point??
 		{
-			if ( ShouldAsyncLoad() )
+			if (ShouldAsyncLoad() && Package->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))
 			{
-				if (Package->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))
-				{
-					// Something else is already async loading this package, calling load again will add our callback to the existing load request
-					PendingAsyncPackages.Add(CacheObjectPtr->PathName, NetGUID);
-					CacheObjectPtr->bIsPending = true;
-					LoadPackageAsync(CacheObjectPtr->PathName.ToString(), FLoadPackageAsyncDelegate::CreateRaw(this, &FNetGUIDCache::AsyncPackageCallback));
+				// Something else is already async loading this package, calling load again will add our callback to the existing load request
+				PendingAsyncPackages.Add(CacheObjectPtr->PathName, NetGUID);
+				CacheObjectPtr->bIsPending = true;
+				LoadPackageAsync(CacheObjectPtr->PathName.ToString(), FLoadPackageAsyncDelegate::CreateRaw(this, &FNetGUIDCache::AsyncPackageCallback));
 
-					UE_LOG(LogNetPackageMap, Log, TEXT("GetObjectFromNetGUID: Listening to existing async load. Path: %s, NetGUID: %s"), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString());
-				}
-				else
-				{
-					UE_LOG(LogNetPackageMap, Error, TEXT("GetObjectFromNetGUID: Package is not fully loaded, but isn't async loading! Path: %s, NetGUID: %s"), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString());
-				}
-
-				return NULL;
+				UE_LOG(LogNetPackageMap, Log, TEXT("GetObjectFromNetGUID: Listening to existing async load. Path: %s, NetGUID: %s"), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString());
 			}
 			else
 			{
-				// If package isn't fully loaded, flush async loading now
-				if (IsAsyncLoading())
-				{
-					UE_LOG(LogNetPackageMap, Log, TEXT("FNetGUIDCache::GetObjectFromNetGUID for package %s is flushing async loading"), *Package->GetPathName());
-				}
-
-				FlushAsyncLoading(); 
-				checkf(Package->IsFullyLoaded(), TEXT("Package %s did not become loaded after FlushAsyncLoading"), *Package->GetPathName());
+				// If package isn't fully loaded, load it now
+				UE_LOG(LogNetPackageMap, Log, TEXT("GetObjectFromNetGUID: Blocking load of %s, NetGUID: %s"), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString());
+				Object = LoadPackage(NULL, *CacheObjectPtr->PathName.ToString(), LOAD_None);				
 			}
 		}
 	}

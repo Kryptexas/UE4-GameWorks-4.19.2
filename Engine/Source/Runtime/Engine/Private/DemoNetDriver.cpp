@@ -270,9 +270,11 @@ public:
 
 UDemoNetDriver::UDemoNetDriver(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, DemoSessionID(FGuid::NewGuid().ToString().ToLower())
 {
 	CurrentLevelIndex = 0;
 	bRecordMapChanges = false;
+	bIsWaitingForHeaderDownload = false;
 }
 
 void UDemoNetDriver::AddReplayTask( FQueuedReplayTask* NewTask )
@@ -458,6 +460,31 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 		}
 	}
 
+	const TCHAR* const LevelPrefixOverrideOption = DemoURL.GetOption(TEXT("LevelPrefixOverride="), nullptr);
+	if (LevelPrefixOverrideOption)
+	{
+		SetDuplicateLevelID(FCString::Atoi(LevelPrefixOverrideOption));
+	}
+
+	if ( GetDuplicateLevelID() == -1 )
+	{
+		// Set this driver as the demo net driver for the source level collection.
+		FLevelCollection* const SourceCollection = GetWorld()->FindCollectionByType( ELevelCollectionType::DynamicSourceLevels );
+		if ( SourceCollection )
+		{
+			SourceCollection->SetDemoNetDriver( this );
+		}
+	}
+	else
+	{
+		// Set this driver as the demo net driver for the duplicate level collection.
+		FLevelCollection* const DuplicateCollection = GetWorld()->FindCollectionByType( ELevelCollectionType::DynamicDuplicatedLevels );
+		if ( DuplicateCollection )
+		{
+			DuplicateCollection->SetDemoNetDriver( this );
+		}
+	}
+
 	bWasStartStreamingSuccessful = true;
 
 	ReplayStreamer->StartStreaming( 
@@ -471,18 +498,18 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 	return bWasStartStreamingSuccessful;
 }
 
-bool UDemoNetDriver::InitConnectInternal( FString& Error )
+bool UDemoNetDriver::ReadPlaybackDemoHeader(FString& Error)
 {
 	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
 
-	ResetDemoState();
+	PlaybackDemoHeader = FNetworkDemoHeader();
 
 	FArchive* FileAr = ReplayStreamer->GetHeaderArchive();
 
 	if ( !FileAr )
 	{
 		Error = FString::Printf( TEXT( "Couldn't open demo file %s for reading" ), *DemoURL.Map );
-		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
+		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::ReadPlaybackDemoHeader: %s" ), *Error );
 		GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::DemoNotFound, FString( EDemoPlayFailure::ToString( EDemoPlayFailure::DemoNotFound ) ) );
 		return false;
 	}
@@ -492,7 +519,7 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 	if ( FileAr->IsError() )
 	{
 		Error = FString( TEXT( "Demo file is corrupt" ) );
-		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
+		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::ReadPlaybackDemoHeader: %s" ), *Error );
 		GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Corrupt, Error );
 		return false;
 	}
@@ -505,6 +532,18 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 	{
 		UE_LOG(LogDemo, Error, TEXT("UDemoNetDriver::InitConnect: (Game Specific) %s"), *Error);
 		GameInstance->HandleDemoPlaybackFailure(EDemoPlayFailure::Generic, Error);
+		return false;
+	}
+
+	return true;
+}
+
+bool UDemoNetDriver::InitConnectInternal( FString& Error )
+{
+	ResetDemoState();
+
+	if (!ReadPlaybackDemoHeader(Error))
+	{
 		return false;
 	}
 
@@ -521,21 +560,8 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 		bAsyncLoadWorld = FCString::ToBool(AsyncLoadWorldOverrideOption);
 	}
 
-	const TCHAR* const LevelPrefixOverrideOption = DemoURL.GetOption(TEXT("LevelPrefixOverride="), nullptr);
-	if (LevelPrefixOverrideOption)
-	{
-		SetDuplicateLevelID(FCString::Atoi(LevelPrefixOverrideOption));
-	}
-
 	if (GetDuplicateLevelID() == -1)
 	{
-		// Set this driver as the demo net driver for the source level collection.
-		FLevelCollection* const SourceCollection = GetWorld()->FindCollectionByType(ELevelCollectionType::DynamicSourceLevels);
-		if (SourceCollection)
-		{
-			SourceCollection->SetDemoNetDriver(this);
-		}
-
 		if ( bAsyncLoadWorld )
 		{
 			LevelNamesAndTimes = PlaybackDemoHeader.LevelNamesAndTimes;
@@ -555,6 +581,8 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 
 			if ( WorldContext == NULL )
 			{
+				UGameInstance* GameInstance = GetWorld()->GetGameInstance();
+
 				Error = FString::Printf( TEXT( "No world context" ) );
 				UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
 				GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( TEXT( "No world context" ) ) );
@@ -572,15 +600,6 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 			NewPendingNetGame->bSuccessfullyConnected = true;
 
 			WorldContext->PendingNetGame = NewPendingNetGame;
-		}
-	}
-	else
-	{
-		// Set this driver as the demo net driver for the duplicate level collection.
-		FLevelCollection* const DuplicateCollection = GetWorld()->FindCollectionByType(ELevelCollectionType::DynamicDuplicatedLevels);
-		if (DuplicateCollection)
-		{
-			DuplicateCollection->SetDemoNetDriver(this);
 		}
 	}
 
@@ -657,14 +676,16 @@ bool UDemoNetDriver::ContinueListen(FURL& ListenURL)
 	{
 		++CurrentLevelIndex;
 
-		AddNewLevel(World->GetOuter()->GetName());
-
-		FString Error;
-		WriteNetworkDemoHeader(Error);
-
-		ReplayStreamer->RefreshHeader();
-
 		PauseRecording(false);
+
+		// Delete the old player controller, we're going to create a new one (and we can't leave this one hanging around)
+		if (SpectatorController != nullptr)
+		{
+			SpectatorController->Player = nullptr;		// Force APlayerController::DestroyNetworkActorHandled to return false
+			World->DestroyActor(SpectatorController, true);
+			SpectatorController = nullptr;
+		}
+
 		SpawnDemoRecSpectator(ClientConnections[0], ListenURL);
 
 		// Force a checkpoint to be created in the next tick - We need a checkpoint right after travelling so that scrubbing
@@ -1677,7 +1698,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 bool UDemoNetDriver::ShouldSaveCheckpoint()
 {
-	const double CHECKPOINT_DELAY = CVarCheckpointUploadDelayInSeconds.GetValueOnGameThread();
+	const double CHECKPOINT_DELAY = CVarCheckpointUploadDelayInSeconds.GetValueOnAnyThread();
 
 	if (DemoCurrentTime - LastCheckpointTime > CHECKPOINT_DELAY)
 	{
@@ -1896,7 +1917,46 @@ void UDemoNetDriver::ProcessSeamlessTravel(int32 LevelIndex)
 	// Set this to nullptr since we just destroyed it.
 	SpectatorController = nullptr;
 
-	World->SeamlessTravel(PlaybackDemoHeader.LevelNamesAndTimes[LevelIndex].LevelName, true);
+	if (PlaybackDemoHeader.LevelNamesAndTimes.IsValidIndex(LevelIndex))
+	{
+		World->SeamlessTravel(PlaybackDemoHeader.LevelNamesAndTimes[LevelIndex].LevelName, true);
+	}
+	else
+	{
+		// If we're watching a live replay, it's probable that the header has been updated with the level added,
+		// so we need to download it again before proceeding.
+		bIsWaitingForHeaderDownload = true;
+		ReplayStreamer->DownloadHeader(FOnDownloadHeaderComplete::CreateUObject(this, &UDemoNetDriver::OnDownloadHeaderComplete, LevelIndex));
+	}
+}
+
+void UDemoNetDriver::OnDownloadHeaderComplete(const bool bWasSuccessful, int32 LevelIndex)
+{
+	bIsWaitingForHeaderDownload = false;
+
+	if (bWasSuccessful)
+	{
+		FString Error;
+		if (ReadPlaybackDemoHeader(Error))
+		{
+			if (PlaybackDemoHeader.LevelNamesAndTimes.IsValidIndex(LevelIndex))
+			{
+				ProcessSeamlessTravel(LevelIndex);
+			}
+			else
+			{
+				World->GetGameInstance()->HandleDemoPlaybackFailure(EDemoPlayFailure::Corrupt, FString::Printf(TEXT("UDemoNetDriver::OnDownloadHeaderComplete: LevelIndex %d not in range of level names of size: %d"), LevelIndex, PlaybackDemoHeader.LevelNamesAndTimes.Num()));
+			}
+		}
+		else
+		{
+			World->GetGameInstance()->HandleDemoPlaybackFailure(EDemoPlayFailure::Corrupt, FString::Printf(TEXT("UDemoNetDriver::OnDownloadHeaderComplete: ReadPlaybackDemoHeader header failed with error %s."), *Error));
+		}
+	}
+	else
+	{
+		World->GetGameInstance()->HandleDemoPlaybackFailure(EDemoPlayFailure::Corrupt, FString::Printf(TEXT("UDemoNetDriver::OnDownloadHeaderComplete: Downloading header failed.")));
+	}
 }
 
 bool UDemoNetDriver::ConditionallyReadDemoFrameIntoPlaybackPackets( FArchive& Ar )
@@ -2161,6 +2221,13 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 	{
 		return;
 	}
+	
+	// This will be true when watching a live replay and we're grabbing an up to date header.
+	// In that case, we want to pause playback until we can actually travel.
+	if ( bIsWaitingForHeaderDownload )
+	{
+		return;
+	}
 
 	if ( CVarForceDisableAsyncPackageMapLoading.GetValueOnGameThread() > 0 )
 	{
@@ -2250,9 +2317,6 @@ void UDemoNetDriver::FinalizeFastForward( const float StartTime )
 			GameState->ReplicatedWorldTimeSeconds = PostCheckpointServerTime;
 		}
 
-		// Correct client world time for any fast-forward, checkpoint or not
-		World->TimeSeconds += SavedSecondsToSkip;
-
 		// Correct the ServerWorldTimeSecondsDelta
 		GameState->OnRep_ReplicatedWorldTimeSeconds();
 	}
@@ -2315,6 +2379,12 @@ void UDemoNetDriver::FinalizeFastForward( const float StartTime )
 
 void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection, const FURL& ListenURL )
 {
+	// Optionally skip spawning the demo spectator if requested via the URL option
+	if (ListenURL.HasOption(TEXT("SkipSpawnSpectatorController")))
+	{
+		return;
+	}
+
 	check( Connection != NULL );
 
 	// Get the replay spectator controller class from the default game mode object,
@@ -3137,6 +3207,18 @@ void UDemoNetDriver::NotifyGotoTimeFinished(bool bWasSuccessful)
 
 void UDemoNetDriver::PendingNetGameLoadMapCompleted()
 {
+}
+
+void UDemoNetDriver::OnSeamlessTravelStartDuringRecording(const FString& LevelName)
+{
+	PauseRecording(true);
+
+	AddNewLevel(LevelName);
+
+	FString Error;
+	WriteNetworkDemoHeader(Error);
+
+	ReplayStreamer->RefreshHeader();
 }
 
 void UDemoNetDriver::NotifyActorDestroyed( AActor* Actor, bool IsSeamlessTravel )

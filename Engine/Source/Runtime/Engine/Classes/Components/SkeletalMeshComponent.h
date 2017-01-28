@@ -1287,8 +1287,9 @@ public:
 
 	void SetSkeletalMeshWithoutResettingAnimation(class USkeletalMesh* NewMesh);
 
-	virtual bool IsPlayingRootMotion() override;
-	virtual bool IsPlayingRootMotionFromEverything() override;
+	virtual bool IsPlayingRootMotion() const override;
+	virtual bool IsPlayingNetworkedRootMotionMontage() const override;
+	virtual bool IsPlayingRootMotionFromEverything() const override;
 	virtual void FinalizeBoneTransform() override;
 	//~ End USkinnedMeshComponent Interface
 	/** 

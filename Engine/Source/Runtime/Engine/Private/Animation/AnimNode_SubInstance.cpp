@@ -21,7 +21,7 @@ void FAnimNode_SubInstance::Initialize(const FAnimationInitializeContext& Contex
 
 void FAnimNode_SubInstance::CacheBones(const FAnimationCacheBonesContext& Context)
 {
-
+	InPose.CacheBones(Context);
 }
 
 void FAnimNode_SubInstance::Update(const FAnimationUpdateContext& Context)

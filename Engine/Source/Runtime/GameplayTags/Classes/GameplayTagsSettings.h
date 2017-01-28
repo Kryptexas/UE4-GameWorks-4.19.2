@@ -27,6 +27,24 @@ struct GAMEPLAYTAGS_API FGameplayTagRedirect
 	}
 };
 
+/** Category remapping. This allows base engine tag category meta data to remap to multiple project-specific categories. */
+USTRUCT()
+struct GAMEPLAYTAGS_API FGameplayTagCategoryRemap
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, Category = GameplayTags)
+	FString BaseCategory;
+
+	UPROPERTY(EditAnywhere, Category = GameplayTags)
+	TArray<FString> RemapCategories;
+
+	friend inline bool operator==(const FGameplayTagCategoryRemap& A, const FGameplayTagCategoryRemap& B)
+	{
+		return A.BaseCategory == B.BaseCategory && A.RemapCategories == B.RemapCategories;
+	}
+};
+
 /** Base class for storing a list of gameplay tags as an ini list. This is used for both the central list and additional lists */
 UCLASS(config = GameplayTagsList, notplaceable)
 class GAMEPLAYTAGS_API UGameplayTagsList : public UObject
@@ -71,6 +89,9 @@ class GAMEPLAYTAGS_API UGameplayTagsSettings : public UGameplayTagsList
 	/** If true, will give load warnings when reading invalid tags off disk */
 	UPROPERTY(config, EditAnywhere, Category = GameplayTags)
 	bool WarnOnInvalidTags;
+
+	UPROPERTY(config, EditAnywhere, Category = GameplayTags)
+	TArray<FGameplayTagCategoryRemap>	CategoryRemapping;
 
 	/** If true, will replicate gameplay tags by index instead of name. For this to work, tags must be identical on client and server */
 	UPROPERTY(config, EditAnywhere, Category = "Advanced Replication")

@@ -501,9 +501,17 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				{
 					ActiveSceneIndex = NumScenes - 1;
 				}
-				else
+				else if (RenderBatch.SceneIndex >= ResourceManager->GetSceneCount())
 				{
-					ensure(RenderBatch.SceneIndex < ResourceManager->GetSceneCount());
+					// Ideally we should never hit this scenario, but given that Paragon may be using cached
+					// render batches and is running into this daily, for this branch we should
+					// just ignore the scene if the index is invalid. Note that the
+					// MaterialParameterCollections will not be correct for this scene, should they be
+					// used.
+					ActiveSceneIndex = NumScenes - 1;
+#if WITH_EDITOR
+					UE_LOG(LogSlate, Error, TEXT("Invalid scene index in batch: %d of %d known scenes!"), RenderBatch.SceneIndex, ResourceManager->GetSceneCount());
+#endif
 				}
 
 				// Handle the case where we skipped out early above

@@ -348,6 +348,7 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	MaxTouchForce = 250.0f;
 	RepulsionForce = 2.5f;
 
+	bAllowPhysicsRotationDuringAnimRootMotion = false; // Old default behavior.
 	bUseControllerDesiredRotation = false;
 
 	bUseSeparateBrakingFriction = false; // Old default behavior.
@@ -1318,8 +1319,7 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 		if( CharacterOwner->RootMotionRepMoves.Num() > 0 )
 		{
 			// Move Actor back to position of that buffered move. (server replicated position).
-			const int32 MoveIndex = CharacterOwner->RootMotionRepMoves.Num()-1;
-			const FSimulatedRootMotionReplicatedMove& RootMotionRepMove = CharacterOwner->RootMotionRepMoves[MoveIndex];
+			const FSimulatedRootMotionReplicatedMove& RootMotionRepMove = CharacterOwner->RootMotionRepMoves.Last();
 			if( CharacterOwner->RestoreReplicatedMove(RootMotionRepMove) )
 			{
 				bCorrectedToServer = true;
@@ -1333,8 +1333,8 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 			CurrentRootMotion.UpdateStateFrom(RootMotionRepMove.RootMotion.AuthoritativeRootMotion, true);
 
 			// Clear out existing RootMotionRepMoves since we've consumed the most recent
-			UE_LOG(LogRootMotion, Log,  TEXT("\tClearing old moves in SimulatedTick (%d)"), MoveIndex+1);
-			CharacterOwner->RootMotionRepMoves.RemoveAt(0, MoveIndex+1);
+			UE_LOG(LogRootMotion, Log,  TEXT("\tClearing old moves in SimulatedTick (%d)"), CharacterOwner->RootMotionRepMoves.Num());
+			CharacterOwner->RootMotionRepMoves.Reset();
 		}
 
 		// Perform movement
@@ -1869,10 +1869,23 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 	// Force floor update if we've moved outside of CharacterMovement since last update.
 	bForceNextFloorCheck |= (IsMovingOnGround() && UpdatedComponent->GetComponentLocation() != LastUpdateLocation);
 
-	// Update saved LastPreAdditiveVelocity with any external changes to character Velocity that happened since last update (jumps, knockbacks, etc.)
+	// Update saved LastPreAdditiveVelocity with any external changes to character Velocity that happened since last update.
 	if( CurrentRootMotion.HasAdditiveVelocity() )
 	{
-		CurrentRootMotion.LastPreAdditiveVelocity += (Velocity-LastUpdateVelocity);
+		const FVector Adjustment = (Velocity - LastUpdateVelocity);
+		CurrentRootMotion.LastPreAdditiveVelocity += Adjustment;
+
+#if ROOT_MOTION_DEBUG
+		if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+		{
+			if (!Adjustment.IsNearlyZero())
+			{
+				FString AdjustedDebugString = FString::Printf(TEXT("PerformMovement HasAdditiveVelocity LastUpdateVelocityAdjustment LastPreAdditiveVelocity(%s) Adjustment(%s)"),
+					*CurrentRootMotion.LastPreAdditiveVelocity.ToCompactString(), *Adjustment.ToCompactString());
+				RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
+			}
+		}
+#endif
 	}
 
 	FVector OldVelocity;
@@ -1883,6 +1896,32 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		FScopedMovementUpdate ScopedMovementUpdate(UpdatedComponent, bEnableScopedMovementUpdates ? EScopedUpdate::DeferredUpdates : EScopedUpdate::ImmediateUpdates);
 
 		MaybeUpdateBasedMovement(DeltaSeconds);
+
+		// Clean up invalid RootMotion Sources.
+		// This includes RootMotion sources that ended naturally.
+		// They might want to perform a clamp on velocity or an override, 
+		// so we want this to happen before ApplyAccumulatedForces and HandlePendingLaunch as to not clobber these.
+		const bool bHasRootMotionSources = HasRootMotionSources();
+		if (bHasRootMotionSources && !CharacterOwner->bClientUpdating && !CharacterOwner->bServerMoveIgnoreRootMotion)
+		{
+			SCOPE_CYCLE_COUNTER(STAT_CharacterMovementRootMotionSourceCalculate);
+
+			const FVector VelocityBeforeCleanup = Velocity;
+			CurrentRootMotion.CleanUpInvalidRootMotion(DeltaSeconds, *CharacterOwner, *this);
+
+#if ROOT_MOTION_DEBUG
+			if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+			{
+				if (Velocity != VelocityBeforeCleanup)
+				{
+					const FVector Adjustment = Velocity - VelocityBeforeCleanup;
+					FString AdjustedDebugString = FString::Printf(TEXT("PerformMovement CleanUpInvalidRootMotion Velocity(%s) VelocityBeforeCleanup(%s) Adjustment(%s)"),
+						*Velocity.ToCompactString(), *VelocityBeforeCleanup.ToCompactString(), *Adjustment.ToCompactString());
+					RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
+				}
+			}
+#endif
+		}
 
 		OldVelocity = Velocity;
 		OldLocation = UpdatedComponent->GetComponentLocation();
@@ -1900,14 +1939,40 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		// Character::LaunchCharacter() has been deferred until now.
 		HandlePendingLaunch();
 
+#if ROOT_MOTION_DEBUG
+		if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+		{
+			if (OldVelocity != Velocity)
+			{
+				const FVector Adjustment = Velocity - OldVelocity;
+				FString AdjustedDebugString = FString::Printf(TEXT("PerformMovement ApplyAccumulatedForces+HandlePendingLaunch Velocity(%s) OldVelocity(%s) Adjustment(%s)"),
+					*Velocity.ToCompactString(), *OldVelocity.ToCompactString(), *Adjustment.ToCompactString());
+				RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
+			}
+		}
+#endif
+
 		// Update saved LastPreAdditiveVelocity with any external changes to character Velocity that happened due to ApplyAccumulatedForces/HandlePendingLaunch
 		if( CurrentRootMotion.HasAdditiveVelocity() )
 		{
-			CurrentRootMotion.LastPreAdditiveVelocity += (Velocity-OldVelocity);
+			const FVector Adjustment = (Velocity - OldVelocity);
+			CurrentRootMotion.LastPreAdditiveVelocity += Adjustment;
+
+#if ROOT_MOTION_DEBUG
+			if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+			{
+				if (!Adjustment.IsNearlyZero())
+				{
+					FString AdjustedDebugString = FString::Printf(TEXT("PerformMovement HasAdditiveVelocity AccumulatedForces LastPreAdditiveVelocity(%s) Adjustment(%s)"),
+						*CurrentRootMotion.LastPreAdditiveVelocity.ToCompactString(), *Adjustment.ToCompactString());
+					RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
+				}
+			}
+#endif
 		}
 
 		// Prepare Root Motion (generate/accumulate from root motion sources to be used later)
-		if( HasRootMotionSources() && !CharacterOwner->bClientUpdating && !CharacterOwner->bServerMoveIgnoreRootMotion)
+		if (bHasRootMotionSources && !CharacterOwner->bClientUpdating && !CharacterOwner->bServerMoveIgnoreRootMotion)
 		{
 			// Animation root motion - If using animation RootMotion, tick animations before running physics.
 			if( CharacterOwner->IsPlayingRootMotion() && CharacterOwner->GetMesh() )
@@ -1974,12 +2039,35 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 				if( DeltaSeconds > 0.f )
 				{
 					SCOPE_CYCLE_COUNTER(STAT_CharacterMovementRootMotionSourceApply);
+
+					const FVector VelocityBeforeOverride = Velocity;
 					FVector NewVelocity = Velocity;
 					CurrentRootMotion.AccumulateOverrideRootMotionVelocity(DeltaSeconds, *CharacterOwner, *this, NewVelocity);
 					Velocity = NewVelocity;
+
+#if ROOT_MOTION_DEBUG
+					if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+					{
+						if (VelocityBeforeOverride != Velocity)
+						{
+							FString AdjustedDebugString = FString::Printf(TEXT("PerformMovement AccumulateOverrideRootMotionVelocity Velocity(%s) VelocityBeforeOverride(%s)"),
+								*Velocity.ToCompactString(), *VelocityBeforeOverride.ToCompactString());
+							RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
+						}
+					}
+#endif
 				}
 			}
 		}
+
+#if ROOT_MOTION_DEBUG
+		if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+		{
+			FString AdjustedDebugString = FString::Printf(TEXT("PerformMovement Velocity(%s) OldVelocity(%s)"),
+				*Velocity.ToCompactString(), *OldVelocity.ToCompactString());
+			RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
+		}
+#endif
 
 		// NaN tracking
 		checkCode(ensureMsgf(!Velocity.ContainsNaN(), TEXT("UCharacterMovementComponent::PerformMovement: Velocity contains NaN (%s)\n%s"), *GetPathNameSafe(this), *Velocity.ToString()));
@@ -1998,7 +2086,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		// Update character state based on change from movement
 		UpdateCharacterStateAfterMovement();
 
-		if (!HasAnimRootMotion() && !CharacterOwner->IsMatineeControlled())
+		if ((bAllowPhysicsRotationDuringAnimRootMotion || !HasAnimRootMotion()) && !CharacterOwner->IsMatineeControlled())
 		{
 			PhysicsRotation(DeltaSeconds);
 		}
@@ -3339,6 +3427,15 @@ void UCharacterMovementComponent::RestorePreAdditiveRootMotionVelocity()
 	// so that we're not adding more additive velocity than intended
 	if( CurrentRootMotion.bIsAdditiveVelocityApplied )
 	{
+#if ROOT_MOTION_DEBUG
+		if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+		{
+			FString AdjustedDebugString = FString::Printf(TEXT("RestorePreAdditiveRootMotionVelocity Velocity(%s) LastPreAdditiveVelocity(%s)"), 
+				*Velocity.ToCompactString(), *CurrentRootMotion.LastPreAdditiveVelocity.ToCompactString());
+			RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
+		}
+#endif
+
 		Velocity = CurrentRootMotion.LastPreAdditiveVelocity;
 		CurrentRootMotion.bIsAdditiveVelocityApplied = false;
 	}
@@ -3364,6 +3461,15 @@ void UCharacterMovementComponent::ApplyRootMotionToVelocity(float deltaTime)
 	{
 		CurrentRootMotion.AccumulateOverrideRootMotionVelocity(deltaTime, *CharacterOwner, *this, Velocity);
 		bAppliedRootMotion = true;
+
+#if ROOT_MOTION_DEBUG
+		if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+		{
+			FString AdjustedDebugString = FString::Printf(TEXT("ApplyRootMotionToVelocity HasOverrideVelocity Velocity(%s)"),
+				*Velocity.ToCompactString());
+			RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
+		}
+#endif
 	}
 
 	// Next apply additive root motion
@@ -3373,6 +3479,15 @@ void UCharacterMovementComponent::ApplyRootMotionToVelocity(float deltaTime)
 		CurrentRootMotion.AccumulateAdditiveRootMotionVelocity(deltaTime, *CharacterOwner, *this, Velocity);
 		CurrentRootMotion.bIsAdditiveVelocityApplied = true; // Remember that we have it applied
 		bAppliedRootMotion = true;
+
+#if ROOT_MOTION_DEBUG
+		if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+		{
+			FString AdjustedDebugString = FString::Printf(TEXT("ApplyRootMotionToVelocity HasAdditiveVelocity Velocity(%s) LastPreAdditiveVelocity(%s)"),
+				*Velocity.ToCompactString(), *CurrentRootMotion.LastPreAdditiveVelocity.ToCompactString());
+			RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
+		}
+#endif
 	}
 
 	// Switch to Falling if we have vertical velocity from root motion so we can lift off the ground
@@ -7270,11 +7385,10 @@ void UCharacterMovementComponent::ResetPredictionData_Server()
 float FNetworkPredictionData_Client_Character::UpdateTimeStampAndDeltaTime(float DeltaTime, class ACharacter & CharacterOwner, class UCharacterMovementComponent & CharacterMovementComponent)
 {
 	// Reset TimeStamp regularly to combat float accuracy decreasing over time.
-	// Don't reset during root motion
-	if( CurrentTimeStamp > CharacterMovementComponent.MinTimeBetweenTimeStampResets && !CharacterMovementComponent.CurrentRootMotion.HasActiveRootMotionSources() )
+	if( CurrentTimeStamp > CharacterMovementComponent.MinTimeBetweenTimeStampResets )
 	{
 		UE_LOG(LogNetPlayerMovement, Log, TEXT("Resetting Client's TimeStamp %f"), CurrentTimeStamp);
-		CurrentTimeStamp = 0.f;
+		CurrentTimeStamp -= CharacterMovementComponent.MinTimeBetweenTimeStampResets;
 
 		// Mark all buffered moves as having old time stamps, so we make sure to not resend them.
 		// That would confuse the server.
@@ -7288,6 +7402,9 @@ float FNetworkPredictionData_Client_Character::UpdateTimeStampAndDeltaTime(float
 		{
 			LastAckedMove->bOldTimeStampBeforeReset = true;
 		}
+
+		// Also apply the reset to any active root motions.
+		CharacterMovementComponent.CurrentRootMotion.ApplyTimeStampReset(CharacterMovementComponent.MinTimeBetweenTimeStampResets);
 	}
 
 	// Update Current TimeStamp.
@@ -7660,7 +7777,10 @@ bool UCharacterMovementComponent::VerifyClientTimeStamp(float TimeStamp, FNetwor
 		{
 			UE_LOG(LogNetPlayerMovement, Log, TEXT("TimeStamp reset detected. CurrentTimeStamp: %f, new TimeStamp: %f"), ServerData.CurrentClientTimeStamp, TimeStamp);
 			OnClientTimeStampResetDetected();
-			ServerData.CurrentClientTimeStamp = 0.f;
+			ServerData.CurrentClientTimeStamp -= MinTimeBetweenTimeStampResets;
+
+			// Also apply the reset to any active root motions.
+			CurrentRootMotion.ApplyTimeStampReset(MinTimeBetweenTimeStampResets);
 		}
 		else
 		{
@@ -8428,6 +8548,19 @@ void UCharacterMovementComponent::ClientAdjustPosition_Implementation
 	}
 #endif //!UE_BUILD_SHIPPING
 
+#if ROOT_MOTION_DEBUG
+	if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+	{
+		const FVector VelocityCorrection = NewVelocity - Velocity;
+		if (!VelocityCorrection.IsNearlyZero())
+		{
+			FString AdjustedDebugString = FString::Printf(TEXT("PerformMovement ClientAdjustPosition_Implementation Velocity(%s) OldVelocity(%s) Correction(%s)"),
+				*NewVelocity.ToCompactString(), *Velocity.ToCompactString(), *VelocityCorrection.ToCompactString());
+			RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
+		}
+	}
+#endif
+
 	// Trust the server's positioning.
 	UpdatedComponent->SetWorldLocation(WorldShiftedNewLocation, false);
 	Velocity = NewVelocity;
@@ -8531,7 +8664,7 @@ void UCharacterMovementComponent::ClientAdjustRootMotionPosition_Implementation(
 	{
 		// Not much we can do there unfortunately, just jump to server's track position.
 		FAnimMontageInstance * RootMotionMontageInstance = CharacterOwner->GetRootMotionAnimMontageInstance();
-		if( RootMotionMontageInstance )
+		if (RootMotionMontageInstance && !RootMotionMontageInstance->IsRootMotionDisabled())
 		{
 			UE_LOG(LogRootMotion, Warning, TEXT("\tServer disagrees with Client's track position!! ServerTrackPosition: %f, ClientTrackPosition: %f, DeltaTrackPosition: %f. TimeStamp: %f, Character: %s, Montage: %s"),
 					ServerMontageTrackPosition, ClientData->LastAckedMove->RootMotionTrackPosition, (ServerMontageTrackPosition - ClientData->LastAckedMove->RootMotionTrackPosition), TimeStamp, *GetNameSafe(CharacterOwner), *GetNameSafe(RootMotionMontageInstance->Montage));
@@ -8603,7 +8736,7 @@ void UCharacterMovementComponent::ClientAdjustRootMotionSourcePosition_Implement
 
 			// Not much we can do there unfortunately, just jump to server's track position.
 			FAnimMontageInstance * RootMotionMontageInstance = CharacterOwner->GetRootMotionAnimMontageInstance();
-			if( RootMotionMontageInstance )
+			if (RootMotionMontageInstance && !RootMotionMontageInstance->IsRootMotionDisabled())
 			{
 				RootMotionMontageInstance->SetPosition(ServerMontageTrackPosition);
 				CharacterOwner->bClientResimulateRootMotion = true;
@@ -9035,7 +9168,7 @@ uint16 UCharacterMovementComponent::ApplyRootMotionSource(FRootMotionSource* Sou
 	if (SourcePtr != nullptr)
 	{
 		// Set default StartTime if it hasn't been set manually
-		if (SourcePtr->StartTime < 0.f)
+		if (!SourcePtr->IsStartTimeValid())
 		{
 			if (CharacterOwner)
 			{
@@ -9098,6 +9231,43 @@ void UCharacterMovementComponent::RemoveRootMotionSourceByID(uint16 RootMotionSo
 
 void UCharacterMovementComponent::ConvertRootMotionServerIDsToLocalIDs(const FRootMotionSourceGroup& LocalRootMotionToMatchWith, FRootMotionSourceGroup& InOutServerRootMotion, float TimeStamp)
 {
+	// Remove out of date mappings, they can never be used again.
+	for (int32 MappingIndex = 0; MappingIndex < RootMotionIDMappings.Num(); MappingIndex++)
+	{
+		if (RootMotionIDMappings[MappingIndex].IsStillValid(TimeStamp))
+		{
+			// MappingIndex is valid, remove anything before it.
+			const int32 CutOffIndex = MappingIndex - 1;
+			if (CutOffIndex >= 0)
+			{
+				// Most recent entries added last, so we can cull the top of the list.
+				RootMotionIDMappings.RemoveAt(0, CutOffIndex + 1, false);
+				break;
+			}
+		}
+	}
+
+	// Remove mappings that don't map to an active local root motion source.
+	for (int32 MappingIndex = RootMotionIDMappings.Num()-1; MappingIndex>=0; MappingIndex--)
+	{
+		bool bFoundLocalSource = false;
+		for (const TSharedPtr<FRootMotionSource>& LocalRootMotionSource : LocalRootMotionToMatchWith.RootMotionSources)
+		{
+			if (LocalRootMotionSource.IsValid() && (LocalRootMotionSource->LocalID == RootMotionIDMappings[MappingIndex].LocalID))
+			{
+				bFoundLocalSource = true;
+				break;
+			}
+		}
+
+		if (!bFoundLocalSource)
+		{
+			RootMotionIDMappings.RemoveAt(MappingIndex, 1, false);
+		}
+	}
+
+	bool bDumpDebugInfo = false;
+
 	// Root Motion Sources are applied independently on servers and clients.
 	// FRootMotionSource::LocalID is an ID added when that Source is applied.
 	// When we receive RootMotionSource data from the server, LocalIDs on that
@@ -9111,13 +9281,16 @@ void UCharacterMovementComponent::ConvertRootMotionServerIDsToLocalIDs(const FRo
 		{
 			const uint16 ServerID = ServerRootMotionSource->LocalID;
 
+			// Reset LocalID of replicated ServerRootMotionSource, and find a local match.
+			ServerRootMotionSource->LocalID = (uint16)ERootMotionSourceID::Invalid;
+
 			// See if we have any recent mappings that match this server ID
 			// If we do, change it to that mapping and update the timestamp
 			{
 				bool bMappingFound = false;
 				for (FRootMotionServerToLocalIDMapping& Mapping : RootMotionIDMappings)
 				{
-					if ((ServerID == Mapping.ServerID) && Mapping.IsStillValid(TimeStamp))
+					if (ServerID == Mapping.ServerID)
 					{
 						ServerRootMotionSource->LocalID = Mapping.LocalID;
 						Mapping.TimeStamp = TimeStamp;
@@ -9125,28 +9298,33 @@ void UCharacterMovementComponent::ConvertRootMotionServerIDsToLocalIDs(const FRo
 						break; // Found it, don't need to search any more mappings
 					}
 				}
+
 				if (bMappingFound)
 				{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 					// We rely on this rule (Matches) being always true, so in non-shipping builds make sure it never breaks.
 					for (const TSharedPtr<FRootMotionSource>& LocalRootMotionSource : LocalRootMotionToMatchWith.RootMotionSources)
 					{
-						if (LocalRootMotionSource->LocalID == ServerRootMotionSource->LocalID)
+						if (LocalRootMotionSource.IsValid() && (LocalRootMotionSource->LocalID == ServerRootMotionSource->LocalID))
 						{
-							ensureMsgf(LocalRootMotionSource->Matches(ServerRootMotionSource.Get()), 
-								TEXT("Character(%s) Local RootMotionSource(%s) has the same LocalID(%d) as a non-matching ServerRootMotionSource(%s)!"),
-								*GetNameSafe(CharacterOwner), *LocalRootMotionSource->ToSimpleString(), LocalRootMotionSource->LocalID, *ServerRootMotionSource->ToSimpleString());
+							if (!LocalRootMotionSource->Matches(ServerRootMotionSource.Get()))
+							{
+								ensureMsgf(false,
+									TEXT("Character(%s) Local RootMotionSource(%s) has the same LocalID(%d) as a non-matching ServerRootMotionSource(%s)!"),
+									*GetNameSafe(CharacterOwner), *LocalRootMotionSource->ToSimpleString(), LocalRootMotionSource->LocalID, *ServerRootMotionSource->ToSimpleString());
 
-							// Don't break here, test if there are multiple matches.
+								bDumpDebugInfo = true;
+							}
+
+							break;
 						}
 					}
-#endif
 
-					continue; // We've found the correct LocalID, done with this one, process next ServerRootMotionSource
+					// We've found the correct LocalID, done with this one, process next ServerRootMotionSource
+					continue;
 				}
 			}
 
-			// If no mapping found, find match out of those that are not already mapped
+			// If no mapping found, find match out of Local RootMotionSources that are not already mapped
 			bool bMatchFound = false;
 			for (const TSharedPtr<FRootMotionSource>& LocalRootMotionSource : LocalRootMotionToMatchWith.RootMotionSources)
 			{
@@ -9160,7 +9338,7 @@ void UCharacterMovementComponent::ConvertRootMotionServerIDsToLocalIDs(const FRo
 						bool bMappingFound = false;
 						for (FRootMotionServerToLocalIDMapping& Mapping : RootMotionIDMappings)
 						{
-							if ((LocalID == Mapping.LocalID) && Mapping.IsStillValid(TimeStamp))
+							if (LocalID == Mapping.LocalID)
 							{
 								bMappingFound = true;
 								break; // Found it, don't need to search any more mappings
@@ -9182,17 +9360,6 @@ void UCharacterMovementComponent::ConvertRootMotionServerIDsToLocalIDs(const FRo
 
 						// Add to Mapping
 						{
-							// Remove out of date mappings, they can never be used again.
-							for (int32 MappingIndex = RootMotionIDMappings.Num()-1; MappingIndex >= 0; MappingIndex--)
-							{
-								if (!RootMotionIDMappings[MappingIndex].IsStillValid(TimeStamp))
-								{
-									// Most recent entries added last, so we can cull the top of the list.
-									RootMotionIDMappings.RemoveAt(0, MappingIndex+1, false);
-									break;
-								}
-							}
-
 							FRootMotionServerToLocalIDMapping NewMapping;
 							NewMapping.LocalID = LocalID;
 							NewMapping.ServerID = ServerID;
@@ -9217,6 +9384,33 @@ void UCharacterMovementComponent::ConvertRootMotionServerIDsToLocalIDs(const FRo
 			}
 		}
 	} // loop through ServerRootMotionSources
+
+	if (bDumpDebugInfo)
+	{
+		UE_LOG(LogRootMotion, Warning, TEXT("Dumping current mappings:"));
+		for (FRootMotionServerToLocalIDMapping& Mapping : RootMotionIDMappings)
+		{
+			UE_LOG(LogRootMotion, Warning, TEXT("- LocalID(%d) ServerID(%d)"), Mapping.LocalID, Mapping.ServerID);
+		}
+
+		UE_LOG(LogRootMotion, Warning, TEXT("Dumping local RootMotionSources:"));
+		for (const TSharedPtr<FRootMotionSource>& LocalRootMotionSource : LocalRootMotionToMatchWith.RootMotionSources)
+		{
+			if (LocalRootMotionSource.IsValid())
+			{
+				UE_LOG(LogRootMotion, Warning, TEXT("- LocalRootMotionSource(%d)"), *LocalRootMotionSource->ToSimpleString());
+			}
+		}
+
+		UE_LOG(LogRootMotion, Warning, TEXT("Dumping server RootMotionSources:"));
+		for (TSharedPtr<FRootMotionSource>& ServerRootMotionSource : InOutServerRootMotion.RootMotionSources)
+		{
+			if (ServerRootMotionSource.IsValid())
+			{
+				UE_LOG(LogRootMotion, Warning, TEXT("- ServerRootMotionSource(%d)"), *ServerRootMotionSource->ToSimpleString());
+			}
+		}
+	}
 }
 
 
@@ -9612,7 +9806,7 @@ void FSavedMove_Character::PostUpdate(ACharacter* Character, FSavedMove_Characte
 	if (PostUpdateMode == PostUpdate_Record)
 	{
 		const FAnimMontageInstance* RootMotionMontageInstance = Character->GetRootMotionAnimMontageInstance();
-		if( RootMotionMontageInstance )
+		if (RootMotionMontageInstance && !RootMotionMontageInstance->IsRootMotionDisabled())
 		{
 			RootMotionMontage = RootMotionMontageInstance->Montage;
 			RootMotionTrackPosition = RootMotionMontageInstance->GetPosition();
@@ -9801,6 +9995,7 @@ void FSavedMove_Character::PrepMoveFor(ACharacter* Character)
 			// Apply any corrections/state from either last played move or last received from server (in ACharacter::SavedRootMotion)
 			UE_LOG(LogRootMotion, VeryVerbose, TEXT("SavedMove SavedRootMotion getting updated for SavedMove replays: %s"), *Character->GetName());
 			SavedRootMotion.UpdateStateFrom(Character->SavedRootMotion);
+			SavedRootMotion.CleanUpInvalidRootMotion(DeltaTime, *Character, *Character->GetCharacterMovement());
 			SavedRootMotion.PrepareRootMotion(DeltaTime, *Character, *Character->GetCharacterMovement());
 		}
 

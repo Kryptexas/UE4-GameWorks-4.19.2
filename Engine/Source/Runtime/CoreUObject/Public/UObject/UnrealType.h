@@ -1275,7 +1275,7 @@ protected:
 		this->SetPropertyValue_InContainer(Obj, NewValue, Tag.ArrayIndex);
 
 		UE_CLOG(
-			(TIsSigned<OldIntType>::Value && !TIsSigned<TCppType>::Value && OldValue < 0) || (sizeof(TCppType) < sizeof(OldIntType) && (OldIntType)NewValue != OldValue),
+			(TIsSigned<OldIntType>::Value && (!TIsSigned<TCppType>::Value && !TIsFloatingPoint<TCppType>::Value) && OldValue < 0) || (sizeof(TCppType) < sizeof(OldIntType) && (OldIntType)NewValue != OldValue),
 			LogClass,
 			Warning,
 			TEXT("Potential data loss during conversion of integer property %s of %s - was (%s) now (%s) - for package: %s"),

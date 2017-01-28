@@ -150,6 +150,13 @@ DECLARE_DELEGATE_TwoParams(FEnumerateEventsCompleteDelegate, const FReplayEventL
 */
 DECLARE_DELEGATE_TwoParams(FOnRequestEventDataComplete, const TArray<uint8>&, bool)
 
+/**
+* Delegate called when DownloadHeader() completes.
+*
+* @param bWasSuccessful Whether the header was successfully downloaded.
+*/
+DECLARE_DELEGATE_OneParam(FOnDownloadHeaderComplete, const bool);
+
 /** Generic interface for network replay streaming */
 class INetworkReplayStreamer 
 {
@@ -178,6 +185,7 @@ public:
 	virtual void SearchEvents(const FString& EventGroup, const FOnEnumerateStreamsComplete& Delegate) = 0;
 	virtual void KeepReplay( const FString& ReplayName, const bool bKeep ) = 0;
 	virtual void RefreshHeader() = 0;
+	virtual void DownloadHeader(const FOnDownloadHeaderComplete& Delegate = FOnDownloadHeaderComplete()) = 0;
 
 	/** Returns true if the playing stream is currently in progress */
 	virtual bool IsLive() const = 0;

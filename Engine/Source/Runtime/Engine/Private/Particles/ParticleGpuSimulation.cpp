@@ -3490,7 +3490,7 @@ public:
 
 			// Spawn particles.
 			bool bRefreshTiles = false;
-			const bool bPreventSpawning = bHaltSpawning || bSuppressSpawning;
+			const bool bPreventSpawning = bHaltSpawning || bHaltSpawningExternal || bSuppressSpawning;
 			const bool bValidEmitterTime = (EmitterTime >= 0.0f);
 			const bool bValidLoop = AllowedLoopCount == 0 || LoopCount < AllowedLoopCount;
 			if (!bPreventSpawning && bValidEmitterTime && bValidLoop)

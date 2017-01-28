@@ -144,9 +144,15 @@ FAssetRegistry::FAssetRegistry()
 			{
 				const FString& RootPath = *RootPathIt;
 				const FString& ContentFolder = FPackageName::LongPackageNameToFilename( RootPath );
-				FDelegateHandle NewHandle;
-				DirectoryWatcher->RegisterDirectoryChangedCallback_Handle( ContentFolder, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged), NewHandle);
-				OnDirectoryChangedDelegateHandles.Add(ContentFolder, NewHandle);
+
+				// This could be due to a plugin that specifies it contains content, yet has no content yet. PluginManager
+				// Mounts these folders anyway which results in then being returned from QueryRootContentPaths
+				if (IFileManager::Get().DirectoryExists(*ContentFolder))
+				{
+					FDelegateHandle NewHandle;
+					DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(ContentFolder, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged), NewHandle);
+					OnDirectoryChangedDelegateHandles.Add(ContentFolder, NewHandle);
+				}
 			}
 		}
 	}

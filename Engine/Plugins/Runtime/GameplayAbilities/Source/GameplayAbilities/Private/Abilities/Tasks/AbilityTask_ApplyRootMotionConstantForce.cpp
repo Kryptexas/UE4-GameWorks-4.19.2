@@ -13,7 +13,19 @@ UAbilityTask_ApplyRootMotionConstantForce::UAbilityTask_ApplyRootMotionConstantF
 	StrengthOverTime = nullptr;
 }
 
-UAbilityTask_ApplyRootMotionConstantForce* UAbilityTask_ApplyRootMotionConstantForce::ApplyRootMotionConstantForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FVector WorldDirection, float Strength, float Duration, bool bIsAdditive, bool bDisableImpartingVelocityOnRemoval, UCurveFloat* StrengthOverTime)
+UAbilityTask_ApplyRootMotionConstantForce* UAbilityTask_ApplyRootMotionConstantForce::ApplyRootMotionConstantForce
+(
+	UGameplayAbility* OwningAbility, 
+	FName TaskInstanceName, 
+	FVector WorldDirection, 
+	float Strength, 
+	float Duration, 
+	bool bIsAdditive, 
+	UCurveFloat* StrengthOverTime,
+	ERootMotionFinishVelocityMode VelocityOnFinishMode, 
+	FVector SetVelocityOnFinish, 
+	float ClampVelocityOnFinish
+)
 {
 	UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Duration(Duration);
 
@@ -24,8 +36,10 @@ UAbilityTask_ApplyRootMotionConstantForce* UAbilityTask_ApplyRootMotionConstantF
 	MyTask->Strength = Strength;
 	MyTask->Duration = Duration;
 	MyTask->bIsAdditive = bIsAdditive;
-	MyTask->bDisableImpartingVelocityOnRemoval = bDisableImpartingVelocityOnRemoval;
 	MyTask->StrengthOverTime = StrengthOverTime;
+	MyTask->FinishVelocityMode = VelocityOnFinishMode;
+	MyTask->FinishSetVelocity = SetVelocityOnFinish;
+	MyTask->FinishClampVelocity = ClampVelocityOnFinish;
 	MyTask->SharedInitAndApply();
 
 	return MyTask;
@@ -45,14 +59,13 @@ void UAbilityTask_ApplyRootMotionConstantForce::SharedInitAndApply()
 			FRootMotionSource_ConstantForce* ConstantForce = new FRootMotionSource_ConstantForce();
 			ConstantForce->InstanceName = ForceName;
 			ConstantForce->AccumulateMode = bIsAdditive ? ERootMotionAccumulateMode::Additive : ERootMotionAccumulateMode::Override;
-			if (bDisableImpartingVelocityOnRemoval)
-			{
-				ConstantForce->bImpartsVelocityOnRemoval = false;
-			}
 			ConstantForce->Priority = 5;
 			ConstantForce->Force = WorldDirection * Strength;
 			ConstantForce->Duration = Duration;
 			ConstantForce->StrengthOverTime = StrengthOverTime;
+			ConstantForce->FinishVelocityParams.Mode = FinishVelocityMode;
+			ConstantForce->FinishVelocityParams.SetVelocity = FinishSetVelocity;
+			ConstantForce->FinishVelocityParams.ClampVelocity = FinishClampVelocity;
 			RootMotionSourceID = MovementComponent->ApplyRootMotionSource(ConstantForce);
 
 			if (Ability)
@@ -81,9 +94,10 @@ void UAbilityTask_ApplyRootMotionConstantForce::TickTask(float DeltaTime)
 	AActor* MyActor = GetAvatarActor();
 	if (MyActor)
 	{
-		float CurrentTime = GetWorld()->GetTimeSeconds();
+		const bool bTimedOut = HasTimedOut();
 		const bool bIsInfiniteDuration = Duration < 0.f;
-		if (!bIsInfiniteDuration && CurrentTime >= EndTime)
+
+		if (!bIsInfiniteDuration && bTimedOut)
 		{
 			// Task has finished
 			bIsFinished = true;

@@ -4,10 +4,9 @@
 
 #include "HAL/IConsoleManager.h"
 #include "Misc/CoreDelegates.h"
-
 #include "Features/IModularFeatures.h"
 #include "CameraPhotographyModule.h"
-
+#include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCameraPhotography, Log, All);
 
@@ -98,12 +97,15 @@ FCameraPhotographyManager::~FCameraPhotographyManager()
 
 FCameraPhotographyManager* FCameraPhotographyManager::Singleton = nullptr;
 
-bool FCameraPhotographyManager::IsSupported()
+bool FCameraPhotographyManager::IsSupported(UWorld* InWorld)
 {
-	ICameraPhotography* Impl = Get().ActiveImpl.Get();
-	if (Impl)
+	//we don't want this running on dedicated servers
+	if(InWorld && InWorld->GetNetMode() != NM_DedicatedServer)
 	{
-		return Impl->IsSupported();
+		if (ICameraPhotography* Impl = Get().ActiveImpl.Get())
+		{
+			return Impl->IsSupported();
+		}
 	}
 	return false;	
 }

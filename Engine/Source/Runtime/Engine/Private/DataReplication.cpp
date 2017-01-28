@@ -16,9 +16,12 @@
 #include "Engine/ActorChannel.h"
 #include "Engine/DemoNetDriver.h"
 
+
 static TAutoConsoleVariable<int32> CVarMaxRPCPerNetUpdate( TEXT( "net.MaxRPCPerNetUpdate" ), 2, TEXT( "Maximum number of RPCs allowed per net update" ) );
 static TAutoConsoleVariable<int32> CVarShareShadowState( TEXT( "net.ShareShadowState" ), 1, TEXT( "If true, work done to compare properties will be shared across connections" ) );
 static TAutoConsoleVariable<float> CVarMaxUpdateDelay( TEXT( "net.MaxSharedShadowStateUpdateDelayInSeconds" ), 1.0f / 4.0f, TEXT( "When a new changelist is available for a particular connection (using shared shadow state), but too much time has passed, force another compare against all the properties" ) );
+
+extern TAutoConsoleVariable<int32> CVarNetPartialBunchReliableThreshold;
 
 class FNetSerializeCB : public INetSerializeCB
 {
@@ -1227,28 +1230,50 @@ void FObjectReplicator::PostSendBunch( FPacketIdRange & PacketRange, uint8 bReli
 		return;
 	}
 
-	RepLayout->PostReplicate( RepState, PacketRange, bReliable ? true : false );
+	// Don't update retirement records for reliable properties. This is ok to do only if we also pause replication on the channel until the acks have gone through.
+	bool SkipRetirementUpdate = OwningChannel->bPausedUntilReliableACK;
+
+	if (!SkipRetirementUpdate)
+	{
+		// Don't call if reliable, since the bunch will be resent. We dont want this to end up in the changelist history
+		// But is that enough? How does it know to delta against this latest state?
+
+		RepLayout->PostReplicate( RepState, PacketRange, bReliable ? true : false );
+	}
 
 	for ( int32 i = 0; i < LifetimeCustomDeltaProperties.Num(); i++ )
 	{
 		FPropertyRetirement & Retire = Retirement[LifetimeCustomDeltaProperties[i]];
 
-		FPropertyRetirement * Next = Retire.Next;
+		FPropertyRetirement* Next = Retire.Next;
+		FPropertyRetirement* Prev = &Retire;
 
-		while ( Next != NULL )
+		while ( Next != nullptr )
 		{
 			// This is updating the dynamic properties retirement record that was created above during property replication
 			// (we have to wait until we actually send the bunch to know the packetID, which is why we look for .First==INDEX_NONE)
 			if ( Next->OutPacketIdRange.First == INDEX_NONE )
 			{
-				Next->OutPacketIdRange	= PacketRange;
-				Next->Reliable			= bReliable;
 
-				// Mark the last time on this retirement slot that a property actually changed
-				Retire.OutPacketIdRange = PacketRange;
-				Retire.Reliable			= bReliable;
+				if (!SkipRetirementUpdate)
+				{
+					Next->OutPacketIdRange	= PacketRange;
+					Next->Reliable			= bReliable;
+
+					// Mark the last time on this retirement slot that a property actually changed
+					Retire.OutPacketIdRange = PacketRange;
+					Retire.Reliable			= bReliable;
+				}
+				else
+				{
+					// We need to remove the retirement entry here!
+					Prev->Next = Next->Next;
+					delete Next;
+					Next = Prev;
+				}
 			}
 
+			Prev = Next;
 			Next = Next->Next;
 		}
 

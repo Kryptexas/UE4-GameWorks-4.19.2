@@ -50,6 +50,8 @@ UWorld* UGameplayCueManager::PreviewWorld = nullptr;
 FGameplayCueProxyTick UGameplayCueManager::PreviewProxyTick;
 #endif
 
+UWorld* UGameplayCueManager::CurrentWorld = nullptr;
+
 UGameplayCueManager::UGameplayCueManager(const FObjectInitializer& PCIP)
 : Super(PCIP)
 {
@@ -57,8 +59,6 @@ UGameplayCueManager::UGameplayCueManager(const FObjectInitializer& PCIP)
 	bAccelerationMapOutdated = true;
 	EditorObjectLibraryFullyInitialized = false;
 #endif
-
-	CurrentWorld = nullptr;	
 }
 
 void UGameplayCueManager::OnCreated()
@@ -1028,6 +1028,11 @@ bool UGameplayCueManager::VerifyNotifyAssetIsInValidPath(FString Path)
 
 
 UWorld* UGameplayCueManager::GetWorld() const
+{
+	return GetCachedWorldForGameplayCueNotifies();
+}
+
+/* static */ UWorld* UGameplayCueManager::GetCachedWorldForGameplayCueNotifies()
 {
 #if WITH_EDITOR
 	if (PreviewWorld)

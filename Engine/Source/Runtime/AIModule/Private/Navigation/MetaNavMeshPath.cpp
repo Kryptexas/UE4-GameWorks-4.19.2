@@ -25,6 +25,30 @@ FMetaNavMeshPath::FMetaNavMeshPath()
 	TargetWaypointIdx = 0;
 }
 
+FMetaNavMeshPath::FMetaNavMeshPath(const TArray<FMetaPathWayPoint>& InWaypoints, const ANavigationData& NavData) 
+	: FMetaNavMeshPath()
+{
+	SetNavigationDataUsed(&NavData);
+	SetWaypoints(InWaypoints);
+}
+
+FMetaNavMeshPath::FMetaNavMeshPath(const TArray<FMetaPathWayPoint>& InWaypoints, const AController& Owner)
+	: FMetaNavMeshPath()
+{
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Owner.GetWorld());
+	const ANavigationData* NavData = NavSys ? NavSys->GetNavDataForProps(Owner.GetNavAgentPropertiesRef()) : nullptr;
+
+	if (ensure(NavData))
+	{
+		SetNavigationDataUsed(NavData);
+		SetWaypoints(InWaypoints);
+	}
+	else
+	{
+		UE_VLOG(&Owner, LogNavigation, Error, TEXT("Unable to assign navigation data to MetaNavMeshPath!"));
+	}
+}
+
 FMetaNavMeshPath::FMetaNavMeshPath(const TArray<FVector>& InWaypoints, const ANavigationData& NavData) : FMetaNavMeshPath()
 {
 	SetNavigationDataUsed(&NavData);
@@ -67,11 +91,35 @@ void FMetaNavMeshPath::Initialize(const FVector& AgentLocation)
 	}
 }
 
-bool FMetaNavMeshPath::SetWaypoints(const TArray<FVector>& InWaypoints)
+bool FMetaNavMeshPath::SetWaypoints(const TArray<FMetaPathWayPoint>& InWaypoints)
 {
 	if (TargetWaypointIdx == 0)
 	{
 		Waypoints = InWaypoints;
+
+		if (Waypoints.Num() >= 2)
+		{
+			PathPoints.SetNum(2);
+			PathPoints[0] = Waypoints[0];
+			PathPoints[1] = Waypoints.Last();
+		}
+
+		MarkReady();
+		return true;
+	}
+
+	return false;
+}
+
+bool FMetaNavMeshPath::SetWaypoints(const TArray<FVector>& InWaypoints)
+{
+	if (TargetWaypointIdx == 0)
+	{
+		Waypoints.Reset();
+		for (const FVector& Location : InWaypoints)
+		{
+			Waypoints.Add(Location);
+		}
 
 		if (Waypoints.Num() >= 2)
 		{
@@ -223,4 +271,18 @@ void FMetaNavMeshPath::DebugDraw(const ANavigationData* NavData, FColor PathColo
 		}
 	}
 #endif // ENABLE_DRAW_DEBUG
+}
+
+//----------------------------------------------------------------------//
+// DEPRECATED
+//----------------------------------------------------------------------//
+TArray<FVector> FMetaNavMeshPath::GetWaypoints() const 
+{ 
+	TArray<FVector> VectorWaypoints;
+	VectorWaypoints.Reserve(Waypoints.Num());
+	for (const FMetaPathWayPoint& Waypoint : Waypoints)
+	{
+		VectorWaypoints.Add(Waypoint);
+	}
+	return VectorWaypoints; 
 }

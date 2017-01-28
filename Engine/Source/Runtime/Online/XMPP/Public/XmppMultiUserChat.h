@@ -275,7 +275,7 @@ public:
 	virtual bool RegisterMember(const FXmppRoomId& RoomId, const FString& Nickname) = 0;
 	virtual bool UnregisterMember(const FXmppRoomId& RoomId, const FString& Nickname) = 0;
 	virtual bool ExitRoom(const FXmppRoomId& RoomId) = 0;
-	virtual bool SendChat(const FXmppRoomId& RoomId, const class FString& MsgBody) = 0;
+	virtual bool SendChat(const FXmppRoomId& RoomId, const FString& MsgBody, const FString& ChatInfo) = 0;
 	virtual void GetJoinedRooms(TArray<FXmppRoomId>& OutRooms) = 0;
 	virtual bool RefreshRoomInfo(const FXmppRoomId& RoomId) = 0;
 	virtual bool GetRoomInfo(const FXmppRoomId& RoomId, FXmppRoomInfo& OutRoomInfo) = 0;

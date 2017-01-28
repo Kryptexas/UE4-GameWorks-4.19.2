@@ -53,5 +53,11 @@ namespace ansel
     // the current display camera settings when called. After calling 'camera' will contain the
     // new requested camera from Ansel.
     ANSEL_SDK_API void updateCamera(Camera& camera);
+
+    // Converts quaternion to rotation matrix vectors.
+    ANSEL_SDK_API void quaternionToRotationMatrixVectors(const nv::Quat& q, nv::Vec3& right, nv::Vec3& up, nv::Vec3& forward);
+
+    // Converts rotation matrix vectors to quaternion. 
+    ANSEL_SDK_API void rotationMatrixVectorsToQuaternion(const nv::Vec3& right, const nv::Vec3& up, const nv::Vec3& forward, nv::Quat& q);
 }
 

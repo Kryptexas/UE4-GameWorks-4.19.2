@@ -1069,9 +1069,9 @@ public:
 	* @param MaxDistanceFactor : Largest SkinnedMeshComponent of this Actor drawn on screen. */
 	void AnimUpdateRateSetParams(uint8 UpdateRateShift, float DeltaTime, const bool & bInRecentlyRendered, const float& InMaxDistanceFactor, const bool & bPlayingRootMotion);
 
-	virtual bool IsPlayingRootMotion(){ return false; }
-
-	virtual bool IsPlayingRootMotionFromEverything(){ return false; }
+	virtual bool IsPlayingRootMotion() const { return false; }
+	virtual bool IsPlayingNetworkedRootMotionMontage() const { return false; }
+	virtual bool IsPlayingRootMotionFromEverything() const { return false; }
 
 	bool ShouldUseUpdateRateOptimizations() const;
 

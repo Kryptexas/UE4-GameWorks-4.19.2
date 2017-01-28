@@ -48,6 +48,11 @@ static TAutoConsoleVariable<int> CVarNetProcessQueuedBunchesMillisecondLimit(
 	30,
 	TEXT("Time threshold for processing queued bunches. If it takes longer than this in a single frame, wait until the next frame to continue processing queued bunches. For unlimited time, set to 0."));
 
+TAutoConsoleVariable<int32> CVarNetPartialBunchReliableThreshold(
+	TEXT("net.PartialBunchReliableThreshold"),
+	0,
+	TEXT("If a bunch is broken up into this many partial bunches are more, we will send it reliable even if the original bunch was not reliable. Partial bunches are atonmic and must all make it over to be used"));
+
 /*-----------------------------------------------------------------------------
 	UChannel implementation.
 -----------------------------------------------------------------------------*/
@@ -71,6 +76,7 @@ void UChannel::Init( UNetConnection* InConnection, int32 InChIndex, bool InOpene
 	ChIndex			= InChIndex;
 	OpenedLocally	= InOpenedLocally;
 	OpenPacketId	= FPacketIdRange();
+	bPausedUntilReliableACK = 0;
 }
 
 
@@ -835,7 +841,24 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 	//-----------------------------------------------------
 	FPacketIdRange PacketIdRange;
 
-	if (Bunch->bReliable && (NumOutRec + OutgoingBunches.Num() >= RELIABLE_BUFFER + Bunch->bClose))
+	bool bOverflowsReliable = (NumOutRec + OutgoingBunches.Num() >= RELIABLE_BUFFER + Bunch->bClose);
+
+	if (OutgoingBunches.Num() >= CVarNetPartialBunchReliableThreshold->GetInt() && CVarNetPartialBunchReliableThreshold->GetInt() > 0)
+	{
+		if (!bOverflowsReliable)
+		{
+			UE_LOG(LogNetPartialBunch, Log, TEXT("	OutgoingBunches.Num (%d) exceeds reliable threashold (%d). Making bunches reliable. Property replication will be paused on this channel until these are ACK'd."), OutgoingBunches.Num(), CVarNetPartialBunchReliableThreshold->GetInt());
+			Bunch->bReliable = true;
+			bPausedUntilReliableACK = true;
+		}
+		else
+		{
+			// The threshold was hit, but making these reliable would overflow the reliable buffer. This is a problem: there is just too much data.
+			UE_LOG(LogNetPartialBunch, Warning, TEXT("	OutgoingBunches.Num (%d) exceeds reliable threashold (%d) but this would overflow the reliable buffer! Consider sending less stuff. Channel: %s"), OutgoingBunches.Num(), CVarNetPartialBunchReliableThreshold->GetInt(), *Describe());
+		}
+	}
+
+	if (Bunch->bReliable && bOverflowsReliable)
 	{
 		UE_LOG(LogNetPartialBunch, Warning, TEXT("SendBunch: Reliable partial bunch overflows reliable buffer! %s"), *Describe() );
 		UE_LOG(LogNetPartialBunch, Warning, TEXT("   Num OutgoingBunches: %d. NumOutRec: %d"), OutgoingBunches.Num(), NumOutRec );
@@ -850,7 +873,7 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		return PacketIdRange;
 	}
 
-	UE_CLOG((OutgoingBunches.Num() > 1), LogNetPartialBunch, Log, TEXT("Sending %d Bunches. Channel: %d "), OutgoingBunches.Num(), Bunch->ChIndex);
+	UE_CLOG((OutgoingBunches.Num() > 1), LogNetPartialBunch, Log, TEXT("Sending %d Bunches. Channel: %d %s"), OutgoingBunches.Num(), Bunch->ChIndex, *Describe());
 	for( int32 PartialNum = 0; PartialNum < OutgoingBunches.Num(); ++PartialNum)
 	{
 		FOutBunch * NextBunch = OutgoingBunches[PartialNum];
@@ -2256,6 +2279,17 @@ bool UActorChannel::ReplicateActor()
 	check(Connection->PackageMap);
 
 	const UWorld* const ActorWorld = Actor->GetWorld();
+
+	if (bPausedUntilReliableACK )
+	{
+		if (NumOutRec > 0)
+		{			
+			return false;
+		}
+		bPausedUntilReliableACK = 0;
+		UE_LOG(LogNet, Log, TEXT( "ReplicateActor: bPausedUntilReliableACK is ending now that reliables have been ACK'd. %s"), *Describe());
+	}
+
 
 	bool bIsNewlyReplicationPaused = false;
 	bool bIsNewlyReplicationUnpaused = false;

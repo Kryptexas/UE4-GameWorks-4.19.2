@@ -6,6 +6,7 @@
 #include "Misc/OutputDeviceFile.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/App.h"
+#include "Misc/FileHelper.h"
 #include "UObject/UObjectIterator.h"
 #include "Misc/PackageName.h"
 #include "EngineDefines.h"
@@ -1061,7 +1062,15 @@ void UCheatManager::BugIt( const FString& ScreenShotDescription )
 {
 	APlayerController* const MyPlayerController = GetOuterAPlayerController();
 
-	MyPlayerController->ConsoleCommand( FString::Printf(TEXT("BUGSCREENSHOTWITHHUDINFO %s"), *ScreenShotDescription ));
+	// Path will be <gamename>/bugit/<platform>/desc/desc_ (BugItDir() includes a platform and trailing slash)
+	const FString BaseFile = FString::Printf(TEXT("%s%s/%s_"), *FPaths::BugItDir(), *ScreenShotDescription, *ScreenShotDescription);
+	FString ScreenShotFile;
+
+	// find the next filename in the sequence, e.g <gamename>/bugit/<platform>/desc_00000.png
+	FFileHelper::GenerateNextBitmapFilename(BaseFile, TEXT("png"), ScreenShotFile);
+
+	// request a screenshot to that path
+	MyPlayerController->ConsoleCommand( FString::Printf(TEXT("BUGSCREENSHOTWITHHUDINFO %s"), *ScreenShotFile));
 
 	FVector ViewLocation;
 	FRotator ViewRotation;
@@ -1075,7 +1084,8 @@ void UCheatManager::BugIt( const FString& ScreenShotDescription )
 	FString GoString, LocString;
 	BugItStringCreator( ViewLocation, ViewRotation, GoString, LocString );
 
-	LogOutBugItGoToLogFile( ScreenShotDescription, GoString, LocString );
+	// Log bugit data to a textfile with the same name as the screenshot
+	LogOutBugItGoToLogFile( ScreenShotDescription, ScreenShotFile, GoString, LocString );
 }
 
 void UCheatManager::BugItStringCreator( FVector ViewLocation, FRotator ViewRotation, FString& GoString, FString& LocString )
@@ -1192,27 +1202,18 @@ void UCheatManager::CheatScript(FString ScriptName)
 	}
 }
 
-void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, const FString& InGoString, const FString& InLocString )
+void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, const FString& InScreenShotPath, const FString& InGoString, const FString& InLocString )
 {
 #if ALLOW_DEBUG_FILES
-	// Create folder if not already there
+	// Create folder if not already there (screenshot is deferred 1-frame so will not be there yet)
+	IFileManager::Get().MakeDirectory( *FPaths::GetPath(InScreenShotPath));
 
-	const FString OutputDir = FPaths::BugItDir() + InScreenShotDesc + TEXT("/");
-
-	IFileManager::Get().MakeDirectory( *OutputDir );
-	// Create archive for log data.
-	// we have to +1 on the GScreenshotBitmapIndex as it will be incremented by the bugitscreenshot which is processed next tick
-
-	const FString DescPlusExtension = FString::Printf( TEXT("%s%i.txt"), *InScreenShotDesc, GScreenshotBitmapIndex );
-	const FString TxtFileName = CreateProfileFilename( DescPlusExtension, false );
-
-	//FString::Printf( TEXT("BugIt%s-%s%05i"), FApp::GetBuildVersion(), *InScreenShotDesc, GScreenshotBitmapIndex+1 ) + TEXT( ".txt" );
-	const FString FullFileName = OutputDir + TxtFileName;
+	// Create file for log data - remove the extension from the screenshot and create a .txt path
+	const FString BaseFileName = FPaths::GetBaseFilename(InScreenShotPath, false);
+	const FString FullFileName = BaseFileName + TEXT(".txt");
 
 	FOutputDeviceFile OutputFile(*FullFileName);
-	//FArchive* OutputFile = IFileManager::Get().CreateDebugFileWriter( *(FullFileName), FILEWRITE_Append );
-
-
+	
 	OutputFile.Logf( TEXT("Dumping BugIt data chart at %s using build %s built from changelist %i"), *FDateTime::Now().ToString(), FApp::GetBuildVersion(), GetChangeListNumberForPerfTesting() );
 
 	const FString MapNameStr = GetWorld()->GetMapName();
@@ -1225,7 +1226,6 @@ void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, con
 
 	OutputFile.Logf( TEXT(" ---=== GameSpecificData ===--- ") );
 	DoGameSpecificBugItLog(OutputFile);
-
 
 	// Flush, close and delete.
 	//delete OutputFile;

@@ -237,23 +237,22 @@ namespace FAnimUpdateRateManager
 	{
 		// Go through components and figure out if they've been recently rendered, and the biggest MaxDistanceFactor
 		bool bRecentlyRendered = false;
-		bool bPlayingRootMotion = false;
+		bool bPlayingNetworkedRootMotionMontage = false;
 		bool bUsingRootMotionFromEverything = true;
 		float MaxDistanceFactor = 0.f;
 		int32 MinLod = MAX_int32;
 
 		const TArray<USkinnedMeshComponent*>& SkinnedComponents = Tracker->RegisteredComponents;
-
 		for (USkinnedMeshComponent* Component : SkinnedComponents)
 		{
 			bRecentlyRendered |= Component->bRecentlyRendered;
 			MaxDistanceFactor = FMath::Max(MaxDistanceFactor, Component->MaxDistanceFactor);
-			bPlayingRootMotion |= Component->IsPlayingRootMotion();
+			bPlayingNetworkedRootMotionMontage |= Component->IsPlayingNetworkedRootMotionMontage();
 			bUsingRootMotionFromEverything &= Component->IsPlayingRootMotionFromEverything();
 			MinLod = FMath::Min(MinLod, Component->PredictedLODLevel);
 		}
 
-		bNeedsValidRootMotion &= bPlayingRootMotion;
+		bNeedsValidRootMotion &= bPlayingNetworkedRootMotionMontage;
 
 		// Figure out which update rate should be used.
 		AnimUpdateRateSetParams(Tracker, DeltaTime, bRecentlyRendered, MaxDistanceFactor, MinLod, bNeedsValidRootMotion, bUsingRootMotionFromEverything);

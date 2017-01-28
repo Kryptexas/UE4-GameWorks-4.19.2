@@ -34,14 +34,18 @@ struct CORE_API FLogCategoryBase
 		return CategoryFName;
 	}
 
+	/** Gets the working verbosity **/
+	ELogVerbosity::Type GetVerbosity() const
+	{
+		return (ELogVerbosity::Type)Verbosity;
+	}
+	
 	/** Sets up the working verbosity and clamps to the compile time verbosity. **/
 	void SetVerbosity(ELogVerbosity::Type Verbosity);
 
 private:
 	friend class FLogSuppressionImplementation;
 	friend class FLogScopedVerbosityOverride;
-	/** Internal call to get the working verbosity. **/
-	ELogVerbosity::Type GetVerbosity() const { return (ELogVerbosity::Type)Verbosity; }
 	/** Internal call to set up the working verbosity from the boot time default. **/
 	void ResetFromDefault();
 protected:

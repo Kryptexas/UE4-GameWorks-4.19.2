@@ -204,22 +204,6 @@ void FPredictionKeyDelegates::Reject(FPredictionKey::KeyType Key)
 
 void FPredictionKeyDelegates::CatchUpTo(FPredictionKey::KeyType Key)
 {
-	for (auto MapIt = Get().DelegateMap.CreateIterator(); MapIt; ++MapIt)
-	{
-		if (MapIt.Key() <= Key)
-		{		
-			for (auto& Delegate : MapIt.Value().CaughtUpDelegates)
-			{
-				Delegate.ExecuteIfBound();
-			}
-			
-			MapIt.RemoveCurrent();
-		}
-	}
-}
-
-void FPredictionKeyDelegates::CaughtUp(FPredictionKey::KeyType Key)
-{
 	FDelegates* DelPtr = Get().DelegateMap.Find(Key);
 	if (DelPtr)
 	{
@@ -229,12 +213,25 @@ void FPredictionKeyDelegates::CaughtUp(FPredictionKey::KeyType Key)
 		}
 		Get().DelegateMap.Remove(Key);
 	}
+
+
+#if 0 
+	// Sanity checking
+	for (auto MapIt = Get().DelegateMap.CreateIterator(); MapIt; ++MapIt)
+	{
+		if (MapIt.Key() <= Key)
+		{	
+			ABILITY_LOG(Warning, TEXT("PredictionKey is stale: %d after CatchUp to: %d"), MapIt.Key(), Key);
+
+		}
+	}
+#endif
 }
 
 void FPredictionKeyDelegates::AddDependency(FPredictionKey::KeyType ThisKey, FPredictionKey::KeyType DependsOn)
 {
 	NewRejectedDelegate(DependsOn).BindStatic(&FPredictionKeyDelegates::Reject, ThisKey);
-	NewCaughtUpDelegate(DependsOn).BindStatic(&FPredictionKeyDelegates::CaughtUp, ThisKey);
+	NewCaughtUpDelegate(DependsOn).BindStatic(&FPredictionKeyDelegates::CatchUpTo, ThisKey);
 }
 
 // -------------------------------------
@@ -297,7 +294,7 @@ FScopedPredictionWindow::~FScopedPredictionWindow()
 			// (for example, predict w/ key 100 -> prediction key replication dropped -> predict w/ invalid key -> next rep of prediction key is 0).
 			if (Owner->ScopedPredictionKey.IsValidKey())
 			{
-				Owner->ReplicatedPredictionKey = Owner->ScopedPredictionKey;
+				Owner->ReplicatedPredictionKeyMap.ReplicatePredictionKey(Owner->ScopedPredictionKey);
 			}
 		}
 		if (ClearScopedPredictionKey)
@@ -305,4 +302,72 @@ FScopedPredictionWindow::~FScopedPredictionWindow()
 			Owner->ScopedPredictionKey = RestoreKey;
 		}
 	}
+}
+
+// -----------------------------------
+
+void FReplicatedPredictionKeyItem::OnRep()
+{
+	ABILITY_LOG(Verbose, TEXT("FReplicatedPredictionKeyItem::OnRep %s"), *PredictionKey.ToString());
+	
+	// Every predictive action we've done up to and including the current value of ReplicatedPredictionKey needs to be wiped
+	FPredictionKeyDelegates::CatchUpTo(PredictionKey.Current);
+
+	// Sanity checking
+	int32 Index = PredictionKey.Current % FReplicatedPredictionKeyMap::KeyRingBufferSize;
+	for (auto MapIt = FPredictionKeyDelegates::Get().DelegateMap.CreateIterator(); MapIt; ++MapIt)
+	{
+		// If older key
+		if (MapIt.Key() <= PredictionKey.Current)
+		{	
+			// Older key that would have gone in this slot
+			if (MapIt.Key() % FReplicatedPredictionKeyMap::KeyRingBufferSize == Index)
+			{
+				// Warn
+				ABILITY_LOG(Warning, TEXT("Passed PredictionKey %d in Delegate map while OnRep'ing %s"), MapIt.Key(), *PredictionKey.ToString());
+
+				// Execute CaughtUp delegates
+				for (auto& Delegate : MapIt.Value().CaughtUpDelegates)
+				{
+					Delegate.ExecuteIfBound();
+				}
+
+				// Cleanup
+				MapIt.RemoveCurrent();
+			}
+		}
+	}
+}
+
+const int32 FReplicatedPredictionKeyMap::KeyRingBufferSize = 32;
+
+FReplicatedPredictionKeyMap::FReplicatedPredictionKeyMap()
+{
+	PredictionKeys.SetNum(KeyRingBufferSize);
+}
+
+bool FReplicatedPredictionKeyMap::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
+{
+	return FastArrayDeltaSerialize<FReplicatedPredictionKeyItem>(PredictionKeys, DeltaParms, *this);
+}
+
+void FReplicatedPredictionKeyMap::ReplicatePredictionKey(FPredictionKey Key)
+{	
+	int32 Index = (Key.Current % KeyRingBufferSize);
+	PredictionKeys[Index].PredictionKey = Key;
+	MarkItemDirty(PredictionKeys[Index]);
+}
+
+FString FReplicatedPredictionKeyMap::GetDebugString() const
+{
+	FPredictionKey HighKey;
+	for (const FReplicatedPredictionKeyItem& Item : PredictionKeys)
+	{
+		if (Item.PredictionKey.Current > HighKey.Current)
+		{
+			HighKey = Item.PredictionKey;
+		}
+	}
+
+	return HighKey.ToString();
 }

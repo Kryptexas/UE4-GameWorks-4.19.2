@@ -868,7 +868,7 @@ public partial class Project : CommandUtils
 		else
 		{
 			// skip arguments which don't make sense for iOS
-			TempCmdLine += "-Messaging -nomcp ";
+			TempCmdLine += "-Messaging ";
 		}
 		if (Params.NullRHI && SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.Mac) // all macs have GPUs, and currently the mac dies with nullrhi
 		{

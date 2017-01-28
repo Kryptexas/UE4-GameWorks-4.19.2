@@ -110,6 +110,11 @@ class FChunkManifestGenerator
 	}
 
 	/**
+	 * 
+	 */
+	int64 GetMaxChunkSizePerPlatform( const ITargetPlatform* Platform ) const;
+
+	/**
 	* Returns an array of chunks ID for a package name that have been assigned during the cook process.
 	*/
 	FORCEINLINE TArray<int32> GetExistingPackageChunkAssignments(FName PackageFName)
@@ -182,7 +187,7 @@ class FChunkManifestGenerator
 	 * @param Platform Platform this manifest is going to be generated for.
 	 * @param Chunks List of chunk manifests.
 	 */
-	bool GenerateStreamingInstallManifest(const FString& Platform);
+	bool GenerateStreamingInstallManifest(const ITargetPlatform* Platform);
 
 	/**
 	 * Gather a list of dependencies required by to completely load this package.

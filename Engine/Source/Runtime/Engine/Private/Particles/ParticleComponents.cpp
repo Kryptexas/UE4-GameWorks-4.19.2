@@ -4983,6 +4983,7 @@ void UParticleSystemComponent::InitParticles()
 				if (Instance)
 				{
 					Instance->SetHaltSpawning(false);
+					Instance->SetHaltSpawningExternal(false);
 				}
 				else
 				{
@@ -5330,6 +5331,7 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 				{
 					EmitterInstances[i]->Rewind();
 					EmitterInstances[i]->SetHaltSpawning(false);
+					EmitterInstances[i]->SetHaltSpawningExternal(false);
 				}
 			}
 		}
@@ -6193,7 +6195,7 @@ void UParticleSystemComponent::SetEmitterEnable(FName EmitterName, bool bNewEnab
 		{
 			if (EmitterInst->SpriteTemplate->EmitterName == EmitterName)
 			{
-				EmitterInst->SetHaltSpawning(!bNewEnableState);
+				EmitterInst->SetHaltSpawningExternal(!bNewEnableState);
 			}
 		}
 	}

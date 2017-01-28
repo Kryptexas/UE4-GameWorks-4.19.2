@@ -1126,22 +1126,25 @@ TStatId FAnimationBlueprintEditor::GetStatId() const
 
 void FAnimationBlueprintEditor::OnBlueprintPreCompile(UBlueprint* BlueprintToCompile)
 {
-	UDebugSkelMeshComponent* PreviewMeshComponent = PersonaToolkit->GetPreviewMeshComponent();
-	if(PreviewMeshComponent && PreviewMeshComponent->PreviewInstance)
+	if (PersonaToolkit.IsValid())
 	{
-		// If we are compiling an anim notify state the class will soon be sanitized and 
-		// if an anim instance is running a state when that happens it will likely
-		// crash, so we end any states that are about to compile.
-		UAnimPreviewInstance* Instance = PreviewMeshComponent->PreviewInstance;
-		USkeletalMeshComponent* SkelMeshComp = Instance->GetSkelMeshComponent();
-
-		for(int32 Idx = Instance->ActiveAnimNotifyState.Num() - 1 ; Idx >= 0 ; --Idx)
+		UDebugSkelMeshComponent* PreviewMeshComponent = PersonaToolkit->GetPreviewMeshComponent();
+		if(PreviewMeshComponent && PreviewMeshComponent->PreviewInstance)
 		{
-			FAnimNotifyEvent& Event = Instance->ActiveAnimNotifyState[Idx];
-			if(Event.NotifyStateClass->GetClass() == BlueprintToCompile->GeneratedClass)
+			// If we are compiling an anim notify state the class will soon be sanitized and 
+			// if an anim instance is running a state when that happens it will likely
+			// crash, so we end any states that are about to compile.
+			UAnimPreviewInstance* Instance = PreviewMeshComponent->PreviewInstance;
+			USkeletalMeshComponent* SkelMeshComp = Instance->GetSkelMeshComponent();
+
+			for(int32 Idx = Instance->ActiveAnimNotifyState.Num() - 1 ; Idx >= 0 ; --Idx)
 			{
-				Event.NotifyStateClass->NotifyEnd(SkelMeshComp, Cast<UAnimSequenceBase>(Event.NotifyStateClass->GetOuter()));
-				Instance->ActiveAnimNotifyState.RemoveAt(Idx);
+				FAnimNotifyEvent& Event = Instance->ActiveAnimNotifyState[Idx];
+				if(Event.NotifyStateClass->GetClass() == BlueprintToCompile->GeneratedClass)
+				{
+					Event.NotifyStateClass->NotifyEnd(SkelMeshComp, Cast<UAnimSequenceBase>(Event.NotifyStateClass->GetOuter()));
+					Instance->ActiveAnimNotifyState.RemoveAt(Idx);
+				}
 			}
 		}
 	}

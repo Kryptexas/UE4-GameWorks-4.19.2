@@ -109,6 +109,18 @@ bool UKismetTextLibrary::TextIsCultureInvariant(const FText& InText)
 }
 
 
+FText UKismetTextLibrary::TextToLower(const FText& InText)
+{
+	return InText.ToLower();
+}
+
+
+FText UKismetTextLibrary::TextToUpper(const FText& InText)
+{
+	return InText.ToUpper();
+}
+
+
 FText UKismetTextLibrary::TextTrimPreceding(const FText& InText)
 {
 	return FText::TrimPreceding(InText);

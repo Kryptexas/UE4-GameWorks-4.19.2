@@ -113,7 +113,16 @@ void UAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor*
 	AbilityActorInfo->InitFromActor(InOwnerActor, InAvatarActor, this);
 
 	OwnerActor = InOwnerActor;
+
+	// caching the previous value of the actor so we can check against it but then setting the value to the new because it may get used
+	const AActor* PrevAvatarActor = AvatarActor;
 	AvatarActor = InAvatarActor;
+
+	// if the avatar actor was null but won't be after this, we want to run the deferred gameplaycues that may not have run in NetDeltaSerialize
+	if (PrevAvatarActor == nullptr && InAvatarActor != nullptr)
+	{
+		HandleDeferredGameplayCues(&ActiveGameplayEffects);
+	}
 
 	if (AvatarChanged)
 	{
@@ -1042,10 +1051,16 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 	static FGameplayTagContainer FailureTags;
 	FailureTags.Reset();
 
+	if (Handle.IsValid() == false)
+	{
+		ABILITY_LOG(Warning, TEXT("InternalTryActivateAbility called with invalid Handle! ASC: %s. AvatarActor: %s"), *GetPathName(), *GetNameSafe(AvatarActor));
+		return false;
+	}
+
 	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
 	if (!Spec)
 	{
-		ABILITY_LOG(Warning, TEXT("InternalTryActivateAbility called with invalid Handle"));
+		ABILITY_LOG(Warning, TEXT("InternalTryActivateAbility called with a valid handle but no matching ability was found. Handle: %s ASC: %s. AvatarActor: %s"), *Handle.ToString(), *GetPathName(), *GetNameSafe(AvatarActor));
 		return false;
 	}
 
@@ -1533,7 +1548,7 @@ void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(FGamepl
 		return;
 	}
 
-	ABILITY_LOG(Display, TEXT("ClientActivateAbilityFailed_Implementation. PredictionKey :%d Ability:"), PredictionKey, *GetNameSafe(Spec->Ability));
+	ABILITY_LOG(Display, TEXT("ClientActivateAbilityFailed_Implementation. PredictionKey :%d Ability: %s"), PredictionKey, *GetNameSafe(Spec->Ability));
 
 	// The ability should be either confirmed or rejected by the time we get here
 	if (Spec->ActivationInfo.GetActivationPredictionKey().Current == PredictionKey)
@@ -1593,6 +1608,8 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceedWithEventData_Implemen
 	ensure(AbilityActorInfo.IsValid());
 
 	Spec->ActivationInfo.SetActivationConfirmed();
+
+	// ABILITY_LOG(Verbose, TEXT("ClientActivateAbilitySucceedWithEventData_Implementation. PredictionKey :%s Ability: %s"), *PredictionKey.ToString(), *GetNameSafe(Spec->Ability));
 
 	// Fixme: We need a better way to link up/reconcile predictive replicated abilities. It would be ideal if we could predictively spawn an
 	// ability and then replace/link it with the server spawned one once the server has confirmed it.

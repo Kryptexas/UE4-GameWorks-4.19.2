@@ -405,6 +405,18 @@ public:
 	bool IsEmptyOrWhitespace() const;
 
 	/**
+	 * Transforms the text to lowercase in a culture correct way.
+	 * @note The returned instance is linked to the original and will be rebuilt if the active culture is changed.
+	 */
+	FText ToLower() const;
+
+	/**
+	 * Transforms the text to uppercase in a culture correct way.
+	 * @note The returned instance is linked to the original and will be rebuilt if the active culture is changed.
+	 */
+	FText ToUpper() const;
+
+	/**
 	 * Removes whitespace characters from the front of the string.
 	 */
 	static FText TrimPreceding( const FText& );
@@ -549,6 +561,7 @@ public:
 	friend class FTextHistory_NamedFormat;
 	friend class FTextHistory_ArgumentDataFormat;
 	friend class FTextHistory_OrderedFormat;
+	friend class FTextHistory_Transform;
 	friend class FScopedTextIdentityPreserver;
 };
 

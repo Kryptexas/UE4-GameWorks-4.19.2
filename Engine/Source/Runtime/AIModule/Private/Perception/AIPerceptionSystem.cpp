@@ -297,6 +297,19 @@ UAIPerceptionSystem* UAIPerceptionSystem::GetCurrent(UObject* WorldContextObject
 	return nullptr;
 }
 
+UAIPerceptionSystem* UAIPerceptionSystem::GetCurrent(UWorld& World)
+{
+	if (World.GetAISystem())
+	{
+		check(Cast<UAISystem>(World.GetAISystem()));
+		UAISystem* AISys = (UAISystem*)(World.GetAISystem());
+
+		return AISys->GetPerceptionSystem();
+	}
+
+	return nullptr;
+}
+
 void UAIPerceptionSystem::UpdateListener(UAIPerceptionComponent& Listener)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_PerceptionSys);

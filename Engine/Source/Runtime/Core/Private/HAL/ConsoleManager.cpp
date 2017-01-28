@@ -1078,6 +1078,13 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		return false;
 	}
 
+	// Remove a trailing ? if present, to kick it into help mode
+	const bool bCommandEndedInQuestion = Param1.EndsWith(TEXT("?"), ESearchCase::CaseSensitive);
+	if (bCommandEndedInQuestion)
+	{
+		Param1 = Param1.Mid(0, Param1.Len() - 1);
+	}
+
 	IConsoleObject* CObj = FindConsoleObject(*Param1);
 	if(!CObj)
 	{
@@ -1109,7 +1116,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		TArray< FString > Args;
 		FString( It ).ParseIntoArrayWS( Args );
 
-		const bool bShowHelp = Args.Num() == 1 && Args[0] == TEXT("?");
+		const bool bShowHelp = bCommandEndedInQuestion || ((Args.Num() == 1) && (Args[0] == TEXT("?")));
 		if( bShowHelp )
 		{
 			// get help
@@ -1125,7 +1132,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 	else if( CVar )
 	{
 		// Process variable
-
+		bool bShowHelp = bCommandEndedInQuestion;
 		bool bShowCurrentState = false;
 
 		if(*It == 0)
@@ -1135,6 +1142,8 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		else
 		{
 			FString Param2 = FString(It).Trim().TrimTrailing();
+
+			const bool bReadOnly = CVar->TestFlags(ECVF_ReadOnly);
 
 			if(Param2.Len() >= 2)
 			{
@@ -1150,13 +1159,9 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 				}
 			}
 
-			bool bReadOnly = CVar->TestFlags(ECVF_ReadOnly);
-
-			if(Param2 == TEXT("?"))
+			if (Param2 == TEXT("?"))
 			{
-				// get help
-				Ar.Logf(TEXT("HELP for '%s'%s:\n%s"), *Param1, bReadOnly ? TEXT("(ReadOnly)") : TEXT(""), CVar->GetHelp());
-				bShowCurrentState = true;
+				bShowHelp = true;
 			}
 			else
 			{
@@ -1174,6 +1179,14 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 					CallAllConsoleVariableSinks();
 				}
 			}
+		}
+
+		if(bShowHelp)
+		{
+			// get help
+			const bool bReadOnly = CVar->TestFlags(ECVF_ReadOnly);
+			Ar.Logf(TEXT("HELP for '%s'%s:\n%s"), *Param1, bReadOnly ? TEXT("(ReadOnly)") : TEXT(""), CVar->GetHelp());
+			bShowCurrentState = true;
 		}
 
 		if(bShowCurrentState)

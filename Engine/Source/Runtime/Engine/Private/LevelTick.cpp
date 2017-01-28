@@ -1441,7 +1441,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 					{
 						PlayerController->UpdateCameraManager(DeltaSeconds);
 					}
-					else if (PlayerController->PlayerCameraManager && FCameraPhotographyManager::IsSupported())
+					else if (PlayerController->PlayerCameraManager && FCameraPhotographyManager::IsSupported(this))
 					{
 						PlayerController->PlayerCameraManager->UpdateCameraPhotographyOnly();
 					}

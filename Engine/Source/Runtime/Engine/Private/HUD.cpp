@@ -573,10 +573,17 @@ void AHUD::DrawDebugTextList()
 			if (DebugTextList[Idx].TimeRemaining != -1.f)
 			{
 				DebugTextList[Idx].TimeRemaining -= RenderDelta;
+			}
+		}
+
+		// Clear out the list of expired ones (going from the back to reduce copying the remaining portion of the list as it is shrunk, since order matters)
+		for (int32 Idx = DebugTextList.Num() - 1; Idx >= 0; --Idx)
+		{
+			if (DebugTextList[Idx].TimeRemaining != -1.f)
+			{
 				if (DebugTextList[Idx].TimeRemaining <= 0.f)
 				{
-					DebugTextList.RemoveAt(Idx--,1);
-					continue;
+					DebugTextList.RemoveAt(Idx, 1);
 				}
 			}
 		}

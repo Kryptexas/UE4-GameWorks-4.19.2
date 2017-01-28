@@ -439,6 +439,7 @@ bool FXmppModule::HandleXmppCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			FString UserName = FParse::Token(Cmd, false);	// Assumes user is already logged in
 			FString RoomId = FParse::Token(Cmd, false);		// room to join
 			FString Body = FParse::Token(Cmd, false);		// payload to send
+			FString ExtraInfo = FParse::Token(Cmd, false);	// optional extra info to send (typically json payload)
 
 			if (UserName.IsEmpty() || RoomId.IsEmpty() || Body.IsEmpty())
 			{
@@ -455,7 +456,7 @@ bool FXmppModule::HandleXmppCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				{
 					if (Connection->MultiUserChat().IsValid())
 					{
-						Connection->MultiUserChat()->SendChat(RoomId, Body);
+						Connection->MultiUserChat()->SendChat(RoomId, Body, ExtraInfo);
 					}
 				}
 			}

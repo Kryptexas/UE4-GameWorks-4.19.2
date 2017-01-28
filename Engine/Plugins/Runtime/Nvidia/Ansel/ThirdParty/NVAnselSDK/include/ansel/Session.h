@@ -48,6 +48,10 @@ namespace ansel
         bool is360StereoAllowed;
         // Game allows capturing HDR buffer
         bool isExrAllowed;
+        // The speed at which camera moves in the world, initialized with a value given in Configuration
+        float translationalSpeedInWorldUnitsPerSecond;
+        // The speed at which camera rotates, initialized with a value given in Configuration
+        float rotationalSpeedInDegreesPerSecond;
 
         SessionConfiguration()
         {
@@ -68,11 +72,34 @@ namespace ansel
         kAllowed
     };
 
+    enum CaptureType
+    {
+        kCaptureType360Mono = 0,
+        kCaptureType360Stereo,
+        kCaptureTypeSuperResolution,
+        kCaptureTypeStereo
+    };
+
+    struct CaptureConfiguration
+    {
+        CaptureType captureType;
+    };
+
     typedef StartSessionStatus(*StartSessionCallback)(SessionConfiguration& settings, void* userPointer);
     typedef void(*StopSessionCallback)(void* userPointer);
-    typedef void(*StartCaptureCallback)(void* userPointer);
+    typedef void(*StartCaptureCallback)(const CaptureConfiguration&, void* userPointer);
     typedef void(*StopCaptureCallback)(void* userPointer);
 
-    // Stops current session if there is one active
+    // Starts a session if there is not one already active. This function can be used to trigger
+    // Ansel via any method that the game chooses (key combination, controller input, etc)
+    ANSEL_SDK_API void startSession();
+
+    // Stops current session if there is one active. This function needs to be used if the
+    // startSession function was used to implement custom activation method. The same custom
+    // activation method needs to used to deactivate Ansel. If for instance left-stick pressed
+    // was used for startSession then the same should be used for stopping the Ansel session.
+    // This function can also be used if Ansel session needs to be interrupted
+    // (for instance an online game where connection loss is experienced and needs to be
+    // reported).
     ANSEL_SDK_API void stopSession();
 }

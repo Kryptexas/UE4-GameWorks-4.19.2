@@ -1997,11 +1997,12 @@ void UMaterialInstance::PostLoad()
 	AssertDefaultMaterialsPostLoaded();
 
 	// Ensure that the instance's parent is PostLoaded before the instance.
-	if(Parent)
+	if (Parent)
 	{
-#if !WITH_EDITORONLY_DATA
-		check(!Parent->HasAnyFlags(RF_NeedLoad));
-#endif
+		if (EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+		{
+			check(!Parent->HasAnyFlags(RF_NeedLoad));
+		}
 		Parent->ConditionalPostLoad();
 	}
 

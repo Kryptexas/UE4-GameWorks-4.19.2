@@ -107,11 +107,9 @@ public:
 		XmppThread = rtc::ThreadManager::Instance()->WrapCurrentThread();
 		XmppPump = new buzz::XmppPump();
 
-		if (UE_LOG_ACTIVE(LogXmpp, Verbose))
-		{
-			GetClient()->SignalLogInput.connect(this, &FXmppConnectionPumpThread::DebugLogInput);
-			GetClient()->SignalLogOutput.connect(this, &FXmppConnectionPumpThread::DebugLogOutput);
-		}
+		GetClient()->SignalLogInput.connect(this, &FXmppConnectionPumpThread::DebugLogInput);
+		GetClient()->SignalLogOutput.connect(this, &FXmppConnectionPumpThread::DebugLogOutput);
+
 		// Register for login state change
 		GetClient()->SignalStateChange.connect(this, &FXmppConnectionPumpThread::OnSignalStateChange);
 
@@ -302,14 +300,20 @@ private:
 
 	void DebugLogInput(const char* Data, int Len)
 	{
-		FString LogEntry((int32)Len, StringCast<TCHAR>(Data, Len).Get());
-		UE_LOG(LogXmpp, VeryVerbose, TEXT("recv: \n%s"), *LogEntry);
+		if (UE_LOG_ACTIVE(LogXmpp, VeryVerbose))
+		{
+			FString LogEntry((int32)Len, StringCast<TCHAR>(Data, Len).Get());
+			UE_LOG(LogXmpp, VeryVerbose, TEXT("recv: \n%s"), *LogEntry);
+		}
 	}
 
 	void DebugLogOutput(const char* Data, int Len)
 	{
-		FString LogEntry((int32)Len, StringCast<TCHAR>(Data, Len).Get());
-		UE_LOG(LogXmpp, VeryVerbose, TEXT("send: \n%s"), *LogEntry);
+		if (UE_LOG_ACTIVE(LogXmpp, VeryVerbose))
+		{
+			FString LogEntry((int32)Len, StringCast<TCHAR>(Data, Len).Get());
+			UE_LOG(LogXmpp, VeryVerbose, TEXT("send: \n%s"), *LogEntry);
+		}
 	}
 
 	/**

@@ -339,16 +339,14 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayEffectContext()
-	: Ability(nullptr)
-	, AbilityLevel(1)
+	: AbilityLevel(1)
 	, bHasWorldOrigin(false)
 	{
 	}
 
 	FGameplayEffectContext(AActor* InInstigator, AActor* InEffectCauser)
-		: Ability(nullptr)
-		, AbilityLevel(1)
-		, bHasWorldOrigin(false)
+	: AbilityLevel(1)
+	, bHasWorldOrigin(false)
 	{
 		AddInstigator(InInstigator, InEffectCauser);
 	}
@@ -494,7 +492,7 @@ protected:
 
 	/** the ability that is responsible for this effect context */
 	UPROPERTY()
-	TSubclassOf<UGameplayAbility> Ability;
+	TWeakObjectPtr<UGameplayAbility> AbilityCDO;
 
 	UPROPERTY()
 	int32 AbilityLevel;

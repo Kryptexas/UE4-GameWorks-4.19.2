@@ -621,6 +621,11 @@ protected:
 	/** Internal function conditionally called from UpdateCamera to do the actual work of updating the camera. */
 	virtual void DoUpdateCamera(float DeltaTime);
 
+	/** Updates the photography camera. Return true if a cut occurred */
+	virtual bool UpdatePhotographyCamera(FMinimalViewInfo& NewPOV);
+
+	/** Whether or not we allow photography mode */
+	virtual bool AllowPhotographyMode() const;
 	/** Internal. Applies appropriate audio fading to the audio system. */
 	virtual void ApplyAudioFade();
 	virtual void StopAudioFade();

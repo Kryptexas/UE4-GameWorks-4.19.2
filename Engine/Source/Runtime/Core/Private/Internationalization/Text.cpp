@@ -748,6 +748,11 @@ void FText::SerializeText(FArchive& Ar, FText& Value)
 					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_AsDateTime>());
 					break;
 				}
+			case ETextHistoryType::Transform:
+				{
+					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_Transform>());
+					break;
+				}
 			default:
 				{
 					bSerializeHistory = false;

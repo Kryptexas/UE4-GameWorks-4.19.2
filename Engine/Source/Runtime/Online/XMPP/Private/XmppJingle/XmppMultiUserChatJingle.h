@@ -122,7 +122,7 @@ public:
 	virtual bool RegisterMember(const FXmppRoomId& RoomId, const FString& Nickname) override;
 	virtual bool UnregisterMember(const FXmppRoomId& RoomId, const FString& Nickname) override;
 	virtual bool ExitRoom(const FXmppRoomId& RoomId) override;
-	virtual bool SendChat(const FXmppRoomId& RoomId, const class FString& MsgBody) override;
+	virtual bool SendChat(const FXmppRoomId& RoomId, const FString& MsgBody, const FString& ChatInfo) override;
 	virtual void GetJoinedRooms(TArray<FXmppRoomId>& OutRooms) override;
 	virtual bool GetRoomInfo(const FXmppRoomId& RoomId, FXmppRoomInfo& OutRoomInfo) override;
 	virtual bool GetMembers(const FXmppRoomId& RoomId, TArray<FXmppChatMemberRef>& OutMembers) override;
@@ -190,6 +190,10 @@ private:
 	bool InternalConfigureRoom(const FXmppRoomId& RoomId, const FXmppRoomConfig& RoomConfig, EConfigureRoomType RoomConfigurationType);
 	void InternalHandleJoinedRoom(const FXmppChatMemberPtr& SelfMember, FXmppRoomJingle* XmppRoom);
 
+	// Update logging while joining a room
+	void JoinRoomStart();
+	void JoinRoomFinish();
+
 	TMap<FXmppRoomId, FXmppRoomJingle> Chatrooms;
 	// PendingRoomCreateConfigs used by friend OpResult classes
 	TMap<FXmppRoomId, FXmppRoomConfig> PendingRoomCreateConfigs;
@@ -219,6 +223,10 @@ private:
 	int32 NumOpRequests;
 	/** Number of Muc room op responses generated */
 	int32 NumMucResponses;
+	/** Number of times verbosity was increased during MUC creation */
+	int32 VerbosityIncreasedCount;
+	/** Log verbosity prior to increasing it during MUC creation */
+	ELogVerbosity::Type OriginalLogVerbosity;
 
 	friend class FXmppChatRoomOpResult;
 	friend class FXmppChatRoomCreateOpResult;

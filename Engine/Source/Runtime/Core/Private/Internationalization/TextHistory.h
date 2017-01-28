@@ -20,7 +20,8 @@ enum class ETextHistoryType
 	AsCurrency,
 	AsDate,
 	AsTime,
-	AsDateTime
+	AsDateTime,
+	Transform,
 
 	// Add new enum types at the end only! They are serialized by index.
 };
@@ -386,4 +387,41 @@ private:
 	FString TimeZone;
 	/** Culture to format the time in */
 	FCulturePtr TargetCulture;
+};
+
+/**  Handles history for transforming text (eg, ToLower/ToUpper) */
+class CORE_API FTextHistory_Transform : public FTextHistory
+{
+public:
+	enum class ETransformType : uint8
+	{
+		ToLower = 0,
+		ToUpper,
+
+		// Add new enum types at the end only! They are serialized by index.
+	};
+
+	FTextHistory_Transform() {}
+	FTextHistory_Transform(FText InSourceText, const ETransformType InTransformType);
+
+	/** Allow moving */
+	FTextHistory_Transform(FTextHistory_Transform&& Other);
+	FTextHistory_Transform& operator=(FTextHistory_Transform&& Other);
+
+	//~ Begin FTextHistory Interface
+	virtual FText ToText(bool bInAsSource) const override;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void GetHistoricFormatData(const FText& InText, TArray<FHistoricTextFormatData>& OutHistoricFormatData) const override;
+	virtual bool GetHistoricNumericData(const FText& InText, FHistoricTextNumericData& OutHistoricNumericData) const override;
+	//~ End FTextHistory Interfaces
+
+private:
+	/** Disallow copying */
+	FTextHistory_Transform(const FTextHistory_Transform&);
+	FTextHistory_Transform& operator=(FTextHistory_Transform&);
+
+	/** The source text instance that was transformed */
+	FText SourceText;
+	/** How the source text was transformed */
+	ETransformType TransformType;
 };

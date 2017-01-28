@@ -223,6 +223,11 @@ public:
 	 */
 	COREUOBJECT_API static void AddKnownMissingPackage(FName PackageName);
 
+	/** 
+	 * Checks if the linker has any objects in the export table that require loading.
+	 */
+	COREUOBJECT_API bool HasAnyObjectsPendingLoad() const;
+
 private:
 
 	/** Packages that are known to be missing when verifying imports that we don't want a message about */
@@ -335,6 +340,22 @@ private:
 	{
 		return !IsAsyncLoading() && (LoadFlags & (LOAD_Quiet | LOAD_Async)) == 0;
 	}
+
+
+	virtual void PushDebugDataString(const FName& DebugData) override
+	{
+		FArchiveUObject::PushDebugDataString(DebugData);
+		if ( Loader )
+			Loader->PushDebugDataString(DebugData);
+	}
+
+	virtual void PopDebugDataString() override
+	{
+		FArchiveUObject::PopDebugDataString();
+		if ( Loader )
+			Loader->PopDebugDataString();
+	}
+
 #endif 
 
 public:
@@ -806,6 +827,7 @@ private:
 		, TFunction<void()>&& InSummaryReadyCallback	
 	);
 
+protected: // Daniel L: Made this protected so I can override the constructor and create a custom loader to load the header of the linker in the DiffFilesCommandlet
 	/**
 	 * Ticks an in-flight linker and spends InTimeLimit seconds on creation. This is a soft time limit used
 	 * if bInUseTimeLimit is true.
@@ -818,7 +840,6 @@ private:
 	 */
 	ELinkerStatus Tick( float InTimeLimit, bool bInUseTimeLimit, bool bInUseFullTimeLimit);
 
-protected: // Daniel L: Made this protected so I can override the constructor and create a custom loader to load the header of the linker in the DiffFilesCommandlet
 	/**
 	 * Private constructor, passing arguments through from CreateLinker.
 	 *

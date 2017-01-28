@@ -1091,7 +1091,7 @@ void ACharacter::OnRep_ReplicatedMovement()
 /** Get FAnimMontageInstance playing RootMotion */
 FAnimMontageInstance * ACharacter::GetRootMotionAnimMontageInstance() const
 {
-	return (Mesh && Mesh->GetAnimInstance()) ? Mesh->GetAnimInstance()->GetRootMotionMontageInstance() : NULL;
+	return (Mesh && Mesh->GetAnimInstance()) ? Mesh->GetAnimInstance()->GetRootMotionMontageInstance() : nullptr;
 }
 
 void ACharacter::OnRep_RootMotion()
@@ -1103,18 +1103,19 @@ void ACharacter::OnRep_RootMotion()
 		// Save received move in queue, we'll try to use it during Tick().
 		if( RepRootMotion.bIsActive )
 		{
-			// Add new move
-			FSimulatedRootMotionReplicatedMove NewMove;
-			NewMove.RootMotion = RepRootMotion;
-			NewMove.Time = GetWorld()->GetTimeSeconds();
-			// Convert RootMotionSource Server IDs -> Local IDs in AuthoritativeRootMotion and cull invalid
-			// so that when we use this root motion it has the correct IDs
 			if (CharacterMovement)
 			{
+				// Add new move
+				RootMotionRepMoves.AddZeroed(1);
+				FSimulatedRootMotionReplicatedMove& NewMove = RootMotionRepMoves.Last();
+				NewMove.RootMotion = RepRootMotion;
+				NewMove.Time = GetWorld()->GetTimeSeconds();
+
+				// Convert RootMotionSource Server IDs -> Local IDs in AuthoritativeRootMotion and cull invalid
+				// so that when we use this root motion it has the correct IDs
 				CharacterMovement->ConvertRootMotionServerIDsToLocalIDs(CharacterMovement->CurrentRootMotion, NewMove.RootMotion.AuthoritativeRootMotion, NewMove.Time);
 				NewMove.RootMotion.AuthoritativeRootMotion.CullInvalidSources();
 			}
-			RootMotionRepMoves.Add(NewMove);
 		}
 		else
 		{
@@ -1350,10 +1351,10 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 {
 	Super::PreReplication( ChangedPropertyTracker );
 
-	const FAnimMontageInstance* RootMotionMontageInstance = GetRootMotionAnimMontageInstance();
-
-	if ( CharacterMovement->CurrentRootMotion.HasActiveRootMotionSources() || RootMotionMontageInstance )
+	if (CharacterMovement->CurrentRootMotion.HasActiveRootMotionSources() || IsPlayingNetworkedRootMotionMontage())
 	{
+		const FAnimMontageInstance* RootMotionMontageInstance = GetRootMotionAnimMontageInstance();
+
 		RepRootMotion.bIsActive = true;
 		// Is position stored in local space?
 		RepRootMotion.bRelativePosition = BasedMovement.HasRelativeLocation();
@@ -1457,12 +1458,7 @@ bool ACharacter::IsPlayingRootMotion() const
 {
 	if (Mesh)
 	{
-		const UAnimInstance* const AnimInstance = Mesh->GetAnimInstance();
-		if(AnimInstance)
-		{
-			return (AnimInstance->RootMotionMode == ERootMotionMode::RootMotionFromEverything) ||
-				   (AnimInstance->GetRootMotionMontageInstance() != NULL);
-		}
+		return Mesh->IsPlayingRootMotion();
 	}
 	return false;
 }
@@ -1471,12 +1467,7 @@ bool ACharacter::IsPlayingNetworkedRootMotionMontage() const
 {
 	if (Mesh)
 	{
-		const UAnimInstance* const AnimInstance = Mesh->GetAnimInstance();
-		if (AnimInstance)
-		{
-			return (AnimInstance->RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly) &&
-				   (AnimInstance->GetRootMotionMontageInstance() != NULL);
-		}
+		return Mesh->IsPlayingNetworkedRootMotionMontage();
 	}
 	return false;
 }

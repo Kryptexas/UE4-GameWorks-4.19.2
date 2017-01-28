@@ -949,6 +949,7 @@ UClass* StaticLoadClass( UClass* BaseClass, UObject* InOuter, const TCHAR* InNam
 }
 
 #if WITH_EDITOR
+#include "StackTracker.h"
 class FDiffFileArchive : public FArchiveProxy
 {
 private:
@@ -970,13 +971,15 @@ public:
 			delete DiffArchive;
 	}
 
-	virtual void PushDebugDataString(const FName& DebugData)
+	virtual void PushDebugDataString(const FName& DebugData) override
 	{
+		FArchiveProxy::PushDebugDataString(DebugData);
 		DebugDataStack.Add(DebugData);
 	}
 
-	virtual void PopDebugDataString()
+	virtual void PopDebugDataString() override
 	{
+		FArchiveProxy::PopDebugDataString();
 		DebugDataStack.Pop();
 	}
 
@@ -1002,7 +1005,15 @@ public:
 					DebugStackString += TEXT("->");
 				}
 
-				UE_LOG(LogUObjectGlobals, Warning, TEXT("Diff cooked package archive recognized a difference %lld Filename %s, stack %s "), Pos, *InnerArchive.GetArchiveName(), *DebugStackString);
+				UE_LOG(LogUObjectGlobals, Warning, TEXT("Diff cooked package archive recognized a difference %lld Filename %s"), Pos, *InnerArchive.GetArchiveName());
+
+				UE_LOG(LogUObjectGlobals, Warning, TEXT("debug stack %s"), *DebugStackString);
+
+
+				FStackTracker TempTracker(NULL, NULL, true);
+				TempTracker.CaptureStackTrace(1);
+				TempTracker.DumpStackTraces(0, *GLog);
+				TempTracker.ResetTracking();
 
 				// only log one message per archive, from this point the entire package is probably messed up
 				bDisable = true;
@@ -1031,6 +1042,7 @@ public:
 		FArchive* OtherFile = IFileManager::Get().CreateFileReader(DiffFilename);
 		FDiffFileArchive* DiffArchive = new FDiffFileArchive(Loader, OtherFile);
 		Loader = DiffArchive;
+
 	}
 };
 
@@ -1444,8 +1456,12 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		OrderTracker.ValueSort(TLess<int32>());
 		for (auto& Dependency : OrderTracker)
 		{
-			Result = FindObjectFast<UPackage>(nullptr, Dependency.Key, false, false); // might have already loaded this via a circular dependency
-			if (Result)
+			// might have already loaded this via a circular dependency
+			Result = FindObjectFast<UPackage>(nullptr, Dependency.Key, false, false); 
+
+			// In the case where the load request is coming from CreateImport, the package will exist and be found but still needs to be
+			// actually loaded.
+			if (Result && Result->bHasBeenFullyLoaded)
 			{
 				//UE_LOG(LogUObjectGlobals, Warning, TEXT("LoadPackage already loaded, skipping %s."), *Dependency.Key.ToString());
 			}

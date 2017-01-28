@@ -188,7 +188,7 @@ void UNavCollision::Setup(UBodySetup* BodySetup)
 				bHasConvexGeometry = true;
 			}
 		}
-		else
+		else if (FPlatformProperties::RequiresCookedData() == false)
 		{
 			GatherCollision();
 		}
@@ -459,7 +459,8 @@ FByteBulkData* UNavCollision::GetCookedData(FName Format)
 	{
 		if (FPlatformProperties::RequiresCookedData())
 		{
-			UE_LOG(LogNavigation, Fatal, TEXT("Attempt to build nav collision data for %s when we are unable to. This platform requires cooked packages."), *GetPathName());
+			UE_LOG(LogNavigation, Error, TEXT("Attempt to build nav collision data for %s when we are unable to. This platform requires cooked packages."), *GetPathName());
+			return nullptr;
 		}
 		
 		TArray<uint8> OutData;

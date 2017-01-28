@@ -133,6 +133,20 @@ class ENGINE_API UKismetTextLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Utilities|Text")
 	static bool TextIsCultureInvariant(const FText& InText);
 
+	/**
+	 * Transforms the text to lowercase in a culture correct way.
+	 * @note The returned instance is linked to the original and will be rebuilt if the active culture is changed.
+	 */
+	UFUNCTION(BlueprintPure, Category="Utilities|Text")
+	static FText TextToLower(const FText& InText);
+
+	/**
+	 * Transforms the text to uppercase in a culture correct way.
+	 * @note The returned instance is linked to the original and will be rebuilt if the active culture is changed.
+	 */
+	UFUNCTION(BlueprintPure, Category="Utilities|Text")
+	static FText TextToUpper(const FText& InText);
+
 	/* Removes whitespace characters from the front of the text. */
 	UFUNCTION(BlueprintPure, Category="Utilities|Text")
 	static FText TextTrimPreceding(const FText& InText);

@@ -1,5 +1,4 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
 #include "SBackgroundBlur.h"
 #include "DrawElements.h"
 #include "IConsoleManager.h"
@@ -83,6 +82,11 @@ void SBackgroundBlur::SetPadding(const TAttribute<FMargin>& InPadding)
 	ChildSlot.SlotPadding = InPadding;
 }
 
+bool SBackgroundBlur::IsUsingLowQualityFallbackBrush() const
+{
+	return bForceLowQualityBrushFallback == 1;
+}
+
 int32 SBackgroundBlur::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	int32 PostFXLayerId = LayerId;
@@ -152,7 +156,7 @@ void SBackgroundBlur::ComputeEffectiveKernelSize(float Strength, int32& OutKerne
 	// Downsample if needed
 	if (bDownsampleForBlur && OutKernelSize > 9)
 	{
-		OutDownsampleAmount = OutKernelSize >= 31 ? 4 : 2;
+		OutDownsampleAmount = OutKernelSize >= 64 ? 4 : 2;
 		OutKernelSize /= OutDownsampleAmount;
 	}
 

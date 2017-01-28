@@ -4751,40 +4751,48 @@ bool FSlateApplication::ProcessAnalogInputEvent(FAnalogInputEvent& InAnalogInput
 
 	QueueSynthesizedMouseMove();
 
+	FReply Reply = FReply::Unhandled();
+
 	// Analog cursor gets first chance at the input
 	if (InputPreProcessor.IsValid() && InputPreProcessor->HandleAnalogInputEvent(*this, InAnalogInputEvent))
 	{
-		return true;
+		Reply = FReply::Handled();
 	}
-
-	FReply Reply = FReply::Unhandled();
-
-	SetLastUserInteractionTime(this->GetCurrentTime());
-
-	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
-
-	// Bubble the key event
-	if ( FSlateUser* User = GetOrCreateUser(InAnalogInputEvent.GetUserIndex()) )
+	else
 	{
-		FWidgetPath EventPath = User->Focus.WidgetPath.ToWidgetPath();
-		InAnalogInputEvent.SetEventPath(EventPath);
-
-		// Switch worlds for widgets in the current path
-		FScopedSwitchWorldHack SwitchWorld(EventPath);
-
-		Reply = FEventRouter::RouteAlongFocusPath(this, FEventRouter::FBubblePolicy(EventPath), InAnalogInputEvent, [] (const FArrangedWidget& SomeWidgetGettingEvent, const FAnalogInputEvent& Event)
+		// Bubble the key event
+		if ( FSlateUser* User = GetOrCreateUser(InAnalogInputEvent.GetUserIndex()) )
 		{
-			return ( SomeWidgetGettingEvent.Widget->IsEnabled() )
-				? SomeWidgetGettingEvent.Widget->OnAnalogValueChanged(SomeWidgetGettingEvent.Geometry, Event)
-				: FReply::Unhandled();
-		});
+			FWidgetPath EventPath = User->Focus.WidgetPath.ToWidgetPath();
+			InAnalogInputEvent.SetEventPath(EventPath);
+
+			// Switch worlds for widgets in the current path
+			FScopedSwitchWorldHack SwitchWorld(EventPath);
+
+			Reply = FEventRouter::RouteAlongFocusPath(this, FEventRouter::FBubblePolicy(EventPath), InAnalogInputEvent, [] (const FArrangedWidget& SomeWidgetGettingEvent, const FAnalogInputEvent& Event)
+			{
+				return ( SomeWidgetGettingEvent.Widget->IsEnabled() )
+					? SomeWidgetGettingEvent.Widget->OnAnalogValueChanged(SomeWidgetGettingEvent.Geometry, Event)
+					: FReply::Unhandled();
+			});
 
 		LOG_EVENT_CONTENT(EEventLog::AnalogInput, InAnalogInputEvent.GetKey().ToString(), Reply);
 
-		QueueSynthesizedMouseMove();
+			QueueSynthesizedMouseMove();
+		}
 	}
 
-	return Reply.IsEventHandled();
+	// If no one handled this, it was probably motion in the deadzone.  Don't treat it as activity.
+	if (Reply.IsEventHandled())
+	{
+		SetLastUserInteractionTime(this->GetCurrentTime());
+		LastUserInteractionTimeForThrottling = LastUserInteractionTime;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 FKey TranslateMouseButtonToKey( const EMouseButtons::Type Button )

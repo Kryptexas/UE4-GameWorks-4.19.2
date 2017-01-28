@@ -86,6 +86,9 @@ public:
 	DECLARE_MULTICAST_DELEGATE(FOnAsyncLoadingFlush);
 	static FOnAsyncLoadingFlush OnAsyncLoadingFlush;
 
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAsyncLoadPackage, const FString&);
+	static FOnAsyncLoadPackage OnAsyncLoadPackage;
+
 	// get a hotfix delegate
 	static FHotFixDelegate& GetHotfixDelegate(EHotfixDelegates::Type HotFix);
 

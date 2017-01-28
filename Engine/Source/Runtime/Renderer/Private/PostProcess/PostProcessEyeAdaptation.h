@@ -49,11 +49,18 @@ public:
 class FRCPassPostProcessBasicEyeAdaptation : public TRenderingCompositePassBase<1, 1>
 {
 public:
+	FRCPassPostProcessBasicEyeAdaptation(FIntPoint InDownsampledViewRect)
+	: DownsampledViewRect(InDownsampledViewRect) 
+	{
+	}
 
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
+
+private:
+	FIntPoint DownsampledViewRect;
 };
 
 // Console Variable that is used to over-ride the post process settings.

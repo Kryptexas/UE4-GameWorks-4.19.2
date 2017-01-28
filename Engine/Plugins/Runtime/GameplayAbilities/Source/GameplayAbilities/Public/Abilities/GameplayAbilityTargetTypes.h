@@ -285,6 +285,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetingLocationInfo
 		LiteralTransform = Other.LiteralTransform;
 		SourceActor = Other.SourceActor;
 		SourceComponent = Other.SourceComponent;
+		SourceAbility = Other.SourceAbility;
 		SourceSocketName = Other.SourceSocketName;
 	}
 
@@ -644,7 +645,7 @@ namespace EAbilityGenericReplicatedEvent
 		GameCustom3,
 		GameCustom4,
 		GameCustom5,
-
+		GameCustom6,
 		MAX
 	};
 }

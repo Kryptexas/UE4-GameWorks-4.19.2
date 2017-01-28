@@ -157,6 +157,9 @@ void FAutomationControllerManager::StopTests()
 
 void FAutomationControllerManager::Init()
 {
+	extern void EmptyLinkFunctionForStaticInitializationAutomationExecCmd();
+	EmptyLinkFunctionForStaticInitializationAutomationExecCmd();
+
 	AutomationTestState = EAutomationControllerModuleState::Disabled;
 	bTestResultsAvailable = false;
 	bScreenshotsEnabled = true;

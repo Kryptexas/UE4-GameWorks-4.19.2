@@ -489,7 +489,10 @@ void FRCPassPostProcessBasicEyeAdaptation::Process(FRenderingCompositePassContex
 	FIntPoint DestSize = EyeAdaptationThisFrameRT->GetDesc().Extent;
 
 	// The input texture sample size.  Averaged in the pixel shader.
-	const FIntPoint SrcSize = GetInputDesc(ePId_Input0)->Extent;
+	FIntPoint SrcSize = GetInputDesc(ePId_Input0)->Extent;
+	
+	// Clamp gather area to actual used scene viewrect
+	SrcSize = SrcSize.ComponentMin(DownsampledViewRect);
 
 	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessBasicEyeAdaptation, TEXT("PostProcessBasicEyeAdaptation %dx%d"), SrcSize.X, SrcSize.Y);
 

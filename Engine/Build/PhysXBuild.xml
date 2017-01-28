@@ -33,62 +33,62 @@
 	<Property Name="OtherArgs" Value="$(OtherArgs) -SkipCreateChangelist" If="$(SkipCreateChangelist)"/>
 	<Property Name="OtherArgs" Value="$(OtherArgs) -SkipSubmit" If="$(SkipSubmit)"/>
 	
-	<Agent Name="PhysX Win32" Type="EngineWin64;PhysX_CompileWin64">
+	<Agent Name="PhysX Win32" Type="EngineWin64;PhysX_CompileWin64;Win64">
 		<Node Name="Compile PhysX Win32">
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=Win32 -TargetConfigs=&quot;$(TargetConfigs)&quot; -TargetWindowsCompilers=&quot;$(TargetWindowsCompilers)&quot; $(OtherArgs)"/>
 		</Node>
 	</Agent>
-	<Agent Name="PhysX Win64" Type="EngineWin64;PhysX_CompileWin64">
+	<Agent Name="PhysX Win64" Type="EngineWin64;PhysX_CompileWin64;Win64">
 		<Node Name="Compile PhysX Win64">
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=Win64 -TargetConfigs=&quot;$(TargetConfigs)&quot; -TargetWindowsCompilers=&quot;$(TargetWindowsCompilers)&quot; $(OtherArgs)"/>
 		</Node>
 	</Agent>
-	<Agent Name="PhysX PS4" Type="EngineWin64;PhysX_CompileWin64">
+	<Agent Name="PhysX PS4" Type="EngineWin64;PhysX_CompileWin64;Win64">
 		<Node Name="Compile PhysX PS4">
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=PS4 -TargetConfigs=&quot;$(TargetConfigs)&quot; -TargetWindowsCompilers=&quot;$(TargetWindowsCompilers)&quot; $(OtherArgs)"/>
 		</Node>
 	</Agent>
-	<Agent Name="PhysX XboxOne" Type="EngineWin64;PhysX_CompileWin64">
+	<Agent Name="PhysX XboxOne" Type="EngineWin64;PhysX_CompileWin64;Win64">
 		<Node Name="Compile PhysX XboxOne">
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=XboxOne -TargetConfigs=&quot;$(TargetConfigs)&quot; -TargetWindowsCompilers=&quot;$(TargetWindowsCompilers)&quot; $(OtherArgs)"/>
 		</Node>
 	</Agent>
-	<Agent Name="PhysX Linux" Type="EngineWin64;PhysX_CompileWin64">
+	<Agent Name="PhysX Linux" Type="EngineWin64;PhysX_CompileWin64;Win64">
 		<Node Name="Compile PhysX Linux">
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=Linux -TargetConfigs=&quot;$(TargetConfigs)&quot; -TargetWindowsCompilers=&quot;$(TargetWindowsCompilers)&quot; $(OtherArgs)"/>
 		</Node>
 	</Agent>
-	<Agent Name="PhysX Linux ARM32" Type="EngineWin64;PhysX_CompileWin64">
+	<Agent Name="PhysX Linux ARM32" Type="EngineWin64;PhysX_CompileWin64;Win64">
 		<Node Name="Compile PhysX Linux ARM32">
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=Linux-arm-unknown-linux-gnueabihf -TargetConfigs=&quot;$(TargetConfigs)&quot; -TargetWindowsCompilers=&quot;$(TargetWindowsCompilers)&quot; $(OtherArgs)"/>
 		</Node>
 	</Agent>
-	<Agent Name="PhysX Linux ARM64" Type="EngineWin64;Win64">
+	<Agent Name="PhysX Linux ARM64" Type="EngineWin64;PhysX_CompileWin64;Win64">
 		<Node Name="Compile PhysX Linux ARM64">
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=Linux-aarch64-unknown-linux-gnueabi -TargetConfigs=&quot;$(TargetConfigs)&quot; -TargetWindowsCompilers=&quot;$(TargetWindowsCompilers)&quot; $(OtherArgs)"/>
 		</Node>
 	</Agent>
-	<Agent Name="PhysX Android Armv7" Type="EngineWin64;PhysX_CompileWin64">
+	<Agent Name="PhysX Android Armv7" Type="EngineWin64;PhysX_CompileWin64;Win64">
 		<Node Name="Compile PhysX Android Armv7">
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=Android-armv7 -TargetConfigs=&quot;$(TargetConfigs)&quot; -TargetWindowsCompilers=&quot;$(TargetWindowsCompilers)&quot; $(OtherArgs)"/>
 		</Node>
 	</Agent>
-	<Agent Name="PhysX Android Arm64" Type="EngineWin64;PhysX_CompileWin64">
+	<Agent Name="PhysX Android Arm64" Type="EngineWin64;PhysX_CompileWin64;Win64">
 		<Node Name="Compile PhysX Android Arm64">
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=Android-arm64 -TargetConfigs=&quot;$(TargetConfigs)&quot; -TargetWindowsCompilers=&quot;$(TargetWindowsCompilers)&quot; $(OtherArgs)"/>
 		</Node>
 	</Agent>
-	<Agent Name="PhysX Android x86" Type="EngineWin64;PhysX_CompileWin64">
+	<Agent Name="PhysX Android x86" Type="EngineWin64;PhysX_CompileWin64;Win64">
 		<Node Name="Compile PhysX Android x86">
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=Android-x86 -TargetConfigs=&quot;$(TargetConfigs)&quot; -TargetWindowsCompilers=&quot;$(TargetWindowsCompilers)&quot; $(OtherArgs)"/>
 		</Node>
 	</Agent>
-	<Agent Name="PhysX Android x64" Type="EngineWin64;PhysX_CompileWin64">
+	<Agent Name="PhysX Android x64" Type="EngineWin64;PhysX_CompileWin64;Win64">
 		<Node Name="Compile PhysX Android x64">
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=Android-x64 -TargetConfigs=&quot;$(TargetConfigs)&quot; -TargetWindowsCompilers=&quot;$(TargetWindowsCompilers)&quot; $(OtherArgs)"/>
 		</Node>
 	</Agent>
-	<Agent Name="PhysX HTML5" Type="EngineWin64;PhysX_CompileWin64">
+	<Agent Name="PhysX HTML5" Type="EngineWin64;PhysX_CompileWin64;Win64">
 		<Node Name="Compile PhysX HTML5">
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=HTML5 -TargetConfigs=&quot;$(TargetConfigs)&quot; -TargetWindowsCompilers=&quot;$(TargetWindowsCompilers)&quot; $(OtherArgs)"/>
 		</Node>
@@ -108,7 +108,7 @@
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=TVOS -TargetConfigs=&quot;$(TargetConfigs)&quot; $(OtherArgs)"/>
 		</Node>
 	</Agent>
-	<Agent Name="PhysX Switch" Type="EngineWin64;PhysX_CompileSwitch">
+	<Agent Name="PhysX Switch" Type="EngineWin64;PhysX_CompileSwitch;Win64">
 		<Node Name="Compile PhysX Switch">
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=Switch -TargetConfigs=&quot;$(TargetConfigs)&quot; $(OtherArgs)"/>
 		</Node>
@@ -141,7 +141,7 @@
 	<Notify Nodes="Compile PhysX XboxOne" Users="$(AllEmailTargets);jeff.campeau@epicgames.com"/>
 	<Notify Nodes="Compile PhysX Linux;Compile PhysX Linux ARM32;Compile PhysX Linux ARM64" Users="$(AllEmailTargets);dmitry.rekman@epicgames.com"/>
 	<Notify Nodes="Compile PhysX Android Armv7;Compile PhysX Android Arm64;Compile PhysX Android x86;Compile PhysX Android x64" Users="$(AllEmailTargets);chris.babcock@epicgames.com"/>
-	
-<Notify Nodes="Compile PhysX HTML5" Users="$(AllEmailTargets);nshin@phosphorgames.com"/>
+	<Notify Nodes="Compile PhysX HTML5" Users="$(AllEmailTargets);nshin@phosphorgames.com"/>
 	<Notify Nodes="Compile PhysX Mac;Compile PhysX IOS;Compile PhysX TVOS" Users="$(AllEmailTargets);michael.trepka@epicgames.com"/>
+	
 </BuildGraph>

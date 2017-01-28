@@ -3,8 +3,10 @@
 #include "XmppJingle/XmppMultiUserChatJingle.h"
 #include "XmppLog.h"
 #include "Misc/ScopeLock.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Logging/LogScopedVerbosityOverride.h"
 #include "XmppJingle/XmppConnectionJingle.h"
+
 
 #if WITH_XMPP_JINGLE
 
@@ -215,6 +217,8 @@ FXmppMultiUserChatJingle::FXmppMultiUserChatJingle(class FXmppConnectionJingle& 
 	: Connection(InConnection)
 	, NumOpRequests(0)
 	, NumMucResponses(0)
+	, VerbosityIncreasedCount(0)
+	, OriginalLogVerbosity(ELogVerbosity::NoLogging)
 {
 }
 
@@ -294,6 +298,7 @@ public:
 		else
 		{
 			// Either failed or not owner, creation is done
+			Muc.JoinRoomFinish();
 			Muc.OnRoomCreated().Broadcast(Muc.Connection.AsShared(), bWasSuccessful, RoomId, ErrorStr);
 		}
 
@@ -343,6 +348,45 @@ public:
 	FString Nickname;
 };
 
+
+void FXmppMultiUserChatJingle::JoinRoomStart()
+{
+	// Increase log verbosity if necessary
+	bool bIncreaseVerbosity = false;
+	if (GConfig->GetBool(TEXT("XMPP"), TEXT("IncreaseVerbosityDuringMUCJoin"), bIncreaseVerbosity, GEngineIni) && bIncreaseVerbosity)
+	{
+		VerbosityIncreasedCount++;
+		if (VerbosityIncreasedCount == 1)
+		{
+#if !NO_LOGGING
+			OriginalLogVerbosity = UE_GET_LOG_VERBOSITY(LogXmpp);
+
+			LogXmpp.SetVerbosity(ELogVerbosity::VeryVerbose);
+			UE_LOG(LogXmpp, VeryVerbose, TEXT("Increasing LogXmpp verbosity to VeryVerbose during room join"));
+#endif
+		}
+	}
+}
+
+void FXmppMultiUserChatJingle::JoinRoomFinish()
+{
+	// Decrease log verbosity if necessary
+	bool bIncreaseVerbosity = false;
+	if (GConfig->GetBool(TEXT("XMPP"), TEXT("IncreaseVerbosityDuringMUCJoin"), bIncreaseVerbosity, GEngineIni) && bIncreaseVerbosity)
+	{
+		ensure(VerbosityIncreasedCount > 0);
+		VerbosityIncreasedCount--;
+		if (VerbosityIncreasedCount == 0)
+		{
+#if !NO_LOGGING
+			UE_LOG(LogXmpp, VeryVerbose, TEXT("Decreasing LogXmpp verbosity after room join completion"));
+			LogXmpp.SetVerbosity(OriginalLogVerbosity);
+			OriginalLogVerbosity = ELogVerbosity::NoLogging;
+#endif
+		}
+	}
+}
+
 bool FXmppMultiUserChatJingle::CreateRoom(const FXmppRoomId& RoomId, const FString& Nickname, const FXmppRoomConfig& RoomConfig)
 {
 	bool bResult = false;
@@ -380,6 +424,8 @@ bool FXmppMultiUserChatJingle::CreateRoom(const FXmppRoomId& RoomId, const FStri
 		}
 		else
 		{
+			JoinRoomStart();
+
 			// marked as pending until op is processed
 			XmppRoom.Status = FXmppRoomJingle::CreatePending;
 			// cache off the config for use after the room is created & ready to be configured
@@ -387,6 +433,10 @@ bool FXmppMultiUserChatJingle::CreateRoom(const FXmppRoomId& RoomId, const FStri
 			// queue the create op
 			UE_LOG(LogXmpp, Verbose, TEXT("Queueing FXmppChatRoomCreateOp for room %s"), *RoomId);
 			bResult = PendingOpQueue.Enqueue(new FXmppChatRoomCreateOp(RoomId, Nickname));
+			if (!bResult)
+			{
+				JoinRoomFinish();
+			}
 		}
 	}
 
@@ -431,6 +481,7 @@ public:
 			}
 		}
 
+		Muc.JoinRoomFinish();
 		Muc.OnJoinPublicRoom().Broadcast(Muc.Connection.AsShared(), bWasSuccessful, RoomId, ErrorStr);
 
 		FScopeLock Lock(&Muc.ChatroomsLock);
@@ -513,11 +564,16 @@ bool FXmppMultiUserChatJingle::JoinPublicRoom(const FXmppRoomId& RoomId, const F
 		}
 		else
 		{
+			JoinRoomStart();
 			// marked as pending until op is processed
 			XmppRoom.Status = FXmppRoomJingle::JoinPublicPending;
 			// queue the join op
 			UE_LOG(LogXmpp, Verbose, TEXT("MUC: Queuing FXmppChatRoomJoinPublicOp for room %s"), *RoomId);
 			bResult = PendingOpQueue.Enqueue(new FXmppChatRoomJoinPublicOp(RoomId, Nickname));
+			if (!bResult)
+			{
+				JoinRoomFinish();
+			}
 		}
 	}
 
@@ -552,6 +608,7 @@ public:
 			UE_LOG(LogXmpp, Verbose, TEXT("MUC: JoinPrivateRoom [%s] succeeded."), *RoomId);
 		}
 
+		Muc.JoinRoomFinish();
 		Muc.OnJoinPrivateRoom().Broadcast(Muc.Connection.AsShared(), bWasSuccessful, RoomId, ErrorStr);
 
 		FScopeLock Lock(&Muc.ChatroomsLock);
@@ -634,11 +691,17 @@ bool FXmppMultiUserChatJingle::JoinPrivateRoom(const FXmppRoomId& RoomId, const 
 		}
 		else
 		{
+			JoinRoomStart();
+
 			// marked as pending until op is processed
 			XmppRoom.Status = FXmppRoomJingle::JoinPrivatePending;
 			// queue the join op
 			UE_LOG(LogXmpp, Verbose, TEXT("MUC: Queuing FXmppChatRoomJoinPrivateOp for room %s"), *RoomId);
 			bResult = PendingOpQueue.Enqueue(new FXmppChatRoomJoinPrivateOp(RoomId, Nickname, Password));
+			if (!bResult)
+			{
+				JoinRoomFinish();
+			}
 		}
 	}
 
@@ -740,6 +803,7 @@ public:
 			UE_LOG(LogXmpp, Verbose, TEXT("MUC: ConfigureRoom [%s] succeeded."), *RoomId);
 		}
 
+		Muc.JoinRoomFinish();
 		// Only call the appropriate callback for which op was requested
 		if (RoomConfigurationType == EConfigureRoomType::UseCreateCallback)
 		{
@@ -876,6 +940,7 @@ bool FXmppMultiUserChatJingle::InternalConfigureRoom(const FXmppRoomId& RoomId, 
 		// trigger the delegate for the request that the caller made, either create or configure
 		if (RoomConfigurationType == EConfigureRoomType::UseCreateCallback)
 		{
+			JoinRoomFinish();
 			OnRoomCreated().Broadcast(Connection.AsShared(), false, RoomId, ErrorStr);
 		}
 		else if (RoomConfigurationType == EConfigureRoomType::UseConfigCallback)
@@ -1065,14 +1130,16 @@ bool FXmppMultiUserChatJingle::ExitRoom(const FXmppRoomId& RoomId)
 class FXmppChatRoomSendChatOp : public FXmppChatRoomOp
 {
 public:
-	FXmppChatRoomSendChatOp(const FXmppRoomId& InRoomId, const FString& InMsgBody)
+	FXmppChatRoomSendChatOp(const FXmppRoomId& InRoomId, const FString& InMsgBody, const FString& InChatInfoJson)
 		: FXmppChatRoomOp(InRoomId)
 		, MsgBody(InMsgBody)
+		, ChatInfoJson(InChatInfoJson)
 	{}
 
 	virtual FXmppChatRoomOpResult* Process(buzz::XmppChatroomModule* XmppRoom, buzz::XmppPump* XmppPump) override
 	{
 		static const std::string ChatType = "groupchat";
+		static const buzz::StaticQName QN_CHATINFO = { buzz::NS_CLIENT, "chat-info" };
 
 		buzz::XmlElement Message(buzz::QN_MESSAGE);
 		Message.AddAttr(buzz::QN_TO, XmppRoom->chatroom_jid().Str());
@@ -1081,9 +1148,18 @@ public:
 		// Add CorrelationID for tracking purposes
 		FXmppJingle::AddCorrIdToStanza(Message);
 
+		// Message body
 		buzz::XmlElement* Body = new buzz::XmlElement(buzz::QN_BODY);
 		Body->SetBodyText(TCHAR_TO_UTF8(*MsgBody));
 		Message.AddElement(Body);
+
+		// Add chat info for extra processing
+		if (!ChatInfoJson.IsEmpty())
+		{
+			buzz::XmlElement* ChatInfoElement = new buzz::XmlElement(QN_CHATINFO);
+			ChatInfoElement->SetBodyText(TCHAR_TO_UTF8(*ChatInfoJson));
+			Message.AddElement(ChatInfoElement);
+		}
 
 		if (XmppRoom->SendMessage(Message) != buzz::XMPP_RETURN_OK)
 		{
@@ -1098,10 +1174,13 @@ public:
 		return nullptr;
 	}
 
+	// message payload which is visible
 	FString MsgBody;
+	// optional json payload for extra info associated with chat message
+	FString ChatInfoJson;
 };
 
-bool FXmppMultiUserChatJingle::SendChat(const FXmppRoomId& RoomId, const class FString& MsgBody)
+bool FXmppMultiUserChatJingle::SendChat(const FXmppRoomId& RoomId, const FString& MsgBody, const FString& ChatInfo)
 {
 	bool bResult = false;
 	FString ErrorStr;
@@ -1124,7 +1203,7 @@ bool FXmppMultiUserChatJingle::SendChat(const FXmppRoomId& RoomId, const class F
 	{
 		// queue the chat message op
 		UE_LOG(LogXmpp, Verbose, TEXT("SendChat queuing FXmppChatRoomSendChatOp for room %s"), *RoomId);
-		bResult = PendingOpQueue.Enqueue(new FXmppChatRoomSendChatOp(RoomId, MsgBody));
+		bResult = PendingOpQueue.Enqueue(new FXmppChatRoomSendChatOp(RoomId, MsgBody, ChatInfo));
 	}
 
 	if (!bResult)
@@ -1272,6 +1351,7 @@ bool FXmppMultiUserChatJingle::Tick(float DeltaTime)
 			UE_LOG(LogXmpp, Verbose, TEXT("Received config response %d for room %s"), ConfigTaskResponse->bSuccess, *ConfigTaskResponse->RoomId);
 			if (ConfigTaskResponse->RoomConfigurationType == EConfigureRoomType::UseCreateCallback)
 			{
+				JoinRoomFinish();
 				OnRoomCreated().Broadcast(Connection.AsShared(), ConfigTaskResponse->bSuccess, ConfigTaskResponse->RoomId, ConfigTaskResponse->ErrorStr);
 			}
 			else if (ConfigTaskResponse->RoomConfigurationType == EConfigureRoomType::UseConfigCallback)

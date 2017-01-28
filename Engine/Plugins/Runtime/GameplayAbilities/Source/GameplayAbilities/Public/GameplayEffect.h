@@ -890,8 +890,11 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 
 	FGameplayEffectSpec& operator=(const FGameplayEffectSpec& Other);
 
-	// Can be called manually but it is  preferred to use the 3 parameter constructor
+	// Can be called manually but it is preferred to use the 3 parameter constructor
 	void Initialize(const UGameplayEffect* InDef, const FGameplayEffectContextHandle& InEffectContext, float Level = FGameplayEffectConstants::INVALID_LEVEL);
+
+	// Initialize the spec as a linked spec. The original spec's context is preserved except for the original GE asset tags, which are stripped out
+	void InitializeFromLinkedSpec(const UGameplayEffect* InDef, const FGameplayEffectSpec& OriginalSpec);
 
 	/**
 	 * Determines if the spec has capture specs with valid captures for all of the specified definitions.
@@ -1189,6 +1192,9 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 	void PreReplicatedRemove(const struct FActiveGameplayEffectsContainer &InArray);
 	void PostReplicatedAdd(const struct FActiveGameplayEffectsContainer &InArray);
 	void PostReplicatedChange(const struct FActiveGameplayEffectsContainer &InArray);
+
+	// Debug string used by Fast Array serialization
+	FString GetDebugString();
 
 	/** Refreshes the cached StartWorldTime for this effect. To be used when the server/client world time delta changes significantly to keep the start time in sync. */
 	void RecomputeStartWorldTime(const FActiveGameplayEffectsContainer& InArray);
@@ -1924,27 +1930,27 @@ public:
 	// ----------------------------------------------------------------------
 	
 	/** The GameplayEffect's Tags: tags the the GE *has* and DOES NOT give to the actor. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, meta = (DisplayName = "GameplayEffectAssetTag"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, meta = (DisplayName = "GameplayEffectAssetTag", Categories="GameplayEffectTagsCategory"))
 	FInheritedTagContainer InheritableGameplayEffectTags;
 	
 	/** "These tags are applied to the actor I am applied to" */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, meta=(DisplayName="GrantedTags"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, meta=(DisplayName="GrantedTags", Categories="OwnedTagsCategory"))
 	FInheritedTagContainer InheritableOwnedTagsContainer;
 	
 	/** Once Applied, these tags requirements are used to determined if the GameplayEffect is "on" or "off". A GameplayEffect can be off and do nothing, but still applied. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, meta=(Categories="OngoingTagRequirementsCategory"))
 	FGameplayTagRequirements OngoingTagRequirements;
 
 	/** Tag requirements for this GameplayEffect to be applied to a target. This is pass/fail at the time of application. If fail, this GE fails to apply. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, meta=(Categories="ApplicationTagRequirementsCategory"))
 	FGameplayTagRequirements ApplicationTagRequirements;
 
 	/** GameplayEffects that *have* tags in this container will be cleared upon effect application. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, meta=(Categories="RemoveTagRequirementsCategory"))
 	FInheritedTagContainer RemoveGameplayEffectsWithTags;
 
 	/** Grants the owner immunity from these source tags.  */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Immunity, meta = (DisplayName = "GrantedApplicationImmunityTags"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Immunity, meta = (DisplayName = "GrantedApplicationImmunityTags", Categories="GrantedApplicationImmunityTagsCategory"))
 	FGameplayTagRequirements GrantedApplicationImmunityTags;
 
 	/** Grants immunity to GameplayEffects that match this query. Queries are more powerful but slightly slower than GrantedApplicationImmunityTags. */

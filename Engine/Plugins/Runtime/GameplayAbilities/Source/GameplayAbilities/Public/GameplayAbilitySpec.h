@@ -282,6 +282,9 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec : public FFastArraySerializerI
 	/** Returns the primary instance, used for instance once abilities */
 	UGameplayAbility* GetPrimaryInstance() const;
 
+	/** interface function to see if the ability should replicated the ability spec or not */
+	bool ShouldReplicatedAbilitySpec() const;
+
 	/** Returns all instances, which can include instance per execution abilities */
 	TArray<UGameplayAbility*> GetAbilityInstances() const
 	{
@@ -296,6 +299,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec : public FFastArraySerializerI
 
 	void PreReplicatedRemove(const struct FGameplayAbilitySpecContainer& InArraySerializer);
 	void PostReplicatedAdd(const struct FGameplayAbilitySpecContainer& InArraySerializer);
+
+	FString GetDebugString();
 };
 
 
@@ -317,6 +322,23 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpecContainer : public FFastArraySe
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
 	{
 		return FFastArraySerializer::FastArrayDeltaSerialize<FGameplayAbilitySpec, FGameplayAbilitySpecContainer>(Items, DeltaParms, *this);
+	}
+
+	template< typename Type, typename SerializerType >
+	bool ShouldWriteFastArrayItem(const Type& Item, const bool bIsWritingOnClient)
+	{
+		// if we do not want the FGameplayAbilitySpec to replicated return false;
+		if (!Item.ShouldReplicatedAbilitySpec())
+		{
+			return false;
+		}
+
+		if (bIsWritingOnClient)
+		{
+			return Item.ReplicationID != INDEX_NONE;
+		}
+
+		return true;
 	}
 };
 

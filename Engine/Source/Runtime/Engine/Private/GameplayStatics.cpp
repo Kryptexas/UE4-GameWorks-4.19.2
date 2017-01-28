@@ -652,6 +652,7 @@ void UGameplayStatics::GetActorArrayBounds(const TArray<AActor*>& Actors, bool b
 
 void UGameplayStatics::GetAllActorsOfClass(const UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, TArray<AActor*>& OutActors)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(UGameplayStatics_GetAllActorsOfClass);
 	OutActors.Empty();
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
@@ -672,6 +673,7 @@ void UGameplayStatics::GetAllActorsOfClass(const UObject* WorldContextObject, TS
 
 void UGameplayStatics::GetAllActorsWithInterface(const UObject* WorldContextObject, TSubclassOf<UInterface> Interface, TArray<AActor*>& OutActors)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(UGameplayStatics_GetAllActorsWithTag);
 	OutActors.Empty();
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
@@ -691,6 +693,7 @@ void UGameplayStatics::GetAllActorsWithInterface(const UObject* WorldContextObje
 
 void UGameplayStatics::GetAllActorsWithTag(const UObject* WorldContextObject, FName Tag, TArray<AActor*>& OutActors)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(UGameplayStatics_GetAllActorsWithTag);
 	OutActors.Empty();
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);

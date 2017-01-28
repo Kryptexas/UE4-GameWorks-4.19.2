@@ -10,6 +10,7 @@
 #include "Widgets/SWidget.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/SCanvas.h"
+#include "Widgets/Layout/SBox.h"
 
 class FPaintArgs;
 class FSceneViewport;
@@ -36,6 +37,13 @@ public:
 	virtual ~IGameLayer() { }
 };
 
+UENUM()
+enum class EWindowTitleBarMode : uint8
+{
+	Overlay,
+	VerticalBox,
+};
+
 /**
  * Allows widgets to be managed for different users.
  */
@@ -53,6 +61,12 @@ public:
 	virtual bool AddLayerForPlayer(ULocalPlayer* Player, const FName& LayerName, TSharedRef<IGameLayer> Layer, int32 ZOrder) = 0;
 
 	virtual void ClearWidgets() = 0;
+
+	virtual void SetDefaultWindowTitleBarHeight(float Height) = 0;
+	virtual void SetWindowTitleBarContent(const TSharedPtr<SWidget>& TitleBarContent, EWindowTitleBarMode Mode) = 0;
+	virtual void RestorePreviousWindowTitleBarContent() = 0;
+	virtual void SetDefaultWindowTitleBarContentAsCurrent() = 0;
+	virtual void SetWindowTitleBarVisibility(bool bIsVisible) = 0;
 };
 
 /**
@@ -96,6 +110,12 @@ public:
 	virtual bool AddLayerForPlayer(ULocalPlayer* Player, const FName& LayerName, TSharedRef<IGameLayer> Layer, int32 ZOrder) override;
 
 	virtual void ClearWidgets() override;
+
+	virtual void SetDefaultWindowTitleBarHeight(float Height);
+	virtual void SetWindowTitleBarContent(const TSharedPtr<SWidget>& TitleBarContent, EWindowTitleBarMode Mode);
+	virtual void RestorePreviousWindowTitleBarContent();
+	virtual void SetDefaultWindowTitleBarContentAsCurrent();
+	virtual void SetWindowTitleBarVisibility(bool bIsVisible);
 	// End IGameLayerManager
 
 public:
@@ -108,6 +128,7 @@ public:
 
 private:
 	float GetGameViewportDPIScale() const;
+	FOptionalSize GetDefaultWindowTitleBarHeight() const;
 
 private:
 
@@ -132,6 +153,9 @@ private:
 	void AddOrUpdatePlayerLayers(const FGeometry& AllottedGeometry, UGameViewportClient* ViewportClient, const TArray<ULocalPlayer*>& GamePlayers);
 	FVector2D GetAspectRatioInset(ULocalPlayer* LocalPlayer) const;
 
+	void UpdateWindowTitleBar();
+	void UpdateWindowTitleBarVisibility();
+
 private:
 	FGeometry CachedGeometry;
 
@@ -140,4 +164,24 @@ private:
 	TAttribute<const FSceneViewport*> SceneViewport;
 	TSharedPtr<SCanvas> PlayerCanvas;
 	TSharedPtr<class STooltipPresenter> TooltipPresenter;
+
+	TSharedPtr<class SWindowTitleBarArea> TitleBarAreaOverlay;
+	TSharedPtr<class SWindowTitleBarArea> TitleBarAreaVerticalBox;
+	TSharedPtr<SBox> WindowTitleBarVerticalBox;
+	TSharedPtr<SBox> WindowTitleBarOverlay;
+
+	struct FWindowTitleBarContent
+	{
+		TSharedPtr<SWidget> ContentWidget;
+		EWindowTitleBarMode Mode;
+
+		FWindowTitleBarContent() : ContentWidget(), Mode(EWindowTitleBarMode::Overlay) {}
+		FWindowTitleBarContent(const TSharedPtr<SWidget>& TitleBarContent, EWindowTitleBarMode InMode) : ContentWidget(TitleBarContent), Mode(InMode) {}
+	};
+
+	TArray<FWindowTitleBarContent> WindowTitleBarContentStack;
+	FWindowTitleBarContent DefaultWindowTitleBarContent;
+	float DefaultWindowTitleBarHeight;
+
+	bool bIsWindowTitleBarVisible;
 };

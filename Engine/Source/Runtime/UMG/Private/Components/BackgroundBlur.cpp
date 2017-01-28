@@ -35,7 +35,8 @@ void UBackgroundBlur::ReleaseSlateResources(bool bReleaseChildren)
 
 UClass* UBackgroundBlur::GetSlotClass() const
 {
-	return UBackgroundBlurSlot::StaticClass();
+	//return UBackgroundBlurSlot::StaticClass();
+	return Super::GetSlotClass();
 }
 
 TSharedRef<SWidget> UBackgroundBlur::RebuildWidget()
@@ -44,7 +45,8 @@ TSharedRef<SWidget> UBackgroundBlur::RebuildWidget()
 
 	if ( GetChildrenCount() > 0 )
 	{
-		Cast<UBackgroundBlurSlot>(GetContentSlot())->BuildSlot(MyBackgroundBlur.ToSharedRef());
+		//Cast<UBackgroundBlurSlot>(GetContentSlot())->BuildSlot(MyBackgroundBlur.ToSharedRef());
+		MyBackgroundBlur->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->TakeWidget() : SNullWidget::NullWidget);
 	}
 	
 	return BuildDesignTimeWidget(MyBackgroundBlur.ToSharedRef());
@@ -69,20 +71,25 @@ void UBackgroundBlur::SynchronizeProperties()
 
 void UBackgroundBlur::OnSlotAdded(UPanelSlot* InSlot)
 {
-	// Copy the content properties into the new slot
 	UBackgroundBlurSlot* BackgroundBlurSlot = CastChecked<UBackgroundBlurSlot>(InSlot);
 	BackgroundBlurSlot->Padding = Padding;
 	BackgroundBlurSlot->HorizontalAlignment = HorizontalAlignment;
 	BackgroundBlurSlot->VerticalAlignment = VerticalAlignment;
 
-	// Add the child to the live slot if it already exists
+	//// Add the child to the live slot if it already exists
+	//if (MyBackgroundBlur.IsValid())
+	//{
+	//	// Construct the underlying slot
+	//	BackgroundBlurSlot->BuildSlot(MyBackgroundBlur.ToSharedRef());
+	//}
+
 	if (MyBackgroundBlur.IsValid())
 	{
-		// Construct the underlying slot
-		BackgroundBlurSlot->BuildSlot(MyBackgroundBlur.ToSharedRef());
+		MyBackgroundBlur->SetContent(InSlot->Content ? InSlot->Content->TakeWidget() : SNullWidget::NullWidget);
 	}
-}
 
+}
+	
 void UBackgroundBlur::OnSlotRemoved(UPanelSlot* InSlot)
 {
 	// Remove the widget from the live slot if it exists.
@@ -90,8 +97,7 @@ void UBackgroundBlur::OnSlotRemoved(UPanelSlot* InSlot)
 	{
 		MyBackgroundBlur->SetContent(SNullWidget::NullWidget);
 	}
-}
-
+	}
 void UBackgroundBlur::SetPadding(FMargin InPadding)
 {
 	Padding = InPadding;

@@ -546,18 +546,30 @@ struct ENGINE_API FNavDataConfig : public FNavAgentProperties
 
 struct FNavigationProjectionWork
 {
+	// source point
 	const FVector Point;
+	
+	// projection range
 	FBox ProjectionLimit;
+
+	// result point with nav Id
 	FNavLocation OutLocation;
-	bool bResult;
-	bool bIsValid;
+
+	// if set, projection function scoring will be biased for 2D work (e.g. in case of navmesh, findNearestPoly2D)
+	uint32 bHintProjection2D : 1;
+
+	// result of projection function
+	uint32 bResult : 1;
+
+	// if set, data in this structure is valid
+	uint32 bIsValid : 1;
 
 	explicit FNavigationProjectionWork(const FVector& StartPoint, const FBox& CustomProjectionLimits = FBox(ForceInit))
-		: Point(StartPoint), ProjectionLimit(CustomProjectionLimits), bResult(false), bIsValid(true)
+		: Point(StartPoint), ProjectionLimit(CustomProjectionLimits), bHintProjection2D(false), bResult(false), bIsValid(true)
 	{}
 
 	FNavigationProjectionWork()
-		: Point(FNavigationSystem::InvalidLocation), ProjectionLimit(ForceInit), bResult(false), bIsValid(false)
+		: Point(FNavigationSystem::InvalidLocation), ProjectionLimit(ForceInit), bHintProjection2D(false), bResult(false), bIsValid(false)
 	{}
 };
 

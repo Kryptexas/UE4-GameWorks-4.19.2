@@ -34,6 +34,7 @@
 #include "Misc/CoreDelegates.h"
 #include "Misc/ObjectThumbnail.h"
 #include "Misc/App.h"
+#include "Misc/TimeGuard.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/UObjectIterator.h"
 #include "UObject/Package.h"
@@ -1168,6 +1169,10 @@ void UEngine::ShutdownHMD()
 
 void UEngine::TickDeferredCommands()
 {
+	SCOPE_TIME_GUARD(TEXT("UEngine::TickDeferredCommands"));
+
+	const double StartTime = FPlatformTime::Seconds();
+
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UEngine_TickDeferredCommands);
 	// Execute all currently queued deferred commands (allows commands to be queued up for next frame).
 	const int32 DeferredCommandsCount = DeferredCommands.Num();
@@ -1185,6 +1190,20 @@ void UEngine::TickDeferredCommands()
 			Exec( GWorld, *DeferredCommands[DeferredCommandsIndex], *GLog );
 		}
 	}
+
+	const double ElapsedTimeMS = (FPlatformTime::Seconds() - StartTime) / 1000.0;
+
+	// If we're not in the editor, and commands took more than our target frame time to execute, print them out so there's a paper trail
+	if (GIsEditor == false && ElapsedTimeMS >= FEnginePerformanceTargets::GetTargetFrameTimeThresholdMS())
+	{
+		UE_LOG(LogEngine, Warning, TEXT("UEngine::TickDeferredCommands took %.02fms to execute %d commands!"), ElapsedTimeMS, DeferredCommandsCount);
+		
+		for (int32 i = 0; i < DeferredCommandsCount; i++)
+		{
+			UE_LOG(LogEngine, Warning, TEXT("\t%s"), *DeferredCommands[i]);
+		}	
+	}
+
 	DeferredCommands.RemoveAt(0, DeferredCommandsCount);
 }
 
@@ -3236,7 +3255,7 @@ static void DumpHelp(UWorld* InWorld)
 
 	// Notification in editor
 	{
-		auto Message = NSLOCTEXT("UnrealEd", "ConsoleHelpExported", "ConsoleHelp.html was saved as");
+		const FText Message = NSLOCTEXT("UnrealEd", "ConsoleHelpExported", "ConsoleHelp.html was saved as");
 		FNotificationInfo Info(Message);
 		Info.bFireAndForget = true;
 		Info.ExpireDuration = 5.0f;
@@ -3246,14 +3265,18 @@ static void DumpHelp(UWorld* InWorld)
 		const FString HyperLinkText = FPaths::ConvertRelativePathToFull(FilePath);
 		Info.Hyperlink = FSimpleDelegate::CreateStatic([](FString SourceFilePath) 
 		{
-			// open default browser, usually internet explorer (bit slower than Chrome)
-//			FPlatformProcess::LaunchURL(*SourceFilePath, TEXT(""), 0);
 			// open folder, you can choose the browser yourself
 			FPlatformProcess::ExploreFolder(*(FPaths::GetPath(SourceFilePath)));
 		}, HyperLinkText);
 		Info.HyperlinkText = FText::FromString(HyperLinkText);
 
 		FSlateNotificationManager::Get().AddNotification(Info);
+
+		// Always try to open the help file on Windows (including in -game, etc...)
+#if PLATFORM_WINDOWS
+		const FString LaunchableURL = FString(TEXT("file://")) + HyperLinkText;
+		FPlatformProcess::LaunchURL(*LaunchableURL, nullptr, nullptr);
+#endif
 	}
 }
 static FAutoConsoleCommandWithWorld GConsoleCommandHelp(
@@ -4216,6 +4239,8 @@ bool UEngine::HandleMemReportCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 bool UEngine::HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
 #if ALLOW_DEBUG_FILES
+	QUICK_SCOPE_CYCLE_COUNTER(HandleMemReportDeferredCommand);
+
 	const bool bPerformSlowCommands = FParse::Param( Cmd, TEXT("FULL") );
 	const bool bLogOutputToFile = !FParse::Param( Cmd, TEXT("LOG") );
 	FString InFileName;
@@ -8859,7 +8884,7 @@ UNetDriver* CreateNetDriver_Local(UEngine *Engine, FWorldContext &Context, FName
 			// Try to create network driver.
 			NetDriver = NewObject<UNetDriver>(GetTransientPackage(), NetDriverClass);
 			check(NetDriver);
-			NetDriver->NetDriverName = NetDriver->GetFName();
+			NetDriver->SetNetDriverName(NetDriver->GetFName());
 
 			new (Context.ActiveNetDrivers) FNamedNetDriver(NetDriver, &NetDriverDef);
 			return NetDriver;
@@ -8883,7 +8908,7 @@ bool CreateNamedNetDriver_Local(UEngine *Engine, FWorldContext &Context, FName N
 		NetDriver = CreateNetDriver_Local(Engine, Context, NetDriverDefinition);
 		if (NetDriver)
 		{
-			NetDriver->NetDriverName = NetDriverName;
+			NetDriver->SetNetDriverName(NetDriverName);
 			return true;
 		}
 	}
@@ -10366,7 +10391,7 @@ void UEngine::MovePendingLevel(FWorldContext &Context)
 	if( NetDriver )
 	{
 		// The pending net driver is renamed to the current "game net driver"
-		NetDriver->NetDriverName = NAME_GameNetDriver;
+		NetDriver->SetNetDriverName(NAME_GameNetDriver);
 		NetDriver->SetWorld(Context.World());
 
 		FLevelCollection& SourceLevels = Context.World()->FindOrAddCollectionByType(ELevelCollectionType::DynamicSourceLevels);

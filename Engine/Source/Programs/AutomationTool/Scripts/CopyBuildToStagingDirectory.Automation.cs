@@ -1003,6 +1003,22 @@ public partial class Project : CommandUtils
 				{
 					Log("Copying source pak from {0} to {1} instead of creating new pak", SourceOutputLocation, OutputLocation);
 					bCopiedExistingPak = true;
+
+					string InSigFile = Path.ChangeExtension(SourceOutputLocation, ".sig");
+
+					if (File.Exists(InSigFile))
+					{
+						string OutSigFile = Path.ChangeExtension(OutputLocation, ".sig");
+
+						Log("Copying pak sig from {0} to {1}", InSigFile, OutSigFile);
+
+						if (!InternalUtils.SafeCopyFile(InSigFile, OutSigFile))
+						{
+							Log("Failed to copy pak sig {0} to {1}, creating new pak", InSigFile, InSigFile);
+							bCopiedExistingPak = false;
+						}
+					}
+
 				}
 			}
 			if (!bCopiedExistingPak)

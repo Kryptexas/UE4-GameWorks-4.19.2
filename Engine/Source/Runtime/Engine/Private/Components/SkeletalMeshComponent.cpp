@@ -11,6 +11,7 @@
 #include "AnimationRuntime.h"
 #include "Animation/AnimClassInterface.h"
 #include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "AI/NavigationSystemHelpers.h"
@@ -885,13 +886,9 @@ bool USkeletalMeshComponent::ShouldTickPose() const
 
 	// Autonomous Ticking is allowed to occur multiple times per frame, as we can receive and process multiple networking updates the same frame.
 	const bool bShouldTickBasedOnAutonomousCheck = bIsAutonomousTickPose || (!bOnlyAllowAutonomousTickPose && !bAlreadyTickedThisFrame);
-	const bool bIsPlayingNetworkedRootMotionMontage = (GetAnimInstance() != nullptr)
-		? (GetAnimInstance()->RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly) && (GetAnimInstance()->GetRootMotionMontageInstance() != nullptr)
-		: false;
-
 	// When playing networked Root Motion Montages, we want these to play on dedicated servers and remote clients for networking and position correction purposes.
 	// So we force pose updates in that case to keep root motion and position in sync.
-	const bool bShouldTickBasedOnVisibility = ((MeshComponentUpdateFlag < EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered) || bRecentlyRendered || bIsPlayingNetworkedRootMotionMontage);
+	const bool bShouldTickBasedOnVisibility = ((MeshComponentUpdateFlag < EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered) || bRecentlyRendered || IsPlayingNetworkedRootMotionMontage());
 
 	return (bShouldTickBasedOnVisibility && bShouldTickBasedOnAutonomousCheck && IsRegistered() && (AnimScriptInstance || PostProcessAnimInstance) && !bPauseAnims && GetWorld()->AreActorsInitialized() && !bNoSkeletonUpdate);
 }
@@ -1997,7 +1994,7 @@ void USkeletalMeshComponent::SetAnimInstanceClass(class UClass* NewClass)
 {
 	if (NewClass != nullptr)
 	{
-		ensure(nullptr != IAnimClassInterface::GetFromClass(NewClass));
+		ensureMsgf(nullptr != IAnimClassInterface::GetFromClass(NewClass), TEXT("(%s) does not implement IAnimClassInterface!? SkelMesh(%s) Outer(%s)"), *GetNameSafe(NewClass), *GetNameSafe(SkeletalMesh), *GetNameSafe(GetOuter()));
 		// set the animation mode
 		const bool bWasUsingBlueprintMode = AnimationMode == EAnimationMode::AnimationBlueprint;
 		AnimationMode = EAnimationMode::Type::AnimationBlueprint;
@@ -2692,14 +2689,29 @@ void USkeletalMeshComponent::ValidateAnimation()
 
 #endif
 
-bool USkeletalMeshComponent::IsPlayingRootMotion()
+bool USkeletalMeshComponent::IsPlayingRootMotion() const
 {
-	return (AnimScriptInstance ? (AnimScriptInstance->GetRootMotionMontageInstance() != nullptr) : false);
+	return (IsPlayingRootMotionFromEverything() || IsPlayingNetworkedRootMotionMontage());
 }
 
-bool USkeletalMeshComponent::IsPlayingRootMotionFromEverything()
+bool USkeletalMeshComponent::IsPlayingNetworkedRootMotionMontage() const
 {
-	return AnimScriptInstance ? (AnimScriptInstance->RootMotionMode == ERootMotionMode::RootMotionFromEverything) : false;
+	if (AnimScriptInstance)
+	{
+		if (AnimScriptInstance->RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly)
+		{
+			if (const FAnimMontageInstance* MontageInstance = AnimScriptInstance->GetRootMotionMontageInstance())
+			{
+				return !MontageInstance->IsRootMotionDisabled();
+			}
+		}
+	}
+	return false;
+}
+
+bool USkeletalMeshComponent::IsPlayingRootMotionFromEverything() const
+{
+	return AnimScriptInstance && (AnimScriptInstance->RootMotionMode == ERootMotionMode::RootMotionFromEverything);
 }
 
 void USkeletalMeshComponent::ResetRootBodyIndex()

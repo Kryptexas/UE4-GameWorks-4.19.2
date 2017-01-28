@@ -514,15 +514,25 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 			}
 		}
 
-		// Perform a detailed live object report (with resource types)
-		Direct3DDeviceIMContext = nullptr;
-
+		// ORION - avoid shutdown crash that is currently present in UE
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
-		if (IsRHIDeviceNVIDIA())
+		if (1) // (IsRHIDeviceNVIDIA())
 		{
 			//UE-18906: Workaround to trap crash in NV driver
 			__try
 			{
+				// Perform a detailed live object report (with resource types)
+				Direct3DDeviceIMContext = nullptr;
+			}
+			__except (ReportDiedDuringDeviceShutdown(GetExceptionInformation()))
+			{
+				FPlatformMisc::MemoryBarrier();
+			}
+
+			//UE-18906: Workaround to trap crash in NV driver
+			__try
+			{
+				// Perform a detailed live object report (with resource types)
 				Direct3DDevice = nullptr;
 			}
 			__except (ReportDiedDuringDeviceShutdown(GetExceptionInformation()))
@@ -533,6 +543,7 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 		else
 #endif
 		{
+			Direct3DDeviceIMContext = nullptr;
 			Direct3DDevice = nullptr;
 		}
 	}

@@ -230,7 +230,9 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 		}
 
 		UObjectPropertyBase* ExistingProperty = Cast<UObjectPropertyBase>(ParentClass->FindPropertyByName(Widget->GetFName()));
-		if ( ExistingProperty && FWidgetBlueprintEditorUtils::IsBindWidgetProperty(ExistingProperty) )
+		if (ExistingProperty && 
+			FWidgetBlueprintEditorUtils::IsBindWidgetProperty(ExistingProperty) && 
+			Widget->IsA(ExistingProperty->PropertyClass))
 		{
 			WidgetToMemberVariableMap.Add(Widget, ExistingProperty);
 			continue;
@@ -329,7 +331,7 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 		if ( bIsBindWidget && !bIsOptional )
 		{
 			UWidget* const* Widget = WidgetToMemberVariableMap.FindKey( WidgetProperty );
-			if ( !Widget )
+			if (!Widget)
 			{
 				if (Blueprint->bIsNewlyCreated)
 				{
@@ -342,7 +344,7 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 						WidgetProperty);
 				}
 			}
-			else if ( !( *Widget )->IsA( WidgetProperty->PropertyClass ) )
+			else if (!(*Widget)->IsA(WidgetProperty->PropertyClass))
 			{
 				if (Blueprint->bIsNewlyCreated)
 				{

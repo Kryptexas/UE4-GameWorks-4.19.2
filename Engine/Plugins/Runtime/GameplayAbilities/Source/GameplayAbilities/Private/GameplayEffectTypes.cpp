@@ -126,14 +126,14 @@ void FGameplayEffectContext::SetAbility(const UGameplayAbility* InGameplayAbilit
 {
 	if (InGameplayAbility)
 	{
-		Ability = InGameplayAbility->GetClass();
+		AbilityCDO = InGameplayAbility->GetClass()->GetDefaultObject<UGameplayAbility>();
 		AbilityLevel = InGameplayAbility->GetAbilityLevel();
 	}
 }
 
 const UGameplayAbility* FGameplayEffectContext::GetAbility() const
 {
-	return Ability.GetDefaultObject();
+	return AbilityCDO.Get();
 }
 
 void FGameplayEffectContext::AddActors(const TArray<TWeakObjectPtr<AActor>>& InActors, bool bReset)
@@ -175,7 +175,7 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		{
 			RepBits |= 1 << 1;
 		}
-		if (*Ability)
+		if (AbilityCDO.IsValid())
 		{
 			RepBits |= 1 << 2;
 		}
@@ -209,7 +209,7 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 	}
 	if (RepBits & (1 << 2))
 	{
-		Ar << Ability;
+		Ar << AbilityCDO;
 	}
 	if (RepBits & (1 << 3))
 	{
@@ -868,6 +868,10 @@ bool FMinimalReplicationTagCountMap::NetSerialize(FArchive& Ar, class UPackageMa
 	}
 	else
 	{
+		// Update MapID even when loading so that when the property is compared for replication,
+		// it will be different, ensuring the data will be recorded in client replays.
+		MapID++;
+
 		int32 Count = TagMap.Num();
 		Ar.SerializeBits(&Count, CountBits);
 
@@ -888,9 +892,16 @@ bool FMinimalReplicationTagCountMap::NetSerialize(FArchive& Ar, class UPackageMa
 		if (Owner)
 		{
 			// Update our tags with owner tags
-			for(auto& It : TagMap)
+			for(auto It = TagMap.CreateIterator(); It; ++It)
 			{
-				Owner->SetTagMapCount(It.Key, It.Value);
+				Owner->SetTagMapCount(It->Key, It->Value);
+
+				// Remove tags with a count of zero from the map. This prevents them
+				// from being replicated incorrectly when recording client replays.
+				if (It->Value == 0)
+				{
+					It.RemoveCurrent();
+				}
 			}
 		}
 	}

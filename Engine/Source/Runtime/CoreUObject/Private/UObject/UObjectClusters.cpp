@@ -660,7 +660,9 @@ public:
 			if (ObjectItem->GetOwnerIndex() == 0)
 			{
 				// We are allowed to reference other clusters, root set objects and objects from diregard for GC pool
-				if (!ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot|EInternalObjectFlags::RootSet) && !GUObjectArray.IsDisregardForGC(Object) && Object->CanBeInCluster())
+					if (!ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot|EInternalObjectFlags::RootSet) 
+						&& !GUObjectArray.IsDisregardForGC(Object) && Object->CanBeInCluster() &&
+						!Cluster.MutableObjects.Contains(GUObjectArray.ObjectToIndex(Object))) // This is for objects that had RF_NeedLoad|RF_NeedPostLoad set when creating the cluster
 				{
 					UE_LOG(LogObj, Warning, TEXT("Object %s from cluster %s is referencing 0x%016llx %s which is not part of root set or cluster."),
 						*ReferencingObject->GetFullName(),

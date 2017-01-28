@@ -106,6 +106,7 @@ FCoreDelegates::FOnCrashOverrideParamsChanged FCoreDelegates::CrashOverrideParam
 FCoreDelegates::FOnIsVanillaProductChanged FCoreDelegates::IsVanillaProductChanged;
 
 FCoreDelegates::FOnAsyncLoadingFlush FCoreDelegates::OnAsyncLoadingFlush;
+FCoreDelegates::FOnAsyncLoadPackage FCoreDelegates::OnAsyncLoadPackage;
 FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PostRenderingThreadCreated;
 FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PreRenderingThreadDestroyed;
 FSimpleMulticastDelegate FCoreDelegates::OnFEngineLoopInitComplete;

@@ -165,6 +165,9 @@ protected:
 	virtual void OnBindingChanged(const FName& Property) override;
 	//~ End UWidget Interface
 
+	/** Get the text that should be displayed in the internal Slate widget (allows flags to mutate the display text without modifying the persistent designer property data) */
+	virtual TAttribute<FText> GetDisplayText();
+
 protected:
 
 	TSharedPtr<STextBlock> MyTextBlock;

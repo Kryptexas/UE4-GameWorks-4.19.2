@@ -325,12 +325,12 @@ struct FGraphAStar
 		{
 			// store the path. Note that it will be reversed!
 			int32 SearchNodeIndex = BestNodeIndex;
-			int32 PathLength = 1;
+			int32 PathLength = 0;
 			do 
 			{
+				PathLength++;
 				SearchNodeIndex = NodePool[SearchNodeIndex].ParentNodeIndex;
-				++PathLength;
-			} while (NodePool[SearchNodeIndex].NodeRef != StartNodeRef && ensure(PathLength < Policy::FatalPathLength));
+			} while (NodePool.IsValidIndex(SearchNodeIndex) && NodePool[SearchNodeIndex].NodeRef != StartNodeRef && ensure(PathLength < Policy::FatalPathLength));
 			
 			if (PathLength >= Policy::FatalPathLength)
 			{

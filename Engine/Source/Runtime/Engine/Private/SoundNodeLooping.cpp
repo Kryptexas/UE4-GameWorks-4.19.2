@@ -63,10 +63,6 @@ bool USoundNodeLooping::NotifyWaveInstanceFinished( FWaveInstance* InWaveInstanc
 
 	const bool bRequiresInitialization = (*RequiresInitialization) != 0;
 
-	// The looping node should be initialized, but we hit this check and need to get information about what sound cue is causing the issue.
-	ensureMsgf(!bRequiresInitialization, TEXT("Sound looping finished but not initialized. SoundWave: %s, Sound: %s"), *InWaveInstance->GetName(), *ActiveSound.GetSound()->GetName());
-
-	// Avoid the crash and continue...
 	if (!bRequiresInitialization)
 	{
 		if (bLoopIndefinitely || ++CurrentLoopCount < LoopCount)

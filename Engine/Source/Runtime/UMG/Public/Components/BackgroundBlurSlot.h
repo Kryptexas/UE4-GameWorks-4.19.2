@@ -55,6 +55,16 @@ public:
 
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
+public:
+
+#if WITH_EDITOR
+
+	// UObject interface
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	// End of UObject interface
+
+#endif
+
 private:
 
 	/** A pointer to the BackgroundBlur to allow us to adjust the size, padding...etc at runtime. */

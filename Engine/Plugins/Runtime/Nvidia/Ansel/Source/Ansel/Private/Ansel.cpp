@@ -36,7 +36,7 @@ private:
 
 	static ansel::StartSessionStatus AnselStartSessionCallback(ansel::SessionConfiguration& settings, void* userPointer);
 	static void AnselStopSessionCallback(void* userPointer);
-	static void AnselStartCaptureCallback(void* userPointer);
+	static void AnselStartCaptureCallback(const ansel::CaptureConfiguration& CaptureType, void* userPointer);
 	static void AnselStopCaptureCallback(void* userPointer);
 
 	static bool AnselCamerasMatch(ansel::Camera& a, ansel::Camera& b);
@@ -455,7 +455,7 @@ void FNVAnselCameraPhotographyPrivate::AnselStopSessionCallback(void* userPointe
 	UE_LOG(LogAnsel, Log, TEXT("Photography camera session end"));
 }
 
-void FNVAnselCameraPhotographyPrivate::AnselStartCaptureCallback(void* userPointer)
+void FNVAnselCameraPhotographyPrivate::AnselStartCaptureCallback(const ansel::CaptureConfiguration& CaptureType, void* userPointer)
 {
 	FNVAnselCameraPhotographyPrivate* PrivateImpl = static_cast<FNVAnselCameraPhotographyPrivate*>(userPointer);
 	check(PrivateImpl != nullptr);

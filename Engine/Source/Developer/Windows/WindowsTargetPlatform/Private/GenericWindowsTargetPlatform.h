@@ -123,6 +123,11 @@ public:
 			return (HAS_EDITOR_DATA || !IS_DEDICATED_SERVER);
 		}
 
+		if ( Feature == ETargetPlatformFeatures::ShouldSplitPaksIntoSmallerSizes )
+		{
+			return IS_CLIENT_ONLY;
+		}
+
 		return TSuper::SupportsFeature(Feature);
 	}
 

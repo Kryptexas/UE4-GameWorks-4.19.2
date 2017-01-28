@@ -27,6 +27,7 @@ public:
 	virtual void UpdatePathSegment() override;
 	virtual void Reset() override;
 	virtual void ResumeMove(FAIRequestID RequestID = FAIRequestID::CurrentRequest) override;
+	virtual void OnPathUpdated();
 
 	bool HasActiveGrid() const { return ActiveGridIdx != INDEX_NONE; }
 	int32 GetActiveGridIdx() const { return ActiveGridIdx; }

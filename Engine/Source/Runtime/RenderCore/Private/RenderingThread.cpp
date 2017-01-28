@@ -923,12 +923,13 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 				bDone = Event->Wait(WaitTime);
 
 				// editor threads can block for quite a while... 
-				// Also dont do this when attached to the debugger as long pauses on breakpoints will cause this to trigger
 				if (!bDone && !WITH_EDITOR && !FPlatformMisc::IsDebuggerPresent())
 				{
+					static bool bDisabled = FParse::Param(FCommandLine::Get(), TEXT("nothreadtimeout"));
+
 					// Fatal timeout if we run out of time and this thread is being monitor for heartbeats
 					// (We could just let the heartbeat monitor error for us, but this leads to better diagnostics).
-					if (FPlatformTime::Seconds() >= EndTime && FThreadHeartBeat::Get().IsBeating() && !FPlatformMisc::IsDebuggerPresent() )
+					if (FPlatformTime::Seconds() >= EndTime && FThreadHeartBeat::Get().IsBeating() && !bDisabled)
 					{
 						UE_LOG(LogRendererCore, Fatal, TEXT("GameThread timed out waiting for RenderThread after %.02f secs"), FPlatformTime::Seconds() - StartTime);
 					}

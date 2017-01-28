@@ -433,3 +433,9 @@ private:
 
 static FAutomationExecCmd AutomationExecCmd;
 
+void EmptyLinkFunctionForStaticInitializationAutomationExecCmd()
+{
+	// This function exists to prevent the object file containing this test from
+	// being excluded by the linker, because it has no publicly referenced symbols.
+}
+

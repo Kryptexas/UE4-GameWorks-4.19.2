@@ -738,7 +738,10 @@ void FGameplayEffectSpec::Initialize(const UGameplayEffect* InDef, const FGamepl
 	// Add the GameplayEffect asset tags to the source Spec tags
 	CapturedSourceTags.GetSpecTags().AppendTags(InDef->InheritableGameplayEffectTags.CombinedTags);
 
-	// Make TargetEffectSpecs too
+	// ------------------------------------------------
+	//	Linked/Dependant Specs
+	// ------------------------------------------------
+
 
 	for (const FConditionalGameplayEffect& ConditionalEffect : InDef->ConditionalGameplayEffects)
 	{
@@ -751,6 +754,10 @@ void FGameplayEffectSpec::Initialize(const UGameplayEffect* InDef, const FGamepl
 			}
 		}
 	}
+
+	// ------------------------------------------------
+	//	Granted Abilities
+	// ------------------------------------------------
 
 	// Make Granted AbilitySpecs (caller may modify these specs after creating spec, which is why we dont just reference them from the def)
 	GrantedAbilitySpecs = InDef->GrantedAbilities;
@@ -766,6 +773,25 @@ void FGameplayEffectSpec::Initialize(const UGameplayEffect* InDef, const FGamepl
 
 	// Everything is setup now, capture data from our source
 	CaptureDataFromSource();
+}
+
+void FGameplayEffectSpec::InitializeFromLinkedSpec(const UGameplayEffect* InDef, const FGameplayEffectSpec& OriginalSpec)
+{
+	// We need to manually initialize the new GE spec. We want to pass on all of the tags from the originating GE *Except* for that GE's asset tags. (InheritableGameplayEffectTags).
+	// But its very important that the ability tags and anything else that was added to the source tags in the originating GE carries over
+
+	// Duplicate GE context
+	const FGameplayEffectContextHandle& ExpiringSpecContextHandle = OriginalSpec.GetEffectContext();
+	FGameplayEffectContextHandle NewContextHandle = ExpiringSpecContextHandle.Duplicate();
+
+	// Make a full copy
+	CapturedSourceTags = OriginalSpec.CapturedSourceTags;
+
+	// But then remove the tags the originating GE added
+	CapturedSourceTags.GetSpecTags().RemoveTags( OriginalSpec.Def->InheritableGameplayEffectTags.CombinedTags );
+
+	// Now initialize like the normal cstor would have. Note that this will add the new GE's asset tags (in case they were removed in the line above / e.g., shared asset tags with the originating GE)					
+	Initialize(InDef, NewContextHandle, OriginalSpec.GetLevel());
 }
 
 void FGameplayEffectSpec::SetupAttributeCaptureDefinitions()
@@ -1063,13 +1089,16 @@ void FGameplayEffectSpec::SetContext(FGameplayEffectContextHandle NewEffectConte
 void FGameplayEffectSpec::GetAllGrantedTags(OUT FGameplayTagContainer& Container) const
 {
 	Container.AppendTags(DynamicGrantedTags);
-	Container.AppendTags(Def->InheritableOwnedTagsContainer.CombinedTags);
+	if (Def)
+	{
+		Container.AppendTags(Def->InheritableOwnedTagsContainer.CombinedTags);
+	}
 }
 
 void FGameplayEffectSpec::GetAllAssetTags(OUT FGameplayTagContainer& Container) const
 {
 	Container.AppendTags(DynamicAssetTags);
-	if (ensure(Def))
+	if (Def)
 	{
 		Container.AppendTags(Def->InheritableGameplayEffectTags.CombinedTags);
 	}
@@ -1559,10 +1588,11 @@ void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffect
 		return;
 	}
 
-	if (Spec.Def->Modifiers.Num() != Spec.Modifiers.Num())
+	if (Spec.Modifiers.Num() != Spec.Def->Modifiers.Num())
 	{
 		// This can happen with older replays, where the replicated Spec.Modifiers size changed in the newer Spec.Def
-		ABILITY_LOG(Error, TEXT("FActiveGameplayEffect::PostReplicatedAdd: Spec.Def->Modifiers.Num() != Spec.Modifiers.Num()"));
+		ABILITY_LOG(Error, TEXT("FActiveGameplayEffect::PostReplicatedAdd: Spec.Modifiers.Num() != Spec.Def->Modifiers.Num(). Spec: %s"), *Spec.ToSimpleString());
+		Spec.Modifiers.Empty();
 		return;
 	}
 
@@ -1620,10 +1650,10 @@ void FActiveGameplayEffect::PostReplicatedChange(const struct FActiveGameplayEff
 		return;
 	}
 
-	if (Spec.Def->Modifiers.Num() != Spec.Modifiers.Num())
+	if (Spec.Modifiers.Num() != Spec.Def->Modifiers.Num())
 	{
 		// This can happen with older replays, where the replicated Spec.Modifiers size changed in the newer Spec.Def
-		ABILITY_LOG(Error, TEXT("FActiveGameplayEffect::PostReplicatedChange: Spec.Def->Modifiers.Num() != Spec.Modifiers.Num()"));
+		Spec.Modifiers.Empty();
 		return;
 	}
 
@@ -1649,6 +1679,11 @@ void FActiveGameplayEffect::PostReplicatedChange(const struct FActiveGameplayEff
 		// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
 		const_cast<FActiveGameplayEffectsContainer&>(InArray).UpdateAllAggregatorModMagnitudes(*this);
 	}
+}
+
+FString FActiveGameplayEffect::GetDebugString()
+{
+	return FString::Printf(TEXT("(Def: %s. PredictionKey: %s)"), *GetNameSafe(Spec.Def), *PredictionKey.ToString());
 }
 
 void FActiveGameplayEffect::RecomputeStartWorldTime(const FActiveGameplayEffectsContainer& InArray)
@@ -1818,7 +1853,6 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 	}
 
 	// Apply any conditional linked effects
-
 	for (const FGameplayEffectSpecHandle TargetSpec : ConditionalEffectSpecs)
 	{
 		if (TargetSpec.IsValid())
@@ -2136,21 +2170,19 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::FindStackableActiveGamep
 bool FActiveGameplayEffectsContainer::HandleActiveGameplayEffectStackOverflow(const FActiveGameplayEffect& ActiveStackableGE, const FGameplayEffectSpec& OldSpec, const FGameplayEffectSpec& OverflowingSpec)
 {
 	const UGameplayEffect* StackedGE = OldSpec.Def;
-	
 	const bool bAllowOverflowApplication = !(StackedGE->bDenyOverflowApplication);
 
 	FPredictionKey PredictionKey;
 	for (TSubclassOf<UGameplayEffect> OverflowEffect : StackedGE->OverflowEffects)
 	{
-		if (OverflowEffect)
+		if (const UGameplayEffect* CDO = OverflowEffect.GetDefaultObject())
 		{
-			FGameplayEffectSpec NewGESpec(OverflowEffect->GetDefaultObject<UGameplayEffect>(), OverflowingSpec.GetContext(), OverflowingSpec.GetLevel());
-			// @todo: copy over source tags
-			// @todo: scope lock
+			FGameplayEffectSpec NewGESpec;
+			NewGESpec.InitializeFromLinkedSpec(CDO, OverflowingSpec);
 			Owner->ApplyGameplayEffectSpecToSelf(NewGESpec, PredictionKey);
 		}
 	}
-	// @todo: Scope lock
+
 	if (!bAllowOverflowApplication && StackedGE->bClearStackOnOverflow)
 	{
 		Owner->RemoveActiveGameplayEffect(ActiveStackableGE.Handle);
@@ -2688,6 +2720,12 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 				FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
 				FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::CheckDurationExpired, AppliedActiveGE->Handle);
 				TimerManager.SetTimer(AppliedActiveGE->DurationHandle, Delegate, FinalDuration, false);
+				if (!ensureMsgf(AppliedActiveGE->DurationHandle.IsValid(), TEXT("Invalid Duration Handle after attempting to set duration for GE %s @ %.2f"), 
+					*AppliedActiveGE->GetDebugString(), FinalDuration))
+				{
+					// Force this off next frame
+					TimerManager.SetTimerForNextTick(Delegate);
+				}
 			}
 		}
 	}
@@ -3292,32 +3330,17 @@ void FActiveGameplayEffectsContainer::InternalApplyExpirationEffects(const FGame
 		{
 			// Determine the appropriate type of effect to apply depending on whether the effect is being prematurely removed or not
 			const TArray<TSubclassOf<UGameplayEffect>>& ExpiryEffects = (bPrematureRemoval ? ExpiringGE->PrematureExpirationEffectClasses : ExpiringGE->RoutineExpirationEffectClasses);
-
 			for (const TSubclassOf<UGameplayEffect>& CurExpiryEffect : ExpiryEffects)
 			{
 				if (CurExpiryEffect)
 				{
 					const UGameplayEffect* CurExpiryCDO = CurExpiryEffect->GetDefaultObject<UGameplayEffect>();
 					check(CurExpiryCDO);
-									
-					// Duplicate GE context
-					const FGameplayEffectContextHandle& ExpiringSpecContextHandle = ExpiringSpec.GetEffectContext();
-					FGameplayEffectContextHandle NewContextHandle = ExpiringSpecContextHandle.Duplicate();
+
+					FGameplayEffectSpec NewSpec;
+					NewSpec.InitializeFromLinkedSpec(CurExpiryCDO, ExpiringSpec);
 					
-					// We need to manually initialize the new GE spec. We want to pass on all of the tags from the originating GE *Except* for that GE's asset tags. (InheritableGameplayEffectTags).
-					// But its very important that the ability tags and anything else that was added to the source tags in the originating GE carries over
-					FGameplayEffectSpec NewExpirySpec;
-
-					// Make a full copy
-					NewExpirySpec.CapturedSourceTags = ExpiringSpec.CapturedSourceTags;
-
-					// But then remove the tags the originating GE added
-					NewExpirySpec.CapturedSourceTags.GetSpecTags().RemoveTags( ExpiringGE->InheritableGameplayEffectTags.CombinedTags );
-
-					// Now initialize like the normal cstor would have. Note that this will add the new GE's asset tags (in case they were removed in the line above / e.g., shared asset tags with the originating GE)					
-					NewExpirySpec.Initialize(CurExpiryCDO, NewContextHandle, ExpiringSpec.GetLevel());
-
-					Owner->ApplyGameplayEffectSpecToSelf(NewExpirySpec);
+					Owner->ApplyGameplayEffectSpecToSelf(NewSpec);
 				}
 			}
 		}
@@ -3445,24 +3468,9 @@ bool FActiveGameplayEffectsContainer::NetDeltaSerialize(FNetDeltaSerializeInfo& 
 
 		if (!DeltaParms.bOutHasMoreUnmapped) // Do not invoke GCs when we have missing information (like AActor*s in EffectContext)
 		{
-			for (const FActiveGameplayEffect& Effect : this)
+			if (Owner->IsReadyForGameplayCues())
 			{
-			
-				if (Effect.bIsInhibited == false)
-				{
-					if (Effect.bPendingRepOnActiveGC)
-					{
-						Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::OnActive);
-						
-					}
-					if (Effect.bPendingRepWhileActiveGC)
-					{
-						Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::WhileActive);
-					}
-				}
-
-				Effect.bPendingRepOnActiveGC = false;
-				Effect.bPendingRepWhileActiveGC = false;
+				Owner->HandleDeferredGameplayCues(this);
 			}
 		}
 	}
@@ -3592,7 +3600,19 @@ void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle 
 			{
 				// Always reset the timer, since the duration might have been modified
 				FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::CheckDurationExpired, Effect.Handle);
-				TimerManager.SetTimer(Effect.DurationHandle, Delegate, (Effect.StartWorldTime + Duration) - CurrentTime, false);
+
+				float NewTimerDuration = (Effect.StartWorldTime + Duration) - CurrentTime;
+				TimerManager.SetTimer(Effect.DurationHandle, Delegate, NewTimerDuration, false);
+
+				if (Effect.DurationHandle.IsValid() == false)
+				{
+					ABILITY_LOG(Warning, TEXT("Failed to set new timer in ::CheckDuration. Timer trying to be set for: %.2f. Removing GE instead"), NewTimerDuration);
+					if (!Effect.IsPendingRemove)
+					{
+						InternalRemoveActiveGameplayEffect(ActiveGEIdx, -1, false);
+					}
+					check(Effect.IsPendingRemove);
+				}
 			}
 
 			break;

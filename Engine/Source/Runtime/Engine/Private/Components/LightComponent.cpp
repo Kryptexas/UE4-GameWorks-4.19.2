@@ -341,6 +341,9 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	BloomTint = FColor::White;
 
 	RayStartOffsetDepthScale = .003f;
+
+	MaxDrawDistance = 0.0f;
+	MaxDistanceFadeRange = 0.0f;
 	bAddedToSceneVisible = false;
 
 	MaxDrawDistance = 0.0f;

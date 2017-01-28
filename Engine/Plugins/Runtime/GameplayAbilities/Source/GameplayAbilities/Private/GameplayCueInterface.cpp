@@ -175,6 +175,11 @@ void FActiveGameplayCue::PostReplicatedAdd(const struct FActiveGameplayCueContai
 	}
 }
 
+FString FActiveGameplayCue::GetDebugString()
+{
+	return FString::Printf(TEXT("(%s / %s"), *GameplayCueTag.ToString(), *PredictionKey.ToString());
+}
+
 void FActiveGameplayCueContainer::AddCue(const FGameplayTag& Tag, const FPredictionKey& PredictionKey, const FGameplayCueParameters& Parameters)
 {
 	UWorld* World = Owner->GetWorld();

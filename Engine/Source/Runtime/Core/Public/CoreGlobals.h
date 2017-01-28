@@ -361,9 +361,6 @@ extern CORE_API ELogTimes::Type GPrintLogTimes;
 /** How to print the category in log output. */
 extern CORE_API bool GPrintLogCategory;
 
-/** Global screen shot index to avoid overwriting ScreenShots. */
-extern CORE_API int32 GScreenshotBitmapIndex;
-
 /** Whether stats should emit named events for e.g. PIX. */
 extern CORE_API int32 GCycleStatsShouldEmitNamedEvents;
 

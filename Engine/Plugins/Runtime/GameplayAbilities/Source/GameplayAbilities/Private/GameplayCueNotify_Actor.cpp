@@ -28,6 +28,9 @@ AGameplayCueNotify_Actor::AGameplayCueNotify_Actor(const FObjectInitializer& Obj
 	bHasHandledWhileActiveEvent = false;
 	bInRecycleQueue = false;
 	bAutoAttachToOwner = false;
+
+	WarnIfLatentActionIsStillRunning = true;
+	WarnIfTimelineIsStillRunning = true;
 }
 
 void AGameplayCueNotify_Actor::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -151,6 +154,7 @@ void AGameplayCueNotify_Actor::HandleGameplayCue(AActor* MyTarget, EGameplayCueE
 
 		if (EventType == EGameplayCueEvent::WhileActive && !bAllowMultipleWhileActiveEvents && bHasHandledWhileActiveEvent)
 		{
+			ABILITY_LOG(Display, TEXT("GameplayCue Notify %s WhileActive already handled, skipping this one."), *GetName());
 			return;
 		}
 
@@ -303,7 +307,7 @@ bool AGameplayCueNotify_Actor::Recycle()
 		if (Timeline)
 		{
 			// May be too spammy, but want to call visibility to this. Maybe make this editor only?
-			if (Timeline->IsPlaying())
+			if (Timeline->IsPlaying() && WarnIfTimelineIsStillRunning)
 			{
 				ABILITY_LOG(Warning, TEXT("GameplayCueNotify_Actor %s had active timelines when it was recycled."), *GetName());
 			}
@@ -318,7 +322,7 @@ bool AGameplayCueNotify_Actor::Recycle()
 	{
 		// Note, ::Recycle is called on CDOs too, so that even "new" GCs start off in a recycled state.
 		// So, its ok if there is no valid world here, just skip the stuff that has to do with worlds.
-		if (MyWorld->GetLatentActionManager().GetNumActionsForObject(this))
+		if (MyWorld->GetLatentActionManager().GetNumActionsForObject(this) && WarnIfLatentActionIsStillRunning)
 		{
 			// May be too spammy, but want ot call visibility to this. Maybe make this editor only?
 			ABILITY_LOG(Warning, TEXT("GameplayCueNotify_Actor %s has active latent actions (Delays, etc) when it was recycled."), *GetName());

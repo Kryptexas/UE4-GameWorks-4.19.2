@@ -240,6 +240,8 @@ public:
 
 	virtual class UWorld* GetWorld() const override;
 
+	static UWorld* GetCachedWorldForGameplayCueNotifies();
+
 #if WITH_EDITOR
 
 	/** Handles updating an object library when a new asset is created */
@@ -310,7 +312,7 @@ protected:
 	int32 GameplayCueSendContextCount;
 
 	/** Cached world we are currently handling cues for. Used for non instanced GC Notifies that need world. */
-	UWorld* CurrentWorld;
+	static UWorld* CurrentWorld;
 
 	FPreallocationInfo& GetPreallocationInfo(UWorld* World);
 

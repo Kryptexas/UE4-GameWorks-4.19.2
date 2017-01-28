@@ -14,6 +14,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
 #include "GameplayEffectCustomApplicationRequirement.h"
+#include "TimerManager.h"
 
 DEFINE_LOG_CATEGORY(LogAbilitySystemComponent);
 
@@ -130,7 +131,7 @@ void UAbilitySystemComponent::OnRegister()
 	Super::OnRegister();
 
 	// Cached off netrole to avoid constant checking on owning actor
-	CachedIsNetSimulated = IsNetSimulating();
+	CacheIsNetSimulated();
 
 	// Init starting data
 	for (int32 i=0; i < DefaultStartingData.Num(); ++i)
@@ -166,8 +167,13 @@ void UAbilitySystemComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// Cache net role here as well since for map-placed actors on clients, the Role may not be set correctly yet in OnRegister.
+	CacheIsNetSimulated();
+}
+
+void UAbilitySystemComponent::CacheIsNetSimulated()
+{
 	CachedIsNetSimulated = IsNetSimulating();
-	ActiveGameplayEffects.OwnerIsNetAuthority = !CachedIsNetSimulated;
+	ActiveGameplayEffects.OwnerIsNetAuthority = IsOwnerActorAuthoritative();
 }
 
 // ---------------------------------------------------------
@@ -940,10 +946,21 @@ void UAbilitySystemComponent::InitDefaultGameplayCueParameters(FGameplayCueParam
 	Parameters.EffectCauser = AvatarActor;
 }
 
+bool UAbilitySystemComponent::IsReadyForGameplayCues()
+{
+	// check if the avatar actor is valid and ready to take gameplaycues
+	AActor* ActorAvatar = nullptr;
+	if (AbilityActorInfo.IsValid())
+	{
+		ActorAvatar = AbilityActorInfo->AvatarActor.Get();
+	}
+	return ActorAvatar != nullptr;
+}
+
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecForRPC &Spec, EGameplayCueEvent::Type EventType)
 {
 	AActor* ActorAvatar = AbilityActorInfo->AvatarActor.Get();
-	if (ActorAvatar == nullptr && !bSuppressGameplayCues)
+	if (ActorAvatar == nullptr || bSuppressGameplayCues)
 	{
 		// No avatar actor to call this gameplaycue on.
 		return;
@@ -1015,8 +1032,13 @@ void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueT
 	UAbilitySystemGlobals::Get().GetGameplayCueManager()->InvokeGameplayCueExecuted_WithParams(this, GameplayCueTag, ScopedPredictionKey, GameplayCueParameters);
 }
 
-void UAbilitySystemComponent::AddGameplayCue_Internal(const FGameplayTag GameplayCueTag, const FGameplayEffectContextHandle& EffectContext, FActiveGameplayCueContainer& GameplayCueContainer)
+void UAbilitySystemComponent::AddGameplayCue_Internal(const FGameplayTag GameplayCueTag, FGameplayEffectContextHandle& EffectContext, FActiveGameplayCueContainer& GameplayCueContainer)
 {
+	if (EffectContext.IsValid() == false)
+	{
+		EffectContext = MakeEffectContext();
+	}
+
 	FGameplayCueParameters Parameters(EffectContext);
 
 	if (IsOwnerActorAuthoritative())
@@ -1273,11 +1295,14 @@ void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 	DOREPLIFETIME(UAbilitySystemComponent, OwnerActor);
 	DOREPLIFETIME(UAbilitySystemComponent, AvatarActor);
 
-	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedPredictionKey);
+	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, ReplicatedPredictionKeyMap, COND_OwnerOnly);
 	DOREPLIFETIME(UAbilitySystemComponent, RepAnimMontageInfo);
 	
 	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, MinimalReplicationGameplayCues, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, MinimalReplicationTags, COND_SkipOwner);
+	
+	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, ClientDebugStrings, COND_ReplayOnly);
+	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, ServerDebugStrings, COND_ReplayOnly);
 	
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
@@ -1335,18 +1360,20 @@ void UAbilitySystemComponent::GetSubobjectsWithStableNamesForNetworking(TArray<U
 
 void UAbilitySystemComponent::PreNetReceive()
 {
+	// Update the cached IsNetSimulated value here if this component is still considered authority.
+	// Even though the value is also cached in OnRegister and BeginPlay, clients may
+	// receive properties before OnBeginPlay, so this ensures the role is correct
+	// for that case.
+	if (!CachedIsNetSimulated)
+	{
+		CacheIsNetSimulated();
+	}
 	ActiveGameplayEffects.IncrementLock();
 }
 	
 void UAbilitySystemComponent::PostNetReceive()
 {
 	ActiveGameplayEffects.DecrementLock();
-}
-
-void UAbilitySystemComponent::OnRep_PredictionKey()
-{
-	// Every predictive action we've done up to and including the current value of ReplicatedPredictionKey needs to be wiped
-	FPredictionKeyDelegates::CatchUpTo(ReplicatedPredictionKey.Current);
 }
 
 bool UAbilitySystemComponent::HasAuthorityOrPredictionKey(const FGameplayAbilityActivationInfo* ActivationInfo) const
@@ -1434,12 +1461,70 @@ AActor* UAbilitySystemComponent::GetAvatarActor() const
 	return AbilityActorInfo->AvatarActor.Get();
 }
 
+void UAbilitySystemComponent::HandleDeferredGameplayCues(const FActiveGameplayEffectsContainer* GameplayEffectsContainer)
+{
+	for (const FActiveGameplayEffect& Effect : GameplayEffectsContainer)
+	{
+		if (Effect.bIsInhibited == false)
+		{
+			if (Effect.bPendingRepOnActiveGC)
+			{
+				InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::OnActive);
+			}
+			if (Effect.bPendingRepWhileActiveGC)
+			{
+				InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::WhileActive);
+			}
+		}
+
+		Effect.bPendingRepOnActiveGC = false;
+		Effect.bPendingRepWhileActiveGC = false;
+	}
+}
+
 void UAbilitySystemComponent::DebugCyclicAggregatorBroadcasts(FAggregator* Aggregator)
 {
 	ActiveGameplayEffects.DebugCyclicAggregatorBroadcasts(Aggregator);
 }
 
 // ------------------------------------------------------------------------
+
+void UAbilitySystemComponent::OnRep_ClientDebugString()
+{
+	ABILITY_LOG(Display, TEXT(" "));
+	ABILITY_LOG(Display, TEXT("Received Client AbilitySystem Debug information: (%d lines)"), ClientDebugStrings.Num());
+	for (FString& Str : ClientDebugStrings)
+	{
+		ABILITY_LOG(Display, TEXT("%s"), *Str);
+	}
+}
+void UAbilitySystemComponent::OnRep_ServerDebugString()
+{
+	ABILITY_LOG(Display, TEXT(" "));
+	ABILITY_LOG(Display, TEXT("Server AbilitySystem Debug information: (%d lines)"), ClientDebugStrings.Num());
+	for (FString& Str : ServerDebugStrings)
+	{
+		ABILITY_LOG(Display, TEXT("%s"), *Str);
+	}
+}
+
+bool UAbilitySystemComponent::ServerPrintDebug_RequestWithStrings_Validate(const TArray<FString>& Strings)
+{
+	return true;
+}
+
+void UAbilitySystemComponent::ServerPrintDebug_RequestWithStrings_Implementation(const TArray<FString>& Strings)
+{
+	ABILITY_LOG(Display, TEXT(" "));
+	ABILITY_LOG(Display, TEXT("Received Client AbilitySystem Debug information: "));
+	for (const FString& Str : Strings)
+	{
+		ABILITY_LOG(Display, TEXT("%s"), *Str);
+	}
+
+	ClientDebugStrings = Strings;
+	ServerPrintDebug_Request_Implementation();
+}
 
 bool UAbilitySystemComponent::ServerPrintDebug_Request_Validate()
 {
@@ -1448,15 +1533,25 @@ bool UAbilitySystemComponent::ServerPrintDebug_Request_Validate()
 
 void UAbilitySystemComponent::ServerPrintDebug_Request_Implementation()
 {
+	OnServerPrintDebug_Request();
+
 	FAbilitySystemComponentDebugInfo DebugInfo;
 	DebugInfo.bShowAbilities = true;
 	DebugInfo.bShowAttributes = true;
 	DebugInfo.bShowGameplayEffects = true;
 	DebugInfo.Accumulate = true;
+	DebugInfo.bPrintToLog = true;
 
 	Debug_Internal(DebugInfo);
 
+	ServerDebugStrings = DebugInfo.Strings;
+
 	ClientPrintDebug_Response(DebugInfo.Strings, DebugInfo.GameFlags);
+}
+
+void UAbilitySystemComponent::OnServerPrintDebug_Request()
+{
+
 }
 
 void UAbilitySystemComponent::ClientPrintDebug_Response_Implementation(const TArray<FString>& Strings, int32 GameFlags)
@@ -1465,12 +1560,11 @@ void UAbilitySystemComponent::ClientPrintDebug_Response_Implementation(const TAr
 }
 void UAbilitySystemComponent::OnClientPrintDebug_Response(const TArray<FString>& Strings, int32 GameFlags)
 {
-	ABILITY_LOG(Warning, TEXT(" "));
-	ABILITY_LOG(Warning, TEXT("Server State: "));
-
-	for (FString Str : Strings)
+	ABILITY_LOG(Display, TEXT(" "));
+	ABILITY_LOG(Display, TEXT("Server State: "));
+	for (const FString& Str : Strings)
 	{
-		ABILITY_LOG(Warning, TEXT("%s"), *Str);
+		ABILITY_LOG(Display, TEXT("%s"), *Str);
 	}
 
 
@@ -1728,6 +1822,21 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 	YL = DebugInfo.YL;
 }
 
+bool UAbilitySystemComponent::ShouldSendClientDebugStringsToServer() const
+{
+	// This implements basic throttling so that debug strings can't be sent more than once a second to the server
+	const double MinTimeBetweenClientDebugSends = 1.f;
+	static double LastSendTime = 0.f;
+
+	double CurrentTime = FPlatformTime::Seconds();
+	bool ShouldSend = (CurrentTime - LastSendTime) > MinTimeBetweenClientDebugSends;
+	if (ShouldSend)
+	{
+		LastSendTime = CurrentTime;
+	}
+	return ShouldSend;
+}
+
 void UAbilitySystemComponent::PrintDebug()
 {
 	FAbilitySystemComponentDebugInfo DebugInfo;
@@ -1750,7 +1859,14 @@ void UAbilitySystemComponent::PrintDebug()
 	if (IsOwnerActorAuthoritative() == false)
 	{
 		// See what the server thinks
-		ServerPrintDebug_Request();
+		if (ShouldSendClientDebugStringsToServer())
+		{
+			ServerPrintDebug_RequestWithStrings(DebugInfo.Strings);
+		}
+		else
+		{
+			ServerPrintDebug_Request();
+		}
 	}
 	else
 	{
@@ -1913,7 +2029,11 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 			FString DurationStr = TEXT("Infinite Duration ");
 			if (ActiveGE.GetDuration() > 0.f)
 			{
-				DurationStr = FString::Printf(TEXT("Duration: %.2f. Remaining: %.2f "), ActiveGE.GetDuration(), ActiveGE.GetTimeRemaining(GetWorld()->GetTimeSeconds()));
+				DurationStr = FString::Printf(TEXT("Duration: %.2f. Remaining: %.2f (Start: %.2f / %.2f / %.2f) %s "), ActiveGE.GetDuration(), ActiveGE.GetTimeRemaining(GetWorld()->GetTimeSeconds()), ActiveGE.StartServerWorldTime, ActiveGE.CachedStartServerWorldTime, ActiveGE.StartWorldTime, ActiveGE.DurationHandle.IsValid() ? TEXT("Valid Handle") : TEXT("INVALID Handle") );
+				if (ActiveGE.DurationHandle.IsValid())
+				{
+					DurationStr += FString::Printf(TEXT("(Local Duration: %.2f)"), GetWorld()->GetTimerManager().GetTimerRemaining(ActiveGE.DurationHandle));
+				}
 			}
 			if (ActiveGE.GetPeriod() > 0.f)
 			{
@@ -1966,6 +2086,12 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 
 			for (int32 ModIdx = 0; ModIdx < ActiveGE.Spec.Modifiers.Num(); ++ModIdx)
 			{
+				if (ActiveGE.Spec.Def == nullptr)
+				{
+					DebugLine(Info, FString::Printf(TEXT("null def! (Backwards compat?)")), 7.f, 0.f);
+					continue;
+				}
+
 				const FModifierSpec& ModSpec = ActiveGE.Spec.Modifiers[ModIdx];
 				const FGameplayModifierInfo& ModInfo = ActiveGE.Spec.Def->Modifiers[ModIdx];
 
@@ -2030,6 +2156,8 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 
 			FString StatusText;
 			FColor AbilityTextColor = FColor(128, 128, 128);
+			FGameplayTagContainer FailureTags;
+
 			if (AbilitySpec.IsActive())
 			{
 				StatusText = FString::Printf(TEXT(" (Active %d)"), AbilitySpec.ActiveCount);
@@ -2045,10 +2173,16 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 				StatusText = TEXT(" (TagBlocked)");
 				AbilityTextColor = FColor::Red;
 			}
-			else if (AbilitySpec.Ability->CanActivateAbility(AbilitySpec.Handle, AbilityActorInfo.Get()) == false)
+			else if (AbilitySpec.Ability->CanActivateAbility(AbilitySpec.Handle, AbilityActorInfo.Get(), nullptr, nullptr, &FailureTags) == false)
 			{
-				StatusText = TEXT(" (CantActivate)");
+				StatusText = FString::Printf(TEXT(" (CantActivate %s)"), *FailureTags.ToString());
 				AbilityTextColor = FColor::Red;
+
+				float Cooldown =  AbilitySpec.Ability->GetCooldownTimeRemaining(AbilityActorInfo.Get());
+				if (Cooldown > 0.f)
+				{
+					StatusText += FString::Printf(TEXT("   Cooldown: %.2f\n"), Cooldown);
+				}
 			}
 
 			FString InputPressedStr = AbilitySpec.InputPressed ? TEXT("(InputPressed)") : TEXT("");

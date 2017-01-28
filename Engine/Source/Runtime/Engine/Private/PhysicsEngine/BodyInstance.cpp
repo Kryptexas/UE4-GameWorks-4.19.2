@@ -3058,7 +3058,7 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, ETeleportTy
 						if(!PhysScene->IsPendingSimulationTransforms( RigidActorSync ? PST_Sync : PST_Async ))
 						{
 							PRigidDynamic->setGlobalPose(PNewPose);
-						}else if(!bIsRigidBodyKinematic)
+						}else if(bSimulatePhysics)
 						{
 							UE_LOG(LogPhysics, Warning, TEXT("SetTransformWhileSimulating: Setting body transform on a simulated body of component (%s) while the physics simulation is running. This will be ignored. You may want to change the component's TickGroup or consider moving the simulated body using a physical constraint"), OwnerComponent.Get() ? *OwnerComponent->GetPathName() : TEXT("NONE"));
 						}
@@ -4815,6 +4815,27 @@ bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, c
 	return bHaveBlockingHit;
 }
 
+extern bool GHillClimbError;
+
+void LogHillClimbError(const FBodyInstance* BI, const PxGeometry& PGeom, const PxTransform& ShapePose)
+{
+	FString DebugName = BI->OwnerComponent.Get() ? BI->OwnerComponent->GetReadableName() : FString("None");
+	FString TransformString = P2UTransform(ShapePose).ToString();
+	if(PGeom.getType() == PxGeometryType::eCAPSULE)
+	{
+		const PxCapsuleGeometry& CapsuleGeom = static_cast<const PxCapsuleGeometry&>(PGeom);
+		ensureAlwaysMsgf(false, TEXT("HillClimbing stuck in infinite loop for component:%s with Capsule half-height:%f, radius:%f, at world transform:%s"), *DebugName, CapsuleGeom.halfHeight, CapsuleGeom.radius, *TransformString);
+	}
+	else
+	{
+		const uint32 GeomType = PGeom.getType();
+		ensureAlwaysMsgf(false, TEXT("HillClimbing stuck in infinite loop for component:%s with geometry type:%d, at world transform:%s"), *DebugName, GeomType, *TransformString);
+	}
+
+
+	
+	GHillClimbError = false;
+}
 
 #if WITH_PHYSX
 bool FBodyInstance::OverlapPhysX_AssumesLocked(const PxGeometry& PGeom, const PxTransform& ShapePose, FMTDResult* OutMTD) const
@@ -4859,10 +4880,20 @@ bool FBodyInstance::OverlapPhysX_AssumesLocked(const PxGeometry& PGeom, const Px
 					OutMTD->Direction = P2UVector(POutDirection);
 					OutMTD->Distance = FMath::Abs(OutDistance);
 				}
-					
+				
+				if(GHillClimbError)
+				{
+					LogHillClimbError(this, PGeom, ShapePose);
+				}
+
 				return true;
 			}			
 		}
+	}
+
+	if (GHillClimbError)
+	{
+		LogHillClimbError(this, PGeom, ShapePose);
 	}
 	return false;
 }
