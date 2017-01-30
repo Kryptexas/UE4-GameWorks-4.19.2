@@ -458,6 +458,52 @@ static PlaceholderType* MakeImportPlaceholder(UObject* Outer, const TCHAR* Targe
 	return PlaceholderObj;
 }
 
+/** Recursive utility function, set up to find a specific import that has already been created (emulates a block from FLinkerLoad::CreateImport)*/
+static UObject* FindExistingImportObject(const int32 Index, const TArray<FObjectImport>& ImportMap)
+{
+	const FObjectImport& Import = ImportMap[Index];
+
+	UObject* FindOuter = nullptr;
+	if (Import.OuterIndex.IsImport())
+	{
+		int32 OuterIndex = Import.OuterIndex.ToImport();
+		const FObjectImport& OuterImport = ImportMap[OuterIndex];
+
+		if (OuterImport.XObject != nullptr)
+		{
+			FindOuter = OuterImport.XObject;
+		}
+		else
+		{
+			FindOuter = FindExistingImportObject(OuterIndex, ImportMap);
+		}
+	}
+
+	UObject* FoundObject = nullptr;
+	if (FindOuter != nullptr || Import.OuterIndex.IsNull())
+	{
+		if (UObject* ClassPackage = FindObject<UPackage>(/*Outer =*/nullptr, *Import.ClassPackage.ToString()))
+		{
+			if (UClass* ImportClass = FindObject<UClass>(ClassPackage, *Import.ClassName.ToString()))
+			{
+				// This function is set up to emulate a block towards the top of 
+				// FLinkerLoad::CreateImport(). However, since this is used in 
+				// deferred dependency loading we need to be careful not to invoke
+				// subsequent loads. The block in CreateImport() calls Preload() 
+				// and GetDefaultObject() which are not suitable here, so to 
+				// emulate/keep the contract that that block provides, we'll only 
+				// lookup the object if its class is loaded, and has a CDO (this
+				// is just to mitigate risk from this change)
+				if (!ImportClass->HasAnyFlags(RF_NeedLoad) && ImportClass->ClassDefaultObject)
+				{
+					FoundObject = StaticFindObjectFast(ImportClass, FindOuter, Import.ObjectName);
+				}				
+			}
+		}
+	}
+	return FoundObject;
+}
+
 bool FLinkerLoad::DeferPotentialCircularImport(const int32 Index)
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
@@ -479,6 +525,22 @@ bool FLinkerLoad::DeferPotentialCircularImport(const int32 Index)
 
 	if ((LoadFlags & LOAD_DeferDependencyLoads) && !IsImportNative(Index))
 	{
+		// emulate the block in CreateImport(), that attempts to find an existing
+		// object in memory first... this is to account for async loading, which
+		// can clear Import.XObject (via FLinkerManager::DissociateImportsAndForcedExports)
+		// at inopportune times (after it's already been set) - in this case
+		// we shouldn't need a placeholder, because the object already exists; we
+		// just need to keep from serializing it any further (which is why we've
+		// emulated it here, to cut out on a Preload() call)
+		if (!GIsEditor && !IsRunningCommandlet())
+		{
+			Import.XObject = FindExistingImportObject(Index, ImportMap);
+			if (Import.XObject)
+			{
+				return true;
+			}
+		}
+
 		if (UObject* ClassPackage = FindObject<UPackage>(/*Outer =*/nullptr, *Import.ClassPackage.ToString()))
 		{
 			if (const UClass* ImportClass = FindObject<UClass>(ClassPackage, *Import.ClassName.ToString()))
