@@ -5,27 +5,16 @@ using System.Collections.Generic;
 
 public class UnrealFileServerTarget : TargetRules
 {
-	public UnrealFileServerTarget(TargetInfo Target)
+	public UnrealFileServerTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Modular;
+		LaunchModuleName = "UnrealFileServer";
 	}
 
 	//
 	// TargetRules interface.
 	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutBuildBinaryConfigurations.Add(
-			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
-											InModuleNames: new List<string>() { "UnrealFileServer" } )
-			);
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,

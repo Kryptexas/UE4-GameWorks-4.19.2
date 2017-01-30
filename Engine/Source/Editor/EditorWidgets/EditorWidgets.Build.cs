@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class EditorWidgets : ModuleRules
 {
-	public EditorWidgets(TargetInfo Target)
+	public EditorWidgets(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add("AssetRegistry");
 

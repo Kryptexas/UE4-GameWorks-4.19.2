@@ -5,7 +5,7 @@ using System.IO;
 
 public class PhysXFormats : ModuleRules
 {
-	public PhysXFormats(TargetInfo Target)
+	public PhysXFormats(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
 

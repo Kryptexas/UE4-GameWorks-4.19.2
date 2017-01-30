@@ -10,9 +10,12 @@ using Microsoft.Win32;
 
 namespace UnrealBuildTool
 {
-	public class AndroidToolChain : UEToolChain
+	class AndroidToolChain : UEToolChain, IAndroidToolChain
 	{
 		private FileReference ProjectFile;
+		private bool bUseLdGold;
+		private IReadOnlyList<string> AdditionalArches;
+		private IReadOnlyList<string> AdditionalGPUArches;
 
 		// the number of the clang version being used to compile 
 		private float ClangVersionFloat = 0;
@@ -45,10 +48,13 @@ namespace UnrealBuildTool
 			{ "-x64",   new string[] { "OnlineSubsystemGooglePlay", } }, 
 		};
 
-		public AndroidToolChain(FileReference InProjectFile) 
-			: base(CPPTargetPlatform.Android)
+		public AndroidToolChain(FileReference InProjectFile, bool bInUseLdGold, IReadOnlyList<string> InAdditionalArches, IReadOnlyList<string> InAdditionalGPUArches)
+			: base(CppPlatform.Android)
 		{
 			ProjectFile = InProjectFile;
+			bUseLdGold = bInUseLdGold;
+			AdditionalArches = InAdditionalArches;
+			AdditionalGPUArches = InAdditionalGPUArches;
 
 			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
 
@@ -179,22 +185,22 @@ namespace UnrealBuildTool
 			Arches = new List<string>();
 			bool bBuild = true;
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArmV7", out bBuild) && bBuild
-				|| UEBuildConfiguration.Architectures.Contains("armv7", StringComparer.OrdinalIgnoreCase))
+				|| (AdditionalArches != null && AdditionalArches.Contains("armv7", StringComparer.OrdinalIgnoreCase)))
 			{
 				Arches.Add("-armv7");
 			}
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArm64", out bBuild) && bBuild
-				|| UEBuildConfiguration.Architectures.Contains("arm64", StringComparer.OrdinalIgnoreCase))
+				|| (AdditionalArches != null && AdditionalArches.Contains("arm64", StringComparer.OrdinalIgnoreCase)))
 			{
 				Arches.Add("-arm64");
 			}
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx86", out bBuild) && bBuild
-				|| UEBuildConfiguration.Architectures.Contains("x86", StringComparer.OrdinalIgnoreCase))
+				|| (AdditionalArches != null && AdditionalArches.Contains("x86", StringComparer.OrdinalIgnoreCase)))
 			{
 				Arches.Add("-x86");
 			}
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx8664", out bBuild) && bBuild
-				|| UEBuildConfiguration.Architectures.Contains("x64", StringComparer.OrdinalIgnoreCase))
+				|| (AdditionalArches != null && AdditionalArches.Contains("x64", StringComparer.OrdinalIgnoreCase)))
 			{
 				Arches.Add("-x64");
 			}
@@ -208,12 +214,12 @@ namespace UnrealBuildTool
 			// Parse selected GPU architectures
 			GPUArchitectures = new List<string>();
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES2", out bBuild) && bBuild
-				|| UEBuildConfiguration.GPUArchitectures.Contains("es2", StringComparer.OrdinalIgnoreCase))
+				|| (AdditionalGPUArches != null && AdditionalGPUArches.Contains("es2", StringComparer.OrdinalIgnoreCase)))
 			{
 				GPUArchitectures.Add("-es2");
 			}
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForESDeferred", out bBuild) && bBuild
-				|| UEBuildConfiguration.GPUArchitectures.Contains("esdeferred", StringComparer.OrdinalIgnoreCase))
+				|| (AdditionalGPUArches != null && AdditionalGPUArches.Contains("esdeferred", StringComparer.OrdinalIgnoreCase)))
 			{
 				GPUArchitectures.Add("-esdeferred");
 			}
@@ -251,9 +257,9 @@ namespace UnrealBuildTool
 			return GLESversion;
 		}
 
-		public override void SetUpGlobalEnvironment()
+		public override void SetUpGlobalEnvironment(ReadOnlyTargetRules Target)
 		{
-			base.SetUpGlobalEnvironment();
+			base.SetUpGlobalEnvironment(Target);
 
 			ParseArchitectures();
 		}
@@ -349,7 +355,7 @@ namespace UnrealBuildTool
 			return LargestString;
 		}
 
-		string GetCLArguments_Global(CPPEnvironment CompileEnvironment, string Architecture)
+		string GetCLArguments_Global(CppCompileEnvironment CompileEnvironment, string Architecture)
 		{
 			string Result = "";
 
@@ -383,14 +389,14 @@ namespace UnrealBuildTool
 			Result += " -Wno-invalid-offsetof";			// needed to suppress warnings about using offsetof on non-POD types.
 			Result += " -Wno-logical-op-parentheses";	// needed for external headers we can't change
 
-			if (CompileEnvironment.Config.bEnableShadowVariableWarnings)
+			if (CompileEnvironment.bEnableShadowVariableWarnings)
 			{
 				Result += " -Wshadow -Wno-error=shadow";
 			}
 
-			if (CompileEnvironment.Config.bEnableUndefinedIdentifierWarnings)
+			if (CompileEnvironment.bEnableUndefinedIdentifierWarnings)
 			{
-				Result += " -Wundef" + (BuildConfiguration.bUndefinedIdentifierErrors ? "" : " -Wno-error=undef");
+				Result += " -Wundef" + (CompileEnvironment.bUndefinedIdentifierWarningsAsErrors ? "" : " -Wno-error=undef");
 			}
 
 			// new for clang4.5 warnings:
@@ -409,25 +415,25 @@ namespace UnrealBuildTool
 			}
 
 			// shipping builds will cause this warning with "ensure", so disable only in those case
-			if (CompileEnvironment.Config.Configuration == CPPTargetConfiguration.Shipping)
+			if (CompileEnvironment.Configuration == CppConfiguration.Shipping)
 			{
 				Result += " -Wno-unused-value";
 			}
 
 			// debug info
-			if (CompileEnvironment.Config.bCreateDebugInfo)
+			if (CompileEnvironment.bCreateDebugInfo)
 			{
 				Result += " -g2 -gdwarf-4";
 			}
 
 			// optimization level
-			if (!CompileEnvironment.Config.bOptimizeCode)
+			if (!CompileEnvironment.bOptimizeCode)
 			{
 				Result += " -O0";
 			}
 			else
 			{
-				if (UEBuildConfiguration.bCompileForSize)
+				if (CompileEnvironment.bOptimizeForSize)
 				{
 					Result += " -Oz";
 				}
@@ -439,7 +445,7 @@ namespace UnrealBuildTool
 
 
 			// Optionally enable exception handling (off by default since it generates extra code needed to propagate exceptions)
-			if (CompileEnvironment.Config.bEnableExceptions || UEBuildConfiguration.bForceEnableExceptions)
+			if (CompileEnvironment.bEnableExceptions)
 			{
 				Result += " -fexceptions";
 			}
@@ -451,7 +457,7 @@ namespace UnrealBuildTool
 			// Conditionally enable (default disabled) generation of information about every class with virtual functions for use by the C++ runtime type identification features 
 			// (`dynamic_cast' and `typeid'). If you don't use those parts of the language, you can save some space by using -fno-rtti. 
 			// Note that exception handling uses the same information, but it will generate it as needed. 
-			if (CompileEnvironment.Config.bUseRTTI)
+			if (CompileEnvironment.bUseRTTI)
 			{
 				Result += " -frtti";
 			}
@@ -478,7 +484,7 @@ namespace UnrealBuildTool
 				Result += " -mfpu=vfpv3-d16";			//@todo android: UE3 was just vfp. arm7a should all support v3 with 16 registers
 
 				// Add flags for on-device debugging	
-				if (CompileEnvironment.Config.Configuration == CPPTargetConfiguration.Debug)
+				if (CompileEnvironment.Configuration == CppConfiguration.Debug)
 				{
 					Result += " -fno-omit-frame-pointer";	// Disable removing the save/restore frame pointer for better debugging
 					if (ClangVersionFloat >= 3.6f)
@@ -488,7 +494,7 @@ namespace UnrealBuildTool
 				}
 
 				// Some switches interfere with on-device debugging
-				if (CompileEnvironment.Config.Configuration != CPPTargetConfiguration.Debug)
+				if (CompileEnvironment.Configuration != CppConfiguration.Debug)
 				{
 					Result += " -ffunction-sections";   // Places each function in its own section of the output file, linker may be able to perform opts to improve locality of reference
 				}
@@ -509,7 +515,7 @@ namespace UnrealBuildTool
 				//Result += " -mfpu=vfpv3-d16";			//@todo android: UE3 was just vfp. arm7a should all support v3 with 16 registers
 
 				// Some switches interfere with on-device debugging
-				if (CompileEnvironment.Config.Configuration != CPPTargetConfiguration.Debug)
+				if (CompileEnvironment.Configuration != CppConfiguration.Debug)
 				{
 					Result += " -ffunction-sections";   // Places each function in its own section of the output file, linker may be able to perform opts to improve locality of reference
 				}
@@ -625,7 +631,7 @@ namespace UnrealBuildTool
 				Result += " -Wl,--fix-cortex-a8";		// required to route around a CPU bug in some Cortex-A8 implementations
 			}
 
-			if (BuildConfiguration.bUseUnityBuild && ClangVersionFloat >= 3.6f && ClangVersionFloat < 3.8f)
+			if (bUseLdGold && ClangVersionFloat >= 3.6f && ClangVersionFloat < 3.8f)
 			{
 				Result += " -fuse-ld=gold";				// ld.gold is available in r10e (clang 3.6)
 			}
@@ -813,7 +819,7 @@ namespace UnrealBuildTool
 			FileReference LinkerExceptionsCPPFilename = FileReference.Combine(OutputDirectory, LinkerExceptionsName + ".cpp");
 
 			// Create the cpp filename
-			if (!LinkerExceptionsCPPFilename.Exists())
+			if (!FileReference.Exists(LinkerExceptionsCPPFilename))
 			{
 				// Create a dummy file in case it doesn't exist yet so that the module does not complain it's not there
 				ResponseFile.Create(LinkerExceptionsCPPFilename, new List<string>());
@@ -842,7 +848,7 @@ namespace UnrealBuildTool
 
 			// Determine if the file changed. Write it if it either doesn't exist or the contents are different.
 			bool bShouldWriteFile = true;
-			if (LinkerExceptionsCPPFilename.Exists())
+			if (FileReference.Exists(LinkerExceptionsCPPFilename))
 			{
 				string[] ExistingExceptionText = File.ReadAllLines(LinkerExceptionsCPPFilename.FullName);
 				string JoinedNewContents = string.Join("", Result.ToArray());
@@ -886,7 +892,7 @@ namespace UnrealBuildTool
 		}
 
 		static private bool bHasPrintedApiLevel = false;
-		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
+		public override CPPOutput CompileCPPFiles(CppCompileEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
 		{
 			if (Arches.Count == 0)
 			{
@@ -901,7 +907,7 @@ namespace UnrealBuildTool
 
 			string BaseArguments = "";
 
-			if (CompileEnvironment.Config.PrecompiledHeaderAction != PrecompiledHeaderAction.Create)
+			if (CompileEnvironment.PrecompiledHeaderAction != PrecompiledHeaderAction.Create)
 			{
 				BaseArguments += " -Werror";
 
@@ -911,20 +917,19 @@ namespace UnrealBuildTool
 			ConditionallyAddNDKSourceFiles(SourceFiles, ModuleName);
 
 			// Deal with dynamic modules removed by architecture
-			GenerateEmptyLinkFunctionsForRemovedModules(SourceFiles, ModuleName, CompileEnvironment.Config.OutputDirectory);
+			GenerateEmptyLinkFunctionsForRemovedModules(SourceFiles, ModuleName, CompileEnvironment.OutputDirectory);
 
 			// Add preprocessor definitions to the argument list.
-			foreach (string Definition in CompileEnvironment.Config.Definitions)
+			foreach (string Definition in CompileEnvironment.Definitions)
 			{
 				BaseArguments += string.Format(" -D \"{0}\"", Definition);
 			}
 
-			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Platform);
 			var NDKRoot = Environment.GetEnvironmentVariable("NDKROOT").Replace("\\", "/");
 
 			string BasePCHName = "";
 			var PCHExtension = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.Android).GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
-			if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
+			if (CompileEnvironment.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
 			{
 				BasePCHName = RemoveArchName(CompileEnvironment.PrecompiledHeaderFile.AbsolutePath).Replace(PCHExtension, "");
 			}
@@ -959,22 +964,27 @@ namespace UnrealBuildTool
 
 					// which PCH file to include
 					string PCHArguments = "";
-					if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
+					if (CompileEnvironment.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
 					{
 						// Add the precompiled header file's path to the include path so Clang can find it.
 						// This needs to be before the other include paths to ensure Clang uses it instead of the source header file.
 						PCHArguments += string.Format(" -include \"{0}\"", InlineArchName(BasePCHName, Arch, GPUArchitecture));
 					}
 
+					foreach(FileReference ForceIncludeFile in CompileEnvironment.ForceIncludeFiles)
+					{
+						PCHArguments += string.Format(" -include \"{0}\"", ForceIncludeFile.FullName);
+					}
+
 					// Add include paths to the argument list (filtered by architecture)
-					foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths)
+					foreach (string IncludePath in CompileEnvironment.IncludePaths.SystemIncludePaths)
 					{
 						if (IsDirectoryForArch(IncludePath, Arch))
 						{
 							Arguments += string.Format(" -I\"{0}\"", IncludePath);
 						}
 					}
-					foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
+					foreach (string IncludePath in CompileEnvironment.IncludePaths.UserIncludePaths)
 					{
 						if (IsDirectoryForArch(IncludePath, Arch))
 						{
@@ -992,15 +1002,15 @@ namespace UnrealBuildTool
 						// should we disable optimizations on this file?
 						// @todo android - We wouldn't need this if we could disable optimizations per function (via pragma)
 						bool bDisableOptimizations = false;// SourceFile.AbsolutePath.ToUpperInvariant().IndexOf("\\SLATE\\") != -1;
-						if (bDisableOptimizations && CompileEnvironment.Config.bOptimizeCode)
+						if (bDisableOptimizations && CompileEnvironment.bOptimizeCode)
 						{
 							Log.TraceWarning("Disabling optimizations on {0}", SourceFile.AbsolutePath);
 						}
 
-						bDisableOptimizations = bDisableOptimizations || !CompileEnvironment.Config.bOptimizeCode;
+						bDisableOptimizations = bDisableOptimizations || !CompileEnvironment.bOptimizeCode;
 
 						// Add C or C++ specific compiler arguments.
-						if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
+						if (CompileEnvironment.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 						{
 							FileArguments += GetCompileArguments_PCH(bDisableOptimizations);
 						}
@@ -1023,14 +1033,14 @@ namespace UnrealBuildTool
 						}
 
 						// Add the C++ source file and its included files to the prerequisite item list.
-						AddPrerequisiteSourceFile(BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems);
+						AddPrerequisiteSourceFile(CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems);
 
-						if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
+						if (CompileEnvironment.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 						{
 							// Add the precompiled header file to the produced item list.
 							FileItem PrecompiledHeaderFile = FileItem.GetItemByFileReference(
 								FileReference.Combine(
-									CompileEnvironment.Config.OutputDirectory,
+									CompileEnvironment.OutputDirectory,
 									Path.GetFileName(InlineArchName(SourceFile.AbsolutePath, Arch, GPUArchitecture) + PCHExtension)
 									)
 								);
@@ -1039,11 +1049,11 @@ namespace UnrealBuildTool
 							Result.PrecompiledHeaderFile = PrecompiledHeaderFile;
 
 							// Add the parameters needed to compile the precompiled header file to the command-line.
-							FileArguments += string.Format(" -o \"{0}\"", PrecompiledHeaderFile.AbsolutePath, false);
+							FileArguments += string.Format(" -o \"{0}\"", PrecompiledHeaderFile.AbsolutePath);
 						}
 						else
 						{
-							if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
+							if (CompileEnvironment.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
 							{
 								CompileAction.bIsUsingPCH = true;
 								FileItem ArchPrecompiledHeaderFile = FileItem.GetItemByPath(InlineArchName(BasePCHName, Arch, GPUArchitecture) + PCHExtension);
@@ -1055,21 +1065,21 @@ namespace UnrealBuildTool
 							// Add the object file to the produced item list.
 							FileItem ObjectFile = FileItem.GetItemByFileReference(
 								FileReference.Combine(
-									CompileEnvironment.Config.OutputDirectory,
+									CompileEnvironment.OutputDirectory,
 									InlineArchName(Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension, Arch, GPUArchitecture)
 									)
 								);
 							CompileAction.ProducedItems.Add(ObjectFile);
 							Result.ObjectFiles.Add(ObjectFile);
 
-							FileArguments += string.Format(" -o \"{0}\"", ObjectFile.AbsolutePath, false);
+							FileArguments += string.Format(" -o \"{0}\"", ObjectFile.AbsolutePath);
 						}
 
 						// Add the source file path to the command-line.
 						FileArguments += string.Format(" \"{0}\"", SourceFile.AbsolutePath);
 
 						// Build a full argument list
-						string AllArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
+						string AllArguments = Arguments + FileArguments + CompileEnvironment.AdditionalArguments;
 						AllArguments = ActionThread.ExpandEnvironmentVariables(AllArguments);
 						AllArguments = AllArguments.Replace("\\", "/");
 
@@ -1097,8 +1107,8 @@ namespace UnrealBuildTool
 
 						// Don't farm out creation of pre-compiled headers as it is the critical path task.
 						CompileAction.bCanExecuteRemotely =
-							CompileEnvironment.Config.PrecompiledHeaderAction != PrecompiledHeaderAction.Create ||
-							BuildConfiguration.bAllowRemotelyCompiledPCHs;
+							CompileEnvironment.PrecompiledHeaderAction != PrecompiledHeaderAction.Create ||
+							CompileEnvironment.bAllowRemotelyCompiledPCHs;
 					}
 				}
 			}
@@ -1167,8 +1177,8 @@ namespace UnrealBuildTool
 					int OutputPathIndex = ArchIndex * GPUArchitectures.Count + GPUArchIndex;
 
 					// Android will have an array of outputs
-					if (LinkEnvironment.Config.OutputFilePaths.Count < OutputPathIndex ||
-						!LinkEnvironment.Config.OutputFilePaths[OutputPathIndex].GetFileNameWithoutExtension().EndsWith(Arch + GPUArchitecture))
+					if (LinkEnvironment.OutputFilePaths.Count < OutputPathIndex ||
+						!LinkEnvironment.OutputFilePaths[OutputPathIndex].GetFileNameWithoutExtension().EndsWith(Arch + GPUArchitecture))
 					{
 						throw new BuildException("The OutputFilePaths array didn't match the Arches array in AndroidToolChain.LinkAllFiles");
 					}
@@ -1177,7 +1187,7 @@ namespace UnrealBuildTool
 					Action LinkAction = ActionGraph.Add(ActionType.Link);
 					LinkAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
 
-					if (LinkEnvironment.Config.bIsBuildingLibrary)
+					if (LinkEnvironment.bIsBuildingLibrary)
 					{
 						switch (Arch)
 						{
@@ -1195,14 +1205,14 @@ namespace UnrealBuildTool
 
 					string LinkerPath = LinkAction.WorkingDirectory;
 
-					LinkAction.WorkingDirectory = LinkEnvironment.Config.IntermediateDirectory.FullName;
+					LinkAction.WorkingDirectory = LinkEnvironment.IntermediateDirectory.FullName;
 
 					// Get link arguments.
-					LinkAction.CommandArguments = LinkEnvironment.Config.bIsBuildingLibrary ? GetArArguments(LinkEnvironment) : GetLinkArguments(LinkEnvironment, Arch);
+					LinkAction.CommandArguments = LinkEnvironment.bIsBuildingLibrary ? GetArArguments(LinkEnvironment) : GetLinkArguments(LinkEnvironment, Arch);
 
 					// Add the output file as a production of the link action.
 					FileItem OutputFile;
-					OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.Config.OutputFilePaths[OutputPathIndex]);
+					OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.OutputFilePaths[OutputPathIndex]);
 					Outputs.Add(OutputFile);
 					LinkAction.ProducedItems.Add(OutputFile);
 					LinkAction.StatusDescription = string.Format("{0}", Path.GetFileName(OutputFile.AbsolutePath));
@@ -1210,7 +1220,7 @@ namespace UnrealBuildTool
 					// LinkAction.bPrintDebugInfo = true;
 
 					// Add the output file to the command-line.
-					if (LinkEnvironment.Config.bIsBuildingLibrary)
+					if (LinkEnvironment.bIsBuildingLibrary)
 					{
 						LinkAction.CommandArguments += string.Format(" \"{0}\"", OutputFile.AbsolutePath);
 					}
@@ -1228,7 +1238,7 @@ namespace UnrealBuildTool
 						{
 							string AbsolutePath = InputFile.AbsolutePath.Replace("\\", "/");
 
-							AbsolutePath = AbsolutePath.Replace(LinkEnvironment.Config.IntermediateDirectory.FullName.Replace("\\", "/"), "");
+							AbsolutePath = AbsolutePath.Replace(LinkEnvironment.IntermediateDirectory.FullName.Replace("\\", "/"), "");
 							AbsolutePath = AbsolutePath.TrimStart(new char[] { '/' });
 
 							InputFileNames.Add(string.Format("\"{0}\"", AbsolutePath));
@@ -1240,10 +1250,10 @@ namespace UnrealBuildTool
 					LinkAction.CommandArguments += string.Format(" @\"{0}\"", ResponseFile.Create(ResponseFileName, InputFileNames));
 
 					// libs don't link in other libs
-					if (!LinkEnvironment.Config.bIsBuildingLibrary)
+					if (!LinkEnvironment.bIsBuildingLibrary)
 					{
 						// Add the library paths to the argument list.
-						foreach (string LibraryPath in LinkEnvironment.Config.LibraryPaths)
+						foreach (string LibraryPath in LinkEnvironment.LibraryPaths)
 						{
 							// LinkerPaths could be relative or absolute
 							string AbsoluteLibraryPath = ActionThread.ExpandEnvironmentVariables(LibraryPath);
@@ -1260,7 +1270,7 @@ namespace UnrealBuildTool
 
 						// add libraries in a library group
 						LinkAction.CommandArguments += string.Format(" -Wl,--start-group");
-						foreach (string AdditionalLibrary in LinkEnvironment.Config.AdditionalLibraries)
+						foreach (string AdditionalLibrary in LinkEnvironment.AdditionalLibraries)
 						{
 							if (!ShouldSkipLib(AdditionalLibrary, Arch, GPUArchitecture))
 							{
@@ -1281,7 +1291,7 @@ namespace UnrealBuildTool
 					}
 
 					// Add the additional arguments specified by the environment.
-					LinkAction.CommandArguments += LinkEnvironment.Config.AdditionalArguments;
+					LinkAction.CommandArguments += LinkEnvironment.AdditionalArguments;
 					LinkAction.CommandArguments = LinkAction.CommandArguments.Replace("\\", "/");
 
 					// Only execute linking on the local PC.
@@ -1292,7 +1302,7 @@ namespace UnrealBuildTool
 			return Outputs.ToArray();
 		}
 
-		public override void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts)
+		public override void ModifyBuildProducts(ReadOnlyTargetRules Target, UEBuildBinary Binary, List<string> Libraries, List<UEBuildBundleResource> BundleResources, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
 			// the binary will have all of the .so's in the output files, we need to trim down to the shared apk (which is what needs to go into the manifest)
 			if (Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
@@ -1318,7 +1328,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public override void StripSymbols(string SourceFileName, string TargetFileName)
+		public void StripSymbols(string SourceFileName, string TargetFileName)
 		{
 			File.Copy(SourceFileName, TargetFileName, true);
 

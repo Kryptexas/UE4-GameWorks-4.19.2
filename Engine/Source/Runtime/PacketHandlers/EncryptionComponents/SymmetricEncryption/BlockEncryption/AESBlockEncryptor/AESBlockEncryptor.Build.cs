@@ -5,7 +5,7 @@ using System.IO;
 
 public class AESBlockEncryptor : ModuleRules
 {
-    public AESBlockEncryptor(TargetInfo Target)
+    public AESBlockEncryptor(ReadOnlyTargetRules Target) : base(Target)
     {
         PublicDependencyModuleNames.AddRange(
             new string[] {

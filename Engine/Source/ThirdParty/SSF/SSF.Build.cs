@@ -3,7 +3,7 @@ using UnrealBuildTool;
 
 public class SSF : ModuleRules
 {
-    public SSF(TargetInfo Target)
+    public SSF(ReadOnlyTargetRules Target) : base(Target)
     {
         Type = ModuleType.External;
 

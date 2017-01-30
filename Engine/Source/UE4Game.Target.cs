@@ -6,26 +6,15 @@ using System.Collections.Generic;
 [SupportedPlatforms(UnrealPlatformClass.All)]
 public class UE4GameTarget : TargetRules
 {
-	public UE4GameTarget( TargetInfo Target )
+	public UE4GameTarget( TargetInfo Target ) : base(Target)
 	{
 		Type = TargetType.Game;
+		BuildEnvironment = TargetBuildEnvironment.Shared;
 
 		// Output to Engine/Binaries/<PLATFORM> even if built as monolithic
 		bOutputToEngineBinaries = true;
-	}
 
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutExtraModuleNames.Add("UE4Game");
-		// this is important - for some reason achievements etc intertwined with the onlinesubsystem and they saved without using a fake OSS. :/
-		//if (Target.Platform == UnrealTargetPlatform.HTML5)
-		//{
-		//	OutExtraModuleNames.Add("OnlineSubsystemNull");
-		//}
+		ExtraModuleNames.Add("UE4Game");
 	}
 
 	public override void SetupGlobalEnvironment(
@@ -46,10 +35,5 @@ public class UE4GameTarget : TargetRules
 			UEBuildConfiguration.bCompileFreeType = false;
 			UEBuildConfiguration.bCompileForSize = true;*/
 		}
-	}
-
-	public override bool ShouldUseSharedBuildEnvironment(TargetInfo Target)
-	{
-		return true;
 	}
 }

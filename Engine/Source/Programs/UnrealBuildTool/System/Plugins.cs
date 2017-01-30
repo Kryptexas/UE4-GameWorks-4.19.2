@@ -8,31 +8,51 @@ using System.Linq;
 
 namespace UnrealBuildTool
 {
+	/// <summary>
+	/// Where a plugin was loaded from
+	/// </summary>
 	public enum PluginLoadedFrom
 	{
-		// Plugin is built-in to the engine
+		/// <summary>
+		/// Plugin is built-in to the engine
+		/// </summary>
 		Engine,
 
-		// Project-specific plugin, stored within a game project directory
+		/// <summary>
+		/// Project-specific plugin, stored within a game project directory
+		/// </summary>
 		GameProject
 	}
 
+	/// <summary>
+	/// Information about a single plugin
+	/// </summary>
 	[DebuggerDisplay("\\{{File}\\}")]
 	public class PluginInfo
 	{
-		// Plugin name
+		/// <summary>
+		/// Plugin name
+		/// </summary>
 		public readonly string Name;
 
-		// Path to the plugin
+		/// <summary>
+		/// Path to the plugin
+		/// </summary>
 		public readonly FileReference File;
 
-		// Path to the plugin's root directory
+		/// <summary>
+		/// Path to the plugin's root directory
+		/// </summary>
 		public readonly DirectoryReference Directory;
 
-		// The plugin descriptor
+		/// <summary>
+		/// The plugin descriptor
+		/// </summary>
 		public PluginDescriptor Descriptor;
 
-		// Where does this plugin live?
+		/// <summary>
+		/// Where does this plugin live?
+		/// </summary>
 		public PluginLoadedFrom LoadedFrom;
 
 		/// <summary>
@@ -50,7 +70,10 @@ namespace UnrealBuildTool
 		}
 	}
 
-	public class Plugins
+	/// <summary>
+	/// Class for enumerating plugin metadata
+	/// </summary>
+	public static class Plugins
 	{
 		/// <summary>
 		/// Cache of plugins under each directory
@@ -93,7 +116,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Read all the plugins available to a given project
 		/// </summary>
-		/// <param name="EngineDir">Path to the engine directory</param>
+		/// <param name="EngineDirectoryName">Path to the engine directory</param>
 		/// <param name="ProjectFileName">Path to the project file (or null)</param>
         /// <param name="AdditionalDirectories">List of additional directories to scan for available plugins</param>
 		/// <returns>Sequence of PluginInfo objects, one for each discovered plugin</returns>
@@ -135,7 +158,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Read all the plugin descriptors under the given project directory
 		/// </summary>
-		/// <param name="EngineDirectory">The parent directory to look in.</param>
+		/// <param name="ProjectDirectory">The parent directory to look in.</param>
 		/// <returns>Sequence of the found PluginInfo object.</returns>
 		public static IReadOnlyList<PluginInfo> ReadProjectPlugins(DirectoryReference ProjectDirectory)
 		{
@@ -191,7 +214,7 @@ namespace UnrealBuildTool
 			if (!PluginFileCache.TryGetValue(ParentDirectory, out FileNames))
 			{
 				FileNames = new List<FileReference>();
-				if (ParentDirectory.Exists())
+				if (DirectoryReference.Exists(ParentDirectory))
 				{
 					EnumeratePluginsInternal(ParentDirectory, FileNames);
 				}
@@ -207,10 +230,10 @@ namespace UnrealBuildTool
 		/// <param name="FileNames">List of filenames. Will have all the discovered .uplugin files appended to it.</param>
 		static void EnumeratePluginsInternal(DirectoryReference ParentDirectory, List<FileReference> FileNames)
 		{
-			foreach (DirectoryReference ChildDirectory in ParentDirectory.EnumerateDirectoryReferences())
+			foreach (DirectoryReference ChildDirectory in DirectoryReference.EnumerateDirectories(ParentDirectory))
 			{
 				int InitialFileNamesCount = FileNames.Count;
-				foreach (FileReference PluginFile in ChildDirectory.EnumerateFileReferences("*.uplugin"))
+				foreach (FileReference PluginFile in DirectoryReference.EnumerateFiles(ChildDirectory, "*.uplugin"))
 				{
 					FileNames.Add(PluginFile);
 				}

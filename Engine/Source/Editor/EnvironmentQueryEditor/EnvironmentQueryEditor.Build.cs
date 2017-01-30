@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class EnvironmentQueryEditor : ModuleRules
 {
-	public EnvironmentQueryEditor(TargetInfo Target)
+	public EnvironmentQueryEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.AddRange(
             new string[] {

@@ -76,7 +76,7 @@ namespace BuildGraph.Tasks
 			IEnumerable<FileReference> Files;
 			if(Parameters.Files == null)
 			{
-				Files = FromDir.EnumerateFileReferences("*", System.IO.SearchOption.AllDirectories);
+				Files = DirectoryReference.EnumerateFiles(FromDir, "*", System.IO.SearchOption.AllDirectories);
 			}
 			else
 			{

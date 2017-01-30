@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class GameplayTasksEditor : ModuleRules
 	{
-        public GameplayTasksEditor(TargetInfo Target)
+        public GameplayTasksEditor(ReadOnlyTargetRules Target) : base(Target)
 		{
             PrivateIncludePaths.AddRange(
                 new string[] {

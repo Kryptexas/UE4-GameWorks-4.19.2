@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ShaderFormatVectorVM : ModuleRules
 {
-	public ShaderFormatVectorVM(TargetInfo Target)
+	public ShaderFormatVectorVM(ReadOnlyTargetRules Target) : base(Target)
 	{
         
         PrivateIncludePathModuleNames.AddRange(

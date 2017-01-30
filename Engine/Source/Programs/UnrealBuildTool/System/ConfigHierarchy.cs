@@ -205,7 +205,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="SectionName">Section name</param>
 		/// <param name="KeyName">Key name</param>
-		/// <param name="Value">Value associated with the specified key. If the key has more than one value, only the first one is returned</param>
+		/// <param name="Values">Value associated with the specified key. If the key has more than one value, only the first one is returned</param>
 		/// <returns>True if the key exists</returns>
 		public bool GetArray(string SectionName, string KeyName, out List<string> Values)
 		{
@@ -361,7 +361,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="SectionName">Section where the key is located</param>
 		/// <param name="KeyName">Key name</param>
-		/// <param name="Value">Copy of the list containing all values associated with the specified key</param>
+		/// <param name="Values">Copy of the list containing all values associated with the specified key</param>
 		/// <returns>True if the key exists</returns>
 		public bool TryGetValues(string SectionName, string KeyName, out IEnumerable<string> Values)
 		{

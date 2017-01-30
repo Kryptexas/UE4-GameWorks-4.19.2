@@ -5,27 +5,16 @@ using System.Collections.Generic;
 
 public class BlankProgramTarget : TargetRules
 {
-	public BlankProgramTarget(TargetInfo Target)
+	public BlankProgramTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
+		LaunchModuleName = "BlankProgram";
 	}
 
 	//
 	// TargetRules interface.
 	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutBuildBinaryConfigurations.Add(
-			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
-											InModuleNames: new List<string>() { "BlankProgram" } )
-			);
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,

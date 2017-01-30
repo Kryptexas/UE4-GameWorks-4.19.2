@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SuperSearch : ModuleRules
 {
-    public SuperSearch(TargetInfo Target)
+    public SuperSearch(ReadOnlyTargetRules Target) : base(Target)
     {
         if (UEBuildConfiguration.bBuildEditor == true)
         {

@@ -886,7 +886,7 @@ namespace AutomationTool
 		public static string RunAndLog(string App, string CommandLine, string Logfile = null, int MaxSuccessCode = 0, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> EnvVars = null, ProcessResult.SpewFilterCallbackType SpewFilterCallback = null)
         {
 			IProcessResult Result = Run(App, CommandLine, Input, Options, EnvVars, SpewFilterCallback);
-            if (Result.Output.Length > 0 && Logfile != null)
+            if (!String.IsNullOrEmpty(Result.Output) && Logfile != null)
             {
                 WriteToFile(Logfile, Result.Output);
             }
@@ -904,7 +904,7 @@ namespace AutomationTool
                 throw new CommandFailedException((ExitCode)Result.ExitCode, String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
                                                 App, CommandLine, Path.GetFileName(Logfile), Result.ExitCode));
             }
-            if (Result.Output.Length > 0)
+            if (!String.IsNullOrEmpty(Result.Output))
             {
                 return Result.Output;
             }

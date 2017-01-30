@@ -352,26 +352,14 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Excludes all restricted platform folders from the filter
-		/// </summary>
-		public void ExcludeConfidentialPlatforms()
-		{
-			AddRule(".../PS4/...", FileFilterType.Exclude);
-			AddRule(".../XboxOne/...", FileFilterType.Exclude);
-			AddRule(".../Switch/...", FileFilterType.Exclude);
-			AddRule(".../Wolf/...", FileFilterType.Exclude);
-			AddRule(".../WolfPlat/...", FileFilterType.Exclude);
-		}
-
-		/// <summary>
 		/// Excludes all confidential folders from the filter
 		/// </summary>
-		public void ExcludeConfidentialFolders()
+		public void ExcludeRestrictedFolders()
 		{
-			AddRule(".../EpicInternal/...", FileFilterType.Exclude);
-			AddRule(".../CarefullyRedist/...", FileFilterType.Exclude);
-			AddRule(".../NotForLicensees/...", FileFilterType.Exclude);
-			AddRule(".../NoRedist/...", FileFilterType.Exclude);
+			foreach(string RestrictedFolderName in PlatformExports.RestrictedFolderNames)
+			{
+				AddRule(String.Format(".../{0}/...", RestrictedFolderName), FileFilterType.Exclude);
+			}
 		}
 
 		/// <summary>

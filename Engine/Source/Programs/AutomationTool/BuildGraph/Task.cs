@@ -399,7 +399,7 @@ namespace AutomationTool
 				string IncludePattern = BaseDir.FullName.TrimEnd(new char[]{ Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }) + "/" + Pattern.Substring(LastDirectoryIdx + 1);
 
 				// Construct a filter and apply it to the directory
-				if(BaseDir.Exists())
+				if(DirectoryReference.Exists(BaseDir))
 				{
 					FileFilter Filter = new FileFilter();
 					Filter.AddRule(IncludePattern, FileFilterType.Include);

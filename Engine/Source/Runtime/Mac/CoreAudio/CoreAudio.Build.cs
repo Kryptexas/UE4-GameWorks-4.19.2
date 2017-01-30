@@ -5,7 +5,7 @@ using System.IO;
 
 public class CoreAudio : ModuleRules
 {
-	public CoreAudio(TargetInfo Target)
+	public CoreAudio(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
 

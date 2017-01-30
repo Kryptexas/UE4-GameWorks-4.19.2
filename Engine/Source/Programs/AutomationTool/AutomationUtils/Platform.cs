@@ -10,6 +10,31 @@ using UnrealBuildTool;
 
 namespace AutomationTool
 {
+    /// <summary>
+    /// Holds information for targeting specific platform (platform type + cook flavor)
+    /// </summary>
+    public struct TargetPlatformDescriptor
+    {
+        public UnrealTargetPlatform Type;
+        public string CookFlavor;
+
+        public TargetPlatformDescriptor(UnrealTargetPlatform InType)
+        {
+            Type = InType;
+            CookFlavor = "";
+        }
+        public TargetPlatformDescriptor(UnrealTargetPlatform InType, string InCookFlavor)
+        {
+            Type = InType;
+            CookFlavor = InCookFlavor;
+        }
+
+        public override string ToString()
+        {
+            return Type.ToString();
+        }
+    }
+
 	/// <summary>
 	/// Platform abstraction layer.
 	/// </summary>
@@ -510,6 +535,28 @@ namespace AutomationTool
 			}
 			return new List<string>() { CmdLine };
 		}
+
+		public virtual void StripSymbols(string SourceFileName, string TargetFileName)
+		{
+			CommandUtils.LogWarning("StripSymbols() has not been implemented for {0}; copying files", PlatformType.ToString());
+			File.Copy(SourceFileName, TargetFileName, true);
+		}
+
+        public virtual bool PublishSymbols(DirectoryReference SymbolStoreDirectory, List<FileReference> Files, string Product)
+        {
+            CommandUtils.LogWarning("PublishSymbols() has not been implemented for {0}", PlatformType.ToString());
+            return false;
+        }
+
+        /// <summary>
+        /// When overridden, returns the directory structure of the platform's symbol server.
+        /// Each element is a semi-colon separated string of possible directory names.
+        /// The * wildcard is allowed in any entry. {0} will be substituted for a custom filter string.
+        /// </summary>
+        public virtual string[] SymbolServerDirectoryStructure
+        {
+             get { return null; }
+        }
 
 		#region Hooks
 

@@ -2,6 +2,7 @@
 
 #include "UnrealWatchdog.h"
 #include "WatchdogAnalytics.h"
+#include "HAL/PlatformProcess.h"
 #include "Windows/WindowsHWrapper.h"
 
 /**

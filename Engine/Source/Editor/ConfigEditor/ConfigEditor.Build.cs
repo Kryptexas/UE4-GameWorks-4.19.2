@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ConfigEditor : ModuleRules
 {
-	public ConfigEditor(TargetInfo Target)
+	public ConfigEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
 			new string[] {

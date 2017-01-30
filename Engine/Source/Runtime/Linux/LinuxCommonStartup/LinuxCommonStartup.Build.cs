@@ -5,12 +5,12 @@ using System.IO;
 
 public class LinuxCommonStartup : ModuleRules
 {
-	public LinuxCommonStartup(TargetInfo Target)
+	public LinuxCommonStartup(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.Add("Core");
 		PrivateDependencyModuleNames.Add("Projects");
 		
-		if (Target.Type == TargetRules.TargetType.Editor)
+		if (Target.Type == TargetType.Editor)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {

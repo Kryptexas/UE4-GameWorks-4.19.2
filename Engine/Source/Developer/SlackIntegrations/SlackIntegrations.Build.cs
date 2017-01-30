@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SlackIntegrations : ModuleRules
 {
-    public SlackIntegrations(TargetInfo Target)
+    public SlackIntegrations(ReadOnlyTargetRules Target) : base(Target)
     {
 		PublicIncludePaths.Add("Developer/SlackIntegrations/Public");
 

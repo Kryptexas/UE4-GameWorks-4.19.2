@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class QualcommTextureConverter : ModuleRules
 {
-	public QualcommTextureConverter(TargetInfo Target)
+	public QualcommTextureConverter(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

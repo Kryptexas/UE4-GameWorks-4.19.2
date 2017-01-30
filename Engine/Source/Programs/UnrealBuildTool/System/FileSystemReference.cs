@@ -10,6 +10,89 @@ using System.Threading.Tasks;
 namespace UnrealBuildTool
 {
 	/// <summary>
+	/// Represents a case-insensitive name in the filesystem
+	/// </summary>
+	public class FileSystemName
+	{
+		/// <summary>
+		/// Name as it should be displayed
+		/// </summary>
+		public readonly string DisplayName;
+
+		/// <summary>
+		/// The canonical form of the name
+		/// </summary>
+		public readonly string CanonicalName;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="DisplayName">The display name</param>
+		public FileSystemName(string DisplayName)
+		{
+			this.DisplayName = DisplayName;
+			CanonicalName = DisplayName.ToLowerInvariant();
+		}
+
+		/// <summary>
+		/// Compares two filesystem object names for equality. Uses the canonical name representation, not the display name representation.
+		/// </summary>
+		/// <param name="A">First object to compare.</param>
+		/// <param name="B">Second object to compare.</param>
+		/// <returns>True if the names represent the same object, false otherwise</returns>
+		public static bool operator ==(FileSystemName A, FileSystemName B)
+		{
+			if ((object)A == null)
+			{
+				return (object)B == null;
+			}
+			else
+			{
+				return (object)B != null && A.CanonicalName == B.CanonicalName;
+			}
+		}
+
+		/// <summary>
+		/// Compares two filesystem object names for inequality. Uses the canonical name representation, not the display name representation.
+		/// </summary>
+		/// <param name="A">First object to compare.</param>
+		/// <param name="B">Second object to compare.</param>
+		/// <returns>False if the names represent the same object, true otherwise</returns>
+		public static bool operator !=(FileSystemName A, FileSystemName B)
+		{
+			return !(A == B);
+		}
+
+		/// <summary>
+		/// Compares against another object for equality.
+		/// </summary>
+		/// <param name="Obj">other instance to compare.</param>
+		/// <returns>True if the names represent the same object, false otherwise</returns>
+		public override bool Equals(object Obj)
+		{
+			return (Obj is FileSystemName) && ((FileSystemName)Obj) == this;
+		}
+
+		/// <summary>
+		/// Returns a hash code for this object
+		/// </summary>
+		/// <returns>Hash code for this object</returns>
+		public override int GetHashCode()
+		{
+			return base.GetHashCode();
+		}
+
+		/// <summary>
+		/// Returns the display name
+		/// </summary>
+		/// <returns>The display name</returns>
+		public override string ToString()
+		{
+			return DisplayName;
+		}
+	}
+
+	/// <summary>
 	/// Base class for file system objects (files or directories).
 	/// </summary>
 	[Serializable]
@@ -141,13 +224,100 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Determines if the given object is at or under the given directory
 		/// </summary>
-		/// <param name="Directory"></param>
-		/// <returns></returns>
+		/// <param name="Other">Directory to check against</param>
+		/// <returns>True if this path is under the given directory</returns>
 		public bool IsUnderDirectory(DirectoryReference Other)
 		{
 			return CanonicalName.StartsWith(Other.CanonicalName) && (CanonicalName.Length == Other.CanonicalName.Length || CanonicalName[Other.CanonicalName.Length] == Path.DirectorySeparatorChar);
 		}
 
+		/// <summary>
+		/// Searches the path fragments for the given name. Only complete fragments are considered a match.
+		/// </summary>
+		/// <param name="Name">Name to check for</param>
+		/// <param name="Offset">Offset within the string to start the search</param>
+		/// <returns>True if the given name is found within the path</returns>
+		public bool ContainsName(FileSystemName Name, int Offset)
+		{
+			return ContainsName(Name, Offset, FullName.Length - Offset);
+		}
+
+		/// <summary>
+		/// Searches the path fragments for the given name. Only complete fragments are considered a match.
+		/// </summary>
+		/// <param name="Name">Name to check for</param>
+		/// <param name="Offset">Offset within the string to start the search</param>
+		/// <param name="Length">Length of the substring to search</param>
+		/// <returns>True if the given name is found within the path</returns>
+		public bool ContainsName(FileSystemName Name, int Offset, int Length)
+		{
+			// Check the substring to search is at least long enough to contain a match
+			if(Length < Name.CanonicalName.Length)
+			{
+				return false;
+			}
+
+			// Find each occurence of the name within the remaining string, then test whether it's surrounded by directory separators
+			int MatchIdx = Offset;
+			for(;;)
+			{
+				// Find the next occurrence
+				MatchIdx = CanonicalName.IndexOf(Name.CanonicalName, MatchIdx, Offset + Length - MatchIdx);
+				if(MatchIdx == -1)
+				{
+					return false;
+				}
+
+				// Check if the substring is a directory
+				int MatchEndIdx = MatchIdx + Name.CanonicalName.Length;
+				if(CanonicalName[MatchIdx - 1] == Path.DirectorySeparatorChar && (MatchEndIdx == CanonicalName.Length || CanonicalName[MatchEndIdx] == Path.DirectorySeparatorChar))
+				{
+					return true;
+				}
+
+				// Move past the string that didn't match
+				MatchIdx += Name.CanonicalName.Length;
+			}
+		}
+
+		/// <summary>
+		/// Determines if the given object is under the given directory, within a subfolder of the given name. Useful for masking out directories by name.
+		/// </summary>
+		/// <param name="Name">Name of a subfolder to also check for</param>
+		/// <param name="BaseDir">Base directory to check against</param>
+		/// <returns>True if the path is under the given directory</returns>
+		public bool ContainsName(FileSystemName Name, DirectoryReference BaseDir)
+		{
+			// Check that this is under the base directory
+			if(!IsUnderDirectory(BaseDir))
+			{
+				return false;
+			}
+			else
+			{
+				return ContainsName(Name, BaseDir.FullName.Length);
+			}
+		}
+
+		/// <summary>
+		/// Determines if the given object is under the given directory, within a subfolder of the given name. Useful for masking out directories by name.
+		/// </summary>
+		/// <param name="Names">Names of subfolders to also check for</param>
+		/// <param name="BaseDir">Base directory to check against</param>
+		/// <returns>True if the path is under the given directory</returns>
+		public bool ContainsAnyNames(FileSystemName[] Names, DirectoryReference BaseDir)
+		{
+			// Check that this is under the base directory
+			if(!IsUnderDirectory(BaseDir))
+			{
+				return false;
+			}
+			else
+			{
+				return Names.Any(x => ContainsName(x, BaseDir.FullName.Length));
+			}
+		}
+		
 		/// <summary>
 		/// Creates a relative path from the given base directory
 		/// </summary>
@@ -276,7 +446,7 @@ namespace UnrealBuildTool
 		/// <returns>Path to the directory, with the correct trailing path separator</returns>
 		private static string FixTrailingPathSeparator(string DirName)
 		{
-			if(DirName.Length == 2 && DirName[2] == ':')
+			if(DirName.Length == 2 && DirName[1] == ':')
 			{
 				return DirName + Path.DirectorySeparatorChar;
 			}
@@ -338,37 +508,45 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates the directory
+		/// Contains the current directory
 		/// </summary>
-		public void CreateDirectory()
+		public static DirectoryReference GetCurrentDirectory()
 		{
-			Directory.CreateDirectory(FullName);
+			return new DirectoryReference(Directory.GetCurrentDirectory());
+		}
+
+		/// <summary>
+		/// Creates a directory
+		/// </summary>
+		public static void CreateDirectory(DirectoryReference Location)
+		{
+			Directory.CreateDirectory(Location.FullName);
 		}
 
         /// <summary>
-        /// Removes the directory
+        /// Deletes a directory
         /// </summary>
-        public void RemoveDirectory()
+        public static void Delete(DirectoryReference Location, bool bRecursive)
         {
-            Directory.Delete(FullName, true);
+            Directory.Delete(Location.FullName, bRecursive);
         }
 
         /// <summary>
         /// Checks whether the directory exists
         /// </summary>
         /// <returns>True if this directory exists</returns>
-        public bool Exists()
+        public static bool Exists(DirectoryReference Location)
 		{
-			return Directory.Exists(FullName);
+			return Directory.Exists(Location.FullName);
 		}
 
 		/// <summary>
 		/// Enumerate files from a given directory
 		/// </summary>
 		/// <returns>Sequence of file references</returns>
-		public IEnumerable<FileReference> EnumerateFileReferences()
+		public static IEnumerable<FileReference> EnumerateFiles(DirectoryReference BaseDir)
 		{
-			foreach (string FileName in Directory.EnumerateFiles(FullName))
+			foreach (string FileName in Directory.EnumerateFiles(BaseDir.FullName))
 			{
 				yield return FileReference.MakeFromNormalizedFullPath(FileName);
 			}
@@ -378,9 +556,9 @@ namespace UnrealBuildTool
 		/// Enumerate files from a given directory
 		/// </summary>
 		/// <returns>Sequence of file references</returns>
-		public IEnumerable<FileReference> EnumerateFileReferences(string Pattern)
+		public static IEnumerable<FileReference> EnumerateFiles(DirectoryReference BaseDir, string Pattern)
 		{
-			foreach (string FileName in Directory.EnumerateFiles(FullName, Pattern))
+			foreach (string FileName in Directory.EnumerateFiles(BaseDir.FullName, Pattern))
 			{
 				yield return FileReference.MakeFromNormalizedFullPath(FileName);
 			}
@@ -390,9 +568,9 @@ namespace UnrealBuildTool
 		/// Enumerate files from a given directory
 		/// </summary>
 		/// <returns>Sequence of file references</returns>
-		public IEnumerable<FileReference> EnumerateFileReferences(string Pattern, SearchOption Option)
+		public static IEnumerable<FileReference> EnumerateFiles(DirectoryReference BaseDir, string Pattern, SearchOption Option)
 		{
-			foreach (string FileName in Directory.EnumerateFiles(FullName, Pattern, Option))
+			foreach (string FileName in Directory.EnumerateFiles(BaseDir.FullName, Pattern, Option))
 			{
 				yield return FileReference.MakeFromNormalizedFullPath(FileName);
 			}
@@ -402,9 +580,9 @@ namespace UnrealBuildTool
 		/// Enumerate subdirectories in a given directory
 		/// </summary>
 		/// <returns>Sequence of directory references</returns>
-		public IEnumerable<DirectoryReference> EnumerateDirectoryReferences()
+		public static IEnumerable<DirectoryReference> EnumerateDirectories(DirectoryReference BaseDir)
 		{
-			foreach (string DirectoryName in Directory.EnumerateDirectories(FullName))
+			foreach (string DirectoryName in Directory.EnumerateDirectories(BaseDir.FullName))
 			{
 				yield return DirectoryReference.MakeFromNormalizedFullPath(DirectoryName);
 			}
@@ -414,9 +592,9 @@ namespace UnrealBuildTool
 		/// Enumerate subdirectories in a given directory
 		/// </summary>
 		/// <returns>Sequence of directory references</returns>
-		public IEnumerable<DirectoryReference> EnumerateDirectoryReferences(string Pattern)
+		public static IEnumerable<DirectoryReference> EnumerateDirectories(DirectoryReference BaseDir, string Pattern)
 		{
-			foreach (string DirectoryName in Directory.EnumerateDirectories(FullName, Pattern))
+			foreach (string DirectoryName in Directory.EnumerateDirectories(BaseDir.FullName, Pattern))
 			{
 				yield return DirectoryReference.MakeFromNormalizedFullPath(DirectoryName);
 			}
@@ -426,9 +604,9 @@ namespace UnrealBuildTool
 		/// Enumerate subdirectories in a given directory
 		/// </summary>
 		/// <returns>Sequence of directory references</returns>
-		public IEnumerable<DirectoryReference> EnumerateDirectoryReferences(string Pattern, SearchOption Option)
+		public static IEnumerable<DirectoryReference> EnumerateDirectories(DirectoryReference BaseDir, string Pattern, SearchOption Option)
 		{
-			foreach (string DirectoryName in Directory.EnumerateDirectories(FullName, Pattern, Option))
+			foreach (string DirectoryName in Directory.EnumerateDirectories(BaseDir.FullName, Pattern, Option))
 			{
 				yield return DirectoryReference.MakeFromNormalizedFullPath(DirectoryName);
 			}
@@ -575,7 +753,6 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Default constructor.
 		/// </summary>
-		/// <param name="InPath">Path to this file</param>
 		protected FileReference(string InFullName, string InCanonicalName)
 			: base(InFullName, InCanonicalName)
 		{
@@ -651,17 +828,17 @@ namespace UnrealBuildTool
 		/// Determines whether the given filename exists
 		/// </summary>
 		/// <returns>True if it exists, false otherwise</returns>
-		public bool Exists()
+		public static bool Exists(FileReference Location)
 		{
-			return File.Exists(FullName);
+			return File.Exists(Location.FullName);
 		}
 
 		/// <summary>
 		/// Deletes this file
 		/// </summary>
-		public void Delete()
+		public static void Delete(FileReference Location)
 		{
-			File.Delete(FullName);
+			File.Delete(Location.FullName);
 		}
 
 		/// <summary>
@@ -773,6 +950,7 @@ namespace UnrealBuildTool
 		/// Manually serialize a file reference to a binary stream.
 		/// </summary>
 		/// <param name="Writer">Binary writer to write to</param>
+		/// <param name="File">The file reference to write</param>
 		public static void Write(this BinaryWriter Writer, FileReference File)
 		{
 			Writer.Write((File == null) ? String.Empty : File.FullName);
@@ -782,6 +960,7 @@ namespace UnrealBuildTool
 		/// Manually serialize a file reference to a binary stream.
 		/// </summary>
 		/// <param name="Writer">Binary writer to write to</param>
+		/// <param name="Directory">The directory reference to write</param>
 		public static void Write(this BinaryWriter Writer, DirectoryReference Directory)
 		{
 			Writer.Write((Directory == null) ? String.Empty : Directory.FullName);

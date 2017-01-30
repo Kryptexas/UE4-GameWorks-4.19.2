@@ -15,7 +15,7 @@ namespace UnrealBuildTool
 	/// FileItems are created by calling FileItem.GetItemByFileReference, which creates a single FileItem for each unique file path.
 	/// </summary>
 	[Serializable]
-	public class FileItem : ISerializable
+	class FileItem : ISerializable
 	{
 		///
 		/// Preparation and Assembly (serialized)
@@ -52,58 +52,24 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// For C++ file items, this stores cached information about the include paths needed in order to include header files from these C++ files.  This is part of UBT's dependency caching optimizations.
 		/// </summary>
-		public CPPIncludeInfo CachedCPPIncludeInfo
+		public CppIncludePaths CachedIncludePaths
 		{
 			get
 			{
-				return _CachedCPPIncludeInfo;
+				return CachedIncludePathsValue;
 			}
 			set
 			{
-				if (value != null && _CachedCPPIncludeInfo != null && _CachedCPPIncludeInfo != value)
+				if (value != null && CachedIncludePathsValue != null && CachedIncludePathsValue != value)
 				{
 					// Uh oh.  We're clobbering our cached CompileEnvironment for this file with a different CompileEnvironment.  This means
-					// that the same source file is being compiled into more than one module. (e.g. PCLaunch.rc)
-
-					// @todo ubtmake: The only expected offender here is PCLaunch.rc and friends, which are injected by UBT into every module when not compiling monolithic.
-					// PCLaunch.rc and ModuleVersionResource.rc.inl are "safe" because they do not include any headers that would be affected by include path order.
-					// ==> Ideally we would use a different "shared" CompileEnvironment for these injected .rc files, so their include paths would not change
-					// ==> OR, we can make an Intermediate copy of the .rc file for each module (easier)
-					if (!AbsolutePath.EndsWith("PCLaunch.rc", StringComparison.InvariantCultureIgnoreCase) &&
-						!AbsolutePath.EndsWith("ModuleVersionResource.rc.inl", StringComparison.InvariantCultureIgnoreCase))
-					{
-						// Let's make sure the include paths are the same
-						// @todo ubtmake: We have not seen examples of this actually firing off, so we could probably remove the check for matching includes and simply always make this an error case
-						List<string> CachedIncludePathsToSearch = _CachedCPPIncludeInfo.GetIncludesPathsToSearch(this);
-						List<string> NewIncludePathsToSearch = value.GetIncludesPathsToSearch(this);
-
-						bool bIncludesAreDifferent = false;
-						if (CachedIncludePathsToSearch.Count != NewIncludePathsToSearch.Count)
-						{
-							bIncludesAreDifferent = true;
-						}
-						else
-						{
-							for (int IncludeIndex = 0; IncludeIndex < CachedIncludePathsToSearch.Count; ++IncludeIndex)
-							{
-								if (!CachedIncludePathsToSearch[IncludeIndex].Equals(NewIncludePathsToSearch[IncludeIndex], StringComparison.InvariantCultureIgnoreCase))
-								{
-									bIncludesAreDifferent = true;
-									break;
-								}
-							}
-						}
-
-						if (bIncludesAreDifferent)
-						{
-							throw new BuildException("File '{0}' was included by multiple modules, but with different include paths", this.Info.FullName);
-						}
-					}
+					// that the same source file is being compiled into more than one module.
+					throw new BuildException("File '{0}' was included by multiple modules, but with different include paths", this.Info.FullName);
 				}
-				_CachedCPPIncludeInfo = value;
+				CachedIncludePathsValue = value;
 			}
 		}
-		public CPPIncludeInfo _CachedCPPIncludeInfo;
+		private CppIncludePaths CachedIncludePathsValue;
 
 
 		///
@@ -329,7 +295,7 @@ namespace UnrealBuildTool
 			Directory.CreateDirectory(Path.GetDirectoryName(AbsolutePath.FullName));
 
 			// Only write the file if its contents have changed.
-			if (!AbsolutePath.Exists() || !String.Equals(Utils.ReadAllText(AbsolutePath.FullName), Contents, StringComparison.InvariantCultureIgnoreCase))
+			if (!FileReference.Exists(AbsolutePath) || !String.Equals(Utils.ReadAllText(AbsolutePath.FullName), Contents, StringComparison.InvariantCultureIgnoreCase))
 			{
 				File.WriteAllText(AbsolutePath.FullName, Contents, GetEncodingForString(Contents));
 			}
@@ -414,7 +380,7 @@ namespace UnrealBuildTool
 			Reference = (FileReference)SerializationInfo.GetValue("fi", typeof(FileReference));
 			bIsRemoteFile = SerializationInfo.GetBoolean("rf");
 			bNeedsHotReloadNumbersDLLCleanUp = SerializationInfo.GetBoolean("hr");
-			CachedCPPIncludeInfo = (CPPIncludeInfo)SerializationInfo.GetValue("ci", typeof(CPPIncludeInfo));
+			CachedIncludePaths = (CppIncludePaths)SerializationInfo.GetValue("ci", typeof(CppIncludePaths));
 
 			// Go ahead and init normally now
 			{
@@ -451,7 +417,7 @@ namespace UnrealBuildTool
 			SerializationInfo.AddValue("fi", Reference);
 			SerializationInfo.AddValue("rf", bIsRemoteFile);
 			SerializationInfo.AddValue("hr", bNeedsHotReloadNumbersDLLCleanUp);
-			SerializationInfo.AddValue("ci", CachedCPPIncludeInfo);
+			SerializationInfo.AddValue("ci", CachedIncludePaths);
 		}
 
 

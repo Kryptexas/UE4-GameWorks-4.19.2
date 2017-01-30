@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AutomationWindow : ModuleRules
 	{
-		public AutomationWindow(TargetInfo Target)
+		public AutomationWindow(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[] {

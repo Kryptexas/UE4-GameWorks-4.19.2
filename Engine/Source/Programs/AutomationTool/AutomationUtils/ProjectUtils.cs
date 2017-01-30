@@ -35,39 +35,9 @@ namespace AutomationTool
 		public bool bIsCodeBasedProject;
 
 		/// <summary>
-		/// Whether the project uses Steam (todo: substitute with more generic functionality)
-		/// </summary>
-		public bool bUsesSteam;
-
-		/// <summary>
-		/// Whether the project uses CEF3
-		/// </summary>
-		public bool bUsesCEF3;
-
-		/// <summary>
-		/// Whether the project uses visual Slate UI (as opposed to the low level windowing/messaging which is always used)
-		/// </summary>
-		public bool bUsesSlate = true;
-
-		/// <summary>
-		/// Hack for legacy game styling isses.  No new project should ever set this to true
-		/// Whether the project uses the Slate editor style in game.  
-		/// </summary>
-		public bool bUsesSlateEditorStyle = false;
-
-        /// <summary>
-        // By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
-        // Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
-        // our third party library dependencies to also be compiled using the Debug CRT (and often perform more slowly.)  Often
-        // it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
-        // so that you can debug your program's code.
-        /// </summary>
-        public bool bDebugBuildsActuallyUseDebugCRT = false;
-
-		/// <summary>
 		/// List of all targets detected for this project.
 		/// </summary>
-		public Dictionary<TargetRules.TargetType, SingleTargetProperties> Targets = new Dictionary<TargetRules.TargetType, SingleTargetProperties>();
+		public Dictionary<TargetType, SingleTargetProperties> Targets = new Dictionary<TargetType, SingleTargetProperties>();
 
 		/// <summary>
 		/// List of all Engine ini files for this project
@@ -204,59 +174,59 @@ namespace AutomationTool
 			}
 
 			// Change the working directory to be the Engine/Source folder. We are running from Engine/Binaries/DotNET
-			string oldCWD = Directory.GetCurrentDirectory();
-			if (BuildConfiguration.RelativeEnginePath == "../../Engine/")
+			DirectoryReference oldCWD = DirectoryReference.GetCurrentDirectory();
+			try
 			{
-				string EngineSourceDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()), "..", "..", "..", "Engine", "Source");
-				if (!Directory.Exists(EngineSourceDirectory)) // only set the directory if it exists, this should only happen if we are launching the editor from an artist sync
+				DirectoryReference EngineSourceDirectory = DirectoryReference.Combine(CommandUtils.EngineDirectory, "Source");
+				if (!DirectoryReference.Exists(EngineSourceDirectory)) // only set the directory if it exists, this should only happen if we are launching the editor from an artist sync
 				{
-                    EngineSourceDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()), "..", "..", "..", "Engine", "Binaries");
+					EngineSourceDirectory = DirectoryReference.Combine(CommandUtils.EngineDirectory, "Binaries");
 				}
-				Directory.SetCurrentDirectory(EngineSourceDirectory);
-			}
+				Directory.SetCurrentDirectory(EngineSourceDirectory.FullName);
 
-			// Read the project descriptor, and find all the plugins available to this project
-			ProjectDescriptor Project = ProjectDescriptor.FromFile(RawProjectPath.FullName);
-            DirectoryReference EngineDirectory = new DirectoryReference(BuildConfiguration.RelativeEnginePath);
-            List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(EngineDirectory, RawProjectPath, Project.AdditionalPluginDirectories);
+				// Read the project descriptor, and find all the plugins available to this project
+				ProjectDescriptor Project = ProjectDescriptor.FromFile(RawProjectPath.FullName);
+				List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(CommandUtils.EngineDirectory, RawProjectPath, Project.AdditionalPluginDirectories);
 
-			// check the target platforms for any differences in build settings or additional plugins
-			bool RetVal = false;
-			foreach (UnrealTargetPlatform TargetPlatformType in TargetPlatforms)
-			{
-				UEBuildPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(TargetPlatformType, true);
-				if (!Automation.IsEngineInstalled() && BuildPlat != null && !(BuildPlat as UEBuildPlatform).HasDefaultBuildConfig(TargetPlatformType, RawProjectPath.Directory))
+				// check the target platforms for any differences in build settings or additional plugins
+				bool RetVal = false;
+				foreach (UnrealTargetPlatform TargetPlatformType in TargetPlatforms)
 				{
-					RetVal = true;
-					break;
-				}
-
-				// find if there are any plugins enabled or disabled which differ from the default
-				foreach(PluginInfo Plugin in AvailablePlugins)
-				{
-					bool bPluginEnabledForProject = UProjectInfo.IsPluginEnabledForProject(Plugin, Project, TargetPlatformType, TargetRules.TargetType.Game);
-					if ((bPluginEnabledForProject && !Plugin.Descriptor.bEnabledByDefault) || (bPluginEnabledForProject && Plugin.Descriptor.bInstalled))
+					if(!Automation.IsEngineInstalled() && !PlatformExports.HasDefaultBuildConfig(RawProjectPath, TargetPlatformType))
 					{
-						// NOTE: this code was only marking plugins that compiled for the platform to upgrade to code project, however
-						// this doesn't work in practice, because the runtime code will look for the plugin, without a .uplugin file,
-						// and will fail. This is the safest way to make sure all platforms are acting the same. However, if you 
-						// whitelist the plugin in the .uproject file, the above UProjectInfo.IsPluginEnabledForProject check won't pass
-						// so you won't get in here. Leaving this commented out code in there, because someone is bound to come looking 
-						// for why a non-whitelisted platform module is causing a project to convert to code-based. 
-						// As an aside, if you run the project with UE4Game (not your Project's binary) from the debugger, it will work
-						// _in this case_ because the .uplugin file will have been staged, and there is no needed library 
-						// if(Plugin.Descriptor.Modules.Any(Module => Module.IsCompiledInConfiguration(TargetPlatformType, TargetRules.TargetType.Game, bBuildDeveloperTools: false, bBuildEditor: false)))
+						RetVal = true;
+						break;
+					}
+
+					// find if there are any plugins enabled or disabled which differ from the default
+					foreach(PluginInfo Plugin in AvailablePlugins)
+					{
+						bool bPluginEnabledForProject = UProjectInfo.IsPluginEnabledForProject(Plugin, Project, TargetPlatformType, TargetType.Game);
+						if ((bPluginEnabledForProject && !Plugin.Descriptor.bEnabledByDefault) || (bPluginEnabledForProject && Plugin.Descriptor.bInstalled))
 						{
-							RetVal = true;
-							break;
+							// NOTE: this code was only marking plugins that compiled for the platform to upgrade to code project, however
+							// this doesn't work in practice, because the runtime code will look for the plugin, without a .uplugin file,
+							// and will fail. This is the safest way to make sure all platforms are acting the same. However, if you 
+							// whitelist the plugin in the .uproject file, the above UProjectInfo.IsPluginEnabledForProject check won't pass
+							// so you won't get in here. Leaving this commented out code in there, because someone is bound to come looking 
+							// for why a non-whitelisted platform module is causing a project to convert to code-based. 
+							// As an aside, if you run the project with UE4Game (not your Project's binary) from the debugger, it will work
+							// _in this case_ because the .uplugin file will have been staged, and there is no needed library 
+							// if(Plugin.Descriptor.Modules.Any(Module => Module.IsCompiledInConfiguration(TargetPlatformType, TargetType.Game, bBuildDeveloperTools: false, bBuildEditor: false)))
+							{
+								RetVal = true;
+								break;
+							}
 						}
 					}
 				}
+				return RetVal;
 			}
-
-			// Change back to the original directory
-			Directory.SetCurrentDirectory(oldCWD);
-			return RetVal;
+			finally
+			{
+				// Change back to the original directory
+				Directory.SetCurrentDirectory(oldCWD.FullName);
+			}
 		}
 
 		private static void GenerateTempTarget(FileReference RawProjectPath)
@@ -378,16 +348,16 @@ namespace AutomationTool
 		/// <param name="TargetType">Target type.</param>
 		/// <param name="bIsUProjectFile">True if uproject file.</param>
 		/// <returns>Binaries path.</returns>
-		public static string GetClientProjectBinariesRootPath(FileReference RawProjectPath, TargetRules.TargetType TargetType, bool bIsCodeBasedProject)
+		public static string GetClientProjectBinariesRootPath(FileReference RawProjectPath, TargetType TargetType, bool bIsCodeBasedProject)
 		{
 			var BinPath = String.Empty;
 			switch (TargetType)
 			{
-				case TargetRules.TargetType.Program:
+				case TargetType.Program:
 					BinPath = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries");
 					break;
-				case TargetRules.TargetType.Client:
-				case TargetRules.TargetType.Game:
+				case TargetType.Client:
+				case TargetType.Game:
 					if (!bIsCodeBasedProject)
 					{
 						BinPath = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries");
@@ -425,7 +395,7 @@ namespace AutomationTool
 		/// <param name="ExtraSearchPaths">Additional search paths.</param>
 		private static void DetectTargetsForProject(ProjectProperties Properties, List<string> ExtraSearchPaths = null)
 		{
-			Properties.Targets = new Dictionary<TargetRules.TargetType, SingleTargetProperties>();
+			Properties.Targets = new Dictionary<TargetType, SingleTargetProperties>();
 			FileReference TargetsDllFilename;
 			string FullProjectPath = null;
 
@@ -519,16 +489,22 @@ namespace AutomationTool
 						"System.dll", 
 						"System.Core.dll", 
 						"System.Xml.dll", 
-						typeof(UnrealBuildTool.UnrealBuildTool).Assembly.Location
+						typeof(UnrealBuildTool.PlatformExports).Assembly.Location
 					};
 			var TargetsDLL = DynamicCompilation.CompileAndLoadAssembly(TargetsDllFilename, TargetScripts, ReferencedAssemblies, null, DoNotCompile);
-			var DummyTargetInfo = new TargetInfo(BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, "");
 			var AllCompiledTypes = TargetsDLL.GetTypes();
 			foreach (Type TargetType in AllCompiledTypes)
 			{
 				// Find TargetRules but skip all "UE4Editor", "UE4Game" targets.
 				if (typeof(TargetRules).IsAssignableFrom(TargetType))
 				{
+					string TargetName = GetTargetName(TargetType);
+
+					FileReference ProjectFile;
+					UProjectInfo.TryGetProjectForTarget(TargetName, out ProjectFile);
+
+					var DummyTargetInfo = new TargetInfo(TargetName, BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, "", ProjectFile);
+
 					// Create an instance of this type
 					CommandUtils.LogVerbose("Creating target rules object: {0}", TargetType.Name);
 					var Rules = Activator.CreateInstance(TargetType, DummyTargetInfo) as TargetRules;
@@ -536,9 +512,8 @@ namespace AutomationTool
 
 					SingleTargetProperties TargetData;
 					TargetData.TargetName = GetTargetName(TargetType);
-                    Rules.TargetName = TargetData.TargetName;
 					TargetData.Rules = Rules;
-					if (Rules.Type == TargetRules.TargetType.Program)
+					if (Rules.Type == global::UnrealBuildTool.TargetType.Program)
 					{
 						Properties.Programs.Add(TargetData);
 					}
@@ -546,11 +521,6 @@ namespace AutomationTool
 					{
 						Properties.Targets.Add(Rules.Type, TargetData);
 					}
-
-					Properties.bUsesSteam |= Rules.bUsesSteam;
-					Properties.bUsesCEF3 |= Rules.bUsesCEF3;
-					Properties.bUsesSlate |= Rules.bUsesSlate;
-                    Properties.bDebugBuildsActuallyUseDebugCRT |= Rules.bDebugBuildsActuallyUseDebugCRT;
 				}
 			}
 		}
@@ -617,11 +587,11 @@ namespace AutomationTool
     public class BranchInfo
     {
 
-        public static List<TargetRules.TargetType> MonolithicKinds = new List<TargetRules.TargetType>
+        public static List<TargetType> MonolithicKinds = new List<TargetType>
         {
-            TargetRules.TargetType.Game,
-            TargetRules.TargetType.Client,
-            TargetRules.TargetType.Server,
+            TargetType.Game,
+            TargetType.Client,
+            TargetType.Server,
         };
 
 		[DebuggerDisplay("{GameName}")]
@@ -652,7 +622,7 @@ namespace AutomationTool
             {
                 GameName = "UE4";
                 Properties = ProjectUtils.GetProjectProperties(null);
-                if (!Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
+                if (!Properties.Targets.ContainsKey(TargetType.Editor))
                 {
                     throw new AutomationException("Base UE4 project did not contain an editor target.");
                 }
@@ -662,9 +632,6 @@ namespace AutomationTool
                 CommandUtils.LogVerbose("    ShortName:    " + GameName);
 				CommandUtils.LogVerbose("      FilePath          : " + FilePath);
 				CommandUtils.LogVerbose("      bIsCodeBasedProject  : " + (Properties.bIsCodeBasedProject ? "YES" : "NO"));
-				CommandUtils.LogVerbose("      bUsesSteam  : " + (Properties.bUsesSteam ? "YES" : "NO"));
-				CommandUtils.LogVerbose("      bUsesCEF3   : " + (Properties.bUsesCEF3 ? "YES" : "NO"));
-				CommandUtils.LogVerbose("      bUsesSlate  : " + (Properties.bUsesSlate ? "YES" : "NO"));
                 foreach (var HostPlatform in InHostPlatforms)
                 {
 					CommandUtils.LogVerbose("      For Host : " + HostPlatform.ToString());

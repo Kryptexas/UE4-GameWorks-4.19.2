@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class FbxAutomationTestBuilder : ModuleRules
 {
-    public FbxAutomationTestBuilder(TargetInfo Target)
+    public FbxAutomationTestBuilder(ReadOnlyTargetRules Target) : base(Target)
 	{
         PublicDependencyModuleNames.AddRange
         (

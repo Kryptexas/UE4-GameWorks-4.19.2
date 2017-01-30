@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class PortalProxies : ModuleRules
 	{
-		public PortalProxies(TargetInfo Target)
+		public PortalProxies(ReadOnlyTargetRules Target) : base(Target)
 		{
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {

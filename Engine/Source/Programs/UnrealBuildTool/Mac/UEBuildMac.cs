@@ -11,8 +11,11 @@ namespace UnrealBuildTool
 {
 	class MacPlatformContext : UEBuildPlatformContext
 	{
-		public MacPlatformContext(FileReference InProjectFile) : base(UnrealTargetPlatform.Mac, InProjectFile)
+		FileReference ProjectFile;
+
+		public MacPlatformContext(FileReference InProjectFile) : base(UnrealTargetPlatform.Mac)
 		{
+			this.ProjectFile = InProjectFile;
 		}
 
 		/// <summary>
@@ -22,11 +25,11 @@ namespace UnrealBuildTool
 		/// <param name="ModuleName">The name of the module</param>
 		/// <param name="Rules">The module rules</param>
 		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
 		{
-			bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
+			bool bBuildShaderFormats = Target.bForceBuildShaderFormats;
 
-			if (!UEBuildConfiguration.bBuildRequiresCookedData)
+			if (!Target.bBuildRequiresCookedData)
 			{
 				if (ModuleName == "TargetPlatform")
 				{
@@ -37,7 +40,7 @@ namespace UnrealBuildTool
 			// allow standalone tools to use target platform modules, without needing Engine
 			if (ModuleName == "TargetPlatform")
 			{
-				if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+				if (Target.bForceBuildTargetPlatforms)
 				{
 					Rules.DynamicallyLoadedModuleNames.Add("MacTargetPlatform");
 					Rules.DynamicallyLoadedModuleNames.Add("MacNoEditorTargetPlatform");
@@ -58,72 +61,31 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)
-		{
-			UEBuildConfiguration.bCompileSimplygon = false;
-            UEBuildConfiguration.bCompileSimplygonSSF = false;
-		}
-
-		public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
-		{
-			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
-			{
-				// @todo: Temporarily disable precompiled header files when building remotely due to errors
-				BuildConfiguration.bUsePCHFiles = false;
-			}
-			BuildConfiguration.bCheckExternalHeadersForModification = BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac;
-			BuildConfiguration.bCheckSystemHeadersForModification = BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac;
-			BuildConfiguration.ProcessorCountMultiplier = MacToolChain.GetAdjustedProcessorCountMultiplier();
-
-			BuildConfiguration.bUsePDBFiles = bCreateDebugInfo && Configuration != CPPTargetConfiguration.Debug && Platform == CPPTargetPlatform.Mac && BuildConfiguration.bGeneratedSYMFile;
-
-			// we always deploy - the build machines need to be able to copy the files back, which needs the full bundle
-			BuildConfiguration.bDeployAfterCompile = true;
-		}
-
-		public override void ValidateUEBuildConfiguration()
-		{
-			if (ProjectFileGenerator.bGenerateProjectFiles)
-			{
-				// When generating project files we need intellisense generator to include info from all modules, including editor-only third party libs
-				UEBuildConfiguration.bCompileLeanAndMeanUE = false;
-			}
-		}
-
 		/// <summary>
 		/// Setup the target environment for building
 		/// </summary>
-		/// <param name="InBuildTarget"> The target being built</param>
-		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
+		/// <param name="Target">Settings for the target being compiled</param>
+		/// <param name="CompileEnvironment">The compile environment for this target</param>
+		/// <param name="LinkEnvironment">The link environment for this target</param>
+		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_MAC=1");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_APPLE=1");
+			CompileEnvironment.Definitions.Add("PLATFORM_MAC=1");
+			CompileEnvironment.Definitions.Add("PLATFORM_APPLE=1");
 
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_TTS=0");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SPEECH_RECOGNITION=0");
-			if (!InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("WITH_DATABASE_SUPPORT=0") && !InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("WITH_DATABASE_SUPPORT=1"))
+			CompileEnvironment.Definitions.Add("WITH_TTS=0");
+			CompileEnvironment.Definitions.Add("WITH_SPEECH_RECOGNITION=0");
+			if (!CompileEnvironment.Definitions.Contains("WITH_DATABASE_SUPPORT=0") && !CompileEnvironment.Definitions.Contains("WITH_DATABASE_SUPPORT=1"))
 			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");
+				CompileEnvironment.Definitions.Add("WITH_DATABASE_SUPPORT=0");
 			}
-			// Needs OS X 10.11 for Metal
-			if (MacToolChain.MacOSSDKVersionFloat >= 10.11f && UEBuildConfiguration.bCompileAgainstEngine)
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=1");
-				InBuildTarget.ExtraModuleNames.Add("MetalRHI");
-			}
-			else
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=0");
-			}
-
 		}
 
 		/// <summary>
 		/// Whether this platform should create debug information or not
 		/// </summary>
-		/// <param name="Configuration"> The UnrealTargetConfiguration being built</param>
+		/// <param name="Target">The target being built</param>
 		/// <returns>true if debug info should be generated, false if not</returns>
-		public override bool ShouldCreateDebugInfo(UnrealTargetConfiguration Configuration)
+		public override bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target)
 		{
 			return true;
 		}
@@ -131,9 +93,10 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Creates a toolchain instance for the given platform.
 		/// </summary>
-		/// <param name="Platform">The platform to create a toolchain for</param>
+		/// <param name="CppPlatform">The platform to create a toolchain for</param>
+		/// <param name="Target">The target being built</param>
 		/// <returns>New toolchain instance.</returns>
-		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform)
+		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
 		{
 			return new MacToolChain(ProjectFile);
 		}
@@ -143,7 +106,7 @@ namespace UnrealBuildTool
 	{
 		MacPlatformSDK SDK;
 
-		public MacPlatform(MacPlatformSDK InSDK) : base(UnrealTargetPlatform.Mac, CPPTargetPlatform.Mac)
+		public MacPlatform(MacPlatformSDK InSDK) : base(UnrealTargetPlatform.Mac, CppPlatform.Mac)
 		{
 			SDK = InSDK;
 		}
@@ -161,6 +124,46 @@ namespace UnrealBuildTool
 		public override bool CanUseDistcc()
 		{
 			return true;
+		}
+
+		public override void ResetTarget(TargetRules Target)
+		{
+			Target.bCompileSimplygon = false;
+            Target.bCompileSimplygonSSF = false;
+		}
+
+		public override void ValidateTarget(TargetRules Target)
+		{
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+			{
+				// @todo: Temporarily disable precompiled header files when building remotely due to errors
+				Target.bUsePCHFiles = false;
+			}
+
+			// Needs OS X 10.11 for Metal
+			if (MacToolChain.Settings.MacOSSDKVersionFloat >= 10.11f && Target.bCompileAgainstEngine)
+			{
+				Target.GlobalDefinitions.Add("HAS_METAL=1");
+				Target.ExtraModuleNames.Add("MetalRHI");
+			}
+			else
+			{
+				Target.GlobalDefinitions.Add("HAS_METAL=0");
+			}
+
+			if (ProjectFileGenerator.bGenerateProjectFiles)
+			{
+				// When generating project files we need intellisense generator to include info from all modules, including editor-only third party libs
+				Target.bCompileLeanAndMeanUE = false;
+			}
+
+			bool bGeneratedSYMFile = true; // Always true on Mac
+			Target.bUsePDBFiles = !Target.bDisableDebugInfo && Target.Configuration != UnrealTargetConfiguration.Debug && Platform == UnrealTargetPlatform.Mac && bGeneratedSYMFile;
+
+			// we always deploy - the build machines need to be able to copy the files back, which needs the full bundle
+			Target.bDeployAfterCompile = true;
+
+			Target.bCheckSystemHeadersForModification = BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac;
 		}
 
 		/// <summary>
@@ -189,16 +192,17 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Get the extension to use for debug info for the given binary type
 		/// </summary>
+		/// <param name="Target">Rules for the target being built</param>
 		/// <param name="InBinaryType"> The binary type being built</param>
 		/// <returns>string    The debug info extension (i.e. 'pdb')</returns>
-		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
+		public override string GetDebugInfoExtension(ReadOnlyTargetRules Target, UEBuildBinaryType InBinaryType)
 		{
 			switch (InBinaryType)
 			{
 				case UEBuildBinaryType.DynamicLinkLibrary:
-					return BuildConfiguration.bUsePDBFiles ? ".dSYM" : "";
+					return Target.bUsePDBFiles ? ".dSYM" : "";
 				case UEBuildBinaryType.Executable:
-					return BuildConfiguration.bUsePDBFiles ? ".dSYM" : "";
+					return Target.bUsePDBFiles ? ".dSYM" : "";
 				case UEBuildBinaryType.StaticLibrary:
 					return "";
 				case UEBuildBinaryType.Object:
@@ -217,19 +221,19 @@ namespace UnrealBuildTool
 		/// <param name="ModuleName">The name of the module</param>
 		/// <param name="Rules">The module rules</param>
 		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
 		{
 		}
 
 		/// <summary>
-		/// Whether the platform requires the extra UnityCPPWriter
-		/// This is used to add an extra file for UBT to get the #include dependencies from
+		/// Don't use absolute paths in unity files; we may be remote compiling.
 		/// </summary>
 		/// <returns>bool true if it is required, false if not</returns>
-		public override bool RequiresExtraUnityCPPWriter()
+		public override bool UseAbsolutePathsInUnityFiles()
 		{
-			return true;
+			return false;
 		}
+
 
 		/// <summary>
 		/// Return whether we wish to have this platform's binaries in our builds
@@ -248,12 +252,36 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Converts the passed in path from UBT host to compiler native format.
+		/// </summary>
+		/// <param name="OriginalPath">The path to convert</param>
+		/// <returns>The path in native format for the toolchain</returns>
+		public override string ConvertPath(string OriginalPath)
+		{
+			return MacToolChain.ConvertPath(OriginalPath);
+		}
+
+		public override void PreBuildSync()
+		{
+			MacToolChain.PreBuildSync();
+		}
+
+		public override void PostBuildSync(UEBuildTarget Target)
+		{
+			MacToolChain.PostBuildSync(Target);
+		}
+
+		public override void PostCodeGeneration(UHTManifest Manifest)
+		{
+			MacToolChain.PostCodeGeneration(Manifest);
+		}
+
+		/// <summary>
 		/// Creates a context for the given target on the current platform.
 		/// </summary>
 		/// <param name="ProjectFile">The project file for the current target</param>
-		/// <param name="Target">Rules for the target being built</param>
 		/// <returns>New platform context object</returns>
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile, TargetRules Target)
+		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
 		{
 			return new MacPlatformContext(ProjectFile);
 		}
@@ -286,10 +314,10 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Register the platform with the UEBuildPlatform class
 		/// </summary>
-		protected override void RegisterBuildPlatforms()
+		protected override void RegisterBuildPlatforms(SDKOutputLevel OutputLevel)
 		{
 			MacPlatformSDK SDK = new MacPlatformSDK();
-			SDK.ManageAndValidateSDK();
+			SDK.ManageAndValidateSDK(OutputLevel);
 
 			// Register this build platform for Mac
 			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.Mac.ToString());

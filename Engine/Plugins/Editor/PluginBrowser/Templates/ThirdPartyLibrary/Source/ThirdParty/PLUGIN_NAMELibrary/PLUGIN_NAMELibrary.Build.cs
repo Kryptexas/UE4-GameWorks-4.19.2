@@ -5,7 +5,7 @@ using UnrealBuildTool;
 
 public class PLUGIN_NAMELibrary : ModuleRules
 {
-	public PLUGIN_NAMELibrary(TargetInfo Target)
+	public PLUGIN_NAMELibrary(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

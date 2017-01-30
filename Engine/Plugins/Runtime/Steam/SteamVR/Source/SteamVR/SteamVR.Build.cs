@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class SteamVR : ModuleRules
 	{
-		public SteamVR(TargetInfo Target)
+		public SteamVR(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(
 				new string[] {

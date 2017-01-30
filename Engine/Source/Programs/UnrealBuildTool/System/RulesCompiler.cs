@@ -20,9 +20,19 @@ namespace UnrealBuildTool
 		/// </summary>
 		public enum RulesFileType
 		{
+			/// <summary>
+			/// .build.cs files
+			/// </summary>
 			Module,
+
+			/// <summary>
+			/// .target.cs files
+			/// </summary>
 			Target,
-			Automation,
+
+			/// <summary>
+			/// .automation.csproj files
+			/// </summary>
 			AutomationModule
 		}
 
@@ -40,6 +50,15 @@ namespace UnrealBuildTool
 		/// We cache these file names so we can avoid searching for them later on.
 		static Dictionary<DirectoryReference, RulesFileCache> RootFolderToRulesFileCache = new Dictionary<DirectoryReference, RulesFileCache>();
 		
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="RulesFileType"></param>
+		/// <param name="GameFolders"></param>
+		/// <param name="ForeignPlugins"></param>
+		/// <param name="AdditionalSearchPaths"></param>
+		/// <param name="bIncludeEngine"></param>
+		/// <returns></returns>
 		public static List<FileReference> FindAllRulesSourceFiles(RulesFileType RulesFileType, List<DirectoryReference> GameFolders, List<FileReference> ForeignPlugins, List<DirectoryReference> AdditionalSearchPaths, bool bIncludeEngine = true)
 		{
 			List<DirectoryReference> Folders = new List<DirectoryReference>();
@@ -101,7 +120,7 @@ namespace UnrealBuildTool
 				{
 					if (AdditionalSearchPath != null)
 					{
-						if (AdditionalSearchPath.Exists())
+						if (DirectoryReference.Exists(AdditionalSearchPath))
 						{
 							Folders.Add(AdditionalSearchPath);
 						}
@@ -130,6 +149,10 @@ namespace UnrealBuildTool
 			return SourceFiles;
 		}
 
+		/// <summary>
+		/// Invalidate the cache for the givcen directory
+		/// </summary>
+		/// <param name="DirectoryPath">Directory to invalidate</param>
         public static void InvalidateRulesFileCache(string DirectoryPath)
         {
             DirectoryReference Directory = new DirectoryReference(DirectoryPath);
@@ -211,7 +234,6 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Creates the engine rules assembly
 		/// </summary>
-		/// <param name="ForeignPlugins">List of plugins to include in this assembly</param>
 		/// <returns>New rules assembly</returns>
 		public static RulesAssembly CreateEngineRulesAssembly()
 		{
@@ -227,7 +249,7 @@ namespace UnrealBuildTool
 				FindModuleRulesForPlugins(EnginePlugins, ModuleFiles, ModuleFileToPluginInfo);
 
 				// Create a path to the assembly that we'll either load or compile
-				FileReference AssemblyFileName = FileReference.Combine(UnrealBuildTool.EngineDirectory, BuildConfiguration.BaseIntermediateFolder, "BuildRules", "UE4Rules.dll");
+				FileReference AssemblyFileName = FileReference.Combine(UnrealBuildTool.EngineDirectory, "Intermediate", "Build", "BuildRules", "UE4Rules.dll");
 				EngineRulesAssembly = new RulesAssembly(EnginePlugins, ModuleFiles, TargetFiles, ModuleFileToPluginInfo, AssemblyFileName, null);
 			}
 			return EngineRulesAssembly;
@@ -237,7 +259,7 @@ namespace UnrealBuildTool
 		/// Creates a rules assembly with the given parameters.
 		/// </summary>
 		/// <param name="ProjectFileName">The project file to create rules for. Null for the engine.</param>
-		/// <param name="ForeignPlugins">List of foreign plugin folders to include in the assembly. May be null.</param>
+		/// <returns>New rules assembly</returns>
 		public static RulesAssembly CreateProjectRulesAssembly(FileReference ProjectFileName)
 		{
 			// Check if there's an existing assembly for this project
@@ -263,13 +285,13 @@ namespace UnrealBuildTool
 
 				// Add the games project's intermediate source folder
 				DirectoryReference ProjectIntermediateSourceDirectory = DirectoryReference.Combine(ProjectDirectory, "Intermediate", "Source");
-				if (ProjectIntermediateSourceDirectory.Exists())
+				if (DirectoryReference.Exists(ProjectIntermediateSourceDirectory))
 				{
 					TargetFiles.AddRange(FindAllRulesFiles(ProjectIntermediateSourceDirectory, RulesFileType.Target));
 				}
 
 				// Compile the assembly
-				FileReference AssemblyFileName = FileReference.Combine(ProjectDirectory, BuildConfiguration.BaseIntermediateFolder, "BuildRules", ProjectFileName.GetFileNameWithoutExtension() + "ModuleRules.dll");
+				FileReference AssemblyFileName = FileReference.Combine(ProjectDirectory, "Intermediate", "Build", "BuildRules", ProjectFileName.GetFileNameWithoutExtension() + "ModuleRules.dll");
 				ProjectRulesAssembly = new RulesAssembly(ProjectPlugins, ModuleFiles, TargetFiles, ModuleFileToPluginInfo, AssemblyFileName, Parent);
 				LoadedAssemblyMap.Add(ProjectFileName, ProjectRulesAssembly);
 			}
@@ -279,8 +301,9 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Creates a rules assembly with the given parameters.
 		/// </summary>
-		/// <param name="ProjectFileName">The project file to create rules for. Null for the engine.</param>
-		/// <param name="ForeignPlugins">List of foreign plugin folders to include in the assembly. May be null.</param>
+		/// <param name="PluginFileName">The plugin file to create rules for</param>
+		/// <param name="Parent">The parent rules assembly</param>
+		/// <returns>The new rules assembly</returns>
 		public static RulesAssembly CreatePluginRulesAssembly(FileReference PluginFileName, RulesAssembly Parent)
 		{
 			// Check if there's an existing assembly for this project
@@ -303,7 +326,7 @@ namespace UnrealBuildTool
 				FindModuleRulesForPlugins(ForeignPlugins, ModuleFiles, ModuleFileToPluginInfo);
 
 				// Compile the assembly
-				FileReference AssemblyFileName = FileReference.Combine(PluginFileName.Directory, BuildConfiguration.BaseIntermediateFolder, "BuildRules", Path.GetFileNameWithoutExtension(PluginFileName.FullName) + "ModuleRules.dll");
+				FileReference AssemblyFileName = FileReference.Combine(PluginFileName.Directory, "Intermediate", "Build", "BuildRules", Path.GetFileNameWithoutExtension(PluginFileName.FullName) + "ModuleRules.dll");
 				PluginRulesAssembly = new RulesAssembly(ForeignPlugins, ModuleFiles, TargetFiles, ModuleFileToPluginInfo, AssemblyFileName, Parent);
 				LoadedAssemblyMap.Add(PluginFileName, PluginRulesAssembly);
 			}
@@ -313,9 +336,9 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Finds all the module rules for plugins under the given directory.
 		/// </summary>
-		/// <param name="PluginsDirectory">The directory to search</param>
+		/// <param name="Plugins">The directory to search</param>
 		/// <param name="ModuleFiles">List of module files to be populated</param>
-		/// <param name="ModuleFileToPluginFile">Dictionary which is filled with mappings from the module file to its corresponding plugin file</param>
+		/// <param name="ModuleFileToPluginInfo">Dictionary which is filled with mappings from the module file to its corresponding plugin file</param>
 		private static void FindModuleRulesForPlugins(IReadOnlyList<PluginInfo> Plugins, List<FileReference> ModuleFiles, Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo)
 		{
 			foreach (PluginInfo Plugin in Plugins)
@@ -350,11 +373,5 @@ namespace UnrealBuildTool
 			}
 			return null;
 		}
-
-        [Obsolete("GetModuleFilename is deprecated, use the ModuleDirectory property on any ModuleRules instead to get a path to your module.", true)]
-        public static string GetModuleFilename(string TypeName)
-        {
-            throw new NotImplementedException("GetModuleFilename is deprecated, use the ModuleDirectory property on any ModuleRules instead to get a path to your module.");
-        }
     }
 }

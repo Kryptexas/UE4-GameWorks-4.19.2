@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class MfMedia : ModuleRules
 	{
-		public MfMedia(TargetInfo Target)
+		public MfMedia(ReadOnlyTargetRules Target) : base(Target)
 		{
 			// this is for Xbox and Windows, so it's using public APIs, so we can distribute it in binary
 			bOutputPubliclyDistributable = true;

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class NiagaraEditor : ModuleRules
 {
-	public NiagaraEditor(TargetInfo Target)
+	public NiagaraEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(new string[] {
 			"Editor/NiagaraEditor/Private",

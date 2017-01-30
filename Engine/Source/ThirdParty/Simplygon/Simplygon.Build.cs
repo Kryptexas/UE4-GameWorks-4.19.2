@@ -1,11 +1,11 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
 
 public class Simplygon : ModuleRules
 {
-	public Simplygon(TargetInfo Target)
+	public Simplygon(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

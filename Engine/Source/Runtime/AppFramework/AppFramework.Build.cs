@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AppFramework : ModuleRules
 {
-	public AppFramework(TargetInfo Target)
+	public AppFramework(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] {

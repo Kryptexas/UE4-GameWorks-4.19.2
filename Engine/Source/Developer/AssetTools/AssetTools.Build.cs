@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AssetTools : ModuleRules
 {
-	public AssetTools(TargetInfo Target)
+	public AssetTools(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Developer/AssetTools/Private");
 

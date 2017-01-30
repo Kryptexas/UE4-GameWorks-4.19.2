@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class WebSockets : ModuleRules
 {
-    public WebSockets(TargetInfo Target)
+    public WebSockets(ReadOnlyTargetRules Target) : base(Target)
     {
         Definitions.Add("WEBSOCKETS_PACKAGE=1");
 

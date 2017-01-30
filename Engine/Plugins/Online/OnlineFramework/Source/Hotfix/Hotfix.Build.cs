@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Hotfix : ModuleRules
 {
-	public Hotfix(TargetInfo Target)
+	public Hotfix(ReadOnlyTargetRules Target) : base(Target)
     {
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		

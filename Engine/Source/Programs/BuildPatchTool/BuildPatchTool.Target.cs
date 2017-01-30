@@ -7,10 +7,11 @@ using System.Collections.Generic;
 [SupportedConfigurations(UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping)]
 public class BuildPatchToolTarget : TargetRules
 {
-	public BuildPatchToolTarget(TargetInfo Target)
+	public BuildPatchToolTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
+		LaunchModuleName = "BuildPatchTool";
 		bOutputPubliclyDistributable = true;
 		UndecoratedConfiguration = UnrealTargetConfiguration.Shipping;
 	}
@@ -18,21 +19,6 @@ public class BuildPatchToolTarget : TargetRules
 	//
 	// TargetRules interface.
 	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames)
-	{
-		OutBuildBinaryConfigurations.Add(
-			new UEBuildBinaryConfiguration(
-				InType: UEBuildBinaryType.Executable,
-				InModuleNames: new List<string>() {
-					"BuildPatchTool"
-				}
-			)
-		);
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,

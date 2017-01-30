@@ -53,15 +53,13 @@ namespace AutomationTool
 			}
 			else
 			{
-				string MapsToCookArg = "-Map=" + CombineCommandletParams(Maps);
-                MapsToCookArg.Trim();
+				string MapsToCookArg = "-Map=" + CombineCommandletParams(Maps).Trim();
                 CommandletArguments += (CommandletArguments.Length > 0 ? " " : "") + MapsToCookArg;
 			}
 
 			if (!IsNullOrEmpty(Dirs))
 			{
-				string DirsToCookArg = "-CookDir=" + CombineCommandletParams(Dirs);
-                DirsToCookArg.Trim();
+				string DirsToCookArg = "-CookDir=" + CombineCommandletParams(Dirs).Trim();
                 CommandletArguments += (CommandletArguments.Length > 0 ? " " : "") + DirsToCookArg;
             }
 
@@ -72,8 +70,7 @@ namespace AutomationTool
 
             if (!IsNullOrEmpty(CulturesToCook))
             {
-                string CulturesToCookArg = "-CookCultures=" + CombineCommandletParams(CulturesToCook);
-                CulturesToCookArg.Trim();
+                string CulturesToCookArg = "-CookCultures=" + CombineCommandletParams(CulturesToCook).Trim();
                 CommandletArguments += (CommandletArguments.Length > 0 ? " " : "") + CulturesToCookArg;
             }
 
@@ -93,8 +90,7 @@ namespace AutomationTool
             string MapsToCook = "";
             if (!IsNullOrEmpty(Maps))
             {
-                MapsToCook = "-Map=" + CombineCommandletParams(Maps);
-                MapsToCook.Trim();
+                MapsToCook = "-Map=" + CombineCommandletParams(Maps).Trim();
             }
 
             RunCommandlet(ProjectName, UE4Exe, "DerivedDataCache", String.Format("{0} -TargetPlatform={1} {2}", MapsToCook, TargetPlatform, Parameters));
@@ -112,8 +108,7 @@ namespace AutomationTool
 			string MapsToRebuildLighting = "";
 			if (!IsNullOrEmpty(Maps))
 			{
-				MapsToRebuildLighting = "-Map=" + CombineCommandletParams(Maps);
-				MapsToRebuildLighting.Trim();
+				MapsToRebuildLighting = "-Map=" + CombineCommandletParams(Maps).Trim();
 			}
 
 			RunCommandlet(ProjectName, UE4Exe, "ResavePackages", String.Format("-buildlighting -MapsOnly -ProjectOnly -AllowCommandletRendering -SkipSkinVerify {0} {1}", MapsToRebuildLighting, Parameters));
@@ -131,8 +126,7 @@ namespace AutomationTool
             string MapsToRebuildLighting = "";
             if (!IsNullOrEmpty(Maps))
             {
-                MapsToRebuildLighting = "-Map=" + CombineCommandletParams(Maps);
-                MapsToRebuildLighting.Trim();
+                MapsToRebuildLighting = "-Map=" + CombineCommandletParams(Maps).Trim();
             }
 
             RunCommandlet(ProjectName, UE4Exe, "ResavePackages", String.Format((!String.IsNullOrEmpty(MapsToRebuildLighting) ? "-MapsOnly" : "") + "-ProjectOnly {0} {1}", MapsToRebuildLighting, Parameters));
@@ -151,8 +145,7 @@ namespace AutomationTool
             string MapsToCook = "";
             if (!IsNullOrEmpty(Maps))
             {
-                MapsToCook = CombineCommandletParams(Maps, " ");
-                MapsToCook.Trim();
+                MapsToCook = CombineCommandletParams(Maps, " ").Trim();
             }
             var Dir = Path.GetDirectoryName(ManifestFile);
             var Filename = Path.GetFileName(ManifestFile);

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AvfMediaEditor : ModuleRules
 	{
-		public AvfMediaEditor(TargetInfo Target)
+		public AvfMediaEditor(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {

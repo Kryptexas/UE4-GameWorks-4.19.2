@@ -5,21 +5,9 @@ using System.Collections.Generic;
 
 public class TP_PuzzleTarget : TargetRules
 {
-    public TP_PuzzleTarget(TargetInfo Target)
+    public TP_PuzzleTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Game;
-	}
-
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutExtraModuleNames.Add("TP_Puzzle");
+		ExtraModuleNames.Add("TP_Puzzle");
 	}
 }

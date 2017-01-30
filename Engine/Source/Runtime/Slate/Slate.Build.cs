@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Slate : ModuleRules
 {
-	public Slate(TargetInfo Target)
+	public Slate(ReadOnlyTargetRules Target) : base(Target)
 	{
 		SharedPCHHeaderFile = "Public/SlateSharedPCH.h";
 

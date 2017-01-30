@@ -1,11 +1,25 @@
 <?xml version='1.0' ?>
 <BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ../../Engine/Build/Graph/Schema.xsd" >
 
-	<!-- List of patterns that should always be excluded when making an installed build -->
-	<Property Name="ConfidentialExceptions" Value=".../EpicInternal/...;.../CarefullyRedist/...;.../NotForLicensees/...;.../NoRedist/..."/>
-	<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions);.../PS4/..." If="'$(WithPS4)' != true"/>
-	<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions);.../XboxOne/..." If="'$(WithXboxOne)' != true"/>
-	<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions);.../Switch/...;.../Wolf/...;.../WolfPlat/..." If="'$(WithSwitch)' != true"/>
+	<!-- List of patterns that should always be excluded when making an installed build. Filter the default list of exclusions to include confidential platforms if they're enabled. -->
+	<Property Name="ConfidentialExceptions" Value=""/>
+	<ForEach Name="RestrictedFolderName" Values="$(RestrictedFolderNames)">
+		<Switch>
+			<Case If="'$(RestrictedFolderName)' == 'PS4' And '$(WithPS4)' == true">
+				<!-- Allow this folder -->
+			</Case>
+			<Case If="'$(RestrictedFolderName)' == 'XboxOne' And '$(WithXboxOne)' == true">
+				<!-- Allow this folder -->
+			</Case>
+			<Case If="'$(RestrictedFolderName)' == 'Switch' And '$(WithSwitch)' == true">
+				<!-- Allow this folder -->
+			</Case>
+			<Default>
+				<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions);" If="'$(ConfidentialExceptions)' != ''"/>
+				<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions).../$(RestrictedFolderName)/..."/>
+			</Default>
+		</Switch>
+	</ForEach>
 
 	<!-- List of file types to be stripped and signed for different platforms -->
 	<Property Name="Win64StripFilter" Value="*.pdb"/>

@@ -3,7 +3,7 @@ using UnrealBuildTool;
 
 public class XInput : ModuleRules
 {
-	public XInput(TargetInfo Target)
+	public XInput(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

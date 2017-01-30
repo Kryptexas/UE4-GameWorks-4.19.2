@@ -62,17 +62,17 @@ namespace UnrealBuildTool
 		public override void CleanProjectFiles(DirectoryReference InMasterProjectDirectory, string InMasterProjectName, DirectoryReference InIntermediateProjectFilesPath)
 		{
 			DirectoryReference MasterProjDeleteFilename = DirectoryReference.Combine(InMasterProjectDirectory, InMasterProjectName + ".xcworkspace");
-			if (MasterProjDeleteFilename.Exists())
+			if (DirectoryReference.Exists(MasterProjDeleteFilename))
 			{
-				Directory.Delete(MasterProjDeleteFilename.FullName, true);
+				DirectoryReference.Delete(MasterProjDeleteFilename, true);
 			}
 
 			// Delete the project files folder
-			if (InIntermediateProjectFilesPath.Exists())
+			if (DirectoryReference.Exists(InIntermediateProjectFilesPath))
 			{
 				try
 				{
-					Directory.Delete(InIntermediateProjectFilesPath.FullName, true);
+					DirectoryReference.Delete(InIntermediateProjectFilesPath, true);
 				}
 				catch (Exception Ex)
 				{

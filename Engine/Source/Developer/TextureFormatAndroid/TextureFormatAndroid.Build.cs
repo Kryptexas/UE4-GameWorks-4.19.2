@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class TextureFormatAndroid : ModuleRules
 {
-	public TextureFormatAndroid(TargetInfo Target)
+	public TextureFormatAndroid(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {

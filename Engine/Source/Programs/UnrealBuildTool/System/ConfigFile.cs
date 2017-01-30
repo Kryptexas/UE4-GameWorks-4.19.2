@@ -112,6 +112,7 @@ namespace UnrealBuildTool
 		/// Reads config data from the given file.
 		/// </summary>
 		/// <param name="Location">File to read from</param>
+		/// <param name="DefaultAction">The default action to take when encountering arrays without a '+' prefix</param>
 		public ConfigFile(FileReference Location, ConfigLineAction DefaultAction = ConfigLineAction.Set)
 		{
 			using (StreamReader Reader = new StreamReader(Location.FullName))

@@ -19,7 +19,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class GoogleVRHMD : ModuleRules
 	{
-		public GoogleVRHMD(TargetInfo Target)
+		public GoogleVRHMD(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(
 				new string[] {

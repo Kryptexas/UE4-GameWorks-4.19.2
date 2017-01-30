@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class NetworkReplayStreaming : ModuleRules
 	{
-		public NetworkReplayStreaming( TargetInfo Target )
+		public NetworkReplayStreaming( ReadOnlyTargetRules Target ) : base(Target)
 		{
 			PrivateIncludePaths.Add( "Runtime/NetworkReplayStreaming/NetworkReplayStreaming/Private" );
 

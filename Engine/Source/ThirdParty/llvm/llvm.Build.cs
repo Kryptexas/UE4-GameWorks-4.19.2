@@ -5,7 +5,7 @@ using System.IO;
 
 public class llvm : ModuleRules
 {
-	public llvm(TargetInfo Target)
+	public llvm(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

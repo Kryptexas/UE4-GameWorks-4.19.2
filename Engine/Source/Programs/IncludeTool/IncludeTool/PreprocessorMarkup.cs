@@ -383,10 +383,15 @@ namespace IncludeTool
 			TokenReader Reader = new TokenReader(Text, StartLocation, EndLocation);
 			while(Reader.MoveNext(TokenReaderContext.IgnoreNewlines))
 			{
-				if(Reader.Current.Text != "THIRD_PARTY_INCLUDES_START" && Reader.Current.Text != "THIRD_PARTY_INCLUDES_END")
+				if(Reader.Current.Text == "MONOLITHIC_HEADER_BOILERPLATE" && Reader.MoveNext() && Reader.Current.Text == "(" && Reader.MoveNext() && Reader.Current.Text == ")")
 				{
-					return false;
+					continue;
 				}
+				if(Reader.Current.Text == "THIRD_PARTY_INCLUDES_START" || Reader.Current.Text == "THIRD_PARTY_INCLUDES_END")
+				{
+					continue;
+				}
+				return false;
 			}
 			return true;
 		}

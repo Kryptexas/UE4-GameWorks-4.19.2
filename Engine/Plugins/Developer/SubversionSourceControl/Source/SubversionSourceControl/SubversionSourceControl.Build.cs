@@ -5,7 +5,7 @@ using System.IO;
 
 public class SubversionSourceControl : ModuleRules
 {
-	public SubversionSourceControl(TargetInfo Target)
+	public SubversionSourceControl(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateDependencyModuleNames.AddRange(
             new string[] {

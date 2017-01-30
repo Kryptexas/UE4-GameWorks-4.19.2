@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class TreeMap : ModuleRules
 	{
-		public TreeMap(TargetInfo Target)
+		public TreeMap(ReadOnlyTargetRules Target) : base(Target)
 		{
 	        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "SlateCore" });
 	        PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "InputCore", "XmlParser" });

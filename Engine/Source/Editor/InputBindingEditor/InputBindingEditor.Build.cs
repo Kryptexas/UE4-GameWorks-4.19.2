@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class InputBindingEditor : ModuleRules
 {
-	public InputBindingEditor(TargetInfo Target)
+	public InputBindingEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 
 		PrivateDependencyModuleNames.AddRange(

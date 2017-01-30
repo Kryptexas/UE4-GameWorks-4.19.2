@@ -29,7 +29,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// For a given target, caches all of the C++ source files and the files they are including
 	/// </summary>
-	public class FlatCPPIncludeDependencyCache
+	class FlatCPPIncludeDependencyCache
 	{
 		/// <summary>
 		/// The version number for binary serialization
@@ -51,99 +51,78 @@ namespace UnrealBuildTool
 		private Dictionary<FileReference, FlatCPPIncludeDependencyInfo> DependencyMap;
 
 		/// <summary>
-		/// Creates the cache object
+		/// Constructs a fresh cache, storing the file name that it should be saved as later on
 		/// </summary>
-		/// <param name="Target">The target to create the cache for</param>
-		/// <returns>The new instance</returns>
-		public static FlatCPPIncludeDependencyCache Create(UEBuildTarget Target)
+		/// <param name="BackingFile">File name for this cache, usually unique per context (e.g. target)</param>
+		public FlatCPPIncludeDependencyCache(FileReference BackingFile)
 		{
-			FileReference CacheFile = FlatCPPIncludeDependencyCache.GetDependencyCachePathForTarget(Target); ;
-
-			// See whether the cache file exists.
-			if (CacheFile.Exists())
-			{
-				if (BuildConfiguration.bPrintPerformanceInfo)
-				{
-					Log.TraceInformation("Loading existing FlatCPPIncludeDependencyCache: " + CacheFile.FullName);
-				}
-
-				DateTime TimerStartTime = DateTime.UtcNow;
-
-				// Deserialize cache from disk if there is one.
-				FlatCPPIncludeDependencyCache Result = Load(CacheFile);
-				if (Result != null)
-				{
-					TimeSpan TimerDuration = DateTime.UtcNow - TimerStartTime;
-					if (BuildConfiguration.bPrintPerformanceInfo)
-					{
-						Log.TraceInformation("Loading FlatCPPIncludeDependencyCache took " + TimerDuration.TotalSeconds + "s");
-					}
-					return Result;
-				}
-			}
-
-			bool bIsBuilding = (ProjectFileGenerator.bGenerateProjectFiles == false) && (BuildConfiguration.bXGEExport == false) && (UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bGenerateExternalFileList == false) && (UEBuildConfiguration.bCleanProject == false);
-			if (bIsBuilding && !UnrealBuildTool.bNeedsFullCPPIncludeRescan)
-			{
-				UnrealBuildTool.bNeedsFullCPPIncludeRescan = true;
-				Log.TraceInformation("Performing full C++ include scan (no include cache file)");
-			}
-
-			// Fall back to a clean cache on error or non-existence.
-			return new FlatCPPIncludeDependencyCache(CacheFile);
+			this.BackingFile = BackingFile;
+			DependencyMap = new Dictionary<FileReference, FlatCPPIncludeDependencyInfo>();
 		}
 
 		/// <summary>
 		/// Loads the cache from disk
 		/// </summary>
-		/// <param name="Cache">The file to load</param>
-		/// <returns>The loaded instance</returns>
-		public static FlatCPPIncludeDependencyCache Load(FileReference BackingFile)
+		/// <param name="BackingFile">The file to read from</param>
+		/// <param name="Cache">The loaded cache</param>
+		/// <returns>True if successful</returns>
+		public static bool TryRead(FileReference BackingFile, out FlatCPPIncludeDependencyCache Cache)
 		{
-			FlatCPPIncludeDependencyCache Result = null;
+			if(!FileReference.Exists(BackingFile))
+			{
+				Cache = null;
+				return false;
+			}
+
+			if (UnrealBuildTool.bPrintPerformanceInfo)
+			{
+				Log.TraceInformation("Loading existing FlatCPPIncludeDependencyCache: " + BackingFile.FullName);
+			}
+
+			DateTime TimerStartTime = DateTime.UtcNow;
+
 			try
 			{
-				string CacheBuildMutexPath = BackingFile.FullName + ".buildmutex";
-
 				// If the .buildmutex file for the cache is present, it means that something went wrong between loading
 				// and saving the cache last time (most likely the UBT process being terminated), so we don't want to load
 				// it.
-				if (!File.Exists(CacheBuildMutexPath))
+				string CacheBuildMutexPath = BackingFile.FullName + ".buildmutex";
+				if (File.Exists(CacheBuildMutexPath))
 				{
-					using (File.Create(CacheBuildMutexPath))
+					Cache = null;
+					return false;
+				}
+				File.Create(CacheBuildMutexPath).Close();
+
+				using (BinaryReader Reader = new BinaryReader(new FileStream(BackingFile.FullName, FileMode.Open, FileAccess.Read)))
+				{
+					// @todo ubtmake: We can store the cache in a cheaper/smaller way using hash file names and indices into included headers, but it might actually slow down load times
+					// @todo ubtmake: If we can index PCHs here, we can avoid storing all of the PCH's included headers (PCH's action should have been invalidated, so we shouldn't even have to report the PCH's includes as our indirect includes)
+					if (Reader.ReadInt32() != FileSignature)
 					{
+						Cache = null;
+						return false;
 					}
 
-					using (BinaryReader Reader = new BinaryReader(new FileStream(BackingFile.FullName, FileMode.Open, FileAccess.Read)))
+					Cache = Deserialize(Reader);
+
+					if (UnrealBuildTool.bPrintPerformanceInfo)
 					{
-						// @todo ubtmake: We can store the cache in a cheaper/smaller way using hash file names and indices into included headers, but it might actually slow down load times
-						// @todo ubtmake: If we can index PCHs here, we can avoid storing all of the PCH's included headers (PCH's action should have been invalidated, so we shouldn't even have to report the PCH's includes as our indirect includes)
-						if (Reader.ReadInt32() == FileSignature)
-						{
-							Result = Deserialize(Reader);
-						}
+						TimeSpan TimerDuration = DateTime.UtcNow - TimerStartTime;
+						Log.TraceInformation("Loading FlatCPPIncludeDependencyCache took " + TimerDuration.TotalSeconds + "s");
 					}
+
+					return true;
 				}
 			}
 			catch (Exception Ex)
 			{
 				Console.Error.WriteLine("Failed to read FlatCPPIncludeDependencyCache: {0}", Ex.Message);
-				BackingFile.Delete();
+				FileReference.Delete(BackingFile);
+				Cache = null;
+				return false;
 			}
-			return Result;
 		}
-
-
-		/// <summary>
-		/// Constructs a fresh cache, storing the file name that it should be saved as later on
-		/// </summary>
-		/// <param name="Cache">File name for this cache, usually unique per context (e.g. target)</param>
-		protected FlatCPPIncludeDependencyCache(FileReference InBackingFile)
-		{
-			BackingFile = InBackingFile;
-			DependencyMap = new Dictionary<FileReference, FlatCPPIncludeDependencyInfo>();
-		}
-
 
 		/// <summary>
 		/// Saves out the cache
@@ -158,7 +137,7 @@ namespace UnrealBuildTool
 				// Serialize the cache to disk.
 				try
 				{
-					BackingFile.Directory.CreateDirectory();
+					DirectoryReference.CreateDirectory(BackingFile.Directory);
 					using (BinaryWriter Writer = new BinaryWriter(new FileStream(BackingFile.FullName, FileMode.Create, FileAccess.Write)))
 					{
 						Writer.Write(FileSignature);
@@ -170,7 +149,7 @@ namespace UnrealBuildTool
 					Console.Error.WriteLine("Failed to write FlatCPPIncludeDependencyCache: {0}", Ex.Message);
 				}
 
-				if (BuildConfiguration.bPrintPerformanceInfo)
+				if (UnrealBuildTool.bPrintPerformanceInfo)
 				{
 					TimeSpan TimerDuration = DateTime.UtcNow - TimerStartTime;
 					Log.TraceInformation("Saving FlatCPPIncludeDependencyCache took " + TimerDuration.TotalSeconds + "s");
@@ -178,7 +157,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				if (BuildConfiguration.bPrintPerformanceInfo)
+				if (UnrealBuildTool.bPrintPerformanceInfo)
 				{
 					Log.TraceInformation("FlatCPPIncludeDependencyCache did not need to be saved (bIsDirty=false)");
 				}
@@ -317,11 +296,11 @@ namespace UnrealBuildTool
 			DirectoryReference PlatformIntermediatePath;
 			if (Target.ProjectFile != null)
 			{
-				PlatformIntermediatePath = DirectoryReference.Combine(Target.ProjectFile.Directory, BuildConfiguration.PlatformIntermediateFolder);
+				PlatformIntermediatePath = DirectoryReference.Combine(Target.ProjectFile.Directory, Target.PlatformIntermediateFolder);
 			}
 			else
 			{
-				PlatformIntermediatePath = new DirectoryReference(BuildConfiguration.PlatformIntermediatePath);
+				PlatformIntermediatePath = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, Target.PlatformIntermediateFolder);
 			}
 			return FileReference.Combine(PlatformIntermediatePath, Target.GetTargetName(), "FlatCPPIncludes.bin");
 		}

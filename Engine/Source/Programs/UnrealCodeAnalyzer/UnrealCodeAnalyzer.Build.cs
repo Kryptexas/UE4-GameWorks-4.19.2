@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UnrealCodeAnalyzer : ModuleRules
 {
-	public UnrealCodeAnalyzer(TargetInfo Target)
+	public UnrealCodeAnalyzer(ReadOnlyTargetRules Target) : base(Target)
 	{
 		bEnableExceptions = false;
 

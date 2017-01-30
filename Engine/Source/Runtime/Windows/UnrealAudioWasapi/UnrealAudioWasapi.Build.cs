@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UnrealAudioWasapi : ModuleRules
 {
-	public UnrealAudioWasapi(TargetInfo Target)
+	public UnrealAudioWasapi(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Runtime/UnrealAudio/Private");
 		PublicIncludePaths.Add("Runtime/UnrealAudio/Public");

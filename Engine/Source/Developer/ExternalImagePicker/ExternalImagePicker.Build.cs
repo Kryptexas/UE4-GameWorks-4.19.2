@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ExternalImagePicker : ModuleRules
 {
-	public ExternalImagePicker(TargetInfo Target)
+	public ExternalImagePicker(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateDependencyModuleNames.AddRange(
             new string[]

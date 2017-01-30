@@ -94,24 +94,11 @@ public class MacPlatform : Platform
 			if (!string.IsNullOrEmpty(AppBundlePath))
 			{
 				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Build/Mac"), "Application.icns", false, null, CombinePaths(AppBundlePath, "Contents/Resources"), true);
-
-				if (Params.bUsesSteam)
-				{
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Source/ThirdParty/Steamworks/Steamv132/sdk/redistributable_bin/osx32"), "libsteam_api.dylib", false, null, CombinePaths(AppBundlePath, "Contents/MacOS"), true);
-				}
 			}
 		}
 
 		// Copy the splash screen, Mac specific
 		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
-
-		// CEF3 files
-		if (Params.bUsesCEF3)
-		{
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/CEF3/Mac/"), "*", true, null, null, true);
-			string UnrealCEFSubProcessPath = CombinePaths("Engine/Binaries", SC.PlatformDir, "UnrealCEFSubProcess.app");
-			StageAppBundle(SC, StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, "UnrealCEFSubProcess.app"), UnrealCEFSubProcessPath);
-		}
 
 		// Stage the bootstrap executable
 		if (!Params.NoBootstrapExe)
@@ -434,5 +421,10 @@ public class MacPlatform : Platform
 
 		}
 		return true;
+	}
+
+	public override void StripSymbols(string SourceFileName, string TargetFileName)
+	{
+		MacExports.StripSymbols(SourceFileName, TargetFileName);
 	}
 }

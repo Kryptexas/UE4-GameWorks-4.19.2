@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class Serialization : ModuleRules
 	{
-		public Serialization(TargetInfo Target)
+		public Serialization(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

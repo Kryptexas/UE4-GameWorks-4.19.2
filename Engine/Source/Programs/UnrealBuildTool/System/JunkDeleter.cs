@@ -23,7 +23,7 @@ namespace UnrealBuildTool
 				DeleteAllJunk(JunkManifest);
 			}
 
-			if (BuildConfiguration.bPrintPerformanceInfo)
+			if (UnrealBuildTool.bPrintPerformanceInfo)
 			{
 				double JunkTime = (DateTime.UtcNow - JunkStartTime).TotalSeconds;
 				Log.TraceInformation("DeleteJunk took " + JunkTime + "s");

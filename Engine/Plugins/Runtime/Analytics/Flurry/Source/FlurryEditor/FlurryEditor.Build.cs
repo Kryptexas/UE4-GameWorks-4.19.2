@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class FlurryEditor : ModuleRules
 {
-    public FlurryEditor(TargetInfo Target)
+    public FlurryEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.Add("FlurryEditor/Private");
 

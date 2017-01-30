@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class nvTriStrip : ModuleRules
 {
-	public nvTriStrip(TargetInfo Target)
+	public nvTriStrip(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

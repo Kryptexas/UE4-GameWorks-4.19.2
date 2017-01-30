@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -6,7 +6,7 @@ using UnrealBuildTool;
 
 public class OpenVR : ModuleRules
 {
-	public OpenVR(TargetInfo Target)
+	public OpenVR(ReadOnlyTargetRules Target) : base(Target)
 	{
 		/** Mark the current version of the OpenVR SDK */
 		string OpenVRVersion = "v1_0_2";

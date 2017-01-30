@@ -6,7 +6,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class ScriptGeneratorPlugin : ModuleRules
 	{
-		public ScriptGeneratorPlugin(TargetInfo Target)
+		public ScriptGeneratorPlugin(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {					

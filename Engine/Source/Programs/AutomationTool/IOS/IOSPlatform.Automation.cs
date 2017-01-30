@@ -224,16 +224,20 @@ public class IOSPlatform : Platform
 		return 4;
 	}
 
-    public virtual UnrealBuildTool.UEDeployIOS GetDeployHandler(FileReference InProject, UnrealBuildTool.IOSPlatformContext inPlatformContext)
+	public virtual bool PrepForUATPackageOrDeploy(UnrealTargetConfiguration Config, FileReference ProjectFile, string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor, bool bIsDataDeploy, bool bCreateStubIPA)
+	{
+		return IOSExports.PrepForUATPackageOrDeploy(Config, ProjectFile, InProjectName, InProjectDirectory, InExecutablePath, InEngineDir, bForDistribution, CookFlavor, bIsDataDeploy, bCreateStubIPA);
+	}
+
+    public virtual void GetProvisioningData(FileReference InProject, bool bDistribution, out string MobileProvision, out string SigningCertificate)
     {
-        Console.WriteLine("Getting IOS Deploy()");
-        return new UnrealBuildTool.UEDeployIOS();
+		IOSExports.GetProvisioningData(InProject, bDistribution, out MobileProvision, out SigningCertificate);
     }
 
-    public virtual UnrealBuildTool.IOSPlatformContext CreatePlatformContext(FileReference InProject, bool Distribution)
-    {
-        return new UnrealBuildTool.IOSPlatformContext(InProject, Distribution);
-    }
+	public virtual bool DeployGeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
+	{
+		return IOSExports.GeneratePList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory);
+	}
 
     protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, ProjectParams Params )
 	{
@@ -306,8 +310,9 @@ public class IOSPlatform : Platform
 
         var TargetConfiguration = SC.StageTargetConfigurations[0];
 
-        UnrealBuildTool.IOSPlatformContext BuildPlatContext = CreatePlatformContext(Params.RawProjectPath, Params.Distribution);
-        BuildPlatContext.SetUpProjectEnvironment(TargetConfiguration);
+		string MobileProvision;
+		string SigningCertificate;
+        GetProvisioningData(Params.RawProjectPath, Params.Distribution, out MobileProvision, out SigningCertificate);
 
         //@TODO: We should be able to use this code on both platforms, when the following issues are sorted:
         //   - Raw executable is unsigned & unstripped (need to investigate adding stripping to IPP)
@@ -318,16 +323,15 @@ public class IOSPlatform : Platform
         if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 		{
             // copy in all of the artwork and plist
-            var DeployHandler = GetDeployHandler(Params.RawProjectPath, BuildPlatContext);
-
-            DeployHandler.PrepForUATPackageOrDeploy(TargetConfiguration, Params.RawProjectPath,
+            PrepForUATPackageOrDeploy(TargetConfiguration, Params.RawProjectPath,
 				Params.ShortProjectName,
 				Path.GetDirectoryName(Params.RawProjectPath.FullName),
 				CombinePaths(Path.GetDirectoryName(Params.ProjectGameExeFilename), SC.StageExecutables[0]),
 				CombinePaths(SC.LocalRoot, "Engine"),
 				Params.Distribution, 
 				"",
-				false);
+				false,
+				true);
 
 			// figure out where to pop in the staged files
 			string AppDirectory = string.Format("{0}/Payload/{1}.app",
@@ -383,11 +387,11 @@ public class IOSPlatform : Platform
 
 		if (String.IsNullOrEmpty(Params.Provision))
 		{
-			Params.Provision = BuildPlatContext.MobileProvision;
+			Params.Provision = MobileProvision;
 		}
 		if (String.IsNullOrEmpty(Params.Certificate))
 		{
-			Params.Certificate = BuildPlatContext.SigningCertificate;
+			Params.Certificate = SigningCertificate;
 		}
 
 		// Scheme name and configuration for code signing with Xcode project
@@ -421,7 +425,7 @@ public class IOSPlatform : Platform
 
 				bCreatedIPA = true;
 
-				if (RemoteToolChain.bUseRPCUtil)
+				if (IOSExports.UseRPCUtil())
 				{
 					string IPPArguments = "RepackageFromStage \"" + (Params.IsCodeBasedProject ? Params.RawProjectPath.FullName : "Engine") + "\"";
 					IPPArguments += " -config " + TargetConfiguration.ToString();
@@ -834,7 +838,7 @@ public class IOSPlatform : Platform
 					Console.WriteLine("CookPlat {0}, this {1}", GetCookPlatform(false, false), ToString());
 					if (!SC.IsCodeBasedProject)
 					{
-						UnrealBuildTool.UnrealBuildTool.SetRemoteIniPath(SC.ProjectRoot);
+						UnrealBuildTool.PlatformExports.SetRemoteIniPath(SC.ProjectRoot);
 					}
 
                     if (SC.StageTargetConfigurations.Count != 1)
@@ -844,11 +848,8 @@ public class IOSPlatform : Platform
 
                     var TargetConfiguration = SC.StageTargetConfigurations[0];
 
-                    UnrealBuildTool.IOSPlatformContext BuildPlatContext = CreatePlatformContext(Params.RawProjectPath, Params.Distribution);
-                    BuildPlatContext.SetUpProjectEnvironment(TargetConfiguration);
-
-                    GetDeployHandler(
-                        new FileReference(SC.ProjectRoot), BuildPlatContext).GeneratePList(
+                    DeployGeneratePList(
+							SC.RawProjectPath,	
 							TargetConfiguration,
                             (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"),
                             !SC.IsCodeBasedProject,
@@ -1530,9 +1531,14 @@ public class IOSPlatform : Platform
         }
     }
 
-    #region Hooks
+	public override void StripSymbols(string SourceFileName, string TargetFileName)
+	{
+		IOSExports.StripSymbols(PlatformType, SourceFileName, TargetFileName);
+	}
 
-    public override void PreBuildAgenda(UE4Build Build, UE4Build.BuildAgenda Agenda)
+	#region Hooks
+
+	public override void PreBuildAgenda(UE4Build Build, UE4Build.BuildAgenda Agenda)
 	{
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac && !Automation.IsEngineInstalled())
 		{

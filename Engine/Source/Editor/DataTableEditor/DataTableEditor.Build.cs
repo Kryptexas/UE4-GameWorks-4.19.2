@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class DataTableEditor : ModuleRules
 {
-	public DataTableEditor(TargetInfo Target)
+	public DataTableEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePathModuleNames.Add("LevelEditor");
 

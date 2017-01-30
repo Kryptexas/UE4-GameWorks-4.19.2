@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Icmp : ModuleRules
 {
-	public Icmp(TargetInfo Target)
+	public Icmp(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Definitions.Add("ICMP_PACKAGE=1");
 

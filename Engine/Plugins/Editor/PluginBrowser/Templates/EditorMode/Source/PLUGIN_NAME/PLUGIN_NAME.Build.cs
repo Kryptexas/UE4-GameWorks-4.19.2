@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class PLUGIN_NAME : ModuleRules
 {
-	public PLUGIN_NAME(TargetInfo Target)
+	public PLUGIN_NAME(ReadOnlyTargetRules Target) : base(Target)
 	{
 		
 		PublicIncludePaths.AddRange(

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class SessionMessages : ModuleRules
 	{
-		public SessionMessages(TargetInfo Target)
+		public SessionMessages(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

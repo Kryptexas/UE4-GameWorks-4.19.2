@@ -5,7 +5,7 @@ using System.IO;
 
 public class RSAEncryptionHandlerComponent : ModuleRules
 {
-    public RSAEncryptionHandlerComponent(TargetInfo Target)
+    public RSAEncryptionHandlerComponent(ReadOnlyTargetRules Target) : base(Target)
     {
         PublicDependencyModuleNames.AddRange(
             new string[] {

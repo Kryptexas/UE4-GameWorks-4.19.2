@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class Advertising : ModuleRules
 	{
-		public Advertising( TargetInfo Target )
+		public Advertising( ReadOnlyTargetRules Target ) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {

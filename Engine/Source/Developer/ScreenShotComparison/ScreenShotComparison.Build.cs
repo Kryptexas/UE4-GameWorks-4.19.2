@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ScreenShotComparison : ModuleRules
 {
-	public ScreenShotComparison(TargetInfo Target)
+	public ScreenShotComparison(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] {

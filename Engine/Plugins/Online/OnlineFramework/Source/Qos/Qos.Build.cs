@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Qos : ModuleRules
 {
-	public Qos(TargetInfo Target)
+	public Qos(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Definitions.Add("QOS_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;

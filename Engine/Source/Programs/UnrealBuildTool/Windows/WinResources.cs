@@ -7,6 +7,8 @@ using System.IO;
 using UnrealBuildTool;
 using System.Runtime.InteropServices;
 
+#pragma warning disable CS1591
+
 public enum ResourceType
 {
 	Icon = 3,
@@ -283,3 +285,5 @@ public class ModuleResourceUpdate : IDisposable
 		UnmanagedPointers.Clear();
 	}
 }
+
+#pragma warning restore CS1591

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class GraphEditor : ModuleRules
 {
-	public GraphEditor(TargetInfo Target)
+	public GraphEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
 			new string[] {

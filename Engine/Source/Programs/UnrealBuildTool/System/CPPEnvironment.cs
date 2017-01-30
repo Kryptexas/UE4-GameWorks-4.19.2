@@ -12,7 +12,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// The platforms that may be compilation targets for C++ files.
 	/// </summary>
-	public enum CPPTargetPlatform
+	enum CppPlatform
 	{
 		Win32,
 		Win64,
@@ -31,7 +31,7 @@ namespace UnrealBuildTool
 	/// Compiler configuration. This controls whether to use define debug macros and other compiler settings. Note that optimization level should be based on the bOptimizeCode variable rather than
 	/// this setting, so it can be modified on a per-module basis without introducing an incompatibility between object files or PCHs.
 	/// </summary>
-	public enum CPPTargetConfiguration
+	enum CppConfiguration
 	{
 		Debug,
 		Development,
@@ -41,7 +41,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// The optimization level that may be compilation targets for C# files.
 	/// </summary>
-	public enum CSharpTargetConfiguration
+	enum CSharpTargetConfiguration
 	{
 		Debug,
 		Development,
@@ -50,7 +50,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// The possible interactions between a precompiled header and a C++ file being compiled.
 	/// </summary>
-	public enum PrecompiledHeaderAction
+	enum PrecompiledHeaderAction
 	{
 		None,
 		Include,
@@ -60,7 +60,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Encapsulates the compilation output of compiling a set of C++ files.
 	/// </summary>
-	public class CPPOutput
+	class CPPOutput
 	{
 		public List<FileItem> ObjectFiles = new List<FileItem>();
 		public List<FileItem> DebugDataFiles = new List<FileItem>();
@@ -70,7 +70,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Encapsulates the environment that a C# file is compiled in.
 	/// </summary>
-	public class CSharpEnvironment
+	class CSharpEnvironment
 	{
 		/// <summary>
 		/// The configuration to be compiled for.
@@ -80,28 +80,28 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// The target platform used to set the environment. Doesn't affect output.
 		/// </summary>
-		public CPPTargetPlatform EnvironmentTargetPlatform;
+		public CppPlatform EnvironmentTargetPlatform;
 	}
 
 	/// <summary>
-	/// Encapsulates the configuration of an environment that a C++ file is compiled in.
+	/// Encapsulates the environment that a C++ file is compiled in.
 	/// </summary>
-	public class CPPEnvironmentConfiguration
+	class CppCompileEnvironment
 	{
 		/// <summary>
 		/// The platform to be compiled/linked for.
 		/// </summary>
-		public CPPTargetPlatform Platform;
+		public readonly CppPlatform Platform;
 
 		/// <summary>
 		/// The configuration to be compiled/linked for.
 		/// </summary>
-		public CPPTargetConfiguration Configuration;
+		public readonly CppConfiguration Configuration;
 
 		/// <summary>
 		/// The architecture that is being compiled/linked (empty string by default)
 		/// </summary>
-		public string Architecture;
+		public readonly string Architecture;
 
 		/// <summary>
 		/// The directory to put the output object/debug files in.
@@ -155,7 +155,7 @@ namespace UnrealBuildTool
 		public int MinSourceFilesForUnityBuildOverride = 0;
 
 		/// <summary>
-		/// Overrides BuildConfiguration.MinFilesUsingPrecompiledHeader if non-zero.
+		/// The minimum number of files that must use a pre-compiled header before it will be created and used.
 		/// </summary>
 		public int MinFilesUsingPrecompiledHeaderOverride = 0;
 
@@ -175,14 +175,29 @@ namespace UnrealBuildTool
 		public bool bEnableShadowVariableWarnings = false;
 
 		/// <summary>
+		/// Whether to treat shadow variable warnings as errors.
+		/// </summary>
+		public bool bShadowVariableWarningsAsErrors = false;
+
+		/// <summary>
 		/// Whether to warn about the use of undefined identifiers in #if expressions
 		/// </summary>
 		public bool bEnableUndefinedIdentifierWarnings = false;
 
 		/// <summary>
+		/// Whether to treat undefined identifier warnings as errors.
+		/// </summary>
+		public bool bUndefinedIdentifierWarningsAsErrors = false;
+
+		/// <summary>
 		/// True if compiler optimizations should be enabled. This setting is distinct from the configuration (see CPPTargetConfiguration).
 		/// </summary>
 		public bool bOptimizeCode = false;
+
+		/// <summary>
+		/// Whether to optimize for minimal code size
+		/// </summary>
+		public bool bOptimizeForSize = false;
 
 		/// <summary>
 		/// True if debug info should be created.
@@ -205,14 +220,59 @@ namespace UnrealBuildTool
 		public bool bUseStaticCRT = false;
 
 		/// <summary>
+		/// Whether to use the debug CRT in debug configurations
+		/// </summary>
+		public bool bUseDebugCRT = false;
+
+		/// <summary>
+		/// Whether to omit frame pointers or not. Disabling is useful for e.g. memory profiling on the PC
+		/// </summary>
+		public bool bOmitFramePointers = true;
+
+		/// <summary>
 		/// Whether we should compile with support for OS X 10.9 Mavericks. Used for some tools that we need to be compatible with this version of OS X.
 		/// </summary>
 		public bool bEnableOSX109Support = false;
 
 		/// <summary>
+		/// Whether PDB files should be used for Visual C++ builds.
+		/// </summary>
+		public bool bUsePDBFiles = false;
+
+		/// <summary>
+		/// Whether to support edit and continue.  Only works on Microsoft compilers in 32-bit compiles.
+		/// </summary>
+		public bool bSupportEditAndContinue;
+
+		/// <summary>
+		/// Whether to use incremental linking or not.
+		/// </summary>
+		public bool bUseIncrementalLinking;
+
+		/// <summary>
+		/// Whether to allow the use of LTCG (link time code generation) 
+		/// </summary>
+		public bool bAllowLTCG;
+
+		/// <summary>
+		/// Enabled code analysis mode
+		/// </summary>
+		public bool bEnableCodeAnalysis;
+
+		/// <summary>
+		/// Whether to log detailed timing info from the compiler
+		/// </summary>
+		public bool bPrintTimingInfo;
+
+		/// <summary>
+		/// When enabled, allows XGE to compile pre-compiled header files on remote machines.  Otherwise, PCHs are always generated locally.
+		/// </summary>
+		public bool bAllowRemotelyCompiledPCHs = false;
+
+		/// <summary>
 		/// The include paths to look for included files in.
 		/// </summary>
-		public readonly CPPIncludeInfo CPPIncludeInfo = new CPPIncludeInfo();
+		public readonly CppIncludePaths IncludePaths = new CppIncludePaths();
 
 		/// <summary>
 		/// List of header files to force include
@@ -233,75 +293,7 @@ namespace UnrealBuildTool
 		/// A list of additional frameworks whose include paths are needed.
 		/// </summary>
 		public List<UEBuildFramework> AdditionalFrameworks = new List<UEBuildFramework>();
-		
-        /// <summary>
-        /// Default constructor.
-        /// </summary>
-        public CPPEnvironmentConfiguration()
-		{
-		}
 
-		/// <summary>
-		/// Copy constructor.
-		/// </summary>
-		public CPPEnvironmentConfiguration(CPPEnvironmentConfiguration InCopyEnvironment)
-		{
-			Platform = InCopyEnvironment.Platform;
-			Configuration = InCopyEnvironment.Configuration;
-			Architecture = InCopyEnvironment.Architecture;
-			OutputDirectory = InCopyEnvironment.OutputDirectory;
-			PCHOutputDirectory = InCopyEnvironment.PCHOutputDirectory;
-			LocalShadowDirectory = InCopyEnvironment.LocalShadowDirectory;
-			PrecompiledHeaderIncludeFilename = InCopyEnvironment.PrecompiledHeaderIncludeFilename;
-			PrecompiledHeaderAction = InCopyEnvironment.PrecompiledHeaderAction;
-			bUseRTTI = InCopyEnvironment.bUseRTTI;
-			bUseAVX = InCopyEnvironment.bUseAVX;
-			bFasterWithoutUnity = InCopyEnvironment.bFasterWithoutUnity;
-			MinSourceFilesForUnityBuildOverride = InCopyEnvironment.MinSourceFilesForUnityBuildOverride;
-			MinFilesUsingPrecompiledHeaderOverride = InCopyEnvironment.MinFilesUsingPrecompiledHeaderOverride;
-			bBuildLocallyWithSNDBS = InCopyEnvironment.bBuildLocallyWithSNDBS;
-			bEnableExceptions = InCopyEnvironment.bEnableExceptions;
-			bEnableShadowVariableWarnings = InCopyEnvironment.bEnableShadowVariableWarnings;
-			bEnableUndefinedIdentifierWarnings = InCopyEnvironment.bEnableUndefinedIdentifierWarnings;
-			bOptimizeCode = InCopyEnvironment.bOptimizeCode;
-			bCreateDebugInfo = InCopyEnvironment.bCreateDebugInfo;
-			bIsBuildingLibrary = InCopyEnvironment.bIsBuildingLibrary;
-			bIsBuildingDLL = InCopyEnvironment.bIsBuildingDLL;
-			bUseStaticCRT = InCopyEnvironment.bUseStaticCRT;
-			bEnableOSX109Support = InCopyEnvironment.bEnableOSX109Support;
-			CPPIncludeInfo.IncludePaths.UnionWith(InCopyEnvironment.CPPIncludeInfo.IncludePaths);
-			CPPIncludeInfo.SystemIncludePaths.UnionWith(InCopyEnvironment.CPPIncludeInfo.SystemIncludePaths);
-			ForceIncludeFiles.AddRange(InCopyEnvironment.ForceIncludeFiles);
-			Definitions.AddRange(InCopyEnvironment.Definitions);
-			AdditionalArguments = InCopyEnvironment.AdditionalArguments;
-			AdditionalFrameworks.AddRange(InCopyEnvironment.AdditionalFrameworks);
-		}
-	}
-
-	/// <summary>
-	/// Info about a "Shared PCH" header, including which module it is associated with and all of that module's dependencies
-	/// </summary>
-	public class SharedPCHHeaderInfo
-	{
-		/// The actual header file that the PCH will be created from
-		public FileItem PCHHeaderFile;
-
-		/// The module this header belongs to
-		public UEBuildModuleCPP Module;
-
-		/// All dependent modules
-		public Dictionary<string, UEBuildModule> Dependencies;
-
-		/// Performance diagnostics: The number of modules using this shared PCH header
-		public int NumModulesUsingThisPCH = 0;
-	}
-
-
-	/// <summary>
-	/// Encapsulates the environment that a C++ file is compiled in.
-	/// </summary>
-	public class CPPEnvironment
-	{
 		/// <summary>
 		/// The file containing the precompiled header data.
 		/// </summary>
@@ -313,11 +305,6 @@ namespace UnrealBuildTool
 		public CPPHeaders Headers;
 
 		/// <summary>
-		/// Compile settings
-		/// </summary>
-		public CPPEnvironmentConfiguration Config = new CPPEnvironmentConfiguration();
-
-		/// <summary>
 		/// Whether or not UHT is being built
 		/// </summary>
 		public bool bHackHeaderGenerator;
@@ -325,39 +312,63 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Default constructor.
 		/// </summary>
-		public CPPEnvironment(CPPHeaders Headers)
+        public CppCompileEnvironment(CppPlatform Platform, CppConfiguration Configuration, string Architecture, CPPHeaders Headers)
 		{
+			this.Platform = Platform;
+			this.Configuration = Configuration;
+			this.Architecture = Architecture;
 			this.Headers = Headers;
 		}
 
 		/// <summary>
 		/// Copy constructor.
 		/// </summary>
-		protected CPPEnvironment(CPPEnvironment InCopyEnvironment)
+		/// <param name="Other">Environment to copy settings from</param>
+		public CppCompileEnvironment(CppCompileEnvironment Other)
 		{
-			PrecompiledHeaderFile = InCopyEnvironment.PrecompiledHeaderFile;
-			Headers = InCopyEnvironment.Headers;
-			bHackHeaderGenerator = InCopyEnvironment.bHackHeaderGenerator;
-
-			Config = new CPPEnvironmentConfiguration(InCopyEnvironment.Config);
+			Platform = Other.Platform;
+			Configuration = Other.Configuration;
+			Architecture = Other.Architecture;
+			OutputDirectory = Other.OutputDirectory;
+			PCHOutputDirectory = Other.PCHOutputDirectory;
+			LocalShadowDirectory = Other.LocalShadowDirectory;
+			PrecompiledHeaderIncludeFilename = Other.PrecompiledHeaderIncludeFilename;
+			PrecompiledHeaderAction = Other.PrecompiledHeaderAction;
+			bUseRTTI = Other.bUseRTTI;
+			bUseAVX = Other.bUseAVX;
+			bFasterWithoutUnity = Other.bFasterWithoutUnity;
+			MinSourceFilesForUnityBuildOverride = Other.MinSourceFilesForUnityBuildOverride;
+			MinFilesUsingPrecompiledHeaderOverride = Other.MinFilesUsingPrecompiledHeaderOverride;
+			bBuildLocallyWithSNDBS = Other.bBuildLocallyWithSNDBS;
+			bEnableExceptions = Other.bEnableExceptions;
+			bShadowVariableWarningsAsErrors = Other.bShadowVariableWarningsAsErrors;
+			bEnableShadowVariableWarnings = Other.bEnableShadowVariableWarnings;
+			bUndefinedIdentifierWarningsAsErrors = Other.bUndefinedIdentifierWarningsAsErrors;
+			bEnableUndefinedIdentifierWarnings = Other.bEnableUndefinedIdentifierWarnings;
+			bOptimizeCode = Other.bOptimizeCode;
+			bOptimizeForSize = Other.bOptimizeForSize;
+			bCreateDebugInfo = Other.bCreateDebugInfo;
+			bIsBuildingLibrary = Other.bIsBuildingLibrary;
+			bIsBuildingDLL = Other.bIsBuildingDLL;
+			bUseStaticCRT = Other.bUseStaticCRT;
+			bUseDebugCRT = Other.bUseDebugCRT;
+			bOmitFramePointers = Other.bOmitFramePointers;
+			bEnableOSX109Support = Other.bEnableOSX109Support;
+			bUsePDBFiles = Other.bUsePDBFiles;
+			bSupportEditAndContinue = Other.bSupportEditAndContinue;
+			bUseIncrementalLinking = Other.bUseIncrementalLinking;
+			bAllowLTCG = Other.bAllowLTCG;
+			bEnableCodeAnalysis = Other.bEnableCodeAnalysis;
+			bPrintTimingInfo = Other.bPrintTimingInfo;
+			bAllowRemotelyCompiledPCHs = Other.bAllowRemotelyCompiledPCHs;
+			IncludePaths = new CppIncludePaths(Other.IncludePaths);
+			ForceIncludeFiles.AddRange(Other.ForceIncludeFiles);
+			Definitions.AddRange(Other.Definitions);
+			AdditionalArguments = Other.AdditionalArguments;
+			AdditionalFrameworks.AddRange(Other.AdditionalFrameworks);
+			PrecompiledHeaderFile = Other.PrecompiledHeaderFile;
+			Headers = Other.Headers;
+			bHackHeaderGenerator = Other.bHackHeaderGenerator;
 		}
-
-		/// <summary>
-		/// Whether to use PCH files with the current target
-		/// </summary>
-		/// <returns>true if PCH files should be used, false otherwise</returns>
-		public bool ShouldUsePCHs()
-		{
-			return UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(Config.Platform).ShouldUsePCHFiles(Config.Platform, Config.Configuration);
-		}
-
-		/// <summary>
-		/// Performs a deep copy of this CPPEnvironment object.
-		/// </summary>
-		/// <returns>Copied new CPPEnvironment object.</returns>
-		public virtual CPPEnvironment DeepCopy()
-		{
-			return new CPPEnvironment(this);
-		}
-	};
+	}
 }

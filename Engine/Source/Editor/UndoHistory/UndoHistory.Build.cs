@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class UndoHistory : ModuleRules
 	{
-		public UndoHistory(TargetInfo Target)
+		public UndoHistory(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[] {

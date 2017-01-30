@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
     public class GameplayDebugger : ModuleRules
     {
-        public GameplayDebugger(TargetInfo Target)
+        public GameplayDebugger(ReadOnlyTargetRules Target) : base(Target)
         {
             PublicDependencyModuleNames.AddRange(
                 new string[] {

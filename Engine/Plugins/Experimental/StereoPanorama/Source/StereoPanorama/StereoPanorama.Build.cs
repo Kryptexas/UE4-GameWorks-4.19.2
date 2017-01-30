@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class StereoPanorama : ModuleRules
 	{
-		public StereoPanorama( TargetInfo Target )
+		public StereoPanorama( ReadOnlyTargetRules Target ) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(
 				new string[] {

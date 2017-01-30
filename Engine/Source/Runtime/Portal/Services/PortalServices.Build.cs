@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class PortalServices : ModuleRules
 	{
-		public PortalServices(TargetInfo Target)
+		public PortalServices(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

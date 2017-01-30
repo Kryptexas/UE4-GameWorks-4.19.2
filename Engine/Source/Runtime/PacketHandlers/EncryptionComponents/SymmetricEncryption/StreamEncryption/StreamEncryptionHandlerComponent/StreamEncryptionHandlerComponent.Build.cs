@@ -5,7 +5,7 @@ using System.IO;
 
 public class StreamEncryptionHandlerComponent : ModuleRules
 {
-    public StreamEncryptionHandlerComponent(TargetInfo Target)
+    public StreamEncryptionHandlerComponent(ReadOnlyTargetRules Target) : base(Target)
     {
         PublicDependencyModuleNames.AddRange(
             new string[] {

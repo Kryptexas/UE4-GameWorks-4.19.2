@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SessionFrontend : ModuleRules
 {
-	public SessionFrontend(TargetInfo Target)
+	public SessionFrontend(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] {

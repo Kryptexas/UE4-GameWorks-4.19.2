@@ -179,7 +179,7 @@ namespace AutomationTool
 			}
 
 			// Remove anything that doesn't exist, since these files weren't explicitly tagged
-			BuildProducts.RemoveWhere(x => !x.Exists());
+			BuildProducts.RemoveWhere(x => !FileReference.Exists(x));
 			return true;
 		}
 

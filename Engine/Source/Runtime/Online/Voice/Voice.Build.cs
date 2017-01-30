@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Voice : ModuleRules
 {
-	public Voice(TargetInfo Target)
+	public Voice(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Definitions.Add("VOICE_PACKAGE=1");
 

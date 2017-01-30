@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ProjectTargetPlatformEditor : ModuleRules
 {
-	public ProjectTargetPlatformEditor(TargetInfo Target)
+	public ProjectTargetPlatformEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[]

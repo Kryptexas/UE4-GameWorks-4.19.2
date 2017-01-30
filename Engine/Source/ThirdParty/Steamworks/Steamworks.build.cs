@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -6,7 +6,7 @@ using UnrealBuildTool;
 
 public class Steamworks : ModuleRules
 {
-	public Steamworks(TargetInfo Target)
+	public Steamworks(ReadOnlyTargetRules Target) : base(Target)
 	{
 		/** Mark the current version of the Steam SDK */
 		string SteamVersion = "v132";
@@ -34,7 +34,7 @@ public class Steamworks : ModuleRules
 			string SteamBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/Steamworks/Steam{0}/Win32/", SteamVersion);
 			RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "steam_api.dll"));
 
-			if(Target.Type == TargetRules.TargetType.Server)
+			if(Target.Type == TargetType.Server)
 			{
 				RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "steamclient.dll"));
 				RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "tier0_s.dll"));
@@ -55,7 +55,7 @@ public class Steamworks : ModuleRules
 			string SteamBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/Steamworks/Steam{0}/Win64/", SteamVersion);
 			RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + LibraryName + "64.dll"));
 
-			if(Target.Type == TargetRules.TargetType.Server)
+			if(Target.Type == TargetType.Server)
 			{
 				RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "steamclient64.dll"));
 				RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "tier0_s64.dll"));
@@ -72,10 +72,18 @@ public class Steamworks : ModuleRules
 			LibraryPath += "osx32/libsteam_api.dylib";
 			PublicDelayLoadDLLs.Add(LibraryPath);
 			PublicAdditionalShadowFiles.Add(LibraryPath);
+			if(Target.LinkType == TargetLinkType.Monolithic)
+			{
+				AdditionalBundleResources.Add(new UEBuildBundleResource(LibraryPath, "MacOS"));
+			}
+			else
+			{
+				RuntimeDependencies.Add(new RuntimeDependency(LibraryPath));
+			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			if (Target.IsMonolithic)
+			if (Target.LinkType == TargetLinkType.Monolithic)
 			{
 				LibraryPath += "linux64";
 				PublicLibraryPaths.Add(LibraryPath);
@@ -90,7 +98,7 @@ public class Steamworks : ModuleRules
 			string SteamBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/Steamworks/Steam{0}/Linux/", SteamVersion);
 			RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "libsteam_api.so"));
 
-			if (Target.Type != TargetRules.TargetType.Server)
+			if (Target.Type != TargetType.Server)
 			{
 				// assume SteamController is needed
 				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Config/controller.vdf"));

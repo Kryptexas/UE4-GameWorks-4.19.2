@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AnalyticsMulticast : ModuleRules
 	{
-		public AnalyticsMulticast(TargetInfo Target)
+		public AnalyticsMulticast(ReadOnlyTargetRules Target) : base(Target)
 		{
             PublicDependencyModuleNames.AddRange(
                 new string[]

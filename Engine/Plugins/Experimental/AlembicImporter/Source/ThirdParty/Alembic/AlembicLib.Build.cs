@@ -1,11 +1,11 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Diagnostics;
 
 public class AlembicLib : ModuleRules
 {
-    public AlembicLib(TargetInfo Target)
+    public AlembicLib(ReadOnlyTargetRules Target) : base(Target)
     {
         Type = ModuleType.External;
         if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac)

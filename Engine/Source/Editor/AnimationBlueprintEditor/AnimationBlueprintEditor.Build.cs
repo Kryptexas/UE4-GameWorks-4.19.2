@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AnimationBlueprintEditor : ModuleRules
 {
-	public AnimationBlueprintEditor(TargetInfo Target)
+	public AnimationBlueprintEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Editor/AnimationBlueprintEditor/Private");	// For PCH includes (because they don't work with relative paths, yet)
 

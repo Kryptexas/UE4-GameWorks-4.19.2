@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class UATHelper : ModuleRules
 	{
-        public UATHelper(TargetInfo Target)
+        public UATHelper(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateDependencyModuleNames.AddRange(
                 new string[] {

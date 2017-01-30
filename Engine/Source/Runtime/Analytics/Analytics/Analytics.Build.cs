@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class Analytics : ModuleRules
 	{
-		public Analytics(TargetInfo Target)
+		public Analytics(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {

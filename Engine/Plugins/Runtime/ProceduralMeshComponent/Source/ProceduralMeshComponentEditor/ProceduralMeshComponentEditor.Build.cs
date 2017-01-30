@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class ProceduralMeshComponentEditor : ModuleRules
 	{
-        public ProceduralMeshComponentEditor(TargetInfo Target)
+        public ProceduralMeshComponentEditor(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.Add("ProceduralMeshComponentEditor/Private");
             PublicIncludePaths.Add("ProceduralMeshComponentEditor/Public");

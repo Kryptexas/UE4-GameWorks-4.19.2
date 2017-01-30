@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SandboxFile : ModuleRules
 {
-	public SandboxFile(TargetInfo Target)
+	public SandboxFile(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.Add("Core");
 	}

@@ -7,27 +7,15 @@ using System.Text;
 [SupportedPlatforms(UnrealTargetPlatform.Win32)]
 public class UnrealCodeAnalyzerTarget : TargetRules
 {
-	public UnrealCodeAnalyzerTarget(TargetInfo Target)
+	public UnrealCodeAnalyzerTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Program;
+		LaunchModuleName = "UnrealCodeAnalyzer";
 	}
 
 	//
 	// TargetRules interface.
 	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutBuildBinaryConfigurations.Add(
-			new UEBuildBinaryConfiguration(
-				InType: UEBuildBinaryType.Executable,
-				InModuleNames: new List<string>() { "UnrealCodeAnalyzer" })
-			);
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,
@@ -50,6 +38,7 @@ public class UnrealCodeAnalyzerTarget : TargetRules
 		// Currently this app is not linking against the engine, so we'll compile out references from Core to the rest of the engine
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 
+		/*
 		if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
 			// Clean up some warnings issued by cl.exe when compiling llvm/clang source headers.
@@ -86,6 +75,6 @@ public class UnrealCodeAnalyzerTarget : TargetRules
 			ExtraArguments.Append(" /wd4800");
 
 			OutCPPEnvironmentConfiguration.AdditionalArguments += ExtraArguments.ToString();
-		}
+		}*/
 	}
 }

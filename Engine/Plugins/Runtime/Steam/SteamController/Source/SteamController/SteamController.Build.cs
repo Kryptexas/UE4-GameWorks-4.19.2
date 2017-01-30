@@ -5,7 +5,7 @@ using System.IO;
 
 public class SteamController : ModuleRules
 {
-    public SteamController(TargetInfo Target)
+    public SteamController(ReadOnlyTargetRules Target) : base(Target)
     {
         string SteamVersion = "Steamv132";
         bool bSteamSDKFound = Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "Steamworks/" + SteamVersion) == true;

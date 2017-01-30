@@ -5,7 +5,7 @@ using System.IO;
 
 public class UnrealEd : ModuleRules
 {
-	public UnrealEd(TargetInfo Target)
+	public UnrealEd(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivatePCHHeaderFile = "Private/UnrealEdPrivatePCH.h";
 

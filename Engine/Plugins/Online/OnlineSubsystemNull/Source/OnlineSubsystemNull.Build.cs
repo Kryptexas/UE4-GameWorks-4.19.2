@@ -5,7 +5,7 @@ using System.IO;
 
 public class OnlineSubsystemNull : ModuleRules
 {
-	public OnlineSubsystemNull(TargetInfo Target)
+	public OnlineSubsystemNull(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Definitions.Add("ONLINESUBSYSTEMNULL_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;

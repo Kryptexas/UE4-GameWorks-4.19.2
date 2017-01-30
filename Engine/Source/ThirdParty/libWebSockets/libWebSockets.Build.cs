@@ -4,7 +4,7 @@ using System.IO;
 
 public class libWebSockets : ModuleRules
 {
-	public libWebSockets(TargetInfo Target)
+	public libWebSockets(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
         string WebsocketPath = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "libWebSockets", "libwebsockets");

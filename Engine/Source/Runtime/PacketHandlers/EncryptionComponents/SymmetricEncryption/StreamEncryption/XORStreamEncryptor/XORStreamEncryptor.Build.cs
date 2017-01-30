@@ -5,7 +5,7 @@ using System.IO;
 
 public class XORStreamEncryptor : ModuleRules
 {
-    public XORStreamEncryptor(TargetInfo Target)
+    public XORStreamEncryptor(ReadOnlyTargetRules Target) : base(Target)
     {
         PublicDependencyModuleNames.AddRange(
             new string[] {

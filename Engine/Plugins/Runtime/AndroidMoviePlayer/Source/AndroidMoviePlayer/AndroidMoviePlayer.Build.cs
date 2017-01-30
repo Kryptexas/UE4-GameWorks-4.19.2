@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AndroidMoviePlayer : ModuleRules
 	{
-        public AndroidMoviePlayer(TargetInfo Target)
+        public AndroidMoviePlayer(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(
 				new string[]

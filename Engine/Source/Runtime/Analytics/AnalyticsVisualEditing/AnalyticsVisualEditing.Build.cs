@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AnalyticsVisualEditing : ModuleRules
 	{
-        public AnalyticsVisualEditing(TargetInfo Target)
+        public AnalyticsVisualEditing(ReadOnlyTargetRules Target) : base(Target)
 		{
             PrivateDependencyModuleNames.AddRange(
                 new string[]

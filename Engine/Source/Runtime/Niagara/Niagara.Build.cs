@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Niagara : ModuleRules
 {
-    public Niagara(TargetInfo Target)
+    public Niagara(ReadOnlyTargetRules Target) : base(Target)
     {
         PrivateDependencyModuleNames.AddRange(
             new string[] {

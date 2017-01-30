@@ -107,6 +107,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
 		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <param name="ProjectFileFormat"></param>
 		/// <returns>bool    true if native VisualStudio support (or custom VSI) is available</returns>
 		public override bool HasVisualStudioSupport(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, VCProjectFileFormat ProjectFileFormat)
 		{
@@ -134,6 +135,7 @@ namespace UnrealBuildTool
 		/// Return any custom property group lines
 		/// </summary>
 		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="ProjectFileFormat"></param>
 		/// <returns>string    The custom property import lines for the project file; Empty string if it doesn't require one</returns>
 		public override string GetAdditionalVisualStudioPropertyGroups(UnrealTargetPlatform InPlatform, VCProjectFileFormat ProjectFileFormat)
 		{
@@ -151,6 +153,7 @@ namespace UnrealBuildTool
 		/// Return any custom property group lines
 		/// </summary>
 		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="ProjectFileFormat"></param>
 		/// <returns>string    The custom property import lines for the project file; Empty string if it doesn't require one</returns>
 		public override string GetVisualStudioPlatformConfigurationType(UnrealTargetPlatform InPlatform, VCProjectFileFormat ProjectFileFormat)
 		{
@@ -167,6 +170,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
 		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <param name="InProjectFileFormat">The version of Visual Studio to target</param>
 		/// <returns>string    The custom configuration section for the project file; Empty string if it doesn't require one</returns>
 		public override string GetVisualStudioPlatformToolsetString(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, VCProjectFileFormat InProjectFileFormat)
 		{
@@ -183,10 +187,15 @@ namespace UnrealBuildTool
 		/// Return any custom paths for VisualStudio this platform requires
 		/// This include ReferencePath, LibraryPath, LibraryWPath, IncludePath and ExecutablePath.
 		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="TargetType">  The type of target (game or program)</param>
-		/// <returns>string    The custom path lines for the project file; Empty string if it doesn't require one</returns>
-		public override string GetVisualStudioPathsEntries(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, TargetRules.TargetType TargetType, FileReference TargetRulesPath, FileReference ProjectFilePath, FileReference NMakeOutputPath, VCProjectFileFormat InProjectFileFormat)
+		/// <param name="InPlatform">The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration">The configuration being built</param>
+		/// <param name="TargetType">The type of target (game or program)</param>
+		/// <param name="TargetRulesPath">Path to the target.cs file</param>
+		/// <param name="ProjectFilePath">Path to the project file</param>
+		/// <param name="NMakeOutputPath"></param>
+		/// <param name="InProjectFileFormat">Format for the generated project files</param>
+		/// <returns>The custom path lines for the project file; Empty string if it doesn't require one</returns>
+		public override string GetVisualStudioPathsEntries(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, TargetType TargetType, FileReference TargetRulesPath, FileReference ProjectFilePath, FileReference NMakeOutputPath, VCProjectFileFormat InProjectFileFormat)
 		{
 			if (!IsNsightInstalled(InProjectFileFormat))
 			{

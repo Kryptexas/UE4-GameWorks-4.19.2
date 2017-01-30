@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class CrashDebugHelper : ModuleRules
 {
-	public CrashDebugHelper( TargetInfo Target )
+	public CrashDebugHelper( ReadOnlyTargetRules Target ) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
 		new string[] {

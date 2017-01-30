@@ -6,7 +6,7 @@ namespace UnrealBuildTool.Rules
 {
     public class ViewportInteraction : ModuleRules
     {
-        public ViewportInteraction(TargetInfo Target)
+        public ViewportInteraction(ReadOnlyTargetRules Target) : base(Target)
         {
             PrivateDependencyModuleNames.AddRange(
                 new string[] {

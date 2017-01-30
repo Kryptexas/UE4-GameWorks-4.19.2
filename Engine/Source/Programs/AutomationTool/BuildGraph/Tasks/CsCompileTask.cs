@@ -92,7 +92,7 @@ namespace AutomationTool.Tasks
 			HashSet<FileReference> ProjectFiles = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Project, TagNameToFileSet);
 			foreach(FileReference ProjectFile in ProjectFiles)
 			{
-				if(!ProjectFile.Exists())
+				if(!FileReference.Exists(ProjectFile))
 				{
 					CommandUtils.LogError("Couldn't find project file '{0}'", ProjectFile.FullName);
 					return false;
@@ -241,7 +241,7 @@ namespace AutomationTool.Tasks
 						BuildProducts.Add(OutputFile);
 
 						FileReference OutputSymbolFile = OutputFile.ChangeExtension(".pdb");
-						if(OutputSymbolFile.Exists())
+						if(FileReference.Exists(OutputSymbolFile))
 						{
 							BuildProducts.Add(OutputSymbolFile);
 						}
@@ -251,7 +251,7 @@ namespace AutomationTool.Tasks
 						// Add reference directly
 						References.Add(OtherAssembly);
 						FileReference SymbolFile = OtherAssembly.ChangeExtension(".pdb");
-						if(SymbolFile.Exists())
+						if(FileReference.Exists(SymbolFile))
 						{
 							References.Add(SymbolFile);
 						}
@@ -384,7 +384,7 @@ namespace AutomationTool.Tasks
 		/// <param name="BuildProducts">List of output build products</param>
 		public static void AddOptionalBuildProduct(FileReference BuildProduct, HashSet<FileReference> BuildProducts)
 		{
-			if(BuildProduct.Exists())
+			if(FileReference.Exists(BuildProduct))
 			{
 				BuildProducts.Add(BuildProduct);
 			}

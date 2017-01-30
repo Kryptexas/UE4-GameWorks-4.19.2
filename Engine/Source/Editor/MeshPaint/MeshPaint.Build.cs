@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MeshPaint : ModuleRules
 {
-    public MeshPaint(TargetInfo Target)
+    public MeshPaint(ReadOnlyTargetRules Target) : base(Target)
     {
 		PrivateIncludePathModuleNames.AddRange(
             new string[] {

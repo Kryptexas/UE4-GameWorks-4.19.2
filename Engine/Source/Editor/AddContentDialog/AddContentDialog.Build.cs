@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AddContentDialog : ModuleRules
 {
-	public AddContentDialog(TargetInfo Target)
+	public AddContentDialog(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {

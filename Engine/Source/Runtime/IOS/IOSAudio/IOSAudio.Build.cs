@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class IOSAudio : ModuleRules
 {
-	public IOSAudio(TargetInfo Target)
+	public IOSAudio(ReadOnlyTargetRules Target) : base(Target)
 	{
 		BinariesSubFolder = "IOS";
 

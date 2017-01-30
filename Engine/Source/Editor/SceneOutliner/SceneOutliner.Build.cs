@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SceneOutliner : ModuleRules
 {
-	public SceneOutliner(TargetInfo Target)
+	public SceneOutliner(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {

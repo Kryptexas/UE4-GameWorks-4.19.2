@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class GeometryMode : ModuleRules
 {
-	public GeometryMode(TargetInfo Target)
+	public GeometryMode(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

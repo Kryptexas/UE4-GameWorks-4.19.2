@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 using System.IO;
 
 public class SpeedTree : ModuleRules
 {
-	public SpeedTree(TargetInfo Target)
+	public SpeedTree(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -93,7 +93,7 @@ public class SpeedTree : ModuleRules
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Linux)
 			{
-				if (Target.IsMonolithic)
+				if (Target.LinkType == TargetLinkType.Monolithic)
 				{
 					PublicAdditionalLibraries.Add(SpeedTreePath + "Lib/Linux/" + Target.Architecture + "/Release/libSpeedTreeCore.a");
 				}

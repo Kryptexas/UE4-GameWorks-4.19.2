@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class TargetDeviceServices : ModuleRules
 	{
-		public TargetDeviceServices(TargetInfo Target)
+		public TargetDeviceServices(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

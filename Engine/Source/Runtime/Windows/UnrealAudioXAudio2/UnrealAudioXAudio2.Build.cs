@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UnrealAudioXAudio2 : ModuleRules
 {
-	public UnrealAudioXAudio2(TargetInfo Target)
+	public UnrealAudioXAudio2(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Runtime/UnrealAudio/Private");
 		PublicIncludePaths.Add("Runtime/UnrealAudio/Public");

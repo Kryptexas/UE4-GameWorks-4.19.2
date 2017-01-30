@@ -14,7 +14,7 @@ namespace UnrealGameSync
 {
 	public partial class SyncFilter : Form
 	{
-		string[] DefaultLines = 
+		string[] DefaultLines =
 		{
 			"; Rules are specified one per line, and may use any standard Perforce wildcards:",
 			";    ?    Matches one character.",
@@ -23,17 +23,29 @@ namespace UnrealGameSync
 			";",
 			"; Patterns may match any file fragment (eg. *.pdb), or may be rooted to the branch (eg. /Engine/Binaries/.../*.pdb).",
 			"; To exclude files which match a pattern, prefix the rule with the '-' character (eg. -/Engine/Documentation/...)",
+			";",
+			"; Global rules are applied to the files being synced first, followed by any workspace-specific patterns.",
 			"",
 			""
 		};
 
-		public string[] Lines;
+		public string[] GlobalFilter;
+		public string[] WorkspaceFilter;
 
-		public SyncFilter(string[] Lines)
+		public SyncFilter(string[] InGlobalFilter, string[] InWorkspaceFilter)
 		{
 			InitializeComponent();
 
-			if(!Lines.Any(x => x.Trim().Length > 0))
+			GlobalFilter = InGlobalFilter;
+			WorkspaceFilter = InWorkspaceFilter;
+	
+			SetLines(GlobalFilter, FilterTextGlobal);
+			SetLines(WorkspaceFilter, FilterTextWorkspace);
+		}
+
+		private void SetLines(string[] Lines, TextBox FilterText)
+		{
+			if (Lines == null || !Lines.Any(x => x.Trim().Length > 0))
 			{
 				FilterText.Lines = DefaultLines;
 			}
@@ -41,31 +53,27 @@ namespace UnrealGameSync
 			{
 				FilterText.Lines = Lines;
 			}
-
 			FilterText.Select(FilterText.Text.Length, 0);
+		}
+
+		private string[] GetLines(TextBox FilterText)
+		{
+			List<string> NewLines = new List<string>(FilterText.Lines);
+			while (NewLines.Count > 0 && DefaultLines.Any(x => x == NewLines[0].Trim()))
+			{
+				NewLines.RemoveAt(0);
+			}
+			while (NewLines.Count > 0 && NewLines.Last().Trim().Length == 0)
+			{
+				NewLines.RemoveAt(NewLines.Count - 1);
+			}
+			return NewLines.Count > 0 ? FilterText.Lines : new string[0];
 		}
 
 		private void OkButton_Click(object sender, EventArgs e)
 		{
-			List<string> NewLines = new List<string>(FilterText.Lines);
-			while(NewLines.Count > 0 && DefaultLines.Any(x => x == NewLines[0].Trim()))
-			{
-				NewLines.RemoveAt(0);
-			}
-			while(NewLines.Count > 0 && NewLines.Last().Trim().Length == 0)
-			{
-				NewLines.RemoveAt(NewLines.Count - 1);
-			}
-
-			if(NewLines.Count > 0)
-			{
-				Lines = FilterText.Lines;
-			}
-			else
-			{
-				Lines = NewLines.ToArray();
-			}
-
+			GlobalFilter = GetLines(FilterTextGlobal);
+			WorkspaceFilter = GetLines(FilterTextWorkspace);
 			DialogResult = DialogResult.OK;
 		}
 

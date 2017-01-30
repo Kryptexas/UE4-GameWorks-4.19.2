@@ -5,8 +5,7 @@
 #include "ModuleManager.h"
 #include "UE4EditorServicesAppDelegate.h"
 #include "Misc/CommandLine.h"
-
-#import <Cocoa/Cocoa.h>
+#include "Mac/MacSystemIncludes.h"
 
 IMPLEMENT_APPLICATION(UE4EditorServices, "UE4EditorServices");
 

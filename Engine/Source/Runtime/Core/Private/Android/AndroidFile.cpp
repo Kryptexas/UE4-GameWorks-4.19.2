@@ -6,6 +6,7 @@
 
 #include "AndroidFile.h"
 #include "Misc/App.h"
+#include "Misc/Paths.h"
 
 #include <dirent.h>
 #include <jni.h>

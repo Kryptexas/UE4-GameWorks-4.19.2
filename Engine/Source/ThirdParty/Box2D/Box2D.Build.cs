@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System;
@@ -6,7 +6,7 @@ using System.IO;
 
 public class Box2D : ModuleRules
 {
-	public Box2D(TargetInfo Target)
+	public Box2D(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

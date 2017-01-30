@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class UdpMessaging : ModuleRules
 	{
-		public UdpMessaging(TargetInfo Target)
+		public UdpMessaging(ReadOnlyTargetRules Target) : base(Target)
 		{
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {
@@ -45,7 +45,7 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 
-			if (Target.Type == TargetRules.TargetType.Editor)
+			if (Target.Type == TargetType.Editor)
 			{
 				DynamicallyLoadedModuleNames.AddRange(
 					new string[] {

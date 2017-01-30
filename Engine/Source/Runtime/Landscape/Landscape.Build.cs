@@ -5,7 +5,7 @@ using System.IO;
 
 public class Landscape : ModuleRules
 {
-	public Landscape(TargetInfo Target)
+	public Landscape(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -42,7 +42,7 @@ public class Landscape : ModuleRules
 			PrivateIncludePathModuleNames.Add("PhysXFormats");
 		}
 
-		if (UEBuildConfiguration.bBuildDeveloperTools && Target.Type != TargetRules.TargetType.Server)
+		if (UEBuildConfiguration.bBuildDeveloperTools && Target.Type != TargetType.Server)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {

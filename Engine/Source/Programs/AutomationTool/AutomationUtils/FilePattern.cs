@@ -350,7 +350,7 @@ namespace AutomationTool
 			{
 				// Just copy a single file
 				FileReference SourceFile = SourcePattern.GetSingleFile();
-				if(SourceFile.Exists())
+				if(FileReference.Exists(SourceFile))
 				{
 					FileReference TargetFile = TargetPattern.GetSingleFile();
 					TargetFileToSourceFile[TargetFile] = SourceFile;
@@ -402,7 +402,7 @@ namespace AutomationTool
 					CommandUtils.LogError("Source file '{0}' is not under '{1}'", InputFile, BaseDirectory);
 					bResult = false;
 				}
-				else if(!InputFile.Exists())
+				else if(!FileReference.Exists(InputFile))
 				{
 					CommandUtils.LogError("Source file '{0}' does not exist", InputFile);
 					bResult = false;

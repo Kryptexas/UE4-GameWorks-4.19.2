@@ -62,10 +62,9 @@ namespace AutomationTool
 
 			foreach (UnrealTargetPlatform CodeTargetPlatform in Enum.GetValues(typeof(UnrealTargetPlatform)))
 			{
-				UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(CodeTargetPlatform, true);
-				if (BuildPlatform != null)
+				if (PlatformExports.IsPlatformAvailable(CodeTargetPlatform))
 				{
-					string Architecture = BuildPlatform.CreateContext(null, null).GetActiveArchitecture();
+					string Architecture = PlatformExports.GetDefaultArchitecture(CodeTargetPlatform, null);
 
 					// Try to parse additional Architectures from the command line
 					string Architectures = ParseParamValue(CodeTargetPlatform.ToString() + "Architectures");
@@ -111,12 +110,12 @@ namespace AutomationTool
 							{
 								foreach (string Arch in AllArchNames)
 								{
-									InstalledConfigs.Add(new InstalledPlatformInfo.InstalledPlatformConfiguration(CodeTargetConfiguration, CodeTargetPlatform, TargetRules.TargetType.Game, Arch, ReceiptFileName, ProjectType, bCanBeDisplayed));
+									InstalledConfigs.Add(new InstalledPlatformInfo.InstalledPlatformConfiguration(CodeTargetConfiguration, CodeTargetPlatform, TargetType.Game, Arch, ReceiptFileName, ProjectType, bCanBeDisplayed));
 								}
 							}
 							else
 							{
-								InstalledConfigs.Add(new InstalledPlatformInfo.InstalledPlatformConfiguration(CodeTargetConfiguration, CodeTargetPlatform, TargetRules.TargetType.Game, Architecture, ReceiptFileName, ProjectType, bCanBeDisplayed));
+								InstalledConfigs.Add(new InstalledPlatformInfo.InstalledPlatformConfiguration(CodeTargetConfiguration, CodeTargetPlatform, TargetType.Game, Architecture, ReceiptFileName, ProjectType, bCanBeDisplayed));
 							}
 						}
 					}

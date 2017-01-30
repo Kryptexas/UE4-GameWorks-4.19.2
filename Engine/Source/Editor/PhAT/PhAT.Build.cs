@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class PhAT : ModuleRules
 {
-	public PhAT(TargetInfo Target)
+	public PhAT(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.Add("Editor/UnrealEd/Public");
 

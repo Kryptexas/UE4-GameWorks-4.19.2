@@ -12,7 +12,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Represents a folder within the master project (e.g. Visual Studio solution)
 	/// </summary>
-	public class VisualStudioSolutionFolder : MasterProjectFolder
+	class VisualStudioSolutionFolder : MasterProjectFolder
 	{
 		/// <summary>
 		/// Constructor
@@ -35,7 +35,7 @@ namespace UnrealBuildTool
 		}
 	}
 
-	public enum VCProjectFileFormat
+	enum VCProjectFileFormat
 	{
 		Default,          // Default to the best installed version, but allow SDKs to override
 		VisualStudio2012, // Unsupported
@@ -47,19 +47,66 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Visual C++ project file generator implementation
 	/// </summary>
-	public class VCProjectFileGenerator : ProjectFileGenerator
+	class VCProjectFileGenerator : ProjectFileGenerator
 	{
 		/// <summary>
-		/// Do not access this variable directly; it is used to read the default for config files only, and may be overridden by the actual project setting.
+		/// The version of Visual Studio to generate project files for.
 		/// </summary>
-		[XmlConfig]
-		public static VCProjectFileFormat Version = VCProjectFileFormat.Default;
+		[XmlConfigFile(Name = "Version")]
+		VCProjectFileFormat ProjectFileFormat = VCProjectFileFormat.Default;
+
+		/// <summary>
+		/// Whether to add the -FastPDB option to build command lines by default
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		bool bAddFastPDBToProjects = false;
+
+		/// <summary>
+		/// Whether to generate per-file intellisense data
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		bool bUsePerFileIntellisense = false;
+
+		/// <summary>
+		/// Whether to include a dependency on ShaderCompileWorker when generating project files for the editor.
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		bool bEditorDependsOnShaderCompileWorker = true;
+
+		/// <summary>
+		/// Override for the build tool to use in generated projects. If the compiler version is specified on the command line, we use the same argument on the 
+		/// command line for generated projects.
+		/// </summary>
+		string BuildToolOverride;
 
 		/// Default constructor
-		public VCProjectFileGenerator(FileReference InOnlyGameProject, VCProjectFileFormat InFormat)
+		public VCProjectFileGenerator(FileReference InOnlyGameProject, string[] Arguments)
 			: base(InOnlyGameProject)
 		{
-			ProjectFileFormat = InFormat;
+			XmlConfig.ApplyTo(this);
+
+			foreach(string Argument in Arguments)
+			{
+				if(Argument.Equals("-2012unsupported", StringComparison.InvariantCultureIgnoreCase))
+				{
+					ProjectFileFormat = VCProjectFileFormat.VisualStudio2012;
+				}
+				else if (Argument == "-2013")
+				{
+					ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
+					BuildToolOverride = " -2013";
+				}
+				else if(Argument == "-2015")
+				{
+					ProjectFileFormat = VCProjectFileFormat.VisualStudio2015;
+					BuildToolOverride = " -2015";
+				}
+				else if(Argument == "-2017")
+				{
+					ProjectFileFormat = VCProjectFileFormat.VisualStudio2017;
+					BuildToolOverride = " -2017";
+				}
+			}
 		}
 
 		/// File extension for project files we'll be generating (e.g. ".vcxproj")
@@ -77,37 +124,37 @@ namespace UnrealBuildTool
 		{
 			FileReference MasterProjectFile = FileReference.Combine(InMasterProjectDirectory, InMasterProjectName);
 			FileReference MasterProjDeleteFilename = MasterProjectFile + ".sln";
-			if (MasterProjDeleteFilename.Exists())
+			if (FileReference.Exists(MasterProjDeleteFilename))
 			{
-				MasterProjDeleteFilename.Delete();
+				FileReference.Delete(MasterProjDeleteFilename);
 			}
 			MasterProjDeleteFilename = MasterProjectFile + ".sdf";
-			if (MasterProjDeleteFilename.Exists())
+			if (FileReference.Exists(MasterProjDeleteFilename))
 			{
-				MasterProjDeleteFilename.Delete();
+				FileReference.Delete(MasterProjDeleteFilename);
 			}
 			MasterProjDeleteFilename = MasterProjectFile + ".suo";
-			if (MasterProjDeleteFilename.Exists())
+			if (FileReference.Exists(MasterProjDeleteFilename))
 			{
-				MasterProjDeleteFilename.Delete();
+				FileReference.Delete(MasterProjDeleteFilename);
 			}
 			MasterProjDeleteFilename = MasterProjectFile + ".v11.suo";
-			if (MasterProjDeleteFilename.Exists())
+			if (FileReference.Exists(MasterProjDeleteFilename))
 			{
-				MasterProjDeleteFilename.Delete();
+				FileReference.Delete(MasterProjDeleteFilename);
 			}
 			MasterProjDeleteFilename = MasterProjectFile + ".v12.suo";
-			if (MasterProjDeleteFilename.Exists())
+			if (FileReference.Exists(MasterProjDeleteFilename))
 			{
-				MasterProjDeleteFilename.Delete();
+				FileReference.Delete(MasterProjDeleteFilename);
 			}
 
 			// Delete the project files folder
-			if (InIntermediateProjectFilesDirectory.Exists())
+			if (DirectoryReference.Exists(InIntermediateProjectFilesDirectory))
 			{
 				try
 				{
-					Directory.Delete(InIntermediateProjectFilesDirectory.FullName, true);
+					DirectoryReference.Delete(InIntermediateProjectFilesDirectory, true);
 				}
 				catch (Exception Ex)
 				{
@@ -124,7 +171,7 @@ namespace UnrealBuildTool
 		/// <returns>The newly allocated project file object</returns>
 		protected override ProjectFile AllocateProjectFile(FileReference InitFilePath)
 		{
-			return new VCProjectFile(InitFilePath, OnlyGameProject, ProjectFileFormat);
+			return new VCProjectFile(InitFilePath, OnlyGameProject, ProjectFileFormat, bAddFastPDBToProjects, bUsePerFileIntellisense, BuildToolOverride);
 		}
 
 
@@ -168,9 +215,6 @@ namespace UnrealBuildTool
 			return string.Empty;
 		}
 
-		/// Which version of Visual Studio we should generate project files for
-		VCProjectFileFormat ProjectFileFormat;
-
 		/// This is the platform name that Visual Studio is always guaranteed to support.  We'll use this as
 		/// a platform for any project configurations where our actual platform is not supported by the
 		/// installed version of Visual Studio (e.g, "iOS")
@@ -200,8 +244,8 @@ namespace UnrealBuildTool
 			base.AddEngineExtrasFiles(EngineProject);
 
 			// Add our UE4.natvis file
-			var NatvisFilePath = FileReference.Combine(UnrealBuildTool.EngineDirectory, "Extras", "VisualStudioDebugging", "UE4.natvis");
-			if (NatvisFilePath.Exists())
+			FileReference NatvisFilePath = FileReference.Combine(UnrealBuildTool.EngineDirectory, "Extras", "VisualStudioDebugging", "UE4.natvis");
+			if (FileReference.Exists(NatvisFilePath))
 			{
 				EngineProject.AddFileToProject(NatvisFilePath, UnrealBuildTool.EngineDirectory);
 			}
@@ -339,8 +383,8 @@ namespace UnrealBuildTool
 
 			// Don't bother postfixing "Game" or "Program" -- that will be the default when using "Debug", "Development", etc.
 			// Also don't postfix "RocketGame" when we're building Rocket game projects.  That's the only type of game there is in that case!
-			if (!TargetConfigurationName.Equals(TargetRules.TargetType.Game.ToString(), StringComparison.InvariantCultureIgnoreCase) &&
-				!TargetConfigurationName.Equals(TargetRules.TargetType.Program.ToString(), StringComparison.InvariantCultureIgnoreCase))
+			if (!TargetConfigurationName.Equals(TargetType.Game.ToString(), StringComparison.InvariantCultureIgnoreCase) &&
+				!TargetConfigurationName.Equals(TargetType.Program.ToString(), StringComparison.InvariantCultureIgnoreCase))
 			{
 				SolutionConfigName += " " + TargetConfigurationName;
 			}
@@ -538,7 +582,7 @@ namespace UnrealBuildTool
 							Dependencies.Add(UBTProject);
 							Dependencies.AddRange(UBTProject.DependsOnProjects);
 						}
-						if (UEBuildConfiguration.bEditorDependsOnShaderCompileWorker && CurProject.IsGeneratedProject && ShaderCompileWorkerProject != null && CurProject.ProjectTargets.Any(x => x.TargetRules != null && x.TargetRules.Type == TargetRules.TargetType.Editor))
+						if (bEditorDependsOnShaderCompileWorker && CurProject.IsGeneratedProject && ShaderCompileWorkerProject != null && CurProject.ProjectTargets.Any(x => x.TargetRules != null && x.TargetRules.Type == TargetType.Editor))
 						{
 							Dependencies.Add(ShaderCompileWorkerProject);
 						}
@@ -607,7 +651,7 @@ namespace UnrealBuildTool
 														PlatformsValidForProjects.Add(CurPlatform);
 
 														// Default to a target configuration name of "Game", since that will collapse down to an empty string
-														string TargetConfigurationName = TargetRules.TargetType.Game.ToString();
+														string TargetConfigurationName = TargetType.Game.ToString();
 														if (ProjectTarget.TargetRules != null)
 														{
 															TargetConfigurationName = ProjectTarget.TargetRules.Type.ToString();
@@ -694,20 +738,20 @@ namespace UnrealBuildTool
 								{
 									throw new BuildException("Expecting project '" + CurProject.ProjectFilePath + "' to have at least one ProjectTarget associated with it!");
 								}
-								bool IsProgramProject = CurProject.ProjectTargets[0].TargetRules != null && CurProject.ProjectTargets[0].TargetRules.Type == TargetRules.TargetType.Program;
+								bool IsProgramProject = CurProject.ProjectTargets[0].TargetRules != null && CurProject.ProjectTargets[0].TargetRules.Type == TargetType.Program;
 
 								HashSet<string> GameOrProgramConfigsAlreadyMapped = new HashSet<string>();
 								foreach (VCSolutionConfigCombination SolutionConfigCombination in SolutionConfigCombinations)
 								{
 									// Handle aliasing of Program and Game target configuration names
 									if ((IsProgramProject && GameOrProgramConfigsAlreadyMapped.Add(SolutionConfigCombination.VCSolutionConfigAndPlatformName)) ||
-										IsProgramProject && SolutionConfigCombination.TargetConfigurationName != TargetRules.TargetType.Game.ToString() ||
-										!IsProgramProject && SolutionConfigCombination.TargetConfigurationName != TargetRules.TargetType.Program.ToString())
+										IsProgramProject && SolutionConfigCombination.TargetConfigurationName != TargetType.Game.ToString() ||
+										!IsProgramProject && SolutionConfigCombination.TargetConfigurationName != TargetType.Program.ToString())
 									{
 										string TargetConfigurationName = SolutionConfigCombination.TargetConfigurationName;
 										if (IsProgramProject)
 										{
-											TargetConfigurationName = TargetRules.TargetType.Program.ToString();
+											TargetConfigurationName = TargetType.Program.ToString();
 										}
 
 										// Now, we want to find a target in this project that maps to the current solution config combination.  Only up to one target should
@@ -729,7 +773,7 @@ namespace UnrealBuildTool
 												// UBT gets a pass because it is a dependency of every single configuration combination
 												if (CurProject != UBTProject &&
 													!CurProject.ShouldBuildForAllSolutionTargets &&
-													TargetConfigurationName != TargetRules.TargetType.Game.ToString())
+													TargetConfigurationName != TargetType.Game.ToString())
 												{
 													// Can't build non-generated project in configurations except for the default (Game)
 													IsMatchingCombination = false;
@@ -775,11 +819,11 @@ namespace UnrealBuildTool
 
 											if (IsProgramProject)
 											{
-												TargetConfigurationName = TargetRules.TargetType.Program.ToString();
+												TargetConfigurationName = TargetType.Program.ToString();
 											}
 											else
 											{
-												TargetConfigurationName = TargetRules.TargetType.Game.ToString();
+												TargetConfigurationName = TargetType.Game.ToString();
 											}
 										}
 
@@ -796,7 +840,7 @@ namespace UnrealBuildTool
 										}
 
 										// Always allow SCW and UnrealLighmass to build in editor configurations
-										if (MatchingProjectTarget == null && SolutionConfigCombination.TargetConfigurationName == TargetRules.TargetType.Editor.ToString() && SolutionConfigCombination.Platform == UnrealTargetPlatform.Win64)
+										if (MatchingProjectTarget == null && SolutionConfigCombination.TargetConfigurationName == TargetType.Editor.ToString() && SolutionConfigCombination.Platform == UnrealTargetPlatform.Win64)
 										{
 											if (CurProject == ShaderCompileWorkerProject)
 											{
@@ -970,9 +1014,9 @@ namespace UnrealBuildTool
 				}
 
 				// Check it doesn't exist before overwriting it. Since these files store the user's preferences, it'd be bad form to overwrite them.
-				if (!SolutionOptionsFileName.Exists())
+				if (!FileReference.Exists(SolutionOptionsFileName))
 				{
-					SolutionOptionsFileName.Directory.CreateDirectory();
+					DirectoryReference.CreateDirectory(SolutionOptionsFileName.Directory);
 
 					VCSolutionOptions Options = new VCSolutionOptions();
 

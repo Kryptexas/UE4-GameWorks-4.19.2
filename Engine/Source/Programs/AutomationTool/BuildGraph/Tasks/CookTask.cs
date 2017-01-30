@@ -87,7 +87,7 @@ namespace BuildGraph.Tasks
 			if(Parameters.Project != null)
 			{
 				ProjectFile = new FileReference(Parameters.Project);
-				if(!ProjectFile.Exists())
+				if(!FileReference.Exists(ProjectFile))
 				{
 					CommandUtils.LogError("Missing project file - {0}", ProjectFile.FullName);
 					return false;
@@ -107,12 +107,12 @@ namespace BuildGraph.Tasks
 			foreach(string Platform in Parameters.Platform.Split('+'))
 			{
 				DirectoryReference PlatformCookedDirectory = DirectoryReference.Combine(ProjectFile.Directory, "Saved", "Cooked", Platform);
-				if(!PlatformCookedDirectory.Exists())
+				if(!DirectoryReference.Exists(PlatformCookedDirectory))
 				{
 					CommandUtils.LogError("Cook output directory not found ({0})", PlatformCookedDirectory.FullName);
 					return false;
 				}
-				List<FileReference> PlatformCookedFiles = PlatformCookedDirectory.EnumerateFileReferences("*", System.IO.SearchOption.AllDirectories).ToList();
+				List<FileReference> PlatformCookedFiles = DirectoryReference.EnumerateFiles(PlatformCookedDirectory, "*", System.IO.SearchOption.AllDirectories).ToList();
 				if(PlatformCookedFiles.Count == 0)
 				{
 					CommandUtils.LogError("Cooking did not produce any files in {0}", PlatformCookedDirectory.FullName);

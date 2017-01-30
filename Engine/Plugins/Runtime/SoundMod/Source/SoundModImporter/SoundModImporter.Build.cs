@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SoundModImporter : ModuleRules
 {
-	public SoundModImporter(TargetInfo Target)
+	public SoundModImporter(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

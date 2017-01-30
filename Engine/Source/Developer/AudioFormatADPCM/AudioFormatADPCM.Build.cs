@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AudioFormatADPCM : ModuleRules
 {
-	public AudioFormatADPCM(TargetInfo Target)
+	public AudioFormatADPCM(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
 		PrivateDependencyModuleNames.Add("Core");

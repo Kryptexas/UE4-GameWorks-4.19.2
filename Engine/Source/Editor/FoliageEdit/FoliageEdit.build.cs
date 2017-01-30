@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class FoliageEdit : ModuleRules
 {
-	public FoliageEdit(TargetInfo Target)
+	public FoliageEdit(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] 

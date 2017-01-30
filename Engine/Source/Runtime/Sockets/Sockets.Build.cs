@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Sockets : ModuleRules
 {
-	public Sockets(TargetInfo Target)
+	public Sockets(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.AddRange(new string[] { "DerivedDataCache" });
 

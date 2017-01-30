@@ -6,7 +6,8 @@ using System.Text;
 using System.IO;
 using AutomationTool;
 using UnrealBuildTool;
-
+using Microsoft.Win32;
+using System.Diagnostics;
 
 public abstract class BaseWinPlatform : Platform
 {
@@ -21,11 +22,11 @@ public abstract class BaseWinPlatform : Platform
 
 		if (SC.bStageCrashReporter)
 		{
-			string ReceiptFileName = TargetReceipt.GetDefaultPath(UnrealBuildTool.UnrealBuildTool.EngineDirectory.FullName, "CrashReportClient", SC.StageTargetPlatform.PlatformType, UnrealTargetConfiguration.Shipping, null);
+			string ReceiptFileName = TargetReceipt.GetDefaultPath(CommandUtils.EngineDirectory.FullName, "CrashReportClient", SC.StageTargetPlatform.PlatformType, UnrealTargetConfiguration.Shipping, null);
 			if(File.Exists(ReceiptFileName))
 			{
 				TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName);
-				Receipt.ExpandPathVariables(UnrealBuildTool.UnrealBuildTool.EngineDirectory, (Params.RawProjectPath == null)? UnrealBuildTool.UnrealBuildTool.EngineDirectory : Params.RawProjectPath.Directory);
+				Receipt.ExpandPathVariables(CommandUtils.EngineDirectory, (Params.RawProjectPath == null)? CommandUtils.EngineDirectory : Params.RawProjectPath.Directory);
 				SC.StageBuildProductsFromReceipt(Receipt, true, false);
 			}
 		}
@@ -165,14 +166,13 @@ public abstract class BaseWinPlatform : Platform
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
         // package up the program, potentially with an installer for Windows
-        BaseWindowsDeploy Deploy = new BaseWindowsDeploy();
         string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
 
         List<string> ExeNames = GetExecutableNames(SC);
 
         foreach (string ExeName in ExeNames)
         {
-            Deploy.PrepForUATPackageOrDeploy(Params.RawProjectPath, Params.ShortProjectName, SC.ProjectRoot, ExeName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, false);
+            WindowsExports.PrepForUATPackageOrDeploy(Params.RawProjectPath, Params.ShortProjectName, SC.ProjectRoot, ExeName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, false);
         }
 		// package up the program, potentially with an installer for Windows
 		PrintRunTime();
@@ -293,6 +293,101 @@ public abstract class BaseWinPlatform : Platform
 			throw new AutomationException("Unable to deploy AppLocalDirectory dependencies. No such path: {0}", BaseAppLocalDependenciesPath);
 		}
 	}
+
+    /// <summary>
+    /// Try to get the SYMSTORE.EXE path from the given Windows SDK version
+    /// </summary>
+    /// <param name="SdkVersion">The SDK version string</param>
+    /// <param name="SymStoreExe">Receives the path to symstore.exe if found</param>
+    /// <returns>True if found, false otherwise</returns>
+    private static bool TryGetSymStoreExe(string SdkVersion, out FileReference SymStoreExe)
+    {
+        // Try to get the SDK installation directory
+        string SdkFolder = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Microsoft SDKs\Windows\" + SdkVersion, "InstallationFolder", null) as String;
+        if (SdkFolder == null)
+        {
+            SdkFolder = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\" + SdkVersion, "InstallationFolder", null) as String;
+            if (SdkFolder == null)
+            {
+                SdkFolder = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\" + SdkVersion, "InstallationFolder", null) as String;
+                if (SdkFolder == null)
+                {
+                    SymStoreExe = null;
+                    return false;
+                }
+            }
+        }
+
+        // Check for the 64-bit toolchain first, then the 32-bit toolchain
+        FileReference CheckSymStoreExe = FileReference.Combine(new DirectoryReference(SdkFolder), "Debuggers", "x64", "SymStore.exe");
+        if (!FileReference.Exists(CheckSymStoreExe))
+        {
+            CheckSymStoreExe = FileReference.Combine(new DirectoryReference(SdkFolder), "Debuggers", "x86", "SymStore.exe");
+            if (!FileReference.Exists(CheckSymStoreExe))
+            {
+                SymStoreExe = null;
+                return false;
+            }
+        }
+
+        SymStoreExe = CheckSymStoreExe;
+        return true;
+    }
+
+	public override void StripSymbols(string SourceFileName, string TargetFileName)
+	{
+		ProcessStartInfo StartInfo = new ProcessStartInfo();
+		string PDBCopyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "MSBuild", "Microsoft", "VisualStudio", "v14.0", "AppxPackage", "PDBCopy.exe");
+		if (!File.Exists(PDBCopyPath))
+		{
+			// Fall back on VS2013 version
+			PDBCopyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "MSBuild", "Microsoft", "VisualStudio", "v12.0", "AppxPackage", "PDBCopy.exe");
+		}
+		StartInfo.FileName = PDBCopyPath;
+		StartInfo.Arguments = String.Format("\"{0}\" \"{1}\" -p", SourceFileName, TargetFileName);
+		StartInfo.UseShellExecute = false;
+		StartInfo.CreateNoWindow = true;
+		Utils.RunLocalProcessAndLogOutput(StartInfo);
+	}
+
+    public override bool PublishSymbols(DirectoryReference SymbolStoreDirectory, List<FileReference> Files, string Product)
+    {
+        // Get the SYMSTORE.EXE path, using the latest SDK version we can find.
+        FileReference SymStoreExe;
+        if (!TryGetSymStoreExe("v10.0", out SymStoreExe) && !TryGetSymStoreExe("v8.1", out SymStoreExe) && !TryGetSymStoreExe("v8.0", out SymStoreExe))
+        {
+            CommandUtils.LogError("Couldn't find SYMSTORE.EXE in any Windows SDK installation");
+            return false;
+        }
+
+        bool bSuccess = true;
+        foreach (var File in Files.Where(x => x.HasExtension(".pdb") || x.HasExtension(".exe") || x.HasExtension(".dll")))
+        {
+            ProcessStartInfo StartInfo = new ProcessStartInfo();
+            StartInfo.FileName = SymStoreExe.FullName;
+            StartInfo.Arguments = string.Format("add /f \"{0}\" /s \"{1}\" /t \"{2}\"", File.FullName, SymbolStoreDirectory.FullName, Product);
+            StartInfo.UseShellExecute = false;
+            StartInfo.CreateNoWindow = true;
+            if (Utils.RunLocalProcessAndLogOutput(StartInfo) != 0)
+            {
+                bSuccess = false;
+            }
+        }
+
+        return bSuccess;
+    }
+
+    public override string[] SymbolServerDirectoryStructure
+    {
+        get
+        {
+            return new string[]
+            {
+                "{0}*.pdb;{0}*.exe;{0}*.dll", // Binary File Directory (e.g. QAGameClient-Win64-Test.exe --- .pdb, .dll and .exe are allowed extensions)
+                "*",                          // Hash Directory        (e.g. A92F5744D99F416EB0CCFD58CCE719CD1)
+            };
+        }
+    }
 }
 
 public class Win64Platform : BaseWinPlatform

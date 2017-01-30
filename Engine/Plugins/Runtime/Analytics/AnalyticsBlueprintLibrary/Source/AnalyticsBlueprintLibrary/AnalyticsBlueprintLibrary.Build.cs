@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AnalyticsBlueprintLibrary : ModuleRules
 	{
-        public AnalyticsBlueprintLibrary(TargetInfo Target)
+        public AnalyticsBlueprintLibrary(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class HierarchicalLODOutliner : ModuleRules
 {
-    public HierarchicalLODOutliner(TargetInfo Target)
+    public HierarchicalLODOutliner(ReadOnlyTargetRules Target) : base(Target)
 	{
         PublicDependencyModuleNames.AddRange
         (

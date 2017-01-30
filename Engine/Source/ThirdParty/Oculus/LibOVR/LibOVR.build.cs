@@ -9,7 +9,7 @@ public class LibOVR : ModuleRules
 	public       int LibOVR_Minor = 0;
 	public const int LibOVR_Patch = 0;
 
-    public LibOVR(TargetInfo Target)
+    public LibOVR(ReadOnlyTargetRules Target) : base(Target)
     {
         Type = ModuleType.External;
 

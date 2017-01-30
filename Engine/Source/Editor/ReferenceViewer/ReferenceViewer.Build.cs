@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class ReferenceViewer : ModuleRules
 	{
-        public ReferenceViewer(TargetInfo Target)
+        public ReferenceViewer(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateDependencyModuleNames.AddRange(
                 new string[] {

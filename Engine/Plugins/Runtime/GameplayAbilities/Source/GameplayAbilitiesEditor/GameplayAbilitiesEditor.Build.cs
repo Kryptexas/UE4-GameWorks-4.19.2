@@ -7,7 +7,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class GameplayAbilitiesEditor : ModuleRules
 	{
-		public GameplayAbilitiesEditor(TargetInfo Target)
+		public GameplayAbilitiesEditor(ReadOnlyTargetRules Target) : base(Target)
 		{
 			var EngineDir = Path.GetFullPath(BuildConfiguration.RelativeEnginePath);
 
@@ -53,13 +53,6 @@ namespace UnrealBuildTool.Rules
 					"SourceControl",
 				}
 			);
-
-			CircularlyReferencedDependentModules.AddRange(
-			new string[]
-			{
-				"GameplayTagsEditor",
-			}
-		);
 		}
 	}
 }

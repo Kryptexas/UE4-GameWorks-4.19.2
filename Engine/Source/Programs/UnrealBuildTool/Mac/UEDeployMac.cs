@@ -40,7 +40,7 @@ namespace UnrealBuildTool
 			}
 
 			string BundleVersion = MacToolChain.LoadEngineDisplayVersion();
-			PListData = PListData.Replace("${EXECUTABLE_NAME}", ExeName).Replace("${APP_NAME}", GameName).Replace("${ICON_NAME}", GameName).Replace("${MACOSX_DEPLOYMENT_TARGET}", MacToolChain.MinMacOSVersion).Replace("${BUNDLE_VERSION}", BundleVersion);
+			PListData = PListData.Replace("${EXECUTABLE_NAME}", ExeName).Replace("${APP_NAME}", GameName).Replace("${ICON_NAME}", GameName).Replace("${MACOSX_DEPLOYMENT_TARGET}", MacToolChain.Settings.MinMacOSVersion).Replace("${BUNDLE_VERSION}", BundleVersion);
 
 			if (!Directory.Exists(IntermediateDirectory))
 			{

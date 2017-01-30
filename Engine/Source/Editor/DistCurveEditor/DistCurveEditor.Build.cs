@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class DistCurveEditor : ModuleRules
 {
-	public DistCurveEditor(TargetInfo Target)
+	public DistCurveEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.Add("Editor/UnrealEd/Public");
 

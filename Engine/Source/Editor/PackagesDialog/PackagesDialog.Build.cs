@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class PackagesDialog : ModuleRules
 {
-	public PackagesDialog(TargetInfo Target)
+	public PackagesDialog(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add("AssetTools");
 

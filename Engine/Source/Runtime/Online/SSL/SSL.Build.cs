@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SSL : ModuleRules
 {
-    public SSL(TargetInfo Target)
+    public SSL(ReadOnlyTargetRules Target) : base(Target)
     {
         Definitions.Add("SSL_PACKAGE=1");
 

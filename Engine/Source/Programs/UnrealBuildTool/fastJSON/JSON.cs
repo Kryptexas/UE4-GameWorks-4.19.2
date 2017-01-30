@@ -9,6 +9,7 @@ using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
 
+#pragma warning disable CS1591
 namespace fastJSON
 {
     public delegate string Serialize(object data);
@@ -896,3 +897,4 @@ namespace fastJSON
     }
 
 }
+#pragma warning restore CS1591

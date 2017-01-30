@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UtilityShaders : ModuleRules
 {
-	public UtilityShaders(TargetInfo Target)
+	public UtilityShaders(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] {

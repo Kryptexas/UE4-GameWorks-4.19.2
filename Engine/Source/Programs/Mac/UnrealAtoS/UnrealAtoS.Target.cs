@@ -6,25 +6,14 @@ using System.Collections.Generic;
 [SupportedPlatforms(UnrealTargetPlatform.Mac)]
 public class UnrealAtoSTarget : TargetRules
 {
-	public UnrealAtoSTarget( TargetInfo Target )
+	public UnrealAtoSTarget( TargetInfo Target ) : base(Target)
 	{
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
+		LaunchModuleName = "UnrealAtoS";
 	}
 
 	// TargetRules interface.
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutBuildBinaryConfigurations.Add(
-			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
-				InModuleNames: new List<string>() { "UnrealAtoS" })
-			);
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,

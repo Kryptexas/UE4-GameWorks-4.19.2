@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class WindowsTargetPlatform : ModuleRules
 {
-	public WindowsTargetPlatform(TargetInfo Target)
+	public WindowsTargetPlatform(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

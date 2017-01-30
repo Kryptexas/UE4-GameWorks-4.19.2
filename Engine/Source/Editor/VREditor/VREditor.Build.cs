@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class VREditor : ModuleRules
 	{
-        public VREditor(TargetInfo Target)
+        public VREditor(ReadOnlyTargetRules Target) : base(Target)
 		{
 
             PrivateDependencyModuleNames.AddRange(

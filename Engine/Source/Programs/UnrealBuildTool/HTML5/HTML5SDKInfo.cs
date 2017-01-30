@@ -9,6 +9,9 @@ using System.Text.RegularExpressions;
 
 namespace UnrealBuildTool
 {
+	/// <summary>
+	/// 
+	/// </summary>
 	public class HTML5SDKInfo
 	{
 		static string SDKVersion = "incoming";
@@ -40,8 +43,16 @@ namespace UnrealBuildTool
 //				return Path.Combine(SDKBase, "emscripten", SDKVersion);
 //			}
 //		}
-		static string SDKBase { get { return Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, "Extras", "ThirdPartyNotUE", "emsdk")); } }
+		static string SDKBase { get { return FileReference.Combine(UnrealBuildTool.EngineDirectory, "Extras", "ThirdPartyNotUE", "emsdk").FullName; } }
+
+		/// <summary>
+		/// 
+		/// </summary>
 		static public string EMSCRIPTEN_ROOT { get { return Path.Combine(SDKBase, "emscripten", SDKVersion); } }
+
+		/// <summary>
+		/// 
+		/// </summary>
 		static public string EmscriptenCMakeToolChainFile { get { return Path.Combine(EMSCRIPTEN_ROOT,  "cmake", "Modules", "Platform", "Emscripten.cmake"); } }
 		// --------------------------------------------------
 		// --------------------------------------------------
@@ -173,7 +184,7 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-				string HTML5IntermediatoryPath = Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, BuildConfiguration.BaseIntermediateFolder, "HTML5"));
+				string HTML5IntermediatoryPath = FileReference.Combine(UnrealBuildTool.EngineDirectory, "Intermediate", "Build", "HTML5").FullName;
 				if (!Directory.Exists(HTML5IntermediatoryPath))
 				{
 					Directory.CreateDirectory(HTML5IntermediatoryPath);
@@ -196,9 +207,21 @@ namespace UnrealBuildTool
 //            }
 //        }
 //		static public string EMSCRIPTEN_CACHE { get { return Path.Combine(HTML5Intermediatory, "EmscriptenCache"); ; } }
+
+		/// <summary>
+		/// 
+		/// </summary>
 		static public string DOT_EMSCRIPTEN { get { return Path.Combine(HTML5Intermediatory, ".emscripten"); } }
+
+		/// <summary>
+		/// 
+		/// </summary>
 		static public string EMSCRIPTEN_CACHE { get { return Path.Combine(HTML5Intermediatory, "EmscriptenCache"); ; } }
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <returns></returns>
 		public static string SetupEmscriptenTemp()
 		{
 //			// If user has configured a custom Emscripten toolchain, use that automatically.
@@ -243,6 +266,10 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <returns></returns>
 		public static string SetUpEmscriptenConfigFile()
 		{
 //			// If user has configured a custom Emscripten toolchain, use that automatically.
@@ -332,26 +359,46 @@ namespace UnrealBuildTool
 			return DOT_EMSCRIPTEN;
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <returns></returns>
 		public static string EmscriptenVersion()
 		{
 			return SDKVersion;
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <returns></returns>
 		public static string EmscriptenPackager()
 		{
 			return Path.Combine(EMSCRIPTEN_ROOT, "tools", "file_packager.py");
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <returns></returns>
 		public static string EmscriptenCompiler()
 		{
 			return "\"" + Path.Combine(EMSCRIPTEN_ROOT, "emcc") + "\"";
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <returns></returns>
 		public static string Python()
 		{
 			return PYTHON;
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <returns></returns>
 		public static bool IsSDKInstalled()
 		{
 			return Directory.Exists(EMSCRIPTEN_ROOT) && File.Exists(NODE_JS) && Directory.Exists(LLVM_ROOT) && File.Exists(PYTHON);

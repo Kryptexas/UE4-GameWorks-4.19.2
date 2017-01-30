@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SlateFileDialogs : ModuleRules
 {
-    public SlateFileDialogs(TargetInfo Target)
+    public SlateFileDialogs(ReadOnlyTargetRules Target) : base(Target)
     {
         PrivateDependencyModuleNames.AddRange(
             new string[] {

@@ -36,6 +36,9 @@ namespace UnrealGameSync
 
 		// Expanded archives in the workspace
 		public string[] ExpandedArchiveTypes;
+
+		// Workspace specific SyncFilters
+		public string[] SyncFilter;
 	}
 
 	class UserProjectSettings
@@ -242,6 +245,8 @@ namespace UnrealGameSync
 						}
 					}
 				}
+
+				CurrentWorkspace.SyncFilter = new string[0];
 			}
 			else
 			{
@@ -267,7 +272,9 @@ namespace UnrealGameSync
 
 				CurrentWorkspace.LastSyncDurationSeconds = WorkspaceSection.GetValue("LastSyncDuration", 0);
 				CurrentWorkspace.LastBuiltChangeNumber = WorkspaceSection.GetValue("LastBuiltChangeNumber", 0);
-				CurrentWorkspace.ExpandedArchiveTypes = WorkspaceSection.GetValues("ExpandedArchiveName", new string[0]);			
+				CurrentWorkspace.ExpandedArchiveTypes = WorkspaceSection.GetValues("ExpandedArchiveName", new string[0]);
+
+				CurrentWorkspace.SyncFilter = WorkspaceSection.GetValues("SyncFilter", new string[0]);
 			}
 
 			// Read the project settings
@@ -369,6 +376,7 @@ namespace UnrealGameSync
 				}
 				WorkspaceSection.SetValue("LastBuiltChangeNumber", CurrentWorkspace.LastBuiltChangeNumber);
 				WorkspaceSection.SetValues("ExpandedArchiveName", CurrentWorkspace.ExpandedArchiveTypes);
+				WorkspaceSection.SetValues("SyncFilter", CurrentWorkspace.SyncFilter);
 			}
 
 			// Current project settings
@@ -397,6 +405,14 @@ namespace UnrealGameSync
 
 			// Save the file
 			ConfigFile.Save(FileName);
+		}
+
+		public string[] GetCombinedSyncFilter()
+		{			
+			string[] CombinedSyncFilter = new string[SyncFilter.Length + CurrentWorkspace.SyncFilter.Length];
+			SyncFilter.CopyTo(CombinedSyncFilter, 0);
+			CurrentWorkspace.SyncFilter.CopyTo(CombinedSyncFilter, SyncFilter.Length);
+			return CombinedSyncFilter;
 		}
 
 		static string EscapeText(string Text)

@@ -3,7 +3,7 @@ using UnrealBuildTool;
 
 public class HierarchicalLODUtilities : ModuleRules
 {
-    public HierarchicalLODUtilities(TargetInfo Target)
+    public HierarchicalLODUtilities(ReadOnlyTargetRules Target) : base(Target)
 	{
         PublicIncludePaths.Add("Developer/HierarchicalLODUtilities/Public");
 

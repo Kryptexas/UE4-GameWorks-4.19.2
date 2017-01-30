@@ -5,7 +5,7 @@ using System.IO;
 
 public class AnimGraphRuntime : ModuleRules
 {
-	public AnimGraphRuntime(TargetInfo Target)
+	public AnimGraphRuntime(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Runtime/AnimGraphRuntime/Private");
 

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class TVOSTargetPlatform : ModuleRules
 {
-	public TVOSTargetPlatform(TargetInfo Target)
+	public TVOSTargetPlatform(ReadOnlyTargetRules Target) : base(Target)
 	{
 		BinariesSubFolder = "IOS";
 		

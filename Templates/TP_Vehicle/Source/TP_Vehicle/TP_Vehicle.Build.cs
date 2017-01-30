@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class TP_Vehicle : ModuleRules
 {
-	public TP_Vehicle(TargetInfo Target)
+	public TP_Vehicle(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "PhysXVehicles", "HeadMountedDisplay" });
 	}

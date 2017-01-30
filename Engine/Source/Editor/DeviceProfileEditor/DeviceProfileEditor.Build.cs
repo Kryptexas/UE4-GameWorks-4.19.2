@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class DeviceProfileEditor : ModuleRules
 {
-	public DeviceProfileEditor(TargetInfo Target)
+	public DeviceProfileEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.AddRange(
 			new string[] {

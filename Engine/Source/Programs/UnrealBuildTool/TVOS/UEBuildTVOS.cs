@@ -9,118 +9,139 @@ using System.Xml;
 
 namespace UnrealBuildTool
 {
-	public class TVOSPlatformContext : IOSPlatformContext
+	class TVOSProjectSettings : IOSProjectSettings
 	{
-		/** Which version of the iOS to allow at run time */
-		private const string RunTimeTVOSVersion = "9.0";
+		/// <summary>
+		/// Which version of the iOS to allow at run time
+		/// </summary>
+		public override string RuntimeVersion
+		{
+			get { return "9.0"; }
+		}
 
-		/** which devices the game is allowed to run on */
-		private const string RunTimeTVOSDevices = "3";
+		/// <summary>
+		/// which devices the game is allowed to run on
+		/// </summary>
+		public override string RuntimeDevices
+		{
+			get { return "3"; }
+		}
 
-		// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
-		public static string TVOSArchitecture = "";
+		public TVOSProjectSettings(FileReference ProjectFile)
+			: base(ProjectFile, UnrealTargetPlatform.TVOS)
+		{
+		}
+	}
 
-        public TVOSPlatformContext(FileReference InProjectFile, bool ForDistribution = false)
-            : base(UnrealTargetPlatform.IOS, InProjectFile, ForDistribution)
+	class TVOSProvisioningData : IOSProvisioningData
+	{
+		public TVOSProvisioningData(TVOSProjectSettings ProjectSettings, bool bForDistribution)
+			: base(ProjectSettings, true, bForDistribution)
+		{
+		}
+	}
+
+	class TVOSPlatformContext : IOSPlatformContext
+	{
+        public TVOSPlatformContext(FileReference InProjectFile)
+            : base(UnrealTargetPlatform.IOS, InProjectFile)
         {
         }
-
-		// The current architecture - affects everything about how UBT operates on IOS
-		public override string GetActiveArchitecture()
-		{
-			return TVOSArchitecture;
-		}
-
-		public override string GetRunTimeVersion()
-		{
-			return RunTimeTVOSVersion;
-		}
-
-		public override string GetRunTimeDevices()
-		{
-			return RunTimeTVOSDevices;
-		}
-
-		// The name that Xcode uses for the platform
-		private const string XcodeDevicePlatformName = "AppleTVOS";
-		private const string XcodeSimulatorPlatformName = "AppleTVSimulator";
-
-		public override string GetXcodePlatformName(bool bForDevice)
-		{
-			return bForDevice ? XcodeDevicePlatformName : XcodeSimulatorPlatformName;
-		}
 
 		public override string GetXcodeMinVersionParam()
 		{
 			return "tvos-version-min";
 		}
 
-		public override string GetCodesignPlatformName()
-		{
-			return "appletvos";
-		}
-
-		public override string GetArchitectureArgument(CPPTargetConfiguration Configuration, string UBTArchitecture)
+		public override string GetArchitectureArgument(CppConfiguration Configuration, string UBTArchitecture)
 		{
 			// TV is only arm64
 			return " -arch " + (UBTArchitecture == "-simulator" ? "i386" : "arm64");
 		}
 
-		public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration, TargetInfo Target = null)
+		/// <summary>
+		/// Setup the target environment for building
+		/// </summary>
+		/// <param name="Target">Settings for the target being compiled</param>
+		/// <param name="CompileEnvironment">The compile environment for this target</param>
+		/// <param name="LinkEnvironment">The link environment for this target</param>
+		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
-			base.SetUpProjectEnvironment(Configuration, Target);
-
-            // @todo tvos: Add ini settings and look them up when they matter - like when we get TVOS10.0 etc
-        }
-
-        public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
-		{
-			base.SetUpEnvironment(InBuildTarget);
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_TVOS=1");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("__IPHONE_OS_VERSION_MIN_REQUIRED=__APPLETV_OS_VERSION_MIN_REQUIRED");
-
-			// make sure we add Metal, in case base class got it wrong
-
-			if (InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("HAS_METAL=0"))
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Remove("HAS_METAL=0");
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=1");
-				InBuildTarget.ExtraModuleNames.Add("MetalRHI");
-			}
-		}
-
-		public override void ResetBuildConfiguration(UnrealTargetConfiguration InConfiguration)
-		{
-			base.ResetBuildConfiguration(InConfiguration);
-			// @todo tvos: change what is compiled here
+			base.SetUpEnvironment(Target, CompileEnvironment, LinkEnvironment);
+			CompileEnvironment.Definitions.Add("PLATFORM_TVOS=1");
+			CompileEnvironment.Definitions.Add("__IPHONE_OS_VERSION_MIN_REQUIRED=__APPLETV_OS_VERSION_MIN_REQUIRED");
 		}
 
 		/// <summary>
 		/// Creates a toolchain instance for the given platform.
 		/// </summary>
-		/// <param name="Platform">The platform to create a toolchain for</param>
+		/// <param name="CppPlatform">The platform to create a toolchain for</param>
+		/// <param name="Target">The target being built</param>
 		/// <returns>New toolchain instance.</returns>
-		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform)
+		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
 		{
-			return new TVOSToolChain(ProjectFile, this);
+			TVOSProjectSettings ProjectSettings = ((TVOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.TVOS)).ReadProjectSettings(Target.ProjectFile);
+			return new TVOSToolChain(ProjectFile, this, ProjectSettings);
 		}
 	}
 
 	class TVOSPlatform : IOSPlatform
     {
 		public TVOSPlatform(IOSPlatformSDK InSDK)
-			: base(InSDK, UnrealTargetPlatform.TVOS, CPPTargetPlatform.TVOS)
+			: base(InSDK, UnrealTargetPlatform.TVOS, CppPlatform.TVOS)
 		{
 		}
 
-		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
+		public static string TVOSArchitecture = "";
+
+		// The current architecture - affects everything about how UBT operates on IOS
+		public override string GetDefaultArchitecture(FileReference ProjectFile)
+		{
+			return TVOSArchitecture;
+		}
+
+		public override void ValidateTarget(TargetRules Target)
+		{
+			base.ValidateTarget(Target);
+
+			// make sure we add Metal, in case base class got it wrong
+			if (Target.GlobalDefinitions.Contains("HAS_METAL=0"))
+			{
+				Target.GlobalDefinitions.Remove("HAS_METAL=0");
+				Target.GlobalDefinitions.Add("HAS_METAL=1");
+				Target.ExtraModuleNames.Add("MetalRHI");
+			}
+		}
+
+		public new TVOSProjectSettings ReadProjectSettings(FileReference ProjectFile)
+		{
+			return (TVOSProjectSettings)base.ReadProjectSettings(ProjectFile);
+		}
+
+		protected override IOSProjectSettings CreateProjectSettings(FileReference ProjectFile)
+		{
+			return new TVOSProjectSettings(ProjectFile);
+		}
+
+		public TVOSProvisioningData ReadProvisioningData(TVOSProjectSettings ProjectSettings, bool bForDistribution = false)
+        {
+			return (TVOSProvisioningData)base.ReadProvisioningData(ProjectSettings, bForDistribution);
+		}
+
+		protected override IOSProvisioningData CreateProvisioningData(IOSProjectSettings ProjectSettings, bool bForDistribution)
+		{
+			return new TVOSProvisioningData((TVOSProjectSettings)ProjectSettings, bForDistribution);
+		}
+
+		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
 		{
 			base.ModifyModuleRulesForOtherPlatform(ModuleName, Rules, Target);
 
 			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Mac))
 			{
 				// allow standalone tools to use targetplatform modules, without needing Engine
-				if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+				if (Target.bForceBuildTargetPlatforms)
 				{
 					// @todo tvos: Make the module
 					// InModule.AddPlatformSpecificDynamicallyLoadedModule("TVOSTargetPlatform");
@@ -128,7 +149,7 @@ namespace UnrealBuildTool
 			}
 		}
     
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile, TargetRules Target)
+		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
 		{
 			return new TVOSPlatformContext(ProjectFile);
 		}
@@ -139,7 +160,7 @@ namespace UnrealBuildTool
 		}
 	}
 
-	public class TVOSPlatformFactory : UEBuildPlatformFactory
+	class TVOSPlatformFactory : UEBuildPlatformFactory
 	{
 		protected override UnrealTargetPlatform TargetPlatform
 		{
@@ -149,10 +170,10 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Register the platform with the UEBuildPlatform class
 		/// </summary>
-		protected override void RegisterBuildPlatforms()
+		protected override void RegisterBuildPlatforms(SDKOutputLevel OutputLevel)
 		{
 			IOSPlatformSDK SDK = new IOSPlatformSDK();
-			SDK.ManageAndValidateSDK();
+			SDK.ManageAndValidateSDK(OutputLevel);
 
 			// Register this build platform for IOS
 			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.TVOS.ToString());
@@ -161,7 +182,7 @@ namespace UnrealBuildTool
 			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.TVOS, UnrealPlatformGroup.Apple);
 			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.TVOS, UnrealPlatformGroup.IOS);
 
-			if (TVOSPlatformContext.TVOSArchitecture == "-simulator")
+			if (TVOSPlatform.TVOSArchitecture == "-simulator")
 			{
 				UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.TVOS, UnrealPlatformGroup.Simulator);
 			}

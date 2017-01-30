@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ImageWrapper : ModuleRules
 {
-	public ImageWrapper(TargetInfo Target)
+	public ImageWrapper(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Runtime/ImageWrapper/Private");
 

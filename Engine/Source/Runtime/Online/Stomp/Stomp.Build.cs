@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Stomp : ModuleRules
 {
-    public Stomp(TargetInfo Target)
+    public Stomp(ReadOnlyTargetRules Target) : base(Target)
     {
         Definitions.Add("STOMP_PACKAGE=1");
 

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class OpenGLDrv : ModuleRules
 {
-	public OpenGLDrv(TargetInfo Target)
+	public OpenGLDrv(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Runtime/OpenGLDrv/Private");
 

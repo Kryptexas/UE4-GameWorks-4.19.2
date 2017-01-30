@@ -5,7 +5,7 @@ using System.IO;
 
 public class OnlineSubsystemSteam : ModuleRules
 {
-	public OnlineSubsystemSteam(TargetInfo Target)
+	public OnlineSubsystemSteam(ReadOnlyTargetRules Target) : base(Target)
 	{
 		string SteamVersion = "Steamv132";
 		bool bSteamSDKFound = Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "Steamworks/" + SteamVersion) == true;

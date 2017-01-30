@@ -64,11 +64,11 @@ class BuildPhysX : BuildCommand
 	private static UnrealBuildTool.FileReference MsBuildExe;
 
 	// Cache directories under the PhysX/ directory
-	private static UnrealBuildTool.DirectoryReference PhysXSourceRootDirectory = UnrealBuildTool.DirectoryReference.Combine(UnrealBuildTool.UnrealBuildTool.RootDirectory, "Engine", "Source", "ThirdParty", "PhysX");
+	private static UnrealBuildTool.DirectoryReference PhysXSourceRootDirectory = UnrealBuildTool.DirectoryReference.Combine(CommandUtils.RootDirectory, "Engine", "Source", "ThirdParty", "PhysX");
 	private static UnrealBuildTool.DirectoryReference PhysX34SourceRootDirectory = UnrealBuildTool.DirectoryReference.Combine(PhysXSourceRootDirectory, "PhysX_3.4");
 	private static UnrealBuildTool.DirectoryReference APEX14SourceRootDirectory = UnrealBuildTool.DirectoryReference.Combine(PhysXSourceRootDirectory, "APEX_1.4");
 	private static UnrealBuildTool.DirectoryReference SharedSourceRootDirectory = UnrealBuildTool.DirectoryReference.Combine(PhysXSourceRootDirectory, "PxShared");
-	private static UnrealBuildTool.DirectoryReference RootOutputBinaryDirectory = UnrealBuildTool.DirectoryReference.Combine(UnrealBuildTool.UnrealBuildTool.RootDirectory, "Engine", "Binaries", "ThirdParty", "PhysX");
+	private static UnrealBuildTool.DirectoryReference RootOutputBinaryDirectory = UnrealBuildTool.DirectoryReference.Combine(CommandUtils.RootDirectory, "Engine", "Binaries", "ThirdParty", "PhysX");
 	private static UnrealBuildTool.DirectoryReference RootOutputLibDirectory = UnrealBuildTool.DirectoryReference.Combine(PhysXSourceRootDirectory, "Lib");
 
 	//private static UnrealBuildTool.DirectoryReference PhysX34SourceLibRootDirectory = UnrealBuildTool.DirectoryReference.Combine(PhysX34SourceRootDirectory, "Lib");
@@ -492,15 +492,15 @@ class BuildPhysX : BuildCommand
 
 	private static void MakeFreshDirectoryIfRequired(UnrealBuildTool.DirectoryReference Directory)
 	{
-		if (!Directory.Exists())
+		if (!DirectoryReference.Exists(Directory))
 		{
-			Directory.CreateDirectory();
+			DirectoryReference.CreateDirectory(Directory);
 		}
 		else
 		{
 
 			InternalUtils.SafeDeleteDirectory(Directory.FullName);
-			Directory.CreateDirectory();
+			DirectoryReference.CreateDirectory(Directory);
 		}
 	}
 
@@ -699,7 +699,7 @@ class BuildPhysX : BuildCommand
 	{
 		DirectoryReference VSPath;
 		// It's not fatal if VS2013 isn't installed for VS2015 builds (for example, so don't crash here)
-		if(WindowsPlatform.TryGetVSInstallDir(Version, out VSPath))
+		if(WindowsExports.TryGetVSInstallDir(Version, out VSPath))
 		{
 			return FileReference.Combine(VSPath, "Common7", "IDE", "Devenv.com").FullName;
 		}
@@ -781,11 +781,9 @@ class BuildPhysX : BuildCommand
 			// FIXME: only run this if GetTargetPlatforms() contains HTML5
 
 			// override BuildConfiguration defaults - so we can use HTML5SDKInfo
-			BuildConfiguration.RelativeEnginePath = "Engine/";
 			string EngineSourceDir = GetProjectDirectory(PhysXTargetLib.PhysX, new TargetPlatformData(UnrealTargetPlatform.HTML5)).ToString();
 			EngineSourceDir = Regex.Replace(EngineSourceDir, @"\\" , "/");
 			EngineSourceDir = Regex.Replace(EngineSourceDir, ".*Engine/" , "");
-			BuildConfiguration.BaseIntermediateFolder = Regex.Replace(EngineSourceDir, "/HTML5" , "");
 
 			if (!HTML5SDKInfo.IsSDKInstalled())
 			{
@@ -1203,12 +1201,12 @@ class BuildPhysX : BuildCommand
 
 	private static void FindOutputFilesHelper(HashSet<FileReference> OutputFiles, DirectoryReference BaseDir, string SearchPrefix, PhysXTargetLib TargetLib)
 	{
-		if(!BaseDir.Exists())
+		if(!DirectoryReference.Exists(BaseDir))
 		{
 			return;
 		}
 
-		foreach (FileReference FoundFile in BaseDir.EnumerateFileReferences(SearchPrefix))
+		foreach (FileReference FoundFile in DirectoryReference.EnumerateFiles(BaseDir, SearchPrefix))
 		{
 			string FileNameUpper = FoundFile.GetFileName().ToString().ToUpper();
 			

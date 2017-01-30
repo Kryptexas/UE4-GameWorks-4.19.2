@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class PortalMessages : ModuleRules
 	{
-		public PortalMessages(TargetInfo Target)
+		public PortalMessages(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

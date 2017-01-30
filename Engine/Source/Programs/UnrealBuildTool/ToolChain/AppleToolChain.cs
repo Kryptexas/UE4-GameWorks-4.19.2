@@ -9,14 +9,19 @@ using System.Text;
 
 namespace UnrealBuildTool
 {
-	public abstract class AppleToolChain : RemoteToolChain
+	abstract class AppleToolChainSettings
 	{
-		public AppleToolChain(CPPTargetPlatform InCppPlatform, UnrealTargetPlatform InRemoteToolChainPlatform, FileReference InProjectFile)
-			: base(InCppPlatform, InRemoteToolChainPlatform, InProjectFile)
+		/// <summary>
+		/// Which developer directory to root from? If this is "xcode-select", UBT will query for the currently selected Xcode
+		/// </summary>
+		public string XcodeDeveloperDir = "xcode-select";
+
+		public AppleToolChainSettings(bool bVerbose)
 		{
+			SelectXcode(ref XcodeDeveloperDir, bVerbose);
 		}
 
-		protected static void SelectXcode(ref string DeveloperDir, bool bVerbose)
+		private static void SelectXcode(ref string DeveloperDir, bool bVerbose)
 		{
 			string Reason = "hardcoded";
 
@@ -59,7 +64,7 @@ namespace UnrealBuildTool
 
 		}
 
-		protected static void SelectSDK(string BaseSDKDir, string OSPrefix, ref string PlatformSDKVersion, bool bVerbose)
+		protected void SelectSDK(string BaseSDKDir, string OSPrefix, ref string PlatformSDKVersion, bool bVerbose)
 		{
 			if (PlatformSDKVersion == "latest")
 			{
@@ -146,13 +151,21 @@ namespace UnrealBuildTool
 			{
 				if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 				{
-					Log.TraceInformation("Compiling with {0} SDK {1} on Mac {2}", OSPrefix, PlatformSDKVersion, RemoteServerName);
+					Log.TraceInformation("Compiling with {0} SDK {1} on Mac {2}", OSPrefix, PlatformSDKVersion, RemoteToolChain.RemoteServerName);
 				}
 				else
 				{
 					Log.TraceInformation("Compiling with {0} SDK {1}", OSPrefix, PlatformSDKVersion);
 				}
 			}
+		}
+	}
+
+	abstract class AppleToolChain : RemoteToolChain
+	{
+		public AppleToolChain(CppPlatform InCppPlatform, UnrealTargetPlatform InRemoteToolChainPlatform, FileReference InProjectFile)
+			: base(InCppPlatform, InRemoteToolChainPlatform, InProjectFile)
+		{
 		}
 
 		protected void StripSymbolsWithXcode(string SourceFileName, string TargetFileName, string ToolchainDir)

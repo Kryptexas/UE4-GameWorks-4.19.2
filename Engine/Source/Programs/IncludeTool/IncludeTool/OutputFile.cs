@@ -125,6 +125,11 @@ namespace IncludeTool
 		public HashList<OutputFile> IncludedFiles;
 
 		/// <summary>
+		/// All the files which were originally included by this file
+		/// </summary>
+		public HashList<OutputFile> OriginalIncludedFiles;
+
+		/// <summary>
 		/// Symbols which need explicit forward declarations
 		/// </summary>
 		public List<Symbol> ForwardDeclarations = new List<Symbol>();
@@ -133,11 +138,44 @@ namespace IncludeTool
 		/// Constructor
 		/// </summary>
 		/// <param name="InputFile">The input file that this output file corresponds to</param>
-		public OutputFile(SourceFile InputFile, OutputFile HeaderFile, IEnumerable<OutputFile> PreviousFiles, List<OutputFileInclude> Includes, List<SourceFile> InputFileStack, Dictionary<Symbol, OutputFile> FwdSymbolToHeader, bool bMakeStandalone, TextWriter Log)
+		public OutputFile(SourceFile InputFile, OutputFile HeaderFile, List<OutputFile> PreviousFiles, List<OutputFileInclude> Includes, List<SourceFile> InputFileStack, Dictionary<Symbol, OutputFile> FwdSymbolToHeader, bool bMakeStandalone, TextWriter Log)
 		{
 			this.InputFile = InputFile;
 			this.Includes = Includes;
 			Debug.Assert(HeaderFile == null || (InputFile.Flags & SourceFileFlags.TranslationUnit) != 0);
+
+			// Write the state
+			InputFile.LogVerbose("InputFile={0}", InputFile.Location.FullName);
+			InputFile.LogVerbose("InputFile.Flags={0}", InputFile.Flags.ToString());
+			if(HeaderFile != null)
+			{
+				InputFile.LogVerbose("HeaderFile={0}", HeaderFile.InputFile.Location.FullName);
+				InputFile.LogVerbose("HeaderFile.Flags={0}", HeaderFile.InputFile.Flags.ToString());
+			}
+			InputFile.LogVerbose("");
+			for(int Idx = 0; Idx < InputFileStack.Count; Idx++)
+			{
+				InputFile.LogVerbose("InputFileStack[{0}]={1}", Idx, InputFileStack[Idx].Location.FullName);
+			}
+			InputFile.LogVerbose("");
+			for(int Idx = 0; Idx < PreviousFiles.Count; Idx++)
+			{
+				InputFile.LogVerbose("PreviousFiles[{0}]={1}", Idx, PreviousFiles[Idx].InputFile.Location.FullName);
+			}
+			InputFile.LogVerbose("");
+			for(int Idx = 0; Idx < Includes.Count; Idx++)
+			{
+			}
+			InputFile.LogVerbose("");
+			for(int Idx = 0; Idx < Includes.Count; Idx++)
+			{
+				OutputFileInclude Include = Includes[Idx];
+				InputFile.LogVerbose("Includes[{0}]={1}", Idx, Includes[Idx].TargetFile.InputFile.Location.FullName);
+				foreach(SourceFragment Fragment in Include.FinalFiles.SelectMany(x => x.IncludedFragments))
+				{
+					InputFile.LogVerbose("Includes[{0}].FinalFiles.IncludedFragments={1}", Idx, Fragment);
+				}
+			}
 
 			// Traverse through all the included headers, figuring out the first unique include for each file and fragment
 			HashSet<OutputFile> VisitedFiles = new HashSet<OutputFile>();
@@ -184,7 +222,7 @@ namespace IncludeTool
 				{
 					foreach (OutputFile PreviousFile in PreviousFiles)
 					{
-						if((PreviousFile.InputFile.Flags & SourceFileFlags.Inline) == 0 && (PreviousFile.InputFile.Flags & SourceFileFlags.Pinned) == 0 && VisitedFiles.Add(PreviousFile))
+						if((InputFile.Flags & SourceFileFlags.Standalone) != 0 && (PreviousFile.InputFile.Flags & SourceFileFlags.Inline) == 0 && (PreviousFile.InputFile.Flags & SourceFileFlags.Pinned) == 0 && VisitedFiles.Add(PreviousFile))
 						{
 							SourceFragment[] UniqueFragments = PreviousFile.IncludedFragments.Except(VisitedFragments).ToArray();
 							ImplicitInclude.ExpandedReferences.Add(new OutputFileReference(PreviousFile, UniqueFragments));
@@ -195,6 +233,7 @@ namespace IncludeTool
 			}
 
 			// Figure out a list of files which are uniquely reachable through each include. Force an include of the matching header as the first thing.
+			OutputFileReference ForcedHeaderFileReference = null;
 			foreach(OutputFileInclude Include in Includes)
 			{
 				if(Include.ExpandedReferences == null)
@@ -202,7 +241,8 @@ namespace IncludeTool
 					Include.ExpandedReferences = new List<OutputFileReference>();
 					if(Include == Includes[0] && HeaderFile != null)
 					{
-						Include.ExpandedReferences.Add(new OutputFileReference(HeaderFile, HeaderFile.IncludedFragments));
+						ForcedHeaderFileReference = new OutputFileReference(HeaderFile, HeaderFile.IncludedFragments);
+						Include.ExpandedReferences.Add(ForcedHeaderFileReference);
 						VisitedFragments.UnionWith(HeaderFile.IncludedFragments);
 					}
 					FindExpandedReferences(Include.TargetFile, Include.ExpandedReferences, VisitedFiles, VisitedFragments, true);
@@ -274,7 +314,7 @@ namespace IncludeTool
 						{
 							if(Dependencies.Any(x => Reference.UniqueFragments.Contains(x)) 
 								|| (Reference.File.InputFile.Flags & SourceFileFlags.Pinned) != 0 
-								|| Reference.File == HeaderFile
+								|| Reference == ForcedHeaderFileReference
 								|| Reference.File == MonolithicHeader
 								|| ExplicitIncludes.Contains(Reference.File)
 								|| ((InputFile.Flags & SourceFileFlags.Aggregate) != 0 && Reference.File == Include.TargetFile) // Always include the original header for aggregates. They are written explicitly to include certain files.
@@ -306,7 +346,7 @@ namespace IncludeTool
 				List<SourceFragment> InvalidDependencies = Dependencies.Where(x => !InputFileStack.Contains(x.File)).ToList();
 				if(InvalidDependencies.Count > 0)
 				{
-					Log.WriteLine("warning: {0} does not include {1}; may have missing dependencies.", InputFile, String.Join(", ", InvalidDependencies.Select(x => x.Location.FullName)));
+					Log.WriteLine("warning: {0} does not include {1}{2}; may have missing dependencies.", InputFile, String.Join(", ", InvalidDependencies.Select(x => x.Location.FullName).Take(3)), (InvalidDependencies.Count > 3)? String.Format(" and {0} others", InvalidDependencies.Count - 3) : "");
 				}
 				Dependencies.ExceptWith(InvalidDependencies);
 
@@ -344,6 +384,18 @@ namespace IncludeTool
 			IncludedFiles = new HashList<OutputFile>();
 			IncludedFiles.UnionWith(Includes.SelectMany(x => x.FinalFiles).SelectMany(x => x.IncludedFiles));
 			IncludedFiles.Add(this);
+
+			// Build the list of all the originally included files, so that we can make files that include it standalone
+			OriginalIncludedFiles = new HashList<OutputFile>();
+			OriginalIncludedFiles.UnionWith(Includes.Select(x => x.TargetFile).Where(x => x != null).SelectMany(x => x.OriginalIncludedFiles));
+			OriginalIncludedFiles.Add(this);
+
+			// Write the verbose log
+			InputFile.LogVerbose("");
+			foreach(OutputFile IncludedFile in IncludedFiles)
+			{
+				InputFile.LogVerbose("Output: {0}", IncludedFile.InputFile.Location.FullName);
+			}
 		}
 
 		/// <summary>
@@ -510,7 +562,7 @@ namespace IncludeTool
 				{
 					throw new Exception("Circular include dependencies are not allowed.");
 				}
-				foreach(OutputFile IncludedFile in OutputFile.IncludedFiles.Where(x => !PreviousFiles.Contains(x)))
+				foreach(OutputFile IncludedFile in OutputFile.OriginalIncludedFiles.Where(x => !PreviousFiles.Contains(x)))
 				{
 					PreviousFiles.Add(IncludedFile);
 				}
@@ -558,10 +610,7 @@ namespace IncludeTool
 				OutputFileLookup[InputFile] = OutputFile;
 
 				// Add this file to the list of included files
-				if((InputFile.Flags & SourceFileFlags.Standalone) != 0 && (InputFile.Flags & SourceFileFlags.Pinned) == 0)
-				{
-					PreviousFiles.Add(OutputFile);
-				}
+				PreviousFiles.Add(OutputFile);
 
 				// If the output file dependends on something on the stack, make sure it's marked as pinned
 				if((InputFile.Flags & SourceFileFlags.Pinned) == 0)

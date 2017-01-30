@@ -92,6 +92,7 @@ namespace UnrealGameSync
 		Font BuildFont;
 		Font SelectedBuildFont;
 		Font BadgeFont;
+		bool bUnstable;
 		bool bAllowClose = false;
 
 		bool bRestoreStateOnLoad;
@@ -102,7 +103,7 @@ namespace UnrealGameSync
 
 		NotificationWindow NotificationWindow;
 
-		public MainWindow(UpdateMonitor InUpdateMonitor, string InSqlConnectionString, string InDataFolder, EventWaitHandle ActivateEvent, bool bInRestoreStateOnLoad, string InOriginalExecutableFileName, string InProjectFileName)
+		public MainWindow(UpdateMonitor InUpdateMonitor, string InSqlConnectionString, string InDataFolder, EventWaitHandle ActivateEvent, bool bInRestoreStateOnLoad, string InOriginalExecutableFileName, string InProjectFileName, bool bInUnstable)
 		{
 			InitializeComponent();
 
@@ -120,6 +121,7 @@ namespace UnrealGameSync
 			DataFolder = InDataFolder;
 			bRestoreStateOnLoad = bInRestoreStateOnLoad;
 			OriginalExecutableFileName = InOriginalExecutableFileName;
+			bUnstable = bInUnstable;
 			
 			Log = new BoundedLogWriter(Path.Combine(DataFolder, "UnrealGameSync.log"));
 			Log.WriteLine("Application version: {0}", Assembly.GetExecutingAssembly().GetName().Version);
@@ -297,7 +299,15 @@ namespace UnrealGameSync
 
 		private void OnActivationListenerCallback()
 		{
-			ShowAndActivate();
+			// Check if we're trying to reopen with the unstable version; if so, trigger an update to trigger a restart with the new executable
+			if(!bUnstable && (Control.ModifierKeys & Keys.Shift) != 0)
+			{
+				UpdateMonitor.TriggerUpdate();
+			}
+			else
+			{
+				ShowAndActivate();
+			}
 		}
 
 		private void OnActivationListenerAsyncCallback()
@@ -642,7 +652,7 @@ namespace UnrealGameSync
 				return;
 			}
 
-			WorkspaceUpdateContext Context = new WorkspaceUpdateContext(ChangeNumber, Options, Settings.SyncFilter, GetDefaultBuildStepObjects(), Settings.CurrentProject.BuildSteps, null, GetWorkspaceVariables());
+			WorkspaceUpdateContext Context = new WorkspaceUpdateContext(ChangeNumber, Options, Settings.GetCombinedSyncFilter(), GetDefaultBuildStepObjects(), Settings.CurrentProject.BuildSteps, null, GetWorkspaceVariables());
 			if(Options.HasFlag(WorkspaceUpdateOptions.SyncArchives))
 			{
 				string EditorArchivePath = null;
@@ -1120,14 +1130,10 @@ namespace UnrealGameSync
 				PerforceChangeType Type;
 				if(PerforceMonitor.TryGetChangeType(ChangeNumber, out Type))
 				{
-					if(Type == PerforceChangeType.Code)
+					// Try to get the archive for this CL
+					if(!PerforceMonitor.TryGetArchivePathForChangeNumber(ChangeNumber, out ArchivePath) && Type == PerforceChangeType.Content)
 					{
-						// Check whether we have an archive for this build
-						PerforceMonitor.TryGetArchivePathForChangeNumber(ChangeNumber, out ArchivePath);
-					}
-					else if(Type == PerforceChangeType.Content)
-					{
-						// Find the previous build, any use the archive path from that
+						// Otherwise if it's a content change, find the previous build any use the archive path from that
 						int Index = SortedChangeNumbers.BinarySearch(ChangeNumber);
 						if(Index > 0)
 						{
@@ -2961,11 +2967,12 @@ namespace UnrealGameSync
 
 		private void OptionsContextMenu_SyncFilter_Click(object sender, EventArgs e)
 		{
-			SyncFilter Filter = new SyncFilter(Settings.SyncFilter);
+			SyncFilter Filter = new SyncFilter(Settings.SyncFilter, Settings.CurrentWorkspace.SyncFilter);
 			if(Filter.ShowDialog() == DialogResult.OK)
 			{
-				Settings.SyncFilter = Filter.Lines;
-				Settings.Save();
+				Settings.SyncFilter = Filter.GlobalFilter;
+				Settings.CurrentWorkspace.SyncFilter = Filter.WorkspaceFilter;
+                Settings.Save();
 			}
 		}
 

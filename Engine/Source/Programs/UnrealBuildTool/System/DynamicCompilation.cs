@@ -12,6 +12,9 @@ using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
+	/// <summary>
+	/// Methods for dynamically compiling C# source files
+	/// </summary>
 	public class DynamicCompilation
 	{
 		/// File information for UnrealBuildTool.exe, cached at program start
@@ -258,8 +261,12 @@ namespace UnrealBuildTool
 		/// current domain.  If an assembly has already been compiled and is not out of date, then it will be loaded and
 		/// no compilation is necessary.
 		/// </summary>
-		/// <param name="SourceFileNames">List of source file name</param>
 		/// <param name="OutputAssemblyPath">Full path to the assembly to be created</param>
+		/// <param name="SourceFileNames">List of source file name</param>
+		/// <param name="ReferencedAssembies"></param>
+		/// <param name="PreprocessorDefines"></param>
+		/// <param name="DoNotCompile"></param>
+		/// <param name="TreatWarningsAsErrors"></param>
 		/// <returns>The assembly that was loaded</returns>
 		public static Assembly CompileAndLoadAssembly(FileReference OutputAssemblyPath, List<FileReference> SourceFileNames, List<string> ReferencedAssembies = null, List<string> PreprocessorDefines = null, bool DoNotCompile = false, bool TreatWarningsAsErrors = false)
 		{

@@ -12,7 +12,7 @@ using System.Xml.Linq;
 
 namespace UnrealBuildTool
 {
-	public class UEDeployAndroid : UEBuildDeploy
+	class UEDeployAndroid : UEBuildDeploy, IAndroidDeploy
 	{
 		/// <summary>
 		/// Internal usage for GetApiLevel
@@ -151,7 +151,12 @@ namespace UnrealBuildTool
 			return VersionString;
 		}
 
-		public bool PackageDataInsideApk(bool bDisallowPackagingDataInApk, ConfigHierarchy Ini = null)
+		public bool PackageDataInsideApk(bool bDisallowPackagingDataInApk)
+		{
+			return PackageDataInsideApk(bDisallowPackagingDataInApk, null);
+		}
+
+		public bool PackageDataInsideApk(bool bDisallowPackagingDataInApk, ConfigHierarchy Ini)
 		{
 			if (bDisallowPackagingDataInApk)
 			{
@@ -2393,7 +2398,7 @@ namespace UnrealBuildTool
 		public override bool PrepTargetForDeployment(UEBuildDeployTarget InTarget)
 		{
 			//Log.TraceInformation("$$$$$$$$$$$$$$ PrepTargetForDeployment $$$$$$$$$$$$$$$$$ {0}", InTarget.TargetName);
-			AndroidToolChain ToolChain = new AndroidToolChain(InTarget.ProjectFile); 
+			AndroidToolChain ToolChain = new AndroidToolChain(InTarget.ProjectFile, false, null, null); 
 
 			// we need to strip architecture from any of the output paths
 			string BaseSoName = ToolChain.RemoveArchName(InTarget.OutputPaths[0].FullName);
@@ -2407,7 +2412,8 @@ namespace UnrealBuildTool
 			SetAndroidPluginData(ToolChain.GetAllArchitectures(), CollectPluginDataPaths(TargetReceipt.Read(ReceiptFilename)));
 
 			// make an apk at the end of compiling, so that we can run without packaging (debugger, cook on the fly, etc)
-			MakeApk(ToolChain, InTarget.TargetName, InTarget.ProjectDirectory.FullName, BaseSoName, BuildConfiguration.RelativeEnginePath, bForDistribution: false, CookFlavor: "",
+			string RelativeEnginePath = UnrealBuildTool.EngineDirectory.MakeRelativeTo(DirectoryReference.GetCurrentDirectory());
+			MakeApk(ToolChain, InTarget.TargetName, InTarget.ProjectDirectory.FullName, BaseSoName, RelativeEnginePath, bForDistribution: false, CookFlavor: "",
 				bMakeSeparateApks: ShouldMakeSeparateApks(), bIncrementalPackage: true, bDisallowPackagingDataInApk: false, bDisallowExternalFilesDir: true);
 
 			// if we made any non-standard .apk files, the generated debugger settings may be wrong
@@ -2442,7 +2448,7 @@ namespace UnrealBuildTool
 
 			// note that we cannot allow the data packaged into the APK if we are doing something like Launch On that will not make an obb
 			// file and instead pushes files directly via deploy
-			AndroidToolChain ToolChain = new AndroidToolChain(ProjectFile);
+			AndroidToolChain ToolChain = new AndroidToolChain(ProjectFile, false, null, null);
 			MakeApk(ToolChain, ProjectName, ProjectDirectory, ExecutablePath, EngineDirectory, bForDistribution: bForDistribution, CookFlavor: CookFlavor,
 				bMakeSeparateApks: ShouldMakeSeparateApks(), bIncrementalPackage: false, bDisallowPackagingDataInApk: bIsDataDeploy, bDisallowExternalFilesDir: !bForDistribution || bIsDataDeploy );
 			return true;

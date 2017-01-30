@@ -8,23 +8,56 @@ using System.Linq;
 
 namespace UnrealBuildTool
 {
+	/// <summary>
+	/// 
+	/// </summary>
 	public enum LocalizationTargetDescriptorLoadingPolicy
 	{
+		/// <summary>
+		/// 
+		/// </summary>
 		Never,
+
+		/// <summary>
+		/// 
+		/// </summary>
 		Always,
+
+		/// <summary>
+		/// 
+		/// </summary>
 		Editor,
+
+		/// <summary>
+		/// 
+		/// </summary>
 		Game,
+
+		/// <summary>
+		/// 
+		/// </summary>
 		PropertyNames,
+
+		/// <summary>
+		/// 
+		/// </summary>
 		ToolTips,
 	};
 
+	/// <summary>
+	/// 
+	/// </summary>
 	[DebuggerDisplay("Name={Name}")]
 	public class LocalizationTargetDescriptor
 	{
-		// Name of this target
+		/// <summary>
+		/// Name of this target
+		/// </summary>
 		public readonly string Name;
 
-		// When should the localization data associated with a target should be loaded?
+		/// <summary>
+		/// When should the localization data associated with a target should be loaded?
+		/// </summary>
 		public LocalizationTargetDescriptorLoadingPolicy LoadingPolicy;
 
 		/// <summary>

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class SuperSearchEditor : ModuleRules
 	{
-        public SuperSearchEditor(TargetInfo Target)
+        public SuperSearchEditor(ReadOnlyTargetRules Target) : base(Target)
 		{
             PublicDependencyModuleNames.AddRange(
 				new string[]

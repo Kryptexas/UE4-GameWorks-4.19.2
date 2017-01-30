@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class WorkspaceMenuStructure : ModuleRules
 {
-	public WorkspaceMenuStructure(TargetInfo Target)
+	public WorkspaceMenuStructure(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Editor/WorkspaceMenuStructure/Private");
 

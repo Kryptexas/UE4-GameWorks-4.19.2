@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System;
@@ -14,7 +14,7 @@ public class PhysX : ModuleRules
 		Shipping
 	}
 
-	static PhysXLibraryMode GetPhysXLibraryMode(UnrealTargetConfiguration Config)
+	PhysXLibraryMode GetPhysXLibraryMode(UnrealTargetConfiguration Config)
 	{
 		switch (Config)
 		{
@@ -65,7 +65,7 @@ public class PhysX : ModuleRules
 		}
 	}
 
-	public PhysX(TargetInfo Target)
+	public PhysX(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -504,7 +504,7 @@ public class PhysX : ModuleRules
 			Definitions.Add("PX_PHYSX_STATIC_LIB=1");
 			Definitions.Add("_XBOX_ONE=1");
 
-			PublicLibraryPaths.Add(Path.Combine(PhysXLibDir,"XboxOne\\VS" + WindowsPlatform.GetVisualStudioCompilerVersionName()));
+			PublicLibraryPaths.Add(Path.Combine(PhysXLibDir,"XboxOne\\VS2015"));
 
 			string[] StaticLibrariesXB1 = new string[] {
 				"PhysX3{0}.lib",

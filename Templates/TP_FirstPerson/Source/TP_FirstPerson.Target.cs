@@ -5,21 +5,9 @@ using System.Collections.Generic;
 
 public class TP_FirstPersonTarget : TargetRules
 {
-	public TP_FirstPersonTarget(TargetInfo Target)
+	public TP_FirstPersonTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Game;
-	}
-
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutExtraModuleNames.Add("TP_FirstPerson");
+		ExtraModuleNames.Add("TP_FirstPerson");
 	}
 }

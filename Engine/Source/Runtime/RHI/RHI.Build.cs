@@ -5,7 +5,7 @@ using System;
 
 public class RHI : ModuleRules
 {
-	public RHI(TargetInfo Target)
+	public RHI(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.Add("Core");
 

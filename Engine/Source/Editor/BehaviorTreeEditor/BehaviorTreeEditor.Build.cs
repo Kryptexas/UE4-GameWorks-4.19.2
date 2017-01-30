@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class BehaviorTreeEditor : ModuleRules
 {
-	public BehaviorTreeEditor(TargetInfo Target)
+	public BehaviorTreeEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.AddRange(
             new string[] {

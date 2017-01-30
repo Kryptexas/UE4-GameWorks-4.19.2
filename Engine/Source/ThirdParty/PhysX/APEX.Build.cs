@@ -15,7 +15,7 @@ public class APEX : ModuleRules
 		Shipping
 	}
 
-	static APEXLibraryMode GetAPEXLibraryMode(UnrealTargetConfiguration Config)
+	APEXLibraryMode GetAPEXLibraryMode(UnrealTargetConfiguration Config)
 	{
 		switch (Config)
 		{
@@ -66,7 +66,7 @@ public class APEX : ModuleRules
 		}
 	}
 
-	public APEX(TargetInfo Target)
+	public APEX(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -241,7 +241,7 @@ public class APEX : ModuleRules
 			// This MUST be defined for XboxOne!
 			Definitions.Add("PX_HAS_SECURE_STRCPY=1");
 
-			APEXLibDir += "/XboxOne/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			APEXLibDir += "/XboxOne/VS2015";
 			PublicLibraryPaths.Add(APEXLibDir);
 
 			ApexLibraries.Add("NvParameterized{0}");

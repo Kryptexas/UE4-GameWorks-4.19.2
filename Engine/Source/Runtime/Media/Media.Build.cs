@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class Media : ModuleRules
 	{
-		public Media(TargetInfo Target)
+		public Media(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

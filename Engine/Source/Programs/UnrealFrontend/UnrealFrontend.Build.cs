@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UnrealFrontend : ModuleRules
 {
-	public UnrealFrontend( TargetInfo Target )
+	public UnrealFrontend( ReadOnlyTargetRules Target ) : base(Target)
 	{
 		PublicIncludePaths.Add("Runtime/Launch/Public");
 

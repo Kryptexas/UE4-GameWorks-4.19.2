@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class NullDrv : ModuleRules
 {
-	public NullDrv(TargetInfo Target)
+	public NullDrv(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.Add("Runtime/NullDrv/Private");
 

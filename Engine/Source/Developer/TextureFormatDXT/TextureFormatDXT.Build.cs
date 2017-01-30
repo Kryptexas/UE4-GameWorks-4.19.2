@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class TextureFormatDXT : ModuleRules
 {
-	public TextureFormatDXT(TargetInfo Target)
+	public TextureFormatDXT(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {

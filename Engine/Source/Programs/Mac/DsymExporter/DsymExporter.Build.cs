@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class DsymExporter : ModuleRules
 {
-	public DsymExporter( TargetInfo Target )
+	public DsymExporter( ReadOnlyTargetRules Target ) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add( "Launch" );
 		PrivateIncludePaths.Add( "Runtime/Launch/Private" );

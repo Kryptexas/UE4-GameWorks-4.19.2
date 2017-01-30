@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class PortalRpc : ModuleRules
 	{
-		public PortalRpc(TargetInfo Target)
+		public PortalRpc(ReadOnlyTargetRules Target) : base(Target)
 		{
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {

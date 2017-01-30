@@ -5,7 +5,7 @@ using UnrealBuildTool;
 public class DeviceProfileServices : ModuleRules
 {
 
-	public DeviceProfileServices(TargetInfo Target)
+	public DeviceProfileServices(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Editor/DeviceProfileServices/Private");
 

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AndroidRuntimeSettings : ModuleRules
 {
-	public AndroidRuntimeSettings(TargetInfo Target)
+	public AndroidRuntimeSettings(ReadOnlyTargetRules Target) : base(Target)
 	{
 		BinariesSubFolder = "Android";
 
@@ -17,7 +17,7 @@ public class AndroidRuntimeSettings : ModuleRules
             }
 		);
 
-        if (Target.Type == TargetRules.TargetType.Editor || Target.Type == TargetRules.TargetType.Program)
+        if (Target.Type == TargetType.Editor || Target.Type == TargetType.Program)
         {
             PrivateDependencyModuleNames.AddRange(
                 new string[]

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class CharacterAI : ModuleRules
 {
-    public CharacterAI(TargetInfo Target)
+    public CharacterAI(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.Add("CharacterAI/Private");
 

@@ -992,7 +992,6 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 		const int64 ThisFrame = *It;
 		if (ThisFrame <= LastFullFrameMetaAndNonFrame && ThisFrame < MinFrameToKeep)
 		{
-			check(ThisFrame <= LastFullFrameMetaAndNonFrame);
 			It.RemoveCurrent();
 		}
 	}
@@ -1001,7 +1000,6 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 		const int64 ThisFrame = It.Key();
 		if (ThisFrame <= LastFullFrameMetaAndNonFrame && ThisFrame < MinFrameToKeep)
 		{
-			check(ThisFrame <= LastFullFrameMetaAndNonFrame);
 			It.RemoveCurrent();
 		}
 	}

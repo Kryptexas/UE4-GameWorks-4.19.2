@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
     public class PerformanceMonitor : ModuleRules
     {
-        public PerformanceMonitor(TargetInfo Target)
+        public PerformanceMonitor(ReadOnlyTargetRules Target) : base(Target)
         {
             PrivateIncludePaths.AddRange
             (

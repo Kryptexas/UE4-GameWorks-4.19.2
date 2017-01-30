@@ -1,9 +1,9 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 
 public class DX9 : ModuleRules
 {
-	public DX9(TargetInfo Target)
+	public DX9(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

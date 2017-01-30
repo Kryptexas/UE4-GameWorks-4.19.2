@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AssetRegistry : ModuleRules
 {
-	public AssetRegistry(TargetInfo Target)
+	public AssetRegistry(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

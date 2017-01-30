@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class D3D12RHI : ModuleRules
 {
-	public D3D12RHI(TargetInfo Target)
+	public D3D12RHI(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Runtime/D3D12RHI/Private");
 

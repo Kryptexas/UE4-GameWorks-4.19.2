@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AudioFormatOpus : ModuleRules
 {
-	public AudioFormatOpus(TargetInfo Target)
+	public AudioFormatOpus(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
 

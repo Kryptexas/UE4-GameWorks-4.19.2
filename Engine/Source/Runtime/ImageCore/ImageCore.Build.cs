@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ImageCore : ModuleRules
 {
-	public ImageCore(TargetInfo Target)
+	public ImageCore(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.Add("Core");
 	}

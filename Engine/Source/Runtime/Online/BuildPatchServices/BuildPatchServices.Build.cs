@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class BuildPatchServices : ModuleRules
 {
-	public BuildPatchServices(TargetInfo Target)
+	public BuildPatchServices(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[]

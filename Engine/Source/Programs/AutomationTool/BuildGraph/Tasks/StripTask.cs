@@ -96,13 +96,12 @@ namespace BuildGraph.Tasks
 			FileReference[] TargetFiles = SourceFiles.Select(x => FileReference.Combine(OutputDir, x.MakeRelativeTo(BaseDir))).ToArray();
 
 			// Run the stripping command
-			UEBuildPlatform Platform = UEBuildPlatform.GetBuildPlatform(Parameters.Platform);
-			UEToolChain ToolChain = Platform.CreateContext(null, null).CreateToolChainForDefaultCppPlatform();
+			Platform TargetPlatform = Platform.GetPlatform(Parameters.Platform);
 			for (int Idx = 0; Idx < SourceFiles.Length; Idx++)
 			{
-				TargetFiles[Idx].Directory.CreateDirectory();
+				DirectoryReference.CreateDirectory(TargetFiles[Idx].Directory);
 				CommandUtils.Log("Stripping symbols: {0} -> {1}", SourceFiles[Idx].FullName, TargetFiles[Idx].FullName);
-				ToolChain.StripSymbols(SourceFiles[Idx].FullName, TargetFiles[Idx].FullName);
+				TargetPlatform.StripSymbols(SourceFiles[Idx].FullName, TargetFiles[Idx].FullName);
 			}
 
 			// Apply the optional tag to the build products

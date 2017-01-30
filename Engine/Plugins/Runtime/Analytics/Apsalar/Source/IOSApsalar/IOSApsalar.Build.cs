@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class IOSApsalar : ModuleRules
 	{
-		public IOSApsalar( TargetInfo Target )
+		public IOSApsalar( ReadOnlyTargetRules Target ) : base(Target)
 		{
 			BinariesSubFolder = "NotForLicensees";
 

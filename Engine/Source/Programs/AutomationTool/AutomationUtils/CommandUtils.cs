@@ -1410,7 +1410,7 @@ namespace AutomationTool
 		{
 			Source = ConvertSeparators(PathSeparator.Default, Source);
 			Dest = ConvertSeparators(PathSeparator.Default, Dest);
-			Dest.TrimEnd(PathSeparator.Default.ToString().ToCharArray());
+			Dest = Dest.TrimEnd(PathSeparator.Default.ToString().ToCharArray());
 
 			if (InternalUtils.SafeDirectoryExists(Dest))
 			{
@@ -1891,22 +1891,6 @@ namespace AutomationTool
 			return Collection == null || Collection.Count == 0;
 		}
 
-		/// <summary>
-		/// List of available target platforms.
-		/// </summary>
-		public static UnrealBuildTool.UnrealTargetPlatform[] KnownTargetPlatforms
-		{
-			get
-			{
-				if (UBTTargetPlatforms == null || UBTTargetPlatforms.Length == 0)
-				{
-					UBTTargetPlatforms = UnrealBuildTool.UEBuildPlatform.GetRegisteredPlatforms().ToArray();
-				}
-				return UBTTargetPlatforms;
-			}
-		}
-		private static UnrealBuildTool.UnrealTargetPlatform[] UBTTargetPlatforms;
-
 	    #endregion
 
 		#region Properties
@@ -1922,10 +1906,12 @@ namespace AutomationTool
 		/// <summary>
 		/// Path to the root directory
 		/// </summary>
-		public static DirectoryReference RootDirectory 
-		{
-			get { return UnrealBuildTool.UnrealBuildTool.RootDirectory; }
-		}
+		public static readonly DirectoryReference RootDirectory = new DirectoryReference(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetOriginalLocation()), "..", "..", ".."));
+
+		/// <summary>
+		/// Path to the engine directory
+		/// </summary>
+		public static readonly DirectoryReference EngineDirectory = DirectoryReference.Combine(RootDirectory, "Engine");
 
 		/// <summary>
 		/// Telemetry data for the current run. Add -WriteTelemetry=<Path> to the command line to export to disk.
@@ -2071,14 +2057,16 @@ namespace AutomationTool
 			}
 			else
 			{
-				Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
-				Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
-				foreach (string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+				using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile())
 				{
-					Zip.AddFile(Path.Combine(BaseDirectory, FilteredFile), Path.GetDirectoryName(FilteredFile));
+					Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
+					foreach (string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+					{
+						Zip.AddFile(Path.Combine(BaseDirectory, FilteredFile), Path.GetDirectoryName(FilteredFile));
+					}
+					CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
+					Zip.Save(ZipFileName);
 				}
-				CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
-				Zip.Save(ZipFileName);
 			}
 		}
 
@@ -2231,7 +2219,7 @@ namespace AutomationTool
 				string IncludePattern = BaseDir.FullName.TrimEnd(new char[]{ Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }) + "/" + Pattern.Substring(LastDirectoryIdx + 1);
 
 				// Construct a filter and apply it to the directory
-				if(BaseDir.Exists())
+				if(DirectoryReference.Exists(BaseDir))
 				{
 					FileFilter Filter = new FileFilter();
 					Filter.AddRule(IncludePattern, FileFilterType.Include);
@@ -2551,6 +2539,29 @@ namespace AutomationTool
 		public static TimeSpan CodeSignTimeOut = new TimeSpan(0, 3, 0); // Keep trying to sign one file for up to 3 minutes
 
 		/// <summary>
+		/// Finds the path to SignTool.exe, or throws an exception.
+		/// </summary>
+		/// <returns>Path to signtool.exe</returns>
+		public static string GetSignToolPath()
+		{
+			string[] PossibleSignToolNames =
+			{
+				"C:/Program Files (x86)/Windows Kits/10/bin/x86/SignTool.exe",
+				"C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe"
+			};
+
+			foreach(string PossibleSignToolName in PossibleSignToolNames)
+			{
+				if(File.Exists(PossibleSignToolName))
+				{
+					return PossibleSignToolName;
+				}
+			}
+
+			throw new AutomationException("SignTool not found at '{0}' (are you missing the Windows SDK?)", String.Join("' or '", PossibleSignToolNames));
+		}
+
+		/// <summary>
 		/// Code signs the specified file
 		/// </summary>
 		public static void SignSingleExecutableIfEXEOrDLL(string Filename, bool bIgnoreExtension = false)
@@ -2588,30 +2599,7 @@ namespace AutomationTool
 				return;
 			}
 
-			WindowsCompiler Compiler = WindowsPlatform.GetDefaultCompiler(new string[0], null);
-
-			string SignToolName = null;
-			if (Compiler >= WindowsCompiler.VisualStudio2015)
-			{
-				//@todo: Get these paths from the registry
-				if (WindowsPlatform.bUseWindowsSDK10)
-				{
-					SignToolName = "C:/Program Files (x86)/Windows Kits/10/bin/x86/SignTool.exe";
-				}
-				else
-				{
-					SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
-				}
-			}
-			else if (Compiler == WindowsCompiler.VisualStudio2013)
-			{
-				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
-			}
-
-			if (!File.Exists(SignToolName))
-			{
-				throw new AutomationException("SignTool not found at '{0}' (are you missing the Windows SDK?)", SignToolName);
-			}
+			string SignToolName = GetSignToolPath();
 
 			TargetFileInfo.IsReadOnly = false;
 
@@ -2776,30 +2764,7 @@ namespace AutomationTool
 
 		public static void SignListFilesIfEXEOrDLL(string FilesToSign)
 		{
-			WindowsCompiler Compiler = WindowsPlatform.GetDefaultCompiler(new string[0], null);
-
-			string SignToolName = null;
-			if (Compiler == WindowsCompiler.VisualStudio2015)
-			{
-				//@todo: Get these paths from the registry
-				if (WindowsPlatform.bUseWindowsSDK10)
-				{
-					SignToolName = "C:/Program Files (x86)/Windows Kits/10/bin/x86/SignTool.exe";
-				}
-				else
-				{
-					SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
-				}
-			}
-			else if (Compiler == WindowsCompiler.VisualStudio2013)
-			{
-				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
-			}
-
-			if (!File.Exists(SignToolName))
-			{
-				throw new AutomationException("SignTool not found at '{0}' (are you missing the Windows SDK?)", SignToolName);
-			}
+			string SignToolName = GetSignToolPath();
 
 			// nothing to sign
 			if (String.IsNullOrEmpty(FilesToSign))

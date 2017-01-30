@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Sequencer : ModuleRules
 {
-	public Sequencer(TargetInfo Target)
+	public Sequencer(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
             new string[] {

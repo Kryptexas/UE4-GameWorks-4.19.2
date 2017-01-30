@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ProjectLauncher : ModuleRules
 {
-	public ProjectLauncher(TargetInfo Target)
+	public ProjectLauncher(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] {

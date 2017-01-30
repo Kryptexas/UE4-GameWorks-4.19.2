@@ -72,7 +72,7 @@ namespace AutomationTool
 			}
 			// Register all the classes inside UBT
 			Log.TraceVerbose("Registering UBT Classes.");
-			UnrealBuildTool.UnrealBuildTool.RegisterAllUBTClasses();
+			UnrealBuildTool.PlatformExports.RegisterClasses();
 			Environment.CurrentDirectory = OldCWD;
 
 			// Compile only if not disallowed.
@@ -132,7 +132,7 @@ namespace AutomationTool
 			List<DirectoryReference> AllGameFolders;
 			if(ScriptsForProjectFileName == null)
 			{
-				AllGameFolders = UnrealBuildTool.UEBuildTarget.DiscoverAllGameFolders();
+				AllGameFolders = UProjectInfo.FilterGameProjects(true, null).Select(x => x.Folder).ToList();
 			}
 			else
 			{
@@ -143,7 +143,7 @@ namespace AutomationTool
 			foreach (var Folder in AllGameFolders)
 			{
 				var GameBuildFolder = DirectoryReference.Combine(Folder, "Build");
-				if (GameBuildFolder.Exists())
+				if (DirectoryReference.Exists(GameBuildFolder))
 				{
 					AllAdditionalScriptFolders.Add(GameBuildFolder);
 				}

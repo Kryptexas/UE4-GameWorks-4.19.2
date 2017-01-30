@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class LevelSequence : ModuleRules
 {
-	public LevelSequence(TargetInfo Target)
+	public LevelSequence(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Runtime/LevelSequence/Private");
 

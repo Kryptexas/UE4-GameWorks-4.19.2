@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MovieScene : ModuleRules
 {
-	public MovieScene(TargetInfo Target)
+	public MovieScene(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Runtime/MovieScene/Private");
 

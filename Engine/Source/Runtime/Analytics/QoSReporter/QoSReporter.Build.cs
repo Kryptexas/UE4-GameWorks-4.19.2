@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class QoSReporter : ModuleRules
 	{
-		public QoSReporter(TargetInfo Target)
+		public QoSReporter(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.Add("Core");
 
@@ -17,16 +17,18 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 
-			if (Target.Type != TargetRules.TargetType.Program)
+			if (Target.Type != TargetType.Program)
 			{
 				PrivateDependencyModuleNames.Add("Engine"); // for GAverageFPS - unused by programs
 			}
 
 			// servers expose QoS metrics via perfcounters
-			if (Target.Type != TargetRules.TargetType.Client && Target.Type != TargetRules.TargetType.Program)
+			if (Target.Type != TargetType.Client && Target.Type != TargetType.Program)
 			{
 				PrivateDependencyModuleNames.Add("PerfCounters");
 			}
+
+			WhitelistRestrictedFolders.Add("Private/NotForLicensees");
 
 			Definitions.Add("WITH_QOSREPORTER=1");
 		}

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class BlueprintNativeCodeGen : ModuleRules
 {
-    public BlueprintNativeCodeGen(TargetInfo Target)
+    public BlueprintNativeCodeGen(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.Add("BlueprintNativeCodeGen/Private");
 

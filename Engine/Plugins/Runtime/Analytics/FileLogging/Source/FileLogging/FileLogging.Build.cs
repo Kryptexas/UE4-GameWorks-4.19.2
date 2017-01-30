@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class FileLogging : ModuleRules
 	{
-		public FileLogging( TargetInfo Target )
+		public FileLogging( ReadOnlyTargetRules Target ) : base(Target)
 		{
             PublicDependencyModuleNames.AddRange(
                 new string[]

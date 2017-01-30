@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class BlueprintStats : ModuleRules
 	{
-        public BlueprintStats(TargetInfo Target)
+        public BlueprintStats(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

@@ -6,7 +6,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class RawInput : ModuleRules
 	{
-		public RawInput(TargetInfo Target)
+		public RawInput(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.Add("RawInput/Source/RawInput/Public");
 

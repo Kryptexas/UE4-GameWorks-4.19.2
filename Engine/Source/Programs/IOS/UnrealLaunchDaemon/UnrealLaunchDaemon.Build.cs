@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UnrealLaunchDaemon : ModuleRules
 {
-	public UnrealLaunchDaemon( TargetInfo Target )
+	public UnrealLaunchDaemon( ReadOnlyTargetRules Target ) : base(Target)
 	{
 		PublicIncludePaths.AddRange(
 			new string[] {

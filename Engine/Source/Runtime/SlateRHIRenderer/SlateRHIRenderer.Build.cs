@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SlateRHIRenderer : ModuleRules
 {
-    public SlateRHIRenderer(TargetInfo Target)
+    public SlateRHIRenderer(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.Add("Runtime/SlateRHIRenderer/Private");
 

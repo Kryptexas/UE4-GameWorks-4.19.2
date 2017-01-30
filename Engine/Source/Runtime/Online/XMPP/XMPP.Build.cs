@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class XMPP : ModuleRules
 {
-	public XMPP(TargetInfo Target)
+	public XMPP(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Definitions.Add("XMPP_PACKAGE=1");
 

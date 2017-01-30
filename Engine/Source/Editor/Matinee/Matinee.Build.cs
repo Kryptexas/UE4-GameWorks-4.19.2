@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Matinee : ModuleRules
 {
-	public Matinee(TargetInfo Target)
+	public Matinee(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.AddRange(
 			new string[] {

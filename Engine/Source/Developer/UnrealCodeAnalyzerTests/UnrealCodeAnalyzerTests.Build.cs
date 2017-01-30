@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UnrealCodeAnalyzerTests : ModuleRules
 {
-	public UnrealCodeAnalyzerTests(TargetInfo Target)
+	public UnrealCodeAnalyzerTests(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.Add("Core");
 		PublicDependencyModuleNames.Add("CoreUObject");

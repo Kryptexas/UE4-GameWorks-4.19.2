@@ -9,22 +9,47 @@ using System.Text;
 
 namespace UnrealBuildTool
 {
+	/// <summary>
+	/// The version format for .uplugin files. This rarely changes now; plugin descriptors should maintain backwards compatibility automatically.
+	/// </summary>
 	public enum PluginDescriptorVersion
 	{
+		/// <summary>
+		/// Invalid
+		/// </summary>
 		Invalid = 0,
-		Initial = 1,
-		NameHash = 2,
-		ProjectPluginUnification = 3,
-        // !!!!!!!!!! IMPORTANT: Remember to also update LatestPluginDescriptorFileVersion in Plugins.cs (and Plugin system documentation) when this changes!!!!!!!!!!!
-        // -----<new versions can be added before this line>-------------------------------------------------
-        // - this needs to be the last line (see note below)
-        LatestPlusOne,
-		Latest = LatestPlusOne - 1
-	};
 
+		/// <summary>
+		/// Initial version
+		/// </summary>
+		Initial = 1,
+
+		/// <summary>
+		/// Adding SampleNameHash
+		/// </summary>
+		NameHash = 2,
+
+		/// <summary>
+		/// Unifying plugin/project files (since abandoned, but backwards compatibility maintained)
+		/// </summary>
+		ProjectPluginUnification = 3,
+
+		/// <summary>
+        /// This needs to be the last line, so we can calculate the value of Latest below
+		/// </summary>
+        LatestPlusOne,
+
+		/// <summary>
+		/// The latest plugin descriptor version
+		/// </summary>
+		Latest = LatestPlusOne - 1
+	}
+
+	/// <summary>
+	/// In-memory representation of a .uplugin file
+	/// </summary>
 	public class PluginDescriptor
 	{
-
 		/// <summary>
 		/// Descriptor version number
 		/// </summary>
@@ -103,7 +128,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool bCanContainContent;
 
-		/// </summary>
+		/// <summary>
 		/// Marks the plugin as beta in the UI
 		/// </summary>
 		public bool bIsBetaVersion;
@@ -146,6 +171,7 @@ namespace UnrealBuildTool
 		/// Creates a plugin descriptor from a file on disk
 		/// </summary>
 		/// <param name="FileName">The filename to read</param>
+		/// <param name="bPluginTypeEnabledByDefault">Whether this plugin should be enabled by default based on its location</param>
 		/// <returns>New plugin descriptor</returns>
 		public static PluginDescriptor FromFile(FileReference FileName, bool bPluginTypeEnabledByDefault)
 		{
@@ -232,6 +258,7 @@ namespace UnrealBuildTool
 		/// Saves the descriptor to disk
 		/// </summary>
 		/// <param name="FileName">The filename to write to</param>
+		/// <param name="bPluginTypeEnabledByDefault">Whether the plugin is enabled by default based on its location</param>
 		public void Save(string FileName, bool bPluginTypeEnabledByDefault)
 		{
 			using (JsonWriter Writer = new JsonWriter(FileName))
@@ -275,40 +302,62 @@ namespace UnrealBuildTool
 		}
 	}
 
+	/// <summary>
+	/// Representation of a reference to a plugin from a project file
+	/// </summary>
 	[DebuggerDisplay("Name={Name}")]
 	public class PluginReferenceDescriptor
 	{
-		// Name of the plugin
+		/// <summary>
+		/// Name of the plugin
+		/// </summary>
 		public string Name;
 
-		// Whether it should be enabled by default
+		/// <summary>
+		/// Whether it should be enabled by default
+		/// </summary>
 		public bool bEnabled;
 
-		// Whether this plugin is optional, and the game should silently ignore it not being present
+		/// <summary>
+		/// Whether this plugin is optional, and the game should silently ignore it not being present
+		/// </summary>
 		public bool bOptional;
 
-		// Description of the plugin for users that do not have it installed.
+		/// <summary>
+		/// Description of the plugin for users that do not have it installed.
+		/// </summary>
 		public string Description;
 
-		// URL for this plugin on the marketplace, if the user doesn't have it installed.
+		/// <summary>
+		/// URL for this plugin on the marketplace, if the user doesn't have it installed.
+		/// </summary>
 		public string MarketplaceURL;
 
-		// If enabled, list of platforms for which the plugin should be enabled (or all platforms if blank).
+		/// <summary>
+		/// If enabled, list of platforms for which the plugin should be enabled (or all platforms if blank).
+		/// </summary>
 		UnrealTargetPlatform[] WhitelistPlatforms;
 
-		// If enabled, list of platforms for which the plugin should be disabled.
+		/// <summary>
+		/// If enabled, list of platforms for which the plugin should be disabled.
+		/// </summary>
 		UnrealTargetPlatform[] BlacklistPlatforms;
 
-		// If enabled, list of targets for which the plugin should be enabled (or all targets if blank).
-		TargetRules.TargetType[] WhitelistTargets;
+		/// <summary>
+		/// If enabled, list of targets for which the plugin should be enabled (or all targets if blank).
+		/// </summary>
+		TargetType[] WhitelistTargets;
 
-		// If enabled, list of targets for which the plugin should be disabled.
-		TargetRules.TargetType[] BlacklistTargets;
+		/// <summary>
+		/// If enabled, list of targets for which the plugin should be disabled.
+		/// </summary>
+		TargetType[] BlacklistTargets;
 
 		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="InName">Name of the plugin</param>
+		/// <param name="InMarketplaceURL">The marketplace URL for plugins which are not installed</param>
 		/// <param name="bInEnabled">Whether the plugin is enabled</param>
 		public PluginReferenceDescriptor(string InName, string InMarketplaceURL, bool bInEnabled)
 		{
@@ -330,8 +379,8 @@ namespace UnrealBuildTool
 			RawObject.TryGetStringField("MarketplaceURL", out Descriptor.MarketplaceURL);
 			RawObject.TryGetEnumArrayField<UnrealTargetPlatform>("WhitelistPlatforms", out Descriptor.WhitelistPlatforms);
 			RawObject.TryGetEnumArrayField<UnrealTargetPlatform>("BlacklistPlatforms", out Descriptor.BlacklistPlatforms);
-			RawObject.TryGetEnumArrayField<TargetRules.TargetType>("WhitelistTargets", out Descriptor.WhitelistTargets);
-			RawObject.TryGetEnumArrayField<TargetRules.TargetType>("BlacklistTargets", out Descriptor.BlacklistTargets);
+			RawObject.TryGetEnumArrayField<TargetType>("WhitelistTargets", out Descriptor.WhitelistTargets);
+			RawObject.TryGetEnumArrayField<TargetType>("BlacklistTargets", out Descriptor.BlacklistTargets);
 			return Descriptor;
 		}
 
@@ -362,7 +411,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Target">The target to check</param>
 		/// <returns>True if the plugin should be enabled</returns>
-		public bool IsEnabledForTarget(TargetRules.TargetType Target)
+		public bool IsEnabledForTarget(TargetType Target)
 		{
 			if (!bEnabled)
 			{

@@ -156,10 +156,10 @@ namespace IncludeTool
 		public string OptimizeFiles;
 
 		/// <summary>
-		/// Rewrite the files being optimized to make them standalone
+		/// Don't rewrite the files being optimized to make them standalone
 		/// </summary>
 		[CommandLineOption]
-		public bool MakeStandalone;
+		public bool NotStandalone;
 
 		/// <summary>
 		/// When generating timing data, how many samples to take
@@ -208,6 +208,12 @@ namespace IncludeTool
 		/// </summary>
 		[CommandLineOption]
 		public bool P4;
+
+		/// <summary>
+		/// Writes a verbose log per-output file
+		/// </summary>
+		[CommandLineOption]
+		public bool VerboseFileLog;
 	}
 
 	/// <summary>
@@ -550,7 +556,10 @@ namespace IncludeTool
 					{
 						if(!PreprocessedFile.HasHeaderGuard && (PreprocessedFile.Flags & (SourceFileFlags.TranslationUnit | SourceFileFlags.Inline | SourceFileFlags.External | SourceFileFlags.GeneratedHeader)) == 0 && PreprocessedFile.Counterpart == null && PreprocessedFile.Location.HasExtension(".h"))
 						{
-							Log.WriteLine("warning: missing header guard: {0}", PreprocessedFile.Location.FullName);
+							if(!PreprocessedFile.Location.GetFileName().Equals("MonolithicHeaderBoilerplate.h", StringComparison.InvariantCultureIgnoreCase))
+							{
+								Log.WriteLine("warning: missing header guard: {0}", PreprocessedFile.Location.FullName);
+							}
 						}
 					}
 
@@ -721,7 +730,7 @@ namespace IncludeTool
 
 							// Create the output files
 							Log.WriteLine("Preparing output files...");
-							OutputFileBuilder.PrepareFilesForOutput(SourceFileToCompileEnvironment.Keys, CppFileToHeaderFile, SymbolToFwdHeader, Options.MakeStandalone, Log);
+							OutputFileBuilder.PrepareFilesForOutput(SourceFileToCompileEnvironment.Keys, CppFileToHeaderFile, SymbolToFwdHeader, !Options.NotStandalone, Log);
 
 							// Write the output files
 							if(Options.OutputDir != null)
@@ -739,7 +748,7 @@ namespace IncludeTool
 
 								// Write all the output files
 								DirectoryReference OutputDir = new DirectoryReference(Options.OutputDir);
-								WriteOptimizedFiles(InputDir, OutputDir, PublicIncludePaths, PrivateIncludePaths, SystemIncludePaths, OutputFiles, Options.P4, Log);
+								WriteOptimizedFiles(InputDir, OutputDir, PublicIncludePaths, PrivateIncludePaths, SystemIncludePaths, OutputFiles, Options.P4, Options.VerboseFileLog, Log);
 							}
 						}
 					}
@@ -815,9 +824,13 @@ namespace IncludeTool
 		/// <param name="Log">Log to output messages to</param>
 		static void GenerateTaskList(DirectoryReference RootDir, string Target, TargetPlatform Platform, TargetConfiguration Configuration, bool Precompile, FileReference TaskListFile, TextWriter Log)
 		{
-			foreach (FileInfo Info in new DirectoryInfo(Path.Combine(RootDir.FullName, "Engine\\Intermediate\\Build")).EnumerateFiles("UBTEXport*.xml"))
+			DirectoryReference IntermediateDir = DirectoryReference.Combine(RootDir, "Engine", "Intermediate", "Build");
+			if(IntermediateDir.Exists())
 			{
-				File.Delete(Info.FullName);
+				foreach(FileReference IntermediateFile in IntermediateDir.EnumerateFileReferences("UBTExport*.xml"))
+				{
+					IntermediateFile.Delete();
+				}
 			}
 
 			DirectoryReference WorkingDir = DirectoryReference.Combine(RootDir, "Engine");
@@ -1426,7 +1439,7 @@ namespace IncludeTool
 		/// <param name="bWithP4">If true, read-only files will be checked out of Perforce</param>
 		/// <param name="Log">Log writer</param>
 		/// <returns>True if the files were written successfully</returns>
-		static bool WriteOptimizedFiles(DirectoryReference InputDir, DirectoryReference OutputDir, HashList<DirectoryReference> PublicIncludePaths, Dictionary<BuildModule, HashList<DirectoryReference>> PrivateIncludePaths, HashList<DirectoryReference> SystemIncludePaths, IEnumerable<SourceFile> OutputFiles, bool bWithP4, TextWriter Log)
+		static bool WriteOptimizedFiles(DirectoryReference InputDir, DirectoryReference OutputDir, HashList<DirectoryReference> PublicIncludePaths, Dictionary<BuildModule, HashList<DirectoryReference>> PrivateIncludePaths, HashList<DirectoryReference> SystemIncludePaths, IEnumerable<SourceFile> OutputFiles, bool bWithP4, bool bWithVerboseLog, TextWriter Log)
 		{
 			// Find all the output files that need to be written
 			Dictionary<FileReference, string> OutputFileContents = new Dictionary<FileReference, string>();
@@ -1447,6 +1460,10 @@ namespace IncludeTool
 				if(!NewLocation.Exists() || File.ReadAllText(NewLocation.FullName) != Contents)
 				{
 					OutputFileContents.Add(NewLocation, Contents);
+				}
+				if(bWithVerboseLog)
+				{
+					File.WriteAllLines(NewLocation.FullName + ".txt", OutputFile.VerboseOutput);
 				}
 			}
 			return WriteOutputFiles(OutputDir, OutputFileContents, bWithP4, Log);

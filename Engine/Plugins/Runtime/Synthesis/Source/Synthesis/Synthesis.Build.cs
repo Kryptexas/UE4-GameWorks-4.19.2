@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class Synthesis : ModuleRules
 	{
-        public Synthesis(TargetInfo Target)
+        public Synthesis(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[] {

@@ -6,7 +6,7 @@ using System.IO;
 
 public class VulkanRHI : ModuleRules
 {
-	public VulkanRHI(TargetInfo Target)
+	public VulkanRHI(ReadOnlyTargetRules Target) : base(Target)
 	{
 		bOutputPubliclyDistributable = true;
 

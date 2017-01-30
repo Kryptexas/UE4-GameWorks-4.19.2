@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class JsonUtilities : ModuleRules
 {
-	public JsonUtilities( TargetInfo Target )
+	public JsonUtilities( ReadOnlyTargetRules Target ) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[]

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class BlueprintCompilerCppBackend : ModuleRules
 	{
-        public BlueprintCompilerCppBackend(TargetInfo Target)
+        public BlueprintCompilerCppBackend(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {

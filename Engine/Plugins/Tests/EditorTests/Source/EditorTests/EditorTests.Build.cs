@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class EditorTests : ModuleRules
 {
-	public EditorTests(TargetInfo Target)
+	public EditorTests(ReadOnlyTargetRules Target) : base(Target)
 	{
 		
 		PublicIncludePaths.AddRange(

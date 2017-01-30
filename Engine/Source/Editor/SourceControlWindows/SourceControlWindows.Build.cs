@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SourceControlWindows : ModuleRules
 {
-	public SourceControlWindows(TargetInfo Target)
+	public SourceControlWindows(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

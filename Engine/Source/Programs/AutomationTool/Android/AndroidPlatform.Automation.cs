@@ -150,12 +150,12 @@ public class AndroidPlatform : Platform
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
-		AndroidToolChain ToolChain = new AndroidToolChain(Params.RawProjectPath);
+		IAndroidToolChain ToolChain = AndroidExports.CreateToolChain(Params.RawProjectPath);
 		var Architectures = ToolChain.GetAllArchitectures();
 		var GPUArchitectures = ToolChain.GetAllGPUArchitectures();
-		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
+		bool bMakeSeparateApks = UnrealBuildTool.AndroidExports.ShouldMakeSeparateApks();
 
-		var Deploy = new UEDeployAndroid(Params.RawProjectPath);
+		var Deploy = AndroidExports.CreateDeploymentHandler(Params.RawProjectPath);
 		bool bPackageDataInsideApk = Deploy.PackageDataInsideApk(false);
 
 		string BaseApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, "", "");
@@ -463,11 +463,11 @@ public class AndroidPlatform : Platform
 			throw new AutomationException(ExitCode.Error_OnlyOneTargetConfigurationSupported, "Android is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
 		}
 
-		AndroidToolChain ToolChain = new AndroidToolChain(Params.RawProjectPath);
+		IAndroidToolChain ToolChain = AndroidExports.CreateToolChain(Params.RawProjectPath);
 		var Architectures = ToolChain.GetAllArchitectures();
 		var GPUArchitectures = ToolChain.GetAllGPUArchitectures();
-		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
-		bool bPackageDataInsideApk = new UnrealBuildTool.UEDeployAndroid(Params.RawProjectPath).PackageDataInsideApk(false);
+		bool bMakeSeparateApks = UnrealBuildTool.AndroidExports.ShouldMakeSeparateApks();
+		bool bPackageDataInsideApk = UnrealBuildTool.AndroidExports.CreateDeploymentHandler(Params.RawProjectPath).PackageDataInsideApk(false);
 
 		bool bAddedOBB = false;
 		foreach (string Architecture in Architectures)
@@ -735,7 +735,7 @@ public class AndroidPlatform : Platform
             string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, DeviceArchitecture, GPUArchitecture);
 
             // make sure APK is up to date (this is fast if so)
-            var Deploy = new UEDeployAndroid(Params.RawProjectPath);
+            var Deploy = AndroidExports.CreateDeploymentHandler(Params.RawProjectPath);
             if (!Params.Prebuilt)
             {
                 string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
@@ -1210,20 +1210,20 @@ public class AndroidPlatform : Platform
 
 	private string GetBestDeviceArchitecture(ProjectParams Params, string DeviceName)
 	{
-		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
+		bool bMakeSeparateApks = UnrealBuildTool.AndroidExports.ShouldMakeSeparateApks();
 		// if we are joining all .so's into a single .apk, there's no need to find the best one - there is no other one
 		if (!bMakeSeparateApks)
 		{
 			return "";
 		}
 
-		var AppArchitectures = new AndroidToolChain(Params.RawProjectPath).GetAllArchitectures();
+		var AppArchitectures = AndroidExports.CreateToolChain(Params.RawProjectPath).GetAllArchitectures();
 
 		// ask the device
 		IProcessResult ABIResult = RunAdbCommand(Params, DeviceName, " shell getprop ro.product.cpu.abi", null, ERunOptions.AppMustExist);
 
 		// the output is just the architecture
-		string DeviceArch = UnrealBuildTool.UEDeployAndroid.GetUE4Arch(ABIResult.Output.Trim());
+		string DeviceArch = UnrealBuildTool.AndroidExports.GetUE4Arch(ABIResult.Output.Trim());
 
 		// if the architecture wasn't built, look for a backup
 		if (!AppArchitectures.Contains(DeviceArch))
@@ -1275,14 +1275,14 @@ public class AndroidPlatform : Platform
 
 	private string GetBestGPUArchitecture(ProjectParams Params, string DeviceName)
 	{
-		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
+		bool bMakeSeparateApks = UnrealBuildTool.AndroidExports.ShouldMakeSeparateApks();
 		// if we are joining all .so's into a single .apk, there's no need to find the best one - there is no other one
 		if (!bMakeSeparateApks)
 		{
 			return "";
 		}
 
-		var AppGPUArchitectures = new AndroidToolChain(Params.RawProjectPath).GetAllGPUArchitectures();
+		var AppGPUArchitectures = AndroidExports.CreateToolChain(Params.RawProjectPath).GetAllGPUArchitectures();
 
 		// get the device extensions
 		IProcessResult ExtensionsResult = RunAdbCommand(Params, DeviceName, "shell dumpsys SurfaceFlinger", null, ERunOptions.AppMustExist);
@@ -1465,6 +1465,11 @@ public class AndroidPlatform : Platform
 	public override List<string> GetDebugFileExtentions()
 	{
 		return new List<string> { };
+	}
+
+	public override void StripSymbols(string SourceFileName, string TargetFileName)
+	{
+		AndroidExports.StripSymbols(SourceFileName, TargetFileName);
 	}
 }
 

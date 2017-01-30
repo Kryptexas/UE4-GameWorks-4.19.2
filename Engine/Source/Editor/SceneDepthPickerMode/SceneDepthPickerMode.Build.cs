@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SceneDepthPickerMode : ModuleRules
 {
-    public SceneDepthPickerMode(TargetInfo Target)
+    public SceneDepthPickerMode(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

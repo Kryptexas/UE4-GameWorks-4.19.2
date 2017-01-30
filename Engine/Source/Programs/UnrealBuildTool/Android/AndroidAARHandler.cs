@@ -13,7 +13,7 @@ using Ionic.Zip;
 
 namespace UnrealBuildTool
 {
-	public class AndroidAARHandler
+	class AndroidAARHandler
 	{
 		private List<string> Repositories = null;
 		private List<string> AARList = null;
@@ -320,7 +320,8 @@ namespace UnrealBuildTool
 				string TargetPath = Path.Combine(DestinationPath, BaseName);
 
 				// Only extract if haven't before to prevent changing timestamps
-				if (!Directory.Exists(TargetPath))
+				string TargetManifestFileName = Path.Combine(TargetPath, "AndroidManifest.xml");
+				if (!File.Exists(TargetManifestFileName))
 				{
 					Log.TraceInformation("Extracting AAR {0}", BaseName);
 					IEnumerable<string> FileNames = UnzipFiles(Name + ".aar", TargetPath);

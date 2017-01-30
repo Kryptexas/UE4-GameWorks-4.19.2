@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class DetailCustomizations : ModuleRules
 {
-	public DetailCustomizations(TargetInfo Target)
+	public DetailCustomizations(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Editor/DetailCustomizations/Private");	// For PCH includes (because they don't work with relative paths, yet)
 

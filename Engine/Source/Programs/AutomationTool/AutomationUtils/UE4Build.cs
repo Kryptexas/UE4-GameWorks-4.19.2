@@ -1246,29 +1246,7 @@ namespace AutomationTool
 
 		public bool CanUseXGE(UnrealBuildTool.UnrealTargetPlatform Platform)
 		{
-			if (!UnrealBuildTool.UEBuildPlatform.IsPlatformAvailable(Platform))
-			{
-				return false;
-			}
-
-			return UnrealBuildTool.UEBuildPlatform.GetBuildPlatform(Platform).CanUseXGE();
-		}
-
-		public string GenerateExternalFileList(BuildAgenda Agenda)
-		{
-			string AdditionalArguments = "";
-			foreach (var Target in Agenda.Targets)
-			{
-				CommandUtils.RunUBT(CommandUtils.CmdEnv, UBTExecutable, Target.UprojectPath, Target.TargetName, Target.Platform.ToString(), Target.Config.ToString(), "-generateexternalfilelist" + AdditionalArguments + " " + Target.UBTArgs);
-				AdditionalArguments = " -mergeexternalfilelist";
-			}
-			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"/Engine/Intermediate/Build/ExternalFiles.xml");
-		}
-
-		public string[] GetExternalFileList(BuildAgenda Agenda)
-		{
-			string FileListPath = GenerateExternalFileList(Agenda);
-			return UnrealBuildTool.Utils.ReadClass<UnrealBuildTool.ExternalFileList>(FileListPath).FileNames.ToArray();
+			return UnrealBuildTool.PlatformExports.CanUseXGE(Platform);
 		}
 
 		private bool ParseParam(string Name)

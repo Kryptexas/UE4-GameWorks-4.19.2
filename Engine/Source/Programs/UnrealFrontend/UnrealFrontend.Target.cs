@@ -5,31 +5,17 @@ using System.Collections.Generic;
 
 public class UnrealFrontendTarget : TargetRules
 {
-	public UnrealFrontendTarget( TargetInfo Target )
+	public UnrealFrontendTarget( TargetInfo Target ) : base(Target)
 	{
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Modular;
 		AdditionalPlugins.Add("UdpMessaging");
+		LaunchModuleName = "UnrealFrontend";
 	}
 
 	//
 	// TargetRules interface.
 	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames)
-	{
-		OutBuildBinaryConfigurations.Add(
-			new UEBuildBinaryConfiguration(
-				InType: UEBuildBinaryType.Executable,
-				InModuleNames: new List<string>() {
-					"UnrealFrontend"
-				}
-			)
-		);
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,

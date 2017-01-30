@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class TcpMessaging : ModuleRules
 	{
-		public TcpMessaging(TargetInfo Target)
+		public TcpMessaging(ReadOnlyTargetRules Target) : base(Target)
 		{
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {
@@ -43,7 +43,7 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 
-			if (Target.Type == TargetRules.TargetType.Editor)
+			if (Target.Type == TargetType.Editor)
 			{
 				DynamicallyLoadedModuleNames.AddRange(
 					new string[] {

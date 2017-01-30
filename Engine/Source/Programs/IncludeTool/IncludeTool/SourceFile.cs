@@ -163,6 +163,11 @@ namespace IncludeTool
 		public HashList<string> ForwardDeclarations = new HashList<string>();
 
 		/// <summary>
+		/// Verbose per-file log lines
+		/// </summary>
+		public List<string> VerboseOutput = new List<string>();
+
+		/// <summary>
 		/// Construct a SourceFile from the given arguments
 		/// </summary>
 		/// <param name="Location">Location of the file</param>
@@ -204,6 +209,16 @@ namespace IncludeTool
 					throw new Exception("Files marked as 'inline' may not have a header guard, since they will be included directly.");
 				}
 			}
+		}
+
+		/// <summary>
+		/// Appends to the per-file log
+		/// </summary>
+		/// <param name="Format">Format string</param>
+		/// <param name="Args">Format arguments</param>
+		public void LogVerbose(string Format, params object[] Args)
+		{
+			VerboseOutput.Add(String.Format(Format, Args));
 		}
 
 		/// <summary>
@@ -727,6 +742,18 @@ namespace IncludeTool
 			{
 				IncludeText = "\"" + IncludeFile.GetFileName() + "\"";
 				return true;
+			}
+
+			// HACK: including private headers from public headers in the same module
+			int PrivateIdx = IncludeFile.FullName.IndexOf("\\Private\\", StringComparison.InvariantCultureIgnoreCase);
+			if(PrivateIdx != -1)
+			{
+				DirectoryReference BaseDir = new DirectoryReference(IncludeFile.FullName.Substring(0, PrivateIdx));
+				if(FromDirectory.IsUnderDirectory(BaseDir))
+				{
+					IncludeText = "\"" + IncludeFile.MakeRelativeTo(FromDirectory).Replace('\\', '/') + "\"";
+					return true;
+				}
 			}
 
 			// Otherwise we don't know where it came from

@@ -68,12 +68,17 @@ namespace UnrealGameSync
 				List<PerforceChangeSummary> Changes;
 				if(Perforce.FindChanges(WatchPath, 1, out Changes, Log) && Changes.Count > 0)
 				{
-					IsUpdateAvailable = true;
-					if(OnUpdateAvailable != null)
-					{
-						OnUpdateAvailable();
-					}
+					TriggerUpdate();
 				}
+			}
+		}
+
+		public void TriggerUpdate()
+		{
+			IsUpdateAvailable = true;
+			if(OnUpdateAvailable != null)
+			{
+				OnUpdateAvailable();
 			}
 		}
 	}

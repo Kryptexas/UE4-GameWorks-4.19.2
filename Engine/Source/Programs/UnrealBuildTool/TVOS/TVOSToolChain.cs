@@ -15,10 +15,17 @@ using Ionic.Zlib;
 
 namespace UnrealBuildTool
 {
+	class TVOSToolChainSettings : IOSToolChainSettings
+	{
+		public TVOSToolChainSettings() : base("AppleTVOS", "AppleTVSimulator")
+		{
+		}
+	}
+
 	class TVOSToolChain : IOSToolChain
 	{
-		public TVOSToolChain(FileReference InProjectFile, IOSPlatformContext InPlatformContext)
-			: base(CPPTargetPlatform.TVOS, InProjectFile, InPlatformContext)
+		public TVOSToolChain(FileReference InProjectFile, IOSPlatformContext InPlatformContext, TVOSProjectSettings InProjectSettings)
+			: base(CppPlatform.TVOS, InProjectFile, InPlatformContext, InProjectSettings, () => new TVOSToolChainSettings())
 		{
 		}
 	};

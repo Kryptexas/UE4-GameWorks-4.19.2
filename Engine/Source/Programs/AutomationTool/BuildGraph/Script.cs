@@ -217,7 +217,7 @@ namespace AutomationTool
 		public static bool TryRead(FileReference File, Dictionary<string, string> Arguments, Dictionary<string, string> DefaultProperties, ScriptSchema Schema, out Graph Graph)
 		{
 			// Check the file exists before doing anything.
-			if (!File.Exists())
+			if (!FileReference.Exists(File))
 			{
 				CommandUtils.LogError("Cannot open '{0}'", File.FullName);
 				Graph = null;
@@ -531,7 +531,7 @@ namespace AutomationTool
 			if (EvaluateCondition(Element))
 			{
 				FileReference Script = FileReference.Combine(BaseDir, Element.GetAttribute("Script"));
-				if (!Script.Exists())
+				if (!FileReference.Exists(Script))
 				{
 					LogError(Element, "Cannot find included script '{0}'", Script.FullName);
 				}

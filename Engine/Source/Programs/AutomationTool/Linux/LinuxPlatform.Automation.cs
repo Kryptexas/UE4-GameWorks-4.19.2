@@ -25,11 +25,11 @@ public abstract class BaseLinuxPlatform : Platform
 	{
 		if (SC.bStageCrashReporter)
 		{
-			string ReceiptFileName = TargetReceipt.GetDefaultPath(UnrealBuildTool.UnrealBuildTool.EngineDirectory.FullName, "CrashReportClient", SC.StageTargetPlatform.PlatformType, UnrealTargetConfiguration.Shipping, null);
+			string ReceiptFileName = TargetReceipt.GetDefaultPath(CommandUtils.EngineDirectory.FullName, "CrashReportClient", SC.StageTargetPlatform.PlatformType, UnrealTargetConfiguration.Shipping, null);
 			if (File.Exists(ReceiptFileName))
 			{
 				TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName);
-				Receipt.ExpandPathVariables(UnrealBuildTool.UnrealBuildTool.EngineDirectory, (Params.RawProjectPath == null) ? UnrealBuildTool.UnrealBuildTool.EngineDirectory : Params.RawProjectPath.Directory);
+				Receipt.ExpandPathVariables(CommandUtils.EngineDirectory, (Params.RawProjectPath == null) ? CommandUtils.EngineDirectory : Params.RawProjectPath.Directory);
 				SC.StageBuildProductsFromReceipt(Receipt, true, false);
 			}
 		}
@@ -309,6 +309,10 @@ chmod +x {0}
 
 	public override bool IsSupported { get { return true; } }
 
+	public override void StripSymbols(string SourceFileName, string TargetFileName)
+	{
+		LinuxExports.StripSymbols(SourceFileName, TargetFileName);
+	}
 }
 
 

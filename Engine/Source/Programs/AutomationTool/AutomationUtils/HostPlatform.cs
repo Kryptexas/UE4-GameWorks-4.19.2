@@ -72,12 +72,6 @@ namespace AutomationTool
 		abstract public string GetMsBuildExe();
 
 		/// <summary>
-		/// Gets the dev environment executable name.
-		/// </summary>
-		/// <returns></returns>
-		abstract public string GetMsDevExe();
-
-		/// <summary>
 		/// Folder under UE4/ to the platform's binaries.
 		/// </summary>
 		abstract public string RelativeBinariesFolder { get; }

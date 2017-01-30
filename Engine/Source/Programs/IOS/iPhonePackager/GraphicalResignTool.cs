@@ -291,7 +291,7 @@ namespace iPhonePackager
 						else
 						{
 							// User cancelled dialog, rethrow
-							throw ex;
+							throw;
 						}
 					}
 				}

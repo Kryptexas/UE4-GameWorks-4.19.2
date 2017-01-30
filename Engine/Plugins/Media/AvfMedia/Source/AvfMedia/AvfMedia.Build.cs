@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AvfMedia : ModuleRules
 	{
-		public AvfMedia(TargetInfo Target)
+		public AvfMedia(ReadOnlyTargetRules Target) : base(Target)
 		{
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
