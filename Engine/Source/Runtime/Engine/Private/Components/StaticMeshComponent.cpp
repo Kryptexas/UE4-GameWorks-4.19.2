@@ -521,9 +521,11 @@ const FMeshMapBuildData* UStaticMeshComponent::GetMeshMapBuildData(const FStatic
 	{
 		// Check that the static-mesh hasn't been changed to be incompatible with the cached light-map.
 		int32 NumLODs = GetStaticMesh()->RenderData->LODResources.Num();
-		bool bLODsShareStaticLighting = GetStaticMesh()->RenderData->bLODsShareStaticLighting;
 
-		if (!bLODsShareStaticLighting && NumLODs != LODData.Num())
+		// SpeedTrees are set up for lighting to share between LODs
+		bool bCanLODsShareStaticLighting = GetStaticMesh()->SpeedTreeWind.IsValid();
+
+		if (!bCanLODsShareStaticLighting && NumLODs != LODData.Num())
 		{
 			return NULL;
 		}
