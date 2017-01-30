@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Object.h"
 #include "UObject/ObjectMacros.h" 
+#include "UObject/ScriptMacros.h"
 #include "Delegates/Delegate.h"
 #include "GoogleVRTransition2DCallbackProxy.generated.h"
 
