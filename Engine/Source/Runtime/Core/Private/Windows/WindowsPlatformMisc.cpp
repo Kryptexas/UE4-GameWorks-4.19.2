@@ -53,6 +53,7 @@
 	#include <IntShCut.h>
 	#include <shellapi.h>
 	#include <IPHlpApi.h>
+	#include <VersionHelpers.h>
 #include "Windows/HideWindowsPlatformTypes.h"
 
 #include "Modules/ModuleManager.h"
