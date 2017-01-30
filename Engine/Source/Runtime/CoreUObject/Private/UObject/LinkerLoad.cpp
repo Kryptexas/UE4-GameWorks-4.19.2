@@ -2938,7 +2938,7 @@ int32 FLinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload/* = false */)
 	{
 		if (ExportMap[ExportIndex].ObjectName == NAME_PackageMetaData)
 		{
-			MetaData = CastChecked<UMetaData>(CreateExportAndPreload(ExportIndex, bForcePreload));
+			MetaData = Cast<UMetaData>(CreateExportAndPreload(ExportIndex, bForcePreload));
 			MetaDataIndex = ExportIndex;
 			break;
 		}
@@ -2954,7 +2954,7 @@ int32 FLinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload/* = false */)
 				UObject* Object = CreateExportAndPreload(ExportIndex, bForcePreload);
 				Object->Rename(*FName(NAME_PackageMetaData).ToString(), NULL, REN_ForceNoResetLoaders);
 
-				MetaData = CastChecked<UMetaData>(Object);
+				MetaData = Cast<UMetaData>(Object);
 				MetaDataIndex = ExportIndex;
 				break;
 			}
