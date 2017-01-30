@@ -129,10 +129,13 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 	CachedViewRange = TRange<float>::Empty();
 
 	Settings = InSequencer->GetSettings();
+	Settings->GetOnTimeSnapIntervalChanged().AddSP(this, &SSequencer::OnTimeSnapIntervalChanged);
 	if ( InSequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetFixedFrameInterval() > 0 )
 	{
 		Settings->SetTimeSnapInterval( InSequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetFixedFrameInterval() );
 	}
+
+	InSequencer->OnActivateSequence().AddSP(this, &SSequencer::OnSequenceInstanceActivated);
 
 	ISequencerWidgetsModule& SequencerWidgets = FModuleManager::Get().LoadModuleChecked<ISequencerWidgetsModule>( "SequencerWidgets" );
 
@@ -1184,6 +1187,7 @@ TSharedRef<SWidget> SSequencer::MakeTimeRange(const TSharedRef<SWidget>& InnerCo
 SSequencer::~SSequencer()
 {
 	USelection::SelectionChangedEvent.RemoveAll(this);
+	Settings->GetOnTimeSnapIntervalChanged().RemoveAll(this);
 }
 
 
@@ -1390,14 +1394,13 @@ void SSequencer::OnOutlinerSearchChanged( const FText& Filter )
 
 float SSequencer::OnGetTimeSnapInterval() const
 {
-	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
-	if ( Sequencer.IsValid() )
-	{
-		UMovieScene* MovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
-		return MovieScene->GetFixedFrameInterval();
-	}	
-
 	return Settings->GetTimeSnapInterval();
+}
+
+
+void SSequencer::OnTimeSnapIntervalChanged( float InInterval )
+{
+	Settings->SetTimeSnapInterval(InInterval);
 }
 
 
@@ -1954,17 +1957,17 @@ void SSequencer::OnCurveEditorVisibilityChanged()
 }
 
 
-void SSequencer::OnTimeSnapIntervalChanged(float InInterval)
+void SSequencer::OnTimeSnapIntervalChanged()
 {
 	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
 	if ( Sequencer.IsValid() )
 	{
 		UMovieScene* MovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
-		if (!FMath::IsNearlyEqual(MovieScene->GetFixedFrameInterval(), InInterval))
+		if (!FMath::IsNearlyEqual(MovieScene->GetFixedFrameInterval(), Settings->GetTimeSnapInterval()))
 		{
 			FScopedTransaction SetFixedFrameIntervalTransaction( NSLOCTEXT( "Sequencer", "SetFixedFrameInterval", "Set scene fixed frame interval" ) );
 			MovieScene->Modify();
-			MovieScene->SetFixedFrameInterval( InInterval );
+			MovieScene->SetFixedFrameInterval( Settings->GetTimeSnapInterval() );
 		}
 	}
 }
@@ -2169,6 +2172,19 @@ void SSequencer::PasteFromHistory()
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
 			);
+	}
+}
+
+void SSequencer::OnSequenceInstanceActivated( FMovieSceneSequenceIDRef ActiveInstanceID )
+{
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+	if ( Sequencer.IsValid() )
+	{
+		UMovieScene* MovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
+		if ( MovieScene->GetFixedFrameInterval() > 0 )
+		{
+			Settings->SetTimeSnapInterval( MovieScene->GetFixedFrameInterval() );
+		}
 	}
 }
 

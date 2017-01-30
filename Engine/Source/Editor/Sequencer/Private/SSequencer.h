@@ -403,8 +403,14 @@ private:
 	/** Called when a column fill percentage is changed by a splitter slot. */
 	void OnColumnFillCoefficientChanged(float FillCoefficient, int32 ColumnIndex);
 
+	/** Called when the time snap interval is changed. */
+	void OnTimeSnapIntervalChanged();
+
 	/** Gets paint options for painting the playback range on sequencer */
 	FPaintPlaybackRangeArgs GetSectionPlaybackRangeArgs() const;
+
+	/** Called whenever the active sequence instance changes on the FSequencer */
+	void OnSequenceInstanceActivated( FMovieSceneSequenceIDRef ActiveInstanceID );
 
 	EVisibility GetDebugVisualizerVisibility() const;
 	
