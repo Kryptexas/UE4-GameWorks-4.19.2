@@ -6,6 +6,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "ContentStreaming.h"
 #include "Streaming/TextureStreamingHelpers.h"
+#include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMaterialParameter, Warning, All);
 

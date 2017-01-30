@@ -13,6 +13,7 @@
 class FMaterialRenderProxy;
 class FMeshElementCollector;
 class FPrimitiveDrawInterface;
+class UMaterialInterface;
 struct FBodyInstance;
 
 #if WITH_PHYSX
