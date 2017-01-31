@@ -246,6 +246,11 @@ public:
 	void OnEditorPreModal();
 	void OnEditorPostModal();
 
+	/** Called from tab manager when the tab changes */
+	void OnActiveTabChanged(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated);
+	void OnTabForegrounded(TSharedPtr<SDockTab> ForegroundTab, TSharedPtr<SDockTab> BackgroundTab);
+	void OnUserActivityTabChanged(TSharedPtr<SDockTab> InTab);
+
 	/** Delegate that gets called by modules that can't directly access Engine */
 	void OnDeferCommand( const FString& DeferredCommand );
 
@@ -345,6 +350,12 @@ private:
 
 	/** Handle to the registered OnMapChanged delegate. */
 	FDelegateHandle OnMapChangedDelegateHandle;
+	
+	/** Handle to the registered OnActiveTabChanged delegate. */
+	FDelegateHandle OnActiveTabChangedDelegateHandle;
+
+	/** Handle to the registered OnTabForegrounded delegate. */
+	FDelegateHandle OnTabForegroundedDelegateHandle;
 
 	FTimerHandle EditorAnalyticsHeartbeatTimerHandle;	
 };
