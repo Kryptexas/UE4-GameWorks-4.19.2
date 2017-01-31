@@ -482,7 +482,7 @@ void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InReques
 		{
 			// GC can't run in here
 			FGCScopeGuard GCGuard;
-		Package = new FAsyncPackage(*InRequest);
+			Package = new FAsyncPackage(*InRequest);
 		}
 		if (InRequest->PackageLoadedDelegate.IsBound())
 		{
@@ -3949,65 +3949,73 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 		SCOPED_LOADTIMER(ProcessLoadedPackagesTime);
 
 		FAsyncPackage* Package = LoadedPackagesToProcess[PackageIndex];
-
-		Result = Package->PostLoadDeferredObjects(TickStartTime, bUseTimeLimit, TimeLimit);
-		if (Result == EAsyncPackageState::Complete)
+		if (Package->GetDependencyRefCount() == 0)
 		{
-			// Remove the package from the list before we trigger the callbacks, 
-			// this is to ensure we can re-enter FlushAsyncLoading from any of the callbacks
+			Result = Package->PostLoadDeferredObjects(TickStartTime, bUseTimeLimit, TimeLimit);
+			if (Result == EAsyncPackageState::Complete)
 			{
-				FScopeLock LoadedLock(&LoadedPackagesToProcessCritical);					
-				LoadedPackagesToProcess.RemoveAt(PackageIndex--);
-				if (LoadedPackagesToProcess.FindByPredicate([Package](const FAsyncPackage* Pkg)
+				// Remove the package from the list before we trigger the callbacks, 
+				// this is to ensure we can re-enter FlushAsyncLoading from any of the callbacks
 				{
-					return Pkg->GetPackageName() == Package->GetPackageName();
-				}))
-				{
-					UE_LOG(LogStreaming, Warning, TEXT("Package %s has already been loaded"), *Package->GetPackageName().ToString());
-				}
-				LoadedPackagesToProcessNameLookup.Remove(Package->GetPackageName());
-					
-				if (FPlatformProperties::RequiresCookedData())
-				{
-					// Emulates ResetLoaders on the package linker's linkerroot.
-					if (!Package->IsBeingProcessedRecursively())
+					FScopeLock LoadedLock(&LoadedPackagesToProcessCritical);
+					LoadedPackagesToProcess.RemoveAt(PackageIndex--);
+					if (LoadedPackagesToProcess.FindByPredicate([Package](const FAsyncPackage* Pkg)
 					{
-						Package->ResetLoader();
+						return Pkg->GetPackageName() == Package->GetPackageName();
+					}))
+					{
+						UE_LOG(LogStreaming, Warning, TEXT("Package %s has already been loaded"), *Package->GetPackageName().ToString());
 					}
+					LoadedPackagesToProcessNameLookup.Remove(Package->GetPackageName());
+
+					if (FPlatformProperties::RequiresCookedData())
+					{
+						// Emulates ResetLoaders on the package linker's linkerroot.
+						if (!Package->IsBeingProcessedRecursively())
+						{
+							Package->ResetLoader();
+						}
+					}
+					else
+					{
+						// Detach linker in mutex scope to make sure that if something requests this package
+						// before it's been deleted does not try to associate the new async package with the old linker
+						// while this async package is still bound to it.
+						Package->DetachLinker();
+					}
+
+					// Close linkers opened by synchronous loads during async loading
+					Package->CloseDelayedLinkers();
 				}
-				else
+
+				// Incremented on the Async Thread, now decrement as we're done with this package				
+				const int32 NewExistingAsyncPackagesCounterValue = ExistingAsyncPackagesCounter.Decrement();
+				UE_CLOG(NewExistingAsyncPackagesCounterValue < 0, LogStreaming, Fatal, TEXT("ExistingAsyncPackagesCounter is negative, this means we loaded more packages then requested so there must be a bug in async loading code."));
+
+				// Call external callbacks
+				const bool bInternalCallbacks = false;
+				const EAsyncLoadingResult::Type LoadingResult = Package->HasLoadFailed() ? EAsyncLoadingResult::Failed : EAsyncLoadingResult::Succeeded;
+				Package->CallCompletionCallbacks(bInternalCallbacks, LoadingResult);
+
+				// We don't need the package anymore
+				PackagesToDelete.AddUnique(Package);
+				Package->MarkRequestIDsAsComplete();
+
+				if (IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit, TEXT("ProcessLoadedPackages Misc")) || (FlushTree && !ContainsRequestID(FlushTree->RequestId)))
 				{
-					// Detach linker in mutex scope to make sure that if something requests this package
-					// before it's been deleted does not try to associate the new async package with the old linker
-					// while this async package is still bound to it.
-					Package->DetachLinker();
+					// The only package we care about has finished loading, so we're good to exit
+					break;
 				}
-				
-				// Close linkers opened by synchronous loads during async loading
-				Package->CloseDelayedLinkers();
 			}
-
-			// Incremented on the Async Thread, now decrement as we're done with this package				
-			const int32 NewExistingAsyncPackagesCounterValue = ExistingAsyncPackagesCounter.Decrement();
-			UE_CLOG(NewExistingAsyncPackagesCounterValue < 0, LogStreaming, Fatal, TEXT("ExistingAsyncPackagesCounter is negative, this means we loaded more packages then requested so there must be a bug in async loading code."));
-
-			// Call external callbacks
-			const bool bInternalCallbacks = false;
-			const EAsyncLoadingResult::Type LoadingResult = Package->HasLoadFailed() ? EAsyncLoadingResult::Failed : EAsyncLoadingResult::Succeeded;
-			Package->CallCompletionCallbacks(bInternalCallbacks, LoadingResult);
-
-			// We don't need the package anymore
-			PackagesToDelete.AddUnique(Package);
-			Package->MarkRequestIDsAsComplete();
-
-			if (IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit, TEXT("ProcessLoadedPackages Misc")) || (FlushTree && !ContainsRequestID(FlushTree->RequestId)))
+			else
 			{
-				// The only package we care about has finished loading, so we're good to exit
 				break;
 			}
 		}
 		else
 		{
+			Result = EAsyncPackageState::PendingImports;
+			// Break immediately, we want to keep the order of processing when packages get here
 			break;
 		}
 	}
@@ -5770,18 +5778,26 @@ void FAsyncPackage::CloseDelayedLinkers()
 	for (FLinkerLoad* LinkerToClose : DelayedLinkerClosePackages)
 	{
 		check(LinkerToClose);
-		check(LinkerToClose->LinkerRoot);
-		if (GEventDrivenLoaderEnabled)
+		if (LinkerToClose->LinkerRoot != nullptr)
 		{
 			FLinkerLoad* LinkerToReset = FLinkerLoad::FindExistingLinkerForPackage(CastChecked<UPackage>(LinkerToClose->LinkerRoot));
 			check(LinkerToReset == LinkerToClose);
 			if (LinkerToReset && LinkerToReset->AsyncRoot)
 			{
-				UE_LOG(LogStreaming, Error, TEXT("Linker cannot be reset right now...leaking %s"), *LinkerToReset->GetArchiveName());
+				UE_LOG(LogStreaming, Warning, TEXT("Linker cannot be reset right now...leaking %s"), *LinkerToReset->GetArchiveName());
+				continue;
+			}
+
+			if (!LinkerToClose->HasAnyObjectsPendingLoad())
+			{
+				FLinkerManager::Get().ResetLoaders(LinkerToClose->LinkerRoot);
+			}
+			else
+			{
+				UE_LOG(LogStreaming, Warning, TEXT("Linker cannot be reset right now because it still has objects pending load...leaking %s"), *LinkerToClose->GetArchiveName());
 				continue;
 			}
 		}
-		FLinkerManager::Get().ResetLoaders(LinkerToClose->LinkerRoot);
 		check(LinkerToClose->LinkerRoot == nullptr);
 		check(LinkerToClose->AsyncRoot == nullptr);
 	}

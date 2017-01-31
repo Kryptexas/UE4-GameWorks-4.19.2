@@ -5185,6 +5185,18 @@ void FLinkerLoad::FlushCache()
 	}
 }
 
+bool FLinkerLoad::HasAnyObjectsPendingLoad() const
+{
+	for (const FObjectExport& Export : ExportMap)
+	{
+		if (Export.Object && Export.Object->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 #if WITH_EDITORONLY_DATA
 /** Performs a fixup on packages' editor-only flag */
 void FixupPackageEditorOnlyFlag(FName PackageThatGotEditorOnlyFlagCleared, bool bRecursive)

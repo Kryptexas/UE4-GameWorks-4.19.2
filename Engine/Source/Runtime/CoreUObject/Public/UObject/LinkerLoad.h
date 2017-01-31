@@ -223,6 +223,11 @@ public:
 	 */
 	COREUOBJECT_API static void AddKnownMissingPackage(FName PackageName);
 
+	/**
+	* Checks if the linker has any objects in the export table that require loading.
+	*/
+	COREUOBJECT_API bool HasAnyObjectsPendingLoad() const;
+
 private:
 
 	/** Packages that are known to be missing when verifying imports that we don't want a message about */
