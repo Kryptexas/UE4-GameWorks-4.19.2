@@ -1032,7 +1032,7 @@ namespace UnrealBuildTool
                         CmdLine += " -UseMakefiles";
                     }
 
-					if (!Target.Rules.bCompileAgainstEngine)
+					if (Target.Rules != null && !Target.Rules.bCompileAgainstEngine)
 					{
 						CmdLine += " -NoEnginePlugins";
 					}
