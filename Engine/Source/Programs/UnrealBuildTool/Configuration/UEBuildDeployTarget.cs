@@ -93,6 +93,16 @@ namespace UnrealBuildTool
 		public readonly bool bCreateStubIPA;
 
 		/// <summary>
+		/// Which architectures to deploy for on Android
+		/// </summary>
+		public readonly string[] AndroidArchitectures;
+
+		/// <summary>
+		/// Which GPU architectures to deploy for on Android
+		/// </summary>
+		public readonly string[] AndroidGPUArchitectures;
+
+		/// <summary>
 		/// Construct the deployment info from a target
 		/// </summary>
 		/// <param name="Target">The target being built</param>
@@ -111,6 +121,8 @@ namespace UnrealBuildTool
 			this.BuildReceiptFileName = Target.BuildReceiptFileName;
 			this.bOutputToEngineBinaries = Target.Rules.bOutputToEngineBinaries;
 			this.bCreateStubIPA = Target.Rules.bCreateStubIPA;
+			this.AndroidArchitectures = Target.Rules.AndroidPlatform.Architectures.ToArray();
+			this.AndroidGPUArchitectures = Target.Rules.AndroidPlatform.GPUArchitectures.ToArray();
 		}
 
 		/// <summary>
@@ -134,6 +146,8 @@ namespace UnrealBuildTool
 				BuildReceiptFileName = Reader.ReadString();
 				bOutputToEngineBinaries = Reader.ReadBoolean();
 				bCreateStubIPA = Reader.ReadBoolean();
+				AndroidArchitectures = Reader.ReadArray(x => x.ReadString());
+				AndroidGPUArchitectures = Reader.ReadArray(x => x.ReadString());
 			}
 		}
 
@@ -159,6 +173,8 @@ namespace UnrealBuildTool
 				Writer.Write(BuildReceiptFileName);
 				Writer.Write(bOutputToEngineBinaries);
 				Writer.Write(bCreateStubIPA);
+				Writer.Write(AndroidArchitectures, (w, e) => w.Write(e));
+				Writer.Write(AndroidGPUArchitectures, (w, e) => w.Write(e));
 			}
 		}
 	}

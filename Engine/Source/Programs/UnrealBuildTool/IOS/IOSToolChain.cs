@@ -86,12 +86,12 @@ namespace UnrealBuildTool
 			Settings = new Lazy<IOSToolChainSettings>(InCreateSettings);
 		}
 
-		/***********************************************************************
-		 * NOTE:
-		 *  Do NOT change the defaults to set your values, instead you should set the environment variables
-		 *  properly in your system, as other tools make use of them to work properly!
-		 *  The defaults are there simply for examples so you know what to put in your env vars...
-		 ***********************************************************************/
+		// ***********************************************************************
+		// * NOTE:
+		// *  Do NOT change the defaults to set your values, instead you should set the environment variables
+		// *  properly in your system, as other tools make use of them to work properly!
+		// *  The defaults are there simply for examples so you know what to put in your env vars...
+		// ***********************************************************************
 
 		// If you are looking for where to change the remote compile server name, look in RemoteToolChain.cs
 

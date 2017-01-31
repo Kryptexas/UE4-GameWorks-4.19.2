@@ -2398,7 +2398,7 @@ namespace UnrealBuildTool
 		public override bool PrepTargetForDeployment(UEBuildDeployTarget InTarget)
 		{
 			//Log.TraceInformation("$$$$$$$$$$$$$$ PrepTargetForDeployment $$$$$$$$$$$$$$$$$ {0}", InTarget.TargetName);
-			AndroidToolChain ToolChain = new AndroidToolChain(InTarget.ProjectFile, false, null, null); 
+			AndroidToolChain ToolChain = new AndroidToolChain(InTarget.ProjectFile, false, InTarget.AndroidArchitectures, InTarget.AndroidGPUArchitectures); 
 
 			// we need to strip architecture from any of the output paths
 			string BaseSoName = ToolChain.RemoveArchName(InTarget.OutputPaths[0].FullName);
