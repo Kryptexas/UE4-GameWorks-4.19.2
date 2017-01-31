@@ -51,7 +51,7 @@ void UPlatformMediaSource::Serialize(FArchive& Ar)
 		{
 			if (Ar.IsSaving())
 			{
-				UMediaSource** PlatformMediaSource = PlatformMediaSources.Find(Ar.CookingTarget()->PlatformName());
+				UMediaSource** PlatformMediaSource = PlatformMediaSources.Find(Ar.CookingTarget()->IniPlatformName());
 				MediaSource = (PlatformMediaSource != nullptr) ? *PlatformMediaSource : nullptr;
 			}
 
