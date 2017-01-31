@@ -20,10 +20,12 @@
 #include "PhysicsEngine/PhysXSupport.h"
 #include "PhysicsSerializer.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "RawMesh.h"
 #include "GameFramework/WorldSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "SceneManagement.h"
+#if WITH_EDITOR
+#include "RawMesh.h"
+#endif
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;
 
