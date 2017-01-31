@@ -89,20 +89,23 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Register all UBT platform classes
-		/// </summary>
-		public static void RegisterClasses()
-		{
-			UnrealBuildTool.RegisterAllUBTClasses(SDKOutputLevel.Quiet, false);
-		}
-
-		/// <summary>
-		/// Sets the IsEngineInstalled() flag from an external source
+		/// Initialize UBT in the context of another host process (presumably UAT)
 		/// </summary>
 		/// <param name="bIsEngineInstalled">Whether the engine is installed</param>
-		public static void SetIsEngineInstalled(bool bIsEngineInstalled)
+		/// <returns>True if initialization was successful</returns>
+		public static bool Initialize(bool bIsEngineInstalled)
 		{
 			UnrealBuildTool.SetIsEngineInstalled(bIsEngineInstalled);
+
+			// Read the XML configuration files
+			if(!XmlConfig.ReadConfigFiles())
+			{
+				return false;
+			}
+
+			// Register all the platform classes
+			UnrealBuildTool.RegisterAllUBTClasses(SDKOutputLevel.Quiet, false);
+			return true;
 		}
 	}
 }

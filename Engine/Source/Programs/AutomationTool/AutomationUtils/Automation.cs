@@ -481,7 +481,13 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			{
 				bIsEngineInstalled = GlobalCommandLine.InstalledEngine;
 			}
-			UnrealBuildTool.PlatformExports.SetIsEngineInstalled(bIsEngineInstalled.Value);
+
+			// Initialize UBT
+			if(!UnrealBuildTool.PlatformExports.Initialize(bIsEngineInstalled.Value))
+			{
+				Log.TraceInformation("Failed to initialize UBT");
+				return ExitCode.Error_Unknown;
+			}
 
 			// Change CWD to UE4 root.
 			Environment.CurrentDirectory = CommandUtils.CmdEnv.LocalRoot;
