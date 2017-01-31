@@ -18,6 +18,9 @@
 class SEditableTextBox;
 class SMultiLineEditableTextBox;
 
+template <typename OptionType>
+class SComboBox;
+
 /** Interface to allow STextPropertyEditableTextBox to be used to edit both properties and Blueprint pins */
 class IEditableTextProperty
 {
@@ -76,6 +79,59 @@ protected:
 #endif // USE_STABLE_LOCALIZATION_KEYS
 };
 
+/** A widget that can be used for editing the string table referenced for FText instances */
+class EDITORWIDGETS_API STextPropertyEditableStringTableReference : public SCompoundWidget
+{
+	SLATE_BEGIN_ARGS(STextPropertyEditableStringTableReference)
+		: _ComboStyle(&FCoreStyle::Get().GetWidgetStyle<FComboBoxStyle>("ComboBox"))
+		, _ButtonStyle(&FCoreStyle::Get().GetWidgetStyle<FButtonStyle>("Button"))
+		, _AllowUnlink(false)
+		{}
+		/** The styling of the combobox */
+		SLATE_STYLE_ARGUMENT(FComboBoxStyle, ComboStyle)
+		/** The styling of the button */
+		SLATE_STYLE_ARGUMENT(FButtonStyle, ButtonStyle)
+		/** Should we show an "unlink" button? */
+		SLATE_ARGUMENT(bool, AllowUnlink)
+	SLATE_END_ARGS()
+
+public:
+	void Construct(const FArguments& Arguments, const TSharedRef<IEditableTextProperty>& InEditableTextProperty);
+
+private:
+	struct FAvailableStringTable
+	{
+		FName TableId;
+		FText DisplayName;
+	};
+
+	void GetTableIdAndKey(FName& OutTableId, FString& OutKey) const;
+	void SetTableIdAndKey(const FName InTableId, const FString& InKey);
+
+	TSharedRef<SWidget> MakeStringTableComboWidget(TSharedPtr<FAvailableStringTable> InItem);
+	void OnStringTableComboChanged(TSharedPtr<FAvailableStringTable> NewSelection, ESelectInfo::Type SelectInfo);
+	void OnStringTableComboOpening();
+	FText GetStringTableComboContent() const;
+	FText GetStringTableComboToolTip() const;
+
+	TSharedRef<SWidget> MakeKeyComboWidget(TSharedPtr<FString> InItem);
+	void OnKeyComboChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
+	void OnKeyComboOpening();
+	FText GetKeyComboContent() const;
+	FText GetKeyComboToolTip() const;
+
+	bool IsUnlinkEnabled() const;
+	FReply OnUnlinkClicked();
+
+	TSharedPtr<IEditableTextProperty> EditableTextProperty;
+
+	TSharedPtr<SComboBox<TSharedPtr<FAvailableStringTable>>> StringTableCombo;
+	TArray<TSharedPtr<FAvailableStringTable>> StringTableComboOptions;
+
+	TSharedPtr<SComboBox<TSharedPtr<FString>>> KeyCombo;
+	TArray<TSharedPtr<FString>> KeyComboOptions;
+};
+
 /** A widget that can be used for editing FText instances */
 class EDITORWIDGETS_API STextPropertyEditableTextBox : public SCompoundWidget
 {
@@ -113,7 +169,8 @@ public:
 private:
 	void GetDesiredWidth(float& OutMinDesiredWidth, float& OutMaxDesiredWidth);
 	bool CanEdit() const;
-	bool IsReadOnly() const;
+	bool IsCultureInvariantFlagEnabled() const;
+	bool IsSourceTextReadOnly() const;
 	bool IsIdentityReadOnly() const;
 	FText GetToolTipText() const;
 

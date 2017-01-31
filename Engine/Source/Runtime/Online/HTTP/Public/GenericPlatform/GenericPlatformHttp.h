@@ -57,4 +57,17 @@ public:
 	 * @return The decoded string
 	 */
 	static FString UrlDecode(const FString& EncodedString);
+
+	/**
+	 * Returns the &lt; &gt...etc encoding for strings between HTML elements.
+	 *
+	 * @param UnencodedString The unencoded string to convert to html encoding.
+	 * @return The html encoded string
+	 */
+	static FString HtmlEncode(const FString& UnencodedString);
+
+	/**
+	 * Returns the mime type for the file.
+	 */
+	static FString GetMimeType(const FString& FilePath);
 };

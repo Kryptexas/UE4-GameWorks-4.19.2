@@ -542,11 +542,15 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 
 							UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
 							SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
+
+							FilesToSubmit.Add(Filename);
 						}
 						else if (SourceControlState.IsValid() && SourceControlState->CanCheckout())
 						{
 							UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
 							SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
+
+							FilesToSubmit.Add(Filename);
 						}
 						else if (SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther())
 						{

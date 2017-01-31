@@ -964,6 +964,7 @@ struct FAlphamapAccessor
 			ALandscapeProxy::InvalidateGeneratedComponentData(Components);
 
 			LandscapeEdit.SetAlphaData(LayerInfo, X1, Y1, X2, Y2, Data, 0, PaintingRestriction, bBlendWeight, bUseTotalNormalize);
+			//LayerInfo->IsReferencedFromLoadedData = true;
 			ModifiedComponents.Append(Components);
 		}
 	}
@@ -1311,6 +1312,7 @@ public:
 	FLandscapeToolBase(FEdModeLandscape* InEdMode)
 		: EdMode(InEdMode)
 		, bToolActive(false)
+		, bCanToolBeActivated(true)
 	{
 	}
 
@@ -1375,6 +1377,7 @@ public:
 		ToolStroke.Reset();
 		bToolActive = false;
 		EdMode->CurrentBrush->EndStroke();
+		EdMode->UpdateLayerUsageInformation();
 	}
 
 	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override
@@ -1405,12 +1408,16 @@ public:
 
 	virtual bool IsToolActive() const override { return bToolActive;  }
 
+	virtual void SetCanToolBeActivated(bool Value) { bCanToolBeActivated = Value; }
+	virtual bool CanToolBeActivated() const {	return bCanToolBeActivated; }
+
 protected:
 	TArray<FLandscapeToolInteractorPosition> InteractorPositions;
 	FVector2D LastInteractorPosition;
 	float TimeSinceLastInteractorMove;
 	FEdModeLandscape* EdMode;
 	bool bToolActive;
+	bool bCanToolBeActivated;
 	TOptional<TStrokeClass> ToolStroke;
 
 	bool IsModifierPressed(const class FEditorViewportClient* ViewportClient, const UViewportInteractor* Interactor = nullptr)
@@ -1424,4 +1431,15 @@ protected:
 
 		return IsShiftDown(ViewportClient->Viewport) || bIsInteractorModifierPressed;
 	}
+};
+
+struct FToolFlattenCustomData
+{
+	FToolFlattenCustomData()
+		: ActiveEyeDropperMode(false)
+		, EyeDropperModeHeight(0.0f)
+	{}
+
+	bool ActiveEyeDropperMode;
+	float EyeDropperModeHeight;
 };

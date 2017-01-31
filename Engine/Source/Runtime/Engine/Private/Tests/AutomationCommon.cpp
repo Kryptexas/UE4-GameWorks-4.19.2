@@ -2,6 +2,7 @@
 
 #include "Tests/AutomationCommon.h"
 #include "Misc/Paths.h"
+#include "Misc/EngineVersion.h"
 #include "EngineGlobals.h"
 #include "Widgets/SWidget.h"
 #include "Engine/GameViewportClient.h"
@@ -98,6 +99,7 @@ namespace AutomationCommon
 		Data.Name = TestName;
 		Data.Context = MapOrContext;
 		Data.Id = FGuid::NewGuid();
+		Data.Commit = FEngineVersion::Current().HasChangelist() ? FString::FromInt(FEngineVersion::Current().GetChangelist()) : FString(TEXT(""));
 
 		Data.Width = Width;
 		Data.Height = Height;

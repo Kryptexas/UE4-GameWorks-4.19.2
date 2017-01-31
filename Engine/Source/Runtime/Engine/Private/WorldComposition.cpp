@@ -872,7 +872,7 @@ void UWorldComposition::OnLevelRemovedFromWorld(ULevel* InLevel)
 
 void UWorldComposition::OnLevelPostLoad(ULevel* InLevel)
 {
-	UPackage* LevelPackage = Cast<UPackage>(InLevel->GetOutermost());	
+	UPackage* LevelPackage = InLevel->GetOutermost();	
 	if (LevelPackage && InLevel->OwningWorld)
 	{
 		FWorldTileInfo Info;
@@ -923,7 +923,7 @@ void UWorldComposition::OnLevelPostSave(ULevel* InLevel)
 FIntVector UWorldComposition::GetLevelOffset(ULevel* InLevel) const
 {
 	UWorld* OwningWorld = GetWorld();
-	UPackage* LevelPackage = Cast<UPackage>(InLevel->GetOutermost());
+	UPackage* LevelPackage = InLevel->GetOutermost();
 	
 	FIntVector LevelPosition = FIntVector::ZeroValue;
 	if (LevelPackage->WorldTileInfo)
@@ -938,7 +938,7 @@ FIntVector UWorldComposition::GetLevelOffset(ULevel* InLevel) const
 FBox UWorldComposition::GetLevelBounds(ULevel* InLevel) const
 {
 	UWorld* OwningWorld = GetWorld();
-	UPackage* LevelPackage = Cast<UPackage>(InLevel->GetOutermost());
+	UPackage* LevelPackage = InLevel->GetOutermost();
 	
 	FBox LevelBBox(0);
 	if (LevelPackage->WorldTileInfo)

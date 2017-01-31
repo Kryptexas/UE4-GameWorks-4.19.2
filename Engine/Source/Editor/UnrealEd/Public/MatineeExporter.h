@@ -4,8 +4,7 @@
 	Matinee exporter for Unreal Engine 3.
 =============================================================================*/
 
-#ifndef __MATINEEEXPORTER_H__
-#define __MATINEEEXPORTER_H__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -97,5 +96,3 @@ protected:
 	/** When true, we'll export with hierarchical relation of attachment with relative transform */
 	bool bKeepHierarchy;
 };
-
-#endif // __MATINEEEXPORTER_H__

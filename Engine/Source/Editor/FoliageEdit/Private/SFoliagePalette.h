@@ -51,6 +51,9 @@ public:
 	/** Updates the foliage palette, optionally doing a full rebuild of the items in the palette as well */
 	void UpdatePalette(bool bRebuildItems = false);
 
+	/** Refreshes the foliage palette */
+	void RefreshPalette();
+
 	/** Updates the thumbnail for the given foliage type in the palette */
 	void UpdateThumbnailForType(UFoliageType* FoliageType);
 
@@ -242,6 +245,9 @@ private:
 	/** Active timer handler to update the items in the palette */
 	EActiveTimerReturnType UpdatePaletteItems(double InCurrentTime, float InDeltaTime);
 
+	/** Active timer handler to refresh the palette */
+	EActiveTimerReturnType RefreshPaletteItems(double InCurrentTime, float InDeltaTime);
+
 private:
 	typedef TTextFilter<FFoliagePaletteItemModelPtr> FoliageTypeTextFilter;
 	TSharedPtr<FoliageTypeTextFilter> TypeFilter;
@@ -283,5 +289,7 @@ private:
 
 	bool bItemsNeedRebuild : 1;
 	bool bIsUneditableFoliageTypeSelected : 1;
-	bool bIsActiveTimerRegistered : 1;
+	
+	bool bIsRebuildTimerRegistered : 1;
+	bool bIsRefreshTimerRegistered : 1;
 };

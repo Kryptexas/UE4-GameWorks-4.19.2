@@ -237,6 +237,7 @@ FAutoReimportDirectoryConfig::FParseContext::FParseContext(bool bInEnableLogging
 bool FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(FString& SourceDirectory, FString& MountPoint, const FParseContext& InContext)
 {
 	SourceDirectory.ReplaceInline(TEXT("\\"), TEXT("/"));
+	MountPoint.ReplaceInline(TEXT("\\"), TEXT("/"));
 
 	// Check if the source directory is actually a mount point
 	if (!FPackageName::GetPackageMountPoint(SourceDirectory).IsNone())
@@ -257,6 +258,7 @@ bool FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(FString& So
 		if (FPackageName::GetPackageMountPoint(MountPoint).IsNone())
 		{
 			UE_CLOG(InContext.bEnableLogging, LogAutoReimportManager, Warning, TEXT("Unable to setup directory %s to map to %s, as it's not a valid mounted path. Continuing without mounted path (auto reimports will still work, but auto add won't)."), *SourceDirectory, *MountPoint);
+			MountPoint = FString();
 		}
 	}
 	else if(!MountPoint.IsEmpty())
@@ -359,6 +361,7 @@ ULevelEditorPlaySettings::ULevelEditorPlaySettings( const FObjectInitializer& Ob
 	bAutoCompileBlueprintsOnLaunch = true;
 	CenterNewWindow = true;
 	CenterStandaloneWindow = true;
+	EnablePIEEnterAndExitSounds = false;
 }
 
 void ULevelEditorPlaySettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)

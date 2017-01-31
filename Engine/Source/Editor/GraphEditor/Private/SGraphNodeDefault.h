@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __SGraphNodeDefault_h__
-#define __SGraphNodeDefault_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -21,5 +19,3 @@ public:
 
 	void Construct( const FArguments& InArgs );
 };
-
-#endif // __SGraphNodeDefault_h__

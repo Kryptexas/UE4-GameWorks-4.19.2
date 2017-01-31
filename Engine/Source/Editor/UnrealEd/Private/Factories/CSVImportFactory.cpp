@@ -157,10 +157,18 @@ UObject* UCSVImportFactory::FactoryCreateText(UClass* InClass, UObject* InParent
 			.Title( LOCTEXT("DataTableOptionsWindowTitle", "DataTable Options" ))
 			.SizingRule( ESizingRule::Autosized );
 		
+		FString ParentFullPath;
+
+		if (InParent)
+		{
+			ParentFullPath = InParent->GetPathName();
+		}
+
 		Window->SetContent
 		(
 			SAssignNew(ImportOptionsWindow, SCSVImportOptions)
-			.WidgetWindow(Window)
+				.WidgetWindow(Window)
+				.FullPath(FText::FromString(ParentFullPath))
 		);
 
 		FSlateApplication::Get().AddModalWindow(Window, ParentWindow, false);

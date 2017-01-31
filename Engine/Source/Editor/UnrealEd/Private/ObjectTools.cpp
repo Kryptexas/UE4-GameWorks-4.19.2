@@ -1310,7 +1310,7 @@ namespace ObjectTools
 	 */
 	void SelectActorsInLevelDirectlyReferencingObject( UObject* RefObj )
 	{
-		UPackage* Package = Cast<UPackage>(RefObj->GetOutermost());
+		UPackage* Package = RefObj->GetOutermost();
 		if (Package && Package->ContainsMap())
 		{
 			// Walk the chain of outers to find the object that is 'in' the level...
@@ -1492,6 +1492,7 @@ namespace ObjectTools
 	void CleanupAfterSuccessfulDelete (const TArray<UPackage*>& PotentialPackagesToDelete, bool bPerformReferenceCheck)
 	{
 		TArray<UPackage*> PackagesToDelete = PotentialPackagesToDelete;
+		TArray<UPackage*> EmptyPackagesToUnload;
 		TArray<FString> PackageFilesToDelete;
 		TArray<TSharedRef<ISourceControlState, ESPMode::ThreadSafe> > PackageSCCStates;
 		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
@@ -1507,7 +1508,7 @@ namespace ObjectTools
 
 			bool bIsReferenced = false;
 			
-			if ( bPerformReferenceCheck )
+			if ( Package != nullptr && bPerformReferenceCheck )
 			{
 				FReferencerInformationList FoundReferences;
 				bIsReferenced = IsReferenced(Package, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags,  true, &FoundReferences);
@@ -1533,16 +1534,26 @@ namespace ObjectTools
 			}
 			else
 			{
+				UPackage* CurrentPackage = Cast<UPackage>(Package);
+
 				FString PackageFilename;
-				if( !FPackageName::DoesPackageExist( Package->GetName(), NULL, &PackageFilename ) )
+				if( Package != nullptr && FPackageName::DoesPackageExist( Package->GetName(), NULL, &PackageFilename ) )
+				{
+					PackageFilesToDelete.Add(PackageFilename);
+					CurrentPackage->SetDirtyFlag(false);
+				}
+				else
 				{
 					// Could not determine filename for package so we can not delete
 					PackagesToDelete.RemoveAt(PackageIdx);
-					continue;
-				}
 
-				PackageFilesToDelete.Add(PackageFilename);
-				Cast<UPackage>(Package)->SetDirtyFlag(false);
+					if (UPackage::IsEmptyPackage(CurrentPackage))
+					{
+						// If the package is empty, unload it anyway
+						EmptyPackagesToUnload.Add(CurrentPackage);
+						CurrentPackage->SetDirtyFlag(false);
+					}
+				}
 			}
 		}
 
@@ -1561,10 +1572,14 @@ namespace ObjectTools
 		}
 
 		// Unload the packages and collect garbage.
-		if ( PackagesToDelete.Num() > 0 )
+		if ( PackagesToDelete.Num() > 0 || EmptyPackagesToUnload.Num() > 0 )
 		{
-			PackageTools::UnloadPackages(PackagesToDelete);
-			PackagesToDelete.Reset();
+			TArray<UPackage*> AllPackagesToUnload;
+			AllPackagesToUnload.Reserve(PackagesToDelete.Num() + EmptyPackagesToUnload.Num());
+			AllPackagesToUnload.Append(PackagesToDelete);
+			AllPackagesToUnload.Append(EmptyPackagesToUnload);
+
+			PackageTools::UnloadPackages(AllPackagesToUnload);
 		}
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 

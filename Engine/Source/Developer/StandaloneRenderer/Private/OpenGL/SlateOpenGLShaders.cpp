@@ -312,10 +312,10 @@ void FSlateOpenGLElementProgram::SetVertexShaderParams( const FVector4& ShaderPa
 	CHECK_GL_ERRORS;
 }
 
-void FSlateOpenGLElementProgram::SetDrawEffects( uint32 InDrawEffects )
+void FSlateOpenGLElementProgram::SetDrawEffects(ESlateDrawEffect InDrawEffects )
 {
-	glUniform1i( EffectsDisabledParam, InDrawEffects & ESlateDrawEffect::DisabledEffect );
-	glUniform1i( IgnoreTextureAlphaParam, InDrawEffects & ESlateDrawEffect::IgnoreTextureAlpha );
+	glUniform1i( EffectsDisabledParam, EnumHasAllFlags(InDrawEffects, ESlateDrawEffect::DisabledEffect) ? 1 : 0 );
+	glUniform1i( IgnoreTextureAlphaParam, EnumHasAllFlags(InDrawEffects, ESlateDrawEffect::IgnoreTextureAlpha) ? 1 : 0 );
 	CHECK_GL_ERRORS;
 }
 

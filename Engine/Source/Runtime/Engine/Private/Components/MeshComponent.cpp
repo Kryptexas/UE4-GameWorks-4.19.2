@@ -109,6 +109,19 @@ int32 UMeshComponent::GetNumOverrideMaterials() const
 }
 
 #if WITH_EDITOR
+void UMeshComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.Property != nullptr)
+	{
+		if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_STRING_CHECKED(UMeshComponent, OverrideMaterials))
+		{
+			CleanUpOverrideMaterials();
+		}
+	}
+}
+
 void UMeshComponent::CleanUpOverrideMaterials()
 {
 	//We have to remove material override Ids that are bigger then the material list

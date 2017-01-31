@@ -1174,7 +1174,7 @@ void FUnrealEdMisc::OnMessageTokenActivated(const TSharedRef<IMessageToken>& Tok
 						while (Blueprint == nullptr && ParentObject != nullptr)
 						{
 							Blueprint = UBlueprint::GetBlueprintFromClass(ParentObject->GetClass());
-							ParentObject = Object->GetOuter();
+							ParentObject = ParentObject->GetOuter();
 						}
 
 						if (Blueprint != nullptr)

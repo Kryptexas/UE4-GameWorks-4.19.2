@@ -304,21 +304,12 @@ void SLogWidget::Construct(const FArguments& Args)
 					.AutoWidth()
 					[
 						SAssignNew(ArrayAddNew(AutoCloseWidgets), SCheckBox)
-#if TARGET_UE4_CL >= CL_CHECKBOXSTATE
 						.IsChecked((bAutoClose ? ECheckBoxState::Checked : ECheckBoxState::Unchecked))
 						.OnCheckStateChanged_Lambda(
 						[&](ECheckBoxState NewAutoCloseState)
 						{
 							bAutoClose = (NewAutoCloseState == ECheckBoxState::Checked);
 						})
-#else
-						.IsChecked((bAutoClose ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked))
-						.OnCheckStateChanged_Lambda(
-						[&](ESlateCheckBoxState::Type NewAutoCloseState)
-						{
-							bAutoClose = (NewAutoCloseState == ESlateCheckBoxState::Checked);
-						})
-#endif
 					]
 				)
 				+ConditionalSlot(!Args._bStatusWidget,
@@ -358,19 +349,11 @@ void SLogWidget::Construct(const FArguments& Args)
 							{
 								return CanAutoScroll(GetActiveTabInfo().ToSharedRef());
 							})
-#if TARGET_UE4_CL >= CL_CHECKBOXSTATE
 						.IsChecked(ECheckBoxState::Checked)
 						.OnCheckStateChanged_Lambda(
 							[&](ECheckBoxState NewAutoScrollState)
 							{
 								bAutoScroll = (NewAutoScrollState == ECheckBoxState::Checked);
-#else
-						.IsChecked(ESlateCheckBoxState::Checked)
-						.OnCheckStateChanged_Lambda(
-							[&](ESlateCheckBoxState::Type NewAutoScrollState)
-							{
-								bAutoScroll = (NewAutoScrollState == ESlateCheckBoxState::Checked);
-#endif
 
 								// Scroll to the end, if autoscroll was just re-enabled
 								if (bAutoScroll)
@@ -419,21 +402,12 @@ void SLogWidget::Construct(const FArguments& Args)
 					.AutoWidth()
 					[
 						SAssignNew(ArrayAddNew(DeveloperWidgets), SCheckBox)
-#if TARGET_UE4_CL >= CL_CHECKBOXSTATE
 						.IsChecked(ECheckBoxState::Unchecked)
 						.OnCheckStateChanged_Lambda(
 							[&](ECheckBoxState NewDeveloperState)
 							{
 								OnDeveloperClicked.ExecuteIfBound(NewDeveloperState == ECheckBoxState::Checked);
 							})
-#else
-						.IsChecked(ESlateCheckBoxState::Unchecked)
-						.OnCheckStateChanged_Lambda(
-							[&](ESlateCheckBoxState::Type NewDeveloperState)
-							{
-								OnDeveloperClicked.ExecuteIfBound(NewDeveloperState == ESlateCheckBoxState::Checked);
-							})
-#endif
 					]
 				)
 

@@ -339,21 +339,6 @@ public:
 	TSharedRef<SWindow> AddWindowAsNativeChild( TSharedRef<SWindow> InSlateWindow, TSharedRef<SWindow> InParentWindow, const bool bShowImmediately = true );
 
 	/**
-	 * Creates a new Menu window and adds it to the menu stack.
-	 *
-	 * @param InWindow				The parent of the menu.  If there is already an open menu this parent must exist in the menu stack or the menu stack is dismissed and a new one started
-	 * @param Content				The content to be placed inside the new window
-	 * @param SummonLocation		The location where this menu should be summoned
-	 * @param TransitionEffect		Animation to use when the popup appears
-	 * @param bFocusImmediately		Should the popup steal focus when shown?
-	 * @param bShouldAutoSize		True if the newCalculatePopupWindowPosition window should automatically size itself to its content
-	 * @param WindowSize			When bShouldAutoSize=false, this must be set to the size of the window to be created
-	 * @param SummonLocationSize	An optional rect which describes an area in which the menu may not appear
-	 */
-	DEPRECATED(4.9, "PushMenu() returning a window is deprecated. Use the new version of PushMenu() that returns an IMenu.")
-	TSharedRef<SWindow> PushMenu( const TSharedRef<SWidget>& InParentContent, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately = true, const bool bShouldAutoSize = true, const FVector2D& WindowSize = FVector2D::ZeroVector, const FVector2D& SummonLocationSize = FVector2D::ZeroVector );
-
-	/**
 	 * Creates a new Menu and adds it to the menu stack.
 	 * Menus are always auto-sized. Use fixed-size content if a fixed size is required.
 	 *
@@ -412,10 +397,6 @@ public:
 	 */	
 	TSharedPtr<IMenu> PushHostedMenu(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, EShouldThrottle ShouldThrottle, const bool bIsCollapsedByParent = true);
 
-	/** @return Returns whether the window has child menus. */
-	DEPRECATED(4.9, "HasOpenSubMenus() taking a window is deprecated. Use HasOpenSubMenus() taking an IMenu as a parameter.")
-	bool HasOpenSubMenus( TSharedRef<SWindow> Window ) const;
-
 	/** @return Returns whether the menu has child menus. */
 	bool HasOpenSubMenus(TSharedPtr<IMenu> InMenu) const;
 
@@ -437,14 +418,6 @@ public:
 	void DismissAllMenus();
 
 	/**
-	 * Dismisses a menu window and all its children
-	 *
-	 * @param MenuWindowToDismiss	The window to dismiss, any children, grandchildren etc will also be dismissed
-	 */
-	DEPRECATED(4.9, "DismissMenu() taking a window is deprecated. Use DismissMenu() taking an IMenu, DismissMenuByWidget() or DismissAll().")
-	void DismissMenu( TSharedRef<SWindow> MenuWindowToDismiss );
-
-	/**
 	 * Dismisses a menu and all its children
 	 *
 	 * @param InFromMenu	The menu to dismiss, any children, grandchildren etc will also be dismissed
@@ -457,15 +430,6 @@ public:
 	 * @param InWidgetInMenu	The widget whose path is search upwards for a menu. That menu will then be dismissed.
 	 */
 	void DismissMenuByWidget(const TSharedRef<SWidget>& InWidgetInMenu);
-
-	/**
-	 * Finds the window in the menu stack
-	 *
-	 * @param WindowToFind	The window to look for
-	 * @return The level in the stack  that the window is in or INDEX_NONE if it is not found
-	 */
-	DEPRECATED(4.9, "GetLocationInMenuStack() is deprecated. Shouldn't be needed.")
-	int32 GetLocationInMenuStack( TSharedRef<SWindow> WindowToFind ) const;
 
 	/**
 	 * HACK: Don't use this unless shutting down a game viewport
@@ -553,16 +517,10 @@ public:
 	 */
 	void SetUserFocusToGameViewport(uint32 UserIndex, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
-	DEPRECATED(4.6, "FSlateApplication::SetFocusToGameViewport() is deprecated, use FSlateApplication::SetUserFocusToGameViewport() instead.")
-	void SetFocusToGameViewport();
-
 	/**
 	 * Sets all users focus to the SWidget representing the currently active game viewport
 	 */
 	void SetAllUserFocusToGameViewport(EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
-
-	DEPRECATED(4.6, "FSlateApplication::SetJoystickCaptorToGameViewport() is deprecated, use FSlateApplication::SetAllUserFocusToGameViewport() instead.")
-	void SetJoystickCaptorToGameViewport();
 
 	/**
 	 * Activates the Game Viewport if it is properly childed under a window
@@ -586,17 +544,11 @@ public:
 	 */
 	void SetAllUserFocus(const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
-	DEPRECATED(4.6, "FSlateApplication::GetJoystickCaptor() is deprecated, use FSlateApplication::GetUserFocusedWidget() instead.")
-	TSharedPtr< SWidget > GetJoystickCaptor(uint32 UserIndex) const;
-
 	/** Releases the users focus from whatever it currently is on. */
 	void ClearUserFocus(uint32 UserIndex, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
 	/** Releases the focus for all users from whatever it currently is on. */
 	void ClearAllUserFocus(EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
-
-	DEPRECATED(4.6, "FSlateApplication::ReleaseJoystickCapture() is deprecated, use FSlateApplication::ClearUserFocus() instead.")
-	void ReleaseJoystickCapture(uint32 UserIndex);
 
 	/**
 	 * Sets the Keyboard focus to the specified SWidget
@@ -617,6 +569,14 @@ public:
 	*/
 	DECLARE_EVENT_OneParam(FSlateApplication, FOnApplicationPreInputKeyDownListener, const FKeyEvent&);
 	FOnApplicationPreInputKeyDownListener& OnApplicationPreInputKeyDownListener() { return OnApplicationPreInputKeyDownListenerEvent; }
+
+	/**
+	* Gets a delegate that is invoked before the mouse input button down get process by slate widgets bubble system.
+	* Its read only and you cannot mark the input as handled.
+	*/
+	DECLARE_EVENT_OneParam(FSlateApplication, FOnApplicationMousePreInputButtonDownListener, const FPointerEvent&);
+	FOnApplicationMousePreInputButtonDownListener& OnApplicationMousePreInputButtonDownListener() { return OnApplicationMousePreInputButtonDownListenerEvent; }
+
 #endif //WITH_EDITOR
 
 	/**
@@ -759,12 +719,6 @@ public:
 
 	/** Get the current drag-dropping content */
 	TSharedPtr<class FDragDropOperation> GetDragDroppingContent() const;
-
-	DEPRECATED(4.6, "Use CancelDragDrop")
-	void EndDragDrop()
-	{
-		CancelDragDrop();
-	}
 
 	/** Cancels any in flight drag and drops */
 	void CancelDragDrop();
@@ -1261,6 +1215,9 @@ public:
 	/** Getter for the cursor radius */
 	float GetCursorRadius() const;
 
+	/**  */
+	void RegisterCursor(EMouseCursor::Type CursorType, TSharedPtr<class FHardwareCursor> Cursor);
+
 public:
 
 	//~ Begin FSlateApplicationBase Interface
@@ -1739,6 +1696,9 @@ private:
 	/** The hit-test radius of the cursor. Default value is 0. */
 	float CursorRadius;
 
+	/**  */
+	TMap<EMouseCursor::Type, TSharedPtr<class FHardwareCursor>> HardwareCursors;
+
 	/**
 	 * All users currently registered with Slate.  Normally this is 1, but in a 
 	 * situation where multiple users are providing input you need to track ui state
@@ -2023,5 +1983,11 @@ private:
 	* User Function cannot mark the input as handled.
 	*/
 	FOnApplicationPreInputKeyDownListener OnApplicationPreInputKeyDownListenerEvent;
+
+	/**
+	* Delegate that is invoked before the mouse input button get process by slate widgets bubble system.
+	* User Function cannot mark the input as handled.
+	*/
+	FOnApplicationMousePreInputButtonDownListener OnApplicationMousePreInputButtonDownListenerEvent;
 #endif // WITH_EDITOR
 };

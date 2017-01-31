@@ -587,6 +587,7 @@ void ParseStatusResults(const TArray<FXmlFile>& ResultsXml, const TArray<FString
 {
 	static const FString Status(TEXT("status"));
 	static const FString Target(TEXT("target"));
+	static const FString Changelist(TEXT("changelist"));
 	static const FString Entry(TEXT("entry"));
 	static const FString Path(TEXT("path"));
 	static const FString Wc_Status(TEXT("wc-status"));
@@ -606,7 +607,8 @@ void ParseStatusResults(const TArray<FXmlFile>& ResultsXml, const TArray<FString
 			for(auto TargetIter(StatusChildren.CreateConstIterator()); TargetIter; TargetIter++)
 			{
 				FXmlNode* TargetNode = *TargetIter;
-				if(TargetNode == NULL || TargetNode->GetTag() != Target)
+				if (TargetNode == NULL ||
+					!(TargetNode->GetTag() == Target || TargetNode->GetTag() == Changelist))
 				{
 					continue;
 				}

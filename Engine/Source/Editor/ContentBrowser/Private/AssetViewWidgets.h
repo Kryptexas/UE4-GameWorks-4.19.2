@@ -686,6 +686,18 @@ public:
 		
 	}
 
+	virtual FVector2D GetRowSizeForColumn(const FName& InColumnName) const override
+	{
+		const TSharedRef<SWidget>* ColumnWidget = GetWidgetFromColumnId(InColumnName);
+
+		if (ColumnWidget != nullptr)
+		{
+			return (*ColumnWidget)->GetDesiredSize();
+		}
+
+		return FVector2D::ZeroVector; 
+	}
+
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		this->AssetColumnItem->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);

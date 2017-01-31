@@ -49,7 +49,7 @@ public:
 	 *	@param	InStaticMesh				The static mesh handled by the editor.
 	 *	@param	InStaticMeshComponent		The static mesh component component from the viewport's scene.
 	 */
-	void SetPreviewMesh(UStaticMesh* InStaticMesh, UStaticMeshComponent* InPreviewStaticMeshComponent);
+	void SetPreviewMesh(UStaticMesh* InStaticMesh, UStaticMeshComponent* InPreviewStaticMeshComponent, bool bResetCamera=true);
 
 	/** Retrieves the selected edge set. */
 	TSet< int32 >& GetSelectedEdges();

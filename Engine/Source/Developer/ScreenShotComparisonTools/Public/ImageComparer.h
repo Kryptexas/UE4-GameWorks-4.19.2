@@ -214,6 +214,15 @@ public:
 	FString ComparisonFile;
 
 	UPROPERTY()
+	FString ReportApprovedFile;
+
+	UPROPERTY()
+	FString ReportIncomingFile;
+
+	UPROPERTY()
+	FString ReportComparisonFile;
+
+	UPROPERTY()
 	double MaxLocalDifference;
 
 	UPROPERTY()
@@ -260,46 +269,22 @@ public:
 	}
 };
 
-/**
- *
- */
-USTRUCT()
-struct FComparisonResults
+struct SCREENSHOTCOMPARISONTOOLS_API FComparisonReport
 {
-	GENERATED_USTRUCT_BODY()
-
 public:
 
-	FComparisonResults()
-		: ApprovedPath(TEXT("Approved"))
-		, IncomingPath(TEXT("Incoming"))
-		, DeltaPath(TEXT("Delta"))
-	{
-	}
+	FComparisonReport(const FString& InReportRootDirectory, const FString& InReportFile);
 
-	UPROPERTY()
-	FString ApprovedPath;
-
-	UPROPERTY()
-	FString IncomingPath;
-
-	UPROPERTY()
-	FString DeltaPath;
-
-	UPROPERTY()
-	TArray<FImageComparisonResult> Comparisons;
-
-	UPROPERTY()
-	TArray<FString> Added;
-
-	UPROPERTY()
-	TArray<FString> Missing;
+	FString ReportRootDirectory;
+	FString ReportFile;
+	FString ReportFolder;
+	FImageComparisonResult Comparison;
 };
 
 /**
  * 
  */
-class FImageComparer
+class SCREENSHOTCOMPARISONTOOLS_API FImageComparer
 {
 public:
 	FString ImageRootA;

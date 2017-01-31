@@ -427,7 +427,7 @@ void FBlueprintCompileReinstancer::OptionallyRefreshNodes(UBlueprint* CurrentBP)
 {
 	if (HotReloadedNewClass)
 	{
-		UPackage* const Package = Cast<UPackage>(CurrentBP->GetOutermost());
+		UPackage* const Package = CurrentBP->GetOutermost();
 		const bool bStartedWithUnsavedChanges = Package != nullptr ? Package->IsDirty() : true;
 
 		FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP, HotReloadedNewClass);

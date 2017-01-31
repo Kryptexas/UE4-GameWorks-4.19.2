@@ -10,13 +10,8 @@ public class JsonUtilities : ModuleRules
 			new string[]
 			{
 				"Core",
-				"Json",
-			}
-		);
-		PrivateDependencyModuleNames.AddRange(
-			new string[] 
-			{ 			
 				"CoreUObject",
+				"Json",
 			}
 		);
 	}

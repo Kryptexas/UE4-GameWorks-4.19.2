@@ -4,8 +4,7 @@
  	CoreAudioDevice.h: Unreal CoreAudio audio interface object.
  =============================================================================*/
 
-#ifndef _INC_COREAUDIODEVICE
-#define _INC_COREAUDIODEVICE
+#pragma once
 
 #include "CoreMinimal.h"
 #include "AudioDecompress.h"
@@ -444,5 +443,3 @@ private:
 	friend class FCoreAudioSoundSource;
 	friend class FCoreAudioEffectsManager;
 };
-
-#endif

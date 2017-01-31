@@ -235,6 +235,10 @@ void FWidgetBlueprintEditor::SetSelectedNamedSlot(TOptional<FNamedSlotSelection>
 	SelectedNamedSlot.Reset();
 
 	SelectedNamedSlot = InSelectedNamedSlot;
+	if (InSelectedNamedSlot.IsSet())
+	{
+		SelectedWidgets.Add(InSelectedNamedSlot->NamedSlotHostWidget);
+	}
 
 	OnSelectedWidgetsChanged.Broadcast();
 }
@@ -920,7 +924,15 @@ EWidgetDesignFlags::Type FWidgetBlueprintEditor::GetCurrentDesignerFlags() const
 	
 	if ( bShowDashedOutlines )
 	{
-		Flags = ( EWidgetDesignFlags::Type )(Flags | EWidgetDesignFlags::ShowOutline);
+		Flags = ( EWidgetDesignFlags::Type )( Flags | EWidgetDesignFlags::ShowOutline );
+	}
+
+	if ( const UWidgetDesignerSettings* Designer = GetDefault<UWidgetDesignerSettings>() )
+	{
+		if ( Designer->bExecutePreConstructEvent )
+		{
+			Flags = ( EWidgetDesignFlags::Type )( Flags | EWidgetDesignFlags::ExecutePreConstruct );
+		}
 	}
 
 	return Flags;

@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __LevelViewportLayout2x2_h__
-#define __LevelViewportLayout2x2_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -35,5 +31,3 @@ private:
 	/** The splitter widget */
 	TSharedPtr< class SSplitter2x2 > SplitterWidget;
 };
-
-#endif

@@ -561,6 +561,13 @@ bool FAssetEditorTest::RunTest(const FString& Parameters)
 		}
 	}
 
+	// No skeleton was loaded, just load one the first one found
+	// This is only used to verify we can create assets that rely on skeletons.
+	if (!FirstSkeleton && AllSkeletons.Num())
+	{
+		FirstSkeleton = CastChecked<USkeleton>(AllSkeletons[0].GetAsset());
+	}
+
 	//Check to see if we need to enable Behavior trees.
 	bool bEnabledBehaviorTrees = false;
 	bool bBehaviorTreeNewAssetsEnabled = false;
@@ -624,7 +631,6 @@ bool FAssetEditorTest::RunTest(const FString& Parameters)
 	ASSET_TEST_CREATE(UBlueprint, UBlueprintMacroFactory, MPL, FactoryInst->ParentClass = AActor::StaticClass();)
 	ASSET_TEST_CREATE(UCameraAnim, UCameraAnimFactory, CA, )
 	ASSET_TEST_CREATE(UCurveBase, UCurveFactory, C, FactoryInst->CurveClass = UCurveFloat::StaticClass();)
-	FModuleManager::Get().LoadModule(TEXT("GameplayAbilities"));
 	UClass* GameplayAbilityClass = StaticLoadClass(UObject::StaticClass(), NULL, TEXT("GameplayAbilities.GameplayAbilitySet"), NULL, LOAD_None, NULL);
 	if (GameplayAbilityClass)
 	{

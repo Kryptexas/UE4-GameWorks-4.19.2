@@ -15,7 +15,8 @@ public class Slate : ModuleRules
 				"InputCore",
 				"Json",
 				"SlateCore",
-			}
+                "ImageWrapper"
+            }
 		);
 
 		PrivateIncludePaths.AddRange(
@@ -55,5 +56,9 @@ public class Slate : ModuleRules
 		{
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "XInput");
 		}
-	}
+        else if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+            AddEngineThirdPartyPrivateStaticDependencies(Target, "SDL2");
+        }
+    }
 }

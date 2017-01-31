@@ -105,6 +105,7 @@
 #include "Factories/SoundMixFactory.h"
 #include "Factories/ReimportSoundSurroundFactory.h"
 #include "Factories/StructureFactory.h"
+#include "Factories/StringTableFactory.h"
 #include "Factories/SubsurfaceProfileFactory.h"
 #include "Factories/SubDSurfaceFactory.h"
 #include "Factories/Texture2dFactoryNew.h"
@@ -165,6 +166,7 @@
 #include "GameFramework/TouchInterface.h"
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
+#include "Internationalization/StringTable.h"
 #include "Editor.h"
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpGroupCamera.h"
@@ -6809,6 +6811,22 @@ UObject* UDataTableFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 		}
 	}
 	return DataTable;
+}
+
+/*------------------------------------------------------------------------------
+UStringTableFactory implementation.
+------------------------------------------------------------------------------*/
+UStringTableFactory::UStringTableFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UStringTable::StaticClass();
+	bCreateNew = true;
+	bEditAfterNew = true;
+}
+
+UObject* UStringTableFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	return NewObject<UStringTable>(InParent, Name, Flags);
 }
 
 /*------------------------------------------------------------------------------

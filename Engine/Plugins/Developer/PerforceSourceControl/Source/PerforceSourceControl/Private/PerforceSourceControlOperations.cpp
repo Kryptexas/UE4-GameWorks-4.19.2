@@ -187,7 +187,7 @@ static bool CheckWorkspaceRecordSet(const FP4RecordSet& InRecords, TArray<FText>
 
 static void AppendChangelistParameter(TArray<FString>& InOutParams)
 {
-	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>("PerforceSourceControl");
+	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::GetModuleChecked<FPerforceSourceControlModule>("PerforceSourceControl");
 	FPerforceSourceControlSettings& Settings = PerforceSourceControl.AccessSettings();
 
 	const FString& ChangelistNumber = Settings.GetChangelistNumber();

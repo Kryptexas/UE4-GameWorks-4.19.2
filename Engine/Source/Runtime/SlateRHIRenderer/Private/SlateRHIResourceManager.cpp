@@ -568,11 +568,15 @@ ISlateAtlasProvider* FSlateRHIResourceManager::GetTextureAtlasProvider()
 	return this;
 }
 
-TSharedPtr<FSlateDynamicTextureResource> FSlateRHIResourceManager::MakeDynamicTextureResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes )
+TSharedPtr<FSlateDynamicTextureResource> FSlateRHIResourceManager::MakeDynamicTextureResource(FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes)
 {
 	// Make storage for the image
-	FSlateTextureDataRef TextureStorage = MakeShareable( new FSlateTextureData( Width, Height, GPixelFormats[PF_B8G8R8A8].BlockBytes, Bytes ) );
+	FSlateTextureDataRef TextureStorage = MakeShareable(new FSlateTextureData(Width, Height, GPixelFormats[PF_B8G8R8A8].BlockBytes, Bytes));
+	return MakeDynamicTextureResource(ResourceName, TextureStorage);
+}
 
+TSharedPtr<FSlateDynamicTextureResource> FSlateRHIResourceManager::MakeDynamicTextureResource(FName ResourceName, FSlateTextureDataRef TextureData)
+{
 	TSharedPtr<FSlateDynamicTextureResource> TextureResource;
 	// Get a resource from the free list if possible
 	if(DynamicTextureFreeList.Num() > 0)
@@ -585,19 +589,18 @@ TSharedPtr<FSlateDynamicTextureResource> FSlateRHIResourceManager::MakeDynamicTe
 		TextureResource = MakeShareable(new FSlateDynamicTextureResource(nullptr));
 	}
 
-	TextureResource->Proxy->ActualSize = FIntPoint(TextureStorage->GetWidth(), TextureStorage->GetHeight());
+	TextureResource->Proxy->ActualSize = FIntPoint(TextureData->GetWidth(), TextureData->GetHeight());
 
 
 	// Init render thread data
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(InitNewSlateDynamicTextureResource,
 		FSlateDynamicTextureResource*, TextureResource, TextureResource.Get(),
-		FSlateTextureDataPtr, InNewTextureData, TextureStorage,
+		FSlateTextureDataPtr, InNewTextureData, TextureData,
 	{
 		if(InNewTextureData.IsValid())
 		{
 			// Set the texture to use as the texture we just loaded
 			TextureResource->RHIRefTexture->SetTextureData(InNewTextureData, PF_B8G8R8A8, TexCreate_SRGB);
-
 		}
 
 		// Initialize and link the rendering resource

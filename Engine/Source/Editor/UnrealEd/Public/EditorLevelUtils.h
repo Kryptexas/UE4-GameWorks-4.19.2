@@ -6,9 +6,6 @@
 
 #pragma once
 
-#ifndef __EditorLevelUtils_h__
-#define __EditorLevelUtils_h__
-
 #include "CoreMinimal.h"
 
 class AActor;
@@ -97,15 +94,6 @@ namespace EditorLevelUtils
 	 * @param	bForceLayersVisible		If true and the level is visible, force the level's layers to be visible.
 	 */
 	UNREALED_API void SetLevelVisibility(ULevel* Level, bool bShouldBeVisible, bool bForceLayersVisible);
-	
-	/**
-	 * Returns a class that represents the required streaming type (User selected via a dialog)
-	 *
-	 * @param	LevelPackageName		The name of the level (its displayed in the dialog)
-	 *
-	 * @returns	The streaming class or NULL if the user clicked cancel
-	 */
-	UClass* SelectLevelStreamType( const TCHAR* LevelPackageName );
 
 	/**
 	 * Removes a level from the world.  Returns true if the level was removed successfully.
@@ -151,8 +139,3 @@ namespace EditorLevelUtils
 	UNREALED_API void GetWorlds(UWorld* InWorld, TArray<UWorld*>& OutWorlds, bool bIncludeInWorld, bool bOnlyEditorVisible = false);
 
 }
-
-
-
-
-#endif	// __EditorLevelUtils_h__

@@ -164,21 +164,6 @@ FString ASkeletalMeshActor::GetDetailedInfoInternal() const
 	return Result;
 }
 
-#if WITH_EDITOR
-void ASkeletalMeshActor::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeChainProperty(PropertyChangedEvent);
-
-	if (PropertyChangedEvent.Property != nullptr)
-	{
-		if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_STRING_CHECKED(ASkeletalMeshActor, SkeletalMeshComponent) && SkeletalMeshComponent->SkeletalMesh != nullptr)
-		{
-			SkeletalMeshComponent->CleanUpOverrideMaterials();
-		}
-	}
-}
-#endif
-
 void ASkeletalMeshActor::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();

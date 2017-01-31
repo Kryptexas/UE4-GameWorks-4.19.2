@@ -24,7 +24,6 @@ void SDirectoryPicker::Construct( const FArguments& InArgs )
 
 		+ SHorizontalBox::Slot()
 		.FillWidth(1.0f)
-		.Padding(4.0f, 0.0f, 0.0f, 0.0f)
 		[
 			SAssignNew(EditableTextBox, SEditableTextBox)
 			.Text(this, &SDirectoryPicker::GetFilePathText)

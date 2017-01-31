@@ -12,6 +12,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetBlueprintGeneratedClass.h"
 #include "Animation/UMGSequencePlayer.h"
+#include "UObject/UnrealType.h"
 
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
@@ -494,9 +495,18 @@ void UUserWidget::OnWidgetRebuilt()
 
 	if (!IsDesignTime())
 	{
+		// Notify the widget to run per-construct.
+		NativePreConstruct();
+
 		// Notify the widget that it has been constructed.
 		NativeConstruct();
 	}
+#if WITH_EDITOR
+	else if ( HasAnyDesignerFlags(EWidgetDesignFlags::ExecutePreConstruct) )
+	{
+		NativePreConstruct();
+	}
+#endif
 }
 
 TSharedPtr<SWidget> UUserWidget::GetSlateWidgetFromName(const FName& Name) const
@@ -646,8 +656,8 @@ void UUserWidget::AddToScreen(ULocalPlayer* Player, int32 ZOrder)
 
 		FullScreenCanvas->AddSlot()
 			.Offset(BIND_UOBJECT_ATTRIBUTE(FMargin, GetFullScreenOffset))
-			.Anchors(BIND_UOBJECT_ATTRIBUTE(FAnchors, GetViewportAnchors))
-			.Alignment(BIND_UOBJECT_ATTRIBUTE(FVector2D, GetFullScreenAlignment))
+			.Anchors(BIND_UOBJECT_ATTRIBUTE(FAnchors, GetAnchorsInViewport))
+			.Alignment(BIND_UOBJECT_ATTRIBUTE(FVector2D, GetAlignmentInViewport))
 			[
 				UserSlateWidget
 			];
@@ -843,12 +853,12 @@ FMargin UUserWidget::GetFullScreenOffset() const
 	return FMargin(ViewportOffsets.Left, ViewportOffsets.Top, FinalSize.X, FinalSize.Y);
 }
 
-FAnchors UUserWidget::GetViewportAnchors() const
+FAnchors UUserWidget::GetAnchorsInViewport() const
 {
 	return ViewportAnchors;
 }
 
-FVector2D UUserWidget::GetFullScreenAlignment() const
+FVector2D UUserWidget::GetAlignmentInViewport() const
 {
 	return ViewportAlignment;
 }
@@ -894,6 +904,22 @@ void UUserWidget::SetDesignerFlags(EWidgetDesignFlags::Type NewFlags)
 	});
 }
 
+void UUserWidget::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if ( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
+	{
+		TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+		if ( SafeWidget.IsValid() )
+		{
+			// Re-Run execute PreConstruct when we get a post edit property change, to do something
+			// akin to running Sync Properties, so users don't have to recompile to see updates.
+			NativePreConstruct();
+		}
+	}
+}
+
 #endif
 
 void UUserWidget::OnAnimationStarted_Implementation(const UWidgetAnimation* Animation)
@@ -907,6 +933,11 @@ void UUserWidget::OnAnimationFinished_Implementation(const UWidgetAnimation* Ani
 }
 
 // Native handling for SObjectWidget
+
+void UUserWidget::NativePreConstruct()
+{
+	PreConstruct(IsDesignTime());
+}
 
 void UUserWidget::NativeConstruct()
 {

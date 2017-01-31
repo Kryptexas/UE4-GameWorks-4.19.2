@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __SCOPEDTRANSACTION_H__
-#define __SCOPEDTRANSACTION_H__
+#pragma once
 
 #include "CoreMinimal.h"
 
@@ -47,5 +45,3 @@ private:
 	/** Stores the transaction index, which is used to cancel the transaction. */
 	int32 Index;
 };
-
-#endif // __SCOPEDTRANSACTION_H__

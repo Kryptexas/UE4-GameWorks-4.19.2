@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __AnimationEditorUtils_h__
-#define __AnimationEditorUtils_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
@@ -163,5 +162,3 @@ namespace AnimationEditorUtils
 		}
 	}
 } // namespace AnimationEditorUtils
-
-#endif //__AnimationEditorUtils_h__

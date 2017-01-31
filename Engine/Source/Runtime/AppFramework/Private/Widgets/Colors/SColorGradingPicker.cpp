@@ -62,8 +62,50 @@ void SColorGradingPicker::Construct( const FArguments& InArgs )
 				.MaxSliderValue(ValuesMax)
 				.Delta(MainDelta)
 				.ShiftMouseMovePixelPerDelta(MainShiftMouseMovePixelPerDelta)
+				.OnBeginSliderMovement(this, &SColorGradingPicker::OnBeginSliderMovement)
+				.OnEndSliderMovement(this, &SColorGradingPicker::OnEndSliderMovement)
 			]
 	];
+}
+
+void SColorGradingPicker::OnBeginSliderMovement()
+{
+	bIsMouseDragging = true;
+	//Keep the current value so we can always keep the ratio during the whole drag.
+	OnQueryCurrentColor.ExecuteIfBound(StartDragRatio);
+	TransformColorGradingRangeToLinearColorRange(StartDragRatio);
+	float MaxCurrentValue = FMath::Max3(StartDragRatio.X, StartDragRatio.Y, StartDragRatio.Z);
+	FVector4 RatioValue(1.0f, 1.0f, 1.0f, 1.0f);
+	if (MaxCurrentValue > SMALL_NUMBER)
+	{
+		RatioValue.X = StartDragRatio.X / MaxCurrentValue;
+		RatioValue.Y = StartDragRatio.Y / MaxCurrentValue;
+		RatioValue.Z = StartDragRatio.Z / MaxCurrentValue;
+	}
+	StartDragRatio = RatioValue;
+}
+
+void SColorGradingPicker::OnEndSliderMovement(float NewValue)
+{
+	bIsMouseDragging = false;
+	StartDragRatio.X = 1.0f;
+	StartDragRatio.Y = 1.0f;
+	StartDragRatio.Z = 1.0f;
+}
+
+void SColorGradingPicker::AdjustRatioValue(FVector4 &NewValue)
+{
+	if (!bIsMouseDragging)
+	{
+		return;
+	}
+	float MaxCurrentValue = FMath::Max3(NewValue.X, NewValue.Y, NewValue.Z);
+	if (MaxCurrentValue > SMALL_NUMBER)
+	{
+		NewValue.X = StartDragRatio.X * MaxCurrentValue;
+		NewValue.Y = StartDragRatio.Y * MaxCurrentValue;
+		NewValue.Z = StartDragRatio.Z * MaxCurrentValue;
+	}
 }
 
 void SColorGradingPicker::OnMainValueChanged(float InValue)
@@ -77,7 +119,7 @@ void SColorGradingPicker::OnMainValueChanged(float InValue)
 	
 	//The MainValue is the maximum of any channel value
 	float MaxCurrentValue = FMath::Max3(CurrentValue.X, CurrentValue.Y, CurrentValue.Z);
-	if (MaxCurrentValue <= 0.0f)
+	if (MaxCurrentValue <= SMALL_NUMBER)
 	{
 		//We need the neutral value for the type of color grading, currently only offset is an addition(0.0) all other are multiplier(1.0)
 		CurrentValue = FVector4(InValue, InValue, InValue, CurrentValue.W);
@@ -86,6 +128,7 @@ void SColorGradingPicker::OnMainValueChanged(float InValue)
 	{
 		float Ratio = InValue / MaxCurrentValue;
 		CurrentValue *= FVector4(Ratio, Ratio, Ratio, 1.0f);
+		AdjustRatioValue(CurrentValue);
 	}
 	TransformLinearColorRangeToColorGradingRange(CurrentValue);
 	OnColorCommitted.ExecuteIfBound(CurrentValue);

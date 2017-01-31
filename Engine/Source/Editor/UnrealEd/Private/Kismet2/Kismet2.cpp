@@ -267,7 +267,7 @@ void FBlueprintUnloader::UnloadBlueprint(const bool bResetPackage)
 	{
 		UBlueprint* UnloadingBp = OldBlueprint.Get();
 
-		UPackage* const OldPackage = Cast<UPackage>(UnloadingBp->GetOutermost());
+		UPackage* const OldPackage = UnloadingBp->GetOutermost();
 		bool const bIsDirty = OldPackage->IsDirty();
 
 		UPackage* const TransientPackage = GetTransientPackage();
@@ -773,7 +773,7 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	// Reset the flag, so if the user tries to use PIE it will warn them if the BP did not compile
 	BlueprintObj->bDisplayCompilePIEWarning = true;
 
-	UPackage* const BlueprintPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
+	UPackage* const BlueprintPackage = BlueprintObj->GetOutermost();
 	// compiling the blueprint will inherently dirty the package, but if there 
 	// weren't any changes to save before, there shouldn't be after
 	bool const bStartedWithUnsavedChanges = (BlueprintPackage != NULL) ? BlueprintPackage->IsDirty() : true;
@@ -963,7 +963,7 @@ bool FKismetEditorUtilities::GenerateBlueprintSkeleton(UBlueprint* BlueprintObj,
 
 	if( BlueprintObj->SkeletonGeneratedClass == NULL || bForceRegeneration )
 	{
-		UPackage* Package = Cast<UPackage>(BlueprintObj->GetOutermost());
+		UPackage* Package = BlueprintObj->GetOutermost();
 		bool bIsPackageDirty = Package ? Package->IsDirty() : false;
 					
 		IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
@@ -993,7 +993,7 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	check(BlueprintObj);
 	checkf(BlueprintObj->GeneratedClass, TEXT("Invalid generated class for %s"), *BlueprintObj->GetName());
 
-	UPackage* const BlueprintPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
+	UPackage* const BlueprintPackage = BlueprintObj->GetOutermost();
 	bool const bStartedWithUnsavedChanges = (BlueprintPackage != NULL) ? BlueprintPackage->IsDirty() : true;
 
 	IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);

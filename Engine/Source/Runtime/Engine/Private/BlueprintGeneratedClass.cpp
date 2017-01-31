@@ -229,7 +229,7 @@ void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLo
 			GeneratingBP->bIsRegeneratingOnLoad = true;
 
 			{
-				UPackage* const Package = Cast<UPackage>(GeneratingBP->GetOutermost());
+				UPackage* const Package = GeneratingBP->GetOutermost();
 				const bool bStartedWithUnsavedChanges = Package != nullptr ? Package->IsDirty() : true;
 
 				// Make sure that nodes are up to date, so that we get any updated blueprint signatures

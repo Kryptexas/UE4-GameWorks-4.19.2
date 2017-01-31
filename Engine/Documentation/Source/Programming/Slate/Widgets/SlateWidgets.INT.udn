@@ -175,18 +175,18 @@ Below is an example of both autosized horizontal boxes and fill sized horizontal
 
 	...
 
-	ESlateCheckBoxState::Type IsRadioChecked( ERadioChoice ButtonId ) const
+	ECheckBoxState::Type IsRadioChecked( ERadioChoice ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
 	...
 
-	void OnRadioChanged( ERadioChoice RadioThatChanged, ESlateCheckBoxState::Type NewRadioState )
+	void OnRadioChanged( ERadioChoice RadioThatChanged, ECheckBoxState::Type NewRadioState )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			CurrentChoice = RadioThatChanged;
 		}

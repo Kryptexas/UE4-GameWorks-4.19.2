@@ -229,20 +229,6 @@ public:
 		return FReply::Unhandled();
 	}
 
-
-private:
-
-
-	const FSlateBrush* GetHeaderBackgroundBrush() const
-	{
-		if ( IsHovered() && SortMode.IsBound() )
-		{
-			return &Style->HoveredBrush;
-		}
-
-		return &Style->NormalBrush;
-	}
-
 	EVisibility GetMenuOverlayVisibility() const
 	{
 		if (ComboVisibility == EHeaderComboVisibility::OnHover)
@@ -256,6 +242,24 @@ private:
 		return EVisibility::Visible;
 	}
 
+	const FVector2D& GetMenuOverlaySize() const 
+	{ 
+		return MenuOverlay.IsValid() ? MenuOverlay->GetDesiredSize() : FVector2D::ZeroVector; 
+	}
+
+private:
+
+
+	const FSlateBrush* GetHeaderBackgroundBrush() const
+	{
+		if ( IsHovered() && SortMode.IsBound() )
+		{
+			return &Style->HoveredBrush;
+		}
+
+		return &Style->NormalBrush;
+	}
+	
 	const FSlateBrush* GetComboButtonBorderBrush() const
 	{
 		if ( ComboButton.IsValid() && ( ComboButton->IsHovered() || ComboButton->IsOpen() ) )
@@ -415,6 +419,8 @@ void SHeaderRow::Construct( const FArguments& InArgs )
 	ScrollBarThickness = FVector2D::ZeroVector;
 	ScrollBarVisibility = EVisibility::Collapsed;
 	Style = InArgs._Style;
+	OnGetMaxRowSizeForColumn = InArgs._OnGetMaxRowSizeForColumn;
+	ResizeMode = InArgs._ResizeMode;
 
 	if ( InArgs._OnColumnsChanged.IsBound() )
 	{
@@ -539,9 +545,37 @@ void SHeaderRow::SetColumnWidth( const FName& InColumnId, float InWidth )
 	}
 }
 
+FVector2D SHeaderRow::GetRowSizeForSlotIndex(int32 SlotIndex) const
+{
+	if (Columns.IsValidIndex(SlotIndex))
+	{
+		const TSharedPtr<STableColumnHeader>& HeaderWidget = HeaderWidgets[SlotIndex];
+		const FColumn& Column = Columns[SlotIndex];
+
+		FVector2D HeaderSize = HeaderWidget->GetDesiredSize();
+
+		if (Column.HeaderMenuContent.Widget != SNullWidget::NullWidget && HeaderWidget->GetMenuOverlayVisibility() != EVisibility::Visible)
+		{
+			HeaderSize += HeaderWidget->GetMenuOverlaySize();
+		}
+
+		if (OnGetMaxRowSizeForColumn.IsBound())
+		{
+			// It's assume that a header is at the top, so the sizing is for the width
+			FVector2D MaxChildColumnSize = OnGetMaxRowSizeForColumn.Execute(Column.ColumnId, EOrientation::Orient_Horizontal);
+
+			return MaxChildColumnSize.Component(EOrientation::Orient_Horizontal) < HeaderSize.Component(EOrientation::Orient_Horizontal) ? HeaderSize : MaxChildColumnSize;
+		}
+	}
+
+	return FVector2D::ZeroVector;
+}
+
 void SHeaderRow::RegenerateWidgets()
 {
 	const float SplitterHandleDetectionSize = 5.0f;
+	HeaderWidgets.Empty();
+
 	TSharedPtr<SSplitter> Splitter;
 
 	TSharedRef< SHorizontalBox > Box = 
@@ -551,9 +585,10 @@ void SHeaderRow::RegenerateWidgets()
 		[
 			SAssignNew(Splitter, SSplitter)
 			.Style( &Style->ColumnSplitterStyle )
-			.ResizeMode( ESplitterResizeMode::Fill )
+			.ResizeMode(ResizeMode)
 			.PhysicalSplitterHandleSize( 0.0f )
 			.HitDetectionSplitterHandleSize( SplitterHandleDetectionSize )
+			.OnGetMaxSlotSize(this, &SHeaderRow::GetRowSizeForSlotIndex)
 		]
 
 		+SHorizontalBox::Slot()
@@ -586,6 +621,8 @@ void SHeaderRow::RegenerateWidgets()
 				TSharedRef<STableColumnHeader> NewHeader =
 					SAssignNew(NewlyMadeHeader, STableColumnHeader, SomeColumn, DefaultPadding)
 					.Style((SlotIndex + 1 == Columns.Num()) ? &Style->LastColumnStyle : &Style->ColumnStyle);
+
+				HeaderWidgets.Add(NewlyMadeHeader);
 
 				switch (SomeColumn.SizeRule)
 				{
@@ -688,18 +725,18 @@ void SHeaderRow::RegenerateWidgets()
 						[
 							SNew(SBox)
 							.WidthOverride(WidthBinding)
-						[
-							SNew(SOverlay)
-							+ SOverlay::Slot()
-						[
-							NewHeader
-						]
-					+ SOverlay::Slot()
-						.HAlign(HAlign_Right)
-						[
-							SizingGrip
-						]
-						]
+							[
+								SNew(SOverlay)
+								+ SOverlay::Slot()
+								[
+									NewHeader
+								]
+								+ SOverlay::Slot()
+								.HAlign(HAlign_Right)
+								[
+									SizingGrip
+								]
+							]
 						];
 				}
 				break;

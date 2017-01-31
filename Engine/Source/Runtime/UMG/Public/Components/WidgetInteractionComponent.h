@@ -273,7 +273,7 @@ protected:
 	};
 	/** Performs the trace and gets the hit result under the specified InteractionSource */
 	virtual FWidgetTraceResult PerformTrace() const;
-	
+
 	/**
 	 * Gets the list of components to ignore during hit testing.  Which is everything that is a parent/sibling of this 
 	 * component that's not a Widget Component.  This is so traces don't get blocked by capsules and such around the player.
@@ -286,7 +286,7 @@ protected:
 protected:
 
 	/** The last widget path under the hit result. */
-	FWeakWidgetPath LastWigetPath;
+	FWeakWidgetPath LastWidgetPath;
 
 	/** The modifier keys to simulate during key presses. */
 	FModifierKeysState ModifierKeys;
@@ -325,6 +325,11 @@ protected:
 	/** Are we hovered over a widget that is hit test visible? */
 	UPROPERTY(Transient)
 	bool bIsHoveredWidgetHitTestVisible;
+
+private:
+
+	/** Returns the path to the widget that is currently beneath the pointer */
+	FWidgetPath DetermineWidgetUnderPointer();
 
 private_subobject:
 #if WITH_EDITORONLY_DATA

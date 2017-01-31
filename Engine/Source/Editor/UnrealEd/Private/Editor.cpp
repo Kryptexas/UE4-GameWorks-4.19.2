@@ -81,6 +81,7 @@ FSimpleMulticastDelegate								FEditorDelegates::ActorPropertiesChange;
 FSimpleMulticastDelegate								FEditorDelegates::RefreshEditor;
 FSimpleMulticastDelegate								FEditorDelegates::RefreshAllBrowsers;
 FSimpleMulticastDelegate								FEditorDelegates::RefreshLayerBrowser;
+FSimpleMulticastDelegate								FEditorDelegates::RefreshLevelBrowser;
 FSimpleMulticastDelegate								FEditorDelegates::RefreshPrimitiveStatsBrowser;
 FSimpleMulticastDelegate								FEditorDelegates::LoadSelectedAssetsIfNeeded;
 FSimpleMulticastDelegate								FEditorDelegates::DisplayLoadErrors;
@@ -189,7 +190,7 @@ void FReimportManager::UpdateReimportPaths( UObject* Obj, const TArray<FString>&
 	}
 }
 
-bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, bool bShowNotification, FString PreferedReimportFile, FReimportHandler* SpecifiedReimportHandler)
+bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, bool bShowNotification, FString PreferredReimportFile, FReimportHandler* SpecifiedReimportHandler)
 {
 	// Warn that were about to reimport, so prep for it
 	PreReimport.Broadcast( Obj );
@@ -242,12 +243,12 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, boo
 			}
 
 			bValidSourceFilename = true;
-			if ((bAskForNewFileIfMissing || !PreferedReimportFile.IsEmpty()) && bMissingFiles )
+			if ((bAskForNewFileIfMissing || !PreferredReimportFile.IsEmpty()) && bMissingFiles )
 			{
-				if (!bAskForNewFileIfMissing && !PreferedReimportFile.IsEmpty())
+				if (!bAskForNewFileIfMissing && !PreferredReimportFile.IsEmpty())
 				{
 					SourceFilenames.Empty();
-					SourceFilenames.Add(PreferedReimportFile);
+					SourceFilenames.Add(PreferredReimportFile);
 				}
 				else
 				{
@@ -264,6 +265,13 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, boo
 					// A new filename was supplied, update the path
 					CanReimportHandler->SetReimportPaths(Obj, SourceFilenames);
 				}
+			}
+			else if (!PreferredReimportFile.IsEmpty() && !SourceFilenames.Contains(PreferredReimportFile))
+			{
+				// Reimporting the asset from a new file
+				SourceFilenames.Empty();
+				SourceFilenames.Add(PreferredReimportFile);
+				CanReimportHandler->SetReimportPaths(Obj, SourceFilenames);
 			}
 
 			if ( bValidSourceFilename )
@@ -460,7 +468,7 @@ void FReimportManager::AddReferencedObjects( FReferenceCollector& Collector )
 	}
 }
 
-bool FReimportManager::ReimportMultiple(TArrayView<UObject*> Objects, bool bAskForNewFileIfMissing /*= false*/, bool bShowNotification /*= true*/, FString PreferedReimportFile /*= TEXT("")*/, FReimportHandler* SpecifiedReimportHandler /*= nullptr */)
+bool FReimportManager::ReimportMultiple(TArrayView<UObject*> Objects, bool bAskForNewFileIfMissing /*= false*/, bool bShowNotification /*= true*/, FString PreferredReimportFile /*= TEXT("")*/, FReimportHandler* SpecifiedReimportHandler /*= nullptr */)
 {
 	bool bBulkSuccess = true;
 
@@ -474,7 +482,7 @@ bool FReimportManager::ReimportMultiple(TArrayView<UObject*> Objects, bool bAskF
 			FScopedSlowTask SingleObjectTask(1.0f, SingleTaskTest);
 			SingleObjectTask.EnterProgressFrame(1.0f);
 
-			bBulkSuccess = bBulkSuccess && Reimport(CurrentObject, bAskForNewFileIfMissing, bShowNotification, PreferedReimportFile, SpecifiedReimportHandler);
+			bBulkSuccess = bBulkSuccess && Reimport(CurrentObject, bAskForNewFileIfMissing, bShowNotification, PreferredReimportFile, SpecifiedReimportHandler);
 		}
 
 		BulkReimportTask.EnterProgressFrame(1.0f);

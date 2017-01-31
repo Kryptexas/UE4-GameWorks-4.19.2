@@ -39,7 +39,7 @@ DECLARE_DELEGATE_RetVal(bool, FOnWindowCloseRequested);
  * The first parameter is the viewport being closed.
  * @see UGameViewportClient
  */
-DECLARE_DELEGATE_OneParam(FOnCloseRequested, FViewport*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnCloseRequested, FViewport*);
 
 /**
  * Delegate type used by UGameViewportClient for when a player is added or removed

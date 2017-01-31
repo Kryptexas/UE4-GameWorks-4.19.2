@@ -6,9 +6,6 @@
 
 #pragma once
 
-#ifndef __CameraController_h__
-#define __CameraController_h__
-
 #include "CoreMinimal.h"
 
 /**
@@ -344,8 +341,3 @@ private:
 	float OriginalFOVForRecoil;
 
 };
-
-
-
-
-#endif // __CameraController_h__

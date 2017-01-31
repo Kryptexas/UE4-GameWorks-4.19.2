@@ -1,8 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __EnumEditorUtils_h__
-#define __EnumEditorUtils_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -84,5 +81,3 @@ public:
 	static void EnsureAllDisplayNamesExist(class UUserDefinedEnum* Enum);
 	static void UpgradeDisplayNamesFromMetaData(class UUserDefinedEnum* Enum);
 };
-
-#endif // __EnumEditorUtils_h__

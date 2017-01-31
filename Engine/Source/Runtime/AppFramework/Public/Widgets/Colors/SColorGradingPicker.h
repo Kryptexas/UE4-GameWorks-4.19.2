@@ -89,6 +89,13 @@ protected:
 	// Callback for value changes in the color spectrum picker.
 	void HandleCurrentColorValueChanged(FLinearColor NewValue);
 
+	void OnBeginSliderMovement();
+	void OnEndSliderMovement(float NewValue);
+	void AdjustRatioValue(FVector4 &NewValue);
+
+	bool bIsMouseDragging;
+	FVector4 StartDragRatio;
+
 	float ValuesMin;
 	float ValuesMax;
 	float MainDelta;

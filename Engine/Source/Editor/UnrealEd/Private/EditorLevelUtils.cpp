@@ -545,7 +545,7 @@ namespace EditorLevelUtils
 		InLevel->MarkPendingKill();
 		InLevel->GetOuter()->ClearFlags(RF_Public | RF_Standalone);
 
-		UPackage* Package = Cast<UPackage>(InLevel->GetOutermost());
+		UPackage* Package = InLevel->GetOutermost();
 		// We want to unconditionally destroy the level, so clear the dirty flag here so it can be unloaded successfully
 		Package->SetDirtyFlag(false);
 

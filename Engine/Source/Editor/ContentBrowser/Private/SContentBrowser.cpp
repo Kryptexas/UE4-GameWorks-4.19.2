@@ -2350,6 +2350,8 @@ void SContentBrowser::OnOpenedFolderDeleted()
 
 	FSourcesData DefaultSourcesData(FName("/Game"));
 	AssetViewPtr->SetSourcesData(DefaultSourcesData);
+
+	UpdatePath();
 }
 
 void SContentBrowser::OnDuplicateRequested(const TWeakObjectPtr<UObject>& OriginalObject)

@@ -1818,7 +1818,11 @@ void FSlateEditableTextLayout::OnContextMenuClosed(TSharedRef<IMenu> Menu)
 	// to know that the window is still available for OnFocusReceived and OnFocusLost even though it's about to be destroyed
 
 	// Give our owner widget focus when the context menu has been dismissed
-	FSlateApplication::Get().SetKeyboardFocus(OwnerWidget->GetSlateWidget(), EFocusCause::OtherWidgetLostFocus);
+	TSharedPtr<SWidget> OwnerSlateWidget = OwnerWidget->GetSlateWidgetPtr();
+	if (OwnerSlateWidget.IsValid())
+	{
+		FSlateApplication::Get().SetKeyboardFocus(OwnerSlateWidget, EFocusCause::OtherWidgetLostFocus);
+	}
 }
 
 void FSlateEditableTextLayout::InsertRunAtCursor(TSharedRef<IRun> InRun)

@@ -4,9 +4,6 @@
 	LightmapResRatioAdjust.h: Lightmap Resolution Ratio Adjustment helper
 ================================================================================*/
 
-#ifndef __LightmapResRatioAdjust_h__
-#define __LightmapResRatioAdjust_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -95,5 +92,3 @@ public:
 	/** If true, then only do selected primitives in the level(s) */
 	bool bSelectedObjectsOnly;
 };
-
-#endif	// __LightmapResRatioAdjust_h__

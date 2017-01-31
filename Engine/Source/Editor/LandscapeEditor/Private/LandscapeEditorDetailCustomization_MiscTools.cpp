@@ -13,6 +13,10 @@
 #include "DetailCategoryBuilder.h"
 
 #include "ScopedTransaction.h"
+#include "IDetailPropertyRow.h"
+#include "SNumericEntryBox.h"
+#include "SFlattenHeightEyeDropperButton.h"
+#include "LandscapeEdModeTools.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.Tools"
 
@@ -48,6 +52,53 @@ void FLandscapeEditorDetailCustomization_MiscTools::CustomizeDetails(IDetailLayo
 			.HAlign(HAlign_Center)
 			.OnClicked_Static(&FLandscapeEditorDetailCustomization_MiscTools::OnClearRegionSelectionButtonClicked)
 		];
+	}
+
+	if (IsToolActive("Flatten"))
+	{
+		TSharedRef<IPropertyHandle> FlattenValueProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, FlattenTarget));
+		IDetailPropertyRow& FlattenValueRow = ToolsCategory.AddProperty(FlattenValueProperty);
+		FlattenValueRow.CustomWidget()
+			.NameContent()
+			[
+				FlattenValueProperty->CreatePropertyNameWidget()
+			]
+			.ValueContent()
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.Padding(0.0f, 2.0f, 5.0f, 2.0f)
+				.FillWidth(1.0f)
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SNumericEntryBox<float>)
+					.AllowSpin(true)
+					.Font(DetailBuilder.GetDetailFont())
+					.Value(this, &FLandscapeEditorDetailCustomization_MiscTools::GetFlattenValue)
+					.OnValueChanged_Static(&FLandscapeEditorDetailCustomization_Base::OnValueChanged<float>, FlattenValueProperty)
+					.OnValueCommitted_Static(&FLandscapeEditorDetailCustomization_Base::OnValueCommitted<float>, FlattenValueProperty)
+					.MinValue(-32768.0f)
+					.MaxValue(32768.0f)
+					.SliderExponentNeutralValue(0.0f)
+					.SliderExponent(5.0f)
+					.ShiftMouseMovePixelPerDelta(20)
+					.MinSliderValue(-32768.0f)
+					.MaxSliderValue(32768.0f)
+					.MinDesiredValueWidth(75.0f)
+					.ToolTipText(LOCTEXT("FlattenToolTips", "Target height to flatten towards (in Unreal Units)"))
+				]
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(0.0f, 2.0f, 5.0f, 2.0f)
+				.HAlign(HAlign_Right)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SFlattenHeightEyeDropperButton)
+					.OnBegin(this, &FLandscapeEditorDetailCustomization_MiscTools::OnBeginFlattenToolEyeDrop)
+					.OnComplete(this, &FLandscapeEditorDetailCustomization_MiscTools::OnCompletedFlattenToolEyeDrop)
+				]		
+			];
 	}
 
 	if (IsToolActive("Splines"))
@@ -343,6 +394,47 @@ FReply FLandscapeEditorDetailCustomization_MiscTools::OnResetMirrorPointButtonCl
 	}
 
 	return FReply::Handled();
+}
+
+TOptional<float> FLandscapeEditorDetailCustomization_MiscTools::GetFlattenValue() const
+{
+	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+	if (LandscapeEdMode != nullptr && IsToolActive(FName("Flatten")))
+	{
+		if (LandscapeEdMode->UISettings->bFlattenEyeDropperModeActivated)
+		{
+			return LandscapeEdMode->UISettings->FlattenEyeDropperModeDesiredTarget;
+		}
+
+		return LandscapeEdMode->UISettings->FlattenTarget;
+	}
+
+	return 0.0f;
+}
+
+void FLandscapeEditorDetailCustomization_MiscTools::OnBeginFlattenToolEyeDrop()
+{
+	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+	if (LandscapeEdMode != nullptr && IsToolActive(FName("Flatten")))
+	{
+		LandscapeEdMode->UISettings->bFlattenEyeDropperModeActivated = true;
+		LandscapeEdMode->CurrentTool->SetCanToolBeActivated(false);
+	}
+}
+
+void FLandscapeEditorDetailCustomization_MiscTools::OnCompletedFlattenToolEyeDrop(bool Canceled)
+{
+	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+	if (LandscapeEdMode != nullptr && IsToolActive(FName("Flatten")))
+	{
+		LandscapeEdMode->UISettings->bFlattenEyeDropperModeActivated = false;
+		LandscapeEdMode->CurrentTool->SetCanToolBeActivated(true);
+
+		if (!Canceled)
+		{
+			LandscapeEdMode->UISettings->FlattenTarget = LandscapeEdMode->UISettings->FlattenEyeDropperModeDesiredTarget;
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

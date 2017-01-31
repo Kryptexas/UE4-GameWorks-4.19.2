@@ -49,6 +49,9 @@ const FVector2D Icon40x40(40.0f, 40.0f);
 TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 {
 	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet(FVREditorStyle::GetStyleSetName()));
+	Style->SetContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate"));
+	Style->SetCoreContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
+
 	// Use the default menu button style, but set the background to dark grey.
 	const FButtonStyle NormalButton = FEditorStyle::GetWidgetStyle<FButtonStyle>("Menu.Button");
 	Style->Set("VREditorStyle.Button", FButtonStyle(NormalButton)
@@ -56,13 +59,13 @@ TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 
 	const FTextBlockStyle NormalText = FEditorStyle::GetWidgetStyle<FTextBlockStyle>("NormalText");
 	Style->Set("VREditorStyle.Label", FTextBlockStyle(NormalText)
-		.SetFont(TTF_CORE_FONT("Slate/Fonts/Roboto-Regular", 9)));
+		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 9)));
 
 	// Headings will have a font outline
 	FFontOutlineSettings HeadingOutline;
 	HeadingOutline.OutlineColor = FLinearColor(0.2f, 0.2f, 0.2f, 0.5f);
 	HeadingOutline.OutlineSize = 2.0f;
-	FSlateFontInfo HeadlineFont = TTF_CORE_FONT("Slate/Fonts/Roboto-Regular", 18);
+	FSlateFontInfo HeadlineFont = TTF_CORE_FONT("Fonts/Roboto-Regular", 18);
 	HeadlineFont.OutlineSettings = HeadingOutline;
 
 	Style->Set("VREditorStyle.Heading", FTextBlockStyle(NormalText)
@@ -73,7 +76,7 @@ TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 	FFontOutlineSettings HelperOutline;
 	HelperOutline.OutlineColor = FLinearColor( 0.2f, 0.2f, 0.2f, 0.5f );
 	HelperOutline.OutlineSize = 3.0f;
-	FSlateFontInfo HelperFont = TTF_CORE_FONT( "Slate/Fonts/Roboto-Regular", 24 );
+	FSlateFontInfo HelperFont = TTF_CORE_FONT( "Fonts/Roboto-Regular", 24 );
 	HelperFont.OutlineSettings = HelperOutline;
 
 	Style->Set( "VREditorStyle.HelperText", FTextBlockStyle( NormalText )

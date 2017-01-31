@@ -76,7 +76,7 @@ void FPropertyBaseArchiveProxy::PostConstruct(FPropertyBase* PropertyBase) const
 void FPropertyBaseArchiveProxy::Resolve(FPropertyBase* PropertyBase, const FUHTMakefile& UHTMakefile) const
 {
 	FPropertyBase* MapKeyProp = UHTMakefile.GetPropertyBaseByIndex(MapKeyPropIndex);
-	PropertyBase->MapKeyProp = MapKeyProp && MapKeyProp->HasBeenAlreadyMadeSharable() ? MapKeyProp->AsShared() : TSharedPtr<FPropertyBase>(MapKeyProp);
+	PropertyBase->MapKeyProp = MapKeyProp && MapKeyProp->DoesSharedInstanceExist() ? MapKeyProp->AsShared() : TSharedPtr<FPropertyBase>(MapKeyProp);
 
 	switch (PropertyBase->Type)
 	{

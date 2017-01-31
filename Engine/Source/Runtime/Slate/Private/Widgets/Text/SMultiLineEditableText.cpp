@@ -266,7 +266,16 @@ EKeyboardType SMultiLineEditableText::GetVirtualKeyboardType() const
 
 TSharedRef<SWidget> SMultiLineEditableText::GetSlateWidget()
 {
-	return SharedThis(this);
+	return AsShared();
+}
+
+TSharedPtr<SWidget> SMultiLineEditableText::GetSlateWidgetPtr()
+{
+	if (DoesSharedInstanceExist())
+	{
+		return AsShared();
+	}
+	return nullptr;
 }
 
 TSharedPtr<SWidget> SMultiLineEditableText::BuildContextMenuContent() const

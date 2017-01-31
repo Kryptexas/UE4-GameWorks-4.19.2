@@ -512,27 +512,15 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 	{
 		bHasModules = true;
 	}
-	
-	EHostType::Type ModuleDescriptorType;
-	ELoadingPhase::Type LoadingPhase;
-
-	TArray<TSharedPtr<FPluginTemplateDescription>> SelectedTemplates = PluginWizardDefinition->GetSelectedTemplates();
-	// @todo For now assume there is one module type and all templates share it
-	if(SelectedTemplates.Num() > 0 )
-	{
-		ModuleDescriptorType = SelectedTemplates[0]->ModuleDescriptorType;
-		LoadingPhase = SelectedTemplates[0]->LoadingPhase;
-	}
-	else
-	{
-		// Default to runtime
-		ModuleDescriptorType = EHostType::Runtime;
-		LoadingPhase = ELoadingPhase::Default;
-	}
 
 	// Save descriptor file as .uplugin file
 	const FString UPluginFilePath = GetPluginFilenameWithPath();
+
+	const EHostType::Type ModuleDescriptorType = PluginWizardDefinition->GetPluginModuleDescriptor();
+	const ELoadingPhase::Type LoadingPhase = PluginWizardDefinition->GetPluginLoadingPhase();
+
 	bSucceeded = bSucceeded && WritePluginDescriptor(AutoPluginName, UPluginFilePath, PluginWizardDefinition->CanContainContent(), bHasModules, ModuleDescriptorType, LoadingPhase);
+	
 
 	// Main plugin dir
 	const FString BasePluginFolder = GetPluginDestinationPath().ToString();

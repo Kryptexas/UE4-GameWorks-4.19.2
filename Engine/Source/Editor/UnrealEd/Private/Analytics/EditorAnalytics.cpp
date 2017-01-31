@@ -177,7 +177,7 @@ FString FEditorAnalytics::TranslateErrorCode(int32 ErrorCode)
 	case EAnalyticsErrorCodes::FilesInstallFailed:
 		return TEXT("Failed to deploy files to device.  Check to make sure your device is connected.");
 	case EAnalyticsErrorCodes::DeviceNotSetupForDevelopment:
-		return TEXT("Failed to launch on device.  Make sure your device has been enabled for development from within the Xcode Devices window.");
+		return TEXT("Failed to launch on device.  Make sure your device is currently unlocked and has been enabled for development by using a mobile provision including your device id.");
 	case EAnalyticsErrorCodes::DeviceOSNewerThanSDK:
 		return TEXT("Failed to launch on device.  Make sure your install of Xcode matches or is newer than the OS on your device.");
 	case EAnalyticsErrorCodes::RemoteCertificatesNotFound:

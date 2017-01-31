@@ -54,6 +54,12 @@ DECLARE_DELEGATE_OneParam(
 
 enum class EPopupMethod : uint8;
 
+namespace SharedPointerInternals
+{
+	template <typename ObjectType>
+	class TIntrusiveReferenceController;
+}
+
 class SLATECORE_API FSlateControlledConstruction
 {
 public:
@@ -62,10 +68,10 @@ public:
 	
 private:
 	/** UI objects cannot be copy-constructed */
-	FSlateControlledConstruction(const FSlateControlledConstruction& Other){}
+	FSlateControlledConstruction(const FSlateControlledConstruction& Other) = delete;
 	
 	/** UI objects cannot be copied. */
-	void operator= (const FSlateControlledConstruction& Other){}
+	void operator= (const FSlateControlledConstruction& Other) = delete;
 
 	/** Widgets should only ever be constructed via SNew or SAssignNew */
 	void* operator new ( const size_t InSize )
@@ -73,8 +79,17 @@ private:
 		return FMemory::Malloc(InSize);
 	}
 
+	/** Widgets should only ever be constructed via SNew or SAssignNew */
+	void* operator new ( const size_t InSize, void* Addr )
+	{
+		return Addr;
+	}
+
 	template<class WidgetType, bool bIsUserWidget>
 	friend struct TWidgetAllocator;
+
+	template <typename ObjectType>
+	friend class SharedPointerInternals::TIntrusiveReferenceController;
 
 public:
 	void operator delete(void* mem)

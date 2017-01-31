@@ -191,9 +191,9 @@ void SPluginCategoryTree::RebuildAndFilterCategoryTree()
 		{
 			TreeView->SetSelection(InstalledCategory);
 		}
-		else if(RootCategories.Num() > 0 && RootCategories[0]->SubCategories.Num() > 0)
+		else if(RootCategories.Num() > 0)
 		{
-			TreeView->SetSelection(RootCategories[0]->SubCategories[0]);
+			TreeView->SetSelection(RootCategories[0]);
 		}
 	}
 }

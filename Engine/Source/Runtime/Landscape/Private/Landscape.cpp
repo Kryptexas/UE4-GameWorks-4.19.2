@@ -647,6 +647,9 @@ void ULandscapeComponent::PostLoad()
 
 ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+#if WITH_EDITORONLY_DATA
+	, TargetDisplayOrder(ELandscapeLayerDisplayMode::Default)
+#endif // WITH_EDITORONLY_DATA
 	, bHasLandscapeGrass(true)
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -1382,6 +1385,13 @@ bool ULandscapeInfo::UpdateLayerInfoMap(ALandscapeProxy* Proxy /*= nullptr*/, bo
 							int32 LayerInfoIndex = GetLayerInfoIndex(LayerInfo);
 							bool bValid = LayerNames.Contains(LayerInfo->LayerName);
 
+							#if WITH_EDITORONLY_DATA
+							if (bValid)
+							{
+								//LayerInfo->IsReferencedFromLoadedData = true;
+							}
+							#endif
+
 							if (LayerInfoIndex != INDEX_NONE)
 							{
 								FLandscapeInfoLayerSettings& LayerSettings = Layers[LayerInfoIndex];
@@ -1630,6 +1640,18 @@ void ALandscapeProxy::ConditionalAssignCommonProperties(ALandscape* Landscape)
 	if (LODFalloff != Landscape->LODFalloff)
 	{
 		LODFalloff = Landscape->LODFalloff;
+		bUpdated = true;
+	}
+
+	if (TargetDisplayOrder != Landscape->TargetDisplayOrder)
+	{
+		TargetDisplayOrder = Landscape->TargetDisplayOrder;
+		bUpdated = true;
+	}
+
+	if (TargetDisplayOrderList != Landscape->TargetDisplayOrderList)
+	{
+		TargetDisplayOrderList = Landscape->TargetDisplayOrderList;
 		bUpdated = true;
 	}
 

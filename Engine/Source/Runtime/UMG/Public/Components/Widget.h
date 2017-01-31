@@ -118,9 +118,10 @@ namespace EWidgetDesignFlags
 {
 	enum Type
 	{
-		None		= 0,
-		Designing	= 1,
-		ShowOutline	= 2,
+		None				= 0,
+		Designing			= 1,
+		ShowOutline			= 2,
+		ExecutePreConstruct	= 4
 	};
 }
 

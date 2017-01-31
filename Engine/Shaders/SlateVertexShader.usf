@@ -1,6 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
 #include "Common.usf"
 #include "GammaCorrectionCommon.usf"
 #include "SlateShaderCommon.usf"
@@ -15,15 +14,17 @@ VertexToPixelInterpolants Main(
 	in float2 InPosition : ATTRIBUTE2,
 	in float2 InClipOrigin : ATTRIBUTE3,
 	in float4 InClipExtents : ATTRIBUTE4,
-	in float4 InColor : ATTRIBUTE5
+	in float4 InColor : ATTRIBUTE5,
+	in uint2 PixelSize : ATTRIBUTE6
 #if USE_SLATE_INSTANCING
-	, in float4 InstanceParam : ATTRIBUTE6
+	, in float4 InstanceParam : ATTRIBUTE7
 #endif
 	)
 {
 	VertexToPixelInterpolants VOut = (VertexToPixelInterpolants)0;
 
-	float4 WorldPosition = float4(InPosition.xy,0,1);
+    float4 WorldPosition = float4(InPosition.xy, 0, 1);
+
 	// save off the original input position value, Line AA will require this
 	VOut.OriginalPosition = WorldPosition;
 
@@ -39,68 +40,70 @@ VertexToPixelInterpolants Main(
 	VOut.Color = FinalVertexColor;
 	VOut.TextureCoordinates[0] = InTextureCoordinates;
 
-#if USE_MATERIALS
+#if USE_MATERIALS 
 	FMaterialVertexParameters VertexParameters = (FMaterialVertexParameters)0;
 	VertexParameters.WorldPosition = WorldPosition.xyz;
 
 	VertexParameters.VertexColor = FinalVertexColor;
 
-	#if NUM_MATERIAL_TEXCOORDS_VERTEX
+#if NUM_MATERIAL_TEXCOORDS_VERTEX
 
 #if !USE_SLATE_INSTANCING
-		float4 InstanceParam = float4(0, 0, 0, 0);
+	// pass along local screen space size 
+	// To look this up in a material you use uv channel 3
+	float4 InstanceParam = float4(0,0, PixelSize);
 #endif
-		float2 UVArrays[8] =
-		{
-			InTextureCoordinates.xy,
-			InTextureCoordinates.zw,
-			InstanceParam.xy,
-			InstanceParam.zw,
-			InMaterialTextureCoordinates,
-			InClipOrigin,
-			InClipExtents.xy,
-			InClipExtents.zw
-		};
+	float2 UVArrays[8] =
+	{
+		InTextureCoordinates.xy, //uv channel 0
+		InTextureCoordinates.zw, //uv channel 1
+		InstanceParam.xy, //uv channel 2
+		InstanceParam.zw, //uv channel 3
+		InMaterialTextureCoordinates, //uv channel 4
+		InClipOrigin, //uv channel 5
+		InClipExtents.xy, //uv channel 6
+		InClipExtents.zw //uv channel 7
+	};
 
-		UNROLL
-		for( int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX; CoordinateIndex++ )
-		{
-			VertexParameters.TexCoords[CoordinateIndex] = UVArrays[CoordinateIndex];
-		}
+	UNROLL
+	for( int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX; CoordinateIndex++ )
+	{
+		VertexParameters.TexCoords[CoordinateIndex] = UVArrays[CoordinateIndex];
+	}
 
-		#if HAS_MATERIAL_TEXCOORDS
+	#if HAS_MATERIAL_TEXCOORDS
 
-			float2 CustomizedUVs[NUM_SLATE_TEXCOORDS];
-			GetMaterialCustomizedUVs(VertexParameters, CustomizedUVs);
+		float2 CustomizedUVs[NUM_SLATE_TEXCOORDS];
+		GetMaterialCustomizedUVs(VertexParameters, CustomizedUVs);
 
-			#if ES2_PROFILE
-				#if NUM_SLATE_TEXCOORDS == 1
-					VOut.TextureCoordinates[0].xy = CustomizedUVs[0];
-				#elif NUM_SLATE_TEXCOORDS >= 2
-					VOut.TextureCoordinates[0].xy = CustomizedUVs[0];
-					VOut.TextureCoordinates[0].zw = CustomizedUVs[1];
-				#endif
-			#else
-				UNROLL
-				for( int CoordinateIndex = 0; CoordinateIndex < NUM_SLATE_TEXCOORDS; CoordinateIndex++ )
-				{
-					FLATTEN
-					if (CoordinateIndex % 2)
-					{
-						VOut.TextureCoordinates[CoordinateIndex / 2].zw = CustomizedUVs[CoordinateIndex];
-					}
-					else
-					{
-						VOut.TextureCoordinates[CoordinateIndex / 2].xy = CustomizedUVs[CoordinateIndex];
-					}
-				}
+		#if ES2_PROFILE
+			#if NUM_SLATE_TEXCOORDS == 1
+				VOut.TextureCoordinates[0].xy = CustomizedUVs[0];
+			#elif NUM_SLATE_TEXCOORDS >= 2
+				VOut.TextureCoordinates[0].xy = CustomizedUVs[0];
+				VOut.TextureCoordinates[0].zw = CustomizedUVs[1];
 			#endif
-		#endif // HAS_MATERIAL_TEXCOORDS
-	#endif // NUM_MATERIAL_TEXCOORDS_VERTEX
+		#else
+			UNROLL
+			for( int CoordinateIndex = 0; CoordinateIndex < NUM_SLATE_TEXCOORDS; CoordinateIndex++ )
+			{
+				FLATTEN
+				if (CoordinateIndex % 2)
+				{
+					VOut.TextureCoordinates[CoordinateIndex / 2].zw = CustomizedUVs[CoordinateIndex];
+				}
+				else
+				{
+					VOut.TextureCoordinates[CoordinateIndex / 2].xy = CustomizedUVs[CoordinateIndex];
+				}
+			}
+		#endif
+	#endif // HAS_MATERIAL_TEXCOORDS
+#endif // NUM_MATERIAL_TEXCOORDS_VERTEX
 
-	#if HAS_SCREEN_POSITION
-		WorldPosition.xyz = GetMaterialWorldPositionOffset(VertexParameters);
-	#endif
+#if HAS_SCREEN_POSITION
+	WorldPosition.xyz = GetMaterialWorldPositionOffset(VertexParameters);
+#endif
 
 #endif // USE_MATERIALS
 

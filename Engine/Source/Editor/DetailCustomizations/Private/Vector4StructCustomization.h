@@ -8,6 +8,7 @@
 
 /**
  * Customizes FVector4 structs.
+ * We override Vector4 because the color grading controls are made with vector4
  */
 class FVector4StructCustomization
 	: public FMathStructCustomization
@@ -26,5 +27,8 @@ public:
 	
 	// We specialize the detail display of color grading vector property. The color grading mode is specified inside the metadata of the UProperty
 	TSharedPtr<FColorGradingVectorCustomization> ColorGradingVectorCustomization;
+
+private:
+	FLinearColor OnGetHeaderColorBlock(TWeakPtr<IPropertyHandle> WeakHandlePtr) const;
 };
 

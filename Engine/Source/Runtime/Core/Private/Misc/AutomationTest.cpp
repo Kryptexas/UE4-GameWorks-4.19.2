@@ -730,7 +730,7 @@ void FAutomationTestBase::AddError(const FString& InError, int32 StackOffset)
 
 void FAutomationTestBase::AddError(const FString& InError, const FString& InFilename, int32 InLineNumber)
 {
-	if (!bSuppressLogs)
+	if ( !bSuppressLogs )
 	{
 		ExecutionInfo.Errors.Add(FAutomationEvent(InError, ExecutionInfo.Context, InFilename, InLineNumber));
 	}
@@ -738,23 +738,28 @@ void FAutomationTestBase::AddError(const FString& InError, const FString& InFile
 
 void FAutomationTestBase::AddWarning( const FString& InWarning )
 {
-	if( !bSuppressLogs )
+	if ( !bSuppressLogs )
 	{
-		ExecutionInfo.Warnings.Add( InWarning );
+		ExecutionInfo.Warnings.Add(InWarning);
 	}
 }
 
 void FAutomationTestBase::AddLogItem( const FString& InLogItem )
 {
-	if( !bSuppressLogs )
+	if ( !bSuppressLogs )
 	{
-		ExecutionInfo.LogItems.Add( InLogItem );
+		ExecutionInfo.LogItems.Add(InLogItem);
 	}
 }
 
 void FAutomationTestBase::AddAnalyticsItem(const FString& InAnalyticsItem)
 {
 	ExecutionInfo.AnalyticsItems.Add(InAnalyticsItem);
+}
+
+void FAutomationTestBase::AddRemoteArtifact(const FString& ArtifactName, const FString& RemoteArtifactPath)
+{
+	ExecutionInfo.Artifacts.Add(FAutomationTestArtifact(ArtifactName, RemoteArtifactPath));
 }
 
 bool FAutomationTestBase::HasAnyErrors() const

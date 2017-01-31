@@ -1300,7 +1300,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 	bool bRegenerated = false;
 
 	// Cache off the dirty flag for the package, so we can restore it later
-	UPackage* Package = Cast<UPackage>(Blueprint->GetOutermost());
+	UPackage* Package = Blueprint->GetOutermost();
 	bool bIsPackageDirty = Package ? Package->IsDirty() : false;
 
 	// Preload the blueprint and all its parts before refreshing nodes. 

@@ -260,9 +260,9 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(const
 	FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(Name, Options);
 #endif
 
-	static IConsoleVariable* HighResScreenshotDelay = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HighResScreenshotDelay"));
-	check(HighResScreenshotDelay);
-	HighResScreenshotDelay->Set(10);
+	//static IConsoleVariable* HighResScreenshotDelay = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HighResScreenshotDelay"));
+	//check(HighResScreenshotDelay);
+	//HighResScreenshotDelay->Set(10);
 
     if ( FPlatformProperties::HasFixedResolution() )
     {

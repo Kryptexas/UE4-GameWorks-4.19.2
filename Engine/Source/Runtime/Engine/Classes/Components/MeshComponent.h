@@ -50,7 +50,9 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	/** 
 	 * This empties all override materials and used by editor when replacing preview mesh 
 	 */
-	void EmptyOverrideMaterials(); 
+	void EmptyOverrideMaterials();
+
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
 
 	//~ Begin UObject Interface

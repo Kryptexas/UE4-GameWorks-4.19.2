@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __DIALOGS_H__
-#define __DIALOGS_H__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Input/Reply.h"
@@ -194,6 +192,3 @@ UNREALED_API bool PromptUserIfExistingObject(const FString& Name, const FString&
 * @return					true if the user selected the OK button, false otherwise.
 */
 UNREALED_API bool PromptUserForDirectory(FString& OutDirectory, const FString& Message, const FString& DefaultPath);
-
-
-#endif // __DIALOGS_H__

@@ -235,6 +235,8 @@ public:
 	virtual bool HandleClick(HHitProxy* HitProxy, const FViewportClick& Click) { return false; }
 	virtual bool InputKey(FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) { return false; }
 	virtual bool InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) { return false; }
+	virtual bool GetCursor(EMouseCursor::Type& OutCursor) const { return false;  }
+
 	FLandscapeTool() : PreviousBrushIndex(-1) {}
 	virtual ~FLandscapeTool() {}
 	virtual const TCHAR* GetToolName() = 0;
@@ -250,6 +252,9 @@ public:
 	virtual FVector GetWidgetLocation() const { return FVector::ZeroVector; }
 	virtual FMatrix GetWidgetRotation() const { return FMatrix::Identity; }
 	virtual bool DisallowMouseDeltaTracking() const { return false; }
+
+	virtual void SetCanToolBeActivated(bool Value) { }
+	virtual bool CanToolBeActivated() const { return true;  }
 
 	virtual EEditAction::Type GetActionEditDuplicate() { return EEditAction::Skip; }
 	virtual EEditAction::Type GetActionEditDelete() { return EEditAction::Skip; }

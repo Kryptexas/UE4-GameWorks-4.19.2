@@ -157,6 +157,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 		switch (TestPlan->Action)
 		{
 			case EFBXTestPlanActionType::Import:
+			case EFBXTestPlanActionType::ImportReload:
 			{
 				//Create a factory and set the options
 				UFbxFactory* FbxFactory = NewObject<UFbxFactory>(UFbxFactory::StaticClass());
@@ -172,6 +173,70 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 
 				//Import the test object
 				ImportedObjects = AssetToolsModule.Get().ImportAssets(CurFileToImport, ImportAssetPath, FbxFactory);
+				if (TestPlan->Action == EFBXTestPlanActionType::ImportReload)
+				{
+					TArray<FString> FullAssetPaths;
+					
+					TArray<FAssetData> ImportedAssets;
+					AssetRegistryModule.Get().GetAssetsByPath(FName(*ImportAssetPath), ImportedAssets, true);
+					for (const FAssetData& AssetData : ImportedAssets)
+					{
+						UObject *Asset = AssetData.GetAsset();
+						if (Asset != nullptr)
+						{
+							if (ImportedObjects.Contains(Asset))
+							{
+								FullAssetPaths.Add(Asset->GetPathName());
+							}
+							FString PackageName = Asset->GetOutermost()->GetPathName();
+							Asset->MarkPackageDirty();
+							UPackage::SavePackage(Asset->GetOutermost(), Asset, RF_Standalone, *FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension()), GError, nullptr, false, true, SAVE_NoError);
+						}
+					}
+					for (const FAssetData& AssetData : ImportedAssets)
+					{
+						UPackage *Package = AssetData.GetPackage();
+						if (Package != nullptr)
+						{
+							for (FObjectIterator It; It; ++It)
+							{
+								UObject* ExistingObject = *It;
+								if ((ExistingObject->GetOutermost() == Package) )
+								{
+									ExistingObject->ClearFlags(RF_Standalone | RF_Public);
+									ExistingObject->RemoveFromRoot();
+									ExistingObject->MarkPendingKill();
+								}
+						
+							}
+						}
+					}
+					CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+					
+					ImportedObjects.Empty();
+
+					for (const FAssetData& AssetData : ImportedAssets)
+					{
+						UPackage *Package = AssetData.GetPackage();
+						if (Package != nullptr)
+						{
+							if (!Package->IsFullyLoaded())
+							{
+								Package->FullyLoad();
+							}
+						}
+					}
+					
+					//Set back the importObjects
+					for (FString PathName : FullAssetPaths)
+					{
+						UStaticMesh* FoundMesh = LoadObject<UStaticMesh>(NULL, *PathName, NULL, LOAD_Quiet | LOAD_NoWarn);
+						if (FoundMesh)
+						{
+							ImportedObjects.Add(FoundMesh);
+						}
+					}
+				}
 
 				//Add the just imported object to the global array use for reimport test
 				for (UObject* ImportObject : ImportedObjects)
@@ -469,6 +534,67 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				{
 					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [%d materials created but expected %d]"),
 						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Materials_Created_Number"), ExpectedResultIndex), MaterialNumber, ExpectedResult.ExpectedPresetsDataInteger[0]));
+				}
+			}
+			break;
+			case Material_Slot_Imported_Name:
+			{
+				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 1)
+				{
+					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 1 integer data (Expected material slot index)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Material_Slot_Imported_Name"), ExpectedResultIndex)));
+					break;
+				}
+				if (ExpectedResult.ExpectedPresetsDataString.Num() < 1)
+				{
+					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 1 string data (Expected material imported name for the specified slot index)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Material_Slot_Imported_Name"), ExpectedResultIndex)));
+					break;
+				}
+				int32 MeshMaterialNumber = INDEX_NONE;
+				int32 MaterialSlotIndex = ExpectedResult.ExpectedPresetsDataInteger[0];
+				FString ExpectedMaterialImportedName = ExpectedResult.ExpectedPresetsDataString[0];
+				FString MaterialImportedName = TEXT("");
+				bool BadSlotIndex = false;
+				if (ImportedObjects.Num() > 0)
+				{
+					UObject *Object = ImportedObjects[0];
+					if (Object->IsA(UStaticMesh::StaticClass()))
+					{
+						UStaticMesh *Mesh = Cast<UStaticMesh>(Object);
+						if (Mesh->StaticMaterials.Num() <= MaterialSlotIndex)
+						{
+							BadSlotIndex = true;
+							MeshMaterialNumber = Mesh->StaticMaterials.Num();
+						}
+						else
+						{
+							MaterialImportedName = Mesh->StaticMaterials[MaterialSlotIndex].ImportedMaterialSlotName.ToString();
+						}
+					}
+					else if (Object->IsA(USkeletalMesh::StaticClass()))
+					{
+						USkeletalMesh *Mesh = Cast<USkeletalMesh>(Object);
+						if (Mesh->Materials.Num() <= MaterialSlotIndex)
+						{
+							BadSlotIndex = true;
+							MeshMaterialNumber = Mesh->Materials.Num();
+						}
+						else
+						{
+							MaterialImportedName = Mesh->Materials[MaterialSlotIndex].ImportedMaterialSlotName.ToString();
+						}
+					}
+				}
+				if(BadSlotIndex)
+				{
+					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Material_Slot_Imported_Name material slot index [%d] is invalid. Expect something smaller then %d which is the mesh material number"),
+						*CleanFilename, *(TestPlan->TestPlanName), MaterialSlotIndex, MeshMaterialNumber));
+				}
+				else if (MaterialImportedName != ExpectedMaterialImportedName)
+				{
+					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [Material slot index %d has a materials imported name %s but expected %s]"),
+						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Material_Slot_Imported_Name"), ExpectedResultIndex), MaterialSlotIndex, *MaterialImportedName, *ExpectedMaterialImportedName));
 				}
 			}
 			break;
@@ -984,6 +1110,93 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 			}
 			break;
+			case Mesh_LOD_Section_Material_Imported_Name:
+			{
+				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 2 || ExpectedResult.ExpectedPresetsDataString.Num() < 1)
+				{
+					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 2 integer data and 1 string(LOD index, section index and Expected material name)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Mesh_LOD_Section_Material_Imported_Name"), ExpectedResultIndex)));
+					break;
+				}
+				int32 LODIndex = ExpectedResult.ExpectedPresetsDataInteger[0];
+				int32 SectionIndex = ExpectedResult.ExpectedPresetsDataInteger[1];
+				FString ExpectedMaterialName = ExpectedResult.ExpectedPresetsDataString[0];
+				int32 LODNumber = 0;
+				int32 SectionNumber = 0;
+				bool BadLodIndex = false;
+				bool BadSectionIndex = false;
+				FString MaterialName;
+				if (ImportedObjects.Num() > 0)
+				{
+					UObject *Object = ImportedObjects[0];
+					if (Object->IsA(UStaticMesh::StaticClass()))
+					{
+						UStaticMesh *Mesh = Cast<UStaticMesh>(Object);
+						LODNumber = Mesh->GetNumLODs();
+						if (LODIndex < 0 || LODIndex >= LODNumber)
+						{
+							BadLodIndex = true;
+						}
+						else
+						{
+							SectionNumber = Mesh->RenderData->LODResources[LODIndex].Sections.Num();
+							if (SectionIndex < 0 || SectionIndex >= SectionNumber)
+							{
+								BadSectionIndex = true;
+							}
+							else
+							{
+								int32 MaterialIndex = Mesh->RenderData->LODResources[LODIndex].Sections[SectionIndex].MaterialIndex;
+								if (MaterialIndex >= 0 && MaterialIndex < Mesh->StaticMaterials.Num())
+								{
+									MaterialName = Mesh->StaticMaterials[MaterialIndex].ImportedMaterialSlotName.ToString();
+								}
+							}
+						}
+					}
+					else if (Object->IsA(USkeletalMesh::StaticClass()))
+					{
+						USkeletalMesh *Mesh = Cast<USkeletalMesh>(Object);
+						LODNumber = Mesh->GetResourceForRendering()->LODModels.Num();
+						if (LODIndex < 0 || LODIndex >= LODNumber)
+						{
+							BadLodIndex = true;
+						}
+						else
+						{
+							SectionNumber = Mesh->GetResourceForRendering()->LODModels[LODIndex].Sections.Num();
+							if (SectionIndex < 0 || SectionIndex >= SectionNumber)
+							{
+								BadSectionIndex = true;
+							}
+							else
+							{
+								int32 MaterialIndex = Mesh->GetResourceForRendering()->LODModels[LODIndex].Sections[SectionIndex].MaterialIndex;
+								if (MaterialIndex >= 0 && MaterialIndex < Mesh->Materials.Num())
+								{
+									MaterialName = Mesh->Materials[MaterialIndex].ImportedMaterialSlotName.ToString();
+								}
+							}
+						}
+					}
+				}
+				if (BadLodIndex)
+				{
+					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Material_Imported_Name LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
+						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, LODNumber));
+				}
+				else if (BadSectionIndex)
+				{
+					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Material_Imported_Name Section index [%d] is invalid. Expect Section Index between 0 and %d which is the mesh LOD section number"),
+						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, SectionNumber));
+				}
+				else if (MaterialName.Compare(ExpectedMaterialName) != 0)
+				{
+					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [LOD index %d Section index %d contain import material name (%s) but expected name (%s)]"),
+						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Mesh_LOD_Section_Material_Imported_Name"), ExpectedResultIndex), LODIndex, SectionIndex, *MaterialName, *ExpectedMaterialName));
+				}
+			}
+			break;
 			case LOD_UV_Channel_Number:
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 2)
@@ -1130,8 +1343,37 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			};
 			ExpectedResultIndex++;
 		}
-		if (TestPlan->bDeleteFolderAssets)
+		if (TestPlan->bDeleteFolderAssets || TestPlan->Action == EFBXTestPlanActionType::ImportReload)
 		{
+			//When doing an import-reload we have to destroy the package since it was save
+			//But when we just have everything in memory a garbage collection pass is enough to
+			//delete assets.
+			if (TestPlan->Action != EFBXTestPlanActionType::ImportReload)
+			{
+				TArray<FAssetData> ImportedAssets;
+				AssetRegistryModule.Get().GetAssetsByPath(FName(*ImportAssetPath), ImportedAssets, true);
+				for (const FAssetData& AssetData : ImportedAssets)
+				{
+					UPackage *Package = AssetData.GetPackage();
+					if (Package != nullptr)
+					{
+						for (FObjectIterator It; It; ++It)
+						{
+							UObject* ExistingObject = *It;
+							if ((ExistingObject->GetOutermost() == Package))
+							{
+								ExistingObject->ClearFlags(RF_Standalone | RF_Public);
+								ExistingObject->RemoveFromRoot();
+								ExistingObject->MarkPendingKill();
+							}
+
+						}
+					}
+				}
+				CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+			}
+
+			//Make sure there is no more asset under "Engine\Content\FbxEditorAutomationOut" folder
 			GlobalImportedObjects.Empty();
 			TArray<FAssetData> AssetsToDelete;
 			AssetRegistryModule.Get().GetAssetsByPath(FName(*PackagePath), AssetsToDelete, true);

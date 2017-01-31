@@ -91,6 +91,12 @@
 		case EBlueprintTextLiteralType::LiteralString: \
 			SerializeExpr( iCode, Ar );	\
 			break; \
+		case EBlueprintTextLiteralType::StringTableEntry: \
+			XFER_OBJECT_POINTER( UObject* ); \
+			FIXUP_EXPR_OBJECT_POINTER( UObject* ); \
+			SerializeExpr( iCode, Ar );	\
+			SerializeExpr( iCode, Ar ); \
+			break; \
 		default: \
 			checkf(false, TEXT("Unknown EBlueprintTextLiteralType! Please update XFERTEXT to handle this type of text.")); \
 			break; \

@@ -56,18 +56,29 @@ static FVector2D RoundToInt(const FVector2D& Vec)
 	return FVector2D(FMath::RoundToInt(Vec.X), FMath::RoundToInt(Vec.Y));
 }
 
-FSlateRotatedRect FSlateRotatedRect::MakeSnappedRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform)
+FSlateRotatedRect FSlateRotatedRect::MakeRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FTransform2D& LayoutToRenderTransform)
 {
-	FSlateRotatedRect RotatedRect = TransformRect(
-		Concatenate(InverseLayoutTransform, RenderTransform),
-		FSlateRotatedRect(ClipRectInLayoutWindowSpace));
+	const FSlateRotatedRect RotatedRect = TransformRect(LayoutToRenderTransform, FSlateRotatedRect(ClipRectInLayoutWindowSpace));
+
+	const FVector2D TopRight = RotatedRect.TopLeft + RotatedRect.ExtentX;
+	const FVector2D BottomLeft = RotatedRect.TopLeft + RotatedRect.ExtentY;
+
+	return FSlateRotatedClipRectType(
+		RotatedRect.TopLeft,
+		TopRight - RotatedRect.TopLeft,
+		BottomLeft - RotatedRect.TopLeft);
+}
+
+FSlateRotatedRect FSlateRotatedRect::MakeSnappedRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FTransform2D& LayoutToRenderTransform)
+{
+	const FSlateRotatedRect RotatedRect = TransformRect(LayoutToRenderTransform, FSlateRotatedRect(ClipRectInLayoutWindowSpace));
 
 	// Pixel snapping is done here by rounding the resulting floats to ints, we do this before
 	// calculating the final extents of the clip box otherwise we'll get a smaller clip rect than a visual
 	// rect where each point is individually snapped.
-	FVector2D SnappedTopLeft = RoundToInt(RotatedRect.TopLeft);
-	FVector2D SnappedTopRight = RoundToInt(RotatedRect.TopLeft + RotatedRect.ExtentX);
-	FVector2D SnappedBottomLeft = RoundToInt(RotatedRect.TopLeft + RotatedRect.ExtentY);
+	const FVector2D SnappedTopLeft = RoundToInt(RotatedRect.TopLeft);
+	const FVector2D SnappedTopRight = RoundToInt(RotatedRect.TopLeft + RotatedRect.ExtentX);
+	const FVector2D SnappedBottomLeft = RoundToInt(RotatedRect.TopLeft + RotatedRect.ExtentY);
 
 	//NOTE: We explicitly do not re-snap the extent x/y, it wouldn't be correct to snap again in distance space
 	// even if two points are snapped, their distance wont necessarily be a whole number if those points are not
@@ -78,59 +89,3 @@ FSlateRotatedRect FSlateRotatedRect::MakeSnappedRotatedRect(const FSlateRect& Cl
 		SnappedBottomLeft - SnappedTopLeft);
 }
 
-FSlateVertex::FSlateVertex() 
-{
-}
-
-FSlateVertex::FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect )
-	: ClipRect( InClipRect )
-	, Color( InColor )
-{
-	TexCoords[0] = InTexCoord.X;
-	TexCoords[1] = InTexCoord.Y;
-	TexCoords[2] = InTexCoord2.X;
-	TexCoords[3] = InTexCoord2.Y;
-
-	const FVector2D WindowPosition = TransformPoint(RenderTransform, InLocalPosition);
-
-	// Pixel snapping here.
-	Position[0] = FMath::RoundToInt(WindowPosition.X);
-	Position[1] = FMath::RoundToInt(WindowPosition.Y);
-}
-
-FSlateVertex::FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect )
-	: ClipRect( InClipRect )
-	, Color( InColor )
-{
-	TexCoords[0] = InTexCoord.X;
-	TexCoords[1] = InTexCoord.Y;
-	TexCoords[2] = 1.0f;
-	TexCoords[3] = 1.0f;
-
-	const FVector2D WindowPosition = TransformPoint(RenderTransform, InLocalPosition);
-
-	// Pixel snapping here.
-	Position[0] = FMath::RoundToInt(WindowPosition.X);
-	Position[1] = FMath::RoundToInt(WindowPosition.Y);
-}
-
-
-FSlateVertex::FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector4& InTexCoord, const FVector2D& InMaterialTexCoords, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect )
-	: ClipRect( InClipRect )
-	, Color( InColor )
-{
-
-	TexCoords[0] = InTexCoord.X;
-	TexCoords[1] = InTexCoord.Y;
-	TexCoords[2] = InTexCoord.Z;
-	TexCoords[3] = InTexCoord.W;
-
-	MaterialTexCoords[0] = InMaterialTexCoords.X;
-	MaterialTexCoords[1] = InMaterialTexCoords.Y;
-
-	const FVector2D WindowPosition = TransformPoint(RenderTransform, InLocalPosition);
-
-	// Pixel snapping here.
-	Position[0] = FMath::RoundToInt(WindowPosition.X);
-	Position[1] = FMath::RoundToInt(WindowPosition.Y);
-}

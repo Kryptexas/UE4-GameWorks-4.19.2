@@ -101,6 +101,30 @@ bool FDefaultPluginWizardDefinition::GetPluginIconPath(FString& OutIconPath) con
 	return GetTemplateIconPath(CurrentTemplateDefinition.ToSharedRef(), OutIconPath);
 }
 
+EHostType::Type FDefaultPluginWizardDefinition::GetPluginModuleDescriptor() const
+{
+	EHostType::Type ModuleDescriptorType = EHostType::Developer;
+
+	if (CurrentTemplateDefinition.IsValid())
+	{
+		ModuleDescriptorType = CurrentTemplateDefinition->ModuleDescriptorType;
+	}
+
+	return ModuleDescriptorType;
+}
+
+ELoadingPhase::Type FDefaultPluginWizardDefinition::GetPluginLoadingPhase() const
+{
+	ELoadingPhase::Type Phase = ELoadingPhase::Default;
+
+	if (CurrentTemplateDefinition.IsValid())
+	{
+		Phase = CurrentTemplateDefinition->LoadingPhase;
+	}
+
+	return Phase;
+}
+
 bool FDefaultPluginWizardDefinition::GetTemplateIconPath(TSharedRef<FPluginTemplateDescription> Template, FString& OutIconPath) const
 {
 	bool bRequiresDefaultIcon = false;

@@ -160,6 +160,8 @@ struct LANDSCAPE_API FLandscapeEditDataInterface : public FLandscapeTextureDataI
 	void DeleteLayer(ULandscapeLayerInfoObject* LayerInfo);
 	// Fill a layer and re-normalize other layers
 	void FillLayer(ULandscapeLayerInfoObject* LayerInfo);
+	// Fill all empty layers and re-normalize layers
+	void FillEmptyLayers(ULandscapeLayerInfoObject* LayerInfo);
 	// Replace/merge a layer
 	void ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULandscapeLayerInfoObject* ToLayerInfo);
 

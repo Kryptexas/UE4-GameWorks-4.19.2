@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __DLGREFERENCETREE_H__
-#define __DLGREFERENCETREE_H__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Serialization/ArchiveUObject.h"
@@ -225,5 +223,3 @@ private:
 	/** Pointer to the containing window. */
 	TWeakPtr< SWindow > MyWindow;
 };
-
-#endif

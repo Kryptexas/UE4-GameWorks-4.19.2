@@ -416,4 +416,7 @@ private:
 	int32 NumBufferedFrames;
 	int32 CurrentBufferedTargetIndex;
 	int32 NextBufferedTargetIndex;
+
+	/** Tracks the number of touches currently active on the viewport */
+	int32 NumTouches;
 };

@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __ApexClothingUtils_h__
-#define __ApexClothingUtils_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "EngineDefines.h"
@@ -123,5 +121,3 @@ namespace ApexClothingUtils
 
 #endif // #if WITH_APEX_CLOTHING
 } // namespace ApexClothingUtils
-
-#endif //__ApexClothingUtils_h__

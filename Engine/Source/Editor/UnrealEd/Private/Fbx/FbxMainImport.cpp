@@ -25,6 +25,8 @@
 #include "EngineAnalytics.h"
 #include "AnalyticsEventAttribute.h"
 #include "Interfaces/IAnalyticsProvider.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Package.h"
 
 DEFINE_LOG_CATEGORY(LogFbx);
 
@@ -198,6 +200,7 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bUsedAsFullName = ImportUI->bOverrideFullName;
 	InOutImportOptions.bImportAnimations = ImportUI->bImportAnimations;
 	InOutImportOptions.SkeletonForAnimation = ImportUI->Skeleton;
+	InOutImportOptions.ImportType = ImportUI->MeshTypeToImport;
 
 	if ( ImportUI->MeshTypeToImport == FBXIT_StaticMesh )
 	{
@@ -940,6 +943,7 @@ bool FFbxImporter::ImportFile(FString Filename, bool bPreventMaterialNameClash /
 
 	// Get the version number of the FBX file format.
 	Importer->GetFileVersion(FileMajor, FileMinor, FileRevision);
+	FbxFileVersion = FString::Printf(TEXT("%d.%d.%d"), FileMajor, FileMinor, FileRevision);
 
 	// output result
 	if(bStatus)
@@ -1047,6 +1051,7 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 				{
 					if( FEngineAnalytics::IsAvailable() )
 					{
+						const static UEnum* FBXImportTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EFBXImportType"));
 						TArray<FAnalyticsEventAttribute> Attribs;
 
 						FString OriginalVendor(UTF8_TO_TCHAR(DocInfo->Original_ApplicationVendor.Get().Buffer()));
@@ -1057,6 +1062,8 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 						FString LastSavedAppName(UTF8_TO_TCHAR(DocInfo->LastSaved_ApplicationName.Get().Buffer()));
 						FString LastSavedAppVersion(UTF8_TO_TCHAR(DocInfo->LastSaved_ApplicationVersion.Get().Buffer()));
 
+						FString FilenameHash = FMD5::HashAnsiString(*Filename);
+
 						Attribs.Add(FAnalyticsEventAttribute(TEXT("Original Application Vendor"), OriginalVendor));
 						Attribs.Add(FAnalyticsEventAttribute(TEXT("Original Application Name"), OriginalAppName));
 						Attribs.Add(FAnalyticsEventAttribute(TEXT("Original Application Version"), OriginalAppVersion));
@@ -1064,6 +1071,11 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 						Attribs.Add(FAnalyticsEventAttribute(TEXT("LastSaved Application Vendor"), LastSavedVendor));
 						Attribs.Add(FAnalyticsEventAttribute(TEXT("LastSaved Application Name"), LastSavedAppName));
 						Attribs.Add(FAnalyticsEventAttribute(TEXT("LastSaved Application Version"), LastSavedAppVersion));
+
+						Attribs.Add(FAnalyticsEventAttribute(TEXT("FBX Version"), FbxFileVersion));
+						Attribs.Add(FAnalyticsEventAttribute(TEXT("Filename Hash"), FilenameHash));
+
+						Attribs.Add(FAnalyticsEventAttribute(TEXT("Import Type"), FBXImportTypeEnum->GetEnumName(ImportOptions->ImportType)));
 
 						FString EventString = FString::Printf(TEXT("Editor.Usage.FBX.Import"));
 						FEngineAnalytics::GetProvider().RecordEvent(EventString, Attribs);

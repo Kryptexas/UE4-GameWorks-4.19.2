@@ -791,7 +791,7 @@ struct TSlateBaseNamedArgs
 	template<typename MetaDataType, typename Arg0Type>
 	WidgetArgsType& AddMetaData(Arg0Type InArg0)
 	{
-		MetaData.Add(MakeShareable(new MetaDataType(InArg0)));
+		MetaData.Add(MakeShared<MetaDataType>(InArg0));
 		return Me();
 	}
 
@@ -799,7 +799,7 @@ struct TSlateBaseNamedArgs
 	template<typename MetaDataType, typename Arg0Type, typename Arg1Type>
 	WidgetArgsType& AddMetaData(Arg0Type InArg0, Arg1Type InArg1)
 	{
-		MetaData.Add(MakeShareable(new MetaDataType(InArg0, InArg1)));
+		MetaData.Add(MakeShared<MetaDataType>(InArg0, InArg1));
 		return Me();
 	}
 
@@ -990,7 +990,7 @@ struct TWidgetAllocator
 {
 	static TSharedRef<WidgetType> PrivateAllocateWidget()
 	{
-		return MakeShareable( new WidgetType() );
+		return MakeShared<WidgetType>();
 	}
 };
 

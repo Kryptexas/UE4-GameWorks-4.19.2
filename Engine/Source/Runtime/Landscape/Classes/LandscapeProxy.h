@@ -195,6 +195,19 @@ enum class ELandscapeLayerPaintingRestriction : uint8
 };
 
 UENUM()
+enum class ELandscapeLayerDisplayMode : uint8
+{
+	/** Material sorting display mode */
+	Default,
+
+	/** Alphabetical sorting display mode */
+	Alphabetical,
+
+	/** User specific sorting display mode */
+	UserSpecific,
+};
+
+UENUM()
 namespace ELandscapeLODFalloff
 {
 	enum Type
@@ -350,6 +363,14 @@ public:
 	/** LOD level to use when exporting the landscape to obj or FBX */
 	UPROPERTY(EditAnywhere, Category=LOD, AdvancedDisplay)
 	int32 ExportLOD;
+
+	/** Display Order of the targets */
+	UPROPERTY(NonTransactional)
+	TArray<FName> TargetDisplayOrderList;
+
+	/** Display Order mode for the targets */
+	UPROPERTY(NonTransactional)
+	ELandscapeLayerDisplayMode TargetDisplayOrder;
 #endif
 
 	/** LOD level to use when running lightmass (increase to 1 or 2 for large landscapes to stop lightmass crashing) */

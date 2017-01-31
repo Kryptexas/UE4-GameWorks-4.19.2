@@ -1226,6 +1226,33 @@ public:
 		TListTypeTraits<ItemType>::AddReferencedObjects( Collector, WidgetGenerator.ItemsWithGeneratedWidgets, SelectedItems );
 	}
 
+	/**
+	* Will determine the max row size for the specified column id
+	*
+	* @param ColumnId  Column Id
+	* @param Orientation  Orientation that is main axis you want to query
+	*
+	* @return The max size for a column Id.
+	*/
+	FVector2D GetMaxRowSizeForColumn(const FName& ColumnId, EOrientation Orientation)
+	{
+		FVector2D MaxSize = FVector2D::ZeroVector;
+
+		for (auto It = WidgetGenerator.WidgetMapToItem.CreateConstIterator(); It; ++It)
+		{
+			const ITableRow* TableRow = It.Key();
+			FVector2D NewMaxSize = TableRow->GetRowSizeForColumn(ColumnId);
+
+			// We'll return the full size, but we only take into consideration the asked axis for the calculation of the size
+			if (NewMaxSize.Component(Orientation) > MaxSize.Component(Orientation))
+			{
+				MaxSize = NewMaxSize;
+			}
+		}
+
+		return MaxSize;
+	}
+
 protected:
 
 	FOnItemToString_Debug GetDefaultDebugDelegate()

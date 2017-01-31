@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __AnimViewportShowCommands_h_
-#define __AnimViewportShowCommands_h_
+#pragma once
 
 #include "CoreMinimal.h"
 #include "EngineDefines.h"
@@ -152,6 +150,3 @@ public:
 	/** Registers our commands with the binding system */
 	virtual void RegisterCommands() override;
 };
-
-
-#endif //__AnimViewportShowCommands_h_

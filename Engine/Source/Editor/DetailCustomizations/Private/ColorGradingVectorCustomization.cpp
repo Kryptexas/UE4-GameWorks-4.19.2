@@ -168,11 +168,21 @@ void FColorGradingCustomBuilder::GenerateHeaderRowContent(FDetailWidgetRow& Node
 			SNew(SBox)
 		];
 	int32 ColorIndex = 0;
+	FText LabelText[4];
+	LabelText[0] = NSLOCTEXT("ColorGradingVectorCustomizationNS", "RedChannelSmallName", "R");
+	LabelText[1] = NSLOCTEXT("ColorGradingVectorCustomizationNS", "GreenChannelSmallName", "G");
+	LabelText[2] = NSLOCTEXT("ColorGradingVectorCustomizationNS", "BlueChannelSmallName", "B");
+	LabelText[3] = NSLOCTEXT("ColorGradingVectorCustomizationNS", "LuminanceChannelSmallName", "Y");
 	for (TWeakPtr<IPropertyHandle> ChildProperty : SortedChildArray)
 	{
+		FText LabelChannelText = ChildProperty.Pin()->GetPropertyDisplayName();
+		if(ColorIndex >= 0 && ColorIndex < 4)
+		{
+			LabelChannelText = LabelText[ColorIndex];
+		}
 		TSharedPtr<SWidget> LabelWidget = SNew(STextBlock)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
-			.Text(ChildProperty.Pin()->GetPropertyDisplayName());
+			.Text(LabelChannelText);
 
 
 		TSharedPtr<SNumericEntryBox<float>> NumericEntry;

@@ -838,10 +838,21 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxNodeUniqueId
 					ImportStaticMeshAsSingle(Mesh->GetOutermost(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, FirstBaseMesh, LODIndex, nullptr);
 				}
 			}
+			if (FirstBaseMesh != nullptr)
+			{
+				FindAllLODGroupNode(AllNodeInLod, NodeParent, 0);
+				PostImportStaticMesh(FirstBaseMesh, AllNodeInLod);
+			}
 		}
 		else
 		{
 			FirstBaseMesh = ImportStaticMesh(Mesh->GetOutermost(), Node, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0, ExistMeshDataPtr);
+			if (FirstBaseMesh != nullptr)
+			{
+				TArray<FbxNode*> AllNodeInLod;
+				AllNodeInLod.Add(Node);
+				PostImportStaticMesh(FirstBaseMesh, AllNodeInLod);
+			}
 		}
 	}
 	else
@@ -850,6 +861,10 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxNodeUniqueId
 		if (FbxMeshArray.Num() > 0)
 		{
 			FirstBaseMesh = ImportStaticMeshAsSingle(Mesh->GetOutermost(), FbxMeshArray, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0, ExistMeshDataPtr);
+			if (FirstBaseMesh != nullptr)
+			{
+				PostImportStaticMesh(FirstBaseMesh, FbxMeshArray);
+			}
 		}
 		else // no mesh found in the FBX file
 		{
@@ -977,7 +992,12 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 			LodZeroNodes.Add(Node);
 			NewMesh = ImportStaticMesh(Mesh->GetOuter(), Node, *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData, Mesh, 0, ExistMeshDataPtr);
 		}
-		ReorderMaterialToFbxOrder(NewMesh, LodZeroNodes);
+
+		if (NewMesh != nullptr)
+		{
+			PostImportStaticMesh(NewMesh, LodZeroNodes);
+		}
+		
 	}
 	else
 	{
@@ -985,7 +1005,10 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 		if (FbxMeshArray.Num() > 0)
 		{
 			NewMesh = ImportStaticMeshAsSingle(Mesh->GetOuter(), FbxMeshArray, *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData, Mesh, 0, ExistMeshDataPtr);
-			ReorderMaterialToFbxOrder(NewMesh, FbxMeshArray);
+			if (NewMesh != nullptr)
+			{
+				PostImportStaticMesh(NewMesh, FbxMeshArray);
+			}
 		}
 		else // no mesh found in the FBX file
 		{
@@ -1492,14 +1515,13 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		{
 			SrcModel.BuildSettings.bGenerateLightmapUVs = true;
 			SrcModel.BuildSettings.DstLightmapIndex = FirstOpenUVChannel;
-StaticMesh->LightMapCoordinateIndex = FirstOpenUVChannel;
+			StaticMesh->LightMapCoordinateIndex = FirstOpenUVChannel;
 		}
 		else
 		{
 			SrcModel.BuildSettings.bGenerateLightmapUVs = false;
 		}
 
-		TArray<FText> BuildErrors;
 		StaticMesh->LODGroup = ImportOptions->StaticMeshLODGroup;
 
 		//Set the Imported version before calling the build
@@ -1511,31 +1533,7 @@ StaticMesh->LightMapCoordinateIndex = FirstOpenUVChannel;
 			RestoreExistingMeshSettings(ExistMeshData, InStaticMesh, StaticMesh->LODGroup != NAME_None ? INDEX_NONE : LODIndex);
 		}
 
-		StaticMesh->Build(false, &BuildErrors);
-
-		for (FText& Error : BuildErrors)
-		{
-			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, Error), FFbxErrors::StaticMesh_BuildError);
-		}
-
-		// this is damage control. After build, we'd like to absolutely sure that 
-		// all index is pointing correctly and they're all used. Otherwise we remove them
-		FMeshSectionInfoMap OldSectionInfoMap = StaticMesh->SectionInfoMap;
-		StaticMesh->SectionInfoMap.Clear();
-		// fix up section data
-		for (int32 LODResoureceIndex = 0; LODResoureceIndex < StaticMesh->RenderData->LODResources.Num(); ++LODResoureceIndex)
-		{
-			FStaticMeshLODResources& LOD = StaticMesh->RenderData->LODResources[LODResoureceIndex];
-			int32 NumSections = LOD.Sections.Num();
-			for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
-			{
-				FMeshSectionInfo Info = OldSectionInfoMap.Get(LODResoureceIndex, SectionIndex);
-				if (StaticMesh->StaticMaterials.IsValidIndex(Info.MaterialIndex))
-				{
-					StaticMesh->SectionInfoMap.Set(LODResoureceIndex, SectionIndex, Info);
-				}
-			}
-		}
+		
 
 		// The code to check for bad lightmap UVs doesn't scale well with number of triangles.
 		// Skip it here because Lightmass will warn about it during a light build anyway.
@@ -1568,20 +1566,6 @@ StaticMesh->LightMapCoordinateIndex = FirstOpenUVChannel;
 
 	if (StaticMesh)
 	{
-
-		//collision generation
-		if (StaticMesh->bCustomizedCollision == false && ImportOptions->bAutoGenerateCollision)
-		{
-			FKAggregateGeom & AggGeom = StaticMesh->BodySetup->AggGeom;
-			AggGeom.ConvexElems.Empty(1);	//if no custom collision is setup we just regenerate collision when reimport
-
-			const int32 NumDirs = 18;
-			TArray<FVector> Dirs;
-			Dirs.AddUninitialized(NumDirs);
-			for (int32 DirIdx = 0; DirIdx < NumDirs; ++DirIdx) { Dirs[DirIdx] = KDopDir18[DirIdx]; }
-			GenerateKDopAsSimpleCollision(StaticMesh, Dirs);
-		}
-
 		//warnings based on geometry
 		VerifyGeometry(StaticMesh);
 
@@ -1591,10 +1575,57 @@ StaticMesh->LightMapCoordinateIndex = FirstOpenUVChannel;
 	return StaticMesh;
 }
 
-void UnFbx::FFbxImporter::ReorderMaterialToFbxOrder(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray)
+void UnFbx::FFbxImporter::PostImportStaticMesh(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray)
 {
+	if (StaticMesh == nullptr)
+	{
+		return;
+	}
+
+	// Build the staticmesh, we move the build here because we want to avoid building the staticmesh for every LOD
+	// when we import the mesh.
+	TArray<FText> BuildErrors;
+	StaticMesh->Build(false, &BuildErrors);
+
+	for (FText& Error : BuildErrors)
+	{
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, Error), FFbxErrors::StaticMesh_BuildError);
+	}
+
+	// this is damage control. After build, we'd like to absolutely sure that 
+	// all index is pointing correctly and they're all used. Otherwise we remove them
+	FMeshSectionInfoMap TempOldSectionInfoMap = StaticMesh->SectionInfoMap;
+	StaticMesh->SectionInfoMap.Clear();
+	// fix up section data
+	for (int32 LODResoureceIndex = 0; LODResoureceIndex < StaticMesh->RenderData->LODResources.Num(); ++LODResoureceIndex)
+	{
+		FStaticMeshLODResources& LOD = StaticMesh->RenderData->LODResources[LODResoureceIndex];
+		int32 NumSections = LOD.Sections.Num();
+		for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+		{
+			FMeshSectionInfo Info = TempOldSectionInfoMap.Get(LODResoureceIndex, SectionIndex);
+			if (StaticMesh->StaticMaterials.IsValidIndex(Info.MaterialIndex))
+			{
+				StaticMesh->SectionInfoMap.Set(LODResoureceIndex, SectionIndex, Info);
+			}
+		}
+	}
+
+	//collision generation must be done after the build, this will ensure a valid BodySetup
+	if (StaticMesh->bCustomizedCollision == false && ImportOptions->bAutoGenerateCollision && StaticMesh->BodySetup)
+	{
+		FKAggregateGeom & AggGeom = StaticMesh->BodySetup->AggGeom;
+		AggGeom.ConvexElems.Empty(1);	//if no custom collision is setup we just regenerate collision when reimport
+
+		const int32 NumDirs = 18;
+		TArray<FVector> Dirs;
+		Dirs.AddUninitialized(NumDirs);
+		for (int32 DirIdx = 0; DirIdx < NumDirs; ++DirIdx) { Dirs[DirIdx] = KDopDir18[DirIdx]; }
+		GenerateKDopAsSimpleCollision(StaticMesh, Dirs);
+	}
+
 	//If there is less the 2 materials in the fbx file there is no need to reorder them
-	if (StaticMesh == nullptr || StaticMesh->StaticMaterials.Num() < 2)
+	if (StaticMesh->StaticMaterials.Num() < 2)
 	{
 		return;
 	}
@@ -1624,6 +1655,61 @@ void UnFbx::FFbxImporter::ReorderMaterialToFbxOrder(UStaticMesh* StaticMesh, TAr
 	if (MeshMaterials.Num() < 1)
 	{
 		return;
+	}
+
+	//If there is some skinxx material name we will reorder the material to follow the skinxx workflow instead of the fbx order
+	bool IsUsingSkinxxWorkflow = true;
+	TArray<FString> MeshMaterialsSkinXX;
+	MeshMaterialsSkinXX.AddZeroed(MeshMaterials.Num());
+	for (int32 FbxMaterialIndex = 0; FbxMaterialIndex < MeshMaterials.Num(); ++FbxMaterialIndex)
+	{
+		const FString &FbxMaterialName = MeshMaterials[FbxMaterialIndex];
+		//If we have all skinxx material name we have to re-order to skinxx workflow
+		int32 Offset = FbxMaterialName.Find(TEXT("_SKIN"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+		if (Offset == INDEX_NONE)
+		{
+			IsUsingSkinxxWorkflow = false;
+			MeshMaterialsSkinXX.Empty();
+			break;
+		}
+		int32 SkinIndex = INDEX_NONE;
+		// Chop off the material name so we are left with the number in _SKINXX
+		FString SkinXXNumber = FbxMaterialName.Right(FbxMaterialName.Len() - (Offset + 1)).RightChop(4);
+		if (SkinXXNumber.IsNumeric())
+		{
+			SkinIndex = FPlatformString::Atoi(*SkinXXNumber);
+		}
+
+		if (SkinIndex >= MeshMaterialsSkinXX.Num())
+		{
+			MeshMaterialsSkinXX.AddZeroed((SkinIndex + 1) - MeshMaterialsSkinXX.Num());
+		}
+		if (MeshMaterialsSkinXX.IsValidIndex(SkinIndex))
+		{
+			MeshMaterialsSkinXX[SkinIndex] = FbxMaterialName;
+		}
+		else
+		{
+			//Cannot reorder this item
+			IsUsingSkinxxWorkflow = false;
+			MeshMaterialsSkinXX.Empty();
+			break;
+		}
+	}
+
+	if (IsUsingSkinxxWorkflow)
+	{
+		//Shrink the array to valid entry, in case the skinxx has some hole like _skin[01, 02, 04, 05...]
+		for (int32 FbxMaterialIndex = MeshMaterialsSkinXX.Num() - 1; FbxMaterialIndex >= 0; --FbxMaterialIndex)
+		{
+			const FString &FbxMaterial = MeshMaterialsSkinXX[FbxMaterialIndex];
+			if (FbxMaterial.IsEmpty())
+			{
+				MeshMaterialsSkinXX.RemoveAt(FbxMaterialIndex);
+			}
+		}
+		//Replace the fbx ordered materials by the skinxx ordered material
+		MeshMaterials = MeshMaterialsSkinXX;
 	}
 
 	//Reorder the StaticMaterials array to reflect the order in the fbx file

@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __ASSETNOTIFICATIONS_H__
-#define __ASSETNOTIFICATIONS_H__
+#pragma once
 
 #include "CoreMinimal.h"
 
@@ -11,8 +10,3 @@ public:
 	/** Inform about change in skeleton asset that requires saving*/
 	UNREALED_API static void SkeletonNeedsToBeSaved(const class USkeleton* Skeleton);
 };
-
-#endif
-
-// EOF
-

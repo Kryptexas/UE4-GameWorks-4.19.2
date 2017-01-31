@@ -5,11 +5,17 @@
 #include "Internationalization/ITextData.h"
 #include "Internationalization/Culture.h"
 #include "Internationalization/Internationalization.h"
+#include "Internationalization/StringTableCore.h"
+#include "Internationalization/StringTableRegistry.h"
 #include "Misc/Guid.h"
+#include "Misc/ScopeLock.h"
 
 #include "Internationalization/TextFormatter.h"
 #include "Internationalization/TextNamespaceUtil.h"
 #include "UObject/PropertyPortFlags.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(LogTextHistory, Log, All);
+DEFINE_LOG_CATEGORY(LogTextHistory);
 
 ///////////////////////////////////////
 // FTextHistory
@@ -1058,4 +1064,169 @@ void FTextHistory_Transform::GetHistoricFormatData(const FText& InText, TArray<F
 bool FTextHistory_Transform::GetHistoricNumericData(const FText& InText, FHistoricTextNumericData& OutHistoricNumericData) const
 {
 	return FTextInspector::GetHistoricNumericData(SourceText, OutHistoricNumericData);
+}
+
+// FTextHistory_StringTableEntry
+
+FTextHistory_StringTableEntry::FTextHistory_StringTableEntry(FName InTableId, FString&& InKey)
+	: TableId(InTableId)
+	, Key(MoveTemp(InKey))
+{
+	GetStringTableEntry();
+}
+
+FTextHistory_StringTableEntry::FTextHistory_StringTableEntry(FTextHistory_StringTableEntry&& Other)
+	: FTextHistory(MoveTemp(Other))
+	, TableId(Other.TableId)
+	, Key(MoveTemp(Other.Key))
+	, StringTableEntry(MoveTemp(Other.StringTableEntry))
+{
+	Other.TableId = FName();
+}
+
+FTextHistory_StringTableEntry& FTextHistory_StringTableEntry::operator=(FTextHistory_StringTableEntry&& Other)
+{
+	FTextHistory::operator=(MoveTemp(Other));
+	if (this != &Other)
+	{
+		TableId = Other.TableId;
+		Key = MoveTemp(Other.Key);
+		StringTableEntry = MoveTemp(Other.StringTableEntry);
+	
+		Other.TableId = FName();
+	}
+	return *this;
+}
+
+FText FTextHistory_StringTableEntry::ToText(bool bInAsSource) const
+{
+	if (bInAsSource)
+	{
+		FStringTableEntryConstPtr StringTableEntryPin = GetStringTableEntry();
+		return StringTableEntryPin.IsValid() ? FText::FromString(StringTableEntryPin->GetSourceString()) : FText::GetEmpty();
+	}
+
+	// This should never be called except to build as source
+	check(0);
+
+	return FText::GetEmpty();
+}
+
+const FString* FTextHistory_StringTableEntry::GetSourceString() const
+{
+	FStringTableEntryConstPtr StringTableEntryPin = GetStringTableEntry();
+	if (StringTableEntryPin.IsValid())
+	{
+		return &StringTableEntryPin->GetSourceString();
+	}
+
+	static const FString MissingSourceString = TEXT("<MISSING STRING TABLE ENTRY>");
+	return &MissingSourceString;
+}
+
+FTextDisplayStringRef FTextHistory_StringTableEntry::GetDisplayString() const
+{
+	FStringTableEntryConstPtr StringTableEntryPin = GetStringTableEntry();
+	if (StringTableEntryPin.IsValid())
+	{
+		FTextDisplayStringPtr DisplayString = StringTableEntryPin->GetDisplayString();
+		if (DisplayString.IsValid())
+		{
+			return DisplayString.ToSharedRef();
+		}
+	}
+
+	static const FTextDisplayStringRef MissingDisplayString = MakeShareable(new FString(TEXT("<MISSING STRING TABLE ENTRY>")));
+	return MissingDisplayString;
+}
+
+void FTextHistory_StringTableEntry::GetTableIdAndKey(FName& OutTableId, FString& OutKey) const
+{
+	OutTableId = TableId;
+	OutKey = Key;
+}
+
+void FTextHistory_StringTableEntry::Serialize(FArchive& Ar)
+{
+	if (Ar.IsSaving())
+	{
+		int8 HistoryType = (int8)ETextHistoryType::StringTableEntry;
+		Ar << HistoryType;
+	}
+
+	if (Ar.IsLoading())
+	{
+		// We will definitely need to do a rebuild later
+		Revision = 0;
+
+		Ar << TableId;
+		Ar << Key;
+
+		// String Table assets should already have been created via dependency loading when using the EDL (although they may not be fully loaded yet)
+		FStringTableRedirects::RedirectTableIdAndKey(TableId, Key, GEventDrivenLoaderEnabled ? EStringTableLoadingPolicy::Find : EStringTableLoadingPolicy::FindOrLoad);
+
+		// Re-cache the pointer
+		StringTableEntry.Reset();
+		GetStringTableEntry();
+	}
+	else if (Ar.IsSaving())
+	{
+		// Update the table ID and key on save to make sure they're up-to-date
+		FStringTableEntryConstPtr StringTableEntryPin = GetStringTableEntry();
+		if (StringTableEntryPin.IsValid())
+		{
+			FTextDisplayStringPtr DisplayString = StringTableEntryPin->GetDisplayString();
+			FStringTableRegistry::Get().FindTableIdAndKey(DisplayString.ToSharedRef(), TableId, Key);
+		}
+
+		Ar << TableId;
+		Ar << Key;
+	}
+
+	// Collect string table asset references
+	FStringTableReferenceCollection::CollectAssetReferences(TableId, Ar);
+}
+
+void FTextHistory_StringTableEntry::SerializeForDisplayString(FArchive& Ar, FTextDisplayStringPtr& InOutDisplayString)
+{
+	if (Ar.IsLoading())
+	{
+		// We will definitely need to do a rebuild later
+		Revision = 0;
+	}
+}
+
+FStringTableEntryConstPtr FTextHistory_StringTableEntry::GetStringTableEntry() const
+{
+	FStringTableEntryConstPtr StringTableEntryPin = StringTableEntry.Pin();
+
+	bool bSuppressMissingEntryWarning = false;
+
+	if (!StringTableEntryPin.IsValid() || !StringTableEntryPin->IsOwned())
+	{
+		FScopeLock ScopeLock(&StringTableEntryCS);
+
+		// Test again now that we've taken the lock in-case another thread beat us to it
+		StringTableEntryPin = StringTableEntry.Pin();
+		if (!StringTableEntryPin.IsValid() || !StringTableEntryPin->IsOwned())
+		{
+			StringTableEntryPin.Reset();
+
+			FStringTableConstPtr StringTable = FStringTableRegistry::Get().FindStringTable(TableId);
+			if (StringTable.IsValid())
+			{
+				bSuppressMissingEntryWarning = !StringTable->IsLoaded();
+				StringTableEntryPin = StringTable->FindEntry(Key);
+			}
+
+			StringTableEntry = StringTableEntryPin;
+		}
+	}
+
+	if (!StringTableEntryPin.IsValid() && !bSuppressMissingEntryWarning)
+	{
+		FStringTableRegistry::Get().LogMissingStringTableEntry(TableId, Key);
+	}
+
+	return StringTableEntryPin;
 }

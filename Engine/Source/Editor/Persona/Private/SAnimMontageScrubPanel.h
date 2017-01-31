@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __SAnimMontageScrubPanel_h__
-#define __SAnimMontageScrubPanel_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Input/Reply.h"
@@ -56,4 +55,3 @@ protected:
 private:
 	TWeakPtr<SMontageEditor> MontageEditor;
 };
-#endif // __SAnimMontageScrubPanel_h__

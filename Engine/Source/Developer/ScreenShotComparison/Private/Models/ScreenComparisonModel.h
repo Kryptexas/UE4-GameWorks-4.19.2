@@ -4,31 +4,51 @@
 #include "CoreMinimal.h"
 #include "ImageComparer.h"
 #include "AutomationWorkerMessages.h"
-
-enum class EComparisonResultType
-{
-	Added,
-	Missing,
-	Compared
-};
+#include "Misc/FileHelper.h"
+#include "JsonObjectConverter.h"
+#include "AutomationWorkerMessages.h"
+#include "Interfaces/IScreenShotManager.h"
 
 class FScreenComparisonModel
 {
 public:
-	FScreenComparisonModel(EComparisonResultType InType)
-		: Type(InType)
-	{
-	}
+	FScreenComparisonModel(const FComparisonReport& InReport);
 
-	EComparisonResultType GetType() const { return Type; }
+	DECLARE_MULTICAST_DELEGATE(FOnComplete);
+	FOnComplete OnComplete;
 
-	FString Folder;
+	FComparisonReport Report;
 
-	TOptional<FImageComparisonResult> ComparisonResult;
+	bool IsComplete() const;
+
+	void Complete();
+
+	bool AddNew(IScreenShotManagerPtr ScreenshotManager);
+	bool Replace(IScreenShotManagerPtr ScreenshotManager);
+	bool AddAlternative(IScreenShotManagerPtr ScreenshotManager);
+
+	TOptional<FAutomationScreenshotMetadata> GetMetadata();
+
+private:
+	bool RemoveExistingApproved(IScreenShotManagerPtr ScreenshotManager);
+
+private:
+	bool bComplete;
 
 	TOptional<FAutomationScreenshotMetadata> Metadata;
 
-private:
+	struct FFileMapping
+	{
+		FFileMapping(const FString& InSourceFile, const FString& InDestinationFile)
+			: SourceFile(InSourceFile)
+			, DestinationFile(InDestinationFile)
+		{
+		}
 
-	EComparisonResultType Type;
+		FString SourceFile;
+		FString DestinationFile;
+	};
+
+	// 
+	TArray<FFileMapping> FileImports;
 };

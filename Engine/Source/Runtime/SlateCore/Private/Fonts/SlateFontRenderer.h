@@ -38,7 +38,7 @@ namespace SlateFontRendererUtils
 {
 
 /** Character used to substitute invalid font characters */
-const TCHAR InvalidSubChar = '\u001A';
+const TCHAR InvalidSubChar = TEXT('\uFFFD');
 
 #if WITH_FREETYPE
 

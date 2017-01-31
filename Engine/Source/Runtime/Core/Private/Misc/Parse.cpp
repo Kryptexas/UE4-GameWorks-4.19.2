@@ -371,6 +371,11 @@ bool FParse::QuotedString( const TCHAR* Buffer, FString& Value, int32* OutNumCha
 			Value += TCHAR('\r');
 			++Buffer;
 		}
+		else if (*Buffer == TCHAR('t')) // escaped tab
+		{
+			Value += TCHAR('\t');
+			++Buffer;
+		}
 		else // some other escape sequence, assume it's a hex character value
 		{
 			Value += FString::Printf(TEXT("%c"), (HexDigit(Buffer[0]) * 16) + HexDigit(Buffer[1]));

@@ -354,7 +354,7 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	const bool bAllowMinimize = GetDefault<UGeneralProjectSettings>()->bAllowMinimize;
 
 	// Allow optional winX/winY parameters to set initial window position
-	EAutoCenter::Type AutoCenterType = EAutoCenter::PrimaryWorkArea;
+	EAutoCenter AutoCenterType = EAutoCenter::PrimaryWorkArea;
 	int32 WinX=0;
 	int32 WinY=0;
 	if (FParse::Value(FCommandLine::Get(), TEXT("WinX="), WinX) && FParse::Value(FCommandLine::Get(), TEXT("WinY="), WinY))

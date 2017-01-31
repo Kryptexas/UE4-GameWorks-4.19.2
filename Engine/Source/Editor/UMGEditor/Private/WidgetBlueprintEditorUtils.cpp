@@ -430,6 +430,42 @@ UWidget* FWidgetBlueprintEditorUtils::FindNamedSlotHostWidgetForContent(UWidget*
 	return HostWidget;
 }
 
+void FWidgetBlueprintEditorUtils::FindAllAncestorNamedSlotHostWidgetsForContent(TArray<FWidgetReference>& OutSlotHostWidgets, UWidget* WidgetTemplate, TSharedRef<FWidgetBlueprintEditor> BlueprintEditor)
+{
+	OutSlotHostWidgets.Empty();
+	UUserWidget* Preview = BlueprintEditor->GetPreview();
+	UWidgetBlueprint* WidgetBP = BlueprintEditor->GetWidgetBlueprintObj();
+	UWidgetTree* WidgetTree = (WidgetBP != nullptr) ? WidgetBP->WidgetTree : nullptr;
+
+	if (Preview != nullptr && WidgetTree != nullptr)
+	{
+		UWidget* SlotHostWidget = FindNamedSlotHostWidgetForContent(WidgetTemplate, WidgetTree);
+		while (SlotHostWidget != nullptr)
+		{
+			UWidget* SlotWidget = Preview->GetWidgetFromName(SlotHostWidget->GetFName());
+			FWidgetReference WidgetRef;
+
+			if (SlotWidget != nullptr)
+			{
+				WidgetRef = BlueprintEditor->GetReferenceFromPreview(SlotWidget);
+
+				if (WidgetRef.IsValid())
+				{
+					OutSlotHostWidgets.Add(WidgetRef);
+				}
+			}
+
+			WidgetTemplate = WidgetRef.GetTemplate();
+
+			SlotHostWidget = nullptr;
+			if (WidgetTemplate != nullptr)
+			{
+				SlotHostWidget = FindNamedSlotHostWidgetForContent(WidgetRef.GetTemplate(), WidgetTree);
+			}
+		}
+	}
+}
+
 bool FWidgetBlueprintEditorUtils::RemoveNamedSlotHostContent(UWidget* WidgetTemplate, INamedSlotInterface* NamedSlotHost)
 {
 	TArray<FName> SlotNames;
@@ -1117,7 +1153,11 @@ void FWidgetBlueprintEditorUtils::ImportWidgetsFromText(UWidgetBlueprint* BP, co
 			}
 
 			Widget->Rename(nullptr, BP->WidgetTree);
-			Widget->SetDisplayLabel(Widget->GetName());
+
+			if (Widget->GetDisplayLabel().Equals(WidgetOldName))
+			{
+				Widget->SetDisplayLabel(Widget->GetName());
+			}
 
 			if ( SlotData )
 			{

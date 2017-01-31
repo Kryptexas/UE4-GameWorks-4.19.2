@@ -138,6 +138,11 @@ void UUserDefinedStruct::InitializeDefaultValue(uint8* StructData) const
 	FStructureEditorUtils::Fill_MakeStructureDefaultValue(this, StructData);
 }
 
+bool UUserDefinedStruct::DiffersFromDefaultValue(uint8* StructData) const
+{
+	return FStructureEditorUtils::DiffersFromDefaultValue(this, StructData);
+}
+
 void UUserDefinedStruct::ValidateGuid()
 {
 	// Backward compatibility:

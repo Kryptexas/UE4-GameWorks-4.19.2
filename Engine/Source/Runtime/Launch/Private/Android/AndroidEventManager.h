@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef ANDROID_EVENT_MANAGER_H
-#define ANDROID_EVENT_MANAGER_H
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Containers/Queue.h"
@@ -93,6 +92,3 @@ private:
 	bool bHaveGame;
 	bool bRunning;
 };
-
-
-#endif

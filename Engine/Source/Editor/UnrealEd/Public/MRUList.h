@@ -5,8 +5,7 @@
 
 =============================================================================*/
 
-#ifndef __MRULIST_H__
-#define __MRULIST_H__
+#pragma once
 
 #include "CoreMinimal.h"
 
@@ -129,5 +128,3 @@ protected:
 	/** The INI section we read/write the filenames to. */
 	FString INISection;
 };
-
-#endif // #ifndef __MRULIST_H__

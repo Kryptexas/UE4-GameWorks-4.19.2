@@ -306,7 +306,8 @@ UObject* UFbxFactory::FactoryCreateBinary
 							NewStaticMesh = FbxImporter->ImportStaticMeshAsSingle(InParent, FbxMeshArray, Name, Flags, ImportUI->StaticMeshImportData, NULL, 0);
 							if (NewStaticMesh != nullptr)
 							{
-								FbxImporter->ReorderMaterialToFbxOrder(NewStaticMesh, FbxMeshArray);
+								//Build the staticmesh
+								FbxImporter->PostImportStaticMesh(NewStaticMesh, FbxMeshArray);
 							}
 						}
 
@@ -357,6 +358,13 @@ UObject* UFbxFactory::FactoryCreateBinary
 						{
 							TArray<FbxNode*> &LODMeshesArray = FbxMeshesLod[LODIndex];
 							FbxImporter->ImportStaticMeshAsSingle(InParent, LODMeshesArray, Name, Flags, ImportUI->StaticMeshImportData, NewStaticMesh, LODIndex);
+						}
+						
+						//Build the staticmesh
+						if (NewStaticMesh)
+						{
+							TArray<FbxNode*> &LODMeshesArray = FbxMeshesLod[0];
+							FbxImporter->PostImportStaticMesh(NewStaticMesh, LODMeshesArray);
 						}
 					}
 					else
@@ -668,12 +676,16 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 		
 		if (NewObject)
 		{
-			//Reorder the material
-			TArray<FbxNode*> Nodes;
-			FbxImporter->FindAllLODGroupNode(Nodes, Node, 0);
-			if (Nodes.Num() > 0)
+			UStaticMesh *NewStaticMesh = Cast<UStaticMesh>(NewObject);
+			if (NewStaticMesh != nullptr)
 			{
-				FbxImporter->ReorderMaterialToFbxOrder(Cast<UStaticMesh>(NewObject), Nodes);
+				//Reorder the material
+				TArray<FbxNode*> Nodes;
+				FbxImporter->FindAllLODGroupNode(Nodes, Node, 0);
+				if (Nodes.Num() > 0)
+				{
+					FbxImporter->PostImportStaticMesh(NewStaticMesh, Nodes);
+				}
 			}
 		}
 	}
@@ -687,10 +699,14 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 
 			if ( NewObject )
 			{
-				//Reorder the material
-				TArray<FbxNode*> Nodes;
-				Nodes.Add(Node);
-				FbxImporter->ReorderMaterialToFbxOrder(Cast<UStaticMesh>(NewObject), Nodes);
+				UStaticMesh *NewStaticMesh = Cast<UStaticMesh>(NewObject);
+				if (NewStaticMesh != nullptr)
+				{
+					//Reorder the material
+					TArray<FbxNode*> Nodes;
+					Nodes.Add(Node);
+					FbxImporter->PostImportStaticMesh(NewStaticMesh, Nodes);
+				}
 
 				OutNewAssets.Add(NewObject);
 			}

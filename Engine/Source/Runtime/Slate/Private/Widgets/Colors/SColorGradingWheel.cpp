@@ -90,7 +90,7 @@ FReply SColorGradingWheel::OnMouseMove(const FGeometry& MyGeometry, const FPoint
 int32 SColorGradingWheel::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const bool bIsEnabled = ShouldBeEnabled(bParentEnabled);
-	const uint32 DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const ESlateDrawEffect DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 	const FVector2D& SelectorSize = SelectorImage->ImageSize;
 	FVector2D CircleSize = AllottedGeometry.Size - SelectorSize;
 	FVector2D AllottedGeometrySize = AllottedGeometry.Size;

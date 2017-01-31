@@ -219,9 +219,9 @@ bool FTextLocalizationResourceGenerator::GenerateAndUpdateLiveEntriesFromConfig(
 		return false;
 	}
 
-	// Get manifest name.
+	// Get archive name.
 	FString ArchiveName;
-	if (!GConfig->GetString(*SectionName, TEXT("ArchiveName"), ManifestName, InConfigFilePath))
+	if (!GConfig->GetString(*SectionName, TEXT("ArchiveName"), ArchiveName, InConfigFilePath))
 	{
 		UE_LOG(LogTextLocalizationResourceGenerator, Error, TEXT("No archive name specified."));
 		return false;

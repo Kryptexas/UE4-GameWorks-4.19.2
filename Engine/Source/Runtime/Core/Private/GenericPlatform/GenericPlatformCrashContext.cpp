@@ -32,6 +32,8 @@ const ANSICHAR* FGenericCrashContext::CrashConfigFileNameA = "CrashReportClient.
 const TCHAR* FGenericCrashContext::CrashConfigFileNameW = TEXT("CrashReportClient.ini");
 const FString FGenericCrashContext::CrashConfigExtension = TEXT(".ini");
 const FString FGenericCrashContext::ConfigSectionName = TEXT("CrashReportClient");
+const FString FGenericCrashContext::CrashConfigPurgeDays = TEXT("CrashConfigPurgeDays");
+const FString FGenericCrashContext::CrashGUIDRootPrefix = TEXT("UE4CC-");
 
 const FString FGenericCrashContext::CrashContextExtension = TEXT(".runtime-xml");
 const FString FGenericCrashContext::RuntimePropertiesTag = TEXT( "RuntimeProperties" );
@@ -148,7 +150,7 @@ void FGenericCrashContext::Initialize()
 	}
 
 	const FGuid Guid = FGuid::NewGuid();
-	NCachedCrashContextProperties::CrashGUIDRoot = FString::Printf(TEXT("UE4CC-%s-%s"), *NCachedCrashContextProperties::PlatformNameIni, *Guid.ToString(EGuidFormats::Digits));
+	NCachedCrashContextProperties::CrashGUIDRoot = FString::Printf(TEXT("%s%s-%s"), *CrashGUIDRootPrefix, *NCachedCrashContextProperties::PlatformNameIni, *Guid.ToString(EGuidFormats::Digits));
 
 	// Initialize delegate for updating SecondsSinceStart, because FPlatformTime::Seconds() is not POSIX safe.
 	const float PollingInterval = 1.0f;
@@ -181,12 +183,14 @@ void FGenericCrashContext::Initialize()
 	FCoreDelegates::ConfigReadyForUse.AddStatic(FGenericCrashContext::InitializeFromConfig);
 
 	bIsInitialized = true;
-#endif
+#endif	// !NOINITCRASHREPORTER
 }
 
 void FGenericCrashContext::InitializeFromConfig()
 {
-#if !NO_LOGGING
+#if !NOINITCRASHREPORTER
+	PurgeOldCrashConfig();
+
 	const bool bForceGetSection = false;
 	const bool bConstSection = true;
 	FConfigSection* CRCConfigSection = GConfig->GetSectionPrivate(*ConfigSectionName, bForceGetSection, bConstSection, GEngineIni);
@@ -203,7 +207,7 @@ void FGenericCrashContext::InitializeFromConfig()
 		CrashConfigFile.Dirty = true;
 		CrashConfigFile.Write(GetCrashConfigFilePath());
 	}
-#endif
+#endif	// !NOINITCRASHREPORTER
 }
 
 FGenericCrashContext::FGenericCrashContext()
@@ -450,9 +454,44 @@ const TCHAR* FGenericCrashContext::GetCrashConfigFilePath()
 	static FString CrashConfigFilePath;
 	if (CrashConfigFilePath.IsEmpty())
 	{
-		CrashConfigFilePath = FPaths::Combine(*FPaths::GameLogDir(), *NCachedCrashContextProperties::CrashGUIDRoot, FGenericCrashContext::CrashConfigFileNameW);
+		CrashConfigFilePath = FPaths::Combine(GetCrashConfigFolder(), *NCachedCrashContextProperties::CrashGUIDRoot, FGenericCrashContext::CrashConfigFileNameW);
 	}
 	return *CrashConfigFilePath;
+}
+
+const TCHAR* FGenericCrashContext::GetCrashConfigFolder()
+{
+	static FString CrashConfigFolder;
+	if (CrashConfigFolder.IsEmpty())
+	{
+		CrashConfigFolder = FPaths::Combine(*FPaths::GeneratedConfigDir(), TEXT("CrashReportClient"));
+	}
+	return *CrashConfigFolder;
+}
+
+void FGenericCrashContext::PurgeOldCrashConfig()
+{
+	int32 PurgeDays = 2;
+	GConfig->GetInt(*ConfigSectionName, *CrashConfigPurgeDays, PurgeDays, GEngineIni);
+
+	if (PurgeDays > 0)
+	{
+		IFileManager& FileManager = IFileManager::Get();
+
+		// Delete items older than PurgeDays
+		TArray<FString> Directories;
+		FileManager.FindFiles(Directories, *(FPaths::Combine(GetCrashConfigFolder(), *CrashGUIDRootPrefix) + TEXT("*")), false, true);
+
+		for (const FString& Dir : Directories)
+		{
+			const FString CrashConfigDirectory = FPaths::Combine(GetCrashConfigFolder(), *Dir);
+			const FDateTime DirectoryAccessTime = FileManager.GetTimeStamp(*CrashConfigDirectory);
+			if (FDateTime::Now() - DirectoryAccessTime > FTimespan::FromDays(PurgeDays))
+			{
+				FileManager.DeleteDirectory(*CrashConfigDirectory, false, true);
+			}
+		}
+	}
 }
 
 FProgramCounterSymbolInfoEx::FProgramCounterSymbolInfoEx( FString InModuleName, FString InFunctionName, FString InFilename, uint32 InLineNumber, uint64 InSymbolDisplacement, uint64 InOffsetInModule, uint64 InProgramCounter ) :

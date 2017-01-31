@@ -67,6 +67,7 @@ namespace EMouseCursor
 }
 
 
+
 class ICursor
 {
 public:
@@ -100,5 +101,9 @@ public:
 	 */
 	virtual void Lock( const RECT* const Bounds ) = 0;
 
-	virtual void SetCustomShape(void* CursorHandle) = 0;
+	/**  */
+	virtual void SetTypeShape(EMouseCursor::Type InCursorType, void* CursorHandle) = 0;
+
+	DEPRECATED(4.16, "Use SetTypeShape instead.")
+	void SetCustomShape(void* CursorHandle) { SetTypeShape(EMouseCursor::Custom, CursorHandle); }
 };

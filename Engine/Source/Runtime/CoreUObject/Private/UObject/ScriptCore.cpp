@@ -2464,6 +2464,20 @@ void UObject::execTextConst( FFrame& Stack, RESULT_DECL )
 		}
 		break;
 
+	case EBlueprintTextLiteralType::StringTableEntry:
+		{
+			Stack.ReadObject(); // String Table asset (if any)
+
+			FString TableIdString;
+			Stack.Step(Stack.Object, &TableIdString);
+
+			FString KeyString;
+			Stack.Step(Stack.Object, &KeyString);
+
+			*(FText*)RESULT_PARAM = FText::FromStringTable(FName(*TableIdString), KeyString);
+		}
+		break;
+
 	default:
 		checkf(false, TEXT("Unknown EBlueprintTextLiteralType! Please update UObject::execTextConst to handle this type of text."));
 		break;

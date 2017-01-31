@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __SourceCodeNavigation_h__
-#define __SourceCodeNavigation_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -216,7 +212,3 @@ private:
 	/** Source file database instance. */
 	static FSourceFileDatabase Instance;
 };
-
-
-
-#endif		// __SourceCodeNavigation_h__

@@ -99,6 +99,7 @@
 	#include "Materials/MaterialInterface.h"
 	#include "TextureResource.h"
 	#include "Engine/Texture2D.h"
+	#include "StringTable.h"
 	#include "SceneUtils.h"
 	#include "ParticleHelper.h"
 	#include "PhysicsPublic.h"
@@ -1580,6 +1581,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	EndInitTextLocalization();
 
+	UStringTable::InitializeEngineBridge();
+
 	if (FApp::ShouldUseThreadingForPerformance() && FPlatformMisc::AllowAudioThread())
 	{
 		bool bUseThreadedAudio = false;
@@ -2334,6 +2337,9 @@ bool FEngineLoop::LoadStartupCoreModules()
 
 	IAudioEditorModule* AudioEditorModule = &FModuleManager::LoadModuleChecked<IAudioEditorModule>("AudioEditor");
 	AudioEditorModule->RegisterAssetActions();
+
+	// Load the StringTableEditor module to register its asset actions
+	FModuleManager::Get().LoadModule("StringTableEditor");
 
 	if( !IsRunningDedicatedServer() )
 	{

@@ -84,6 +84,9 @@
 #include "MaterialShaderQualitySettings.h"
 #include "IVREditorModule.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/LevelStreamingKismet.h"
+#include "EditorLevelUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -383,13 +386,49 @@ void FLevelEditorActionCallbacks::Save()
 	FEditorFileUtils::SaveCurrentLevel();
 }
 
-void FLevelEditorActionCallbacks::SaveAs()
+void FLevelEditorActionCallbacks::SaveCurrentAs()
 {
-	FString SavedFilename;
-	bool bSaved = FEditorFileUtils::SaveLevelAs( GetWorld()->PersistentLevel, &SavedFilename );
-	if (bSaved)
+	UWorld* World = GetWorld();
+	ULevel* CurrentLevel = World->GetCurrentLevel();
+	
+	UClass* CurrentStreamingLevelClass = ULevelStreamingKismet::StaticClass();
+
+	for (ULevelStreaming* StreamingLevel : World->StreamingLevels)
 	{
-		FEditorFileUtils::LoadMap(SavedFilename);
+		if (StreamingLevel->GetLoadedLevel() == CurrentLevel)
+		{
+			CurrentStreamingLevelClass = StreamingLevel->GetClass();
+			break;
+		}
+	}
+
+	
+	const bool bSavedPersistentLevelAs = CurrentLevel == World->PersistentLevel;
+	FString SavedFilename;
+	bool bSaved = FEditorFileUtils::SaveLevelAs(CurrentLevel, &SavedFilename);
+	if(bSaved)
+	{
+		if (bSavedPersistentLevelAs)
+		{
+			FEditorFileUtils::LoadMap(SavedFilename);
+		}
+		else
+		{
+			// Remove the level we just saved over
+			EditorLevelUtils::RemoveLevelFromWorld(CurrentLevel);
+
+			// Add the new level we just saved as to the plevel
+			FString PackageName;
+			if (FPackageName::TryConvertFilenameToLongPackageName(SavedFilename, PackageName))
+			{
+				ULevel* Level = EditorLevelUtils::AddLevelToWorld(World, *PackageName, CurrentStreamingLevelClass);
+
+				// Make the level we just added current because the expectation is that the new level replaces the existing current level
+				EditorLevelUtils::MakeLevelCurrent(Level);
+			}
+
+			FEditorDelegates::RefreshLevelBrowser.Broadcast();
+		}
 	}
 }
 

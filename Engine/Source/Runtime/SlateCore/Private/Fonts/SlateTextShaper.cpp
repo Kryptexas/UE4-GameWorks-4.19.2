@@ -196,16 +196,24 @@ void FSlateTextShaper::PerformKerningOnlyTextShaping(const TCHAR* InText, const 
 		{
 			const TCHAR CurrentChar = InText[RunningTextIndex];
 
+			// First try with the actual character
 			float SubFontScalingFactor = 1.0f;
-			const FFontData& FontData = CompositeFontCache->GetFontDataForCharacter(InFontInfo, CurrentChar, SubFontScalingFactor);
-			const FFreeTypeFaceGlyphData FaceGlyphData = FontRenderer->GetFontFaceForCharacter(FontData, CurrentChar, InFontInfo.FontFallback);
+			const FFontData* FontDataPtr = &CompositeFontCache->GetFontDataForCharacter(InFontInfo, CurrentChar, SubFontScalingFactor);
+			FFreeTypeFaceGlyphData FaceGlyphData = FontRenderer->GetFontFaceForCharacter(*FontDataPtr, CurrentChar, InFontInfo.FontFallback);
 
-			if (!RunningFontDataPtr || RunningFontDataPtr != &FontData || RunningFaceAndMemory != FaceGlyphData.FaceAndMemory || RunningSubFontScalingFactor != SubFontScalingFactor)
+			// If none of our fonts can render that character (as the fallback font may be missing), try again with the fallback character
+			if (!FaceGlyphData.FaceAndMemory.IsValid())
+			{
+				FontDataPtr = &CompositeFontCache->GetFontDataForCharacter(InFontInfo, SlateFontRendererUtils::InvalidSubChar, SubFontScalingFactor);
+				FaceGlyphData = FontRenderer->GetFontFaceForCharacter(*FontDataPtr, SlateFontRendererUtils::InvalidSubChar, InFontInfo.FontFallback);
+			}
+
+			if (!RunningFontDataPtr || RunningFontDataPtr != FontDataPtr || RunningFaceAndMemory != FaceGlyphData.FaceAndMemory || RunningSubFontScalingFactor != SubFontScalingFactor)
 			{
 				AppendPendingFontDataToSequence();
 
 				SplitStartIndex = RunningTextIndex;
-				RunningFontDataPtr = &FontData;
+				RunningFontDataPtr = FontDataPtr;
 				RunningFaceAndMemory = FaceGlyphData.FaceAndMemory;
 				RunningSubFontScalingFactor = SubFontScalingFactor;
 			}
@@ -317,16 +325,24 @@ void FSlateTextShaper::PerformHarfBuzzTextShaping(const TCHAR* InText, const int
 		{
 			const TCHAR CurrentChar = InText[RunningTextIndex];
 
+			// First try with the actual character
 			float SubFontScalingFactor = 1.0f;
-			const FFontData& FontData = CompositeFontCache->GetFontDataForCharacter(InFontInfo, CurrentChar, SubFontScalingFactor);
-			const FFreeTypeFaceGlyphData FaceGlyphData = FontRenderer->GetFontFaceForCharacter(FontData, CurrentChar, InFontInfo.FontFallback);
+			const FFontData* FontDataPtr = &CompositeFontCache->GetFontDataForCharacter(InFontInfo, CurrentChar, SubFontScalingFactor);
+			FFreeTypeFaceGlyphData FaceGlyphData = FontRenderer->GetFontFaceForCharacter(*FontDataPtr, CurrentChar, InFontInfo.FontFallback);
 
-			if (!RunningFontDataPtr || RunningFontDataPtr != &FontData || RunningFaceAndMemory != FaceGlyphData.FaceAndMemory || RunningSubFontScalingFactor != SubFontScalingFactor)
+			// If none of our fonts can render that character (as the fallback font may be missing), try again with the fallback character
+			if (!FaceGlyphData.FaceAndMemory.IsValid())
+			{
+				FontDataPtr = &CompositeFontCache->GetFontDataForCharacter(InFontInfo, SlateFontRendererUtils::InvalidSubChar, SubFontScalingFactor);
+				FaceGlyphData = FontRenderer->GetFontFaceForCharacter(*FontDataPtr, SlateFontRendererUtils::InvalidSubChar, InFontInfo.FontFallback);
+			}
+
+			if (!RunningFontDataPtr || RunningFontDataPtr != FontDataPtr || RunningFaceAndMemory != FaceGlyphData.FaceAndMemory || RunningSubFontScalingFactor != SubFontScalingFactor)
 			{
 				AppendPendingFontDataToSequence();
 
 				SplitStartIndex = RunningTextIndex;
-				RunningFontDataPtr = &FontData;
+				RunningFontDataPtr = FontDataPtr;
 				RunningFaceAndMemory = FaceGlyphData.FaceAndMemory;
 				RunningSubFontScalingFactor = SubFontScalingFactor;
 			}

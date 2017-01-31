@@ -53,9 +53,38 @@ void SCSVImportOptions::Construct(const FArguments& InArgs)
 		. Padding(10)
 		[
 			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SBorder)
+				.Padding(FMargin(3))
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.Visibility( InArgs._FullPath.IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible )
+				[
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::GetFontStyle("CurveEd.LabelFont"))
+						.Text(LOCTEXT("Import_CurrentFileTitle", "Current File: "))
+					]
+					+SHorizontalBox::Slot()
+					.Padding(5, 0, 0, 0)
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
+						.Text(InArgs._FullPath)
+					]
+				]
+			]
+
 			// Import type
 			+SVerticalBox::Slot()
 			.AutoHeight()
+			.Padding(2)
 			[
 				SNew(STextBlock)
 				.Text( LOCTEXT("ChooseAssetType", "Import As:") )

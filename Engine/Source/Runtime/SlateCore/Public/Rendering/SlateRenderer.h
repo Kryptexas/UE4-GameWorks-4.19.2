@@ -252,6 +252,8 @@ public:
 	 */
 	virtual bool GenerateDynamicImageResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes ) { return false; }
 
+	virtual bool GenerateDynamicImageResource(FName ResourceName, FSlateTextureDataRef TextureData) { return false; }
+
 	/**
 	 * Creates a handle to a Slate resource
 	 * A handle is used as fast path for looking up a rendering resource for a given brush when adding Slate draw elements

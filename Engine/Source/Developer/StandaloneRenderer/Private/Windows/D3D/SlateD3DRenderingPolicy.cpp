@@ -234,15 +234,15 @@ void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatr
 
 		const FSlateShaderResource* Texture = RenderBatch.Texture;
 		
-		const ESlateBatchDrawFlag::Type DrawFlags = RenderBatch.DrawFlags;
+		const ESlateBatchDrawFlag DrawFlags = RenderBatch.DrawFlags;
 
-		const ESlateDrawEffect::Type DrawEffects = RenderBatch.DrawEffects;
+		const ESlateDrawEffect DrawEffects = RenderBatch.DrawEffects;
 
 		const FShaderParams& ShaderParams = RenderBatch.ShaderParams;
 
 		VertexShader->BindParameters();
 		
-		if( DrawFlags & ESlateBatchDrawFlag::NoBlending )
+		if( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::NoBlending) )
 		{
 			GD3DDeviceContext->OMSetBlendState( NoBlendState, 0, 0xFFFFFFFF );
 		}
@@ -251,7 +251,7 @@ void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatr
 			GD3DDeviceContext->OMSetBlendState( AlphaBlendState, 0, 0xFFFFFFFF );
 		}
 
-		if( DrawFlags & ESlateBatchDrawFlag::Wireframe )
+		if( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::Wireframe) )
 		{
 			GD3DDeviceContext->RSSetState( WireframeRasterState );
 		}
@@ -283,7 +283,7 @@ void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatr
 		if( Texture )
 		{
 			TRefCountPtr<ID3D11SamplerState> SamplerState;
-			if( DrawFlags & ESlateBatchDrawFlag::TileU || DrawFlags & ESlateBatchDrawFlag::TileV )
+			if( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::TileU) || EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::TileV) )
 			{
 				SamplerState = BilinearSamplerState_Wrap;
 			}

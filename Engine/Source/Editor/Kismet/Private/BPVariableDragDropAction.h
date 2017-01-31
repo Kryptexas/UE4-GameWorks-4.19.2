@@ -61,9 +61,7 @@ public:
 	{
 		if (VariableSource.IsValid() && VariableName != NAME_None)
 		{
-			UProperty* VariableProperty = FindField<UProperty>(VariableSource.Get(), VariableName);
-			check(VariableProperty != NULL);
-			return VariableProperty;
+			return FindFieldChecked<UProperty>(VariableSource.Get(), VariableName);
 		}
 		return nullptr;
 	}

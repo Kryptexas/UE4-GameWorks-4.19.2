@@ -25,7 +25,8 @@ public class ScreenShotComparison : ModuleRules
 				"SourceControl",
 				"AutomationMessages",
 				"Json",
-				"JsonUtilities"
+				"JsonUtilities",
+				"DirectoryWatcher"
 			}
 		);
 

@@ -681,7 +681,20 @@ void FEngineSessionManager::StartWatchdog(const FString& RunType, const FString&
 	const int SuccessfulRtnCode = 0;	// hardcode this for now, zero might not always be correct
 
 	FString WatchdogClientArguments =
-		FString::Printf(TEXT("-PID=%u -RunType=%s -ProjectName=\"%s\" -Platform=%s -SessionId=%s -EngineVersion=%s -SuccessfulRtnCode=%d -HeartbeatSeconds=%d"), ProcessId, *RunType, *ProjectName, *PlatformName, *SessionId, *EngineVersion, SuccessfulRtnCode, SessionManagerDefs::HeartbeatPeriodSeconds);
+		FString::Printf(TEXT(
+			"-PID=%u -RunType=%s -ProjectName=\"%s\" -Platform=%s -SessionId=%s -EngineVersion=%s -SuccessfulRtnCode=%d"),
+			ProcessId, *RunType, *ProjectName, *PlatformName, *SessionId, *EngineVersion, SuccessfulRtnCode);
+
+	bool bAllowWatchdogDetectHangs = false;
+	GConfig->GetBool(TEXT("EngineSessionManager"), TEXT("AllowWatchdogDetectHangs"), bAllowWatchdogDetectHangs, GEngineIni);
+
+	if (bAllowWatchdogDetectHangs)
+	{
+		int HangSeconds = 120;
+		GConfig->GetInt(TEXT("EngineSessionManager"), TEXT("WatchdogMinimumHangSeconds"), HangSeconds, GEngineIni);
+
+		WatchdogClientArguments.Append(FString::Printf(TEXT(" -DetectHangs -HangSeconds=%d"), HangSeconds));
+	}
 
 	if (FEngineBuildSettings::IsInternalBuild())
 	{

@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __LevelEditor_h__
-#define __LevelEditor_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "HAL/IConsoleManager.h"
@@ -397,5 +396,3 @@ private:
 	/** Array of delegates that are used to check if the specified objects should be editable on the details panel */
 	TArray<FAreObjectsEditable> AreObjectsEditableDelegates;
 };
-
-#endif // __LevelEditor_h__

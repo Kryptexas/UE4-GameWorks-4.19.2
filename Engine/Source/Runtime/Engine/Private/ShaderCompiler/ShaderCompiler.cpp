@@ -303,7 +303,8 @@ static const TArray<const IShaderFormat*>& GetShaderFormats()
 
 		for (int32 Index = 0; Index < Modules.Num(); Index++)
 		{
-			IShaderFormat* Format = FModuleManager::LoadModuleChecked<IShaderFormatModule>(Modules[Index]).GetShaderFormat();
+			IShaderFormat* Format = FModuleManager::GetModuleChecked<IShaderFormatModule>(Modules[Index]).GetShaderFormat();
+
 			if (Format != nullptr)
 			{
 				Results.Add(Format);
@@ -385,11 +386,11 @@ static bool DoWriteTasks(const TArray<FShaderCommonCompileJob*>& QueuedJobs, FAr
 		TransferFile << SingleJobHeader;
 
 		int32 NumBatches = QueuedSingleJobs.Num();
-	TransferFile << NumBatches;
+		TransferFile << NumBatches;
 
-	// Serialize all the batched jobs
+		// Serialize all the batched jobs
 		for (int32 JobIndex = 0; JobIndex < QueuedSingleJobs.Num(); JobIndex++)
-	{
+		{
 			TransferFile << QueuedSingleJobs[JobIndex]->Input;
 		}
 	}

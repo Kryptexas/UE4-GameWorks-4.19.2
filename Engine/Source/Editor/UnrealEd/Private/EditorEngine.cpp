@@ -2723,15 +2723,11 @@ void UEditorEngine::ApplyDeltaToComponent(USceneComponent* InComponent,
 		{
 			if ( bDelta )
 			{
-				const FScaleMatrix ScaleMatrix( FVector( InDeltaScale.X , InDeltaScale.Y, InDeltaScale.Z ) );
-
-				FVector DeltaScale3D = ScaleMatrix.TransformPosition( InComponent->RelativeScale3D );
-				InComponent->SetRelativeScale3D(InComponent->RelativeScale3D + DeltaScale3D);
-
+				InComponent->SetRelativeScale3D(InComponent->RelativeScale3D + InDeltaScale);
 
 				FVector NewCompLocation = InComponent->RelativeLocation;
 				NewCompLocation -= PivotLocation;
-				NewCompLocation += ScaleMatrix.TransformPosition( NewCompLocation );
+				NewCompLocation += FScaleMatrix( InDeltaScale ).TransformPosition( NewCompLocation );
 				NewCompLocation += PivotLocation;
 				InComponent->SetRelativeLocation(NewCompLocation);
 			}

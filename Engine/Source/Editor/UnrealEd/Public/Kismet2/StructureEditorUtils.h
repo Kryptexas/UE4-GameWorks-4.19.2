@@ -169,6 +169,8 @@ public:
 
 	static void RecreateDefaultInstanceInEditorData(UUserDefinedStruct* Struct);
 
+	static bool DiffersFromDefaultValue(const UUserDefinedStruct* Struct, uint8* StructData);
+
 	//VALIDATION
 	static bool CanHaveAMemberVariableOfType(const UUserDefinedStruct* Struct, const FEdGraphPinType& VarType, FString* OutMsg = NULL);
 

@@ -4,8 +4,7 @@
 	Editor.h: Unreal editor public header file.
 =============================================================================*/
 
-#ifndef _INC_EDITOR_COMMANDLETS
-#define _INC_EDITOR_COMMANDLETS
+#pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
@@ -269,5 +268,3 @@ struct FNativePropertyData
 		return PropertyData.Num() || PropertyText.Num();
 	}
 };
-
-#endif

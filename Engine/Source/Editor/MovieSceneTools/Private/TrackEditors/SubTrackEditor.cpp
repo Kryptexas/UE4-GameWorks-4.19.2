@@ -121,7 +121,7 @@ public:
 		}
 
 		const float DrawScale = InPainter.SectionGeometry.Size.X / SectionSize;
-		const ESlateDrawEffect::Type DrawEffects = InPainter.bParentEnabled
+		const ESlateDrawEffect DrawEffects = InPainter.bParentEnabled
 			? ESlateDrawEffect::None
 			: ESlateDrawEffect::DisabledEffect;
 

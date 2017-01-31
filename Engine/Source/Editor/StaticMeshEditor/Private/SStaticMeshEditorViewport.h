@@ -70,7 +70,7 @@ public:
 	 *
 	 *	@param	InStaticMesh		The static mesh being viewed in the editor.
 	 */
-	void UpdatePreviewMesh(UStaticMesh* InStaticMesh);
+	void UpdatePreviewMesh(UStaticMesh* InStaticMesh, bool bResetCamera=true);
 
 	/** Retrieves the selected edge set. */
 	TSet< int32 >& GetSelectedEdges();

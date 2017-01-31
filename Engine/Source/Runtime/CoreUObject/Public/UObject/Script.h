@@ -282,6 +282,8 @@ enum class EBlueprintTextLiteralType : uint8
 	InvariantText,
 	/** Text is a literal FString. The bytecode will contain one string, and you should use FText::FromString to initialize the FText instance. */
 	LiteralString,
+	/** Text is from a string table. The bytecode will contain an object pointer (not used) and two strings - the table ID, and key - and should be found via FText::FromStringTable */
+	StringTableEntry,
 };
 
 // Kinds of Blueprint exceptions

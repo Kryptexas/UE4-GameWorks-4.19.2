@@ -672,7 +672,7 @@ namespace IncludeTool
 						&& !ReadTemplateClassOrStructForwardDeclaration(Reader, HeaderFile, SymbolToHeader, Log)
 						&& !ReadEnumClassForwardDeclaration(Reader, HeaderFile, SymbolToHeader, Log))
 					{
-						Log.WriteLine("{0}({1}): error: invalid forward declaration", HeaderFile.Location, Reader.CurrentLine);
+						Log.WriteLine("{0}({1}): error: invalid forward declaration - '{2}'", HeaderFile.Location, Reader.CurrentLine + 1, HeaderFile.Text[Reader.CurrentLine]);
 						return false;
 					}
 				}

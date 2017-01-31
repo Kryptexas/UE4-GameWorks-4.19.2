@@ -401,6 +401,11 @@ void FDetailPropertyRow::MakeNameOrKeyWidget( FDetailWidgetRow& Row, const TShar
 	{
 		Slot.Padding(0.0f, 0.0f, 20.0f, 0.0f);
 	}
+	else if (InCustomRow.IsValid())
+	{
+		//Allow custom name slot to fill all the area. If the user add a SHorizontalBox with left and right align slot
+		Slot.FillWidth(1.0f);
+	}
 	else
 	{
 		Slot.AutoWidth();

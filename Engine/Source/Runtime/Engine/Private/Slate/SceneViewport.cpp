@@ -45,6 +45,7 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, NumBufferedFrames(1)
 	, CurrentBufferedTargetIndex(0)
 	, NextBufferedTargetIndex(0)
+	, NumTouches(0)
 {
 	bIsSlateViewport = true;
 	RenderThreadSlateTexture = new FSlateRenderTargetRHI(nullptr, 0, 0);
@@ -717,10 +718,11 @@ FReply FSceneViewport::OnTouchStarted( const FGeometry& MyGeometry, const FPoint
 {
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled().PreventThrottling(); 
+	++NumTouches;
 
 	UpdateCachedMousePos(MyGeometry, TouchEvent);
 	UpdateCachedGeometry(MyGeometry);
-
+	
 	if( ViewportClient )
 	{
 		// Switch to the viewport clients world before processing input
@@ -766,7 +768,14 @@ FReply FSceneViewport::OnTouchEnded( const FGeometry& MyGeometry, const FPointer
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled(); 
 
-	UpdateCachedMousePos(MyGeometry, TouchEvent);
+	if (--NumTouches > 0)
+	{
+		UpdateCachedMousePos(MyGeometry, TouchEvent);
+	}
+	else
+	{
+		CachedMousePos = FIntPoint(-1, -1);
+	}
 	UpdateCachedGeometry(MyGeometry);
 
 	if( ViewportClient )
@@ -1626,7 +1635,7 @@ void FSceneViewport::OnPostResizeWindowBackbuffer(void* Backbuffer)
 {
 	check(IsInGameThread());
 
-	if(!UseSeparateRenderTarget() && !IsValidRef(ViewportRHI))
+	if(!UseSeparateRenderTarget() && !IsValidRef(ViewportRHI) && ViewportWidget.IsValid())
 	{
 		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
 		FWidgetPath WidgetPath;

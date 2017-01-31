@@ -58,5 +58,7 @@ public class CrashReportClientTarget : TargetRules
 
 		// Epic Games Launcher needs to run on OS X 10.9, so CrashReportClient needs this as well
 		OutCPPEnvironmentConfiguration.bEnableOSX109Support = true;
+
+		OutCPPEnvironmentConfiguration.Definitions.Add("NOINITCRASHREPORTER=1");
 	}
 }

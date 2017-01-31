@@ -4,9 +4,6 @@
 	MeshPaintRendering.h: Mesh texture paint brush rendering
 ================================================================================*/
 
-#ifndef __MeshPaintRendering_h__
-#define __MeshPaintRendering_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -75,7 +72,3 @@ namespace MeshPaintRendering
 													const FMeshPaintDilateShaderParameters& InShaderParams );
 
 }
-
-
-
-#endif	// __MeshPaintRendering_h__

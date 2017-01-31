@@ -933,7 +933,8 @@ void SDesignerView::PopDesignerMessage()
 
 void SDesignerView::OnEditorSelectionChanged()
 {
-	TSet<FWidgetReference> PendingSelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
+	TSharedPtr<FWidgetBlueprintEditor> BPEd = BlueprintEditor.Pin();
+	TSet<FWidgetReference> PendingSelectedWidgets = BPEd->GetSelectedWidgets();
 
 	// Notify all widgets that are no longer selected.
 	for ( FWidgetReference& WidgetRef : SelectedWidgetsCache )
@@ -941,6 +942,15 @@ void SDesignerView::OnEditorSelectionChanged()
 		if ( WidgetRef.IsValid() && !PendingSelectedWidgets.Contains(WidgetRef) )
 		{
 			WidgetRef.GetPreview()->Deselect();
+		}
+
+		// Find all named slot host widgets that are hierarchical ancestors of this widget and call deselect on them as well
+		TArray<FWidgetReference> AncestorSlotHostWidgets;
+		FWidgetBlueprintEditorUtils::FindAllAncestorNamedSlotHostWidgetsForContent(AncestorSlotHostWidgets, WidgetRef.GetTemplate(), BPEd.ToSharedRef());
+
+		for (FWidgetReference SlotHostWidget : AncestorSlotHostWidgets)
+		{
+			SlotHostWidget.GetPreview()->Deselect();
 		}
 	}
 
@@ -950,6 +960,15 @@ void SDesignerView::OnEditorSelectionChanged()
 		if ( WidgetRef.IsValid() && !SelectedWidgetsCache.Contains(WidgetRef) )
 		{
 			WidgetRef.GetPreview()->Select();
+
+			// Find all named slot host widgets that are hierarchical ancestors of this widget and call select on them as well
+			TArray<FWidgetReference> AncestorSlotHostWidgets;
+			FWidgetBlueprintEditorUtils::FindAllAncestorNamedSlotHostWidgetsForContent(AncestorSlotHostWidgets, WidgetRef.GetTemplate(), BPEd.ToSharedRef());
+
+			for (FWidgetReference SlotHostWidget : AncestorSlotHostWidgets)
+			{
+				SlotHostWidget.GetPreview()->Select();
+			}
 		}
 	}
 

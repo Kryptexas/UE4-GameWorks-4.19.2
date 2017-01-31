@@ -1,8 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __BoneSelectionWidget_h__
-#define __BoneSelectionWidget_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -136,5 +133,3 @@ private:
 	// Cache supplied tooltip
 	FText SuppliedToolTip;
 };
-
-#endif		//__BoneSelectionWidget_h__

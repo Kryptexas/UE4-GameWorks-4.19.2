@@ -559,21 +559,16 @@ void FMaintenance::DeleteOldLogs()
 				}
 			}
 		}
+	}
 
-		// Remove old UE4 crash contexts
-		TArray<FString> Directories;
-		IFileManager::Get().FindFiles( Directories, *FString::Printf( TEXT( "%s/UE4CC*" ), *FPaths::GameLogDir() ), false, true );
+	// Remove all legacy UE4 crash contexts (regardless of age and purge settings, these are deprecated)
+	TArray<FString> Directories;
+	IFileManager::Get().FindFiles(Directories, *FString::Printf(TEXT("%s/UE4CC*"), *FPaths::GameLogDir()), false, true);
 
-		for (const FString& Dir : Directories)
-		{
-			const FString CrashContextDirectory = FPaths::GameLogDir() / Dir;
-			const FDateTime DirectoryAccessTime = IFileManager::Get().GetTimeStamp( *CrashContextDirectory );
-			if (FDateTime::Now() - DirectoryAccessTime > FTimespan::FromDays( PurgeLogsDays ))
-			{
-				UE_LOG( LogStreaming, Log, TEXT( "Deleting old crash context %s" ), *Dir );
-				IFileManager::Get().DeleteDirectory( *CrashContextDirectory, false, true );
-			}
-		}
+	for (const FString& Dir : Directories)
+	{
+		const FString CrashConfigDirectory = FPaths::GameLogDir() / Dir;
+		IFileManager::Get().DeleteDirectory(*CrashConfigDirectory, false, true);
 	}
 }
 

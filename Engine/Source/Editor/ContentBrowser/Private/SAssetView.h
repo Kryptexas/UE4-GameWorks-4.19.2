@@ -700,6 +700,9 @@ private:
 	/** Filtering callback to know if the container root is of searching class*/
 	bool FilterOnContainerContentValid(const UClass* SearchingClass, const UObject* Container, const FAssetData* AssetData);
 
+	/** Will compute the max row size from all its children for the specified column id*/
+	FVector2D GetMaxRowSizeForColumn(const FName& ColumnId);
+
 private:
 
 	/** The asset items being displayed in the view and the filtered list */

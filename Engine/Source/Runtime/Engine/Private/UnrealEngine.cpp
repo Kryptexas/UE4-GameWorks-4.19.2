@@ -11567,7 +11567,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	});
 
 	// Replace references to old classes and instances on this object with the corresponding new ones
-	UPackage* NewPackage = Cast<UPackage>(NewObject->GetOutermost());
+	UPackage* NewPackage = NewObject->GetOutermost();
 	FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInCDOAr(NewObject, ReferenceReplacementMap, NewPackage);
 
 	// Replace references inside each individual component. This is always required because if something is in ReferenceReplacementMap, the above replace code will skip fixing child properties

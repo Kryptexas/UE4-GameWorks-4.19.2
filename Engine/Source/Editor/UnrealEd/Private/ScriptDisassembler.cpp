@@ -683,6 +683,15 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 				}
 				break;
 
+			case EBlueprintTextLiteralType::StringTableEntry:
+				{
+					ReadPointer<UObject>(ScriptIndex); // String Table asset (if any)
+					const FString TableIdString = ReadString(ScriptIndex);
+					const FString KeyString = ReadString(ScriptIndex);
+					Ar.Logf(TEXT("%s $%X: literal text - string table entry { tableid: \"%s\", key: \"%s\" }"), *Indents, (int32)Opcode, *TableIdString, *KeyString);
+				}
+				break;
+
 			default:
 				checkf(false, TEXT("Unknown EBlueprintTextLiteralType! Please update FKismetBytecodeDisassembler::ProcessCommon to handle this type of text."));
 				break;

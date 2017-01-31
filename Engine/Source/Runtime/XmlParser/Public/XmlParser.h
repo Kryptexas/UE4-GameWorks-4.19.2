@@ -2,10 +2,5 @@
 
 #pragma once
 
-#ifndef __XmlParser_h__
-#define __XmlParser_h__
-
 #include "XmlNode.h"
 #include "XmlFile.h"
-
-#endif

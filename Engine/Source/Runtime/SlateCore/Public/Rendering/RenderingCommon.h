@@ -59,53 +59,63 @@ namespace ESlateShader
  * Note: New effects added should be in bit mask form
  * If you add a type here you must also implement the proper shader type (TSlateElementPS).  See SlateShaders.h
  */
-namespace ESlateDrawEffect
+enum class ESlateDrawEffect : uint8
 {
-	typedef uint8 Type;
 	/** No effect applied */
-	const Type None					= 0;
-	/** Draw the element with a disabled effect */
-	const Type DisabledEffect		= 1 << 0;
-	/** Advanced: Don't read from texture alpha channel */
-	const Type IgnoreTextureAlpha	= 1 << 1;
+	None					= 0,
 	/** Advanced: Draw the element with no blending */
-	const Type NoBlending			= 1 << 2;
+	NoBlending			= 1 << 0,
 	/** Advanced: Blend using pre-multiplied alpha. Ignored if NoBlending is set. */
-	const Type PreMultipliedAlpha	= 1 << 3;
+	PreMultipliedAlpha	= 1 << 1,
 	/** Advanced: No gamma correction should be done */
-	const Type NoGamma				= 1 << 4;
+	NoGamma				= 1 << 2,
+	/** Advanced: Change the alpha value to 1 - Alpha. */
+	InvertAlpha			= 1 << 3,
+
+	// ^^ These Match ESlateBatchDrawFlag ^^
+
+	/** Disables pixel snapping */
+	NoPixelSnapping		= 1 << 4,
+	/** Draw the element with a disabled effect */
+	DisabledEffect		= 1 << 5,
+	/** Advanced: Don't read from texture alpha channel */
+	IgnoreTextureAlpha	= 1 << 6,
 };
 
+ENUM_CLASS_FLAGS(ESlateDrawEffect);
 
 /** Flags for drawing a batch */
-namespace ESlateBatchDrawFlag
+enum class ESlateBatchDrawFlag : uint8
 {
-	typedef uint8 Type;
 	/** No draw flags */
-	const Type None					= 0;
+	None					= 0,
 	/** Draw the element with no blending */
-	const Type NoBlending			= 1 << 0;
+	NoBlending			= 1 << 0,
 	/** Blend using pre-multiplied alpha. Ignored if NoBlending is set. */
-	const Type PreMultipliedAlpha	= 1 << 1;
+	PreMultipliedAlpha	= 1 << 1,
 	/** No gamma correction should be done */
-	const Type NoGamma				= 1 << 2;
+	NoGamma				= 1 << 2,
+	/** Change the alpha value to 1 - Alpha */
+	InvertAlpha			= 1 << 3,
+
+	// ^^ These Match ESlateDrawEffect ^^
+
 	/** Draw the element as wireframe */
-	const Type Wireframe			= 1 << 3;
+	Wireframe			= 1 << 4,
 	/** The element should be tiled horizontally */
-	const Type TileU				= 1 << 4;
+	TileU				= 1 << 5,
 	/** The element should be tiled vertically */
-	const Type TileV				= 1 << 5;
+	TileV				= 1 << 6
 };
 
-namespace ESlateLineJoinType
+ENUM_CLASS_FLAGS(ESlateBatchDrawFlag);
+
+enum class ESlateLineJoinType : uint8
 {
-	enum Type
-	{
-		// Joins line segments with a sharp edge (miter)
-		Sharp =	0,
-		// Simply stitches together line segments
-		Simple = 1,
-	};
+	// Joins line segments with a sharp edge (miter)
+	Sharp =	0,
+	// Simply stitches together line segments
+	Simple = 1,
 };
 
 /**
@@ -115,12 +125,16 @@ namespace ESlateLineJoinType
  */
 struct SLATECORE_API FSlateRotatedRect
 {
+public:
 	/** Default ctor. */
 	FSlateRotatedRect();
 	/** Construct a rotated rect from a given aligned rect. */
 	explicit FSlateRotatedRect(const FSlateRect& AlignedRect);
 	/** Per-element constructor. */
 	FSlateRotatedRect(const FVector2D& InTopLeft, const FVector2D& InExtentX, const FVector2D& InExtentY);
+
+public:
+
 	/** transformed Top-left corner. */
 	FVector2D TopLeft;
 	/** transformed X extent (right-left). */
@@ -128,15 +142,38 @@ struct SLATECORE_API FSlateRotatedRect
 	/** transformed Y extent (bottom-top). */
 	FVector2D ExtentY;
 
+public:
+	bool operator == (const FSlateRotatedRect& Other) const
+	{
+		return
+			TopLeft == Other.TopLeft &&
+			ExtentX == Other.ExtentX &&
+			ExtentY == Other.ExtentY;
+	}
+
+public:
+
 	/** Convert to a bounding, aligned rect. */
 	FSlateRect ToBoundingRect() const;
 	/** Point-in-rect test. */
 	bool IsUnderLocation(const FVector2D& Location) const;
 
+	static FSlateRotatedRect MakeRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform)
+	{
+		return MakeRotatedRect(ClipRectInLayoutWindowSpace, Concatenate(InverseLayoutTransform, RenderTransform));
+	}
+
+	static FSlateRotatedRect MakeRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FTransform2D& LayoutToRenderTransform);
+
+	static FSlateRotatedRect MakeSnappedRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform)
+	{
+		return MakeSnappedRotatedRect(ClipRectInLayoutWindowSpace, Concatenate(InverseLayoutTransform, RenderTransform));
+	}
+
 	/**
 	 * Used to construct a rotated rect from an aligned clip rect and a set of layout and render transforms from the geometry, snapped to pixel boundaries. Returns a float or float16 version of the rect based on the typedef.
 	 */
-	static FSlateRotatedRect MakeSnappedRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform);
+	static FSlateRotatedRect MakeSnappedRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FTransform2D& LayoutToRenderTransform);
 };
 
 /**
@@ -155,6 +192,15 @@ FSlateRotatedRect TransformRect(const TransformType& Transform, const FSlateRota
 
 typedef FSlateRotatedRect FSlateRotatedClipRectType;
 
+
+enum class ESlateVertexRounding : uint8
+{
+	Disabled,
+	Enabled
+};
+
+
+
 /** 
  * A struct which defines a basic vertex seen by the Slate vertex buffers and shaders
  */
@@ -164,10 +210,10 @@ struct SLATECORE_API FSlateVertex
 	float TexCoords[4]; 
 
 	/** Texture coordinates used as pass through to materials for custom texturing. */
-	float MaterialTexCoords[2];
+	FVector2D MaterialTexCoords;
 
 	/** Position of the vertex in window space */
-	float Position[2];
+	FVector2D Position;
 
 	/** clip center/extents in render window space (window space with render transforms applied) */
 	FSlateRotatedClipRectType ClipRect;
@@ -175,10 +221,133 @@ struct SLATECORE_API FSlateVertex
 	/** Vertex color */
 	FColor Color;
 	
-	FSlateVertex();
-	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect );
-	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect );
-	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector4& InTexCoords, const FVector2D& InMaterialTexCoords, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect );
+	/** Local size of the element */
+	uint16 PixelSize[2];
+
+	FSlateVertex() {}
+
+public:
+	
+	// These constructors have more or less been deprecated, you should use FSlateVertex::Make<ESlateVertexRounding::Enabled>(...) in order to have fine control over pixel snapping or not.
+
+	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+		: TexCoords { InTexCoord.X, InTexCoord.Y, InTexCoord2.X, InTexCoord2.Y }
+		, Position(TransformPoint(RenderTransform, InLocalPosition))
+		, ClipRect(InClipRect)
+		, Color(InColor)
+	{
+		Position.X = FMath::RoundToInt(Position.X);
+		Position.Y = FMath::RoundToInt(Position.Y);
+	}
+
+	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+		: TexCoords { InTexCoord.X, InTexCoord.Y, 1.0f, 1.0f }
+		, Position(TransformPoint(RenderTransform, InLocalPosition))
+		, ClipRect(InClipRect)
+		, Color(InColor)
+	{
+		Position.X = FMath::RoundToInt(Position.X);
+		Position.Y = FMath::RoundToInt(Position.Y);
+	}
+
+	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector4& InTexCoords, const FVector2D& InMaterialTexCoords, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+		: TexCoords { InTexCoords.X, InTexCoords.Y, InTexCoords.Z, InTexCoords.W }
+		, MaterialTexCoords(InMaterialTexCoords)
+		, Position(TransformPoint(RenderTransform, InLocalPosition))
+		, ClipRect(InClipRect)
+		, Color(InColor)
+	{
+		Position.X = FMath::RoundToInt(Position.X);
+		Position.Y = FMath::RoundToInt(Position.Y);
+	}
+
+	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InLocalSize, float Scale, const FVector4& InTexCoords, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+		: TexCoords { InTexCoords.X, InTexCoords.Y, InTexCoords.Z, InTexCoords.W }
+		, MaterialTexCoords(InLocalPosition.X / InLocalSize.X, InLocalPosition.Y / InLocalSize.Y)
+		, Position(TransformPoint(RenderTransform, InLocalPosition))
+		, ClipRect(InClipRect)
+		, Color(InColor)
+	{
+		Position.X = FMath::RoundToInt(Position.X);
+		Position.Y = FMath::RoundToInt(Position.Y);
+
+		PixelSize[0] = FMath::RoundToInt(InLocalSize.X * Scale);
+		PixelSize[1] = FMath::RoundToInt(InLocalSize.Y * Scale);
+	}
+
+public:
+
+	template<ESlateVertexRounding Rounding>
+	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+	{
+		FSlateVertex Vertex;
+		Vertex.TexCoords[0] = InTexCoord.X;
+		Vertex.TexCoords[1] = InTexCoord.Y;
+		Vertex.TexCoords[2] = InTexCoord2.X;
+		Vertex.TexCoords[3] = InTexCoord2.Y;
+		Vertex.InitCommon<Rounding>(RenderTransform, InLocalPosition, InColor, InClipRect);
+
+		return Vertex;
+	}
+
+	template<ESlateVertexRounding Rounding>
+	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+	{
+		FSlateVertex Vertex;
+		Vertex.TexCoords[0] = InTexCoord.X;
+		Vertex.TexCoords[1] = InTexCoord.Y;
+		Vertex.TexCoords[2] = 1.0f;
+		Vertex.TexCoords[3] = 1.0f;
+		Vertex.InitCommon<Rounding>(RenderTransform, InLocalPosition, InColor, InClipRect);
+
+		return Vertex;
+	}
+
+	template<ESlateVertexRounding Rounding>
+	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector4& InTexCoords, const FVector2D& InMaterialTexCoords, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+	{
+		FSlateVertex Vertex;
+		Vertex.TexCoords[0] = InTexCoords.X;
+		Vertex.TexCoords[1] = InTexCoords.Y;
+		Vertex.TexCoords[2] = InTexCoords.Z;
+		Vertex.TexCoords[3] = InTexCoords.W;
+		Vertex.MaterialTexCoords = InMaterialTexCoords;
+		Vertex.InitCommon<Rounding>(RenderTransform, InLocalPosition, InColor, InClipRect);
+
+		return Vertex;
+	}
+
+	template<ESlateVertexRounding Rounding>
+	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InLocalSize, float Scale, const FVector4& InTexCoords, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+	{
+		FSlateVertex Vertex;
+		Vertex.TexCoords[0] = InTexCoords.X;
+		Vertex.TexCoords[1] = InTexCoords.Y;
+		Vertex.TexCoords[2] = InTexCoords.Z;
+		Vertex.TexCoords[3] = InTexCoords.W;
+		Vertex.InitCommon<Rounding>(RenderTransform, InLocalPosition, InColor, InClipRect);
+		Vertex.PixelSize[0] = FMath::RoundToInt(InLocalSize.X * Scale);
+		Vertex.PixelSize[1] = FMath::RoundToInt(InLocalSize.Y * Scale);
+
+		return Vertex;
+	}
+
+private:
+
+	template<ESlateVertexRounding Rounding>
+	FORCEINLINE void InitCommon(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+	{
+		Position = TransformPoint(RenderTransform, InLocalPosition);
+
+		if ( Rounding == ESlateVertexRounding::Enabled )
+		{
+			Position.X = FMath::RoundToInt(Position.X);
+			Position.Y = FMath::RoundToInt(Position.Y);
+		}
+
+		ClipRect = InClipRect;
+		Color = InColor;
+	}
 };
 
 template<> struct TIsPODType<FSlateVertex> { enum { Value = true }; };

@@ -45,6 +45,7 @@
 #include "NativeClassHierarchy.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
+#include "SSplitter.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -1544,6 +1545,7 @@ TSharedRef<SAssetColumnView> SAssetView::CreateColumnView()
 		.HeaderRow
 		(
 			SNew(SHeaderRow)
+			.ResizeMode(ESplitterResizeMode::FixedSize)
 			+ SHeaderRow::Column(SortManager.NameColumnId)
 			.FillWidth(300)
 			.SortMode( TAttribute< EColumnSortMode::Type >::Create( TAttribute< EColumnSortMode::Type >::FGetter::CreateSP( this, &SAssetView::GetColumnSortMode, SortManager.NameColumnId ) ) )
@@ -1556,6 +1558,9 @@ TSharedRef<SAssetColumnView> SAssetView::CreateColumnView()
 				CreateRowHeaderMenuContent(SortManager.NameColumnId.ToString())
 			]
 		);
+
+	NewColumnView->GetHeaderRow()->SetOnGetMaxRowSizeForColumn(FOnGetMaxRowSizeForColumn::CreateRaw(NewColumnView.Get(), &SAssetColumnView::GetMaxRowSizeForColumn));
+
 
 	NumVisibleColumns = HiddenColumnNames.Contains(SortManager.NameColumnId.ToString()) ? 0 : 1;
 
@@ -2204,7 +2209,6 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 									.OnSort(FOnSortModeChanged::CreateSP(this, &SAssetView::OnSortColumnHeader))
 									.DefaultLabel(DisplayName)
 									.DefaultTooltip(TooltipText)
-									.HAlignCell((TagIt->Type == UObject::FAssetRegistryTag::TT_Numerical) ? HAlign_Right : HAlign_Left)
 									.FillWidth(180)
 									.ShouldGenerateWidget(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SAssetView::ShouldColumnGenerateWidget, TagName.ToString())))
 									.MenuContent()

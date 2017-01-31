@@ -170,6 +170,48 @@ bool FDataTableEditorUtils::MoveRow(UDataTable* DataTable, FName RowName, ERowMo
 	return true;
 }
 
+bool FDataTableEditorUtils::DiffersFromDefault(UDataTable* DataTable, FName RowName)
+{
+	bool bDiffers = false;
+
+	if (DataTable && DataTable->RowMap.Contains(RowName))
+	{
+		uint8* RowData = DataTable->RowMap[RowName];
+
+		if (const UUserDefinedStruct* UDStruct = Cast<const UUserDefinedStruct>(DataTable->RowStruct))
+		{
+			bDiffers = UDStruct->DiffersFromDefaultValue(RowData);
+		}
+	}
+
+	return bDiffers;
+}
+
+bool FDataTableEditorUtils::ResetToDefault(UDataTable* DataTable, FName RowName)
+{
+	bool bResult = false;
+
+	if (DataTable && DataTable->RowMap.Contains(RowName))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ResetDataTableRowToDefault", "Reset Data Table Row to Default Values"));
+
+		BroadcastPreChange(DataTable, EDataTableChangeInfo::RowData);
+		DataTable->Modify();
+
+		uint8* RowData = DataTable->RowMap[RowName];
+
+		if (const UUserDefinedStruct* UDStruct = Cast<const UUserDefinedStruct>(DataTable->RowStruct))
+		{
+			UDStruct->InitializeDefaultValue(RowData);
+			bResult = true;
+		}
+
+		BroadcastPostChange(DataTable, EDataTableChangeInfo::RowData);
+	}
+
+	return bResult;
+}
+
 void FDataTableEditorUtils::BroadcastPreChange(UDataTable* DataTable, EDataTableChangeInfo Info)
 {
 	FDataTableEditorManager::Get().PreChange(DataTable, Info);

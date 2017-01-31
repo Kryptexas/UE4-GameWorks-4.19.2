@@ -3997,7 +3997,7 @@ void FKismetCompilerContext::Compile()
 		for (UBlueprint* CurrentBP : DependentBlueprints)
 		{
 			// Get the current dirty state of the package
-			UPackage* const Package = Cast<UPackage>(CurrentBP->GetOutermost());
+			UPackage* const Package = CurrentBP->GetOutermost();
 			const bool bStartedWithUnsavedChanges = Package != nullptr ? Package->IsDirty() : true;
 			const EBlueprintStatus OriginalStatus = CurrentBP->Status;
 

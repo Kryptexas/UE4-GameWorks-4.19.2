@@ -1371,7 +1371,7 @@ bool SWindow::IsAutosized() const
 	return SizingRule == ESizingRule::Autosized;
 }
 
-void SWindow::SetSizingRule( ESizingRule::Type InSizingRule )
+void SWindow::SetSizingRule( ESizingRule InSizingRule )
 {
 	SizingRule = InSizingRule;
 }

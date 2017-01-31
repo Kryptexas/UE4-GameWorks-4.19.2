@@ -1872,10 +1872,40 @@ void FLandscapeEditDataInterface::FillLayer(ULandscapeLayerInfoObject* LayerInfo
 		return;
 	}
 
+	LayerInfo->IsReferencedFromLoadedData = true;
+
 	for (auto& XYComponentPair : LandscapeInfo->XYtoComponentMap)
 	{
 		ULandscapeComponent* Component = XYComponentPair.Value;
 		Component->FillLayer(LayerInfo, *this);
+	}	
+
+	// Flush dynamic data (e.g. grass)
+	TSet<ULandscapeComponent*> Components;
+	for (auto& XYComponentPair : LandscapeInfo->XYtoComponentMap)
+	{
+		Components.Add(XYComponentPair.Value);
+	}
+	ALandscapeProxy::InvalidateGeneratedComponentData(Components);
+}
+
+void FLandscapeEditDataInterface::FillEmptyLayers(ULandscapeLayerInfoObject* LayerInfo)
+{
+	if (!LandscapeInfo)
+	{
+		return;
+	}
+
+	LayerInfo->IsReferencedFromLoadedData = true;
+
+	for (auto& XYComponentPair : LandscapeInfo->XYtoComponentMap)
+	{
+		ULandscapeComponent* Component = XYComponentPair.Value;
+
+		if (Component->WeightmapLayerAllocations.Num() == 0)
+		{
+			Component->FillLayer(LayerInfo, *this);
+		}
 	}
 
 	// Flush dynamic data (e.g. grass)

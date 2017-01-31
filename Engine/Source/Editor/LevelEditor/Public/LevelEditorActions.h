@@ -689,7 +689,7 @@ public:
 	static bool CanSaveWorld();
 
 	/** Save the current level as... */
-	static void SaveAs();
+	static void SaveCurrentAs();
 
 	/** Saves the current map */
 	static void Save();

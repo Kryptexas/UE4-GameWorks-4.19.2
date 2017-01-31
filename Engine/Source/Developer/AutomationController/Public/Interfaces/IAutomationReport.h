@@ -30,6 +30,7 @@ namespace EAutomationState
 		Success,				// Automation test was run and succeeded
 		NotEnoughParticipants,	// Automation test was not run due to number of participants
 	};
+
 	inline const TCHAR* ToString(EAutomationState::Type InType)
 	{
 		switch (InType)

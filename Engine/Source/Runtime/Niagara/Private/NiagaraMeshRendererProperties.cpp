@@ -36,7 +36,7 @@ void UNiagaraMeshRendererProperties::FixMaterial(UMaterial* Material)
 
 void UNiagaraMeshRendererProperties::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	if (ParticleMesh && PropertyChangedEvent.Property->GetName() == "ParticleMesh")
+	if (ParticleMesh && PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == "ParticleMesh")
 	{
 		const FStaticMeshLODResources& LODModel = ParticleMesh->RenderData->LODResources[0];
 		for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)

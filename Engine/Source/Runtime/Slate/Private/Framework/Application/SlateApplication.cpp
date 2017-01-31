@@ -24,6 +24,7 @@
 #include "Framework/Application/SWindowTitleBar.h"
 #include "Input/HittestGrid.h"
 #include "Stats/SlateStats.h"
+#include "HardwareCursor.h"
 
 #include "Framework/Application/IWidgetReflector.h"
 #include "Framework/Commands/GenericCommands.h"
@@ -979,15 +980,15 @@ void FSlateApplication::PlaySound( const FSlateSound& SoundToPlay, int32 UserInd
 }
 
 float FSlateApplication::GetSoundDuration(const FSlateSound& Sound) const
-	{
+{
 	return SlateSoundDevice->GetSoundDuration(Sound);
 }
 
 FVector2D FSlateApplication::GetCursorPos() const
 {
-	if ( PlatformApplication->Cursor.IsValid() )
+	if ( ICursor* Cursor = PlatformApplication->Cursor.Get() )
 	{
-		return PlatformApplication->Cursor->GetPosition();
+		return Cursor->GetPosition();
 	}
 
 	return FVector2D( 0, 0 );
@@ -1000,9 +1001,9 @@ FVector2D FSlateApplication::GetLastCursorPos() const
 
 void FSlateApplication::SetCursorPos( const FVector2D& MouseCoordinate )
 {
-	if ( PlatformApplication->Cursor.IsValid() )
+	if (ICursor* Cursor = PlatformApplication->Cursor.Get())
 	{
-		return PlatformApplication->Cursor->SetPosition( MouseCoordinate.X, MouseCoordinate.Y );
+		return Cursor->SetPosition( MouseCoordinate.X, MouseCoordinate.Y );
 	}
 }
 
@@ -2101,40 +2102,6 @@ TSharedRef<SWindow> FSlateApplication::AddWindowAsNativeChild( TSharedRef<SWindo
 	return InSlateWindow;
 }
 
-
-TSharedRef<SWindow> FSlateApplication::PushMenu( const TSharedRef<SWidget>& InParentContent, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const bool bShouldAutoSize, const FVector2D& WindowSize, const FVector2D& SummonLocationSize )
-{
-#if !(UE_BUILD_SHIPPING && WITH_EDITOR)
-	// The would-be parent of the new menu being pushed is about to be destroyed.  Any children added to an about to be destroyed window will also be destroyed
-	FWidgetPath WidgetPath;
-	GeneratePathToWidgetChecked(InParentContent, WidgetPath);
-	if (IsWindowInDestroyQueue( WidgetPath.GetWindow() ))
-	{
-		UE_LOG(LogSlate, Warning, TEXT("FSlateApplication::PushMenu() called when parent window queued for destroy. New menu will be destroyed."));
-	}
-#endif
-
-	// This is a DEPRECATED version of PushMenu(). It creates a new menu but forces the popup method to EPopupMethod::CreateNewWindow
-
-	// Wrap content in a fixed size box if autosizing isn't wanted
-	TSharedRef<SWidget> WappedContent = InContent;
-	if (!bShouldAutoSize)
-	{
-		WappedContent = SNew(SBox)
-			.WidthOverride(WindowSize.X)
-			.HeightOverride(WindowSize.Y)
-			[
-				InContent
-			];
-	}
-
-	TSharedPtr<IMenu> Menu = PushMenu(InParentContent, FWidgetPath(), WappedContent, SummonLocation, TransitionEffect, bFocusImmediately, SummonLocationSize, EPopupMethod::CreateNewWindow);
-	TSharedPtr<SWindow> Window = Menu->GetOwnedWindow();
-	check(Window.IsValid());
-
-	return Window.ToSharedRef();
-}
-
 TSharedPtr<IMenu> FSlateApplication::PushMenu(const TSharedRef<SWidget>& InParentWidget, const FWidgetPath& InOwnerPath, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const FVector2D& SummonLocationSize, TOptional<EPopupMethod> Method, const bool bIsCollapsedByParent)
 {
 	// Caller supplied a valid path? Pass it to the menu stack.
@@ -2182,17 +2149,6 @@ TSharedPtr<IMenu> FSlateApplication::PushHostedMenu(const TSharedPtr<IMenu>& InP
 	return MenuStack.PushHosted(InParentMenu, InMenuHost, InContent, OutWrappedContent, TransitionEffect, ShouldThrottle, bIsCollapsedByParent);
 }
 
-bool FSlateApplication::HasOpenSubMenus( TSharedRef<SWindow> Window ) const
-{
-	// deprecated
-	TSharedPtr<IMenu> Menu = MenuStack.FindMenuFromWindow(Window);
-	if (Menu.IsValid())
-	{
-		return MenuStack.HasOpenSubMenus(Menu);
-	}
-	return false;
-}
-
 bool FSlateApplication::HasOpenSubMenus(TSharedPtr<IMenu> InMenu) const
 {
 	return MenuStack.HasOpenSubMenus(InMenu);
@@ -2218,16 +2174,6 @@ void FSlateApplication::DismissAllMenus()
 	MenuStack.DismissAll();
 }
 
-void FSlateApplication::DismissMenu( TSharedRef<SWindow> MenuWindowToDismiss )
-{
-	// deprecated
-	TSharedPtr<IMenu> Menu = MenuStack.FindMenuFromWindow(MenuWindowToDismiss);
-	if (Menu.IsValid())
-	{
-		DismissMenu(Menu);
-	}
-}
-
 void FSlateApplication::DismissMenu(const TSharedPtr<IMenu>& InFromMenu)
 {
 	MenuStack.DismissFrom(InFromMenu);
@@ -2245,13 +2191,6 @@ void FSlateApplication::DismissMenuByWidget(const TSharedRef<SWidget>& InWidgetI
 		}
 	}
 }
-
-int32 FSlateApplication::GetLocationInMenuStack( TSharedRef<SWindow> WindowToFind ) const
-{
-	// DEPRECATED
-	return MenuStack.FindLocationInStack(WindowToFind);
-}
-
 
 void FSlateApplication::RequestDestroyWindow( TSharedRef<SWindow> InWindowToDestroy )
 {
@@ -2439,11 +2378,6 @@ void FSlateApplication::SetUserFocusToGameViewport(uint32 UserIndex, EFocusCause
 	}
 }
 
-void FSlateApplication::SetFocusToGameViewport()
-{
-	SetUserFocusToGameViewport(GetUserIndexForKeyboard(), EFocusCause::SetDirectly);
-}
-
 void FSlateApplication::SetAllUserFocusToGameViewport(EFocusCause ReasonFocusIsChanging /* = EFocusCause::SetDirectly*/)
 {
 	TSharedPtr< SViewport > CurrentGameViewportWidget = GameViewportWidget.Pin();
@@ -2457,11 +2391,6 @@ void FSlateApplication::SetAllUserFocusToGameViewport(EFocusCause ReasonFocusIsC
 			SetUserFocus(User, PathToWidget, ReasonFocusIsChanging);
 		});
 	}
-}
-
-void FSlateApplication::SetJoystickCaptorToGameViewport()
-{
-	SetAllUserFocusToGameViewport();
 }
 
 void FSlateApplication::ActivateGameViewport()
@@ -2552,11 +2481,6 @@ TSharedPtr<SWidget> FSlateApplication::GetUserFocusedWidget(uint32 UserIndex) co
 	return TSharedPtr<SWidget>();
 }
 
-TSharedPtr<SWidget> FSlateApplication::GetJoystickCaptor(uint32 UserIndex) const
-{
-	return GetUserFocusedWidget(UserIndex);
-}
-
 void FSlateApplication::ClearUserFocus(uint32 UserIndex, EFocusCause ReasonFocusIsChanging /* = EFocusCause::SetDirectly*/)
 {
 	SetUserFocus(UserIndex, FWidgetPath(), ReasonFocusIsChanging);
@@ -2565,11 +2489,6 @@ void FSlateApplication::ClearUserFocus(uint32 UserIndex, EFocusCause ReasonFocus
 void FSlateApplication::ClearAllUserFocus(EFocusCause ReasonFocusIsChanging /*= EFocusCause::SetDirectly*/)
 {
 	SetAllUserFocus(FWidgetPath(), ReasonFocusIsChanging);
-}
-
-void FSlateApplication::ReleaseJoystickCapture(uint32 UserIndex)
-{
-	ClearUserFocus(UserIndex);
 }
 
 bool FSlateApplication::SetKeyboardFocus(const TSharedPtr< SWidget >& OptionalWidgetToFocus, EFocusCause ReasonFocusIsChanging /* = EFocusCause::SetDirectly*/)
@@ -4868,6 +4787,14 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 {
 	SCOPE_CYCLE_COUNTER(STAT_ProcessMouseButtonDown);
 
+#if WITH_EDITOR
+	//Send the key input to all pre input key down listener function
+	if (OnApplicationMousePreInputButtonDownListenerEvent.IsBound())
+	{
+		OnApplicationMousePreInputButtonDownListenerEvent.Broadcast(MouseEvent);
+	}
+#endif //WITH_EDITOR
+
 	QueueSynthesizedMouseMove();
 	SetLastUserInteractionTime(this->GetCurrentTime());
 	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
@@ -6605,6 +6532,23 @@ void FSlateApplication::NavigateFromWidgetUnderCursor(EUINavigation InNavigation
 			{
 				FSlateApplication::Get().ProcessReply(PathToLocatedWidget, FReply::Handled().SetNavigation(InNavigationType, ENavigationSource::WidgetUnderCursor), &PathToLocatedWidget, nullptr, InUserIndex);
 			}
+		}
+	}
+}
+
+void FSlateApplication::RegisterCursor(EMouseCursor::Type CursorType, TSharedPtr<FHardwareCursor> HardwareCursor)
+{
+	HardwareCursors.Add(CursorType, HardwareCursor);
+
+	if (ICursor* Cursor = PlatformApplication->Cursor.Get())
+	{
+		if (HardwareCursor.IsValid())
+		{
+			Cursor->SetTypeShape(CursorType, HardwareCursor->GetHandle());
+		}
+		else
+		{
+			Cursor->SetTypeShape(CursorType, nullptr);
 		}
 	}
 }

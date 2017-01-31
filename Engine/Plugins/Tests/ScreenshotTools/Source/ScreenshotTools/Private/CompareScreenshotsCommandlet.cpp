@@ -24,7 +24,6 @@ int32 UCompareScreenshotsCommandlet::Main(FString const& Params)
 	IScreenShotToolsModule& ScreenShotModule = FModuleManager::LoadModuleChecked<IScreenShotToolsModule>("ScreenShotComparisonTools");
 	IScreenShotManagerPtr ScreenshotManager = ScreenShotModule.GetScreenShotManager();
 
-	ScreenshotManager->CompareScreensotsAsync().Wait();
 	ScreenshotManager->ExportScreensotsAsync(ScreenshotExportPath).Wait();
 
 	return 0;

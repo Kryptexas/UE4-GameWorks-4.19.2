@@ -242,7 +242,7 @@ public:
 		const int32 BackgroundLayer = LayerId;
 
 		const bool bEnabled = ShouldBeEnabled( bParentEnabled );
-		const ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+		const ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
@@ -337,6 +337,12 @@ public:
 		{
 			if( bDragging )
 			{
+				NumericType CurrentDelta = Delta.Get();
+				if (CurrentDelta != 0)
+				{
+					InternalValue = Snap(InternalValue, CurrentDelta);
+				}
+
 				NotifyValueCommitted();
 			}
 
@@ -613,14 +619,7 @@ protected:
 	/** @return the value being observed by the spinbox as a string */
 	FString GetValueAsString() const
 	{
-		auto CurrentValue = ValueAttribute.Get();
-		NumericType CurrentDelta = Delta.Get();
-		if( CurrentDelta != 0 )
-		{
-			CurrentValue = (NumericType)Snap(CurrentValue, CurrentDelta);
-		}
-		
-		return Interface->ToString(CurrentValue);
+		return Interface->ToString(ValueAttribute.Get());
 	}
 
 	/** @return the value being observed by the spinbox as FText - todo: spinbox FText support (reimplement me) */

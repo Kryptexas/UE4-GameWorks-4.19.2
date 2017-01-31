@@ -82,7 +82,7 @@ public:
 		FString TempDir = OutputDirectory.IsEmpty() ? FString(FPlatformProcess::UserTempDir()) : OutputDirectory;
 		FString TempDeltaFile = FPaths::CreateTempFilename(*TempDir, TEXT("ImageCompare-"), TEXT(".png"));
 
-		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+		IImageWrapperModule& ImageWrapperModule = FModuleManager::GetModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
 		IImageWrapperPtr ImageWriter = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 		if ( ImageWriter.IsValid() )
@@ -195,6 +195,13 @@ bool FPixelOperations::IsAntialiased(const FColor& SourcePixel, FComparableImage
 	return false;
 }
 
+FComparisonReport::FComparisonReport(const FString& InReportRootDirectory, const FString& InReportFile)
+{
+	ReportRootDirectory = InReportRootDirectory;
+	ReportFile = InReportFile;
+	ReportFolder = FPaths::GetPath(InReportFile);
+}
+
 void FComparableImage::Process()
 {
 	ParallelFor(Width,
@@ -224,7 +231,7 @@ void FComparableImage::Process()
 
 TSharedPtr<FComparableImage> FImageComparer::Open(const FString& ImagePath, FText& OutError)
 {
-	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+	IImageWrapperModule& ImageWrapperModule = FModuleManager::GetModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
 	IImageWrapperPtr ImageReader = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 	if ( !ImageReader.IsValid() )
@@ -313,7 +320,10 @@ FImageComparisonResult FImageComparer::Compare(const FString& ImagePathA, const 
 
 	if ( ImageA->Width != ImageB->Width || ImageA->Height != ImageB->Height )
 	{
-		Results.ErrorMessage = LOCTEXT("DifferentSizesUnsupported", "We can not compare images of different sizes at this time.");
+		//Results.ErrorMessage = LOCTEXT("DifferentSizesUnsupported", "We can not compare images of different sizes at this time.");
+		Results.Tolerance = Tolerance;
+		Results.MaxLocalDifference = 1.0f;
+		Results.GlobalDifference = 1.0f;
 		return Results;
 	}
 

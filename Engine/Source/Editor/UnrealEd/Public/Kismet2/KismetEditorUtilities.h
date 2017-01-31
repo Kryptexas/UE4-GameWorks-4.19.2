@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __KismetEditorUtilities_h__
-#define __KismetEditorUtilities_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -314,7 +310,3 @@ private:
 
 	FKismetEditorUtilities() {}
 };
-
-
-
-#endif//__KismetEditorUtilities_h__

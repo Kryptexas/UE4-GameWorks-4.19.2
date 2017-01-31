@@ -164,7 +164,7 @@ private:
 	 *
 	 *	@param	InStaticMesh		The static mesh to use for the editor.
 	 */
-	void SetEditorMesh(UStaticMesh* InStaticMesh);
+	void SetEditorMesh(UStaticMesh* InStaticMesh, bool bResetCamera=true);
 
 	/** Helper function for generating K-DOP collision geometry. */
 	void GenerateKDop(const FVector* Directions, uint32 NumDirections);

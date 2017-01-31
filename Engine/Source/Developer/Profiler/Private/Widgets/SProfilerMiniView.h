@@ -164,7 +164,7 @@ class SProfilerMiniView : public SCompoundWidget
 	/** Holds current state provided by OnPaint function, used to simplify drawing. */
 	struct FSlateOnPaintState : public FNoncopyable
 	{
-		FSlateOnPaintState( const FGeometry& InAllottedGeometry, const FSlateRect& InMyClippingRect, FSlateWindowElementList& InOutDrawElements, int32& InLayerId, const FWidgetStyle& InWidgetStyle, ESlateDrawEffect::Type InDrawEffects )
+		FSlateOnPaintState( const FGeometry& InAllottedGeometry, const FSlateRect& InMyClippingRect, FSlateWindowElementList& InOutDrawElements, int32& InLayerId, const FWidgetStyle& InWidgetStyle, ESlateDrawEffect InDrawEffects )
 			: AllottedGeometry( InAllottedGeometry )
 			, MyClippingRect( InMyClippingRect )
 			, WidgetStyle( InWidgetStyle )
@@ -175,7 +175,7 @@ class SProfilerMiniView : public SCompoundWidget
 
 #if	0
 		/** Set operation. */
-		void Set( const FGeometry& InAllottedGeometry, const FSlateRect& InMyClippingRect, FSlateWindowElementList& InOutDrawElements, int32& InLayerId, const FWidgetStyle& InWidgetStyle, ESlateDrawEffect::Type InDrawEffects )
+		void Set( const FGeometry& InAllottedGeometry, const FSlateRect& InMyClippingRect, FSlateWindowElementList& InOutDrawElements, int32& InLayerId, const FWidgetStyle& InWidgetStyle, ESlateDrawEffect InDrawEffects )
 		{
 			_AllottedGeometry = &InAllottedGeometry;
 			_MyClippingRect = &InMyClippingRect;
@@ -193,7 +193,7 @@ class SProfilerMiniView : public SCompoundWidget
 		 
 		FSlateWindowElementList& OutDrawElements;
 		int32& LayerId;
-		const ESlateDrawEffect::Type DrawEffects;
+		const ESlateDrawEffect DrawEffects;
 	};
 
 public:

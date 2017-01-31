@@ -4,8 +4,7 @@
 	PackageBackup.h: Utility class for backing up a package.
 =============================================================================*/
 
-#ifndef _PACKAGEBACKUP_H
-#define _PACKAGEBACKUP_H
+#pragma once
 
 #include "CoreMinimal.h"
 
@@ -112,5 +111,3 @@ private:
 	~FAutoPackageBackup();
 	FAutoPackageBackup& operator=( const FAutoPackageBackup& );
 };
-
-#endif // #ifndef _PACKAGEBACKUP_H

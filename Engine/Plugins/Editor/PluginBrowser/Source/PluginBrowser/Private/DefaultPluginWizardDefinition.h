@@ -24,6 +24,8 @@ public:
 	virtual FText GetInstructions() const override;
 
 	virtual bool GetPluginIconPath(FString& OutIconPath) const override;
+	virtual EHostType::Type GetPluginModuleDescriptor() const override;
+	virtual ELoadingPhase::Type GetPluginLoadingPhase() const override;
 	virtual bool GetTemplateIconPath(TSharedRef<FPluginTemplateDescription> InTemplate, FString& OutIconPath) const override;
 	virtual FString GetFolderForSelection() const override;
 	// End IPluginWizardDefinition interface

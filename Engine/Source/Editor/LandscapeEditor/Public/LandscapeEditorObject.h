@@ -290,6 +290,13 @@ class ULandscapeEditorObject : public UObject
 	UPROPERTY(Category = "Tool Settings", EditAnywhere, NonTransactional, AdvancedDisplay, meta = (DisplayName = "Show Preview Grid", ShowForTools = "Flatten", ShowForTargetTypes = "Heightmap", EditCondition = "bUseFlattenTarget", HideEditConditionToggle, UIMin = "-32768", UIMax = "32768"))
 	bool bShowFlattenTargetPreview;
 
+	// Whether the Eye Dropper mode is activated
+	UPROPERTY(NonTransactional, Transient)
+	bool bFlattenEyeDropperModeActivated;
+
+	UPROPERTY(NonTransactional, Transient)
+	float FlattenEyeDropperModeDesiredTarget;
+
 	// Ramp Tool:
 
 	// Width of ramp
@@ -580,6 +587,13 @@ public:
 	UPROPERTY(Category="Target Layers", EditAnywhere, NonTransactional, meta=(ShowForTargetTypes="Weightmap,Visibility"))
 	ELandscapeLayerPaintingRestriction PaintingRestriction;
 
+	// Display order of the targets
+	UPROPERTY(Category = "Target Layers", EditAnywhere)
+	ELandscapeLayerDisplayMode TargetDisplayOrder;
+
+	UPROPERTY(Category = "Target Layers", EditAnywhere)
+	bool ShowUnusedLayers;	
+
 #if WITH_EDITOR
 	//~ Begin UObject Interface
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -662,4 +676,7 @@ public:
 	{
 		ParentMode = LandscapeParent;
 	}
+
+	void UpdateTargetLayerDisplayOrder();
+	void UpdateShowUnusedLayers();
 };

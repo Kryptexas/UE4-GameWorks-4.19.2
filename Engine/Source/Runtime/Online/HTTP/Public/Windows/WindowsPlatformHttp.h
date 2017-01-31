@@ -8,7 +8,7 @@
 /**
  * Platform specific HTTP implementations.
  */
-class FWindowsPlatformHttp : public FGenericPlatformHttp
+class HTTP_API FWindowsPlatformHttp : public FGenericPlatformHttp
 {
 public:
 
@@ -31,6 +31,11 @@ public:
 	 * @return The request object.
 	 */
 	static IHttpRequest* ConstructRequest();
+
+	/**
+	 * Returns the mime type for the file.
+	 */
+	static FString GetMimeType(const FString& FilePath);
 };
 
 

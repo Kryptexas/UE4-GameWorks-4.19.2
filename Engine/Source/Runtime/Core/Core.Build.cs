@@ -63,6 +63,9 @@ public class Core : ModuleRules
 		if (UEBuildConfiguration.bBuildEditor == true)
 		{
 			DynamicallyLoadedModuleNames.Add("SourceCodeAccess");
+
+			PrivateIncludePathModuleNames.Add("DirectoryWatcher");
+			DynamicallyLoadedModuleNames.Add("DirectoryWatcher");
 		}
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||

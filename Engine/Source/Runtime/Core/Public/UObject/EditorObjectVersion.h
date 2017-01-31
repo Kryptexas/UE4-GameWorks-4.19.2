@@ -39,6 +39,8 @@ struct CORE_API FEditorObjectVersion
 		StableUserDefinedEnumDisplayNames,
 		// Added "Inline" option to UFontFace assets
 		AddedInlineFontFaceAssets,
+		// Fix a serialization issue with static mesh FMeshSectionInfoMap UProperty
+		UPropertryForMeshSectionSerialize,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

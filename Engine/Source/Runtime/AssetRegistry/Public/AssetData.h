@@ -13,7 +13,8 @@
 #include "UObject/LinkerLoad.h"
 #include "SharedMapView.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogAssetData, Log, All);
+ASSETREGISTRY_API DECLARE_LOG_CATEGORY_EXTERN(LogAssetData, Log, All);
+
 /** A class to hold important information about an assets found by the Asset Registry */
 class FAssetData
 {

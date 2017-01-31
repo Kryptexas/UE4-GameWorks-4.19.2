@@ -298,6 +298,12 @@ public:
 		{
 			ModuleManager.LoadModule(ModuleName);
 		}
+		else
+		{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			WarnIfItWasntSafeToLoadHere(ModuleName);
+#endif
+		}
 
 		return GetModuleChecked<TModuleInterface>(ModuleName);
 	}
@@ -317,6 +323,12 @@ public:
 		if (!ModuleManager.IsModuleLoaded(ModuleName))
 		{
 			ModuleManager.LoadModule(ModuleName);
+		}
+		else
+		{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			WarnIfItWasntSafeToLoadHere(ModuleName);
+#endif
 		}
 
 		return GetModulePtr<TModuleInterface>(ModuleName);
@@ -549,6 +561,8 @@ public:
 	void ResetModulePathsCache();
 
 private:
+	static void WarnIfItWasntSafeToLoadHere(const FName InModuleName);
+
 	/** Thread safe module finding routine. */
 	ModuleInfoPtr FindModule(FName InModuleName);
 	ModuleInfoRef FindModuleChecked(FName InModuleName);

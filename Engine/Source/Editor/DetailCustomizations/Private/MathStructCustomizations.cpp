@@ -156,7 +156,7 @@ void ExtractNumericMetadata(TSharedRef<IPropertyHandle>& PropertyHandle, TOption
 	const FString& ShiftMouseMovePixelPerDeltaString = Property->GetMetaData(TEXT("ShiftMouseMovePixelPerDelta"));
 	const FString& ClampMinString = Property->GetMetaData(TEXT("ClampMin"));
 	const FString& ClampMaxString = Property->GetMetaData(TEXT("ClampMax"));
-	const FString& ColorGradingModeString = Property->GetMetaData(TEXT("ColorGradingMode"));
+	const FString& DisplayColorChannelString = Property->GetMetaData(TEXT("DisplayColorChannel"));
 
 	// If no UIMin/Max was specified then use the clamp string
 	const FString& UIMinString = MetaUIMinString.Len() ? MetaUIMinString : ClampMinString;
@@ -224,7 +224,7 @@ void ExtractNumericMetadata(TSharedRef<IPropertyHandle>& PropertyHandle, TOption
 		//UE_LOG(LogPropertyNode, Warning, TEXT("UI Min (%s) >= UI Max (%s) for Ranged Numeric"), *UIMinString, *UIMaxString);
 	}
 
-	DisplayChannelColor = ColorGradingModeString.Len() > 0 ? true : false;
+	DisplayChannelColor = DisplayColorChannelString.Len() > 0 && DisplayColorChannelString.ToBool();
 }
 
 
@@ -239,10 +239,6 @@ TSharedRef<SWidget> FMathStructCustomization::MakeNumericWidget(
 	bool DisplayChannelColor = false;
 	ExtractNumericMetadata(StructurePropertyHandle, MinValue, MaxValue, SliderMinValue, SliderMaxValue, SliderExponent, Delta, ShiftMouseMovePixelPerDelta, DisplayChannelColor);
 
-	TSharedPtr<SWidget> LabelWidget = SNew(STextBlock)
-		.Font(IDetailLayoutBuilder::GetDetailFont())
-		.Text(PropertyHandle->GetPropertyDisplayName());
-
 	int32 ColorIndex = INDEX_NONE;
 	if (DisplayChannelColor && SortedChildHandles.Num() > 2)
 	{
@@ -256,6 +252,30 @@ TSharedRef<SWidget> FMathStructCustomization::MakeNumericWidget(
 			}
 		}
 	}
+
+	//In case we have to display the struct has a color we rename the label RGBY instead of XYZW
+	FText LabelText = PropertyHandle->GetPropertyDisplayName();
+	if (ColorIndex != INDEX_NONE)
+	{
+		switch (ColorIndex)
+		{
+		case 0:
+			LabelText = NSLOCTEXT("MathStrucCustomizationNS", "RedChannelSmallName", "R");
+			break;
+		case 1:
+			LabelText = NSLOCTEXT("MathStrucCustomizationNS", "GreenChannelSmallName", "G");
+			break;
+		case 2:
+			LabelText = NSLOCTEXT("MathStrucCustomizationNS", "BlueChannelSmallName", "B");
+			break;
+		case 3:
+			LabelText = NSLOCTEXT("MathStrucCustomizationNS", "LuminanceChannelSmallName", "Y");
+			break;
+		}
+	}
+	TSharedPtr<SWidget> LabelWidget = SNew(STextBlock)
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+		.Text(LabelText);
 
 	TWeakPtr<IPropertyHandle> WeakHandlePtr = PropertyHandle;
 

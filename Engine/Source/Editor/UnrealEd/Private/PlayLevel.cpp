@@ -264,7 +264,7 @@ void UEditorEngine::EndPlayMap()
 		GameViewport->OnGameViewportInputKey().Unbind();
 
 		// Remove close handler binding
-		GameViewport->OnCloseRequested().Unbind();
+		GameViewport->OnCloseRequested().Remove(ViewportCloseRequestedDelegateHandle);
 
 		GameViewport->CloseRequested(GameViewport->Viewport);
 	}
@@ -2512,7 +2512,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		PIEInstance = ( !CanRunUnderOneProcess && PlayNetMode == EPlayNetMode::PIE_Client ) ? INDEX_NONE : 0;
 		UGameInstance* const GameInstance = CreatePIEGameInstance(PIEInstance, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, false, PIEStartTime);
 
-		if (!PlayInSettings->EnableSound)
+		if (!PlayInSettings->EnableGameSound)
 		{
 			UWorld* GameInstanceWorld = GameInstance->GetWorld();
 			if (FAudioDevice* GameInstanceAudioDevice = GameInstanceWorld->GetAudioDevice())
@@ -3164,7 +3164,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 		ViewportClient->OnGameViewportInputKey().BindUObject(this, &UEditorEngine::ProcessDebuggerCommands);
 
 		// Add a handler for viewport close requests
-		ViewportClient->OnCloseRequested().BindUObject(this, &UEditorEngine::OnViewportCloseRequested);
+		ViewportCloseRequestedDelegateHandle = ViewportClient->OnCloseRequested().AddUObject(this, &UEditorEngine::OnViewportCloseRequested);
 		FSlatePlayInEditorInfo& SlatePlayInEditorSession = SlatePlayInEditorMap.Add(PieWorldContext->ContextHandle, FSlatePlayInEditorInfo());
 		SlatePlayInEditorSession.DestinationSlateViewport = RequestedDestinationSlateViewport;	// Might be invalid depending how pie was launched. Code below handles this.
 		RequestedDestinationSlateViewport = NULL;
@@ -3770,7 +3770,7 @@ UWorld* UEditorEngine::CreatePIEWorldBySavingToTemp(FWorldContext& WorldContext,
 UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName)
 {
 	double StartTime = FPlatformTime::Seconds();
-	UPackage* InPackage = Cast<UPackage>(InWorld->GetOutermost());
+	UPackage* InPackage = InWorld->GetOutermost();
 	UWorld* NewPIEWorld = NULL;
 	
 	const FString WorldPackageName = InPackage->GetName();

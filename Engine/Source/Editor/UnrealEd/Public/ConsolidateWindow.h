@@ -4,8 +4,7 @@
 	ConsolidationWindow.h: Dialog for displaying the asset consolidation tool.
 =============================================================================*/
 
-#ifndef __SCONSOLIDATEWINDOW_H__
-#define __SCONSOLIDATEWINDOW_H__
+#pragma once
 
 #include "CoreMinimal.h"
 
@@ -39,5 +38,3 @@ private:
 	 */
 	static TWeakPtr<SConsolidateToolWidget> WidgetInstance;
 };
-
-#endif

@@ -281,9 +281,14 @@ protected:
 	void ReportTestResults();
 
 	/**
-	* Create a json file that contains all of our test report data at /saved/automation/logs/AutomationReport-{CL}-{DateTime}.json
-	*/
-	void GenerateJsonTestPassSummary();
+	 * Create a json file that contains all of our test report data at /saved/automation/logs/AutomationReport-{CL}-{DateTime}.json
+	 */
+	void GenerateJsonTestPassSummary(FDateTime Timestamp);
+
+	/**
+	 * Generates a full html report of the testing, which may include links to images.  All of it will be bundled under a folder.
+	 */
+	void GenerateHtmlTestPassSummary(FDateTime Timestamp);
 
 	/**
 	* Updates the result value of a finished test.

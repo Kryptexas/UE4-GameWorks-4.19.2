@@ -3479,16 +3479,20 @@ void SLevelViewport::StartPlayInEditorSession(UGameViewportClient* PlayClient, c
 	// Register the new viewport widget with Slate for viewport specific message routing.
 	FSlateApplication::Get().RegisterGameViewport(ViewportWidget.ToSharedRef() );
 
+	ULevelEditorPlaySettings const* EditorPlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+	check(EditorPlayInSettings);
+
 	// Kick off a quick transition effect (border graphics)
 	ViewTransitionType = EViewTransition::StartingPlayInEditor;
 	ViewTransitionAnim = FCurveSequence( 0.0f, 1.5f, ECurveEaseFunction::CubicOut );
 	bViewTransitionAnimPending = true;
-	GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/StartPlayInEditor_Cue.StartPlayInEditor_Cue" ) );
+	if (EditorPlayInSettings->EnablePIEEnterAndExitSounds)
+	{
+		GEditor->PlayEditorSound(TEXT("/Engine/EditorSounds/GamePreview/StartPlayInEditor_Cue.StartPlayInEditor_Cue"));
+	}
 
 	bPIEHasFocus = ActiveViewport->HasMouseCapture();
 
-	ULevelEditorPlaySettings const* EditorPlayInSettings = GetDefault<ULevelEditorPlaySettings>();
-	check(EditorPlayInSettings);
 
 	if(EditorPlayInSettings->ShowMouseControlLabel)
 	{
@@ -3690,7 +3694,11 @@ void SLevelViewport::EndPlayInEditorSession()
 	ViewTransitionType = EViewTransition::ReturningToEditor;
 	ViewTransitionAnim = FCurveSequence( 0.0f, 1.5f, ECurveEaseFunction::CubicOut );
 	bViewTransitionAnimPending = true;
-	GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/EndPlayInEditor_Cue.EndPlayInEditor_Cue" ) );
+
+	if (GetDefault<ULevelEditorPlaySettings>()->EnablePIEEnterAndExitSounds)
+	{
+		GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/EndPlayInEditor_Cue.EndPlayInEditor_Cue" ) );
+	}
 
 	GEngine->BroadcastLevelActorListChanged();
 }
@@ -3765,7 +3773,11 @@ void SLevelViewport::SwapViewportsForPlayInEditor()
 	ViewTransitionType = EViewTransition::StartingPlayInEditor;
 	ViewTransitionAnim = FCurveSequence( 0.0f, 1.5f, ECurveEaseFunction::CubicOut );
 	bViewTransitionAnimPending = true;
-	GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/EjectFromPlayer_Cue.EjectFromPlayer_Cue" ) );
+
+	if (EditorPlayInSettings->EnablePIEEnterAndExitSounds)
+	{
+		GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/EjectFromPlayer_Cue.EjectFromPlayer_Cue" ) );
+	}
 }
 
 
@@ -3775,7 +3787,10 @@ void SLevelViewport::OnSimulateSessionStarted()
 	ViewTransitionType = EViewTransition::StartingSimulate;
 	ViewTransitionAnim = FCurveSequence( 0.0f, 1.5f, ECurveEaseFunction::CubicOut );
 	bViewTransitionAnimPending = true;
-	GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/StartSimulate_Cue.StartSimulate_Cue" ) );
+	if (GetDefault<ULevelEditorPlaySettings>()->EnablePIEEnterAndExitSounds)
+	{
+		GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/StartSimulate_Cue.StartSimulate_Cue" ) );
+	}
 	 
 	// Make sure the viewport's hit proxies are invalidated.  If not done, clicking in the viewport could select an editor world actor
 	ActiveViewport->InvalidateHitProxy();
@@ -3788,7 +3803,10 @@ void SLevelViewport::OnSimulateSessionFinished()
 	ViewTransitionType = EViewTransition::ReturningToEditor;
 	ViewTransitionAnim = FCurveSequence( 0.0f, 1.5f, ECurveEaseFunction::CubicOut );
 	bViewTransitionAnimPending = true;
-	GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/EndSimulate_Cue.EndSimulate_Cue" ) );
+	if (GetDefault<ULevelEditorPlaySettings>()->EnablePIEEnterAndExitSounds)
+	{
+		GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/EndSimulate_Cue.EndSimulate_Cue" ) );
+	}
 
 	// Make sure the viewport's hit proxies are invalidated.  If not done, clicking in the viewport could select a pie world actor
 	ActiveViewport->InvalidateHitProxy();

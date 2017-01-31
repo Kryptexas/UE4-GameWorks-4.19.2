@@ -1309,10 +1309,13 @@ public:		// @todo: Ideally this would be private, but template sharing problems 
 	}
 
 	/**
-	 * Checks whether given instance has been already made sharable (use in checks to detect when it 
-	 * happened, since it's a straight way to crashing
+	 * Checks whether our referenced instance is valid (ie, whether it's safe to call AsShared).
+	 * If this returns false, it means that your instance has either:
+	 *  - Not yet been assigned to a shared pointer (via MakeShared or MakeShareable).
+	 *  - Is currently within its constructor (so the shared instance isn't yet available).
+	 *  - Is currently within its destructor (so the shared instance is no longer available).
 	 */
-	FORCEINLINE bool HasBeenAlreadyMadeSharable() const
+	FORCEINLINE bool DoesSharedInstanceExist() const
 	{
 		return WeakThis.IsValid();
 	}

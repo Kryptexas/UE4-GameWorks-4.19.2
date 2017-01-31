@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __MaterialEditorModule_h__
-#define __MaterialEditorModule_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleInterface.h"
@@ -68,5 +67,3 @@ private:
 	FMaterialFunctionEditorOpenedEvent MaterialFunctionEditorOpenedEvent;
 	FMaterialInstanceEditorOpenedEvent MaterialInstanceEditorOpenedEvent;
 };
-
-#endif // __MaterialEditorModule_h__

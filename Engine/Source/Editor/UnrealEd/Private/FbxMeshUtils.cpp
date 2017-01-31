@@ -160,6 +160,9 @@ namespace FbxMeshUtils
 				// Add imported mesh to existing model
 				if( TempStaticMesh )
 				{
+					//Build the staticmesh
+					FFbxImporter->PostImportStaticMesh(TempStaticMesh, *(LODNodeList[bUseLODs ? LODLevel : 0]));
+
 					// Update mesh component
 					BaseStaticMesh->MarkPackageDirty();
 

@@ -571,21 +571,8 @@ void FCrashUploadToReceiver::OnProcessRequestComplete(FHttpRequestPtr HttpReques
 			}
 			else
 			{
-				if (State == EUploadState::CheckingReport)
-				{
-					SetCurrentState(EUploadState::CheckingReportDetail);
-					if (!SendCheckReportRequest())
-					{
-						// Skip this report for now
-						AddReportToFailedList();
-						CheckPendingReportsForFilesToUpload();
-					}
-				}
-				else
-				{
-					SetCurrentState(EUploadState::CompressAndSendData);
-					CompressAndSendData();
-				}
+				SetCurrentState(EUploadState::CompressAndSendData);
+				CompressAndSendData();
 			}
 		}
 		break;

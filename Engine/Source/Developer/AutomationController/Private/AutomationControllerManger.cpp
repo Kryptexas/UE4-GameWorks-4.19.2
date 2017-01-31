@@ -21,6 +21,7 @@
 #include "JsonObjectConverter.h"
 #include "Misc/EngineVersion.h"
 #include "Misc/FileHelper.h"
+#include "PlatformHttp.h"
 
 #if WITH_EDITOR
 #include "Logging/MessageLog.h"
@@ -297,7 +298,7 @@ void FAutomationControllerManager::UpdateTestResultValue(FString TestName, EAuto
 	}
 }
 
-void FAutomationControllerManager::GenerateJsonTestPassSummary()
+void FAutomationControllerManager::GenerateJsonTestPassSummary(FDateTime Timestamp)
 {
 	if (!OurPassResults.TestInformation.Num())
 	{
@@ -307,7 +308,7 @@ void FAutomationControllerManager::GenerateJsonTestPassSummary()
 	TSharedPtr<FJsonObject> ReportJson = FJsonObjectConverter::UStructToJsonObject(SerializedPassResults);
 	if (ReportJson.IsValid())
 	{
-		FString ReportFileName = FString::Printf(TEXT("%s/AutomationReport-%d-%s.json"), *FPaths::AutomationLogDir(), FEngineVersion::Current().GetChangelist(), *FDateTime::Now().ToString());
+		FString ReportFileName = FString::Printf(TEXT("%s/AutomationReport-%d-%s.json"), *FPaths::AutomationLogDir(), FEngineVersion::Current().GetChangelist(), *Timestamp.ToString());
 		FArchive* ReportFileWriter = IFileManager::Get().CreateFileWriter(*ReportFileName);
 		if (ReportFileWriter != nullptr)
 		{
@@ -320,6 +321,87 @@ void FAutomationControllerManager::GenerateJsonTestPassSummary()
 	else
 	{
 		GLog->Logf(ELogVerbosity::Error, TEXT("Test Report Json is invalid - report not generated."));
+	}
+}
+
+void FAutomationControllerManager::GenerateHtmlTestPassSummary(FDateTime Timestamp)
+{
+	if ( !OurPassResults.TestInformation.Num() )
+	{
+		return;
+	}
+
+	const FAutomatedTestPassResults SerializedPassResults = OurPassResults;
+
+	FString Header =
+		TEXT("<html>")
+		TEXT("<head>")
+		TEXT("<title>Test Results</title>")
+		TEXT("<head>")
+		TEXT("<body>")
+			TEXT("<h3>Test Results</h3>")
+			TEXT("<table>")
+				TEXT("<tr>")
+					TEXT("<th width='10%'>Step</th>")
+					TEXT("<th width='10%'>Result</th>")
+					TEXT("<th width='80%'>Remarks</th>")
+				TEXT("</tr>");
+
+	FString Results;
+	for ( const FAutomatedTestResult& Test : OurPassResults.TestInformation )
+	{
+		FString Row = TEXT("<tr>");
+		Row += FString::Printf(TEXT("<td>%s</td>"), *Test.TestName);
+		Row += FString::Printf(TEXT("<td>%s</td>"), *Test.TestResult);
+		Row += TEXT("<td>");
+
+		if ( Test.TestErrors.Num() > 0 )
+		{
+			Row += TEXT("<h4>Errors</h4>");
+			Row += TEXT("<ul>");
+			for ( const FString& LogItem : Test.TestErrors )
+			{
+				Row += FString::Printf(TEXT("<li>%s</li>"), *FPlatformHttp::HtmlEncode(LogItem));
+			}
+			Row += TEXT("</ul>");
+		}
+
+		if ( Test.TestWarnings.Num() > 0 )
+		{
+			Row += TEXT("<h4>Warnings</h4>");
+			Row += TEXT("<ul>");
+			for ( const FString& LogItem : Test.TestWarnings )
+			{
+				Row += FString::Printf(TEXT("<li>%s</li>"), *FPlatformHttp::HtmlEncode(LogItem));
+			}
+			Row += TEXT("</ul>");
+		}
+
+		if ( Test.TestInfo.Num() > 0 )
+		{
+			Row += TEXT("<h4>Info</h4>");
+			Row += TEXT("<ul>");
+			for ( const FString& LogItem : Test.TestInfo )
+			{
+				Row += FString::Printf(TEXT("<li>%s</li>"), *FPlatformHttp::HtmlEncode(LogItem));
+			}
+			Row += TEXT("</ul>");
+		}
+
+		Row += TEXT("</td>");
+		Row += TEXT("</tr>");
+
+		Results += Row;
+	}
+
+	FString Footer =
+			TEXT("</table>")
+		TEXT("</body>");
+
+	FString ReportFileName = FString::Printf(TEXT("%s/AutomationReport-%d-%s.html"), *FPaths::AutomationLogDir(), FEngineVersion::Current().GetChangelist(), *Timestamp.ToString());
+	if ( !FFileHelper::SaveStringToFile(Header + Results + Footer, *ReportFileName) )
+	{
+		GLog->Logf(ELogVerbosity::Error, TEXT("Test Report Html is invalid - report not generated."));
 	}
 }
 
@@ -538,9 +620,11 @@ void FAutomationControllerManager::ProcessResults()
 	}
 
 	// Write our the report of our automation pass to JSON. Then clean our array for the next pass.
-	GenerateJsonTestPassSummary();
-	OurPassResults.ClearAllEntries();
+	FDateTime Timestamp = FDateTime::Now();
+	GenerateJsonTestPassSummary(Timestamp);
+	GenerateHtmlTestPassSummary(Timestamp);
 
+	OurPassResults.ClearAllEntries();
 
 	SetControllerStatus( EAutomationControllerModuleState::Ready );
 }
@@ -841,16 +925,14 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage( const FAutomation
 		TestResults.Warnings = Message.Warnings;
 
 		// Verify this device thought it was busy
-		TSharedPtr <IAutomationReport> Report = DeviceClusterManager.GetTest(ClusterIndex, DeviceIndex);
+		TSharedPtr<IAutomationReport> Report = DeviceClusterManager.GetTest(ClusterIndex, DeviceIndex);
 		check(Report.IsValid());
 
-		Report->SetResults(ClusterIndex,CurrentTestPass, TestResults);
-		
+		Report->SetResults(ClusterIndex, CurrentTestPass, TestResults);
 
 		// Gather all of the data relevant to this test for our json reporting.
 		CollectTestNotes(Report->GetDisplayName(), Message);
 		UpdateTestResultValue(Report->GetDisplayName(), TestResults.State);
-
 
 #if WITH_EDITOR
 		FMessageLog AutomationTestingLog("AutomationTestingLog");

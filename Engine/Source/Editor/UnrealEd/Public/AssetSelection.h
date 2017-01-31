@@ -1,10 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-
-
-#ifndef __ASSETSELECTION_H__
-#define __ASSETSELECTION_H__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "AssetData.h"
@@ -323,8 +319,3 @@ private:
 	{
 	}
 };
-
-#endif
-
-// EOF
-

@@ -3337,6 +3337,9 @@ void ALandscape::PostDuplicate(bool bDuplicateForPIE)
 
 ULandscapeLayerInfoObject::ULandscapeLayerInfoObject(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+#if WITH_EDITORONLY_DATA
+	, IsReferencedFromLoadedData(false)
+#endif // WITH_EDITORONLY_DATA
 {
 	Hardness = 0.5f;
 #if WITH_EDITORONLY_DATA

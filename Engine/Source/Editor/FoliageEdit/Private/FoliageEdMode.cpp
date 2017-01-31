@@ -2870,20 +2870,37 @@ UFoliageType* FEdModeFoliage::AddFoliageAsset(UObject* InAsset)
 {
 	UFoliageType* FoliageType = nullptr;
 
-	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_AddTypeTransaction", "Add Foliage Type"));
-
 	UStaticMesh* StaticMesh = Cast<UStaticMesh>(InAsset);
 	if (StaticMesh)
 	{
-		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld(), true);
-		FoliageType = IFA->GetLocalFoliageTypeForMesh(StaticMesh);
-		if (!FoliageType)
+		UWorld* World = GetWorld();
+
 		{
-			IFA->AddMesh(StaticMesh, &FoliageType);
+			const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_AddTypeTransaction", "Add Foliage Type"));
+
+			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(World, true);
+			FoliageType = IFA->GetLocalFoliageTypeForMesh(StaticMesh);
+			if (!FoliageType)
+			{
+				IFA->AddMesh(StaticMesh, &FoliageType);
+			}
+		}
+
+		// If there is multiple levels for this world, save the foliage directly as an asset, so user will be able to paint over all levels by default
+		if (World->StreamingLevels.Num() > 0)
+		{
+			UFoliageType* TypeSaved = SaveFoliageTypeObject(FoliageType);
+
+			if (TypeSaved != nullptr)
+			{
+				FoliageType = TypeSaved;
+			}
 		}
 	}
 	else
 	{
+		const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_AddTypeTransaction", "Add Foliage Type"));
+
 		FoliageType = Cast<UFoliageType>(InAsset);
 		if (FoliageType)
 		{
@@ -3040,8 +3057,6 @@ void FEdModeFoliage::ReplaceSettingsObject(UFoliageType* OldSettings, UFoliageTy
 
 UFoliageType* FEdModeFoliage::SaveFoliageTypeObject(UFoliageType* InFoliageType)
 {
-	FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_SaveFoliageTypeObject", "Foliage Editing: Save Foliage Type Object"));
-
 	UFoliageType* TypeToSave = nullptr;
 
 	if (!InFoliageType->IsAsset())
@@ -3063,8 +3078,13 @@ UFoliageType* FEdModeFoliage::SaveFoliageTypeObject(UFoliageType* InFoliageType)
 		{
 			PackageName = SaveFoliageTypeDialog->GetFullAssetPath().ToString();
 			UPackage* Package = CreatePackage(nullptr, *PackageName);
+
+			// We should not save a copy of this duplicate into the transaction buffer as it's an asset
+			InFoliageType->ClearFlags(RF_Transactional);
 			TypeToSave = Cast<UFoliageType>(StaticDuplicateObject(InFoliageType, Package, *FPackageName::GetLongPackageAssetName(PackageName)));
-			TypeToSave->SetFlags(RF_Standalone | RF_Public);
+			InFoliageType->SetFlags(RF_Transactional);
+
+			TypeToSave->SetFlags(RF_Standalone | RF_Public | RF_Transactional);
 			TypeToSave->Modify();
 
 			// Notify the asset registry

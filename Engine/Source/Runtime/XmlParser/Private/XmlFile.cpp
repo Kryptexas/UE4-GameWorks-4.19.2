@@ -679,8 +679,10 @@ FXmlNode* FXmlFile::CreateNodeRecursive(const TArray<FString>& Tokens, int32 Sta
 					FXmlNode* NewNode = new FXmlNode();
 					NewNode->Tag = Tag;
 					NewNode->Attributes = Attributes;
-					check(OutNextIndex != nullptr);
-					*OutNextIndex = i + 1;
+					if (OutNextIndex != nullptr)
+					{
+						*OutNextIndex = i + 1;
+					}
 					return NewNode;
 				}
 

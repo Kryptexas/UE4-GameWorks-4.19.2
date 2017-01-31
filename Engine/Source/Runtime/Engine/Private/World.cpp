@@ -2444,7 +2444,7 @@ void FLevelStreamingGCHelper::PrepareStreamedOutLevelsForGC()
 
 		if( Level && (!GIsEditor || Level->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor) ))
 		{
-			UPackage* LevelPackage = Cast<UPackage>(Level->GetOutermost());
+			UPackage* LevelPackage = Level->GetOutermost();
 			UE_LOG(LogStreaming, Log, TEXT("PrepareStreamedOutLevelsForGC called on '%s'"), *LevelPackage->GetName() );
 			
 			for (const FWorldContext& Context : GEngine->GetWorldContexts())

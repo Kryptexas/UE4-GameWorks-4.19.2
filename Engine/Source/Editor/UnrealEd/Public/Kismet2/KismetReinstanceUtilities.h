@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __KismetReinstanceUtilities_h__
-#define __KismetReinstanceUtilities_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -201,6 +197,3 @@ private:
 	/** Handles the work of ReplaceInstancesOfClass, handling both normal replacement of instances and batch */
 	static void ReplaceInstancesOfClass_Inner(TMap<UClass*, UClass*>& InOldToNewClassMap, UObject* InOriginalCDO, TSet<UObject*>* ObjectsThatShouldUseOldStuff = NULL, bool bClassObjectReplaced = false, bool bPreserveRootComponent = true);
 };
-
-
-#endif//__KismetEditorUtilities_h__

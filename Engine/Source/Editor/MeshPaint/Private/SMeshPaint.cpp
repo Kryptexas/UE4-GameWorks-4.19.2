@@ -2130,8 +2130,8 @@ void SMeshPaint::Construct(const FArguments& InArgs, TSharedRef<FMeshPaintToolKi
 							.VAlign(VAlign_Center)
 							[
 								SNew(STextBlock)
-								.Text(LOCTEXT("MeshPaint_VertexColorLODSelectionLabel", "Allow Paint On All LOD"))
-								.ToolTipText(LOCTEXT("MeshPaint_VertexColorLODSelectionLabelTooltip", "When uncheck, the painting on the base LOD will be propagate automatically to all other LODs when exiting the mode or changing the selection."))
+								.Text(LOCTEXT("MeshPaint_VertexColorLODSelectionLabel", "Allow Paint On All LODs"))
+								.ToolTipText(LOCTEXT("MeshPaint_VertexColorLODSelectionLabelTooltip", "When checked, any vertices painted on the base LOD will propagate to all other LODs."))
 							]
 							+SHorizontalBox::Slot()
 							.AutoWidth()

@@ -84,9 +84,9 @@ void SConstraintCanvas::ArrangeLayeredChildren(const FGeometry& AllottedGeometry
 		// or allow the explicit ZOrder value to place children in the same layer. This will allow users to have non-touching
 		// children render into the same layer and have a chance of being batched by the Slate renderer for better performance.
 #if WITH_EDITOR
-		bool bExplicitChildZOrder = GetDefault<USlateSettings>()->bExplicitCanvasChildZOrder;
+		const bool bExplicitChildZOrder = GetDefault<USlateSettings>()->bExplicitCanvasChildZOrder;
 #else
-		static bool bExplicitChildZOrder = GetDefault<USlateSettings>()->bExplicitCanvasChildZOrder;
+		const static bool bExplicitChildZOrder = GetDefault<USlateSettings>()->bExplicitCanvasChildZOrder;
 #endif
 		// Sort the children based on zorder.
 		TArray< FChildZOrder, TInlineAllocator<64> > SlotOrder;

@@ -92,6 +92,20 @@ public:
 	/** Gets the icon path for the current template selection. Returns true if the plugin requires a default icon */
 	virtual bool GetPluginIconPath(FString& OutIconPath) const = 0;
 
+	/** Gets the ModuleDescriptor for the plugin based on the selection  */
+	virtual EHostType::Type GetPluginModuleDescriptor() const 
+	{
+		// @todo: make this a pure virtual function
+		return EHostType::Runtime;
+	}
+
+	/** Gets the LoadingPhase for the plugin based on the selection */
+	virtual ELoadingPhase::Type GetPluginLoadingPhase() const
+	{
+		// @todo: make this a pure virtual function
+		return ELoadingPhase::Default;
+	}
+
 	/** Gets the icon path for the specified template. Returns true if it requires a default icon */
 	virtual bool GetTemplateIconPath(TSharedRef<FPluginTemplateDescription> InTemplate, FString& OutIconPath) const = 0;
 

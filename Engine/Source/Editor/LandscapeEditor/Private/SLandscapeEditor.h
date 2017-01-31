@@ -58,6 +58,7 @@ public:
 
 	void NotifyToolChanged();
 	void NotifyBrushChanged();
+	void RefreshDetailPanel();
 
 protected:
 	void OnChangeMode(FName ModeName);
@@ -93,6 +94,7 @@ public:
 
 	void NotifyToolChanged();
 	void NotifyBrushChanged();
+	void RefreshDetailPanel();
 
 protected:
 	class FEdModeLandscape* GetEditorMode() const;

@@ -92,6 +92,18 @@ struct CORE_API FAutomationEvent
 	FString ToString() const;
 };
 
+class FAutomationTestArtifact
+{
+public:
+	FString Name;
+	FString FilePath;
+
+	FAutomationTestArtifact(FString InName, FString InFilePath)
+		: Name(InName)
+		, FilePath(InFilePath)
+	{
+	}
+};
 
 /** Simple class to store the results of the execution of a automation test */
 class FAutomationTestExecutionInfo
@@ -118,6 +130,7 @@ public:
 		Warnings.Empty();
 		LogItems.Empty();
 		AnalyticsItems.Empty();
+		Artifacts.Empty();
 	}
 
 	/**
@@ -128,14 +141,22 @@ public:
 
 	/** Whether the automation test completed successfully or not */
 	bool bSuccessful;
+	
 	/** Any errors that occurred during execution */
 	TArray<FAutomationEvent> Errors;
+	
 	/** Any warnings that occurred during execution */
 	TArray<FString> Warnings;
+	
 	/** Any log items that occurred during execution */
 	TArray<FString> LogItems;
+	
 	/** Any analytics items that occurred during execution */
 	TArray<FString> AnalyticsItems;
+
+	/** Any items that need to be reference by reports and other systems. */
+	TArray<FAutomationTestArtifact> Artifacts;
+
 	/** Time to complete the task */
 	float Duration;
 };
@@ -467,6 +488,7 @@ struct FAutomationScreenshotData
 	FString Context;
 
 	FGuid Id;
+	FString Commit;
 
 	int32 Width;
 	int32 Height;
@@ -510,7 +532,9 @@ struct FAutomationScreenshotData
 	FString Path;
 
 	FAutomationScreenshotData()
-		: Width(0)
+		: Id()
+		, Commit()
+		, Width(0)
 		, Height(0)
 		, bIsStereo(false)
 		, ResolutionQuality(1.0f)
@@ -920,7 +944,6 @@ public:
 	 */
 	virtual void AddError( const FString& InError, int32 StackOffset = 0 );
 
-
 	/**
 	 * Adds an error message to this test
 	 *
@@ -945,11 +968,16 @@ public:
 	virtual void AddLogItem( const FString& InLogItem );
 
 	/**
-	* Adds a analytics string to parse later
-	*
-	* @param	InLogItem	Log item to add to this test
-	*/
+	 * Adds a analytics string to parse later
+	 *
+	 * @param	InLogItem	Log item to add to this test
+	 */
 	virtual void AddAnalyticsItem(const FString& InAnalyticsItem);
+
+	/**
+	 * Occasionally a test may need to provide artifacts that should appear in the build report for the automation test.
+	 */
+	virtual void AddRemoteArtifact(const FString& ArtifactName, const FString& RemoteArtifactPath);
 
 	/**
 	 * Returns whether this test has any errors associated with it or not
@@ -1249,7 +1277,6 @@ public:
 		}
 	}
 
-
 protected:
 	/**
 	 * Asks the test to enumerate variants that will all go through the "RunTest" function with different parameters (for load all maps, this should enumerate all maps to load)\
@@ -1289,7 +1316,6 @@ protected:
 
 	//allow framework to call protected function
 	friend class FAutomationTestFramework;
-
 };
 
 class CORE_API FBDDAutomationTestBase : public FAutomationTestBase

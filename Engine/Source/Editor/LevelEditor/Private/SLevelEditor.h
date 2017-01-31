@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __SLevelEditor_h__
-#define __SLevelEditor_h__
-
 #pragma once
 
 
@@ -247,7 +243,3 @@ private:
 	/** Attached sequencer asset editor */
 	TWeakPtr<IAssetEditorInstance> SequencerAssetEditor;
 };
-
-
-
-#endif	// __SLevelEditor_h__

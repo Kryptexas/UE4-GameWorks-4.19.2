@@ -12,6 +12,7 @@
 #include "Styling/CoreStyle.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Styling/SlateWidgetStyleAsset.h"
+#include "SSplitter.h"
 
 class SScrollBar;
 
@@ -77,6 +78,8 @@ DECLARE_DELEGATE_ThreeParams( FOnSortModeChanged, EColumnSortPriority::Type, con
 /**	Callback when the width of the column changes */
 DECLARE_DELEGATE_OneParam( FOnWidthChanged, float );
 
+/**	Callback to fetch the max row width for a specified column id */
+DECLARE_DELEGATE_RetVal_TwoParams(FVector2D, FOnGetMaxRowSizeForColumn, const FName&, EOrientation);
 
 /**
  * The header that appears above lists and trees when they are showing multiple columns.
@@ -242,10 +245,14 @@ public:
 
 	SLATE_BEGIN_ARGS(SHeaderRow)
 		: _Style( &FCoreStyle::Get().GetWidgetStyle<FHeaderRowStyle>("TableView.Header") )
+		, _ResizeMode(ESplitterResizeMode::Fill)
 		{}
+
 		SLATE_STYLE_ARGUMENT( FHeaderRowStyle, Style )
 		SLATE_SUPPORTS_SLOT_WITH_ARGS( FColumn )	
 		SLATE_EVENT( FColumnsChanged::FDelegate, OnColumnsChanged )
+		SLATE_EVENT(FOnGetMaxRowSizeForColumn, OnGetMaxRowSizeForColumn)
+		SLATE_ARGUMENT(ESplitterResizeMode::Type, ResizeMode)
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs );
@@ -278,6 +285,12 @@ public:
 	/** Sets the column, with the specified name, to the desired width */
 	void SetColumnWidth( const FName& InColumnId, float InWidth );
 
+	/** Will return the size for this row at the specified slot index */
+	FVector2D GetRowSizeForSlotIndex(int32 SlotIndex) const;
+
+	/** Simple function to set the delegate to fetch the max row size for column id */
+	void SetOnGetMaxRowSizeForColumn(const FOnGetMaxRowSizeForColumn& Delegate) { OnGetMaxRowSizeForColumn = Delegate; }
+
 private:
 
 	/** Regenerates all widgets in the header */
@@ -285,9 +298,12 @@ private:
 
 	/** Information about the various columns */
 	TIndirectArray<FColumn> Columns;
+	TArray<TSharedPtr<class STableColumnHeader>> HeaderWidgets;
 
 	FVector2D ScrollBarThickness;
 	TAttribute< EVisibility > ScrollBarVisibility;
 	const FHeaderRowStyle* Style;
 	FColumnsChanged ColumnsChanged;
+	ESplitterResizeMode::Type ResizeMode;
+	FOnGetMaxRowSizeForColumn OnGetMaxRowSizeForColumn;
 };

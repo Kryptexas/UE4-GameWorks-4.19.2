@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __SSkeletonWidget_h__
-#define __SSkeletonWidget_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Input/Reply.h"
@@ -746,5 +744,3 @@ protected:
 };
 
 #undef LOCTEXT_NAMESPACE
-
-#endif // __SSkeletonWidget_h__

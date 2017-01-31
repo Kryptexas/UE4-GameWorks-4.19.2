@@ -2,6 +2,7 @@
 
 #include "Kismet/KismetTextLibrary.h"
 #include "Internationalization/TextFormatter.h"
+#include "Internationalization/StringTableRegistry.h"
 
 #define LOCTEXT_NAMESPACE "Kismet"
 
@@ -305,5 +306,22 @@ FText UKismetTextLibrary::Format(FText InPattern, TArray<FFormatArgumentData> In
 	return FTextFormatter::Format(MoveTemp(InPattern), MoveTemp(InArgs), false, false);
 }
 
+
+bool UKismetTextLibrary::TextIsFromStringTable(const FText& Text)
+{
+	return Text.IsFromStringTable();
+}
+
+
+FText UKismetTextLibrary::TextFromStringTable(const FName TableId, const FString& Key)
+{
+	return FText::FromStringTable(TableId, Key);
+}
+
+
+bool UKismetTextLibrary::StringTableIdAndKeyFromText(FText Text, FName& OutTableId, FString& OutKey)
+{
+	return FStringTableRegistry::Get().FindTableIdAndKey(Text, OutTableId, OutKey);
+}
 
 #undef LOCTEXT_NAMESPACE

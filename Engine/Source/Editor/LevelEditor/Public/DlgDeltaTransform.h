@@ -4,8 +4,7 @@
 	DlgDeltaTransform.h: UnrealEd dialog for moving assets.
 =============================================================================*/
 
-#ifndef __DLGDELTATRANSFORM_H__
-#define __DLGDELTATRANSFORM_H__
+#pragma once
 
 #include "CoreMinimal.h"
 
@@ -54,5 +53,3 @@ private:
 	/** Cached pointer to the message box held within the window */
 	TSharedPtr<class SDlgDeltaTransform> DeltaTransformWidget;
 };
-
-#endif // __DLGDELTATRANSFORM_H__

@@ -424,7 +424,7 @@ UObject* FAssetTools::CreateAsset(const FString& AssetName, const FString& Packa
 
 	UPackage* Pkg = CreatePackage(nullptr,*PackageName);
 	UObject* NewObj = nullptr;
-	EObjectFlags Flags = RF_Public|RF_Standalone;
+	EObjectFlags Flags = RF_Public|RF_Standalone|RF_Transactional;
 	if ( Factory )
 	{
 		NewObj = Factory->FactoryCreateNew(ClassToUse, Pkg, FName( *AssetName ), Flags, nullptr, GWarn, CallingContext);
@@ -1116,7 +1116,7 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 		// @todo import: gmp: show dialog in case of multiple matching factories
 		for(TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 		{
-			if(!(*ClassIt)->IsChildOf(UFactory::StaticClass()) || ((*ClassIt)->HasAnyClassFlags(CLASS_Abstract)))
+			if(!(*ClassIt)->IsChildOf(UFactory::StaticClass()) || ((*ClassIt)->HasAnyClassFlags(CLASS_Abstract)) || (*ClassIt)->IsChildOf(USceneImportFactory::StaticClass()))
 			{
 				continue;
 			}
@@ -1225,6 +1225,8 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 	bool bDontOverwriteAny = false;
 	bool bDontReplaceAny = false;
 
+	TArray<UFactory*> UsedFactories;
+
 	// Now iterate over the input files and use the same factory object for each file with the same extension
 	for(int32 FileIdx = 0; FileIdx < FilesAndDestinations.Num(); ++FileIdx)
 	{
@@ -1286,8 +1288,12 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 		if(Factory != nullptr)
 		{
 			// Reset the 'Do you want to overwrite the existing object?' Yes to All / No to All prompt, to make sure the
-			// user gets a chance to select something
-			Factory->ResetState();
+			// user gets a chance to select something when the factory is first used during this import
+			if (!UsedFactories.Contains(Factory))
+			{
+				Factory->ResetState();
+				UsedFactories.AddUnique(Factory);
+			}
 
 			UClass* ImportAssetType = Factory->SupportedClass;
 			bool bImportSucceeded = false;
@@ -1458,7 +1464,7 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 			Factory->SetAutomatedAssetImportData(Params.ImportData);
 
 			ImportAssetType = Factory->ResolveSupportedClass();
-			UObject* Result = Factory->ImportObject(ImportAssetType, Pkg, FName(*Name), RF_Public | RF_Standalone, Filename, nullptr, bImportWasCancelled);
+			UObject* Result = Factory->ImportObject(ImportAssetType, Pkg, FName(*Name), RF_Public | RF_Standalone | RF_Transactional, Filename, nullptr, bImportWasCancelled);
 
 			Factory->SetAutomatedAssetImportData(nullptr);
 
