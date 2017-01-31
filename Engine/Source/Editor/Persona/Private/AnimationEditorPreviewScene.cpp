@@ -264,10 +264,6 @@ void FAnimationEditorPreviewScene::RefreshAdditionalMeshes()
 				}
 			}
 		}
-		else if (PreviewSceneDescription->PreviewMesh == nullptr)
-		{
-			SetPreviewMeshInternal(nullptr);
-		}
 	}
 }
 
