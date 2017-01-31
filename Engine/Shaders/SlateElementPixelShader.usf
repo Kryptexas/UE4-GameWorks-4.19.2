@@ -24,7 +24,7 @@ float3 GammaCorrect(float3 InColor)
 {
 	float3 CorrectedColor = InColor;
 
-#if (!(ES2_PROFILE || ES3_1_PROFILE)) || USE_MATERIALS
+#if (!(ES2_PROFILE || ES3_1_PROFILE)) || USE_MATERIALS || METAL_PROFILE //  Metal supports sRGB textures
 	FLATTEN if( GammaValues.y != 1.0f )
 	{
 		CorrectedColor = ApplyGammaCorrection(CorrectedColor, GammaValues.x);
