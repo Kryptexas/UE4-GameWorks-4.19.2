@@ -1799,12 +1799,11 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		}
 	}
 
-	// Not supported in ES2/3.
-	bool bES2Or3 = (SceneViewFeatureLevel == ERHIFeatureLevel::ES2) || (SceneViewFeatureLevel == ERHIFeatureLevel::ES3_1);
-
-	if(!Family->EngineShowFlags.ScreenPercentage || bIsSceneCapture || bIsReflectionCapture || bES2Or3)
+	// ScreenPercentage is not supported in ES2/3.1 with MobileHDR = false
+	const bool bIsMobileLDR = (SceneViewFeatureLevel <= ERHIFeatureLevel::ES3_1 && !IsMobileHDR());
+	if(!Family->EngineShowFlags.ScreenPercentage || bIsSceneCapture || bIsReflectionCapture || bIsMobileLDR)
 	{
-		FinalPostProcessSettings.ScreenPercentage = 100;
+		FinalPostProcessSettings.ScreenPercentage = 100.0f;
 	}
 
 	if(!Family->EngineShowFlags.AmbientOcclusion || !Family->EngineShowFlags.ScreenSpaceAO)
@@ -1966,6 +1965,14 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 			// compute the view rectangle with the ScreenPercentage applied
 			FIntRect ScreenPercentageAffectedViewRect = ViewInitOptions.GetConstrainedViewRect().Scale(Fraction);
 			QuantizeSceneBufferSize(ScreenPercentageAffectedViewRect.Max.X, ScreenPercentageAffectedViewRect.Max.Y);
+			// Mosaic needs to the viewport height to be a multiple of 2.
+			if (SceneViewFeatureLevel <= ERHIFeatureLevel::ES3_1 && IsMobileHDRMosaic())
+			{
+				if (((ScreenPercentageAffectedViewRect.Size().Y) & 1) == 1)
+				{
+					ScreenPercentageAffectedViewRect.Max.Y -= 1;
+				}
+			}
 			SetScaledViewRect(ScreenPercentageAffectedViewRect);
 		}
 	}

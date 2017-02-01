@@ -3400,6 +3400,9 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			Landscape->StaticLightingResolution = OldLandscapeProxy->StaticLightingResolution;
 			Landscape->bCastStaticShadow = OldLandscapeProxy->bCastStaticShadow;
 			Landscape->bCastShadowAsTwoSided = OldLandscapeProxy->bCastShadowAsTwoSided;
+			Landscape->LightingChannels = OldLandscapeProxy->LightingChannels;
+			Landscape->bRenderCustomDepth = OldLandscapeProxy->bRenderCustomDepth;
+			Landscape->CustomDepthStencilValue = OldLandscapeProxy->CustomDepthStencilValue;
 			Landscape->LightmassSettings = OldLandscapeProxy->LightmassSettings;
 			Landscape->CollisionThickness = OldLandscapeProxy->CollisionThickness;
 			Landscape->BodyInstance.SetCollisionProfileName(OldLandscapeProxy->BodyInstance.GetCollisionProfileName());

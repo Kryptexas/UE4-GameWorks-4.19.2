@@ -29,8 +29,8 @@ class SWebBrowserView;
 #if !PLATFORM_TVOS
 @property(strong) UIWebView* WebView;
 #endif
-@property(strong) NSURL* NextURL;
-@property(strong) NSString* NextContent;
+@property(copy) NSURL* NextURL;
+@property(copy) NSString* NextContent;
 @property CGRect DesiredFrame;
 
 -(void)create:(TSharedPtr<SIOSWebBrowserWidget>)InWebBrowserWidget;

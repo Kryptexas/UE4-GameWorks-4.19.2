@@ -297,7 +297,7 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 	
 	FIntRect SrcRect = View.ViewRect;
 	// no upscale if separate ren target is used.
-	FIntRect DestRect = (ViewFamily.bUseSeparateRenderTarget) ? View.ViewRect : View.UnscaledViewRect; // Simple upscaling, ES2 post process does not currently have a specific upscaling pass.
+	FIntRect DestRect = (ViewFamily.bUseSeparateRenderTarget) ? View.ViewRect : View.UnscaledViewRect;
 	FIntPoint SrcSize = InputDesc->Extent;
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
@@ -381,5 +381,18 @@ FPooledRenderTargetDesc FRCPassPostProcessUpscale::ComputeOutputDesc(EPassOutput
 	Ret.DebugName = TEXT("Upscale");
 	Ret.Extent = OutputExtent;
 
+	return Ret;
+}
+
+FRCPassPostProcessUpscaleES2::FRCPassPostProcessUpscaleES2(const FViewInfo& InView)
+:	FRCPassPostProcessUpscale(InView, 1 /* bilinear */)
+,	View(InView)
+{
+}
+
+FPooledRenderTargetDesc FRCPassPostProcessUpscaleES2::ComputeOutputDesc(EPassOutputId InPassOutputId) const
+{
+	FPooledRenderTargetDesc Ret = FRCPassPostProcessUpscale::ComputeOutputDesc(InPassOutputId);
+	Ret.Extent = View.UnscaledViewRect.Max;
 	return Ret;
 }

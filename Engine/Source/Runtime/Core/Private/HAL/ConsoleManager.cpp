@@ -2148,6 +2148,14 @@ static TAutoConsoleVariable<float> CVarMobileContentScaleFactor(
 	TEXT("Content scale multiplier (equates to iOS's contentScaleFactor to support Retina displays"),
 	ECVF_Default);
 
+static TAutoConsoleVariable<int32> CVarMobileTonemapperUpscale(
+	TEXT("r.MobileTonemapperUpscale"),
+	0,
+	TEXT("On mobile, whether to allow upscaling as part of the tonemapper or as a separate pass when possible")
+	TEXT("0: separate pass (default)\n")
+	TEXT("1: as part of the tonemapper pass\n"),
+	ECVF_Default);
+
 // this cvar can be removed in shipping to not compile shaders for development (faster)
 static TAutoConsoleVariable<int32> CVarCompileShadersForDevelopment(
 	TEXT("r.CompileShadersForDevelopment"),

@@ -2321,25 +2321,30 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 		static const auto VarTonemapperFilm = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperFilm"));
 		const bool bUseTonemapperFilm = IsMobileHDR() && GSupportsRenderTargetFormat_PF_FloatRGBA && (VarTonemapperFilm && VarTonemapperFilm->GetValueOnRenderThread());
 
-		// Temporary for 4.15. Remember the non-filmic tonemapper so we can disable the extent override if necessary.
-		FRCPassPostProcessTonemapES2* PostProcessTonemapES2 = nullptr;
+		static const auto VarTonemapperUpscale = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileTonemapperUpscale"));
+		bool bDisableUpscaleInTonemapper = Context.View.Family->bUseSeparateRenderTarget || IsMobileHDRMosaic() || !VarTonemapperUpscale || VarTonemapperUpscale->GetValueOnRenderThread() == 0;
 
+		bool* DoScreenPercentageInTonemapperPtr = nullptr;
 		if (bUseTonemapperFilm)
 		{
 			//@todo Ronin Set to EAutoExposureMethod::AEM_Basic for PC vk crash.
-			AddTonemapper(Context, BloomOutput, nullptr, EAutoExposureMethod::AEM_Histogram, false, false);
+			FRCPassPostProcessTonemap* PostProcessTonemap = AddTonemapper(Context, BloomOutput, nullptr, EAutoExposureMethod::AEM_Histogram, false, false);
+			DoScreenPercentageInTonemapperPtr = &PostProcessTonemap->bDoScreenPercentageInTonemapper;
 		}
 		else
 		{
 			// Must run to blit to back buffer even if post processing is off.
-			FRenderingCompositePass* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemapES2(Context.View, FinalOutputViewRect, FinalTargetSize, bViewRectSource));
+			FRCPassPostProcessTonemapES2* PostProcessTonemap = (FRCPassPostProcessTonemapES2*)Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemapES2(Context.View,  bViewRectSource));
 			PostProcessTonemap->SetInput(ePId_Input0, Context.FinalOutput);
 			PostProcessTonemap->SetInput(ePId_Input1, BloomOutput);
 			PostProcessTonemap->SetInput(ePId_Input2, DofOutput);
 			Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessTonemap);
-			PostProcessTonemapES2 = (FRCPassPostProcessTonemapES2*)PostProcessTonemap;
+			DoScreenPercentageInTonemapperPtr = &PostProcessTonemap->bDoScreenPercentageInTonemapper;
 		}
-			
+
+		// remember the tonemapper pass so we can check if it's last
+		FRenderingCompositePass* TonemapperPass = Context.FinalOutput.GetPass();
+		
 		// if Context.FinalOutput was the clipped result of sunmask stage then this stage also restores Context.FinalOutput back original target size.
 		FinalOutputViewRect = View.UnscaledViewRect;
 
@@ -2349,11 +2354,10 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			{
 				AddPostProcessMaterial(Context, BL_AfterTonemapping, nullptr);
 
-				// Temporary for 4.15 to disable setting the extent in ComputeOutputDesc when there is a custom PP material.
-				// 4.16 has full support for ScreenPercentage
-				if (PostProcessTonemapES2 && Context.FinalOutput.GetPass() != PostProcessTonemapES2)
+				// Tonemapper is not the final pass so if we may need to use a separate upscale pass
+				if (Context.FinalOutput.GetPass() != TonemapperPass)
 				{
-					PostProcessTonemapES2->bEnableExtentOverride = false;
+					bDisableUpscaleInTonemapper = true;
 				}
 			}
 	
@@ -2376,6 +2380,28 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 				PostProcessAa->SetInput(ePId_Input1, PostProcessPrior);
 				Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessAa);
 			}
+		}
+
+		// Apply ScreenPercentage
+		if (View.UnscaledViewRect != View.ViewRect)
+		{
+			if (bDisableUpscaleInTonemapper)
+			{
+				FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscaleES2(View));
+				Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput)); // Bilinear sampling.
+				Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.FinalOutput)); // Point sampling.
+				Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+				*DoScreenPercentageInTonemapperPtr = false;
+			}
+			else
+			{
+				check(DoScreenPercentageInTonemapperPtr != nullptr);
+				*DoScreenPercentageInTonemapperPtr = true;
+			}
+		}
+		else
+		{
+			*DoScreenPercentageInTonemapperPtr = false;
 		}
 
 #if WITH_EDITOR

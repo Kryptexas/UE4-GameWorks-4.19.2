@@ -167,7 +167,7 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 	}
 	if (bPresent)
 	{
-		AndroidEGL::GetInstance()->SwapBuffers();
+		AndroidEGL::GetInstance()->SwapBuffers(bLockToVsync ? SyncInterval : 0);
 	}
 	return bPresent;
 }

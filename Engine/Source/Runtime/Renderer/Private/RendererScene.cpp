@@ -2683,6 +2683,12 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 		(*It)->SetTransform(NewTransform);
 	}
 
+	// Exponential Fog
+	for (FExponentialHeightFogSceneInfo& FogInfo : ExponentialFogs)
+	{
+		FogInfo.FogHeight+= InOffset.Z;
+	}
+	
 	// StaticMeshDrawLists
 	StaticMeshDrawListApplyWorldOffset(PositionOnlyDepthDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(DepthDrawList, InOffset);

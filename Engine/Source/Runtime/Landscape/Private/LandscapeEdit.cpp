@@ -2070,8 +2070,7 @@ LANDSCAPE_API void ALandscapeProxy::Import(
 				);
 
 			// Assign shared properties
-			LandscapeComponent->bCastStaticShadow = bCastStaticShadow;
-			LandscapeComponent->bCastShadowAsTwoSided = bCastShadowAsTwoSided;
+			LandscapeComponent->UpdatedSharedPropertiesFromActor();
 		}
 	}
 
@@ -3664,7 +3663,11 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 	}
 	else if(PropertyName == FName(TEXT("bCastStaticShadow")) ||
 		PropertyName == FName(TEXT("bCastShadowAsTwoSided")) ||
-		PropertyName == FName(TEXT("bCastFarShadow")))
+		PropertyName == FName(TEXT("bCastFarShadow")) ||
+		PropertyName == FName(TEXT("bRenderCustomDepth")) ||
+		PropertyName == FName(TEXT("CustomDepthStencilValue")) ||
+		PropertyName == FName(TEXT("LightingChannels"))
+		)
 	{
 		// Replicate shared properties to all components.
 		for (int32 ComponentIndex = 0; ComponentIndex < LandscapeComponents.Num(); ComponentIndex++)
@@ -3672,9 +3675,7 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 			ULandscapeComponent* Comp = LandscapeComponents[ComponentIndex];
 			if (Comp)
 			{
-				Comp->bCastStaticShadow = bCastStaticShadow;
-				Comp->bCastShadowAsTwoSided = bCastShadowAsTwoSided;
-				Comp->bCastFarShadow = bCastFarShadow;
+				Comp->UpdatedSharedPropertiesFromActor();
 			}
 		}
 	}

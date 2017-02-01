@@ -248,8 +248,9 @@ namespace ADPCM
 		/* TODO::JTM - Dec 10, 2012 05:30PM - Calculate the optimal starting coefficient */
 		uint8 CoefficientIndex = 0;
 		Context.AdaptationDelta = Context.AdaptationTable[0];
-		Context.Sample1 = ReadFromArray<int16>(InputPCMSamples, ReadIndex, NumSamples, SampleStride);
+		// First PCM sample goes to Context.Sample2, decoder will reverse it
 		Context.Sample2 = ReadFromArray<int16>(InputPCMSamples, ReadIndex, NumSamples, SampleStride);
+		Context.Sample1 = ReadFromArray<int16>(InputPCMSamples, ReadIndex, NumSamples, SampleStride);
 		Context.Coefficient1 = Context.AdaptationCoefficient1[CoefficientIndex];
 		Context.Coefficient2 = Context.AdaptationCoefficient2[CoefficientIndex];
 

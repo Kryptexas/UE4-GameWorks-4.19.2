@@ -515,6 +515,18 @@ void ULandscapeInfo::UpdateDebugColorMaterial()
 	//GWarn->EndSlowTask();
 }
 
+void ULandscapeComponent::UpdatedSharedPropertiesFromActor()
+{
+	ALandscapeProxy* LandscapeProxy = GetLandscapeProxy();
+
+	bCastStaticShadow = LandscapeProxy->bCastStaticShadow;
+	bCastShadowAsTwoSided = LandscapeProxy->bCastShadowAsTwoSided;
+	bCastFarShadow = LandscapeProxy->bCastFarShadow;
+	bRenderCustomDepth = LandscapeProxy->bRenderCustomDepth;
+	CustomDepthStencilValue = LandscapeProxy->CustomDepthStencilValue;
+	LightingChannels = LandscapeProxy->LightingChannels;
+}
+
 void ULandscapeComponent::PostLoad()
 {
 	Super::PostLoad();
@@ -523,8 +535,7 @@ void ULandscapeComponent::PostLoad()
 	if (ensure(LandscapeProxy))
 	{
 		// Ensure that the component's lighting settings matches the actor's.
-		bCastStaticShadow = LandscapeProxy->bCastStaticShadow;
-		bCastShadowAsTwoSided = LandscapeProxy->bCastShadowAsTwoSided;
+		UpdatedSharedPropertiesFromActor();	
 
 		// check SectionBaseX/Y are correct
 		int32 CheckSectionBaseX = FMath::RoundToInt(RelativeLocation.X) + LandscapeProxy->LandscapeSectionOffset.X;
@@ -1586,6 +1597,9 @@ void ALandscapeProxy::GetSharedProperties(ALandscapeProxy* Landscape)
 		StaticLightingResolution = Landscape->StaticLightingResolution;
 		bCastStaticShadow = Landscape->bCastStaticShadow;
 		bCastShadowAsTwoSided = Landscape->bCastShadowAsTwoSided;
+		LightingChannels = Landscape->LightingChannels;
+		bRenderCustomDepth = Landscape->bRenderCustomDepth;
+		CustomDepthStencilValue = Landscape->CustomDepthStencilValue;
 		ComponentSizeQuads = Landscape->ComponentSizeQuads;
 		NumSubsections = Landscape->NumSubsections;
 		SubsectionSizeQuads = Landscape->SubsectionSizeQuads;

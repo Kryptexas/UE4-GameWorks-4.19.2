@@ -647,8 +647,10 @@ int32 AndroidEGL::GetError()
 	return eglGetError();
 }
 
-bool AndroidEGL::SwapBuffers()
+bool AndroidEGL::SwapBuffers(int32 SyncInterval)
 {
+	eglSwapInterval(PImplData->eglDisplay, SyncInterval);
+
 	if ( PImplData->eglSurface == NULL || !eglSwapBuffers(PImplData->eglDisplay, PImplData->eglSurface))
 	{
 		// shutdown if swapbuffering goes down

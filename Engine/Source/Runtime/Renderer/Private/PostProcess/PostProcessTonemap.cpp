@@ -1363,6 +1363,11 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutput
 	Ret.DebugName = TEXT("Tonemap");
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
 
+	// Mobile needs to override the extent
+	if (bDoScreenPercentageInTonemapper && View.GetFeatureLevel() <= ERHIFeatureLevel::ES3_1)
+	{
+		Ret.Extent = View.UnscaledViewRect.Max;
+	}
 	return Ret;
 }
 
@@ -1659,11 +1664,9 @@ namespace PostProcessTonemap_ES2Util
 	}
 }
 
-
-FRCPassPostProcessTonemapES2::FRCPassPostProcessTonemapES2(const FViewInfo& View, FIntRect InViewRect, FIntPoint InDestSize, bool bInUsedFramebufferFetch) 
-	: bEnableExtentOverride(true)
-	, ViewRect(InViewRect)
-	, DestSize(InDestSize)
+FRCPassPostProcessTonemapES2::FRCPassPostProcessTonemapES2(const FViewInfo& InView, bool bInUsedFramebufferFetch)
+	: bDoScreenPercentageInTonemapper(false)
+	, View(InView)
 	, bUsedFramebufferFetch(bInUsedFramebufferFetch)
 {
 	uint32 ConfigBitmask = TonemapperGenerateBitmaskMobile(&View, false);
@@ -1682,14 +1685,13 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 		return;
 	}
 	
-	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 	const FPooledRenderTargetDesc& OutputDesc = PassOutputs[0].RenderTargetDesc;
 
-	FIntRect SrcRect = ViewRect;
 	// no upscale if separate ren target is used.
-	FIntRect DestRect = (ViewFamily.bUseSeparateRenderTarget) ? ViewRect : View.UnscaledViewRect; // Simple upscaling, ES2 post process does not currently have a specific upscaling pass.
+	FIntRect SrcRect = View.ViewRect;
+	FIntRect DestRect = bDoScreenPercentageInTonemapper ? View.UnscaledViewRect : View.ViewRect;
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DstSize = OutputDesc.Extent;
 
@@ -1798,9 +1800,9 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemapES2::ComputeOutputDesc(EPassOut
 	Ret.Format = PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
-	if (bEnableExtentOverride)
+	if (bDoScreenPercentageInTonemapper)
 	{
-		Ret.Extent = DestSize;
+		Ret.Extent = View.UnscaledViewRect.Max;
 	}
 	return Ret;
 }

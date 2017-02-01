@@ -870,8 +870,7 @@ public:
 						LandscapeComponent->AttachToComponent(Landscape->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 
 						// Assign shared properties
-						LandscapeComponent->bCastStaticShadow = Landscape->bCastStaticShadow;
-						LandscapeComponent->bCastShadowAsTwoSided = Landscape->bCastShadowAsTwoSided;
+						LandscapeComponent->UpdatedSharedPropertiesFromActor();
 
 						int32 ComponentVerts = (Landscape->SubsectionSizeQuads + 1) * Landscape->NumSubsections;
 						// Update Weightmap Scale Bias

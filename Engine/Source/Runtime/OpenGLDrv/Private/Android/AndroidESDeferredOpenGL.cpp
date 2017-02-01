@@ -308,7 +308,7 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 {
 	if (FOpenGL::IsES2())
 	{
-		AndroidEGL::GetInstance()->SwapBuffers();
+		AndroidEGL::GetInstance()->SwapBuffers(bLockToVsync ? SyncInterval : 0);
 	}
 	else
 	{
@@ -341,7 +341,7 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 		{
 			uint32 IdleStart = FPlatformTime::Cycles();
 
-			AndroidEGL::GetInstance()->SwapBuffers();
+			AndroidEGL::GetInstance()->SwapBuffers(bLockToVsync ? SyncInterval : 0);
 			REPORT_GL_END_BUFFER_EVENT_FOR_FRAME_DUMP();
 //			INITIATE_GL_FRAME_DUMP_EVERY_X_CALLS( 1000 );
 

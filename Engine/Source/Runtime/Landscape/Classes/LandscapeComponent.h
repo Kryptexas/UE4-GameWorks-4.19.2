@@ -622,6 +622,9 @@ public:
 
 	/** Updates navigation properties to match landscape's master switch */
 	void UpdateNavigationRelevance();
+	
+	/** Updates the values of component-level properties exposed by the Landscape Actor */
+	LANDSCAPE_API void UpdatedSharedPropertiesFromActor();
 #endif
 
 	friend class FLandscapeComponentSceneProxy;

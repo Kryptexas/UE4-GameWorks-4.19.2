@@ -1487,6 +1487,7 @@ namespace UnrealBuildTool
 					Text.AppendLine("\t             " + Line);
 				}
 			}
+            Text.AppendLine("\t             android:hardwareAccelerated=\"true\">");
 			Text.AppendLine("\t             android:hasCode=\"true\">");
 			if (bShowLaunchImage)
 			{
