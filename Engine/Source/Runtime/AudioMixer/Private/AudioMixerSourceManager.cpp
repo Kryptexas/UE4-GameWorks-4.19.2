@@ -111,8 +111,6 @@ namespace Audio
 
 	void FMixerSourceManager::Init(const FSourceManagerInitParams& InitParams)
 	{
-		AUDIO_MIXER_CHECK(MixerDevice);
-		AUDIO_MIXER_CHECK(MixerDevice->GetSampleRate() > 0);
 		AUDIO_MIXER_CHECK(InitParams.NumSources > 0);
 
 		if (!MixerDevice || bInitialized)
