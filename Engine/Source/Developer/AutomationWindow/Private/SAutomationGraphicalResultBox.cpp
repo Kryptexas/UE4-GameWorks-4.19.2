@@ -279,7 +279,7 @@ void SAutomationGraphicalResultBox::CreateWidgets()
 }
 
 
-FSlateColor SAutomationGraphicalResultBox::GetColorForTestState(const EAutomationState::Type TestState, const bool bHasWarnings) const
+FSlateColor SAutomationGraphicalResultBox::GetColorForTestState(const EAutomationState TestState, const bool bHasWarnings) const
 {
 	switch(TestState)
 	{

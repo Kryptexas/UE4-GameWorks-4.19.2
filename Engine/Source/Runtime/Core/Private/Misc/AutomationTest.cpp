@@ -757,11 +757,6 @@ void FAutomationTestBase::AddAnalyticsItem(const FString& InAnalyticsItem)
 	ExecutionInfo.AnalyticsItems.Add(InAnalyticsItem);
 }
 
-void FAutomationTestBase::AddRemoteArtifact(const FString& ArtifactName, const FString& RemoteArtifactPath)
-{
-	ExecutionInfo.Artifacts.Add(FAutomationTestArtifact(ArtifactName, RemoteArtifactPath));
-}
-
 bool FAutomationTestBase::HasAnyErrors() const
 {
 	return ExecutionInfo.Errors.Num() > 0;

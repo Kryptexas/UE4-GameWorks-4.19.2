@@ -54,6 +54,11 @@ FString FScreenShotManager::GetLocalApprovedFolder() const
 	return FPaths::ConvertRelativePathToFull(ScreenshotApprovedFolder);
 }
 
+FString FScreenShotManager::GetLocalComparisonFolder() const
+{
+	return FPaths::ConvertRelativePathToFull(ScreenshotDeltaFolder);
+}
+
 /* IScreenShotManager event handlers
  *****************************************************************************/
 

@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Misc/AutomationTest.h"
+#include "UObject/ObjectMacros.h"
+#include "IAutomationReport.generated.h"
 
 class IAutomationReport;
 template< typename ItemType > class TFilterCollection;
@@ -20,50 +22,63 @@ typedef TSharedRef<class IAutomationReport> IAutomationReportRef;
 
 
 /** Enumeration of unit test status for special dialog */
-namespace EAutomationState
+UENUM()
+enum class EAutomationState : uint8
 {
-	enum Type
-	{
-		NotRun,					// Automation test was not run
-		InProcess,				// Automation test is running now
-		Fail,					// Automation test was run and failed
-		Success,				// Automation test was run and succeeded
-		NotEnoughParticipants,	// Automation test was not run due to number of participants
-	};
-
-	inline const TCHAR* ToString(EAutomationState::Type InType)
-	{
-		switch (InType)
-		{
-			case (EAutomationState::NotRun) :
-			{
-				return TEXT("NotRun");
-			}
-			case (EAutomationState::Fail) :
-			{
-				return TEXT("Fail");
-			}
-			case (EAutomationState::Success) :
-			{
-				return TEXT("Pass");
-			}
-			case (EAutomationState::InProcess) :
-			{
-				return TEXT("InProgress");
-			}
-			case (EAutomationState::NotEnoughParticipants) :
-			{
-				return TEXT("NotEnoughParticipants");
-			}
-			default:
-			{
-				return TEXT("Invalid");
-			}
-		}
-		return TEXT("Invalid");
-	}
+	NotRun,					// Automation test was not run
+	InProcess,				// Automation test is running now
+	Fail,					// Automation test was run and failed
+	Success,				// Automation test was run and succeeded
+	NotEnoughParticipants,	// Automation test was not run due to number of participants
 };
 
+
+inline const TCHAR* ToString(EAutomationState InType)
+{
+	switch (InType)
+	{
+		case (EAutomationState::NotRun) :
+		{
+			return TEXT("NotRun");
+		}
+		case (EAutomationState::Fail) :
+		{
+			return TEXT("Fail");
+		}
+		case (EAutomationState::Success) :
+		{
+			return TEXT("Pass");
+		}
+		case (EAutomationState::InProcess) :
+		{
+			return TEXT("InProgress");
+		}
+		case (EAutomationState::NotEnoughParticipants) :
+		{
+			return TEXT("NotEnoughParticipants");
+		}
+		default:
+		{
+			return TEXT("Invalid");
+		}
+	}
+	return TEXT("Invalid");
+}
+
+struct FAutomationArtifact
+{
+public:
+	FAutomationArtifact(FString InName, FString InFilePath)
+		: Name(InName)
+		, FilePath(InFilePath)
+	{
+	}
+
+public:
+
+	FString Name;
+	FString FilePath;
+};
 
 /**
  * A struct to maintain a collection of data which was reported as part of an automation test result.
@@ -80,7 +95,7 @@ struct FAutomationTestResults
 	}
 
 	/* The current state of this test */
-	EAutomationState::Type State;
+	EAutomationState State;
 
 	/* All errors reported as part of this test */
 	TArray<FAutomationEvent> Errors;
@@ -96,6 +111,9 @@ struct FAutomationTestResults
 
 	/* The name of the instance which reported these results */
 	FString GameInstance;
+
+	/** Artifacts generated during the run of the test. */
+	TArray<FAutomationArtifact> Artifacts;
 };
 
 
@@ -311,7 +329,9 @@ public:
 	 * @param PassIndex Which test pass these results are for.
 	 * @param InResults The new set of results.
 	 */
-	virtual void SetResults( const int32 ClusterIndex, const int32 PassIndex, const FAutomationTestResults& InResults ) = 0;
+	virtual void SetResults(const int32 ClusterIndex, const int32 PassIndex, const FAutomationTestResults& InResults) = 0;
+
+	virtual void AddArtifact(const int32 ClusterIndex, const int32 PassIndex, const FAutomationArtifact& Artifact) = 0;
 
 	/**
 	 * Returns completion statistics for this branch of the testing hierarchy.
@@ -329,7 +349,7 @@ public:
 	 * @param PassIndex Which test pass to get the state of.
 	 * @return the current state of the test.
 	 */
-	virtual EAutomationState::Type GetState(const int32 ClusterIndex, const int32 PassIndex) const = 0;
+	virtual EAutomationState GetState(const int32 ClusterIndex, const int32 PassIndex) const = 0;
 
 	/**
 	 * Gets a copy of errors and warnings that were found

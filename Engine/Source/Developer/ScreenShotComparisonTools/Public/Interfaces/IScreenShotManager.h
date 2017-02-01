@@ -54,4 +54,9 @@ public:
 	 * 
 	 */
 	virtual FString GetLocalApprovedFolder() const = 0;
+
+	/**
+	 * 
+	 */
+	virtual FString GetLocalComparisonFolder() const = 0;
 };

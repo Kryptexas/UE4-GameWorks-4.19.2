@@ -92,19 +92,6 @@ struct CORE_API FAutomationEvent
 	FString ToString() const;
 };
 
-class FAutomationTestArtifact
-{
-public:
-	FString Name;
-	FString FilePath;
-
-	FAutomationTestArtifact(FString InName, FString InFilePath)
-		: Name(InName)
-		, FilePath(InFilePath)
-	{
-	}
-};
-
 /** Simple class to store the results of the execution of a automation test */
 class FAutomationTestExecutionInfo
 {
@@ -130,7 +117,6 @@ public:
 		Warnings.Empty();
 		LogItems.Empty();
 		AnalyticsItems.Empty();
-		Artifacts.Empty();
 	}
 
 	/**
@@ -153,9 +139,6 @@ public:
 	
 	/** Any analytics items that occurred during execution */
 	TArray<FString> AnalyticsItems;
-
-	/** Any items that need to be reference by reports and other systems. */
-	TArray<FAutomationTestArtifact> Artifacts;
 
 	/** Time to complete the task */
 	float Duration;
@@ -973,11 +956,6 @@ public:
 	 * @param	InLogItem	Log item to add to this test
 	 */
 	virtual void AddAnalyticsItem(const FString& InAnalyticsItem);
-
-	/**
-	 * Occasionally a test may need to provide artifacts that should appear in the build report for the automation test.
-	 */
-	virtual void AddRemoteArtifact(const FString& ArtifactName, const FString& RemoteArtifactPath);
 
 	/**
 	 * Returns whether this test has any errors associated with it or not

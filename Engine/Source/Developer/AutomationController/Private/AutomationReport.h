@@ -47,9 +47,10 @@ public:
 	virtual TArray<TSharedPtr<IAutomationReport> >& GetChildReports() override;
 	virtual void ClustersUpdated(const int32 NumClusters) override;
 	virtual void ResetForExecution(const int32 NumTestPasses) override;
-	virtual void SetResults( const int32 ClusterIndex, const int32 PassIndex, const FAutomationTestResults& InResults ) override;
+	virtual void SetResults(const int32 ClusterIndex, const int32 PassIndex, const FAutomationTestResults& InResults) override;
+	virtual void AddArtifact(const int32 ClusterIndex, const int32 PassIndex, const FAutomationArtifact& Artifact) override;
 	virtual void GetCompletionStatus(const int32 ClusterIndex, const int32 PassIndex, FAutomationCompleteState& OutCompletionState) override;
-	virtual EAutomationState::Type GetState(const int32 ClusterIndex, const int32 PassIndex) const override;
+	virtual EAutomationState GetState(const int32 ClusterIndex, const int32 PassIndex) const override;
 	virtual const FAutomationTestResults& GetResults( const int32 ClusterIndex, const int32 PassIndex ) override;
 	virtual const int32 GetNumResults( const int32 ClusterIndex ) override;
 	virtual const int32 GetCurrentPassIndex( const int32 ClusterIndex ) override;

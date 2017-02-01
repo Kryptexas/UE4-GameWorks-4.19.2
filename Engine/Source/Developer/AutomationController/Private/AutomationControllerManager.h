@@ -23,24 +23,31 @@ struct FAutomatedTestResult
 	GENERATED_BODY()
 public:
 
-	UPROPERTY()
-	FString TestName;
+	TSharedPtr<IAutomationReport> Test;
 
 	UPROPERTY()
-	FString TestResult;
+	FString TestDisplayName;
 
 	UPROPERTY()
-	TArray<FString> TestInfo;
+	FString FullTestPath;
 
 	UPROPERTY()
-	TArray<FString> TestErrors;
+	EAutomationState State;
 
 	UPROPERTY()
-	TArray<FString> TestWarnings;
+	TArray<FString> Logs;
+
+	UPROPERTY()
+	TArray<FString> Errors;
+
+	UPROPERTY()
+	TArray<FString> Warnings;
+
+	TArray<FAutomationArtifact> Artifacts;
 
 	FAutomatedTestResult()
 	{
-		TestResult = TEXT("Not Run");
+		State = EAutomationState::NotRun;
 	}
 };
 
@@ -85,8 +92,9 @@ public:
 class FAutomationControllerManager : public IAutomationControllerManager
 {
 public:
-	// IAutomationController Interface
+	FAutomationControllerManager();
 
+	// IAutomationController Interface
 	virtual void RequestAvailableWorkers( const FGuid& InSessionId ) override;
 	virtual void RequestTests() override;
 	virtual void RunTests( const bool bIsLocalSession) override;
@@ -291,21 +299,12 @@ protected:
 	void GenerateHtmlTestPassSummary(FDateTime Timestamp);
 
 	/**
-	* Updates the result value of a finished test.
-	*
-	* @param TestName The test that was just run.
-	* @param TestResult The result that the test returned.
-	*/
-	void UpdateTestResultValue(FString TestName, EAutomationState::Type TestResult);
-
-	/**
 	* Gather all info, warning, and error lines generated over the course of a test.
 	*
 	* @param TestName The test that was just run.
 	* @param TestResult All of the messages of note generated during the test case.
 	*/
-	void CollectTestNotes(FString TestName, const FAutomationWorkerRunTestsReply& Message);
-
+	void CollectTestResults(TSharedPtr<IAutomationReport> Report, const FAutomationTestResults& Results);
 
 	/**
 	 * Checks the child result.
@@ -490,6 +489,9 @@ private:
 
 	/** Pending image comparisons */
 	TQueue<TSharedPtr<FComparisonEntry>> ComparisonQueue;
+
+	/** The report folder override path that may have been provided over the commandline, -ReportOutputPath="" */
+	FString ReportOutputPathOverride;
 
 private:
 

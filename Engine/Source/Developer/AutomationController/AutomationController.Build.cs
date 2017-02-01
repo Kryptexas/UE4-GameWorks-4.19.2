@@ -10,6 +10,7 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"Core",
+					"CoreUObject",
 				}
 			); 
 			
@@ -17,7 +18,6 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"AutomationMessages",
-					"CoreUObject",
 					"UnrealEdMessages",
                     "MessageLog",
                     "Json",

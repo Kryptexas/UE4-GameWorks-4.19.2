@@ -43,6 +43,8 @@ public:
 
 	virtual FString GetLocalApprovedFolder() const override;
 
+	virtual FString GetLocalComparisonFolder() const override;
+
 	//~ End IScreenShotManager Interface
 
 private:

@@ -87,7 +87,7 @@ private:
 		float Duration;
 
 		/** State of the test */
-		EAutomationState::Type TestState;
+		EAutomationState TestState;
 
 		/** If the test had any warnings */
 		bool bHasWarnings;
@@ -174,7 +174,7 @@ private:
 	 * @param TestState The test state from the automation report (Success, Fail, NotRun, etc.)
 	 * @param bHasWarnings If the test had any warning logs.
 	 */
-	FSlateColor GetColorForTestState(const EAutomationState::Type TestState, const bool bHasWarnings) const;
+	FSlateColor GetColorForTestState(const EAutomationState TestState, const bool bHasWarnings) const;
 
 	/**
 	 * Gets the text to display for this test item based off the current DisplayType.
