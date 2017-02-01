@@ -856,13 +856,9 @@ namespace Audio
 
 				for (int32 Channel = 0; Channel < NumInputChans; ++Channel)
 				{
-					// Update the source LPF frequencies outside the frame loop
-					for (int32 Channel = 0; Channel < NumInputChans; ++Channel)
-					{
-						const float LPFFreq = LPFFrequencyParam.Update();
-						// Update the frequency
-						LowPassFilters[SourceId][Channel].SetFrequency(LPFFreq);
-					}
+					const float LPFFreq = LPFFrequencyParam.Update();
+					// Update the frequency
+					LowPassFilters[SourceId][Channel].SetFrequency(LPFFreq);
 
 					SampleIndex = NumInputChans * Frame + Channel;
 
