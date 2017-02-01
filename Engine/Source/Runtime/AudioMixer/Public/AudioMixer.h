@@ -15,7 +15,11 @@
 
 #ifndef AUDIO_MIXER_ENABLE_DEBUG_MODE
 // This define enables a bunch of more expensive debug checks and logging capabilities that are intended to be off most of the time even in debug builds of game/editor.
+#if UE_BUILD_SHIPPING
+#define AUDIO_MIXER_ENABLE_DEBUG_MODE 0
+#else
 #define AUDIO_MIXER_ENABLE_DEBUG_MODE 1
+#endif
 #endif
 
 // Cycle stats for audio mixer
@@ -59,8 +63,8 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Master EQ"), STAT_AudioMixerMasterEQ, STATGROUP_
 
 #if AUDIO_MIXER_ENABLE_DEBUG_MODE
 #define AUDIO_MIXER_CHECK(expr) ensure(expr)
-#define AUDIO_MIXER_CHECK_GAME_THREAD(_MixerDevice)			(_MixerDevice->CheckGameThread())
-#define AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(_MixerDevice)	(_MixerDevice->CheckAudioPlatformThread())
+#define AUDIO_MIXER_CHECK_GAME_THREAD(_MixerDevice)			(_MixerDevice->CheckAudioThread())
+#define AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(_MixerDevice)	(_MixerDevice->CheckAudioRenderingThread())
 #else
 #define AUDIO_MIXER_CHECK(expr)
 #define AUDIO_MIXER_CHECK_GAME_THREAD(_MixerDevice)

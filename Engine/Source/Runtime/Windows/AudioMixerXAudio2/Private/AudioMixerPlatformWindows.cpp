@@ -13,6 +13,8 @@
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
 #include "AllowWindowsPlatformAtomics.h"
+
+#define INITGUID
 #include <mmdeviceapi.h>
 #include <functiondiscoverykeys_devpkey.h>
 
@@ -121,6 +123,19 @@ public:
 
 	HRESULT STDMETHODCALLTYPE OnPropertyValueChanged(LPCWSTR pwstrDeviceId, const PROPERTYKEY key)
 	{
+		FString ChangedId = FString(pwstrDeviceId);
+
+		// look for ids we care about!
+		if (key.fmtid == PKEY_AudioEndpoint_PhysicalSpeakers.fmtid ||
+			key.fmtid == PKEY_AudioEngine_DeviceFormat.fmtid ||
+			key.fmtid == PKEY_AudioEngine_OEMFormat.fmtid)
+		{
+			for (Audio::IAudioMixerDeviceChangedLister* Listener : Listeners)
+			{
+				Listener->OnDeviceRemoved(FString(pwstrDeviceId));
+			}
+		}
+
 		return S_OK;
 	}
 

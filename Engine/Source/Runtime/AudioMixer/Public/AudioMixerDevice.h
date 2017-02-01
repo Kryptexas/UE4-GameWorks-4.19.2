@@ -73,8 +73,8 @@ namespace Audio
 		//~ End IAudioMixer
 
 		// Functions which check the thread it's called on and helps make sure functions are called from correct threads
-		void CheckGameThread();
-		void CheckAudioPlatformThread();
+		void CheckAudioThread();
+		void CheckAudioRenderingThread();
 
 		// Public Functions
 		FMixerSourceVoice* GetMixerSourceVoice(const FWaveInstance* InWaveInstance, ISourceBufferQueueListener* InBufferQueueListener, bool bUseHRTFSpatialization);
@@ -106,7 +106,8 @@ namespace Audio
 		FMixerSubmixPtr GetMasterEQSubmix() { return MasterEQSubmix; }
 
 	private:
-		void ResetAudioPlatformThreadId();
+		// Resets the thread ID used for audio rendering
+		void ResetAudioRenderingThreadId();
 
 		void Get2DChannelMapInternal(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly, TArray<float>& OutChannelMap) const;
 		void InitializeChannelMaps();

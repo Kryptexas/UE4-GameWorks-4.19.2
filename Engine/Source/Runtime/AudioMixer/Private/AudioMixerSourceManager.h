@@ -157,13 +157,22 @@ namespace Audio
 		float NumInterpFrames;
 	};
 
+	struct FSourceManagerInitParams
+	{
+		// Total number of sources to use in the source manager
+		int32 NumSources;
+
+		// Number of worker threads to use for the source manager.
+		int32 NumSourceWorkers;
+	};
+
 	class FMixerSourceManager
 	{
 	public:
 		FMixerSourceManager(FMixerDevice* InMixerDevice);
 		~FMixerSourceManager();
 
-		void Init(const int32 InNumSources);
+		void Init(const FSourceManagerInitParams& InitParams);
 		void Update();
 
 		bool GetFreeSourceId(int32& OutSourceId);
@@ -200,14 +209,47 @@ namespace Audio
 
 		void ReleaseSource(const int32 SourceId);
 		void ReadSourceFrame(const int32 SourceId);
-		void ComputeSourceBuffers();
-		void ComputePostSourceEffectBuffers();
-		void ComputeOutputBuffers();
+		void ComputeSourceBuffersForIdRange(const int32 SourceIdStart, const int32 SourceIdEnd);
+		void ComputePostSourceEffectBufferForIdRange(const int32 SourceIdStart, const int32 SourceIdEnd);
+		void ComputeOutputBuffersForIdRange(const int32 SourceIdStart, const int32 SourceIdEnd);
 
 		void AudioMixerThreadCommand(TFunction<void()> InFunction);
 		void PumpCommandQueue();
 
 		static const int32 NUM_BYTES_PER_SAMPLE = 2;
+
+		// Private class which perform source buffer processing in a worker task
+		class FAudioMixerSourceWorker : public FNonAbandonableTask
+		{
+			FMixerSourceManager* SourceManager;
+			int32 StartSourceId;
+			int32 EndSourceId;
+
+		public:
+			FAudioMixerSourceWorker(FMixerSourceManager* InSourceManager, const int32 InStartSourceId, const int32 InEndSourceId)
+				: SourceManager(InSourceManager)
+				, StartSourceId(InStartSourceId)
+				, EndSourceId(InEndSourceId)
+			{
+			}
+
+			void DoWork()
+			{
+				// Get the next block of frames from the source buffers
+				SourceManager->ComputeSourceBuffersForIdRange(StartSourceId, EndSourceId);
+
+				// Compute the audio source buffers after their individual effect chain processing
+				SourceManager->ComputePostSourceEffectBufferForIdRange(StartSourceId, EndSourceId);
+
+				// Get the audio for the output buffers
+				SourceManager->ComputeOutputBuffersForIdRange(StartSourceId, EndSourceId);
+			}
+
+			FORCEINLINE TStatId GetStatId() const
+			{
+				RETURN_QUICK_DECLARE_CYCLE_STAT(FAudioMixerSourceWorker, STATGROUP_ThreadPoolAsyncTasks);
+			}
+		};
 
 		FMixerDevice* MixerDevice;
 
@@ -255,7 +297,7 @@ namespace Audio
 
 		TArray<FSourceChannelMap> ChannelMapParam;
 		TArray<FSpatializationParams> SpatParams;
-		TArray<float> ScratchChannelMap;
+		TArray<TArray<float>> ScratchChannelMap;
 
 		// Output data, after computing a block of sample data, this is read back from mixers
 		TArray<TArray<float>*> PostEffectBuffers;
@@ -277,6 +319,9 @@ namespace Audio
 		TArray<int32> NumPostEffectChannels;
 		TArray<int32> NumInputFrames;
 
+		// Async task workers for processing sources in parallel
+		TArray<FAsyncTask<FAudioMixerSourceWorker>*> SourceWorkers;
+
 		// General information about sources in source manager accessible from game thread
 		struct FGameThreadInfo
 		{
@@ -289,6 +334,7 @@ namespace Audio
 
 		int32 NumActiveSources;
 		int32 NumTotalSources;
+		int32 NumSourceWorkers;
 		uint8 bInitialized : 1;
 
 		friend class FMixerSourceVoice;

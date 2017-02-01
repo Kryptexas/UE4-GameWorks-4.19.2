@@ -68,8 +68,6 @@ namespace Audio
 
 	void FMixerSourceVoice::SubmitBufferAudioThread(FMixerSourceBufferPtr InSourceVoiceBuffer)
 	{
-		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
-
 		NumBuffersQueued.Increment();
 		SourceManager->SubmitBufferAudioThread(SourceId, InSourceVoiceBuffer);
 	}

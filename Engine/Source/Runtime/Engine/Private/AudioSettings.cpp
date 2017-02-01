@@ -18,7 +18,6 @@ UAudioSettings::UAudioSettings(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
 	SectionName = TEXT("Audio");
-
 	AddDefaultSettings();
 }
 
@@ -28,6 +27,7 @@ void UAudioSettings::AddDefaultSettings()
 	DefaultSettings.DisplayName = LOCTEXT("DefaultSettingsName", "Default");
 	GConfig->GetInt(TEXT("Audio"), TEXT("MaxChannels"), DefaultSettings.MaxChannels, GEngineIni); // for backwards compatibility
 	QualityLevels.Add(DefaultSettings);
+	bAllowVirtualizedSounds = true;
 }
 
 #if WITH_EDITOR
