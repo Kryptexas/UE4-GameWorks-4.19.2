@@ -1290,7 +1290,7 @@ namespace UnrealBuildTool
 			}
 
 			// Compile C files directly.
-			LinkInputFiles.AddRange(ToolChain.CompileCPPFiles(CPPCompileEnvironment, SourceFilesToBuild.CFiles, Name, ActionGraph).ObjectFiles);
+			LinkInputFiles.AddRange(ToolChain.CompileCPPFiles(ModuleCompileEnvironment, SourceFilesToBuild.CFiles, Name, ActionGraph).ObjectFiles);
 
 			// Compile CC files directly.
 			LinkInputFiles.AddRange(ToolChain.CompileCPPFiles(CPPCompileEnvironment, SourceFilesToBuild.CCFiles, Name, ActionGraph).ObjectFiles);
