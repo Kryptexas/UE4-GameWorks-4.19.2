@@ -112,9 +112,9 @@ void UMovieSceneSpawnTrack::GenerateTemplate(const FMovieSceneTrackCompilerArgs&
 
 void UMovieSceneSpawnTrack::PostCompile(FMovieSceneEvaluationTrack& OutTrack, const FMovieSceneTrackCompilerArgs& Args) const
 {
+	// Spawn tracks evaluate in their own group, of the highest priority, that flush the evaluation stack
 	static FName SpawnGroupName("SpawnObjects");
-
-	Args.Generator.FlushGroupImmediately(SpawnGroupName);
+	static FMovieSceneTemplateParameterRegistration StaticGroupParameters(SpawnGroupName, FMovieSceneEvaluationGroupParameters(0xFFF, true));
 
 	// All objects must be spawned/destroyed before the sequence continues
 	OutTrack.SetEvaluationGroup(SpawnGroupName);

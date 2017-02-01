@@ -28,6 +28,27 @@ namespace
 		InitPtrs.Reset();
 		EvalPtrs.Reset();
 	}
+
+	TMap<FName, FMovieSceneEvaluationGroupParameters> EvaluationGroupParameters;
+}
+
+void IMovieSceneTemplateGenerator::RegisterEvaluationGroupParameters(FName GroupName, const FMovieSceneEvaluationGroupParameters& GroupParameters)
+{
+	check(!GroupName.IsNone() && GroupParameters.EvaluationPriority != 0);
+
+	for (auto& Pair : EvaluationGroupParameters)
+	{
+		checkf(Pair.Key != GroupName, TEXT("Cannot add 2 groups of the same name"));
+		checkf(Pair.Value.EvaluationPriority != GroupParameters.EvaluationPriority, TEXT("Cannot add 2 groups of the same priority"));
+	}
+
+	EvaluationGroupParameters.Add(GroupName, GroupParameters);
+}
+
+FMovieSceneEvaluationGroupParameters IMovieSceneTemplateGenerator::GetEvaluationGroupParameters(FName GroupName)
+{
+	FMovieSceneEvaluationGroupParameters* ExistingParams = EvaluationGroupParameters.Find(GroupName);
+	return ExistingParams ? *ExistingParams : FMovieSceneEvaluationGroupParameters();
 }
 
 FMovieSceneEvaluationTemplateGenerator::FMovieSceneEvaluationTemplateGenerator(UMovieSceneSequence& InSequence, FMovieSceneEvaluationTemplate& OutTemplate, FMovieSceneSequenceTemplateStore& InStore)
@@ -126,12 +147,6 @@ FMovieSceneSequenceID FMovieSceneEvaluationTemplateGenerator::GenerateSequenceID
 
 	return ThisID;
 }
-
-void FMovieSceneEvaluationTemplateGenerator::FlushGroupImmediately(FName EvaluationGroup)
-{
-	ImmediateFlushGroups.Add(EvaluationGroup);
-}
-
 void FMovieSceneEvaluationTemplateGenerator::Generate(FMovieSceneTrackCompilationParams InParams)
 {
 	Template.Hierarchy = FMovieSceneSequenceHierarchy();
@@ -278,7 +293,8 @@ void FMovieSceneEvaluationTemplateGenerator::UpdateEvaluationField(const TArray<
 			CurrentEvaluationGroup = Track->GetEvaluationGroup();
 			if (CurrentEvaluationGroup != LastEvaluationGroup)
 			{
-				AddPtrsToGroup(Group, ImmediateFlushGroups.Contains(LastEvaluationGroup), InitPtrs, EvalPtrs);
+				FMovieSceneEvaluationGroupParameters GroupParams = IMovieSceneTemplateGenerator::GetEvaluationGroupParameters(LastEvaluationGroup);
+				AddPtrsToGroup(Group, GroupParams.bRequiresImmediateFlush, InitPtrs, EvalPtrs);
 			}
 			LastEvaluationGroup = Track->GetEvaluationGroup();
 
@@ -297,7 +313,8 @@ void FMovieSceneEvaluationTemplateGenerator::UpdateEvaluationField(const TArray<
 			EvalPtrs.Add(Ptr);
 		}
 
-		AddPtrsToGroup(Group, ImmediateFlushGroups.Contains(LastEvaluationGroup), InitPtrs, EvalPtrs);
+		FMovieSceneEvaluationGroupParameters GroupParams = IMovieSceneTemplateGenerator::GetEvaluationGroupParameters(LastEvaluationGroup);
+		AddPtrsToGroup(Group, GroupParams.bRequiresImmediateFlush, InitPtrs, EvalPtrs);
 
 		// Copmpute meta data for this segment
 		FMovieSceneEvaluationMetaData& MetaData = Field.MetaData[Field.MetaData.Emplace()];
@@ -333,15 +350,13 @@ bool FMovieSceneEvaluationTemplateGenerator::SortPredicate(const FMovieSceneEval
 		return false;
 	}
 
-	if (A->GetEvaluationPriority() != B->GetEvaluationPriority())
+	FMovieSceneEvaluationGroupParameters GroupA = IMovieSceneTemplateGenerator::GetEvaluationGroupParameters(A->GetEvaluationGroup());
+	FMovieSceneEvaluationGroupParameters GroupB = IMovieSceneTemplateGenerator::GetEvaluationGroupParameters(B->GetEvaluationGroup());
+
+	if (GroupA.EvaluationPriority != GroupB.EvaluationPriority)
 	{
-		return A->GetEvaluationPriority() > B->GetEvaluationPriority();
+		return GroupA.EvaluationPriority > GroupB.EvaluationPriority;
 	}
 
-	if (A->GetEvaluationGroup() != B->GetEvaluationGroup())
-	{
-		return A->GetEvaluationGroup() < B->GetEvaluationGroup();
-	}
-
-	return false;
+	return A->GetEvaluationPriority() > B->GetEvaluationPriority();
 }
