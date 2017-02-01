@@ -1959,6 +1959,15 @@ struct FTestTickFunction : public FTickFunction
 	}
 };
 
+template<>
+struct TStructOpsTypeTraits<FTestTickFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
+
 static const int32 NumTestTickFunctions = 10000;
 static TArray<FTestTickFunction> TestTickFunctions;
 static TArray<FTestTickFunction*> IndirectTestTickFunctions;
