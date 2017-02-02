@@ -793,6 +793,7 @@ namespace UnrealBuildTool
 			{
 				RulesObject.bUseUnityBuild = false;
 				RulesObject.bForceUnityBuild = false;
+				RulesObject.bUsePCHFiles = false;
 				RulesObject.bDisableLinking = true;
 			}
 
