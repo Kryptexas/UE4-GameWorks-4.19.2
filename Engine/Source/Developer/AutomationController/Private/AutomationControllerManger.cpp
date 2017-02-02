@@ -476,7 +476,7 @@ void FAutomationControllerManager::GenerateHtmlTestPassSummary(FDateTime Timesta
 		FString Html = FString::Format(*MasterTemplate, Args);
 
 		FString ReportFileName = FString::Printf(TEXT("%s/AutomationReport-%d-%s.html"), *ReportOutputFolder, FEngineVersion::Current().GetChangelist(), *Timestamp.ToString());
-		if ( !FFileHelper::SaveStringToFile(Html, *ReportFileName) )
+		if ( !FFileHelper::SaveStringToFile(Html, *ReportFileName, FFileHelper::EEncodingOptions::ForceUTF8) )
 		{
 			GLog->Logf(ELogVerbosity::Error, TEXT("Test Report Html is invalid - report not generated."));
 		}
