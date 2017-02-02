@@ -2215,12 +2215,35 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 								break;
 							case EPSSM_Sequential:
 							{
-								bool bDone = false;
-
-								if (++LastSelectedParticleIndex >= SourceEmitter->ActiveParticles)
+								bool bInUse = false;
+								LastSelectedParticleIndex++;
+								if (LastSelectedParticleIndex >= SourceEmitter->ActiveParticles)
 								{
 									LastSelectedParticleIndex = 0;
 								}
+
+								// need to check if the next source index is in use, and go through until we find one that isn't
+								do
+								{
+									bInUse = false;
+									for (int32 TrailCheckIdx = 0; TrailCheckIdx < MaxTrailCount; TrailCheckIdx++)
+									{
+										if (TrailCheckIdx != InTrailIdx && SourceIndices[TrailCheckIdx] == SourceEmitter->ParticleIndices[LastSelectedParticleIndex])
+										{
+											bInUse = true;
+										}
+									}
+									if (bInUse == true)
+									{
+										LastSelectedParticleIndex++;
+									}
+								} while (bInUse && LastSelectedParticleIndex < SourceEmitter->ActiveParticles);
+
+								if (LastSelectedParticleIndex >= SourceEmitter->ActiveParticles)
+								{
+									LastSelectedParticleIndex = -1;
+								}
+
 								Index = LastSelectedParticleIndex;
 							}
 							break;
