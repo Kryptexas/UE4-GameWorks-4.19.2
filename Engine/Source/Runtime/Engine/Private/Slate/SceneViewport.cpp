@@ -514,12 +514,13 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 
 		APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
 		bool bShouldShowMouseCursor = PC && PC->ShouldShowMouseCursor();
-		if (ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor)
+
+		if ( ViewportClient->HideCursorDuringCapture() && !bShouldShowMouseCursor )
 		{
 			bCursorHiddenDueToCapture = true;
 			MousePosBeforeHiddenDueToCapture = MousePosition;
 		}
-		if (bCursorHiddenDueToCapture || !bShouldShowMouseCursor)
+		if ( bCursorHiddenDueToCapture || bShouldShowMouseCursor )
 		{
 			ReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
 		}
