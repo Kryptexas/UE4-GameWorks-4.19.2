@@ -110,8 +110,21 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 		E.ObjectFlags = EObjectFlags(Save & RF_Load);
 	}
 
-	Ar << E.SerialSize;
-	Ar << E.SerialOffset;
+	if (Ar.UE4Ver() < VER_UE4_64BIT_EXPORTMAP_SERIALSIZES)
+	{
+		int32 SerialSize = E.SerialSize;
+		Ar << SerialSize;
+		E.SerialSize = (int64)SerialSize;
+
+		int32 SerialOffset = E.SerialOffset;
+		Ar << SerialOffset;
+		E.SerialOffset = SerialOffset;
+	}
+	else
+	{
+		Ar << E.SerialSize;
+		Ar << E.SerialOffset;
+	}
 
 	Ar << E.bForcedExport;
 	Ar << E.bNotForClient;

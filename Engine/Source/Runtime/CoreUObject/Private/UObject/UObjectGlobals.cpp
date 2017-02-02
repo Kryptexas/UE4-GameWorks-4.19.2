@@ -1138,26 +1138,15 @@ static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLong
 		Result = FindObjectFast<UPackage>(nullptr, PackageFName);
 		if (!Result || !Result->IsFullyLoaded())
 		{
-			if (FLinkerLoad::IsKnownMissingPackage(PackageFName) || (Result && Result->IsPendingKill()))
-			{
-				// Don't retry if known missing or pending kill
-				UE_LOG(LogUObjectGlobals, Verbose, TEXT("Failing load of package %s because it's already failed once %s."), *InPackageName);
-			}
-			else
-			{
-				FlushAsyncLoading();
-				Result = FindObjectFast<UPackage>(nullptr, PackageFName);
-			
-				check(!Result || Result->IsFullyLoaded());
-				if (!Result)
-				{
-					LoadPackageAsync(InName, nullptr, *InPackageName);
-					FlushAsyncLoading();
-					Result = FindObjectFast<UPackage>(nullptr, PackageFName);
-				}
-			}
+			int32 RequestID = LoadPackageAsync(InName, nullptr, *InPackageName);
+			FlushAsyncLoading(RequestID);
 		}
 
+		if (InOuter)
+			{
+			return InOuter;
+			}
+				Result = FindObjectFast<UPackage>(nullptr, PackageFName);
 		return Result;
 }
 

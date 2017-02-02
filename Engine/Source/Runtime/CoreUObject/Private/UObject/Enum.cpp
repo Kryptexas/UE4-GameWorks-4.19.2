@@ -11,6 +11,7 @@
 #include "UObject/UObjectThreadContext.h"
 #include "UObject/DevObjectVersion.h"
 #include "UObject/CoreObjectVersion.h"
+#include "UObject/CoreRedirects.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEnum, Log, All);
 
@@ -19,8 +20,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogEnum, Log, All);
 -----------------------------------------------------------------------------*/
 
 TMap<FName, UEnum*> UEnum::AllEnumNames;
-TMap<FName,TMap<FName,FName> > UEnum::EnumRedirects;
-TMap<FName,TMap<FString,FString> > UEnum::EnumSubstringRedirects;
 
 UEnum::UEnum(const FObjectInitializer& ObjectInitializer)
 	: UField(ObjectInitializer)
@@ -445,80 +444,42 @@ int32 UEnum::FindEnumRedirects(const UEnum* Enum, FName EnumEntryName)
 {
 	check (Enum);
 
-	// Init redirect map from ini file
-	static bool bAlreadyInitialized_EnumRedirectsMap = false;
-	if( !bAlreadyInitialized_EnumRedirectsMap )
-	{
-		InitEnumRedirectsMap();
-		bAlreadyInitialized_EnumRedirectsMap = true;
-	}
+	const TMap<FString, FString>* ValueChanges = FCoreRedirects::GetValueRedirects(ECoreRedirectFlags::Type_Enum, Enum);
 
-	// See if we have an entry for this enum
-	const TMap<FName, FName>* ThisEnumRedirects = EnumRedirects.Find(Enum->GetFName());
-	if (ThisEnumRedirects != nullptr)
+	if (ValueChanges)
 	{
 		// first look for default name
-		const FName* NewEntryName = ThisEnumRedirects->Find(EnumEntryName);
-		if (NewEntryName != nullptr)
+		const FString EnumEntryString = EnumEntryName.ToString();
+		const FString* NewEntryString = ValueChanges->Find(EnumEntryString);
+		if (NewEntryString != nullptr)
 		{
-			return Enum->GetIndexByName(*NewEntryName);
+			return Enum->GetIndexByName(FName(**NewEntryString));
 		}
 		// if not found, look for long name if short or short name if long
 		else
 		{
 			// Note: This can pollute the name table if the ini is set up incorrectly
-			const FString EnumEntryString = EnumEntryName.ToString();
-			const int32 DoubleColonIndex = EnumEntryString.Find(TEXT("::"),ESearchCase::CaseSensitive);
-			FName ModifiedName;
+			const int32 DoubleColonIndex = EnumEntryString.Find(TEXT("::"), ESearchCase::CaseSensitive);
+			FString ModifiedName;
 			if (DoubleColonIndex == INDEX_NONE)
 			{
-				ModifiedName = FName(*GenerateFullEnumName(Enum, *EnumEntryName.ToString()));
+				ModifiedName = GenerateFullEnumName(Enum, *EnumEntryName.ToString());
 			}
 			else
 			{
-				ModifiedName = FName(*EnumEntryString.RightChop(DoubleColonIndex+2));
+				ModifiedName = EnumEntryString.RightChop(DoubleColonIndex + 2);
 			}
-			NewEntryName = ThisEnumRedirects->Find(ModifiedName);
-			if (NewEntryName != nullptr)
+			NewEntryString = ValueChanges->Find(ModifiedName);
+			if (NewEntryString != nullptr)
 			{
-				return Enum->GetIndexByName(*NewEntryName);
-			}
-		}
-	}
-
-	// Now try the substring replacement
-	const TMap<FString, FString>* ThisEnumSubstringRedirects = EnumSubstringRedirects.Find(Enum->GetFName());
-	if (ThisEnumSubstringRedirects != NULL)
-	{
-		FString EntryString = EnumEntryName.ToString();
-		for (TMap<FString, FString>::TConstIterator It(*ThisEnumSubstringRedirects); It; ++It)
-		{
-			if (EntryString.Contains(*It.Key()))
-			{
-				// Note: This can pollute the name table if the ini is set up incorrectly
-				FName NewName = FName(*EntryString.Replace(*It.Key(), *It.Value()));
-
-				int32 FoundIndex = Enum->GetIndexByName(NewName);
-
-				if (FoundIndex == INDEX_NONE)
-				{
-					UE_LOG(LogEnum, Warning, TEXT("Matched substring redirect %s in Enum %s failed to resolve %s to valid enum"), *It.Key(), *Enum->GetName(), *NewName.ToString());
-				}
-				else
-				{
-					return FoundIndex;
-				}
+				return Enum->GetIndexByName(FName(**NewEntryString));
 			}
 		}
 	}
 
 	return INDEX_NONE;
 }
-/**
- * Sets the array of enums.
- *
- * @return	true unless the MAX enum already exists.
- */
+
 bool UEnum::SetEnums(TArray<TPair<FName, int64>>& InNames, UEnum::ECppForm InCppForm, bool bAddMaxKeyIfMissing)
 {
 	if (Names.Num() > 0)
@@ -785,42 +746,3 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UEnum, UField,
 	{
 	}
 );
-
-void UEnum::InitEnumRedirectsMap()
-{
-	if( GConfig )
-	{
-		FConfigSection* EngineSection = GConfig->GetSectionPrivate( TEXT("/Script/Engine.Engine"), false, true, GEngineIni );
-		for( FConfigSection::TIterator It(*EngineSection); It; ++It )
-		{
-			if( It.Key() == TEXT("EnumRedirects") )
-			{
-				const FString& ConfigValue = It.Value().GetValue();
-				FName EnumName = NAME_None;
-				FName OldEnumEntry = NAME_None;
-				FName NewEnumEntry = NAME_None;
-
-				FString OldEnumSubstring;
-				FString NewEnumSubstring;
-
-				FParse::Value( *ConfigValue, TEXT("EnumName="), EnumName );
-				if (FParse::Value( *ConfigValue, TEXT("OldEnumEntry="), OldEnumEntry ) )
-				{
-					FParse::Value( *ConfigValue, TEXT("NewEnumEntry="), NewEnumEntry );
-					check(EnumName != NAME_None && OldEnumEntry != NAME_None && NewEnumEntry != NAME_None );
-					EnumRedirects.FindOrAdd(EnumName).Add(OldEnumEntry, NewEnumEntry);
-				}
-				else if (FParse::Value( *ConfigValue, TEXT("OldEnumSubstring="), OldEnumSubstring ))
-				{
-					FParse::Value( *ConfigValue, TEXT("NewEnumSubstring="), NewEnumSubstring );
-					check(EnumName != NAME_None && !OldEnumSubstring.IsEmpty() && !NewEnumSubstring.IsEmpty());
-					EnumSubstringRedirects.FindOrAdd(EnumName).Add(OldEnumSubstring, NewEnumSubstring);
-				}
-			}			
-		}
-	}
-	else
-	{
-		UE_LOG(LogEnum, Warning, TEXT(" **** ENUM REDIRECTS UNABLE TO INITIALIZE! **** "));
-	}
-}

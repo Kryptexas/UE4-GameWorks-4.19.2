@@ -198,26 +198,6 @@ void ADefaultPawn::LookUpAtRate(float Rate)
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds() * CustomTimeDilation);
 }
 
-// @TODO: DEPRECATED, remove.
-void ADefaultPawn::LookUp(float Val)
-{
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (PC)
-	{
-		PC->AddPitchInput(Val);
-	}
-}
-
-// @TODO: DEPRECATED, remove.
-void ADefaultPawn::Turn(float Val)
-{
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (PC)
-	{
-		PC->AddYawInput(Val);
-	}
-}
-
 UPawnMovementComponent* ADefaultPawn::GetMovementComponent() const
 {
 	return MovementComponent;

@@ -79,21 +79,30 @@ extern "C"
 	__declspec(dllexport)
 	int32 __cdecl UE4CompressFileGZIP(const char* Path, const void* UncompressedBuffer, int32 UncompressedSize)
 	{
+		int32 ReturnVal = Z_ERRNO;
+
 		// Zlib wants to use unsigned long.
 		unsigned ZUncompressedSize = UncompressedSize;
 
 		gzFile FilePtr = gzopen(Path, "wb");
 		if (FilePtr == nullptr)
 		{
-			return Z_ERRNO;
+			return ReturnVal;
 		}
 
 		int ZCompressedSize = gzwrite(FilePtr, UncompressedBuffer, ZUncompressedSize);
+		
 		if (ZCompressedSize == 0)
 		{
-			return Z_ERRNO;
+			// Compression error in gzwrite()
+			gzerror(FilePtr, &ReturnVal);
+			gzclose(FilePtr);
+		}
+		else
+		{
+			ReturnVal = gzclose(FilePtr);
 		}
 
-		return gzclose(FilePtr);
+		return ReturnVal;
 	}
 }

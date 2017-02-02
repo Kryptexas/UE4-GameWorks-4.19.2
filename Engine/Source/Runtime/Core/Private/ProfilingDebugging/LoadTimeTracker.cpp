@@ -99,7 +99,6 @@ void FLoadTimeTracker::DumpRawLoadTimes() const
 	UE_LOG(LogStreaming, Display, TEXT("LinkerLoad_SerializeImportMap: %f"), LinkerLoad_SerializeImportMap);
 	UE_LOG(LogStreaming, Display, TEXT("LinkerLoad_SerializeExportMap: %f"), LinkerLoad_SerializeExportMap);
 	UE_LOG(LogStreaming, Display, TEXT("LinkerLoad_FixupImportMap: %f"), LinkerLoad_FixupImportMap);
-	UE_LOG(LogStreaming, Display, TEXT("LinkerLoad_RemapImports: %f"), LinkerLoad_RemapImports);
 	UE_LOG(LogStreaming, Display, TEXT("LinkerLoad_FixupExportMap: %f"), LinkerLoad_FixupExportMap);
 	UE_LOG(LogStreaming, Display, TEXT("LinkerLoad_SerializeDependsMap: %f"), LinkerLoad_SerializeDependsMap);
 	UE_LOG(LogStreaming, Display, TEXT("LinkerLoad_SerializePreloadDependencies: %f"), LinkerLoad_SerializePreloadDependencies);
@@ -168,7 +167,6 @@ void FLoadTimeTracker::ResetRawLoadTimes()
 	LinkerLoad_SerializeImportMap = 0.0;
 	LinkerLoad_SerializeExportMap = 0.0;
 	LinkerLoad_FixupImportMap = 0.0;
-	LinkerLoad_RemapImports = 0.0;
 	LinkerLoad_FixupExportMap = 0.0;
 	LinkerLoad_SerializeDependsMap = 0.0;
 	LinkerLoad_SerializePreloadDependencies = 0.0;

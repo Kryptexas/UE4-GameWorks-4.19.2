@@ -87,7 +87,7 @@ void FUnrealSourceFileArchiveProxy::Resolve(FUnrealSourceFile* UnrealSourceFile,
 	UnrealSourceFile->GetIncludes().Empty(Includes.Num());
 	for (const FHeaderProviderArchiveProxy& Include : Includes)
 	{
-		FHeaderProvider HeaderProvider = FHeaderProvider(static_cast<EHeaderProviderSourceType>(Include.Type), Include.Id, Include.bAutoInclude);
+		FHeaderProvider HeaderProvider = FHeaderProvider(static_cast<EHeaderProviderSourceType>(Include.Type), CopyTemp(Include.Id), Include.bAutoInclude);
 		HeaderProvider.SetCache(UHTMakefile.GetUnrealSourceFileByIndex(Include.CacheIndex));
 		UnrealSourceFile->GetIncludes().Add(HeaderProvider);
 	}

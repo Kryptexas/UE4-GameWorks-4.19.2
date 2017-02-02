@@ -17,8 +17,10 @@
 struct FK2Node_CreateDelegate_Helper
 {
 	static FString DelegateOutputName;
+	static FString InputObjectName; // Deprecated, for fixup
 };
 FString FK2Node_CreateDelegate_Helper::DelegateOutputName(TEXT("OutputDelegate"));
+FString FK2Node_CreateDelegate_Helper::InputObjectName(TEXT("InputObject"));
 
 UK2Node_CreateDelegate::UK2Node_CreateDelegate(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -40,6 +42,19 @@ void UK2Node_CreateDelegate::AllocateDefaultPins()
 	}
 
 	Super::AllocateDefaultPins();
+}
+
+UK2Node::ERedirectType UK2Node_CreateDelegate::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	// Handles remap of InputObject to Self, from 4.10 time frame
+	if (OldPin->PinName == FK2Node_CreateDelegate_Helper::InputObjectName && NewPin->PinName == K2Schema->PN_Self)
+	{
+		return ERedirectType_Name;
+	}
+
+	return Super::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
 }
 
 bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClassForSelf) const

@@ -34,19 +34,13 @@ public:
 public:
 	FText GetDecoratorText() const
 	{
-		if ( CurrentHoverText.IsEmpty() )
+		if ( CurrentHoverText.IsEmpty() && PathNames.Num() > 0 )
 		{
-			FString Text = PathNames.Num() > 0 ? PathNames[0] : TEXT("");
-
-			if ( PathNames.Num() > 1 )
-			{
-				Text += TEXT(" ");
-				Text += FString::Printf(*NSLOCTEXT("ContentBrowser", "FolderDescription", "and %d other(s)").ToString(), PathNames.Num() - 1);
-			}
-
-			return FText::FromString(Text);
+			return (PathNames.Num() == 1)
+				? FText::FromString(PathNames[0])
+				: FText::Format(NSLOCTEXT("ContentBrowser", "FolderDescriptionMulti", "{0} and {1} {1}|plural(one=other,other=others)"), FText::FromString(PathNames[0]), PathNames.Num() - 1);
 		}
-		
+
 		return CurrentHoverText;
 	}
 

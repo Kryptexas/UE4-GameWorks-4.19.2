@@ -1,5 +1,4 @@
 ﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,6 +8,7 @@ using System.Linq.Expressions;
 using System.Net;
 using System.Web;
 using System.Web.Mvc;
+using System.Web.UI;
 using Microsoft.Practices.ObjectBuilder2;
 using Newtonsoft.Json.Linq;
 using Tools.CrashReporter.CrashReportWebSite.DataModels;
@@ -22,14 +22,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	/// </summary>
 	public class BuggsController : Controller
 	{
-        private IUnitOfWork _unitOfWork;
+	    private int pageSize = 50;
 
 		/// <summary>
 		/// An empty constructor.
 		/// </summary>
-		public BuggsController(IUnitOfWork unitOfWork)
+		public BuggsController()
 		{
-		    _unitOfWork = unitOfWork;
 		}
 
 		/// <summary>
@@ -63,49 +62,39 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 			    var displayFunctionNames = buggsForm["DisplayFunctionNames"] == "true";
 			    var displayFileNames = buggsForm["DisplayFileNames"] == "true";
 			    var displayFilePathNames = false;
+
 				if( buggsForm["DisplayFilePathNames"] == "true" )
 				{
 					displayFilePathNames = true;
 					displayFileNames = false;
 				}
+
 			    var displayUnformattedCallStack = buggsForm["DisplayUnformattedCallStack"] == "true";
 
-			    // Create a new view and populate with crashes
-				List<Crash> crashes = null;
-				var model = new BuggViewModel();
-				var newBugg = _unitOfWork.BuggRepository.GetById( id );
-				if( newBugg == null )
-				{
-					return RedirectToAction( "Index" );
-				}
-                crashes = newBugg.Crashes.OrderByDescending(data => data.TimeOfCrash).ToList();
-                newBugg.CrashesInTimeFrameAll = crashes.Count;
-                newBugg.CrashesInTimeFrameGroup = crashes.Count;
-			    newBugg.NumberOfCrashes = crashes.Count;
-
-                // Handle 'CopyToJira' button
+			    var model = GetResult(id);
+                model.Bugg.PrepareBuggForJira(model.Crashes);
+			    // Handle 'CopyToJira' button
                 var buggIdToBeAddedToJira = 0;
                 foreach (var entry in buggsForm.Cast<object>().Where(entry => entry.ToString().Contains("CopyToJira-")))
                 {
                     int.TryParse(entry.ToString().Substring("CopyToJira-".Length), out buggIdToBeAddedToJira);
                     break;
                 }
-
-                newBugg.PrepareBuggForJira(crashes);
                 if (buggIdToBeAddedToJira != 0)
                 {
-                    newBugg.JiraProject = buggsForm["JiraProject"];
-                    newBugg.CopyToJira();
+                   
+                    model.Bugg.JiraProject = buggsForm["JiraProject"];
+                    model.Bugg.CopyToJira();
                 }
 
                 var jc = JiraConnection.Get();
 				var bValidJira = false;
 
 				// Verify valid JiraID, this may be still a TTP
-				if( !string.IsNullOrEmpty( newBugg.TTPID ) )
+				if( !string.IsNullOrEmpty( model.Bugg.TTPID ) )
 				{
 					var jira = 0;
-                    int.TryParse(newBugg.TTPID, out jira);
+                    int.TryParse(model.Bugg.TTPID, out jira);
 
                     if (jira == 0)
 					{
@@ -116,7 +105,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				if( jc.CanBeUsed() && bValidJira )
 				{
 					// Grab the data form JIRA.
-					var jiraSearchQuery = "key = " + newBugg.TTPID;
+					var jiraSearchQuery = "key = " + model.Bugg.TTPID;
 					var jiraResults = new Dictionary<string, Dictionary<string, object>>();
 
 					try
@@ -135,11 +124,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					}
 					catch (System.Exception)
 					{
-                        newBugg.JiraSummary = "JIRA MISMATCH";
-                        newBugg.JiraComponentsText = "JIRA MISMATCH";
-                        newBugg.JiraResolution = "JIRA MISMATCH";
-                        newBugg.JiraFixVersionsText = "JIRA MISMATCH";
-                        newBugg.JiraFixCL = "JIRA MISMATCH";
+                        model.Bugg.JiraSummary = "JIRA MISMATCH";
+                        model.Bugg.JiraComponentsText = "JIRA MISMATCH";
+                        model.Bugg.JiraResolution = "JIRA MISMATCH";
+                        model.Bugg.JiraFixVersionsText = "JIRA MISMATCH";
+                        model.Bugg.JiraFixCL = "JIRA MISMATCH";
 					}
 
 					// Jira Key, Summary, Components, Resolution, Fix version, Fix changelist
@@ -171,13 +160,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
                         //Conversion to ado.net entity framework
 
-                        newBugg.JiraSummary = summary;
-                        newBugg.JiraComponentsText = componentsText;
-                        newBugg.JiraResolution = resolution;
-                        newBugg.JiraFixVersionsText = fixVersionsText;
+                        model.Bugg.JiraSummary = summary;
+                        model.Bugg.JiraComponentsText = componentsText;
+                        model.Bugg.JiraResolution = resolution;
+                        model.Bugg.JiraFixVersionsText = fixVersionsText;
 						if( fixCl != 0 )
 						{
-							newBugg.FixedChangeList = fixCl.ToString();
+							model.Bugg.FixedChangeList = fixCl.ToString();
 						}
 					}
 				}
@@ -187,30 +176,34 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				{
 					if( !string.IsNullOrEmpty( buggsForm["SetStatus"] ) )
 					{
-						newBugg.Status = buggsForm["SetStatus"];
-                        newBugg.Crashes.ForEach(data =>data.Status = buggsForm["SetStatus"]);
+						model.Bugg.Status = buggsForm["SetStatus"];
+                        model.Bugg.Crashes.ForEach(data =>data.Status = buggsForm["SetStatus"]);
 					}
 
 					if( !string.IsNullOrEmpty( buggsForm["SetFixedIn"] ) )
 					{
-						newBugg.FixedChangeList = buggsForm["SetFixedIn"];
-                        newBugg.Crashes.ForEach(data => data.FixedChangeList = buggsForm["SetFixedIn"]);
+						model.Bugg.FixedChangeList = buggsForm["SetFixedIn"];
+                        model.Bugg.Crashes.ForEach(data => data.FixedChangeList = buggsForm["SetFixedIn"]);
 					}
 
 					if( !string.IsNullOrEmpty( buggsForm["SetTTP"] ) )
 					{
-						newBugg.TTPID = buggsForm["SetTTP"];
-                        newBugg.Crashes.ForEach(data => data.Jira = buggsForm["SetTTP"]);
+						model.Bugg.TTPID = buggsForm["SetTTP"];
+                        model.Bugg.Crashes.ForEach(data => data.Jira = buggsForm["SetTTP"]);
 					}
-
-                    _unitOfWork.BuggRepository.Update(newBugg);
-                    _unitOfWork.Save();
+				    using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
+				    {
+				        unitOfWork.BuggRepository.Update(model.Bugg);
+				        unitOfWork.Save();
+				    }
 				}
 
 				// Set up the view model with the crash data
-				model.Crashes = crashes;
-			    model.Bugg = newBugg;
+			    int page;
+                int.TryParse(buggsForm["Page"], out page);
 
+				model.Crashes = model.Crashes.Skip(page * pageSize).Take(pageSize).ToList();
+			    
 				var newCrash = model.Crashes.FirstOrDefault();
 				if( newCrash != null )
 				{
@@ -235,26 +228,54 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 					model.LatestCrashSummary = newCrash.Summary;
 				}
+
                 model.LatestCrashSummary = newCrash.Summary;
                 model.Bugg.LatestCrashSummary = newCrash.Summary;
 				model.GenerationTime = logTimer.GetElapsedSeconds().ToString( "F2" );
+
+                //Populate Jira Projects
+                var jiraConnection = JiraConnection.Get();
+                var response = jiraConnection.JiraRequest("/issue/createmeta", JiraConnection.JiraMethod.GET, null, HttpStatusCode.OK);
+
+                using (var responseReader = new StreamReader(response.GetResponseStream()))
+                {
+                    var responseText = responseReader.ReadToEnd();
+
+                    JObject jsonObject = JObject.Parse(responseText);
+
+                    JToken fields = jsonObject["projects"];
+
+                    foreach (var project in fields)
+                    {
+                        model.JiraProjects.Add(new SelectListItem() { Text = project["name"].ToObject<string>(), Value = project["key"].ToObject<string>() });
+                    }
+                }
+
+			    model.PagingInfo = new PagingInfo
+			    {
+			        CurrentPage = page,
+			        PageSize = pageSize,
+			        TotalResults = model.Bugg.NumberOfCrashes.Value
+			    };
+
 				return View( "Show", model );
 			}
 		}
+        
+        #region Private Methods
 
         /// <summary>
         /// Retrieve all Buggs matching the search criteria.
         /// </summary>
         /// <param name="FormData">The incoming form of search criteria from the client.</param>
         /// <returns>A view to display the filtered Buggs.</returns>
-        public BuggsViewModel GetResults(FormHelper FormData)
+        private BuggsViewModel GetResults(FormHelper FormData)
         {
             // Right now we take a Result IQueryable starting with ListAll() Buggs then we widdle away the result set by tacking on
             // Linq queries. Essentially it's Results.ListAll().Where().Where().Where().Where().Where().Where()
             // Could possibly create more optimized queries when we know exactly what we're querying
             // The downside is that if we add more parameters each query may need to be updated.... Or we just add new case statements
             // The other downside is that there's less code reuse, but that may be worth it.
-
             var fromDate = FormData.DateFrom;
             var toDate = FormData.DateTo.AddDays(1);
 
@@ -262,148 +283,195 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
             var skip = (FormData.Page - 1) * FormData.PageSize;
             var take = FormData.PageSize;
 
-            var userGroupId = _unitOfWork.UserGroupRepository.First(data => data.Name == FormData.UserGroup).Id;
+            var sortedResultsList = new List<Bugg>();
+            var groupCounts = new SortedDictionary<string, int>();
+            int totalCountedRecords = 0;
 
-            // Get every Bugg.
-            var resultsAll = _unitOfWork.BuggRepository.ListAll();
-
-            // Look at all Buggs that are still 'open' i.e. the last crash occurred in our date range.
-            results = FilterByDate(resultsAll, FormData.DateFrom, FormData.DateTo);
-
-            // Filter results by build version.
-            if (!string.IsNullOrEmpty(FormData.VersionName))
+            using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
             {
-                results = FilterByBuildVersion(results, FormData.VersionName);
-            }
+                var userGroupId = unitOfWork.UserGroupRepository.First(data => data.Name == FormData.UserGroup).Id;
 
-            // Filter by BranchName
-            if (!string.IsNullOrEmpty(FormData.BranchName))
-            {
-                results =
-                    results.Where(
-                        data => data.Crashes.Any(da => da.Branch.Equals(FormData.BranchName)));
-            }
+                // Get every Bugg.
+                var resultsAll = unitOfWork.BuggRepository.ListAll();
 
-            // Filter by PlatformName
-            if (!string.IsNullOrEmpty(FormData.PlatformName))
-            {
-                results =
-                    results.Where(
-                        data => data.Crashes.Any(da => da.PlatformName.Equals(FormData.PlatformName)));
-            }
+                // Look at all Buggs that are still 'open' i.e. the last crash occurred in our date range.
+                results = FilterByDate(resultsAll, FormData.DateFrom, FormData.DateTo);
 
-            // Run at the end
-            if (!string.IsNullOrEmpty(FormData.SearchQuery))
-            {
-                results = FilterByCallstack(results, FormData.SearchQuery);
-            }
-
-            // Filter by Crash Type
-            if (FormData.CrashType != "All")
-            {
-                switch (FormData.CrashType)
+                // Filter results by build version.
+                if (!string.IsNullOrEmpty(FormData.VersionName))
                 {
-                    case "Crashes":
-                        results = results.Where(buggInstance => buggInstance.CrashType == 1);
-                        break;
-                    case "Assert":
-                        results = results.Where(buggInstance => buggInstance.CrashType == 2);
-                        break;
-                    case "Ensure":
-                        results = results.Where(buggInstance => buggInstance.CrashType == 3);
-                        break;
-                    case "CrashesAsserts":
-                        results = results.Where(buggInstance => buggInstance.CrashType == 1 || buggInstance.CrashType == 2);
-                        break;
+                    results = FilterByBuildVersion(results, FormData.VersionName);
                 }
-            }
 
-            // Filter by user group if present
-            if(!string.IsNullOrEmpty(FormData.UserGroup))
-                results = FilterByUserGroup(results, FormData.UserGroup);
-
-            if (!string.IsNullOrEmpty(FormData.JiraId))
-            {
-                results = FilterByJira(results, FormData.JiraId);
-            }
-                
-            // Grab just the results we want to display on this page
-            var totalCountedRecords = results.Count();
-                
-            var crashesByUserGroupCounts = _unitOfWork.CrashRepository.ListAll().Where(data =>
-                data.User.UserGroupId == userGroupId && 
-                data.TimeOfCrash >= fromDate &&
-                data.TimeOfCrash <= toDate &&
-                data.PatternId != null)
-                .GroupBy(data => data.PatternId)
-                .Select(data => new { data.Key, Count = data.Count() })
-                .OrderByDescending(data => data.Count)
-                .ToDictionary(data => data.Key, data => data.Count);
-
-            var crashesInTimeFrameCounts = _unitOfWork.CrashRepository.ListAll().Where(data =>
-                data.TimeOfCrash >= fromDate &&
-                data.TimeOfCrash <= toDate
-                && data.PatternId != null)
-                .GroupBy(data => data.PatternId)
-                .Select(data => new { data.Key, Count = data.Count() })
-                .OrderByDescending(data => data.Count)
-                .ToDictionary(data => data.Key, data => data.Count);
-
-            var affectedUsers = _unitOfWork.CrashRepository.ListAll().Where(data =>
-                data.User.UserGroupId == userGroupId &&
-                data.TimeOfCrash >= fromDate &&
-                data.TimeOfCrash <= toDate &&
-                data.PatternId != null).Select(data => new {PatternId = data.PatternId, ComputerName = data.ComputerName}).Distinct()
-                .GroupBy(data => data.PatternId)
-                .Select(data => new { data.Key, Count = data.Count() })
-                .OrderByDescending(data => data.Count)
-                .ToDictionary(data => data.Key, data => data.Count);
-                
-            results = GetSortedResults(results, FormData.SortTerm, FormData.SortTerm == "descending",
-            FormData.DateFrom, FormData.DateTo, FormData.UserGroup);
-                
-            var sortedResultsList = 
-                results.ToList();
-
-            // Get UserGroup ResultCounts
-            var groups = results.SelectMany(data => data.UserGroups).GroupBy(data => data.Name).Select(data => new { Key = data.Key, Count = data.Count()}).ToDictionary(x => x.Key, y => y.Count);
-            var groupCounts = new SortedDictionary<string, int>(groups);
-                
-            foreach (var bugg in sortedResultsList)
-            {
-                if (bugg.PatternId.HasValue && crashesByUserGroupCounts.ContainsKey(bugg.PatternId.Value))
+                // Filter by BranchName
+                if (!string.IsNullOrEmpty(FormData.BranchName))
                 {
-                    bugg.CrashesInTimeFrameGroup = crashesByUserGroupCounts[bugg.PatternId.Value];
+                    results =
+                        results.Where(
+                            data => data.Crashes.Any(da => da.Branch.Equals(FormData.BranchName)));
                 }
-                else
-                    bugg.CrashesInTimeFrameGroup = 0;
 
-                if (bugg.PatternId.HasValue && crashesInTimeFrameCounts.ContainsKey(bugg.PatternId.Value))
+                // Filter by PlatformName
+                if (!string.IsNullOrEmpty(FormData.PlatformName))
                 {
-                    bugg.CrashesInTimeFrameAll = crashesInTimeFrameCounts[bugg.PatternId.Value];
+                    results =
+                        results.Where(
+                            data => data.Crashes.Any(da => da.PlatformName.Equals(FormData.PlatformName)));
                 }
-                else
-                    bugg.CrashesInTimeFrameAll = 0;
 
-                if (bugg.PatternId.HasValue && affectedUsers.ContainsKey(bugg.PatternId.Value))
+                // Run at the end
+                if (!string.IsNullOrEmpty(FormData.SearchQuery))
                 {
-                    bugg.NumberOfUniqueMachines = affectedUsers[bugg.PatternId.Value];
-                }
-                else
-                    bugg.NumberOfUniqueMachines = 0;
-            }
+                    try
+                    {
+                        var queryString = HttpUtility.HtmlDecode(FormData.SearchQuery.ToString()) ?? "";
 
-            sortedResultsList = sortedResultsList.OrderByDescending(data => data.CrashesInTimeFrameGroup).Skip(skip)
+                        // Take out terms starting with a -
+                        var terms = queryString.Split("-, ;+".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+                        var allFuncionCallIds = new HashSet<int>();
+                        foreach (var term in terms)
+                        {
+                            var functionCallIds = unitOfWork.FunctionRepository.Get(functionCallInstance => functionCallInstance.Call.Contains(term)).Select(x => x.Id).ToList();
+                            foreach (var id in functionCallIds)
+                            {
+                                allFuncionCallIds.Add(id);
+                            }
+                        }
+
+                        // Search for all function ids. OR operation, not very efficient, but for searching for one function should be ok.
+                        results = allFuncionCallIds.Aggregate(results, (current, id) => current.Where(x => x.Pattern.Contains(id + "+") || x.Pattern.Contains("+" + id)));
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("Exception in Search: " + ex.ToString());
+                    }
+                }
+
+                // Filter by Crash Type
+                if (FormData.CrashType != "All")
+                {
+                    switch (FormData.CrashType)
+                    {
+                        case "Crashes":
+                            results = results.Where(buggInstance => buggInstance.CrashType == 1);
+                            break;
+                        case "Assert":
+                            results = results.Where(buggInstance => buggInstance.CrashType == 2);
+                            break;
+                        case "Ensure":
+                            results = results.Where(buggInstance => buggInstance.CrashType == 3);
+                            break;
+                        case "CrashesAsserts":
+                            results =
+                                results.Where(buggInstance => buggInstance.CrashType == 1 || buggInstance.CrashType == 2);
+                            break;
+                    }
+                }
+
+                // Filter by user group if present
+                if (!string.IsNullOrEmpty(FormData.UserGroup))
+                    results = FilterByUserGroup(results, FormData.UserGroup);
+
+                if (!string.IsNullOrEmpty(FormData.JiraId))
+                {
+                    results = FilterByJira(results, FormData.JiraId);
+                }
+
+                // Grab just the results we want to display on this page
+                totalCountedRecords = results.Count();
+
+                var crashesByUserGroupCounts = unitOfWork.CrashRepository.ListAll().Where(data =>
+                    data.User.UserGroupId == userGroupId &&
+                    data.TimeOfCrash >= fromDate &&
+                    data.TimeOfCrash <= toDate &&
+                    data.PatternId != null)
+                    .GroupBy(data => data.PatternId)
+                    .Select(data => new {data.Key, Count = data.Count()})
+                    .OrderByDescending(data => data.Count)
+                    .ToDictionary(data => data.Key, data => data.Count);
+
+                var crashesInTimeFrameCounts = unitOfWork.CrashRepository.ListAll().Where(data =>
+                    data.TimeOfCrash >= fromDate &&
+                    data.TimeOfCrash <= toDate
+                    && data.PatternId != null)
+                    .GroupBy(data => data.PatternId)
+                    .Select(data => new {data.Key, Count = data.Count()})
+                    .OrderByDescending(data => data.Count)
+                    .ToDictionary(data => data.Key, data => data.Count);
+
+                var affectedUsers = unitOfWork.CrashRepository.ListAll().Where(data =>
+                    data.User.UserGroupId == userGroupId &&
+                    data.TimeOfCrash >= fromDate &&
+                    data.TimeOfCrash <= toDate &&
+                    data.PatternId != null)
+                    .Select(data => new {PatternId = data.PatternId, ComputerName = data.ComputerName})
+                    .Distinct()
+                    .GroupBy(data => data.PatternId)
+                    .Select(data => new {data.Key, Count = data.Count()})
+                    .OrderByDescending(data => data.Count)
+                    .ToDictionary(data => data.Key, data => data.Count);
+
+                results = GetSortedResults(results, FormData.SortTerm, FormData.SortTerm == "descending",
+                    FormData.DateFrom, FormData.DateTo, FormData.UserGroup);
+
+                sortedResultsList =
+                    results.ToList();
+
+                // Get UserGroup ResultCounts
+                var groups =
+                    results.SelectMany(data => data.UserGroups)
+                        .GroupBy(data => data.Name)
+                        .Select(data => new {Key = data.Key, Count = data.Count()})
+                        .ToDictionary(x => x.Key, y => y.Count);
+                
+                groupCounts = new SortedDictionary<string, int>(groups);
+
+                foreach (var bugg in sortedResultsList)
+                {
+                    if (bugg.PatternId.HasValue && crashesByUserGroupCounts.ContainsKey(bugg.PatternId.Value))
+                    {
+                        bugg.CrashesInTimeFrameGroup = crashesByUserGroupCounts[bugg.PatternId.Value];
+                    }
+                    else
+                        bugg.CrashesInTimeFrameGroup = 0;
+
+                    if (bugg.PatternId.HasValue && crashesInTimeFrameCounts.ContainsKey(bugg.PatternId.Value))
+                    {
+                        bugg.CrashesInTimeFrameAll = crashesInTimeFrameCounts[bugg.PatternId.Value];
+                    }
+                    else
+                        bugg.CrashesInTimeFrameAll = 0;
+
+                    if (bugg.PatternId.HasValue && affectedUsers.ContainsKey(bugg.PatternId.Value))
+                    {
+                        bugg.NumberOfUniqueMachines = affectedUsers[bugg.PatternId.Value];
+                    }
+                    else
+                        bugg.NumberOfUniqueMachines = 0;
+                }
+
+                sortedResultsList = sortedResultsList.OrderByDescending(data => data.CrashesInTimeFrameGroup).Skip(skip)
                     .Take(totalCountedRecords >= skip + take ? take : totalCountedRecords).ToList();
 
-            foreach (var bugg in sortedResultsList)
-            {
-                var crash =
-                    _unitOfWork.CrashRepository.First(data => data.BuggId == bugg.Id);
-                bugg.FunctionCalls = crash.GetCallStack().GetFunctionCalls();
+                foreach (var bugg in sortedResultsList)
+                {
+                    var crash =
+                        unitOfWork.CrashRepository.First(data => data.BuggId == bugg.Id);
+                    bugg.FunctionCalls = crash.GetCallStack().GetFunctionCalls();
+                }
             }
 
-            return new BuggsViewModel(_unitOfWork.CrashRepository)
+            List<SelectListItem> branchNames;
+            List<SelectListItem> versionNames;
+            List<SelectListItem> platformNames;
+            using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
+            {
+                branchNames = unitOfWork.CrashRepository.GetBranchesAsListItems();
+                versionNames = unitOfWork.CrashRepository.GetVersionsAsListItems();
+                platformNames = unitOfWork.CrashRepository.GetPlatformsAsListItems();
+            }
+
+            return new BuggsViewModel()
             {
                 Results = sortedResultsList,
                 PagingInfo = new PagingInfo { CurrentPage = FormData.Page, PageSize = FormData.PageSize, TotalResults = totalCountedRecords },
@@ -412,6 +480,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 UserGroup = FormData.UserGroup,
                 CrashType = FormData.CrashType,
                 SearchQuery = FormData.SearchQuery,
+                BranchNames = branchNames,
+                VersionNames = versionNames,
+                PlatformNames = platformNames,
                 DateFrom = (long)(FormData.DateFrom - CrashesViewModel.Epoch).TotalMilliseconds,
                 DateTo = (long)(FormData.DateTo - CrashesViewModel.Epoch).TotalMilliseconds,
                 VersionName = FormData.VersionName,
@@ -423,12 +494,37 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
         }
 
         /// <summary>
+        /// Retrieve all Data for a single bug given by the id
+        /// </summary>
+        /// <param name="buggsForm"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        private BuggViewModel GetResult(int id)
+	    {
+            var model = new BuggViewModel();
+            using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
+            {
+                // Create a new view and populate with crashes
+                List<Crash> crashes = null;
+                model.Bugg = unitOfWork.BuggRepository.GetById(id);
+
+                crashes = model.Bugg.Crashes.OrderByDescending(data => data.TimeOfCrash).ToList();
+                model.Bugg.CrashesInTimeFrameAll = crashes.Count;
+                model.Bugg.CrashesInTimeFrameGroup = crashes.Count;
+                model.Bugg.NumberOfCrashes = crashes.Count;
+                model.Crashes = crashes;
+            }
+
+            return model;
+	    }
+
+        /// <summary>
         /// Filter a set of Buggs by a jira ticket.
         /// </summary>
         /// <param name="results">The unfiltered set of Buggs</param>
         /// <param name="jira">The ticket by which to filter the list of buggs</param>
         /// <returns></returns>
-        public IQueryable<Bugg> FilterByJira(IQueryable<Bugg> results, string jira)
+        private IQueryable<Bugg> FilterByJira(IQueryable<Bugg> results, string jira)
         {
             return results.Where(bugg => bugg.TTPID == jira);
         }
@@ -440,7 +536,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
         /// <param name="dateFrom">The earliest date to filter by.</param>
         /// <param name="dateTo">The latest date to filter by.</param>
         /// <returns>The set of Buggs between the earliest and latest date.</returns>
-        public IQueryable<Bugg> FilterByDate(IQueryable<Bugg> results, DateTime dateFrom, DateTime dateTo)
+        private IQueryable<Bugg> FilterByDate(IQueryable<Bugg> results, DateTime dateFrom, DateTime dateTo)
         {
             dateTo = dateTo.AddDays(1);
             var buggsInTimeFrame =
@@ -456,7 +552,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
         /// <param name="results">The unfiltered set of Buggs.</param>
         /// <param name="buildVersion">The build version to filter by.</param>
         /// <returns>The set of Buggs that matches specified build version</returns>
-        public IQueryable<Bugg> FilterByBuildVersion(IQueryable<Bugg> results, string buildVersion)
+        private IQueryable<Bugg> FilterByBuildVersion(IQueryable<Bugg> results, string buildVersion)
         {
             if (!string.IsNullOrEmpty(buildVersion))
             {
@@ -471,7 +567,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
         /// <param name="setOfBuggs">The unfiltered set of Buggs.</param>
         /// <param name="groupName">The user group name to filter by.</param>
         /// <returns>The set of Buggs by users in the requested user group.</returns>
-        public IQueryable<Bugg> FilterByUserGroup(IQueryable<Bugg> setOfBuggs, string groupName)
+        private IQueryable<Bugg> FilterByUserGroup(IQueryable<Bugg> setOfBuggs, string groupName)
         {
             return setOfBuggs.Where(data => data.UserGroups.Any(ug => ug.Name == groupName));
         }
@@ -486,7 +582,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
         /// <param name="dateTo">The date of the most recent Bugg to examine.</param>
         /// <param name="groupName">The user group name to filter by.</param>
         /// <returns>A sorted container of Buggs.</returns>
-        public IOrderedQueryable<Bugg> GetSortedResults(IQueryable<Bugg> results, string sortTerm, bool bSortDescending, DateTime dateFrom, DateTime dateTo, string groupName)
+        private IOrderedQueryable<Bugg> GetSortedResults(IQueryable<Bugg> results, string sortTerm, bool bSortDescending, DateTime dateFrom, DateTime dateTo, string groupName)
         {
             IOrderedQueryable<Bugg> orderedResults = null;
 
@@ -549,74 +645,18 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
         /// <param name="predicate"></param>
         /// <param name="bDescending"></param>
         /// <returns></returns>
-        public IOrderedQueryable<Bugg> EnumerableOrderBy<TKey>(IQueryable<Bugg> query, Expression<Func<Bugg, TKey>> predicate, bool bDescending)
+        private IOrderedQueryable<Bugg> EnumerableOrderBy<TKey>(IQueryable<Bugg> query, Expression<Func<Bugg, TKey>> predicate, bool bDescending)
         {
             return bDescending ? query.OrderByDescending(predicate) : query.OrderBy(predicate);
         }
-
-        /// <summary>
-        /// Filter the list of Buggs by a callstack entry.
-        /// </summary>
-        public IQueryable<Bugg> FilterByCallstack(IQueryable<Bugg> results, string callstackEntry)
-        {
-            try
-            {
-                var queryString = HttpUtility.HtmlDecode(callstackEntry.ToString()) ?? "";
-
-                // Take out terms starting with a -
-                var terms = queryString.Split("-, ;+".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-                var allFuncionCallIds = new HashSet<int>();
-                foreach (var term in terms)
-                {
-                    var functionCallIds = _unitOfWork.FunctionRepository.Get(functionCallInstance => functionCallInstance.Call.Contains(term)).Select(x => x.Id).ToList();
-                    foreach (var id in functionCallIds)
-                    {
-                        allFuncionCallIds.Add(id);
-                    }
-                }
-
-                // Search for all function ids. OR operation, not very efficient, but for searching for one function should be ok.
-                results = allFuncionCallIds.Aggregate(results, (current, id) => current.Where(x => x.Pattern.Contains(id + "+") || x.Pattern.Contains("+" + id)));
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Exception in Search: " + ex.ToString());
-            }
-            return results;
-        }
-
+        
         /// <summary>Dispose the controller - safely getting rid of database connections</summary>
         /// <param name="disposing"></param>
         protected override void Dispose(bool disposing)
         {
-            _unitOfWork.Dispose();
             base.Dispose(disposing);
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-	    public void TestJiraMethod()
-	    {
-	        var jiraConnection = JiraConnection.Get();
-
-	        if (!jiraConnection.CanBeUsed())
-	            return;
-
-            var response = jiraConnection.JiraRequest(
-                "/issue/createmeta?projectKeys=OR&issuetypeNames=Bug&expand=projects.issuetypes.fields",
-                JiraConnection.JiraMethod.GET, null, HttpStatusCode.OK);
-
-            using (var responseReader = new StreamReader(response.GetResponseStream()))
-            {
-                var responseText = responseReader.ReadToEnd();
-
-                JObject jsonObject = JObject.Parse(responseText);
-
-                var fields = jsonObject["projects"][0]["issuetypes"][0]["fields"];
-
-                var requiredFields = fields.Where(c => c["required"].Value<bool>() == true);
-            }
-	    }
-	}
+        #endregion
+    }
 }

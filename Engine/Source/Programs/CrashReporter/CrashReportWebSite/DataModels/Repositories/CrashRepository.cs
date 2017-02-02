@@ -1,6 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
@@ -14,7 +12,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
     /// </summary>
     public class CrashRepository : ICrashRepository
     {
-        private readonly CrashReportEntities _entityContext;
+        private CrashReportEntities _entityContext;
 
         /// <summary>
         /// Constructor
@@ -153,34 +151,36 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
             }
         }
 
+        private static DateTime LastBranchesDate = DateTime.UtcNow.AddDays(-1);
+        private static List<SelectListItem>BranchesAsSelectList = null;
         /// <summary>
         /// 
         /// </summary>
         /// <returns></returns>
         public List<SelectListItem> GetBranchesAsListItems()
         {
-            var branchesAsSelectList = new List<SelectListItem>();
-            using (FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer("CrashRepository.GetBranches"))
+            DateTime Now = DateTime.UtcNow;
+            var date = DateTime.Now.AddDays(-14);
+            if (Now - LastBranchesDate > TimeSpan.FromHours(1))
             {
-
-                var date = DateTime.Now.AddDays(-14);
-
                 var BranchList = _entityContext.Crashes
                     .Where(n => n.TimeOfCrash > date)
                     .Where(c => c.CrashType != 3) // Ignore ensures
-                        // Depot - //depot/UE4* || Stream //UE4, //Something etc.
+                    // Depot - //depot/UE4* || Stream //UE4, //Something etc.
                     .Where(n => n.Branch.StartsWith("UE4") || n.Branch.StartsWith("//"))
                     .Select(n => n.Branch)
                     .Distinct()
                     .ToList();
-                    branchesAsSelectList = BranchList
-                        .Select(listitem => new SelectListItem { Selected = false, Text = listitem, Value = listitem })
-                        .ToList();
 
+                BranchesAsSelectList = BranchList
+                    .Select(listitem => new SelectListItem {Selected = false, Text = listitem, Value = listitem})
+                    .ToList();
 
-                branchesAsSelectList.Insert(0, new SelectListItem { Selected = true, Text = "", Value = "" });
-                return branchesAsSelectList;
+                BranchesAsSelectList.Insert(0, new SelectListItem {Selected = true, Text = "", Value = ""});
+
+                LastBranchesDate = Now;
             }
+            return BranchesAsSelectList;
         }
 
         /// <summary>
@@ -199,6 +199,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
 
             return PlatformsAsListItems;
         }
+
 
         /// <summary>
         /// Static list of Engine Modes for filtering
@@ -293,7 +294,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
                     .ToList();
                 EngineVersionsAsSelectList.Insert(0, new SelectListItem { Selected = true, Text = "", Value = "" });
 
-                LastVersionDate = Now;
+                LastEngineVersionDate = Now;
             }
 
             return EngineVersionsAsSelectList;

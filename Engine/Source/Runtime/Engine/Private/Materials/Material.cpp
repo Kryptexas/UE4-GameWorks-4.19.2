@@ -367,6 +367,9 @@ void UMaterialInterface::InitDefaultMaterials()
 	if (!bInitialized)
 	{		
 		check(IsInGameThread());
+		static int32 RecursionLevel = 0;
+		RecursionLevel++;
+
 		
 #if WITH_EDITOR
 		GPowerToRoughnessMaterialFunction = LoadObject< UMaterialFunction >( NULL, TEXT("/Engine/Functions/Engine_MaterialFunctions01/Shading/PowerToRoughness.PowerToRoughness"), NULL, LOAD_None, NULL );
@@ -383,17 +386,37 @@ void UMaterialInterface::InitDefaultMaterials()
 			if (GDefaultMaterials[Domain] == NULL)
 			{
 				GDefaultMaterials[Domain] = FindObject<UMaterial>(NULL,GDefaultMaterialNames[Domain]);
-				if (GDefaultMaterials[Domain] == NULL)
+				if (GDefaultMaterials[Domain] == NULL
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+					&& (RecursionLevel == 1 || !GEventDrivenLoaderEnabled)
+#endif
+					)
 				{
 					GDefaultMaterials[Domain] = LoadObject<UMaterial>(NULL, GDefaultMaterialNames[Domain], NULL, LOAD_DisableDependencyPreloading, NULL);
 					checkf(GDefaultMaterials[Domain] != NULL, TEXT("Cannot load default material '%s'"), GDefaultMaterialNames[Domain]);
 				}
-				GDefaultMaterials[Domain]->AddToRoot();
+				if (GDefaultMaterials[Domain])
+				{
+					GDefaultMaterials[Domain]->AddToRoot();
+				}
 			}
 		}
+		RecursionLevel--;
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+		bInitialized = !GEventDrivenLoaderEnabled || RecursionLevel == 0;
+#else
 		bInitialized = true;
+#endif
 	}
 }
+
+void UMaterialInterface::PostCDOContruct()
+{
+	UMaterial::StaticClass()->GetDefaultObject();
+	InitializeSharedSamplerStates();
+	UMaterialInterface::InitDefaultMaterials();
+}
+
 
 void UMaterialInterface::PostLoadDefaultMaterials()
 {
@@ -414,11 +437,24 @@ void UMaterialInterface::PostLoadDefaultMaterials()
 		for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
 		{
 			UMaterial* Material = GDefaultMaterials[Domain];
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+			check(Material || (GIsInitialLoad && GEventDrivenLoaderEnabled));
+			check((GIsInitialLoad && GEventDrivenLoaderEnabled) || !Material->HasAnyFlags(RF_NeedLoad));
+			if (Material && !Material->HasAnyFlags(RF_NeedLoad))
+#else
 			check(Material);
-			Material->ConditionalPostLoad();
-			// Sometimes the above will get called before the material has been fully serialized
-			// in this case its NeedPostLoad flag will not be cleared.
-			if (Material->HasAnyFlags(RF_NeedPostLoad))
+			if (Material)
+#endif
+			{
+				Material->ConditionalPostLoad();
+				// Sometimes the above will get called before the material has been fully serialized
+				// in this case its NeedPostLoad flag will not be cleared.
+				if (Material->HasAnyFlags(RF_NeedPostLoad))
+				{
+					bPostLoaded = false;
+				}
+			}
+			else
 			{
 				bPostLoaded = false;
 			}
@@ -428,18 +464,28 @@ void UMaterialInterface::PostLoadDefaultMaterials()
 
 void UMaterialInterface::AssertDefaultMaterialsExist()
 {
-	for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
+#if (USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME)
+	if (!GIsInitialLoad || !GEventDrivenLoaderEnabled)
+#endif
 	{
-		check(GDefaultMaterials[Domain] != NULL);
+		for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
+		{
+			check(GDefaultMaterials[Domain] != NULL);
+		}
 	}
 }
 
 void UMaterialInterface::AssertDefaultMaterialsPostLoaded()
 {
-	for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
+#if (USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME)
+	if (!GIsInitialLoad || !GEventDrivenLoaderEnabled)
+#endif
 	{
-		check(GDefaultMaterials[Domain] != NULL);
-		check(!GDefaultMaterials[Domain]->HasAnyFlags(RF_NeedPostLoad));
+		for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
+		{
+			check(GDefaultMaterials[Domain] != NULL);
+			check(!GDefaultMaterials[Domain]->HasAnyFlags(RF_NeedPostLoad));
+		}
 	}
 }
 

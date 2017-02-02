@@ -1237,6 +1237,13 @@ void FHotReloadModule::ReinstanceClasses()
 	TMap<UClass*, UClass*> OldToNewClassesMap;
 	for (const TPair<UClass*, UClass*>& Pair : ClassesToReinstance)
 	{
+		// Don't allow reinstancing of UEngine classes
+		if (Pair.Key->IsChildOf(UEngine::StaticClass()))
+		{
+			UE_LOG(LogHotReload, Warning, TEXT("Engine class '%s' has changed but will be ignored for hot reload"), *Pair.Key->GetName());
+			continue;
+		}
+
 		if (Pair.Value != nullptr)
 		{
 			OldToNewClassesMap.Add(Pair.Key, Pair.Value);
@@ -1245,7 +1252,11 @@ void FHotReloadModule::ReinstanceClasses()
 
 	for (const TPair<UClass*, UClass*>& Pair : ClassesToReinstance)
 	{
-		ReinstanceClass(Pair.Key, Pair.Value, OldToNewClassesMap);
+		// Don't allow reinstancing of UEngine classes
+		if (!Pair.Key->IsChildOf(UEngine::StaticClass()))
+		{
+			ReinstanceClass(Pair.Key, Pair.Value, OldToNewClassesMap);
+		}
 	}
 
 	ClassesToReinstance.Empty();

@@ -594,6 +594,13 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 			}
 			else if(UInheritableComponentHandler* ICH = Class->GetInheritableComponentHandler())
 			{
+				if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+				{
+					if (ICH->HasAnyFlags(RF_NeedLoad))
+					{
+						UE_LOG(LogClass, Fatal, TEXT("%s had RF_NeedLoad when searching for an archetype of %s named %s"), *GetFullNameSafe(ICH), *GetFullNameSafe(ArchetypeClass), *ArchetypeName.ToString());
+					}
+				}
 				// This would find either an SCS component template override (for which the archetype
 				// name will match the SCS variable name), or an old AddComponent node template override
 				// (for which the archetype name will match the override record's component template name).

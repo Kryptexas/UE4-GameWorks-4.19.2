@@ -2,9 +2,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Web;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Tools.CrashReporter.CrashReportCommon;
 using Tools.CrashReporter.CrashReportWebSite.Properties;
 
@@ -104,7 +107,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             var jiraConnection = JiraConnection.Get();
 
             this.AffectedVersions = new SortedSet<string>();
-            this.AffectedMajorVersions = new SortedSet<string>(); // 4.4, 4.5 and so
+            this.AffectedMajorVersions = new SortedSet<string>(); // 4.4, 4.5 and so on
             this.BranchesFoundIn = new SortedSet<string>();
             this.AffectedPlatforms = new SortedSet<string>();
             var hashSetDescriptions = new HashSet<string>();
@@ -152,7 +155,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
                 }
             }
 
-            // CopyToJira 
+            //ToJiraDescriptons
             foreach (var line in hashSetDescriptions)
             {
                 var listItem = "- " + HttpUtility.HtmlEncode(line);
@@ -255,7 +258,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         }
 
         /// <summary>
-        /// 
+        /// Create a new Jira for this bug
         /// </summary>
         public void CopyToJira()
         {
@@ -274,7 +277,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
                     issueFields = CreateOrionIssue(jc);
                     break;
                 default:
-                    issueFields = CreateGeneralIssue(jc);
+                    issueFields = CreateProjectIssue(jc, this.JiraProject);
                     break;
             }
 
@@ -321,7 +324,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             
             // Callstack customfield_11807
             string JiraCallstack = "{noformat}" + string.Join("\r\n", ToJiraFunctionCalls) + "{noformat}";
-            fields.Add("customfield_11807", JiraCallstack);								// Callstack
+            fields.Add("customfield_11807", JiraCallstack);								    // Callstack
 
             string BuggLink = "http://crashreporter/Buggs/Show/" + Id;
             fields.Add("customfield_11205", BuggLink);
@@ -341,18 +344,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             fields.Add("description", string.Join("\r\n", ToJiraDescriptions)); // Description
             fields.Add("project", new Dictionary<string, object> { { "id", 10600 } });
             fields.Add("issuetype", new Dictionary<string, object> { { "id", "1" } }); // Bug
+
             //branch found in - required = false
             fields.Add("customfield_11201", ToBranchName.ToList());
 
-            //found CL = required = false
-            //fields.Add("customfield_11500", th );
-
             //Platforms - required = false
             fields.Add("customfield_11203", new List<object>() { new Dictionary<string, object>() { { "self", Settings.Default.JiraDeploymentAddress + "/customFieldOption/11425" }, { "value", "PC" } } });
-
-            //repro rate required = false
-            //fields.Add("customfield_11900", this.Buggs_Crashes.Count);
-
+            
             // Callstack customfield_11807
             string JiraCallstack = "{noformat}" + string.Join("\r\n", ToJiraFunctionCalls) + "{noformat}";
             fields.Add("customfield_11807", JiraCallstack);         // Callstack
@@ -360,18 +358,108 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             return fields;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="jc"></param>
+        /// <returns></returns>
         public Dictionary<string, object> CreateOrionIssue(JiraConnection jc)
         {
             var fields = new Dictionary<string, object>();
 
             fields.Add("summary", "[CrashReport] " + ToJiraSummary); // Call Stack, Line 1
             fields.Add("description", string.Join("\r\n", ToJiraDescriptions)); // Description
-            fields.Add("project", new Dictionary<string, object> { { "id", 10700 } });
+            fields.Add("project", new Dictionary<string, object> { { "id", 10700 } }); 
             fields.Add("issuetype", new Dictionary<string, object> { { "id", "1" } }); // Bug
             fields.Add("components", new object[]{new Dictionary<string, object>{{"id", "14604"}}});
 
             return fields;
-        } 
+        }
+
+        /// <summary>
+        /// Create an issue description from a project ID
+        /// </summary>
+        /// <param name="jc"></param>
+        /// <param name="projectId"></param>
+        /// <returns></returns>
+        public Dictionary<string, object> CreateProjectIssue(JiraConnection jc, string projectId)
+        {
+            var response = jc.JiraRequest("/issue/createmeta?projectKeys="+ projectId +"&expand=projects.issuetypes.fields",
+                JiraConnection.JiraMethod.GET, null, HttpStatusCode.OK);
+
+            var issueFields = new Dictionary<string, object>();
+            issueFields.Add("summary", "[CrashReport] " + ToJiraSummary); // Call Stack, Line 1
+            issueFields.Add("description", string.Join("\r\n", ToJiraDescriptions)); // Description
+
+            using (var responseReader = new StreamReader(response.GetResponseStream()))
+            {
+                var responseText = responseReader.ReadToEnd();
+
+                JObject jsonObject = JObject.Parse(responseText);
+
+                bool fields = jsonObject["projects"][0]["issuetypes"].Any();
+
+                issueFields.Add("project", new Dictionary<string, object> { { "id", jsonObject["projects"][0]["id"].ToObject<int>() } });
+
+                if (!fields) 
+                    return issueFields;
+
+                foreach (
+                    JToken issuetype in
+                        jsonObject["projects"][0]["issuetypes"])//.[0]["fields"])
+                {
+                    //Only fill required fields
+                    if (issuetype["subtask"].ToObject<bool>() == true)
+                        continue;
+
+                    JToken field = issuetype["fields"];
+
+                    if (field["required"].ToObject<bool>() == true)
+                    {
+                        //don't fill fields with a default value
+                        if (field["hasDefaultValue"].ToObject<bool>() == true)
+                            continue;
+
+                        JToken outValue;
+
+                        //if (field.Value["schema"]["type"].ToObject<string>() == "array")
+                        //{
+                        //    if (field.Value["allowedValues"] != null)
+                        //    {
+                        //        //don't add the same key twice
+                        //        if (issueFields.ContainsKey(field.Key))
+                        //            continue;
+
+                        //        issueFields.Add(field.Key, new object[]
+                        //        {
+                        //            new Dictionary<string, object>
+                        //            {
+                        //                {"id", field.Value["allowedValues"][0]["id"].ToObject<string>()}
+                        //            }
+                        //        });
+                        //    }
+                        //}
+                        //else
+                        //{
+                        //    if (obj.TryGetValue("allowedValues", out outValue))
+                        //    {
+                        //        //don't add the same key twice
+                        //        if (issueFields.ContainsKey(field.Key))
+                        //            continue;
+
+                        //        issueFields.Add(field.Key,
+                        //            new Dictionary<string, object>
+                        //            {
+                        //                {"id", field.Value["allowedValues"][0]["id"].ToObject<int>()}
+                        //            });
+                        //    }
+                        //}
+                    }
+                }
+            }
+
+            return issueFields;
+        }
 
         /// <summary> Returns concatenated string of fields from the specified JIRA list. </summary>
         public string GetFieldsFrom(List<object> jiraList, string fieldName)
@@ -410,22 +498,22 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             Tooltip += "LatestOSAffected: " + LatestOSAffected + NL;
 
             // "name"
-            string JiraVersions = GetFieldsFrom(ToJiraVersions, "name");
+            var JiraVersions = GetFieldsFrom(ToJiraVersions, "name");
             Tooltip += "JiraVersions: " + JiraVersions + NL;
 
             // "value"
-            string JiraBranches = "";
+            var jiraBranches = "";
             foreach (var Branch in ToJiraBranches)
             {
-                JiraBranches += Branch + ", ";
+                jiraBranches += Branch + ", ";
             }
-            Tooltip += "JiraBranches: " + JiraBranches + NL;
+            Tooltip += "JiraBranches: " + jiraBranches + NL;
 
             // "value"
-            string JiraPlatforms = GetFieldsFrom(ToJiraPlatforms, "value");
+            var JiraPlatforms = GetFieldsFrom(ToJiraPlatforms, "value");
             Tooltip += "JiraPlatforms: " + JiraPlatforms + NL;
 
-            string JiraCallstack = "Callstack:" + NL + string.Join(NL, ToJiraFunctionCalls) + NL;
+            var JiraCallstack = "Callstack:" + NL + string.Join(NL, ToJiraFunctionCalls) + NL;
             Tooltip += JiraCallstack;
 
             return Tooltip;

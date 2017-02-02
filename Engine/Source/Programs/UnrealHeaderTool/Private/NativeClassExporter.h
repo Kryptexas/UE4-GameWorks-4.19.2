@@ -83,7 +83,6 @@ private:
 	FUHTStringBuilder ListOfAllUObjectHeaderIncludes;
 	FUHTStringBuilder GeneratedPackageCPP;
 	FUHTStringBuilder GeneratedHeaderText;
-	FUHTStringBuilder GeneratedHeaderTextBeforeForwardDeclarations;
 	FUHTStringBuilder GeneratedForwardDeclarations;
     /** output generated for a .proto file */
 	FUHTStringBuilder GeneratedProtoText;

@@ -154,7 +154,7 @@ namespace UnrealBuildTool
 		{
 			int BuildConfigIndex = 1;
 
-			var UnrealRootPath = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
+			var UnrealRootPath = UnrealBuildTool.RootDirectory.FullName;
 			FileContent.Append("[CustomBuildSystem]\n");
 			FileContent.Append("CurrentConfiguration=BuildConfig0\n\n"); //
 
@@ -267,7 +267,7 @@ namespace UnrealBuildTool
 			List<string> IncludeDirectories = new List<string>();
 			List<string> SystemIncludeDirectories = new List<string>();
 
-			var UnrealEngineRootPath = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
+			var UnrealEngineRootPath = UnrealBuildTool.RootDirectory.FullName;
 
 			int IncludeIndex = 1;
 			// Iterate through all the include paths that

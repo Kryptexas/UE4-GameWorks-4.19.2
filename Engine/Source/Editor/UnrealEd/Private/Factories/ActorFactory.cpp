@@ -585,7 +585,7 @@ UActorFactoryTextRender::UActorFactoryTextRender(const FObjectInitializer& Objec
 {
 	// Property initialization
 	DisplayName = LOCTEXT("TextRenderDisplayName", "Text Render");
-	NewActorClass = ATextRenderActor::GetPrivateStaticClass(L"...");
+	NewActorClass = ATextRenderActor::StaticClass();
 	bUseSurfaceOrientation = true;
 }
 
@@ -597,7 +597,7 @@ UActorFactorySubDSurface::UActorFactorySubDSurface(const FObjectInitializer& Obj
 {
 	// Property initialization
 	DisplayName = LOCTEXT("SubDSurfaceDisplayName", "Subdivision Surface");
-	NewActorClass = ASubDSurfaceActor::GetPrivateStaticClass(L"...");
+	NewActorClass = ASubDSurfaceActor::StaticClass();
 	bUseSurfaceOrientation = true;
 }
 

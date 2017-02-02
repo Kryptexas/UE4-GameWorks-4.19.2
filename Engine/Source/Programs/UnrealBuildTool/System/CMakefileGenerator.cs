@@ -93,7 +93,7 @@ namespace UnrealBuildTool
 			StringBuilder PreprocessorDefinitionsList = new StringBuilder("add_definitions( \n");
 
 			var CMakeGameRootPath = "";
-			var CMakeUE4RootPath = "set(UE4_ROOT_PATH " + Utils.CleanDirectorySeparators(Path.GetFullPath(ProjectFileGenerator.RootRelativePath), '/') + ")\n";
+			var CMakeUE4RootPath = "set(UE4_ROOT_PATH " + Utils.CleanDirectorySeparators(UnrealBuildTool.RootDirectory.FullName, '/') + ")\n";
 
 			string GameProjectPath = "";
 			string CMakeGameProjectFile = "";
@@ -154,9 +154,9 @@ namespace UnrealBuildTool
 					string IncludeDirectory = GetIncludeDirectory(IncludeSearchPath, Path.GetDirectoryName(CurProject.ProjectFilePath.FullName));
 					if (IncludeDirectory != null && !IncludeDirectories.Contains(IncludeDirectory))
 					{
-						if (IncludeDirectory.Contains(Path.GetFullPath(RootRelativePath)))
+						if (IncludeDirectory.Contains(UnrealBuildTool.RootDirectory.FullName))
 						{
-							IncludeDirectories.Add(IncludeDirectory.Replace(Path.GetFullPath(RootRelativePath), "${UE4_ROOT_PATH}"));
+							IncludeDirectories.Add(IncludeDirectory.Replace(UnrealBuildTool.RootDirectory.FullName, "${UE4_ROOT_PATH}"));
 						}
 						else
 						{

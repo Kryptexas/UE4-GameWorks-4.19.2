@@ -2,6 +2,22 @@
 
 #pragma once
 
+THIRD_PARTY_INCLUDES_START
+	#pragma pack(push, 8)
+		#include "clang/Lex/PPCallbacks.h"
+	#pragma pack(pop)
+THIRD_PARTY_INCLUDES_END
+
+namespace clang
+{
+	class MacroDirective;
+	class Preprocessor;
+	class SourceLocation;
+	class SourceManager;
+	class SourceRange;
+	class Token;
+}
+
 namespace UnrealCodeAnalyzer
 {
 	class FMacroCallback : public clang::PPCallbacks

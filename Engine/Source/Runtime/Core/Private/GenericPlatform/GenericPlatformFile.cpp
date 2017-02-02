@@ -8,6 +8,7 @@
 #include "Stats/Stats.h"
 #include "Async/AsyncWork.h"
 #include "UniquePtr.h"
+#include "ScopeLock.h"
 
 #include "AsyncFileHandle.h"
 
@@ -151,32 +152,7 @@ public:
 	}
 	~FGenericReadRequest();
 	bool CheckForPrecache();
-	virtual void PerformRequest() override
-	{
-		if (!bCanceled)
-		{
-			IFileHandle* Handle = LowerLevel->OpenRead(Filename);
-			if (Handle)
-			{
-				if (BytesToRead == MAX_uint64)
-				{
-					BytesToRead = Handle->Size() - Offset;
-					check(BytesToRead > 0);
-				}
-				if (!bUserSuppliedMemory)
-				{
-					check(!Memory);
-					Memory = (uint8*)FMemory::Malloc(BytesToRead);
-					INC_MEMORY_STAT_BY(STAT_AsyncFileMemory, BytesToRead);
-				}
-				check(Memory);
-				Handle->Seek(Offset);
-				Handle->Read(Memory, BytesToRead);
-				delete Handle;
-			}
-		}
-		SetComplete();
-	}
+	virtual void PerformRequest() override;
 	uint8* GetContainedSubblock(uint8* UserSuppliedMemory, int64 InOffset, int64 InBytesToRead)
 	{
 		if (InOffset >= Offset && InOffset + InBytesToRead <= Offset + BytesToRead &&
@@ -200,21 +176,39 @@ void FGenericReadRequestWorker::DoWork()
 	ReadRequest.PerformRequest();
 }
 
+#define DISABLE_HANDLE_CACHING (0)
+
 class FGenericAsyncReadFileHandle final : public IAsyncReadFileHandle
 {
 	IPlatformFile* LowerLevel;
 	FString Filename;
 	TArray<FGenericReadRequest*> LiveRequests; // linear searches could be improved
 	FThreadSafeCounter LiveRequestsNonConcurrent; // This file handle should not be used concurrently; we test that with this.
+
+	FCriticalSection HandleCacheCritical;
+	IFileHandle* HandleCache[PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE];
+	bool bOpenFailed;
 public:
 	FGenericAsyncReadFileHandle(IPlatformFile* InLowerLevel, const TCHAR* InFilename)
 		: LowerLevel(InLowerLevel)
 		, Filename(InFilename)
+		, bOpenFailed(false)
 	{
+		for (int32 Index = 0; Index < PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE; Index++)
+		{
+			HandleCache[Index] = nullptr;
+		}
 	}
 	~FGenericAsyncReadFileHandle()
 	{
 		check(!LiveRequests.Num()); // must delete all requests before you delete the handle
+		for (int32 Index = 0; Index < PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE; Index++)
+		{
+			if (HandleCache[Index])
+			{
+				delete HandleCache[Index];
+			}
+		}
 	}
 	void RemoveRequest(FGenericReadRequest* Req)
 	{
@@ -253,6 +247,76 @@ public:
 		return Result;
 	}
 
+	IFileHandle* GetHandle()
+	{
+		if (DISABLE_HANDLE_CACHING)
+		{
+			return LowerLevel->OpenRead(*Filename);
+		}
+		IFileHandle* Result = nullptr;
+		if (PLATFORM_FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE)
+		{
+			check(PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE == 1);
+			HandleCacheCritical.Lock();
+			if (!HandleCache[0] && !bOpenFailed)
+			{
+				HandleCache[0] = LowerLevel->OpenRead(*Filename);
+				bOpenFailed = (HandleCache[0] == nullptr);
+			}
+			Result = HandleCache[0];
+			if (!Result)
+			{
+				HandleCacheCritical.Unlock(); // they won't free a null handle so we unlock now
+			}
+		}
+		else
+		{
+			FScopeLock Lock(&HandleCacheCritical);
+			for (int32 Index = 0; Index < PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE; Index++)
+			{
+				if (HandleCache[Index])
+				{
+					Result = HandleCache[Index];
+					HandleCache[Index] = nullptr;
+					break;
+				}
+			}
+			if (!Result && !bOpenFailed)
+			{
+				Result = LowerLevel->OpenRead(*Filename);
+				bOpenFailed = (Result == nullptr);
+			}
+		}
+		return Result;
+	}
+
+	void FreeHandle(IFileHandle* Handle)
+	{
+		if (!DISABLE_HANDLE_CACHING)
+		{
+			check(!bOpenFailed);
+			if (PLATFORM_FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE)
+			{
+				check(Handle && Handle == HandleCache[0]);
+				HandleCacheCritical.Unlock();
+				FPlatformProcess::Sleep(0.0f); // we hope this allows some other thread waiting for this lock to wake up (at our expense) to keep the disk at near 100% utilization
+				return;
+			}
+			{
+				FScopeLock Lock(&HandleCacheCritical);
+				for (int32 Index = 0; Index < PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE; Index++)
+				{
+					if (!HandleCache[Index])
+					{
+						HandleCache[Index] = Handle;
+						return;
+					}
+				}
+			}
+		}
+		delete Handle;
+	}
+
 };
 
 FGenericReadRequest::~FGenericReadRequest()
@@ -272,6 +336,51 @@ FGenericReadRequest::~FGenericReadRequest()
 		Owner->RemoveRequest(this);
 	}
 	Owner = nullptr;
+}
+
+void FGenericReadRequest::PerformRequest()
+{
+	if (!bCanceled)
+	{
+		bool bMemoryHasBeenAcquired = bUserSuppliedMemory;
+		if (PLATFORM_FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE && !bMemoryHasBeenAcquired && BytesToRead != MAX_uint64)
+		{
+			// If possible, we do the malloc before we get the handle which will lock. Memory allocation can take time and other locks, so best do this before we get the file handle
+			check(!Memory);
+			Memory = (uint8*)FMemory::Malloc(BytesToRead);
+			INC_MEMORY_STAT_BY(STAT_AsyncFileMemory, BytesToRead);
+			bMemoryHasBeenAcquired = true;
+		}
+		IFileHandle* Handle = Owner->GetHandle();
+		if (Handle)
+		{
+			if (BytesToRead == MAX_uint64)
+			{
+				BytesToRead = Handle->Size() - Offset;
+				check(BytesToRead > 0);
+			}
+			if (!bMemoryHasBeenAcquired)
+			{
+				check(!Memory);
+				Memory = (uint8*)FMemory::Malloc(BytesToRead);
+				INC_MEMORY_STAT_BY(STAT_AsyncFileMemory, BytesToRead);
+			}
+			check(Memory);
+			Handle->Seek(Offset);
+			Handle->Read(Memory, BytesToRead);
+			Owner->FreeHandle(Handle);
+		}
+		else if (!bUserSuppliedMemory && bMemoryHasBeenAcquired)
+		{
+			check(PLATFORM_FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE);
+			// oops, we allocated memory and we couldn't open the file anyway
+			check(Memory);
+			FMemory::Free(Memory);
+			DEC_MEMORY_STAT_BY(STAT_AsyncFileMemory, BytesToRead);
+			Memory = nullptr;
+		}
+	}
+	SetComplete();
 }
 
 bool FGenericReadRequest::CheckForPrecache()
@@ -325,6 +434,17 @@ void IPlatformFile::GetTimeStampPair(const TCHAR* PathA, const TCHAR* PathB, FDa
 		OutTimeStampA = GetTimeStamp(PathA);
 		OutTimeStampB = GetTimeStamp(PathB);
 	}
+}
+
+FDateTime IPlatformFile::GetTimeStampLocal(const TCHAR* Filename)
+{
+	FDateTime FileTimeStamp = GetTimeStamp(Filename);
+
+	//Turn UTC into local
+	FTimespan UTCOffset = FDateTime::Now() - FDateTime::UtcNow();
+	FileTimeStamp += UTCOffset;
+
+	return FileTimeStamp;
 }
 
 bool IPlatformFile::IterateDirectoryRecursively(const TCHAR* Directory, FDirectoryVisitor& Visitor)

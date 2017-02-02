@@ -1,6 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealCodeAnalyzerPCH.h"
 #include "MacroCallback.h"
 
 namespace UnrealCodeAnalyzer

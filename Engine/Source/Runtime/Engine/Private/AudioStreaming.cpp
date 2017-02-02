@@ -73,34 +73,6 @@ FStreamingWaveData::FStreamingWaveData()
 	: SoundWave(NULL)
 	, IORequestHandle(nullptr)
 {
-	if (GNewAsyncIO)
-	{
-		AsyncFileCallBack =
-			[this](bool bWasCancelled, IAsyncReadRequest* Req)
-		{
-			uint8* Mem = Req->GetReadResults();
-			if (Mem)
-			{
-				bool bFound = false;
-				for (FLoadedAudioChunk& LoadedChunk : LoadedChunks)
-				{
-					if (LoadedChunk.IORequest == Req)
-					{
-						check(!LoadedChunk.Data);
-						LoadedChunk.Data = Mem;
-						DEC_MEMORY_STAT_BY(STAT_AsyncFileMemory, LoadedChunk.DataSize);
-						INC_DWORD_STAT_BY(STAT_AudioMemorySize, LoadedChunk.DataSize);
-						INC_DWORD_STAT_BY(STAT_AudioMemory, LoadedChunk.DataSize);
-						bFound = true;
-						break;
-					}
-				}
-				check(bFound);
-			}
-			// else was canceled
-			PendingChunkChangeRequestStatus.Decrement();
-		};
-	}
 }
 
 FStreamingWaveData::~FStreamingWaveData()
@@ -373,6 +345,24 @@ void FStreamingWaveData::BeginPendingRequests(const TArray<uint32>& IndicesToLoa
 						check(IORequestHandle); // this generally cannot fail because it is async
 					}
 					check(Chunk.BulkData.GetBulkDataSize() == ChunkStorage->DataSize);
+
+					FAsyncFileCallBack AsyncFileCallBack =
+						[this, ChunkStorage](bool bWasCancelled, IAsyncReadRequest* Req)
+					{
+						FLoadedAudioChunk& LoadedChunk = *ChunkStorage;
+						uint8* Mem = Req->GetReadResults();
+						if (Mem)
+						{
+							check(!LoadedChunk.Data);
+							LoadedChunk.Data = Mem;
+							DEC_MEMORY_STAT_BY(STAT_AsyncFileMemory, LoadedChunk.DataSize);
+							INC_DWORD_STAT_BY(STAT_AudioMemorySize, LoadedChunk.DataSize);
+							INC_DWORD_STAT_BY(STAT_AudioMemory, LoadedChunk.DataSize);
+						}
+						// else was canceled
+						PendingChunkChangeRequestStatus.Decrement();
+					};
+
 					ChunkStorage->IORequest = IORequestHandle->ReadRequest(Chunk.BulkData.GetBulkDataOffsetInFile(), ChunkStorage->DataSize, AsyncIOPriority, &AsyncFileCallBack);
 					if (!ChunkStorage->IORequest)
 					{

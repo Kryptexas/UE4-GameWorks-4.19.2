@@ -1096,7 +1096,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("Message"), FText::FromName( Message ));
 			Arguments.Add(TEXT("PropertyName"), FText::FromString( It->GetName() ));
-			Ar.Logf( *FText::Format( NSLOCTEXT( "Core", "BadProperty", "'{Message}': Bad or missing property '{PropertyName}'" ), Arguments ).ToString() );
+			Ar.Logf( TEXT("%s"), *FText::Format( NSLOCTEXT( "Core", "BadProperty", "'{Message}': Bad or missing property '{PropertyName}'" ), Arguments ).ToString() );
 			Failed = true;
 
 			break;

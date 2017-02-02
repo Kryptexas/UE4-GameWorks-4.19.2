@@ -500,6 +500,12 @@ UEnum* UTexture::GetPixelFormatEnum()
 	return PixelFormatEnum;
 }
 
+void UTexture::PostCDOContruct()
+{
+	GetPixelFormatEnum();
+}
+
+
 bool UTexture::ForceUpdateTextureStreaming()
 {
 	if (!IStreamingManager::HasShutdown())

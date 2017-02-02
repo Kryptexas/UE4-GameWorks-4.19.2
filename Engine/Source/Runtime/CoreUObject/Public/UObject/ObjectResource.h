@@ -154,6 +154,7 @@ struct FObjectResource
 #if WITH_EDITOR
 	/**
 	 * Name of the class this object was serialized with (in case active class redirects have changed it)
+	 * If this is a class and was directly redirected, this is what it was redirected from
 	 */
 	FName			OldClassName;
 #endif
@@ -214,14 +215,14 @@ struct FObjectExport : public FObjectResource
 	 * The number of bytes to serialize when saving/loading this export's UObject.
 	 * Serialized
 	 */
-	int32         	SerialSize;
+	int64         	SerialSize;
 
 	/**
 	 * The location (into the FLinker's underlying file reader archive) of the beginning of the
 	 * data for this export's UObject.  Used for verification only.
 	 * Serialized
 	 */
-	int32         	SerialOffset;
+	int64         	SerialOffset;
 
 	/**
 	 * The location (into the FLinker's underlying file reader archive) of the beginning of the

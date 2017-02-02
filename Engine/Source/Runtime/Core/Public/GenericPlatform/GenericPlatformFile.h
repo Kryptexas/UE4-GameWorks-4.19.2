@@ -336,6 +336,9 @@ public:
 
 	virtual void GetTimeStampPair(const TCHAR* PathA, const TCHAR* PathB, FDateTime& OutTimeStampA, FDateTime& OutTimeStampB);
 
+	/** Return the modification time of a file in the local time of the calling code (GetTimeStamp returns UTC). Returns FDateTime::MinValue() on failure **/
+	virtual FDateTime	GetTimeStampLocal(const TCHAR* Filename);
+
 	/** 
 	 * Call the Visit function of the visitor once for each file or directory in a directory tree. This function explores subdirectories.
 	 * @param Directory		The directory to iterate the contents of, recursively.

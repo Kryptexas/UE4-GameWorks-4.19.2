@@ -14,6 +14,7 @@
 #include "Templates/Casts.h"
 #include "UObject/UnrealType.h"
 #include "UObject/PropertyHelper.h"
+#include "UObject/CoreRedirects.h"
 #include "Misc/StringClassReference.h"
 
 DEFINE_LOG_CATEGORY(LogProperty);
@@ -416,7 +417,7 @@ bool UProperty::ValidateImportFlags( uint32 PortFlags, FOutputDevice* ErrorHandl
 
 		if (ErrorHandler)
 		{
-			ErrorHandler->Logf(*ErrorMsg);
+			ErrorHandler->Logf(TEXT("%s"), *ErrorMsg);
 		}
 		else
 		{
@@ -867,17 +868,14 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 		const FName PropertyName(Token);
 		UProperty* Property = FindField<UProperty>(ObjectStruct, PropertyName);
 
-		if (Property == NULL)
+		if (Property == nullptr)
 		{
 			// Check for redirects
-			const TMap<FName, FName>* const ClassTaggedPropertyRedirects = UStruct::TaggedPropertyRedirects.Find(ObjectStruct->GetFName());
-			if (ClassTaggedPropertyRedirects)
+			FName NewPropertyName = FindRedirectedPropertyName(ObjectStruct, PropertyName);
+
+			if (NewPropertyName != NAME_None)
 			{
-				const FName* const NewPropertyName = ClassTaggedPropertyRedirects->Find(PropertyName);
-				if (NewPropertyName)
-				{
-					Property = FindField<UProperty>(ObjectStruct, *NewPropertyName);
-				}
+				Property = FindField<UProperty>(ObjectStruct, NewPropertyName);
 			}
 #if WITH_EDITOR
 			if (!Property)
@@ -978,7 +976,7 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 
 						for ( int32 ErrorIndex = 0; ErrorIndex < ImportErrors.Num(); ErrorIndex++ )
 						{
-							Warn->Logf(ELogVerbosity::Warning, *ImportErrors[ErrorIndex]);
+							Warn->Logf(ELogVerbosity::Warning, TEXT("%s"), *ImportErrors[ErrorIndex]);
 						}
 					}
 					else if (Result == NULL || Result == Str)
@@ -1181,7 +1179,7 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 
 						for ( int32 ErrorIndex = 0; ErrorIndex < ImportErrors.Num(); ErrorIndex++ )
 						{
-							Warn->Logf(ELogVerbosity::Warning,*ImportErrors[ErrorIndex]);
+							Warn->Logf(ELogVerbosity::Warning, TEXT("%s"), *ImportErrors[ErrorIndex]);
 						}
 					}
 					else if ((Result == NULL && ArrayProperty == nullptr) || Result == Str)
@@ -1213,7 +1211,7 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 
 						for ( int32 ErrorIndex = 0; ErrorIndex < ImportErrors.Num(); ErrorIndex++ )
 						{
-							Warn->Logf(ELogVerbosity::Warning, *ImportErrors[ErrorIndex]);
+							Warn->Logf(ELogVerbosity::Warning, TEXT("%s"), *ImportErrors[ErrorIndex]);
 						}
 					}
 					else if ((Result == NULL && ArrayProperty == nullptr) || Result == Str)
@@ -1230,6 +1228,25 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 		}
 	}
 	return Str;
+}
+
+FName UProperty::FindRedirectedPropertyName(UStruct* ObjectStruct, FName OldName)
+{
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UProperty::FindRedirectedPropertyName"), STAT_LinkerLoad_FindRedirectedPropertyName, STATGROUP_LoadTimeVerbose);
+
+	// ObjectStruct may be a nested struct, so extract path
+	UPackage* StructPackage = ObjectStruct->GetOutermost();
+	FString OuterPath = ObjectStruct->GetPathName(StructPackage);
+
+	FCoreRedirectObjectName OldRedirectName(OldName, FName(*OuterPath), StructPackage->GetFName());
+	FCoreRedirectObjectName NewRedirectName = FCoreRedirects::GetRedirectedName(ECoreRedirectFlags::Type_Property, OldRedirectName);
+
+	if (NewRedirectName != OldRedirectName)
+	{
+		return NewRedirectName.ObjectName;
+	}
+
+	return NAME_None;
 }
 
 /**

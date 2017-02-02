@@ -1624,7 +1624,7 @@ void UPackageMapClient::LogDebugInfo( FOutputDevice & Ar )
 
 		UObject *Obj = It.Key().Get();
 		FString Str = FString::Printf(TEXT("%s [%s] [%s] - %s"), *NetGUID.ToString(), *Status, NetGUID.IsDynamic() ? TEXT("Dynamic") : TEXT("Static") , Obj ? *Obj->GetPathName() : TEXT("NULL"));
-		Ar.Logf(*Str);
+		Ar.Logf(TEXT("%s"), *Str);
 		UE_LOG(LogNetPackageMap, Log, TEXT("%s"), *Str);
 	}
 }

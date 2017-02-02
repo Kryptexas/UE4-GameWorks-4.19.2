@@ -22,6 +22,7 @@ struct FK2Node_SpawnActorFromClassHelper
 	static FString WorldContextPinName;
 	static FString ClassPinName;
 	static FString SpawnTransformPinName;
+	static FString SpawnEvenIfCollidingPinName;
 	static FString NoCollisionFailPinName;
 	static FString CollisionHandlingOverridePinName;
 	static FString OwnerPinName;
@@ -30,7 +31,8 @@ struct FK2Node_SpawnActorFromClassHelper
 FString FK2Node_SpawnActorFromClassHelper::WorldContextPinName(TEXT("WorldContextObject"));
 FString FK2Node_SpawnActorFromClassHelper::ClassPinName(TEXT("Class"));
 FString FK2Node_SpawnActorFromClassHelper::SpawnTransformPinName(TEXT("SpawnTransform"));
-FString FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName(TEXT("SpawnEvenIfColliding"));		// deprecated pin, name kept for backwards compat
+FString FK2Node_SpawnActorFromClassHelper::SpawnEvenIfCollidingPinName(TEXT("SpawnEvenIfColliding"));		// deprecated pin, name kept for backwards compat
+FString FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName(TEXT("bNoCollisionFail"));		// deprecated pin, name kept for backwards compat
 FString FK2Node_SpawnActorFromClassHelper::CollisionHandlingOverridePinName(TEXT("CollisionHandlingOverride"));
 FString FK2Node_SpawnActorFromClassHelper::OwnerPinName(TEXT("Owner"));
 
@@ -153,7 +155,7 @@ void UK2Node_SpawnActorFromClass::MaybeUpdateCollisionPin(TArray<UEdGraphPin*>& 
 	// see if there's a bNoCollisionFail pin
 	for (UEdGraphPin* Pin : OldPins)
 	{
-		if (Pin->PinName == FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName)
+		if (Pin->PinName == FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName || Pin->PinName == FK2Node_SpawnActorFromClassHelper::SpawnEvenIfCollidingPinName)
 		{
 			bool bHadOldCollisionPin = true;
 			if (Pin->LinkedTo.Num() == 0)

@@ -13,6 +13,7 @@ struct FStreamableRequest
 	FStreamableDelegate CompletionDelegate;
 	/** How many FStreamables are referenced by this request */
 	int32 StreamablesReferenced;
+	TArray<UObject*> FinishedTargets;
 
 	FStreamableRequest()
 		: StreamablesReferenced(0)
@@ -408,18 +409,27 @@ void FStreamableManager::CheckCompletedRequests(FStringAssetReference const& Tar
 	// If we're related to any requests we should start an unload after this
 	bool bShouldStartUnload = false;
 
-	for (int32 i = 0; i < Existing->RelatedRequests.Num(); i++)
+	// Make a copy of related requests to avoid possible recursion issues
+	// When this array goes out of scope, the FStreamableRequests may get deleted
+	TArray< TSharedRef< FStreamableRequest> > LocalRelatedRequests = Existing->RelatedRequests;
+	Existing->RelatedRequests.Empty();
+
+	for (int32 i = 0; i < LocalRelatedRequests.Num(); i++)
 	{
+		TSharedRef<FStreamableRequest> RelatedRequest = LocalRelatedRequests[i];
 		bShouldStartUnload = true;
 		// Decrement related requests, and call delegate if all are done
-		Existing->RelatedRequests[i]->StreamablesReferenced--;
-		if (Existing->RelatedRequests[i]->StreamablesReferenced == 0)
+		RelatedRequest->StreamablesReferenced--;
+		if (RelatedRequest->StreamablesReferenced == 0)
 		{
-			Existing->RelatedRequests[i]->CompletionDelegate.ExecuteIfBound();
+			RelatedRequest->FinishedTargets.Empty();
+			RelatedRequest->CompletionDelegate.ExecuteIfBound();
+		}
+		else if (Existing->Target)
+		{
+			RelatedRequest->FinishedTargets.Add(Existing->Target);
 		}
 	}
-	// This may result in request objects being deleted due to no references
-	Existing->RelatedRequests.Empty();
 
 	if (bShouldStartUnload)
 	{
@@ -476,6 +486,13 @@ void FStreamableManager::AddStructReferencedObjects(class FReferenceCollector& C
 		if (Existing->Target)
 		{
 			Collector.AddReferencedObject(Existing->Target);
+		}
+		for (int32 i = 0; i < Existing->RelatedRequests.Num(); i++)
+		{
+			for (UObject* Item : Existing->RelatedRequests[i]->FinishedTargets)
+			{
+				Collector.AddReferencedObject(Item);
+			}				
 		}
 	}
 }

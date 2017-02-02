@@ -1248,7 +1248,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 	return true;
 }
 
-bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InProjectInfo, FText& OutFailReason, FText& OutFailLog, TArray<FString>* OutCreatedFiles)
+bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InProjectInfo, FText& OutFailReason, FText& OutFailLog,TArray<FString>* OutCreatedFiles)
 {
 	FScopedSlowTask SlowTask(10);
 
@@ -1284,9 +1284,9 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 
 	// Form a list of all extensions we care about
 	TSet<FString> ReplacementsInFilesExtensions;
-	for ( auto ReplacementIt = TemplateDefs->ReplacementsInFiles.CreateConstIterator(); ReplacementIt; ++ReplacementIt )
+	for ( const FTemplateReplacement& Replacement : TemplateDefs->ReplacementsInFiles )
 	{
-		ReplacementsInFilesExtensions.Append((*ReplacementIt).Extensions);
+		ReplacementsInFilesExtensions.Append(Replacement.Extensions);
 	}
 
 	// Keep a list of created files so we can delete them if project creation fails
@@ -1304,10 +1304,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 	{
 		// Open a new feedback scope for the loop so we can report how far through the copy we are
 		FScopedSlowTask InnerSlowTask(FilesToCopy.Num());
-		for ( auto FileIt = FilesToCopy.CreateConstIterator(); FileIt; ++FileIt )
+		for ( const FString& SrcFilename : FilesToCopy )
 		{
-			const FString SrcFilename = (*FileIt);
-
 			// Update the progress
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("SrcFilename"), FText::FromString( FPaths::GetCleanFilename(SrcFilename) ) );
@@ -1317,47 +1315,24 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 			const FString SrcFileSubpath = SrcFilename.RightChop(SrcFolder.Len() + 1);
 
 			// Skip any files that were configured to be ignored
-			bool bThisFileIsIgnored = false;
-			for ( auto IgnoreIt = TemplateDefs->FilesToIgnore.CreateConstIterator(); IgnoreIt; ++IgnoreIt )
-			{
-				if ( SrcFileSubpath == *IgnoreIt )
-				{
-					// This file was marked as "ignored"
-					bThisFileIsIgnored = true;
-					break;
-				}
-			}
-
-			if ( bThisFileIsIgnored )
+			if ( TemplateDefs->FilesToIgnore.Contains(SrcFileSubpath) )
 			{
 				// This file was marked as "ignored"
 				continue;
 			}
 
 			// Skip any folders that were configured to be ignored
-			bool bThisFolderIsIgnored = false;
-			for ( auto IgnoreIt = TemplateDefs->FoldersToIgnore.CreateConstIterator(); IgnoreIt; ++IgnoreIt )
-			{
-				if ( SrcFileSubpath.StartsWith((*IgnoreIt) + TEXT("/") ) )
-				{
-					// This folder was marked as "ignored"
-					UE_LOG(LogGameProjectGeneration, Verbose, TEXT("'%s': Skipping as it is in an ignored folder '%s'"), *SrcFilename, **IgnoreIt);
-					bThisFolderIsIgnored = true;
-					break;
-				}
-			}
-
-			if ( bThisFolderIsIgnored )
+			if ( const FString* IgnoredFolder = TemplateDefs->FoldersToIgnore.FindByPredicate([&SrcFileSubpath](const FString& Ignore){ return SrcFileSubpath.StartsWith(Ignore + TEXT("/")); }) )
 			{
 				// This folder was marked as "ignored"
+				UE_LOG(LogGameProjectGeneration, Verbose, TEXT("'%s': Skipping as it is in an ignored folder '%s'"), *SrcFilename, **IgnoredFolder);
 				continue;
 			}
 
 			// Retarget any folders that were chosen to be renamed by choosing a new destination subpath now
 			FString DestFileSubpathWithoutFilename = FPaths::GetPath(SrcFileSubpath) + TEXT("/");
-			for ( auto RenameIt = TemplateDefs->FolderRenames.CreateConstIterator(); RenameIt; ++RenameIt )
+			for ( const FTemplateFolderRename& FolderRename : TemplateDefs->FolderRenames )
 			{
-				const FTemplateFolderRename& FolderRename = *RenameIt;
 				if ( SrcFileSubpath.StartsWith(FolderRename.From + TEXT("/")) )
 				{
 					// This was a file in a renamed folder. Retarget to the new location
@@ -1369,9 +1344,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 			// Retarget any files that were chosen to have parts of their names replaced here
 			FString DestBaseFilename = FPaths::GetBaseFilename(SrcFileSubpath);
 			const FString FileExtension = FPaths::GetExtension(SrcFileSubpath);
-			for ( auto ReplacementIt = TemplateDefs->FilenameReplacements.CreateConstIterator(); ReplacementIt; ++ReplacementIt )
+			for ( const FTemplateReplacement& Replacement : TemplateDefs->FilenameReplacements )
 			{
-				const FTemplateReplacement& Replacement = *ReplacementIt;
 				if ( Replacement.Extensions.Contains( FileExtension ) )
 				{
 					// This file matched a filename replacement extension, apply it now
@@ -1421,19 +1395,17 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		FScopedSlowTask InnerSlowTask(FilesThatNeedContentsReplaced.Num());
 
 		// Open all files with the specified extensions and replace text
-		for ( auto FileIt = FilesThatNeedContentsReplaced.CreateConstIterator(); FileIt; ++FileIt )
+		for ( const FString& FileToFix : FilesThatNeedContentsReplaced )
 		{
 			InnerSlowTask.EnterProgressFrame();
 
-			const FString FileToFix = *FileIt;
 			bool bSuccessfullyProcessed = false;
 
 			FString FileContents;
 			if ( FFileHelper::LoadFileToString(FileContents, *FileToFix) )
 			{
-				for ( auto ReplacementIt = TemplateDefs->ReplacementsInFiles.CreateConstIterator(); ReplacementIt; ++ReplacementIt )
+				for ( const FTemplateReplacement& Replacement : TemplateDefs->ReplacementsInFiles )
 				{
-					const FTemplateReplacement& Replacement = *ReplacementIt;
 					if ( Replacement.Extensions.Contains( FPaths::GetExtension(FileToFix) ) )
 					{
 						FileContents = FileContents.Replace(*Replacement.From, *Replacement.To, Replacement.bCaseSensitive ? ESearchCase::CaseSensitive : ESearchCase::IgnoreCase);
@@ -1480,19 +1452,18 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 	// Fixup specific ini values
 	TArray<FTemplateConfigValue> ConfigValuesToSet;
 	TemplateDefs->AddConfigValues(ConfigValuesToSet, TemplateName, ProjectName, InProjectInfo.bShouldGenerateCode);
-	new (ConfigValuesToSet) FTemplateConfigValue(TEXT("DefaultGame.ini"), TEXT("/Script/EngineSettings.GeneralProjectSettings"), TEXT("ProjectID"), FGuid::NewGuid().ToString(), /*InShouldReplaceExistingValue=*/true);
+	ConfigValuesToSet.Emplace(TEXT("DefaultGame.ini"), TEXT("/Script/EngineSettings.GeneralProjectSettings"), TEXT("ProjectID"), FGuid::NewGuid().ToString(), /*InShouldReplaceExistingValue=*/true);
 
 	// Add all classname fixups
-	for ( auto RenameIt = ClassRenames.CreateConstIterator(); RenameIt; ++RenameIt )
+	for ( const TPair<FString, FString>& Rename : ClassRenames )
 	{
-		const FString ClassRedirectString = FString::Printf(TEXT("(OldClassName=\"%s\",NewClassName=\"%s\")"), *RenameIt.Key(), *RenameIt.Value());
-		new (ConfigValuesToSet) FTemplateConfigValue(TEXT("DefaultEngine.ini"), TEXT("/Script/Engine.Engine"), TEXT("+ActiveClassRedirects"), *ClassRedirectString, /*InShouldReplaceExistingValue=*/false);
+		const FString ClassRedirectString = FString::Printf(TEXT("(OldClassName=\"%s\",NewClassName=\"%s\")"), *Rename.Key, *Rename.Value);
+		ConfigValuesToSet.Emplace(TEXT("DefaultEngine.ini"), TEXT("/Script/Engine.Engine"), TEXT("+ActiveClassRedirects"), *ClassRedirectString, /*InShouldReplaceExistingValue=*/false);
 	}
 
 	// Fix all specified config values
-	for ( auto ConfigIt = ConfigValuesToSet.CreateConstIterator(); ConfigIt; ++ConfigIt )
+	for ( const FTemplateConfigValue& ConfigValue : ConfigValuesToSet )
 	{
-		const FTemplateConfigValue& ConfigValue = *ConfigIt;
 		const FString IniFilename = ProjectConfigPath / ConfigValue.ConfigFile;
 		bool bSuccessfullyProcessed = false;
 
@@ -1503,9 +1474,9 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 			const FString TargetSection = ConfigValue.ConfigSection;
 			FString CurSection;
 			bool bFoundTargetKey = false;
-			for ( auto LineIt = FileLines.CreateConstIterator(); LineIt; ++LineIt )
+			for ( const FString& LineIn : FileLines )
 			{
-				FString Line = *LineIt;
+				FString Line = LineIn;
 				Line.Trim().TrimTrailing();
 
 				bool bShouldExcludeLineFromOutput = false;
@@ -1560,7 +1531,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 				if ( !bShouldExcludeLineFromOutput )
 				{
 					FileOutput += Line;
-					if ( LineIt.GetIndex() < FileLines.Num() - 1 )
+					if ( &LineIn != &FileLines.Last() )
 					{
 						// Add a line terminator on every line except the last
 						FileOutput += LINE_TERMINATOR;
@@ -1597,16 +1568,16 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 	}
 
 	// Insert any required feature packs (EG starter content) into ini file. These will be imported automatically when the editor is first run
-	if ( !InsertFeaturePacksIntoINIFile(InProjectInfo, OutFailReason) )
+	if(!InsertFeaturePacksIntoINIFile(InProjectInfo, OutFailReason))
 	{
 		return false;
 	}
 
-	if ( !AddSharedContentToProject(InProjectInfo, CreatedFiles, OutFailReason) )
+	if( !AddSharedContentToProject(InProjectInfo, CreatedFiles, OutFailReason ) )
 	{
 		return false;
 	}
-
+	
 	
 	SlowTask.EnterProgressFrame();
 
@@ -1614,7 +1585,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 	{
 		// Load the source project
 		FProjectDescriptor Project;
-		if ( !Project.Load(InProjectInfo.TemplateFile, OutFailReason) )
+		if(!Project.Load(InProjectInfo.TemplateFile, OutFailReason))
 		{
 			return false;
 		}
@@ -1626,9 +1597,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		// Fix up module names
 		const FString BaseSourceName = FPaths::GetBaseFilename(InProjectInfo.TemplateFile);
 		const FString BaseNewName = FPaths::GetBaseFilename(InProjectInfo.ProjectFilename);
-		for ( auto ModuleIt = Project.Modules.CreateIterator(); ModuleIt; ++ModuleIt )
+		for ( FModuleDescriptor& ModuleInfo : Project.Modules )
 		{
-			FModuleDescriptor& ModuleInfo = *ModuleIt;
 			ModuleInfo.Name = FName(*ModuleInfo.Name.ToString().Replace(*BaseSourceName, *BaseNewName));
 		}
 

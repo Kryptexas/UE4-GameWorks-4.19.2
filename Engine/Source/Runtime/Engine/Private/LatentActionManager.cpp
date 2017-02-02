@@ -234,7 +234,7 @@ FString FLatentActionManager::GetDescription(UObject* InObject, int32 UUID) cons
 			FString ActionDesc = PrimaryAction->GetDescription();
 
 			Description = (PendingActions > 1)
-				? FString::Printf( *NSLOCTEXT("LatentActionManager", "NumPendingActions", "%d Pending Actions: %s").ToString(), PendingActions, *ActionDesc)
+				? FText::Format(NSLOCTEXT("LatentActionManager", "NumPendingActionsFwd", "{0} Pending Actions: {1}"), PendingActions, FText::FromString(ActionDesc)).ToString()
 				: ActionDesc;
 		}
 	}

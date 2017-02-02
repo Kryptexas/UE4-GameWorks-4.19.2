@@ -541,10 +541,13 @@ namespace UnrealBuildTool
 		/// </summary>
 		static string GetHeaderToolPath()
 		{
-			UnrealTargetPlatform Platform = BuildHostPlatform.Current.Platform;
-			string ExeExtension = UEBuildPlatform.GetBuildPlatform(Platform).GetBinaryExtension(UEBuildBinaryType.Executable);
-			string HeaderToolExeName = "UnrealHeaderTool";
-			string HeaderToolPath = Path.Combine("..", "Binaries", Platform.ToString(), HeaderToolExeName + ExeExtension);
+			UnrealTargetConfiguration Config = BuildConfiguration.bForceDebugUnrealHeaderTool ? UnrealTargetConfiguration.Debug : UnrealTargetConfiguration.Development;
+
+			string ReceiptFileName = TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory.FullName, "UnrealHeaderTool", BuildHostPlatform.Current.Platform, Config, "");
+			TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName);
+			Receipt.ExpandPathVariables(UnrealBuildTool.EngineDirectory, UnrealBuildTool.EngineDirectory);
+
+			string HeaderToolPath = Receipt.BuildProducts[0].Path;
 			return HeaderToolPath;
 		}
 
@@ -916,7 +919,7 @@ namespace UnrealBuildTool
 				// We never want to try to execute the header tool when we're already trying to build it!
 				bool bIsBuildingUHT = Target.GetTargetName().Equals("UnrealHeaderTool", StringComparison.InvariantCultureIgnoreCase);
 
-				string RootLocalPath = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
+				string RootLocalPath = UnrealBuildTool.RootDirectory.FullName;
 
 				// check if UHT is out of date
 				DateTime HeaderToolTimestamp = DateTime.MaxValue;
@@ -971,8 +974,16 @@ namespace UnrealBuildTool
 
 						// Which desktop platform do we need to compile UHT for?
 						UBTArguments.Append(" " + BuildHostPlatform.Current.Platform.ToString());
-						// NOTE: We force Development configuration for UHT so that it runs quickly, even when compiling debug
-						UBTArguments.Append(" " + UnrealTargetConfiguration.Development.ToString());
+
+						// NOTE: We force Development configuration for UHT so that it runs quickly, even when compiling debug, unless we say so explicitly
+						if (BuildConfiguration.bForceDebugUnrealHeaderTool)
+						{
+							UBTArguments.Append(" " + UnrealTargetConfiguration.Debug.ToString());
+						}
+						else
+						{
+							UBTArguments.Append(" " + UnrealTargetConfiguration.Development.ToString());
+						}
 
 						// NOTE: We disable mutex when launching UBT from within UBT to compile UHT
 						UBTArguments.Append(" -NoMutex");

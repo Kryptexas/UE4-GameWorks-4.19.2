@@ -353,14 +353,15 @@ namespace FMatineeUtils
 				{
 					// Now look for a component
 					const FName TrialCompName(*CompString);
-					const FName RemappedCompName = FLinkerLoad::FindSubobjectRedirectName(TrialCompName);
-					const FName CompName = (RemappedCompName != NAME_None) ? RemappedCompName : TrialCompName;
 
 					TArray<UObject*> Components;
 					InObject->CollectDefaultSubobjects(Components, false);
 					for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 					{
 						UObject* Component = Components[ComponentIndex];
+
+						const FName RemappedCompName = FLinkerLoad::FindSubobjectRedirectName(TrialCompName, Component->GetClass());
+						const FName CompName = (RemappedCompName != NAME_None) ? RemappedCompName : TrialCompName;
 
 						if (Component->GetFName() == CompName)
 						{

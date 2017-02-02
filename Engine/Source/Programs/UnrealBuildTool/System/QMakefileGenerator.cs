@@ -232,7 +232,7 @@ namespace UnrealBuildTool
 				BuildCommand = "build=bash $$unrealRootPath/Engine/Build/BatchFiles/Linux/Build.sh\n";
 			}
 
-			var UnrealRootPath = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
+			var UnrealRootPath = UnrealBuildTool.RootDirectory.FullName;
 
 			var FileName = MasterProjectName + ".pro";
 

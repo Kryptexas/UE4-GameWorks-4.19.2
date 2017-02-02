@@ -1,7 +1,20 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "clang/Frontend/FrontendAction.h"
+
+#include "Common.h"
+
+THIRD_PARTY_INCLUDES_START
+	#pragma pack(push, 8)
+		#include "clang/Frontend/FrontendAction.h"
+	#pragma pack(pop)
+THIRD_PARTY_INCLUDES_END
+
+namespace clang
+{
+	class CompilerInstance;
+	class SourceManager;
+}
 
 namespace UnrealCodeAnalyzer
 {

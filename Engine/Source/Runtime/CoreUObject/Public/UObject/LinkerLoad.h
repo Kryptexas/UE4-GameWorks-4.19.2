@@ -149,39 +149,6 @@ public:
 	*/
 	TArray<FPackageIndex> PreloadDependencies;
 
-	/** OldClassName to NewClassName for ImportMap */
-	static TMap<FName, FName> ObjectNameRedirects;
-	/** Additional info for some ObjectName redirects to also redirect the class and class package  */
-	static TMap<FName, TPair<FName, FName>> ObjectNameClassRedirects;
-	/** OldClassName to NewClassName for ExportMap */
-	static TMap<FName, FName> ObjectNameRedirectsInstanceOnly;
-	/** Object name to NewClassName for export map */
-	static TMap<FName, FName> ObjectNameRedirectsObjectOnly;	
-	/** Old game name to new game name for ImportMap */
-	static TMap<FName, FName> GameNameRedirects;
-	/** Add a new redirect from old game name to new game name for ImportMap */
-	COREUOBJECT_API static void AddGameNameRedirect(const FName OldName, const FName NewName);
-	/** Old struct name to new struct name mapping */
-	static TMap<FName, FName> StructNameRedirects;
-	/** Old plugin name to new plugin name mapping */
-	static TMap<FString, FString> PluginNameRedirects;
-
-	/** Object name to required class and new name for load-time remapping */
-	struct FSubobjectRedirect
-	{
-		FName MatchClass;
-		FName NewName;
-		FSubobjectRedirect(FName InMatchClass, FName InNewName)
-			: MatchClass(InMatchClass)
-			, NewName(InNewName)
-		{
-		}
-	};
-	static TMap<FName, FSubobjectRedirect> SubobjectNameRedirects;	
-
-	/* Makes sure active redirects map has been initialized */
-	static bool bActiveRedirectsMapInitialized;
-
 	/** 
 	 * Utility functions to query the object name redirects list for previous names for a class
 	 * @param CurrentClassPath The current name of the class, with a full path
@@ -228,10 +195,12 @@ public:
 	 */
 	COREUOBJECT_API bool HasAnyObjectsPendingLoad() const;
 
-private:
+	/** 
+	 * Add a new redirect from old game name to new game name for ImportMap 
+	 */
+	COREUOBJECT_API static void AddGameNameRedirect(const FName OldName, const FName NewName);
 
-	/** Packages that are known to be missing when verifying imports that we don't want a message about */
-	COREUOBJECT_API static TSet<FName> KnownMissingPackages;
+private:
 
 	// Variables used during async linker creation.
 
@@ -331,6 +300,9 @@ private:
 
 	static FName NAME_LoadErrors;
 
+	/** Makes sure the deprecated active redirects inis have been read */
+	static bool bActiveRedirectsMapInitialized;
+
 #if WITH_EDITOR
 	/** Feedback scope that is created to house the slow task of an asynchronous linker load. Raw ptr so we don't pull in TUniquePtr for everything. */
 	FScopedSlowTask* LoadProgressScope;
@@ -374,6 +346,11 @@ public:
 	 * Test whether the given package index is a valid import or export in this package
 	 */
 	bool IsValidPackageIndex(FPackageIndex InIndex);
+
+	/**
+	 * Locates package index for a UPackage import
+	 */
+	COREUOBJECT_API bool FindImportPackage(FName PackageName, FPackageIndex& PackageIdx);
 
 	/**
 	 * Locates the class adjusted index and its package adjusted index for a given class name in the import map
@@ -596,7 +573,7 @@ public:
 	COREUOBJECT_API static void InvalidateExport(UObject* OldObject);
 
 	/** Used by Matinee to fixup component renaming */
-	COREUOBJECT_API static FName FindSubobjectRedirectName(const FName& Name);
+	COREUOBJECT_API static FName FindSubobjectRedirectName(const FName& Name, UClass* Class);
 
 private:
 #if WITH_EDITOR
@@ -887,11 +864,6 @@ private:
 	ELinkerStatus FixupImportMap();
 
 	/**
-	 * Changes imports before the objects are created.
-	 */
-	ELinkerStatus RemapImports();
-
-	/**
 	 * Serializes the export map.
 	 */
 	ELinkerStatus SerializeExportMap();
@@ -1142,3 +1114,23 @@ private:
 	// FLinkerLoad creation helpers END
 	//
 };
+
+// used by the EDL at boot time to coordinate loading with what is going on with the deferred registration stuff
+enum class ENotifyRegistrationType
+{
+	NRT_Class,
+	NRT_ClassCDO,
+	NRT_Struct,
+	NRT_Enum,
+	NRT_Package,
+};
+
+enum class ENotifyRegistrationPhase
+{
+	NRP_Added,
+	NRP_Started,
+	NRP_Finished,
+};
+
+COREUOBJECT_API void NotifyRegistrationEvent(const TCHAR* PackageName, const TCHAR* Name, ENotifyRegistrationType NotifyRegistrationType, ENotifyRegistrationPhase NotifyRegistrationPhase, UObject *(*InRegister)() = nullptr, bool InbDynamic = false);
+COREUOBJECT_API void NotifyRegistrationComplete();

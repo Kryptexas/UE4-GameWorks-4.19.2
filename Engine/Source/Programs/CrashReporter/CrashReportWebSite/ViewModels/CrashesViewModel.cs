@@ -108,6 +108,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 		/// <summary>Time spent in generating this site, formatted as a string.</summary>
 		public string GenerationTime { get; set; }
 
+        /// <summary>Engine Version Ex field is vanilla build</summary>
+        public string IsVanilla { get; set; }
+
 		/// <summary>
 		/// Default constructor, used by HomeController
 		/// </summary>

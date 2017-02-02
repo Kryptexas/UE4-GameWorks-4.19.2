@@ -1,10 +1,14 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealCodeAnalyzerPCH.h"
 #include "Action.h"
 
 #include "RequiredProgramMainCPPInclude.h"
 #include "ThreadSafety/TSAction.h"
+
+#include "clang/Tooling/CommonOptionsParser.h"
+#include "clang/Tooling/Tooling.h"
+
+#include "llvm/Support/TargetSelect.h"
 
 DEFINE_LOG_CATEGORY(LogUnrealCodeAnalyzer)
 

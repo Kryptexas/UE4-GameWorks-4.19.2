@@ -218,7 +218,6 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 	, DuplicatedClass(nullptr)
 	, OriginalCDO(nullptr)
 	, bHasReinstanced(false)
-	, bSkipGarbageCollection(bSkipGC)
 	, ReinstClassType(RCT_Unknown)
 	, ClassToReinstanceDefaultValuesCRC(0)
 	, bIsRootReinstancer(false)
@@ -636,8 +635,9 @@ void FBlueprintCompileReinstancer::CompileChildren()
 			// skeletons were kept in-sync (updated/reinstanced when the parent 
 			// was updated); however, if this is a native class (like when hot-
 			// reloading), then we want to make sure to update the skel as well
+			const bool bSkipGC = true;
 			const bool bSkeletonUpToDate = !ClassToReinstance->HasAnyClassFlags(CLASS_Native);
-			FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection, false, nullptr, bSkeletonUpToDate, false);
+			FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGC, false, nullptr, bSkeletonUpToDate, false);
 		}
 		else if (IsReinstancingSkeleton())
 		{

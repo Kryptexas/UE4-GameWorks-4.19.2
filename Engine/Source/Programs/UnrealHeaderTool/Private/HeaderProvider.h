@@ -20,7 +20,7 @@ class FHeaderProvider
 {
 	friend bool operator==(const FHeaderProvider& A, const FHeaderProvider& B);
 public:
-	FHeaderProvider(EHeaderProviderSourceType Type, const FString& Id, bool bAutoInclude = false);
+	FHeaderProvider(EHeaderProviderSourceType Type, FString&& Id, bool bAutoInclude = false);
 	FHeaderProvider()
 		: Type(EHeaderProviderSourceType::Invalid)
 		, Id(FString())

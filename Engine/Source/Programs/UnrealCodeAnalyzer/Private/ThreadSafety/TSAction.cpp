@@ -1,8 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealCodeAnalyzerPCH.h"
-#include "ThreadSafety/TSAction.h"
-#include "ThreadSafety/TSConsumer.h"
+#include "TSAction.h"
+#include "TSConsumer.h"
 
 namespace UnrealCodeAnalyzer
 {

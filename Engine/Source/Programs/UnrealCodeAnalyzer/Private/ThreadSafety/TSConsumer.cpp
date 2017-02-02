@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealCodeAnalyzerPCH.h"
-#include "ThreadSafety/TSConsumer.h"
+#include "TSConsumer.h"
 
 using namespace clang;
 

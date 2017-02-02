@@ -291,6 +291,7 @@ struct FPreloadMembersHelper
 			UObject* CurrentObject = *it;
 			if (!CurrentObject->HasAnyFlags(RF_LoadCompleted))
 			{
+				check(!GEventDrivenLoaderEnabled);
 				CurrentObject->SetFlags(RF_NeedLoad);
 				if (auto Linker = CurrentObject->GetLinker())
 				{
@@ -305,6 +306,7 @@ struct FPreloadMembersHelper
 	{
 		if (InObject && !InObject->HasAnyFlags(RF_LoadCompleted))
 		{
+			check(!GEventDrivenLoaderEnabled);
 			InObject->SetFlags(RF_NeedLoad);
 			if (FLinkerLoad* Linker = InObject->GetLinker())
 			{
@@ -1330,6 +1332,7 @@ void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 			// to re-run the serialization)
 			if ( (SuperCDO != nullptr) && !SuperCDO->HasAnyFlags(RF_NeedLoad|RF_LoadCompleted) )
 			{
+				check(!GEventDrivenLoaderEnabled);
 				SuperCDO->SetFlags(RF_NeedLoad);
 			}
 			SuperLinker->FinalizeBlueprint(SuperClass);
@@ -1864,6 +1867,10 @@ void FLinkerLoad::CreateDynamicTypeLoader()
 	{
 		const FString DynamicTypePath = GetExportPathName(DynamicTypeExportIndex);
 		const FName DynamicTypeClassName = GetDynamicTypeClassName(*DynamicTypePath);
+		if (DynamicTypeClassName == NAME_None)
+		{
+			UE_LOG(LogTemp, Error, TEXT("Exports %d, DynamicTypePath %s, Export Name %s, Package Root %s"), ExportMap.Num(), *DynamicTypePath, *DynamicTypeExport->ObjectName.ToString(), *LinkerRoot->GetPathName());
+		}
 		ensure(DynamicTypeClassName != NAME_None);
 		const bool bIsDynamicClass = DynamicTypeClassName == DynamicClassName;
 		const bool bIsDynamicStruct = DynamicTypeClassName == UScriptStruct::StaticClass()->GetFName();
@@ -1880,6 +1887,11 @@ void FLinkerLoad::CreateDynamicTypeLoader()
 				CDOExport->ObjectFlags |= RF_Public | RF_ClassDefaultObject; //? 
 				CDOExport->ClassIndex = DynamicTypeExport->ThisIndex;
 			}
+
+			// Note, the layout of the fake export table is assumed elsewhere
+				//check(ImportLinker->ExportMap.Num() == 2); // we assume there are two elements in the fake export table and the second one is the CDO
+				//LocalExportIndex = FPackageIndex::FromExport(1);
+
 
 			FObjectExport* const FakeExports[] = { DynamicTypeExport , CDOExport }; // must be sync'ed with FBlueprintDependencyData::DependencyTypes
 			int32 RunningIndex = 0;
@@ -2258,6 +2270,7 @@ void FDeferredObjInitializerTracker::ResolveDeferredSubObjects(UObject* CDO)
 		{
 			if (FLinkerLoad* SubObjLinker = SubObjArchetype->GetLinker())
 			{
+				check(!GEventDrivenLoaderEnabled);
 				SubObjArchetype->SetFlags(RF_NeedLoad);
 				SubObjLinker->Preload(SubObjArchetype);
 			}

@@ -1,8 +1,14 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "clang/AST/ASTConsumer.h"
+#include "Common.h"
 #include "Visitor.h"
+
+THIRD_PARTY_INCLUDES_START
+	#pragma pack(push, 8)
+		#include "clang/AST/ASTConsumer.h"
+	#pragma pack(pop)
+THIRD_PARTY_INCLUDES_END
 
 namespace UnrealCodeAnalyzer
 {

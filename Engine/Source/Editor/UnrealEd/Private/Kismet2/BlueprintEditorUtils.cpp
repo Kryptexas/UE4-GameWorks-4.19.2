@@ -983,6 +983,7 @@ struct FRegenerationHelper
 		FLinkerLoad* Linker = Obj->GetLinker();
 		if (Linker && !Obj->HasAnyFlags(RF_LoadCompleted))
 		{
+			check(!GEventDrivenLoaderEnabled);
 			Obj->SetFlags(RF_NeedLoad);
 			Linker->Preload(Obj);
 			return true;

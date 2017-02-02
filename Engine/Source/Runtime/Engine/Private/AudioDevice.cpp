@@ -546,7 +546,7 @@ bool FAudioDevice::HandleListSoundClassesCommand(const TCHAR* Cmd, FOutputDevice
 			TotalSounds += ACI->NumRealTime;
 		}
 
-		Ar.Logf(*Line);
+		Ar.Logf(TEXT("%s"), *Line);
 	}
 
 	Ar.Logf(TEXT("%d total sounds in %d classes"), TotalSounds, AudioClassInfos.Num());
@@ -581,7 +581,7 @@ void FAudioDevice::ShowSoundClassHierarchy(FOutputDevice& Ar, USoundClass* InSou
 		}
 		else
 		{
-			Ar.Logf(*SoundClass->GetName());
+			Ar.Logf(TEXT("%s"), *SoundClass->GetName());
 		}
 		for (int i = 0; i < SoundClass->ChildClasses.Num(); ++i)
 		{

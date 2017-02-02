@@ -192,7 +192,7 @@ UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegateProperty()
 	// If we couldn't find the target delegate, then try to find it in the property remap table
 	if (!TargetDelegateProp)
 	{
-		UMulticastDelegateProperty* NewProperty = Cast<UMulticastDelegateProperty>(FMemberReference::FindRemappedField(DelegateOwnerClass, DelegatePropertyName));
+		UMulticastDelegateProperty* NewProperty = FMemberReference::FindRemappedField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName);
 		if (NewProperty)
 		{
 			// Found a remapped property, update the node

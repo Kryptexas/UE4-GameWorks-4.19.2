@@ -692,7 +692,7 @@ namespace UnrealBuildTool
 							// This arg may be a game name. Check for the existence of a game folder with this name.
 							// "Engine" is not a valid game name.
 							if (LowercaseArg != "engine" && Arg.IndexOfAny(Path.GetInvalidPathChars()) == -1 && Arg.IndexOfAny(new char[]{ ':', Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar}) == -1 &&
-								Directory.Exists(Path.Combine(ProjectFileGenerator.RootRelativePath, Arg, "Config")))
+								DirectoryReference.Exists(DirectoryReference.Combine(RootDirectory, Arg, "Config")))
 							{
 								GameName = Arg;
 								Log.TraceVerbose("CommandLine: Found game name '{0}'", GameName);

@@ -70,9 +70,6 @@ protected:
 	/** Whether or not this resinstancer has already reinstanced  */
 	bool bHasReinstanced;
 
-	/** Don't call GC */
-	bool bSkipGarbageCollection;
-
 	/** Cached value, mostly used to determine if we're explicitly targeting the skeleton class or not */
 	enum EReinstClassType
 	{
@@ -161,7 +158,6 @@ protected:
 		, DuplicatedClass(NULL)
 		, OriginalCDO(NULL)
 		, bHasReinstanced(false)
-		, bSkipGarbageCollection(false)
 		, ReinstClassType(RCT_Unknown)
 		, ClassToReinstanceDefaultValuesCRC(0)
 		, bIsRootReinstancer(false)

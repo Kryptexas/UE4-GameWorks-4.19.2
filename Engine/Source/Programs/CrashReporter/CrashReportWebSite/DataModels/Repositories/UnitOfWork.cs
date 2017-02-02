@@ -29,7 +29,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         #region Attributes
 
         private bool _disposed = false;
-        private readonly CrashReportEntities _entityContext;
+        private CrashReportEntities _entityContext;
         private ICrashRepository _crashRepository;
         private IBuggRepository _buggRepository;
         private IFunctionRepository _functionRepository;
@@ -158,7 +158,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         public UnitOfWork(CrashReportEntities entityContext)
         {
             this._entityContext = entityContext;
-            _entityContext.Database.CommandTimeout = 600;
+            _entityContext.Database.CommandTimeout = 1200;
         }
 
         #region Public Methods
@@ -189,21 +189,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         /// <param name="disposing"></param>
         protected virtual void Dispose(bool disposing)
         {
-            if (!this._disposed)
-            {
-                if (disposing)
-                {
-                    _crashRepository = null;
-                    _buggRepository = null;
-                    _functionRepository = null;
-                    _userRepository = null;
-                    _callstackRepository = null;
-                    _userGroupRepository = null;
-                    _errorMessageRepository = null;
-                    _entityContext.Dispose();
-                }
-            }
-            this._disposed = true;
+            _entityContext.Database.Connection.Close();
+            _crashRepository = null;
+            _buggRepository = null;
+            _functionRepository = null;
+            _userRepository = null;
+            _callstackRepository = null;
+            _userGroupRepository = null;
+            _errorMessageRepository = null;
+            _entityContext.Dispose();
+            _entityContext = null;
         }
 
         #endregion

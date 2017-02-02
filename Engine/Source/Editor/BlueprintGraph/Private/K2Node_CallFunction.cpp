@@ -583,7 +583,7 @@ void UK2Node_CallFunction::AllocateDefaultPins()
 
 		if (ParentClass != NULL)
 		{
-			if (UFunction* NewFunction = Cast<UFunction>(FMemberReference::FindRemappedField(ParentClass, FunctionReference.GetMemberName())))
+			if (UFunction* NewFunction = FMemberReference::FindRemappedField<UFunction>(ParentClass, FunctionReference.GetMemberName()))
 			{
 				// Found a remapped property, update the node
 				Function = NewFunction;

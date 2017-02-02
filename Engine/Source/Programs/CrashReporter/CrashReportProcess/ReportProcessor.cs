@@ -21,7 +21,22 @@ namespace Tools.CrashReporter.CrashReportProcess
 	/// A class to handle processing of received crash reports.
 	/// </summary>
 	sealed class ReportProcessor : IDisposable
-	{
+	{ 
+		class UploadRetryState
+		{
+			public bool bUploaded = false;
+			public bool bShouldRetry = true;
+			public int Timeouts = 0;
+			public int BadResponses = 0;
+		}
+
+		enum AddReportResult
+		{
+			Failed,
+			Cancelled,
+			Added
+		}
+
 		/// <summary>Absolute path to Perforce (default installation assumed)</summary>
 		const string PerforceExePath = "C:\\Program Files\\Perforce\\p4.exe";
 
@@ -79,8 +94,22 @@ namespace Tools.CrashReporter.CrashReportProcess
 			{
 				CancelSource.Cancel();
 			}
+
+			CrashReporterProcessServicer.WriteEvent("Shutdown: Stopping ReportProcessor thread...");
 			ProcessorTask.Wait();
 			ProcessorTask.Dispose();
+			CrashReporterProcessServicer.WriteEvent("Shutdown: ReportProcessor thread stopped.");
+
+			CrashReporterProcessServicer.WriteEvent("Shutdown: Stopping ReportProcessor's AddReport threads...");
+			foreach (Task AddReportTask in AddReportTasks)
+			{
+				if (AddReportTask != null)
+				{
+					AddReportTask.Wait();
+					AddReportTask.Dispose();
+				}
+			}
+			CrashReporterProcessServicer.WriteEvent("Shutdown: AddReport threads stopped.");
 
 			CancelSource.Dispose();
 		}
@@ -91,10 +120,9 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// <remarks>All exceptions are caught and written to the event log.</remarks>
 		private void Init()
 		{
-			var Cancel = CancelSource.Token;
 			ProcessorTask = new Task(() =>
 			                         {
-				                         while (!Cancel.IsCancellationRequested)
+				                         while (!CancelSource.IsCancellationRequested)
 				                         {
 					                         try
 					                         {
@@ -149,17 +177,22 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// Finalizes report files. 
 		/// Thread-safe.
 		/// </summary>
-		private void FinalizeReport(bool bAdded, DirectoryInfo DirInfo, FGenericCrashContext NewContext)
+		private void FinalizeReport(AddReportResult AddResult, DirectoryInfo DirInfo, FGenericCrashContext NewContext)
 		{
 			// Only remove if we added the report, otherwise leave all files to further investigation.
-			if (bAdded)
+			if (AddResult == AddReportResult.Added)
 			{
 				// Remove the report files as we're done with them.
 				CleanReport(DirInfo);
 			}
-			else
+			else if (AddResult == AddReportResult.Failed)
 			{
 				MoveReportToInvalid(NewContext.CrashDirectory, ReportQueueBase.GetSafeFilename(NewContext.GetAsFilename()));
+			}
+			else // AddResult == AddReportResult.Cancelled
+			{
+				// Remove report from index of completed reports and leave on disk
+				CrashReporterProcessServicer.ReportIndex.TryRemoveReport(NewContext.CrashDirectory);
 			}
 		}
 
@@ -425,41 +458,60 @@ namespace Tools.CrashReporter.CrashReportProcess
 						RequestString = "http://localhost:80/Crashes/AddCrash/-1"; 
 					}
 
-					int Attempt = 1;
-					Func<bool> TryUpload = () =>
+				
+					Action<UploadRetryState> TryUpload = InRetryState =>
 					{
 						string ResponseString = SimpleWebRequest.GetWebServiceResponse(RequestString, Payload, Config.Default.AddCrashRequestTimeoutSeconds * 1000);
 						if (ResponseString.Length > 0)
 						{
 							// Convert response into a string
 							CrashReporterResult Result = XmlHandler.FromXmlString<CrashReporterResult>(ResponseString);
-							if (Result.ID > 0)
+							if (!Result.bSuccess || Result.ID <= 0)
 							{
-								NewID = Result.ID;
-								return true;
+								// Website responded - fail condition
+								InRetryState.BadResponses++;
+								CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash response invalid. FailedResponses={1} Response={2}",
+																					  ProcessorIndex, InRetryState.BadResponses, Result.Message));
+								if (InRetryState.BadResponses > Config.Default.AddCrashRejectedRetries)
+								{
+									InRetryState.bShouldRetry = false;
+									CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash abandoned. FailedResponses={1}",
+																						  ProcessorIndex, InRetryState.BadResponses));
+								}
 							}
-
-							CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash response invalid (upload attempt {1}): {2}", ProcessorIndex, Attempt, Result.Message));
+							else
+							{
+								// Website responded - success
+								NewID = Result.ID;
+								InRetryState.bUploaded = true;
+								return;
+							}
 						}
-						return false;
+						else
+						{
+							// No response
+							InRetryState.Timeouts++;
+						}
+						InRetryState.bUploaded = false;
 					};
-					Action<bool> OnRetry = bUploaded =>
+					Action<UploadRetryState> OnRetry = InRetryState =>
 					{
-						if (!bUploaded)
+						if (!InRetryState.bUploaded)
 						{
 							Thread.Sleep(Config.Default.AddCrashRetryDelaySeconds*1000);
-							CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash retrying upload attempt {1}", ProcessorIndex, Attempt));
-							Attempt++;
+							CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash retrying upload. Timeouts={1} FailedResponses={2}", ProcessorIndex, InRetryState.Timeouts, InRetryState.BadResponses));
 						}
 					};
 
-					for (bool bUploaded = false; !bUploaded; OnRetry(bUploaded))
+					UploadRetryState RetryState = new UploadRetryState();
+
+					for (; !RetryState.bUploaded && RetryState.bShouldRetry && !CancelSource.IsCancellationRequested; OnRetry(RetryState))
 					{
-						bUploaded = TryUpload();
+						TryUpload(RetryState);
 						CrashReporterProcessServicer.StatusReporter.AlertOnConsecutiveFails("AddCrash",
 						                                                                    "Cannot contact CR website. CRP is paused!",
 						                                                                    "Contact with CR website restored.",
-						                                                                    TimeSpan.FromSeconds(Config.Default.FailedWebAddAlertTimeSeconds), bUploaded);
+						                                                                    TimeSpan.FromSeconds(Config.Default.FailedWebAddAlertTimeSeconds), RetryState.bUploaded);
 					}
 				}
 #if DEBUG
@@ -488,7 +540,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// <param name="LogFileName">The file name of the log file in the report.</param>
 		/// <param name="DumpFileName">The file name of the minidump in the report.</param>
 		/// <param name="VideoFileName">The file name of the video file in the report, or null if there isn't one.</param>
-		private bool AddReport( DirectoryInfo DirInfo, FGenericCrashContext NewContext, string LogFileName, string DumpFileName, string VideoFileName )
+		private AddReportResult AddReport( DirectoryInfo DirInfo, FGenericCrashContext NewContext, string LogFileName, string DumpFileName, string VideoFileName )
 		{
 			try
 			{
@@ -499,7 +551,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 				if (CrashDetails == "")
 				{
 					CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "! CreateCrash no payload: Path=" + NewContext.CrashDirectory);
-					return false;
+					return AddReportResult.Failed;
 				}
 
 				// Upload the crash to the database, and retrieve the new row id
@@ -507,9 +559,18 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 				if (ReportID <= 0)
 				{
-					// Upload failed
-					CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "! NoUpload: Path=" + NewContext.CrashDirectory);
-					return false;
+					if (CancelSource.IsCancellationRequested)
+					{
+						// Cancelled upload
+						CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + "CancelUpload: Path=" + NewContext.CrashDirectory);
+						return AddReportResult.Cancelled;
+					}
+					else
+					{
+						// Upload failed
+						CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "! NoUpload: Path=" + NewContext.CrashDirectory);
+						return AddReportResult.Failed;
+					}
 				}
 
 				bool bToS3 = Config.Default.CrashFilesToAWS && CrashReporterProcessServicer.OutputAWS.IsS3Valid;
@@ -639,14 +700,15 @@ namespace Tools.CrashReporter.CrashReportProcess
 					string.Format(
 						"AddReport: Ratio={0,2} Processed={1,7} WebAdded={2,7} AddReportTime={3} AddedPerDay={4} AddedPerMinute={5:N1}", (int) Ratio,
 						ProcessedReportCount, WebAddCounter.TotalEvents, AddReportTime.Elapsed.TotalSeconds.ToString("0.00"), (int)AddedPerDay, WebAddCounter.EventsPerSecond * 60));
-				return true;
+
+				return AddReportResult.Added;
 			}
 			catch( Exception Ex )
 			{
 				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "AddReport: " + DirInfo.Name + "\n\n" + Ex, Ex);
 			}
 
-			return false;
+			return AddReportResult.Failed;
 		}
 
 		private static void UploadFileToS3(FileInfo FileInfo, string DestFilepath, bool bCompressed, string CompressedSuffix = null)
@@ -826,8 +888,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 				NewContext.ToFile();
 				AddReportTasks[AddReportTaskSlot] = Task.Factory.StartNew(() =>
 				{
-					bool bAdded = AddReport( DirInfo, NewContext, LogFileName, DumpFileName, VideoFileName );
-					FinalizeReport( bAdded, DirInfo, NewContext );
+					AddReportResult Result = AddReport( DirInfo, NewContext, LogFileName, DumpFileName, VideoFileName );
+					FinalizeReport(Result, DirInfo, NewContext );
 				} );
 
 				return WaitTime;

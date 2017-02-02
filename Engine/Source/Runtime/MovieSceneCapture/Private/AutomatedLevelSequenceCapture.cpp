@@ -52,7 +52,7 @@ void UAutomatedLevelSequenceCapture::AddFormatMappings(TMap<FString, FStringForm
 	OutFormatMappings.Add(TEXT("shot"), CachedState.CurrentShotName.ToString());
 
 	const int32 FrameNumber = FMath::RoundToInt(CachedState.CurrentShotLocalTime * CachedState.Settings.FrameRate);
-	OutFormatMappings.Add(TEXT("shot_frame"), FString::Printf(*FrameNumberFormat, FrameNumber));
+	OutFormatMappings.Add(TEXT("shot_frame"), FString::Printf(TEXT("%0*d"), Settings.ZeroPadFrameNumbers, FrameNumber));
 }
 
 void UAutomatedLevelSequenceCapture::Initialize(TSharedPtr<FSceneViewport> InViewport, int32 PIEInstance)

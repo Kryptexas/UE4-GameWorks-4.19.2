@@ -251,7 +251,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 			switch( CurrentCrash.CrashType )
 			{
 			case 2:
-				bSkipping = true;
+				bSkipping = false;
 				LineToSkipUpto = "FDebug::AssertFailed";
 				break;
 			case 3:

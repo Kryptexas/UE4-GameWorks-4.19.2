@@ -206,6 +206,12 @@ namespace UnrealBuildTool
 		public bool bAllowHotReloadFromIDE = true;
 
 		/// <summary>
+		/// If true, the Debug version of UnrealHeaderTool will be build and run instead of the Development version.
+		/// </summary>
+		[XmlConfigFile(Category = "UEBuildConfiguration")]
+		public static bool bForceDebugUnrealHeaderTool = false;
+
+		/// <summary>
 		/// True if performing hot-reload from IDE
 		/// </summary>
 		public bool bHotReloadFromIDE = false;

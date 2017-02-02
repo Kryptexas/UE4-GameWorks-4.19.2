@@ -3059,7 +3059,7 @@ bool UEngine::HandleGameVerCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	FString VersionString = FString::Printf( TEXT( "GameVersion Branch: %s, Configuration: %s, Build: %s, CommandLine: %s" ),
 											 *FApp::GetBranchName(), EBuildConfigurations::ToString( FApp::GetBuildConfiguration() ), FApp::GetBuildVersion(), FCommandLine::Get() );
 
-	Ar.Logf( *VersionString );
+	Ar.Logf( TEXT("%s"), *VersionString );
 	FPlatformMisc::ClipboardCopy( *VersionString );
 
 	if (FCString::Stristr(Cmd, TEXT("-display")))
@@ -4274,7 +4274,7 @@ bool UEngine::HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& A
 		UE_LOG(LogEngine, Log, TEXT("MemReportDeferred: saving to %s"), *FilenameFull);		
 	}
 
-	ReportAr->Logf( *FString::Printf( TEXT( "CommandLine Options: %s" ) LINE_TERMINATOR, FCommandLine::Get() ) );
+	ReportAr->Logf( TEXT( "CommandLine Options: %s" ) LINE_TERMINATOR, FCommandLine::Get() );
 
 	// Run commands from the ini
 	FConfigSection* CommandsToRun = GConfig->GetSectionPrivate(TEXT("MemReportCommands"), 0, 1, GEngineIni);

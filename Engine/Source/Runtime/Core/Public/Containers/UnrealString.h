@@ -1244,28 +1244,28 @@ public:
 	}
 
 	/**
-	* Searches the string for the last occurrence of a character
-	*
-	* @param Pred Predicate that takes TCHAR and returns true if TCHAR matches search criteria, false otherwise.
-	* @param StartIndex Index of element from which to start searching. Defaults to last TCHAR in string.
-	*
-	* @return Index of found TCHAR, INDEX_NONE otherwise.
-	*/
+	 * Searches an initial substring for the last occurrence of a character which matches the specified predicate.
+	 *
+	 * @param Pred Predicate that takes TCHAR and returns true if TCHAR matches search criteria, false otherwise.
+	 * @param Count The number of characters from the front of the string through which to search.
+	 *
+	 * @return Index of found TCHAR, INDEX_NONE otherwise.
+	 */
 	template <typename Predicate>
-	FORCEINLINE int32 FindLastCharByPredicate(Predicate Pred, int32 StartIndex) const
+	FORCEINLINE int32 FindLastCharByPredicate(Predicate Pred, int32 Count) const
 	{
-		check(StartIndex >= 0 && StartIndex <= this->Len());
-		return Data.FindLastByPredicate(Pred, StartIndex);
+		check(Count >= 0 && Count <= this->Len());
+		return Data.FindLastByPredicate(Pred, Count);
 	}
 
 	/**
-	* Searches the string for the last occurrence of a character
-	*
-	* @param Pred Predicate that takes TCHAR and returns true if TCHAR matches search criteria, false otherwise.
-	* @param StartIndex Index of element from which to start searching. Defaults to last TCHAR in string.
-	*
-	* @return Index of found TCHAR, INDEX_NONE otherwise.
-	*/
+	 * Searches the string for the last occurrence of a character which matches the specified predicate.
+	 *
+	 * @param Pred Predicate that takes TCHAR and returns true if TCHAR matches search criteria, false otherwise.
+	 * @param StartIndex Index of element from which to start searching. Defaults to last TCHAR in string.
+	 *
+	 * @return Index of found TCHAR, INDEX_NONE otherwise.
+	 */
 	template <typename Predicate>
 	FORCEINLINE int32 FindLastCharByPredicate(Predicate Pred) const
 	{

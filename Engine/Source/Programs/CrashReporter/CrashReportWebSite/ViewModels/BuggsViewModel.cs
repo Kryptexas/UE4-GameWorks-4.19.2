@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -102,11 +102,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 		/// <summary>
 		/// Default constructor
 		/// </summary>
-		public BuggsViewModel(ICrashRepository crashRepo)
+		public BuggsViewModel()
 		{
-            BranchNames = crashRepo.GetBranchesAsListItems();
-            VersionNames = crashRepo.GetVersionsAsListItems();
-            PlatformNames = crashRepo.GetPlatformsAsListItems();
+            
 		}
 	}
 }

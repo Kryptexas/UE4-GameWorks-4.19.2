@@ -36,6 +36,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
         /// <summary>Jira Project to which to add a new bugg.</summary>
         public string JiraProject { get; set; }
 
+        /// <summary> </summary>
+        public string Page { get; set; }
+
+        public PagingInfo PagingInfo { get; set; }
+
         /// <summary>
         /// Constructor for BuggViewModel class.
         /// </summary>
@@ -45,7 +50,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 	        {
                 new SelectListItem(){ Text = "UE", Value = "UE"},
                 new SelectListItem(){ Text = "FORT", Value = "FORT"},
-                new SelectListItem(){ Text = "ORION", Value = "ORION"},
+                new SelectListItem(){ Text = "ORION", Value = "OR"},
 	        };
 	    }
 	}

@@ -33,6 +33,7 @@
 #include "UObject/LinkerPlaceholderFunction.h"
 #include "UObject/StructScriptLoader.h"
 #include "UObject/PropertyHelper.h"
+#include "UObject/CoreRedirects.h"
 #include "Serialization/ArchiveScriptReferenceCollector.h"
 
 // This flag enables some expensive class tree validation that is meant to catch mutations of 
@@ -68,6 +69,8 @@ COREUOBJECT_API void InitializePrivateStaticClass(
 	const TCHAR* Name
 	)
 {
+	NotifyRegistrationEvent(PackageName, Name, ENotifyRegistrationType::NRT_Class, ENotifyRegistrationPhase::NRP_Started);
+
 	/* No recursive ::StaticClass calls allowed. Setup extras. */
 	if (TClass_Super_StaticClass != TClass_PrivateStaticClass)
 	{
@@ -91,6 +94,7 @@ COREUOBJECT_API void InitializePrivateStaticClass(
 		// Register immediately (don't let the function name mistake you!)
 		TClass_PrivateStaticClass->DeferredRegister(UDynamicClass::StaticClass(), PackageName, Name);
 	}
+	NotifyRegistrationEvent(PackageName, Name, ENotifyRegistrationType::NRT_Class, ENotifyRegistrationPhase::NRP_Finished);
 }
 
 void FNativeFunctionRegistrar::RegisterFunction(class UClass* Class, const ANSICHAR* InName, Native InPointer)
@@ -853,47 +857,10 @@ void UStruct::SerializeBinEx( FArchive& Ar, void* Data, void const* DefaultData,
 	}
 }
 
-TMap<FName,TMap<FName,FName> > UStruct::TaggedPropertyRedirects;
-void UStruct::InitTaggedPropertyRedirectsMap()
-{
-	if( GConfig )
-	{
-		// Go over all configs so that plugins/etc have a chance to register TaggedPropertyRedirects
-		for (const auto& ConfigPair : *GConfig)
-		{
-			const FString& ConfigFilename = ConfigPair.Key;
-
-			if (FConfigSection* PackageRedirects = GConfig->GetSectionPrivate( TEXT("/Script/Engine.Engine"), false, true, ConfigFilename ))
-			{
-				for( FConfigSection::TIterator It(*PackageRedirects); It; ++It )
-				{
-					if( It.Key() == TEXT("TaggedPropertyRedirects") )
-					{
-						FName ClassName = NAME_None;
-						FName OldPropertyName = NAME_None;
-						FName NewPropertyName = NAME_None;
-
-						FParse::Value( *It.Value().GetValue(), TEXT("ClassName="), ClassName );
-						FParse::Value( *It.Value().GetValue(), TEXT("OldPropertyName="), OldPropertyName );
-						FParse::Value( *It.Value().GetValue(), TEXT("NewPropertyName="), NewPropertyName );
-
-						check(ClassName != NAME_None && OldPropertyName != NAME_None && NewPropertyName != NAME_None );
-						TaggedPropertyRedirects.FindOrAdd(ClassName).Add(OldPropertyName, NewPropertyName);
-					}
-				}
-			}
-		}
-	}
-	else
-	{
-		UE_LOG(LogClass, Warning, TEXT(" **** TAGGED PROPERTY REDIRECTS UNABLE TO INITIALIZE! **** "));
-	}
-}
-
 void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad) const
 {
 	//SCOPED_LOADTIMER(SerializeTaggedPropertiesTime);
-	
+
 	// Determine if this struct supports optional property guid's (UBlueprintGeneratedClasses Only)
 	const bool bArePropertyGuidsAvailable = (Ar.UE4Ver() >= VER_UE4_PROPERTY_GUID_IN_PROPERTY_TAG) && !FPlatformProperties::RequiresCookedData() && ArePropertyGuidsAvailable();
 
@@ -953,42 +920,24 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				// No need to check redirects on platforms where everything is cooked. Always check for save games
 				if (!FPlatformProperties::RequiresCookedData() || Ar.IsSaveGame())
 				{
-					// Look in the redirect table to see if we're searching for a different name
-					static bool bAlreadyInitialized_TaggedPropertyRedirectsMap = false;
-					if( !bAlreadyInitialized_TaggedPropertyRedirectsMap )
-					{
-						InitTaggedPropertyRedirectsMap();
-						bAlreadyInitialized_TaggedPropertyRedirectsMap = true;
-					}
-					
 					FName EachName = GetFName();
+					FName PackageName = GetOutermost()->GetFName();
 					// Search the current class first, then work up the class hierarchy to see if theres a match for our fixup.
 					UStruct* Owner = GetOwnerStruct();
 					if( Owner )
 					{
-						UStruct* SuperClass = Owner->GetSuperStruct();
-						while( EachName != NAME_None)
+						UStruct* CheckStruct = Owner;
+						while(CheckStruct)
 						{
-							const TMap<FName, FName>* ClassTaggedPropertyRedirects = TaggedPropertyRedirects.Find( EachName );
-							if (ClassTaggedPropertyRedirects)
+							FName NewTagName = UProperty::FindRedirectedPropertyName(CheckStruct, Tag.Name);
+
+							if (NewTagName != NAME_None)
 							{
-								const FName* NewPropertyName = ClassTaggedPropertyRedirects->Find(Tag.Name);
-								if (NewPropertyName)
-								{
-									Tag.Name = *NewPropertyName;
-									break;
-								}
+								Tag.Name = NewTagName;
+								break;
 							}
-							// If theres another class name to check get it, otherwise flag the end.
-							if( SuperClass != nullptr )
-							{
-								EachName = SuperClass->GetFName();
-								SuperClass = SuperClass->GetSuperStruct();
-							}
-							else
-							{
-								EachName = NAME_None;
-							}
+
+							CheckStruct = CheckStruct->GetSuperStruct();
 						}
 					}
 				}
@@ -2713,6 +2662,17 @@ UObject* UClass::CreateDefaultObject()
 			// NULL (so we don't invalidate one that has already been setup)
 			if (ClassDefaultObject == NULL)
 			{
+				FString PackageName;
+				FString CDOName;
+				bool bDoNotify = false;
+				if (GIsInitialLoad && GetOutermost()->HasAnyPackageFlags(PKG_CompiledIn))
+				{
+					PackageName = GetOutermost()->GetFName().ToString();
+					CDOName = GetDefaultObjectName().ToString();
+					NotifyRegistrationEvent(*PackageName, *CDOName, ENotifyRegistrationType::NRT_ClassCDO, ENotifyRegistrationPhase::NRP_Started);
+					bDoNotify = true;
+				}
+
 				// RF_ArchetypeObject flag is often redundant to RF_ClassDefaultObject, but we need to tag
 				// the CDO as RF_ArchetypeObject in order to propagate that flag to any default sub objects.
 				ClassDefaultObject = StaticAllocateObject(this, GetOuter(), NAME_None, EObjectFlags(RF_Public|RF_ClassDefaultObject|RF_ArchetypeObject));
@@ -2720,6 +2680,11 @@ UObject* UClass::CreateDefaultObject()
 				// Blueprint CDOs have their properties always initialized.
 				const bool bShouldInitializeProperties = !HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
 				(*ClassConstructor)(FObjectInitializer(ClassDefaultObject, ParentDefaultObject, false, bShouldInitializeProperties));
+				if (bDoNotify)
+				{
+					NotifyRegistrationEvent(*PackageName, *CDOName, ENotifyRegistrationType::NRT_ClassCDO, ENotifyRegistrationPhase::NRP_Finished);
+				}
+				ClassDefaultObject->PostCDOContruct();
 			}
 		}
 	}

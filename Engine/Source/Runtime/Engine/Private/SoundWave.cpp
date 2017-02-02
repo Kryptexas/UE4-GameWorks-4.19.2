@@ -280,7 +280,7 @@ void USoundWave::LogSubtitle( FOutputDevice& Ar )
 #if WITH_EDITORONLY_DATA
 	Ar.Logf( TEXT( "Comment:   %s" ), *Comment );
 #endif // WITH_EDITORONLY_DATA
-	Ar.Logf( bMature ? TEXT( "Mature:    Yes" ) : TEXT( "Mature:    No" ) );
+	Ar.Logf( TEXT("Mature:    %s"), bMature ? TEXT( "Yes" ) : TEXT( "No" ) );
 }
 
 float USoundWave::GetSubtitlePriority() const

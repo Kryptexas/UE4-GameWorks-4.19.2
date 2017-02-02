@@ -523,17 +523,29 @@ bool FPluginManager::ConfigureEnabledPlugins()
 					}
 				}
 
-				// Load Default<PluginName>.ini config file if it exists
+				// Load <PluginName>.ini config file if it exists
 				FString PluginConfigDir = FPaths::GetPath(Plugin->FileName) / TEXT("Config/");
-				FConfigFile PluginConfig;
-				FConfigCacheIni::LoadExternalIniFile(PluginConfig, *Plugin->Name, *FPaths::EngineConfigDir(), *PluginConfigDir, true);
-				if (PluginConfig.Num() > 0)
+				FString EngineConfigDir = FPaths::EngineConfigDir();
+				FString SourceConfigDir = FPaths::SourceConfigDir();
+
+				// Load Engine plugins out of BasePluginName.ini and the engine directory, game plugins out of DefaultPluginName.ini
+				if (Plugin->LoadedFrom == EPluginLoadedFrom::Engine)
 				{
-					FString PlaformName = FPlatformProperties::PlatformName();
-					FString PluginConfigFilename = FString::Printf(TEXT("%s%s/%s.ini"), *FPaths::GeneratedConfigDir(), *PlaformName, *Plugin->Name);
-					FConfigFile& NewConfigFile = GConfig->Add(PluginConfigFilename, FConfigFile());
-					NewConfigFile.AddMissingProperties(PluginConfig);
-					NewConfigFile.Write(PluginConfigFilename);
+					EngineConfigDir = PluginConfigDir;
+				}
+				else
+				{
+					SourceConfigDir = PluginConfigDir;
+				}
+
+				FString PluginConfigFilename = FString::Printf(TEXT("%s%s/%s.ini"), *FPaths::GeneratedConfigDir(), ANSI_TO_TCHAR(FPlatformProperties::PlatformName()), *Plugin->Name);
+				FConfigFile& PluginConfig = GConfig->Add(PluginConfigFilename, FConfigFile());
+
+				// This will write out an ini to PluginConfigFilename
+				if (!FConfigCacheIni::LoadExternalIniFile(PluginConfig, *Plugin->Name, *EngineConfigDir, *SourceConfigDir, true, nullptr, false, true))
+				{
+					// Nothing to add, remove from map
+					GConfig->Remove(PluginConfigFilename);
 				}
 			}
 		}

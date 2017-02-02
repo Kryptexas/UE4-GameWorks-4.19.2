@@ -122,6 +122,9 @@ public:
 	static const TCHAR* ImportSingleProperty( const TCHAR* Str, void* DestData, class UStruct* ObjectStruct, UObject* SubobjectOuter, int32 PortFlags,
 											FOutputDevice* Warn, TArray<struct FDefinedProperty>& DefinedProperties );
 
+	/** Gets a redirected property name, will return NAME_None if no redirection was found */
+	static FName FindRedirectedPropertyName(UStruct* ObjectStruct, FName OldName);
+
 	// UHT interface
 	void ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride = NULL, uint32 AdditionalExportCPPFlags = 0
 		, bool bSkipParameterName = false, const FString* ActualCppType = nullptr, const FString* ActualExtendedType = nullptr, const FString* ActualParameterName = nullptr) const;
@@ -4598,24 +4601,6 @@ T* FindFieldChecked( const UStruct* Scope, FName FieldName )
 	}
 
 	return NULL;
-}
-
-/**
- * Dynamically cast a property to the specified type; if the type is a UArrayProperty, will return the UArrayProperty's Inner member, if it is of the correct type.
- */
-template<typename T>
-T* SmartCastProperty( UProperty* Src )
-{
-	T* Result = dynamic_cast<T*>(Src);
-	if ( Result == NULL )
-	{
-		UArrayProperty* ArrayProp = dynamic_cast<UArrayProperty*>(Src);
-		if ( ArrayProp != NULL )
-		{
-			Result = dynamic_cast<T*>(ArrayProp->Inner);
-		}
-	}
-	return Result;
 }
 
 /**

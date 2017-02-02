@@ -106,9 +106,12 @@ FArchive& operator<<(FArchive& Ar, FSkinWeightVertexBuffer& VertexBuffer)
 		{
 			VertexBuffer.WeightData->Serialize(Ar);
 
-			// update cached buffer info
-			VertexBuffer.Data = (VertexBuffer.NumVertices > 0) ? VertexBuffer.WeightData->GetDataPointer() : nullptr;
-			VertexBuffer.Stride = VertexBuffer.WeightData->GetStride();
+			if (!Ar.IsCountingMemory())
+			{
+				// update cached buffer info
+				VertexBuffer.Data = (VertexBuffer.NumVertices > 0) ? VertexBuffer.WeightData->GetDataPointer() : nullptr;
+				VertexBuffer.Stride = VertexBuffer.WeightData->GetStride();
+			}
 		}
 	}
 

@@ -55,6 +55,7 @@
 	#include "UObject/UObjectHash.h"
 	#include "UObject/Package.h"
 	#include "UObject/Linker.h"
+	#include "UObject/LinkerLoad.h"
 #endif
 
 #if WITH_EDITOR
@@ -1732,6 +1733,15 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 		SlowTask.EnterProgressFrame(5);
 
+
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+		// If we don't do this now and the async loading thread is active, then we will attempt to load this module from a thread
+		if (GEventDrivenLoaderEnabled)
+		{
+			FModuleManager::Get().LoadModule("AssetRegistry");
+		}
+#endif
+
 		// Make sure all UObject classes are registered and default properties have been initialized
 		ProcessNewlyLoadedUObjects();
 
@@ -1851,6 +1861,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	{
 		GUObjectArray.CloseDisregardForGC();
 	}
+	NotifyRegistrationComplete();
 #endif // WITH_COREUOBJECT
 
 #if WITH_ENGINE

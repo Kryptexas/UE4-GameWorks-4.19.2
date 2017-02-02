@@ -194,12 +194,6 @@ namespace UnrealBuildTool
 		/// This arguably adds some visual clutter to the master project, but is truer to the on-disk file organization.
 		bool KeepSourceSubDirectories = true;
 
-		/// Relative path to the root of the engine/games (e.g. the directory above "Engine" and any sibling game directories)
-		public static readonly string RootRelativePath = ".." + Path.DirectorySeparatorChar + "..";	// Assume CWD is "<root>/Engine/Source"
-
-		/// Relative path from the CWD to the engine directory
-		public static readonly string EngineRelativePath = Path.Combine( RootRelativePath, "Engine" );
-
 		/// Relative path to the directory where the master project file will be saved to
 		public static DirectoryReference MasterProjectPath = UnrealBuildTool.RootDirectory; // We'll save the master project to our "root" folder
 
@@ -971,7 +965,7 @@ namespace UnrealBuildTool
 				string CleanTargetFileName = Utils.CleanDirectorySeparators( CurTargetFile.FullName );
 
 				// remove the local root
-				string LocalRoot = Path.GetFullPath(RootRelativePath);
+				string LocalRoot = UnrealBuildTool.RootDirectory.FullName;
 				string Search = CleanTargetFileName;
 				if (Search.StartsWith(LocalRoot, StringComparison.InvariantCultureIgnoreCase))
 				{

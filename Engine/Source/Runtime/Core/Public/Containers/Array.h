@@ -860,17 +860,17 @@ public:
 	}
 
 	/**
-	 * Finds element within the array starting from StartIndex and going backwards. Uses predicate to match element.
+	 * Searches an initial subrange of the array for the last occurrence of an element which matches the specified predicate.
 	 *
 	 * @param Pred Predicate taking array element and returns true if element matches search criteria, false otherwise.
-	 * @param StartIndex Index of element from which to start searching.
+	 * @param Count The number of elements from the front of the array through which to search.
 	 * @returns Index of the found element. INDEX_NONE otherwise.
 	 */
 	template <typename Predicate>
-	int32 FindLastByPredicate(Predicate Pred, int32 StartIndex) const
+	int32 FindLastByPredicate(Predicate Pred, int32 Count) const
 	{
-		check(StartIndex >= 0 && StartIndex <= this->Num());
-		for (const ElementType* RESTRICT Start = GetData(), *RESTRICT Data = Start + StartIndex; Data != Start; )
+		check(Count >= 0 && Count <= this->Num());
+		for (const ElementType* RESTRICT Start = GetData(), *RESTRICT Data = Start + Count; Data != Start; )
 		{
 			--Data;
 			if (Pred(*Data))
@@ -882,7 +882,7 @@ public:
 	}
 
 	/**
-	 * Finds element within the array starting from the end. Uses predicate to match element.
+	 * Searches the array for the last occurrence of an element which matches the specified predicate.
 	 *
 	 * @param Pred Predicate taking array element and returns true if element matches search criteria, false otherwise.
 	 * @returns Index of the found element. INDEX_NONE otherwise.
@@ -2334,17 +2334,9 @@ public:
 	 * @param Predicate Predicate class instance.
 	 */
 	template <class PREDICATE_CLASS>
-	void Heapify(const PREDICATE_CLASS& Predicate)
+	FORCEINLINE void Heapify(const PREDICATE_CLASS& Predicate)
 	{
-		TDereferenceWrapper< ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
-		for (int32 Index = HeapGetParentIndex(Num() - 1); Index >= 0; Index--)
-		{
-			SiftDown(Index, Num(), PredicateWrapper);
-		}
-
-#if DEBUG_HEAP
-		VerifyHeap(PredicateWrapper);
-#endif
+		HeapifyInternal(TDereferenceWrapper<ElementType, PREDICATE_CLASS>(Predicate));
 	}
 
 	/**
@@ -2570,7 +2562,7 @@ public:
 	void HeapSort(const PREDICATE_CLASS& Predicate)
 	{
 		TReversePredicateWrapper<ElementType, PREDICATE_CLASS> ReversePredicateWrapper(Predicate);
-		Heapify(ReversePredicateWrapper);
+		HeapifyInternal(ReversePredicateWrapper);
 
 		ElementType* Heap = GetData();
 		for(int32 Index=Num()-1; Index>0; Index--)
@@ -2641,6 +2633,18 @@ private:
 	}
 
 private:
+	template <class PREDICATE_CLASS>
+	void HeapifyInternal(const PREDICATE_CLASS& Predicate)
+	{
+		for (int32 Index = HeapGetParentIndex(Num() - 1); Index >= 0; Index--)
+		{
+			SiftDown(Index, Num(), Predicate);
+		}
+
+#if DEBUG_HEAP
+		VerifyHeap(Predicate);
+#endif
+	}
 
 	/**
 	 * Fixes a possible violation of order property between node at Index and a child.

@@ -17,11 +17,16 @@ class ITargetPlatform;
 struct FUntypedBulkData;
 template<class TEnum> class TEnumAsByte;
 
-// this is the master switch
-//@todoio if this is off, then we should leave the package file format completely unchanged....!!!!! this is really important to fix before we merge to main
-//#define COOK_FOR_EVENT_DRIVEN_LOAD (1)
 
-#define EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME (!GIsInitialLoad) // set to (!GIsInitialLoad) to avoid using the EDL at boot time
+// Temporary while we shake out the EDL at boot
+#define USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME (1)
+
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+	#define EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME (1)
+#else
+	#define EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME (!GIsInitialLoad) 
+#endif
+
 #define DEVIRTUALIZE_FLinkerLoad_Serialize (!WITH_EDITORONLY_DATA)
 
 

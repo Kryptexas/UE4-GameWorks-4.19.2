@@ -374,6 +374,16 @@ void ProcessOrderFile(int32 ArgC, TCHAR* ArgV[], TMap<FString, uint64>& OrderMap
 				FString Path=FString::Printf(TEXT("%s"), *Lines[EntryIndex]);
 				FPaths::NormalizeFilename(Path);
 				Path = Path.ToLower();
+#if 0
+				if (Path.EndsWith("uexp"))
+				{
+					OpenOrderNumber += (1 << 29);
+				}
+				if (Path.EndsWith("ubulk"))
+				{
+					OpenOrderNumber += (1 << 30);
+				}
+#endif
 				OrderMap.Add(Path, OpenOrderNumber);
 			}
 			UE_LOG(LogPakFile, Display, TEXT("Finished loading pak order file %s."), *ResponseFile);
@@ -584,6 +594,28 @@ void CollectFilesToAdd(TArray<FPakInputPair>& OutFilesToAdd, const TArray<FPakIn
 				if(FoundOrder)
 				{
 					FileInput.SuggestedOrder = *FoundOrder;
+				}
+				else
+				{
+					// we will put all unordered files at 1 << 28 so that they are before any uexp or ubulk files we assign orders to here
+					FileInput.SuggestedOrder = (1 << 28);
+					// if this is a cook order or an old order it will not have uexp files in it, so we put those in the same relative order after all of the normal files, but before any ubulk files
+					if (FileInput.Dest.EndsWith(TEXT("uexp")) || FileInput.Dest.EndsWith(TEXT("ubulk")))
+					{
+						FoundOrder = OrderMap.Find(FPaths::GetBaseFilename(FileInput.Dest.ToLower(), false) + TEXT(".uasset"));
+						if (!FoundOrder)
+						{
+							FoundOrder = OrderMap.Find(FPaths::GetBaseFilename(FileInput.Dest.ToLower(), false) + TEXT(".umap"));
+						}
+						if (FileInput.Dest.EndsWith(TEXT("uexp")))
+						{
+							FileInput.SuggestedOrder = (FoundOrder ? *FoundOrder : 0) + (1 << 29);
+						}
+						else
+						{
+							FileInput.SuggestedOrder = (FoundOrder ? *FoundOrder : 0) + (1 << 30);
+						}
+					}
 				}
 				FileInput.bNeedsCompression = bCompression;
 				FileInput.bNeedEncryption = bEncryption;
@@ -897,6 +929,30 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 
 	for (int32 FileIndex = 0; FileIndex < FilesToAdd.Num(); FileIndex++)
 	{
+		bool bIsUAssetUExpPairUAsset = false;
+		bool bIsUAssetUExpPairUExp = false;
+
+		if (FileIndex)
+		{
+			if (FPaths::GetBaseFilename(FilesToAdd[FileIndex - 1].Dest, false) == FPaths::GetBaseFilename(FilesToAdd[FileIndex].Dest, false) &&
+				FPaths::GetExtension(FilesToAdd[FileIndex - 1].Dest, true) == TEXT(".uasset") && 
+				FPaths::GetExtension(FilesToAdd[FileIndex].Dest, true) == TEXT(".uexp")
+				)
+			{
+				bIsUAssetUExpPairUExp = true;
+			}
+		}
+		if (!bIsUAssetUExpPairUExp && FileIndex + 1 < FilesToAdd.Num())
+		{
+			if (FPaths::GetBaseFilename(FilesToAdd[FileIndex].Dest, false) == FPaths::GetBaseFilename(FilesToAdd[FileIndex + 1].Dest, false) &&
+				FPaths::GetExtension(FilesToAdd[FileIndex].Dest, true) == TEXT(".uasset") &&
+				FPaths::GetExtension(FilesToAdd[FileIndex + 1].Dest, true) == TEXT(".uexp")
+				)
+			{
+				bIsUAssetUExpPairUAsset = true;
+			}
+		}
+
 		//  Remember the offset but don't serialize it with the entry header.
 		int64 NewEntryOffset = PakFileHandle->Tell();
 		FPakEntryPair NewEntry;
@@ -935,7 +991,8 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 		}
 
 		// Account for file system block size, which is a boundary we want to avoid crossing.
-		if (CmdLineParameters.FileSystemBlockSize > 0 && OriginalFileSize != INDEX_NONE && RealFileSize <= CmdLineParameters.FileSystemBlockSize)
+		if (!bIsUAssetUExpPairUExp && // don't split uexp / uasset pairs
+			CmdLineParameters.FileSystemBlockSize > 0 && OriginalFileSize != INDEX_NONE && RealFileSize <= CmdLineParameters.FileSystemBlockSize)
 		{
 			if ((NewEntryOffset / CmdLineParameters.FileSystemBlockSize) != ((NewEntryOffset + RealFileSize) / CmdLineParameters.FileSystemBlockSize))
 			{
@@ -954,6 +1011,7 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 						FMemory::Memset(PaddingBuffer, 0, PaddingBufferSize);
 					}
 
+					UE_LOG(LogPakFile, Verbose, TEXT("%14llu - %14llu : %14llu padding."), PakFileHandle->Tell(), PakFileHandle->Tell() + PaddingRequired, PaddingRequired);
 					while (PaddingRequired > 0)
 					{
 						int64 AmountToWrite = FMath::Min(PaddingRequired, PaddingBufferSize);
@@ -989,28 +1047,40 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 				//if the next file is going to cross a patch-block boundary then pad out the current set of files with 0's
 				//and align the next file up.
 				bool bCrossesBoundary = AlignArbitrary(NewEntryOffset, RequiredPatchPadding) != AlignArbitrary(NewEntryOffset + TotalSizeToWrite - 1, RequiredPatchPadding);
-				if (TotalSizeToWrite >= RequiredPatchPadding || // if it exactly the padding size and by luck does not cross a boundary, we still consider it "over" because it can't be packed with anything else
-					bCrossesBoundary)
+				bool bPatchPadded = false;
+				if (!bIsUAssetUExpPairUExp) // never patch-pad the uexp of a uasset/uexp pair
 				{
-					NewEntryOffset = AlignArbitrary(NewEntryOffset, RequiredPatchPadding);
-					int64 CurrentLoc = PakFileHandle->Tell();
-					int64 PaddingSize = NewEntryOffset - CurrentLoc;
-					check(PaddingSize >= 0);
-					if (PaddingSize)
+					bool bPairProbablyCrossesBoundary = false; // we don't consider compression because we have not compressed the uexp yet.
+					if (bIsUAssetUExpPairUAsset)
 					{
-						check(PaddingSize <= PaddingBufferSize);
-
-						//have to pad manually with 0's.  File locations skipped by Seek and never written are uninitialized which would defeat the whole purpose
-						//of padding for certain platforms patch diffing systems.
-						PakFileHandle->Serialize(PaddingBuffer, PaddingSize);
+						int64 UExpFileSize = IFileManager::Get().FileSize(*FilesToAdd[FileIndex + 1].Source) / 2; // assume 50% compression
+						bPairProbablyCrossesBoundary = AlignArbitrary(NewEntryOffset, RequiredPatchPadding) != AlignArbitrary(NewEntryOffset + TotalSizeToWrite + UExpFileSize - 1, RequiredPatchPadding);
 					}
-					check(PakFileHandle->Tell() == NewEntryOffset);
+					if (TotalSizeToWrite >= RequiredPatchPadding || // if it exactly the padding size and by luck does not cross a boundary, we still consider it "over" because it can't be packed with anything else
+						bCrossesBoundary || bPairProbablyCrossesBoundary)
+					{
+						NewEntryOffset = AlignArbitrary(NewEntryOffset, RequiredPatchPadding);
+						int64 CurrentLoc = PakFileHandle->Tell();
+						int64 PaddingSize = NewEntryOffset - CurrentLoc;
+						check(PaddingSize >= 0);
+						if (PaddingSize)
+						{
+							UE_LOG(LogPakFile, Verbose, TEXT("%14llu - %14llu : %14llu patch padding."), PakFileHandle->Tell(), PakFileHandle->Tell() + PaddingSize, PaddingSize);
+							check(PaddingSize <= PaddingBufferSize);
+
+							//have to pad manually with 0's.  File locations skipped by Seek and never written are uninitialized which would defeat the whole purpose
+							//of padding for certain platforms patch diffing systems.
+							PakFileHandle->Serialize(PaddingBuffer, PaddingSize);
+						}
+						check(PakFileHandle->Tell() == NewEntryOffset);
+						bPatchPadded = true;
+					}
 				}
 
 				//if the current file is bigger than a patch block then we will always have to pad out the previous files.
 				//if there were a large set of contiguous small files behind us then this will be the natural stopping point for a possible pathalogical patching case where growth in the small files causes a cascade 
 				//to dirty up all the blocks prior to this one.  If this could happen let's warn about it.
-				if (TotalSizeToWrite >= RequiredPatchPadding || 
+				if (bPatchPadded ||
 					FileIndex + 1 == FilesToAdd.Num()) // also check the last file, this won't work perfectly if we don't end up adding the last file for some reason
 				{
 					const uint64 ContiguousGroupedFilePatchWarningThreshhold = 50 * 1024 * 1024;
@@ -1033,8 +1103,12 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 			}
 
 			// Write to file
+			int64 Offset = PakFileHandle->Tell();
 			NewEntry.Info.Serialize(*PakFileHandle, FPakInfo::PakFile_Version_Latest);
 			PakFileHandle->Serialize(DataToWrite, SizeToWrite);	
+			int64 EndOffset = PakFileHandle->Tell();
+
+			UE_LOG(LogPakFile, Verbose, TEXT("%14llu - %14llu : %14llu header+file %s."), Offset, EndOffset, EndOffset - Offset, *NewEntry.Filename);
 
 			// Update offset now and store it in the index (and only in index)
 			NewEntry.Info.Offset = NewEntryOffset;
@@ -1111,7 +1185,8 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 			if (TotalSizeToWrite >= RequiredPatchPadding)
 			{
 				int64 RealStart = Entry.Info.Offset;
-				if ((RealStart % RequiredPatchPadding) != 0)
+				if ((RealStart % RequiredPatchPadding) != 0 && 
+					!Entry.Filename.EndsWith(TEXT("uexp"))) // these are export sections of larger files and may be packed with uasset/umap and so we don't need a warning here
 				{
 					UE_LOG(LogPakFile, Warning, TEXT("File at offset %lld of size %lld not aligned to patch size %i"), RealStart, Entry.Info.Size, RequiredPatchPadding);
 				}

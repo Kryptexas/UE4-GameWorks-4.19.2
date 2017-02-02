@@ -86,7 +86,6 @@ public:
 	double LinkerLoad_SerializeImportMap;
 	double LinkerLoad_SerializeExportMap;
 	double LinkerLoad_FixupImportMap;
-	double LinkerLoad_RemapImports;
 	double LinkerLoad_FixupExportMap;
 	double LinkerLoad_SerializeDependsMap;
 	double LinkerLoad_SerializePreloadDependencies;

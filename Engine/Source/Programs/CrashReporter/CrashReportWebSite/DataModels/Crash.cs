@@ -62,6 +62,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         public Nullable<int> ErrorMessageId { get; set; }
         public Nullable<int> BuggId { get; set; }
         public Nullable<bool> ProcessFailed { get; set; }
+        public Nullable<bool> IsVanilla { get; set; }
     
         public virtual CallStackPattern CallStackPattern { get; set; }
         public virtual User User { get; set; }

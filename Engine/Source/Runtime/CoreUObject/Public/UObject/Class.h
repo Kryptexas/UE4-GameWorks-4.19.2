@@ -281,10 +281,6 @@ public:
 	/** Array of object references embedded in script code. Mirrored for easy access by realtime garbage collection code */
 	TArray<UObject*> ScriptObjectReferences;
 
-	/** Map of Class Name to Map of Old Property Name to New Property Name */
-	static TMap<FName,TMap<FName,FName> > TaggedPropertyRedirects;
-	static void InitTaggedPropertyRedirectsMap();
-
 public:
 	// Constructors.
 	UStruct( EStaticConstructor, int32 InSize, EObjectFlags InFlags );
@@ -1796,12 +1792,6 @@ public:
 	}
 
 private:
-	/** Map of Enum Name to Map of Old Enum entry to New Enum entry */
-	static TMap<FName,TMap<FName,FName> > EnumRedirects;
-	/** Map of Enum Name to Map of Old Enum substring to New Enum substring, to handle many renames at once */
-	static TMap<FName,TMap<FString,FString> > EnumSubstringRedirects;
-	static void InitEnumRedirectsMap();
-
 	FORCEINLINE static FString GetIndexAsString_Internal( const TCHAR* EnumPath, const int32 Index )
 	{
 		UEnum* EnumClass = FindObject<UEnum>( nullptr, EnumPath );

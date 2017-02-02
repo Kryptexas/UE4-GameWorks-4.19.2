@@ -634,7 +634,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 		if (MaterialsThatNeedMorphFlagOn.Num() > 0)
 		{
-			InfoString = FString::Printf( *LOCTEXT("MorphSupportNeeded", "The following materials need morph support ('Used with Morph Targets' in material editor):").ToString() );
+			InfoString = LOCTEXT("MorphSupportNeeded", "The following materials need morph support ('Used with Morph Targets' in material editor):").ToString();
 			Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), HeadlineColour );
 
 			CurYOffset += YL + 2;
@@ -651,7 +651,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 		if (MaterialsThatNeedSaving.Num() > 0)
 		{
-			InfoString = FString::Printf( *LOCTEXT("MaterialsNeedSaving", "The following materials need saving to fully support morph targets:").ToString() );
+			InfoString = LOCTEXT("MaterialsNeedSaving", "The following materials need saving to fully support morph targets:").ToString();
 			Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), HeadlineColour );
 
 			CurYOffset += YL + 2;
@@ -876,7 +876,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 	{
 		// Notify the user if they are isolating a mesh section.
 		CurYOffset += YL + 2;
-		InfoString = FString::Printf(*LOCTEXT("MeshSectionsHiddenWarning", "Mesh Sections Hidden").ToString());
+		InfoString = LOCTEXT("MeshSectionsHiddenWarning", "Mesh Sections Hidden").ToString();
 		Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
 		
 	}

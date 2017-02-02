@@ -157,6 +157,14 @@ public:
 	virtual void PostInitProperties();
 
 	/**
+	* Called after the C++ constructor has run on the CDO for a class. This is an obscure routine used to deal with the recursion 
+	* in the construction of the default materials
+	*/
+	virtual void PostCDOContruct()
+	{
+	}
+
+	/**
 	 * Called from within SavePackage on the passed in base/ root. The return value of this function will be passed to
 	 * PostSaveRoot. This is used to allow objects used as base to perform required actions before saving and cleanup
 	 * afterwards.

@@ -200,7 +200,7 @@ UFunction* UK2Node_DelegateSet::GetDelegateSignature()
 	if( !DelegateProperty )
 	{
 		// Attempt to find a remapped delegate property
-		UMulticastDelegateProperty* NewProperty = Cast<UMulticastDelegateProperty>(FMemberReference::FindRemappedField(DelegatePropertyClass, DelegatePropertyName));
+		UMulticastDelegateProperty* NewProperty = FMemberReference::FindRemappedField<UMulticastDelegateProperty>(DelegatePropertyClass, DelegatePropertyName);
 		if( NewProperty )
 		{
 			// Found a remapped property, update the node
@@ -220,7 +220,7 @@ UFunction* UK2Node_DelegateSet::GetDelegateSignature() const
 	if( !DelegateProperty )
 	{
 		// Attempt to find a remapped delegate property
-		DelegateProperty = Cast<UMulticastDelegateProperty>(FMemberReference::FindRemappedField(DelegatePropertyClass, DelegatePropertyName));
+		DelegateProperty = FMemberReference::FindRemappedField<UMulticastDelegateProperty>(DelegatePropertyClass, DelegatePropertyName);
 	}
 
 	return (DelegateProperty != NULL) ? DelegateProperty->SignatureFunction : NULL;

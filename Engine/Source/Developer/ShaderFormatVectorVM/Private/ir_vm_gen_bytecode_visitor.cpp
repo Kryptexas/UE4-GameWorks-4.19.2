@@ -676,8 +676,7 @@ struct op_input : public op_base
 	{
 		if (instance_idx_component)
 		{
-			FString Fmt = TEXT("[R][%d] = InputData(%d, %d, [%s][%d]);\n");
-			return FString::Printf(*Fmt,
+			return FString::Printf(TEXT("[R][%d] = InputData(%d, %d, [%s][%d]);\n"),
 				dest_component->offset,
 				dataset_idx,
 				register_idx,
@@ -686,8 +685,7 @@ struct op_input : public op_base
 		}
 		else
 		{
-			FString Fmt = TEXT("[R][%d] = InputData(%d, %d);\n");
-			return FString::Printf(*Fmt, dest_component->offset, dataset_idx, register_idx);
+			return FString::Printf(TEXT("[R][%d] = InputData(%d, %d);\n"), dest_component->offset, dataset_idx, register_idx);
 		}
 	}
 
@@ -720,8 +718,7 @@ struct op_input_noadvance : public op_input
 	{
 		if (instance_idx_component)
 		{
-			FString Fmt = TEXT("[R][%d] = InputDataNoadvance(%d, %d, [%s][%d]);\n");
-			return FString::Printf(*Fmt,
+			return FString::Printf(TEXT("[R][%d] = InputDataNoadvance(%d, %d, [%s][%d]);\n"),
 				dest_component->offset,
 				dataset_idx,
 				register_idx,
@@ -730,8 +727,7 @@ struct op_input_noadvance : public op_input
 		}
 		else
 		{
-			FString Fmt = TEXT("[R][%d] = InputDataNoadvance(%d, %d);\n");
-			return FString::Printf(*Fmt, dest_component->offset, dataset_idx, register_idx);
+			return FString::Printf(TEXT("[R][%d] = InputDataNoadvance(%d, %d);\n"), dest_component->offset, dataset_idx, register_idx);
 		}
 	}
 
@@ -771,8 +767,7 @@ struct op_output : public op_base
 		check(instance_idx_component);
 		check(value_component);
 
-		FString Fmt = TEXT("OutputData(%d, [%s][%d], [%s][%d]);\n");
-		return FString::Printf(*Fmt,
+		return FString::Printf(TEXT("OutputData(%d, [%s][%d], [%s][%d]);\n"),
 			register_idx,
 			get_location_string(instance_idx_component->owner->location),
 			instance_idx_component->offset,
@@ -812,8 +807,7 @@ struct op_index_acquire : public op_base
 	{
 		check(valid_component);
 
-		FString Fmt = TEXT("[R][%d] = AcquireIndex(%d, [%s][%d]);\n");
-		return FString::Printf(*Fmt,
+		return FString::Printf(TEXT("[R][%d] = AcquireIndex(%d, [%s][%d]);\n"),
 			dest_component->offset,
 			dataset_idx,
 			get_location_string(valid_component->owner->location),

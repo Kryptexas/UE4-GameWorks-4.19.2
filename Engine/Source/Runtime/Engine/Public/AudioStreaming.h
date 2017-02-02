@@ -191,7 +191,6 @@ public:
 	TArray<FLoadedAudioChunk> LoadedChunks;
 
 	class IAsyncReadFileHandle* IORequestHandle;
-	FAsyncFileCallBack AsyncFileCallBack;
 
 	/** Potentially outstanding audio chunk I/O requests */
 	TArray<uint64>	IORequestIndices;

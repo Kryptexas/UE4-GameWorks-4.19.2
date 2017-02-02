@@ -5,8 +5,11 @@
 #include "UnrealTypeDefinitionInfo.h"
 #include "ClassMaps.h"
 
-FHeaderProvider::FHeaderProvider(EHeaderProviderSourceType InType, const FString& InId, bool bInAutoInclude/* = false*/)
-	: Type(InType), Id(InId), Cache(nullptr), bAutoInclude(bInAutoInclude)
+FHeaderProvider::FHeaderProvider(EHeaderProviderSourceType InType, FString&& InId, bool bInAutoInclude/* = false*/)
+	: Type(InType)
+	, Id(MoveTemp(InId))
+	, Cache(nullptr)
+	, bAutoInclude(bInAutoInclude)
 {
 
 }

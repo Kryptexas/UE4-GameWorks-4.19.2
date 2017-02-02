@@ -1,9 +1,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealCodeAnalyzerPCH.h"
 #include "Action.h"
 #include "Consumer.h"
 #include "MacroCallback.h"
+
+#include "clang/FrontEnd/CompilerInstance.h"
+#include "clang/Lex/Preprocessor.h"
 
 namespace UnrealCodeAnalyzer
 {

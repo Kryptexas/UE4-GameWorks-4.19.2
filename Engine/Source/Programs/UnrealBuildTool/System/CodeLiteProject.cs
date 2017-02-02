@@ -42,7 +42,7 @@ namespace UnrealBuildTool
 			string ProjectPlatformName = BuildHostPlatform.Current.Platform.ToString();
 
 			// Get the output directory
-			string EngineRootDirectory = Path.GetFullPath(ProjectFileGenerator.EngineRelativePath);
+			string EngineRootDirectory = UnrealBuildTool.EngineDirectory.FullName;
 
 			//
 			// Build the working directory of the Game executable.
@@ -119,7 +119,7 @@ namespace UnrealBuildTool
 					{
 						if(ProjectName.Contains("UE4"))
 						{
-							int Idx = Path.GetFullPath(ProjectFileGenerator.EngineRelativePath).Length;
+							int Idx = UnrealBuildTool.EngineDirectory.FullName.Length;
 							CurrentFilePath = Path.GetDirectoryName(Path.GetFullPath(CurrentFile.Reference.FullName)).Substring(Idx);
 						}
 						else

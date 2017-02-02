@@ -168,8 +168,8 @@ void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, 
 		UFunction* MessageNodeFunction = GetTargetFunction();
 		if (MessageNodeFunction == NULL)
 		{
-			//@TODO: Why do this here in teh compiler, it's already done on AllocateDefaultPins() during on-load node reconstruction
-			MessageNodeFunction = Cast<UFunction>(FMemberReference::FindRemappedField(FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode()), FunctionReference.GetMemberName()));
+			//@TODO: Why do this here in the compiler, it's already done on AllocateDefaultPins() during on-load node reconstruction
+			MessageNodeFunction = FMemberReference::FindRemappedField<UFunction>(FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode()), FunctionReference.GetMemberName());
 		}
 
 		if (MessageNodeFunction == NULL)

@@ -49,6 +49,7 @@
 #include "UObject/UObjectThreadContext.h"
 #include "Misc/ExclusiveLoadPackageTimeTracker.h"
 #include "Serialization/DeferredMessageLog.h"
+#include "UObject/CoreRedirects.h"
 
 DEFINE_LOG_CATEGORY(LogObj);
 
@@ -1006,7 +1007,7 @@ bool UObject::IsSelected() const
 void UObject::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 {
 	UClass *ObjClass = GetClass();
-	if (!ObjClass->HasAnyClassFlags(CLASS_Intrinsic | CLASS_Native))
+	if (!ObjClass->HasAnyClassFlags(CLASS_Intrinsic))
 	{
 		OutDeps.Add(ObjClass);
 
@@ -3304,11 +3305,11 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 
 				if (Errors.Num() > 0)
 				{
-					Ar.Logf(*FString::Printf(TEXT("Errors for %s"), *Target->GetName()));
+					Ar.Logf(TEXT("Errors for %s"), *Target->GetName());
 
 					for (auto ErrorStr : Errors)
 					{
-						Ar.Logf(*(FString(TEXT("  - ") + ErrorStr)));
+						Ar.Logf(TEXT("  - %s"), *ErrorStr);
 					}
 				}
 			}
@@ -3810,6 +3811,7 @@ void InitUObject()
 	// Initialize redirects map
 	for (const auto& It : *GConfig)
 	{
+		FCoreRedirects::ReadRedirectsFromIni(It.Key);
 		FLinkerLoad::CreateActiveRedirectsMap(It.Key);
 	}
 

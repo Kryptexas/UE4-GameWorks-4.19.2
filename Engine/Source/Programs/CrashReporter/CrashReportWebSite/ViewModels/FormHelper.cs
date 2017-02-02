@@ -84,6 +84,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 
 	    public string EngineMode = "";
 
+        /// <summary></summary>
+	    public bool? IsVanilla;
+
 		/// <summary>
 		/// Intelligently extract parameters from a web request that could be in a form or a query string (GET vs. POST).
 		/// </summary>
@@ -201,20 +204,30 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
             GetFormParameter(Request, Form, "EngineMode", EngineMode, out EngineMode);
             GetFormParameter(Request, Form, "EngineVersion", EngineVersion, out EngineVersion);
 
+		    var vanillaString = IsVanilla.ToString();
+            if(GetFormParameter(Request, Form, "IsVanilla", vanillaString, out vanillaString))
+            {
+                if (vanillaString.ToLower() == "true")
+                    IsVanilla = true;
+                else if (vanillaString.ToLower() == "false")
+                    IsVanilla = false;
+                else
+                    IsVanilla = null;
+            }
 
-			string PageString = Page.ToString();
-			if (GetFormParameter( Request, Form, "Page", PageString, out PageString ))
+			var pageString = Page.ToString();
+			if (GetFormParameter( Request, Form, "Page", pageString, out pageString ))
 			{
-				if (!int.TryParse( PageString, out Page ) || Page < 1)
+				if (!int.TryParse( pageString, out Page ) || Page < 1)
 				{
 					Page = 1;
 				}
 			}
 
-			string PageSizeString = PageSize.ToString();
-			if (GetFormParameter( Request, Form, "PageSize", PageSizeString, out PageSizeString ))
+			var pageSizeString = PageSize.ToString();
+			if (GetFormParameter( Request, Form, "PageSize", pageSizeString, out pageSizeString ))
 			{
-				if (!int.TryParse( PageSizeString, out PageSize ) || PageSize < 1)
+				if (!int.TryParse( pageSizeString, out PageSize ) || PageSize < 1)
 				{
 					PageSize = 100;
 				}

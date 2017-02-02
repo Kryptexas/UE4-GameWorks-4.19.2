@@ -28,7 +28,7 @@ void FMessageDialog::Debugf( const FText& Message, const FText* OptTitle )
 {
 	if( FApp::IsUnattended() == true )
 	{
-		GLog->Logf( *Message.ToString() );
+		GLog->Logf( TEXT("%s"), *Message.ToString() );
 	}
 	else
 	{
@@ -67,7 +67,7 @@ EAppReturnType::Type FMessageDialog::Open( EAppMsgType::Type MessageType, const 
 	{
 		if (GWarn)
 		{
-			GWarn->Logf( *Message.ToString() );
+			GWarn->Logf( TEXT("%s"), *Message.ToString() );
 		}
 
 		switch(MessageType)

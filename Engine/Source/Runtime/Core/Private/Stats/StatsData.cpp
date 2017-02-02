@@ -1858,11 +1858,11 @@ FString FStatsUtils::DebugPrint(FStatMessage const& Item)
 		}
 		else
 		{
-			Result = FString::Printf(GetStatFormatString<int64>(), Item.GetValue_int64());
+			Result = FString::Printf(TEXT("%llu"), Item.GetValue_int64());
 		}
 		break;
 	case EStatDataType::ST_double:
-		Result = FString::Printf(GetStatFormatString<double>(), Item.GetValue_double());
+		Result = FString::Printf(TEXT("%.1f"), Item.GetValue_double());
 		break;
 	case EStatDataType::ST_FName:
 		Result = Item.GetValue_FName().ToString();

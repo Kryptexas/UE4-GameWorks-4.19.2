@@ -741,7 +741,7 @@ namespace UnrealBuildTool
 			{
 				VCProjectFileContent.Append("	<PropertyGroup>" + ProjectFileGenerator.NewLine);
 				VCProjectFileContent.Append("		<SourcePath>");
-				foreach (string DirectoryName in Directory.EnumerateDirectories(Path.GetFullPath(Path.Combine(ProjectFileGenerator.EngineRelativePath, "Source")), "*", SearchOption.AllDirectories))
+				foreach (string DirectoryName in Directory.EnumerateDirectories(UnrealBuildTool.EngineSourceDirectory.FullName, "*", SearchOption.AllDirectories))
 				{
 					if (Directory.EnumerateFiles(DirectoryName, "*.cpp").Any())
 					{
@@ -1057,7 +1057,7 @@ namespace UnrealBuildTool
 
 				if (IsStubProject)
 				{
-					string ProjectRelativeUnusedDirectory = NormalizeProjectPath(Path.Combine(ProjectFileGenerator.EngineRelativePath, "Intermediate", "Build", "Unused"));
+					string ProjectRelativeUnusedDirectory = NormalizeProjectPath(DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Intermediate", "Build", "Unused"));
 
 					VCProjectFileContent.Append(
 						"	<PropertyGroup " + ConditionString + ">" + ProjectFileGenerator.NewLine +
@@ -1071,7 +1071,7 @@ namespace UnrealBuildTool
 				}
 				else if (UnrealBuildTool.IsEngineInstalled() && Combination.ProjectTarget != null && Combination.ProjectTarget.TargetRules != null && !Combination.ProjectTarget.SupportedPlatforms.Contains(Combination.Platform))
 				{
-					string ProjectRelativeUnusedDirectory = NormalizeProjectPath(Path.Combine(ProjectFileGenerator.EngineRelativePath, "Intermediate", "Build", "Unused"));
+					string ProjectRelativeUnusedDirectory = NormalizeProjectPath(DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Intermediate", "Build", "Unused"));
 
 					VCProjectFileContent.AppendFormat(
 						"	<PropertyGroup " + ConditionString + ">" + ProjectFileGenerator.NewLine +
