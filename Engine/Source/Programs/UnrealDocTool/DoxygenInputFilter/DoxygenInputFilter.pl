@@ -52,12 +52,16 @@ while (<FILE1>)
 #print "lcn2 = " . $lastclassname . "\n";
 			}
 		}
-		else
+		elsif (index($line, "GENERATED_UCLASS_BODY()") >= 0)
 		{
-			if (index($line, "GENERATED_UCLASS_BODY()") >= 0)
+			# $lastclassname might not be initialized. If so, the previous logic block failed to catch a class name, or "GENERATED_UCLASS_BODY()" is floating around loose in a file somewhere.
+			$line = "GENERATED_BODY() public: " . $lastclassname . "(const FObjectInitializer& ObjectInitializer);\n";
+		}
+		elsif (index($line, "enum ") >= 0)
+		{
+			if ($line =~ /\s+enum \w+_API E\w+/)
 			{
-				# $lastclassname might not be initialized. If so, the previous logic block failed to catch a class name, or "GENERATED_UCLASS_BODY()" is floating around loose in a file somewhere.
-				$line = "GENERATED_BODY() public: " . $lastclassname . "(const FObjectInitializer& ObjectInitializer);\n";
+				$line = "enum " . substr($line, (index($line, "_API") + 5));
 			}
 		}
 		$commentposition = index($line, "\/\/");

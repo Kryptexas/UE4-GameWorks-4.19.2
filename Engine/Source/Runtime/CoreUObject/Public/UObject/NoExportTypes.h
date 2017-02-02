@@ -220,65 +220,40 @@ UENUM(BlueprintType)
 enum class EUnit : uint8
 {
 	/** Scalar distance/length unit. */
-
-	Micrometers, Millimeters, Centimeters, Meters, Kilometers,
-	Inches, Feet, Yards, Miles,
-	Lightyears,
-
-
+	Micrometers, Millimeters, Centimeters, Meters, Kilometers, Inches, Feet, Yards, Miles, Lightyears,
+	
 	/** Angular units */
-
 	Degrees, Radians,
-
-
+	
 	/** Speed units */
-
 	MetersPerSecond, KilometersPerHour, MilesPerHour,
-
-
+	
 	/** Temperature units */
-
 	Celsius, Farenheit, Kelvin,
-
-
+	
 	/** Mass units */
-
-	Micrograms, Milligrams, Grams, Kilograms, MetricTons,
-	Ounces, Pounds, Stones,
-
-
+	Micrograms, Milligrams, Grams, Kilograms, MetricTons, Ounces, Pounds, Stones,
+	
 	/** Force units */
-
 	Newtons, PoundsForce, KilogramsForce,
-
-
+	
 	/** Frequency units */
-
 	Hertz, Kilohertz, Megahertz, Gigahertz, RevolutionsPerMinute,
-
-
-	/** Data Size units */
 	
+	/** Data Size units */	
 	Bytes, Kilobytes, Megabytes, Gigabytes, Terabytes,
-
-
-	/** Luminous flux units */
 	
+	/** Luminous flux units */	
 	Lumens,
-
-
-	/** Time units */
 	
+	/** Time units */	
 	Milliseconds, Seconds, Minutes, Hours, Days, Months, Years,
 
-	/** Arbitrary multiplier */
-	
+	/** Arbitrary multiplier */	
 	Multiplier,
 
-
-	/** Symbolic entry, not specifiable on meta data. */
-	
-	Unspecified
+	/** Symbolic entry, not specifiable on meta data. */	
+	Unspecified,
 };
 
 /** A globally unique identifier. */
