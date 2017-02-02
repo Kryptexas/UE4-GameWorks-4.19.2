@@ -486,7 +486,7 @@ void FAutomationControllerManager::GenerateHtmlTestPassSummary(FDateTime Timesta
 FString FAutomationControllerManager::CopyArtifact(const FString& SourceFile)
 {
 	FString ReportOutputFolder = ReportOutputPathOverride.IsEmpty() ? FPaths::AutomationLogDir() : ReportOutputPathOverride;
-	FString AritfactDirectory = FString::Printf(TEXT("ReportArtifact-%d"), FEngineVersion::Current().GetChangelist());
+	FString AritfactDirectory = FString::Printf(TEXT("ReportArtifacts-%d"), FEngineVersion::Current().GetChangelist());
 
 	FString ArtifactFile = AritfactDirectory / FGuid::NewGuid().ToString(EGuidFormats::Digits) + FPaths::GetExtension(SourceFile, true);
 	FString ArtifactDestination = ReportOutputFolder / ArtifactFile;

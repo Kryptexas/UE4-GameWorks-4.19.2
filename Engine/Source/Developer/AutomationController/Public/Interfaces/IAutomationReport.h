@@ -65,19 +65,27 @@ inline const TCHAR* ToString(EAutomationState InType)
 	return TEXT("Invalid");
 }
 
+enum class EAutomationArtifactType : uint8
+{
+	Image,
+	Comparison
+};
+
 struct FAutomationArtifact
 {
 public:
-	FAutomationArtifact(FString InName, FString InFilePath)
+	FAutomationArtifact(const FString& InName, EAutomationArtifactType InType, const TArray<FString>& InFilePaths)
 		: Name(InName)
-		, FilePath(InFilePath)
+		, Type(InType)
+		, FilePaths(InFilePaths)
 	{
 	}
 
 public:
 
 	FString Name;
-	FString FilePath;
+	EAutomationArtifactType Type;
+	TArray<FString> FilePaths;
 };
 
 /**

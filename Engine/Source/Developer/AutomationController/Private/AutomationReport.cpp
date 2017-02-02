@@ -374,11 +374,14 @@ void FAutomationReport::ResetForExecution(const int32 NumTestPasses)
 			{
 				//reset all stats
 				Results[ClusterIndex][PassIndex].State = EAutomationState::NotRun;
+				Results[ClusterIndex][PassIndex].Logs.Empty();
 				Results[ClusterIndex][PassIndex].Warnings.Empty();
 				Results[ClusterIndex][PassIndex].Errors.Empty();
+				Results[ClusterIndex][PassIndex].Artifacts.Empty();
 			}
 		}
 	}
+
 	//recurse to children
 	for (int32 ChildIndex = 0; ChildIndex < ChildReports.Num(); ++ChildIndex)
 	{
