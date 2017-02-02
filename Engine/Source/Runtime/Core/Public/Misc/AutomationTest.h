@@ -22,6 +22,8 @@
 #include "Future.h"
 #include "Async.h"
 #include "Misc/Guid.h"
+#include "Math/Vector.h"
+#include "Math/Color.h"
 
 /** Flags for specifying automation test requirements/behavior */
 namespace EAutomationTestFlags
