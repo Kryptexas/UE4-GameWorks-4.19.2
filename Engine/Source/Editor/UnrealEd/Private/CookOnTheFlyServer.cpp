@@ -5112,8 +5112,8 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 
 
 
-		// if we didn't find maps to cook then cook the allmaps section
-		if (bFoundMapsToCook == false)
+		// if we didn't find maps to cook, and we don't have any commandline maps (CookMaps), then cook the allmaps section
+		if (bFoundMapsToCook == false && CookMaps.Num() == 0)
 		{
 			UE_LOG(LogCook, Verbose, TEXT("Loading default map ini section AllMaps "));
 			TArray<FString> AllMapsSection;
