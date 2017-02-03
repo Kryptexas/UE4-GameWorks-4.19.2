@@ -127,6 +127,8 @@ void SScreenShotBrowser::OnDirectoryChanged(const FString& Directory)
 	ComparisonRoot = Directory;
 
 	RefreshDirectoryWatcher();
+
+	bReportsChanged = true;
 }
 
 void SScreenShotBrowser::RefreshDirectoryWatcher()
