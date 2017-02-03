@@ -353,6 +353,7 @@ void FAutomationControllerManager::GenerateHtmlTestPassSummary(FDateTime Timesta
 	}
 
 	FString ReportOutputPath = GetReportPath(Timestamp);
+	FScreenshotExportResults ExportResults = ScreenshotManager->ExportComparisonResultsAsync(ReportOutputPath).Get();
 
 	FAutomatedTestPassResults SerializedPassResults = OurPassResults;
 	SerializedPassResults.TestInformation.StableSort([] (const FAutomatedTestResult& A, const FAutomatedTestResult& B) {
@@ -471,6 +472,7 @@ void FAutomationControllerManager::GenerateHtmlTestPassSummary(FDateTime Timesta
 		TMap<FString, FStringFormatArg> Args;
 		Args.Add(TEXT("Title"), TEXT("Automation Test Results"));
 		Args.Add(TEXT("TitleColor"), TitleColor);
+		Args.Add(TEXT("ComparisonExportDirectory"), ExportResults.ExportPath);
 		Args.Add(TEXT("Results"), HtmlResults);
 
 		FString Html = FString::Format(*MasterTemplate, Args);
@@ -712,11 +714,17 @@ void FAutomationControllerManager::ProcessResults()
 		}
 	}
 
-	// Write our the report of our automation pass to JSON. Then clean our array for the next pass.
-	FDateTime Timestamp = FDateTime::Now();
-	GenerateJsonTestPassSummary(Timestamp);
-	GenerateHtmlTestPassSummary(Timestamp);
+	if ( !ReportOutputPathOverride.IsEmpty() )
+	{
+		FDateTime Timestamp = FDateTime::Now();
 
+		// Generate Html
+		GenerateHtmlTestPassSummary(Timestamp);
+		// Generate Json
+		GenerateJsonTestPassSummary(Timestamp);
+	}
+
+	// Then clean our array for the next pass.
 	OurPassResults.ClearAllEntries();
 
 	SetControllerStatus(EAutomationControllerModuleState::Ready);

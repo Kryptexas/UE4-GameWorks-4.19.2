@@ -35,7 +35,7 @@ public:
 
 	virtual TFuture<FImageComparisonResult> CompareScreensotAsync(FString RelativeImagePath) override;
 
-	virtual TFuture<void> ExportScreensotsAsync(FString ExportPath = TEXT("")) override;
+	virtual TFuture<FScreenshotExportResults> ExportComparisonResultsAsync(FString ExportPath = TEXT("")) override;
 
 	virtual bool OpenComparisonReports(FString ImportPath, TArray<FComparisonReport>& OutReports) override;
 
@@ -51,7 +51,7 @@ private:
 	FString GetDefaultExportDirectory() const;
 
 	FImageComparisonResult CompareScreensot(FString Existing);
-	bool ExportComparisonResults(FString RootExportFolder);
+	FScreenshotExportResults ExportComparisonResults(FString RootExportFolder);
 	void CopyDirectory(const FString& DestDir, const FString& SrcDir);
 
 private:

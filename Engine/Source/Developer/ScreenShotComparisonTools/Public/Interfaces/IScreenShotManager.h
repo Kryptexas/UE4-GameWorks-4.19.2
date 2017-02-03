@@ -22,6 +22,17 @@ typedef TSharedPtr<class IScreenShotManager> IScreenShotManagerPtr;
  */
 typedef TSharedRef<class IScreenShotManager> IScreenShotManagerRef;
 
+struct FScreenshotExportResults
+{
+	bool Success;
+	FString ExportPath;
+
+	FScreenshotExportResults()
+		: Success(false)
+	{
+	}
+};
+
 /**
  * Interface for screen manager module.
  */
@@ -38,7 +49,7 @@ public:
 	/**
 	 * Exports the screenshots to the export location specified
 	 */
-	virtual TFuture<void> ExportScreensotsAsync(FString ExportPath = TEXT("")) = 0;
+	virtual TFuture<FScreenshotExportResults> ExportComparisonResultsAsync(FString ExportPath = TEXT("")) = 0;
 
 	/**
 	 * Imports screenshot comparison data from a given path.

@@ -217,12 +217,12 @@ FImageComparisonResult FScreenShotManager::CompareScreensot(FString ExistingImag
 	return ComparisonResult;
 }
 
-TFuture<void> FScreenShotManager::ExportScreensotsAsync(FString ExportPath)
+TFuture<FScreenshotExportResults> FScreenShotManager::ExportComparisonResultsAsync(FString ExportPath)
 {
-	return Async<void>(EAsyncExecution::Thread, [&] () { ExportComparisonResults(ExportPath); });
+	return Async<FScreenshotExportResults>(EAsyncExecution::Thread, [&] () { return ExportComparisonResults(ExportPath); });
 }
 
-bool FScreenShotManager::ExportComparisonResults(FString RootExportFolder)
+FScreenshotExportResults FScreenShotManager::ExportComparisonResults(FString RootExportFolder)
 {
 	FPaths::NormalizeDirectoryName(RootExportFolder);
 
@@ -231,19 +231,22 @@ bool FScreenShotManager::ExportComparisonResults(FString RootExportFolder)
 		RootExportFolder = GetDefaultExportDirectory();
 	}
 
-	FString ExportDirectory = RootExportFolder / FString::FromInt(FEngineVersion::Current().GetChangelist());
+	FScreenshotExportResults Results;
+	Results.Success = false;
+	Results.ExportPath = RootExportFolder / FString::FromInt(FEngineVersion::Current().GetChangelist());
 
-	if ( !IFileManager::Get().MakeDirectory(*ExportDirectory, /*Tree =*/true) )
+	if ( !IFileManager::Get().MakeDirectory(*Results.ExportPath, /*Tree =*/true) )
 	{
-		return false;
+		return Results;
 	}
 
 	// Wait for file operations to complete.
 	FPlatformProcess::Sleep(1.0f);
 
-	CopyDirectory(ExportDirectory, ComparisonResultsFolder);
+	CopyDirectory(Results.ExportPath, ComparisonResultsFolder);
 
-	return true;
+	Results.Success = true;
+	return Results;
 }
 
 bool FScreenShotManager::OpenComparisonReports(FString ImportPath, TArray<FComparisonReport>& OutReports)
