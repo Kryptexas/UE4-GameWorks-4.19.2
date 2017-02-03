@@ -1490,6 +1490,7 @@ bool GenerateHashesFromPak(const TCHAR* InPakFilename, TMap<FString, FFileInfo>&
 		for (FPakFile::FFileIterator It(PakFile); It; ++It, ++FileCount)
 		{
 			const FPakEntry& Entry = It.Info();
+			const FString Filename = PakMountPoint + It.Filename();
 			PakReader.Seek(Entry.Offset);
 			uint32 SerializedCrcTest = 0;
 			FPakEntry EntryInfo;
@@ -1511,11 +1512,11 @@ bool GenerateHashesFromPak(const TCHAR* InPakFilename, TMap<FString, FFileInfo>&
 						UncompressCopyFile(*FileHandle, PakReader, Entry, PersistantCompressionBuffer, CompressionBufferSize);
 					}
 
-					UE_LOG(LogPakFile, Display, TEXT("Generated hash for \"%s\""), *It.Filename());
+					UE_LOG(LogPakFile, Display, TEXT("Generated hash for \"%s\""), *Filename);
 					FFileInfo FileHash;
 					GenerateHashForFile(Bytes.GetData(), Bytes.Num(), FileHash);
 
-					FileHashes.Add(It.Filename(), FileHash);
+					FileHashes.Add(Filename, FileHash);
 				}
 				/*else
 				{
@@ -1776,11 +1777,11 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 
 					IFileManager::Get().DeleteDirectory(*OutputPath);
 
-					UE_LOG(LogPakFile, Display, TEXT("Generating patch from %s."), *CmdLineParameters.SourcePatchPakFilename );
+					UE_LOG(LogPakFile, Display, TEXT("Generating patch from %s."), *CmdLineParameters.SourcePatchPakFilename, true );
 
-					if ( !GenerateHashesFromPak(*CmdLineParameters.SourcePatchPakFilename, SourceFileHashes) )
+					if ( !GenerateHashesFromPak(*CmdLineParameters.SourcePatchPakFilename, SourceFileHashes, true) )
 					{
-						if ( ExtractFilesFromPak( *CmdLineParameters.SourcePatchPakFilename, *OutputPath, true ) == false )
+						if ( ExtractFilesFromPak( *CmdLineParameters.SourcePatchPakFilename, *OutputPath ) == false )
 						{
 							UE_LOG(LogPakFile, Error, TEXT("Unable to extract files from source pak file for patch") );
 						}
