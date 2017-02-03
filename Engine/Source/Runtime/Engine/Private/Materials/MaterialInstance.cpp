@@ -1028,24 +1028,28 @@ void UMaterialInstance::OverrideScalarParameterDefault(FName ParameterName, floa
 
 float UMaterialInstance::GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel::Type InFeatureLevel)
 {
-	if (bHasStaticPermutationResource)
+	if (bHasStaticPermutationResource )
 	{
-		const FMaterialResource* SourceMaterialResource = GetMaterialResource(InFeatureLevel);
-		const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = SourceMaterialResource->GetUniformScalarParameterExpressions();
-
-		// Iterate over each of the material's texture expressions.
-		for (int32 ExpressionIndex = 0; ExpressionIndex < UniformExpressions.Num(); ExpressionIndex++)
+		if (FApp::CanEverRender())
 		{
-			FMaterialUniformExpression* UniformExpression = UniformExpressions[ExpressionIndex];
-			if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
-			{
-				FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+			const FMaterialResource* SourceMaterialResource = GetMaterialResource(InFeatureLevel);
+			ensureAlways(SourceMaterialResource);
+			const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = SourceMaterialResource->GetUniformScalarParameterExpressions();
 
-				if (ScalarExpression->GetParameterName() == ParameterName)
+			// Iterate over each of the material's texture expressions.
+			for (int32 ExpressionIndex = 0; ExpressionIndex < UniformExpressions.Num(); ExpressionIndex++)
+			{
+				FMaterialUniformExpression* UniformExpression = UniformExpressions[ExpressionIndex];
+				if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
 				{
-					float Value = 0.f;
-					ScalarExpression->GetDefaultValue(Value);
-					return Value;
+					FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+
+					if (ScalarExpression->GetParameterName() == ParameterName)
+					{
+						float Value = 0.f;
+						ScalarExpression->GetDefaultValue(Value);
+						return Value;
+					}
 				}
 			}
 		}
