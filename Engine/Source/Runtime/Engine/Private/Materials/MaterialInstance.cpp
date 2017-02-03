@@ -721,51 +721,50 @@ void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMateria
 			QualityLevel = GetCachedScalabilityCVars().MaterialQualityLevel;
 		}
 
+		const UMaterial* BaseMaterial = GetMaterial();
 		const UMaterialInstance* MaterialInstanceToUse = this;
-		// Walk up the material instance chain to the first parent that has static parameters
-		while (MaterialInstanceToUse && !MaterialInstanceToUse->bHasStaticPermutationResource)
-		{
-			MaterialInstanceToUse = Cast<const UMaterialInstance>(MaterialInstanceToUse->Parent);
-		}
 
-		// Use the uniform expressions from the lowest material instance with static parameters in the chain, if one exists
-		if (MaterialInstanceToUse
-			&& MaterialInstanceToUse->bHasStaticPermutationResource)
+		if (BaseMaterial && !BaseMaterial->IsDefaultMaterial())
 		{
-			for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+			// Walk up the material instance chain to the first parent that has static parameters
+			while (MaterialInstanceToUse && !MaterialInstanceToUse->bHasStaticPermutationResource)
 			{
-				for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
-				{
-					const FMaterialResource* CurrentResource = MaterialInstanceToUse->StaticPermutationMaterialResources[QualityLevelIndex][FeatureLevelIndex];
-					if (CurrentResource == nullptr || (FeatureLevelIndex != FeatureLevel && !bAllFeatureLevels))
-						continue;
+				MaterialInstanceToUse = Cast<const UMaterialInstance>(MaterialInstanceToUse->Parent);
+			}
 
-					//@todo - GetUsedTextures is incorrect during cooking since we don't cache shaders for the current platform during cooking
-					if (QualityLevelIndex == QualityLevel || bAllQualityLevels)
+			// Use the uniform expressions from the lowest material instance with static parameters in the chain, if one exists
+			if (MaterialInstanceToUse && MaterialInstanceToUse->bHasStaticPermutationResource)
+			{
+				for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+				{
+					for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
 					{
-						GetTextureExpressionValues(CurrentResource, OutTextures);
+						const FMaterialResource* CurrentResource = MaterialInstanceToUse->StaticPermutationMaterialResources[QualityLevelIndex][FeatureLevelIndex];
+						if (CurrentResource == nullptr || (FeatureLevelIndex != FeatureLevel && !bAllFeatureLevels))
+							continue;
+
+						//@todo - GetUsedTextures is incorrect during cooking since we don't cache shaders for the current platform during cooking
+						if (QualityLevelIndex == QualityLevel || bAllQualityLevels)
+						{
+							GetTextureExpressionValues(CurrentResource, OutTextures);
+						}
 					}
 				}
 			}
-		}
-		else
-		{
-			// Use the uniform expressions from the base material
-			const UMaterial* Material = GetMaterial();
-
-			if (Material)
+			else
 			{
-				const FMaterialResource* MaterialResource = Material->GetMaterialResource(FeatureLevel, QualityLevel);
+				// Use the uniform expressions from the base material
+				const FMaterialResource* MaterialResource = BaseMaterial->GetMaterialResource(FeatureLevel, QualityLevel);
 				if( MaterialResource )
 				{
 					GetTextureExpressionValues(MaterialResource, OutTextures);
 				}
 			}
-			else
-			{
-				// If the material instance has no material, use the default material.
-				UMaterial::GetDefaultMaterial(MD_Surface)->GetUsedTextures(OutTextures, QualityLevel, bAllQualityLevels, FeatureLevel, bAllFeatureLevels);
-			}
+		}
+		else
+		{
+			// If the material instance has no material, use the default material.
+			UMaterial::GetDefaultMaterial(MD_Surface)->GetUsedTextures(OutTextures, QualityLevel, bAllQualityLevels, FeatureLevel, bAllFeatureLevels);
 		}
 	}
 }
