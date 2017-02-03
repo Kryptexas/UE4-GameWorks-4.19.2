@@ -6631,7 +6631,7 @@ int32 UMaterialExpressionSceneTexture::Compile(class FMaterialCompiler* Compiler
 		return Compiler->SceneTextureSize(SceneTextureId, OutputIndex == 2);
 	}
 
-	return Compiler->Errorf(TEXT("Invalid intput parameter"));
+	return Compiler->Errorf(TEXT("Invalid input parameter"));
 }
 
 void UMaterialExpressionSceneTexture::GetCaption(TArray<FString>& OutCaptions) const

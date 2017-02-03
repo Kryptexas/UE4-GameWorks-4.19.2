@@ -92,6 +92,10 @@ public:
 			InstancedNumCulledLightsGrid.SetBuffer(RHICmdList, ShaderRHI, InstancedView.ForwardLightingResources->NumCulledLightsGrid);
 			InstancedCulledLightDataGrid.SetBuffer(RHICmdList, ShaderRHI, InstancedView.ForwardLightingResources->CulledLightDataGrid);
 		}
+		else if (InstancedForwardGlobalLightData.IsBound())
+		{
+			SetUniformBufferParameter(RHICmdList, ShaderRHI, InstancedForwardGlobalLightData, View.ForwardLightingResources->ForwardGlobalLightData);
+		}
 
 		FSceneRenderTargets& SceneRenderTargets = FSceneRenderTargets::Get(RHICmdList);
 

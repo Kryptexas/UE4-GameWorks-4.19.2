@@ -1116,6 +1116,7 @@ void FMetalStateCache::SetShaderResourceView(EShaderFrequency ShaderStage, uint3
 		FRHITexture* Texture = SRV->SourceTexture.GetReference();
 		FMetalVertexBuffer* VB = SRV->SourceVertexBuffer.GetReference();
 		FMetalIndexBuffer* IB = SRV->SourceIndexBuffer.GetReference();
+		FMetalStructuredBuffer* SB = SRV->SourceStructuredBuffer.GetReference();
 		if (Texture)
 		{
 			FMetalSurface* Surface = SRV->TextureView;
@@ -1136,6 +1137,10 @@ void FMetalStateCache::SetShaderResourceView(EShaderFrequency ShaderStage, uint3
 		else if (IB)
 		{
 			SetShaderBuffer(ShaderStage, IB->Buffer, nil, 0, IB->GetSize(), BindIndex);
+		}
+		else if (SB)
+		{
+			SetShaderBuffer(ShaderStage, SB->Buffer, nil, 0, SB->GetSize(), BindIndex);
 		}
 	}
 	FShaderCache::SetSRV(ShaderStage, BindIndex, SRV);

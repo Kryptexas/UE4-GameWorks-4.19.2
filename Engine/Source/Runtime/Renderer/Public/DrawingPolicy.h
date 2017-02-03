@@ -44,6 +44,7 @@ struct FDrawingPolicyRenderState
 #endif
 		  BlendState(nullptr)
 		, DepthStencilState(nullptr)
+		, DepthStencilAccess(FExclusiveDepthStencil::DepthRead_StencilRead)
 		, ViewUniformBuffer(SceneView.ViewUniformBuffer)
 		, StencilRef(0)
 		, ViewOverrideFlags(EDrawingPolicyOverrideFlags::None)
@@ -64,6 +65,7 @@ struct FDrawingPolicyRenderState
 #endif
 		  BlendState(DrawRenderState.BlendState)
 		, DepthStencilState(DrawRenderState.DepthStencilState)
+		, DepthStencilAccess(DrawRenderState.DepthStencilAccess)
 		, ViewUniformBuffer(DrawRenderState.ViewUniformBuffer)
 		, StencilRef(DrawRenderState.StencilRef)
 		, ViewOverrideFlags(DrawRenderState.ViewOverrideFlags)
@@ -133,6 +135,16 @@ public:
 		return DepthStencilState;
 	}
 
+	FORCEINLINE_DEBUGGABLE void SetDepthStencilAccess(FExclusiveDepthStencil::Type InDepthStencilAccess)
+	{
+		DepthStencilAccess = InDepthStencilAccess;
+	}
+
+	FORCEINLINE_DEBUGGABLE FExclusiveDepthStencil::Type GetDepthStencilAccess() const
+	{
+		return DepthStencilAccess;
+	}
+
 	FORCEINLINE_DEBUGGABLE void SetViewUniformBuffer(const TUniformBufferRef<FViewUniformShaderParameters>& InViewUniformBuffer)
 	{
 		ViewUniformBuffer = InViewUniformBuffer;
@@ -187,6 +199,7 @@ private:
 
 	FBlendStateRHIParamRef			BlendState;
 	FDepthStencilStateRHIParamRef	DepthStencilState;
+	FExclusiveDepthStencil::Type	DepthStencilAccess;
 
 	TUniformBufferRef<FViewUniformShaderParameters>	ViewUniformBuffer;
 	uint32							StencilRef;

@@ -177,21 +177,6 @@ static void SetTranslucentState(FRHICommandList& RHICmdList, FDrawingPolicyRende
 	DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 }
 
-static void FinishTranslucentRenderTarget(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, ETranslucencyPass::Type TranslucencyPass)
-{
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_FinishTranslucentRenderTarget);
-	
-	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	if ((TranslucencyPass == ETranslucencyPass::TPT_SeparateTranslucency) && SceneContext.IsSeparateTranslucencyActive(View))
-	{
-		SceneContext.FinishRenderingSeparateTranslucency(RHICmdList);
-	}
-	else
-	{
-		SceneContext.FinishRenderingTranslucency(RHICmdList, View);
-	}
-}
-
 const FProjectedShadowInfo* FDeferredShadingSceneRenderer::PrepareTranslucentShadowMap(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, ETranslucencyPass::Type TranslucencyPass)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_PrepareTranslucentShadowMap);
@@ -278,7 +263,7 @@ void FTranslucencyDrawingPolicyFactory::CopySceneColor(FRHICommandList& RHICmdLi
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
-	SceneContext.ResolveSceneColor(RHICmdList);
+	RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(View.ViewRect.Min.X, View.ViewRect.Min.Y, View.ViewRect.Max.X, View.ViewRect.Max.Y));
 
 	SceneContext.BeginRenderingLightAttenuation(RHICmdList);
 	RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);

@@ -10,7 +10,7 @@
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
 #include "Engine/GameViewportClient.h"
-
+#include "ConfigCacheIni.h"
 
 #define SUPER_DETAILED_AUTOMATION_STATS 1
 PERFORMANCEMONITOR_API int ExportedInt;
@@ -19,6 +19,7 @@ FPerformanceMonitorModule::FPerformanceMonitorModule()
 {
 	bRecording = false;
 	FileToLogTo = nullptr;
+
 }
 
 FPerformanceMonitorModule::~FPerformanceMonitorModule()
@@ -140,9 +141,10 @@ bool FPerformanceMonitorModule::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputD
 
 
 
-#if STATS
 void FPerformanceMonitorModule::StartRecordingPerfTimers(FString FileNameToUse, TArray<FString> StatsToRecord)
 {
+#if STATS
+
 	for (const FWorldContext& WorldContext : GEngine->GetWorldContexts())
 	{
 		if (WorldContext.WorldType == EWorldType::Game || WorldContext.WorldType == EWorldType::PIE)
@@ -186,17 +188,61 @@ void FPerformanceMonitorModule::StartRecordingPerfTimers(FString FileNameToUse, 
 		FString FileName = FString::Printf(TEXT("%s.csv"), *FileNameToUse);
 		FileToLogTo =  IFileManager::Get().CreateFileWriter(*FileName, false);
 	}
-	if (!StatsToRecord.Num())
+	if (GConfig)
+	{
+		FString ConfigCategory = FString::Printf(TEXT("/Plugins/PerformanceMonitor/%s"), *FileNameToUse);
+		float floatValueReceived = 0;
+		if (GConfig->GetFloat(*ConfigCategory,
+			TEXT("PerformanceMonitorInterval"),
+			floatValueReceived,
+			GGameIni
+			))
+		{
+			TimeBetweenRecords = floatValueReceived;
+		}
+		floatValueReceived = 0;
+		if (GConfig->GetFloat(*ConfigCategory,
+			TEXT("PerformanceMonitorTimeout"),
+			floatValueReceived,
+			GGameIni
+			))
+		{
+			TestTimeOut = floatValueReceived;
+		}
+		TArray<FString> TimersOfInterest;
+		if (GConfig->GetArray(*ConfigCategory,
+			TEXT("PerformanceMonitorTimers"), TimersOfInterest, GGameIni))
+		{
+			DesiredStats = TimersOfInterest;
+		}
+		FString MapToLoad;
+		if (GConfig->GetString(*ConfigCategory,
+			TEXT("PerformanceMonitorMap"), MapToLoad, GGameIni))
+		{
+			MapToTest = MapToLoad;
+		}
+		bExitOnCompletion = false;
+		bool GatheredBool;
+		if (GConfig->GetBool(*ConfigCategory,
+			TEXT("PerformanceMonitorExitOnFinish"), GatheredBool, GGameIni))
+		{
+			bExitOnCompletion = GatheredBool;
+		}
+		bRequiresCutsceneStart = false;
+		GatheredBool = false;
+		if (GConfig->GetBool(*ConfigCategory,
+			TEXT("PerformanceMonitorRequireCutsceneStart"), GatheredBool, GGameIni))
+		{
+			bRequiresCutsceneStart = GatheredBool;
+		}
+	}
+	if (!StatsToRecord.Num() && !DesiredStats.Num())
 	{
 		DesiredStats.Add(TEXT("STAT_AnimGameThreadTime"));
 		DesiredStats.Add(TEXT("STAT_PerformAnimEvaluation_WorkerThread"));
 		DesiredStats.Add(TEXT("STAT_ParticleComputeTickTime"));
 		DesiredStats.Add(TEXT("STAT_ParticleRenderingTime"));
 		DesiredStats.Add(TEXT("STAT_GPUParticleTickTime"));
-	}
-	else
-	{
-		DesiredStats = StatsToRecord;
 	}
 	GeneratedStats.Empty();
 	for (int i = 0; i < DesiredStats.Num(); i++)
@@ -205,19 +251,22 @@ void FPerformanceMonitorModule::StartRecordingPerfTimers(FString FileNameToUse, 
 		GeneratedStats.Add(DesiredStats[i], TempArray);
 	}
 	bRecording= true;
-	//AOrionPlayerController_Game* PlayerController = UOrionAutomationHelper::GetPlayerGameController();
-	//if (PlayerController)
-	//{
-	//	UWorld * PlayerWorld = PlayerController->GetWorld();
-	//	if (PlayerWorld)
-	//	{
-	//		// Postpone garbage collection for five minutes or until test ends, whichever comes first.
-	//		PlayerWorld->SetTimeUntilNextGarbageCollection(300.f);
-	//	}
-	//}
+	TimeOfTestStart = FPlatformTime::Seconds();
+	if (bRequiresCutsceneStart)
+	{
+		for (const FWorldContext& WorldContext : GEngine->GetWorldContexts())
+		{
+			if (WorldContext.WorldType == EWorldType::Game || WorldContext.WorldType == EWorldType::PIE)
+			{
+				UWorld* World = WorldContext.World();
+				GEngine->Exec(World, TEXT("ce start"));
+			}
+		}
+	}
+#endif
 }
 
-#endif
+
 void FPerformanceMonitorModule::RecordFrame()
 {
 	if (!bRecording)
@@ -225,50 +274,11 @@ void FPerformanceMonitorModule::RecordFrame()
 		return;
 	}
 	GetStatsBreakdown();
-	//#if STATS
-	//	FOrionCharacterPerfEvent::GetStatsBreakdown(PerfEvent);
-	//	AOrionPlayerController_Game* PlayerController = UOrionAutomationHelper::GetPlayerGameController();
-	//	AOrionCharHero * MyPawn = nullptr;
-	//	if (PlayerController != nullptr)
-	//	{
-	//		MyPawn = Cast<AOrionCharHero>(PlayerController->GetPawn());
-	//	}
-	//	// Ensure we have a player controller and a pawn
-	//	if ((PlayerController == nullptr) || (MyPawn == nullptr))
-	//	{
-	//		//we need these !!
-	//		return;
-	//	}
-	//
-	//	float CurrentPlatformTime = FPlatformTime::Seconds();
-	//	UWorld* CurWorld = PlayerController->GetWorld();
-	//	UGameViewportClient* Viewport = nullptr;
-	//	for (int i = 0; i < GEngine->GetWorldContexts().Num(); i++)
-	//	{
-	//		if (GEngine->GetWorldContexts()[i].WorldType == EWorldType::Game || GEngine->GetWorldContexts()[i].WorldType == EWorldType::PIE)
-	//		{
-	//			Viewport = GEngine->GetWorldContexts()[i].World()->GetGameViewport();
-	//			// If this viewport is actually valid, we break. Check to make sure we're not getting DS world by mistake.
-	//			if (Viewport)
-	//			{
-	//				break;
-	//			}
-	//		}
-	//	}
-	//	if (Viewport != nullptr)
-	//	{
-	//		const FStatUnitData* StatUnitData = Viewport->GetStatUnitData();
-	//
-	//			PerfEvent->OverallFrameTimes.FrameDurations.Add(StatUnitData->FrameTime);
-	//			PerfEvent->OverallFrameTimes.FrameGameTimes.Add(FGenericPlatformTime::ToMilliseconds(GGameThreadTime));
-	//			PerfEvent->OverallFrameTimes.FrameRenderTimes.Add(FGenericPlatformTime::ToMilliseconds(GRenderThreadTime));
-	//			PerfEvent->OverallFrameTimes.FrameTimeStamps.Add(CurrentPlatformTime);
-	//			PerfEvent->FrameNum++;
-	//	
-	//
-	//	}
-	//
-	//#endif
+	if (FPlatformTime::Seconds() - TestTimeOut > TimeOfTestStart)
+	{
+		StopRecordingPerformanceTimers();
+	}
+
 }
 
 void FPerformanceMonitorModule::GetStatsBreakdown()
@@ -321,18 +331,12 @@ void FPerformanceMonitorModule::StopRecordingPerformanceTimers()
 		FileToLogTo->Close();
 	}
 
-	// TODO: Force GC. 
-	//if (PlayerController)
-	//{
-	//	UWorld * PlayerWorld = PlayerController->GetWorld();
-	//	if (PlayerWorld)
-	//	{
-	//		// End our self imposed moratorium on GC.
-	//		PlayerWorld->ForceGarbageCollection();
-	//	}
-	//}
+
+	if (bExitOnCompletion)
+	{
+		FPlatformMisc::RequestExit(true);
+	}
 #endif
-	return;
 }
 
 void FPerformanceMonitorModule::RecordData()
@@ -340,35 +344,6 @@ void FPerformanceMonitorModule::RecordData()
 #if STATS
 
 
-	//TSharedPtr<FJsonObject> ReportJson;
-
-	//// FrameDurations
-	//EventToRecord.StatName = TEXT("FrameDuration");
-	//EventToRecord.MinVal = FMath::Min(PerfEvent->OverallFrameTimes.FrameDurations);
-	//EventToRecord.AvgVal = UOrionAutomationHelper::GetAverageOfArray(PerfEvent->OverallFrameTimes.FrameDurations);
-	//EventToRecord.MaxVal = FMath::Max(PerfEvent->OverallFrameTimes.FrameDurations);
-	//EventToRecord.NumFrames = PerfEvent->OverallFrameTimes.FrameDurations.Num();
-
-	//ReportJson = FJsonObjectConverter::UStructToJsonObject(EventToRecord);
-	//RecordPerfEvent();
-
-	//// GameThread
-	//EventToRecord.StatName = TEXT("GameThreadTime");
-	//EventToRecord.MinVal = FMath::Min(PerfEvent->OverallFrameTimes.FrameGameTimes);
-	//EventToRecord.AvgVal = UOrionAutomationHelper::GetAverageOfArray(PerfEvent->OverallFrameTimes.FrameGameTimes);
-	//EventToRecord.MaxVal = FMath::Max(PerfEvent->OverallFrameTimes.FrameGameTimes);
-	//EventToRecord.NumFrames = PerfEvent->OverallFrameTimes.FrameGameTimes.Num();
-
-	//ReportJson = FJsonObjectConverter::UStructToJsonObject(EventToRecord);
-	//RecordPerfEvent();
-
-
-	//// RenderThread
-	//EventToRecord.StatName = TEXT("RenderThreadTime");
-	//EventToRecord.MinVal = FMath::Min(PerfEvent->OverallFrameTimes.FrameRenderTimes);
-	//EventToRecord.AvgVal = UOrionAutomationHelper::GetAverageOfArray(PerfEvent->OverallFrameTimes.FrameRenderTimes);
-	//EventToRecord.MaxVal = FMath::Max(PerfEvent->OverallFrameTimes.FrameRenderTimes);
-	//EventToRecord.NumFrames = PerfEvent->OverallFrameTimes.FrameRenderTimes.Num();
 	FString StringToPrint = FString::Printf(TEXT("Interval (s),%0.4f\n"), TimeBetweenRecords);
 	FileToLogTo->Serialize(TCHAR_TO_ANSI(*StringToPrint), StringToPrint.Len());
 	for (int i = 0; i < StoredMessages.Num(); i++)
@@ -405,86 +380,7 @@ void FPerformanceMonitorModule::RecordData()
 				StringToPrint.Append(TEXT("\n"));
 				FileToLogTo->Serialize(TCHAR_TO_ANSI(*StringToPrint), StringToPrint.Len());
 	}
-	//for (TMap<FString, TMap<FString, TArray<float>>>::TConstIterator ThreadedItr(GeneratedStats); ThreadedItr; ++ThreadedItr)
-	//{
-	//	const TMap<FString, TArray<float>> ThreadGroup = ThreadedItr.Value();
-	//	for (TMap<FString, TArray<float>>::TConstIterator ThreadedItr2(ThreadGroup); ThreadedItr2; ++ThreadedItr2)
-	//	{
-	//		FString StringToPrint = ThreadedItr2.Key();
-	//		TArray<float> StatValues = ThreadedItr2.Value();
-	//		for (int i = 0; i < StatValues.Num(); i++)
-	//		{
-	//			StringToPrint = FString::Printf(TEXT("%s,%0.4f"), *StringToPrint, StatValues[i]);
-	//		}
-	//		StringToPrint.Append(TEXT("\n"));
-	//		FileToLogTo->Serialize(TCHAR_TO_ANSI(*StringToPrint), StringToPrint.Len());
-	//	}
-	//}
-	//for (TMap<FString, TMap<FString, TArray<FStatData>>>::TConstIterator ThreadedItr(PerfEvent->ThreadStatBreakdown); ThreadedItr; ++ThreadedItr)
-	//{
-	//	const FName ThreadName = ThreadedItr.Key();
-	//	const TMap<FName, TArray<FStatData>>& ThreadBreakdown = ThreadedItr.Value();
-	//	for (TMap<FName, TArray<FStatData>>::TConstIterator StatItr(ThreadBreakdown); StatItr; ++StatItr)
-	//	{
-	//		const FName StatName = StatItr.Key();
-	//		if (!DesiredStats.Contains(StatName.ToString()))
-	//		{
-	//			continue;
-	//		}
-	//		FString ThreadStatKeyAvg = FString::Printf(TEXT("AvgInclusive %s [%s]"), *ThreadName.ToString(), *StatName.ToString());
-	//		FString ThreadStatKeyMax = FString::Printf(TEXT("MaxInclusive %s [%s]"), *ThreadName.ToString(), *StatName.ToString());
-	//		FString StatAvgString;
-	//		FString StatMaxString;
-	//		TArray<float> StatAvgs;
-	//		TArray<float> StatMaxes;
-	//		const TArray<FStatData>& StatDatas = StatItr.Value();
-	//		int ValidFrame = 0;
-	//		for (int FrameNum = 0; FrameNum <= PerfEvent->FrameNum; ++FrameNum)
-	//		{
-	//			float AvgTime = -1.f;
-	//			float MaxTime = -1.f;
-	//			if (ValidFrame < StatDatas.Num())
-	//			{
-	//				const FStatData& StatData = StatDatas[ValidFrame];
-	//				if (StatData.FrameNum == FrameNum)
-	//				{
-	//					AvgTime = StatData.StatIncAvg;
-	//					MaxTime = StatData.StatIncMax;
-	//					++ValidFrame;
-	//				}
-	//			}
 
-	//			if (AvgTime != -1.f)
-	//			{
-	//				StatAvgs.Add(AvgTime);
-	//			}
-	//			if (MaxTime != -1.f)
-	//			{
-	//				StatMaxes.Add(MaxTime);
-	//			}
-	//		}
-	//		//float AvgAverage = UOrionAutomationHelper::GetAverageOfArray(StatAvgs);
-	//		//float AvgMaxes = UOrionAutomationHelper::GetAverageOfArray(StatMaxes);
-
-	//		//// StatMaxes
-	//		//EventToRecord.StatName = FString::Printf(TEXT("%s_MAX"), *StatName.ToString());
-	//		//EventToRecord.MinVal = FMath::Min(StatMaxes);
-	//		//EventToRecord.AvgVal = AvgMaxes;
-	//		//EventToRecord.MaxVal = FMath::Max(StatMaxes);
-	//		//EventToRecord.NumFrames = StatMaxes.Num();
-	//		//ReportJson = FJsonObjectConverter::UStructToJsonObject(EventToRecord);
-	//		//RecordPerfEvent();
-
-	//		//// StatAvgs
-	//		//EventToRecord.StatName = FString::Printf(TEXT("%s_AVG"), *StatName.ToString());
-	//		//EventToRecord.MinVal = FMath::Min(StatAvgs);
-	//		//EventToRecord.AvgVal = AvgAverage;
-	//		//EventToRecord.MaxVal = FMath::Max(StatAvgs);
-	//		//EventToRecord.NumFrames = StatAvgs.Num();
-	//		//ReportJson = FJsonObjectConverter::UStructToJsonObject(EventToRecord);
-	//		//RecordPerfEvent();
-	//	}
-	//}
 #endif
 }
 

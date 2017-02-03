@@ -397,6 +397,7 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(
 		ViewInitOptions.StereoPass = ViewState.StereoPass;
 		ViewInitOptions.SceneViewStateInterface = (ViewInitOptions.StereoPass != EStereoscopicPass::eSSP_RIGHT_EYE) ? SceneCaptureComponent->GetViewState() : SceneCaptureComponent->GetStereoViewState();
 		ViewInitOptions.ProjectionMatrix = ViewState.ProjectionMatrix;
+		ViewInitOptions.LODDistanceFactor = FMath::Clamp(SceneCaptureComponent->LODDistanceFactor, .01f, 100.0f);
 
 		if (bCaptureSceneColor)
 		{

@@ -267,7 +267,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	if (!bGammaSpace || bRenderToSceneColor)
 	{
 		// Resolve the scene color for post processing.
-		SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+		RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
 		// On PowerVR we see flickering of shadows and depths not updating correctly if targets are discarded.
 		// See CVarMobileForceDepthResolve use in ConditionalResolveSceneDepth.

@@ -310,7 +310,7 @@ void FD3D11DynamicRHI::EnableHDR()
 	static const auto CVarHDRColorGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.ColorGamut"));
 	static const auto CVarHDROutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
 
-	if (GRHISupportsHDROutput && CVarHDROutputEnabled->GetValueOnAnyThread() != 0)
+	if (GRHISupportsHDROutput && CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnAnyThread() != 0)
 	{
 		const int32 OutputDevice = CVarHDROutputDevice->GetValueOnAnyThread();
 

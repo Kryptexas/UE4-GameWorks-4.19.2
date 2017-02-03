@@ -1397,6 +1397,8 @@ protected:
 	void ClearPrimitiveSingleFramePrecomputedLightingBuffers();
 
 	void RenderPlanarReflection(class FPlanarReflectionSceneProxy* ReflectionSceneProxy);
+
+	void ResolveSceneColor(FRHICommandList& RHICmdList);
 };
 
 /**

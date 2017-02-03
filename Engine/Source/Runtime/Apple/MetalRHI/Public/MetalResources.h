@@ -776,6 +776,9 @@ public:
 	// The texture that this SRV come from
 	TRefCountPtr<FRHITexture> SourceTexture;
 	
+	// The source structured buffer (can be null)
+	TRefCountPtr<FMetalStructuredBuffer> SourceStructuredBuffer;
+	
 	FMetalSurface* TextureView;
 	uint8 MipLevel;
 	uint8 NumMips;

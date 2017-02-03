@@ -843,9 +843,9 @@ namespace VulkanRHI
 			return ResourceAllocation->GetOffset();
 		}
 
-		inline uint32 GetDeviceMemoryAllocationSize() const
+		inline uint32 GetSize() const
 		{
-			return ResourceAllocation->GetAllocationSize();
+			return ResourceAllocation->GetSize();
 		}
 
 		inline VkDeviceMemory GetDeviceMemoryHandle() const

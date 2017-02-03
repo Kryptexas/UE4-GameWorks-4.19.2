@@ -1357,7 +1357,7 @@ struct FMarkRelevantStaticMeshesForViewData
 	float InvLODScale;
 	float MinScreenRadiusForCSMDepthSquared;
 	float MinScreenRadiusForDepthPrepassSquared;
-	bool bForceEarlyZPass;
+	bool bFullEarlyZPass;
 
 	FMarkRelevantStaticMeshesForViewData(FViewInfo& View)
 	{
@@ -1368,14 +1368,14 @@ struct FMarkRelevantStaticMeshesForViewData
 		// outside of the loop to be more efficient
 		ForcedLODLevel = (View.Family->EngineShowFlags.LOD) ? GetCVarForceLOD() : 0;
 
-		LODScale = CVarStaticMeshLODDistanceScale.GetValueOnRenderThread();
+		LODScale = CVarStaticMeshLODDistanceScale.GetValueOnRenderThread() * View.LODDistanceFactor;
 		InvLODScale = 1.0f / LODScale;
 
 		MinScreenRadiusForCSMDepthSquared = GMinScreenRadiusForCSMDepth * GMinScreenRadiusForCSMDepth;
 		MinScreenRadiusForDepthPrepassSquared = GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass;
 
-		extern TAutoConsoleVariable<int32> CVarEarlyZPass;
-		bForceEarlyZPass = CVarEarlyZPass.GetValueOnRenderThread() == 2;
+		extern bool ShouldForceFullDepthPass(ERHIFeatureLevel::Type FeatureLevel);
+		bFullEarlyZPass = ShouldForceFullDepthPass(View.GetFeatureLevel());
 	}
 };
 
@@ -1624,7 +1624,7 @@ struct FRelevancePacket
 			float DistanceSquared = (Bounds.Origin - ViewData.ViewOrigin).SizeSquared();
 			const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View.LODDistanceFactor * ViewData.InvLODScale);
 			const bool bDrawShadowDepth = FMath::Square(Bounds.SphereRadius) > ViewData.MinScreenRadiusForCSMDepthSquared * LODFactorDistanceSquared;
-			const bool bDrawDepthOnly = ViewData.bForceEarlyZPass || FMath::Square(Bounds.SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared;
+			const bool bDrawDepthOnly = ViewData.bFullEarlyZPass || FMath::Square(Bounds.SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared;
 
 			const int32 NumStaticMeshes = PrimitiveSceneInfo->StaticMeshes.Num();
 			for(int32 MeshIndex = 0;MeshIndex < NumStaticMeshes;MeshIndex++)

@@ -331,10 +331,19 @@ static void SetDepthStencilStateForBasePass(FRHICommandList& RHICmdList, FDrawin
 				0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
 			>::GetRHI(), StencilValue);
 		}
-		else
+		else if (DrawRenderState.GetDepthStencilAccess() & FExclusiveDepthStencil::DepthWrite)
 		{
 			DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<
 				true, CF_GreaterEqual,
+				true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
+				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+				0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
+			>::GetRHI(), StencilValue);
+		}
+		else
+		{
+			DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<
+				false, CF_GreaterEqual,
 				true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
 				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
 				0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
@@ -821,7 +830,7 @@ void GetBasePassShaders<FUniformLightMapPolicy>(
  * Renders the scene's base pass 
  * @return true if anything was rendered
  */
-bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHICmdList)
+bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHICmdList, FExclusiveDepthStencil::Type BasePassDepthStencilAccess)
 {
 	bool bDirty = false;
 
@@ -845,10 +854,10 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 				FViewInfo& View = Views[ViewIndex];
 				if (View.ShouldRenderView())
 				{
-					RenderBasePassViewParallel(View, RHICmdList);
+					RenderBasePassViewParallel(View, RHICmdList, BasePassDepthStencilAccess);
 				}
 
-				RenderEditorPrimitives(RHICmdList, View, bDirty);
+				RenderEditorPrimitives(RHICmdList, View, BasePassDepthStencilAccess, bDirty);
 			}
 
 			bDirty = true; // assume dirty since we are not going to wait
@@ -861,10 +870,10 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 				FViewInfo& View = Views[ViewIndex];
 				if (View.ShouldRenderView())
 				{
-					bDirty |= RenderBasePassView(RHICmdList, View);
+					bDirty |= RenderBasePassView(RHICmdList, View, BasePassDepthStencilAccess);
 				}
 
-				RenderEditorPrimitives(RHICmdList, View, bDirty);
+				RenderEditorPrimitives(RHICmdList, View, BasePassDepthStencilAccess, bDirty);
 			}
 		}	
 	}
@@ -1103,8 +1112,10 @@ void FDeferredShadingSceneRenderer::RenderBasePassDynamicDataParallel(FParallelC
 	ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 }
 
-static void SetupBasePassView(FRHICommandList& RHICmdList, const FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState, const bool bShaderComplexity, const bool bIsEditorPrimitivePass = false)
+static void SetupBasePassView(FRHICommandList& RHICmdList, const FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState, FExclusiveDepthStencil::Type BasePassDepthStencilAccess, const bool bShaderComplexity, const bool bIsEditorPrimitivePass = false)
 {
+	DrawRenderState.SetDepthStencilAccess(BasePassDepthStencilAccess);
+
 	if (bShaderComplexity)
 	{
 		// Additive blending when shader complexity viewmode is enabled.
@@ -1125,9 +1136,15 @@ static void SetupBasePassView(FRHICommandList& RHICmdList, const FViewInfo& View
 			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendStateWriteMask<CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA>::GetRHI());
 		}
 
+		if (DrawRenderState.GetDepthStencilAccess() & FExclusiveDepthStencil::DepthWrite)
+		{
 			DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 		}
-	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+		else
+		{
+			DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
+		}
+	}
 
 	if (!View.IsInstancedStereoPass() || bIsEditorPrimitivePass)
 	{
@@ -1156,10 +1173,12 @@ class FBasePassParallelCommandListSet : public FParallelCommandListSet
 {
 public:
 	const FSceneViewFamily& ViewFamily;
+	FExclusiveDepthStencil::Type BasePassDepthStencilAccess;
 
-	FBasePassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, const FSceneViewFamily& InViewFamily)
+	FBasePassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, const FSceneViewFamily& InViewFamily, FExclusiveDepthStencil::Type InBasePassDepthStencilAccess)
 		: FParallelCommandListSet(GET_STATID(STAT_CLP_Basepass), InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, ViewFamily(InViewFamily)
+		, BasePassDepthStencilAccess(InBasePassDepthStencilAccess)
 	{
 		SetStateOnCommandList(ParentCmdList);
 	}
@@ -1172,26 +1191,27 @@ public:
 	virtual void SetStateOnCommandList(FRHICommandList& CmdList) override
 	{
 		FParallelCommandListSet::SetStateOnCommandList(CmdList);
-		FSceneRenderTargets::Get(CmdList).BeginRenderingGBuffer(CmdList, ERenderTargetLoadAction::ELoad, ERenderTargetLoadAction::ELoad, ViewFamily.EngineShowFlags.ShaderComplexity);
-		SetupBasePassView(CmdList, View, DrawRenderState, !!ViewFamily.EngineShowFlags.ShaderComplexity);
+		FSceneRenderTargets::Get(CmdList).BeginRenderingGBuffer(CmdList, ERenderTargetLoadAction::ELoad, ERenderTargetLoadAction::ELoad, BasePassDepthStencilAccess, ViewFamily.EngineShowFlags.ShaderComplexity);
+		SetupBasePassView(CmdList, View, DrawRenderState, BasePassDepthStencilAccess, !!ViewFamily.EngineShowFlags.ShaderComplexity);
 	}
 };
 
-void FDeferredShadingSceneRenderer::RenderBasePassViewParallel(FViewInfo& View, FRHICommandListImmediate& ParentCmdList)
+void FDeferredShadingSceneRenderer::RenderBasePassViewParallel(FViewInfo& View, FRHICommandListImmediate& ParentCmdList, FExclusiveDepthStencil::Type BasePassDepthStencilAccess)
 {
 	FBasePassParallelCommandListSet ParallelSet(View, ParentCmdList, 
 		CVarRHICmdBasePassDeferredContexts.GetValueOnRenderThread() > 0, 
 		CVarRHICmdFlushRenderThreadTasksBasePass.GetValueOnRenderThread() == 0 && CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() == 0,
-		ViewFamily);
+		ViewFamily,
+		BasePassDepthStencilAccess);
 
 	RenderBasePassStaticDataParallel(ParallelSet);
 	RenderBasePassDynamicDataParallel(ParallelSet);
 }
 
-void FDeferredShadingSceneRenderer::RenderEditorPrimitives(FRHICommandList& RHICmdList, const FViewInfo& View, bool& bOutDirty) 
+void FDeferredShadingSceneRenderer::RenderEditorPrimitives(FRHICommandList& RHICmdList, const FViewInfo& View, FExclusiveDepthStencil::Type BasePassDepthStencilAccess, bool& bOutDirty) 
 {
 	FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
-	SetupBasePassView(RHICmdList, View, DrawRenderState, ViewFamily.EngineShowFlags.ShaderComplexity, true);
+	SetupBasePassView(RHICmdList, View, DrawRenderState, BasePassDepthStencilAccess, ViewFamily.EngineShowFlags.ShaderComplexity, true);
 
 	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::OpaqueAndMasked);
 
@@ -1221,11 +1241,11 @@ void FDeferredShadingSceneRenderer::RenderEditorPrimitives(FRHICommandList& RHIC
 	}
 }
 
-bool FDeferredShadingSceneRenderer::RenderBasePassView(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
+bool FDeferredShadingSceneRenderer::RenderBasePassView(FRHICommandListImmediate& RHICmdList, FViewInfo& View, FExclusiveDepthStencil::Type BasePassDepthStencilAccess)
 {
 	bool bDirty = false; 
 	FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
-	SetupBasePassView(RHICmdList, View, DrawRenderState, ViewFamily.EngineShowFlags.ShaderComplexity);
+	SetupBasePassView(RHICmdList, View, DrawRenderState, BasePassDepthStencilAccess, ViewFamily.EngineShowFlags.ShaderComplexity);
 	bDirty |= RenderBasePassStaticData(RHICmdList, View, DrawRenderState);
 	RenderBasePassDynamicData(RHICmdList, View, DrawRenderState, bDirty);
 

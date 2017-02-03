@@ -68,7 +68,7 @@ TAutoConsoleVariable<int32> CVarGPUSkinCacheRecomputeTangents(
 	TEXT("This option enables recomputing the vertex tangents on the GPU.\n")
 	TEXT("Can be changed at runtime, requires both r.SkinCache.CompileShaders=1 and r.SkinCache.Mode=1\n")
 	TEXT(" 0: off\n")
-	TEXT(" 1: on, forces all skinned object to Tecompute Tangents\n")
+	TEXT(" 1: on, forces all skinned object to Recompute Tangents\n")
 	TEXT(" 2: on, only recompute tangents on skinned objects who ticked the Tecompute Tangents checkbox(default)\n"),
 	ECVF_RenderThreadSafe
 	);

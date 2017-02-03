@@ -206,6 +206,7 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
 	FDrawingPolicyRenderState DrawRenderState(&Context.RHICmdList, View);
+	DrawRenderState.SetDepthStencilAccess(FExclusiveDepthStencil::DepthWrite_StencilWrite);
 
 	FIntRect SrcRect = View.ViewRect;
 	FIntRect DestRect = View.ViewRect;
