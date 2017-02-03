@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HAL/PlatformProcess.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(UnrealWatchdogLog, Log, All);
 
