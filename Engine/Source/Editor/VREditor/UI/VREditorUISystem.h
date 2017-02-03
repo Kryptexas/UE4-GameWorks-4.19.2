@@ -36,12 +36,6 @@ struct FVRButton
 	/** Pointer to button */
 	TSharedPtr<SButton> Button;
 
-	/** Pointer to slot in overlay with lower z-order */
-	SOverlay::FOverlaySlot* BaseSlot;
-
-	/** Pointer to slot in overlay with higher z-order */
-	SOverlay::FOverlaySlot* HoverSlot;
-
 	/** Pointer to button border */
 	TSharedPtr<SBorder> ButtonBorder;
 
@@ -68,11 +62,9 @@ struct FVRButton
 		ScaleRate(2.0f)
 		{}
 
-	FVRButton(TSharedPtr<SButton> InButton, SOverlay::FOverlaySlot* InBaseSlot, SOverlay::FOverlaySlot* InHoverSlot, TSharedPtr<SBorder> InButtonBorder,
+	FVRButton(TSharedPtr<SButton> InButton, TSharedPtr<SBorder> InButtonBorder,
 		EVREditorAnimationState InAnimationDirection = EVREditorAnimationState::None, float InCurrentScale = 1.0f, float InMinScale = 1.0f, float InMaxScale = 1.25f, float InScaleRate = 2.0f)
 		: Button(InButton),
-		BaseSlot(InBaseSlot),
-		HoverSlot(InHoverSlot),
 		ButtonBorder(InButtonBorder),
 		AnimationDirection(InAnimationDirection),
 		CurrentScale(InCurrentScale),
