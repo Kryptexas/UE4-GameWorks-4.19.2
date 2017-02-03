@@ -220,7 +220,8 @@ void FQoSReporter::Tick()
 	}
 
 	// detect too long pauses between ticks, unless configured to ignore them or running under debugger
-	if (!QOS_IGNORE_HITCHES && bCountHitches && !FPlatformMisc::IsDebuggerPresent())
+#if !QOS_IGNORE_HITCHES
+	if (bCountHitches && !FPlatformMisc::IsDebuggerPresent())
 	{
 		const double DeltaBetweenTicks = CurrentTime - PreviousTickTime;
 
@@ -250,6 +251,7 @@ void FQoSReporter::Tick()
 				DeltaBetweenTicks, GAverageFPS);
 		}
 	}
+#endif
 
 	PreviousTickTime = CurrentTime;
 }

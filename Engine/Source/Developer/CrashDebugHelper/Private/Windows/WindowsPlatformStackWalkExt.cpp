@@ -415,7 +415,7 @@ void FWindowsPlatformStackWalkExt::GetExceptionInfo()
 	ULONG ProcessID = 0;
 	ULONG ThreadId = 0;
 	TCHAR Description[MAX_PATH] = { 0 };
-	Control->GetLastEventInformationWide( &ExceptionType, &ProcessID, &ThreadId, NULL, 0, NULL, Description, sizeof( Description ), NULL );
+	Control->GetLastEventInformationWide( &ExceptionType, &ProcessID, &ThreadId, NULL, 0, NULL, Description, ARRAY_COUNT( Description ), NULL );
 
 	Exception.Code = ExceptionType;
 	Exception.ProcessId = ProcessID;
