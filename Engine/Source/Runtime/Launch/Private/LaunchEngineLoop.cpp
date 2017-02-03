@@ -91,7 +91,9 @@
 	#include "EngineStats.h"
 	#include "EngineGlobals.h"
 	#include "AudioThread.h"
+#if WITH_ENGINE && !UE_BUILD_SHIPPING
 	#include "Interfaces/IAutomationControllerModule.h"
+#endif // WITH_ENGINE && !UE_BUILD_SHIPPING
 	#include "Database.h"
 	#include "DerivedDataCacheInterface.h"
 	#include "ShaderCompiler.h"
@@ -3114,7 +3116,7 @@ void FEngineLoop::Tick()
 		ClearPendingStatGroups();
 #endif
 
-#if WITH_EDITOR
+#if WITH_EDITOR && !UE_BUILD_SHIPPING
 		{
 			QUICK_SCOPE_CYCLE_COUNTER( STAT_FEngineLoop_Tick_AutomationController );
 			static FName AutomationController( "AutomationController" );
