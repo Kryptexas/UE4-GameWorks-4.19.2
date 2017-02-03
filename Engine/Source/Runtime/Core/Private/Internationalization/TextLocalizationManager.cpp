@@ -229,7 +229,7 @@ void FTextLocalizationManager::FLocalizationEntryTracker::DetectAndLogConflicts(
 				{
 					const FEntry& RightEntry = EntryArray[l];
 					const bool bDoesSourceStringHashDiffer = LeftEntry.SourceStringHash != RightEntry.SourceStringHash;
-					const bool bDoesLocalizedStringDiffer = LeftEntry.LocalizedString != RightEntry.LocalizedString;
+					const bool bDoesLocalizedStringDiffer = !LeftEntry.LocalizedString.Equals(RightEntry.LocalizedString, ESearchCase::CaseSensitive);
 					WasConflictDetected = bDoesSourceStringHashDiffer || bDoesLocalizedStringDiffer;
 				}
 			}
@@ -246,7 +246,7 @@ void FTextLocalizationManager::FLocalizationEntryTracker::DetectAndLogConflicts(
 						CollidingEntryListString += TEXT('\n');
 					}
 
-					CollidingEntryListString += FString::Printf( TEXT("Localization Resource: (%s) Source String Hash: (%d) Localized String: (%s)"), *(Entry.LocResID), Entry.SourceStringHash, *(Entry.LocalizedString) );
+					CollidingEntryListString += FString::Printf( TEXT("    Localization Resource: (%s) Source String Hash: (%d) Localized String: (%s)"), *(Entry.LocResID), Entry.SourceStringHash, *(Entry.LocalizedString) );
 				}
 
 				UE_LOG(LogTextLocalizationManager, Warning, TEXT("Loaded localization resources contain conflicting entries for (Namespace:%s, Key:%s):\n%s"), *NamespaceName, *KeyName, *CollidingEntryListString);
