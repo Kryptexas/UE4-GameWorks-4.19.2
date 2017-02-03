@@ -83,9 +83,7 @@ public:
 
 
 	bool IsRecordingPerfTimers() { return bRecording; }
-#if STATS
 	void StartRecordingPerfTimers(FString FileName, TArray<FString> StatsToRecord);
-#endif
 	void SetRecordInterval(float NewInterval);
 
 	void RecordFrame();
