@@ -1440,9 +1440,13 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	FStaticLODModel& LODModel = ImportedResource->LODModels[0];
 	
 	// Pass the number of texture coordinate sets to the LODModel.  Ensure there is at least one UV coord
-	LODModel.NumTexCoords = FMath::Max<uint32>(1,SkelMeshImportDataPtr->NumTexCoords);
+	LODModel.NumTexCoords = FMath::Max<uint32>(1, SkelMeshImportDataPtr->NumTexCoords);
 
-	if( bCreateRenderData )
+	// Array of re-import contexts for components using this mesh
+	// Will unregister before import, then re-register afterwards
+	TIndirectArray<FComponentReregisterContext> ComponentContexts;
+
+	if (bCreateRenderData)
 	{
 		TArray<FVector> LODPoints;
 		TArray<FMeshWedge> LODWedges;
@@ -1503,12 +1507,12 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		SkeletalMesh->MarkPackageDirty();
 
 		// Now iterate over all skeletal mesh components re-initialising them.
-		for(TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+		for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
 		{
-			USkeletalMeshComponent* SkelComp = *It;
-			if(SkelComp->SkeletalMesh == SkeletalMesh)
+			USkinnedMeshComponent* SkinComp = *It;
+			if (SkinComp->SkeletalMesh == SkeletalMesh)
 			{
-				FComponentReregisterContext ReregisterContext(SkelComp);
+				new(ComponentContexts) FComponentReregisterContext(SkinComp);
 			}
 		}
 	}
@@ -1659,6 +1663,8 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	//for supporting re-import 
 	ApexClothingUtils::ReapplyClothingDataToSkeletalMesh(SkeletalMesh);
 #endif// #if WITH_APEX_CLOTHING
+
+	// ComponentContexts will now go out of scope, causing components to be re-registered
 
 	return SkeletalMesh;
 }
