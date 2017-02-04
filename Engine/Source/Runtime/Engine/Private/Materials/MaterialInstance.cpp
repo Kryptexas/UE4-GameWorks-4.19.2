@@ -1032,7 +1032,7 @@ float UMaterialInstance::GetScalarParameterDefault(FName ParameterName, ERHIFeat
 		if (FApp::CanEverRender())
 		{
 			const FMaterialResource* SourceMaterialResource = GetMaterialResource(InFeatureLevel);
-			ensureAlways(SourceMaterialResource);
+			check(SourceMaterialResource);
 			const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = SourceMaterialResource->GetUniformScalarParameterExpressions();
 
 			// Iterate over each of the material's texture expressions.

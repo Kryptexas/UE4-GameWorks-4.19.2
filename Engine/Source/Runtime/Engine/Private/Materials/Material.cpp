@@ -972,7 +972,7 @@ float UMaterial::GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel
 	if (FApp::CanEverRender())
 	{
 		FMaterialResource* Resource = GetMaterialResource(InFeatureLevel);
-		ensureAlways(Resource);
+		check(Resource);
 
 		// Iterate over both the 2D textures and cube texture expressions.
 		const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = Resource->GetUniformScalarParameterExpressions();
