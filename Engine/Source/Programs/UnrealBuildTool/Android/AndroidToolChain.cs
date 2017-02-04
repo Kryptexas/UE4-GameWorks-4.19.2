@@ -1349,7 +1349,7 @@ namespace UnrealBuildTool
 
 			// fix the executable (replace the last -ar with -strip and keep any extension)
 			int ArIndex = StartInfo.FileName.LastIndexOf("-ar");
-			StartInfo.FileName = StartInfo.FileName.Substring(ArIndex) + "-strip" + StartInfo.FileName.Substring(ArIndex + 3);
+			StartInfo.FileName = StartInfo.FileName.Substring(0, ArIndex) + "-strip" + StartInfo.FileName.Substring(ArIndex + 3);
 
 			StartInfo.Arguments = "--strip-debug " + TargetFileName;
 			StartInfo.UseShellExecute = false;
