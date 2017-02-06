@@ -510,8 +510,9 @@ UObject* UPackFactory::FactoryCreateBinary
 
 					// Add the PCH for the project above the default pack include
 					const FString StringToReplace = FString::Printf(TEXT("%s.h"),*ConfigParameters.GameName);
-					const FString StringToReplaceWith = FString::Printf(TEXT("%s\"\n#include \"%s"),
+					const FString StringToReplaceWith = FString::Printf(TEXT("%s\"%s#include \"%s"),
 						*GameProjectModule.Get().DetermineModuleIncludePath(SourceModuleInfo, DestFilename),
+						LINE_TERMINATOR,
 						*StringToReplace);
 
 					if (FFileHelper::SaveStringToFile(SourceContents, *DestFilename))
@@ -600,8 +601,9 @@ UObject* UPackFactory::FactoryCreateBinary
 							
 							// Add the PCH for the project above the default pack include
 							const FString StringToReplace = FString::Printf(TEXT("%s.h"),*ConfigParameters.GameName);
-							const FString StringToReplaceWith = FString::Printf(TEXT("%s\"\n#include \"%s"),
+							const FString StringToReplaceWith = FString::Printf(TEXT("%s\"%s#include \"%s"),
 								*GameProjectModule.Get().DetermineModuleIncludePath(SourceModuleInfo, DestFilename),
+								LINE_TERMINATOR,
 								*StringToReplace);
 
 							SourceContents = SourceContents.Replace(*StringToReplace, *StringToReplaceWith, ESearchCase::CaseSensitive);

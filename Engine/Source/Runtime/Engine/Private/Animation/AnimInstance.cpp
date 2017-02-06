@@ -247,7 +247,8 @@ void UAnimInstance::UninitializeAnimation()
 		TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
 		for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
 		{
-			AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(ParamsToClearCopy[i], 0.0f);
+			float DefaultValue = SkelMeshComp->GetScalarParameterDefaultValue(ParamsToClearCopy[i]);
+			AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(ParamsToClearCopy[i], DefaultValue);
 		}
 	}
 
@@ -1118,7 +1119,7 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 	MaterialParamatersToClear.Reset();
 	for(auto Iter = AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].CreateConstIterator(); Iter; ++Iter)
 	{
-		if(Iter.Value() > 0.0f)
+		if(Iter.Value() != 0.0f)
 		{
 			MaterialParamatersToClear.Add(Iter.Key());
 		}
@@ -1139,14 +1140,17 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 		}
 	}	
 
-	// Add 0.0 curves to clear parameters that we have previously set but didn't set this tick.
+	// Add curves to reset parameters that we have previously set but didn't tick this frame.
 	//   - Make a copy of MaterialParametersToClear as it will be modified by AddCurveValue
 	//	 - When clear, we have to make sure to add directly to the material curve list because 
 	//   - sometimes they don't have the flag anymore, so we can't just call AddCurveValue
+	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
 	TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
 	for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
 	{
-		AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(ParamsToClearCopy[i], 0.0f);
+		// when reset, we go back to default value
+		float DefaultValue = SkelMeshComp->GetScalarParameterDefaultValue(ParamsToClearCopy[i]);
+		AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(ParamsToClearCopy[i], DefaultValue);
 	}
 
 	// @todo: delete me later when james g's change goes in

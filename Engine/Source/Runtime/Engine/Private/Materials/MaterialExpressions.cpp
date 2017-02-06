@@ -2812,6 +2812,11 @@ void UMaterialExpressionSaturate::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Saturate"));
 }
+
+void UMaterialExpressionSaturate::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Clamps the value between 0 and 1. Saturate is free on most modern graphics hardware."), 40, OutToolTip);
+}
 #endif // WITH_EDITOR
 
 //
@@ -3655,6 +3660,11 @@ void UMaterialExpressionArcsine::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Arcsine"));
 }
+
+void UMaterialExpressionArcsine::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Inverse sine function. This is an expensive operation not reflected by instruction count."), 40, OutToolTip);
+}
 #endif // WITH_EDITOR
 
 //
@@ -3693,6 +3703,11 @@ int32 UMaterialExpressionArcsineFast::Compile(class FMaterialCompiler* Compiler,
 void UMaterialExpressionArcsineFast::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("ArcsineFast"));
+}
+
+void UMaterialExpressionArcsineFast::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Approximate inverse sine function. Input must be between -1 and 1."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -3733,6 +3748,11 @@ void UMaterialExpressionArccosine::GetCaption(TArray<FString>& OutCaptions) cons
 {
 	OutCaptions.Add(TEXT("Arccosine"));
 }
+
+void UMaterialExpressionArccosine::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Inverse cosine function. This is an expensive operation not reflected by instruction count."), 40, OutToolTip);
+}
 #endif // WITH_EDITOR
 
 //
@@ -3771,6 +3791,11 @@ int32 UMaterialExpressionArccosineFast::Compile(class FMaterialCompiler* Compile
 void UMaterialExpressionArccosineFast::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("ArccosineFast"));
+}
+
+void UMaterialExpressionArccosineFast::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Approximate inverse cosine function. Input must be between -1 and 1."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -3811,6 +3836,11 @@ void UMaterialExpressionArctangent::GetCaption(TArray<FString>& OutCaptions) con
 {
 	OutCaptions.Add(TEXT("Arctangent"));
 }
+
+void UMaterialExpressionArctangent::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Inverse tangent function. This is an expensive operation not reflected by instruction count."), 40, OutToolTip);
+}
 #endif // WITH_EDITOR
 
 //
@@ -3849,6 +3879,11 @@ int32 UMaterialExpressionArctangentFast::Compile(class FMaterialCompiler* Compil
 void UMaterialExpressionArctangentFast::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("ArctangentFast"));
+}
+
+void UMaterialExpressionArctangentFast::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Approximate inverse tangent function."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -3891,6 +3926,11 @@ void UMaterialExpressionArctangent2::GetCaption(TArray<FString>& OutCaptions) co
 {
 	OutCaptions.Add(TEXT("Arctangent2"));
 }
+
+void UMaterialExpressionArctangent2::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Inverse tangent of X / Y where input signs are used to determine quadrant. This is an expensive operation not reflected by instruction count."), 40, OutToolTip);
+}
 #endif // WITH_EDITOR
 
 //
@@ -3931,6 +3971,11 @@ int32 UMaterialExpressionArctangent2Fast::Compile(class FMaterialCompiler* Compi
 void UMaterialExpressionArctangent2Fast::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Arctangent2Fast"));
+}
+
+void UMaterialExpressionArctangent2Fast::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Approximate inverse tangent of X / Y where input signs are used to determine quadrant."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -4859,6 +4904,11 @@ void UMaterialExpressionRound::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Round"));
 }
+
+void UMaterialExpressionRound::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Rounds the value up to the next whole number if the fractional part is greater than or equal to half, else rounds down."), 40, OutToolTip);
+}
 #endif // WITH_EDITOR
 
 //
@@ -4896,6 +4946,11 @@ int32 UMaterialExpressionTruncate::Compile(class FMaterialCompiler* Compiler, in
 void UMaterialExpressionTruncate::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Truncate"));
+}
+
+void UMaterialExpressionTruncate::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Truncates a value by discarding the fractional part."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -5520,6 +5575,11 @@ int32 UMaterialExpressionPreviousFrameSwitch::Compile(class FMaterialCompiler* C
 void UMaterialExpressionPreviousFrameSwitch::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(FString(TEXT("PreviousFrameSwitch")));
+}
+
+void UMaterialExpressionPreviousFrameSwitch::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Used to manually provide expressions for motion vector generation caused by changes in world position offset between frames."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 

@@ -1609,7 +1609,10 @@ int32 FSlateRHIRenderer::RegisterCurrentScene(FSceneInterface* Scene)
 	ENQUEUE_RENDER_COMMAND(RegisterCurrentSceneOnPolicy)(
 		[InRenderPolicy, Scene, LocalCurrentSceneIndex](FRHICommandListImmediate& RHICmdList)
 		{
-			InRenderPolicy->AddSceneAt(Scene, LocalCurrentSceneIndex);
+			if (LocalCurrentSceneIndex != -1)
+			{
+				InRenderPolicy->AddSceneAt(Scene, LocalCurrentSceneIndex);
+			}
 		}
 	);
 	return CurrentSceneIndex;

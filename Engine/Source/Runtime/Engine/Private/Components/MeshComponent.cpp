@@ -6,6 +6,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "ContentStreaming.h"
 #include "Streaming/TextureStreamingHelpers.h"
+#include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMaterialParameter, Warning, All);
 
@@ -154,7 +155,7 @@ int32 UMeshComponent::GetNumMaterials() const
 	return 0;
 }
 
-void UMeshComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+void UMeshComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials) const
 {
 	for (int32 ElementIndex = 0; ElementIndex < GetNumMaterials(); ElementIndex++)
 	{
@@ -319,44 +320,54 @@ void UMeshComponent::CacheMaterialParameterNameIndices()
 	ScalarParameterMaterialIndices.Reset();
 	VectorParameterMaterialIndices.Reset();
 
-	// Retrieve all used materials
-	TArray<UMaterialInterface*> MaterialInterfaces = GetMaterials();
-	int32 MaterialIndex = 0;
-	for (UMaterialInterface* MaterialInterface : MaterialInterfaces)
+	// not sure if this is the best way to do this
+	const UWorld* World = GetWorld();
+	// make sure it's active world
+	if (World && World->WorldType != EWorldType::Inactive)
 	{
-		// If available retrieve material instance
-		UMaterial* Material = (MaterialInterface != nullptr) ? MaterialInterface->GetMaterial() : nullptr;
-		if (Material)
+		const ERHIFeatureLevel::Type FeatureLevel = World->FeatureLevel;	
+		// Retrieve all used materials
+		TArray<UMaterialInterface*> MaterialInterfaces = GetMaterials();
+		int32 MaterialIndex = 0;
+		for (UMaterialInterface* MaterialInterface : MaterialInterfaces)
 		{
-			TArray<FName> OutParameterNames;
-			TArray<FGuid> OutParameterIds;
-
-			// Retrieve all scalar parameter names from the material
-			Material->GetAllScalarParameterNames(OutParameterNames, OutParameterIds);
-			for (FName& ParameterName : OutParameterNames)
+			// If available retrieve material instance
+			UMaterial* Material = (MaterialInterface != nullptr) ? MaterialInterface->GetMaterial() : nullptr;
+			if (Material)
 			{
-				// Add or retrieve TMap entry for this scalar parameter name
-				TArray<int32>& MaterialIndices = ScalarParameterMaterialIndices.FindOrAdd(ParameterName);
-				// Add the corresponding material index
-				MaterialIndices.Add(MaterialIndex);
+				TArray<FName> OutParameterNames;
+				TArray<FGuid> OutParameterIds;
+
+				// Retrieve all scalar parameter names from the material
+				Material->GetAllScalarParameterNames(OutParameterNames, OutParameterIds);
+				for (FName& ParameterName : OutParameterNames)
+				{
+					// Add or retrieve TMap entry for this scalar parameter name
+					TArray<int32>& MaterialIndices = ScalarParameterMaterialIndices.FindOrAdd(ParameterName);
+					// Add the corresponding material index
+					MaterialIndices.Add(MaterialIndex);
+
+					// set default value to it
+					float& DefaultValue = ScalarParameterDefaultValues.FindOrAdd(ParameterName);
+					DefaultValue = Material->GetScalarParameterDefault(ParameterName, FeatureLevel);
+				}
+
+				// Empty parameter names and ids
+				OutParameterNames.Reset();
+				OutParameterIds.Reset();
+
+				// Retrieve all vector parameter names from the material
+				Material->GetAllVectorParameterNames(OutParameterNames, OutParameterIds);
+				for (FName& ParameterName : OutParameterNames)
+				{
+					// Add or retrieve TMap entry for this vector parameter name
+					TArray<int32>& MaterialIndices = VectorParameterMaterialIndices.FindOrAdd(ParameterName);
+					// Add the corresponding material index
+					MaterialIndices.Add(MaterialIndex);
+				}
 			}
-
-			// Empty parameter names and ids
-			OutParameterNames.Reset();
-			OutParameterIds.Reset();
-
-			// Retrieve all vector parameter names from the material
-			Material->GetAllVectorParameterNames(OutParameterNames, OutParameterIds);
-			for (FName& ParameterName : OutParameterNames)
-			{
-				// Add or retrieve TMap entry for this vector parameter name
-				TArray<int32>& MaterialIndices = VectorParameterMaterialIndices.FindOrAdd(ParameterName);
-				// Add the corresponding material index
-				MaterialIndices.Add(MaterialIndex);
-			}
-		}
-
-		++MaterialIndex;
+			++MaterialIndex;
+		}		
 	}
 
 	bCachedMaterialParameterIndicesAreDirty = false;

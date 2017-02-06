@@ -39,6 +39,12 @@ which can be configured via defines for various temporal AA passes.
 	#define AA_FILTERED 1
 #endif
 
+// Disables filtering when high contrast
+// Useful for Catmull Rom filter kernel
+#ifndef AA_FILTERED_CONTRAST_LIMIT
+	#define AA_FILTERED_CONTRAST_LIMIT 1
+#endif
+
 // 0 = Dynamic motion based lerp value (default).
 // non-zero = Use 1/LERP fixed lerp value (used for reflections).
 #ifndef AA_LERP
@@ -212,6 +218,21 @@ which can be configured via defines for various temporal AA passes.
 		Neighbor4.rgb = RGBToYCoCg(Neighbor4.rgb);
 		Neighbor5.rgb = RGBToYCoCg(Neighbor5.rgb);
 		Neighbor7.rgb = RGBToYCoCg(Neighbor7.rgb);
+
+		#if AA_FILTERED_CONTRAST_LIMIT && AA_TONE
+			float Luma_m1, Luma_m2;
+			Luma_m1  = Neighbor1.x; Luma_m2  = Neighbor1.x * Neighbor1.x;
+			Luma_m1 += Neighbor3.x; Luma_m2 += Neighbor3.x * Neighbor3.x;
+			Luma_m1 += Neighbor4.x; Luma_m2 += Neighbor4.x * Neighbor4.x;
+			Luma_m1 += Neighbor5.x; Luma_m2 += Neighbor5.x * Neighbor5.x;
+			Luma_m1 += Neighbor7.x; Luma_m2 += Neighbor7.x * Neighbor7.x;
+
+			float LumaAvg = Luma_m1 * (1.0 / 5.0);
+			float LumaVar = abs( Luma_m2 * (1.0 / 5.0) - Pow2( LumaAvg ) );
+		#else
+			float LumaVar = 0;
+		#endif
+
 		#if AA_TONE
 			float NeighborWeight1 = HdrWeightY(Neighbor1.x, InExposureScale);
 			float NeighborWeight3 = HdrWeightY(Neighbor3.x, InExposureScale);
@@ -223,6 +244,12 @@ which can be configured via defines for various temporal AA passes.
 			Neighbor4.xyz *= NeighborWeight4;
 			Neighbor5.xyz *= NeighborWeight5;
 			Neighbor7.xyz *= NeighborWeight7;
+		#else
+			float NeighborWeight1 = 1;
+			float NeighborWeight3 = 1;
+			float NeighborWeight4 = 1;
+			float NeighborWeight5 = 1;
+			float NeighborWeight7 = 1;
 		#endif
 		#if AA_FILTERED
 			#if AA_ACCURATE_ALPHA
@@ -262,6 +289,9 @@ which can be configured via defines for various temporal AA passes.
 					Neighbor4 * PlusWeights[2] +
 					Neighbor5 * PlusWeights[3] +
 					Neighbor7 * PlusWeights[4];
+
+				if( LumaVar > 1 )
+					Filtered = Neighbor4;
 			#endif
 			#if AA_BORDER
 				// Use unfiltered for 1 pixel border.
@@ -435,11 +465,11 @@ which can be configured via defines for various temporal AA passes.
 	#if AA_YCOCG
 		float LumaMin = NeighborMin.x;
 		float LumaMax = NeighborMax.x;
-		float LumaHistory = OutColor.x;
+		float LumaHistory = HistoryColor.x;
 	#else
 		float LumaMin = Luma4(NeighborMin.rgb);
 		float LumaMax = Luma4(NeighborMax.rgb);
-		float LumaHistory = Luma4(OutColor.rgb);
+		float LumaHistory = Luma4(HistoryColor.rgb);
 	#endif
 	float LumaContrast = LumaMax - LumaMin;
 	#if AA_CLAMP
@@ -562,11 +592,11 @@ which can be configured via defines for various temporal AA passes.
 	#if AA_YCOCG
 		#if AA_TONE
 			OutColor.xyz *= HdrWeightInvY(OutColor.x, InExposureScale);
-			#if AA_ACCURATE_ALPHA
-				OutColor.a *= 1 / BlendWeight;
-				#if AA_FORCE_ALPHA_CLAMP
-					OutColor.a = clamp(OutColor.a, NeighborMin.a, NeighborMax.a);
-				#endif
+		#endif
+		#if AA_ACCURATE_ALPHA
+			OutColor.a *= 1 / BlendWeight;
+			#if AA_FORCE_ALPHA_CLAMP
+				OutColor.a = clamp(OutColor.a, NeighborMin.a, NeighborMax.a);
 			#endif
 		#endif
 		OutColor.rgb = YCoCgToRGB(OutColor.rgb);
@@ -590,6 +620,7 @@ which can be configured via defines for various temporal AA passes.
 #undef AA_CROSS
 #undef AA_DYNAMIC
 #undef AA_FILTERED
+#undef AA_FILTERED_CONTRAST_LIMIT
 #undef AA_LERP
 #undef AA_ROUND
 #undef AA_NAN

@@ -2971,7 +2971,7 @@ bool UWorld::AreAlwaysLoadedLevelsLoaded() const
 
 			if (LevelStreaming->bHasLoadRequestPending
 				|| !LoadedLevel
-				|| !LoadedLevel->bIsVisible)
+				|| LoadedLevel->bIsVisible != LevelStreaming->bShouldBeVisible)
 			{
 				return false;
 			}
@@ -3848,7 +3848,7 @@ ALevelScriptActor* UWorld::GetLevelScriptActor( ULevel* OwnerLevel ) const
 
 AWorldSettings* UWorld::GetWorldSettings( bool bCheckStreamingPesistent, bool bChecked ) const
 {
-	checkSlow(IsInGameThread());
+	checkSlow(!IsInActualRenderingThread());
 	AWorldSettings* WorldSettings = nullptr;
 	if (PersistentLevel)
 	{

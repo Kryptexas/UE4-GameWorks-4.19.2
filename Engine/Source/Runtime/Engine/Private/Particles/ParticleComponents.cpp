@@ -6715,7 +6715,7 @@ void UParticleSystemComponent::AutoPopulateInstanceProperties()
 	}
 }
 
-void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const
+void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials ) const
 {
 	if (Template)
 	{

@@ -268,6 +268,11 @@ class WebViewControl
 
 		public native void onPageLoad(String Url, boolean bIsLoading, int HistorySize, int HistoryPosition);
 		private native byte[] shouldInterceptRequestImpl(String Url);
+
+		public long GetNativePtr()
+		{
+			return WebViewControl.this.nativePtr;
+		}
 	}
 
 	private class ChromeClient
@@ -279,9 +284,17 @@ class WebViewControl
 		public native boolean onJsPrompt(WebView View, String Url, String Message, String DefaultValue, JsPromptResult Result);
 		public native void onReceivedTitle(WebView View, String Title);
 
+		public long GetNativePtr()
+		{
+			return WebViewControl.this.nativePtr;
+		}
 	}
 
-	
+	public long GetNativePtr()
+	{
+		return nativePtr;
+	}
+		
 	public WebView webView;
 	private WebViewPositionLayout positionLayout;
 	public int curX, curY, curW, curH;

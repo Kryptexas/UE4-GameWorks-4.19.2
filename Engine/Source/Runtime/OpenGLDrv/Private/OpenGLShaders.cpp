@@ -21,6 +21,7 @@
 #elif PLATFORM_MAC
 #include <xmmintrin.h>
 #endif
+#include "SceneUtils.h"
 
 const uint32 SizeOfFloat4 = 16;
 const uint32 NumFloatsInFloat4 = 4;
@@ -794,7 +795,7 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 
 		if (IsES2Platform(Capabilities.MaxRHIShaderPlatform) && !bES31)
 		{
-			if (Capabilities.bSupportsRenderTargetFormat_PF_FloatRGBA)
+			if (Capabilities.bSupportsRenderTargetFormat_PF_FloatRGBA || !IsMobileHDR())
 			{
 				AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 0.0\n");
 			}

@@ -18,6 +18,10 @@
 #include "GoogleVRControllerPrivate.h"
 #include "IInputDevice.h"
 #include "IMotionController.h"
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
+#include "gvr_arm_model.h"
+#endif
+#include "Classes/GoogleVRControllerEventManager.h"
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 using namespace gvr;
@@ -79,14 +83,14 @@ public:
 
 public: // Helper Functions
 
-	/** Called before application enters background */
+	/** Called beforeg application enters background */
 	void ApplicationPauseDelegate();
 
 	/** Called after application resumes */
 	void ApplicationResumeDelegate();
 
 	/** Polls the controller state */
-	void PollController();
+	void PollController(float DeltaTime);
 
 	/** Processes the controller buttons */
 	void ProcessControllerButtons();
@@ -98,6 +102,20 @@ public: // Helper Functions
 	bool IsAvailable() const;
 
 	int GetGVRControllerHandedness() const;
+
+	EGoogleVRControllerState GetControllerState() const;
+
+	FVector ConvertGvrVectorToUnreal(float x, float y, float z) const;
+
+	FQuat ConvertGvrQuaternionToUnreal(float w, float x, float y, float z) const;
+
+public: // Arm Model
+
+	bool GetUseArmModel() const;
+	void SetUseArmModel(bool bNewUseArmModel);
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
+	gvr_arm_model::Controller& GetArmModelController();
+#endif
 
 public:	// IInputDevice
 
@@ -138,12 +156,14 @@ public: // IMotionController
 	*/
 	virtual ETrackingStatus GetControllerTrackingStatus(const int32 ControllerIndex, const EControllerHand DeviceHand) const;
 
-#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 	/** Cached controller info */
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 	gvr::ControllerState CachedControllerState;
 #endif
 
 private:
+
+	float  GetWorldToMetersScale() const;
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 	/** GVR Controller client reference */
@@ -159,6 +179,18 @@ private:
 
 	/** handler to send all messages to */
 	TSharedRef<FGenericApplicationMessageHandler> MessageHandler;
+
+	// TODO: Set controller handedness based on the value from gvr.
+	// When does the gvr value become available? Should we just poll for it?
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
+	gvr_arm_model::Controller ArmModelController;
+#endif
+	bool bUseArmModel;
+	EGoogleVRControllerState CurrentControllerState;
+
+#if GOOGLEVRCONTROLLER_SUPPORTED_EMULATOR_PLATFORMS
+	FRotator BaseEmulatorOrientation;
+#endif
 
 	/** Last Orientation used */
 	mutable FRotator LastOrientation;

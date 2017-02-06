@@ -318,6 +318,10 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 	{
 		FSlateApplication::Get().GetRenderer()->RegisterCurrentScene(ViewportClient->GetWorld()->Scene);
 	}
+	else
+	{
+		FSlateApplication::Get().GetRenderer()->RegisterCurrentScene(nullptr);
+	}
 	
 	/** Check to see if the viewport should be resized */
 	FIntPoint DrawSize = FIntPoint( FMath::RoundToInt( AllottedGeometry.GetDrawSize().X ), FMath::RoundToInt( AllottedGeometry.GetDrawSize().Y ) );

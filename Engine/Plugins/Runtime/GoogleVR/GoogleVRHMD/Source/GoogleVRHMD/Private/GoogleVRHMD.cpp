@@ -190,6 +190,24 @@ void AndroidThunkCpp_QuitDaydreamApplication()
 	}
 }
 
+void AndroidThunkCpp_EnableSPM()
+{
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		static jmethodID Method = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_EnableSPM", "()V", false);
+		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, Method);
+	}
+}
+
+void AndroidThunkCpp_DisableSPM()
+{
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		static jmethodID Method = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_DisableSPM", "()V", false);
+		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, Method);
+	}
+}
+
 FString AndroidThunkCpp_GetDataString()
 {
 	FString Result = FString("");
@@ -546,8 +564,27 @@ void FGoogleVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPos
 		CurrentOrientation = FQuat(FRotator(0.0f, 0.0f, 0.0f));
 	}
 
-	// TODO: add neck model to the editor emulatation.
-	CurrentPosition = FVector::ZeroVector;
+	// TODO: Move this functionality into the AUX library so that it doesn't need to be duplicated.
+	// Between the SDK and here.
+
+	const float NeckHorizontalOffset = 0.080f;  // meters in Z
+	const float NeckVerticalOffset = 0.075f;     // meters in Y
+
+	// Rotate eyes around neck pivot point.
+	CurrentPosition = CurrentOrientation * FVector(NeckHorizontalOffset, 0.0f, NeckVerticalOffset);
+
+	// Measure new position relative to original center of head, because
+	// applying a neck model should not elevate the camera.
+	CurrentPosition -= FVector(0.0f, 0.0f, NeckVerticalOffset);
+
+	// Apply the Neck Model Scale
+	CurrentPosition *= NeckModelScale;
+
+	// Number of Unreal Units per meter.
+	const float WorldToMetersScale = GetWorldToMetersScale();
+	CurrentPosition *= WorldToMetersScale;
+
+	CurrentPosition = BaseOrientation.RotateVector(CurrentPosition);
 #endif
 }
 
@@ -828,7 +865,7 @@ float FGoogleVRHMD::GetNeckModelScale() const
 
 float FGoogleVRHMD::GetWorldToMetersScale() const
 {
-	if (GWorld != nullptr)
+	if (IsInGameThread() && GWorld != nullptr)
 	{
 		return GWorld->GetWorldSettings()->WorldToMeters;
 	}
@@ -843,6 +880,25 @@ bool FGoogleVRHMD::IsVrLaunch() const
 	return AndroidThunkCpp_IsVrLaunch();
 #endif
 	return false;
+}
+
+bool FGoogleVRHMD::IsInDaydreamMode() const
+{
+	return bIsInDaydreamMode;
+}
+
+void FGoogleVRHMD::SetSPMEnable(bool bEnable) const
+{
+#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
+	if (bEnable)
+	{
+		AndroidThunkCpp_EnableSPM();
+	}
+	else
+	{
+		AndroidThunkCpp_DisableSPM();
+	}
+#endif
 }
 
 FString FGoogleVRHMD::GetIntentData() const
@@ -1168,6 +1224,7 @@ FMatrix FGoogleVRHMD::GetStereoProjectionMatrix(const enum EStereoscopicPass Ste
 	}
 
 	gvr_rectf EyeFov = gvr_buffer_viewport_get_source_fov(ScratchViewport);
+	//UE_LOG(LogHMD, Log, TEXT("Eye %d FOV: Left - %f, Right - %f, Top - %f, Botton - %f"), StereoPassType, EyeFov.left, EyeFov.right, EyeFov.top, EyeFov.bottom);
 
 	// Have to flip left/right and top/bottom to match UE4 expectations
 	float Right = FPlatformMath::Tan(FMath::DegreesToRadians(EyeFov.left));
@@ -1247,6 +1304,16 @@ FMatrix FGoogleVRHMD::GetStereoProjectionMatrix(const enum EStereoscopicPass Ste
 
 #endif // GOOGLEVRHMD_SUPPORTED_PLATFORMS
 }
+
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+gvr_rectf FGoogleVRHMD::GetGVREyeFOV(int EyeIndex) const
+{
+	gvr_buffer_viewport_list_get_item(ActiveViewportList, EyeIndex, ScratchViewport);
+	gvr_rectf EyeFov = gvr_buffer_viewport_get_source_fov(ScratchViewport);
+
+	return EyeFov;
+}
+#endif
 
 void FGoogleVRHMD::InitCanvasFromView(class FSceneView* InView, class UCanvas* Canvas)
 {
@@ -1634,12 +1701,15 @@ bool FGoogleVRHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if (FParse::Command(&Cmd, TEXT("GVRSPLASH")))
 	{
+		float SplashScreenDistance;
+		float RenderScale;
 		if (FParse::Command(&Cmd, TEXT("SHOW")))
 		{
 			if (GVRSplash.IsValid())
 			{
 				GVRSplash->Show();
 				bDebugShowGVRSplash = true;
+				return true;
 			}
 		}
 		else if (FParse::Command(&Cmd, TEXT("HIDE")))
@@ -1648,7 +1718,37 @@ bool FGoogleVRHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 			{
 				GVRSplash->Hide();
 				bDebugShowGVRSplash = false;
+				return true;
 			}
+		}
+		else if (FParse::Value(Cmd, TEXT("d="), SplashScreenDistance))
+		{
+			if (GVRSplash.IsValid())
+			{
+				GVRSplash->RenderDistanceInMeter = SplashScreenDistance;
+				return true;
+			}
+		}
+		else if (FParse::Value(Cmd, TEXT("s="), RenderScale))
+		{
+			if (GVRSplash.IsValid())
+			{
+				GVRSplash->RenderScale = RenderScale;
+				return true;
+			}
+		}
+	}
+	else if (FParse::Command(&Cmd, TEXT("GVRSPM")))
+	{
+		if (FParse::Command(&Cmd, TEXT("ON")))
+		{
+			SetSPMEnable(true);
+			return true;
+		}
+		else if (FParse::Command(&Cmd, TEXT("OFF")))
+		{
+			SetSPMEnable(false);
+			return true;
 		}
 	}
 #endif

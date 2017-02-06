@@ -3788,6 +3788,14 @@ enum class ESpawnActorCollisionHandlingMethod : uint8
 	DontSpawnIfColliding					UMETA(DisplayName = "Do Not Spawn"),
 };
 
+/** Defines the context of a user activity. Activities triggered in Blueprints will by type Game. Those created in code might choose to set another type. */
+enum class EUserActivityContext : uint8
+{
+	Game,
+	Editor,
+	Other
+};
+
 /**
  * The description of a user activity
  */
@@ -3800,12 +3808,24 @@ struct FUserActivity
 	UPROPERTY(BlueprintReadWrite, Category = "Activity")
 	FString ActionName;
 
+	/** A game or editor activity? */
+	EUserActivityContext Context;
+
 	/** Default constructor. */
-	FUserActivity() { }
+	FUserActivity()
+		: Context(EUserActivityContext::Game)
+	{ }
 
 	/** Creates and initializes a new instance. */
 	FUserActivity(const FString& InActionName)
 		: ActionName(InActionName)
+		, Context(EUserActivityContext::Game)
+	{ }
+
+	/** Creates and initializes a new instance with a context other than the default "Game". */
+	FUserActivity(const FString& InActionName, EUserActivityContext InContext)
+		: ActionName(InActionName)
+		, Context(InContext)
 	{ }
 };
 

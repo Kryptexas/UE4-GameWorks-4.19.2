@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding='utf-8' standalone='no'?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+<!-- blaze-out/arm-linux-androideabi-4.8-bionic-libcxx-armv7a-opt/genfiles/vr/gvr/platform/common/android/res/values-zh-rHK/strings.xml -->
+<eat-comment/>
+<string name="back_button_content_description" msgid="233061162317617848">"返回"</string>
+<string name="cancel_button" msgid="2401572676578172896">"取消"</string>
+<string name="dialog_button_got_it" msgid="2482357845034618478">"知道了"</string>
+<string name="dialog_button_open_help_center" msgid="4505853433204459373">"開啟說明中心"</string>
+<string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"必須使用兼容 Daydream 的手機。如要瞭解詳情，請前往「說明中心」。"</string>
+<string name="dialog_message_no_cardboard" msgid="3560856374975640601">"取得 Cardboard 應用程式，以設定您的虛擬眼鏡。"</string>
+<string name="dialog_message_setup" msgid="418839137454435402">"設定您的虛擬眼鏡，以獲取最佳體驗。"</string>
+<string name="dialog_title" msgid="7887077605817014784">"設定"</string>
+<string name="dialog_title_incompatible_phone" msgid="4515090705573059650">"不兼容此手機"</string>
+<string name="dialog_title_vr_core_not_enabled" msgid="2594928940370730859">"需要執行設定"</string>
+<string name="dialog_title_vr_core_not_installed" msgid="6322165810291059770">"需要安裝"</string>
+<string name="dialog_title_warning" msgid="455961049302726493">"警告"</string>
+<string name="dialog_vr_core_not_enabled" msgid="1966424794507569244">"若未啟用「Google 虛擬現實服務」，此應用程式可能無法正常運作。請在手機「設定」中啟用「Google 虛擬現實服務」，然後繼續操作。"</string>
+<string name="dialog_vr_core_not_installed" msgid="7122144659930752678">"在沒有「Google 虛擬現實服務」情況下，此應用程式可能無法正常運作。請前往「Play 商店」安裝「Google 虛擬現實服務」，然後繼續操作。"</string>
+<string name="go_to_playstore_button" msgid="6145412853379876634">"前往 Play 商店"</string>
+<string name="go_to_vr_listeners_settings_button" msgid="6878752668266068283">"前往「設定」"</string>
+<string name="no_browser_text" msgid="5324772199357788720">"沒有可以開啟網站的瀏覽器"</string>
+<string name="place_your_phone_into_cardboard" msgid="2306297166333705530">"將手機放入 Cardboard 虛擬眼鏡中"</string>
+<string name="place_your_viewer_into_viewer_format" msgid="5433369525545709510">"將手機放入「<xliff:g id="VIEWER_NAME">%s</xliff:g>」虛擬眼鏡中"</string>
+<string name="settings_button_content_description" msgid="3719682527828378500">"設定"</string>
+<string name="setup_button" msgid="20964482303479393">"設定"</string>
+<string name="switch_viewer_action" msgid="7856245902137004584">"切換"</string>
+<string name="switch_viewer_prompt" msgid="816514297101696447">"正在使用其他虛擬眼鏡嗎？"</string>
+</resources>

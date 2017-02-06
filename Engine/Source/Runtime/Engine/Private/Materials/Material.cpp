@@ -1013,6 +1013,37 @@ void UMaterial::OverrideScalarParameterDefault(FName ParameterName, float Value,
 #endif // #if WITH_EDITOR
 }
 
+float UMaterial::GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel::Type InFeatureLevel)
+{
+	if (FApp::CanEverRender())
+	{
+		FMaterialResource* Resource = GetMaterialResource(InFeatureLevel);
+		check(Resource);
+
+		// Iterate over both the 2D textures and cube texture expressions.
+		const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = Resource->GetUniformScalarParameterExpressions();
+
+		// Iterate over each of the material's texture expressions.
+		for (FMaterialUniformExpression* UniformExpression : UniformExpressions)
+		{
+			if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
+			{
+				FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+
+				if (ScalarExpression->GetParameterName() == ParameterName)
+				{
+					float Value = 0.f;
+					ScalarExpression->GetDefaultValue(Value);
+					return Value;
+				}
+			}
+		}
+	}
+
+
+	return 0.f;
+}
+
 void UMaterial::RecacheUniformExpressions() const
 {
 	// Ensure that default material is available before caching expressions.

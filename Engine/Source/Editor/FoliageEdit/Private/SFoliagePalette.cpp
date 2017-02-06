@@ -679,7 +679,6 @@ TSharedRef<SWidget> SFoliagePalette::GetAddFoliageTypePicker()
 
 	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(),
 		false,
-		false,
 		ClassFilters,
 		PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(ClassFilters),
 		FOnShouldFilterAsset(),

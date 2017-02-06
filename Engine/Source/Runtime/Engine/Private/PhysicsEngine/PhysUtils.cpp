@@ -123,7 +123,7 @@ void UBodySetup::CreateFromModel(UModel* InModel, bool bRemoveExisting)
 		if ( !bSuccess )
 		{
 			// ModelToHullsWorker failed.  Clear out anything that may have been created.
-			RemoveSimpleCollision();
+			AggGeom.ConvexElems.Empty();
 		}
 	}
 

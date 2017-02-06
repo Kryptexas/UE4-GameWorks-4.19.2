@@ -1026,6 +1026,38 @@ void UMaterialInstance::OverrideScalarParameterDefault(FName ParameterName, floa
 #endif // #if WITH_EDITOR
 }
 
+float UMaterialInstance::GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel::Type InFeatureLevel)
+{
+	if (bHasStaticPermutationResource )
+	{
+		if (FApp::CanEverRender())
+		{
+			const FMaterialResource* SourceMaterialResource = GetMaterialResource(InFeatureLevel);
+			check(SourceMaterialResource);
+			const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = SourceMaterialResource->GetUniformScalarParameterExpressions();
+
+			// Iterate over each of the material's texture expressions.
+			for (int32 ExpressionIndex = 0; ExpressionIndex < UniformExpressions.Num(); ExpressionIndex++)
+			{
+				FMaterialUniformExpression* UniformExpression = UniformExpressions[ExpressionIndex];
+				if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
+				{
+					FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+
+					if (ScalarExpression->GetParameterName() == ParameterName)
+					{
+						float Value = 0.f;
+						ScalarExpression->GetDefaultValue(Value);
+						return Value;
+					}
+				}
+			}
+		}
+	}
+
+	return 0.f;
+}
+
 bool UMaterialInstance::CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim)
 {
 	check(IsInGameThread());
@@ -2387,7 +2419,7 @@ void UMaterialInstance::UpdateStaticPermutation(const FStaticParameterSet& NewPa
 
 	const bool bWantsStaticPermutationResource = Parent && (!CompareParameters.IsEmpty() || bHasBasePropertyOverrides);
 
-	if (bHasStaticPermutationResource != bWantsStaticPermutationResource || bParamsHaveChanged || (bBasePropertyOverridesHaveChanged && bHasBasePropertyOverrides))
+	if (bHasStaticPermutationResource != bWantsStaticPermutationResource || bParamsHaveChanged || (bBasePropertyOverridesHaveChanged && bWantsStaticPermutationResource))
 	{
 		// This will flush the rendering thread which is necessary before changing bHasStaticPermutationResource, since the RT is reading from that directly
 		// The update context will also make sure any dependent MI's with static parameters get recompiled

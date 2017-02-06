@@ -1281,6 +1281,11 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
         AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
 		VersionEnum = StandardVersion ? VersionEnum : 0;
 		StandardVersion = VersionEnum > 0 ? StandardVersion : TEXT("1.0"); // May require SHADER_LANGUAGE_VERSION for fragment UAVs and/or tessellation.
+		const bool bUseFullPrecisionInPS = Input.Environment.CompilerFlags.Contains(CFLAG_UseFullPrecisionInPS);
+		if (bUseFullPrecisionInPS)
+		{
+			AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), (uint32)1);
+		}
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_MRT)
 	{

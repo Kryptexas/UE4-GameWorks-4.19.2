@@ -249,6 +249,10 @@ void SRetainerWidget::OnTickRetainers(float DeltaTime)
 		{
 			FSlateApplication::Get().GetRenderer()->RegisterCurrentScene(TickWorld->Scene);
 		}
+		else if (IsInGameThread())
+		{
+			FSlateApplication::Get().GetRenderer()->RegisterCurrentScene(nullptr);
+		}
 
 		SCOPE_CYCLE_COUNTER( STAT_SlateRetainerWidgetTick );
 		if ( LastTickedFrame != GFrameCounter && ( GFrameCounter % PhaseCount ) == Phase )

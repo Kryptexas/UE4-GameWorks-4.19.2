@@ -142,6 +142,7 @@ public:
 	// @todo document
 	void DrawConstraints(int32 ViewIndex, FMeshElementCollector& Collector, const USkeletalMesh* SkelMesh, const TArray<FTransform>& SpaceBases, const FTransform& LocalToWorld, float Scale);
 
+	void GetUsedMaterials(TArray<UMaterialInterface*>& Materials);
 
 	// @todo document
 	ENGINE_API void DisableCollision(int32 BodyIndexA, int32 BodyIndexB);

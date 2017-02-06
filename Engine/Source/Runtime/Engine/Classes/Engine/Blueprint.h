@@ -307,6 +307,14 @@ struct FEditedDocumentInfo
 };
 
 
+UENUM()
+enum class EBlueprintNativizationFlag : uint8
+{
+	Disabled,
+	Dependency, // conditionally enabled (set from sub-class as a dependency)
+	ExplicitlyEnabled
+};
+
 /**
  * Blueprints are special assets that provide an intuitive, node-based interface that can be used to create new types of Actors
  * and script level events; giving designers and gameplay programmers the tools to quickly create and iterate gameplay from
@@ -374,8 +382,8 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	TArray<FString> HideCategories;
 	 
 	/** When exclusive nativization is enabled, then this asset will be nativized. All super classes must be also nativized. */
-	UPROPERTY(transient, DisplayName = "Nativize", EditAnywhere, Category= Packaging)
-	bool bSelectedForNativization;
+	UPROPERTY(transient)
+	EBlueprintNativizationFlag NativizationFlag;
 
 	/** TRUE to show a warning when attempting to start in PIE and there is a compiler error on this Blueprint */
 	UPROPERTY(transient)
@@ -521,9 +529,6 @@ public:
 	/** Whether or not this blueprint can be considered for a bytecode only compile */
 	virtual bool IsValidForBytecodeOnlyRecompile() const { return true; }
 
-	/** Return the root class of this blueprint */
-	TSubclassOf<class UObject> GetParentClass() const { return ParentClass; }
-
 #if WITH_EDITORONLY_DATA
 protected:
 	/** Current object being debugged for this blueprint */
@@ -664,9 +669,6 @@ public:
 	virtual void BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatform) override;
 	virtual bool IsCachedCookedPlatformDataLoaded(const ITargetPlatform* TargetPlatform) override;
 	virtual void ClearAllCachedCookedPlatformData() override;
-#if WITH_EDITOR
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
 	//~ End UObject Interface
 
 	/** Consigns the GeneratedClass and the SkeletonGeneratedClass to oblivion, and nulls their references */
@@ -703,9 +705,6 @@ public:
 	virtual bool NeedsLoadForClient() const override;
 	virtual bool NeedsLoadForServer() const override;
 	virtual bool NeedsLoadForEditorGame() const override;
-#if WITH_EDITOR
-	virtual bool CanEditChange(const UProperty* InProperty) const override;
-#endif // WITH_EDITOR
 	//~ End UObject Interface
 
 	/** Get the Blueprint object that generated the supplied class */

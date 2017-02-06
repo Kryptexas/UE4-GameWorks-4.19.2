@@ -49,6 +49,7 @@ const FVector2D Icon40x40(40.0f, 40.0f);
 TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 {
 	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet(FVREditorStyle::GetStyleSetName()));
+
 	Style->SetContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate"));
 	Style->SetCoreContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
 

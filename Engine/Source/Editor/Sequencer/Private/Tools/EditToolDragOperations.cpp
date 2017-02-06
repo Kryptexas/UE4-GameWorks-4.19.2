@@ -524,6 +524,7 @@ void FMoveSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMouseP
 			Section->MoveSection(DeltaTime, DraggedKeyHandles);
 			if (!bSectionsAreOnDifferentRows)
 			{
+				Section->Modify();
 				Section->SetRowIndex(TargetRowIndex);
 				bRowIndexChanged = true;
 			}
@@ -534,6 +535,7 @@ void FMoveSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMouseP
 				!Section->OverlapsWithSections(MovieSceneSections, TargetRowIndex - Section->GetRowIndex(), 0.f) &&
 				!bSectionsAreOnDifferentRows)
 			{
+				Section->Modify();
 				Section->SetRowIndex(TargetRowIndex);
 				bRowIndexChanged = true;
 			}

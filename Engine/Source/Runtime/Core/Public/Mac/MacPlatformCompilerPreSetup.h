@@ -131,8 +131,13 @@
 #pragma clang diagnostic ignored "-Wunused-local-typedef"
 #pragma clang diagnostic ignored "-Wdelete-non-virtual-dtor"
 
-// We can pragma optimisation's on and off as of Apple LLVM 7.3.0 but not before.
-#if __clang_major__ >= 7 && __clang_minor__ >= 3
+// Apple LLVM 8.1.0 (Xcode 8.3) introduced -Wundefined-var-template
+#if (__clang_major__ > 8) || (__clang_major__ == 8 && __clang_minor__ >= 1)
+#pragma clang diagnostic ignored "-Wundefined-var-template"
+#endif
+
+// We can use pragma optimisation's on and off as of Apple LLVM 7.3.0 but not before.
+#if (__clang_major__ > 7) || (__clang_major__ == 7 && __clang_minor__ >= 3)
 #define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("clang optimize off")
 #define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  _Pragma("clang optimize on")
 #endif

@@ -75,6 +75,8 @@
 #include "IPortalServiceLocator.h"
 #include "IDesktopPlatform.h"
 #include "DesktopPlatformModule.h"
+#include "UserActivityTracking.h"
+#include "Widgets/Docking/SDockTab.h"
 
 #define USE_UNIT_TESTS 0
 
@@ -262,6 +264,12 @@ void FUnrealEdMisc::OnInit()
 
 	// Register curve editor commands.
 	FRichCurveEditorCommands::Register();
+
+	// Have the User Activity Tracker reject non-editor activities for this run
+	FUserActivityTracking::SetContextFilter(EUserActivityContext::Editor);
+	OnActiveTabChangedDelegateHandle = FGlobalTabmanager::Get()->OnActiveTabChanged_Subscribe(FOnActiveTabChanged::FDelegate::CreateRaw(this, &FUnrealEdMisc::OnActiveTabChanged));
+	OnTabForegroundedDelegateHandle = FGlobalTabmanager::Get()->OnTabForegrounded_Subscribe(FOnActiveTabChanged::FDelegate::CreateRaw(this, &FUnrealEdMisc::OnTabForegrounded));
+	FUserActivityTracking::SetActivity(FUserActivity(TEXT("EditorInit"), EUserActivityContext::Editor));
 
 	FEditorModeRegistry::Initialize();
 	GLevelEditorModeTools().ActivateDefaultMode();
@@ -830,6 +838,9 @@ void FUnrealEdMisc::OnExit()
 	MessageLogModule.UnregisterLogListing("PIE");
 
 	// Unregister all events
+	FGlobalTabmanager::Get()->OnActiveTabChanged_Unsubscribe(OnActiveTabChangedDelegateHandle);
+	FGlobalTabmanager::Get()->OnTabForegrounded_Unsubscribe(OnTabForegroundedDelegateHandle);
+	FUserActivityTracking::SetActivity(FUserActivity(TEXT("EditorExit"), EUserActivityContext::Editor));
 	FEditorDelegates::SelectedProps.RemoveAll(this);
 	FEditorDelegates::DisplayLoadErrors.RemoveAll(this);
 	FEditorDelegates::MapChange.RemoveAll(this);
@@ -1060,6 +1071,26 @@ void FUnrealEdMisc::OnEditorPostModal()
 	if( FSlateApplication::IsInitialized() )
 	{
 		FSlateApplication::Get().ExternalModalStop();
+	}
+}
+
+void FUnrealEdMisc::OnActiveTabChanged(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated)
+{
+	OnUserActivityTabChanged(NewlyActivated);
+}
+
+void FUnrealEdMisc::OnTabForegrounded(TSharedPtr<SDockTab> ForegroundTab, TSharedPtr<SDockTab> BackgroundTab)
+{
+	OnUserActivityTabChanged(ForegroundTab);
+}
+
+void FUnrealEdMisc::OnUserActivityTabChanged(TSharedPtr<SDockTab> InTab)
+{
+	if (InTab.IsValid())
+	{
+		FString Activity = FString::Printf(TEXT("Layout=\"%s\" Label=\"%s\" Content=%s"), *InTab->GetLayoutIdentifier().ToString(), *InTab->GetTabLabel().ToString(), *InTab->GetContent()->GetTypeAsString());
+
+		FUserActivityTracking::SetActivity(FUserActivity(Activity, EUserActivityContext::Editor));
 	}
 }
 

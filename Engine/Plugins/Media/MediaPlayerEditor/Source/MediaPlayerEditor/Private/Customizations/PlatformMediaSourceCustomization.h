@@ -53,6 +53,9 @@ protected:
 
 private:
 
+	/** Callback for filtering media source assets. */
+	bool HandleShouldFilterAsset(const FAssetData& AssetData);
+
 	/** Callback for when a per-platform media source property changed. */
 	void HandleMediaSourcePropertyEntryBoxChanged(const FAssetData& AssetData, FString PlatformName);
 

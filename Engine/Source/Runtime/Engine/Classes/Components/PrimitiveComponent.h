@@ -1260,7 +1260,7 @@ public:
 	 * 
 	 * @param OutMaterials	The list of used materials.
 	 */
-	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const {}
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const {}
 
 	/**
 	 * Returns the material textures used to render this primitive for the given platform.

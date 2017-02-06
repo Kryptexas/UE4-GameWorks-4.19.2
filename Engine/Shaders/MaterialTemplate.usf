@@ -207,6 +207,13 @@ struct FMaterialPixelParameters
 	/** Used in mobile custom pp material to preserve original SceneColor Alpha */
 	half BackupSceneColorAlpha;
 #endif
+
+#if COMPILER_HLSL
+	// Workaround for "error X3067: 'GetObjectWorldPosition': ambiguous function call"
+	// Which happens when FMaterialPixelParameters and FMaterialVertexParameters have the same number of floats with the HLSL compiler ver 9.29.952.3111
+	// Function overload resolution appears to identify types based on how many floats / ints / etc they contain
+	uint Dummy;
+#endif
 };
 
 // @todo compat hack

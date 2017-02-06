@@ -19,7 +19,11 @@
 
 	<!-- Whether to create a prebuilt DDC -->
 	<Option Name="WithDDC" Restrict="true|false" DefaultValue="true" Description="Build a standalone derived-data cache for the engine content and templates" />
+
+	<!-- Whether to build DDC for the host platform only -->
 	
+<Option Name="HostPlatformDDCOnly" Restrict="true|false" DefaultValue="true" Description="Whether to include DDC for the host platform only"/>
+
 	<!-- Whether to sign any executables produced -->
 	<Option Name="SignExecutables" Restrict="true|false" DefaultValue="false" Description="Sign the executables produced where signing is available"/>
 
@@ -146,7 +150,7 @@
 			<Strip BaseDir="$(RootDir)" OutputDir="$(SavedOutput)" Platform="Linux" Files="#UE4Editor Linux Unstripped" Tag="#UE4Editor Linux Stripped"/>
 
 			<!-- Tag the generated includes for this target -->
-			<Tag Files="Engine/Intermediate/Build/Linux/UE4Editor/Inc/...;Engine/Plugins/.../Intermediate/Build/Linux/UE4Editor/Inc/..." With="#UE4Editor Linux Includes"/>
+			<Tag Files="Engine/Intermediate/Build/Linux/B4D820EA/UE4Editor/Inc/...;Engine/Plugins/.../Intermediate/Build/Linux/B4D820EA/UE4Editor/Inc/..." With="#UE4Editor Linux Includes"/>
 		</Node>
 	</Agent>
 
@@ -211,7 +215,7 @@
 			<Strip BaseDir="$(RootDir)" OutputDir="$(SavedOutput)" Platform="Linux" Files="#UE4Game Linux Unstripped" Tag="#UE4Game Linux Stripped"/>
 
 			<!-- Tag the generated includes for this target -->
-			<Tag Files="Engine/Intermediate/Build/Linux/UE4/Inc/...;Engine/Plugins/.../Intermediate/Build/Linux/UE4/Inc/..." With="#UE4Game Linux Includes"/>
+			<Tag Files="Engine/Intermediate/Build/Linux/B4D820EA/UE4/Inc/...;Engine/Plugins/.../Intermediate/Build/Linux/B4D820EA/UE4/Inc/..." With="#UE4Game Linux Includes"/>
 		</Node>
 
 		<!-- Downstream monolithics and tools Android-->
@@ -377,16 +381,18 @@
 		</Node>
 	</Agent>
 
-	<Property Name="CookPlatformsWin64" Value="Windows"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+WindowsNoEditor" If="'$(WithWin64)' == true Or '$(WithWin32)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+Android_ATC" If="'$(WithAndroid)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+IOS" If="'$(WithIOS)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+TVOS" If="'$(WithTVOS)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+LinuxNoEditor" If="'$(WithLinux)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+HTML5" If="'$(WithHTML5)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+PS4" If="'$(WithPS4)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+XboxOne" If="'$(WithXboxOne)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+Switch" If="'$(WithSwitch)' == true"/>
+	<Property Name="DDCPlatformsWin64" Value="Windows"/>
+	<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+WindowsNoEditor" If="'$(WithWin64)' == true Or '$(WithWin32)' == true"/>
+	<Do If="'$(HostPlatformDDCOnly)' == false">
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+Android_ATC" If="'$(WithAndroid)' == true"/>
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+IOS" If="'$(WithIOS)' == true"/>
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+TVOS" If="'$(WithTVOS)' == true"/>
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+LinuxNoEditor" If="'$(WithLinux)' == true"/>
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+HTML5" If="'$(WithHTML5)' == true"/>
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+PS4" If="'$(WithPS4)' == true"/>
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+XboxOne" If="'$(WithXboxOne)' == true"/>
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+Switch" If="'$(WithSwitch)' == true"/>
+	</Do>
 
 	<Agent Name="DDC Group Win64" Type="Win64">
 		<Node Name="Build DDC Win64" Requires="#UE4Editor Win64;Build Tools Win64;Build Tools CS" Produces="#CompressedDDCWin64">
@@ -415,18 +421,20 @@
 			<!-- Copy everything to a temporary directory -->
 			<Copy From="$(RootDir)" To="$(DDCDir)" Files="#FilteredCopyList"/>
 
-			<Command Name="BuildDerivedDataCache" Arguments="-TempDir=$(DDCDir) -FeaturePacks=$(ProjectsToBuildDDC) -TargetPlatforms=$(CookPlatformsWin64) -HostPlatform=Win64 -SavedDir=$(SavedDir)"/>
+			<Command Name="BuildDerivedDataCache" Arguments="-TempDir=$(DDCDir) -FeaturePacks=$(ProjectsToBuildDDC) -TargetPlatforms=$(DDCPlatformsWin64) -HostPlatform=Win64 -SavedDir=$(SavedDir)"/>
 
 			<Tag Files="$(SavedDir)/Engine/DerivedDataCache/Compressed.ddp" With="#CompressedDDCWin64"/>
 		</Node>
 	</Agent>
 
-	<Property Name="CookPlatformsMac" Value="Mac"/>
-	<Property Name="CookPlatformsMac" Value="$(CookPlatformsMac)+MacNoEditor" If="'$(WithMac)' == true"/>
-	<Property Name="CookPlatformsMac" Value="$(CookPlatformsMac)+Android_ATC" If="'$(WithAndroid)' == true"/>
-	<Property Name="CookPlatformsMac" Value="$(CookPlatformsMac)+IOS" If="'$(WithIOS)' == true"/>
-	<Property Name="CookPlatformsMac" Value="$(CookPlatformsMac)+TVOS" If="'$(WithTVOS)' == true"/>
-	<Property Name="CookPlatformsMac" Value="$(CookPlatformsMac)+HTML5" If="'$(WithHTML5)' == true"/>
+	<Property Name="DDCPlatformsMac" Value="Mac"/>
+	<Property Name="DDCPlatformsMac" Value="$(DDCPlatformsMac)+MacNoEditor" If="'$(WithMac)' == true"/>
+	<Do If="'$(HostPlatformDDCOnly)' == false">
+		<Property Name="DDCPlatformsMac" Value="$(DDCPlatformsMac)+Android_ATC" If="'$(WithAndroid)' == true"/>
+		<Property Name="DDCPlatformsMac" Value="$(DDCPlatformsMac)+IOS" If="'$(WithIOS)' == true"/>
+		<Property Name="DDCPlatformsMac" Value="$(DDCPlatformsMac)+TVOS" If="'$(WithTVOS)' == true"/>
+		<Property Name="DDCPlatformsMac" Value="$(DDCPlatformsMac)+HTML5" If="'$(WithHTML5)' == true"/>
+	</Do>
 
 	<Agent Name="DDC Group Mac" Type="Mac">
 		<Node Name="Build DDC Mac" Requires="#UE4Editor Mac;Build Tools Mac;Build Tools CS" Produces="#CompressedDDCMac">
@@ -455,14 +463,14 @@
 			<!-- Copy everything to a temporary directory -->
 			<Copy From="$(RootDir)" To="$(DDCDir)" Files="#FilteredCopyList"/>
 
-			<Command Name="BuildDerivedDataCache" Arguments="-TempDir=$(DDCDir) -FeaturePacks=$(ProjectsToBuildDDC) -TargetPlatforms=$(CookPlatformsMac) -HostPlatform=Mac -SavedDir=$(SavedDir)"/>
+			<Command Name="BuildDerivedDataCache" Arguments="-TempDir=$(DDCDir) -FeaturePacks=$(ProjectsToBuildDDC) -TargetPlatforms=$(DDCPlatformsMac) -HostPlatform=Mac -SavedDir=$(SavedDir)"/>
 
 			<Tag Files="$(SavedDir)/Engine/DerivedDataCache/Compressed.ddp" With="#CompressedDDCMac"/>
 		</Node>
 	</Agent>
 
-	<Property Name="CookPlatformsLinux" Value="Linux"/>
-	<Property Name="CookPlatformsLinux" Value="$(CookPlatformsWin64)+LinuxNoEditor" If="'$(WithLinux)' == true"/>
+	<Property Name="DDCPlatformsLinux" Value="Linux"/>
+	<Property Name="DDCPlatformsLinux" Value="$(DDCPlatformsLinux)+LinuxNoEditor" If="'$(WithLinux)' == true"/>
 
 	<Agent Name="DDC Group Linux" Type="Linux">
 		<Node Name="Build DDC Linux" Requires="#UE4Editor Linux;Build Tools Linux;Build Tools CS" Produces="#CompressedDDCLinux">
@@ -491,7 +499,7 @@
 			<!-- Copy everything to a temporary directory -->
 			<Copy From="$(RootDir)" To="$(DDCDir)" Files="#FilteredCopyList"/>
 
-			<Command Name="BuildDerivedDataCache" Arguments="-TempDir=$(DDCDir) -FeaturePacks=$(ProjectsToBuildDDC) -TargetPlatforms=$(CookPlatformsLinux) -HostPlatform=Linux -SavedDir=$(SavedDir)"/>
+			<Command Name="BuildDerivedDataCache" Arguments="-TempDir=$(DDCDir) -FeaturePacks=$(ProjectsToBuildDDC) -TargetPlatforms=$(DDCPlatformsLinux) -HostPlatform=Linux -SavedDir=$(SavedDir)"/>
 
 			<Tag Files="$(SavedDir)/Engine/DerivedDataCache/Compressed.ddp" With="#CompressedDDCLinux"/>
 		</Node>

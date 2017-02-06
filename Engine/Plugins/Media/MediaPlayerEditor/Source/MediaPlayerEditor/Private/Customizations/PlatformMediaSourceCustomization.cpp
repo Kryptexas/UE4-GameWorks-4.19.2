@@ -123,6 +123,7 @@ TSharedRef<SWidget> FPlatformMediaSourceCustomization::MakePlatformMediaSourcesV
 				SNew(SObjectPropertyEntryBox)
 					.AllowedClass(UMediaSource::StaticClass())
 					.AllowClear(true)
+					.OnShouldFilterAsset(this, &FPlatformMediaSourceCustomization::HandleShouldFilterAsset)
 					.ObjectPath(this, &FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryObjectPath, PlatformName)
 					.OnObjectChanged(this, &FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryBoxChanged, PlatformName)
 			];
@@ -154,6 +155,13 @@ void FPlatformMediaSourceCustomization::SetPlatformMediaSourcesValue(FString Pla
 
 /* FPlatformMediaSourceCustomization callbacks
  *****************************************************************************/
+
+bool FPlatformMediaSourceCustomization::HandleShouldFilterAsset(const FAssetData& AssetData)
+{
+	// Don't allow nesting platform media sources.
+	UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
+	return AssetClass->IsChildOf(UPlatformMediaSource::StaticClass());
+}
 
 void FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryBoxChanged(const FAssetData& AssetData, FString PlatformName)
 {

@@ -15,9 +15,10 @@ class ULandscapeGizmoRenderComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
-
 	//~ Begin UPrimitiveComponent Interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 	//~ End UPrimitiveComponent Interface
 
 	//~ Begin USceneComponent Interface.

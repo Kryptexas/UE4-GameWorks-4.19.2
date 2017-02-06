@@ -55,16 +55,18 @@ UDestructibleMesh* FDestructibleMeshEditorModule::CreateDestructibleMeshFromStat
 	TArray<UMaterial*> SpeedTreeMaterials;
 	for(FStaticMaterial& StaticMaterial : StaticMesh->StaticMaterials)
 	{
-		UMaterialInterface* Mat = StaticMaterial.MaterialInterface;
-
-		UMaterial* BaseMat = Mat->GetBaseMaterial();
-	
-		for(UMaterialExpression* Expression : BaseMat->Expressions)
+		if(UMaterialInterface* Mat = StaticMaterial.MaterialInterface)
 		{
-			if(Cast<UMaterialExpressionSpeedTree>(Expression))
+			if(UMaterial* BaseMat = Mat->GetBaseMaterial())
 			{
-				SpeedTreeMaterials.Add(BaseMat);
-				break;
+				for(UMaterialExpression* Expression : BaseMat->Expressions)
+				{
+					if(Cast<UMaterialExpressionSpeedTree>(Expression))
+					{
+						SpeedTreeMaterials.Add(BaseMat);
+						break;
+					}
+				}
 			}
 		}
 	}

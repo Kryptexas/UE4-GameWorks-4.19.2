@@ -71,7 +71,7 @@ void UInheritableComponentHandler::PostLoad()
 				}
 				else if (Record.CookedComponentInstancingData.bIsValid)
 				{
-					// Generate "fast path" instancing data.
+					// Generate "fast path" instancing data. This data may also be used to override components inherited from a nativized BP parent class.
 					Record.CookedComponentInstancingData.LoadCachedPropertyDataForSerialization(Record.ComponentTemplate);
 				}
 			}

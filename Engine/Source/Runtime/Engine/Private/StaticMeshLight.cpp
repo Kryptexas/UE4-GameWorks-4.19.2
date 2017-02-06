@@ -303,7 +303,7 @@ void UStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& O
 		GetLightMapResolution( BaseLightMapWidth, BaseLightMapHeight );
 
 		TArray<FStaticMeshStaticLightingMesh*> StaticLightingMeshes;
-		bool bCanLODsShareStaticLighting = GetStaticMesh()->CanLODsShareStaticLighting();
+		bool bCanLODsShareStaticLighting = GetStaticMesh()->SpeedTreeWind.IsValid();
 		int32 NumLODs = bCanLODsShareStaticLighting ? 1 : GetStaticMesh()->RenderData->LODResources.Num();
 		for(int32 LODIndex = 0;LODIndex < NumLODs;LODIndex++)
 		{

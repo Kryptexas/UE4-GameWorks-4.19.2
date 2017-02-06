@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding='utf-8' standalone='no'?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+<!-- blaze-out/arm-linux-androideabi-4.8-bionic-libcxx-armv7a-opt/genfiles/vr/gvr/platform/common/android/res/values-ne/strings.xml -->
+<eat-comment/>
+<string name="back_button_content_description" msgid="233061162317617848">"पछाडि"</string>
+<string name="cancel_button" msgid="2401572676578172896">"रद्द गर्नुहोस्"</string>
+<string name="dialog_button_got_it" msgid="2482357845034618478">"बुझेँ"</string>
+<string name="dialog_button_open_help_center" msgid="4505853433204459373">"मद्दत केन्द्र खोल्नुहोस्"</string>
+<string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"Daydream चलाउन मिल्ने फोनको आवश्यकता पर्छ। थप जानकारीका लागि Daydream को मद्दत केन्द्रमा जानुहोस्।"</string>
+<string name="dialog_message_no_cardboard" msgid="3560856374975640601">"आफ्नो भ्युअर कन्फिगर गर्न कार्डबोर्ड अनुप्रयोग प्राप्त गर्नुहोस्।"</string>
+<string name="dialog_message_setup" msgid="418839137454435402">"उत्कृष्ट अनुभवका लागि आफ्नो भ्युअर सेट अप गर्नुहोस्।"</string>
+<string name="dialog_title" msgid="7887077605817014784">"कन्फिगर गर्नुहोस्"</string>
+<string name="dialog_title_incompatible_phone" msgid="4515090705573059650">"नमिल्दो फोन"</string>
+<string name="dialog_title_vr_core_not_enabled" msgid="2594928940370730859">"सेटअप गर्न आवश्यक छ"</string>
+<string name="dialog_title_vr_core_not_installed" msgid="6322165810291059770">"स्थापना गर्न आवश्यक पर्छ"</string>
+<string name="dialog_title_warning" msgid="455961049302726493">"चेतावनी"</string>
+<string name="dialog_vr_core_not_enabled" msgid="1966424794507569244">"Google का VR सेवाहरू सक्रिय नगरिकन यो अनुप्रयोगले राम्ररी काम नगर्न सक्छ, कृपया जारी राख्नु अघि फोनका सेटिङहरूमा गई यसलाई सक्षम पार्नुहोस्।"</string>
+<string name="dialog_vr_core_not_installed" msgid="7122144659930752678">"Google का VR सेवाहरू बिना यो अनुप्रयोगले राम्ररी काम नगर्न सक्छ। कृपया जारी राख्नु अघि Play स्टोरबाट Google का VR सेवाहरूलाई स्थापना गर्नुहोस्।"</string>
+<string name="go_to_playstore_button" msgid="6145412853379876634">"Play स्टोरमा जानुहोस्"</string>
+<string name="go_to_vr_listeners_settings_button" msgid="6878752668266068283">"सेटिङहरूमा जानुहोस्"</string>
+<string name="no_browser_text" msgid="5324772199357788720">"वेबसाइट खोल्ने कुनै ब्राउजर छैन"</string>
+<string name="place_your_phone_into_cardboard" msgid="2306297166333705530">"तपाईंको फोन आफ्नो कार्डबोर्ड भ्युअरमा राख्नुहोस्"</string>
+<string name="place_your_viewer_into_viewer_format" msgid="5433369525545709510">"तपाईंको फोनलाई आफ्नो <xliff:g id="VIEWER_NAME">%s</xliff:g> भ्युअरमा राख्नुहोस्"</string>
+<string name="settings_button_content_description" msgid="3719682527828378500">"सेटिङहरू"</string>
+<string name="setup_button" msgid="20964482303479393">"सेटअप गर्नुहोस्"</string>
+<string name="switch_viewer_action" msgid="7856245902137004584">"बदल्नुहोस्"</string>
+<string name="switch_viewer_prompt" msgid="816514297101696447">"अर्को कुनै भ्युअरको प्रयोग गर्दै हुनुहुन्छ?"</string>
+</resources>

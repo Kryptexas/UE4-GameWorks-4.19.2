@@ -16,11 +16,9 @@ public:
 	SLATE_BEGIN_ARGS( SPropertyMenuAssetPicker )
 		: _InitialObject(NULL)
 		, _AllowClear(true)
-		, _SearchInBlueprint(false)
 	{}
 		SLATE_ARGUMENT( FAssetData, InitialObject )
 		SLATE_ARGUMENT( bool, AllowClear )
-		SLATE_ARGUMENT(bool, SearchInBlueprint)			
 		SLATE_ARGUMENT( TArray<const UClass*>, AllowedClasses )
 		SLATE_ARGUMENT( TArray<UFactory*>, NewAssetFactories )
 		SLATE_EVENT( FOnShouldFilterAsset, OnShouldFilterAsset )

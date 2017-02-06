@@ -969,7 +969,7 @@ void USubDSurfaceComponent::RecreateMeshData()
 #endif // USE_OPENSUBDIV
 }
 
-void USubDSurfaceComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const
+void USubDSurfaceComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials ) const
 {
 /* todo
 	if( StaticMesh && StaticMesh->RenderData )

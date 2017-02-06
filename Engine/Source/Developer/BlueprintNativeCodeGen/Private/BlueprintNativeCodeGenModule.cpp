@@ -711,6 +711,11 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 
 	const UBlueprint* const Blueprint = BlueprintClass ? Cast<UBlueprint>(BlueprintClass->ClassGeneratedBy) : nullptr;
 
+
+	const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
+	const bool bNativizeOnlySelectedBPs = PackagingSettings && PackagingSettings->BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Exclusive;
+
+
 	auto ObjectIsNotReplacedAtAll = [&]() -> bool
 	{
 		// EDITOR ON DEVELOPMENT OBJECT
@@ -748,7 +753,7 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 		// DATA ONLY BP
 		{
 			static const FBoolConfigValueHelper DontNativizeDataOnlyBP(TEXT("BlueprintNativizationSettings"), TEXT("bDontNativizeDataOnlyBP"));
-			if (DontNativizeDataOnlyBP && Blueprint && FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint))
+			if (DontNativizeDataOnlyBP && !bNativizeOnlySelectedBPs && Blueprint && FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint))
 			{
 				return true;
 			}
@@ -859,11 +864,11 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 				}
 			}
 
-			const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
-			const bool bNativizeOnlySelectedBPs = PackagingSettings && PackagingSettings->BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Exclusive;
-
+			const bool bFlaggedForNativization  = (Blueprint->NativizationFlag == EBlueprintNativizationFlag::Dependency) ? 
+				PackagingSettings->IsBlueprintAssetInNativizationList(Blueprint) :
+				(Blueprint->NativizationFlag == EBlueprintNativizationFlag::ExplicitlyEnabled);
 			// Blueprint is not selected
-			if (bNativizeOnlySelectedBPs && !Blueprint->bSelectedForNativization)
+			if (bNativizeOnlySelectedBPs && !bFlaggedForNativization)
 			{
 				return true;
 			}

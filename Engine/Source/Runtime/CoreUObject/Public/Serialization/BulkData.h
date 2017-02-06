@@ -465,7 +465,7 @@ private:
 	void StartSerializingBulkData(FArchive& Ar, UObject* Owner, int32 Idx, bool bPayloadInline);
 
 	/** Flushes any pending async load of bulk data  and copies the data to Dest buffer*/
-	bool FlushAsyncLoading(void* Dest);
+	bool FlushAsyncLoading();
 
 	/** Waits until pending async load finishes */
 	void WaitForAsyncLoading();

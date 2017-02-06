@@ -109,9 +109,9 @@ public abstract class BaseLinuxPlatform : Platform
 		Script.Append("#!/bin/sh" + EOL);
 		// allow running from symlinks
 		Script.AppendFormat("UE4_TRUE_SCRIPT_NAME=$(echo \\\"$0\\\" | xargs readlink -f)" + EOL);
-		Script.AppendFormat("UE4_PROJECT_ROOT=$(dirname $UE4_TRUE_SCRIPT_NAME)" + EOL);
-		Script.AppendFormat("chmod +x $UE4_PROJECT_ROOT/{0}" + EOL, StagedRelativeTargetPath);
-		Script.AppendFormat("$UE4_PROJECT_ROOT/{0} {1} $@ " + EOL, StagedRelativeTargetPath, StagedArguments);
+		Script.AppendFormat("UE4_PROJECT_ROOT=$(dirname \"$UE4_TRUE_SCRIPT_NAME\")" + EOL);
+		Script.AppendFormat("chmod +x \"$UE4_PROJECT_ROOT/{0}\"" + EOL, StagedRelativeTargetPath);
+		Script.AppendFormat("\"$UE4_PROJECT_ROOT/{0}\" {1} $@ " + EOL, StagedRelativeTargetPath, StagedArguments);
 
 		// write out the 
 		File.WriteAllText(IntermediateFile, Script.ToString());
@@ -175,12 +175,23 @@ public abstract class BaseLinuxPlatform : Platform
 			{
 				string CookPlatformName = GetCookPlatform(Params.DedicatedServer, Params.Client);
 				string SourcePath = CombinePaths(Params.BaseStageDirectory, CookPlatformName);
+				if (!Directory.Exists(SourcePath))
+				{
+					throw new AutomationException(string.Format("Source directory \"{0}\" must exist.", SourcePath));
+				}
+
 				string DestPath = "./" + Params.ShortProjectName;
 				List<string> Exes = GetExecutableNames(SC);
 				string BinaryName = "";
 				if (Exes.Count > 0)
 				{
-					BinaryName = Exes[0].Replace(Params.BaseStageDirectory, DestPath);
+					// if stage directory does not end with "\\", insert one
+					string Separator = "";
+					if (Params.BaseStageDirectory.Length > 0 && (Params.BaseStageDirectory.EndsWith("/") || Params.BaseStageDirectory.EndsWith("\\")))
+					{
+						Separator = "/";
+					}
+					BinaryName = Exes[0].Replace(Params.BaseStageDirectory, DestPath + Separator);
 					BinaryName = BinaryName.Replace("\\", "/");
 				}
 
@@ -201,10 +212,10 @@ chmod +x {0}
 				}
 
 				// copy the contents
-				RunAndLog(CmdEnv, PScpPath, String.Format("-batch -pw {0} -r {1} {2}", Params.DevicePassword, SourcePath, Params.DeviceUsername + "@" + DeviceAddress + ":" + DestPath));
+				RunAndLog(CmdEnv, PScpPath, String.Format("-batch -pw {0} -r \"{1}\" {2}", Params.DevicePassword, SourcePath, Params.DeviceUsername + "@" + DeviceAddress + ":" + DestPath));
 
 				// copy the helper script
-				RunAndLog(CmdEnv, PScpPath, String.Format("-batch -pw {0} -r {1} {2}", Params.DevicePassword, ScriptFile, Params.DeviceUsername + "@" + DeviceAddress + ":" + DestPath));
+				RunAndLog(CmdEnv, PScpPath, String.Format("-batch -pw {0} -r \"{1}\" {2}", Params.DevicePassword, ScriptFile, Params.DeviceUsername + "@" + DeviceAddress + ":" + DestPath));
 
 				string RemoteScriptFile = DestPath + "/" + LaunchOnHelperShellScriptName;
 				// non-null input is essential, since RedirectStandardInput=true is needed for PLINK, see http://stackoverflow.com/questions/1910592/process-waitforexit-on-console-vs-windows-forms

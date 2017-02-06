@@ -166,9 +166,9 @@ UMaterialInterface* UPaperFlipbookComponent::GetMaterial(int32 MaterialIndex) co
 	return nullptr;
 }
 
-void UPaperFlipbookComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+void UPaperFlipbookComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials) const
 {
-	return Super::GetUsedMaterials(OutMaterials);
+	return Super::GetUsedMaterials(OutMaterials, bGetDebugMaterials);
 }
 
 void UPaperFlipbookComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const

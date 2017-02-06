@@ -517,7 +517,7 @@ class FInstancedStaticMeshSceneProxy : public FStaticMeshSceneProxy
 public:
 
 	FInstancedStaticMeshSceneProxy(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel)
-	:	FStaticMeshSceneProxy(InComponent)
+	:	FStaticMeshSceneProxy(InComponent, true)
 	,	InstancedRenderData(InComponent, InFeatureLevel)
 #if WITH_EDITOR
 	,	bHasSelectedInstances(InComponent->SelectedInstances.Num() > 0)
@@ -527,7 +527,7 @@ public:
 	}
 
 	FInstancedStaticMeshSceneProxy(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel, FStaticMeshInstanceData& Other)
-		:	FStaticMeshSceneProxy(InComponent)
+		:	FStaticMeshSceneProxy(InComponent, true)
 		,	InstancedRenderData(InComponent, InFeatureLevel, Other)
 #if WITH_EDITOR
 		,	bHasSelectedInstances(InComponent->SelectedInstances.Num() > 0)

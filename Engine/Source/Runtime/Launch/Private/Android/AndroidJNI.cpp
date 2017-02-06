@@ -24,11 +24,11 @@ JavaVM* GJavaVM;
 // Pointer to target widget for virtual keyboard contents
 static IVirtualKeyboardEntry *VirtualKeyboardWidget = NULL;
 
-extern FString GFileExternalStorage;
 extern FString GFilePathBase;
 extern FString GExternalFilePath;
 extern FString GFontPathBase;
 extern bool GOBBinAPK;
+extern FString GOBBFilePathBase;
 
 FOnActivityResult FJavaWrapper::OnActivityResultDelegate;
 
@@ -1110,8 +1110,8 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	jstring pathString = (jstring)Env->CallObjectMethod(externalStoragePath, getFilePath, nullptr);
 	const char *nativePathString = Env->GetStringUTFChars(pathString, 0);
 	// Copy that somewhere safe 
-	GFileExternalStorage = FString(nativePathString);
-	GFilePathBase = GFileExternalStorage;
+	GFilePathBase = FString(nativePathString);
+	GOBBFilePathBase = GFilePathBase;
 
 	// then release...
 	Env->ReleaseStringUTFChars(pathString, nativePathString);
@@ -1176,7 +1176,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetGlobalActivity(JNIE
 		if (bUseExternalFilesDir)
 		{
 			GFilePathBase = GExternalFilePath;
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Path overridden to '%s'\n"), *GFilePathBase);
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("GFilePathBase Path override to'%s'\n"), *GFilePathBase);
 		}
 
 		// then release...

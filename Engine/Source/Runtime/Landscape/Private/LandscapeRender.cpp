@@ -548,7 +548,7 @@ void FLandscapeEditToolRenderData::UpdateSelectionMaterial(int32 InSelectedType)
 }
 #endif
 
-void ULandscapeComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+void ULandscapeComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials) const
 {
 	// TODO - investigate whether this is correct
 	OutMaterials.Append(MaterialInstances.FilterByPredicate([](UMaterialInstance* MaterialInstance) { return MaterialInstance != nullptr; }));
@@ -579,11 +579,14 @@ void ULandscapeComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMater
 #endif
 
 #if WITH_EDITOR
-	OutMaterials.Add(GLayerDebugColorMaterial);
-	OutMaterials.Add(GSelectionColorMaterial);
-	OutMaterials.Add(GSelectionRegionMaterial);
-	OutMaterials.Add(GMaskRegionMaterial);
-	OutMaterials.Add(GLandscapeLayerUsageMaterial);
+	//if (bGetDebugMaterials) // TODO: This should be tested and enabled
+	{
+		OutMaterials.Add(GLayerDebugColorMaterial);
+		OutMaterials.Add(GSelectionColorMaterial);
+		OutMaterials.Add(GSelectionRegionMaterial);
+		OutMaterials.Add(GMaskRegionMaterial);
+		OutMaterials.Add(GLandscapeLayerUsageMaterial);
+	}
 #endif
 }
 
@@ -3178,7 +3181,7 @@ void FLandscapeNeighborInfo::UnregisterNeighbors()
 // FLandscapeMeshProxySceneProxy
 //
 FLandscapeMeshProxySceneProxy::FLandscapeMeshProxySceneProxy(UStaticMeshComponent* InComponent, const FGuid& InGuid, const TArray<FIntPoint>& InProxyComponentBases, int8 InProxyLOD)
-: FStaticMeshSceneProxy(InComponent)
+: FStaticMeshSceneProxy(InComponent, false)
 {
 	if (!IsComponentLevelVisible())
 	{

@@ -4111,6 +4111,7 @@ void FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid In
 
 		// Add this object
 		FMovieScenePossessable NewPossessable( NewActorLabel, Actor->GetClass());
+		ParentGuid = NewPossessable.GetGuid();
 		OwnerSequence->BindPossessableObject(NewPossessable.GetGuid(), *Actor, GetPlaybackContext());
 
 		// Replace
@@ -5577,7 +5578,7 @@ void FSequencer::CreateCamera()
 		Spawnable->SetSpawnOwnership(SavedOwnership);
 	}
 
-	bNeedInstanceRefresh = true;
+	NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded);
 }
 
 void FSequencer::NewCameraAdded(ACineCameraActor* NewCamera, FGuid CameraGuid, bool bLockToCamera)

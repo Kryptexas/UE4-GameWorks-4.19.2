@@ -430,7 +430,7 @@ namespace local
 		void postMergeHull();
 
 		// check if 2 faces can be merged
-		bool canMergeFaces(const QuickHullHalfEdge& he, float planeTolerance);
+		bool canMergeFaces(const QuickHullHalfEdge& he);
 
 		// get next free face
 		PX_FORCE_INLINE QuickHullFace* getFreeHullFace()
@@ -1310,8 +1310,7 @@ namespace local
 
 	//////////////////////////////////////////////////////////////////////////
 	// merge adjacent faces doing normal test
-	// we try to merge more aggressively 2 faces with the same normal. 
-	// We use bigger tolerance for the plane thickness in the end - mPlaneTolerance. 
+	// we try to merge more aggressively 2 faces with the same normal. 	
 	bool QuickHull::doPostAdjacentMerge(QuickHullFace& face, const float maxdot_minang)
 	{
 		QuickHullHalfEdge* hedge = face.edge;
@@ -1329,7 +1328,7 @@ namespace local
 				if (face.area > oppFace.area)
 				{
 					// check if we can merge the 2 faces
-					merge = canMergeFaces(*hedge, mPlaneTolerance);
+					merge = canMergeFaces(*hedge);
 				}
 			}
 
@@ -1359,7 +1358,7 @@ namespace local
 	// 4. checks that the new polygon is still convex
 	// 5. checks if we are about to merge only 2 neighbor faces, we dont 
 	// want to merge additional faces, that might corrupt the convexity
-	bool QuickHull::canMergeFaces(const QuickHullHalfEdge& he, float planeTolerance)
+	bool QuickHull::canMergeFaces(const QuickHullHalfEdge& he)
 	{
 		const QuickHullFace& face1 = *he.face;
 		const QuickHullFace& face2 = *he.twin->face;
@@ -1400,12 +1399,13 @@ namespace local
 		mergedFace.computeNormalAndCentroid();
 
 		// test the vertex distance
+		float maxDist = PxMax(mTolerance*ACCEPTANCE_EPSILON_MULTIPLY, mPlaneTolerance);
 		QuickHullHalfEdge* qhe = mergedFace.edge;
 		do
 		{
 			const QuickHullVertex& vertex = qhe->tail;
 			const float dist = mergedFace.distanceToPlane(vertex.point);
-			if (dist > planeTolerance)
+			if (dist > maxDist)
 			{
 				return false;
 			}
@@ -2313,7 +2313,7 @@ void QuickHullConvexHullLib::fillConvexMeshDescFromQuickHull(PxConvexMeshDesc& d
 			polygon.mPlane[0] = face.normal[0];
 			polygon.mPlane[1] = face.normal[1];
 			polygon.mPlane[2] = face.normal[2];
-			polygon.mPlane[3] = -face.normal.dot(face.centroid);
+			polygon.mPlane[3] = -face.planeOffset;
 
 			polygon.mIndexBase = indexOffset;
 			polygon.mNbVerts = face.numEdges;

@@ -1077,7 +1077,7 @@ void UWidgetComponent::ApplyComponentInstanceData(FWidgetComponentInstanceData* 
 	MarkRenderStateDirty();
 }
 
-void UWidgetComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+void UWidgetComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials) const
 {
 	if (MaterialInstance)
 	{
