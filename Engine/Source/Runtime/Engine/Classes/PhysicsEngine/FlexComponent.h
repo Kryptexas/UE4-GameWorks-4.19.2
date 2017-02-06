@@ -166,6 +166,194 @@ public:
 		/// Will return true if GetWorld() is null    
 	bool IsInEditorWorld() const;
 
+	/**
+	* Get the FleX container template
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual UFlexContainer* GetContainerTemplate();
+
+	/**
+	* Constant acceleration applied to all particles
+	* @param Gravity - The new Gravity value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetGravity(FVector Gravity);
+
+	/**
+	* Wind applied to all particles
+	* @param Wind - The new Wind value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetWind(FVector Wind);
+
+	/**
+	* The radius of particles
+	* @param Radius - The new Radius value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetRadius(float Radius);
+
+	/**
+	* The viscosity of particles
+	* @param Viscosity - The new Viscosity value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetViscosity(float Viscosity);
+
+	/**
+	* The coefficient of friction used when colliding against shapes
+	* @param ShapeFriction - The new ShapeFriction value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetShapeFriction(float ShapeFriction);
+
+	/**
+	* Multiplier for friction of particles against other particles
+	* @param ParticleFriction - The new ParticleFriction value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetParticleFriction(float ParticleFriction);
+
+	/**
+	* Particles with a velocity magnitude < this threshold will be considered fixed
+	* @param SleepThreshold - The new SleepThreshold value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetSleepThreshold(float SleepThreshold);
+
+	/**
+	* Particle velocity will be clamped to this value at the end of each step
+	* @param MaxVelocity - The new MaxVelocity value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetMaxVelocity(float MaxVelocity);
+
+	/**
+	* Control the convergence rate of the parallel solver, for global relaxation values < 1.0 should be used, e.g: (0.25), high values will converge faster but may cause divergence
+	* @param RelaxationFactor - The new RelaxationFactor value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetRelaxationFactor(float RelaxationFactor);
+
+	/**
+	* Viscous damping applied to all particles
+	* @param Damping - The new Damping value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetDamping(float Damping);
+
+	/**
+	* Distance particles maintain against shapes
+	* @param CollisionDistance - The new CollisionDistance value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetCollisionDistance(float CollisionDistance);
+
+	/**
+	* Coefficient of restitution used when colliding against shapes
+	* @param Restitution - The new Restitution value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetRestitution(float Restitution);
+
+	/**
+	* Control how strongly particles stick to surfaces they hit, affects both fluid and non-fluid particles, default 0.0, range [0.0, +inf]
+	* @param Adhesion - The new Adhesion value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetAdhesion(float Adhesion);
+
+	/**
+	* Artificially decrease the mass of particles based on height from a fixed reference point, this makes stacks and piles converge faster
+	* @param ShockPropagation - The new ShockPropagation value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetShockPropagation(float ShockPropagation);
+
+	/**
+	* Damp particle velocity based on how many particle contacts it has
+	* @param Dissipation - The new Dissipation value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetDissipation(float Dissipation);
+
+	/**
+	* Drag force applied to particles belonging to dynamic triangles, proportional to velocity^2*area in the negative velocity direction
+	* @param Drag - The new Drag value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetDrag(float Drag);
+
+	/**
+	* Lift force applied to particles belonging to dynamic triangles, proportional to velocity^2*area in the direction perpendicular to velocity and (if possible), parallel to the plane normal
+	* @param Lift - The new Lift value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetLift(float Lift);
+
+	/**
+	* Controls the distance fluid particles are spaced at the rest density, the absolute distance is given by this value*radius, must be in the range (0, 1)
+	* @param RestDistance - The new RestDistance value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetRestDistance(float RestDistance);
+
+	/**
+	* Control how strongly particles hold each other together, default: 0.025, range [0.0, +inf]
+	* @param Cohesion - The new Cohesion value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetCohesion(float Cohesion);
+
+	/**
+	* Controls how strongly particles attempt to minimize surface area, default: 0.0, range: [0.0, +inf]
+	* @param SurfaceTension - The new SurfaceTension value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetSurfaceTension(float SurfaceTension);
+
+	/**
+	* Increases vorticity by applying rotational forces to particles
+	* @param VorticityConfinement - The new VorticityConfinement value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetVorticityConfinement(float VorticityConfinement);
+
+	/**
+	* Add pressure from solid surfaces to particles
+	* @param SolidPressure - The new SolidPressure value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetSolidPressure(float SolidPressure);
+
+	/**
+	* Anisotropy scale for ellipsoid surface generation, default 0.0 disables anisotropy computation.
+	* @param AnisotropyScale - The new AnisotropyScale value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetAnisotropyScale(float AnisotropyScale);
+
+	/**
+	* Anisotropy minimum scale, this is specified as a fraction of the particle radius, the scale of the particle will be clamped to this minimum in each direction.
+	* @param AnisotropyMin - The new AnisotropyMin value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetAnisotropyMin(float AnisotropyMin);
+
+	/**
+	* Anisotropy maximum scale, this is specified as a fraction of the particle radius, the scale of the particle will be clamped to this minimum in each direction.
+	* @param AnisotropyMax - The new AnisotropyMax value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetAnisotropyMax(float AnisotropyMax);
+
+	/**
+	* Scales smoothing of particle positions for surface rendering, default 0.0 disables smoothing.
+	* @param PositionSmoothing - The new PositionSmoothing value.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual void SetPositionSmoothing(float PositionSmoothing);
+
 private:
 	void UpdateSimPositions();
 	void SynchronizeAttachments();

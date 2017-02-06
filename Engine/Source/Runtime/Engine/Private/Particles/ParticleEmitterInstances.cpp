@@ -250,6 +250,26 @@ FParticleEmitterBuildInfo::FParticleEmitterBuildInfo()
 
 struct FFlexParticleEmitterInstance : public IFlexContainerClient
 {
+	// Copied from UFlexComponent
+	struct FlexParticleAttachment
+	{
+		TWeakObjectPtr<USceneComponent> Primitive;
+		int32 ParticleIndex;
+		float OldMass;
+		FVector LocalPos;
+	};
+
+	struct FlexComponentAttachment
+	{
+		FlexComponentAttachment(USceneComponent* InComponent, float InRadius)
+			: Component(InComponent)
+			, Radius(InRadius)
+		{}
+
+		USceneComponent* Component;
+		float Radius;
+	};
+
 	FFlexParticleEmitterInstance(FParticleEmitterInstance* Instance)
 	{
 		Emitter = Instance;
@@ -288,6 +308,134 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 	float AngularInertialScale;
 
 	NvFlexExtMovingFrame MeshFrame;
+
+	void AddPendingComponentToAttach(USceneComponent* Component, float Radius)
+	{
+		FlexComponentAttachment PendingAttach(Component, Radius);
+		PendingAttachments.Add(PendingAttach);
+	}		
+
+	void ExecutePendingComponentsToAttach()
+	{
+		for (int32 i = 0; i < PendingAttachments.Num(); i++)
+		{
+			AttachToComponent(PendingAttachments[i].Component, PendingAttachments[i].Radius);
+		}
+		PendingAttachments.Empty();
+	}
+
+	void AttachToComponent(USceneComponent* Component, float Radius)
+	{
+		const FTransform Transform = Component->GetComponentTransform();
+
+		for (int32 i = 0; i < Emitter->ActiveParticles; i++)
+		{
+			DECLARE_PARTICLE(Particle, Emitter->ParticleData + Emitter->ParticleStride * Emitter->ParticleIndices[i]);
+
+			int32 CurrentOffset = Emitter->FlexDataOffset;
+			
+			const uint8* ParticleBase = (const uint8*)&Particle;
+			PARTICLE_ELEMENT(int32, FlexParticleIndex);
+
+			FVector4 ParticlePos = Container->Particles[FlexParticleIndex];
+
+			// skip infinite mass particles as they may already be attached to another component
+			if (ParticlePos.W == 0.0f)
+				continue;
+
+			// test distance from component origin
+			FVector Delta = FVector(ParticlePos) - Transform.GetTranslation();
+
+			if (Delta.Size() < Radius)
+			{
+				// calculate local space position of particle in component
+				FVector LocalPos = Transform.InverseTransformPosition(ParticlePos);
+
+				FlexParticleAttachment Attachment;
+				Attachment.Primitive = Component;
+				Attachment.ParticleIndex = FlexParticleIndex;
+				Attachment.OldMass = ParticlePos.W;
+				Attachment.LocalPos = LocalPos;
+
+				Attachments.Add(Attachment);
+			}
+		}
+	}
+
+	void SynchronizeAttachments()
+	{
+		// process attachments
+		for (int32 AttachmentIndex = 0; AttachmentIndex < Attachments.Num(); )
+		{
+			const FlexParticleAttachment& Attachment = Attachments[AttachmentIndex];
+			const USceneComponent* SceneComp = Attachment.Primitive.Get();
+
+			// index into the simulation data, we need to modify the container's copy
+			// of the data so that the new positions get sent back to the sim
+			const int ParticleIndex = Attachment.ParticleIndex; //AssetInstance->mParticleIndices[Attachment.ParticleIndex];
+
+			if (SceneComp)
+			{
+				FTransform AttachTransform;
+
+				const UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(SceneComp);
+
+				if (PrimComp)
+				{
+					// primitive component attachments use the physics bodies
+					AttachTransform = PrimComp->GetComponentToWorld();
+				}
+				else
+				{
+					// regular components attach to the actor transform
+					AttachTransform = SceneComp->GetComponentTransform();
+				}
+
+				const FVector AttachedPos = AttachTransform.TransformPosition(Attachment.LocalPos);
+
+				Container->Particles[ParticleIndex] = FVector4(AttachedPos, 0.0f);
+				Container->Velocities[ParticleIndex] = FVector(0.0f);
+
+				++AttachmentIndex;
+			}
+			else // process detachments
+			{
+				Container->Particles[ParticleIndex].W = Attachment.OldMass;
+				Container->Velocities[ParticleIndex] = FVector(0.0f);
+
+				Attachments.RemoveAt(AttachmentIndex);
+			}
+		}
+	}
+
+	void DestroyParticle(int32 FlexParticleIndex)
+	{
+		Container->DestroyParticle(FlexParticleIndex);
+		RemoveAttachmentForParticle(FlexParticleIndex);
+	}
+
+	void RemoveAttachmentForParticle(int32 ParticleIndex)
+	{
+		for (int32 AttachmentIndex = 0; AttachmentIndex < Attachments.Num(); ++AttachmentIndex)
+		{
+			const FlexParticleAttachment& Attachment = Attachments[AttachmentIndex];
+
+			if (ParticleIndex == Attachment.ParticleIndex)
+			{
+				Container->Particles[ParticleIndex].W = Attachment.OldMass;
+				Container->Velocities[ParticleIndex] = FVector(0.0f);
+
+				Attachments.RemoveAt(AttachmentIndex);
+				break;
+			}
+		}
+	}
+
+	/* Attachments to force components */
+	TArray<FlexParticleAttachment> Attachments;
+
+	/* Pending "attachment to component" calls to process */
+	TArray<FlexComponentAttachment> PendingAttachments;
 };
 #endif
 
@@ -635,19 +783,34 @@ void FParticleEmitterInstance::Init()
 		}
 	}
 
+	RegisterNewFlexFluidSurfaceComponent(SpriteTemplate->FlexFluidSurfaceTemplate);
+#endif
+}
+
+#if WITH_FLEX
+void FParticleEmitterInstance::RegisterNewFlexFluidSurfaceComponent(class UFlexFluidSurface* NewFlexFluidSurface)
+{
 	if (FlexFluidSurfaceComponent)
 	{
 		FlexFluidSurfaceComponent->UnregisterEmitterInstance(this);
 		FlexFluidSurfaceComponent = NULL;
 	}
 
-	if (SpriteTemplate->FlexFluidSurfaceTemplate)
+	if (NewFlexFluidSurface)
 	{
-		FlexFluidSurfaceComponent = GetWorld()->AddFlexFluidSurface(SpriteTemplate->FlexFluidSurfaceTemplate);
+		FlexFluidSurfaceComponent = GetWorld()->AddFlexFluidSurface(NewFlexFluidSurface);
 		FlexFluidSurfaceComponent->RegisterEmitterInstance(this);
 	}
-#endif
 }
+
+void FParticleEmitterInstance::AttachFlexToComponent(USceneComponent* InComponent, float InRadius)
+{
+	if (FlexEmitterInstance)
+	{
+		FlexEmitterInstance->AddPendingComponentToAttach(InComponent, InRadius);
+	}
+}
+#endif
 
 UWorld* FParticleEmitterInstance::GetWorld() const
 {
@@ -825,6 +988,9 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 #if WITH_FLEX
 	if (FlexEmitterInstance && FlexEmitterInstance->Container && (!GIsEditor || GIsPlayInEditorWorld))
 	{	
+		FlexEmitterInstance->ExecutePendingComponentsToAttach();
+		FlexEmitterInstance->SynchronizeAttachments();
+
 		// all Flex components should be ticked during the synchronization 
 		// phase of the Flex update, which corresponds to the EndPhysics tick group
 		verify(FlexEmitterInstance->Container->IsMapped());
@@ -2570,7 +2736,9 @@ void FParticleEmitterInstance::KillParticles()
 					PARTICLE_ELEMENT(int32, FlexParticleIndex);
 
 					if (FlexParticleIndex >= 0)
-						FlexEmitterInstance->Container->DestroyParticle(FlexParticleIndex);
+					{
+						FlexEmitterInstance->DestroyParticle(FlexParticleIndex);
+					}
 				}
 #endif
 
@@ -2628,7 +2796,9 @@ void FParticleEmitterInstance::KillParticle(int32 Index)
 			PARTICLE_ELEMENT(int32, FlexParticleIndex);
 
 			if (FlexParticleIndex >= 0)
-				FlexEmitterInstance->Container->DestroyParticle(FlexParticleIndex);
+			{
+				FlexEmitterInstance->DestroyParticle(FlexParticleIndex);
+			}
 		}
 #endif
 
@@ -2708,7 +2878,9 @@ void FParticleEmitterInstance::KillParticlesForced(bool bFireEvents)
 			PARTICLE_ELEMENT(int32, FlexParticleIndex);
 
 			if (FlexParticleIndex >= 0)
-				FlexEmitterInstance->Container->DestroyParticle(FlexParticleIndex);
+			{
+				FlexEmitterInstance->DestroyParticle(FlexParticleIndex);
+			}
 		}
 #endif
 
