@@ -2948,9 +2948,6 @@ public:
 	/** Returns the actor count. */
 	int32 GetActorCount();
 	
-	/** Returns the net relevant actor count. */
-	int32 GetNetRelevantActorCount();
-
 public:
 
 	/**

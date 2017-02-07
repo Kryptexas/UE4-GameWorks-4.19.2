@@ -3309,6 +3309,37 @@ bool FEngineLoop::AppInit( )
 
 	// Avoiding potential exploits by not exposing command line overrides in the shipping games.
 #if !UE_BUILD_SHIPPING && WITH_EDITORONLY_DATA
+	FString CmdLineFile;
+
+	if (FParse::Value(FCommandLine::Get(), TEXT("-CmdLineFile="), CmdLineFile))
+	{
+		if (CmdLineFile.EndsWith(TEXT(".txt")))
+		{
+			FString FileCmds;
+
+			if (FFileHelper::LoadFileToString(FileCmds, *CmdLineFile))
+			{
+				FileCmds = FString(TEXT(" ")) + FileCmds.Trim().TrimTrailing();
+
+				if (FileCmds.Len() > 1)
+				{
+					UE_LOG(LogInit, Log, TEXT("Appending commandline from file:%s"), *FileCmds);
+
+					FCommandLine::Append(*FileCmds);
+				}
+			}
+			else
+			{
+				UE_LOG(LogInit, Warning, TEXT("Failed to load commandline file '%s'."), *CmdLineFile);
+			}
+		}
+		else
+		{
+			UE_LOG(LogInit, Warning, TEXT("Can only load commandline files ending with .txt, can't load: %s"), *CmdLineFile);
+		}
+	}
+
+
 	// 8192 is the maximum length of the command line on Windows XP.
 	TCHAR CmdLineEnv[8192];
 

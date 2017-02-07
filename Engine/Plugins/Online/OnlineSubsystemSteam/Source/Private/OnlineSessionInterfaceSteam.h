@@ -158,7 +158,7 @@ private:
 	 *
 	 * @return ERROR_SUCCESS if successful, an error code otherwise
 	 */
-	uint32 FindLANSession();
+	uint32 FindLANSession(const TSharedRef<FOnlineSessionSearch>& SearchSettings);
 
 	/**
 	 * Adds the game session data to the packet that is sent by the host

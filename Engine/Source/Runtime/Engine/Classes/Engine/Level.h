@@ -435,9 +435,6 @@ public:
 	UPROPERTY()
 	TArray<FGuid> StreamingTextureGuids;
 
-	/** Index into Actors array pointing to first net relevant actor. Used as an optimization for FActorIterator	*/
-	int32										iFirstNetRelevantActor;
-
 	/** Data structures for holding the tick functions **/
 	class FTickTaskLevel*						TickTaskLevel;
 

@@ -4,11 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "IPAddress.h"
+#include "Engine/NetDriver.h"
+#include "Sockets.h"
 #include "IpNetDriver.h"
+
 #include "UnitTestNetDriver.generated.h"
 
 class Error;
 class FNetworkNotify;
+struct FURL;
 
 /**
  * A net driver for supporting unit test net connections

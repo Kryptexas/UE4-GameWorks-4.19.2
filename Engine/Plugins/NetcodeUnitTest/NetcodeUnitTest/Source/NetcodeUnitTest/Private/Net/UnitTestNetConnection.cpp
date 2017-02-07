@@ -27,6 +27,8 @@ UUnitTestNetConnection::UUnitTestNetConnection(const FObjectInitializer& ObjectI
 	, ReceivedRawPacketDel()
 	, bDisableValidateSend(false)
 {
+	// Work around a minor UNetConnection bug, where QueuedBits is not initialized, until after the first Tick
+	QueuedBits = -MAX_PACKET_SIZE;
 }
 
 void UUnitTestNetConnection::InitBase(UNetDriver* InDriver, class FSocket* InSocket, const FURL& InURL, EConnectionState InState,

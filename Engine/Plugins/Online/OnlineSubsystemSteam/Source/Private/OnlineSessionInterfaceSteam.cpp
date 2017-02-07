@@ -686,7 +686,7 @@ bool FOnlineSessionSteam::FindSessions(int32 SearchingPlayerNum, const TSharedRe
 		}
 		else
 		{
-			Return = FindLANSession();
+			Return = FindLANSession(SearchSettings);
 		}
 
 		if (Return == ERROR_IO_PENDING)
@@ -733,34 +733,44 @@ uint32 FOnlineSessionSteam::FindInternetSession(const TSharedRef<FOnlineSessionS
 	return ERROR_IO_PENDING;
 }
 
-uint32 FOnlineSessionSteam::FindLANSession()
+uint32 FOnlineSessionSteam::FindLANSession(const TSharedRef<FOnlineSessionSearch>& SearchSettings)
 {
 	uint32 Return = ERROR_IO_PENDING;
 
-	if (!LANSession)
+	bool PresenceSearch = false;
+	if (SearchSettings->QuerySettings.Get(SEARCH_PRESENCE, PresenceSearch) && PresenceSearch)
 	{
-		LANSession = new FLANSession();
+		if (!LANSession)
+		{
+			LANSession = new FLANSession();
+		}
+
+		// Recreate the unique identifier for this client
+		GenerateNonce((uint8*)&LANSession->LanNonce, 8);
+
+		FOnValidResponsePacketDelegate ResponseDelegate = FOnValidResponsePacketDelegate::CreateRaw(this, &FOnlineSessionSteam::OnValidResponsePacketReceived);
+		FOnSearchingTimeoutDelegate TimeoutDelegate = FOnSearchingTimeoutDelegate::CreateRaw(this, &FOnlineSessionSteam::OnLANSearchTimeout);
+
+		FNboSerializeToBufferSteam Packet(LAN_BEACON_MAX_PACKET_SIZE);
+		LANSession->CreateClientQueryPacket(Packet, LANSession->LanNonce);
+		if (Packet.HasOverflow() || LANSession->Search(Packet, ResponseDelegate, TimeoutDelegate) == false)
+		{
+			Return = E_FAIL;
+			delete LANSession;
+			LANSession = NULL;
+
+			CurrentSessionSearch->SearchState = EOnlineAsyncTaskState::Failed;
+
+			// Just trigger the delegate as having failed
+			TriggerOnFindSessionsCompleteDelegates(false);
+		}
+	}
+	else
+	{
+		FOnlineAsyncTaskSteamFindServers* NewTask = new FOnlineAsyncTaskSteamFindServers(SteamSubsystem, SearchSettings, OnFindSessionsCompleteDelegates);
+		SteamSubsystem->QueueAsyncTask(NewTask);
 	}
 
-	// Recreate the unique identifier for this client
-	GenerateNonce((uint8*)&LANSession->LanNonce, 8);
-
-	FOnValidResponsePacketDelegate ResponseDelegate = FOnValidResponsePacketDelegate::CreateRaw(this, &FOnlineSessionSteam::OnValidResponsePacketReceived);
-	FOnSearchingTimeoutDelegate TimeoutDelegate = FOnSearchingTimeoutDelegate::CreateRaw(this, &FOnlineSessionSteam::OnLANSearchTimeout);
-
-	FNboSerializeToBufferSteam Packet(LAN_BEACON_MAX_PACKET_SIZE);
-	LANSession->CreateClientQueryPacket(Packet, LANSession->LanNonce);
-	if (Packet.HasOverflow() || LANSession->Search(Packet, ResponseDelegate, TimeoutDelegate) == false)
-	{
-		Return = E_FAIL;
-		delete LANSession;
-		LANSession = NULL;
-
-		CurrentSessionSearch->SearchState = EOnlineAsyncTaskState::Failed;
-		
-		// Just trigger the delegate as having failed
-		TriggerOnFindSessionsCompleteDelegates(false);
-	}
 	return Return;
 }
 

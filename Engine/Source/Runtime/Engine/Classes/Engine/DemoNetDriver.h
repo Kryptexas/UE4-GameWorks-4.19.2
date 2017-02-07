@@ -257,9 +257,6 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	double		MaxRecordTime;
 	int32		RecordCountSinceFlush;
 
-	/** When actors are dormant in replays, we remove them from the master list, and add them here for tracking */
-	TSet< TWeakObjectPtr< AActor > > FullyDormantActors;
-
 	/** When we save a checkpoint, we remember all of the actors that need a checkpoint saved out by adding them to this list */
 	TSet< TWeakObjectPtr< AActor > > PendingCheckpointActors;
 

@@ -36,6 +36,7 @@
 #include "Components/ChildActorComponent.h"
 #include "Camera/CameraComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Engine/NetworkObjectList.h"
 
 DEFINE_LOG_CATEGORY(LogActor);
 
@@ -1769,7 +1770,7 @@ void AActor::ForceNetUpdate()
 		FlushNetDormancy(); 
 	}
 
-	SetNetUpdateTime(FMath::Min(NetUpdateTime, GetWorld()->TimeSeconds - 0.01f));
+	SetNetUpdateTime(GetWorld()->TimeSeconds - 0.01f);
 }
 
 bool AActor::IsReplicationPausedForConnection(const FNetViewer& ConnectionOwnerNetViewer)
@@ -1996,12 +1997,6 @@ void AActor::Destroyed()
 
 	ReceiveDestroyed();
 	OnDestroyed.Broadcast(this);
-	UWorld* ActorWorld = GetWorld();
-
-	if( ActorWorld )
-	{
-		ActorWorld->RemoveNetworkActor(this);
-	}
 }
 
 void AActor::TearOff()
@@ -4536,6 +4531,34 @@ float AActor::GetGameTimeSinceCreation()
 	{
 		return 0.f;
 	}
+}
+
+void AActor::SetNetUpdateTime( float NewUpdateTime )
+{
+	FNetworkObjectInfo* NetActor = GetNetworkObjectInfo();
+
+	if ( NetActor != nullptr )
+	{
+		// Only allow the next update to be sooner than the current one
+		NetActor->NextUpdateTime = FMath::Min( NetActor->NextUpdateTime, (double)NewUpdateTime );
+	}			
+}
+
+FNetworkObjectInfo* AActor::GetNetworkObjectInfo() const
+{
+	UWorld* World = GetWorld();
+
+	if ( World != nullptr )
+	{
+		UNetDriver* NetDriver = World->GetNetDriver();
+
+		if ( NetDriver != nullptr )
+		{
+			return NetDriver->GetNetworkObjectInfo( this );
+		}
+	}
+
+	return nullptr;
 }
 
 #undef LOCTEXT_NAMESPACE

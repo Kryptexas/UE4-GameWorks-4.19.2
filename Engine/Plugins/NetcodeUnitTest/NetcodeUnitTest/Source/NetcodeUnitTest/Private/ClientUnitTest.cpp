@@ -661,20 +661,27 @@ void UClientUnitTest::NotifySuspendRequest()
 				{
 					FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
 
-					uint8 ControlMsg = NMT_NUTControl;
-					uint8 PingCmd = ENUTControlCommand::SuspendProcess;
-					FString Dud = TEXT("");
+					if (ControlChanBunch != nullptr)
+					{
+						uint8 ControlMsg = NMT_NUTControl;
+						uint8 PingCmd = ENUTControlCommand::SuspendProcess;
+						FString Dud = TEXT("");
 
-					*ControlChanBunch << ControlMsg;
-					*ControlChanBunch << PingCmd;
-					*ControlChanBunch << Dud;
+						*ControlChanBunch << ControlMsg;
+						*ControlChanBunch << PingCmd;
+						*ControlChanBunch << Dud;
 
-					NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
+						NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
 
 
-					NotifyProcessSuspendState(ServerHandle, ESuspendState::Suspended);
+						NotifyProcessSuspendState(ServerHandle, ESuspendState::Suspended);
 
-					UNIT_LOG(, TEXT("Sent suspend request to server (may take time to execute, if server is still starting)."));
+						UNIT_LOG(, TEXT("Sent suspend request to server (may take time to execute, if server is still starting)."));
+					}
+					else
+					{
+						UNIT_LOG(, TEXT("Failed to create control channel bunch - connection saturated?"));
+					}
 				}
 				else
 				{
@@ -760,20 +767,28 @@ bool UClientUnitTest::NotifyConsoleCommandRequest(FString CommandContext, FStrin
 			{
 				FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
 
-				uint8 ControlMsg = NMT_NUTControl;
-				uint8 ControlCmd = ENUTControlCommand::Command_NoResult;
-				FString Cmd = Command;
+				if (ControlChanBunch != nullptr)
+				{
+					uint8 ControlMsg = NMT_NUTControl;
+					uint8 ControlCmd = ENUTControlCommand::Command_NoResult;
+					FString Cmd = Command;
 
-				*ControlChanBunch << ControlMsg;
-				*ControlChanBunch << ControlCmd;
-				*ControlChanBunch << Cmd;
+					*ControlChanBunch << ControlMsg;
+					*ControlChanBunch << ControlCmd;
+					*ControlChanBunch << Cmd;
 
-				NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
+					NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
 
 
-				UNIT_LOG(ELogType::OriginConsole, TEXT("Sent command '%s' to server."), *Command);
+					UNIT_LOG(ELogType::OriginConsole, TEXT("Sent command '%s' to server."), *Command);
 
-				bHandled = true;
+					bHandled = true;
+				}
+				else
+				{
+					UNIT_LOG(ELogType::OriginConsole, TEXT("Failed to send console command '%s', failed to create control bunch."),
+								*Command);
+				}
 			}
 			else
 			{
@@ -860,6 +875,22 @@ bool UClientUnitTest::SendRPCChecked(UObject* Target, FFuncReflection& FuncRefl)
 	{
 		UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send RPC '%s', reflection failed."), FuncRefl.FunctionName);
 	}
+
+	return bSuccess;
+}
+
+bool UClientUnitTest::SendUnitRPCChecked(FString RPCName)
+{
+	bool bSuccess = false;
+
+	PreSendRPC();
+
+	if (UnitNUTActor.IsValid())
+	{
+		UnitNUTActor->ExecuteOnServer(this, RPCName);
+	}
+
+	bSuccess = PostSendRPC(RPCName, UnitNUTActor.Get());
 
 	return bSuccess;
 }
@@ -997,15 +1028,18 @@ void UClientUnitTest::SendGenericExploitFailLog()
 
 	FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
 
-	uint8 ControlMsg = NMT_NUTControl;
-	uint8 ControlCmd = ENUTControlCommand::Command_NoResult;
-	FString Cmd = GetGenericExploitFailLog();
+	if (ControlChanBunch != nullptr)
+	{
+		uint8 ControlMsg = NMT_NUTControl;
+		uint8 ControlCmd = ENUTControlCommand::Command_NoResult;
+		FString Cmd = GetGenericExploitFailLog();
 
-	*ControlChanBunch << ControlMsg;
-	*ControlChanBunch << ControlCmd;
-	*ControlChanBunch << Cmd;
+		*ControlChanBunch << ControlMsg;
+		*ControlChanBunch << ControlCmd;
+		*ControlChanBunch << Cmd;
 
-	NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
+		NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
+	}
 }
 
 
@@ -1430,15 +1464,25 @@ bool UClientUnitTest::ConnectFakeClient(FUniqueNetIdRepl* InNetID/*=NULL*/)
 						ControlBunchSequence = 1;
 						FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
 
-						uint8 ControlMsg = NMT_NUTControl;
-						uint8 PingCmd = ENUTControlCommand::Ping;
-						FString Dud = TEXT("");
+						if (ControlChanBunch != nullptr)
+						{
+							uint8 ControlMsg = NMT_NUTControl;
+							uint8 PingCmd = ENUTControlCommand::Ping;
+							FString Dud = TEXT("");
 
-						*ControlChanBunch << ControlMsg;
-						*ControlChanBunch << PingCmd;
-						*ControlChanBunch << Dud;
+							*ControlChanBunch << ControlMsg;
+							*ControlChanBunch << PingCmd;
+							*ControlChanBunch << Dud;
 
-						NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
+							NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
+						}
+						else
+						{
+							FString LogMsg = TEXT("Failed to create control channel bunch.");
+
+							UNIT_LOG(ELogType::StatusFailure, TEXT("%s"), *LogMsg);
+							UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
+						}
 					}
 
 					FString LogMsg = FString::Printf(TEXT("Successfully created fake player connection to IP '%s'"), *ServerAddress);

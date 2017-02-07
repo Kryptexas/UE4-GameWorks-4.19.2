@@ -1371,7 +1371,8 @@ void UWorld::DestroyWorld( bool bInformEngineOfWorld, UWorld* NewWorld )
 	{
 		if (Driver != nullptr)
 		{
-			check(Driver->GetNetworkObjectList().GetObjects().Num() == 0);
+			check(Driver->GetNetworkObjectList().GetAllObjects().Num() == 0);
+			check(Driver->GetNetworkObjectList().GetActiveObjects().Num() == 0);
 		}
 	});
 
@@ -3296,13 +3297,6 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 	const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsGameWorld() && (PersistentLevel->bWasDuplicatedForPIE || !bRerunConstructionDuringEditorStreaming)));
 	UpdateWorldComponents( bRerunConstructionScript, true );
 
-	// Reset indices till we have a chance to rearrange actor list at the end of this function.
-	for( int32 LevelIndex=0; LevelIndex<Levels.Num(); LevelIndex++ )
-	{
-		ULevel* Level = Levels[LevelIndex];
-		Level->iFirstNetRelevantActor	= 0;
-	}
-
 	// Init level gameplay info.
 	if( !AreActorsInitialized() )
 	{
@@ -3471,7 +3465,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 	{
 		if (Driver != nullptr)
 		{
-			Driver->GetNetworkObjectList().GetObjects().Reset();
+			Driver->GetNetworkObjectList().Reset();
 		}
 	});
 
@@ -3714,7 +3708,7 @@ void UWorld::RemoveNetworkActor( AActor* Actor )
 		{
 			if (Driver != nullptr)
 			{
-				Driver->GetNetworkObjectList().GetObjects().Remove(Actor);
+				Driver->GetNetworkObjectList().Remove(Actor);
 			}
 		});
 	}
@@ -5194,11 +5188,13 @@ UWorld* FSeamlessTravelHandler::Tick()
 			// Rename dynamic actors in the old world's PersistentLevel that we want to keep into the new world
 			auto ProcessActor = [this, &KeepAnnotation, &ActuallyKeptActors, NetDriver](AActor* TheActor) -> bool
 			{
-				const bool bIsInCurrentLevel = TheActor->GetLevel() == CurrentWorld->PersistentLevel;
-				const bool bManuallyMarkedKeep = KeepAnnotation.Get(TheActor);
-				const bool bDormant = NetDriver && NetDriver->ServerConnection && NetDriver->ServerConnection->DormantActors.Contains(TheActor);
-				const bool bKeepNonOwnedActor = TheActor->Role < ROLE_Authority && !bDormant && !TheActor->IsNetStartupActor();
-				const bool bForceExcludeActor = TheActor->IsA(ALevelScriptActor::StaticClass());
+				const FNetworkObjectInfo* NetworkObjectInfo = NetDriver ? NetDriver->GetNetworkObjectInfo(TheActor) : nullptr;
+
+				const bool bIsInCurrentLevel	= TheActor->GetLevel() == CurrentWorld->PersistentLevel;
+				const bool bManuallyMarkedKeep	= KeepAnnotation.Get(TheActor);
+				const bool bDormant				= NetworkObjectInfo && NetDriver && NetDriver->ServerConnection && NetworkObjectInfo->DormantConnections.Contains(NetDriver->ServerConnection);
+				const bool bKeepNonOwnedActor	= TheActor->Role < ROLE_Authority && !bDormant && !TheActor->IsNetStartupActor();
+				const bool bForceExcludeActor	= TheActor->IsA(ALevelScriptActor::StaticClass());
 
 				// Keep if it's in the current level AND it isn't specifically excluded AND it was either marked as should keep OR we don't own this actor
 				if (bIsInCurrentLevel && !bForceExcludeActor && (bManuallyMarkedKeep || bKeepNonOwnedActor))
@@ -5587,17 +5583,6 @@ int32 UWorld::GetActorCount()
 	{
 		ULevel* Level = GetLevel(LevelIndex);
 		TotalActorCount += Level->Actors.Num();
-	}
-	return TotalActorCount;
-}
-
-int32 UWorld::GetNetRelevantActorCount()
-{
-	int32 TotalActorCount = 0;
-	for( int32 LevelIndex=0; LevelIndex<GetNumLevels(); LevelIndex++ )
-	{
-		ULevel* Level = GetLevel(LevelIndex);
-		TotalActorCount += Level->Actors.Num() - Level->iFirstNetRelevantActor;
 	}
 	return TotalActorCount;
 }

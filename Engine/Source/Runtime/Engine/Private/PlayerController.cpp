@@ -59,6 +59,7 @@
 #include "VisualLogger/VisualLogger.h"
 #include "Logging/MessageLog.h"
 #include "SceneViewport.h"
+#include "Engine/NetworkObjectList.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);
 
@@ -617,7 +618,12 @@ void APlayerController::ForceSingleNetUpdateFor(AActor* Target)
 			UActorChannel* Channel = Conn->ActorChannels.FindRef(Target);
 			if (Channel != NULL)
 			{
-				Target->bPendingNetUpdate = true; // will cause some other clients to do lesser checks too, but that's unavoidable with the current functionality
+				FNetworkObjectInfo* NetActor = Target->GetNetworkObjectInfo();
+
+				if (NetActor != nullptr)
+				{
+					NetActor->bPendingNetUpdate = true; // will cause some other clients to do lesser checks too, but that's unavoidable with the current functionality
+				}
 			}
 		}
 	}
@@ -1002,7 +1008,7 @@ void APlayerController::ServerShortTimeout_Implementation()
 				{
 					if ( (A->NetUpdateFrequency < 1) && !A->bOnlyRelevantToOwner )
 					{
-						A->SetNetUpdateTime(FMath::Min(A->NetUpdateTime, World->TimeSeconds + NetUpdateTimeOffset * FMath::FRand()));
+						A->SetNetUpdateTime(World->TimeSeconds + NetUpdateTimeOffset * FMath::FRand());
 					}
 				}
 			}

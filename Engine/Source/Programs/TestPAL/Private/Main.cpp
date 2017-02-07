@@ -366,7 +366,7 @@ int32 DynamicLibraryTest(const TCHAR* CommandLine)
 
 	if (PLATFORM_LINUX)
 	{
-		RootSteamPath = FPaths::EngineDir() / FString(TEXT("Binaries/ThirdParty/Steamworks/Steamv132/Linux/"));
+		RootSteamPath = FPaths::EngineDir() / FString(TEXT("Binaries/ThirdParty/Steamworks/Steamv139/x86_64-unknown-linux-gnu/"));
 		LibraryName = TEXT("libsteam_api.so");
 	}
 	else

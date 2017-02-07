@@ -50,24 +50,27 @@ void FScopedLog::InternalConstruct(const TArray<FString>& InLogCategories, UClie
 	{
 		FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(UnitTest->ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
 
-		uint8 ControlMsg = NMT_NUTControl;
-		uint8 ControlCmd = ENUTControlCommand::Command_NoResult;
-		FString Cmd = TEXT("");
-
-		for (auto CurCategory : LogCategories)
+		if (ControlChanBunch != nullptr)
 		{
-			Cmd = TEXT("Log ") + CurCategory + TEXT(" All");
+			uint8 ControlMsg = NMT_NUTControl;
+			uint8 ControlCmd = ENUTControlCommand::Command_NoResult;
+			FString Cmd = TEXT("");
 
-			*ControlChanBunch << ControlMsg;
-			*ControlChanBunch << ControlCmd;
-			*ControlChanBunch << Cmd;
+			for (auto CurCategory : LogCategories)
+			{
+				Cmd = TEXT("Log ") + CurCategory + TEXT(" All");
+
+				*ControlChanBunch << ControlMsg;
+				*ControlChanBunch << ControlCmd;
+				*ControlChanBunch << Cmd;
+			}
+
+			NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
+
+
+			// Need to flush again now to get the above parsed on server first
+			UnitConn->FlushNet();
 		}
-
-		NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
-
-
-		// Need to flush again now to get the above parsed on server first
-		UnitConn->FlushNet();
 	}
 
 
@@ -109,21 +112,24 @@ FScopedLog::~FScopedLog()
 	{
 		FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(UnitTest->ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
 
-		uint8 ControlMsg = NMT_NUTControl;
-		uint8 ControlCmd = ENUTControlCommand::Command_NoResult;
-
-		for (int32 i=LogCategories.Num()-1; i>=0; i--)
+		if (ControlChanBunch != nullptr)
 		{
-			Cmd = TEXT("Log ") + LogCategories[i] + TEXT(" Default");
+			uint8 ControlMsg = NMT_NUTControl;
+			uint8 ControlCmd = ENUTControlCommand::Command_NoResult;
 
-			*ControlChanBunch << ControlMsg;
-			*ControlChanBunch << ControlCmd;
-			*ControlChanBunch << Cmd;
+			for (int32 i=LogCategories.Num()-1; i>=0; i--)
+			{
+				Cmd = TEXT("Log ") + LogCategories[i] + TEXT(" Default");
+
+				*ControlChanBunch << ControlMsg;
+				*ControlChanBunch << ControlCmd;
+				*ControlChanBunch << Cmd;
+			}
+
+			NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
+
+			UnitConn->FlushNet();
 		}
-
-		NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
-
-		UnitConn->FlushNet();
 	}
 }
 

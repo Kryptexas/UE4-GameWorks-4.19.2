@@ -2348,7 +2348,7 @@ void FRepLayout::UpdateUnmappedObjects_r(
 			}
 
 			// Initialize the reader with the stored buffer that we need to read from
-			FBitReader Reader( GuidReferences.Buffer.GetData(), GuidReferences.NumBufferBits );
+			FNetBitReader Reader( PackageMap, GuidReferences.Buffer.GetData(), GuidReferences.NumBufferBits );
 
 			// Read the property
 			Cmd.Property->NetSerializeItem( Reader, PackageMap, Data + AbsOffset );

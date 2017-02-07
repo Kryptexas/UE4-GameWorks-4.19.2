@@ -9,8 +9,11 @@ public class Steamworks : ModuleRules
 	public Steamworks(ReadOnlyTargetRules Target) : base(Target)
 	{
 		/** Mark the current version of the Steam SDK */
-		string SteamVersion = "v132";
+		string SteamVersion = "v139";
 		Type = ModuleType.External;
+
+		Definitions.Add("STEAM_SDK_VER=TEXT(\"1.39\")");
+		Definitions.Add("STEAM_SDK_VER_PATH=TEXT(\"Steam" + SteamVersion + "\")");
 
 		string SdkBase = UEBuildConfiguration.UEThirdPartySourceDirectory + "Steamworks/Steam" + SteamVersion + "/sdk";
 		if (!Directory.Exists(SdkBase))
@@ -95,14 +98,8 @@ public class Steamworks : ModuleRules
 				PublicDelayLoadDLLs.Add(LibraryPath);
 			}
 
-			string SteamBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/Steamworks/Steam{0}/Linux/", SteamVersion);
+			string SteamBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/Steamworks/Steam{0}/x86_64-unknown-linux-gnu/", SteamVersion);
 			RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "libsteam_api.so"));
-
-			if (Target.Type != TargetType.Server)
-			{
-				// assume SteamController is needed
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Config/controller.vdf"));
-			}
 		}
 	}
 }

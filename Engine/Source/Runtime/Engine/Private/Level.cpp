@@ -478,6 +478,11 @@ void ULevel::SortActorList()
 	// The WorldSettings tries to stay at index 0
 	NewActors.Add(WorldSettings);
 
+	if (OwningWorld != nullptr)
+	{
+		OwningWorld->AddNetworkActor(WorldSettings);
+	}
+
 	// Add non-net actors to the NewActors immediately, cache off the net actors to Append after
 	for (AActor* Actor : Actors)
 	{
@@ -486,6 +491,10 @@ void ULevel::SortActorList()
 			if (IsNetActor(Actor))
 			{
 				NewNetActors.Add(Actor);
+				if (OwningWorld != nullptr)
+				{
+					OwningWorld->AddNetworkActor(Actor);
+				}
 			}
 			else
 			{
@@ -494,36 +503,10 @@ void ULevel::SortActorList()
 		}
 	}
 
-	iFirstNetRelevantActor = NewActors.Num();
-
 	NewActors.Append(MoveTemp(NewNetActors));
 
 	// Replace with sorted list.
 	Actors = MoveTemp(NewActors);
-
-	// Add all network actors to the owning world
-	if ( OwningWorld != nullptr )
-	{
-		// Don't use sorted optimization outside of gameplay so we can safely shuffle around actors e.g. in the Editor
-		// without there being a chance to break code using dynamic/ net relevant actor iterators.
-		if (!OwningWorld->IsGameWorld())
-		{
-			iFirstNetRelevantActor = 0;
-		}
-		// Ensure the world settings actor is added if it's not going to get added in the loop below
-		else if ( IsNetActor( WorldSettings ) )
-		{
-			OwningWorld->AddNetworkActor( WorldSettings );
-		}
-
-		for ( int32 i = iFirstNetRelevantActor; i < Actors.Num(); i++ )
-		{
-			if ( Actors[ i ] != nullptr )
-			{
-				OwningWorld->AddNetworkActor( Actors[ i ] );
-			}
-		}
-	}
 }
 
 

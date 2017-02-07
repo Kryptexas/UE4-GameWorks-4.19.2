@@ -3,10 +3,12 @@
 #include "UnitTests/PacketLimitTest.h"
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
-
+#include "Sockets.h"
+#include "Engine/NetConnection.h"
+#include "IpConnection.h"
 
 #include "UnitTestEnvironment.h"
-#include "IpConnection.h"
+
 #include "Net/NUTUtilNet.h"
 #include "Net/UnitTestNetConnection.h"
 

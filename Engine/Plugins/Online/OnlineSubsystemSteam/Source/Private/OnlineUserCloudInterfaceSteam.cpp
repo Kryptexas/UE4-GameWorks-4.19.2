@@ -352,7 +352,7 @@ bool FOnlineUserCloudSteam::RequestUsageInfo(const FUniqueNetId& UserId)
 
 void FOnlineUserCloudSteam::DumpCloudState(const FUniqueNetId& UserId)
 {
-	int32 TotalBytes, TotalAvailable;
+	uint64 TotalBytes, TotalAvailable;
 	if (SteamRemoteStorage()->GetQuota(&TotalBytes, &TotalAvailable) == false)
 	{
 		TotalBytes = TotalAvailable = 0;

@@ -1099,6 +1099,7 @@ void UPackageMapClient::AddNetFieldExportGroup( const FString& PathName, TShared
 
 void UPackageMapClient::TrackNetFieldExport( FNetFieldExportGroup* NetFieldExportGroup, const int32 NetFieldExportHandle )
 {
+	check(Connection->InternalAck);
 	check( NetFieldExportHandle >= 0 );
 	check( NetFieldExportGroup->NetFieldExports[NetFieldExportHandle].Handle == NetFieldExportHandle );
 	NetFieldExportGroup->NetFieldExports[NetFieldExportHandle].bExported = true;
@@ -1169,6 +1170,9 @@ void UPackageMapClient::AppendNetFieldExports( TArray<FOutBunch *>& OutgoingBunc
 	{
 		return;	// Nothing to do
 	}
+
+
+	check(Connection->InternalAck);
 
 	FOutBunch* ExportBunch = nullptr;
 	TSet< uint32 > ExportedPathInThisBunchAlready;
@@ -1278,57 +1282,95 @@ void UPackageMapClient::AppendNetFieldExports( TArray<FOutBunch *>& OutgoingBunc
 
 void UPackageMapClient::ReceiveNetFieldExports( FInBunch &InBunch )
 {
-	// Read number of net field exports
-	uint32 NumLayoutCmdExports = 0;
-	InBunch << NumLayoutCmdExports;
-
-	for ( int32 i = 0; i < ( int32 )NumLayoutCmdExports; i++ )
+	// WARNING: If this code path is enabled for use beyond replay, it will need a security audit/rewrite
+	if (Connection->InternalAck)
 	{
-		// Read the index that represents the name in the NetFieldExportGroupIndexToPath map
-		uint32 PathNameIndex;
-		InBunch.SerializeIntPacked( PathNameIndex );
+		// Read number of net field exports
+		uint32 NumLayoutCmdExports = 0;
+		InBunch << NumLayoutCmdExports;
 
-		int32 MaxExports = 0;
-
-		// See if the path name was exported (we'll expect it if we haven't seen this index before)
-		if ( InBunch.ReadBit() == 1 )
+		for ( int32 i = 0; i < ( int32 )NumLayoutCmdExports; i++ )
 		{
-			FString PathName;
-			InBunch << PathName;
+			// Read the index that represents the name in the NetFieldExportGroupIndexToPath map
+			uint32 PathNameIndex;
+			InBunch.SerializeIntPacked( PathNameIndex );
 
-			GEngine->NetworkRemapPath(Connection->Driver, PathName, true);
+			if (InBunch.IsError())
+			{
+				break;
+			}
 
-			InBunch << MaxExports;
 
-			GuidCache->NetFieldExportGroupPathToIndex.Add( PathName, PathNameIndex );
-			GuidCache->NetFieldExportGroupIndexToPath.Add( PathNameIndex, PathName );
+			int32 MaxExports = 0;
+
+			// See if the path name was exported (we'll expect it if we haven't seen this index before)
+			if (InBunch.ReadBit() == 1)
+			{
+				FString PathName;
+
+				InBunch << PathName;
+				InBunch << MaxExports;
+
+				if (InBunch.IsError())
+				{
+					break;
+				}
+
+
+				GEngine->NetworkRemapPath(Connection->Driver, PathName, true);
+
+				GuidCache->NetFieldExportGroupPathToIndex.Add( PathName, PathNameIndex );
+				GuidCache->NetFieldExportGroupIndexToPath.Add( PathNameIndex, PathName );
+			}
+
+			// At this point, we expect to be able to find the entry in NetFieldExportGroupIndexToPath
+			const FString PathName = GuidCache->NetFieldExportGroupIndexToPath.FindChecked( PathNameIndex );
+
+			TSharedPtr< FNetFieldExportGroup > NetFieldExportGroup = GuidCache->NetFieldExportGroupMap.FindRef( PathName );
+
+			if ( !NetFieldExportGroup.IsValid() )
+			{
+				NetFieldExportGroup = TSharedPtr< FNetFieldExportGroup >( new FNetFieldExportGroup() );
+				NetFieldExportGroup->PathName = PathName;
+				NetFieldExportGroup->PathNameIndex = PathNameIndex;
+
+				NetFieldExportGroup->NetFieldExports.SetNum( MaxExports );
+
+				GuidCache->NetFieldExportGroupMap.Add( NetFieldExportGroup->PathName, NetFieldExportGroup );
+			}
+
+			FNetFieldExport NetFieldExport;
+
+			// Read the cmd
+			InBunch << NetFieldExport;
+
+			if (InBunch.IsError())
+			{
+				break;
+			}
+
+
+			TArray<FNetFieldExport>& NetFieldExportsRef = NetFieldExportGroup->NetFieldExports;
+
+			if ((int32)NetFieldExport.Handle < NetFieldExportsRef.Num())
+			{
+				// Assign it to the correct slot (NetFieldExport.Handle is just the index into the array)
+				NetFieldExportGroup->NetFieldExports[NetFieldExport.Handle] = NetFieldExport;
+			}
+			else
+			{
+				UE_LOG(LogNetPackageMap, Error, TEXT("ReceiveNetFieldExports: Invalid NetFieldExport Handle '%i', Max '%i'."),
+						NetFieldExport.Handle, NetFieldExportsRef.Num());
+
+				InBunch.SetError();
+			}
 		}
+	}
+	else
+	{
+		UE_LOG(LogNetPackageMap, Error, TEXT("ReceiveNetFieldExports: Entered Replay-only codepath, when Replay is not enabled."));
 
-		// At this point, we expect to be able to find the entry in NetFieldExportGroupIndexToPath
-		const FString PathName = GuidCache->NetFieldExportGroupIndexToPath.FindChecked( PathNameIndex );
-
-		TSharedPtr< FNetFieldExportGroup > NetFieldExportGroup = GuidCache->NetFieldExportGroupMap.FindRef( PathName );
-
-		if ( !NetFieldExportGroup.IsValid() )
-		{
-			NetFieldExportGroup = TSharedPtr< FNetFieldExportGroup >( new FNetFieldExportGroup() );
-			NetFieldExportGroup->PathName = PathName;
-			NetFieldExportGroup->PathNameIndex = PathNameIndex;
-
-			NetFieldExportGroup->NetFieldExports.SetNum( MaxExports );
-
-			GuidCache->NetFieldExportGroupMap.Add( NetFieldExportGroup->PathName, NetFieldExportGroup );
-		}
-
-		FNetFieldExport NetFieldExport;
-
-		// Read the cmd
-		InBunch << NetFieldExport;
-
-		check( ( int32 )NetFieldExport.Handle < NetFieldExportGroup->NetFieldExports.Num() );
-
-		// Assign it to the correct slot (NetFieldExport.Handle is just the index into the array)
-		NetFieldExportGroup->NetFieldExports[NetFieldExport.Handle] = NetFieldExport;
+		InBunch.SetError();
 	}
 }
 

@@ -17,6 +17,7 @@
 #include "Engine/ControlChannel.h"
 #include "Engine/PackageMapClient.h"
 #include "Engine/DemoNetDriver.h"
+#include "Engine/NetworkObjectList.h"
 
 DEFINE_LOG_CATEGORY(LogNet);
 DEFINE_LOG_CATEGORY(LogRep);
@@ -1515,7 +1516,7 @@ void UActorChannel::Close()
 		if ( Dormant )
 		{
 			check( Actor->NetDormancy > DORM_Awake ); // Dormancy should have been canceled if game code changed NetDormancy
-			Connection->DormantActors.Add(Actor);
+			Connection->Driver->GetNetworkObjectList().MarkDormant(Actor, Connection, Connection->Driver->ClientConnections.Num(), Connection->Driver->NetDriverName);
 
 			// Validation checking
 			static const auto ValidateCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.DormancyValidate"));
@@ -1707,7 +1708,7 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 			}
 			else if (Dormant && !Actor->bTearOff)
 			{
-				Connection->DormantActors.Add(Actor);
+				Connection->Driver->GetNetworkObjectList().MarkDormant(Actor, Connection, 1, Connection->Driver->NetDriverName);
 			}
 			else if (!Actor->bNetTemporary && Actor->GetWorld() != NULL && !GIsRequestingExit)
 			{
@@ -1850,8 +1851,8 @@ void UActorChannel::SetChannelActor( AActor* InActor )
 	ActorReplicator = &FindOrCreateReplicator( Actor ).Get();
 
 	// Remove from connection's dormancy lists
-	Connection->DormantActors.Remove( InActor );
-	Connection->RecentlyDormantActors.Remove( InActor );
+	Connection->Driver->GetNetworkObjectList().MarkActive(Actor, Connection, Connection->Driver->NetDriverName);
+	Connection->Driver->GetNetworkObjectList().ClearRecentlyDormantConnection(Actor, Connection, Connection->Driver->NetDriverName);
 }
 
 void UActorChannel::SetChannelActorForDestroy( FActorDestructionInfo *DestructInfo )
@@ -3361,9 +3362,16 @@ static void	DeleteDormantActor( UWorld* InWorld )
 		return;
 	}
 
-	for (auto It = Connection->DormantActors.CreateIterator(); It; ++It)
+	for (auto It = Connection->Driver->GetNetworkObjectList().GetAllObjects().CreateConstIterator(); It; ++It)
 	{
-		AActor* ThisActor = const_cast<AActor*>(*It);
+		FNetworkObjectInfo* ActorInfo = ( *It ).Get();
+
+		if ( !ActorInfo->DormantConnections.Num() )
+		{
+			continue;
+		}
+
+		AActor* ThisActor = ActorInfo->Actor;
 
 		UE_LOG(LogNet, Warning, TEXT("Deleting actor %s"), *ThisActor->GetName());
 

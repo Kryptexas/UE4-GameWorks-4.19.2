@@ -23,6 +23,7 @@
 #include "Engine/ChildConnection.h"
 #include "Net/DataChannel.h"
 #include "Engine/PackageMapClient.h"
+#include "Engine/NetworkObjectList.h"
 
 #include "Net/PerfCountersHelpers.h"
 #include "GameDelegates.h"
@@ -288,7 +289,6 @@ void UNetConnection::Serialize( FArchive& Ar )
 		OpenChannels.CountBytes(Ar);
 		SentTemporaries.CountBytes(Ar);
 		ActorChannels.CountBytes(Ar);
-		DormantActors.CountBytes(Ar);
 	}
 }
 
@@ -1976,21 +1976,13 @@ bool UNetConnection::ShouldReplicateVoicePacketFrom(const FUniqueNetId& Sender)
 	return false;
 }
 
-bool UNetConnection::ActorIsAvailableOnClient(const AActor* ThisActor)
-{
-	return (ActorChannels.Contains(ThisActor) || DormantActors.Contains(ThisActor) || RecentlyDormantActors.Contains(ThisActor));
-}
-
 void UNetConnection::ResetGameWorldState()
 {
 	//Clear out references and do whatever else so that nothing holds onto references that it doesn't need to.
 	DestroyedStartupOrDormantActors.Empty();
-	RecentlyDormantActors.Empty();
-	DormantActors.Empty();
 	ClientVisibleLevelNames.Empty();
 	KeepProcessingActorChannelBunchesMap.Empty();
 	DormantReplicatorMap.Empty();
-
 	CleanupDormantActorState();
 }
 
@@ -2003,8 +1995,7 @@ void UNetConnection::FlushDormancy(class AActor* Actor)
 {
 	UE_LOG( LogNetDormancy, Verbose, TEXT( "FlushDormancy: %s. Connection: %s" ), *Actor->GetName(), *GetName() );
 	
-	// Remove actor from dormant list
-	if ( DormantActors.Remove( Actor ) > 0 )
+	if ( Driver->GetNetworkObjectList().MarkActive( Actor, this, Driver->NetDriverName ) )
 	{
 		FlushDormancyForObject( Actor );
 
@@ -2015,10 +2006,6 @@ void UNetConnection::FlushDormancy(class AActor* Actor)
 				FlushDormancyForObject( ActorComp );
 			}
 		}
-
-		UE_LOG( LogNetDormancy, Verbose, TEXT( "    Found in DormantActors list!" ) );
-
-		RecentlyDormantActors.Add( Actor );
 	}
 
 	// If channel is pending dormancy, cancel it

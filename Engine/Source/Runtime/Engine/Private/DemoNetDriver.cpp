@@ -42,7 +42,7 @@ static TAutoConsoleVariable<float> CVarGotoTimeInSeconds( TEXT( "demo.GotoTimeIn
 static TAutoConsoleVariable<int32> CVarDemoFastForwardDestroyTearOffActors( TEXT( "demo.FastForwardDestroyTearOffActors" ), 1, TEXT( "If true, the driver will destroy any torn-off actors immediately while fast-forwarding a replay." ) );
 static TAutoConsoleVariable<int32> CVarDemoFastForwardSkipRepNotifies( TEXT( "demo.FastForwardSkipRepNotifies" ), 1, TEXT( "If true, the driver will optimize fast-forwarding by deferring calls to RepNotify functions until the fast-forward is complete. " ) );
 static TAutoConsoleVariable<int32> CVarDemoQueueCheckpointChannels( TEXT( "demo.QueueCheckpointChannels" ), 1, TEXT( "If true, the driver will put all channels created during checkpoint loading into queuing mode, to amortize the cost of spawning new actors across multiple frames." ) );
-static TAutoConsoleVariable<int32> CVarUseAdaptiveReplayUpdateFrequency( TEXT( "demo.UseAdaptiveReplayUpdateFrequency" ), 0, TEXT( "If 1, NetUpdateFrequency will be calculated based on how often actors actually write something when recording to a replay" ) );
+static TAutoConsoleVariable<int32> CVarUseAdaptiveReplayUpdateFrequency( TEXT( "demo.UseAdaptiveReplayUpdateFrequency" ), 1, TEXT( "If 1, NetUpdateFrequency will be calculated based on how often actors actually write something when recording to a replay" ) );
 static TAutoConsoleVariable<int32> CVarDemoAsyncLoadWorld( TEXT( "demo.AsyncLoadWorld" ), 0, TEXT( "If 1, we will use seamless server travel to load the replay world asynchronously" ) );
 static TAutoConsoleVariable<float> CVarCheckpointUploadDelayInSeconds( TEXT( "demo.CheckpointUploadDelayInSeconds" ), 30.0f, TEXT( "" ) );
 static TAutoConsoleVariable<int32> CVarDemoLoadCheckpointGarbageCollect( TEXT( "demo.LoadCheckpointGarbageCollect" ), 1, TEXT("If nonzero, CollectGarbage will be called during LoadCheckpoint after the old actors and connection are cleaned up." ) );
@@ -50,6 +50,10 @@ static TAutoConsoleVariable<float> CVarCheckpointSaveMaxMSPerFrameOverride( TEXT
 static TAutoConsoleVariable<int32> CVarDemoClientRecordAsyncEndOfFrame( TEXT( "demo.ClientRecordAsyncEndOfFrame" ), 0, TEXT( "If true, TickFlush will be called on a thread in parallel with Slate." ) );
 
 static TAutoConsoleVariable<int32> CVarForceDisableAsyncPackageMapLoading( TEXT( "demo.ForceDisableAsyncPackageMapLoading" ), 0, TEXT( "If true, async package map loading of network assets will be disabled." ) );
+
+static TAutoConsoleVariable<int32> CVarDemoUseNetRelevancy( TEXT( "demo.UseNetRelevancy" ), 0, TEXT( "If 1, will enable relevancy checks and distance culling, using all connected clients as reference." ) );
+static TAutoConsoleVariable<float> CVarDemoCullDistanceOverride( TEXT( "demo.CullDistanceOverride" ), 0.0f, TEXT( "If > 0, will represent distance from any viewer where actors will stop being recorded." ) );
+static TAutoConsoleVariable<float> CVarDemoRecordHzWhenNotRelevant( TEXT( "demo.RecordHzWhenNotRelevant" ), 2.0f, TEXT( "Record at this frequency when actor is not relevant." ) );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarDemoForceFailure( TEXT( "demo.ForceFailure" ), 0, TEXT( "" ) );
@@ -369,6 +373,11 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 		bPrioritizeActors				= false;
 		bPauseRecording					= false;
 		CheckpointSaveMaxMSPerFrame		= 0.0f;
+
+		if ( RelevantTimeout == 0.0f )
+		{
+			RelevantTimeout = 5.0f;
+		}
 
 		ResetDemoState();
 
@@ -829,7 +838,7 @@ void UDemoNetDriver::TickFlushInternal( float DeltaSeconds )
 
 		if ( AvgTimeMS > 8.0f )//|| MaxRecordTimeMS > 6.0f )
 		{
-			UE_LOG( LogDemo, Verbose, TEXT( "UDemoNetDriver::TickFlush: SLOW FRAME. Avg: %2.2f, Max: %2.2f, Actors: %i" ), AvgTimeMS, MaxRecordTimeMS, GetNetworkObjectList().GetObjects().Num() );
+			UE_LOG( LogDemo, Verbose, TEXT( "UDemoNetDriver::TickFlush: SLOW FRAME. Avg: %2.2f, Max: %2.2f, Actors: %i" ), AvgTimeMS, MaxRecordTimeMS, GetNetworkObjectList().GetActiveObjects().Num() );
 		}
 
 		LastRecordAvgFlush		= EndTime;
@@ -1169,30 +1178,13 @@ void UDemoNetDriver::SaveCheckpoint()
 	check( PendingCheckpointActors.Num() == 0 );
 
 	// Add any actor with a valid channel to the PendingCheckpointActors list
-	for ( TSharedPtr<FNetworkObjectInfo>& ObjectInfo : GetNetworkObjectList().GetObjects() )
+	for ( const TSharedPtr<FNetworkObjectInfo>& ObjectInfo : GetNetworkObjectList().GetAllObjects() )
 	{
 		AActor* Actor = ObjectInfo.Get()->Actor;
-
-		FullyDormantActors.Remove( Actor );		// Make sure this actor isn't on the dormant list
 
 		if ( ClientConnections[0]->ActorChannels.FindRef( Actor ) )
 		{
 			PendingCheckpointActors.Add( Actor );
-		}
-	}
-
-	// Make sure to catch replay actors that are dormant (and aren't on the network object list above)
-	for ( auto ActorIt = FullyDormantActors.CreateIterator(); ActorIt; ++ActorIt )
-	{
-		if ( !( *ActorIt ).Get() )	// Take this chance to remove invalid entries
-		{
-			ActorIt.RemoveCurrent();
-			continue;
-		}
-
-		if ( ClientConnections[0]->ActorChannels.FindRef( *ActorIt ) )
-		{
-			PendingCheckpointActors.Add( *ActorIt );
 		}
 	}
 
@@ -1208,7 +1200,7 @@ void UDemoNetDriver::SaveCheckpoint()
 	TotalCheckpointSaveTimeSeconds = 0;
 	TotalCheckpointSaveFrames = 0;
 
-	UE_LOG( LogDemo, Log, TEXT( "Starting checkpoint. Actors: %i" ), GetNetworkObjectList().GetObjects().Num() );
+	UE_LOG( LogDemo, Log, TEXT( "Starting checkpoint. Actors: %i" ), GetNetworkObjectList().GetActiveObjects().Num() );
 
 	// Do the first checkpoint tick now
 	TickCheckpoint();
@@ -1335,7 +1327,7 @@ void UDemoNetDriver::TickCheckpoint()
 
 		const float TotalCheckpointTimeInMS = TotalCheckpointSaveTimeSeconds * 1000.0;
 
-		UE_LOG( LogDemo, Log, TEXT( "Finished checkpoint. Actors: %i, GuidCacheSize: %i, TotalSize: %i, TotalCheckpointSaveFrames: %i, TotalCheckpointTimeInMS: %2.2f" ), GetNetworkObjectList().GetObjects().Num(), GuidCacheSize, TotalCheckpointSize, TotalCheckpointSaveFrames, TotalCheckpointTimeInMS );
+		UE_LOG( LogDemo, Log, TEXT( "Finished checkpoint. Actors: %i, GuidCacheSize: %i, TotalSize: %i, TotalCheckpointSaveFrames: %i, TotalCheckpointTimeInMS: %2.2f" ), GetNetworkObjectList().GetActiveObjects().Num(), GuidCacheSize, TotalCheckpointSize, TotalCheckpointSaveFrames, TotalCheckpointTimeInMS );
 	}
 }
 
@@ -1429,6 +1421,26 @@ void UDemoNetDriver::RequestEventData(const FString& EventID, FOnRequestEventDat
 	}
 }
 
+/**
+* FReplayViewer
+* Used when demo.UseNetRelevancy enabled
+* Tracks all of the possible viewers of a replay that we use to determine relevancy
+*/
+class FReplayViewer
+{
+public:
+	FReplayViewer( const UNetConnection* Connection ) :
+		Viewer( Connection->PlayerController ? Connection->PlayerController : Connection->OwningActor ), 
+		ViewTarget( Connection->PlayerController ? Connection->PlayerController->GetViewTarget() : Connection->OwningActor )
+	{
+		Location = ViewTarget ? ViewTarget->GetActorLocation() : FVector::ZeroVector;
+	}
+
+	AActor*		Viewer;
+	AActor*		ViewTarget;
+	FVector		Location;
+};
+
 void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 {
 	if ( !IsRecording() || bPauseRecording )
@@ -1503,7 +1515,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	const bool bUseAdapativeNetFrequency = CVarUseAdaptiveReplayUpdateFrequency.GetValueOnAnyThread() > 0;
 
 	// Build priority list
-	PrioritizedActors.Reset( GetNetworkObjectList().GetObjects().Num() );
+	PrioritizedActors.Reset( GetNetworkObjectList().GetActiveObjects().Num() );
 
 	// Set the location of the connection's viewtarget for prioritization.
 	FVector ViewLocation = FVector::ZeroVector;
@@ -1521,9 +1533,35 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Replay prioritize time"), STAT_ReplayPrioritizeTime, STATGROUP_Net);
 
-		for ( auto ActorIt = GetNetworkObjectList().GetObjects().CreateIterator(); ActorIt; ++ActorIt)
+		TArray< FReplayViewer > ReplayViewers;
+
+		const bool bUseNetRelevancy = CVarDemoUseNetRelevancy.GetValueOnAnyThread() > 0 && World->NetDriver != nullptr && World->NetDriver->IsServer();
+
+		// If we're using relevancy, consider all connections as possible viewing sources
+		if ( bUseNetRelevancy )
 		{
-			FNetworkObjectInfo* ActorInfo = (*ActorIt).Get();
+			for ( UNetConnection* Connection : World->NetDriver->ClientConnections )
+			{
+				FReplayViewer ReplayViewer( Connection );
+
+				if ( ReplayViewer.ViewTarget )
+				{
+					ReplayViewers.Add( FReplayViewer( Connection ) );
+				}
+			}
+		}
+
+		const float CullDistanceOverride	= CVarDemoCullDistanceOverride.GetValueOnAnyThread();
+		const float CullDistanceOverrideSq	= CullDistanceOverride > 0.0f ? FMath::Square( CullDistanceOverride ) : 0.0f;
+
+		const float RecordHzWhenNotRelevant		= CVarDemoRecordHzWhenNotRelevant.GetValueOnAnyThread();
+		const float UpdateDelayWhenNotRelevant	= RecordHzWhenNotRelevant > 0.0f ? 1.0f / RecordHzWhenNotRelevant : 0.5f;
+
+		TArray<AActor*> ActorsToRemove;
+
+		for ( const TSharedPtr<FNetworkObjectInfo>& ObjectInfo : GetNetworkObjectList().GetActiveObjects() )
+		{
+			FNetworkObjectInfo* ActorInfo = ObjectInfo.Get();
 
 			if ( DemoCurrentTime > ActorInfo->NextUpdateTime )
 			{
@@ -1531,7 +1569,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 				if ( Actor->IsPendingKill() )
 				{
-					ActorIt.RemoveCurrent();
+					ActorsToRemove.Add( Actor );
 					continue;
 				}
 
@@ -1539,13 +1577,39 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 				// we still need to replicate it one more time so that the recorded replay knows it's been torn-off as well.
 				if ( Actor->GetRemoteRole() == ROLE_None && !Actor->bTearOff)
 				{
-					ActorIt.RemoveCurrent();
+					ActorsToRemove.Add( Actor );
 					continue;
 				}
 
 				if ( Actor->NetDormancy == DORM_Initial && Actor->IsNetStartupActor() )
 				{
-					ActorIt.RemoveCurrent();
+					ActorsToRemove.Add( Actor );
+					continue;
+				}
+
+				const bool bWasRecentlyRelevant = ActorInfo->LastNetUpdateTime > 0.0f && ( Time - ActorInfo->LastNetUpdateTime ) < RelevantTimeout;
+
+				bool bIsRelevant = !bUseNetRelevancy || Actor->bAlwaysRelevant || Actor == ClientConnections[0]->PlayerController;
+
+				if ( !bIsRelevant )
+				{
+					// Assume this actor is relevant as long as *any* viewer says so
+					const float CullDistanceSq = CullDistanceOverrideSq > 0.0f ? CullDistanceOverrideSq : Actor->NetCullDistanceSquared;
+
+					for ( const FReplayViewer& ReplayViewer : ReplayViewers )
+					{
+						if ( Actor->IsReplayRelevantFor( ReplayViewer.Viewer, ReplayViewer.ViewTarget, ReplayViewer.Location, CullDistanceSq ) )
+						{
+							bIsRelevant = true;
+							break;
+						}
+					}
+				}
+
+				if ( !bIsRelevant && !bWasRecentlyRelevant )
+				{
+					// Actor is not relevant (or previously relevant), so skip and set next update time based on demo.RecordHzWhenNotRelevant
+					ActorInfo->NextUpdateTime = DemoCurrentTime + UpdateDelayWhenNotRelevant;
 					continue;
 				}
 
@@ -1561,7 +1625,17 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 				}
 
 				PrioritizedActors.Add( ActorPriority );
+
+				if ( bIsRelevant )
+				{
+					ActorInfo->LastNetUpdateTime = Time;
+				}
 			}
+		}
+
+		for ( AActor* Actor : ActorsToRemove )
+		{
+			GetNetworkObjectList().Remove( Actor );
 		}
 
 		if ( bPrioritizeActors )
@@ -1571,7 +1645,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	}
 
 	const double ReplicationStartTimeSeconds = FPlatformTime::Seconds();
-	TArray<AActor*> ActorsToRemove;
+	TArray<AActor*> ActorsToGoDormant;
 
 	for ( const FActorPriority& ActorPriority : PrioritizedActors )
 	{
@@ -1629,8 +1703,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 		if ( bDidReplicateActor && Actor->NetDormancy == DORM_DormantAll )
 		{
 			// If we've replicated this object at least once, and it wants to go dormant, make it dormant now
-			ActorsToRemove.Add( Actor );
-			FullyDormantActors.Add( Actor );
+			ActorsToGoDormant.Add( Actor );
 		}
 
 		TSharedPtr<FRepChangedPropertyTracker> PropertyTracker = FindOrCreateRepChangedPropertyTracker( Actor );
@@ -1672,9 +1745,9 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 		}
 	}
 
-	for (int32 Idx = 0; Idx < ActorsToRemove.Num(); Idx++)
+	for (int32 Idx = 0; Idx < ActorsToGoDormant.Num(); Idx++)
 	{
-		GetNetworkObjectList().GetObjects().Remove(ActorsToRemove[Idx]);
+		GetNetworkObjectList().MarkDormant( ActorsToGoDormant[Idx], ClientConnections[0], 1, NetDriverName);
 	}
 
 	// Make sure nothing is left over
@@ -3182,8 +3255,7 @@ void UDemoNetConnection::FlushDormancy( class AActor* Actor )
 {
 	UDemoNetDriver* NetDriver = GetDriver();
 
-	NetDriver->FullyDormantActors.Remove( Actor );
-	NetDriver->GetNetworkObjectList().Add( Actor, NetDriver->NetDriverName );
+	NetDriver->GetNetworkObjectList().MarkActive(Actor, this, NetDriver->NetDriverName);
 }
 
 bool UDemoNetDriver::IsLevelInitializedForActor( const AActor* InActor, const UNetConnection* InConnection ) const

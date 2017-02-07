@@ -29,6 +29,7 @@
 #include "Components/DestructibleComponent.h"
 
 #include "Engine/DemoNetDriver.h"
+#include "Engine/NetworkObjectList.h"
 
 #include "Net/PerfCountersHelpers.h"
 
@@ -2149,13 +2150,14 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 	if (bHasAuthority && UNetDriver::IsAdaptiveNetUpdateFrequencyEnabled() && UpdatedComponent)
 	{
 		const UWorld* MyWorld = GetWorld();
-		if (MyWorld && MyWorld->GetTimeSeconds() <= CharacterOwner->NetUpdateTime)
+		if (MyWorld)
 		{
 			UNetDriver* NetDriver = MyWorld->GetNetDriver();
 			if (NetDriver && NetDriver->IsServer())
 			{
-				FNetworkObjectInfo* NetActor = NetDriver->GetNetworkActor(CharacterOwner);
-				if (NetActor && NetDriver->IsNetworkActorUpdateFrequencyThrottled(*NetActor))
+				FNetworkObjectInfo* NetActor = NetDriver->GetNetworkObjectInfo(CharacterOwner);
+				
+				if (NetActor && MyWorld->GetTimeSeconds() <= NetActor->NextUpdateTime && NetDriver->IsNetworkActorUpdateFrequencyThrottled(*NetActor))
 				{
 					if (ShouldCancelAdaptiveReplication())
 					{

@@ -672,10 +672,16 @@ public:
 	ENGINE_API const FNetworkObjectList& GetNetworkObjectList() const { return *NetworkObjects; }
 
 	/** Get the network object matching the given Actor, or null if not found. */
-	ENGINE_API const FNetworkObjectInfo* GetNetworkActor(const AActor* InActor) const;
+	ENGINE_API const FNetworkObjectInfo* GetNetworkObjectInfo(const AActor* InActor) const;
 
 	/** Get the network object matching the given Actor, or null if not found. */
-	ENGINE_API FNetworkObjectInfo* GetNetworkActor(const AActor* InActor);
+	ENGINE_API FNetworkObjectInfo* GetNetworkObjectInfo(const AActor* InActor);
+
+	DEPRECATED(4.16, "GetNetworkActor is deprecated.  Use GetNetworkObjectInfo instead.")
+	ENGINE_API const FNetworkObjectInfo* GetNetworkActor( const AActor* InActor ) const;
+
+	DEPRECATED(4.16, "GetNetworkActor is deprecated.  Use GetNetworkObjectInfo instead.")
+	ENGINE_API FNetworkObjectInfo* GetNetworkActor( const AActor* InActor );
 
 	/**
 	 * Returns whether adaptive net frequency is enabled. If enabled, update frequency is allowed to ramp down to MinNetUpdateFrequency for an actor when no replicated properties have changed.

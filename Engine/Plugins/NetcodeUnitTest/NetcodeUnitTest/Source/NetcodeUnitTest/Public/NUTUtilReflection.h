@@ -6,6 +6,7 @@
 #include "UObject/Class.h"
 #include "UObject/UnrealType.h"
 #include "UObject/StructOnScope.h"
+#include "ValueOrError.h"
 
 class FStructOnScope;
 
@@ -40,23 +41,21 @@ class FStructOnScope;
  *	- (...->*"Function")("Parm1", etc.):	Execute the specified function, with the specified parameters. Might not get implemented.
  *
  *
- * Setting function parameters:
- *	- It's possible to assign function parameters through reflection, for ProcessEvent etc., by passing a UFunction to FStructOnScope,
- *		assigning the parameters through FVMReflection, as if they were part of a struct,
- *		and then passing FStructOnScope.GetStructMemory() as the pointer to the function parameters.
- *
- *		For example:
- *			UFunction* TargetFunc = ...;
- *			FStructOnScope ParmsStruct(TargetFunc);
- *
- *			FVMReflection(ParmsStruct)->*"Data"->*"Guid"->*"A" = 1;
- *
- *			TargetObj->ProcessEvent(TargetFunc, ParmsStruct.GetStructMemory());
- *
- *
  * - Example:
  *		FGuid* ItemGuid = (FGuid*)(void*)(((FVMReflection(UnitPC.Get())->*"WorldInventory"->*"Inventory"->*"Items")
  *							["FFortItemEntry"][0]->"ItemGuid")["FGuid"]);
+ *
+ *
+ * Setting function parameters:
+ *	The FFuncReflection class allows you to easily set the parameters for functions, using reflection; this is useful for RPC's,
+ *	as well as for general local functions called using ProcessEvent etc..
+ *
+ *	For example:
+ *		FFuncReflection FuncRefl(PlayerStateObj, TEXT("UndoRemoveCardFromHandAtIndex"));
+ *
+ *		FVMReflection(FuncRefl.ParmsRefl)->*"CardData"->*"CardGuid"->*"A" = 1;
+ *
+ *		PlayerStateObj->ProcessEvent(FuncRefl.GetFunc(), FuncRefl.GetParms());
  */
 
 
@@ -248,10 +247,17 @@ public:
 	/**
 	 * Member access operator. Used to access object/struct properties.
 	 *
-	 * @param InPropertyName	The name of the property being accessed
-	 * @return					Returns this VM reflector, for operator chaining
+	 * @param PropertyName	The name of the property being accessed
+	 * @return				Returns this VM reflector, for operator chaining
 	 */
-	FVMReflection& operator ->*(const ANSICHAR* InPropertyName);
+	FVMReflection& operator ->*(FString PropertyName);
+
+	FORCEINLINE FVMReflection& operator ->*(const ANSICHAR* PropertyName)
+	{
+		FString PropertyStr(ANSI_TO_TCHAR(PropertyName));
+
+		return (*this)->*PropertyStr;
+	}
 
 	/**
 	 * Array subscript operator, used to access static/dynamic array elements
@@ -463,6 +469,24 @@ public:
 
 
 	/**
+	 * Converts the value of whatever the reflection helper is pointing to, into a human readable string.
+	 *
+	 * @return	A human readable representation of what the reflection helper is pointing to
+	 */
+	TValueOrError<FString, FString> GetValueAsString();
+
+	/**
+	 * If pointing to an array, returns the array size. Cache the value, instead of using it directly in a for loop
+	 *
+	 * @return	Returns the size of the array
+	 */
+	FORCEINLINE int32 GetArrayNum() const
+	{
+		return (CanCastArray() ? (((FScriptArray*)FieldAddress)->Num()) : 0);
+	}
+
+
+	/**
 	 * Allows an inline method of returning the error status - the comma operator has the lowest precedence, so is executed last.
 	 *
 	 * This also allows you to test for errors at every stage of reflection (although it's a bit ugly if done this way), e.g:
@@ -493,11 +517,37 @@ public:
 	/**
 	 * Returns the current error status
 	 *
-	 * @param Whether or not the reflection helper encountered an error
+	 * @return Whether or not the reflection helper encountered an error
 	 */
 	FORCEINLINE bool IsError() const
 	{
 		return bIsError;
+	}
+
+	/**
+	 * Disables the need to verify field types before accessing structs etc., to e.g. make use of the 'reflect' console command easier.
+	 */
+	FORCEINLINE void DisableFieldVerification()
+	{
+		bSkipFieldVerification = true;
+		bVerifiedFieldType = true;
+	}
+
+	/**
+	 * Returns the reflection helper history as a string
+	 *
+	 * @return	Returns the history
+	 */
+	FORCEINLINE FString GetHistory() const
+	{
+		FString Result;
+
+		for (FString CurString : History)
+		{
+			Result += CurString;
+		}
+
+		return Result;
 	}
 
 
@@ -516,7 +566,7 @@ private:
 	 *
 	 * @return	Returns whether or not the property is an array (static or dynamic)
 	 */
-	FORCEINLINE bool IsPropertyArray()
+	FORCEINLINE bool IsPropertyArray() const
 	{
 		UProperty* CurProp = Cast<UProperty>(FieldInstance);
 
@@ -528,10 +578,10 @@ private:
 	 *
 	 * @return	Whether or not the VM reflector is ready for casting
 	 */
-	FORCEINLINE bool CanCastProperty()
+	FORCEINLINE bool CanCastProperty() const
 	{
 		return !bIsError && BaseAddress != NULL && FieldInstance != NULL && FieldAddress != NULL &&
-				(!IsPropertyArray() || (bVerifiedFieldType && bSetArrayElement));
+				FieldInstance->IsA(UProperty::StaticClass()) && (!IsPropertyArray() || (bVerifiedFieldType && bSetArrayElement));
 	}
 
 	/**
@@ -539,7 +589,7 @@ private:
 	 *
 	 * @return	Whether or not the VM reflector is ready for casting
 	 */
-	FORCEINLINE bool CanCastObject()
+	FORCEINLINE bool CanCastObject() const
 	{
 		bool bReturnVal = false;
 
@@ -563,7 +613,7 @@ private:
 	 *
 	 * @return	Whether or not the VM reflector is ready for casting
 	 */
-	FORCEINLINE bool CanCastArray()
+	FORCEINLINE bool CanCastArray() const
 	{
 		return !bIsError && BaseAddress != NULL && FieldInstance != NULL && FieldInstance->IsA(UArrayProperty::StaticClass()) &&
 				FieldAddress != NULL && bVerifiedFieldType && !bSetArrayElement;
@@ -574,7 +624,7 @@ private:
 	 *
 	 * @return	Whether or not the VM reflector is ready for casting
 	 */
-	FORCEINLINE bool CanCastStruct()
+	FORCEINLINE bool CanCastStruct() const
 	{
 		return !bIsError && BaseAddress != NULL && FieldInstance != NULL && FieldInstance->IsA(UStruct::StaticClass()) &&
 				FieldAddress != NULL && bVerifiedFieldType;
@@ -588,12 +638,12 @@ private:
 	/**
 	 * Called early within non-cast operators, to unset error pointers
 	 */
-	FORCEINLINE void NotifyOperator()
+	FORCEINLINE void NotifyOperator(FString Operation)
 	{
 		// Got a non-cast action when only a cast is allowed - error
 		if (bNextActionMustBeCast)
 		{
-			SetError(NextActionError);
+			SetError(NextActionError + FString::Printf(TEXT(" Failed operation: %s"), *Operation));
 		}
 
 		bOutError = NULL;
@@ -688,6 +738,9 @@ private:
 	/** Whether or not the array or struct type has been specified for verification */
 	bool bVerifiedFieldType : 1;
 
+	/** Whether or not to skip field verification (e.g. when using the 'reflect' console command) */
+	bool bSkipFieldVerification : 1;
+
 	/** Whether or not the array element has been set, for an array */
 	bool bSetArrayElement : 1;
 
@@ -745,6 +798,11 @@ public:
 		return Function != nullptr && ParmsMemory.IsValid() && !ParmsRefl.IsError();
 	}
 
+	FORCEINLINE UFunction* GetFunc()
+	{
+		return Function;
+	}
+
 	FORCEINLINE void* GetParms() const
 	{
 		return (void*)ParmsMemory.GetStructMemory();
@@ -755,15 +813,15 @@ public:
 	const TCHAR* FunctionName;
 
 	/** Reference to the function */
-	const UFunction* Function;
+	UFunction* Function;
 
 private:
 	/** The function parameters in memory */
 	FStructOnScope ParmsMemory;
 
 public:
-	/** Reflection instance, for writing the function parameters */
-	FVMReflection ParmsRefl;
+	/** Reflection instance, for writing the function parameters - initialize a new instance from this, e.g. FVMReflection(ParmsRefl) */
+	const FVMReflection ParmsRefl;
 };
 
 

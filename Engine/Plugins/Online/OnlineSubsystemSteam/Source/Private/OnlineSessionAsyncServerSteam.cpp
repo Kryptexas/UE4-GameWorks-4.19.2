@@ -1021,7 +1021,15 @@ void FOnlineAsyncTaskSteamFindServerBase::Tick()
 			UE_LOG_ONLINE(Warning, TEXT("FOnlineAsyncTaskSteamFindServerBase::Tick - SearchSettings->MaxSearchResults should be greater than 0, but it is currently %d. No search results will be found."), SearchSettings->MaxSearchResults);
 		}
 
-		ServerListRequestHandle = SteamMatchmakingServersPtr->RequestInternetServerList(Subsystem->GetSteamAppId(), &Filters, NumFilters, this);
+		if (SearchSettings->bIsLanQuery)
+		{
+			ServerListRequestHandle = SteamMatchmakingServersPtr->RequestLANServerList(Subsystem->GetSteamAppId(), this);
+		}
+		else
+		{
+			ServerListRequestHandle = SteamMatchmakingServersPtr->RequestInternetServerList(Subsystem->GetSteamAppId(), &Filters, NumFilters, this);
+		}
+
 		if (ServerListRequestHandle == NULL)
 		{
 			// Invalid API call
