@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2015, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2008-2017, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -600,7 +600,7 @@ uint32_t 			ApexResourceProvider::findResourceU32(const char* nameSpace, const c
 		{
 			if (mResources[id].valueIsSet)
 			{
-#if PX_X64
+#if defined(PX_X64) || defined(PX_A64)
 				uint64_t ret64 = (uint64_t)mResources[id].ptr;
 				ret = (uint32_t)ret64;
 #else

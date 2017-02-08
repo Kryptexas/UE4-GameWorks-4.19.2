@@ -426,13 +426,7 @@ void UAudioComponent::Stop()
 
 		if (FAudioDevice* AudioDevice = GetAudioDevice())
 		{
-			DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.StopActiveSound"), STAT_AudioStopActiveSound, STATGROUP_AudioThreadCommands);
-
-			const uint64 MyAudioComponentID = AudioComponentID;
-			FAudioThread::RunCommandOnAudioThread([AudioDevice, MyAudioComponentID]()
-			{
-				AudioDevice->StopActiveSound(MyAudioComponentID);
-			}, GET_STATID(STAT_AudioStopActiveSound));
+			AudioDevice->StopActiveSound(AudioComponentID);
 		}
 	}
 }

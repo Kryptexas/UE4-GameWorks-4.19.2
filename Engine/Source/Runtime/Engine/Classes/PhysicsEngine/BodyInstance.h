@@ -23,6 +23,8 @@ struct FCollisionShape;
 struct FConstraintInstance;
 struct FPropertyChangedEvent;
 struct FShapeData;
+class UPrimitiveComponent;
+class FPhysScene;
 
 /** Delegate for applying custom physics forces upon the body. Can be passed to "AddCustomPhysics" so 
   * custom forces and torques can be calculated individually for every physics substep.
@@ -470,14 +472,34 @@ public:
 #endif
 
 #if UE_WITH_PHYSICS
+
+	/** Helper struct to specify spawn behavior */
+	struct FInitBodySpawnParams
+	{
+		FInitBodySpawnParams(const UPrimitiveComponent* PrimComp);
+
+		/** Whether the created physx actor will be static */
+		bool bStaticPhysics;
+
+		/** Whether to use the BodySetup's PhysicsType to override if the instance simulates*/
+		bool bPhysicsTypeDeterminesSimulation;
+	};
+
+	void InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL)
+	{
+		InitBody(Setup, Transform, PrimComp, InRBScene, FInitBodySpawnParams(PrimComp), InAggregate);
+	}
+
+
 	/** Initialise a single rigid body (this FBodyInstance) for the given body setup
-	 *	@param Setup The setup to use to create the body
-	 *	@param Transform Transform of the body
-	 *	@param PrimComp The owning component
-	 *	@param InRBScene The physics scene to place the body into
-	 *	@param InAggregate An aggregate to place the body into
-	 */
-	void InitBody(UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
+	*	@param Setup The setup to use to create the body
+	*	@param Transform Transform of the body
+	*	@param PrimComp The owning component
+	*	@param InRBScene The physics scene to place the body into
+	*	@param SpawnParams The parameters for determining certain spawn behavior
+	*	@param InAggregate An aggregate to place the body into
+	*/
+	void InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, const FInitBodySpawnParams& SpawnParams, PhysXAggregateType InAggregate = NULL);
 
 	/** Validate a body transform, outputting debug info
 	 *	@param Transform Transform to debug
@@ -1222,7 +1244,7 @@ private:
 //////////////////////////////////////////////////////////////////////////
 // BodyInstance inlines
 
-FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, const class UWorld* World, const FTransform* pWorldToComponent, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, const class UWorld* World, const FTransform* pWorldToComponent, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const FComponentQueryParams& Params, const FCollisionResponseParams& ResponseParams, const FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 	// Pass on to FQuat version
 	return OverlapMulti(InOutOverlaps, World, pWorldToComponent, Pos, Rot.Quaternion(), TestChannel, Params, ResponseParams, ObjectQueryParams);

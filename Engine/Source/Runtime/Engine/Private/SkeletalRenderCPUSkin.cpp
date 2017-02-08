@@ -75,7 +75,7 @@ void FFinalSkinVertexBuffer::InitDynamicRHI()
 
 void FFinalSkinVertexBuffer::InitVertexData(FStaticLODModel& LodModel)
 {
-	// this used to be check, but during clothing importing (when replacing Apex asset)
+	// this used to be check, but during clothing importing (when replacing cloth asset)
 	// it comes here with incomplete data causing crash during that intermediate state
 	// so I'm changing to ensure, and update won't do anything since it contains Invalid VertexBufferRHI
 	if (ensure(LodModel.VertexBufferGPUSkin.GetNumVertices() == LodModel.NumVertices))
@@ -687,7 +687,7 @@ static void SkinVertexSection(
 	VertexType* SrcSoftVertex = NULL;
 	const FVector MeshExtension = LOD.VertexBufferGPUSkin.GetMeshExtension();
 	const FVector MeshOrigin = LOD.VertexBufferGPUSkin.GetMeshOrigin();
-	const bool bLODUsesAPEXCloth = LOD.HasApexClothData() && ClothSimData != nullptr && ClothBlendWeight > 0.0f;
+	const bool bLODUsesCloth = LOD.HasClothData() && ClothSimData != nullptr && ClothBlendWeight > 0.0f;
 	const int32 NumSoftVertices = Section.GetNumVertices();
 	if (NumSoftVertices > 0)
 	{
@@ -695,9 +695,9 @@ static void SkinVertexSection(
 
 		// Prefetch first vertex
 		FPlatformMisc::Prefetch( LOD.VertexBufferGPUSkin.GetVertexPtr(Section.GetVertexBufferIndex()) );
-		if (bLODUsesAPEXCloth)
+		if (bLODUsesCloth)
 		{
-			FPlatformMisc::Prefetch(&LOD.APEXClothVertexBuffer.MappingData(Section.GetVertexBufferIndex()));
+			FPlatformMisc::Prefetch(&LOD.ClothVertexBuffer.MappingData(Section.GetVertexBufferIndex()));
 		}
 
 		for(int32 VertexIndex = VertexBufferBaseIndex;VertexIndex < NumSoftVertices;VertexIndex++,DestVertex++)
@@ -715,11 +715,11 @@ static void SkinVertexSection(
 				UpdateMorphedVertex<VertexType>( *MorphedVertex, *SrcSoftVertex, CurBaseVertIdx, LODIndex, MorphEvalInfos, MorphWeights);
 			}
 
-			const FApexClothPhysToRenderVertData* APEXVertData = nullptr;
-			if (bLODUsesAPEXCloth)
+			const FMeshToMeshVertData* ClothVertData = nullptr;
+			if (bLODUsesCloth)
 			{
-				APEXVertData = &LOD.APEXClothVertexBuffer.MappingData(VertexBufferIndex);
-				FPlatformMisc::Prefetch(APEXVertData, PLATFORM_CACHE_LINE_SIZE);	// Prefetch next cloth vertex
+				ClothVertData = &LOD.ClothVertexBuffer.MappingData(VertexBufferIndex);
+				FPlatformMisc::Prefetch(ClothVertData, PLATFORM_CACHE_LINE_SIZE);	// Prefetch next cloth vertex
 			}
 
 			const uint8* RESTRICT BoneIndices = SrcWeights->InfluenceBones;
@@ -844,44 +844,44 @@ static void SkinVertexSection(
 			VectorResetFloatRegisters(); // Need to call this to be able to use regular floating point registers again after Pack().
 
 			// Apply cloth. This code has been adapted from GpuSkinVertexFactory.usf
-			if (APEXVertData != nullptr && APEXVertData->SimulMeshVertIndices[3] < FIXED_VERTEX_INDEX)
+			if (ClothVertData != nullptr && ClothVertData->SourceMeshVertIndices[3] < FIXED_VERTEX_INDEX)
 			{
-				struct APEXClothCPU
+				struct ClothCPU
 				{
 					FORCEINLINE static FVector GetClothSimulPosition(const FClothSimulData& InClothSimData, int32 InIndex)
 					{
-						return FVector(InClothSimData.ClothSimulPositions[InIndex]);
+						return FVector(InClothSimData.Positions[InIndex]);
 					}
 
 					FORCEINLINE static FVector GetClothSimulNormal(const FClothSimulData& InClothSimData, int32 InIndex)
 					{
-						return FVector(InClothSimData.ClothSimulNormals[InIndex]);
+						return FVector(InClothSimData.Normals[InIndex]);
 					}
 
-					FORCEINLINE static FVector ClothingPosition(const FApexClothPhysToRenderVertData& InAPEXVertData, const FClothSimulData& InClothSimData)
+					FORCEINLINE static FVector ClothingPosition(const FMeshToMeshVertData& InClothVertData, const FClothSimulData& InClothSimData)
 					{
-						return    InAPEXVertData.PositionBaryCoordsAndDist.X * (GetClothSimulPosition(InClothSimData, InAPEXVertData.SimulMeshVertIndices[0]) + GetClothSimulNormal(InClothSimData, InAPEXVertData.SimulMeshVertIndices[0]) * InAPEXVertData.PositionBaryCoordsAndDist.W)
-								+ InAPEXVertData.PositionBaryCoordsAndDist.Y * (GetClothSimulPosition(InClothSimData, InAPEXVertData.SimulMeshVertIndices[1]) + GetClothSimulNormal(InClothSimData, InAPEXVertData.SimulMeshVertIndices[1]) * InAPEXVertData.PositionBaryCoordsAndDist.W)
-								+ InAPEXVertData.PositionBaryCoordsAndDist.Z * (GetClothSimulPosition(InClothSimData, InAPEXVertData.SimulMeshVertIndices[2]) + GetClothSimulNormal(InClothSimData, InAPEXVertData.SimulMeshVertIndices[2]) * InAPEXVertData.PositionBaryCoordsAndDist.W);
+						return    InClothVertData.PositionBaryCoordsAndDist.X * (GetClothSimulPosition(InClothSimData, InClothVertData.SourceMeshVertIndices[0]) + GetClothSimulNormal(InClothSimData, InClothVertData.SourceMeshVertIndices[0]) * InClothVertData.PositionBaryCoordsAndDist.W)
+								+ InClothVertData.PositionBaryCoordsAndDist.Y * (GetClothSimulPosition(InClothSimData, InClothVertData.SourceMeshVertIndices[1]) + GetClothSimulNormal(InClothSimData, InClothVertData.SourceMeshVertIndices[1]) * InClothVertData.PositionBaryCoordsAndDist.W)
+								+ InClothVertData.PositionBaryCoordsAndDist.Z * (GetClothSimulPosition(InClothSimData, InClothVertData.SourceMeshVertIndices[2]) + GetClothSimulNormal(InClothSimData, InClothVertData.SourceMeshVertIndices[2]) * InClothVertData.PositionBaryCoordsAndDist.W);
 					}
 
-					FORCEINLINE static void ClothingTangents(const FApexClothPhysToRenderVertData& InAPEXVertData, const FClothSimulData& InClothSimData, const FVector& InSimulatedPosition, const FMatrix& InWorldToLocal, const FVector& InMeshExtension, const FVector& InMeshOrign, FVector& OutTangentX, FVector& OutTangentZ)
+					FORCEINLINE static void ClothingTangents(const FMeshToMeshVertData& InClothVertData, const FClothSimulData& InClothSimData, const FVector& InSimulatedPosition, const FMatrix& InWorldToLocal, const FVector& InMeshExtension, const FVector& InMeshOrign, FVector& OutTangentX, FVector& OutTangentZ)
 					{
-						FVector A = GetClothSimulPosition(InClothSimData, InAPEXVertData.SimulMeshVertIndices[0]);
-						FVector B = GetClothSimulPosition(InClothSimData, InAPEXVertData.SimulMeshVertIndices[1]);
-						FVector C = GetClothSimulPosition(InClothSimData, InAPEXVertData.SimulMeshVertIndices[2]);
+						FVector A = GetClothSimulPosition(InClothSimData, InClothVertData.SourceMeshVertIndices[0]);
+						FVector B = GetClothSimulPosition(InClothSimData, InClothVertData.SourceMeshVertIndices[1]);
+						FVector C = GetClothSimulPosition(InClothSimData, InClothVertData.SourceMeshVertIndices[2]);
 
-						FVector NA = GetClothSimulNormal(InClothSimData, InAPEXVertData.SimulMeshVertIndices[0]);
-						FVector NB = GetClothSimulNormal(InClothSimData, InAPEXVertData.SimulMeshVertIndices[1]);
-						FVector NC = GetClothSimulNormal(InClothSimData, InAPEXVertData.SimulMeshVertIndices[2]);
+						FVector NA = GetClothSimulNormal(InClothSimData, InClothVertData.SourceMeshVertIndices[0]);
+						FVector NB = GetClothSimulNormal(InClothSimData, InClothVertData.SourceMeshVertIndices[1]);
+						FVector NC = GetClothSimulNormal(InClothSimData, InClothVertData.SourceMeshVertIndices[2]);
 
-						FVector NormalPosition = InAPEXVertData.NormalBaryCoordsAndDist.X*(A + NA*InAPEXVertData.NormalBaryCoordsAndDist.W)
-												+ InAPEXVertData.NormalBaryCoordsAndDist.Y*(B + NB*InAPEXVertData.NormalBaryCoordsAndDist.W)
-												+ InAPEXVertData.NormalBaryCoordsAndDist.Z*(C + NC*InAPEXVertData.NormalBaryCoordsAndDist.W);
+						FVector NormalPosition = InClothVertData.NormalBaryCoordsAndDist.X*(A + NA*InClothVertData.NormalBaryCoordsAndDist.W)
+												+ InClothVertData.NormalBaryCoordsAndDist.Y*(B + NB*InClothVertData.NormalBaryCoordsAndDist.W)
+												+ InClothVertData.NormalBaryCoordsAndDist.Z*(C + NC*InClothVertData.NormalBaryCoordsAndDist.W);
 
-						FVector TangentPosition = InAPEXVertData.TangentBaryCoordsAndDist.X*(A + NA*InAPEXVertData.TangentBaryCoordsAndDist.W)
-												+ InAPEXVertData.TangentBaryCoordsAndDist.Y*(B + NB*InAPEXVertData.TangentBaryCoordsAndDist.W)
-												+ InAPEXVertData.TangentBaryCoordsAndDist.Z*(C + NC*InAPEXVertData.TangentBaryCoordsAndDist.W);
+						FVector TangentPosition = InClothVertData.TangentBaryCoordsAndDist.X*(A + NA*InClothVertData.TangentBaryCoordsAndDist.W)
+												+ InClothVertData.TangentBaryCoordsAndDist.Y*(B + NB*InClothVertData.TangentBaryCoordsAndDist.W)
+												+ InClothVertData.TangentBaryCoordsAndDist.Z*(C + NC*InClothVertData.TangentBaryCoordsAndDist.W);
 
 						OutTangentX = (TangentPosition*InMeshExtension + InMeshOrign - InSimulatedPosition).GetUnsafeNormal();
 						OutTangentZ = (NormalPosition*InMeshExtension + InMeshOrign - InSimulatedPosition).GetUnsafeNormal();
@@ -893,7 +893,7 @@ static void SkinVertexSection(
 				};
 
 				// build sim position (in world space)
-				FVector SimulatedPositionWorld = APEXClothCPU::ClothingPosition(*APEXVertData, *ClothSimData) * MeshExtension + MeshOrigin;
+				FVector SimulatedPositionWorld = ClothCPU::ClothingPosition(*ClothVertData, *ClothSimData) * MeshExtension + MeshOrigin;
 
 				// transform back to local space
 				FVector SimulatedPosition = WorldToLocal.TransformPosition(SimulatedPositionWorld);
@@ -904,7 +904,7 @@ static void SkinVertexSection(
 				// recompute tangent & normal
 				FVector TangentX;
 				FVector TangentZ;
-				APEXClothCPU::ClothingTangents(*APEXVertData, *ClothSimData, SimulatedPositionWorld, WorldToLocal, MeshExtension, MeshOrigin, TangentX, TangentZ);
+				ClothCPU::ClothingTangents(*ClothVertData, *ClothSimData, SimulatedPositionWorld, WorldToLocal, MeshExtension, MeshOrigin, TangentX, TangentZ);
 
 				// Lerp between skinned and simulated tangents
 				FVector SkinnedTangentX = DestVertex->TangentX;
@@ -1121,7 +1121,6 @@ bool FDynamicSkelMeshObjectDataCPUSkin::UpdateClothSimulationData(USkinnedMeshCo
 {
 	USkeletalMeshComponent* SimMeshComponent = Cast<USkeletalMeshComponent>(InMeshComponent);
 
-#if WITH_APEX_CLOTHING
 	if (InMeshComponent->MasterPoseComponent.IsValid() && (SimMeshComponent && SimMeshComponent->IsClothBoundToMasterComponent()))
 	{
 		USkeletalMeshComponent* SrcComponent = SimMeshComponent;
@@ -1141,7 +1140,6 @@ bool FDynamicSkelMeshObjectDataCPUSkin::UpdateClothSimulationData(USkinnedMeshCo
 
 		return true;
 	}
-#endif
 
 	if (SimMeshComponent)
 	{

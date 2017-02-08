@@ -226,23 +226,6 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 		SequencerInitParams.EventContexts.BindStatic(GetLevelSequenceEditorEventContexts);
 		SequencerInitParams.PlaybackContext.BindStatic(GetLevelSequenceEditorPlaybackContext);
 
-		TSharedRef<FExtender> AddMenuExtender = MakeShareable(new FExtender);
-
-		AddMenuExtender->AddMenuExtension("AddTracks", EExtensionHook::Before, nullptr,
-			FMenuExtensionDelegate::CreateLambda([=](FMenuBuilder& MenuBuilder){
-
-				MenuBuilder.AddSubMenu(
-					LOCTEXT("AddActor_Label", "Actor To Sequencer"),
-					LOCTEXT("AddActor_ToolTip", "Allow sequencer to possess an actor that already exists in the current level"),
-					FNewMenuDelegate::CreateRaw(this, &FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions),
-					false /*bInOpenSubMenuOnClick*/,
-					FSlateIcon("LevelSequenceEditorStyle", "LevelSequenceEditor.PossessNewActor")
-					);
-
-			})
-		);
-
-		SequencerInitParams.ViewParams.AddMenuExtender = AddMenuExtender;
 		SequencerInitParams.ViewParams.UniqueName = "LevelSequenceEditor";
 		SequencerInitParams.ViewParams.OnReceivedFocus.BindRaw(this, &FLevelSequenceEditorToolkit::OnSequencerReceivedFocus);
 	}
@@ -333,22 +316,6 @@ void FLevelSequenceEditorToolkit::UnregisterTabSpawners(const TSharedRef<class F
 
 /* FLevelSequenceEditorToolkit implementation
  *****************************************************************************/
-
-void FLevelSequenceEditorToolkit::AddActorsToSequencer(AActor*const* InActors, int32 NumActors)
-{
-	TArray<TWeakObjectPtr<AActor>> Actors;
-
-	while (NumActors--)
-	{
-		AActor* ThisActor = *InActors;
-		Actors.Add(ThisActor);
-
-		InActors++;
-	}
-
-	Sequencer->AddActors(Actors);
-}
-
 
 void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const FGuid Binding)
 {
@@ -475,7 +442,6 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 
 			for (const FLevelSequencePropertyTrackSettings& PropertyTrackSettings : ExcludeTrackSettings.ExcludeDefaultPropertyTracks)
 			{
-				TArray<UProperty*> PropertyPath;
 				UObject* PropertyOwner = &Actor;
 
 				// determine object hierarchy
@@ -505,7 +471,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 		// add tracks by property
 		for (const FLevelSequencePropertyTrackSettings& PropertyTrackSettings : TrackSettings.DefaultPropertyTracks)
 		{
-			TArray<UProperty*> PropertyPath;
+			TSharedRef<FPropertyPath> PropertyPath = FPropertyPath::CreateEmpty();
 			UObject* PropertyOwner = &Actor;
 
 			// determine object hierarchy
@@ -533,7 +499,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 				// skip past excluded properties
 				if (ExcludePropertyTracksMap.Contains(PropertyOwner) && ExcludePropertyTracksMap[PropertyOwner].Contains(PropertyName))
 				{
-					PropertyPath.Empty();
+					PropertyPath = FPropertyPath::CreateEmpty();
 					break;
 				}
 
@@ -541,7 +507,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 
 				if (Property != nullptr)
 				{
-					PropertyPath.Add(Property);
+					PropertyPath->AddProperty(FPropertyInfo(Property));
 				}
 
 				UStructProperty* StructProperty = Cast<UStructProperty>(Property);
@@ -563,99 +529,19 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 				break;
 			}
 
-			if (!Sequencer->CanKeyProperty(FCanKeyPropertyParams(Actor.GetClass(), PropertyPath)))
+			if (!Sequencer->CanKeyProperty(FCanKeyPropertyParams(Actor.GetClass(), *PropertyPath)))
 			{
 				continue;
 			}
 
 			// key property
-			FKeyPropertyParams KeyPropertyParams(TArrayBuilder<UObject*>().Add(PropertyOwner), PropertyPath, ESequencerKeyMode::ManualKey);
+			FKeyPropertyParams KeyPropertyParams(TArrayBuilder<UObject*>().Add(PropertyOwner), *PropertyPath, ESequencerKeyMode::ManualKey);
 
 			Sequencer->KeyProperty(KeyPropertyParams);
 
 			Sequencer->UpdateRuntimeInstances();
 		}
 	}
-}
-
-
-void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& MenuBuilder)
-{
-	auto IsActorValidForPossession = [=](const AActor* Actor){
-		bool bCreateHandleIfMissing = false;
-		if (Sequencer.IsValid())
-		{
-			return !Sequencer->GetHandleToObject((UObject*)Actor, bCreateHandleIfMissing).IsValid();
-		}
-
-		return true;
-	};
-
-	// Set up a menu entry to add the selected actor(s) to the sequencer
-	TArray<AActor*> ActorsValidForPossession;
-	GEditor->GetSelectedActors()->GetSelectedObjects(ActorsValidForPossession);
-	ActorsValidForPossession.RemoveAll([&](AActor* In){ return !IsActorValidForPossession(In); });
-
-	FText SelectedLabel;
-	FSlateIcon ActorIcon = FSlateIconFinder::FindIconForClass(AActor::StaticClass());
-	if (ActorsValidForPossession.Num() == 1)
-	{
-		SelectedLabel = FText::Format(LOCTEXT("AddSpecificActor", "Add '{0}'"), FText::FromString(ActorsValidForPossession[0]->GetActorLabel()));
-		ActorIcon = FSlateIconFinder::FindIconForClass(ActorsValidForPossession[0]->GetClass());
-	}
-	else if (ActorsValidForPossession.Num() > 1)
-	{
-		SelectedLabel = FText::Format(LOCTEXT("AddSpecificActor", "Add Current Selection ({0} actors)"), FText::AsNumber(ActorsValidForPossession.Num()));
-	}
-
-	if (!SelectedLabel.IsEmpty())
-	{
-		// Copy the array into the lambda - probably not that big a deal
-		MenuBuilder.AddMenuEntry(SelectedLabel, FText(), ActorIcon, FExecuteAction::CreateLambda([=]{
-			FSlateApplication::Get().DismissAllMenus();
-			AddActorsToSequencer(ActorsValidForPossession.GetData(), ActorsValidForPossession.Num());
-		}));
-	}
-	
-	MenuBuilder.BeginSection("ChooseActorSection", LOCTEXT("ChooseActor", "Choose Actor:"));
-
-	using namespace SceneOutliner;
-
-	// Set up a menu entry to add any arbitrary actor to the sequencer
-	FInitializationOptions InitOptions;
-	{
-		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
-
-		// We hide the header row to keep the UI compact.
-		InitOptions.bShowHeaderRow = false;
-		InitOptions.bShowSearchBox = true;
-		InitOptions.bShowCreateNewFolder = false;
-		// Only want the actor label column
-		InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 0));
-
-		// Only display actors that are not possessed already
-		InitOptions.Filters->AddFilterPredicate(FActorFilterPredicate::CreateLambda(IsActorValidForPossession));
-	}
-
-	// actor selector to allow the user to choose an actor
-	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>("SceneOutliner");
-	TSharedRef< SWidget > MiniSceneOutliner =
-		SNew(SBox)
-		.MaxDesiredHeight(400.0f)
-		.WidthOverride(300.0f)
-		[
-			SceneOutlinerModule.CreateSceneOutliner(
-				InitOptions,
-				FOnActorPicked::CreateLambda([=](AActor* Actor){
-					// Create a new binding for this actor
-					FSlateApplication::Get().DismissAllMenus();
-					AddActorsToSequencer(&Actor, 1);
-				})
-			)
-		];
-
-	MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), true);
-	MenuBuilder.EndSection();
 }
 
 

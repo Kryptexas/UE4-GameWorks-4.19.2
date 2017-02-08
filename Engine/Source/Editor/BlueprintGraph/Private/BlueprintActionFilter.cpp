@@ -399,6 +399,16 @@ namespace BlueprintActionFilterImpl
 	 * @return True if the action is stale (associated with a TRASH or REINST class).
 	 */
 	static bool IsStaleFieldAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
+
+	/**
+	* Rejection test whether editor module functionality should be filtered out for 
+	* this specific blueprint (relies on whether or not base class is part of an editor module).
+	*
+	* @param  Filter			Holds the action/field context for this test.
+	* @param  BlueprintAction	The action you wish to query.
+	* @return True if the action is invalid to use in the current blueprint
+	*/
+	static bool IsHiddenInNonEditorBlueprint(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 };
 
 //------------------------------------------------------------------------------
@@ -1656,6 +1666,31 @@ static bool BlueprintActionFilterImpl::IsStaleFieldAction(FBlueprintActionFilter
 	return bIsFilteredOut;
 }
 
+//------------------------------------------------------------------------------
+static bool BlueprintActionFilterImpl::IsHiddenInNonEditorBlueprint(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
+{
+	const UFunction* Function = BlueprintAction.GetAssociatedFunction();
+
+	bool bVisible = true;
+
+	if (Function)
+	{
+		const bool bIsEditorOnlyFunction = IsEditorOnlyObject(Function);
+		
+		if (bIsEditorOnlyFunction)
+		{
+			for (const UBlueprint* Blueprint : Filter.Context.Blueprints)
+			{
+				const UClass* BlueprintClass = Blueprint->ParentClass;
+				const bool bIsEditorBlueprintClass = IsEditorOnlyObject(BlueprintClass);
+				bVisible &= bIsEditorBlueprintClass;
+			}
+		}
+	}
+	
+	return !bVisible;
+}
+
 /*******************************************************************************
  * FBlueprintActionInfo
  ******************************************************************************/
@@ -1858,6 +1893,8 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsUnBoundBindingSpawner));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsOutOfScopeLocalVariable));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsLevelScriptActionValid));
+
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsHiddenInNonEditorBlueprint));	
 
 
 	// added as the first rejection test, so that we don't operate on stale 

@@ -1078,7 +1078,7 @@ bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )
 
 FBox AActor::GetComponentsBoundingBox(bool bNonColliding) const
 {
-	FBox Box(0);
+	FBox Box(ForceInit);
 
 	for (const UActorComponent* ActorComponent : GetComponents())
 	{
@@ -1098,7 +1098,7 @@ FBox AActor::GetComponentsBoundingBox(bool bNonColliding) const
 
 FBox AActor::CalculateComponentsBoundingBoxInLocalSpace( bool bNonColliding ) const
 {
-	FBox Box( 0 );
+	FBox Box(ForceInit);
 
 	const FTransform& ActorToWorld = GetTransform();
 	const FTransform WorldToActor = ActorToWorld.Inverse();
@@ -1968,7 +1968,7 @@ FVector AActor::GetPlacementExtent() const
 		TInlineComponentArray<USceneComponent*> Components;
 		GetComponents(Components);
 
-		FBox ActorBox(0.f);
+		FBox ActorBox(ForceInit);
 		for (int32 ComponentID=0; ComponentID<Components.Num(); ++ComponentID)
 		{
 			USceneComponent* SceneComp = Components[ComponentID];

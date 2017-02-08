@@ -9,7 +9,7 @@ FReferenceSkeletonModifier::~FReferenceSkeletonModifier()
 	RefSkeleton.RebuildRefSkeleton(Skeleton, true);
 }
 
-void FReferenceSkeletonModifier::UpdateRefPoseTransform(const int32& BoneIndex, const FTransform& BonePose)
+void FReferenceSkeletonModifier::UpdateRefPoseTransform(const int32 BoneIndex, const FTransform& BonePose)
 {
 	RefSkeleton.UpdateRefPoseTransform(BoneIndex, BonePose);
 }

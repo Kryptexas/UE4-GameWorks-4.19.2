@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -201,7 +201,13 @@ bool Cooking::cookConvexMeshInternal(const PxConvexMeshDesc& desc_, ConvexMeshBu
 
 	if (mParams.areaTestEpsilon <= 0.0f)
 	{
-		Ps::getFoundation().error(PxErrorCode::eINVALID_PARAMETER, __FILE__, __LINE__, "Cooking::cookConvexMesh: user-provided convex mesh areaTestEpsilon is invalid!");
+		Ps::getFoundation().error(PxErrorCode::eINVALID_PARAMETER, __FILE__, __LINE__, "Cooking::cookConvexMesh: provided cooking parameter areaTestEpsilon is invalid!");
+		return false;
+	}
+
+	if(mParams.planeTolerance < 0.0f)
+	{
+		Ps::getFoundation().error(PxErrorCode::eINVALID_PARAMETER, __FILE__, __LINE__, "Cooking::cookConvexMesh: provided cooking parameter planeTolerance is invalid!");
 		return false;
 	}
 
@@ -335,8 +341,10 @@ PxConvexMesh* Cooking::createConvexMesh(const PxConvexMeshDesc& desc, PxPhysicsI
 	}
 	
 	// copy the constructed data into the new mesh
+
+	PxU32 nb = 0;
 	Gu::ConvexHullData meshData;
-	meshBuilder.copy(meshData);
+	meshBuilder.copy(meshData, nb);
 
 	// insert into physics
 	Gu::ConvexMesh* convexMesh = static_cast<Gu::ConvexMesh*>(insertionCallback.buildObjectFromData(PxConcreteType::eCONVEX_MESH, &meshData));
@@ -347,6 +355,7 @@ PxConvexMesh* Cooking::createConvexMesh(const PxConvexMeshDesc& desc, PxPhysicsI
 		return NULL;
 	}
 
+	convexMesh->setNb(nb);
 	convexMesh->setMass(meshBuilder.getMass());
 	convexMesh->setInertia(meshBuilder.getInertia());
 	if(meshBuilder.getBigConvexData())

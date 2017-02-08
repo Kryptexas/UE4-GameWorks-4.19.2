@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -194,7 +194,7 @@ void ConvexHullLib::shiftConvexMeshDesc(PxConvexMeshDesc& desc)
 bool ConvexHullLib::cleanupVertices(PxU32 svcount, const PxVec3* svertices, PxU32 stride,
 	PxU32& vcount, PxVec3* vertices, PxVec3& scale, PxVec3& center)
 {
-	if (svcount == 0) 
+	if ( svcount == 0 ) 
 		return false;
 
 	const PxVec3* verticesToClean = svertices;

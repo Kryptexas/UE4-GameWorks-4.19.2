@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "KeyPropertyParams.h"
+#include "AnimatedPropertyKey.h"
 
 DECLARE_MULTICAST_DELEGATE_OneParam( FOnAnimatablePropertyChanged, const FPropertyChangedParams& );
 
@@ -20,7 +21,7 @@ public:
 	/**
 	 * A delegate for when a property of a specific UProperty class is changed.  
 	 */
-	virtual FOnAnimatablePropertyChanged& GetOnAnimatablePropertyChanged( FName PropertyTypeName ) = 0;
+	virtual FOnAnimatablePropertyChanged& GetOnAnimatablePropertyChanged( FAnimatedPropertyKey PropertyKey ) = 0;
 
 	/**
 	 * A delegate for when object changes should be propagated to/from puppet actors

@@ -31,6 +31,10 @@ void FSubmixEffectReverb::Init(const FSoundEffectSubmixInitData& InitData)
 	DecayCurve.AddKey(20.0f, 0.0001f);
 }
 
+void FSubmixEffectReverb::SetPreset(USoundEffectSubmixPreset* InPreset)
+{
+}
+
 void FSubmixEffectReverb::OnProcessAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData)
 {
 	check(InData.NumChannels == 2);

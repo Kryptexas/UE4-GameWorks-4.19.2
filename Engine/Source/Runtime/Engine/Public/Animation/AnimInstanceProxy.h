@@ -363,11 +363,11 @@ public:
 	 */
 	int32 GetInstanceAssetPlayerIndex(FName MachineName, FName StateName, FName InstanceName = NAME_None);
 
-	float GetRecordedMachineWeight(const int32& InMachineClassIndex) const;
-	void RecordMachineWeight(const int32& InMachineClassIndex, const float& InMachineWeight);
+	float GetRecordedMachineWeight(const int32 InMachineClassIndex) const;
+	void RecordMachineWeight(const int32 InMachineClassIndex, const float InMachineWeight);
 
-	float GetRecordedStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex) const;
-	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
+	float GetRecordedStateWeight(const int32 InMachineClassIndex, const int32 InStateIndex) const;
+	void RecordStateWeight(const int32 InMachineClassIndex, const int32 InStateIndex, const float InStateWeight);
 
 	bool IsSlotNodeRelevantForNotifies(const FName& SlotNodeName) const;
 	/** Reset any dynamics running simulation-style updates (e.g. on teleport, time skip etc.) */
@@ -397,6 +397,24 @@ protected:
 
 	/** Called on the game thread pre-evaluate. */
 	virtual void PreEvaluateAnimation(UAnimInstance* InAnimInstance);
+
+	/** Called when the anim instance is being initialized. If we are not using a blueprint instance, this root node can be provided*/
+	virtual FAnimNode_Base* GetCustomRootNode()
+	{
+		return nullptr;
+	}
+
+	/** Called when the anim instance is being initialized. If we are not using a blueprint instance, these nodes can be provided */
+	virtual void GetCustomNodes(TArray<FAnimNode_Base*>& OutNodes)
+	{
+	}
+	
+	/** 
+	 * Cache bones override point. You should call CacheBones on any nodes that need it here.
+	 * bBoneCachesInvalidated is used to only perform this when needed (e.g. when a LOD changes), 
+	 * as it is usually an expensive operation.
+	 */
+	virtual void CacheBones();
 
 	/** 
 	 * Evaluate override point 
@@ -679,6 +697,7 @@ private:
 	TMap<FName, int32> SlotNameToTrackerIndex;
 	TArray<FMontageActiveSlotTracker> SlotWeightTracker[2];
 
+protected:
 	// Counters for synchronization
 	FGraphTraversalCounter InitializationCounter;
 	FGraphTraversalCounter CachedBonesCounter;
@@ -686,6 +705,7 @@ private:
 	FGraphTraversalCounter EvaluationCounter;
 	FGraphTraversalCounter SlotNodeInitializationCounter;
 
+private:
 	// Root motion extracted from animation since the last time ConsumeExtractedRootMotion was called
 	FRootMotionMovementParams ExtractedRootMotion;
 
@@ -695,9 +715,11 @@ private:
 	/** LODLevel used by RequiredBones */
 	int32 LODLevel;
 
+protected:
 	/** When RequiredBones mapping has changed, AnimNodes need to update their bones caches. */
 	bool bBoneCachesInvalidated;
 
+private:
 	/** Copy of UAnimInstance::MontageInstances data used for update & evaluation */
 	TArray<FMontageEvaluationState> MontageEvaluationData;
 

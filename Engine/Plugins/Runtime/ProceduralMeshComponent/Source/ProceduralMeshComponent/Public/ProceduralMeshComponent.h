@@ -106,7 +106,7 @@ struct FProcMeshSection
 	bool bSectionVisible;
 
 	FProcMeshSection()
-		: SectionLocalBox(0)
+		: SectionLocalBox(ForceInit)
 		, bEnableCollision(false)
 		, bSectionVisible(true)
 	{}

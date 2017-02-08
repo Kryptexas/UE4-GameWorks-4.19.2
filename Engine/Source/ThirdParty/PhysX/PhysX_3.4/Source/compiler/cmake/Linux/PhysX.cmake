@@ -2,9 +2,6 @@
 # Build PhysX (PROJECT not SOLUTION)
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-FIND_PACKAGE(PxShared REQUIRED)
-
 SET(PHYSX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../)
 
 SET(PX_SOURCE_DIR ${PHYSX_SOURCE_DIR}/PhysX/src)
@@ -16,6 +13,19 @@ SET(PHYSX_PLATFORM_INCLUDES
 	${NVTOOLSEXT_INCLUDE_DIRS}
 )
 
+IF(DEFINED PX_STATIC_LIBRARIES)
+SET(PHYSX_PLATFORM_OBJECT_FILES
+	$<TARGET_OBJECTS:LowLevel>
+	$<TARGET_OBJECTS:LowLevelAABB>
+	$<TARGET_OBJECTS:LowLevelCloth>
+	$<TARGET_OBJECTS:LowLevelDynamics>
+	$<TARGET_OBJECTS:LowLevelParticles>
+	$<TARGET_OBJECTS:PxTask>
+	$<TARGET_OBJECTS:SceneQuery>
+	$<TARGET_OBJECTS:SimulationController>	
+)
+ENDIF()
+
 SET(PHYSX_PLATFORM_SRC_FILES
 	${PX_SOURCE_DIR}/device/linux/PhysXIndicatorLinux.cpp
 	${PX_SOURCE_DIR}/gpu/NpPhysicsGpu.cpp
@@ -24,14 +34,31 @@ SET(PHYSX_PLATFORM_SRC_FILES
 	${PX_SOURCE_DIR}/gpu/PxParticleGpu.cpp
 	${PX_SOURCE_DIR}/gpu/PxPhysXGpuModuleLoader.cpp
 	${PX_SOURCE_DIR}/gpu/PxPhysXIndicatorDeviceExclusive.cpp
+	
+	${PHYSX_PLATFORM_OBJECT_FILES}
 )
 
+IF(DEFINED PX_STATIC_LIBRARIES)
+	SET(PHYSX_LIBTYPE STATIC)
+ELSE()
+	SET(PHYSX_LIBTYPE SHARED)
+ENDIF()
 
 # Use generator expressions to set config specific preprocessor definitions
 SET(PHYSX_COMPILE_DEFS
 	# Common to all configurations
-	${PHYSX_LINUX_COMPILE_DEFS};PX_PHYSX_CORE_EXPORTS
+	${PHYSX_LINUX_COMPILE_DEFS};
 )
+
+IF(DEFINED PX_STATIC_LIBRARIES)
+	LIST(APPEND PHYSXCOOKING_COMPILE_DEFS
+		PX_PHYSX_STATIC_LIB;
+	)
+ELSE()
+	LIST(APPEND PHYSXCOOKING_COMPILE_DEFS
+		PX_PHYSX_CORE_EXPORTS;
+	)
+ENDIF()
 
 if(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 	LIST(APPEND PHYSX_COMPILE_DEFS
@@ -54,17 +81,16 @@ else(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 endif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 
 
-
-SET(PHYSX_LIBTYPE STATIC)
-
 # include common PhysX settings
 INCLUDE(../common/PhysX.cmake)
 
 
 # Add linked libraries
-# TARGET_LINK_LIBRARIES(PhysX PUBLIC ${NVTOOLSEXT_LIBRARIES} LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PhysXCommon PhysXGpu PxFoundation PxPvdSDK PxTask SceneQuery SimulationController)
-
-TARGET_LINK_LIBRARIES(PhysX PUBLIC ${NVTOOLSEXT_LIBRARIES} LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PhysXCommon PxFoundation PxPvdSDK PxTask SceneQuery SimulationController)
+IF(DEFINED PX_STATIC_LIBRARIES)
+	TARGET_LINK_LIBRARIES(PhysX PUBLIC PhysXCommon PxFoundation PxPvdSDK)
+ELSE()
+	TARGET_LINK_LIBRARIES(PhysX PUBLIC -Wl,--start-group ${NVTOOLSEXT_LIBRARIES} LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PhysXCommon PxFoundation PxPvdSDK PxTask SceneQuery SimulationController -Wl,--end-group dl rt)
+ENDIF()
 
 SET_TARGET_PROPERTIES(PhysX PROPERTIES 
 	LINK_FLAGS_DEBUG ""

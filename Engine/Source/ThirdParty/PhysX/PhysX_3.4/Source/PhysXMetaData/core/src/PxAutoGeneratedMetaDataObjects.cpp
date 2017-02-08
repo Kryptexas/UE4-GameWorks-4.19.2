@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -213,7 +213,6 @@ PX_PHYSX_CORE_API PxRigidBodyGeneratedValues::PxRigidBodyGeneratedValues( const 
 {
 	PX_UNUSED(inSource);
 }
-void setPxRigidDynamic_KinematicTarget( PxRigidDynamic* inObj, const PxTransform & inArg){ inObj->setKinematicTarget( inArg ); }
 void setPxRigidDynamic_LinearDamping( PxRigidDynamic* inObj, PxReal inArg){ inObj->setLinearDamping( inArg ); }
 PxReal getPxRigidDynamic_LinearDamping( const PxRigidDynamic* inObj ) { return inObj->getLinearDamping(); }
 void setPxRigidDynamic_AngularDamping( PxRigidDynamic* inObj, PxReal inArg){ inObj->setAngularDamping( inArg ); }
@@ -235,8 +234,7 @@ void setPxRigidDynamic_ContactReportThreshold( PxRigidDynamic* inObj, PxReal inA
 PxReal getPxRigidDynamic_ContactReportThreshold( const PxRigidDynamic* inObj ) { return inObj->getContactReportThreshold(); }
 const char * getPxRigidDynamic_ConcreteTypeName( const PxRigidDynamic* inObj ) { return inObj->getConcreteTypeName(); }
 PX_PHYSX_CORE_API PxRigidDynamicGeneratedInfo::PxRigidDynamicGeneratedInfo()
-	: KinematicTarget( "KinematicTarget", setPxRigidDynamic_KinematicTarget)
-	, LinearDamping( "LinearDamping", setPxRigidDynamic_LinearDamping, getPxRigidDynamic_LinearDamping)
+	: LinearDamping( "LinearDamping", setPxRigidDynamic_LinearDamping, getPxRigidDynamic_LinearDamping)
 	, AngularDamping( "AngularDamping", setPxRigidDynamic_AngularDamping, getPxRigidDynamic_AngularDamping)
 	, MaxAngularVelocity( "MaxAngularVelocity", setPxRigidDynamic_MaxAngularVelocity, getPxRigidDynamic_MaxAngularVelocity)
 	, IsSleeping( "IsSleeping", getPxRigidDynamic_IsSleeping)
@@ -335,7 +333,7 @@ PX_PHYSX_CORE_API PxArticulationJointGeneratedInfo::PxArticulationJointGenerated
 	, Damping( "Damping", setPxArticulationJoint_Damping, getPxArticulationJoint_Damping)
 	, InternalCompliance( "InternalCompliance", setPxArticulationJoint_InternalCompliance, getPxArticulationJoint_InternalCompliance)
 	, ExternalCompliance( "ExternalCompliance", setPxArticulationJoint_ExternalCompliance, getPxArticulationJoint_ExternalCompliance)
-	, SwingLimit( "SwingLimit", "yLimit", "zLimit", setPxArticulationJoint_SwingLimit, getPxArticulationJoint_SwingLimit)
+	, SwingLimit( "SwingLimit", "zLimit", "yLimit", setPxArticulationJoint_SwingLimit, getPxArticulationJoint_SwingLimit)
 	, TangentialStiffness( "TangentialStiffness", setPxArticulationJoint_TangentialStiffness, getPxArticulationJoint_TangentialStiffness)
 	, TangentialDamping( "TangentialDamping", setPxArticulationJoint_TangentialDamping, getPxArticulationJoint_TangentialDamping)
 	, SwingLimitContactDistance( "SwingLimitContactDistance", setPxArticulationJoint_SwingLimitContactDistance, getPxArticulationJoint_SwingLimitContactDistance)
@@ -1020,7 +1018,7 @@ PxReal getPxScene_FrictionOffsetThreshold( const PxScene* inObj ) { return inObj
 void setPxScene_FrictionType( PxScene* inObj, PxFrictionType::Enum inArg){ inObj->setFrictionType( inArg ); }
 PxFrictionType::Enum getPxScene_FrictionType( const PxScene* inObj ) { return inObj->getFrictionType(); }
 void setPxScene_VisualizationCullingBox( PxScene* inObj, const PxBounds3 & inArg){ inObj->setVisualizationCullingBox( inArg ); }
-const PxBounds3 & getPxScene_VisualizationCullingBox( const PxScene* inObj ) { return inObj->getVisualizationCullingBox(); }
+PxBounds3 getPxScene_VisualizationCullingBox( const PxScene* inObj ) { return inObj->getVisualizationCullingBox(); }
 PxPruningStructureType::Enum getPxScene_StaticStructure( const PxScene* inObj ) { return inObj->getStaticStructure(); }
 PxPruningStructureType::Enum getPxScene_DynamicStructure( const PxScene* inObj ) { return inObj->getDynamicStructure(); }
 void setPxScene_DynamicTreeRebuildRateHint( PxScene* inObj, PxU32 inArg){ inObj->setDynamicTreeRebuildRateHint( inArg ); }

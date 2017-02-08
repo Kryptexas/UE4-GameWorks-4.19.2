@@ -144,6 +144,14 @@ public:
 	virtual bool SupportsType(TSubclassOf<UMovieSceneTrack> TrackClass) const = 0;
 
 	/**
+	 * Returns whether a sequence is supported by this tool.
+	 *
+	 * @param InSequence The sequence that could be supported.
+	 * @return true if the type is supported.
+	 */
+	virtual bool SupportsSequence(UMovieSceneSequence* InSequence) const = 0;
+
+	/**
 	 * Ticks this tool.
 	 *
 	 * @param DeltaTime The time since the last tick.

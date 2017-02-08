@@ -189,7 +189,7 @@ FTransform ComputeLocalSpaceTargetTM(const USkeletalMeshComponent& SkeletalMeshC
 			break;
 		}
 
-		if (BodyIndex != INDEX_NONE)
+		if (SkeletalMeshComponent.Bodies.IsValidIndex(BodyIndex))
 		{
 
 			FBodyInstance* ParentBody = SkeletalMeshComponent.Bodies[BodyIndex];

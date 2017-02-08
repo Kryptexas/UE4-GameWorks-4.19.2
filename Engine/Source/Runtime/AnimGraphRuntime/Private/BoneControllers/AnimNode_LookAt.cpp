@@ -4,20 +4,26 @@
 #include "SceneManagement.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Animation/AnimInstanceProxy.h"
+#include "AnimationCoreLibrary.h"
 
-FVector FAnimNode_LookAt::GetAlignVector(const FTransform& Transform, EAxisOption::Type AxisOption)
+FVector FAnimNode_LookAt::GetAlignVector(const FTransform& Transform, EAxisOption::Type AxisOption, const FVector& CustomAxis)
 {
 	switch(AxisOption)
 	{
 	case EAxisOption::X:
+		return Transform.GetUnitAxis(EAxis::X);
 	case EAxisOption::X_Neg:
-	return Transform.GetUnitAxis(EAxis::X);
+		return -Transform.GetUnitAxis(EAxis::X);
 	case EAxisOption::Y:
+		return Transform.GetUnitAxis(EAxis::Y);
 	case EAxisOption::Y_Neg:
-	return Transform.GetUnitAxis(EAxis::Y);
+		return -Transform.GetUnitAxis(EAxis::Y);
 	case EAxisOption::Z:
+		return Transform.GetUnitAxis(EAxis::Z);
 	case EAxisOption::Z_Neg:
-	return Transform.GetUnitAxis(EAxis::Z);
+		return -Transform.GetUnitAxis(EAxis::Z);
+	case EAxisOption::Custom:
+		return Transform.TransformVector(CustomAxis.GetSafeNormal());
 	}
 
 	return FVector(1.f, 0.f, 0.f);
@@ -26,8 +32,11 @@ FVector FAnimNode_LookAt::GetAlignVector(const FTransform& Transform, EAxisOptio
 // FAnimNode_LookAt
 
 FAnimNode_LookAt::FAnimNode_LookAt()
-	: LookAtLocation(FVector::ZeroVector)
-	, LookAtAxis(EAxis::X)
+	: LookAtLocation(FVector(100.f, 0.f, 0.f))
+	, LookAtAxis(EAxisOption::Y)
+	, CustomLookAtAxis(FVector(0.f, 1.f, 0.f))
+	, LookUpAxis(EAxisOption::X)
+	, CustomLookUpAxis(FVector(1.f, 0.f, 0.f))
 	, LookAtClamp(0.f)
 	, InterpolationTime(0.f)
 	, InterpolationTriggerThreashold(0.f)
@@ -151,56 +160,13 @@ void FAnimNode_LookAt::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 #endif
 
 	// lookat vector
-	FVector LookAtVector = GetAlignVector(ComponentBoneTransform, LookAtAxis);
-	// flip to target vector if it wasnt negative
-	bool bShouldFlip = LookAtAxis == EAxisOption::X_Neg || LookAtAxis == EAxisOption::Y_Neg || LookAtAxis == EAxisOption::Z_Neg;
-	FVector ToTarget = CurrentLookAtLocation - ComponentBoneTransform.GetLocation();
-	ToTarget.Normalize();
-	if (bShouldFlip)
-	{
-		ToTarget *= -1.f;
-	}
-	
-	if ( LookAtClamp > ZERO_ANIMWEIGHT_THRESH )
-	{
-		float LookAtClampInRadians = FMath::DegreesToRadians(LookAtClamp);
-		float DiffAngle = FMath::Acos(FVector::DotProduct(LookAtVector, ToTarget));
-		if (LookAtClampInRadians > 0.f && DiffAngle > LookAtClampInRadians)
-		{
-			FVector OldToTarget = ToTarget;
-			FVector DeltaTarget = ToTarget-LookAtVector;
-
-			float Ratio = LookAtClampInRadians/DiffAngle;
-			DeltaTarget *= Ratio;
-
-			ToTarget = LookAtVector + DeltaTarget;
-			ToTarget.Normalize();
-//			UE_LOG(LogAnimation, Warning, TEXT("Recalculation required - old target %f, new target %f"), 
-//				FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(LookAtVector, OldToTarget))), FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(LookAtVector, ToTarget))));
-		}
-	}
-
-	FQuat DeltaRot;
-	// if want to use look up, 
-	if (bUseLookUpAxis)
-	{
-		// find look up vector in local space
-		FVector LookUpVector = GetAlignVector(ComponentBoneTransform, LookUpAxis);
-		// project target to the plane
-		FVector NewTarget = FVector::VectorPlaneProject(ToTarget, LookUpVector);
-		NewTarget.Normalize();
-		DeltaRot = FQuat::FindBetweenNormals(LookAtVector, NewTarget);
-	}
-	else
-	{
-		DeltaRot = FQuat::FindBetweenNormals(LookAtVector, ToTarget);
-	}
-
-	// transform current rotation to delta rotation
-	FQuat CurrentRot = ComponentBoneTransform.GetRotation();
-	FQuat NewRotation = DeltaRot * CurrentRot;
-	ComponentBoneTransform.SetRotation(NewRotation);
-
+	FVector LookAtVector = GetAlignVector(ComponentBoneTransform, LookAtAxis, CustomLookAtAxis);
+	// find look up vector in local space
+	FVector LookUpVector = GetAlignVector(ComponentBoneTransform, LookUpAxis, CustomLookUpAxis);
+	// Find new transform from look at info
+	FQuat DeltaRotation = AnimationCore::SolveAim(ComponentBoneTransform, CurrentLookAtLocation, LookAtVector, bUseLookUpAxis, LookUpVector, LookAtClamp);
+	ComponentBoneTransform.SetRotation(DeltaRotation * ComponentBoneTransform.GetRotation());
+	// Set New Transform 
 	OutBoneTransforms.Add(FBoneTransform(ModifyBoneIndex, ComponentBoneTransform));
 }
 

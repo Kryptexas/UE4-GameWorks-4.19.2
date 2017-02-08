@@ -27,15 +27,15 @@ public:
 	// End UAnimNotify interface
 
 	// Sound to Play
-	UPROPERTY(EditAnywhere, Category="AnimNotify")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="AnimNotify", meta=(ExposeOnSpawn = true))
 	USoundBase* Sound;
 
 	// Volume Multiplier
-	UPROPERTY(EditAnywhere, Category="AnimNotify")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="AnimNotify", meta=(ExposeOnSpawn = true))
 	float VolumeMultiplier;
 
 	// Pitch Multiplier
-	UPROPERTY(EditAnywhere, Category="AnimNotify")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="AnimNotify", meta=(ExposeOnSpawn = true))
 	float PitchMultiplier;
 
 	// If this sound should follow its owner
@@ -43,7 +43,7 @@ public:
 	uint32 bFollow:1;
 
 	// Socket or bone name to attach sound to
-	UPROPERTY(EditAnywhere, Category="AnimNotify", meta=(EditCondition="bFollow"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="AnimNotify", meta=(EditCondition="bFollow", ExposeOnSpawn = true))
 	FName AttachName;
 };
 

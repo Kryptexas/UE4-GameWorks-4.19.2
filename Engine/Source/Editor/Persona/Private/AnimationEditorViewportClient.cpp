@@ -348,46 +348,8 @@ void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 		
 		DrawWatchedPoses(PreviewMeshComponent, PDI);
 
-		// Display normal vectors of each simulation vertex
-		if (PreviewMeshComponent->bDisplayClothingNormals )
-		{
-			PreviewMeshComponent->DrawClothingNormals(PDI);
-		}
+		PreviewMeshComponent->DebugDrawClothing(PDI);
 
-		// Display tangent spaces of each graphical vertex
-		if (PreviewMeshComponent->bDisplayClothingTangents )
-		{
-			PreviewMeshComponent->DrawClothingTangents(PDI);
-		}
-
-		// Display collision volumes of current selected cloth
-		if (PreviewMeshComponent->bDisplayClothingCollisionVolumes )
-		{
-			PreviewMeshComponent->DrawClothingCollisionVolumes(PDI);
-		}
-
-		// Display collision volumes of current selected cloth
-		if (PreviewMeshComponent->bDisplayClothPhysicalMeshWire )
-		{
-			PreviewMeshComponent->DrawClothingPhysicalMeshWire(PDI);
-		}
-
-		// Display collision volumes of current selected cloth
-		if (PreviewMeshComponent->bDisplayClothMaxDistances )
-		{
-			PreviewMeshComponent->DrawClothingMaxDistances(PDI);
-		}
-
-		// Display collision volumes of current selected cloth
-		if (PreviewMeshComponent->bDisplayClothBackstops )
-		{
-			PreviewMeshComponent->DrawClothingBackstops(PDI);
-		}
-
-		if(PreviewMeshComponent->bDisplayClothFixedVertices )
-		{
-			PreviewMeshComponent->DrawClothingFixedVertices(PDI);
-		}
 		
 		// Display socket hit points
 		if (PreviewMeshComponent->bDrawSockets )

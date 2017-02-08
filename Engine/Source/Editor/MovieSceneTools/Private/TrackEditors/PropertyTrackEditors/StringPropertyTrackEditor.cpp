@@ -22,12 +22,15 @@ void FStringPropertyTrackEditor::GenerateKeysFromPropertyChanged( const FPropert
 {
 	void* CurrentObject = PropertyChangedParams.ObjectsThatChanged[0];
 	void* PropertyValue = nullptr;
-	for (int32 i = 0; i < PropertyChangedParams.PropertyPath.Num(); i++)
+	for (int32 i = 0; i < PropertyChangedParams.PropertyPath.GetNumProperties(); i++)
 	{
-		CurrentObject = PropertyChangedParams.PropertyPath[i]->ContainerPtrToValuePtr<FString>(CurrentObject, 0);
+		if (UProperty* Property = PropertyChangedParams.PropertyPath.GetPropertyInfo(i).Property.Get())
+		{
+			CurrentObject = Property->ContainerPtrToValuePtr<FString>(CurrentObject, 0);
+		}
 	}
 
-	const UStrProperty* StrProperty = Cast<const UStrProperty>( PropertyChangedParams.PropertyPath.Last() );
+	const UStrProperty* StrProperty = Cast<const UStrProperty>( PropertyChangedParams.PropertyPath.GetLeafMostProperty().Property.Get() );
 	if ( StrProperty )
 	{
 		FString StrPropertyValue = StrProperty->GetPropertyValue(CurrentObject);

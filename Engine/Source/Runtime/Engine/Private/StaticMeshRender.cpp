@@ -1337,7 +1337,7 @@ void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, F
 	}
 	else
 	{
-		LocalVolumeBounds = FBox(0);
+		LocalVolumeBounds = FBox(ForceInit);
 		OutBlockMin = FIntVector(-1, -1, -1);
 		OutBlockSize = FIntVector(0, 0, 0);
 		bOutBuiltAsIfTwoSided = false;

@@ -12,7 +12,7 @@
 #include "LocalVertexFactory.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "SkeletalRenderPublic.h"
-#include "ClothSimData.h"
+#include "ClothingSystemRuntimeTypes.h"
 
 class FPrimitiveDrawInterface;
 class UMorphTarget;
@@ -150,7 +150,7 @@ public:
 		return ResSize.GetTotalMemoryBytes();
 	}
 
-	/** Update Simulated Positions & Normals from APEX Clothing actor */
+	/** Update Simulated Positions & Normals from Clothing actor */
 	bool UpdateClothSimulationData(USkinnedMeshComponent* InMeshComponent);
 };
 

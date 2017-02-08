@@ -142,7 +142,7 @@ public:
 
 	FDistanceFieldVolumeData() :
 		Size(FIntVector(0, 0, 0)),
-		LocalBoundingBox(0),
+		LocalBoundingBox(ForceInit),
 		bMeshWasClosed(true),
 		bBuiltAsIfTwoSided(false),
 		bMeshWasPlane(false),

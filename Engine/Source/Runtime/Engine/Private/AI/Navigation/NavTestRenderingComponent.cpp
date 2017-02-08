@@ -420,7 +420,7 @@ FPrimitiveSceneProxy* UNavTestRenderingComponent::CreateSceneProxy()
 
 FBoxSphereBounds UNavTestRenderingComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	FBox BoundingBox(0);
+	FBox BoundingBox(ForceInit);
 
 	ANavigationTestingActor* TestActor = Cast<ANavigationTestingActor>(GetOwner());
 	if (TestActor)

@@ -27,6 +27,7 @@ public class MovieSceneCapture : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
                 "AssetRegistry",
+				"AVIWriter",
                 "Core",
 				"CoreUObject",
 				"Engine",

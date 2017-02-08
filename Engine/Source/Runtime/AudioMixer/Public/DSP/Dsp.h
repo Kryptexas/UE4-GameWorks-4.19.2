@@ -219,9 +219,13 @@ namespace Audio
 			SetValue(InValue);
 		}
 
-		void SetValue(const float InValue)
+		void SetValue(const float InValue, const bool bIsInit = false)
 		{
 			TargetValue = InValue;
+			if (bIsInit)
+			{
+				CurrentValue = TargetValue;
+			}
 		}
 
 	private:

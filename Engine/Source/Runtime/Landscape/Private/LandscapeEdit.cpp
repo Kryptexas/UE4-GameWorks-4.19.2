@@ -2451,7 +2451,7 @@ LANDSCAPE_API void ALandscapeProxy::Import(
 			}
 			check(WeightmapTextureDataPointers.Num() == WeightValues.Num());
 
-			FBox LocalBox(0);
+			FBox LocalBox(ForceInit);
 			for (int32 SubsectionY = 0; SubsectionY < NumSubsections; SubsectionY++)
 			{
 				for (int32 SubsectionX = 0; SubsectionX < NumSubsections; SubsectionX++)

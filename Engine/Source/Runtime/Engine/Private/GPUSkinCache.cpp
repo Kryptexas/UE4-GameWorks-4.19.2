@@ -671,7 +671,7 @@ void FGPUSkinCache::InternalSetVertexStreamFromCache(FRHICommandList& RHICmdList
 		CacheInfo.BatchElement,
 		CacheInfo.NumVertices, CacheInfo.BatchElement->GetNumVertices(),
 		CacheInfo.BaseVertexIndex, BaseVertexIndex,
-		CacheInfo.BatchElement->HasApexClothData());
+		CacheInfo.BatchElement->HasClothingData());
 
 	ensure(!GSkinCacheSafety || FrameNumber == SkinCacheFrameNumber);
 	ensure(!GSkinCacheSafety || CacheInfo.BatchElement->GetNumVertices() == CacheInfo.NumVertices);

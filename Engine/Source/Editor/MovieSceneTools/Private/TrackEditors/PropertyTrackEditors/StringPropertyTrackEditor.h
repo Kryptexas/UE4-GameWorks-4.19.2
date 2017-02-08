@@ -25,8 +25,16 @@ public:
 	 * @param InSequencer The sequencer instance to be used by this tool.
 	 */
 	FStringPropertyTrackEditor(TSharedRef<ISequencer> InSequencer)
-		: FPropertyTrackEditor(InSequencer, NAME_StrProperty)
+		: FPropertyTrackEditor(InSequencer, GetAnimatedPropertyTypes())
 	{ }
+
+	/**
+	 * Retrieve a list of all property types that this track editor animates
+	 */
+	static TArray<FAnimatedPropertyKey, TInlineAllocator<1>> GetAnimatedPropertyTypes()
+	{
+		return TArray<FAnimatedPropertyKey, TInlineAllocator<1>>({ FAnimatedPropertyKey::FromPropertyTypeName(NAME_StrProperty) });
+	}
 
 	/**
 	 * Creates an instance of this class (called by a sequencer).

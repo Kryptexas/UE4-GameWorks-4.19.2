@@ -784,7 +784,7 @@ public:
 	FVector GetActorRightVector() const;
 
 	/**
-	 * Returns the bounding box of all components that make up this Actor.
+	 * Returns the bounding box of all components that make up this Actor (excluding ChildActorComponents).
 	 * @param	bOnlyCollidingComponents	If true, will only return the bounding box for components with collision enabled.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DisplayName = "GetActorBounds"))

@@ -115,11 +115,11 @@ namespace UnrealBuildTool
 			// NOTE: Uncommenting this line will print includes as they are encountered by the preprocessor.  This can help with diagnosing include order problems.
 			if (WindowsPlatform.bCompileWithClang && !WindowsPlatform.bUseVCCompilerArgs)
 			{
-				// Arguments.Append( " -H" );
+				//Arguments.Add("-H");
 			}
 			else
 			{
-				// Arguments.Append( " /showIncludes" );
+				//Arguments.Add("/showIncludes");
 			}
 
 			// Suppress generation of object code for unreferenced inline functions. Enabling this option is more standards compliant, and causes a big reduction

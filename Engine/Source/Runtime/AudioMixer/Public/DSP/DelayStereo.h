@@ -77,6 +77,9 @@ namespace Audio
 
 		// The amount of wet level on the output
 		float WetLevel;
+
+		// If the delay has started processing yet
+		bool bIsInit;
 	};
 
 }

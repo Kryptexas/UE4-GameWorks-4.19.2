@@ -231,6 +231,7 @@ public:
 	}
 
 	virtual bool SupportsType( TSubclassOf<class UMovieSceneTrack> TrackClass ) const = 0;
+	virtual bool SupportsSequence(UMovieSceneSequence* InSequence) const { return true; }
 	virtual void Tick(float DeltaTime) override { }
 	virtual EMultipleRowMode GetMultipleRowMode() const { return EMultipleRowMode::SingleTrack; }
 

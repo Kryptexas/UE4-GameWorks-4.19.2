@@ -19,7 +19,7 @@ class AIMODULE_API UBTTask_RotateToFaceBBEntry : public UBTTask_BlackboardBase
 	GENERATED_UCLASS_BODY()
 
 protected:
-	/** Success condition precision in decrees */
+	/** Success condition precision in degrees */
 	UPROPERTY(config, Category = Node, EditAnywhere, meta = (ClampMin = "0.0"))
 	float Precision;
 

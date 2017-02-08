@@ -3089,7 +3089,7 @@ void FEditorViewportClient::SetWidgetMode(FWidget::EWidgetMode NewMode)
 
 bool FEditorViewportClient::CanSetWidgetMode(FWidget::EWidgetMode NewMode) const
 {
-	return ModeTools->GetShowWidget() == true;
+	return ModeTools->UsesTransformWidget(NewMode) == true;
 }
 
 FWidget::EWidgetMode FEditorViewportClient::GetWidgetMode() const

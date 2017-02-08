@@ -888,7 +888,7 @@ void FWorldTileCollectionModel::OnLevelsHierarchyChanged()
 void FWorldTileCollectionModel::OnPreLoadLevels(const FLevelModelList& InList)
 {
 	// Compute focus area for loading levels
-	FBox FocusArea(0);
+	FBox FocusArea(ForceInit);
 	for (auto It = InList.CreateConstIterator(); It; ++It)
 	{
 		TSharedPtr<FWorldTileModel> TileModel = StaticCastSharedPtr<FWorldTileModel>(*It);

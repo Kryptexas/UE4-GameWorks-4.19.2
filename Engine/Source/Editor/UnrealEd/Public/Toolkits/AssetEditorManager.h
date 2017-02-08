@@ -86,6 +86,9 @@ public:
 	void NotifyAssetOpened(UObject* Asset, IAssetEditorInstance* Instance);
 	void NotifyAssetsOpened( const TArray< UObject* >& Assets, IAssetEditorInstance* Instance);
 
+	DECLARE_EVENT_TwoParams(FAssetEditorManager, FOnAssetOpenedInEditorEvent, UObject*, IAssetEditorInstance*);
+	virtual FOnAssetOpenedInEditorEvent& OnAssetOpenedInEditor() { return AssetOpenedInEditorEvent; }
+
 	/** Notify the asset editor manager that an asset editor is done editing an asset */
 	void NotifyAssetClosed(UObject* Asset, IAssetEditorInstance* Instance);
 
@@ -188,6 +191,8 @@ private:
 
 	/** Holds a delegate to be invoked when the widget ticks. */
 	FTickerDelegate TickDelegate;
+
+	FOnAssetOpenedInEditorEvent AssetOpenedInEditorEvent;
 
 	/** Multicast delegate executed when an asset editor is requested to be opened */
 	FAssetEditorRequestOpenEvent AssetEditorRequestOpenEvent;

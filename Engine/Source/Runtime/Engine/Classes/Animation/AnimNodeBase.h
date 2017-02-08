@@ -597,6 +597,9 @@ struct ENGINE_API FAnimNode_Base
 
 	/** Override this to perform game-thread work prior to non-game thread Update() being called */
 	virtual void ResetDynamics() {}
+
+	/** Called after compilation */
+	virtual void PostCompile(const class USkeleton* InSkeleton) {}
 	// End of interface to implement
 
 	virtual ~FAnimNode_Base() {}

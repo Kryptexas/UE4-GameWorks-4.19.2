@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -265,8 +265,6 @@ __device__ CuCollision::CuCollision(Pointer<Shared, uint32_t> scratchPtr)
 template <typename CurrentT, typename PreviousT>
 __device__ void CuCollision::operator()(CurrentT& current, PreviousT& previous, float alpha)
 {
-	ProfileDetailZone zone(cloth::CuProfileZoneIds::COLLIDE);
-
 	// if(current.w > 0) current.w = previous.w (see SwSolverKernel::computeBounds())
 	for(int32_t i = threadIdx.x; i < gClothData.mNumParticles; i += blockDim.x)
 	{
@@ -489,8 +487,6 @@ __device__ float computeParticleBounds(const CurrentT& current, Pointer<Shared, 
 template <typename CurrentT>
 __device__ bool CuCollision::buildAcceleration(const CurrentT& current, float alpha)
 {
-	ProfileDetailZone zone(cloth::CuProfileZoneIds::COLLIDE_ACCELERATION);
-
 	// use still unused cone data as buffer for bounds computation
 	Pointer<Shared, float> buffer = mCurData.mConeCenterX + threadIdx.x;
 	float curParticleBounds = computeParticleBounds(current, buffer);
@@ -1084,8 +1080,6 @@ __device__ inline float3 calcFrictionImpulse(const PrevPos& prevPos, const CurPo
 template <typename CurrentT, typename PreviousT>
 __device__ void CuCollision::collideCapsules(CurrentT& current, PreviousT& previous) const
 {
-	ProfileDetailZone zone(cloth::CuProfileZoneIds::COLLIDE_CAPSULES);
-
 	bool frictionEnabled = gClothData.mFrictionScale > 0.0f;
 	bool massScaleEnabled = gClothData.mCollisionMassScale > 0.0f;
 
@@ -1160,8 +1154,6 @@ __device__ void CuCollision::collideVirtualCapsules(CurrentT& current, PreviousT
 		__syncthreads(); // mShapeGrid raw hazard
 	}
 
-	ProfileDetailZone zone(cloth::CuProfileZoneIds::COLLIDE_VIRTUAL_CAPSULES);
-
 	const uint32_t* __restrict setSizeEnd = gClothData.mVirtualParticleSetSizesEnd;
 	const uint16_t* __restrict indicesEnd = gClothData.mVirtualParticleIndices;
 	const float4* __restrict weightsIt = reinterpret_cast<const float4*>(gClothData.mVirtualParticleWeights);
@@ -1230,8 +1222,6 @@ __device__ void CuCollision::collideVirtualCapsules(CurrentT& current, PreviousT
 template <typename CurrentT, typename PreviousT>
 __device__ void CuCollision::collideContinuousCapsules(CurrentT& current, PreviousT& previous) const
 {
-	ProfileDetailZone zone(cloth::CuProfileZoneIds::COLLIDE_CONTINUOUS_CAPSULES);
-
 	bool frictionEnabled = gClothData.mFrictionScale > 0.0f;
 	bool massScaleEnabled = gClothData.mCollisionMassScale > 0.0f;
 
@@ -1275,8 +1265,6 @@ __device__ void CuCollision::collideContinuousCapsules(CurrentT& current, Previo
 template <typename CurPos>
 __device__ int32_t CuCollision::collideConvexes(const CurPos& positions, float3& delta) const
 {
-	ProfileDetailZone zone(cloth::CuProfileZoneIds::COLLIDE_CONVEXES);
-
 	delta.x = delta.y = delta.z = 0.0f;
 
 	Pointer<Shared, const float> planeX = mCurData.mSphereX;
@@ -1419,8 +1407,6 @@ struct TriangleData
 template <typename CurrentT>
 __device__ void CuCollision::collideTriangles(CurrentT& current, int32_t i)
 {
-	ProfileDetailZone zone(cloth::CuProfileZoneIds::COLLIDE_TRIANGLES);
-
 	float posX = current(i, 0);
 	float posY = current(i, 1);
 	float posZ = current(i, 2);

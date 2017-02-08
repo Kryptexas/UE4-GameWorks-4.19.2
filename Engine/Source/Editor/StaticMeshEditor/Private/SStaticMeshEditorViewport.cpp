@@ -516,7 +516,7 @@ void SStaticMeshEditorViewport::OnFocusViewportToSelection()
 	}
 
 	// If we have selected primitives, focus on them 
-	FBox Box(0);
+	FBox Box(ForceInit);
 	const bool bSelectedPrim = StaticMeshEditorPtr.Pin()->CalcSelectedPrimsAABB(Box);
 	if (bSelectedPrim)
 	{

@@ -437,11 +437,7 @@ public:
 		int32 NumTris = 0;
 		int32 NumVerts = 0;
 
-	#if WITH_APEX_CLOTHING
 		const int32 SectionCount = LODModel.NumNonClothingSections();
-	#else
-		const int32 SectionCount = LODModel.Sections.Num();
-	#endif // #if WITH_APEX_CLOTHING
 
 		// count triangles and vertices for selected material
 		for (int32 SectionIndex = 0; SectionIndex < SectionCount; SectionIndex++)

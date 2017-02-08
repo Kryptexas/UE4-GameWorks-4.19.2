@@ -212,6 +212,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 
 	OnGetAddMenuContent = InArgs._OnGetAddMenuContent;
 	AddMenuExtender = InArgs._AddMenuExtender;
+	ToolbarExtender = InArgs._ToolbarExtender;
 
 	ColumnFillCoefficients[0] = 0.3f;
 	ColumnFillCoefficients[1] = 0.7f;
@@ -721,20 +722,20 @@ TSharedRef<SWidget> SSequencer::MakeAddButton()
 
 TSharedRef<SWidget> SSequencer::MakeToolBar()
 {
-	FToolBarBuilder ToolBarBuilder( SequencerPtr.Pin()->GetCommandBindings(), FMultiBoxCustomization::None, TSharedPtr<FExtender>(), Orient_Horizontal, true);
+	FToolBarBuilder ToolBarBuilder( SequencerPtr.Pin()->GetCommandBindings(), FMultiBoxCustomization::None, ToolbarExtender, Orient_Horizontal, true);
 
 	const bool bIsReadOnly = SequencerPtr.Pin()->IsReadOnly();
 
 	ToolBarBuilder.BeginSection("Base Commands");
 	{
 		// General 
-		if( SequencerPtr.Pin()->IsLevelEditorSequencer() )
+		if (SequencerPtr.Pin()->IsLevelEditorSequencer())
 		{
 			ToolBarBuilder.AddToolBarButton(
 				FUIAction(FExecuteAction::CreateSP(this, &SSequencer::OnSaveMovieSceneClicked)),
 				NAME_None,
 				LOCTEXT("SaveDirtyPackages", "Save"),
-				LOCTEXT("SaveDirtyPackagesTooltip", "Saves the current level sequence"),
+				LOCTEXT("SaveDirtyPackagesTooltip", "Saves the current sequence"),
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.Save")
 			);
 
@@ -742,7 +743,7 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 				FUIAction(FExecuteAction::CreateSP(this, &SSequencer::OnSaveMovieSceneAsClicked)),
 				NAME_None,
 				LOCTEXT("SaveAs", "Save As"),
-				LOCTEXT("SaveAsTooltip", "Saves the current level sequence under a different name"),
+				LOCTEXT("SaveAsTooltip", "Saves the current sequence under a different name"),
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.SaveAs")
 			);
 
@@ -887,8 +888,16 @@ TSharedRef<SWidget> SSequencer::MakeAddMenu()
 		OnGetAddMenuContent.ExecuteIfBound(MenuBuilder, SequencerPtr.Pin().ToSharedRef());
 		MenuBuilder.EndSection();
 
-		// let track editors populate the menu
+		// let track editors & object bindings populate the menu
 		TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+
+		// Always create the section so that we afford extension
+		MenuBuilder.BeginSection("ObjectBindings");
+		if (Sequencer.IsValid())
+		{
+			Sequencer->BuildAddObjectBindingsMenu(MenuBuilder);
+		}
+		MenuBuilder.EndSection();
 
 		// Always create the section so that we afford extension
 		MenuBuilder.BeginSection("AddTracks");

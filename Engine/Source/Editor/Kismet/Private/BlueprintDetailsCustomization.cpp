@@ -57,6 +57,10 @@
 #include "Kismet2/Kismet2NameValidators.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
 
+#include "ModuleManager.h"
+#include "ISequencerModule.h"
+#include "AnimatedPropertyKey.h"
+
 #include "PropertyCustomizationHelpers.h"
 
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -940,6 +944,15 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 		RefreshPropertyFlags();
 	}
+
+	// See if anything else wants to customize our details
+	FBlueprintEditorModule& BlueprintEditorModule = FModuleManager::GetModuleChecked<FBlueprintEditorModule>("Kismet");
+	TArray<TSharedPtr<IDetailCustomization>> Customizations = BlueprintEditorModule.CustomizeVariable(CachedVariableProperty->GetClass(), BlueprintEditor.Pin());
+	ExternalDetailCustomizations.Append(Customizations);
+	for (TSharedPtr<IDetailCustomization> ExternalDetailCustomization : ExternalDetailCustomizations)
+	{
+		ExternalDetailCustomization->CustomizeDetails(DetailLayout);
+	}
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -1714,13 +1727,22 @@ EVisibility FBlueprintVarActionDetails::ExposeToCinematicsVisibility() const
 		const bool bIsBool = VariableProperty->IsA(UBoolProperty::StaticClass());
 		const bool bIsStr = VariableProperty->IsA(UStrProperty::StaticClass());
 		const bool bIsVectorStruct = VariableProperty->IsA(UStructProperty::StaticClass()) && Cast<UStructProperty>(VariableProperty)->Struct->GetFName() == NAME_Vector;
+		const bool bIsTransformStruct = VariableProperty->IsA(UStructProperty::StaticClass()) && Cast<UStructProperty>(VariableProperty)->Struct->GetFName() == NAME_Transform;
 		const bool bIsColorStruct = VariableProperty->IsA(UStructProperty::StaticClass()) && Cast<UStructProperty>(VariableProperty)->Struct->GetFName() == NAME_Color;
 		const bool bIsLinearColorStruct = VariableProperty->IsA(UStructProperty::StaticClass()) && Cast<UStructProperty>(VariableProperty)->Struct->GetFName() == NAME_LinearColor;
 		const bool bIsActorProperty = VariableProperty->IsA(UObjectProperty::StaticClass()) && Cast<UObjectProperty>(VariableProperty)->PropertyClass->IsChildOf(AActor::StaticClass());
 
-		if (bIsInteger || bIsByte || bIsEnum || bIsFloat || bIsBool || bIsStr || bIsVectorStruct || bIsColorStruct || bIsLinearColorStruct || bIsActorProperty)
+		if (bIsInteger || bIsByte || bIsEnum || bIsFloat || bIsBool || bIsStr || bIsVectorStruct || bIsTransformStruct || bIsColorStruct || bIsLinearColorStruct || bIsActorProperty)
 		{
 			return EVisibility::Visible;
+		}
+		else
+		{
+			ISequencerModule* SequencerModule = FModuleManager::Get().GetModulePtr<ISequencerModule>("Sequencer");
+			if (SequencerModule->CanAnimateProperty(FAnimatedPropertyKey::FromProperty(VariableProperty)))
+			{
+				return EVisibility::Visible;
+			}
 		}
 	}
 	return EVisibility::Collapsed;

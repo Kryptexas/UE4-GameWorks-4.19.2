@@ -45,6 +45,7 @@ void SVectorInputBox::ConstructX( const FArguments& InArgs, TSharedRef<SHorizont
 	.Padding( 0.0f, 1.0f, 2.0f, 1.0f )
 	[
 		SNew( SNumericEntryBox<float> )
+		.AllowSpin(InArgs._AllowSpin)
 		.Font( InArgs._Font )
 		.Value( InArgs._X )
 		.OnValueChanged( InArgs._OnXChanged )
@@ -79,6 +80,7 @@ void SVectorInputBox::ConstructY( const FArguments& InArgs, TSharedRef<SHorizont
 	.Padding( 0.0f, 1.0f, 2.0f, 1.0f )
 	[
 		SNew( SNumericEntryBox<float> )
+		.AllowSpin(InArgs._AllowSpin)
 		.Font( InArgs._Font )
 		.Value( InArgs._Y )
 		.OnValueChanged( InArgs._OnYChanged )
@@ -113,6 +115,7 @@ void SVectorInputBox::ConstructZ( const FArguments& InArgs, TSharedRef<SHorizont
 	.Padding( 0.0f, 1.0f, 0.0f, 1.0f )
 	[
 		SNew( SNumericEntryBox<float> )
+		.AllowSpin(InArgs._AllowSpin)
 		.Font( InArgs._Font )
 		.Value( InArgs._Z )
 		.OnValueChanged( InArgs._OnZChanged )

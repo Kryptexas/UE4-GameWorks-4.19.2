@@ -421,7 +421,7 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 		{
 			const FSkelMeshSection& Section = Sections[SectionIdx];
 
-			bool bClothFactory = (FeatureLevel >= ERHIFeatureLevel::SM4) && (DynamicData->ClothSimulUpdateData.Num() > 0) && Section.HasApexClothData();
+			bool bClothFactory = (FeatureLevel >= ERHIFeatureLevel::SM4) && (DynamicData->ClothingSimData.Num() > 0) && Section.HasClothingData();
 
 			FGPUBaseSkinVertexFactory* VertexFactory;
 			{
@@ -508,9 +508,9 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 				FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType& ClothShaderData = VertexFactoryData.ClothVertexFactories[SectionIdx]->GetClothShaderData();
 				ClothShaderData.ClothBlendWeight = DynamicData->ClothBlendWeight;
 				int16 ActorIdx = Section.CorrespondClothAssetIndex;
-				if( FClothSimulData* SimData = DynamicData->ClothSimulUpdateData.Find(ActorIdx) )
+				if(FClothSimulData* SimData = DynamicData->ClothingSimData.Find(ActorIdx))
 				{
-					bNeedFence = ClothShaderData.UpdateClothSimulData(RHICmdList, SimData->ClothSimulPositions, SimData->ClothSimulNormals, FrameNumberToPrepare, FeatureLevel) || bNeedFence;
+					bNeedFence = ClothShaderData.UpdateClothSimulData(RHICmdList, DynamicData->ClothingSimData[ActorIdx].Positions, DynamicData->ClothingSimData[ActorIdx].Normals, FrameNumberToPrepare, FeatureLevel) || bNeedFence;
 				}
 			}
 #endif // WITH_APEX_CLOTHING
@@ -737,7 +737,7 @@ const FVertexFactory* FSkeletalMeshObjectGPUSkin::GetSkinVertexFactory(const FSc
 	const FSkeletalMeshObjectLOD& LOD = LODs[LODIndex];
 
 	// cloth simulation is updated & if this ChunkIdx is for ClothVertexFactory
-	if ( DynamicData->ClothSimulUpdateData.Num() > 0 
+	if ( DynamicData->ClothingSimData.Num() > 0 
 		&& LOD.GPUSkinVertexFactories.ClothVertexFactories.IsValidIndex(ChunkIdx)  
 		&& LOD.GPUSkinVertexFactories.ClothVertexFactories[ChunkIdx].IsValid() )
 	{
@@ -878,16 +878,16 @@ void InitAPEXClothVertexFactoryComponents(typename VertexFactoryType::FDataType*
 {
 	// barycentric coord for positions
 	VertexFactoryData->CoordPositionComponent = FVertexStreamComponent(
-		VertexBuffers.APEXClothVertexBuffer,STRUCT_OFFSET(FApexClothPhysToRenderVertData,PositionBaryCoordsAndDist),sizeof(FApexClothPhysToRenderVertData),VET_Float4);
+		VertexBuffers.APEXClothVertexBuffer,STRUCT_OFFSET(FMeshToMeshVertData,PositionBaryCoordsAndDist),sizeof(FMeshToMeshVertData),VET_Float4);
 	// barycentric coord for normals
 	VertexFactoryData->CoordNormalComponent = FVertexStreamComponent(
-		VertexBuffers.APEXClothVertexBuffer,STRUCT_OFFSET(FApexClothPhysToRenderVertData,NormalBaryCoordsAndDist),sizeof(FApexClothPhysToRenderVertData),VET_Float4);
+		VertexBuffers.APEXClothVertexBuffer,STRUCT_OFFSET(FMeshToMeshVertData,NormalBaryCoordsAndDist),sizeof(FMeshToMeshVertData),VET_Float4);
 	// barycentric coord for tangents
 	VertexFactoryData->CoordTangentComponent = FVertexStreamComponent(
-		VertexBuffers.APEXClothVertexBuffer,STRUCT_OFFSET(FApexClothPhysToRenderVertData,TangentBaryCoordsAndDist),sizeof(FApexClothPhysToRenderVertData),VET_Float4);
+		VertexBuffers.APEXClothVertexBuffer,STRUCT_OFFSET(FMeshToMeshVertData,TangentBaryCoordsAndDist),sizeof(FMeshToMeshVertData),VET_Float4);
 	// indices for reference physics mesh vertices
 	VertexFactoryData->SimulIndicesComponent = FVertexStreamComponent(
-		VertexBuffers.APEXClothVertexBuffer,STRUCT_OFFSET(FApexClothPhysToRenderVertData,SimulMeshVertIndices),sizeof(FApexClothPhysToRenderVertData),VET_UShort4);
+		VertexBuffers.APEXClothVertexBuffer,STRUCT_OFFSET(FMeshToMeshVertData, SourceMeshVertIndices),sizeof(FMeshToMeshVertData),VET_UShort4);
 }
 
 /** 
@@ -1041,7 +1041,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::GetVertexBuffers(FVerte
 	OutVertexBuffers.ColorVertexBuffer = MeshObjectColorBuffer;
 	OutVertexBuffers.SkinWeightVertexBuffer = MeshObjectWeightBuffer;
 	OutVertexBuffers.MorphVertexBuffer = &MorphVertexBuffer;
-	OutVertexBuffers.APEXClothVertexBuffer = &LODModel.APEXClothVertexBuffer;
+	OutVertexBuffers.APEXClothVertexBuffer = &LODModel.ClothVertexBuffer;
 }
 
 /** 
@@ -1135,7 +1135,7 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitAPEXClothVertexFactorie
 	ClothVertexFactories.Empty(Sections.Num());
 	for( int32 FactoryIdx=0; FactoryIdx < Sections.Num(); FactoryIdx++ )
 	{
-		if (Sections[FactoryIdx].HasApexClothData() && InFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (Sections[FactoryIdx].HasClothingData() && InFeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			if (VertexBuffers.SkinWeightVertexBuffer->HasExtraBoneInfluences())
 			{
@@ -1208,7 +1208,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::InitResources(const FSk
 
 	// init gpu skin factories
 	GPUSkinVertexFactories.InitVertexFactories(VertexBuffers,LODModel.Sections, InFeatureLevel);
-	if ( LODModel.HasApexClothData() )
+	if ( LODModel.HasClothData() )
 	{
 		GPUSkinVertexFactories.InitAPEXClothVertexFactories(VertexBuffers,LODModel.Sections, InFeatureLevel);
 	}
@@ -1302,7 +1302,7 @@ void FDynamicSkelMeshObjectDataGPUSkin::Clear()
 	LODIndex = 0;
 	ActiveMorphTargets.Reset();
 	NumWeightedActiveMorphTargets = 0;
-	ClothSimulUpdateData.Reset();
+	ClothingSimData.Reset();
 	ClothBlendWeight = 0.0f;
 }
 
@@ -1326,7 +1326,7 @@ void FDynamicSkelMeshObjectDataGPUSkin::InitDynamicSkelMeshObjectDataGPUSkin(
 	)
 {
 	LODIndex = InLODIndex;
-	check(!ActiveMorphTargets.Num() && !ReferenceToLocal.Num() && !CustomLeftRightVectors.Num() && !ClothSimulUpdateData.Num() && !MorphTargetWeights.Num());
+	check(!ActiveMorphTargets.Num() && !ReferenceToLocal.Num() && !CustomLeftRightVectors.Num() && !ClothingSimData.Num() && !MorphTargetWeights.Num());
 
 	// append instead of equals to avoid alloc
 	ActiveMorphTargets.Append(InActiveMorphTargets);
@@ -1402,31 +1402,19 @@ bool FDynamicSkelMeshObjectDataGPUSkin::UpdateClothSimulationData(USkinnedMeshCo
 {
 	USkeletalMeshComponent* SimMeshComponent = Cast<USkeletalMeshComponent>(InMeshComponent);
 
-#if WITH_APEX_CLOTHING
-	if (InMeshComponent->MasterPoseComponent.IsValid() && (SimMeshComponent && SimMeshComponent->IsClothBoundToMasterComponent()))
-	{
-		USkeletalMeshComponent* SrcComponent = SimMeshComponent;
-
-		// if I have master, override sim component
-		 SimMeshComponent = Cast<USkeletalMeshComponent>(InMeshComponent->MasterPoseComponent.Get());
-
-		// IF we don't have sim component that is skeletalmeshcomponent, just ignore
-		 if (!SimMeshComponent)
-		 {
-			 return false;
-		 }
-
-		 ClothBlendWeight = SrcComponent->ClothBlendWeight;
-		 SimMeshComponent->GetUpdateClothSimulationData(ClothSimulUpdateData, SrcComponent);
-
-		return true;
-	}
-#endif
-
 	if (SimMeshComponent)
 	{
-		ClothBlendWeight = SimMeshComponent->ClothBlendWeight;
-		SimMeshComponent->GetUpdateClothSimulationData(ClothSimulUpdateData);
+		if(SimMeshComponent->bDisableClothSimulation)
+		{
+			ClothBlendWeight = 0.0f;
+			ClothingSimData.Reset();
+		}
+		else
+		{
+			ClothBlendWeight = SimMeshComponent->ClothBlendWeight;
+			ClothingSimData = SimMeshComponent->GetCurrentClothingData_GameThread();
+		}
+
 		return true;
 	}
 	return false;

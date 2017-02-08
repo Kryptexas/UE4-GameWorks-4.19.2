@@ -30,6 +30,8 @@ struct FPendingApexDamageManager;
  * Physics stats
  */
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FetchAndStart Time (all)"), STAT_TotalPhysicsTime, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Cloth Actor Count"), STAT_NumCloths, STATGROUP_Physics, ENGINE_API);
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Simulated Cloth Verts"), STAT_NumClothVerts, STATGROUP_Physics, ENGINE_API);
 
 #if WITH_PHYSX
 
@@ -101,12 +103,12 @@ extern ENGINE_API class FPhysXAllocator* GPhysXAllocator;
 /** Pointer to PhysX Command Handler */
 extern ENGINE_API class FPhysCommandHandler* GPhysCommandHandler;
 
-#if WITH_APEX
-
 namespace NvParameterized
 {
 	class Interface;
 }
+
+#if WITH_APEX
 
 /** Pointer to APEX SDK object */
 extern ENGINE_API apex::ApexSDK*			GApexSDK;
@@ -118,13 +120,6 @@ extern ENGINE_API apex::Module* 			GApexModuleLegacy;
 /** Pointer to APEX Clothing module object */
 extern ENGINE_API apex::ModuleClothing*		GApexModuleClothing;
 #endif //WITH_APEX_CLOTHING
-
-#else
-
-namespace NvParameterized
-{
-	typedef void Interface;
-};
 
 #endif // #if WITH_APEX
 
@@ -483,13 +478,13 @@ public:
 
 
 	/** Utility for looking up the PxScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
-	ENGINE_API physx::PxScene*					GetPhysXScene(uint32 SceneType);
+	ENGINE_API physx::PxScene*					GetPhysXScene(uint32 SceneType) const;
 
 #endif
 
 #if WITH_APEX
 	/** Utility for looking up the ApexScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
-	nvidia::apex::Scene*				GetApexScene(uint32 SceneType);
+	ENGINE_API nvidia::apex::Scene*				GetApexScene(uint32 SceneType) const;
 #endif
 	ENGINE_API FPhysScene();
 	ENGINE_API ~FPhysScene();

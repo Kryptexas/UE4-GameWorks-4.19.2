@@ -1519,8 +1519,8 @@ void UDestructibleComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType
 		
 		PxU32 NumChunks = GetDestructibleMesh()->GetApexDestructibleAsset()->getChunkCount();
 		
-		const bool bSetQuery = NewType == ECollisionEnabled::QueryAndPhysics || NewType == ECollisionEnabled::QueryOnly;
-		const bool bSetSim = NewType == ECollisionEnabled::PhysicsOnly || NewType == ECollisionEnabled::QueryAndPhysics;
+		const bool bSetQuery = CollisionEnabledHasQuery(NewType);
+		const bool bSetSim = CollisionEnabledHasPhysics(NewType);
 		
 		for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
 		{

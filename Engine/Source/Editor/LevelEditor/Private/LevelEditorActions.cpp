@@ -2605,7 +2605,7 @@ bool FLevelEditorActionCallbacks::IsWidgetModeActive( FWidget::EWidgetMode Widge
 
 bool FLevelEditorActionCallbacks::CanSetWidgetMode( FWidget::EWidgetMode WidgetMode )
 {
-	return GLevelEditorModeTools().GetShowWidget() == true;
+	return GLevelEditorModeTools().UsesTransformWidget(WidgetMode) == true;
 }
 
 bool FLevelEditorActionCallbacks::IsTranslateRotateModeVisible()

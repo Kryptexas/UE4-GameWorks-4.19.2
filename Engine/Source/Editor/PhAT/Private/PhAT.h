@@ -26,7 +26,9 @@ class SComboButton;
 class SDockableTab;
 class SPhATPreviewViewport;
 class UAnimationAsset;
+class UAnimSequence;
 class UPhysicsAsset;
+class UAnimSequence;
 
 typedef TSharedPtr<FPhATTreeInfo> FTreeElemPtr;
 
@@ -307,7 +309,7 @@ private:
 	TSharedPtr<FExtender> MenuExtender;
 
 	/** Currently selected animation */
-	UAnimationAsset* SelectedAnimation;
+	UAnimSequence* SelectedAnimation;
 
 	/** True if in OnTreeSelectionChanged()... protects against infinite recursion */
 	bool InsideSelChanged;

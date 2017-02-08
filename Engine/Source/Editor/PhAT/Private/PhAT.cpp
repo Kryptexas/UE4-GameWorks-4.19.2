@@ -50,6 +50,9 @@
 #include "Engine/Selection.h"
 #include "PersonaModule.h"
 
+#include "PhATAnimInstance.h"
+#include "PhATAnimInstanceProxy.h"
+
 
 const FName PhATAppIdentifier = FName(TEXT("PhATApp"));
 
@@ -2198,8 +2201,11 @@ TSharedPtr<SWidget> FPhAT::BuildMenuWidgetBone()
 
 void FPhAT::AnimationSelectionChanged( UObject* Object )
 {
-	SelectedAnimation = Cast<UAnimationAsset>( Object );
-	SharedData->EditorSkelComp->SetAnimation( SelectedAnimation );
+	SelectedAnimation = Cast<UAnimSequence>( Object );
+	if (UPhATAnimInstance* PhATAnimInstance = Cast<UPhATAnimInstance>(SharedData->EditorSkelComp->AnimScriptInstance))
+	{
+		PhATAnimInstance->SetAnimationSequence(SelectedAnimation);
+	}
 }
 
 UObject* FPhAT::GetSelectedAnimation() const
@@ -3181,20 +3187,28 @@ void FPhAT::OnDeleteConstraint()
 
 void FPhAT::OnPlayAnimation()
 {
-	if (!SharedData->EditorSkelComp->IsPlaying() && SharedData->bRunningSimulation)
+	if (UPhATAnimInstance* PhATAnimInstance = Cast<UPhATAnimInstance>(SharedData->EditorSkelComp->AnimScriptInstance))
 	{
-		SharedData->EditorSkelComp->SetAnimation(SelectedAnimation);
-		SharedData->EditorSkelComp->Play(true);
-	}
-	else
-	{
-		SharedData->EditorSkelComp->Stop();
+		if (!PhATAnimInstance->IsPlayingAnimation() && SharedData->bRunningSimulation)
+		{
+			PhATAnimInstance->SetAnimationSequence(SelectedAnimation);
+			PhATAnimInstance->SetPlayRate(1.f);
+		}
+		else
+		{
+			PhATAnimInstance->SetPlayRate(0.f);
+		}
 	}
 }
 
 bool FPhAT::IsPlayAnimation() const
 {
-	return SharedData->EditorSkelComp->IsPlaying();
+	if(UPhATAnimInstance* PhATAnimInstance = Cast<UPhATAnimInstance>(SharedData->EditorSkelComp->AnimScriptInstance))
+	{
+		return PhATAnimInstance->IsPlayingAnimation();
+	}
+	
+	return false;
 }
 
 void FPhAT::OnViewType(ELevelViewportType ViewType)

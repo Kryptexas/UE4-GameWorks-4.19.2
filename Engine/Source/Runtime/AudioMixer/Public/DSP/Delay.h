@@ -29,7 +29,7 @@ namespace Audio
 		void SetDelayMsec(const float InDelayMsec);
 
 		// Sets the delay line length but using the internal easing function for smooth delay line interpolation.
-		void SetEasedDelayMsec(const float InDelayMsec);
+		void SetEasedDelayMsec(const float InDelayMsec, const bool bIsInit = false);
 
 		// Sets the single delay line feedback param
 		void SetFeedback(const float InFeedback);

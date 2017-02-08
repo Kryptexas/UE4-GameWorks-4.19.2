@@ -173,7 +173,7 @@ public class Engine : ModuleRules
 				"MovieSceneTracks",
 				"HeadMountedDisplay",
 				"StreamingPauseRendering",
-                "Niagara"
+                "Niagara",
 			}
 		);
 
@@ -320,6 +320,8 @@ public class Engine : ModuleRules
 
             PrivateIncludePathModuleNames.Add("HierarchicalLODUtilities");
             DynamicallyLoadedModuleNames.Add("HierarchicalLODUtilities");
+
+            DynamicallyLoadedModuleNames.Add("AnimationModifiers");
         }
 
 		SetupModulePhysXAPEXSupport(Target);
@@ -329,6 +331,18 @@ public class Engine : ModuleRules
             PrivateIncludePathModuleNames.Add("PhysXFormats");
         }
             
+        if(UEBuildConfiguration.bCompilePhysX)
+        {
+            // Engine public headers need to know about some types (enums etc.)
+            PublicIncludePathModuleNames.Add("ClothingSystemRuntimeInterface");
+            PublicDependencyModuleNames.Add("ClothingSystemRuntimeInterface");
+
+            if (UEBuildConfiguration.bBuildEditor)
+            {
+                PrivateDependencyModuleNames.Add("ClothingSystemEditorInterface");
+                PrivateIncludePathModuleNames.Add("ClothingSystemEditorInterface");
+            }
+        }
 
 		SetupModuleBox2DSupport(Target);
 
@@ -342,11 +356,6 @@ public class Engine : ModuleRules
 				"libOpus",
 			    "OpenSubdiv"
 				);
-
-			if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
-			{
-				AddEngineThirdPartyPrivateStaticDependencies(Target, "DirectShow");
-			}
 
             // Head Mounted Display support
 //            PrivateIncludePathModuleNames.AddRange(new string[] { "HeadMountedDisplay" });

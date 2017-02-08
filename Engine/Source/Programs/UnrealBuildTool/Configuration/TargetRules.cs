@@ -333,6 +333,11 @@ namespace UnrealBuildTool
 		public bool bCompileAPEX = true;
 
 		/// <summary>
+		/// Whether to include NvCloth
+		/// </summary>
+		public bool bCompileNvCloth = false;
+
+		/// <summary>
 		/// Whether to allow runtime cooking of physics
 		/// </summary>
 		public bool bRuntimePhysicsCooking = true;
@@ -1444,6 +1449,11 @@ namespace UnrealBuildTool
 		public bool bCompileAPEX
 		{
 			get { return Inner.bCompileAPEX; }
+		}
+
+		public bool bCompileNvCloth
+		{
+			get { return Inner.bCompileNvCloth; }
 		}
 
 		public bool bRuntimePhysicsCooking

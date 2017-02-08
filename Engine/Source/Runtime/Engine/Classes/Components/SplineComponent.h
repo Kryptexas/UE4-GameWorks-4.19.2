@@ -86,6 +86,29 @@ struct ENGINE_API FSplineCurves
 	float GetSplineLength() const;
 };
 
+/** A single point in linear approximation of a spline */
+struct ENGINE_API FSplinePositionLinearApproximation
+{
+	FSplinePositionLinearApproximation(const FVector& InPosition, float InSplineParam)
+		: Position(InPosition)
+		, SplineParam(InSplineParam)
+	{}
+
+	/**
+	 * Build a linear approximation to the passed-in spline curves.
+	 * @param	InCurves	The curves to approximate
+	 * @param	OutPoints	The array of points to fill as a linear approximation
+	 * @param	InDensity	Scalar applied to determine how many points are generated in the approximation. 1.0 = one point per distance unit.
+	 */
+	static void Build(const FSplineCurves& InCurves, TArray<FSplinePositionLinearApproximation>& OutPoints, float InDensity = 0.5f);
+
+	/** Position on the spline */
+	FVector Position;
+
+	/** Param of the spline at this position */
+	float SplineParam;
+};
+
 USTRUCT(BlueprintType)
 struct FSplinePoint
 {

@@ -410,6 +410,13 @@ void USoundWave::PostLoad()
 		Info.Insert(FAssetImportInfo::FSourceFile(SourceFilePath_DEPRECATED));
 		AssetImportData->SourceData = MoveTemp(Info);
 	}
+
+	// Log a warning after loading if the source has effect chains but has channels greater than 2.
+	if (SourceEffectChain.Num() > 0 && NumChannels > 2)
+	{
+		UE_LOG(LogAudio, Warning, TEXT("Sound Wave '%s' has defined an effect chain but is not mono or stereo."), *GetName());
+	}
+
 #endif // #if WITH_EDITORONLY_DATA
 
 	INC_FLOAT_STAT_BY( STAT_AudioBufferTime, Duration );
@@ -658,6 +665,12 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->ListenerToSoundDistance = ParseParams.ListenerToSoundDistance;
 		WaveInstance->AbsoluteAzimuth = ParseParams.AbsoluteAzimuth;
 
+		if (NumChannels <= 2 && SourceEffectChain.Num() > 0)
+		{
+			WaveInstance->SourceEffectChain = SourceEffectChain;
+			WaveInstance->bPlayEffectChainTails = bPlayEffectChainTails;
+		}
+
 		bool bAlwaysPlay = false;
 
 		// Properties from the sound class
@@ -770,7 +783,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 			static TSet<USoundWave*> ReportedSounds;
 			if (!ReportedSounds.Contains(this))
 			{
-				FString SoundWarningInfo = FString::Printf(TEXT("Spatialisation on stereo and multichannel sounds is not supported. SoundWave: %s"), *GetName());
+				FString SoundWarningInfo = FString::Printf(TEXT("Spatialisation on sounds with channels greater than 2 is not supported. SoundWave: %s"), *GetName());
 				if (ActiveSound.GetSound() != this)
 				{
 					SoundWarningInfo += FString::Printf(TEXT(" SoundCue: %s"), *ActiveSound.GetSound()->GetName());

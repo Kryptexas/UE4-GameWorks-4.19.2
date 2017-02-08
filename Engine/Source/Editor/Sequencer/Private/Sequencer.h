@@ -52,6 +52,7 @@ class IMenu;
 class ISequencerEditTool;
 class ISequencerKeyCollection;
 class ISequencerTrackEditor;
+class ISequencerEditorObjectBinding;
 class SSequencer;
 class ULevel;
 class UMovieSceneSequence;
@@ -88,8 +89,9 @@ public:
 	 * @param InitParams Initialization parameters.
 	 * @param InObjectChangeListener The object change listener to use.
 	 * @param TrackEditorDelegates Delegates to call to create auto-key handlers for this sequencer.
+	 * @param EditorObjectBindingDelegates Delegates to call to create object bindings for this sequencer.
 	 */
-	void InitSequencer(const FSequencerInitParams& InitParams, const TSharedRef<ISequencerObjectChangeListener>& InObjectChangeListener, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates);
+	void InitSequencer(const FSequencerInitParams& InitParams, const TSharedRef<ISequencerObjectChangeListener>& InObjectChangeListener, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates, const TArray<FOnCreateEditorObjectBinding>& EditorObjectBindingDelegates);
 
 	/** @return The current view range */
 	virtual FAnimatedRange GetViewRange() const override;
@@ -287,14 +289,6 @@ protected:
 	FGuid AddSpawnable( UObject& Object );
 
 	/**
-	 * Setup a new spawnable object with some default tracks and keys
-	 *
-	 * @param	Guid		The ID of the spawnable to setup defaults for
-	 * @param	Transform	The default transform for the spawnable
-	 */
-	void SetupDefaultsForSpawnable( const FGuid& Guid, const FTransformData& Transform );
-
-	/**
 	 * Save default spawnable state for the currently selected objects
 	 */
 	void SaveSelectedNodesSpawnableState();
@@ -346,6 +340,13 @@ public:
 	 * @param MenuBuilder The menu builder to add things to.
 	 */
 	void BuildAddTrackMenu(FMenuBuilder& MenuBuilder);
+
+	/**
+	 * Builds up the object bindings in sequencer's "Add Track" menu.
+	 *
+	 * @param MenuBuilder The menu builder to add things to.
+	 */
+	void BuildAddObjectBindingsMenu(FMenuBuilder& MenuBuilder);
 
 	/**
 	 * Builds up the track menu for object binding nodes in the outliner
@@ -560,7 +561,7 @@ public:
 	virtual UMovieSceneSequence* GetFocusedMovieSceneSequence() const override;
 	virtual FMovieSceneRootEvaluationTemplateInstance& GetEvaluationTemplate() override { return RootTemplateInstance; }
 	virtual void ResetToNewRootSequence(UMovieSceneSequence& NewSequence) override;
-	virtual void FocusSequenceInstance( UMovieSceneSubSection& InSubSection ) override;
+	virtual void FocusSequenceInstance(UMovieSceneSubSection& InSubSection) override;
 	virtual EAutoKeyMode GetAutoKeyMode() const override;
 	virtual void SetAutoKeyMode(EAutoKeyMode AutoKeyMode) override;
 	virtual bool GetKeyAllEnabled() const override;
@@ -599,6 +600,7 @@ public:
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
 	virtual FSequencerSelection& GetSelection() override;
 	virtual FSequencerSelectionPreview& GetSelectionPreview() override;
+	virtual void SelectObject(FGuid ObjectBinding) override;
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() override { return OnGlobalTimeChangedDelegate; }
 	virtual FOnMovieSceneDataChanged& OnMovieSceneDataChanged() override { return OnMovieSceneDataChangedDelegate; }
 	virtual FOnSelectionChangedObjectGuids& GetSelectionChangedObjectGuids() override { return OnSelectionChangedObjectGuidsDelegate; }
@@ -641,9 +643,6 @@ protected:
 
 	/** Reset data about a movie scene when pushing or popping a movie scene. */
 	void ResetPerMovieSceneData();
-
-	/** Sets the actor CDO such that it is placed in front of the active perspective viewport camera, if we have one */
-	static void PlaceActorInFrontOfCamera( AActor* ActorCDO );
 
 	/** Update the time bounds to the focused movie scene */
 	void UpdateTimeBoundsToFocusedMovieScene();
@@ -846,6 +845,9 @@ private:
 
 	/** List of tools we own */
 	TArray<TSharedPtr<ISequencerTrackEditor>> TrackEditors;
+
+	/** List of object bindings we can use */
+	TArray<TSharedPtr<ISequencerEditorObjectBinding>> ObjectBindings;
 
 	/** Listener for object changes being made while this sequencer is open*/
 	TSharedPtr<ISequencerObjectChangeListener> ObjectChangeListener;

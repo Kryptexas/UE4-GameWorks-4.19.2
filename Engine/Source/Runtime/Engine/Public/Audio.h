@@ -11,6 +11,7 @@
 #include "HAL/ThreadSafeBool.h"
 #include "Sound/SoundClass.h"
 #include "Sound/SoundAttenuation.h"
+#include "Sound/SoundEffectSource.h"
 #include "IAudioExtensionPlugin.h"
 
 class FAudioDevice;
@@ -266,6 +267,10 @@ struct ENGINE_API FWaveInstance
 	class USoundClass*  SoundClass;
 	/** Sound submix sends */
 	TArray<FSubmixSendInfo> SoundSubmixSends;
+	/** Sound effect chain */
+	TArray<USoundEffectSourcePreset*> SourceEffectChain;
+	/** Whether or not to play the effect chain tails when a one-shot source ends. */
+	bool bPlayEffectChainTails;
 
 	/** Sound nodes to notify when the current audio buffer finishes */
 	FNotifyBufferFinishedHooks NotifyBufferFinishedHooks;

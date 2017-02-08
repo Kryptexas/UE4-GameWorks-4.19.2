@@ -2729,19 +2729,27 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 			UWorld* ActiveSoundWorldPtr = ActiveSound->World.Get();
 			if (ActiveSoundWorldPtr == nullptr || ActiveSoundWorldPtr->AllowAudioPlayback())
 			{
-				const float Duration = ActiveSound->Sound->GetDuration();
+				bool bStopped = false;
 
-				// Divide by minimum pitch for longest possible duration
-				if (Duration < INDEFINITELY_LOOPING_DURATION && ActiveSound->PlaybackTime > Duration / MIN_PITCH)
+				// Don't artificially stop a looping active sound nor stop a sound which has has bPlayEffectChainTails and actual effects playing
+				if (!ActiveSound->Sound->IsLooping() && (!ActiveSound->Sound->bPlayEffectChainTails || ActiveSound->Sound->SourceEffectChain.Num() == 0))
 				{
-					UE_LOG(LogAudio, Log, TEXT("Sound stopped due to duration: %g > %g : %s %s"),
-						ActiveSound->PlaybackTime,
-						Duration,
-						*ActiveSound->Sound->GetName(),
-						*ActiveSound->GetAudioComponentName());
-					AddSoundToStop(ActiveSound);
+					const float Duration = ActiveSound->Sound->GetDuration();
+
+					// Divide by minimum pitch for longest possible duration
+					if (ActiveSound->PlaybackTime > Duration / MIN_PITCH)
+					{
+						UE_LOG(LogAudio, Log, TEXT("Sound stopped due to duration: %g > %g : %s %s"),
+							ActiveSound->PlaybackTime,
+							Duration,
+							*ActiveSound->Sound->GetName(),
+							*ActiveSound->GetAudioComponentName());
+						AddSoundToStop(ActiveSound);
+						bStopped = true;
+					}
 				}
-				else
+
+				if (!bStopped)
 				{
 					// If not in game, do not advance sounds unless they are UI sounds.
 					float UsedDeltaTime = FApp::GetDeltaTime();
@@ -3403,6 +3411,19 @@ void FAudioDevice::AddSoundToStop(FActiveSound* SoundToStop)
 
 void FAudioDevice::StopActiveSound(const uint64 AudioComponentID)
 {
+	if (!IsInAudioThread())
+	{
+		DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.StopActiveSound"), STAT_AudioStopActiveSound, STATGROUP_AudioThreadCommands);
+
+		FAudioDevice* AudioDevice = this;
+		FAudioThread::RunCommandOnAudioThread([AudioDevice, AudioComponentID]()
+		{
+			AudioDevice->StopActiveSound(AudioComponentID);
+		}, GET_STATID(STAT_AudioStopActiveSound));
+
+		return;
+	}
+
 	FActiveSound* ActiveSound = FindActiveSound(AudioComponentID);
 	if (ActiveSound)
 	{
@@ -3412,6 +3433,7 @@ void FAudioDevice::StopActiveSound(const uint64 AudioComponentID)
 
 void FAudioDevice::StopActiveSound(FActiveSound* ActiveSound)
 {
+	check(IsInAudioThread());
 	AddSoundToStop(ActiveSound);
 }
 

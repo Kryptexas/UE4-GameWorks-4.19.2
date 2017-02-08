@@ -371,7 +371,7 @@ FVector2D FLevelModel::GetLevelSize2D() const
 
 FBox FLevelModel::GetLevelBounds() const
 {
-	return FBox(0);
+	return FBox(ForceInit);
 }
 
 FVector2D FLevelModel::GetLevelTranslationDelta() const

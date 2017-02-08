@@ -3514,7 +3514,7 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 		if( PasteTo != PT_OriginalLocation )
 		{
 			// Get a bounding box for all the selected actors locations.
-			FBox bbox(0);
+			FBox bbox(ForceInit);
 			int32 NumActorsToMove = 0;
 
 			for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
@@ -4707,7 +4707,7 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, co
 	PrimitiveComponentTypesToIgnore.Add( UNavLinkRenderingComponent::StaticClass() );
 	PrimitiveComponentTypesToIgnore.Add( UDrawFrustumComponent::StaticClass() );
 	// Create a bounding volume of all of the selected actors.
-	FBox BoundingBox( 0 );
+	FBox BoundingBox(ForceInit);
 
 	if( Components.Num() > 0 )
 	{

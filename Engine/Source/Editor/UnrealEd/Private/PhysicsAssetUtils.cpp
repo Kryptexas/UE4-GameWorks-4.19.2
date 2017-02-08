@@ -64,7 +64,7 @@ static int32 GetChildIndex(int32 BoneIndex, USkeletalMesh* SkelMesh, const TArra
 
 static float CalcBoneInfoLength(const FBoneVertInfo& Info)
 {
-	FBox BoneBox(0);
+	FBox BoneBox(ForceInit);
 	for(int32 j=0; j<Info.Positions.Num(); j++)
 	{
 		BoneBox += Info.Positions[j];
@@ -459,7 +459,7 @@ bool CreateCollisionFromBone(UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bone
 	// convert to FTransform and use that data
 	FTransform ElementTransform(ElemTM);
 	// Get the (Unreal scale) bounding box for this bone using the rotation.
-	FBox BoneBox(0);
+	FBox BoneBox(ForceInit);
 	for (int32 j = 0; j < Info.Positions.Num(); j++)
 	{
 		BoneBox += ElementTransform.InverseTransformPosition(Info.Positions[j]);

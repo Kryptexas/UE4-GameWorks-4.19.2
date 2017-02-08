@@ -321,6 +321,19 @@ void FDynamicOutputHelper::VerifyNode(const UK2Node_CallFunction* FuncNode, FCom
 			}
 		}
 	}
+	
+	// Ensure that editor module BP exposed UFunctions can only be called in blueprints for which the baseclass is also part of an editor module
+	const UClass* FunctionClass = FuncNode->FunctionReference.GetMemberParentClass();
+	const bool bIsEditorOnlyFunction = FunctionClass && IsEditorOnlyObject(FunctionClass);
+
+	const UBlueprint* Blueprint = FuncNode->GetBlueprint();
+	const UClass* BlueprintClass = Blueprint->ParentClass;
+	bool bIsEditorOnlyBlueprintBaseClass = !BlueprintClass || IsEditorOnlyObject(BlueprintClass);
+	if (bIsEditorOnlyFunction && !bIsEditorOnlyBlueprintBaseClass)
+	{
+		FText const ErrorFormat = LOCTEXT("BlueprintEditorOnly", "Function in Editor Only Module '@@' cannot be called within the Non-Editor module blueprint base class '@@'.");
+		MessageLog.Warning(*ErrorFormat.ToString(), FuncNode, BlueprintClass);
+	}
 }
 
 UK2Node_CallFunction* FDynamicOutputHelper::GetFunctionNode() const

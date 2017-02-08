@@ -22,7 +22,7 @@ void UAnimGraphNode_PoseHandler::ValidateAnimNodeDuringCompilation(USkeleton* Fo
 
 	if (PoseAssetToCheck == nullptr)
 	{
-		if (PoseAssetPin == nullptr || PoseAssetPin->LinkedTo.Num() == 0)
+		if (IsPoseAssetRequired() && (PoseAssetPin == nullptr || PoseAssetPin->LinkedTo.Num() == 0))
 		{
 			MessageLog.Error(TEXT("@@ references an unknown poseasset"), this);
 		}

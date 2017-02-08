@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2015, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2008-2017, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -419,10 +419,8 @@ public:
 
 	bool hasSkinningVertices();
 private:
-	void operator=(const TriangleMesh& other)
-	{
-		*this = other; /* empty */
-	}
+	void operator=(const TriangleMesh& other); // empty
+
 	void updateNormals(int subMeshNr);
 	void updateTangents();
 	void updateBoneWeights();

@@ -23,6 +23,7 @@ namespace Audio
 		, bPlaying(false)
 		, bLoopCallback(false)
 		, bIsFinished(false)
+		, bIsPlayingEffectTails(false)
 		, bBuffersToFlush(false)
 		, bResourcesNeedFreeing(false)
 		, bEditorWarnedChangedSpatialization(false)
@@ -77,6 +78,15 @@ namespace Audio
 			InitParams.NumInputFrames = NumFrames;
 			InitParams.SourceVoice = MixerSourceVoice;
 			InitParams.bUseHRTFSpatialization = UseHRTSpatialization();
+
+			if (InitParams.NumInputChannels <= 2 && InWaveInstance->SourceEffectChain.Num() > 0)
+			{
+				for (int32 i = 0; i < InWaveInstance->SourceEffectChain.Num(); ++i)
+				{
+					InitParams.SourceEffectChain.Add(InWaveInstance->SourceEffectChain[i]);
+					InitParams.bPlayEffectChainTails = InWaveInstance->bPlayEffectChainTails;
+				}
+			}
 
 			if (InWaveInstance->SoundSubmixSends.Num())
 			{
@@ -309,7 +319,7 @@ namespace Audio
 
 		if (WaveInstance && MixerSourceVoice)
 		{
-			if (bIsFinished)
+			if (bIsFinished && MixerSourceVoice->IsSourceEffectTailsDone())
 			{
 				WaveInstance->NotifyFinished();
 				return true;

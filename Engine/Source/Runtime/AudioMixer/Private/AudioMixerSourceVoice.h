@@ -74,6 +74,9 @@ namespace Audio
 		// Queries if the source voice has finished playing all its audio.
 		bool IsDone() const;
 
+		// Queries if the source ffect tails have finished
+		bool IsSourceEffectTailsDone() const;
+
 		// Whether or not the device changed and needs another speaker map sent
 		bool NeedsSpeakerMap() const;
 

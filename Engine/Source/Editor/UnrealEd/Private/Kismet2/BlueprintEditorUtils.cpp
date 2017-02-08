@@ -269,39 +269,10 @@ static void RenameVariableReferencesInGraph(UBlueprint* InBlueprint, UClass* InV
 {
 	for(UEdGraphNode* GraphNode : InGraph->Nodes)
 	{
-		if(UK2Node_Variable* const VariableNode = Cast<UK2Node_Variable>(GraphNode))
+		// Allow node to handle variable renaming
+		if (UK2Node* const K2Node = Cast<UK2Node>(GraphNode))
 		{
-			UClass* const NodeRefClass = VariableNode->VariableReference.GetMemberParentClass(InBlueprint->GeneratedClass);
-			if(NodeRefClass && NodeRefClass->IsChildOf(InVariableClass) && InOldVarName == VariableNode->GetVarName())
-			{
-				VariableNode->Modify();
-
-				if(VariableNode->VariableReference.IsLocalScope())
-				{
-					VariableNode->VariableReference.SetLocalMember(InNewVarName, VariableNode->VariableReference.GetMemberScopeName(), VariableNode->VariableReference.GetMemberGuid());
-				}
-				else if(VariableNode->VariableReference.IsSelfContext())
-				{
-					VariableNode->VariableReference.SetSelfMember(InNewVarName);
-				}
-				else
-				{
-					VariableNode->VariableReference.SetExternalMember(InNewVarName, NodeRefClass);
-				}
-
-				VariableNode->RenameUserDefinedPin(InOldVarName.ToString(), InNewVarName.ToString());
-			}
-			continue;
-		}
-
-		if(UK2Node_ComponentBoundEvent* const ComponentBoundEventNode = Cast<UK2Node_ComponentBoundEvent>(GraphNode))
-		{
-			if( InOldVarName == ComponentBoundEventNode->ComponentPropertyName && InVariableClass->IsChildOf(InBlueprint->GeneratedClass) )
-			{
-				ComponentBoundEventNode->Modify();
-				ComponentBoundEventNode->ComponentPropertyName = InNewVarName;
-			}
-			continue;
+			K2Node->HandleVariableRenamed(InBlueprint, InVariableClass, InGraph, InOldVarName, InNewVarName);
 		}
 	}
 }
@@ -1242,7 +1213,7 @@ struct FRegenerationHelper
 	Procedure used to remove old function implementations and child properties from data only blueprints.
 	These blueprints have a 'fast path' compilation path but we need to make sure that any data regenerated 
 	by normal blueprint compilation is cleared here. If we don't then these functions and properties will
-	hang around hwen a class is converted from a real blueprint to a data only blueprint.
+	hang around when a class is converted from a real blueprint to a data only blueprint.
 */
 static void RemoveStaleFunctions(UBlueprintGeneratedClass* Class, UBlueprint* Blueprint)
 {
@@ -1259,6 +1230,8 @@ static void RemoveStaleFunctions(UBlueprintGeneratedClass* Class, UBlueprint* Bl
 		FName OrphanedClassName = MakeUniqueObjectName(GetTransientPackage(), UBlueprintGeneratedClass::StaticClass(), FName(*OrphanedClassString));
 		UClass* OrphanedClass = NewObject<UBlueprintGeneratedClass>(GetTransientPackage(), OrphanedClassName, RF_Public | RF_Transient);
 		OrphanedClass->ClassAddReferencedObjects = Class->AddReferencedObjects;
+		OrphanedClass->ClassFlags |= CLASS_CompiledFromBlueprint;
+		OrphanedClass->ClassGeneratedBy = Class->ClassGeneratedBy;
 
 		const ERenameFlags RenFlags = REN_DontCreateRedirectors | (Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0) | REN_NonTransactional | REN_DoNotDirty;
 
@@ -4382,23 +4355,18 @@ void FBlueprintEditorUtils::RenameMemberVariable(UBlueprint* Blueprint, const FN
 	}
 }
 
-TArray<UK2Node_Variable*> FBlueprintEditorUtils::GetNodesForVariable(const FName& InVarName, const UBlueprint* InBlueprint, const UStruct* InScope/* = nullptr*/)
+TArray<UK2Node*> FBlueprintEditorUtils::GetNodesForVariable(const FName& InVarName, const UBlueprint* InBlueprint, const UStruct* InScope/* = nullptr*/)
 {
-	TArray<UK2Node_Variable*> ReturnNodes;
-	TArray<UK2Node_Variable*> VariableNodes;
-	GetAllNodesOfClass<UK2Node_Variable>(InBlueprint, VariableNodes);
+	TArray<UK2Node*> ReturnNodes;
+	TArray<UK2Node*> Nodes;
+	GetAllNodesOfClass<UK2Node>(InBlueprint, Nodes);
 
 	bool bNodesPendingDeletion = false;
-	for( TArray<UK2Node_Variable*>::TConstIterator NodeIt(VariableNodes); NodeIt; ++NodeIt )
+	for( TArray<UK2Node*>::TConstIterator NodeIt(Nodes); NodeIt; ++NodeIt )
 	{
-		UK2Node_Variable* CurrentNode = *NodeIt;
-		if (InVarName == CurrentNode->GetVarName())
+		UK2Node* CurrentNode = *NodeIt;
+		if (CurrentNode->ReferencesVariable(InVarName, InScope))
 		{
-			if(InScope && CurrentNode->VariableReference.GetMemberScopeName() != InScope->GetName())
-			{
-				// Variables are not in the same scope
-				continue;
-			}
 			ReturnNodes.Add(CurrentNode);
 		}
 	}
@@ -4472,10 +4440,10 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 				TArray<UBlueprint*> ChildBPs;
 				GetLoadedChildBlueprints(Blueprint, ChildBPs);
 
-				TArray<UK2Node_Variable*> AllVariableNodes = GetNodesForVariable(VariableName, Blueprint);
+				TArray<UK2Node*> AllVariableNodes = GetNodesForVariable(VariableName, Blueprint);
 				for(UBlueprint* ChildBP : ChildBPs)
 				{
-					TArray<UK2Node_Variable*> VariableNodes = GetNodesForVariable(VariableName, ChildBP);
+					TArray<UK2Node*> VariableNodes = GetNodesForVariable(VariableName, ChildBP);
 					AllVariableNodes.Append(VariableNodes);
 				}
 
@@ -4580,7 +4548,7 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 						}
 
 						// Reconstruct all variable nodes that reference the changing variable
-						for(UK2Node_Variable* VariableNode : AllVariableNodes)
+						for(UK2Node* VariableNode : AllVariableNodes)
 						{
 							K2Schema->ReconstructNode(*VariableNode, true);
 						}
@@ -4590,9 +4558,22 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 						{
 							TSharedRef<IBlueprintEditor> BlueprintEditor = StaticCastSharedRef<IBlueprintEditor>(FoundAssetEditor.ToSharedRef());
 
-							const bool bSetFindWithinBlueprint = false;
-							const bool bSelectFirstResult = false;
-							BlueprintEditor->SummonSearchUI(bSetFindWithinBlueprint, AllVariableNodes[0]->GetFindReferenceSearchString(), bSelectFirstResult);
+							UK2Node* FirstVariableNode = nullptr;
+							for (UK2Node* VariableNode : AllVariableNodes)
+							{
+								if (VariableNode->IsA<UK2Node_Variable>())
+								{
+									FirstVariableNode = VariableNode;
+									break;
+								}
+							}
+
+							if (FirstVariableNode)
+							{
+								const bool bSetFindWithinBlueprint = false;
+								const bool bSelectFirstResult = false;
+								BlueprintEditor->SummonSearchUI(bSetFindWithinBlueprint, FirstVariableNode->GetFindReferenceSearchString(), bSelectFirstResult);
+							}
 						}
 					}
 				}
@@ -4972,7 +4953,7 @@ void FBlueprintEditorUtils::ChangeLocalVariableType(UBlueprint* InBlueprint, con
 			// Update the variable type only if it is different
 			if (Variable.VarName == InVariableName && Variable.VarType != NewPinType)
 			{
-				TArray<UK2Node_Variable*> VariableNodes = GetNodesForVariable(InVariableName, InBlueprint, InScope);
+				TArray<UK2Node*> VariableNodes = GetNodesForVariable(InVariableName, InBlueprint, InScope);
 
 				// If there are variable nodes in place, warn the user of the consequences using a suppressible dialog
 				if(VariableNodes.Num())
@@ -5016,7 +4997,7 @@ void FBlueprintEditorUtils::ChangeLocalVariableType(UBlueprint* InBlueprint, con
 				}
 
 				// Reconstruct all local variables referencing the modified one
-				for(UK2Node_Variable* VariableNode : VariableNodes)
+				for(UK2Node* VariableNode : VariableNodes)
 				{
 					K2Schema->ReconstructNode(*VariableNode, true);
 				}
@@ -5028,9 +5009,22 @@ void FBlueprintEditorUtils::ChangeLocalVariableType(UBlueprint* InBlueprint, con
 				{
 					TSharedRef<IBlueprintEditor> BlueprintEditor = StaticCastSharedRef<IBlueprintEditor>(FoundAssetEditor.ToSharedRef());
 
-					const bool bSetFindWithinBlueprint = true;
-					const bool bSelectFirstResult = false;
-					BlueprintEditor->SummonSearchUI(bSetFindWithinBlueprint, VariableNodes[0]->GetFindReferenceSearchString(), bSelectFirstResult);
+					UK2Node* FirstVariableNode = nullptr;
+					for (UK2Node* VariableNode : VariableNodes)
+					{
+						if (VariableNode->IsA<UK2Node_Variable>())
+						{
+							FirstVariableNode = VariableNode;
+							break;
+						}
+					}
+
+					if (FirstVariableNode)
+					{
+						const bool bSetFindWithinBlueprint = true;
+						const bool bSelectFirstResult = false;
+						BlueprintEditor->SummonSearchUI(bSetFindWithinBlueprint, VariableNodes[0]->GetFindReferenceSearchString(), bSelectFirstResult);
+					}
 				}
 			}
 		}

@@ -1636,3 +1636,21 @@ void USplineComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& P
 	Super::PostEditChangeChainProperty(PropertyChangedEvent);
 }
 #endif
+
+void FSplinePositionLinearApproximation::Build(const FSplineCurves& InCurves, TArray<FSplinePositionLinearApproximation>& OutPoints, float InDensity)
+{
+	OutPoints.Reset();
+
+	const float SplineLength = InCurves.GetSplineLength();
+	int32 NumLinearPoints = FMath::Min((int32)(SplineLength * InDensity), 2);
+
+	for (int32 LinearPointIndex = 0; LinearPointIndex < NumLinearPoints; ++LinearPointIndex)
+	{
+		const float DistanceAlpha = (float)LinearPointIndex / (float)NumLinearPoints;
+		const float SplineDistance = SplineLength * DistanceAlpha;
+		const float Param = InCurves.ReparamTable.Eval(SplineDistance, 0.0f);
+		OutPoints.Emplace(InCurves.Position.Eval(Param, FVector::ZeroVector), Param);
+	}
+
+	OutPoints.Emplace(InCurves.Position.Points.Last().OutVal, InCurves.ReparamTable.Points.Last().OutVal);
+}

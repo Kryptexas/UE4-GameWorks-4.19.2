@@ -12176,7 +12176,7 @@ int32 UEngine::RenderStatLevelMap(UWorld* World, FViewport* Viewport, FCanvas* C
 	const TArray<FSubLevelStatus> SubLevelsStatusList = GetSubLevelsStatus(World);
 
 	// First iterate to find bounds of all streaming volumes
-	FBox AllVolBounds(0);
+	FBox AllVolBounds(ForceInit);
 	for (const FSubLevelStatus& LevelStatus : SubLevelsStatusList)
 	{
 		ULevelStreaming* LevelStreaming = World->GetLevelStreamingForPackageName(LevelStatus.PackageName);

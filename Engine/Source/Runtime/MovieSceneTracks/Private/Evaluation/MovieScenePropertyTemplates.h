@@ -20,6 +20,7 @@ class UMovieScenePropertyTrack;
 class UMovieSceneStringSection;
 class UMovieSceneVectorSection;
 class UMovieSceneEnumSection;
+class UMovieScene3DTransformSection;
 
 USTRUCT()
 struct FMovieSceneBoolPropertySectionTemplate : public FMovieSceneEvalTemplate
@@ -268,4 +269,46 @@ protected:
 
 	UPROPERTY()
 	int32 NumChannelsUsed;
+};
+
+
+USTRUCT()
+struct FMovieSceneTransformPropertySectionTemplate : public FMovieSceneEvalTemplate
+{
+	GENERATED_BODY()
+	
+	FMovieSceneTransformPropertySectionTemplate(){}
+	FMovieSceneTransformPropertySectionTemplate(const UMovieScene3DTransformSection& Section, const UMovieScenePropertyTrack& Track);
+
+protected:
+
+	virtual UScriptStruct& GetScriptStructImpl() const override
+	{
+		return *StaticStruct();
+	}
+	virtual void SetupOverrides() override
+	{
+		EnableOverrides(RequiresSetupFlag | RequiresInitializeFlag);
+	}
+	virtual void Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
+	{
+		PropertyData.SetupCachedTrack<FTransform>(PersistentData);
+	}
+	virtual void Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
+	{
+		PropertyData.SetupCachedFrame<FTransform>(Operand, PersistentData, Player);
+	}
+	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
+
+	UPROPERTY()
+	FMovieScenePropertySectionData PropertyData;
+
+	UPROPERTY()
+	FRichCurve TranslationCurve[3];
+
+	UPROPERTY()
+	FRichCurve RotationCurve[3];
+
+	UPROPERTY()
+	FRichCurve ScaleCurve[3];
 };

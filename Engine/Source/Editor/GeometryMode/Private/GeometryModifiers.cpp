@@ -561,7 +561,7 @@ bool UGeomModifier_Edit::InputDelta(FEditorViewportClient* InViewportClient,FVie
 	/**
 	* Scaling needs to know the bounding box for the selected verts, so generate that before looping.
 	*/
-	FBox VertBBox(0);
+	FBox VertBBox(ForceInit);
 
 	for( int32 x = 0 ; x < UniqueVertexList.Num() ; ++x )
 	{

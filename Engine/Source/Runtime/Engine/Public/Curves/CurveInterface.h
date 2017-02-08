@@ -186,6 +186,8 @@ private:
 
 	friend TKeyIterator<KeyValueType, TimeType>;
 	friend TKeyIterator<const KeyValueType, TimeType>;
+	//using TKeyFrameManipulator<TimeType>::GetKeyHandleFromIndex;
+	//using TKeyFrameManipulator<TimeType>::GetKeyTimeChecked;
 
 	/** Array of associated key data */
 	TArray<KeyValueType>* KeyValues;

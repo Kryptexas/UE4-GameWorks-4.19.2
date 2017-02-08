@@ -434,24 +434,55 @@ namespace UnrealBuildTool
 		/// </summary>
 		public void SetupModulePhysXAPEXSupport(ReadOnlyTargetRules Target)
 		{
+			// definitions used outside of PhysX/APEX need to be set here, not in PhysX.Build.cs or APEX.Build.cs, 
+			// since we need to make sure we always set it, even to 0 (because these are Private dependencies, the
+			// defines inside their Build.cs files won't leak out)
 			if (Target.bCompilePhysX == true)
 			{
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "PhysX");
 				Definitions.Add("WITH_PHYSX=1");
-				if (Target.bCompileAPEX == true)
-				{
-					AddEngineThirdPartyPrivateStaticDependencies(Target, "APEX");
-					Definitions.Add("WITH_APEX=1");
-				}
-				else
-				{
-					Definitions.Add("WITH_APEX=0");
-				}
 			}
 			else
 			{
 				Definitions.Add("WITH_PHYSX=0");
+			}
+
+			if (Target.bCompileAPEX == true)
+			{
+				if (!Target.bCompilePhysX)
+				{
+					throw new BuildException("APEX is enabled, without PhysX. This is not supported!");
+				}
+
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "APEX");
+				Definitions.Add("WITH_APEX=1");
+				Definitions.Add("WITH_APEX_CLOTHING=1");
+				Definitions.Add("WITH_CLOTH_COLLISION_DETECTION=1");
+				Definitions.Add("WITH_PHYSICS_COOKING=1");  // APEX currently relies on cooking even at runtime
+
+			}
+			else
+			{
 				Definitions.Add("WITH_APEX=0");
+				Definitions.Add("WITH_APEX_CLOTHING=0");
+				Definitions.Add("WITH_CLOTH_COLLISION_DETECTION=0");
+				Definitions.Add(string.Format("WITH_PHYSICS_COOKING={0}", UEBuildConfiguration.bBuildEditor ? 1 : 0));  // without APEX, we only need cooking in editor builds
+			}
+
+			if (Target.bCompileNvCloth == true)
+			{
+				if (!Target.bCompilePhysX)
+				{
+					throw new BuildException("NvCloth is enabled, without PhysX. This is not supported!");
+				}
+
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "NvCloth");
+                Definitions.Add("WITH_NVCLOTH=1");
+
+			}
+			else
+			{
+				Definitions.Add("WITH_NVCLOTH=0");
 			}
 
 			if (Target.bRuntimePhysicsCooking == true)

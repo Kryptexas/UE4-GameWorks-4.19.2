@@ -2112,7 +2112,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 
 		// We don't need to rerun construction scripts if we have cooked data or we are playing in editor unless the PIE world was loaded
 		// from disk rather than duplicated
-		const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsGameWorld() && (Level->bWasDuplicatedForPIE || !bRerunConstructionDuringEditorStreaming)));
+		const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsGameWorld() && (Level->bHasRerunConstructionScripts || Level->bWasDuplicatedForPIE || !bRerunConstructionDuringEditorStreaming)));
 		
 		// Incrementally update components.
 		int32 NumComponentsToUpdate = GLevelStreamingComponentsRegistrationGranularity;
@@ -3294,7 +3294,7 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 	// Update world and the components of all levels.	
 	// We don't need to rerun construction scripts if we have cooked data or we are playing in editor unless the PIE world was loaded
 	// from disk rather than duplicated
-	const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsGameWorld() && (PersistentLevel->bWasDuplicatedForPIE || !bRerunConstructionDuringEditorStreaming)));
+	const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsGameWorld() && (PersistentLevel->bHasRerunConstructionScripts || PersistentLevel->bWasDuplicatedForPIE || !bRerunConstructionDuringEditorStreaming)));
 	UpdateWorldComponents( bRerunConstructionScript, true );
 
 	// Init level gameplay info.
@@ -3840,7 +3840,7 @@ ALevelScriptActor* UWorld::GetLevelScriptActor( ULevel* OwnerLevel ) const
 }
 
 
-AWorldSettings* UWorld::GetWorldSettings( bool bCheckStreamingPesistent, bool bChecked ) const
+AWorldSettings* UWorld::GetWorldSettings( const bool bCheckStreamingPersistent, const bool bChecked ) const
 {
 	checkSlow(!IsInActualRenderingThread());
 	AWorldSettings* WorldSettings = nullptr;
@@ -3848,7 +3848,7 @@ AWorldSettings* UWorld::GetWorldSettings( bool bCheckStreamingPesistent, bool bC
 	{
 		WorldSettings = PersistentLevel->GetWorldSettings(bChecked);
 
-		if( bCheckStreamingPesistent )
+		if( bCheckStreamingPersistent )
 		{
 			if( StreamingLevels.Num() > 0 &&
 				StreamingLevels[0] &&

@@ -96,3 +96,16 @@ void FSkeletonEditorMode::RegisterTabFactories(TSharedPtr<FTabManager> InTabMana
 
 	FApplicationMode::RegisterTabFactories(InTabManager);
 }
+
+void FSkeletonEditorMode::AddTabFactory(FCreateWorkflowTabFactory FactoryCreator)
+{
+	if (FactoryCreator.IsBound())
+	{
+		TabFactories.RegisterFactory(FactoryCreator.Execute(HostingAppPtr.Pin()));
+	}
+}
+
+void FSkeletonEditorMode::RemoveTabFactory(FName TabFactoryID)
+{
+	TabFactories.UnregisterFactory(TabFactoryID);
+}

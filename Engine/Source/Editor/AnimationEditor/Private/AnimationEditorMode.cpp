@@ -115,3 +115,16 @@ void FAnimationEditorMode::RegisterTabFactories(TSharedPtr<FTabManager> InTabMan
 
 	FApplicationMode::RegisterTabFactories(InTabManager);
 }
+
+void FAnimationEditorMode::AddTabFactory(FCreateWorkflowTabFactory FactoryCreator)
+{
+	if (FactoryCreator.IsBound())
+	{
+		TabFactories.RegisterFactory(FactoryCreator.Execute(HostingAppPtr.Pin()));		
+	}
+}
+
+void FAnimationEditorMode::RemoveTabFactory(FName TabFactoryID)
+{
+	TabFactories.UnregisterFactory(TabFactoryID);
+}

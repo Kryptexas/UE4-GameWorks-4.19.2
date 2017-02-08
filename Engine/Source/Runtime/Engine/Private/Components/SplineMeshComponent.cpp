@@ -701,7 +701,7 @@ FBoxSphereBounds USplineMeshComponent::CalcBounds(const FTransform& LocalToWorld
 {
 	if (!GetStaticMesh())
 	{
-		return FBoxSphereBounds(FBox(0));
+		return FBoxSphereBounds(FBox(ForceInit));
 	}
 
 	float MinT = 0.0f;
@@ -733,7 +733,7 @@ FBoxSphereBounds USplineMeshComponent::CalcBounds(const FTransform& LocalToWorld
 	const FVector FlattenedMeshExtent = MeshBounds.BoxExtent * AxisMask;
 	const FBox MeshBoundingBox = FBox(FlattenedMeshOrigin - FlattenedMeshExtent, FlattenedMeshOrigin + FlattenedMeshExtent);
 
-	FBox BoundingBox(0);
+	FBox BoundingBox(ForceInit);
 	BoundingBox += MeshBoundingBox.TransformBy(CalcSliceTransformAtSplineOffset(MinT));
 	BoundingBox += MeshBoundingBox.TransformBy(CalcSliceTransformAtSplineOffset(MaxT));
 

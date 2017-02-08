@@ -21,13 +21,17 @@
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
 #include "Animation/AnimBlueprint.h"
-
-#if WITH_APEX_CLOTHING
-#include "PhysXIncludes.h"
-#endif
+#include "SkeletalRender.h"
 
 #include "Logging/MessageLog.h"
 #include "Animation/AnimNode_SubInput.h"
+
+#include "PhysXIncludes.h"
+
+#include "ClothingSimulationFactoryInterface.h"
+#include "ClothingSimulationInterface.h"
+#include "Features/IModularFeatures.h"
+
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponent"
 
@@ -168,22 +172,16 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 	TeleportDistanceThreshold = 300.0f;
 	TeleportRotationThreshold = 0.0f;// angles in degree, disabled by default
 	ClothBlendWeight = 1.0f;
-	bPreparedClothMorphTargets = false;
 
-	ClothTeleportMode = FClothingActor::Continuous;
+	ClothTeleportMode = EClothingTeleportMode::None;
 	PrevRootBoneMatrix = GetBoneMatrix(0); // save the root bone transform
 
 	// pre-compute cloth teleport thresholds for performance
 	ClothTeleportCosineThresholdInRad = FMath::Cos(FMath::DegreesToRadians(TeleportRotationThreshold));
 	ClothTeleportDistThresholdSquared = TeleportDistanceThreshold * TeleportDistanceThreshold;
 	bBindClothToMasterComponent = false;
-	bPrevMasterSimulateLocalSpace = false;
 
 	bClothingSimulationSuspended = false;
-
-#if WITH_CLOTH_COLLISION_DETECTION
-	ClothingCollisionRevision = 0;
-#endif// #if WITH_CLOTH_COLLISION_DETECTION
 
 #endif//#if WITH_APEX_CLOTHING
 
@@ -200,8 +198,24 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 	bTickInEditor = true;
 
 	CachedAnimCurveUidVersion = 0;
-
 	ResetRootBodyIndex();
+
+	TArray<IClothingSimulationFactoryClassProvider*> ClassProviders = IModularFeatures::Get().GetModularFeatureImplementations<IClothingSimulationFactoryClassProvider>(IClothingSimulationFactoryClassProvider::FeatureName);
+	if(ClassProviders.Num() > 0)
+	{
+		// We use the last provider in the list so plugins/modules can override ours
+		IClothingSimulationFactoryClassProvider* Provider = ClassProviders.Last();
+		check(Provider);
+
+		ClothingSimulationFactory = Provider->GetDefaultSimulationFactoryClass();
+	}
+	else
+	{
+		ClothingSimulationFactory = nullptr;
+	}
+
+	ClothingSimulation = nullptr;
+	ClothingSimulationContext = nullptr;
 }
 
 void USkeletalMeshComponent::Serialize(FArchive& Ar)
@@ -349,22 +363,19 @@ bool USkeletalMeshComponent::ShouldRunClothTick() const
 
 bool USkeletalMeshComponent::CanSimulateClothing() const
 {
-#if WITH_APEX_CLOTHING
-	bool bShouldRunCloth = ClothingActors.Num() > 0 && SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0
-								&& !IsNetMode(NM_DedicatedServer); // Cloth never needs to run on dedicated server
-
-	//If we are eligible to run cloth we should check if any of the clothing actors will actually simulate at this LOD
-	if(bShouldRunCloth)
+	if(!SkeletalMesh)
 	{
-		for(const FClothingActor& ClothingActor : ClothingActors)
-		{
-			if(ClothingActor.bSimulateForCurrentLOD)	//found at least one so register the tick
-			{
-				return true;
-			}
-		}
+		return false;
 	}
-#endif
+
+	TArray<UClothingAssetBase*> AssetsInUse;
+	SkeletalMesh->GetClothingAssetsInUse(AssetsInUse);
+	bool bCanRun = AssetsInUse.Num() > 0 && !IsNetMode(NM_DedicatedServer);
+
+	if(bCanRun)
+	{
+		return true;
+	}
 
 	return	false;
 }
@@ -437,6 +448,19 @@ void USkeletalMeshComponent::OnRegister()
 #if WITH_APEX_CLOTHING
 	RecreateClothingActors();
 #endif
+
+	if(UClass* SimFactoryClass = *ClothingSimulationFactory)
+	{
+		UClothingSimulationFactory* SimFactory = SimFactoryClass->GetDefaultObject<UClothingSimulationFactory>();
+		ClothingSimulation = SimFactory->CreateSimulation();
+		ClothingSimulation->Initialize();
+		ClothingSimulationContext = ClothingSimulation->CreateContext();
+
+		if(SkeletalMesh)
+		{
+			RecreateClothingActors();
+		}
+	}
 }
 
 void USkeletalMeshComponent::OnUnregister()
@@ -445,10 +469,8 @@ void USkeletalMeshComponent::OnUnregister()
 	const bool bPerformPostAnimEvaluation = false; // Skip post evaluation, it would be wasted work
 	HandleExistingParallelEvaluationTask(bBlockOnTask, bPerformPostAnimEvaluation);
 
-#if WITH_APEX_CLOTHING
 	//clothing actors will be re-created in TickClothing
 	ReleaseAllClothingResources();
-#endif// #if WITH_APEX_CLOTHING
 
 	if (AnimScriptInstance)
 	{
@@ -464,6 +486,18 @@ void USkeletalMeshComponent::OnUnregister()
 	if(PostProcessAnimInstance)
 	{
 		PostProcessAnimInstance->UninitializeAnimation();
+	}
+
+	UClothingSimulationFactory* SimFactory = GetClothingSimFactory();
+	if(ClothingSimulation && SimFactory)
+	{
+		ClothingSimulation->DestroyContext(ClothingSimulationContext);
+		ClothingSimulation->DestroyActors();
+		ClothingSimulation->Shutdown();
+
+		SimFactory->DestroySimulation(ClothingSimulation);
+		ClothingSimulation = nullptr;
+		ClothingSimulationContext = nullptr;
 	}
 
 	Super::OnUnregister();
@@ -831,10 +865,6 @@ bool USkeletalMeshComponent::UpdateLODStatus()
 	if ( Super::UpdateLODStatus() )
 	{
 		bRequiredBonesUpToDate = false;
-
-#if WITH_APEX_CLOTHING
-		SetClothingLOD(PredictedLODLevel);
-#endif // #if WITH_APEX_CLOTHING
 		return true;
 	}
 
@@ -990,6 +1020,8 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 	UpdateClothTickRegisteredState();
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	
+	PendingRadialForces.Reset();
 
 	// Update bOldForceRefPose
 	bOldForceRefPose = bForceRefpose;
@@ -1497,46 +1529,61 @@ void USkeletalMeshComponent::EvaluatePostProcessMeshInstance(TArray<FTransform>&
 	}
 }
 
-#if WITH_APEX_CLOTHING
+const IClothingSimulation* USkeletalMeshComponent::GetClothingSimulation() const
+{
+	return ClothingSimulation;
+}
+
 void USkeletalMeshComponent::UpdateClothSimulationContext()
 {
-	USkinnedMeshComponent* MasterPoseComponentPtr = MasterPoseComponent.Get();
-	InternalClothSimulationContext.bUseMasterPose = MasterPoseComponent != nullptr;
-	InternalClothSimulationContext.BoneTransforms = MasterPoseComponentPtr ? MasterPoseComponentPtr->GetComponentSpaceTransforms() : GetComponentSpaceTransforms();
-	InternalClothSimulationContext.ClothingActors = ClothingActors;
-	InternalClothSimulationContext.ClothingAssets = SkeletalMesh->ClothingAssets;
-	InternalClothSimulationContext.ComponentToWorld = ComponentToWorld;
-
-	if(InternalClothSimulationContext.InMasterBoneMapCacheCount != MasterBoneMapCacheCount)
-	{
-		InternalClothSimulationContext.InMasterBoneMapCacheCount = MasterBoneMapCacheCount;
-		InternalClothSimulationContext.InMasterBoneMap = MasterBoneMap;
-	}
-
-
 	//Do the teleport cloth test here on the game thread
+	CheckClothTeleport();
+
+	if(bPendingClothTransformUpdate)	//it's possible we want to update cloth collision based on a pending transform
 	{
-		CheckClothTeleport();
-		InternalClothSimulationContext.ClothTeleportMode = ClothTeleportMode;
-
-		if(InternalClothSimulationContext.bPendingClothUpdateTransform)	//it's possible we want to update cloth collision based on a pending transform
+		bPendingClothTransformUpdate = false;
+		if(PendingTeleportType == ETeleportType::TeleportPhysics)	//If the pending transform came from a teleport, make sure to teleport the cloth in this upcoming simulation
 		{
-			InternalClothSimulationContext.bPendingClothUpdateTransform = false;
-			if(InternalClothSimulationContext.PendingTeleportType == ETeleportType::TeleportPhysics)	//If the pending transform came from a teleport, make sure to teleport the cloth in this upcoming simulation
-			{
-				InternalClothSimulationContext.ClothTeleportMode = FClothingActor::TeleportMode::Teleport;
-			}
-
-			UpdateClothTransformImp();
+			ClothTeleportMode = EClothingTeleportMode::Teleport;
 		}
 
-		ClothTeleportMode = FClothingActor::TeleportMode::Continuous;
+		UpdateClothTransformImp();
 	}
 
-	//Get wind information on the game thread. This is actually not thread safe because of how the wind system works, but this is isolating the actual parallel cloth code from it all
-	GetWindForCloth_GameThread(InternalClothSimulationContext.WindDirection, InternalClothSimulationContext.WindAdaption);
+	// Fill the context for the next simulation
+	if(ClothingSimulation)
+	{
+		ClothingSimulation->FillContext(this, ClothingSimulationContext);
+	}
+
+	ClothTeleportMode = EClothingTeleportMode::None;
 }
-#endif
+
+void USkeletalMeshComponent::WritebackClothingSimulationData()
+{
+	if(ClothingSimulation)
+	{
+		USkeletalMeshComponent* OverrideComponent = nullptr;
+		if(MasterPoseComponent.IsValid() && IsClothBoundToMasterComponent())
+		{
+			OverrideComponent = Cast<USkeletalMeshComponent>(MasterPoseComponent.Get());
+		}
+
+		ClothingSimulation->GetSimulationData(CurrentSimulationData_GameThread, this, OverrideComponent);
+	}
+}
+
+UClothingSimulationFactory* USkeletalMeshComponent::GetClothingSimFactory() const
+{
+	UClass* SimFactoryClass = *ClothingSimulationFactory;
+	if(SimFactoryClass)
+	{
+		return SimFactoryClass->GetDefaultObject<UClothingSimulationFactory>();
+	}
+
+	// No simulation factory set
+	return nullptr;
+}
 
 void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
@@ -1720,16 +1767,6 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		//Since we aren't doing this through the tick system, assume we want the buffer flipped now
 		FinalizeBoneTransform();
 	}
-}
-
-FClothSimulationContext::FClothSimulationContext()
-{
-	ClothTeleportMode = FClothingActor::TeleportMode::Continuous;
-	InMasterBoneMapCacheCount = -1;
-	bUseMasterPose = false;
-	WindAdaption = 2.f;	//This is the const that the previous code was using. Not sure where it comes from
-	bPendingClothUpdateTransform = false;
-	PendingTeleportType = ETeleportType::None;
 }
 
 void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& EvaluationContext)
@@ -2834,7 +2871,6 @@ bool USkeletalMeshComponent::IsClothingSimulationSuspended()
 
 void USkeletalMeshComponent::BindClothToMasterPoseComponent()
 {
-#if WITH_APEX_CLOTHING
 	if(USkeletalMeshComponent* MasterComp = Cast<USkeletalMeshComponent>(MasterPoseComponent.Get()))
 	{
 		if(SkeletalMesh != MasterComp->SkeletalMesh)
@@ -2843,82 +2879,29 @@ void USkeletalMeshComponent::BindClothToMasterPoseComponent()
 			return;
 		}
 
-		int32 NumClothingActors = ClothingActors.Num();
-		
-		for(int32 ActorIdx = 0 ; ActorIdx < NumClothingActors ; ++ActorIdx)
+		if(ClothingSimulation && MasterComp->ClothingSimulation)
 		{
-			FClothingActor& Actor = ClothingActors[ActorIdx];
-			FClothingActor& MasterActor = MasterComp->ClothingActors[ActorIdx];
-			apex::ClothingActor* ApexActor = Actor.ApexClothingActor;
-			apex::ClothingActor* MasterApexActor = MasterActor.ApexClothingActor;
-			if(ApexActor && MasterApexActor)
-			{
-				//TODO: wait on parallel animation if needed
-				// Disable our actors
-				ApexActor->setFrozen(true);
+			bDisableClothSimulation = true;
 
-				// Force local space simulation
-				NvParameterized::Interface* MasterActorInterface = MasterApexActor->getActorDesc();
-				verify(NvParameterized::setParamBool(*MasterActorInterface, "localSpaceSim", true));
-
-				// Make sure the master component starts extracting in local space
-				bPrevMasterSimulateLocalSpace = MasterComp->bLocalSpaceSimulation;
-				MasterComp->bLocalSpaceSimulation = true;
-			}
-			else
-			{
-				// Something has gone wrong here, don't attempt to extract cloth positions
-				UE_LOG(LogAnimation, Warning, TEXT("BindClothToMasterPoseComponent: Failed to bind to master component, missing actor."));
-				bBindClothToMasterComponent = false;
-				return;
-			}
+			// When we extract positions from now we'll just take the master components positions
+			bBindClothToMasterComponent = true;
 		}
-
-		// When we extract positions from now we'll just take the master components positions
-		bBindClothToMasterComponent = true;
 	}
-#endif
 }
 
 void USkeletalMeshComponent::UnbindClothFromMasterPoseComponent(bool bRestoreSimulationSpace)
 {
-#if WITH_APEX_CLOTHING
 	USkeletalMeshComponent* MasterComp = Cast<USkeletalMeshComponent>(MasterPoseComponent.Get());
 	if(MasterComp && bBindClothToMasterComponent)
 	{
-		bBindClothToMasterComponent = false;
-
-		int32 NumClothingActors = ClothingActors.Num();
-
-		for(int32 ActorIdx = 0 ; ActorIdx < NumClothingActors ; ++ActorIdx)
+		if(ClothingSimulation)
 		{
-			FClothingActor& Actor = ClothingActors[ActorIdx];
-			apex::ClothingActor* ApexActor = Actor.ApexClothingActor;
+			bDisableClothSimulation = false;
+		}
 
-			if(ApexActor)
-			{
-				//TODO: wait on parallel animation if needed
-				ApexActor->setFrozen(false);
-
-				bool bMasterPoseSpaceChanged = (MasterComp->bLocalSpaceSimulation && !bPrevMasterSimulateLocalSpace);
-				if(bMasterPoseSpaceChanged && bRestoreSimulationSpace)
-				{
-					// Need to undo local space
-					FClothingActor& MasterActor = MasterComp->ClothingActors[ActorIdx];
-					apex::ClothingActor* MasterApexActor = MasterActor.ApexClothingActor;
-					if(MasterApexActor)
-					{
-						NvParameterized::Interface* MasterActorInterface = MasterApexActor->getActorDesc();
-						verify(NvParameterized::setParamBool(*MasterActorInterface, "localSpaceSim", false));
-
-						MasterComp->bLocalSpaceSimulation = false;
-					}
-				}
-			}
+		bBindClothToMasterComponent = false;
 		}
 	}
-#endif
-}
 
 bool USkeletalMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
@@ -2959,6 +2942,11 @@ void USkeletalMeshComponent::FinalizeBoneTransform()
 	{
 		AnimScriptInstance->PostEvaluateAnimation();
 	}
+}
+
+void USkeletalMeshComponent::GetCurrentRefToLocalMatrices(TArray<FMatrix>& OutRefToLocals, int32 InLodIdx)
+{
+	UpdateRefToLocalMatrices(OutRefToLocals, this, SkeletalMesh->GetImportedResource(), InLodIdx, nullptr);
 }
 
 FDelegateHandle USkeletalMeshComponent::RegisterOnPhysicsCreatedDelegate(const FOnSkelMeshPhysicsCreated& Delegate)

@@ -31,9 +31,42 @@ void FAnimNode_LayeredBoneBlend::Initialize(const FAnimationInitializeContext& C
 	}
 }
 
+#if WITH_EDITOR
+void FAnimNode_LayeredBoneBlend::PostCompile(const class USkeleton* InSkeleton)
+{
+	FAnimNode_Base::PostCompile(InSkeleton);
+	RebuildCacheData(InSkeleton);
+}
+#endif // WITH_EDITOR
+
+void FAnimNode_LayeredBoneBlend::RebuildCacheData(const USkeleton* InSkeleton)
+{
+		// this shouldn't happen outside of editor
+#if !WITH_EDITOR
+	ensureAlways(false);
+#endif 		
+	if (InSkeleton)
+	{
+		FAnimationRuntime::CreateMaskWeights(PerBoneBlendWeights, LayerSetup, InSkeleton);
+		SkeletonGuid = InSkeleton->GetGuid();
+	}
+}
+
 void FAnimNode_LayeredBoneBlend::ReinitializeBoneBlendWeights(const FBoneContainer& RequiredBones, const USkeleton* Skeleton)
 {
-	FAnimationRuntime::CreateMaskWeights(DesiredBoneBlendWeights, LayerSetup, RequiredBones, Skeleton);
+	if (Skeleton->GetGuid() != SkeletonGuid)
+	{
+		RebuildCacheData(Skeleton);
+	}
+
+	// build desired bone weights
+	const TArray<FBoneIndexType>& RequiredBoneIndices = RequiredBones.GetBoneIndicesArray();
+	DesiredBoneBlendWeights.SetNumZeroed(RequiredBoneIndices.Num());
+	for (int32 RequiredBoneIndex = 0; RequiredBoneIndex < RequiredBoneIndices.Num(); ++RequiredBoneIndex)
+	{
+		int32 SkeletonIndex = RequiredBones.GetSkeletonIndex(FCompactPoseBoneIndex(RequiredBoneIndex));
+		DesiredBoneBlendWeights[RequiredBoneIndex] = PerBoneBlendWeights[SkeletonIndex];
+	}
 
 	CurrentBoneBlendWeights.Reset(DesiredBoneBlendWeights.Num());
 	CurrentBoneBlendWeights.AddZeroed(DesiredBoneBlendWeights.Num());

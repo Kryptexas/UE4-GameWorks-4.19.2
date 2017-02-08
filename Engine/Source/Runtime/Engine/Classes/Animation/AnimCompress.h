@@ -12,6 +12,7 @@
 #include "UObject/Object.h"
 #include "Animation/AnimSequence.h"
 #include "AnimationUtils.h"
+#include "AnimEnums.h"
 #include "AnimCompress.generated.h"
 
 //Helper function for ddc key generation

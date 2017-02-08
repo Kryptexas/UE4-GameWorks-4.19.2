@@ -14,6 +14,8 @@
 #include "ReferenceSkeleton.h"
 #include "Animation/PreviewAssetAttachComponent.h"
 #include "Animation/SmartName.h"
+#include "Engine/AssetUserData.h"
+#include "Interfaces/Interface_AssetUserData.h"
 
 #include "Skeleton.generated.h"
 
@@ -266,8 +268,10 @@ public:
  *		- Mirror table
  */
 UCLASS(hidecategories=Object, MinimalAPI)
-class USkeleton : public UObject
+class USkeleton : public UObject, public IInterface_AssetUserData
 {
+	friend class UAnimationBlueprintLibrary;
+
 	GENERATED_UCLASS_BODY()
 
 protected:
@@ -683,7 +687,7 @@ public:
 	 *
 	 * @return	Index of Track of Animation Sequence
 	 */
-	ENGINE_API int32 GetAnimationTrackIndex(const int32& InSkeletonBoneIndex, const UAnimSequence* InAnimSeq, const bool bUseRawData);
+	ENGINE_API int32 GetAnimationTrackIndex(const int32 InSkeletonBoneIndex, const UAnimSequence* InAnimSeq, const bool bUseRawData);
 
 	/** 
 	 * Get Bone Tree Index from Reference Bone Index
@@ -691,7 +695,7 @@ public:
 	 * @param	InRefBoneIdx	Reference Bone Index to look for - index of USkeletalMesh.RefSkeleton
 	 * @return	Index of BoneTree Index
 	 */
-	ENGINE_API int32 GetSkeletonBoneIndexFromMeshBoneIndex(const USkeletalMesh* InSkelMesh, const int32& MeshBoneIndex);
+	ENGINE_API int32 GetSkeletonBoneIndexFromMeshBoneIndex(const USkeletalMesh* InSkelMesh, const int32 MeshBoneIndex);
 
 	/** 
 	 * Get Reference Bone Index from Bone Tree Index
@@ -699,9 +703,9 @@ public:
 	 * @param	InBoneTreeIdx	Bone Tree Index to look for - index of USkeleton.BoneTree
 	 * @return	Index of BoneTree Index
 	 */
-	ENGINE_API int32 GetMeshBoneIndexFromSkeletonBoneIndex(const USkeletalMesh* InSkelMesh, const int32& SkeletonBoneIndex);
+	ENGINE_API int32 GetMeshBoneIndexFromSkeletonBoneIndex(const USkeletalMesh* InSkelMesh, const int32 SkeletonBoneIndex);
 
-	EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(const int32& BoneTreeIdx) const
+	EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(const int32 BoneTreeIdx) const
 	{
 		if (BoneTree.IsValidIndex(BoneTreeIdx))
 		{
@@ -724,7 +728,7 @@ public:
 	 */
 	void RemoveLinkup(const USkeletalMesh* InSkelMesh);
 
-	ENGINE_API void SetBoneTranslationRetargetingMode(const int32& BoneIndex, EBoneTranslationRetargetingMode::Type NewRetargetingMode, bool bChildrenToo=false);
+	ENGINE_API void SetBoneTranslationRetargetingMode(const int32 BoneIndex, EBoneTranslationRetargetingMode::Type NewRetargetingMode, bool bChildrenToo=false);
 
 	ENGINE_API virtual void PostLoad() override;
 	ENGINE_API virtual void PostDuplicate(bool bDuplicateForPIE) override;
@@ -795,7 +799,7 @@ protected:
 	FOnSkeletonHierarchyChangedMulticaster OnSkeletonHierarchyChanged;
 
 	/** Call this when the skeleton has changed to fix dependent assets */
-	void HandleSkeletonHierarchyChange();
+	ENGINE_API void HandleSkeletonHierarchyChange();
 
 public:
 	typedef FOnSkeletonHierarchyChangedMulticaster::FDelegate FOnSkeletonHierarchyChanged;
@@ -838,5 +842,20 @@ private:
 	/** Regenerate new Guid */
 	void RegenerateGuid();
 	void RegenerateVirtualBoneGuid();
+
+
+
+
+public:
+	//~ Begin IInterface_AssetUserData Interface
+	ENGINE_API virtual void AddAssetUserData(UAssetUserData* InUserData) override;
+	ENGINE_API virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	ENGINE_API virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	ENGINE_API virtual const TArray<UAssetUserData*>* GetAssetUserDataArray() const override;
+	//~ End IInterface_AssetUserData Interface
+protected:
+	/** Array of user data stored with the asset */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category = Skeleton)
+	TArray<UAssetUserData*> AssetUserData;
 };
 

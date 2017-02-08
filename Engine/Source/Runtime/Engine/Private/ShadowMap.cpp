@@ -202,7 +202,7 @@ struct FShadowMapPendingTexture : FTextureLayout
 	 */
 	FShadowMapPendingTexture(uint32 InSizeX,uint32 InSizeY)
 		: FTextureLayout(4, 4, InSizeX, InSizeY, /* PowerOfTwo */ true, /* Force2To1Aspect */ false, /* AlignByFour */ true) // Min size is 4x4 in case of block compression.
-		, Bounds(FBox(0))
+		, Bounds(FBox(ForceInit))
 		, ShadowmapFlags(SMF_None)
 		, UnallocatedTexels(InSizeX * InSizeY)
 		, bCreatedUObjects( false)

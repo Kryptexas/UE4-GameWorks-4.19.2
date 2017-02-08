@@ -5,10 +5,6 @@
 #include "EngineUtils.h"
 #include "Sound/SoundCue.h"
 
-#if WITH_EDITOR
-//#include "AudioEditor.h"
-#endif
-
 /*-----------------------------------------------------------------------------
 	USoundNode implementation.
 -----------------------------------------------------------------------------*/

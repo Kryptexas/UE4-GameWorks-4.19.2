@@ -65,10 +65,14 @@ namespace Audio
 		Update(true);
 	}
 
-	void FDelay::SetEasedDelayMsec(const float InDelayMsec)
+	void FDelay::SetEasedDelayMsec(const float InDelayMsec, const bool bIsInit)
 	{
-		EaseDelayMsec = InDelayMsec;
-		Update();
+		EaseDelayMsec.SetValue(InDelayMsec, bIsInit);
+		if (bIsInit)
+		{
+			DelayMsec = InDelayMsec;
+		}
+		Update(bIsInit);
 	}
 
 	void FDelay::SetOutputAttenuationDB(const float InDelayAttenDB)

@@ -1651,6 +1651,110 @@ void FPropertyValueImpl::DeleteChild( TSharedPtr<FPropertyNode> ChildNodeToDelet
 	}
 }
 
+void FPropertyValueImpl::SwapChildren(int32 FirstIndex, int32 SecondIndex)
+{
+	TSharedPtr<FPropertyNode> ArrayParentPin = PropertyNode.Pin();
+	if (ArrayParentPin.IsValid())
+	{
+		SwapChildren(ArrayParentPin->GetChildNode(FirstIndex), ArrayParentPin->GetChildNode(SecondIndex));
+	}
+}
+
+void FPropertyValueImpl::SwapChildren( TSharedPtr<FPropertyNode> FirstChildNode, TSharedPtr<FPropertyNode> SecondChildNode)
+{
+	FPropertyNode* FirstChildNodePtr = FirstChildNode.Get();
+	FPropertyNode* SecondChildNodePtr = SecondChildNode.Get();
+
+	FPropertyNode* ParentNode = FirstChildNodePtr->GetParentNode();
+	FObjectPropertyNode* ObjectNode = FirstChildNodePtr->FindObjectItemParent();
+
+	UProperty* FirstNodeProperty = FirstChildNodePtr->GetProperty();
+	UProperty* SecondNodeProperty = SecondChildNodePtr->GetProperty();
+	UArrayProperty* ArrayProperty = Cast<UArrayProperty>(FirstNodeProperty->GetOuter());
+
+	check(ArrayProperty);
+
+	FReadAddressList ReadAddresses;
+	ParentNode->GetReadAddress( !!ParentNode->HasNodeFlags(EPropertyNodeFlags::SingleSelectOnly), ReadAddresses ); 
+	if ( ReadAddresses.Num() )
+	{
+		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SwapChildren", "Swap Children") );
+
+		FirstChildNodePtr->NotifyPreChange( FirstNodeProperty, NotifyHook );
+		SecondChildNodePtr->NotifyPreChange( SecondNodeProperty, NotifyHook );
+		
+		// List of top level objects sent to the PropertyChangedEvent
+		TArray<const UObject*> TopLevelObjects;
+		TopLevelObjects.Reserve(ReadAddresses.Num());
+
+		// perform the operation on the array for all selected objects
+		for ( int32 i = 0 ; i < ReadAddresses.Num() ; ++i )
+		{
+			uint8* Address = ReadAddresses.GetAddress(i);
+
+			if( Address ) 
+			{
+				int32 FirstIndex = FirstChildNodePtr->GetArrayIndex();
+				int32 SecondIndex = SecondChildNodePtr->GetArrayIndex();
+
+				UObject* Obj = ObjectNode ? ObjectNode->GetUObject(i) : nullptr;
+				if (Obj)
+				{
+					if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
+						(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))) &&
+						!FApp::IsGame())
+					{
+						FString OrgContent;
+						Cast<UProperty>(FirstNodeProperty->GetOuter())->ExportText_Direct(OrgContent, Address, Address, nullptr, 0);
+						FirstChildNodePtr->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Swap, FirstIndex);
+
+						Cast<UProperty>(SecondNodeProperty->GetOuter())->ExportText_Direct(OrgContent, Address, Address, nullptr, 0);
+						SecondChildNodePtr->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Swap, SecondIndex);
+					}
+
+					TopLevelObjects.Add(Obj);
+				}
+
+				if (ArrayProperty)
+				{
+					FScriptArrayHelper ArrayHelper(ArrayProperty, Address);
+
+					// If the inner property is an instanced component property we must move the old component to the 
+					// transient package so resetting owned components on the parent doesn't find it
+					UObjectProperty* InnerObjectProperty = Cast<UObjectProperty>(ArrayProperty->Inner);
+					if (InnerObjectProperty && InnerObjectProperty->HasAnyPropertyFlags(CPF_InstancedReference) && InnerObjectProperty->PropertyClass->IsChildOf(UActorComponent::StaticClass()))
+					{
+						if (UActorComponent* Component = *reinterpret_cast<UActorComponent**>(ArrayHelper.GetRawPtr(FirstIndex)))
+						{
+							Component->Modify();
+							Component->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+						}
+
+						if (UActorComponent* Component = *reinterpret_cast<UActorComponent**>(ArrayHelper.GetRawPtr(SecondIndex)))
+						{
+							Component->Modify();
+							Component->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+						}
+					}
+
+					ArrayHelper.SwapValues(FirstIndex, SecondIndex);
+				}
+			}
+		}
+
+		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::Unspecified, &TopLevelObjects);
+		FirstChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
+		SecondChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
+
+		if (PropertyUtilities.IsValid())
+		{
+			FirstChildNodePtr->FixPropertiesInEvent(ChangeEvent);
+			SecondChildNodePtr->FixPropertiesInEvent(ChangeEvent);
+			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
+		}
+	}
+}
+
 void FPropertyValueImpl::DuplicateChild( int32 Index )
 {
 	TSharedPtr<FPropertyNode> ArrayParentPin = PropertyNode.Pin();
@@ -3646,6 +3750,18 @@ FPropertyAccess::Result FPropertyHandleArray::DeleteItem( int32 Index )
 	if( IsEditable() && Index < Implementation->GetNumChildren() )
 	{
 		Implementation->DeleteChild( Index );
+		Result = FPropertyAccess::Success;
+	}
+
+	return Result;
+}
+
+FPropertyAccess::Result FPropertyHandleArray::SwapItems(int32 FirstIndex, int32 SecondIndex)
+{
+	FPropertyAccess::Result Result = FPropertyAccess::Fail;
+	if (IsEditable() && FirstIndex >= 0 && SecondIndex >= 0 && FirstIndex < Implementation->GetNumChildren() && SecondIndex < Implementation->GetNumChildren())
+	{
+		Implementation->SwapChildren(FirstIndex, SecondIndex);
 		Result = FPropertyAccess::Success;
 	}
 

@@ -1201,6 +1201,8 @@ namespace FEncryption
 	}
 }
 
+//~ APIDOCTOOL: Document=Off
+
 /**
  * Specialization for int type used in encryption (performance). Avoids using temporary results and most of the operations are inplace.
  */
@@ -1221,6 +1223,8 @@ FORCEINLINE TEncryptionInt FEncryption::ModularPow(TEncryptionInt Base, TEncrypt
 	}
 	return Result;
 }
+
+//~ APIDOCTOOL: Document=On
 
 template <class TYPE>
 struct FSignatureBase

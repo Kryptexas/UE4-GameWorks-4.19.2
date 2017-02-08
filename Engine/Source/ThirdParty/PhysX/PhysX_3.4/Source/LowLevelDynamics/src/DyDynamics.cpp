@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -2626,7 +2626,7 @@ static PxU32 createFinalizeContacts_Parallel(PxSolverBodyData* solverBodyData, T
 
 		if(contactDescPtr[header.mStartIndex].constraintLengthOver16 == DY_SC_TYPE_RB_CONTACT)
 		{
-			SolverConstraintPrepState::Enum state = SolverConstraintPrepState::eUNBATCHABLE;
+			
 
 			PxSolverContactDesc blockDescs[4];
 			PxsContactManagerOutput* cmOutputs[4];
@@ -2679,6 +2679,8 @@ static PxU32 createFinalizeContacts_Parallel(PxSolverBodyData* solverBodyData, T
 
 			}
 
+#if DY_BATCH_CONSTRAINTS
+			SolverConstraintPrepState::Enum state = SolverConstraintPrepState::eUNBATCHABLE;
 			if(header.mStride == 4)
 			{
 				//KS - todo - plumb in axisConstraintCount into this method to keep track of the number of axes
@@ -2692,6 +2694,7 @@ static PxU32 createFinalizeContacts_Parallel(PxSolverBodyData* solverBodyData, T
 
 			}
 			if(SolverConstraintPrepState::eSUCCESS != state)
+#endif
 			{
 				for(PxU32 i = 0; i < header.mStride; ++i)
 				{
@@ -2766,7 +2769,7 @@ static PxU32 createFinalizeContacts_Parallel(PxSolverBodyData* solverBodyData, T
 				prepDesc.minResponseThreshold = constraint->minResponseThreshold;
 			}
 
-#if DY_BATCH_1D
+#if DY_BATCH_CONSTRAINTS && DY_BATCH_1D
 			SolverConstraintPrepState::Enum state = SolverConstraintPrepState::eUNBATCHABLE;
 			if(header.mStride == 4)
 			{

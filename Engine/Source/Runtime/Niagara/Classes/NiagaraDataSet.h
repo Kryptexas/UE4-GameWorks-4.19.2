@@ -374,7 +374,7 @@ struct FNiagaraDataSetIterator<int32> : public FNiagaraDataSetIteratorBase
 	FORCEINLINE void Get(int32& OutValue)const { GetValue(&OutValue); }
 	//FORCEINLINE int32* operator *(const int32& InValue) { Set(InValue); }
 
-	FORCEINLINE void Set(const int32& InValue)
+	FORCEINLINE void Set(const int32 InValue)
 	{
 		Base[CurrIdx] = InValue;
 	}

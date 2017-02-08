@@ -123,7 +123,7 @@ public:
 	bool IsValid() const;
 
 	/** Get parent bone index for given bone index. */
-	int32 GetParentBoneIndex(const int32& BoneIndex) const;
+	int32 GetParentBoneIndex(const int32 BoneIndex) const;
 
 	/** Returns local transform for the bone index. **/
 	FTransform GetLocalSpaceTransform(int32 BoneIndex);
@@ -1084,7 +1084,7 @@ public:
 	void AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value);
 
 	/** Given a machine index, record a state machine weight for this frame */
-	void RecordMachineWeight(const int32& InMachineClassIndex, const float& InMachineWeight);
+	void RecordMachineWeight(const int32 InMachineClassIndex, const float InMachineWeight);
 	/** 
 	 * Add curve float data, using a curve name. External values should all be added using
 	 * The curve UID to the public version of this method
@@ -1092,7 +1092,7 @@ public:
 	void AddCurveValue(const FName& CurveName, float Value);
 
 	/** Given a machine and state index, record a state weight for this frame */
-	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
+	void RecordStateWeight(const int32 InMachineClassIndex, const int32 InStateIndex, const float InStateWeight);
 
 protected:
 #if WITH_EDITORONLY_DATA

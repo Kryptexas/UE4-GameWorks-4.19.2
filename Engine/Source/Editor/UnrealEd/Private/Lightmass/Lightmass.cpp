@@ -3054,7 +3054,7 @@ void FLightmassProcessor::ImportVolumeSamples()
 					UMapBuildDataRegistry* CurrentRegistry = CurrentStorageLevel->GetOrCreateMapBuildData();
 					FPrecomputedLightVolumeData& CurrentLevelData = CurrentRegistry->AllocateLevelBuildData(CurrentLevel->LevelBuildDataId);
 
-					FBox LevelVolumeBounds(0);
+					FBox LevelVolumeBounds(ForceInit);
 
 					for (int32 SampleIndex = 0; SampleIndex < VolumeSamples.Num(); SampleIndex++)
 					{
@@ -3269,7 +3269,7 @@ void FLightmassProcessor::ApplyPrecomputedVisibility()
 
 		for (int32 IterationIndex = 0; IterationIndex < VisibilitySpreadingIterations; IterationIndex++)
 		{
-			FBox AllCellsBounds(0);
+			FBox AllCellsBounds(ForceInit);
 
 			for (int32 CellIndex = 0; CellIndex < CombinedPrecomputedVisibilityCells.Num(); CellIndex++)
 			{

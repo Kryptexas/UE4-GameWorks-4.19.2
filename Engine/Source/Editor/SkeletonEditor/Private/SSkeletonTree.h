@@ -264,6 +264,11 @@ private:
 	/** Handle filtering the tree  */
 	ESkeletonTreeFilterResult HandleFilterSkeletonTreeItem(const TSharedPtr<class ISkeletonTreeItem>& InItem);
 
+	// Called when bone tree queries reference skeleton
+	const FReferenceSkeleton& OnGetReferenceSkeleton() const
+	{
+		return GetEditableSkeletonInternal()->GetSkeleton().GetReferenceSkeleton();
+	}
 private:
 	/** Pointer back to the skeleton tree that owns us */
 	TWeakPtr<FEditableSkeleton> EditableSkeleton;

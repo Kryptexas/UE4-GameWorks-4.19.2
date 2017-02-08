@@ -71,6 +71,8 @@ public:
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditUndo() override;
+	virtual void PostEditImport() override;
 #endif // WITH_EDITOR
 	virtual void PostRegisterAllComponents() override;
 	virtual void PostLoad() override;

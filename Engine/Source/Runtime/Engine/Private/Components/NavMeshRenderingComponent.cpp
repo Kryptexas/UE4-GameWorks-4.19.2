@@ -1342,7 +1342,7 @@ void UNavMeshRenderingComponent::DestroyRenderState_Concurrent()
 
 FBoxSphereBounds UNavMeshRenderingComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	FBox BoundingBox(0);
+	FBox BoundingBox(ForceInit);
 #if WITH_RECAST
 	ARecastNavMesh* NavMesh = Cast<ARecastNavMesh>(GetOwner());
 	if (NavMesh)

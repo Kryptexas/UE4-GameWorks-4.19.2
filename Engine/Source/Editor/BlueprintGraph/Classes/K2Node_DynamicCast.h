@@ -65,7 +65,7 @@ class UK2Node_DynamicCast : public UK2Node
 	 * 
 	 * @param  bNewPurity  The new value for bIsPureCast.
 	 */
-	void SetPurity(bool bNewPurity);
+	BLUEPRINTGRAPH_API void SetPurity(bool bNewPurity);
 
 protected:
 	/** Flips the node's purity (adding/removing exec pins as needed). */

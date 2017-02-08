@@ -71,13 +71,6 @@ void FCinematicShotTrackEditor::OnRelease()
 
 void FCinematicShotTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
-	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
-
-	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequence")))
-	{
-		return;
-	}
-
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AddCinematicShotTrack", "Shot Track"),
 		LOCTEXT("AddCinematicShotTooltip", "Adds a shot track."),
@@ -159,6 +152,12 @@ bool FCinematicShotTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& Ta
 	}
 
 	return false;
+}
+
+
+bool FCinematicShotTrackEditor::SupportsSequence(UMovieSceneSequence* InSequence) const
+{
+	return (InSequence != nullptr) && (InSequence->GetClass()->GetName() == TEXT("LevelSequence"));
 }
 
 

@@ -14,8 +14,8 @@ struct FMovieSceneEvaluationTrack;
 /**
  * Handles when a spawnable should be spawned and destroyed
  */
-UCLASS(MinimalAPI)
-class UMovieSceneSpawnTrack
+UCLASS()
+class MOVIESCENETRACKS_API UMovieSceneSpawnTrack
 	: public UMovieSceneTrack
 {
 public:

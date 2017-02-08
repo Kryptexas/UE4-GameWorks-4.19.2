@@ -354,7 +354,7 @@ void FAnimNode_SingleNode::Evaluate(FPoseContext& Output)
 				Proxy->SlotEvaluatePose(Montage->SlotAnimTracks[0].SlotName, LocalSourcePose, LocalSourceCurve, Proxy->WeightInfo.SourceWeight, Output.Pose, Output.Curve, Proxy->WeightInfo.SlotNodeWeight, Proxy->WeightInfo.TotalNodeWeight);
 			}
 		}
-		else 
+		else
 		{
 			// pose asset is handled by preview instance : pose blend node
 			// and you can't drag pose asset to level to create single node instance. 

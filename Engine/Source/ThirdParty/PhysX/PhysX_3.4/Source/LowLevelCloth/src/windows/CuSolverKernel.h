@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -35,39 +35,6 @@ namespace physx
 {
 namespace cloth
 {
-// Note: CuProfileZoneIds has a corresponding enum list (gCuProfileZoneNames) in CuSolver.cpp.
-// Additions/deletions to CuProfileZoneIds requires a similar action to gCuProfileZoneNames.
-struct CuProfileZoneIds
-{
-	enum Enum
-	{
-		SIMULATE,
-		INTEGRATE,
-		ACCELERATE,
-		WIND,
-		TETHER,
-		FABRIC,
-		MOTION,
-		SEPARATION,
-		COLLIDE,
-		SELFCOLLIDE,
-		SLEEP,
-		SIMULATE_SHARED,
-		SIMULATE_STREAMED,
-		SIMULATE_GLOBAL,
-		CONSTRAINT_SET,
-		COLLIDE_ACCELERATION,
-		COLLIDE_CAPSULES,
-		COLLIDE_VIRTUAL_CAPSULES,
-		COLLIDE_CONTINUOUS_CAPSULES,
-		COLLIDE_CONVEXES,
-		COLLIDE_TRIANGLES,
-		SELFCOLLIDE_ACCELERATION,
-		SELFCOLLIDE_PARTICLES,
-		NUMZONES
-	};
-};
-
 struct CuClothData;
 struct CuFrameData;
 
@@ -82,9 +49,6 @@ struct CuKernelData
 
 	// frame data per cloth
 	CuFrameData* mFrameData;
-
-	void* mProfileBuffer;
-	uint32_t mProfileBaseId;
 };
 
 const char* getKernelDataName();

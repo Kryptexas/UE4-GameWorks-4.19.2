@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -49,9 +49,7 @@ namespace local
 {		
 	//////////////////////////////////////////////////////////////////////////
 	static const float MIN_ADJACENT_ANGLE = 3.0f;  // in degrees  - result wont have two adjacent facets within this angle of each other.
-	static const float PLANE_THICKNES = 3.0f * PX_EPS_F32;  // points within this distance are considered on a plane
-	static const float ACCEPTANCE_EPSILON_MULTIPLY = 2000.0f; // used to scale up plane tolerance to accept new points into convex, plane thickness tolerance is too high for point acceptance
-	static const float PLANE_TOLERANCE = 0.001f;  // points within this distance are considered on a plane for post adjacent merging and eye vertex acceptance
+	static const float PLANE_THICKNES = 3.0f * PX_EPS_F32;  // points within this distance are considered on a plane	
 	static const float MAXDOT_MINANG = cosf(Ps::degToRad(MIN_ADJACENT_ANGLE)); // adjacent angle for dot product tests
 
 	//////////////////////////////////////////////////////////////////////////
@@ -290,13 +288,13 @@ namespace local
 
 			QuickHullHalfEdge* testEdge = edge;
 			QuickHullHalfEdge* startEdge = NULL;
-			float minDist = FLT_MAX;
+			float maxDist = 0.0f;
 			for (PxU32 i = 0; i < 3; i++)
 			{
 				const float d = (testEdge->tail.point - testEdge->next->tail.point).magnitudeSquared();
-				if (d < minDist)
+				if (d > maxDist)
 				{
-					minDist = d;
+					maxDist = d;
 					startEdge = testEdge;
 				}
 				testEdge = testEdge->next;
@@ -813,7 +811,9 @@ namespace local
 		mTolerance = PxMax(local::PLANE_THICKNES * (PxMax(PxAbs(max.x), PxAbs(min.x)) +
 			PxMax(PxAbs(max.y), PxAbs(min.y)) +
 			PxMax(PxAbs(max.z), PxAbs(min.z))), local::PLANE_THICKNES);
-		mPlaneTolerance = local::PLANE_TOLERANCE;
+		mPlaneTolerance = PxMax(mCookingParams.planeTolerance * (PxMax(PxAbs(max.x), PxAbs(min.x)) +
+			PxMax(PxAbs(max.y), PxAbs(min.y)) +
+			PxMax(PxAbs(max.z), PxAbs(min.z))), mCookingParams.planeTolerance);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1155,7 +1155,7 @@ namespace local
 	{	
 		QuickHullVertex* eyeVtx = NULL;
 		QuickHullFace* eyeF = NULL;
-		float maxDist = PxMax(mTolerance*ACCEPTANCE_EPSILON_MULTIPLY, mPlaneTolerance);
+		float maxDist = mPlaneTolerance;
 		for (PxU32 i = 0; i < mHullFaces.size(); i++)
 		{
 			if (mHullFaces[i]->state == QuickHullFace::eVISIBLE && mHullFaces[i]->conflictList)
@@ -1399,7 +1399,7 @@ namespace local
 		mergedFace.computeNormalAndCentroid();
 
 		// test the vertex distance
-		float maxDist = PxMax(mTolerance*ACCEPTANCE_EPSILON_MULTIPLY, mPlaneTolerance);
+		float maxDist = mPlaneTolerance;
 		QuickHullHalfEdge* qhe = mergedFace.edge;
 		do
 		{
@@ -1897,7 +1897,9 @@ bool QuickHullConvexHullLib::cleanupForSimplex(PxVec3* vertices, PxU32 vertexCou
 		PxMax(PxAbs(max.y), PxAbs(min.y)) +
 		PxMax(PxAbs(max.z), PxAbs(min.z))), local::PLANE_THICKNES);
 
-	planeTolerance = local::PLANE_TOLERANCE;
+	planeTolerance = PxMax(mCookingParams.planeTolerance * (PxMax(PxAbs(max.x), PxAbs(min.x)) +
+		PxMax(PxAbs(max.y), PxAbs(min.y)) +
+		PxMax(PxAbs(max.z), PxAbs(min.z))), mCookingParams.planeTolerance);
 
 	float fmax = 0;
 	PxU32 imax = 0;

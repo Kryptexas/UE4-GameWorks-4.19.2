@@ -2,9 +2,6 @@
 # Build PhysX (PROJECT not SOLUTION)
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-FIND_PACKAGE(PxShared REQUIRED)
-
 SET(PHYSX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../)
 
 SET(PX_SOURCE_DIR ${PHYSX_SOURCE_DIR}/PhysX/src)
@@ -17,7 +14,6 @@ SET(PHYSX_PLATFORM_INCLUDES
 )
 
 SET(PHYSX_PLATFORM_SRC_FILES
-	${PX_SOURCE_DIR}/device/mac/PhysXIndicatorMac.cpp
 	${PX_SOURCE_DIR}/gpu/NpPhysicsGpu.cpp
 	${PX_SOURCE_DIR}/gpu/PxGpu.cpp
 	${PX_SOURCE_DIR}/gpu/PxParticleDeviceExclusive.cpp
@@ -47,7 +43,7 @@ INCLUDE(../common/PhysX.cmake)
 # Add linked libraries
 # TARGET_LINK_LIBRARIES(PhysX PUBLIC ${NVTOOLSEXT_LIBRARIES} LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PhysXCommon PhysXGpu PxFoundation PxPvdSDK PxTask SceneQuery SimulationController)
 
-TARGET_LINK_LIBRARIES(PhysX PUBLIC ${NVTOOLSEXT_LIBRARIES} LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PhysXCommon PxFoundation PxPvdSDK PxTask SceneQuery SimulationController)
+TARGET_LINK_LIBRARIES(PhysX PUBLIC LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PhysXCommon PxFoundation PxPvdSDK PxTask SceneQuery SimulationController)
 
 SET_TARGET_PROPERTIES(PhysX PROPERTIES 
 	LINK_FLAGS_DEBUG ""

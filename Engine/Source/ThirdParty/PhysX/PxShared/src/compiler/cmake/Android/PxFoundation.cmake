@@ -2,8 +2,6 @@
 # Build PxFoundation
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-
 SET(PXSHARED_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../../src)
 
 SET(LL_SOURCE_DIR ${PXSHARED_SOURCE_DIR}/foundation)
@@ -21,15 +19,17 @@ SET(PXFOUNDATION_PLATFORM_FILES
 	${LL_SOURCE_DIR}/src/unix/PsUnixSync.cpp
 	${LL_SOURCE_DIR}/src/unix/PsUnixThread.cpp
 	${LL_SOURCE_DIR}/src/unix/PsUnixTime.cpp
+	${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c 
 )
 
 SET(PXFOUNDATION_PLATFORM_INCLUDES
 	${LL_SOURCE_DIR}/include/linux
+	${ANDROID_NDK}/sources/android/cpufeatures
 )
 
 SET(PXFOUNDATION_COMPILE_DEFS
 	# Common to all configurations
-	${PXSHARED_Android_COMPILE_DEFS}
+	${PXSHARED_ANDROID_COMPILE_DEFS};PxShared_STATIC_LIB;
 )
 
 if(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
@@ -55,6 +55,8 @@ endif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 
 # include PxFoundation common
 INCLUDE(../common/PxFoundation.cmake)
+
+TARGET_LINK_LIBRARIES(PxFoundation PUBLIC log)
 
 # enable -fPIC so we can link static libs with the editor
 SET_TARGET_PROPERTIES(PxFoundation PROPERTIES POSITION_INDEPENDENT_CODE TRUE)

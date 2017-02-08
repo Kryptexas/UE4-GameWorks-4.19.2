@@ -200,7 +200,7 @@ public:
 private:
 	FAnimCurveBase*	GetCurveDataFromSequence()
 	{
-		FTransformCurve* Curve = static_cast<FTransformCurve*> (BaseSequence.Get()->RawCurveData.GetCurveData( CurveUID, FRawCurveTracks::TransformType));
+		FTransformCurve* Curve = static_cast<FTransformCurve*> (BaseSequence.Get()->RawCurveData.GetCurveData( CurveUID, ERawCurveTrackTypes::RCT_Transform));
 		if (Curve)
 		{
 			switch ( CurveType )
@@ -296,7 +296,7 @@ void STransformCurveEdTrack::Construct(const FArguments& InArgs)
 	check (Sequence);
 
 	// get the curve data
-	FTransformCurve* Curve = static_cast<FTransformCurve*> (Sequence->RawCurveData.GetCurveData(InArgs._CurveUid, FRawCurveTracks::TransformType));
+	FTransformCurve* Curve = static_cast<FTransformCurve*> (Sequence->RawCurveData.GetCurveData(InArgs._CurveUid, ERawCurveTrackTypes::RCT_Transform));
 	check (Curve);
 
 	CurveUid = InArgs._CurveUid;
@@ -547,6 +547,8 @@ void SAnimTrackCurvePanel::Construct(const FArguments& InArgs, const TSharedRef<
 		InPreviewScene->GetPreviewMeshComponent()->PreviewInstance->SetKeyCompleteDelegate(FSimpleDelegate::CreateSP(this, &SAnimTrackCurvePanel::HandleKeyComplete));
 	}
 
+	Sequence->RegisterOnAnimTrackCurvesChanged(UAnimSequenceBase::FOnAnimTrackCurvesChanged::CreateSP(this, &SAnimTrackCurvePanel::UpdatePanel));
+
 	this->ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -595,9 +597,14 @@ void SAnimTrackCurvePanel::Construct(const FArguments& InArgs, const TSharedRef<
 	UpdatePanel();
 }
 
+SAnimTrackCurvePanel::~SAnimTrackCurvePanel()
+{
+	Sequence->UnregisterOnAnimTrackCurvesChanged(this);
+}
+
 void SAnimTrackCurvePanel::DeleteTrack(USkeleton::AnimCurveUID Uid)
 {
-	if(Sequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::TransformType))
+	if(Sequence->RawCurveData.GetCurveData(Uid, ERawCurveTrackTypes::RCT_Transform))
 	{
 		const FScopedTransaction Transaction( LOCTEXT("AnimCurve_DeleteTrack", "Delete Curve") );
 		FSmartName CurveToDelete;
@@ -605,7 +612,7 @@ void SAnimTrackCurvePanel::DeleteTrack(USkeleton::AnimCurveUID Uid)
 		{
 			Sequence->Modify(true);
 			Sequence->bNeedsRebake = true;
-			Sequence->RawCurveData.DeleteCurveData(CurveToDelete, FRawCurveTracks::TransformType);
+			Sequence->RawCurveData.DeleteCurveData(CurveToDelete, ERawCurveTrackTypes::RCT_Transform);
 			UpdatePanel();
 			if (PreviewScenePtr.Pin()->GetPreviewMeshComponent()->PreviewInstance != nullptr)
 			{
@@ -624,8 +631,8 @@ void SAnimTrackCurvePanel::UpdatePanel()
 		// Sort the raw curves before setting up display
 		Sequence->RawCurveData.TransformCurves.Sort([MetadataNameMap](const FTransformCurve& A, const FTransformCurve& B)
 		{
-			bool bAMeta = A.GetCurveTypeFlag(ACF_Metadata);
-			bool bBMeta = B.GetCurveTypeFlag(ACF_Metadata);
+			bool bAMeta = A.GetCurveTypeFlag(AACF_Metadata);
+			bool bBMeta = B.GetCurveTypeFlag(AACF_Metadata);
 			
 			if(bAMeta != bBMeta)
 			{
@@ -658,7 +665,7 @@ void SAnimTrackCurvePanel::UpdatePanel()
 		{
 			FTransformCurve&  Curve = Sequence->RawCurveData.TransformCurves[CurrentIt];
 
-			const bool bEditable = Curve.GetCurveTypeFlag(ACF_Editable);
+			const bool bEditable = Curve.GetCurveTypeFlag(AACF_Editable);
 			FName CurveName;
 
 			// if editable, add to the list
@@ -800,10 +807,10 @@ ECheckBoxState SAnimTrackCurvePanel::IsCurveEditable(USkeleton::AnimCurveUID Uid
 {
 	if ( Sequence )
 	{
-		const FTransformCurve* Curve = static_cast<const FTransformCurve *>(Sequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::TransformType));
+		const FTransformCurve* Curve = static_cast<const FTransformCurve *>(Sequence->RawCurveData.GetCurveData(Uid, ERawCurveTrackTypes::RCT_Transform));
 		if ( Curve )
 		{
-			return Curve->GetCurveTypeFlag(ACF_Editable)? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			return Curve->GetCurveTypeFlag(AACF_Editable)? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 	}
 
@@ -816,10 +823,10 @@ void SAnimTrackCurvePanel::ToggleEditability(ECheckBoxState NewType, USkeleton::
 
 	if ( Sequence )
 	{
-		FTransformCurve * Curve = static_cast<FTransformCurve *>(Sequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::TransformType));
+		FTransformCurve * Curve = static_cast<FTransformCurve *>(Sequence->RawCurveData.GetCurveData(Uid, ERawCurveTrackTypes::RCT_Transform));
 		if ( Curve )
 		{
-			Curve->SetCurveTypeFlag(ACF_Editable, bEdit);
+			Curve->SetCurveTypeFlag(AACF_Editable, bEdit);
 		}
 	}
 
@@ -839,7 +846,7 @@ FReply		SAnimTrackCurvePanel::ShowAll(bool bShow)
 		for (auto Iter = Sequence->RawCurveData.TransformCurves.CreateIterator(); Iter; ++Iter)
 		{
 			FTransformCurve & Curve = *Iter;
-			Curve.SetCurveTypeFlag(ACF_Editable, bShow);
+			Curve.SetCurveTypeFlag(AACF_Editable, bShow);
 		}
 
 		UpdatePanel();
@@ -850,19 +857,19 @@ FReply		SAnimTrackCurvePanel::ShowAll(bool bShow)
 
 ECheckBoxState SAnimTrackCurvePanel::GetCurveFlagAsCheckboxState(USkeleton::AnimCurveUID CurveUid, EAnimAssetCurveFlags InFlag) const
 {
-	FAnimCurveBase* Curve = Sequence->RawCurveData.GetCurveData(CurveUid, FRawCurveTracks::TransformType);
+	FAnimCurveBase* Curve = Sequence->RawCurveData.GetCurveData(CurveUid, ERawCurveTrackTypes::RCT_Transform);
 	return Curve && Curve->GetCurveTypeFlag(InFlag) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SAnimTrackCurvePanel::SetCurveFlagFromCheckboxState(ECheckBoxState CheckState, USkeleton::AnimCurveUID CurveUid, EAnimAssetCurveFlags InFlag)
 {
 	bool Enabled = CheckState == ECheckBoxState::Checked;
-	FAnimCurveBase* Curve = Sequence->RawCurveData.GetCurveData(CurveUid, FRawCurveTracks::TransformType);
+	FAnimCurveBase* Curve = Sequence->RawCurveData.GetCurveData(CurveUid, ERawCurveTrackTypes::RCT_Transform);
 	if (Curve)
 	{
 		Curve->SetCurveTypeFlag(InFlag, Enabled);
 
-		if (InFlag == ACF_Disabled)
+		if (InFlag == AACF_Disabled)
 		{
 			// needs to rebake
 			Sequence->bNeedsRebake = true;
@@ -880,15 +887,15 @@ TSharedRef<SWidget> SAnimTrackCurvePanel::CreateCurveContextMenu(USkeleton::Anim
 	FMenuBuilder MenuBuilder(true, NULL);
 
 	// get the curve data
-	FAnimCurveBase* Curve = Sequence->RawCurveData.GetCurveData(CurveUid, FRawCurveTracks::TransformType);
+	FAnimCurveBase* Curve = Sequence->RawCurveData.GetCurveData(CurveUid, ERawCurveTrackTypes::RCT_Transform);
 	if (Curve)
 	{
 		MenuBuilder.BeginSection("AnimTrackCurvePanelCurveTypes", LOCTEXT("CurveTypesHeading", "Curve Types"));
 		{
 			MenuBuilder.AddWidget(
 				SNew(SCheckBox)
-				.IsChecked(this, &SAnimTrackCurvePanel::GetCurveFlagAsCheckboxState, CurveUid, ACF_Disabled)
-				.OnCheckStateChanged(this, &SAnimTrackCurvePanel::SetCurveFlagFromCheckboxState, CurveUid, ACF_Disabled)
+				.IsChecked(this, &SAnimTrackCurvePanel::GetCurveFlagAsCheckboxState, CurveUid, AACF_Disabled)
+				.OnCheckStateChanged(this, &SAnimTrackCurvePanel::SetCurveFlagFromCheckboxState, CurveUid, AACF_Disabled)
 				.ToolTipText(LOCTEXT("DisableCurveTooltip", "Disable Track"))
 				[
 					SNew(STextBlock)

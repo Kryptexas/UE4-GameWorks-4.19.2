@@ -96,9 +96,9 @@ void UWorldThumbnailRenderer::GetView(UWorld* World, FSceneViewFamily* ViewFamil
 
 	if (ViewRect.Width() > 0 && ViewRect.Height() > 0)
 	{
-		FBox WorldBox(0);
+		FBox WorldBox(ForceInit);
 		TArray<ULevel*> LevelsToRender = World->GetLevels();
-		for ( auto* Level : LevelsToRender )
+		for ( ULevel* Level : LevelsToRender )
 		{
 			if (Level && Level->bIsVisible)
 			{

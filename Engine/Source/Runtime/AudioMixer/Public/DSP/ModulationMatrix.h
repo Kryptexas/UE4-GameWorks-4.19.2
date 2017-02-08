@@ -37,13 +37,20 @@ namespace Audio
 	{
 		FPatchDestination()
 			: Id(INDEX_NONE)
+			, Stage(INDEX_NONE)
+			, Depth(0.0f)
 		{}
 
 		FPatchDestination(const uint32 InId)
 			: Id(InId)
+			, Stage(INDEX_NONE)
+			, Depth(0.0f)
 		{}
 
 		uint32 Id;
+
+		int32 Stage;
+		float Depth;
 
 		void SetName(const FString& InName)
 		{
@@ -61,28 +68,15 @@ namespace Audio
 	{
 		FPatch()
 			: Source(INDEX_NONE)
-			, Intensity(1.0f)
-			, MinValue(0.0f)
-			, MaxValue(1.0f)
-			, Stage(0)
 			, bEnabled(true)
 		{
-			// Default mapping function just passes value
-			Transform = [](float InValue) { return InValue; };
 		}
 
 		FPatch(const FPatchSource& InSourceId, const FPatchDestination& InDestinationId)
 			: Source(InSourceId)
-			, Intensity(1.0f)
-			, MinValue(0.0f)
-			, MaxValue(1.0f)
-			, Stage(0)
 			, bEnabled(true)
 		{
 			Destinations.Add(InDestinationId);
-
-			// Default mapping function just passes value
-			Transform = [](float InValue) { return InValue; };
 		}
 
 		void SetName(const FString& InName)
@@ -97,14 +91,6 @@ namespace Audio
 
 		// The modulation destinations of the patch to support multiple destinations
 		TArray<FPatchDestination> Destinations;
-
-		// Optionally override to transform the source value before modifying destination value
-		TFunction<float(const float InValue)> Transform;
-
-		float Intensity;
-		float MinValue;
-		float MaxValue;
-		int32 Stage;
 
 #if MOD_MATRIX_DEBUG_NAMES
 		FString Name;
@@ -128,7 +114,7 @@ namespace Audio
 		FPatchSource CreatePatchSource(const int32 VoiceId);
 
 		// Crates a new patch destination object and returns the patch destination id
-		FPatchDestination CreatePatchDestination(const int32 VoiceId);
+		FPatchDestination CreatePatchDestination(const int32 VoiceId, const int32 Stage, const float DefaultDepth);
 
 		// Adds a new patch connection between one source and one or more destinations
 		bool AddPatch(const int32 VoiceId, FPatch* Patch);

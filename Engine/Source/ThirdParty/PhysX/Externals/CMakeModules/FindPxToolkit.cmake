@@ -8,15 +8,15 @@
 FIND_PATH(		PXTOOLKIT_INCLUDE_DIR PxTkBmpLoader.h
 				HINTS 
 				${GW_DEPS_ROOT}/PxToolKit
-				${GW_DEPS_ROOT}/PhysX_3.4/Samples/PxToolkit
-				${GW_DEPS_ROOT}/sw/physx/PhysXSDK/3.4/feature/grb/Samples/PxToolkit
+				${GW_DEPS_ROOT}/PhysX_3.4/Samples/PxToolkit				
+				${GW_DEPS_ROOT}/sw/physx/PhysXSDK/3.4/trunk/Samples/PxToolkit
 				PATH_SUFFIXES include)
 				
 FIND_PATH(		PXTOOLKIT_SRC_DIR PxTkBmpLoader.cpp
 				HINTS 
 				${GW_DEPS_ROOT}/PxToolKit
 				${GW_DEPS_ROOT}/PhysX_3.4/Samples/PxToolkit
-				${GW_DEPS_ROOT}/sw/physx/PhysXSDK/3.4/feature/grb/Samples/PxToolkit
+				${GW_DEPS_ROOT}/sw/physx/PhysXSDK/3.4/trunk/Samples/PxToolkit
 				PATH_SUFFIXES src)
 				
 INCLUDE(FindPackageHandleStandardArgs)

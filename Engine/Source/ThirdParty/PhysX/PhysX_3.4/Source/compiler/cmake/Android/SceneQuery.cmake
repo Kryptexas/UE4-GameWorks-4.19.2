@@ -2,9 +2,6 @@
 # Build SceneQuery
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-FIND_PACKAGE(PxShared REQUIRED)
-
 SET(PHYSX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../)
 
 SET(LL_SOURCE_DIR ${PHYSX_SOURCE_DIR}/SceneQuery/src)
@@ -16,7 +13,7 @@ SET(SCENEQUERY_PLATFORM_INCLUDES
 # Use generator expressions to set config specific preprocessor definitions
 SET(SCENEQUERY_COMPILE_DEFS
 	# Common to all configurations
-	${PHYSX_ANDROID_COMPILE_DEFS};PX_PHYSX_STATIC_LIB
+	${PHYSX_ANDROID_COMPILE_DEFS};PX_PHYSX_STATIC_LIB;
 )
 
 if(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
@@ -39,7 +36,7 @@ else(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 	MESSAGE(FATAL_ERROR "Unknown configuration ${CMAKE_BUILD_TYPE}")
 endif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 
-
+SET(SCENEQUERY_LIBTYPE OBJECT)
 
 # include common SceneQuery settings
 INCLUDE(../common/SceneQuery.cmake)

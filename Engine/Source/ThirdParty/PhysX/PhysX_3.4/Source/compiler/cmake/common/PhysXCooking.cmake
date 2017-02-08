@@ -2,13 +2,48 @@
 # Build PhysXCooking common
 #
 
-ADD_LIBRARY(PhysXCooking ${PHYSXCOOKING_LIBTYPE} 
+SET(PHYSX_COOKING_HEADERS
+	${PHYSX_ROOT_DIR}/Include/cooking/PxBVH33MidphaseDesc.h
+	${PHYSX_ROOT_DIR}/Include/cooking/PxBVH34MidphaseDesc.h
+	${PHYSX_ROOT_DIR}/Include/cooking/Pxc.h
+	${PHYSX_ROOT_DIR}/Include/cooking/PxConvexMeshDesc.h
+	${PHYSX_ROOT_DIR}/Include/cooking/PxCooking.h
+	${PHYSX_ROOT_DIR}/Include/cooking/PxMidphaseDesc.h
+	${PHYSX_ROOT_DIR}/Include/cooking/PxTriangleMeshDesc.h	
+)
+SOURCE_GROUP(include FILES ${PHYSX_COOKING_HEADERS})
+
+SET(PHYSX_COOKING_SOURCE
 	${LL_SOURCE_DIR}/Adjacencies.cpp
 	${LL_SOURCE_DIR}/Cooking.cpp
 	${LL_SOURCE_DIR}/CookingUtils.cpp
 	${LL_SOURCE_DIR}/EdgeList.cpp
 	${LL_SOURCE_DIR}/MeshCleaner.cpp
-	${LL_SOURCE_DIR}/Quantizer.cpp
+	${LL_SOURCE_DIR}/Quantizer.cpp	
+	${LL_SOURCE_DIR}/Adjacencies.h
+	${LL_SOURCE_DIR}/Cooking.h
+	${LL_SOURCE_DIR}/CookingUtils.h
+	${LL_SOURCE_DIR}/EdgeList.h
+	${LL_SOURCE_DIR}/MeshCleaner.h
+	${LL_SOURCE_DIR}/Quantizer.h
+)
+SOURCE_GROUP(src FILES ${PHYSX_COOKING_SOURCE})
+
+SET(PHYSX_COOKING_MESH_SOURCE
+	${LL_SOURCE_DIR}/mesh/HeightFieldCooking.cpp
+	${LL_SOURCE_DIR}/mesh/RTreeCooking.cpp
+	${LL_SOURCE_DIR}/mesh/TriangleMeshBuilder.cpp	
+	${LL_SOURCE_DIR}/mesh/GrbTriangleMeshCooking.cpp
+	${LL_SOURCE_DIR}/mesh/GrbTriangleMeshCooking.h
+	${LL_SOURCE_DIR}/mesh/HeightFieldCooking.h
+	${LL_SOURCE_DIR}/mesh/QuickSelect.h
+	${LL_SOURCE_DIR}/mesh/RTreeCooking.h
+	${LL_SOURCE_DIR}/mesh/TriangleMeshBuilder.h
+)
+SOURCE_GROUP(src\\mesh FILES ${PHYSX_COOKING_MESH_SOURCE})
+
+
+SET(PHYSX_COOKING_CONVEX_SOURCE
 	${LL_SOURCE_DIR}/convex/BigConvexDataBuilder.cpp
 	${LL_SOURCE_DIR}/convex/ConvexHullBuilder.cpp
 	${LL_SOURCE_DIR}/convex/ConvexHullLib.cpp
@@ -18,12 +53,24 @@ ADD_LIBRARY(PhysXCooking ${PHYSXCOOKING_LIBTYPE}
 	${LL_SOURCE_DIR}/convex/InflationConvexHullLib.cpp
 	${LL_SOURCE_DIR}/convex/QuickHullConvexHullLib.cpp
 	${LL_SOURCE_DIR}/convex/VolumeIntegration.cpp
-	${LL_SOURCE_DIR}/mesh/HeightFieldCooking.cpp
-	${LL_SOURCE_DIR}/mesh/RTreeCooking.cpp
-	${LL_SOURCE_DIR}/mesh/TriangleMeshBuilder.cpp
+	${LL_SOURCE_DIR}/convex/BigConvexDataBuilder.h
+	${LL_SOURCE_DIR}/convex/ConvexHullBuilder.h
+	${LL_SOURCE_DIR}/convex/ConvexHullLib.h
+	${LL_SOURCE_DIR}/convex/ConvexHullUtils.h
+	${LL_SOURCE_DIR}/convex/ConvexMeshBuilder.h
+	${LL_SOURCE_DIR}/convex/ConvexPolygonsBuilder.h
+	${LL_SOURCE_DIR}/convex/InflationConvexHullLib.h
+	${LL_SOURCE_DIR}/convex/QuickHullConvexHullLib.h
+	${LL_SOURCE_DIR}/convex/VolumeIntegration.h
+)
+SOURCE_GROUP(src\\convex FILES ${PHYSX_COOKING_CONVEX_SOURCE})
+
+ADD_LIBRARY(PhysXCooking ${PHYSXCOOKING_LIBTYPE} 
+	${PHYSX_COOKING_HEADERS}
 	
-	${LL_SOURCE_DIR}/mesh/GrbTriangleMeshCooking.cpp
-	
+	${PHYSX_COOKING_SOURCE}
+	${PHYSX_COOKING_MESH_SOURCE}
+	${PHYSX_COOKING_CONVEX_SOURCE}
 	
 	${PHYSXCOOKING_PLATFORM_SRC_FILES}
 )

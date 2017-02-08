@@ -384,7 +384,7 @@ struct FNavMeshTileData
 	FNavMeshTileData() : LayerIndex(0), DataSize(0) { }
 	~FNavMeshTileData();
 	
-	explicit FNavMeshTileData(uint8* RawData, int32 RawDataSize, int32 LayerIdx = 0, FBox LayerBounds = FBox(0));
+	explicit FNavMeshTileData(uint8* RawData, int32 RawDataSize, int32 LayerIdx = 0, FBox LayerBounds = FBox(ForceInit));
 		
 	FORCEINLINE uint8* GetData()
 	{
@@ -628,6 +628,10 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	/** Indicates whether default navigation filters will use virtual functions. Defaults to true. */
 	UPROPERTY(config)
 	uint32 bUseVirtualFilters : 1;
+
+	/** If set, paths can end at navlink poly (not the ground one!) */
+	UPROPERTY(config)
+	uint32 bAllowNavLinkAsPathEnd : 1;
 
 private:
 	/** Cache rasterized voxels instead of just collision vertices/indices in navigation octree */

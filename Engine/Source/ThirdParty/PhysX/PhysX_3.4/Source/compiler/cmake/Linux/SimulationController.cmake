@@ -2,9 +2,6 @@
 # Build SimulationController
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-FIND_PACKAGE(PxShared REQUIRED)
-
 SET(PHYSX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../)
 
 SET(LL_SOURCE_DIR ${PHYSX_SOURCE_DIR}/SimulationController/src)
@@ -39,6 +36,11 @@ else(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 	MESSAGE(FATAL_ERROR "Unknown configuration ${CMAKE_BUILD_TYPE}")
 endif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 
+IF(DEFINED PX_STATIC_LIBRARIES)
+	SET(SIMULATIONCONTROLLER_LIBTYPE OBJECT)
+ELSE()
+	SET(SIMULATIONCONTROLLER_LIBTYPE STATIC)
+ENDIF()
 
 # include common SimulationController settings
 INCLUDE(../common/SimulationController.cmake)

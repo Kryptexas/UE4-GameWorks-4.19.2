@@ -181,8 +181,7 @@ static FORCEINLINE_DEBUGGABLE bool IsQueryCollisionEnabled(const UPrimitiveCompo
 {
 	const ECollisionEnabled::Type CollisionEnabled = PrimComponent->GetCollisionEnabled();
 
-	return CollisionEnabled == ECollisionEnabled::QueryAndPhysics
-		|| CollisionEnabled == ECollisionEnabled::QueryOnly;
+	return CollisionEnabledHasQuery(CollisionEnabled);
 }
 
 static FORCEINLINE_DEBUGGABLE bool CheckForCollision(const AActor* Actor)

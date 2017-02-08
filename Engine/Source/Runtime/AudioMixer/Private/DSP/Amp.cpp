@@ -42,9 +42,9 @@ namespace Audio
 
 		if (ModMatrix)
 		{
-			GainScaleDest = ModMatrix->CreatePatchDestination(VoiceId);
-			GainEnvDest = ModMatrix->CreatePatchDestination(VoiceId);
-			GainPanDest = ModMatrix->CreatePatchDestination(VoiceId);
+			GainScaleDest = ModMatrix->CreatePatchDestination(VoiceId, 1, 1.0f);
+			GainEnvDest = ModMatrix->CreatePatchDestination(VoiceId, 1, 1.0f);
+			GainPanDest = ModMatrix->CreatePatchDestination(VoiceId, 1, 1.0f);
 
 			GainScaleDest.SetName("GainScaleDest");
 
@@ -138,7 +138,9 @@ namespace Audio
 			GetStereoPan(PanSum, PanLeft, PanRight);
 
 			// Compute the gain product accounting for the gain stages
+			// TODO: look at this more closely
 			float GainProduct = GainControl * GainMod * GainVelocity * GainEnv;
+			
 			GainProduct = FMath::Clamp(GainProduct, GainMin, GainMax);
 
 			// Mix in the pan value

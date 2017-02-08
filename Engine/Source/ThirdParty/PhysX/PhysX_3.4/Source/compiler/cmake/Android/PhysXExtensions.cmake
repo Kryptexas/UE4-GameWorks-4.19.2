@@ -2,9 +2,6 @@
 # Build PhysXExtensions
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-FIND_PACKAGE(PxShared REQUIRED)
-
 SET(PHYSX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../)
 
 SET(LL_SOURCE_DIR ${PHYSX_SOURCE_DIR}/PhysXExtensions/src)
@@ -48,6 +45,8 @@ endif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 
 # include common PhysXExtensions settings
 INCLUDE(../common/PhysXExtensions.cmake)
+
+TARGET_LINK_LIBRARIES(PhysXExtensions PUBLIC PsFastXml)
 
 # enable -fPIC so we can link static libs with the editor
 SET_TARGET_PROPERTIES(PhysXExtensions PROPERTIES POSITION_INDEPENDENT_CODE TRUE)

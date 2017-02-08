@@ -16,10 +16,15 @@ struct Rect;
 
 extern const FName BlueprintEditorAppName;
 
+class IBlueprintEditor;
 class FBlueprintEditor;
 class UUserDefinedEnum;
 class UUserDefinedStruct;
+class IDetailCustomization;
 
+
+/** Delegate used to customize variable display */
+DECLARE_DELEGATE_RetVal_OneParam(TSharedPtr<IDetailCustomization>, FOnGetVariableCustomizationInstance, TSharedPtr<IBlueprintEditor> /*BlueprintEditor*/);
 
 /** Describes the reason for Refreshing the editor */
 namespace ERefreshBlueprintEditorReason
@@ -163,6 +168,26 @@ public:
 	 */
 	virtual void UnregisterSCSEditorCustomization(const FName& InComponentName);
 
+	/** 
+	 * Register a customization for for Blueprint variables
+	 * @param	InStruct				The type of the variable to create the customization for
+	 * @param	InOnGetDetailCustomization	The delegate used to create customization instances
+	 */
+	virtual void RegisterVariableCustomization(UStruct* InStruct, FOnGetVariableCustomizationInstance InOnGetVariableCustomization);
+
+	/** 
+	 * Unregister a previously registered customization for BP variables
+	 * @param	InStruct				The type to create the customization for
+	 */
+	virtual void UnregisterVariableCustomization(UStruct* InStruct);
+
+	/** 
+	 * Build a set of details customizations for the passed-in type, if possible.
+	 * @param	InStruct				The type to create the customization for
+	 * @param	InBlueprintEditor		The Blueprint Editor the customization will be created for
+	 */
+	virtual TArray<TSharedPtr<IDetailCustomization>> CustomizeVariable(UStruct* InStruct, TSharedPtr<IBlueprintEditor> InBlueprintEditor);
+
 	/** Delegate for binding functions to be called when the blueprint editor finishes getting created */
 	DECLARE_EVENT_OneParam( FBlueprintEditorModule, FBlueprintEditorOpenedEvent, EBlueprintType );
 	FBlueprintEditorOpenedEvent& OnBlueprintEditorOpened() { return BlueprintEditorOpened; }
@@ -193,6 +218,9 @@ private:
 
 	/** Customizations for the SCS editor */
 	TMap<FName, FSCSEditorCustomizationBuilder> SCSEditorCustomizations;
+
+	/** Customizations for Blueprint variables */
+	TMap<UStruct*, FOnGetVariableCustomizationInstance> VariableCustomizations;
 
 	/** 
 	 * A command list that can be passed around and isn't bound to an instance 

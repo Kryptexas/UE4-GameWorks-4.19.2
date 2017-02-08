@@ -2207,8 +2207,9 @@ extern ENGINE_API void DrawDashedLine(class FPrimitiveDrawInterface* PDI, const 
  * @param	Size			Size of the diamond.
  * @param	InColor			Color of the diamond.
  * @param	DepthPriority	Depth priority for the diamond.
+ * @param	Thickness		How thick to draw diamond lines
  */
-extern ENGINE_API void DrawWireDiamond(class FPrimitiveDrawInterface* PDI, const FMatrix& DiamondMatrix, float Size, const FLinearColor& InColor, uint8 DepthPriority);
+extern ENGINE_API void DrawWireDiamond(class FPrimitiveDrawInterface* PDI, const FMatrix& DiamondMatrix, float Size, const FLinearColor& InColor, uint8 DepthPriority, float Thickness = 0.0f);
 
 extern ENGINE_API void DrawCoordinateSystem(FPrimitiveDrawInterface* PDI, FVector const& AxisLoc, FRotator const& AxisRot, float Scale, uint8 DepthPriority, float Thickness = 0.0f);
 

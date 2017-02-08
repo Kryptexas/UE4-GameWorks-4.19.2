@@ -406,7 +406,7 @@ bool FScene::DoesBoxIntersectVisibilityVolume(const FBox& TestBounds) const
 /** Returns accumulated bounds from all the visibility volumes. */
 FBox FScene::GetVisibilityVolumeBounds() const
 {
-	FBox Bounds(0);
+	FBox Bounds(ForceInit);
 	for (int32 VolumeIndex = 0; VolumeIndex < PrecomputedVisibilityVolumes.Num(); VolumeIndex++)
 	{
 		const FPrecomputedVisibilityVolume& Volume = PrecomputedVisibilityVolumes[VolumeIndex];
@@ -1546,7 +1546,7 @@ void FMeshAreaLight::SetPrimitives(
 	TotalSurfaceArea = 0.0f;
 	TotalPower = FLinearColor::Black;
 	Position = FVector4(0,0,0);
-	FBox Bounds(0);
+	FBox Bounds(ForceInit);
 
 	CachedPrimitiveNormals.Empty(MeshAreaLightGridSize * MeshAreaLightGridSize);
 	CachedPrimitiveNormals.AddZeroed(MeshAreaLightGridSize * MeshAreaLightGridSize);

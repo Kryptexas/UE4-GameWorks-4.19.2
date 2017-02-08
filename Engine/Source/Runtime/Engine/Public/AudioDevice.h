@@ -843,7 +843,11 @@ public:
 		return true;
 	}
 
-	const TArray<FActiveSound*>& GetActiveSounds() const { return ActiveSounds; }
+	const TArray<FActiveSound*>& GetActiveSounds() const 
+	{ 
+		check(IsInAudioThread()); 
+		return ActiveSounds; 
+	}
 
 	/* When the set of Audio volumes have changed invalidate the cached values of active sounds */
 	void InvalidateCachedInteriorVolumes() const;

@@ -41,7 +41,7 @@ FBoxSphereBounds UNavLinkRenderingComponent::CalcBounds(const FTransform& InLoca
 
 	if (LinkOwnerActor != NULL && LinkOwnerHost != NULL)
 	{
-		FBox BoundingBox(0);
+		FBox BoundingBox(ForceInit);
 		const FTransform LocalToWorld = LinkOwnerActor->ActorToWorld();
 		TArray<TSubclassOf<UNavLinkDefinition> > NavLinkClasses;
 		TArray<FNavigationLink> SimpleLinks;

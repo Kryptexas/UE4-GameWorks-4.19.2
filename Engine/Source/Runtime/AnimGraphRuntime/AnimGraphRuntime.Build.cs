@@ -13,7 +13,8 @@ public class AnimGraphRuntime : ModuleRules
 			new string[] { 
 				"Core", 
 				"CoreUObject", 
-				"Engine"
+				"Engine",
+                "AnimationCore"
 			}
 		);
 	}

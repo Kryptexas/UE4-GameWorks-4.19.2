@@ -238,7 +238,7 @@ public:
 	 */
 	friend FBoxSphereBounds Union( const FBoxSphereBounds& A,const FBoxSphereBounds& B )
 	{
-		FBox BoundingBox(0);
+		FBox BoundingBox(ForceInit);
 
 		BoundingBox += (A.Origin - A.BoxExtent);
 		BoundingBox += (A.Origin + A.BoxExtent);
@@ -303,7 +303,7 @@ public:
 
 FORCEINLINE FBoxSphereBounds::FBoxSphereBounds( const FVector* Points, uint32 NumPoints )
 {
-	FBox BoundingBox(0);
+	FBox BoundingBox(ForceInit);
 
 	// find an axis aligned bounding box for the points.
 	for (uint32 PointIndex = 0; PointIndex < NumPoints; PointIndex++)
@@ -327,7 +327,7 @@ FORCEINLINE FBoxSphereBounds::FBoxSphereBounds( const FVector* Points, uint32 Nu
 
 FORCEINLINE FBoxSphereBounds FBoxSphereBounds::operator+( const FBoxSphereBounds& Other ) const
 {
-	FBox BoundingBox(0);
+	FBox BoundingBox(ForceInit);
 
 	BoundingBox += (this->Origin - this->BoxExtent);
 	BoundingBox += (this->Origin + this->BoxExtent);

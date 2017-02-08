@@ -62,25 +62,23 @@ FPrimitiveSceneProxy* UVisualLoggerRenderingComponent::CreateSceneProxy()
 	{
 		VLogSceneProxy->Spheres.Append(CurrentShapes.Value.Points);
 		VLogSceneProxy->Lines.Append(CurrentShapes.Value.Lines);
-		VLogSceneProxy->Cones.Append(CurrentShapes.Value.Cones);
 		VLogSceneProxy->Boxes.Append(CurrentShapes.Value.Boxes);
 		VLogSceneProxy->Meshes.Append(CurrentShapes.Value.Meshes);
 		VLogSceneProxy->Cones.Append(CurrentShapes.Value.Cones);
 		VLogSceneProxy->Texts.Append(CurrentShapes.Value.Texts);
 		VLogSceneProxy->Cylinders.Append(CurrentShapes.Value.Cylinders);
-		VLogSceneProxy->Capsles.Append(CurrentShapes.Value.Capsles);
+		VLogSceneProxy->Capsles.Append(CurrentShapes.Value.Capsules);
 	}
 
 	{
 		VLogSceneProxy->Spheres.Append(RenderingActor->TestDebugShapes.Points);
 		VLogSceneProxy->Lines.Append(RenderingActor->TestDebugShapes.Lines);
-		VLogSceneProxy->Cones.Append(RenderingActor->TestDebugShapes.Cones);
 		VLogSceneProxy->Boxes.Append(RenderingActor->TestDebugShapes.Boxes);
 		VLogSceneProxy->Meshes.Append(RenderingActor->TestDebugShapes.Meshes);
 		VLogSceneProxy->Cones.Append(RenderingActor->TestDebugShapes.Cones);
 		VLogSceneProxy->Texts.Append(RenderingActor->TestDebugShapes.Texts);
 		VLogSceneProxy->Cylinders.Append(RenderingActor->TestDebugShapes.Cylinders);
-		VLogSceneProxy->Capsles.Append(RenderingActor->TestDebugShapes.Capsles);
+		VLogSceneProxy->Capsles.Append(RenderingActor->TestDebugShapes.Capsules);
 	}
 
 #if WITH_EDITOR
@@ -286,7 +284,7 @@ void AVisualLoggerRenderingActor::AddDebugRendering()
 		const FVector YAxis = Axes.GetScaledAxis(EAxis::Y);
 		const FVector ZAxis = Axes.GetScaledAxis(EAxis::Z);
 
-		TestDebugShapes.Capsles.Add(FDebugRenderSceneProxy::FCapsule(Center, Radius, XAxis, YAxis, ZAxis, HalfHeight, FColor::Yellow));
+		TestDebugShapes.Capsules.Add(FDebugRenderSceneProxy::FCapsule(Center, Radius, XAxis, YAxis, ZAxis, HalfHeight, FColor::Yellow));
 	}
 	{
 		const float Radius = 50;
@@ -575,7 +573,7 @@ void AVisualLoggerRenderingActor::GetDebugShapes(const FVisualLogDevice::FVisual
 				const FVector YAxis = Axes.GetScaledAxis(EAxis::Y);
 				const FVector ZAxis = Axes.GetScaledAxis(EAxis::Z);
 
-				DebugShapes.Capsles.Add(FDebugRenderSceneProxy::FCapsule(Center, Radius, XAxis, YAxis, ZAxis, HalfHeight, Color));
+				DebugShapes.Capsules.Add(FDebugRenderSceneProxy::FCapsule(Center, Radius, XAxis, YAxis, ZAxis, HalfHeight, Color));
 				if (bDrawLabel)
 				{
 					DebugShapes.Texts.Add(FDebugRenderSceneProxy::FText3d(ElementToDraw->Description, Center, Color));

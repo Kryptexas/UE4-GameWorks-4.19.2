@@ -1034,6 +1034,9 @@ namespace UM
 
 		//[ClassMetadata] Only valid on Blueprint Function Libraries. Mark the functions in this class as callable on non-game threads in an Animation Blueprint.
 		BlueprintThreadSafe,
+
+		/// [ClassMetadata] Indicates the class uses hierarchical data. Used to instantiate hierarchical editing features in details panels
+		UsesHierarchy,
 	};
 
 	// Metadata usable in USTRUCT
@@ -1165,6 +1168,12 @@ namespace UM
 
 		/// [PropertyMetadata] Used for float and integer properties.  Specifies the highest that the value slider should represent.
 		UIMax,
+
+		/// [PropertyMetadata] Indicates that the property should be exposed as an input for an animation controller
+		AnimationInput,
+
+		/// [PropertyMetadata] Indicates that the property should be exposed as an output for an animation controller
+		AnimationOutput,
 	};
 
 	// Metadata usable in UPROPERTY for customizing the behavior of Persona and UMG

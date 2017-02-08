@@ -376,7 +376,7 @@ void FNiagaraEffectViewModel::SetupSequencer()
 	}
 
 	ISequencerModule &SeqModule = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer");
-	FDelegateHandle CreateTrackEditorHandle = SeqModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&FNiagaraEmitterTrackEditor::CreateTrackEditor));
+	FDelegateHandle CreateTrackEditorHandle = SeqModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FNiagaraEmitterTrackEditor::CreateTrackEditor));
 	Sequencer = SeqModule.CreateSequencer(SequencerInitParams);
 
 	Sequencer->OnMovieSceneDataChanged().AddRaw(this, &FNiagaraEffectViewModel::SequencerDataChanged);

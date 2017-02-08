@@ -36,6 +36,8 @@ void FAnimNode_PoseBlendNode::Evaluate(FPoseContext& Output)
 	FPoseContext SourceData(Output);
 	SourcePose.Evaluate(SourceData);
 
+	bool bValidPose = false;
+
 	if (CurrentPoseAsset.IsValid() && (Output.AnimInstanceProxy->IsSkeletonCompatible(CurrentPoseAsset->GetSkeleton())))
 	{
 		FPoseContext CurrentPose(Output);
@@ -63,9 +65,13 @@ void FAnimNode_PoseBlendNode::Evaluate(FPoseContext& Output)
 			{
 				FAnimationRuntime::BlendTwoPosesTogetherPerBone(SourceData.Pose, CurrentPose.Pose, SourceData.Curve, CurrentPose.Curve, BoneBlendWeights, Output.Pose, Output.Curve);
 			}
+
+			bValidPose = true;
 		}
 	}
-	else
+
+	// If we didn't create a valid pose, just copy SourcePose to output (pass through)
+	if(!bValidPose)
 	{
 		Output = SourceData;
 	}

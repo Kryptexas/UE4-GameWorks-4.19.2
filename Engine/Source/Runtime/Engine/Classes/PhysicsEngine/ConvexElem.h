@@ -45,7 +45,7 @@ public:
 
 	FKConvexElem()
 		: FKShapeElem(EAggCollisionShape::Convex)
-		, ElemBox(0)
+		, ElemBox(ForceInit)
 		, Transform(FTransform::Identity)
 		, ConvexMesh(NULL)
 		, ConvexMeshNegX(NULL)

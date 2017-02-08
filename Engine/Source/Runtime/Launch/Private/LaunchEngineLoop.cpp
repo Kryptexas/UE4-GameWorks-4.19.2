@@ -858,6 +858,8 @@ DECLARE_CYCLE_STAT( TEXT( "FEngineLoop::PreInit.AfterStats" ), STAT_FEngineLoop_
 
 int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 {
+	FPlatformMisc::InitTaggedStorage(1024);
+
 	if (FParse::Param(CmdLine, TEXT("UTF8Output")))
 	{
 		FPlatformMisc::SetUTF8Output();
@@ -2264,6 +2266,7 @@ void FEngineLoop::LoadPreInitModules()
 #if (WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 	// Load audio editor module before engine class CDOs are loaded
 	FModuleManager::Get().LoadModule(TEXT("AudioEditor"));
+	FModuleManager::Get().LoadModule(TEXT("AnimationModifiers"));
 #endif
 
 }
@@ -2393,6 +2396,12 @@ bool FEngineLoop::LoadStartupCoreModules()
 		FModuleManager::Get().LoadModule(TEXT("MediaAssets"));
 	}
 #endif
+
+	FModuleManager::Get().LoadModule(TEXT("ClothingSystemRuntime"));
+#if WITH_EDITOR
+	FModuleManager::Get().LoadModule(TEXT("ClothingSystemEditor"));
+#endif
+
 
 	return bSuccess;
 }
@@ -2703,6 +2712,8 @@ void FEngineLoop::Exit()
 	{
 		FIOSystem::Shutdown();
 	}
+
+FPlatformMisc::ShutdownTaggedStorage();
 }
 
 

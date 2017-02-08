@@ -616,7 +616,7 @@ namespace LandscapeSplineRaster
 			return;
 		}
 
-		FBox SegmentBounds = FBox(0);
+		FBox SegmentBounds = FBox(ForceInit);
 		for (const FLandscapeSplineInterpPoint& Point : Points)
 		{
 			SegmentBounds += Point.FalloffLeft;

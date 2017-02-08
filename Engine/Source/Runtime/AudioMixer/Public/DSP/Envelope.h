@@ -64,6 +64,9 @@ namespace Audio
 		// Sets the envelope release time in msec
 		virtual void SetReleaseTime(const float InReleaseTimeMsec);
 
+		// Inverts the value of the biased envelope output
+		virtual void SetBiasInvert(const bool bInBiasInvert);
+
 		// Get the envelope's patch nodes
 		const FPatchSource GetModSourceEnv() const { return EnvSource; }
 		const FPatchSource GetModSourceBiasEnv() const { return BiasedEnvSource; }
@@ -99,6 +102,7 @@ namespace Audio
 		// The current envelope value, used to compute exponential envelope curves
 		int32 VoiceId;
 		float CurrentEnvelopeValue;
+		float CurrentEnvelopeBiasValue;
 		float SampleRate;
 		float AttackTimeMSec;
 		float DecayTimeMsec;
@@ -130,6 +134,8 @@ namespace Audio
 
 		// Whether or not this envelope has changed and needs to have values recomputed
 		bool bChanged;
-	};
 
+		// Bias output inversions
+		bool bBiasInvert;
+	};
 }

@@ -50,7 +50,7 @@ FBox ALevelBounds::GetComponentsBoundingBox(bool bNonColliding) const
 
 FBox ALevelBounds::CalculateLevelBounds(ULevel* InLevel)
 {
-	FBox LevelBounds = FBox(0);
+	FBox LevelBounds(ForceInit);
 	
 	if (InLevel)
 	{

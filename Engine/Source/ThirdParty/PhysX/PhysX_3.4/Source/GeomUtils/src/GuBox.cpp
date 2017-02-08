@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -42,17 +42,21 @@ void Gu::Box::create(const Gu::Capsule& capsule)
 	// Box center = center of the two LSS's endpoints
 	center = capsule.computeCenter();
 
-	PxVec3 dir = capsule.p1 - capsule.p0;
+	// Box orientation
+	const PxVec3 dir = capsule.p1 - capsule.p0;
 	const float d = dir.magnitude();
-	rot.column0 = dir / d;
+	if(d!=0.0f)
+	{
+		rot.column0 = dir / d;
+		Ps::computeBasis(rot.column0, rot.column1, rot.column2);
+	}
+	else
+		rot = PxMat33(PxIdentity);
 
 	// Box extents
 	extents.x = capsule.radius + (d * 0.5f);
 	extents.y = capsule.radius;
 	extents.z = capsule.radius;
-
-	// Box orientation
-	Ps::computeBasis(rot.column0, rot.column1, rot.column2);
 }
 
 

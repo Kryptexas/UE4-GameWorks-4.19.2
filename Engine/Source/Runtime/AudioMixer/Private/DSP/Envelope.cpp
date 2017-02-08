@@ -5,15 +5,14 @@
 
 namespace Audio
 {
-	static const float DefaultDecayGain = 0.707;
-
 	FEnvelope::FEnvelope()
 		: VoiceId(0)
 		, CurrentEnvelopeValue(0.0f)
+		, CurrentEnvelopeBiasValue(0.0f)
 		, SampleRate(44100.0f)
 		, AttackTimeMSec(100.0f)
 		, DecayTimeMsec(100.0f)
-		, SustainGain(DefaultDecayGain)
+		, SustainGain(0.7f)
 		, ReleaseTimeMsec(2000.0f)
 		, ShutdownTimeMsec(10.0f)
 		, ShutdownDelta(0.0f)
@@ -23,6 +22,7 @@ namespace Audio
 		, bIsLegatoMode(false)
 		, bIsRetriggerMode(false)
 		, bChanged(true)
+		, bBiasInvert(false)
 	{
 	}
 
@@ -250,7 +250,9 @@ namespace Audio
 		}
 
 		// Send the bias output (i.e. scale envelope by offset by sustain gain)
-		float CurrentBiasedOutput = CurrentEnvelopeValue - SustainGain;
+		float CurrentBiasedOutput = bBiasInvert ? 1.0f - CurrentEnvelopeValue : CurrentEnvelopeValue;
+		CurrentBiasedOutput -= SustainGain;
+
 		if (BiasedOutput)
 		{
 			*BiasedOutput = CurrentBiasedOutput;
@@ -289,4 +291,8 @@ namespace Audio
 		bChanged = true;
 	}
 
+	void FEnvelope::SetBiasInvert(const bool bInBiasInvert)
+	{
+		bBiasInvert = bInBiasInvert;
+	}
 }

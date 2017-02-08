@@ -381,6 +381,7 @@ namespace PropertyEditorHelpers
 						 StructName == NAME_Color ||  
 						 StructName == NAME_LinearColor || 
 						 StructName == NAME_Vector ||
+						 StructName == NAME_Quat ||
 						 StructName == NAME_Vector4 ||
 						 StructName == NAME_Vector2D ||
 						 StructName == NAME_IntPoint;

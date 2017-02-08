@@ -25,32 +25,6 @@ bool CanPlayAnimation(USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequen
 		(!AnimAssetBase || SkeletalMeshComponent->SkeletalMesh->Skeleton->IsCompatible(AnimAssetBase->GetSkeleton())));
 }
 
-void FinishAnimControl(USkeletalMeshComponent* SkeletalMeshComponent)
-{
-	if (SkeletalMeshComponent->GetAnimationMode() == EAnimationMode::Type::AnimationCustomMode)
-	{
-		UAnimSequencerInstance* SequencerInstance = Cast<UAnimSequencerInstance>(SkeletalMeshComponent->GetAnimInstance());
-		if (SequencerInstance)
-		{
-			SkeletalMeshComponent->AnimScriptInstance = nullptr;
-		}
-	}
-	else if (SkeletalMeshComponent->GetAnimationMode() == EAnimationMode::Type::AnimationBlueprint)
-	{
-		UAnimInstance* AnimInstance = SkeletalMeshComponent->GetAnimInstance();
-		if (AnimInstance)
-		{
-			AnimInstance->Montage_Stop(0.f);
-			AnimInstance->UpdateAnimation(0.f, false);
-		}
-
-		// Update space bases to reset it back to ref pose
-		SkeletalMeshComponent->RefreshBoneTransforms();
-		SkeletalMeshComponent->RefreshSlaveComponents();
-		SkeletalMeshComponent->UpdateComponentToWorld();
-	}
-}
-
 struct FMinimalAnimParameters
 {
 	FMinimalAnimParameters(UAnimSequenceBase* InAnimation, float InEvalTime, float InBlendWeight, uint32 InSectionId, FName InSlotName)
@@ -91,7 +65,7 @@ struct FPreAnimatedAnimationTokenProducer : IMovieScenePreAnimatedTokenProducer
 					SequencerInst->ResetNodes();
 				}
 
-				FinishAnimControl(Component);
+				UAnimSequencerInstance::UnbindFromSkeletalMeshComponent(Component);
 
 				// Reset the mesh component update flag and animation mode to what they were before we animated the object
 				Component->MeshComponentUpdateFlag = MeshComponentUpdateFlag;
@@ -152,7 +126,7 @@ struct FSkeletalAnimationTrackData : IPersistentEvaluationData
 			
 			if (SkeletalMeshComponent)
 			{
-				BeginAnimControl(SkeletalMeshComponent);
+				UAnimSequencerInstance::BindToSkeletalMeshComponent(SkeletalMeshComponent);
 
 				static const bool bLooping = false;
 
@@ -217,44 +191,6 @@ private:
 		return DataContainer->CurrentlyPlayingMontages.FindOrAdd(SlotName);
 	}
 
-	bool ShouldUseSequenceInstancePlayer(const USkeletalMeshComponent* SkeletalMeshComponent)
-	{
-		const USkeletalMesh* SkeletalMesh = SkeletalMeshComponent->SkeletalMesh;
-		// create proper anim instance to animate
-		UAnimInstance* AnimInstance = SkeletalMeshComponent->GetAnimInstance();
-
-		return (AnimInstance == nullptr || SkeletalMeshComponent->GetAnimationMode() != EAnimationMode::AnimationBlueprint ||
-			AnimInstance->GetClass() != SkeletalMeshComponent->AnimClass || !SkeletalMesh->Skeleton->IsCompatible(AnimInstance->CurrentSkeleton));
-	}
-
-	void BeginAnimControl(USkeletalMeshComponent* SkeletalMeshComponent)
-	{
-		// make sure to tick and refresh all the time when ticks
-		SkeletalMeshComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-		// we use sequence instance if it's using anim blueprint that matches. Otherwise, we create sequence player
-		// this might need more check - i.e. making sure if it's same skeleton and so on, 
-		// Ideally we could just call NeedToSpawnAnimScriptInstance call, which is protected now
-		const bool bShouldUseSequenceInstance = ShouldUseSequenceInstancePlayer(SkeletalMeshComponent);
-
-		// if it should use sequence instance
-		if (bShouldUseSequenceInstance)
-		{
-			// this has to wrap around with this because we don't want to reinitialize everytime they come here
-			// SetAnimationMode will reinitiaize it even if it's same, so make sure we just call SetAnimationMode if not AnimationCustomMode
-			if (SkeletalMeshComponent->GetAnimationMode() != EAnimationMode::AnimationCustomMode)
-			{
-				SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationCustomMode);
-			}
-
-			if (SkeletalMeshComponent->AnimScriptInstance == nullptr)
-			{
-				UAnimSequencerInstance* SequencerInstance = NewObject<UAnimSequencerInstance>(SkeletalMeshComponent);
-				SkeletalMeshComponent->AnimScriptInstance = SequencerInstance;
-				SkeletalMeshComponent->AnimScriptInstance->InitializeAnimation();
-			}
-		}
-	}
-
 	void SetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 SequenceIndex, UAnimSequenceBase* InAnimSequence, float InPosition, float Weight, bool bLooping, bool bFireNotifies)
 	{
 		if (CanPlayAnimation(SkeletalMeshComponent, InAnimSequence))
@@ -297,14 +233,14 @@ private:
 
 			// Update space bases so new animation position has an effect.
 			// @todo - hack - this will be removed at some point
-			SkeletalMeshComponent->TickAnimation(0.03f, false);
-
-			SkeletalMeshComponent->RefreshBoneTransforms();
-			SkeletalMeshComponent->RefreshSlaveComponents();
-			SkeletalMeshComponent->UpdateComponentToWorld();
-			SkeletalMeshComponent->FinalizeBoneTransform();
-			SkeletalMeshComponent->MarkRenderTransformDirty();
-			SkeletalMeshComponent->MarkRenderDynamicDataDirty();
+// 			SkeletalMeshComponent->TickAnimation(0.03f, false);
+// 
+// 			SkeletalMeshComponent->RefreshBoneTransforms();
+// 			SkeletalMeshComponent->RefreshSlaveComponents();
+// 			SkeletalMeshComponent->UpdateComponentToWorld();
+// 			SkeletalMeshComponent->FinalizeBoneTransform();
+// 			SkeletalMeshComponent->MarkRenderTransformDirty();
+// 			SkeletalMeshComponent->MarkRenderDynamicDataDirty();
 		}
 		else
 		{

@@ -2,15 +2,20 @@
 
 #include "AnimNodes/AnimNode_PoseDriver.h"
 #include "AnimationRuntime.h"
-
+#include "Serialization/CustomVersion.h"
 #include "Animation/AnimInstanceProxy.h"
+#include "RBF/RBFSolver.h"
 
 
 FAnimNode_PoseDriver::FAnimNode_PoseDriver()
 {
-	RadialScaling = 0.25f;
-	bIncludeRefPoseAsNeutralPose = true;
-	Type = EPoseDriverType::SwingOnly;
+	RadialScaling_DEPRECATED = 0.25f;
+	Type_DEPRECATED = EPoseDriverType::SwingOnly;
+
+	DriveSource = EPoseDriverSource::Rotation;
+	DriveOutput = EPoseDriverOutput::DrivePoses;
+
+	RBFParams.DistanceMethod = ERBFDistanceMethod::SwingAngle;
 }
 
 void FAnimNode_PoseDriver::Initialize(const FAnimationInitializeContext& Context)
@@ -18,6 +23,28 @@ void FAnimNode_PoseDriver::Initialize(const FAnimationInitializeContext& Context
 	FAnimNode_PoseHandler::Initialize(Context);
 
 	SourcePose.Initialize(Context);
+
+	CacheDrivenIDs(Context.AnimInstanceProxy->GetSkeleton());
+}
+
+void FAnimNode_PoseDriver::CacheDrivenIDs(USkeleton* Skeleton)
+{
+	// Cache UIDs for driving curves
+	if (DriveOutput == EPoseDriverOutput::DriveCurves)
+	{
+		for (FPoseDriverTarget& PoseTarget : PoseTargets)
+		{
+			PoseTarget.DrivenUID = Skeleton->GetUIDByName(USkeleton::AnimCurveMappingName, PoseTarget.DrivenName);
+		}
+	}
+	// If not driving curves, init to INDEX_NONE
+	else
+	{
+		for (FPoseDriverTarget& PoseTarget : PoseTargets)
+		{
+			PoseTarget.DrivenUID = INDEX_NONE;
+		}
+	}
 }
 
 void FAnimNode_PoseDriver::CacheBones(const FAnimationCacheBonesContext& Context)
@@ -27,6 +54,7 @@ void FAnimNode_PoseDriver::CacheBones(const FAnimationCacheBonesContext& Context
 	SourcePose.CacheBones(Context);
 	// Init bone ref
 	SourceBone.Initialize(Context.AnimInstanceProxy->GetRequiredBones());
+	EvalSpaceBone.Initialize(Context.AnimInstanceProxy->GetRequiredBones());
 }
 
 void FAnimNode_PoseDriver::UpdateAssetPlayer(const FAnimationUpdateContext& Context)
@@ -41,143 +69,40 @@ void FAnimNode_PoseDriver::GatherDebugData(FNodeDebugData& DebugData)
 	SourcePose.GatherDebugData(DebugData.BranchFlow(1.f));
 }
 
-void FAnimNode_PoseDriver::OnPoseAssetChange()
-{
-	FAnimNode_PoseHandler::OnPoseAssetChange();
-	bCachedPoseInfoUpToDate = false;
-}
 
-FVector FAnimNode_PoseDriver::GetTwistAxisVector()
-{
-	switch (TwistAxis)
-	{
-	case BA_X:
-	default:
-		return FVector(1.f, 0.f, 0.f);
-	case BA_Y:
-		return FVector(0.f, 1.f, 0.f);
-	case BA_Z:
-		return FVector(0.f, 0.f, 1.f);
-	}
-}
 
-float FAnimNode_PoseDriver::FindDistanceBetweenPoses(const FTransform& A, const FTransform& B)
+void FAnimNode_PoseDriver::GetRBFTargets(TArray<FRBFTarget>& OutTargets) const
 {
-	if (Type == EPoseDriverType::SwingAndTwist)
-	{
-		const FQuat AQuat = A.GetRotation();
-		const FQuat BQuat = B.GetRotation();
-		return AQuat.AngularDistance(BQuat);
-	}
-	else if(Type == EPoseDriverType::SwingOnly)
-	{
-		FVector TwistVector = GetTwistAxisVector();
-		FVector VecA = A.TransformVectorNoScale(TwistVector);
-		FVector VecB = B.TransformVectorNoScale(TwistVector);
+	OutTargets.Empty();
+	OutTargets.AddZeroed(PoseTargets.Num());
 
-		const float Dot = FVector::DotProduct(VecA, VecB);
-		return FMath::Acos(Dot);
-	}
-	else if (Type == EPoseDriverType::Translation)
+	for (int32 TargetIdx = 0; TargetIdx < PoseTargets.Num(); TargetIdx++)
 	{
-		float DistSquared = (A.GetTranslation() - B.GetTranslation()).SizeSquared();
-		if (DistSquared > SMALL_NUMBER)
+		FRBFTarget& RBFTarget = OutTargets[TargetIdx];
+		const FPoseDriverTarget& PoseTarget = PoseTargets[TargetIdx];
+
+		if (DriveSource == EPoseDriverSource::Translation)
 		{
-			return FMath::Sqrt(DistSquared);
+			RBFTarget.SetFromVector(PoseTarget.TargetTranslation);
 		}
 		else
 		{
-			return 0.f;
+			RBFTarget.SetFromRotator(PoseTarget.TargetRotation);
 		}
-	}
-	else
-	{
-		ensureMsgf(false, TEXT("Unknown EPoseDriverType"));
-		return 0.f;
+
+		RBFTarget.ScaleFactor = PoseTarget.TargetScale;
 	}
 }
 
-void FAnimNode_PoseDriver::UpdateCachedPoseInfo(const FTransform& RefTM)
-{
-	if (CurrentPoseAsset.IsValid())
-	{
-		int32 NumPoses = CurrentPoseAsset.Get()->GetNumPoses();
-		int32 NumPoseInfos = NumPoses;
-		if (bIncludeRefPoseAsNeutralPose)
-		{
-			NumPoseInfos++;
-		}
-
-		PoseInfos.Empty();
-		PoseInfos.AddZeroed(NumPoseInfos);
-
-		// Get track index in PoseAsset for bone of interest
-		const int32 TrackIndex = CurrentPoseAsset.Get()->GetTrackIndexByName(SourceBone.BoneName);
-		if (TrackIndex != INDEX_NONE)
-		{
-			TArray<FSmartName> PoseNames = CurrentPoseAsset.Get()->GetPoseNames();
-
-			// Cache quat for source bone for each pose
-			for (int32 PoseIdx = 0; PoseIdx < NumPoses; PoseIdx++)
-			{
-				FPoseDriverPoseInfo& PoseInfo = PoseInfos[PoseIdx];
-
-				FTransform BoneTransform;
-				bool bFound = CurrentPoseAsset.Get()->GetLocalPoseForTrack(PoseIdx, TrackIndex, BoneTransform);
-				check(bFound);
-
-				PoseInfo.PoseTM = BoneTransform;
-				PoseInfo.PoseName = PoseNames[PoseIdx].DisplayName;
-
-			}
-
-			// If we want to include ref pose, add that to end
-			if (bIncludeRefPoseAsNeutralPose)
-			{
-				FPoseDriverPoseInfo& PoseInfo = PoseInfos.Last();
-
-				static FName RefPoseName = FName(TEXT("RefPose"));
-				PoseInfo.PoseTM = RefTM;
-				PoseInfo.PoseName = RefPoseName;
-			}
-
-			// Calculate largest distance between poses
-			if (NumPoseInfos == 1)
-			{
-				// If only one pose, set to 180 degrees
-				PoseInfos[0].NearestPoseDist = PI;
-			}
-			else
-			{
-				// Iterate over poses
-				for (int32 PoseIdx = 0; PoseIdx < NumPoseInfos; PoseIdx++)
-				{
-					FPoseDriverPoseInfo& PoseInfo = PoseInfos[PoseIdx];
-					PoseInfo.NearestPoseDist = BIG_NUMBER; // init to large value
-
-					for (int32 OtherPoseIdx = 0; OtherPoseIdx < NumPoseInfos; OtherPoseIdx++)
-					{
-						if (OtherPoseIdx != PoseIdx) // If not ourself..
-						{
-							// Get distance between poses
-							FPoseDriverPoseInfo& OtherPoseInfo = PoseInfos[OtherPoseIdx];
-							float Dist = FindDistanceBetweenPoses(PoseInfo.PoseTM, OtherPoseInfo.PoseTM);
-							PoseInfo.NearestPoseDist = FMath::Min(Dist, PoseInfo.NearestPoseDist);
-						}
-					}
-
-					// Avoid zero dist if poses are all on top of each other
-					PoseInfo.NearestPoseDist = FMath::Max(PoseInfo.NearestPoseDist, KINDA_SMALL_NUMBER);
-				}
-			}
-		}
-	}
-
-	bCachedPoseInfoUpToDate = true;
-}
 
 void FAnimNode_PoseDriver::Evaluate(FPoseContext& Output)
 {
+	// Udpate DrivenIDs if needed
+	if (bCachedDrivenIDsAreDirty)
+	{
+		CacheDrivenIDs(Output.AnimInstanceProxy->GetSkeleton());
+	}
+
 	FPoseContext SourceData(Output);
 	SourcePose.Evaluate(SourceData);
 
@@ -185,81 +110,125 @@ void FAnimNode_PoseDriver::Evaluate(FPoseContext& Output)
 	const FBoneContainer& BoneContainer = SourceData.Pose.GetBoneContainer();
 	const FCompactPoseBoneIndex SourceCompactIndex = SourceBone.GetCompactPoseIndex(BoneContainer);
 
-	// Do nothing if no PoseAsset, or bone is not found/LOD-ed out
-	if (!CurrentPoseAsset.IsValid() || SourceCompactIndex == INDEX_NONE || !Output.AnimInstanceProxy->IsSkeletonCompatible(CurrentPoseAsset->GetSkeleton()))
+	// Do nothing if bone is not found/LOD-ed out
+	if (SourceCompactIndex == INDEX_NONE)
 	{
 		Output = SourceData;
 		return;
 	}
 
-	// Get transform of source bone
-	SourceBoneTM = SourceData.Pose[SourceCompactIndex];
-
-	// Ensure cached info is up to date
-	if (!bCachedPoseInfoUpToDate)
+	// If evaluating in alternative bone space, have to build component space pose
+	if (EvalSpaceBone.IsValid(BoneContainer))
 	{
-		const FTransform& SourceRefPoseBoneTM = BoneContainer.GetRefPoseTransform(SourceCompactIndex);
+		FCSPose<FCompactPose> CSPose;
+		CSPose.InitPose(SourceData.Pose);
 
-		UpdateCachedPoseInfo(SourceRefPoseBoneTM);
+		const FCompactPoseBoneIndex EvalSpaceCompactIndex = EvalSpaceBone.GetCompactPoseIndex(BoneContainer);
+		FTransform EvalSpaceCompSpace = CSPose.GetComponentSpaceTransform(EvalSpaceCompactIndex);
+		FTransform SourceBoneCompSpace = CSPose.GetComponentSpaceTransform(SourceCompactIndex);
+
+		SourceBoneTM = SourceBoneCompSpace.GetRelativeTransform(EvalSpaceCompSpace);
 	}
-
-	float TotalWeight = 0.f; // Keep track of total weight generated, to renormalize at the end
-
-	// Iterate over each pose, adding its contribution
-	for (int32 PoseInfoIdx = 0; PoseInfoIdx < PoseInfos.Num(); PoseInfoIdx++)
-	{
-		FPoseDriverPoseInfo& PoseInfo = PoseInfos[PoseInfoIdx];
-
-		// Find distance
-		PoseInfo.PoseDistance = FindDistanceBetweenPoses(SourceBoneTM, PoseInfo.PoseTM);
-
-		// Evaluate radial basis function to find weight
-		float GaussVarianceSqr = FMath::Square(RadialScaling * PoseInfo.NearestPoseDist);
-		PoseInfo.PoseWeight = FMath::Exp(-(PoseInfo.PoseDistance * PoseInfo.PoseDistance) / GaussVarianceSqr);
-
-		// Add weight to total
-		TotalWeight += PoseInfo.PoseWeight;
-	}
-
-	// Only normalize and apply if we got some kind of weight
-	if (TotalWeight > KINDA_SMALL_NUMBER)
-	{
-		// Normalize pose weights by rescaling by sum of weights
-		const float WeightScale = 1.f / TotalWeight;
-		for (FPoseDriverPoseInfo& PoseInfo : PoseInfos)
-		{
-			PoseInfo.PoseWeight *= WeightScale;
-		}
-
-		FPoseContext CurrentPose(Output);
-		check(PoseExtractContext.PoseCurves.Num() == PoseUIDList.Num());
-		for (int32 PoseIdx = 0; PoseIdx < PoseUIDList.Num(); ++PoseIdx)
-		{
-			PoseExtractContext.PoseCurves[PoseIdx] = PoseInfos[PoseIdx].PoseWeight;
-		}
-
-		if (CurrentPoseAsset.Get()->GetAnimationPose(CurrentPose.Pose, CurrentPose.Curve, PoseExtractContext))
-		{
-			// blend by weight
-			if (CurrentPoseAsset->IsValidAdditive())
-			{
-				// Don't want to modify SourceBone, set additive offset to identity
-				CurrentPose.Pose[SourceCompactIndex] = FTransform::Identity;
-
-				Output = SourceData;
-				FAnimationRuntime::AccumulateAdditivePose(Output.Pose, CurrentPose.Pose, Output.Curve, CurrentPose.Curve, 1.f, EAdditiveAnimationType::AAT_LocalSpaceBase);
-			}
-			else
-			{
-				// Don't want to modify SourceBone, set weight to zero
-				BoneBlendWeights[SourceCompactIndex.GetInt()] = 0.f;
-
-				FAnimationRuntime::BlendTwoPosesTogetherPerBone(SourceData.Pose, CurrentPose.Pose, SourceData.Curve, CurrentPose.Curve, BoneBlendWeights, Output.Pose, Output.Curve);
-			}
-		}
-	}
-	// No poses activated, just pass through
+	// If just evaluating in local space, just grab from local space pose
 	else
+	{
+		SourceBoneTM = SourceData.Pose[SourceCompactIndex];
+	}
+
+	// Build RBFInput entry
+	FRBFEntry Input;
+	if (DriveSource == EPoseDriverSource::Translation)
+	{
+		Input.SetFromVector(SourceBoneTM.GetTranslation());
+	}
+	else
+	{
+		Input.SetFromRotator(SourceBoneTM.Rotator());
+	}
+
+	RBFParams.TargetDimensions = 3;
+
+	// Get target array as RBF types
+	TArray<FRBFTarget> RBFTargets;
+	GetRBFTargets(RBFTargets);
+
+	// Run RBF solver
+	OutputWeights.Empty();
+	FRBFSolver::Solve(RBFParams, RBFTargets, Input, OutputWeights);
+
+	// Track if we have filled Output with valid pose
+	bool bHaveValidPose = false;
+
+	// Process active targets (if any)
+	if (OutputWeights.Num() > 0)
+	{
+		// If we want to drive poses, and PoseAsset is assigned and compatible
+		if (DriveOutput == EPoseDriverOutput::DrivePoses && 
+			CurrentPoseAsset.IsValid() && 
+			Output.AnimInstanceProxy->IsSkeletonCompatible(CurrentPoseAsset->GetSkeleton()) )
+		{
+			FPoseContext CurrentPose(Output);
+
+			// Reset PoseExtractContext..
+			check(PoseExtractContext.PoseCurves.Num() == PoseUIDList.Num());		
+			FMemory::Memzero(PoseExtractContext.PoseCurves.GetData(), PoseExtractContext.PoseCurves.Num() * sizeof(float));
+			// Then fill in weight for any driven poses
+			for (const FRBFOutputWeight& Weight : OutputWeights)
+			{
+				const FPoseDriverTarget& PoseTarget = PoseTargets[Weight.TargetIndex];
+
+				int32 PoseIndex = CurrentPoseAsset.Get()->GetPoseIndexByName(PoseTarget.DrivenName);
+				if (PoseIndex != INDEX_NONE)
+				{
+					PoseExtractContext.PoseCurves[PoseIndex] = Weight.TargetWeight;
+				}
+			}
+
+			if (CurrentPoseAsset.Get()->GetAnimationPose(CurrentPose.Pose, CurrentPose.Curve, PoseExtractContext))
+			{
+				// blend by weight
+				if (CurrentPoseAsset->IsValidAdditive())
+				{
+					// Don't want to modify SourceBone, set additive offset to zero (not identity transform, as need zero scale)
+					CurrentPose.Pose[SourceCompactIndex] = FTransform(FQuat::Identity, FVector::ZeroVector, FVector::ZeroVector);
+
+					Output = SourceData;
+					FAnimationRuntime::AccumulateAdditivePose(Output.Pose, CurrentPose.Pose, Output.Curve, CurrentPose.Curve, 1.f, EAdditiveAnimationType::AAT_LocalSpaceBase);
+				}
+				else
+				{
+					// Don't want to modify SourceBone, set weight to zero
+					BoneBlendWeights[SourceCompactIndex.GetInt()] = 0.f;
+
+					FAnimationRuntime::BlendTwoPosesTogetherPerBone(SourceData.Pose, CurrentPose.Pose, SourceData.Curve, CurrentPose.Curve, BoneBlendWeights, Output.Pose, Output.Curve);
+				}
+
+				bHaveValidPose = true;
+			}
+		}
+		// Drive curves (morphs, materials etc)
+		else if(DriveOutput == EPoseDriverOutput::DriveCurves)
+		{
+			// Start by copying input
+			Output = SourceData;
+			
+			// Then set curves based on target weights
+			for (const FRBFOutputWeight& Weight : OutputWeights)
+			{
+				FPoseDriverTarget& PoseTarget = PoseTargets[Weight.TargetIndex];
+				if (PoseTarget.DrivenUID != SmartName::MaxUID)
+				{
+					Output.Curve.Set(PoseTarget.DrivenUID, Weight.TargetWeight);
+				}
+			}
+
+			bHaveValidPose = true;
+		}
+	}
+
+
+	// No valid pose, just pass through
+	if(!bHaveValidPose)
 	{
 		Output = SourceData;
 	}

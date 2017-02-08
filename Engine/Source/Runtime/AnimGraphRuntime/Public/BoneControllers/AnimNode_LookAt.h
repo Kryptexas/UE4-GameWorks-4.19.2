@@ -23,7 +23,8 @@ namespace EAxisOption
 		Z, 
 		X_Neg, 
 		Y_Neg, 
-		Z_Neg
+		Z_Neg,
+		Custom
 	};
 }
 
@@ -72,6 +73,10 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_LookAt : public FAnimNode_SkeletalControlB
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl) 
 	TEnumAsByte<EAxisOption::Type>	LookAtAxis;
 
+	/** Custom look up axis in local space. Only used if LookAtAxis==EAxisOption::Custom */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SkeletalControl)
+	FVector	CustomLookAtAxis;
+
 	/** Whether or not to use Look up axis */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl)
 	bool bUseLookUpAxis;
@@ -79,6 +84,10 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_LookAt : public FAnimNode_SkeletalControlB
 	/** Look up axis in local space */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl)
 	TEnumAsByte<EAxisOption::Type>	LookUpAxis;
+
+	/** Custom look up axis in local space. Only used if LookUpAxis==EAxisOption::Custom */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SkeletalControl)
+	FVector	CustomLookUpAxis;
 
 	/** Look at Clamp value in degree - if you're look at axis is Z, only X, Y degree of clamp will be used*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl, meta=(PinHiddenByDefault))
@@ -117,7 +126,7 @@ private:
 	virtual void InitializeBoneReferences(const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface
 
-	FVector GetAlignVector(const FTransform& Transform, EAxisOption::Type AxisOption);
+	FVector GetAlignVector(const FTransform& Transform, EAxisOption::Type AxisOption, const FVector& CustomAxis);
 
 	EAlphaBlendType GetInterpolationType()
 	{

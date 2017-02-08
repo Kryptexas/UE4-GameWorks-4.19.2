@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 #ifndef PX_XML_IMPL_H
@@ -31,6 +31,7 @@
 
 #include "SnXmlMemoryPool.h"
 #include "PsString.h"
+#include "foundation/PxMemory.h"
 
 namespace physx { namespace Sn {
 
@@ -60,7 +61,7 @@ namespace snXmlImpl {
 			//The memory will never be released by repx.  If you want it released, you need to pass in a custom allocator
 			//that tracks all allocations and releases unreleased allocations yourself.
 			char* dest = reinterpret_cast<char* >( inAllocator.allocate( theLen + 1, "Repx::const char*", __FILE__, __LINE__ ) );
-			memcpy( dest, inStr, theLen );
+			PxMemCopy( dest, inStr, theLen );
 			dest[theLen] = 0;
 			return dest;
 		}
@@ -74,7 +75,7 @@ namespace snXmlImpl {
 		{
 			PxU32 theLen = snXmlImpl::strLen( inStr );
 			char* dest = reinterpret_cast<char* >( inMgr->allocate( theLen + 1 ) );
-			memcpy( dest, inStr, theLen );
+			PxMemCopy( dest, inStr, theLen );
 			dest[theLen] = 0;
 			return dest;
 		}

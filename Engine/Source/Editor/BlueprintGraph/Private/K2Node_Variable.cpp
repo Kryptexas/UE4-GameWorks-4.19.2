@@ -531,6 +531,46 @@ void UK2Node_Variable::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), VariableName ));
 }
 
+void UK2Node_Variable::HandleVariableRenamed(UBlueprint* InBlueprint, UClass* InVariableClass, UEdGraph* InGraph, const FName& InOldVarName, const FName& InNewVarName)
+{
+	UClass* const NodeRefClass = VariableReference.GetMemberParentClass(InBlueprint->GeneratedClass);
+	if (NodeRefClass && NodeRefClass->IsChildOf(InVariableClass) && InOldVarName == GetVarName())
+	{
+		Modify();
+
+		if (VariableReference.IsLocalScope())
+		{
+			VariableReference.SetLocalMember(InNewVarName, VariableReference.GetMemberScopeName(), VariableReference.GetMemberGuid());
+		}
+		else if (VariableReference.IsSelfContext())
+		{
+			VariableReference.SetSelfMember(InNewVarName);
+		}
+		else
+		{
+			VariableReference.SetExternalMember(InNewVarName, NodeRefClass);
+		}
+
+		RenameUserDefinedPin(InOldVarName.ToString(), InNewVarName.ToString());
+	}
+}
+
+bool UK2Node_Variable::ReferencesVariable(const FName& InVarName, const UStruct* InScope) const
+{
+	if (InVarName == GetVarName())
+	{
+		if (InScope && VariableReference.GetMemberScopeName() != InScope->GetName())
+		{
+			// Variables are not in the same scope
+			return false;
+		}
+		
+		return true;
+	}
+
+	return false;
+}
+
 FSlateIcon UK2Node_Variable::GetVariableIconAndColor(const UStruct* VarScope, FName VarName, FLinearColor& IconColorOut)
 {
 	if(VarScope != NULL)

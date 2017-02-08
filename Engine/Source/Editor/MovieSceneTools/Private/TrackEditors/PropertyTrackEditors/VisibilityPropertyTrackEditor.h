@@ -24,8 +24,17 @@ public:
 	/** Constructor. */
 	FVisibilityPropertyTrackEditor(TSharedRef<ISequencer> InSequencer)
 		// Don't supply any property type names to watch since the FBoolPropertyTrackEditor is already watching for bool property changes.
-		: FPropertyTrackEditor<UMovieSceneVisibilityTrack, UMovieSceneBoolSection, bool>(InSequencer, NAME_BoolProperty)
+		// @todo: Is this right? comment says we should't be passing the property type name, yet we currently are.
+		: FPropertyTrackEditor<UMovieSceneVisibilityTrack, UMovieSceneBoolSection, bool>(InSequencer, GetAnimatedPropertyTypes())
 	{ }
+
+	/**
+	 * Retrieve a list of all property types that this track editor animates
+	 */
+	static TArray<FAnimatedPropertyKey, TInlineAllocator<1>> GetAnimatedPropertyTypes()
+	{
+		return TArray<FAnimatedPropertyKey, TInlineAllocator<1>>({ FAnimatedPropertyKey::FromPropertyTypeName(NAME_BoolProperty) });
+	}
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 

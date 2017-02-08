@@ -29,7 +29,7 @@ public:
 public:
 
 	/** Initialize this level sequence. */
-	void Initialize();
+	virtual void Initialize();
 
 	/** Convert old-style lazy object ptrs to new-style references using the specified context */
 	void ConvertPersistentBindingsToDefault(UObject* FixupContext);
@@ -46,13 +46,14 @@ public:
 	virtual bool AllowsSpawnableObjects() const override;
 	virtual bool CanRebindPossessable(const FMovieScenePossessable& InPossessable) const override;
 	virtual UObject* MakeSpawnableTemplateFromInstance(UObject& InSourceObject, FName ObjectName) override;
+	virtual bool CanAnimateObject(UObject& InObject) const override;
 
 	virtual void PostLoad() override;
 
 	/** Bind a posessable object with an explicitly-supplied ObjectReference */
 	void BindPossessableObject(const FGuid& ObjectId, const FLevelSequenceObjectReference& ObjectReference);
 
-private:
+protected:
 
 	/** Collection of possessed objects. */
 	UPROPERTY()

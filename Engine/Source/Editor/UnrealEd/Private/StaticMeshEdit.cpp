@@ -413,7 +413,7 @@ void AddBoxGeomFromTris( const TArray<FPoly>& Tris, FKAggregateGeom* AggGeom, co
 	BoxTM.SetAxis(2, ZAxis);
 
 	// OBB centre == AABB centre.
-	FBox Box(0);
+	FBox Box(ForceInit);
 	for(int32 i=0; i<Tris.Num(); i++)
 	{
 		Box += Tris[i].Vertices[0];
@@ -447,7 +447,7 @@ void AddSphereGeomFromVerts( const TArray<FVector>& Verts, FKAggregateGeom* AggG
 		return;
 	}
 
-	FBox Box(0);
+	FBox Box(ForceInit);
 
 	for(int32 i=0; i<Verts.Num(); i++)
 	{

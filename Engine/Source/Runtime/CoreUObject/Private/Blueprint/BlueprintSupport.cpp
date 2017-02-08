@@ -293,7 +293,7 @@ struct FPreloadMembersHelper
 			{
 				check(!GEventDrivenLoaderEnabled);
 				CurrentObject->SetFlags(RF_NeedLoad);
-				if (auto Linker = CurrentObject->GetLinker())
+				if (FLinkerLoad* Linker = CurrentObject->GetLinker())
 				{
 					Linker->Preload(CurrentObject);
 					PreloadMembers(CurrentObject);
@@ -381,7 +381,7 @@ bool FLinkerLoad::RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObj
 				ClassChain = ClassChain->GetSuperClass();
 			}
 		}
-		for (auto Class : ClassChainOrdered)
+		for (UClass* Class : ClassChainOrdered)
 		{
 			UObject* BlueprintObject = Class->ClassGeneratedBy;
 			if (BlueprintObject && BlueprintObject->HasAnyFlags(RF_BeingRegenerated))
@@ -652,7 +652,7 @@ public:
 	/**  */
 	bool IsLinkerExportBeingResolved(FLinkerLoad* Linker, int32 ExportIndex) const
 	{
-		if (auto* ExportIndices = ResolvingExports.Find(Linker))
+		if (const TSet<int32>* ExportIndices = ResolvingExports.Find(Linker))
 		{
 			return ExportIndices->Contains(ExportIndex);
 		}
@@ -662,7 +662,7 @@ public:
 	/**  */
 	void FlagExportClassAsFullyResolved(FLinkerLoad* Linker, int32 ExportIndex)
 	{
-		if (auto* ExportIndices = ResolvingExports.Find(Linker))
+		if (TSet<int32>* ExportIndices = ResolvingExports.Find(Linker))
 		{
 			ExportIndices->Remove(ExportIndex);
 			if (ExportIndices->Num() == 0)
@@ -1288,7 +1288,7 @@ void FLinkerLoad::ResolveAllImports()
 		{
 			// because it is tracked by FUnresolvedStructTracker, it must be a struct
 			DEFERRED_DEPENDENCY_CHECK(Cast<UStruct>(ImportObject) != nullptr);
-			auto SourceLinker = FindExistingLinkerForImport(ImportIndex);
+			FLinkerLoad* SourceLinker = FindExistingLinkerForImport(ImportIndex);
 			if (SourceLinker)
 			{
 				SourceLinker->ResolveDeferredDependencies((UStruct*)ImportObject);
@@ -2092,7 +2092,7 @@ FObjectInitializer* FDeferredObjInitializerTracker::Add(const FObjectInitializer
 	if (LoadClass != nullptr)
 	{
 		FDeferredObjInitializerTracker& ThreadInst = FDeferredObjInitializerTracker::Get();
-		auto& SuperClassMap = ThreadInst.SuperClassMap;
+		TMultiMap<UClass*, UClass*>& SuperClassMap = ThreadInst.SuperClassMap;
 
 		UClass* SuperClass = LoadClass->GetSuperClass();
 		SuperClassMap.AddUnique(SuperClass, LoadClass);
@@ -2121,7 +2121,7 @@ FObjectInitializer* FDeferredObjInitializerTracker::Add(const FObjectInitializer
 		}
 		else
 		{
-			auto& InitializersCache = ThreadInst.DeferredInitializers;
+			TMap<UClass*, FObjectInitializer>& InitializersCache = ThreadInst.DeferredInitializers;
 			DEFERRED_DEPENDENCY_CHECK(InitializersCache.Find(LoadClass) == nullptr); // did we try to init the CDO twice?
 
 			// NOTE: we copy the FObjectInitializer, because it is most likely being destroyed

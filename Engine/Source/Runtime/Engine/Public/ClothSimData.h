@@ -5,8 +5,8 @@
 #include "CoreMinimal.h"
 
 /** data for updating cloth section from the results of clothing simulation */
-struct FClothSimulData
-{
-	TArray<FVector4> ClothSimulPositions;
-	TArray<FVector4> ClothSimulNormals;
-};
+//struct FClothSimulData
+//{
+//	TArray<FVector4> Positions;
+//	TArray<FVector4> Normals;
+//};

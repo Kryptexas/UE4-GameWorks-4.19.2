@@ -93,6 +93,16 @@ public:
 	virtual FReply OnSectionDoubleClicked( const FGeometry& SectionGeometry, const FPointerEvent& MouseEvent ) { return FReply::Unhandled(); }
 
 	/**
+	 * Called when the section is double clicked
+	 *
+	 * @param SectionGeometry	Geometry of the section
+	 * @param MouseEvent		Event causing the double click
+	 * @param ObjectBinding		The object guid bound to this section
+	 * @return A reply in response to double clicking the section
+	 */
+	virtual FReply OnSectionDoubleClicked( const FGeometry& SectionGeometry, const FPointerEvent& MouseEvent, const FGuid& ObjectBinding) { return FReply::Unhandled(); }
+
+	/**
 	 * @return The display name of the section for the animation outliner
 	 */
 	virtual FText GetDisplayName() const = 0;

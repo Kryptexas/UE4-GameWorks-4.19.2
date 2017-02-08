@@ -4063,7 +4063,7 @@ public:
 		}
 
 		// Calculate the bounding box.
-		FBox BoundingBox(0);
+		FBox BoundingBox(ForceInit);
 		FPositionVertexBuffer& BasePositionVertexBuffer = OutRenderData.LODResources[0].PositionVertexBuffer;
 		for (uint32 VertexIndex = 0; VertexIndex < BasePositionVertexBuffer.GetNumVertices(); VertexIndex++)
 		{
@@ -7294,11 +7294,7 @@ void FMeshUtilities::CalculateTextureCoordinateBoundsForSkeletalMesh(const FStat
 	LODModel.GetVertices(Vertices);
 	LODModel.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
 
-#if WITH_APEX_CLOTHING
 	const uint32 SectionCount = (uint32)LODModel.NumNonClothingSections();
-#else
-	const uint32 SectionCount = LODModel.Sections.Num();
-#endif // #if WITH_APEX_CLOTHING
 
 	check(OutBounds.Num() != 0);
 

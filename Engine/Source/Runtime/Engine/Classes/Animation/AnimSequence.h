@@ -26,23 +26,6 @@ class USkeletalMesh;
 struct FAnimCompressContext;
 struct FCompactPose;
 
-
-/**
- * Indicates animation data compression format.
- */
-UENUM()
-enum AnimationCompressionFormat
-{
-	ACF_None,
-	ACF_Float96NoW,
-	ACF_Fixed48NoW,
-	ACF_IntervalFixed32NoW,
-	ACF_Fixed32NoW,
-	ACF_Float32NoW,
-	ACF_Identity,
-	ACF_MAX UMETA(Hidden),
-};
-
 /**
  * Indicates animation data key format.
  */
@@ -53,23 +36,6 @@ enum AnimationKeyFormat
 	AKF_VariableKeyLerp,
 	AKF_PerTrackCompression,
 	AKF_MAX,
-};
-
-/** 
- * For an additive animation, indicates what the animation is relative to.
- */
-UENUM()
-enum EAdditiveBasePoseType
-{
-	/** Will be deprecated. */
-	ABPT_None UMETA(DisplayName="None"),
-	/** Use the Skeleton's ref pose as base. */
-	ABPT_RefPose UMETA(DisplayName="Skeleton Reference Pose"),
-	/** Use a whole animation as a base pose. BasePoseSeq must be set. */
-	ABPT_AnimScaled UMETA(DisplayName="Selected animation scaled"),
-	/** Use one frame of an animation as a base pose. BasePoseSeq and RefFrameIndex must be set (RefFrameIndex will be clamped). */
-	ABPT_AnimFrame UMETA(DisplayName="Selected animation frame"),
-	ABPT_MAX,
 };
 
 /**
@@ -337,6 +303,8 @@ FArchive& operator<<(FArchive& Ar, FCompressedOffsetData& D);
 UCLASS(config=Engine, hidecategories=(UObject, Length), BlueprintType)
 class ENGINE_API UAnimSequence : public UAnimSequenceBase
 {
+	friend class UAnimationBlueprintLibrary;
+
 	GENERATED_UCLASS_BODY()
 
 	/** Number of raw frames in this sequence (not used by engine - just for informational purposes). */
@@ -635,6 +603,7 @@ public:
 	const TArray<FTrackToSkeletonMap>& GetCompressedTrackToSkeletonMapTable() const { return CompressedTrackToSkeletonMapTable; }
 
 	FRawAnimSequenceTrack& GetRawAnimationTrack(int32 TrackIndex) { return RawAnimationData[TrackIndex]; }
+	const FRawAnimSequenceTrack& GetRawAnimationTrack(int32 TrackIndex) const { return RawAnimationData[TrackIndex]; }
 
 private:
 	/** 
@@ -655,7 +624,7 @@ private:
 	* @param	BoneIndex			Bone Index in Bone Transform array.
 	* @param	RequiredBones		BoneContainer
 	*/
-	void RetargetBoneTransform(FTransform& BoneTransform, const int32& SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones, const bool bIsBakedAdditive) const;
+	void RetargetBoneTransform(FTransform& BoneTransform, const int32 SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones, const bool bIsBakedAdditive) const;
 
 public:
 	/**
@@ -759,7 +728,7 @@ public:
 	 *
 	 * @param	TrackIndex		Track Index
 	 */
-	int32 GetSkeletonIndexFromRawDataTrackIndex(const int32& TrackIndex) const 
+	int32 GetSkeletonIndexFromRawDataTrackIndex(const int32 TrackIndex) const 
 	{ 
 		return TrackToSkeletonMapTable[TrackIndex].BoneTreeIndex; 
 	}
@@ -769,7 +738,7 @@ public:
 	*
 	* @param	TrackIndex		Track Index
 	*/
-	int32 GetSkeletonIndexFromCompressedDataTrackIndex(const int32& TrackIndex) const
+	int32 GetSkeletonIndexFromCompressedDataTrackIndex(const int32 TrackIndex) const
 	{
 		return CompressedTrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
 	}

@@ -349,16 +349,16 @@ struct FAnimSyncMarker
 	GENERATED_USTRUCT_BODY()
 
 	// The name of this marker
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category=Animation)
 	FName MarkerName;
 
 	// Time in seconds of this marker
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = Animation)
 	float Time;
 
 #if WITH_EDITORONLY_DATA
 	// The editor track this marker sits on
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = Animation)
 	int32 TrackIndex;
 #endif
 

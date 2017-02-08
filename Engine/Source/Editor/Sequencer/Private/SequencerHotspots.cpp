@@ -22,20 +22,10 @@ void FSectionHotspot::PopulateContextMenu(FMenuBuilder& MenuBuilder, ISequencer&
 	FGuid ObjectBinding;
 	if (Section.TrackNode.IsValid())
 	{
-		TSharedPtr<FSequencerDisplayNode> ParentNode = Section.TrackNode;
-
-		while (ParentNode.IsValid())
+		TSharedPtr<FSequencerObjectBindingNode> ObjectBindingNode = Section.TrackNode->FindParentObjectBindingNode();
+		if (ObjectBindingNode.IsValid())
 		{
-			if (ParentNode.Get()->GetType() == ESequencerNode::Object)
-			{
-				TSharedPtr<FSequencerObjectBindingNode> ObjectNode = StaticCastSharedPtr<FSequencerObjectBindingNode>(ParentNode);
-				if (ObjectNode.IsValid())
-				{
-					ObjectBinding = ObjectNode.Get()->GetObjectBinding();
-					break;
-				}
-			}
-			ParentNode = ParentNode.Get()->GetParent();
+			ObjectBinding = ObjectBindingNode->GetObjectBinding();
 		}
 	}
 

@@ -3223,7 +3223,7 @@ void FRecastNavMeshGenerator::UpdateNavigationBounds()
 	const TSet<FNavigationBounds>& NavigationBoundsSet = NavSys->GetNavigationBounds();
 	const int32 AgentIndex = NavSys->GetSupportedAgentIndex(DestNavMesh);
 
-	TotalNavBounds = FBox(0);
+	TotalNavBounds = FBox(ForceInit);
 	InclusionBounds.Empty(NavigationBoundsSet.Num());
 
 	// Collect bounding geometry

@@ -248,6 +248,7 @@
 #include "Engine/PreviewMeshCollection.h"
 #include "Factories/PreviewMeshCollectionFactory.h"
 #include "Factories/ForceFeedbackAttenuationFactory.h"
+#include "FileHelper.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -6082,6 +6083,11 @@ UObject* UDataAssetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 /*------------------------------------------------------------------------------
 	UDestructibleMeshFactory implementation.
 ------------------------------------------------------------------------------*/
+namespace DestructibleFactoryConstants
+{
+	static const FString DestructibleAssetClass("DestructibleAssetParameters");
+}
+
 UDestructibleMeshFactory::UDestructibleMeshFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -6099,6 +6105,41 @@ FText UDestructibleMeshFactory::GetDisplayName() const
 }
 
 #if WITH_APEX
+
+bool UDestructibleMeshFactory::FactoryCanImport(const FString& Filename)
+{
+	// Need to read in the file and try to create an asset to get it's type
+	TArray<uint8> FileBuffer; 
+	if(FFileHelper::LoadFileToArray(FileBuffer, *Filename, FILEREAD_Silent))
+	{
+		physx::PxFileBuf* Stream = GApexSDK->createMemoryReadStream(FileBuffer.GetData(), FileBuffer.Num());
+			if(Stream)
+			{
+				NvParameterized::Serializer::SerializeType SerializeType = GApexSDK->getSerializeType(*Stream);
+				if(NvParameterized::Serializer* Serializer = GApexSDK->createSerializer(SerializeType))
+				{
+					NvParameterized::Serializer::DeserializedData DeserializedData;
+					Serializer->deserialize(*Stream, DeserializedData);
+
+					if(DeserializedData.size() > 0)
+					{
+						NvParameterized::Interface* AssetInterface = DeserializedData[0];
+
+						int32 StringLength = StringCast<TCHAR>(AssetInterface->className()).Length();
+						FString ClassName(StringLength, StringCast<TCHAR>(AssetInterface->className()).Get());
+
+						if(ClassName == DestructibleFactoryConstants::DestructibleAssetClass)
+						{
+							return true;
+						}
+					}
+				}
+
+				GApexSDK->releaseMemoryReadStream(*Stream);
+			}
+	}
+	return false;
+}
 
 UObject* UDestructibleMeshFactory::FactoryCreateBinary
 (

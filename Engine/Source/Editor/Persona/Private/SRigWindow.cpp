@@ -9,7 +9,6 @@
 #include "Editor.h"
 #include "EditorStyleSet.h"
 #include "Widgets/Input/SButton.h"
-#include "ContentBrowserModule.h"
 #include "AssetNotifications.h"
 #include "Animation/Rig.h"
 #include "BoneSelectionWidget.h"
@@ -24,165 +23,10 @@ class FPersona;
 
 #define LOCTEXT_NAMESPACE "SRigWindow"
 
-static const FName ColumnId_NodeNameLabel( "Node Name" );
-static const FName ColumnID_BoneNameLabel( "Bone" );
-
 DECLARE_DELEGATE_TwoParams(FOnBoneMappingChanged, FName /** NodeName */, FName /** BoneName **/);
 DECLARE_DELEGATE_RetVal_OneParam(FName, FOnGetBoneMapping, FName /** Node Name **/);
 
 //////////////////////////////////////////////////////////////////////////
-// SBoneMappingListRow
-
-typedef TSharedPtr< FDisplayedBoneMappingInfo > FDisplayedBoneMappingInfoPtr;
-
-class SBoneMappingListRow
-	: public SMultiColumnTableRow< FDisplayedBoneMappingInfoPtr >
-{
-public:
-
-	SLATE_BEGIN_ARGS( SBoneMappingListRow ) {}
-
-		/** The item for this row **/
-		SLATE_ARGUMENT( FDisplayedBoneMappingInfoPtr, Item )
-
-		/* The SRigWindow that handles all retarget sources */
-		SLATE_ARGUMENT( class SRigWindow*, RigWindow )
-
-		/* Widget used to display the list of retarget sources*/
-		SLATE_ARGUMENT( TSharedPtr<SBoneMappingListType>, BoneMappingListView )
-
-		SLATE_EVENT( FOnBoneMappingChanged, OnBoneMappingChanged)
-
-		SLATE_EVENT( FOnGetBoneMapping, OnGetBoneMapping)
-
-	SLATE_END_ARGS()
-
-	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView );
-
-	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the tree row. */
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
-
-private:
-
-	/* The SRigWindow that handles all retarget sources*/
-	// @todo remove
-	SRigWindow* RigWindow;
-
-	/** Widget used to display the list of retarget sources*/
-	TSharedPtr<SBoneMappingListType> BoneMappingListView;
-
-	/** The name and weight of the retarget source*/
-	FDisplayedBoneMappingInfoPtr	Item;
-
-
-	// Bone tree widget delegates
-	void OnBoneSelectionChanged(FName Name);
-	FReply OnClearButtonClicked();
-	FName GetSelectedBone() const;
-
-	FOnBoneMappingChanged OnBoneMappingChanged;
-	FOnGetBoneMapping OnGetBoneMapping;
-};
-
-void SBoneMappingListRow::Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
-{
-	Item = InArgs._Item;
-	RigWindow = InArgs._RigWindow;
-	BoneMappingListView = InArgs._BoneMappingListView;
-	OnBoneMappingChanged = InArgs._OnBoneMappingChanged;
-	OnGetBoneMapping = InArgs._OnGetBoneMapping;
-
-	check( Item.IsValid() );
-
-	SMultiColumnTableRow< FDisplayedBoneMappingInfoPtr >::Construct( FSuperRowType::FArguments(), InOwnerTableView );
-}
-
-TSharedRef< SWidget > SBoneMappingListRow::GenerateWidgetForColumn( const FName& ColumnName )
-{
-	if ( ColumnName == ColumnId_NodeNameLabel )
-	{
-		TSharedPtr< SInlineEditableTextBlock > InlineWidget;
-		TSharedRef< SWidget > NewWidget = 
-			SNew( SVerticalBox )
-
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding( 0.0f, 4.0f )
-			.VAlign( VAlign_Center )
-			[
-				SAssignNew(InlineWidget, SInlineEditableTextBlock)
-				.Text( FText::FromString(Item->GetDisplayName()) )
-				.HighlightText( RigWindow->GetFilterText() )
-				.IsReadOnly(true)
-				.IsSelected(this, &SMultiColumnTableRow< FDisplayedBoneMappingInfoPtr >::IsSelectedExclusively)
-			];
-
-		return NewWidget;
-	}
-	else
-	{
-		// show bone list
-		// Encase the SSpinbox in an SVertical box so we can apply padding. Setting ItemHeight on the containing SListView has no effect :-(
-		return
-			SNew( SVerticalBox )
-
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding( 0.0f, 1.0f )
-			.VAlign( VAlign_Center )
-			[
-				SNew(SHorizontalBox)
-
-				+SHorizontalBox::Slot()
-				[
-					SNew(SBoneSelectionWidget, Item->EditableSkeletonPtr.Pin().ToSharedRef())
-					.ToolTipText(FText::Format(LOCTEXT("BoneSelectinWidget", "Select Bone for node {0}"), FText::FromString(Item->GetDisplayName())))
-					.OnBoneSelectionChanged(this, &SBoneMappingListRow::OnBoneSelectionChanged)
-					.OnGetSelectedBone(this, &SBoneMappingListRow::GetSelectedBone)
-				]
-
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SButton)
-					.OnClicked(FOnClicked::CreateSP(this, &SBoneMappingListRow::OnClearButtonClicked))
-					.Text(FText::FromString(TEXT("x")))
-				]
-			];
-	}
-}
-
-FReply SBoneMappingListRow::OnClearButtonClicked()
-{
-	if(OnBoneMappingChanged.IsBound())
-	{
-		OnBoneMappingChanged.Execute(Item->GetNodeName(), NAME_None);
-	}
-
-	return FReply::Handled();
-}
-
-void SBoneMappingListRow::OnBoneSelectionChanged(FName Name)
-{
-	if (OnBoneMappingChanged.IsBound())
-	{
-		OnBoneMappingChanged.Execute(Item->GetNodeName(), Name);
-	}
-}
-
-FName SBoneMappingListRow::GetSelectedBone() const
-{
-	if (OnGetBoneMapping.IsBound())
-	{
-		return OnGetBoneMapping.Execute(Item->GetNodeName());
-	}
-
-	// @todo delete?
-//	return Item->BoneName
-	
-	return NAME_None;
-}
-
 //////////////////////////////////////////////////////////////////////////
 // SRigWindow
 
@@ -191,12 +35,7 @@ void SRigWindow::Construct(const FArguments& InArgs, const TSharedRef<class IEdi
 	EditableSkeletonPtr = InEditableSkeleton;
 	bDisplayAdvanced = false;
 
-	InOnPostUndo.Add(FSimpleDelegate::CreateSP( this, &SRigWindow::PostUndo ) );
-	
 	InEditableSkeleton->RefreshRigConfig();
-
-	// show list of skeletalmeshes that they can choose from
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 
 	ChildSlot
 	[
@@ -297,74 +136,16 @@ void SRigWindow::Construct(const FArguments& InArgs, const TSharedRef<class IEdi
 		.AutoHeight()
 		.Padding(0,2)
 		[
-			SNew(SHorizontalBox)
-			// Filter entry
-			+SHorizontalBox::Slot()
-			.FillWidth( 1 )
-			[
-				SAssignNew( NameFilterBox, SSearchBox )
-				.SelectAllTextWhenFocused( true )
-				.OnTextChanged( this, &SRigWindow::OnFilterTextChanged )
-				.OnTextCommitted( this, &SRigWindow::OnFilterTextCommitted )
-			]
-		]
-
-		+ SVerticalBox::Slot()
-		.FillHeight( 1.0f )		// This is required to make the scrollbar work, as content overflows Slate containers by default
-		[
-			SAssignNew( BoneMappingListView, SBoneMappingListType )
-			.ListItemsSource( &BoneMappingList )
-			.OnGenerateRow( this, &SRigWindow::GenerateBoneMappingRow )
-			.ItemHeight( 22.0f )
-			.HeaderRow
-			(
-				SNew( SHeaderRow )
-				+ SHeaderRow::Column( ColumnId_NodeNameLabel )
-				.DefaultLabel( LOCTEXT( "RigWindow_NodeNameLabel", "Node (Rig)" ) )
-				.FixedWidth(150.f)
-
-				+ SHeaderRow::Column( ColumnID_BoneNameLabel )
-				.DefaultLabel( LOCTEXT( "RigWindow_BoneNameLabel", "Bone (Skeleton)" ) )
-			)
+			SAssignNew(BoneMappingWidget, SBoneMappingBase, InOnPostUndo)
+			.OnBoneMappingChanged(this, &SRigWindow::OnBoneMappingChanged)
+			.OnGetBoneMapping(this, &SRigWindow::GetBoneMapping)
+			.OnCreateBoneMapping(this, &SRigWindow::CreateBoneMappingList)
+			.OnGetReferenceSkeleton(this, &SRigWindow::GetReferenceSkeleton)
 		]
 	];
-
-	CreateBoneMappingList();
 }
 
-void SRigWindow::OnFilterTextChanged( const FText& SearchText )
-{
-	// need to make sure not to have the same text go
-	// otherwise, the widget gets recreated multiple times causing 
-	// other issue
-	if (FilterText.CompareToCaseIgnored(SearchText) != 0)
-	{
-		FilterText = SearchText;
-
-		CreateBoneMappingList(SearchText.ToString());
-	}
-}
-
-void SRigWindow::OnFilterTextCommitted( const FText& SearchText, ETextCommit::Type CommitInfo )
-{
-	// Just do the same as if the user typed in the box
-	OnFilterTextChanged( SearchText );
-}
-
-TSharedRef<ITableRow> SRigWindow::GenerateBoneMappingRow(TSharedPtr<FDisplayedBoneMappingInfo> InInfo, const TSharedRef<STableViewBase>& OwnerTable)
-{
-	check( InInfo.IsValid() );
-
-	return
-		SNew( SBoneMappingListRow, OwnerTable )
-		.Item( InInfo )
-		.RigWindow( this )
-		.BoneMappingListView( BoneMappingListView )
-		.OnBoneMappingChanged(this, &SRigWindow::OnBoneMappingChanged)
-		.OnGetBoneMapping(this, &SRigWindow::GetBoneMapping);
-}
-
-void SRigWindow::CreateBoneMappingList( const FString& SearchText)
+void SRigWindow::CreateBoneMappingList( const FString& SearchText, TArray< TSharedPtr<FDisplayedBoneMappingInfo> >& BoneMappingList)
 {
 	BoneMappingList.Empty();
 
@@ -393,14 +174,12 @@ void SRigWindow::CreateBoneMappingList( const FString& SearchText)
 					}
 				}
 
-				TSharedRef<FDisplayedBoneMappingInfo> Info = FDisplayedBoneMappingInfo::Make(Name, DisplayName, EditableSkeletonPtr.Pin().ToSharedRef());
+				TSharedRef<FDisplayedBoneMappingInfo> Info = FDisplayedBoneMappingInfo::Make(Name, DisplayName);
 
 				BoneMappingList.Add(Info);
 			}
 		}
 	}
-
-	BoneMappingListView->RequestListRefresh();
 }
 
 
@@ -410,7 +189,7 @@ void SRigWindow::OnAssetSelected(UObject* Object)
 
 	EditableSkeletonPtr.Pin()->SetRigConfig(Cast<URig>(Object));
 
-	CreateBoneMappingList(FilterText.ToString());
+	BoneMappingWidget.Get()->RefreshBoneMappingList();
 
 	FAssetNotifications::SkeletonNeedsToBeSaved(&EditableSkeletonPtr.Pin()->GetSkeleton());
 }
@@ -425,11 +204,6 @@ URig* SRigWindow::GetRigObject() const
 {
 	const USkeleton& Skeleton = EditableSkeletonPtr.Pin()->GetSkeleton();
 	return Skeleton.GetRig();
-}
-
-void SRigWindow::PostUndo()
-{
-	CreateBoneMappingList(FilterText.ToString());
 }
 
 void SRigWindow::OnBoneMappingChanged(FName NodeName, FName BoneName)
@@ -447,7 +221,7 @@ FReply SRigWindow::OnToggleAdvanced()
 {
 	bDisplayAdvanced = !bDisplayAdvanced;
 
-	CreateBoneMappingList(FilterText.ToString());
+	BoneMappingWidget.Get()->RefreshBoneMappingList();
 
 	return FReply::Handled();
 }
@@ -489,6 +263,11 @@ FText SRigWindow::GetAssetName() const
 	}
 
 	return LOCTEXT("None", "None");
+}
+
+const struct FReferenceSkeleton& SRigWindow::GetReferenceSkeleton() const
+{
+	return EditableSkeletonPtr.Pin()->GetSkeleton().GetReferenceSkeleton();
 }
 
 bool SRigWindow::OnTargetSkeletonSelected(USkeleton* SelectedSkeleton, URig*  Rig) const
@@ -574,8 +353,8 @@ FReply SRigWindow::OnAutoMapping()
 		Helper.TryMatch(BestMatches);
 
 		EditableSkeletonPtr.Pin()->SetRigBoneMappings(BestMatches);
-
-		BoneMappingListView->RequestListRefresh();
+		// refresh the list
+		BoneMappingWidget->RefreshBoneMappingList();
 	}
 
 	return FReply::Handled();
@@ -595,7 +374,8 @@ FReply SRigWindow::OnClearMapping()
 
 		EditableSkeletonPtr.Pin()->SetRigBoneMappings(Mappings);
 
-		BoneMappingListView->RequestListRefresh();
+		// refresh the list
+		BoneMappingWidget->RefreshBoneMappingList();
 	}
 	return FReply::Handled();
 }

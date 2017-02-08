@@ -17,7 +17,7 @@ class UMovieSceneCinematicShotSection;
  * CinematicShot section, which paints and ticks the appropriate section.
  */
 class FCinematicShotSection
-	: public FThumbnailSection
+	: public FViewportThumbnailSection
 {
 public:
 

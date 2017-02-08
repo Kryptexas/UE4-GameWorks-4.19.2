@@ -70,8 +70,11 @@ FORCEINLINE EUpdateTransformFlags SkipPhysicsToEnum(bool bSkipPhysics){ return b
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FActorComponentActivatedSignature, UActorComponent*, Component, bool, bReset);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorComponentDeactivateSignature, UActorComponent*, Component);
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentCreatePhysicsSignature, UActorComponent*);
-DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentDestroyPhysicsSignature, UActorComponent*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentGlobalCreatePhysicsSignature, UActorComponent*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentGlobalDestroyPhysicsSignature, UActorComponent*);
+
+DECLARE_MULTICAST_DELEGATE(FActorComponentInstanceCreatePhysicsSignature);
+DECLARE_MULTICAST_DELEGATE(FActorComponentInstanceDestroyPhysicsSignature);
 
 /**
  * ActorComponent is the base class for components that define reusable behavior that can be added to different types of Actors.
@@ -88,9 +91,14 @@ class ENGINE_API UActorComponent : public UObject, public IInterface_AssetUserDa
 public:
 
 	/** Create component physics state global delegate.*/
-	static FActorComponentCreatePhysicsSignature CreatePhysicsDelegate;
+	static FActorComponentGlobalCreatePhysicsSignature GlobalCreatePhysicsDelegate;
 	/** Destroy component physics state global delegate.*/
-	static FActorComponentDestroyPhysicsSignature DestroyPhysicsDelegate;
+	static FActorComponentGlobalDestroyPhysicsSignature GlobalDestroyPhysicsDelegate;
+
+	/** Create component physics state delegate (for this specific instance).*/
+	FActorComponentInstanceCreatePhysicsSignature InstanceCreatePhysicsDelegate;
+	/** Destroy component physics state delegate (for this specific instance).*/
+	FActorComponentInstanceDestroyPhysicsSignature InstanceDestroyPhysicsDelegate;
 
 	/**
 	 * Default UObject constructor that takes an optional ObjectInitializer.

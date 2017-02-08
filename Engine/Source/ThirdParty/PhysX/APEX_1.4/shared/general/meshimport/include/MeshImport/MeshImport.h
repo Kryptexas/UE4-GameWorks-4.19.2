@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2015, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2008-2017, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -664,7 +664,7 @@ public:
 					ret = value;
 					break;
 				}
-#if PX_ANDROID || PX_PS4 || PX_LINUX_FAMILY
+#if PX_ANDROID || PX_PS4 || PX_LINUX_FAMILY || PX_NX
 				else if (strcasecmp(key, _key) == 0)
 #else
 				else if (::stricmp(key, _key) == 0)

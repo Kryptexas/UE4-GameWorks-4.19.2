@@ -162,7 +162,7 @@ void UVREditorWorldInteraction::StartDraggingMaterialOrTexture( UViewportInterac
 	
 		InteractorData.TransformGizmoInteractionType = ETransformGizmoInteractionType::None;
 		InteractorData.GizmoStartTransform = FTransform::Identity;
-		InteractorData.GizmoStartLocalBounds = FBox( 0 );
+		InteractorData.GizmoStartLocalBounds = FBox(ForceInit);
 
 		InteractorData.GizmoSpaceFirstDragUpdateOffsetAlongAxis = FVector::ZeroVector;	// Will be determined on first update
 		InteractorData.GizmoSpaceDragDeltaFromStartOffset = FVector::ZeroVector;	// Set every frame while dragging

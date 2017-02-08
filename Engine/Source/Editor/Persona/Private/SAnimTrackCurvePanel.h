@@ -57,6 +57,8 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene);
+
+	~SAnimTrackCurvePanel();
 	/**
 	 * Delete Track
 	 *

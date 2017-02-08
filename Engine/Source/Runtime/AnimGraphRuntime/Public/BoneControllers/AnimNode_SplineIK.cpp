@@ -4,6 +4,7 @@
 #include "Animation/AnimTypes.h"
 #include "AnimationRuntime.h"
 #include "AnimInstanceProxy.h"
+#include "SplineIK.h"
 
 FAnimNode_SplineIK::FAnimNode_SplineIK() 
 	: BoneAxis(EAxis::X)
@@ -38,6 +39,13 @@ void FAnimNode_SplineIK::RootInitialize(const FAnimInstanceProxy* Proxy)
 	}
 }
 
+struct FSplineIKScratchArea : public TThreadSingleton<FSplineIKScratchArea>
+{
+	TArray<FTransform> InTransforms;
+	TArray<FTransform> OutTransforms;
+	TArray<FCompactPoseBoneIndex> CompactPoseBoneIndices;
+};
+
 void FAnimNode_SplineIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	if (CachedBoneReferences.Num() > 0)
@@ -47,22 +55,16 @@ void FAnimNode_SplineIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp
 		TransformSpline();
 
 		const float TotalSplineLength = TransformedSpline.GetSplineLength();
-		const float TotalStretchRatio = FMath::Lerp(OriginalSplineLength, TotalSplineLength, Stretch) / OriginalSplineLength;
+		const float TotalSplineAlpha = TransformedSpline.ReparamTable.Points.Last().OutVal;
 		TwistBlend.SetValueRange(TwistStart, TwistEnd);
 
-		FVector PreviousPoint;
-		int32 StartingLinearIndex = 0;
-		float InitialAlpha = 0.0f;
-		if (Offset == 0.0f)
-		{
-			PreviousPoint = TransformedSpline.Position.Points[0].OutVal;
-		}
-		else
-		{
-			InitialAlpha = FindParamAtFirstSphereIntersection(TransformedSpline.Position.Points[0].OutVal, Offset, StartingLinearIndex);
-			PreviousPoint = TransformedSpline.Position.Eval(InitialAlpha);
-		}
-		const float TotalSplineAlpha = TransformedSpline.ReparamTable.Points.Last().OutVal;
+		TArray<FTransform>& InTransforms = FSplineIKScratchArea::Get().InTransforms;
+		TArray<FTransform>& OutTransforms = FSplineIKScratchArea::Get().OutTransforms;
+		TArray<FCompactPoseBoneIndex>& CompactPoseBoneIndices = FSplineIKScratchArea::Get().CompactPoseBoneIndices;
+		InTransforms.Reset();
+		OutTransforms.Reset();
+		CompactPoseBoneIndices.Reset();
+
 		const int32 BoneCount = CachedBoneReferences.Num();
 		for (int32 BoneIndex = 0; BoneIndex < BoneCount; BoneIndex++)
 		{
@@ -72,46 +74,19 @@ void FAnimNode_SplineIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp
 				break;
 			}
 
-			FCompactPoseBoneIndex CompactPoseBoneIndex = BoneData.Bone.GetCompactPoseIndex(BoneContainer);
-			
-			const float SplineAlpha = BoneIndex > 0 ? FindParamAtFirstSphereIntersection(PreviousPoint, BoneData.BoneLength * TotalStretchRatio, StartingLinearIndex) : InitialAlpha;
-			TwistBlend.SetAlpha(SplineAlpha / TotalSplineAlpha);
+			int32 CompactPoseIndexIndex = CompactPoseBoneIndices.Add(BoneData.Bone.GetCompactPoseIndex(BoneContainer));
+			InTransforms.Add(MeshBases.GetComponentSpaceTransform(CompactPoseBoneIndices[CompactPoseIndexIndex]));
+		}
 
-			FTransform BoneTransform;
-			BoneTransform.SetLocation(TransformedSpline.Position.Eval(SplineAlpha));
-			BoneTransform.SetScale3D(TransformedSpline.Scale.Eval(SplineAlpha));
-			
-			// Get the rotation that the spline provides
-			FQuat SplineRotation = TransformedSpline.Rotation.Eval(SplineAlpha);
-			
-			// Build roll/twist rotation
-			float TotalRoll = Roll + TwistBlend.GetBlendedValue();
-			FQuat RollRotation = FRotator(BoneAxis == EAxis::Y ? TotalRoll : 0.0f, BoneAxis == EAxis::X ? TotalRoll : 0.0f, BoneAxis == EAxis::Z ? TotalRoll : 0.0f).Quaternion();
+		AnimationCore::SolveSplineIK(InTransforms, TransformedSpline.Position, TransformedSpline.Rotation, TransformedSpline.Scale, TotalSplineAlpha, TotalSplineLength, FFloatMapping::CreateRaw(this, &FAnimNode_SplineIK::GetTwist, TotalSplineAlpha), Roll, Stretch, Offset, BoneAxis, FFindParamAtFirstSphereIntersection::CreateRaw(this, &FAnimNode_SplineIK::FindParamAtFirstSphereIntersection), CachedOffsetRotations, CachedBoneLengths, OriginalSplineLength, OutTransforms);
 
-			// Calculate rotation to correct our orientation onto the spline's
-			FQuat DirectionCorrectingRotation(FQuat::Identity);
-			if (BoneIndex > 0)
-			{
-				const FTransform& PrevBoneTransform = OutBoneTransforms[BoneIndex - 1].Transform;
-				FVector NewBoneDir = BoneTransform.GetLocation() - PrevBoneTransform.GetLocation();
+		check(InTransforms.Num() == OutTransforms.Num());
+		check(InTransforms.Num() == CompactPoseBoneIndices.Num());
 
-				// Only try and correct direction if we get a non-zero tangent.
-				if (NewBoneDir.Normalize())
-				{
-					// Calculate the direction that bone is currently pointing.
-					FTransform ComponentSpaceTransform = MeshBases.GetComponentSpaceTransform(CompactPoseBoneIndex);
-					FVector CurrentBoneDir = ComponentSpaceTransform.GetUnitAxis(BoneAxis).GetSafeNormal();
-
-					// Calculate a quaternion that gets us from our current rotation to the desired one.
-					DirectionCorrectingRotation = FQuat::FindBetweenNormals(CurrentBoneDir, NewBoneDir);
-				}
-			}
-
-			BoneTransform.SetRotation(RollRotation * DirectionCorrectingRotation * BoneData.OffsetFromBoneRotation * SplineRotation);
-
-			OutBoneTransforms.Emplace(CompactPoseBoneIndex, BoneTransform);
-
-			PreviousPoint = BoneTransform.GetLocation();
+		const int32 NumOutputBones = CompactPoseBoneIndices.Num();
+		for (int32 OutBoneIndex = 0; OutBoneIndex < NumOutputBones; OutBoneIndex++)
+		{
+			OutBoneTransforms.Emplace(CompactPoseBoneIndices[OutBoneIndex], OutTransforms[OutBoneIndex]);
 		}
 	}
 }
@@ -228,7 +203,7 @@ void FAnimNode_SplineIK::TransformSpline()
 
 	TransformedSpline.UpdateSpline();
 
-	BuildLinearApproximation(TransformedSpline);
+	FSplinePositionLinearApproximation::Build(TransformedSpline, LinearApproximation);
 }
 
 float FAnimNode_SplineIK::FindParamAtFirstSphereIntersection(const FVector& InOrigin, float InRadius, int32& StartingLinearIndex)
@@ -237,8 +212,8 @@ float FAnimNode_SplineIK::FindParamAtFirstSphereIntersection(const FVector& InOr
 	const int32 LinearCount = LinearApproximation.Num() - 1;
 	for (int32 LinearIndex = StartingLinearIndex; LinearIndex < LinearCount; ++LinearIndex)
 	{
-		const FLinearApproximation& LinearPoint = LinearApproximation[LinearIndex];
-		const FLinearApproximation& NextLinearPoint = LinearApproximation[LinearIndex + 1];
+		const FSplinePositionLinearApproximation& LinearPoint = LinearApproximation[LinearIndex];
+		const FSplinePositionLinearApproximation& NextLinearPoint = LinearApproximation[LinearIndex + 1];
 
 		const float InnerDistanceSquared = (InOrigin - LinearPoint.Position).SizeSquared();
 		const float OuterDistanceSquared = (InOrigin - NextLinearPoint.Position).SizeSquared();
@@ -256,24 +231,6 @@ float FAnimNode_SplineIK::FindParamAtFirstSphereIntersection(const FVector& InOr
 
 	StartingLinearIndex = 0;
 	return TransformedSpline.ReparamTable.Points.Last().OutVal;
-}
-
-void FAnimNode_SplineIK::BuildLinearApproximation(const FSplineCurves& InCurves)
-{
-	LinearApproximation.Reset();
-
-	const float SplineLength = InCurves.GetSplineLength();
-	int32 NumLinearPoints = (int32)(SplineLength * 0.5f);
-
-	for (int32 LinearPointIndex = 0; LinearPointIndex < NumLinearPoints; ++LinearPointIndex)
-	{
-		const float DistanceAlpha = (float)LinearPointIndex / (float)NumLinearPoints;
-		const float SplineDistance = SplineLength * DistanceAlpha;
-		const float Param = InCurves.ReparamTable.Eval(SplineDistance, 0.0f);
-		LinearApproximation.Emplace(InCurves.Position.Eval(Param, FVector::ZeroVector), Param);
-	}
-
-	LinearApproximation.Emplace(InCurves.Position.Points.Last().OutVal, InCurves.ReparamTable.Points.Last().OutVal);
 }
 
 void FAnimNode_SplineIK::GatherBoneReferences(const FReferenceSkeleton& RefSkeleton)
@@ -332,8 +289,13 @@ void FAnimNode_SplineIK::BuildBoneSpline(const FReferenceSkeleton& RefSkeleton)
 		FAnimationRuntime::FillUpComponentSpaceTransforms(RefSkeleton, RefSkeleton.GetRefBonePose(), ComponentSpaceTransforms);
 
 		// Build cached bone info
+		CachedBoneLengths.Reset();
+		CachedOffsetRotations.Reset();
 		for (int32 BoneIndex = 0; BoneIndex < CachedBoneReferences.Num(); BoneIndex++)
 		{
+			float BoneLength = 0.0f;
+			FQuat BoneOffsetRotation = FQuat::Identity;
+
 			if (BoneIndex > 0)
 			{
 				FSplineIKCachedBoneData& BoneData = CachedBoneReferences[BoneIndex];
@@ -342,12 +304,15 @@ void FAnimNode_SplineIK::BuildBoneSpline(const FReferenceSkeleton& RefSkeleton)
 				const FSplineIKCachedBoneData& ParentBoneData = CachedBoneReferences[BoneIndex - 1];
 				const FTransform& ParentTransform = ComponentSpaceTransforms[ParentBoneData.RefSkeletonIndex];
 				const FVector BoneDir = Transform.GetLocation() - ParentTransform.GetLocation();
-				BoneData.BoneLength = BoneDir.Size();
+				BoneLength = BoneDir.Size();
 
 				// Calculate a quaternion that gets us from our current rotation to the desired one.
 				FVector TransformedAxis = Transform.GetRotation().RotateVector(FMatrix::Identity.GetUnitAxis(BoneAxis)).GetSafeNormal();
-				BoneData.OffsetFromBoneRotation = FQuat::FindBetweenNormals(BoneDir.GetSafeNormal(), TransformedAxis);
+				BoneOffsetRotation = FQuat::FindBetweenNormals(BoneDir.GetSafeNormal(), TransformedAxis);
 			}
+
+			CachedBoneLengths.Add(BoneLength);
+			CachedOffsetRotations.Add(BoneOffsetRotation);
 		}
 
 		// Setup curve params in component space
@@ -415,6 +380,12 @@ void FAnimNode_SplineIK::BuildBoneSpline(const FReferenceSkeleton& RefSkeleton)
 
 		OriginalSplineLength = BoneSpline.GetSplineLength();
 
-		BuildLinearApproximation(BoneSpline);
+		FSplinePositionLinearApproximation::Build(BoneSpline, LinearApproximation);
 	}
+}
+
+float FAnimNode_SplineIK::GetTwist(float InAlpha, float TotalSplineAlpha)
+{
+	TwistBlend.SetAlpha(InAlpha / TotalSplineAlpha);
+	return TwistBlend.GetBlendedValue();
 }

@@ -240,7 +240,7 @@ namespace EditorAnimUtils
 				// Copy curve data from source asset, preserving data in the target if present.
 				if (OldSkeleton)
 				{
-					EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, AnimSequenceToRetarget, USkeleton::AnimCurveMappingName, FRawCurveTracks::FloatType);
+					EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, AnimSequenceToRetarget, USkeleton::AnimCurveMappingName, ERawCurveTrackTypes::RCT_Float);
 
 					// clear transform curves since those curves won't work in new skeleton
 					// since we're deleting curves, mark this rebake flag off
@@ -477,7 +477,7 @@ namespace EditorAnimUtils
 		}
 	}
 
-	void CopyAnimCurves(USkeleton* OldSkeleton, USkeleton* NewSkeleton, UAnimSequenceBase *SequenceBase, const FName ContainerName, FRawCurveTracks::ESupportedCurveType CurveType )
+	void CopyAnimCurves(USkeleton* OldSkeleton, USkeleton* NewSkeleton, UAnimSequenceBase *SequenceBase, const FName ContainerName, ERawCurveTrackTypes CurveType )
 	{
 		// Copy curve data from source asset, preserving data in the target if present.
 		const FSmartNameMapping* OldNameMapping = OldSkeleton->GetSmartNameContainer(ContainerName);
@@ -485,7 +485,7 @@ namespace EditorAnimUtils
 
 		switch (CurveType)
 		{
-		case FRawCurveTracks::FloatType:
+		case ERawCurveTrackTypes::RCT_Float:
 			{
 				for(FFloatCurve& Curve : SequenceBase->RawCurveData.FloatCurves)
 				{
@@ -493,7 +493,7 @@ namespace EditorAnimUtils
 				}
 				break;
 			}
-		case FRawCurveTracks::VectorType:
+		case ERawCurveTrackTypes::RCT_Vector:
 			{
 				for(FVectorCurve& Curve : SequenceBase->RawCurveData.VectorCurves)
 				{
@@ -501,7 +501,7 @@ namespace EditorAnimUtils
 				}
 				break;
 			}
-		case FRawCurveTracks::TransformType:
+		case ERawCurveTrackTypes::RCT_Transform:
 			{
 				for(FTransformCurve& Curve : SequenceBase->RawCurveData.TransformCurves)
 				{

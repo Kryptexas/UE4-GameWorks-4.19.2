@@ -72,11 +72,9 @@
 #include "Tracks/MovieSceneSubTrack.h"
 #include "Sections/MovieSceneCinematicShotSection.h"
 #include "ISettingsModule.h"
-#include "SnappingUtils.h"
 #include "Framework/Commands/GenericCommands.h"
 #include "Tracks/MovieSceneSpawnTrack.h"
 #include "Tracks/MovieScenePropertyTrack.h"
-#include "Tracks/MovieScene3DTransformTrack.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Widgets/Input/STextEntryPopup.h"
@@ -102,6 +100,8 @@
 #include "Factories.h"
 #include "FbxExporter.h"
 #include "UnrealExporter.h"
+#include "ISequencerEditorObjectBinding.h"
+#include "LevelSequence.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -154,9 +154,10 @@ struct FSequencerTemplateStore : FMovieSceneSequenceTemplateStore
 };
 
 
-void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSharedRef<ISequencerObjectChangeListener>& InObjectChangeListener, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates)
+void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSharedRef<ISequencerObjectChangeListener>& InObjectChangeListener, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates, const TArray<FOnCreateEditorObjectBinding>& EditorObjectBindingDelegates)
 {
 	bIsEditingWithinLevelEditor = InitParams.bEditWithinLevelEditor;
+
 	SilentModeCount = 0;
 	bReadOnly = InitParams.ViewParams.bReadOnly;
 
@@ -241,7 +242,8 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 		.OnClampRangeChanged( this, &FSequencer::OnClampRangeChanged )
 		.OnGetAddMenuContent(InitParams.ViewParams.OnGetAddMenuContent)
 		.OnReceivedFocus(InitParams.ViewParams.OnReceivedFocus)
-		.AddMenuExtender(InitParams.ViewParams.AddMenuExtender);
+		.AddMenuExtender(InitParams.ViewParams.AddMenuExtender)
+		.ToolbarExtender(InitParams.ViewParams.ToolbarExtender);
 
 	// When undo occurs, get a notification so we can make sure our view is up to date
 	GEditor->RegisterForUndo(this);
@@ -253,6 +255,14 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 		// Tools may exist in other modules, call a delegate that will create one for us 
 		TSharedRef<ISequencerTrackEditor> TrackEditor = TrackEditorDelegates[DelegateIndex].Execute( SharedThis( this ) );
 		TrackEditors.Add( TrackEditor );
+	}
+
+	for (int32 DelegateIndex = 0; DelegateIndex < EditorObjectBindingDelegates.Num(); ++DelegateIndex)
+	{
+		check(EditorObjectBindingDelegates[DelegateIndex].IsBound());
+		// Object bindings may exist in other modules, call a delegate that will create one for us 
+		TSharedRef<ISequencerEditorObjectBinding> ObjectBinding = EditorObjectBindingDelegates[DelegateIndex].Execute(SharedThis(this));
+		ObjectBindings.Add(ObjectBinding);
 	}
 
 	ZoomAnimation = FCurveSequence();
@@ -3006,101 +3016,12 @@ FGuid FSequencer::MakeNewSpawnable( UObject& Object )
 	// Spawn the object so we can position it correctly, it's going to get spawned anyway since things default to spawned.
 	UObject* SpawnedObject = SpawnRegister->SpawnObject(NewGuid, *MovieScene, ActiveTemplateIDs.Top(), *this);
 
-	FTransformData DefaultTransform;
-
-	AActor* SpawnedActor = Cast<AActor>(SpawnedObject);
-	if (SpawnedActor)
-	{
-		// Place the new spawnable in front of the camera (unless we were automatically created from a PIE actor)
-		if (Settings->GetSpawnPosition() == SSP_PlaceInFrontOfCamera)
-		{
-			PlaceActorInFrontOfCamera( SpawnedActor );
-		}
-		DefaultTransform.Translation = SpawnedActor->GetActorLocation();
-		DefaultTransform.Rotation = SpawnedActor->GetActorRotation();
-		DefaultTransform.Scale = FVector(1.0f, 1.0f, 1.0f);
-		DefaultTransform.bValid = true;
-
-		OnActorAddedToSequencerEvent.Broadcast(SpawnedActor, NewGuid);
-
-		const bool bNotifySelectionChanged = true;
-		const bool bDeselectBSP = true;
-		const bool bWarnAboutTooManyActors = false;
-		const bool bSelectEvenIfHidden = false;
-
-		GEditor->SelectNone( bNotifySelectionChanged, bDeselectBSP, bWarnAboutTooManyActors );
-		GEditor->SelectActor( SpawnedActor, true, bNotifySelectionChanged, bSelectEvenIfHidden );
-	}
-
-	SetupDefaultsForSpawnable(NewGuid, DefaultTransform);
+	FTransformData TransformData;
+	SpawnRegister->SetupDefaultsForSpawnable(SpawnedObject, Spawnable->GetGuid(), TransformData, AsShared(), Settings);
 
 	Spawnable->SetSpawnOwnership(SavedOwnership);
 
 	return NewGuid;
-}
-
-void FSequencer::SetupDefaultsForSpawnable( const FGuid& Guid, const FTransformData& DefaultTransform )
-{
-	UMovieSceneSequence* Sequence = GetFocusedMovieSceneSequence();
-	UMovieScene* OwnerMovieScene = Sequence->GetMovieScene();
-
-	// Ensure it has a spawn track
-	UMovieSceneSpawnTrack* SpawnTrack = Cast<UMovieSceneSpawnTrack>(OwnerMovieScene->FindTrack(UMovieSceneSpawnTrack::StaticClass(), Guid, NAME_None));
-	if (!SpawnTrack)
-	{
-		SpawnTrack = Cast<UMovieSceneSpawnTrack>(OwnerMovieScene->AddTrack(UMovieSceneSpawnTrack::StaticClass(), Guid));
-	}
-
-	if (SpawnTrack)
-	{
-		UMovieSceneBoolSection* SpawnSection = Cast<UMovieSceneBoolSection>(SpawnTrack->CreateNewSection());
-		SpawnSection->SetDefault(true);
-		SpawnSection->SetIsInfinite(GetInfiniteKeyAreas());
-		SpawnTrack->AddSection(*SpawnSection);
-		SpawnTrack->SetObjectId(Guid);
-	}
-	
-	// Ensure it will spawn in the right place
-	if (DefaultTransform.bValid)
-	{
-		UMovieScene3DTransformTrack* TransformTrack = Cast<UMovieScene3DTransformTrack>(OwnerMovieScene->FindTrack(UMovieScene3DTransformTrack::StaticClass(), Guid, "Transform"));
-		if (!TransformTrack)
-		{
-			TransformTrack = Cast<UMovieScene3DTransformTrack>(OwnerMovieScene->AddTrack(UMovieScene3DTransformTrack::StaticClass(), Guid));
-		}
-
-		if (TransformTrack)
-		{
-			const bool bUnwindRotation = false;
-
-			EMovieSceneKeyInterpolation Interpolation = GetKeyInterpolation();
-
-			const TArray<UMovieSceneSection*>& Sections = TransformTrack->GetAllSections();
-			if (!Sections.Num())
-			{
-				TransformTrack->AddSection(*TransformTrack->CreateNewSection());
-			}
-			
-			for (UMovieSceneSection* Section : Sections)
-			{
-				UMovieScene3DTransformSection* TransformSection = CastChecked<UMovieScene3DTransformSection>(Section);
-
-				TransformSection->SetDefault( FTransformKey( EKey3DTransformChannel::Translation, EAxis::X, DefaultTransform.Translation.X, bUnwindRotation ) );
-				TransformSection->SetDefault( FTransformKey( EKey3DTransformChannel::Translation, EAxis::Y, DefaultTransform.Translation.Y, bUnwindRotation ) );
-				TransformSection->SetDefault( FTransformKey( EKey3DTransformChannel::Translation, EAxis::Z, DefaultTransform.Translation.Z, bUnwindRotation ) );
-
-				TransformSection->SetDefault( FTransformKey( EKey3DTransformChannel::Rotation, EAxis::X, DefaultTransform.Rotation.Euler().X, bUnwindRotation ) );
-				TransformSection->SetDefault( FTransformKey( EKey3DTransformChannel::Rotation, EAxis::Y, DefaultTransform.Rotation.Euler().Y, bUnwindRotation ) );
-				TransformSection->SetDefault( FTransformKey( EKey3DTransformChannel::Rotation, EAxis::Z, DefaultTransform.Rotation.Euler().Z, bUnwindRotation ) );
-
-				TransformSection->SetDefault( FTransformKey( EKey3DTransformChannel::Scale, EAxis::X, DefaultTransform.Scale.X, bUnwindRotation ) );
-				TransformSection->SetDefault( FTransformKey( EKey3DTransformChannel::Scale, EAxis::Y, DefaultTransform.Scale.Y, bUnwindRotation ) );
-				TransformSection->SetDefault( FTransformKey( EKey3DTransformChannel::Scale, EAxis::Z, DefaultTransform.Scale.Z, bUnwindRotation ) );
-
-				TransformSection->SetIsInfinite(GetInfiniteKeyAreas());
-			}
-		}
-	}
 }
 
 void FSequencer::AddSubSequence(UMovieSceneSequence* Sequence)
@@ -3294,39 +3215,6 @@ bool FSequencer::OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode> N
 	return bAnythingRemoved;
 }
 
-
-void FSequencer::PlaceActorInFrontOfCamera( AActor* ActorCDO )
-{
-	// Place the actor in front of the active perspective camera if we have one
-	if ((GCurrentLevelEditingViewportClient != nullptr) && GCurrentLevelEditingViewportClient->IsPerspective())
-	{
-		// Don't allow this when the active viewport is showing a simulation/PIE level
-		const bool bIsViewportShowingPIEWorld = GCurrentLevelEditingViewportClient->GetWorld()->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor);
-		if (!bIsViewportShowingPIEWorld)
-		{
-			// @todo sequencer actors: Ideally we could use the actor's collision to figure out how far to push out
-			// the object (like when placing in viewports), but we can't really do that because we're only dealing with a CDO
-			const float DistanceFromCamera = 50.0f;
-
-			// Find a place to put the object
-			// @todo sequencer cleanup: This code should be reconciled with the GEditor->MoveActorInFrontOfCamera() stuff
-			const FVector& CameraLocation = GCurrentLevelEditingViewportClient->GetViewLocation();
-			FRotator CameraRotation = GCurrentLevelEditingViewportClient->GetViewRotation();
-			const FVector CameraDirection = CameraRotation.Vector();
-
-			FVector NewLocation = CameraLocation + CameraDirection * ( DistanceFromCamera + GetDefault<ULevelEditorViewportSettings>()->BackgroundDropDistance );
-			FSnappingUtils::SnapPointToGrid( NewLocation, FVector::ZeroVector );
-
-			CameraRotation.Roll = 0.f;
-			CameraRotation.Pitch =0.f;
-
-			ActorCDO->SetActorRelativeLocation( NewLocation );
-			ActorCDO->SetActorRelativeRotation( CameraRotation );
-		}
-	}
-}
-
-
 void FSequencer::PostUndo(bool bSuccess)
 {
 	NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::Unknown );
@@ -3448,9 +3336,8 @@ void FSequencer::OnNewActorsDropped(const TArray<UObject*>& DroppedObjects, cons
 					}
 
 					// Create a track for the CurrentPositionOnRail
-					TArray<UProperty*> PropertyPath;
-					UProperty* CurrentPositionOnRailProperty = RailActor->GetClass()->FindPropertyByName(TEXT("CurrentPositionOnRail"));
-					PropertyPath.Add(CurrentPositionOnRailProperty);
+					FPropertyPath PropertyPath;
+					PropertyPath.AddProperty(FPropertyInfo(RailActor->GetClass()->FindPropertyByName(TEXT("CurrentPositionOnRail"))));
 
 					FKeyPropertyParams KeyPropertyParams(TArrayBuilder<UObject*>().Add(RailActor), PropertyPath, ESequencerKeyMode::ManualKeyForced);
 
@@ -3571,18 +3458,15 @@ void GetDescendantMovieScenes(UMovieSceneSequence* InSequence, TArray<UMovieScen
 
 	InMovieScenes.Add(InMovieScene);
 
-	for (auto MasterTrack : InMovieScene->GetMasterTracks())
+	for (auto Section : InMovieScene->GetAllSections())
 	{
-		for (auto Section : MasterTrack->GetAllSections())
+		UMovieSceneSubSection* SubSection = Cast<UMovieSceneSubSection>(Section);
+		if (SubSection != nullptr)
 		{
-			UMovieSceneSubSection* SubSection = Cast<UMovieSceneSubSection>(Section);
-			if (SubSection != nullptr)
+			UMovieSceneSequence* SubSequence = SubSection->GetSequence();
+			if (SubSequence != nullptr)
 			{
-				UMovieSceneSequence* SubSequence = SubSection->GetSequence();
-				if (SubSequence != nullptr)
-				{
-					GetDescendantMovieScenes(SubSequence, InMovieScenes);
-				}
+				GetDescendantMovieScenes(SubSequence, InMovieScenes);
 			}
 		}
 	}
@@ -3983,6 +3867,16 @@ FSequencerSelectionPreview& FSequencer::GetSelectionPreview()
 	return SelectionPreview;
 }
 
+
+void FSequencer::SelectObject(FGuid ObjectBinding)
+{
+	const TSharedPtr<FSequencerObjectBindingNode>* Node = NodeTree->GetObjectBindingMap().Find(ObjectBinding);
+	if (Node != nullptr && Node->IsValid())
+	{
+		GetSelection().Empty();
+		GetSelection().AddToSelection(Node->ToSharedRef());
+	}
+}
 
 float FSequencer::GetOverlayFadeCurve() const
 {
@@ -4675,24 +4569,11 @@ FMovieSceneSpawnable* FSequencer::ConvertToSpawnableInternal(FGuid PossessableGu
 			}
 		}
 	}
-	
-	FTransformData DefaultTransform;
 
-	// @todo: Where should this code live (not here)? Probably in an editor-only implementation inside FLevelSequenceSpawnRegister
-	AActor* OldActor = Cast<AActor>(FoundObject);
-	if (OldActor)
-	{
-		DefaultTransform.Translation = OldActor->GetActorLocation();
-		DefaultTransform.Rotation = OldActor->GetActorRotation();
-		DefaultTransform.Scale = OldActor->GetActorScale();
-		DefaultTransform.bValid = true;
+	FTransformData TransformData;
+	SpawnRegister->HandleConvertPossessableToSpawnable(FoundObject, *this, TransformData);
+	SpawnRegister->SetupDefaultsForSpawnable(nullptr, Spawnable->GetGuid(), TransformData, AsShared(), Settings);
 
-		GEditor->SelectActor(OldActor, false, true);
-		UWorld* PlaybackContext = Cast<UWorld>(GetPlaybackContext());
-		PlaybackContext->EditorDestroyActor(OldActor, true);
-	}
-
-	SetupDefaultsForSpawnable(Spawnable->GetGuid(), DefaultTransform);
 	SetLocalTimeDirectly(ScrubPosition);
 
 	return Spawnable;
@@ -6377,13 +6258,19 @@ void FSequencer::BindCommands()
 
 	SequencerCommandBindings->MapAction(
 		Commands.RenderMovie,
-		FExecuteAction::CreateLambda([this]{ RenderMovieInternal(GetPlaybackRange().GetLowerBoundValue(), GetPlaybackRange().GetUpperBoundValue()); })
+		FExecuteAction::CreateLambda([this]{ RenderMovieInternal(GetPlaybackRange().GetLowerBoundValue(), GetPlaybackRange().GetUpperBoundValue()); }),
+		FCanExecuteAction(),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateLambda([this]{ return ExactCast<ULevelSequence>(GetFocusedMovieSceneSequence()) != nullptr; })
 	);
 
 	SequencerCommandBindings->MapAction(
 		Commands.CreateCamera,
-		FExecuteAction::CreateSP( this, &FSequencer::CreateCamera ),
-		FCanExecuteAction::CreateLambda( []{ return true; } ) );
+		FExecuteAction::CreateSP(this, &FSequencer::CreateCamera),
+		FCanExecuteAction(),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateLambda([this] { return ExactCast<ULevelSequence>(GetFocusedMovieSceneSequence()) != nullptr; })
+	);
 
 	SequencerCommandBindings->MapAction(
 		Commands.DiscardChanges,
@@ -6522,10 +6409,24 @@ void FSequencer::BuildAddTrackMenu(class FMenuBuilder& MenuBuilder)
 
 	for (int32 i = 0; i < TrackEditors.Num(); ++i)
 	{
-		TrackEditors[i]->BuildAddTrackMenu(MenuBuilder);
+		if (TrackEditors[i]->SupportsSequence(GetFocusedMovieSceneSequence()))
+		{
+			TrackEditors[i]->BuildAddTrackMenu(MenuBuilder);
+		}
 	}
 }
 
+
+void FSequencer::BuildAddObjectBindingsMenu(class FMenuBuilder& MenuBuilder)
+{
+	for (int32 i = 0; i < ObjectBindings.Num(); ++i)
+	{
+		if (ObjectBindings[i]->SupportsSequence(GetFocusedMovieSceneSequence()))
+		{
+			ObjectBindings[i]->BuildSequencerAddMenu(MenuBuilder);
+		}
+	}
+}
 
 void FSequencer::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {

@@ -121,7 +121,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 		FName PropertyIdentifier = PropertyChain[I];
 		const UProperty * ResolvedProperty = ::Resolve(ContainerStruct, PropertyIdentifier);
 			
-		FPropertyInfo Info = { ResolvedProperty, INDEX_NONE };
+		FPropertyInfo Info(ResolvedProperty, INDEX_NONE);
 		Ret.AddProperty(Info);
 
 		int32 PropertyIndex = TryReadIndex(PropertyChain, I);
@@ -136,7 +136,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 
 				UpdateContainerAddress( ArrayProperty->Inner, ArrayHelper.GetRawPtr(PropertyIndex), ContainerAddress, ContainerStruct );
 
-				FPropertyInfo ArrayInfo = { ArrayProperty->Inner, PropertyIndex };
+				FPropertyInfo ArrayInfo(ArrayProperty->Inner, PropertyIndex);
 				Ret.AddProperty(ArrayInfo);
 			}
 		}
@@ -159,7 +159,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 
 				UpdateContainerAddress( SetProperty->ElementProp, SetHelper.GetElementPtr(RealIndex), ContainerAddress, ContainerStruct );
 
-				FPropertyInfo SetInfo = { SetProperty->ElementProp, RealIndex };
+				FPropertyInfo SetInfo(SetProperty->ElementProp, RealIndex);
 				Ret.AddProperty(SetInfo);
 			}
 		}
@@ -189,7 +189,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 
 						UpdateContainerAddress( MapProperty->KeyProp, MapHelper.GetKeyPtr(RealIndex), ContainerAddress, ContainerStruct );
 
-						FPropertyInfo MakKeyInfo = { MapProperty->KeyProp, RealIndex };
+						FPropertyInfo MakKeyInfo(MapProperty->KeyProp, RealIndex);
 						Ret.AddProperty(MakKeyInfo);
 					}
 					else if(ensure( PropertyChain[I+1] == MapProperty->ValueProp->GetFName() ))
@@ -198,7 +198,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 
 						UpdateContainerAddress( MapProperty->ValueProp, MapHelper.GetValuePtr(RealIndex), ContainerAddress, ContainerStruct );
 						
-						FPropertyInfo MapValueInfo = { MapProperty->ValueProp, RealIndex };
+						FPropertyInfo MapValueInfo(MapProperty->ValueProp, RealIndex);
 						Ret.AddProperty(MapValueInfo);
 					}
 				}
@@ -211,7 +211,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 			// handle static arrays:
 			if(PropertyIndex != INDEX_NONE )
 			{
-				FPropertyInfo ObjectInfo = { ResolvedProperty, PropertyIndex };
+				FPropertyInfo ObjectInfo(ResolvedProperty, PropertyIndex);
 				Ret.AddProperty(ObjectInfo);
 			}
 		}
@@ -222,7 +222,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 			// handle static arrays:
 			if(PropertyIndex != INDEX_NONE )
 			{
-				FPropertyInfo StructInfo = { ResolvedProperty, PropertyIndex };
+				FPropertyInfo StructInfo(ResolvedProperty, PropertyIndex);
 				Ret.AddProperty(StructInfo);
 			}
 		}
@@ -231,7 +231,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 			// handle static arrays:
 			if(PropertyIndex != INDEX_NONE )
 			{
-				FPropertyInfo StaticArrayInfo = { ResolvedProperty, PropertyIndex };
+				FPropertyInfo StaticArrayInfo(ResolvedProperty, PropertyIndex);
 				Ret.AddProperty(StaticArrayInfo);
 			}
 		}

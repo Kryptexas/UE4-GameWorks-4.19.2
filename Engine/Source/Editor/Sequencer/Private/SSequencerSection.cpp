@@ -13,6 +13,7 @@
 #include "ISequencerEditTool.h"
 #include "ISequencerHotspot.h"
 #include "SequencerHotspots.h"
+#include "SequencerObjectBindingNode.h"
 
 double SSequencerSection::SelectionThrobEndTime = 0;
 
@@ -892,6 +893,22 @@ FReply SSequencerSection::OnMouseButtonDoubleClick( const FGeometry& MyGeometry,
 	if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
 		FReply Reply = SectionInterface->OnSectionDoubleClicked( MyGeometry, MouseEvent );
+
+		if (!Reply.IsEventHandled())
+		{
+			// Find the object binding this node is underneath
+			FGuid ObjectBinding;
+			if (ParentSectionArea.IsValid())
+			{
+				TSharedPtr<FSequencerObjectBindingNode> ObjectBindingNode = ParentSectionArea->FindParentObjectBindingNode();
+				if (ObjectBindingNode.IsValid())
+				{
+					ObjectBinding = ObjectBindingNode->GetObjectBinding();
+				}
+			}
+
+			Reply = SectionInterface->OnSectionDoubleClicked(MyGeometry, MouseEvent, ObjectBinding);
+		}
 
 		if (Reply.IsEventHandled())
 		{

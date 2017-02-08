@@ -7,6 +7,10 @@
 #include "AnimNodeEditModes.h"
 #include "EditorModeRegistry.h"
 #include "AnimNodeEditMode.h"
+#include "Modules/ModuleManager.h"
+#include "PropertyEditorModule.h"
+#include "AnimGraphNode_PoseDriver.h"
+#include "PoseDriverDetails.h"
 #include "EditModes/TwoBoneIKEditMode.h"
 #include "EditModes/ObserveBoneEditMode.h"
 #include "EditModes/ModifyBoneEditMode.h"
@@ -30,6 +34,10 @@ void FAnimGraphModule::StartupModule()
 	FEditorModeRegistry::Get().RegisterMode<FFabrikEditMode>(AnimNodeEditModes::Fabrik, LOCTEXT("FabrikEditMode", "Fabrik"), FSlateIcon(), false);
 	FEditorModeRegistry::Get().RegisterMode<FPoseDriverEditMode>(AnimNodeEditModes::PoseDriver, LOCTEXT("PoseDriverEditMode", "PoseDriver"), FSlateIcon(), false);
 	FEditorModeRegistry::Get().RegisterMode<FSplineIKEditMode>(AnimNodeEditModes::SplineIK, LOCTEXT("SplineIKEditMode", "Spline IK"), FSlateIcon(), false);
+
+	// Register details customization
+	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	PropertyModule.RegisterCustomClassLayout(UAnimGraphNode_PoseDriver::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FPoseDriverDetails::MakeInstance));
 }
 
 void FAnimGraphModule::ShutdownModule()
@@ -42,6 +50,11 @@ void FAnimGraphModule::ShutdownModule()
 	FEditorModeRegistry::Get().UnregisterMode(AnimNodeEditModes::ObserveBone);
 	FEditorModeRegistry::Get().UnregisterMode(AnimNodeEditModes::TwoBoneIK);
 	FEditorModeRegistry::Get().UnregisterMode(AnimNodeEditModes::AnimNode);
+
+	// Unregister details customization
+	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	PropertyModule.UnregisterCustomClassLayout(UAnimGraphNode_PoseDriver::StaticClass()->GetFName());
+
 }
 
 #undef LOCTEXT_NAMESPACE

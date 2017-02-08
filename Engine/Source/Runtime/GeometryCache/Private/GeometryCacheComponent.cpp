@@ -44,7 +44,6 @@ void UGeometryCacheComponent::ClearTrackData()
 	TrackMatrixSampleIndices.Empty();
 	TrackMatrixSampleIndices.Empty();
 	TrackSections.Empty();
-	SceneProxy = nullptr;
 }
 
 void UGeometryCacheComponent::SetupTrackData()
@@ -137,7 +136,7 @@ FBoxSphereBounds UGeometryCacheComponent::CalcBounds(const FTransform& LocalToWo
 }
 void UGeometryCacheComponent::UpdateLocalBounds()
 {
-	FBox LocalBox(0);
+	FBox LocalBox(ForceInit);
 
 	for (const FTrackRenderData& Section : TrackSections)
 	{
@@ -152,8 +151,7 @@ void UGeometryCacheComponent::UpdateLocalBounds()
 
 FPrimitiveSceneProxy* UGeometryCacheComponent::CreateSceneProxy()
 {
-	SceneProxy = new FGeometryCacheSceneProxy(this);
-	return SceneProxy;
+	return new FGeometryCacheSceneProxy(this);
 }
 
 #if WITH_EDITOR
@@ -220,7 +218,7 @@ void UGeometryCacheComponent::UpdateTrackSectionMeshData(int32 SectionIndex, FGe
 	// Update MeshDataPointer
 	UpdateSection.MeshData = MeshData;
 
-	//if (SceneProxy)
+	//if (FGeometryCacheSceneProxy* CastedProxy = static_cast<FGeometryCacheSceneProxy*>(SceneProxy))
 	//{		
 	//	UpdateTrackSectionVertexbuffer(SectionIndex, MeshData);
 	//	UpdateTrackSectionIndexbuffer(SectionIndex, MeshData->Indices);
@@ -249,10 +247,13 @@ void UGeometryCacheComponent::UpdateTrackSectionMatrixData(int32 SectionIndex, c
 	// Update the WorldMatrix only
 	UpdateSection.WorldMatrix = WorldMatrix;
 
-	if (!IsRenderStateDirty() && SceneProxy != nullptr)
+	if (!IsRenderStateDirty())
 	{
-		// Update it within the scene proxy
-		SceneProxy->UpdateSectionWorldMatrix(SectionIndex, WorldMatrix);
+		if (FGeometryCacheSceneProxy* CastedProxy = static_cast<FGeometryCacheSceneProxy*>(SceneProxy))
+		{
+			// Update it within the scene proxy
+			CastedProxy->UpdateSectionWorldMatrix(SectionIndex, WorldMatrix);
+		}
 	}
 
 	// Update local bounds
@@ -264,9 +265,11 @@ void UGeometryCacheComponent::UpdateTrackSectionMatrixData(int32 SectionIndex, c
 
 void UGeometryCacheComponent::UpdateTrackSectionVertexbuffer(int32 SectionIndex, FGeometryCacheMeshData* MeshData)
 {
+	FGeometryCacheSceneProxy* CastedProxy = static_cast<FGeometryCacheSceneProxy*>(SceneProxy);
+
 	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		FUpdateVertexBufferCommand,
-		FGeometryCacheSceneProxy*, SceneProxy, SceneProxy,
+		FGeometryCacheSceneProxy*, SceneProxy, CastedProxy,
 		const int32, Index, SectionIndex,
 		FGeometryCacheMeshData*, Data, MeshData,
 		{
@@ -276,9 +279,11 @@ void UGeometryCacheComponent::UpdateTrackSectionVertexbuffer(int32 SectionIndex,
 
 void UGeometryCacheComponent::UpdateTrackSectionIndexbuffer(int32 SectionIndex, const TArray<uint32>& Indices)
 {
+	FGeometryCacheSceneProxy* CastedProxy = static_cast<FGeometryCacheSceneProxy*>(SceneProxy);
+
 	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		FUpdateVertexBufferCommand,
-		FGeometryCacheSceneProxy*, SceneProxy, SceneProxy,
+		FGeometryCacheSceneProxy*, SceneProxy, CastedProxy,
 		const int32, Index, SectionIndex,
 		const TArray<uint32>&, Data, Indices,
 		{

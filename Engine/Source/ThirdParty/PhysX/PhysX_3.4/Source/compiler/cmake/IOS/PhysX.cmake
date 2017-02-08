@@ -2,9 +2,6 @@
 # Build PhysX (PROJECT not SOLUTION)
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-FIND_PACKAGE(PxShared REQUIRED)
-
 SET(PHYSX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../)
 
 SET(PX_SOURCE_DIR ${PHYSX_SOURCE_DIR}/PhysX/src)
@@ -17,7 +14,6 @@ SET(PHYSX_PLATFORM_INCLUDES
 )
 
 SET(PHYSX_PLATFORM_SRC_FILES
-	${PX_SOURCE_DIR}/device/ios/PhysXIndicatorIOS.cpp
 	${PX_SOURCE_DIR}/gpu/NpPhysicsGpu.cpp
 	${PX_SOURCE_DIR}/gpu/PxGpu.cpp
 	${PX_SOURCE_DIR}/gpu/PxParticleDeviceExclusive.cpp
@@ -49,6 +45,8 @@ SET_TARGET_PROPERTIES(PhysX PROPERTIES
 	LINK_FLAGS_PROFILE ""
 	LINK_FLAGS_RELEASE ""
 )
+
+TARGET_LINK_LIBRARIES(PhysX PUBLIC LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PhysXCommon PxFoundation PxPvdSDK PxTask SceneQuery SimulationController)
 
 # enable -fPIC so we can link static libs with the editor
 SET_TARGET_PROPERTIES(PhysX PROPERTIES POSITION_INDEPENDENT_CODE TRUE)

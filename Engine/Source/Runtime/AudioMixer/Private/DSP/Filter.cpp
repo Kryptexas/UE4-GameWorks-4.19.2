@@ -260,8 +260,8 @@ namespace Audio
 		ModMatrix = InModMatrix;
 		if (ModMatrix)
 		{
-			ModCutoffFrequencyDest = ModMatrix->CreatePatchDestination(VoiceId);
-			ModQDest = ModMatrix->CreatePatchDestination(VoiceId);
+			ModCutoffFrequencyDest = ModMatrix->CreatePatchDestination(VoiceId, 1, 100.0f);
+			ModQDest = ModMatrix->CreatePatchDestination(VoiceId, 1, 10.0f);
 
 #if MOD_MATRIX_DEBUG_NAMES
 			ModCutoffFrequencyDest.Name = TEXT("ModCutoffFrequencyDest");

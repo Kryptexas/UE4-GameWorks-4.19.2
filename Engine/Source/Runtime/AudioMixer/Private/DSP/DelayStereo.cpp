@@ -10,6 +10,7 @@ namespace Audio
 		, Feedback(0.0f)
 		, DelayRatio(0.0f)
 		, WetLevel(0.0f)
+		, bIsInit(true)
 	{
 	}
 
@@ -55,6 +56,7 @@ namespace Audio
 
 	void FDelayStereo::Reset()
 	{
+		bIsInit = true;
 		LeftDelay.Reset();
 		RightDelay.Reset();
 	}
@@ -62,12 +64,14 @@ namespace Audio
 	void FDelayStereo::UpdateDelays()
 	{
 		// As delay ratio goes to zero, the delay times are the same
-		LeftDelay.SetEasedDelayMsec(DelayTimeMsec * (1.0f + DelayRatio));
-		RightDelay.SetEasedDelayMsec(DelayTimeMsec * (1.0f - DelayRatio));
+		LeftDelay.SetEasedDelayMsec(DelayTimeMsec * (1.0f + DelayRatio), bIsInit);
+		RightDelay.SetEasedDelayMsec(DelayTimeMsec * (1.0f - DelayRatio), bIsInit);
 	}
 
 	void FDelayStereo::ProcessAudio(const float InLeftSample, const float InRightSample, float& OutLeftSample, float& OutRightSample)
 	{
+		bIsInit = false;
+
 		float LeftDelayOut = LeftDelay.Read();
 		float RightDelayOut = RightDelay.Read();
 

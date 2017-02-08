@@ -1872,7 +1872,7 @@ void CreateBoundingBoxBuilderBrush( UWorld* InWorld, const TArray<FPoly*> Select
 {
 	int x;
 	FPoly* Poly;
-	FBox BBox(0);
+	FBox BBox(ForceInit);
 	FVector Vertex;
 
 	for( x = 0 ; x < SelectedPolys.Num() ; ++x )

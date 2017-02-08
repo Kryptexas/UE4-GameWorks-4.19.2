@@ -224,6 +224,25 @@ void UAnimationAsset::Serialize(FArchive& Ar)
 	}
 }
 
+void UAnimationAsset::AddMetaData(class UAnimMetaData* MetaDataInstance)
+{
+	MetaData.Add(MetaDataInstance);
+}
+
+void UAnimationAsset::RemoveMetaData(class UAnimMetaData* MetaDataInstance)
+{
+	MetaData.Remove(MetaDataInstance);
+}
+
+void UAnimationAsset::RemoveMetaData(const TArray<UAnimMetaData*> MetaDataInstances)
+{
+	MetaData.RemoveAll(
+		[&](UAnimMetaData* MetaDataInstance)
+	{
+		return MetaDataInstances.Find(MetaDataInstance);
+	});
+}
+
 void UAnimationAsset::SetSkeleton(USkeleton* NewSkeleton)
 {
 	if (NewSkeleton && NewSkeleton != Skeleton)

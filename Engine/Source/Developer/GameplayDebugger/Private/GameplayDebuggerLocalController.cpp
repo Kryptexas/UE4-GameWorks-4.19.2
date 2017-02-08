@@ -46,10 +46,13 @@ void UGameplayDebuggerLocalController::Initialize(AGameplayDebuggerCategoryRepli
 	bSimulateMode = FGameplayDebuggerAddonBase::IsSimulateInEditor();
 
 	UDebugDrawService::Register(bSimulateMode ? TEXT("DebugAI") : TEXT("Game"), FDebugDrawDelegate::CreateUObject(this, &UGameplayDebuggerLocalController::OnDebugDraw));
-	if (bSimulateMode)
+
+#if WITH_EDITOR
+	if (GIsEditor)
 	{
 		USelection::SelectionChangedEvent.AddUObject(this, &UGameplayDebuggerLocalController::OnSelectionChanged);
 	}
+#endif
 
 	FGameplayDebuggerAddonManager& AddonManager = FGameplayDebuggerAddonManager::GetCurrent();
 	AddonManager.OnCategoriesChanged.AddUObject(this, &UGameplayDebuggerLocalController::OnCategoriesChanged);
@@ -96,14 +99,14 @@ void UGameplayDebuggerLocalController::Initialize(AGameplayDebuggerCategoryRepli
 
 void UGameplayDebuggerLocalController::Cleanup()
 {
+#if WITH_EDITOR
+	USelection::SelectionChangedEvent.RemoveAll(this);
+
 	if (bSimulateMode)
 	{
-		USelection::SelectionChangedEvent.RemoveAll(this);
-
-#if WITH_EDITOR
 		FGameplayDebuggerEdMode::SafeCloseMode();
-#endif // WITH_EDITOR
 	}
+#endif // WITH_EDITOR
 
 	bNeedsCleanup = false;
 }

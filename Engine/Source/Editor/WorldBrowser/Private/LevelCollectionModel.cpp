@@ -1321,7 +1321,7 @@ FLevelModelList FLevelCollectionModel::GetLevelsHierarchy(const FLevelModelList&
 
 FBox FLevelCollectionModel::GetLevelsBoundingBox(const FLevelModelList& InList, bool bIncludeChildren)
 {
-	FBox TotalBounds(0);
+	FBox TotalBounds(ForceInit);
 	for (auto It = InList.CreateConstIterator(); It; ++It)
 	{
 		if (bIncludeChildren)
@@ -1337,7 +1337,7 @@ FBox FLevelCollectionModel::GetLevelsBoundingBox(const FLevelModelList& InList, 
 
 FBox FLevelCollectionModel::GetVisibleLevelsBoundingBox(const FLevelModelList& InList, bool bIncludeChildren)
 {
-	FBox TotalBounds(0);
+	FBox TotalBounds(ForceInit);
 	for (auto It = InList.CreateConstIterator(); It; ++It)
 	{
 		if (bIncludeChildren)

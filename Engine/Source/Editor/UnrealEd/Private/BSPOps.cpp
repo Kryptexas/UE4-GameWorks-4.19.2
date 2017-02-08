@@ -45,7 +45,7 @@ static void UpdateBoundWithPolys( FBox& Bound, FPoly** PolyList, int32 nPolys )
 //
 static void UpdateConvolutionWithPolys( UModel *Model, int32 iNode, FPoly **PolyList, int32 nPolys )
 {
-	FBox Box(0);
+	FBox Box(ForceInit);
 
 	FBspNode &Node = Model->Nodes[iNode];
 	Node.iCollisionBound = Model->LeafHulls.Num();
@@ -180,7 +180,7 @@ static void FilterBound
 	FBspSurf&	Surf	= Model->Surfs  [Node.iSurf];
 	FVector		Base = Surf.Plane * Surf.Plane.W;
 	FVector&	Normal	= Model->Vectors[Surf.vNormal];
-	FBox		Bound(0);
+	FBox		Bound(ForceInit);
 
 	Bound.Min.X = Bound.Min.Y = Bound.Min.Z = +WORLD_MAX;
 	Bound.Max.X = Bound.Max.Y = Bound.Max.Z = -WORLD_MAX;

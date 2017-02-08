@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -96,7 +96,6 @@ struct EqualityOp
 	void operator()( const PxReadOnlyCollectionPropertyInfo<PxPropertyInfoName::PxArticulationLink_Children, PxArticulationLink, PxArticulationLink* >& inProp, PxU32 ) {}
 	void operator()( const PxReadOnlyCollectionPropertyInfo<PxPropertyInfoName::PxRigidActor_Constraints, PxRigidActor, PxConstraint* >& inProp, PxU32 ){}
 	void operator()( const PxReadOnlyCollectionPropertyInfo<PxPropertyInfoName::PxAggregate_Actors, PxAggregate, PxActor* >& inProp, PxU32 ) {}
-    void operator()( const PxWriteOnlyPropertyInfo<PxPropertyInfoName::PxRigidDynamic_KinematicTarget, PxRigidDynamic, const PxTransform &  >& inProp, PxU32 ) {}
     void operator()( const PxWriteOnlyPropertyInfo<PxPropertyInfoName::PxCloth_TargetPose, PxCloth, const PxTransform &  >& inProp, PxU32 ) {}
 	void operator()( const PxWriteOnlyPropertyInfo<PxPropertyInfoName::PxCloth_InertiaScale, PxCloth, PxReal >& inProp, PxU32 ) {}
 	void operator()( const PxWriteOnlyPropertyInfo<PxPropertyInfoName::PxCloth_DragCoefficient, PxCloth, PxReal >& inProp, PxU32 ) {}

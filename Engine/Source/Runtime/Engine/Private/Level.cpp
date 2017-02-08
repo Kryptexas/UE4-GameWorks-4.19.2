@@ -950,6 +950,7 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 					}
 				}
 			}
+			bHasRerunConstructionScripts = true;
 		}
 	}
 	// Only the game can use incremental update functionality.
@@ -1070,7 +1071,7 @@ void ULevel::CreateModelComponents()
 			if (Node.NumVertices > 0)
 			{
 				// Calculate the bounding box of this node.
-				FBox NodeBounds(0);
+				FBox NodeBounds(ForceInit);
 				for (int32 VertexIndex = 0; VertexIndex < Node.NumVertices; VertexIndex++)
 				{
 					NodeBounds += Model->Points[Model->Verts[Node.iVertPool + VertexIndex].pVertex];

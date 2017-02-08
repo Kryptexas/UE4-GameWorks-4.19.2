@@ -51,6 +51,12 @@ public class Sequencer : ModuleRules
 			}
 		);
 
+		PublicIncludePathModuleNames.AddRange(
+			new string[] {
+				"PropertyEditor",
+			}
+		);
+
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"PropertyEditor",

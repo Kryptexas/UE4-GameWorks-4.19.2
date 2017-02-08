@@ -268,6 +268,9 @@ private:
 
 	/** Pointer back to the variable's Blueprint */
 	TWeakObjectPtr<UBlueprint> PropertyOwnerBlueprint;
+
+	/** External detail customizations */
+	TArray<TSharedPtr<IDetailCustomization>> ExternalDetailCustomizations;
 };
 
 class FBaseBlueprintGraphActionDetails : public IDetailCustomization

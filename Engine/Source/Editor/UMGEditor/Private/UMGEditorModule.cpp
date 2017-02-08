@@ -75,9 +75,9 @@ public:
 
 		// Register with the sequencer module that we provide auto-key handlers.
 		ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
-		MarginTrackEditorCreateTrackEditorHandle          = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&FMarginTrackEditor::CreateTrackEditor));
-		TransformTrackEditorCreateTrackEditorHandle       = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&F2DTransformTrackEditor::CreateTrackEditor));
-		WidgetMaterialTrackEditorCreateTrackEditorHandle  = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&FWidgetMaterialTrackEditor::CreateTrackEditor));
+		MarginTrackEditorCreateTrackEditorHandle          = SequencerModule.RegisterPropertyTrackEditor<FMarginTrackEditor>();
+		TransformTrackEditorCreateTrackEditorHandle       = SequencerModule.RegisterPropertyTrackEditor<F2DTransformTrackEditor>();
+		WidgetMaterialTrackEditorCreateTrackEditorHandle  = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FWidgetMaterialTrackEditor::CreateTrackEditor));
 
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 		if ( SettingsModule != nullptr )
@@ -119,9 +119,9 @@ public:
 		ISequencerModule* SequencerModule = FModuleManager::GetModulePtr<ISequencerModule>( "Sequencer" );
 		if ( SequencerModule != nullptr )
 		{
-			SequencerModule->UnRegisterTrackEditor_Handle( MarginTrackEditorCreateTrackEditorHandle );
-			SequencerModule->UnRegisterTrackEditor_Handle( TransformTrackEditorCreateTrackEditorHandle );
-			SequencerModule->UnRegisterTrackEditor_Handle( WidgetMaterialTrackEditorCreateTrackEditorHandle );
+			SequencerModule->UnRegisterTrackEditor( MarginTrackEditorCreateTrackEditorHandle );
+			SequencerModule->UnRegisterTrackEditor( TransformTrackEditorCreateTrackEditorHandle );
+			SequencerModule->UnRegisterTrackEditor( WidgetMaterialTrackEditorCreateTrackEditorHandle );
 		}
 
 		// Unregister the setting

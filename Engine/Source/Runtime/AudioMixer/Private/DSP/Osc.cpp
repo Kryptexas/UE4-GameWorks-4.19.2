@@ -27,7 +27,7 @@ namespace Audio
 	{
 	}
 
-	void IOscBase::Init(const float InSampleRate, const int32 InVoiceId, FModulationMatrix* InMatrix)
+	void IOscBase::Init(const float InSampleRate, const int32 InVoiceId, FModulationMatrix* InMatrix, const int32 ModMatrixStage)
 	{
 		VoiceId = InVoiceId;
 		SampleRate = InSampleRate;
@@ -39,18 +39,16 @@ namespace Audio
 		ModMatrix = InMatrix;
 		if (ModMatrix)
 		{
-			ModFrequencyDest = ModMatrix->CreatePatchDestination(VoiceId);
-			ModPulseWidthDest = ModMatrix->CreatePatchDestination(VoiceId);
-			ModGainDest = ModMatrix->CreatePatchDestination(VoiceId);
-			ModPhaseDest = ModMatrix->CreatePatchDestination(VoiceId);
-			ModAddDest = ModMatrix->CreatePatchDestination(VoiceId);
-			ModScaleDest = ModMatrix->CreatePatchDestination(VoiceId);
+			ModFrequencyDest = ModMatrix->CreatePatchDestination(VoiceId, ModMatrixStage, 50.0f);
+			ModPulseWidthDest = ModMatrix->CreatePatchDestination(VoiceId, ModMatrixStage, 1.0f);
+			ModGainDest = ModMatrix->CreatePatchDestination(VoiceId, ModMatrixStage, 1.0f);
+			ModAddDest = ModMatrix->CreatePatchDestination(VoiceId, ModMatrixStage, 50.0f);
+			ModScaleDest = ModMatrix->CreatePatchDestination(VoiceId, ModMatrixStage, 1.0f);
 
 #if MOD_MATRIX_DEBUG_NAMES
 			ModFrequencyDest.Name = TEXT("ModFrequencyDest");
 			ModPulseWidthDest.Name = TEXT("ModPulseWidthDest");
 			ModGainDest.Name = TEXT("ModGainDest");
-			ModPhaseDest.Name = TEXT("ModPhaseDest");
 			ModAddDest.Name = TEXT("ModAddDest");
 			ModScaleDest.Name = TEXT("ModScaleDest");
 #endif

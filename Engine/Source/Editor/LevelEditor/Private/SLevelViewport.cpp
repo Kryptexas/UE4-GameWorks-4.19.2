@@ -830,7 +830,7 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FGeometry& MyGeometry, cons
 		// Give the editor focus (quick Undo/Redo support after a drag drop operation)
 		if(ParentLevelEditor.IsValid())
 		{
-			FGlobalTabmanager::Get()->DrawAttentionToTabManager(ParentLevelEditor.Pin()->GetTabManager());
+			FGlobalTabmanager::Get()->DrawAttentionToTabManager(ParentLevelEditor.Pin()->GetTabManager().ToSharedRef());
 		}
 
 		if(bDropSuccessful)

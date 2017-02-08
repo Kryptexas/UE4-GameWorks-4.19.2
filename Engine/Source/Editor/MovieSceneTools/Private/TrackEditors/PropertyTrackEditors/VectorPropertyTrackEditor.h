@@ -26,8 +26,21 @@ public:
 	 * @param InSequencer The sequencer instance to be used by this tool.
 	 */
 	FVectorPropertyTrackEditor(TSharedRef<ISequencer> InSequencer)
-		: FPropertyTrackEditor<UMovieSceneVectorTrack, UMovieSceneVectorSection, FVectorKey>(InSequencer, NAME_Vector, NAME_Vector4, NAME_Vector2D)
-	{ }
+		: FPropertyTrackEditor<UMovieSceneVectorTrack, UMovieSceneVectorSection, FVectorKey>(InSequencer, GetAnimatedPropertyTypes())
+	{
+	}
+
+	/**
+	 * Retrieve a list of all property types that this track editor animates
+	 */
+	static TArray<FAnimatedPropertyKey, TInlineAllocator<3>> GetAnimatedPropertyTypes()
+	{
+		return TArray<FAnimatedPropertyKey, TInlineAllocator<3>>({
+			FAnimatedPropertyKey::FromStructType(NAME_Vector),
+			FAnimatedPropertyKey::FromStructType(NAME_Vector4),
+			FAnimatedPropertyKey::FromStructType(NAME_Vector2D)
+		});
+	}
 
 	/**
 	 * Creates an instance of this class (called by a sequence).

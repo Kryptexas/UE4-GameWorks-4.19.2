@@ -1237,7 +1237,7 @@ void DrawDashedLine(FPrimitiveDrawInterface* PDI, const FVector& Start, const FV
 	}
 }
 
-void DrawWireDiamond(FPrimitiveDrawInterface* PDI,const FMatrix& DiamondMatrix, float Size, const FLinearColor& InColor,uint8 DepthPriority)
+void DrawWireDiamond(FPrimitiveDrawInterface* PDI,const FMatrix& DiamondMatrix, float Size, const FLinearColor& InColor,uint8 DepthPriority, float Thickness)
 {
 	const FVector TopPoint = DiamondMatrix.TransformPosition( FVector(0,0,1) * Size );
 	const FVector BottomPoint = DiamondMatrix.TransformPosition( FVector(0,0,-1) * Size );
@@ -1250,20 +1250,20 @@ void DrawWireDiamond(FPrimitiveDrawInterface* PDI,const FMatrix& DiamondMatrix, 
 	SquarePoints[2] = DiamondMatrix.TransformPosition( FVector(-1,-1,0) * Size * OneOverRootTwo );
 	SquarePoints[3] = DiamondMatrix.TransformPosition( FVector(-1,1,0) * Size * OneOverRootTwo );
 
-	PDI->DrawLine(TopPoint, SquarePoints[0], InColor, DepthPriority);
-	PDI->DrawLine(TopPoint, SquarePoints[1], InColor, DepthPriority);
-	PDI->DrawLine(TopPoint, SquarePoints[2], InColor, DepthPriority);
-	PDI->DrawLine(TopPoint, SquarePoints[3], InColor, DepthPriority);
+	PDI->DrawLine(TopPoint, SquarePoints[0], InColor, DepthPriority, Thickness);
+	PDI->DrawLine(TopPoint, SquarePoints[1], InColor, DepthPriority, Thickness);
+	PDI->DrawLine(TopPoint, SquarePoints[2], InColor, DepthPriority, Thickness);
+	PDI->DrawLine(TopPoint, SquarePoints[3], InColor, DepthPriority, Thickness);
 
-	PDI->DrawLine(BottomPoint, SquarePoints[0], InColor, DepthPriority);
-	PDI->DrawLine(BottomPoint, SquarePoints[1], InColor, DepthPriority);
-	PDI->DrawLine(BottomPoint, SquarePoints[2], InColor, DepthPriority);
-	PDI->DrawLine(BottomPoint, SquarePoints[3], InColor, DepthPriority);
+	PDI->DrawLine(BottomPoint, SquarePoints[0], InColor, DepthPriority, Thickness);
+	PDI->DrawLine(BottomPoint, SquarePoints[1], InColor, DepthPriority, Thickness);
+	PDI->DrawLine(BottomPoint, SquarePoints[2], InColor, DepthPriority, Thickness);
+	PDI->DrawLine(BottomPoint, SquarePoints[3], InColor, DepthPriority, Thickness);
 
-	PDI->DrawLine(SquarePoints[0], SquarePoints[1], InColor, DepthPriority);
-	PDI->DrawLine(SquarePoints[1], SquarePoints[2], InColor, DepthPriority);
-	PDI->DrawLine(SquarePoints[2], SquarePoints[3], InColor, DepthPriority);
-	PDI->DrawLine(SquarePoints[3], SquarePoints[0], InColor, DepthPriority);
+	PDI->DrawLine(SquarePoints[0], SquarePoints[1], InColor, DepthPriority, Thickness);
+	PDI->DrawLine(SquarePoints[1], SquarePoints[2], InColor, DepthPriority, Thickness);
+	PDI->DrawLine(SquarePoints[2], SquarePoints[3], InColor, DepthPriority, Thickness);
+	PDI->DrawLine(SquarePoints[3], SquarePoints[0], InColor, DepthPriority, Thickness);
 }
 
 static FLinearColor ApplySelectionIntensity(const FLinearColor& FinalColor, bool bSelected, bool bHovered, bool bUseOverlayIntensity)

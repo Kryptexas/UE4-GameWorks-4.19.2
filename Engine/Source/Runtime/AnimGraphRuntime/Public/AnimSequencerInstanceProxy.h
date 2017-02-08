@@ -8,16 +8,53 @@
 #include "AnimNodes/AnimNode_MultiWayBlend.h"
 #include "AnimSequencerInstanceProxy.generated.h"
 
-struct FSequencerPlayerState
+/** Base class for all 'players' that can attach to and be blended into a sequencer instance's output */
+struct FSequencerPlayerBase
 {
-	int32 PoseIndex;
-	bool bAdditive;
-	struct FAnimNode_SequenceEvaluator PlayerNode;
-
-	FSequencerPlayerState()
+public:
+	FSequencerPlayerBase()
 		: PoseIndex(INDEX_NONE)
 		, bAdditive(false)
 	{}
+
+	template<class TType> 
+	bool IsOfType() const 
+	{
+		return IsOfTypeImpl(TType::GetTypeId());
+	}
+
+	/** Virtual destructor. */
+	virtual ~FSequencerPlayerBase() { }
+
+public:
+	/** Index of this players pose in the set of blend slots */
+	int32 PoseIndex;
+
+	/** Whether this pose is additive or not */
+	bool bAdditive;
+
+protected:
+	/**
+	* Checks whether this drag and drop operation can cast safely to the specified type.
+	*/
+	virtual bool IsOfTypeImpl(const FName& Type) const
+	{
+		return false;
+	}
+
+};
+
+/** Quick n dirty RTTI to allow for derived classes to insert nodes of different types */
+#define SEQUENCER_INSTANCE_PLAYER_TYPE(TYPE, BASE) \
+	static const FName& GetTypeId() { static FName Type(TEXT(#TYPE)); return Type; } \
+	virtual bool IsOfTypeImpl(const FName& Type) const override { return GetTypeId() == Type || BASE::IsOfTypeImpl(Type); }
+
+/** Player type that evaluates a sequence-specified UAnimSequence */
+struct FSequencerPlayerAnimSequence : public FSequencerPlayerBase
+{
+	SEQUENCER_INSTANCE_PLAYER_TYPE(FSequencerPlayerAnimSequence, FSequencerPlayerBase)
+
+	struct FAnimNode_SequenceEvaluator PlayerNode;
 };
 
 /** Proxy override for this UAnimInstance-derived class */
@@ -38,18 +75,33 @@ public:
 
 	virtual ~FAnimSequencerInstanceProxy();
 
+	// FAnimInstanceProxy interface
 	virtual void Initialize(UAnimInstance* InAnimInstance) override;
 	virtual bool Evaluate(FPoseContext& Output) override;
 	virtual void UpdateAnimationNode(float DeltaSeconds) override;
 
-	void UpdateAnimTrack(UAnimSequenceBase* InAnimSequence, int32 SequenceId, float InPosition, float Weight, bool bFireNotifies);
+	/** Update an animation sequence player in this instance */
+	void UpdateAnimTrack(UAnimSequenceBase* InAnimSequence, uint32 SequenceId, float InPosition, float Weight, bool bFireNotifies);
+
+	/** Reset all nodes in this instance */
 	void ResetNodes();
-private:
-	void ConstructNodes();
-	struct FSequencerPlayerState* FindPlayer(int32 SequenceId)
+
+protected:
+	/** Find a player of a specified type */
+	template<typename Type>
+	Type* FindPlayer(uint32 SequenceId) const
 	{
-		return SequencerToPlayerMap.FindRef(SequenceId);
+		FSequencerPlayerBase* Player = SequencerToPlayerMap.FindRef(SequenceId);
+		if (Player && Player->IsOfType<Type>())
+		{
+			return static_cast<Type*>(Player);
+		}
+
+		return nullptr;
 	}
+
+	/** Construct and link the base part of the blend tree */
+	void ConstructNodes();
 
 	/** custom root node for this sequencer player. Didn't want to use RootNode in AnimInstance because it's used with lots of AnimBP functionality */
 	struct FAnimNode_ApplyAdditive SequencerRootNode;
@@ -57,9 +109,9 @@ private:
 	struct FAnimNode_MultiWayBlend AdditiveBlendNode;
 
 	/** mapping from sequencer index to internal player index */
-	TMap<int32, FSequencerPlayerState*> SequencerToPlayerMap;
+	TMap<uint32, FSequencerPlayerBase*> SequencerToPlayerMap;
 
-	void InitAnimTrack(UAnimSequenceBase* InAnimSequence, int32 SequenceId);
-	void EnsureAnimTrack(UAnimSequenceBase* InAnimSequence, int32 SequenceId);
+	void InitAnimTrack(UAnimSequenceBase* InAnimSequence, uint32 SequenceId);
+	void EnsureAnimTrack(UAnimSequenceBase* InAnimSequence, uint32 SequenceId);
 	void ClearSequencePlayerMap();
 };

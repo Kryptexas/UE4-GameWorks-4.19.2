@@ -140,6 +140,7 @@ namespace UnrealBuildTool
 		{
 			Target.bCompileLeanAndMeanUE = true;
 			Target.bCompileAPEX = false;
+			Target.bCompileNvCloth = false;
 			Target.bCompilePhysX = true;
 			Target.bRuntimePhysicsCooking = false;
 			Target.bCompileSimplygon = false;

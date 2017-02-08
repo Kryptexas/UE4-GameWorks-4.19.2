@@ -14,22 +14,14 @@ struct FSplineIKCachedBoneData
 	GENERATED_BODY()
 
 	FSplineIKCachedBoneData()
-		: OffsetFromBoneRotation(FQuat::Identity)
-		, Bone(NAME_None)
+		: Bone(NAME_None)
 		, RefSkeletonIndex(INDEX_NONE)
-		, BoneLength(0.0f)
 	{}
 
 	FSplineIKCachedBoneData(const FName& InBoneName, int32 InRefSkeletonIndex)
-		: OffsetFromBoneRotation(FQuat::Identity)
-		, Bone(InBoneName)
+		: Bone(InBoneName)
 		, RefSkeletonIndex(InRefSkeletonIndex)
-		, BoneLength(0.0f)
 	{}
-
-	/** The difference between the bone's orientation and the orientation that points us down the bone's axis */
-	UPROPERTY()
-	FQuat OffsetFromBoneRotation;
 
 	/** The bone we refer to */
 	UPROPERTY()
@@ -38,22 +30,6 @@ struct FSplineIKCachedBoneData
 	/** Index of the bone in the reference skeleton */
 	UPROPERTY()
 	int32 RefSkeletonIndex;
-
-	/** Length of the bone from the ref pose */
-	UPROPERTY()
-	float BoneLength;
-};
-
-struct FLinearApproximation
-{
-	FLinearApproximation(const FVector& InPosition, float InSplineParam)
-		: Position(InPosition)
-		, SplineParam(InSplineParam)
-	{}
-
-	FVector Position;
-
-	float SplineParam;
 };
 
 USTRUCT()
@@ -162,9 +138,6 @@ protected:
 	/** Transform the spline using our control points */
 	void TransformSpline();
 
-	/** Build the linear approximation of our deformed spline */
-	void BuildLinearApproximation(const FSplineCurves& InCurves);
-
 	/** Use our linear approximation to determine the earliest intersection with a sphere */
 	float FindParamAtFirstSphereIntersection(const FVector& InOrigin, float InRadius, int32& StartingLinearIndex);
 
@@ -173,11 +146,14 @@ private:
 	virtual void InitializeBoneReferences(const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface
 
+	/** Get the current twist value at the specified spline alpha */
+	float GetTwist(float InAlpha, float TotalSplineAlpha);
+
 	/** Transformed spline */
 	FSplineCurves TransformedSpline;
 
 	/** Piecewise linear approximation of the spline, recalculated on creation and deformation */
-	TArray<FLinearApproximation> LinearApproximation;
+	TArray<FSplinePositionLinearApproximation> LinearApproximation;
 
 	/** Spline we maintain internally */
 	UPROPERTY()
@@ -190,4 +166,12 @@ private:
 	/** Cached data for bones in the IK chain, from start to end */
 	UPROPERTY()
 	TArray<FSplineIKCachedBoneData> CachedBoneReferences;
+
+	/** Cached bone lengths. Same size as CachedBoneReferences */
+	UPROPERTY()
+	TArray<float> CachedBoneLengths;
+
+	/** Cached bone offset rotations. Same size as CachedBoneReferences */
+	UPROPERTY()
+	TArray<FQuat> CachedOffsetRotations;
 };

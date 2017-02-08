@@ -50,7 +50,7 @@ FNavLocalGridData::FNavLocalGridData(const TArray<FNavLocalGridData>& SourceGrid
 		return;
 	}
 
-	FBox CombinedBounds(0);
+	FBox CombinedBounds(ForceInit);
 	for (int32 Idx = 0; Idx < SourceGrids.Num(); Idx++)
 	{
 		CombinedBounds += SourceGrids[Idx].WorldBounds;

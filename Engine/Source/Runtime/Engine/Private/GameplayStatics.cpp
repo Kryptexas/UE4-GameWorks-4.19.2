@@ -629,7 +629,7 @@ FVector UGameplayStatics::GetActorArrayAverageLocation(const TArray<AActor*>& Ac
 
 void UGameplayStatics::GetActorArrayBounds(const TArray<AActor*>& Actors, bool bOnlyCollidingComponents, FVector& Center, FVector& BoxExtent)
 {
-	FBox ActorBounds(0);
+	FBox ActorBounds(ForceInit);
 	// Iterate over actors and accumulate bouding box
 	for(int32 ActorIdx=0; ActorIdx<Actors.Num(); ActorIdx++)
 	{

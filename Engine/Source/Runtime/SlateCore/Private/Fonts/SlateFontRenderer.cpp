@@ -341,7 +341,7 @@ struct FRasterizerSpanList
 	FBox2D BoundingBox;
 
 	FRasterizerSpanList()
-		: BoundingBox(0)
+		: BoundingBox(ForceInit)
 	{}
 };
 

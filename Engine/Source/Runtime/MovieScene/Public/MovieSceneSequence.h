@@ -141,6 +141,14 @@ public:
 	 */
 	virtual bool CanRebindPossessable(const FMovieScenePossessable& InPossessable) const { return false; }
 
+	/**
+	 * Specifies whether this sequence can animate the object in question (either as a spawnable or possessable)
+	 *
+	 * @param	InObject	The object to check
+	 * @return true if this object can be animated.
+	 */
+	virtual bool CanAnimateObject(UObject& InObject) const { return true; }
+
 public:
 
 	MOVIESCENE_API virtual void Serialize(FArchive& Ar) override;

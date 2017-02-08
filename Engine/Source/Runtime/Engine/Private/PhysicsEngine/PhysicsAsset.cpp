@@ -264,7 +264,7 @@ void UPhysicsAsset::DisableCollision(int32 BodyIndexA, int32 BodyIndexB)
 
 FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp, const FTransform& LocalToWorld) const
 {
-	FBox Box(0);
+	FBox Box(ForceInit);
 
 	if (!MeshComp)
 	{

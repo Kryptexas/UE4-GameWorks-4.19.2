@@ -2,15 +2,24 @@
 # Build PxFoundation
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-
 SET(PXSHARED_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../../src)
 
 SET(LL_SOURCE_DIR ${PXSHARED_SOURCE_DIR}/foundation)
 
 SET(PXFOUNDATION_LIBTYPE SHARED)
 
-SET(PXFOUNDATION_PLATFORM_FILES
+SET(PXFOUNDATION_RESOURCE_FILE
+	${PXSHARED_SOURCE_DIR}/compiler/resource_${LIBPATH_SUFFIX}/PxFoundation.rc
+)
+SOURCE_GROUP(resource FILES ${PXFOUNDATION_RESOURCE_FILE})
+
+SET(PXFOUNDATION_PLATFORM_HEADERS
+	${PXSHARED_SOURCE_DIR}/../include/foundation/windows/PxWindowsIntrinsics.h
+	${PXSHARED_SOURCE_DIR}/../include/foundation/windows/PxWindowsFoundationDelayLoadHook.h
+)
+SOURCE_GROUP(include\\windows FILES ${PXFOUNDATION_PLATFORM_HEADERS})
+
+SET(PXFOUNDATION_PLATFORM_SOURCE
 	${LL_SOURCE_DIR}/src/windows/PsWindowsAtomic.cpp
 	${LL_SOURCE_DIR}/src/windows/PsWindowsCpu.cpp
 	${LL_SOURCE_DIR}/src/windows/PsWindowsFPU.cpp
@@ -21,7 +30,26 @@ SET(PXFOUNDATION_PLATFORM_FILES
 	${LL_SOURCE_DIR}/src/windows/PsWindowsSync.cpp
 	${LL_SOURCE_DIR}/src/windows/PsWindowsThread.cpp
 	${LL_SOURCE_DIR}/src/windows/PsWindowsTime.cpp
-	${PXSHARED_SOURCE_DIR}/compiler/resource_${LIBPATH_SUFFIX}/PxFoundation.rc
+)
+SOURCE_GROUP(src\\src\\windows FILES ${PXFOUNDATION_PLATFORM_SOURCE})
+
+SET(PXFOUNDATION_PLATFORM_SOURCE_HEADERS
+	${LL_SOURCE_DIR}/include/windows/PsWindowsAoS.h
+	${LL_SOURCE_DIR}/include/windows/PsWindowsFPU.h
+	${LL_SOURCE_DIR}/include/windows/PsWindowsInclude.h
+	${LL_SOURCE_DIR}/include/windows/PsWindowsInlineAoS.h
+	${LL_SOURCE_DIR}/include/windows/PsWindowsIntrinsics.h
+	${LL_SOURCE_DIR}/include/windows/PsWindowsLoadLibrary.h
+	${LL_SOURCE_DIR}/include/windows/PsWindowsTrigConstants.h
+)
+SOURCE_GROUP(src\\include\\windows FILES ${PXFOUNDATION_PLATFORM_SOURCE_HEADERS})
+
+
+SET(PXFOUNDATION_PLATFORM_FILES
+	${PXFOUNDATION_PLATFORM_SOURCE}
+	${PXFOUNDATION_PLATFORM_SOURCE_HEADERS}
+	${PXFOUNDATION_PLATFORM_HEADERS}
+	${PXFOUNDATION_RESOURCE_FILE}
 )
 
 SET(PXFOUNDATION_PLATFORM_INCLUDES

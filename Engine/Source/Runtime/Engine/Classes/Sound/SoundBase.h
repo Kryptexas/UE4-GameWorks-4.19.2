@@ -81,6 +81,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = Effects)
 	TArray<USoundEffectSourcePreset*> SourceEffectChain;
 
+	/** Whether to keep the source alive for the duration of the effect chain tails. */
+	UPROPERTY(EditAnywhere, Category = Effects)
+	uint32 bPlayEffectChainTails:1;
+
 	/** The default amount of audio to send to the master reverb effect for this sound if reverb is enabled for the sound. This can be overridden by sound attenuation settings for 3d sounds. */
 	UPROPERTY(EditAnywhere, Category = Effects)
 	float DefaultMasterReverbSendAmount;

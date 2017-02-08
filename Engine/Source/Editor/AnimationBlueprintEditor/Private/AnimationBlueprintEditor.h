@@ -181,6 +181,10 @@ protected:
 	virtual void PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
 
+	//~ Begin FNotifyHook Interface
+	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
+	//~ End FNotifyHook Interface
+
 	// Toggle pose watch on selected nodes
 	void OnTogglePoseWatch();
 

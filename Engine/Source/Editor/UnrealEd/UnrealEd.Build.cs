@@ -66,6 +66,7 @@ public class UnrealEd : ModuleRules
                 "ViewportInteraction",
                 "VREditor",
                 "Persona",
+                "ClothingSystemEditorInterface",
             }
 		);
 
@@ -152,7 +153,9 @@ public class UnrealEd : ModuleRules
 				"MovieScene",
 				"MovieSceneTracks",
                 "ViewportInteraction",
-                "VREditor"
+                "VREditor",
+                "ClothingSystemEditor",
+                "ClothingSystemRuntime"
             }
 		);
 
@@ -223,6 +226,7 @@ public class UnrealEd : ModuleRules
                 "PortalServices",
                 "GeometryCacheEd",
                 "BlueprintNativeCodeGen",
+                "AnimationModifiers",
             }
 		);
 
@@ -251,7 +255,7 @@ public class UnrealEd : ModuleRules
 				"BlueprintGraph",
 				"AddContentDialog",                
                 "MeshUtilities"
-			}
+            }
 			);
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||

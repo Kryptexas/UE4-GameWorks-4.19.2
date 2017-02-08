@@ -7,43 +7,77 @@
 #include "BoneContainer.h"
 #include "Animation/AnimNodeBase.h"
 #include "AnimNodes/AnimNode_PoseHandler.h"
+#include "RBF/RBFSolver.h"
 #include "AnimNode_PoseDriver.generated.h"
 
-/** One target pose for the bone, with parameters to drive bone approaches this orientation. */
-struct FPoseDriverPoseInfo
-{
-	/** Name of pose, from PoseAsset */
-	FName PoseName;
-
-	/** Transform of source bone in this pose, from PoseAsset */
-	FTransform PoseTM;
-
-	/** Distance to nearest pose */
-	float NearestPoseDist;
-
-	/** Last weight calculated for this pose. */
-	float PoseWeight;
-
-	/** Last distance calculated from this pose */
-	float PoseDistance;
-
-	FPoseDriverPoseInfo()
-	: PoseTM(FTransform::Identity)
-	{}
-};
-
-/** Orientation aspect used to drive interpolation */
+// Deprecated
 UENUM()
 enum class EPoseDriverType : uint8
 {
-	/** Consider full rotation for interpolation */
 	SwingAndTwist,
-
-	/** Consider only swing for interpolation */
 	SwingOnly,
-
-	/** Consider translation relative to parent */
 	Translation
+};
+
+/** Transform aspect used to drive interpolation */
+UENUM()
+enum class EPoseDriverSource : uint8
+{
+	/** Drive using rotation */
+	Rotation,
+
+	/** Driver using translation */
+	Translation
+};
+
+/** Options for what PoseDriver should be driving */
+UENUM()
+enum class EPoseDriverOutput : uint8
+{
+	/** Use target's DrivenName to drive poses from the assigned PoseAsset */
+	DrivePoses,
+
+	/** Use the target's DrivenName to drive curves */
+	DriveCurves
+};
+
+
+/** Information about each target in the PoseDriver */
+USTRUCT()
+struct ANIMGRAPHRUNTIME_API FPoseDriverTarget
+{
+	GENERATED_BODY()
+		
+	/** Translation of this target */
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
+	FVector TargetTranslation;
+
+	/** Rotation of this target */
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
+	FRotator TargetRotation;
+
+	/** Scale applied to this target's function - a larger value will activate this target sooner */
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
+	float TargetScale;
+
+	/** 
+	 *	Name of item to drive - depends on DriveOutput setting.  
+	 *	If DriveOutput is DrivePoses, this should be the name of a pose in the assigned PoseAsset
+	 *	If DriveOutput is DriveCurves, this is the name of the curve (morph target, material param etc) to drive
+	 */
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
+	FName DrivenName;
+
+	/** Cached curve UID, if DriveOutput is set to DriveCurves */
+	int32 DrivenUID;
+
+	FPoseDriverTarget()
+		: TargetTranslation(FVector::ZeroVector)
+		, TargetRotation(FRotator::ZeroRotator)
+		, TargetScale(1.f)
+		, DrivenName(NAME_None)
+		, DrivenUID(INDEX_NONE)
+	{}
 };
 
 /** RBF based orientation driver */
@@ -59,27 +93,47 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_PoseDriver : public FAnimNode_PoseHandler
 	UPROPERTY(EditAnywhere, Category = PoseDriver)
 	FBoneReference SourceBone;
 
-	/** Scaling of radial basis, applied to max distance between poses */
-	UPROPERTY(EditAnywhere, Category = PoseDriver, meta = (ClampMin = "0.01"))
-	float RadialScaling;
-
-	/** Should we consider the mesh ref pose of SourceBone as a 'neutral' pose (zero curves)   */
+	/** 
+	 *	Optional other bone space to use when reading SourceBone transform.
+	 *	If not specified, we just use local space of SourceBone (ie relative to parent bone) 
+	 */
 	UPROPERTY(EditAnywhere, Category = PoseDriver)
-	bool bIncludeRefPoseAsNeutralPose;
+	FBoneReference EvalSpaceBone;
 
-	/** Type of orientation for driving parameter  */
-	UPROPERTY(EditAnywhere, Category = PoseDriver)
-	EPoseDriverType Type;
+	/** Parameters used by RBF solver */
+	UPROPERTY(EditAnywhere, Category = PoseDriver, meta=(ShowOnlyInnerProperties))
+	FRBFParams RBFParams;
 
-	/** Axis to use when Type is SwingOnly */
+	/** Which part of the transform is read */
 	UPROPERTY(EditAnywhere, Category = PoseDriver)
-	TEnumAsByte<EBoneAxis> TwistAxis;
+	EPoseDriverSource DriveSource;
+
+	/** Whether we should drive poses or curves */
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
+	EPoseDriverOutput DriveOutput;
+
+	/** Targets used to compare with current pose and drive morphs/poses */
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
+	TArray<FPoseDriverTarget> PoseTargets;
+
+	// Deprecated
+	UPROPERTY()
+	TEnumAsByte<EBoneAxis> TwistAxis_DEPRECATED;
+	UPROPERTY()
+	EPoseDriverType Type_DEPRECATED;
+	UPROPERTY()
+	float RadialScaling_DEPRECATED;
+	//
+
+
+	/** Last set of output weights from RBF solve */
+	TArray<FRBFOutputWeight> OutputWeights;
 
 	/** Input source bone TM, used for debug drawing */
 	FTransform SourceBoneTM;
 
-	/** Cached set of info for each pose */
-	TArray<FPoseDriverPoseInfo> PoseInfos;
+	/** If true, will recalculate DrivenUID values in PoseTargets array on next eval */
+	bool bCachedDrivenIDsAreDirty;
 
 	// FAnimNode_Base interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
@@ -89,23 +143,13 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_PoseDriver : public FAnimNode_PoseHandler
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
 
-	// FAnimNode_PoseHandler interface
-	virtual void OnPoseAssetChange() override;
-	// End FAnimNode_PoseHandler interface
-
-
 	FAnimNode_PoseDriver();
 
-	/** Find max distance between any of the poses */
-	void UpdateCachedPoseInfo(const FTransform& RefTM);
-
-	/** Util to return unit vector for current twist axis */
-	FVector GetTwistAxisVector();
-	/** Util to find 'distance' between 2 transforms, using Type and TwistAxis settings */
-	float FindDistanceBetweenPoses(const FTransform& A, const FTransform& B);
 
 
-protected:
-	/** Is cached info up to date */
-	bool bCachedPoseInfoUpToDate;
+	/** Return array of FRBFTarget structs, derived from PoseTargets array and DriveSource setting */
+	void GetRBFTargets(TArray<FRBFTarget>& OutTargets) const;
+
+	/** Update all DrivenUID properties in PoseTargets array */
+	void CacheDrivenIDs(USkeleton* Skeleton);
 };

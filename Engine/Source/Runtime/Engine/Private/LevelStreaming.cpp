@@ -891,7 +891,7 @@ bool ULevelStreaming::ShouldBeVisible() const
 
 FBox ULevelStreaming::GetStreamingVolumeBounds()
 {
-	FBox Bounds(0);
+	FBox Bounds(ForceInit);
 
 	// Iterate over each volume associated with this LevelStreaming object
 	for(int32 VolIdx=0; VolIdx<EditorStreamingVolumes.Num(); VolIdx++)

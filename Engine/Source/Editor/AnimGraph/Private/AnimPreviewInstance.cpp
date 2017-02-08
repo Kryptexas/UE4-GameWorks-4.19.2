@@ -247,7 +247,7 @@ void FAnimPreviewInstanceProxy::RefreshCurveBoneControllers(UAnimationAsset* Ass
 		for (auto& Curve : Curves)
 		{
 			// skip if disabled
-			if (Curve.GetCurveTypeFlag(ACF_Disabled))
+			if (Curve.GetCurveTypeFlag(AACF_Disabled))
 			{
 				continue;
 			}

@@ -12,10 +12,10 @@
 #include "ShaderParameters.h"
 #include "SkeletalMeshTypes.h"
 #include "Components/SkinnedMeshComponent.h"
-#include "ClothSimData.h"
 #include "GlobalShader.h"
 #include "GPUSkinVertexFactory.h"
 #include "SkeletalRenderPublic.h"
+#include "ClothingSystemRuntimeTypes.h"
 
 /** 
 * Stores the updated matrices needed to skin the verts.
@@ -79,7 +79,7 @@ public:
 	int32 NumWeightedActiveMorphTargets;
 
 	/** data for updating cloth section */
-	TMap<int32, FClothSimulData> ClothSimulUpdateData;
+	TMap<int32, FClothSimulData> ClothingSimData;
 
 	/** a weight factor to blend between simulated positions and skinned positions */	
 	float ClothBlendWeight;
@@ -315,7 +315,7 @@ public:
 		FSkinWeightVertexBuffer* SkinWeightVertexBuffer;
 		FColorVertexBuffer*	ColorVertexBuffer;
 		FMorphVertexBuffer* MorphVertexBuffer;
-		FSkeletalMeshVertexAPEXClothBuffer*	APEXClothVertexBuffer;
+		FSkeletalMeshVertexClothBuffer*	APEXClothVertexBuffer;
 	};
 
 private:

@@ -32,6 +32,7 @@ namespace SkeletalMeshEditorTabs
 	extern const FName AssetDetailsTab;
 	extern const FName MorphTargetsTab;
 	extern const FName MeshDetailsTab;
+	extern const FName AnimationMappingTab;
 }
 
 class FSkeletalMeshEditor : public ISkeletalMeshEditor, public FGCObject, public FEditorUndoClient, public FTickableEditorObject

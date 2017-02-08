@@ -22,8 +22,17 @@ public:
 	 * @param InSequencer The sequencer instance to be used by this tool
 	 */
 	F2DTransformTrackEditor( TSharedRef<ISequencer> InSequencer )
-		: FPropertyTrackEditor<UMovieScene2DTransformTrack, UMovieScene2DTransformSection, F2DTransformKey>( InSequencer, "WidgetTransform" )
-	{ }
+		: FPropertyTrackEditor<UMovieScene2DTransformTrack, UMovieScene2DTransformSection, F2DTransformKey>( InSequencer, GetAnimatedPropertyTypes() )
+	{
+	}
+
+	/**
+	 * Retrieve a list of all property types that this track editor animates
+	 */
+	static TArray<FAnimatedPropertyKey, TInlineAllocator<1>> GetAnimatedPropertyTypes()
+	{
+		return TArray<FAnimatedPropertyKey, TInlineAllocator<1>>({ FAnimatedPropertyKey::FromStructType("WidgetTransform") });
+	}
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 

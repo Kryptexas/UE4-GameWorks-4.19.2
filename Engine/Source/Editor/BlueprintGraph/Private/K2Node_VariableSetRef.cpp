@@ -153,7 +153,7 @@ FText UK2Node_VariableSetRef::GetNodeTitle(ENodeTitleType::Type TitleType) const
 bool UK2Node_VariableSetRef::IsActionFilteredOut(class FBlueprintActionFilter const& Filter)
 {
 	// Default to filtering this node out unless dragging off of a reference output pin
-	bool bIsFilteredOut = true;
+	bool bIsFilteredOut = false;
 	FBlueprintActionContext const& FilterContext = Filter.Context;
 
 	for (UEdGraphPin* Pin : FilterContext.Pins)

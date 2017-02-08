@@ -31,10 +31,20 @@ namespace ThumbnailSectionConstants
 /* FThumbnailSection structors
  *****************************************************************************/
 
-FThumbnailSection::FThumbnailSection(TSharedPtr<ISequencer> InSequencer, TSharedPtr<FTrackEditorThumbnailPool> InThumbnailPool, UMovieSceneSection& InSection)
+FThumbnailSection::FThumbnailSection(TSharedPtr<ISequencer> InSequencer, TSharedPtr<FTrackEditorThumbnailPool> InThumbnailPool, IViewportThumbnailClient* InViewportThumbanilClient, UMovieSceneSection& InSection)
 	: Section(&InSection)
 	, SequencerPtr(InSequencer)
-	, ThumbnailCache(InThumbnailPool, this)
+	, ThumbnailCache(InThumbnailPool, InViewportThumbanilClient)
+{
+	WhiteBrush = FEditorStyle::GetBrush("WhiteBrush");
+	GetMutableDefault<UMovieSceneUserThumbnailSettings>()->OnForceRedraw().AddRaw(this, &FThumbnailSection::RedrawThumbnails);
+}
+
+
+FThumbnailSection::FThumbnailSection(TSharedPtr<ISequencer> InSequencer, TSharedPtr<FTrackEditorThumbnailPool> InThumbnailPool, ICustomThumbnailClient* InCustomThumbnailClient, UMovieSceneSection& InSection)
+	: Section(&InSection)
+	, SequencerPtr(InSequencer)
+	, ThumbnailCache(InThumbnailPool, InCustomThumbnailClient)
 {
 	WhiteBrush = FEditorStyle::GetBrush("WhiteBrush");
 	GetMutableDefault<UMovieSceneUserThumbnailSettings>()->OnForceRedraw().AddRaw(this, &FThumbnailSection::RedrawThumbnails);
@@ -50,43 +60,6 @@ FThumbnailSection::~FThumbnailSection()
 void FThumbnailSection::RedrawThumbnails()
 {
 	ThumbnailCache.ForceRedraw();
-}
-
-
-/* FThumbnailSection interface
- *****************************************************************************/
-
-void FThumbnailSection::PreDraw(FTrackEditorThumbnail& Thumbnail, FLevelEditorViewportClient& ViewportClient, FSceneViewport& SceneViewport)
-{
-	TSharedPtr<ISequencer> Sequencer = SequencerPtr.Pin();
-	if (Sequencer.IsValid())
-	{
-		Sequencer->EnterSilentMode();
-
-		AActor* Camera = nullptr;
-		FDelegateHandle Handle = Sequencer->OnCameraCut().AddLambda([&](UObject* InObject, bool){
-			Camera = Cast<AActor>(InObject);
-		});
-
-		SavedPlaybackStatus = Sequencer->GetPlaybackStatus();
-		Sequencer->SetPlaybackStatus(EMovieScenePlayerStatus::Jumping);
-		Sequencer->SetLocalTimeDirectly(Thumbnail.GetEvalPosition());
-		Sequencer->ForceEvaluate();
-
-		ViewportClient.SetActorLock(Camera);
-		Sequencer->OnCameraCut().Remove(Handle);
-	}
-}
-
-
-void FThumbnailSection::PostDraw(FTrackEditorThumbnail& Thumbnail, FLevelEditorViewportClient& ViewportClient, FSceneViewport& SceneViewport)
-{
-	TSharedPtr<ISequencer> Sequencer = SequencerPtr.Pin();
-	if (Sequencer.IsValid())
-	{
-		Thumbnail.SetupFade(Sequencer->GetSequencerWidget());
-		Sequencer->ExitSilentMode();
-	}
 }
 
 
@@ -296,6 +269,46 @@ void FThumbnailSection::Tick(const FGeometry& AllottedGeometry, const FGeometry&
 		const TRange<float> SectionRange = Section->IsInfinite() ? VisibleRange : Section->GetRange();
 
 		ThumbnailCache.Update(SectionRange, VisibleRange, AllocatedSize, Settings->ThumbnailSize, Settings->Quality, InCurrentTime);
+	}
+}
+
+
+FViewportThumbnailSection::FViewportThumbnailSection(TSharedPtr<ISequencer> InSequencer, TSharedPtr<FTrackEditorThumbnailPool> InThumbnailPool, UMovieSceneSection& InSection)
+	: FThumbnailSection(InSequencer, InThumbnailPool, this, InSection)
+{
+}
+
+
+void FViewportThumbnailSection::PreDraw(FTrackEditorThumbnail& Thumbnail, FLevelEditorViewportClient& ViewportClient, FSceneViewport& SceneViewport)
+{
+	TSharedPtr<ISequencer> Sequencer = SequencerPtr.Pin();
+	if (Sequencer.IsValid())
+	{
+		Sequencer->EnterSilentMode();
+
+		AActor* Camera = nullptr;
+		FDelegateHandle Handle = Sequencer->OnCameraCut().AddLambda([&](UObject* InObject, bool){
+			Camera = Cast<AActor>(InObject);
+		});
+
+		SavedPlaybackStatus = Sequencer->GetPlaybackStatus();
+		Sequencer->SetPlaybackStatus(EMovieScenePlayerStatus::Jumping);
+		Sequencer->SetLocalTimeDirectly(Thumbnail.GetEvalPosition());
+		Sequencer->ForceEvaluate();
+
+		ViewportClient.SetActorLock(Camera);
+		Sequencer->OnCameraCut().Remove(Handle);
+	}
+}
+
+
+void FViewportThumbnailSection::PostDraw(FTrackEditorThumbnail& Thumbnail, FLevelEditorViewportClient& ViewportClient, FSceneViewport& SceneViewport)
+{
+	TSharedPtr<ISequencer> Sequencer = SequencerPtr.Pin();
+	if (Sequencer.IsValid())
+	{
+		Thumbnail.SetupFade(Sequencer->GetSequencerWidget());
+		Sequencer->ExitSilentMode();
 	}
 }
 

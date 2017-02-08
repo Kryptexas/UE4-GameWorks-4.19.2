@@ -98,7 +98,7 @@ public:
 	/*
 	 * Get the object binding map from guid to object binding nodes
 	 */
-	const TMap< FGuid, TSharedPtr<FSequencerObjectBindingNode> > GetObjectBindingMap() const { return ObjectBindingMap; }
+	const TMap< FGuid, TSharedPtr<FSequencerObjectBindingNode> >& GetObjectBindingMap() const { return ObjectBindingMap; }
 
 	/*
 	 * Gets a multicast delegate which is called whenever the node tree has been updated.

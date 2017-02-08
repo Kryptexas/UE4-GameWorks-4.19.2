@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -81,7 +81,7 @@ PX_FORCE_INLINE void* PxMemSet(void* dest, PxI32 c, PxU32 count)
 
 \return Pointer to destination memory block
 */
-PX_FORCE_INLINE void* PxMemCopy(void* dest, const void* src, PxU32 count)
+PX_FORCE_INLINE void* PxMemCopy(void* PX_RESTRICT dest, const void* PX_RESTRICT src, PxU32 count)
 {
 	return physx::intrinsics::memCopy(dest, src, count);
 }

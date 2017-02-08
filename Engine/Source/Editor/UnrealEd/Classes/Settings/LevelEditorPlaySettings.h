@@ -309,7 +309,7 @@ private:
 	*
 	* Enabling this will allow rendering accurate audio from every player's perspective but will use more CPU. Keep this disabled on lower-perf machines.
 	*/
-	UPROPERTY(config, EditAnywhere, Category = MultiplayerOptions, meta=(EditCondition = "EnableSound"))
+	UPROPERTY(config, EditAnywhere, Category = MultiplayerOptions, meta=(EditCondition = "EnableGameSound"))
 	bool CreateAudioDeviceForEveryPlayer;
 
 	/** Height to use when spawning additional windows. */

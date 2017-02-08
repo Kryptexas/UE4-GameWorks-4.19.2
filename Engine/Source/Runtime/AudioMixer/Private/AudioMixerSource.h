@@ -164,6 +164,7 @@ namespace Audio
 		FThreadSafeBool bPlaying;
 		FThreadSafeBool bLoopCallback;
 		FThreadSafeBool bIsFinished;
+		FThreadSafeBool bIsPlayingEffectTails;
 		FThreadSafeBool bBuffersToFlush;
 		FThreadSafeBool bFreeAsyncTask;
 

@@ -128,30 +128,42 @@ UObject* UObject::CreateEditorOnlyDefaultSubobjectImpl(FName SubobjectName, UCla
 
 void UObject::GetDefaultSubobjects(TArray<UObject*>& OutDefaultSubobjects)
 {
-	OutDefaultSubobjects.Empty();
-	GetObjectsWithOuter(this, OutDefaultSubobjects, false);
-	for (int32 SubobjectIndex = 0; SubobjectIndex < OutDefaultSubobjects.Num(); SubobjectIndex++)
+	OutDefaultSubobjects.Reset();
+	ForEachObjectWithOuter(this, [&OutDefaultSubobjects](UObject* Object)
 	{
-		UObject* PotentialSubobject = OutDefaultSubobjects[SubobjectIndex];
-		if (!PotentialSubobject->IsDefaultSubobject())
+		if (Object->IsDefaultSubobject())
 		{
-			OutDefaultSubobjects.RemoveAtSwap(SubobjectIndex--);
+			OutDefaultSubobjects.Add(Object);
 		}
-	}
+	}, false);
 }
 
 UObject* UObject::GetDefaultSubobjectByName(FName ToFind)
 {
-	TArray<UObject*> SubObjects;
-	GetDefaultSubobjects(SubObjects);
-	for (int32 Index = 0; Index < SubObjects.Num(); ++Index)
+	UObject* Object = nullptr;
+	// If it is safe use the faster StaticFindObjectFast rather than searching all the subobjects
+	if (!GIsSavingPackage && !IsGarbageCollecting())
 	{
-		if (SubObjects[Index]->GetFName() == ToFind)
+		Object = StaticFindObjectFast(UObject::StaticClass(), this, ToFind);
+		if (Object && !Object->IsDefaultSubobject())
 		{
-			return SubObjects[Index];
+			Object = nullptr;
 		}
 	}
-	return nullptr;
+	else
+	{
+		TArray<UObject*> SubObjects;
+		GetDefaultSubobjects(SubObjects);
+		for (UObject* SubObject : SubObjects)
+		{
+			if (SubObject->GetFName() == ToFind)
+			{
+				Object = SubObject;
+				break;
+			}
+		}
+	}
+	return Object;
 }
 
 bool UObject::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
@@ -404,7 +416,7 @@ void UObject::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyCh
 
 				// Since we found property, propagate PostEditChange to all relevant components of archetype instances.
 				TArray<UObject*> ArchetypeComponentInstances;
-				for (auto ArchetypeInstance : ArchetypeInstances)
+				for (UObject* ArchetypeInstance : ArchetypeInstances)
 				{
 					if (UObject* ComponentInstance = *Property->ContainerPtrToValuePtr<UObject*>(ArchetypeInstance))
 					{
@@ -639,7 +651,7 @@ void UObject::GetArchetypeInstances( TArray<UObject*>& Instances )
 		if ( !HasAnyFlags(RF_ArchetypeObject) )
 		{
 			Instances.Reserve(IterObjects.Num()-1);
-			for (auto It : IterObjects)
+			for (UObject* It : IterObjects)
 			{
 				UObject* Obj = It;
 				if ( Obj != this )
@@ -650,7 +662,7 @@ void UObject::GetArchetypeInstances( TArray<UObject*>& Instances )
 		}
 		else
 		{
-			for (auto It : IterObjects)
+			for (UObject* It : IterObjects)
 			{
 				UObject* Obj = It;
 				
@@ -2349,7 +2361,7 @@ static void ShowClasses( UClass* Class, FOutputDevice& Ar, int32 Indent )
 	// Workaround for Visual Studio 2013 analyzer bug. Using a temporary directly in the range-for
 	// errors if the analyzer is enabled.
 	TObjectRange<UClass> Range;
-	for( auto Obj : Range )
+	for( UClass* Obj : Range )
 	{
 		if( Obj->GetSuperClass() == Class )
 		{
@@ -2943,19 +2955,19 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 					if (bResult)
 					{
 						FString ExtraInfo;
-						if (auto* StructProperty = dynamic_cast<UStructProperty*>(It->GetClass()))
+						if (UStructProperty* StructProperty = dynamic_cast<UStructProperty*>(It->GetClass()))
 						{
 							ExtraInfo = *StructProperty->Struct->GetName();
 						}
-						else if (auto* ClassProperty = dynamic_cast<UClassProperty*>(It->GetClass()))
+						else if (UClassProperty* ClassProperty = dynamic_cast<UClassProperty*>(It->GetClass()))
 						{
 							ExtraInfo = FString::Printf(TEXT("class<%s>"), *ClassProperty->MetaClass->GetName());
 						}
-						else if (auto* AssetClassProperty = dynamic_cast<UAssetClassProperty*>(It->GetClass()))
+						else if (UAssetClassProperty* AssetClassProperty = dynamic_cast<UAssetClassProperty*>(It->GetClass()))
 						{
 							ExtraInfo = FString::Printf(TEXT("AssetSubclassOf<%s>"), *AssetClassProperty->MetaClass->GetName());
 						}
-						else if (auto* ObjectPropertyBase = dynamic_cast<UObjectPropertyBase*>(It->GetClass()))
+						else if (UObjectPropertyBase* ObjectPropertyBase = dynamic_cast<UObjectPropertyBase*>(It->GetClass()))
 						{
 							ExtraInfo = *ObjectPropertyBase->PropertyClass->GetName();
 						}
@@ -3327,7 +3339,7 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 
 				TArray<FString> Errors;
 
-				for (auto SubObjIt : SubObjects)
+				for (UObject* SubObjIt : SubObjects)
 				{
 					const UObject* SubObj = SubObjIt;
 					const UClass* SubObjClass = SubObj->GetClass();
@@ -3368,7 +3380,7 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 				{
 					Ar.Logf(TEXT("Errors for %s"), *Target->GetName());
 
-					for (auto ErrorStr : Errors)
+					for (const FString& ErrorStr : Errors)
 					{
 						Ar.Logf(TEXT("  - %s"), *ErrorStr);
 					}
@@ -3870,7 +3882,7 @@ void PreInitUObject()
 void InitUObject()
 {
 	// Initialize redirects map
-	for (const auto& It : *GConfig)
+	for (const TPair<FString,FConfigFile>& It : *GConfig)
 	{
 		FCoreRedirects::ReadRedirectsFromIni(It.Key);
 		FLinkerLoad::CreateActiveRedirectsMap(It.Key);

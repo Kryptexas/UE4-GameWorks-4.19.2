@@ -355,7 +355,7 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 					InteractorData.TransformGizmoInteractionType = ETransformGizmoInteractionType::None;
 					InteractorData.OptionalHandlePlacement.Reset();
 					InteractorData.GizmoStartTransform = FTransform::Identity;
-					InteractorData.GizmoStartLocalBounds = FBox( 0 );
+					InteractorData.GizmoStartLocalBounds = FBox(ForceInit);
 					InteractorData.GizmoSpaceFirstDragUpdateOffsetAlongAxis = FVector::ZeroVector;
 					InteractorData.GizmoSpaceDragDeltaFromStartOffset = FVector::ZeroVector;
 

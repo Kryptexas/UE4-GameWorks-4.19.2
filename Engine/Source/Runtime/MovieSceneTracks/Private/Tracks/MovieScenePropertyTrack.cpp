@@ -16,6 +16,13 @@ void UMovieScenePropertyTrack::SetPropertyNameAndPath(FName InPropertyName, cons
 
 	PropertyName = InPropertyName;
 	PropertyPath = InPropertyPath;
+	
+#if WITH_EDITORONLY_DATA
+	if (UniqueTrackName == NAME_None)
+	{
+		UniqueTrackName = *PropertyPath;
+	}
+#endif
 }
 
 
@@ -25,19 +32,29 @@ const TArray<UMovieSceneSection*>& UMovieScenePropertyTrack::GetAllSections() co
 }
 
 
+void UMovieScenePropertyTrack::PostLoad()
+{
+#if WITH_EDITORONLY_DATA
+	if (UniqueTrackName.IsNone())
+	{
+		UniqueTrackName = *PropertyPath;
+	}
+#endif
+
+	Super::PostLoad();
+}
+
 #if WITH_EDITORONLY_DATA
 FText UMovieScenePropertyTrack::GetDefaultDisplayName() const
 {
 	return FText::FromName(PropertyName);
 }
-#endif
-
 
 FName UMovieScenePropertyTrack::GetTrackName() const
 {
-	return PropertyName;
+	return UniqueTrackName;
 }
-
+#endif
 
 void UMovieScenePropertyTrack::RemoveAllAnimationData()
 {

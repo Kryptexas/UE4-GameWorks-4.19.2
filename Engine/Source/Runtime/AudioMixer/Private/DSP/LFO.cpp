@@ -13,6 +13,8 @@ namespace Audio
 		, RSHValue(0.0f)
 		, ModScale(1.0f)
 		, ModAdd(0.0f)
+		, LastOutput(0.0f)
+		, QuadLastOutput(0.0f)
 	{
 	}
 
@@ -20,9 +22,9 @@ namespace Audio
 	{
 	}
 
-	void FLFO::Init(const float InSampleRate, const int32 InVoiceId, FModulationMatrix* InMatrix)
+	void FLFO::Init(const float InSampleRate, const int32 InVoiceId, FModulationMatrix* InMatrix, const int32 ModMatrixStage)
 	{
-		IOscBase::Init(InSampleRate, InVoiceId, InMatrix);
+		IOscBase::Init(InSampleRate, InVoiceId, InMatrix, ModMatrixStage);
 
 		if (ModMatrix)
 		{
@@ -67,10 +69,10 @@ namespace Audio
 		{
 			if (QuadPhaseOutput)
 			{
-				*QuadPhaseOutput = 0.0f;
+				*QuadPhaseOutput = QuadLastOutput;
 			}
 
-			return 0.0f;
+			return LastOutput;
 		}
 
 		const bool bWrapped = WrapPhase();
@@ -83,19 +85,19 @@ namespace Audio
 
 			if (QuadPhaseOutput)
 			{
-				*QuadPhaseOutput = 0.0f;
-
-				return 0.0f;
+				*QuadPhaseOutput = QuadLastOutput;
 			}
+
+			return LastOutput;
 		}
 
-		float Output = ComputeLFO(GetPhase(), QuadPhaseOutput);
+		LastOutput = ComputeLFO(GetPhase(), QuadPhaseOutput);
 
 		// Update the LFO phase after computing LFO values
 		UpdatePhase();
 
 		// Return the output
-		return Output;
+		return LastOutput;
 	}
 
 	float FLFO::ComputeLFO(const float InPhase, float* OutQuad)
@@ -123,31 +125,15 @@ namespace Audio
 
 			case ELFO::UpSaw:
 			{
-				if (LFOMode == ELFOMode::OneShot)
-				{
-					Output = InPhase - 1.0f;
-					QuadOutput = QuadPhase - 1.0f;
-				}
-				else
-				{
-					Output = GetBipolar(InPhase);
-					QuadOutput = GetBipolar(QuadPhase);
-				}
+				Output = GetBipolar(InPhase);
+				QuadOutput = GetBipolar(QuadPhase);
 			}
 			break;
 
 			case ELFO::DownSaw:
 			{
-				if (LFOMode == ELFOMode::OneShot)
-				{
-					Output = 1.0f - InPhase;
-					QuadOutput = 1.0f - QuadPhase;
-				}
-				else
-				{
-					Output = -1.0f * GetBipolar(InPhase);
-					QuadOutput = -1.0f * GetBipolar(QuadPhase);
-				}
+				Output = -1.0f * GetBipolar(InPhase);
+				QuadOutput = -1.0f * GetBipolar(QuadPhase);
 			}
 			break;
 
@@ -213,10 +199,11 @@ namespace Audio
 			QuadOutput = QuadOutput * ModScale + ModAdd;
 
 			// Write out the modulations
-			const float MinValue = 
 			ModMatrix->SetSourceValue(VoiceId, ModNormalPhase, Output);
 			ModMatrix->SetSourceValue(VoiceId, ModQuadPhase, QuadOutput);
 		}
+
+		QuadLastOutput = QuadOutput;
 
 		if (OutQuad)
 		{

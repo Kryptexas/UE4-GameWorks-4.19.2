@@ -20,6 +20,11 @@
 			"Name" : "Synthesis",
 			"Type" : "Runtime",
 			"LoadingPhase" : "Default"
+		},
+		{
+			"Name" : "SynthesisEditor",
+			"Type" : "Editor",
+			"LoadingPhase" : "Default"
 		}
 	]
 }

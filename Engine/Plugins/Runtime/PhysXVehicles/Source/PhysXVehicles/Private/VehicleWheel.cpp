@@ -62,6 +62,14 @@ float UVehicleWheel::GetSuspensionOffset() const
 	return VehicleManager->GetWheelsStates_AssumesLocked(VehicleSim)[WheelIndex].suspJounce;
 }
 
+bool UVehicleWheel::IsInAir() const
+{
+	FPhysXVehicleManager* VehicleManager = FPhysXVehicleManager::GetVehicleManagerFromScene(VehicleSim->GetWorld()->GetPhysicsScene());
+	SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
+
+	return VehicleManager->GetWheelsStates_AssumesLocked(VehicleSim)[WheelIndex].isInAir;
+}
+
 void UVehicleWheel::Init( UWheeledVehicleMovementComponent* InVehicleSim, int32 InWheelIndex )
 {
 	check(InVehicleSim);

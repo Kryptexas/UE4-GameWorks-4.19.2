@@ -1120,6 +1120,17 @@ namespace ECollisionEnabled
 	}; 
 } 
 
+FORCEINLINE bool CollisionEnabledHasPhysics(ECollisionEnabled::Type CollisionEnabled)
+{
+	return (CollisionEnabled == ECollisionEnabled::PhysicsOnly) ||
+			(CollisionEnabled == ECollisionEnabled::QueryAndPhysics);
+}
+
+FORCEINLINE bool CollisionEnabledHasQuery(ECollisionEnabled::Type CollisionEnabled)
+{
+	return (CollisionEnabled == ECollisionEnabled::QueryOnly) ||
+			(CollisionEnabled == ECollisionEnabled::QueryAndPhysics);
+}
 
 /** Describes the physical state of a rigid body. */
 USTRUCT()

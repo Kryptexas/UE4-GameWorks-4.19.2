@@ -339,7 +339,9 @@ void UAnimSequence::PreSave(const class ITargetPlatform* TargetPlatform)
 	// make sure if it does contain transform curvesm it contains source data
 	// empty track animation still can be made by retargeting to invalid skeleton
 	// make sure to not trigger ensure if RawAnimationData is also null
-	check (!DoesContainTransformCurves() || (RawAnimationData.Num()==0 || SourceRawAnimationData.Num() != 0));
+	
+	// Why should we not be able to have empty transform curves?
+	ensure(!DoesContainTransformCurves() || (RawAnimationData.Num()==0 || SourceRawAnimationData.Num() != 0));
 
 	if (DoesNeedRecompress())
 	{
@@ -1505,7 +1507,7 @@ void UAnimSequence::GetBonePose_AdditiveMeshRotationOnly(FCompactPose& OutPose, 
 	OutCurve.ConvertToAdditive(BaseCurve);
 }
 
-void UAnimSequence::RetargetBoneTransform(FTransform& BoneTransform, const int32& SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones, const bool bIsBakedAdditive) const
+void UAnimSequence::RetargetBoneTransform(FTransform& BoneTransform, const int32 SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones, const bool bIsBakedAdditive) const
 {
 	const USkeleton* MySkeleton = GetSkeleton();
 	FAnimationRuntime::RetargetBoneTransform(MySkeleton, RetargetSource, BoneTransform, SkeletonBoneIndex, BoneIndex, RequiredBones, bIsBakedAdditive);
@@ -2201,7 +2203,7 @@ bool UAnimSequence::CanBakeAdditive() const
 
 FFloatCurve* GetFloatCurve(FRawCurveTracks& RawCurveTracks, USkeleton::AnimCurveUID& CurveUID)
 {
-	return static_cast<FFloatCurve *>(RawCurveTracks.GetCurveData(CurveUID, FRawCurveTracks::FloatType));
+	return static_cast<FFloatCurve *>(RawCurveTracks.GetCurveData(CurveUID, ERawCurveTrackTypes::RCT_Float));
 }
 
 bool IsNewKeyDifferent(const FRichCurveKey& LastKey, float NewValue)
@@ -2461,7 +2463,7 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 				// if we don't have name, there is something wrong here. 
 				ensureAlways(MySkeleton->GetSmartNameByUID(USkeleton::AnimCurveMappingName, CurveUID, NewCurveName));
 				// curve flags don't matter much for compressed curves
-				NewCurveTracks.AddCurveData(NewCurveName, 0, FRawCurveTracks::FloatType);
+				NewCurveTracks.AddCurveData(NewCurveName, 0, ERawCurveTrackTypes::RCT_Float);
 				RawCurve = GetFloatCurve(NewCurveTracks, CurveUID);
 			}
 
@@ -3420,7 +3422,7 @@ void UAnimSequence::RemoveTrack(int32 TrackIndex)
 		AnimationTrackNames.RemoveAt(TrackIndex);
 		TrackToSkeletonMapTable.RemoveAt(TrackIndex);
 		// source raw animation only exists if edited
-		if (SourceRawAnimationData.Num() > 0 )
+		if (SourceRawAnimationData.IsValidIndex(TrackIndex))
 		{
 			SourceRawAnimationData.RemoveAt(TrackIndex);
 		}
@@ -4062,7 +4064,7 @@ void UAnimSequence::ClearBakedTransformData()
 	UE_LOG(LogAnimation, Warning, TEXT("[%s] Detected previous edited data is invalidated. Clearing transform curve data and Source Data. This can happen if you do retarget another animation to this. If not, please report back to Epic. "), *GetName());
 	SourceRawAnimationData.Empty();
 	//Clear Transform curve data
-	RawCurveData.DeleteAllCurveData(FRawCurveTracks::TransformType);
+	RawCurveData.DeleteAllCurveData(ERawCurveTrackTypes::RCT_Transform);
 }
 
 void UAnimSequence::BakeTrackCurvesToRawAnimation()
@@ -4126,7 +4128,7 @@ void UAnimSequence::BakeTrackCurvesToRawAnimation()
 			// find curves first, and then see what is index of this curve
 			FName BoneName;
 
-			if(Curve.GetCurveTypeFlag(ACF_Disabled)== false &&
+			if(Curve.GetCurveTypeFlag(AACF_Disabled)== false &&
 				ensureAlways(NameMapping->GetName(Curve.Name.UID, BoneName)))
 			{
 				int32 TrackIndex = AnimationTrackNames.Find(BoneName);
@@ -4189,7 +4191,7 @@ void UAnimSequence::BakeTrackCurvesToRawAnimation()
 				for(int32 KeyIndex=0; KeyIndex < NumFrames; ++KeyIndex)
 				{
 					// now evaluate
-					FTransformCurve* TransformCurve = static_cast<FTransformCurve*>(RawCurveData.GetCurveData(Curve.Name.UID, FRawCurveTracks::TransformType));
+					FTransformCurve* TransformCurve = static_cast<FTransformCurve*>(RawCurveData.GetCurveData(Curve.Name.UID, ERawCurveTrackTypes::RCT_Transform));
 
 					if(ensure(TransformCurve))
 					{
@@ -4248,13 +4250,13 @@ void UAnimSequence::AddKeyToSequence(float Time, const FName& BoneName, const FT
 	CurrentSkeleton->AddSmartNameAndModify(USkeleton::AnimTrackCurveMappingName, CurveName, NewCurveName);
 
 	// add curve - this won't add duplicate curve
-	RawCurveData.AddCurveData(NewCurveName, ACF_DriveTrack | ACF_Editable, FRawCurveTracks::TransformType);
+	RawCurveData.AddCurveData(NewCurveName, AACF_DriveTrack | AACF_Editable, ERawCurveTrackTypes::RCT_Transform);
 
 	//Add this curve
-	FTransformCurve* TransformCurve = static_cast<FTransformCurve*>(RawCurveData.GetCurveData(NewCurveName.UID, FRawCurveTracks::TransformType));
+	FTransformCurve* TransformCurve = static_cast<FTransformCurve*>(RawCurveData.GetCurveData(NewCurveName.UID, ERawCurveTrackTypes::RCT_Transform));
 	check(TransformCurve);
 
-	TransformCurve->UpdateOrAddKey(AdditiveTransform, Time);
+	TransformCurve->UpdateOrAddKey(AdditiveTransform, Time);	
 
 	bNeedsRebake = true;
 }

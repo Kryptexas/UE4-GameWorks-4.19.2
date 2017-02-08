@@ -8,7 +8,6 @@
 #include "AudioMixerEffectsManager.h"
 #include "SubmixEffects/AudioMixerSubmixEffectReverb.h"
 #include "SubmixEffects/AudioMixerSubmixEffectEQ.h"
-#include "SubmixEffects/AudioMixerSubmixEffectTest.h"
 #include "DSP/Noise.h"
 #include "DSP/SinOsc.h"
 #include "UObject/UObjectIterator.h"
@@ -186,13 +185,11 @@ namespace Audio
 
 				// Setup the master reverb
 				USubmixEffectReverbPreset* ReverbPreset = NewObject<USubmixEffectReverbPreset>(FMixerDevice::MasterReverbSoundSubmix, TEXT("Master Reverb Effect Preset"));
-				ReverbPreset->Init();
 
 				FSoundEffectSubmix* ReverbEffectSubmix = static_cast<FSoundEffectSubmix*>(ReverbPreset->CreateNewEffect());
 				FSoundEffectSubmixInitData InitData;
 				InitData.NumOutputChannels = GetNumDeviceChannels();
 				InitData.SampleRate = GetSampleRate();
-				InitData.PresetSettings = nullptr;
 
 				ReverbEffectSubmix->Init(InitData);
 				ReverbEffectSubmix->SetPreset(ReverbPreset);
@@ -205,7 +202,6 @@ namespace Audio
 
 				// Setup the master EQ
 				USubmixEffectSubmixEQPreset* EQPreset = NewObject<USubmixEffectSubmixEQPreset>(FMixerDevice::MasterEQSoundSubmix, TEXT("Master EQ Effect preset"));
-				EQPreset->Init();
 
 				FSoundEffectSubmix* EQEffectSubmix = static_cast<FSoundEffectSubmix*>(EQPreset->CreateNewEffect());
 				EQEffectSubmix->Init(InitData);

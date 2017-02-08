@@ -1096,15 +1096,13 @@ public:
 	/** Utility to see if there is any query collision enabled on this component. */
 	FORCEINLINE_DEBUGGABLE bool IsQueryCollisionEnabled() const
 	{
-		const ECollisionEnabled::Type CollisionSetting = GetCollisionEnabled();
-		return (CollisionSetting == ECollisionEnabled::QueryAndPhysics) || (CollisionSetting == ECollisionEnabled::QueryOnly);
+		return CollisionEnabledHasQuery(GetCollisionEnabled());
 	}
 
 	/** Utility to see if there is any physics collision enabled on this component. */
 	FORCEINLINE_DEBUGGABLE bool IsPhysicsCollisionEnabled() const
 	{
-		const ECollisionEnabled::Type CollisionSetting = GetCollisionEnabled();
-		return (CollisionSetting == ECollisionEnabled::QueryAndPhysics) || (CollisionSetting == ECollisionEnabled::PhysicsOnly);
+		return CollisionEnabledHasPhysics(GetCollisionEnabled());
 	}
 
 	/** Returns the response that this component has to a specific collision channel. */

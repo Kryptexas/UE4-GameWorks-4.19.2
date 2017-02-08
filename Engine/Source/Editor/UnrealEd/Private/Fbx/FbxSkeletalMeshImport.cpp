@@ -51,6 +51,7 @@
 #include "Misc/FbxErrors.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "Assets/ClothingAsset.h"
 
 #define LOCTEXT_NAMESPACE "FBXImpoter"
 
@@ -1382,13 +1383,17 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		return nullptr;
 	}
 
+	TArray<ClothingAssetUtils::FClothingAssetMeshBinding> ClothingBindings;
+
 	//Backup the data before importing the new one
 	if (ExistingSkelMesh)
 	{
-#if WITH_APEX_CLOTHING
-		//for supporting re-import 
-		ApexClothingUtils::BackupClothingDataFromSkeletalMesh(ExistingSkelMesh);
-#endif// #if WITH_APEX_CLOTHING
+		ClothingAssetUtils::GetMeshClothingAssetBindings(ExistingSkelMesh, ClothingBindings);
+
+		for(ClothingAssetUtils::FClothingAssetMeshBinding& Binding : ClothingBindings)
+		{
+			Binding.Asset->UnbindFromSkeletalMesh(ExistingSkelMesh, Binding.LODIndex);
+		}
 
 		ExistingSkelMesh->PreEditChange(NULL);
 		//The backup of the skeletal mesh data empty the LOD array in the ImportedResource of the skeletal mesh
@@ -1444,6 +1449,10 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	
 	// Pass the number of texture coordinate sets to the LODModel.  Ensure there is at least one UV coord
 	LODModel.NumTexCoords = FMath::Max<uint32>(1,SkelMeshImportDataPtr->NumTexCoords);
+
+	// Array of re-import contexts for components using this mesh
+	// Will unregister before import, then re-register afterwards
+	TIndirectArray<FComponentReregisterContext> ComponentContexts;
 
 	if( bCreateRenderData )
 	{
@@ -1506,12 +1515,12 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		SkeletalMesh->MarkPackageDirty();
 
 		// Now iterate over all skeletal mesh components re-initialising them.
-		for(TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+		for(TObjectIterator<USkinnedMeshComponent> It; It; ++It)
 		{
-			USkeletalMeshComponent* SkelComp = *It;
-			if(SkelComp->SkeletalMesh == SkeletalMesh)
+			USkinnedMeshComponent* SkinComp = *It;
+			if(SkinComp->SkeletalMesh == SkeletalMesh)
 			{
-				FComponentReregisterContext ReregisterContext(SkelComp);
+				new(ComponentContexts) FComponentReregisterContext(SkinComp);
 			}
 		}
 	}
@@ -1582,9 +1591,9 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 			if(bFirstMesh || (LastMergeBonesChoice != EAppReturnType::NoAll && LastMergeBonesChoice != EAppReturnType::YesAll))
 			{
 				LastMergeBonesChoice = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAllCancel,
-															LOCTEXT("SkeletonFailed_BoneMerge", "FAILED TO MERGE BONES:\n\n This could happen if significant hierarchical change has been made\n"
-																"- i.e. inserting bone between nodes\n Would you like to regenerate Skeleton from this mesh? \n\n"
-																"***WARNING: THIS WILL REQUIRE RECOMPRESS ALL ANIMATION DATA AND POTENTIALLY INVALIDATE***\n"));
+					LOCTEXT("SkeletonFailed_BoneMerge", "FAILED TO MERGE BONES:\n\n This could happen if significant hierarchical changes have been made\n"
+						"e.g. inserting a bone between nodes.\nWould you like to regenerate the Skeleton from this mesh?\n\n"
+						"***WARNING: THIS MAY INVALIDATE OR REQUIRE RECOMPRESSION OF ANIMATION DATA.***\n"));
 				bToastSaveMessage = true;
 			}
 			
@@ -1658,10 +1667,22 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 			SkeletalMesh->MarkPackageDirty();
 		}
 	}
-#if WITH_APEX_CLOTHING
-	//for supporting re-import 
-	ApexClothingUtils::ReapplyClothingDataToSkeletalMesh(SkeletalMesh);
-#endif// #if WITH_APEX_CLOTHING
+
+	// Reapply any clothing assets we had before the import
+	FSkeletalMeshResource* NewMeshResource = SkeletalMesh->GetImportedResource();
+	if(NewMeshResource)
+	{
+		for(ClothingAssetUtils::FClothingAssetMeshBinding& Binding : ClothingBindings)
+		{
+			if(NewMeshResource->LODModels.IsValidIndex(Binding.LODIndex) &&
+			   NewMeshResource->LODModels[Binding.LODIndex].Sections.IsValidIndex(Binding.SectionIndex))
+			{
+				Binding.Asset->BindToSkeletalMesh(SkeletalMesh, Binding.LODIndex, Binding.SectionIndex, Binding.AssetInternalLodIndex);
+			}
+		}
+	}
+
+	// ComponentContexts will now go out of scope, causing components to be re-registered
 
 	return SkeletalMesh;
 }

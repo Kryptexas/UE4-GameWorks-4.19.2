@@ -118,6 +118,9 @@ public class Launch : ModuleRules
             // LaunchEngineLoop.cpp will still attempt to load XMPP but not all projects require it so it will silently fail unless referenced by the project's build.cs file.
             // DynamicallyLoadedModuleNames.Add("XMPP");
             DynamicallyLoadedModuleNames.Add("HTTP");
+
+            PrivateDependencyModuleNames.Add("ClothingSystemRuntimeInterface");
+            PrivateDependencyModuleNames.Add("ClothingSystemRuntime");
 		}
 
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)

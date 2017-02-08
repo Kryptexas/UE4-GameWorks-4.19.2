@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -33,6 +33,7 @@
 
 #include "NpShape.h"
 #include "CmPtrTable.h"
+#include "SqSceneQueryManager.h"
 
 #if PX_ENABLE_DEBUG_VISUALIZATION
 #include "CmRenderOutput.h"
@@ -43,7 +44,6 @@ namespace physx
 
 namespace Sq
 {
-	typedef size_t PrunerData;
 	class SceneQueryManager;
 	class PruningStructure;
 }

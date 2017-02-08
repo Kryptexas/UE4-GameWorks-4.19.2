@@ -32,6 +32,10 @@
 #include "PersonaPreviewSceneDescription.h"
 #include "Engine/PreviewMeshCollection.h"
 #include "PreviewSceneCustomizations.h"
+#include "ClothingSimulation.h"
+#include "SimulationEditorExtender.h"
+#include "ClothingSimulationFactoryInterface.h"
+#include "ClothingSystemEditorInterfaceModule.h"
 
 #define LOCTEXT_NAMESPACE "AnimViewportToolBar"
 
@@ -518,22 +522,13 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 #if WITH_APEX_CLOTHING
 			UDebugSkelMeshComponent* PreviewComp = Viewport.Pin()->GetPreviewScene()->GetPreviewMeshComponent();
 
-			if( PreviewComp && PreviewComp->HasValidClothingActors() )
+			if(PreviewComp)
 			{
 				ShowMenuBuilder.AddMenuSeparator();
 				ShowMenuBuilder.AddSubMenu(
 					LOCTEXT("AnimViewportClothingSubMenu", "Clothing"),
 					LOCTEXT("AnimViewportClothingSubMenuToolTip", "Options relating to clothing"),
 					FNewMenuDelegate::CreateRaw(this, &SAnimViewportToolBar::FillShowClothingMenu));
-			}
-			else // if skeletal mesh has clothing assets without mapping yet or assets have only collision volumes without clothing sections, then need to show collision volumes which assets include 
-			if( PreviewComp && PreviewComp->SkeletalMesh && PreviewComp->SkeletalMesh->ClothingAssets.Num() > 0)
-			{				
-				ShowMenuBuilder.BeginSection("AnimViewportClothingOptions", LOCTEXT("ShowMenu_Actions_Clothing", "Clothing") );
-				{
-					ShowMenuBuilder.AddMenuEntry( Actions.ShowClothCollisionVolumes );
-				}
-				ShowMenuBuilder.EndSection();
 			}
 #endif // #if WITH_APEX_CLOTHING
 
@@ -654,7 +649,7 @@ void SAnimViewportToolBar::FillShowAdvancedMenu(FMenuBuilder& MenuBuilder) const
 	MenuBuilder.EndSection();
 }
 
-void SAnimViewportToolBar::FillShowClothingMenu(FMenuBuilder& MenuBuilder) const
+void SAnimViewportToolBar::FillShowClothingMenu(FMenuBuilder& MenuBuilder)
 {
 #if WITH_APEX_CLOTHING
 	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
@@ -668,23 +663,6 @@ void SAnimViewportToolBar::FillShowClothingMenu(FMenuBuilder& MenuBuilder) const
 		TSharedPtr<SWidget> GravityWidget = SNew(SGravitySettings).AnimEditorViewport(Viewport);
 		MenuBuilder.AddWidget(GravityWidget.ToSharedRef(), FText());
 		MenuBuilder.AddMenuEntry(Actions.EnableCollisionWithAttachedClothChildren);
-	}
-	MenuBuilder.EndSection();
-
-	MenuBuilder.BeginSection("ClothNormalVisualization", LOCTEXT("ClothNormalVisualization_Label", "Normal Visualization"));
-	{
-		MenuBuilder.AddMenuEntry(Actions.ShowClothSimulationNormals);
-		MenuBuilder.AddMenuEntry(Actions.ShowClothGraphicalTangents);
-	}
-	MenuBuilder.EndSection();
-
-	MenuBuilder.BeginSection("ClothConstraintsVisualization", LOCTEXT("ClothConstraintsVisualization_Label", "Constraints Visualization"));
-	{
-		MenuBuilder.AddMenuEntry(Actions.ShowClothCollisionVolumes);
-		MenuBuilder.AddMenuEntry(Actions.ShowClothPhysicalMeshWire);
-		MenuBuilder.AddMenuEntry(Actions.ShowClothMaxDistances);
-		MenuBuilder.AddMenuEntry(Actions.ShowClothBackstop);
-		MenuBuilder.AddMenuEntry(Actions.ShowClothFixedVertices);
 		MenuBuilder.AddMenuEntry(Actions.PauseClothWithAnim);
 	}
 	MenuBuilder.EndSection();
@@ -696,6 +674,23 @@ void SAnimViewportToolBar::FillShowClothingMenu(FMenuBuilder& MenuBuilder) const
 		MenuBuilder.AddMenuEntry(Actions.HideOnlyClothSections);
 	}
 	MenuBuilder.EndSection();
+
+	// Call into the clothing editor module to customize the menu (this is mainly for debug visualizations and sim-specific options)
+	TSharedPtr<SAnimationEditorViewportTabBody> SharedViewport = Viewport.Pin();
+	if(SharedViewport.IsValid())
+	{
+		TSharedRef<IPersonaPreviewScene> PreviewScene = SharedViewport->GetAnimationViewportClient()->GetPreviewScene();
+		if(UDebugSkelMeshComponent* PreviewComponent = PreviewScene->GetPreviewMeshComponent())
+		{
+			FClothingSystemEditorInterfaceModule& ClothingEditorModule = FModuleManager::LoadModuleChecked<FClothingSystemEditorInterfaceModule>(TEXT("ClothingSystemEditorInterface"));
+
+			if(ISimulationEditorExtender* Extender = ClothingEditorModule.GetSimulationEditorExtender(PreviewComponent->ClothingSimulationFactory->GetFName()))
+			{
+				Extender->ExtendViewportShowMenu(MenuBuilder, PreviewScene);
+			}
+		}
+	}
+
 #endif // #if WITH_APEX_CLOTHING
 }
 

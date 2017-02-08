@@ -391,6 +391,10 @@ namespace IncludeTool
 				{
 					continue;
 				}
+				if(Reader.Current.Text == "PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS" || Reader.Current.Text == "PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS")
+				{
+					continue;
+				}
 				return false;
 			}
 			return true;

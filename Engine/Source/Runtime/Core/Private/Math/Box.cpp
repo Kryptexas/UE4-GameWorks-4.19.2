@@ -45,7 +45,7 @@ FBox FBox::TransformBy(const FMatrix& M) const
 	// if we are not valid, return another invalid box.
 	if (!IsValid)
 	{
-		return FBox(0);
+		return FBox(ForceInit);
 	}
 
 	FBox NewBox;
@@ -101,7 +101,7 @@ FBox FBox::InverseTransformBy(const FTransform& M) const
 		FVector(Max)
 	};
 
-	FBox NewBox(0);
+	FBox NewBox(ForceInit);
 
 	for (int32 VertexIndex = 0; VertexIndex < ARRAY_COUNT(Vertices); VertexIndex++)
 	{
@@ -127,7 +127,7 @@ FBox FBox::TransformProjectBy(const FMatrix& ProjM) const
 		FVector(Max)
 	};
 
-	FBox NewBox(0);
+	FBox NewBox(ForceInit);
 
 	for (int32 VertexIndex = 0; VertexIndex < ARRAY_COUNT(Vertices); VertexIndex++)
 	{

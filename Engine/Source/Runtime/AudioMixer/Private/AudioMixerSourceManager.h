@@ -9,6 +9,7 @@
 #include "AudioMixerBuffer.h"
 #include "AudioMixerSubmix.h"
 #include "DSP/OnePole.h"
+#include "DSP/EnvelopeFollower.h"
 #include "IAudioExtensionPlugin.h"
 #include "Containers/Queue.h"
 
@@ -64,10 +65,12 @@ namespace Audio
 	{
 		ISourceBufferQueueListener* BufferQueueListener;
 		TArray<FMixerSourceSubmixSend> SubmixSends;
+		TArray<USoundEffectSourcePreset*> SourceEffectChain;
 		FMixerSourceVoice* SourceVoice;
 		int32 NumInputChannels;
 		int32 NumInputFrames;
 		FString DebugName;
+		bool bPlayEffectChainTails;
 		bool bUseHRTFSpatialization;
 		bool bIsDebugMode;
 
@@ -76,6 +79,7 @@ namespace Audio
 			, SourceVoice(nullptr)
 			, NumInputChannels(0)
 			, NumInputFrames(0)
+			, bPlayEffectChainTails(true)
 			, bUseHRTFSpatialization(false)
 			, bIsDebugMode(false)
 		{}
@@ -90,6 +94,7 @@ namespace Audio
 
 		void SetValue(float InValue);
 		float Update();
+		float GetValue() const;
 
 	private:
 		float StartValue;
@@ -188,6 +193,7 @@ namespace Audio
 
 		int64 GetNumFramesPlayed(const int32 SourceId) const;
 		bool IsDone(const int32 SourceId) const;
+		bool IsEffectTailsDone(const int32 SourceId) const;
 		bool NeedsSpeakerMap(const int32 SourceId) const;
 		void ComputeNextBlockOfSamples();
 		void MixOutputBuffers(const int32 SourceId, TArray<float>& OutDryBuffer, TArray<float>& OutWetBuffer, const float DryLevel, const float WetLevel) const;
@@ -253,6 +259,17 @@ namespace Audio
 		// Simple LPFs for all sources (all channels of all sources)
 		TArray<TArray<FOnePoleLPF>> LowPassFilters;
 
+		// Source effect instances
+		TArray<TArray<FSoundEffectSource*>> SourceEffects;
+		TArray<TArray<USoundEffectSourcePreset*>> SourceEffectPresets;
+		TArray<bool> bEffectTailsDone;
+		FSoundEffectSourceInputData SourceEffectInputData;
+		FSoundEffectSourceOutputData SourceEffectOutputData;
+
+		// A DSP object which tracks the amplitude envelope of a source.
+		TArray<Audio::FEnvelopeFollower> SourceEnvelopeFollower;
+		TArray<float> SourceEnvelopeValue;
+
 		TArray<FSourceChannelMap> ChannelMapParam;
 		TArray<FSpatializationParams> SpatParams;
 		TArray<float> ScratchChannelMap;
@@ -283,6 +300,7 @@ namespace Audio
 			TArray<int32> FreeSourceIndices;
 			TArray<bool> bIsBusy;
 			TArray<FThreadSafeBool> bIsDone;
+			TArray<FThreadSafeBool> bEffectTailsDone;
 			TArray <bool> bNeedsSpeakerMap;
 			TArray<bool> bIsDebugMode;
 		} GameThreadInfo;

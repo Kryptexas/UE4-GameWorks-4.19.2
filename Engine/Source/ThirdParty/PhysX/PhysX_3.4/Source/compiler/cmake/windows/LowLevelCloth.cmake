@@ -1,9 +1,6 @@
 #
 # Build LowLevelCloth
 #
-
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-FIND_PACKAGE(PxShared REQUIRED)
 FIND_PACKAGE(NvSimd REQUIRED)
 
 SET(PHYSX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../)
@@ -15,8 +12,13 @@ SET(LOWLEVELCLOTH_PLATFORM_INCLUDES
 
 )
 
+SET(LLCLOTH_AVX_SOURCE
+	${LL_SOURCE_DIR}/avx/SwSolveConstraints.cpp
+)
+SOURCE_GROUP("avx" FILES ${LLCLOTH_AVX_SOURCE})
+
 SET(LOWLEVELCLOTH_PLATFORM_SOURCE_FILES
-	${LL_SOURCE_DIR}/avx/SwSolveConstraints.cpp	
+	${LLCLOTH_AVX_SOURCE}	
 )
 
 SET(LOWLEVELCLOTH_COMPILE_DEFS
@@ -30,9 +32,9 @@ SET(LOWLEVELCLOTH_COMPILE_DEFS
 	$<$<CONFIG:release>:${PHYSX_WINDOWS_RELEASE_COMPILE_DEFS};>
 )
 
+SET(LOWLEVELCLOTH_LIBTYPE STATIC)
+
 # include common low level cloth settings
 INCLUDE(../common/LowLevelCloth.cmake)
 
-
-#cl.exe /c /Zi /Ox /MT /arch:AVX /Fd$(TargetDir)\$(TargetName).pdb /Fo./x64/LowLevelCloth/debug/avx/SwSolveConstraints.obj ..\..\LowLevelCloth\src\avx\SwSolveConstraints.cpp	
 SET_SOURCE_FILES_PROPERTIES(${LL_SOURCE_DIR}/avx/SwSolveConstraints.cpp PROPERTIES COMPILE_FLAGS "/arch:AVX") # Removed all flags except arch, should be handled on higher level.

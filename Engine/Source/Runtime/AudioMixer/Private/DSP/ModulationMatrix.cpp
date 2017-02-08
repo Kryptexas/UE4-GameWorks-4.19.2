@@ -39,10 +39,12 @@ namespace Audio
 		return NewSource;
 	}
 
-	FPatchDestination FModulationMatrix::CreatePatchDestination(const int32 VoiceId)
+	FPatchDestination FModulationMatrix::CreatePatchDestination(const int32 VoiceId, const int32 Stage, const float DefaultDepth)
 	{
 		check(VoiceId < NumVoices);
 		FPatchDestination NewDestination = Destinations[VoiceId].Num();
+		NewDestination.Depth = DefaultDepth;
+		NewDestination.Stage = Stage;
 		Destinations[VoiceId].Add(FDestData());
 		return NewDestination;
 	}
@@ -135,36 +137,30 @@ namespace Audio
 			}
 
 			// Check the desired stage (if set)
-			if (Stage != INDEX_NONE && Patch->Stage != Stage)
+			if (Stage == INDEX_NONE)
 			{
 				continue;
 			}
-
-			// This is the value written by the source			
-			float ModValue = Sources[VoiceId][Patch->Source.Id];
-
-			// Transform the source value according to the patch's transform function
-			ModValue = Patch->Transform(ModValue);
-
-			// Scale by the patch intensity
-			ModValue *= Patch->Intensity;
-
-			// Translate to the min-max range
-			const float MinRangeValue = Patch->MinValue;
-			const float MaxRangeValue = Patch->MaxValue;
-
-			// Perform a scale-add operation using the modulation range
-			ModValue = ModValue * (MaxRangeValue - MinRangeValue) + MinRangeValue;
 
 			// Loop through the patches destinations and "mix" in the transformed mod source's value.
 			// Note that if multiple patches write to the same destination (s), they 
 			// will accumulate the mod value.
 
+			// This is the value written by the source			
+			const float ModValue = Sources[VoiceId][Patch->Source.Id];
+
 			for (int32 DestIndex = 0; DestIndex < Patch->Destinations.Num(); ++DestIndex)
 			{
 				const FPatchDestination& Dest = Patch->Destinations[DestIndex];
-				Destinations[VoiceId][Dest.Id].Value += ModValue;
-				Destinations[VoiceId][Dest.Id].bDirty = true;
+
+				if (Dest.Stage == Stage)
+				{
+					// Perform a scale-add operation using the modulation range
+					float ModValueScaled = ModValue * Dest.Depth;
+
+					Destinations[VoiceId][Dest.Id].Value += ModValueScaled;
+					Destinations[VoiceId][Dest.Id].bDirty = true;
+				}
 			}
 		}
 	}

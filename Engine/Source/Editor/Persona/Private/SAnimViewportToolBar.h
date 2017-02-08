@@ -62,7 +62,7 @@ private:
 	/**
 	* Generates the Show -> Clothing sub menu content
 	*/
-	void FillShowClothingMenu(FMenuBuilder& MenuBuilder) const;
+	void FillShowClothingMenu(FMenuBuilder& MenuBuilder);
 
 	/**
 	* Generates the Show -> Display Info sub menu content

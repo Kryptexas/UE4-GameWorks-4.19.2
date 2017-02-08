@@ -315,7 +315,10 @@ void FAnimationBlueprintEditor::SetDetailObjects(const TArray<UObject*>& InObjec
 void FAnimationBlueprintEditor::SetDetailObject(UObject* Obj)
 {
 	TArray<UObject*> Objects;
-	Objects.Add(Obj);
+	if (Obj)
+	{
+		Objects.Add(Obj);
+	}
 	SetDetailObjects(Objects);
 }
 
@@ -1093,6 +1096,22 @@ void FAnimationBlueprintEditor::UndoAction()
 void FAnimationBlueprintEditor::RedoAction()
 {
 	GEditor->RedoTransaction();
+}
+
+void FAnimationBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged)
+{
+	FBlueprintEditor::NotifyPostChange(PropertyChangedEvent, PropertyThatChanged);
+
+	// When you change properties on a node, call CopyNodeDataToPreviewNode to allow pushing those to preview instance, for live editing
+	UAnimGraphNode_Base* SelectedNode = SelectedAnimGraphNode.Get();
+	if (SelectedNode)
+	{
+		FAnimNode_Base* PreviewNode = FindAnimNode(SelectedNode);
+		if (PreviewNode)
+		{
+			SelectedNode->CopyNodeDataToPreviewNode(PreviewNode);
+		}
+	}
 }
 
 void FAnimationBlueprintEditor::Tick(float DeltaTime)

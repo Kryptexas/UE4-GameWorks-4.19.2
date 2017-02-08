@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
       
@@ -36,37 +36,14 @@
 
 namespace physx
 {
-
 class PxShape;
-class PxRigidBody;
 class PxsContactManagerOutputIterator;
-
-namespace Sq
-{
-	typedef size_t PrunerData;
-}
 
 namespace Sc
 {
 	class ShapeSim;
 	class Interaction;
-
 	
-	struct SqBoundsSync
-	{
-		virtual void sync(const PxU32* sqRefs, const PxU32* indices, const PxBounds3* bounds, PxU32 count) = 0;
-
-		virtual ~SqBoundsSync() {}
-	};
-
-	struct SqRefFinder
-	{
-		virtual PxU32 find(const PxRigidBody * body, const PxShape* shape) = 0;
-
-		virtual ~SqRefFinder() {}
-	};
-
-
 	struct Contact
 	{
 		Contact() 

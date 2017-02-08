@@ -87,12 +87,12 @@ namespace
 		for (UEdGraphNode* Node : Graph->Nodes)
 		{
 			const bool bRootSetByType = Node && (Node->IsA<UK2Node_FunctionEntry>() || Node->IsA<UK2Node_Event>() || Node->IsA<UK2Node_Timeline>());
-			bool bIsRootSet = bRootSetByType;
+			UK2Node* K2Node = Cast<UK2Node>(Node);
+			bool bIsRootSet = bRootSetByType || (K2Node && K2Node->IsNodeRootSet());
 
 			if (Node && bIncludeNodesThatCouldBeExpandedToRootSet && !bIsRootSet)
 			{
 				//Include non-pure K2Nodes, without input pins
-				UK2Node* K2Node = Cast<UK2Node>(Node);
 				auto HasInputPins = [](UK2Node* InNode) -> bool
 				{
 					for (UEdGraphPin* Pin : InNode->Pins)
@@ -233,7 +233,8 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	}
 	TransientClass->ClassAddReferencedObjects = ParentClass->AddReferencedObjects;
 	TransientClass->ClassGeneratedBy = Blueprint;
-	
+	TransientClass->ClassFlags |= CLASS_CompiledFromBlueprint;
+
 	NewClass = ClassToClean;
 	OldCDO = ClassToClean->ClassDefaultObject; // we don't need to create the CDO at this point
 	

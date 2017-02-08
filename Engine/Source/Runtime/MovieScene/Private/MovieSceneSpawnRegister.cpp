@@ -29,7 +29,7 @@ UObject* FMovieSceneSpawnRegister::SpawnObject(const FGuid& BindingId, UMovieSce
 
 	UObject* SpawnedActor = SpawnObject(*Spawnable, TemplateID, Player);
 	
-	if (ensure(SpawnedActor))
+	if (SpawnedActor)
 	{
 		FMovieSceneSpawnRegisterKey Key(TemplateID, BindingId);
 		Register.Add(Key, FSpawnedObject(BindingId, *SpawnedActor, Spawnable->GetSpawnOwnership()));

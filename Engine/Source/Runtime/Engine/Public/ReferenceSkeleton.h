@@ -79,7 +79,7 @@ public:
 	~FReferenceSkeletonModifier();
 
 	// Update the reference pose transform of the specified bone
-	void UpdateRefPoseTransform(const int32& BoneIndex, const FTransform& BonePose);
+	void UpdateRefPoseTransform(const int32 BoneIndex, const FTransform& BonePose);
 
 	// Add a new bone. BoneName must not already exist! ParentIndex must be valid.
 	void Add(const FMeshBoneInfo& BoneInfo, const FTransform& BonePose);
@@ -151,14 +151,14 @@ private:
 		return bRemoveThisBone;
 	}
 
-	int32 GetParentIndexInternal(const int32& BoneIndex, const TArray<FMeshBoneInfo>& BoneInfo) const
+	int32 GetParentIndexInternal(const int32 BoneIndex, const TArray<FMeshBoneInfo>& BoneInfo) const
 	{
 		// Parent must be valid. Either INDEX_NONE for Root, or before us.
 		checkSlow(((BoneIndex == 0) && (BoneInfo[BoneIndex].ParentIndex == INDEX_NONE)) || ((BoneIndex > 0) && BoneInfo.IsValidIndex(BoneInfo[BoneIndex].ParentIndex)));
 		return BoneInfo[BoneIndex].ParentIndex;
 	}
 
-	void UpdateRefPoseTransform(const int32& BoneIndex, const FTransform& BonePose)
+	void UpdateRefPoseTransform(const int32 BoneIndex, const FTransform& BonePose)
 	{
 		RawRefBonePose[BoneIndex] = BonePose;
 	}
@@ -189,11 +189,6 @@ private:
 
 public:
 	ENGINE_API void RebuildRefSkeleton(const USkeleton* Skeleton, bool bRebuildNameMap);
-
-	void Allocate(int32 Size)
-	{
-		Empty(Size);
-	}
 
 	/** Returns number of bones in Skeleton. */
 	int32 GetNum() const
@@ -279,17 +274,17 @@ public:
 		return BoneIndex;
 	}
 
-	FName GetBoneName(const int32& BoneIndex) const
+	FName GetBoneName(const int32 BoneIndex) const
 	{
 		return FinalRefBoneInfo[BoneIndex].Name;
 	}
 
-	int32 GetParentIndex(const int32& BoneIndex) const
+	int32 GetParentIndex(const int32 BoneIndex) const
 	{
 		return GetParentIndexInternal(BoneIndex, FinalRefBoneInfo);
 	}
 
-	int32 GetRawParentIndex(const int32& BoneIndex) const
+	int32 GetRawParentIndex(const int32 BoneIndex) const
 	{
 		return GetParentIndexInternal(BoneIndex, RawRefBoneInfo);
 	}
@@ -309,7 +304,7 @@ public:
 	 * This will return 0 if BoneIndex == ParentBoneIndex;
 	 * This will return -1 if BoneIndex isn't child of ParentBoneIndex
 	 */
-	int32 GetDepthBetweenBones(const int32& BoneIndex, const int32& ParentBoneIndex) const
+	int32 GetDepthBetweenBones(const int32 BoneIndex, const int32 ParentBoneIndex) const
 	{
 		if (BoneIndex >= ParentBoneIndex)
 		{
@@ -333,7 +328,7 @@ public:
 		return INDEX_NONE;
 	}
 
-	bool BoneIsChildOf(const int32& ChildBoneIndex, const int32& ParentBoneIndex) const
+	bool BoneIsChildOf(const int32 ChildBoneIndex, const int32 ParentBoneIndex) const
 	{
 		// Bones are in strictly increasing order.
 		// So child must have an index greater than his parent.

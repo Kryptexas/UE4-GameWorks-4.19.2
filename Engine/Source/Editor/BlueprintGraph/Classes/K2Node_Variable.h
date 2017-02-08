@@ -82,6 +82,8 @@ public:
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	virtual FText GetToolTipHeading() const override;
 	virtual void GetNodeAttributes(TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes) const override;
+	virtual void HandleVariableRenamed(UBlueprint* InBlueprint, UClass* InVariableClass, UEdGraph* InGraph, const FName& InOldVarName, const FName& InNewVarName) override;
+	virtual bool ReferencesVariable(const FName& InVarName, const UStruct* InScope) const override;
 	//~ End K2Node Interface
 
 	/** Set up this variable node from the supplied UProperty */

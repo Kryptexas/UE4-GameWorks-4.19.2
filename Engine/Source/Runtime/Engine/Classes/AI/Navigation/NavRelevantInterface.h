@@ -25,7 +25,7 @@ class INavRelevantInterface
 	virtual void GetNavigationData(FNavigationRelevantData& Data) const {}
 
 	/** Get bounds for navigation octree */
-	virtual FBox GetNavigationBounds() const { return FBox(0); }
+	virtual FBox GetNavigationBounds() const { return FBox(ForceInit); }
 
 	/** if this instance knows how to export sub-sections of self */
 	virtual bool SupportsGatheringGeometrySlices() const { return false; }

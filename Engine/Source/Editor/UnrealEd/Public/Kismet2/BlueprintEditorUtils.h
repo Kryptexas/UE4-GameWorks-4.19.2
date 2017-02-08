@@ -1422,7 +1422,7 @@ protected:
 	 * @param InScope		Option scope for local variables
 	 * @return				Array of variable nodes
 	 */
-	static TArray<UK2Node_Variable*> GetNodesForVariable(const FName& InVarName, const UBlueprint* InBlueprint, const UStruct* InScope = nullptr);
+	static TArray<UK2Node*> GetNodesForVariable(const FName& InVarName, const UBlueprint* InBlueprint, const UStruct* InScope = nullptr);
 
 	/**
 	 * Helper function to warn user of the results of changing var type by displaying a suppressible dialog

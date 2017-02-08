@@ -4173,7 +4173,7 @@ void SSCSEditor::HighlightTreeNode(const USCS_Node* Node, FName Property)
 		FPropertyPath Path;
 		if( CurrentProp )
 		{
-			FPropertyInfo NewInfo = { CurrentProp, -1 };
+			FPropertyInfo NewInfo(CurrentProp, -1);
 			Path.ExtendPath(NewInfo);
 		}
 

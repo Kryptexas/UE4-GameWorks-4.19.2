@@ -1946,6 +1946,17 @@ void FAnimBlueprintCompiler::PostCompile()
 	{
 		AnimationEditorUtils::SetPoseWatch(PoseWatch, AnimBlueprint);
 	}
+
+	// iterate all anim node and call PostCompile
+	const USkeleton* CurrentSkeleton = AnimBlueprint->TargetSkeleton;
+	for (UStructProperty* Property : TFieldRange<UStructProperty>(AnimBlueprintGeneratedClass, EFieldIteratorFlags::IncludeSuper))
+	{
+		if (Property->Struct->IsChildOf(FAnimNode_Base::StaticStruct()))
+		{
+			FAnimNode_Base* AnimNode = Property->ContainerPtrToValuePtr<FAnimNode_Base>(DefaultAnimInstance);
+			AnimNode->PostCompile(CurrentSkeleton);
+		}
+	}
 }
 
 void FAnimBlueprintCompiler::CreateFunctionList()

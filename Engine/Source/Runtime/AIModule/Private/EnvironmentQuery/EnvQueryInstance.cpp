@@ -882,7 +882,7 @@ FBox FEnvQueryInstance::GetBoundingBox() const
 #endif // USE_EQS_DEBUGGER
 		RawData;
 
-	FBox BBox(0);
+	FBox BBox(ForceInit);
 
 	if (ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
 	{

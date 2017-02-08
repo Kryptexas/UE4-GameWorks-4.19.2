@@ -49,7 +49,7 @@ namespace Audio
 		virtual ~FLFO();
 
 		//~ Begin FOscBase
-		virtual void Init(const float InSampleRate, const int32 InVoiceId = 0, FModulationMatrix* InMatrix = nullptr) override;
+		virtual void Init(const float InSampleRate, const int32 InVoiceId = 0, FModulationMatrix* InMatrix = nullptr, const int32 ModMatrixStage = 0) override;
 		virtual void Start() override;
 		virtual void Stop() override;
 		virtual void Reset() override;
@@ -75,6 +75,8 @@ namespace Audio
 		float RSHValue;
 		float ModScale;
 		float ModAdd;
+		float LastOutput;
+		float QuadLastOutput;
 
 		FPatchSource ModNormalPhase;
 		FPatchSource ModQuadPhase;

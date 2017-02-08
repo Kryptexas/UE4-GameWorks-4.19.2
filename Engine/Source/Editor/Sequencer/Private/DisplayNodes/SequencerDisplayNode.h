@@ -90,6 +90,13 @@ public:
 	*/
 	void AddObjectBindingNode( TSharedRef<FSequencerObjectBindingNode> ObjectBindingNode );
 
+	/** 
+	 * Finds any parent object binding node above this node in the hierarchy
+	 *
+	 * @return the parent node, or nullptr if no object binding is found
+	 */
+	TSharedPtr<FSequencerObjectBindingNode> FindParentObjectBindingNode() const;
+
 	/**
 	 * Adds a category to this node
 	 * 

@@ -87,7 +87,7 @@ public:
 	FWorldTileInfo()
 		: Position(0,0)
 		, AbsolutePosition(0,0)
-		, Bounds(0)
+		, Bounds(ForceInit)
 		, bHideInTileView(false)
 		, ZOrder(0)
 	{

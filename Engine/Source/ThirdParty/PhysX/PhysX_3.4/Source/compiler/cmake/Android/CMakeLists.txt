@@ -33,7 +33,7 @@ SET(CMAKE_CXX_FLAGS_RELEASE "-O2 -g")
 SET(PHYSX_ANDROID_ENABLE_NVTX 0)
 
 # Disable cuda and dx for all projects on Android
-SET(PHYSX_ANDROID_COMPILE_DEFS DISABLE_COMPUTE_PHYSX)
+SET(PHYSX_ANDROID_COMPILE_DEFS )
 SET(PHYSX_ANDROID_DEBUG_COMPILE_DEFS _DEBUG;PX_DEBUG=1;PX_CHECKED=1;PX_NVTX=${PHYSX_ANDROID_ENABLE_NVTX};PX_SUPPORT_PVD=1)
 SET(PHYSX_ANDROID_CHECKED_COMPILE_DEFS NDEBUG;PX_CHECKED=1;PX_NVTX=${PHYSX_ANDROID_ENABLE_NVTX};PX_SUPPORT_PVD=1)
 SET(PHYSX_ANDROID_PROFILE_COMPILE_DEFS NDEBUG;PX_PROFILE=1;PX_NVTX=${PHYSX_ANDROID_ENABLE_NVTX};PX_SUPPORT_PVD=1)
@@ -46,8 +46,6 @@ SET(CMAKE_RELEASE_POSTFIX "${CMAKE_RELEASE_POSTFIX}")
 
 # Needed so FIND_PACKAGE works
 SET(CMAKE_FIND_ROOT_PATH  "")
-
-FIND_PACKAGE(PxShared REQUIRED)
 
 # Include the PxShared-exports.cmake file that PxShared created. There's other ways to do this, but there's a bunch of issues with it in a CI environment
 #  such as - we don't want to be installing any built artifacts on this server, etc. So for now we hack it.
@@ -69,4 +67,3 @@ INCLUDE(PhysXExtensions.cmake)
 INCLUDE(PhysXVehicle.cmake)
 INCLUDE(SceneQuery.cmake)
 INCLUDE(SimulationController.cmake)
-# INCLUDE(PhysXGpu.cmake)

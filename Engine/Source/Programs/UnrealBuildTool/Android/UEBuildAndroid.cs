@@ -257,6 +257,7 @@ namespace UnrealBuildTool
 			Target.bCompileLeanAndMeanUE = true;
 			Target.bCompilePhysX = true;
 			Target.bCompileAPEX = false;
+			Target.bCompileNvCloth = false;
 			Target.bRuntimePhysicsCooking = false;
 
 			Target.bBuildEditor = false;

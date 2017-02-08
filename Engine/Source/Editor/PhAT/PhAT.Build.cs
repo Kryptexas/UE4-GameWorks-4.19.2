@@ -21,9 +21,16 @@ public class PhAT : ModuleRules
 				"LevelEditor",
 				"UnrealEd",
                 "Kismet",
-                "Persona"
+                "Persona",
+
+                //Bring these in for immediate mode physics
+                "ImmediatePhysics",
+                "AnimGraphRuntime",
+                "PhysX",
+                "APEX"
+
 			}
-		);
+        );
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {

@@ -1,6 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
 #include "CoreMinimal.h"
 #include "Misc/CommandLine.h"
 #include "Stats/Stats.h"
@@ -34,6 +33,9 @@
 /** Physics stats **/
 
 DEFINE_STAT(STAT_TotalPhysicsTime);
+DEFINE_STAT(STAT_NumCloths);
+DEFINE_STAT(STAT_NumClothVerts);
+
 DECLARE_CYCLE_STAT(TEXT("Start Physics Time (sync)"), STAT_PhysicsKickOffDynamicsTime, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("Fetch Results Time (sync)"), STAT_PhysicsFetchDynamicsTime, STATGROUP_Physics);
 
@@ -58,8 +60,6 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Active Kinematic Bodies"), STAT_NumActiveKinema
 DECLARE_DWORD_COUNTER_STAT(TEXT("Mobile Bodies"), STAT_NumMobileBodies, STATGROUP_Physics);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Static Bodies"), STAT_NumStaticBodies, STATGROUP_Physics);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Shapes"), STAT_NumShapes, STATGROUP_Physics);
-DECLARE_DWORD_COUNTER_STAT(TEXT("Cloths"), STAT_NumCloths, STATGROUP_Physics);
-DECLARE_DWORD_COUNTER_STAT(TEXT("ClothVerts"), STAT_NumClothVerts, STATGROUP_Physics);
 
 DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Broadphase Adds"), STAT_NumBroadphaseAddsAsync, STATGROUP_Physics);
 DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Broadphase Removes"), STAT_NumBroadphaseRemovesAsync, STATGROUP_Physics);
@@ -757,36 +757,28 @@ void FinishSceneStat(uint32 Scene)
 	}
 }
 
-#if WITH_APEX
-void GatherApexStats(const UWorld* World, apex::Scene* ApexScene)
+void GatherClothingStats(const UWorld* World)
 {
 #if STATS
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_GatherApexStats);
 
+	SET_DWORD_STAT(STAT_NumCloths, 0);
+	SET_DWORD_STAT(STAT_NumClothVerts, 0);
+
 	if ( FThreadStats::IsCollectingData(GET_STATID(STAT_NumCloths)) ||  FThreadStats::IsCollectingData(GET_STATID(STAT_NumClothVerts)) )
 	{
-		SCOPED_APEX_SCENE_READ_LOCK(ApexScene);
-		int32 NumVerts = 0;
-		int32 NumCloths = 0;
 		for (TObjectIterator<USkeletalMeshComponent> Itr; Itr; ++Itr)
 		{
 			if (Itr->GetWorld() != World) { continue; }
-			const TArray<FClothingActor>& ClothingActors = Itr->GetClothingActors();
-			for (const FClothingActor& ClothingActor : ClothingActors)
+			
+			if(const IClothingSimulation* Simulation = Itr->GetClothingSimulation())
 			{
-				if (ClothingActor.ApexClothingActor && ClothingActor.ApexClothingActor->getActiveLod() == 1)
-				{
-					NumCloths++;
-					NumVerts += ClothingActor.ApexClothingActor->getNumSimulationVertices();
-				}
+				Simulation->GatherStats();
 			}
 		}
-		SET_DWORD_STAT(STAT_NumCloths, NumCloths);        // number of recently simulated apex cloths.
-		SET_DWORD_STAT(STAT_NumClothVerts, NumVerts);	  // number of recently simulated apex vertices.
 	}
 #endif
 }
-#endif
 
 void FPhysScene::MarkForPreSimKinematicUpdate(USkeletalMeshComponent* InSkelComp, ETeleportType InTeleport, bool bNeedsSkinning)
 {
@@ -970,11 +962,6 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 			ApexScene->simulate(AveragedFrameTime[SceneType], true, Task, SimScratchBuffers[SceneType].Buffer, SimScratchBuffers[SceneType].BufferSize);
 			Task->removeReference();
 			bTaskOutstanding = true;
-
-			if (SceneType == PST_Cloth)
-			{
-				GatherApexStats(this->OwningWorld, ApexScene);
-			}
 #endif
 		}
 	}
@@ -1391,6 +1378,12 @@ void FPhysScene::StartFrame()
 		}
 	}
 
+
+	// Query clothing stats from skel mesh components in this world
+	// This is done outside TickPhysScene because clothing is
+	// not related to a scene.
+	GatherClothingStats(this->OwningWorld);
+
 	// Record the sync tick time for use with the async tick
 	SyncDeltaSeconds = DeltaSeconds;
 }
@@ -1577,14 +1570,14 @@ void FPhysScene::SetIsStaticLoading(bool bStaticLoading)
 
 #if WITH_PHYSX
 /** Utility for looking up the PxScene associated with this FPhysScene. */
-PxScene* FPhysScene::GetPhysXScene(uint32 SceneType)
+PxScene* FPhysScene::GetPhysXScene(uint32 SceneType) const
 {
 	check(SceneType < NumPhysScenes);
 	return GetPhysXSceneFromIndex(PhysXSceneIndex[SceneType]);
 }
 
 #if WITH_APEX
-apex::Scene* FPhysScene::GetApexScene(uint32 SceneType)
+apex::Scene* FPhysScene::GetApexScene(uint32 SceneType) const
 {
 	check(SceneType < NumPhysScenes);
 	return GetApexSceneFromIndex(PhysXSceneIndex[SceneType]);

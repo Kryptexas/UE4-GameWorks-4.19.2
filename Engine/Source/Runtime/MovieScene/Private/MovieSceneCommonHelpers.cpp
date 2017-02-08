@@ -300,14 +300,70 @@ FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName InProperty
 	}
 }
 
+struct FPropertyAndIndex
+{
+	FPropertyAndIndex() : Property(nullptr), ArrayIndex(INDEX_NONE) {}
+
+	UProperty* Property;
+	int32 ArrayIndex;
+};
+
+FPropertyAndIndex FindPropertyAndArrayIndex(UStruct* InStruct, const FString& PropertyName)
+{
+	FPropertyAndIndex PropertyAndIndex;
+
+	// Calculate the array index if possible
+	int32 ArrayIndex = -1;
+	if (PropertyName.Len() > 0 && PropertyName.GetCharArray()[PropertyName.Len() - 1] == ']')
+	{
+		int32 OpenIndex = 0;
+		if (PropertyName.FindLastChar('[', OpenIndex))
+		{
+			FString TruncatedPropertyName(OpenIndex, *PropertyName);
+			PropertyAndIndex.Property = FindField<UProperty>(InStruct, *TruncatedPropertyName);
+
+			const int32 NumberLength = PropertyName.Len() - OpenIndex - 2;
+			if (NumberLength > 0 && NumberLength <= 10)
+			{
+				TCHAR NumberBuffer[11];
+				FMemory::Memcpy(NumberBuffer, &PropertyName[OpenIndex + 1], sizeof(TCHAR) * NumberLength);
+				LexicalConversion::FromString(PropertyAndIndex.ArrayIndex, NumberBuffer);
+			}
+
+			return PropertyAndIndex;
+		}
+	}
+
+	PropertyAndIndex.Property = FindField<UProperty>(InStruct, *PropertyName);
+	return PropertyAndIndex;
+}
+
 FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings::FindPropertyRecursive( void* BasePointer, UStruct* InStruct, TArray<FString>& InPropertyNames, uint32 Index )
 {
-	UProperty* Property = FindField<UProperty>(InStruct, *InPropertyNames[Index]);
+	FPropertyAndIndex PropertyAndIndex = FindPropertyAndArrayIndex(InStruct, *InPropertyNames[Index]);
 	
 	FTrackInstancePropertyBindings::FPropertyAddress NewAddress;
 
-	UStructProperty* StructProp = Cast<UStructProperty>( Property );
-	if( StructProp )
+	if (PropertyAndIndex.ArrayIndex != INDEX_NONE)
+	{
+		UArrayProperty* ArrayProp = CastChecked<UArrayProperty>(PropertyAndIndex.Property);
+
+		FScriptArrayHelper ArrayHelper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(BasePointer));
+		if (ArrayHelper.IsValidIndex(PropertyAndIndex.ArrayIndex))
+		{
+			UStructProperty* InnerStructProp = Cast<UStructProperty>(ArrayProp->Inner);
+			if (InnerStructProp && InPropertyNames.IsValidIndex(Index+1))
+			{
+				return FindPropertyRecursive(ArrayHelper.GetRawPtr(PropertyAndIndex.ArrayIndex), InnerStructProp->Struct, InPropertyNames, Index+1);
+			}
+			else
+			{
+				NewAddress.Property = ArrayProp->Inner;
+				NewAddress.Address = ArrayHelper.GetRawPtr(PropertyAndIndex.ArrayIndex);
+			}
+		}
+	}
+	else if (UStructProperty* StructProp = Cast<UStructProperty>(PropertyAndIndex.Property))
 	{
 		NewAddress.Property = StructProp;
 		NewAddress.Address = BasePointer;
@@ -322,9 +378,9 @@ FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings:
 			check( StructProp->GetName() == InPropertyNames[Index] );
 		}
 	}
-	else if( Property )
+	else if(PropertyAndIndex.Property)
 	{
-		NewAddress.Property = Property;
+		NewAddress.Property = PropertyAndIndex.Property;
 		NewAddress.Address = BasePointer;
 	}
 
@@ -423,7 +479,7 @@ template<> void FTrackInstancePropertyBindings::CallFunction<bool>(UObject& InRu
 	{
 		if (UBoolProperty* BoolProperty = CastChecked<UBoolProperty>(PropAndFunction.PropertyAddress.Property))
 		{
-			uint8* ValuePtr = BoolProperty->ContainerPtrToValuePtr<uint8>(&InRuntimeObject);
+			uint8* ValuePtr = BoolProperty->ContainerPtrToValuePtr<uint8>(PropAndFunction.PropertyAddress.Address);
 			BoolProperty->SetPropertyValue(ValuePtr, PropertyValue);
 		}
 	}
@@ -436,7 +492,7 @@ template<> bool FTrackInstancePropertyBindings::GetCurrentValue<bool>(const UObj
 	{
 		if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(PropAndFunction.PropertyAddress.Property))
 		{
-			const uint8* ValuePtr = BoolProperty->ContainerPtrToValuePtr<uint8>(&Object);
+			const uint8* ValuePtr = BoolProperty->ContainerPtrToValuePtr<uint8>(PropAndFunction.PropertyAddress.Address);
 			return BoolProperty->GetPropertyValue(ValuePtr);
 		}
 	}
@@ -451,7 +507,7 @@ template<> void FTrackInstancePropertyBindings::SetCurrentValue<bool>(UObject& O
 	{
 		if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(PropAndFunction.PropertyAddress.Property))
 		{
-			uint8* ValuePtr = BoolProperty->ContainerPtrToValuePtr<uint8>(&Object);
+			uint8* ValuePtr = BoolProperty->ContainerPtrToValuePtr<uint8>(&PropAndFunction.PropertyAddress.Address);
 			BoolProperty->SetPropertyValue(ValuePtr, InValue);
 		}
 	}

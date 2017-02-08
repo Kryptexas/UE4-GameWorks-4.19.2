@@ -22,6 +22,11 @@ FLevelSequenceObjectReference::FLevelSequenceObjectReference(UObject* InObject, 
 			ObjectPath = InObject->GetPathName(InContext);
 		}
 	}
+	else if(InObject->GetOuter() && InObject->GetOuter()->IsA<UActorComponent>())
+	{
+		ObjectId = FLazyObjectPtr(InObject).GetUniqueID();
+		ObjectPath = InObject->GetPathName(InContext);
+	}
 }
 
 FLevelSequenceObjectReference::FLevelSequenceObjectReference(const FUniqueObjectGuid& InObjectId, const FString& InObjectPath)

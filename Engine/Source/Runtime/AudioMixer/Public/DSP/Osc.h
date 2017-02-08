@@ -61,7 +61,7 @@ namespace Audio
 		virtual ~IOscBase();
 
 		// Initializes the oscillator
-		virtual void Init(const float InSampleRate, const int32 InVoiceId = 0, FModulationMatrix* InMatrix = nullptr);
+		virtual void Init(const float InSampleRate, const int32 InVoiceId = 0, FModulationMatrix* InMatrix = nullptr, const int32 ModMatrixStage = 1);
 
 		// Starts the oscillator
 		virtual void Start() = 0;
@@ -110,7 +110,6 @@ namespace Audio
 		FPatchDestination GetModDestFrequency() const { return ModFrequencyDest; }
 		FPatchDestination GetModDestPulseWidth() const { return ModPulseWidthDest; }
 		FPatchDestination GetModDestGain() const { return ModGainDest; }
-		FPatchDestination GetModDestPhase() const { return ModPhaseDest; }
 		FPatchDestination GetModDestAdd() const { return ModAddDest; }
 		FPatchDestination GetModDestScale() const { return ModScaleDest; }
 
@@ -197,7 +196,6 @@ namespace Audio
 		FPatchDestination ModFrequencyDest;
 		FPatchDestination ModPulseWidthDest;
 		FPatchDestination ModGainDest;
-		FPatchDestination ModPhaseDest;
 		FPatchDestination ModScaleDest;
 		FPatchDestination ModAddDest;
 

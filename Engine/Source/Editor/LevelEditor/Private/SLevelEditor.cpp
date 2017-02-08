@@ -488,11 +488,11 @@ void SLevelEditor::OnToolkitHostingFinished( const TSharedRef< class IToolkit >&
 	//   Feel 50/50 about this.  It's totally valid to use the "Save" menu even after closing tabs, etc.  Plus, you can spawn the tabs back up using the tab area down-down menu.
 }
 
-TSharedRef<FTabManager> SLevelEditor::GetTabManager() const
+TSharedPtr<FTabManager> SLevelEditor::GetTabManager() const
 {
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( LevelEditorModuleName );
 	TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
-	return LevelEditorTabManager.ToSharedRef();
+	return LevelEditorTabManager;
 }
 
 void SLevelEditor::AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TSharedPtr<IAssetEditorInstance> NewSequencerAssetEditor )
