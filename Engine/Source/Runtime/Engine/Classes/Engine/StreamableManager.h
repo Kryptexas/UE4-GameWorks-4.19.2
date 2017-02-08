@@ -298,7 +298,17 @@ private:
 	TStreamableMap StreamableItems;
 
 	/** Map of redirected paths */
-	typedef TMap<FStringAssetReference, FStringAssetReference> TStreamableRedirects;
+	struct FRedirectedPath
+	{
+		/** The path of the non-redirector object loaded */
+		FStringAssetReference NewPath;
+
+		/** The redirector that was loaded off disk, need to keep this around for path resolves until this redirect is freed */
+		UObjectRedirector* LoadedRedirector;
+
+		FRedirectedPath() : LoadedRedirector(LoadedRedirector) {}
+	};
+	typedef TMap<FStringAssetReference, FRedirectedPath> TStreamableRedirects;
 	TStreamableRedirects StreamableRedirects;
 
 	/** List of explicitly held handles */
