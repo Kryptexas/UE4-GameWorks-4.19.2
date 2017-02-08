@@ -132,7 +132,7 @@ namespace UnrealBuildTool
 			else if (ModuleName == "Launch")
 			{
 				// this is a hack to influence symbol resolution on Linux that results in global delete being called from within CEF
-				if (UEBuildConfiguration.bCompileCEF3)
+				if (!Target.IsMonolithic && UEBuildConfiguration.bCompileCEF3)
 				{
 					Rules.AddEngineThirdPartyPrivateStaticDependencies(Target, "CEF3");
 				}
