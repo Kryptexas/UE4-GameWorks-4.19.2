@@ -2036,10 +2036,10 @@ void UNetDriver::NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel 
 			// Remove it from any dormancy lists				
 			Connection->DormantReplicatorMap.Remove( ThisActor );
 		}
-
-		// Remove this actor from the network object list
-		GetNetworkObjectList().Remove( ThisActor );
 	}
+
+	// Remove this actor from the network object list
+	GetNetworkObjectList().Remove( ThisActor );
 }
 
 void UNetDriver::NotifyStreamingLevelUnload( ULevel* Level)
