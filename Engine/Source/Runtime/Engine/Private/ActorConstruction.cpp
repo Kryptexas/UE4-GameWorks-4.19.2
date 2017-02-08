@@ -77,7 +77,7 @@ void AActor::ResetPropertiesForConstruction()
 	// We don't want to reset references to world object
 	UWorld* World = GetWorld();
 	const bool bIsLevelScriptActor = IsA<ALevelScriptActor>();
-	const bool bIsPlayInEditor = (World ? World->IsPlayInEditor() : false);
+	const bool bIsPlayInEditor = World && World->IsPlayInEditor();
 
 	// Iterate over properties
 	for( TFieldIterator<UProperty> It(GetClass()) ; It ; ++It )
