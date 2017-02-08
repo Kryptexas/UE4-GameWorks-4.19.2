@@ -5,6 +5,7 @@
 #include "UObject/ObjectRedirector.h"
 #include "Misc/PackageName.h"
 #include "UObjectThreadContext.h"
+#include "HAL/IConsoleManager.h"
 #include "Tickable.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogStreamableManager, Log, All);
