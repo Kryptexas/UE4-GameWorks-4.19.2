@@ -59,13 +59,13 @@ static FAutoConsoleVariableRef CVarMetalResourceDeferDeleteNumFrames(
 	TEXT("Debug option: set to the number of frames that must have passed before resource free-lists are processed and resources disposed of. (Default: 0, Off)"));
 #endif
 
-int32 GMetalRuntimeDebugLevel = 3;
+int32 GMetalRuntimeDebugLevel = 0;
 static FAutoConsoleVariableRef CVarMetalRuntimeDebugLevel(
 	TEXT("rhi.Metal.RuntimeDebugLevel"),
 	GMetalRuntimeDebugLevel,
 	TEXT("The level of debug validation performed by MetalRHI in addition to the underlying Metal API & validation layer.\n")
 	TEXT("Each subsequent level adds more tests and reporting in addition to the previous level.\n")
-	TEXT("*IGNORED IN SHIPPING BUILDS*. (Default: 3)\n")
+	TEXT("*IGNORED IN SHIPPING AND TEST BUILDS*. (Default: 0)\n")
 	TEXT("\t0: Off,\n")
 	TEXT("\t1: Enable validation checks for encoder resets,\n")
 	TEXT("\t2: Record the debug-groups issued into a command-buffer and report them on failure,\n")
