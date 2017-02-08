@@ -443,10 +443,13 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	if (MacApplication && sender == self)
 	{
 		GameThreadCall(^{
-			TSharedPtr<FMacWindow> Window = MacApplication->FindWindowByNSWindow((FCocoaWindow*)sender);
-			if (Window.IsValid())
+			if (MacApplication) // Another check because game thread may destroy MacApplication before it gets here
 			{
-				MacApplication->OnWindowWillResize(Window.ToSharedRef());
+				TSharedPtr<FMacWindow> Window = MacApplication->FindWindowByNSWindow((FCocoaWindow*)sender);
+				if (Window.IsValid())
+				{
+					MacApplication->OnWindowWillResize(Window.ToSharedRef());
+				}
 			}
 		}, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], true);
 	}

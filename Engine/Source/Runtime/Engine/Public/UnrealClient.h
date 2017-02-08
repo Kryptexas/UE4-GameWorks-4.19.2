@@ -957,8 +957,15 @@ public:
 	 */
 	virtual bool HideCursorDuringCapture() { return false; }
 
-	/** Should we make new windows for popups or create an overlay in the current window. */
+	/** 
+	 * Should we make new windows for popups or create an overlay in the current window.
+	 */
 	virtual FPopupMethodReply OnQueryPopupMethod() const { return FPopupMethodReply::Unhandled(); }
+
+	/**
+	 * Optionally do custom handling of a navigation. 
+	 */
+	virtual bool HandleNavigation(const uint32 InUserIndex, TSharedPtr<SWidget> InDestination) { return false; }
 };
 
 /** Tracks the viewport client that should process the stat command, can be NULL */

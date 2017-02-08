@@ -4,6 +4,7 @@
 #include "BehaviorTree/BTDecorator.h"
 #include "BehaviorTreeDecoratorGraph.h"
 #include "AIGraphNode.h"
+#include "AIGraphModule.h"
 #include "BehaviorTreeGraphNode_CompositeDecorator.h"
 #include "BehaviorTree/BehaviorTree.h"
 
@@ -23,6 +24,18 @@ void UBehaviorTreeDecoratorGraphNode_Decorator::PostPlacedNewNode()
 	if (NodeClass != NULL)
 	{
 		UBehaviorTreeGraphNode_CompositeDecorator* OwningNode = Cast<UBehaviorTreeGraphNode_CompositeDecorator>(GetDecoratorGraph()->GetOuter());
+
+		if (!NodeClass->IsChildOf(UBTDecorator::StaticClass()))
+		{
+			UE_LOG(LogAIGraph, Error, TEXT("Unexpected instance class:%s in composite decorator[%d]: [%s][%s]"),
+				*GetNameSafe(NodeClass),
+				OwningNode ? OwningNode->FirstExecutionIndex : -1,
+				OwningNode ? *OwningNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString() : TEXT("??"),
+				OwningNode ? *OwningNode->GetDescription().ToString() : TEXT("??"));
+
+			return;
+		}
+
 		if (OwningNode)
 		{
 			UBehaviorTree* BT = Cast<UBehaviorTree>(OwningNode->GetOuter()->GetOuter());

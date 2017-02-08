@@ -42,6 +42,8 @@ enum EStereoscopicPass
 	eSSP_MONOSCOPIC_EYE
 };
 
+/** Delegate for overriding the behavior when a navigation action is taken, Not to be confused with FNavigationDelegate which allows a specific widget to override behavior for itself */
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FCustomNavigationHandler, const uint32, TSharedPtr<SWidget>);
 
 /**
  * A game viewport (FViewport) is a high-level abstract interface for the
@@ -546,6 +548,12 @@ public:
 		return TickDelegate;
 	}
 
+	/** Set an override handler for navigation. */
+	FCustomNavigationHandler& OnNavigationOverride()
+	{
+		return CustomNavigationEvent;
+	}
+
 	/** Return the engine show flags for this viewport */
 	virtual FEngineShowFlags* GetEngineShowFlags() override
 	{ 
@@ -718,7 +726,15 @@ public:
 		return bHideCursorDuringCapture;
 	}
 
+	/** 
+	 * Should we make new windows for popups or create an overlay in the current window.
+	 */
 	virtual FPopupMethodReply OnQueryPopupMethod() const override;
+
+	/**
+	* Optionally do custom handling of a navigation.
+	*/
+	virtual bool HandleNavigation(const uint32 InUserIndex, TSharedPtr<SWidget> InDestination) override;
 
 	/**
 	 * Sets whether or not the software cursor widgets are used.
@@ -858,6 +874,9 @@ private:
 
 	/** Delegate called when the engine toggles fullscreen */
 	FOnToggleFullscreen ToggleFullscreenDelegate;
+
+	/** Delegate for custom navigation behavior */
+	FCustomNavigationHandler CustomNavigationEvent;
 
 	/** Data needed to display perframe stat tracking when STAT UNIT is enabled */
 	FStatUnitData* StatUnitData;

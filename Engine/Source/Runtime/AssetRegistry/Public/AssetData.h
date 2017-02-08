@@ -12,6 +12,7 @@
 #include "Misc/PackageName.h"
 #include "UObject/LinkerLoad.h"
 #include "SharedMapView.h"
+#include "PrimaryAssetId.h"
 
 ASSETREGISTRY_API DECLARE_LOG_CATEGORY_EXTERN(LogAssetData, Log, All);
 
@@ -213,9 +214,24 @@ public:
 	}
 
 	/** Convert to a StringAssetReference for loading */
-	struct FStringAssetReference ToStringReference() const
+	FStringAssetReference ToStringReference() const
 	{
 		return FStringAssetReference(ObjectPath.ToString());
+	}
+	
+	/** Gets primary asset id of this data */
+	FPrimaryAssetId GetPrimaryAssetId() const
+	{
+		FName PrimaryAssetType, PrimaryAssetName;
+		GetTagValueNameImpl(FPrimaryAssetId::PrimaryAssetTypeTag, PrimaryAssetType);
+		GetTagValueNameImpl(FPrimaryAssetId::PrimaryAssetNameTag, PrimaryAssetName);
+
+		if (PrimaryAssetType != NAME_None && PrimaryAssetName != NAME_None)
+		{
+			return FPrimaryAssetId(PrimaryAssetType, PrimaryAssetName);
+		}
+
+		return FPrimaryAssetId();
 	}
 
 	/** Returns the asset UObject if it is loaded or loads the asset if it is unloaded then returns the result */

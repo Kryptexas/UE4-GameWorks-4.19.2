@@ -2408,6 +2408,15 @@ FPopupMethodReply UGameViewportClient::OnQueryPopupMethod() const
 		.SetShouldThrottle(EShouldThrottle::No);
 }
 
+bool UGameViewportClient::HandleNavigation(const uint32 InUserIndex, TSharedPtr<SWidget> InDestination)
+{
+	if (CustomNavigationEvent.IsBound())
+	{
+		return CustomNavigationEvent.Execute(InUserIndex, InDestination);
+	}
+	return false;
+}
+
 void UGameViewportClient::ToggleShowVolumes()
 {
 	// Don't allow 'show collision' and 'show volumes' at the same time, so turn collision off

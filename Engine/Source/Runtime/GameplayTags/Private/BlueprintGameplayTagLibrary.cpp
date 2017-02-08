@@ -205,6 +205,13 @@ void UBlueprintGameplayTagLibrary::AddGameplayTag(FGameplayTagContainer& InOutTa
 	InOutTagContainer.AddTag(Tag);
 }
 
+bool UBlueprintGameplayTagLibrary::AddGameplayTagToContainer(UPARAM(ref) FGameplayTagContainer& TagContainer, const FGameplayTag& Tag)
+{
+	TagContainer.AddTag(Tag);
+
+	return true;
+}
+
 bool UBlueprintGameplayTagLibrary::NotEqual_TagTag(FGameplayTag A, FString B)
 {
 	return A.ToString() != B;

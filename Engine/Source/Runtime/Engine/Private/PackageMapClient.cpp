@@ -1791,6 +1791,48 @@ FNetworkGUID UPackageMapClient::GetNetGUIDFromObject(const UObject* InObject) co
 	return GuidCache->GetNetGUID(InObject);
 }
 
+bool UPackageMapClient::IsGUIDPending(const FNetworkGUID& NetGUID) const
+{
+	FNetworkGUID NetGUIDToSearch = NetGUID;
+
+	// Check Outer chain
+	while (NetGUIDToSearch.IsValid())
+	{
+		if (CurrentQueuedBunchNetGUIDs.Contains(NetGUIDToSearch))
+		{
+			return true;
+		}
+
+		const FNetGuidCacheObject* CacheObjectPtr = GuidCache->ObjectLookup.Find(NetGUIDToSearch);
+
+		if (!CacheObjectPtr)
+		{
+			return false;
+		}
+
+		if (CacheObjectPtr->bIsPending)
+		{
+			return true;
+		}
+
+		NetGUIDToSearch = CacheObjectPtr->OuterGUID;
+	}
+
+	return false;
+}
+
+void UPackageMapClient::SetHasQueuedBunches(const FNetworkGUID& NetGUID, bool bHasQueuedBunches)
+{
+	if (bHasQueuedBunches)
+	{
+		CurrentQueuedBunchNetGUIDs.Add(NetGUID);
+	}
+	else
+	{
+		CurrentQueuedBunchNetGUIDs.Remove(NetGUID);
+	}
+}
+
 //----------------------------------------------------------------------------------------
 //	FNetGUIDCache
 //----------------------------------------------------------------------------------------

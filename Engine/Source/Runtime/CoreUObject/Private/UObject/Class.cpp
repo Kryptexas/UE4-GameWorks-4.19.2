@@ -4796,6 +4796,23 @@ UScriptStruct* TBaseStructure<FInt32Interval>::Get()
 	return ScriptStruct;
 }
 
+UScriptStruct* TBaseStructure<FStringAssetReference>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("StringAssetReference"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FStringClassReference>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("StringClassReference"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FPrimaryAssetId>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("PrimaryAssetId"));
+	return ScriptStruct;
+}
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UFunction, UStruct,
 	{

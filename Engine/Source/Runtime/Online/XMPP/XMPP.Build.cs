@@ -36,6 +36,15 @@ public class XMPP : ModuleRules
 		{
 			Definitions.Add("WITH_XMPP_JINGLE=0");
 		}
+		
+		if (Target.Platform == UnrealTargetPlatform.XboxOne)
+		{
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "libstrophe");
+		}
+		else
+		{
+			Definitions.Add("WITH_XMPP_STROPHE=0");
+		}
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 ||
 			Target.Platform == UnrealTargetPlatform.Win32 ||

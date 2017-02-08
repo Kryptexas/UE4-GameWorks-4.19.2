@@ -516,6 +516,7 @@ void FMetalRHICommandContext::RHISetRenderTargetsAndClear(const FRHISetRenderTar
 {
 	FMetalContext* Manager = Context;
 	
+
 	if (Context->GetCommandQueue().SupportsFeature(EMetalFeaturesGraphicsUAVs))
 	{
 		for (uint32 i = 0; i < RenderTargetsInfo.NumUAVs; i++)

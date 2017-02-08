@@ -2696,8 +2696,7 @@ bool FSlateApplication::SetUserFocus(FSlateUser* User, const FWidgetPath& InFocu
 		}
 	}
 
-
-	//UE_LOG(LogSlate, Warning, TEXT("Focus for user %i set to %s."), InUserIndex, NewFocusedWidget.IsValid() ? *NewFocusedWidget->ToString() : TEXT("Invalid"));
+	//UE_LOG(LogSlate, Warning, TEXT("Focus for user %i set to %s."), User->GetUserIndex(), NewFocusedWidget.IsValid() ? *NewFocusedWidget->ToString() : TEXT("Invalid"));
 
 	// Store a weak widget path to the widget that's taking focus
 	UserFocusEntry.WidgetPath = FWeakWidgetPath(NewFocusedWidgetPath);
@@ -2904,7 +2903,7 @@ TSharedPtr<SWindow> FSlateApplication::FindWidgetWindow( TSharedRef< const SWidg
 }
 
 
-void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const FReply TheReply, const FWidgetPath* WidgetsUnderMouse, const FPointerEvent* InMouseEvent, uint32 UserIndex )
+void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const FReply TheReply, const FWidgetPath* WidgetsUnderMouse, const FPointerEvent* InMouseEvent, const uint32 UserIndex )
 {
 	const TSharedPtr<FDragDropOperation> ReplyDragDropContent = TheReply.GetDragDropContent();
 	const bool bStartingDragDrop = ReplyDragDropContent.IsValid();
@@ -3024,8 +3023,8 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 		LockCursor(nullptr);
 	}
 	
-	// If we have a valid Navigation request and enough time has passed since the last navigation then try to navigate.
-	if (TheReply.GetNavigationType() != EUINavigation::Invalid)
+	// If we have a valid Navigation request attempt the navigation.
+	if (TheReply.GetNavigationDestination().IsValid() || TheReply.GetNavigationType() != EUINavigation::Invalid)
 	{
 		FWidgetPath NavigationSource;
 		if (TheReply.GetNavigationSource() == ENavigationSource::WidgetUnderCursor)
@@ -3040,19 +3039,26 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 
 		if (NavigationSource.IsValid())
 		{
-			FNavigationEvent NavigationEvent(UserIndex, TheReply.GetNavigationType());
-
-			FNavigationReply NavigationReply = FNavigationReply::Escape();
-			for (int32 WidgetIndex = NavigationSource.Widgets.Num() - 1; WidgetIndex >= 0; --WidgetIndex)
+			if (TheReply.GetNavigationDestination().IsValid())
 			{
-				FArrangedWidget& SomeWidgetGettingEvent = NavigationSource.Widgets[WidgetIndex];
-				if (SomeWidgetGettingEvent.Widget->IsEnabled())
+				ExecuteNavigation(NavigationSource, TheReply.GetNavigationDestination(), UserIndex);
+			}
+			else
+			{
+				FNavigationEvent NavigationEvent(PlatformApplication->GetModifierKeys(), UserIndex, TheReply.GetNavigationType(), TheReply.GetNavigationGenesis());
+
+				FNavigationReply NavigationReply = FNavigationReply::Escape();
+				for (int32 WidgetIndex = NavigationSource.Widgets.Num() - 1; WidgetIndex >= 0; --WidgetIndex)
 				{
-					NavigationReply = SomeWidgetGettingEvent.Widget->OnNavigation(SomeWidgetGettingEvent.Geometry, NavigationEvent).SetHandler(SomeWidgetGettingEvent.Widget);
-					if (NavigationReply.GetBoundaryRule() != EUINavigationRule::Escape || WidgetIndex == 0)
+					FArrangedWidget& SomeWidgetGettingEvent = NavigationSource.Widgets[WidgetIndex];
+					if (SomeWidgetGettingEvent.Widget->IsEnabled())
 					{
-						AttemptNavigation(NavigationSource, NavigationEvent, NavigationReply, SomeWidgetGettingEvent);
-						break;
+						NavigationReply = SomeWidgetGettingEvent.Widget->OnNavigation(SomeWidgetGettingEvent.Geometry, NavigationEvent).SetHandler(SomeWidgetGettingEvent.Widget);
+						if (NavigationReply.GetBoundaryRule() != EUINavigationRule::Escape || WidgetIndex == 0)
+						{
+							AttemptNavigation(NavigationSource, NavigationEvent, NavigationReply, SomeWidgetGettingEvent);
+							break;
+						}
 					}
 				}
 			}
@@ -5670,6 +5676,28 @@ bool FSlateApplication::OnCursorSet()
 	return true;
 }
 
+void FSlateApplication::NavigateToWidget(const uint32 UserIndex, const TSharedPtr<SWidget>& NavigationDestination, ENavigationSource NavigationSource)
+{
+	if (NavigationDestination.IsValid())
+	{
+		FWidgetPath NavigationSourceWP;
+		if (NavigationSource == ENavigationSource::WidgetUnderCursor)
+		{
+			NavigationSourceWP = LocateWindowUnderMouse(GetCursorPos(), GetInteractiveTopLevelWindows());
+		}
+		else if (const FSlateUser* User = GetOrCreateUser(UserIndex))
+		{
+			const FUserFocusEntry& UserFocusEntry = User->Focus;
+			NavigationSourceWP = UserFocusEntry.WidgetPath.ToWidgetPath();
+		}
+
+		if (NavigationSourceWP.IsValid())
+		{
+			ExecuteNavigation(NavigationSourceWP, NavigationDestination, UserIndex);
+		}
+	}
+}
+
 bool FSlateApplication::AttemptNavigation(const FWidgetPath& NavigationSource, const FNavigationEvent& NavigationEvent, const FNavigationReply& NavigationReply, const FArrangedWidget& BoundaryWidget)
 {
 	if ( !NavigationSource.IsValid() )
@@ -5717,16 +5745,31 @@ bool FSlateApplication::AttemptNavigation(const FWidgetPath& NavigationSource, c
 		}
 	}
 
-	// Set controller focus if we have a valid widget
+	return ExecuteNavigation(NavigationSource, DestinationWidget, NavigationEvent.GetUserIndex());
+}
+
+bool FSlateApplication::ExecuteNavigation(const FWidgetPath& NavigationSource, TSharedPtr<SWidget> DestinationWidget, const uint32 UserIndex)
+{
 	bool bHandled = false;
-	if (CustomNavigationEvent.IsBound())
+
+	// Give the custom viewport navigation event handler a chance to handle the navigation if the NavigationSource is contained within it.
+	TSharedPtr<ISlateViewport> Viewport = NavigationSource.GetWindow()->GetViewport();
+	if (Viewport.IsValid())
 	{
-		bHandled = CustomNavigationEvent.Execute(DestinationWidget);
+		TSharedPtr<SWidget> ViewportWidget = Viewport->GetWidget().Pin();
+		if (ViewportWidget.IsValid())
+		{
+			if (NavigationSource.ContainsWidget(ViewportWidget.ToSharedRef()))
+			{
+				bHandled = Viewport->HandleNavigation(UserIndex, DestinationWidget);
+			}
+		}
 	}
 
+	// Set controller focus if the navigation hasn't been handled have a valid widget
 	if (!bHandled && DestinationWidget.IsValid())
 	{
-		SetUserFocus(NavigationEvent.GetUserIndex(), DestinationWidget, EFocusCause::Navigation);
+		SetUserFocus(UserIndex, DestinationWidget, EFocusCause::Navigation);
 		bHandled = true;
 	}
 
@@ -6523,7 +6566,7 @@ void FSlateApplication::SetWidgetReflector(const TSharedRef<IWidgetReflector>& W
 	WidgetReflectorPtr = WidgetReflector;
 }
 
-void FSlateApplication::NavigateFromWidgetUnderCursor(EUINavigation InNavigationType, TSharedRef<SWindow> InWindow, uint32 InUserIndex)
+void FSlateApplication::NavigateFromWidgetUnderCursor(const uint32 InUserIndex, EUINavigation InNavigationType, TSharedRef<SWindow> InWindow)
 {
 	if (InNavigationType != EUINavigation::Invalid)
 	{
@@ -6534,7 +6577,7 @@ void FSlateApplication::NavigateFromWidgetUnderCursor(EUINavigation InNavigation
 
 			if (WidgetToNavFrom.IsValid())
 			{
-				FSlateApplication::Get().ProcessReply(PathToLocatedWidget, FReply::Handled().SetNavigation(InNavigationType, ENavigationSource::WidgetUnderCursor), &PathToLocatedWidget, nullptr, InUserIndex);
+				FSlateApplication::Get().ProcessReply(PathToLocatedWidget, FReply::Handled().SetNavigation(InNavigationType, ENavigationGenesis::User, ENavigationSource::WidgetUnderCursor), &PathToLocatedWidget, nullptr, InUserIndex);
 			}
 		}
 	}

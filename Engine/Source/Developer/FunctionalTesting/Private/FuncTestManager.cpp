@@ -15,6 +15,7 @@ DEFINE_LOG_CATEGORY(LogFunctionalTest);
 
 FFuncTestManager::FFuncTestManager()
 {
+	bPendingActivation = false;
 #if WITH_EDITOR
 	FWorldDelegates::GetAssetTags.AddRaw(this, &FFuncTestManager::OnGetAssetTagsForWorld);
 #endif
@@ -65,6 +66,16 @@ bool FFuncTestManager::IsFinished() const
 	return (!TestScript.IsValid() || TestScript->IsFinished());
 }
 
+void FFuncTestManager::MarkPendingActivation()
+{
+	bPendingActivation = true;
+}
+
+bool FFuncTestManager::IsActivationPending() const
+{
+	return bPendingActivation;
+}
+
 void FFuncTestManager::SetLooping(const bool bLoop)
 { 
 	if (TestScript.IsValid())
@@ -103,6 +114,7 @@ void FFuncTestManager::RunAllTestsOnMap(bool bClearLog, bool bRunLooped)
 {
 	if ( UWorld* TestWorld = GetTestWorld() )
 	{
+		bPendingActivation = false;
 		if ( UFunctionalTestingManager::RunAllFunctionalTests(TestWorld, bClearLog, bRunLooped) == false )
 		{
 			UE_LOG(LogFunctionalTest, Error, TEXT("No functional testing script on map."));
@@ -114,6 +126,7 @@ void FFuncTestManager::RunTestOnMap(const FString& TestName, bool bClearLog, boo
 {
 	if ( UWorld* TestWorld = GetTestWorld() )
 	{
+		bPendingActivation = false;
 		if ( UFunctionalTestingManager::RunAllFunctionalTests(TestWorld, bClearLog, bRunLooped, true, TestName) == false )
 		{
 			UE_LOG(LogFunctionalTest, Error, TEXT("No functional testing script on map."));
@@ -134,9 +147,11 @@ static bool FuncTestExec(UWorld* InWorld, const TCHAR* Command,FOutputDevice& Ar
 			const bool bLooped = FParse::Command(&Command,TEXT("loop"));
 
 			//instead of allowing straight use of the functional test framework, this should go through the automation framework and kick off one of the Editor/Client functional tests
-			if (!FFunctionalTestingModule::Get()->IsRunning())
+
+			IFuncTestManager* ManagerPtr = FFunctionalTestingModule::Get();
+			if (!ManagerPtr->IsRunning() && !ManagerPtr->IsActivationPending())
 			{
-				FFunctionalTestingModule::Get()->RunAllTestsOnMap(/*bClearLog=*/true, bLooped);
+				ManagerPtr->RunAllTestsOnMap(/*bClearLog=*/true, bLooped);
 			}
 		}
 		return true;

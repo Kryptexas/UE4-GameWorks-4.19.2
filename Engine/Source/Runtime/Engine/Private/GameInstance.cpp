@@ -908,7 +908,19 @@ void UGameInstance::StopRecordingReplay()
 		return;
 	}
 
+	bool LoadDefaultMap = false;
+
+	if ( CurrentWorld->DemoNetDriver && CurrentWorld->DemoNetDriver->IsPlaying() )
+	{
+		LoadDefaultMap = true;
+	}
+
 	CurrentWorld->DestroyDemoNetDriver();
+
+	if ( LoadDefaultMap )
+	{
+		GEngine->BrowseToDefaultMap(*GetWorldContext());
+	}
 }
 
 void UGameInstance::PlayReplay(const FString& Name, UWorld* WorldOverride, const TArray<FString>& AdditionalOptions)

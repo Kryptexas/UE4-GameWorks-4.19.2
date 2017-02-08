@@ -4603,6 +4603,246 @@ T* FindFieldChecked( const UStruct* Scope, FName FieldName )
 	return NULL;
 }
 
+/*-----------------------------------------------------------------------------*
+ * PropertyValueIterator
+ *-----------------------------------------------------------------------------*/
+
+/** FPropertyValueIterator construction flags */
+enum class EPropertyValueIteratorFlags : uint8
+{
+	NoRecursion = 0,	// Don't recurse at all, only do top level properties
+	FullRecursion = 1,	// Recurse into containers and structs
+};
+
+/** For recursively iterating over a UStruct to find nested UProperty pointers and values */
+class FPropertyValueIterator
+{
+public:
+	typedef TPair<const UProperty*, const void*> BasePairType;
+
+	/** 
+	 * Construct an iterator using a struct and struct value
+	 *
+	 * @param InPropertyClass	The UClass of the UProperty type you are looking for
+	 * @param InStruct			The UClass or UScriptStruct containing properties to search for
+	 * @param InStructValue		Address in memory of struct to search for property values
+	 * @param InRecursionFlags	Rather to recurse into container and struct properties
+	 * @param InDeprecatedPropertyFlags	Rather to iterate over deprecated properties
+	 */
+	FPropertyValueIterator(const UClass* InPropertyClass, const UStruct* InStruct, const void* InStructValue,
+		EPropertyValueIteratorFlags						InRecursionFlags = EPropertyValueIteratorFlags::FullRecursion,
+		EFieldIteratorFlags::DeprecatedPropertyFlags	InDeprecatedPropertyFlags = EFieldIteratorFlags::IncludeDeprecated)
+		: PropertyClass(InPropertyClass)
+		, RecursionFlags(InRecursionFlags)
+		, DeprecatedPropertyFlags(InDeprecatedPropertyFlags)
+		, bSkipRecursionOnce(false)
+	{
+		PropertyIteratorStack.Emplace(InStruct, InStructValue, InDeprecatedPropertyFlags);
+		IterateToNext();
+	}
+
+	/** Invalid iterator, start with empty stack */
+	FPropertyValueIterator()
+		: PropertyClass(nullptr)
+		, RecursionFlags(EPropertyValueIteratorFlags::FullRecursion)
+		, DeprecatedPropertyFlags(EFieldIteratorFlags::IncludeDeprecated)
+		, bSkipRecursionOnce(false)
+	{
+	}
+
+	/** Conversion to "bool" returning true if the iterator is valid */
+	FORCEINLINE explicit operator bool() const
+	{
+		// If nothing left in the stack, iteration is complete
+		if (PropertyIteratorStack.Num() > 0)
+		{
+			return true;
+		}
+		return false;
+	}
+
+	FORCEINLINE friend bool operator==(const FPropertyValueIterator& Lhs, const FPropertyValueIterator& Rhs) 
+	{
+		return Lhs.PropertyIteratorStack == Rhs.PropertyIteratorStack;
+	}
+	
+	FORCEINLINE friend bool operator!=(const FPropertyValueIterator& Lhs, const FPropertyValueIterator& Rhs)
+	{
+		return !(Lhs.PropertyIteratorStack == Rhs.PropertyIteratorStack);
+	}
+
+	/** Returns a TPair containing Property/Value currently being iterated */
+	FORCEINLINE const BasePairType& operator*() const
+	{
+		const FPropertyValueStackEntry& Entry = PropertyIteratorStack.Last();
+		return Entry.GetPropertyValue();
+	}
+
+	FORCEINLINE const BasePairType* operator->() const
+	{
+		const FPropertyValueStackEntry& Entry = PropertyIteratorStack.Last();
+		return &Entry.GetPropertyValue();
+	}
+
+	/** Returns Property currently being iterated */
+	FORCEINLINE const UProperty* Key() const 
+	{
+		return (*this)->Key; 
+	}
+	
+	/** Returns memory address currently being iterated */
+	FORCEINLINE const void* Value() const
+	{
+		return (*this)->Value;
+	}
+
+	/** Increments iterator */
+	FORCEINLINE void operator++()
+	{
+		IterateToNext();
+	}
+
+	/** Call when iterating a recursive property such as Array or Struct to stop it from iterating into that property */
+	FORCEINLINE void SkipRecursiveProperty()
+	{
+		bSkipRecursionOnce = true;
+	}
+
+	/** 
+	 * Returns the full stack of properties for the property currently being iterated. This includes struct and container properties
+	 *
+	 * @param PropertyChain	Filled in with ordered list of Properties, with currently active property first and top parent last
+	 */
+	COREUOBJECT_API void GetPropertyChain(TArray<const UProperty*>& PropertyChain) const;
+
+private:
+	typedef TPairInitializer<const UProperty*, const void*> BasePairInitializerType;
+
+	struct FPropertyValueStackEntry
+	{
+		/** Field iterator within a UStruct */
+		TFieldIterator<const UProperty> FieldIterator;
+
+		/** Address of owning UStruct */
+		const void* StructValue;
+		
+		/** List of current root property+value pairs for the current top level UProperty */
+		TArray<BasePairType> ValueArray;
+
+		/** Current position inside ValueArray */
+		int32 ValueIndex;
+
+		FPropertyValueStackEntry(const UStruct* InStruct, const void* InValue, EFieldIteratorFlags::DeprecatedPropertyFlags InDeprecatedPropertyFlags)
+			: FieldIterator(InStruct, EFieldIteratorFlags::IncludeSuper, InDeprecatedPropertyFlags, EFieldIteratorFlags::ExcludeInterfaces)
+			, StructValue(InValue)
+			, ValueIndex(0)
+		{}
+
+		FORCEINLINE friend bool operator==(const FPropertyValueStackEntry& Lhs, const FPropertyValueStackEntry& Rhs)
+		{
+			return Lhs.ValueIndex == Rhs.ValueIndex && Lhs.FieldIterator == Rhs.FieldIterator && Lhs.StructValue == Rhs.StructValue;
+		}
+
+		FORCEINLINE const BasePairType& GetPropertyValue() const
+		{
+			// Index has to be valid to get this far
+			return ValueArray[ValueIndex];
+		}
+	};
+
+	/** Internal stack, one per UStruct */
+	TArray<FPropertyValueStackEntry> PropertyIteratorStack;
+
+	/** Property type that is explicitly checked for */
+	const UClass* PropertyClass;
+
+	/** Whether to recurse into containers and StructProperties */
+	const EPropertyValueIteratorFlags RecursionFlags;
+
+	/** Inherits to child field iterator */
+	const EFieldIteratorFlags::DeprecatedPropertyFlags DeprecatedPropertyFlags;
+
+	/** If true, next iteration will skip recursing into containers/structs */
+	bool bSkipRecursionOnce;
+
+	/** Goes to the next Property/value pair. Returns true if next value is valid */
+	bool NextValue(EPropertyValueIteratorFlags RecursionFlags);
+
+	/** Iterates to next property being checked for or until reaching the end of the structure */
+	COREUOBJECT_API void IterateToNext();
+};
+
+/** Templated version, will verify the property type is correct and will skip any properties that are not */
+template <class T>
+class TPropertyValueIterator : public FPropertyValueIterator
+{
+public:
+	typedef TPair<T*, const void*> PairType;
+	
+	/** 
+	 * Construct an iterator using a struct and struct value
+	 *
+	 * @param InStruct			The UClass or UScriptStruct containing properties to search for
+	 * @param InStructValue		Address in memory of struct to search for property values
+	 * @param InRecursionFlags	Rather to recurse into container and struct properties
+	 * @param InDeprecatedPropertyFlags	Rather to iterate over deprecated properties
+	 */
+	TPropertyValueIterator(const UStruct* InStruct, const void* InStructValue,
+		EPropertyValueIteratorFlags						InRecursionFlags = EPropertyValueIteratorFlags::FullRecursion,
+		EFieldIteratorFlags::DeprecatedPropertyFlags	InDeprecatedPropertyFlags = EFieldIteratorFlags::IncludeDeprecated)
+		: FPropertyValueIterator(T::StaticClass(), InStruct, InStructValue, InRecursionFlags, InDeprecatedPropertyFlags)
+	{
+	}
+
+	/** Invalid iterator, start with empty stack */
+	TPropertyValueIterator() 
+		: FPropertyValueIterator()
+	{
+	}
+
+	/** Returns a TPair containing Property/Value currently being iterated */
+	FORCEINLINE const PairType& operator*() const
+	{
+		return (const PairType&)FPropertyValueIterator::operator*();
+	}
+
+	FORCEINLINE const PairType* operator->() const
+	{
+		return (const PairType*)FPropertyValueIterator::operator->();
+	}
+
+	/** Returns Property currently being iterated */
+	FORCEINLINE T* Key() const
+	{
+		return (*this)->Key;
+	}
+};
+
+/** Templated range to allow ranged-for syntax */
+template <class T>
+struct TPropertyValueRange
+{
+	/** 
+	 * Construct a range using a struct and struct value
+	 *
+	 * @param InStruct			The UClass or UScriptStruct containing properties to search for
+	 * @param InStructValue		Address in memory of struct to search for property values
+	 * @param InRecursionFlags	Rather to recurse into container and struct properties
+	 * @param InDeprecatedPropertyFlags	Rather to iterate over deprecated properties
+	 */
+	TPropertyValueRange(const UStruct* InStruct, const void* InStructValue,
+		EPropertyValueIteratorFlags						InRecursionFlags = EPropertyValueIteratorFlags::FullRecursion,
+		EFieldIteratorFlags::DeprecatedPropertyFlags	InDeprecatedPropertyFlags = EFieldIteratorFlags::IncludeDeprecated)
+		: Begin(InStruct, InStructValue, InRecursionFlags, InDeprecatedPropertyFlags)
+	{
+	}
+
+	friend TPropertyValueIterator<T> begin(const TPropertyValueRange& Range) { return Range.Begin; }
+	friend TPropertyValueIterator<T> end(const TPropertyValueRange& Range) { return TPropertyValueIterator<T>(); }
+
+	TPropertyValueIterator<T> Begin;
+};
+
 /**
  * Determine if this object has SomeObject in its archetype chain.
  */

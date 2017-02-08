@@ -260,20 +260,42 @@ DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 class FAssetClassParentFilter : public IClassViewerFilter
 {
 public:
+	FAssetClassParentFilter()
+		: DisallowedClassFlags(0), bDisallowBlueprintBase(false)
+	{}
+
 	/** All children of these classes will be included unless filtered out by another setting. */
 	TSet< const UClass* > AllowedChildrenOfClasses;
 
 	/** Disallowed class flags. */
 	uint32 DisallowedClassFlags;
 
+	/** Disallow blueprint base classes. */
+	bool bDisallowBlueprintBase;
+
 	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
 	{
-		return !InClass->HasAnyClassFlags(DisallowedClassFlags)
+		bool bAllowed= !InClass->HasAnyClassFlags(DisallowedClassFlags)
 			&& InFilterFuncs->IfInChildOfClassesSet(AllowedChildrenOfClasses, InClass) != EFilterReturn::Failed;
+
+		if (bAllowed && bDisallowBlueprintBase)
+		{
+			if (FKismetEditorUtilities::CanCreateBlueprintOfClass(InClass))
+			{
+				return false;
+			}
+		}
+
+		return bAllowed;
 	}
 
 	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
 	{
+		if (bDisallowBlueprintBase)
+		{
+			return false;
+		}
+
 		return !InUnloadedClassData->HasAnyClassFlags(DisallowedClassFlags)
 			&& InFilterFuncs->IfInChildOfClassesSet(AllowedChildrenOfClasses, InUnloadedClassData) != EFilterReturn::Failed;
 	}
@@ -6024,6 +6046,7 @@ bool UDataAssetFactory::ConfigureProperties()
 
 	Filter->DisallowedClassFlags = CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists;
 	Filter->AllowedChildrenOfClasses.Add(UDataAsset::StaticClass());
+	Filter->bDisallowBlueprintBase = true; // If a DataAsset subclass is blueprintable, data blueprints should be made instead
 
 	const FText TitleText = LOCTEXT("CreateDataAssetOptions", "Pick Data Asset Class");
 	UClass* ChosenClass = nullptr;

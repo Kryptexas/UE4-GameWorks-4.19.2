@@ -168,7 +168,7 @@ class UNetConnection : public UPlayer
 	UPROPERTY()
 	TArray<class UChannel*> OpenChannels;
 	 
-	/** @todo document */
+	/** This actor is bNetTemporary, which means it should never be replicated after it's initial packet is complete */
 	UPROPERTY()
 	TArray<class AActor*> SentTemporaries;
 

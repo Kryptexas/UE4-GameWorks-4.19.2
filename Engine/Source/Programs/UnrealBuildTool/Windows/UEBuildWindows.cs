@@ -411,6 +411,23 @@ namespace UnrealBuildTool
 					CompileEnvironment.Definitions.Add(String.Format("PROJECT_PRODUCT_IDENTIFIER={0}", Target.ProjectFile.GetFileNameWithoutExtension()));
 				}
 			}
+
+			// Set up default stack size
+			ConfigHierarchy EngineIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Target.ProjectFile), UnrealTargetPlatform.Win64);
+			String TargetSettingsIniPath = "/Script/WindowsTargetPlatform.WindowsTargetSettings";
+			int IniDefaultStackSize = 0;
+			String StackSizeName = Target.Type == TargetType.Editor ? "DefaultStackSizeEditor" : "DefaultStackSize";
+			if (EngineIni.GetInt32(TargetSettingsIniPath, StackSizeName, out IniDefaultStackSize))
+			{
+				LinkEnvironment.DefaultStackSize = IniDefaultStackSize;
+			}
+
+			int IniDefaultStackSizeCommit = 0;
+			String StackSizeCommitName = Target.Type == TargetType.Editor ? "DefaultStackSizeCommitEditor" : "DefaultStackSizeCommit";
+			if (EngineIni.GetInt32(TargetSettingsIniPath, StackSizeCommitName, out IniDefaultStackSizeCommit))
+			{
+				LinkEnvironment.DefaultStackSizeCommit = IniDefaultStackSizeCommit;
+			}
 		}
 
 		/// <summary>

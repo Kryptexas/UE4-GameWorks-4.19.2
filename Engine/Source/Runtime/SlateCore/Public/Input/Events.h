@@ -1003,11 +1003,13 @@ public:
 	*/
 	FNavigationEvent()
 		: NavigationType(EUINavigation::Invalid)
+		, NavigationGenesis(ENavigationGenesis::User)
 	{ }
 
-	FNavigationEvent(uint32 InUserIndex, EUINavigation InNavigationType)
-		: FInputEvent(FModifierKeysState(), InUserIndex, false)
+	FNavigationEvent(const FModifierKeysState& InModifierKeys, const int32 InUserIndex, EUINavigation InNavigationType, ENavigationGenesis InNavigationGenesis)
+		: FInputEvent(InModifierKeys, InUserIndex, false)
 		, NavigationType(InNavigationType)
+		, NavigationGenesis(InNavigationGenesis)
 	{ }
 
 public:
@@ -1015,10 +1017,16 @@ public:
 	/** @return the type of navigation request (Left, Right, Up, Down) */
 	EUINavigation GetNavigationType() const { return NavigationType; }
 
+	/** @return the genesis of the navigation request (Keyboard, Controller, User) */
+	ENavigationGenesis GetNavigationGenesis() const { return NavigationGenesis; }
+
 private:
 
 	// The navigation type
 	EUINavigation NavigationType;
+
+	// The navigation genesis
+	ENavigationGenesis NavigationGenesis;
 };
 
 

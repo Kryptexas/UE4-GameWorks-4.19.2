@@ -1,5 +1,7 @@
 // Copyright 2016 Oculus VR, LLC All Rights reserved.
 
+#pragma once
+
 #include "OculusNetDriver.h"
 #include "OnlineSubsystemOculusPrivate.h"
 

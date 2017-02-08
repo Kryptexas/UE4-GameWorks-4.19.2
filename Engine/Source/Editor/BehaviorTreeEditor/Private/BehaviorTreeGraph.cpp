@@ -296,6 +296,18 @@ void UBehaviorTreeGraph::RemoveUnknownSubNodes()
 	}
 }
 
+void UBehaviorTreeGraph::UpdateBrokenComposites()
+{
+	for (int32 Index = 0; Index < Nodes.Num(); ++Index)
+	{
+		UBehaviorTreeGraphNode_CompositeDecorator* Node = Cast<UBehaviorTreeGraphNode_CompositeDecorator>(Nodes[Index]);
+		if (Node)
+		{
+			Node->UpdateBrokenInstances();
+		}
+	}
+}
+
 namespace BTGraphHelpers
 {
 	struct FIntIntPair

@@ -17,32 +17,97 @@ FString SGraphNodeK2CreateDelegate::FunctionDescription(const UFunction* Functio
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	//FString Result = Function->GetOuter()->GetName() + TEXT("::") + Function->GetName();
+	FString Result;
+
+	//Result += Function->GetOuter()->GetName() + TEXT("::") + Function->GetName();
 	//Result += TEXT("(");
 
-	FString Result = (bOnlyDescribeSignature ? TEXT("") : Function->GetName()) + TEXT("(");
-	bool bFirst = true;
-	for (TFieldIterator<UProperty> PropIt(Function); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
+	// Show function name.
+	if (!bOnlyDescribeSignature)
 	{
-		UProperty* Param = *PropIt;
-		const bool bIsFunctionInput = Param && (!Param->HasAnyPropertyFlags(CPF_OutParm) || Param->HasAnyPropertyFlags(CPF_ReferenceParm));
-		if (bIsFunctionInput)
+		Result += Function->GetName();
+	}
+
+	Result += TEXT("(");
+
+	// Describe input parameters.
+	{
+		bool bFirst = true;
+		for (TFieldIterator<UProperty> PropIt(Function); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
+		{
+			UProperty* const Param = *PropIt;
+			const bool bIsFunctionInput = Param && (!Param->HasAnyPropertyFlags(CPF_OutParm) || Param->HasAnyPropertyFlags(CPF_ReferenceParm));
+			if (bIsFunctionInput)
+			{
+				if (!bFirst)
+				{
+					Result += TEXT(", ");
+				}
+				if (CharacterLimit > INDEX_NONE && Result.Len() > CharacterLimit)
+				{
+					Result += TEXT("...");
+					break;
+				}
+				Result += bOnlyDescribeSignature ? UEdGraphSchema_K2::TypeToText(Param).ToString() : Param->GetName();
+				bFirst = false;
+			}
+		}
+	}
+
+	Result += TEXT(")");
+
+	// Describe outputs.
+	{
+		TArray<FString> Outputs;
+
+		UProperty* const FunctionReturnProperty = Function->GetReturnProperty();
+		if (FunctionReturnProperty)
+		{
+			Outputs.Add(UEdGraphSchema_K2::TypeToText(FunctionReturnProperty).ToString());
+		}
+
+		for (TFieldIterator<UProperty> PropIt(Function); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
+		{
+			UProperty* const Param = *PropIt;
+			const bool bIsFunctionOutput = Param && Param->HasAnyPropertyFlags(CPF_OutParm);
+			if (bIsFunctionOutput)
+			{
+				Outputs.Add(bOnlyDescribeSignature ? UEdGraphSchema_K2::TypeToText(Param).ToString() : Param->GetName());
+			}
+		}
+
+		if (Outputs.Num() > 0)
+		{
+			Result += TEXT(" -> ");
+		}
+
+		if (Outputs.Num() > 1)
+		{
+			Result += TEXT("[");
+		}
+
+		bool bFirst = true;
+		for (const FString& Output : Outputs)
 		{
 			if (!bFirst)
 			{
 				Result += TEXT(", ");
 			}
-			if(CharacterLimit > INDEX_NONE && Result.Len() > CharacterLimit)
+			if (CharacterLimit > INDEX_NONE && Result.Len() > CharacterLimit)
 			{
 				Result += TEXT("...");
 				break;
 			}
-			Result += bOnlyDescribeSignature ? UEdGraphSchema_K2::TypeToText(Param).ToString() : Param->GetName();
+			Result += Output;
 			bFirst = false;
+		}
+
+		if (Outputs.Num() > 1)
+		{
+			Result += TEXT("]");
 		}
 	}
 
-	Result += TEXT(")");
 	return Result;
 }
 
@@ -119,6 +184,13 @@ void SGraphNodeK2CreateDelegate::CreateBelowPinControls(TSharedPtr<SVerticalBox>
 				FunctionSignaturePrompt = FText::Format(NSLOCTEXT("GraphNodeK2Create", "FunctionSignaturePrompt", "Signature: {FunctionSignature}"), FormatArguments);
 			}
 
+			FText FunctionSignatureToolTipText;
+			{
+				FFormatNamedArguments FormatArguments;
+				FormatArguments.Add(TEXT("FullFunctionSignature"), FText::FromString(FunctionDescription(FunctionSignature, true, INDEX_NONE)));
+				FunctionSignatureToolTipText = FText::Format(NSLOCTEXT("GraphNodeK2Create", "FunctionSignatureToolTip", "Signature Syntax: (Inputs) -> [Outputs]\nFull Signature:{FullFunctionSignature}"), FormatArguments);
+			}
+
 			MainBox->AddSlot()
 				.AutoHeight()
 				.VAlign(VAlign_Fill)
@@ -126,7 +198,7 @@ void SGraphNodeK2CreateDelegate::CreateBelowPinControls(TSharedPtr<SVerticalBox>
 				[
 					SNew(STextBlock)
 					.Text(FunctionSignaturePrompt)
-					.ToolTipText(FText::FromString(FunctionDescription(FunctionSignature, true, INDEX_NONE)))
+					.ToolTipText(FunctionSignatureToolTipText)
 				];
 
 			FunctionDataItems.Empty();

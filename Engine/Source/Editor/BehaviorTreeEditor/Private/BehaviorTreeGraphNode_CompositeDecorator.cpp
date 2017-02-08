@@ -16,6 +16,7 @@ UBehaviorTreeGraphNode_CompositeDecorator::UBehaviorTreeGraphNode_CompositeDecor
 {
 	bShowOperations = true;
 	bCanAbortFlow = false;
+	bHasBrokenInstances = false;
 
 	FirstExecutionIndex = INDEX_NONE;
 	LastExecutionIndex = INDEX_NONE;
@@ -114,7 +115,7 @@ bool UBehaviorTreeGraphNode_CompositeDecorator::RefreshNodeClass()
 			}
 		}
 	}
-
+	
 	return bUpdated;
 }
 
@@ -133,9 +134,26 @@ void UBehaviorTreeGraphNode_CompositeDecorator::UpdateNodeClassData()
 	}
 }
 
+void UBehaviorTreeGraphNode_CompositeDecorator::UpdateBrokenInstances()
+{
+	bHasBrokenInstances = false;
+	if (BoundGraph)
+	{
+		for (int32 i = 0; i < BoundGraph->Nodes.Num(); i++)
+		{
+			UBehaviorTreeDecoratorGraphNode_Decorator* Node = Cast<UBehaviorTreeDecoratorGraphNode_Decorator>(BoundGraph->Nodes[i]);
+			if (Node && Node->NodeInstance == nullptr)
+			{
+				bHasBrokenInstances = true;
+				break;
+			}
+		}
+	}
+}
+
 bool UBehaviorTreeGraphNode_CompositeDecorator::HasErrors() const
 {
-	return bHasObserverError;
+	return bHasObserverError || bHasBrokenInstances;
 }
 
 void UBehaviorTreeGraphNode_CompositeDecorator::CreateBoundGraph()

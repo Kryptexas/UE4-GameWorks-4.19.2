@@ -176,6 +176,16 @@ namespace UnrealBuildTool
 		public bool bIsBuildingDotNetAssembly = false;
 
 		/// <summary>
+		/// The default stack memory size allocation
+		/// </summary>
+		public int DefaultStackSize = 5000000;
+
+		/// <summary>
+		/// The amount of the default stack size to commit initially. Set to 0 to allow the OS to decide.
+		/// </summary>
+		public int DefaultStackSizeCommit = 0;
+
+		/// <summary>
 		/// Whether to optimize for minimal code size
 		/// </summary>
 		public bool bOptimizeForSize = false;
@@ -290,6 +300,7 @@ namespace UnrealBuildTool
 			AdditionalArguments = Other.AdditionalArguments;
 			bCreateDebugInfo = Other.bCreateDebugInfo;
 			bIsBuildingLibrary = Other.bIsBuildingLibrary;
+            bDisableSymbolCache = Other.bDisableSymbolCache;
 			bIsBuildingDLL = Other.bIsBuildingDLL;
 			bIsBuildingConsoleApplication = Other.bIsBuildingConsoleApplication;
 			WindowsEntryPointOverride = Other.WindowsEntryPointOverride;

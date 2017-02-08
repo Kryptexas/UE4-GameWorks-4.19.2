@@ -102,9 +102,8 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 				TimeCursorPosition = EndTime;
 			}
 		}
-		
 		if (RootTemplateInstance.IsValid())
-		{			
+		{
 			const FMovieSceneContext Context(
 				FMovieSceneEvaluationRange(TimeCursorPosition + AnimationStartOffset, LastTimePosition + AnimationStartOffset),
 				PlayerStatus);

@@ -1105,7 +1105,7 @@ private:
 
 namespace CreateWidgetHelpers
 {
-	UMG_API bool ValidateUserWidgetClass(UClass* UserWidgetClass);
+	UMG_API bool ValidateUserWidgetClass(const UClass* UserWidgetClass);
 }
 
 template< class T >

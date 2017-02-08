@@ -13,6 +13,7 @@ class FXmppChatMessage
 public:
 	/** constructor */
 	FXmppChatMessage()
+		: Timestamp(0)
 	{}
 
 	/** id of message sender */
@@ -43,7 +44,7 @@ public:
 	 *
 	 * @return true if successfully sent
 	 */
-	virtual bool SendChat(FString RecipientId, const class FXmppChatMessage& Chat) = 0;
+	virtual bool SendChat(const FString& RecipientId, const class FXmppChatMessage& Chat) = 0;
 
 	/**
 	 * Delegate callback for when a new chat message is received

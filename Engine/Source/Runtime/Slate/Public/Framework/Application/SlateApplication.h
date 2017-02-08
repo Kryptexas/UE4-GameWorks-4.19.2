@@ -48,9 +48,6 @@ DECLARE_DELEGATE(FModalWindowStackEnded)
 /** Delegate for when window action occurs (ClickedNonClientArea, Maximize, Restore, WindowMenu). Return true if the OS layer should stop processing the action. */
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnWindowAction, const TSharedRef<FGenericWindow>&, EWindowAction::Type);
 
-/** Delegate for overriding the behavior when a navigation action is taken, Not to be confused with FNavigationDelegate which allows a specific widget to override behavior for itself */
-DECLARE_DELEGATE_RetVal_OneParam(bool, FCustomNavigationHandler, TSharedPtr<SWidget>);
-
 extern SLATE_API const FName NAME_UnrealOS;
 
 
@@ -457,9 +454,6 @@ public:
 
 	/** Delegate for after slate application ticks. */
 	FSlateTickEvent& OnPostTick()  { return PostTickEvent; }
-
-	/** Set an override handler for navigation. */
-	FCustomNavigationHandler& OnNavigationOverride() { return CustomNavigationEvent; }
 
 	/** 
 	 * Removes references to FViewportRHI's.  
@@ -1141,7 +1135,7 @@ public:
 	 * @param InMouseEvent       Optional mouse event that caused this action.
 	 * @param UserIndex			 User index that generated the event we are replying to (defaults to 0, at least for now)
 	 */
-	void ProcessReply(const FWidgetPath& CurrentEventPath, const FReply TheReply, const FWidgetPath* WidgetsUnderMouse, const FPointerEvent* InMouseEvent, uint32 UserIndex = 0);
+	void ProcessReply(const FWidgetPath& CurrentEventPath, const FReply TheReply, const FWidgetPath* WidgetsUnderMouse, const FPointerEvent* InMouseEvent, const uint32 UserIndex = 0);
 	
 	/** Bubble a request for which cursor to display for widgets under the mouse or the widget that captured the mouse. */
 	void QueryCursor();
@@ -1442,11 +1436,20 @@ public:
 	/**
 	 * Destroys an SWindow, removing it and all its children from the Slate window list.  Notifies the native window to destroy itself and releases rendering resources
 	 *
+	 * @param InUserIndex The user that is doing the navigation
+	 * @param NavigationDestination The navigation destination widget
+	 * @param NavigationSource The source type of the navigation
+	 */
+	void NavigateToWidget(const uint32 UserIndex, const TSharedPtr<SWidget>& NavigationDestination, ENavigationSource NavigationSource = ENavigationSource::FocusedWidget);
+
+	/**
+	 * Destroys an SWindow, removing it and all its children from the Slate window list.  Notifies the native window to destroy itself and releases rendering resources
+	 *
+	 * @param InUserIndex The user that is doing the navigation
 	 * @param InNavigationType The navigation type / direction
 	 * @param InWindow The window to do the navigation within
-	 * @param InUserIndex The user that is doing the navigation
 	 */
-	void NavigateFromWidgetUnderCursor(EUINavigation InNavigationType, TSharedRef<SWindow> InWindow, uint32 InUserIndex);
+	void NavigateFromWidgetUnderCursor(const uint32 InUserIndex, EUINavigation InNavigationType, TSharedRef<SWindow> InWindow);
 
 	/**
 	* Given an optional widget, try and get the most suitable parent window to use with dialogs (such as file and directory pickers).
@@ -1477,6 +1480,13 @@ private:
 	 * @return if a new widget was navigated too
 	 */
 	bool AttemptNavigation(const FWidgetPath& NavigationSource, const FNavigationEvent& NavigationEvent, const FNavigationReply& NavigationReply, const FArrangedWidget& BoundaryWidget);
+
+	/**
+	 * Executes a navigate to the specified widget if possible
+	 *
+	 * @return if the widget was navigated too
+	 */
+	bool ExecuteNavigation(const FWidgetPath& NavigationSource, TSharedPtr<SWidget> DestinationWidget, const uint32 UserIndex);
 
 private:
 
@@ -1971,8 +1981,6 @@ private:
 	/** Critical section to avoid multiple threads calling Slate Tick when we're synchronizing between the Slate Loading Thread and the Game Thread. */
 	FCriticalSection SlateTickCriticalSection;
 
-	/** Delegate for custom navigation behavior */
-	FCustomNavigationHandler CustomNavigationEvent;
 	
 	/** Are we currently processing input in slate?  If so this value will be greater than 0. */
 	int32 ProcessingInput;

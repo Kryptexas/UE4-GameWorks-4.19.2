@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreTypes.h"
+#include "Templates/UnrealTemplate.h"
 #include "HAL/PlatformAtomics.h"
 #include "HAL/PlatformMisc.h"
 
@@ -75,7 +76,7 @@ public:
 			return false;
 		}
 
-		OutItem = Popped->Item;
+		OutItem = MoveTemp(Popped->Item);
 
 		TNode* OldTail = Tail;
 		Tail = Popped;
@@ -119,7 +120,41 @@ public:
 			OldHead = Head;
 			Head = NewNode;
 			FPlatformMisc::MemoryBarrier();
-		}		
+		}
+
+		OldHead->NextNode = NewNode;
+
+		return true;
+	}
+
+	/**
+	 * Adds an item to the head of the queue.
+	 *
+	 * @param Item The item to add.
+	 * @return true if the item was added, false otherwise.
+	 * @see Dequeue, IsEmpty, Peek
+	 */
+	bool Enqueue(ItemType&& Item)
+	{
+		TNode* NewNode = new TNode(MoveTemp(Item));
+
+		if (NewNode == nullptr)
+		{
+			return false;
+		}
+
+		TNode* OldHead;
+
+		if (Mode == EQueueMode::Mpsc)
+		{
+			OldHead = (TNode*)FPlatformAtomics::InterlockedExchangePtr((void**)&Head, NewNode);
+		}
+		else
+		{
+			OldHead = Head;
+			Head = NewNode;
+			FPlatformMisc::MemoryBarrier();
+		}
 
 		OldHead->NextNode = NewNode;
 
@@ -173,12 +208,17 @@ private:
 		{ }
 
 		/** Creates and initializes a new node. */
-		TNode(const ItemType& InItem)
+		explicit TNode(const ItemType& InItem)
 			: NextNode(nullptr)
 			, Item(InItem)
 		{ }
-	};
 
+		/** Creates and initializes a new node. */
+		explicit TNode(ItemType&& InItem)
+			: NextNode(nullptr)
+			, Item(MoveTemp(InItem))
+		{ }
+	};
 
 	/** Holds a pointer to the head of the list. */
 	MS_ALIGN(16) TNode* volatile Head GCC_ALIGN(16);
@@ -189,8 +229,8 @@ private:
 private:
 
 	/** Hidden copy constructor. */
-	TQueue(const TQueue&);
+	TQueue(const TQueue&) = delete;
 
 	/** Hidden assignment operator. */
-	TQueue& operator=(const TQueue&);
+	TQueue& operator=(const TQueue&) = delete;
 };

@@ -3164,13 +3164,14 @@ FString UKismetSystemLibrary::GetLocalCurrencySymbol()
 	return FPlatformMisc::GetLocalCurrencySymbol();
 }
 
-struct FLoadAssetActionBase : public FPendingLatentAction, public FGCObject
+struct FLoadAssetActionBase : public FPendingLatentAction
 {
 	// @TODO: it would be good to have static/global manager? 
 
 public:
 	FStringAssetReference AssetReference;
 	FStreamableManager StreamableManager;
+	TSharedPtr<FStreamableHandle> Handle;
 	FName ExecutionFunction;
 	int32 OutputLink;
 	FWeakObjectPtr CallbackTarget;
@@ -3183,17 +3184,20 @@ public:
 		, OutputLink(InLatentInfo.Linkage)
 		, CallbackTarget(InLatentInfo.CallbackTarget)
 	{
-		StreamableManager.SimpleAsyncLoad(AssetReference);
+		Handle = StreamableManager.RequestAsyncLoad(AssetReference);
 	}
 
 	virtual ~FLoadAssetActionBase()
 	{
-		StreamableManager.Unload(AssetReference);
+		if (Handle.IsValid())
+		{
+			Handle->ReleaseHandle();
+		}
 	}
 
 	virtual void UpdateOperation(FLatentResponse& Response) override
 	{
-		const bool bLoaded = StreamableManager.IsAsyncLoadComplete(AssetReference);
+		const bool bLoaded = Handle->HasLoadCompleted();
 		if (bLoaded)
 		{
 			OnLoaded();
@@ -3207,11 +3211,6 @@ public:
 		return FString::Printf(TEXT("Load Asset Action Base: %s"), *AssetReference.ToString());
 	}
 #endif
-
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
-	{
-		StreamableManager.AddStructReferencedObjects(Collector);
-	}
 };
 
 void UKismetSystemLibrary::LoadAsset(UObject* WorldContextObject, const TAssetPtr<UObject>& Asset, UKismetSystemLibrary::FOnAssetLoaded OnLoaded, FLatentActionInfo LatentInfo)

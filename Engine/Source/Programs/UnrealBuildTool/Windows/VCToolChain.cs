@@ -857,7 +857,14 @@ namespace UnrealBuildTool
 				Arguments.Add("/NXCOMPAT");
 
 				// Set the default stack size.
-				Arguments.Add("/STACK:5000000");
+				if (LinkEnvironment.DefaultStackSizeCommit > 0)
+				{
+					Arguments.Add("/STACK:" + LinkEnvironment.DefaultStackSize + "," + LinkEnvironment.DefaultStackSizeCommit);
+				}
+				else
+				{
+					Arguments.Add("/STACK:" + LinkEnvironment.DefaultStackSize);
+				}
 
 				// E&C can't use /SAFESEH.  Also, /SAFESEH isn't compatible with 64-bit linking
 				if (!LinkEnvironment.bSupportEditAndContinue &&

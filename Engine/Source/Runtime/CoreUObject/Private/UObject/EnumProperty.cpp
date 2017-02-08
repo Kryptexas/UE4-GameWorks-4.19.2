@@ -62,6 +62,10 @@ void UEnumProperty::AddCppProperty(UProperty* Inner)
 {
 	check(!UnderlyingProp);
 	UnderlyingProp = CastChecked<UNumericProperty>(Inner);
+	if (UnderlyingProp && UnderlyingProp->HasAnyPropertyFlags(CPF_HasGetValueTypeHash))
+	{
+		PropertyFlags |= CPF_HasGetValueTypeHash;
+	}
 }
 
 void UEnumProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const

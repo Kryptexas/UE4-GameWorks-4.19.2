@@ -1122,9 +1122,31 @@ public:
 	FLinkerSave* Linker;
 	TArray<UObject*> Dependencies;
 	TArray<UObject*> NativeDependencies;
+	TArray<UObject*> OtherImports;
+	bool bIgnoreDependencies;
+
+	/** Helper object to save/store state of bSerializingDependency */
+	class FScopeIgnoreDependencies
+	{
+		FArchiveSaveTagImports& Archive;
+		bool bScopedIgnoreDependencies;
+		
+	public:
+		FScopeIgnoreDependencies(FArchiveSaveTagImports& InArchive)
+			: Archive(InArchive)
+			, bScopedIgnoreDependencies(InArchive.bIgnoreDependencies)
+		{
+			Archive.bIgnoreDependencies = true;
+		}
+		~FScopeIgnoreDependencies()
+		{
+			Archive.bIgnoreDependencies = bScopedIgnoreDependencies;
+		}
+	};
 
 	FArchiveSaveTagImports(FLinkerSave* InLinker)
 		: Linker(InLinker)
+		, bIgnoreDependencies(false)
 	{
 		check(Linker);
 
@@ -1269,15 +1291,16 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 			}
 
 			// only add valid objects
-			if (!bIsTopLevelPackage && !bIsNative)
+			if (!bIsTopLevelPackage && !bIgnoreDependencies)
 			{
-				Dependencies.AddUnique(Obj);
+				TArray<UObject*>& DependencyArray = bIsNative ? NativeDependencies : Dependencies;
+				if (DependencyArray.Contains(Obj))
+				{
+					return *this;
+				}
+				DependencyArray.Add(Obj);
 			}
-			else if (!bIsTopLevelPackage)
-			{
-				NativeDependencies.AddUnique(Obj);
-			}
-
+			
 			if( !Obj->HasAnyMarks(OBJECTMARK_TagExp) )  
 			{
 				// if anything in the outer chain is NotFor, then we are also NotFor. Stop this search at public objects.
@@ -1286,25 +1309,34 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 				// mark this object as an import
 				if (!bIsEditorOnly)
 				{
+					if (bIsTopLevelPackage || bIgnoreDependencies)
+					{
+						if (OtherImports.Contains(Obj))
+						{
+							return *this;
+						}
+
+						OtherImports.Add(Obj);
+					}
 					Obj->Mark(OBJECTMARK_TagImp);
 					UClass* ClassObj = Cast<UClass>(Obj);
 
-					if (IsEventDrivenLoaderEnabledInCookedBuilds() && IsCooking() && !bIsNative && ClassObj)
+					// Don't recurse into CDOs if we're already ignoring dependencies, we only want to recurse into our outer chain in that case
+					if (IsEventDrivenLoaderEnabledInCookedBuilds() && IsCooking() && !bIsNative && !bIgnoreDependencies && ClassObj)
 					{
 						// We don't want to add this to Dependencies, we simply want it to be an import so that a serialization before creation dependency can be created to the CDO
+						FScopeIgnoreDependencies IgnoreDependencies(*this);
 						UObject* CDO = ClassObj->GetDefaultObject();
-						
+
 						if (CDO)
 						{
-							// Gets all subobjects defined in a class, including the CDO, CDO components and blueprint-created components
-							TArray<UObject*> ObjectTemplates;
-							ObjectTemplates.Add(CDO);
+							*this << CDO;
 
+							// Gets all subobjects defined in a class, including the CDO, CDO components and blueprint-created components
 							TArray<UObject*> CurrentSubobjects;
 							TArray<UObject*> NextSubobjects;
 
 							UE_LOG(LogSavePackage, Verbose, TEXT("******Class import %s"), *Obj->GetFullName());
-
 
 							// Recursively search for subobjects. Only care about ones that have a full subobject chain as some nested objects are set wrong
 							GetObjectsWithOuter(ClassObj, NextSubobjects, false);
@@ -1318,39 +1350,14 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 								{
 									if (SubObj->HasAnyFlags(RF_DefaultSubObject | RF_ArchetypeObject))
 									{
-										ObjectTemplates.Add(SubObj);
+										*this << SubObj;
+
 										GetObjectsWithOuter(SubObj, NextSubobjects, false);
 									}
 									else
 									{
 										UE_LOG(LogSavePackage, Verbose, TEXT("      rejected subobj because it was not RF_DefaultSubObject | RF_ArchetypeObject %s"), *SubObj->GetFullName());
 									}
-								}
-							}
-
-							for (UObject* ObjTemplate : ObjectTemplates)
-							{
-								if (IsCookingForNoEditorDataPlatform(*this) && IsEditorOnlyObject(ObjTemplate))
-								{
-									// Explicitly mark as editor only so it will be skipped later
-									ObjTemplate->Mark(OBJECTMARK_EditorOnly);
-									UE_LOG(LogSavePackage, Verbose, TEXT("      rejected subobj because it IsEditorOnlyObject %s"), *ObjTemplate->GetFullName());
-								}
-								else if (!ObjTemplate->HasAnyFlags(RF_Transient) && !ObjTemplate->IsPendingKill())
-								{
-									// Correctly mark objects that shouldn't be cooked
-									ConditionallyExcludeObjectForTarget(ObjTemplate, *this);
-									UE_CLOG(ObjTemplate->HasAnyMarks(OBJECTMARK_NotForClient), LogSavePackage, Verbose, TEXT("      will reject subobj because it is OBJECTMARK_NotForClient %s"), *ObjTemplate->GetFullName());
-
-									for (UObject* ObjToMark = ObjTemplate; ObjToMark != nullptr; ObjToMark = ObjToMark->GetOuter())
-									{
-										ObjToMark->Mark(OBJECTMARK_TagImp);
-										UE_LOG(LogSavePackage, Verbose, TEXT("      OBJECTMARK_TagImp %s"), *ObjToMark->GetFullName());
-									}
-								}
-								else
-								{
-									UE_LOG(LogSavePackage, Verbose, TEXT("      rejected subobj because it transient or pendingkill %s"), *ObjTemplate->GetFullName());
 								}
 							}
 						}
@@ -1360,10 +1367,16 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 #endif //WITH_EDITOR
 				}
 
-				if ( IsCDOWithIncludedClassForPlatform(Obj, *this) )
+				if (Obj->HasAnyMarks(EObjectMark(OBJECTMARK_NotForClient | OBJECTMARK_NotForServer)))
 				{
-					Obj->UnMark(OBJECTMARK_NotForClient);
-					Obj->UnMark(OBJECTMARK_NotForServer);
+					// Native CDOs are always included
+					bool bNativeCDO = Obj->GetOutermost()->HasAnyPackageFlags(PKG_CompiledIn);
+
+					if ( IsCDOWithIncludedClassForPlatform(Obj, *this) && !(IsEventDrivenLoaderEnabledInCookedBuilds() && IsCooking() && !bNativeCDO))
+					{
+						Obj->UnMark(OBJECTMARK_NotForClient);
+						Obj->UnMark(OBJECTMARK_NotForServer);
+					}
 				}
 
 				// If the object has been excluded, don't add its outer
@@ -2697,30 +2710,33 @@ class FExportReferenceSorter : public FArchiveUObject
 			const int32 PreviousReferencedObjectCount = ReferencedObjects.Num();
 			const int32 PreviousInsertIndex = CurrentInsertIndex;
 
-			if (UStruct* RequiredObjectStruct = dynamic_cast<UStruct*>(RequiredObject))
+			if (!PackageToSort || RequiredObject->GetOutermost() == PackageToSort)
 			{
-				// if this is a struct/class/function/state, it may have a super that needs to be processed first
-				ProcessStruct(RequiredObjectStruct);
-			}
-			else if ( bProcessObject )
-			{
-				// this means that RequiredObject is being force-loaded by the referencing object, rather than simply referenced
-				ProcessObject(RequiredObject);
-			}
-			else
-			{
-				// only the object's class and archetype are force-loaded, so only those objects need to be in the list before
-				// whatever object was referencing RequiredObject
-				if ( ProcessedObjects.Find(RequiredObject->GetOuter()) == INDEX_NONE )
+				// Don't compute prerequisites for objects outside the package, this will recurse into all native properties
+				if (UStruct* RequiredObjectStruct = dynamic_cast<UStruct*>(RequiredObject))
 				{
-					HandleDependency(RequiredObject->GetOuter());
+					// if this is a struct/class/function/state, it may have a super that needs to be processed first
+					ProcessStruct(RequiredObjectStruct);
 				}
+				else if (bProcessObject)
+				{
+					// this means that RequiredObject is being force-loaded by the referencing object, rather than simply referenced
+					ProcessObject(RequiredObject);
+				}
+				else
+				{
+					// only the object's class and archetype are force-loaded, so only those objects need to be in the list before
+					// whatever object was referencing RequiredObject
+					if (ProcessedObjects.Find(RequiredObject->GetOuter()) == INDEX_NONE)
+					{
+						HandleDependency(RequiredObject->GetOuter());
+					}
 
-				// class is needed before archetype, but we need to process these in reverse order because we are inserting into the list.
-				ProcessObject(RequiredObject->GetArchetype());
-				ProcessStruct(RequiredObject->GetClass());
+					// class is needed before archetype, but we need to process these in reverse order because we are inserting into the list.
+					ProcessObject(RequiredObject->GetArchetype());
+					ProcessStruct(RequiredObject->GetClass());
+				}
 			}
-
 			// InsertIndexOffset is the amount the CurrentInsertIndex was incremented during the serialization of SuperField; we need to
 			// subtract out this number to get the correct location of the new insert index
 			const int32 InsertIndexOffset = CurrentInsertIndex - PreviousInsertIndex;
@@ -2804,8 +2820,9 @@ public:
 	/**
 	 * Get the list of new objects which were encountered by this archive; excludes those objects which were passed into the constructor
 	 */
-	void GetExportList( TArray<UObject*>& out_Exports, bool bIncludeCoreClasses=false )
+	void GetExportList( TArray<UObject*>& out_Exports, UPackage* OuterPackage, bool bIncludeCoreClasses=false )
 	{
+		PackageToSort = OuterPackage;
 		if ( !bIncludeCoreClasses )
 		{
 			const int32 NumReferencedObjects = ReferencedObjects.Num() - CoreReferencesOffset;
@@ -3183,9 +3200,10 @@ private:
 	 * prioritized in the target ExportMap, before the struct).
 	 */
 	TArray<UObject*> ForceLoadObjects;
+
+	/** Package to constrain checks to */
+	UPackage* PackageToSort;
 };
-
-
 
 /**
  * Helper structure encapsulating functionality to sort a linker's export map to allow seek free
@@ -3231,7 +3249,7 @@ struct FObjectExportSeekFreeSorter
 				SortArchive.ProcessStruct(ExportObjectClass);
 #if EXPORT_SORTING_DETAILED_LOGGING
 				TArray<UObject*> ReferencedObjects;
-				SortArchive.GetExportList(ReferencedObjects, bRetrieveInitialReferences);
+				SortArchive.GetExportList(ReferencedObjects, Linker->LinkerRoot, bRetrieveInitialReferences);
 
 				UE_LOG(LogSavePackage, Log, TEXT("Referenced objects for (%i) %s in %s"), ExportIndex, *Export.Object->GetFullName(), *Linker->LinkerRoot->GetName());
 				for ( int32 RefIndex = 0; RefIndex < ReferencedObjects.Num(); RefIndex++ )
@@ -3246,7 +3264,7 @@ struct FObjectExportSeekFreeSorter
 
 				SortedExports += ReferencedObjects;
 #else
-				SortArchive.GetExportList(SortedExports, bRetrieveInitialReferences);
+				SortArchive.GetExportList(SortedExports, Linker->LinkerRoot, bRetrieveInitialReferences);
 #endif
 				bRetrieveInitialReferences = false;
 			}
@@ -3267,7 +3285,7 @@ struct FObjectExportSeekFreeSorter
 				SortArchive.ProcessObject(Export.Object);
 #if EXPORT_SORTING_DETAILED_LOGGING
 				TArray<UObject*> ReferencedObjects;
-				SortArchive.GetExportList(ReferencedObjects, bRetrieveInitialReferences);
+				SortArchive.GetExportList(ReferencedObjects, Linker->LinkerRoot, bRetrieveInitialReferences);
 
 				UE_LOG(LogSavePackage, Log, TEXT("Referenced objects for (%i) %s in %s"), ExportIndex, *Export.Object->GetFullName(), *Linker->LinkerRoot->GetName());
 				for ( int32 RefIndex = 0; RefIndex < ReferencedObjects.Num(); RefIndex++ )
@@ -3282,7 +3300,7 @@ struct FObjectExportSeekFreeSorter
 
 				SortedExports += ReferencedObjects;
 #else
-				SortArchive.GetExportList(SortedExports, bRetrieveInitialReferences);
+				SortArchive.GetExportList(SortedExports, Linker->LinkerRoot, bRetrieveInitialReferences);
 #endif
 				bRetrieveInitialReferences = false;
 			}
@@ -4320,23 +4338,11 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							Obj->GetPreloadDependencies(Deps);
 							for (UObject* Dep : Deps)
 							{
-								if (!Dep)
+								// We assume nothing in coreuobject ever loads assets in a constructor
+								if (Dep && Dep->GetOutermost()->GetFName() != GLongCoreUObjectPackageName)
 								{
-									continue;
-								}
-								bool bIsNative = Dep->IsNative();
-
-								if (
-									Dep->GetOutermost()->GetFName() != GLongCoreUObjectPackageName && // We assume nothing in coreuobject ever loads assets in a constructor
-									(!Dep->HasAllFlags(RF_Transient) || bIsNative) &&
-									!Dep->IsPendingKill() &&
-									!Dep->HasAnyMarks(OBJECTMARK_TagExp))
-								{
-									bool bNotFiltered = !Dep->HasAllMarks(ObjectMarks) && (!(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) || !IsEditorOnlyObject(Dep));
-									if (bNotFiltered)
-									{
-										Dep->Mark(OBJECTMARK_TagImp);
-									}
+									FArchiveSaveTagImports::FScopeIgnoreDependencies IgnoreDependencies(ImportTagger);
+									ImportTagger << Dep;
 								}
 							}
 						}
@@ -4349,25 +4355,20 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 						if (Linker->IsCooking())
 						{
-							// Remove all dependencies that are not required for the cooking target platform
-							for (int32 DependencyIndex = ImportTagger.Dependencies.Num() - 1; DependencyIndex >= 0; DependencyIndex--)
+							auto RemoveInvalidObject = [&ObjectMarks](UObject* DependencyObj)
 							{
-								UObject* DependencyObj = ImportTagger.Dependencies[DependencyIndex];
 								if (DependencyObj->HasAllMarks(ObjectMarks))
 								{
 									DependencyObj->UnMark(OBJECTMARK_TagImp);
-									ImportTagger.Dependencies.RemoveAtSwap(DependencyIndex);
-								}								
-							}
-							for (int32 DependencyIndex = ImportTagger.NativeDependencies.Num() - 1; DependencyIndex >= 0; DependencyIndex--)
-							{
-								UObject* DependencyObj = ImportTagger.NativeDependencies[DependencyIndex];
-								if (DependencyObj->HasAllMarks(ObjectMarks))
-								{
-									DependencyObj->UnMark(OBJECTMARK_TagImp);
-									ImportTagger.NativeDependencies.RemoveAtSwap(DependencyIndex);
+									return true;
 								}
-							}
+								return false;
+							};
+
+							// Remove all dependencies that are not required for the cooking target platform
+							ImportTagger.Dependencies.RemoveAll(RemoveInvalidObject);
+							ImportTagger.NativeDependencies.RemoveAll(RemoveInvalidObject);
+							ImportTagger.OtherImports.RemoveAll(RemoveInvalidObject);
 						}
 
 						// add the list of dependencies to the dependency map
@@ -4858,19 +4859,14 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				FObjectExportSortHelper ExportSortHelper;
 				ExportSortHelper.SortExports( Linker, Conform );
 				
-				if ( EndSavingIfCancelled( Linker, TempFilename ) ) 
-				{ 
-					return ESavePackageResult::Canceled;
-				}
-				SlowTask.EnterProgressFrame();
-
 				// Sort exports for seek-free loading.
 				{
 					COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::SortExportsSeekfreeInnerTimeSec));
-				FObjectExportSeekFreeSorter SeekFreeSorter;
-				SeekFreeSorter.SortExports( Linker, Conform );
-				Linker->Summary.ExportCount = Linker->ExportMap.Num();
+					FObjectExportSeekFreeSorter SeekFreeSorter;
+					SeekFreeSorter.SortExports( Linker, Conform );
 				}
+
+				Linker->Summary.ExportCount = Linker->ExportMap.Num();
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) 
 				{ 

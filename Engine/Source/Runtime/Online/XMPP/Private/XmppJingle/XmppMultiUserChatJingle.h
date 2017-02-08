@@ -91,7 +91,7 @@ public:
 /**
 *  Room configuration types
 */
-enum class EConfigureRoomType : uint8
+enum class EConfigureRoomTypeJingle : uint8
 {
 	NoCallback, // Trigger no callbacks.  Currently used for global chat config.
 	UseCreateCallback, // New room config, trigger create callback when done
@@ -187,7 +187,7 @@ private:
 	void ProcessResultOp(FXmppChatRoomOpResult* ResultOp, class FXmppMultiUserChatJingle& Muc);
 
 	// Configure room w/ flags for internal use to determine which callbacks to trigger
-	bool InternalConfigureRoom(const FXmppRoomId& RoomId, const FXmppRoomConfig& RoomConfig, EConfigureRoomType RoomConfigurationType);
+	bool InternalConfigureRoom(const FXmppRoomId& RoomId, const FXmppRoomConfig& RoomConfig, EConfigureRoomTypeJingle RoomConfigurationType);
 	void InternalHandleJoinedRoom(const FXmppChatMemberPtr& SelfMember, FXmppRoomJingle* XmppRoom);
 
 	// Update logging while joining a room

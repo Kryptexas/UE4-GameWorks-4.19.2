@@ -22,7 +22,7 @@ public:
 
 	// IXmppMessages
 
-	virtual bool SendMessage(FString RecipientId, const FXmppMessage& Message) override;
+	virtual bool SendMessage(const FString& RecipientId, const FXmppMessage& Message) override;
 	virtual FOnXmppMessageReceived& OnReceiveMessage() override { return OnXmppMessageReceivedDelegate; }
 
 	// FTickerObjectBase

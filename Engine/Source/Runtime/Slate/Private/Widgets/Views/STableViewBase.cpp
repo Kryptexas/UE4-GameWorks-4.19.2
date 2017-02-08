@@ -786,6 +786,11 @@ int32 STableViewBase::GetNumItemsWide() const
 	return 1;
 }
 
+void STableViewBase::NavigateToWidget(const uint32 UserIndex, const TSharedPtr<SWidget>& NavigationDestination, ENavigationSource NavigationSource) const
+{
+	FSlateApplication::Get().NavigateToWidget(UserIndex, NavigationDestination, NavigationSource);
+}
+
 void STableViewBase::OnRightMouseButtonUp(const FPointerEvent& MouseEvent)
 {
 	const FVector2D& SummonLocation = MouseEvent.GetScreenSpacePosition();

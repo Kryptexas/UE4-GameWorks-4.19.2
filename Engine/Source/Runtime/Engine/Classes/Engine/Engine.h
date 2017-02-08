@@ -729,6 +729,14 @@ public:
 	UPROPERTY()
 	UObject *GameSingleton;
 
+	/** Name of a singleton class to spawn as the AssetManager, configurable per game. If empty, it will not spawn one */
+	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="Object", DisplayName="Asset Manager Class"), AdvancedDisplay)
+	FStringClassReference AssetManagerClassName;
+
+	/** A UObject spawned at initialization time to handle game-specific data */
+	UPROPERTY()
+	class UAssetManager *AssetManager;
+
 	/** Path that levels for play on console will be saved to (relative to FPaths::GameSavedDir()) */
 	UPROPERTY(config)
 	FString PlayOnConsoleSaveDir;

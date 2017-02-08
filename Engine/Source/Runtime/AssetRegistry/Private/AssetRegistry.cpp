@@ -101,7 +101,6 @@ FAssetRegistry::FAssetRegistry()
 
 	// Registers the configured cooked tags whitelist to prevent non-whitelisted tags from being added to cooked builds
 	bFilterlistIsWhitelist = false;
-	SetupCookedFilterlistTags();
 
 	// Collect all code generator classes (currently BlueprintCore-derived ones)
 	CollectCodeGeneratorClasses();
@@ -1752,6 +1751,15 @@ FDependsNode* FAssetRegistry::ResolveRedirector(FDependsNode* InDependency, TMap
 
 void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps /* = nullptr */)
 {
+	bool bFilterListInitialized = false;
+
+	if (!bFilterListInitialized)
+	{
+		// Don't setup filter list until needed, this catches all modules that were loaded late in startup
+		bFilterListInitialized = true;
+		SetupCookedFilterlistTags();
+	}
+
 	// Write mini asset registry header
 	FGuid LocalGuid = GRuntimeRegistryGuid;
 	LocalGuid.Serialize(Ar);

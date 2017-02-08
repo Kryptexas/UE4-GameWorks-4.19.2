@@ -1474,7 +1474,7 @@ FEventReply UUserWidget::OnMotionDetected_Implementation(FGeometry MyGeometry, F
 
 /////////////////////////////////////////////////////
 
-bool CreateWidgetHelpers::ValidateUserWidgetClass(UClass* UserWidgetClass)
+bool CreateWidgetHelpers::ValidateUserWidgetClass(const UClass* UserWidgetClass)
 {
 	if (UserWidgetClass == nullptr)
 	{

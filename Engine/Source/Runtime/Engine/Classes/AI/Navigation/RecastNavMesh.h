@@ -801,8 +801,8 @@ public:
 	/** Creates a task to be executed on GameThread calling UpdateDrawing */
 	void RequestDrawingUpdate(bool bForce = false);
 
-	/** Invalidates active paths that go through changed tiles  */
-	void InvalidateAffectedPaths(const TArray<uint32>& ChangedTiles);
+	/** called after regenerating tiles */
+	virtual void OnNavMeshTilesUpdated(const TArray<uint32>& ChangedTiles);
 
 	/** Event from generator that navmesh build has finished */
 	virtual void OnNavMeshGenerationFinished();
@@ -1017,6 +1017,9 @@ protected:
 
 	void UpdatePolyRefBitsPreview();
 	
+	/** Invalidates active paths that go through changed tiles  */
+	void InvalidateAffectedPaths(const TArray<uint32>& ChangedTiles);
+
 	/** Spawns an ARecastNavMesh instance, and configures it if AgentProps != NULL */
 	static ARecastNavMesh* SpawnInstance(UNavigationSystem* NavSys, const FNavDataConfig* AgentProps = NULL);
 

@@ -17,16 +17,17 @@ namespace UnrealBuildTool
 		/// <param name="ProjectFile"></param>
 		/// <param name="ProjectName"></param>
 		/// <param name="ProjectDirectory"></param>
-		/// <param name="ExecutablePath"></param>
+		/// <param name="InTargetConfigurations"></param>
+		/// <param name="InExecutablePaths"></param>
 		/// <param name="EngineDirectory"></param>
 		/// <param name="bForDistribution"></param>
 		/// <param name="CookFlavor"></param>
 		/// <param name="bIsDataDeploy"></param>
 		/// <returns></returns>
-        public static bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
+		public static bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, List<UnrealTargetConfiguration> InTargetConfigurations, List<string> InExecutablePaths, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
 		{
 	        BaseWindowsDeploy Deploy = new BaseWindowsDeploy();
-            return Deploy.PrepForUATPackageOrDeploy(ProjectFile, ProjectName, ProjectDirectory, ExecutablePath, EngineDirectory, bForDistribution, CookFlavor, bIsDataDeploy);
+            return Deploy.PrepForUATPackageOrDeploy(ProjectFile, ProjectName, ProjectDirectory, InTargetConfigurations, InExecutablePaths, EngineDirectory, bForDistribution, CookFlavor, bIsDataDeploy);
 		}
 
 		/// <summary>

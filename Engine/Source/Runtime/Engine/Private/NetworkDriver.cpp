@@ -766,6 +766,15 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 					}
 				}
 
+				for (FObjectReplicator* Replicator : UnmappedReplicators)
+				{
+					if (Replicator->bForceUpdateUnmapped)
+					{
+						Replicator->bForceUpdateUnmapped = false;
+						AllReplicators.Add(Replicator);
+					}
+				}
+
 				for ( FObjectReplicator* Replicator : AllReplicators )
 				{
 					if ( UnmappedReplicators.Contains( Replicator ) )

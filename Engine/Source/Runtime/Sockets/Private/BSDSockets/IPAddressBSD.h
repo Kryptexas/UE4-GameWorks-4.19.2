@@ -47,6 +47,11 @@ public:
 		int32 Port = 0;
 
 		FString AddressString = InAddr;
+		if (AddressString.IsEmpty())
+		{
+			bIsValid = false;
+			return;
+		}
 
 		TArray<FString> PortTokens;
 		AddressString.ParseIntoArray(PortTokens, TEXT(":"), true);

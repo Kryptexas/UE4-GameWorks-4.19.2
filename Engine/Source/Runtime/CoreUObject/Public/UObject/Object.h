@@ -7,6 +7,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/UObjectBaseUtility.h"
 #include "ProfilingDebugging/ResourceSize.h"
+#include "PrimaryAssetId.h"
 
 class FConfigCacheIni;
 class FEditPropertyChain;
@@ -589,6 +590,9 @@ public:
 
 		/** Gathers a list of asset registry searchable tags from given objects properties */
 		COREUOBJECT_API static void GetAssetRegistryTagsFromSearchableProperties(const UObject* Object, TArray<FAssetRegistryTag>& OutTags);
+
+		/** Returns true if this FName is a special UStruct that should be exported even if not tagged, with the struct name as the tag name */
+		COREUOBJECT_API static bool IsUniqueAssetRegistryTagStruct(FName StructName, ETagType& TagType);
 	};
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
 
@@ -641,6 +645,13 @@ public:
 
 	/** Returns true if this object is considered an asset. */
 	virtual bool IsAsset() const;
+
+	/**
+	 * Returns an Type:Name pair representing the PrimaryAssetId for this object.
+	 * Assets that need to be globally referenced at runtime should return a valid Identifier.
+	 * If this is valid, the object can be referenced by identifier using the AssetManager 
+	 */
+	virtual FPrimaryAssetId GetPrimaryAssetId() const;
 
 	/** Returns true if this object is considered a localized resource. */
 	virtual bool IsLocalizedResource() const;

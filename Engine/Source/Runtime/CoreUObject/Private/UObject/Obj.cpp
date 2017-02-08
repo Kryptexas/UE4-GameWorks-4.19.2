@@ -1422,16 +1422,33 @@ FString GetConfigFilename( UObject* SourceObject )
 
 void UObject::FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(const UObject* Object, TArray<FAssetRegistryTag>& OutTags)
 {
-	check(NULL != Object);
+	TSet<FName> FoundSpecialStructs;
+
+	check(nullptr != Object);
 	for( TFieldIterator<UProperty> FieldIt( Object->GetClass() ); FieldIt; ++FieldIt )
 	{
-		if ( FieldIt->HasAnyPropertyFlags(CPF_AssetRegistrySearchable) )
-		{
-			FString PropertyStr;
-			const uint8* PropertyAddr = FieldIt->ContainerPtrToValuePtr<uint8>(Object);
-			FieldIt->ExportTextItem( PropertyStr, PropertyAddr, PropertyAddr, NULL, PPF_None );
+		FName TagName;
+		FAssetRegistryTag::ETagType TagType = TT_Alphabetical;
+		UStructProperty* StructProp = Cast<UStructProperty>(*FieldIt);
 
-			FAssetRegistryTag::ETagType TagType;
+		if (StructProp && StructProp->Struct && IsUniqueAssetRegistryTagStruct(StructProp->Struct->GetFName(), TagType))
+		{
+			// Special unique structure type
+			TagName = StructProp->Struct->GetFName();
+			
+			if (FoundSpecialStructs.Contains(TagName))
+			{
+				UE_LOG(LogObj, Error, TEXT("Object %s has more than one unique asset registry struct %s!"), *Object->GetPathName(), *TagName.ToString());
+			}
+			else
+			{
+				FoundSpecialStructs.Add(TagName);
+			}
+		}
+		else if (FieldIt->HasAnyPropertyFlags(CPF_AssetRegistrySearchable))
+		{
+			TagName = FieldIt->GetFName();
+
 			UClass* Class = FieldIt->GetClass();
 			if (Class->IsChildOf(UIntProperty::StaticClass()) ||
 				Class->IsChildOf(UFloatProperty::StaticClass()) ||
@@ -1440,11 +1457,11 @@ void UObject::FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(co
 				// ints and floats are always numerical
 				TagType = FAssetRegistryTag::TT_Numerical;
 			}
-			else if ( Class->IsChildOf(UByteProperty::StaticClass()) )
+			else if (Class->IsChildOf(UByteProperty::StaticClass()))
 			{
 				// bytes are numerical, enums are alphabetical
 				UByteProperty* ByteProp = static_cast<UByteProperty*>(*FieldIt);
-				if ( ByteProp->Enum )
+				if (ByteProp->Enum)
 				{
 					TagType = FAssetRegistryTag::TT_Alphabetical;
 				}
@@ -1468,11 +1485,35 @@ void UObject::FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(co
 				// All other types are alphabetical
 				TagType = FAssetRegistryTag::TT_Alphabetical;
 			}
+		}
 
-			OutTags.Add( FAssetRegistryTag(FieldIt->GetFName(), PropertyStr, TagType) );
+		if (TagName != NAME_None)
+		{
+
+			FString PropertyStr;
+			const uint8* PropertyAddr = FieldIt->ContainerPtrToValuePtr<uint8>(Object);
+			FieldIt->ExportTextItem( PropertyStr, PropertyAddr, PropertyAddr, nullptr, PPF_None );
+
+			OutTags.Add( FAssetRegistryTag(TagName, PropertyStr, TagType) );
 		}
 	}
 }
+
+bool UObject::FAssetRegistryTag::IsUniqueAssetRegistryTagStruct(FName StructName, ETagType& TagType)
+{
+	static const FName AssetBundleDataName("AssetBundleData"); // Name of FAssetBundleData in Engine
+
+	if (StructName == AssetBundleDataName)
+	{
+		TagType = FAssetRegistryTag::TT_Hidden;
+		return true;
+	}
+
+	return false;
+}
+
+const FName FPrimaryAssetId::PrimaryAssetTypeTag(TEXT("PrimaryAssetType"));
+const FName FPrimaryAssetId::PrimaryAssetNameTag(TEXT("PrimaryAssetName"));
 
 void UObject::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
@@ -1482,6 +1523,15 @@ void UObject::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	{
 		OutTags.Add( FAssetRegistryTag("ResourceSize", FString::Printf(TEXT("%d"), (ResourceSize + 512) / 1024), FAssetRegistryTag::TT_Numerical) );
 	}
+
+	// Add primary asset info if valid
+	FPrimaryAssetId PrimaryAssetId = GetPrimaryAssetId();
+	if (PrimaryAssetId.IsValid())
+	{
+		OutTags.Add(FAssetRegistryTag(FPrimaryAssetId::PrimaryAssetTypeTag, PrimaryAssetId.PrimaryAssetType.ToString(), UObject::FAssetRegistryTag::TT_Alphabetical));
+		OutTags.Add(FAssetRegistryTag(FPrimaryAssetId::PrimaryAssetNameTag, PrimaryAssetId.PrimaryAssetName.ToString(), UObject::FAssetRegistryTag::TT_Alphabetical));
+	}
+
 	FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(this, OutTags);
 }
 
@@ -1519,6 +1569,17 @@ bool UObject::IsAsset() const
 	}
 
 	return false;
+}
+
+FPrimaryAssetId UObject::GetPrimaryAssetId() const
+{
+	if (FCoreUObjectDelegates::GetPrimaryAssetIdForObject.IsBound() && IsAsset())
+	{
+		// Call global callback if bound
+		return FCoreUObjectDelegates::GetPrimaryAssetIdForObject.Execute(this);
+	}
+
+	return FPrimaryAssetId();
 }
 
 bool UObject::IsLocalizedResource() const

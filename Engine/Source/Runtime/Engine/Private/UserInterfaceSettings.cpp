@@ -86,24 +86,27 @@ float UUserInterfaceSettings::GetDPIScaleBasedOnSize(FIntPoint Size) const
 
 void UUserInterfaceSettings::ForceLoadResources()
 {
-	TArray<UObject*> LoadedClasses;
-	LoadedClasses.Add(DefaultCursor.TryLoad());
-	LoadedClasses.Add(TextEditBeamCursor.TryLoad());
-	LoadedClasses.Add(CrosshairsCursor.TryLoad());
-	LoadedClasses.Add(GrabHandCursor.TryLoad());
-	LoadedClasses.Add(HandCursor.TryLoad());
-	LoadedClasses.Add(GrabHandClosedCursor.TryLoad());
-	LoadedClasses.Add(SlashedCircleCursor.TryLoad());
-
-	for ( UObject* Cursor : LoadedClasses )
+	if (bLoadWidgetsOnDedicatedServer || !IsRunningDedicatedServer())
 	{
-		if ( Cursor )
-		{
-			CursorClasses.Add(Cursor);
-		}
-	}
+		TArray<UObject*> LoadedClasses;
+		LoadedClasses.Add(DefaultCursor.TryLoad());
+		LoadedClasses.Add(TextEditBeamCursor.TryLoad());
+		LoadedClasses.Add(CrosshairsCursor.TryLoad());
+		LoadedClasses.Add(GrabHandCursor.TryLoad());
+		LoadedClasses.Add(HandCursor.TryLoad());
+		LoadedClasses.Add(GrabHandClosedCursor.TryLoad());
+		LoadedClasses.Add(SlashedCircleCursor.TryLoad());
 
-	CustomScalingRuleClassInstance = CustomScalingRuleClass.TryLoadClass<UDPICustomScalingRule>();
+		for (UObject* Cursor : LoadedClasses)
+		{
+			if (Cursor)
+			{
+				CursorClasses.Add(Cursor);
+			}
+		}
+
+		CustomScalingRuleClassInstance = CustomScalingRuleClass.TryLoadClass<UDPICustomScalingRule>();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -126,6 +126,7 @@ FCoreUObjectDelegates::FStringAssetReferenceLoaded FCoreUObjectDelegates::String
 FCoreUObjectDelegates::FStringAssetReferenceSaving FCoreUObjectDelegates::StringAssetReferenceSaving;
 FCoreUObjectDelegates::FPackageCreatedForLoad FCoreUObjectDelegates::PackageCreatedForLoad;
 FCoreUObjectDelegates::FPackageLoadedFromStringAssetReference FCoreUObjectDelegates::PackageLoadedFromStringAssetReference;
+FCoreUObjectDelegates::FGetPrimaryAssetIdForObject FCoreUObjectDelegates::GetPrimaryAssetIdForObject;
 
 /** Check whether we should report progress or not */
 bool ShouldReportProgress()
@@ -1754,6 +1755,9 @@ void EndLoad()
 			}
 		}
 	}
+
+	// Loaded new objects, so allow reaccessing asset ptrs
+	FStringAssetReference::InvalidateTag();
 }
 
 /*-----------------------------------------------------------------------------

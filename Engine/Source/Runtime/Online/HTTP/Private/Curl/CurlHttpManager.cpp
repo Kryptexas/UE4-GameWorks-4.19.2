@@ -12,6 +12,10 @@
 #include "Curl/CurlHttp.h"
 #include "Modules/ModuleManager.h"
 
+#if WITH_SSL
+#include "Modules/ModuleManager.h"
+#endif
+
 #if WITH_LIBCURL
 
 #if PLATFORM_WINDOWS

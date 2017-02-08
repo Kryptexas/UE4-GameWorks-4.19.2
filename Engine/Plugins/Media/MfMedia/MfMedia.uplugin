@@ -21,7 +21,7 @@
 			"Name" : "MfMedia",
 			"Type" : "RuntimeNoCommandlet",
 			"LoadingPhase" : "PreLoadingScreen",
-			"WhitelistPlatforms" : [ "XboxOne", "Win32", "Win64" ]
+			"WhitelistPlatforms" : [ "XboxOne" ]
 		},
 		{
 			"Name" : "MfMediaEditor",
@@ -37,7 +37,7 @@
 			"Name" : "MfMediaFactory",
 			"Type" : "RuntimeNoCommandlet",
 			"LoadingPhase" : "PostEngineInit",
-			"WhitelistPlatforms" : [ "XboxOne", "Win32", "Win64" ]
+			"WhitelistPlatforms" : [ "XboxOne" ]
 		}
 	]
 }

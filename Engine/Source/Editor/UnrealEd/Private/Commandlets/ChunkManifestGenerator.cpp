@@ -24,6 +24,7 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Stats/StatsMisc.h"
 #include "UniquePtr.h"
+#include "Engine/AssetManager.h"
 
 #include "JsonWriter.h"
 #include "JsonReader.h"
@@ -303,6 +304,10 @@ void FChunkManifestGenerator::GenerateChunkManifestForPackage(const FName& Packa
 		if (FGameDelegates::Get().GetAssignStreamingChunkDelegate().IsBound())
 		{
 			FGameDelegates::Get().GetAssignStreamingChunkDelegate().ExecuteIfBound(PackagePathName, LastLoadedMapName, RegistryChunkIDs, ExistingChunkIDs, TargetChunks);
+		}
+		else if (UAssetManager::IsValid())
+		{
+			UAssetManager::Get().AssignStreamingChunk(PackagePathName, LastLoadedMapName, RegistryChunkIDs, ExistingChunkIDs, TargetChunks);
 		}
 		else
 		{
@@ -921,6 +926,10 @@ bool FChunkManifestGenerator::GetPackageDependencies(FName PackageName, TArray<F
 	if (FGameDelegates::Get().GetGetPackageDependenciesForManifestGeneratorDelegate().IsBound())
 	{
 		return FGameDelegates::Get().GetGetPackageDependenciesForManifestGeneratorDelegate().Execute(PackageName, DependentPackageNames, InDependencyType);
+	}
+	else if (UAssetManager::IsValid())
+	{
+		return UAssetManager::Get().GetPackageDependenciesForManifestGenerator(PackageName, DependentPackageNames, InDependencyType);
 	}
 	else
 	{

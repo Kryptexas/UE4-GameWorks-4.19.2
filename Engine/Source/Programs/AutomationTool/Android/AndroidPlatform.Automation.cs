@@ -739,8 +739,8 @@ public class AndroidPlatform : Platform
             if (!Params.Prebuilt)
             {
                 string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
-                string SOName = GetSONameWithoutArchitecture(Params, SC.StageExecutables[0]);
-                List<string> Architectures = new List<string>();
+				string SOName = GetSONameWithoutArchitecture(Params, SC.StageExecutables[0]);
+				List<string> Architectures = new List<string>();
                 Architectures.Add(DeviceArchitecture);
                 Deploy.SetAndroidPluginData(Architectures, CollectPluginDataPaths(SC));
                 Deploy.PrepForUATPackageOrDeploy(Params.RawProjectPath, Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, true);

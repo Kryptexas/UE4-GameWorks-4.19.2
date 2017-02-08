@@ -3020,3 +3020,22 @@ template<> struct TBaseStructure<FInt32Interval>
 	COREUOBJECT_API static UScriptStruct* Get();
 };
 
+struct FStringAssetReference;
+template<> struct TBaseStructure<FStringAssetReference>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+struct FStringClassReference;
+template<> struct TBaseStructure<FStringClassReference>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+struct FPrimaryAssetId;
+template<> struct TBaseStructure<FPrimaryAssetId>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+

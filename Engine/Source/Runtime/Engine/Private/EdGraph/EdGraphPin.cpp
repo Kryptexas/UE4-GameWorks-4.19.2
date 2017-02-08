@@ -900,6 +900,14 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 			if (bParseSuccess)
 			{
 				DefaultObject = FindObject<UObject>(nullptr, *DefaultObjectString);
+
+#if WITH_EDITORONLY_DATA
+				// Fixup redirectors
+				while (Cast<UObjectRedirector>(DefaultObject) != nullptr)
+				{
+					DefaultObject = Cast<UObjectRedirector>(DefaultObject)->DestinationObject;
+				}
+#endif
 			}
 		}
 		else if (PropertyToken == PinHelpers::DefaultTextValueName)

@@ -695,6 +695,7 @@ public:
 	virtual void PostLoad() override;
 	virtual void PostInitProperties() override;
 	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 	// End UObject interface
 	
 	// UClass interface

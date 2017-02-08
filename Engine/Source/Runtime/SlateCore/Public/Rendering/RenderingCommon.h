@@ -712,6 +712,18 @@ public:
 	}
 
 	/**
+	 * Give the viewport an opportunity to override the navigation behavior.
+	 * This is called after all the navigation event bubbling is complete and we know a destination.
+	 *
+	 * @param InDestination	The destination widget
+	 * @return whether we handled the navigation
+	 */
+	virtual bool HandleNavigation(const uint32 InUserIndex, TSharedPtr<SWidget> InDestination)
+	{
+		return false;
+	}
+
+	/**
 	 * Called when the viewport loses keyboard focus.  
 	 *
 	 * @param InFocusEvent	Information about what caused the viewport to lose focus

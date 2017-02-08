@@ -175,6 +175,7 @@
 #include "Engine/EndUserSettings.h"
 
 #include "Engine/LODActor.h"
+#include "Engine/AssetManager.h"
 
 #if !UE_BUILD_SHIPPING
 #include "Interfaces/IAutomationWorkerModule.h"
@@ -1032,6 +1033,12 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModuleChecked(TEXT("GeometryCache"));
 	}
 
+	// Finish asset manager loading
+	if (AssetManager)
+	{
+		AssetManager->FinishInitialLoading();
+	}
+
 	bool bIsRHS = true;
 	if (GConfig)
 	{
@@ -1713,6 +1720,25 @@ void UEngine::InitializeObjectReferences()
 		else
 		{
 			UE_LOG(LogEngine, Error, TEXT("Engine config value GameSingletonClassName '%s' is not a valid class name."), *GameSingletonClassName.ToString());
+		}
+	}
+
+	if (AssetManager == nullptr && AssetManagerClassName.ToString().Len() > 0)
+	{
+		UClass *SingletonClass = LoadClass<UObject>(nullptr, *AssetManagerClassName.ToString());
+
+		if (SingletonClass)
+		{
+			AssetManager = NewObject<UAssetManager>(this, SingletonClass);
+
+			if (AssetManager)
+			{
+				AssetManager->StartInitialLoading();
+			}
+		}
+		else
+		{
+			UE_LOG(LogEngine, Error, TEXT("Engine config value AssetManagerClassName '%s' is not a valid class name."), *AssetManagerClassName.ToString());
 		}
 	}
 
@@ -4058,7 +4084,7 @@ bool UEngine::HandleListParticleSystemsCommand( const TCHAR* Cmd, FOutputDevice&
 		FArchiveCountMem Count( Tree );
 		int32 RootSize = Count.GetMax();
 
-		SortedSets.Add(FSortedParticleSet(Description, RootSize, RootSize, 0, 0, 0, FResourceSizeEx(), FResourceSizeEx()));
+		SortedSets.Add(FSortedParticleSet(Description, RootSize, RootSize, 0, 0, 0, FResourceSizeEx(EResourceSizeMode::Inclusive), FResourceSizeEx(EResourceSizeMode::Exclusive)));
 		SortMap.Add(Tree,SortedSets.Num() - 1);
 	}
 

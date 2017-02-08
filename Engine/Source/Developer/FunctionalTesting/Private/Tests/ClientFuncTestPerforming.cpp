@@ -216,6 +216,8 @@ bool FClientFunctionalTestingMaps::RunTest(const FString& Parameters)
 
 	bool bCanProceed = false;
 
+	FFunctionalTestingModule::Get()->MarkPendingActivation();
+
 	UWorld* TestWorld = GetAnyGameWorld();
 	if ( TestWorld && TestWorld->GetMapName() == MapName )
 	{

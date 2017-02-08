@@ -7,8 +7,11 @@
 
 bool FAggregatorMod::Qualifies(const FAggregatorEvaluateParameters& Parameters) const
 {
-	bool bSourceMet = (!SourceTagReqs || SourceTagReqs->IsEmpty()) || (Parameters.SourceTags && SourceTagReqs->RequirementsMet(*Parameters.SourceTags));
-	bool bTargetMet = (!TargetTagReqs || TargetTagReqs->IsEmpty()) || (Parameters.TargetTags && TargetTagReqs->RequirementsMet(*Parameters.TargetTags));
+	static const FGameplayTagContainer EmptyTagContainer;
+	const FGameplayTagContainer& SrcTags = Parameters.SourceTags ? *Parameters.SourceTags : EmptyTagContainer;
+	const FGameplayTagContainer& TgtTags = Parameters.TargetTags ? *Parameters.TargetTags : EmptyTagContainer;
+	bool bSourceMet = (!SourceTagReqs || SourceTagReqs->IsEmpty()) || SourceTagReqs->RequirementsMet(SrcTags);
+	bool bTargetMet = (!TargetTagReqs || TargetTagReqs->IsEmpty()) || TargetTagReqs->RequirementsMet(TgtTags);
 
 	bool bSourceFilterMet = (Parameters.AppliedSourceTagFilter.Num() == 0);
 	bool bTargetFilterMet = (Parameters.AppliedTargetTagFilter.Num() == 0);

@@ -46,13 +46,15 @@ public:
 	}
 
 	/** Synchronously load (if necessary) and return the asset object represented by this asset ptr */
-	UObject* LoadSynchronous()
+	UObject* LoadSynchronous() const
 	{
 		UObject* Asset = Get();
 		if (Asset == nullptr && IsPending())
 		{
-			Asset = ToStringReference().TryLoad();
-			*this = Asset;
+			ToStringReference().TryLoad();
+			
+			// TryLoad will have loaded this pointer if it is valid
+			Asset = Get();
 		}
 		return Asset;
 	}
@@ -203,7 +205,7 @@ public:
 	}
 
 	/** Synchronously load (if necessary) and return the asset object represented by this asset ptr */
-	T* LoadSynchronous()
+	T* LoadSynchronous() const
 	{
 		UObject* Asset = AssetPtr.LoadSynchronous();
 		return Cast<T>(Asset);
@@ -486,7 +488,7 @@ public:
 	}
 
 	/** Synchronously load (if necessary) and return the asset object represented by this asset ptr */
-	UClass* LoadSynchronous()
+	UClass* LoadSynchronous() const
 	{
 		UObject* Asset = AssetPtr.LoadSynchronous();
 		UClass* Class = dynamic_cast<UClass*>(Asset);

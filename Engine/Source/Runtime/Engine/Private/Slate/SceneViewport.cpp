@@ -853,6 +853,15 @@ FPopupMethodReply FSceneViewport::OnQueryPopupMethod() const
 	}
 }
 
+bool FSceneViewport::HandleNavigation(const uint32 InUserIndex, TSharedPtr<SWidget> InDestination)
+{
+	if (ViewportClient != nullptr)
+	{
+		return ViewportClient->HandleNavigation(InUserIndex, InDestination);
+	}
+	return false;
+}
+
 TOptional<bool> FSceneViewport::OnQueryShowFocus(const EFocusCause InFocusCause) const
 {
 	if (ViewportClient)

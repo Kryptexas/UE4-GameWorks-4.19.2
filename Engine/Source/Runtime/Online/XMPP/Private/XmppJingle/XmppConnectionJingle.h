@@ -13,37 +13,6 @@ class FXmppPresenceJingle;
 
 #if WITH_XMPP_JINGLE
 
-/** steps during login/logout */
-namespace ELoginProgress
-{
-	enum Type
-	{
-		NotStarted,
-		ProcessingLogin,
-		ProcessingLogout,
-		LoggedIn,
-		LoggedOut
-	};
-
-	inline const TCHAR* ToString(ELoginProgress::Type EnumVal)
-	{
-		switch (EnumVal)
-		{
-			case NotStarted:
-				return TEXT("NotStarted");
-			case ProcessingLogin:
-				return TEXT("ProcessingLogin");
-			case ProcessingLogout:
-				return TEXT("ProcessingLogout");
-			case LoggedIn:
-				return TEXT("LoggedIn");
-			case LoggedOut:
-				return TEXT("LoggedOut");
-		};
-		return TEXT("");
-	}
-}
-
 /**
  * WebRTC (formerly libjingle) implementation of Xmpp connection
  * See http://www.webrtc.org/ for more info
@@ -97,15 +66,15 @@ private:
 	void UpdateStatCounters();
 
 	// called on the FXmppConnectionPumpThread
-	void HandleLoginChange(ELoginProgress::Type InLastLoginState, ELoginProgress::Type InLoginState);
+	void HandleLoginChange(EXmppLoginStatus::Type InLastLoginState, EXmppLoginStatus::Type InLoginState);
 	void HandlePumpStarting(buzz::XmppPump* XmppPump);
 	void HandlePumpQuitting(buzz::XmppPump* XmppPump);
 	void HandlePumpTick(buzz::XmppPump* XmppPump);
 	
 	/** last login state to compare for changes */
-	ELoginProgress::Type LastLoginState;
+	EXmppLoginStatus::Type LastLoginState;
 	/** current login state */
-	ELoginProgress::Type LoginState;
+	EXmppLoginStatus::Type LoginState;
 	/** login state updated from both pump thread and main thread */
 	mutable FCriticalSection LoginStateLock;
 

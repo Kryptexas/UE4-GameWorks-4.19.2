@@ -31,7 +31,7 @@
 #include "Materials/MaterialInterface.h"
 #include "Materials/Material.h"
 #include "Settings/LevelEditorPlaySettings.h"
-#include "AssetData.h"
+#include "Engine/AssetManager.h"
 #include "Editor/UnrealEdEngine.h"
 #include "Engine/Texture.h"
 #include "SceneUtils.h"
@@ -5153,6 +5153,12 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 		// allow the game to fill out the asset registry, as well as get a list of objects to always cook
 		TArray<FString> FilesInPathStrings;
 		FGameDelegates::Get().GetCookModificationDelegate().ExecuteIfBound(FilesInPathStrings);
+
+		if (UAssetManager::IsValid())
+		{
+			UAssetManager::Get().ModifyCook(FilesInPathStrings);
+		}
+
 		for (const auto& FileString : FilesInPathStrings)
 		{
 			FilesInPath.Add(FName(*FileString));

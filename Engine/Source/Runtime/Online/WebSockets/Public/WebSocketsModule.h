@@ -5,6 +5,7 @@
 #include "ModuleManager.h"
 
 class IWebSocket;
+class IWebSocketsManager;
 
 /**
  * Module for web socket implementations
@@ -16,6 +17,10 @@ class WEBSOCKETS_API FWebSocketsModule :
 public:
 
 	// FWebSocketModule
+	FWebSocketsModule()
+		: WebSocketsManager(nullptr)
+	{
+	}
 
 	/**
 	 * Singleton-like access to this module's interface.  This is just for convenience!
@@ -62,6 +67,8 @@ private:
 	 */
 	virtual void ShutdownModule() override;
 
+	/** Keeps track of Http requests while they are being processed */
+	IWebSocketsManager* WebSocketsManager;
 
 	/** singleton for the module while loaded and available */
 	static FWebSocketsModule* Singleton;

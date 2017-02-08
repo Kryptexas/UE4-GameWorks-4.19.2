@@ -143,6 +143,15 @@ public:
 		, Role(EXmppChatMemberRole::None)
 	{}
 
+	explicit FXmppChatMember(const FXmppMucPresence& MemberPresence)
+		: Nickname(MemberPresence.GetNickName())
+		, MemberJid(MemberPresence.UserJid)
+		, UserPresence(MemberPresence)
+		, Affiliation(EXmppChatMemberAffiliation::ToType(MemberPresence.Affiliation))
+		, Role(EXmppChatMemberRole::ToType(MemberPresence.Role))
+	{
+	}
+
 	FString Nickname;
 	FXmppUserJid MemberJid;
 	FXmppUserPresence UserPresence;
@@ -186,17 +195,17 @@ class FXmppRoomConfig
 {
 public:
 	FXmppRoomConfig()
-		: RoomName(TEXT("")),
-		RoomDesc(TEXT("")),
-		bIsPrivate(true),
-		Password(TEXT("")),
-		bIsPersistent(false),
-		bAllowPublicSearch(false),
-		bIsModerated(false),
-		bIsMembersOnly(false),
-		bAllowChangeSubject(false),
-		MaxMsgHistory(0),
-		RoomAnonymity(ERoomAnonymity::Semianonymous)
+		: RoomName(TEXT(""))
+		, RoomDesc(TEXT(""))
+		, bIsPrivate(true)
+		, Password(TEXT(""))
+		, bIsPersistent(false)
+		, bAllowPublicSearch(false)
+		, bIsModerated(false)
+		, bIsMembersOnly(false)
+		, bAllowChangeSubject(false)
+		, MaxMsgHistory(0)
+		, RoomAnonymity(ERoomAnonymity::Semianonymous)
 	{}
 
 	enum class ERoomAnonymity
@@ -257,6 +266,7 @@ private:
 
 	// Allow RoomConfigOp to use the defaults we don't expose yet for consumers to change
 	friend class FXmppChatRoomConfigOp;
+	friend class FXmppMultiUserChatStrophe;
 };
 
 /**

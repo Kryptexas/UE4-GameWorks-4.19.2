@@ -81,6 +81,7 @@ public:
 	typedef typename TSlateDelegates< ItemType >::FOnSetExpansionRecursive FOnSetExpansionRecursive;
 	typedef typename TSlateDelegates< ItemType >::FOnItemScrolledIntoView FOnItemScrolledIntoView;
 	typedef typename TSlateDelegates< NullableItemType >::FOnSelectionChanged FOnSelectionChanged;
+	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonClick FOnMouseButtonClick;
 	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonDoubleClick FOnMouseButtonDoubleClick;
 	typedef typename TSlateDelegates< ItemType >::FOnExpansionChanged FOnExpansionChanged;
 
@@ -97,6 +98,7 @@ public:
 		, _TreeItemsSource( static_cast< const TArray<ItemType>* >(nullptr) ) //@todo Slate Syntax: Initializing from nullptr without a cast
 		, _ItemHeight(16)
 		, _OnContextMenuOpening()
+		, _OnMouseButtonClick()
 		, _OnMouseButtonDoubleClick()
 		, _OnSelectionChanged()
 		, _OnExpansionChanged()
@@ -108,6 +110,8 @@ public:
 		, _WheelScrollMultiplier(GetGlobalScrollAmount())
 		, _OnItemToString_Debug()
 		, _OnEnteredBadState()
+		, _HandleGamepadEvents(true)
+		, _NavigateOnScrollIntoView(false)
 		{}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
@@ -127,6 +131,8 @@ public:
 		SLATE_ATTRIBUTE( float, ItemHeight )
 
 		SLATE_EVENT( FOnContextMenuOpening, OnContextMenuOpening )
+
+		SLATE_EVENT(FOnMouseButtonClick, OnMouseButtonClick)
 
 		SLATE_EVENT( FOnMouseButtonDoubleClick, OnMouseButtonDoubleClick )
 
@@ -153,6 +159,10 @@ public:
 
 		SLATE_EVENT(FOnTableViewBadState, OnEnteredBadState);
 
+		SLATE_ARGUMENT(bool, HandleGamepadEvents);
+
+		SLATE_ARGUMENT(bool, NavigateOnScrollIntoView);
+
 	SLATE_END_ARGS()
 
 		
@@ -171,6 +181,7 @@ public:
 		this->TreeItemsSource = InArgs._TreeItemsSource;
 
 		this->OnContextMenuOpening = InArgs._OnContextMenuOpening;
+		this->OnClick = InArgs._OnMouseButtonClick;
 		this->OnDoubleClick = InArgs._OnMouseButtonDoubleClick;
 		this->OnSelectionChanged = InArgs._OnSelectionChanged;
 		this->OnExpansionChanged = InArgs._OnExpansionChanged;
@@ -186,6 +197,10 @@ public:
 			? InArgs._OnItemToString_Debug
 			: SListView< ItemType >::GetDefaultDebugDelegate();
 		this->OnEnteredBadState = InArgs._OnEnteredBadState;
+
+		this->bHandleGamepadEvents = InArgs._HandleGamepadEvents;
+
+		this->bNavigateOnScrollIntoView = InArgs._NavigateOnScrollIntoView;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;
@@ -265,7 +280,7 @@ public:
 							if ( Private_GetNestingDepth(SelectionIndex) < SelectedNestingDepth )
 							{
 								// Found the parent
-								this->KeyboardSelect(this->LinearizedItems[SelectionIndex], InKeyEvent);
+								this->NavigationSelect(this->LinearizedItems[SelectionIndex], InKeyEvent);
 								break;
 							}
 						}
@@ -295,7 +310,7 @@ public:
 							// Make sure we aren't the last item on the list
 							if ( SelectionIndex < this->LinearizedItems.Num() - 1 )
 							{
-								this->KeyboardSelect(this->LinearizedItems[SelectionIndex + 1], InKeyEvent);
+								this->NavigationSelect(this->LinearizedItems[SelectionIndex + 1], InKeyEvent);
 							}
 						}
 					}

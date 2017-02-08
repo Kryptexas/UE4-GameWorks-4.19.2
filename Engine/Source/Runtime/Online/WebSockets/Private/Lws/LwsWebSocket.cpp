@@ -1,9 +1,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LwsWebSocket.h"
+#include "Private/Lws/LwsWebSocket.h"
 
-#if WITH_WEBSOCKETS
+#if WITH_WEBSOCKETS && WITH_LIBWEBSOCKETS
 
+#include "WebSocketsLog.h"
 #include "Ssl.h"
 
 namespace {
@@ -23,8 +24,8 @@ namespace {
 	};
 }
 
-FLwsWebSocket::FLwsWebSocket(const FString& InUrl, const TArray<FString>& InProtocols)
-	: LwsContext(nullptr)
+FLwsWebSocket::FLwsWebSocket(const FString& InUrl, const TArray<FString>& InProtocols, lws_context* Context)
+	: LwsContext(Context)
 	, LwsConnection(nullptr)
 	, Url(InUrl)
 	, Protocols(InProtocols)
@@ -33,68 +34,11 @@ FLwsWebSocket::FLwsWebSocket(const FString& InUrl, const TArray<FString>& InProt
 	, CloseReason()
 	, bIsConnecting(false)
 {
-	struct lws_context_creation_info ContextInfo = {};
-
-	InitLwsProtocols();
-	ContextInfo.port = CONTEXT_PORT_NO_LISTEN;
-	ContextInfo.protocols = LwsProtocols.GetData();
-	ContextInfo.uid = -1;
-	ContextInfo.gid = -1;
-	ContextInfo.options |= LWS_SERVER_OPTION_PEER_CERT_NOT_REQUIRED | LWS_SERVER_OPTION_DISABLE_OS_CA_CERTS;
-	ContextInfo.ssl_cipher_list = nullptr;
-	LwsContext = lws_create_context(&ContextInfo);
 }
 
 FLwsWebSocket::~FLwsWebSocket()
 {
 	Close(LWS_CLOSE_STATUS_GOINGAWAY, TEXT("Bye"));
-
-	if(LwsContext != nullptr)
-	{
-		lws_context_destroy(LwsContext);
-	}
-	LwsContext = nullptr;
-	DeleteLwsProtocols();
-}
-
-void FLwsWebSocket::InitLwsProtocols()
-{
-	LwsProtocols.Empty(Protocols.Num()+1);
-	for(FString Protocol : Protocols)
-	{
-		FTCHARToUTF8 ConvertName(*Protocol);
-
-		// We need to hold on to the converted strings
-		ANSICHAR *Converted = static_cast<ANSICHAR*>(FMemory::Malloc(ConvertName.Length()+1));
-		FCStringAnsi::Strcpy(Converted, ConvertName.Length(), ConvertName.Get());
-		LwsProtocols.Add({Converted, &FLwsWebSocket::CallbackWrapper, 0, 65536});
-	}
-	// Add a zero terminator at the end as we don't pass the length to LWS
-	LwsProtocols.Add({nullptr, nullptr, 0, 0});
-}
-
-
-void FLwsWebSocket::DeleteLwsProtocols()
-{
-	for (auto Element : LwsProtocols)
-	{
-		if (Element.name != nullptr)
-		{
-			FMemory::Free((void*)(Element.name));
-			Element = {};
-		}
-	}
-}
-
-bool FLwsWebSocket::Tick(float DeltaTime)
-{
-	if (LwsContext != nullptr)
-	{
-		// Hold on to a reference to this object, so we will not get destroyed while executing lws_service
-		TSharedPtr<FLwsWebSocket> Keep = SharedThis(this);
-		lws_service(LwsContext, 0);
-	}
-	return true;
 }
 
 void FLwsWebSocket::DelayConnectionError(const FString& Error)
@@ -239,6 +183,7 @@ bool FLwsSendBuffer::Write(struct lws* LwsConnection)
 	if (BytesWritten > 0)
 	{
 		WriteProtocol = LWS_WRITE_CONTINUATION;
+		UE_LOG(LogWebSockets, Verbose, TEXT("Flooby"));
 	}
 	else
 	{
@@ -261,60 +206,40 @@ bool FLwsSendBuffer::Write(struct lws* LwsConnection)
 	return BytesWritten + (int32)(LWS_PRE) >= Payload.Num();
 }
 
-int FLwsWebSocket::CallbackWrapper(struct lws *Instance, enum lws_callback_reasons Reason, void *UserData, void *Data, size_t Length)
+int FLwsWebSocket::LwsCallback(lws* Instance, lws_callback_reasons Reason, const void* Data, size_t Length)
 {
-	FLwsWebSocket* Self = reinterpret_cast<FLwsWebSocket*>(UserData);
 	switch (Reason)
 	{
-	case LWS_CALLBACK_PROTOCOL_INIT:
-	case LWS_CALLBACK_PROTOCOL_DESTROY:
-	case LWS_CALLBACK_GET_THREAD_ID:
-	case LWS_CALLBACK_LOCK_POLL:
-	case LWS_CALLBACK_UNLOCK_POLL:
-	case LWS_CALLBACK_ADD_POLL_FD:
-	case LWS_CALLBACK_DEL_POLL_FD:
-	case LWS_CALLBACK_CHANGE_MODE_POLL_FD:
-	case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER:
-	case LWS_CALLBACK_CLIENT_FILTER_PRE_ESTABLISH:
-	
-	break;
-	case LWS_CALLBACK_OPENSSL_LOAD_EXTRA_CLIENT_VERIFY_CERTS:
-	case LWS_CALLBACK_OPENSSL_LOAD_EXTRA_SERVER_VERIFY_CERTS:
-	{
-		SSL_CTX* SslContext = reinterpret_cast<SSL_CTX*>(UserData);
-		FSslModule::Get().GetCertificateManager().AddCertificatesToSslContext(SslContext);
-		break;
-	}
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:
-		Self->bIsConnecting = false;
-		Self->LwsConnection = Instance;
-		if (!Self->SendQueue.IsEmpty())
+		bIsConnecting = false;
+		LwsConnection = Instance;
+		if (!SendQueue.IsEmpty())
 		{
-			lws_callback_on_writable(Self->LwsConnection);
+			lws_callback_on_writable(LwsConnection);
 		}
-		Self->OnConnected().Broadcast();
+		OnConnected().Broadcast();
 		break;
 	case LWS_CALLBACK_CLIENT_RECEIVE:
 	{
 		SIZE_T BytesLeft = lws_remaining_packet_payload(Instance);
-		if(Self->OnMessage().IsBound())
+		if(OnMessage().IsBound())
 		{
 			FUTF8ToTCHAR Convert((const ANSICHAR*)Data, Length);
-			Self->ReceiveBuffer.Append(Convert.Get(), Convert.Length());
+			ReceiveBuffer.Append(Convert.Get(), Convert.Length());
 			if (BytesLeft == 0)
 			{
-				Self->OnMessage().Broadcast(Self->ReceiveBuffer);
-				Self->ReceiveBuffer.Empty();
+				OnMessage().Broadcast(ReceiveBuffer);
+				ReceiveBuffer.Empty();
 			}
 		}
-		Self->OnRawMessage().Broadcast(Data, Length, BytesLeft);
+		OnRawMessage().Broadcast(Data, Length, BytesLeft);
 		break;
 	}
 	case LWS_CALLBACK_WS_PEER_INITIATED_CLOSE:
 	{
-		Self->LwsConnection = nullptr;
-		Self->FlushQueues();
-		if (Self->OnClosed().IsBound())
+		LwsConnection = nullptr;
+		FlushQueues();
+		if (OnClosed().IsBound())
 		{
 			uint16 CloseStatus = *((uint16*)Data);
 #if PLATFORM_LITTLE_ENDIAN
@@ -322,37 +247,37 @@ int FLwsWebSocket::CallbackWrapper(struct lws *Instance, enum lws_callback_reaso
 			CloseStatus = BYTESWAP_ORDER16(CloseStatus);
 #endif
 			FUTF8ToTCHAR Convert((const ANSICHAR*)Data + sizeof(uint16), Length - sizeof(uint16));
-			Self->OnClosed().Broadcast(CloseStatus, Convert.Get(), true);
+			OnClosed().Broadcast(CloseStatus, Convert.Get(), true);
 			return 1; // Close the connection without logging if the user handles Close events
 		}
 		break;
 	}
 	case LWS_CALLBACK_WSI_DESTROY:
 		// Getting a WSI_DESTROY before a connection has been established and no errors reported usually means there was a timeout establishing a connection
-		if (Self->bIsConnecting)
+		if (bIsConnecting)
 		{
-			//Self->OnConnectionError().Broadcast(TEXT("Connection timed out"));
-			//Self->bIsConnecting = false;
+			//OnConnectionError().Broadcast(TEXT("Connection timed out"));
+			//bIsConnecting = false;
 		}
-		if (Self->LwsConnection)
+		if (LwsConnection)
 		{
-			Self->LwsConnection = nullptr;
+			LwsConnection = nullptr;
 		}
 		break;
 	case LWS_CALLBACK_CLOSED:
 	{
-		bool ClientInitiated = Self->LwsConnection == nullptr;
-		Self->LwsConnection = nullptr;
-		Self->OnClosed().Broadcast(LWS_CLOSE_STATUS_NORMAL, ClientInitiated?TEXT("Successfully closed connection to server"):TEXT("Connection closed by server"), ClientInitiated);
-		Self->FlushQueues();
+		bool ClientInitiated = LwsConnection == nullptr;
+		LwsConnection = nullptr;
+		OnClosed().Broadcast(LWS_CLOSE_STATUS_NORMAL, ClientInitiated?TEXT("Successfully closed connection to server"):TEXT("Connection closed by server"), ClientInitiated);
+		FlushQueues();
 		break;
 	}
 	case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
 	{
-		Self->LwsConnection = nullptr;
+		LwsConnection = nullptr;
 		FUTF8ToTCHAR Convert((const ANSICHAR*)Data, Length);
-		Self->OnConnectionError().Broadcast(Convert.Get());
-		Self->FlushQueues();
+		OnConnectionError().Broadcast(Convert.Get());
+		FlushQueues();
 		return -1;
 		break;
 	}
@@ -361,20 +286,20 @@ int FLwsWebSocket::CallbackWrapper(struct lws *Instance, enum lws_callback_reaso
 	case LWS_CALLBACK_CLIENT_WRITEABLE:
 	case LWS_CALLBACK_SERVER_WRITEABLE:
 	{
-		if (Self->CloseCode != 0)
+		if (CloseCode != 0)
 		{
-			Self->LwsConnection = nullptr;
-			FTCHARToUTF8 Convert(*Self->CloseReason);
+			LwsConnection = nullptr;
+			FTCHARToUTF8 Convert(*CloseReason);
 			// This only sets the reason for closing the connection:
-			lws_close_reason(Instance, (enum lws_close_status)Self->CloseCode, (unsigned char *)Convert.Get(), (size_t)Convert.Length());
-			Self->CloseCode = 0;
-			Self->CloseReason = FString();
-			Self->FlushQueues();
+			lws_close_reason(Instance, (enum lws_close_status)CloseCode, (unsigned char *)Convert.Get(), (size_t)Convert.Length());
+			CloseCode = 0;
+			CloseReason = FString();
+			FlushQueues();
 			return -1; // Returning non-zero will close the current connection
 		}
 		else
 		{
-			Self->SendFromQueue();
+			SendFromQueue();
 		}
 		break;
 	}

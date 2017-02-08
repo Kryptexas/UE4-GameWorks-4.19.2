@@ -5,6 +5,7 @@
 #if MFMEDIA_SUPPORTED_PLATFORM
 
 #include "MfMediaUtils.h"
+#include "MfMediaVideoSampler.h"
 
 #if PLATFORM_WINDOWS
 	#include "WindowsHWrapper.h"
@@ -65,14 +66,31 @@ FMfMediaTracks::FMfMediaTracks()
 	, AudioDone(true)
 	, CaptionDone(true)
 	, Enabled(false)
-	, VideoDone(true)
-{ }
+	, VideoSampler(new FMfMediaVideoSampler(CriticalSection))
+{
+	VideoSampler->OnFrame().BindRaw(this, &FMfMediaTracks::HandleVideoSamplerFrame);
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		FRegisterMediaVideoSamplerCommand,
+		FMfMediaVideoSampler*, VideoSampler, VideoSampler,
+		{
+			VideoSampler->Register();
+		});
+}
 
 
 FMfMediaTracks::~FMfMediaTracks()
 {
-	FlushRenderingCommands();
 	Reset();
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		FUnregisterMediaVideoSamplerCommand,
+		FMfMediaVideoSampler*, VideoSampler, VideoSampler,
+		{
+			delete VideoSampler;
+		});
+	VideoSampler = nullptr;
+	FlushRenderingCommands();
 }
 
 
@@ -111,13 +129,24 @@ void FMfMediaTracks::Reinitialize()
 {
 	AudioDone = (AudioTracks.Num() == 0);
 	CaptionDone = (CaptionTracks.Num() == 0);
-	VideoDone = (VideoTracks.Num() == 0);
+
+	VideoSampler->Stop();
+	if (VideoTracks.Num() > 0)
+	{
+		VideoSampler->Start(SourceReader);
+		if (VideoTracks.IsValidIndex(SelectedVideoTrack))
+		{
+			VideoSampler->SetStreamIndex(VideoTracks[SelectedVideoTrack].StreamIndex);
+		}
+	}
 }
 
 
 void FMfMediaTracks::Reset()
 {
 	FScopeLock Lock(&CriticalSection);
+
+	VideoSampler->Stop();
 
 	SelectedAudioTrack = INDEX_NONE;
 	SelectedCaptionTrack = INDEX_NONE;
@@ -144,7 +173,6 @@ void FMfMediaTracks::Reset()
 
 	AudioDone = true;
 	CaptionDone = true;
-	VideoDone = true;
 	Enabled = false;
 
 	SourceReader = nullptr;
@@ -155,6 +183,11 @@ void FMfMediaTracks::SetEnabled(bool InEnabled)
 {
 	FScopeLock Lock(&CriticalSection);
 	Enabled = InEnabled;
+
+	if (VideoSampler != nullptr)
+	{
+		VideoSampler->SetEnabled(Enabled);
+	}
 
 	if (AudioSink != nullptr)
 	{
@@ -177,71 +210,6 @@ void FMfMediaTracks::Tick(float DeltaTime)
 	if (!Enabled || (SourceReader == NULL))
 	{
 		return;
-	}
-
-	// Check if new video sample(s) required
-	if (VideoTracks.IsValidIndex(SelectedVideoTrack) && !VideoDone)
-	{
-		FVideoTrack& VideoTrack = VideoTracks[SelectedVideoTrack];
-
-		// Decrease the time remaining on the currently displayed sample by the passage of time
-		VideoTrack.SecondsUntilNextSample -= DeltaTime;
-
-		// Read through samples until we catch up
-		IMFSample* Sample = NULL;
-		LONGLONG Timestamp = 0;
-		while (VideoTrack.SecondsUntilNextSample <= 0)
-		{
-			SAFE_RELEASE(Sample);
-
-			DWORD StreamFlags = 0;
-			if (FAILED(SourceReader->ReadSample(VideoTrack.StreamIndex, 0, NULL, &StreamFlags, &Timestamp, &Sample)))
-			{
-				Sample = NULL;
-				break;
-			}
-			if (StreamFlags & MF_SOURCE_READERF_ENDOFSTREAM)
-			{
-				VideoDone = true;
-				SAFE_RELEASE(Sample);
-				break;
-			}
-			if (StreamFlags & MF_SOURCE_READERF_NATIVEMEDIATYPECHANGED)
-			{
-				//@TODO
-			}
-			if (Sample != NULL)
-			{
-				LONGLONG SampleDuration;
-				Sample->GetSampleDuration(&SampleDuration);
-				FTimespan Time(SampleDuration);
-				VideoTrack.SecondsUntilNextSample += Time.GetTotalSeconds();
-			}
-		}
-
-		// Process sample into content
-		if (Sample != NULL)
-		{
-			if (VideoSink != nullptr)
-			{
-				// get buffer data
-				TComPtr<IMFMediaBuffer> Buffer;
-				if (SUCCEEDED(Sample->ConvertToContiguousBuffer(&Buffer)))
-				{
-					DWORD Length;
-					Buffer->GetCurrentLength(&Length);
-
-					uint8* Data = nullptr;
-					if (SUCCEEDED(Buffer->Lock(&Data, nullptr, nullptr)))
-					{
-						VideoSink->UpdateTextureSinkBuffer(Data);
-						VideoSink->DisplayTextureSinkBuffer(FTimespan(Timestamp));
-						Buffer->Unlock();
-					}
-				}
-			}
-			SAFE_RELEASE(Sample);
-		}
 	}
 
 	// Check if new audio sample(s) required
@@ -645,6 +613,7 @@ bool FMfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 					SourceReader->SetStreamSelection(VideoTracks[TrackIndex].StreamIndex, TRUE);
 				}
 				SelectedVideoTrack = TrackIndex;
+				VideoSampler->SetStreamIndex(VideoTracks[TrackIndex].StreamIndex);
 				InitializeVideoSink();
 			}
 
@@ -1100,7 +1069,21 @@ void FMfMediaTracks::InitializeVideoSink()
 	}
 
 	const auto& VideoTrack = VideoTracks[SelectedVideoTrack];
-	VideoSink->InitializeTextureSink(VideoTrack.OutputDim, VideoTrack.BufferDim, VideoTrack.SinkFormat, EMediaTextureSinkMode::Buffered);
+	VideoSink->InitializeTextureSink(VideoTrack.OutputDim, VideoTrack.BufferDim, VideoTrack.SinkFormat, EMediaTextureSinkMode::Unbuffered);
+}
+
+/* FMfMediaStreamCollection callbacks
+*****************************************************************************/
+
+void FMfMediaTracks::HandleVideoSamplerFrame(int32 StreamIndex, const uint8* Data, const FTimespan& Time)
+{
+	FScopeLock Lock(&CriticalSection);
+
+	if (VideoSink)
+	{
+		VideoSink->UpdateTextureSinkBuffer(Data);
+		VideoSink->DisplayTextureSinkBuffer(Time);
+	}
 }
 
 

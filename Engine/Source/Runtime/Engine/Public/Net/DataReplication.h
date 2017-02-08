@@ -95,6 +95,7 @@ public:
 		ObjectClass( NULL ), 
 		bLastUpdateEmpty( false ), 
 		bOpenAckCalled( false ),
+		bForceUpdateUnmapped( false ),
 		Connection( NULL ),
 		OwningChannel( NULL ),
 		RepState( NULL ),
@@ -119,6 +120,7 @@ public:
 
 	uint32											bLastUpdateEmpty	: 1;	// True if last update (ReplicateActor) produced no replicated properties
 	uint32											bOpenAckCalled		: 1;
+	uint32											bForceUpdateUnmapped: 1;	// True if we need to do an unmapped check next frame
 
 	UNetConnection *								Connection;					// Connection this replicator was created on
 	class UActorChannel	*							OwningChannel;
@@ -146,6 +148,30 @@ public:
 	TArray< FRPCCallInfo >							RemoteFuncInfo;				// Meta information on pending net RPCs (to be sent)
 	FOutBunch *										RemoteFunctions;
 
+	struct FRPCPendingLocalCall
+	{
+		/** Index to the RPC that was delayed */
+		int32 RPCFieldIndex;
+
+		/** Flags this was replicated with */
+		FReplicationFlags RepFlags;
+
+		/** Buffer to serialize RPC out of */
+		TArray<uint8> Buffer;
+
+		/** Number of bits in buffer */
+		int64 NumBits;
+
+		/** Guids being waited on */
+		TSet<FNetworkGUID> UnmappedGuids;
+
+		FRPCPendingLocalCall(const FFieldNetCache* InRPCField, const FReplicationFlags& InRepFlags, FNetBitReader& InReader, const TSet<FNetworkGUID>& InUnmappedGuids)
+			: RPCFieldIndex(InRPCField->FieldNetIndex), RepFlags(InRepFlags), Buffer(MoveTemp(InReader.GetBuffer())), NumBits(InReader.GetNumBits()), UnmappedGuids(InUnmappedGuids)
+		{}
+	};
+
+	TArray< FRPCPendingLocalCall >					PendingLocalRPCs;			// Information on RPCs that have been received but not yet executed
+
 	void InitWithObject( UObject* InObject, UNetConnection * InConnection, bool bUseDefaultState = true );
 	void CleanUp();
 
@@ -171,6 +197,7 @@ public:
 	void	PostSendBunch(FPacketIdRange & PacketRange, uint8 bReliable);
 	
 	bool	ReceivedBunch( FNetBitReader& Bunch, const FReplicationFlags& RepFlags, const bool bHasRepLayout, bool& bOutHasUnmapped );
+	bool	ReceivedRPC(FNetBitReader& Reader, const FReplicationFlags& RepFlags, const FFieldNetCache* FieldCache, const bool bCanDelayRPC, bool& bOutDelayRPC, TSet<FNetworkGUID>& OutUnmappedGuids);
 	void	UpdateGuidToReplicatorMap();
 	bool	MoveMappedObjectToUnmapped( const FNetworkGUID& GUID );
 	void	PostReceivedBunch();

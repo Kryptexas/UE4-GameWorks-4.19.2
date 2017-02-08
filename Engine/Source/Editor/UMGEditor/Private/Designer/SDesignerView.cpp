@@ -941,7 +941,7 @@ void SDesignerView::OnEditorSelectionChanged()
 	{
 		if ( WidgetRef.IsValid() && !PendingSelectedWidgets.Contains(WidgetRef) )
 		{
-			WidgetRef.GetPreview()->Deselect();
+			WidgetRef.GetPreview()->DeselectByDesigner();
 		}
 
 		// Find all named slot host widgets that are hierarchical ancestors of this widget and call deselect on them as well
@@ -950,7 +950,7 @@ void SDesignerView::OnEditorSelectionChanged()
 
 		for (FWidgetReference SlotHostWidget : AncestorSlotHostWidgets)
 		{
-			SlotHostWidget.GetPreview()->Deselect();
+			SlotHostWidget.GetPreview()->DeselectByDesigner();
 		}
 	}
 
@@ -959,7 +959,7 @@ void SDesignerView::OnEditorSelectionChanged()
 	{
 		if ( WidgetRef.IsValid() && !SelectedWidgetsCache.Contains(WidgetRef) )
 		{
-			WidgetRef.GetPreview()->Select();
+			WidgetRef.GetPreview()->SelectByDesigner();
 
 			// Find all named slot host widgets that are hierarchical ancestors of this widget and call select on them as well
 			TArray<FWidgetReference> AncestorSlotHostWidgets;
@@ -967,7 +967,7 @@ void SDesignerView::OnEditorSelectionChanged()
 
 			for (FWidgetReference SlotHostWidget : AncestorSlotHostWidgets)
 			{
-				SlotHostWidget.GetPreview()->Select();
+				SlotHostWidget.GetPreview()->SelectByDesigner();
 			}
 		}
 	}
@@ -1748,7 +1748,7 @@ void SDesignerView::UpdatePreviewWidget(bool bForceUpdate)
 			{
 				if ( WidgetRef.IsValid() )
 				{
-					WidgetRef.GetPreview()->Select();
+					WidgetRef.GetPreview()->SelectByDesigner();
 				}
 			}
 		}

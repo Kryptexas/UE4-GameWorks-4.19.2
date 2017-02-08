@@ -30,17 +30,30 @@ FArchive& FArchiveUObject::operator<<(class FLazyObjectPtr& LazyObjectPtr)
 	// We only want to write the modified value during reference fixup if the data is loaded
 	if (!IsObjectReferenceCollector() || IsModifyingWeakAndStrongReferences())
 	{
-		// when transacting objects are serialized and restored out-of-order, resulting in *temporary* bad references
-		const bool bEvenIfPendingKill = Ar.IsTransacting();
-
-		// Downcast from UObjectBase to UObject
-		UObject* Object = static_cast<UObject*>(LazyObjectPtr.Get(bEvenIfPendingKill));
-
-		Ar << Object;
-
-		if (IsLoading() || (Object && IsModifyingWeakAndStrongReferences()))
+#if WITH_EDITORONLY_DATA
+		// When transacting, just serialize as a guid since the object may
+		// not be in memory and you don't want to save a nullptr in this case.
+		if (IsTransacting())
 		{
-			LazyObjectPtr = Object;
+			if (Ar.IsLoading())
+			{
+				// Reset before serializing to clear the internal weak pointer. 
+				LazyObjectPtr.Reset();
+			}
+			Ar << LazyObjectPtr.GetUniqueID();
+		}
+		else
+#endif
+		{
+			// Downcast from UObjectBase to UObject
+			UObject* Object = static_cast<UObject*>(LazyObjectPtr.Get());
+
+			Ar << Object;
+
+			if (IsLoading() || (Object && IsModifyingWeakAndStrongReferences()))
+			{
+				LazyObjectPtr = Object;
+			}
 		}
 	}
 	return Ar;
@@ -62,14 +75,30 @@ FArchive& FArchiveUObject::operator<<( class FAssetPtr& AssetPtr )
 	// We only want to write the modified value during reference fixup if the data is loaded
 	if( !IsObjectReferenceCollector() || IsModifyingWeakAndStrongReferences() )
 	{
-		// Downcast from UObjectBase to UObject
-		UObject* Object = static_cast< UObject* >( AssetPtr.Get() );
-
-		Ar << Object;
-
-		if( IsLoading() || (Object && IsModifyingWeakAndStrongReferences()) )
+#if WITH_EDITORONLY_DATA
+		// When transacting, just serialize as a string since the object may
+		// not be in memory and you don't want to save a nullptr in this case.
+		if (IsTransacting())
 		{
-			AssetPtr = Object;
+			if (Ar.IsLoading())
+			{
+				// Reset before serializing to clear the internal weak pointer. 
+				AssetPtr.Reset();
+			}
+			Ar << AssetPtr.GetUniqueID();
+		}
+		else
+#endif
+		{
+			// Downcast from UObjectBase to UObject
+			UObject* Object = static_cast< UObject* >( AssetPtr.Get() );
+
+			Ar << Object;
+
+			if( IsLoading() || (Object && IsModifyingWeakAndStrongReferences()) )
+			{
+				AssetPtr = Object;
+			}
 		}
 	}
 	return Ar;

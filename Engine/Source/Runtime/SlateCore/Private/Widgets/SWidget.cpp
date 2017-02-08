@@ -197,11 +197,12 @@ FReply SWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEv
 {
 	if (SupportsKeyboardFocus())
 	{
-		EUINavigation Direction = FSlateApplicationBase::Get().GetNavigationDirectionFromKey( InKeyEvent );
+		EUINavigation Direction = FSlateApplicationBase::Get().GetNavigationDirectionFromKey(InKeyEvent);
 		// It's the left stick return a navigation request of the correct direction
-		if ( Direction != EUINavigation::Invalid )
+		if (Direction != EUINavigation::Invalid)
 		{
-			return FReply::Handled().SetNavigation( Direction );
+			const ENavigationGenesis Genesis = InKeyEvent.GetKey().IsGamepadKey() ? ENavigationGenesis::Controller : ENavigationGenesis::Keyboard;
+			return FReply::Handled().SetNavigation(Direction, Genesis);
 		}
 	}
 	return FReply::Unhandled();

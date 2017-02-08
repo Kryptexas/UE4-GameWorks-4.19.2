@@ -410,6 +410,11 @@ FAsyncPackage* FAsyncLoadingThread::FindExistingPackageAndAddCompletionCallback(
 
 void FAsyncLoadingThread::UpdateExistingPackagePriorities(FAsyncPackage* InPackage, TAsyncLoadPriority InNewPriority, IAssetRegistryInterface* InAssetRegistry)
 {
+	if (!GEventDrivenLoaderEnabledInCookedBuilds)
+	{
+		return;
+	}
+
 	check(!IsInGameThread() || !IsMultithreaded());
 	if (GEventDrivenLoaderEnabled)
 	{
@@ -3241,6 +3246,7 @@ void FAsyncPackage::MarkNewObjectForLoadIfItIsAnExport(UObject *Object)
 		}
 	}
 }
+
 void FAsyncPackage::EventDrivenSerializeExport(int32 LocalExportIndex)
 {
 	SCOPED_LOADTIMER(Package_PreLoadObjects);
@@ -6594,6 +6600,47 @@ void FlushAsyncLoading(int32 PackageID /* = INDEX_NONE */)
 void FlushAsyncLoading(FName ExcludeType)
 {
 	FlushAsyncLoading();
+}
+
+EAsyncPackageState::Type ProcessAsyncLoadingUntilComplete(TFunctionRef<bool()> CompletionPredicate, float TimeLimit)
+{
+	if (!IsAsyncLoading())
+	{
+		return EAsyncPackageState::Complete;
+	}
+
+	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_FlushAsyncLoadingGameThread);
+
+	FAsyncLoadingThread& AsyncThread = FAsyncLoadingThread::Get();
+
+	// Flushing async loading while loading is suspend will result in infinite stall
+	UE_CLOG(AsyncThread.IsAsyncLoadingSuspended(), LogStreaming, Fatal, TEXT("Cannot Flush Async Loading while async loading is suspended (%d)"), AsyncThread.GetAsyncLoadingSuspendedCount());
+
+	if (TimeLimit <= 0.0f)
+	{
+		// Set to one hour if no time limit
+		TimeLimit = 60 * 60;
+	}
+
+	while (IsAsyncLoading() && TimeLimit > 0 && !CompletionPredicate())
+	{
+		double TickStartTime = FPlatformTime::Seconds();
+		if (ProcessAsyncLoading(true, true, TimeLimit) == EAsyncPackageState::Complete)
+		{
+			return EAsyncPackageState::Complete;
+		}
+
+		if (AsyncThread.IsMultithreaded())
+		{
+			// Update the heartbeat and sleep. If we're not multithreading, the heartbeat is updated after each package has been processed
+			FThreadHeartBeat::Get().HeartBeat();
+			FPlatformProcess::SleepNoStats(0.0001f);
+		}
+
+		TimeLimit -= (FPlatformTime::Seconds() - TickStartTime);
+	}
+
+	return TimeLimit <= 0 ? EAsyncPackageState::TimeOut : EAsyncPackageState::Complete;
 }
 
 int32 GetNumAsyncPackages()

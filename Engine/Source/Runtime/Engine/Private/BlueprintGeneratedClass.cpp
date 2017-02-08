@@ -148,6 +148,28 @@ void UBlueprintGeneratedClass::GetRequiredPreloadDependencies(TArray<UObject*>& 
 // 	}
 }
 
+FPrimaryAssetId UBlueprintGeneratedClass::GetPrimaryAssetId() const
+{
+	FPrimaryAssetId AssetId;
+	if (!ensure(ClassDefaultObject))
+	{
+		return AssetId;
+	}
+
+	AssetId = ClassDefaultObject->GetPrimaryAssetId();
+
+	/*
+	if (!AssetId.IsValid())
+	{ 
+		FName AssetType = NAME_None; // TODO: Support blueprint-only primary assets with a class flag. No way to guess at type currently
+		FName AssetName = FPackageName::GetShortFName(GetOutermost()->GetFName());
+		return FPrimaryAssetId(AssetType, AssetName);
+	}
+	*/
+
+	return AssetId;
+}
+
 #if WITH_EDITOR
 
 UClass* UBlueprintGeneratedClass::GetAuthoritativeClass()
@@ -1060,6 +1082,11 @@ uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunc
 
 void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty, bool bSkipSuperClass, UClass* OldClass) const
 {
+	if (Obj && Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+	{
+		return;
+	}
+
 	ensure(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
 	{

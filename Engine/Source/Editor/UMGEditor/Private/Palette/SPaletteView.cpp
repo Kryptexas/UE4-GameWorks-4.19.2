@@ -418,6 +418,11 @@ void SPaletteView::BuildClassWidgetList()
 	{
 		UClass* WidgetClass = *ClassIt;
 
+		if (!FWidgetBlueprintEditorUtils::IsUsableWidgetClass(WidgetClass))
+		{
+			continue;
+		}
+
 		// Initialize AssetData for checking PackagePath
 		FAssetData WidgetAssetData = FAssetData(WidgetClass);
 
@@ -454,33 +459,30 @@ void SPaletteView::BuildClassWidgetList()
 			continue;
 		}
 
-		if ( FWidgetBlueprintEditorUtils::IsUsableWidgetClass(WidgetClass) )
+		const bool bIsSameClass = WidgetClass->GetFName() == ActiveWidgetBlueprintClassName;
+
+		// Check that the asset that generated this class is valid (necessary b/c of a larger issue wherein force delete does not wipe the generated class object)
+		if ( bIsSameClass )
 		{
-			const bool bIsSameClass = WidgetClass->GetFName() == ActiveWidgetBlueprintClassName;
-
-			// Check that the asset that generated this class is valid (necessary b/c of a larger issue wherein force delete does not wipe the generated class object)
-			if ( bIsSameClass )
-			{
-				continue;
-			}
-
-			if (WidgetClass->IsChildOf(UUserWidget::StaticClass()))
-			{
-				if ( WidgetClass->ClassGeneratedBy )
-				{
-					// Track the widget blueprint classes that are already loaded
-					LoadedWidgetBlueprintClassesByName.Add(WidgetClass->ClassGeneratedBy->GetFName()) = WidgetClass;
-				}
-			}
-			else
-			{
-				TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
-
-				AddWidgetTemplate(Template);
-			}
-
-			//TODO UMG does not prevent deep nested circular references
+			continue;
 		}
+
+		if (WidgetClass->IsChildOf(UUserWidget::StaticClass()))
+		{
+			if ( WidgetClass->ClassGeneratedBy )
+			{
+				// Track the widget blueprint classes that are already loaded
+				LoadedWidgetBlueprintClassesByName.Add(WidgetClass->ClassGeneratedBy->GetFName()) = WidgetClass;
+			}
+		}
+		else
+		{
+			TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
+
+			AddWidgetTemplate(Template);
+		}
+
+		//TODO UMG does not prevent deep nested circular references
 	}
 
 	// Locate all widget BP assets (include unloaded)

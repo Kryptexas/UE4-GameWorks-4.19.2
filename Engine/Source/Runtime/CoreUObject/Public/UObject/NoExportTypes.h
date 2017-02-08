@@ -917,6 +917,19 @@ struct FStringClassReference : public FStringAssetReference
 {
 };
 
+/** This identifies an object as a "primary" asset that can be searched for by the AssetManager and used in various tools */
+USTRUCT(noexport, BlueprintType)
+struct FPrimaryAssetId
+{
+	/** The Type of this object, by default it's base class's name */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PrimaryAssetId)
+	FName PrimaryAssetType;
+
+	/** The Name of this object, by default it's short name */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PrimaryAssetId)
+	FName PrimaryAssetName;
+};
+
 // A struct used as stub for deleted ones.
 
 USTRUCT(noexport)

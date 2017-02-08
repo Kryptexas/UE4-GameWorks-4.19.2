@@ -10,6 +10,7 @@
 #include "Stats/Stats.h"
 #include "UObject/ObjectMacros.h"
 #include "Misc/OutputDeviceRedirector.h"
+#include "PrimaryAssetId.h"
 
 struct FCustomPropertyListNode;
 struct FObjectInstancingGraph;
@@ -529,6 +530,7 @@ namespace EAsyncPackageState
 		Complete,
 	};
 }
+
 /**
  * Serializes a bit of data each frame with a soft time limit. The function is designed to be able
  * to fully load a package in a single pass given sufficient time.
@@ -539,6 +541,17 @@ namespace EAsyncPackageState
  * @return The minimum state of any of the queued packages.
  */
 COREUOBJECT_API EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit);
+
+/**
+ * Blocks and runs ProcessAsyncLoading until the time limit is hit, the completion predicate returns true, or all async loading is done
+ * 
+ * @param	CompletionPredicate	If this returns true, stop loading. This is called periodically as long as loading continues
+ * @param	TimeLimit			Hard time limit. 0 means infinite length
+ * @return The minimum state of any of the queued packages.
+ */
+COREUOBJECT_API EAsyncPackageState::Type ProcessAsyncLoadingUntilComplete(TFunctionRef<bool()> CompletionPredicate, float TimeLimit);
+
+/** UObjects are being loaded between these calls */
 COREUOBJECT_API void BeginLoad(const TCHAR* DebugContext = nullptr);
 COREUOBJECT_API void EndLoad();
 
@@ -1950,6 +1963,10 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	/** called when saving a string asset reference, can replace the value with something else */
 	DECLARE_DELEGATE_RetVal_OneParam(FString, FStringAssetReferenceSaving, FString const& /*SavingAssetLongPathname*/);
 	static FStringAssetReferenceSaving StringAssetReferenceSaving;
+
+	/** Called when trying to figure out if a UObject is a primary asset, if it doesn't know */
+	DECLARE_DELEGATE_RetVal_OneParam(FPrimaryAssetId, FGetPrimaryAssetIdForObject, const UObject*);
+	static FGetPrimaryAssetIdForObject GetPrimaryAssetIdForObject;
 };
 
 /** Allows release builds to override not verifying GC assumptions. Useful for profiling as it's hitchy. */

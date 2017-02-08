@@ -35,8 +35,6 @@ DEFINE_STAT(STAT_XmppMucOpRequests);
 
 #if WITH_XMPP_JINGLE
 
-#define XMPP_RESOURCE_VERSION 2
-
 /**
  * Thread to create the xmpp pump/connection
  * Spawned during login and destroyed on logout
@@ -54,7 +52,7 @@ public:
 		, Thread(NULL)
 		, XmppPump(NULL)
 		, XmppThread(NULL)
-		, LoginState(ELoginProgress::NotStarted)
+		, LoginState(EXmppLoginStatus::NotStarted)
 		, ServerPingTask(NULL)
 		, ServerPingRetries(0)
 	{
@@ -121,11 +119,11 @@ public:
 		while (!ExitRequest.GetValue())
 		{
 			// initial startup and login requests
-			if (LoginState == ELoginProgress::NotStarted ||
+			if (LoginState == EXmppLoginStatus::NotStarted ||
 				LoginRequest.GetValue())
 			{
-				Connection.HandleLoginChange(LoginState, ELoginProgress::ProcessingLogin);
-				LoginState = ELoginProgress::ProcessingLogin;
+				Connection.HandleLoginChange(LoginState, EXmppLoginStatus::ProcessingLogin);
+				LoginState = EXmppLoginStatus::ProcessingLogin;
 				if (XmppThread->IsQuitting())
 				{
 					XmppThread->Restart();
@@ -145,11 +143,11 @@ public:
 				Connection.HandlePumpStarting(XmppPump);
 			}
 			// logout requests
-			else if (LoginState == ELoginProgress::LoggedIn &&
+			else if (LoginState == EXmppLoginStatus::LoggedIn &&
 					 LogoutRequest.GetValue())
 			{
-				Connection.HandleLoginChange(LoginState, ELoginProgress::ProcessingLogout);
-				LoginState = ELoginProgress::ProcessingLogout;
+				Connection.HandleLoginChange(LoginState, EXmppLoginStatus::ProcessingLogout);
+				LoginState = EXmppLoginStatus::ProcessingLogout;
 
 				Connection.HandlePumpQuitting(XmppPump);
 				
@@ -252,7 +250,7 @@ private:
 		UE_LOG(LogXmpp, VeryVerbose, TEXT("OnSslClosed error=%d"), (int32)XmppSocket->error());
 		UE_LOG(LogXmpp, VeryVerbose, TEXT("OnSslClosed winsock=%d"), XmppSocket->GetError());
 
-		if (LoginState == ELoginProgress::ProcessingLogin)
+		if (LoginState == EXmppLoginStatus::ProcessingLogin)
 		{
 			OnSignalStateChange(buzz::XmppEngine::STATE_CLOSED);
 		}
@@ -272,8 +270,8 @@ private:
 			{
 				UE_LOG(LogXmpp, Verbose, TEXT("STATE_OPEN"));
 
-				Connection.HandleLoginChange(LoginState, ELoginProgress::LoggedIn);
-				LoginState = ELoginProgress::LoggedIn;
+				Connection.HandleLoginChange(LoginState, EXmppLoginStatus::LoggedIn);
+				LoginState = EXmppLoginStatus::LoggedIn;
 
 				StartServerPing();
 			}
@@ -282,7 +280,7 @@ private:
 			{
 				UE_LOG(LogXmpp, Verbose, TEXT("STATE_CLOSED"));
 
-				if (LoginState != ELoginProgress::LoggedIn)
+				if (LoginState != EXmppLoginStatus::LoggedIn)
 				{
 					LogError(TEXT("log-in"));
 				}
@@ -291,8 +289,8 @@ private:
 				Connection.HandlePumpQuitting(XmppPump);
 				XmppThread->Quit();
 
-				Connection.HandleLoginChange(LoginState, ELoginProgress::LoggedOut);
-				LoginState = ELoginProgress::LoggedOut;
+				Connection.HandleLoginChange(LoginState, EXmppLoginStatus::LoggedOut);
+				LoginState = EXmppLoginStatus::LoggedOut;
 			}
 			break;
 		}
@@ -370,7 +368,7 @@ private:
 	buzz::XmppSocket* XmppSocket;
 
 	/** steps during login/logout */
-	ELoginProgress::Type LoginState;
+	EXmppLoginStatus::Type LoginState;
 
 	/** Used for pinging the server periodically to maintain connection */
 	class buzz::PingTask* ServerPingTask;
@@ -384,8 +382,8 @@ private:
 int32 FXmppConnectionPumpThread::ThreadInstanceIdx = 0;
 
 FXmppConnectionJingle::FXmppConnectionJingle()
-	: LastLoginState(ELoginProgress::NotStarted)
-	, LoginState(ELoginProgress::NotStarted)
+	: LastLoginState(EXmppLoginStatus::NotStarted)
+	, LoginState(EXmppLoginStatus::NotStarted)
 	, StatUpdateFreq(1.0)
 	, LastStatUpdateTime(0.0)
 	, PresenceJingle(NULL)
@@ -454,7 +452,7 @@ IXmppChatPtr FXmppConnectionJingle::PrivateChat()
 
 bool FXmppConnectionJingle::Tick(float DeltaTime)
 {
-	ELoginProgress::Type LocalLastLoginState, LocalLoginState;
+	EXmppLoginStatus::Type LocalLastLoginState, LocalLoginState;
 	{
 		FScopeLock Lock(&LoginStateLock);
 		LocalLastLoginState = LastLoginState;
@@ -464,28 +462,28 @@ bool FXmppConnectionJingle::Tick(float DeltaTime)
 
 	if (LocalLastLoginState != LocalLoginState)
 	{
-		if (LocalLoginState == ELoginProgress::LoggedIn)
+		if (LocalLoginState == EXmppLoginStatus::LoggedIn)
 		{
 			UE_LOG(LogXmpp, Log, TEXT("Logged IN JID=%s"), *GetUserJid().GetFullPath());
-			if (LocalLastLoginState == ELoginProgress::ProcessingLogin)
+			if (LocalLastLoginState == EXmppLoginStatus::ProcessingLogin)
 			{
 				OnLoginComplete().Broadcast(GetUserJid(), true, FString());
 			}
 			OnLoginChanged().Broadcast(GetUserJid(), EXmppLoginStatus::LoggedIn);
 		}
-		else if (LocalLoginState == ELoginProgress::LoggedOut)
+		else if (LocalLoginState == EXmppLoginStatus::LoggedOut)
 		{
 			UE_LOG(LogXmpp, Log, TEXT("Logged OUT JID=%s"), *GetUserJid().GetFullPath());
-			if (LocalLastLoginState == ELoginProgress::ProcessingLogin)
+			if (LocalLastLoginState == EXmppLoginStatus::ProcessingLogin)
 			{
 				OnLoginComplete().Broadcast(GetUserJid(), false, FString());
 			}
-			else if (LocalLastLoginState == ELoginProgress::ProcessingLogout)
+			else if (LocalLastLoginState == EXmppLoginStatus::ProcessingLogout)
 			{
 				OnLogoutComplete().Broadcast(GetUserJid(), true, FString());
 			}
-			if (LocalLastLoginState == ELoginProgress::LoggedIn ||
-				LocalLastLoginState == ELoginProgress::ProcessingLogout)
+			if (LocalLastLoginState == EXmppLoginStatus::LoggedIn ||
+				LocalLastLoginState == EXmppLoginStatus::ProcessingLogout)
 			{
 				OnLoginChanged().Broadcast(GetUserJid(), EXmppLoginStatus::LoggedOut);
 			}
@@ -564,8 +562,8 @@ void FXmppConnectionJingle::Startup()
 {
 	UE_LOG(LogXmpp, Log, TEXT("Startup connection"));
 
-	LastLoginState = ELoginProgress::NotStarted;
-	LoginState = ELoginProgress::NotStarted;
+	LastLoginState = EXmppLoginStatus::NotStarted;
+	LoginState = EXmppLoginStatus::NotStarted;
 
 	check(PumpThread == NULL);
 	PumpThread = new FXmppConnectionPumpThread(*this);
@@ -575,13 +573,13 @@ void FXmppConnectionJingle::Shutdown()
 {
 	UE_LOG(LogXmpp, Log, TEXT("Shutdown connection"));
 
-	LoginState = ELoginProgress::LoggedOut;
+	LoginState = EXmppLoginStatus::LoggedOut;
 
 	delete PumpThread;
 	PumpThread = NULL;
 }
 
-void FXmppConnectionJingle::HandleLoginChange(ELoginProgress::Type InLastLoginState, ELoginProgress::Type InLoginState)
+void FXmppConnectionJingle::HandleLoginChange(EXmppLoginStatus::Type InLastLoginState, EXmppLoginStatus::Type InLoginState)
 {
 	FScopeLock Lock(&LoginStateLock);
 
@@ -589,7 +587,7 @@ void FXmppConnectionJingle::HandleLoginChange(ELoginProgress::Type InLastLoginSt
 	LastLoginState = InLastLoginState;
 
 	UE_LOG(LogXmpp, Log, TEXT("Login Changed from %s to %s"), 
-		ELoginProgress::ToString(LastLoginState), ELoginProgress::ToString(LoginState));
+		EXmppLoginStatus::ToString(LastLoginState), EXmppLoginStatus::ToString(LoginState));
 }
 
 void FXmppConnectionJingle::HandlePumpStarting(buzz::XmppPump* XmppPump)
@@ -657,11 +655,8 @@ void FXmppConnectionJingle::SetServer(const FXmppServer& InServer)
 	// in order to ensure unique connections from user/client combination
 	// add random number to the client resource identifier
 	ServerConfig = InServer;
-	
-	ServerConfig.ClientResource  = FString::Printf(TEXT("V%u"), XMPP_RESOURCE_VERSION) + FString(TEXT(":"));
-	ServerConfig.ClientResource += ServerConfig.AppId + FString(TEXT(":"));
-	ServerConfig.ClientResource += ServerConfig.Platform + FString(TEXT(":"));
-	ServerConfig.ClientResource += FGuid::NewGuid().ToString(EGuidFormats::Digits);
+
+	ServerConfig.ClientResource = FXmppUserJid::CreateResource(ServerConfig.AppId, ServerConfig.Platform);
 }
 
 const FXmppServer& FXmppConnectionJingle::GetServer() const
@@ -708,15 +703,15 @@ void FXmppConnectionJingle::Login(const FString& UserId, const FString& Password
 		UE_LOG(LogXmpp, Log, TEXT("  user = %s"), *UserJid.GetFullPath());
 
 		// socket/thread for pumping connection	
-		if (LoginState == ELoginProgress::ProcessingLogin)
+		if (LoginState == EXmppLoginStatus::ProcessingLogin)
 		{
 			ErrorStr = TEXT("Still processing last login");
 		}
-		else if (LoginState == ELoginProgress::ProcessingLogout)
+		else if (LoginState == EXmppLoginStatus::ProcessingLogout)
 		{
 			ErrorStr = TEXT("Still processing last logout");
 		}
-		else if (LoginState == ELoginProgress::LoggedIn)
+		else if (LoginState == EXmppLoginStatus::LoggedIn)
 		{
 			ErrorStr = TEXT("Already logged in");
 		}
@@ -779,7 +774,7 @@ EXmppLoginStatus::Type FXmppConnectionJingle::GetLoginStatus() const
 {
 	FScopeLock Lock(&LoginStateLock);
 
-	if (LoginState == ELoginProgress::LoggedIn)
+	if (LoginState == EXmppLoginStatus::LoggedIn)
 	{
 		return EXmppLoginStatus::LoggedIn;
 	}

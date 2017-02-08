@@ -531,6 +531,8 @@ bool FRepLayout::CompareProperties(
 	const uint8* RESTRICT			Data,
 	const FReplicationFlags&		RepFlags ) const
 {
+	SCOPE_CYCLE_COUNTER( STAT_NetReplicateDynamicPropTime );
+
 	RepChangelistState->CompareIndex++;
 
 	check( RepChangelistState->HistoryEnd - RepChangelistState->HistoryStart < FRepChangelistState::MAX_CHANGE_HISTORY );
@@ -3300,7 +3302,7 @@ void FRepLayout::SendPropertiesForRPC( UObject* Object, UFunction * Function, UA
 	}
 }
 
-void FRepLayout::ReceivePropertiesForRPC( UObject* Object, UFunction * Function, UActorChannel * Channel, FNetBitReader & Reader, void* Data ) const
+void FRepLayout::ReceivePropertiesForRPC( UObject* Object, UFunction * Function, UActorChannel * Channel, FNetBitReader & Reader, void* Data, TSet<FNetworkGUID>& UnmappedGuids) const
 {
 	check( Function == Owner );
 
@@ -3327,6 +3329,7 @@ void FRepLayout::ReceivePropertiesForRPC( UObject* Object, UFunction * Function,
 		if ( Reader.PackageMap->GetTrackedUnmappedGuids().Num() > 0 )
 		{
 			bHasUnmapped = true;
+			UnmappedGuids = Reader.PackageMap->GetTrackedUnmappedGuids();
 		}
 
 		Reader.PackageMap->ResetTrackedGuids( false );
@@ -3339,6 +3342,8 @@ void FRepLayout::ReceivePropertiesForRPC( UObject* Object, UFunction * Function,
 	}
 	else
 	{
+		Reader.PackageMap->ResetTrackedGuids(true);
+
 		for ( int32 i = 0; i < Parents.Num(); i++ )
 		{
 			if ( Cast<UBoolProperty>( Parents[i].Property ) || Reader.ReadBit() )
@@ -3359,6 +3364,13 @@ void FRepLayout::ReceivePropertiesForRPC( UObject* Object, UFunction * Function,
 				}
 			}
 		}
+
+		if (Reader.PackageMap->GetTrackedUnmappedGuids().Num() > 0)
+		{
+			UnmappedGuids = Reader.PackageMap->GetTrackedUnmappedGuids();
+		}
+
+		Reader.PackageMap->ResetTrackedGuids(false);
 	}
 }
 

@@ -22,6 +22,8 @@ UAITask_MoveTo::UAITask_MoveTo(const FObjectInitializer& ObjectInitializer)
 
 	AddRequiredResource(UAIResource_Movement::StaticClass());
 	AddClaimedResource(UAIResource_Movement::StaticClass());
+
+	MoveResult = EPathFollowingResult::Invalid;
 }
 
 UAITask_MoveTo* UAITask_MoveTo::AIMoveTo(AAIController* Controller, FVector InGoalLocation, AActor* InGoalActor, float AcceptanceRadius, EAIOptionFlag::Type StopOnOverlap, EAIOptionFlag::Type AcceptPartialPath, bool bUsePathfinding, bool bLockAILogic)

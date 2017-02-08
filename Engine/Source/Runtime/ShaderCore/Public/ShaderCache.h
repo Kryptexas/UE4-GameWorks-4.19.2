@@ -1009,7 +1009,7 @@ private:
 	static bool LoadShaderCache(FString Path, FShaderCaches* Cache);
 	static bool SaveShaderCache(FString Path, FShaderCaches* Cache);
 	static void DumpCookCache();
-	
+
 	struct FShaderResourceViewBinding
 	{
 		FShaderResourceViewBinding()
@@ -1066,7 +1066,7 @@ private:
 private:
 	void InternalLogStreamingKey(uint32 StreamKey, bool const bActive);
 	void InternalLogShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, uint32 UncompressedSize, TArray<uint8> const& Code);
-	
+
 	void InternalLogVertexDeclaration(const FVertexDeclarationElementList& VertexElements, FVertexDeclarationRHIParamRef VertexDeclaration);
 	
 	void InternalLogBoundShaderState(EShaderPlatform Platform, FVertexDeclarationRHIParamRef VertexDeclaration,

@@ -33,6 +33,7 @@
 #include "Settings/EditorLoadingSavingSettings.h"
 #include "Engine/TimelineTemplate.h"
 #include "Curves/CurveBase.h"
+#include "Interfaces/ITargetPlatform.h"
 #endif
 #include "Engine/InheritableComponentHandler.h"
 
@@ -335,8 +336,11 @@ void UBlueprint::PreSave(const class ITargetPlatform* TargetPlatform)
 	// Clear all upgrade notes, the user has saved and should not see them anymore
 	UpgradeNotesLog.Reset();
 
-	// Cache the BP for use
-	FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(this);
+	if (!TargetPlatform || TargetPlatform->HasEditorOnlyData())
+	{
+		// Cache the BP for use
+		FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(this);
+	}
 }
 #endif // WITH_EDITORONLY_DATA
 
@@ -868,6 +872,7 @@ UWorld* UBlueprint::GetWorldBeingDebugged()
 
 void UBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
+	// We use Generated instead of Skeleton because the CDO data is more accurate on Generated
 	if (UClass* GenClass = Cast<UClass>(GeneratedClass))
 	{
 		if (UObject* CDO = GenClass->GetDefaultObject())
@@ -964,6 +969,18 @@ void UBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 		}
 		OutTags.Add(FAssetRegistryTag("BlueprintComponents", FString::FromInt(NumAddedComponents), UObject::FAssetRegistryTag::TT_Numerical));
 	}
+}
+
+FPrimaryAssetId UBlueprint::GetPrimaryAssetId() const
+{
+	// Forward to our Class, which will forward to CDO if needed
+	// We use Generated instead of Skeleton because the CDO data is more accurate on Generated
+	if (UClass* GenClass = Cast<UClass>(GeneratedClass))
+	{
+		return GenClass->GetPrimaryAssetId();
+	}
+
+	return FPrimaryAssetId();
 }
 
 FString UBlueprint::GetFriendlyName() const

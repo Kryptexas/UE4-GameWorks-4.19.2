@@ -2527,7 +2527,7 @@ void UNavigationSystem::UpdateActorInNavOctree(AActor& Actor)
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Actor.GetWorld());
 		if (NavSys)
 		{
-			NavSys->UpdateNavOctreeElement(&Actor, NavElement, OctreeUpdate_Modifiers);
+			NavSys->UpdateNavOctreeElement(&Actor, NavElement, OctreeUpdate_Default);
 		}
 	}
 }
@@ -2847,7 +2847,7 @@ void UNavigationSystem::OnActorRegistered(AActor* Actor)
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Actor->GetWorld());
 		if (NavSys)
 		{
-			NavSys->RegisterNavOctreeElement(Actor, NavInterface, OctreeUpdate_Modifiers);
+			NavSys->RegisterNavOctreeElement(Actor, NavInterface, OctreeUpdate_Default);
 		}
 	}
 }
@@ -2866,7 +2866,7 @@ void UNavigationSystem::OnActorUnregistered(AActor* Actor)
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Actor->GetWorld());
 		if (NavSys)
 		{
-			NavSys->UnregisterNavOctreeElement(Actor, NavInterface, OctreeUpdate_Modifiers);
+			NavSys->UnregisterNavOctreeElement(Actor, NavInterface, OctreeUpdate_Default);
 		}
 	}
 }

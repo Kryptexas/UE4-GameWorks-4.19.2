@@ -15,9 +15,30 @@ namespace EXmppLoginStatus
 {
 	enum Type
 	{
+		NotStarted,
+		ProcessingLogin,
+		ProcessingLogout,
 		LoggedIn,
 		LoggedOut
 	};
+
+	inline const TCHAR* ToString(EXmppLoginStatus::Type EnumVal)
+	{
+		switch (EnumVal)
+		{
+			case NotStarted:
+				return TEXT("NotStarted");
+			case ProcessingLogin:
+				return TEXT("ProcessingLogin");
+			case ProcessingLogout:
+				return TEXT("ProcessingLogout");
+			case LoggedIn:
+				return TEXT("LoggedIn");
+			case LoggedOut:
+				return TEXT("LoggedOut");
+		};
+		return TEXT("Unknown");
+	}
 };
 
 /**
@@ -66,15 +87,16 @@ class XMPP_API FXmppUserJid
 {
 public:
 
-	FXmppUserJid(
-		const FString& InId = FString(),
-		const FString& InDomain = FString(),
-		const FString& InResource = FString()
+	explicit FXmppUserJid(
+		FString InId = FString(),
+		FString InDomain = FString(),
+		FString InResource = FString()
 		)
-		: Id(InId)
-		, Domain(InDomain)
-		, Resource(InResource)
-	{}
+		: Id(MoveTemp(InId))
+		, Domain(MoveTemp(InDomain))
+		, Resource(MoveTemp(InResource))
+	{
+	}
 
 	/** unique id for the user */
 	FString Id;
@@ -93,6 +115,8 @@ public:
 	 * @return Whether the Resource was successfully parsed or not
 	 */
 	static bool ParseResource(const FString& InResource, FString& OutAppId, FString& OutPlatform);
+
+	static FString CreateResource(const FString& AppId, const FString& Platform);
 
 	/** 
 	 * Get the components that comprise the resource
@@ -122,12 +146,20 @@ public:
 		if (!Domain.IsEmpty())
 		{
 			Result += TEXT("@") + Domain;
+
+			if (!Resource.IsEmpty())
+			{
+				Result += TEXT("/") + Resource;
+			}
 		}
-		if (!Resource.IsEmpty())
-		{
-			Result += TEXT("/") + Resource;
-		}
+
 		return Result;
+	}
+
+	/** Return Bare id (id@domain) */
+	FString GetBareId() const
+	{
+		return FString::Printf(TEXT("%s@%s"), *Id, *Domain);
 	}
 
 	/** @return true if jid has all valid elements */
@@ -142,11 +174,11 @@ public:
 	}
 };
 
-typedef TSharedPtr<class IXmppPresence, ESPMode::ThreadSafe> IXmppPresencePtr;
-typedef TSharedPtr<class IXmppPubSub, ESPMode::ThreadSafe> IXmppPubSubPtr;
-typedef TSharedPtr<class IXmppMessages, ESPMode::ThreadSafe> IXmppMessagesPtr;
-typedef TSharedPtr<class IXmppMultiUserChat, ESPMode::ThreadSafe> IXmppMultiUserChatPtr;
-typedef TSharedPtr<class IXmppChat, ESPMode::ThreadSafe> IXmppChatPtr;
+typedef TSharedPtr<IXmppPresence, ESPMode::ThreadSafe> IXmppPresencePtr;
+typedef TSharedPtr<IXmppPubSub, ESPMode::ThreadSafe> IXmppPubSubPtr;
+typedef TSharedPtr<IXmppMessages, ESPMode::ThreadSafe> IXmppMessagesPtr;
+typedef TSharedPtr<IXmppMultiUserChat, ESPMode::ThreadSafe> IXmppMultiUserChatPtr;
+typedef TSharedPtr<IXmppChat, ESPMode::ThreadSafe> IXmppChatPtr;
 
 /**
  * Base interface for connecting to Xmpp
@@ -186,9 +218,6 @@ public:
 	 * Logout on the connection with a user that has previously logged in. 
 	 * This will close the socket connection and cleanup.
 	 * See OnLogoutComplete(), OnLoginChanged() delegates for completion
-	 *
-	 * @param UserId just the id portion of the jid (domain is in server config)
-	 * @param Auth plain text auth credentials for user
 	 */
 	virtual void Logout() = 0;
 

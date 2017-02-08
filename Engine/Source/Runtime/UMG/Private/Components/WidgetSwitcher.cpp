@@ -134,7 +134,7 @@ const FText UWidgetSwitcher::GetPaletteCategory()
 	return LOCTEXT("Panel", "Panel");
 }
 
-void UWidgetSwitcher::OnDescendantSelected(UWidget* DescendantWidget)
+void UWidgetSwitcher::OnDescendantSelectedByDesigner(UWidget* DescendantWidget)
 {
 	// Temporarily sets the active child to the selected child to make
 	// dragging and dropping easier in the editor.
@@ -149,7 +149,7 @@ void UWidgetSwitcher::OnDescendantSelected(UWidget* DescendantWidget)
 	}
 }
 
-void UWidgetSwitcher::OnDescendantDeselected(UWidget* DescendantWidget)
+void UWidgetSwitcher::OnDescendantDeselectedByDesigner(UWidget* DescendantWidget)
 {
 	SetActiveWidgetIndex(ActiveWidgetIndex);
 }

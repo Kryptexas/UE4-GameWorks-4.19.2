@@ -3429,7 +3429,7 @@ void FRecastNavMeshGenerator::TickAsyncBuild(float DeltaSeconds)
 	if (UpdatedTileIndices.Num() > 0)
 	{
 		// Invalidate active paths that go through regenerated tiles
-		DestNavMesh->InvalidateAffectedPaths(UpdatedTileIndices);
+		DestNavMesh->OnNavMeshTilesUpdated(UpdatedTileIndices);
 		bRequestDrawingUpdate = true;
 
 #if	WITH_EDITOR

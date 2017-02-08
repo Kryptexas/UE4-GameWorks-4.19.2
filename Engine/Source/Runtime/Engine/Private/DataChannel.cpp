@@ -623,7 +623,7 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 				// Don't ack this packet (since we won't process all of it)
 				bOutSkipAck = true;
 
-				UE_LOG( LogNetTraffic, Warning, TEXT( "ReceivedNextBunch: Skipping bunch since channel isn't fully open. ChIndex: %i" ), ChIndex );
+				UE_LOG( LogNetTraffic, Verbose, TEXT( "ReceivedNextBunch: Skipping bunch since channel isn't fully open. ChIndex: %i" ), ChIndex );
 				return false;
 			}
 
@@ -1539,12 +1539,18 @@ void UActorChannel::CleanupReplicators( const bool bKeepReplicators )
 	// Cleanup or save replicators
 	for ( auto CompIt = ReplicationMap.CreateIterator(); CompIt; ++CompIt )
 	{
-		if ( bKeepReplicators )
+		if ( bKeepReplicators && CompIt.Value()->GetObject() != nullptr )
 		{
 			// If we want to keep the replication state of the actor/sub-objects around, transfer ownership to the connection
 			// This way, if this actor opens another channel on this connection, we can reclaim or use this replicator to compare state, etc.
 			// For example, we may want to see if any state changed since the actor went dormant, and is now active again. 
-			check( Connection->DormantReplicatorMap.Find( CompIt.Value()->GetObject() ) == NULL );
+			//	NOTE - Commenting out this assert, since the case that it's happening for should be benign.
+			//	Here is what is likely happening:
+			//		We move a channel to the KeepProcessingActorChannelBunchesMap
+			//		While the channel is on this list, we also re-open a new channel using the same actor
+			//		KeepProcessingActorChannelBunchesMap will get in here, then when the channel closes a second time, we'll hit this assert
+			//		It should be okay to just set the most recent replicator
+			//check( Connection->DormantReplicatorMap.Find( CompIt.Value()->GetObject() ) == NULL );
 			Connection->DormantReplicatorMap.Add( CompIt.Value()->GetObject(), CompIt.Value() );
 			CompIt.Value()->StopReplicating( this );		// Stop replicating on this channel
 		}
@@ -1685,6 +1691,8 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 		}
 	}
 
+	bool bWasDormant = false;
+
 	// If we're the client, destroy this actor.
 	if (!bIsServer)
 	{
@@ -1709,6 +1717,7 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 			else if (Dormant && !Actor->bTearOff)
 			{
 				Connection->Driver->GetNetworkObjectList().MarkDormant(Actor, Connection, 1, Connection->Driver->NetDriverName);
+				bWasDormant = true;
 			}
 			else if (!Actor->bNetTemporary && Actor->GetWorld() != NULL && !GIsRequestingExit)
 			{
@@ -1718,17 +1727,12 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 			}
 		}
 	}
-	else if (Actor && !OpenAcked)
-	{
-		// Resend temporary actors if nak'd.
-		Connection->SentTemporaries.Remove(Actor);
-	}
 
 	// Remove from hash and stuff.
 	SetClosingFlag();
 
 	// If this actor is going dormant (and we are a client), keep the replicators around, we need them to run the business logic for updating unmapped properties
-	const bool bKeepReplicators = !bForDestroy && !bIsServer && Dormant != 0;
+	const bool bKeepReplicators = !bForDestroy && !bIsServer && bWasDormant;
 
 	CleanupReplicators( bKeepReplicators );
 
@@ -1746,13 +1750,23 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 	// Free the must be mapped list
 	QueuedMustBeMappedGuidsInLastBunch.Empty();
 
-	// Free any queued bunches
-	for ( int32 i = 0; i < QueuedBunches.Num(); i++ )
+	if (QueuedBunches.Num() > 0)
 	{
-		delete QueuedBunches[i];
-	}
+		// Free any queued bunches
+		for (int32 i = 0; i < QueuedBunches.Num(); i++)
+		{
+			delete QueuedBunches[i];
+		}
 
-	QueuedBunches.Empty();
+		QueuedBunches.Empty();
+
+		UPackageMapClient * PackageMapClient = Cast< UPackageMapClient >(Connection->PackageMap);
+
+		if (PackageMapClient)
+		{
+			PackageMapClient->SetHasQueuedBunches(ActorNetGUID, false);
+		}
+	}
 
 	// We check for -1 here, which will be true if this channel has already been closed but still needed to process bunches before fully closing
 	if ( ChIndex >= 0 )	
@@ -1956,6 +1970,16 @@ bool UActorChannel::ProcessQueuedBunches()
 			QueuedBunchStartTime = FPlatformTime::Seconds();
 		}
 	}
+	else
+	{
+		// Processed all bunches
+		UPackageMapClient * PackageMapClient = Cast< UPackageMapClient >(Connection->PackageMap);
+
+		if (PackageMapClient)
+		{
+			PackageMapClient->SetHasQueuedBunches(ActorNetGUID, false);
+		}
+	}
 
 	// Update the driver with our time spent
 	const uint32 QueueBunchEndCycles = FPlatformTime::Cycles();
@@ -2061,6 +2085,14 @@ void UActorChannel::ReceivedBunch( FInBunch & Bunch )
 			
 			// Start ticking this channel so we can process the queued bunches when possible
 			Connection->StartTickingChannel(this);
+
+			// Register this as being queued
+			UPackageMapClient * PackageMapClient = Cast< UPackageMapClient >(Connection->PackageMap);
+
+			if (PackageMapClient)
+			{
+				PackageMapClient->SetHasQueuedBunches(ActorNetGUID, true);
+			}
 
 			return;
 		}
@@ -2375,7 +2407,7 @@ bool UActorChannel::ReplicateActor()
 	{
 		RepFlags.bNetInitial = true;
 		Bunch.bClose = Actor->bNetTemporary;
-		Bunch.bReliable = !Actor->bNetTemporary;
+		Bunch.bReliable = true; // Net temporary sends need to be reliable as well to force them to retry
 	}
 
 	// Owned by connection's player?

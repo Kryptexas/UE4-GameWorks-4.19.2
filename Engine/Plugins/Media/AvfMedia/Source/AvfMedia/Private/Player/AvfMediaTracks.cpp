@@ -276,8 +276,10 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 
 		if ([MediaType isEqualToString:AVMediaTypeAudio])
 		{
+#if WITH_EDITOR
 			PlayerTrack.enabled = false;
-			
+#endif
+
 			int32 TrackIndex = AudioTracks.AddDefaulted();
 			Track = &AudioTracks[TrackIndex];
 			

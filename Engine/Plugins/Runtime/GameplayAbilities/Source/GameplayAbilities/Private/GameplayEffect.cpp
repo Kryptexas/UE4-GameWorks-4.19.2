@@ -2346,15 +2346,19 @@ void FActiveGameplayEffectsContainer::InternalUpdateNumericalAttribute(FGameplay
 
 void FActiveGameplayEffectsContainer::SetAttributeBaseValue(FGameplayAttribute Attribute, float NewBaseValue)
 {
+	const UAttributeSet* Set = Owner->GetAttributeSubobject(Attribute.GetAttributeSetClass());
+	if (ensure(Set))
+	{
+		Set->PreAttributeBaseChange(Attribute, NewBaseValue);
+	}
+
 	// if we're using the new attributes we should always update their base value
 	bool bIsGameplayAttributeDataProperty = FGameplayAttribute::IsGameplayAttributeDataProperty(Attribute.GetUProperty());
 	if (bIsGameplayAttributeDataProperty)
 	{
 		const UStructProperty* StructProperty = Cast<UStructProperty>(Attribute.GetUProperty());
 		check(StructProperty);
-		UAttributeSet* AttributeSet = const_cast<UAttributeSet*>(Owner->GetAttributeSubobject(Attribute.GetAttributeSetClass()));
-		ensure(AttributeSet);
-		FGameplayAttributeData* DataPtr = StructProperty->ContainerPtrToValuePtr<FGameplayAttributeData>(AttributeSet);
+		FGameplayAttributeData* DataPtr = StructProperty->ContainerPtrToValuePtr<FGameplayAttributeData>(const_cast<UAttributeSet*>(Set));
 		if (ensure(DataPtr))
 		{
 			DataPtr->SetBaseValue(NewBaseValue);
@@ -2365,12 +2369,7 @@ void FActiveGameplayEffectsContainer::SetAttributeBaseValue(FGameplayAttribute A
 	if (RefPtr)
 	{
 		// There is an aggregator for this attribute, so set the base value. The dirty callback chain
-		// will update the actual AttributeSet property value for us.
-
-		const UAttributeSet* Set = Owner->GetAttributeSubobject(Attribute.GetAttributeSetClass());
-		check(Set);
-
-		Set->PreAttributeBaseChange(Attribute, NewBaseValue);
+		// will update the actual AttributeSet property value for us.		
 		RefPtr->Get()->SetBaseValue(NewBaseValue);
 	}
 	// if there is no aggregator set the current value (base == current in this case)

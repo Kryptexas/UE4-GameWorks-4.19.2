@@ -174,7 +174,7 @@ void UGameplayCueSet::CopyCueDataToSetForEditorPreview(FGameplayTag Tag, UGamepl
 	UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
 	if (ensure(CueManager))
 	{
-		CueManager->StreamableManager.SimpleAsyncLoad(DestinationSet->GameplayCueData[DestIdx].GameplayCueNotifyObj);
+		CueManager->StreamableManager.RequestAsyncLoad(DestinationSet->GameplayCueData[DestIdx].GameplayCueNotifyObj);
 	}
 }
 
@@ -208,6 +208,12 @@ bool UGameplayCueSet::HandleGameplayCueNotify_Internal(AActor* TargetActor, int3
 {	
 	bool bReturnVal = false;
 
+	UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
+	if (!ensure(CueManager))
+	{
+		return false;
+	}
+
 	if (DataIdx != INDEX_NONE)
 	{
 		check(GameplayCueData.IsValidIndex(DataIdx));
@@ -229,17 +235,14 @@ bool UGameplayCueSet::HandleGameplayCueNotify_Internal(AActor* TargetActor, int3
 			CueData.LoadedGameplayCueClass = FindObject<UClass>(nullptr, *CueData.GameplayCueNotifyObj.ToString());
 			if (CueData.LoadedGameplayCueClass == nullptr)
 			{
-				// Not loaded: start async loading and return
-				UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
-				if (ensure(CueManager))
+				if (!CueManager->HandleMissingGameplayCue(this, CueData, TargetActor, EventType, Parameters))
 				{
-					CueManager->StreamableManager.SimpleAsyncLoad(CueData.GameplayCueNotifyObj);
-
-					ABILITY_LOG(Display, TEXT("GameplayCueNotify %s was not loaded when GameplayCue was invoked. Starting async loading."), *CueData.GameplayCueNotifyObj.ToString());
+					return false;
 				}
-				return false;
 			}
 		}
+
+		check(CueData.LoadedGameplayCueClass);
 
 		// Handle the Notify if we found something
 		if (UGameplayCueNotify_Static* NonInstancedCue = Cast<UGameplayCueNotify_Static>(CueData.LoadedGameplayCueClass->ClassDefaultObject))
@@ -263,19 +266,15 @@ bool UGameplayCueSet::HandleGameplayCueNotify_Internal(AActor* TargetActor, int3
 		{
 			if (InstancedCue->HandlesEvent(EventType))
 			{
-				UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
-				if (ensure(CueManager))
+				//Get our instance. We should probably have a flag or something to determine if we want to reuse or stack instances. That would mean changing our map to have a list of active instances.
+				AGameplayCueNotify_Actor* SpawnedInstancedCue = CueManager->GetInstancedCueActor(TargetActor, CueData.LoadedGameplayCueClass, Parameters);
+				if (ensure(SpawnedInstancedCue))
 				{
-					//Get our instance. We should probably have a flag or something to determine if we want to reuse or stack instances. That would mean changing our map to have a list of active instances.
-					AGameplayCueNotify_Actor* SpawnedInstancedCue = CueManager->GetInstancedCueActor(TargetActor, CueData.LoadedGameplayCueClass, Parameters);
-					if (ensure(SpawnedInstancedCue))
+					SpawnedInstancedCue->HandleGameplayCue(TargetActor, EventType, Parameters);
+					bReturnVal = true;
+					if (!SpawnedInstancedCue->IsOverride)
 					{
-						SpawnedInstancedCue->HandleGameplayCue(TargetActor, EventType, Parameters);
-						bReturnVal = true;
-						if (!SpawnedInstancedCue->IsOverride)
-						{
-							HandleGameplayCueNotify_Internal(TargetActor, CueData.ParentDataIdx, EventType, Parameters);
-						}
+						HandleGameplayCueNotify_Internal(TargetActor, CueData.ParentDataIdx, EventType, Parameters);
 					}
 				}
 			}

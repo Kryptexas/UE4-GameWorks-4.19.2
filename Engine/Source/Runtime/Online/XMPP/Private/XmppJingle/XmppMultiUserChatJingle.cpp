@@ -46,7 +46,7 @@ public:
 class FXmppConfigResponseJingle
 {
 public:
-	FXmppConfigResponseJingle(FXmppRoomId InRoomId, EConfigureRoomType InRoomConfigurationType, bool InbSuccess, FString InErrorStr)
+	FXmppConfigResponseJingle(FXmppRoomId InRoomId, EConfigureRoomTypeJingle InRoomConfigurationType, bool InbSuccess, FString InErrorStr)
 		: RoomId(InRoomId)
 		, RoomConfigurationType(InRoomConfigurationType)
 		, bSuccess(InbSuccess)
@@ -54,7 +54,7 @@ public:
 	{}
 
 	FXmppRoomId RoomId;
-	EConfigureRoomType RoomConfigurationType;
+	EConfigureRoomTypeJingle RoomConfigurationType;
 	bool bSuccess;
 	FString ErrorStr;
 };
@@ -126,7 +126,7 @@ public:
 		buzz::XmppTaskParentInterface* Parent,
 		const buzz::Jid& RoomJid,
 		FXmppRoomId InRoomId,
-		EConfigureRoomType InRoomConfigurationType,
+		EConfigureRoomTypeJingle InRoomConfigurationType,
 		const FRoomFeatureValuePairs& RoomFeatureValuePairs
 		)
 		: buzz::IqTask(Parent, buzz::STR_SET, RoomJid, MakeFeaturesRequest(RoomFeatureValuePairs))
@@ -210,7 +210,7 @@ private:
 	}
 
 	FXmppRoomId RoomId;
-	EConfigureRoomType RoomConfigurationType;
+	EConfigureRoomTypeJingle RoomConfigurationType;
 };
 
 FXmppMultiUserChatJingle::FXmppMultiUserChatJingle(class FXmppConnectionJingle& InConnection)
@@ -293,7 +293,7 @@ public:
 
 		if (bIsOwner && bWasSuccessful)
 		{
-			Muc.InternalConfigureRoom(RoomId, FXmppRoomConfig(*RoomCreateConfig), EConfigureRoomType::UseCreateCallback);
+			Muc.InternalConfigureRoom(RoomId, FXmppRoomConfig(*RoomCreateConfig), EConfigureRoomTypeJingle::UseCreateCallback);
 		}
 		else
 		{
@@ -477,7 +477,7 @@ public:
 				FXmppRoomConfig GlobalChatConfig;
 				GlobalChatConfig.bIsPersistent = true;
 				GlobalChatConfig.bIsPrivate = false;
-				Muc.InternalConfigureRoom(RoomId, GlobalChatConfig, EConfigureRoomType::NoCallback);
+				Muc.InternalConfigureRoom(RoomId, GlobalChatConfig, EConfigureRoomTypeJingle::NoCallback);
 			}
 		}
 
@@ -787,7 +787,7 @@ public:
 class FXmppChatRoomConfigOpResult : public FXmppChatRoomOpResult
 {
 public:
-	FXmppChatRoomConfigOpResult(const FXmppRoomId& InRoomId, EConfigureRoomType InRoomConfigurationType, bool InbWasSuccessful, const FString& InErrorStr)
+	FXmppChatRoomConfigOpResult(const FXmppRoomId& InRoomId, EConfigureRoomTypeJingle InRoomConfigurationType, bool InbWasSuccessful, const FString& InErrorStr)
 		: FXmppChatRoomOpResult(InRoomId, InbWasSuccessful, InErrorStr)
 		, RoomConfigurationType(InRoomConfigurationType)
 	{}
@@ -805,17 +805,17 @@ public:
 
 		Muc.JoinRoomFinish();
 		// Only call the appropriate callback for which op was requested
-		if (RoomConfigurationType == EConfigureRoomType::UseCreateCallback)
+		if (RoomConfigurationType == EConfigureRoomTypeJingle::UseCreateCallback)
 		{
 			Muc.OnRoomCreated().Broadcast(Muc.Connection.AsShared(), bWasSuccessful, RoomId, ErrorStr);
 		}
-		else if(RoomConfigurationType == EConfigureRoomType::UseConfigCallback)
+		else if(RoomConfigurationType == EConfigureRoomTypeJingle::UseConfigCallback)
 		{
 			Muc.OnRoomConfigured().Broadcast(Muc.Connection.AsShared(), bWasSuccessful, RoomId, ErrorStr);
 		}
 	}
 
-	const EConfigureRoomType RoomConfigurationType;
+	const EConfigureRoomTypeJingle RoomConfigurationType;
 };
 
 /**
@@ -827,13 +827,13 @@ public:
 	/**
 	 * Default constructor to use server default config & not trigger any create/config callbacks
 	 */
-	FXmppChatRoomConfigOp(FXmppMultiUserChatJingle& InMuc, const FXmppRoomId& InRoomId, EConfigureRoomType InRoomConfigurationType)
+	FXmppChatRoomConfigOp(FXmppMultiUserChatJingle& InMuc, const FXmppRoomId& InRoomId, EConfigureRoomTypeJingle InRoomConfigurationType)
 		: FXmppChatRoomOp(InRoomId)
 		, Muc(InMuc)
 		, RoomConfigurationType(InRoomConfigurationType)
 	{}
 
-	FXmppChatRoomConfigOp(FXmppMultiUserChatJingle& InMuc, const FXmppRoomId& InRoomId, EConfigureRoomType InRoomConfigurationType, const FXmppRoomConfig& InRoomConfig)
+	FXmppChatRoomConfigOp(FXmppMultiUserChatJingle& InMuc, const FXmppRoomId& InRoomId, EConfigureRoomTypeJingle InRoomConfigurationType, const FXmppRoomConfig& InRoomConfig)
 		: FXmppChatRoomOp(InRoomId)
 		, Muc(InMuc)
 		, RoomConfigurationType(InRoomConfigurationType)
@@ -888,16 +888,16 @@ public:
 	}
 
 	FXmppMultiUserChatJingle& Muc;
-	EConfigureRoomType RoomConfigurationType;
+	EConfigureRoomTypeJingle RoomConfigurationType;
 	FXmppRoomConfig RoomConfig;
 };
 
 bool FXmppMultiUserChatJingle::ConfigureRoom(const FXmppRoomId& RoomId, const FXmppRoomConfig& RoomConfig)
 {
-	return InternalConfigureRoom(RoomId, RoomConfig, EConfigureRoomType::UseConfigCallback);
+	return InternalConfigureRoom(RoomId, RoomConfig, EConfigureRoomTypeJingle::UseConfigCallback);
 }
 
-bool FXmppMultiUserChatJingle::InternalConfigureRoom(const FXmppRoomId& RoomId, const FXmppRoomConfig& RoomConfig, EConfigureRoomType RoomConfigurationType)
+bool FXmppMultiUserChatJingle::InternalConfigureRoom(const FXmppRoomId& RoomId, const FXmppRoomConfig& RoomConfig, EConfigureRoomTypeJingle RoomConfigurationType)
 {
 	bool bResult = false;
 	FString ErrorStr;
@@ -938,12 +938,12 @@ bool FXmppMultiUserChatJingle::InternalConfigureRoom(const FXmppRoomId& RoomId, 
 		UE_LOG(LogXmpp, Warning, TEXT("MUC: ConfigureRoom failed. %s"), *ErrorStr);
 
 		// trigger the delegate for the request that the caller made, either create or configure
-		if (RoomConfigurationType == EConfigureRoomType::UseCreateCallback)
+		if (RoomConfigurationType == EConfigureRoomTypeJingle::UseCreateCallback)
 		{
 			JoinRoomFinish();
 			OnRoomCreated().Broadcast(Connection.AsShared(), false, RoomId, ErrorStr);
 		}
-		else if (RoomConfigurationType == EConfigureRoomType::UseConfigCallback)
+		else if (RoomConfigurationType == EConfigureRoomTypeJingle::UseConfigCallback)
 		{
 			OnRoomConfigured().Broadcast(Connection.AsShared(), false, RoomId, ErrorStr);
 		}
@@ -1349,12 +1349,12 @@ bool FXmppMultiUserChatJingle::Tick(float DeltaTime)
 		{
 			NumMucResponses++;
 			UE_LOG(LogXmpp, Verbose, TEXT("Received config response %d for room %s"), ConfigTaskResponse->bSuccess, *ConfigTaskResponse->RoomId);
-			if (ConfigTaskResponse->RoomConfigurationType == EConfigureRoomType::UseCreateCallback)
+			if (ConfigTaskResponse->RoomConfigurationType == EConfigureRoomTypeJingle::UseCreateCallback)
 			{
 				JoinRoomFinish();
 				OnRoomCreated().Broadcast(Connection.AsShared(), ConfigTaskResponse->bSuccess, ConfigTaskResponse->RoomId, ConfigTaskResponse->ErrorStr);
 			}
-			else if (ConfigTaskResponse->RoomConfigurationType == EConfigureRoomType::UseConfigCallback)
+			else if (ConfigTaskResponse->RoomConfigurationType == EConfigureRoomTypeJingle::UseConfigCallback)
 			{
 				OnRoomConfigured().Broadcast(Connection.AsShared(), ConfigTaskResponse->bSuccess, ConfigTaskResponse->RoomId, ConfigTaskResponse->ErrorStr);
 			}

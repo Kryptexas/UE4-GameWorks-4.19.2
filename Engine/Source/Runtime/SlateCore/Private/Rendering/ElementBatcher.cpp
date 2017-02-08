@@ -300,6 +300,7 @@ void FSlateElementBatcher::AddBoxElement(const FSlateDrawElement& DrawElement)
 
 	const float DrawScale = DrawElement.GetScale();
 
+
 	const FSlateRotatedClipRectType RenderClipRect = DrawElement.CalculateRenderClippingRect();
 
 	// Do pixel snapping
@@ -1513,8 +1514,7 @@ void FSlateElementBatcher::AddViewportElement( const FSlateDrawElement& DrawElem
 	// If the viewport disallows scaling, force size to current texture size.
 	if (ViewportResource != nullptr && !InPayload.bAllowViewportScaling)
 	{
-		const float Scale = DrawElement.GetScale();
-		BotRight = FVector2D(ViewportResource->GetWidth() / Scale, ViewportResource->GetHeight() / Scale);
+		BotRight = FVector2D(ViewportResource->GetWidth(), ViewportResource->GetHeight());
 	}
 
 	FVector2D TopRight = FVector2D( BotRight.X, TopLeft.Y);

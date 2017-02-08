@@ -14,11 +14,19 @@ public class WebSockets : ModuleRules
 			}
 		);
 
-		bool bShouldUseModule = 
-			Target.Platform == UnrealTargetPlatform.Win32 ||
-			Target.Platform == UnrealTargetPlatform.Win64 ||
-			Target.Platform == UnrealTargetPlatform.Mac ||
-			Target.Platform == UnrealTargetPlatform.Linux;
+        bool bPlatformSupportsLibWebsockets =
+            Target.Platform == UnrealTargetPlatform.Win32 ||
+            Target.Platform == UnrealTargetPlatform.Win64 ||
+            Target.Platform == UnrealTargetPlatform.Mac ||
+            Target.Platform == UnrealTargetPlatform.Linux ||
+            Target.Platform == UnrealTargetPlatform.PS4;
+
+        bool bPlatformSupportsXboxWebsockets =
+			Target.Platform == UnrealTargetPlatform.XboxOne;
+
+        bool bShouldUseModule = 
+            bPlatformSupportsLibWebsockets || 
+            bPlatformSupportsXboxWebsockets;
 
 		if (bShouldUseModule)
 		{
@@ -30,8 +38,12 @@ public class WebSockets : ModuleRules
 				}
 			);
 
-			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "libWebSockets", "zlib");
-			PrivateDependencyModuleNames.Add("SSL");
+			if (bPlatformSupportsLibWebsockets)
+			{
+				Definitions.Add("WITH_LIBWEBSOCKETS=1");
+ 				AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "libWebSockets", "zlib");
+				PrivateDependencyModuleNames.Add("SSL");
+			}
 		}
 		else
 		{

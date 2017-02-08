@@ -176,7 +176,6 @@ struct FD3D12ShaderResourceViewCache : public FD3D12ResourceCache<SRVSlotMask>
 		DirtyAll();
 
 		NumViewsIntersectWithDepthCount = 0;
-		FMemory::Memzero(Views);
 		FMemory::Memzero(ResidencyHandles);
 		FMemory::Memzero(ViewsIntersectWithDepthRT);
 		FMemory::Memzero(BoundMask);
@@ -185,9 +184,17 @@ struct FD3D12ShaderResourceViewCache : public FD3D12ResourceCache<SRVSlotMask>
 		{
 			Index = INDEX_NONE;
 		}
+
+		for (int32 FrequencyIdx = 0; FrequencyIdx < SF_NumFrequencies; ++FrequencyIdx)
+		{
+			for (int32 SRVIdx = 0; SRVIdx < MAX_SRVS; ++SRVIdx)
+			{
+				Views[FrequencyIdx][SRVIdx].SafeRelease();
+			}
+		}
 	}
 
-	FD3D12ShaderResourceView* Views[SF_NumFrequencies][MAX_SRVS];
+	TRefCountPtr<FD3D12ShaderResourceView> Views[SF_NumFrequencies][MAX_SRVS];
 	FD3D12ResidencyHandle* ResidencyHandles[SF_NumFrequencies][MAX_SRVS];
 
 	bool ViewsIntersectWithDepthRT[SF_NumFrequencies][MAX_SRVS];
