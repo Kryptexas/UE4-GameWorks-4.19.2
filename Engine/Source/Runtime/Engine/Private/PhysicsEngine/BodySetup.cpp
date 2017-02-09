@@ -636,7 +636,7 @@ void UBodySetup::AddShapesToRigidActor_AssumesLocked(FBodyInstance* OwningInstan
 		Scale3D = FVector(0.1f);
 	}
 
-	auto AttachShape_AssumesLocked = [bShapeSharing, NewShapes, PDestActor, ComplexMaterials, SimpleMaterial, SceneType, &ShapeData] (const PxGeometry& PGeom, const PxTransform& PLocalPose, const float ContactOffset, const FPhysxUserData* ShapeElemUserData, PxShapeFlags PShapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE)
+	auto AttachShape_AssumesLocked = [bShapeSharing, NewShapes, PDestActor, ComplexMaterials, SimpleMaterial, SceneType, &ShapeData] (const PxGeometry& PGeom, const PxTransform& PLocalPose, const float ContactOffset, const FPhysxUserData* ShapeElemUserData, PxShapeFlags PShapeFlags)
 	{
 		const PxMaterial* PMaterial = GetDefaultPhysMaterial();
 		PxShape* PNewShape = GPhysXSDK->createShape(PGeom, *PMaterial, !bShapeSharing, PShapeFlags);
@@ -671,7 +671,7 @@ void UBodySetup::AddShapesToRigidActor_AssumesLocked(FBodyInstance* OwningInstan
 
 	auto IterateSimpleShapes = [AttachShape_AssumesLocked](const FKShapeElem& Elem, const PxGeometry& Geom, const PxTransform& PLocalPose, float ContactOffset)
 	{
-		AttachShape_AssumesLocked(Geom, PLocalPose, ContactOffset, Elem.GetUserData());
+		AttachShape_AssumesLocked(Geom, PLocalPose, ContactOffset, Elem.GetUserData(), PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE);
 	};
 
 	auto IterateTrimeshes = [AttachShape_AssumesLocked](PxTriangleMesh*, const PxGeometry& Geom, const PxTransform& PLocalPose, float ContactOffset)

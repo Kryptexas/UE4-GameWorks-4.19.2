@@ -4,14 +4,14 @@
 
 namespace ImmediatePhysics
 {
-
+	const int PageBufferSize = 1024*64;	//This has to be here because of VS2013
 
 struct FLinearBlockAllocator
 {
 	struct FPageStruct
 	{
 		//We assume FPageStruct is allocated with 16-byte alignment. Do not move Buffer. If we get full support for alignas(16) we could make this better
-		uint8 Buffer[1024 * 64];
+		uint8 Buffer[PageBufferSize];
 
 		FPageStruct* NextPage;
 		FPageStruct* PrevPage;
@@ -50,11 +50,11 @@ struct FLinearBlockAllocator
 
 	uint8* Alloc(int32 Bytes)
 	{
-		check(Bytes < sizeof(FPageStruct::Buffer));	//Page size needs to be increased since we don't allow spillover
+		check(Bytes < PageBufferSize);	//Page size needs to be increased since we don't allow spillover
 		if (Bytes)
 		{
 			//Assumes 16 byte alignment
-			int32 BytesLeft = sizeof(FPageStruct::Buffer) - FreePage->SeekPosition;	//don't switch to uint because negative implies we're out of 16 byte aligned space
+			int32 BytesLeft = PageBufferSize - FreePage->SeekPosition;	//don't switch to uint because negative implies we're out of 16 byte aligned space
 			if (BytesLeft < Bytes)
 			{
 				//no space so allocate new page if needed
