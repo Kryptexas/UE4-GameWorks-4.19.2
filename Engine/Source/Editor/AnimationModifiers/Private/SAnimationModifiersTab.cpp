@@ -301,7 +301,7 @@ void SAnimationModifiersTab::CreateInstanceDetailsView()
 
 FReply SAnimationModifiersTab::OnApplyAllModifiersClicked()
 {
-	FScopedTransaction Transaction(LOCTEXT("ApplyModifiersTransaction", "Applying All Animation Modifier(s)"));
+	FScopedTransaction Transaction(LOCTEXT("ApplyAllModifiersTransaction", "Applying All Animation Modifier(s)"));
 	const TArray<UAnimationModifier*>& ModifierInstances = AssetUserData->GetAnimationModifierInstances();	
 	ApplyModifiers(ModifierInstances);
 	return FReply::Handled();
