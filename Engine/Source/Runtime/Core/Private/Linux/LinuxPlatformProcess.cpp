@@ -707,7 +707,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 		return FProcHandle();
 	}
 
-	FString Commandline = FString::Printf(TEXT("\"%s\"/"), *ProcessPath);
+	FString Commandline = ProcessPath;
 	Commandline += TEXT(" ");
 	Commandline += Parms;
 
