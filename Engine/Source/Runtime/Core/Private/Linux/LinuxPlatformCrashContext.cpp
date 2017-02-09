@@ -472,7 +472,7 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 		FString CrashReportLogFilename = LogBaseFilename + TEXT("-CRC") + LogExtension;
 		FString CrashReportLogFilepath = FPaths::Combine(*LogFolder, *CrashReportLogFilename);
 		FString CrashReportClientArguments = TEXT(" -Abslog=");
-		CrashReportClientArguments += *CrashReportLogFilepath;
+		CrashReportClientArguments += FString::Printf(TEXT("\"%s\""), *CrashReportLogFilepath)
 		CrashReportClientArguments += TEXT(" ");
 
 		// Suppress the user input dialog if we're running in unattended mode
@@ -482,7 +482,7 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 			CrashReportClientArguments += TEXT(" -Unattended ");
 		}
 
-		CrashReportClientArguments += CrashInfoAbsolute + TEXT("/");
+		CrashReportClientArguments += FString::Printf(TEXT("\"%s\"/"), *CrashInfoAbsolute);
 
 		if (bReportingNonCrash)
 		{
