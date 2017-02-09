@@ -211,11 +211,11 @@ namespace UnrealBuildTool
 			if (IOSSDKVersionFloat >= 9.0)
 			{
 				Result += " -Wno-inconsistent-missing-override"; // too many missing overrides...
-				Result += " -Wno-unused-local-typed`ef"; // PhysX has some, hard to remove
+				Result += " -Wno-unused-local-typedef"; // PhysX has some, hard to remove
 			}
 
 			// fix for Xcode 8.3 enabling nonportable include checks, but p4 has some invalid cases in it
-			if (Settings.Value.IOSSDKVersionFloat >= 10.3)
+			if (IOSSDKVersionFloat >= 10.3)
 			{
 				Result += " -Wno-nonportable-include-path";
 			}
