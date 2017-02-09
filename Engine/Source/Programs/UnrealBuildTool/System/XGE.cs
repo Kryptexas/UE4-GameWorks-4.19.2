@@ -36,6 +36,11 @@ namespace UnrealBuildTool
 
 		private const string ProgressMarkupPrefix = "@action";
 
+		public XGE()
+		{
+			XmlConfig.ApplyTo(this);
+		}
+
 		public override string Name
 		{
 			get { return "XGE"; }

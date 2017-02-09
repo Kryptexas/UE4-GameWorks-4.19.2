@@ -122,7 +122,7 @@ namespace UnrealBuildTool
 		/// <returns>True if the type has a field with the XmlConfigFile attribute</returns>
 		static bool HasXmlConfigFileAttribute(Type Type)
 		{
-			foreach(FieldInfo Field in Type.GetFields())
+			foreach(FieldInfo Field in Type.GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
 			{
 				foreach(CustomAttributeData CustomAttribute in Field.CustomAttributes)
 				{
@@ -290,7 +290,7 @@ namespace UnrealBuildTool
 		{
 			foreach(Type ConfigType in ConfigTypes)
 			{
-				foreach(FieldInfo FieldInfo in ConfigType.GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.GetField | BindingFlags.Public))
+				foreach(FieldInfo FieldInfo in ConfigType.GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.GetField | BindingFlags.Public | BindingFlags.NonPublic))
 				{
 					IEnumerable<XmlConfigFileAttribute> Attributes = FieldInfo.GetCustomAttributes<XmlConfigFileAttribute>();
 					foreach(XmlConfigFileAttribute Attribute in Attributes)

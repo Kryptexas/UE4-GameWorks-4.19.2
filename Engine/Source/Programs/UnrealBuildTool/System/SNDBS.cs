@@ -40,6 +40,7 @@ namespace UnrealBuildTool
 
 		public SNDBS()
 		{
+			XmlConfig.ApplyTo(this);
 		}
 
 		public override string Name

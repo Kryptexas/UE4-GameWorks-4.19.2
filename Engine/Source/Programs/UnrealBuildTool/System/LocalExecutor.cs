@@ -332,6 +332,11 @@ namespace UnrealBuildTool
 		[XmlConfigFile(Category = "BuildConfiguration")]
 		int MaxProcessorCount = int.MaxValue;
 
+		public LocalExecutor()
+		{
+			XmlConfig.ApplyTo(this);
+		}
+
 		public override string Name
 		{
 			get { return "Local"; }

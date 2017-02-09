@@ -45,6 +45,8 @@ namespace UnrealBuildTool
 
 		public Distcc()
 		{
+			XmlConfig.ApplyTo(this);
+
 			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
