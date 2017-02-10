@@ -760,16 +760,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 				}
 				else
 				{
-					if (ArgvArray[Index].Contains(TEXT("=\"")))
-					{
-						FString SingleArg = ArgvArray[Index];
-						SingleArg = SingleArg.Replace(TEXT("=\""), TEXT("="));
-						NewArgvArray.Add(SingleArg.TrimQuotes(NULL));
-					}
-					else
-					{
-						NewArgvArray.Add(ArgvArray[Index].TrimQuotes(NULL));
-					}
+					NewArgvArray.Add(ArgvArray[Index]);
 				}
 			}
 			else
@@ -778,19 +769,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 				MultiPartArg += ArgvArray[Index];
 				if (ArgvArray[Index].EndsWith(TEXT("\"")))
 				{
-					if (MultiPartArg.StartsWith(TEXT("\"")))
-					{
-						NewArgvArray.Add(MultiPartArg.TrimQuotes(NULL));
-					}
-					else if (MultiPartArg.Contains(TEXT("=\"")))
-					{
-						FString SingleArg = MultiPartArg.Replace(TEXT("=\""), TEXT("="));
-						NewArgvArray.Add(SingleArg.TrimQuotes(nullptr));
-					}
-					else
-					{
-						NewArgvArray.Add(MultiPartArg);
-					}
+					NewArgvArray.Add(MultiPartArg);
 					MultiPartArg.Empty();
 				}
 			}
@@ -798,6 +777,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 	}
 	// update Argc with the new argument count
 	Argc = NewArgvArray.Num();
+	UE_LOG(LogHAL, Verbose, TEXT("FLinuxPlatformProcess::CreateProc: Argc=%d"), Argc);
 
 	if (Argc > 0)	// almost always, unless there's no program name
 	{
@@ -810,6 +790,8 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 
 		for (int Idx = 0; Idx < Argc; ++Idx)
 		{
+			UE_LOG(LogHAL, Verbose, TEXT("FLinuxPlatformProcess::CreateProc: Argv[%d]=%s"), Idx, *NewArgvArray[Idx]);
+
 			FTCHARToUTF8 AnsiBuffer(*NewArgvArray[Idx]);
 			const char* Ansi = AnsiBuffer.Get();
 			size_t AnsiSize = FCStringAnsi::Strlen(Ansi) + 1;	// will work correctly with UTF-8

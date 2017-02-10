@@ -482,7 +482,7 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 			CrashReportClientArguments += TEXT(" -Unattended ");
 		}
 
-		CrashReportClientArguments += FString::Printf(TEXT("\"%s\"/"), *CrashInfoAbsolute);
+		CrashReportClientArguments += FString::Printf(TEXT("\"%s/\""), *CrashInfoAbsolute);
 
 		if (bReportingNonCrash)
 		{
