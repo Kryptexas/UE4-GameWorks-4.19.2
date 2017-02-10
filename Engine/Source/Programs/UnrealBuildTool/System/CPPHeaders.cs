@@ -453,7 +453,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public FileItem CachePCHUsageForCPPFile(FileItem CPPFile, CppIncludePaths IncludePaths)
+		public FileItem CachePCHUsageForCPPFile(FileItem CPPFile, CppIncludePaths IncludePaths, CppPlatform Platform)
 		{
 			// @todo ubtmake: We don't really need to scan every file looking for PCH headers, just need one.  The rest is just for error checking.
 			// @todo ubtmake: We don't need all of the direct includes either.  We just need the first, unless we want to check for errors.
@@ -483,10 +483,19 @@ namespace UnrealBuildTool
 			}
 
 			// search the include paths to resolve the file.
-			FileItem PrecompiledHeaderIncludeFile = CPPHeaders.FindIncludedFile(CPPFile.Reference, FirstInclude.IncludeName, IncludePaths);
+			string FirstIncludeName = FirstInclude.IncludeName;
+			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(Platform);
+			// convert back from relative to host path if needed
+			if (!BuildPlatform.UseAbsolutePathsInUnityFiles())
+			{
+				FirstIncludeName = RemoteExports.UnconvertPath(FirstIncludeName);
+			}
+
+			FileItem PrecompiledHeaderIncludeFile = CPPHeaders.FindIncludedFile(CPPFile.Reference, FirstIncludeName, IncludePaths);
 			if (PrecompiledHeaderIncludeFile == null)
 			{
-				throw new BuildException("The first include statement in source file '{0}' is trying to include the file '{1}' as the precompiled header, but that file could not be located in any of the module's include search paths.", CPPFile.AbsolutePath, FirstInclude.IncludeName);
+				FirstIncludeName = RemoteExports.UnconvertPath(FirstInclude.IncludeName);
+				throw new BuildException("The first include statement in source file '{0}' is trying to include the file '{1}' as the precompiled header, but that file could not be located in any of the module's include search paths.", CPPFile.AbsolutePath, FirstIncludeName);
 			}
 
 			IncludeDependencyCache.CacheResolvedIncludeFullPath(CPPFile, 0, PrecompiledHeaderIncludeFile.Reference, bUseIncludeDependencyResolveCache, bTestIncludeDependencyResolveCache);

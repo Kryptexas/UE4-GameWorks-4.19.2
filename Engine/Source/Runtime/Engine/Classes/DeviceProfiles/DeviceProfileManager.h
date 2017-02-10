@@ -40,7 +40,7 @@ public:
 	 *
 	 * @return the created profile.
 	 */
-	UDeviceProfile* CreateProfile( const FString& ProfileName, const FString& ProfileType, const FString& ParentName = TEXT("") );
+	UDeviceProfile* CreateProfile(const FString& ProfileName, const FString& ProfileType, const FString& ParentName=TEXT(""), const TCHAR* ConfigPlatform=nullptr);
 
 	/**
 	 * Delete a profile.

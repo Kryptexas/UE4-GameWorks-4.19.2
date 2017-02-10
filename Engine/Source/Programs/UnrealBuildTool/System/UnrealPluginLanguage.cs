@@ -131,9 +131,9 @@ namespace UnrealBuildTool
 	 * The boolean operator nodes may be combined to create a final state for more complex
 	 * conditions:
 	 * 
-	 *	<setBoolNot result="notDistribution" value="$B(Distribution)/>
-	 *	<setBoolEquals result="isX86" arg1="$S(Architecture)" arg2="x86"/>
-	 *	<setBoolEquals result="isX86_64" arg2="$S(Architecture)" arg2="x86_64/">
+	 *	<setBoolNot result="notDistribution" source="$B(Distribution)/>
+	 *	<setBoolIsEqual result="isX86" arg1="$S(Architecture)" arg2="x86"/>
+	 *	<setBoolIsEqual result="isX86_64" arg2="$S(Architecture)" arg2="x86_64/">
 	 *	<setBoolOr result="isIntel" arg1="$B(isX86)" arg2="$B(isX86_64)"/>
 	 *	<setBoolAnd result="intelAndNotDistribution" arg1="$B(isIntel)" arg2="$B(notDistribution)"/>
 	 *	<if condition="intelAndNotDistribution">
@@ -349,6 +349,9 @@ namespace UnrealBuildTool
 	 * 	
 	 * 	<!-- optional additions to GameActivity onResume in GameActivity.java -->
 	 *	<gameActivityOnResumeAdditions>	</gameActivityOnResumeAdditions>
+	 *	
+	 * 	<!-- optional additions to GameActivity onNewIntent in GameActivity.java -->
+	 *	<gameActivityOnNewIntentAdditions> </gameActivityOnNewIntentAdditions>
 	 *	
 	 * 	<!-- optional additions to GameActivity onActivityResult in GameActivity.java -->
 	 * 	<gameActivityOnActivityResultAdditions>	</gameActivityOnActivityResultAdditions>

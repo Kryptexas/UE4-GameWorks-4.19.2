@@ -404,6 +404,34 @@ namespace UnrealBuildTool
 			return Directory.Exists(EMSCRIPTEN_ROOT) && File.Exists(NODE_JS) && Directory.Exists(LLVM_ROOT) && File.Exists(PYTHON);
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="ConfigCache"></param>
+		/// <param name="BuildType"></param>
+		/// <returns></returns>
+		public static int HeapSize(ConfigHierarchy ConfigCache, string BuildType)
+		{
+			int ConfigHeapSize = 0;
+
+			// Valuer set by Editor UI
+			var bGotHeapSize = ConfigCache.GetInt32("/Script/HTML5PlatformEditor.HTML5TargetSettings", "HeapSize" + BuildType, out ConfigHeapSize);
+	
+			// Fallback if the previous method failed
+			if (!bGotHeapSize && !ConfigCache.GetInt32("/Script/BuildSettings.BuildSettings", "HeapSize" + BuildType, out ConfigHeapSize))
+			{
+				// we couldn't find a per config heap size, look for a common one.
+				if (!ConfigCache.GetInt32("/Script/BuildSettings.BuildSettings", "HeapSize", out ConfigHeapSize))
+				{
+					ConfigHeapSize = BuildType == "Development" ? 1024 : 512;
+					Log.TraceInformation("Could not find Heap Size setting in .ini for Client config {0}", BuildType);
+				}
+			}
+	
+			Log.TraceInformation("Setting Heap size to {0} Mb ", ConfigHeapSize);
+			return ConfigHeapSize;
+		}
+
 		// this script is used at:
 		// HTML5ToolChain.cs
 		// UEBuildHTML5.cs

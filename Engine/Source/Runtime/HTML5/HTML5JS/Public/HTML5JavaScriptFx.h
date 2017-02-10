@@ -34,5 +34,6 @@
 
 		// GSystemResolution
 		void UE_GSystemResolution( int(*resX)(), int(*rexY)() );
+		int UE_PixelRatio();
 	}
 

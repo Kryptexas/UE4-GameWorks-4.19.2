@@ -679,7 +679,17 @@ bool FLinuxPlatformFile::MoveFile(const TCHAR* To, const TCHAR* From)
 		return false;
 	}
 
-	return rename(TCHAR_TO_UTF8(*CaseSensitiveFilename), TCHAR_TO_UTF8(*NormalizeFilename(To))) != -1;
+	int32 Result = rename(TCHAR_TO_UTF8(*CaseSensitiveFilename), TCHAR_TO_UTF8(*NormalizeFilename(To)));
+	if (Result == -1 && errno == EXDEV)
+	{
+		// Copy the file if rename failed because To and From are on different file systems
+		if (CopyFile(To, *CaseSensitiveFilename))
+		{
+			DeleteFile(*CaseSensitiveFilename);
+			Result = 0;
+		}
+	}
+	return Result != -1;
 }
 
 bool FLinuxPlatformFile::SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue)
@@ -702,7 +712,7 @@ bool FLinuxPlatformFile::SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyVal
 		{
 			FileInfo.st_mode |= S_IWUSR;
 		}
-		return chmod(TCHAR_TO_UTF8(*CaseSensitiveFilename), FileInfo.st_mode);
+		return chmod(TCHAR_TO_UTF8(*CaseSensitiveFilename), FileInfo.st_mode) == 0;
 	}
 	return false;
 }

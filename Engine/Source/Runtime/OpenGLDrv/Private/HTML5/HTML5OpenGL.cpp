@@ -196,9 +196,6 @@ struct FPlatformOpenGLDevice
 		WindowHandle = SDL_CreateWindow("HTML5", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 			800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN| SDL_WINDOW_RESIZABLE);
 #if PLATFORM_HTML5_BROWSER
-//		EM_ASM(
-//			console.log("SDL_CreateWindow() 800x600");
-//		);
 		UE_GSystemResolution( GSystemResolution_ResX, GSystemResolution_ResY );
 #endif
 		PlatformCreateOpenGLContext(this,WindowHandle);
@@ -374,6 +371,9 @@ void PlatformReleaseRenderQuery( GLuint Query, uint64 QueryContext )
 
 void PlatformRestoreDesktopDisplayMode()
 {
+#if PLATFORM_HTML5_BROWSER
+	EM_ASM( Module['canvas'].UE_canvas.bIsFullScreen = 0; );
+#endif
 }
 
 #if PLATFORM_HTML5_BROWSER
@@ -392,6 +392,7 @@ extern "C"
 #else
 		emscripten_request_fullscreen("canvas", true);
 #endif
+		EM_ASM( Module['canvas'].UE_canvas.bIsFullScreen = 1; );
 		return 0;
 	}
 }

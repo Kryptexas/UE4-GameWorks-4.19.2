@@ -478,7 +478,7 @@ bool FIOSPlatformFile::SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue
 		{
 			FileInfo.st_mode |= S_IWUSR;
 		}
-		return chmod(TCHAR_TO_UTF8(*IOSFilename), FileInfo.st_mode);
+		return chmod(TCHAR_TO_UTF8(*IOSFilename), FileInfo.st_mode) == 0;
 	}
 	return false;
 }

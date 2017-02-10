@@ -324,6 +324,7 @@ public:
 	CORE_API bool GetText( const TCHAR* Section, const TCHAR* Key, FText& Value ) const;
 	CORE_API bool GetInt64( const TCHAR* Section, const TCHAR* Key, int64& Value ) const;
 	CORE_API bool GetBool( const TCHAR* Section, const TCHAR* Key, bool& Value ) const;
+	CORE_API int32 GetArray(const TCHAR* Section, const TCHAR* Key, TArray<FString>& Value) const;
 
 	CORE_API void SetString( const TCHAR* Section, const TCHAR* Key, const TCHAR* Value );
 	CORE_API void SetText( const TCHAR* Section, const TCHAR* Key, const FText& Value );
@@ -353,7 +354,7 @@ public:
 	 *
 	 * @param IniRootName the name (like "Engine") to use to load a .ini hierarchy to diff against
 	 */
-	CORE_API void UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRootName=NULL);
+	CORE_API void UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRootName=nullptr, const TCHAR* OverridePlatform=nullptr);
 
 	/**
 	 * Update a single property in the config file, for the section that is specified.

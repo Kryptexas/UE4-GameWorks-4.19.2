@@ -899,6 +899,9 @@ public:
 	 */
 	FString GetGlobalUserConfigFilename() const;
 
+	/** Returns the override config hierarchy platform (if NDAd platforms need defaults to not be in Base*.ini but still want editor to load them) */
+	virtual const TCHAR* GetConfigOverridePlatform() const { return nullptr; }
+
 	/**
 	 * Imports property values from an .ini file.
 	 *

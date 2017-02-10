@@ -36,12 +36,20 @@ class ENGINE_API UDeviceProfile : public UTextureLODSettings
 	/** Flag used in the editor to determine whether the profile is visible in the property matrix */
 	bool bVisible;
 
+	/** This is not a property, it shouldn't be set by the editor */
+	FString ConfigPlatform;
 
 public:
 
 	/** The collection of CVars which is set from this profile */
 	UPROPERTY(EditAnywhere, config, Category=ConsoleVariables)
 	TArray<FString> CVars;
+
+	/** Prefer to load the DP from its platform's hierarchy */
+	virtual const TCHAR* GetConfigOverridePlatform() const override
+	{
+		return ConfigPlatform.Len() ? *ConfigPlatform : Super::GetConfigOverridePlatform();
+	}
 
 	/** 
 	 * Get the collection of Console Variables that this profile inherits from its' parents

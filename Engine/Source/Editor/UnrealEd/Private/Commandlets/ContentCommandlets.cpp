@@ -1072,26 +1072,26 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			if (bShouldBuildLighting)
 			{
 				// This does not seem to have any use for the texture streaming build but slows down considerably the process.
-				GRedirectCollector.ResolveStringAssetReference();
+			GRedirectCollector.ResolveStringAssetReference();
 
-				FLightingBuildOptions LightingOptions;
-				// Always build on production
-				LightingOptions.QualityLevel = Quality_Production;
+			FLightingBuildOptions LightingOptions;
+			// Always build on production
+			LightingOptions.QualityLevel = Quality_Production;
 
 				auto BuildFailedDelegate = [&bShouldProceedWithRebuild,&World]() {
-					UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed building lighting for %s"), *World->GetOutermost()->GetName());
+				UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed building lighting for %s"), *World->GetOutermost()->GetName());
 					bShouldProceedWithRebuild = false;
-				};
+			};
 
-				FDelegateHandle BuildFailedDelegateHandle = FEditorDelegates::OnLightingBuildFailed.AddLambda(BuildFailedDelegate);
+			FDelegateHandle BuildFailedDelegateHandle = FEditorDelegates::OnLightingBuildFailed.AddLambda(BuildFailedDelegate);
 
-				GEditor->BuildLighting(LightingOptions);
-				while (GEditor->IsLightingBuildCurrentlyRunning())
-				{
-					GEditor->UpdateBuildLighting();
-				}
+			GEditor->BuildLighting(LightingOptions);
+			while (GEditor->IsLightingBuildCurrentlyRunning())
+			{
+				GEditor->UpdateBuildLighting();
+			}
 
-				FEditorDelegates::OnLightingBuildFailed.Remove(BuildFailedDelegateHandle);
+			FEditorDelegates::OnLightingBuildFailed.Remove(BuildFailedDelegateHandle);
 			}
 			auto SaveMapBuildData = [this, &SublevelFilenames](ULevel* InLevel)
 			{
@@ -1104,10 +1104,10 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 					{
 						FString MapBuildDataFilename;
 
-							if (FPackageName::TryConvertLongPackageNameToFilename(MapBuildDataPackageName, MapBuildDataFilename, FPackageName::GetAssetPackageExtension()))
+						if (FPackageName::TryConvertLongPackageNameToFilename(MapBuildDataPackageName, MapBuildDataFilename, FPackageName::GetAssetPackageExtension()))
 						{
 							SavePackageHelper(MapBuildDataPackage, MapBuildDataFilename);
-								if ( IFileManager::Get().FileExists(*MapBuildDataFilename))
+							if (IFileManager::Get().FileExists(*MapBuildDataFilename))
 							{
 								CheckoutFile(MapBuildDataFilename, true);
 							}

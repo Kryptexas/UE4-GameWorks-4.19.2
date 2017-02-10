@@ -115,6 +115,7 @@ namespace UnrealBuildTool
 					// TODO It seems that the full pathname doesn't work for some files like .ini, .usf 
 					if ((ProjectTargetType == TargetType.Client) ||
 						(ProjectTargetType == TargetType.Editor) ||
+						(ProjectTargetType == TargetType.Game) ||
 						(ProjectTargetType == TargetType.Server) )
 					{
 						if(ProjectName.Contains("UE4"))
@@ -142,16 +143,9 @@ namespace UnrealBuildTool
 						int Idx = Path.GetDirectoryName(CurrentFile.Reference.FullName).IndexOf(ProjectName) + ProjectName.Length;
 						CurrentFilePath = Path.GetDirectoryName(CurrentFile.Reference.FullName).Substring(Idx);
 					}
-					else if (ProjectTargetType == TargetType.Game)
-					{
-//						int lengthOfProjectRootPath = Path.GetFullPath(ProjectFileGenerator.MasterProjectRelativePath).Length;
-//						CurrentFilePath = Path.GetDirectoryName(Path.GetFullPath(CurrentFile.FilePath)).Substring(lengthOfProjectRootPath);
-					//	int lengthOfProjectRootPath = EngineRootDirectory.Length;
-						int Idx = Path.GetDirectoryName(CurrentFile.Reference.FullName).IndexOf(ProjectName) + ProjectName.Length;
-						CurrentFilePath = Path.GetDirectoryName(CurrentFile.Reference.FullName).Substring(Idx);
-					}
 
-					string [] SplitFolders = CurrentFilePath.Split('/');
+					char[] Delimiters = new char[] { '/', '\\' };
+					string [] SplitFolders = CurrentFilePath.Split(Delimiters, StringSplitOptions.RemoveEmptyEntries);
 					//
 					// Set the CodeLite root folder again.
 					//
@@ -256,7 +250,8 @@ namespace UnrealBuildTool
 							case UnrealTargetPlatform.Linux:
 							{
 								ExecutableToRun = "./" + ProjectName;
-								if ( (ProjectTargetType == TargetType.Game) || (ProjectTargetType == TargetType.Program))
+								if ((ProjectTargetType == TargetType.Game) || 
+									(ProjectTargetType == TargetType.Program))
 								{
 									if (CurConf != UnrealTargetConfiguration.Development)
 									{
@@ -266,6 +261,12 @@ namespace UnrealBuildTool
 								else if (ProjectTargetType == TargetType.Editor)
 								{
 									ExecutableToRun = "./UE4Editor";
+									if ((CurConf == UnrealTargetConfiguration.Debug) || 
+										(CurConf == UnrealTargetConfiguration.Shipping) || 
+										(CurConf == UnrealTargetConfiguration.Test))
+									{
+										ExecutableToRun += PlatformConfiguration;
+									}
 								}
 
 							}
@@ -290,12 +291,14 @@ namespace UnrealBuildTool
 								else if (ProjectTargetType == TargetType.Editor)
 								{
 									ExecutableToRun = "./UE4Editor";
-									if (CurConf != UnrealTargetConfiguration.Development)
+									if ((CurConf == UnrealTargetConfiguration.Debug) || 
+										(CurConf == UnrealTargetConfiguration.Shipping) || 
+										(CurConf == UnrealTargetConfiguration.Test))
 									{
 										ExecutableToRun += PlatformConfiguration;
 									}
 									ExecutableToRun += ".app/Contents/MacOS/UE4Editor";
-									if (CurConf != UnrealTargetConfiguration.Development)
+									if ((CurConf != UnrealTargetConfiguration.Development) && (CurConf != UnrealTargetConfiguration.DebugGame))
 									{
 										ExecutableToRun += PlatformConfiguration;
 									}
@@ -318,6 +321,12 @@ namespace UnrealBuildTool
 								else if (ProjectTargetType == TargetType.Editor)
 								{
 									ExecutableToRun = "UE4Editor";
+									if ((CurConf == UnrealTargetConfiguration.Debug) || 
+										(CurConf == UnrealTargetConfiguration.Shipping) || 
+										(CurConf == UnrealTargetConfiguration.Test))
+									{
+										ExecutableToRun += PlatformConfiguration;
+									}
 								}
 
 								ExecutableToRun += ".exe";
@@ -353,6 +362,10 @@ namespace UnrealBuildTool
 							if (ProjectName != "UE4Editor" && GameProjectFile != "")
 							{
 								string commandArguments = "\"" + GameProjectFile + "\"" + " -game";
+								if (CurConf.ToString ().Contains ("Debug")) 
+								{
+									commandArguments += " -debug";
+								}
 								XAttribute CommandArguments = new XAttribute("CommandArguments", commandArguments);
 								CodeLiteConfigurationGeneral.Add(CommandArguments);
 							}

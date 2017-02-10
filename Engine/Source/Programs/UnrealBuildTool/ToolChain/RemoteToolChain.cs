@@ -586,6 +586,39 @@ namespace UnrealBuildTool
 				return OriginalPath.Replace("\\", "/");
 			}
 		}
+		public static string UnconvertPath(string RemotePath)
+		{
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+			{
+				string StrippedPath = RemotePath.Replace("\\", "/");
+
+				// skip over the UserDevRootMac and MachineName
+				string StuffToSkip = string.Format("{0}{1}", UserDevRootMac, Environment.MachineName);
+				if (!StrippedPath.StartsWith(StuffToSkip))
+				{
+					return RemotePath;
+				}
+				StrippedPath = StrippedPath.Substring(StuffToSkip.Length);
+
+				// now we make sure the path is /{DriverLetter}/
+				if (StrippedPath[0] != '/' || StrippedPath[2] != '/')
+				{
+					return RemotePath;
+				}
+
+				// convert /{DriveLetter}/ to {DriveLetter}:
+				char DriveLetter = StrippedPath[1];
+				// and skip over it
+				StrippedPath = StrippedPath.Substring(3);
+
+				// put back into PC parlance
+				return string.Format("{0}:/{1}", DriveLetter, StrippedPath).Replace("/", "\\");
+			}
+			else
+			{
+				return RemotePath;
+			}
+		}
 
 		protected string GetMacDevSrcRoot()
 		{

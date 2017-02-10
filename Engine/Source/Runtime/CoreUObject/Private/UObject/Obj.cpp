@@ -1812,6 +1812,18 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 
 	const bool bPerObject = UsesPerObjectConfig(this);
 
+	// does the class want to override the platform hierarchy (ignored if we passd in a specific ini file),
+	// and if the name isn't the current running platform (no need to load extra files if already in GConfig)
+	bool bUseConfigOverride = InFilename == nullptr && GetConfigOverridePlatform() != nullptr &&
+		FCString::Stricmp(GetConfigOverridePlatform(), ANSI_TO_TCHAR(FPlatformProperties::IniPlatformName())) != 0;
+	FConfigFile OverrideConfig;
+	if (bUseConfigOverride)
+	{
+		// load into a local ini file
+		FConfigCacheIni::LoadLocalIniFile(OverrideConfig, *GetClass()->ClassConfigName.ToString(), true, GetConfigOverridePlatform());
+	}
+
+
 	FString ClassSection;
 	FName LongCommitName;
 	if ( bPerObject == true )
@@ -1903,7 +1915,16 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 				}
 
 				FString Value;
-				const bool bFoundValue = GConfig->GetString( *ClassSection, *Key, Value, *PropFileName );
+				bool bFoundValue;
+				if (bUseConfigOverride)
+				{
+					bFoundValue = OverrideConfig.GetString(*ClassSection, *Key, Value);
+				}
+				else
+				{
+					bFoundValue = GConfig->GetString(*ClassSection, *Key, Value, *PropFileName);
+				}
+
 				if (bFoundValue)
 				{
 					if (Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(this, i), PortFlags, this) == NULL)
@@ -1923,7 +1944,16 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 		}
 		else
 		{
-			FConfigSection* Sec = GConfig->GetSectionPrivate( *ClassSection, false, true, *PropFileName );
+			FConfigSection* Sec;
+			if (bUseConfigOverride)
+			{
+				Sec = OverrideConfig.Find(*ClassSection);
+			}
+			else
+			{
+				Sec = GConfig->GetSectionPrivate(*ClassSection, false, true, *PropFileName);
+			}
+
 			FConfigSection* AltSec = NULL;
 			//@Package name transition
 			if( Sec )
@@ -2010,9 +2040,7 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 		: GetConfigFilename(this);
 
 	// Determine whether the file we are writing is a default file config.
-	const bool bIsADefaultIniWrite = !Filename.Contains(FPaths::GameSavedDir())
-		&& !Filename.Contains(FPaths::EngineSavedDir())
-		&& (FPaths::GetBaseFilename(Filename).StartsWith(TEXT("Default")) || FPaths::GetBaseFilename(Filename).StartsWith(TEXT("User")));
+	const bool bIsADefaultIniWrite = Filename == GetDefaultConfigFilename() || Filename == GetGlobalUserConfigFilename();
 
 	const bool bPerObject = UsesPerObjectConfig(this);
 	FString Section;
@@ -2164,8 +2192,23 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 	}
 }
 
+static FString GetFinalOverridePlatform(const UObject* Obj)
+{
+	FString Platform;
+	if (Obj->GetConfigOverridePlatform() != nullptr && FCString::Stricmp(Obj->GetConfigOverridePlatform(), ANSI_TO_TCHAR(FPlatformProperties::IniPlatformName())) != 0)
+	{
+		Platform = Obj->GetConfigOverridePlatform();
+	}
+	return Platform;
+}
+
 FString UObject::GetDefaultConfigFilename() const
 {
+	FString OverridePlatform = GetFinalOverridePlatform(this);
+	if (OverridePlatform.Len())
+	{
+		return FString::Printf(TEXT("%s%s/%s%s.ini"), *FPaths::SourceConfigDir(), *OverridePlatform, *OverridePlatform, *GetClass()->ClassConfigName.ToString());
+	}
 	return FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *GetClass()->ClassConfigName.ToString());
 }
 
@@ -2188,12 +2231,19 @@ void UObject::UpdateSingleSectionOfConfigFile(const FString& ConfigIniName)
 
 	ensureMsgf(Config.Num() == 1, TEXT("UObject::UpdateDefaultConfig() caused more files than expected in the Sandbox config cache!"));
 
-	// make sure SaveConfig wrote only to the file we expected
-	NewFile.UpdateSections(*ConfigIniName, *GetClass()->ClassConfigName.ToString());
+	// do we need to use a special platform hierarchy?
+	FString OverridePlatform = GetFinalOverridePlatform(this);
 
-	// reload the file, so that it refresh the cache internally.
-	FString FinalIniFileName;
-	GConfig->LoadGlobalIniFile(FinalIniFileName, *GetClass()->ClassConfigName.ToString(), NULL, true);
+	// make sure SaveConfig wrote only to the file we expected
+	NewFile.UpdateSections(*ConfigIniName, *GetClass()->ClassConfigName.ToString(), OverridePlatform.Len() ? *OverridePlatform : nullptr);
+
+	// reload the file, so that it refresh the cache internally, unless a non-standard platform was used,
+	// then we don't want to touch GConfig
+	if (OverridePlatform.Len() == 0)
+	{
+		FString FinalIniFileName;
+		GConfig->LoadGlobalIniFile(FinalIniFileName, *GetClass()->ClassConfigName.ToString(), NULL, true);
+	}
 }
 
 void UObject::UpdateDefaultConfigFile(const FString& SpecificFileLocation)
@@ -2238,11 +2288,18 @@ void UObject::UpdateSinglePropertyInConfigFile(const UProperty* InProperty, cons
 		}
 #endif // #if WITH_EDITOR
 
+		// do we need to use a special platform hierarchy?
+		FString OverridePlatform = GetFinalOverridePlatform(this);
+
 		NewFile.UpdateSinglePropertyInSection(*InConfigIniName, *PropertyKey, *SectionName);
 
-		// reload the file, so that it refresh the cache internally.
-		FString FinalIniFileName;
-		GConfig->LoadGlobalIniFile(FinalIniFileName, *GetClass()->ClassConfigName.ToString(), NULL, true);
+		// reload the file, so that it refresh the cache internally, unless a non-standard platform was used,
+		// then we don't want to touch GConfig
+		if (OverridePlatform.Len() == 0)
+		{
+			FString FinalIniFileName;
+			GConfig->LoadGlobalIniFile(FinalIniFileName, *GetClass()->ClassConfigName.ToString(), NULL, true);
+		}
 	}
 	else
 	{

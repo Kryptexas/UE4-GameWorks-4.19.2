@@ -4,6 +4,7 @@
 #include "VorbisAudioInfo.h"
 #include "Misc/Paths.h"
 #include "Interfaces/IAudioFormat.h"
+#include "ContentStreaming.h"
 #if PLATFORM_WINDOWS
 #include "WindowsHWrapper.h"
 #endif
@@ -86,6 +87,8 @@ FVorbisAudioInfo::FVorbisAudioInfo( void )
 	, SrcBufferDataSize(0)
 	, BufferOffset(0)
 	, bPerformingOperation(false)
+	, StreamingSoundWave(NULL)
+	, StreamingChunksSize(0)
 { 
 	// Make sure we have properly allocated a VFWrapper
 	check(VFWrapper != NULL);
@@ -103,7 +106,7 @@ FVorbisAudioInfo::~FVorbisAudioInfo( void )
 }
 
 /** Emulate read from memory functionality */
-size_t FVorbisAudioInfo::Read( void *Ptr, uint32 Size )
+size_t FVorbisAudioInfo::ReadMemory( void *Ptr, uint32 Size )
 {
 	check(Ptr);
 	size_t BytesToRead = FMath::Min(Size, SrcBufferDataSize - BufferOffset);
@@ -112,15 +115,15 @@ size_t FVorbisAudioInfo::Read( void *Ptr, uint32 Size )
 	return( BytesToRead );
 }
 
-static size_t OggRead( void *ptr, size_t size, size_t nmemb, void *datasource )
+static size_t OggReadMemory( void *ptr, size_t size, size_t nmemb, void *datasource )
 {
 	check(ptr);
 	check(datasource);
 	FVorbisAudioInfo* OggInfo = (FVorbisAudioInfo*)datasource;
-	return( OggInfo->Read( ptr, size * nmemb ) );
+	return( OggInfo->ReadMemory( ptr, size * nmemb ) );
 }
 
-int FVorbisAudioInfo::Seek( uint32 offset, int whence )
+int FVorbisAudioInfo::SeekMemory( uint32 offset, int whence )
 {
 	switch( whence )
 	{
@@ -144,32 +147,114 @@ int FVorbisAudioInfo::Seek( uint32 offset, int whence )
 	return( BufferOffset );
 }
 
-static int OggSeek( void *datasource, ogg_int64_t offset, int whence )
+static int OggSeekMemory( void *datasource, ogg_int64_t offset, int whence )
 {
 	FVorbisAudioInfo* OggInfo = ( FVorbisAudioInfo* )datasource;
-	return( OggInfo->Seek( offset, whence ) );
+	return( OggInfo->SeekMemory( offset, whence ) );
 }
 
-int FVorbisAudioInfo::Close( void )
+int FVorbisAudioInfo::CloseMemory( void )
 {
 	return( 0 );
 }
 
-static int OggClose( void *datasource )
+static int OggCloseMemory( void *datasource )
 {
 	FVorbisAudioInfo* OggInfo = ( FVorbisAudioInfo* )datasource;
-	return( OggInfo->Close() );
+	return( OggInfo->CloseMemory() );
 }
 
-long FVorbisAudioInfo::Tell( void )
+long FVorbisAudioInfo::TellMemory( void )
 {
 	return( BufferOffset );
 }
 
-static long OggTell( void *datasource )
+static long OggTellMemory( void *datasource )
 {
 	FVorbisAudioInfo *OggInfo = ( FVorbisAudioInfo* )datasource;
-	return( OggInfo->Tell() );
+	return( OggInfo->TellMemory() );
+}
+
+/** Emulate read from memory functionality */
+size_t FVorbisAudioInfo::ReadStreaming( void *Ptr, uint32 Size )
+{
+	size_t	BytesCopied = 0;
+
+	while(Size > 0)
+	{
+		uint32	CurChunkSize = 0;
+
+		uint8 const* ChunkData = IStreamingManager::Get().GetAudioStreamingManager().GetLoadedChunk(StreamingSoundWave, BufferOffset / StreamingChunksSize, &CurChunkSize);
+		
+		check(CurChunkSize >= (BufferOffset % StreamingChunksSize));
+		size_t	BytesToCopy = FMath::Min<uint32>(CurChunkSize - (BufferOffset % StreamingChunksSize), Size);
+		check((BufferOffset % StreamingChunksSize) + BytesToCopy <= CurChunkSize);
+
+		if(ChunkData == NULL || BytesToCopy == 0)
+		{
+			return BytesCopied;
+		}
+
+		FMemory::Memcpy( Ptr, ChunkData + (BufferOffset % StreamingChunksSize), BytesToCopy );
+		BufferOffset += BytesToCopy;
+		BytesCopied += BytesToCopy;
+		Size -= BytesToCopy;
+		Ptr = (void*)((uint8*)Ptr + BytesToCopy);
+	}
+
+	return BytesCopied;
+}
+
+static size_t OggReadStreaming( void *ptr, size_t size, size_t nmemb, void *datasource )
+{
+	check(ptr);
+	check(datasource);
+	FVorbisAudioInfo* OggInfo = (FVorbisAudioInfo*)datasource;
+	return( OggInfo->ReadStreaming( ptr, size * nmemb ) );
+}
+
+int FVorbisAudioInfo::CloseStreaming( void )
+{
+	return( 0 );
+}
+
+static int OggCloseStreaming( void *datasource )
+{
+	FVorbisAudioInfo* OggInfo = ( FVorbisAudioInfo* )datasource;
+	return( OggInfo->CloseStreaming() );
+}
+
+bool FVorbisAudioInfo::GetCompressedInfoCommon(void* Callbacks, FSoundQualityInfo* QualityInfo)
+{
+	// Set up the read from memory variables
+	int Result = ov_open_callbacks(this, &VFWrapper->vf, NULL, 0, (*(ov_callbacks*)Callbacks));
+	if (Result < 0)
+	{
+		UE_LOG(LogAudio, Error, TEXT("FVorbisAudioInfo::ReadCompressedInfo, ov_open_callbacks error code: %d"), Result);
+		return false;
+	}
+
+	if( QualityInfo )
+	{
+		// The compression could have resampled the source to make loopable
+		vorbis_info* vi = ov_info( &VFWrapper->vf, -1 );
+		QualityInfo->SampleRate = vi->rate;
+		QualityInfo->NumChannels = vi->channels;
+		ogg_int64_t PCMTotal = ov_pcm_total( &VFWrapper->vf, -1 );
+		if (PCMTotal >= 0)
+		{
+			QualityInfo->SampleDataSize = PCMTotal * QualityInfo->NumChannels * sizeof( int16 );
+			QualityInfo->Duration = ( float )ov_time_total( &VFWrapper->vf, -1 );
+		}
+		else if (PCMTotal == OV_EINVAL)
+		{
+			// indicates an error or that the bitstream is non-seekable
+			QualityInfo->SampleDataSize = 0;
+			QualityInfo->Duration = 0.0f;
+		}
+	}
+
+	return true;
 }
 
 /** 
@@ -197,43 +282,16 @@ bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 
 	SrcBufferDataSize = InSrcBufferDataSize;
 	BufferOffset = 0;
 
-	Callbacks.read_func = OggRead;
-	Callbacks.seek_func = OggSeek;
-	Callbacks.close_func = OggClose;
-	Callbacks.tell_func = OggTell;
+	Callbacks.read_func = OggReadMemory;
+	Callbacks.seek_func = OggSeekMemory;
+	Callbacks.close_func = OggCloseMemory;
+	Callbacks.tell_func = OggTellMemory;
 
-	// Set up the read from memory variables
-	int Result = ov_open_callbacks(this, &VFWrapper->vf, NULL, 0, Callbacks);
-	if (Result < 0)
-	{
-		UE_LOG(LogAudio, Error, TEXT("FVorbisAudioInfo::ReadCompressedInfo, ov_open_callbacks error code: %d"), Result);
-		bPerformingOperation = false;
-		return false;
-	}
-
-	if( QualityInfo )
-	{
-		// The compression could have resampled the source to make loopable
-		vorbis_info* vi = ov_info( &VFWrapper->vf, -1 );
-		QualityInfo->SampleRate = vi->rate;
-		QualityInfo->NumChannels = vi->channels;
-		ogg_int64_t PCMTotal = ov_pcm_total( &VFWrapper->vf, -1 );
-		if (PCMTotal >= 0)
-		{
-			QualityInfo->SampleDataSize = PCMTotal * QualityInfo->NumChannels * sizeof( int16 );
-			QualityInfo->Duration = ( float )ov_time_total( &VFWrapper->vf, -1 );
-		}
-		else if (PCMTotal == OV_EINVAL)
-		{
-			// indicates an error or that the bitstream is non-seekable
-			QualityInfo->SampleDataSize = 0;
-			QualityInfo->Duration = 0.0f;
-		}
-	}
+	bool result = GetCompressedInfoCommon(&Callbacks, QualityInfo);
 
 	bPerformingOperation = false;
 
-	return( true );
+	return( result );
 }
 
 
@@ -370,6 +428,101 @@ void FVorbisAudioInfo::EnableHalfRate( bool HalfRate )
 	ov_halfrate(&VFWrapper->vf, int32(HalfRate));
 
 	bPerformingOperation = false;
+}
+
+bool FVorbisAudioInfo::StreamCompressedInfo(USoundWave* Wave, struct FSoundQualityInfo* QualityInfo)
+{
+	bPerformingOperation = true;
+
+	SCOPE_CYCLE_COUNTER( STAT_VorbisPrepareDecompressionTime );
+
+	FScopeLock ScopeLock(&VorbisCriticalSection);
+
+	if (!VFWrapper)
+	{
+		bPerformingOperation = false;
+		return false;
+	}
+
+	ov_callbacks Callbacks;
+
+	SrcBufferData = NULL;
+	SrcBufferDataSize = 0;
+	BufferOffset = 0;
+	StreamingSoundWave = Wave;
+
+	Callbacks.read_func = OggReadStreaming;
+	Callbacks.close_func = OggCloseStreaming;
+	Callbacks.seek_func = NULL;	// Force streaming
+	Callbacks.tell_func = NULL;	// Force streaming
+
+	// We need to start with a valid StreamingChunksSize so just use this
+	StreamingChunksSize = MONO_PCM_BUFFER_SIZE * 2 * 2;
+
+	bool result = GetCompressedInfoCommon(&Callbacks, QualityInfo);
+
+	// Now we can set the real StreamingChunksSize
+	StreamingChunksSize = MONO_PCM_BUFFER_SIZE * 2 * QualityInfo->NumChannels;
+
+	bPerformingOperation = false;
+
+	return( result );
+}
+
+bool FVorbisAudioInfo::StreamCompressedData(uint8* InDestination, bool bLooping, uint32 BufferSize)
+{
+	check( VFWrapper != NULL );
+	bPerformingOperation = true;
+
+	SCOPE_CYCLE_COUNTER( STAT_VorbisDecompressTime );
+
+	FScopeLock ScopeLock(&VorbisCriticalSection);
+
+	bool	bLooped = false;
+
+	while( BufferSize > 0 )
+	{
+		long BytesActuallyRead = ov_read( &VFWrapper->vf, (char*)InDestination, (int)BufferSize, 0, 2, 1, NULL );
+
+		if( BytesActuallyRead <= 0 )
+		{
+			// We've reached the end
+			bLooped = true;
+
+			BufferOffset = 0;
+
+			// Since we can't tell a streaming file to go back to the start of the stream (there is no seek) we have to close and reopen it which is a bummer
+			ov_clear(&VFWrapper->vf);
+			FMemory::Memzero( &VFWrapper->vf, sizeof( OggVorbis_File ) );
+			ov_callbacks Callbacks;
+			Callbacks.read_func = OggReadStreaming;
+			Callbacks.close_func = OggCloseStreaming;
+			Callbacks.seek_func = NULL;	// Force streaming
+			Callbacks.tell_func = NULL;	// Force streaming
+			int Result = ov_open_callbacks(this, &VFWrapper->vf, NULL, 0, Callbacks);
+			if (Result < 0)
+			{
+				UE_LOG(LogAudio, Error, TEXT("FVorbisAudioInfo::StreamCompressedData, ov_open_callbacks error code: %d"), Result);
+				break;
+			}
+
+			if( !bLooping )
+			{
+				// Need to clear out the remainder of the buffer
+				FMemory::Memzero(InDestination, BufferSize);
+				break;
+			}
+			// else we start over to get the samples from the start of the compressed audio data
+			continue;
+		}
+
+		InDestination += BytesActuallyRead;
+		BufferSize -= BytesActuallyRead;
+	}
+
+	bPerformingOperation = false;
+
+	return( bLooped );
 }
 
 void LoadVorbisLibraries()

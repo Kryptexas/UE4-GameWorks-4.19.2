@@ -12,6 +12,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogHTML5Application, Log, All);
 #if PLATFORM_HTML5_BROWSER
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
+#include "HTML5JavascriptFX.h"
 
 EM_BOOL mouse_callback(int eventType, const EmscriptenMouseEvent *e, void *userData)
 {
@@ -106,8 +107,10 @@ void FHTML5Application::PollGameDeviceState( const float TimeDelta )
 							FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
 							if ( DisplayMetrics.PrimaryDisplayWidth != WindowWidth || DisplayMetrics.PrimaryDisplayHeight != WindowHeight )
 							{
-								int32 delta = FMath::Abs<int32>(DisplayMetrics.PrimaryDisplayHeight - WindowHeight);
-								if (delta > 2) // UE-35363: retina bug fix - otherwise, event does infinite loops
+								int32 deltaH = FMath::Abs<int32>(DisplayMetrics.PrimaryDisplayHeight - WindowHeight);
+								int32 deltaW = FMath::Abs<int32>(DisplayMetrics.PrimaryDisplayWidth - WindowWidth);
+								int32 pixelRatio = UE_PixelRatio();
+								if ((deltaH > pixelRatio) || (deltaW > pixelRatio)) // UE-35363: retina bug fix - otherwise, event does infinite loops
 								{
 									MessageHandler->OnSizeChanged(ApplicationWindow,WindowWidth,WindowHeight, false);
 									MessageHandler->OnResizingWindow(ApplicationWindow);
@@ -123,8 +126,10 @@ void FHTML5Application::PollGameDeviceState( const float TimeDelta )
 							FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
 							if ( DisplayMetrics.PrimaryDisplayWidth != WindowWidth || DisplayMetrics.PrimaryDisplayHeight != WindowHeight )
 							{
-								int32 delta = FMath::Abs<int32>(DisplayMetrics.PrimaryDisplayHeight - WindowHeight);
-								if (delta > 2) // UE-35363: retina bug fix - otherwise, event does infinite loops
+								int32 deltaH = FMath::Abs<int32>(DisplayMetrics.PrimaryDisplayHeight - WindowHeight);
+								int32 deltaW = FMath::Abs<int32>(DisplayMetrics.PrimaryDisplayWidth - WindowWidth);
+								int32 pixelRatio = UE_PixelRatio();
+								if ((deltaH > pixelRatio) || (deltaW > pixelRatio)) // UE-35363: retina bug fix - otherwise, event does infinite loops
 								{
 									MessageHandler->OnResizingWindow(ApplicationWindow);
 									BroadcastDisplayMetricsChanged(DisplayMetrics);

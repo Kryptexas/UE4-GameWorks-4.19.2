@@ -191,6 +191,7 @@
     </When>
   </Choose>
   <ItemGroup>
+    <Compile Include="ToolChain\RemoteExports.cs" />
     <Compile Include="Utilities\BinaryReaderExtensions.cs" />
     <Compile Include="Utilities\BinaryWriterExtensions.cs" />
     <Compile Include="Utilities\HashSetExtensions.cs" />

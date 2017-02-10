@@ -373,6 +373,117 @@ namespace UnrealBuildTool
 			}
 		}
 
+		List<ProjectConfigAndTargetCombination> ProjectConfigAndTargetCombinations = new List<ProjectConfigAndTargetCombination>();
+		
+		private void BuildProjectConfigAndTargetCombinations(List<UnrealTargetPlatform> InPlatforms, List<UnrealTargetConfiguration> InConfigurations)
+		{
+			//no need to do this more than once
+			if(ProjectConfigAndTargetCombinations.Count > 0) 
+			{
+				return;
+			}
+
+			// Build up a list of platforms and configurations this project will support.  In this list, Unknown simply
+			// means that we should use the default "stub" project platform and configuration name.
+
+			// If this is a "stub" project, then only add a single configuration to the project
+			if (IsStubProject)
+			{
+				ProjectConfigAndTargetCombination StubCombination = new ProjectConfigAndTargetCombination(UnrealTargetPlatform.Unknown, UnrealTargetConfiguration.Unknown, StubProjectPlatformName, StubProjectConfigurationName, null);
+				ProjectConfigAndTargetCombinations.Add(StubCombination);
+			}
+			else
+			{
+				// Figure out all the desired configurations
+				foreach (UnrealTargetConfiguration Configuration in InConfigurations)
+				{
+					//@todo.Rocket: Put this in a commonly accessible place?
+					if (UnrealBuildTool.IsValidConfiguration(Configuration) == false)
+					{
+						continue;
+					}
+					foreach (UnrealTargetPlatform Platform in InPlatforms)
+					{
+						if (UnrealBuildTool.IsValidPlatform(Platform) == false)
+						{
+							continue;
+						}
+						UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform, true);
+						if ((BuildPlatform != null) && (BuildPlatform.HasRequiredSDKsInstalled() == SDKStatus.Valid))
+						{
+							// Now go through all of the target types for this project
+							if (ProjectTargets.Count == 0)
+							{
+								throw new BuildException("Expecting at least one ProjectTarget to be associated with project '{0}' in the TargetProjects list ", ProjectFilePath);
+							}
+
+							foreach (ProjectTarget ProjectTarget in ProjectTargets)
+							{
+								if (IsValidProjectPlatformAndConfiguration(ProjectTarget, Platform, Configuration))
+								{
+									string ProjectPlatformName, ProjectConfigurationName;
+									MakeProjectPlatformAndConfigurationNames(Platform, Configuration, ProjectTarget.TargetRules.Type.ToString(), out ProjectPlatformName, out ProjectConfigurationName);
+
+									ProjectConfigAndTargetCombination Combination = new ProjectConfigAndTargetCombination(Platform, Configuration, ProjectPlatformName, ProjectConfigurationName, ProjectTarget);
+									ProjectConfigAndTargetCombinations.Add(Combination);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+
+		/// <summary>
+		/// If found writes a debug project file to disk
+		/// </summary>
+		/// <returns>True on success</returns>
+		public override List<Tuple<ProjectFile, string>> WriteDebugProjectFiles(List<UnrealTargetPlatform> InPlatforms, List<UnrealTargetConfiguration> InConfigurations)
+		{
+			string ProjectName = ProjectFilePath.GetFileNameWithoutExtension();
+			
+			List<UnrealTargetPlatform> ProjectPlatforms = new List<UnrealTargetPlatform>();
+			List<Tuple<ProjectFile, string>> ProjectFiles = new List<Tuple<ProjectFile, string>>();
+
+			BuildProjectConfigAndTargetCombinations(InPlatforms, InConfigurations);
+
+
+			foreach (ProjectConfigAndTargetCombination Combination in ProjectConfigAndTargetCombinations)
+			{
+				if (!ProjectPlatforms.Contains(Combination.Platform))
+				{
+					ProjectPlatforms.Add(Combination.Platform);
+				}
+			}
+
+			//write out any additional project files
+			if (!IsStubProject && (ProjectFileGenerator.IsEngineProject(ProjectName) || ProjectFileGenerator.IsGameProject(ProjectName)))
+			{
+				foreach (UnrealTargetPlatform Platform in ProjectPlatforms)
+				{
+					UEPlatformProjectGenerator ProjGenerator = UEPlatformProjectGenerator.GetPlatformProjectGenerator(Platform, true);
+					if (ProjGenerator != null)
+					{
+						//write out additional prop file
+						ProjGenerator.WriteAdditionalPropFile();
+
+						//write out additional project user files
+						ProjGenerator.WriteAdditionalProjUserFile(this);
+
+						//write out additional project files
+						Tuple<ProjectFile, string> DebugProjectInfo = ProjGenerator.WriteAdditionalProjFile(this);
+						if(DebugProjectInfo != null) 
+						{
+							ProjectFiles.Add(DebugProjectInfo);
+						}
+					}
+				}
+			}
+
+			return ProjectFiles;
+		}
+
 		/// Implements Project interface
 		public override bool WriteProjectFile(List<UnrealTargetPlatform> InPlatforms, List<UnrealTargetConfiguration> InConfigurations)
 		{
@@ -436,56 +547,7 @@ namespace UnrealBuildTool
 					);
 			}
 
-			// Build up a list of platforms and configurations this project will support.  In this list, Unknown simply
-			// means that we should use the default "stub" project platform and configuration name.
-			List<ProjectConfigAndTargetCombination> ProjectConfigAndTargetCombinations = new List<ProjectConfigAndTargetCombination>();
-
-			// If this is a "stub" project, then only add a single configuration to the project
-			if (IsStubProject)
-			{
-				ProjectConfigAndTargetCombination StubCombination = new ProjectConfigAndTargetCombination(UnrealTargetPlatform.Unknown, UnrealTargetConfiguration.Unknown, StubProjectPlatformName, StubProjectConfigurationName, null);
-				ProjectConfigAndTargetCombinations.Add(StubCombination);
-			}
-			else
-			{
-				// Figure out all the desired configurations
-				foreach (UnrealTargetConfiguration Configuration in InConfigurations)
-				{
-					//@todo.Rocket: Put this in a commonly accessible place?
-					if (UnrealBuildTool.IsValidConfiguration(Configuration) == false)
-					{
-						continue;
-					}
-					foreach (UnrealTargetPlatform Platform in InPlatforms)
-					{
-						if (UnrealBuildTool.IsValidPlatform(Platform) == false)
-						{
-							continue;
-						}
-						UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform, true);
-						if ((BuildPlatform != null) && (BuildPlatform.HasRequiredSDKsInstalled() == SDKStatus.Valid))
-						{
-							// Now go through all of the target types for this project
-							if (ProjectTargets.Count == 0)
-							{
-								throw new BuildException("Expecting at least one ProjectTarget to be associated with project '{0}' in the TargetProjects list ", ProjectFilePath);
-							}
-
-							foreach (ProjectTarget ProjectTarget in ProjectTargets)
-							{
-								if (IsValidProjectPlatformAndConfiguration(ProjectTarget, Platform, Configuration))
-								{
-									string ProjectPlatformName, ProjectConfigurationName;
-									MakeProjectPlatformAndConfigurationNames(Platform, Configuration, ProjectTarget.TargetRules.Type.ToString(), out ProjectPlatformName, out ProjectConfigurationName);
-
-									ProjectConfigAndTargetCombination Combination = new ProjectConfigAndTargetCombination(Platform, Configuration, ProjectPlatformName, ProjectConfigurationName, ProjectTarget);
-									ProjectConfigAndTargetCombinations.Add(Combination);
-								}
-							}
-						}
-					}
-				}
-			}
+			BuildProjectConfigAndTargetCombinations(InPlatforms, InConfigurations);
 
 			VCProjectFileContent.Append(
 				"	<ItemGroup Label=\"ProjectConfigurations\">" + ProjectFileGenerator.NewLine);
@@ -1051,6 +1113,7 @@ namespace UnrealBuildTool
 				VCProjectFileContent.Append(
 					"	<ImportGroup " + ConditionString + " Label=\"PropertySheets\">" + ProjectFileGenerator.NewLine +
 					"		<Import Project=\"$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props\" Condition=\"exists('$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props')\" Label=\"LocalAppDataPlatform\" />" + ProjectFileGenerator.NewLine +
+							ProjGenerator.GetVisualStudioImportGroupProperties(Platform) +
 					"	</ImportGroup>" + ProjectFileGenerator.NewLine);
 
 				DirectoryReference ProjectDirectory = ProjectFilePath.Directory;
@@ -1377,4 +1440,5 @@ namespace UnrealBuildTool
 		/// System assemblies this project is dependent on
 		protected readonly List<string> DotNetAssemblyReferences = new List<string>() { "System", "System.Core", "System.Data", "System.Xml" };
 	}
+
 }

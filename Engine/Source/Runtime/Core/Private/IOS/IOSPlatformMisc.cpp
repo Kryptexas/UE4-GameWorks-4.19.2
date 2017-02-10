@@ -689,9 +689,7 @@ FString FIOSPlatformMisc::GetUniqueDeviceId()
 		NSUUID* Id = [[UIDevice currentDevice] identifierForVendor];
 		if (Id != nil)
 		{
-			NSString* IdfvString = [Id UUIDString];
-			FString IDFV(IdfvString);
-			return IDFV;
+			return FString([[Id UUIDString] autorelease]);
 		}
 	}
 

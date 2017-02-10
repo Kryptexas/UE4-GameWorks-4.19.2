@@ -349,6 +349,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)
 	FString GooglePlayLicenseKey;
 
+	// The sender id obtained from Firebase Console, leave blank to disable (associate this with your app in Google Player Developer Console).
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices, meta = (DisplayName = "Google Cloud Messaging Sender ID"))
+	FString GCMClientSenderID;
+
 	/** Show the launch image as a startup slash screen */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = LaunchImages, meta = (DisplayName = "Show launch image"))
 	bool bShowLaunchImage;

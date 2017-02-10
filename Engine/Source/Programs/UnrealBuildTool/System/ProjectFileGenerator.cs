@@ -348,6 +348,26 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Test for if ProjectName passed is the Engine Project
+		/// </summary>
+		/// <param name="ProjectName"></param>
+		/// <returns>true if ProjectName is the Engine project, else false</returns>
+		public static bool IsEngineProject(string ProjectName)
+		{
+			return (ProjectName.Equals(EngineProjectFileNameBase));
+		}
+
+		/// <summary>
+		/// Test if the Project Name is a Game Project
+		/// </summary>
+		/// <param name="ProjectName"></param>
+		/// <returns>true if ProjectName is a Game project, else false</returns>
+		public static bool IsGameProject(string ProjectName)
+		{
+			return UProjectInfo.IsGameProject(ProjectName);			
+		}
+
+		/// <summary>
 		/// Generates a Visual Studio solution file and Visual C++ project files for all known engine and game targets.
 		/// Does not actually build anything.
 		/// </summary>
@@ -451,8 +471,11 @@ namespace UnrealBuildTool
 					DefaultProject = GameProjects.Values.First();
 				}
 
+				//Related Debug Project Files - Tuple here has the related Debug Project, SolutionFolder
+				List<Tuple<ProjectFile, string>> DebugProjectFiles = new List<Tuple<ProjectFile, string>>();
+
 				// Place projects into root level solution folders
-				if( IncludeEngineSource )
+				if ( IncludeEngineSource )
 				{
 					// If we're still missing an engine project because we don't have any targets for it, make one up.
 					if( EngineProject == null )
@@ -516,6 +539,13 @@ namespace UnrealBuildTool
 						{
 							AddEngineDocumentation( EngineProject );
 						}
+
+						List<Tuple<ProjectFile, string>> NewProjectFiles = EngineProject.WriteDebugProjectFiles(InPlatforms: SupportedPlatforms, InConfigurations: SupportedConfigurations);
+
+						if (NewProjectFiles != null)
+						{
+							DebugProjectFiles.AddRange(NewProjectFiles);
+						}
 					}
 
 					foreach( ProjectFile CurGameProject in GameProjects.Values )
@@ -533,7 +563,25 @@ namespace UnrealBuildTool
 						{
 							RootFolder.AddSubFolder( "Games" ).ChildProjects.Add( CurGameProject );
 						}
+
+						List<Tuple<ProjectFile, string>> NewProjectFiles = CurGameProject.WriteDebugProjectFiles(InPlatforms: SupportedPlatforms, InConfigurations: SupportedConfigurations);
+
+						if (NewProjectFiles != null)
+						{
+							DebugProjectFiles.AddRange(NewProjectFiles);
+						}
+						
 					}
+
+					//Related Debug Project Files - Tuple has the related Debug Project, SolutionFolder
+					foreach (Tuple<ProjectFile, string> DebugProjectFile in DebugProjectFiles)
+					{						
+						AddExistingProjectFile(DebugProjectFile.Item1, bForceDevelopmentConfiguration: false);
+
+						//add it to the Android Debug Projects folder in the solution
+						RootFolder.AddSubFolder(DebugProjectFile.Item2).ChildProjects.Add(DebugProjectFile.Item1);						
+					}
+					
 
 					foreach( ProjectFile CurProgramProject in ProgramProjects.Values )
 					{

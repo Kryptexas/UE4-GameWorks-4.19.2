@@ -312,7 +312,9 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						IncludePath = CPPFile.Reference.MakeRelativeTo(CompileEnvironment.OutputDirectory).Replace('\\', '/');
+						// @todo: MakeRelativeTo does not work with code projects on a different drive than the engine. reverting to old version until we can come
+						// up with a better solution
+						IncludePath = RemoteExports.ConvertPath(CPPFile.AbsolutePath).Replace('\\', '/');
 					}
 					OutputUnityCPPWriter.WriteLine("#include \"{0}\"", IncludePath);
 				}

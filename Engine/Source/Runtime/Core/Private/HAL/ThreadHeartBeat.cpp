@@ -191,6 +191,12 @@ void FThreadHeartBeat::Start()
 
 void FThreadHeartBeat::HeartBeat()
 {
+	// disable on platforms that don't start the thread
+	if (FPlatformMisc::AllowThreadHeartBeat() == false)
+	{
+		return;
+	}
+
 	uint32 ThreadId = FPlatformTLS::GetCurrentThreadId();
 	FScopeLock HeartBeatLock(&HeartBeatCritical);
 	FHeartBeatInfo& HeartBeatInfo = ThreadHeartBeat.FindOrAdd(ThreadId);

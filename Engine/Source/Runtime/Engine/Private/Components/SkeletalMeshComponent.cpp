@@ -447,7 +447,6 @@ void USkeletalMeshComponent::OnRegister()
 
 #if WITH_APEX_CLOTHING
 	RecreateClothingActors();
-#endif
 
 	if(UClass* SimFactoryClass = *ClothingSimulationFactory)
 	{
@@ -461,6 +460,7 @@ void USkeletalMeshComponent::OnRegister()
 			RecreateClothingActors();
 		}
 	}
+#endif
 }
 
 void USkeletalMeshComponent::OnUnregister()

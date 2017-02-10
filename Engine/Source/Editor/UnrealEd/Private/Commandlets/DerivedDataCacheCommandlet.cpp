@@ -16,6 +16,7 @@ DerivedDataCacheCommandlet.cpp: Commandlet for DDC maintenence
 #include "ShaderCompiler.h"
 #include "DistanceFieldAtlas.h"
 #include "Misc/RedirectCollector.h"
+#include "Engine/Texture.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDerivedDataCacheCommandlet, Log, All);
 
@@ -75,6 +76,15 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 		GShaderCompilingManager->FinishAllCompilation(); // Final blocking check as IsCompiling() may be non-deterministic
 		GDistanceFieldAsyncQueue->BlockUntilAllBuildsComplete();
 		UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("Done waiting for shaders to finish."));
+	};
+
+
+	auto WaitForCurrentTextureBuildingToFinish = []()
+	{
+		for ( TObjectIterator<UTexture> Texture; Texture; ++Texture )
+		{
+			Texture->FinishCachePlatformData();
+		}
 	};
 
 	if (!bStartupOnly && bFillCache)
@@ -267,6 +277,9 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 
 			if (NumProcessedSinceLastGC >= GCInterval || FileIndex < 0 || bLastPackageWasMap)
 			{
+				WaitForCurrentShaderCompilationToFinish();
+				WaitForCurrentTextureBuildingToFinish();
+
 				const double StartGCTime = FPlatformTime::Seconds();
 				if (NumProcessedSinceLastGC >= GCInterval || FileIndex < 0)
 				{
@@ -282,12 +295,12 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 				GCTime += FPlatformTime::Seconds() - StartGCTime;
 
 				bLastPackageWasMap = false;
-				WaitForCurrentShaderCompilationToFinish();
 			}
 		}
 	}
 
 	WaitForCurrentShaderCompilationToFinish();
+	WaitForCurrentTextureBuildingToFinish();
 	GetDerivedDataCacheRef().WaitForQuiescence(true);
 
 	UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("%.2lfs spent looking for processed packages, %.2lfs spent on GC."), FindProcessedPackagesTime, GCTime);

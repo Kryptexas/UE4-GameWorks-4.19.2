@@ -299,6 +299,24 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Check to see if a project name is a Game
+		/// </summary>
+		/// <param name="GameNameFilter"></param>
+		/// <returns>true if it is a game</returns>
+		public static bool IsGameProject(string GameNameFilter)
+		{
+			List<UProjectInfo> Projects = new List<UProjectInfo>();
+			foreach (KeyValuePair<FileReference, UProjectInfo> Entry in ProjectInfoDictionary)
+			{
+				if(Entry.Value.GameName == GameNameFilter)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+		/// <summary>
 		/// Get the project folder for the given target name
 		/// </summary>
 		/// <param name="InTargetName">Name of the target of interest</param>

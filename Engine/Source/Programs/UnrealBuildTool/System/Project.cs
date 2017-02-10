@@ -394,6 +394,18 @@ namespace UnrealBuildTool
 			throw new BuildException("UnrealBuildTool cannot automatically generate this project type because WriteProjectFile() was not overridden.");
 		}
 
+		/// <summary>
+		/// If found writes a debug project file to disk
+		/// </summary>
+		/// <param name="InPlatforms">The platforms to write the project files for</param>
+		/// <param name="InConfigurations">The configurations to add to the project files</param>
+		/// <returns>List of project files written</returns>
+		public virtual List<Tuple<ProjectFile, string>> WriteDebugProjectFiles(List<UnrealTargetPlatform> InPlatforms, List<UnrealTargetConfiguration> InConfigurations)
+		{
+			return null;
+		}
+
+
 		public virtual void LoadGUIDFromExistingProject()
 		{
 		}

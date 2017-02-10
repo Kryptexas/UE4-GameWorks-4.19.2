@@ -3544,7 +3544,8 @@ void UCookOnTheFlyServer::ProcessAccessedIniSettings(const FConfigFile* Config, 
 				AccessedKey.Empty();
 				for ( const auto& ValueArrayEntry : ValueArray )
 				{
-					AccessedKey.Add(ValueArrayEntry.GetSavedValue());
+					FString RemovedColon = ValueArrayEntry.GetSavedValue().Replace(TEXT(":"), TEXT(""));
+					AccessedKey.Add(RemovedColon);
 				}
 			}
 			
@@ -3666,7 +3667,8 @@ bool UCookOnTheFlyServer::IniSettingsOutOfDate(const ITargetPlatform* TargetPlat
 				}
 				for ( int Index = 0; Index < CurrentValues.Num(); ++Index )
 				{
-					if ( CurrentValues[Index].GetSavedValue() != OldIniValue.Value[Index] )
+					const FString FilteredCurrentValue = CurrentValues[Index].GetSavedValue().Replace(TEXT(":"), TEXT(""));
+					if ( FilteredCurrentValue != OldIniValue.Value[Index] )
 					{
 						UE_LOG(LogCook, Display, TEXT("Inisetting is different for %s, value %s != %s invalidating cook"),  *FString::Printf(TEXT("%s %s %s %s %d"),*PlatformName, *Filename, *SectionName.ToString(), *ValueName.ToString(), Index), *CurrentValues[Index].GetSavedValue(), *OldIniValue.Value[Index] );
 						return true;
@@ -6171,6 +6173,9 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	// add all the files for the requested platform to the cook list
 	for ( const FName& FileFName : FilesInPath )
 	{
+		if ( FileFName == NAME_None )
+			continue;
+
 		const FName PackageFileFName = GetCachedStandardPackageFileFName(FileFName);
 		
 		if (PackageFileFName != NAME_None)

@@ -773,7 +773,7 @@ struct FEDLBootNotificationManager
 		{
 			UE_LOG(LogStreaming, Fatal, TEXT("Initial load is complete, but we still have %d waiting packages."), PathToWaitingPackageNodes.Num());
 		}
-		if (GEventDrivenLoaderEnabled && PathsToFire.Num())
+		if (GEventDrivenLoaderEnabled && PathsToFire.Num() && USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME)
 		{
 			for (FName Path : PathsToFire)
 			{
@@ -4239,8 +4239,6 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 				}
 				if (LocalLoadingState == EAsyncPackageState::Complete)
 				{
-
-					// We're done, at least on this thread, so we can remove the package now.
 					{
 #if THREADSAFE_UOBJECTS
 						FScopeLock LockAsyncPackages(&AsyncPackagesCritical);
@@ -4250,7 +4248,9 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 						AsyncPackages.RemoveAt(PackageIndex);
 						AsyncPackagesReadyForTick.RemoveAt(0, 1, false); //@todoio this should maybe be a heap or something to avoid the removal cost
 					}
-				AddToLoadedPackages(Package);
+
+					// We're done, at least on this thread, so we can remove the package now.
+					AddToLoadedPackages(Package);
 				}
 				if (IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit, TEXT("TickAsyncPackage")))
 				{
@@ -7374,7 +7374,7 @@ void FArchiveAsync2::ReadCallback(bool bWasCancelled, IAsyncReadRequest* Request
 	}
 	else if (LoadPhase == ELoadPhase::WaitingForSummary)
 	{
-		check(!GEventDrivenLoaderEnabled);
+		check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 		uint8* Mem = Request->GetReadResults();
 		if (!Mem)
 		{
@@ -7780,6 +7780,29 @@ void FArchiveAsync2::FirstExportStarting()
 	ExportReadTime = FPlatformTime::Seconds();
 	LogItem(TEXT("Exports"));
 	LoadPhase = ELoadPhase::ProcessingExports;
+
+	if (GEventDrivenLoaderEnabled && !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+	{
+		FlushCache();
+		if (Handle)
+		{
+			delete Handle;
+			Handle = nullptr;
+		}
+
+		HeaderSizeWhenReadingExportsFromSplitFile = HeaderSize;
+		FileName = FPaths::GetBaseFilename(FileName, false) + TEXT(".uexp");
+
+		Handle = FPlatformFileManager::Get().GetPlatformFile().OpenAsyncRead(*FileName);
+		check(Handle); // this generally cannot fail because it is async
+
+		check(!SizeRequestPtr);
+		SizeRequestPtr = Handle->SizeRequest();
+		if (SizeRequestPtr->PollCompletion())
+		{
+			TotalSize(); // complete the request
+		}
+	}
 }
 
 IAsyncReadRequest* FArchiveAsync2::MakeEventDrivenPrecacheRequest(int64 Offset, int64 BytesToRead, FAsyncFileCallBack* CompleteCallback)

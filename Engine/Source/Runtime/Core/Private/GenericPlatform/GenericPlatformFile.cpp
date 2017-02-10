@@ -176,7 +176,12 @@ void FGenericReadRequestWorker::DoWork()
 	ReadRequest.PerformRequest();
 }
 
+// @todo switch et al: this is a temporary measure until we can track down some threaded file handling issues on Switch 
+#if (PLATFORM_SWITCH || PLATFORM_LINUX || PLATFORM_PS4 || PLATFORM_IOS || PLATFORM_MAC)
+#define DISABLE_HANDLE_CACHING (1)
+#else
 #define DISABLE_HANDLE_CACHING (0)
+#endif
 
 class FGenericAsyncReadFileHandle final : public IAsyncReadFileHandle
 {

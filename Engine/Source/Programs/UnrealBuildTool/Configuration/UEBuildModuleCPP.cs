@@ -772,7 +772,7 @@ namespace UnrealBuildTool
 			// for header dependencies
 			CPPFile.CachedIncludePaths = ModuleCompileEnvironment.IncludePaths;
 
-			FileItem PCHFile = ModuleCompileEnvironment.Headers.CachePCHUsageForCPPFile(CPPFile, ModuleCompileEnvironment.IncludePaths);
+			FileItem PCHFile = ModuleCompileEnvironment.Headers.CachePCHUsageForCPPFile(CPPFile, ModuleCompileEnvironment.IncludePaths, ModuleCompileEnvironment.Platform);
 
 			if (UnrealBuildTool.bPrintPerformanceInfo)
 			{
@@ -849,7 +849,7 @@ namespace UnrealBuildTool
 						CPPFile.CachedIncludePaths = ModuleCompileEnvironment.IncludePaths;
 
 						// Find headers used by the source file.
-						FileItem PCH = ModuleCompileEnvironment.Headers.CachePCHUsageForCPPFile(CPPFile, ModuleCompileEnvironment.IncludePaths);
+						FileItem PCH = ModuleCompileEnvironment.Headers.CachePCHUsageForCPPFile(CPPFile, ModuleCompileEnvironment.IncludePaths, ModuleCompileEnvironment.Platform);
 						if (PCH == null)
 						{
 							throw new BuildException("Source file \"{0}\" is not including any headers.  We expect all modules to include a header file for precompiled header generation.  Please add an #include statement.", CPPFile.AbsolutePath);

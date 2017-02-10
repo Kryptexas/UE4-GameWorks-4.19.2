@@ -34,6 +34,7 @@ public class ShaderCompileWorkerTarget : TargetRules
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
 		UEBuildConfiguration.bBuildWithEditorOnlyData = true;
+		UEBuildConfiguration.bCompileCEF3 = false;
 
 		// Never use malloc profiling in ShaderCompileWorker.
 		BuildConfiguration.bUseMallocProfiler = false;

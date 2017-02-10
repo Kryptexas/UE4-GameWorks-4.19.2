@@ -56,22 +56,6 @@ public:
 		TextureLODSettings = nullptr;
 		StaticMeshLODSettings.Initialize(EngineSettings);
 
-		// Get the Target RHIs for this platform, we do not always want all those that are supported.
-		GConfig->GetArray(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
-
-		// Gather the list of Target RHIs and filter out any that may be invalid.
-		TArray<FName> PossibleShaderFormats;
-		GetAllPossibleShaderFormats(PossibleShaderFormats);
-
-		for(int32 ShaderFormatIdx = TargetedShaderFormats.Num()-1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
-		{
-			FString ShaderFormat = TargetedShaderFormats[ShaderFormatIdx];
-			if(PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
-			{
-				TargetedShaderFormats.RemoveAt(ShaderFormatIdx);
-			}
-		}
-
 		InitDevicesFromConfig();
 #endif // WITH_ENGINE
 	}
@@ -191,7 +175,7 @@ public:
 			
 			// else check for legacy LINUX_ROOT
 			ToolchainRoot[ 0 ] = 0;
-			FPlatformMisc::GetEnvironmentVariable(TEXT("LINUX_ROOT"), ToolchainRoot, ARRAY_COUNT(ToolchainRoot));            
+			FPlatformMisc::GetEnvironmentVariable(TEXT("LINUX_ROOT"), ToolchainRoot, ARRAY_COUNT(ToolchainRoot));
 			FString ToolchainCompiler = ToolchainRoot;
 			if (PLATFORM_WINDOWS)
 			{
@@ -251,6 +235,23 @@ public:
 
 	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const override
 	{
+		// Get the Target RHIs for this platform, we do not always want all those that are supported. (reload in case user changed in the editor)
+		TArray<FString>TargetedShaderFormats;
+		GConfig->GetArray(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
+
+		// Gather the list of Target RHIs and filter out any that may be invalid.
+		TArray<FName> PossibleShaderFormats;
+		GetAllPossibleShaderFormats(PossibleShaderFormats);
+
+		for (int32 ShaderFormatIdx = TargetedShaderFormats.Num() - 1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
+		{
+			FString ShaderFormat = TargetedShaderFormats[ShaderFormatIdx];
+			if (PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
+			{
+				TargetedShaderFormats.RemoveAt(ShaderFormatIdx);
+			}
+		}
+
 		for(const FString& ShaderFormat : TargetedShaderFormats)
 		{
 			OutFormats.AddUnique(FName(*ShaderFormat));
@@ -463,8 +464,6 @@ private:
 	// Holds static mesh LOD settings.
 	FStaticMeshLODSettings StaticMeshLODSettings;
 
-	// List of shader formats specified as targets
-	TArray<FString> TargetedShaderFormats;
 #endif // WITH_ENGINE
 
 private:

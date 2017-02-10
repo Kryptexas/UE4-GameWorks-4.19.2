@@ -1693,6 +1693,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 					GUseRHIThread = false;
 				}
 			}
+
 			StartRenderingThread();
 		}
 #endif

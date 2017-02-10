@@ -291,7 +291,7 @@ struct FPreloadMembersHelper
 			UObject* CurrentObject = *it;
 			if (!CurrentObject->HasAnyFlags(RF_LoadCompleted))
 			{
-				check(!GEventDrivenLoaderEnabled);
+				check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 				CurrentObject->SetFlags(RF_NeedLoad);
 				if (FLinkerLoad* Linker = CurrentObject->GetLinker())
 				{
@@ -306,7 +306,7 @@ struct FPreloadMembersHelper
 	{
 		if (InObject && !InObject->HasAnyFlags(RF_LoadCompleted))
 		{
-			check(!GEventDrivenLoaderEnabled);
+			check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 			InObject->SetFlags(RF_NeedLoad);
 			if (FLinkerLoad* Linker = InObject->GetLinker())
 			{
@@ -1332,7 +1332,7 @@ void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 			// to re-run the serialization)
 			if ( (SuperCDO != nullptr) && !SuperCDO->HasAnyFlags(RF_NeedLoad|RF_LoadCompleted) )
 			{
-				check(!GEventDrivenLoaderEnabled);
+				check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 				SuperCDO->SetFlags(RF_NeedLoad);
 			}
 			SuperLinker->FinalizeBlueprint(SuperClass);
@@ -2270,7 +2270,7 @@ void FDeferredObjInitializerTracker::ResolveDeferredSubObjects(UObject* CDO)
 		{
 			if (FLinkerLoad* SubObjLinker = SubObjArchetype->GetLinker())
 			{
-				check(!GEventDrivenLoaderEnabled);
+				check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 				SubObjArchetype->SetFlags(RF_NeedLoad);
 				SubObjLinker->Preload(SubObjArchetype);
 			}

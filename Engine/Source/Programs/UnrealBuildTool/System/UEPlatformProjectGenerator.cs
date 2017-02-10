@@ -242,6 +242,16 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Return any custom property settings. These will be included in the ImportGroup section
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <returns>string    The custom property import lines for the project file; Empty string if it doesn't require one</returns>
+		public virtual string GetVisualStudioImportGroupProperties(UnrealTargetPlatform InPlatform)
+		{
+			return "";
+		}
+
+		/// <summary>
 		/// Return any custom property settings. These will be included right after Global properties to make values available to all other imports.
 		/// </summary>
 		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
@@ -316,6 +326,31 @@ namespace UnrealBuildTool
 			string InConditionString, TargetRules InTargetRules, FileReference TargetRulesPath, FileReference ProjectFilePath)
 		{
 			return "";
+		}
+
+		/// <summary>
+		/// For Additional Project Property files that need to be written out.  This is currently used only on Android. 
+		/// </summary>
+		public virtual void WriteAdditionalPropFile()
+		{
+		}
+
+		/// <summary>
+		/// For additional Project files (ex. *PROJECTNAME*-AndroidRun.androidproj.user) that needs to be written out.  This is currently used only on Android. 
+		/// </summary>
+		/// <param name="ProjectFile">Project file this will be related to</param>
+		public virtual void WriteAdditionalProjUserFile(ProjectFile ProjectFile)
+		{
+		}
+
+		/// <summary>
+		/// For additional Project files (ex. *PROJECTNAME*-AndroidRun.androidproj) that needs to be written out.  This is currently used only on Android. 
+		/// </summary>
+		/// <param name="ProjectFile">Project file this will be related to</param>
+		/// <returns>Project file written out, Solution folder it should be put in</returns>
+		public virtual Tuple<ProjectFile, string> WriteAdditionalProjFile(ProjectFile ProjectFile)
+		{
+			return null;
 		}
 	}
 }

@@ -83,9 +83,12 @@ namespace UnrealBuildTool
 			// JavsScript option overrides (see src/settings.js)
 
 			// we have to specify the full amount of memory with Asm.JS (1.5 G)
-			// I wonder if there's a per game way to change this.
-			int TotalMemory = 256 * 1024 * 1024;
-			Result += " -s TOTAL_MEMORY=" + TotalMemory.ToString();
+//			ConfigHierarchy cc = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.HTML5);
+//			int TotalMemory = HTML5SDKInfo.HeapSize(cc, TargetConfiguration.ToString()) * 1024 * 1024;
+//			Result += " -s TOTAL_MEMORY=" + TotalMemory.ToString();
+			// and, have to specify size smaller than used and must use "grow memory" !!!
+			Result += " -s TOTAL_MEMORY=" + 128 * 1024 * 1024;
+			Result += " -s ALLOW_MEMORY_GROWTH=1";
 
 			// no need for exceptions
 			Result += " -s DISABLE_EXCEPTION_CATCHING=1";
@@ -192,7 +195,7 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		static string GetLinkArguments(LinkEnvironment LinkEnvironment)
+		string GetLinkArguments(LinkEnvironment LinkEnvironment)
 		{
 			string Result = GetSharedArguments_Global(LinkEnvironment.Configuration, LinkEnvironment.Architecture, false, false, false, false);
 

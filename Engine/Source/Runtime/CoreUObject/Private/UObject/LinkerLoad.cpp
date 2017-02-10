@@ -1411,7 +1411,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeNameMap()
 			if (GNewAsyncIO && bLoaderIsFArchiveAsync2)
 			{
 				bFinishedPrecaching = GetFArchiveAsync2Loader()->ReadyToStartReadingHeader(bUseTimeLimit, bUseFullTimeLimit, TickStartTime, TimeLimit);
-				check(!GEventDrivenLoaderEnabled || bFinishedPrecaching);
+				check(!GEventDrivenLoaderEnabled || bFinishedPrecaching || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 			}
 			else
 			{
@@ -2312,7 +2312,7 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 				// serialize in the properties of the redirector (to get the object the redirector point to)
 				// Always load redirectors in case there was a circular dependency. This will allow inner redirector
 				// references to always serialize fully here before accessing the DestinationObject
-				check(!GEventDrivenLoaderEnabled);
+				check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 				Redir->SetFlags(RF_NeedLoad);
 				Preload(Redir);
 
@@ -3197,7 +3197,7 @@ void FLinkerLoad::Preload( UObject* Object )
 	{
 		if (Object->GetLinker() == this)
 		{
-			check(!GEventDrivenLoaderEnabled || !bLockoutLegacyOperations);
+			check(!GEventDrivenLoaderEnabled || !bLockoutLegacyOperations || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 			bool const bIsNonNativeObject = !Object->GetOutermost()->HasAnyPackageFlags(PKG_CompiledIn);
 			// we can determine that this is a blueprint class/struct by checking if it 
@@ -3344,7 +3344,7 @@ void FLinkerLoad::Preload( UObject* Object )
 
 							// reset the flag and return (don't worry, we make
 							// sure to force load this later)
-							check(!GEventDrivenLoaderEnabled);
+							check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 							Object->SetFlags(RF_NeedLoad);
 							return;
 						}
@@ -3570,7 +3570,7 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 	// Check whether we already loaded the object and if not whether the context flags allow loading it.
 	if( !Export.Object && !FilterExport(Export) ) // for some acceptable position, it was not "not for" 
 	{
-		check(!GEventDrivenLoaderEnabled || !bLockoutLegacyOperations);
+		check(!GEventDrivenLoaderEnabled || !bLockoutLegacyOperations || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 		check(Export.ObjectName!=NAME_None || !(Export.ObjectFlags&RF_Public));
 		check(IsLoading());
 
@@ -3689,7 +3689,7 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 					const UClass* AsClass = dynamic_cast<UClass*>(SuperStruct);
 					if (AsClass && !AsClass->ClassDefaultObject)
 					{
-						check(!GEventDrivenLoaderEnabled);
+						check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 						SuperStruct->SetFlags(RF_NeedLoad);
 						Preload(SuperStruct);
 					}
@@ -3888,7 +3888,7 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 					if (!Export.Object->HasAnyFlags(RF_LoadCompleted) &&
 						(Export.Object->HasAnyFlags(RF_DefaultSubObject) || (ThisParent && ThisParent->IsTemplate(RF_ClassDefaultObject))))
 					{
-						check(!GEventDrivenLoaderEnabled);
+						check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 						Export.Object->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WasLoaded);
 					}
 				}
@@ -4131,7 +4131,7 @@ bool FLinkerLoad::IsImportNative(const int32 Index) const
 // Return the loaded object corresponding to an import index; any errors are fatal.
 UObject* FLinkerLoad::CreateImport( int32 Index )
 {
-	check(!GEventDrivenLoaderEnabled || !bLockoutLegacyOperations);
+	check(!GEventDrivenLoaderEnabled || !bLockoutLegacyOperations || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 
 	FScopedCreateImportCounter ScopedCounter( this, Index );
 	FObjectImport& Import = ImportMap[ Index ];

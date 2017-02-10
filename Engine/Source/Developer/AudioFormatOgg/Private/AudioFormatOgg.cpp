@@ -434,6 +434,53 @@ public:
 
 		return CompressedDataStore.Num();
 	}
+
+	virtual bool SplitDataForStreaming(const TArray<uint8>& SrcBuffer, TArray<TArray<uint8>>& OutBuffers) const override
+	{
+		// Just chunk purely on MONO_PCM_BUFFER_SIZE
+		uint8 const*	SrcData = SrcBuffer.GetData();
+		uint32			SrcSize = SrcBuffer.Num();
+
+		// Load the audio quality info to get the number of channels
+		FVorbisAudioInfo	AudioInfo;
+		FSoundQualityInfo	QualityInfo;
+		if (!AudioInfo.ReadCompressedInfo((uint8*)SrcData, SrcSize, &QualityInfo))
+		{
+			return false;
+		}
+
+		// Use a base chunk size of MONO_PCM_BUFFER_SIZE * 2 because Android uses MONO_PCM_BUFFER_SIZE to submit buffers to the os, the streaming system has more scheduling flexability when the chunk size is
+		//	larger the the buffer size submitted to the OS
+		uint32	ChunkSize = MONO_PCM_BUFFER_SIZE * 2 * QualityInfo.NumChannels;
+		
+		while(SrcSize > 0)
+		{
+			int32	CurChunkDataSize = FMath::Min<uint32>(SrcSize, ChunkSize);
+				
+			AddNewChunk(OutBuffers, CurChunkDataSize);
+			AddChunkData(OutBuffers, SrcData, CurChunkDataSize);
+				
+			SrcSize -= CurChunkDataSize;
+			SrcData += CurChunkDataSize;
+		}
+
+		return true;
+	}
+	
+	// Add a new chunk and reserve ChunkSize bytes in it
+	void AddNewChunk(TArray<TArray<uint8>>& OutBuffers, int32 ChunkReserveSize) const
+	{
+		TArray<uint8>& NewBuffer = *new (OutBuffers) TArray<uint8>;
+		NewBuffer.Empty(ChunkReserveSize);
+	}
+	
+	// Add data to the current chunk
+	void AddChunkData(TArray<TArray<uint8>>& OutBuffers, const uint8* ChunkData, int32 ChunkDataSize) const
+	{
+		TArray<uint8>& TargetBuffer = OutBuffers[OutBuffers.Num() - 1];
+		TargetBuffer.Append(ChunkData, ChunkDataSize);
+	}
+
 };
 
 

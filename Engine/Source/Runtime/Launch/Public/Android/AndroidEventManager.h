@@ -49,6 +49,7 @@ public:
 	void HandleWindowCreated(void* InWindow);
 	void HandleWindowClosed();
 	bool IsGamePaused();
+	bool IsGameInFocus();
 	bool WaitForEventInQueue(EAppEventState InState, double TimeoutSeconds);
 
 	void SetEmptyQueueHandlerEvent(FEvent* InEventHandlerEvent);

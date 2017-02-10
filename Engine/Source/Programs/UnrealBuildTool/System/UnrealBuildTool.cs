@@ -687,6 +687,10 @@ namespace UnrealBuildTool
 							// It's the platform set...
 							//PlatformName = Arg;
 						}
+						else if (LowercaseArg == "-vsdebugandroid")
+						{
+							AndroidProjectGenerator.VSDebugCommandLineOptionPresent = true;
+						}
 						else
 						{
 							// This arg may be a game name. Check for the existence of a game folder with this name.

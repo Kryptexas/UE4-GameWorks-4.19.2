@@ -367,6 +367,10 @@ var UE_JavaScriptLibary = {
       return Runtime.dynCall('i', resY, []);
     };
   },
+
+  UE_PixelRatio: function() {
+  	  return window.devicePixelRatio;
+  },
  
 };
 

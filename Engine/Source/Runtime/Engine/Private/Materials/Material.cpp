@@ -412,9 +412,12 @@ void UMaterialInterface::InitDefaultMaterials()
 
 void UMaterialInterface::PostCDOContruct()
 {
-	UMaterial::StaticClass()->GetDefaultObject();
-	InitializeSharedSamplerStates();
-	UMaterialInterface::InitDefaultMaterials();
+	if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+	{
+		UMaterial::StaticClass()->GetDefaultObject();
+		InitializeSharedSamplerStates();
+		UMaterialInterface::InitDefaultMaterials();
+	}
 }
 
 

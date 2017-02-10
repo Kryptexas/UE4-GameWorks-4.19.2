@@ -1335,27 +1335,32 @@ namespace UnrealBuildTool
 			ProcessStartInfo StartInfo = new ProcessStartInfo();
 			if (SourceFileName.Contains("-armv7"))
 			{
-				StartInfo.FileName = ArPathArm.Replace("-ar.exe", "-strip.exe");
+				StartInfo.FileName = ArPathArm;
 			}
 			else
 			if (SourceFileName.Contains("-arm64"))
             {
-				StartInfo.FileName = ArPathArm64.Replace("-ar.exe", "-strip.exe");
+				StartInfo.FileName = ArPathArm64;
 			}
 			else
 			if (SourceFileName.Contains("-x86"))
             {
-				StartInfo.FileName = ArPathx86.Replace("-ar.exe", "-strip.exe");
+				StartInfo.FileName = ArPathx86;
 			}
 			else
 			if (SourceFileName.Contains("-x64"))
             {
-				StartInfo.FileName = ArPathx64.Replace("-ar.exe", "-strip.exe");
+				StartInfo.FileName = ArPathx64;
 			}
 			else
 			{
 				throw new BuildException("Couldn't determine Android architecture to strip symbols from {0}", SourceFileName);
 			}
+
+			// fix the executable (replace the last -ar with -strip and keep any extension)
+			int ArIndex = StartInfo.FileName.LastIndexOf("-ar");
+			StartInfo.FileName = StartInfo.FileName.Substring(0, ArIndex) + "-strip" + StartInfo.FileName.Substring(ArIndex + 3);
+
 			StartInfo.Arguments = "--strip-debug " + TargetFileName;
 			StartInfo.UseShellExecute = false;
 			StartInfo.CreateNoWindow = true;

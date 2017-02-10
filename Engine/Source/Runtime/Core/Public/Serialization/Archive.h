@@ -19,7 +19,11 @@ template<class TEnum> class TEnumAsByte;
 
 
 // Temporary while we shake out the EDL at boot
+#if PLATFORM_SWITCH
+#define USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME (0)
+#else
 #define USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME (1)
+#endif
 
 #if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
 	#define EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME (1)

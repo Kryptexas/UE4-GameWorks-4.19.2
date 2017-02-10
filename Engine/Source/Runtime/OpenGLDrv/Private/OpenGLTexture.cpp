@@ -1924,7 +1924,7 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTextur
 		const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[TextureCube->GetFormat()];
 		const bool bSRGB = (TextureCube->GetFlags()&TexCreate_SRGB) != 0;
 		
-		FOpenGL::TextureView( Resource, TextureCube->Target, TextureCube->Resource, GLFormat.InternalFormat[bSRGB], MipLevel, 1, 0, 1);
+		FOpenGL::TextureView( Resource, TextureCube->Target, TextureCube->Resource, GLFormat.InternalFormat[bSRGB], MipLevel, 1, 0, 6);
 		
 		View = new FOpenGLShaderResourceView(this, Resource, TextureCube->Target, MipLevel, true);
 	}

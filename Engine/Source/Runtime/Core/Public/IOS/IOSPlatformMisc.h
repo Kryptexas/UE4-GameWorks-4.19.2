@@ -220,8 +220,8 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 			L"IPadPro",
 			L"AppleTV",
 			L"IPhoneSE",
-			L"IPadPro_12.9",
-			L"IPadPro_9.7",
+			L"IPadPro129",
+			L"IPadPro97",
 			L"Unknown",
 		};
 		static_assert((sizeof(IOSDeviceNames) / sizeof(IOSDeviceNames[0])) == ((int32)IOS_Unknown + 1), "Mismatched IOSDeviceNames and EIOSDevice.");

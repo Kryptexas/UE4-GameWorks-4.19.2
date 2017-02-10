@@ -64,6 +64,14 @@ namespace UnrealBuildTool
 					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
 				}
 			}
+			else if (ModuleName == "Launch")
+			{
+				// this is a hack to influence symbol resolution on Linux that results in global delete being called from within CEF
+				if (Target.LinkType != TargetLinkType.Monolithic && Target.bCompileCEF3)
+				{
+					Rules.AddEngineThirdPartyPrivateStaticDependencies(Target, "CEF3");
+				}
+			}
 		}
 
 		/// <summary>

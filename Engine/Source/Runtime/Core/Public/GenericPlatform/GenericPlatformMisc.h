@@ -1079,6 +1079,12 @@ public:
 		return false;
 	}
 
+	/**
+	 * Returns a list of platforms that are confidential in nature. To avoid hardcoding the list, this
+	 * looks on disk the first time for special files, so it is non-instant.
+	 */
+	static const TArray<FString>& GetConfidentialPlatforms();
+
 #if !UE_BUILD_SHIPPING
 protected:
 	/** Whether the user should be prompted to allow for a remote debugger to be attached */

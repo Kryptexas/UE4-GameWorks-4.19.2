@@ -267,7 +267,7 @@ public:
 			{
 				FileInfo.st_mode |= S_IWUSR;
 			}
-			return chmod(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), FileInfo.st_mode) > 0;
+			return chmod(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), FileInfo.st_mode) == 0;
 		}
 		return false;
 	}
