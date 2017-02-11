@@ -13,6 +13,7 @@
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "FindInBlueprintManager.h"
 
 struct FK2Node_CreateDelegate_Helper
 {
@@ -448,6 +449,17 @@ UObject* UK2Node_CreateDelegate::GetJumpTargetForDoubleClick() const
 		}
 	}
 	return NULL;
+}
+
+void UK2Node_CreateDelegate::AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const
+{
+	Super::AddSearchMetaDataInfo(OutTaggedMetaData);
+
+	const FName FunctionName = GetFunctionName();
+	if (!FunctionName.IsNone())
+	{
+		OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_NativeName, FText::FromName(FunctionName)));
+	}
 }
 
 FNodeHandlingFunctor* UK2Node_CreateDelegate::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

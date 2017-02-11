@@ -23,6 +23,7 @@
 #if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "BlueprintCompilationManager.h"
 #endif //WITH_EDITOR
 
 DEFINE_STAT(STAT_PersistentUberGraphFrameMemory);
@@ -237,9 +238,16 @@ struct FConditionalRecompileClassHepler
 };
 
 extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;
+extern COREUOBJECT_API bool GMinimalCompileOnLoad;
 
 void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLoaded)
 {
+	if(GMinimalCompileOnLoad)
+	{
+		FBlueprintCompilationManager::FlushCompilationQueue();
+		return;
+	}
+	
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
 
 	UBlueprint* GeneratingBP = Cast<UBlueprint>(ClassGeneratedBy);
@@ -1191,6 +1199,38 @@ void UBlueprintGeneratedClass::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 			}
 		});
 	}
+}
+
+bool UBlueprintGeneratedClass::NeedsLoadForServer() const
+{
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (ensure(GetSuperClass()) && !GetSuperClass()->NeedsLoadForServer())
+		{
+			return false;
+		}
+		if (ensure(ClassDefaultObject) && !ClassDefaultObject->NeedsLoadForServer())
+		{
+			return false;
+		}
+	}
+	return Super::NeedsLoadForServer();
+}
+
+bool UBlueprintGeneratedClass::NeedsLoadForClient() const
+{
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (ensure(GetSuperClass()) && !GetSuperClass()->NeedsLoadForClient())
+		{
+			return false;
+		}
+		if (ensure(ClassDefaultObject) && !ClassDefaultObject->NeedsLoadForClient())
+		{
+			return false;
+		}
+	}
+	return Super::NeedsLoadForClient();
 }
 
 void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)

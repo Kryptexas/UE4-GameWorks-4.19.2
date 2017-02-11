@@ -696,6 +696,8 @@ public:
 	virtual void PostInitProperties() override;
 	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
+	virtual bool NeedsLoadForServer() const override;
+	virtual bool NeedsLoadForClient() const override;
 	// End UObject interface
 	
 	// UClass interface

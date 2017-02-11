@@ -6,8 +6,8 @@
 void UCookerSettings::PostInitProperties()
 {
 	Super::PostInitProperties();
-	UObject::UpdateClassesExcludedFromDedicatedServer(ClassesExcludedOnDedicatedServer);
-	UObject::UpdateClassesExcludedFromDedicatedClient(ClassesExcludedOnDedicatedClient);
+	UObject::UpdateClassesExcludedFromDedicatedServer(ClassesExcludedOnDedicatedServer, ModulesExcludedOnDedicatedServer);
+	UObject::UpdateClassesExcludedFromDedicatedClient(ClassesExcludedOnDedicatedClient, ModulesExcludedOnDedicatedClient);
 }
 
 void UCookerSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -15,15 +15,20 @@ void UCookerSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 	static FName NAME_ClassesExcludedOnDedicatedServer(TEXT("ClassesExcludedOnDedicatedServer"));
 	static FName NAME_ClassesExcludedOnDedicatedClient(TEXT("ClassesExcludedOnDedicatedClient"));
 
+	static FName NAME_ModulesExcludedOnDedicatedServer(TEXT("ModulesExcludedOnDedicatedServer"));
+	static FName NAME_ModulesExcludedOnDedicatedClient(TEXT("ModulesExcludedOnDedicatedClient"));
+
 	if(PropertyChangedEvent.Property)
 	{
-		if(PropertyChangedEvent.Property->GetFName() == NAME_ClassesExcludedOnDedicatedServer)
+		if(PropertyChangedEvent.Property->GetFName() == NAME_ClassesExcludedOnDedicatedServer
+			|| PropertyChangedEvent.Property->GetFName() == NAME_ModulesExcludedOnDedicatedServer)
 		{
-			UObject::UpdateClassesExcludedFromDedicatedServer(ClassesExcludedOnDedicatedServer);
+			UObject::UpdateClassesExcludedFromDedicatedServer(ClassesExcludedOnDedicatedServer, ModulesExcludedOnDedicatedServer);
 		}
-		else if(PropertyChangedEvent.Property->GetFName() == NAME_ClassesExcludedOnDedicatedClient)
+		else if(PropertyChangedEvent.Property->GetFName() == NAME_ClassesExcludedOnDedicatedClient
+			|| PropertyChangedEvent.Property->GetFName() == NAME_ModulesExcludedOnDedicatedClient)
 		{
-			UObject::UpdateClassesExcludedFromDedicatedClient(ClassesExcludedOnDedicatedClient);
+			UObject::UpdateClassesExcludedFromDedicatedClient(ClassesExcludedOnDedicatedClient, ModulesExcludedOnDedicatedClient);
 		}
 	}
 }

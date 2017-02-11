@@ -1377,10 +1377,14 @@ void STimelineEditor::OnAutoPlayChanged(ECheckBoxState NewType)
 		// Refresh the node that owns this timeline template to cache play status
 		TSharedPtr<FBlueprintEditor> Kismet2 = Kismet2Ptr.Pin();
 		UBlueprint* Blueprint = Kismet2->GetBlueprintObj();
+
 		UK2Node_Timeline* TimelineNode = FBlueprintEditorUtils::FindNodeForTimeline(Blueprint, TimelineObj);
 		if (TimelineNode)
 		{
 			TimelineNode->bAutoPlay = TimelineObj->bAutoPlay;
+
+			// Mark blueprint as modified
+			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 		}
 	}
 }
@@ -1400,10 +1404,14 @@ void STimelineEditor::OnLoopChanged(ECheckBoxState NewType)
 		// Refresh the node that owns this timeline template to cache play status
 		TSharedPtr<FBlueprintEditor> Kismet2 = Kismet2Ptr.Pin();
 		UBlueprint* Blueprint = Kismet2->GetBlueprintObj();
+
 		UK2Node_Timeline* TimelineNode = FBlueprintEditorUtils::FindNodeForTimeline(Blueprint, TimelineObj);
 		if (TimelineNode)
 		{
 			TimelineNode->bLoop = TimelineObj->bLoop;
+
+			// Mark blueprint as modified
+			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 		}
 	}
 }
@@ -1422,10 +1430,14 @@ void STimelineEditor::OnReplicatedChanged(ECheckBoxState NewType)
 		// Refresh the node that owns this timeline template to cache replicated status
 		TSharedPtr<FBlueprintEditor> Kismet2 = Kismet2Ptr.Pin();
 		UBlueprint* Blueprint = Kismet2->GetBlueprintObj();
+
 		UK2Node_Timeline* TimelineNode = FBlueprintEditorUtils::FindNodeForTimeline(Blueprint, TimelineObj);
 		if (TimelineNode)
 		{
 			TimelineNode->bReplicated = TimelineObj->bReplicated;
+
+			// Mark blueprint as modified
+			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 		}
 	}
 }
@@ -1440,6 +1452,9 @@ void STimelineEditor::OnUseLastKeyframeChanged(ECheckBoxState NewType)
 	if(TimelineObj)
 	{
 		TimelineObj->LengthMode = (NewType == ECheckBoxState::Checked) ? ETimelineLengthMode::TL_LastKeyFrame : ETimelineLengthMode::TL_TimelineLength;
+
+		// Mark blueprint as modified
+		FBlueprintEditorUtils::MarkBlueprintAsModified(Kismet2Ptr.Pin()->GetBlueprintObj());
 	}
 }
 
@@ -1458,6 +1473,10 @@ void STimelineEditor::OnIgnoreTimeDilationChanged(ECheckBoxState NewType)
 		// Refresh the node that owns this timeline template to cache play status
 		TSharedPtr<FBlueprintEditor> Kismet2 = Kismet2Ptr.Pin();
 		UBlueprint* Blueprint = Kismet2->GetBlueprintObj();
+
+		// Mark blueprint as modified
+		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+
 		UK2Node_Timeline* TimelineNode = FBlueprintEditorUtils::FindNodeForTimeline(Blueprint, TimelineObj);
 		if (TimelineNode)
 		{
@@ -1485,6 +1504,9 @@ void STimelineEditor::OnLengthStringChanged(const FText& NewString, ETextCommit:
 		if(NewLength > KINDA_SMALL_NUMBER)
 		{
 			TimelineObj->TimelineLength = NewLength;
+
+			// Mark blueprint as modified
+			FBlueprintEditorUtils::MarkBlueprintAsModified(Kismet2Ptr.Pin()->GetBlueprintObj());
 		}
 	}
 }

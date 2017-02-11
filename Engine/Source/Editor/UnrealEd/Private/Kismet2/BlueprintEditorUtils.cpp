@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "BlueprintCompilationManager.h"
 #include "UObject/Interface.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Components/ActorComponent.h"
@@ -112,8 +113,6 @@
 #include "EditorCategoryUtils.h"
 #include "Styling/SlateIconFinder.h"
 #define LOCTEXT_NAMESPACE "Blueprint"
-
-extern COREUOBJECT_API bool GMinimalCompileOnLoad;
 
 DEFINE_LOG_CATEGORY(LogBlueprintDebug);
 
@@ -949,47 +948,6 @@ private:
 
 struct FRegenerationHelper
 {
-	static bool ForcedLoad(UObject* Obj)
-	{
-		FLinkerLoad* Linker = Obj->GetLinker();
-		if (Linker && !Obj->HasAnyFlags(RF_LoadCompleted))
-		{
-			check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
-			Obj->SetFlags(RF_NeedLoad);
-			Linker->Preload(Obj);
-			return true;
-		}
-		return false;
-	}
-
-	static void ForcedLoadMembers(UObject* InObject)
-	{
-		// Collect a list of all things this element owns
-		TArray<UObject*> MemberReferences;
-		FReferenceFinder ComponentCollector(MemberReferences, InObject, false, true, true, true);
-		ComponentCollector.FindReferences(InObject);
-
-		// Iterate over the list, and preload everything so it is valid for refreshing
-		for (TArray<UObject*>::TIterator it(MemberReferences); it; ++it)
-		{
-			UObject* CurrentObject = *it;
-			if (ForcedLoad(CurrentObject))
-			{
-				ForcedLoadMembers(CurrentObject);
-			}
-		}
-	}
-
-	static void ForceLoadMetaData(UObject* InObject)
-	{
-		checkSlow(InObject);
-		UPackage* Package = InObject->GetOutermost();
-		checkSlow(Package);
-		UMetaData* MetaData = Package->GetMetaData();
-		checkSlow(MetaData);
-		ForcedLoad(MetaData);
-	}
-
 	static void PreloadAndLinkIfNecessary(UStruct* Struct)
 	{
 		bool bChanged = false;
@@ -1002,12 +960,12 @@ struct FRegenerationHelper
 			}
 		}
 
-		ForceLoadMetaData(Struct);
+		UBlueprint::ForceLoadMetaData(Struct);
 
 		const int32 OldPropertiesSize = Struct->GetPropertiesSize();
 		for (UField* Field = Struct->Children; Field; Field = Field->Next)
 		{
-			bChanged |= ForcedLoad(Field);
+			bChanged |= UBlueprint::ForceLoad(Field);
 		}
 
 		if (bChanged)
@@ -1067,11 +1025,11 @@ struct FRegenerationHelper
 				// fully formed classes (meaning the blueprint class and all its direct dependencies have been loaded)... however, we do not 
 				// get the guarantee that all of that blueprint's graph dependencies are loaded (hence, why we have to force load 
 				// everything here); in the case of cyclic dependencies, macro dependencies could already be loaded, but in the midst of 
-				// resolving thier own dependency placeholders (why a ForcedLoad() call is not enough); this ensures that 
+				// resolving thier own dependency placeholders (why a ForceLoad() call is not enough); this ensures that 
 				// placeholder objects are properly resolved on nodes that will be injected by macro expansion
 				FLinkerLoad::PRIVATE_ForceLoadAllDependencies(BP->GetOutermost());
 				
-				ForcedLoadMembers(BP);
+				UBlueprint::ForceLoadMembers(BP);
 			}
 		}
 	}
@@ -1094,7 +1052,7 @@ struct FRegenerationHelper
 			UBlueprint* InterfaceBlueprint = InterfaceClass ? Cast<UBlueprint>(InterfaceClass->ClassGeneratedBy) : nullptr;
 			if (InterfaceBlueprint)
 			{
-				ForcedLoadMembers(InterfaceBlueprint);
+				UBlueprint::ForceLoadMembers(InterfaceBlueprint);
 				if (InterfaceBlueprint->HasAnyFlags(RF_BeingRegenerated))
 				{
 					InterfaceBlueprint->RegenerateClass(InterfaceClass, InterfaceClass->ClassDefaultObject, ObjLoaded);
@@ -1172,7 +1130,7 @@ struct FRegenerationHelper
 								UArrayProperty* ArrayProperty = Cast<UArrayProperty>(VariableNode->VariableReference.ResolveMember<UProperty>(Node->GetBlueprintClassFromNode()));
 								if (ArrayProperty != nullptr && ArrayProperty->Inner != nullptr && ArrayProperty->Inner->HasAnyFlags(RF_NeedLoad|RF_WasLoaded))
 								{
-									ForcedLoad(ArrayProperty->Inner);
+									UBlueprint::ForceLoad(ArrayProperty->Inner);
 								}
 							}
 						}
@@ -1196,7 +1154,7 @@ struct FRegenerationHelper
 							UObject* SubCategoryObject = Pin ? Pin->PinType.PinSubCategoryObject.Get() : nullptr;
 							if (SubCategoryObject && SubCategoryObject->IsA<UEnum>())
 							{
-								ForcedLoad(SubCategoryObject);
+								UBlueprint::ForceLoad(SubCategoryObject);
 							}
 						}
 					}
@@ -1257,11 +1215,6 @@ static void RemoveStaleFunctions(UBlueprintGeneratedClass* Class, UBlueprint* Bl
 	Blueprint->GeneratedClass->StaticLink(true);
 }
 
-void FBlueprintEditorUtils::ForceLoadMembers(UObject* Object)
-{
-	FRegenerationHelper::ForcedLoadMembers(Object);
-}
-
 void FBlueprintEditorUtils::RefreshVariables(UBlueprint* Blueprint)
 {
 	// module punchthrough:
@@ -1293,12 +1246,12 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 	// member further up the stack).
 	if (!Blueprint->bHasBeenRegenerated)
 	{
-		FRegenerationHelper::ForceLoadMetaData(Blueprint);
+		UBlueprint::ForceLoadMetaData(Blueprint);
 		if (ensure(PreviousCDO))
 		{
-			FRegenerationHelper::ForcedLoadMembers(PreviousCDO);
+			UBlueprint::ForceLoadMembers(PreviousCDO);
 		}
-		FRegenerationHelper::ForcedLoadMembers(Blueprint);
+		UBlueprint::ForceLoadMembers(Blueprint);
 	}
 
 	if( ShouldRegenerateBlueprint(Blueprint) && !Blueprint->bHasBeenRegenerated )
@@ -1312,27 +1265,21 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		int32 OldSkelLinkerIdx = INDEX_NONE;
 		int32 OldGenLinkerIdx = INDEX_NONE;
 		FLinkerLoad* OldLinker = Blueprint->GetLinker();
-		// this linker related logic is not needed when running the 
-		// GMinimalCompileOnLoad pass, althoug hit is somewhat distressing
-		// that the linker is missing sometimes. Needs more investigation.
-		if(!GMinimalCompileOnLoad)
+		for( int32 i = 0; i < OldLinker->ExportMap.Num(); i++ )
 		{
-			for( int32 i = 0; i < OldLinker->ExportMap.Num(); i++ )
+			FObjectExport& ThisExport = OldLinker->ExportMap[i];
+			if( ThisExport.ObjectName == SkeletonName )
 			{
-				FObjectExport& ThisExport = OldLinker->ExportMap[i];
-				if( ThisExport.ObjectName == SkeletonName )
-				{
-					OldSkelLinkerIdx = i;
-				}
-				else if( ThisExport.ObjectName == GeneratedName )
-				{
-					OldGenLinkerIdx = i;
-				}
+				OldSkelLinkerIdx = i;
+			}
+			else if( ThisExport.ObjectName == GeneratedName )
+			{
+				OldGenLinkerIdx = i;
+			}
 
-				if( OldSkelLinkerIdx != INDEX_NONE && OldGenLinkerIdx != INDEX_NONE )
-				{
-					break;
-				}
+			if( OldSkelLinkerIdx != INDEX_NONE && OldGenLinkerIdx != INDEX_NONE )
+			{
+				break;
 			}
 		}
 
@@ -1386,17 +1333,17 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			// that nodes have a chance to create all the pins they'll expect when they compile.
 			// A good example of why this is necessary is UK2Node_BaseAsyncTask::AllocateDefaultPins
 			// and it's companion function UK2Node_BaseAsyncTask::ExpandNode.
-			// When running the GMinimalCompileOnLoad pass we will run node reconstruction explicitly
-			// in the compile manager:
-			if(!GMinimalCompileOnLoad)
-			{
-				FBlueprintEditorUtils::ReconstructAllNodes(Blueprint);
-			}
-			
+			FBlueprintEditorUtils::ReconstructAllNodes(Blueprint);
+
 			FBlueprintEditorUtils::ReplaceDeprecatedNodes(Blueprint);
 
 			// Compile the actual blueprint
-			FKismetEditorUtilities::CompileBlueprint(Blueprint, true, false, false, nullptr, bSkeletonUpToDate);
+			EBlueprintCompileOptions Options = EBlueprintCompileOptions::IsRegeneratingOnLoad;
+			if(bSkeletonUpToDate)
+			{
+				Options |= EBlueprintCompileOptions::SkeletonUpToDate;
+			}
+			FKismetEditorUtilities::CompileBlueprint(Blueprint, Options, nullptr);
 		}
 		else if( bIsMacro )
 		{
@@ -1972,7 +1919,7 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint, bool b
 		if (!FBlueprintDuplicationScopeFlags::HasAnyFlag(FBlueprintDuplicationScopeFlags::NoExtraCompilation))
 		{
 			// And compile again to make sure they go into the generated class, get cleaned up, etc...
-			FKismetEditorUtilities::CompileBlueprint(Blueprint, false, true);
+			FKismetEditorUtilities::CompileBlueprint(Blueprint, EBlueprintCompileOptions::SkipGarbageCollection);
 		}
 
 		// it can still keeps references to some external objects
@@ -3955,7 +3902,16 @@ void FBlueprintEditorUtils::GetHiddenPinsForFunction(UEdGraph const* Graph, UFun
 					UBlueprint const* CallingContext = FindBlueprintForGraph(Graph);
 					if (CallingContext && CallingContext->ParentClass)
 					{
-						bHasIntrinsicWorldContext = CallingContext->ParentClass->GetDefaultObject()->ImplementsGetWorld();
+						UClass* NativeOwner = CallingContext->ParentClass;
+						while(NativeOwner && !NativeOwner->IsNative())
+						{
+							NativeOwner = NativeOwner->GetSuperClass();
+						}
+
+						if(NativeOwner)
+						{
+							bHasIntrinsicWorldContext = NativeOwner->GetDefaultObject()->ImplementsGetWorld();
+						}
 					}
 
 					// if the blueprint has world context that we can lookup with "self", 

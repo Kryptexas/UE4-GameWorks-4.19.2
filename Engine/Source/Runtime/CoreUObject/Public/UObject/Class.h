@@ -2133,6 +2133,7 @@ public:
 	{
 		return this;
 	}
+	const UClass* GetAuthoritativeClass() const { return const_cast<UClass*>(this)->GetAuthoritativeClass(); }
 
 	/**
 	 * Add a native function to the internal native function table
@@ -2565,6 +2566,7 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	// UClass interface
+	virtual UObject* CreateDefaultObject();
 	virtual void PurgeClass(bool bRecompilingOnLoad) override;
 	virtual UObject* FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const override;
 
@@ -2933,6 +2935,9 @@ struct FStructUtils
 
 	// does structures have exactly the same memory layout
 	COREUOBJECT_API static bool TheSameLayout(const UStruct* StructA, const UStruct* StructB, bool bCheckPropertiesNames = false);
+
+	/** Locates a named structure in the package with the given name. Not expected to fail. */
+	COREUOBJECT_API static UStruct* FindStructureInPackageChecked(const TCHAR* StructName, const TCHAR* PackageName);
 };
 
 template< class T > struct TBaseStructure

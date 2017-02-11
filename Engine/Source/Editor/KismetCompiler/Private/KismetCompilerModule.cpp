@@ -266,32 +266,35 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 			// There were errors.  Compile the generated class to have function stubs
 			Blueprint->Status = BS_Error;
 
-			// Reinstance objects here, so we can preserve their memory layouts to reinstance them again
-			if (ParentReinstancer.IsValid())
+			if(CompileOptions.bReinstanceAndStubOnFailure)
 			{
-				ParentReinstancer->UpdateBytecodeReferences();
-
-				if(!Blueprint->bIsRegeneratingOnLoad)
+				// Reinstance objects here, so we can preserve their memory layouts to reinstance them again
+				if (ParentReinstancer.IsValid())
 				{
-					ParentReinstancer->ReinstanceObjects();
+					ParentReinstancer->UpdateBytecodeReferences();
+
+					if(!Blueprint->bIsRegeneratingOnLoad)
+					{
+						ParentReinstancer->ReinstanceObjects();
+					}
 				}
-			}
-			const bool bBytecodeOnly = EKismetCompileType::BytecodeOnly == CompileOptions.CompileType;
-			auto StubReinstancer = FBlueprintCompileReinstancer::Create(Blueprint->GeneratedClass, bBytecodeOnly, false, false);
+				const bool bBytecodeOnly = EKismetCompileType::BytecodeOnly == CompileOptions.CompileType;
+				auto StubReinstancer = FBlueprintCompileReinstancer::Create(Blueprint->GeneratedClass, bBytecodeOnly, false, false);
 
-			// Toss the half-baked class and generate a stubbed out skeleton class that can be used
-			FCompilerResultsLog StubResults;
-			StubResults.bSilentMode = true;
-			FKismetCompilerOptions StubCompileOptions(CompileOptions);
-			StubCompileOptions.CompileType = EKismetCompileType::StubAfterFailure;
-			{
-				CompileBlueprintInner(Blueprint, StubCompileOptions, StubResults, StubReinstancer, ObjLoaded);
-			}
+				// Toss the half-baked class and generate a stubbed out skeleton class that can be used
+				FCompilerResultsLog StubResults;
+				StubResults.bSilentMode = true;
+				FKismetCompilerOptions StubCompileOptions(CompileOptions);
+				StubCompileOptions.CompileType = EKismetCompileType::StubAfterFailure;
+				{
+					CompileBlueprintInner(Blueprint, StubCompileOptions, StubResults, StubReinstancer, ObjLoaded);
+				}
 
-			StubReinstancer->UpdateBytecodeReferences();
-			if( !Blueprint->bIsRegeneratingOnLoad )
-			{
-				StubReinstancer->ReinstanceObjects();
+				StubReinstancer->UpdateBytecodeReferences();
+				if( !Blueprint->bIsRegeneratingOnLoad )
+				{
+					StubReinstancer->ReinstanceObjects();
+				}
 			}
 		}
 	}
@@ -311,19 +314,47 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 
 void FKismet2CompilerModule::RefreshVariables(UBlueprint* Blueprint)
 {
+#if 0 // disabled because this is a costly ensure:
+	//  ensure that nothing is using this class cause that would be super bad:
+	TArray<UObject*> Instances;
+	GetObjectsOfClass(*(Blueprint->GeneratedClass), Instances);
+	ensure(Instances.Num() == 0 || Instances.Num() == 1);
+#endif
+
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	FCompilerResultsLog MessageLog;
+
+	bool bMissingProperty = false;
+	TArray<int32> MissingVariables;
 
 	for (int32 VarIndex = 0; VarIndex < Blueprint->NewVariables.Num(); ++VarIndex)
 	{
 		UProperty* ExistingVariable = Blueprint->GeneratedClass->FindPropertyByName(Blueprint->NewVariables[VarIndex].VarName);
 		if( ExistingVariable == nullptr || ExistingVariable->GetOuter() != Blueprint->GeneratedClass)
 		{
-			// this variable will need to be added, we can link it in where ever as the sort will fix everything:
+			MissingVariables.Add(VarIndex);
+		}
+	}
+
+	if(MissingVariables.Num() != 0)
+	{
+		UObject* OldCDO = Blueprint->GeneratedClass->ClassDefaultObject;
+		auto Reinstancer = FBlueprintCompileReinstancer::Create(*Blueprint->GeneratedClass);
+		ensure(OldCDO->GetClass() != *Blueprint->GeneratedClass);
+		// move old cdo aside:
+		if(OldCDO)
+		{
+			OldCDO->Rename(NULL, GetTransientPackage(), REN_DontCreateRedirectors | REN_NonTransactional | REN_ForceNoResetLoaders);
+		}
+		Blueprint->GeneratedClass->ClassDefaultObject = nullptr;
+
+		// add missing properties:
+		for( int32 MissingVarIndex : MissingVariables)
+		{
 			UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(
 				Blueprint->GeneratedClass, 
-				Blueprint->NewVariables[VarIndex].VarName, 
-				Blueprint->NewVariables[VarIndex].VarType, 
+				Blueprint->NewVariables[MissingVarIndex].VarName, 
+				Blueprint->NewVariables[MissingVarIndex].VarType, 
 				Blueprint->GeneratedClass, 
 				0,
 				K2Schema,
@@ -332,12 +363,16 @@ void FKismet2CompilerModule::RefreshVariables(UBlueprint* Blueprint)
 			NewProperty->PropertyLinkNext = Blueprint->GeneratedClass->PropertyLink;
 			Blueprint->GeneratedClass->PropertyLink = NewProperty;
 		}
-	}
+		
+		Blueprint->GeneratedClass->Bind();
+		Blueprint->GeneratedClass->StaticLink(true);
+		// regenerate CDO:
+		Blueprint->GeneratedClass->GetDefaultObject();
 
-	// we can't reliably remove properties because there are so 
-	// many nodes that create properties (e.g. anim blueprints, ubergraphframe)
-	// so just leave them.. we only need to prevent data loss
-	// Also note that property order is going to be insane
+		// cpfuo:
+		UEngine::FCopyPropertiesForUnrelatedObjectsParams Params;
+		UEngine::CopyPropertiesForUnrelatedObjects(OldCDO, Blueprint->GeneratedClass->ClassDefaultObject, Params);
+	}
 }
 
 // Recover a corrupted blueprint

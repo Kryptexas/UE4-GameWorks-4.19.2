@@ -3278,7 +3278,16 @@ void FBlueprintEditor::Compile()
 		LogResults.BeginEvent(TEXT("Compile"));
 		LogResults.bLogDetailedResults = GetDefault<UBlueprintEditorSettings>()->bShowDetailedCompileResults;
 		LogResults.EventDisplayThresholdMs = GetDefault<UBlueprintEditorSettings>()->CompileEventDisplayThresholdMs;
-		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, false, false, bSaveIntermediateBuildProducts, &LogResults, false, false, bAddInstrumentation);
+		EBlueprintCompileOptions CompileOptions = EBlueprintCompileOptions::None;
+		if( bSaveIntermediateBuildProducts )
+		{
+			CompileOptions |= EBlueprintCompileOptions::SaveIntermediateProducts;
+		}
+		if(bAddInstrumentation)
+		{
+			CompileOptions |= EBlueprintCompileOptions::AddInstrumentation;
+		}
+		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, CompileOptions, &LogResults);
 
 		bool bForceMessageDisplay = ((LogResults.NumWarnings > 0) || (LogResults.NumErrors > 0)) && !BlueprintObj->bIsRegeneratingOnLoad;
 		DumpMessagesToCompilerLog(LogResults.Messages, bForceMessageDisplay);

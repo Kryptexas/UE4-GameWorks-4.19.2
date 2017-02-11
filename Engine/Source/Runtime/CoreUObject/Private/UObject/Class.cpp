@@ -4651,6 +4651,32 @@ bool FStructUtils::TheSameLayout(const UStruct* StructA, const UStruct* StructB,
 	return bResult;
 }
 
+UStruct* FStructUtils::FindStructureInPackageChecked(const TCHAR* StructName, const TCHAR* PackageName)
+{
+	const FName StructPackageFName(PackageName);
+	if (StructPackageFName != NAME_None)
+	{
+		static TMap<FName, UPackage*> StaticStructPackageMap;
+
+		UPackage* StructPackage;
+		UPackage** StructPackagePtr = StaticStructPackageMap.Find(StructPackageFName);
+		if (StructPackagePtr != nullptr)
+		{
+			StructPackage = *StructPackagePtr;
+		}
+		else
+		{
+			StructPackage = StaticStructPackageMap.Add(StructPackageFName, FindObjectChecked<UPackage>(nullptr, PackageName));
+		}
+
+		return FindObjectChecked<UStruct>(StructPackage, StructName);
+	}
+	else
+	{
+		return FindObjectChecked<UStruct>(ANY_PACKAGE, StructName);
+	}
+}
+
 bool UFunction::IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64 IgnoreFlags) const
 {
 	// Early out if they're exactly the same function
@@ -4906,6 +4932,17 @@ void UDynamicClass::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 	Collector.AddReferencedObject(This->AnimClassImplementation, This);
 
 	Super::AddReferencedObjects(This, Collector);
+}
+
+UObject* UDynamicClass::CreateDefaultObject()
+{
+#if DO_CHECK
+	if (!HasAnyFlags(RF_ClassDefaultObject) && (0 == (ClassFlags & CLASS_Constructed)))
+	{
+		UE_LOG(LogClass, Error, TEXT("CDO is created for a dynamic class, before the class was constructed. %s"), *GetPathName());
+	}
+#endif
+	return Super::CreateDefaultObject();
 }
 
 void UDynamicClass::PurgeClass(bool bRecompilingOnLoad)

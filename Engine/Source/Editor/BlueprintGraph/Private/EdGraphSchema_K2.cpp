@@ -4059,7 +4059,11 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 
 		// Check that the object that is set is of the correct class
 		const UClass* ObjectClass = Cast<const UClass>(PinSubCategoryObject);
-		if (NewDefaultObject != NULL && ObjectClass != NULL && !NewDefaultObject->IsA(ObjectClass))
+		if(ObjectClass)
+		{
+			ObjectClass = ObjectClass->GetAuthoritativeClass();
+		}
+		if (NewDefaultObject != NULL && ObjectClass != NULL && !NewDefaultObject->GetClass()->GetAuthoritativeClass()->IsChildOf(ObjectClass))
 		{
 			DVSV_RETURN_MSG(FString::Printf(TEXT("%s isn't a %s (specified on pin %s)"), *NewDefaultObject->GetPathName(), *ObjectClass->GetName(), *(PinName)));
 		}

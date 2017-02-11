@@ -3822,14 +3822,16 @@ struct FEDLCookChecker
 		if (bIsActive && Exports.Num())
 		{
 			double StartTime = FPlatformTime::Seconds();
-			// imports to things that are not exports...
-			for (auto& Pair : ImportToImportingPackage)
-			{
-				if (!Exports.Contains(Pair.Key))
-				{
-					UE_LOG(LogSavePackage, Warning, TEXT("%s imported %s, but it was never saved as an export."), *Pair.Value, *Pair.Key);
-				}
-			}
+			
+			// @TODO: temporarily disabling this warning block to keep noise down (until we can figure out what's causing this; see UE-41880)
+// 			// imports to things that are not exports...
+// 			for (auto& Pair : ImportToImportingPackage)
+// 			{
+// 				if (!Exports.Contains(Pair.Key))
+// 				{
+// 					UE_LOG(LogSavePackage, Warning, TEXT("%s imported %s, but it was never saved as an export."), *Pair.Value, *Pair.Key);
+// 				}
+// 			}
 			// cycles in the dep graph
 			TSet<FString> Visited;
 			TSet<FString> Stack;

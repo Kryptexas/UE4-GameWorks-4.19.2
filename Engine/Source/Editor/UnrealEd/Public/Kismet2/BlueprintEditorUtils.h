@@ -174,11 +174,6 @@ public:
 	static void PatchNewCDOIntoLinker(UObject* CDO, FLinkerLoad* Linker, int32 ExportIndex, TArray<UObject*>& ObjLoaded);
 
 	/**
-	 * Helper for loading dependent data needed for compile, would not be needed if compile on load ran after serialization
-	 */
-	static void ForceLoadMembers(UObject* Object);
-
-	/**
 	 *  Synchronizes Blueprint's GeneratedClass's properties with the NewVariable declarations in the blueprint
 	 */
 	static void RefreshVariables(UBlueprint* Blueprint);

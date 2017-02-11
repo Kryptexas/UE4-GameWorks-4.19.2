@@ -695,7 +695,7 @@ UObject* ULevelFactory::FactoryCreateText
 					{
 						NewBP->ClearFlags(RF_Standalone);
 
-						FKismetEditorUtilities::CompileBlueprint(NewBP, false, true);
+						FKismetEditorUtilities::CompileBlueprint(NewBP, EBlueprintCompileOptions::SkipGarbageCollection);
 
 						TempClass = NewBP->GeneratedClass;
 

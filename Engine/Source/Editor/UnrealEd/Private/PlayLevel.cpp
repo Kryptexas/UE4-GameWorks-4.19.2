@@ -1822,14 +1822,7 @@ struct FInternalPlayLevelUtils
 				int32 CurrItIndex = BlueprintIt.GetIndex();
 
 				// Compile the Blueprint (note: re-instancing may trigger additional compiles for child/dependent Blueprints; see callback above)
-				FKismetEditorUtilities::CompileBlueprint(Blueprint,
-					/*bIsRegeneratingOnLoad =*/false,
-					/*bSkipGarbageCollection =*/true,
-					/*bSaveIntermediateProducts =*/false,
-					/*pResults =*/nullptr,
-					/*bSkeletonUpToDate =*/false,
-					/*bBatchCompile =*/false,
-					/*bAddInstrumentation =*/false);
+				FKismetEditorUtilities::CompileBlueprint(Blueprint, EBlueprintCompileOptions::SkipGarbageCollection);
 
 				// Check for errors after compiling
 				for (UBlueprint* CompiledBlueprint : CompiledBlueprints)

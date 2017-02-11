@@ -503,9 +503,7 @@ public:
 		// weren't any changes to save before, there shouldn't be after
 		bool const bStartedWithUnsavedChanges = (BlueprintPackage != nullptr) ? BlueprintPackage->IsDirty() : true;
 
-		bool bIsRegeneratingOnLoad = false;
-		bool bSkipGarbageCollection = true;
-		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, bIsRegeneratingOnLoad, bSkipGarbageCollection);
+		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, EBlueprintCompileOptions::SkipGarbageCollection);
 
 		if (BlueprintPackage != nullptr)
 		{

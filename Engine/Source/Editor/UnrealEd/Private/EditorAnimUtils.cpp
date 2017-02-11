@@ -272,10 +272,8 @@ namespace EditorAnimUtils
 				ReplaceReferredAnimationsInBlueprint(AnimBlueprint, RemappedAnimAssets);
 			}
 
-			bool bIsRegeneratingOnLoad = false;
-			bool bSkipGarbageCollection = true;
 			FBlueprintEditorUtils::RefreshAllNodes(AnimBlueprint);
-			FKismetEditorUtilities::CompileBlueprint(AnimBlueprint, bIsRegeneratingOnLoad, bSkipGarbageCollection);
+			FKismetEditorUtilities::CompileBlueprint(AnimBlueprint, EBlueprintCompileOptions::SkipGarbageCollection);
 			AnimBlueprint->PostEditChange();
 			AnimBlueprint->MarkPackageDirty();
 		}

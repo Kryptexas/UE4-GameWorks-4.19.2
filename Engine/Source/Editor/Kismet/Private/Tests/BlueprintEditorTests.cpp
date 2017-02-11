@@ -168,10 +168,7 @@ namespace BlueprintEditorPromotionUtils
 	{
 		FBlueprintEditorUtils::RefreshAllNodes(InBlueprint);
 
-		bool bIsRegeneratingOnLoad = false;
-		bool bSkipGarbageCollection = true;
-
-		FKismetEditorUtilities::CompileBlueprint(InBlueprint, bIsRegeneratingOnLoad, bSkipGarbageCollection);
+		FKismetEditorUtilities::CompileBlueprint(InBlueprint, EBlueprintCompileOptions::SkipGarbageCollection);
 		if (InBlueprint->Status == EBlueprintStatus::BS_UpToDate)
 		{
 			UE_LOG(LogBlueprintEditorPromotionTests, Display, TEXT("Blueprint compiled successfully (%s)"), *InBlueprint->GetName());

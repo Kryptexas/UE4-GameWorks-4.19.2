@@ -882,7 +882,7 @@ bool UWorld::PreSaveRoot(const TCHAR* Filename, TArray<FString>& AdditionalPacka
 	{
 		for (UBlueprint* Blueprint : PersistentLevel->GetLevelBlueprints())
 		{
-			FKismetEditorUtilities::CompileBlueprint(Blueprint, false, true);
+			FKismetEditorUtilities::CompileBlueprint(Blueprint, EBlueprintCompileOptions::SkipGarbageCollection);
 		}
 	}
 #endif

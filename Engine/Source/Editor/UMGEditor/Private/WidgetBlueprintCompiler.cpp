@@ -283,7 +283,7 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 		UWidgetBlueprintGeneratedClass* BPGClass = CastChecked<UWidgetBlueprintGeneratedClass>(Class);
 		if( !WidgetBP->bHasBeenRegenerated )
 		{
-			FBlueprintEditorUtils::ForceLoadMembers(WidgetBP->WidgetTree);
+			UBlueprint::ForceLoadMembers(WidgetBP->WidgetTree);
 		}
 
 		BPGClass->WidgetTree = Cast<UWidgetTree>(StaticDuplicateObject(WidgetBP->WidgetTree, BPGClass, NAME_None, RF_AllFlags & ~RF_DefaultSubObject));

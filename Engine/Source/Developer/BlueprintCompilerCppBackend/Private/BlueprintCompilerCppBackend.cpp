@@ -1289,7 +1289,8 @@ bool FBlueprintCompilerCppBackend::SortNodesInUberGraphExecutionGroup(FKismetFun
 					}
 					break;
 
-				case KCST_GotoReturn: // what about KCST_EndOfThread?
+				case KCST_GotoReturn:
+				case KCST_EndOfThread:
 					{
 						ensure(StatementIndex == (StatementList->Num() - 1)); // it should be the last statement generated from the node
 						bReturnExpected = true;

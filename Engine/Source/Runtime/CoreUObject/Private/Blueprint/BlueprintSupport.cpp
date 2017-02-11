@@ -251,6 +251,10 @@ FScopedClassDependencyGather::~FScopedClassDependencyGather()
 			// Finally, recompile the master class to make sure it gets updated too
 			RecompileClassLambda(BatchMasterClass);
 		}
+		else
+		{
+			BatchMasterClass->ConditionalRecompileClass(nullptr);
+		}
 
 		BatchMasterClass = NULL;
 	}

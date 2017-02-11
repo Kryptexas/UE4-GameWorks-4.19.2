@@ -94,14 +94,16 @@ struct FEmitterLocalContext
 	// See TInlineValue. If the structure is initialized in constructor, then its header must be included.
 	TSet<UField*> StructsUsedAsInlineValues;
 
-private:
-	int32 LocalNameIndexMax;
+	// Objects like UChildActorComponent::ChildActorTemplate. They will be stored at the beginning of MiscConvertedSubobjects.
+	TArray<UObject*> TemplateFromSubobjectsOfClass;
 
 	// Class subobjects
 	TArray<UObject*> MiscConvertedSubobjects;
 	TArray<UObject*> DynamicBindingObjects;
 	TArray<UObject*> ComponentTemplates;
 	TArray<UObject*> Timelines;
+private:
+	int32 LocalNameIndexMax;
 
 public:
 
@@ -303,10 +305,6 @@ struct FEmitHelper
 		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx
 		, ENativizedTermUsage TermUsage, FString* CustomSetExpressionEnding);
 
-	// This code works properly as long, as all fields in structures are UProperties!
-	static FString AccessInaccessiblePropertyUsingOffset(FEmitterLocalContext& EmitterContext, const UProperty* Property
-		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx = 0);
-
 	static const TCHAR* EmptyDefaultConstructor(UScriptStruct* Struct);
 };
 
@@ -336,7 +334,7 @@ struct FEmitDefaultValueHelper
 
 	// Creates the subobject (of class) returns it's native local name, 
 	// returns empty string if cannot handle
-	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp, bool bCreate, bool bInitialize);
+	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp, bool bCreate, bool bInitialize, bool bForceSubobjectOfClass = false);
 
 	// returns true, and fill OutResult, when the structure is handled in a custom way.
 	static bool SpecialStructureConstructor(const UStruct* Struct, const uint8* ValuePtr, FString* OutResult);
@@ -420,4 +418,10 @@ private:
 public:
 	FDisableUnwantedWarningOnScope(FCodeText& InCodeText);
 	~FDisableUnwantedWarningOnScope();
+};
+
+struct FStructAccessHelper
+{
+	static FString EmitStructAccessCode(const UStruct* InStruct);
+	static bool CanEmitDirectFieldAccess(const UScriptStruct* InStruct);
 };

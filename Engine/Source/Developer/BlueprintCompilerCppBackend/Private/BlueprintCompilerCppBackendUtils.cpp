@@ -69,6 +69,10 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 		}
 
 		int32 ObjectsCreatedPerClassIdx = MiscConvertedSubobjects.IndexOfByKey(Object);
+		if ((INDEX_NONE == ObjectsCreatedPerClassIdx) && (CurrentCodeType != EGeneratedCodeType::SubobjectsOfClass))
+		{
+			ObjectsCreatedPerClassIdx = TemplateFromSubobjectsOfClass.IndexOfByKey(Object);
+		}
 		if (INDEX_NONE != ObjectsCreatedPerClassIdx)
 		{
 			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->%s[%d])")
@@ -163,11 +167,18 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 
 	// TODO Handle native structires, and special cases..
 
-	if (auto UDS = Cast<UScriptStruct>(Object))
+	if (auto ScriptStruct = Cast<UScriptStruct>(Object))
 	{
-		// Check if  
-		// TODO: check if supported 
-		return FString::Printf(TEXT("%s::StaticStruct()"), *FEmitHelper::GetCppName(UDS));
+		if (ScriptStruct->StructFlags & STRUCT_NoExport)
+		{
+			return FStructAccessHelper::EmitStructAccessCode(ScriptStruct);
+		}
+		else
+		{
+			// Check if  
+			// TODO: check if supported 
+			return FString::Printf(TEXT("%s::StaticStruct()"), *FEmitHelper::GetCppName(ScriptStruct));
+		}
 	}
 
 	if (const UUserDefinedEnum* UDE = Cast<UUserDefinedEnum>(Object))
@@ -1642,123 +1653,6 @@ FString FEmitHelper::AccessInaccessibleProperty(FEmitterLocalContext& EmitterCon
 		, *ArrayParams);
 }
 
-namespace HelperWithoutEditorOnlyMembers
-{
-	// This code works properly as long, as all fields in structures are UProperties
-
-	static int32 SizeOfStructWithoutParent(const UStruct* InStruct);
-	static int32 SizeOfWholeStruct(const UStruct* InStruct);
-	static int32 OffsetWithoutEditorOnlyMembers(const UProperty* Property);
-	static int32 SizeWithoutEditorOnlyMembers(const UProperty* InProperty);
-
-	int32 SizeOfStructWithoutParent(const UStruct* InStruct)
-	{
-		check(InStruct);
-		int32 SizeResult = 0;
-		for (const UField* Field = InStruct->Children; (Field != nullptr) && (Field->GetOuter() == InStruct); Field = Field->Next)
-		{
-			const UProperty* Property = Cast<const UProperty>(Field);
-			if (Property && !Property->IsEditorOnlyProperty())
-			{
-				SizeResult += SizeWithoutEditorOnlyMembers(Property);
-			}
-		}
-		return SizeResult;
-	}
-
-	int32 SizeOfWholeStruct(const UStruct* InStruct)
-	{
-		check(InStruct);
-		int32 SizeResult = 0;
-		for (const UStruct* Struct = InStruct; Struct; Struct = Struct->GetSuperStruct())
-		{
-			SizeResult += SizeOfStructWithoutParent(Struct);
-		}
-		return SizeResult;
-	}
-
-	int32 OffsetWithoutEditorOnlyMembers(const UProperty* InProperty)
-	{
-		check(InProperty);
-		const UProperty* Property = InProperty->GetOwnerProperty();
-		ensure(Property == InProperty); // it's hard to tell what user expects otherwise 
-
-		UStruct* OwnerStruct = Property->GetOwnerStruct();
-		int32 SizeResult = 0;
-
-		// size of all super
-		for (const UStruct* StructIt = OwnerStruct->GetSuperStruct(); StructIt; StructIt = StructIt->GetSuperStruct())
-		{
-			SizeResult += SizeOfStructWithoutParent(StructIt);
-		}
-
-		// size of properties before this
-		const UField* Field = OwnerStruct->Children;
-		for (; Field && (Field->GetOuter() == OwnerStruct) && (Field != Property); Field = Field->Next)
-		{
-			const UProperty* LocProperty = Cast<const UProperty>(Field);
-			if (LocProperty && !LocProperty->IsEditorOnlyProperty())
-			{
-				SizeResult += SizeWithoutEditorOnlyMembers(LocProperty);
-			}
-		}
-		ensure(Field == Property);
-		return SizeResult;
-	}
-
-	int32 SizeWithoutEditorOnlyMembers(const UProperty* InProperty)
-	{
-		check(InProperty);
-		const UProperty* Property = InProperty->GetOwnerProperty();
-		ensure(Property == InProperty); // it's hard to tell what user expects otherwise 
-		if (const UStructProperty* StructyProperty = Cast<const UStructProperty>(Property))
-		{
-			return SizeOfWholeStruct(StructyProperty->Struct) * Property->ArrayDim;
-		}
-
-		return Property->GetSize();
-	}
-
-}
-
-FString FEmitHelper::AccessInaccessiblePropertyUsingOffset(FEmitterLocalContext& EmitterContext, const UProperty* Property
-	, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx)
-{
-	check(Property);
-
-	if (!FEmitDefaultValueHelper::SpecialStructureConstructor(Property->GetOwnerStruct(), nullptr, nullptr))
-	{
-		// no need to log warning for known structures
-		UE_LOG(LogK2Compiler, Warning, TEXT("AccessInaccessiblePropertyUsingOffset - NOEXPORT structure should be handled in a custom way: %s"), *GetPathNameSafe(Property->GetOwnerStruct()));
-	}
-
-	FNativizationSummaryHelper::InaccessibleProperty(Property);
-
-	const int32 PropertyOffsetWithoutEditorOnlyMembers = HelperWithoutEditorOnlyMembers::OffsetWithoutEditorOnlyMembers(Property);
-	/*
-	const int32 PropertySizeWithoutEditorOnlyMembers = HelperWithoutEditorOnlyMembers::SizeWithoutEditorOnlyMembers(Property);
-	const int32 ElementSizeWithoutEditorOnlyMembers = PropertySizeWithoutEditorOnlyMembers / Property->ArrayDim;
-	ensure(PropertySizeWithoutEditorOnlyMembers == (ElementSizeWithoutEditorOnlyMembers * Property->ArrayDim));
-	*/
-
-	EmitterContext.AddLine(FString::Printf(TEXT("// Offset of property: %s"), *Property->GetPathName()));
-	const uint32 CppTemplateTypeFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName
-		| EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef | EPropertyExportCPPFlags::CPPF_NoStaticArray
-		| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
-	const FString TypeDeclaration = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Member, CppTemplateTypeFlags, FEmitterLocalContext::EPropertyNameInDeclaration::Skip);
-
-	const FString ArrayParams = (StaticArrayIdx != 0)
-		? FString::Printf(TEXT(", sizeof(%s), %d"), *TypeDeclaration, StaticArrayIdx)
-		: FString();
-
-	return FString::Printf(TEXT("(*(AccessPrivateProperty<%s>(%s(%s), 0x%08X %s)))")
-		, *TypeDeclaration
-		, *ContextAdressOp
-		, *ContextStr
-		, PropertyOffsetWithoutEditorOnlyMembers
-		, *ArrayParams);
-}
-
 struct FSearchableValuesdHelper_StaticData
 {
 	TArray<FStringClassReference> ClassesWithStaticSearchableValues;
@@ -1985,4 +1879,91 @@ FScopeBlock::~FScopeBlock()
 void FScopeBlock::TrackLocalAccessorDecl(const UProperty* Property)
 {
 	LocalAccessorDecls.AddUnique(Property);
+}
+
+#define MAP_BASE_STRUCTURE_ACCESS(x) \
+	BaseStructureAccessorsMap.Add(x, TEXT("#x"))
+
+struct FStructAccessHelper_StaticData
+{
+	TMap<const UStruct*, FString> BaseStructureAccessorsMap;
+	TMap<const UStruct*, bool> SupportsDirectNativeAccessMap;
+	TArray<FStringClassReference> NoExportTypesWithDirectNativeFieldAccess;
+
+	static FStructAccessHelper_StaticData& Get()
+	{
+		static FStructAccessHelper_StaticData StaticInstance;
+		return StaticInstance;
+	}
+
+private:
+	FStructAccessHelper_StaticData()
+	{
+		// These are declared in Class.h; it's more efficient to access these native struct types at runtime using the specialized template functions, so we list them here.
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FRotator>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FTransform>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FLinearColor>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FColor>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FVector>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FVector2D>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FRandomStream>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FGuid>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FTransform>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FBox2D>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FFallbackStruct>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FFloatRangeBound>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FFloatRange>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FInt32RangeBound>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FInt32Range>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FFloatInterval>::Get());
+		MAP_BASE_STRUCTURE_ACCESS(TBaseStructure<FInt32Interval>::Get());
+
+		{
+			// Cache the known set of noexport types that are known to be compatible with emitting native code to access fields directly.
+			TArray<FString> Paths;
+			GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("NoExportTypesWithDirectNativeFieldAccess"), Paths, GEditorIni);
+			for (FString& Path : Paths)
+			{
+				NoExportTypesWithDirectNativeFieldAccess.Add(FStringClassReference(Path));
+			}
+		}
+	}
+};
+
+FString FStructAccessHelper::EmitStructAccessCode(const UStruct* InStruct)
+{
+	check(InStruct != nullptr);
+	
+	if (const FString* MappedAccessorCode = FStructAccessHelper_StaticData::Get().BaseStructureAccessorsMap.Find(InStruct))
+	{
+		return *MappedAccessorCode;
+	}
+	else
+	{
+		return FString::Printf(TEXT("FStructUtils::FindStructureInPackageChecked(TEXT(\"%s\"), TEXT(\"%s\"))"), *InStruct->GetName(), *InStruct->GetOutermost()->GetName());
+	}
+}
+
+bool FStructAccessHelper::CanEmitDirectFieldAccess(const UScriptStruct* InStruct)
+{
+	check(InStruct != nullptr);
+
+	// Don't allow direct field access for native, noexport types that have not been explicitly listed as compatible. In order to be listed, all
+	// properties within the noexport type must match up with a member's name and accessibility in the corresponding native C++ type declaration.
+	if (InStruct->IsNative() && (InStruct->StructFlags & STRUCT_NoExport))
+	{
+		FStructAccessHelper_StaticData& StaticStructAccessData = FStructAccessHelper_StaticData::Get();
+		if (const bool* CachedResult = StaticStructAccessData.SupportsDirectNativeAccessMap.Find(InStruct))
+		{
+			return *CachedResult;
+		}
+		else
+		{
+			const FString PathName = InStruct->GetPathName();
+			return StaticStructAccessData.SupportsDirectNativeAccessMap.Add(InStruct, StaticStructAccessData.NoExportTypesWithDirectNativeFieldAccess.Contains(PathName));
+		}
+	}
+
+	// All other cases will support direct field access.
+	return true;
 }

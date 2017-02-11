@@ -2241,7 +2241,7 @@ namespace ObjectTools
 												ChildBlueprint->ParentClass = BlueprintObject->ParentClass;
 
 												// Recompile the child blueprint to fix up the generated class
-												FKismetEditorUtilities::CompileBlueprint(ChildBlueprint, false, true);
+												FKismetEditorUtilities::CompileBlueprint(ChildBlueprint, EBlueprintCompileOptions::SkipGarbageCollection);
 
 												// Defer garbage collection until after we're done processing the list of objects
 												bNeedsGarbageCollection = true;

@@ -614,12 +614,10 @@ UObject* FBlueprintNativeCodeGenModule::FindReplacedNameAndOuter(UObject* Object
 {
 	OutName = NAME_None;
 
-	UActorComponent* ActorComponent = Cast<UActorComponent>(Object);
-	if (ActorComponent)
+	auto GetOuterBPGC = [](UObject* FirstOuter) -> UBlueprintGeneratedClass*
 	{
-		//if is child of a BPGC and not child of a CDO
 		UBlueprintGeneratedClass* BPGC = nullptr;
-		for (UObject* OuterObject = ActorComponent->GetOuter(); OuterObject && !BPGC; OuterObject = OuterObject->GetOuter())
+		for (UObject* OuterObject = FirstOuter; OuterObject && !BPGC; OuterObject = OuterObject->GetOuter())
 		{
 			if (OuterObject->HasAnyFlags(RF_ClassDefaultObject))
 			{
@@ -627,7 +625,14 @@ UObject* FBlueprintNativeCodeGenModule::FindReplacedNameAndOuter(UObject* Object
 			}
 			BPGC = Cast<UBlueprintGeneratedClass>(OuterObject);
 		}
+		return BPGC;
+	};
 
+	UActorComponent* ActorComponent = Cast<UActorComponent>(Object);
+	if (ActorComponent)
+	{
+		//if is child of a BPGC and not child of a CDO
+		UBlueprintGeneratedClass* BPGC = GetOuterBPGC(ActorComponent->GetOuter());
 		FName NewName = NAME_None;
 		UObject* OuterCDO = nullptr;
 		for (UBlueprintGeneratedClass* SuperBPGC = BPGC; SuperBPGC && (NewName == NAME_None); SuperBPGC = Cast<UBlueprintGeneratedClass>(SuperBPGC->GetSuperClass()))
@@ -664,6 +669,18 @@ UObject* FBlueprintNativeCodeGenModule::FindReplacedNameAndOuter(UObject* Object
 			OutName = NewName;
 			UE_LOG(LogBlueprintCodeGen, Log, TEXT("Object '%s' has replaced name '%s' and outer: '%s'"), *GetPathNameSafe(Object), *OutName.ToString(), *GetPathNameSafe(OuterCDO));
 			return OuterCDO;
+		}
+	}
+	else
+	{
+		UChildActorComponent* OuterCAC = Cast<UChildActorComponent>(Object->GetOuter());
+		if (OuterCAC && OuterCAC->GetChildActorTemplate() == Object)
+		{
+			UBlueprintGeneratedClass* BPGC = GetOuterBPGC(OuterCAC->GetOuter());
+			if (BPGC && (EReplacementResult::ReplaceCompletely == IsTargetedForReplacement(BPGC)))
+			{
+				return BPGC;
+			}
 		}
 	}
 

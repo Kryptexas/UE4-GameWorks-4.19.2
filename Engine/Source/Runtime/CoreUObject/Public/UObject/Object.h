@@ -402,12 +402,12 @@ public:
 	/**
 	*	Update the list of classes that we should exclude from dedicated server builds
 	*/
-	static void UpdateClassesExcludedFromDedicatedServer(const TArray<FString>& InClassNames);
+	static void UpdateClassesExcludedFromDedicatedServer(const TArray<FString>& InClassNames, const TArray<FString>& InModulesNames);
 
 	/**
 	*	Update the list of classes that we should exclude from dedicated client builds
 	*/
-	static void UpdateClassesExcludedFromDedicatedClient(const TArray<FString>& InClassNames);
+	static void UpdateClassesExcludedFromDedicatedClient(const TArray<FString>& InClassNames, const TArray<FString>& InModulesNames);
 
 	/** 
 	 *	Determines if you can create an object from the supplied template in the current context (editor, client only, dedicated server, game/listen) 

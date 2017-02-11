@@ -745,8 +745,7 @@ void UEditorEngine::HandlePackageReloaded(const EPackageReloadPhase InPackageRel
 			{
 				CompilingBlueprintsSlowTask.EnterProgressFrame(1.0f);
 
-				//FBlueprintEditorUtils::MarkBlueprintAsModified(BlueprintToRecompile, FPropertyChangedEvent(nullptr, EPropertyChangeType::Redirected));
-				FKismetEditorUtilities::CompileBlueprint(BlueprintToRecompile, /*bIsRegeneratingOnLoad*/false, /*bSkipGarbageCollection*/true);
+				FKismetEditorUtilities::CompileBlueprint(BlueprintToRecompile, EBlueprintCompileOptions::SkipGarbageCollection);
 			}
 		}
 		BlueprintsToRecompileThisBatch.Reset();

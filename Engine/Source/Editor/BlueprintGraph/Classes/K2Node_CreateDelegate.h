@@ -31,6 +31,7 @@ public:
 	virtual void NodeConnectionListChanged() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual UObject* GetJumpTargetForDoubleClick() const override;
+	virtual void AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface

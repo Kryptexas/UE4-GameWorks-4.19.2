@@ -19,6 +19,7 @@
 #if WITH_EDITOR
 #include "Blueprint/BlueprintSupport.h"
 #include "BlueprintCompilationManager.h"
+#include "Blueprint/BlueprintSupport.h"
 #include "Editor/UnrealEd/Classes/Settings/ProjectPackagingSettings.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
@@ -34,6 +35,7 @@
 #include "Engine/TimelineTemplate.h"
 #include "Curves/CurveBase.h"
 #include "Interfaces/ITargetPlatform.h"
+#include "MetaData.h"
 #endif
 #include "Engine/InheritableComponentHandler.h"
 
@@ -532,12 +534,12 @@ bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Fl
 		TArray<UBlueprint*> Dependents;
 		FBlueprintEditorUtils::GetDependentBlueprints(this, Dependents);
 
-		FKismetEditorUtilities::CompileBlueprint(this, false);
+		FKismetEditorUtilities::CompileBlueprint(this);
 
 		// Recompile dependent blueprints after compiling this one. Otherwise, we can end up with a GLEO during the internal package save, which will include referencers as well.
 		for (UBlueprint* DependentBlueprint : Dependents)
 		{
-			FKismetEditorUtilities::CompileBlueprint(DependentBlueprint, false);
+			FKismetEditorUtilities::CompileBlueprint(DependentBlueprint);
 		}
 	}
 
@@ -560,21 +562,34 @@ UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* Previous
 	if(GMinimalCompileOnLoad)
 	{
 		// ensure that we have UProperties for any properties declared in the blueprint:
-		check(GeneratedClass && !bHasBeenRegenerated); // we probably need to create a class if none was loaded off disk
+		if(!GeneratedClass || !HasAnyFlags(RF_NeedPostLoad))
+		{
+			return GeneratedClass;
+		}
 		
 		UPackage* Package = Cast<UPackage>(GetOutermost());
 		bool bIsPackageDirty = Package ? Package->IsDirty() : false;
 
+		UClass* GeneratedClassResolved = GeneratedClass;
+
+		UBlueprint::ForceLoadMetaData(this);
+		if (ensure(GeneratedClassResolved->ClassDefaultObject ))
+		{
+			UBlueprint::ForceLoadMembers(GeneratedClassResolved);
+			UBlueprint::ForceLoadMembers(GeneratedClassResolved->ClassDefaultObject);
+		}
+		UBlueprint::ForceLoadMembers(this);
+
 		FBlueprintEditorUtils::RefreshVariables(this);
 
 		// clone generated class into skeleton class:
-		FObjectDuplicationParameters Params(GeneratedClass, GeneratedClass->GetOuter());
+		FObjectDuplicationParameters Params(GeneratedClassResolved, GeneratedClassResolved->GetOuter());
 		if (SimpleConstructionScript)
 		{
 			Params.DuplicationSeed.Add(SimpleConstructionScript, SimpleConstructionScript);
 		}
 		Params.ApplyFlags = RF_Transient;
-		Params.DestName = *(FString("SKEL_") + GeneratedClass->GetName());
+		Params.DestName = *(FString("SKEL_") + GeneratedClassResolved->GetName());
 		SkeletonGeneratedClass = (UClass*)StaticDuplicateObjectEx(Params);
 		SkeletonGeneratedClass->ClassDefaultObject = nullptr;
 		if (UClass* Super = SkeletonGeneratedClass->GetSuperClass())
@@ -607,7 +622,7 @@ UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* Previous
 
 		// give the world the generated class... The only time this will be changed is if the generated class
 		// was null:
-		return GeneratedClass;
+		return GeneratedClassResolved;
 	}
 	else
 	{
@@ -1064,6 +1079,47 @@ UTimelineTemplate* UBlueprint::FindTimelineTemplateByVariableName(const FName& T
 	// <<< End Backwards Compatibility
 
 	return Timeline;
+}
+
+bool UBlueprint::ForceLoad(UObject* Obj)
+{
+	FLinkerLoad* Linker = Obj->GetLinker();
+	if (Linker && !Obj->HasAnyFlags(RF_LoadCompleted))
+	{
+		check(!GEventDrivenLoaderEnabled);
+		Obj->SetFlags(RF_NeedLoad);
+		Linker->Preload(Obj);
+		return true;
+	}
+	return false;
+}
+
+void UBlueprint::ForceLoadMembers(UObject* InObject)
+{
+	// Collect a list of all things this element owns
+	TArray<UObject*> MemberReferences;
+	FReferenceFinder ComponentCollector(MemberReferences, InObject, false, true, true, true);
+	ComponentCollector.FindReferences(InObject);
+
+	// Iterate over the list, and preload everything so it is valid for refreshing
+	for (TArray<UObject*>::TIterator it(MemberReferences); it; ++it)
+	{
+		UObject* CurrentObject = *it;
+		if (ForceLoad(CurrentObject))
+		{
+			ForceLoadMembers(CurrentObject);
+		}
+	}
+}
+
+void UBlueprint::ForceLoadMetaData(UObject* InObject)
+{
+	checkSlow(InObject);
+	UPackage* Package = InObject->GetOutermost();
+	checkSlow(Package);
+	UMetaData* MetaData = Package->GetMetaData();
+	checkSlow(MetaData);
+	ForceLoad(MetaData);
 }
 
 bool UBlueprint::ValidateGeneratedClass(const UClass* InClass)

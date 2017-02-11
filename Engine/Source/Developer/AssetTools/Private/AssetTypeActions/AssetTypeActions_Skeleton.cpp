@@ -882,10 +882,8 @@ void FAssetTypeActions_Skeleton::RetargetSkeleton(TArray<FAssetToRemapSkeleton>&
 		UAnimBlueprint * AnimBlueprint = (*AnimBPIter);
 		AnimBlueprint->TargetSkeleton = NewSkeleton;
 		
-		bool bIsRegeneratingOnLoad = false;
-		bool bSkipGarbageCollection = true;
 		FBlueprintEditorUtils::RefreshAllNodes(AnimBlueprint);
-		FKismetEditorUtilities::CompileBlueprint(AnimBlueprint, bIsRegeneratingOnLoad, bSkipGarbageCollection);
+		FKismetEditorUtilities::CompileBlueprint(AnimBlueprint, EBlueprintCompileOptions::SkipGarbageCollection);
 	}
 
 	// Copy sockets IF the socket doesn't exists on target skeleton and if the joint exists

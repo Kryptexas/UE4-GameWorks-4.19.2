@@ -159,7 +159,7 @@ UClass* UK2Node_AddComponent::GetSpawnedType() const
 {
 	if (TemplateType != nullptr)
 	{
-		return TemplateType;
+		return TemplateType->GetAuthoritativeClass();
 	}
 	
 	const UActorComponent* TemplateComponent = GetTemplateFromNode();

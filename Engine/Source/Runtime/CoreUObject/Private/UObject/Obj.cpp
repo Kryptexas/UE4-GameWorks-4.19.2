@@ -540,9 +540,10 @@ void UObject::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionA
 */
 struct FClassExclusionData
 {
-	TArray<FName> ExcludedClassNames;
-	TArray<FName> CachedExcludeList;
-	TArray<FName> CachedIncludeList;
+	TSet<FName> ExcludedClassNames;
+	TSet<FName> ExcludedPackageShortNames;
+	TSet<FName> CachedExcludeList;
+	TSet<FName> CachedIncludeList;
 
 	bool IsExcluded(UClass* InClass)
 	{
@@ -558,8 +559,20 @@ struct FClassExclusionData
 			return false;
 		}
 
+		auto ModuleShortNameFromClass = [](const UClass* Class) -> FName
+		{
+			return FName(*FPackageName::GetLongPackageAssetName(Class->GetOutermost()->GetName()));
+		};
+
 		while (InClass != nullptr)
 		{
+			if(ExcludedPackageShortNames.Num() && ExcludedPackageShortNames.Contains(ModuleShortNameFromClass(InClass)))
+			{
+				UE_LOG(LogObj, Display, TEXT("Class %s is excluded because its module is excluded in the current platform"), *OriginalClassName.ToString());
+				CachedExcludeList.Add(OriginalClassName);
+				return true;
+			}
+
 			if (ExcludedClassNames.Contains(InClass->GetFName()))
 			{
 				CachedExcludeList.Add(OriginalClassName);
@@ -573,15 +586,21 @@ struct FClassExclusionData
 		return false;
 	}
 
-	void UpdateExclusionList(const TArray<FString>& InClassNames)
+	void UpdateExclusionList(const TArray<FString>& InClassNames, const TArray<FString>& InPackageShortNames)
 	{
 		ExcludedClassNames.Empty(InClassNames.Num());
+		ExcludedPackageShortNames.Empty(InPackageShortNames.Num());
 		CachedIncludeList.Empty();
 		CachedExcludeList.Empty();
 
 		for (const FString& ClassName : InClassNames)
 		{
 			ExcludedClassNames.Add(FName(*ClassName));
+		}
+
+		for (const FString& PkgName : InPackageShortNames)
+		{
+			ExcludedPackageShortNames.Add(FName(*PkgName));
 		}
 	}
 };
@@ -594,9 +613,9 @@ bool UObject::NeedsLoadForServer() const
 	return !GDedicatedServerExclusionList.IsExcluded(GetClass());
 }
 
-void UObject::UpdateClassesExcludedFromDedicatedServer(const TArray<FString>& InClassNames)
+void UObject::UpdateClassesExcludedFromDedicatedServer(const TArray<FString>& InClassNames, const TArray<FString>& InModulesNames)
 {
-	GDedicatedServerExclusionList.UpdateExclusionList(InClassNames);
+	GDedicatedServerExclusionList.UpdateExclusionList(InClassNames, InModulesNames);
 }
 
 bool UObject::NeedsLoadForClient() const
@@ -604,9 +623,9 @@ bool UObject::NeedsLoadForClient() const
 	return !GDedicatedClientExclusionList.IsExcluded(GetClass());
 }
 
-void UObject::UpdateClassesExcludedFromDedicatedClient(const TArray<FString>& InClassNames)
+void UObject::UpdateClassesExcludedFromDedicatedClient(const TArray<FString>& InClassNames, const TArray<FString>& InModulesNames)
 {
-	GDedicatedClientExclusionList.UpdateExclusionList(InClassNames);
+	GDedicatedClientExclusionList.UpdateExclusionList(InClassNames, InModulesNames);
 }
 
 bool UObject::CanCreateInCurrentContext(UObject* Template)

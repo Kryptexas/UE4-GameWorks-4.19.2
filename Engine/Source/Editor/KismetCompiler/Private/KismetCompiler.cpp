@@ -54,7 +54,6 @@
 #include "Serialization/ArchiveScriptReferenceCollector.h"
 
 static bool bDebugPropertyPropagation = false;
-extern COREUOBJECT_API bool GMinimalCompileOnLoad;
 
 #define USE_TRANSIENT_SKELETON 0
 
@@ -238,9 +237,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	NewClass = ClassToClean;
 	OldCDO = ClassToClean->ClassDefaultObject; // we don't need to create the CDO at this point
 	
-	// when doing the GMinimalCompileOnLoad path we ned to make sure that loaders aren't reset
-	// because the reinstancer may run a compile pass with bRecompilingOnLoad set to false)
-	const ERenameFlags RenFlags = REN_DontCreateRedirectors |  ((bRecompilingOnLoad || GMinimalCompileOnLoad) ? REN_ForceNoResetLoaders : 0) | REN_NonTransactional | REN_DoNotDirty;
+	const ERenameFlags RenFlags = REN_DontCreateRedirectors |  ((bRecompilingOnLoad) ? REN_ForceNoResetLoaders : 0) | REN_NonTransactional | REN_DoNotDirty;
 
 	if( OldCDO )
 	{
@@ -252,7 +249,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 
 	// Purge all subobjects (properties, functions, params) of the class, as they will be regenerated
 	TArray<UObject*> ClassSubObjects;
-	GetObjectsWithOuter(ClassToClean, ClassSubObjects, true);
+	GetObjectsWithOuter(ClassToClean, ClassSubObjects, false);
 
 	{
 		// Save subobjects, that won't be regenerated.
@@ -265,7 +262,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	for( auto SubObjIt = ClassSubObjects.CreateIterator(); SubObjIt; ++SubObjIt )
 	{
 		UObject* CurrSubObj = *SubObjIt;
-		CurrSubObj->Rename(nullptr, TransientClass, RenFlags);
+		CurrSubObj->Rename(*CurrSubObj->GetName(), TransientClass, RenFlags);
 		if( UProperty* Prop = Cast<UProperty>(CurrSubObj) )
 		{
 			FKismetCompilerUtilities::InvalidatePropertyExport(Prop);
@@ -2929,9 +2926,7 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 		{
 			if (OldEventGraph)
 			{
-				// when doing the GMinimalCompileOnLoad path we need to make sure that loaders aren't reset.. we may 
-				// need to set bIsRegeneratingOnLoad but it's likely that the reinstancer won't comply
-				OldEventGraph->Rename(NULL, GetTransientPackage(), (Blueprint->bIsRegeneratingOnLoad || GMinimalCompileOnLoad) ? REN_ForceNoResetLoaders : 0);
+				OldEventGraph->Rename(NULL, GetTransientPackage(), (Blueprint->bIsRegeneratingOnLoad) ? REN_ForceNoResetLoaders : 0);
 			}
 		}
 	}
@@ -3085,7 +3080,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 			// regenerated on load (thanks cyclic dependencies!), and in certain
 			// cases the nodes found within the macro may be out of date 
 			// (function signatures, etc.), so let's force a reconstruct of the 
-			// nodes we inject from the macro (just in case)
+			// nodes we inject from the macro (just in case).
 			const bool bForceRegenNodes = bIsLoading && MacroBlueprint && (MacroBlueprint != Blueprint) && !MacroBlueprint->bHasBeenRegenerated;
 
 			// Clone the macro graph, then move all of its children, keeping a list of nodes from the macro
@@ -3507,9 +3502,7 @@ void FKismetCompilerContext::Compile()
 			}
 		}
  
-		// when doing the GMinimalCompileOnLoad path we need to make sure that loaders aren't reset.. we may 
-		// need to set bIsRegeneratingOnLoad but it's likely that the reinstancer won't comply
-		ERenameFlags RenameFlags = (REN_DontCreateRedirectors|REN_NonTransactional|((Blueprint->bIsRegeneratingOnLoad || GMinimalCompileOnLoad )? REN_ForceNoResetLoaders : 0));
+		ERenameFlags RenameFlags = (REN_DontCreateRedirectors|REN_NonTransactional|((Blueprint->bIsRegeneratingOnLoad)? REN_ForceNoResetLoaders : 0));
 		TargetClass->Rename(*NewName, NULL, RenameFlags);
 	}
 	// <<< End Backwards Compatibility

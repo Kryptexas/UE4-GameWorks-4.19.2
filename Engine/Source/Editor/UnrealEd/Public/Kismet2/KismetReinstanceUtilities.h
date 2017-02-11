@@ -39,6 +39,7 @@ public:
 	static FCDODuplicatesProvider& GetCDODuplicatesProviderDelegate();
 
 protected:
+	friend struct FBlueprintCompilationManagerImpl;
 
 	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToRefresh;
 	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToRecompile;

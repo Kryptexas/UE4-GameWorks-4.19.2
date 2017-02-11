@@ -119,6 +119,9 @@ public:
 	/** Whether or not this compile should emit instrumentation events */
 	bool bAddInstrumentation;
 
+	/** Whether or not to reinstance and stub if the blueprint fails to compile */
+	bool bReinstanceAndStubOnFailure;
+
 	TSharedPtr<FString> OutHeaderSourceCode;
 	TSharedPtr<FString> OutCppSourceCode;
 	FCompilerNativizationOptions NativizationOptions;
@@ -152,6 +155,7 @@ public:
 		, bRegenerateSkelton(true)
 		, bIsDuplicationInstigated(false)
 		, bAddInstrumentation(false)
+		, bReinstanceAndStubOnFailure(true)
 	{
 	};
 };
@@ -586,6 +590,12 @@ public:
 #endif // WITH_EDITORONLY_DATA
 
 #if WITH_EDITOR
+	static bool ForceLoad(UObject* Obj);
+
+	static void ForceLoadMembers(UObject* InObject);
+
+	static void ForceLoadMetaData(UObject* InObject);
+
 	static bool ValidateGeneratedClass(const UClass* InClass);
 
 	/** Find the object in the TemplateObjects array with the supplied name */
