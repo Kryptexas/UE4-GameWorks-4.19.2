@@ -23,7 +23,7 @@ void FNetworkObjectList::AddInitialObjects(UWorld* const World, const FName NetD
 
 TSharedPtr<FNetworkObjectInfo>* FNetworkObjectList::Add(AActor* const Actor, const FName NetDriverName)
 {
-	if (Actor == nullptr)
+	if (Actor == nullptr || Actor->IsPendingKill())
 	{
 		return nullptr;
 	}
