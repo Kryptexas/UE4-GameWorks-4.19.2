@@ -1749,7 +1749,7 @@ namespace UnrealBuildTool
 			FileItem PrecompiledHeaderIncludeFile = CPPHeaders.FindIncludedFile(FirstInclude.IncludeName, !BuildConfiguration.bCheckExternalHeadersForModification, IncludePathsToSearch, IncludeFileSearchDictionary);
 			if (PrecompiledHeaderIncludeFile == null)
 			{
-				throw new BuildException("The first include statement in source file '{0}' is trying to include the file '{1}' as the precompiled header, but that file could not be located in any of the module's include search paths.", CPPFile.AbsolutePath, CPPFile.PrecompiledHeaderIncludeFilename.GetFileName());
+				throw new BuildException("The first include statement in source file '{0}' is trying to include '{1}' as the precompiled header, but that file could not be located in any of the module's include search paths.", CPPFile.AbsolutePath, FirstInclude.IncludeName);
 			}
 
 			Headers.IncludeDependencyCache.CacheResolvedIncludeFullPath(CPPFile, 0, PrecompiledHeaderIncludeFile.Reference);
