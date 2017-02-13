@@ -363,7 +363,7 @@ void UAnimationGraphSchema::DroppedAssetsOnPin(const TArray<FAssetData>& Assets,
 void UAnimationGraphSchema::GetAssetsNodeHoverMessage(const TArray<FAssetData>& Assets, const UEdGraphNode* HoverNode, FString& OutTooltipText, bool& OutOkIcon) const 
 { 
 	UAnimationAsset* Asset = FAssetData::GetFirstAsset<UAnimationAsset>(Assets);
-	if ((Asset == NULL) || (HoverNode == NULL))
+	if ((Asset == NULL) || (HoverNode == NULL) || !HoverNode->IsA(UAnimGraphNode_Base::StaticClass()))
 	{
 		OutTooltipText = TEXT("");
 		OutOkIcon = false;
