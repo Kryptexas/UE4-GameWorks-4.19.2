@@ -33,7 +33,7 @@ public class VorbisFile : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
-            string VorbisLibPath = VorbisPath + "Lib/HTML5/";
+            string VorbisLibPath = VorbisPath + "lib/HTML5/";
             PublicLibraryPaths.Add(VorbisLibPath);
 
             string OpimizationSuffix = "";

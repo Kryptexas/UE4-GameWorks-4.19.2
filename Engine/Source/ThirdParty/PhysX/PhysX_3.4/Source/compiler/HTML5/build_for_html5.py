@@ -26,15 +26,18 @@ build_modes = [('', 'Debug'),
                ('-O3', 'Release'),
                ('-Oz', 'MinSizeRel')]
 
-src_directory = os.path.realpath(os.path.dirname(__file__))
+src_directory = os.path.normpath(os.path.join(os.path.realpath(os.path.dirname(__file__)), '..', '..', '..', '..'))
 
 output_lib_directory = os.path.normpath(os.path.join(src_directory, 'Lib', 'HTML5'))
 if 'rebuild' in sys.argv:
-	for f in [os.path.join(output_lib_directory, f) for f in os.listdir(output_lib_directory) if f.endswith(".bc")]:
-		print 'Clearing ' + f
-		os.remove(f)
+	try:
+		for f in [os.path.join(output_lib_directory, f) for f in os.listdir(output_lib_directory) if f.endswith(".bc")]:
+			print 'Clearing ' + f
+			os.remove(f)
+	except Exception, e:
+		pass
 
-cmake_src_directory = os.path.join(src_directory, 'APEX_1.4', 'compiler', 'cmake', 'HTML5')
+cmake_src_directory = os.path.join(src_directory, 'PhysX_3.4', 'Source', 'compiler', 'cmake', 'html5')
 print 'Build source directory: ' + cmake_src_directory
 
 print 'Output libraries to directory: ' + output_lib_directory
@@ -69,7 +72,7 @@ for (mode, cmake_build_type) in build_modes:
 	run(cmd)
 
 	# Deploy the output to the libraries directory.
-	output_lib_directories = [build_dir, os.path.join(build_dir, 'physx_bin'), os.path.join(build_dir, 'physx_bin', 'pxshared_bin')]
+	output_lib_directories = [build_dir, os.path.join(build_dir, 'pxshared_bin')]
 	for d in output_lib_directories:
 		for output_file in os.listdir(d):
 			if output_file.endswith('.bc'):

@@ -21,14 +21,17 @@ build_modes = [('', 'Debug'),
                ('-O3', 'Release'),
                ('-Oz', 'MinSizeRel')]
 
-src_directory = os.path.realpath(os.path.dirname(__file__))
+src_directory = os.path.normpath(os.path.join(os.path.realpath(os.path.dirname(__file__)), '..'))
 print 'Build source directory: ' + src_directory
 
 output_lib_directory = os.path.normpath(os.path.join(src_directory, '..', 'HTML5'))
 if 'rebuild' in sys.argv:
-	for f in [os.path.join(output_lib_directory, f) for f in os.listdir(output_lib_directory) if f.endswith(".bc")]:
-		print 'Clearing ' + f
-		os.remove(f)
+	try:
+		for f in [os.path.join(output_lib_directory, f) for f in os.listdir(output_lib_directory) if f.endswith(".bc")]:
+			print 'Clearing ' + f
+			os.remove(f)
+	except Exception, e:
+		pass
 
 print 'Output libraries to directory: ' + output_lib_directory
 

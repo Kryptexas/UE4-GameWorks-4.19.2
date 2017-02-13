@@ -213,7 +213,7 @@ private:
 	 * @param InSearchSearch possibly valid search result to rejoin depending on the success of the call
 	 * @param InCompletionDelegate external delegate to call after finishing internal code
 	 */
-	void OnCheckRejoinComplete(int32 ControllerId, bool bWasSuccessful, const FOnlineSessionSearchResult& InSearchResult, FOnRejoinCheckComplete InCompletionDelegate);
+	void OnCheckRejoinComplete(int32 ControllerId, bool bWasSuccessful, const TArray<FOnlineSessionSearchResult>& InSearchResults, FOnRejoinCheckComplete InCompletionDelegate);
 
 	/**
 	 * Common function for handling the result of a rejoin check
@@ -222,7 +222,7 @@ private:
 	 * @param InSearchSearch possibly valid search result to rejoin depending on the success of the call
 	 * @param InCompletionDelegate external delegate to call after finishing internal code
 	 */
-	void ProcessRejoinCheck(bool bWasSuccessful, const FOnlineSessionSearchResult& InSearchResult, const FOnRejoinCheckComplete& InCompletionDelegate);
+	void ProcessRejoinCheck(bool bWasSuccessful, const TArray<FOnlineSessionSearchResult>& InSearchResults, const FOnRejoinCheckComplete& InCompletionDelegate);
 
 	/**
 	 * Delegate fired after the last rejoin check completed with the intention of joining a search result if valid

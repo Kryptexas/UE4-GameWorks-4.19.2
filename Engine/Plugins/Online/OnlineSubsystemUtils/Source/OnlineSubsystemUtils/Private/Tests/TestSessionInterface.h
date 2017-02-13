@@ -99,6 +99,7 @@ class TestOnlineSearchSettings;
 
 	/** Delegate for joining a friend (JIP) */
 	FOnFindFriendSessionCompleteDelegate OnFindFriendSessionCompleteDelegate;
+	FOnFindFriendSessionCompleteDelegate OnFindFriendSessionForListFriendSessionsCompleteDelegate;
 
 	/** Per-player delegate handles for OnFindFriendSessionComplete */
 	TMap<int32, FDelegateHandle> OnFindFriendSessionCompleteDelegateHandles;
@@ -245,7 +246,16 @@ class TestOnlineSearchSettings;
 	 * @param bWasSuccessful true if the async action completed without error, false if there was an 
 	 * @param SearchResult search result containing friend's session information
 	 */
-	void OnFindFriendSessionComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult);
+	void OnFindFriendSessionComplete(int32 LocalUserNum, bool bWasSuccessful, const TArray<FOnlineSessionSearchResult>& SearchResult);
+
+	/**
+	* Delegate fired when after requesting all friend sessions
+	*
+	* @param LocalUserNum local user attempting to join friend
+	* @param bWasSuccessful true if the async action completed without error, false if there was an
+	* @param SearchResult search result containing all friends' session information
+	*/
+	void OnFindFriendSessionForListFriendSessionsComplete(int32 LocalUserNum, bool bWasSuccessful, const TArray<FOnlineSessionSearchResult>& SearchResult);
 
 	/**
 	 * Delegate fired when the search for an online session has completed

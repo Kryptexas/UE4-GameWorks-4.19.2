@@ -30,7 +30,7 @@ SET(CMAKE_RELEASE_POSTFIX $ENV{LIB_SUFFIX})
 ADD_DEFINITIONS(-DPX_SIMD_DISABLED)
 
 # Add PhysX as a dependency so that we can use project references
-ADD_SUBDIRECTORY(${PHYSX_ROOT_DIR}/Source/compiler/cmake/HTML5 "${CMAKE_CURRENT_BINARY_DIR}/physx_bin")
+ADD_SUBDIRECTORY(${PHYSX_ROOT_DIR}/Source/compiler/cmake/html5 "${CMAKE_CURRENT_BINARY_DIR}/physx_bin")
 
 #Include projects
 INCLUDE(ApexCommon.cmake)

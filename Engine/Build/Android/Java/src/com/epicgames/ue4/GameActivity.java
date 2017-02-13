@@ -971,6 +971,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	{
 		super.onNewIntent(newIntent);
 		setIntent(newIntent);
+//$${gameActivityOnNewIntentAdditions}$$
 	}
 
 	@Override

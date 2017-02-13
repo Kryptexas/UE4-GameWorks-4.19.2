@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 HARFBUZZ_HTML5=$(pwd)
 
@@ -23,20 +23,6 @@ build_via_cmake()
 	else
 		DBGFLAG=NDEBUG
 	fi
-build_via_cmake()
-{
-	SUFFIX=_O$OLEVEL
-	OPTIMIZATION=-O$OLEVEL
-	# ----------------------------------------
-	rm -rf BUILD$SUFFIX
-	mkdir BUILD$SUFFIX
-	cd BUILD$SUFFIX
-	# ----------------------------------------
-	if [ $TYPE == "DEBUG" ]; then
-		DBGFLAG=_DEBUG
-	else
-		DBGFLAG=NDEBUG
-	fi
 	# ----------------------------------------
 	emcmake cmake -G "Unix Makefiles" \
 		-DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
@@ -50,6 +36,7 @@ build_via_cmake()
 	if [ $OLEVEL == 0 ]; then
 		SUFFIX=
 	fi
+	chmod +w ../../../HTML5/libharfbuzz${SUFFIX}.bc
 	cp ../libharfbuzz.bc ../../../HTML5/libharfbuzz${SUFFIX}.bc
 	cd ..
 }

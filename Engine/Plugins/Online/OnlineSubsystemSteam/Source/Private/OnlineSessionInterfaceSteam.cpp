@@ -926,6 +926,11 @@ uint32 FOnlineSessionSteam::JoinInternetSession(int32 PlayerNum, FNamedOnlineSes
 			SteamSessionInfo->HostAddr = SearchSessionInfo->HostAddr;
 			SteamSessionInfo->SteamP2PAddr = SearchSessionInfo->SteamP2PAddr;
 
+			FString ConnectionString = GetSteamConnectionString(Session->SessionName);
+			if (!SteamFriends()->SetRichPresence("connect", TCHAR_TO_UTF8(*ConnectionString)))
+			{
+				UE_LOG_ONLINE(Verbose, TEXT("Failed to set rich presence for session %s"), *Session->SessionName.ToString());
+			}
 			Result = ERROR_SUCCESS;
 		}
 	}
@@ -976,7 +981,7 @@ bool FOnlineSessionSteam::FindFriendSession(int32 LocalUserNum, const FUniqueNet
 				{
 					FUniqueNetIdSteam LobbyId(FriendGameInfo.m_steamIDLobby);
 
-					FOnlineAsyncTaskSteamFindLobby* NewTask = new FOnlineAsyncTaskSteamFindLobby(SteamSubsystem, LobbyId, CurrentSessionSearch, LocalUserNum, OnFindFriendSessionCompleteDelegates[LocalUserNum]);
+					FOnlineAsyncTaskSteamFindLobbiesForFriendSession* NewTask = new FOnlineAsyncTaskSteamFindLobbiesForFriendSession(SteamSubsystem, LobbyId, CurrentSessionSearch, LocalUserNum, OnFindFriendSessionCompleteDelegates[LocalUserNum]);
 					SteamSubsystem->QueueAsyncTask(NewTask);
 					bSuccess = true;
 				}
@@ -986,7 +991,7 @@ bool FOnlineSessionSteam::FindFriendSession(int32 LocalUserNum, const FUniqueNet
 					TSharedRef<FInternetAddr> IpAddr = ISocketSubsystem::Get()->CreateInternetAddr(FriendGameInfo.m_unGameIP, FriendGameInfo.m_usGamePort);
 					CurrentSessionSearch->QuerySettings.Set(FName(SEARCH_STEAM_HOSTIP), IpAddr->ToString(true), EOnlineComparisonOp::Equals);
 
-					FOnlineAsyncTaskSteamFindServer* NewTask = new FOnlineAsyncTaskSteamFindServer(SteamSubsystem, SearchSettings, LocalUserNum, OnFindFriendSessionCompleteDelegates[LocalUserNum]);
+					FOnlineAsyncTaskSteamFindServerForFriendSession* NewTask = new FOnlineAsyncTaskSteamFindServerForFriendSession(SteamSubsystem, CurrentSessionSearch, LocalUserNum, OnFindFriendSessionCompleteDelegates[LocalUserNum]);
 					SteamSubsystem->QueueAsyncTask(NewTask);
 				}
 			}
@@ -999,7 +1004,7 @@ bool FOnlineSessionSteam::FindFriendSession(int32 LocalUserNum, const FUniqueNet
 
 	if (!bSuccess)
 	{
-		FOnlineSessionSearchResult EmptyResult;
+		TArray<FOnlineSessionSearchResult> EmptyResult;
 		TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, bSuccess, EmptyResult);
 	}
 
@@ -1010,6 +1015,15 @@ bool FOnlineSessionSteam::FindFriendSession(const FUniqueNetId& LocalUserId, con
 {
 	// @todo: use proper LocalUserId
 	return FindFriendSession(0, Friend);
+}
+
+bool FOnlineSessionSteam::FindFriendSession(const FUniqueNetId& LocalUserId, const TArray<TSharedRef<const FUniqueNetId>>& FriendList)
+{
+	UE_LOG(LogOnline, Display, TEXT("FOnlineSessionSteam::FindFriendSession(const FUniqueNetId& LocalUserId, const TArray<TSharedRef<const FUniqueNetId>>& FriendList) - not implemented"));
+	// @todo: use proper LocalUserId
+	TArray<FOnlineSessionSearchResult> EmptyResult;
+	TriggerOnFindFriendSessionCompleteDelegates(0, false, EmptyResult);
+	return false;
 }
 
 bool FOnlineSessionSteam::PingSearchResults(const FOnlineSessionSearchResult& SearchResult)

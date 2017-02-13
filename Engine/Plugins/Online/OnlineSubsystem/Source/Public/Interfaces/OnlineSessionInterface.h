@@ -131,14 +131,14 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSingleSessionResultComplete, int32, bo
 typedef FOnSingleSessionResultComplete::FDelegate FOnSingleSessionResultCompleteDelegate;
 
 /**
- * Delegate fired once the find friend task has completed
- * Session has not been joined at this point, and requires a call to JoinSession() 
- *
- * @param LocalUserNum the controller number of the accepting user
- * @param bWasSuccessful the session was found and is joinable, false otherwise
- * @param FriendSearchResult the search/settings for the session we're attempting to join
- */
-typedef FOnSingleSessionResultComplete FOnFindFriendSessionComplete;
+* Delegate fired once a single search result is returned (ie friend invite / join)
+* Session has not been joined at this point, and requires a call to JoinSession()
+*
+* @param LocalUserNum the controller number of the accepting user
+* @param bWasSuccessful the session was found and is joinable, false otherwise
+* @param SearchResult the search/settings for the session result we've been given
+*/
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnFindFriendSessionComplete, int32, bool, const TArray<FOnlineSessionSearchResult>&);
 typedef FOnFindFriendSessionComplete::FDelegate FOnFindFriendSessionCompleteDelegate;
 
 /**
@@ -568,6 +568,16 @@ public:
 	virtual bool FindFriendSession(const FUniqueNetId& LocalUserId, const FUniqueNetId& Friend) = 0;
 
 	/**
+	* Allows the local player to retrieve the session of multiple friends
+	*
+	* @param LocalUserId the local player wanting to join
+	* @param FriendList the potential players to follow
+	*
+	* @return true if the async call worked, false otherwise
+	*/
+	virtual bool FindFriendSession(const FUniqueNetId& LocalUserId, const TArray<TSharedRef<const FUniqueNetId>>& FriendList) = 0;
+
+	/**
 	 * Delegate fired once the find friend task has completed
 	 * Session has not been joined at this point, and still requires a call to JoinSession()
 	 *
@@ -575,7 +585,7 @@ public:
 	 * @param bWasSuccessful the session was found and is joinable, false otherwise
 	 * @param FriendSearchResult the search/settings for the session we're attempting to join
 	 */
-	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnFindFriendSessionComplete, bool, const FOnlineSessionSearchResult&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnFindFriendSessionComplete, bool, const TArray<FOnlineSessionSearchResult>&);
 
 	/**
 	 * Sends an invitation to play in the player's current session

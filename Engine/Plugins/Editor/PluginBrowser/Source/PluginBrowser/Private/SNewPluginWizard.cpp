@@ -44,6 +44,12 @@ DEFINE_LOG_CATEGORY(LogPluginWizard);
 
 #define LOCTEXT_NAMESPACE "NewPluginWizard"
 
+static bool IsContentOnlyProject()
+{
+	const FProjectDescriptor* CurrentProject = IProjectManager::Get().GetCurrentProject();
+	return CurrentProject == nullptr || CurrentProject->Modules.Num() == 0 || !FGameProjectGenerationModule::Get().ProjectHasCodeFiles();
+}
+
 SNewPluginWizard::SNewPluginWizard()
 	: bIsPluginPathValid(false)
 	, bIsPluginNameValid(false)
@@ -63,11 +69,7 @@ void SNewPluginWizard::Construct(const FArguments& Args, TSharedPtr<SDockTab> In
 
 	if ( !PluginWizardDefinition.IsValid() )
 	{
-		// Don't create new plugin button in content only projects as they won't compile
-		const FProjectDescriptor* CurrentProject = IProjectManager::Get().GetCurrentProject();
-		bool bIsContentOnlyProject = CurrentProject == nullptr || CurrentProject->Modules.Num() == 0 || !FGameProjectGenerationModule::Get().ProjectHasCodeFiles();
-
-		PluginWizardDefinition = MakeShared<FDefaultPluginWizardDefinition>(bIsContentOnlyProject);
+		PluginWizardDefinition = MakeShared<FDefaultPluginWizardDefinition>(IsContentOnlyProject());
 	}
 	check(PluginWizardDefinition.IsValid());
 
@@ -353,19 +355,6 @@ void SNewPluginWizard::ValidateFullPluginPath()
 		{
 			// This path will be added to the additional plugin directories for the project when created
 		}
-
-		bIsNewPathValid = bFoundValidPath;
-		if (!bFoundValidPath)
-		{
-			if (FApp::IsEngineInstalled())
-			{
-				FolderPathError = LOCTEXT("InstalledPluginFolderPathError", "Plugins can only be created within your Project's Plugins folder");
-			}
-			else
-			{
-				FolderPathError = LOCTEXT("PluginFolderPathError", "Plugins can only be created within the Engine Plugins folder or your Project's Plugins folder");
-			}
-		}
 	}
 
 	bIsPluginPathValid = bIsNewPathValid;
@@ -545,10 +534,14 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 
 	if (bSucceeded)
 	{
-		// Generate project files if we happen to be using a project file.
-		if (!FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn))
+		// Don't try to regenerate project files for content only projects
+		if (!IsContentOnlyProject())
 		{
-			PopErrorNotification(LOCTEXT("FailedToGenerateProjectFiles", "Failed to generate project files."));
+			// Generate project files if we happen to be using a project file.
+			if (!FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn))
+			{
+				PopErrorNotification(LOCTEXT("FailedToGenerateProjectFiles", "Failed to generate project files."));
+			}
 		}
 
 		// Notify that a new plugin has been created

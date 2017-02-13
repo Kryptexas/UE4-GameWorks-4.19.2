@@ -151,6 +151,7 @@ void FTestSessionInterface::Test(UWorld* InWorld, bool bTestLAN, bool bIsPresenc
 	OnDestroyForJoinSessionCompleteDelegate = FOnDestroySessionCompleteDelegate::CreateRaw(this, &FTestSessionInterface::OnDestroyForJoinSessionComplete);
 
 	OnFindFriendSessionCompleteDelegate = FOnFindFriendSessionCompleteDelegate::CreateRaw(this, &FTestSessionInterface::OnFindFriendSessionComplete);
+	OnFindFriendSessionForListFriendSessionsCompleteDelegate = FOnFindFriendSessionCompleteDelegate::CreateRaw(this, &FTestSessionInterface::OnFindFriendSessionForListFriendSessionsComplete);
 
 	OnRegisterPlayersCompleteDelegate = FOnRegisterPlayersCompleteDelegate::CreateRaw(this, &FTestSessionInterface::OnRegisterPlayerComplete);
 	OnUnregisterPlayersCompleteDelegate = FOnRegisterPlayersCompleteDelegate::CreateRaw(this, &FTestSessionInterface::OnUnregisterPlayerComplete);
@@ -351,7 +352,7 @@ void FTestSessionInterface::OnJoinSessionComplete(FName SessionName, EOnJoinSess
 	}
 }
 
-void FTestSessionInterface::OnFindFriendSessionComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult)
+void FTestSessionInterface::OnFindFriendSessionComplete(int32 LocalUserNum, bool bWasSuccessful, const TArray<FOnlineSessionSearchResult>& SearchResult)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnFindFriendSessionComplete LocalUserNum: %d bSuccess: %d"), LocalUserNum, bWasSuccessful);
 
@@ -361,14 +362,29 @@ void FTestSessionInterface::OnFindFriendSessionComplete(int32 LocalUserNum, bool
 	if (bWasSuccessful)
 	{
 		// Can't just use SearchResult.IsValid() here - it's possible the SessionInfo pointer is valid, but not the data until we actually join the session
-		if (SearchResult.Session.OwningUserId.IsValid() && SearchResult.Session.SessionInfo.IsValid())
+		if (SearchResult.Num() > 0 && SearchResult[0].Session.OwningUserId.IsValid() && SearchResult[0].Session.SessionInfo.IsValid())
 		{
-			JoinSession(LocalUserNum, GameSessionName, SearchResult);
+			JoinSession(LocalUserNum, GameSessionName, SearchResult[0]);
 		}
 		else
 		{
 			UE_LOG(LogOnline, Warning, TEXT("Join friend returned no search result."));
 		}
+	}
+}
+
+void FTestSessionInterface::OnFindFriendSessionForListFriendSessionsComplete(int32 LocalUserNum, bool bWasSuccessful, const TArray<FOnlineSessionSearchResult>& SearchResult)
+{
+	UE_LOG(LogOnline, Verbose, TEXT("OnFindFriendSessionComplete LocalUserNum: %d bSuccess: %d Result Count: %d"), LocalUserNum, bWasSuccessful, SearchResult.Num());
+
+	FDelegateHandle DelegateHandle = OnFindFriendSessionCompleteDelegateHandles.FindRef(LocalUserNum);
+	SessionInt->ClearOnFindFriendSessionCompleteDelegate_Handle(LocalUserNum, DelegateHandle);
+	OnFindFriendSessionCompleteDelegateHandles.Remove(LocalUserNum);
+
+	for (const FOnlineSessionSearchResult& Result : SearchResult)
+	{
+		UE_LOG(LogOnline, Verbose, TEXT("\tSession:"));
+		DumpSession(&Result.Session);
 	}
 }
 
@@ -495,6 +511,18 @@ bool FTestSessionInterface::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevic
 					SessionInt->FindFriendSession(LocalUserNum, *FriendId);
 				}
 			}
+			bWasHandled = true;
+		}
+		else if (FParse::Command(&Cmd, TEXT("LISTFRIENDSESSIONS")))
+		{
+			TArray<TSharedRef<const FUniqueNetId>> FriendList;
+			for (int32 FriendIdx = 0; FriendIdx < FriendsCache.Num(); FriendIdx++)
+			{
+				const FOnlineFriend& Friend = *FriendsCache[FriendIdx];
+				FriendList.Add(Friend.GetUserId());
+			}
+			SessionInt->FindFriendSession(*Identity->GetUniquePlayerId(LocalUserNum).ToSharedRef(), FriendList);
+			OnFindFriendSessionCompleteDelegateHandles.Add(LocalUserNum, SessionInt->AddOnFindFriendSessionCompleteDelegate_Handle(LocalUserNum, OnFindFriendSessionForListFriendSessionsCompleteDelegate));
 			bWasHandled = true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("CREATE")))

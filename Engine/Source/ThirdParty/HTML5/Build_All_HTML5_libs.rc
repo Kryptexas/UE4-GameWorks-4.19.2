@@ -1,35 +1,52 @@
 # main rc file for setting up emscripten toolchain paths
 
 
-# WARNING: emscripten does not work with PYTHON from Cygwin packages
-#          MUST use the "windows" version of PYTHON (e.g. c:/python27)
-# - likewise -
-# WARNING: "windows python" version does not play nice within Cygwin environment
-#          -- i.e. "unix path" vs "drive:"
-# - also -
-# WARNING: emscripten does not work if running "configure" in Windows, no "shell
-#          program" available -- also, even with Mingw64, "configure" errors on
-#          compile tests (still thinks it's a unix environment)
+# ----- WINDOWS NOTES -----
 #
-# - that said -
-# to solve the issues above (again, on windows), see the following for details:
-#          http://stackoverflow.com/questions/25019057/how-are-msys-msys2-and-msysgit-related-to-each-other
-#          https://sourceforge.net/p/msys2/wiki/How%20does%20MSYS2%20differ%20from%20Cygwin/
+# TL;DR;
+#
+# WARNING: DO NOT USE CYGWIN - but, you can use Git-Bash (mingw64)
+#     - http://stackoverflow.com/questions/25019057/how-are-msys-msys2-and-msysgit-related-to-each-other
+#     - https://sourceforge.net/p/msys2/wiki/How%20does%20MSYS2%20differ%20from%20Cygwin/
 #
 # essentially, "builds" on cygwin targets POSIX-compatible environments
 #        while "builds" on MSYS2 targets native windows executables
 #
-# WARNING: some projects will still be broken if path contains spaces (e.g. harfbuzz)
-#          -- will try to fix them in the near future (and make notes here...)
+#
+# Long Form:
+#
+#     emscripten is python powered - that targets the native environment
+#     so, MUST use the "windows" version of PYTHON (e.g. c:/python27)
+#
+# "unix path" vs "drive:"
+#     "windows python" version does not play nice within Cygwin environment
+#
+#     meaning, even if you tried using "cygwin python" from the cygwin environment
+#     the build tools from this setup will not work from the windows command line
+#
+#
+# WARNING: emscripten does not work if running "configure" in Windows (no "shell
+#          program" available) -- also, even with Mingw64, "configure" errors on
+#          compile tests (still thinks it's a unix environment)
+#
+#
+# WARNING: shell scripts on some projects will still be broken if path contains spaces
+#           (e.g. harfbuzz) -- will try to fix them in the near future
 
 
-# basically, build all libs on OSX or git-bash
+# basically, build all libs on OSX, Linux, or git-bash
 # but, UE4 HTML5 projects can still be built on windows afterwards
 
 
-if [ "X$EMSCRIPTEN" == "X" ]; then
+
+
+if  [ -z $EMSDK ] ||
+	[ -z $EM_CONFIG ] ||
+	[ -z $EMSCRIPTEN ] ||
+	[ -z $BINARYEN_ROOT ]; then # TODO
+
 	cd ../../../Extras/ThirdPartyNotUE
-		EMSDK=$(pwd)/emsdk
+		export EMSDK=$(pwd)/emsdk
 	cd -
 	if [ ! -d "$EMSDK" ]; then
 		echo ERROR: emscripten toolchain folder not found
@@ -166,4 +183,5 @@ fi
 #     this is because on case-insensitive filesystems (i.e. windows)
 #     it is getting lost with:
 #     -- Engine/Source/Runtime/Core/Public/Math/Vector.h
+
 
