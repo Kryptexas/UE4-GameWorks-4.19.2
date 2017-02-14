@@ -487,8 +487,8 @@ UObject* UFbxFactory::FactoryCreateBinary
 
 										// Reapply the transforms for the rest of the import
 										FbxImporter->ApplyTransformSettingsToFbxNode(RootNodeToImport, ImportUI->SkeletalMeshImportData);
-										ImportedSuccessfulLodIndex = SuccessfulLodIndex;
 									}
+									ImportedSuccessfulLodIndex = SuccessfulLodIndex;
 									//Increment the LOD index
 									SuccessfulLodIndex++;
 								}
