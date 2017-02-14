@@ -973,8 +973,11 @@ public:
 					}
 				}
 				
-				FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
-				NewComponent->FillLayer(BestLayerInfoObject, LandscapeEdit);
+				if (BestLayerInfoObject != nullptr)
+				{
+					FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
+					NewComponent->FillLayer(BestLayerInfoObject, LandscapeEdit);
+				}
 			}
 
 			EdMode->LandscapeRenderAddCollision = nullptr;
