@@ -336,6 +336,24 @@ FQuat UActorFactoryStaticMesh::AlignObjectToSurfaceNormal(const FVector& InSurfa
 	return FindActorAlignmentRotation(ActorRotation, FVector(0.f, 0.f, 1.f), InSurfaceNormal);
 }
 
+#if WITH_FLEX
+
+AActor* UActorFactoryStaticMesh::SpawnActor(UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlagsIn, const FName Name)
+{
+	UStaticMesh* StaticMesh = Cast<UStaticMesh>(Asset);
+	if (StaticMesh && StaticMesh->FlexAsset && NewActorClassName == TEXT(""))
+	{
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.OverrideLevel = InLevel;
+		SpawnInfo.ObjectFlags = ObjectFlagsIn;
+		SpawnInfo.Name = Name;
+		return InLevel->OwningWorld->SpawnActor(AFlexActor::StaticClass(), &Transform, SpawnInfo);
+	}
+	return Super::SpawnActor(Asset, InLevel, Transform, ObjectFlagsIn, Name);
+}
+
+#endif // WITH_FLEX
+
 /*-----------------------------------------------------------------------------
 UActorFactoryBasicShape
 -----------------------------------------------------------------------------*/
