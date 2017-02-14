@@ -731,7 +731,7 @@ private:
 	FOnMediaEvent MediaEvent;
 
 	/** The player implementation. */
-	FMediaPlayerBase Player;
+	TSharedPtr<FMediaPlayerBase, ESPMode::ThreadSafe> Player;
 
 #if WITH_EDITOR
 	/** Whether the player was playing in PIE/SIE. */
