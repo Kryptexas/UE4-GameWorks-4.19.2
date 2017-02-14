@@ -539,7 +539,7 @@ void UFlexAssetSoft::ReImport(const UStaticMesh* Mesh)
 
 			Particles.Add(Particle);
 		}
-
+		
 		// create shapes
 		if (NewAsset->mNumShapes)
 		{
@@ -550,14 +550,15 @@ void UFlexAssetSoft::ReImport(const UStaticMesh* Mesh)
 		}
 		
 		// create links
-		if (Asset->mNumSprings)
+		if (NewAsset->mNumSprings)
 		{
-			SpringIndices.Append(Asset->mSpringIndices, Asset->mNumSprings*2);
-			SpringRestLengths.Append(Asset->mSpringRestLengths, Asset->mNumSprings);
-			SpringCoefficients.Append(Asset->mSpringCoefficients, Asset->mNumSprings);
+			SpringIndices.Append(NewAsset->mSpringIndices, NewAsset->mNumSprings*2);
+			SpringRestLengths.Append(NewAsset->mSpringRestLengths, NewAsset->mNumSprings);
+			SpringCoefficients.Append(NewAsset->mSpringCoefficients, NewAsset->mNumSprings);
 		}
 
-		flexExtDestroyAsset(Asset);
+		// Destroy the temporary
+		flexExtDestroyAsset(NewAsset);
 	}
 	else
 	{
