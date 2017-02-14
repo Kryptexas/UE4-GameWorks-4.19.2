@@ -351,7 +351,7 @@ void FStreamingTexture::StreamWantedMips(FStreamingManagerTexture& Manager)
 	{
 		ensure(ResidentMips == RequestedMips);
 
-		if (Texture->PendingMipChangeRequestStatus.GetValue() == TexState_ReadyFor_Requests)
+		if (Texture->Resource && Texture->PendingMipChangeRequestStatus.GetValue() == TexState_ReadyFor_Requests)
 		{
 			Texture->RequestedMips = WantedMips;
 

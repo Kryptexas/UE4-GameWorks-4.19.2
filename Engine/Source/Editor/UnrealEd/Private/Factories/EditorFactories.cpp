@@ -2650,8 +2650,9 @@ UTexture2D* UTextureFactory::CreateTexture2D( UObject* InParent, FName Name, EOb
 
 UTextureCube* UTextureFactory::CreateTextureCube( UObject* InParent, FName Name, EObjectFlags Flags )
 {
-	UTextureCube* NewTextureCube = CastChecked<UTextureCube>( CreateOrOverwriteAsset(UTextureCube::StaticClass(), InParent, Name, Flags) );
-	return NewTextureCube;
+	// CreateOrOverwriteAsset could fail if this cubemap replaces an asset that still has references.
+	UObject* NewObject = CreateOrOverwriteAsset(UTextureCube::StaticClass(), InParent, Name, Flags);
+	return NewObject ? CastChecked<UTextureCube>(NewObject) : nullptr;
 }
 
 void UTextureFactory::SuppressImportOverwriteDialog()
