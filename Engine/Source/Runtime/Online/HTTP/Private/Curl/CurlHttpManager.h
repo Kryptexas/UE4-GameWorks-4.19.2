@@ -1,16 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HttpManager.h"
+
+class FHttpThread;
+
 #if WITH_LIBCURL
 #if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #endif
 	#include "curl/curl.h"
 #if PLATFORM_WINDOWS
 #include "HideWindowsPlatformTypes.h"
 #endif
-#include "HttpManager.h"
 
 struct x509_st;
 typedef struct x509_st X509;

@@ -1,127 +1,184 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "Editor/EditorEngine.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/MetaData.h"
+#include "Serialization/ArchiveTraceRoute.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Application/ThrottleManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/MultiBox/MultiBoxDefs.h"
+#include "Framework/Docking/TabManager.h"
+#include "EditorStyleSet.h"
+#include "EditorStyleSettings.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Components/LightComponent.h"
+#include "Tickable.h"
+#include "TickableEditorObject.h"
+#include "ActorFactories/ActorFactory.h"
+#include "ActorFactories/ActorFactoryBlueprint.h"
+#include "ActorFactories/ActorFactoryBoxVolume.h"
+#include "ActorFactories/ActorFactoryCylinderVolume.h"
+#include "ActorFactories/ActorFactorySphereVolume.h"
+#include "Engine/Font.h"
+#include "Engine/BrushBuilder.h"
+#include "Builders/CubeBuilder.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "ISourceControlModule.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "Settings/EditorLoadingSavingSettings.h"
+#include "Animation/AnimBlueprint.h"
+#include "Factories/LevelFactory.h"
+#include "Factories/TextureRenderTargetFactoryNew.h"
+#include "Editor/GroupActor.h"
+#include "Settings/LevelEditorMiscSettings.h"
+#include "Engine/Texture2D.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "Engine/NavigationObjectBase.h"
+#include "GameFramework/PlayerStart.h"
+#include "Engine/StaticMesh.h"
+#include "Sound/SoundBase.h"
+#include "GameFramework/Volume.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/UObjectIterator.h"
+#include "Serialization/ArchiveReplaceObjectRef.h"
+#include "Misc/RedirectCollector.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/Light.h"
+#include "Engine/StaticMeshActor.h"
+#include "Components/SkyLightComponent.h"
+#include "Components/ReflectionCaptureComponent.h"
+#include "Engine/Polys.h"
+#include "Engine/Selection.h"
+#include "Sound/SoundCue.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "UnrealEngine.h"
+#include "EngineUtils.h"
+#include "Editor.h"
+#include "EditorViewportClient.h"
+#include "LevelEditorViewport.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+#include "UnrealEdMisc.h"
+#include "EditorDirectories.h"
+#include "FileHelpers.h"
+#include "EditorModeInterpolation.h"
+#include "Dialogs/Dialogs.h"
+#include "UnrealEdGlobals.h"
 #include "Matinee/MatineeActor.h"
 #include "InteractiveFoliageActor.h"
-#include "Animation/SkeletalMeshActor.h"
 #include "Engine/WorldComposition.h"
 #include "EditorSupportDelegates.h"
-#include "Factories.h"
 #include "BSPOps.h"
 #include "EditorCommandLineUtils.h"
+#include "Engine/NetDriver.h"
 #include "Net/NetworkProfiler.h"
-#include "UObjectGlobals.h"
+#include "Interfaces/IPluginManager.h"
+#include "PackageReload.h"
 
 // needed for the RemotePropagator
-#include "SoundDefinitions.h"
-#include "Database.h"
+#include "AudioDevice.h"
 #include "SurfaceIterators.h"
 #include "ScopedTransaction.h"
 
-#include "ISourceControlModule.h"
 #include "ILocalizationServiceModule.h"
 #include "PackageBackup.h"
+#include "Engine/LevelStreaming.h"
 #include "LevelUtils.h"
 #include "Layers/Layers.h"
 #include "EditorLevelUtils.h"
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "PropertyEditorModule.h"
 #include "AssetSelection.h"
-#include "FXSystem.h"
 
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/KismetDebugUtilities.h"
-#include "Editor/Kismet/Public/BlueprintEditorModule.h"
-#include "Engine/InheritableComponentHandler.h"
-
-#include "BlueprintUtilities.h"
+#include "Kismet2/KismetReinstanceUtilities.h"
 
 #include "AssetRegistryModule.h"
+#include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
+#include "ISourceCodeAccessor.h"
 #include "ISourceCodeAccessModule.h"
 
 #include "Settings/EditorSettings.h"
 
-#include "Editor/MainFrame/Public/MainFrame.h"
-#include "AnimationUtils.h"
-#include "AudioDecompress.h"
+#include "Interfaces/IMainFrameModule.h"
 #include "LevelEditor.h"
 #include "SCreateAssetFromObject.h"
 
 #include "Editor/ActorPositioning.h"
 
-#include "Developer/DirectoryWatcher/Public/DirectoryWatcherModule.h"
+#include "IDirectoryWatcher.h"
+#include "DirectoryWatcherModule.h"
 
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
-#include "Editor/LevelEditor/Public/ILevelViewport.h"
+#include "Slate/SceneViewport.h"
+#include "ILevelViewport.h"
 
-#include "ComponentReregisterContext.h"
+#include "ContentStreaming.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "EngineModule.h"
-#include "RendererInterface.h"
 
 #include "EditorWorldManager.h"
 
 #if PLATFORM_WINDOWS
+	#include "WindowsHWrapper.h"
 // For WAVEFORMATEXTENSIBLE
 	#include "AllowWindowsPlatformTypes.h"
 #include <mmreg.h>
 	#include "HideWindowsPlatformTypes.h"
 #endif
 
-#include "AudioDerivedData.h"
-#include "Projects.h"
-#include "TargetPlatform.h"
-#include "RemoteConfigIni.h"
+#include "ProjectDescriptor.h"
+#include "Interfaces/IProjectManager.h"
+#include "Misc/RemoteConfigIni.h"
 
-#include "AssetToolsModule.h"
+#include "IDesktopPlatform.h"
 #include "DesktopPlatformModule.h"
-#include "ObjectTools.h"
-#include "MessageLogModule.h"
 
-#include "GameProjectGenerationModule.h"
 #include "ActorEditorUtils.h"
 #include "SnappingUtils.h"
-#include "EditorViewportCommands.h"
-#include "MessageLog.h"
+#include "Logging/MessageLog.h"
 
 #include "MRUFavoritesList.h"
-#include "EditorStyle.h"
-#include "EngineBuildSettings.h"
+#include "Misc/EngineBuildSettings.h"
 
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
 
 // AIMdule
-#include "BehaviorTree/BehaviorTreeManager.h"
 
-#include "HotReloadInterface.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "Engine/GameEngine.h"
-#include "Engine/TextureRenderTarget2D.h"
+#include "Misc/HotReloadInterface.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "GameFramework/GameUserSettings.h"
-#include "Engine/Light.h"
 #include "Engine/LevelStreamingVolume.h"
-#include "Sound/SoundCue.h"
-#include "Components/BrushComponent.h"
 #include "Engine/LocalPlayer.h"
-#include "Components/SkyLightComponent.h"
-#include "Components/ReflectionCaptureComponent.h"
-#include "Engine/Polys.h"
-#include "UnrealEngine.h"
 #include "EngineStats.h"
-#include "Engine/SimpleConstructionScript.h"
-#include "PackageTools.h"
+#include "Rendering/ColorVertexBuffer.h"
 
-#include "FileHelpers.h"
 #if !UE_BUILD_SHIPPING
-#include "AutomationCommon.h"
+#include "Tests/AutomationCommon.h"
 #endif
 
 #include "PhysicsPublic.h"
 #include "Engine/CoreSettings.h"
 #include "ShaderCompiler.h"
+#include "DistanceFieldAtlas.h"
 
 #include "PixelInspectorModule.h"
 
@@ -256,6 +313,7 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 	bDisableDeltaModification = false;
 	bPlayOnLocalPcSession = false;
 	bAllowMultiplePIEWorlds = true;
+	bIsEndingPlay = false;
 	NumOnlinePIEInstances = 0;
 	DefaultWorldFeatureLevel = GMaxRHIFeatureLevel;
 
@@ -564,6 +622,8 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	FCoreUObjectDelegates::IsPackageOKToSaveDelegate.BindUObject(this, &UEditorEngine::IsPackageOKToSave);
 	FCoreUObjectDelegates::AutoPackageBackupDelegate.BindStatic(&FAutoPackageBackup::BackupPackage);
 
+	FCoreUObjectDelegates::OnPackageReloaded.AddUObject(this, &UEditorEngine::HandlePackageReloaded);
+
 	extern void SetupDistanceFieldBuildNotification();
 	SetupDistanceFieldBuildNotification();
 
@@ -586,6 +646,124 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 bool UEditorEngine::HandleOpenAsset(UObject* Asset)
 {
 	return FAssetEditorManager::Get().OpenEditorForAsset(Asset);
+}
+
+void UEditorEngine::HandlePackageReloaded(const EPackageReloadPhase InPackageReloadPhase, FPackageReloadedEvent* InPackageReloadedEvent)
+{
+	static TSet<UBlueprint*> BlueprintsToRecompileThisBatch;
+
+	if (InPackageReloadPhase == EPackageReloadPhase::PrePackageFixup)
+	{
+		NotifyToolsOfObjectReplacement(InPackageReloadedEvent->GetRepointedObjects());
+
+		// Notify any Blueprint assets that are about to be unloaded.
+		ForEachObjectWithOuter(InPackageReloadedEvent->GetOldPackage(), [&](UObject* InObject)
+		{
+			if (InObject->IsAsset())
+			{
+				// Notify about any BP assets that are about to be unloaded
+				if (UBlueprint* BP = Cast<UBlueprint>(InObject))
+				{
+					FKismetEditorUtilities::OnBlueprintUnloaded.Broadcast(BP);
+				}
+			}
+		}, false, RF_Transient, EInternalObjectFlags::PendingKill);
+	}
+
+	if (InPackageReloadPhase == EPackageReloadPhase::OnPackageFixup)
+	{
+		for (const auto& RepointedObjectPair : InPackageReloadedEvent->GetRepointedObjects())
+		{
+			UObject* OldObject = RepointedObjectPair.Key;
+			UObject* NewObject = RepointedObjectPair.Value;
+		
+			if (OldObject->IsAsset())
+			{
+				if (const UBlueprint* OldBlueprint = Cast<UBlueprint>(OldObject))
+				{
+					FBlueprintCompileReinstancer::ReplaceInstancesOfClass(OldBlueprint->GeneratedClass, NewObject ? CastChecked<UBlueprint>(NewObject)->GeneratedClass : nullptr);
+				}
+			}
+		}
+	}
+
+	if (InPackageReloadPhase == EPackageReloadPhase::PostPackageFixup)
+	{
+		for (TWeakObjectPtr<UObject> ObjectReferencer : InPackageReloadedEvent->GetObjectReferencers())
+		{
+			UObject* ObjectReferencerPtr = ObjectReferencer.Get();
+			if (!ObjectReferencerPtr)
+			{
+				continue;
+			}
+
+			FPropertyChangedEvent PropertyEvent(nullptr, EPropertyChangeType::Redirected);
+			ObjectReferencerPtr->PostEditChangeProperty(PropertyEvent);
+
+			// We need to recompile any Blueprints that had properties changed to make sure their generated class is up-to-date and has no lingering references to the old objects
+			UBlueprint* BlueprintToRecompile = nullptr;
+			if (UBlueprint* BlueprintReferencer = Cast<UBlueprint>(ObjectReferencerPtr))
+			{
+				BlueprintToRecompile = BlueprintReferencer;
+			}
+			else if (UClass* ClassReferencer = Cast<UClass>(ObjectReferencerPtr))
+			{
+				BlueprintToRecompile = Cast<UBlueprint>(ClassReferencer->ClassGeneratedBy);
+			}
+			else
+			{
+				BlueprintToRecompile = ObjectReferencerPtr->GetTypedOuter<UBlueprint>();
+			}
+			
+			if (BlueprintToRecompile)
+			{
+				BlueprintsToRecompileThisBatch.Add(BlueprintToRecompile);
+			}
+		}
+	}
+
+	if (InPackageReloadPhase == EPackageReloadPhase::PreBatch)
+	{
+		// If this fires then ReloadPackages has probably bee called recursively :(
+		check(BlueprintsToRecompileThisBatch.Num() == 0);
+
+		// Flush all pending render commands, as reloading the package may invalidate render resources.
+		FlushRenderingCommands();
+	}
+
+	if (InPackageReloadPhase == EPackageReloadPhase::PostBatchPreGC)
+	{
+		// Make sure we don't have any lingering transaction buffer references.
+		GEditor->Trans->Reset(NSLOCTEXT("UnrealEd", "ReloadedPackage", "Reloaded Package"));
+
+		// Recompile any BPs that had their references updated
+		if (BlueprintsToRecompileThisBatch.Num() > 0)
+		{
+			FScopedSlowTask CompilingBlueprintsSlowTask(BlueprintsToRecompileThisBatch.Num(), NSLOCTEXT("UnrealEd", "CompilingBlueprints", "Compiling Blueprints"));
+
+			for (UBlueprint* BlueprintToRecompile : BlueprintsToRecompileThisBatch)
+			{
+				CompilingBlueprintsSlowTask.EnterProgressFrame(1.0f);
+
+				//FBlueprintEditorUtils::MarkBlueprintAsModified(BlueprintToRecompile, FPropertyChangedEvent(nullptr, EPropertyChangeType::Redirected));
+				FKismetEditorUtilities::CompileBlueprint(BlueprintToRecompile, /*bIsRegeneratingOnLoad*/false, /*bSkipGarbageCollection*/true);
+			}
+		}
+		BlueprintsToRecompileThisBatch.Reset();
+	}
+
+	if (InPackageReloadPhase == EPackageReloadPhase::PostBatchPostGC)
+	{
+		// Tick some things that aren't processed while we're reloading packages and can result in excessive memory usage if not periodically updated.
+		if (GShaderCompilingManager)
+		{
+			GShaderCompilingManager->ProcessAsyncResults(true, false);
+		}
+		if (GDistanceFieldAsyncQueue)
+		{
+			GDistanceFieldAsyncQueue->ProcessAsyncTasks();
+		}
+	}
 }
 
 void UEditorEngine::HandleSettingChanged( FName Name )
@@ -715,7 +893,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("Blutility"),
 			TEXT("XmlParser"),
 			TEXT("UserFeedback"),
-			TEXT("GameplayTagsEditor"),
 			TEXT("UndoHistory"),
 			TEXT("DeviceProfileEditor"),
 			TEXT("SourceCodeAccess"),
@@ -727,7 +904,8 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("SizeMap"),
 			TEXT("MergeActors"),
 			TEXT("NiagaraEditor"),
-			TEXT("InputBindingEditor")
+			TEXT("InputBindingEditor"),
+			TEXT("AudioEditor")
 		};
 
 		FScopedSlowTask ModuleSlowTask(ARRAY_COUNT(ModuleNames));
@@ -780,14 +958,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 		}
 
-		bool bGameplayAbilitiesEnabled = false;
-		GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiesEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
-		if (bGameplayAbilitiesEnabled)
-		{
-			FModuleManager::Get().LoadModule(TEXT("GameplayAbilitiesEditor"));
-		}
-
-
 		FModuleManager::Get().LoadModule(TEXT("LogVisualizer"));
 		FModuleManager::Get().LoadModule(TEXT("HotReload"));
 
@@ -808,19 +978,10 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	GLog->EnableBacklog( false );
 
 	{
-		// avoid doing this every time, create a list of classes that derive from AVolume
-		TArray<UClass*> VolumeClasses;
-		for (TObjectIterator<UClass> ObjectIt; ObjectIt; ++ObjectIt)
-		{
-			UClass* TestClass = *ObjectIt;
-			// we want classes derived from AVolume, but not AVolume itself
-			if ( TestClass->IsChildOf(AVolume::StaticClass()) && TestClass != AVolume::StaticClass() )
-			{
-				VolumeClasses.Add( TestClass );
-			}
-		}
-
 		FAssetData NoAssetData;
+
+		TArray<UClass*> VolumeClasses;
+		TArray<UClass*> VolumeFactoryClasses;
 
 		// Create array of ActorFactory instances.
 		for (TObjectIterator<UClass> ObjectIt; ObjectIt; ++ObjectIt)
@@ -831,17 +992,9 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 				if (!TestClass->HasAnyClassFlags(CLASS_Abstract))
 				{
 					// if the factory is a volume shape factory we create an instance for all volume types
-					if ( TestClass->IsChildOf(UActorFactoryBoxVolume::StaticClass()) ||
-						 TestClass->IsChildOf(UActorFactorySphereVolume::StaticClass()) ||
-						 TestClass->IsChildOf(UActorFactoryCylinderVolume::StaticClass()) )
+					if (TestClass->IsChildOf(UActorFactoryVolume::StaticClass()))
 					{
-						for ( int32 i=0; i < VolumeClasses.Num(); i++ )
-						{
-							UActorFactory* NewFactory = NewObject<UActorFactory>(GetTransientPackage(), TestClass);
-							check(NewFactory);
-							NewFactory->NewActorClass = VolumeClasses[i];
-							ActorFactories.Add(NewFactory);
-						}
+						VolumeFactoryClasses.Add(TestClass);
 					}
 					else
 					{
@@ -851,7 +1004,26 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 					}
 				}
 			}
+			else if (TestClass->IsChildOf(AVolume::StaticClass()) && TestClass != AVolume::StaticClass() )
+			{
+				// we want classes derived from AVolume, but not AVolume itself
+				VolumeClasses.Add( TestClass );
+			}
 		}
+
+		ActorFactories.Reserve(ActorFactories.Num() + (VolumeFactoryClasses.Num() * VolumeClasses.Num()));
+		for (UClass* VolumeFactoryClass : VolumeFactoryClasses)
+		{
+			for (UClass* VolumeClass : VolumeClasses)
+			{
+				UActorFactory* NewFactory = NewObject<UActorFactory>(GetTransientPackage(), VolumeFactoryClass);
+				check(NewFactory);
+				NewFactory->NewActorClass = VolumeClass;
+				ActorFactories.Add(NewFactory);
+			}
+		}
+
+		FCoreUObjectDelegates::RegisterHotReloadAddedClassesDelegate.AddUObject(this, &UEditorEngine::CreateVolumeFactoriesForNewClasses);
 	}
 
 	// Used for sorting ActorFactory classes.
@@ -903,6 +1075,36 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	bIsInitialized = true;
 };
 
+void UEditorEngine::CreateVolumeFactoriesForNewClasses(const TArray<UClass*>& NewClasses)
+{
+	TArray<UClass*> NewVolumeClasses;
+	for (UClass* NewClass : NewClasses)
+	{
+		if (NewClass && NewClass->IsChildOf(AVolume::StaticClass()))
+		{
+			NewVolumeClasses.Add(NewClass);
+		}
+	}
+
+	if (NewVolumeClasses.Num() > 0)
+	{
+		for (TObjectIterator<UClass> ObjectIt; ObjectIt; ++ObjectIt)
+		{
+			UClass* TestClass = *ObjectIt;
+			if (!TestClass->HasAnyClassFlags(CLASS_Abstract) && TestClass->IsChildOf(UActorFactoryVolume::StaticClass()))
+			{
+				ActorFactories.Reserve(ActorFactories.Num() + NewVolumeClasses.Num());
+				for (UClass* NewVolumeClass : NewVolumeClasses)
+				{
+					UActorFactory* NewFactory = NewObject<UActorFactory>(GetTransientPackage(), TestClass);
+					check(NewFactory);
+					NewFactory->NewActorClass = NewVolumeClass;
+					ActorFactories.Add(NewFactory);
+				}
+			}
+		}
+	}
+}
 
 void UEditorEngine::InitBuilderBrush( UWorld* InWorld )
 {
@@ -1353,6 +1555,12 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			UWorld* OldGWorld = NULL;
 			// Use the PlayWorld as the GWorld, because who knows what will happen in the Tick.
 			OldGWorld = SetPlayInEditorWorld( PlayWorld );
+
+			// Transfer debug references to ensure debugging ref's are valid for this tick in case of multiple game instances.
+			if (OldGWorld && OldGWorld != PlayWorld)
+			{
+				OldGWorld->TransferBlueprintDebugReferences(PlayWorld);
+			}
 
 			// Tick all travel and Pending NetGames (Seamless, server, client)
 			TickWorldTravel(PieContext, DeltaSeconds);
@@ -1865,7 +2073,8 @@ void UEditorEngine::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 			Blueprint->Status = BS_Dirty;
 		}
 	}
-	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UEngine, bOptimizeAnimBlueprintMemberVariableAccess))
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UEngine, bOptimizeAnimBlueprintMemberVariableAccess) ||
+			 PropertyName == GET_MEMBER_NAME_CHECKED(UEngine, bAllowMultiThreadedAnimationUpdate))
 	{
 		FScopedSlowTask SlowTask(100, LOCTEXT("DirtyingAnimBlueprintsDueToOptimizationChange", "Invalidating All Anim Blueprints"));
 
@@ -3887,7 +4096,8 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 
 	if (bForceLoadStringAssetReferences)
 	{
-		GRedirectCollector.ResolveStringAssetReference(Filename);
+		const FString PackageName = FPackageName::FilenameToLongPackageName(Filename);
+		GRedirectCollector.ResolveStringAssetReference(PackageName);
 	}
 
 	UObject* Base = InBase;
@@ -3963,6 +4173,7 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 
 	SlowTask.EnterProgressFrame(70);
 
+	UPackage::PreSavePackageEvent.Broadcast(InOuter);
 	const ESavePackageResult Result = UPackage::Save(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
 
 	SlowTask.EnterProgressFrame(10);
@@ -6210,23 +6421,11 @@ void UEditorEngine::UpdateAutoLoadProject()
 #if PLATFORM_MAC
 	if ( !GIsBuildMachine )
 	{
-		FString OSVersion, OSSubVersion;
-		FPlatformMisc::GetOSVersions(OSVersion, OSSubVersion);
-		
-		TArray<FString> Components;
-		OSVersion.ParseIntoArray(Components, TEXT("."), true);
-		uint8 ComponentValues[3] = {0};
-		
-		for(uint32 i = 0; i < Components.Num() && i < 3; i++)
-		{
-			TTypeFromString<uint8>::FromString(ComponentValues[i], *Components[i]);
-		}
-		
-		if(ComponentValues[0] < 10 || ComponentValues[1] < 12 || (ComponentValues[1] == 12 && ComponentValues[2] < 0))
+		if(FPlatformMisc::MacOSXVersionCompare(10,12,2) < 0)
 		{
 			if(FSlateApplication::IsInitialized())
 			{
-				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UpdateMacOSX_Body","Please update to the latest version of Mac OS X for best performance."), LOCTEXT("UpdateMacOSX_Title","Update Mac OS X"), TEXT("UpdateMacOSX"), GEditorSettingsIni );
+				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UpdateMacOSX_Body","Please update to the latest version of macOS for best performance."), LOCTEXT("UpdateMacOSX_Title","Update macOS"), TEXT("UpdateMacOSX"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
 				Info.bDefaultToSuppressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
@@ -6234,7 +6433,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			}
 			else
 			{
-				UE_LOG(LogEditor, Warning, TEXT("Please update to the latest version of Mac OS X for best performance."));
+				UE_LOG(LogEditor, Warning, TEXT("Please update to the latest version of macOS for best performance."));
 			}
 		}
 		
@@ -6804,7 +7003,7 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 	if (bNeedPieStart)
 	{
 		//TODO NICKD We need a better way to determine when to start the map.
-		//ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
+		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
 	}
 #endif
 	return;

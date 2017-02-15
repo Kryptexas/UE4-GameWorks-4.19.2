@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLState.h: OpenGL state definitions.
@@ -6,11 +6,21 @@
 
 #pragma once
 
-#include "StaticArray.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
+#include "Math/Color.h"
+#include "Math/IntRect.h"
 
-#include "OpenGLResources.h"	// for OGL_COMBINED_TEXTURE_UNITS and OGL_NUM_PACKED_UNIFORM_ARRAYS definitions
+#include "RHIDefinitions.h"
+#include "Containers/StaticArray.h"
+#include "RHI.h"
+#include "OpenGLResources.h"
 
 #define ZERO_FILLED_DUMMY_UNIFORM_BUFFER_SIZE 65536
+
+class FRenderTarget;
 
 struct FOpenGLSamplerStateData
 {

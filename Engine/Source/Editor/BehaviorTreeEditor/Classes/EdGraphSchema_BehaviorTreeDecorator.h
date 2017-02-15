@@ -1,7 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EdGraph/EdGraphSchema.h"
 #include "EdGraphSchema_BehaviorTreeDecorator.generated.h"
+
+class UEdGraph;
 
 /** Action to add a node to the graph */
 USTRUCT()
@@ -15,12 +21,12 @@ struct FDecoratorSchemaAction_NewNode : public FEdGraphSchemaAction
 
 	FDecoratorSchemaAction_NewNode() 
 		: FEdGraphSchemaAction()
-		, NodeTemplate(NULL)
+		, NodeTemplate(nullptr)
 	{}
 
-	FDecoratorSchemaAction_NewNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping) 
-		, NodeTemplate(NULL)
+	FDecoratorSchemaAction_NewNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
+		, NodeTemplate(nullptr)
 	{}
 
 	//~ Begin FEdGraphSchemaAction Interface
@@ -47,7 +53,6 @@ class UEdGraphSchema_BehaviorTreeDecorator : public UEdGraphSchema
 	UPROPERTY()
 	FString PC_Boolean;
 
-	void GetBreakLinkToSubMenuActions(class FMenuBuilder& MenuBuilder, class UEdGraphPin* InGraphPin);
 	void AddPin(class UEdGraphNode* InGraphNode);
 	void RemovePin(class UEdGraphPin* InGraphPin);
 

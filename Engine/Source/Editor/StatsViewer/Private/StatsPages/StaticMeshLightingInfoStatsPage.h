@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "IStatsViewer.h"
+#include "Framework/Application/IMenu.h"
+#include "StatsPage.h"
 #include "StaticMeshLightingInfo.h"
+
+class SComboButton;
 
 struct ESwapOptions
 {

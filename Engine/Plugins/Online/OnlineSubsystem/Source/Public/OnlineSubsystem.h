@@ -1,15 +1,43 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
-#include "Ticker.h"
-#include "ModuleManager.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Modules/ModuleManager.h"
 #include "OnlineSubsystemModule.h"
-#include "OnlineJsonSerializer.h"
+#include "UObject/CoreOnline.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineDelegateMacros.h"
 #include "OnlineSubsystemNames.h"
+
+class FOnlineNotificationHandler;
+class FOnlineNotificationTransportManager;
+class IMessageSanitizer;
+class IOnlineAchievements;
+class IOnlineChat;
+class IOnlineEntitlements;
+class IOnlineEvents;
+class IOnlineExternalUI;
+class IOnlineFriends;
+class IOnlineGroups;
+class IOnlineIdentity;
+class IOnlineLeaderboards;
+class IOnlineMessage;
+class IOnlinePartySystem;
+class IOnlinePresence;
+class IOnlinePurchase;
+class IOnlineSession;
+class IOnlineSharedCloud;
+class IOnlineSharing;
+class IOnlineStore;
+class IOnlineStoreV2;
+class IOnlineTime;
+class IOnlineTitleFile;
+class IOnlineTurnBased;
+class IOnlineUser;
+class IOnlineUserCloud;
+class IOnlineVoice;
 
 ONLINESUBSYSTEM_API DECLARE_LOG_CATEGORY_EXTERN(LogOnline, Display, All);
 ONLINESUBSYSTEM_API DECLARE_LOG_CATEGORY_EXTERN(LogOnlineGame, Display, All);
@@ -443,6 +471,11 @@ public:
 	 * @return true if the subsystem was successfully initialized, false otherwise
 	 */
 	virtual bool Init() = 0;
+
+	/** 
+	 * Perform any shutdown actions prior to any other modules being unloaded/shutdown
+	 */
+	virtual void PreUnload() = 0;
 
 	/** 
 	 * Shutdown the underlying subsystem APIs

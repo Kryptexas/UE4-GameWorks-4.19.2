@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 
 /**
  * Interface for application session services.
@@ -38,10 +39,3 @@ public:
 	/** Virtual destructor. */
 	virtual ~ISessionService() { }
 };
-
-
-/** Type definition for shared pointers to instances of ISessionService. */
-typedef TSharedPtr<ISessionService> ISessionServicePtr;
-
-/** Type definition for shared references to instances of ISessionService. */
-typedef TSharedRef<ISessionService> ISessionServiceRef;

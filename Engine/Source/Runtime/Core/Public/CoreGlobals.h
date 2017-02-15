@@ -1,23 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "Containers/ContainersFwd.h"
-#include "HAL/Platform.h"
-#include "Misc/CoreMiscDefines.h"
-#include "Misc/OutputDevice.h"
-#include "Logging/LogMacros.h"
 
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Logging/LogMacros.h"
+#include "HAL/PlatformTLS.h"
+
+class Error;
 class FConfigCacheIni;
-class FExec;
-class FName;
+class FFixedUObjectArray;
 class FOutputDeviceConsole;
 class FOutputDeviceRedirector;
 class FReloadObjectArc;
-class FString;
-class FText;
 class ITransaction;
-class FRunnableThread;
-
-struct FScriptTraceStackNode;
 
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogHAL, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogMac, Log, All);
@@ -27,7 +23,7 @@ CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogAndroid, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogPS4, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogXboxOne, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogWindows, Log, All);
-CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogWolf, Log, All);
+CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogSwitch, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogSerialization, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogUnrealMath, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogUnrealMatrix, Log, All);
@@ -291,6 +287,15 @@ extern CORE_API FString GSystemStartTime;
 
 /** Whether we are still in the initial loading process. */
 extern CORE_API bool GIsInitialLoad;
+
+/* Whether we are using the new async IO */
+extern CORE_API bool GNewAsyncIO;
+
+/* Whether we are using the event driven loader */
+extern CORE_API bool GEventDrivenLoaderEnabled;
+
+//@todoio put this in some kind of API
+extern CORE_API bool GPakCache_AcceptPrecacheRequests;
 
 #if WITH_HOT_RELOAD_CTORS
 /** true when we are retrieving VTablePtr from UClass */

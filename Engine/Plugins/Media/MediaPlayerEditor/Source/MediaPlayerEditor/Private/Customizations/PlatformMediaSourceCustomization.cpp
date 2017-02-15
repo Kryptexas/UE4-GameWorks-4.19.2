@@ -1,7 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaPlayerEditorPCH.h"
-#include "PlatformMediaSourceCustomization.h"
+#include "Customizations/PlatformMediaSourceCustomization.h"
+#include "MediaSource.h"
+#include "PlatformMediaSource.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "EditorStyleSet.h"
+#include "IDetailPropertyRow.h"
+#include "Widgets/Text/STextBlock.h"
+#include "DetailCategoryBuilder.h"
+#include "DetailLayoutBuilder.h"
+#include "IMediaModule.h"
+#include "PlatformInfo.h"
+#include "PropertyCustomizationHelpers.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/Images/SImage.h"
+
 
 
 #define LOCTEXT_NAMESPACE "FPlatformMediaSourceCustomization"
@@ -20,16 +36,18 @@ void FPlatformMediaSourceCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 		{
 			IDetailPropertyRow& PlatformMediaSourcesRow = SourcesCategory.AddProperty(PlatformMediaSourcesProperty);
 
-			PlatformMediaSourcesRow.CustomWidget()
-				.NameContent()
-				[
-					PlatformMediaSourcesProperty->CreatePropertyNameWidget()
-				]
-				.ValueContent()
-				.MaxDesiredWidth(0.0f)
-				[
-					MakePlatformMediaSourcesValueWidget()
-				];
+			PlatformMediaSourcesRow
+				.ShowPropertyButtons(false)
+				.CustomWidget()
+					.NameContent()
+					[
+						PlatformMediaSourcesProperty->CreatePropertyNameWidget()
+					]
+					.ValueContent()
+					.MaxDesiredWidth(0.0f)
+					[
+						MakePlatformMediaSourcesValueWidget()
+					];
 		}
 	}
 }
@@ -76,11 +94,6 @@ TSharedRef<SWidget> FPlatformMediaSourceCustomization::MakePlatformMediaSourcesV
 	{
 		const PlatformInfo::FPlatformInfo* Platform = AvailablePlatforms[PlatformIndex];
 
-		// hack: FPlatformInfo does not currently include IniPlatformName,
-		// so we're using PlatformInfoName and strip desktop suffixes.
-		FString PlatformName = Platform->PlatformInfoName.ToString();
-		PlatformName.RemoveFromEnd(TEXT("NoEditor"));
-
 		// platform icon
 		PlatformPanel->AddSlot(0, PlatformIndex)
 			.VAlign(VAlign_Center)
@@ -105,8 +118,9 @@ TSharedRef<SWidget> FPlatformMediaSourceCustomization::MakePlatformMediaSourcesV
 				SNew(SObjectPropertyEntryBox)
 					.AllowedClass(UMediaSource::StaticClass())
 					.AllowClear(true)
-					.ObjectPath(this, &FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryObjectPath, PlatformName)
-					.OnObjectChanged(this, &FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryBoxChanged, PlatformName)
+					.OnShouldFilterAsset(this, &FPlatformMediaSourceCustomization::HandleShouldFilterAsset)
+					.ObjectPath(this, &FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryObjectPath, Platform->IniPlatformName)
+					.OnObjectChanged(this, &FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryBoxChanged, Platform->IniPlatformName)
 			];
 	}
 
@@ -136,6 +150,13 @@ void FPlatformMediaSourceCustomization::SetPlatformMediaSourcesValue(FString Pla
 
 /* FPlatformMediaSourceCustomization callbacks
  *****************************************************************************/
+
+bool FPlatformMediaSourceCustomization::HandleShouldFilterAsset(const FAssetData& AssetData)
+{
+	// Don't allow nesting platform media sources.
+	UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
+	return AssetClass->IsChildOf(UPlatformMediaSource::StaticClass());
+}
 
 void FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryBoxChanged(const FAssetData& AssetData, FString PlatformName)
 {

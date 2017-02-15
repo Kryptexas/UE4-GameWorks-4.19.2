@@ -1,10 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "AssetData.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "CollectionManagerTypes.h"
+#include "IContentBrowserSingleton.h"
+#include "Editor/ContentBrowser/Private/HistoryManager.h"
 
-struct FCollectionNameType;
-
+class FAssetContextMenu;
+class FFrontendFilter_Text;
+class FPathContextMenu;
+class FTabManager;
+class FUICommandList;
+class SAssetSearchBox;
+class SAssetView;
+class SCollectionView;
+class SComboButton;
+class SFilterList;
+class SPathView;
+class SSplitter;
+class UFactory;
 
 /**
  * A widget to display and work with all game and engine content

@@ -1,6 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#if WITH_EDITOR
+#include "EdGraph/EdGraph.h"
+#endif
 #include "SoundClass.generated.h"
 
 UENUM()
@@ -93,6 +99,10 @@ struct FSoundClassProperties
 	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
 	uint32 bReverb:1;
 
+	/** Amount of audio to send to master reverb effect for 2D sounds played with this sound class. */
+	UPROPERTY(EditAnywhere, Category = SoundClassProperties)
+	float Default2DReverbSendAmount;
+
 	/** Whether or not this sound class forces sounds to the center channel */
 	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
 	uint32 bCenterChannelOnly:1;
@@ -118,6 +128,7 @@ struct FSoundClassProperties
 		, bIsUISound(false)
 		, bIsMusic(false)
 		, bReverb(true)
+		, Default2DReverbSendAmount(0.5f)
 		, bCenterChannelOnly(false)
 		, bApplyAmbientVolumes(false)
 		, OutputTarget(EAudioOutputTarget::Speaker)
@@ -155,6 +166,20 @@ struct FPassiveSoundMixModifier
 	
 };
 
+#if WITH_EDITOR
+class USoundClass;
+
+/** Interface for sound class graph interaction with the AudioEditor module. */
+class ISoundClassAudioEditor
+{
+public:
+	virtual ~ISoundClassAudioEditor() {}
+
+	/** Refreshes the sound class graph links. */
+	virtual void RefreshGraphLinks(UEdGraph* SoundClassGraph) = 0;
+};
+#endif
+
 UCLASS(hidecategories=object, MinimalAPI)
 class USoundClass : public UObject
 {
@@ -177,7 +202,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	/** EdGraph based representation of the SoundClass */
-	class USoundClassGraph* SoundClassGraph;
+	class UEdGraph* SoundClassGraph;
 #endif
 
 protected:
@@ -227,6 +252,19 @@ public:
 	 * @param	bIgnoreThis	Whether to ignore this SoundClass if it's already up to date
 	 */
 	ENGINE_API void RefreshAllGraphs(bool bIgnoreThis);
+
+	/** Sets the sound cue graph editor implementation.* */
+	static ENGINE_API void SetSoundClassAudioEditor(TSharedPtr<ISoundClassAudioEditor> InSoundClassAudioEditor);
+
+	/** Gets the sound cue graph editor implementation. */
+	static TSharedPtr<ISoundClassAudioEditor> ENGINE_API GetSoundClassAudioEditor();
+
+private:
+
+	/** Ptr to interface to sound class editor operations. */
+	static ENGINE_API TSharedPtr<ISoundClassAudioEditor> SoundClassAudioEditor;
+
 #endif
+
 };
 

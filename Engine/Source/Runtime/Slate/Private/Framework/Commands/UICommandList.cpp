@@ -1,6 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Commands/InputBindingManager.h"
 
 
 /* FUICommandList interface
@@ -76,13 +78,16 @@ void FUICommandList::Append( const TSharedRef<FUICommandList>& InCommandsToAppen
 
 void FUICommandList::UnmapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo )
 {
-	// Check against already mapped actions
-	checkfSlow(UICommandBindingMap.Contains(InUICommandInfo), TEXT("Command list does not already contain a command named '%s'"), *InUICommandInfo->GetCommandName().ToString());
-
 	UICommandBindingMap.Remove( InUICommandInfo );
 }
 
-bool FUICommandList::ExecuteAction( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const
+bool FUICommandList::IsActionMapped(const TSharedPtr< const FUICommandInfo > InUICommandInfo) const
+{
+	// Check against already mapped actions
+	return UICommandBindingMap.Contains(InUICommandInfo);
+}
+
+bool FUICommandList::ExecuteAction(const TSharedRef< const FUICommandInfo > InUICommandInfo) const
 {
 	const FUIAction* Action = GetActionForCommand(InUICommandInfo);
 

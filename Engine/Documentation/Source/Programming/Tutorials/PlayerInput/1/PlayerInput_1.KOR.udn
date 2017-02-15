@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620109
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:1. 폰 커스터마이즈
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
@@ -52,10 +52,10 @@ version:4.9
 		UCameraComponent* OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("OurCamera"));
 		OurVisibleComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("OurVisibleComponent"));
 		// 루트 컴포넌트에 카메라와 보이는 오브젝트를 붙입니다. 카메라를 이격 및 회전시킵니다.
-		OurCamera->AttachTo(RootComponent);
+		OurCamera->SetupAttachment(RootComponent);
 		OurCamera->SetRelativeLocation(FVector(-250.0f, 0.0f, 250.0f));
 		OurCamera->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
-		OurVisibleComponent->AttachTo(RootComponent);
+		OurVisibleComponent->SetupAttachment(RootComponent);
 
 1. 변경내용을 저장하고 **Visual Studio** 의 **Build** 명령 또는 **언리얼 엔진** 에디터의 **컴파일** 버튼으로 컴파일하면 됩니다.
 
@@ -72,7 +72,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -102,7 +102,7 @@ version:4.9
 			};
 
 		**MyPawn.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerInput.h"
 			#include "MyPawn.h"
@@ -122,10 +122,10 @@ version:4.9
 				UCameraComponent* OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("OurCamera"));
 				OurVisibleComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("OurVisibleComponent"));
 				// Attach our camera and visible object to our root component. Offset and rotate the camera.
-				OurCamera->AttachTo(RootComponent);
+				OurCamera->SetupAttachment(RootComponent);
 				OurCamera->SetRelativeLocation(FVector(-250.0f, 0.0f, 250.0f));
 				OurCamera->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
-				OurVisibleComponent->AttachTo(RootComponent);
+				OurVisibleComponent->SetupAttachment(RootComponent);
 			}
 
 			// Called when the game starts or when spawned

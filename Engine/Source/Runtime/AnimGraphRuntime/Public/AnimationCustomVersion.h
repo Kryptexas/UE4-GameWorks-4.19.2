@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 
 // Custom serialization version for assets/classes in the AnimGraphRuntime and AnimGraph modules
 struct ANIMGRAPHRUNTIME_API FAnimationCustomVersion
@@ -19,6 +22,9 @@ struct ANIMGRAPHRUNTIME_API FAnimationCustomVersion
 
 		// Added ability to offset angular ranges for constraints
 		AnimDynamicsAddAngularOffsets = 3,
+
+		// Renamed Stretch Limits to better names
+		RenamedStretchLimits = 4,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

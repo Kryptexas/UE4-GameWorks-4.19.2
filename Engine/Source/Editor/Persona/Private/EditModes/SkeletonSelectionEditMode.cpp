@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
-#include "SkeletonSelectionEditMode.h"
-#include "AnimationEditorViewportClient.h"
+#include "EditModes/SkeletonSelectionEditMode.h"
 #include "Animation/DebugSkelMeshComponent.h"
+#include "AnimationEditorViewportClient.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
 #include "AnimPreviewInstance.h"
-#include "AnimNode_ModifyBone.h"
 #include "ISkeletonTree.h"
-#include "IPersonaPreviewScene.h"
 #include "AssetEditorModeManager.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "EngineUtils.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonSelectionEditMode"
 
@@ -227,7 +228,7 @@ bool FSkeletonSelectionEditMode::InputDelta(FEditorViewportClient* InViewportCli
 				float RotAngle;
 				InRot.Quaternion().ToAxisAndAngle( RotAxis, RotAngle );
 
-				FVector4 BoneSpaceAxis = BaseTM.TransformVector( RotAxis );
+				FVector4 BoneSpaceAxis = BaseTM.TransformVectorNoScale( RotAxis );
 
 				//Calculate the new delta rotation
 				FQuat DeltaQuat( BoneSpaceAxis, RotAngle );

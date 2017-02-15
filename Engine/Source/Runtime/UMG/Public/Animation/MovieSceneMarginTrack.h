@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieScenePropertyTrack.h"
-#include "KeyParams.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Tracks/MovieScenePropertyTrack.h"
 #include "MovieSceneMarginTrack.generated.h"
-
 
 /**
  * Handles manipulation of FMargins in a movie scene
@@ -17,18 +17,10 @@ class UMovieSceneMarginTrack : public UMovieScenePropertyTrack
 
 public:
 
+	UMovieSceneMarginTrack(const FObjectInitializer& Init);
+	
 	// UMovieSceneTrack interface
 
 	virtual UMovieSceneSection* CreateNewSection() override;
-	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
-
-	/**
-	 * Evaluates the track at the playback position
-	 *
-	 * @param Position The current playback position
-	 * @param LastPosition The last playback position
-	 * @param InOutMargin The margin at the playback position
-	 * @return true if anything was evaluated. Note: if false is returned OutMargin remains unchanged
-	 */
-	bool Eval( float Position, float LastPostion, FMargin& InOutMargin ) const;
+	virtual FMovieSceneEvalTemplatePtr CreateTemplateForSection(const UMovieSceneSection& InSection) const override;
 };

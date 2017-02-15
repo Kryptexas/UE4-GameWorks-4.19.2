@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -88,6 +88,17 @@
 		_Pragma("clang diagnostic pop")
 #endif // PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 
+#ifndef PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
+	#define PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS \
+		_Pragma("clang diagnostic push") \
+		_Pragma("clang diagnostic ignored \"-Wundef\"")
+#endif // PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
+
+#ifndef PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS
+	#define PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS \
+		_Pragma("clang diagnostic pop")
+#endif // PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS
+
 #ifndef PRAGMA_POP
 	#define PRAGMA_POP \
 		_Pragma("clang diagnostic pop")
@@ -96,11 +107,13 @@
 // Disable common CA warnings around SDK includes
 #ifndef THIRD_PARTY_INCLUDES_START
 	#define THIRD_PARTY_INCLUDES_START \
-		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS \
+		PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
 #endif
 
 #ifndef THIRD_PARTY_INCLUDES_END
 	#define THIRD_PARTY_INCLUDES_END \
+		PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS \
 		PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 #endif
 
@@ -118,8 +131,13 @@
 #pragma clang diagnostic ignored "-Wunused-local-typedef"
 #pragma clang diagnostic ignored "-Wdelete-non-virtual-dtor"
 
-// We can pragma optimisation's on and off as of Apple LLVM 7.3.0 but not before.
-#if __clang_major__ >= 7 && __clang_minor__ >= 3
+// Apple LLVM 8.1.0 (Xcode 8.3) introduced -Wundefined-var-template
+#if (__clang_major__ > 8) || (__clang_major__ == 8 && __clang_minor__ >= 1)
+#pragma clang diagnostic ignored "-Wundefined-var-template"
+#endif
+
+// We can use pragma optimisation's on and off as of Apple LLVM 7.3.0 but not before.
+#if (__clang_major__ > 7) || (__clang_major__ == 7 && __clang_minor__ >= 3)
 #define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("clang optimize off")
 #define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  _Pragma("clang optimize on")
 #endif

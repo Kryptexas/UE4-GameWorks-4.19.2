@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
 
-#include "Core.h"
-#include "OnlineAchievementsInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/CoreOnline.h"
+#include "OnlineSubsystem.h"
+#include "Interfaces/OnlineAchievementsInterface.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 

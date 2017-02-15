@@ -1,7 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "ModuleManager.h"
+#include "Misc/AutomationTest.h"
+#include "HAL/PlatformStackWalk.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Internationalization/Internationalization.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutomationTest, Warning, All);
@@ -67,6 +75,12 @@ FAutomationTestFramework& FAutomationTestFramework::Get()
 {
 	static FAutomationTestFramework Framework;
 	return Framework;
+}
+
+FString FAutomationTestFramework::GetUserAutomationDirectory() const
+{
+	const FString DefaultAutomationSubFolder = TEXT("Unreal Automation");
+	return FString(FPlatformProcess::UserDir()) + DefaultAutomationSubFolder;
 }
 
 bool FAutomationTestFramework::RegisterAutomationTest( const FString& InTestNameToRegister, class FAutomationTestBase* InTestToRegister )
@@ -648,6 +662,16 @@ void FAutomationTestFramework::SetTreatWarningsAsErrors(TOptional<bool> bTreatWa
 	AutomationTestFeedbackContext.TreatWarningsAsErrors = bTreatWarningsAsErrors.IsSet() ? bTreatWarningsAsErrors.GetValue() : GWarn->TreatWarningsAsErrors;
 }
 
+void FAutomationTestFramework::NotifyScreenshotComparisonComplete(bool bWasNew, bool bWasSimilar)
+{
+	OnScreenshotCompared.Broadcast(bWasNew, bWasSimilar);
+}
+
+void FAutomationTestFramework::NotifyScreenshotTakenAndCompared()
+{
+	OnScreenshotTakenAndCompared.Broadcast();
+}
+
 FAutomationTestFramework::FAutomationTestFramework()
 :	CachedContext( NULL )
 ,	RequestedTestFilter(EAutomationTestFlags::SmokeFilter)
@@ -701,6 +725,14 @@ void FAutomationTestBase::AddError(const FString& InError, int32 StackOffset)
 		TArray<FProgramCounterSymbolInfo> Stack = FPlatformStackWalk::GetStack(StackOffset + 1, 1);
 
 		ExecutionInfo.Errors.Add(FAutomationEvent(InError, ExecutionInfo.Context, Stack[0].Filename, Stack[0].LineNumber));
+	}
+}
+
+void FAutomationTestBase::AddError(const FString& InError, const FString& InFilename, int32 InLineNumber)
+{
+	if (!bSuppressLogs)
+	{
+		ExecutionInfo.Errors.Add(FAutomationEvent(InError, ExecutionInfo.Context, InFilename, InLineNumber));
 	}
 }
 
@@ -767,8 +799,8 @@ void FAutomationTestBase::GenerateTestNames(TArray<FAutomationTestInfo>& TestInf
 			GetTestFlags(),
 			GetRequiredDeviceNum(),
 			ParameterNames[ParameterIndex],
-			GetTestSourceFileName(),
-			GetTestSourceFileLine(),
+			GetTestSourceFileName(CompleteTestName),
+			GetTestSourceFileLine(CompleteTestName),
 			GetTestAssetPath(ParameterNames[ParameterIndex]),
 			GetTestOpenCommand(ParameterNames[ParameterIndex])
 		);

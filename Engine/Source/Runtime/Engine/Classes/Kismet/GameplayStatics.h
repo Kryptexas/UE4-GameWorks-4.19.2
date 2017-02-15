@@ -1,11 +1,29 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "UObject/Interface.h"
+#include "GameFramework/Actor.h"
+#include "CollisionQueryParams.h"
 #include "Engine/LatentActionManager.h"
-#include "Kismet/KismetSystemLibrary.h"
+#include "GameFramework/PlayerController.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Sound/DialogueTypes.h"
+#include "GameplayStaticsTypes.h"
 #include "GameplayStatics.generated.h"
+
+class UAudioComponent;
+class UBlueprint;
+class UDecalComponent;
+class UParticleSystemComponent;
+class USaveGame;
+class UStaticMesh;
 
 //
 // Forward declarations.
@@ -15,16 +33,6 @@ struct FDialogueContext;
 class UParticleSystemComponent;
 class UParticleSystem;
 
-UENUM()
-namespace ESuggestProjVelocityTraceOption
-{
-	enum Type
-	{
-		DoNotTrace,
-		TraceFullPath,
-		OnlyTraceWhileAscending,
-	};
-}
 
 UCLASS()
 class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
@@ -41,15 +49,15 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 
 	/** Spawns an instance of a blueprint, but does not automatically run its construction script.  */
 	UFUNCTION(BlueprintCallable, Category="Spawning", meta=(WorldContext="WorldContextObject", UnsafeDuringActorConstruction = "true", BlueprintInternalUseOnly = "true", DeprecatedFunction, DeprecationMessage="Use BeginSpawningActorFromClass"))
-	static class AActor* BeginSpawningActorFromBlueprint(UObject* WorldContextObject, const class UBlueprint* Blueprint, const FTransform& SpawnTransform, bool bNoCollisionFail);
+	static class AActor* BeginSpawningActorFromBlueprint(const UObject* WorldContextObject, const class UBlueprint* Blueprint, const FTransform& SpawnTransform, bool bNoCollisionFail);
 
 	DEPRECATED(4.9, "This function is deprecated. Please use BeginDeferredActorSpawnFromClass instead.")
 	UFUNCTION(BlueprintCallable, Category="Spawning", meta=(WorldContext="WorldContextObject", UnsafeDuringActorConstruction = "true", BlueprintInternalUseOnly = "true"))
-	static class AActor* BeginSpawningActorFromClass(UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FTransform& SpawnTransform, bool bNoCollisionFail = false, AActor* Owner = nullptr);
+	static class AActor* BeginSpawningActorFromClass(const UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FTransform& SpawnTransform, bool bNoCollisionFail = false, AActor* Owner = nullptr);
 
 	/** Spawns an instance of an actor class, but does not automatically run its construction script.  */
 	UFUNCTION(BlueprintCallable, Category = "Spawning", meta = (WorldContext = "WorldContextObject", UnsafeDuringActorConstruction = "true", BlueprintInternalUseOnly = "true"))
-	static class AActor* BeginDeferredActorSpawnFromClass(UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::Undefined, AActor* Owner = nullptr);
+	static class AActor* BeginDeferredActorSpawnFromClass(const UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::Undefined, AActor* Owner = nullptr);
 
 	/** 'Finish' spawning an actor.  This will run the construction script. */
 	UFUNCTION(BlueprintCallable, Category="Spawning", meta=(UnsafeDuringActorConstruction = "true", BlueprintInternalUseOnly = "true"))
@@ -268,9 +276,10 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param EventInstigator - Controller that was responsible for causing this damage (e.g. player who shot the weapon)
 	 * @param DamageCauser - Actor that actually caused the damage (e.g. the grenade that exploded)
 	 * @param DamageTypeClass - Class that describes the damage that was done.
+	 * @return Actual damage the ended up being applied to the actor.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Damage")
-	static void ApplyPointDamage(AActor* DamagedActor, float BaseDamage, const FVector& HitFromDirection, const FHitResult& HitInfo, AController* EventInstigator, AActor* DamageCauser, TSubclassOf<class UDamageType> DamageTypeClass);
+	static float ApplyPointDamage(AActor* DamagedActor, float BaseDamage, const FVector& HitFromDirection, const FHitResult& HitInfo, AController* EventInstigator, AActor* DamageCauser, TSubclassOf<class UDamageType> DamageTypeClass);
 
 	/** Hurts the specified actor with generic damage.
 	 * @param DamagedActor - Actor that will be damaged.
@@ -278,9 +287,10 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param EventInstigator - Controller that was responsible for causing this damage (e.g. player who shot the weapon)
 	 * @param DamageCauser - Actor that actually caused the damage (e.g. the grenade that exploded)
 	 * @param DamageTypeClass - Class that describes the damage that was done.
+	 * @return Actual damage the ended up being applied to the actor.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Damage")
-	static void ApplyDamage(AActor* DamagedActor, float BaseDamage, AController* EventInstigator, AActor* DamageCauser, TSubclassOf<class UDamageType> DamageTypeClass);
+	static float ApplyDamage(AActor* DamagedActor, float BaseDamage, AController* EventInstigator, AActor* DamageCauser, TSubclassOf<class UDamageType> DamageTypeClass);
 
 	// --- Camera functions ------------------------------
 
@@ -399,7 +409,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	/**
 	 * Creates a sound with no attenuation, perfect for UI sounds. This does NOT play the sound
 	 *
-	 * ● Not Replicated.
+	 * * Not Replicated.
 	 * @param Sound - Sound to create.
 	 * @param VolumeMultiplier - Multiplied with the volume to make the sound louder or softer.
 	 * @param PitchMultiplier - Multiplies the pitch.
@@ -561,6 +571,34 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 		return SpawnDialogueAttached(Dialogue, Context, AttachToComponent, AttachPointName, Location, FRotator::ZeroRotator, LocationType, bStopWhenAttachedToDestroyed, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
 	}
 
+	/** Plays a force feedback effect at the given location. This is a fire and forget effect and does not travel with any actor. Replication is also not handled at this point.
+	 * @param ForceFeedbackEffect - effect to play
+	 * @param Location - World position to center the effect at
+	 * @param Rotation - World rotation to center the effect at
+	 * @param IntensityMultiplier - Intensity multiplier 
+	 * @param StartTime - How far in to the feedback effect to begin playback at
+	 * @param AttenuationSettings - Override attenuation settings package to play effect with
+	 * @return Force Feedback Component to manipulate the playing feedback effect with
+	 */
+	UFUNCTION(BlueprintCallable, Category="ForceFeedback", meta=(WorldContext="WorldContextObject", AdvancedDisplay = "3", UnsafeDuringActorConsturction = "true", Keywords = "play"))
+	static UForceFeedbackComponent* SpawnForceFeedbackAtLocation(const UObject* WorldContextObject, UForceFeedbackEffect* ForceFeedbackEffect, FVector Location, FRotator Rotation = FRotator::ZeroRotator, bool bLooping = false, float IntensityMultiplier = 1.f, float StartTime = 0.f, UForceFeedbackAttenuation* AttenuationSettings = nullptr);
+
+	/** Plays a force feedback effect attached to and following the specified component. This is a fire and forget effect. Replication is also not handled at this point.
+	 * @param ForceFeedbackEffect - effect to play
+	 * @param AttachComponent - Component to attach to.
+	 * @param AttachPointName - Optional named point within the AttachComponent to attach to
+	 * @param Location - Depending on the value of Location Type this is either a relative offset from the attach component/point or an absolute world position that will be translated to a relative offset
+	 * @param Rotation - Depending on the value of Location Type this is either a relative offset from the attach component/point or an absolute world rotation that will be translated to a relative offset
+	 * @param LocationType - Specifies whether Location is a relative offset or an absolute world position
+	 * @param bStopWhenAttachedToDestroyed - Specifies whether the feedback effect should stop playing when the owner of the attach to component is destroyed.
+	 * @param IntensityMultiplier - Intensity multiplier 
+	 * @param StartTime - How far in to the feedback effect to begin playback at
+	 * @param AttenuationSettings - Override attenuation settings package to play effect with
+	 * @return Force Feedback Component to manipulate the playing feedback effect with
+	*/
+	UFUNCTION(BlueprintCallable, Category="ForceFeedback", meta=(AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true", Keywords = "play"))
+	static UForceFeedbackComponent* SpawnForceFeedbackAttached(UForceFeedbackEffect* ForceFeedbackEffect, USceneComponent* AttachToComponent, FName AttachPointName = NAME_None, FVector Location = FVector(ForceInit), FRotator Rotation = FRotator::ZeroRotator, EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bStopWhenAttachedToDestroyed = false, bool bLooping = false, float IntensityMultiplier = 1.f, float StartTime = 0.f, class UForceFeedbackAttenuation* AttenuationSettings = nullptr);
+
 	/**
 	 * Will set subtitles to be enabled or disabled.
 	 * @param bEnabled will enable subtitle drawing if true, disable if false.
@@ -719,7 +757,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 *	@param	SaveGameClass	Class of SaveGame to create
 	 *	@return					New SaveGame object to write data to
 	 */
-	UFUNCTION(BlueprintCallable, Category="Game")
+	UFUNCTION(BlueprintCallable, Category="Game", meta=(DeterminesOutputType="SaveGameClass"))
 	static USaveGame* CreateSaveGameObject(TSubclassOf<USaveGame> SaveGameClass);
 
 	/** 
@@ -834,17 +872,69 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	* @param LaunchVelocity				Velocity the "virtual projectile" is launched at
 	* @param bTracePath					Trace along the entire path to look for blocking hits
 	* @param ProjectileRadius			Radius of the virtual projectile to sweep against the environment
-	* @param ObjectTypes				ObjecTypes to trace against
+	* @param ObjectTypes				ObjectTypes to trace against, if bTracePath is true.
 	* @param bTraceComplex				Use TraceComplex (trace against triangles not primitives)
 	* @param ActorsToIgnore				Actors to exclude from the traces
 	* @param DrawDebugType				Debug type (one-frame, duration, persistent)
 	* @param DrawDebugTime				Duration of debug lines (only relevant for DrawDebugType::Duration)
 	* @param SimFrequency				Determines size of each sub-step in the simulation (chopping up MaxSimTime)
 	* @param MaxSimTime					Maximum simulation time for the virtual projectile.
-	* @param OverrideGravityZ			Optional override of Gravity (default uses WorldGravityZ
+	* @param OverrideGravityZ			Optional override of Gravity (if 0, uses WorldGravityZ)
+	* @return							True if hit something along the path if tracing for collision.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Game", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", AdvancedDisplay = "DrawDebugTime, DrawDebugType, SimFrequency, MaxSimTime, OverrideGravityZ", TraceChannel = ECC_WorldDynamic, bTracePath = true))
-	static bool PredictProjectilePath(const UObject* WorldContextObject, FHitResult& OutHit, TArray<FVector>& OutPathPositions, FVector& OutLastTraceDestination, FVector StartPos, FVector LaunchVelocity, bool bTracePath, float ProjectileRadius, const TArray<TEnumAsByte<EObjectTypeQuery> >& ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, float DrawDebugTime, float SimFrequency = 30.f, float MaxSimTime = 2.f, float OverrideGravityZ = 0);
+	UFUNCTION(BlueprintCallable, Category = "Game", DisplayName="Predict Projectile Path By ObjectType", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", AdvancedDisplay = "DrawDebugTime, DrawDebugType, SimFrequency, MaxSimTime, OverrideGravityZ", bTracePath = true))
+	static bool Blueprint_PredictProjectilePath_ByObjectType(const UObject* WorldContextObject, FHitResult& OutHit, TArray<FVector>& OutPathPositions, FVector& OutLastTraceDestination, FVector StartPos, FVector LaunchVelocity, bool bTracePath, float ProjectileRadius, const TArray<TEnumAsByte<EObjectTypeQuery> >& ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, float DrawDebugTime, float SimFrequency = 15.f, float MaxSimTime = 2.f, float OverrideGravityZ = 0);
+
+	/**
+	* Predict the arc of a virtual projectile affected by gravity with collision checks along the arc. Returns a list of positions of the simulated arc and the destination reached by the simulation.
+	* Returns true if it hit something (if tracing with collision).
+	*
+	* @param OutPathPositions			Predicted projectile path. Ordered series of positions from StartPos to the end. Includes location at point of impact if it hit something.
+	* @param OutHit						Predicted hit result, if the projectile will hit something
+	* @param OutLastTraceDestination	Goal position of the final trace it did. Will not be in the path if there is a hit.
+	* @param StartPos					First start trace location
+	* @param LaunchVelocity				Velocity the "virtual projectile" is launched at
+	* @param bTracePath					Trace along the entire path to look for blocking hits
+	* @param ProjectileRadius			Radius of the virtual projectile to sweep against the environment
+	* @param TraceChannel				TraceChannel to trace against, if bTracePath is true.
+	* @param bTraceComplex				Use TraceComplex (trace against triangles not primitives)
+	* @param ActorsToIgnore				Actors to exclude from the traces
+	* @param DrawDebugType				Debug type (one-frame, duration, persistent)
+	* @param DrawDebugTime				Duration of debug lines (only relevant for DrawDebugType::Duration)
+	* @param SimFrequency				Determines size of each sub-step in the simulation (chopping up MaxSimTime)
+	* @param MaxSimTime					Maximum simulation time for the virtual projectile.
+	* @param OverrideGravityZ			Optional override of Gravity (if 0, uses WorldGravityZ)
+	* @return							True if hit something along the path (if tracing with collision).
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Game", DisplayName="Predict Projectile Path By TraceChannel", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", AdvancedDisplay = "DrawDebugTime, DrawDebugType, SimFrequency, MaxSimTime, OverrideGravityZ", TraceChannel = ECC_WorldDynamic, bTracePath = true))
+	static bool Blueprint_PredictProjectilePath_ByTraceChannel(const UObject* WorldContextObject, FHitResult& OutHit, TArray<FVector>& OutPathPositions, FVector& OutLastTraceDestination, FVector StartPos, FVector LaunchVelocity, bool bTracePath, float ProjectileRadius, TEnumAsByte<ECollisionChannel> TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, float DrawDebugTime, float SimFrequency = 15.f, float MaxSimTime = 2.f, float OverrideGravityZ = 0);
+
+	/**
+	* Predict the arc of a virtual projectile affected by gravity with collision checks along the arc.
+	* Returns true if it hit something.
+	*
+	* @param PredictParams				Input params to the trace (start location, velocity, time to simulate, etc).
+	* @param PredictResult				Output result of the trace (Hit result, array of location/velocity/times for each trace step, etc).
+	* @return							True if hit something along the path (if tracing with collision).
+	*/
+	static bool PredictProjectilePath(const UObject* WorldContextObject, const FPredictProjectilePathParams& PredictParams, FPredictProjectilePathResult& PredictResult);
+
+	/**
+	* Deprecated version, use version with input/output struct params instead.
+	*/
+	DEPRECATED(4.15, "PredictProjectilePath with many parameters has been deprecated in favor of the version taking single input parameter and output result structs.")
+	static bool PredictProjectilePath(const UObject* WorldContextObject, FHitResult& OutHit, TArray<FVector>& OutPathPositions, FVector& OutLastTraceDestination, FVector StartPos, FVector LaunchVelocity, bool bTracePath, float ProjectileRadius, const TArray<TEnumAsByte<EObjectTypeQuery> >& ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, float DrawDebugTime, float SimFrequency = 15.f, float MaxSimTime = 2.f, float OverrideGravityZ = 0);
+
+	/**
+	* Predict the arc of a virtual projectile affected by gravity with collision checks along the arc.
+	* Returns true if it hit something.
+	*
+	* @param PredictParams				Input params to the trace (start location, velocity, time to simulate, etc).
+	* @param PredictResult				Output result of the trace (Hit result, array of location/velocity/times for each trace step, etc).
+	* @return							True if hit something along the path (if tracing with collision).
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Game", DisplayName="Predict Projectile Path (Advanced)", meta = (WorldContext = "WorldContextObject"))
+	static bool Blueprint_PredictProjectilePath_Advanced(const UObject* WorldContextObject, const FPredictProjectilePathParams& PredictParams, FPredictProjectilePathResult& PredictResult);
 
 	/**
 	* Returns the launch velocity needed for a projectile at rest at StartPos to land on EndPos.
@@ -921,7 +1011,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Key			(out) Key portion of Pair. If no = in string will be the same as Pair.
 	 * @param Value			(out) Value portion of Pair. If no = in string will be empty.
 	 */
-	UFUNCTION(BlueprintPure, Category="Game Options")
+	UFUNCTION(BlueprintPure, Category="Game Options", meta=(BlueprintThreadSafe))
 	static void GetKeyValue( const FString& Pair, FString& Key, FString& Value );
 
 	/** 
@@ -930,7 +1020,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Key			The key to find the value of in Options.
 	 * @return				The value associated with Key if Key found in Options string.
 	 */
-	UFUNCTION(BlueprintPure, Category="Game Options")
+	UFUNCTION(BlueprintPure, Category="Game Options", meta=(BlueprintThreadSafe))
 	static FString ParseOption( FString Options, const FString& Key );
 
 	/** 
@@ -939,7 +1029,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Key			The key to determine if it exists in Options.
 	 * @return				Whether Key was found in Options.
 	 */
-	UFUNCTION(BlueprintPure, Category="Game Options")
+	UFUNCTION(BlueprintPure, Category="Game Options", meta=(BlueprintThreadSafe))
 	static bool HasOption( FString Options, const FString& InKey );
 
 	/** 
@@ -948,8 +1038,17 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Key			The key to find the value of in Options.
 	 * @return				The value associated with Key as an integer if Key found in Options string, otherwise DefaultValue.
 	 */
-	UFUNCTION(BlueprintPure, Category="Game Options")
+	UFUNCTION(BlueprintPure, Category="Game Options", meta=(BlueprintThreadSafe))
 	static int32 GetIntOption( const FString& Options, const FString& Key, int32 DefaultValue);
 
+	//~=========================================================================
+	//~ Launch Options Parsing
+
+	/**
+	* Checks the commandline to see if the desired option was specified on the commandline (e.g. -demobuild)
+	* @return				True if the launch option was specified on the commandline, false otherwise
+	*/
+	UFUNCTION(BlueprintPure, Category = "Utilities")
+	static bool HasLaunchOption(const FString& OptionToCheck);
 };
 

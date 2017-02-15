@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "SocketTypes.h"
+
+class Error;
+class FInternetAddr;
 
 SOCKETS_API DECLARE_LOG_CATEGORY_EXTERN(LogSockets, Log, All);
 
@@ -26,8 +29,8 @@ SOCKETS_API DECLARE_LOG_CATEGORY_EXTERN(LogSockets, Log, All);
 		#define PLATFORM_SOCKETSUBSYSTEM FName(TEXT("XBOXONE"))
 	#elif PLATFORM_HTML5
 		#define PLATFORM_SOCKETSUBSYSTEM FName(TEXT("HTML5"))
-	#elif PLATFORM_WOLF
-		#define PLATFORM_SOCKETSUBSYSTEM FName(TEXT("WOLF"))
+	#elif PLATFORM_SWITCH
+		#define PLATFORM_SOCKETSUBSYSTEM FName(TEXT("SWITCH"))
 	#else
 		#define PLATFORM_SOCKETSUBSYSTEM FName(TEXT(""))
 	#endif
@@ -78,6 +81,15 @@ public:
 	 * @return the new socket or NULL if failed
 	 */
 	virtual class FSocket* CreateSocket(const FName& SocketType, const FString& SocketDescription, bool bForceUDP = false) = 0;
+
+	/**
+	* Creates a resolve info cached struct to hold the resolved address
+	*
+	* @Param Addr address to resolve for the socket subsystem
+	*
+	* @return the new resolved address or NULL if failed
+	*/
+	virtual class FResolveInfoCached* CreateResolveInfoCached(TSharedPtr<FInternetAddr> Addr) const;
 
 	/**
 	 * Cleans up a socket class

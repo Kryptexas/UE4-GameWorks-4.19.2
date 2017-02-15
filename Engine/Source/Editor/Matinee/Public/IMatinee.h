@@ -1,17 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class AMatineeActor;
-class UInterpData;
-class UInterpGroup;
-class UInterpTrack;
-
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Toolkits/AssetEditorToolkit.h"
 #include "MatineeGroupData.h"
 #include "MatineeTrackData.h"
 
-#include "Toolkits/IToolkitHost.h"
-#include "Toolkits/AssetEditorToolkit.h"
+class AMatineeActor;
+class FCameraControllerConfig;
+class FCanvas;
+class FEditorViewportClient;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FViewport;
+class UInterpData;
 
 /*-----------------------------------------------------------------------------
    IMatineeBase.  Base class for matinee

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -19,18 +19,18 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Which version of the iOS to allow at run time
 		/// </summary>
-		private static string RunTimeIOSVersion = "8.0";
+		private string RunTimeIOSVersion = "8.0";
 
 		/// <summary>
 		/// which devices the game is allowed to run on
 		/// </summary>
-		private static  string RunTimeIOSDevices = "1,2";
+		private string RunTimeIOSDevices = "1,2";
 
 		/// <summary>
 		/// The architecture(s) to compile
 		/// </summary>
-		private static string NonShippingArchitectures = "armv7";
-		private static string ShippingArchitectures = "armv7,arm64";
+		private string NonShippingArchitectures = "armv7";
+		private string ShippingArchitectures = "armv7,arm64";
 
 		/// <summary>
 		/// additional linker flags for shipping
@@ -63,14 +63,14 @@ namespace UnrealBuildTool
         public string SigningCertificate = "";
 
 		/// <summary>
-		/// The list of architectures
-		/// </summary>
-		public List<string> ProjectArches;
-
-		/// <summary>
 		/// true if bit code should be embedded
 		/// </summary>
 		private bool bShipForBitcode = false;
+
+        /// <summary>
+        /// true if notifications are enabled
+        /// </summary>
+        private bool bNotificationsEnabled = false;
 
         private bool bForDistribtion = false;
 
@@ -150,25 +150,6 @@ namespace UnrealBuildTool
 			return Result;
 		}
 		
-		public virtual string GetRequiredCapabilities()
-		{
-			string	result = "";
-
-            // get the list of architectures compiled
-            string Archs = (TargetConfiguration == UnrealTargetConfiguration.Shipping) ? ShippingArchitectures : NonShippingArchitectures;
-            string[] ArchArray = Archs.Split(",".ToCharArray());
-            if (ArchArray.Length > 1)
-            {
-                result += "\t\t<string>armv7</string>\n";
-            }
-            else
-            {
-                result += "\t\t<string>" + ArchArray[0] + "</string>\n";
-            }
-
-            return result;
-		}
-
 		public string GetAdditionalLinkerFlags(CPPTargetConfiguration InConfiguration)
 		{
 			if (InConfiguration != CPPTargetConfiguration.Shipping)
@@ -248,18 +229,18 @@ namespace UnrealBuildTool
 
                 // update the configuration based on the project file
                 // look in ini settings for what platforms to compile for
-                ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", DirectoryReference.FromFile(ProjectFile));
+                ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(ProjectFile), Platform);
                 string MinVersion = "IOS_8";
                 if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MinimumiOSVersion", out MinVersion))
                 {
                     switch (MinVersion)
                     {
                         case "IOS_61":
-                            Log.TraceWarning("IOS 6 is no longer supported in UE4 as 4.11");
+                            Log.TraceWarningOnce("IOS 6 is no longer supported in UE4 as 4.11");
                             RunTimeIOSVersion = "8.0";
                             break;
                         case "IOS_7":
-                            Log.TraceWarning("IOS 7 is no longer supported in UE4 as 4.14");
+                            Log.TraceWarningOnce("IOS 7 is no longer supported in UE4 as 4.14");
                             RunTimeIOSVersion = "8.0";
                             break;
                         case "IOS_8":
@@ -291,60 +272,12 @@ namespace UnrealBuildTool
                     RunTimeIOSDevices = "1";
                 }
 
-                ProjectArches = new List<string>();
-                bool bBuild = true;
-                if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7", out bBuild) && bBuild)
-                {
-                    ProjectArches.Add("armv7");
-                }
-                if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArm64", out bBuild) && bBuild)
-                {
-                    ProjectArches.Add("arm64");
-                }
-                if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7S", out bBuild) && bBuild)
-                {
-                    ProjectArches.Add("armv7s");
-                }
+				NonShippingArchitectures = String.Join(",", GetNonShippingArchitectures(Ini));
 
-                // force armv7 if something went wrong
-                if (ProjectArches.Count == 0)
-                {
-                    ProjectArches.Add("armv7");
-                }
-                NonShippingArchitectures = ProjectArches[0];
-                for (int Index = 1; Index < ProjectArches.Count; ++Index)
-                {
-                    NonShippingArchitectures += "," + ProjectArches[Index];
-                }
+				ShippingArchitectures = String.Join(",", GetShippingArchitectures(Ini));
 
-                ProjectArches.Clear();
-                if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7", out bBuild) && bBuild)
-                {
-                    ProjectArches.Add("armv7");
-                }
-                if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArm64", out bBuild) && bBuild)
-                {
-                    ProjectArches.Add("arm64");
-                }
-                if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7S", out bBuild) && bBuild)
-                {
-                    ProjectArches.Add("armv7s");
-                }
-
-                // force armv7 if something went wrong
-                if (ProjectArches.Count == 0)
-                {
-                    ProjectArches.Add("armv7");
-                    ProjectArches.Add("arm64");
-                }
-                ShippingArchitectures = ProjectArches[0];
-                for (int Index = 1; Index < ProjectArches.Count; ++Index)
-                {
-                    ShippingArchitectures += "," + ProjectArches[Index];
-                }
-
-                // determine if we need to generate the dsym
-                Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMFile", out BuildConfiguration.bGeneratedSYMFile);
+				// determine if we need to generate the dsym
+				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMFile", out BuildConfiguration.bGeneratedSYMFile);
                 Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMBundle", out BuildConfiguration.bGeneratedSYMBundle);
 
                 // determie if bitcode should be generated for the shipping code
@@ -476,12 +409,63 @@ namespace UnrealBuildTool
             TeamUUID = Data.TeamUUID;
         }
 
-        /// <summary>
-        /// Whether this platform should create debug information or not
-        /// </summary>
-        /// <param name="Configuration"> The UnrealTargetConfiguration being built</param>
-        /// <returns>bool    true if debug info should be generated, false if not</returns>
-        public override bool ShouldCreateDebugInfo(UnrealTargetConfiguration Configuration)
+		public static List<string> GetNonShippingArchitectures(ConfigHierarchy Ini)
+		{
+			List<string> ProjectArches = new List<string>();
+			bool bBuild = true;
+			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7", out bBuild) && bBuild)
+			{
+				ProjectArches.Add("armv7");
+			}
+			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArm64", out bBuild) && bBuild)
+			{
+				ProjectArches.Add("arm64");
+			}
+			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7S", out bBuild) && bBuild)
+			{
+				ProjectArches.Add("armv7s");
+			}
+
+			// force armv7 if something went wrong
+			if (ProjectArches.Count == 0)
+			{
+				ProjectArches.Add("armv7");
+			}
+			return ProjectArches;
+		}
+
+		public static List<string> GetShippingArchitectures(ConfigHierarchy Ini)
+		{
+			List<string> ProjectArches = new List<string>();
+			bool bBuild = true;
+			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7", out bBuild) && bBuild)
+			{
+				ProjectArches.Add("armv7");
+			}
+			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArm64", out bBuild) && bBuild)
+			{
+				ProjectArches.Add("arm64");
+			}
+			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7S", out bBuild) && bBuild)
+			{
+				ProjectArches.Add("armv7s");
+			}
+
+			// force armv7 if something went wrong
+			if (ProjectArches.Count == 0)
+			{
+				ProjectArches.Add("armv7");
+				ProjectArches.Add("arm64");
+			}
+			return ProjectArches;
+		}
+
+		/// <summary>
+		/// Whether this platform should create debug information or not
+		/// </summary>
+		/// <param name="Configuration"> The UnrealTargetConfiguration being built</param>
+		/// <returns>bool    true if debug info should be generated, false if not</returns>
+		public override bool ShouldCreateDebugInfo(UnrealTargetConfiguration Configuration)
 		{
 			return true;
 		}
@@ -509,7 +493,6 @@ namespace UnrealBuildTool
 			base.ValidateBuildConfiguration(Configuration, Platform, bCreateDebugInfo);
 
 			BuildConfiguration.bUsePCHFiles = false;
-			BuildConfiguration.bUseSharedPCHs = false;
 			BuildConfiguration.bCheckExternalHeadersForModification = false;
 			BuildConfiguration.bCheckSystemHeadersForModification = false;
 			BuildConfiguration.ProcessorCountMultiplier = IOSToolChain.GetAdjustedProcessorCountMultiplier();
@@ -532,9 +515,24 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("USE_NULL_RHI=0");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
 
+            ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.IOS);
+            Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableRemoteNotificationsSupport", out bNotificationsEnabled);
+			if (bNotificationsEnabled)
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("NOTIFICATIONS_ENABLED=1");
+			}
+			else
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("NOTIFICATIONS_ENABLED=0");
+			}
+
 			if (GetActiveArchitecture() == "-simulator")
 			{
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SIMULATOR=1");
+			}
+			else
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SIMULATOR=0");
 			}
 
 			// we assume now we are building with IOS8 or later
@@ -571,17 +569,6 @@ namespace UnrealBuildTool
 		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform)
 		{
 			return new IOSToolChain(ProjectFile, this);
-		}
-
-		/// <summary>
-		/// Create a build deployment handler
-		/// </summary>
-		/// <param name="ProjectFile">The project file of the target being deployed. Used to find any deployment specific settings.</param>
-		/// <param name="DeploymentHandler">The output deployment handler</param>
-		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
-		public override UEBuildDeploy CreateDeploymentHandler()
-		{
-			return new UEDeployIOS(ProjectFile, this);
 		}
 	}
 
@@ -663,7 +650,7 @@ namespace UnrealBuildTool
 			string[] BoolKeys = new string[] {
 				"bDevForArmV7", "bDevForArm64", "bDevForArmV7S", "bShipForArmV7", 
 				"bShipForArm64", "bShipForArmV7S", "bShipForBitcode", "bGeneratedSYMFile",
-				"bGeneratedSYMBundle"
+				"bGeneratedSYMBundle", "bEnableRemoteNotificationsSupport", "bEnableCloudKitSupport"
 			};
 			string[] StringKeys = new string[] {
 				"MinimumiOSVersion", 
@@ -741,7 +728,7 @@ namespace UnrealBuildTool
 						bBuildShaderFormats = true;
 						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
 						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatASTC");
-						if (UEBuildConfiguration.bBuildDeveloperTools)
+						if (UEBuildConfiguration.bBuildDeveloperTools && UEBuildConfiguration.bCompileAgainstEngine)
 						{
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("AudioFormatADPCM");
 						}
@@ -766,13 +753,23 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a context for the given project on the current platform.
+		/// Creates a context for the given target on the current platform.
 		/// </summary>
 		/// <param name="ProjectFile">The project file for the current target</param>
+		/// <param name="Target">Rules for the target being built</param>
 		/// <returns>New platform context object</returns>
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
+		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile, TargetRules Target)
 		{
 			return new IOSPlatformContext(ProjectFile);
+		}
+
+		/// <summary>
+		/// Deploys the given target
+		/// </summary>
+		/// <param name="Target">Information about the target being deployed</param>
+		public override void Deploy(UEBuildDeployTarget Target)
+		{
+			new UEDeployIOS().PrepTargetForDeployment(Target);
 		}
 	}
 

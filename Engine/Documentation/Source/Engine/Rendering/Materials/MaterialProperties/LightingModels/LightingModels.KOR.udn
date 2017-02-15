@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2741618
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:셰이딩 모델
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials,  Engine/Rendering/Materials/MaterialProperties
@@ -6,7 +6,7 @@ Description:머티리얼 셰이딩 모델 프로퍼티 옵션에 대한 분석�
 Version: 4.9
 
 
-[TOC(start:2 end:2)]
+[TOC(start:2 end:3)]
 
 Shading Model, 셰이딩 모델은 머티리얼이 받는 빛을 반사하는 방식을 조절합니다. 다른 말로 하자면, 머티리얼을 이루는 입력 데이터를 어떻게 사용하여 최종적인 모양새를 만들어낼 것인지를 조절하는 것입니다.
 
@@ -104,10 +104,10 @@ Clear Coat(클리어 코트) 셰이딩 모델은 표준 머티리얼 표면 위�
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Monte Carlo Reference](ClearCoat_0.png)(w:400)
+	![Monte Carlo Reference](ClearCoat_0.png)(w:600)
 	[/PARAM]
 	[PARAM:after]
-	![UE4](ClearCoat_1.png)(w:400)
+	![UE4](ClearCoat_1.png)(w:600)
 	[/PARAM]
 [/OBJECT]
 
@@ -116,7 +116,18 @@ Clear Coat(클리어 코트) 셰이딩 모델은 표준 머티리얼 표면 위�
 (위의 얼룩은 머티리얼 에디터에서 작업한 것으로, 셰이딩 모델의 기능은 아닙니다.)
 [/region]
 
-클리어 코트 셰이딩 모델을 사용할 때는, 다음과 같은 입력에 접근할 수 있습니다:
+
+### 이중 노멀 클리어 코트
+Clear Coat Shading Model (클리어 코트 셰이딩 모델)에는 클리어 코팅 막 아래 표면에 2차 노멀 맵을 추가하는 옵션도 있습니다. 이를 통해 클리어 코트 레이어와는 다른 지오메트리 표면을 갖는 카본 파이버같은 복잡한 머티리얼을 보다 정확히 모델링해낼 수 있습니다.
+	
+[REGION:imagetable]
+| ![Dual_Clear_Coat_Old](Dual_Clear_Coat_Old.png)(w:290) | ![Dual_Clear_Coat_New](Dual_Clear_Coat_New.png)(w:290) | ![(Dual_Clear_Coat_Photo](Dual_Clear_Coat_Photo.png)(w:290)|
+| ------ | ------ | ------ |
+| 예전 UE4 클리어 코트 | 새로운 UE4 이중 노멀 클리어 코트 | 실제 사진 |
+[/REGION] 
+
+
+클리어 코트 셰이딩 모델 또는 이중 노멀 클리어 코트 셰이딩 모델을 사용할 때는, 다음과 같은 입력에 접근할 수 있습니다:
 
 * 베이스 컬러
 * 메탈릭
@@ -136,7 +147,14 @@ Clear Coat(클리어 코트) 셰이딩 모델은 표준 머티리얼 표면 위�
 [서브서피스 프로파일 셰이딩 모델](Engine/Rendering/Materials/LightingModels/SubSurfaceProfile) (Subsurface Profile) 은 서브서피스 모델과 사전통합 피부 셰이딩 모델 양쪽과 속성상 매우 비슷합니다.
 하지만 보다 고사양의 피부 렌더링에 초점을 맞추고 있습니다. 피부, 특히나 사람 피부를 시뮬레이션해 내려는 경우에 가장 적합한 셰이딩 모델입니다.
 
-![](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![표준 셰이딩](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results_1.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![서브서피스 프로파일 셰이딩](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results_2.png)(w:700)
+	[/PARAM]
+[/OBJECT]
 
 서브서피스 프로파일 셰이딩 모델을 사용할 때는, 다음과 같은 입력에 접근할 수 있습니다:
 
@@ -159,10 +177,10 @@ Clear Coat(클리어 코트) 셰이딩 모델은 표준 머티리얼 표면 위�
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Two Sided Foliage Enabled](2_Sided_Enabled.png)
+	![양면 폴리지 켜짐](2_Sided_Enabled.png)(h:700)
 	[/PARAM]
 	[PARAM:after]
-	![Two Sided Foliage Disabled](2_Sided_Disabled.png)
+	![양면 폴리지 꺼짐](2_Sided_Disabled.png)(h:700)
 	[/PARAM]
 [/OBJECT]
 

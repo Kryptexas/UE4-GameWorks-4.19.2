@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using Ionic.Zip;
 using System.IO;
@@ -38,7 +38,7 @@ public class HTML5Platform : Platform
 		}
 		string FinalDataLocation = Path.Combine(PackagePath, Params.ShortProjectName) + ".data";
 
-		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath.FullName), CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine"));
+		var ConfigCache = UnrealBuildTool.ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Params.RawProjectPath), UnrealTargetPlatform.HTML5);
 
 		if (HTMLPakAutomation.CanCreateMapPaks(Params))
 		{
@@ -426,17 +426,26 @@ public class HTML5Platform : Platform
 		string BrowserPath = Params.Devices[0].Replace("HTML5@", "");
 
 		// open the webpage
-		Int32 ServerPort = 8000;
+		Int32 ServerPort = 8000; // HTML5LaunchHelper default
 
-		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath.FullName), CombinePaths(CmdEnv.LocalRoot, "Engine"));
-		ConfigCache.GetInt32("/Script/HTML5PlatformEditor.HTML5TargetSettings", "DeployServerPort", out ServerPort);
+		var ConfigCache = UnrealBuildTool.ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Params.RawProjectPath), UnrealTargetPlatform.HTML5);
+		ConfigCache.GetInt32("/Script/HTML5PlatformEditor.HTML5TargetSettings", "DeployServerPort", out ServerPort); // LaunchOn via Editor or FrontEnd
 		string WorkingDirectory = Path.GetDirectoryName(ClientApp);
 		string url = Path.GetFileName(ClientApp) +".html";
+
+		// WARNING: splitting the following situation
+		// if cookonthefly is used: tell the browser to use the PROXY at DEFAULT_HTTP_FILE_SERVING_PORT
+		// leave the normal HTML5LaunchHelper port (ServerPort) alone -- otherwise it will collide with the PROXY port
 		if (ClientCmdLine.Contains("filehostip"))
 		{
 			url += "?cookonthefly=true";
+			Int32 ProxyPort = 41898; // DEFAULT_HTTP_FILE_SERVING_PORT
+			url = String.Format("http://localhost:{0}/{1}", ProxyPort, url);
 		}
-		url = String.Format("http://localhost:{0}/{1}", ServerPort, url);
+		else
+		{
+			url = String.Format("http://localhost:{0}/{1}", ServerPort, url);
+		}
 
 		// Check HTML5LaunchHelper source for command line args
 
@@ -454,7 +463,8 @@ public class HTML5Platform : Platform
 			BrowserCommandline += "  " +  String.Format("-no-remote -profile \\\"{0}\\\"", Path.Combine(ProfileDirectory, "firefox"));
 		}
 
-		string LauncherArguments = string.Format(" -Browser=\"{0}\" + -BrowserCommandLine=\"{1}\" -ServerPort=\"{2}\" -ServerRoot=\"{3}\" ", new object[] { BrowserPath, BrowserCommandline, ServerPort, WorkingDirectory });
+		string LauncherArguments = string.Format(" -Browser=\"{0}\" + -BrowserCommandLine=\"{1}\" -ServerPort=\"{2}\" -ServerRoot=\"{3}\" ",
+				new object[] { BrowserPath, BrowserCommandline, ServerPort, WorkingDirectory });
 
 		var LaunchHelperPath = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/HTML5LaunchHelper.exe");
 		IProcessResult BrowserProcess = Run(LaunchHelperPath, LauncherArguments, null, ClientRunFlags | ERunOptions.NoWaitForExit);
@@ -520,7 +530,7 @@ public class HTML5Platform : Platform
 #region AMAZON S3
 	public void UploadToS3(DeploymentContext SC)
 	{
-		ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Engine", DirectoryReference.FromFile(SC.RawProjectPath));
+		ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(SC.RawProjectPath), SC.StageTargetPlatform.PlatformType);
 		bool Upload = false;
 
 		string KeyId = "";

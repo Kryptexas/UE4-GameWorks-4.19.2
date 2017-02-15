@@ -1,11 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRenderPublic.h: Definitions and inline code for rendering SkeletalMeshComponent
 =============================================================================*/
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "ProfilingDebugging/ResourceSize.h"
+#include "PackedNormal.h"
+#include "RenderingThread.h"
+#include "SkeletalMeshTypes.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkinnedMeshComponent.h"
+
+class FPrimitiveDrawInterface;
+class FVertexFactory;
+class UMorphTarget;
+
 //#include "../Private/SkeletalRenderCPUSkin.h"
+struct FSkelMeshSection;
 
 /** data for a single skinned skeletal mesh vertex */
 struct FFinalSkinVertex
@@ -15,6 +29,14 @@ struct FFinalSkinVertex
 	FPackedNormal	TangentZ;
 	float			U;
 	float			V;
+};
+
+/** Which set of indices to select for TRISORT_CustomLeftRight sections. */
+enum ECustomSortAlternateIndexMode
+{
+	CSAIM_Auto = 0,
+	CSAIM_Left = 1,
+	CSAIM_Right = 2,
 };
 
 /**
@@ -36,7 +58,7 @@ public:
 	/** 
 	 * Initialize rendering resources for each LOD 
 	 */
-	virtual void InitResources() = 0;
+	virtual void InitResources(USkinnedMeshComponent* InMeshComponent) = 0;
 
 	/** 
 	 * Release rendering resources for each LOD 

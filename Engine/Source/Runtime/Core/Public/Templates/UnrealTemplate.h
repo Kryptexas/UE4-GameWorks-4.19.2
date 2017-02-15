@@ -1,19 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EnableIf.h"
-#include "PointerIsConvertibleFromTo.h"
-#include "TypeWrapper.h"
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
+#include "Templates/IsPointer.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/EnableIf.h"
+#include "Templates/AndOrNot.h"
+#include "Templates/AreTypesEqual.h"
+#include "Templates/IsArithmetic.h"
 #include "Templates/UnrealTypeTraits.h"
-#include "UnrealMemory.h"
-#include "AlignmentTemplates.h"
-#include "AndOrNot.h"
 #include "Templates/RemoveReference.h"
 #include "Templates/TypeCompatibleBytes.h"
 #include "Traits/IsContiguousContainer.h"
-#include <initializer_list>
 
 /*-----------------------------------------------------------------------------
 	Standard templates.
@@ -268,6 +267,30 @@ private:
 	Type& RefValue;
 	Type OldValue;
 };
+
+
+/** 
+ * Commonly used to make sure a value is incremented, and then decremented anyway the function can terminate.
+ * Usage:
+ *  	TScopeCounter<int32> BeginProcessing(ProcessingCount); // increments ProcessingCount, and decrements it in the dtor
+ */
+template <typename Type>
+struct TScopeCounter : private FNoncopyable
+{
+	TScopeCounter(Type& ReferenceValue)
+		: RefValue(ReferenceValue)
+	{
+		++RefValue;
+	}
+	~TScopeCounter()
+	{
+		--RefValue;
+	}
+
+private:
+	Type& RefValue;
+};
+
 
 /**
  * Helper class to make it easy to use key/value pairs with a container.

@@ -1,23 +1,50 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "ContentBrowserPCH.h"
-#include "SScrollBorder.h"
-#include "EditorWidgets.h"
+#include "SAssetView.h"
+#include "UObject/UnrealType.h"
+#include "Widgets/SOverlay.h"
+#include "Engine/GameViewportClient.h"
+#include "Factories/Factory.h"
+#include "Framework/Commands/UIAction.h"
+#include "Textures/SlateIcon.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ConfigCacheIni.h"
+#include "SlateOptMacros.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Notifications/SProgressBar.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SScrollBorder.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Input/SSlider.h"
+#include "Framework/Docking/TabManager.h"
+#include "EditorStyleSet.h"
+#include "EditorReimportHandler.h"
+#include "Settings/ContentBrowserSettings.h"
+#include "Engine/Blueprint.h"
+#include "Editor.h"
+#include "FileHelpers.h"
+#include "AssetSelection.h"
+#include "AssetRegistryModule.h"
+#include "IAssetTools.h"
+#include "AssetToolsModule.h"
+#include "ContentBrowserLog.h"
+#include "FrontendFilterBase.h"
+#include "ContentBrowserSingleton.h"
+#include "HistoryManager.h"
+#include "EditorWidgetsModule.h"
 #include "AssetViewTypes.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "DragAndDrop/AssetPathDragDropOp.h"
 #include "DragDropHandler.h"
-#include "AssetThumbnail.h"
 #include "AssetViewWidgets.h"
-#include "FileHelpers.h"
 #include "ContentBrowserModule.h"
 #include "ObjectTools.h"
-#include "KismetEditorUtilities.h"
-#include "IPluginManager.h"
 #include "NativeClassHierarchy.h"
-#include "MessageLog.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -1250,6 +1277,7 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 				const TArray<FString>& DragFiles = ExternalDragDropOp->GetFiles();
 				AssetToolsModule.Get().ExpandDirectories(DragFiles, RootDestinationPath, FilesAndDestinations);
 
+				TArray<int32> ReImportIndexes;
 				for (int32 FileIdx = 0; FileIdx < FilesAndDestinations.Num(); ++FileIdx)
 				{
 					const FString& Filename = FilesAndDestinations[FileIdx].Key;
@@ -1292,6 +1320,7 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 					if (ExistingObject != nullptr)
 					{
 						ReimportFiles.Add(Filename, ExistingObject);
+						ReImportIndexes.Add(FileIdx);
 					}
 					else
 					{
@@ -1306,7 +1335,12 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 				//Import
 				if (ImportFiles.Num() > 0)
 				{
-					AssetToolsModule.Get().ImportAssets(ImportFiles, SourcesData.PackagePaths[0].ToString());
+					//Remove it in reverse so the smaller index are still valid
+					for (int32 IndexToRemove = ReImportIndexes.Num() - 1; IndexToRemove >= 0; --IndexToRemove)
+					{
+						FilesAndDestinations.RemoveAt(ReImportIndexes[IndexToRemove]);
+					}
+					AssetToolsModule.Get().ImportAssets(ImportFiles, SourcesData.PackagePaths[0].ToString(), nullptr, true, &FilesAndDestinations);
 				}
 			}
 
@@ -1710,11 +1744,13 @@ void SAssetView::RefreshSourceItems()
 		// If this is an engine folder, and we don't want to show them, remove
 		const bool IsHiddenEngineFolder = !bDisplayEngine && ContentBrowserUtils::IsEngineFolder(Item.PackagePath.ToString());
 		// If this is a plugin folder, and we don't want to show them, remove
-		const bool IsAHiddenPluginFolder = !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString());
+		const bool IsAHiddenGameProjectPluginFolder = !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString(), EPluginLoadedFrom::GameProject);
+		// If this is an engine plugin folder, and we don't want to show them, remove
+		const bool IsAHiddenEnginePluginFolder = (!bDisplayEngine || !bDisplayPlugins) && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString(), EPluginLoadedFrom::Engine);
 		// Do not show localized content folders.
 		const bool IsTheHiddenLocalizedContentFolder = !bDisplayL10N && ContentBrowserUtils::IsLocalizationFolder(Item.PackagePath.ToString());
 
-		const bool ShouldFilterOut = IsMainlyARedirector || IsHiddenEngineFolder || IsAHiddenPluginFolder || IsTheHiddenLocalizedContentFolder;
+		const bool ShouldFilterOut = IsMainlyARedirector || IsHiddenEngineFolder || IsAHiddenGameProjectPluginFolder || IsAHiddenEnginePluginFolder || IsTheHiddenLocalizedContentFolder;
 		if (ShouldFilterOut)
 		{
 			Items.RemoveAtSwap(AssetIdx);

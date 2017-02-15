@@ -1,6 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Brushes/SlateDynamicImageBrush.h"
+#include "IContentSource.h"
+#include "ViewModels/CategoryViewModel.h"
 
 /** A view model for displaying and interacting with an IContentSource in the FAddContentDialog. */
 class FContentSourceViewModel : public TSharedFromThis<FContentSourceViewModel>

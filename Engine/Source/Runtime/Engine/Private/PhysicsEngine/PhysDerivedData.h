@@ -1,14 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "EngineDefines.h"
+#include "PhysXIncludes.h"
 
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 #include "DerivedDataPluginInterface.h"
-#include "DerivedDataCacheInterface.h"
-#include "TargetPlatform.h"
-#include "PhysXSupport.h"
 #include "IPhysXFormat.h"
+#endif
+
+class UBodySetup;
+struct FBodyInstance;
+struct FBodySetupUVInfo;
+
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 
 //////////////////////////////////////////////////////////////////////////
 // PhysX Cooker
@@ -40,7 +48,7 @@ public:
 		// This is a version string that mimics the old versioning scheme. If you
 		// want to bump this version, generate a new guid using VS->Tools->Create GUID and
 		// return it here. Ex.
-		return TEXT("E0ABF0F6AB54442DB426ADA8972E7237");
+		return TEXT("58B79B73E9EA47C7A7C3213A6438018C");	
 	}
 
 	virtual FString GetPluginSpecificCacheKeySuffix() const override

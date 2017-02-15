@@ -1,12 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "VertexSnapping.h"
-#include "StaticMeshResources.h"
+#include "GameFramework/Actor.h"
+#include "Misc/App.h"
+#include "SceneView.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "SkeletalMeshTypes.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Editor/GroupActor.h"
 #include "Components/BrushComponent.h"
-#include "Engine/Polys.h"
 #include "Engine/Selection.h"
 #include "EngineUtils.h"
+#include "EditorViewportClient.h"
+#include "LevelEditorViewport.h"
+#include "EditorModeManager.h"
+#include "StaticMeshResources.h"
+#include "Engine/Polys.h"
+#include "SkeletalMeshTypes.h"
 
 namespace VertexSnappingConstants
 {

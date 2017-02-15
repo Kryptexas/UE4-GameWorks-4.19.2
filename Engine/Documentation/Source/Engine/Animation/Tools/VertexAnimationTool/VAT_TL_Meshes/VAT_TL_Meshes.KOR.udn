@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:버텍스 애니메이션 툴 - 타임라인 메시
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -16,7 +16,8 @@ Version: 4.9
 	* **Radius:** 70.0
 	* **Segments:** 5
 	
-	![](VAT_Teapot_Setup_00.png)
+	[![](VAT_Teapot_Setup_00.png)
+
 
 1. 다음 Modifier List 에서 차주전자에 **Bend** Modifier 를 적용한 다음 **Direction** 을 **90** 으로 설정합니다. 
 	
@@ -99,6 +100,7 @@ yqqHsxrPk9o
 * Texture Group (텍스처 그룹)을 **UI** 로 설정합니다.
 * **SRGB** 옵션이 꺼졌는지 확인합니다.
 * Compression Settings (압축 세팅)을 **TC_HDR** 로 설정합니다.
+* Filter (필터)를 **Nearest** (가장 가까움)으로 설정합니다.
 
 	![](VAT_EXR_Texture_Setup.png)
 
@@ -108,6 +110,7 @@ yqqHsxrPk9o
 * Texture Group (텍스처 그룹)을 **UI** 로 변경합니다.
 * **SRGB** 옵션이 꺼졌는지 확인합니다.
 * Compression Settings (압축 세팅)을 **TC_Vector Displacement Map** 으로 설정합니다.
+* Filter (필터)를 **Nearest** (가장 가까움)으로 설정합니다.
 	
 	![](VAT_Normal_Texture_Setup.png)
 

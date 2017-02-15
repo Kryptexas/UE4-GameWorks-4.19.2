@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of D3D12 Disk caching functions to preserve state across runs
 
@@ -10,7 +10,7 @@ class FDiskCacheInterface
 {
 	// Increment this if changes are made to the
 	// disk caches so stale caches get updated correctly
-	static const uint32 mCurrentHeaderVersion = 4;
+	static const uint32 mCurrentHeaderVersion = 5;
 	struct FDiskCacheHeader
 	{
 		uint32 mHeaderVersion;

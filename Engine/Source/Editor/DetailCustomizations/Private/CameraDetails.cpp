@@ -1,9 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "CameraDetails.h"
-#include "EditorCategoryUtils.h"
-#include "SNumericEntryBox.h"
+#include "Styling/SlateColor.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "SlateOptMacros.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SComboButton.h"
+#include "EditorStyleSet.h"
+#include "Camera/CameraComponent.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#include "IDetailPropertyRow.h"
+#include "DetailCategoryBuilder.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 #include "EditorCategoryUtils.h"
 
 
@@ -56,10 +72,12 @@ void FCameraDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		}
 	}
 
+	DetailLayout.EditCategory("Current Camera Settings", FText::GetEmpty(), ECategoryPriority::Important);
+
 	if (bCameraSettingsHidden == false)
 	{
 		IDetailCategoryBuilder& CameraCategory = DetailLayout.EditCategory( "CameraSettings", FText::GetEmpty(), ECategoryPriority::Important );
-	
+
 		// Organize the properties
 		CameraCategory.AddProperty(ProjectionModeProperty);
 

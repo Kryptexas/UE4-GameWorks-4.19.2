@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Engine/EngineTypes.h"
+#include "Components/LightComponent.h"
 
-#include "LightComponent.h"
 #include "DirectionalLightComponent.generated.h"
+
+class FLightSceneProxy;
 
 /**
  * A light component that has parallel rays. Will provide a uniform lighting across any affected surface (eg. The Sun). This will affect all objects in the defined light-mass importance volume.

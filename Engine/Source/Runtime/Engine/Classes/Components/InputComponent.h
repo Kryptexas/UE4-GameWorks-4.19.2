@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Runtime/InputCore/Classes/InputCoreTypes.h"
-#include "InputChord.h"
-#include "InputComponent.generated.h"
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "InputCoreTypes.h"
+#include "Components/ActorComponent.h"
+#include "Framework/Commands/InputChord.h"
+#include "InputComponent.generated.h"
 
 /** Utility delegate class to allow binding to either a C++ function or a blueprint script delegate */
 template<class DelegateType, class DynamicDelegateType>
@@ -552,7 +555,7 @@ namespace EControllerAnalogStick
 /**
  * Implement an Actor component for input bindings.
  *
- * An Input Component is a transient component that is to an Actor to bind various forms of input events to delegate functions.  
+ * An Input Component is a transient component that enables an Actor to bind various forms of input events to delegate functions.  
  * Input components are processed from a stack managed by the PlayerController and processed by the PlayerInput.
  * Each binding can consume the input event preventing other components on the input stack from processing the input.
  *

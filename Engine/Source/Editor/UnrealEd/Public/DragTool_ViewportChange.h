@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __DRAGTOOL_VIEWPORTCHANGE_H__
 #define __DRAGTOOL_VIEWPORTCHANGE_H__
 
+#include "CoreMinimal.h"
+#include "Editor/UnrealEdTypes.h"
 #include "EditorDragTools.h"
-#include "ILevelEditor.h"
+
+class FCanvas;
+class FEditorViewportClient;
+class FLevelEditorViewportClient;
+class FSceneView;
 
 /**
  * Draws a line in the current viewport and display the view options

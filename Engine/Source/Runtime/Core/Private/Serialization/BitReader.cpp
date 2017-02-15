@@ -1,7 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h" 
-#include "BitReader.h"
+#include "Serialization/BitReader.h"
+#include "Math/UnrealMathUtility.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
 
 // Table.
 extern const uint8 GShift[8]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};
@@ -179,13 +181,10 @@ void FBitReader::AppendTo( TArray<uint8> &DestBuffer )
 
 void FBitReader::SetOverflowed(int32 LengthBits)
 {
-	if (!ensure(LengthBits == 0))
-	{
-		UE_LOG(LogNetSerialization, Error, TEXT("FBitReader::SetOverflowed() called! (ReadLen: %i, Remaining: %i, Max: %i)"),
-					LengthBits, (Num-Pos), Num);
+	UE_LOG(LogNetSerialization, Error, TEXT("FBitReader::SetOverflowed() called! (ReadLen: %i, Remaining: %i, Max: %i)"),
+			LengthBits, (Num - Pos), Num);
 
-		ArIsError = 1;
-	}
+	ArIsError = 1;
 }
 
 /*-----------------------------------------------------------------------------

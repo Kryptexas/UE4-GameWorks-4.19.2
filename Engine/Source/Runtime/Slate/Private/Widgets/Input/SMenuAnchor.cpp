@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
  
-#include "SlatePrivatePCH.h"
-#include "LayoutUtils.h"
-#include "Menu.h"
+#include "Widgets/Input/SMenuAnchor.h"
+#include "Layout/ArrangedChildren.h"
+#include "Rendering/DrawElements.h"
+#include "Widgets/SWindow.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/Menu.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Layout/LayoutUtils.h"
 
 static FVector2D GetMenuOffsetForPlacement(const FGeometry& AllottedGeometry, EMenuPlacement PlacementMode, FVector2D PopupSizeLocalSpace)
 {
@@ -127,42 +133,20 @@ void SMenuAnchor::Tick( const FGeometry& AllottedGeometry, const double InCurren
 		const FVector2D PopupContentDesiredSize = PopupWindow->GetContent()->GetDesiredSize();
 		FGeometry PopupGeometry = ComputeMenuPlacement( AllottedGeometry, PopupContentDesiredSize, Placement.Get() );
 		const FVector2D NewPosition = PopupGeometry.LocalToAbsolute(FVector2D::ZeroVector);
-		// For the CreateWindow case, don't transform the size; it will always use the ApplicationScale * window's DPI scale
-		const FVector2D NewSize = PopupGeometry.GetLocalSize() * PopupWindow->GetNativeWindow()->GetDPIScaleFactor();
-
-		const FSlateRect NewShape = FSlateRect( FMath::RoundToFloat(NewPosition.X), FMath::RoundToFloat(NewPosition.Y), NewPosition.X + NewSize.X, NewPosition.Y + NewSize.Y );
+		// NOTE: In order to get the right size of the window, we need to take whatever the incoming scale of the menu anchor,
+		// then divide out the popup window's DPI scale.  Finally, we need to divide that remainder to the draw size.
+		// The idea here is to divide out any "extra" scale that's not associated with the DPI scale, since ComputeMenuPlacement
+		// makes a child transform for the new window, based on the geometry of it, which if the menu anchor is inside a zoom panel
+		// that would translate to a menu that had a smaller size window, if the scale was tiny, which we don't want - we only want
+		// the DPI scale if any, to be factored into the size.
+		// NOTE: We only do this for "New Window" popups.  Because games use "Current Window", we can't do this same trick, as they have
+		// to be concerned with the viewport scale as well, which Slate knows nothing about.  Perhaps DPI Scale of the viewports should be
+		// passed down in FGeometry, along with the window DPI Scale, as one extra value code can take into account if it needs to.
+		const FVector2D NewSize = PopupGeometry.GetDrawSize() / ( AllottedGeometry.GetAccumulatedLayoutTransform().GetScale() / PopupWindow->GetLocalToWindowTransform().GetScale() );
 
 		// We made a window for showing the popup.
 		// Update the window's position!
-		if (false /*PopupWindow->IsMorphing()*/ )
-		{
-			if( NewShape != PopupWindow->GetMorphTargetShape() )
-			{
-				// Update the target shape
-				PopupWindow->UpdateMorphTargetShape( NewShape );
-				// Set size immediately if not morphing size
-				if(!PopupWindow->IsMorphingSize())
-				{
-					PopupWindow->ReshapeWindow( PopupWindow->GetPositionInScreen(), NewSize );
-				}
-			}
-		}
-		else
-		{
-			const FVector2D WindowPosition = PopupWindow->GetPositionInScreen();
-			const FVector2D WindowSize = PopupWindow->GetSizeInScreen();
-			if ( NewPosition != WindowPosition || NewSize != WindowSize )
-			{
-#if PLATFORM_LINUX
-				// @FIXME: for some reason, popups reshaped here do not trigger OnWindowMoved() callback,
-				// so we manually set cached position to where we expect it to be. Note the order of operations - (before Reshape) - 
-				// still giving the callback a chance to change it.
-				// This needs to be investigated (tracked as TTP #347674).
-				PopupWindow->SetCachedScreenPosition( NewPosition );
-#endif // PLATFORM_LINUX
-				PopupWindow->ReshapeWindow( NewShape );
-			}
-		}
+		PopupWindow->ReshapeWindow(NewPosition, NewSize);
 	}
 	else if (PopupWindow.IsValid() && IsOpenAndReusingWindow())
 	{

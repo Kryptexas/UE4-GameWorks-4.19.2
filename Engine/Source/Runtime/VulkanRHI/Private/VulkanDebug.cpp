@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanDebug.cpp: Vulkan device RHI implementation.
@@ -6,7 +6,7 @@
 
 #include "VulkanRHIPrivate.h"
 
-#if VK_HEADER_VERSION < 8 && (VK_API_VERSION < VK_MAKE_VERSION(1, 0, 3))
+#if defined(VK_HEADER_VERSION) && VK_HEADER_VERSION < 8 && (VK_API_VERSION < VK_MAKE_VERSION(1, 0, 3))
 #include <vulkan/vk_ext_debug_report.h>
 #endif
 
@@ -48,7 +48,7 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 #if VULKAN_ENABLE_DUMP_LAYER
 			VulkanRHI::FlushDebugWrapperLog();
 #endif
-			FString Message = FString::Printf(TEXT("VK ERROR: [%s] Code %d : %s"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
+			FString Message = FString::Printf(TEXT("ERROR[%s:%d] Object %p: %s"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, (void*)SrcObject, ANSI_TO_TCHAR(Msg));
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("VulkanRHI: %s\n"), *Message);
 			UE_LOG(LogVulkanRHI, Error, TEXT("%s"), *Message);
     
@@ -75,7 +75,7 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 #if VULKAN_ENABLE_DUMP_LAYER
 		VulkanRHI::FlushDebugWrapperLog();
 #endif
-		FString Message = FString::Printf(TEXT("VK WARNING: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
+		FString Message = FString::Printf(TEXT("WARNING[%s:%d] Object %p: %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, SrcObject, ANSI_TO_TCHAR(Msg));
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("VulkanRHI: %s\n"), *Message);
 		UE_LOG(LogVulkanRHI, Warning, TEXT("%s"), *Message);
 		return VK_FALSE;
@@ -91,7 +91,7 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 		else
 #endif
 		{
-			FString Message = FString::Printf(TEXT("VK INFO: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
+			FString Message = FString::Printf(TEXT("INFO[%s:%d] Object %p: %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, SrcObject, ANSI_TO_TCHAR(Msg));
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("VulkanRHI: %s\n"), *Message);
 			UE_LOG(LogVulkanRHI, Display, TEXT("%s"), *Message);
 		}
@@ -101,7 +101,7 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 #if VULKAN_ENABLE_API_DUMP_DETAILED
 	else if (MsgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
 	{
-		FString Message = FString::Printf(TEXT("VK DEBUG: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
+		FString Message = FString::Printf(TEXT("DEBUG[%s:%d] Object %p: %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, SrcObject, ANSI_TO_TCHAR(Msg));
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("VulkanRHI: %s\n"), *Message);
 		UE_LOG(LogVulkanRHI, Display, TEXT("%s"), *Message);
 		return VK_FALSE;
@@ -169,6 +169,10 @@ namespace VulkanRHI
 	static int32 DebugLine = 1;
 
 	static const TCHAR* Tabs = TEXT("\t\t\t\t\t\t\t\t\t");
+
+	static FCriticalSection GTrackLock;
+	static TMap<VkImageView, VkImage> GImageViewTracker;
+	static TMap<VkBufferView, VkBuffer> GBufferViewTracker;
 
 	void FlushDebugWrapperLog()
 	{
@@ -836,6 +840,23 @@ namespace VulkanRHI
 		}
 	}
 
+	void PrintResultAndNamedHandles(VkResult Result, const TCHAR* HandleName, uint32 NumHandles, uint64* Handles)
+	{
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			DebugLog += FString::Printf(TEXT(" -> %s => %s\n"), *GetVkResultErrorString(Result), HandleName);
+			for (uint32 Index = 0; Index < NumHandles; ++Index)
+			{
+				DebugLog += FString::Printf(TEXT(" [%d]=%p"), Index, (void*)Handles[Index]);
+			}
+			DebugLog += TEXT("\n");
+			if (Result < VK_SUCCESS)
+			{
+				FlushDebugWrapperLog();
+			}
+		}
+	}
+
 	void PrintResultAndPointer(VkResult Result, uint64 Handle)
 	{
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
@@ -929,8 +950,8 @@ namespace VulkanRHI
 	{
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
 		{
-			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateImageView(Info=%p, OutImageView=%p)"), CreateInfo, ImageView));
-			DebugLog += FString::Printf(TEXT("%sVkImageViewCreateInfo: Flags=%d, Image=%p, ViewType=%s, Format=%s, Components=%s\n"), Tabs, CreateInfo->flags, CreateInfo->image, 
+			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateImageView(Info=%p, OutImageView=%llu)"), CreateInfo, (uint64)ImageView));
+			DebugLog += FString::Printf(TEXT("%sVkImageViewCreateInfo: Flags=%d, Image=%llu, ViewType=%s, Format=%s, Components=%s\n"), Tabs, CreateInfo->flags, (uint64)CreateInfo->image, 
 				*GetImageViewTypeString(CreateInfo->viewType), *GetVkFormatString(CreateInfo->format), *GetComponentMappingString(CreateInfo->components));
 			DebugLog += FString::Printf(TEXT("%s\tSubresourceRange=(%s)"), Tabs, *GetImageSubResourceRangeString(CreateInfo->subresourceRange));
 		}
@@ -966,7 +987,23 @@ namespace VulkanRHI
 
 	void DumpMappedMemoryRanges(uint32 memoryRangeCount, const VkMappedMemoryRange* MemoryRanges)
 	{
-		ensure(0);
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			for (uint32 Index = 0; Index < memoryRangeCount; ++Index)
+			{
+				const VkMappedMemoryRange& Range = MemoryRanges[Index];
+				typedef struct VkMappedMemoryRange {
+					VkStructureType    sType;
+					const void*        pNext;
+					VkDeviceMemory     memory;
+					VkDeviceSize       offset;
+					VkDeviceSize       size;
+				} VkMappedMemoryRange;
+
+				DebugLog += FString::Printf(TEXT("%s%d Memory=%p Offset=%d Size=%d\n"), Tabs, Index,
+					(void*)Range.memory, (uint64)Range.offset, (uint64)Range.size);
+			}
+		}
 	}
 
 	void DumpResolveImage(VkCommandBuffer CommandBuffer, VkImage SrcImage, VkImageLayout SrcImageLayout, VkImage DstImage, VkImageLayout DstImageLayout, uint32 RegionCount, const VkImageResolve* Regions)
@@ -1078,12 +1115,12 @@ namespace VulkanRHI
 	{
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
 		{
-			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateDescriptorSetLayout(Info=%p, OutLayout=%p)[...]\n"), CreateInfo, SetLayout));
+			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateDescriptorSetLayout(Info=%p, OutLayout=%p)[...]"), CreateInfo, SetLayout));
 			DebugLog += FString::Printf(TEXT("%sNumBindings=%d, Bindings=%p\n"), Tabs, CreateInfo->bindingCount, CreateInfo->pBindings);
 			for (uint32 Index = 0; Index < CreateInfo->bindingCount; ++Index)
 			{
-				DebugLog += FString::Printf(TEXT("%s\tBinding[%d]= binding=%d DescType=%d NumDesc=%d StageFlags=%x"), Tabs, Index, 
-					CreateInfo->pBindings[Index].binding, (uint32)CreateInfo->pBindings[Index].descriptorType, CreateInfo->pBindings[Index].descriptorCount, (uint32)CreateInfo->pBindings[Index].stageFlags);
+				DebugLog += FString::Printf(TEXT("%s\tBinding[%d]= binding=%d DescType=%s NumDesc=%d StageFlags=%x\n"), Tabs, Index, 
+					CreateInfo->pBindings[Index].binding, *GetDescriptorTypeString(CreateInfo->pBindings[Index].descriptorType), CreateInfo->pBindings[Index].descriptorCount, (uint32)CreateInfo->pBindings[Index].stageFlags);
 			}
 /*
 		typedef struct VkDescriptorSetLayoutBinding {
@@ -1113,16 +1150,16 @@ namespace VulkanRHI
 			DevicePrintfBegin(Device, FString::Printf(TEXT("vkUpdateDescriptorSets(NumWrites=%d, Writes=%p, NumCopies=%d, Copies=%p)[...]"), DescriptorWriteCount, DescriptorWrites, DescriptorCopyCount, DescriptorCopies));
 			for (uint32 Index = 0; Index < DescriptorWriteCount; ++Index)
 			{
-				DebugLog += FString::Printf(TEXT("%sWrite[%d]: Set=%p Binding=%d DstArrayElem=%d NumDesc=%d DescType=%s "), Tabs, Index, 
-					DescriptorWrites[Index].dstSet, DescriptorWrites[Index].dstBinding, DescriptorWrites[Index].dstArrayElement, DescriptorWrites[Index].descriptorCount, *GetDescriptorTypeString(DescriptorWrites[Index].descriptorType));
+				DebugLog += FString::Printf(TEXT("%sWrite[%d]: Set=%llu Binding=%d DstArrayElem=%d NumDesc=%d DescType=%s "), Tabs, Index, 
+					(uint64)DescriptorWrites[Index].dstSet, DescriptorWrites[Index].dstBinding, DescriptorWrites[Index].dstArrayElement, DescriptorWrites[Index].descriptorCount, *GetDescriptorTypeString(DescriptorWrites[Index].descriptorType));
 
 				if (DescriptorWrites[Index].pImageInfo)
 				{
 					DebugLog += FString::Printf(TEXT("pImageInfo=%p\n"), DescriptorWrites[Index].pImageInfo);
 					for (uint32 SubIndex = 0; SubIndex < DescriptorWrites[Index].descriptorCount; ++SubIndex)
 					{
-						DebugLog += FString::Printf(TEXT("%s\tpImageInfo[%d]: Sampler=%p, ImageView=%p, imageLayout=%s"), Tabs, SubIndex,
-							DescriptorWrites[Index].pImageInfo->sampler, DescriptorWrites[Index].pImageInfo->imageView, *GetImageLayoutString(DescriptorWrites[Index].pImageInfo->imageLayout));
+						DebugLog += FString::Printf(TEXT("%s\tpImageInfo[%d]: Sampler=%p, ImageView=%p(I:%p), imageLayout=%s"), Tabs, SubIndex,
+							DescriptorWrites[Index].pImageInfo->sampler, DescriptorWrites[Index].pImageInfo->imageView, GImageViewTracker.FindChecked(DescriptorWrites[Index].pImageInfo->imageView), *GetImageLayoutString(DescriptorWrites[Index].pImageInfo->imageLayout));
 					}
 				}
 
@@ -1141,12 +1178,14 @@ namespace VulkanRHI
 					DebugLog += FString::Printf(TEXT("pTexelBufferView=%p\n"), DescriptorWrites[Index].pTexelBufferView);
 					for (uint32 SubIndex = 0; SubIndex < DescriptorWrites[Index].descriptorCount; ++SubIndex)
 					{
-						DebugLog += FString::Printf(TEXT("%s\tpTexelBufferView[%d]=%p\n"), Tabs, SubIndex, DescriptorWrites[Index].pTexelBufferView[SubIndex]);
+						DebugLog += FString::Printf(TEXT("%s\tpTexelBufferView[%d]=%p(B:%p)\n"), Tabs, SubIndex, DescriptorWrites[Index].pTexelBufferView[SubIndex], GBufferViewTracker.FindChecked(DescriptorWrites[Index].pTexelBufferView[SubIndex]));
 					}
 				}
 
 				DebugLog += '\n';
 			}
+
+			FlushDebugWrapperLog();
 		}
 			/*
 		typedef struct VkWriteDescriptorSet {
@@ -1170,7 +1209,7 @@ namespace VulkanRHI
 			DebugLog += FString::Printf(TEXT("%sVkFramebufferCreateInfo: Flags=%d, RenderPass=%p, NumAttachments=%d\n"), Tabs, CreateInfo->flags, CreateInfo->renderPass, CreateInfo->attachmentCount);
 			for (uint32 Index = 0; Index < CreateInfo->attachmentCount; ++Index)
 			{
-				DebugLog += FString::Printf(TEXT("%s\tAttachment[%d]: ImageView=%p\n"), Tabs, Index, CreateInfo->pAttachments[Index]);
+				DebugLog += FString::Printf(TEXT("%s\tAttachment[%d]: ImageView=%p(I:%p)\n"), Tabs, Index, CreateInfo->pAttachments[Index], GImageViewTracker.FindChecked(CreateInfo->pAttachments[Index]));
 			}
 			DebugLog += FString::Printf(TEXT("%s\twidth=%d, height=%d, layers=%d"), Tabs, CreateInfo->width, CreateInfo->height, CreateInfo->layers);
 		}
@@ -1323,11 +1362,11 @@ namespace VulkanRHI
 	{
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
 		{
-			DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreatePipelineLayout(CreateInfo=%p, OutPipelineLayout=%p)[...]"), CreateInfo, PipelineLayout));
-			DebugLog += FString::Printf(TEXT("VkPipelineLayoutCreateInfo: NumLayouts=%d "), CreateInfo->setLayoutCount);
+			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreatePipelineLayout(CreateInfo=%p, OutPipelineLayout=%p) NumLayouts=%d"), CreateInfo, PipelineLayout, CreateInfo->setLayoutCount));
+			DebugLog += FString::Printf(TEXT("%sLayouts: "), Tabs);
 			for (uint32 Index = 0; Index < CreateInfo->setLayoutCount; ++Index)
 			{
-				DebugLog += FString::Printf(TEXT("Layout[%d]=%p "), Index, CreateInfo->pSetLayouts[Index]);
+				DebugLog += FString::Printf(TEXT("%d=%p "), Index, CreateInfo->pSetLayouts[Index]);
 			}
 			DebugLog += '\n';
 		}
@@ -1391,8 +1430,9 @@ namespace VulkanRHI
 					}					
 				};
 			CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdBeginRenderPass(BeginInfo=%p, Contents=%s)"), RenderPassBegin, *GetSubpassContents(Contents)));
-			DebugLog += FString::Printf(TEXT("%sBeginInfo: RenderPass=%p, Framebuffer=%p, renderArea=(x:%d, y:%d, %s), clearValues=%d\n"),
-				Tabs, RenderPassBegin->renderPass, RenderPassBegin->framebuffer, 
+
+			DebugLog += FString::Printf(TEXT("%sBeginInfo: RenderPass=%llu, Framebuffer=%llu, renderArea=(x:%d, y:%d, %s), clearValues=%d\n"),
+				Tabs, (uint64)RenderPassBegin->renderPass, (uint64)RenderPassBegin->framebuffer,
 				RenderPassBegin->renderArea.offset.x, RenderPassBegin->renderArea.offset.y, 
 				*GetExtentString(RenderPassBegin->renderArea.extent),
 				RenderPassBegin->clearValueCount);
@@ -1548,6 +1588,62 @@ namespace VulkanRHI
 			}
 		}
 	}
+
+	void DumpCreateGraphicsPipelines(VkDevice Device, VkPipelineCache PipelineCache, uint32 CreateInfoCount, const VkGraphicsPipelineCreateInfo* CreateInfos, VkPipeline* Pipelines)
+	{
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateGraphicsPipelines(PipelineCache=%p, CreateInfoCount=%d, CreateInfos=%p, OutPipelines=%p)[...]"), PipelineCache, CreateInfoCount, CreateInfos, Pipelines));
+			for (uint32 Index = 0; Index < CreateInfoCount; ++Index)
+			{
+				const VkGraphicsPipelineCreateInfo& CreateInfo = CreateInfos[Index];
+				DebugLog += FString::Printf(TEXT("%s%d: Flags=%d Stages=%d Layout=%p RenderPass=%p Subpass=%d\n"), Tabs, Index,
+					CreateInfo.flags, CreateInfo.stageCount, (void*)CreateInfo.layout, (void*)CreateInfo.renderPass, CreateInfo.subpass);
+/*
+				DebugLog += FString::Printf(TEXT(""));
+				typedef struct VkGraphicsPipelineCreateInfo {
+					const VkPipelineShaderStageCreateInfo*           pStages;
+					const VkPipelineVertexInputStateCreateInfo*      pVertexInputState;
+					const VkPipelineInputAssemblyStateCreateInfo*    pInputAssemblyState;
+					const VkPipelineTessellationStateCreateInfo*     pTessellationState;
+					const VkPipelineViewportStateCreateInfo*         pViewportState;
+					const VkPipelineRasterizationStateCreateInfo*    pRasterizationState;
+					const VkPipelineMultisampleStateCreateInfo*      pMultisampleState;
+					const VkPipelineDepthStencilStateCreateInfo*     pDepthStencilState;
+					const VkPipelineColorBlendStateCreateInfo*       pColorBlendState;
+					const VkPipelineDynamicStateCreateInfo*          pDynamicState;
+					VkPipeline                                       basePipelineHandle;
+					int32_t                                          basePipelineIndex;
+				} VkGraphicsPipelineCreateInfo;
+*/
+			}
+		}
+	}
+
+	void TrackImageViewAdd(VkImageView View, VkImage Image)
+	{
+		FScopeLock Lock(&GTrackLock);
+		GImageViewTracker.Add(View, Image);
+	}
+
+	void TrackImageViewRemove(VkImageView View)
+	{
+		FScopeLock Lock(&GTrackLock);
+		GImageViewTracker.Remove(View);
+	}
+
+	void TrackBufferViewAdd(VkBufferView View, VkBuffer Buffer)
+	{
+		FScopeLock Lock(&GTrackLock);
+		GBufferViewTracker.Add(View, Buffer);
+	}
+
+	void TrackBufferViewRemove(VkBufferView View)
+	{
+		FScopeLock Lock(&GTrackLock);
+		GBufferViewTracker.Remove(View);
+	}
+
 
 	static struct FGlobalDumpLog
 	{

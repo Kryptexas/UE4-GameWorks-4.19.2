@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved..
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved..
 
 /*=============================================================================
 	VulkanCommandBuffer.h: Private Vulkan RHI definitions.
@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "VulkanRHIPrivate.h"
 #include "VulkanConfiguration.h"
 
 class FVulkanDevice;
@@ -77,7 +79,7 @@ public:
 		State = EState::HasEnded;
 	}
 
-	inline uint64 GetFenceSignaledCounter() const
+	inline volatile uint64 GetFenceSignaledCounter() const
 	{
 		return FenceSignaledCounter;
 	}
@@ -103,17 +105,19 @@ private:
 	// Do not cache this pointer as it might change depending on VULKAN_REUSE_FENCES
 	VulkanRHI::FFence* Fence;
 
-	uint64 FenceSignaledCounter;
+	volatile uint64 FenceSignaledCounter;
 
 	void RefreshFenceStatus();
 
 	FVulkanCommandBufferManager* CommandBufferManager;
+
+	friend class FVulkanDynamicRHI;
 };
 
 class FVulkanCommandBufferManager
 {
 public:
-	FVulkanCommandBufferManager(FVulkanDevice* InDevice);
+	FVulkanCommandBufferManager(FVulkanDevice* InDevice, FVulkanCommandListContext* InContext);
 
 	~FVulkanCommandBufferManager();
 
@@ -127,10 +131,22 @@ public:
 		return ActiveCmdBuffer;
 	}
 
+	inline bool HasPendingUploadCmdBuffer() const
+	{
+		return UploadCmdBuffer != nullptr;
+	}
+
+	inline bool HasPendingActiveCmdBuffer() const
+	{
+		return ActiveCmdBuffer != nullptr;
+	}
+
 	FVulkanCmdBuffer* GetUploadCmdBuffer();
 
 	void SubmitUploadCmdBuffer(bool bWaitForFence);
 	void SubmitActiveCmdBuffer(bool bWaitForFence);
+
+	void WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, float TimeInSecondsToWait = 1.0f);
 
 	void RefreshFenceStatus();
 	void PrepareForNewActiveCommandBuffer();

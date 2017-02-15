@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of D3D12 fence functions
 
@@ -7,24 +7,17 @@
 //-----------------------------------------------------------------------------
 #include "D3D12RHIPrivate.h"
 
-uint64 FD3D12Fence::Signal(ID3D12CommandQueue* pCommandQueue)
+void FD3D12Fence::InternalSignal(ID3D12CommandQueue* pCommandQueue, uint64 FenceToSignal)
 {
 	check(pCommandQueue != nullptr);
 
 #if DEBUG_FENCES
-	UE_LOG(LogD3D12RHI, Log, TEXT("*** SIGNAL (CmdQueue: %016llX) Fence: %016llX (%s), Value: %u ***"), pCommandQueue, FenceCore->GetFence(), *GetName().ToString(), CurrentFence);
+	UE_LOG(LogD3D12RHI, Log, TEXT("*** GPU SIGNAL (CmdQueue: %016llX) Fence: %016llX (%s), Value: %u ***"), pCommandQueue, FenceCore->GetFence(), *GetName().ToString(), FenceToSignal);
 #endif
 
-	VERIFYD3D12RESULT(pCommandQueue->Signal(FenceCore->GetFence(), CurrentFence));
+	VERIFYD3D12RESULT(pCommandQueue->Signal(FenceCore->GetFence(), FenceToSignal));
 
-	// Save the current fence and increment it
-	SignalFence = CurrentFence++;
-
-	// Update the cached version of the fence value
-	GetLastCompletedFence();
-
-	// Return the value that was signaled
-	return SignalFence;
+	LastSignaledFence = FenceToSignal;
 }
 
 void FD3D12Fence::WaitForFence(uint64 FenceValue)

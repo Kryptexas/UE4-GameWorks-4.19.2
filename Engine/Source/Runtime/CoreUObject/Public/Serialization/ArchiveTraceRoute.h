@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveUObject.h"
+#include "Serialization/ArchiveObjectGraph.h"
 
 /**
  * Archive for finding shortest path from root to a particular object.

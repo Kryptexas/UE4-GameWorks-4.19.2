@@ -1,16 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "SlateTextLayout.h"
-#include "SlateEditableTextLayout.h"
-#include "SlateTextRun.h"
-#include "SlatePasswordRun.h"
-#include "TextBlockLayout.h"
-#include "TextEditHelper.h"
-#include "ITextLayoutMarshaller.h"
-#include "ISlateEditableTextWidget.h"
-#include "GenericCommands.h"
-#include "BreakIterator.h"
+#include "Widgets/Text/SlateEditableTextLayout.h"
+#include "Styling/CoreStyle.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Fonts/FontCache.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/Text/TextHitPoint.h"
+#include "Framework/Text/SlateTextRun.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Framework/Text/SlatePasswordRun.h"
+#include "Widgets/Text/TextBlockLayout.h"
+#include "Framework/Text/TextEditHelper.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "Internationalization/BreakIterator.h"
+#include "SlateSettings.h"
 
 /**
  * Ensure that text transactions are always completed.
@@ -197,6 +203,9 @@ FSlateEditableTextLayout::~FSlateEditableTextLayout()
 		TSharedRef<FTextInputMethodContext> TextInputMethodContextRef = TextInputMethodContext.ToSharedRef();
 		if (TextInputMethodSystem->IsActiveContext(TextInputMethodContextRef))
 		{
+			// Make sure that the composition is aborted to avoid any IME calls to EndComposition from trying to mutate our dying owner widget
+			TextInputMethodContextRef->AbortComposition();
+
 			// This can happen if an entire tree of widgets is culled, as Slate isn't notified of the focus loss, the widget is just deleted
 			TextInputMethodSystem->DeactivateContext(TextInputMethodContextRef);
 		}
@@ -327,8 +336,6 @@ bool FSlateEditableTextLayout::SetEditableText(const FText& TextToSet, const boo
 	{
 		const FString& TextToSetString = TextToSet.ToString();
 
-		Marshaller->ClearDirty();
-
 		ClearSelection();
 		TextLayout->ClearLines();
 
@@ -336,6 +343,8 @@ bool FSlateEditableTextLayout::SetEditableText(const FText& TextToSet, const boo
 		TextLayout->ClearRunRenderers();
 
 		Marshaller->SetText(TextToSetString, *TextLayout);
+
+		Marshaller->ClearDirty();
 
 		const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
 		if (Lines.Num() == 0)
@@ -577,8 +586,12 @@ bool FSlateEditableTextLayout::HandleFocusReceived(const FFocusEvent& InFocusEve
 	{
 		if (!OwnerWidget->IsTextReadOnly())
 		{
-			// @TODO: Create ITextInputMethodSystem derivations for mobile
-			FSlateApplication::Get().ShowVirtualKeyboard(true, InFocusEvent.GetUser(), VirtualKeyboardEntry);
+			const bool bShowVirtualKeyboardOnAllFocusTypes = GetDefault<USlateSettings>()->bVirtualKeyboardDisplayOnFocus;
+			if (InFocusEvent.GetCause() == EFocusCause::Mouse || bShowVirtualKeyboardOnAllFocusTypes)
+			{
+				// @TODO: Create ITextInputMethodSystem derivations for mobile
+				FSlateApplication::Get().ShowVirtualKeyboard(true, InFocusEvent.GetUser(), VirtualKeyboardEntry);
+			}
 		}
 	}
 	else
@@ -923,6 +936,21 @@ FReply FSlateEditableTextLayout::HandleKeyDown(const FKeyEvent& InKeyEvent)
 	}
 
 	return Reply;
+}
+
+FReply FSlateEditableTextLayout::HandleKeyUp(const FKeyEvent& InKeyEvent)
+{
+	if (FPlatformMisc::GetRequiresVirtualKeyboard() && InKeyEvent.GetKey() == EKeys::Virtual_Accept)
+	{
+		if (!OwnerWidget->IsTextReadOnly())
+		{
+			// @TODO: Create ITextInputMethodSystem derivations for mobile
+			FSlateApplication::Get().ShowVirtualKeyboard(true, InKeyEvent.GetUserIndex(), VirtualKeyboardEntry);
+			return FReply::Handled();
+		}
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply FSlateEditableTextLayout::HandleMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& InMouseEvent)
@@ -1959,7 +1987,6 @@ bool FSlateEditableTextLayout::MoveCursor(const FMoveCursor& InArgs)
 		if (TextInputMethodSystem)
 		{
 			TextInputMethodSystem->DeactivateContext(TextInputMethodContext.ToSharedRef());
-			TextInputMethodContext->CacheWindow();
 			TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
 		}
 	}
@@ -2287,6 +2314,7 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 	const bool bHasKeyboardFocus = OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet();
 	const bool bIsComposing = TextInputMethodContext->IsComposing();
 	const bool bHasSelection = SelectionLocation != CursorInteractionPosition;
+	const bool bIsReadOnly = OwnerWidget->IsTextReadOnly();
 
 	if (bIsComposing)
 	{
@@ -2352,25 +2380,28 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 		}
 	}
 
-	if (bHasKeyboardFocus)
+	if (bHasKeyboardFocus && !bIsReadOnly)
 	{
 		// The cursor mode uses the literal position rather than the interaction position
 		const FTextLocation CursorPosition = CursorInfo.GetCursorLocation();
 
 		const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
-		const int32 LineTextLength = Lines[CursorPosition.GetLineIndex()].Text->Len();
+		if (Lines.IsValidIndex(CursorPosition.GetLineIndex()))
+		{
+			const int32 LineTextLength = Lines[CursorPosition.GetLineIndex()].Text->Len();
 
-		if (LineTextLength == 0)
-		{
-			ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(0, 0), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
-		}
-		else if (CursorPosition.GetOffset() == LineTextLength)
-		{
-			ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(LineTextLength - 1, LineTextLength), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
-		}
-		else
-		{
-			ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(CursorPosition.GetOffset(), CursorPosition.GetOffset() + 1), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
+			if (LineTextLength == 0)
+			{
+				ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(0, 0), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
+			}
+			else if (CursorPosition.GetOffset() == LineTextLength)
+			{
+				ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(LineTextLength - 1, LineTextLength), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
+			}
+			else
+			{
+				ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(CursorPosition.GetOffset(), CursorPosition.GetOffset() + 1), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
+			}
 		}
 	}
 
@@ -2967,8 +2998,8 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 		{
 			// Let outsiders know that the text content has been changed
 			OwnerWidget->OnTextCommitted(GetEditableText(), VirtualKeyboardTextCommitType);
-			bTextCommittedByVirtualKeyboard = false;
 		}
+		bTextCommittedByVirtualKeyboard = false;
 	}
 	else if (bTextChangedByVirtualKeyboard)
 	{
@@ -3371,8 +3402,10 @@ void FSlateEditableTextLayout::FTextInputMethodContext::GetSelectionRange(uint32
 
 void FSlateEditableTextLayout::FTextInputMethodContext::SetSelectionRange(const uint32 BeginIndex, const uint32 Length, const ECaretPosition InCaretPosition)
 {
-	const uint32 MinIndex = BeginIndex;
-	const uint32 MaxIndex = MinIndex + Length;
+	const uint32 TextLength = GetTextLength();
+
+	const uint32 MinIndex = FMath::Min(BeginIndex, TextLength);
+	const uint32 MaxIndex = FMath::Min(MinIndex + Length, TextLength);
 
 	FTextLayout::FTextOffsetLocations OffsetLocations;
 	OwnerLayout->TextLayout->GetTextOffsetLocations(OffsetLocations);

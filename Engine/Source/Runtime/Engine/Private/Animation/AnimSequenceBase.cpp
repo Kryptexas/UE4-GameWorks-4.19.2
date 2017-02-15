@@ -1,14 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Animation/AnimSequenceBase.h"
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
-#include "Animation/AnimSequenceBase.h"
 #include "Animation/AnimInstance.h"
-#include "MessageLog.h"
-#include "FrameworkObjectVersion.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "UObject/FrameworkObjectVersion.h"
 
 DEFINE_LOG_CATEGORY(LogAnimMarkerSync);
 
@@ -97,6 +97,31 @@ void UAnimSequenceBase::SortNotifies()
 {
 	// Sorts using FAnimNotifyEvent::operator<()
 	Notifies.Sort();
+}
+
+bool UAnimSequenceBase::RemoveNotifies(const TArray<FName>& NotifiesToRemove)
+{
+	bool bSequenceModified = false;
+	for (int32 NotifyIndex = Notifies.Num() - 1; NotifyIndex >= 0; --NotifyIndex)
+	{
+		FAnimNotifyEvent& AnimNotify = Notifies[NotifyIndex];
+		if (NotifiesToRemove.Contains(AnimNotify.NotifyName))
+		{
+			if (!bSequenceModified)
+			{
+				Modify();
+				bSequenceModified = true;
+			}
+			Notifies.RemoveAtSwap(NotifyIndex);
+		}
+	}
+
+	if (bSequenceModified)
+	{
+		MarkPackageDirty();
+		RefreshCacheData();
+	}
+	return bSequenceModified;
 }
 
 bool UAnimSequenceBase::IsNotifyAvailable() const
@@ -430,7 +455,9 @@ void UAnimSequenceBase::InitializeNotifyTrack()
 
 int32 UAnimSequenceBase::GetNumberOfFrames() const
 {
-	return (SequenceLength/0.033f);
+	static float DefaultSampleRateInterval = 1.f/DEFAULT_SAMPLERATE;
+	// because of float error, add small margin at the end, so it can clamp correctly
+	return (SequenceLength/DefaultSampleRateInterval + KINDA_SMALL_NUMBER);
 }
 
 int32 UAnimSequenceBase::GetFrameAtTime(const float Time) const
@@ -625,13 +652,6 @@ void UAnimSequenceBase::Serialize(FArchive& Ar)
 
 	// fix up version issue and so on
 	RawCurveData.PostSerialize(Ar);
-}
-
-void UAnimSequenceBase::OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InAnimInstance) const
-{
-	// @todo: remove after deprecation
-	// forward to non-deprecated version
-	HandleAssetPlayerTickedInternal(Context, PreviousTime, MoveDelta, Instance, InAnimInstance->NotifyQueue);
 }
 
 void UAnimSequenceBase::HandleAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, struct FAnimNotifyQueue& NotifyQueue) const

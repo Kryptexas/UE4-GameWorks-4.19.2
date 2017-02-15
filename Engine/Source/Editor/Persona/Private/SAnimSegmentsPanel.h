@@ -1,11 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "Persona.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/Commands/Commands.h"
+#include "Animation/AnimTypes.h"
+#include "EditorStyleSet.h"
 #include "STrack.h"
 #include "SAnimTrackPanel.h"
+
+class FAssetData;
+class FMenuBuilder;
+class UAnimSequenceBase;
+struct FAnimSegment;
 
 DECLARE_DELEGATE( FOnPreAnimUpdate )
 DECLARE_DELEGATE( FOnPostAnimUpdate )

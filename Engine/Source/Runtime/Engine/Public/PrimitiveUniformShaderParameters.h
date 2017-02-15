@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "RenderResource.h"
+#include "ShaderParameters.h"
 #include "UniformBuffer.h"
-#include "Runtime/ShaderCore/Public/ShaderParameters.h"
 
 
 /** The uniform shader parameters associated with a primitive. */
@@ -36,7 +39,7 @@ inline FPrimitiveUniformShaderParameters GetPrimitiveUniformShaderParameters(
 	const FBoxSphereBounds& LocalBounds,
 	bool bReceivesDecals,
 	bool bHasDistanceFieldRepresentation,
-	bool bHasHeightfieldRepresentation,
+	bool bHasCapsuleRepresentation,
 	bool bUseSingleSampleShadowFromStationaryLights,
 	bool bUseEditorDepthTest,
 	uint32 LightingChannelMask,
@@ -74,7 +77,7 @@ inline FPrimitiveUniformShaderParameters GetPrimitiveUniformShaderParameters(
 
 	Result.LocalToWorldDeterminantSign = FMath::FloatSelect(LocalToWorld.RotDeterminant(),1,-1);
 	Result.DecalReceiverMask = bReceivesDecals ? 1 : 0;
-	Result.PerObjectGBufferData = (2 * (int32)bHasHeightfieldRepresentation + (int32)bHasDistanceFieldRepresentation) / 3.0f;
+	Result.PerObjectGBufferData = (2 * (int32)bHasCapsuleRepresentation + (int32)bHasDistanceFieldRepresentation) / 3.0f;
 	Result.UseSingleSampleShadowFromStationaryLights = bUseSingleSampleShadowFromStationaryLights ? 1.0f : 0.0f;
 	Result.UseEditorDepthTest = bUseEditorDepthTest ? 1 : 0;
 	return Result;

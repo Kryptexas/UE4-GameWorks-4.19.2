@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "OnlineSessionSettings.h"
 
-struct FQosRegionInfo;
+#include "CoreMinimal.h"
+#include "QosRegionManager.h"
+#include "UObject/GCObject.h"
+
 class IAnalyticsProvider;
-class UQosRegionManager;
+
+#define NO_REGION TEXT("NONE")
 
 /**
  * Main Qos interface for actions related to server quality of service

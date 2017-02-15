@@ -1,14 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __UnrealEd_h__
-#define __UnrealEd_h__
+#pragma once
 
-#ifdef __cplusplus // Xcode needs that to use this file as a precompiled header for indexing
+#include "Misc/MonolithicHeaderBoilerplate.h"
+MONOLITHIC_HEADER_BOILERPLATE()
 
-#if WITH_EDITOR
-
+#include "Engine.h"
 #include "EngineDefines.h"
 
+#include "Misc/Timespan.h"
 #include "SlateBasics.h"
 #include "EditorStyle.h"
 
@@ -61,6 +61,7 @@
 #include "Classes/Exporters/AnimSequenceExporterFBX.h"
 #include "Classes/Commandlets/AudioTestCommandlet.h"
 #include "Classes/Preferences/CascadeOptions.h"
+#include "Classes/Settings/ClassViewerSettings.h"
 #include "Classes/Commandlets/CompressAnimationsCommandlet.h"
 #include "Classes/Settings/ContentBrowserSettings.h"
 #include "Classes/Commandlets/CookCommandlet.h"
@@ -82,11 +83,15 @@
 #include "Classes/Commandlets/DiffFilesCommandlet.h"
 #include "Classes/Commandlets/DumpBlueprintsInfoCommandlet.h"
 #include "Classes/Commandlets/DumpHiddenCategoriesCommandlet.h"
+#include "GraphEditAction.h"
 #include "Classes/MaterialGraph/MaterialGraph.h"
+#include "EdGraphNode_Comment.h"
 #include "Classes/MaterialGraph/MaterialGraphNode_Comment.h"
 #include "Classes/Animation/EditorAnimBaseObj.h"
 #include "Classes/Animation/EditorAnimCompositeSegment.h"
 #include "Classes/Animation/EditorAnimSegment.h"
+#include "DisplayDebugHelpers.h"
+#include "Animation/AnimInstance.h"
 #include "Classes/Animation/EditorCompositeSection.h"
 #include "Classes/Animation/EditorNotifyObject.h"
 #include "Classes/Builders/EditorBrushBuilder.h"
@@ -104,6 +109,10 @@
 #include "Classes/Settings/LevelEditorPlaySettings.h"
 #include "Classes/Settings/LevelEditorViewportSettings.h"
 #include "Classes/Editor/EditorEngine.h"
+#include "IPackageAutoSaver.h"
+#include "ISourceControlModule.h"
+#include "ComponentVisualizer.h"
+#include "ComponentVisualizerManager.h"
 #include "Classes/Editor/UnrealEdEngine.h"
 #include "Classes/Settings/EditorExperimentalSettings.h"
 #include "Classes/Settings/EditorLoadingSavingSettings.h"
@@ -128,8 +137,6 @@
 #include "Classes/Factories/CameraAnimFactory.h"
 #include "Classes/Factories/DestructibleMeshFactory.h"
 #include "Classes/Factories/ReimportDestructibleMeshFactory.h"
-#include "Classes/Factories/DialogueVoiceFactory.h"
-#include "Classes/Factories/DialogueWaveFactory.h"
 #include "Classes/Factories/EnumFactory.h"
 #include "Classes/Factories/FbxFactory.h"
 #include "Classes/Factories/FbxSceneImportFactory.h"
@@ -156,19 +163,9 @@
 #include "Classes/Factories/ParticleSystemFactoryNew.h"
 #include "Classes/Factories/PhysicalMaterialFactoryNew.h"
 #include "Classes/Factories/PolysFactory.h"
-#include "Classes/Factories/ReverbEffectFactory.h"
 #include "Classes/Factories/SkeletonFactory.h"
 #include "Classes/Factories/SlateBrushAssetFactory.h"
 #include "Classes/Factories/SlateWidgetStyleAssetFactory.h"
-#include "Classes/Factories/SoundAttenuationFactory.h"
-#include "Classes/Factories/SoundConcurrencyFactory.h"
-#include "Classes/Factories/SoundClassFactory.h"
-#include "Classes/Factories/SoundCueFactoryNew.h"
-#include "Classes/Factories/SoundFactory.h"
-#include "Classes/Factories/ReimportSoundFactory.h"
-#include "Classes/Factories/SoundMixFactory.h"
-#include "Classes/Factories/SoundSurroundFactory.h"
-#include "Classes/Factories/ReimportSoundSurroundFactory.h"
 #include "Classes/Factories/StructureFactory.h"
 #include "Classes/Factories/SubsurfaceProfileFactory.h"
 #include "Classes/Factories/SubDSurfaceFactory.h"
@@ -244,14 +241,6 @@
 #include "Classes/ThumbnailRendering/WorldThumbnailInfo.h"
 #include "Classes/Exporters/SequenceExporterT3D.h"
 #include "Classes/Exporters/SkeletalMeshExporterFBX.h"
-#include "Classes/SoundClassGraph/SoundClassGraph.h"
-#include "Classes/SoundClassGraph/SoundClassGraphNode.h"
-#include "Classes/SoundClassGraph/SoundClassGraphSchema.h"
-#include "Classes/SoundCueGraph/SoundCueGraph.h"
-#include "Classes/SoundCueGraph/SoundCueGraphNode_Base.h"
-#include "Classes/SoundCueGraph/SoundCueGraphNode.h"
-#include "Classes/SoundCueGraph/SoundCueGraphNode_Root.h"
-#include "Classes/SoundCueGraph/SoundCueGraphSchema.h"
 #include "Classes/Exporters/SoundExporterOGG.h"
 #include "Classes/Exporters/SoundExporterWAV.h"
 #include "Classes/Exporters/SoundSurroundExporterWAV.h"
@@ -272,6 +261,7 @@
 #include "Classes/Exporters/TextureExporterTGA.h"
 #include "Classes/ThumbnailRendering/ThumbnailRenderer.h"
 #include "Classes/ThumbnailRendering/DefaultSizedThumbnailRenderer.h"
+#include "ThumbnailHelpers.h"
 #include "Classes/ThumbnailRendering/AnimBlueprintThumbnailRenderer.h"
 #include "Classes/ThumbnailRendering/AnimSequenceThumbnailRenderer.h"
 #include "Classes/ThumbnailRendering/BlendSpaceThumbnailRenderer.h"
@@ -299,20 +289,25 @@
 #include "Classes/Commandlets/WrangleContentCommandlet.h"
 //////////////////////	@todo Classes.h
 
+#include "Kismet2/ComponentEditorUtils.h"
+#include "Commandlets/EditorCommandlets.h"
+#include "EditorUndoClient.h"
+#include "EditorModeTools.h"
+#include "UnrealWidget.h"
 #include "Editor.h"
 
 #include "EditorViewportClient.h"
 #include "LevelEditorViewport.h"
 
 #include "EditorModeRegistry.h"
+#include "EdMode.h"
+#include "EditorModeManager.h"
 #include "EditorModes.h"
 
 #include "MRUList.h"
 
 
 //#include "../Private/GeomFitUtils.h"
-
-extern UNREALED_API class UUnrealEdEngine* GUnrealEd;
 
 #include "UnrealEdMisc.h"
 #include "EditorDirectories.h"
@@ -327,15 +322,8 @@ extern UNREALED_API class UUnrealEdEngine* GUnrealEd;
 #include "Dialogs/Dialogs.h"
 #include "Viewports.h"
 
-#endif // WITH_EDITOR
-
-UNREALED_API int32 EditorInit( class IEngineLoop& EngineLoop );
-UNREALED_API void EditorExit();
+#include "UnrealEdGlobals.h"
 
 #include "UnrealEdMessages.h"
 
 #include "EditorAnalytics.h"
-
-#endif // __cplusplus
-
-#endif	// __UnrealEd_h__

@@ -1,14 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
 * Declarations for LoadTimer which helps get load times for various parts of the game.
 */
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/Map.h"
+#include "UObject/NameTypes.h"
+#include "ProfilingDebugging/ScopedTimers.h"
+
 #define ENABLE_LOADTIME_TRACKING 0
 #define ENABLE_LOADTIME_RAW_TIMINGS 0
-
-#include "ScopedTimers.h"
 
 /** High level load time tracker utility (such as initial engine startup or game specific timings) */
 class CORE_API FLoadTimeTracker

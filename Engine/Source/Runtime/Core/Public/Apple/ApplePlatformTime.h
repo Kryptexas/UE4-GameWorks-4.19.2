@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	ApplePlatformTime.h: Apple platform Time functions
@@ -6,7 +6,7 @@
 
 #pragma once
 #include "GenericPlatform/GenericPlatformTime.h"
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 #if PLATFORM_MAC
 #include "Mac/MacSystemIncludes.h"
 #elif PLATFORM_IOS
@@ -37,6 +37,12 @@ struct CORE_API FApplePlatformTime : public FGenericPlatformTime
 	}
 
 	static FORCEINLINE uint32 Cycles()
+	{
+		uint64 Cycles = mach_absolute_time();
+		return Cycles;
+	}
+
+	static FORCEINLINE uint64 Cycles64()
 	{
 		uint64 Cycles = mach_absolute_time();
 		return Cycles;

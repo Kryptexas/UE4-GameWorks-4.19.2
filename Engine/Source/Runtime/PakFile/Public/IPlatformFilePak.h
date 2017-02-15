@@ -1,6 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "Stats/Stats.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopeLock.h"
+#include "Templates/ScopedPointer.h"
+#include "UniquePtr.h"
+
+class FChunkCacheWorker;
+class IAsyncReadFileHandle;
 
 PAKFILE_API DECLARE_LOG_CATEGORY_EXTERN(LogPakFile, Log, All);
 DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Total pak file read time"), STAT_PakFile_Read, STATGROUP_PakFile, PAKFILE_API);
@@ -9,6 +20,16 @@ DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num open pak file handles"), STAT_Pa
 
 /** Delegate for allowing a game to restrict the accessing of non-pak files */
 DECLARE_DELEGATE_RetVal_OneParam(bool, FFilenameSecurityDelegate, const TCHAR* /*InFilename*/);
+
+#define PAKHASH_USE_CRC	1
+
+#if PAKHASH_USE_CRC
+typedef uint32 TPakChunkHash;
+#else
+typedef FSHAHash TPakChunkHash;
+#endif
+
+PAKFILE_API TPakChunkHash ComputePakChunkHash(const void* InData, int64 InDataSizeInBytes);
 
 /**
  * Struct which holds pak file info (version, index offset, hash value).
@@ -20,7 +41,7 @@ struct FPakInfo
 		/** Magic number to use in header */
 		PakFile_Magic = 0x5A6F12E1,
 		/** Size of cached data. */
-		MaxChunkDataSize = 256*1024,
+		MaxChunkDataSize = 64*1024,
 	};
 
 	/** Version numbers. */
@@ -260,9 +281,9 @@ class PAKFILE_API FPakFile : FNoncopyable
 	FString PakFilename;
 	FName PakFilenameName;
 	/** Archive to serialize the pak file from. */
-	TAutoPtr<class FChunkCacheWorker> Decryptor;
+	TUniquePtr<class FChunkCacheWorker> Decryptor;
 	/** Map of readers assigned to threads. */
-	TMap<uint32, TAutoPtr<FArchive>> ReaderMap;
+	TMap<uint32, TUniquePtr<FArchive>> ReaderMap;
 	/** Critical section for accessing ReaderMap. */
 	FCriticalSection CriticalSection;
 	/** Pak file info (trailer). */
@@ -949,6 +970,16 @@ public:
 	static void GetPakFolders(const TCHAR* CmdLine, TArray<FString>& OutPakFolders);
 
 	/**
+	* Helper function for accessing pak encryption key
+	*/
+	static const ANSICHAR* GetPakEncryptionKey();
+
+	/**
+	* Helper function for accessing pak signing keys
+	*/
+	static void GetPakSigningKeys(FString& OutExponent, FString& OutModulus);
+
+	/**
 	 * Constructor.
 	 * 
 	 * @param InLowerLevel Wrapper platform file.
@@ -962,10 +993,15 @@ public:
 
 	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override;
 	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) override;
+	virtual void InitializeNewAsyncIO() override;
 
 	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return LowerLevel;
+	}
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) override
+	{
+		LowerLevel = NewLowerLevel;
 	}
 
 	virtual const TCHAR* GetName() const override
@@ -1138,13 +1174,9 @@ public:
 		FDateTime Result = FDateTime::MinValue();
 		if (IsNonPakFilenameAllowed(Filename))
 		{
-#if USE_NEW_ASYNC_IO
-			double StartTime(UE_LOG_ACTIVE(LogPakFile, Error) ? FPlatformTime::Seconds() : 0.0);
-#endif
+			double StartTime = (GNewAsyncIO && UE_LOG_ACTIVE(LogPakFile, Verbose)) ? FPlatformTime::Seconds() : 0.0;
 			Result = LowerLevel->GetTimeStamp(Filename);
-#if USE_NEW_ASYNC_IO
-			UE_LOG(LogPakFile, Error, TEXT("GetTimeStamp on disk (!!) for %s took %6.2fms."), Filename, float(FPlatformTime::Seconds() - StartTime) * 1000.0f);
-#endif
+			UE_CLOG(GNewAsyncIO, LogPakFile, Verbose, TEXT("GetTimeStamp on disk (!!) for %s took %6.2fms."), Filename, float(FPlatformTime::Seconds() - StartTime) * 1000.0f);
 		}
 		return Result;
 	}
@@ -1567,9 +1599,7 @@ public:
 
 	virtual bool CopyFile(const TCHAR* To, const TCHAR* From, EPlatformFileRead ReadFlags = EPlatformFileRead::None, EPlatformFileWrite WriteFlags = EPlatformFileWrite::None) override;
 
-#if USE_NEW_ASYNC_IO
 	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override;
-#endif // USE_NEW_ASYNC_IO
 
 	/**
 	 * Converts a filename to a path inside pak file.

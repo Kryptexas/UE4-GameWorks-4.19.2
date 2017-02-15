@@ -1,6 +1,7 @@
 #!/bin/bash
 
 Architecture=x86_64-unknown-linux-gnu
+#Architecture=aarch64-unknown-linux-gnueabi
 
 BuildWithOptions()
 {
@@ -16,7 +17,7 @@ BuildWithOptions()
 	mkdir -p $BuildDir
 	pushd $BuildDir
 	cmake $Options $SdlDir
-	make
+	make -j 4
 	cp --remove-destination libSDL2.a $SdlDir/lib/Linux/$Architecture/$SdlLibName
 	popd
 }

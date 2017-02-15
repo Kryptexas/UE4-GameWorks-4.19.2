@@ -1,7 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "GameLiveStreamingModule.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #include "GameLiveStreamingFunctionLibrary.h"
-#include "Public/IGameLiveStreaming.h"
+#include "IGameLiveStreaming.h"
 
 #define LOCTEXT_NAMESPACE "GameLiveStreaming"
 

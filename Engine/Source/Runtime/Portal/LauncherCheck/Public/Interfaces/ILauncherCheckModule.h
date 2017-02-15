@@ -1,5 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Logging/LogMacros.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
 
 /** Log categories */
 DECLARE_LOG_CATEGORY_EXTERN(LogLauncherCheck, Display, All);

@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Engine.h"
 #include "StreamingPauseRendering.h"
-#include "SceneViewport.h"
+#include "Layout/Margin.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "RenderingThread.h"
+#include "Modules/ModuleManager.h"
+#include "EngineGlobals.h"
+#include "CanvasTypes.h"
+#include "Rendering/RenderingCommon.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SViewport.h"
+#include "Slate/SceneViewport.h"
+#include "Slate/SlateTextures.h"
 #include "MoviePlayer.h"
-#include "SThrobber.h"
+#include "Widgets/Images/SThrobber.h"
 
 
 IMPLEMENT_MODULE(FStreamingPauseRenderingModule, StreamingPauseRendering);
@@ -57,6 +66,7 @@ FStreamingPauseRenderingModule::FStreamingPauseRenderingModule()
 	: SceneViewport(nullptr)
 	, ViewportWidget(nullptr)
 	, BackgroundView(nullptr)
+	, bMovieWasStarted(false)
 { }
 
 
@@ -84,75 +94,89 @@ void FStreamingPauseRenderingModule::ShutdownModule()
 
 void FStreamingPauseRenderingModule::BeginStreamingPause( FViewport* GameViewport )
 {
-	check(GameViewport);
-
-	//Create the viewport widget and add a throbber.
-	ViewportWidget = SNew( SViewport )
-		.EnableGammaCorrection(false);
-
-	ViewportWidget->SetContent
-	(
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.VAlign(VAlign_Bottom)
-		.HAlign(HAlign_Right)
-		.Padding(FMargin(10.0f))
-		[
-			SNew(SThrobber)
-		]
-	);
-
-	//Render the current scene to a new viewport.
- 	FIntPoint SizeXY = GameViewport->GetSizeXY();
- 	bool bRenderLastFrame = CVarRenderLastFrameInStreamingPause.GetValueOnGameThread() != 0;
- 	bRenderLastFrame = bRenderLastFrame && !( GEngine->StereoRenderingDevice.IsValid() && GameViewport->IsStereoRenderingAllowed() );
- 
- 	if( SizeXY.X > 0 && SizeXY.Y > 0 && bRenderLastFrame )
+	// If a movie is already playing don't bother starting one
+	if(!GetMoviePlayer()->IsMovieCurrentlyPlaying())
 	{
-		FViewportClient* ViewportClient = GameViewport->GetClient();
+		check(GameViewport);
 
-		SceneViewport = MakeShareable(new FSceneViewport(ViewportClient, ViewportWidget));
+		//Create the viewport widget and add a throbber.
+		ViewportWidget = SNew(SViewport)
+			.EnableGammaCorrection(false);
 
-		SceneViewport->UpdateViewportRHI(false,SizeXY.X,SizeXY.Y, EWindowMode::Fullscreen);
+		ViewportWidget->SetContent
+		(
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.VAlign(VAlign_Bottom)
+			.HAlign(HAlign_Right)
+			.Padding(FMargin(10.0f))
+			[
+				SNew(SThrobber)
+			]
+		);
 
-		SceneViewport->EnqueueBeginRenderFrame();
+		//Render the current scene to a new viewport.
+		FIntPoint SizeXY = GameViewport->GetSizeXY();
+		bool bRenderLastFrame = CVarRenderLastFrameInStreamingPause.GetValueOnGameThread() != 0;
+		bRenderLastFrame = bRenderLastFrame && !(GEngine->StereoRenderingDevice.IsValid() && GameViewport->IsStereoRenderingAllowed());
 
-		FCanvas Canvas(SceneViewport.Get(), nullptr, ViewportClient->GetWorld(), ViewportClient->GetWorld()->FeatureLevel);
+		if(SizeXY.X > 0 && SizeXY.Y > 0 && bRenderLastFrame)
 		{
-			ViewportClient->Draw(SceneViewport.Get(), &Canvas);
+			FViewportClient* ViewportClient = GameViewport->GetClient();
+
+			SceneViewport = MakeShareable(new FSceneViewport(ViewportClient, ViewportWidget));
+
+			SceneViewport->UpdateViewportRHI(false, SizeXY.X, SizeXY.Y, EWindowMode::Fullscreen, PF_Unknown);
+
+			SceneViewport->EnqueueBeginRenderFrame();
+
+			FCanvas Canvas(SceneViewport.Get(), nullptr, ViewportClient->GetWorld(), ViewportClient->GetWorld()->FeatureLevel);
+			{
+				ViewportClient->Draw(SceneViewport.Get(), &Canvas);
+			}
+			Canvas.Flush_GameThread();
+
+
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+				EndDrawingCommand,
+				FViewport*, Viewport, SceneViewport.Get(),
+				{
+					Viewport->EndRenderFrame(RHICmdList, false, false);
+				});
+
+			BackgroundView = MakeShareable(new FBackgroundView(SceneViewport->GetRenderTargetTexture(), SizeXY));
+			ViewportWidget->SetViewportInterface(BackgroundView.ToSharedRef());
+
 		}
-		Canvas.Flush_GameThread();
 
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-			EndDrawingCommand,
-			FViewport*,Viewport, SceneViewport.Get(),
-		{
-			Viewport->EndRenderFrame(RHICmdList, false, false);
-		});
+		//Create the loading screen and begin rendering the widget.
+		FLoadingScreenAttributes LoadingScreen;
+		LoadingScreen.bAutoCompleteWhenLoadingCompletes = true;
+		LoadingScreen.WidgetLoadingScreen = ViewportWidget; // SViewport from above
+		GetMoviePlayer()->SetupLoadingScreen(LoadingScreen);
+		GetMoviePlayer()->PlayMovie();
 
-		BackgroundView = MakeShareable(new FBackgroundView(SceneViewport->GetRenderTargetTexture(), SizeXY));
-		ViewportWidget->SetViewportInterface(BackgroundView.ToSharedRef());
-
+		// We started playing a movie
+		bMovieWasStarted = true;
 	}
-
-	//Create the loading screen and begin rendering the widget.
-	FLoadingScreenAttributes LoadingScreen;
-	LoadingScreen.bAutoCompleteWhenLoadingCompletes = true; 
-	LoadingScreen.WidgetLoadingScreen = ViewportWidget; // SViewport from above
-	GetMoviePlayer()->SetupLoadingScreen(LoadingScreen);			
-	GetMoviePlayer()->PlayMovie();
 }
 
 
 void FStreamingPauseRenderingModule::EndStreamingPause()
 {
-	//Stop rendering the loading screen and resume
-	GetMoviePlayer()->WaitForMovieToFinish();
+	// Only wait for the movie to finish if we were the one to start it.
+	if(bMovieWasStarted)
+	{
+		//Stop rendering the loading screen and resume
+		GetMoviePlayer()->WaitForMovieToFinish();
 
-	ViewportWidget = nullptr;
-	SceneViewport = nullptr;
-	BackgroundView = nullptr;
-	
-	FlushRenderingCommands();
+		ViewportWidget = nullptr;
+		SceneViewport = nullptr;
+		BackgroundView = nullptr;
+
+		FlushRenderingCommands();
+
+		bMovieWasStarted = false;
+	}
 }

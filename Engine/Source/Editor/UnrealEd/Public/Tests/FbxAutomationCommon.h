@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "FbxAutomationCommon.generated.h"
 
+class UFbxImportUI;
 
 /** Import mesh type */
 UENUM()
@@ -123,9 +127,9 @@ class UFbxTestPlan : public UObject
 	UPROPERTY(EditAnywhere, Category = ExpectedResult)
 	TArray< FFbxTestPlanExpectedResult > ExpectedResult;
 
-	/* Options use for this test plan. No UProperty since it will be serialize to json manually */
-	UPROPERTY(EditAnywhere, Instanced, Category = Options)
-	UFbxImportUI *ImportUI;
+	/* Options use for this test plan, Transient because we manually serialize the options. */
+	UPROPERTY(EditAnywhere, Transient, Instanced, Category = Options)
+	UFbxImportUI* ImportUI;
 };
 
 namespace FbxAutomationTestsAPI

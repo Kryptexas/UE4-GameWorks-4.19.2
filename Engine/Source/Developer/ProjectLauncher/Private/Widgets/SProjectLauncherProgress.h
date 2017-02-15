@@ -1,10 +1,43 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Layout/Margin.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Misc/Paths.h"
+#include "Interfaces/ILauncherWorker.h"
+#include "HAL/FileManager.h"
+#include "Types/SlateStructs.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "EditorStyleSet.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/SHeaderRow.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Views/STableRow.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/ScopeLock.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Notifications/SProgressBar.h"
+#include "DesktopPlatformModule.h"
+#include "Widgets/Layout/SScrollBar.h"
+#include "Framework/Layout/Overscroll.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/SProjectLauncherTaskListRow.h"
+#include "Widgets/SProjectLauncherMessageListRow.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/Layout/SScrollBox.h"
 
 #define LOCTEXT_NAMESPACE "SProjectLauncherProgress"
 
+class Error;
 
 /**
  * Implements the launcher's progress page.
@@ -41,6 +74,13 @@ public:
 		OnCloseClicked = InArgs._OnCloseClicked;
 		OnRerunClicked = InArgs._OnRerunClicked;
 
+		TSharedRef<SScrollBar> HorizontalScrollBar = SNew(SScrollBar)
+			.Orientation(EOrientation::Orient_Horizontal)
+			.AlwaysShowScrollbar(true);
+		TSharedRef<SScrollBar> VerticalScrollBar = SNew(SScrollBar)
+			.Orientation(EOrientation::Orient_Vertical)
+			.AlwaysShowScrollbar(true);
+
 		ChildSlot
 		[
 			SNew(SVerticalBox)
@@ -76,7 +116,7 @@ public:
 			]
 
 			+ SVerticalBox::Slot()
-			.Padding(0.0, 8.0, 8.0, 0.0)
+			.Padding(0.0, 8.0, 0.0, 0.0)
 			[
 				SNew(SSplitter)
 				.Orientation(Orient_Vertical)
@@ -132,18 +172,59 @@ public:
 					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 					.Padding(0.0f)
 					[
-						SAssignNew(MessageListView, SListView< TSharedPtr<FProjectLauncherMessage> >)
-						.HeaderRow
-						(
+						SNew(SGridPanel)
+						.FillColumn(0, 1.f)
+						.FillRow(1, 1.f)
+						+ SGridPanel::Slot(0, 0)
+						[
 							SNew(SHeaderRow)
 							+ SHeaderRow::Column("Status")
-							.DefaultLabel(LOCTEXT("TaskListStatusColumnHeader", "Status"))
+							.DefaultLabel(LOCTEXT("TaskListOutputLogColumnHeader", "Output Log"))
 							.FillWidth(1.0)
-						)
-						.ListItemsSource(&MessageList)
-						.OnGenerateRow(this, &SProjectLauncherProgress::HandleMessageListViewGenerateRow)
-						.ItemHeight(24.0)
-						.SelectionMode(ESelectionMode::Multi)
+						]
+						+ SGridPanel::Slot(1, 0)
+						[
+							SNew(SHeaderRow)
+						]
+						+ SGridPanel::Slot(0, 1)
+						[
+							SNew(SScrollBox)
+							.Orientation(EOrientation::Orient_Horizontal)
+							.ExternalScrollbar(HorizontalScrollBar)
+							+ SScrollBox::Slot()
+							[
+								SAssignNew(MessageListView, SListView< TSharedPtr<FProjectLauncherMessage> >)
+								.HeaderRow
+								(
+									SNew(SHeaderRow)
+									.Visibility(EVisibility::Collapsed)
+									+ SHeaderRow::Column("Status")
+									.DefaultLabel(LOCTEXT("TaskListOutputLogColumnHeader", "Output Log"))
+								)
+								.ListItemsSource(&MessageList)
+								.OnGenerateRow(this, &SProjectLauncherProgress::HandleMessageListViewGenerateRow)
+								.ItemHeight(24.0)
+								.SelectionMode(ESelectionMode::Multi)
+								.ExternalScrollbar(VerticalScrollBar)
+								.AllowOverscroll(EAllowOverscroll::No)
+							]
+						]
+						+ SGridPanel::Slot(1, 1)
+						[
+							SNew(SBox)
+							.WidthOverride(FOptionalSize(16))
+							[
+								VerticalScrollBar
+							]
+						]
+						+ SGridPanel::Slot(0, 2)
+						[
+							SNew(SBox)
+							.HeightOverride(FOptionalSize(16))
+							[
+								HorizontalScrollBar
+							]
+						]
 					]
 				]
 			]

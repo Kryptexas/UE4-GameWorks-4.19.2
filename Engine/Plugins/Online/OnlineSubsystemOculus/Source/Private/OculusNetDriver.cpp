@@ -1,11 +1,15 @@
 // Copyright 2016 Oculus VR, LLC All Rights reserved.
 
-#include "OnlineSubsystemOculusPrivatePCH.h"
+#pragma once
+
+#include "OculusNetDriver.h"
+#include "OnlineSubsystemOculusPrivate.h"
+
 
 #include "IPAddressOculus.h"
 #include "OculusNetConnection.h"
-#include "OculusNetDriver.h"
 #include "OnlineSubsystemOculus.h"
+#include "Engine/Engine.h"
 
 #include "Net/DataChannel.h"
 

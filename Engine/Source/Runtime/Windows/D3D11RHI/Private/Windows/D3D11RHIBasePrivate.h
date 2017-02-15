@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11BaseRHIPrivate.h: Private D3D RHI definitions for Windows.
 =============================================================================*/
 
 #pragma once
+
+#include "WindowsHWrapper.h"
 
 // Assume D3DX is available
 #ifndef WITH_D3DX_LIBS

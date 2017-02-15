@@ -1,33 +1,33 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:NoPublish
-Title:Collision Help
+Title:碰撞帮助
 Crumbs:
-Description: Collision Help
+Description:碰撞帮助
 
 
 [EXCERPT:ObjectChannel]
 
-Object Channel is the collision channel type that can be assigned to object as Object Type. 
+物体通道（Object Channel）是碰撞通道类型，可作为物体类型（Object Type）指定到物体。 
 
 ![](ObjectType.png)
 
-This used to be [Movement Channel] because it is used when this object is moved. 
+它曾是 [移动通道（Movement Channel）]，因为它在此物体被移动时使用。 
 
-When you define collision property for object, you define 3 set ups.
+定义物体的碰撞属性时，将定义 3 个设置。
 
-- Collision Enabled : Is there any collision? If there is collision, do you want this object to be simulated?
-- Object Type : Define what object type this will use when it is being moved
-- Collision Response : Response to other objects
+- Collision Enabled：是否存在碰撞？如存在碰撞，是否需要对此物体进行模拟？
+- Object Type：定义其被移动时所使用的物体类型
+- Collision Response：对其他物体的反应
 
 ![](CollisionResponse.png)
 
-This is a lot of information to set up, so we implemented [Collision Presets] as the one you can quickly choose and set. 
+需要设置的信息较多，因此我们实现了 [碰撞预设（Collision Presets）]，便于用户快速选择和设置。 
 
 ![](CollisionPreset.png)
 
-If you would like to assign to object, you want this channel to be [Object Channel]
+如希望指定到物体，则需要该通道设为 [物体通道]
 
-Query functions also allow trace [Object Type]. For example, you can query finding all objects within this sphere when the Object Type is Pawn. 
+查询函数也可追踪 [物体类型]。例如物体类型为 Pawn 时可查询找到此球体中的全部物体。 
 
 ![](ObjectChannelQuery.png)
 
@@ -40,31 +40,31 @@ Engine/Physics/Collision
 
 [EXCERPT:TraceChannel]
 
-We distinguish Trace Channel vs Object Channel for major two reasons. 
+出于两大原因，需要区分追踪通道（Trace Channel）和物体通道（Object Channel）。 
 
-Object Channel is the one that can be assigned to object as Object Type and can be queried by Object Type when traced. Please check the above Object Channel tooltip. 
-Trace Channel is when you have a specific purpose of trace, for example, Weapon Trace. Even though it is possible to create bullet object that has object type as "Weapon", often most of games do direct ray cast to the target. When you trace using "Weapon" Trace type, each object can decide how you would like to respond to it. 
+物体通道可作为物体类型指定到物体，被追踪时可通过物体类型查询。请查看上方的物体通道提示文本。 
+追踪通道在有特定追踪目标（如武器追踪）时使用。虽然可以创建物体类型为“武器”的子弹物体，但多数游戏均直接对目标进行光线投射。使用“武器”追踪类型进行追踪时，每个物体可决定对其作出的响应。 
 
-Another example is camera. You can decide to have camera object to contain their Object Type to be Camera, in which case Camera is Object Channel. 
-But also you can choose to use Camera as Trace Channel, and use it in your trace code to trace using that channel, and other objects can decide how they would like to respond. 
+再举一个例子：摄像机。可决定让摄像机物体包含作为物体类型的 Camera ，此时物体通道则是 Camera。 
+但也可选择将 Camera 用作追踪通道，将其用于追踪代码中，使用该通道进行追踪。而其他物体可决定对此作出的响应。 
 
-The distinction is shown in below when using same functionality. 
+使用相同功能时，区别显示如下。 
 
 ![](TraceQuery.png)
 
 ![](ObjectQuery.png)
 
-This two works slightly different. 
+两者工作方式稍有不同。 
 
-First version is trace by Channel, which specifies Trace Channel. 
-This will trace from Start to End with sphere of radius 30, and will find anything that RESPONDS to Weapon Trace. 
+第一个版本由通道进行追踪，该通道指定追踪通道。 
+这将以球体半径 30 从 Start 到 End 进行追踪，将找到对武器追踪作出响应的物体。 
 
-This respond is defined per object. 
+该响应由每个物体所定义。 
 
 ![](CollisionResponse.png)
 
-Second version is trace by Object. 
-This will trace from Start to End with sphere of radius 30, and will find anything that has Object Type to be Pawn OR PhysicsObject. 
+第二个版本由物体进行追踪。 
+这将以球体半径 30 从 Start 到 End 进行追踪，将找到物体类型为 Pawn 或 PhysicsObject 的物体。 
 
 [VAR:ToolTipFullLink]
 Engine/Physics/Collision
@@ -74,16 +74,16 @@ Engine/Physics/Collision
 
 
 [EXCERPT:Preset]
-We provide presets of collision settings for components to use. 
+我们提供了碰撞设置的预设供组件使用。 
 
 ![](CollisionPreset.png)
 
-If you modify this, note that it can change an existing object's behavior. 
-Please be careful when you modify these values. If you would like to modify this, please go to Project Settings/Collision.
+注意：如要对此进行修改，则可能使现有的物体行为发生变化。 
+修改这些数值时请多加注意。如需进行修改，请前往 Project Settings/Collision。
 
-You can also add your presets and assign them to components. 
+也可添加预设并将它们指定到组件。 
 
-You need to save this to default config otherwise your change will not show to other users. 
+需要将此保存到默认配置文件，否则修改将不会对其他用户显示。 
 [/EXCERPT:Preset]
 
 

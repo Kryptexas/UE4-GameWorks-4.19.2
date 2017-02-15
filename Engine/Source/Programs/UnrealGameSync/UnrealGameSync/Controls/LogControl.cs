@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -386,6 +386,11 @@ namespace UnrealGameSync
 
 		protected void ContextMenu_SelectAll(object sender, EventArgs e)
 		{
+			SelectAll();
+		}
+
+		public void SelectAll()
+		{
 			if(Lines.Count > 0)
 			{
 				Selection = new TextSelection(new TextLocation(0, 0), new TextLocation(Lines.Count - 1, Lines[Lines.Count - 1].Length));
@@ -585,6 +590,12 @@ namespace UnrealGameSync
 				case Keys.End:
 					ScrollWindow(+Lines.Count);
 					Invalidate();
+					break;
+				case Keys.A:
+					if(e.Control)
+					{
+						SelectAll();
+					}
 					break;
 				case Keys.C:
 					if(e.Control)

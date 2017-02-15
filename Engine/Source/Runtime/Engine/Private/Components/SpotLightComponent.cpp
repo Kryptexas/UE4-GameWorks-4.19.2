@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SpotLightComponent.cpp: LightComponent implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "PointLightSceneProxy.h"
 #include "Components/SpotLightComponent.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Engine/Texture2D.h"
+#include "SceneManagement.h"
+#include "PointLightSceneProxy.h"
 
 
 /**

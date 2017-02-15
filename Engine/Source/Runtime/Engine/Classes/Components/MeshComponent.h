@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
-#include "Components/PrimitiveComponent.h"
-#include "RHIDefinitions.h"
-#include "MeshComponent.generated.h"
 
-struct FMaterialRelevance;
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Components/PrimitiveComponent.h"
+#include "Materials/MaterialInterface.h"
+#include "MeshComponent.generated.h"
 
 /**
  * MeshComponent is an abstract base for any component that is an instance of a renderable collection of triangles.
@@ -60,7 +62,7 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const override;
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
 	virtual void SetMaterialByName(FName MaterialSlotName, class UMaterialInterface* Material) override;
-	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;	
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;	
 	//~ End UPrimitiveComponent Interface
 
 	/** Accesses the scene relevance information for the materials applied to the mesh. Valid from game thread only. */
@@ -80,6 +82,12 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	 */
 	virtual void PrestreamTextures( float Seconds, bool bPrioritizeCharacterTextures, int32 CinematicTextureGroups = 0 );
 
+	/** Get the material info for texture stremaing. Return whether the data is valid or not. */
+	virtual bool GetMaterialStreamingData(int32 MaterialIndex, FPrimitiveMaterialInfo& MaterialData) const { return false; }
+
+	/** Generate streaming data for all materials. */
+	void GetStreamingTextureInfoInner(FStreamingTextureLevelContext& LevelContext, const TArray<FStreamingTextureBuildInfo>* PreBuiltData, float ComponentScaling, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const;
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/**
 	 * Output to the log which materials and textures are used by this component.
@@ -98,6 +106,13 @@ public:
 	/** Set all occurrences of Vector Material Parameters with ParameterName in the set of materials of the SkeletalMesh to ParameterValue */
 	UFUNCTION(BlueprintCallable, Category = "Rendering|Material")
 	void SetVectorParameterValueOnMaterials(const FName ParameterName, const FVector ParameterValue);
+
+	/**  Returns default value for the parameter input */
+	float GetScalarParameterDefaultValue(const FName ParameterName)
+	{
+		float* Value = ScalarParameterDefaultValues.Find(ParameterName);
+		return (Value) ? *Value : 0.f;
+	}
 protected:
 	/** Retrieves all the (scalar/vector-)parameters from within the used materials on the SkeletalMesh, and stores material index vs parameter names */
 	void CacheMaterialParameterNameIndices();
@@ -107,6 +122,10 @@ protected:
 	
 	/** Map containing material indices for the retrieved scalar material parameter names */
 	TMap<FName, TArray<int32>> ScalarParameterMaterialIndices;
+	/** Map containing material default parameter for the scalar parameter names 
+	 * We only cache the first one as we can't trace back from [name, index] 
+	 * This data is used for animation system to set default back to it*/
+	TMap<FName, float> ScalarParameterDefaultValues;
 	/** Map containing material indices for the retrieved vector material parameter names */
 	TMap<FName, TArray<int32>> VectorParameterMaterialIndices;
 

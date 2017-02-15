@@ -1,10 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __DLGREFERENCETREE_H__
 #define __DLGREFERENCETREE_H__
 
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveUObject.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Engine/Brush.h"
+#include "Model.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
 #include "Engine/Polys.h"
+
+class FMenuBuilder;
+class SWindow;
+struct FReferenceTreeDataContainer;
 
 /**
  * A struct representing a node in the reference graph

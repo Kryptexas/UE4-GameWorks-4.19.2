@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2680777
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:マクロを作成する
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -6,8 +6,8 @@ Description:マクロは、プレイヤー キャラクターがジャンプす�
 Related:Engine/Blueprints/UserGuide/Macros
 Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related:Engine/Blueprints
-バージョン:4.9
-SkillLevel:上級
+version:4.9
+skilllevel:Advanced
 
 **マクロ** は実質上、折り畳まれたグラフのノードと同じです。マクロには、トンネル ノードで指定される入口ポイントと出口ポイントがあります。トンネルは、それぞれ任意の数の実行ピンまたはデータピンを持つことができます。こうしたピンは別のブループリントやグラフで使用されるとマクロノード上で見ることができます。
 
@@ -93,9 +93,9 @@ SkillLevel:上級
 
 	![](MacroHT11.png)
 
-1.	**[Compile]** ボタンと **[Save]** ボタンをクリックし、ブループリントを閉じます。 
+1.	**[Compile (コンパイル)]** ボタンと **[Save (保存)]** ボタンをクリックし、ブループリントを閉じます。 
 
-1.	メイン ツールバーで **Play** ボタンをクリックしてエディタで再生します。 
+1.	メインツールバーで **[Play]** ボタンをクリックして、エディタで再生します。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -109,7 +109,7 @@ SkillLevel:上級
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	ジャンプするために **Spacebar** を押すと、画面の左上隅で **Energy** の値が画面に出力されます。**Energy** が 0 だと、もうジャンプできません。 
+	ジャンプするために **スペースバー** を押すと、**Energy** の値が画面の左上隅に出力されます。**Energy** が 0 だと、もうジャンプできません。 
 
 	これは、マクロを使用して、スクリプトを実行し、統合して単一ノードにし、イベント グラフとメイン キャラクターのスクリプトの可読性を向上させる基本的な例です。さらに、このマクロを他のインスタンスでも呼び出すことができます。例えば、プレイヤーのエネルギーを減らす他のアクションがあって、そのアクション (例、攻撃) を行うのに十分なエネルギーを持っているかをチェックしたい場合があるとします。このマクロを実行して、Attack キーを押した後に、プレイヤーが十分なエネルギーを持っているかをチェックし、 **HasEnergy** 実行ピンから攻撃を実行することができます。 
 

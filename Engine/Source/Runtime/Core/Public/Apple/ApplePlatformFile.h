@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	ApplePlatformFile.h: Apple platform File functions
@@ -6,6 +6,8 @@
 
 #pragma once
 #include "GenericPlatform/GenericPlatformFile.h"
+
+template <typename FuncType> class TFunctionRef;
 
 /**
  * Mac File I/O implementation

@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -616,6 +618,24 @@ namespace AutomationTool
 				if (ValidateName(Element, Name))
 				{
 					string Value = ReadAttribute(Element, "Value");
+					if(Element.HasChildNodes)
+					{
+						// Read the element content, and append each line to the value as a semicolon delimited list
+						StringBuilder Builder = new StringBuilder(Value);
+						foreach(string Line in Element.InnerText.Split('\n'))
+						{
+							string TrimLine = ExpandProperties(Element, Line.Trim());
+							if(TrimLine.Length > 0)
+							{
+								if(Builder.Length > 0)
+								{
+									Builder.Append(";");
+								}
+								Builder.Append(TrimLine);
+							}
+						}
+						Value = Builder.ToString();
+					}
 					SetPropertyValue(Element, Name, Value);
 				}
 			}

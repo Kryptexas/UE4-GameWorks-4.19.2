@@ -1,16 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
+#include "Components/SceneComponent.h"
+#include "Engine/TextureStreamingTypes.h"
 #include "Components/MeshComponent.h"
 #include "SkinnedMeshComponent.generated.h"
 
+class FPrimitiveSceneProxy;
+class FSkeletalMeshResource;
+class FSkeletalMeshVertexBuffer;
+struct FSkelMeshSection;
+class FColorVertexBuffer;
 //
 // Forward declarations
 //
 class FSkeletalMeshResource;
-struct FSkelMeshSection;
-class FSkeletalMeshVertexBuffer;
 
 DECLARE_DELEGATE_OneParam(FOnAnimUpdateRateParamsCreated, FAnimUpdateRateParameters*)
 
@@ -114,11 +124,16 @@ struct FSkelMeshComponentLODInfo
 	UPROPERTY()
 	TArray<bool> HiddenMaterials;
 
+	FColorVertexBuffer* OverrideVertexColors;
 
-		FSkelMeshComponentLODInfo()
-		{
-		}
-	
+	FSkelMeshComponentLODInfo();
+	~FSkelMeshComponentLODInfo();
+
+	void ReleaseOverrideVertexColorsAndBlock();
+
+	void BeginReleaseOverrideVertexColors();
+
+	void CleanUp();
 };
 
 
@@ -331,9 +346,6 @@ private:
 
 public:
 
-	DEPRECATED(4.11, "bChartDistanceFactor is no longer useful, please remove references to it")
-	uint32 bChartDistanceFactor:1;
-
 	/** Whether or not we can highlight selected sections - this should really only be done in the editor */
 	UPROPERTY(transient)
 	uint32 bCanHighlightSelectedSections:1;
@@ -373,7 +385,7 @@ public:
 	/** 
 	 * Controls how dark the capsule indirect shadow can be.
 	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(UIMin = "0", UIMax = "1", EditCondition="CastShadow", DisplayName = "Capsule Indirect Shadow Min Visibility"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(UIMin = "0", UIMax = "1", EditCondition="bCastCapsuleIndirectShadow", DisplayName = "Capsule Indirect Shadow Min Visibility"))
 	float CapsuleIndirectShadowMinVisibility;
 
 	/** CPU skinning rendering - only for previewing in Persona and conversion tools */
@@ -470,11 +482,13 @@ public:
 	FSkeletalMeshResource* GetSkeletalMeshResource() const;
 
 	//~ Begin UObject Interface
+	virtual void BeginDestroy() override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	virtual FString GetDetailedInfoInternal() const override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
 #endif // WITH_EDITOR
 	//~ End UObject Interface
 
@@ -509,7 +523,8 @@ public:
 	virtual TArray<FName> GetMaterialSlotNames() const override;
 	virtual bool IsMaterialSlotNameValid(FName MaterialSlotName) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
-	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
+	virtual bool GetMaterialStreamingData(int32 MaterialIndex, FPrimitiveMaterialInfo& MaterialData) const override;
 	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 	virtual int32 GetNumMaterials() const override;
 	//~ End UPrimitiveComponent Interface
@@ -564,6 +579,24 @@ public:
 	* @param VertexIndex Vertex Index. If compressed, this will be slow.
 	*/
 	FColor GetVertexColor(int32 VertexIndex) const;
+
+	/** Allow override of vertex colors on a per-component basis. */
+	void SetVertexColorOverride(int32 LODIndex, const TArray<FColor>& VertexColors);
+
+	/** Allow override of vertex colors on a per-component basis, taking array of Blueprint-friendly LinearColors. */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh", meta = (DisplayName = "Set Vertex Color Override"))
+	void SetVertexColorOverride_LinearColor(int32 LODIndex, const TArray<FLinearColor>& VertexColors);
+
+	/** Clear any applied vertex color override */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh")
+	void ClearVertexColorOverride(int32 LODIndex);
+	/**
+	* Returns texture coordinates of the vertex.
+	*
+	* @param VertexIndex		Vertex Index. If compressed, this will be slow.
+	* @param TexCoordChannel	Texture coordinate channel Index.
+	*/
+	FVector2D GetVertexUV(int32 VertexIndex, uint32 UVChannel) const;
 
 	/**
 	 * Update functions
@@ -750,6 +783,8 @@ public:
 protected:
 	/** Add a slave component to the SlavePoseComponents array */
 	virtual void AddSlavePoseComponent(USkinnedMeshComponent* SkinnedMeshComponent);
+	/** Remove a slave component from the SlavePoseComponents array */
+	virtual void RemoveSlavePoseComponent(USkinnedMeshComponent* SkinnedMeshComponent);
 
 public:
 	/** 
@@ -980,12 +1015,6 @@ public:
 	class UPhysicsAsset* GetPhysicsAsset() const;
 
 private:
-	/** 
-	 * Simple, CPU evaluation of a vertex's skinned position helper function
-	 */
-	template <bool bExtraBoneInfluencesT, bool bCachedMatrices>
-	FVector GetTypedSkinnedVertexPosition(const FSkelMeshSection& Section, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, const TArray<FMatrix> & RefToLocals = TArray<FMatrix>()) const;
-
 	/**
 	* This refresh all morphtarget curves including SetMorphTarget as well as animation curves
 	*/
@@ -1010,6 +1039,9 @@ public:
 	virtual bool IsPlayingRootMotionFromEverything(){ return false; }
 
 	bool ShouldUseUpdateRateOptimizations() const;
+
+	/** Release any rendering resources owned by this component */
+	void ReleaseResources();
 
 	friend class FRenderStateRecreator;
 };

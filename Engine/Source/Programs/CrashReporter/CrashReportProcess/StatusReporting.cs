@@ -1,15 +1,27 @@
-﻿using System;
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Tools.CrashReporter.CrashReportCommon;
 
 namespace Tools.CrashReporter.CrashReportProcess
 {
+	class StatusReportingMeanCounter
+	{
+		public int TotalMillisec { get; set; }
+		public int SampleCount { get; set; }
+
+		public StatusReportingMeanCounter() { }
+
+		public StatusReportingMeanCounter(StatusReportingMeanCounter LastPeriod, StatusReportingMeanCounter Total)
+		{
+			TotalMillisec = Total.TotalMillisec - LastPeriod.TotalMillisec;
+			SampleCount = Total.SampleCount - LastPeriod.SampleCount;
+		}
+	}
+
 	class StatusReporting : IDisposable
 	{
 		public void InitCounters(IEnumerable<string> CounterNames)
@@ -19,6 +31,17 @@ namespace Tools.CrashReporter.CrashReportProcess
 				if (!Counters.ContainsKey(CounterName))
 				{
 					Counters.Add(CounterName, 0);
+				}
+			}
+		}
+
+		public void InitMeanCounters(IEnumerable<string> CounterNames)
+		{
+			foreach (string CounterName in CounterNames)
+			{
+				if (!MeanCounters.ContainsKey(CounterName))
+				{
+					MeanCounters.Add(CounterName, new StatusReportingMeanCounter());
 				}
 			}
 		}
@@ -77,6 +100,20 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 		}
 
+		public void AddToMeanCounter(string CountName, int Millisec)
+		{
+			lock (DataLock)
+			{
+				if (!MeanCounters.ContainsKey(CountName))
+				{
+					MeanCounters.Add(CountName, new StatusReportingMeanCounter());
+				}
+
+				MeanCounters[CountName].TotalMillisec += Millisec;
+				MeanCounters[CountName].SampleCount++;
+			}
+		}
+
 		public void Alert(string AlertKey, string AlertText, int RepeatMinimumMinutes)
 		{
 			// Do "no repeat" check here of recent alerts and block duplicates based on timer (use AlertKey)
@@ -117,6 +154,48 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
         }
 
+		public void AlertOnConsecutiveFails(string AlertKey, string AlertText, string RecoveredText, TimeSpan TimeSinceSuccessThreshold, bool bSucceeded)
+		{
+			try
+			{
+				lock (DataLock)
+				{
+					if (bSucceeded)
+					{
+						// Success - clear from list of failing keys
+						DateTime FailAlertStartTime;
+						if (FailAlertStartTimes.TryGetValue(AlertKey, out FailAlertStartTime))
+						{
+							if (FailAlertStartTime == DateTime.MaxValue)
+							{
+								Alert(AlertKey, RecoveredText, 0);
+							}
+							FailAlertStartTimes.Remove(AlertKey);
+						}
+					}
+					else if (!FailAlertStartTimes.ContainsKey(AlertKey))
+					{
+						// Failed but no record yet - first failure so note the time
+						FailAlertStartTimes.Add(AlertKey, DateTime.UtcNow);
+					}
+					else
+					{
+						// Failed and not the first consecutive fail
+						TimeSpan TimeSinceStartedFailing = DateTime.UtcNow - FailAlertStartTimes[AlertKey];
+						if (TimeSinceStartedFailing > TimeSinceSuccessThreshold)
+						{
+							FailAlertStartTimes[AlertKey] = DateTime.MaxValue; // forces future fails to make TimeSinceStartedFailing negative until at least one success
+							Alert(AlertKey, AlertText, 0);
+						}
+					}
+				}
+			}
+			catch (Exception Ex)
+			{
+				CrashReporterProcessServicer.WriteException("AlertOnConsecutiveFails failed: " + Ex, Ex);
+			}
+		}
+
 		public void Start()
 		{
 			CrashReporterProcessServicer.WriteSlack(string.Format("CRP started (version {0})", Config.Default.VersionString));
@@ -130,108 +209,142 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 			CrashReporterProcessServicer.WriteSlack(StartupMessage.ToString());
 
-			ReporterTasks = new[]
+			List<StatusReportLoop> StatusReportLoops = new List<StatusReportLoop>();
+
+			StatusReportLoops.Add(
+				new RegularStatusReport(TimeSpan.FromMinutes(Config.Default.MinutesBetweenQueueSizeReports), (InLoop, InPeriod) =>
+				                        {
+					                        RegularStatusReport ThisLoop = (RegularStatusReport)InLoop;
+					                        StringBuilder StatusReportMessage = new StringBuilder();
+					                        lock (DataLock)
+					                        {
+						                        Dictionary<string, int> CountsInPeriod = ThisLoop.GetCountsInPeriod(Counters);
+
+						                        if (SetQueueSizesCallCount >= QueueSizes.Count)
+						                        {
+							                        int ProcessingStartedInPeriodReceiver = 0;
+							                        CountsInPeriod.TryGetValue(StatusReportingEventNames.ProcessingStartedReceiverEvent, out ProcessingStartedInPeriodReceiver);
+							                        int ProcessingStartedInPeriodDataRouter = 0;
+							                        CountsInPeriod.TryGetValue(StatusReportingEventNames.ProcessingStartedDataRouterEvent, out ProcessingStartedInPeriodDataRouter);
+							                        int ProcessingStartedInPeriod = ProcessingStartedInPeriodReceiver + ProcessingStartedInPeriodDataRouter;
+
+							                        if (ProcessingStartedInPeriod > 0)
+							                        {
+								                        int QueueSizeSum = QueueSizes.Values.Sum();
+								                        TimeSpan MeanWaitTime =
+									                        TimeSpan.FromTicks((long)(0.5*InPeriod.Ticks*(QueueSizeSum + ThisLoop.QueueSizeSumAtLastReport)/ProcessingStartedInPeriod));
+								                        ThisLoop.QueueSizeSumAtLastReport = QueueSizeSum;
+
+								                        int WaitMinutes = Convert.ToInt32(MeanWaitTime.TotalMinutes);
+								                        string WaitTimeString;
+								                        if (MeanWaitTime == TimeSpan.Zero)
+								                        {
+									                        WaitTimeString = "nil";
+								                        }
+								                        else if (MeanWaitTime < TimeSpan.FromMinutes(1))
+								                        {
+									                        WaitTimeString = "< 1 minute";
+								                        }
+								                        else if (WaitMinutes == 1)
+								                        {
+									                        WaitTimeString = "1 minute";
+								                        }
+								                        else
+								                        {
+									                        WaitTimeString = string.Format("{0} minutes", WaitMinutes);
+								                        }
+								                        StatusReportMessage.AppendLine("Queue waiting time " + WaitTimeString);
+							                        }
+
+							                        StatusReportMessage.AppendLine("Queue sizes...");
+							                        StatusReportMessage.Append("> ");
+							                        foreach (var Queue in QueueSizes)
+							                        {
+								                        StatusReportMessage.Append(Queue.Key + " " + Queue.Value + "                ");
+							                        }
+							                        StatusReportMessage.AppendLine();
+						                        }
+						                        if (CountsInPeriod.Values.Sum() > 0)
+						                        {
+													string PeriodTimeString = GetTimePeriodString(InPeriod);
+
+													StatusReportMessage.AppendLine(string.Format("Events in the last {0}...", PeriodTimeString));
+							                        foreach (var CountInPeriod in CountsInPeriod)
+							                        {
+								                        if (CountInPeriod.Value > 0)
+								                        {
+									                        StatusReportMessage.AppendLine("> " + CountInPeriod.Key + " " + CountInPeriod.Value);
+								                        }
+							                        }
+						                        }
+					                        }
+					                        return StatusReportMessage.ToString();
+				                        }));
+
+			StatusReportLoops.Add(
+				new DiskStatusReport(TimeSpan.FromDays(1.0), (InLoop, InPeriod) =>
+				                     {
+					                     StringBuilder DailyReportMessage = new StringBuilder();
+					                     lock (DataLock)
+					                     {
+						                     DailyReportMessage.AppendLine("Disk space available...");
+
+						                     foreach (var FolderMonitor in FolderMonitors)
+						                     {
+							                     string FreeSpaceText = "#Error";
+							                     string Drive = FolderMonitor.Key;
+							                     Int64 FreeSpace;
+							                     float FreePercent;
+							                     if (CrashReportCommon.StorageSpaceHelper.TryGetSpaceAvailable(Drive, out FreeSpace, out FreePercent))
+							                     {
+								                     FreeSpaceText = GetDiskSpaceString(FreeSpace, FreePercent);
+							                     }
+
+							                     DailyReportMessage.AppendLine("> " + FolderMonitor.Value + " =>> " + FreeSpaceText);
+						                     }
+					                     }
+					                     return DailyReportMessage.ToString();
+				                     }));
+
+			if (Config.Default.MonitorPerformance)
 			{
-				new StatusReportLoop(TimeSpan.FromMinutes(Config.Default.MinutesBetweenQueueSizeReports), InPeriod =>
-				{
-					StringBuilder StatusReportMessage = new StringBuilder();
-					lock (DataLock)
-					{
-						Dictionary<string, int> CountsInPeriod = GetCountsInPeriod(Counters, CountersAtLastReport);
+				StatusReportLoops.Add(
+					new PerfStatusReport(TimeSpan.FromMinutes(10), (InLoop, InPeriod) =>
+					                     {
+											 PerfStatusReport ThisLoop = (PerfStatusReport)InLoop;
+											 StringBuilder PerfReportMessage = new StringBuilder();
+						                     lock (DataLock)
+						                     {
+							                     Dictionary<string, StatusReportingMeanCounter> MeanCountsInPeriod = ThisLoop.GetMeanCountsInPeriod(MeanCounters);
 
-						if (SetQueueSizesCallCount >= QueueSizes.Count)
-						{
-							int ProcessingStartedInPeriodReceiver = 0;
-							CountsInPeriod.TryGetValue(StatusReportingEventNames.ProcessingStartedReceiverEvent, out ProcessingStartedInPeriodReceiver);
-							int ProcessingStartedInPeriodDataRouter = 0;
-							CountsInPeriod.TryGetValue(StatusReportingEventNames.ProcessingStartedDataRouterEvent, out ProcessingStartedInPeriodDataRouter);
-							int ProcessingStartedInPeriod = ProcessingStartedInPeriodReceiver + ProcessingStartedInPeriodDataRouter;
+												 if (MeanCountsInPeriod.Count > 0)
+												 {
+													 string PeriodTimeString = GetTimePeriodString(InPeriod);
+													 PerfReportMessage.AppendLine(string.Format("Performance in the last {0}...", PeriodTimeString));
 
-							if (ProcessingStartedInPeriod > 0)
-							{
-								int QueueSizeSum = QueueSizes.Values.Sum();
-								TimeSpan MeanWaitTime =
-									TimeSpan.FromTicks((long)(0.5*InPeriod.Ticks*(QueueSizeSum + QueueSizeSumAtLastReport)/ProcessingStartedInPeriod));
-								QueueSizeSumAtLastReport = QueueSizeSum;
+													 foreach (var MeanCountInPeriod in MeanCountsInPeriod)
+													 {
+														 if (MeanCountInPeriod.Value.SampleCount == 0)
+														 {
+															 PerfReportMessage.AppendLine("> " + MeanCountInPeriod.Key + ": nil");
+														 }
+														 else
+														 {
+															 PerfReportMessage.AppendLine("> " + MeanCountInPeriod.Key + ": Total " +
+															                              PerfStatusReport.GetPerfTimeString((float)MeanCountInPeriod.Value.TotalMillisec) +
+															                              " / Count " + MeanCountInPeriod.Value.SampleCount +
+															                              " = Mean " +
+															                              PerfStatusReport.GetPerfTimeString(MeanCountInPeriod.Value.TotalMillisec/(float)MeanCountInPeriod.Value.SampleCount));
+														 }
+													 }
+												 }
+											 }
 
-								int WaitMinutes = Convert.ToInt32(MeanWaitTime.TotalMinutes);
-								string WaitTimeString;
-								if (MeanWaitTime == TimeSpan.Zero)
-								{
-									WaitTimeString = "nil";
-								}
-								else if (MeanWaitTime < TimeSpan.FromMinutes(1))
-								{
-									WaitTimeString = "< 1 minute";
-								}
-								else if (WaitMinutes == 1)
-								{
-									WaitTimeString = "1 minute";
-								}
-								else
-								{
-									WaitTimeString = string.Format("{0} minutes", WaitMinutes);
-								}
-								StatusReportMessage.AppendLine("Queue waiting time " + WaitTimeString);
-							}
+											 return PerfReportMessage.ToString();
+										 }));
+			}
 
-							StatusReportMessage.AppendLine("Queue sizes...");
-							StatusReportMessage.Append("> ");
-							foreach (var Queue in QueueSizes)
-							{
-								StatusReportMessage.Append(Queue.Key + " " + Queue.Value + "                ");
-							}
-							StatusReportMessage.AppendLine();
-						}
-						if (CountsInPeriod.Count > 0)
-						{
-							string PeriodTimeString;
-							if (InPeriod.TotalMinutes < 1.0)
-							{
-								PeriodTimeString = string.Format("{0:N0} seconds", InPeriod.TotalSeconds);
-							}
-							else
-							{
-								PeriodTimeString = string.Format("{0:N0} minutes", InPeriod.TotalMinutes);
-							}
-
-							StatusReportMessage.AppendLine(string.Format("Events in the last {0}...", PeriodTimeString));
-							foreach (var CountInPeriod in CountsInPeriod)
-							{
-								if (CountInPeriod.Value > 0)
-								{
-									StatusReportMessage.AppendLine("> " + CountInPeriod.Key + " " + CountInPeriod.Value);
-								}
-							}
-						}
-					}
-					return StatusReportMessage.ToString();
-				}),
-
-				new StatusReportLoop(TimeSpan.FromDays(1.0), InPeriod =>
-				{
-					StringBuilder DailyReportMessage = new StringBuilder();
-					lock (DataLock)
-					{
-						DailyReportMessage.AppendLine("Disk space available...");
-
-						foreach (var FolderMonitor in FolderMonitors)
-						{
-							string FreeSpaceText = "#Error";
-							string Drive = FolderMonitor.Key;
-							Int64 FreeSpace;
-							float FreePercent;
-							if (CrashReportCommon.StorageSpaceHelper.TryGetSpaceAvailable(Drive, out FreeSpace, out FreePercent))
-							{
-								FreeSpaceText = GetDiskSpaceString(FreeSpace, FreePercent);
-							}
-
-							DailyReportMessage.AppendLine("> " + FolderMonitor.Value + " =>> " + FreeSpaceText);
-						}
-					}
-					return DailyReportMessage.ToString();
-				}), 
-			};
+			ReporterTasks = StatusReportLoops;
 		}
 
 		public void OnPreStopping()
@@ -252,22 +365,14 @@ namespace Tools.CrashReporter.CrashReportProcess
 			CrashReporterProcessServicer.WriteSlack("CRP stopped");
 		}
 
-		private static Dictionary<string, int> GetCountsInPeriod(Dictionary<string, int> InCounters, Dictionary<string, int> InCountersAtLastReport)
+		private static string GetTimePeriodString(TimeSpan InPeriod)
 		{
-			Dictionary<string, int> CountsInPeriod = new Dictionary<string, int>();
-
-			foreach (var Counter in InCounters)
+			if (InPeriod.TotalMinutes < 1.0)
 			{
-				int LastCount = 0;
-				if (!InCountersAtLastReport.TryGetValue(Counter.Key, out LastCount))
-				{
-					InCountersAtLastReport.Add(Counter.Key, 0);
-				}
-				CountsInPeriod.Add(Counter.Key, Counter.Value - LastCount);
-				InCountersAtLastReport[Counter.Key] = Counter.Value;
+				return string.Format("{0:N0} seconds", InPeriod.TotalSeconds);
 			}
 
-			return CountsInPeriod;
+			return string.Format("{0:N0} minutes", InPeriod.TotalMinutes);
 		}
 
 		private static string GetDiskSpaceString(long FreeSpace, float FreePercent)
@@ -299,35 +404,38 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 		private bool CheckRecentAlerts(string AlertKey, int RepeatMinimumMinutes)
 		{
-			// Check RecentAlerts for a matching entry without the time period
-			// that limits repeats Config.Default.SlackAlertRepeatMinimumMinutes
-			if (RecentAlerts.ContainsKey(AlertKey))
+			lock (DataLock)
 			{
-				DateTime LastMatchingAlert = RecentAlerts[AlertKey];
-				TimeSpan RepeatMinimum = TimeSpan.FromMinutes(RepeatMinimumMinutes);
-
-				if (LastMatchingAlert < DateTime.UtcNow - RepeatMinimum)
+				// Check RecentAlerts for a matching entry without the time period
+				// that limits repeats Config.Default.SlackAlertRepeatMinimumMinutes
+				if (RecentAlerts.ContainsKey(AlertKey))
 				{
-					RecentAlerts[AlertKey] = DateTime.UtcNow;
-					return true;
+					DateTime LastMatchingAlert = RecentAlerts[AlertKey];
+					TimeSpan RepeatMinimum = TimeSpan.FromMinutes(RepeatMinimumMinutes);
+
+					if (LastMatchingAlert < DateTime.UtcNow - RepeatMinimum)
+					{
+						RecentAlerts[AlertKey] = DateTime.UtcNow;
+						return true;
+					}
+
+					return false;
 				}
 
-				return false;
+				RecentAlerts.Add(AlertKey, DateTime.UtcNow);
+				return true;
 			}
-
-			RecentAlerts.Add(AlertKey, DateTime.UtcNow);
-			return true;
 		}
 
 		private IEnumerable<StatusReportLoop> ReporterTasks;
 		private readonly Dictionary<string, string> QueueLocations = new Dictionary<string, string>();
 		private readonly Dictionary<string, int> QueueSizes = new Dictionary<string, int>();
 		private readonly Dictionary<string, int> Counters = new Dictionary<string, int>();
+		private readonly Dictionary<string, StatusReportingMeanCounter> MeanCounters = new Dictionary<string, StatusReportingMeanCounter>();
 		private readonly Dictionary<string, string> FolderMonitors = new Dictionary<string, string>();
-		private int QueueSizeSumAtLastReport = 0;
-		private readonly Dictionary<string, int> CountersAtLastReport = new Dictionary<string, int>();
 		private readonly Object DataLock = new Object();
 		private int SetQueueSizesCallCount = 0;
 		private readonly Dictionary<string, DateTime> RecentAlerts = new Dictionary<string, DateTime>();
+		private readonly Dictionary<string, DateTime> FailAlertStartTimes = new Dictionary<string, DateTime>();
 	}
 }

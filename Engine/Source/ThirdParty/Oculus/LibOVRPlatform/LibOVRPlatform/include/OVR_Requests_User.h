@@ -96,8 +96,8 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetNextUserArrayPage(ovrUserArrayHandl
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetOrgScopedID(ovrID userID);
 
 /// Part of the scheme to confirm the identity of a particular user in your
-/// backend. You can pass the result of ovr_UserProof_Generate() and
-/// ovr_GetLoggedInUserID() to your your backend. Your server can use our api
+/// backend. You can pass the result of ovr_User_GetUserProof() and a user ID
+/// from ovr_User_Get() to your your backend. Your server can then use our api
 /// to verify identity. 'https://graph.oculus.com/user_nonce_validate?nonce=USE
 /// R_PROOF&user_id=USER_ID&access_token=ACCESS_TOKEN'
 /// 

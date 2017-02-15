@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -14,6 +14,7 @@ public class ContentBrowser : ModuleRules
 				"EditorWidgets",
 				"GameProjectGeneration",
                 "MainFrame",
+				"PackagesDialog",
 				"SourceControl",
 				"SourceControlWindows",
                 "ReferenceViewer",
@@ -44,6 +45,7 @@ public class ContentBrowser : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"PropertyEditor",
+				"PackagesDialog",
 				"AssetRegistry",
 				"AssetTools",
 				"CollectionManager",

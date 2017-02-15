@@ -1,6 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
+#include "AssetTypeActions/AssetTypeActions_Blueprint.h"
+#include "EditorAnimUtils.h"
+#include "Animation/AnimBlueprint.h"
+
+class FMenuBuilder;
+class UFactory;
 
 class FAssetTypeActions_AnimBlueprint : public FAssetTypeActions_Blueprint
 {

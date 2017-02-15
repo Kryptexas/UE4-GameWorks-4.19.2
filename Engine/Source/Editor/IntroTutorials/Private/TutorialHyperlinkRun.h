@@ -1,5 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Framework/Text/ILayoutBlock.h"
+#include "Framework/Text/SlateHyperlinkRun.h"
 
 class FTutorialHyperlinkRun : public FSlateHyperlinkRun
 {

@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineExternalUIInterface.h"
-#include "OnlineSubsystemTypes.h"
-#include "OnlineAsyncTaskManagerSteam.h"
+#include "CoreMinimal.h"
+#include "OnlineSubsystemSteam.h"
+#include "OnlineAsyncTaskManager.h"
+#include "Interfaces/OnlineExternalUIInterface.h"
 #include "OnlineSubsystemSteamPackage.h"
 
 /**
@@ -81,7 +82,7 @@ public:
 	// IOnlineExternalUI
 	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, const FOnLoginUIClosedDelegate& Delegate = FOnLoginUIClosedDelegate()) override;
 	virtual bool ShowFriendsUI(int32 LocalUserNum) override;
-	virtual bool ShowInviteUI(int32 LocalUserNum, FName SessionMame = GameSessionName) override;
+	virtual bool ShowInviteUI(int32 LocalUserNum, FName SessionName = GameSessionName) override;
 	virtual bool ShowAchievementsUI(int32 LocalUserNum) override;
 	virtual bool ShowLeaderboardUI(const FString& LeaderboardName) override;
 	virtual bool ShowWebURL(const FString& Url, const FShowWebUrlParams& ShowParams, const FOnShowWebUrlClosedDelegate& Delegate = FOnShowWebUrlClosedDelegate()) override;

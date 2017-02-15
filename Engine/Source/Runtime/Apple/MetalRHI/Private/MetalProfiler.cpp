@@ -1,7 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MetalRHIPrivate.h"
 #include "MetalProfiler.h"
+#include "EngineGlobals.h"
+#include "StaticBoundShaderState.h"
 
 DEFINE_STAT(STAT_MetalMakeDrawableTime);
 DEFINE_STAT(STAT_MetalDrawCallTime);

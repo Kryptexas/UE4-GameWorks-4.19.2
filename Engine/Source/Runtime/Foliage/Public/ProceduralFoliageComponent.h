@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ProceduralFoliageInstance.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Components/ActorComponent.h"
+#include "InstancedFoliage.h"
 #include "ProceduralFoliageComponent.generated.h"
 
+class AVolume;
 class UProceduralFoliageSpawner;
-class AProceduralFoliageLevelInfo;
-struct FDesiredFoliageInstance;
+struct FBodyInstance;
 
 /** Describes the layout of the tiles used for procedural foliage simulation */
 struct FTileLayout

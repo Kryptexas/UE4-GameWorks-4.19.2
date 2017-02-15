@@ -1,7 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "LayoutUtils.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "Rendering/DrawElements.h"
+#include "Widgets/SPanel.h"
+#include "Types/SlateConstants.h"
+#include "Layout/LayoutUtils.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
 
 
 SScrollBox::FSlot& SScrollBox::Slot()
@@ -755,7 +762,7 @@ FReply SScrollBox::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEven
 		// Make sure scroll velocity is cleared so it doesn't fight with the mouse wheel input
 		InertialScrollManager.ClearScrollVelocity();
 
-		const bool bScrollWasHandled = this->ScrollBy(MyGeometry, -MouseEvent.GetWheelDelta()*WheelScrollAmount, EAllowOverscroll::No);
+		const bool bScrollWasHandled = this->ScrollBy(MyGeometry, -MouseEvent.GetWheelDelta() * GetGlobalScrollAmount(), EAllowOverscroll::No);
 
 		if ( bScrollWasHandled && !bIsScrollingActiveTimerRegistered )
 		{

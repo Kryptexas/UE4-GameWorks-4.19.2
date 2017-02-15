@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2956400
+﻿INTSourceChangelist:3178047
 Availability:Public
 Title: 퍼포먼스와 프로파일링
 Crumbs: %ROOT%, Engine
@@ -6,7 +6,8 @@ Description:퍼포먼스 문제를 알아내어 고치는 방법입니다.
 Navigation:topic
 version: 4.9
 parent:Engine
-order:13
+order:17
+tags:Performance and Profiling
 
 [VAR:Topic]
 [OBJECT:Topic]

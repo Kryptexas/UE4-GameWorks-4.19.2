@@ -1,23 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "AudioMixer.h"
-#include "AudioMixerDevice.h"
-#include "AudioMixerSourceVoice.h"
 #include "AudioMixerSourceManager.h"
+#include "AudioDevice.h"
 
 class IAudioMixerPlatformInterface;
 
 namespace Audio
 {
+	class FMixerSourceVoice;
+
 	struct FChannelPositionInfo
 	{
 		EAudioMixerChannel::Type Channel;
 		int32 Azimuth;
 
 		FChannelPositionInfo()
-			: Channel(EAudioMixerChannel::Unused)
+			: Channel(EAudioMixerChannel::Unknown)
 			, Azimuth(0)
 		{}
 
@@ -56,15 +57,13 @@ namespace Audio
 		bool IsExernalBackgroundSoundActive() override;
 		void Precache(USoundWave* InSoundWave, bool bSynchronous = false, bool bTrackMemory = true) override;
 		void ResumeContext() override;
-		void SetMaxChannels(int) override;
-		void StopAllSounds(bool) override;
 		void SuspendContext() override;
 		void EnableDebugAudioOutput() override;
 
 		void InitSoundSubmixes() override;
 		void RegisterSoundSubmix(USoundSubmix* SoundSubmix) override;
 		void UnregisterSoundSubmix(USoundSubmix* SoundSubmix) override;
-		FMixerSubmix* GetSubmixInstance(USoundSubmix* SoundSubmix);
+		FMixerSubmixPtr GetSubmixInstance(USoundSubmix* SoundSubmix);
 
 		int32 GetNumActiveSources() const override;
 		//~ End FAudioDevice
@@ -74,8 +73,8 @@ namespace Audio
 		//~ End IAudioMixer
 
 		// Functions which check the thread it's called on and helps make sure functions are called from correct threads
-		void CheckGameThread();
-		void CheckAudioPlatformThread();
+		void CheckAudioThread();
+		void CheckAudioRenderingThread();
 
 		// Public Functions
 		FMixerSourceVoice* GetMixerSourceVoice(const FWaveInstance* InWaveInstance, ISourceBufferQueueListener* InBufferQueueListener, bool bUseHRTFSpatialization);
@@ -92,7 +91,8 @@ namespace Audio
 		const TArray<FChannelPositionInfo>& GetCurrentChannelPositions() const { return CurrentChannelAzimuthPositions; }
 
 		void Get3DChannelMap(const FWaveInstance* InWaveInstance, const float EmitterAzimuth, const float NormalizedOmniRadius, TArray<float>& OutChannelMap);
-		void Get2DChannelMap(const int32 NumSourceChannels, TArray<float>& OutChannelMap);
+		void Get2DChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly, TArray<float>& OutChannelMap) const;
+		const float* Get2DChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly) const;
 
 		void SetChannelAzimuth(EAudioMixerChannel::Type ChannelType, int32 Azimuth);
 
@@ -101,33 +101,32 @@ namespace Audio
 
 		FMixerSourceManager* GetSourceManager();
 
-		FMixerSubmix* GetMasterSubmix() { return MasterSubmix; }
-		FMixerSubmix** GetSubmix(USoundSubmix* InSoundSubmix) { return Submixes.Find(InSoundSubmix); }
+		FMixerSubmixPtr GetMasterSubmix() { return MasterSubmix; }
+		FMixerSubmixPtr GetMasterReverbSubmix() { return MasterReverbSubmix; }
+		FMixerSubmixPtr GetMasterEQSubmix() { return MasterEQSubmix; }
 
 	private:
-		void ResetAudioPlatformThreadId();
+		// Resets the thread ID used for audio rendering
+		void ResetAudioRenderingThreadId();
 
+		void Get2DChannelMapInternal(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly, TArray<float>& OutChannelMap) const;
+		void InitializeChannelMaps();
+		int32 GetChannelMapCacheId(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly) const;
+		void CacheChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly);
 		void InitializeChannelAzimuthMap(const int32 NumChannels);
-		void Initialize2DChannelMaps();
 
 		int32 GetAzimuthForChannelType(EAudioMixerChannel::Type ChannelType);
 
 		void WhiteNoiseTest(TArray<float>& Output);
 		void SineOscTest(TArray<float>& Output);
 
+		bool IsMainAudioDevice() const;
+
 	private:
-
-		struct FChannelMapEntry
-		{
-			EChannelMap::Type ChannelMapType;
-			TArray<float> ChannelWeights;
-
-			FChannelMapEntry(EChannelMap::Type InType, float* InputWeights, int32 Count)
-				: ChannelMapType(InType)
-			{
-				ChannelWeights.Append(InputWeights, Count);
-			}
-		};
+		// Master submixes
+		static USoundSubmix* MasterSoundSubmix;
+		static USoundSubmix* MasterReverbSoundSubmix;
+		static USoundSubmix* MasterEQSoundSubmix;
 
 		/** Ptr to the platform interface, which handles streaming audio to the hardware device. */
 		IAudioMixerPlatformInterface* AudioMixerPlatform;
@@ -139,7 +138,7 @@ namespace Audio
 		TArray<FChannelPositionInfo> CurrentChannelAzimuthPositions;
 
 		/** 2D channel maps of input-output channel maps. */
-		TMap<int32, FChannelMapEntry> ChannelMaps;
+		static TMap<int32, TArray<float>> ChannelMapCache;
 
 		/** The audio output stream parameters used to initialize the audio hardware. */
 		FAudioMixerOpenStreamParams OpenStreamParams;
@@ -160,10 +159,16 @@ namespace Audio
 		FAudioPlatformDeviceInfo PlatformInfo;
 
 		/** The true root master submix which will always exist. */
-		FMixerSubmix* MasterSubmix;
+		FMixerSubmixPtr MasterSubmix;
+
+		/** The master submix for reverb effect. */
+		FMixerSubmixPtr MasterReverbSubmix;
+
+		/** The master submix for the EQ effect. */
+		FMixerSubmixPtr MasterEQSubmix;
 
 		/** Map of USoundSubmix static data objects to the dynamic audio mixer submix. */
-		TMap<USoundSubmix*, FMixerSubmix*> Submixes;
+		TMap<USoundSubmix*, FMixerSubmixPtr> Submixes;
 
 		/** List of mixer source voices. */
 		TArray<FMixerSourceVoice*> SourceVoices;

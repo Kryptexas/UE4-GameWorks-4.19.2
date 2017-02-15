@@ -1,8 +1,48 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "NumericTypeInterface.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "InputCoreTypes.h"
+#include "Layout/Margin.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Input/CursorReply.h"
+#include "Input/Events.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Styling/CoreStyle.h"
+#include "Widgets/Input/NumericTypeInterface.h"
+#include "Widgets/SBoxPanel.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SEditableText.h"
+#include "Rendering/DrawElements.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
+#include "Templates/IsIntegral.h"
+
+/*
+ * This function compute a slider position by simulating two log on both side of the neutral value
+ * Example a slider going from 0.0 to 2.0 with a neutral value of 1.0, the user will have a lot of precision around the neutral value
+ * on both side.
+ |
+ ||                              |
+ | -_                          _-
+ |   --__                  __--
+ |       ----__________----
+ ----------------------------------
+  0              1               2
+
+  The function return a float representing the slider fraction used to position the slider handle
+  FractionFilled: this is the value slider position with no exponent
+  StartFractionFilled: this is the neutral value slider position with no exponent
+  SliderExponent: this is the slider exponent
+*/
+SLATE_API float SpinBoxComputeExponentSliderFraction(float FractionFilled, float StartFractionFilled, float SliderExponent);
 
 /**
  * A Slate SpinBox resembles traditional spin boxes in that it is a widget that provides
@@ -27,6 +67,7 @@ public:
 		, _MinValue(0)
 		, _MaxValue(10)
 		, _Delta(0)
+		, _ShiftMouseMovePixelPerDelta(1)
 		, _SliderExponent(1)
 		, _Font( FCoreStyle::Get().GetFontStyle( TEXT( "NormalFont" ) ) )
 		, _ContentPadding(  FMargin( 2.0f, 1.0f) )
@@ -52,8 +93,12 @@ public:
 		SLATE_ATTRIBUTE( TOptional< NumericType >, MaxSliderValue )
 		/** Delta to increment the value as the slider moves.  If not specified will determine automatically */
 		SLATE_ATTRIBUTE( NumericType, Delta )
+		/** How many pixel the mouse must move to change the value of the delta step */
+		SLATE_ATTRIBUTE( int32, ShiftMouseMovePixelPerDelta )
 		/** Use exponential scale for the slider */
 		SLATE_ATTRIBUTE( float, SliderExponent )
+		/** When use exponential scale for the slider which is the neutral value */
+		SLATE_ATTRIBUTE( NumericType, SliderExponentNeutralValue )
 		/** Font used to display text in the slider */
 		SLATE_ATTRIBUTE( FSlateFontInfo, Font )
 		/** Padding to add around this widget and its internal widgets */
@@ -111,10 +156,13 @@ public:
 	
 		SliderExponent = InArgs._SliderExponent;
 
+		SliderExponentNeutralValue = InArgs._SliderExponentNeutralValue;
+
 		DistanceDragged = 0.0f;
 		PreDragValue = 0;
 
 		Delta = InArgs._Delta;
+		ShiftMouseMovePixelPerDelta = InArgs._ShiftMouseMovePixelPerDelta;
 	
 		BackgroundHoveredBrush = &InArgs._Style->HoveredBackgroundBrush;
 		BackgroundBrush = &InArgs._Style->BackgroundBrush;
@@ -123,8 +171,12 @@ public:
 		const FMargin& TextMargin = InArgs._Style->TextPadding;
 
 		bDragging = false;
+		PointerDraggingSliderIndex = INDEX_NONE;
+
 		CachedExternalValue = ValueAttribute.Get();
 		InternalValue = ValueAttribute.Get();
+
+		bIsTextChanging = false;
 
 		this->ChildSlot
 		.Padding( InArgs._ContentPadding )
@@ -155,6 +207,7 @@ public:
 				.SelectAllTextWhenFocused( true )
 				.Text( this, &SSpinBox<NumericType>::GetValueAsText )
 				.OnIsTypedCharValid(this, &SSpinBox<NumericType>::IsCharacterValid)
+				.OnTextChanged( this, &SSpinBox<NumericType>::TextField_OnTextChanged )
 				.OnTextCommitted( this, &SSpinBox<NumericType>::TextField_OnTextCommitted )
 				.ClearKeyboardFocusOnCommit( InArgs._ClearKeyboardFocusOnCommit )
 				.SelectAllTextOnCommit( InArgs._SelectAllTextOnCommit )
@@ -217,7 +270,16 @@ public:
 			const float CachedSliderExponent = SliderExponent.Get();
 			if (CachedSliderExponent != 1)
 			{
-				FractionFilled = 1.0f - FMath::Pow( 1.0f - FractionFilled, CachedSliderExponent);
+				if (SliderExponentNeutralValue.IsSet() && SliderExponentNeutralValue.Get() > GetMinSliderValue() && SliderExponentNeutralValue.Get() < GetMaxSliderValue())
+				{
+					//Compute a log curve on both side of the neutral value
+					float StartFractionFilled = Fraction(SliderExponentNeutralValue.Get(), GetMinSliderValue(), GetMaxSliderValue());
+					FractionFilled = SpinBoxComputeExponentSliderFraction(FractionFilled, StartFractionFilled, CachedSliderExponent);
+				}
+				else
+				{
+					FractionFilled = 1.0f - FMath::Pow( 1.0f - FractionFilled, CachedSliderExponent);
+				}
 			}
 			const FVector2D FillSize( AllottedGeometry.Size.X * FractionFilled, AllottedGeometry.Size.Y );
 
@@ -247,10 +309,11 @@ public:
 	 */
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
-		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
+		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && PointerDraggingSliderIndex == INDEX_NONE )
 		{
 			DistanceDragged = 0;
 			PreDragValue = InternalValue;
+			PointerDraggingSliderIndex = MouseEvent.GetPointerIndex();
 			CachedMousePosition = MouseEvent.GetScreenSpacePosition().IntPoint();
 			return FReply::Handled().CaptureMouse(SharedThis(this)).UseHighPrecisionMouseMovement(SharedThis(this)).SetUserFocus(SharedThis(this), EFocusCause::Mouse);
 		}
@@ -270,7 +333,7 @@ public:
 	 */
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
-		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && this->HasMouseCapture() )
+		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && PointerDraggingSliderIndex == MouseEvent.GetPointerIndex() && this->HasMouseCapture() )
 		{
 			if( bDragging )
 			{
@@ -278,14 +341,22 @@ public:
 			}
 
 			bDragging = false;
+			PointerDraggingSliderIndex = INDEX_NONE;
+
+			FReply Reply = FReply::Handled().ReleaseMouseCapture();
+
+			if ( !MouseEvent.IsTouchEvent() )
+			{
+				Reply.SetMousePos(CachedMousePosition);
+			}
+
 			if ( DistanceDragged < FSlateApplication::Get().GetDragTriggerDistance() )
 			{
 				EnterTextMode();
-				return FReply::Handled().ReleaseMouseCapture().SetUserFocus(EditableText.ToSharedRef(), EFocusCause::SetDirectly).SetMousePos(CachedMousePosition);
+				Reply.SetUserFocus(EditableText.ToSharedRef(), EFocusCause::SetDirectly);
 			}
 
-			return FReply::Handled().ReleaseMouseCapture().SetMousePos(CachedMousePosition);
-			
+			return Reply;
 		}
 		else
 		{
@@ -302,7 +373,7 @@ public:
 	 */
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
-		if ( this->HasMouseCapture() )
+		if ( PointerDraggingSliderIndex == MouseEvent.GetPointerIndex() && this->HasMouseCapture() )
 		{
 			if (!bDragging)
 			{
@@ -325,18 +396,35 @@ public:
 
 				// A minimum slider width to use for calculating deltas in the slider-range space
 				const float MinSliderWidth = 100.f;
-				const float SliderWidthInSlateUnits = FMath::Max(MyGeometry.GetDrawSize().X, MinSliderWidth);
+				float SliderWidthInSlateUnits = FMath::Max(MyGeometry.GetDrawSize().X, MinSliderWidth);
+				
+				const int32 CachedShiftMouseMovePixelPerDelta = ShiftMouseMovePixelPerDelta.Get();
+				if (CachedShiftMouseMovePixelPerDelta > 1 && MouseEvent.IsShiftDown())
+				{
+					SliderWidthInSlateUnits *= CachedShiftMouseMovePixelPerDelta;
+				}
 				
 				//if we have a range to draw in
 				if ( !bUnlimitedSpinRange) 
 				{
+					bool HasValidExponentNeutralValue = SliderExponentNeutralValue.IsSet() && SliderExponentNeutralValue.Get() > GetMinSliderValue() && SliderExponentNeutralValue.Get() < GetMaxSliderValue();
+
 					const float CachedSliderExponent = SliderExponent.Get();
 					// The amount currently filled in the spinbox, needs to be calculated to do deltas correctly.
 					float FractionFilled = Fraction(InternalValue, GetMinSliderValue(), GetMaxSliderValue());
 						
 					if (CachedSliderExponent != 1)
 					{
-						FractionFilled = 1.0f - FMath::Pow( 1.0f - FractionFilled, CachedSliderExponent);
+						if (HasValidExponentNeutralValue)
+						{
+							//Compute a log curve on both side of the neutral value
+							float StartFractionFilled = Fraction(SliderExponentNeutralValue.Get(), GetMinSliderValue(), GetMaxSliderValue());
+							FractionFilled = SpinBoxComputeExponentSliderFraction(FractionFilled, StartFractionFilled, CachedSliderExponent);
+						}
+						else
+						{
+							FractionFilled = 1.0f - FMath::Pow( 1.0f - FractionFilled, CachedSliderExponent);
+						}
 					}
 					FractionFilled *= SliderWidthInSlateUnits;
 
@@ -351,7 +439,18 @@ public:
 					if (CachedSliderExponent != 1)
 					{
 						// Have to convert the percent to the proper value due to the exponent component to the spin.
-						Percent = 1.0f - FMath::Pow(1.0f - Percent, 1.0 / CachedSliderExponent);
+						if (HasValidExponentNeutralValue)
+						{
+							//Compute a log curve on both side of the neutral value
+							float StartFractionFilled = Fraction(SliderExponentNeutralValue.Get(), GetMinSliderValue(), GetMaxSliderValue());
+							Percent = SpinBoxComputeExponentSliderFraction(Percent, StartFractionFilled, 1.0/CachedSliderExponent);
+						}
+						else
+						{
+							Percent = 1.0f - FMath::Pow(1.0f - Percent, 1.0 / CachedSliderExponent);
+						}
+						
+						
 					}
 
 					NewValue = FMath::LerpStable<double>(GetMinSliderValue(), GetMaxSliderValue(), Percent);
@@ -414,18 +513,21 @@ public:
 		}
 		else if ( Key == EKeys::Up || Key == EKeys::Right )
 		{
-			CommitValue( InternalValue + Delta.Get(), CommittedViaSpin, ETextCommit::OnEnter );
+			InternalValue = ValueAttribute.Get();
+			CommitValue( InternalValue + Delta.Get(), CommittedViaArrowKey, ETextCommit::OnEnter );
 			ExitTextMode();
 			return FReply::Handled();	
 		}
 		else if ( Key == EKeys::Down || Key == EKeys::Left )
 		{
-			CommitValue( InternalValue - Delta.Get(), CommittedViaSpin, ETextCommit::OnEnter );
+			InternalValue = ValueAttribute.Get();
+			CommitValue( InternalValue - Delta.Get(), CommittedViaArrowKey, ETextCommit::OnEnter );
 			ExitTextMode();
 			return FReply::Handled();
 		}
 		else if ( Key == EKeys::Enter )
 		{
+			InternalValue = ValueAttribute.Get();
 			EnterTextMode();
 			return FReply::Handled().SetUserFocus(EditableText.ToSharedRef(), EFocusCause::Navigation);
 		}
@@ -526,6 +628,38 @@ protected:
 	{
 		return FText::FromString(GetValueAsString());
 	}
+
+	/**
+	 * Invoked when the text in the text field changes
+	 *
+	 * @param NewText		The value of the text in the text field
+	 */
+	void TextField_OnTextChanged( const FText& NewText)
+	{
+		if (!bIsTextChanging)
+		{
+			TGuardValue<bool> TextChangedGuard(bIsTextChanging, true);
+
+			// Validate the text on change, and only accept text up until the first invalid character
+			FString Data = NewText.ToString();
+			int32 NumValidChars = Data.Len();
+
+			for (int32 Index = 0; Index < Data.Len(); ++Index)
+			{
+				if (!Interface->IsCharacterValid(Data[Index]))
+				{
+					NumValidChars = Index;
+					break;
+				}
+			}
+
+			if (NumValidChars < Data.Len())
+			{
+				FString ValidData = NumValidChars > 0 ? Data.Left(NumValidChars) : GetValueAsString();
+				EditableText->SetText(FText::FromString(ValidData));
+			}
+		}
+	}
 	
 	/**
 	 * Invoked when the text field commits its text.
@@ -552,7 +686,8 @@ protected:
 	enum ECommitMethod
 	{
 		CommittedViaSpin,
-		CommittedViaTypeIn	
+		CommittedViaTypeIn,
+		CommittedViaArrowKey
 	};
 
 	/**
@@ -564,7 +699,7 @@ protected:
 	 */
 	void CommitValue( double NewValue, ECommitMethod CommitMethod, ETextCommit::Type OriginalCommitInfo )
 	{
-		if( CommitMethod == CommittedViaSpin )
+		if( CommitMethod == CommittedViaSpin || CommitMethod == CommittedViaArrowKey )
 		{
 			NewValue = FMath::Clamp<double>( NewValue, GetMinSliderValue(), GetMaxSliderValue() );
 		}
@@ -592,7 +727,7 @@ protected:
 		InternalValue = NewValue;
 
 		// If needed, round this value to the delta. Internally the value is not held to the Delta but externally it appears to be.
-		if ( CommitMethod == CommittedViaSpin )
+		if ( CommitMethod == CommittedViaSpin || CommitMethod == CommittedViaArrowKey )
 		{
 			NumericType CurrentDelta = Delta.Get();
 			if( CurrentDelta != 0 )
@@ -601,7 +736,7 @@ protected:
 			}
 		}
 
-		if( CommitMethod == CommittedViaTypeIn )
+		if( CommitMethod == CommittedViaTypeIn || CommitMethod == CommittedViaArrowKey )
 		{
 			OnValueCommitted.ExecuteIfBound( RoundIfIntegerValue( NewValue ), OriginalCommitInfo );
 		}
@@ -678,7 +813,9 @@ private:
 
 	float DistanceDragged;
 	TAttribute<NumericType> Delta;
+	TAttribute<int32> ShiftMouseMovePixelPerDelta;
 	TAttribute<float> SliderExponent;
+	TAttribute<NumericType> SliderExponentNeutralValue;
 	TAttribute< TOptional<NumericType> > MinValue;
 	TAttribute< TOptional<NumericType> > MaxValue;
 	TAttribute< TOptional<NumericType> > MinSliderValue;
@@ -707,6 +844,9 @@ private:
 
 	/** Whether the user is dragging the slider */
 	bool bDragging;
+
+	/** Tracks which cursor is currently dragging the slider (e.g., the mouse cursor or a specific finger) */
+	int32 PointerDraggingSliderIndex;
 	
 	/** Cached mouse position to restore after scrolling. */
 	FIntPoint CachedMousePosition;
@@ -722,4 +862,7 @@ private:
 	/** This is the cached value the user believes it to be (usually different due to truncation to an int). Used for identifying 
 		external forces on the spinbox and syncing the internal value to them. Synced when a value is committed to the spinbox. */
 	NumericType CachedExternalValue;
+
+	/** Re-entrant guard for the text changed handler */
+	bool bIsTextChanging;
 };

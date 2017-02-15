@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IKeyframeSection.h"
-#include "MovieSceneKeyStruct.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/RichCurve.h"
 #include "MovieSceneSection.h"
+#include "Sections/IKeyframeSection.h"
+#include "MovieSceneKeyStruct.h"
 #include "MovieSceneColorSection.generated.h"
 
+class FStructOnScope;
+struct FPropertyChangedEvent;
 
 enum class EKeyColorChannel
 {
@@ -63,14 +69,6 @@ class UMovieSceneColorSection
 	GENERATED_UCLASS_BODY()
 
 public:
-
-	/**
-	 * Updates this section
-	 *
-	 * @param Position The position in time within the movie scene.
-	 * @param DefaultColor The default value to return.
-	 */
-	virtual FLinearColor Eval(float Position, const FLinearColor& DefaultColor) const;
 
 	/**
 	 * Gets the red color curve

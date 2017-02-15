@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysicsSettings.h: Declares the PhysicsSettings class.
@@ -6,11 +6,14 @@
 
 #pragma once
 
-#include "PhysicsSettingsEnums.h"
-#include "BodySetupEnums.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "Templates/Casts.h"
 #include "Engine/DeveloperSettings.h"
+#include "PhysicsEngine/PhysicsSettingsEnums.h"
+#include "PhysicsEngine/BodySetupEnums.h"
 #include "PhysicsSettings.generated.h"
-
 
 /**
  * Structure that represents the name of physical surfaces.
@@ -230,12 +233,12 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	float InitialAverageFrameRate;
 
 	// PhysicalMaterial Surface Types
-	UPROPERTY(config)
+	UPROPERTY(config, EditAnywhere, Category=PhysicalSurfaces)
 	TArray<FPhysicalSurfaceName> PhysicalSurfaces;
 
 public:
 
-	static UPhysicsSettings * Get() { return CastChecked<UPhysicsSettings>(UPhysicsSettings::StaticClass()->GetDefaultObject()); }
+	static UPhysicsSettings* Get() { return CastChecked<UPhysicsSettings>(UPhysicsSettings::StaticClass()->GetDefaultObject()); }
 
 	virtual void PostInitProperties() override;
 

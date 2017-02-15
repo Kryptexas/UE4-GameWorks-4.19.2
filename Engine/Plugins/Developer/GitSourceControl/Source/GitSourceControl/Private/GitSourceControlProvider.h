@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ISourceControlOperation.h"
+#include "ISourceControlState.h"
 #include "ISourceControlProvider.h"
 #include "IGitSourceControlWorker.h"
 #include "GitSourceControlState.h"
+
+class FGitSourceControlCommand;
 
 DECLARE_DELEGATE_RetVal(FGitSourceControlWorkerRef, FGetGitSourceControlWorker)
 

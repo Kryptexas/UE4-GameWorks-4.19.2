@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 
 #if PLATFORM_MAC || PLATFORM_LINUX
 #define USE_LOCAL_SWARM_INTERFACE 1

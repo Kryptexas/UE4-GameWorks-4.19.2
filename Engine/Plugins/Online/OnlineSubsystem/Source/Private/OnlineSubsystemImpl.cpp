@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemPrivatePCH.h"
 #include "OnlineSubsystemImpl.h"
+#include "Containers/Ticker.h"
+#include "Misc/App.h"
 #include "NamedInterfaces.h"
-#include "OnlineIdentityInterface.h"
-#include "OnlineSessionInterface.h"
-#include "OnlineFriendsInterface.h"
+#include "OnlineError.h"
+#include "Interfaces/OnlineIdentityInterface.h"
+#include "Interfaces/OnlineSessionInterface.h"
+#include "Interfaces/OnlineFriendsInterface.h"
+#include "Interfaces/OnlinePurchaseInterface.h"
 
 namespace OSSConsoleVariables
 {
@@ -41,6 +44,10 @@ FOnlineSubsystemImpl::~FOnlineSubsystemImpl()
 	ensure(!TickHandle.IsValid());
 }
 
+void FOnlineSubsystemImpl::PreUnload()
+{
+}
+
 bool FOnlineSubsystemImpl::Shutdown()
 {
 	OnNamedInterfaceCleanup();
@@ -55,9 +62,12 @@ void FOnlineSubsystemImpl::ExecuteDelegateNextTick(const FNextTickDelegate& Call
 
 void FOnlineSubsystemImpl::StartTicker()
 {
-	// Register delegate for ticker callback
-	FTickerDelegate TickDelegate = FTickerDelegate::CreateRaw(this, &FOnlineSubsystemImpl::Tick);
-	TickHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate, 0.0f);
+	if (!TickHandle.IsValid())
+	{
+		// Register delegate for ticker callback
+		FTickerDelegate TickDelegate = FTickerDelegate::CreateRaw(this, &FOnlineSubsystemImpl::Tick);
+		TickHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate, 0.0f);
+	}
 }
 
 void FOnlineSubsystemImpl::StopTicker()
@@ -72,6 +82,7 @@ void FOnlineSubsystemImpl::StopTicker()
 
 bool FOnlineSubsystemImpl::Tick(float DeltaTime)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FOnlineSubsystemImpl_Tick);
 	if (!NextTickQueue.IsEmpty())
 	{
 		// unload the next-tick queue into our buffer. Any further executes (from within callbacks) will happen NEXT frame (as intended)
@@ -84,6 +95,7 @@ bool FOnlineSubsystemImpl::Tick(float DeltaTime)
 		// execute any functions in the current tick array
 		for (const auto& Callback : CurrentTickBuffer)
 		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FOnlineSubsystemImpl_Tick_ExecuteCallback);
 			Callback.ExecuteIfBound();
 		}
 		CurrentTickBuffer.SetNum(0, false); // keep the memory around
@@ -194,6 +206,99 @@ bool FOnlineSubsystemImpl::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice
 	else if (FParse::Command(&Cmd, TEXT("SESSION")))
 	{
 		bWasHandled = HandleSessionExecCommands(InWorld, Cmd, Ar);
+	}
+	else if (FParse::Command(&Cmd, TEXT("PURCHASE")))
+	{
+		bWasHandled = HandlePurchaseExecCommands(InWorld, Cmd, Ar);
+	}
+	
+	return bWasHandled;
+}
+
+void FOnlineSubsystemImpl::DumpReceipts(const FUniqueNetId& UserId)
+{
+	IOnlinePurchasePtr PurchaseInt = GetPurchaseInterface();
+	if (PurchaseInt.IsValid())
+	{
+		TArray<FPurchaseReceipt> Receipts;
+		PurchaseInt->GetReceipts(UserId, Receipts);
+		for (const FPurchaseReceipt& Receipt : Receipts)
+		{
+			UE_LOG_ONLINE(Display, TEXT("Receipt: %s %d"),
+						  *Receipt.TransactionId,
+						  (int32)Receipt.TransactionState);
+			
+			UE_LOG_ONLINE(Display, TEXT("-Offers:"));
+			for (const FPurchaseReceipt::FReceiptOfferEntry& ReceiptOffer : Receipt.ReceiptOffers)
+			{
+				UE_LOG_ONLINE(Display, TEXT(" -Namespace: %s Id: %s Quantity: %d"),
+							  *ReceiptOffer.Namespace,
+							  *ReceiptOffer.OfferId,
+							  ReceiptOffer.Quantity);
+				
+				UE_LOG_ONLINE(Display, TEXT(" -LineItems:"));
+				for (const FPurchaseReceipt::FLineItemInfo& LineItem : ReceiptOffer.LineItems)
+				{
+					UE_LOG_ONLINE(Display, TEXT("  -Name: %s Id: %s ValidationInfo: %d bytes"),
+								  *LineItem.ItemName,
+								  *LineItem.UniqueId,
+								  LineItem.ValidationInfo.Len());
+				}
+			}
+		}
+	}
+}
+
+void FOnlineSubsystemImpl::OnQueryReceiptsComplete(const FOnlineError& Result, TSharedPtr<const FUniqueNetId> UserId)
+{
+	UE_LOG_ONLINE(Display, TEXT("OnQueryReceiptsComplete %s"), Result.ToLogString());
+	DumpReceipts(*UserId);
+}
+
+bool FOnlineSubsystemImpl::HandlePurchaseExecCommands(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	bool bWasHandled = false;
+	
+	if (FParse::Command(&Cmd, TEXT("RECEIPTS")))
+	{
+		IOnlinePurchasePtr PurchaseInt = GetPurchaseInterface();
+		IOnlineIdentityPtr IdentityInt = GetIdentityInterface();
+		if (PurchaseInt.IsValid() && IdentityInt.IsValid())
+		{
+			FString CommandStr = FParse::Token(Cmd, false);
+			if (CommandStr.IsEmpty())
+			{
+				UE_LOG_ONLINE(Warning, TEXT("usage: PURCHASE RECEIPTS <command> <userid>"));
+			}
+			else
+			{
+				FString UserIdStr = FParse::Token(Cmd, false);
+				if (UserIdStr.IsEmpty())
+				{
+					UE_LOG_ONLINE(Warning, TEXT("usage: PURCHASE RECEIPTS <command> <userid>"));
+				}
+				else
+				{
+					TSharedPtr<const FUniqueNetId> UserId = IdentityInt->CreateUniquePlayerId(UserIdStr);
+					if (UserId.IsValid())
+					{
+						if (CommandStr == TEXT("RESTORE"))
+						{
+							FOnQueryReceiptsComplete CompletionDelegate;
+							CompletionDelegate.BindRaw(this, &FOnlineSubsystemImpl::OnQueryReceiptsComplete, UserId);
+							PurchaseInt->QueryReceipts(*UserId, true, CompletionDelegate);
+							
+							bWasHandled = true;
+						}
+						else if (CommandStr == TEXT("DUMP"))
+						{
+							DumpReceipts(*UserId);
+							bWasHandled = true;
+						}
+					}
+				}
+			}
+		}
 	}
 
 	return bWasHandled;

@@ -1,11 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "Persona.h"
-#include "SEditorViewport.h"
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "PersonaDelegates.h"
 #include "IPersonaViewport.h"
+#include "EngineDefines.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "BlueprintEditor.h"
+#include "IPersonaPreviewScene.h"
+#include "EditorViewportClient.h"
+#include "AnimationEditorViewportClient.h"
+#include "ISkeletonTree.h"
+#include "AnimationEditorPreviewScene.h"
+#include "SEditorViewport.h"
+
+class SAnimationEditorViewportTabBody;
 
 struct FAnimationEditorViewportRequiredArgs
 {
@@ -48,6 +62,7 @@ protected:
 	// SEditorViewport interface
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
+	virtual void OnFocusViewportToSelection() override;
 	// End of SEditorViewport interface
 
 	/**  Handle undo/redo by refreshing the viewport */
@@ -101,6 +116,7 @@ public:
 	/** IPersonaViewport interface */
 	virtual TSharedRef<IPersonaViewportState> SaveState() const override;
 	virtual void RestoreState(TSharedRef<IPersonaViewportState> InState) override;
+	virtual FEditorViewportClient& GetViewportClient() const override;
 	
 	void RefreshViewport();
 
@@ -110,7 +126,7 @@ public:
 	const TSharedPtr<FUICommandList>& GetCommandList() const { return UICommandList; }
 
 	/** Handle the skeletal mesh changing */
-	void HandlePreviewMeshChanged(class USkeletalMesh* SkeletalMesh);
+	void HandlePreviewMeshChanged(class USkeletalMesh* OldSkeletalMesh, class USkeletalMesh* NewSkeletalMesh);
 
 	/** Function to get the number of LOD models associated with the preview skeletal mesh*/
 	int32 GetLODModelCount() const;
@@ -324,10 +340,13 @@ private:
 	void ToggleCameraFollow();
 	bool IsCameraFollowEnabled() const;
 
+	/** Focus the viewport on the preview mesh */
+	void HandleFocusCamera();
+
 	/** Called to determine whether the camera mode menu options should be enabled */
 	bool CanChangeCameraMode() const;
 
-	/** Tests to see if bone move mode buttons should be visibile */
+	/** Tests to see if bone move mode buttons should be visible */
 	EVisibility GetBoneMoveModeButtonVisibility() const;
 
 	/** Function to mute/unmute viewport audio */
@@ -365,6 +384,9 @@ private:
 	bool IsDisablingClothSimulation() const;
 
 	void OnApplyClothWind();
+
+	void OnPauseClothingSimWithAnim();
+	bool IsPausingClothingSimWithAnim();
 
 	/** Show cloth simulation normals */
 	void OnShowClothSimulationNormals();
@@ -462,8 +484,6 @@ private:
 	/** Update scrub panel to reflect viewed animation asset */
 	void UpdateScrubPanel(UAnimationAsset* AnimAsset);
 private:
-	friend class FPersona;
-
 	EVisibility GetViewportCornerTextVisibility() const;
 	FText GetViewportCornerText() const;
 	FText GetViewportCornerTooltip() const;

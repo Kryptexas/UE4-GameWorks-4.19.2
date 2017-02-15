@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CookOnTheFlyServer.h : handles polite cook requests via network ;)
@@ -6,11 +6,23 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/EnumClassFlags.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Misc/ScopeLock.h"
+#include "HAL/PlatformProcess.h"
+#include "TickableEditorObject.h"
 #include "IPlatformFileSandboxWrapper.h"
 #include "CookOnTheFlyServer.generated.h"
 
-
 class FChunkManifestGenerator;
+class ITargetPlatform;
+struct FPropertyChangedEvent;
+enum class ESavePackageResult;
 
 enum class ECookInitializationFlags
 {
@@ -26,8 +38,10 @@ enum class ECookInitializationFlags
 	BuildDDCInBackground =						0x0200, // build ddc content in background while the editor is running (only valid for modes which are in editor IsCookingInEditor())
 	GeneratedAssetRegistry =					0x0400, // have we generated asset registry yet
 	OutputVerboseCookerWarnings =				0x0800, // output additional cooker warnings about content issues
-	MarkupInUsePackages =						0x1000, // mark up with an object flag objects which are in packages which we are about to use or in the middle of using, this means we can gc more often but only gc stuff which we have finished with
+	EnablePartialGC =							0x1000, // mark up with an object flag objects which are in packages which we are about to use or in the middle of using, this means we can gc more often but only gc stuff which we have finished with
 	TestCook =									0x2000, // test the cooker garbage collection process and cooking (cooker will never end just keep testing).
+	IterateOnHash =								0x4000, // when using iterative cooking use hashes of original files instead of timestamps
+	LogDebugInfo =								0x8000, // enables additional debug log information
 };
 ENUM_CLASS_FLAGS(ECookInitializationFlags);
 
@@ -66,6 +80,16 @@ namespace ECookMode
 		CookByTheBook,
 	};
 }
+
+UENUM()
+enum class ECookTickFlags : uint8
+{
+	None =									0x00000000, /* no flags */
+	MarkupInUsePackages =					0x00000001, /** Markup packages for partial gc */
+};
+ENUM_CLASS_FLAGS(ECookTickFlags);
+
+// hudson is the name of my favorite dwagon
 
 DECLARE_STATS_GROUP(TEXT("Cooking"), STATGROUP_Cooking, STATCAT_Advanced);
 
@@ -377,6 +401,37 @@ private:
 				}
 			}
 
+			return true;
+		}
+
+		// do we want failed packages or not
+		bool Exists( const FName& Filename, const TArray<FName>& PlatformNames, bool bIncludeFailed ) const
+		{
+			FScopeLock ScopeLock(&SynchronizationObject);
+
+			const FFilePlatformCookedPackage* OurRequest = FilesProcessed.Find(Filename);
+
+			if (!OurRequest)
+			{
+				return false;
+			}
+
+			if (bIncludeFailed == false)
+			{
+				if ( OurRequest->HasSucceededSavePackage() == false )
+				{
+					return false;
+				}
+			}
+
+			// make sure all the platforms are completed
+			for (const auto& Platform : PlatformNames)
+			{
+				if (!OurRequest->GetPlatformnames().Contains(Platform))
+				{
+					return false;
+				}
+			}
 			return true;
 		}
 
@@ -747,7 +802,7 @@ private:
 		TSet<FName> ChildUnsolicitedPackages;
 		TArray<FChildCooker> ChildCookers;
 		TArray<FName> TargetPlatformNames;
-		
+		TArray<FName> StartupPackages;
 	};
 	FCookByTheBookOptions* CookByTheBookOptions;
 	
@@ -772,17 +827,16 @@ private:
 	uint64 MinFreeMemory;
 	/** Max number of packages to save before we partial gc */
 	int32 MaxNumPackagesBeforePartialGC;
-	/** Num packages saved since last partial gc */
-	int32 NumPackagesSavedSinceLastPartialGC;
 	/** Max number of conncurrent shader jobs reducing this too low will increase cook time */
 	int32 MaxConcurrentShaderJobs;
 	ECookInitializationFlags CookFlags;
-	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
+	TUniquePtr<class FSandboxPlatformFile> SandboxFile;
 	bool bIsInitializingSandbox; // stop recursion into callbacks when we are initializing sandbox
 	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
 
 	//////////////////////////////////////////////////////////////////////////
-	// cook in editor specific
+	// precaching system
+	// this system precaches materials and textures before we have considered the object as requiring save so as to utilize the system when it's idle
 	TArray<FWeakObjectPtr> CachedMaterialsToCacheArray;
 	TArray<FWeakObjectPtr> CachedTexturesToCacheArray;
 	int32 LastUpdateTick;
@@ -799,9 +853,10 @@ private:
 		bool bBeginCacheFinished;
 		int BeginCacheCount;
 		bool bFinishedCacheFinished;
+		bool bIsValid;
 		TArray<UObject*> CachedObjectsInOuter;
 
-		FReentryData() : FileName(NAME_None), bBeginCacheFinished(false), BeginCacheCount(0), bFinishedCacheFinished(false)
+		FReentryData() : FileName(NAME_None), bBeginCacheFinished(false), BeginCacheCount(0), bFinishedCacheFinished(false), bIsValid(false)
 		{ }
 
 		void Reset( const FName& InFilename )
@@ -809,6 +864,7 @@ private:
 			FileName = InFilename;
 			bBeginCacheFinished = false;
 			BeginCacheCount = 0;
+			bIsValid = false;
 		}
 	};
 
@@ -830,7 +886,7 @@ private:
 	FString GetCachedPackageFilename( const UPackage* Package ) const;
 	FString GetCachedStandardPackageFilename( const UPackage* Package ) const;
 	FName GetCachedStandardPackageFileFName( const UPackage* Package ) const;
-	const FString& GetCachedSandboxFilename( const UPackage* Package, TAutoPtr<class FSandboxPlatformFile>& SandboxFile ) const;
+	const FString& GetCachedSandboxFilename( const UPackage* Package, TUniquePtr<class FSandboxPlatformFile>& SandboxFile ) const;
 	const FName* GetCachedPackageFilenameToPackageFName(const FName& StandardPackageFilename) const;
 	const FCachedPackageFilename& Cache(const FName& PackageName) const;
 	void ClearPackageFilenameCache() const;
@@ -866,7 +922,12 @@ private:
 
 	void ProcessAccessedIniSettings(const FConfigFile* Config, FIniSettingContainer& AccessedIniStrings) const;
 
-
+	/**
+	 * OnTargetPlatformChangedSupportedFormats
+	 * called when target platform changes the return value of supports shader formats 
+	 * used to reset the cached cooked shaders
+	 */
+	void OnTargetPlatformChangedSupportedFormats(const ITargetPlatform* TargetPlatform);
 public:
 
 	enum ECookOnTheSideResult
@@ -983,18 +1044,33 @@ public:
 	void GetUnsolicitedPackages(TArray<UPackage*>& PackagesToSave, bool &ContainsFullGCAssetClasses, const TArray<FName>& TargetPlatformNames) const;
 
 	/**
+	 * PostLoadPackageFixup
+	 * after a package is loaded we might want to fix up some stuff before it gets saved
+	 */
+	void PostLoadPackageFixup(UPackage* Package);
+
+	/**
 	 * Handles cook package requests until there are no more requests, then returns
 	 *
 	 * @param  CookFlags output of the things that might have happened in the cook on the side
 	 * 
 	 * @return returns ECookOnTheSideResult
 	 */
-	uint32 TickCookOnTheSide( const float TimeSlice, uint32 &CookedPackagesCount );
+	uint32 TickCookOnTheSide( const float TimeSlice, uint32 &CookedPackagesCount, ECookTickFlags TickFlags = ECookTickFlags::None );
 
 	/**
 	 * Clear all the previously cooked data all cook requests from now on will be considered recook requests
 	 */
 	void ClearAllCookedData();
+
+
+	/**
+	 * Clear any cached cooked platform data for a platform
+	 *  call ClearCachedCookedPlatformData on all Uobjects
+	 * @param PlatformName platform to clear all the cached data for
+	 */
+	void ClearCachedCookedPlatformDataForPlatform( const FName& PlatformName );
+
 
 	/**
 	 * Clear all the previously cooked data for the platform passed in 
@@ -1070,6 +1146,9 @@ public:
 	/** Returns the configured number of packages to process before GC */
 	uint32 GetPackagesPerGC() const;
 
+	/** Returns the configured number of packages to process before partial GC */
+	uint32 GetPackagesPerPartialGC() const;
+
 	/** Returns the target max concurrent shader jobs */
 	int32 GetMaxConcurrentShaderJobs() const;
 
@@ -1117,6 +1196,12 @@ public:
 	 * causes package to be recooked on next request (and all dependent packages which are currently cooked)
 	 */
 	void MarkPackageDirtyForCooker( UPackage *Package );
+
+	/**
+	 * Mark any packages which reference this package as dirty also
+	 * causes all packages to be recooked on next request
+	 */
+	void MarkDependentPackagesDirtyForCooker(const FName& PackageName);
 
 	/**
 	 * MaybeMarkPackageAsAlreadyLoaded
@@ -1187,6 +1272,14 @@ private:
 	bool GetAllPackagesFromAssetRegistry( const FString& AssetRegistryPath, TArray<FName>& OutPackageNames ) const;
 
 	/**
+	 * SaveCookedAssetRegistry
+	 * Save an asset registry which contains all the packages which were cooked
+	 * this asset registry is used in the editor to display information about package sizes and asset sizes
+	 * this asset registry is also used by the cooker for iterative cooking
+	 */
+	bool SaveCookedAssetRegistry(const FString& CookedAssetRegistryFilename, const TArray<FName>& AllCookedPackages, const TArray<FName>& UncookedEditorOnlyPackages, const TArray<FName>& FailedToSavePackages, const FString& PlatformName, const bool Append) const;
+
+	/**
 	 * BuildMapDependencyGraph
 	 * builds a map of dependencies from maps
 	 * 
@@ -1214,7 +1307,6 @@ private:
 		}
 		return false;
 	}
-
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1248,6 +1340,13 @@ private:
 	 * @return If the package should be cooked
 	 */
 	bool ShouldCook(const FString& InFileName, const FName& InPlatformName);
+
+
+	/**
+	 * Makes sure a package is fully loaded before we save it out
+	 * returns true if it succeeded
+	 */
+	bool MakePackageFullyLoaded(UPackage* Package);
 
 	/**
 	 * Initialize the sandbox 
@@ -1285,24 +1384,6 @@ private:
 	 * @param FoundPackages list of packages which were found
 	 */
 	void GetDependentPackages(const TSet<FName>& RootPackages, TSet<FName>& FoundPackages);
-	/**
-	 * GenerateManifestInfo
-	 * generate the manifest information for a given package
-	 *
-	 * @param Package package to generate manifest information for
-	 */
-	void GenerateManifestInfo( UPackage* Package, const TArray<FName>& TargetPlatformNames );
-
-
-	/**
-	 * GenerateManifestInfo
-	 * generate manfiest information for the given package and add it to the manifest
-	 * this version is teh same as GenerateManifestInfo which takes in a UPackageObject except that doesn't require the package to be loaded
-	 *
-	 * @param Package name of the package to generate the manifest information for
-	 * @param TargetPlatformNames to add the manifest information to
-	 */
-	void GenerateManifestInfo(const FName& Package, const TArray<FName>& TargetPlatformNames);
 
 	/**
 	 * ContainsWorld
@@ -1418,16 +1499,6 @@ private:
 		return (CookFlags & InCookFlags) != ECookInitializationFlags::None;
 	}
 
-	/**
-	 *	Get the given packages 'cooked' timestamp (i.e. account for dependencies)
-	 *
-	 *	@param	InFilename			The filename of the package
-	 *	@param	OutDateTime			The timestamp the cooked file should have
-	 *
-	 *	@return	bool				true if the package timestamp was found, false if not
-	 */
-	bool GetPackageTimestamp( const FString& InFilename, FDateTime& OutDateTime );
-
 	/** If true, the maximum file length of a package being saved will be reduced by 32 to compensate for compressed package intermediate files */
 	bool ShouldConsiderCompressedPackageFileLengthRequirements() const;
 
@@ -1471,8 +1542,20 @@ private:
 	/** Cleans sandbox folders for all target platforms */
 	void CleanSandbox( const bool bIterative );
 
-	/** Populate the cooked packages list from the on disk content using time stamps and dependencies to figure out if they are ok */
+	/**
+	 * Populate the cooked packages list from the on disk content using time stamps and dependencies to figure out if they are ok
+	 * delete any local content which is out of date
+	 * 
+	 * @param Platforms to process
+	 */
 	void PopulateCookedPackagesFromDisk( const TArray<ITargetPlatform*>& Platforms );
+
+	/**
+	 * Verify the cooked package list hasn't got any packages which are out of date in it and remove any which are out of date deleting content from disk
+	 * 
+	 * @params Platforms to process
+	 */
+	void VerifyCookedPackagesAreUptodate( const TArray<ITargetPlatform*>& Platforms );
 
 	/** Generates asset registry */
 	void GenerateAssetRegistry();

@@ -1,15 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SocketSubsystem.h"
+#include "CoreMinimal.h"
+#include "Misc/OutputDeviceRedirector.h"
 #include "SocketSubsystemPackage.h"
 
+class FInternetAddr;
+class FSocketBSD;
 
 #if PLATFORM_HAS_BSD_SOCKETS
 
 #include "SocketSubsystemBSDPrivate.h"
-#include "IPAddressBSD.h"
 
 
 /**

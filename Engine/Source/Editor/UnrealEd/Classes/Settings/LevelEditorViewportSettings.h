@@ -1,12 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Misc/StringAssetReference.h"
 #include "Viewports.h"
 #include "Editor/UnrealEdTypes.h"
-#include "Engine/EngineBaseTypes.h"
 #include "LevelEditorViewportSettings.generated.h"
-
 
 /**
  * Enumerates modes for the viewport's rotation grid.
@@ -87,7 +91,8 @@ struct UNREALED_API FLevelEditorViewportInstanceSettings
 		, FarViewPlane(0)
 		, bIsRealtime(false)
 		, bShowFPS_DEPRECATED(false)
-		, bShowStats(false)
+		// Show 'lighting needs to be rebuilt' message by default, avoids confusion when artists think lighting is built until they PIE
+		, bShowOnScreenStats(true)
 		, bShowFullToolbar(true)
 	{ }
 
@@ -143,7 +148,7 @@ struct UNREALED_API FLevelEditorViewportInstanceSettings
 
 	/* Whether viewport statistics should be shown. */
 	UPROPERTY(config)
-	bool bShowStats;
+	bool bShowOnScreenStats;
 
 	/* Whether viewport statistics should be enabled by default. */
 	UPROPERTY(config)

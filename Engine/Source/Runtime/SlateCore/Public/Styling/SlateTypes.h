@@ -1,11 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateSound.h"
-#include "SlateBrush.h"
-#include "SlateWidgetStyle.h"
-#include "SlateFontInfo.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Styling/SlateColor.h"
+#include "Fonts/CompositeFont.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Layout/Margin.h"
+#include "Sound/SlateSound.h"
+#include "Styling/SlateBrush.h"
+#include "Styling/SlateWidgetStyle.h"
 
 #include "SlateTypes.generated.h"
 
@@ -774,6 +781,11 @@ struct SLATECORE_API FExpandableAreaStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush ExpandedImage;
 	FExpandableAreaStyle& SetExpandedImage( const FSlateBrush& InExpandedImage ){ ExpandedImage = InExpandedImage; return *this; }
+
+	/** How long the rollout animation lasts */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	float RolloutAnimationSeconds;
+	FExpandableAreaStyle& SetRolloutAnimationSeconds(float InLengthSeconds) { RolloutAnimationSeconds = InLengthSeconds; return *this; }
 };
 
 

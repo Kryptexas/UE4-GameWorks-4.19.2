@@ -1,7 +1,7 @@
 Availability: Public
-Title:Material Editor - How To make Shiny Materials
+Title:Creating Shiny Materials
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
-Description: A How To Guide for making Shiny Materials
+Description: Guide for making Shiny Materials
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Resources/ContentExamples/MaterialNodes/1_4
 Related: Resources/ContentExamples/MaterialNodes/1_2

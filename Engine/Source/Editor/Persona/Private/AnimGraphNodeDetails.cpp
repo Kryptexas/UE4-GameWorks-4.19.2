@@ -1,30 +1,40 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
-#include "K2Node.h"
-#include "PropertyEditorModule.h"
 #include "AnimGraphNodeDetails.h"
-#include "AnimGraphDefinitions.h"
-#include "ObjectEditorUtils.h"
-#include "AssetData.h"
-#include "DetailLayoutBuilder.h"
-#include "IDetailsView.h"
-#include "PropertyHandle.h"
-#include "DetailCategoryBuilder.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UnrealType.h"
+#include "Widgets/Text/STextBlock.h"
+#include "BoneContainer.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimationAsset.h"
+#include "Widgets/Layout/SSpacer.h"
 #include "DetailWidgetRow.h"
-#include "AssetSearchBoxUtilPersona.h"
 #include "IDetailPropertyRow.h"
-#include "IDetailCustomNodeBuilder.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
+#include "IDetailsView.h"
 #include "PropertyCustomizationHelpers.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/EditorParentPlayerListObj.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
+#include "Widgets/SToolTip.h"
+#include "IDocumentation.h"
+#include "ObjectEditorUtils.h"
 #include "AnimGraphNode_Base.h"
-#include "GraphEditor.h"
+#include "Widgets/Views/STreeView.h"
 #include "BoneSelectionWidget.h"
-#include "SExpandableArea.h"
+#include "Widgets/Layout/SExpandableArea.h"
 #include "Animation/BlendProfile.h"
 #include "AnimGraphNode_AssetPlayerBase.h"
-#include "Animation/AnimInstance.h"
+#include "BlendProfilePicker.h"
 #include "ISkeletonEditorModule.h"
+#include "EdGraph/EdGraph.h"
 #include "BlueprintEditor.h"
+#include "Animation/EditorAnimCurveBoneLinks.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 
@@ -203,7 +213,7 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 	}
 }
 
-TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* TargetProperty, TSharedRef<IPropertyHandle> TargetPropertyHandle, const UClass* NodeClass)
+TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* TargetProperty, TSharedRef<IPropertyHandle> TargetPropertyHandle, UClass* NodeClass)
 {
 	if(const UObjectPropertyBase* ObjectProperty = Cast<const UObjectPropertyBase>( TargetProperty ))
 	{
@@ -240,7 +250,7 @@ TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* Targe
 	return SNullWidget::NullWidget;
 }
 
-bool FAnimGraphNodeDetails::OnShouldFilterAnimAsset( const FAssetData& AssetData, const UClass* NodeToFilterFor ) const
+bool FAnimGraphNodeDetails::OnShouldFilterAnimAsset( const FAssetData& AssetData, UClass* NodeToFilterFor ) const
 {
 	const FString* SkeletonName = AssetData.TagsAndValues.Find(TEXT("Skeleton"));
 	if ((SkeletonName != nullptr) && (*SkeletonName == TargetSkeletonName))
@@ -475,6 +485,8 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 	UAnimationAsset * AnimationAsset = NULL;
 	USkeleton* TargetSkeleton = NULL;
 
+	TSharedPtr<IEditableSkeleton> EditableSkeleton; 
+
 	for (auto OuterIter = Objects.CreateIterator() ; OuterIter ; ++OuterIter)
 	{
 		AnimGraphNode = Cast<UAnimGraphNode_Base>(*OuterIter);
@@ -509,25 +521,42 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 				break;
 			}
 		}
+
+		// editor animation curve bone links are responsible for linking joints to curve
+		// this is editor object that only exists for editor
+		if (UEditorAnimCurveBoneLinks* AnimCurveObj = Cast<UEditorAnimCurveBoneLinks>(*OuterIter))
+		{
+			EditableSkeleton = AnimCurveObj->EditableSkeleton.Pin();
+		}
 	}
 
 	if (TargetSkeleton)
 	{
 		ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
-		TSharedRef<IEditableSkeleton> EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(TargetSkeleton);
+		EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(TargetSkeleton);
+	}
 
+	if (EditableSkeleton.IsValid())
+	{
 		HeaderRow.NameContent()
 		[
 			StructPropertyHandle->CreatePropertyNameWidget()
 		];
 
 		HeaderRow.ValueContent()
+		.MinDesiredWidth(200.f)
 		[
-			SNew(SBoneSelectionWidget, EditableSkeleton)
-			.Tooltip(StructPropertyHandle->GetToolTipText())
+			SNew(SBoneSelectionWidget, EditableSkeleton.ToSharedRef())
+			.ToolTipText(StructPropertyHandle->GetToolTipText())
 			.OnBoneSelectionChanged(this, &FBoneReferenceCustomization::OnBoneSelectionChanged)
 			.OnGetSelectedBone(this, &FBoneReferenceCustomization::GetSelectedBone)
 		];
+	}
+	else
+	{
+		// if this FBoneReference is used by some other Outers, this will fail	
+		// should warn programmers instead of silent fail
+		ensureAlways(false);
 	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

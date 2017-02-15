@@ -1,11 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include <Metal/Metal.h>
 #include "MetalBufferPools.h"
+#include "MetalDebugCommandEncoder.h"
 
 class FMetalCommandList;
+class FMetalCommandQueue;
+
+/**
+ * Enumeration for submission hints to avoid unclear bool values.
+ */
+enum EMetalSubmitFlags
+{
+	/** No submission flags. */
+	EMetalSubmitFlagsNone = 0,
+	/** Create the next command buffer. */
+	EMetalSubmitFlagsCreateCommandBuffer = 1 << 0,
+	/** Wait on the submitted command buffer. */
+	EMetalSubmitFlagsWaitOnCommandBuffer = 1 << 1,
+	/** Break a single logical command-buffer into parts to keep the GPU active. */
+	EMetalSubmitFlagsBreakCommandBuffer = 1 << 2,
+};
 
 /**
  * FMetalCommandEncoder:
@@ -33,15 +50,19 @@ public:
 	/**
 	 * Start encoding to CommandBuffer. It is an error to call this with any outstanding command encoders or current command buffer.
 	 * Instead call EndEncoding & CommitCommandBuffer before calling this.
-	 * @param CommandBuffer The new command buffer to begin encoding to.
 	 */
-	void StartCommandBuffer(id<MTLCommandBuffer> const CommandBuffer);
+	void StartCommandBuffer(void);
 	
 	/**
 	 * Commit the existing command buffer if there is one & optionally waiting for completion, if there isn't a current command buffer this is a no-op.
-	 * @param bWait If true will wait for command buffer completion, otherwise the function returns immediately.
+	 * @param Flags Flags to control commit behaviour.
  	 */
-	void CommitCommandBuffer(bool const bWait);
+	void CommitCommandBuffer(uint32 const Flags);
+
+#pragma mark - Public Command Buffer Accessors -
+	
+	/** @returns the current command buffer */
+	id<MTLCommandBuffer> GetCommandBuffer() const { return CommandBuffer; }
 
 #pragma mark - Public Command Encoder Accessors -
 	
@@ -79,17 +100,8 @@ public:
 	 */
 	void BeginRenderCommandEncoding(void);
 	
-	/** Restore the render command encoder from whatever state we were in. Any previous encoder must first be terminated with EndEncoding. */
-	void RestoreRenderCommandEncoding(void);
-	
-	/** Restores the render command state into a new render command encoder. */		
-	void RestoreRenderCommandEncodingState(void);
-	
 	/** Begins encoding compute commands into the current command buffer. No other encoder may be active. */
 	void BeginComputeCommandEncoding(void);
-	
-	/** Restores the compute command state into a new compute command encoder. */
-	void RestoreComputeCommandEncodingState(void);
 	
 	/** Begins encoding blit commands into the current command buffer. No other encoder may be active. */
 	void BeginBlitCommandEncoding(void);
@@ -119,15 +131,14 @@ public:
 	/**
 	 * Set the render pass descriptor - no encoder may be active when this function is called.
 	 * @param RenderPass The render pass descriptor to set. May be nil.
-	 * @param bReset Whether to reset existing state.
 	 */
-	void SetRenderPassDescriptor(MTLRenderPassDescriptor* const RenderPass, bool const bReset);
+	void SetRenderPassDescriptor(MTLRenderPassDescriptor* const RenderPass);
 	
 	/*
 	 * Sets the current render pipeline state object.
 	 * @param PipelineState The pipeline state to set. Must not be nil.
 	 */
-	void SetRenderPipelineState(id<MTLRenderPipelineState> const PipelineState);
+	void SetRenderPipelineState(id<MTLRenderPipelineState> const PipelineState, MTLRenderPipelineReflection* Reflection, NSString* VertexSource, NSString* FragmentSource);
 	
 	/*
 	 * Set the viewport, which is used to transform vertexes from normalized device coordinates to window coordinates.  Fragments that lie outside of the viewport are clipped, and optionally clamped for fragments outside of znear/zfar.
@@ -146,14 +157,6 @@ public:
 	 * @param CullMode The cull mode.
 	 */
 	void SetCullMode(MTLCullMode const CullMode);
-
-#if METAL_API_1_1 && PLATFORM_MAC
-	/*
-	 * Controls what is done with fragments outside of the near or far planes.
-	 * @param DepthClipMode the clip mode.
-	 */
-	void SetDepthClipMode(MTLDepthClipMode const DepthClipMode);
-#endif
 	
 	/*
 	 * Depth Bias.
@@ -195,13 +198,6 @@ public:
 	 * @param ReferenceValue The stencil ref value to use.
 	 */
 	void SetStencilReferenceValue(uint32 const ReferenceValue);
-
-	/*
-	 * Set the stencil reference value for the back and front stencil buffers independently.
-	 * @param FrontReferenceValue The front face stencil ref value.
-	 * @param BackReferenceValue The back face stencil ref value.
-	 */
-	void SetStencilReferenceValue(uint32 const FrontReferenceValue, uint32 const BackReferenceValue);
 	
 	/*
 	 * Monitor if samples pass the depth and stencil tests.
@@ -214,88 +210,54 @@ public:
 	
 	/*
 	 * Set a global buffer for the specified shader frequency at the given bind point index.
-	 * @param Frequency The shader frequency to modify.
+	 * @param FunctionType The shader function to modify.
 	 * @param Buffer The buffer to bind or nil to clear.
 	 * @param Offset The offset in the buffer or 0 when Buffer is nil.
+	 * @param Length The data length - caller is responsible for accounting for non-zero Offset.
 	 * @param Index The index to modify.
 	 */
-	void SetShaderBuffer(EShaderFrequency const Frequency, id<MTLBuffer> const Buffer, NSUInteger const Offset, NSUInteger const Index);
+	void SetShaderBuffer(MTLFunctionType const FunctionType, id<MTLBuffer> const Buffer, NSUInteger const Offset, NSUInteger const Length, NSUInteger const Index);
 	
 	/*
-	 * Set data bytes to the specified shader frequency at the given bind point index.
-	 * @param Frequency The shader frequency to modify.
+	 * Set an NSData to the specified shader frequency at the given bind point index.
+	 * @param FunctionType The shader function to modify.
 	 * @param Data The data to bind or nullptr to clear.
 	 * @param Offset The offset in the buffer or 0 when Buffer is nil.
 	 * @param Index The index to modify.
 	 */
-	void SetShaderBytes(EShaderFrequency const Frequency, NSData* Data, NSUInteger const Offset, NSUInteger const Index);
+	void SetShaderData(MTLFunctionType const FunctionType, NSData* Data, NSUInteger const Offset, NSUInteger const Index);
 	
 	/*
-	 * Conditionally set a global buffer for the specified shader frequency at the given bind point index.
-	 * @param Frequency The shader frequency to modify.
-	 * @param Buffer The buffer to bind or nil to clear.
-	 * @param Offset The offset in the buffer or 0 when Buffer is nil.
-	 * @param Index The index to modify.
-	 * @returns True if the buffer was set because there was no existing binding otherwise false as the buffer was not set. 
-	 */
-	bool SetShaderBufferConditional(EShaderFrequency const Frequency, id<MTLBuffer> const Buffer, NSUInteger const Offset, NSUInteger const Index);
-	
-	/*
-	 * Set the offset for the buffer bound on the specified shader frequency at the given bind point index.
-	 * @param Frequency The shader frequency to modify.
-	 * @param Offset The offset in the buffer or 0 when Buffer is nil.
+	 * Set bytes to the specified shader frequency at the given bind point index.
+	 * @param FunctionType The shader function to modify.
+	 * @param Bytes The data to bind or nullptr to clear.
+	 * @param Length The length of the buffer or 0 when Bytes is nil.
 	 * @param Index The index to modify.
 	 */
-	void SetShaderBufferOffset(EShaderFrequency const Frequency, NSUInteger const Offset, NSUInteger const Index);
-	
-	/*
-	 * Set an array of global buffers for the specified shader frequency with the given bind point range.
-	 * @param Frequency The shader frequency to modify.
-	 * @param Buffer sThe buffers to bind or nil to clear.
-	 * @param Offset The offset in the buffer or 0 when Buffer is nil.
-	 * @param Range The start point and number of indices to modify.
-	 */
-	void SetShaderBuffers(EShaderFrequency const Frequency, const id<MTLBuffer> Buffers[], const NSUInteger Offset[], NSRange const& Range);
+	void SetShaderBytes(MTLFunctionType const FunctionType, uint8 const* Bytes, NSUInteger const Length, NSUInteger const Index);
 	
 	/*
 	 * Set a global texture for the specified shader frequency at the given bind point index.
-	 * @param Frequency The shader frequency to modify.
+	 * @param FunctionType The shader function to modify.
 	 * @param Texture The texture to bind or nil to clear.
 	 * @param Index The index to modify.
 	 */
-	void SetShaderTexture(EShaderFrequency const Frequency, id<MTLTexture> const Texture, NSUInteger const Index);
-	
-	/*
-	 * Set an array of global textures for the specified shader frequency with the given bind point range.
-	 * @param Frequency The shader frequency to modify.
-	 * @param Textures The textures to bind or nil to clear.
-	 * @param Range The start point and number of indices to modify.
-	 */
-	void SetShaderTextures(EShaderFrequency const Frequency, const id<MTLTexture> Textures[], NSRange const& Range);
+	void SetShaderTexture(MTLFunctionType const FunctionType, id<MTLTexture> const Texture, NSUInteger const Index);
 	
 	/*
 	 * Set a global sampler for the specified shader frequency at the given bind point index.
-	 * @param Frequency The shader frequency to modify.
+	 * @param FunctionType The shader function to modify.
 	 * @param Sampler The sampler state to bind or nil to clear.
 	 * @param Index The index to modify.
 	 */
-	void SetShaderSamplerState(EShaderFrequency const Frequency, id<MTLSamplerState> const Sampler, NSUInteger const Index);
+	void SetShaderSamplerState(MTLFunctionType const FunctionType, id<MTLSamplerState> const Sampler, NSUInteger const Index);
 	
 	/*
-	 * Set an array of global samplers for the specified shader frequency with the given bind point range.
-	 * @param Frequency The shader frequency to modify.
-	 * @param Samplers The sampler states to bind or nil to clear.
-	 * @param Range The start point and number of indices to modify.
+	 * Set the shader side-table data for FunctionType at Index.
+	 * @param FunctionType The shader function to modify.
+	 * @param Index The index to bind data to.
 	 */
-	void SetShaderSamplerStates(EShaderFrequency const Frequency, const id<MTLSamplerState> Samplers[], NSRange const& Range);
-	
-	/*
-	 * Validate the argument binding state for the given shader frequency and report whether the current bindings are sufficient.
-	 * @param Frequency The shader frequency to validate.
-	 * @param Reflection The shader reflection data to validate against.
-	 * @returns True if and only if the current binding state satisfies the reflection data, otherwise false.
-	 */
-	bool ValidateArgumentBindings(EShaderFrequency const Frequency, MTLRenderPipelineReflection* Reflection);
+	void SetShaderSideTable(MTLFunctionType const FunctionType, NSUInteger const Index);
 	
 #pragma mark - Public Compute State Mutators -
 	
@@ -303,116 +265,59 @@ public:
 	 * Set the compute pipeline state that will be used.
 	 * @param State The state to set - must not be nil.
 	 */
-	void SetComputePipelineState(id<MTLComputePipelineState> const State);
+	void SetComputePipelineState(id<MTLComputePipelineState> const State, MTLComputePipelineReflection* Reflection, NSString* Source);
 
-#pragma mark - Public Extension Accessors -
+#pragma mark - Public Ring-Buffer Accessor -
 	
-#pragma mark - Public Extension Mutators -
-	
-#pragma mark - Public Support Functions -
-
 	/*
-	 * Unbinds Object from the cached state so that it cannot be restored accidentally.
-	 * @param Object The object to remove from the state caching.
+	 * Get the internal ring-buffer used for temporary allocations.
+	 * @returns The temporary allocation buffer for this command-encoder.
 	 */
-	void UnbindObject(id const Object);
+	TSharedRef<FRingBuffer, ESPMode::ThreadSafe> GetRingBuffer(void) const;
 	
 private:
-#pragma mark - Private Per-Platform Defines -
-
-#if PLATFORM_IOS
-	#define METAL_MAX_TEXTURES 31
-	typedef uint32 FMetalTextureMask;
-#elif PLATFORM_MAC
-	#define METAL_MAX_TEXTURES 128
-	typedef __uint128_t FMetalTextureMask;
-#else
-	#error "Unsupported Platform!"
-#endif
-
-#pragma mark - Private Type Declarations -
-
-	/**
-	 * The sampler, buffer and texture resource limits as defined here:
-	 * https://developer.apple.com/library/ios/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Render-Ctx/Render-Ctx.html
+#pragma mark - Private Functions -
+	/*
+	 * Set the offset for the buffer bound on the specified shader frequency at the given bind point index.
+	 * @param FunctionType The shader function to modify.
+	 * @param Offset The offset in the buffer or 0 when Buffer is nil.
+	 * @param Length The data length - caller is responsible for accounting for non-zero Offset.
+	 * @param Index The index to modify.
 	 */
-	enum EMetalLimits
-	{
-		ML_MaxSamplers = 16, /** Maximum number of samplers */
-		ML_MaxBuffers = 31, /** Maximum number of buffers */
-		ML_MaxTextures = METAL_MAX_TEXTURES /** Maximum number of textures - there are more textures available on Mac than iOS */
-	};
+	void SetShaderBufferOffset(MTLFunctionType const FunctionType, NSUInteger const Offset, NSUInteger const Length, NSUInteger const Index);
 	
-	/** A structure of arrays for the current buffer binding settings. */
-	struct FMetalBufferBindings
-	{
-		/** The bound buffers or nil. */
-		id<MTLBuffer> Buffers[ML_MaxBuffers];
-		/** Optional bytes buffer used instead of an id<MTLBuffer> */
-		NSData* Bytes[ML_MaxBuffers];
-		/** The bound buffer offsets or 0. */
-		NSUInteger Offsets[ML_MaxBuffers];
-		/** A bitmask for which buffers were bound by the application where a bit value of 1 is bound and 0 is unbound. */
+	void SetShaderBufferInternal(MTLFunctionType Function, uint32 Index);
+	
+#pragma mark - Private Type Declarations -
+private:
+    /** A structure of arrays for the current buffer binding settings. */
+    struct FMetalBufferBindings
+    {
+        /** The bound buffers or nil. */
+        id<MTLBuffer> Buffers[ML_MaxBuffers];
+        /** The bound buffers or nil. */
+        NSData* Bytes[ML_MaxBuffers];
+        /** The bound buffer offsets or 0. */
+        NSUInteger Offsets[ML_MaxBuffers];
+		/** The bound buffer lengths */
+		uint32 Lengths[ML_MaxBuffers];
+        /** A bitmask for which buffers were bound by the application where a bit value of 1 is bound and 0 is unbound. */
         uint32 Bound;
-	};
-
-	/** A structure of arrays for the current texture binding settings. */
-	struct FMetalTextureBindings
-	{
-		/** The bound textures or nil. */
-		id<MTLTexture> Textures[ML_MaxTextures];
-		/** A bitmask for which textures were bound by the application where a bit value of 1 is bound and 0 is unbound. */
-		FMetalTextureMask Bound;
-	};
-
-	/** A structure of arrays for the current sampler binding settings. */
-	struct FMetalSamplerBindings
-	{
-		/** The bound sampler states or nil. */
-		id<MTLSamplerState> Samplers[ML_MaxSamplers];
-		/** A bitmask for which samplers were bound by the application where a bit value of 1 is bound and 0 is unbound. */
-		uint16 Bound;
 	};
 	
 #pragma mark - Private Member Variables -
-
-	FMetalBufferBindings ShaderBuffers[SF_NumFrequencies];
-	FMetalTextureBindings ShaderTextures[SF_NumFrequencies];
-	FMetalSamplerBindings ShaderSamplers[SF_NumFrequencies];
-	
 	FMetalCommandList& CommandList;
+
+	FMetalBufferBindings ShaderBuffers[MTLFunctionTypeKernel+1];
 	
 	TSharedPtr<FRingBuffer, ESPMode::ThreadSafe> RingBuffer;
-	
-	MTLViewport Viewport;
-	MTLWinding FrontFacingWinding;
-	MTLCullMode CullMode;
-#if METAL_API_1_1
-	MTLDepthClipMode DepthClipMode;
-#endif
-	float DepthBias[3];
-	MTLScissorRect ScissorRect;
-	MTLTriangleFillMode FillMode;
-	float BlendColor[4];
-	
-	id<MTLDepthStencilState> DepthStencilState;
-	uint32 StencilRef[2];
-	
-	MTLVisibilityResultMode VisibilityMode;
-	NSUInteger VisibilityOffset;
-	
-	id<MTLBuffer> PipelineStatsBuffer;
-	NSUInteger PipelineStatsOffset;
-	NSUInteger PipelineStatsMask;
 	
 	MTLRenderPassDescriptor* RenderPassDesc;
 	NSUInteger RenderPassDescApplied;
 	
 	id<MTLCommandBuffer> CommandBuffer;
 	id<MTLRenderCommandEncoder> RenderCommandEncoder;
-	id<MTLRenderPipelineState> RenderPipelineState;
 	id<MTLComputeCommandEncoder> ComputeCommandEncoder;
-	id<MTLComputePipelineState> ComputePipelineState;
 	id<MTLBlitCommandEncoder> BlitCommandEncoder;
 	
 	NSMutableArray* DebugGroups;

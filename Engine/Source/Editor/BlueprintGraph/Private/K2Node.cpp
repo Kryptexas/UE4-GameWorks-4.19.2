@@ -1,16 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
-
-#include "EdGraph/EdGraphPin.h"
-#include "Engine/Breakpoint.h"
 #include "K2Node.h"
-#include "KismetDebugUtilities.h" // for HasDebuggingData(), GetWatchText()
-#include "KismetCompiler.h"
+#include "UObject/UnrealType.h"
+#include "EdGraph/EdGraphPin.h"
+#include "UObject/Interface.h"
+#include "Engine/Blueprint.h"
+#include "Engine/MemberReference.h"
 #include "GraphEditorSettings.h"
-#include "BlueprintEditorSettings.h"
-#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_MacroInstance.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Editor/EditorEngine.h"
+#include "Misc/OutputDeviceNull.h"
+
+#include "Engine/Breakpoint.h"
+#include "Kismet2/KismetDebugUtilities.h"
+#include "KismetCompiler.h"
+#include "PropertyCustomizationHelpers.h"
 
 #include "ObjectEditorUtils.h"
 
@@ -59,6 +68,39 @@ void UK2Node::PostLoad()
 
 	// fix up pin default values
 	FixupPinDefaultValues();
+}
+
+void UK2Node::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsObjectReferenceCollector() && Ar.IsSaving())
+	{
+		// If looking for references during save, expand any default values on the pins
+		
+		for (const UEdGraphPin* Pin : Pins)
+		{
+			if (!Pin->bDefaultValueIsIgnored && !Pin->DefaultValue.IsEmpty() && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct && Pin->PinType.PinSubCategoryObject.IsValid())
+			{
+				UScriptStruct* Struct = Cast<UScriptStruct>(Pin->PinType.PinSubCategoryObject.Get());
+
+				if (Struct)
+				{
+					int32 StructSize = Struct->GetStructureSize();
+					uint8* StructData = (uint8*)FMemory::Malloc(StructSize);
+					
+					// Import the literal text to a dummy struct and then serialize that
+					FOutputDeviceNull NullOutput;
+					Struct->InitializeStruct(StructData);
+					Struct->ImportText(*Pin->DefaultValue, StructData, nullptr, PPF_None, &NullOutput, Pin->PinName);
+					Struct->SerializeItem(Ar, StructData, nullptr);
+					Struct->DestroyStruct(StructData);
+
+					FMemory::Free(StructData);
+				}
+			}
+		}
+	}
 }
 
 void UK2Node::FixupPinDefaultValues()

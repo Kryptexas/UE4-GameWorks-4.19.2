@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,22 +6,17 @@
  * The base class for a playable sound object 
  */
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "Audio.h"
 #include "Sound/SoundConcurrency.h"
-#include "Sound/SoundEffectSource.h"
-#include "Sound/SoundSubmix.h"
 #include "SoundBase.generated.h"
 
-
+class USoundEffectSourcePreset;
+class USoundSubmix;
 struct FActiveSound;
 struct FSoundParseParameters;
-struct FWaveInstance;
-struct FAttenuationSettings; 
-struct FSoundConcurrencySettings;
-
-class USoundClass;
-class USoundAttenuation;
-class USoundConcurrency;
 
 UCLASS(config=Engine, hidecategories=Object, abstract, editinlinenew, BlueprintType)
 class ENGINE_API USoundBase : public UObject
@@ -31,7 +26,6 @@ class ENGINE_API USoundBase : public UObject
 public:
 	static USoundClass* DefaultSoundClassObject;
 	static USoundConcurrency* DefaultSoundConcurrencyObject;
-	static USoundSubmix* DefaultSoundSubmixObject;
 
 protected:
 	/** Sound class this sound belongs to */
@@ -87,6 +81,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = Effects)
 	TArray<USoundEffectSourcePreset*> SourceEffectChain;
 
+	/** The default amount of audio to send to the master reverb effect for this sound if reverb is enabled for the sound. This can be overridden by sound attenuation settings for 3d sounds. */
+	UPROPERTY(EditAnywhere, Category = Effects)
+	float DefaultMasterReverbSendAmount;
+
 public:	
 	/** Number of times this cue is currently being played. */
 	int32 CurrentPlayCount;
@@ -100,7 +98,7 @@ public:
 	virtual bool IsPlayable() const;
 
 	/** Returns a pointer to the attenuation settings that are to be applied for this node */
-	virtual const FAttenuationSettings* GetAttenuationSettingsToApply() const;
+	virtual const FSoundAttenuationSettings* GetAttenuationSettingsToApply() const;
 
 	/**
 	 * Returns the farthest distance at which the sound could be heard

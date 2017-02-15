@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Viewports.h: The viewport windows used by the editor
@@ -7,6 +7,7 @@
 #ifndef __VIEWPORTS_H__
 #define __VIEWPORTS_H__
 
+#include "CoreMinimal.h"
 
 namespace EditorViewportDefs
 {

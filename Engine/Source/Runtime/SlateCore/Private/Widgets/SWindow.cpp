@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "HittestGrid.h"
+#include "Widgets/SWindow.h"
+#include "Application/SlateWindowHelper.h"
+#include "Application/SlateApplicationBase.h"
+#include "Layout/WidgetPath.h"
+#include "Input/HittestGrid.h"
 
 namespace SWindowDefs
 {
@@ -823,26 +826,32 @@ void SWindow::MoveWindowTo( FVector2D NewPosition )
 
 void SWindow::ReshapeWindow( FVector2D NewPosition, FVector2D NewSize )
 {
-	if (NativeWindow.IsValid())
-	{
-#if 1//PLATFORM_LINUX
-		// Slate code often expects cached screen position to be accurate immediately after the move.
-		// This expectation is generally invalid (see UE-1308) as there may be a delay before the OS reports it back.
-		// This hack sets the position speculatively, keeping Slate happy while also giving the OS chance to report it
-		// correctly after or even during the actual call.
-		FVector2D SpeculativeScreenPosition(FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y));
-		SetCachedScreenPosition(SpeculativeScreenPosition);
-#endif // PLATFORM_LINUX
+	const FVector2D CurrentPosition = GetPositionInScreen();
+	const FVector2D CurrentSize = GetSizeInScreen();
 
-		NativeWindow->ReshapeWindow( FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y), FMath::RoundToInt(NewSize.X), FMath::RoundToInt(NewSize.Y) );
-	}
-	else
-	{
-		InitialDesiredScreenPosition = NewPosition;
-		InitialDesiredSize = NewSize;
-	}
+	const FVector2D NewPositionTruncated = FVector2D(FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y));
+	const FVector2D NewSizeRounded = FVector2D(FMath::RoundToInt(NewSize.X), FMath::RoundToInt(NewSize.Y));
 
-	SetCachedSize( NewSize );
+	if ( CurrentPosition != NewPositionTruncated || CurrentSize != NewSizeRounded )
+	{
+		if ( NativeWindow.IsValid() )
+		{
+			// Slate code often expects cached screen position to be accurate immediately after the move.
+			// This expectation is generally invalid (see UE-1308) as there may be a delay before the OS reports it back.
+			// This hack sets the position speculatively, keeping Slate happy while also giving the OS chance to report it
+			// correctly after or even during the actual call.
+			SetCachedScreenPosition(NewPositionTruncated);
+
+			NativeWindow->ReshapeWindow(NewPositionTruncated.X, NewPositionTruncated.Y, NewSizeRounded.X, NewSizeRounded.Y);
+		}
+		else
+		{
+			InitialDesiredScreenPosition = NewPosition;
+			InitialDesiredSize = NewSize;
+		}
+
+		SetCachedSize(NewSize);
+	}
 }
 
 void SWindow::ReshapeWindow( const FSlateRect& InNewShape )
@@ -1448,11 +1457,22 @@ bool SWindow::OnIsActiveChanged( const FWindowActivateEvent& ActivateEvent )
 		OnWindowDeactivated.ExecuteIfBound();	// deprecated
 		WindowDeactivatedEvent.Broadcast();
 
+		WidgetFocusedOnDeactivate.Reset();
+
 		const EWindowMode::Type WindowMode = GetWindowMode();
 		// If the window is not fullscreen, we do not want to automatically recapture the mouse unless an external UI such as Steam is open. Fullscreen windows we do.
 		if (WindowMode != EWindowMode::Fullscreen && WidgetToFocusOnActivate.IsValid() && WidgetToFocusOnActivate.Pin()->HasMouseCapture() && !FSlateApplicationBase::Get().IsExternalUIOpened())
 		{
 			WidgetToFocusOnActivate.Reset();
+		}
+		else if (SupportsKeyboardFocus())
+		{
+			// If we have no specific widget to focus then cache the currently focused widget so we can restore its focus when we regain focus
+			WidgetFocusedOnDeactivate = FSlateApplicationBase::Get().GetKeyboardFocusedWidget();
+			if (!WidgetFocusedOnDeactivate.IsValid())
+			{
+				WidgetFocusedOnDeactivate = FSlateApplicationBase::Get().GetUserFocusedWidget(0);
+			}
 		}
 	}
 	else
@@ -1479,7 +1499,8 @@ bool SWindow::OnIsActiveChanged( const FWindowActivateEvent& ActivateEvent )
 			else if (SupportsKeyboardFocus())
 			{
 				FWidgetPath WindowWidgetPath;
-				if (FSlateWindowHelper::FindPathToWidget(JustThisWindow, AsShared(), WindowWidgetPath))
+				TSharedRef<SWidget> WindowWidgetToFocus = WidgetFocusedOnDeactivate.IsValid() ? WidgetFocusedOnDeactivate.Pin().ToSharedRef() : AsShared();
+				if (FSlateWindowHelper::FindPathToWidget(JustThisWindow, WindowWidgetToFocus, WindowWidgetPath))
 				{
 					FSlateApplicationBase::Get().SetAllUserFocusAllowingDescendantFocus(WindowWidgetPath, EFocusCause::SetDirectly);
 				}
@@ -1667,7 +1688,7 @@ EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
 	const bool bIsCursorVisible = FSlateApplicationBase::Get().GetPlatformCursor()->GetType() != EMouseCursor::None;
 
 	// Don't allow position/resizing of window while in fullscreen mode by ignoring Title Bar/Border Zones
-	if ((bIsFullscreenMode && !bIsBorderlessGameWindow) || !bIsCursorVisible)
+	if ( (bIsFullscreenMode && !bIsBorderlessGameWindow) || !bIsCursorVisible )
 	{
 		return EWindowZone::ClientArea;
 	}
@@ -1788,6 +1809,7 @@ SWindow::SWindow()
 	, ExpectedMaxWidth( INDEX_NONE )
 	, ExpectedMaxHeight( INDEX_NONE )
 	, TitleBar()
+	, bIsDrawingEnabled( true )
 {
 }
 
@@ -1860,6 +1882,8 @@ void SWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 			PreFullscreenPosition = ScreenPosition;
 		}
 
+		bIsDrawingEnabled = false;
+
 		NativeWindow->SetWindowMode( NewWindowMode );
 	
 		const FVector2D vp = IsMirrorWindow() ? GetSizeInScreen() : GetViewportSize();
@@ -1876,6 +1900,8 @@ void SWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 			// If we left fullscreen, reset the screen position;
 			MoveWindowTo(PreFullscreenPosition);
 		}
+
+		bIsDrawingEnabled = true;
 	}
 
 }
@@ -1907,3 +1933,15 @@ EActiveTimerReturnType SWindow::TriggerPlayMorphSequence( double InCurrentTime, 
 	Morpher.Sequence.Play( this->AsShared() );
 	return EActiveTimerReturnType::Stop;
 }
+
+#if WITH_EDITOR
+FScopedSwitchWorldHack::FScopedSwitchWorldHack( const FWidgetPath& WidgetPath )
+	: Window( WidgetPath.TopLevelWindow )
+	, WorldId( -1 )
+{
+	if( Window.IsValid() )
+	{
+		WorldId = Window->SwitchWorlds( WorldId );
+	}
+}
+#endif

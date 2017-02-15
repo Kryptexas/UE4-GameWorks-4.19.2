@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IScreenShotComparisonModule.h: Declares the IScreenShotComparisonModule interface.
@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Interfaces/IScreenShotManager.h"
 
 /**
  * Interface for screen shot comparison UI modules.

@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Array.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Containers/IndirectArray.h"
 
 
 /** An array that uses multiple allocations to avoid allocation failure due to fragmentation. */

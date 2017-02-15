@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2945303
+﻿INTSourceChangelist:3150518
 Title: 프로젝트 릴리즈 사이닝
 Description:프로젝트를 구글 플레이 스토어에 릴리즈할 수 있도록 준비하는 작업입니다.
 Crumbs:
@@ -7,7 +7,7 @@ version:4.10
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
-type:howto
+type:how-to
 
 
 여기서는 UE4 모바일 프로젝트를 구글 플레이 스토어에서 릴리즈할 수 있도록 준비하는 데 필요한 작업들에 대해서 다룹니다. 

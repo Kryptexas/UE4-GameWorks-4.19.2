@@ -1,9 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PaperFlipbook.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Components/MeshComponent.h"
 #include "PaperFlipbookComponent.generated.h"
+
+class FPrimitiveSceneProxy;
+class UBodySetup;
+class UPaperFlipbook;
+class UPaperSprite;
+class UTexture;
 
 // Event for a non-looping flipbook finishing play
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFlipbookFinishedPlaySignature);
@@ -190,7 +200,7 @@ public:
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel) override;
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
-	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 	virtual int32 GetNumMaterials() const override;
 	virtual UBodySetup* GetBodySetup() override;

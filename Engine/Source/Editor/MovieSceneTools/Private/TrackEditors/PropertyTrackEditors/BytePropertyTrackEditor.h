@@ -1,14 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneByteTrack.h"
-#include "MovieSceneByteSection.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-
-
-class ISequencer;
-
+#include "Tracks/MovieSceneByteTrack.h"
+#include "Sections/MovieSceneByteSection.h"
 
 /**
 * A property track editor for byte and enumerations.

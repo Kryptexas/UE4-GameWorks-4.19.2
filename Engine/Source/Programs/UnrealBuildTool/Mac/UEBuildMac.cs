@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 using System;
@@ -74,7 +74,6 @@ namespace UnrealBuildTool
 			BuildConfiguration.bCheckExternalHeadersForModification = BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac;
 			BuildConfiguration.bCheckSystemHeadersForModification = BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac;
 			BuildConfiguration.ProcessorCountMultiplier = MacToolChain.GetAdjustedProcessorCountMultiplier();
-			BuildConfiguration.bUseSharedPCHs = false;
 
 			BuildConfiguration.bUsePDBFiles = bCreateDebugInfo && Configuration != CPPTargetConfiguration.Debug && Platform == CPPTargetPlatform.Mac && BuildConfiguration.bGeneratedSYMFile;
 
@@ -137,17 +136,6 @@ namespace UnrealBuildTool
 		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform)
 		{
 			return new MacToolChain(ProjectFile);
-		}
-
-		/// <summary>
-		/// Create a build deployment handler
-		/// </summary>
-		/// <param name="ProjectFile">The project file of the target being deployed. Used to find any deployment specific settings.</param>
-		/// <param name="DeploymentHandler">The output deployment handler</param>
-		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
-		public override UEBuildDeploy CreateDeploymentHandler()
-		{
-			return new UEDeployMac();
 		}
 	}
 
@@ -260,13 +248,23 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a context for the given project on the current platform.
+		/// Creates a context for the given target on the current platform.
 		/// </summary>
 		/// <param name="ProjectFile">The project file for the current target</param>
+		/// <param name="Target">Rules for the target being built</param>
 		/// <returns>New platform context object</returns>
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
+		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile, TargetRules Target)
 		{
 			return new MacPlatformContext(ProjectFile);
+		}
+
+		/// <summary>
+		/// Deploys the given target
+		/// </summary>
+		/// <param name="Target">Information about the target being deployed</param>
+		public override void Deploy(UEBuildDeployTarget Target)
+		{
+			new UEDeployMac().PrepTargetForDeployment(Target);
 		}
 	}
 

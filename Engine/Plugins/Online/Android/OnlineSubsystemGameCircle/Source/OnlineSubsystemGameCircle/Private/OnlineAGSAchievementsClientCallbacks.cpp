@@ -1,9 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "OnlineSubsystemGameCirclePrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineAGSAchievementsClientCallbacks.h"
-
+#include "OnlineSubsystemGameCircle.h"
+#include "Async/TaskGraphInterfaces.h"
 
 FOnlineGetAchievementsCallback::FOnlineGetAchievementsCallback(FOnlineSubsystemGameCircle *const InSubsystem, 
 															   const FUniqueNetIdString& InUserID, 

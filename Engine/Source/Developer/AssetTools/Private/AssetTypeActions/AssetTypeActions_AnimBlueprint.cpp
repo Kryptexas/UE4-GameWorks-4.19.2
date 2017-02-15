@@ -1,14 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AssetToolsPrivatePCH.h"
+#include "AssetTypeActions/AssetTypeActions_AnimBlueprint.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Misc/MessageDialog.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
+#include "EditorStyleSet.h"
+#include "Animation/AnimInstance.h"
+#include "Factories/AnimBlueprintFactory.h"
+#include "ThumbnailRendering/SceneThumbnailInfo.h"
+#include "AssetTools.h"
 #include "PersonaModule.h"
-#include "EditorAnimUtils.h"
-#include "NotificationManager.h"
+#include "Framework/Notifications/NotificationManager.h"
 #include "SBlueprintDiff.h"
-#include "SNotificationList.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "SSkeletonWidget.h"
-#include "SlateIconFinder.h"
+#include "Styling/SlateIconFinder.h"
 #include "IAnimationBlueprintEditorModule.h"
+#include "Preferences/PersonaOptions.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -126,23 +136,15 @@ void FAssetTypeActions_AnimBlueprint::OpenAssetEditor( const TArray<UObject*>& I
 			}
 			else
 			{
-				if (GetDefault<UPersonaOptions>()->bUseStandaloneAnimationEditors)
+				const bool bBringToFrontIfOpen = true;
+				if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(AnimBlueprint, bBringToFrontIfOpen))
 				{
-					const bool bBringToFrontIfOpen = true;
-					if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(AnimBlueprint, bBringToFrontIfOpen))
-					{
-						EditorInstance->FocusWindow(AnimBlueprint);
-					}
-					else
-					{
-						IAnimationBlueprintEditorModule& AnimationBlueprintEditorModule = FModuleManager::LoadModuleChecked<IAnimationBlueprintEditorModule>("AnimationBlueprintEditor");
-						AnimationBlueprintEditorModule.CreateAnimationBlueprintEditor(Mode, EditWithinLevelEditor, AnimBlueprint);
-					}
+					EditorInstance->FocusWindow(AnimBlueprint);
 				}
 				else
 				{
-					FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-					PersonaModule.CreatePersona(Mode, EditWithinLevelEditor, NULL, AnimBlueprint, NULL, NULL);
+					IAnimationBlueprintEditorModule& AnimationBlueprintEditorModule = FModuleManager::LoadModuleChecked<IAnimationBlueprintEditorModule>("AnimationBlueprintEditor");
+					AnimationBlueprintEditorModule.CreateAnimationBlueprintEditor(Mode, EditWithinLevelEditor, AnimBlueprint);
 				}
 			}
 		}

@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Framework/Commands/InputChord.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "Framework/Commands/Commands.h"
+#include "EditorStyleSet.h"
+
+class UEdGraph;
 
 /**
  * Unreal material editor actions
@@ -154,6 +162,9 @@ public:
 
 	/** Create component mask node */
 	TSharedPtr< FUICommandInfo > CreateComponentMaskNode;
+
+	/** Create component mask node */
+	TSharedPtr< FUICommandInfo > PromoteToParameter;
 
 
 	/**

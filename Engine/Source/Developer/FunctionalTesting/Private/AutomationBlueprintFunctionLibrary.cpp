@@ -1,17 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "FunctionalTestingPrivatePCH.h"
-
-#include "AutomationCommon.h"
-#include "AutomationTest.h"
-#include "DelayForFramesLatentAction.h"
+#include "AutomationBlueprintFunctionLibrary.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/AutomationTest.h"
+#include "EngineGlobals.h"
+#include "UnrealClient.h"
+#include "Camera/CameraActor.h"
+#include "Camera/PlayerCameraManager.h"
+#include "Engine/Texture.h"
+#include "Engine/GameViewportClient.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/Engine.h"
+#include "Tests/AutomationCommon.h"
+#include "Logging/MessageLog.h"
 #include "TakeScreenshotAfterTimeLatentAction.h"
-#include "Engine/LatentActionManager.h"
-#include "SlateBasics.h"
 #include "HighResScreenshot.h"
 #include "Slate/SceneViewport.h"
 #include "Tests/AutomationTestSettings.h"
-
+#include "Slate/WidgetRenderer.h"
+#include "DelayAction.h"
+#include "Widgets/SViewport.h"
+#include "Framework/Application/SlateApplication.h"
+#include "ShaderCompiler.h"
 #include "AutomationBlueprintFunctionLibrary.h"
 
 #define LOCTEXT_NAMESPACE "Automation"
@@ -38,7 +48,8 @@ FAutomationScreenshotOptions::FAutomationScreenshotOptions()
 	, VisualizeBuffer(NAME_None)
 	, Tolerance(EComparisonTolerance::Low)
 	, ToleranceAmount()
-	, MaximumAllowedError(0.02f)
+	, MaximumLocalError(0.10f)
+	, MaximumGlobalError(0.02f)
 	, bIgnoreAntiAliasing(true)
 	, bIgnoreColors(false)
 {
@@ -67,8 +78,7 @@ void FAutomationScreenshotOptions::SetToleranceAmounts(EComparisonTolerance InTo
 
 class FAutomationScreenshotTaker
 {
-	FDelegateHandle			DelegateHandle;
-	FString					Name;
+	FString	Name;
 	FAutomationScreenshotOptions Options;
 
 	int32 OriginalPostProcessing;
@@ -79,11 +89,10 @@ class FAutomationScreenshotTaker
 
 public:
 	FAutomationScreenshotTaker(const FString& InName, FAutomationScreenshotOptions InOptions)
-		: DelegateHandle()
-		, Name(InName)
+		: Name(InName)
 		, Options(InOptions)
 	{
-		DelegateHandle = GEngine->GameViewport->OnScreenshotCaptured().AddRaw(this, &FAutomationScreenshotTaker::GrabScreenShot);
+		GEngine->GameViewport->OnScreenshotCaptured().AddRaw(this, &FAutomationScreenshotTaker::GrabScreenShot);
 
 		check(IsInGameThread());
 
@@ -128,7 +137,9 @@ public:
 			ContactShadows->Set(OriginalContactShadows);
 		}
 
-		GEngine->GameViewport->OnScreenshotCaptured().Remove(DelegateHandle);
+		GEngine->GameViewport->OnScreenshotCaptured().RemoveAll(this);
+
+		FAutomationTestFramework::Get().NotifyScreenshotTakenAndCompared();
 	}
 
 	void GrabScreenShot(int32 InSizeX, int32 InSizeY, const TArray<FColor>& InImageData)
@@ -136,11 +147,53 @@ public:
 		check(IsInGameThread());
 
 		FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(GWorld->GetName(), Name, InSizeX, InSizeY);
-		//Data.bHasComparisonRules = true;
+
+		// Copy the relevant data into the metadata for the screenshot.
+		Data.bHasComparisonRules = true;
+		Data.ToleranceRed = Options.ToleranceAmount.Red;
+		Data.ToleranceGreen = Options.ToleranceAmount.Green;
+		Data.ToleranceBlue = Options.ToleranceAmount.Blue;
+		Data.ToleranceAlpha = Options.ToleranceAmount.Alpha;
+		Data.ToleranceMinBrightness = Options.ToleranceAmount.MinBrightness;
+		Data.ToleranceMaxBrightness = Options.ToleranceAmount.MaxBrightness;
+		Data.bIgnoreAntiAliasing = Options.bIgnoreAntiAliasing;
+		Data.bIgnoreColors = Options.bIgnoreColors;
+		Data.MaximumLocalError = Options.MaximumLocalError;
+		Data.MaximumGlobalError = Options.MaximumGlobalError;
 
 		FAutomationTestFramework::Get().OnScreenshotCaptured().ExecuteIfBound(InImageData, Data);
 
 		UE_LOG(AutomationFunctionLibrary, Log, TEXT("Screenshot captured as %s"), *Data.Path);
+
+		if ( GIsAutomationTesting )
+		{
+			FAutomationTestFramework::Get().OnScreenshotCompared.AddRaw(this, &FAutomationScreenshotTaker::OnComparisonComplete);
+		}
+		else
+		{
+			delete this;
+		}
+	}
+
+	void OnComparisonComplete(bool bWasNew, bool bWasSimilar)
+	{
+		FAutomationTestFramework::Get().OnScreenshotCompared.RemoveAll(this);
+
+		if ( bWasNew )
+		{
+			UE_LOG(AutomationFunctionLibrary, Warning, TEXT("New Screenshot was discovered!  Please add a ground truth version of it."));
+		}
+		else
+		{
+			if ( bWasSimilar )
+			{
+				UE_LOG(AutomationFunctionLibrary, Log, TEXT("Screenshot was similar!"));
+			}
+			else
+			{
+				UE_LOG(AutomationFunctionLibrary, Error, TEXT("Screenshot test failed, screenshots were different!"));
+			}
+		}
 
 		delete this;
 	}
@@ -200,11 +253,14 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(const
 	// Force all mip maps to load before taking the screenshot.
 	UTexture::ForceUpdateTextureStreaming();
 
+	// Force all shader compiling to finish.
+	GShaderCompilingManager->FinishAllCompilation();
+
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 	FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(Name, Options);
 #endif
 
-    if (FPlatformProperties::HasFixedResolution())
+    if ( FPlatformProperties::HasFixedResolution() )
     {
 	    FScreenshotRequest::RequestScreenshot(false);
 	    return true;
@@ -212,12 +268,15 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(const
 	else
 	{
 	    FHighResScreenshotConfig& Config = GetHighResScreenshotConfig();
+
 	    if ( Config.SetResolution(ResolutionX, ResolutionY, 1.0f) )
 	    {
 			if ( !GEngine->GameViewport->GetGameViewport()->TakeHighResScreenShot() )
 			{
 				// If we failed to take the screenshot, we're going to need to cleanup the automation screenshot taker.
+#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 				delete TempObject;
+#endif 
 				return false;
 			}
 
@@ -228,7 +287,7 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(const
 	return false;
 }
 
-void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshot(UObject* WorldContextObject, FLatentActionInfo LatentInfo, const FString& Name, FAutomationScreenshotOptions Options)
+void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshot(UObject* WorldContextObject, FLatentActionInfo LatentInfo, const FString& Name, const FAutomationScreenshotOptions& Options)
 {
 	if ( GIsAutomationTesting )
 	{
@@ -247,7 +306,7 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshot(UObject* Worl
 	}
 }
 
-void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotAtCamera(UObject* WorldContextObject, FLatentActionInfo LatentInfo, ACameraActor* Camera, const FString& NameOverride, FAutomationScreenshotOptions Options)
+void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotAtCamera(UObject* WorldContextObject, FLatentActionInfo LatentInfo, ACameraActor* Camera, const FString& NameOverride, const FAutomationScreenshotOptions& Options)
 {
 	if ( Camera == nullptr )
 	{
@@ -281,6 +340,70 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotAtCamera(UObje
 		if ( LatentActionManager.FindExistingAction<FTakeScreenshotAfterTimeLatentAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr )
 		{
 			LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, new FTakeScreenshotAfterTimeLatentAction(LatentInfo, ScreenshotName, Options));
+		}
+	}
+}
+
+void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* WorldContextObject, FLatentActionInfo LatentInfo, const FString& Name, const FAutomationScreenshotOptions& Options)
+{
+	if ( !FAutomationTestFramework::Get().IsScreenshotAllowed() )
+	{
+		UE_LOG(AutomationFunctionLibrary, Log, TEXT("Attempted to capture screenshot (%s) but screenshots are not enabled."), *Name);
+
+		if ( UWorld* World = WorldContextObject->GetWorld() )
+		{
+			FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
+			if ( LatentActionManager.FindExistingAction<FDelayAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr )
+			{
+				LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, new FDelayAction(0, LatentInfo));
+			}
+		}
+
+		return;
+	}
+
+	// Force all mip maps to load before taking the screenshot.
+	UTexture::ForceUpdateTextureStreaming();
+
+	if ( UWorld* World = WorldContextObject->GetWorld() )
+	{
+		if ( UGameViewportClient* GameViewport = WorldContextObject->GetWorld()->GetGameViewport() )
+		{
+			TSharedPtr<SViewport> Viewport = GameViewport->GetGameViewportWidget();
+			if ( Viewport.IsValid() )
+			{
+				TArray<FColor> OutColorData;
+				FIntVector OutSize;
+				if ( FSlateApplication::Get().TakeScreenshot(Viewport.ToSharedRef(), OutColorData, OutSize) )
+				{
+#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
+					FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(Name, Options);
+
+					FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(GWorld->GetName(), Name, OutSize.X, OutSize.Y);
+
+					// Copy the relevant data into the metadata for the screenshot.
+					Data.bHasComparisonRules = true;
+					Data.ToleranceRed = Options.ToleranceAmount.Red;
+					Data.ToleranceGreen = Options.ToleranceAmount.Green;
+					Data.ToleranceBlue = Options.ToleranceAmount.Blue;
+					Data.ToleranceAlpha = Options.ToleranceAmount.Alpha;
+					Data.ToleranceMinBrightness = Options.ToleranceAmount.MinBrightness;
+					Data.ToleranceMaxBrightness = Options.ToleranceAmount.MaxBrightness;
+					Data.bIgnoreAntiAliasing = Options.bIgnoreAntiAliasing;
+					Data.bIgnoreColors = Options.bIgnoreColors;
+					Data.MaximumLocalError = Options.MaximumLocalError;
+					Data.MaximumGlobalError = Options.MaximumGlobalError;
+
+					GEngine->GameViewport->OnScreenshotCaptured().Broadcast(OutSize.X, OutSize.Y, OutColorData);
+#endif
+				}
+
+				FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
+				if ( LatentActionManager.FindExistingAction<FTakeScreenshotAfterTimeLatentAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr )
+				{
+					LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, new FWaitForScreenshotComparisonLatentAction(LatentInfo));
+				}
+			}
 		}
 	}
 }

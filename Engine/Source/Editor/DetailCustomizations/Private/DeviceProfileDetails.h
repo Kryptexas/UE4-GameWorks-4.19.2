@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "TextureLODSettingsDetails.h"
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "IDetailCustomization.h"
 
+class FDeviceProfileTextureLODSettingsDetails;
+class IDetailGroup;
+class IDetailLayoutBuilder;
+class IPropertyHandle;
 
 /* FDeviceProfileParentPropertyDetails
  *****************************************************************************/

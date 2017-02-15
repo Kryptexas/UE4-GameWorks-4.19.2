@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "DataTableUtils.h" // Needed here for LogDataTable and EDataTableExportFlags
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "UObject/PropertyPortFlags.h"
+#include "DataTableUtils.h"
 #include "DataTable.generated.h"
 
+class Error;
+class UDataTable;
+template <class CharType> struct TPrettyJsonPrintPolicy;
 
 // forward declare JSON writer
 template <class CharType>
@@ -25,6 +34,7 @@ struct FTableRowBase
 	GENERATED_USTRUCT_BODY()
 
 	FTableRowBase() { }
+	virtual ~FTableRowBase() { }
 
 	/** 
 	 * Can be overridden by subclasses; Called whenever the owning data table is imported or re-imported.
@@ -41,7 +51,7 @@ struct FTableRowBase
 /**
  * Imported spreadsheet table.
  */
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, BlueprintType)
 class UDataTable
 	: public UObject
 {
@@ -130,7 +140,7 @@ class UDataTable
 		{
 			if (bWarnIfRowMissing)
 			{
-				UE_LOG(LogDataTable, Warning, TEXT("UDataTable::FindRow : '%s' requested row '%s' not in DataTable '%s'."), *ContextString, *GetPathName(), *RowName.ToString());
+				UE_LOG(LogDataTable, Warning, TEXT("UDataTable::FindRow : '%s' requested row '%s' not in DataTable '%s'."), *ContextString, *RowName.ToString(), *GetPathName());
 			}
 			return nullptr;
 		}
@@ -301,6 +311,16 @@ struct ENGINE_API FDataTableRowHandle
 
 	bool operator==(FDataTableRowHandle const& Other) const;
 	bool operator!=(FDataTableRowHandle const& Other) const;
+	void PostSerialize(const FArchive& Ar);
+};
+
+template<>
+struct TStructOpsTypeTraits< FDataTableRowHandle > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithPostSerialize = true,
+	};
 };
 
 /** Handle to a particular row in a table*/

@@ -1,7 +1,5 @@
 // Copyright (C) 2009 Nine Realms, Inc
-//
 
-#include "Engine.h"
 #include "Quadric.h"
 
 bool CalcGradient( double grad[4], const FVector& p0, const FVector& p1, const FVector& p2, const FVector& n, float a0, float a1, float a2 )
@@ -74,7 +72,6 @@ bool CalcGradient( double grad[4], const FVector& p0, const FVector& p1, const F
 
 	return true;
 }
-
 bool CalcGradientMatrix( double* __restrict GradMatrix, const FVector& p0, const FVector& p1, const FVector& p2, const FVector& n )
 {
 	// solve for gd

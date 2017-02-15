@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "IOculusRiftPlugin.h"
 #include "IHeadMountedDisplay.h"
 
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
@@ -529,6 +532,7 @@ public:
 		GetSettings()->PixelDensityMax = FMath::Max(GetSettings()->PixelDensity, GetSettings()->PixelDensityMax);
 		Flags.bNeedUpdateStereoRenderingParams = true;
 	}
+
 protected:
 	virtual TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> CreateNewGameFrame() const override;
 	virtual TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> CreateNewSettings() const override;
@@ -684,6 +688,8 @@ private: // data
 	TSharedPtr<FOculusRiftSplash> Splash;
 
 	FWorldContext*				WorldContext;
+
+	FOculusRiftRenderDelegate	MirrorRenderDelegate;
 
 	// used to capture cubemaps for Oculus Home
 	class USceneCubemapCapturer* CubemapCapturer;

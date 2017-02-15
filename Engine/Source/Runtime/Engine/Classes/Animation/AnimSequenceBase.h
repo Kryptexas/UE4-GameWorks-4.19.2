@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,9 +7,10 @@
  *
  */
 
-#include "AnimationAsset.h"
-#include "SmartName.h"
-#include "Skeleton.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/AnimTypes.h"
+#include "Animation/AnimationAsset.h"
 #include "Animation/AnimCurveTypes.h"
 #include "AnimSequenceBase.generated.h"
 
@@ -60,6 +61,9 @@ class UAnimSequenceBase : public UAnimationAsset
 
 	/** Sort the Notifies array by time, earliest first. */
 	ENGINE_API void SortNotifies();	
+
+	/** Remove the notifies specified */
+	ENGINE_API bool RemoveNotifies(const TArray<FName>& NotifiesToRemove);
 
 	/** 
 	 * Retrieves AnimNotifies given a StartTime and a DeltaTime.
@@ -137,9 +141,6 @@ public:
 	*/
 	ENGINE_API virtual void GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const PURE_VIRTUAL(UAnimSequenceBase::GetAnimationPose, );
 	
-	DEPRECATED(4.11, "This function is deprecated, please use HandleAssetPlayerTickedInternal")
-	ENGINE_API virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InAnimInstance) const;
-
 	virtual void HandleAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, struct FAnimNotifyQueue& NotifyQueue) const;
 
 	virtual bool HasRootMotion() const { return false; }

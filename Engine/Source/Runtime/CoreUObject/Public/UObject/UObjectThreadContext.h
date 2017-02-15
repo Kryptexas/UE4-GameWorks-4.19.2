@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnAsyncLoading.cpp: Unreal async loading code.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/ThreadSingleton.h"
+
+class FObjectInitializer;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogUObjectThreadContext, Log, All);
 

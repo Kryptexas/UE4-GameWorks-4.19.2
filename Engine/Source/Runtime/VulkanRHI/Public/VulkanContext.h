@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanContext.h: Class to generate Vulkan command buffers from RHI CommandLists
@@ -146,22 +146,38 @@ public:
 
 	void NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture);
 
-#if VULKAN_USE_NEW_RENDERPASSES
 	inline FVulkanRenderPass* GetCurrentRenderPass()
 	{
-		return RenderPassState.CurrentRenderPass;
+		return TransitionState.CurrentRenderPass;
 	}
 
 	inline FVulkanRenderPass* GetPreviousRenderPass()
 	{
-		return RenderPassState.PreviousRenderPass;
+		return TransitionState.PreviousRenderPass;
 	}
-#endif
+
+	inline uint64 GetFrameCounter() const
+	{
+		return FrameCounter;
+	}
+
+	inline FVulkanUniformBufferUploader* GetUniformBufferUploader()
+	{
+		return UniformBufferUploader;
+	}
+
+	void WriteBeginTimestamp(FVulkanCmdBuffer* CmdBuffer);
+	void WriteEndTimestamp(FVulkanCmdBuffer* CmdBuffer);
+
+	void ReadAndCalculateGPUFrameTime();
+
 protected:
 	FVulkanDynamicRHI* RHI;
 	FVulkanDevice* Device;
 	const bool bIsImmediate;
 	bool bSubmitAtNextSafePoint;
+	bool bAutomaticFlushAfterComputeShader;
+	FVulkanUniformBufferUploader* UniformBufferUploader;
 
 	void SetShaderUniformBuffer(EShaderFrequency Stage, const FVulkanUniformBuffer* UniformBuffer, int32 BindingIndex);
 
@@ -185,10 +201,9 @@ protected:
 
 	TArray<FVulkanDescriptorPool*> DescriptorPools;
 
-#if VULKAN_USE_NEW_RENDERPASSES
-	struct FRenderPassState
+	struct FTransitionState
 	{
-		FRenderPassState()
+		FTransitionState()
 			: CurrentRenderPass(nullptr)
 			, PreviousRenderPass(nullptr)
 			, CurrentFramebuffer(nullptr)
@@ -198,8 +213,20 @@ protected:
 		void Destroy(FVulkanDevice& InDevice);
 
 		FVulkanFramebuffer* GetOrCreateFramebuffer(FVulkanDevice& InDevice, const FRHISetRenderTargetsInfo& RenderTargetsInfo, const FVulkanRenderTargetLayout& RTLayout, FVulkanRenderPass* RenderPass);
+		FVulkanRenderPass* GetOrCreateRenderPass(FVulkanDevice& InDevice, const FVulkanRenderTargetLayout& RTLayout, uint32 RTLayoutHash)
+		{
+			FVulkanRenderPass** FoundRenderPass = RenderPasses.Find(RTLayoutHash);
+			if (FoundRenderPass)
+			{
+				return *FoundRenderPass;
+			}
 
-		void BeginRenderPass(FVulkanCommandListContext& Context, FVulkanDevice& InDevice, FVulkanCmdBuffer* CmdBuffer, const FRHISetRenderTargetsInfo& RenderTargetsInfo);
+			FVulkanRenderPass* RenderPass = new FVulkanRenderPass(InDevice, RTLayout);
+			RenderPasses.Add(RTLayoutHash, RenderPass);
+			return RenderPass;
+		}
+
+		void BeginRenderPass(FVulkanCommandListContext& Context, FVulkanPipelineGraphicsKey& GfxKey, FVulkanDevice& InDevice, FVulkanCmdBuffer* CmdBuffer, const FRHISetRenderTargetsInfo& RenderTargetsInfo, const FVulkanRenderTargetLayout& RTLayout, FVulkanRenderPass* RenderPass, FVulkanFramebuffer* Framebuffer);
 		void EndRenderPass(FVulkanCmdBuffer* CmdBuffer);
 
 		FVulkanRenderPass* CurrentRenderPass;
@@ -216,15 +243,65 @@ protected:
 		TMap<uint32, FFramebufferList*> Framebuffers;
 
 		void NotifyDeletedRenderTarget(FVulkanDevice& InDevice, const FVulkanTextureBase* Texture);
+		
+		VkImageLayout FindOrAddLayout(VkImage Image, VkImageLayout LayoutIfNotFound)
+		{
+			VkImageLayout* Found = CurrentLayout.Find(Image);
+			if (Found)
+			{
+				return *Found;
+			}
+
+			CurrentLayout.Add(Image, LayoutIfNotFound);
+			return LayoutIfNotFound;
+		}
 	};
-	FRenderPassState RenderPassState;
-#endif
+	FTransitionState TransitionState;
+
+	struct FOcclusionQueryData
+	{
+		FVulkanCmdBuffer* CmdBuffer;
+		uint64 FenceCounter;
+
+		FOcclusionQueryData()
+			: CmdBuffer(nullptr)
+			, FenceCounter(0)
+		{
+		}
+
+		void AddToResetList(FVulkanQueryPool* Pool, int32 QueryIndex)
+		{
+			TArray<uint64>& ListPerPool = ResetList.FindOrAdd(Pool);
+			int32 Word = QueryIndex / 64;
+			uint64 Bit = QueryIndex % 64;
+			uint64 BitMask = (uint64)1 << Bit;
+			if (Word >= ListPerPool.Num())
+			{
+				ListPerPool.AddZeroed(Word - ListPerPool.Num() + 1);
+			}
+			ListPerPool[Word] = ListPerPool[Word] | BitMask;
+		}
+
+		void ResetQueries(FVulkanCmdBuffer* CmdBuffer);
+
+		void ClearResetList()
+		{
+			for (auto& Pair : ResetList)
+			{
+				FMemory::Memzero(&Pair.Value[0], Pair.Value.Num() * sizeof(uint64));
+			}
+		}
+
+		TMap<FVulkanQueryPool*, TArray<uint64>> ResetList;
+	};
+	FOcclusionQueryData CurrentOcclusionQueryData;
+
 	//#todo-rco: Temp!
 	FVulkanPendingGfxState* PendingGfxState;
 	FVulkanPendingComputeState* PendingComputeState;
 
 	void PrepareForCPURead();
-	void SubmitCurrentCommands();
+	void RequestSubmitCurrentCommands();
 
 	void InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
 
@@ -232,5 +309,24 @@ private:
 	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
 	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
 
+	inline bool SafePointSubmit()
+	{
+		if (bSubmitAtNextSafePoint)
+		{
+			InternalSubmitActiveCmdBuffer();
+			bSubmitAtNextSafePoint = false;
+			return true;
+		}
+
+		return false;
+	}
+
+	void InternalSubmitActiveCmdBuffer();
+	void FlushAfterComputeShader();
+
 	friend class FVulkanDevice;
+	friend class FVulkanDynamicRHI;
+
+	// Number of times EndFrame() has been called on this context
+	uint64 FrameCounter;
 };

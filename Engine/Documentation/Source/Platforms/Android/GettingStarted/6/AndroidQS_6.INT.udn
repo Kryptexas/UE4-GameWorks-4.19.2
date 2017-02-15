@@ -6,7 +6,7 @@ Version:4.12
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
-type:sequential
+type:multi-step
 parent:Platforms/Android/GettingStarted
 order:6
 Checkpoint:AndroidQS

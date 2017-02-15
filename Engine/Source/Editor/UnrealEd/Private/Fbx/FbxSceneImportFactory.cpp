@@ -1,32 +1,58 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "Factories.h"
-#include "BusyCursor.h"
-#include "SSkeletonWidget.h"
-#include "Dialogs/DlgPickPath.h"
-
-#include "Components/PointLightComponent.h"
-#include "Components/DirectionalLightComponent.h"
+#include "Factories/FbxSceneImportFactory.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/Paths.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Engine/EngineTypes.h"
+#include "Components/SceneComponent.h"
+#include "Materials/MaterialInterface.h"
+#include "Components/StaticMeshComponent.h"
+#include "ActorFactories/ActorFactoryEmptyActor.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Materials/Material.h"
+#include "Engine/Texture.h"
+#include "Factories/FbxAnimSequenceImportData.h"
+#include "Factories/FbxSkeletalMeshImportData.h"
+#include "Factories/FbxStaticMeshImportData.h"
+#include "Factories/FbxTextureImportData.h"
+#include "Factories/FbxSceneImportData.h"
+#include "Factories/FbxSceneImportOptions.h"
+#include "Factories/FbxSceneImportOptionsSkeletalMesh.h"
+#include "Factories/FbxSceneImportOptionsStaticMesh.h"
+#include "EngineGlobals.h"
+#include "Camera/CameraComponent.h"
 #include "Components/SpotLightComponent.h"
+#include "Components/PointLightComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/StaticMeshActor.h"
+#include "Components/DirectionalLightComponent.h"
+#include "AssetData.h"
+#include "Editor.h"
+#include "FileHelpers.h"
+#include "CineCameraComponent.h"
 
 #include "AssetSelection.h"
 
+#include "Logging/TokenizedMessage.h"
 #include "FbxImporter.h"
-#include "FbxErrors.h"
+#include "Misc/FbxErrors.h"
 #include "AssetRegistryModule.h"
-#include "Engine/StaticMesh.h"
-#include "Animation/SkeletalMeshActor.h"
-#include "PackageTools.h"
 
+#include "Fbx/SSceneImportNodeTreeView.h"
 #include "SFbxSceneOptionWindow.h"
-#include "MainFrame.h"
+#include "Interfaces/IMainFrameModule.h"
 #include "PackageTools.h"
 
-#include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
 #include "Kismet2/KismetEditorUtilities.h"
 
-#include "OutputDevice.h"
 
 #define LOCTEXT_NAMESPACE "FBXSceneImportFactory"
 
@@ -133,6 +159,7 @@ bool GetFbxSceneImportOptions(UnFbx::FFbxImporter* FbxImporter
 	}
 
 	//setup all options
+	GlobalImportSettings->bForceFrontXAxis = SceneImportOptions->bForceFrontXAxis;
 	GlobalImportSettings->bBakePivotInVertex = SceneImportOptions->bBakePivotInVertex;
 	GlobalImportSettings->bImportStaticMeshLODs = SceneImportOptions->bImportStaticMeshLODs;
 	GlobalImportSettings->bImportSkeletalMeshLODs = SceneImportOptions->bImportSkeletalMeshLODs;
@@ -346,6 +373,7 @@ void FetchFbxCameraInScene(UnFbx::FFbxImporter *FbxImporter, FbxNode* ParentNode
 			CameraInfo->ProjectionPerspective = CameraAttribute->ProjectionType.Get() == FbxCamera::ePerspective;
 			CameraInfo->OrthoZoom = CameraAttribute->OrthoZoom.Get();
 			CameraInfo->FieldOfView = CameraAttribute->FieldOfView.Get();
+			CameraInfo->FocalLength = CameraAttribute->FocalLength.Get();						
 			SceneInfoPtr->CameraInfo.Add(CameraInfo->UniqueId, CameraInfo);
 		}
 	}
@@ -781,6 +809,7 @@ UFbxSceneImportData* CreateReImportAsset(const FString &PackagePath, const FStri
 	
 	ReImportAsset->SourceFbxFile = FPaths::ConvertRelativePathToFull(FbxImportFileName);
 	ReImportAsset->bCreateFolderHierarchy = SceneImportOptions->bCreateContentFolderHierarchy;
+	ReImportAsset->bForceFrontXAxis = SceneImportOptions->bForceFrontXAxis;
 	ReImportAsset->HierarchyType = SceneImportOptions->HierarchyType.GetValue();
 	return ReImportAsset;
 }
@@ -804,6 +833,68 @@ UObject* UFbxSceneImportFactory::FactoryCreateBinary
 	bOutOperationCanceled = ImportWasCancel;
 	ImportWasCancel = false;
 	return ReturnObject;
+}
+
+TSharedPtr<FFbxNodeInfo> GetNodeInfoPtrById(TArray<TSharedPtr<FFbxNodeInfo>> &HierarchyInfo, uint64 SearchId)
+{
+	for (TSharedPtr<FFbxNodeInfo> NodeInfoPtr : HierarchyInfo)
+	{
+		if (NodeInfoPtr->UniqueId == SearchId)
+		{
+			return NodeInfoPtr;
+		}
+	}
+	return nullptr;
+}
+
+void UFbxSceneImportFactory::ChangeFrontAxis(void* VoidFbxImporter, void* VoidSceneInfo, TSharedPtr<FFbxSceneInfo> SceneInfoPtr)
+{
+	UnFbx::FFbxImporter* FbxImporter = (UnFbx::FFbxImporter*)VoidFbxImporter;
+	UnFbx::FbxSceneInfo* SceneInfo = (UnFbx::FbxSceneInfo*)VoidSceneInfo;
+
+	FbxImporter->ConvertScene();
+	//Adjust the root node with the new apply scene conversion
+	FbxNode* RootNode = FbxImporter->Scene->GetRootNode();
+	if (SceneInfo->HierarchyInfo.Num() > 0)
+	{
+		//Set the fbx data
+		UnFbx::FbxNodeInfo &RootNodeInfo = SceneInfo->HierarchyInfo[0];
+		check(RootNodeInfo.UniqueId == RootNode->GetUniqueID());
+		RootNodeInfo.Transform = RootNode->EvaluateGlobalTransform();
+		//Set the UE4 data
+		TSharedPtr<FFbxNodeInfo> RootNodeInfoPtr = GetNodeInfoPtrById(SceneInfoPtr->HierarchyInfo, RootNodeInfo.UniqueId);
+		if (RootNodeInfoPtr.IsValid())
+		{
+			RootNodeInfoPtr->Transform = FTransform::Identity;
+			FbxVector4 NewLocalT = RootNodeInfo.Transform.GetT();
+			FbxVector4 NewLocalS = RootNodeInfo.Transform.GetS();
+			FbxQuaternion NewLocalQ = RootNodeInfo.Transform.GetQ();
+			RootNodeInfoPtr->Transform.SetTranslation(UnFbx::FFbxDataConverter::ConvertPos(NewLocalT));
+			RootNodeInfoPtr->Transform.SetScale3D(UnFbx::FFbxDataConverter::ConvertScale(NewLocalS));
+			RootNodeInfoPtr->Transform.SetRotation(UnFbx::FFbxDataConverter::ConvertRotToQuat(NewLocalQ));
+			for (int32 NodeIndex = 1; NodeIndex < SceneInfo->HierarchyInfo.Num(); ++NodeIndex)
+			{
+				UnFbx::FbxNodeInfo &LocalNodeInfo = SceneInfo->HierarchyInfo[NodeIndex];
+				FbxNode *RealFbxNode = FindFbxNodeById(FbxImporter, nullptr, LocalNodeInfo.UniqueId);
+				if (!RealFbxNode)
+				{
+					continue;
+				}
+				LocalNodeInfo.Transform = RealFbxNode->EvaluateLocalTransform();
+				TSharedPtr<FFbxNodeInfo> LocalNodeInfoPtr = GetNodeInfoPtrById(SceneInfoPtr->HierarchyInfo, LocalNodeInfo.UniqueId);
+				if (LocalNodeInfoPtr.IsValid())
+				{
+					LocalNodeInfoPtr->Transform = FTransform::Identity;
+					NewLocalT = LocalNodeInfo.Transform.GetT();
+					NewLocalS = LocalNodeInfo.Transform.GetS();
+					NewLocalQ = LocalNodeInfo.Transform.GetQ();
+					LocalNodeInfoPtr->Transform.SetTranslation(UnFbx::FFbxDataConverter::ConvertPos(NewLocalT));
+					LocalNodeInfoPtr->Transform.SetScale3D(UnFbx::FFbxDataConverter::ConvertScale(NewLocalS));
+					LocalNodeInfoPtr->Transform.SetRotation(UnFbx::FFbxDataConverter::ConvertRotToQuat(NewLocalQ));
+				}
+			}
+		}
+	}
 }
 
 UObject* UFbxSceneImportFactory::FactoryCreateBinary
@@ -855,7 +946,7 @@ FFeedbackContext*	Warn
 
 	//Set the import option in importscene mode
 	GlobalImportSettings->bImportScene = true;
-
+	bool OriginalForceFrontXAxis = GlobalImportSettings->bForceFrontXAxis;
 	//Read the fbx and store the hierarchy's information so we can reuse it after importing all the model in the fbx file
 	if (!FbxImporter->ImportFromFile(*FbxImportFileName, Type, true))
 	{
@@ -916,6 +1007,14 @@ FFeedbackContext*	Warn
 	}
 
 	SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettingsReference, GlobalImportSettings);
+
+	//Convert the scene to the correct axis system. Option like force front X or ConvertScene affect the scene conversion
+	//We need to get the new convert transform
+	if(OriginalForceFrontXAxis != GlobalImportSettings->bForceFrontXAxis)
+	{
+		ChangeFrontAxis(FbxImporter, &SceneInfo, SceneInfoPtr);
+	}
+
 
 	FillSceneHierarchyPath(SceneInfoPtr);
 
@@ -1087,12 +1186,19 @@ bool UFbxSceneImportFactory::SetStaticMeshComponentOverrideMaterial(UStaticMeshC
 
 USceneComponent *CreateCameraComponent(AActor *ParentActor, TSharedPtr<FFbxCameraInfo> CameraInfo)
 {
-	UCameraComponent *CameraComponent = NewObject<UCameraComponent>(ParentActor, *(CameraInfo->Name));
+	UCineCameraComponent *CameraComponent = NewObject<UCineCameraComponent>(ParentActor, *(CameraInfo->Name));
 	CameraComponent->SetProjectionMode(CameraInfo->ProjectionPerspective ? ECameraProjectionMode::Perspective : ECameraProjectionMode::Orthographic);
 	CameraComponent->SetAspectRatio(CameraInfo->AspectWidth / CameraInfo->AspectHeight);
 	CameraComponent->SetOrthoNearClipPlane(CameraInfo->NearPlane);
 	CameraComponent->SetOrthoFarClipPlane(CameraInfo->FarPlane);
 	CameraComponent->SetOrthoWidth(CameraInfo->AspectWidth);
+	CameraComponent->SetFieldOfView(CameraInfo->FieldOfView);
+	CameraComponent->FilmbackSettings.SensorWidth = 2 * CameraInfo->FocalLength * FMath::Tan(FMath::DegreesToRadians(0.5f * CameraInfo->FieldOfView));
+	CameraComponent->FilmbackSettings.SensorHeight = CameraComponent->FilmbackSettings.SensorWidth * CameraInfo->AspectHeight / CameraInfo->AspectWidth;
+	CameraComponent->LensSettings.MaxFocalLength = CameraInfo->FocalLength;
+	CameraComponent->LensSettings.MinFocalLength = CameraInfo->FocalLength;
+	CameraComponent->FocusSettings.FocusMethod = ECameraFocusMethod::None;
+
 	return CameraComponent;
 }
 
@@ -1798,8 +1904,16 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 		{
 			if (Pkg == nullptr)
 				continue;
-			// TODO: Disable material importing when importing morph targets
-			FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), Pkg, LODIndex);
+			
+			USkeletalMesh *NewSkelMesh = Cast<USkeletalMesh>(NewObject);
+			if ((GlobalImportSettings->bImportSkeletalMeshLODs || LODIndex == 0) &&
+				NewSkelMesh &&
+				NewSkelMesh->GetImportedResource() &&
+				NewSkelMesh->GetImportedResource()->LODModels.IsValidIndex(LODIndex))
+			{
+				// TODO: Disable material importing when importing morph targets
+				FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, NewSkelMesh, Pkg, LODIndex);
+			}
 		}
 	}
 	//Put back the options
@@ -1882,7 +1996,7 @@ void UFbxSceneImportFactory::ImportAllStaticMesh(void* VoidRootNodeToImport, voi
 	ImportedMeshCount = AllNewAssets.Num();
 	if (ImportedMeshCount == 1 && NewStaticMesh)
 	{
-		FbxImporter->ImportStaticMeshSockets(NewStaticMesh);
+		FbxImporter->ImportStaticMeshGlobalSockets(NewStaticMesh);
 	}
 }
 

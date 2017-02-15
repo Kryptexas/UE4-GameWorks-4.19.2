@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-class FSlateOpenGLTextureCache;
-class FSlateOpenGLTextureManager;
+#include "CoreMinimal.h"
+#include "Rendering/ShaderResourceManager.h"
+#include "Rendering/DrawElements.h"
+#include "Rendering/SlateRenderer.h"
+#include "OpenGL/SlateOpenGLTextureManager.h"
+#include "Rendering/RenderingPolicy.h"
+#include "OpenGL/SlateOpenGLShaders.h"
+#include "OpenGL/SlateOpenGLIndexBuffer.h"
+#include "OpenGL/SlateOpenGLVertexBuffer.h"
+
+class FSlateOpenGLTexture;
 
 class FSlateOpenGLRenderingPolicy : public FSlateRenderingPolicy
 {

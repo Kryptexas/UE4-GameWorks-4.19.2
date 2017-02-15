@@ -1,15 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Everything a local player will use to manage online sessions.
  */
 
 #pragma once
-#include "OnlineSessionInterface.h"
+#include "OnlineSubsystem.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/CoreOnline.h"
+#include "OnlineSubsystem.h"
+#include "OnlineSessionSettings.h"
+#include "Interfaces/OnlineSessionInterface.h"
+#include "GameFramework/OnlineSession.h"
 #include "OnlineSessionClient.generated.h"
 
-class UWorld;
-class APlayerController;
+class UGameInstance;
+class UNetDriver;
 
 UCLASS(config=Game)
 class ONLINESUBSYSTEMUTILS_API UOnlineSessionClient : public UOnlineSession

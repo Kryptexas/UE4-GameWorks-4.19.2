@@ -1,14 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "WmfMediaPCH.h"
+#include "WmfMediaTracks.h"
+
+#include "IMediaAudioSink.h"
+#include "IMediaBinarySink.h"
+#include "IMediaOptions.h"
+#include "IMediaOverlaySink.h"
+#include "IMediaTextureSink.h"
+#include "Misc/ScopeLock.h"
+#include "UObject/Class.h"
+#include "WmfMediaSampler.h"
+#include "WmfMediaUtils.h"
 
 #if WMFMEDIA_SUPPORTED_PLATFORM
 
-#include "WmfMediaSampler.h"
-#include "WmfMediaTracks.h"
-#include "WmfMediaUtils.h"
 #include "AllowWindowsPlatformTypes.h"
-
 
 #define LOCTEXT_NAMESPACE "FWmfMediaTracks"
 
@@ -18,9 +24,11 @@
 
 FWmfMediaTracks::FWmfMediaTracks()
 	: SelectedAudioTrack(INDEX_NONE)
+	, SelectedBinaryTrack(INDEX_NONE)
 	, SelectedCaptionTrack(INDEX_NONE)
 	, SelectedVideoTrack(INDEX_NONE)
 	, AudioSink(nullptr)
+	, MetadataSink(nullptr)
 	, OverlaySink(nullptr)
 	, VideoSink(nullptr)
 { }
@@ -93,6 +101,11 @@ TComPtr<IMFTopology> FWmfMediaTracks::CreateTopology() const
 		AddStreamToTopology(AudioTracks[SelectedAudioTrack], *Topology);
 	}
 
+	if (BinaryTracks.IsValidIndex(SelectedBinaryTrack))
+	{
+		AddStreamToTopology(BinaryTracks[SelectedBinaryTrack], *Topology);
+	}
+
 	if (CaptionTracks.IsValidIndex(SelectedCaptionTrack))
 	{
 		AddStreamToTopology(CaptionTracks[SelectedCaptionTrack], *Topology);
@@ -141,8 +154,8 @@ bool FWmfMediaTracks::Initialize(IMFMediaSource& InMediaSource, IMFPresentationD
 		UE_LOG(LogWmfMedia, Verbose, TEXT("Found %i streams"), StreamCount);
 	}
 
-	// initialize streams
-	for (uint32 StreamIndex = 0; StreamIndex < StreamCount; ++StreamIndex)
+	// add streams (Media Foundation reports them in reverse order)
+	for (int32 StreamIndex = StreamCount - 1; StreamIndex >= 0; --StreamIndex)
 	{
 		AddStreamToTracks(StreamIndex, InMediaSource, InPresentationDescriptor, OutInfo);	
 		OutInfo += TEXT("\n");
@@ -157,12 +170,18 @@ void FWmfMediaTracks::Reset()
 	FScopeLock Lock(&CriticalSection);
 
 	SelectedAudioTrack = INDEX_NONE;
+	SelectedBinaryTrack = INDEX_NONE;
 	SelectedCaptionTrack = INDEX_NONE;
 	SelectedVideoTrack = INDEX_NONE;
 
 	if (AudioSink != nullptr)
 	{
 		AudioSink->ShutdownAudioSink();
+	}
+
+	if (MetadataSink != nullptr)
+	{
+		MetadataSink->ShutdownBinarySink();
 	}
 
 	if (OverlaySink != nullptr)
@@ -176,6 +195,7 @@ void FWmfMediaTracks::Reset()
 	}
 
 	AudioTracks.Empty();
+	BinaryTracks.Empty();
 	CaptionTracks.Empty();
 	VideoTracks.Empty();
 
@@ -218,6 +238,23 @@ void FWmfMediaTracks::SetAudioSink(IMediaAudioSink* Sink)
 
 		AudioSink = Sink;	
 		InitializeAudioSink();
+	}
+}
+
+
+void FWmfMediaTracks::SetMetadataSink(IMediaBinarySink* Sink)
+{
+	if (Sink != MetadataSink)
+	{
+		FScopeLock Lock(&CriticalSection);
+
+		if (MetadataSink != nullptr)
+		{
+			MetadataSink->ShutdownBinarySink();
+		}
+
+		MetadataSink = Sink;
+		InitializeMetadataSink();
 	}
 }
 
@@ -277,6 +314,8 @@ int32 FWmfMediaTracks::GetNumTracks(EMediaTrackType TrackType) const
 	{
 	case EMediaTrackType::Audio:
 		return AudioTracks.Num();
+	case EMediaTrackType::Metadata:
+		return BinaryTracks.Num();
 	case EMediaTrackType::Caption:
 		return CaptionTracks.Num();
 	case EMediaTrackType::Video:
@@ -293,6 +332,8 @@ int32 FWmfMediaTracks::GetSelectedTrack(EMediaTrackType TrackType) const
 	{
 	case EMediaTrackType::Audio:
 		return SelectedAudioTrack;
+	case EMediaTrackType::Metadata:
+		return SelectedBinaryTrack;
 	case EMediaTrackType::Caption:
 		return SelectedCaptionTrack;
 	case EMediaTrackType::Video:
@@ -311,6 +352,13 @@ FText FWmfMediaTracks::GetTrackDisplayName(EMediaTrackType TrackType, int32 Trac
 		if (AudioTracks.IsValidIndex(TrackIndex))
 		{
 			return AudioTracks[TrackIndex].DisplayName;
+		}
+		break;
+	
+	case EMediaTrackType::Metadata:
+		if (BinaryTracks.IsValidIndex(TrackIndex))
+		{
+			return BinaryTracks[TrackIndex].DisplayName;
 		}
 		break;
 
@@ -347,6 +395,13 @@ FString FWmfMediaTracks::GetTrackLanguage(EMediaTrackType TrackType, int32 Track
 		}
 		break;
 
+	case EMediaTrackType::Metadata:
+		if (BinaryTracks.IsValidIndex(TrackIndex))
+		{
+			return BinaryTracks[TrackIndex].Language;
+		}
+		break;
+
 	case EMediaTrackType::Caption:
 		if (CaptionTracks.IsValidIndex(TrackIndex))
 		{
@@ -380,6 +435,13 @@ FString FWmfMediaTracks::GetTrackName(EMediaTrackType TrackType, int32 TrackInde
 		}
 		break;
 
+	case EMediaTrackType::Metadata:
+		if (BinaryTracks.IsValidIndex(TrackIndex))
+		{
+			return BinaryTracks[TrackIndex].Name;
+		}
+		break;
+
 	case EMediaTrackType::Caption:
 		if (CaptionTracks.IsValidIndex(TrackIndex))
 		{
@@ -410,7 +472,7 @@ uint32 FWmfMediaTracks::GetVideoTrackBitRate(int32 TrackIndex) const
 
 FIntPoint FWmfMediaTracks::GetVideoTrackDimensions(int32 TrackIndex) const
 {
-	return VideoTracks.IsValidIndex(TrackIndex) ? VideoTracks[TrackIndex].Dimensions : FIntPoint::ZeroValue;
+	return VideoTracks.IsValidIndex(TrackIndex) ? VideoTracks[TrackIndex].OutputDim : FIntPoint::ZeroValue;
 }
 
 
@@ -450,6 +512,29 @@ bool FWmfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 			if (SelectedAudioTrack == TrackIndex)
 			{
 				InitializeAudioSink();
+			}
+		}
+		break;
+
+	case EMediaTrackType::Metadata:
+		if (TrackIndex != SelectedBinaryTrack)
+		{
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Selecting binary track %i instead of %i (%i tracks)."), TrackIndex, SelectedBinaryTrack, BinaryTracks.Num());
+
+			if (SelectedBinaryTrack != INDEX_NONE)
+			{
+				PresentationDescriptor->DeselectStream(BinaryTracks[SelectedBinaryTrack].StreamIndex);
+				SelectedBinaryTrack = INDEX_NONE;
+			}
+
+			if ((TrackIndex == INDEX_NONE) || (BinaryTracks.IsValidIndex(TrackIndex) && SUCCEEDED(PresentationDescriptor->SelectStream(BinaryTracks[TrackIndex].StreamIndex))))
+			{
+				SelectedBinaryTrack = TrackIndex;
+			}
+
+			if (SelectedBinaryTrack == TrackIndex)
+			{
+				InitializeMetadataSink();
 			}
 		}
 		break;
@@ -608,6 +693,7 @@ bool FWmfMediaTracks::AddStreamToTopology(const FStreamInfo& Stream, IMFTopology
 
 void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMediaSource, IMFPresentationDescriptor& InPresentationDescriptor, FString& OutInfo)
 {
+	int32 CurrentTrackIndex = -1;
 	OutInfo += FString::Printf(TEXT("Stream %i\n"), StreamIndex);
 
 	// get stream descriptor
@@ -830,6 +916,18 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMe
 				UE_LOG(LogWmfMedia, Warning, TEXT("Possible loss of audio quality in stream %i due to sample rate != 44100 Hz"), StreamIndex);
 			}
 		}
+		else if (MajorType == MFMediaType_Binary)
+		{
+			Result = OutputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Binary);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to initialize binary output type for stream %i (%s)"), StreamIndex, *WmfMedia::ResultToString(Result));
+				OutInfo += TEXT("    failed to set output type\n");
+
+				return;
+			}
+		}
 		else if (MajorType == MFMediaType_SAMI)
 		{
 			// configure caption output
@@ -857,9 +955,19 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMe
 				{
 					UE_LOG(LogWmfMedia, Warning, TEXT("Unsupported video type '%s' (%s) for stream %i"), *WmfMedia::FourccToString(SubType.Data1), *WmfMedia::GuidToString(SubType), StreamIndex);
 					OutInfo += TEXT("    unsupported sub-type\n");
+					return;
+				}
+			}
+
+			if ((SubType == MFVideoFormat_HEVC) && !FWindowsPlatformMisc::VerifyWindowsVersion(10, 0))
+			{
+				if ((SubType == MFVideoFormat_HEVC) && !FWindowsPlatformMisc::VerifyWindowsVersion(6, 2))
+				{
+					UE_LOG(LogWmfMedia, Warning, TEXT("HEVC video type in stream %i requires Windows 10 or newer"), StreamIndex);
+					return;
 				}
 
-				return;
+				UE_LOG(LogWmfMedia, Warning, TEXT("HEVC video type in stream %i requires Windows 10 or newer (game must be manifested for Windows 10)"), StreamIndex);
 			}
 
 			// configure video output
@@ -873,14 +981,22 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMe
 				return;
 			}
 
-			const bool OutputRgba =
-				(SubType != MFVideoFormat_H264) &&		// H.264 to RGB is broken
-				(SubType != MFVideoFormat_H264_ES) &&	// H.264 to RGB is broken
-				(SubType != MFVideoFormat_M4S2) &&		// YUV to RGB has incorrect brightness
-				(SubType != MFVideoFormat_WMV2) &&		// YUV to RGB has incorrect brightness
-				(SubType != MFVideoFormat_WMV3);		// brightness issues (UE-35162)
+			if (SubType == MFVideoFormat_HEVC)
+			{
+				Result = OutputType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_NV12);
+			}
+			else
+			{
+				const bool Uncompressed =
+					(SubType == MFVideoFormat_RGB555) ||
+					(SubType == MFVideoFormat_RGB565) ||
+					(SubType == MFVideoFormat_RGB565) ||
+					(SubType == MFVideoFormat_RGB24) ||
+					(SubType == MFVideoFormat_RGB32) ||
+					(SubType == MFVideoFormat_ARGB32);
 
-			Result = OutputType->SetGUID(MF_MT_SUBTYPE, OutputRgba ? MFVideoFormat_RGB32 : MFVideoFormat_YUY2);
+				Result = OutputType->SetGUID(MF_MT_SUBTYPE, Uncompressed ? MFVideoFormat_RGB32 : MFVideoFormat_YUY2);
+			}
 
 			if (FAILED(Result))
 			{
@@ -928,6 +1044,7 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMe
 		OutInfo += FString::Printf(TEXT("    Bits Per Sample: %i\n"), AudioTrack.BitsPerSample);
 
 		StreamInfo = &AudioTrack;
+		CurrentTrackIndex = AudioTrackIndex;
 	}
 	else if (MajorType == MFMediaType_SAMI)
 	{
@@ -940,6 +1057,20 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMe
 		}
 
 		StreamInfo = &CaptionTrack;
+		CurrentTrackIndex = CaptionTrackIndex;
+	}
+	else if (MajorType == MFMediaType_Binary)
+	{
+		const int32 BinaryTrackIndex = BinaryTracks.AddDefaulted();
+		FBinaryTrack& BinaryTrack = BinaryTracks[BinaryTrackIndex];
+
+		if (Sampler != NULL)
+		{
+			Sampler->OnSample().AddRaw(this, &FWmfMediaTracks::HandleMediaSamplerSample, EMediaTrackType::Metadata);
+		}
+
+		StreamInfo = &BinaryTrack;
+		CurrentTrackIndex = BinaryTrackIndex;
 	}
 	else if ((MajorType == MFMediaType_Video) || (MajorType == MFMediaType_Image))
 	{
@@ -961,13 +1092,13 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMe
 			VideoTrack.BitRate = ::MFGetAttributeUINT32(MediaType, MF_MT_AVG_BITRATE, 0);
 			
 			// dimensions
-			if (SUCCEEDED(::MFGetAttributeSize(MediaType, MF_MT_FRAME_SIZE, (UINT32*)&VideoTrack.Dimensions.X, (UINT32*)&VideoTrack.Dimensions.Y)))
+			if (SUCCEEDED(::MFGetAttributeSize(MediaType, MF_MT_FRAME_SIZE, (UINT32*)&VideoTrack.OutputDim.X, (UINT32*)&VideoTrack.OutputDim.Y)))
 			{
-				OutInfo += FString::Printf(TEXT("    Dimensions: %i x %i\n"), VideoTrack.Dimensions.X, VideoTrack.Dimensions.Y);
+				OutInfo += FString::Printf(TEXT("    Dimensions: %i x %i\n"), VideoTrack.OutputDim.X, VideoTrack.OutputDim.Y);
 			}
 			else
 			{
-				VideoTrack.Dimensions = FIntPoint::ZeroValue;
+				VideoTrack.OutputDim = FIntPoint::ZeroValue;
 				OutInfo += FString::Printf(TEXT("    Dimensions: n/a\n"));
 			}
 
@@ -987,17 +1118,52 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMe
 			}
 
 			// sink format
-
-
-			if (OutputSubType == MFVideoFormat_YUY2)
+			if (OutputSubType == MFVideoFormat_NV12)
 			{
-				VideoTrack.Pitch = VideoTrack.Dimensions.X * 2;
-				VideoTrack.SinkFormat = EMediaTextureSinkFormat::CharYUY2;
+				VideoTrack.BufferDim = FIntPoint(Align(VideoTrack.OutputDim.X, 16), VideoTrack.OutputDim.Y * 3 / 2);
+				VideoTrack.SinkFormat = EMediaTextureSinkFormat::CharNV12;
 			}
 			else
 			{
-				VideoTrack.Pitch = VideoTrack.Dimensions.X * 4;
-				VideoTrack.SinkFormat = EMediaTextureSinkFormat::CharBGRA;
+				long SampleStride = ::MFGetAttributeUINT32(MediaType, MF_MT_DEFAULT_STRIDE, 0);
+
+				if (OutputSubType == MFVideoFormat_RGB32)
+				{
+					VideoTrack.SinkFormat = EMediaTextureSinkFormat::CharBMP;
+
+					if (SampleStride == 0)
+					{
+						::MFGetStrideForBitmapInfoHeader(SubType.Data1, VideoTrack.OutputDim.X, &SampleStride);
+					}
+
+					if (SampleStride == 0)
+					{
+						SampleStride = VideoTrack.OutputDim.X * 4;
+					}
+				}
+				else
+				{
+					VideoTrack.SinkFormat = EMediaTextureSinkFormat::CharYUY2;
+
+					if (SampleStride == 0)
+					{
+						int32 AlignedOutputX = VideoTrack.OutputDim.X;
+
+						if ((SubType == MFVideoFormat_H264) || (SubType == MFVideoFormat_H264_ES))
+						{
+							AlignedOutputX = Align(AlignedOutputX, 16);
+						}
+
+						SampleStride = AlignedOutputX * 2;
+					}
+				}
+
+				if (SampleStride < 0)
+				{
+					SampleStride = -SampleStride;
+				}
+
+				VideoTrack.BufferDim = FIntPoint(SampleStride / 4, VideoTrack.OutputDim.Y);
 			}
 		}
 
@@ -1007,6 +1173,7 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMe
 		}
 
 		StreamInfo = &VideoTrack;
+		CurrentTrackIndex = VideoTrackIndex;
 	}
 
 	// get stream info
@@ -1018,17 +1185,17 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMe
 		if (SUCCEEDED(StreamDescriptor->GetAllocatedString(MF_SD_LANGUAGE, &OutString, &OutLength)))
 		{
 			StreamInfo->Language = OutString;
-			CoTaskMemFree(OutString);
+			::CoTaskMemFree(OutString);
 		}
 
 		if (SUCCEEDED(StreamDescriptor->GetAllocatedString(MF_SD_STREAM_NAME, &OutString, &OutLength)))
 		{
 			StreamInfo->Name = OutString;
-			CoTaskMemFree(OutString);
+			::CoTaskMemFree(OutString);
 		}
 
 		StreamInfo->DisplayName = (StreamInfo->Name.IsEmpty())
-			? FText::Format(LOCTEXT("UnnamedStreamFormat", "Unnamed Stream {0}"), FText::AsNumber((uint32)StreamIndex))
+			? FText::Format(LOCTEXT("UnnamedStreamFormat", "Unnamed Track {0} (Stream {1})"), FText::AsNumber(CurrentTrackIndex), FText::AsNumber((uint32)StreamIndex))
 			: FText::FromString(StreamInfo->Name);
 
 		StreamInfo->Descriptor = StreamDescriptor;
@@ -1052,6 +1219,18 @@ void FWmfMediaTracks::InitializeAudioSink()
 }
 
 
+void FWmfMediaTracks::InitializeMetadataSink()
+{
+	if ((MetadataSink == nullptr) || (SelectedBinaryTrack == INDEX_NONE))
+	{
+		return;
+	}
+
+	const FBinaryTrack& BinaryTrack = BinaryTracks[SelectedBinaryTrack];
+	MetadataSink->InitializeBinarySink();
+}
+
+
 void FWmfMediaTracks::InitializeOverlaySink()
 {
 	if ((OverlaySink == nullptr) || (SelectedCaptionTrack == INDEX_NONE))
@@ -1071,7 +1250,7 @@ void FWmfMediaTracks::InitializeVideoSink()
 	}
 
 	const FVideoTrack& VideoTrack = VideoTracks[SelectedVideoTrack];
-	VideoSink->InitializeTextureSink(VideoTrack.Dimensions, VideoTrack.SinkFormat, EMediaTextureSinkMode::Buffered);
+	VideoSink->InitializeTextureSink(VideoTrack.OutputDim, VideoTrack.BufferDim, VideoTrack.SinkFormat, EMediaTextureSinkMode::Buffered);
 }
 
 
@@ -1104,6 +1283,13 @@ void FWmfMediaTracks::HandleMediaSamplerSample(const uint8* Buffer, uint32 Size,
 		}
 		break;
 
+	case EMediaTrackType::Metadata:
+		if ((MetadataSink != nullptr) && BinaryTracks.IsValidIndex(SelectedBinaryTrack))
+		{
+			MetadataSink->ProcessBinarySinkData(Buffer, Size, Time, Duration);
+		}
+		break;
+
 	case EMediaTrackType::Caption:
 		if ((OverlaySink != nullptr) && CaptionTracks.IsValidIndex(SelectedCaptionTrack))
 		{
@@ -1114,7 +1300,7 @@ void FWmfMediaTracks::HandleMediaSamplerSample(const uint8* Buffer, uint32 Size,
 	case EMediaTrackType::Video:
 		if ((VideoSink != nullptr) && VideoTracks.IsValidIndex(SelectedVideoTrack))
 		{
-			VideoSink->UpdateTextureSinkBuffer(Buffer, VideoTracks[SelectedVideoTrack].Pitch);
+			VideoSink->UpdateTextureSinkBuffer(Buffer);
 			VideoSink->DisplayTextureSinkBuffer(Time);
 		}
 		break;

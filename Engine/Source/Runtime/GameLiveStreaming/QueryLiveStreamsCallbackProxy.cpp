@@ -1,7 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "GameLiveStreamingModule.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #include "QueryLiveStreamsCallbackProxy.h"
-#include "Runtime/Engine/Public/Features/ILiveStreamingService.h"
+#include "Features/ILiveStreamingService.h"
 #include "IGameLiveStreaming.h"
 
 UQueryLiveStreamsCallbackProxy::UQueryLiveStreamsCallbackProxy( const FObjectInitializer& ObjectInitializer )

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -6,12 +6,20 @@
  */
 
 #pragma once
-#include "Particles/Parameter/ParticleModuleParameterBase.h"
-#include "Particles/ParticleSystemComponent.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Particles/ParticleModule.h"
 #include "Distributions/DistributionFloatConstant.h"
+#include "Particles/Parameter/ParticleModuleParameterBase.h"
+#include "ParticleEmitterInstances.h"
+#include "Particles/ParticleSystemComponent.h"
 #include "ParticleModuleParameterDynamic.generated.h"
 
-class UDistributionFloatConstant;
+class UInterpCurveEdSetup;
+class UParticleEmitter;
+class UParticleLODLevel;
+class UParticleModuleTypeDataBase;
 
 /**
  *	EmitterDynamicParameterValue
@@ -22,6 +30,8 @@ enum EEmitterDynamicParameterValue
 {
 	/** UserSet - use the user set values in the distribution (the default) */
 	EDPV_UserSet,
+	/** AutoSet - ignore values set in the distribution, another module will handle this data */
+	EDPV_AutoSet,
 	/** VelocityX - pass the particle velocity along the X-axis thru */
 	EDPV_VelocityX,
 	/** VelocityY - pass the particle velocity along the Y-axis thru */
@@ -164,15 +174,20 @@ class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 		switch (InDynParams.ValueMethod)
 		{
 		case EDPV_VelocityX:
+			ScaleValue = Particle.Velocity.X;
+			break;
 		case EDPV_VelocityY:
+			ScaleValue = Particle.Velocity.Y;
+			break;
 		case EDPV_VelocityZ:
-			ScaleValue = Particle.Velocity[InDynParams.ValueMethod - 1];
+			ScaleValue = Particle.Velocity.Z;
 			break;
 		case EDPV_VelocityMag:
 			ScaleValue = Particle.Velocity.Size();
 			break;
 		default:
 			//case EDPV_UserSet:
+			//case EDPV_AutoSet:
 			break;
 		}
 

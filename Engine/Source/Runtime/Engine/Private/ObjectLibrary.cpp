@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "AssetRegistryModule.h"
 #include "Engine/ObjectLibrary.h"
+#include "Modules/ModuleManager.h"
+#include "Engine/BlueprintCore.h"
+#include "Engine/Blueprint.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "UnrealEngine.h"
+#include "EngineUtils.h"
+#include "ARFilter.h"
+#include "AssetRegistryModule.h"
 #include "Engine/StreamableManager.h"
 
 UObjectLibrary::UObjectLibrary(const FObjectInitializer& ObjectInitializer)
@@ -11,6 +17,7 @@ UObjectLibrary::UObjectLibrary(const FObjectInitializer& ObjectInitializer)
 	bIsFullyLoaded = false;
 	bUseWeakReferences = false;
 	bIncludeOnlyOnDiskAssets = true;
+	bRecursivePaths = true;
 
 #if WITH_EDITOR
 	if ( !HasAnyFlags(RF_ClassDefaultObject) )
@@ -352,7 +359,7 @@ int32 UObjectLibrary::LoadAssetDataFromPaths(const TArray<FString>& Paths, bool 
 		ARFilter.PackagePaths.Add(FName(*Paths[PathIndex]));
 	}
 
-	ARFilter.bRecursivePaths = true;
+	ARFilter.bRecursivePaths = bRecursivePaths;
 	ARFilter.bIncludeOnlyOnDiskAssets = bIncludeOnlyOnDiskAssets;
 
 	AssetDataList.Empty();
@@ -412,7 +419,7 @@ int32 UObjectLibrary::LoadBlueprintAssetDataFromPaths(const TArray<FString>& Pat
 		ARFilter.PackagePaths.Add(FName(*Paths[PathIndex]));
 	}
 	
-	ARFilter.bRecursivePaths = true;
+	ARFilter.bRecursivePaths = bRecursivePaths;
 	ARFilter.bIncludeOnlyOnDiskAssets = bIncludeOnlyOnDiskAssets;
 
 	/* GetDerivedClassNames doesn't work yet

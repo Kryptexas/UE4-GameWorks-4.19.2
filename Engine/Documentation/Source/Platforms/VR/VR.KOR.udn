@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3178801
 Availability:Public
 Title:가상 현실 개발
 Crumbs:%ROOT%, Platforms
@@ -51,7 +51,7 @@ vr
 
 ## 시작하기
 
-[DIR(output:"listbutton" type:"quickstart" tags:"vr")]
+[DIR(output:"listbutton" type:"quick start" tags:"vr")]
 
 ## 가상 현실 플랫폼
 

@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FAssetData;
+#include "CoreMinimal.h"
+#include "AssetData.h"
+
 class IAssetRegistry;
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutoReimportManager, Log, All);

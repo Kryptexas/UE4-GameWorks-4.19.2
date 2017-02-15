@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "CoreGlobals.h"
 
 /**
  * Fixed-sized allocator that uses a free list to cache allocations.

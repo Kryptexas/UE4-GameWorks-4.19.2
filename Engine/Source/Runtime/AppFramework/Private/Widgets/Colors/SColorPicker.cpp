@@ -1,16 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AppFrameworkPrivatePCH.h"
-#include "SComplexGradient.h"
-#include "SSimpleGradient.h"
-#include "SColorValueSlider.h"
-#include "SEyeDropperButton.h"
-#include "SColorPicker.h"
-#include "SColorWheel.h"
-#include "SColorSpectrum.h"
-#include "SColorThemes.h"
-#include "SExpandableArea.h"
-
+#include "Widgets/Colors/SColorPicker.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CoreDelegates.h"
+#include "Layout/WidgetPath.h"
+#include "SlateOptMacros.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Colors/SColorBlock.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Widgets/Input/SSlider.h"
+#include "Widgets/Colors/SComplexGradient.h"
+#include "Widgets/Colors/SSimpleGradient.h"
+#include "Widgets/Colors/SEyeDropperButton.h"
+#include "Widgets/Colors/SColorWheel.h"
+#include "Widgets/Colors/SColorSpectrum.h"
+#include "Widgets/Colors/SColorThemes.h"
+#include "Widgets/Layout/SExpandableArea.h"
+#include "MenuStack.h"
 
 #define LOCTEXT_NAMESPACE "ColorPicker"
 
@@ -534,6 +550,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 
 										+ SHorizontalBox::Slot()
 											.AutoWidth()
+											.MaxWidth(72.0f)
 											[
 												SNew(SEditableTextBox)
 													.MinDesiredWidth(72.0f)
@@ -562,6 +579,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 
 										+ SHorizontalBox::Slot()
 											.AutoWidth()
+											.MaxWidth(72.0f)
 											[
 												SNew(SEditableTextBox)
 												.MinDesiredWidth(72.0f)
@@ -966,7 +984,10 @@ TSharedRef<SWidget> SColorPicker::MakeColorSpinBox( EColorPickerChannels Channel
 	default:
 		return SNullWidget::NullWidget;
 	}
-	
+
+	// Define a maximum size for the spin box containers to prevent them from stretching out the color picker window
+	static const float MaxSpinBoxSize = 192.0f;
+
 	return SNew(SHorizontalBox)
 
 	+ SHorizontalBox::Slot()
@@ -980,6 +1001,7 @@ TSharedRef<SWidget> SColorPicker::MakeColorSpinBox( EColorPickerChannels Channel
 
 	+ SHorizontalBox::Slot()
 		.FillWidth(1.0f)
+		.MaxWidth(MaxSpinBoxSize)
 		[
 			SNew(SVerticalBox)
 				.ToolTipText(SliderTooltip)
@@ -1648,16 +1670,41 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 	const bool bOverrideNonModalCreation = (SColorPicker::OnColorPickerNonModalCreateOverride.IsBound() && !Args.bIsModal);
 
 	TSharedPtr<SWindow> Window = nullptr;
+	TSharedRef<SBorder> WindowContent = SNew(SBorder)
+			.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
+			.Padding(FMargin(8.0f, 8.0f));
 	
+	bool bNeedToAddWindow = true;
 	if (!bOverrideNonModalCreation)
 	{
-		Window = SNew(SWindow)
-			.AutoCenter(EAutoCenter::None)
-			.ScreenPosition(AdjustedSummonLocation)
-			.SupportsMaximize(false)
-			.SupportsMinimize(false)
-			.SizingRule(ESizingRule::Autosized)
-			.Title(LOCTEXT("WindowHeader", "Color Picker"));
+		if (Args.bOpenAsMenu && !Args.bIsModal && Args.ParentWidget.IsValid())
+		{
+			Window = FSlateApplication::Get().PushMenu(
+				Args.ParentWidget.ToSharedRef(),
+				FWidgetPath(),
+				WindowContent,
+				AdjustedSummonLocation,
+				FPopupTransitionEffect(FPopupTransitionEffect::None),
+				false,
+				FVector2D(0.f,0.f),
+				EPopupMethod::CreateNewWindow,
+				false)->GetOwnedWindow();
+
+			bNeedToAddWindow = false;
+		}
+		else
+		{
+			Window = SNew(SWindow)
+				.AutoCenter(EAutoCenter::None)
+				.ScreenPosition(AdjustedSummonLocation)
+				.SupportsMaximize(false)
+				.SupportsMinimize(false)
+				.SizingRule(ESizingRule::Autosized)
+				.Title(LOCTEXT("WindowHeader", "Color Picker"))
+				[
+					WindowContent
+				];
+		}
 	}
 
 	TSharedRef<SColorPicker> ColorPicker = SNew(SColorPicker)
@@ -1692,23 +1739,13 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 	}
 	else
 	{
-		Window->SetContent(
-			SNew(SBox)
-			[
-				SNew(SBorder)
-				.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
-			.Padding(FMargin(8.0f, 8.0f))
-			[
-				ColorPicker
-			]
-			]
-		);
+		WindowContent->SetContent(ColorPicker);
 
 		if (Args.bIsModal)
 		{
 			FSlateApplication::Get().AddModalWindow(Window.ToSharedRef(), Args.ParentWidget);
 		}
-		else
+		else if (bNeedToAddWindow)
 		{
 			if (Args.ParentWidget.IsValid())
 			{

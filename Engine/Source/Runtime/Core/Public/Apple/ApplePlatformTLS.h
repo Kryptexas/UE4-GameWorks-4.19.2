@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	ApplePlatformTLS.h: Apple platform TLS (Thread local storage and thread ID) functions
@@ -6,7 +6,7 @@
 
 #pragma once
 #include "GenericPlatform/GenericPlatformTLS.h"
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 #if PLATFORM_MAC
 #include "Mac/MacSystemIncludes.h"
 #elif PLATFORM_IOS

@@ -1,12 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
-#include "Core.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Textures/SlateIcon.h"
 #include "Engine/MemberReference.h"
+#include "EdGraph/EdGraphNodeUtils.h"
 #include "K2Node_EditablePinBase.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_Event.generated.h"
+
+class FKismetCompilerContext;
+class FNodeHandlingFunctor;
+class UEdGraph;
 
 UCLASS(MinimalAPI)
 class UK2Node_Event : public UK2Node_EditablePinBase

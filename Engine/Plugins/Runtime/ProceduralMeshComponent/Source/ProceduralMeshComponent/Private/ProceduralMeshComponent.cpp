@@ -1,7 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved. 
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved. 
 
-#include "ProceduralMeshComponentPluginPrivatePCH.h"
 #include "ProceduralMeshComponent.h"
+#include "PrimitiveViewRelevance.h"
+#include "RenderResource.h"
+#include "RenderingThread.h"
+#include "PrimitiveSceneProxy.h"
+#include "Containers/ResourceArray.h"
+#include "EngineGlobals.h"
+#include "VertexFactory.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "LocalVertexFactory.h"
+#include "Engine/Engine.h"
+#include "SceneManagement.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "ProceduralMeshComponentPluginPrivate.h"
 #include "DynamicMeshBuilder.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
@@ -869,6 +882,8 @@ void UProceduralMeshComponent::UpdateCollision()
 
 	// New GUID as collision has changed
 	ProcMeshBodySetup->BodySetupGuid = FGuid::NewGuid();
+	// Also we want cooked data for this
+	ProcMeshBodySetup->bHasCookedCollisionData = true;
 
 #if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 	// Clear current mesh data

@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Factory for importing SpeedTrees
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Factories/Factory.h"
 #include "SpeedTreeImportFactory.generated.h"
 
 UCLASS(hidecategories=Object)

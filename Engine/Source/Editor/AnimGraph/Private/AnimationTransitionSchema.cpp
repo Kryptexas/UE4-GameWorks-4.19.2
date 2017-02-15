@@ -1,23 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationTransitionSchema.cpp
 =============================================================================*/
 
-#include "AnimGraphPrivatePCH.h"
-#include "AnimStateNode.h"
+#include "AnimationTransitionSchema.h"
+#include "Animation/AnimBlueprint.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "AnimStateTransitionNode.h"
 #include "AnimationTransitionGraph.h"
-#include "AnimationTransitionSchema.h"
-#include "AnimGraphNode_Base.h"
 #include "AnimGraphNode_TransitionResult.h"
 
-#include "BlueprintUtilities.h"
-#include "AnimGraphDefinitions.h"
-#include "GraphEditorActions.h"
-#include "ScopedTransaction.h"
-#include "Kismet2/KismetDebugUtilities.h"
-#include "K2Node_TransitionRuleGetter.h"
 
 /////////////////////////////////////////////////////
 // UAnimationTransitionSchema

@@ -1,11 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Layout/SMenuOwner.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/Commands/UICommandInfo.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxDefs.h"
 
-class FUICommandInfo;
-class FUICommandList;
-
+class FDropPreviewBlock;
+class ITableRow;
+class SClippingHorizontalBox;
+class SHorizontalBox;
+class SMultiBoxWidget;
+class STableViewBase;
+class SVerticalBox;
 
 namespace MultiBoxConstants
 {	
@@ -239,12 +255,14 @@ public:
 	 */
 	void InsertCustomMultiBlock( TSharedRef<const FMultiBlock> InBlock, int32 Index );
 
+	DECLARE_DELEGATE_TwoParams( FOnMakeMultiBoxBuilderOverride, const TSharedRef<FMultiBox>&, const TSharedRef<SMultiBoxWidget>& );
+
 	/**
 	 * Creates a MultiBox widget for this MultiBox
 	 *
 	 * @return  MultiBox widget object
 	 */
-	TSharedRef< class SMultiBoxWidget > MakeWidget( bool bSearchable );
+	TSharedRef< class SMultiBoxWidget > MakeWidget( bool bSearchable, FOnMakeMultiBoxBuilderOverride* InMakeMultiBoxBuilderOverride = nullptr );
 
 
 	/**
@@ -475,6 +493,18 @@ public:
 		MultiBox = InMultiBox;
 	}
 
+	/**
+	* Sets new content for the SMultiBoxWidget
+	*
+	* @param	InContent	The new content to place in the ChildSlot
+	*/
+	void SetContent( TSharedRef< SWidget > InContent )
+	{	
+		ChildSlot
+		[
+			InContent 
+		];
+	}
 
 	/**
 	 * Access the MultiBox associated with this widget

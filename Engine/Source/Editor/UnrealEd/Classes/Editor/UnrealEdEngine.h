@@ -1,11 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "UniquePtr.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "GameFramework/Actor.h"
+#include "Misc/NotifyHook.h"
+#include "Editor/EditorEngine.h"
 #include "IPackageAutoSaver.h"
-#include "ISourceControlModule.h"
+#include "ISourceControlProvider.h"
+#include "ComponentVisualizer.h"
 #include "ComponentVisualizerManager.h"
 #include "UnrealEdEngine.generated.h"
+
+class AGroupActor;
+class FCanvas;
+class FLevelEditorViewportClient;
+class FPerformanceMonitor;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FViewport;
+class IEngineLoop;
+class ITargetPlatform;
+class UPrimitiveComponent;
+class UTexture2D;
+class UUnrealEdOptions;
 
 UENUM()
 enum EPackageNotifyState
@@ -135,6 +155,9 @@ public:
 	/** Whether the user needs to be prompted about a package being saved when the user does not have permission to write the file */
 	UPROPERTY()
 	uint32 bNeedWarningForWritePermission:1;
+
+	/** Whether there is a pending package notification */
+ 	uint32 bShowPackageNotification:1;
 
 	/** Array of sorted, localized editor sprite categories */
 	UPROPERTY()

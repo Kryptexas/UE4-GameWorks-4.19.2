@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,12 +6,19 @@
  * Context to sound wave map for spoken dialogue 
  */
 
-#include "DialogueTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Sound/DialogueTypes.h"
 
 #include "DialogueWave.generated.h"
 
-class USoundWave;
 class UDialogueSoundWaveProxy;
+class UDialogueVoice;
+class USoundBase;
+class USoundWave;
+struct FPropertyChangedChainEvent;
 
 struct ENGINE_API FDialogueConstants
 {

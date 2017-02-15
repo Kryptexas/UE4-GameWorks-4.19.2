@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Animation/SmartName.h"
-#include "FrameworkObjectVersion.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "Animation/Skeleton.h"
+
 ////////////////////////////////////////////////////////////////////////
 //
 // FSmartNameMapping
@@ -296,6 +297,20 @@ bool FSmartNameMapping::FindSmartNameByUID(SmartName::UID_Type UID, FSmartName& 
 
 	return false;
 }
+
+/* initialize curve meta data for the container */
+void FSmartNameMapping::InitializeCurveMetaData(class USkeleton* Skeleton)
+{
+	// initialize bone indices for skeleton
+	for (TPair<FName, FCurveMetaData>& Iter : CurveMetaDataMap)
+	{
+		FCurveMetaData& CurveMetaData = Iter.Value;
+		for (int32 LinkedBoneIndex = 0; LinkedBoneIndex < CurveMetaData.LinkedBones.Num(); ++LinkedBoneIndex)
+		{
+			CurveMetaData.LinkedBones[LinkedBoneIndex].Initialize(Skeleton);
+		}
+	}
+}
 ////////////////////////////////////////////////////////////////////////
 //
 // FSmartNameContainer
@@ -327,6 +342,16 @@ FSmartNameMapping* FSmartNameContainer::GetContainerInternal(const FName& Contai
 const FSmartNameMapping* FSmartNameContainer::GetContainerInternal(const FName& ContainerName) const
 {
 	return NameMappings.Find(ContainerName);
+}
+
+/* initialize curve meta data for the container */
+void FSmartNameContainer::InitializeCurveMetaData(class USkeleton* Skeleton)
+{
+	FSmartNameMapping* CurveMappingTable = GetContainerInternal(USkeleton::AnimCurveMappingName);
+	if (CurveMappingTable)
+	{
+		CurveMappingTable->InitializeCurveMetaData(Skeleton);
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////

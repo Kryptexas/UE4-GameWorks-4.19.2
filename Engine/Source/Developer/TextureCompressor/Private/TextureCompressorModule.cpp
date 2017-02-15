@@ -1,6 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TextureCompressorPrivatePCH.h"
+#include "TextureCompressorModule.h"
+#include "Math/RandomStream.h"
+#include "Containers/IndirectArray.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "Modules/ModuleManager.h"
+#include "Engine/Texture.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "Interfaces/ITextureFormat.h"
+#include "ImageCore.h"
+
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogTextureCompressor, Log, All);
 
@@ -1851,9 +1864,9 @@ public:
 	{
 #if PLATFORM_WINDOWS
 	#if PLATFORM_64BITS
-		nvTextureToolsHandle = LoadLibraryW(TEXT("../../../Engine/Binaries/ThirdParty/nvTextureTools/Win64/nvtt_64.dll"));
+		nvTextureToolsHandle = FPlatformProcess::GetDllHandle(TEXT("../../../Engine/Binaries/ThirdParty/nvTextureTools/Win64/nvtt_64.dll"));
 	#else	//32-bit platform
-		nvTextureToolsHandle = LoadLibraryW(TEXT("../../../Engine/Binaries/ThirdParty/nvTextureTools/Win32/nvtt_.dll"));
+		nvTextureToolsHandle = FPlatformProcess::GetDllHandle(TEXT("../../../Engine/Binaries/ThirdParty/nvTextureTools/Win32/nvtt_.dll"));
 	#endif
 #endif	//PLATFORM_WINDOWS
 	}
@@ -1861,7 +1874,7 @@ public:
 	void ShutdownModule()
 	{
 #if PLATFORM_WINDOWS
-		FreeLibrary(nvTextureToolsHandle);
+		FPlatformProcess::FreeDllHandle(nvTextureToolsHandle);
 		nvTextureToolsHandle = 0;
 #endif
 	}
@@ -1869,7 +1882,7 @@ public:
 private:
 #if PLATFORM_WINDOWS
 	// Handle to the nvtt dll
-	HMODULE nvTextureToolsHandle;
+	void* nvTextureToolsHandle;
 #endif	//PLATFORM_WINDOWS
 
 	bool BuildTextureMips(

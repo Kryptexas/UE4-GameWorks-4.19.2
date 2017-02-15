@@ -1,5 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "IDocumentationPage.h"
+#include "Types/SlateStructs.h"
+#include "IDocumentation.h"
+#include "Brushes/SlateDynamicImageBrush.h"
 
 /** Stores all the metadata that a UDN page can have */
 struct FUDNPageMetadata

@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "IpNetDriver.h"
 #include "UnitTestNetDriver.generated.h"
 
+class Error;
+class FNetworkNotify;
 
 /**
  * A net driver for supporting unit test net connections

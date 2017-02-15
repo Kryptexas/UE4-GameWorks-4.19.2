@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "HAL/ThreadSafeBool.h"
 #include "TickableObjectRenderThread.h"
 
 // Base class for asynchronous loading splash.
@@ -103,9 +104,9 @@ protected:
 	void LoadTexture(FSplashDesc& InSplashDesc);
 	void UnloadTexture(FSplashDesc& InSplashDesc);
 
-	TSharedPtr<FTicker>	RenTicker;
+	virtual uint32 GetTotalNumberOfLayersSupported() const = 0;
 
-	const int32 SPLASH_MAX_NUM = 10;
+	TSharedPtr<FTicker>	RenTicker;
 
 	mutable FCriticalSection SplashScreensLock;
 	UPROPERTY()

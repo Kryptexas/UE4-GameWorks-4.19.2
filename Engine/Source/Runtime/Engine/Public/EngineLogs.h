@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // 
 // Log categories used by the Engine
 
 #pragma once
 
- 
+#include "CoreMinimal.h"
+
+class Error;
+
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogMCP, Warning, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogPath, Warning, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogPhysics, Warning, All);
@@ -28,3 +31,4 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogSubtitle, Log, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogTexture, Log, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogPlayerManagement, Error, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogSecurity, Warning, All);
+ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogEngineSessionManager, Log, All);

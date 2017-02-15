@@ -1,15 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "KeyParams.h"
+#include "ISequencer.h"
+#include "MovieSceneTrack.h"
+#include "Framework/Commands/UIAction.h"
+#include "Textures/SlateIcon.h"
+#include "ScopedTransaction.h"
 #include "MovieSceneTrackEditor.h"
-#include "IKeyframeSection.h"
-#include "ISequencerObjectChangeListener.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "MovieSceneCommonHelpers.h"
-#include "MovieSceneSection.h"
 
-class IPropertyHandle;
-class FPropertyChangedParams;
+template<typename KeyDataType> class IKeyframeSection;
 
 /**
  * A base class for track editors that edit tracks which contain sections implementing IKeyframeSection.
@@ -268,21 +274,26 @@ private:
 	bool SetDefault( TrackType* Track, float Time, const KeyDataType& KeyData, bool bInfiniteKeyAreas )
 	{
 		bool bSectionAdded = false;
-		Track->Modify();
 		const TArray<UMovieSceneSection*>& Sections = Track->GetAllSections();
 		if ( Sections.Num() > 0)
 		{
 			for ( UMovieSceneSection* Section : Sections )
 			{
 				IKeyframeSection<KeyDataType>* KeyframeSection = CastChecked<SectionType>( Section );
-				KeyframeSection->SetDefault( KeyData );
+				if (!KeyframeSection->HasKeys(KeyData))
+				{
+					KeyframeSection->SetDefault( KeyData );
+				}
 			}
 		}
 		else
 		{
 			UMovieSceneSection* NewSection = Track->FindOrAddSection( Time, bSectionAdded );
 			IKeyframeSection<KeyDataType>* KeyframeSection = CastChecked<SectionType>( NewSection );
-			KeyframeSection->SetDefault( KeyData );
+			if (!KeyframeSection->HasKeys(KeyData))
+			{
+				KeyframeSection->SetDefault( KeyData );
+			}
 
 			if (bSectionAdded)
 			{

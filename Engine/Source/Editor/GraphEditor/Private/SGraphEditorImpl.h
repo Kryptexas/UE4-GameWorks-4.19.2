@@ -1,15 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GraphEditorCommon.h"
-
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Styling/SlateColor.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SOverlay.h"
 #include "GraphEditor.h"
-#include "GraphEditorModule.h"
-#include "GraphEditorActions.h"
-#include "ScopedTransaction.h"
-#include "SGraphEditorActionMenu.h"
-#include "EdGraphUtilities.h"
+
+class SGraphPanel;
+class UEdGraph;
+struct FEdGraphEditAction;
+struct FGraphContextMenuArguments;
+struct FNotificationInfo;
+struct Rect;
 
 /////////////////////////////////////////////////////
 // SGraphEditorImpl

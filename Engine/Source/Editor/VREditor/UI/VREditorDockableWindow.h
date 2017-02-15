@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "VREditorFloatingUI.h"
+#include "ViewportDragOperation.h"
 #include "ViewportInteractableInterface.h"
 #include "VREditorDockableWindow.generated.h"
+
+class UStaticMeshComponent;
+class UViewportInteractor;
 
 /**
  * An interactive floating UI panel that can be dragged around

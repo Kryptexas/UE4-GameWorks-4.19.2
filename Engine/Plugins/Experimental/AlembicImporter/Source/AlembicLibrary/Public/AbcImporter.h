@@ -1,11 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Containers/List.h"
+#include "SkeletalMeshTypes.h"
+#include "Animation/MorphTarget.h"
+#include "Animation/AnimSequence.h"
+
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
 
 THIRD_PARTY_INCLUDES_START
 	#include <Alembic/AbcGeom/All.h>
 THIRD_PARTY_INCLUDES_END
 
+class UMaterial;
 class UStaticMesh;
 class USkeletalMesh;
 class UGeometryCache;
@@ -127,11 +138,7 @@ private:
 
 	/** Templated function to parse a specific Alembic typed object from the archive */
 	template<typename T> void ParseAbcObject(T& InObject, FGuid InHierarchyGuid) {};
-	/** Specialized template function to parse IPolyMesh object types */
-	template<> void ParseAbcObject<Alembic::AbcGeom::IPolyMesh>(Alembic::AbcGeom::IPolyMesh& InPolyMesh, FGuid InHierarchyGuid);
-	/** Specialized template function to parse IXform object types */
-	template<> void ParseAbcObject<Alembic::AbcGeom::IXform>(Alembic::AbcGeom::IXform& InXform, FGuid InHierarchyGuid);
-	
+
 	/**
 	* CreateFlipbookAnimationTrack
 	*
@@ -214,3 +221,8 @@ private:
 	FAbcImportData* ImportData;
 	static const int32 FirstSampleIndex;
 };
+
+/** Specialized template function to parse IPolyMesh object types */
+template<> void FAbcImporter::ParseAbcObject<Alembic::AbcGeom::IPolyMesh>(Alembic::AbcGeom::IPolyMesh& InPolyMesh, FGuid InHierarchyGuid);
+/** Specialized template function to parse IXform object types */
+template<> void FAbcImporter::ParseAbcObject<Alembic::AbcGeom::IXform>(Alembic::AbcGeom::IXform& InXform, FGuid InHierarchyGuid);

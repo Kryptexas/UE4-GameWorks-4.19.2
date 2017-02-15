@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // PersonaOptions
@@ -8,6 +8,10 @@
 //=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "Engine/EngineBaseTypes.h"
 #include "PersonaOptions.generated.h"
 
@@ -65,11 +69,13 @@ class UNREALED_API UPersonaOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category = Options)
 	FLinearColor BranchingPointTimingNodeColor;
 
-	UPROPERTY(EditAnywhere, config, Category = Options)
-	bool bUseStandaloneAnimationEditors;
-
-	UPROPERTY(EditAnywhere, config, Category = Options)
+	/** Whether to use a socket editor that is created in-line inside the skeleton tree, or wither to use the separate details panel */
+	UPROPERTY(EditAnywhere, config, Category = "Skeleton Tree")
 	bool bUseInlineSocketEditor;
+
+	/** Whether to keep the hierarchy or flatten it when searching for bones, sockets etc. */
+	UPROPERTY(EditAnywhere, config, Category = "Skeleton Tree")
+	bool bFlattenSkeletonHierarchyWhenFiltering;
 
 	UPROPERTY(EditAnywhere, config, Category = Options)
 	bool bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons;

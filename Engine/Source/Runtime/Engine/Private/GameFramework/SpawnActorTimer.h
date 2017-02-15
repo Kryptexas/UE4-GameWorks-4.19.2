@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /** Util for recording SpawnActor times */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/PlatformTime.h"
 
 // Define that controls compilation of this feature
 #if (!UE_BUILD_SHIPPING && 1)

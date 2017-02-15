@@ -1,47 +1,92 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
 #include "ObjectTools.h"
+#include "Engine/Level.h"
+#include "UObject/UnrealType.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
+#include "Engine/Blueprint.h"
+#include "Exporters/Exporter.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Serialization/FindReferencersArchive.h"
+#include "Serialization/ArchiveReferenceMarker.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SWindow.h"
+#include "Widgets/Text/STextBlock.h"
+#include "RHI.h"
+#include "Materials/MaterialInterface.h"
+#include "RenderingThread.h"
+#include "Materials/Material.h"
+#include "CanvasTypes.h"
+#include "Engine/Brush.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "ISourceControlModule.h"
+#include "Engine/SkeletalMesh.h"
+#include "Editor/UnrealEdEngine.h"
+#include "TextureResource.h"
+#include "Engine/Texture.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
+#include "ThumbnailRendering/TextureThumbnailRenderer.h"
+#include "Engine/StaticMesh.h"
+#include "Factories/Factory.h"
+#include "AssetToolsModule.h"
+#include "Sound/SoundWave.h"
+#include "GameFramework/Volume.h"
+#include "UObject/MetaData.h"
+#include "Serialization/ArchiveReplaceObjectRef.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Engine/Selection.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/UserDefinedStruct.h"
+#include "Animation/MorphTarget.h"
+#include "Editor.h"
+#include "EditorDirectories.h"
+#include "FileHelpers.h"
+#include "Dialogs/Dialogs.h"
+#include "UnrealEdGlobals.h"
 #include "PackageTools.h"
-#include "Factories.h"
+#include "Framework/Application/SlateApplication.h"
 
 #include "BusyCursor.h"
 #include "Dialogs/DlgMoveAssets.h"
 #include "Dialogs/DlgReferenceTree.h"
+#include "ARFilter.h"
+#include "AssetDeleteModel.h"
 #include "Dialogs/SDeleteAssetsDialog.h"
-#include "SoundDefinitions.h"
+#include "AudioDevice.h"
 #include "ReferencedAssetsUtils.h"
 #include "AssetRegistryModule.h"
-#include "Editor/PackagesDialog/Public/PackagesDialog.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "AssetToolsModule.h"
-#include "Editor/UnrealEd/Public/Toolkits/AssetEditorManager.h"
-#include "ISourceControlModule.h"
+#include "PackagesDialog.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "PropertyEditorModule.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/KismetReinstanceUtilities.h"
-#include "FbxImporter.h"
 #include "PackageHelperFunctions.h"
 #include "EditorLevelUtils.h"
 #include "DesktopPlatformModule.h"
-#include "MainFrame.h"
-#include "Editor/MainFrame/Public/MainFrame.h"
-#include "DesktopPlatformModule.h"
-#include "LevelUtils.h"
-#include "ConsolidateWindow.h"
-#include "ComponentRecreateRenderStateContext.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "Layers/ILayers.h"
-#include "PhysicalMaterials/PhysicalMaterial.h"
-#include "Engine/BlueprintGeneratedClass.h"
-#include "Engine/SimpleConstructionScript.h"
 #include "Engine/LevelStreaming.h"
-#include "GameFramework/WorldSettings.h"
-#include "CanvasTypes.h"
+#include "LevelUtils.h"
+#include "ContentStreaming.h"
+#include "ComponentRecreateRenderStateContext.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Layers/ILayers.h"
 #include "Engine/SCS_Node.h"
-#include "Engine/UserDefinedStruct.h"
 #include "ShaderCompiler.h"
+#include "UniquePtr.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogObjectTools, Log, All);
 
@@ -686,16 +731,22 @@ namespace ObjectTools
 					TArray<UProperty*> CurReferencedProperties;
 					CurReferencingPropertiesMMap.GenerateValueArray( CurReferencedProperties );
 					ReferencingPropertiesMap.Add( CurObject, CurReferencedProperties );
-					for ( TArray<UProperty*>::TConstIterator RefPropIter( CurReferencedProperties ); RefPropIter; ++RefPropIter )
+					if ( CurReferencedProperties.Num() > 0)
 					{
-						CurObject->PreEditChange( *RefPropIter );
+						for ( TArray<UProperty*>::TConstIterator RefPropIter( CurReferencedProperties ); RefPropIter; ++RefPropIter )
+						{
+							CurObject->PreEditChange( *RefPropIter );
+						}
+					}
+					else
+					{
+						CurObject->PreEditChange(nullptr);
 					}
 				}
 			}
 		}
-
-		// Iterate over the map of referencing objects/changed properties, forcefully replacing the references and then
-		// alerting the referencing objects the change has completed via PostEditChange
+		
+		// Iterate over the map of referencing objects/changed properties, forcefully replacing the references and
 		int32 NumObjsReplaced = 0;
 		for ( TMap< UObject*, TArray<UProperty*> >::TConstIterator MapIter( ReferencingPropertiesMap ); MapIter; ++MapIter )
 		{
@@ -703,14 +754,33 @@ namespace ObjectTools
 			GWarn->StatusUpdate( NumObjsReplaced, ReferencingPropertiesMap.Num(), NSLOCTEXT("UnrealEd", "ConsolidateAssetsUpdate_ReplacingReferences", "Replacing Asset References...") );
 
 			UObject* CurReplaceObj = MapIter.Key();
-			const TArray<UProperty*>& RefPropArray = MapIter.Value();
 
 			FArchiveReplaceObjectRef<UObject> ReplaceAr( CurReplaceObj, ReplacementMap, false, true, false );
+		}
 
-			for ( TArray<UProperty*>::TConstIterator RefPropIter( RefPropArray ); RefPropIter; ++RefPropIter )
+		// Now alter the referencing objects the change has completed via PostEditChange, 
+		// this is done in a separate loop to prevent reading of data that we want to overwrite
+		int32 NumObjsPostEdited = 0;
+		for ( TMap< UObject*, TArray<UProperty*> >::TConstIterator MapIter( ReferencingPropertiesMap ); MapIter; ++MapIter )
+		{
+			++NumObjsPostEdited;
+			GWarn->StatusUpdate( NumObjsPostEdited, ReferencingPropertiesMap.Num(), NSLOCTEXT("UnrealEd", "ConsolidateAssetsUpdate_PostEditing", "Performing Post Update Edits...") );
+
+			UObject* CurReplaceObj = MapIter.Key();
+			const TArray<UProperty*>& RefPropArray = MapIter.Value();
+
+			if (RefPropArray.Num() > 0)
 			{
-				FPropertyChangedEvent PropertyEvent(*RefPropIter);
-				CurReplaceObj->PostEditChangeProperty( PropertyEvent );
+				for ( TArray<UProperty*>::TConstIterator RefPropIter( RefPropArray ); RefPropIter; ++RefPropIter )
+				{
+					FPropertyChangedEvent PropertyEvent(*RefPropIter, EPropertyChangeType::Redirected);
+					CurReplaceObj->PostEditChangeProperty( PropertyEvent );
+				}
+			}
+			else
+			{
+				FPropertyChangedEvent PropertyEvent(nullptr, EPropertyChangeType::Redirected);
+				CurReplaceObj->PostEditChangeProperty(PropertyEvent);
 			}
 
 			if ( !CurReplaceObj->HasAnyFlags(RF_Transient) && CurReplaceObj->GetOutermost() != GetTransientPackage() )
@@ -876,6 +946,8 @@ namespace ObjectTools
 
 			FEditorDelegates::OnAssetsPreDelete.Broadcast(ReplaceInfo.ReplaceableObjects);
 
+			TSet<FString> AlreadyMappedObjectPaths;
+
 			// With all references to the objects to consolidate to eliminated from objects that are currently loaded, it should now be safe to delete
 			// the objects to be consolidated themselves, leaving behind a redirector in their place to fix up objects that were not currently loaded at the time
 			// of this operation.
@@ -886,7 +958,8 @@ namespace ObjectTools
 				UObject* CurObjToConsolidate = *ConsolIter;
 				UObject* CurObjOuter = CurObjToConsolidate->GetOuter();
 				UPackage* CurObjPackage = CurObjToConsolidate->GetOutermost();
-				FName CurObjName = CurObjToConsolidate->GetFName();
+				const FName CurObjName = CurObjToConsolidate->GetFName();
+				const FString CurObjPath = CurObjToConsolidate->GetPathName();
 				UBlueprint* BlueprintToConsolidate = Cast<UBlueprint>(CurObjToConsolidate);
 
 				// Attempt to delete the object that was consolidated
@@ -894,6 +967,11 @@ namespace ObjectTools
 				{
 					// DONT GC YET!!! we still need these objects around to notify other tools that they are gone and to create redirectors
 					ConsolidatedObjects.Add(CurObjToConsolidate);
+
+					if ( AlreadyMappedObjectPaths.Contains(CurObjPath) )
+					{
+						continue;
+					}
 
 					// Create a redirector with a unique name
 					// It will have the same name as the object that was consolidated after the garbage collect
@@ -904,10 +982,8 @@ namespace ObjectTools
 					Redirector->DestinationObject = ObjectToConsolidateTo;
 
 					// Keep track of the object name so we can rename the redirector later
-					if (!RedirectorToObjectNameMap.FindKey(CurObjName))
-					{
-						RedirectorToObjectNameMap.Add(Redirector, CurObjName);
-					}
+					RedirectorToObjectNameMap.Add(Redirector, CurObjName);
+					AlreadyMappedObjectPaths.Add(CurObjPath);
 
 					// If consolidating blueprints, make sure redirectors are created for the consolidated blueprint class and CDO
 					if ( BlueprintToConsolidateTo != NULL && BlueprintToConsolidate != NULL )
@@ -917,12 +993,14 @@ namespace ObjectTools
 						check( ClassRedirector );
 						ClassRedirector->DestinationObject = BlueprintToConsolidateTo->GeneratedClass;
 						RedirectorToObjectNameMap.Add(ClassRedirector, BlueprintToConsolidate->GeneratedClass->GetFName());
+						AlreadyMappedObjectPaths.Add(BlueprintToConsolidate->GeneratedClass->GetPathName());
 
 						// One redirector for the CDO
 						UObjectRedirector* CDORedirector = NewObject<UObjectRedirector>(CurObjOuter, NAME_None, RF_Standalone | RF_Public);
 						check( CDORedirector );
 						CDORedirector->DestinationObject = BlueprintToConsolidateTo->GeneratedClass->GetDefaultObject();
 						RedirectorToObjectNameMap.Add(CDORedirector, BlueprintToConsolidate->GeneratedClass->GetDefaultObject()->GetFName());
+						AlreadyMappedObjectPaths.Add(BlueprintToConsolidate->GeneratedClass->GetDefaultObject()->GetPathName());
 					}
 
 					DirtiedPackages.AddUnique( CurObjPackage );
@@ -1496,6 +1574,7 @@ namespace ObjectTools
 		if ( PackagesToDelete.Num() > 0 )
 		{
 			PackageTools::UnloadPackages(PackagesToDelete);
+			PackagesToDelete.Reset();
 		}
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 
@@ -3916,9 +3995,9 @@ namespace ThumbnailTools
 		if ( ObjectFullName.Len() > 0 && DestPackage != NULL )
 		{
 			// Create a new thumbnail map if we don't have one already
-			if( !DestPackage->ThumbnailMap.IsValid() )
+			if( !DestPackage->ThumbnailMap )
 			{
-				DestPackage->ThumbnailMap.Reset( new FThumbnailMap() );
+				DestPackage->ThumbnailMap = MakeUnique<FThumbnailMap>();
 			}
 
 			// @todo thumbnails: Backwards compat
@@ -4062,8 +4141,8 @@ namespace ThumbnailTools
 	bool LoadThumbnailsFromPackage( const FString& InPackageFileName, const TSet< FName >& InObjectFullNames, FThumbnailMap& InOutThumbnails )
 	{
 		// Create a file reader to load the file
-		TScopedPointer< FArchive > FileReader( IFileManager::Get().CreateFileReader( *InPackageFileName ) );
-		if( FileReader == NULL )
+		TUniquePtr< FArchive > FileReader( IFileManager::Get().CreateFileReader( *InPackageFileName ) );
+		if( FileReader == nullptr )
 		{
 			// Couldn't open the file
 			return false;

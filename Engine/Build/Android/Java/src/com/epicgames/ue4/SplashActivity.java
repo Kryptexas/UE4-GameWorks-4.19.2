@@ -49,6 +49,7 @@ public class SplashActivity extends Activity
 		}
 
 		Intent intent = new Intent(this, GameActivity.class);
+		intent.putExtras(getIntent());
 		intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
 		intent.putExtra("UseSplashScreen", "true");
 		if (ShouldHideUI)

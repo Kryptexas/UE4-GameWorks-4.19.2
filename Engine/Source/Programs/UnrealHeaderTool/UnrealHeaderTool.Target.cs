@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -8,6 +8,7 @@ public class UnrealHeaderToolTarget : TargetRules
 	public UnrealHeaderToolTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Modular;
 	}
 
 	//
@@ -24,16 +25,6 @@ public class UnrealHeaderToolTarget : TargetRules
 			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
 											InModuleNames: new List<string>() { "UnrealHeaderTool" } )
 			);
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		if (UnrealBuildTool.UnrealBuildTool.CommandLineContains("-monolithic") == true)
-		{
-			return true;
-		}
-		// Don't build monolithic because we want plugin support
-		return false;
 	}
 
 	public override void SetupGlobalEnvironment(

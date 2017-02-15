@@ -16,8 +16,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
     {
         public Bugg()
         {
-            this.Crashes = new HashSet<Crash>();
             this.UserGroups = new HashSet<UserGroup>();
+            this.Crashes = new HashSet<Crash>();
             this.Crashes1 = new HashSet<Crash>();
         }
     
@@ -37,8 +37,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
     
         public virtual ErrorMessage ErrorMessage { get; set; }
         public virtual CallStackPattern CallStackPattern { get; set; }
-        public virtual ICollection<Crash> Crashes { get; set; }
         public virtual ICollection<UserGroup> UserGroups { get; set; }
+        public virtual ICollection<Crash> Crashes { get; set; }
         public virtual ICollection<Crash> Crashes1 { get; set; }
     }
 }

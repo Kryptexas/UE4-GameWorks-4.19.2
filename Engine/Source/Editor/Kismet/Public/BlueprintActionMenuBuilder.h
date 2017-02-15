@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EdGraph/EdGraphSchema.h" // for FGraphActionListBuilderBase
+#include "CoreMinimal.h"
+#include "EdGraph/EdGraphSchema.h"
 
-// Forward declarations
+class FBlueprintActionFilter;
+class FBlueprintEditor;
+
 namespace FBlueprintActionMenuBuilderImpl
 {
 	// internal type, forward declared to hide implementation details

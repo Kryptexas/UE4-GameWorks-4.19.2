@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchServicesModule.h: Declares the FBuildPatchServicesModule class.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Interfaces/IBuildPatchServicesModule.h"
+#include "BuildPatchInstaller.h"
+
+class FHttpServiceTracker;
+class IAnalyticsProvider;
 
 /**
  * Constant values and typedefs

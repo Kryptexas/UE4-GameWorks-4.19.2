@@ -1,14 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "ShadowMap.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Components/LightComponent.h"
 
 #include "TextureLayout.h"
-#include "TargetPlatform.h"
-#include "LightMap.h"
-#include "ShadowMap.h"
+#include "Interfaces/ITargetPlatform.h"
 #include "Engine/ShadowMapTexture2D.h"
 #include "Components/InstancedStaticMeshComponent.h"
-#include "Components/LightComponent.h"
+#include "LightMap.h"
+#include "UObject/Package.h"
+#include "Misc/FeedbackContext.h"
+#include "GameFramework/WorldSettings.h"
 
 #if WITH_EDITOR
 	// NOTE: We're only counting the top-level mip-map for the following variables.
@@ -198,7 +201,7 @@ struct FShadowMapPendingTexture : FTextureLayout
 	 * Minimal initialization constructor.
 	 */
 	FShadowMapPendingTexture(uint32 InSizeX,uint32 InSizeY)
-		: FTextureLayout(4, 4, InSizeX, InSizeY, /* PowerOfTwo */ true, /* AlignByFour */ true) // Min size is 4x4 in case of block compression.
+		: FTextureLayout(4, 4, InSizeX, InSizeY, /* PowerOfTwo */ true, /* Force2To1Aspect */ false, /* AlignByFour */ true) // Min size is 4x4 in case of block compression.
 		, Bounds(FBox(0))
 		, ShadowmapFlags(SMF_None)
 		, UnallocatedTexels(InSizeX * InSizeY)

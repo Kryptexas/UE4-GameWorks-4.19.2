@@ -1,20 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleCurveTexture.cpp: Texture used to hold particle curves.
 ==============================================================================*/
 
-#include "EnginePrivate.h"
-#include "ParticleHelper.h"
-#include "ParticleCurveTexture.h"
-#include "ParticleResources.h"
+#include "Particles/ParticleCurveTexture.h"
+#include "Misc/App.h"
+#include "RenderingThread.h"
 #include "UniformBuffer.h"
-#include "ShaderParameters.h"
-#include "ShaderParameterUtils.h"
+#include "Shader.h"
+#include "StaticBoundShaderState.h"
 #include "RHIStaticStates.h"
+#include "SceneUtils.h"
+#include "ParticleHelper.h"
+#include "Particles/ParticleResources.h"
+#include "ShaderParameterUtils.h"
 #include "GlobalShader.h"
 #include "FXSystem.h"
-#include "SceneUtils.h"
 
 /** The texture size allocated for particle curves. */
 extern const int32 GParticleCurveTextureSizeX = 512;
@@ -188,6 +190,7 @@ static void InjectCurves(
 
 	FVertexBufferRHIParamRef ScratchVertexBufferRHI = GParticleScratchVertexBuffer.VertexBufferRHI;
 
+	RHICmdList.BeginUpdateMultiFrameResource(CurveTextureTargetRHI);
 	SetRenderTarget(RHICmdList, CurveTextureTargetRHI, FTextureRHIParamRef(), true);
 	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 	RHICmdList.SetViewport(0, 0, 0.0f, GParticleCurveTextureSizeX, GParticleCurveTextureSizeY, 1.0f);
@@ -270,6 +273,7 @@ static void InjectCurves(
 	}
 
 	RHICmdList.CopyToResolveTarget(CurveTextureTargetRHI, CurveTextureRHI, /*bKeepOriginalSurface=*/ false, FResolveParams());
+	RHICmdList.EndUpdateMultiFrameResource(CurveTextureTargetRHI);
 }
 
 /*------------------------------------------------------------------------------

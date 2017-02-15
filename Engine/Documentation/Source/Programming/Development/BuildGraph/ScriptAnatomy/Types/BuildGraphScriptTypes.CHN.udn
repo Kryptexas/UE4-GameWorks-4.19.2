@@ -1,62 +1,55 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: BuildGraph Script Types
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph
-Description:Learn about valid data types for BuildGraph attributes.
-version: 4.13
+﻿INTSourceChangelist:3126630
+Availability:Public
+Title:BuildGraph 脚本类型
+Crumbs:
+Description:学习 BuildGraph 属性的有效数据类型。
+version:4.13
 parent:Programming/Development/BuildGraph
 type:Reference
-related: Programming/Development/BuildGraph/BuildGraphScriptAnatomy
 tags:BuildGraph
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Programming/Development/BuildGraph/BuildGraphScriptTypes%](types_topic.png)
+		![%Programming/Development/BuildGraph/ScriptAnatomy/Types%](types_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/reference_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Programming/Development/BuildGraph/BuildGraphScriptTypes:title%
+		%Programming/Development/BuildGraph/ScriptAnatomy/Types:title%
 	[/PARAM]
 	[PARAM:description]
-		%Programming/Development/BuildGraph/BuildGraphScriptTypes:description%
+		%Programming/Development/BuildGraph/ScriptAnatomy/Types:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Programming/Development/BuildGraph/BuildGraphScriptTypes]
+		[RELATIVE:Programming/Development/BuildGraph/ScriptAnatomy/Types]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 [EXCERPT:BuildGraphScriptTypes]
 
-## Types
+## 类型
 
-The following table contains valid data types that can be contained by BuildGraph attributes:
+下表包含 BuildGraph 属性所容纳的有效数据类型：
 
-[INCLUDE:#TypesTable]
+| **类型**                | **描述**                                                                                                                                                                                                                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **字符串（String）**              | 一个任意字符串。|
+| **字符串列表（String List）**         | 由分号隔开的任意字符串列表。|
+| **布尔（Boolean）**             | 常量 `true` 或 `false`。|
+| **整数（Integer）**             | 一个整数常量。|
+| **正则表达式（Regex）**               | 一个正则表达式，使用 [C#](http://www.iso.org/iso/home/store/catalogue_ics/catalogue_detail_ics.htm?csnumber=42926) 语法。|
+| **命名（Name）**                | 一个命名实体。除 `^  <  >  :"  /  \  |  ?*  ;` 之外的任意可打印字符。允许单空格（除命名的开头和结尾）。|
+| **命名列表（Name List）**           | 由分号间隔的辨识符列表。|
+| **标记（Tag）**                 | 为文件列表赋予的标签，以 # 字符开头（即 `#My Files`）。|
+| **标记列表（Tag List）**           | 由分号间隔的标记列表。（即 `#My Files;#Other Files`）。|
+| **目标（Target）**              | 一个节点名、聚合名、代理名，或标记名。说明需要执行的节点序列。注意它应用到 [UnrealBuildTool](Programming/UnrealBuildSystem) （代表被构建的单个项目）后将重叠 `Target` 的含义。|
+| **目标列表（Target List）**         | 由分号隔开的目标名列表。|
+| **文件规范（File Spec）**           | 一套文件和标记名，由分号间隔。引用文件（即 `Engine/.../*.bat`）时允许 `“...”`、`“*”` 和 `“?”` 之类的通配符。除非另有指定，相对路径相对于工作根目录进行解决。|
+| **文件名（File Name）**           | 指向文件的路径。除非另有指定，相对路径被解决为工作根目录。|
+| **目录名（Directory Name）**           | 指向目录的路径。除非另有指定，相对路径相对于工作根目录进行解决。|
+| **条件（Condition）**           | 一个 [条件表达式](Programming/Development/BuildGraph/ScriptAnatomy/Conditions)。|
 
 [/EXCERPT:BuildGraphScriptTypes]
-
-<!--
-[EXCERPT:TypesTable]
-| **Type**                | **Description**                                                                                                                                                                                                                                                                            |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **String**              | An arbitrary string.                                                                                                                                                                                                                                                                       |
-| **String List**         | A list of arbitrary strings separated by semi-colons.                                                                                                                                                                                                                                      |
-| **Boolean**             | The constant `true` or `false`.                                                                                                                                                                                                                                                            |
-| **Integer**             | An integer constant.                                                                                                                                                                                                                                                                       |
-| **Regex**               | A regular expression, using [C#](http://www.iso.org/iso/home/store/catalogue_ics/catalogue_detail_ics.htm?csnumber=42926) syntax.                                                                                                                                                          |
-| **Name**                | A named entity. Any printable character, except `^  <  >  :  "  /  \  |  ?  *  ;`. Single spaces are allowed (except at the start and end of a name).                                                                                                                                      |
-| **Name List**           | A list of identifiers separated by semi-colons.                                                                                                                                                                                                                                            |
-| **Tag**                 | A label given to a list of files, beginning with the # character (i.e., `#My Files`).                                                                                                                                                                                                      |
-| **Tag List**            | A list of tags separated by semi-colons. (i.e., `#My Files;#Other Files`).                                                                                                                                                                                                                 |
-| **Target**              | A node name, aggregate name, agent name, or tag name. Indicates a sequence of nodes that need to be executed. Note that this overlaps with the meaning of `Target` as it applies to [UnrealBuildTool](Programming/UnrealBuildSystem) (which refers to a single program being built).       |
-| **Target list**         | A list of target names separated by semi-colons.                                                                                                                                                                                                                                           |
-| **File Spec**           | A set of file and tag names, separated by semi-colons. Wildcards such as `"..."`, `"*"`, and `"?"` are permitted when referencing files (i.e., `Engine/.../*.bat`). Unless otherwise specified, relative paths are resolved relative to the working root directory.                        |
-| **File Name**           | A path to a file. Unless otherwise specified, relative paths are resolved to the working root directory.                                                                                                                                                                                   |
-| **Directory Name**      | A path to a directory. Unless otherwise specified, relative paths are resolved relative to the working root directory.                                                                                                                                                                     |
-| **Condition**           | A [conditional expression](Programming/Development/BuildGraph/BuildGraphScriptConditions).                                                                                                                                                                                                      |
-[/EXCERPT:TypesTable]
--->

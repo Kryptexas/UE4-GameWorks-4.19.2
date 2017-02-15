@@ -1,92 +1,92 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Struct Variables in Blueprints
+﻿INTSourceChangeList:3150518
+Availability:Public
+Title:ブループリントの構造体変数
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
-Description: Blueprint struct variables allow you to store different data types that contain related information together.
-version: 4.12
+Description:ブループリント構造体変数は、関連データが含まれている異なるデータ型をまとめて格納することができます。
+version:4.12
 skilllevel:Intermediate
 Parent:Engine/Blueprints/Scripting
 tag:Arrays and Structures
-type:guide
+type:overview
 
 [TOC]
 
-A struct is a collection of different types of data that are related and held together for easy access. You've probably used simple structs in Blueprints already, as 
-Vectors, Rotators, and Transforms are all struct variables. For example, a Vector struct holds an X float, a Y float, and a Z float variable that are related to each other.
+構造体は、異なるデータ型をアクセスしやすいように関連づけて、一緒にまとめているコレクションです。Vectors、Rotators、Transforms はすべて構造体変数なので、 
+既にブループリントでシンプルな構造体を使用したことがあると思います。例えば、Vector 構造体には、お互いに関連している X float 変数、Y float 変数、Z float 変数が含まれます。
 
-Structs can also nest their data. A Transform struct holds Location (a Vector struct), Rotation (a Rotator struct), and Scale (a Vector struct) data about an Actor.
+構造体はデータをネスティングすることもできます。Transform 構造体は、アクタの Location (Vector 構造体)、Rotation (Rotator 構造体)、Scale (Vector 構造体) データを含みます。
 
-## Creating Structs
+## 構造体を作成する
 
-You add a struct variable to your Blueprint in the same way you add any other [Blueprint variable](Engine/Blueprints/UserGuide/Variables). Simple structs, like Vectors, Rotators, and Transforms, are listed in the top section of the variable type dropdown menu. 
+構造体変数をブループリントに追加する方法は、他の [ブループリント変数](Engine/Blueprints/UserGuide/Variables) を追加する方法と同じです。Vectors、Rotators、Transforms などのシンプルな構造体は変数型ドロップダウン メニューの上の方に表示されています。 
 
 
 ![](AddSimpleStruct.png)
 
-There is also a **Structure** section of the dropdown menu, where you can find all struct variables currently available to your Blueprint.
+ドロップダウン メニューの **[Structure][** セクションに、ブループリントで使用可能な構造体変数がすべて表示されます。
 
 ![](AddComplexStruct.png)
 
 
-## Accessing Struct Information
+## 構造体情報にアクセスする
 
-Because structs work by bundling data together, you also need to work on accessing those smaller chunks of information. You can do that through a few different methods:
+構造体はバンドル データと一緒に機能するので、この小さな情報のチャンクにアクセスすることも必要になります。何通りかの方法があります。
 
-### Splitting Struct Pins
+### 構造体のピンを分割する
 
-If you want to be able to access the individual variables in a struct on a single node, splitting struct pins can be a helpful tool. 
+単一ノード上の構造体の個々の変数へのアクセスを可能にするには、Splitting struct pins というツールが便利です。 
 
-To split a struct pin, right-click on the pin and select **Split Struct Pin**.
+ピンを右クリックして、**[Split Struct Pin]** を選択します。
 
 ![](SplitStructPin.png)
 
-This exposes all of the variables contained within the struct as individual pins on the node, allowing you to enter values or manipulate them independently. 
+その構造体に含まれるすべての変数が表示され、個々に値を入力したり操作することが可能になります。 
 
 ![](LocationXYZ.png)
 
-To undo a **Split Struct Pin**, right-click on any of the new pins and select **Recombine Struct Pin**.
+**Split Struct Pin** をアンドゥするには、新規作成したピンのいずれかを右クリックして **[Recombine Struct Pin]** を選択します。
 
 ![](RecombineStructPin.png)
 
-You can split and recombine both input and output struct pins. 
+入力および出力の両方の構造体ピンを分割および再結合が可能です。 
 
-### Breaking Structs
+### 構造体を分解する
 
-Often, taking apart a struct into its individual parts will be gameplay logic you repeat in a function or macro. Using a **Break Struct** node allows you to replicate that behavior throughout your Blueprint graph easily.
-To create a **Break Struct** node, drag off of a struct output pin and select **Break [Struct Name]** from the context menu.
+関数やマクロで繰り返すゲームプレイ ロジックの多くの場合で、構造体を個々の部品に分解することがあります。**Break Struct** ノードを使うと、ブループリント グラフ全体のビヘイビアを簡単にリプリケートすることができます。
+**Break Struct** ノードを作成するには、構造体の出力ピンを引き出して、コンテキストメニューから **Break [Struct Name]** を選択します。
 
 ![](BreakHitResult.png)
 
-The **Break Struct** node will have a different name and different output pins depending on the struct you use, but overall will break the struct into its individual parts.
+**Break Struct** ノードの名前とピンは、使用する構造体によって異なりますが、全体としては構造体は個々の部分に分解されます。
 
 ![](BrokenHitResult.png)
 
-For example, if you always want to work with the **Impact Point**, **Hit Component**, and **Hit Bone Name** of a **Hit Result**, you can have a **Break Hit Result** node inside a function that means that you can just input **Hit Result**
-as a function input, and always have those three data pieces separated out inside the function.
+例えば、**Hit Result** の **Impact Point**、**Hit Component**、**Hit Bone Name** を常に使いたい場合、**Break Hit Result** ノードを関数内に持つことができます。
+**Hit Result** を関数入力として入力すれば、常にこれらの 3 つのデータ構成要素を関数内にバラバラに持つことができます。
 
 ![](BreakHitExample.png)
 
-### Making Structs
+### 構造体を作成する
 
-Much like you can break a struct into its individual pieces of data, you can make a struct out of the right data as well.
+構造体は、個々の構成要素に分割した場合と同じように、正しいデータから作成することもできます。
 
-To create a **Make Struct** node, drag off of a struct input pin and select **Make [Struct Name]** from the context menu.
+**Make Struct** ノードを作成するには、入力ピンを引き出して、コンテキストメニューから **Make [Struct Name]** を選択します。
 
 ![](MakeLinearMenu.png)
 
-The **Make Struct** node will have a different name and different input pins depending on the struct you use, but overall will enable you to build a struct out of all the data it contains.
+**Make Struct** ノードの名前とピンは、使用する構造体によって異なりますが、全体としては含まれているデータから構造体を作成できるようにします。
 
 ![](MakeLinearColor.png)
 
-### Setting Members in Structs
+### 構造体にメンバーを設定する
 
-Sometimes, structs can contain a lot of data, and you only want to change a few elements out of that set. Setting members in a struct enables you to be very specific about what data you change, without having to wire up all the 
-data pins that are remaining constant.
+時々、構造体には多くのデータが含まれていて、その中のいくつかだけ変更したい場合があります。構造体にメンバーを設定すると、一定を保っているデータピンをすべて接続しなくても、 
+変更するデータを非常に細かく指定できるようになります。
 
 ![](SetMembersInStruct.png)
 
-To change which members are available through the **Set Members in Struct** node, select the node. In the **Details** panel, there are checkboxes for each possible member to expose as a pin on the node. Member variables that are not exposed
-will not be changed by the **Set Members in Struct** node.
+**Set Members in Struct** ノードで使用できるメンバーを変更するには、そのノードを選択します。**[Details (詳細)]** パネルにあるチェックボックスで、使用可能な各メンバーをノード上のピンとして公開することができます。公開されないメンバー変数は、
+**Set Members in Struct** ノードでは変更されません。
 
 ![](SetMembersDetails.png)
 

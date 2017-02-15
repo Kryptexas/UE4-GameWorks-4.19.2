@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2819020
+﻿INTSourceChangelist:3213718
 Availability: Public
 Title:1. UMG 용 모듈 종속성 구성
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
 Description:메뉴를 만드는 데 필요한 모듈을 포함하도록 프로젝트를 변경합니다.
-version:4.9
+version:4.14
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -64,7 +64,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 

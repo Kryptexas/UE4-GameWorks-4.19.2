@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	XeAudioDevice.cpp: Unreal XAudio2 Audio interface object.
@@ -11,19 +11,23 @@
 	Audio includes.
 ------------------------------------------------------------------------------------*/
 
-#include "XAudio2PrivatePCH.h"
 #include "XAudio2Device.h"
 #include "AudioEffect.h"
 #include "OpusAudioInfo.h"
 #include "VorbisAudioInfo.h"
 #include "XAudio2Effects.h"
-#include "Engine.h"
+#include "Interfaces/IAudioFormat.h"
+#include "HAL/PlatformAffinity.h"
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
+#include "AllowWindowsPlatformAtomics.h"
+THIRD_PARTY_INCLUDES_START
 	#include <xapobase.h>
 	#include <xapofx.h>
 	#include <xaudio2fx.h>
+THIRD_PARTY_INCLUDES_END
+#include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
-#include "TargetPlatform.h"
 #include "XAudio2Support.h"
 #include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
 
@@ -276,28 +280,8 @@ void FXAudio2Device::UpdateHardware()
 {
 }
 
-void FXAudio2Device::CheckDeviceStateChange()
+void FXAudio2Device::UpdateAudioClock()
 {
-#if PLATFORM_WINDOWS
-	if (DeviceProperties)
-	{
-		if (DeviceProperties->DidAudioDeviceChange())
-		{
-			// Stop any sounds that are playing
-			StopAllSounds(true);
-
-			// Set all sound sources to virtual mode so they don't play audio
-			for (FSoundSource* Source : Sources)
-			{
-				Source->SetVirtual();
-			}
-
-			// And switch to no-audio mode.
-			bIsAudioDeviceHardwareInitialized = false;
-		}
-	}
-#endif
-
 	// Update the audio clock time
 	AudioClock = DeviceProperties->GetAudioClockTime();
 }

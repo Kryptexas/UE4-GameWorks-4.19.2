@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Coord system utilities
@@ -9,6 +9,8 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
 
 extern ENGINE_API FVector Unreal2RecastPoint(const float* UnrealPoint);
 extern ENGINE_API FVector Unreal2RecastPoint(const FVector& UnrealPoint);

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================
@@ -9,6 +9,7 @@
 #define OPENGL_SUPPORTS_SM5 1
 
 #include "AndroidEGL.h"
+#include "RenderingThread.h"
 
 #include <EGL/eglext.h>
 #include <EGL/eglplatform.h>

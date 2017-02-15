@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VectorFieldVolume: Volume encompassing a vector field.
@@ -6,7 +6,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameFramework/Actor.h"
 #include "VectorFieldVolume.generated.h"
+
+class UBillboardComponent;
 
 UCLASS(hidecategories=(Object, Advanced, Collision), MinimalAPI)
 class AVectorFieldVolume : public AActor

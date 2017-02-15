@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -71,7 +71,7 @@ namespace AutomationTool
 				Directory.CreateDirectory(SymbolsFolder);
 
 				// Get the Windows toolchain
-				UEToolChain WindowsToolChain = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.Win64).CreateContext(null).CreateToolChain(CPPTargetPlatform.Win64);
+				UEToolChain WindowsToolChain = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.Win64).CreateContext(null, null).CreateToolChain(CPPTargetPlatform.Win64);
 
 				// Figure out all the files for the archive
 				Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();

@@ -1,12 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
-#include "Particles/TypeData/ParticleModuleTypeDataBase.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Math/RandomStream.h"
+#include "Distributions/DistributionVector.h"
 #include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
+#include "Particles/TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleModuleTypeDataMesh.generated.h"
 
 class UParticleEmitter;
+class UParticleSystemComponent;
+struct FParticleEmitterInstance;
 
 UENUM()
 enum EMeshScreenAlignment

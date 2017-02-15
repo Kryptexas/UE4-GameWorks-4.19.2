@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Linq;
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web;
 
 namespace Tools.CrashReporter.CrashReportCommon
 {

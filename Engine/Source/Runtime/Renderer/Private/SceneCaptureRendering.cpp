@@ -1,18 +1,39 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "UniformBuffer.h"
-#include "ShaderParameters.h"
-#include "ScreenRendering.h"
-#include "PostProcessAmbient.h"
-#include "PostProcessing.h"
+#include "CoreMinimal.h"
+#include "Containers/ArrayView.h"
+#include "Misc/MemStack.h"
+#include "EngineDefines.h"
+#include "RHIDefinitions.h"
+#include "RHI.h"
+#include "RenderingThread.h"
+#include "Engine/Scene.h"
+#include "SceneInterface.h"
+#include "GameFramework/Actor.h"
+#include "RHIStaticStates.h"
+#include "SceneView.h"
+#include "Shader.h"
+#include "TextureResource.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/SceneCaptureComponent.h"
+#include "Components/SceneCaptureComponent2D.h"
+#include "Components/SceneCaptureComponentCube.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/TextureRenderTargetCube.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "GlobalShader.h"
+#include "SceneRenderTargetParameters.h"
+#include "SceneRendering.h"
+#include "DeferredShadingRenderer.h"
+#include "ScenePrivate.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "ScreenRendering.h"
 #include "MobileSceneCaptureRendering.h"
 
 const TCHAR* GShaderSourceModeDefineName[] =
@@ -82,7 +103,14 @@ IMPLEMENT_SHADER_TYPE(template<>,TSceneCapturePS<SCS_BaseColor>,TEXT("SceneCaptu
 
 void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHICommandListImmediate& RHICmdList)
 {
-	if (ViewFamily.SceneCaptureSource != SCS_FinalColorLDR)
+	ESceneCaptureSource SceneCaptureSource = ViewFamily.SceneCaptureSource;
+
+	if (IsAnyForwardShadingEnabled(ViewFamily.GetShaderPlatform()) && (SceneCaptureSource == SCS_Normal || SceneCaptureSource == SCS_BaseColor))
+	{
+		SceneCaptureSource = SCS_SceneColorHDR;
+	}
+
+	if (SceneCaptureSource != SCS_FinalColorLDR)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, CaptureSceneComponent);
 
@@ -96,12 +124,12 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-			if (ViewFamily.SceneCaptureSource == SCS_SceneColorHDR && ViewFamily.SceneCaptureCompositeMode == SCCM_Composite)
+			if (SceneCaptureSource == SCS_SceneColorHDR && ViewFamily.SceneCaptureCompositeMode == SCCM_Composite)
 			{
 				// Blend with existing render target color. Scene capture color is already pre-multiplied by alpha.
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_SourceAlpha, BO_Add, BF_Zero, BF_SourceAlpha>::GetRHI());
 			}
-			else if (ViewFamily.SceneCaptureSource == SCS_SceneColorHDR && ViewFamily.SceneCaptureCompositeMode == SCCM_Additive)
+			else if (SceneCaptureSource == SCS_SceneColorHDR && ViewFamily.SceneCaptureCompositeMode == SCCM_Additive)
 			{
 				// Add to existing render target color. Scene capture color is already pre-multiplied by alpha.
 				RHICmdList.SetBlendState( TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_SourceAlpha>::GetRHI());
@@ -113,7 +141,7 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 
 			TShaderMapRef<FScreenVS> VertexShader(View.ShaderMap);
 
-			if (ViewFamily.SceneCaptureSource == SCS_SceneColorHDR)
+			if (SceneCaptureSource == SCS_SceneColorHDR)
 			{
 				TShaderMapRef<TSceneCapturePS<SCS_SceneColorHDR> > PixelShader(View.ShaderMap);
 
@@ -122,7 +150,7 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 
 				PixelShader->SetParameters(RHICmdList, View);
 			}
-			else if (ViewFamily.SceneCaptureSource == SCS_SceneColorHDRNoAlpha)
+			else if (SceneCaptureSource == SCS_SceneColorHDRNoAlpha)
 			{
 				TShaderMapRef<TSceneCapturePS<SCS_SceneColorHDRNoAlpha> > PixelShader(View.ShaderMap);
 
@@ -131,7 +159,7 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 
 				PixelShader->SetParameters(RHICmdList, View);
 			}
-			else if (ViewFamily.SceneCaptureSource == SCS_SceneColorSceneDepth)
+			else if (SceneCaptureSource == SCS_SceneColorSceneDepth)
 			{
 				TShaderMapRef<TSceneCapturePS<SCS_SceneColorSceneDepth> > PixelShader(View.ShaderMap);
 
@@ -140,7 +168,7 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 
 				PixelShader->SetParameters(RHICmdList, View);
 			}
-			else if (ViewFamily.SceneCaptureSource == SCS_SceneDepth)
+			else if (SceneCaptureSource == SCS_SceneDepth)
 			{
 				TShaderMapRef<TSceneCapturePS<SCS_SceneDepth> > PixelShader(View.ShaderMap);
 
@@ -149,7 +177,7 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 
 				PixelShader->SetParameters(RHICmdList, View);
 			}
-			else if (ViewFamily.SceneCaptureSource == SCS_Normal)
+			else if (SceneCaptureSource == SCS_Normal)
 			{
 				TShaderMapRef<TSceneCapturePS<SCS_Normal> > PixelShader(View.ShaderMap);
 
@@ -158,7 +186,7 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 
 				PixelShader->SetParameters(RHICmdList, View);
 			}
-			else if (ViewFamily.SceneCaptureSource == SCS_BaseColor)
+			else if (SceneCaptureSource == SCS_BaseColor)
 			{
 				TShaderMapRef<TSceneCapturePS<SCS_BaseColor> > PixelShader(View.ShaderMap);
 
@@ -240,7 +268,7 @@ static void UpdateSceneCaptureContent_RenderThread(
 	const FResolveParams& ResolveParams)
 {
 	switch (SceneRenderer->Scene->GetShadingPath())
-	{
+			{
 		case EShadingPath::Mobile:
 		{
 			UpdateSceneCaptureContentMobile_RenderThread(
@@ -266,7 +294,7 @@ static void UpdateSceneCaptureContent_RenderThread(
 		default:
 			checkNoEntry();
 			break;
-	}
+		}
 }
 
 void BuildProjectionMatrix(FIntPoint RenderTargetSize, ECameraProjectionMode::Type ProjectionType, float FOV, float InOrthoWidth, FMatrix& ProjectionMatrix)
@@ -499,7 +527,14 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureCompone
 		FIntPoint CaptureSize(CaptureComponent->TextureTarget->GetSurfaceWidth(), CaptureComponent->TextureTarget->GetSurfaceHeight());
 
 		FMatrix ProjectionMatrix;
-		BuildProjectionMatrix(CaptureSize, CaptureComponent->ProjectionType, FOV, CaptureComponent->OrthoWidth, ProjectionMatrix);
+		if (CaptureComponent->bUseCustomProjectionMatrix)
+		{
+			ProjectionMatrix = CaptureComponent->CustomProjectionMatrix;
+		}
+		else
+		{
+			BuildProjectionMatrix(CaptureSize, CaptureComponent->ProjectionType, FOV, CaptureComponent->OrthoWidth, ProjectionMatrix);
+		}
 
 		const bool bUseSceneColorTexture = CaptureComponent->CaptureSource != SCS_FinalColorLDR;
 
@@ -519,6 +554,18 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureCompone
 
 		SceneRenderer->ViewFamily.SceneCaptureSource = CaptureComponent->CaptureSource;
 		SceneRenderer->ViewFamily.SceneCaptureCompositeMode = CaptureComponent->CompositeMode;
+
+		if (CaptureComponent->bEnableClipPlane)
+		{
+			FPlane ClipPlane = FPlane(CaptureComponent->ClipPlaneBase, CaptureComponent->ClipPlaneNormal.GetSafeNormal());
+
+			for (int32 ViewIndex = 0; ViewIndex < SceneRenderer->Views.Num(); ++ViewIndex)
+			{
+				SceneRenderer->Views[ViewIndex].GlobalClippingPlane = ClipPlane;
+				// Jitter can't be removed completely due to the clipping plane
+				SceneRenderer->Views[ViewIndex].bAllowTemporalJitter = false;
+			}
+		}
 
 		FTextureRenderTargetResource* TextureRenderTarget = CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource();
 		const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;

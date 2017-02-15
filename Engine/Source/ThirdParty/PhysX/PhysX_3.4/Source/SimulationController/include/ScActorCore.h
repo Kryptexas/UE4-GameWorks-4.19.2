@@ -78,7 +78,7 @@ namespace Sc
 
 		PX_FORCE_INLINE	PxDominanceGroup			getDominanceGroup()				const
 													{
-														return PxDominanceGroup(mDominanceGroupFrozenFlag);	
+														return PxDominanceGroup(mDominanceGroup);	
 													}
 						void						setDominanceGroup(PxDominanceGroup g);
 
@@ -96,7 +96,7 @@ namespace Sc
 		PX_FORCE_INLINE	PxActorClientBehaviorFlags	getClientBehaviorFlags()		const	{ return mClientBehaviorFlags;			}
 		PX_FORCE_INLINE	void						setClientBehaviorFlags(PxActorClientBehaviorFlags b)	{ mClientBehaviorFlags = b;	}
 
-		PX_FORCE_INLINE	PxActorType::Enum			getActorCoreType()				const 	{ return PxActorType::Enum(mActorType);											}
+		PX_FORCE_INLINE	PxActorType::Enum			getActorCoreType()				const 	{ return PxActorType::Enum(mActorType);	}
 
 						void						reinsertShapes();
 // PX_AGGREGATE
@@ -119,7 +119,7 @@ namespace Sc
 						PxActorFlags				mActorFlags;				// PxActor's flags (PxU8) => only 4 bits used
 						PxU8						mActorType;					// Actor type (8 bits, but 3 would be enough)
 						PxActorClientBehaviorFlags	mClientBehaviorFlags;		// PxU8 => only 4 bits used
-						PxU8						mDominanceGroupFrozenFlag;	// Frozen flag (1bit) | dom group (7 bits, but 5 would be enough because "must be < 32")
+						PxU8						mDominanceGroup;			// Dominance group (8 bits, but 5 would be enough because "must be < 32")
 	};
 
 #if PX_P64_FAMILY

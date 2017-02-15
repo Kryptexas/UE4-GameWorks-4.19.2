@@ -1,13 +1,59 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Renderer.cpp: Renderer module implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "AssertionMacros.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Stats/Stats.h"
+#include "Modules/ModuleManager.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineDefines.h"
+#include "EngineGlobals.h"
+#include "RenderingThread.h"
+#include "RHIStaticStates.h"
+#include "SceneView.h"
+#include "PostProcess/RenderTargetPool.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneCore.h"
+#include "SceneHitProxyRendering.h"
+#include "SceneRendering.h"
+#include "BasePassRendering.h"
+#include "MobileBasePassRendering.h"
+#include "TranslucentRendering.h"
+#include "RendererModule.h"
 #include "GPUBenchmark.h"
+#include "SystemSettings.h"
+
+/** A minimal forwarding lighting setup. */
+class FMinimalDummyForwardLightingResources : public FRenderResource
+{
+public:
+	FForwardLightingViewResources ForwardLightingResources;
+	
+	/** Destructor. */
+	virtual ~FMinimalDummyForwardLightingResources()
+	{}
+	
+	virtual void InitRHI()
+	{
+		if (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM5)
+		{
+			ForwardLightingResources.ForwardLocalLightBuffer.Initialize(sizeof(FVector4), sizeof(FForwardLocalLightData) / sizeof(FVector4), PF_A32B32G32R32F, BUF_Dynamic);
+			ForwardLightingResources.ForwardGlobalLightData = TUniformBufferRef<FForwardGlobalLightData>::CreateUniformBufferImmediate(FForwardGlobalLightData(), UniformBuffer_MultiFrame);
+			ForwardLightingResources.NumCulledLightsGrid.Initialize(sizeof(uint32), 1, PF_R32_UINT);
+			ForwardLightingResources.CulledLightDataGrid.Initialize(sizeof(uint16), 1, PF_R16_UINT);
+		}
+	}
+	
+	virtual void ReleaseRHI()
+	{
+		ForwardLightingResources.Release();
+	}
+};
+
+static TGlobalResource<FMinimalDummyForwardLightingResources> GMinimalDummyForwardLightingResources;
 
 DEFINE_LOG_CATEGORY(LogRenderer);
 
@@ -23,13 +69,13 @@ IMPLEMENT_MODULE(FRendererModule, Renderer);
 void FRendererModule::ReallocateSceneRenderTargets()
 {
 	FLightPrimitiveInteraction::InitializeMemoryPool();
-	FSceneRenderTargets::Get_Todo_PassContext().UpdateRHI();
+	FSceneRenderTargets::GetGlobalUnsafe().UpdateRHI();
 }
 
 void FRendererModule::SceneRenderTargetsSetBufferSize(uint32 SizeX, uint32 SizeY)
 {
-	FSceneRenderTargets::Get_Todo_PassContext().SetBufferSize(SizeX, SizeY);
-	FSceneRenderTargets::Get_Todo_PassContext().UpdateRHI();
+	FSceneRenderTargets::GetGlobalUnsafe().SetBufferSize(SizeX, SizeY);
+	FSceneRenderTargets::GetGlobalUnsafe().UpdateRHI();
 }
 
 void FRendererModule::InitializeSystemTextures(FRHICommandListImmediate& RHICmdList)
@@ -44,7 +90,14 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 		// Create an FViewInfo so we can initialize its RHI resources
 		//@todo - reuse this view for multiple tiles, this is going to be slow for each tile
 		FViewInfo View(&SceneView);
+		
+		//Apply the minimal forward lighting resources
+		View.ForwardLightingResources = &GMinimalDummyForwardLightingResources.ForwardLightingResources;
+		
 		View.InitRHIResources();
+
+		//TODO ResetState
+		FDrawingPolicyRenderState DrawRenderState(&RHICmdList, SceneView);
 
 		const auto FeatureLevel = View.GetFeatureLevel();
 	
@@ -61,33 +114,33 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 		{
 			if (FeatureLevel >= ERHIFeatureLevel::SM4)
 			{
-				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FTranslucencyDrawingPolicyFactory::ContextType(nullptr, ETranslucencyPass::TPT_AllTranslucency, true), Mesh, false, false, NULL, HitProxyId);
+				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FTranslucencyDrawingPolicyFactory::ContextType(nullptr, ETranslucencyPass::TPT_AllTranslucency, true), Mesh, false, DrawRenderState, NULL, HitProxyId);
 			}
 			else
 			{
-				FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileTranslucencyDrawingPolicyFactory::ContextType(false), Mesh, false, false, NULL, HitProxyId);
+				FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileTranslucencyDrawingPolicyFactory::ContextType(false), Mesh, false, DrawRenderState, NULL, HitProxyId);
 			}
 		}
 		// handle opaque materials
 		else
 		{
 			// make sure we are doing opaque drawing
-			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<>::GetRHI());
 
 			// draw the mesh
 			if (bIsHitTesting)
 			{
-				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FHitProxyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
+				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FHitProxyDrawingPolicyFactory::ContextType(), Mesh, false, DrawRenderState, NULL, HitProxyId);
 			}
 			else
 			{
 				if (FeatureLevel >= ERHIFeatureLevel::SM4)
 				{
-					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), Mesh, false, false, NULL, HitProxyId);
+					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), Mesh, false, DrawRenderState, NULL, HitProxyId);
 				}
 				else
 				{
-					FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), Mesh, false, false, NULL, HitProxyId);
+					FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), Mesh, false, DrawRenderState, NULL, HitProxyId);
 				}
 			}
 		}	

@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "StringAssetReference.h"
+#include "CoreMinimal.h"
+#include "UObject/Class.h"
+#include "Misc/StringAssetReference.h"
+
+struct FPropertyTag;
 
 /**
  * A struct that contains a string reference to a class, can be used to make soft references to classes

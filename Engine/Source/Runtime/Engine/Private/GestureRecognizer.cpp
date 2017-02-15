@@ -1,10 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	 GestureRecognizer - handles detecting when gestures happen
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "GestureRecognizer.h"
 #include "GameFramework/PlayerInput.h"
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 namespace UnrealBuildTool.Rules
 {
@@ -33,6 +33,7 @@ namespace UnrealBuildTool.Rules
 					"Slate",
 					"SlateCore",
 					"UtilityShaders",
+ 					"ImageWrapper",
 				}
 				);
 
@@ -40,6 +41,16 @@ namespace UnrealBuildTool.Rules
 			{
 				PrivateDependencyModuleNames.Add("UnrealEd");
 			}
-		}
-	}
+            // Currently, the Rift is only supported on windows and mac platforms
+            if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
+            {
+                PrivateDependencyModuleNames.AddRange(
+                    new string[]
+                    {
+                        "LibOVR"
+                    });
+            }
+        }
+
+    }
 }

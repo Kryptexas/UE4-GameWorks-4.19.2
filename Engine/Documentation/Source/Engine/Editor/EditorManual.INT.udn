@@ -5,6 +5,7 @@ Description:Guide to using and configuring the Unreal Editor toolset.
 Navigation:topic
 parent:%ROOT%
 order:2
+type:landing
 
 [VAR:Params]
 [PARAM:image]

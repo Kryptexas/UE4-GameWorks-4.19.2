@@ -1,13 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/KeyHandle.h"
 #include "Curves/RichCurve.h"
-#include "IKeyframeSection.h"
-#include "MovieSceneKeyStruct.h"
 #include "MovieSceneSection.h"
+#include "Sections/IKeyframeSection.h"
+#include "MovieSceneKeyStruct.h"
 #include "MovieSceneVectorSection.generated.h"
 
+class FStructOnScope;
+struct FPropertyChangedEvent;
 
 enum class EKeyVectorChannel
 {
@@ -129,16 +134,10 @@ class UMovieSceneVectorSection
 	GENERATED_UCLASS_BODY()
 
 public:
-	
-	/**
-	 * Updates this section
-	 *
-	 * @param Position	The position in time within the movie scene
-	 */
-	FVector4 Eval(float Position, const FVector4& DefaultVector) const;
 
 	/** Gets one of four curves in this section */
-	FRichCurve& GetCurve(const int32& Index) { return Curves[Index]; }
+	FRichCurve& GetCurve(int32 Index) { check(Index >= 0 && Index < 4); return Curves[Index]; }
+	const FRichCurve& GetCurve(int32 Index) const { check(Index >= 0 && Index < 4); return Curves[Index]; }
 
 	/** Sets how many channels are to be used */
 	void SetChannelsUsed(int32 InChannelsUsed) 

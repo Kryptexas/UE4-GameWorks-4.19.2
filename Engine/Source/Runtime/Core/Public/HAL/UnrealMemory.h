@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MemoryBase.h"
+#include "CoreTypes.h"
+#include "Templates/IsPointer.h"
+#include "HAL/PlatformMemory.h"
+#include "HAL/MemoryBase.h"
 
 // Sizes.
 

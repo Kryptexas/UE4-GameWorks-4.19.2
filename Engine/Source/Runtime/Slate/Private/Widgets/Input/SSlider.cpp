@@ -1,6 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
+#include "Widgets/Input/SSlider.h"
+#include "Rendering/DrawElements.h"
 
 void SSlider::Construct( const SSlider::FArguments& InDeclaration )
 {
@@ -164,7 +165,7 @@ FReply SSlider::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEve
 		// The controller's bottom face button must be pressed once to begin manipulating the slider's value.
 		// Navigation away from the widget is prevented until the button has been pressed again or focus is lost.
 		// The value can be manipulated by using the game pad's directional arrows ( relative to slider orientation ).
-		if (KeyPressed == EKeys::Enter || KeyPressed == EKeys::SpaceBar || KeyPressed == EKeys::Gamepad_FaceButton_Bottom)
+		if (KeyPressed == EKeys::Enter || KeyPressed == EKeys::SpaceBar || KeyPressed == EKeys::Virtual_Accept)
 		{
 			if (bControllerInputCaptured == false)
 			{

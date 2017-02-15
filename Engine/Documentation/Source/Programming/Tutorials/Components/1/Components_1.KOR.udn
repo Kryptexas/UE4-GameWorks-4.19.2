@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2727318
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:1. 컴포넌트 만들고 붙이기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -47,7 +47,7 @@ version:4.9
 1. 다음, 반경이 50 인 **스태틱 메시** 애셋에서 눈에 보이는 구체를 만들어 붙여줍니다. 방금 만든 반경 40 의 **Sphere** 컴포넌트와 완전히 맞아떨어지지 않으므로, 스케일을 80% 로 줄여줍니다. 중심도 맞춰주려면 40 유닛 아래로 내려주기도 해야 합니다.
 			// 구체가 어딨는지 확인할 수 있도록 메시 컴포넌트 생성 및 위치 조정
 			UStaticMeshComponent* SphereVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualRepresentation"));
-			SphereVisual->AttachTo(RootComponent);
+			SphereVisual->SetupAttachment(RootComponent);
 			static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereVisualAsset(TEXT("/Game/StarterContent/Shapes/Shape_Sphere.Shape_Sphere"));
 			if (SphereVisualAsset.Succeeded())
 			{
@@ -61,7 +61,7 @@ version:4.9
 1. 이제 계층구조에 비활성 **Particle System** 컴포넌트를 붙일 수 있습니다. 이 컴포넌트는 코드로 조작할 수 있으며, 나중에 켜고 끄는 입력 구성을 해 주겠습니다. 참고로 **Particle System** 컴포넌트는 루트가 아닌 **Static Mesh** 컴포넌트에 붙어있습니다. 또 플레이 도중 더욱 잘 보이라고 메시의 하단 중앙에서 약간 오프셋이 적용되어 있습니다.
 			// 활성화 또는 비활성화시킬 수 있는 파티클 시스템 생성
 			OurParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MovementParticles"));
-			OurParticleSystem->AttachTo(SphereVisual);
+			OurParticleSystem->SetupAttachment(SphereVisual);
 			OurParticleSystem->bAutoActivate = false;
 			OurParticleSystem->SetRelativeLocation(FVector(-20.0f, 0.0f, 20.0f));
 			static ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleAsset(TEXT("/Game/StarterContent/Particles/P_Fire.P_Fire"));
@@ -73,7 +73,7 @@ version:4.9
 1. **Spring Arm** 컴포넌트는 **폰** 보다 느린 가속 / 감속을 따라다니는 카메라에 적용시킬 수 있어, 카메라의 부드러운 부착점이 됩니다. 카메라가 입체 오브젝트를 뚫고 지나가지 못하도록 하는 기능도 내장되어 있어, 삼인칭 게임에서 플레이어가 구석에서 벽을 등지는 상황에 유용합니다. 필수는 아니지만, 게임에 보다 부드러운 느낌의 카메라 작업을 아주 빠르고 쉽게 얻어낼 수 있습니다.
 			// 스프링 암을 사용하여 카메라에 부드럽고 자연스러운 모션을 적용합니다.
 			USpringArmComponent* SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraAttachmentArm"));
-			SpringArm->AttachTo(RootComponent);
+			SpringArm->SetupAttachment(RootComponent);
 			SpringArm->RelativeRotation = FRotator(-45.f, 0.f, 0.f);
 			SpringArm->TargetArmLength = 400.0f;
 			SpringArm->bEnableCameraLag = true;
@@ -82,7 +82,7 @@ version:4.9
 1. 실제 **Camera** 컴포넌트는 만들기도 쉽고, 별도의 세팅도 필요치 않습니다. **Spring Arm** 에는 **소켓** 이 내장되어 있어, 베이스가 아닌 이 곳에 붙일 수 있습니다.
 			// 카메라를 만들어 스프링 암에 붙입니다.
 			UCameraComponent* Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ActualCamera"));
-			Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
+			Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 
 1. 컴포넌트를 만들어 붙였으니, 이 **폰** 을 기본 플레이어가 조종하도록 설정해 줘야 합니다. 다음과 같은 코드면 됩니다:
 			// 기본 플레이어 콘트롤 획득
@@ -101,7 +101,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -130,7 +130,7 @@ version:4.9
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
@@ -149,7 +149,7 @@ version:4.9
 
 				// Create and position a mesh component so we can see where our sphere is
 				UStaticMeshComponent* SphereVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualRepresentation"));
-				SphereVisual->AttachTo(RootComponent);
+				SphereVisual->SetupAttachment(RootComponent);
 				static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereVisualAsset(TEXT("/Game/StarterContent/Shapes/Shape_Sphere.Shape_Sphere"));
 				if (SphereVisualAsset.Succeeded())
 				{
@@ -160,7 +160,7 @@ version:4.9
 
 				// Create a particle system that we can activate or deactivate
 				OurParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MovementParticles"));
-				OurParticleSystem->AttachTo(SphereVisual);
+				OurParticleSystem->SetupAttachment(SphereVisual);
 				OurParticleSystem->bAutoActivate = false;
 				OurParticleSystem->SetRelativeLocation(FVector(-20.0f, 0.0f, 20.0f));
 				static ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleAsset(TEXT("/Game/StarterContent/Particles/P_Fire.P_Fire"));
@@ -171,7 +171,7 @@ version:4.9
 
 				// Use a spring arm to give the camera smooth, natural-feeling motion.
 				USpringArmComponent* SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraAttachmentArm"));
-				SpringArm->AttachTo(RootComponent);
+				SpringArm->SetupAttachment(RootComponent);
 				SpringArm->RelativeRotation = FRotator(-45.f, 0.f, 0.f);
 				SpringArm->TargetArmLength = 400.0f;
 				SpringArm->bEnableCameraLag = true;
@@ -179,7 +179,7 @@ version:4.9
 
 				// Create a camera and attach to our spring arm
 				UCameraComponent* Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ActualCamera"));
-				Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
+				Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 
 				// Take control of the default player
 				AutoPossessPlayer = EAutoReceiveInput::Player0;

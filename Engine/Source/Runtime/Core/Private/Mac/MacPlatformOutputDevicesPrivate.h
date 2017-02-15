@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MacPlatformOutputDevicesPrivate.h: Mac implementations of output devices
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/OutputDeviceConsole.h"
+#include "Misc/OutputDeviceError.h"
 
 @interface FMacConsoleWindow : NSWindow<NSWindowDelegate>
 @end

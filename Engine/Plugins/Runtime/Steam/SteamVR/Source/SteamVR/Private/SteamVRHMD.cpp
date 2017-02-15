@@ -1,25 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SteamVRPrivatePCH.h"
 #include "SteamVRHMD.h"
+#include "SteamVRPrivate.h"
 
+#include "Misc/App.h"
+#include "Misc/CoreDelegates.h"
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "SceneViewport.h"
 #include "PostProcess/PostProcessHMD.h"
 #include "Classes/SteamVRFunctionLibrary.h"
+#include "Engine/GameEngine.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/WorldSettings.h"
 
 #include "SteamVRMeshAssets.h"
+
+#include "EngineAnalytics.h"
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
 #endif
-
-static TAutoConsoleVariable<int32> CVarUsePostInit(
-	TEXT("vr.SteamVR.UsePostInit"),
-	0,
-	TEXT("Apply late update after init views. This can improve performance, but may cause culling errors. 0 to disable (default), 1 to enable."),
-	ECVF_RenderThreadSafe);
 
 /** Helper function for acquiring the appropriate FSceneViewport */
 FSceneViewport* FindSceneViewport()
@@ -526,6 +528,41 @@ EHMDTrackingOrigin::Type FSteamVRHMD::GetTrackingOrigin()
 	return EHMDTrackingOrigin::Floor;
 }
 
+
+void FSteamVRHMD::RecordAnalytics()
+{
+	if (FEngineAnalytics::IsAvailable())
+	{
+		// prepare and send analytics data
+		TArray<FAnalyticsEventAttribute> EventAttributes;
+
+		IHeadMountedDisplay::MonitorInfo MonitorInfo;
+		GetHMDMonitorInfo(MonitorInfo);
+
+		uint64 MonitorId = MonitorInfo.MonitorId;
+
+		char Buf[128];
+		vr::TrackedPropertyError Error;
+		FString DeviceName = "SteamVR - Default Device Name";
+		VRSystem->GetStringTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_ModelNumber_String, Buf, sizeof(Buf), &Error);
+		if (Error == vr::TrackedProp_Success)
+		{
+			DeviceName = FString(UTF8_TO_TCHAR(Buf));
+		}
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DeviceName"), DeviceName));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DisplayDeviceName"), *MonitorInfo.MonitorName));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DisplayId"), MonitorId));
+		FString MonResolution(FString::Printf(TEXT("(%d, %d)"), MonitorInfo.ResolutionX, MonitorInfo.ResolutionY));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Resolution"), MonResolution));
+
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InterpupillaryDistance"), GetInterpupillaryDistance()));
+
+
+		FString OutStr(TEXT("Editor.VR.DeviceInitialised"));
+		FEngineAnalytics::GetProvider().RecordEvent(OutStr, EventAttributes);
+	}
+}
+
 void FSteamVRHMD::SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[ MAX_STEAMVR_CONTROLLER_PAIRS ][ 2 ] )
 {
 	for( int32 UnrealControllerIndex = 0; UnrealControllerIndex < MAX_STEAMVR_CONTROLLER_PAIRS; ++UnrealControllerIndex )
@@ -820,7 +857,7 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 	bool bShouldShutdown = false;
 	if (bIsQuitting)
 	{
-		if (QuitTimestamp < FApp::GetTickCount())
+		if (QuitTimestamp < FApp::GetCurrentTime())
 		{
 			bShouldShutdown = true;
 			bIsQuitting = false;
@@ -838,7 +875,7 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 			{
 				// If we're currently in stereo mode, allow a few seconds while we disable stereo rendering before shutting down the VR system
 				EnableStereo(false);
-				QuitTimestamp = FApp::GetTickCount() + kShutdownTimeout;
+				QuitTimestamp = FApp::GetCurrentTime() + kShutdownTimeout;
 				bIsQuitting = true;
 			}
 			else if (!bIsQuitting)
@@ -1206,20 +1243,13 @@ void FSteamVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHI
 	ApplyLateUpdate(ViewFamily.Scene, OldRelativeTransform, NewRelativeTransform);
 }
 
-void FSteamVRHMD::PostInitViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily)
-{
-	PreRenderViewFamily_RenderThread(RHICmdList, InViewFamily);
-}
+void FSteamVRHMD::PostInitViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) {}
 
-void FSteamVRHMD::PostInitView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
-{
-	PreRenderView_RenderThread(RHICmdList, InView);
-}
+void FSteamVRHMD::PostInitView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {}
 
 bool FSteamVRHMD::UsePostInitView() const
 {
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.SteamVr.UsePostInit"));
-	return (CVar && CVar->GetValueOnAnyThread() != 0);
+	return false;
 }
 
 void FSteamVRHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& InViewport, SViewport* ViewportWidget)

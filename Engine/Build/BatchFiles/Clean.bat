@@ -1,7 +1,7 @@
 @echo off
 
 rem ## Unreal Engine 4 cleanup script
-rem ## Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+rem ## Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 rem ##
 rem ## This script is expecting to exist in the UE4 root directory.  It will not work correctly
 rem ## if you copy it to a different location and run it.
@@ -22,6 +22,8 @@ rem ## Change the CWD to /Engine/Source.  We always need to run UnrealBuildTool 
 pushd "%~dp0..\..\Source"
 if not exist ..\Build\BatchFiles\Clean.bat goto Error_BatchFileInWrongLocation
 
+rem ## If this is an installed build, we don't need to rebuild UBT. Go straight to cleaning.
+if exist ..\Build\InstalledBuild.txt goto ReadyToClean
 
 rem ## Get the path to MSBuild
 call "%~dp0GetMSBuildPath.bat"
@@ -36,8 +38,9 @@ if errorlevel 1 goto Error_UBTCompileFailed
 
 
 rem ## Execute UBT
+:ReadyToClean
 if not exist ..\..\Engine\Binaries\DotNET\UnrealBuildTool.exe goto Error_UBTMissing
-         ..\..\Engine\Binaries\DotNET\UnrealBuildTool.exe %* -clean
+..\..\Engine\Binaries\DotNET\UnrealBuildTool.exe %* -clean
 goto Exit
 
 

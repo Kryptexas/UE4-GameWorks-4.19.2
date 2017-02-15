@@ -42,30 +42,6 @@ space nodes, and conversion nodes.
 	[/PARAM]
 [/OBJECT]
 
-## Animation Node Pose Watching
-
-Animation Node **Pose Watching** allows you to see a representation of the pose being generated at any point in the **AnimGraph** dynamically. 
-You can also have multiple Pose Watches active at once allowing you to compare poses at different points to find the exact point in which any errors in your current pose are introduced. 
-
-To enable this, inside your **AnimGraph** on a node that contains a pose data, **Right-click** on the node and select **Toggle Pose Watch**. 
-
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-nabapYAeE7c
-[/PARAMLITERAL]
-[/OBJECT]
-
-You can also specify different colors for each of your watched poses by clicking the icon in the upper left corner of the node. 
-
-![](PoseWatchA.png) ![](PoseWatchB.png)
-
-You can **Remove Pose Watch** from the color picker window or by reselecting **Toggle Pose Watch** on the Animation Node. 
 
 ## Pins and Properties
 
@@ -85,4 +61,29 @@ properties can only be modified through the **Details** panel.
 Above a Blendspace Player node has properties in the **Details** panel that can be set as pins. 
 The X and Y coordinate pins which make up the **Speed** property of our Blendspace as well as Play Rate and Loop are exposed on the node since they are checked inside the **Details** panel. 
 
+
+## Animation Node Pose Watching
+
+Animation Node **Pose Watching** allows you to see a representation of the pose being generated at any point in the **AnimGraph** dynamically. 
+You can also have multiple Pose Watches active at once allowing you to compare poses at different points to find the exact point in which any errors in your current pose are introduced. 
+
+To enable this, inside your **AnimGraph**, **Right-click** on on a node that contains pose data and select **Toggle Pose Watch**. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+nabapYAeE7c
+[/PARAMLITERAL]
+[/OBJECT]
+
+You can also specify different colors for each of your watched poses by clicking the icon in the upper left corner of the node. 
+
+![](PoseWatchA.png) ![](PoseWatchB.png)
+
+You can **Remove Pose Watch** from the color picker window or by reselecting **Toggle Pose Watch** on the Animation Node. 
 

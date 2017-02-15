@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameNetworkManager.cpp: AGameNetworkMAnager C++ code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "GameFramework/GameNetworkManager.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
 #include "GameFramework/GameModeBase.h"
+#include "Engine/NetDriver.h"
+#include "Engine/Player.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameNetworkManager, Log, All);
 

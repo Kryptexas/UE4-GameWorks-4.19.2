@@ -1,13 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "CurveColorCustomization.h"
+#include "Curves/CurveLinearColor.h"
+#include "Misc/PackageName.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Editor.h"
+#include "Widgets/Layout/SBorder.h"
+#include "DetailWidgetRow.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
+#include "Dialogs/Dialogs.h"
+#include "Toolkits/AssetEditorManager.h"
 #include "Dialogs/DlgPickAssetPath.h"
 #include "PackageTools.h"
 #include "MiniCurveEditor.h"
 #include "AssetRegistryModule.h"
 #include "SCurveEditor.h"
-#include "Curves/CurveLinearColor.h"
 #include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "CurveColorCustomization"
@@ -198,6 +208,17 @@ void FCurveColorCustomization::ModifyOwner()
 	{
 		Owner->Modify(true);
 	}
+}
+
+TArray<const UObject*> FCurveColorCustomization::GetOwners() const
+{
+	TArray<const UObject*> Owners;
+	if (Owner)
+	{
+		Owners.Add(Owner);
+	}
+
+	return Owners;
 }
 
 void FCurveColorCustomization::MakeTransactional()

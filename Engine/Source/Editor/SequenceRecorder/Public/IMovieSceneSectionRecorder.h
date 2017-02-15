@@ -1,6 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
 
 /** A recorder class used to create and populate individual sections in level sequences */
 class IMovieSceneSectionRecorder

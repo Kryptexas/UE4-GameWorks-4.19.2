@@ -1,10 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Engine/EngineTypes.h"  // @todo: fix GlobalShader.h include dependencies
-#include "GlobalShader.h"
+#include "CoreMinimal.h"
+#include "RHI.h"
 #include "RenderResource.h"
+#include "Shader.h"
+#include "Engine/Texture.h"
+#include "GlobalShader.h"
+
+
+namespace MediaShaders
+{
+	/** Color transform from YUV to sRGB (using values from MSDN). */
+	UTILITYSHADERS_API extern const FMatrix YuvToSrgbDefault;
+
+	/** Color transform from YUV to sRGB (in JPEG color space). */
+	UTILITYSHADERS_API extern const FMatrix YuvToSrgbJpeg;
+
+	/** Color transform from YUV to sRGB (using values from PS4 AvPlayer codec). */
+	UTILITYSHADERS_API extern const FMatrix YuvToSrgbPs4;
+
+	/** Color transform from YUV to sRGB (in Rec. 601 color space). */
+	UTILITYSHADERS_API extern const FMatrix YuvToSrgbRec601;
+
+	/** Color transform from YUV to sRGB (in Rec. 709 color space). */
+	UTILITYSHADERS_API extern const FMatrix YuvToRgbRec709;
+}
 
 
 /**
@@ -117,14 +139,47 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> AYUVTexture);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> AYUVTexture, const FMatrix& ColorTransform, bool SrgbToLinear);
+};
+
+
+/**
+ * Pixel shader to convert a Windows Bitmap texture.
+ *
+ * This shader expects a BMP frame packed into a single texture in PF_B8G8R8A8 format.
+ */
+class FBMPConvertPS
+	: public FGlobalShader
+{
+	DECLARE_EXPORTED_SHADER_TYPE(FBMPConvertPS, Global, UTILITYSHADERS_API);
+
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2);
+	}
+
+	FBMPConvertPS() { }
+
+	FBMPConvertPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{ }
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		return bShaderHasOutdatedParameters;
+	}
+
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> BMPTexture, const FIntPoint& OutputDimensions);
 };
 
 
 /**
  * Pixel shader to convert a NV12 frame to RGBA.
  *
- * This shader expects an NV12 frame packed into single texture in PF_G8 format.
+ * This shader expects an NV12 frame packed into a single texture in PF_G8 format.
  *
  * @see http://www.fourcc.org/yuv.php#NV12
  */
@@ -152,14 +207,14 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> NV12Texture);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> NV12Texture, const FIntPoint& OutputDimensions, const FMatrix& ColorTransform, bool SrgbToLinear);
 };
 
 
 /**
  * Pixel shader to convert a NV21 frame to RGBA.
  *
- * This shader expects an NV21 frame packed into single texture in PF_G8 format.
+ * This shader expects an NV21 frame packed into a single texture in PF_G8 format.
  *
  * @see http://www.fourcc.org/yuv.php#NV21
  */
@@ -187,7 +242,41 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> NV21Texture);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> NV21Texture, const FIntPoint& OutputDimensions, const FMatrix& ColorTransform, bool SrgbToLinear);
+};
+
+
+/**
+ * Pixel shader to resize an RGB texture.
+ *
+ * This shader expects an RGB or RGBA frame packed into a single texture
+ * in PF_B8G8R8A8 or PF_FloatRGB format.
+ */
+class FRGBConvertPS
+	: public FGlobalShader
+{
+	DECLARE_EXPORTED_SHADER_TYPE(FRGBConvertPS, Global, UTILITYSHADERS_API);
+
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2);
+	}
+
+	FRGBConvertPS() { }
+
+	FRGBConvertPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{ }
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		return bShaderHasOutdatedParameters;
+	}
+
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> RGBTexture, const FIntPoint& OutputDimensions, bool SrgbToLinear);
 };
 
 
@@ -224,7 +313,7 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> LumaTexture, TRefCountPtr<FRHITexture2D> CbCrTexture);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> LumaTexture, TRefCountPtr<FRHITexture2D> CbCrTexture, const FMatrix& ColorTransform, bool SrgbToLinear);
 };
 
 
@@ -260,7 +349,7 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> UYVYTexture);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> UYVYTexture, const FMatrix& ColorTransform, bool SrgbToLinear);
 };
 
 
@@ -294,14 +383,14 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> YTexture, TRefCountPtr<FRHITexture2D> UTexture, TRefCountPtr<FRHITexture2D> VTexture);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> YTexture, TRefCountPtr<FRHITexture2D> UTexture, TRefCountPtr<FRHITexture2D> VTexture, const FMatrix& ColorTransform, bool SrgbToLinear);
 };
 
 
 /**
  * Pixel shader to convert a YUY2 frame to RGBA.
  *
- * This shader expects an YUY2 frame packed into single texture in PF_B8G8R8A8
+ * This shader expects an YUY2 frame packed into a single texture in PF_B8G8R8A8
  * format with the following memory layout: [Y0, U0, Y1, V0][Y2, U1, Y3, V1]...
  *
  * @see http://www.fourcc.org/yuv.php#YUY2
@@ -330,7 +419,7 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> YUY2Texture);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> YUY2Texture, const FIntPoint& OutputDimensions, const FMatrix& ColorTransform, bool SrgbToLinear);
 };
 
 
@@ -366,5 +455,5 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> YVYUTexture);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> YVYUTexture, const FMatrix& ColorTransform, bool SrgbToLinear);
 };

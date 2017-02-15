@@ -3,7 +3,7 @@ Title:Virtual Reality Best Practices
 Crumbs:%ROOT%, Platforms, Platforms/VR
 Description:Information over developing for VR.
 Navigation:platform
-Version: 4.9
+Version: 4.14
 parent:Platforms/VR
 type:overview
 
@@ -113,6 +113,31 @@ After Instanced Stereo rendering has been enabled, it will require an engine res
 	[/PARAMLITERAL]
 [/OBJECT]
 
+### VR Multiview Support for Mobile
+
+Certain supported mobile devices can now support VR Multiview. Mobile Multiview is similar to Instanced Stereo rendering that is available to desktop PC's and works by providing an optimized path for Stereo Rendering on the mobile devices CPU. To enable this feature you will need to do that following:
+
+[region:warning]
+Due to the experimental nature of this feature, it will only work on modern Mali-based GPU's. As this feature matures and support for more mobile devices come online, this warning will be removed.
+[/region]
+
+1. From the Main Toolbar go to **Edit** >  **Projects Settings** to bring up the Project's Settings options.
+
+1. Then go to **Engine** > **Rendering** > **VR** and look for the **Mobile Multi-View (Experimental)** option. 
+
+1. Enable the Mobile Multi-View (Experimental) option by click on the checkmark box next to its name and then restart the UE4 Editor for the changes to take effect.
+
+    ![](VR_MobileMultiView.png)
+
+For this feature to work you will need your Android build settings to be setup like the following:
+
+* Make sure that **Support OpenGL ES2** is enabled in the **Android** > **Build** section. 
+* Make sure that both **Mobile HDR** and **Instanced Stereo Rendering** are disabled.
+* Currently Mobile Multiview will only work with modern Mali-based GPU's. 
+* If you package a project with this feature on but don't have a compatible GPU, it will be disabled at runtime. 
+
+
+
 ## VR Performance Profiling
 
 To track down assets that are too expensive for VR, you need to profile what your project is doing on the CPU and GPU as much as possible over the lifetime of your project. 
@@ -121,6 +146,17 @@ To track down assets that are too expensive for VR, you need to profile what you
 	![](VR_GPU_Profiler.png)
 
 * **CPU Profiler** - Profiling what your project is doing on the CPU is a bit more involved than profiling for the GPU. To find out more on how to do this please refer to the [Performance Profiler](https://docs.unrealengine.com/latest/INT/Engine/Performance/Profiler/index.html) documents. 
+
+## VR Forward Rendering
+
+![](Engine\Performance\ForwardRenderer\ForwardRenderingBanner.png)(w:840)
+
+[INCLUDE:Engine\Performance\ForwardRenderer#intro]
+
+[REGION:note]
+Please see the [](Engine\Performance\ForwardRenderer) documentation for more information on this feature. 
+[/REGION]
+
 
 ## VR Post Process Settings
 
@@ -337,4 +373,4 @@ Below you will find some different techniques that can be used in place of Norma
 |Shader Type | Description|
 |---|---|
 |[Parallax Mapping](http://en.wikipedia.org/wiki/Parallax_mapping)| Parallax mapping takes Normal mapping to the next level by accounting for depth cues Normal mapping does not. A Parallax mapping shader can better display depth information, making objects appear to have more detail than they do. This is because no matter what angle you look at, a Parallax map will always correct itself to show you the correct depth information from that view point. The best use of a Parallax map would be for cobblestone pathways and fine detail on surfaces. 
-|[Tessellation Shader Displacement](Resources/ContentExamples/MaterialNodes/1_11) | Tessellation Shader Displacement will displace 3D Geometry in real time by adding details that are not modeled into the object. Tessellation shaders do a great job of displaying information because tessellation shaders actually create the missing detail by creating more vertices and displacing them in 3D Space in real time.  |
+

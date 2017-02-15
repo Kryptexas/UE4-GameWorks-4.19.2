@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRenderGPUSkin.h: GPU skinned mesh object and resource definitions
@@ -6,11 +6,16 @@
 
 #pragma once
 
-#include "SkeletalRender.h"
-#include "SkeletalRenderPublic.h"
-#include "GPUSkinVertexFactory.h"
+#include "CoreMinimal.h"
+#include "ProfilingDebugging/ResourceSize.h"
+#include "RenderResource.h"
+#include "ShaderParameters.h"
+#include "SkeletalMeshTypes.h"
+#include "Components/SkinnedMeshComponent.h"
 #include "ClothSimData.h"
 #include "GlobalShader.h"
+#include "GPUSkinVertexFactory.h"
+#include "SkeletalRenderPublic.h"
 
 /** 
 * Stores the updated matrices needed to skin the verts.
@@ -239,7 +244,7 @@ public:
 	virtual ~FSkeletalMeshObjectGPUSkin();
 
 	//~ Begin FSkeletalMeshObject Interface
-	virtual void InitResources() override;
+	virtual void InitResources(USkinnedMeshComponent* InMeshComponent) override;
 	virtual void ReleaseResources() override;
 	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights) override;
 	void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData, uint32 FrameNumberToPrepare);
@@ -298,13 +303,15 @@ public:
 	public:
 		FVertexFactoryBuffers()
 			: VertexBufferGPUSkin(NULL)
+			, SkinWeightVertexBuffer(NULL)
 			, ColorVertexBuffer(NULL)
 			, MorphVertexBuffer(NULL)
 			, APEXClothVertexBuffer(NULL)
 		{}
 
 		FSkeletalMeshVertexBuffer* VertexBufferGPUSkin;
-		FSkeletalMeshVertexColorBuffer*	ColorVertexBuffer;
+		FSkinWeightVertexBuffer* SkinWeightVertexBuffer;
+		FColorVertexBuffer*	ColorVertexBuffer;
 		FMorphVertexBuffer* MorphVertexBuffer;
 		FSkeletalMeshVertexAPEXClothBuffer*	APEXClothVertexBuffer;
 	};
@@ -407,10 +414,10 @@ private:
 
 		/** 
 		 * Init rendering resources for this LOD 
-		 * @param bUseLocalVertexFactory - use non-gpu skinned factory when rendering in ref pose
 		 * @param MeshLODInfo - information about the state of the bone influence swapping
+		 * @param CompLODInfo - information about this LOD from the skeletal component 
 		 */
-		void InitResources(const FSkelMeshObjectLODInfo& MeshLODInfo, ERHIFeatureLevel::Type FeatureLevel);		
+		void InitResources(const FSkelMeshObjectLODInfo& MeshLODInfo, FSkelMeshComponentLODInfo* CompLODInfo, ERHIFeatureLevel::Type FeatureLevel);
 
 		/** 
 		 * Release rendering resources for this LOD 
@@ -474,7 +481,7 @@ private:
 		 *
 		 * @param OutVertexBuffers output vertex buffers
 		 */
-		void GetVertexBuffers(FVertexFactoryBuffers& OutVertexBuffers,FStaticLODModel& LODModel,const FSkelMeshObjectLODInfo& MeshLODInfo);
+		void GetVertexBuffers(FVertexFactoryBuffers& OutVertexBuffers,FStaticLODModel& LODModel,const FSkelMeshObjectLODInfo& MeshLODInfo, FSkelMeshComponentLODInfo* CompLODInfo);
 
 		// Temporary arrays used on UpdateMorphVertexBuffer(); these grow to the max and are not thread safe.
 		static TArray<FVector> MorphDeltaTangentZAccumulationArray;

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11RHI.cpp: Unreal D3D RHI library implementation.
@@ -6,10 +6,7 @@
 
 #include "D3D11RHIPrivate.h"
 #include "RHIStaticStates.h"
-
-#ifndef WITH_DX_PERF
-	#define WITH_DX_PERF	1
-#endif
+#include "StaticBoundShaderState.h"
 
 #if WITH_DX_PERF
 	// For perf events

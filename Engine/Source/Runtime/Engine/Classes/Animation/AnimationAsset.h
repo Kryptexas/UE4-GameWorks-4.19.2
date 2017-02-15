@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Abstract base class of animation assets that can be played back and evaluated to produce a pose.
@@ -7,13 +7,19 @@
 
 #pragma once
 
-#include "SkeletalMeshTypes.h"
-#include "AnimInterpFilter.h"
-#include "Animation/Skeleton.h"
-#include "Engine/SkeletalMesh.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
 #include "Interfaces/Interface_AssetUserData.h"
-#include "Animation/AssetMappingTable.h"
+#include "Engine/SkeletalMesh.h"
+#include "AnimInterpFilter.h"
 #include "AnimationAsset.generated.h"
+
+class UAssetMappingTable;
+class UAssetUserData;
+class USkeleton;
 
 namespace MarkerIndexSpecialValues
 {
@@ -824,15 +830,6 @@ protected:
 	TArray<UAssetUserData*> AssetUserData;
 
 public:
-	/** Advances the asset player instance 
-	 * 
-	 * @param Instance		AnimationTickRecord Instance - saves data to evaluate
-	 * @param InstanceOwner	AnimInstance playing this asset
-	 * @param Context		The tick context (leader/follower, delta time, sync point, etc...)
-	 */
-	DEPRECATED(4.11, "This function is deprecated, use TickAssetPlayer")
-	ENGINE_API virtual void TickAssetPlayerInstance(FAnimTickRecord& Instance, class UAnimInstance* AnimInstance, FAnimAssetTickContext& Context) const;
-
 	/** Advances the asset player instance 
 	 * 
 	 * @param Instance		AnimationTickRecord Instance - saves data to evaluate

@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2688589
-Availability:Public
+﻿Availability:Public
 title:マテリアル式リファレンス
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:複雑なノードベースのシェーダーネットワークを作成するための、マテリアルエディタで利用可能な全マテリアル式のリファレンス
 Version:4.9
+parent:Engine/Rendering/Materials
+order:9
+topic-image:exp_ref_topic.png
+type:overview
 
 [REGION:banner]
 ![Materials Compendium](compendium.png)
@@ -124,7 +127,7 @@ Version:4.9
 		![%Engine/Rendering/Materials/ExpressionReference/Functions:title%](exp_functions.png)
 	[/PARAM]
 	[PARAM:title]
-		Functions (関数)
+		関数
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Functions]
@@ -197,7 +200,7 @@ Version:4.9
 		![%Engine/Rendering/Materials/ExpressionReference/Landscape:title%](exp_landscape.png)
 	[/PARAM]
 	[PARAM:title]
-		Landscapes　(ランドスケープ)
+		Landscapes (ランドスケープ)
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Landscape]
@@ -301,7 +304,7 @@ Version:4.9
 [REGION:indentedlist]
 * [ActorPositionWS](Engine/Rendering/Materials\ExpressionReference\Coordinates#ActorPositionWS)
 * [CameraPositionWS](Engine/Rendering/Materials\ExpressionReference\Coordinates#CameraPositionWS)
-* [LightmapUV](Engine/Rendering/Materials\ExpressionReference\Coordinates#LightmapUVs)
+* [LightmapUVs](Engine/Rendering/Materials\ExpressionReference\Coordinates#LightmapUVs)
 * [ObjectOrientation](Engine/Rendering/Materials\ExpressionReference\Coordinates#ObjectOrientation)
 * [ObjectPositionWS](Engine/Rendering/Materials\ExpressionReference\Coordinates#ObjectPositionWS)
 * [ObjectRadius](Engine/Rendering/Materials\ExpressionReference\Coordinates#ObjectRadius)
@@ -474,12 +477,12 @@ Version:4.9
 [**Vectors**](Engine/Rendering/Materials\ExpressionReference\Vector)
 [REGION:indentedlist]
 * [ActorPositionWS](Engine/Rendering/Materials\ExpressionReference\Vector#ActorPositionWS)
-* [CameraPositionWS](Engine/Rendering/Materials\ExpressionReference\Vector#ActorPositionWS)
-* [CameraVectorWS](Engine/Rendering/Materials\ExpressionReference\Vector#ActorPositionWS)
+* [CameraPositionWS](Engine/Rendering/Materials\ExpressionReference\Vector#CameraPositionWS)
+* [CameraVectorWS](Engine/Rendering/Materials\ExpressionReference\Vector#CameraVectorWS)
 * [Constant2Vector](Engine/Rendering/Materials\ExpressionReference\Vector#Constant2Vector)
 * [Constant3Vector](Engine/Rendering/Materials\ExpressionReference\Vector#Constant3Vector)
 * [Constant4Vector](Engine/Rendering/Materials\ExpressionReference\Vector#Constant4Vector)
-* [LightVector](Engine/Rendering/Materials\ExpressionReference\Vector#Constant4Vector)
+* [LightVector](Engine/Rendering/Materials\ExpressionReference\Vector#LightVector)
 * [ObjectBounds](Engine/Rendering/Materials\ExpressionReference\Vector#ObjectBounds)
 * [ObjectOrientation](Engine/Rendering/Materials\ExpressionReference\Vector#ObjectOrientation)
 * [ObjectPositionWS](Engine/Rendering/Materials\ExpressionReference\Vector#ObjectPositionWS)

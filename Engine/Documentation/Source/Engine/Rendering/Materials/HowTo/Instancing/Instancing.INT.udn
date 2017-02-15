@@ -1,7 +1,7 @@
 Availability: Public
-Title:Material Editor - How to Create and use Material Instances. 
+Title:Creating and using Material Instances. 
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
-Description:A How To Guide for setting up and using Material Instances. 
+Description:Guide for setting up and using Material Instances. 
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Rendering/Materials/Editor/Interface
 Related: Engine/Rendering/Materials/MaterialInputs

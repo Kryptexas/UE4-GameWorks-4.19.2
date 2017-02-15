@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -26,7 +26,7 @@ namespace UnrealGameSync
 		ScheduledBuild = 0x80,
 		RunAfterSync = 0x100,
 		OpenSolutionAfterSync = 0x200,
-		SkipShaders = 0x400,
+		ContentOnly = 0x400
 	}
 
 	enum WorkspaceUpdateResult
@@ -52,6 +52,7 @@ namespace UnrealGameSync
 		public List<ConfigObject> UserBuildStepObjects;
 		public HashSet<Guid> CustomBuildSteps;
 		public Dictionary<string, string> Variables;
+		public PerforceSyncOptions PerforceSyncOptions;
 
 		public WorkspaceUpdateContext(int InChangeNumber, WorkspaceUpdateOptions InOptions, string[] InSyncFilter, Dictionary<Guid, ConfigObject> InDefaultBuildSteps, List<ConfigObject> InUserBuildSteps, HashSet<Guid> InCustomBuildSteps, Dictionary<string, string> InVariables)
 		{
@@ -145,7 +146,6 @@ namespace UnrealGameSync
 				if(!Context.Options.HasFlag(WorkspaceUpdateOptions.SyncSingleChange))
 				{
 					CurrentChangeNumber = -1;
-					ProjectConfigFile = null;
 				}
 			}
 			Progress.Clear();
@@ -268,7 +268,7 @@ namespace UnrealGameSync
 					Filter.Exclude("..." + BuildVersionFileName);
 					Filter.Exclude("..." + VersionHeaderFileName);
 					Filter.Exclude("..." + ObjectVersionFileName);
-					if(Context.Options.HasFlag(WorkspaceUpdateOptions.SkipShaders))
+					if(Context.Options.HasFlag(WorkspaceUpdateOptions.ContentOnly))
 					{
 						Filter.Exclude("*.usf");
 					}
@@ -277,7 +277,7 @@ namespace UnrealGameSync
 					// Sync them all
 					List<string> TamperedFiles = new List<string>();
 					HashSet<string> RemainingFiles = new HashSet<string>(SyncFiles, StringComparer.InvariantCultureIgnoreCase);
-					if(!Perforce.Sync(SyncFiles, PendingChangeNumber, Record => UpdateSyncProgress(Record, RemainingFiles, SyncFiles.Count), TamperedFiles, Log))
+					if(!Perforce.Sync(SyncFiles, PendingChangeNumber, Record => UpdateSyncProgress(Record, RemainingFiles, SyncFiles.Count), TamperedFiles, Context.PerforceSyncOptions, Log))
 					{
 						StatusMessage = "Aborted sync due to errors.";
 						return WorkspaceUpdateResult.FailedToSync;
@@ -310,11 +310,10 @@ namespace UnrealGameSync
 						}
 					}
 
-					ConfigFile NewProjectConfigFile = null;
 					if(Context.Options.HasFlag(WorkspaceUpdateOptions.Sync))
 					{
 						// Read the new config file
-						NewProjectConfigFile = ReadProjectConfigFile(LocalRootPath, SelectedLocalFileName, Log);
+						ProjectConfigFile = ReadProjectConfigFile(LocalRootPath, SelectedLocalFileName, Log);
 
 						// Get the branch name
 						string BranchOrStreamName;
@@ -344,7 +343,7 @@ namespace UnrealGameSync
 
 						// Get the last code change
 						int VersionChangeNumber;
-						if(NewProjectConfigFile.GetValue("Options.VersionToLastCodeChange", true))
+						if(ProjectConfigFile.GetValue("Options.VersionToLastCodeChange", true))
 						{
 							VersionChangeNumber = CodeChanges.Max(x => x.Number);
 						}
@@ -354,11 +353,12 @@ namespace UnrealGameSync
 						}
 
 						// Update the version files
-						if(NewProjectConfigFile.GetValue("Options.UseFastModularVersioning", false))
+						if(ProjectConfigFile.GetValue("Options.UseFastModularVersioning", false))
 						{
 							Dictionary<string, string> BuildVersionStrings = new Dictionary<string,string>();
 							BuildVersionStrings["\"Changelist\":"] = String.Format(" {0},", VersionChangeNumber);
 							BuildVersionStrings["\"BranchName\":"] = String.Format(" \"{0}\"", BranchOrStreamName.Replace('/', '+'));
+							BuildVersionStrings["\"IsPromotedBuild\":"] = " 0,";
 							if(!UpdateVersionFile(ClientRootPath + BuildVersionFileName, BuildVersionStrings, PendingChangeNumber))
 							{
 								StatusMessage = String.Format("Failed to update {0}.", BuildVersionFileName);
@@ -445,7 +445,6 @@ namespace UnrealGameSync
 					// Update the current change number. Everything else happens for the new change.
 					if(Context.Options.HasFlag(WorkspaceUpdateOptions.Sync))
 					{
-						ProjectConfigFile = NewProjectConfigFile;
 						CurrentChangeNumber = PendingChangeNumber;
 					}
 

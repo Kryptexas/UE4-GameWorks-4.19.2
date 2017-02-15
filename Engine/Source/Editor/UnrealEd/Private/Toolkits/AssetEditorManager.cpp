@@ -1,19 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
 #include "Toolkits/AssetEditorManager.h"
-#include "ObjectTools.h"
+#include "Helpers/MessageEndpoint.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "Settings/EditorLoadingSavingSettings.h"
+#include "AssetEditorMessages.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "IAssetTools.h"
+#include "IAssetTypeActions.h"
 #include "AssetToolsModule.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "Toolkits/SimpleAssetEditor.h"
 #include "LevelEditor.h"
+#include "PackageReload.h"
 #include "EngineAnalytics.h"
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-#include "ToolkitManager.h"
-#include "BlueprintEditorModule.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "AssetEditorManager"
 
@@ -46,10 +53,14 @@ FAssetEditorManager::FAssetEditorManager()
 
 	TickDelegate = FTickerDelegate::CreateRaw(this, &FAssetEditorManager::HandleTicker);
 	FTicker::GetCoreTicker().AddTicker(TickDelegate, 1.f);
+
+	FCoreUObjectDelegates::OnPackageReloaded.AddRaw(this, &FAssetEditorManager::HandlePackageReloaded);
 }
 
 void FAssetEditorManager::OnExit()
 {
+	FCoreUObjectDelegates::OnPackageReloaded.RemoveAll(this);
+
 	SaveOpenAssetEditors(true);
 
 	TGuardValue<bool> GuardOnShutdown(bSavingOnShutdown, true);
@@ -695,6 +706,38 @@ void FAssetEditorManager::SaveOpenAssetEditors(bool bOnShutdown)
 		GConfig->SetArray(TEXT("AssetEditorManager"), TEXT("OpenAssetsAtExit"), OpenAssets, GEditorPerProjectIni);
 		GConfig->SetBool(TEXT("AssetEditorManager"), TEXT("CleanShutdown"), bOnShutdown, GEditorPerProjectIni);
 		GConfig->Flush(false, GEditorPerProjectIni);
+	}
+}
+
+void FAssetEditorManager::HandlePackageReloaded(const EPackageReloadPhase InPackageReloadPhase, FPackageReloadedEvent* InPackageReloadedEvent)
+{
+	if (InPackageReloadPhase == EPackageReloadPhase::PrePackageFixup)
+	{
+		TArray<UObject*> OldAssets;
+		TArray<UObject*> NewAssets;
+
+		for (auto AssetEditorPair : OpenedAssets)
+		{
+			UObject* NewAsset = nullptr;
+			if (InPackageReloadedEvent->GetRepointedObject(AssetEditorPair.Key, NewAsset))
+			{
+				OldAssets.Add(AssetEditorPair.Key);
+				if (NewAsset)
+				{
+					NewAssets.Add(NewAsset);
+				}
+			}
+		}
+
+		for (UObject* OldAsset : OldAssets)
+		{
+			CloseAllEditorsForAsset(OldAsset);
+		}
+
+		for (UObject* NewAsset : NewAssets)
+		{
+			OpenEditorForAsset(NewAsset);
+		}
 	}
 }
 

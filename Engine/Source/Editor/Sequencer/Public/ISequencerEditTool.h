@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FVirtualTrackArea;
-struct ISequencerHotspot;
+#include "CoreMinimal.h"
+#include "Input/CursorReply.h"
+#include "ISequencerInputHandler.h"
 
+class FSlateWindowElementList;
+class FVirtualTrackArea;
+class ISequencer;
+class SWidget;
+struct ISequencerHotspot;
 
 /**
  * Interface for drag and drop operations that are handled by edit tools in Sequencer.

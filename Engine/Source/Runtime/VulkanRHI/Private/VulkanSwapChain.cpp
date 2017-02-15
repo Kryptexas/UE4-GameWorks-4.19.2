@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanSwapChain.h: Vulkan viewport RHI definitions.
@@ -165,6 +165,13 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 	OutImages.AddUninitialized(NumSwapChainImages);
 	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkGetSwapchainImagesKHR(Device.GetInstanceHandle(), SwapChain, &NumSwapChainImages, OutImages.GetData()));
 
+	ImageAcquiredFences.AddUninitialized(NumSwapChainImages);
+	VulkanRHI::FFenceManager& FenceMgr = Device.GetFenceManager();
+	for (uint32 BufferIndex = 0; BufferIndex < NumSwapChainImages; ++BufferIndex)
+	{
+		ImageAcquiredFences[BufferIndex] = Device.GetFenceManager().AllocateFence(true);
+	}
+
 	ImageAcquiredSemaphore.AddUninitialized(DesiredNumBuffers);
 	for (uint32 BufferIndex = 0; BufferIndex < DesiredNumBuffers; ++BufferIndex)
 	{
@@ -176,6 +183,12 @@ void FVulkanSwapChain::Destroy()
 {
 	VulkanRHI::vkDestroySwapchainKHR(Device.GetInstanceHandle(), SwapChain, nullptr);
 	SwapChain = VK_NULL_HANDLE;
+
+	VulkanRHI::FFenceManager& FenceMgr = Device.GetFenceManager();
+	for (int32 Index = 0; Index < ImageAcquiredFences.Num(); ++Index)
+	{
+		FenceMgr.ReleaseFence(ImageAcquiredFences[Index]);
+	}
 
 	//#todo-rco: Enqueue for deletion as we first need to destroy the cmd buffers and queues otherwise validation fails
 	for (int BufferIndex = 0; BufferIndex < ImageAcquiredSemaphore.Num(); ++BufferIndex)
@@ -194,14 +207,30 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 	// The ImageAcquiredSemaphore[ImageAcquiredSemaphoreIndex] will get signaled when the image is ready (upon function return).
 	uint32 ImageIndex = 0;
 	SemaphoreIndex = (SemaphoreIndex + 1) % ImageAcquiredSemaphore.Num();
-	*OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex];
+
+	VulkanRHI::FFenceManager& FenceMgr = Device.GetFenceManager();
+	//#todo-rco: Is this the right place?
+	// Make sure the CPU doesn't get too ahead of the GPU
+	{
+		SCOPE_CYCLE_COUNTER(STAT_VulkanWaitSwapchain);
+		if (!ImageAcquiredFences[SemaphoreIndex]->IsSignaled())
+		{
+			bool bResult = FenceMgr.WaitForFence(ImageAcquiredFences[SemaphoreIndex], UINT32_MAX);
+			ensure(bResult);
+		}
+	}
+	FenceMgr.ResetFence(ImageAcquiredFences[SemaphoreIndex]);
+
 	VkResult Result = VulkanRHI::vkAcquireNextImageKHR(
 		Device.GetInstanceHandle(),
 		SwapChain,
 		UINT64_MAX,
 		ImageAcquiredSemaphore[SemaphoreIndex]->GetHandle(),
-		VK_NULL_HANDLE,	// Currently no fence needed
+		ImageAcquiredFences[SemaphoreIndex]->GetHandle(),
 		&ImageIndex);
+
+	*OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex];
+
 	checkf(Result == VK_SUCCESS || Result == VK_SUBOPTIMAL_KHR, TEXT("AcquireNextImageKHR failed Result = %d"), int32(Result));
 	CurrentImageIndex = (int32)ImageIndex;
 	check(CurrentImageIndex == ImageIndex);

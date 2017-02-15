@@ -1,17 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
 #include "SAnimationOutlinerTreeNode.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Types/SlateStructs.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Views/SExpanderArrow.h"
+#include "EditorStyleSet.h"
+#include "DisplayNodes/SequencerTrackNode.h"
+#include "SSequencer.h"
 #include "ScopedTransaction.h"
-#include "Sequencer.h"
-#include "MovieScene.h"
-#include "MovieSceneSection.h"
-#include "MovieSceneCommonHelpers.h"
-#include "Engine/Selection.h"
-#include "IKeyArea.h"
-#include "SEditableLabel.h"
+#include "Widgets/Input/SEditableLabel.h"
 #include "SSequencerTreeView.h"
-#include "SColorPicker.h"
+#include "Widgets/Colors/SColorPicker.h"
 #include "SequencerSectionPainter.h"
 
 #define LOCTEXT_NAMESPACE "AnimationOutliner"
@@ -225,6 +232,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 				.VAlign(VAlign_Fill)
 				.HasDownArrow(false)
 				.IsFocusable(false)
+				.IsEnabled(!DisplayNode->GetSequencer().IsReadOnly())
 				.ButtonStyle(FEditorStyle::Get(), "Sequencer.AnimationOutliner.ColorStrip")
 				.OnGetMenuContent(this, &SAnimationOutlinerTreeNode::OnGetColorPicker)
 				.OnMenuOpenChanged_Lambda([](bool bIsOpen){
@@ -431,7 +439,7 @@ FText SAnimationOutlinerTreeNode::GetDisplayName() const
 
 bool SAnimationOutlinerTreeNode::HandleNodeLabelCanEdit() const
 {
-	return DisplayNode->CanRenameNode();
+	return !DisplayNode->GetSequencer().IsReadOnly() && DisplayNode->CanRenameNode();
 }
 
 

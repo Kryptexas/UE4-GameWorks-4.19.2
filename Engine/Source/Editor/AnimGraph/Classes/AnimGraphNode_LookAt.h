@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EdGraph/EdGraphNodeUtils.h"
 #include "AnimGraphNode_SkeletalControlBase.h"
 #include "BoneControllers/AnimNode_LookAt.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_LookAt.generated.h"
+
+class FPrimitiveDrawInterface;
+class USkeletalMeshComponent;
 
 UCLASS(MinimalAPI, meta=(Keywords = "Look At, Follow, Trace, Track"))
 class UAnimGraphNode_LookAt : public UAnimGraphNode_SkeletalControlBase

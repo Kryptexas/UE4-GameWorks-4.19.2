@@ -1,87 +1,101 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3156729
 Availability:Public
 Title:GameMode
 Crumbs:%ROOT%, Gameplay/Framework
 Description:GameMode (ゲームモード) では、ゲームのルールを設定します。
-Version:4.9
+Version:4.14
 type:reference
 parent:Gameplay/Framework
 order:5
 tags:Gameplay Framework
 
-オープンエンド型ゲームでさえ基本的なゲームのルールがあり、これらのルールがゲームタイプを構成しています。最も基本的なレベルでは、以下のルールが含まれます。
+オープンエンド型ゲームでも基本的なゲームのルールがあり、ルールによってゲームタイプが決まります。最も基本的なレベルとしては、以下のルールがあります。
 
-* 現在のプレイヤーとスペクテーター (観戦者) 数に加え、許容されるプレイヤーとスペクテーターの最大数
-* スポーン位置とスポーンおよびリスポーンの挙動を含んだプレイヤーのゲーム参加方法
+* 現在のプレイヤーとスペクテーター (観戦者) 数に加え、プレイヤーとスペクテーターの最大許容数
+* スポーン位置とスポーンおよびリスポーンのビヘイビアを含んだプレイヤーのゲーム参加方法
 * 一時停止機能の利用可否と、一時停止の処理方法
-* ゲームをシネマティック モードで開始するか否かの決定を含むレベル間の遷移
+* ゲームをシネマティック モードで開始するかどうかを含むレベル間の遷移
 
-全てのゲームタイプは共通した一定の基本原理がありますが、制作しているゲームのジャンルによって無限のバリエーションが考えられます。ファーストパーソン シューティング ゲームで良く知られるゲームタイプにはデスマッチ、キャプチャー ザ フラグ、そしてラスト マン スタンディングがあります。こうしたゲームタイプは多くの場合、対戦のセットアップ中にメニュー オプションを使用して選択します。そのため、非常に明確です。ロールプレイ アドベンチャーゲームやプラットフォーマーなど他のジャンルでは変数は少なくゲームタイプも明確ではありませんが、ゲームの諸条件を設定するために存在します。例えば、時間制限が設けられ、プレイヤーが特定のポイントに到達したり「ボス」キャラクターを打ち負かすとレベルがクリアする条件が考えられます。さらに複雑なケースとしては、ダンジョン ゲームがあるでしょう。メインとなるワールドには、ゲームの進捗と状態を追跡する包括的なゲームタイプが設定されます。各ダンジョン内で、そのダンジョン特有のゲームタイプがあります。それぞれのダンジョンを完全に固有なものとし独自のルールや目標を持っています。
+全てのゲームタイプは共通した一定の基本原理がありますが、制作しているゲームのジャンルによって無限のバリエーションが考えられます。ファーストパーソン シューティング ゲームで良く知られるゲームタイプにはデスマッチ、キャプチャー ザ フラグ、そしてラスト マン スタンディングがあります。こうしたゲームタイプは多くの場合、対戦のセットアップ中にメニュー オプションを使用して選択します。そのため、非常に明確です。ロールプレイ アドベンチャーゲームやプラットフォーマーなど他のジャンルでは変数は少なくゲームタイプも明確ではありませんが、ゲームの諸条件を設定するために存在します。例えば、時間制限が設けられ、プレイヤーが特定のポイントに到達したり、ボスキャラを打ち負かすとレベルがクリアする条件が考えられます。さらに複雑なケースとしては、ダンジョン ゲームがあるでしょう。メイン ワールドには、ゲームの進捗と状態を追跡する包括的なゲームタイプが設定されます。各ダンジョン内で、そのダンジョン特有のゲームタイプがあります。それぞれのダンジョンを完全に固有なものとし独自のルールや目標を持っています。
 
-以下の 2 つのメインクラスがゲームタイプの情報を処理します。GameMode クラスと GameState クラスです。 
+以下の 2 つのメインクラスがゲームタイプの情報を処理します。Game Mode と Game State の 2 つです。 
 
-## GameMode
-
-
-`AGameMode` クラスはプレイするゲームを定義し、ゲームルールを強制します。以下は `AGameMode` クラスのデフォルト機能の例です。 
+## Game Mode
 
 
-ゲームルールを設定する全ての関数または変数は、 `AGameMode` クラスのサブクラスへ追加しなくてはいけません。ゲームの開始時にプレイヤーが保持するインベントリ アイテム、制限時間内に利用できるライフ数、およびゲームを終了するために必要なスコアは、 GameMode に属します。`AGameMode` クラスのサブクラスは、ゲームに含む必要のあるゲームタイプそれぞれに対して作成される場合があります。ゲームにはいくつものゲームタイプを設定することができます。従って、 AGameMode クラスのサブクラスをいくつでも持つことができます。ただし一度にひとつのゲームタイプだけを使用します。GameMode アクタは、プレイのためにレベルが初期化されるたびに UGameEngine::LoadMap() 関数によってインスタンス化されます。このアクタが定義するゲームタイプは、レベルが持続する間、利用されます。
+Game Mode クラスはプレイしているゲームを定義し、ゲームルールを強制します。`AGameModeBase` はすべての Game Mode の親クラスであり、`AGameModeBase` のデフォルト機能の一部として以下があります。 
 
-<!--
-	[/Script/Engine.GameMode]
-	+GameModeClassAliases=(ShortName="DM",GameClassName="UTGame.UTDeathmatch")
--->
+$ InitGame :InitGame() event は他のどのスクリプト (including PreInitializeComponents() ) よりも前に呼び出され、`AGameModeBase` によってパラメーターを初期化し、そのヘルパー クラスをスポーンするために使用されます。 
 
-### Match ステート
+	[REGION:note]
+	これは、`AGameModeBase` 自体を含むどのアクタの PreInitializeComponents よりも前に呼び出されます。
+	[/REGION:note]
 
-GameMode を Match ステートをトラックするステート マシーンまたは一般的なゲームプレイ フローを含みます。現在のステートをクエリするために、 GetMatchState や、 HasMatchStarted 、 IsMatchInProgress、 HasMatchEnded のようなラッパーを使用することができます。以下が考えられる Match ステートです。
+$ PreLogin :サーバーに参加しようとするプレイヤーの受け入れ、または拒否をします。ErrorMessage を非空の文字列に設定するとログインに失敗します。PreLogin が Login の前に呼び出されます。Login が呼び出される前に、特にコンテンツをダウンロードしている場合、かなりの時間が経過する可能性があります。
 
-* EnteringMap は初期ステートです。アクタはまだ動作しておらず、ワールドは完全には初期化されていません。ロードが完全に終了すると次のステートへ移ります。
-* 次のステートである WaitingToStart に移ると、 HandleMatchIsWaitingToStart が呼び出されます。アクタは動作しますが、プレイヤーはまだスポーンされていません。ReadyToStartMatch が _true_ を返した場合、または StartMatch が呼びだされた場合、次のステートへ移ります。
-* 次のステートである InProgress に移ると、HandleMatchHasStarted が呼び出され、これが全てのアクタに BeginPlay を呼び出します。通常のゲームプレイが進行中です。ReadyToEndMatch が _true_ を返した場合、または EndMatch が呼びだされた場合、次のステートへ移ります。
-* 次のステートである WaitingPostMatch に移ると、 HandleMatchHasEnded が呼び出されます。アクタはまだ動作していますが、新規プレイヤーは受け取られていません。マップ転送が開始されると、次のステートへ移ります。
-* 次のステートである LeavingMap に移ると、 HandleLeavingMap が呼び出されます。新規マップへの転送中、 Match はこのステートのままです。
-* Aborted が failure (失敗) ステートです。AbortMatch から開始されます。修復不能なエラーがある場合に設定されます。
+$ PostLogin :ログインに成功すると呼び出されます。これは、PlayerController で複製された関数を呼び出すのに安全な最初の場所です。ブループリントで OnPostLogin を実装して論理を追加することができます。
 
-デフォルトで、 Match ステートはほぼ常に InProgress です。ただし、ゲームは個別にこのビヘイビアをオーバーライドし、より複雑なルールでマルチプレイヤー ゲームをビルドすることができます。
+$ HandleStartingNewPlayer :PostLogin の後、またはシームレスな移動後に呼び出されます。これは、ブループリントでオーバーライドして新規プレイヤーに何が起こるかを変更することができますが、デフォルトでは自己のポーンをスポーンします。
 
-### GameMode から生成したブループリント
+$ RestartPlayer :これはプレイヤーのポーンのスポーンを開始するために呼び出されます。スポーンする場所を制御したい場合は、RestartPlayerAtPlayerStart および RestartPlayerAtTransform もあります。ブループリントで OnRestartPlayer を実装してリスタート後にさらに何かを行うことができます。
 
-GameMode はブループリントで利用可能なクラスです。GameMode から生成した _ブループリント_ を作成して、プロジェクトやレベルのデフォルトのゲームモードとして使用することが可能です。
+$ SpawnDefaultPawnAtTransform :これは実際には、プレイヤーのポーン アクタをスポーンし、ブループリントでオーバーライドしてどのアクタがスポーンされるかを変更することができます。
 
-GameMode から生成したブループリントに以下のデフォルト値を設定することができます。
-* デフォルトの Pawn クラス
+$ Logout :プレイヤーがゲームを離れるか、破壊される場合に呼び出されます。OnPostLogin はブループリントのロジックを実行するために実装することができます。
+
+ゲームルールを設定する新規の関数または変数は、 `AGameModeBase` クラスのサブクラスへ追加しなくてはいけません。ゲームの開始時にプレイヤーが保持するインベントリ アイテム、制限時間内に利用できるライフ数、およびゲームを終了するために必要なスコアは、 GameMode に属します。`AGameModeBase` クラスのサブクラスは、ゲームに含む必要のあるゲームタイプそれぞれに対して作成することができます。ゲームにはいくつものゲームタイプを設定することができます。従って、 `AGameModeBase` クラスのサブクラスをいくつでも持つことができます。ただし一度にひとつのゲームタイプだけを使用します。`AGameModeBase` アクタは、プレイのためにレベルが初期化されるたびに `UGameEngine::LoadMap()` 関数によってインスタンス化されます。このゲームモードは、マルチプレイヤー ゲームに参加し、取り除くクライアントには複製されませんが、Game State は複製されます。
+
+### AGameMode
+
+`AGameMode` は `AGameModeBase` のサブクラスであり、マルチプレイヤーの対戦、レガシーのビヘイビアに対応するいくつかの追加の機能があります。すべての新規作成プロジェクトでは、デフォルトで `AGameModeBase` を使用しますが、こうした追加のビヘイビアが必要な場合、`AGameMode` から継承するように切り替えることができます。`AGameMode` から継承する場合、対戦のステートマシンもサポートする `AGameState` からもゲーム ステートを継承します。
+
+GameMode には、Match ステートをトラックするステート マシンまたは一般的なゲームプレイ フローを含みます。現在のステートをクエリするために、 GetMatchState や、 HasMatchStarted 、 IsMatchInProgress、 HasMatchEnded のようなラッパーを使用することができます。以下が考えられる Match ステートです。
+
+* EnteringMap は初期ステートです。アクタはまだティックしておらず、ワールドは完全には初期化されていません。ロードが完全に終了すると次のステートへ遷移します。
+* 次のステートである WaitingToStart に移ると、 HandleMatchIsWaitingToStart が呼び出されます。アクタはティックしますが、プレイヤーはまだスポーンされていません。ReadyToStartMatch が _true_ を返した場合、または StartMatch が呼びだされた場合、次のステートへ遷移します。
+* 次のステートである InProgress に遷移すると、HandleMatchHasStarted が呼び出され、これが全てのアクタに BeginPlay を呼び出します。通常のゲームプレイが進行中です。ReadyToEndMatch が _true_ を返した場合、または EndMatch が呼びだされた場合、次のステートへ移ります。
+* 次のステートである WaitingPostMatch に移ると、 HandleMatchHasEnded が呼び出されます。アクタはまだティックしていますが、新規プレイヤーはアクセプトされていません。マップ転送が開始すると、次のステートへ遷移します。
+* 最後のステートである LeavingMap に移ると、 HandleLeavingMap が呼び出されます。新規マップへの転送中、 Match はこのステートのままです。
+* Aborted は AbortMatch から開始される failure (失敗) ステートです。修復不能なエラーがある場合に設定されます。
+
+デフォルトで、 Match ステートはほぼ InProgress です。ただし、個々のゲームはこのビヘイビアをオーバーライドし、より複雑なルールでマルチプレイヤー ゲームをビルドすることができます。
+
+### AGameModeBase から生成したブループリント
+
+AGameModeBase はブループリントで利用可能なクラスです。AGameModeBase から生成した _ブループリント_ を作成して、プロジェクトやレベルのデフォルトのゲームモードとして使用することが可能です。
+
+AGameModeBase から生成したブループリントに以下のデフォルト値を設定することができます。
+* Default [](Gameplay/Framework/Pawn) クラス
 * HUD クラス
-* Player Controller クラス
+* [](Gameplay/Framework/Controller/PlayerController) クラス
 * Spectator クラス
-* Game State クラス
+* [Gamestate](Gameplay/Framework/GameState) クラス 
 * Player State クラス 
 
 
-### GameMode の設定
+### Game Mode を設定する
 
 レベルに GameMode を設定する方法は何通りかあります。優先度の低い方法から説明します。 
 
-* `DefaultGame.ini` ファイルの `/Script/Engine.WorldSettings/` セクションに `GlobalDefaultGameMode` エントリを設定すると、プロジェクトの全マップに対してデフォルトのゲームモードが設定されます。 
+* `DefaultEngine.ini` ファイルの `/Script/EngineSettings.GameMapsSettings` セクションに `GlobalDefaultGameMode` エントリを設定すると、プロジェクトの全マップに対してデフォルトのゲームモードが設定されます。 
 
-		[/Script/Engine.WorldSettings]
+		[/Script/EngineSettings.GameMapsSettings]
 		GlobalDefaultGameMode="/Script/MyGame.MyGameGameMode"
 		GlobalDefaultServerGameMode="/Script/MyGame.MyGameGameMode"
 
-* 個別マップのプロジェクト設定をオーバーライドするには、エディタの **[World Settings]** タブで **GameMode Override** を設定します。 
-		
+* 個別マップのプロジェクト設定をオーバーライドするには、エディタの **[World Settings]** タブで **[GameMode Override]** を設定します。 
+
 	![](WorldSettings_GameMode.png)
 
-
-* ゲーム起動時にある特定のオプションでを強制的に読み込ませる URL を実行ファイルへ渡すことができます。ゲームモードの設定は `game` オプションを使用します。詳細は [](Programming/Basics/CommandLineArguments) を参照してください。
+* ゲーム起動時にある特定のオプションを強制的に読み込ませるために URL を実行ファイルへ渡すことができます。ゲームモードの設定は `game` オプションを使用します。詳細は [](Programming/Basics/CommandLineArguments) を参照してください。
 
 		UE4Editor.exe /Game/Maps/MyMap?game=MyGameMode -game
 
-* 最終的に、`DefaultGame.ini` ファイルの `/Script/Engine.WorldSettings/` セクションにマップのプレフィックスが設定されます。これらのプレフィックスは、ある特定のプレフィックスを持つ全てのマップに対してデフォルトのゲームモードを設定します。 
+* 最終的に、`DefaultGame.ini` ファイルの `/Script/Engine.WorldSettings/` セクションにマップのプレフィックス (および URL メソッドのエイリアス) が設定されます。これらのプレフィックスは、ある特定のプレフィックスを持つ全てのマップに対してデフォルトのゲームモードを設定します。 
 
-		[/Script/Engine.WorldSettings]
-		+DefaultMapPrefixes=(Prefix="DM",GameMode="UTGame.UTDeathmatch")
+		[/Script/EngineSettings.GameMapsSettings]
+		+GameModeMapPrefixes=(Name="DM",GameMode="/Script/UnrealTournament.UTDMGameMode")
+		+GameModeClassAliases=(Name="DM",GameMode="/Script/UnrealTournament.UTDMGameMode")
 
 
 [REGION:note]

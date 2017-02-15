@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScriptDisassembler.cpp: Disassembler for Kismet bytecode.
 =============================================================================*/
 
-#include "UnrealEd.h"
 #include "ScriptDisassembler.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/UnrealType.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogScriptDisassembler, Log, All);
 
@@ -215,6 +219,38 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			//@TODO:
 			//Ar.Logf(TEXT("%s Expression:"), *Indents);
 			//SerializeExpr( ScriptIndex );
+			break;
+		}
+	case EX_SetSet:
+		{
+ 			Ar.Logf(TEXT("%s $%X: set set"), *Indents, (int32)Opcode);
+			SerializeExpr(ScriptIndex);
+			ReadINT(ScriptIndex);
+ 			while( SerializeExpr(ScriptIndex) != EX_EndSet)
+ 			{
+ 				// Set contents
+ 			}
+ 			break;
+		}
+	case EX_EndSet:
+		{
+			Ar.Logf(TEXT("%s $%X: EX_EndSet"), *Indents, (int32)Opcode);
+			break;
+		}
+	case EX_SetMap:
+		{
+ 			Ar.Logf(TEXT("%s $%X: set map"), *Indents, (int32)Opcode);
+			SerializeExpr(ScriptIndex);
+ 			ReadINT(ScriptIndex);
+ 			while( SerializeExpr(ScriptIndex) != EX_EndMap)
+ 			{
+ 				// Map contents
+ 			}
+ 			break;
+		}
+	case EX_EndMap:
+		{
+			Ar.Logf(TEXT("%s $%X: EX_EndMap"), *Indents, (int32)Opcode);
 			break;
 		}
 	case EX_ObjToInterfaceCast:

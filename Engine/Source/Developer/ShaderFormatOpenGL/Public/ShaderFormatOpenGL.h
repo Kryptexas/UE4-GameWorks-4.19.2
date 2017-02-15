@@ -1,11 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "RHIDefinitions.h"
 #include "hlslcc.h"
 
-enum GLSLVersion
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
+
+struct FShaderCompilerInput;
+struct FShaderCompilerOutput;
+
+enum GLSLVersion 
 {
 	GLSL_150,
 	GLSL_430,
@@ -18,8 +26,8 @@ enum GLSLVersion
 	GLSL_150_MAC, // Apple only
 	GLSL_310_ES_EXT,
 	GLSL_ES3_1_ANDROID,
-	GLSL_WOLF,
-	GLSL_WOLF_FORWARD,
+	GLSL_SWITCH,
+	GLSL_SWITCH_FORWARD,
 
 	GLSL_MAX
 };

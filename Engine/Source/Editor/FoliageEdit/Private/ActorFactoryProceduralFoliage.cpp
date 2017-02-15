@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 ActorFactory.cpp:
 =============================================================================*/
 
-#include "UnrealEd.h"
 #include "ActorFactoryProceduralFoliage.h"
+#include "Settings/EditorExperimentalSettings.h"
 #include "ProceduralFoliageSpawner.h"
 #include "ProceduralFoliageVolume.h"
 #include "ProceduralFoliageComponent.h"

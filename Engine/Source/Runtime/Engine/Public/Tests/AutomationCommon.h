@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HardwareInfo.h"
-#include "AutomationTest.h"
-#include "Delegate.h"
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+
+class AMatineeActor;
+class SWindow;
 
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 

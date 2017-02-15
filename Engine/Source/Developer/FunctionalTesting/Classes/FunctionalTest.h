@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "GameFramework/Actor.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
 #include "Math/RandomStream.h"
+#include "GameFramework/Actor.h"
+#include "ProfilingDebugging/ExternalProfiler.h"
 #include "FunctionalTest.generated.h"
 
+class Error;
 class UBillboardComponent;
 
 //Experimental effort at automated cpu captures from the functional testing.
@@ -291,6 +298,11 @@ public:
 
 public:
 
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Rendering")
+	//FQualityLevels
+
+public:
+
 	/** Called when the test is started */
 	UPROPERTY(BlueprintAssignable)
 	FFunctionalTestEventSignature OnTestStart;
@@ -556,7 +568,8 @@ protected:
 public:
 	FFunctionalTestDoneSignature TestFinishedObserver;
 
-protected:
+	// AG TEMP - solving a compile issue in a temp way to unblock the bui.d
+	UPROPERTY(Transient)
 	bool bIsRunning;
 
 	TArray<FString> Steps;

@@ -1,7 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
  
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Framework/SlateDelegates.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Styling/SlateTypes.h"
+#include "Framework/Views/TableViewTypeTraits.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/Layout/Overscroll.h"
+#include "Widgets/Views/SListView.h"
 
 /** Info needed by a (relatively) small fraction of the tree items; some of them may not be visible. */
 struct FSparseItemInfo
@@ -72,6 +84,8 @@ public:
 	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonDoubleClick FOnMouseButtonDoubleClick;
 	typedef typename TSlateDelegates< ItemType >::FOnExpansionChanged FOnExpansionChanged;
 
+	typedef typename TSlateDelegates< ItemType >::FOnItemToString_Debug FOnItemToString_Debug; 
+
 	using FOnWidgetToBeRemoved = typename SListView<ItemType>::FOnWidgetToBeRemoved;
 
 public:
@@ -91,7 +105,9 @@ public:
 		, _ExternalScrollbar()
 		, _ConsumeMouseWheel( EConsumeMouseWheel::WhenScrollingPossible )
 		, _AllowOverscroll(EAllowOverscroll::Yes)
-		, _WheelScrollMultiplier( WheelScrollAmount )
+		, _WheelScrollMultiplier(GetGlobalScrollAmount())
+		, _OnItemToString_Debug()
+		, _OnEnteredBadState()
 		{}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
@@ -132,6 +148,11 @@ public:
 
 		SLATE_ARGUMENT( float, WheelScrollMultiplier );
 
+		/** Assign this to get more diagnostics from the list view. */
+		SLATE_EVENT(FOnItemToString_Debug, OnItemToString_Debug)
+
+		SLATE_EVENT(FOnTableViewBadState, OnEnteredBadState);
+
 	SLATE_END_ARGS()
 
 		
@@ -160,6 +181,11 @@ public:
 		this->AllowOverscroll = InArgs._AllowOverscroll;
 
 		this->WheelScrollMultiplier = InArgs._WheelScrollMultiplier;
+
+		this->OnItemToString_Debug = InArgs._OnItemToString_Debug.IsBound()
+			? InArgs._OnItemToString_Debug
+			: SListView< ItemType >::GetDefaultDebugDelegate();
+		this->OnEnteredBadState = InArgs._OnEnteredBadState;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;

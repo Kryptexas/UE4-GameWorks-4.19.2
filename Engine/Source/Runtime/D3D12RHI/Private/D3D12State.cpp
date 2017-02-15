@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12State.cpp: D3D state implementation.
@@ -328,7 +328,7 @@ FGraphicsPipelineStateRHIRef FD3D12DynamicRHI::RHICreateGraphicsPipelineState(co
 	GraphicsDesc.SampleDesc.Quality = GetMaxMSAAQuality(Initializer.NumSamples);
 
 	// TODO: [PSO API] do we really have to make a new alloc or can we update the RHI to hold/convert to a FxxxRHIRef?
-	return new FD2D12GraphicsPipelineState(Initializer, PSOCache.FindGraphics(&GraphicsDesc));
+	return new FD3D12GraphicsPipelineState(Initializer, PSOCache.FindGraphics(&GraphicsDesc));
 }
 
 FD3D12SamplerState::FD3D12SamplerState(FD3D12Device* InParent, const D3D12_SAMPLER_DESC& Desc, uint16 SamplerID)

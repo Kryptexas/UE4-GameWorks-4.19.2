@@ -1,20 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IToolkit.h"	// For EToolkitMode
-#include "Ticker.h" 	// For automation to request assets to load
-#include "Messaging.h"
-#include "UnrealEdMessages.h"
-
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Containers/Ticker.h"
+#include "Framework/Docking/TabManager.h"
+#include "Toolkits/IToolkit.h"
+#include "IMessageContext.h"
 
 class FMessageEndpoint;
-class FReferenceCollector;
-class IMessageContext;
 class IToolkitHost;
-class SNotificationItem;
-class UObject;
-
+struct FAssetEditorRequestOpenAsset;
 
 /**
  * This class keeps track of a currently open asset editor; allowing it to be
@@ -143,6 +140,9 @@ private:
 
 	/** Restore the assets that were previously open when the editor was last closed */
 	void RestorePreviouslyOpenAssets();
+
+	/** Handles a package being reloaded */
+	void HandlePackageReloaded(const EPackageReloadPhase InPackageReloadPhase, FPackageReloadedEvent* InPackageReloadedEvent);
 
 private:
 

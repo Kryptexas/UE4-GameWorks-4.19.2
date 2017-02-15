@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "VisualizerEvents.h"
 
 class SBarVisualizer;
 class SEventsTree;
 class SRealtimeProfilerTimeline;
+class SSplitter;
 struct FRealtimeProfilerFPSChartFrame;
-struct FVisualizerEvent;
 
 class SRealtimeProfilerVisualizer : public SCompoundWidget
 {

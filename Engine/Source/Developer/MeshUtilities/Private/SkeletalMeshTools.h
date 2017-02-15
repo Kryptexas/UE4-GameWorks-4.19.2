@@ -1,7 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "PackedNormal.h"
+#include "GPUSkinPublicDefs.h"
+#include "SkeletalMeshTypes.h"
+
+class USkeletalMesh;
 
 // this is used for a sub-quadratic routine to find "equal" verts
 struct FSkeletalMeshVertIndexAndZ

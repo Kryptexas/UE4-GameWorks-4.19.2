@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AsyncPackage.h: Unreal async loading definitions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
 
 /** Helper class to set and restore serialized property on an archive */
 class FSerializedPropertyScope

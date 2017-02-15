@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // PlayerInput
@@ -7,11 +7,23 @@
 //~=============================================================================
 
 #pragma once
-#include "Components/InputComponent.h"
-#include "Engine/EngineTypes.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "InputCoreTypes.h"
+#include "UObject/ScriptMacros.h"
+#include "Framework/Commands/InputChord.h"
 #include "GestureRecognizer.h"
 #include "KeyState.h"
 #include "PlayerInput.generated.h"
+
+class FDebugDisplayInfo;
+class UInputComponent;
+struct FDelegateDispatchDetails;
+struct FInputActionBinding;
+struct FInputAxisBinding;
+struct FInputKeyBinding;
 
 /** Struct containing mappings for legacy method of binding keys to exec commands. */
 USTRUCT()

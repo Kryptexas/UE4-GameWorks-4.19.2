@@ -4,7 +4,7 @@ Crumbs:%ROOT%, Platforms, Platforms/HTML5
 Description:Setting up for development for the HTML5 platform.
 Version: 4.11
 SkillLevel: Intermediate
-type:quickstart
+type:quick start
 parent:Platforms/HTML5
 tags:HTML5
 

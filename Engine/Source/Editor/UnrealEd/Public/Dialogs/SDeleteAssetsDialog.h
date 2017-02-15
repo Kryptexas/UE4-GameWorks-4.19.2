@@ -1,12 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Developer/AssetTools/Public/IAssetTypeActions.h"
-#include "ContentBrowserDelegates.h"
-#include "AssetDeleteModel.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
 #include "AssetData.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Types/SlateStructs.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "AssetDeleteModel.h"
+#include "ContentBrowserDelegates.h"
 #include "AssetThumbnail.h"
+
+class FUICommandList;
+class SCheckBox;
+class SComboButton;
+class SWindow;
 
 /**
  * The dialog that appears to help users through the deletion process in the editor.

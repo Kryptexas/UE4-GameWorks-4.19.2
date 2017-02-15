@@ -1,16 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AVIWriter.cpp: AVI creation implementation.
 =============================================================================*/
-#include "EnginePrivate.h"
 #include "AVIWriter.h"
-#include "Engine/GameEngine.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/ScopeLock.h"
+#include "Async/Async.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAVIWriter, Log, All);
 
 #if PLATFORM_WINDOWS && !UE_BUILD_MINIMAL
 
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 typedef TCHAR* PTCHAR;
 #pragma warning(push)

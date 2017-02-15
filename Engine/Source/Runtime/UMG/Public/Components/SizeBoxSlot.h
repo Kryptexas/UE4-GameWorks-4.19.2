@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateWrapperTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
+#include "Layout/Margin.h"
+#include "Components/PanelSlot.h"
 
 #include "SizeBoxSlot.generated.h"
+
+class SBox;
 
 /** The Slot for the USizeBoxSlot, contains the widget displayed in a button's single slot */
 UCLASS()

@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // 
 // Public defines form the Engine
 
 #pragma once
+
+#include "CoreMinimal.h"
 
 /*-----------------------------------------------------------------------------
 	Configuration defines
@@ -22,32 +24,21 @@
 	#define WITH_APEX (1 && WITH_PHYSX)
 #endif
 
-/** 
- *   Whether or not compiling with Vehicle extensions to PhysX
- */
-#ifndef WITH_VEHICLE
-	#define WITH_VEHICLE (1 && WITH_PHYSX)
-#endif
-
 #ifndef WITH_PHYSICS_COOKING
 	#define WITH_PHYSICS_COOKING (WITH_EDITOR || WITH_APEX)		//APEX currently relies on cooking even at runtime
 #endif
 
-#if WITH_APEX
 #ifndef WITH_APEX_CLOTHING
 	#define WITH_APEX_CLOTHING	(1 && WITH_APEX)
 #endif // WITH_APEX_CLOTHING
 
 #ifndef WITH_APEX_LEGACY
-	#define WITH_APEX_LEGACY	1
+	#define WITH_APEX_LEGACY	(1 && WITH_APEX)
 #endif // WITH_APEX_LEGACY
-#endif // WITH_APEX
 
-#if WITH_APEX_CLOTHING
 #ifndef WITH_CLOTH_COLLISION_DETECTION
 	#define WITH_CLOTH_COLLISION_DETECTION (1 && WITH_APEX_CLOTHING)
 #endif//WITH_CLOTH_COLLISION_DETECTION
-#endif //WITH_APEX_CLOTHING
 
 #ifndef ENABLE_VISUAL_LOG
 	#define ENABLE_VISUAL_LOG (PLATFORM_DESKTOP && !NO_LOGGING && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))

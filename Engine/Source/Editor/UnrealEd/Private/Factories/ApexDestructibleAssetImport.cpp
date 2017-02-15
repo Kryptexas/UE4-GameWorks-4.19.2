@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ApexDestructibleAssetImport.cpp:
@@ -10,18 +10,23 @@
 
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "ApexDestructibleAssetImport.h"
+#include "Modules/ModuleManager.h"
+#include "SkeletalMeshTypes.h"
+#include "Engine/SkeletalMesh.h"
+#include "Materials/Material.h"
+#include "Factories/Factory.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Components/DestructibleComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogApexDestructibleAssetImport, Log, All);
 
-#include "Engine.h"
 #include "PhysicsPublic.h"
-#include "Engine/DestructibleFractureSettings.h"
-#include "TextureLayout.h"
 #include "SkelImport.h"
 #include "EditorPhysXSupport.h"
-#include "ApexDestructibleAssetImport.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "MeshUtilities.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 #include "ComponentReregisterContext.h"
 #include "Engine/DestructibleMesh.h"
 
@@ -46,7 +51,6 @@ extern bool ProcessImportMeshSkeleton(const USkeleton* SkeletonAsset, FReference
 
 // Temporary transform function, to be removed once the APEX SDK is updated
 #if USE_TEMPORARY_TRANSFORMATION_FUNCTION
-#include "NvParamUtils.h"
 
 static void ApplyTransformationToApexDestructibleAsset( apex::DestructibleAsset& ApexDestructibleAsset, const physx::PxMat44& Transform )
 {
@@ -1021,6 +1025,11 @@ UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InPa
 			{
 				LODModel.ReleaseResources();
 			}
+
+			// Although we flushed above to make sure the resources weren't being used, we need
+			// to flush again as the call to Empty below will call destructors on the lod models.
+			// The renderer must release the resources before that happens.
+			FlushRenderingCommands();
 
 			ImportedResource->LODModels.Empty(1);
 		}

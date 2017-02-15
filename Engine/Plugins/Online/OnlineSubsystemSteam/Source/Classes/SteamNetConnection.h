@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //
 // Steam sockets based implementation of a network connection used by the Steam net driver class
 //
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "IpConnection.h"
 #include "SteamNetConnection.generated.h"
 

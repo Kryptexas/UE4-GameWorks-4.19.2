@@ -14,7 +14,7 @@ version:4.9
 | ボタン / チェックボックス | 説明 |
 | --- | --- |
 |![](add_float_track_button.png) | スカラー浮動小数点値をアニメートするために浮動トラックを Timeline に新規に追加します。|
-|![](add_float_track_button.png) | 回転や平行移動などのベクター浮動小数点値をアニメートするためにベクター トラックを Timeline に新規に追加します。|
+|![](add_vector_track_button.png) | 回転や平行移動などのベクター浮動小数点値をアニメートするためにベクター トラックを Timeline に新規に追加します。|
 |![](add_event_track_button.png) | イベント トラックを追加することで、トラック上でキーフレーム時間でトリガーされる別の実行出力ピンを提供します。|
 |![](add_color_track_button.png)  | 色をアニメートするために線形カラー トラックを Timeline に新規に追加します。|
 | ![](add_external_curve_button.png)| 外部カーブを Timeline に追加します。このボタンは外部カーブが **コンテンツ ブラウザ** で選択されている場合のみアクティブになります。| 

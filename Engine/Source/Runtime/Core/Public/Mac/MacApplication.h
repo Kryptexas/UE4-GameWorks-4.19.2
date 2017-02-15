@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "GenericApplication.h"
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
@@ -191,6 +191,8 @@ public:
 	bool IsProcessingDeferredEvents() const { return bIsProcessingDeferredEvents; }
 
 	TSharedPtr<FMacWindow> FindWindowByNSWindow(FCocoaWindow* WindowHandle);
+	
+	void OnWindowWillResize(TSharedRef<FMacWindow> Window);
 
 	/** Queues a window for text layout invalidation when safe */
 	void InvalidateTextLayout(FCocoaWindow* Window);
@@ -198,6 +200,8 @@ public:
 	void ResetModifierKeys() { ModifierKeysFlags = 0; }
 
 	bool IsWorkspaceSessionActive() const { return bIsWorkspaceSessionActive; }
+
+	bool IsHighDPIModeEnabled() const { return bIsHighDPIModeEnabled; }
 
 	void SystemModalMode(bool const bInSystemModalMode) { bSystemModalMode = bInSystemModalMode; }
 
@@ -229,7 +233,7 @@ public:
 
 	static FVector2D CalculateScreenOrigin(NSScreen* Screen);
 
-	static int32 GetPrimaryScreenBackingScaleFactor();
+	static float GetPrimaryScreenBackingScaleFactor();
 
 private:
 
@@ -335,6 +339,8 @@ private:
 	TSharedPtr<FMacTextInputMethodSystem> TextInputMethodSystem;
 
 	bool bIsWorkspaceSessionActive;
+
+	bool bIsHighDPIModeEnabled;
 
 	/** Notification center observers */
 	id AppActivationObserver;

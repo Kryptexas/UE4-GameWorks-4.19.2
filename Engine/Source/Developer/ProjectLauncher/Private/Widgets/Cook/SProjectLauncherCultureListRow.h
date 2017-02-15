@@ -1,10 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Margin.h"
+#include "Models/ProjectLauncherModel.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Views/SListView.h"
 
 #define LOCTEXT_NAMESPACE "SProjectLauncherCultureListRow"
-
 
 /**
  * Implements a row widget for map list.

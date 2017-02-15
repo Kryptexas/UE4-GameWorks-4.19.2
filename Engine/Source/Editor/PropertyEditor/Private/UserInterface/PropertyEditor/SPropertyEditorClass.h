@@ -1,7 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "PropertyEditorConstants.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "Misc/Attribute.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Input/SComboButton.h"
+#include "EditorStyleSet.h"
+#include "Presentation/PropertyEditor/PropertyEditor.h"
+#include "UserInterface/PropertyEditor/PropertyEditorConstants.h"
 #include "PropertyCustomizationHelpers.h"
 
 /**
@@ -34,6 +45,10 @@ public:
 		SLATE_ARGUMENT(bool, AllowNone)
 		/** Attribute used to get the currently selected class (required if PropertyEditor == null) */
 		SLATE_ATTRIBUTE(const UClass*, SelectedClass)
+		/** Should we show the view options button at the bottom of the class picker?*/
+		SLATE_ARGUMENT(bool, ShowViewOptions)
+		/** Should we show the class picker in tree mode or list mode?*/
+		SLATE_ARGUMENT(bool, ShowTree)
 		/** Delegate used to set the currently selected class (required if PropertyEditor == null) */
 		SLATE_EVENT(FOnSetClass, OnSetClass)
 	SLATE_END_ARGS()
@@ -87,6 +102,10 @@ private:
 	bool bAllowNone;
 	/** Should only placeable classes be displayed? */
 	bool bAllowOnlyPlaceable;
+	/** Should we show the view options button at the bottom of the class picker?*/
+	bool bShowViewOptions;
+	/** Should we show the class picker in tree mode or list mode?*/
+	bool bShowTree;
 
 	/** Attribute used to get the currently selected class (required if PropertyEditor == null) */
 	TAttribute<const UClass*> SelectedClass;

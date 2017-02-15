@@ -1,6 +1,5 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Animation/PreviewAssetAttachComponent.h"
 
 void FPreviewAssetAttachContainer::AddAttachedObject( UObject* AttachObject, FName AttachPointName )
@@ -15,7 +14,7 @@ void FPreviewAssetAttachContainer::AddUniqueAttachedObject(UObject* AttachObject
 {
 	for (const FPreviewAttachedObjectPair& AttachedObject : AttachedObjects)
 	{
-		if (AttachedObject.AttachedTo == AttachPointName)
+		if (AttachedObject.GetAttachedObject() == AttachObject && AttachedObject.AttachedTo == AttachPointName)
 		{
 			return;
 		}

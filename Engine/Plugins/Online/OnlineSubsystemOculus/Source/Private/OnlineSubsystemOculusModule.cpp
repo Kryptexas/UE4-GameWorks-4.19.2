@@ -1,6 +1,7 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemOculusPrivatePCH.h"
+#include "OnlineSubsystemOculusModule.h"
+#include "OnlineSubsystemOculusPrivate.h"
 
 // FOnlineSubsystemOculusModule
 

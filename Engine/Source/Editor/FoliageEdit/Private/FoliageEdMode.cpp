@@ -1,39 +1,44 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "StaticMeshResources.h"
-#include "ObjectTools.h"
 #include "FoliageEdMode.h"
+#include "SceneView.h"
+#include "EditorViewportClient.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "FoliageType.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "StaticMeshResources.h"
+#include "FoliageInstancedStaticMeshComponent.h"
+#include "InstancedFoliageActor.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Materials/Material.h"
+#include "Engine/CollisionProfile.h"
+#include "Engine/StaticMeshActor.h"
+#include "Components/ModelComponent.h"
+#include "Misc/ConfigCacheIni.h"
+#include "EngineUtils.h"
+#include "EditorModeManager.h"
+#include "FileHelpers.h"
 #include "ScopedTransaction.h"
 
 #include "FoliageEdModeToolkit.h"
-#include "ModuleManager.h"
-#include "Editor/LevelEditor/Public/LevelEditor.h"
+#include "LevelEditor.h"
 #include "Toolkits/ToolkitManager.h"
 #include "FoliageEditActions.h"
 
-#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
+#include "AssetRegistryModule.h"
 
 //Slate dependencies
-#include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "Editor/LevelEditor/Public/SLevelViewport.h"
-#include "Editor/UnrealEd/Public/Dialogs/DlgPickAssetPath.h"
+#include "ILevelViewport.h"
+#include "Dialogs/DlgPickAssetPath.h"
 
 // Classes
-#include "InstancedFoliageActor.h"
-#include "FoliageType.h"
-#include "LandscapeProxy.h"
+#include "LandscapeInfo.h"
 #include "LandscapeComponent.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
-#include "LandscapeInfo.h"
 #include "Components/SplineMeshComponent.h"
-#include "Engine/StaticMeshActor.h"
-#include "GameFramework/WorldSettings.h"
-#include "Engine/CollisionProfile.h"
-#include "Components/ModelComponent.h"
-#include "EngineUtils.h"
-#include "LandscapeDataAccess.h"
-#include "FoliageType_InstancedStaticMesh.h"
 #include "Components/BrushComponent.h"
 
 // VR Editor
@@ -352,14 +357,18 @@ void FEdModeFoliage::Enter()
 	NotifyNewCurrentLevel();
 
 	// Register for VR input events
-	UViewportWorldInteraction* ViewportWorldInteraction = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld())->GetViewportWorldInteraction();
-	if (ViewportWorldInteraction != nullptr)
+	TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
+	if (EditorWorldWrapper.IsValid())
 	{
-		ViewportWorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
-		ViewportWorldInteraction->OnViewportInteractionInputAction().AddRaw(this, &FEdModeFoliage::OnVRAction);
+		UViewportWorldInteraction* WorldInteraction = EditorWorldWrapper->GetViewportWorldInteraction();
+		if (WorldInteraction != nullptr)
+		{
+			WorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
+			WorldInteraction->OnViewportInteractionInputAction().AddRaw(this, &FEdModeFoliage::OnVRAction);
 
-		ViewportWorldInteraction->OnViewportInteractionHoverUpdate().RemoveAll(this);
-		ViewportWorldInteraction->OnViewportInteractionHoverUpdate().AddRaw(this, &FEdModeFoliage::OnVRHoverUpdate);
+			WorldInteraction->OnViewportInteractionHoverUpdate().RemoveAll(this);
+			WorldInteraction->OnViewportInteractionHoverUpdate().AddRaw(this, &FEdModeFoliage::OnVRHoverUpdate);
+		}
 	}
 }
 
@@ -367,25 +376,17 @@ void FEdModeFoliage::Enter()
 void FEdModeFoliage::Exit()
 {
 	// Unregister VR mode from event handlers
-	if (IVREditorModule::IsAvailable() && GEditor != nullptr)
+	if (IVREditorModule::IsAvailable())
 	{
-		// Because it is unknown if the mode entered with a play or editor mode we have to do this for both
-		for (int i = 0; i < 2; i++)
+		TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld(), false);
+		if (EditorWorldWrapper.IsValid())
 		{
-			UWorld* World = i == 0 ? GEditor->PlayWorld : GEditor->EditorWorld;
-			if (World != nullptr)
+			UViewportWorldInteraction* WorldInteraction = EditorWorldWrapper->GetViewportWorldInteraction();
+			if (WorldInteraction != nullptr)
 			{
-				TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(World);
-				if (EditorWorldWrapper.IsValid())
-				{
-					UViewportWorldInteraction* WorldInteraction = EditorWorldWrapper->GetViewportWorldInteraction();
-					if (WorldInteraction != nullptr)
-					{
-						WorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
-						WorldInteraction->OnViewportInteractionHoverUpdate().RemoveAll(this);
-						FoliageInteractor = nullptr;
-					}
-				}
+				WorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
+				WorldInteraction->OnViewportInteractionHoverUpdate().RemoveAll(this);
+				FoliageInteractor = nullptr;
 			}
 		}
 	}
@@ -449,41 +450,38 @@ void FEdModeFoliage::Exit()
 void FEdModeFoliage::OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled)
 {
 	// Check if VR Editor is active
-	if (IVREditorModule::IsAvailable())
+	if (IVREditorModule::Get().IsVREditorModeActive())
 	{
-		TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
-		if (EditorWorldWrapper.IsValid())
+		UVREditorMode* VREditorMode = IVREditorModule::Get().GetVREditorMode();
+		if (VREditorMode != nullptr && VREditorMode->IsFullyInitialized())
 		{
-			UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient.GetWorld())->GetVREditorMode();
-			if (VREditorMode != nullptr && VREditorMode->IsFullyInitialized())
+			// Check if we're hovering over UI. If so, stop painting so we don't display the preview brush sphere
+			if (FoliageInteractor && FoliageInteractor->IsHoveringOverPriorityType())
 			{
-				// Check if we're hovering over UI. If so, stop painting so we don't display the preview brush sphere
-				if (FoliageInteractor && FoliageInteractor->IsHoveringOverPriorityType())
-				{
-					EndFoliageBrushTrace();
-					FoliageInteractor = nullptr;
-				}
-				// If there isn't currently a foliage interactor and we are hovering over something valid
-				else if (FoliageInteractor == nullptr && Interactor->GetHitResultFromLaserPointer().GetActor() != nullptr)
-				{
-					FoliageInteractor = Interactor;
-				}
-				// If we aren't hovering over something valid and the tool isn't active
-				else if (Interactor->GetHitResultFromLaserPointer().GetActor() == nullptr && !bToolActive)
-				{
-					FoliageInteractor = nullptr;
-				}
+				EndFoliageBrushTrace();
+				FoliageInteractor = nullptr;
+			}
+			// If there isn't currently a foliage interactor and we are hovering over something valid
+			else if (FoliageInteractor == nullptr && Interactor->GetHitResultFromLaserPointer().GetActor() != nullptr)
+			{
+				FoliageInteractor = Interactor;
+			}
+			// If we aren't hovering over something valid and the tool isn't active
+			else if (Interactor->GetHitResultFromLaserPointer().GetActor() == nullptr && !bToolActive)
+			{
+				FoliageInteractor = nullptr;
+			}
 
-				// Skip other interactors if we are painting with one
-				if (FoliageInteractor && Interactor == FoliageInteractor)
+			// Skip other interactors if we are painting with one
+			if (FoliageInteractor && Interactor == FoliageInteractor)
+			{
+				// Go ahead and paint immediately
+				FVector LaserPointerStart, LaserPointerEnd;
+				if (FoliageInteractor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
 				{
-					// Go ahead and paint immediately
-					FVector LaserPointerStart, LaserPointerEnd;
-					if (FoliageInteractor->GetLaserPointer(/* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
-					{
-						const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
-						FoliageBrushTrace(&ViewportClient, LaserPointerStart, LaserPointerDirection);
-					}
+					const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
+
+					FoliageBrushTrace(&ViewportClient, LaserPointerStart, LaserPointerDirection);
 				}
 			}
 		}
@@ -492,10 +490,9 @@ void FEdModeFoliage::OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UVie
 
 void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, const FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled)
 {
-	TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
-	if (EditorWorldWrapper.IsValid())
+	if (IVREditorModule::Get().IsVREditorModeActive())
 	{
-		UVREditorMode* VREditorMode = EditorWorldWrapper->GetVREditorMode();
+		UVREditorMode* VREditorMode = IVREditorModule::Get().GetVREditorMode();
 		if (VREditorMode != nullptr && Interactor != nullptr)
 		{
 			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
@@ -503,13 +500,13 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 			// Only allow light press
 			Interactor->SetAllowTriggerFullPress(false);
 			// Consume light press
-			if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed)
+			if ((Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed) && (!VREditorMode->IsShowingRadialMenu(VRInteractor)))
 			{
-				if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverPriorityType())
+				if ((Action.Event == IE_Pressed) && (!VRInteractor->IsHoveringOverPriorityType()))
 				{
 					// Go ahead and paint immediately
 					FVector LaserPointerStart, LaserPointerEnd;
-					if (Interactor->GetLaserPointer(/* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
+					if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
 					{
 						const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
 						BrushTraceDirection = LaserPointerDirection;
@@ -566,13 +563,14 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 
 								// @todo vreditor: we currently don't have a key mapping scheme to snap selected instances to ground 
 								// SnapSelectedInstancesToGround(GetWorld());
+
 							}
 						}
 					}
 				}
 
 				// Stop current tracking if the user is no longer painting
-				else if (Action.Event == IE_Released && FoliageInteractor && FoliageInteractor == Interactor)
+				else if (Action.Event == IE_Released && FoliageInteractor && (FoliageInteractor == Interactor))
 				{
 					EndFoliageBrushTrace();
 					FoliageInteractor = nullptr;
@@ -771,7 +769,15 @@ void FEdModeFoliage::StartFoliageBrushTrace(FEditorViewportClient* ViewportClien
 		}
 		PreApplyBrush();
 		ApplyBrush(ViewportClient);
-		bToolActive = true;
+
+		if (UISettings.IsInAnySingleInstantiationMode())
+		{
+			EndFoliageBrushTrace();
+		}
+		else
+		{
+			bToolActive = true;
+		}
 	}
 }
 
@@ -809,6 +815,7 @@ void FEdModeFoliage::FoliageBrushTrace(FEditorViewportClient* ViewportClient, co
 					{
 						// Adjust the brush location
 						BrushLocation = Hit.Location;
+						BrushNormal = Hit.Normal;
 					}
 
 					// Still want to draw the brush when resizing
@@ -832,21 +839,7 @@ void FEdModeFoliage::FoliageBrushTrace(FEditorViewportClient* ViewportClient, co
 bool FEdModeFoliage::MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY)
 {
 	// Use mouse capture if there's no other interactor currently tracing brush
-	bool bVREditorActive = false;
-	if (GetWorld() != nullptr)
-	{
-		TSharedPtr < FEditorWorldWrapper > EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
-		if (EditorWorldWrapper.IsValid())
-		{
-			UVREditorMode* VREditorMode = EditorWorldWrapper->GetVREditorMode();
-			if (VREditorMode != nullptr && VREditorMode->IsActive())
-			{
-				bVREditorActive = true;
-			}
-		}
-	}
-
-	if (!bVREditorActive)
+	if (!IVREditorModule::Get().IsVREditorModeActive())
 	{
 		// Compute a world space ray from the screen space mouse coordinates
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -883,21 +876,7 @@ bool FEdModeFoliage::MouseMove(FEditorViewportClient* ViewportClient, FViewport*
 bool FEdModeFoliage::CapturedMouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY)
 {
 	// Use mouse capture if there's no other interactor currently tracing brush
-	bool bVREditorActive = false;
-	if (GetWorld() != nullptr)
-	{
-		TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
-		if (EditorWorldWrapper.IsValid())
-		{
-			UVREditorMode* VREditorMode = EditorWorldWrapper->GetVREditorMode();
-			if (VREditorMode != nullptr && VREditorMode->IsActive())
-			{
-				bVREditorActive = true;
-			}
-		}
-	}
-
-	if (!bVREditorActive)
+	if (!IVREditorModule::Get().IsVREditorModeActive())
 	{
 		//Compute a world space ray from the screen space mouse coordinates
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -927,16 +906,16 @@ void FEdModeFoliage::GetRandomVectorInBrush(FVector& OutStart, FVector& OutEnd)
 	float Ru = (2.f * FMath::FRand() - 1.f);
 	float Rv = (2.f * FMath::FRand() - 1.f) * FMath::Sqrt(1.f - FMath::Square(Ru));
 
-	// find random point in circle through brush location parallel to screen surface
+	// find random point in circle through brush location on the same plane to brush location hit surface normal
 	FVector U, V;
-	BrushTraceDirection.FindBestAxisVectors(U, V);
+	BrushNormal.FindBestAxisVectors(U, V);
 	FVector Point = Ru * U + Rv * V;
 
 	// find distance to surface of sphere brush from this point
-	FVector Rw = FMath::Sqrt(1.f - (FMath::Square(Ru) + FMath::Square(Rv))) * BrushTraceDirection;
+	FVector Rw = FMath::Sqrt(1.f - (FMath::Square(Ru) + FMath::Square(Rv))) * BrushNormal;
 
-	OutStart = BrushLocation + UISettings.GetRadius() * (Point - Rw);
-	OutEnd = BrushLocation + UISettings.GetRadius() * (Point + Rw);
+	OutStart = BrushLocation + UISettings.GetRadius() * (Point + Rw);
+	OutEnd = BrushLocation + UISettings.GetRadius() * (Point - Rw);
 }
 
 static bool IsWithinSlopeAngle(float NormalZ, float MinAngle, float MaxAngle, float Tolerance = SMALL_NUMBER)
@@ -1284,10 +1263,10 @@ void FEdModeFoliage::AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageI
 	}
 }
 
-static void SpawnFoliageInstance(UWorld* InWorld, const UFoliageType* Settings, const FFoliageInstance& Instance, UActorComponent* BaseComponent)
+static void SpawnFoliageInstance(UWorld* InWorld, const UFoliageType* Settings, const FFoliageUISettings* UISettings, const FFoliageInstance& Instance, UActorComponent* BaseComponent)
 {
 	// We always spawn instances in base component level
-	ULevel* TargetLevel = BaseComponent->GetComponentLevel();
+	ULevel* TargetLevel = (UISettings != nullptr && UISettings->GetIsInSpawnInCurrentLevelMode()) ? InWorld->GetCurrentLevel() : BaseComponent->GetComponentLevel();
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(TargetLevel, true);
 
 	FFoliageMeshInfo* MeshInfo;
@@ -1350,10 +1329,28 @@ void FEdModeFoliage::AddInstancesImp(UWorld* InWorld, const UFoliageType* Settin
 			{
 				Inst.ProceduralGuid = PotentialInstance.DesiredInstance.ProceduralGuid;
 
-				SpawnFoliageInstance(InWorld, Settings, Inst, PotentialInstance.HitComponent);
+				SpawnFoliageInstance(InWorld, Settings, UISettings, Inst, PotentialInstance.HitComponent);
 			}
 		}
 	}
+}
+
+void FEdModeFoliage::AddSingleInstanceForBrush(UWorld* InWorld, const UFoliageType* Settings, float Pressure)
+{
+	TArray<FDesiredFoliageInstance> DesiredInstances;
+	DesiredInstances.Reserve(1);
+
+	// Simply generate a start/end around the brush location so the line check will hit the brush location
+	FVector Start = BrushLocation + BrushNormal;
+	FVector End = BrushLocation - BrushNormal;
+
+	FDesiredFoliageInstance* DesiredInstance = new (DesiredInstances)FDesiredFoliageInstance(Start, End);
+
+	// We do not apply the density limitation based on the brush size
+	TArray<int32> ExistingInstanceBuckets;
+	ExistingInstanceBuckets.AddZeroed(NUM_INSTANCE_BUCKETS);
+
+	AddInstancesImp(InWorld, Settings, DesiredInstances, ExistingInstanceBuckets, Pressure, &LandscapeLayerCaches, &UISettings);
 }
 
 /** Add instances inside the brush to match DesiredInstanceCount */
@@ -1774,6 +1771,11 @@ void FEdModeFoliage::SelectInvalidInstances(const UFoliageType* Settings)
 
 void FEdModeFoliage::AdjustBrushRadius(float Adjustment)
 {
+	if (UISettings.IsInAnySingleInstantiationMode())
+	{
+		return;
+	}
+
 	const float CurrentBrushRadius = UISettings.GetRadius();
 
 	if (Adjustment > 0.f)
@@ -1784,7 +1786,6 @@ void FEdModeFoliage::AdjustBrushRadius(float Adjustment)
 	{
 		UISettings.SetRadius(FMath::Max(CurrentBrushRadius + Adjustment, 0.f));
 	}
-
 }
 
 void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, float Pressure)
@@ -2217,12 +2218,19 @@ void FEdModeFoliage::ApplyBrush(FEditorViewportClient* ViewportClient)
 			}
 			else
 			{
-				// This is the total set of instances disregarding parameters like slope, height or layer.
-				float DesiredInstanceCountFloat = BrushArea * Settings->Density * UISettings.GetPaintDensity() / (1000.f*1000.f);
-				// Allow a single instance with a random chance, if the brush is smaller than the density
-				int32 DesiredInstanceCount = DesiredInstanceCountFloat > 1.f ? FMath::RoundToInt(DesiredInstanceCountFloat) : FMath::FRand() < DesiredInstanceCountFloat ? 1 : 0;
+				if (UISettings.IsInAnySingleInstantiationMode())
+				{
+					AddSingleInstanceForBrush(World, Settings, Pressure);
+				}
+				else
+				{
+					// This is the total set of instances disregarding parameters like slope, height or layer.
+					float DesiredInstanceCountFloat = BrushArea * Settings->Density * UISettings.GetPaintDensity() / (1000.f*1000.f);
+					// Allow a single instance with a random chance, if the brush is smaller than the density
+					int32 DesiredInstanceCount = DesiredInstanceCountFloat > 1.f ? FMath::RoundToInt(DesiredInstanceCountFloat) : FMath::FRand() < DesiredInstanceCountFloat ? 1 : 0;
 
-				AddInstancesForBrush(World, Settings, BrushSphere, DesiredInstanceCount, Pressure);
+					AddInstancesForBrush(World, Settings, BrushSphere, DesiredInstanceCount, Pressure);
+				}
 			}
 		}
 
@@ -2455,7 +2463,7 @@ void FEdModeFoliage::ApplyPaintBucket_Add(AActor* Actor)
 			FFoliageInstance Inst;
 			if (PotentialInstance.PlaceInstance(World, Settings, Inst))
 			{
-				SpawnFoliageInstance(World, Settings, Inst, PotentialInstance.HitComponent);
+				SpawnFoliageInstance(World, Settings, &UISettings, Inst, PotentialInstance.HitComponent);
 			}
 		}
 
@@ -3156,6 +3164,14 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 
 				bHandled = true;
 			}
+		}
+		else if (Key == EKeys::I && Event == IE_Released)
+		{
+			UISettings.SetIsInQuickSingleInstantiationMode(false);
+		}
+		else if (Key == EKeys::I && Event == IE_Pressed)
+		{
+			UISettings.SetIsInQuickSingleInstantiationMode(true);
 		}
 	}
 

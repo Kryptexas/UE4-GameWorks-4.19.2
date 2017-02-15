@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:1. Character Setup
+﻿INTSourceChangelist:3108692
+Availability: Public
+Title:1. 캐릭터 구성
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:Here we add the Widget Interaction component to our character and create the other assets we will need. 
+Description:여기서는 캐릭터에 Widget Interaction 컴포넌트를 추가하고 필요한 다른 애셋을 생성합니다.
 Version: 4.13
 SkillLevel: Advanced
 
@@ -13,52 +13,43 @@ SkillLevel: Advanced
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Creating Virtual Keyboards](Engine\UMG\HowTo\VirtualKeyboards)
+		[가상 키보드 생성](Engine\UMG\HowTo\VirtualKeyboards)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup "%Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup:title%")
+		[다음 단계](Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup "%Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-In this step we prep our project and add the **Widget Interaction** component to our player character so we can interact with 3D widgets. 
+여기서는 프로젝트를 준비하고 플레이어 캐릭터에 **Widget Interaction** 컴포넌트를 추가하여 플레이어 캐릭터가 3D 위젯 상호작용이 가능하도록 만들 것입니다.
 
 [REGION:note]
-For this how-to, we are using the **Blueprint First Person Template** with **Starter Content** enabled. 
+여기서는 **블루프린트 일인칭 템플릿** 에 **시작용 콘텐츠** 를 포함시킨 것을 사용하고 있습니다.
 [/REGION]
 
-## Steps
+## 단계
 
-1.	Inside the **Content/FirstPersonBP/Blueprints** folder, open the **FirstPersonCharacter** Blueprint. 
+1.	**Content/FirstPersonBP/Blueprints** 폴더에서 **FirstPersonCharacter** 블루프린트를 엽니다.
 
-1.	Add a **WidgetInteraction** component attached to the **Sphere** then zero out the **Location** and **Show Debug** in the **Details** panel. 
+1.	**WidgetInteraction** 컴포넌트를 추가하여 **Sphere** 에 붙이고, **디테일** 패널에서 **위치** 와 **Show Debug** (디버그 표시)를 초기화시킵니다. 이제 게임내에서 디버그 마커로 나타나는 총을 플레이어가 가리키고 있는 방향으로 Widget Interaction 컴포넌트가 향하게 됩니다.
 
 	![](Keypad01.png)
 
-	Our Widget Interaction component will now point in the direction that player points the gun indicated in-game by a debug marker.
+1.	**그래프** 에서 **Right Mouse Button** 이벤트를 추가한 뒤 **Widget Interaction** 컴포넌트를 끌어 놓습니다.
 
-1.	In the **Graph**, add a **Right Mouse Button** Event and drag in the **Widget Interaction** Component. 
+1.	**Widget Interaction** 을 끌어 놓고 **Press Pointer Key** 와 **Release Pointer Key** 를 추가, 둘 다 **Left Mouse Button** 으로 설정한 뒤 아래와 같이 연결합니다. 위젯은 좌클릭 또는 터치 콘트롤을 통해 마우스/터치 상호작용에 반응하는데, 그러한 시뮬레이션에는 **Press Pointer Key** 함수를 사용합니다. 예제에서는 **Right Mouse Button** 으로 왼쪽 마우스 버튼 클릭을 시뮬레이션하고 있지만, 게임패드 버튼 심지어 모션 컨트롤러 트리거 누름으로도 Press Pointer Key 함수를 발동시킬 수 있습니다.
 
-1.	Off **Widget Interaction** add **Press Pointer Key** and **Release Pointer Key** both set to **Left Mouse Button** and connect as shown. 
+	![](Keypad02.png) 
 
-	![](Keypad02.png)
+1.	**콘텐츠 브라우저** 에서 **액터** 기반 **클래스 블루프린트** 를 둘 만듭니다. 하나는 (키패드 입력을 나타내기 위한) **Keypad** 라 하고, 다른 하나는 (Keypad 에서 입력한 값을 나타내고 표시하기 위한) **KeypadDisplay** 라 합니다. 위젯 블루프린트의 경우 액터 블루프린트와 같은 이름을 사용하지만, 구별을 위해 접미사를 (Widget Blueprint 앞자를 따서) **WB** 라 붙여줍니다.
 
-	Widgets respond to mouse/touch interaction via Left Mouse Button click or touch controls and we can simulate that using the **Press Pointer Key** function. 
-	In our example we use the **Right Mouse Button** to simulate a Left Mouse Button click, however you could use a gamepad button press or even Motion Controller Trigger press to fire off the Press Pointer Key function. 
-
-1.	In the **Content Browser** create two **Class Blueprints** based on **Actor** and two **Widget Blueprints**. 
-
-	![](Keypad03.png)
-
-	For the two Actor Blueprints, call one **Keypad** (to represent the keypad entry) and the other **KeypadDisplay** (to represent and display the values entered from the Keypad). 
-	For the Widget Blueprints use the same names as the Actor Blueprints however to distinguish them, suffix them with **WB** (for Widget Blueprint). 
+	![](Keypad03.png) 
 
 
-## End Result
+## 최종 결과
 
-Our project is ready to go and our character can interact with Widgets in the world, next we'll set up our interactive Widgets. 
+프로젝트 준비가 완료되어 캐릭터가 월드의 위젯과 상호작용할 수 있게 되었습니다. 다음에는 상호작용형 위젯을 구성해 보도록 하겠습니다.
 
 %Steps%
-

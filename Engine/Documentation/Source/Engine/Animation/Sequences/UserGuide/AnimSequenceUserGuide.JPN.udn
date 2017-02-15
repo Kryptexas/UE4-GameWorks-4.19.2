@@ -1,24 +1,32 @@
-﻿INTSourceChangelist:2670934
+﻿INTSourceChangelist:3226913
 Availability:Public
-Title:Animation Sequence (アニメーション シーケンス) のユーザーガイド
+Title:アニメーション シーケンスのユーザーガイド
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
 Description:AnimBlueprint にアニメーション シーケンスを配置し、サンプリングするためのガイド
-version: 4.9
+Related:Engine/Animation/AnimBlueprints/AnimGraph
+Related:Engine/Animation/AnimBlueprints/EventGraph
+Related:Engine/Animation/AnimBlueprints
+Related:Engine/Animation/Sequences
+version:4.14
+type:reference
+tags:Animation
+
+
 
 [EXCERPT:Intro]
-**AnimationSequence** の再生はコードから実行できますが、通常は SkeletalMeshComponent に適用された  
-Animation Blueprint インスタンス内で処理されます。Animation Blueprint が作成された Skeleton の全ての 
- **AnimationSequence** は、 AnimGraph 内でサンプリング可能です。これらは、出力が **AnimationSequence** をサンプリングすることによって生成されたポーズである 
-シーケンスプレイヤー ノードとして配置できます。
+**アニメーション シーケンス** の再生はコードから実行できますが、通常は Skeletal Mesh コンポーネントに適用された
+Animation ブループリントのインスタンス内で処理されます。Animation ブループリントが作成されたスケルトンの全ての 
+**アニメーション シーケンス** は、 AnimGraph 内でサンプリング可能です。 
+これらはシーケンスプレイヤー ノードとして配置可能であり、その出力はアニメーション シーケンスをサンプリングすることによって生成されるポーズです。
 [/EXCERPT:Intro]
 
-**シーケンスプレイヤーを配置するには、以下の手順に従います。**
+**シーケンス プレイヤーを配置するには、以下の手順に従います。**
 
-1. **Animation Graph** 内で右クリックして、 **Animations** カテゴリを展開します。
+1. [Animation ブループリント](Engine/Animation/AnimBlueprints) の Animation Graph 内で **右クリック** して、 **Animations ** カテゴリを展開します。
 
 	![Using Animation Sequences - List](CE_anim_list.png)
 
-1. サンプリングする AnimationSequence をリストから選択します。ノードがシーケンスのためにグラフに配置されます。
+1. サンプリングするアニメーション シーケンスをリストから選択します。ノードがシーケンスのためにグラフに配置されます。
 
 	![Using Animation Sequences - Node](CE_anim_node.png)
 

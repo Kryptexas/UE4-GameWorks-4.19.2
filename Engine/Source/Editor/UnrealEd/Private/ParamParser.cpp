@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParamParser.cpp: Functions to help parse commands.
@@ -9,7 +9,11 @@
 	to Visual Basic.
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "CoreTypes.h"
+#include "Logging/LogMacros.h"
+#include "Misc/Parse.h"
+#include "Math/Vector.h"
+#include "Math/Rotator.h"
 
 /*-----------------------------------------------------------------------------
 	Getters.

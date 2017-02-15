@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderTargetPool.h: Scene render target pool manager.
@@ -6,8 +6,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RHI.h"
+#include "RenderResource.h"
 #include "RendererInterface.h"
 #include "VisualizeTexture.h"
+
+class FViewInfo;
 
 /** The reference to a pooled render target, use like this: TRefCountPtr<IPooledRenderTarget> */
 struct FPooledRenderTarget : public IPooledRenderTarget

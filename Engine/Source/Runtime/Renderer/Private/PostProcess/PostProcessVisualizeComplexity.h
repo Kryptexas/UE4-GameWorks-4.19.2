@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessVisualizeComplexity.h: PP pass used when visualizing complexity, maps scene color complexity value to colors
@@ -6,7 +6,13 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "GlobalShader.h"
+#include "RendererInterface.h"
+#include "PostProcessParameters.h"
+#include "PostProcess/RenderingCompositionGraph.h"
 
 /**
 * The number of shader complexity colors from the engine ini that will be passed to the shader. 

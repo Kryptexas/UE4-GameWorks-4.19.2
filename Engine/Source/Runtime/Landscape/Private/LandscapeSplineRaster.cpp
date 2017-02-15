@@ -1,20 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LandscapeSplineRaster.cpp:
 	Functions to rasterize a spline into landscape heights/weights
   =============================================================================*/
 
-#include "LandscapePrivatePCH.h"
 #include "LandscapeSplineRaster.h"
+#include "LandscapeProxy.h"
+#include "LandscapeInfo.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "LandscapeComponent.h"
+#include "LandscapeLayerInfoObject.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeEdit.h"
-#include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeSplinesComponent.h"
 #include "LandscapeSplineControlPoint.h"
-#include "LandscapeSplineSegment.h"
 #if WITH_EDITOR
-#include "AI/Navigation/NavigationSystem.h"
 #include "ScopedTransaction.h"
 #include "Raster.h"
 #endif

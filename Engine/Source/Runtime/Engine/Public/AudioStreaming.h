@@ -1,10 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 AudioStreaming.h: Definitions of classes used for audio streaming.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Containers/IndirectArray.h"
+#include "Stats/Stats.h"
+#include "ContentStreaming.h"
+#include "Async/AsyncWork.h"
+#include "Async/AsyncFileHandle.h"
+
+class FSoundSource;
+class USoundWave;
+struct FWaveInstance;
 
 /** Lists possible states used by Thread-safe counter. */
 enum EAudioStreamingState
@@ -83,21 +95,15 @@ struct FWaveRequest
 struct FLoadedAudioChunk
 {
 	uint8*	Data;
-#if USE_NEW_ASYNC_IO
 	class IAsyncReadRequest* IORequest;
-#else
 	int32	MemorySize; 
-#endif
 	int32	DataSize;
 	uint32	Index;
 
 	FLoadedAudioChunk()
 		: Data(nullptr)
-#if USE_NEW_ASYNC_IO
 		, IORequest(nullptr)
-#else
 		, MemorySize(0)
-#endif
 		, DataSize(0)
 		, Index(0)
 	{
@@ -149,7 +155,6 @@ struct FStreamingWaveData final
 	 */
 	void BeginPendingRequests(const TArray<uint32>& IndicesToLoad, const TArray<uint32>& IndicesToFree);
 
-#if USE_NEW_ASYNC_IO
 	/**
 	* Blocks till all pending requests are fulfilled.
 	*
@@ -157,7 +162,6 @@ struct FStreamingWaveData final
 	* @return				Return true if there are no requests left in flight, false if the time limit was reached before they were finished.
 	*/
 	bool BlockTillAllRequestsFinished(float TimeLimit = 0.0f);
-#endif
 
 #if WITH_EDITORONLY_DATA
 	/**
@@ -186,13 +190,11 @@ public:
 	/* Contains pointers to Chunks of audio data that have been streamed in */
 	TArray<FLoadedAudioChunk> LoadedChunks;
 
-#if USE_NEW_ASYNC_IO
 	class IAsyncReadFileHandle* IORequestHandle;
 	FAsyncFileCallBack AsyncFileCallBack;
-#else
+
 	/** Potentially outstanding audio chunk I/O requests */
 	TArray<uint64>	IORequestIndices;
-#endif
 
 	/** Indices of chunks that are currently loaded */
 	TArray<uint32>	LoadedChunkIndices;
@@ -235,7 +237,7 @@ struct FAudioStreamingManager : public IAudioStreamingManager
 	virtual void AddStreamingSoundSource(FSoundSource* SoundSource) override;
 	virtual void RemoveStreamingSoundSource(FSoundSource* SoundSource) override;
 	virtual bool IsManagedStreamingSoundSource(const FSoundSource* SoundSource) const override;
-	virtual const uint8* GetLoadedChunk(const USoundWave* SoundWave, uint32 ChunkIndex) const override;
+	virtual const uint8* GetLoadedChunk(const USoundWave* SoundWave, uint32 ChunkIndex, uint32* OutChunkSize = NULL) const override;
 	// End IAudioStreamingManager interface
 
 protected:

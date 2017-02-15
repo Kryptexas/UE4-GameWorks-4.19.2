@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  	CoreAudioSource.cpp: Unreal CoreAudio source interface object.
@@ -10,7 +10,6 @@
 
 #include "CoreAudioDevice.h"
 #include "CoreAudioEffects.h"
-#include "Engine.h"
 
 #define AUDIO_DISTANCE_FACTOR ( 0.0127f )
 
@@ -90,10 +89,15 @@ void FCoreAudioSoundSource::FreeResources( void )
 	if( bStreamedSound )
 	{
 		// ... free the buffers
-		FMemory::Free( ( void* )CoreAudioBuffers[0].AudioData );
-		FMemory::Free( ( void* )CoreAudioBuffers[1].AudioData );
-		FMemory::Free( ( void* )CoreAudioBuffers[2].AudioData );
-		
+		for (int32 Index = 0; Index < 3; Index++)
+		{
+			if (CoreAudioBuffers[Index].AudioData)
+			{
+				FMemory::Free((void*)CoreAudioBuffers[Index].AudioData);
+				CoreAudioBuffers[Index].AudioData = nullptr;
+			}
+		}
+
 		// Buffers without a valid resource ID are transient and need to be deleted.
 		if( Buffer )
 		{
@@ -175,7 +179,7 @@ void FCoreAudioSoundSource::SubmitPCMRTBuffers( void )
 {
 	SCOPE_CYCLE_COUNTER( STAT_AudioSubmitBuffersTime );
 
-	FMemory::Memzero( CoreAudioBuffers, sizeof( CoreAudioBuffer ) * 3 );
+	FMemory::Memzero( CoreAudioBuffers, sizeof( CoreAudioBuffers ) );
 
 	bStreamedSound = true;
 
@@ -231,6 +235,8 @@ void FCoreAudioSoundSource::SubmitPCMRTBuffers( void )
  */
 bool FCoreAudioSoundSource::Init( FWaveInstance* InWaveInstance )
 {
+	FSoundSource::InitCommon();
+
 	if (InWaveInstance->OutputTarget != EAudioOutputTarget::Controller)
 	{
 		// Find matching buffer.
@@ -308,6 +314,8 @@ void FCoreAudioSoundSource::Update( void )
 		return;
 	}
 
+	FSoundSource::UpdateCommon();
+
 	check(AudioChannel != 0);
 	check(MixerInputNumber != -1);
 
@@ -339,9 +347,7 @@ void FCoreAudioSoundSource::Update( void )
 		Volume = FMath::Clamp<float>( Volume, -120.0f, 20.0f );
 
 		Volume = FSoundSource::GetDebugVolume(Volume);
-
-		const float Pitch = FMath::Clamp<float>( WaveInstance->Pitch, MIN_PITCH, MAX_PITCH );
-		
+	
 		// Set the HighFrequencyGain value
 		SetFilterFrequency();
 		

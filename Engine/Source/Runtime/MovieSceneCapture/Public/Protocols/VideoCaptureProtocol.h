@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "IMovieSceneCaptureProtocol.h"
+#include "FrameGrabber.h"
+#include "Protocols/FrameGrabberProtocol.h"
 #include "AVIWriter.h"
-#include "FrameGrabberProtocol.h"
 #include "VideoCaptureProtocol.generated.h"
 
 UCLASS(config=EditorPerProjectUserSettings, DisplayName="Video Encoding")

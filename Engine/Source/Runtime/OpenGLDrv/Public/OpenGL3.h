@@ -1,10 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGL3.h: Public OpenGL 3.2 definitions for non-common functionality
 =============================================================================*/
 
 #pragma once
+
+#include "UObject/UObjectHierarchyFwd.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Parse.h"
+#include "Containers/StringConv.h"
+#include "CoreGlobals.h"
+#include "Containers/Map.h"
+#include "CoreMinimal.h"
+#include "Misc/CommandLine.h"
+
+struct FPlatformOpenGLContext;
+struct FPlatformOpenGLDevice;
+
+template<typename KeyType,typename ValueType,typename SetAllocator ,typename KeyFuncs > class TMap;
 
 typedef GLsync UGLsync;
 

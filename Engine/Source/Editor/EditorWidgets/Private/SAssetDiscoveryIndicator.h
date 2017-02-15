@@ -1,7 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Layout/Margin.h"
+#include "Animation/CurveHandle.h"
+#include "Animation/CurveSequence.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "AssetDiscoveryIndicator.h"
 #include "IAssetRegistry.h"
 
 /** An indicator for the progress of the asset registry background search */

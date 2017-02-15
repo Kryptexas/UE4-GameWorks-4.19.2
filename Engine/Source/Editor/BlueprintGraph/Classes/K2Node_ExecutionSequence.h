@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Textures/SlateIcon.h"
 #include "K2Node.h"
 #include "K2Node_ExecutionSequence.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
+class UEdGraphPin;
 
 UCLASS(MinimalAPI)
 class UK2Node_ExecutionSequence : public UK2Node

@@ -1,14 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameState.cpp: GameState C++ code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Net/UnrealNetwork.h"
 #include "GameFramework/GameStateBase.h"
+#include "TimerManager.h"
+#include "Net/UnrealNetwork.h"
 #include "GameFramework/PlayerState.h"
-#include "GameFramework/GameModeBase.h"
+#include "EngineUtils.h"
 
 DEFINE_LOG_CATEGORY(LogGameState);
 
@@ -79,7 +79,7 @@ void AGameStateBase::ReceivedGameModeClass()
 	// Tell each PlayerController that the Game class is here
 	for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
-		APlayerController* const PlayerController = *Iterator;
+		APlayerController* const PlayerController = Iterator->Get();
 		if (PlayerController)
 		{
 			PlayerController->ReceivedGameModeClass(GameModeClass);
@@ -92,7 +92,7 @@ void AGameStateBase::ReceivedSpectatorClass()
 	// Tell each PlayerController that the Spectator class is here
 	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
-		APlayerController* const PlayerController = *Iterator;
+		APlayerController* const PlayerController = Iterator->Get();
 		if (PlayerController && PlayerController->IsLocalController())
 		{
 			PlayerController->ReceivedSpectatorClass(SpectatorClass);

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2819020
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title: C++ 로 게임 저장하기
 Crumbs:%ROOT%, Gameplay, Gameplay/SaveGame
@@ -32,7 +32,7 @@ Version: 4.9
 [REGION:codetitlebar]
 MySaveGame.h
 [/REGION:codetitlebar]
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -71,7 +71,7 @@ MySaveGame.h
 [REGION:codetitlebar]
 MySaveGame.cpp
 [/REGION:codetitlebar]
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 	#include "[ProjectName].h"
 	#include "MySaveGame.h"

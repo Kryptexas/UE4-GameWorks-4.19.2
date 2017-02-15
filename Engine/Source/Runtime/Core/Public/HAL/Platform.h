@@ -1,8 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "../Misc/Build.h"
 
 // define all other platforms to be zero
 //@port Define the platform here to be zero when compiling for other platforms
@@ -20,6 +18,9 @@
 #endif
 #if !defined(PLATFORM_IOS)
 	#define PLATFORM_IOS 0
+#endif
+#if !defined(PLATFORM_TVOS)
+	#define PLATFORM_TVOS 0
 #endif
 #if !defined(PLATFORM_ANDROID)
 	#define PLATFORM_ANDROID 0
@@ -48,11 +49,17 @@
 #if !defined(PLATFORM_HTML5)
 	#define PLATFORM_HTML5 0
 #endif
+#if !defined(PLATFORM_HTML5_BROWSER)
+	#define PLATFORM_HTML5_BROWSER 0
+#endif
+#if !defined(PLATFORM_HTML5_WIN32)
+	#define PLATFORM_HTML5_WIN32 0
+#endif
 #if !defined(PLATFORM_LINUX)
 	#define PLATFORM_LINUX 0
 #endif
-#if !defined(PLATFORM_WOLF)
-	#define PLATFORM_WOLF 0
+#if !defined(PLATFORM_SWITCH)
+	#define PLATFORM_SWITCH 0
 #endif
 
 // Platform specific compiler pre-setup.
@@ -72,8 +79,8 @@
 	#include "HTML5/HTML5PlatformCompilerPreSetup.h"
 #elif PLATFORM_LINUX
 	#include "Linux/LinuxPlatformCompilerPreSetup.h"
-#elif PLATFORM_WOLF
-	#include "WolfPlat/WolfPlatformCompilerPreSetup.h"
+#elif PLATFORM_SWITCH
+	#include "Switch/SwitchPlatformCompilerPreSetup.h"
 #else
 	#error Unknown Compiler
 #endif
@@ -108,8 +115,8 @@
 	#include "HTML5/HTML5Platform.h"
 #elif PLATFORM_LINUX
 	#include "Linux/LinuxPlatform.h"
-#elif PLATFORM_WOLF
-	#include "WolfPlat/WolfPlatform.h"
+#elif PLATFORM_SWITCH
+	#include "Switch/SwitchPlatform.h"
 #else
 	#error Unknown Compiler
 #endif
@@ -161,6 +168,13 @@
 #ifndef PLATFORM_USE_SYSTEM_VSWPRINTF
 	#define PLATFORM_USE_SYSTEM_VSWPRINTF		1
 #endif
+#ifndef PLATFORM_COMPILER_CLANG
+	#if defined(__clang__)
+		#define PLATFORM_COMPILER_CLANG			1
+	#else
+		#define PLATFORM_COMPILER_CLANG			0
+	#endif // defined(__clang__)
+#endif
 #ifndef PLATFORM_COMPILER_DISTINGUISHES_INT_AND_LONG
 	#define PLATFORM_COMPILER_DISTINGUISHES_INT_AND_LONG			0
 #endif
@@ -175,6 +189,9 @@
 #endif
 #ifndef PLATFORM_COMPILER_HAS_TCHAR_WMAIN
 	#define PLATFORM_COMPILER_HAS_TCHAR_WMAIN 0
+#endif
+#ifndef PLATFORM_TCHAR_IS_1_BYTE
+	#define PLATFORM_TCHAR_IS_1_BYTE			0
 #endif
 #ifndef PLATFORM_TCHAR_IS_4_BYTES
 	#define PLATFORM_TCHAR_IS_4_BYTES			0
@@ -299,6 +316,18 @@
 	#define PLATFORM_RHITHREAD_DEFAULT_BYPASS					1
 #endif
 
+#ifndef PLATFORM_HAS_UMA
+	#define PLATFORM_HAS_UMA 0
+#endif
+
+#ifndef PLATFORM_NUM_AUDIODECOMPRESSION_PRECACHE_BUFFERS
+	#define PLATFORM_NUM_AUDIODECOMPRESSION_PRECACHE_BUFFERS 2
+#endif
+
+#ifndef PLATFORM_USES_FACE_BUTTON_RIGHT_FOR_ACCEPT
+	#define PLATFORM_USES_FACE_BUTTON_RIGHT_FOR_ACCEPT		0
+#endif
+
 // deprecated, do not use
 #define PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult	#
 #define PLATFORM_SUPPORTS_RHI_THREAD #
@@ -396,6 +425,10 @@
 	#define DISABLE_FUNCTION_OPTIMIZATION
 #endif
 
+// Enable/disable optimizations for a specific function to improve build times
+#define BEGIN_FUNCTION_BUILD_OPTIMIZATION PRAGMA_DISABLE_OPTIMIZATION
+#define END_FUNCTION_BUILD_OPTIMIZATION   PRAGMA_ENABLE_OPTIMIZATION
+
 #ifndef FORCEINLINE_DEBUGGABLE_ACTUAL
 	#define FORCEINLINE_DEBUGGABLE_ACTUAL inline
 #endif
@@ -470,6 +503,18 @@
 	#define PLATFORM_CACHE_LINE_SIZE	128
 #endif
 
+// Compile-time warnings and errors. Use these as "#pragma COMPILER_WARNING("XYZ")". GCC does not expand macro parameters to _Pragma, so we can't wrap the #pragma part.
+#ifdef _MSC_VER
+	#define MSC_FORMAT_DIAGNOSTIC_HELPER_2(x) #x
+	#define MSC_FORMAT_DIAGNOSTIC_HELPER(x) MSC_FORMAT_DIAGNOSTIC_HELPER_2(x) 
+	#define COMPILE_WARNING(x) __pragma(message(__FILE__ "(" MSC_FORMAT_DIAGNOSTIC_HELPER(__LINE__) "): warning: " x))
+	#define COMPILE_ERROR(x) __pragma(message(__FILE__ "(" MSC_FORMAT_DIAGNOSTIC_HELPER(__LINE__) "): error: " x))
+#else
+	#define GCC_DIAGNOSTIC_HELPER(x) _Pragma(#x)
+	#define COMPILE_WARNING(x) GCC_DIAGNOSTIC_HELPER(GCC warning x)
+	#define COMPILE_ERROR(x) GCC_DIAGNOSTIC_HELPER(GCC error x)
+#endif
+
 // These have to be forced inline on some OSes so the dynamic loader will not 
 // resolve to our allocators for the system libraries.
 #ifndef OPERATOR_NEW_INLINE
@@ -537,6 +582,8 @@ int32 main(int32 ArgC, ANSICHAR* Utf8ArgV[]) \
 int32 tchar_main(int32 ArgC, TCHAR* ArgV[])
 #endif
 
+template<typename,typename> struct TAreTypesEqual;
+
 //--------------------------------------------------------------------------------------------
 // POD types refactor for porting old code:
 //
@@ -579,34 +626,55 @@ int32 tchar_main(int32 ArgC, TCHAR* ArgV[])
 // Transfer the platform types to global types
 //------------------------------------------------------------------
 
-// Unsigned base types.
-typedef FPlatformTypes::uint8		uint8;		///< An 8-bit unsigned integer.
-typedef FPlatformTypes::uint16		uint16;		///< A 16-bit unsigned integer.
-typedef FPlatformTypes::uint32		uint32;		///< A 32-bit unsigned integer.
-typedef FPlatformTypes::uint64		uint64;		///< A 64-bit unsigned integer.
+//~ Unsigned base types.
+/// An 8-bit unsigned integer.
+typedef FPlatformTypes::uint8		uint8;
+/// A 16-bit unsigned integer.
+typedef FPlatformTypes::uint16		uint16;
+/// A 32-bit unsigned integer.
+typedef FPlatformTypes::uint32		uint32;
+/// A 64-bit unsigned integer.
+typedef FPlatformTypes::uint64		uint64;
 
-// Signed base types.
-typedef	FPlatformTypes::int8		int8;		///< An 8-bit signed integer.
-typedef FPlatformTypes::int16		int16;		///< A 16-bit signed integer.
-typedef FPlatformTypes::int32		int32;		///< A 32-bit signed integer.
-typedef FPlatformTypes::int64		int64;		///< A 64-bit signed integer.
+//~ Signed base types.
+/// An 8-bit signed integer.
+typedef	FPlatformTypes::int8		int8;
+/// A 16-bit signed integer.
+typedef FPlatformTypes::int16		int16;
+/// A 32-bit signed integer.
+typedef FPlatformTypes::int32		int32;
+/// A 64-bit signed integer.
+typedef FPlatformTypes::int64		int64;
 
-// Character types.
-typedef FPlatformTypes::ANSICHAR	ANSICHAR;	///< An ANSI character. Normally a signed type.
-typedef FPlatformTypes::WIDECHAR	WIDECHAR;	///< A wide character. Normally a signed type.
-typedef FPlatformTypes::TCHAR		TCHAR;		///< Either ANSICHAR or WIDECHAR, depending on whether the platform supports wide characters or the requirements of the licensee.
-typedef FPlatformTypes::CHAR8		UTF8CHAR;	///< An 8-bit character containing a UTF8 (Unicode, 8-bit, variable-width) code unit.
-typedef FPlatformTypes::CHAR16		UCS2CHAR;	///< A 16-bit character containing a UCS2 (Unicode, 16-bit, fixed-width) code unit, used for compatibility with 'Windows TCHAR' across multiple platforms.
-typedef FPlatformTypes::CHAR16		UTF16CHAR;	///< A 16-bit character containing a UTF16 (Unicode, 16-bit, variable-width) code unit.
-typedef FPlatformTypes::CHAR32		UTF32CHAR;	///< A 32-bit character containing a UTF32 (Unicode, 32-bit, fixed-width) code unit.
+//~ Character types.
+/// An ANSI character. Normally a signed type.
+typedef FPlatformTypes::ANSICHAR	ANSICHAR;
+/// A wide character. Normally a signed type.
+typedef FPlatformTypes::WIDECHAR	WIDECHAR;
+/// Either ANSICHAR or WIDECHAR, depending on whether the platform supports wide characters or the requirements of the licensee.
+typedef FPlatformTypes::TCHAR		TCHAR;
+/// An 8-bit character containing a UTF8 (Unicode, 8-bit, variable-width) code unit.
+typedef FPlatformTypes::CHAR8		UTF8CHAR;
+/// A 16-bit character containing a UCS2 (Unicode, 16-bit, fixed-width) code unit, used for compatibility with 'Windows TCHAR' across multiple platforms.
+typedef FPlatformTypes::CHAR16		UCS2CHAR;
+/// A 16-bit character containing a UTF16 (Unicode, 16-bit, variable-width) code unit.
+typedef FPlatformTypes::CHAR16		UTF16CHAR;
+/// A 32-bit character containing a UTF32 (Unicode, 32-bit, fixed-width) code unit.
+typedef FPlatformTypes::CHAR32		UTF32CHAR;
 
-typedef FPlatformTypes::UPTRINT UPTRINT;		///< An unsigned integer the same size as a pointer
-typedef FPlatformTypes::PTRINT PTRINT;			///< A signed integer the same size as a pointer
-typedef FPlatformTypes::SIZE_T SIZE_T;			///< An unsigned integer the same size as a pointer, the same as UPTRINT
-typedef FPlatformTypes::SSIZE_T SSIZE_T;		///< An integer the same size as a pointer, the same as PTRINT
+/// An unsigned integer the same size as a pointer
+typedef FPlatformTypes::UPTRINT UPTRINT;
+/// A signed integer the same size as a pointer
+typedef FPlatformTypes::PTRINT PTRINT;
+/// An unsigned integer the same size as a pointer, the same as UPTRINT
+typedef FPlatformTypes::SIZE_T SIZE_T;
+/// An integer the same size as a pointer, the same as PTRINT
+typedef FPlatformTypes::SSIZE_T SSIZE_T;
 
-typedef FPlatformTypes::TYPE_OF_NULL	TYPE_OF_NULL;		///< The type of the NULL constant.
-typedef FPlatformTypes::TYPE_OF_NULLPTR	TYPE_OF_NULLPTR;	///< The type of the C++ nullptr keyword.
+/// The type of the NULL constant.
+typedef FPlatformTypes::TYPE_OF_NULL	TYPE_OF_NULL;
+/// The type of the C++ nullptr keyword.
+typedef FPlatformTypes::TYPE_OF_NULLPTR	TYPE_OF_NULLPTR;
 
 //------------------------------------------------------------------
 // Test the global types
@@ -702,8 +770,8 @@ namespace TypeTests
 	#include "HTML5/HTML5PlatformCompilerSetup.h"
 #elif PLATFORM_LINUX
 	#include "Linux/LinuxPlatformCompilerSetup.h"
-#elif PLATFORM_WOLF
-	#include "WolfPlat/WolfPlatformCompilerSetup.h"
+#elif PLATFORM_SWITCH
+	#include "Switch/SwitchPlatformCompilerSetup.h"
 #else
 	#error Unknown Compiler
 #endif
@@ -713,8 +781,3 @@ namespace TypeTests
 	#define TEXT_PASTE(x) L ## x
 	#define TEXT(x) TEXT_PASTE(x)
 #endif
-
-// Include defaults for defines that aren't explicitly set by the platform
-#include "UMemoryDefines.h"
-#include "../Misc/CoreMiscDefines.h"
-#include "../Misc/CoreDefines.h"

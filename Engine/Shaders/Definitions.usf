@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Definitions.usf: Defines undefined defines to 0 as Cg can't handle them.
@@ -82,6 +82,10 @@
 #define COMPILER_GLSL_ES3_1								0
 #endif
 
+#ifndef COMPILER_GLSL_ES3_1_EXT
+#define COMPILER_GLSL_ES3_1_EXT							0
+#endif
+
 #ifndef COMPILER_METAL
 #define COMPILER_METAL									0
 #endif
@@ -146,8 +150,8 @@
 #define USING_TESSELLATION								0
 #endif
 
-#ifndef OUTPUT_GBUFFER_VELOCITY
-#define OUTPUT_GBUFFER_VELOCITY									0
+#ifndef GBUFFER_HAS_VELOCITY
+#define GBUFFER_HAS_VELOCITY							0
 #endif
 
 #define PC_D3D											SM5_PROFILE
@@ -289,6 +293,11 @@
 /** When defined sets the layer index for volumetric rendering in the vertex shader, rather than using a geometry shader */
 #ifndef USING_VERTEX_SHADER_LAYER
 #define USING_VERTEX_SHADER_LAYER	0
+#endif
+
+/** Defined only for Metal's combined Vertex + Hull shader */
+#ifndef TESSELLATIONSHADER
+#define TESSELLATIONSHADER 0
 #endif
 
 // 'static' asserts

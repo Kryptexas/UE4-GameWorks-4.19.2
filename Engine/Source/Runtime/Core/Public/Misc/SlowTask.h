@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "UniquePtr.h"
-#include "OutputDeviceHelper.h"
-#include "FeedbackContext.h"
+#include "CoreTypes.h"
+#include "Misc/Optional.h"
+#include "Internationalization/Text.h"
 
 /** Enum to specify a particular slow task section should be shown */
 enum class ESlowTaskVisibility

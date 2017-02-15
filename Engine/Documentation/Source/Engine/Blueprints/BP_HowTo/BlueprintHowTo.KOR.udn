@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2745726
+﻿INTSourceChangelist:3155346
 Availability: Public
 Title:블루프린트 - 비법
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -9,7 +9,7 @@ Related: Gameplay
 version: 4.9
 parent:Engine/Blueprints
 order:2
-type:howto
+type:landing
 tags:Blueprints
 
 [VAR:Topic]
@@ -57,7 +57,7 @@ tags:Blueprints
 
 
 ## 초급
-[DIR(output:"fancy" type:"howto" skill:"Beginner" parent:"Engine/Blueprints/BP_HowTo" org:"hierarchy")]
+[DIR(output:"fancy" type:"how-to" skill:"Beginner" parent:"Engine/Blueprints/BP_HowTo" org:"hierarchy")]
 
 ## 중급
 [REGION:wrapper transparent]

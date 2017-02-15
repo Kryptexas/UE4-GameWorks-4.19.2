@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -144,7 +144,7 @@ protected:
 		ir_type = ir_type_unset;
 		if (id == BREAK_ON_ID)
 		{
-#if WIN32
+#ifdef WIN32
 			__debugbreak();
 #endif
         }

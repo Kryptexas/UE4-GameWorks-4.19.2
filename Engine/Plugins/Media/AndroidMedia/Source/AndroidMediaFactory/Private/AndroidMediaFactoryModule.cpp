@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AndroidMediaFactoryPCH.h"
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "IMediaModule.h"
+#include "IAndroidMediaModule.h"
+#include "AndroidMediaFactoryPrivate.h"
 #include "IMediaPlayerFactory.h"
-#include "ModuleInterface.h"
 
 
 DEFINE_LOG_CATEGORY(LogAndroidMediaFactory);
@@ -74,7 +79,7 @@ public:
 
 	virtual FText GetDisplayName() const override
 	{
-		return LOCTEXT("MediaPlayerDisplayName", "Android Media Player");
+		return LOCTEXT("MediaPlayerDisplayName", "Android Media");
 	}
 
 	virtual FName GetName() const override

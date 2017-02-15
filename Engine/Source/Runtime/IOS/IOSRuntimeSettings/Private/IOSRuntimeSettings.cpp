@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "IOSRuntimeSettingsPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "IOSRuntimeSettings.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+
 
 UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -37,6 +38,7 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	bAllowRemoteRotation = true;
 	bUseRemoteAsVirtualJoystick = true;
 	bUseRemoteAbsoluteDpadValues = false;
+    bEnableRemoteNotificationsSupport = false;
 }
 
 #if WITH_EDITOR

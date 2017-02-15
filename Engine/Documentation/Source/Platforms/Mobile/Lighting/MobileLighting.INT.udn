@@ -106,7 +106,7 @@ Stationary Directional lights can be used to cast Whole-scene Dynamic Cascade Sh
 ## Modulated Shadowing VS Dynamic Shadowing
 
 While Modulated and Dynamic shadowing looks and acts very similar to one another, they are quite different. 
-This is because Modulated shadows have a number of restrictions and hard limits that Dynamic shadows do not have that allows them to beperform bettert on mobile devices with limited hardware capabilities.
+This is because Modulated shadows have a number of restrictions and hard limits that Dynamic shadows do not have that allows them to perform better on mobile devices with limited hardware capabilities.
 In the image below you can see a comparison between Dynamic shadows and Modulated shadows.
 
 [OBJECT:ComparisonSlider]

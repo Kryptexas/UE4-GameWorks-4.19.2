@@ -1,10 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Templates/AndOrNot.h"
-#include "Templates/RemoveReference.h"
-#include "SubclassOf.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+
+class AActor;
+class APawn;
+class APlayerController;
+class UAssetClassProperty;
+class UBlueprint;
+class ULevel;
+class UPrimitiveComponent;
+class USceneComponent;
+class USkeletalMeshComponent;
+class USkinnedMeshComponent;
+class UStaticMeshComponent;
+template<class TClass> class TSubclassOf;
 
 FUNCTION_NO_RETURN_START
 	COREUOBJECT_API void CastLogError(const TCHAR* FromType, const TCHAR* ToType)
@@ -342,6 +356,7 @@ DECLARE_CAST_BY_FLAG(USkeletalMeshComponent)			\
 DECLARE_CAST_BY_FLAG(UBlueprint)						\
 DECLARE_CAST_BY_FLAG(UDelegateFunction)					\
 DECLARE_CAST_BY_FLAG(UStaticMeshComponent)				\
+DECLARE_CAST_BY_FLAG(UEnumProperty)						\
 FINISH_DECLARING_CAST_FLAGS		// This is here to hopefully remind people to include the "\" in all declarations above, especially when copy/pasting the final line.
 
 // Now actually declare the flags

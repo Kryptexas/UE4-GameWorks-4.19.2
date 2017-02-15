@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
-#include "Runtime/Analytics/Analytics/Public/AnalyticsEventAttribute.h"
+#include "CoreMinimal.h"
+#include "../AnalyticsEventAttribute.h"
+
+class Error;
 
 /** Generic interface for an analytics provider. Other modules can define more and register them with this module. */
 class IAnalyticsProvider

@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "DataProviders/AIDataProvider.h"
+#include "EnvironmentQuery/EnvQueryContext.h"
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_ProjectedPoints.h"
 #include "EnvQueryGenerator_SimpleGrid.generated.h"
-
-class UEnvQueryContext;
 
 /**
  *  Simple grid, generates points in 2D square around context
@@ -15,8 +19,8 @@ class UEnvQueryGenerator_SimpleGrid : public UEnvQueryGenerator_ProjectedPoints
 {
 	GENERATED_UCLASS_BODY()
 
-	/** square's extent */
-	UPROPERTY(EditDefaultsOnly, Category=Generator)
+	/** half of square's extent, like a radius */
+	UPROPERTY(EditDefaultsOnly, Category=Generator, meta=(DisplayName="GridHalfSize"))
 	FAIDataProviderFloatValue GridSize;
 
 	/** generation density */

@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "UMemoryDefines.h"
+#include "CoreTypes.h"
+#include "Math/NumericLimits.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
 
 
 /**

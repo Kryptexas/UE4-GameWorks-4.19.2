@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,7 +26,7 @@ GENERATED_UCLASS_BODY()
 	UPROPERTY(BlueprintAssignable)
 	FOculusIdentityFailureResult OnFailure;
 
-	// Kick off entitlement check. Asynchronous-- see OnUserPrivilegeCompleteDelegate for results.
+	// Kick off GetOculusIdentity. Asynchronous-- see OnLoginCompleteDelegate for results.
 	UFUNCTION(BlueprintCallable, Category = "Oculus|Identity", meta = (BlueprintInternalUseOnly = "true"))
 	static UOculusIdentityCallbackProxy* GetOculusIdentity(int32 LocalUserNum);
 

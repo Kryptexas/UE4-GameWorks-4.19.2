@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
-#include "SphereComponent.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/SphereComponent.h"
 #include "DrawSphereComponent.generated.h"
+
+struct FConvexVolume;
+struct FEngineShowFlags;
 
 /** 
  * A sphere generally used for simple collision. Bounds are rendered as lines in the editor.

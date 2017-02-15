@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Implementation of Skeletal Mesh export related functionality from FbxExporter
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "GPUSkinPublicDefs.h"
+#include "SkeletalMeshTypes.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Animation/AnimSequence.h"
 
 #include "FbxExporter.h"
-#include "Animation/AnimSequence.h"
+#include "SkeletalMeshTypes.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxSkeletalMeshExport, Log, All);
 
@@ -61,9 +65,11 @@ FbxNode* FFbxExporter::CreateSkeleton(const USkeletalMesh* SkelMesh, TArray<FbxN
 		FVector UnrealRotation = BoneTransform.GetRotation().Euler();
 		FbxVector4 LocalPos = Converter.ConvertToFbxPos(BoneTransform.GetTranslation());
 		FbxVector4 LocalRot = Converter.ConvertToFbxRot(UnrealRotation);
+		FbxVector4 LocalScale = Converter.ConvertToFbxScale(BoneTransform.GetScale3D());
 
 		BoneNode->LclTranslation.Set(LocalPos);
 		BoneNode->LclRotation.Set(LocalRot);
+		BoneNode->LclScaling.Set(LocalScale);
 
 
 		// If this is not the root bone, attach it to its parent

@@ -1,14 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MediaSource.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "BaseMediaSource.h"
+
 #include "StreamMediaSource.generated.h"
 
 
 UCLASS(BlueprintType)
 class MEDIAASSETS_API UStreamMediaSource
-	: public UMediaSource
+	: public UBaseMediaSource
 {
 	GENERATED_BODY()
 

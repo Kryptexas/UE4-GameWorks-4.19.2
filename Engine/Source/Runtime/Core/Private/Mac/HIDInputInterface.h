@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include <IOKit/hid/IOHIDLib.h>
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
+#include "Templates/SharedPointer.h"
 
 #define MAX_NUM_HIDINPUT_CONTROLLERS 4
 

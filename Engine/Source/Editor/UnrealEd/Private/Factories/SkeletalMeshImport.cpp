@@ -1,19 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalMeshImport.cpp: Skeletal mesh import code.
 =============================================================================*/
 
-#include "UnrealEd.h"
-#include "Factories.h"
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Materials/MaterialInterface.h"
+#include "GPUSkinPublicDefs.h"
+#include "ReferenceSkeleton.h"
+#include "SkeletalMeshTypes.h"
+#include "Engine/SkeletalMesh.h"
+#include "EditorFramework/ThumbnailInfo.h"
 #include "SkelImport.h"
 #include "SkeletalMeshSorting.h"
-#include "../../../../Source/Runtime/Engine/Classes/PhysicsEngine/PhysicsAsset.h"
+#include "RawIndexBuffer.h"
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "Logging/TokenizedMessage.h"
 #include "FbxImporter.h"
-#include "FbxErrors.h"
+#include "Misc/FbxErrors.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "LODUtilities.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "UObject/Package.h"
+#include "MeshUtilities.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkeletalMeshImport, Log, All);
 
@@ -294,6 +308,9 @@ void ProcessImportMeshInfluences(FSkeletalMeshImportData& ImportData)
 	float TotalWeight		= 0.f;
 	const float MINWEIGHT   = 0.01f;
 
+	int MaxVertexInfluence = 0;
+	float MaxIgnoredWeight = 0.0f;
+
 	//We have to normalize the data before filtering influences
 	//Because influence filtering is base on the normalize value.
 	//Some DCC like Daz studio don't have normalized weight
@@ -314,10 +331,28 @@ void ProcessImportMeshInfluences(FSkeletalMeshImportData& ImportData)
 					Influences[i - r].Weight *= OneOverTotalWeight;
 				}
 			}
+			
+			if (MaxVertexInfluence < InfluenceCount)
+			{
+				MaxVertexInfluence = InfluenceCount;
+			}
+
 			// clear to count next one
 			InfluenceCount = 0;
 			TotalWeight = 0.f;
 		}
+
+		if (InfluenceCount > MAX_TOTAL_INFLUENCES &&  Influences[i].Weight > MaxIgnoredWeight)
+		{
+			MaxIgnoredWeight = Influences[i].Weight;
+		}
+	}
+ 
+ 	// warn about too many influences
+	if (MaxVertexInfluence > MAX_TOTAL_INFLUENCES)
+	{
+		UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
+		FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("WarningTooManySkelInfluences", "Warning skeletal mesh influence count of {0} exceeds max count of {1}. Influence truncation will occur. Maximum Ignored Weight {2}"), MaxVertexInfluence, MAX_TOTAL_INFLUENCES, MaxIgnoredWeight)), FFbxErrors::SkeletalMesh_TooManyInfluences);
 	}
 
 	for( int32 i=0; i<Influences.Num(); i++ )

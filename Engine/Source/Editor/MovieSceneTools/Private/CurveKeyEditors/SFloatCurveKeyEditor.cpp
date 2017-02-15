@@ -1,7 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "SFloatCurveKeyEditor.h"
+#include "CurveKeyEditors/SFloatCurveKeyEditor.h"
+#include "Curves/KeyHandle.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Editor.h"
+#include "ISequencer.h"
+#include "ScopedTransaction.h"
+#include "MovieSceneCommonHelpers.h"
+#include "EditorStyleSet.h"
 
 #define LOCTEXT_NAMESPACE "FloatCurveKeyEditor"
 
@@ -67,7 +74,7 @@ float SFloatCurveKeyEditor::OnGetKeyValue() const
 		return ExternalValue.Get().GetValue();
 	}
 
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+	float CurrentTime = Sequencer->GetLocalTime();
 	return Curve->Eval(CurrentTime);
 }
 
@@ -75,7 +82,7 @@ void SFloatCurveKeyEditor::OnValueChanged(float Value)
 {
 	if (OwningSection->TryModify())
 	{
-		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		float CurrentTime = Sequencer->GetLocalTime();
 		bool bAutoSetTrackDefaults = Sequencer->GetAutoSetTrackDefaults();
 		
 		FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);
@@ -93,13 +100,16 @@ void SFloatCurveKeyEditor::OnValueChanged(float Value)
 				MovieSceneHelpers::SetKeyInterpolation(*Curve, CurrentKeyHandle, Sequencer->GetKeyInterpolation());
 			}
 
-			if (OwningSection->GetStartTime() > CurrentTime)
+			if (Curve->GetNumKeys() != 0)
 			{
-				OwningSection->SetStartTime(CurrentTime);
-			}
-			if (OwningSection->GetEndTime() < CurrentTime)
-			{
-				OwningSection->SetEndTime(CurrentTime);
+				if (OwningSection->GetStartTime() > CurrentTime)
+				{
+					OwningSection->SetStartTime(CurrentTime);
+				}
+				if (OwningSection->GetEndTime() < CurrentTime)
+				{
+					OwningSection->SetEndTime(CurrentTime);
+				}
 			}
 		}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -316,7 +316,7 @@ public class AndroidPlatform : Platform
 						"#!/bin/sh",
 						"cd \"`dirname \"$0\"`\"",
                         "ADB=",
-						"if [ \"$ANDROID_HOME\" != \"\" ]; then ADB=$ANDROID_HOME/platform-tools/adb; else ADB=" +Environment.GetEnvironmentVariable("ANDROID_HOME") + "; fi",
+						"if [ \"$ANDROID_HOME\" != \"\" ]; then ADB=$ANDROID_HOME/platform-tools/adb; else ADB=" +Environment.GetEnvironmentVariable("ANDROID_HOME") + "/platform-tools/adb; fi",
 						"DEVICE=",
 						"if [ \"$1\" != \"\" ]; then DEVICE=\"-s $1\"; fi",
 						"echo",
@@ -414,7 +414,7 @@ public class AndroidPlatform : Platform
 						"#!/bin/sh",
 						"cd \"`dirname \"$0\"`\"",
 						"ADB=",
-						"if [ \"$ANDROID_HOME\" != \"\" ]; then ADB=$ANDROID_HOME/platform-tools/adb; else ADB=" +Environment.GetEnvironmentVariable("ANDROID_HOME") + "; fi",
+						"if [ \"$ANDROID_HOME\" != \"\" ]; then ADB=$ANDROID_HOME/platform-tools/adb; else ADB=" +Environment.GetEnvironmentVariable("ANDROID_HOME") + "/platform-tools/adb; fi",
 						"DEVICE=",
 						"if [ \"$1\" != \"\" ]; then DEVICE=\"-s $1\"; fi",
 						"echo",
@@ -531,7 +531,7 @@ public class AndroidPlatform : Platform
 
 	private void GetPlatformInstallOptions(DeploymentContext SC, out bool bNeedsPCInstall, out bool bNeedsMacInstall, out bool bNeedsLinuxInstall)
 	{
-		ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Engine", DirectoryReference.FromFile(SC.RawProjectPath));
+		ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(SC.RawProjectPath), SC.StageTargetPlatform.PlatformType);
 		bool bGenerateAllPlatformInstall = false;
 		Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bCreateAllPlatformsInstall", out bGenerateAllPlatformInstall);
 
@@ -1352,6 +1352,9 @@ public class AndroidPlatform : Platform
 			for(int DeviceIndex = 0; DeviceIndex < DeviceNames.Count; DeviceIndex++)
 			{
 				string DeviceName = DeviceNames[DeviceIndex];
+				
+				//replace the port name in the case of deploy while adb is using wifi
+				string SanitizedDeviceName = DeviceName.Replace(":", "_");
 
 				bool FinishedRunning = false;
 				IProcessResult ProcessesResult = RunAdbCommand(Params, DeviceName, "shell ps", null, ERunOptions.SpewIsVerbose);
@@ -1384,8 +1387,8 @@ public class AndroidPlatform : Platform
 					IProcessResult LogFileProcess = RunAdbCommand(Params, DeviceName, "logcat -d", null, ERunOptions.AppMustExist);
 
 					string LogPath = Path.Combine(Params.BaseStageDirectory, "Android\\logs");
-					string LogFilename = Path.Combine(LogPath, "devicelog" + DeviceName + ".log");
-					string ServerLogFilename = Path.Combine(CmdEnv.LogFolder, "devicelog" + DeviceName + ".log");
+					string LogFilename = Path.Combine(LogPath, "devicelog" + SanitizedDeviceName + ".log");
+					string ServerLogFilename = Path.Combine(CmdEnv.LogFolder, "devicelog" + SanitizedDeviceName + ".log");
 
 					File.WriteAllText(LogFilename, LogFileProcess.Output);
 					File.WriteAllText(ServerLogFilename, LogFileProcess.Output);
@@ -1458,26 +1461,6 @@ public class AndroidPlatform : Platform
             get { return true; }
         }
     */
-
-    #region Hooks
-
-    public override void PostBuildTarget(UE4Build Build, FileReference UProjectPath, string TargetName, string Config)
-	{
-		// Run UBT w/ the prep for deployment only option
-		// This is required as UBT will 'fake' success when building via UAT and run
-		// the deployment prep step before all the required parts are present.
-		if (!String.IsNullOrEmpty(TargetName) && TargetName.Length > 0)
-		{
-			string ProjectArg = "";
-			if(UProjectPath != null)
-			{
-				ProjectArg = string.Format(" -project=\"{0}\"", UProjectPath);
-			}
-			string UBTCommand = string.Format("{0} Android {1} -prepfordeploy{2}", TargetName, Config, ProjectArg);
-			CommandUtils.RunUBT(UE4Build.CmdEnv, Build.UBTExecutable, UBTCommand);
-		}
-	}
-	#endregion
 
 	public override List<string> GetDebugFileExtentions()
 	{

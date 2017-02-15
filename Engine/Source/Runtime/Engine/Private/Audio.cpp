@@ -1,24 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Audio.cpp: Unreal base audio.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "ActiveSound.h"
 #include "Audio.h"
-#include "AudioDevice.h"
+#include "Misc/Paths.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Components/AudioComponent.h"
+#include "ContentStreaming.h"
+#include "DrawDebugHelpers.h"
 #include "AudioThread.h"
+#include "AudioDevice.h"
+#include "Sound/SoundBase.h"
 #include "Sound/SoundCue.h"
 #include "Sound/SoundWave.h"
+#include "ActiveSound.h"
 #include "Sound/SoundNodeWavePlayer.h"
-#include "AudioEffect.h"
-#include "Net/UnrealNetwork.h"
-#include "TargetPlatform.h"
 #include "EngineAnalytics.h"
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-#include "ContentStreaming.h"
-#include "IAudioExtensionPlugin.h"
+#include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
 
 DEFINE_LOG_CATEGORY(LogAudio);
 
@@ -41,7 +43,7 @@ DEFINE_STAT(STAT_VorbisDecompressTime);
 DEFINE_STAT(STAT_VorbisPrepareDecompressionTime);
 DEFINE_STAT(STAT_AudioDecompressTime);
 DEFINE_STAT(STAT_AudioPrepareDecompressionTime);
-DEFINE_STAT(STAT_OpusDecompressTime);
+DEFINE_STAT(STAT_AudioStreamedDecompressTime);
 
 DEFINE_STAT(STAT_AudioUpdateEffects);
 DEFINE_STAT(STAT_AudioEvaluateConcurrency);
@@ -512,6 +514,52 @@ FSpatializationParams FSoundSource::GetSpatializationParams()
 	return Params;
 }
 
+void FSoundSource::InitCommon()
+{
+	PlaybackTime = 0.0f;
+
+	// Reset pause state
+	bIsPausedByGame = false;
+	bIsManuallyPaused = false;
+}
+
+
+void FSoundSource::UpdateCommon()
+{
+	check(WaveInstance);
+
+	Pitch = WaveInstance->Pitch;
+
+	// Don't apply global pitch scale to UI sounds
+	if (!WaveInstance->bIsUISound)
+	{
+		Pitch *= AudioDevice->GetGlobalPitchScale().GetValue();
+	}
+
+	Pitch = FMath::Clamp<float>(Pitch, MIN_PITCH, MAX_PITCH);
+
+	// Track playback time even if the voice is not virtual, it can flip to being virtual while playing.
+	const float DeviceDeltaTime = AudioDevice->GetDeviceDeltaTime();
+
+	// Scale the playback time based on the pitch of the sound
+	PlaybackTime += DeviceDeltaTime * Pitch;
+}
+
+float FSoundSource::GetPlaybackPercent() const
+{
+	const float Percentage = PlaybackTime / WaveInstance->WaveData->GetDuration();
+	if (WaveInstance->LoopingMode == LOOP_Never)
+	{
+		return FMath::Clamp(Percentage, 0.0f, 1.0f);
+	}
+	else
+	{
+		// Wrap the playback percent for looping sounds
+		return FMath::Fmod(Percentage, 1.0f);
+	}
+
+}
+
 void FSoundSource::NotifyPlaybackPercent()
 {
 	if (WaveInstance->ActiveSound->bUpdatePlayPercentage)
@@ -567,9 +615,12 @@ void FNotifyBufferFinishedHooks::DispatchNotifies(FWaveInstance* WaveInstance, c
 	for (int32 NotifyIndex = Notifies.Num() - 1; NotifyIndex >= 0; --NotifyIndex)
 	{
 		// All nodes get an opportunity to handle the notify if we're forcefully stopping the sound
-		if (Notifies[NotifyIndex].NotifyNode->NotifyWaveInstanceFinished(WaveInstance) && !bStopped)
+		if (Notifies[NotifyIndex].NotifyNode)
 		{
-			break;
+			if (Notifies[NotifyIndex].NotifyNode->NotifyWaveInstanceFinished(WaveInstance) && !bStopped)
+			{
+				break;
+			}
 		}
 	}
 
@@ -611,7 +662,6 @@ uint32 FWaveInstance::TypeHashCounter = 0;
 FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	: WaveData(nullptr)
 	, SoundClass(nullptr)
-	, SoundSubmix(nullptr)
 	, ActiveSound(InActiveSound)
 	, Volume(0.0f)
 	, VolumeMultiplier(1.0f)
@@ -649,6 +699,7 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	, OmniRadius(0.0f)
 	, StereoSpread(0.0f)
 	, AttenuationDistance(0.0f)
+	, ListenerToSoundDistance(0.0f)
 	, AbsoluteAzimuth(0.0f)
 	, UserIndex(0)
 {
@@ -780,7 +831,7 @@ FString FWaveInstance::GetName() const
 #endif
 
 // Main Riff-Wave header.
-struct FRiffWaveHeader
+struct FRiffWaveHeaderChunk
 {
 	uint32	rID;			// Contains 'RIFF'
 	uint32	ChunkLen;		// Remaining length of the entire riff chunk (= file).
@@ -795,7 +846,7 @@ struct FRiffChunkOld
 };
 
 // ChunkID: 'fmt ' ("WaveFormatEx" structure )
-struct FFormatChunk
+struct FRiffFormatChunk
 {
 	uint16   wFormatTag;        // Format type: 1 = PCM
 	uint16   nChannels;         // Number of channels (i.e. mono, stereo...).
@@ -832,7 +883,7 @@ struct FSubformatGUID
 // ChunkID: 'fmt ' ("WaveFormatExtensible" structure)
 struct FExtendedFormatChunk
 {
-	FFormatChunk Format;			// Standard WaveFormatEx ('fmt ') chunk, with
+	FRiffFormatChunk Format;			// Standard WaveFormatEx ('fmt ') chunk, with
 									// wFormatTag == WAVE_FORMAT_EXTENSIBLE and cbSize == 22
 	union
 	{
@@ -844,20 +895,6 @@ struct FExtendedFormatChunk
 	FSubformatGUID SubFormat;		// Subformat identifier.
 };
 
-// ChunkID: 'smpl'
-struct FSampleChunk
-{
-	uint32   dwManufacturer;
-	uint32   dwProduct;
-	uint32   dwSamplePeriod;
-	uint32   dwMIDIUnityNote;
-	uint32   dwMIDIPitchFraction;
-	uint32	dwSMPTEFormat;
-	uint32   dwSMPTEOffset;		//
-	uint32   cSampleLoops;		// Number of tSampleLoop structures following this chunk
-	uint32   cbSamplerData;		//
-};
-
 #if PLATFORM_SUPPORTS_PRAGMA_PACK
 #pragma pack(pop)
 #endif
@@ -865,11 +902,11 @@ struct FSampleChunk
 //
 //	Figure out the WAVE file layout.
 //
-bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* ErrorReason )
+bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* ErrorReason, bool InHeaderDataOnly, void** OutFormatHeader)
 {
-	FFormatChunk* FmtChunk;
+	FRiffFormatChunk* FmtChunk;
 	FExtendedFormatChunk* FmtChunkEx = nullptr;
-	FRiffWaveHeader* RiffHdr = ( FRiffWaveHeader* )WaveData;
+	FRiffWaveHeaderChunk* RiffHdr = (FRiffWaveHeaderChunk* )WaveData;
 	WaveDataEnd = WaveData + WaveDataSize;
 
 	if( WaveDataSize == 0 )
@@ -924,7 +961,7 @@ bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* E
 		return( false );
 	}
 
-	FmtChunk = ( FFormatChunk* )( ( uint8* )RiffChunk + 8 );
+	FmtChunk = ( FRiffFormatChunk* )( ( uint8* )RiffChunk + 8 );
 #if !PLATFORM_LITTLE_ENDIAN
 	if( !AlreadySwapped )
 	{
@@ -942,6 +979,11 @@ bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* E
 	pBlockAlign = &FmtChunk->nBlockAlign;
 	pChannels = &FmtChunk->nChannels;
 	pFormatTag = &FmtChunk->wFormatTag;
+	
+	if(OutFormatHeader != NULL)
+	{
+		*OutFormatHeader = FmtChunk;
+	}
 
 	// If we have an extended fmt chunk, the format tag won't be a wave format. Instead we need to read the subformat ID.
 	if (INTEL_ORDER32(RiffChunk->ChunkLen) >= 40 && FmtChunk->wFormatTag == 0xFFFE) // WAVE_FORMAT_EXTENSIBLE
@@ -997,7 +1039,7 @@ bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* E
 	RiffChunk = ( FRiffChunkOld* )&WaveData[3 * 4];
 
 	// Look for the 'data' chunk.
-	while( ( ( ( uint8* )RiffChunk + 8 ) < WaveDataEnd ) && ( INTEL_ORDER32( RiffChunk->ChunkID ) != UE_mmioFOURCC( 'd','a','t','a' ) ) )
+	while( ( ( ( uint8* )RiffChunk + 8 ) <= WaveDataEnd ) && ( INTEL_ORDER32( RiffChunk->ChunkID ) != UE_mmioFOURCC( 'd','a','t','a' ) ) )
 	{
 		RiffChunk = ( FRiffChunkOld* )( ( uint8* )RiffChunk + Pad16Bit( INTEL_ORDER32( RiffChunk->ChunkLen ) ) + 8 );
 	}
@@ -1042,7 +1084,7 @@ bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* E
 	SampleDataSize = INTEL_ORDER32( RiffChunk->ChunkLen );
 	SampleDataEnd = SampleDataStart + SampleDataSize;
 
-	if( ( uint8* )SampleDataEnd > ( uint8* )WaveDataEnd )
+	if( !InHeaderDataOnly && ( uint8* )SampleDataEnd > ( uint8* )WaveDataEnd )
 	{
 		UE_LOG(LogAudio, Warning, TEXT( "Wave data chunk is too big!" ) );
 
@@ -1052,9 +1094,7 @@ bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* E
 		RiffChunk->ChunkLen = INTEL_ORDER32( SampleDataSize );
 	}
 
-	NewDataSize = SampleDataSize;
-
-	if (   *pFormatTag != 0x0001 // WAVE_FORMAT_PCM  
+	if (   *pFormatTag != 0x0001 // WAVE_FORMAT_PCM
 		&& *pFormatTag != 0x0002 // WAVE_FORMAT_ADPCM
 		&& *pFormatTag != 0x0011) // WAVE_FORMAT_DVI_ADPCM
 	{
@@ -1063,26 +1103,41 @@ bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* E
 		return( false );
 	}
 
-#if !PLATFORM_LITTLE_ENDIAN
-	if( !AlreadySwapped )
+	if(!InHeaderDataOnly)
 	{
-		if( FmtChunk->wBitsPerSample == 16 )
+		if( ( uint8* )SampleDataEnd > ( uint8* )WaveDataEnd )
 		{
-			for( uint16* i = ( uint16* )SampleDataStart; i < ( uint16* )SampleDataEnd; i++ )
-			{
-				*i = INTEL_ORDER16( *i );
-			}
-		}
-		else if( FmtChunk->wBitsPerSample == 32 )
-		{
-			for( uint32* i = ( uint32* )SampleDataStart; i < ( uint32* )SampleDataEnd; i++ )
-			{
-				*i = INTEL_ORDER32( *i );
-			}
-		}
-	}
-#endif
+			UE_LOG(LogAudio, Warning, TEXT( "Wave data chunk is too big!" ) );
 
+			// Fix it up by clamping data chunk.
+			SampleDataEnd = ( uint8* )WaveDataEnd;
+			SampleDataSize = SampleDataEnd - SampleDataStart;
+			RiffChunk->ChunkLen = INTEL_ORDER32( SampleDataSize );
+		}
+
+		NewDataSize = SampleDataSize;
+
+		#if !PLATFORM_LITTLE_ENDIAN
+		if( !AlreadySwapped )
+		{
+			if( FmtChunk->wBitsPerSample == 16 )
+			{
+				for( uint16* i = ( uint16* )SampleDataStart; i < ( uint16* )SampleDataEnd; i++ )
+				{
+					*i = INTEL_ORDER16( *i );
+				}
+			}
+			else if( FmtChunk->wBitsPerSample == 32 )
+			{
+				for( uint32* i = ( uint32* )SampleDataStart; i < ( uint32* )SampleDataEnd; i++ )
+				{
+					*i = INTEL_ORDER32( *i );
+				}
+			}
+		}
+		#endif
+	}
+	
 	// Couldn't byte swap this before, since it'd throw off the chunk search.
 #if !PLATFORM_LITTLE_ENDIAN
 	*pWaveDataSize = INTEL_ORDER32( *pWaveDataSize );

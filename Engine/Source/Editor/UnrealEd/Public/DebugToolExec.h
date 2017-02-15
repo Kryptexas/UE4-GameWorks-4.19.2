@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DebugToolExec.h: Game debug tool implementation.
@@ -6,6 +6,8 @@
 
 #ifndef __DEBUGTOOLEXEC_H__
 #define __DEBUGTOOLEXEC_H__
+
+#include "CoreMinimal.h"
 
 /**
  * This class servers as an interface to debugging tools like "EDITOBJECT" which

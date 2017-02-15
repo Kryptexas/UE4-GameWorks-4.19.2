@@ -54,7 +54,7 @@
 		{
 			"Language": "ko",
 			"Text": "굴리기,마블"
-		},
+		}
 	],	
 	"AdditionalFeaturePacks":
 	[
@@ -63,7 +63,7 @@
 			"DetailLevels":
 			[
 				"Standard",
-				"High",
+				"High"
 			]
 		},
 		{
@@ -71,9 +71,9 @@
 			"DetailLevels":
 			[
 				"Standard",
-				"High",
+				"High"
 			]
-		},
+		}
 	],
 	"ClassTypes": "GameMode, Pawn, StaticMeshComponent, SpringArmComponent, CameraComponent, PrimitiveComponent",
 	"Category": "CodeFeature",

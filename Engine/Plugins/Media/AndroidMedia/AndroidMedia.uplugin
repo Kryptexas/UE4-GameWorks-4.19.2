@@ -19,7 +19,7 @@
 	[
 		{
 			"Name" : "AndroidMedia",
-			"Type" : "Runtime",
+			"Type" : "RuntimeNoCommandlet",
 			"LoadingPhase" : "PreLoadingScreen",
 			"WhitelistPlatforms" : [ "Android" ]
 		},
@@ -30,7 +30,7 @@
 		},
 		{
 			"Name" : "AndroidMediaFactory",
-			"Type" : "Runtime",
+			"Type" : "RuntimeNoCommandlet",
 			"LoadingPhase" : "PostEngineInit",
 			"WhitelistPlatforms" : [ "Android", "Mac", "Linux", "Win32", "Win64" ]
 		}

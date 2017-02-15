@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3146289
 Availability: Public
 Title:레이캐스트 (트레이싱) 사용법
 Crumbs: %ROOT%, Gameplay
@@ -22,9 +22,9 @@ order:4
 * [](Gameplay\HowTo\UseRaycasts\Blueprints)
 [PUBLISH:Docs]
 * [](Gameplay\HowTo\UseRaycasts\Code)
+* [](Gameplay/HowTo/UseRaycasts/UVCoordsFromTrace)
 [/PUBLISH:Docs]
 [/REGION]
-
 
 
 

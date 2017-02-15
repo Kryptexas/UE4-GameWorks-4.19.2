@@ -1,31 +1,38 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "LightMap.h"
-#include "ShadowMap.h"
-
-#include "SceneTypes.h"
-#include "StaticLighting.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Engine/TextureStreamingTypes.h"
 #include "Components/PrimitiveComponent.h"
+
 
 #include "LandscapeComponent.generated.h"
 
-// Forward declarations
-class ULandscapeLayerInfoObject;
-class ULandscapeInfo;
-class ALandscapeProxy;
 class ALandscape;
-class ULandscapeHeightfieldCollisionComponent;
+class ALandscapeProxy;
+class FLightingBuildOptions;
+class FMaterialUpdateContext;
+class FMeshMapBuildData;
+class FPrimitiveSceneProxy;
+class ITargetPlatform;
 class ULandscapeComponent;
 class ULandscapeGrassType;
-
-struct FEngineShowFlags;
+class ULandscapeHeightfieldCollisionComponent;
+class ULandscapeInfo;
+class ULandscapeLayerInfoObject;
+class ULightComponent;
+class UMaterialInstanceConstant;
+class UMaterialInterface;
+class UTexture2D;
 struct FConvexVolume;
+struct FEngineShowFlags;
 struct FLandscapeEditDataInterface;
 struct FLandscapeEditToolRenderData;
 struct FLandscapeTextureDataInfo;
-struct FLandscapeComponentGrassData;
+struct FStaticLightingPrimitiveInfo;
 
 class FLandscapeComponentDerivedData
 {
@@ -268,7 +275,7 @@ public:
 	float PositiveZBoundsExtension;
 
 	/** StaticLightingResolution overriding per component, default value 0 means no overriding */
-	UPROPERTY(EditAnywhere, Category=LandscapeComponent)
+	UPROPERTY(EditAnywhere, Category=LandscapeComponent, meta=(ClampMax = 4096))
 	float StaticLightingResolution;
 
 	/** Forced LOD level to use when rendering */
@@ -359,7 +366,7 @@ public:
 	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const override;
 	virtual void GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options) override;
 #endif
-	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual ELightMapInteractionType GetStaticLightingType() const override { return LMIT_Texture;	}
 	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;

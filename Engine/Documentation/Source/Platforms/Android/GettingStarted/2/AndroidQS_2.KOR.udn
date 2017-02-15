@@ -1,29 +1,22 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:2. 안드로이드 디바이스 셋업
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:안드로이드 디바이스 개발용으로 셋업하기 입니다.
-Version:4.9
+Version:4.12
 Skilllevel:Intermediate
+tags:Android
+tags:Mobile
+type:multi-step
+parent:Platforms/Android/GettingStarted
+order:2
+Checkpoint:AndroidQS
 
 Android Works 가 설치되었으니 안드로이드 디바이스를 개발에 사용할 수 있도록 구성해 줄 차례입니다. 여기서는 UE4 프로젝트를 실행하는 데 안드로이드 디바이스를 사용할 수 있도록 구성하기 위해 알아야 하는 모든 것에 대해 다루겠습니다.
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Platforms/Android/GettingStarted/1 "%Platforms/Android/GettingStarted/1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Platforms/Android/GettingStarted)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Platforms/Android/GettingStarted/3 "%Platforms/Android/GettingStarted/3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
-%Steps%
+[nav]
+
+## 단계
 
 %Globals:OSSelect%
 
@@ -204,7 +197,8 @@ Android Works 가 설치되었으니 안드로이드 디바이스를 개발에 �
 
 -->
 
+## 최종 결과
+완료되면 이제 UE4 프로젝트를 설치하여 실행시킬 수 있는 안드로이드 기반 스마트폰이 보일 것입니다.
 
-
-%Steps%
+[nav]
 

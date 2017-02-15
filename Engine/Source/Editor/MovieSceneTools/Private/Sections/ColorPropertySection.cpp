@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "MovieSceneColorTrack.h"
-#include "MovieSceneColorSection.h"
-#include "ColorPropertySection.h"
-#include "CommonMovieSceneTools.h"
-#include "MovieSceneSequence.h"
+#include "Sections/ColorPropertySection.h"
+#include "Rendering/DrawElements.h"
+#include "Sections/MovieSceneColorSection.h"
+#include "SequencerSectionPainter.h"
 #include "FloatCurveKeyArea.h"
+#include "ISectionLayoutBuilder.h"
+#include "EditorStyleSet.h"
+#include "CommonMovieSceneTools.h"
 
 const FName SlateColorName("SlateColor");
 
@@ -179,7 +180,15 @@ void FColorPropertySection::ConsolidateColorCurves( TArray< TKeyValuePair<float,
 	// @todo Sequencer Optimize - This another O(n^2) loop, since Eval is O(n)!
 	for ( int32 i = 0; i < TimesWithKeys.Num(); ++i )
 	{
-		OutColorKeys.Add( TKeyValuePair<float, FLinearColor>( TimesWithKeys[i], Section->Eval( TimesWithKeys[i], DefaultColor ) ) );
+		float Time = TimesWithKeys[i];
+
+		FLinearColor Color(
+			Section->GetRedCurve().Eval(Time, DefaultColor.R),
+			Section->GetGreenCurve().Eval(Time, DefaultColor.G),
+			Section->GetBlueCurve().Eval(Time, DefaultColor.B),
+			Section->GetAlphaCurve().Eval(Time, DefaultColor.A)
+			);
+		OutColorKeys.Add( TKeyValuePair<float, FLinearColor>( TimesWithKeys[i], Color ) );
 	}
 }
 

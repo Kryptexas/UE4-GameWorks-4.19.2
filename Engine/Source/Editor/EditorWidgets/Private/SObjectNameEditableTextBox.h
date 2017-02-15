@@ -1,6 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Layout/Visibility.h"
+#include "Animation/SlateSprings.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "EditorWidgetsModule.h"
+
+class FPaintArgs;
+class FSlateWindowElementList;
+class SEditableTextBox;
 
 /** Widget wraps an editable text box for viewing the names of objects or editing the labels of actors */
 class SObjectNameEditableTextBox : public IObjectNameEditableTextBox

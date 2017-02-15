@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnObjGlobals.h: Unreal object system globals.
@@ -6,7 +6,13 @@
 
 #pragma once
 
-#include "Script.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/OutputDeviceRedirector.h"
+
+struct FCustomPropertyListNode;
+struct FObjectInstancingGraph;
 
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogUObjectGlobals, Log, All);
 
@@ -35,9 +41,6 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("NetSerializeFast Array BuildMap"),STAT_NetSerial
 
 
 #define	INVALID_OBJECT	(UObject*)-1
-
-/** The type of a native function callable by script */
-typedef void (UObject::*Native)( FFrame& TheStack, RESULT_DECL );
 
 
 
@@ -372,7 +375,7 @@ COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, const FGuid* InGui
 * @param	InPackagePriority		Loading priority
 * @return Unique ID associated with this load request (the same package can be associated with multiple IDs).
 */
-COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, FLoadPackageAsyncDelegate InCompletionDelegate, TAsyncLoadPriority InPackagePriority = 0, EPackageFlags InPackageFlags = PKG_None);
+COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, FLoadPackageAsyncDelegate InCompletionDelegate, TAsyncLoadPriority InPackagePriority = 0, EPackageFlags InPackageFlags = PKG_None, int32 InPIEInstanceID = INDEX_NONE);
 
 /**
 * Cancels all async package loading requests.
@@ -383,6 +386,11 @@ COREUOBJECT_API void CancelAsyncLoading();
 * Returns true if the event driven loader is enabled in cooked builds
 */
 COREUOBJECT_API bool IsEventDrivenLoaderEnabledInCookedBuilds();
+
+/**
+* Returns true if the event driven loader is enabled in the current build
+*/
+COREUOBJECT_API bool IsEventDrivenLoaderEnabled();
 
 /**
  * Returns the async load percentage for a package in flight with the passed in name or -1 if there isn't one.
@@ -531,7 +539,7 @@ namespace EAsyncPackageState
  * @return The minimum state of any of the queued packages.
  */
 COREUOBJECT_API EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit);
-COREUOBJECT_API void BeginLoad();
+COREUOBJECT_API void BeginLoad(const TCHAR* DebugContext = nullptr);
 COREUOBJECT_API void EndLoad();
 
 /**
@@ -1816,6 +1824,10 @@ protected:
 DECLARE_DELEGATE_RetVal_TwoParams( bool, FCheckForAutoAddDelegate, UPackage*, const FString& );
 DECLARE_DELEGATE_OneParam( FAddPackageToDefaultChangelistDelegate, const TCHAR* );
 
+/** Defined in PackageReload.h */
+enum class EPackageReloadPhase : uint8;
+class FPackageReloadedEvent;
+
 /**
  * Global CoreUObject delegates
  */
@@ -1835,6 +1847,10 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 
 	/** Delegate type for making auto backup of package */
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FAutoPackageBackupDelegate, const UPackage&);
+
+	/** Called by ReloadPackage during package reloading. It will be called several times for different phases of fix-up to allow custom code to handle updating objects as needed */
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPackageReloaded, EPackageReloadPhase, FPackageReloadedEvent*);
+	static FOnPackageReloaded OnPackageReloaded;
 
 #if WITH_EDITOR
 	// Callback for all object modifications
@@ -1885,12 +1901,16 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	/** Delegate used by SavePackage() to check whether a package should be saved */
 	static FIsPackageOKToSaveDelegate IsPackageOKToSaveDelegate;
 
+	/** Delegate for registering hot-reloaded classes that have been added  */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FRegisterHotReloadAddedClassesDelegate, const TArray<UClass*>&);
+	static FRegisterHotReloadAddedClassesDelegate RegisterHotReloadAddedClassesDelegate;
+
 	/** Delegate for registering hot-reloaded classes that changed after hot-reload for reinstancing */
-	DECLARE_DELEGATE_TwoParams(FRegisterClassForHotReloadReinstancingDelegate, UClass*, UClass*);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FRegisterClassForHotReloadReinstancingDelegate, UClass*, UClass*);
 	static FRegisterClassForHotReloadReinstancingDelegate RegisterClassForHotReloadReinstancingDelegate;
 
 	/** Delegate for reinstancing hot-reloaded classes */
-	DECLARE_DELEGATE(FReinstanceHotReloadedClassesDelegate);
+	DECLARE_MULTICAST_DELEGATE(FReinstanceHotReloadedClassesDelegate);
 	static FReinstanceHotReloadedClassesDelegate ReinstanceHotReloadedClassesDelegate;
 
 	// Sent at the very beginning of LoadMap
@@ -1937,9 +1957,13 @@ extern COREUOBJECT_API bool GShouldVerifyGCAssumptions;
 
 /** A struct used as stub for deleted ones. */
 COREUOBJECT_API UScriptStruct* GetFallbackStruct();
-
+enum class EConstructDynamicType : uint8
+{
+	OnlyAllocateClassObject,
+	CallZConstructor
+};
 /** Constructs dynamic type of a given class. */
-COREUOBJECT_API UObject* ConstructDynamicType(FName TypePathName);
+COREUOBJECT_API UObject* ConstructDynamicType(FName TypePathName, EConstructDynamicType ConstructionSpecifier);
 
 /** Given a dynamic type path name, returns that type's class name (can be either DynamicClass, ScriptStruct or Enum). */
 COREUOBJECT_API FName GetDynamicTypeClassName(FName TypePathName);

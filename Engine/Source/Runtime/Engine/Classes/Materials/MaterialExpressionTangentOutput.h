@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MaterialExpressionCustomOutput.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "MaterialExpressionIO.h"
+#include "Materials/MaterialExpressionCustomOutput.h"
 #include "MaterialExpressionTangentOutput.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
@@ -21,4 +24,5 @@ class UMaterialExpressionTangentOutput : public UMaterialExpressionCustomOutput
 
 	virtual int32 GetNumOutputs() const override { return 1; }
 	virtual FString GetFunctionName() const override { return TEXT("GetTangentOutput"); }
+	virtual FString GetDisplayName() const override { return TEXT("CustomEyeTangent"); }
 };

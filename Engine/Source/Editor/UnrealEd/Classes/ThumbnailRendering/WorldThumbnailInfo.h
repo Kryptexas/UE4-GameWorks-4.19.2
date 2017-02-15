@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Thumbnail information for world assets
  */
 
 #pragma once
-#include "Camera/CameraTypes.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
+#include "Camera/CameraTypes.h"
 #include "WorldThumbnailInfo.generated.h"
 
 UENUM()

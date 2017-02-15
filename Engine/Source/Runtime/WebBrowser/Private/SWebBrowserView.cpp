@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
 #include "SWebBrowserView.h"
+#include "Misc/CommandLine.h"
+#include "Containers/Ticker.h"
 #include "WebBrowserModule.h"
-#include "IWebBrowserSingleton.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "IWebBrowserDialog.h"
 #include "IWebBrowserWindow.h"
 #include "WebBrowserViewport.h"
 #include "IWebBrowserAdapter.h"
@@ -201,6 +205,17 @@ void SWebBrowserView::HandleWindowDeactivated()
 	}
 }
 
+void SWebBrowserView::HandleWindowActivated()
+{
+	if (BrowserViewport.IsValid())
+	{
+		if (HasAnyUserFocusOrFocusedDescendants())
+		{
+			BrowserViewport->OnFocusReceived(FFocusEvent());
+		}	
+	}
+}
+
 void SWebBrowserView::LoadURL(FString NewURL)
 {
 	AddressBarUrl = FText::FromString(NewURL);
@@ -331,6 +346,7 @@ void SWebBrowserView::SetupParentWindowHandlers()
 	if (SlateParentWindowPtr.IsValid() && BrowserWindow.IsValid())
 	{
 		SlateParentWindowPtr.Pin()->GetOnWindowDeactivatedEvent().AddSP(this, &SWebBrowserView::HandleWindowDeactivated);
+		SlateParentWindowPtr.Pin()->GetOnWindowActivatedEvent().AddSP(this, &SWebBrowserView::HandleWindowActivated);
 	}
 }
 

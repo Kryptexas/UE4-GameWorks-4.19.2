@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -15,13 +15,19 @@ namespace UnrealBuildTool
 	{
 
         // public virtual bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
-        public override bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
+        public bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
         {
             string ApplicationIconPath = Path.Combine(ProjectDirectory, "Build/Windows/Application.ico");
-            // Does a Project icon exist, if not point to the default UE4 icon instead
+            // Does a Project icon exist?
             if (!File.Exists(ApplicationIconPath))
             {
-                ApplicationIconPath = Path.Combine(EngineDirectory, "Source/Runtime/Launch/Resources/Windows/UE4.ico");
+                // Also check for legacy location
+                ApplicationIconPath = Path.Combine(ProjectDirectory, "Source", ProjectName, "Resources", "Windows", ProjectName + ".ico");
+                if (!File.Exists(ApplicationIconPath))
+                {
+                    // point to the default UE4 icon instead
+                    ApplicationIconPath = Path.Combine(EngineDirectory, "Source/Runtime/Launch/Resources/Windows/UE4.ico");
+                }
             }
             // sets the icon on the original exe this will be used in the task bar when the bootstrap exe runs
             if (File.Exists(ApplicationIconPath))
@@ -45,16 +51,13 @@ namespace UnrealBuildTool
 
 
 
-		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
+		public override bool PrepTargetForDeployment(UEBuildDeployTarget InTarget)
 		{
 			if ((InTarget.TargetType != TargetRules.TargetType.Editor && InTarget.TargetType != TargetRules.TargetType.Program) && (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win32 || BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64))
 			{
 				string InAppName = InTarget.AppName;
 				Log.TraceInformation("Prepping {0} for deployment to {1}", InAppName, InTarget.Platform.ToString());
 				System.DateTime PrepDeployStartTime = DateTime.UtcNow;
-
-				string TargetFilename = InTarget.RulesAssembly.GetTargetFileName(InAppName).FullName;
-				string ProjectSourceFolder = new FileInfo(TargetFilename).DirectoryName + "/";
 
                 PrepForUATPackageOrDeploy(InTarget.ProjectFile, InAppName, InTarget.ProjectDirectory.FullName, InTarget.OutputPath.FullName, BuildConfiguration.RelativeEnginePath, false, "", false);
 			}

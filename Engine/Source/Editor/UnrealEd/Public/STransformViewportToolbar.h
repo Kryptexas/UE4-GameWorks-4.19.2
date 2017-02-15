@@ -1,10 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __STransformViewportToolBar_h__
 #define __STransformViewportToolBar_h__
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Textures/SlateIcon.h"
 #include "SViewportToolBar.h"
+#include "Settings/LevelEditorViewportSettings.h"
+
+class FExtender;
+class FUICommandList;
+class SEditorViewport;
+class SSlider;
+enum class ECheckBoxState : uint8;
 
 /**
  * Viewport toolbar containing transform, grid snapping, local to world and camera speed controls.

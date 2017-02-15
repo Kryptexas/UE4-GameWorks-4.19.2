@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PackageBackup.h: Utility class for backing up a package.
@@ -6,6 +6,8 @@
 
 #ifndef _PACKAGEBACKUP_H
 #define _PACKAGEBACKUP_H
+
+#include "CoreMinimal.h"
 
 /**
  * Class that houses various static utility functions to allow for packages

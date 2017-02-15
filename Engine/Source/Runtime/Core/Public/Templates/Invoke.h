@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Templates/Decay.h"
-#include "Templates/EnableIf.h"
+#include "CoreTypes.h"
 #include "Templates/PointerIsConvertibleFromTo.h"
+#include "Templates/UnrealTemplate.h"
+#include "Templates/Decay.h"
 
 
 namespace UE4Invoke_Private

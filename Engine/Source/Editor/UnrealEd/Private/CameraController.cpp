@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CameraController.cpp: Implements controls for a camera with pseudo-physics
 =============================================================================*/
 
-#include "UnrealEd.h"
 #include "CameraController.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
 
 
 /** Constructor */

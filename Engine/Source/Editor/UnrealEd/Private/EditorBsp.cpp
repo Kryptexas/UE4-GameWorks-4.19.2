@@ -1,12 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Bsp.cpp: Unreal engine Bsp-related functions.
 =============================================================================*/
 
-#include "UnrealEd.h"
-#include "BSPOps.h"
+#include "CoreMinimal.h"
+#include "Misc/MemStack.h"
+#include "Misc/FeedbackContext.h"
+#include "Materials/MaterialInterface.h"
+#include "Model.h"
+#include "Materials/Material.h"
+#include "Editor/EditorEngine.h"
 #include "Engine/Polys.h"
+#include "Editor.h"
+#include "BSPOps.h"
 #include "Engine/Selection.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorBsp, Log, All);

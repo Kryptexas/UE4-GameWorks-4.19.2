@@ -1,26 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
 #include "SequencerContextMenus.h"
+#include "Modules/ModuleManager.h"
+#include "EditorStyleSet.h"
+#include "DisplayNodes/SequencerSectionKeyAreaNode.h"
+#include "DisplayNodes/SequencerTrackNode.h"
+#include "SequencerCommonHelpers.h"
+#include "SSequencer.h"
+#include "SectionLayout.h"
+#include "SSequencerSection.h"
+#include "SequencerSettings.h"
+#include "ISequencerHotspot.h"
 #include "SequencerHotspots.h"
 #include "ScopedTransaction.h"
 #include "MovieSceneToolHelpers.h"
-#include "MovieSceneSection.h"
-#include "SSequencerSection.h"
-#include "MovieSceneTrack.h"
 #include "MovieSceneCommonHelpers.h"
 #include "MovieSceneKeyStruct.h"
-#include "GenericCommands.h"
-#include "SequencerCommands.h"
-#include "ModuleManager.h"
+#include "Framework/Commands/GenericCommands.h"
 #include "IDetailsView.h"
 #include "IStructureDetailsView.h"
 #include "PropertyEditorModule.h"
-#include "MovieSceneSequence.h"
 #include "IntegralKeyDetailsCustomization.h"
-#include "MovieSceneSubSection.h"
-#include "MovieSceneCinematicShotSection.h"
+#include "Sections/MovieSceneSubSection.h"
+#include "Sections/MovieSceneCinematicShotSection.h"
 #include "Curves/IntegralCurve.h"
+#include "Editor.h"
+#include "NotifyHook.h"
+#include "EditorUndoClient.h"
 
 #define LOCTEXT_NAMESPACE "SequencerContextMenus"
 
@@ -179,71 +185,152 @@ bool FKeyContextMenu::CanAddPropertiesMenu() const
 	return false;
 }
 
-void FKeyContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
+/** Widget that represents a details panel that refreshes on undo, and handles modification of the section on edit */
+class SInlineDetailsView : public SCompoundWidget, public FEditorUndoClient, public FNotifyHook
 {
-	FDetailsViewArgs DetailsViewArgs;
+public:
+	SLATE_BEGIN_ARGS(SInlineDetailsView){}
+	SLATE_END_ARGS()
+
+	~SInlineDetailsView()
 	{
-		DetailsViewArgs.bAllowSearch = false;
-		DetailsViewArgs.bCustomFilterAreaLocation = true;
-		DetailsViewArgs.bCustomNameAreaLocation = true;
-		DetailsViewArgs.bHideSelectionTip = true;
-		DetailsViewArgs.bLockable = false;
-		DetailsViewArgs.bSearchInitialKeyFocus = true;
-		DetailsViewArgs.bUpdatesFromSelection = false;
-		DetailsViewArgs.bShowOptions = false;
-		DetailsViewArgs.bShowModifiedPropertiesOption = false;
+		GEditor->UnregisterForUndo(this);
 	}
 
-	FStructureDetailsViewArgs StructureViewArgs;
+	void Construct(const FArguments&, TSharedRef<FSequencer> InSequencer)
 	{
-		StructureViewArgs.bShowObjects = false;
-		StructureViewArgs.bShowAssets = true;
-		StructureViewArgs.bShowClasses = true;
-		StructureViewArgs.bShowInterfaces = false;
+		GEditor->RegisterForUndo(this);
+		
+		WeakSequencer = InSequencer;
+		Initialize();
 	}
-
-	TArray<TPair<TSharedPtr<FStructOnScope>, const FSequencerSelectedKey&>> Keys;
+	
+	/** (Re)Initialize this widget's details panel */
+	void Initialize()
 	{
+		// Reset the section and widget content
+		WeakSection = nullptr;
+		ChildSlot
+		[
+			SNullWidget::NullWidget
+		];
+
+		TSharedPtr<FSequencer> Sequencer = WeakSequencer.Pin();
+		if (!Sequencer.IsValid())
+		{
+			return;
+		}
+
+		// Set up the details panel only if a single selected key with a valid key struct exists
+		TSharedPtr<FStructOnScope> SelectedKeyStruct;
+		FSequencerSelectedKey SelectedKey;
+
 		for (const FSequencerSelectedKey& Key : Sequencer->GetSelection().GetSelectedKeys())
 		{
 			if (Key.KeyArea.IsValid() && Key.KeyHandle.IsSet())
 			{
 				TSharedPtr<FStructOnScope> KeyStruct = Key.KeyArea->GetKeyStruct(Key.KeyHandle.GetValue());
-
 				if (KeyStruct.IsValid())
 				{
-					Keys.Add(TPairInitializer<TSharedPtr<FStructOnScope>, const FSequencerSelectedKey&>(KeyStruct, Key));
+					if (SelectedKey.IsValid())
+					{
+						// @todo sequencer: only one struct per structure view supported right now :/
+						return;
+					}
+
+					SelectedKey = Key;
+					SelectedKeyStruct = KeyStruct;
 				}
 			}
 		}
+
+		// If there're no selected keys, or too many, bail
+		if (!SelectedKey.IsValid())
+		{
+			return;
+		}
+
+		// Set up the details panel
+		WeakSection = SelectedKey.Section;
+
+		FDetailsViewArgs DetailsViewArgs;
+		{
+			DetailsViewArgs.bAllowSearch = false;
+			DetailsViewArgs.bCustomFilterAreaLocation = true;
+			DetailsViewArgs.bCustomNameAreaLocation = true;
+			DetailsViewArgs.bHideSelectionTip = true;
+			DetailsViewArgs.bLockable = false;
+			DetailsViewArgs.bSearchInitialKeyFocus = true;
+			DetailsViewArgs.bUpdatesFromSelection = false;
+			DetailsViewArgs.bShowOptions = false;
+			DetailsViewArgs.bShowModifiedPropertiesOption = false;
+			DetailsViewArgs.bShowScrollBar = false;
+			DetailsViewArgs.NotifyHook = this;
+		}
+
+		FStructureDetailsViewArgs StructureViewArgs;
+		{
+			StructureViewArgs.bShowObjects = false;
+			StructureViewArgs.bShowAssets = true;
+			StructureViewArgs.bShowClasses = true;
+			StructureViewArgs.bShowInterfaces = false;
+		}
+
+		TSharedRef<IStructureDetailsView> StructureDetailsView = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor")
+			.CreateStructureDetailView(DetailsViewArgs, StructureViewArgs, nullptr, LOCTEXT("MessageData", "Message Data"));
+
+		// register details customizations for this instance
+		StructureDetailsView->GetDetailsView().RegisterInstancedCustomPropertyLayout(FIntegralKey::StaticStruct(), FOnGetDetailCustomizationInstance::CreateStatic(&FIntegralKeyDetailsCustomization::MakeInstance, TWeakObjectPtr<const UMovieSceneSection>(WeakSection)));
+
+		StructureDetailsView->SetStructureData(SelectedKeyStruct);
+		StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddSP(this, &SInlineDetailsView::OnFinishedChangingProperties, SelectedKeyStruct);
+
+		ChildSlot
+		[
+			StructureDetailsView->GetWidget().ToSharedRef()
+		];
 	}
 
-	TSharedRef<IStructureDetailsView> StructureDetailsView = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor")
-		.CreateStructureDetailView(DetailsViewArgs, StructureViewArgs, nullptr, LOCTEXT("MessageData", "Message Data"));
+	void OnFinishedChangingProperties(const FPropertyChangedEvent& ChangeEvent, TSharedPtr<FStructOnScope> KeyStruct)
 	{
-		// @todo sequencer: only one struct per structure view supported right now :/
-		if (Keys.Num() == 1)
+		if (KeyStruct->GetStruct()->IsChildOf(FMovieSceneKeyStruct::StaticStruct()))
 		{
-			TPair<TSharedPtr<FStructOnScope>, const FSequencerSelectedKey&>& Key = Keys[0];
+			((FMovieSceneKeyStruct*)KeyStruct->GetStructMemory())->PropagateChanges(ChangeEvent);
+		}
 
-			// register details customizations for this instance
-			StructureDetailsView->GetDetailsView().RegisterInstancedCustomPropertyLayout(FIntegralKey::StaticStruct(), FOnGetDetailCustomizationInstance::CreateStatic(&FIntegralKeyDetailsCustomization::MakeInstance, TWeakObjectPtr<const UMovieSceneSection>(Key.Value.Section)));
-
-			StructureDetailsView->SetStructureData(Key.Key);
-			StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddLambda(
-				[=](const FPropertyChangedEvent& ChangeEvent) {
-					
-					if (Key.Key->GetStruct()->IsChildOf(FMovieSceneKeyStruct::StaticStruct()))
-					{
-						((FMovieSceneKeyStruct*)Key.Key->GetStructMemory())->PropagateChanges(ChangeEvent);
-					}
-					Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
-				}
-			);
+		TSharedPtr<FSequencer> Sequencer = WeakSequencer.Pin();
+		if (Sequencer.IsValid())
+		{
+			Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 		}
 	}
-	
-	MenuBuilder.AddWidget(StructureDetailsView->GetWidget().ToSharedRef(), FText::GetEmpty(), true);
+
+	virtual void NotifyPreChange( UProperty* PropertyAboutToChange )
+	{
+		if (UMovieSceneSection* Section = WeakSection.Get())
+		{
+			Section->Modify();
+		}
+	}
+
+	virtual void PostUndo(bool bSuccess) override
+	{
+		Initialize();
+	}
+
+	virtual void PostRedo(bool bSuccess) override
+	{
+		Initialize();
+	}
+
+private:
+	TWeakObjectPtr<UMovieSceneSection> WeakSection;
+	TWeakPtr<FSequencer> WeakSequencer;
+};
+
+void FKeyContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddWidget(SNew(SInlineDetailsView, Sequencer), FText::GetEmpty(), true);
 }
 
 
@@ -427,6 +514,15 @@ void FSectionContextMenu::AddEditMenu(FMenuBuilder& MenuBuilder)
 		FUIAction(
 			FExecuteAction::CreateLambda([=]{ Shared->SplitSection(); }),
 			FCanExecuteAction::CreateLambda([=]{ return Shared->IsTrimmable(); }))
+	);
+		
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("ReduceKeysSection", "Reduce Keys"),
+		LOCTEXT("ReduceKeysTooltip", "Reduce keys in this section"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateLambda([=]{ Shared->ReduceKeys(); }),
+			FCanExecuteAction::CreateLambda([=]{ return Shared->CanReduceKeys(); }))
 	);
 }
 
@@ -686,7 +782,7 @@ void FSectionContextMenu::TrimSection(bool bTrimLeft)
 {
 	FScopedTransaction TrimSectionTransaction(LOCTEXT("TrimSection_Transaction", "Trim Section"));
 
-	MovieSceneToolHelpers::TrimSection(Sequencer->GetSelection().GetSelectedSections(), Sequencer->GetGlobalTime(), bTrimLeft);
+	MovieSceneToolHelpers::TrimSection(Sequencer->GetSelection().GetSelectedSections(), Sequencer->GetLocalTime(), bTrimLeft);
 	Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 }
 
@@ -695,21 +791,75 @@ void FSectionContextMenu::SplitSection()
 {
 	FScopedTransaction SplitSectionTransaction(LOCTEXT("SplitSection_Transaction", "Split Section"));
 
-	MovieSceneToolHelpers::SplitSection(Sequencer->GetSelection().GetSelectedSections(), Sequencer->GetGlobalTime());
+	MovieSceneToolHelpers::SplitSection(Sequencer->GetSelection().GetSelectedSections(), Sequencer->GetLocalTime());
 	Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 }
 
+
+void FSectionContextMenu::ReduceKeys()
+{
+	FScopedTransaction ReduceKeysTransaction(LOCTEXT("ReduceKeys_Transaction", "Reduce Keys"));
+
+	TSet<TSharedPtr<IKeyArea> > KeyAreas;
+	for (auto DisplayNode : Sequencer->GetSelection().GetSelectedOutlinerNodes())
+	{
+		SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
+	}
+
+	if (KeyAreas.Num() == 0)
+	{
+		TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Sequencer->GetSelection().GetNodesWithSelectedKeysOrSections();
+		for (auto DisplayNode : SelectedNodes)
+		{
+			SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
+		}
+	}
+
+	for (auto KeyArea : KeyAreas)
+	{
+		if (KeyArea.IsValid())
+		{
+			if (KeyArea->GetRichCurve() && KeyArea->GetOwningSection())
+			{
+				KeyArea->GetOwningSection()->Modify();
+				KeyArea->GetRichCurve()->RemoveRedundantKeys(KINDA_SMALL_NUMBER);
+			}
+		}
+	}
+
+	Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
+}
 
 bool FSectionContextMenu::IsTrimmable() const
 {
 	for (auto Section : Sequencer->GetSelection().GetSelectedSections())
 	{
-		if (Section.IsValid() && Section->IsTimeWithinSection(Sequencer->GetGlobalTime()))
+		if (Section.IsValid() && Section->IsTimeWithinSection(Sequencer->GetLocalTime()))
 		{
 			return true;
 		}
 	}
 	return false;
+}
+
+bool FSectionContextMenu::CanReduceKeys() const
+{
+	TSet<TSharedPtr<IKeyArea> > KeyAreas;
+	for (auto DisplayNode : Sequencer->GetSelection().GetSelectedOutlinerNodes())
+	{
+		SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
+	}
+
+	if (KeyAreas.Num() == 0)
+	{
+		TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Sequencer->GetSelection().GetNodesWithSelectedKeysOrSections();
+		for (auto DisplayNode : SelectedNodes)
+		{
+			SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
+		}
+	}
+
+	return KeyAreas.Num() != 0;
 }
 
 
@@ -1002,7 +1152,7 @@ void FSectionContextMenu::BringToFront()
 		}
 	}
 
-	Sequencer->SetGlobalTime(Sequencer->GetGlobalTime());
+	Sequencer->SetLocalTimeDirectly(Sequencer->GetLocalTime());
 }
 
 
@@ -1050,7 +1200,7 @@ void FSectionContextMenu::SendToBack()
 		}
 	}
 
-	Sequencer->SetGlobalTime(Sequencer->GetGlobalTime());
+	Sequencer->SetLocalTimeDirectly(Sequencer->GetLocalTime());
 }
 
 
@@ -1095,7 +1245,7 @@ void FSectionContextMenu::BringForward()
 		}
 	}
 
-	Sequencer->SetGlobalTime(Sequencer->GetGlobalTime());
+	Sequencer->SetLocalTimeDirectly(Sequencer->GetLocalTime());
 }
 
 
@@ -1140,7 +1290,7 @@ void FSectionContextMenu::SendBackward()
 		}
 	}
 
-	Sequencer->SetGlobalTime(Sequencer->GetGlobalTime());
+	Sequencer->SetLocalTimeDirectly(Sequencer->GetLocalTime());
 }
 
 

@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "UObject/GCObject.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "PreviewScene.h"
+#include "Framework/Commands/UICommandList.h"
+#include "EditorViewportClient.h"
 #include "SEditorViewport.h"
-#include "NiagaraEffect.h"
+
+class FNiagaraEffectEditorViewportClient;
+class FNiagaraEffectInstance;
 
 /**
  * Material Editor Preview viewport widget

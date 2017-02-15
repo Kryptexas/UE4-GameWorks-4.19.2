@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Models/MessagingDebuggerEndpointFilter.h"
 
 /**
  * Implements the endpoints list filter bar widget.
@@ -22,18 +26,10 @@ public:
 	 * @param InArgs The declaration data for this widget.
 	 * @param InFilter The filter model.
 	 */
-	void Construct( const FArguments& InArgs, FMessagingDebuggerEndpointFilterRef InFilter );
-
-private:
-
-	/** Handles changing the filter string text box text. */
-	void HandleFilterStringTextChanged( const FText& NewText )
-	{
-		Filter->SetFilterString(NewText.ToString());
-	}
+	void Construct(const FArguments& InArgs, TSharedRef<FMessagingDebuggerEndpointFilter> InFilter);
 
 private:
 
 	/** Holds a pointer to the filter model. */
-	FMessagingDebuggerEndpointFilterPtr Filter;
+	TSharedPtr<FMessagingDebuggerEndpointFilter> Filter;
 };

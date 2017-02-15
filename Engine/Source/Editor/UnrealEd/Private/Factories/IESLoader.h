@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+class Error;
 
 /**
  * To load the IES file image format. IES files exist for many real world lights. The file stores how much light is emitted in a specific direction.

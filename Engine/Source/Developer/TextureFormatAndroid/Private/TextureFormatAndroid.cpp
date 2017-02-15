@@ -1,14 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "GenericPlatform/GenericPlatformStackWalk.h"
+#include "Misc/Paths.h"
 #include "ImageCore.h"
-#include "ModuleInterface.h"
-#include "ModuleManager.h"
-#include "TargetPlatform.h"
+#include "Modules/ModuleManager.h"
+#include "Interfaces/ITextureFormat.h"
+#include "Interfaces/ITextureFormatModule.h"
 #include "TextureCompressorModule.h"
 #include "PixelFormat.h"
 #include "TextureConverter.h"
-#include "IConsoleManager.h"
+#include "HAL/PlatformProcess.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTextureFormatAndroid, Log, All);
 
@@ -246,7 +248,7 @@ static ITextureFormat* Singleton = NULL;
 
 
 #if PLATFORM_WINDOWS
-	HMODULE	TextureConverterHandle = NULL;
+	void*	TextureConverterHandle = NULL;
 	FString QualCommBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/QualComm/Win64/");
 #endif
 
@@ -258,7 +260,7 @@ public:
 	FTextureFormatAndroidModule()
 	{
 #if PLATFORM_WINDOWS
-		TextureConverterHandle = LoadLibraryW(*(QualCommBinariesRoot + "TextureConverter.dll"));
+		TextureConverterHandle = FPlatformProcess::GetDllHandle(*(QualCommBinariesRoot + "TextureConverter.dll"));
 #endif
 	}
 
@@ -268,7 +270,7 @@ public:
 		Singleton = NULL;
 
 #if PLATFORM_WINDOWS
-		FreeLibrary(TextureConverterHandle);
+		FPlatformProcess::FreeDllHandle(TextureConverterHandle);
 #endif
 	}
 	virtual ITextureFormat* GetTextureFormat()
@@ -276,7 +278,7 @@ public:
 		if (!Singleton)
 		{
 #if PLATFORM_WINDOWS
-			TextureConverterHandle = LoadLibraryW(*(QualCommBinariesRoot + "TextureConverter.dll"));
+			TextureConverterHandle = FPlatformProcess::GetDllHandle(*(QualCommBinariesRoot + "TextureConverter.dll"));
 #endif
 			Singleton = new FTextureFormatAndroid();
 		}

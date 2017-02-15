@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __KismetEditorUtilities_h__
@@ -6,9 +6,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "GameFramework/Actor.h"
 #include "Engine/Blueprint.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
-class UBlueprintGeneratedClass;
+class IBlueprintEditor;
+class UEdGraph;
+struct Rect;
 
 //////////////////////////////////////////////////////////////////////////
 // FKismetEditorUtilities

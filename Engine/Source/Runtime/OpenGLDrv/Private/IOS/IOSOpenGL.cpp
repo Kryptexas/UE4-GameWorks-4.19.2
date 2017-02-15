@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "OpenGLDrvPrivate.h"
 #include "IOSAppDelegate.h"
 #include "IOSView.h"
-#include "SlateBasics.h"
+#include "IOS/IOSApplication.h"
+#include "IOS/IOSPlatformFramePacer.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Misc/ConfigCacheIni.h"
 
 // This header file gives access to the thread_policy_set function.
 #include <mach/thread_act.h>
@@ -235,7 +239,7 @@ FRHITexture* PlatformCreateBuiltinBackBuffer(FOpenGLDynamicRHI* OpenGLRHI, uint3
 	[GLView UpdateRenderWidth:SizeX andHeight:SizeY];
 
 	uint32 Flags = TexCreate_RenderTargetable | TexCreate_Presentable;
-	FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(OpenGLRHI, GLView.OnScreenColorRenderBuffer, GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, PF_B8G8R8A8, false, false, Flags, nullptr, FClearValueBinding::Transparent);
+	FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(OpenGLRHI, GLView.OnScreenColorRenderBuffer, GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, 1, PF_B8G8R8A8, false, false, Flags, nullptr, FClearValueBinding::Transparent);
 	OpenGLTextureAllocated(Texture2D, Flags);
 
 	return Texture2D;

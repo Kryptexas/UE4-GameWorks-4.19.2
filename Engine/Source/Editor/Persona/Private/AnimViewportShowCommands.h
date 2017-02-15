@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __AnimViewportShowCommands_h_
 #define __AnimViewportShowCommands_h_
+
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "Framework/Commands/Commands.h"
+#include "EditorStyleSet.h"
 
 /**
  * Class containing commands for persona viewport show actions
@@ -48,13 +53,16 @@ public:
 	/** Show Morphtarget */
 	TSharedPtr< FUICommandInfo > ShowMorphTargets;
 
-	/** Hide all local axes */
+	/** Hide all bones */
 	TSharedPtr< FUICommandInfo > ShowBoneDrawNone;
 
-	/** Show only selected axes */
+	/** Show only selected bones */
 	TSharedPtr< FUICommandInfo > ShowBoneDrawSelected;
 
-	/** Show all local axes */
+	/** Show only selected bones and their parents */
+	TSharedPtr< FUICommandInfo > ShowBoneDrawSelectedAndParents;
+
+	/** Show all bones */
 	TSharedPtr< FUICommandInfo > ShowBoneDrawAll;
 
 	/** Show raw animation (vs compressed) */
@@ -135,6 +143,9 @@ public:
 	TSharedPtr< FUICommandInfo > ShowClothPhysicalMeshWire;
 
 	TSharedPtr< FUICommandInfo > ShowClothFixedVertices;	
+
+	TSharedPtr< FUICommandInfo > PauseClothWithAnim;
+
 #endif// #if WITH_APEX_CLOTHING
 
 public:

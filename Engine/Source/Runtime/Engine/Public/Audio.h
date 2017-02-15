@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Audio.h: Unreal base audio.
@@ -6,9 +6,20 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/ThreadSafeBool.h"
 #include "Sound/SoundClass.h"
 #include "Sound/SoundAttenuation.h"
 #include "IAudioExtensionPlugin.h"
+
+class FAudioDevice;
+class USoundNode;
+class USoundWave;
+struct FActiveSound;
+struct FWaveInstance;
+
+//#include "Sound/SoundConcurrency.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudio, Warning, All);
 
@@ -44,6 +55,8 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioDebug, Display, All);
 
 #define DEFAULT_SUBTITLE_PRIORITY		10000.0f
 
+#define AUDIO_SAMPLE_RATE				44100
+
 /**
  * Some filters don't work properly with extreme values, so these are the limits 
  */
@@ -55,8 +68,6 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioDebug, Display, All);
 
 #define MIN_FILTER_BANDWIDTH			0.1f
 #define MAX_FILTER_BANDWIDTH			2.0f
-
-#define DEFAULT_SUBTITLE_PRIORITY		10000.0f
 
 /**
  * Audio stats
@@ -84,7 +95,7 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT( "Decompress Vorbis" ), STAT_VorbisDecompressTim
 DECLARE_CYCLE_STAT_EXTERN( TEXT( "Prepare Audio Decompression" ), STAT_AudioPrepareDecompressionTime, STATGROUP_Audio , );
 DECLARE_CYCLE_STAT_EXTERN( TEXT( "Prepare Vorbis Decompression" ), STAT_VorbisPrepareDecompressionTime, STATGROUP_Audio , );
 DECLARE_CYCLE_STAT_EXTERN( TEXT( "Finding Nearest Location" ), STAT_AudioFindNearestLocation, STATGROUP_Audio , );
-DECLARE_CYCLE_STAT_EXTERN( TEXT( "Decompress Opus" ), STAT_OpusDecompressTime, STATGROUP_Audio , );
+DECLARE_CYCLE_STAT_EXTERN( TEXT( "Decompress Streamed" ), STAT_AudioStreamedDecompressTime, STATGROUP_Audio , );
 DECLARE_CYCLE_STAT_EXTERN( TEXT( "Buffer Creation" ), STAT_AudioResourceCreationTime, STATGROUP_Audio , );
 
 /**
@@ -105,6 +116,66 @@ enum EAudioSpeakers
 	SPEAKER_RightBack,		//				*
 	SPEAKER_Count
 };
+
+namespace EAudioMixerChannel
+{
+	/** Enumeration values represent sound file or speaker channel types. */
+	enum Type
+	{
+		FrontLeft,
+		FrontRight,
+		FrontCenter,
+		LowFrequency,
+		BackLeft,
+		BackRight,
+		FrontLeftOfCenter,
+		FrontRightOfCenter,
+		BackCenter,
+		SideLeft,
+		SideRight,
+		TopCenter,
+		TopFrontLeft,
+		TopFrontCenter,
+		TopFrontRight,
+		TopBackLeft,
+		TopBackCenter,
+		TopBackRight,
+		Unknown,
+		ChannelTypeCount
+	};
+
+	static const int32 MaxSupportedChannel = EAudioMixerChannel::TopCenter;
+
+	inline const TCHAR* ToString(EAudioMixerChannel::Type InType)
+	{
+		switch (InType)
+		{
+		case FrontLeft:				return TEXT("FrontLeft");
+		case FrontRight:			return TEXT("FrontRight");
+		case FrontCenter:			return TEXT("FrontCenter");
+		case LowFrequency:			return TEXT("LowFrequency");
+		case BackLeft:				return TEXT("BackLeft");
+		case BackRight:				return TEXT("BackRight");
+		case FrontLeftOfCenter:		return TEXT("FrontLeftOfCenter");
+		case FrontRightOfCenter:	return TEXT("FrontRightOfCenter");
+		case BackCenter:			return TEXT("BackCenter");
+		case SideLeft:				return TEXT("SideLeft");
+		case SideRight:				return TEXT("SideRight");
+		case TopCenter:				return TEXT("TopCenter");
+		case TopFrontLeft:			return TEXT("TopFrontLeft");
+		case TopFrontCenter:		return TEXT("TopFrontCenter");
+		case TopFrontRight:			return TEXT("TopFrontRight");
+		case TopBackLeft:			return TEXT("TopBackLeft");
+		case TopBackCenter:			return TEXT("TopBackCenter");
+		case TopBackRight:			return TEXT("TopBackRight");
+		case Unknown:				return TEXT("Unknown");
+
+		default:
+			return TEXT("UNSUPPORTED");
+		}
+	}
+}
+
 
 // Forward declarations.
 class UAudioComponent;
@@ -172,6 +243,13 @@ struct EAudioPlugin
 /** Queries if a plugin of the given type is enabled. */
 ENGINE_API bool IsAudioPluginEnabled(EAudioPlugin::Type PluginType);
 
+/** Struct describes the submix send info for the wave instance. */
+struct ENGINE_API FSubmixSendInfo
+{
+	class USoundSubmix* SoundSubmix;
+	float DryLevel;
+	float WetLevel;
+};
 
 /**
  * Structure encapsulating all information required to play a USoundWave on a channel/source. This is required
@@ -186,8 +264,9 @@ struct ENGINE_API FWaveInstance
 	class USoundWave*	WaveData;
 	/** Sound class */
 	class USoundClass*  SoundClass;
-	/** Sound submix */
-	class USoundSubmix* SoundSubmix;
+	/** Sound submix sends */
+	TArray<FSubmixSendInfo> SoundSubmixSends;
+
 	/** Sound nodes to notify when the current audio buffer finishes */
 	FNotifyBufferFinishedHooks NotifyBufferFinishedHooks;
 
@@ -269,10 +348,19 @@ struct ENGINE_API FWaveInstance
 	float				OmniRadius;
 	/** Amount of spread for 3d multi-channel asset spatialization */
 	float				StereoSpread;
-	/** Distance from closest listener to sound. used in attenuation calculations. */
+	/** Distance over which the sound is attenuated. */
 	float				AttenuationDistance;
+	/** The distance from this wave instance to the closest listener. */
+	float				ListenerToSoundDistance;
 	/** The absolute position of the wave instance relative to forward vector of listener. */
 	float				AbsoluteAzimuth; 
+
+	/** Reverb distance-based wet-level settings defined in attenuation settings. */
+	float				ReverbWetLevelMin;
+	float				ReverbWetLevelMax;
+	float				ReverbDistanceMin;
+	float				ReverbDistanceMax;
+
 	/** Cached type hash */
 	uint32				TypeHash;
 	/** Hash value for finding the wave instance based on the path through the cue to get to it */
@@ -423,6 +511,8 @@ public:
 		, LFEBleed(0.5f)
 		, LPFFrequency(MAX_FILTER_FREQUENCY)
 		, LastLPFFrequency(MAX_FILTER_FREQUENCY)
+		, PlaybackTime(0.0f)
+		, Pitch(1.0f)
 		, LastUpdate(0)
 		, LeftChannelSourceLocation(0)
 		, RightChannelSourceLocation(0)
@@ -535,15 +625,19 @@ public:
 		bIsVirtual = true;
 	}
 
-	/** Returns the source's playback percent. Not yet supported on all platforms. */
-	virtual float GetPlaybackPercent() const
-	{
-		return 0.0f;
-	}
+	/** Returns the source's playback percent. */
+	ENGINE_API virtual float GetPlaybackPercent() const;
 
 	void NotifyPlaybackPercent();
 
 protected:
+
+	/** Initializes common data for all sound source types. */
+	ENGINE_API void InitCommon();
+
+	/** Updates common data for all sound source types. */
+	ENGINE_API void UpdateCommon();
+
 	/** Pauses the sound source. */
 	virtual void Pause() = 0;
 
@@ -573,6 +667,12 @@ protected:
 
 	/** The last LPF frequency set. Used to avoid making API calls when parameter doesn't changing. */
 	float LastLPFFrequency;
+
+	/** The virtual current playback time. Used to trigger notifications when finished. */
+	float PlaybackTime;
+
+	/** The pitch of the sound source. */
+	float Pitch;
 
 	/** Last tick when this source was active */
 	int32 LastUpdate;
@@ -660,14 +760,15 @@ public:
 	}
 	
 	// 16-bit padding.
-	uint32 Pad16Bit( uint32 InDW )
+	static uint32 Pad16Bit( uint32 InDW )
 	{
 		return ((InDW + 1)& ~1);
 	}
 
 	// Read headers and load all info pointers in WaveModInfo. 
 	// Returns 0 if invalid data encountered.
-	ENGINE_API bool ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* ErrorMessage = NULL );
+	ENGINE_API bool ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* ErrorMessage = NULL, bool InHeaderDataOnly = false, void** OutFormatHeader = NULL );
+	
 	/**
 	 * Read a wave file header from bulkdata
 	 */

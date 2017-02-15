@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnObjAllocator.cpp: Unreal object allocation
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
+#include "UObject/UObjectAllocator.h"
+#include "UObject/UObjectGlobals.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUObjectAllocator, Log, All);
 

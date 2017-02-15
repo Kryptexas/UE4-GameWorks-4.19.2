@@ -1,16 +1,55 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/Guid.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "Serialization/LargeMemoryWriter.h"
+#include "Serialization/LargeMemoryReader.h"
+#include "Serialization/BufferArchive.h"
+#include "HAL/IOBase.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/ObjectThumbnail.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Object.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectIterator.h"
+#include "Serialization/PropertyLocalizationDataGathering.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/LazyObjectPtr.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/UnrealType.h"
 #include "UObject/TextProperty.h"
-#include "TextPackageNamespaceUtil.h"
-#include "Interface.h"
-#include "TargetPlatform.h"
+#include "UObject/ObjectRedirector.h"
+#include "Misc/PackageName.h"
+#include "Serialization/BulkData.h"
+#include "UObject/PackageFileSummary.h"
+#include "UObject/ObjectResource.h"
+#include "UObject/Linker.h"
+#include "UObject/LinkerLoad.h"
+#include "UObject/LinkerSave.h"
+#include "Blueprint/BlueprintSupport.h"
+#include "Internationalization/TextPackageNamespaceUtil.h"
+#include "UObject/Interface.h"
+#include "Interfaces/ITargetPlatform.h"
 #include "UObject/UObjectThreadContext.h"
-#include "BlueprintSupport.h"
-#include "DebugSerializationFlags.h"
 #include "UObject/GCScopeLock.h"
-#include "CookStats.h"
-#include "BlueprintSupport.h" // for FLegacyEditorOnlyBlueprintOptions::DetectInvalidBlueprintExport()
+#include "ProfilingDebugging/CookStats.h"
+#include "UObject/DebugSerializationFlags.h"
+#include "EnumProperty.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSavePackage, Log, All);
 
@@ -20,14 +59,15 @@ static const FName WorldClassName = FName("World");
 #define VALIDATE_INITIALIZECORECLASSES 0
 #define EXPORT_SORTING_DETAILED_LOGGING 0
 
-#if ENABLE_COOK_STATS
 // Uncomment this code to measure UObject::Serialize time taken per UClass type during save.
 // This code tracks each type in a hash, so is too heavyweight to leave on in general,
 // but can be really useful for telling what classes are causing the most save time.
 #define ENABLE_PACKAGE_CLASS_SERIALIZATION_TIMES 0
 // uncomment this code to measure UObject::PreSave time taken per uclass type during save
 #define ENABLE_TAGEXPORTS_CLASS_PRESAVE_TIMES 0
-#include "ScopedTimers.h"
+
+#if ENABLE_COOK_STATS
+#include "ProfilingDebugging/ScopedTimers.h"
 
 namespace SavePackageStats
 {
@@ -52,7 +92,7 @@ namespace SavePackageStats
 		// Don't use FCookStatsManager::CreateKeyValueArray because there's just too many arguments. Don't need to overburden the compiler here.
 		TArray<FCookStatsManager::StringKeyValue> StatsList;
 		StatsList.Empty(15);
-		#define ADD_COOK_STAT(Name) StatsList.Emplace(TEXT(#Name), FCookStatsManager::ToString(Name))
+		#define ADD_COOK_STAT(Name) StatsList.Emplace(TEXT(#Name), Lex::ToString(Name))
 		ADD_COOK_STAT(NumPackagesSaved);
 		ADD_COOK_STAT(SavePackageTimeSec);
 		ADD_COOK_STAT(TagPackageExportsPresaveTimeSec);
@@ -420,7 +460,6 @@ void AsyncWriteFile(FLargeMemoryPtr Data, const int64 DataSize, const TCHAR* Fil
 	(new FAutoDeleteAsyncTask<FAsyncWriteWorker>(Filename, MoveTemp(Data), DataSize, TimeStamp, bUseTempFilename))->StartBackgroundTask();
 }
 
-#if SPLIT_COOKED_FILES
 void AsyncWriteFileWithSplitExports(FLargeMemoryPtr Data, const int64 DataSize, const int64 HeaderSize, const TCHAR* Filename, const FDateTime& TimeStamp, bool bUseTempFilename = true)
 {
 	class FAsyncWriteWorkerWithSplitExports : public FNonAbandonableTask
@@ -570,7 +609,7 @@ void AsyncWriteFileWithSplitExports(FLargeMemoryPtr Data, const int64 DataSize, 
 	OutstandingAsyncWrites.Increment();
 	(new FAutoDeleteAsyncTask<FAsyncWriteWorkerWithSplitExports>(Filename, MoveTemp(Data), DataSize, HeaderSize, TimeStamp, bUseTempFilename))->StartBackgroundTask();
 }
-#endif
+
 /** 
  * Helper object for all of the cross object state that is needed only while saving a package.
  */
@@ -600,6 +639,13 @@ public:
 			if (const UClass* ReplObjClass = Coordinator->FindReplacedClassForObject(Obj))
 			{
 				MarkNameAsReferenced(ReplObjClass->GetFName());
+			}
+
+			FName ReplacedName;
+			Coordinator->FindReplacedNameAndOuter(Obj, ReplacedName); //TODO: should we care about replaced outer ?
+			if (ReplacedName != NAME_None)
+			{
+				MarkNameAsReferenced(ReplacedName);
 			}
 		}
 	}
@@ -746,12 +792,25 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, FArchive& Ar)
 			Obj->Mark(OBJECTMARK_NotForServer);
 		}
 
-		if (Search->HasAnyFlags(RF_Public))
+		if (Search->IsA(UPackage::StaticClass()))
 		{
 			break;
 		}
 		Search = Search->GetOuter();
 	} while (Search && !Obj->HasAllMarks(ObjectMarks));
+}
+
+static bool IsCDOWithIncludedClassForPlatform(UObject* Obj, FArchive& Ar)
+{
+	if (Obj->HasAnyFlags(RF_ClassDefaultObject))
+	{
+		UClass* CDOClass = Obj->GetClass();
+		ConditionallyExcludeObjectForTarget(CDOClass, Ar);
+		const EObjectMark ObjectMarks = UPackage::GetObjectMarksForTargetPlatform(Ar.CookingTarget(), Ar.IsCooking());
+		return !CDOClass->HasAllMarks(ObjectMarks);
+	}
+
+	return false;
 }
 
 /**
@@ -866,14 +925,52 @@ FArchive& FArchiveSaveTagExports::operator<<( UObject*& Obj )
 		UObject* Template = Obj->GetArchetype();
 		*this << Template;
 
-		// class default objects should always be loaded
-		if ( Obj->HasAnyFlags(RF_ClassDefaultObject) )
+		// class default objects should always be loaded, unless its class is excluded
+		if ( IsCDOWithIncludedClassForPlatform(Obj, *this) )
 		{
 			if ( Obj->GetClass()->HasAnyClassFlags(CLASS_Intrinsic) )
 			{
 				// if this class is an intrinsic class, its class default object
 				// shouldn't be saved, as it does not contain any data that should be saved
 				Obj->UnMark(OBJECTMARK_TagExp);
+			}
+			else if (IsEventDrivenLoaderEnabledInCookedBuilds() && IsCooking())
+			{
+				// In EDL we don't always load this object, so mark it appropriately client/server only
+				ConditionallyExcludeObjectForTarget(Obj, *this);
+
+				UObject* CDO = Obj;
+
+				// Gets all subobjects defined in a class, including the CDO, CDO components and blueprint-created components
+				TArray<UObject*> ObjectTemplates;
+				ObjectTemplates.Add(CDO);
+
+				TArray<UObject*> CurrentSubobjects;
+				TArray<UObject*> NextSubobjects;
+
+				// Recursively search for subobjects. Only care about ones that have a full subobject chain as some nested objects are set wrong
+				GetObjectsWithOuter(CDO->GetClass(), NextSubobjects, false);
+				GetObjectsWithOuter(CDO, NextSubobjects, false);
+
+				while (NextSubobjects.Num() > 0)
+				{
+					CurrentSubobjects = NextSubobjects;
+					NextSubobjects.Empty();
+					for (UObject* SubObj : CurrentSubobjects)
+					{
+						if (SubObj->HasAnyFlags(RF_DefaultSubObject | RF_ArchetypeObject))
+						{
+							ObjectTemplates.Add(SubObj);
+							GetObjectsWithOuter(SubObj, NextSubobjects, false);
+						}
+					}
+				}
+
+				for (UObject* ObjTemplate : ObjectTemplates)
+				{
+					*this << ObjTemplate;
+				}
+
 			}
 		}
 		else
@@ -882,7 +979,8 @@ FArchive& FArchiveSaveTagExports::operator<<( UObject*& Obj )
 			// The base virtual methods will leave the flags unchanged.
 			// Once should not read the flags directly (other than at load) because the virtual methods are authoritative.
 
-			// if anything in the outer chain is NotFor, then we are also NotFor. Stop this search at public objects.
+			// If anything in the outer chain is NotFor, then we are also NotFor.
+			// Stop this search at packages, as nested public objects will have the wrong path.
 			ConditionallyExcludeObjectForTarget(Obj, *this);
 
 			{
@@ -1023,20 +1121,19 @@ class FArchiveSaveTagImports : public FArchiveUObject
 public:
 	FLinkerSave* Linker;
 	TArray<UObject*> Dependencies;
-	TArray<FString>& StringAssetReferencesMap;
 
-	FArchiveSaveTagImports(FLinkerSave* InLinker, TArray<FString>& InStringAssetReferencesMap)
-		: Linker(InLinker), StringAssetReferencesMap(InStringAssetReferencesMap)
+	FArchiveSaveTagImports(FLinkerSave* InLinker)
+		: Linker(InLinker)
 	{
+		check(Linker);
+
 		ArIsSaving				= true;
 		ArIsPersistent			= true;
 		ArIsObjectReferenceCollector = true;
 		ArShouldSkipBulkData	= true;
-		if ( Linker != NULL )
-		{
-			ArPortFlags = Linker->GetPortFlags();
-			SetCookingTarget(Linker->CookingTarget());
-		}
+
+		ArPortFlags = Linker->GetPortFlags();
+		SetCookingTarget(Linker->CookingTarget());
 	}
 	FArchive& operator<<(UObject*& Obj) override;
 	FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr) override;
@@ -1054,14 +1151,14 @@ public:
 
 			if (GetIniFilenameFromObjectsReference(Path) != nullptr)
 			{
-				StringAssetReferencesMap.AddUnique(Path);
+				Linker->StringAssetReferencesMap.AddUnique(Path);
 			}
 			else
 			{
 				FString NormalizedPath = FPackageName::GetNormalizedObjectPath(Path);
 				if (!NormalizedPath.IsEmpty())
 				{
-					StringAssetReferencesMap.AddUnique(FPackageName::ObjectPathToPackageName(NormalizedPath));
+					Linker->StringAssetReferencesMap.AddUnique(FPackageName::ObjectPathToPackageName(NormalizedPath));
 					Value.SetPath(MoveTemp(NormalizedPath));
 				}
 			}
@@ -1072,6 +1169,27 @@ public:
 	{
 		SavePackageState->MarkNameAsReferenced(Name);
 		return *this;
+	}
+	virtual void MarkSearchableName(const UObject* TypeObject, const FName& ValueName) const override
+	{
+		if (!TypeObject)
+		{
+			return;
+		}
+
+		if (!Dependencies.Contains(TypeObject))
+		{
+			// Serialize object to make sure it ends up in import table
+			// This is doing a const cast to avoid backward compatibility issues
+			FArchiveSaveTagImports* MutableArchive = const_cast<FArchiveSaveTagImports*>(this);
+			UObject* TempObject = const_cast<UObject*>(TypeObject);
+			(*MutableArchive) << TempObject;
+		}
+
+		// Manually mark the name as referenced, in case it got skipped due to delta serialization
+		SavePackageState->MarkNameAsReferenced(ValueName);
+
+		Linker->SearchableNamesObjectMap.FindOrAdd(TypeObject).AddUnique(ValueName);
 	}
 
 	virtual FArchive& operator<< (struct FWeakObjectPtr& Value) override;
@@ -1084,7 +1202,6 @@ public:
 	 **/
 	virtual FString GetArchiveName() const override;
 };
-
 
 /**
  * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
@@ -1165,39 +1282,53 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 				if (!bIsEditorOnly)
 				{
 					Obj->Mark(OBJECTMARK_TagImp);
+					UClass* ClassObj = Cast<UClass>(Obj);
 
-					if (IsEventDrivenLoaderEnabledInCookedBuilds() && IsCooking() && !bIsNative && Cast<UClass>(Obj))
+					if (IsEventDrivenLoaderEnabledInCookedBuilds() && IsCooking() && !bIsNative && ClassObj)
 					{
-						// we don't want to add this to Dependencies, we simply want it to be an import so that a serialization before creation dependency can be created to the CDO
-						UObject* CDO = Cast<UClass>(Obj)->GetDefaultObject();
-
+						// We don't want to add this to Dependencies, we simply want it to be an import so that a serialization before creation dependency can be created to the CDO
+						UObject* CDO = ClassObj->GetDefaultObject();
+						
 						if (CDO)
 						{
-							ConditionallyExcludeObjectForTarget(CDO, *this);
+							// Gets all subobjects defined in a class, including the CDO, CDO components and blueprint-created components
+							TArray<UObject*> ObjectTemplates;
+							ObjectTemplates.Add(CDO);
 
-							const bool bCDOIsEditorOnly = IsCookingForNoEditorDataPlatform(*this) && IsEditorOnlyObject(CDO);
+							TArray<UObject*> CurrentSubobjects;
+							TArray<UObject*> NextSubobjects;
 
-							if (!bCDOIsEditorOnly && !CDO->HasAnyFlags(RF_Transient) && !CDO->IsPendingKill())
+							// Recursively search for subobjects. Only care about ones that have a full subobject chain as some nested objects are set wrong
+							GetObjectsWithOuter(ClassObj, NextSubobjects, false);
+							GetObjectsWithOuter(CDO, NextSubobjects, false);
+
+							while (NextSubobjects.Num() > 0)
 							{
-								CDO->Mark(OBJECTMARK_TagImp);
-
-								// and all subobjects
-								TArray<UObject*> Subobjects;
-								GetObjectsWithOuter(CDO, Subobjects);
-								for (UObject* SubObj : Subobjects)
+								CurrentSubobjects = NextSubobjects;
+								NextSubobjects.Empty();
+								for (UObject* SubObj : CurrentSubobjects)
 								{
-									if (SubObj)
+									if (SubObj->HasAnyFlags(RF_DefaultSubObject | RF_ArchetypeObject))
 									{
-										// correctly mark components that shouldn't be cooked
-										ConditionallyExcludeObjectForTarget(SubObj, *this);
-
-										const bool bCompIsEditorOnly = IsCookingForNoEditorDataPlatform(*this) && IsEditorOnlyObject(SubObj);
-
-										if (!bCompIsEditorOnly && !SubObj->HasAnyFlags(RF_Transient) && !SubObj->IsPendingKill())
-										{
-											SubObj->Mark(OBJECTMARK_TagImp);
-										}
+										ObjectTemplates.Add(SubObj);
+										GetObjectsWithOuter(SubObj, NextSubobjects, false);
 									}
+								}
+							}
+
+							for (UObject* ObjTemplate : ObjectTemplates)
+							{
+								if (IsCookingForNoEditorDataPlatform(*this) && IsEditorOnlyObject(ObjTemplate))
+								{
+									// Explicitly mark as editor only so it will be skipped later
+									ObjTemplate->Mark(OBJECTMARK_EditorOnly);
+								}
+								else if (!ObjTemplate->HasAnyFlags(RF_Transient) && !ObjTemplate->IsPendingKill())
+								{
+									// Correctly mark objects that shouldn't be cooked
+									ConditionallyExcludeObjectForTarget(ObjTemplate, *this);
+
+									ObjTemplate->Mark(OBJECTMARK_TagImp);
 								}
 							}
 						}
@@ -1207,7 +1338,7 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 #endif //WITH_EDITOR
 				}
 
-				if ( Obj->HasAnyFlags(RF_ClassDefaultObject) )
+				if ( IsCDOWithIncludedClassForPlatform(Obj, *this) )
 				{
 					Obj->UnMark(OBJECTMARK_NotForClient);
 					Obj->UnMark(OBJECTMARK_NotForServer);
@@ -2381,21 +2512,22 @@ class FExportReferenceSorter : public FArchiveUObject
 				UObjectPropertyBase::StaticClass(),
 				ULazyObjectProperty::StaticClass(),
 				UAssetObjectProperty::StaticClass(),
-				UAssetClassProperty::StaticClass()
+				UAssetClassProperty::StaticClass(),
+				UMapProperty::StaticClass(),
+				USetProperty::StaticClass(),
+				UEnumProperty::StaticClass()
 			};
 
-			for (int32 CoreClassIndex = 0; CoreClassIndex < ARRAY_COUNT(CoreClassList); CoreClassIndex++)
+			for (UClass* CoreClass : CoreClassList)
 			{
-				UClass* CoreClass = CoreClassList[CoreClassIndex];
 				CoreClasses.AddUnique(CoreClass);
 
 				ReferencedObjects.Add(CoreClass);
 				ReferencedObjects.Add(CoreClass->GetDefaultObject());
 			}
 
-			for (int32 CoreClassIndex = 0; CoreClassIndex < CoreClasses.Num(); CoreClassIndex++)
+			for (UClass* CoreClass : CoreClasses)
 			{
-				UClass* CoreClass = CoreClasses[CoreClassIndex];
 				ProcessStruct(CoreClass);
 			}
 
@@ -2488,21 +2620,22 @@ class FExportReferenceSorter : public FArchiveUObject
 			UObjectPropertyBase::StaticClass(),
 			ULazyObjectProperty::StaticClass(),
 			UAssetObjectProperty::StaticClass(),
-			UAssetClassProperty::StaticClass()
+			UAssetClassProperty::StaticClass(),
+			UMapProperty::StaticClass(),
+			USetProperty::StaticClass(),
+			UEnumProperty::StaticClass()
 		};
 
-		for (int32 CoreClassIndex = 0; CoreClassIndex < ARRAY_COUNT(CoreClassList); CoreClassIndex++)
+		for (UClass* CoreClass : CoreClassList)
 		{
-			UClass* CoreClass = CoreClassList[CoreClassIndex];
 			CoreClasses.AddUnique(CoreClass);
 
 			ReferencedObjects.Add(CoreClass);
 			ReferencedObjects.Add(CoreClass->GetDefaultObject());
 		}
 
-		for (int32 CoreClassIndex = 0; CoreClassIndex < CoreClasses.Num(); CoreClassIndex++)
+		for (UClass* CoreClass : CoreClasses)
 		{
-			UClass* CoreClass = CoreClasses[CoreClassIndex];
 			ProcessStruct(CoreClass);
 		}
 
@@ -2708,11 +2841,28 @@ public:
 							else
 							{
 								// byte properties that are enum references need their enums loaded first so that config importing works
-								UByteProperty* ByteProp = dynamic_cast<UByteProperty*>(Object);
-								if (ByteProp != NULL && ByteProp->Enum != NULL)
 								{
-									HandleDependency(ByteProp->Enum, /*bProcessObject =*/true);
+									UEnum* Enum = nullptr;
+
+									if (UEnumProperty* EnumProp = dynamic_cast<UEnumProperty*>(Object))
+									{
+										Enum = EnumProp->GetEnum();
+									}
+									else
+									{
+										UByteProperty* ByteProp = dynamic_cast<UByteProperty*>(Object);
+										if (ByteProp && ByteProp->Enum)
+										{
+											Enum = ByteProp->Enum;
+										}
+									}
+
+									if (Enum)
+									{
+										HandleDependency(Enum, /*bProcessObject =*/true);
+									}
 								}
+
 								// a normal field - property, enum, const; just insert it into the list and keep going
 								ProcessedObjects.Add(Object);
 								
@@ -3487,7 +3637,7 @@ TMap<UObject*, UObject*> UnmarkExportTagFromDuplicates()
 
 COREUOBJECT_API extern bool GOutputCookingWarnings;
 
-class FDiffSerializeArchive : public FBufferArchive
+class FDiffSerializeArchive : public FLargeMemoryWriter
 {
 private:
 	FArchive *TestArchive;
@@ -3496,19 +3646,19 @@ private:
 public:
 
 
-	FDiffSerializeArchive(const FName& InFilename, FArchive *InTestArchive) : FBufferArchive(true, InFilename), TestArchive(InTestArchive)
+	FDiffSerializeArchive(const FName& InFilename, FArchive *InTestArchive) : FLargeMemoryWriter(0, true, InFilename), TestArchive(InTestArchive)
 	{ 
 		ArDebugSerializationFlags = DSF_IgnoreDiff;
 		bDisable = false;
 	}
 
-	virtual void Serialize(void* Data, int64 Num) override
+	virtual void Serialize(void* InData, int64 Num) override
 	{
 		TArray<int8> TestMemory;
 
 		if (TestArchive)
 		{
-			int64 Pos = FMath::Min(FBufferArchive::Tell(), TestArchive->TotalSize());
+			int64 Pos = FMath::Min(FLargeMemoryWriter::Tell(), TestArchive->TotalSize());
 			TestArchive->Seek(Pos);
 			TestMemory.AddZeroed(Num);
 			int64 ReadSize = FMath::Min(Num, TestArchive->TotalSize() - Pos);
@@ -3516,7 +3666,7 @@ public:
 
 			if (!(ArDebugSerializationFlags&DSF_IgnoreDiff) && (!bDisable))
 			{
-				if (FMemory::Memcmp((void*)TestMemory.GetData(), Data, Num) != 0)
+				if (FMemory::Memcmp((void*)TestMemory.GetData(), InData, Num) != 0)
 				{
 					// get the calls debug callstack and 
 					FString DebugStackString;
@@ -3526,14 +3676,14 @@ public:
 						DebugStackString += TEXT("->");
 					}
 
-					UE_LOG(LogSavePackage, Warning, TEXT("Diff cooked package archive recognized a difference %lld Filename %s, stack %s "), Pos, *ArchiveName.ToString(), *DebugStackString);
+					UE_LOG(LogSavePackage, Warning, TEXT("Diff cooked package archive recognized a difference %lld Filename %s, stack %s "), Pos, *GetArchiveName(), *DebugStackString);
 
 					// only log one message per archive, from this point the entire package is probably messed up
 					bDisable = true;
 				}
 			}
 		}
-		FBufferArchive::Serialize(Data, Num);
+		FLargeMemoryWriter::Serialize(InData, Num);
 	}
 
 	virtual void PushDebugDataString(const FName& DebugData) override
@@ -3552,6 +3702,140 @@ public:
 };
 
 #endif
+
+
+struct FEDLCookChecker
+{
+	bool bIsActive;
+	TMultiMap<FString, FString> ImportToImportingPackage;
+	TSet<FString> Exports;
+	TMultiMap<FString, FString> NodePrereqs;
+
+	FEDLCookChecker()
+		: bIsActive(false)
+	{
+	}
+
+	void Reset()
+	{
+		ImportToImportingPackage.Empty();
+		Exports.Empty();
+		NodePrereqs.Empty();
+		bIsActive = false;
+	}
+
+	void AddImport(UObject* Import, UPackage* ImportingPackage)
+	{
+		if (bIsActive)
+		{
+			if (!Import->GetOutermost()->HasAnyPackageFlags(PKG_CompiledIn))
+			{
+				ImportToImportingPackage.Add(Import->GetFullName(), ImportingPackage->GetPathName());
+			}
+		}
+	}
+	void AddExport(UObject* Export)
+	{
+		if (bIsActive)
+		{
+			Exports.Add(Export->GetFullName());
+			AddArc(Export, false, Export, true); // every export must be created before it can be serialize...these arcs are implicit and not listed in any table.
+		}
+	}
+
+	void AddArc(UObject* DepObject, bool bDepIsSerialize, UObject* Export, bool bExportIsSerialize)
+	{
+		if (bIsActive)
+		{
+			NodePrereqs.Add(NodeName(Export, bExportIsSerialize), NodeName(DepObject, bDepIsSerialize));
+		}
+	}
+
+	bool CheckForCyclesInner(TSet<FString>& Visited, TSet<FString>& Stack, const FString& Visit, FString& FailNode)
+	{
+		bool bResult = false;
+		if (Stack.Contains(Visit))
+		{
+			FailNode = Visit;
+			bResult = true;
+		}
+		else
+		{
+			bool bWasAlreadyTested = false;
+			Visited.Add(Visit, &bWasAlreadyTested);
+			if (!bWasAlreadyTested)
+			{
+				Stack.Add(Visit);
+				for (auto It = NodePrereqs.CreateConstKeyIterator(Visit); !bResult && It; ++It)
+				{
+					bResult = CheckForCyclesInner(Visited, Stack, It.Value(), FailNode);
+				}
+				Stack.Remove(Visit);
+			}
+		}
+		UE_CLOG(bResult && Stack.Contains(FailNode), LogSavePackage, Error, TEXT("Cycle Node %s"), *Visit);
+		return bResult;
+	}
+
+	void Verify()
+	{
+		if (bIsActive && Exports.Num())
+		{
+			double StartTime = FPlatformTime::Seconds();
+			// imports to things that are not exports...
+			for (auto& Pair : ImportToImportingPackage)
+			{
+				if (!Exports.Contains(Pair.Key))
+				{
+					UE_LOG(LogSavePackage, Warning, TEXT("%s imported %s, but it was never saved as an export."), *Pair.Value, *Pair.Key);
+				}
+			}
+			// cycles in the dep graph
+			TSet<FString> Visited;
+			TSet<FString> Stack;
+			bool bHadCycle = false;
+			for (FString& Export : Exports)
+			{
+				FString FailNode;
+				if (CheckForCyclesInner(Visited, Stack, Prefix(true) + Export, FailNode))
+				{
+					UE_LOG(LogSavePackage, Error, TEXT("----- %s contained a cycle (listed above)."), *FailNode);
+					bHadCycle = true;
+				}
+			}
+			if (bHadCycle)
+			{
+				UE_LOG(LogSavePackage, Fatal, TEXT("EDL dep graph contained a cycle (see errors, above). This is fatal at runtime so it is fatal at cook time."));
+			}
+			UE_LOG(LogSavePackage, Display, TEXT("Took %fs to verify the EDL loading graph."), float(FPlatformTime::Seconds() - StartTime));
+		}
+		Reset();
+	}
+
+	static FString Prefix(bool bDepIsSerialize)
+	{
+		return FString(bDepIsSerialize ? TEXT("Serialize:") : TEXT("Create:"));
+	}
+
+	static FString NodeName(UObject* DepObject, bool bDepIsSerialize)
+	{
+		return Prefix(bDepIsSerialize) + DepObject->GetFullName();
+	}
+};
+
+static FEDLCookChecker GEDLCookChecker;
+
+void StartSavingEDLCookInfoForVerification()
+{
+	GEDLCookChecker.Reset();
+	GEDLCookChecker.bIsActive = IsEventDrivenLoaderEnabledInCookedBuilds();
+}
+
+void VerifyEDLCookInfo()
+{
+	GEDLCookChecker.Verify();
+}
+
 
 extern FGCCSyncObject GGarbageCollectionGuardCritical;
 
@@ -3635,9 +3919,10 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 		(*GFlushStreamingFunc)();
 
-#if !USE_NEW_ASYNC_IO
-		FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
-#endif
+		if (!GNewAsyncIO)
+		{
+			FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
+		}
 
 		uint32 Time = 0; CLOCK_CYCLES(Time);
 
@@ -3968,7 +4253,6 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				}
 
 				// Import objects & names.
-				TArray<FString> StringAssetReferencesMap;
 				{
 					const EObjectMark ObjectMarks = UPackage::GetObjectMarksForTargetPlatform(TargetPlatform, Linker->IsCooking());
 					TArray<UObject*> TagExpObjects;
@@ -3978,7 +4262,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						UObject* Obj = TagExpObjects[Index];
 						check(Obj->HasAnyMarks(OBJECTMARK_TagExp));
 						// Build list.
-						FArchiveSaveTagImports ImportTagger(Linker, StringAssetReferencesMap);
+						FArchiveSaveTagImports ImportTagger(Linker);
 						ImportTagger.SetPortFlags(ComparisonFlags);
 						ImportTagger.SetFilterEditorOnly(FilterEditorOnly);
 
@@ -4399,9 +4683,9 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					TArray<UObject*> TagImpObjects;
 					GetObjectsWithAnyMarks(TagImpObjects, OBJECTMARK_TagImp);
 
+					const EObjectMark ObjectMarks = UPackage::GetObjectMarksForTargetPlatform(TargetPlatform, Linker->IsCooking());
 					if (Linker->IsCooking())
 					{
-						const EObjectMark ObjectMarks = UPackage::GetObjectMarksForTargetPlatform(TargetPlatform, Linker->IsCooking());
 						for (UObject* ObjImport : TagImpObjects)
 						{
 							if (ObjImport->HasAllMarks(ObjectMarks))
@@ -4426,6 +4710,11 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							if (UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/ReplacedName))
 							{
 								ReplacedImportOuters.Add(Obj, ReplacedOuter);
+								if (ReplacedOuter->HasAllMarks(ObjectMarks))
+								{
+									// The actual outer is not for the current platform, so the object shouldn't be cooked.
+									Obj->UnMark(OBJECTMARK_TagImp);
+								}
 							}
 						}
 #endif //WITH_EDITOR
@@ -4693,7 +4982,32 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						checkf(Conform != NULL, TEXT("NULL XObject for import %i - Object: %s Class: %s"), i, *Linker->ImportMap[i].ObjectName.ToString(), *Linker->ImportMap[i].ClassName.ToString());
 					}
 				}
+				if (IsEventDrivenLoaderEnabledInCookedBuilds() && TargetPlatform)
+				{
+					GEDLCookChecker.AddExport(InOuter); // the package isn't actually in the export map, but that is ok, we add it as export anyway for error checking
+					for (int32 i = 0; i < Linker->ImportMap.Num(); i++)
+					{
+						UObject* Object = Linker->ImportMap[i].XObject;
+						if (Object != NULL)
+						{
+							GEDLCookChecker.AddImport(Object, InOuter);
+						}
+					}
+				}
 
+				// Convert the searchable names map from UObject to packageindex
+				for (const TPair<const UObject *, TArray<FName>>& SearchableNamePair : Linker->SearchableNamesObjectMap)
+				{
+					const FPackageIndex PackageIndex = Linker->MapObject(SearchableNamePair.Key);
+
+					// This should always be in the imports already
+					if (ensure(!PackageIndex.IsNull()))
+					{
+						Linker->SearchableNamesMap.FindOrAdd(PackageIndex) = SearchableNamePair.Value;
+					}
+				}
+				// Clear temporary map
+				Linker->SearchableNamesObjectMap.Empty();
 
 				SlowTask.EnterProgressFrame();
 
@@ -4765,23 +5079,36 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				}
 				SlowTask.EnterProgressFrame();
 
-				// Save string asset reference map
-				Linker->Summary.StringAssetReferencesOffset = Linker->Tell();
-				Linker->Summary.StringAssetReferencesCount = StringAssetReferencesMap.Num();
+				// Only save string asset and searchable name map if saving for editor
+				if (!(Linker->Summary.PackageFlags & PKG_FilterEditorOnly))
 				{
-#if WITH_EDITOR
-					FArchive::FScopeSetDebugSerializationFlags S(*Linker, DSF_IgnoreDiff, true);
-#endif
-					for (int32 i = 0; i < StringAssetReferencesMap.Num(); i++)
+					// Save string asset reference map
+					Linker->Summary.StringAssetReferencesOffset = Linker->Tell();
+					Linker->Summary.StringAssetReferencesCount = Linker->StringAssetReferencesMap.Num();
 					{
-
-						*Linker << StringAssetReferencesMap[i];
+#if WITH_EDITOR
+						FArchive::FScopeSetDebugSerializationFlags S(*Linker, DSF_IgnoreDiff, true);
+#endif
+						for (FString& StringAssetReference : Linker->StringAssetReferencesMap)
+						{
+							*Linker << StringAssetReference;
+						}
 					}
+
+					// Save searchable names map
+					Linker->Summary.SearchableNamesOffset = Linker->Tell();
+					Linker->SerializeSearchableNamesMap(*Linker);
 				}
+				else
+				{
+					Linker->Summary.StringAssetReferencesCount = 0;
+					Linker->Summary.StringAssetReferencesOffset = 0;
+					Linker->Summary.SearchableNamesOffset = 0;
+				}
+
 				// Save thumbnails
 				UPackage::SaveThumbnails( InOuter, Linker );
 
-				
 				// Save asset registry data so the editor can search for information about assets in this package
 				UPackage::SaveAssetRegistryData( InOuter, Linker );
 
@@ -4849,21 +5176,18 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								TEXT("Export Object (%s) Outer (%s) is an Import."),
 								*(Export.Object->GetPathName()),
 								*(Export.Object->GetOuter()->GetPathName()));
+
+							if (Linker->IsCooking() && IsEventDrivenLoaderEnabledInCookedBuilds())
+							{
+								// Only packages are allowed to have no outer
+								ensureMsgf(Export.OuterIndex != FPackageIndex() || Export.Object->IsA(UPackage::StaticClass()), TEXT("Export %s has no valid outer when cooking!"), *Export.Object->GetPathName());
+							}
 						}
 						else
 						{
 							// this export's Outer is the LinkerRoot for this package
 							Export.OuterIndex = FPackageIndex();
 						}
-
-						// exporting UBlueprint (editor-only) objects in the cook is for some reason 
-						// incompatible with the EDL (but could occur thanks to legacy settings) - here 
-						// we catch that and warn that these settings are now deprecated (this'll 
-						// trigger a fatal error if currently using the EDL)
-						//
-						// NOTE: this is temporary, as these legacy settings are now deprecated, and
-						//       should be removed soon after
-						FLegacyEditorOnlyBlueprintOptions::DetectInvalidBlueprintExport(Linker, i);
 					}
 				}
 
@@ -4932,26 +5256,35 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						FObjectExport& Export = Linker->ExportMap[i];
 						if (Export.Object)
 						{
+							GEDLCookChecker.AddExport(Export.Object);
 							TSet<FPackageIndex> SerializationBeforeCreateDependencies;
 							{
 								IncludeIndexAsDependency(SerializationBeforeCreateDependencies, Export.ClassIndex);
-								IncludeIndexAsDependency(SerializationBeforeCreateDependencies, Export.SuperIndex);
 								UObject* CDO = Export.Object->GetArchetype();
 								IncludeObjectAsDependency(SerializationBeforeCreateDependencies, CDO, Export.Object, true);
 								Subobjects.Reset();
 								GetObjectsWithOuter(CDO, Subobjects);
 								for (UObject* SubObj : Subobjects)
 								{
-									IncludeObjectAsDependency(SerializationBeforeCreateDependencies, SubObj, Export.Object, false);
+									// Only include subobject archetypes
+									if (SubObj->HasAnyFlags(RF_DefaultSubObject | RF_ArchetypeObject))
+									{
+										IncludeObjectAsDependency(SerializationBeforeCreateDependencies, SubObj, Export.Object, false);
+									}
 								}
 							}
 							TSet<FPackageIndex> SerializationBeforeSerializationDependencies;
 							{
 								TArray<UObject*> Deps;
 								Export.Object->GetPreloadDependencies(Deps);
+
 								for (UObject* Obj : Deps)
 								{
 									IncludeObjectAsDependency(SerializationBeforeSerializationDependencies, Obj, Export.Object, false);
+								}
+								if (Export.Object->HasAnyFlags(RF_ArchetypeObject | RF_ClassDefaultObject) && !Export.Object->GetOuter()->IsA(UPackage::StaticClass()))
+								{
+									IncludeObjectAsDependency(SerializationBeforeSerializationDependencies, Export.Object->GetOuter(), Export.Object, true);
 								}
 							}
 
@@ -4972,7 +5305,20 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							TSet<FPackageIndex> CreateBeforeCreateDependencies;
 							{
 								IncludeIndexAsDependency(CreateBeforeCreateDependencies, Export.OuterIndex);
+								IncludeIndexAsDependency(CreateBeforeCreateDependencies, Export.SuperIndex);
 							}
+
+							auto AddArcForDepChecking = [Linker, &Export](bool bExportIsSerialize, FPackageIndex Dep, bool bDepIsSerialize)
+							{
+								check(Export.Object);
+								check(!Dep.IsNull());
+								UObject* DepObject = Dep.IsExport() ? Linker->Exp(Dep).Object : Linker->Imp(Dep).XObject;
+								check(DepObject);
+
+								Linker->DepListForErrorChecking.Add(Dep);
+
+								GEDLCookChecker.AddArc(DepObject, bDepIsSerialize, Export.Object, bExportIsSerialize);
+							};
 
 							for (FPackageIndex Index : SerializationBeforeSerializationDependencies)
 							{
@@ -4988,7 +5334,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								Linker->Summary.PreloadDependencyCount++;
 								Export.SerializationBeforeSerializationDependencies++;
 								*Linker << Index;
-								Linker->DepListForErrorChecking.Add(Index);
+								AddArcForDepChecking(true, Index, true);
 							}
 							for (FPackageIndex Index : CreateBeforeSerializationDependencies)
 							{
@@ -5000,6 +5346,10 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								{
 									continue; // if the other thing must be serialized before we serialize, then this is a redundant dep
 								}
+								if (CreateBeforeCreateDependencies.Contains(Index))
+								{
+									continue; // if the other thing must be created before we are created, then this is a redundant dep
+								}
 								if (Export.FirstExportDependency == -1)
 								{
 									Export.FirstExportDependency = Linker->Summary.PreloadDependencyCount;
@@ -5008,7 +5358,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								Linker->Summary.PreloadDependencyCount++;
 								Export.CreateBeforeSerializationDependencies++;
 								*Linker << Index;
-								Linker->DepListForErrorChecking.Add(Index);
+								AddArcForDepChecking(true, Index, false);
 							}
 							for (FPackageIndex Index : SerializationBeforeCreateDependencies)
 							{
@@ -5020,7 +5370,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								Linker->Summary.PreloadDependencyCount++;
 								Export.SerializationBeforeCreateDependencies++;
 								*Linker << Index;
-								Linker->DepListForErrorChecking.Add(Index);
+								AddArcForDepChecking(false, Index, true);
 							}
 							for (FPackageIndex Index : CreateBeforeCreateDependencies)
 							{
@@ -5032,7 +5382,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								Linker->Summary.PreloadDependencyCount++;
 								Export.CreateBeforeCreateDependencies++;
 								*Linker << Index;
-								Linker->DepListForErrorChecking.Add(Index);
+								AddArcForDepChecking(false, Index, false);
 							}
 						}
 					}
@@ -5093,6 +5443,13 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								FScopedDurationTimer SerializeTimer(TimingInfo.Key);
 #endif
 								Export.Object->Serialize( *Linker );
+
+#if WITH_EDITOR
+								if (Linker->IsCooking())
+								{
+									Export.Object->CookAdditionalFiles(Filename, Linker->CookingTarget());
+								}
+#endif
 							}
 							Linker->CurrentlySavingExport = FPackageIndex();
 							Export.SerialSize = Linker->Tell() - Export.SerialOffset;
@@ -5147,13 +5504,11 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							{
 								bEnable = false;
 							}
-#if SPLIT_COOKED_FILES
 							if (IsEventDrivenLoaderEnabledInCookedBuilds())
 							{
 								// Always split bulk data when splitting cooked files
 								bEnable = true;
 							}
-#endif
 						}
 					} ShouldUseSeperateBulkDataFiles;
 
@@ -5286,6 +5641,12 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							{
 								Import.OuterIndex = Linker->MapObject(Import.XObject->GetOuter());
 							}
+
+							if (Linker->IsCooking() && IsEventDrivenLoaderEnabledInCookedBuilds())
+							{
+								// Only package imports are allowed to have no outer
+								ensureMsgf(Import.OuterIndex != FPackageIndex() || Import.ClassName == NAME_Package, TEXT("Import %s has no valid outer when cooking!"), *Import.XObject->GetPathName());
+							}
 						}
 					}
 					else
@@ -5381,7 +5742,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								ExportSizes.Add(Linker->ExportMap[I].SerialSize);
 							}
 							
-							COOK_STAT(TotalPackageSizeUncompressed += ((FBufferArchive*)(Linker->Saver))->Num());
+							COOK_STAT(TotalPackageSizeUncompressed += ((FLargeMemoryWriter*)(Linker->Saver))->TotalSize());
 							
 							FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);
 							int64 DataSize = Writer->TotalSize();
@@ -5395,7 +5756,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					{
 						UE_LOG(LogSavePackage, Log,  TEXT("Compressing from memory to '%s'"), *NewPath );
 						FFileCompressionHelper CompressionHelper;
-						COOK_STAT(TotalPackageSizeUncompressed += ((FBufferArchive*)(Linker->Saver))->Num());
+						COOK_STAT(TotalPackageSizeUncompressed += ((FLargeMemoryWriter*)(Linker->Saver))->TotalSize());
 						Success = CompressionHelper.CompressFile( *NewPath, Linker );
 						// Detach archive used for memory saving.
 						if( Linker )
@@ -5426,19 +5787,17 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						if (Linker)
 						{
 							COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::AsyncWriteTimeSec));
-							COOK_STAT(TotalPackageSizeUncompressed += ((FBufferArchive*)(Linker->Saver))->Num());
+							COOK_STAT(TotalPackageSizeUncompressed += ((FLargeMemoryWriter*)(Linker->Saver))->TotalSize());
 
 							FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);
 							int64 DataSize = Writer->TotalSize();
 							FLargeMemoryPtr DataPtr(Writer->GetData());
 							Writer->ReleaseOwnership();
-#if SPLIT_COOKED_FILES
 							if (IsEventDrivenLoaderEnabledInCookedBuilds() && Linker->IsCooking())
 							{
 								AsyncWriteFileWithSplitExports(MoveTemp(DataPtr), DataSize, Linker->Summary.TotalHeaderSize, *NewPath, FinalTimeStamp);
 							}
 							else
-#endif
 							{
 								AsyncWriteFile(MoveTemp(DataPtr), DataSize, *NewPath, FinalTimeStamp);
 							}

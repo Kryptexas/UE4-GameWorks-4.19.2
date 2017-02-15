@@ -1,6 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Engine/Blueprint.h"
+#include "Types/WidgetActiveTimerDelegate.h"
+#include "Dom/JsonObject.h"
+#include "HAL/Runnable.h"
+
+class FAssetData;
+class FFindInBlueprintsResult;
+class FImaginaryBlueprint;
+class FImaginaryFiBData;
+class SFindInBlueprints;
 
 /**
  *Const values for Find-in-Blueprints to tag searchable data
@@ -458,6 +471,9 @@ private:
 
 	/** Callback hook from the Asset Registry when an asset is loaded */
 	void OnAssetLoaded(class UObject* InAsset);
+
+	/** Callback from Kismet when a Blueprint is unloaded */
+	void OnBlueprintUnloaded(class UBlueprint* InBlueprint);
 
 	/** Callback hook from the Hot Reload manager that indicates that a module has been hot-reloaded */
 	void OnHotReload(bool bWasTriggeredAutomatically);

@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleManager.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "XmppConnection.h"
+#include "Modules/ModuleInterface.h"
+#include "XmppMultiUserChat.h"
+
+class Error;
 
 /**
  * Module for Xmpp connections

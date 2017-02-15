@@ -1,6 +1,5 @@
 // Copyright 2015 Kite & Lightning.  All rights reserved.
 
-#include "StereoPanoramaPrivatePCH.h"
 #include "StereoStaticMeshComponent.h"
 #include "StaticMeshResources.h"
 
@@ -13,7 +12,7 @@ class FStereoStaticMeshSceneProxy
 public:
 
     FStereoStaticMeshSceneProxy(UStereoStaticMeshComponent* Component) :
-        FStaticMeshSceneProxy(Component)
+        FStaticMeshSceneProxy(Component, false)
     {
         EyeToRender = Component->EyeToRender;
     }

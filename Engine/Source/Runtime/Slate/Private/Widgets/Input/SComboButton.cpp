@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
 
 
 void SComboButton::Construct( const FArguments& InArgs )
@@ -115,7 +118,7 @@ FReply SComboButton::OnButtonClicked()
 FReply SComboButton::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	FReply Reply = FReply::Unhandled();
-	if (InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Bottom)
+	if (InKeyEvent.GetKey() == EKeys::Virtual_Accept)
 	{
 		// Handle menu open with controller.
 		Reply = OnButtonClicked();

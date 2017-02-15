@@ -1,6 +1,16 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "GameFramework/Actor.h"
+#include "MovieScene.h"
+#include "IMovieSceneSectionRecorder.h"
+#include "IMovieSceneSectionRecorderFactory.h"
+
+class UMovieScene3DAttachSection;
+class UMovieScene3DAttachTrack;
 
 class FMovieScene3DAttachSectionRecorderFactory : public IMovieSceneSectionRecorderFactory
 {

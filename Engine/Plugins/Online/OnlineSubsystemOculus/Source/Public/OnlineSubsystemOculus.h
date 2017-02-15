@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,7 +13,7 @@ typedef TSharedPtr<class FOnlineProfileOculus, ESPMode::ThreadSafe> FOnlineProfi
 typedef TSharedPtr<class FOnlineFriendsOculus, ESPMode::ThreadSafe> FOnlineFriendsOculusPtr;
 typedef TSharedPtr<class FOnlineUserCloudOculus, ESPMode::ThreadSafe> FOnlineUserCloudOculusPtr;
 typedef TSharedPtr<class FOnlineLeaderboardOculus, ESPMode::ThreadSafe> FOnlineLeaderboardsOculusPtr;
-typedef TSharedPtr<class FOnlineVoiceImpl, ESPMode::ThreadSafe> FOnlineVoiceImplPtr;
+typedef TSharedPtr<class FOnlineVoiceOculus, ESPMode::ThreadSafe> FOnlineVoiceOculusPtr;
 typedef TSharedPtr<class FOnlineExternalUIOculus, ESPMode::ThreadSafe> FOnlineExternalUIOculusPtr;
 typedef TSharedPtr<class FOnlineIdentityOculus, ESPMode::ThreadSafe> FOnlineIdentityOculusPtr;
 typedef TSharedPtr<class FOnlineAchievementsOculus, ESPMode::ThreadSafe> FOnlineAchievementsOculusPtr;
@@ -77,6 +77,17 @@ public:
 	*/
 	bool IsEnabled();
 
+	/**
+	 * Allows for the LibOVRPlatform calls to be used directly with the Delegates in the Oculus OSS
+	 */
+	void AddRequestDelegate(ovrRequest RequestId, FOculusMessageOnCompleteDelegate&& Delegate);
+
+	/**
+	* Allows for direct subscription to the LibOVRPlatform notifications with the Delegates in the Oculus OSS
+	*/
+	FOculusMulticastMessageOnCompleteDelegate& GetNotifDelegate(ovrMessageType MessageType);
+	void RemoveNotifDelegate(ovrMessageType MessageType, const FDelegateHandle& Delegate);
+
 PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */
@@ -86,12 +97,6 @@ PACKAGE_SCOPE:
 
 	FOnlineSubsystemOculus()
 	{}
-
-	void AddRequestDelegate(ovrRequest RequestId, FOculusMessageOnCompleteDelegate&& Delegate);
-
-	FOculusMulticastMessageOnCompleteDelegate& GetNotifDelegate(ovrMessageType MessageType);
-
-	void RemoveNotifDelegate(ovrMessageType MessageType, const FDelegateHandle& Delegate);
 
 private:
 
@@ -118,6 +123,9 @@ private:
 
 	/** Interface for CloudStorage User Saves. */
 	FOnlineUserCloudOculusPtr UserCloudInterface;
+
+	/** Interface for voice */
+	FOnlineVoiceOculusPtr VoiceInterface;
 
 	/** Message Task Manager */
 	FOnlineMessageTaskManagerOculusPtr MessageTaskManager;

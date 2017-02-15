@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "ISourceControlRevision.h"
 
 class ISourceControlProvider;
-class ISourceControlState;
 
 /** 
  * Delegate used for performing operation on files that may need a checkout, but before they are added to source control 

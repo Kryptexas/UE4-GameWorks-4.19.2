@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
  
 #pragma once
 
-#include "OnlineSharedCloudInterface.h"
-#include "OnlineUserCloudInterfaceSteam.h"
-#include "OnlineAsyncTaskManagerSteam.h"
+#include "CoreMinimal.h"
+#include "OnlineSubsystemTypes.h"
 #include "OnlineSubsystemSteamTypes.h"
+#include "OnlineAsyncTaskManagerSteam.h"
+#include "OnlineUserCloudInterfaceSteam.h"
+#include "Interfaces/OnlineSharedCloudInterface.h"
 #include "OnlineSubsystemSteamPackage.h"
 
 /** 

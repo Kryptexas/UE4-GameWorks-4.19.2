@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSPlatformSurvey.cpp: HardwareSurvey implementation
 =============================================================================*/
-#include "CorePrivatePCH.h"
+
+#include "IOSPlatformSurvey.h"
 #include "IOSAppDelegate.h"
 #include "IOSWindow.h"
 

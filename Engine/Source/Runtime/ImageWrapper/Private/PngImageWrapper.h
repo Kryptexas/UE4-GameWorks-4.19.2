@@ -1,14 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ImageWrapperBase.h"
+
 #if WITH_UNREALPNG
 
-#include "zlib.h"
-
-#include "ThirdParty/libPNG/libPNG-1.5.2/png.h"
-#include "ThirdParty/libPNG/libPNG-1.5.2/pnginfo.h"
-#include <setjmp.h>
+THIRD_PARTY_INCLUDES_START
+	#include "ThirdParty/zlib/zlib-1.2.5/Inc/zlib.h"
+	#include "ThirdParty/libPNG/libPNG-1.5.2/png.h"
+	#include "ThirdParty/libPNG/libPNG-1.5.2/pnginfo.h"
+	#include <setjmp.h>
+THIRD_PARTY_INCLUDES_END
 
 /**
  * PNG implementation of the helper class.

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -143,6 +143,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				if( !string.IsNullOrEmpty( FormValue ) )
 				{
 					currentCrash.Jira = FormValue;
+                    if(currentCrash.Bugg != null)
+                        currentCrash.Bugg.TTPID = FormValue;
 				}
 
 				// Valid to set description to an empty string
@@ -151,6 +153,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				{
 					currentCrash.Description = FormValue;
 				}
+
+                _unitOfWork.CrashRepository.Update(currentCrash);
+                _unitOfWork.Save();
 
 				currentCallStack = new CallStackContainer( currentCrash );
 			    currentCrash.Module = currentCallStack.GetModuleName();
@@ -262,6 +267,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 messageBuilder.AppendLine(payloadString);
 
                 FLogger.Global.WriteException(messageBuilder.ToString());
+                _slackWriter.Write(messageBuilder.ToString());
 
                 newCrashResult.Message = messageBuilder.ToString();
                 newCrashResult.bSuccess = false;
@@ -892,10 +898,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 	                //if a bugg exists update this crash from the bugg
 	                //buggs are authoritative in this case
-	                newCrash.Buggs.Add(bugg);
+                    newCrash.BuggId = bugg.Id;
 	                newCrash.Jira = bugg.TTPID;
 	                newCrash.FixedChangeList = bugg.FixedChangeList;
 	                newCrash.Status = bugg.Status;
+                    newCrash.Buggs.Add(bugg);
 	                _unitOfWork.CrashRepository.Save(newCrash);
 	                _unitOfWork.Save();
 	            }
@@ -916,6 +923,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	                bugg.Status = newCrash.Status;
                     bugg.FixedChangeList = newCrash.FixedChangeList;
 	                bugg.ErrorMessageId = errorMessage.Id;
+                    newCrash.Bugg = bugg;
                     newCrash.Buggs.Add(bugg);
                     _unitOfWork.BuggRepository.Save(bugg);
                     _unitOfWork.CrashRepository.Save(newCrash);
@@ -944,6 +952,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                     }
                 }
                 FLogger.Global.WriteException(messageBuilder.ToString());
+                _slackWriter.Write("Create Crash Exception : " + messageBuilder.ToString());
                 throw;
             }
 	        catch (Exception ex)
@@ -1034,6 +1043,23 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	        }
 
 	        base.Dispose(disposing);
+	    }
+
+	    public void TestAddCrash()
+	    {
+	        string crashContext;
+	        using (
+	            var stream =
+	                new FileStream(
+	                    "D:/CR/Engine/Source/Programs/CrashReporter/CrashReportWebSite/bin/Content/CrashContext.txt",
+	                    FileMode.Open))
+	        {
+	            crashContext = new StreamReader(stream).ReadToEnd();
+	        }
+
+            var crash = XmlHandler.FromXmlString<CrashDescription>(crashContext);
+
+	        CreateCrash(crash);
 	    }
 	}
 }

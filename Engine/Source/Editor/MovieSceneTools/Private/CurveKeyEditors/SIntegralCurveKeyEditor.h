@@ -1,6 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/IntegralCurve.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "ScopedTransaction.h"
+#include "Styling/SlateTypes.h"
+#include "Editor.h"
+#include "ISequencer.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "EditorStyleSet.h"
 
 #define LOCTEXT_NAMESPACE "IntegralCurveKeyEditor"
 
@@ -77,7 +90,7 @@ private:
 			return ExternalValue.Get().GetValue();
 		}
 
-		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		float CurrentTime = Sequencer->GetLocalTime();
 		return Curve->Evaluate(CurrentTime);
 	}
 
@@ -85,7 +98,7 @@ private:
 	{
 		if (OwningSection->TryModify())
 		{
-			float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+			float CurrentTime = Sequencer->GetLocalTime();
 			bool bAutoSetTrackDefaults = Sequencer->GetAutoSetTrackDefaults();
 
 			FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);
@@ -102,13 +115,16 @@ private:
 					Curve->AddKey(CurrentTime, Value,  CurrentKeyHandle);
 				}
 
-				if (OwningSection->GetStartTime() > CurrentTime)
+				if (Curve->GetNumKeys() != 0)
 				{
-					OwningSection->SetStartTime(CurrentTime);
-				}
-				if (OwningSection->GetEndTime() < CurrentTime)
-				{
-					OwningSection->SetEndTime(CurrentTime);
+					if (OwningSection->GetStartTime() > CurrentTime)
+					{
+						OwningSection->SetStartTime(CurrentTime);
+					}
+					if (OwningSection->GetEndTime() < CurrentTime)
+					{
+						OwningSection->SetEndTime(CurrentTime);
+					}
 				}
 			}
 
@@ -140,5 +156,4 @@ private:
 	FIntegralCurve* Curve;
 	TAttribute<TOptional<IntegralType>> ExternalValue;
 };
-
 #undef LOCTEXT_NAMESPACE

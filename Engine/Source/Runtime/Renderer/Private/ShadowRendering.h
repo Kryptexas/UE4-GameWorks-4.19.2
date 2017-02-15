@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowRendering.h: Shadow rendering definitions.
@@ -6,9 +6,37 @@
 
 #pragma once
 
-#include "ShaderParameterUtils.h"
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "Templates/RefCounting.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "UniformBuffer.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "HitProxies.h"
+#include "ConvexVolume.h"
+#include "RHIStaticStates.h"
+#include "RendererInterface.h"
+#include "SceneManagement.h"
+#include "ScenePrivateBase.h"
 #include "SceneCore.h"
+#include "LightSceneInfo.h"
+#include "DrawingPolicy.h"
+#include "Containers/DynamicRHIResourceArray.h"
+#include "GlobalShader.h"
+#include "SystemTextures.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneRenderTargetParameters.h"
+#include "ShaderParameterUtils.h"
 
+class FPrimitiveSceneInfo;
+class FPrimitiveSceneProxy;
+class FProjectedShadowInfo;
+class FScene;
+class FSceneRenderer;
+class FShadowStaticMeshElement;
+class FViewInfo;
 
 /** Uniform buffer for rendering deferred lights. */
 BEGIN_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,)
@@ -89,7 +117,7 @@ void SetDeferredLightParameters(
 	static auto* ContactShadowsCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ContactShadows"));
 	DeferredLightUniformsValue.ContactShadowLength = 0;
 
-	if (ContactShadowsCVar && ContactShadowsCVar->GetValueOnRenderThread() != 0)
+	if (ContactShadowsCVar && ContactShadowsCVar->GetValueOnRenderThread() != 0 && View.Family->EngineShowFlags.ContactShadows)
 	{
 		DeferredLightUniformsValue.ContactShadowLength = LightSceneInfo->Proxy->GetContactShadowLength();
 	}
@@ -423,10 +451,10 @@ public:
 		bool bInDirectionalLight,
 		bool bInOnePassPointLightShadow,
 		bool bInPreShadow,
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		ERHIFeatureLevel::Type InFeatureLevel,
 		const FVertexFactory* InVertexFactory = 0,
 		const FMaterialRenderProxy* InMaterialRenderProxy = 0,
-		bool bInCastShadowAsTwoSided = false,
 		bool bReverseCulling = false
 		);
 
@@ -467,7 +495,7 @@ public:
 			DRAWING_POLICY_MATCH(FeatureLevel == Other.FeatureLevel);
 		DRAWING_POLICY_MATCH_END
 	}
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const;
 
 	/** 
 	 * Create bound shader state using the vertex decl from the mesh draw policy
@@ -482,8 +510,7 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
-		bool bBackFace,
-		const FMeshDrawingRenderState& DrawRenderState,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
 		) const;
@@ -544,8 +571,8 @@ public:
 		const FSceneView& View,
 		ContextType Context,
 		const FMeshBatch& Mesh,
-		bool bBackFace,
 		bool bPreFog,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
@@ -822,7 +849,7 @@ public:
 	void RenderDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, FSetShadowRenderTargetFunction SetShadowRenderTargets, EShadowDepthRenderMode RenderMode);
 
 	/** Set state for depth rendering */
-	void SetStateForDepth(FRHICommandList& RHICmdList, EShadowDepthRenderMode RenderMode );
+	void SetStateForDepth(FRHICommandList& RHICmdList, EShadowDepthRenderMode RenderMode, FDrawingPolicyRenderState& DrawRenderState);
 
 	void ClearDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, int32 NumColorTextures, FTextureRHIParamRef* ColorTextures, FTextureRHIParamRef DepthTexture, bool bPerformClear);
 
@@ -1004,11 +1031,11 @@ private:
 	* Renders the dynamic shadow subject depth, to a particular hacked view
 	*/
 	friend class FRenderDepthDynamicThreadTask;
-	void RenderDepthDynamic(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView);
+	void RenderDepthDynamic(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, const FDrawingPolicyRenderState& DrawRenderState);
 
 	void GetShadowTypeNameForDrawEvent(FString& TypeName) const;
 
-	template <bool bReflectiveShadowmap> friend void DrawShadowMeshElements(FRHICommandList& RHICmdList, const FViewInfo& View, const FProjectedShadowInfo& ShadowInfo);
+	template <bool bReflectiveShadowmap> friend void DrawShadowMeshElements(FRHICommandList& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, const FProjectedShadowInfo& ShadowInfo);
 
 	/** Updates object buffers needed by ray traced distance field shadows. */
 	int32 UpdateShadowCastingObjectBuffers() const;
@@ -1020,6 +1047,15 @@ private:
 		PrimitiveArrayType& PrimitiveArray, 
 		TArray<FMeshBatchAndRelevance,SceneRenderingAllocator>& OutDynamicMeshElements, 
 		TArray<const FSceneView*>& ReusedViewsArray);
+
+	void SetupFrustumForProjection(const FViewInfo* View, TArray<FVector4, TInlineAllocator<8>>& OutFrustumVertices, bool& bOutCameraInsideShadowFrustum) const;
+
+	void SetupProjectionStencilMask(
+		FRHICommandListImmediate& RHICmdList,
+		const FViewInfo* View,
+		const TArray<FVector4, TInlineAllocator<8>>& FrustumVertices,
+		bool bMobileModulatedProjections,
+		bool bCameraInsideShadowFrustum) const;
 
 	friend class FShadowDepthVS;
 	template <bool bRenderingReflectiveShadowMaps> friend class TShadowDepthBasePS;
@@ -1670,7 +1706,7 @@ public:
 			: GBlackTextureCube->TextureRHI.GetReference();
         if (!ShadowDepthTextureValue)
         {
-            ShadowDepthTextureValue = GBlackTextureCube->TextureRHI.GetReference();
+            ShadowDepthTextureValue = GBlackTextureDepthCube->TextureRHI.GetReference();
         }
 
 		SetTextureParameter(

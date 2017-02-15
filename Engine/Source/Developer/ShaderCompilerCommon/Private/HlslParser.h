@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HlslParser.h - Interface for parsing hlsl.
@@ -6,7 +6,10 @@
 
 #pragma once
 
-#include "HlslLexer.h"
+#include "CoreMinimal.h"
+#include "Developer/ShaderCompilerCommon/Private/HlslUtils.h"
+
+class Error;
 
 namespace CrossCompiler
 {

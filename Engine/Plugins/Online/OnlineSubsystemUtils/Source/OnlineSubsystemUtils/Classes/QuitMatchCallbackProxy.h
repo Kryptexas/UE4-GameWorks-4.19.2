@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineBlueprintCallProxyBase.h"
-#include "OnlineTurnBasedInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Net/OnlineBlueprintCallProxyBase.h"
+#include "Interfaces/OnlineTurnBasedInterface.h"
 #include "QuitMatchCallbackProxy.generated.h"
+
+class APlayerController;
 
 UCLASS(MinimalAPI)
 class UQuitMatchCallbackProxy : public UOnlineBlueprintCallProxyBase

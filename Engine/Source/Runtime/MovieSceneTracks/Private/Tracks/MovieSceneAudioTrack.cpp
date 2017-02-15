@@ -1,15 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneAudioSection.h"
-#include "MovieSceneAudioTrack.h"
-#include "IMovieScenePlayer.h"
-#include "SoundDefinitions.h"
-#include "Sound/SoundNodeWavePlayer.h"
+#include "Tracks/MovieSceneAudioTrack.h"
+#include "Audio.h"
+#include "Sound/SoundWave.h"
 #include "Sound/SoundCue.h"
-#include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
-#include "Runtime/Engine/Public/AudioDecompress.h"
-#include "MovieSceneAudioTrackInstance.h"
+#include "MovieScene.h"
+#include "Sections/MovieSceneAudioSection.h"
+#include "Sound/SoundNodeWavePlayer.h"
+#include "Kismet/GameplayStatics.h"
+#include "AudioDecompress.h"
+#include "Evaluation/MovieSceneSegment.h"
+#include "Compilation/MovieSceneSegmentCompiler.h"
+#include "Compilation/MovieSceneCompilerRules.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieSceneAudioTrack"
@@ -24,15 +26,15 @@ UMovieSceneAudioTrack::UMovieSceneAudioTrack( const FObjectInitializer& ObjectIn
 }
 
 
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneAudioTrack::CreateInstance()
-{
-	return MakeShareable( new FMovieSceneAudioTrackInstance( *this ) ); 
-}
-
-
 const TArray<UMovieSceneSection*>& UMovieSceneAudioTrack::GetAllSections() const
 {
 	return AudioSections;
+}
+
+
+bool UMovieSceneAudioTrack::SupportsMultipleRows() const
+{
+	return true;
 }
 
 
@@ -123,7 +125,6 @@ void UMovieSceneAudioTrack::AddNewSound(USoundBase* Sound, float Time)
 	// add the section
 	UMovieSceneAudioSection* NewSection = NewObject<UMovieSceneAudioSection>(this);
 	NewSection->InitialPlacement( AudioSections, Time, Time + DurationToUse, SupportsMultipleRows() );
-	NewSection->SetAudioStartTime(Time);
 	NewSection->SetSound(Sound);
 
 	AudioSections.Add(NewSection);
@@ -136,9 +137,20 @@ bool UMovieSceneAudioTrack::IsAMasterTrack() const
 }
 
 
-bool UMovieSceneAudioTrack::SupportsMultipleRows() const
+TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneAudioTrack::GetRowCompilerRules() const
 {
-	return true;
+	struct FCompilerRules : FMovieSceneSegmentCompilerRules
+	{
+		virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const
+		{
+			// Run the default high pass filter for overlap priority
+			MovieSceneSegmentCompiler::BlendSegmentHighPass(Segment, SourceData);
+
+			// Weed out based on array index (legacy behaviour)
+			MovieSceneSegmentCompiler::BlendSegmentLegacySectionOrder(Segment, SourceData);
+		}
+	};
+	return FCompilerRules();
 }
 
 

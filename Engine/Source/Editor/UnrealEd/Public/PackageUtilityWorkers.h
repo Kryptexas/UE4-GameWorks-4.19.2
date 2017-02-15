@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PackageUtilityWorkers.cpp: Declarations for structs and classes used by package commandlets.
@@ -6,6 +6,8 @@
 
 #ifndef __PACKAGEUTILITYWORKERS_H__
 #define __PACKAGEUTILITYWORKERS_H__
+
+#include "CoreMinimal.h"
 
 /**
  * These bit flag values represent the different types of information that can be reported about a package

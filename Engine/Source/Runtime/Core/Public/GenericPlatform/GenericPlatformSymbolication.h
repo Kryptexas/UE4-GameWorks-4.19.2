@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HAL/Platform.h"
-#include "Serialization/Archive.h"
+#include "CoreTypes.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Set.h"
+#include "GenericPlatform/GenericPlatformStackWalk.h"
 
+template <typename T> struct TCallTraits;
+template< typename InElementType, typename KeyFuncs , typename Allocator > class TSet;
 
 /**
  * File & line info for a debug symbol region

@@ -1,10 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocProfiler.cpp: Memory profiling support.
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "ProfilingDebugging/MallocProfiler.h"
+#include "Misc/DateTime.h"
+#include "GenericPlatform/GenericPlatformStackWalk.h"
+#include "Logging/LogMacros.h"
+#include "HAL/FileManager.h"
+#include "Misc/Parse.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/Paths.h"
+#include "HAL/TlsAutoCleanup.h"
+#include "Misc/App.h"
+#include "Misc/CoreDelegates.h"
+#include "ProfilingDebugging/ProfilingHelpers.h"
 
 #if USE_MALLOC_PROFILER
 

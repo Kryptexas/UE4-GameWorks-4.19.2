@@ -1,17 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "SlateBasics.h"
-#include "AutomationCommon.h"
-#include "ImageUtils.h"
-#include "ShaderCompiler.h"		// GShaderCompilingManager
+#include "Tests/AutomationCommon.h"
+#include "Misc/Paths.h"
+#include "EngineGlobals.h"
+#include "Widgets/SWidget.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/Engine.h"
+#include "HardwareInfo.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Kismet/GameplayStatics.h"
+#include "ContentStreaming.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
+#include "ShaderCompiler.h"
 #include "GameFramework/GameStateBase.h"
 #include "Scalability.h"
-
-#if WITH_EDITOR
-#include "FileHelpers.h"
-#endif
-
 #include "Matinee/MatineeActor.h"
 
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
@@ -86,8 +90,7 @@ namespace AutomationCommon
 
 		FPaths::MakePathRelativeTo(PathName, *FPaths::RootDir());
 
-		FString AdapterName = GRHIAdapterName.IsEmpty() ? FString(TEXT("Unknown")) : GRHIAdapterName;
-		OutScreenshotName = FString::Printf(TEXT("%s/%s.png"), *PathName, *AdapterName);
+		OutScreenshotName = FString::Printf(TEXT("%s/%s.png"), *PathName, *FPlatformMisc::GetDeviceId());
 	}
 
 	FAutomationScreenshotData BuildScreenshotData(const FString& MapOrContext, const FString& TestName, int32 Width, int32 Height)
@@ -98,6 +101,7 @@ namespace AutomationCommon
 
 		Data.Name = TestName;
 		Data.Context = MapOrContext;
+		Data.Id = FGuid::NewGuid();
 
 		Data.Width = Width;
 		Data.Height = Height;
@@ -109,7 +113,7 @@ namespace AutomationCommon
 		Data.AdapterName = GRHIAdapterName;
 		Data.AdapterInternalDriverVersion = GRHIAdapterInternalDriverVersion;
 		Data.AdapterUserDriverVersion = GRHIAdapterUserDriverVersion;
-		Data.UniqueDeviceId = FPlatformMisc::GetUniqueDeviceId();
+		Data.UniqueDeviceId = FPlatformMisc::GetDeviceId();
 
 		Scalability::FQualityLevels QualityLevels = Scalability::GetQualityLevels();
 
@@ -121,7 +125,7 @@ namespace AutomationCommon
 		Data.TextureQuality = QualityLevels.TextureQuality;
 		Data.EffectsQuality = QualityLevels.EffectsQuality;
 		Data.FoliageQuality = QualityLevels.FoliageQuality;
-
+		
 		//GRHIDeviceId
 
 		// TBD - 

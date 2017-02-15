@@ -1,26 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequenceRecorderPrivatePCH.h"
 #include "ActorRecording.h"
+#include "Misc/ScopedSlowTask.h"
+#include "GameFramework/Character.h"
+#include "Camera/CameraActor.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Editor.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "LevelSequenceObjectReference.h"
 #include "SequenceRecorderSettings.h"
-#include "SequenceRecorderUtils.h"
-#include "MovieScene3DTransformSectionRecorder.h"
-#include "MovieSceneAnimationSectionRecorder.h"
-#include "AssetSelection.h"
-#include "MovieSceneSkeletalAnimationTrack.h"
-#include "MovieSceneSkeletalAnimationSection.h"
-#include "MovieSceneSpawnTrack.h"
-#include "MovieScene3DTransformTrack.h"
-#include "MovieScene3DTransformSection.h"
-#include "MovieSceneBoolSection.h"
-#include "KismetEditorUtilities.h"
-#include "BlueprintEditorUtils.h"
+#include "Sections/MovieScene3DTransformSectionRecorderSettings.h"
 #include "MovieSceneFolder.h"
 #include "CameraRig_Crane.h"
 #include "CameraRig_Rail.h"
-#include "Animation/SkeletalMeshActor.h"
 #include "SequenceRecorder.h"
-#include "Runtime/Core/Public/Features/IModularFeatures.h"
+#include "Features/IModularFeatures.h"
 
 static const FName SequencerActorTag(TEXT("SequencerActor"));
 static const FName MovieSceneSectionRecorderFactoryName("MovieSceneSectionRecorderFactory");
@@ -681,12 +675,20 @@ void UActorRecording::StartRecordingNewComponents(ULevelSequence* CurrentSequenc
 
 			for (USceneComponent* SceneComponent : NewComponents)
 			{
-				// new component, so we need to add this to our BP if it didn't come from SCS
+				// new component, so we need to add this to our BP if its not native
 				FName NewName;
-				if (SceneComponent->CreationMethod != EComponentCreationMethod::SimpleConstructionScript)
+				if (SceneComponent->CreationMethod != EComponentCreationMethod::Native)
 				{
 					// Give this component a unique name within its parent
-					NewName = *FString::Printf(TEXT("Dynamic%s"), *SceneComponent->GetFName().GetPlainNameString());
+					if (SceneComponent->CreationMethod != EComponentCreationMethod::SimpleConstructionScript)
+					{
+						NewName = *FString::Printf(TEXT("Dynamic%s"), *SceneComponent->GetFName().GetPlainNameString());
+					}
+					else
+					{
+						NewName = SceneComponent->GetFName();
+					}					
+					
 					NewName.SetNumber(1);
 					while (FindObjectFast<UObject>(ObjectTemplate, NewName))
 					{

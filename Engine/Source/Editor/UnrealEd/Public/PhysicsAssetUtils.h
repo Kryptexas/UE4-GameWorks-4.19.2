@@ -1,7 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SkeletalMeshTypes.h"
+
+class UBodySetup;
+class UPhysicsAsset;
+class UPhysicsConstraintTemplate;
+class USkeletalMesh;
+class USkeletalMeshComponent;
 
 enum EPhysAssetFitGeomType
 {
@@ -37,6 +45,7 @@ struct FPhysAssetCreateParams
 
 class UPhysicsAsset;
 class UPhysicsConstraintTemplate;
+struct FBoneVertInfo;
 
 /** Collection of functions to create and setup PhysicsAssets */
 namespace FPhysicsAssetUtils

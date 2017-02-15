@@ -1,14 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DataChannel.cpp: Unreal datachannel implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Net/DataChannel.h"
-#include "Net/DataReplication.h"
+#include "UObject/UObjectIterator.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "DrawDebugHelpers.h"
 #include "Net/NetworkProfiler.h"
-#include "Net/UnrealNetwork.h"
+#include "Net/DataReplication.h"
 #include "Engine/ActorChannel.h"
 #include "Engine/ControlChannel.h"
 #include "Engine/PackageMapClient.h"
@@ -960,11 +964,11 @@ FOutBunch* UChannel::PrepBunch(FOutBunch* Bunch, FOutBunch* OutBunch, bool Merge
 		Connection->LastOutBunch = OutBunch;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (CVarNetReliableDebug.GetValueOnGameThread() == 1)
+		if (CVarNetReliableDebug.GetValueOnAnyThread() == 1)
 		{
 			UE_LOG(LogNetTraffic, Warning, TEXT("%s. Reliable: %s"), *Describe(), *Bunch->DebugString);
 		}
-		if (CVarNetReliableDebug.GetValueOnGameThread() == 2)
+		if (CVarNetReliableDebug.GetValueOnAnyThread() == 2)
 		{
 			UE_LOG(LogNetTraffic, Warning, TEXT("%s. Reliable: %s"), *Describe(), *Bunch->DebugString);
 			PrintReliableBunchBuffer();
@@ -1464,8 +1468,7 @@ void UActorChannel::Init( UNetConnection* InConnection, int32 InChannelIndex, bo
 
 	RelevantTime			= Connection->Driver->Time;
 	LastUpdateTime			= Connection->Driver->Time - Connection->Driver->SpawnPrioritySeconds;
-	bActorMustStayDirty		= false;
-	bActorStillInitial		= false;
+	bForceCompareProperties	= false;
 	CustomTimeDilation		= 1.0f;
 }
 
@@ -1493,7 +1496,7 @@ void UActorChannel::Close()
 
 			// Validation checking
 			static const auto ValidateCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.DormancyValidate"));
-			if ( ValidateCVar && ValidateCVar->GetValueOnGameThread() > 0 )
+			if ( ValidateCVar && ValidateCVar->GetValueOnAnyThread() > 0 )
 			{
 				bKeepReplicators = true;		// We need to keep the replicators around so we can use
 			}
@@ -1700,7 +1703,10 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 	// Remove from hash and stuff.
 	SetClosingFlag();
 
-	CleanupReplicators();
+	// If this actor is going dormant (and we are a client), keep the replicators around, we need them to run the business logic for updating unmapped properties
+	const bool bKeepReplicators = !bForDestroy && !bIsServer && Dormant != 0;
+
+	CleanupReplicators( bKeepReplicators );
 
 	// We don't care about any leftover pending guids at this point
 	PendingGuidResolves.Empty();
@@ -1976,6 +1982,13 @@ void UActorChannel::ReceivedBunch( FInBunch & Bunch )
 				FNetworkGUID NetGUID;
 				Bunch << NetGUID;
 
+				// If we have async package map loading disabled, we have to ignore NumMustBeMappedGUIDs
+				//	(this is due to the fact that async loading could have been enabled on the server side)
+				if ( !Connection->Driver->GuidCache->ShouldAsyncLoad() )
+				{
+					continue;
+				}
+
 				// This GUID better have been exported before we get here, which means it must be registered by now
 				check( Connection->Driver->GuidCache->IsGUIDRegistered( NetGUID ) );
 
@@ -2209,7 +2222,7 @@ public:
 		{
 			if ( !RepFlags.bNetOwner )
 			{
-				Actor->SetAutonomousProxy( false );
+				Actor->SetAutonomousProxy( false, false );
 			}
 		}
 	}
@@ -2223,7 +2236,7 @@ public:
 
 			if ( ActualRemoteRole == ROLE_AutonomousProxy )
 			{
-				Actor->SetAutonomousProxy( true );
+				Actor->SetAutonomousProxy( true, false );
 			}
 		}
 	}
@@ -2299,7 +2312,7 @@ bool UActorChannel::ReplicateActor()
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (CVarNetReliableDebug.GetValueOnGameThread() > 0)
+	if (CVarNetReliableDebug.GetValueOnAnyThread() > 0)
 	{
 		Bunch.DebugString = FString::Printf(TEXT("%.2f ActorBunch: %s"), Connection->Driver->Time, *Actor->GetName() );
 	}
@@ -2357,12 +2370,8 @@ bool UActorChannel::ReplicateActor()
 
 	RepFlags.bNetSimulated	= ( Actor->GetRemoteRole() == ROLE_SimulatedProxy );
 	RepFlags.bRepPhysics	= Actor->ReplicatedMovement.bRepPhysics;
-
-	RepFlags.bReplay				= ActorWorld && (ActorWorld->DemoNetDriver == Connection->GetDriver());
-
-	RepFlags.bNetInitial = RepFlags.bNetInitial || bActorStillInitial; // for replication purposes, bNetInitial stays true until all properties sent
-	bActorMustStayDirty = false;
-	bActorStillInitial = false;
+	RepFlags.bReplay		= ActorWorld && (ActorWorld->DemoNetDriver == Connection->GetDriver());
+	RepFlags.bNetInitial	= RepFlags.bNetInitial;
 
 	UE_LOG(LogNetTraffic, Log, TEXT("Replicate %s, bNetInitial: %d, bNetOwner: %d"), *Actor->GetName(), RepFlags.bNetInitial, RepFlags.bNetOwner );
 
@@ -2472,11 +2481,11 @@ bool UActorChannel::ReplicateActor()
 	// If we evaluated everything, mark LastUpdateTime, even if nothing changed.
 	LastUpdateTime = Connection->Driver->Time;
 
-	bActorStillInitial = RepFlags.bNetInitial && (!Actor->bNetTemporary && bActorMustStayDirty);
-
 	MemMark.Pop();
 
 	bIsReplicatingActor = false;
+
+	bForceCompareProperties = false;		// Only do this once per frame when set
 
 	return SentBunch;
 }
@@ -3151,6 +3160,8 @@ TSharedRef< FObjectReplicator > & UActorChannel::FindOrCreateReplicator( UObject
 		}
 		else
 		{
+			UE_LOG( LogNetTraffic, Log, TEXT( "Found existing replicator for %s" ), *Obj->GetName() );
+
 			NewReplicator = *ReplicatorRefPtr;
 		}
 

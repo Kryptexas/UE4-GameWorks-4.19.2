@@ -1,12 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BoundShaderStateCache.cpp: Bound shader state cache implementation.
 =============================================================================*/
 
-#include "RHIPrivatePCH.h"
-#include "RHI.h"
 #include "BoundShaderStateCache.h"
+#include "Misc/ScopeLock.h"
 
 
 typedef TMap<FBoundShaderStateKey,FCachedBoundShaderStateLink*> FBoundShaderStateCache;

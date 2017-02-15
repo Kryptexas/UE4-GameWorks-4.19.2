@@ -1,22 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "NetcodeUnitTestPCH.h"
+#include "Net/NUTUtilNet.h"
+#include "UObject/CoreOnline.h"
+#include "GameFramework/OnlineReplStructs.h"
+#include "Engine/Engine.h"
+#include "Engine/GameEngine.h"
+#include "PacketHandlers/StatelessConnectHandlerComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/NetDriver.h"
+#include "Net/DataBunch.h"
+#include "Engine/LocalPlayer.h"
+#include "EngineUtils.h"
 
 #include "Net/UnitTestChannel.h"
+#include "IpNetDriver.h"
 #include "Net/UnitTestNetDriver.h"
 
 #include "NUTUtil.h"
-#include "UnitTestEnvironment.h"
-#include "Net/NUTUtilNet.h"
-
 #include "UnitTest.h"
+#include "UnitTestEnvironment.h"
+#include "Net/UnitTestPackageMap.h"
 
-#include "UnrealNetwork.h"
-#include "EngineVersion.h"
-#include "DataChannel.h"
+
+#include "Net/DataChannel.h"
 #include "OnlineBeaconClient.h"
-#include "NetworkVersion.h"
+#include "Misc/NetworkVersion.h"
 #include "OnlineSubsystemTypes.h"
+
+#include "ClientUnitTest.h"
 
 // Forward declarations
 class FWorldTickHook;
@@ -262,6 +273,59 @@ void FNetworkNotifyHook::NotifyControlMessage(UNetConnection* Connection, uint8 
 
 
 /**
+ * FScopedNetObjectReplace
+ */
+
+FScopedNetObjectReplace::FScopedNetObjectReplace(UClientUnitTest* InUnitTest, UObject* InObjToReplace, UObject* InObjReplacement)
+	: UnitTest(InUnitTest)
+	, ObjToReplace(InObjToReplace)
+{
+	if (UnitTest != nullptr && UnitTest->UnitConn != nullptr)
+	{
+		UUnitTestPackageMap* PackageMap = Cast<UUnitTestPackageMap>(UnitTest->UnitConn->PackageMap);
+
+		if (PackageMap != nullptr)
+		{
+			check(!PackageMap->ReplaceObjects.Contains(ObjToReplace));
+
+			PackageMap->ReplaceObjects.Add(ObjToReplace, InObjReplacement);
+		}
+		else
+		{
+			check(false);
+		}
+	}
+	else
+	{
+		check(false);
+	}
+}
+
+FScopedNetObjectReplace::~FScopedNetObjectReplace()
+{
+	if (UnitTest != nullptr && UnitTest->UnitConn != nullptr)
+	{
+		UUnitTestPackageMap* PackageMap = Cast<UUnitTestPackageMap>(UnitTest->UnitConn->PackageMap);
+
+		if (PackageMap != nullptr)
+		{
+			check(PackageMap->ReplaceObjects.Contains(ObjToReplace));
+
+			PackageMap->ReplaceObjects.Remove(ObjToReplace);
+		}
+		else
+		{
+			check(false);
+		}
+	}
+	else
+	{
+		check(false);
+	}
+}
+
+
+/**
  * NUTNet
  */
 
@@ -449,8 +513,22 @@ UUnitTestNetDriver* NUTNet::CreateUnitTestNetDriver(UWorld* InWorld)
 			ReturnVal->SetWorld(InWorld);
 			InWorld->SetNetDriver(ReturnVal);
 
-			UE_LOG(LogUnitTest, Log, TEXT("CreateUnitTestNetDriver: Created named net driver: %s, NetDriverName: %s"),
-					*ReturnVal->GetFullName(), *ReturnVal->NetDriverName.ToString());
+
+			FLevelCollection* Collection = (FLevelCollection*)InWorld->GetActiveLevelCollection();
+
+			// Hack-set the net driver in the worlds level collection
+			if (Collection != nullptr)
+			{
+				Collection->SetNetDriver(ReturnVal);
+			}
+			else
+			{
+				UE_LOG(LogUnitTest, Warning,
+						TEXT("CreateUnitTestNetDriver: No LevelCollection found for created world, may block replication."));
+			}
+
+			UE_LOG(LogUnitTest, Log, TEXT("CreateUnitTestNetDriver: Created named net driver: %s, NetDriverName: %s, for World: %s"),
+					*ReturnVal->GetFullName(), *ReturnVal->NetDriverName.ToString(), *InWorld->GetFullName());
 		}
 		else
 		{

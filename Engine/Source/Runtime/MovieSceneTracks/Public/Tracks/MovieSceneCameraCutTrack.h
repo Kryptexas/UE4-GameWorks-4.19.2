@@ -1,14 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 #include "MovieSceneNameableTrack.h"
 #include "MovieSceneCameraCutTrack.generated.h"
-
-
-class IMovieSceneTrackInstance;
-class UMovieSceneSection;
-
 
 /**
  * Handles manipulation of CameraCut properties in a movie scene.
@@ -35,7 +33,6 @@ public:
 	// UMovieSceneTrack interface
 
 	virtual void AddSection(UMovieSceneSection& Section) override;
-	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
 	virtual UMovieSceneSection* CreateNewSection() override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 	virtual void RemoveSection(UMovieSceneSection& Section) override;

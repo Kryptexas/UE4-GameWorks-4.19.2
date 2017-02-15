@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IConsoleManager.h"
-
-
-class FConsoleVariableBase;
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "HAL/IConsoleManager.h"
 
 class CORE_API FConsoleManager :public IConsoleManager
 {

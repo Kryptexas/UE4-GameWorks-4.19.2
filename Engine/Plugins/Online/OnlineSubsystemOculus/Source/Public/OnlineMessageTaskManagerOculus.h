@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "OVR_Platform.h"
 
 DECLARE_DELEGATE_TwoParams(FOculusMessageOnCompleteDelegate, ovrMessageHandle, bool);

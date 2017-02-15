@@ -1,9 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "CoreUObjectPrivate.h"
-#include "TargetPlatform.h"
-#include "DebugSerializationFlags.h"
+#include "Serialization/BulkData.h"
+#include "HAL/FileManager.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/Paths.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "Async/Async.h"
+#include "UObject/LinkerLoad.h"
+#include "UObject/LinkerSave.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "UObject/DebugSerializationFlags.h"
 
 /*-----------------------------------------------------------------------------
 	Constructors and operators
@@ -376,6 +387,9 @@ void FUntypedBulkData::GetCopy( void** Dest, bool bDiscardInternalCopy )
 	check( LockStatus == LOCKSTATUS_Unlocked );
 	check( Dest );
 
+	// Make sure any async loads have completed and moved the data into BulkData
+	FlushAsyncLoading();
+
 	// Passed in memory is going to be used.
 	if( *Dest )
 	{
@@ -400,13 +414,6 @@ void FUntypedBulkData::GetCopy( void** Dest, bool bDiscardInternalCopy )
 	// Passed in memory is NULL so we need to allocate some.
 	else
 	{
-		// Check for any pending async requests
-		if (!BulkData && SerializeFuture.IsValid())
-		{
-			WaitForAsyncLoading();
-			BulkData = MoveTemp(BulkDataAsync);
-			ResetAsyncData();
-		}
 		// The data is already loaded so we can simply use a mempcy.
 		if( BulkData )
 		{
@@ -656,9 +663,8 @@ void FUntypedBulkData::StartSerializingBulkData(FArchive& Ar, UObject* Owner, in
 	{
 		BulkDataAsync.Reallocate(GetBulkDataSize(), BulkDataAlignment);
 
-#if USE_NEW_ASYNC_IO
-		UE_LOG(LogSerialization, Error, TEXT("Attempt to stream bulk data with EDL enabled. This is not desireable. File %s"), *Filename);
-#endif
+		UE_CLOG(GNewAsyncIO, LogSerialization, Error, TEXT("Attempt to stream bulk data with EDL enabled. This is not desireable. File %s"), *Filename);
+
 		FArchive* FileReaderAr = IFileManager::Get().CreateFileReader(*Filename, FILEREAD_Silent);
 		checkf(FileReaderAr != NULL, TEXT("Attempted to load bulk data from an invalid filename '%s'."), *Filename);
 
@@ -685,30 +691,24 @@ static FAutoConsoleVariableRef CVarMinimumBulkDataSizeForAsyncLoading(
 	ECVF_Default
 	);
 
-#if !defined(USE_NEW_ASYNC_IO) || !defined(SPLIT_COOKED_FILES) || !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
-	#error "USE_NEW_ASYNC_IO and SPLIT_COOKED_FILES and USE_EVENT_DRIVEN_ASYNC_LOAD must be defined."
-#endif
-
 bool FUntypedBulkData::ShouldStreamBulkData()
 {
-#if USE_NEW_ASYNC_IO
-	const bool bPayloadInline = !(BulkDataFlags&BULKDATA_PayloadAtEndOfFile);
-	if (bPayloadInline)
+	if (GNewAsyncIO && !(BulkDataFlags&BULKDATA_PayloadAtEndOfFile))
 	{
 		return false; // if it is inline, it is already precached, so use it
 	}
 
-#endif
-#if SPLIT_COOKED_FILES && USE_EVENT_DRIVEN_ASYNC_LOAD
-	const bool bSeperateFile = !!(BulkDataFlags&BULKDATA_PayloadInSeperateFile);
-
-	if (!bSeperateFile)
+	if (GEventDrivenLoaderEnabled)
 	{
-		check(!"Bulk data should either be inline or stored in a separate file for the new uobject loader.");
-		return false; // if it is not in a separate file, then we can't easily find the correct offset in the uexp file; we don't want this case anyway!
+		const bool bSeperateFile = !!(BulkDataFlags&BULKDATA_PayloadInSeperateFile);
+
+		if (!bSeperateFile)
+		{
+			check(!"Bulk data should either be inline or stored in a separate file for the new uobject loader.");
+			return false; // if it is not in a separate file, then we can't easily find the correct offset in the uexp file; we don't want this case anyway!
+		}
 	}
 
-#endif
 	const bool bForceStream = !!(BulkDataFlags & BULKDATA_ForceStreamPayload);
 
 	return (FPlatformProperties::RequiresCookedData() && !Filename.IsEmpty() &&
@@ -881,17 +881,15 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 						if (BulkDataFlags & BULKDATA_PayloadInSeperateFile)
 						{
 							// open seperate bulk data file
-#if USE_NEW_ASYNC_IO
-							UE_LOG(LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled (separate file). This is not desireable. File %s"), *Filename);
-#endif
-#if SPLIT_COOKED_FILES && USE_EVENT_DRIVEN_ASYNC_LOAD
-							if (Filename.EndsWith(TEXT(".uasset")) || Filename.EndsWith(TEXT(".umap")))
+							UE_CLOG(GNewAsyncIO, LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled (separate file). This is not desireable. File %s"), *Filename);
+
+							if (GEventDrivenLoaderEnabled && (Filename.EndsWith(TEXT(".uasset")) || Filename.EndsWith(TEXT(".umap"))))
 							{
 								BulkDataOffsetInFile -= IFileManager::Get().FileSize(*Filename);
 								check(BulkDataOffsetInFile >= 0);
 								Filename = FPaths::GetBaseFilename(Filename, false) + TEXT(".uexp");
 							}
-#endif
+
 							FArchive* TargetArchive = IFileManager::Get().CreateFileReader(*Filename);
 							// seek to the location in the file where the payload is stored
 							TargetArchive->Seek(BulkDataOffsetInFile);
@@ -902,9 +900,8 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 						}
 						else
 						{
-#if USE_NEW_ASYNC_IO
-							UE_LOG(LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled. This is not desireable. File %s"), *Filename);
-#endif
+							UE_CLOG(GNewAsyncIO, LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled. This is not desireable. File %s"), *Filename);
+
 							// store the current file offset
 							int64 CurOffset = Ar.Tell();
 							// seek to the location in the file where the payload is stored
@@ -915,7 +912,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 							Ar.Seek(CurOffset);
 						}
 					}
-  				}
+  			}
 			}
 		}
 		// We're saving to the persistent archive.
@@ -1305,13 +1302,15 @@ void FUntypedBulkData::WaitForAsyncLoading()
 	check(BulkDataAsync);
 }
 
-bool FUntypedBulkData::FlushAsyncLoading(void* Dest)
+bool FUntypedBulkData::FlushAsyncLoading()
 {
 	bool bIsLoadingAsync = SerializeFuture.IsValid();
 	if (bIsLoadingAsync)
 	{
 		WaitForAsyncLoading();
-		FMemory::Memcpy(Dest, BulkDataAsync.Get(), GetBulkDataSize());
+		check(!BulkData);
+		BulkData = MoveTemp(BulkDataAsync);
+		ResetAsyncData();
 	}
 	return bIsLoadingAsync;
 }
@@ -1325,8 +1324,9 @@ bool FUntypedBulkData::FlushAsyncLoading(void* Dest)
 void FUntypedBulkData::LoadDataIntoMemory( void* Dest )
 {
 	// Try flushing async loading before attempting to load
-	if (FlushAsyncLoading(Dest))
+	if (FlushAsyncLoading())
 	{
+		FMemory::Memcpy(Dest, BulkData.Get(), GetBulkDataSize());
 		return;
 	}
 
@@ -1372,17 +1372,15 @@ void FUntypedBulkData::LoadDataIntoMemory( void* Dest )
 		// load from the specied filename when the linker has been cleared
 		checkf( Filename != TEXT(""), TEXT( "Attempted to load bulk data without a proper filename." ) );
 	
-#if USE_NEW_ASYNC_IO
-		UE_CLOG(!(IsInGameThread() || IsInAsyncLoadingThread()), LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled (LoadDataIntoMemory). This is not desireable. File %s"), *Filename);
-#endif
-#if SPLIT_COOKED_FILES && USE_EVENT_DRIVEN_ASYNC_LOAD
-		if (Filename.EndsWith(TEXT(".uasset")) || Filename.EndsWith(TEXT(".umap")))
+		UE_CLOG(GNewAsyncIO && !(IsInGameThread() || IsInAsyncLoadingThread()), LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled (LoadDataIntoMemory). This is not desireable. File %s"), *Filename);
+
+		if (GEventDrivenLoaderEnabled && (Filename.EndsWith(TEXT(".uasset")) || Filename.EndsWith(TEXT(".umap"))))
 		{
 			BulkDataOffsetInFile -= IFileManager::Get().FileSize(*Filename);
 			check(BulkDataOffsetInFile >= 0);
 			Filename = FPaths::GetBaseFilename(Filename, false) + TEXT(".uexp");
 		}
-#endif
+
 		FArchive* Ar = IFileManager::Get().CreateFileReader(*Filename, FILEREAD_Silent);
 		checkf( Ar != NULL, TEXT( "Attempted to load bulk data from an invalid filename '%s'." ), *Filename );
 	

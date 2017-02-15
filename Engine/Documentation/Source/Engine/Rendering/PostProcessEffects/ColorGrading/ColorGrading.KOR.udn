@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:컬러 그레이딩
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
@@ -108,7 +108,7 @@ LUT를 활용하려면, 사용하려는 LUT 텍스쳐를 포스트 프로세스 
 	[/REGION]
 
 1. LUT를 스크린샷 포함하여 포토샵 도큐먼트에 삽입합니다. (LUT 도큐먼트에서 전체 선택, 복사, 스크린샷 도큐먼트로 전환, 붙여넣기)
-1. 색 조작(manipulation)을 적용합니다. (조절(adjustment) 레이어를 추가하는 식이 좋습니다. 그렇지 않으면 모두 일일히 사전에 flatten 시키고 사후에 256x16 으로 잘라내야 하므로 까다로워집니다.)
+1. 색 조작(manipulation)을 적용합니다. (조절(adjustment) 레이어를 추가하는 식이 좋습니다. 그렇지 않으면 모두 일일이 사전에 flatten 시키고 사후에 256x16 으로 잘라내야 하므로 까다로워집니다.)
 1. 256x16 LUT 를 선택합니다. (레이어 패널에서 LUT 레이어 선택, Menu: Select/Load Selection, Ok)
 1. LUT 콘텐츠를 병합하여 복사합니다. (Menu: Edit/Copy Merged)
 1. 붙여넣고 엔진이 읽을 수 있는 비압축 포맷으로 256x16 텍스처를 저장합니다. (Menu: File/New, Menu: Edit/Paste, Menu: File/Save As)

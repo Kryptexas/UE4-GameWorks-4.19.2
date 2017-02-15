@@ -1,6 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/UnrealTemplate.h"
+#include "Math/UnrealMathUtility.h"
+#include "Serialization/Archive.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Parse.h"
+#include "Logging/LogMacros.h"
+#include "Misc/DateTime.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "HAL/IPlatformFileLogWrapper.h"
+#include "UniquePtr.h"
+
+class IAsyncReadFileHandle;
 
 class CORE_API FCachedFileHandle : public IFileHandle
 {
@@ -195,7 +211,7 @@ private:
 		}
 	}
 
-	TAutoPtr<IFileHandle>	FileHandle;
+	TUniquePtr<IFileHandle>	FileHandle;
 	int64					FilePos; /* Desired position in the file stream, this can be different to FilePos due to the cache */
 	int64					TellPos; /* Actual position in the file,  this can be different to FilePos */
 	int64					FileSize;
@@ -254,7 +270,10 @@ public:
 	{
 		return LowerLevel;
 	}
-
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) override
+	{
+		LowerLevel = NewLowerLevel;
+	}
 	virtual const TCHAR* GetName() const override
 	{
 		return FCachedReadPlatformFile::GetTypeName();
@@ -377,10 +396,8 @@ public:
 	{
 		return LowerLevel->SendMessageToServer(Message, Handler);
 	}
-#if USE_NEW_ASYNC_IO
 	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override
 	{
 		return LowerLevel->OpenAsyncRead(Filename);
 	}
-#endif // USE_NEW_ASYNC_IO
 };

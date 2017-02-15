@@ -1,4 +1,6 @@
-﻿namespace Tools.CrashReporter.CrashReportProcess.Properties {
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+namespace Tools.CrashReporter.CrashReportProcess.Properties {
     
     
     // This class allows you to handle specific events on the settings class:

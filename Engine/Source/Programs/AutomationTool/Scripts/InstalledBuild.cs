@@ -1,3 +1,5 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -63,7 +65,7 @@ namespace AutomationTool
 				UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(CodeTargetPlatform, true);
 				if (BuildPlatform != null)
 				{
-					string Architecture = BuildPlatform.CreateContext(null).GetActiveArchitecture();
+					string Architecture = BuildPlatform.CreateContext(null, null).GetActiveArchitecture();
 
 					// Try to parse additional Architectures from the command line
 					string Architectures = ParseParamValue(CodeTargetPlatform.ToString() + "Architectures");

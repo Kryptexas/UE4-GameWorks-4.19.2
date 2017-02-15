@@ -1,7 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
+#include "Commandlets/GenerateDistillFileSetsCommandlet.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
+#include "UObject/UObjectHash.h"
+#include "Misc/PackageName.h"
+#include "Settings/ProjectPackagingSettings.h"
+#include "FileHelpers.h"
+#include "RedirectCollector.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenerateDistillFileSetsCommandlet, Log, All);
 
@@ -109,7 +119,7 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 			{
 				TemplateFolder += TEXT("/");
 			}
-			UE_LOG(LogGenerateDistillFileSetsCommandlet, Display, TEXT("Using template folder: "), *TemplateFolder);
+			UE_LOG(LogGenerateDistillFileSetsCommandlet, Display, TEXT("Using template folder: %s"), *TemplateFolder);
 		}
 		else if ( Switch.StartsWith(OutputFolderSwitch) )
 		{
@@ -120,7 +130,7 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 			{
 				OutputFolder += TEXT("/");
 			}
-			UE_LOG(LogGenerateDistillFileSetsCommandlet, Display, TEXT("Using output folder: "), *OutputFolder);
+			UE_LOG(LogGenerateDistillFileSetsCommandlet, Display, TEXT("Using output folder: %s"), *OutputFolder);
 		}
 	}
 
@@ -202,6 +212,8 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 			UPackage* Package = LoadPackage( NULL, *MapPackage, LOAD_None );
 			if( Package != NULL )
 			{
+				GRedirectCollector.ResolveStringAssetReference();
+
 				AllPackageNames.Add(Package->GetName());
 
 				UE_LOG(LogGenerateDistillFileSetsCommandlet, Display, TEXT( "Finding content referenced by %s..." ), *MapPackage );

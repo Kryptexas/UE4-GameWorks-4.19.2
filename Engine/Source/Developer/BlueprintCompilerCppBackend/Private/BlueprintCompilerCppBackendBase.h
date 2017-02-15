@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma  once
 
-#include "IBlueprintCompilerCppBackendModule.h"
-#include "BlueprintCompilerCppBackendGatherDependencies.h"
+#include "CoreMinimal.h"
+#include "KismetCompiledFunctionContext.h"
+#include "BlueprintCompilerCppBackendInterface.h"
+#include "Engine/Blueprint.h" // for FCompilerNativizationOptions
 
+class UUserDefinedEnum;
+class UUserDefinedStruct;
 struct FEmitterLocalContext;
 
 /** The class generates all native code except of function body (notice InnerFunctionImplementation in not implemented) */
@@ -39,8 +43,8 @@ protected:
 public:
 
 	// IBlueprintCompilerCppBackend implementation
-	virtual FString GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly, FString& OutCppBody) override;
-	virtual FString GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum) override;
+	virtual FString GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly, FCompilerNativizationOptions NativizationOptions, FString& OutCppBody) override;
+	virtual void GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum, FString& OutHeaderCode, FString& OutCPPCode) override;
 	virtual FString GenerateCodeFromStruct(UUserDefinedStruct* SourceStruct) override;
 	virtual FString GenerateWrapperForClass(UClass* SourceClass) override;
 	// end of IBlueprintCompilerCppBackend implementation

@@ -1,14 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Timeline.cpp
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/Class.h"
+#include "UObject/CoreNet.h"
+#include "UObject/UnrealType.h"
 #include "Curves/CurveLinearColor.h"
 #include "Curves/CurveVector.h"
+#include "UObject/Package.h"
+#include "GameFramework/WorldSettings.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/TimelineComponent.h"
+#include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTimeline, Log, All);
 
@@ -312,10 +319,15 @@ void FTimeline::SetPlaybackPosition(float NewPosition, bool bFireEvents, bool bF
 	{
 		if (PropSetObject)
 		{
-			if (DirectionProperty == NULL)
+			if (DirectionProperty == nullptr)
 			{
 				DirectionProperty = FindField<UByteProperty>(PropSetObject->GetClass(), DirectionPropertyName);
-				if (DirectionProperty == NULL)
+				if (DirectionProperty == nullptr)
+				{
+					DirectionProperty = FindField<UEnumProperty>(PropSetObject->GetClass(), DirectionPropertyName);
+				}
+
+				if (DirectionProperty == nullptr)
 				{
 					UE_LOG(LogTimeline, Log, TEXT("SetPlaybackPosition: No direction property '%s' in '%s'"), *DirectionPropertyName.ToString(), *PropSetObject->GetName());
 				}
@@ -324,7 +336,17 @@ void FTimeline::SetPlaybackPosition(float NewPosition, bool bFireEvents, bool bF
 			{
 				const ETimelineDirection::Type CurrentDirection = bReversePlayback ? ETimelineDirection::Backward : ETimelineDirection::Forward;
 				TEnumAsByte<ETimelineDirection::Type> ValueAsByte(CurrentDirection);
-				DirectionProperty->SetPropertyValue_InContainer(PropSetObject, ValueAsByte);
+				if (UByteProperty* ByteDirection = Cast<UByteProperty>(DirectionProperty))
+				{
+					ByteDirection->SetPropertyValue_InContainer(PropSetObject, ValueAsByte);
+				}
+				else
+				{
+					UEnumProperty* EnumProp = CastChecked<UEnumProperty>(DirectionProperty);
+					void* PropAddr = EnumProp->ContainerPtrToValuePtr<void>(PropSetObject);
+					UNumericProperty* UnderlyingProp = EnumProp->GetUnderlyingProperty();
+					UnderlyingProp->SetIntPropertyValue(PropAddr, (int64)ValueAsByte);
+				}
 			}
 		}
 	}
@@ -674,6 +696,11 @@ void UTimelineComponent::TickComponent(float DeltaTime, enum ELevelTick TickType
 	}
 }
 
+bool UTimelineComponent::IsReadyForOwnerToAutoDestroy() const
+{
+	return !IsPlaying();
+}
+
 void UTimelineComponent::Activate(bool bReset)
 {
 	Super::Activate(bReset);
@@ -831,6 +858,11 @@ void UTimelineComponent::SetTimelinePostUpdateFunc(FOnTimelineEvent NewTimelineP
 }
 
 void UTimelineComponent::SetTimelineFinishedFunc(FOnTimelineEvent NewTimelineFinishedFunc)
+{
+	TheTimeline.SetTimelineFinishedFunc(NewTimelineFinishedFunc);
+}
+
+void UTimelineComponent::SetTimelineFinishedFunc(FOnTimelineEventStatic NewTimelineFinishedFunc)
 {
 	TheTimeline.SetTimelineFinishedFunc(NewTimelineFinishedFunc);
 }

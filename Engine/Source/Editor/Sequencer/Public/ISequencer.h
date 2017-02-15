@@ -1,23 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 
-#include "Runtime/MovieScene/Public/IMovieScenePlayer.h"
-#include "Editor/SequencerWidgets/Public/ITimeSlider.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "IMovieScenePlayer.h"
+#include "Misc/Guid.h"
+#include "Widgets/SWidget.h"
+#include "Containers/ArrayView.h"
+#include "IMovieScenePlayer.h"
 #include "KeyPropertyParams.h"
+#include "Widgets/Input/NumericTypeInterface.h"
+#include "Editor/SequencerWidgets/Public/ITimeSlider.h"
 
-
+class AActor;
 class FSequencerSelection;
 class FSequencerSelectionPreview;
-class UMovieSceneSequence;
-class UAnimSequence;
-class UMovieScene;
-class UMovieSceneSection;
-class UMovieSceneSubSection;
+class FUICommandList;
 class ISequencerKeyCollection;
+class UMovieSceneSequence;
+class UMovieSceneSubSection;
 enum class EMapChangeType : uint8;
-
 
 /**
  * Defines auto-key modes.
@@ -118,10 +122,14 @@ public:
 	/** @return Returns the MovieScene that is currently focused for editing by the sequencer.  This can change at any time. */
 	virtual UMovieSceneSequence* GetFocusedMovieSceneSequence() const = 0;
 
-	/**
-	 * @return the currently focused movie scene instance
-	 */
-	virtual TSharedRef<FMovieSceneSequenceInstance> GetFocusedMovieSceneSequenceInstance() const = 0;
+	/** @return The root movie scene being used */
+	virtual FMovieSceneSequenceIDRef GetRootTemplateID() const = 0;
+	virtual FMovieSceneSequenceIDRef GetFocusedTemplateID() const = 0;
+
+	TArrayView<TWeakObjectPtr<>> FindObjectsInCurrentSequence(const FGuid& InObjectBinding)
+	{
+		return FindBoundObjects(InObjectBinding, GetFocusedTemplateID());
+	}
 
 	/** Resets sequencer with a new animation */
 	virtual void ResetToNewRootSequence(UMovieSceneSequence& NewAnimation) = 0;
@@ -145,19 +153,6 @@ public:
 	 * @return	The spawnable guid for the spawnable, or an invalid Guid if we were not able to create a spawnable
 	 */
 	virtual FGuid MakeNewSpawnable(UObject& SourceObject) = 0;
-
-	/**
-	 * Given a sub-movie scene section, returns the instance of the movie scene for that section.
-	 *
-	 * @param Section The sub-movie scene section containing the sequence instance to get.
-	 * @return The instance for the sub-movie scene
-	 */
-	virtual TSharedRef<FMovieSceneSequenceInstance> GetSequenceInstanceForSection(UMovieSceneSection& Section) const = 0;
-
-	/**
-	 * @return Whether the section has a sequence instance
-	 */
-	virtual bool HasSequenceInstanceForSection(UMovieSceneSection& Section) const = 0;
 
 	/**
 	 * Add actors as possessable objects to sequencer.
@@ -210,12 +205,10 @@ public:
 	virtual bool IsRecordingLive() const = 0;
 
 	/**
-	 * Gets the current time of the time slider relative to the passed in movie scene
-	 *
-	 * @param MovieScene The movie scene to get the local time for (must exist in this sequencer).
+	 * Gets the current time of the time slider relative to the currently focused movie scene
 	 */
-	virtual float GetCurrentLocalTime(UMovieSceneSequence& InMovieSceneSequence) = 0;
-	
+	virtual float GetLocalTime() const = 0;
+
 	/**
 	 * Gets the global time.
 	 *
@@ -225,17 +218,21 @@ public:
 	virtual float GetGlobalTime() const = 0;
 
 	/**
-	 * Sets the global position to the time.
+	 * Sets the cursor position relative to the currently focused sequence
 	 *
-	 * @param Time The global time to set.
+	 * @param Time The local time to set.
 	 * @param SnapTimeMode The type of time snapping allowed.
-	 * @param bRestarted Whether the time has been restarted from the beginning or looped.
-	 * @see GetGlobalTime
 	 */
-	virtual void SetGlobalTime(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bRestarted = false) = 0;
+	virtual void SetLocalTime(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None) = 0;
 
-	/** Set the global time directly, without performing any auto-scroll */
-	virtual void SetGlobalTimeDirectly(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bRestarted = false) = 0;
+	/** Set the current local time directly, with no other snapping, scrolling or manipulation */
+	virtual void SetLocalTimeDirectly(float NewTime) = 0;
+
+	/** Set the global time directly, without performing any auto-scroll, snapping or other adjustments to the supplied time  */
+	virtual void SetGlobalTime(float Time) = 0;
+
+	/** Forcefully reevaluate the sequence */
+	virtual void ForceEvaluate() = 0;
 
 	/** @return The current view range */
 	virtual FAnimatedRange GetViewRange() const
@@ -305,7 +302,7 @@ public:
 	DECLARE_EVENT_OneParam(ISequencer, FOnPreSave, ISequencer&)
 	virtual FOnPreSave& OnPreSave() = 0;
 
-	DECLARE_EVENT_OneParam(ISequencer, FOnActivateSequence, FMovieSceneSequenceInstance&)
+	DECLARE_EVENT_OneParam(ISequencer, FOnActivateSequence, FMovieSceneSequenceIDRef)
 	virtual FOnActivateSequence& OnActivateSequence() = 0;
 
 	/**
@@ -321,11 +318,6 @@ public:
 	 * @return Returns the object change listener for sequencer instance
 	 */
 	virtual class ISequencerObjectChangeListener& GetObjectChangeListener() = 0;
-
-	/**
-	 * Get a set of all properties currently keyed on the specified object
-	 */
-	virtual void GetAllKeyedProperties(UObject& Object, TSet<UProperty*>& OutProperties) = 0;
 
 	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const = 0;
 
@@ -352,8 +344,6 @@ public:
 	virtual FSequencerSelection& GetSelection() = 0;
 	virtual FSequencerSelectionPreview& GetSelectionPreview() = 0;
 
-	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType) = 0;
-
 	/** Gets a multicast delegate which is executed whenever the global time changes. */
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() = 0;
 
@@ -375,11 +365,14 @@ public:
 	/** @return Returns a widget containing the sequencer's playback controls */
 	virtual TSharedRef<SWidget> MakeTransportControls(bool bExtended) = 0;
 
-	/** Turn viewport transport controls on or off */
-	virtual void SetViewportTransportControlsVisibility(bool bVisible) = 0;
-
 	/** Attempt to find a spawned object in the currently focused movie scene, or the template object for the specified binding ID, if possible */
-	virtual UObject* FindSpawnedObjectOrTemplate(const FGuid& BindingId) const = 0;
+	virtual UObject* FindSpawnedObjectOrTemplate(const FGuid& BindingId) = 0;
+
+	/** Called when the external selection has changed in such a way that sequencer should re-synchronize its selection states */
+	virtual void ExternalSelectionHasChanged() = 0;
+
+	/** Whether the sequence is read-only */
+	virtual bool IsReadOnly() const = 0;
 
 	/**
 	 * Create a widget containing the spinboxes for setting the working and playback range

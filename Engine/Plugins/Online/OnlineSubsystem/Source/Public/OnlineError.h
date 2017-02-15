@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 namespace EOnlineServerConnectionStatus {
-	enum Type : unsigned int;
+	enum Type : uint8;
 }
 
 /** Generic Error response for OSS calls */

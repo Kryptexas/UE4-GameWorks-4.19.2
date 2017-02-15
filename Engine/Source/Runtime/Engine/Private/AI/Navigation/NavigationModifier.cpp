@@ -1,19 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "NavigationModifier.h"
-#include "NavigationOctree.h"
-#include "RecastHelpers.h"
-#include "ConvexHull2d.h"
-#if WITH_RECAST
-#include "PImplRecastNavMesh.h"
-#endif // WITH_RECAST
-#include "AI/Navigation/NavLinkDefinition.h"
+#include "AI/NavigationModifier.h"
+#include "UObject/UnrealType.h"
+#include "EngineStats.h"
+#include "GameFramework/Actor.h"
+#include "Components/BrushComponent.h"
+#include "AI/Navigation/RecastHelpers.h"
 #include "AI/Navigation/NavLinkTrivial.h"
 #include "AI/Navigation/NavAreas/NavAreaMeta.h"
-#include "Components/PrimitiveComponent.h"
-#include "Components/BrushComponent.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 // if square distance between two points is less than this the those points
 // will be considered identical when calculating convex hull
@@ -44,11 +40,11 @@ UClass* FNavigationLinkBase::GetAreaClass() const
 	return ClassOb ? ClassOb : (UClass*)UNavigationSystem::GetDefaultWalkableArea();
 }
 
-void FNavigationLinkBase::InitializeAreaClass()
+void FNavigationLinkBase::InitializeAreaClass(const bool bForceRefresh)
 {
 	// @hack fix for changes to AreaClass in the editor not taking effect
-	// proper fix already in at CL#3183123
-	if (!bAreaClassInitialized || GIsEditor)
+	// proper fix will get merged over from Dev-Gen
+	if (!bAreaClassInitialized || bForceRefresh || GIsEditor)
 	{
 		AreaClassOb = (UClass*)AreaClass;
 		bAreaClassInitialized = true;

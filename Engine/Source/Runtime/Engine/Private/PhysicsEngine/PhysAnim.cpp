@@ -1,17 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysAnim.cpp: Code for supporting animation/physics blending
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/MemStack.h"
+#include "Misc/App.h"
+#include "HAL/IConsoleManager.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineDefines.h"
+#include "Engine/EngineTypes.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimStats.h"
 #include "SkeletalRenderPublic.h"
+#include "SkeletalMeshTypes.h"
 #include "Components/LineBatchComponent.h"
 #if WITH_PHYSX
-	#include "PhysXSupport.h"
+	#include "PhysXPublic.h"
 #endif // WITH_PHYSX
-#include "PhysicsPublic.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 
@@ -186,6 +194,8 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 		SCOPED_SCENE_READ_LOCK(PhysScene->GetPhysXScene(SceneType));
 #endif
 
+		bool bSetParentScale = false;
+
 		// For each bone - see if we need to provide some data for it.
 		for(int32 i=0; i<InRequiredBones.Num(); i++)
 		{
@@ -258,11 +268,12 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 						// Now blend in this atom. See if we are forcing this bone to always be blended in
 						InBoneSpaceTransforms[BoneIndex].Blend( InBoneSpaceTransforms[BoneIndex], PhysAtom, UsePhysWeight );
 
-						if(BoneIndex == 0)
+						if (!bSetParentScale)
 						{
 							//We must update RecipScale3D based on the atom scale of the root
 							TotalScale3D *= InBoneSpaceTransforms[0].GetScale3D();
 							RecipScale3D = TotalScale3D.Reciprocal();
+							bSetParentScale = true;
 						}
 
 						#if DEPERCATED_PHYSBLEND_UPDATES_PHYSX

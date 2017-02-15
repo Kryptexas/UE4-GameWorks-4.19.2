@@ -1,6 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+class FArrangedChildren;
+class FArrangedWidget;
+class FWidgetPath;
+struct EVisibility;
 
 // FWidgetPath functions that depend on classes defined after WidgetPath.h is included in Slate.h
 

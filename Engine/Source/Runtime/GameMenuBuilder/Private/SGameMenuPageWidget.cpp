@@ -1,8 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "GameMenuBuilderPrivatePCH.h"
+#include "SGameMenuPageWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "GameMenuBuilderStyle.h"
+#include "SGameMenuItemWidget.h"
+#include "GameMenuPage.h"
 #include "Engine/Console.h"
-#include "SDPIScaler.h"
+#include "Widgets/Layout/SDPIScaler.h"
 
 
 FMenuPanel::FMenuPanel()
@@ -962,12 +973,12 @@ FReply SGameMenuPageWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEve
 				Result = FReply::Handled();
 			}
 		}
-		if (Key == EKeys::Enter || Key == EKeys::Gamepad_FaceButton_Bottom)
+		if (Key == EKeys::Enter || Key == EKeys::Virtual_Accept)
 		{
 			ConfirmMenuItem();
 			Result = FReply::Handled();
 		} 
-		else if (Key == EKeys::Escape || Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::Gamepad_Special_Left)
+		else if (Key == EKeys::Escape || Key == EKeys::Virtual_Back || Key == EKeys::Gamepad_Special_Left)
 		{
 			MenuGoBack(true);
 			Result = FReply::Handled();

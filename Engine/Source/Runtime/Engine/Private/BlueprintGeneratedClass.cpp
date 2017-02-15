@@ -1,18 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "BlueprintUtilities.h"
-#include "Engine/InputDelegateBinding.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Misc/CoreMisc.h"
+#include "Stats/StatsMisc.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/CoreNet.h"
+#include "UObject/Package.h"
+#include "UObject/LinkerLoad.h"
+#include "Serialization/ObjectReader.h"
+#include "Serialization/ObjectWriter.h"
+#include "Engine/Blueprint.h"
+#include "Components/ActorComponent.h"
+#include "Curves/CurveFloat.h"
+#include "Engine/DynamicBlueprintBinding.h"
+#include "Components/TimelineComponent.h"
 #include "Engine/TimelineTemplate.h"
-#include "Engine/SimpleConstructionScript.h"
-#include "Engine/SCS_Node.h"
 #include "Engine/LevelScriptActor.h"
+#include "Engine/SCS_Node.h"
 #include "Engine/InheritableComponentHandler.h"
-#include "CoreNet.h"
+#include "Misc/ScopeLock.h"
 
 #if WITH_EDITOR
-#include "BlueprintEditorUtils.h"
-#include "KismetEditorUtilities.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/KismetEditorUtilities.h"
 #endif //WITH_EDITOR
 
 DEFINE_STAT(STAT_PersistentUberGraphFrameMemory);
@@ -22,6 +32,7 @@ UBlueprintGeneratedClass::UBlueprintGeneratedClass(const FObjectInitializer& Obj
 {
 	NumReplicatedProperties = 0;
 	bHasInstrumentation = false;
+	bHasNativizedParent = false;
 }
 
 void UBlueprintGeneratedClass::PostInitProperties()
@@ -42,9 +53,6 @@ void UBlueprintGeneratedClass::PostLoad()
 	UObject* ClassCDO = GetDefaultObject();
 
 	// Go through the CDO of the class, and make sure we don't have any legacy components that aren't instanced hanging on.
-	TArray<UObject*> SubObjects;
-	GetObjectsWithOuter(ClassCDO, SubObjects);
-
 	struct FCheckIfComponentChildHelper
 	{
 		static bool IsComponentChild(UObject* CurrObj, const UObject* CDO)
@@ -55,14 +63,14 @@ void UBlueprintGeneratedClass::PostLoad()
 		};
 	};
 
-	for (UObject* CurrObj :	SubObjects)
+	ForEachObjectWithOuter(ClassCDO, [ClassCDO](UObject* CurrObj)
 	{
 		const bool bComponentChild = FCheckIfComponentChildHelper::IsComponentChild(CurrObj, ClassCDO);
 		if (!CurrObj->IsDefaultSubobject() && !CurrObj->IsRooted() && !bComponentChild)
 		{
 			CurrObj->MarkPendingKill();
 		}
-	}
+	});
 
 #if WITH_EDITORONLY_DATA
 	if (GetLinkerUE4Version() < VER_UE4_CLASS_NOTPLACEABLE_ADDED)
@@ -271,6 +279,8 @@ UObject* UBlueprintGeneratedClass::GetArchetypeForCDO() const
 
 void UBlueprintGeneratedClass::SerializeDefaultObject(UObject* Object, FArchive& Ar)
 {
+	FScopeLock SerializeAndPostLoadLock(&SerializeAndPostLoadCritical);
+
 	Super::SerializeDefaultObject(Object, Ar);
 
 	if (Ar.IsLoading() && !Ar.IsObjectReferenceCollector() && Object == ClassDefaultObject)
@@ -283,6 +293,8 @@ void UBlueprintGeneratedClass::SerializeDefaultObject(UObject* Object, FArchive&
 
 void UBlueprintGeneratedClass::PostLoadDefaultObject(UObject* Object)
 {
+	FScopeLock SerializeAndPostLoadLock(&SerializeAndPostLoadCritical);
+
 	Super::PostLoadDefaultObject(Object);
 
 	if (Object == ClassDefaultObject)
@@ -932,6 +944,94 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass,
 	}
 }
 
+void UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(AActor* Actor)
+{
+	check(Actor != nullptr);
+
+	// Get the Blueprint class hierarchy (if valid).
+	TArray<const UBlueprintGeneratedClass*> ParentBPClassStack;
+	GetGeneratedClassesHierarchy(Actor->GetClass(), ParentBPClassStack);
+	if (ParentBPClassStack.Num() > 0)
+	{
+		// If the nearest native antecedent is also a nativized BP class, we may have an override
+		// in an ICH for some part of the non-native BP class hierarchy that also inherits from it.
+		if (UDynamicClass* ParentDynamicClass = Cast<UDynamicClass>(ParentBPClassStack[ParentBPClassStack.Num() - 1]->GetSuperClass()))
+		{
+			// Get all default subobjects owned by the nativized antecedent's CDO.
+			// Note: This will also include all other inherited default subobjects.
+			TArray<UObject*> DefaultSubobjects;
+			ParentDynamicClass->GetDefaultObjectSubobjects(DefaultSubobjects);
+
+			// Pick out only the UActorComponent-based subobjects and cache them to use for checking below.
+			TArray<UActorComponent*> NativizedParentClassComponentSubobjects;
+			for (UObject* DefaultSubobject : DefaultSubobjects)
+			{
+				if (UActorComponent* ComponentSubobject = Cast<UActorComponent>(DefaultSubobject))
+				{
+					NativizedParentClassComponentSubobjects.Add(ComponentSubobject);
+				}
+			}
+
+			// Now check each non-native BP class (on up to the given Actor) for any inherited component template overrides, and manually apply default value overrides as we go.
+			for (int32 i = ParentBPClassStack.Num() - 1; i >= 0; i--)
+			{
+				const UBlueprintGeneratedClass* CurrentBPGClass = ParentBPClassStack[i];
+				check(CurrentBPGClass);
+
+				UInheritableComponentHandler* ICH = const_cast<UBlueprintGeneratedClass*>(CurrentBPGClass)->GetInheritableComponentHandler();
+				if (ICH && NativizedParentClassComponentSubobjects.Num() > 0)
+				{
+					// Check each default subobject that we've inherited from the antecedent class
+					for (UActorComponent* NativizedComponentSubobject : NativizedParentClassComponentSubobjects)
+					{
+						const FName NativizedComponentSubobjectName = NativizedComponentSubobject->GetFName();
+						FComponentKey ComponentKey = ICH->FindKey(NativizedComponentSubobjectName);
+						if (ComponentKey.IsValid() && ComponentKey.IsSCSKey())
+						{
+							const FBlueprintCookedComponentInstancingData* OverrideData = ICH->GetOverridenComponentTemplateData(ComponentKey);
+							if (OverrideData != nullptr && OverrideData->bIsValid)
+							{
+								// This is the instance of the inherited component subobject that's owned by the given Actor instance
+								if (UObject* NativizedComponentSubobjectInstance = Actor->GetDefaultSubobjectByName(NativizedComponentSubobjectName))
+								{
+									// Nativized component override data loader implementation.
+									class FNativizedComponentOverrideDataLoader : public FObjectReader
+									{
+									public:
+										FNativizedComponentOverrideDataLoader(const TArray<uint8>& InSrcBytes, const FCustomPropertyListNode* InPropertyList)
+											:FObjectReader(const_cast<TArray<uint8>&>(InSrcBytes))
+										{
+											ArCustomPropertyList = InPropertyList;
+											ArUseCustomPropertyList = true;
+											ArWantBinaryPropertySerialization = true;
+
+											// Set this flag to emulate things that would happen in the SDO case when this flag is set (e.g. - not setting 'bHasBeenCreated').
+											ArPortFlags |= PPF_Duplicate;
+
+											// Set this flag to ensure that we also serialize any deprecated properties.
+											ArPortFlags |= PPF_UseDeprecatedProperties;
+										}
+									};
+
+									// Ensure that the ICH has gotten a PostLoad() call - we need to ensure that any cooked data will have been fully processed before proceeding.
+									ICH->ConditionalPostLoad();
+
+									// Serialize cached override data to the instanced subobject that's based on the default subobject from the nativized parent class and owned by the Actor instance.
+									FNativizedComponentOverrideDataLoader OverrideDataLoader(OverrideData->GetCachedPropertyDataForSerialization(), OverrideData->GetCachedPropertyListForSerialization());
+									NativizedComponentSubobjectInstance->Serialize(OverrideDataLoader);
+								}
+							}
+
+							// There can only be a single match, so we can stop searching now.
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunction* FuncToCheck) const
 {
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
@@ -1034,25 +1134,26 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj, boo
 void UBlueprintGeneratedClass::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 {
 	Super::GetPreloadDependencies(OutDeps);
-	for (UField* Field = Children; Field; Field = Field->Next)
-	{
-		OutDeps.Add(Field);
-	}
-	OutDeps.Add(GetSuperClass());
+	
+	// Super handles parent class and fields
 	OutDeps.Add(GetSuperClass()->GetDefaultObject());
 
-	OutDeps.Add(UberGraphFunction);
-	OutDeps.Add(GetInheritableComponentHandler());
+	if (UberGraphFunction)
+	{
+		OutDeps.Add(UberGraphFunction);
+	}
+	
 	UObject *CDO = GetDefaultObject();
 	if (CDO)
 	{
-		TArray<UObject*> Subobjects;
-		GetObjectsWithOuter(CDO, Subobjects);
-		for (UObject* SubObj : Subobjects)
+		ForEachObjectWithOuter(CDO, [&OutDeps](UObject* SubObj)
 		{
-			OutDeps.Add(SubObj->GetClass());
-			OutDeps.Add(SubObj->GetArchetype());
-		}
+			if (SubObj->HasAllFlags(RF_DefaultSubObject))
+			{
+				OutDeps.Add(SubObj->GetClass());
+				OutDeps.Add(SubObj->GetArchetype());
+			}
+		});
 	}
 }
 

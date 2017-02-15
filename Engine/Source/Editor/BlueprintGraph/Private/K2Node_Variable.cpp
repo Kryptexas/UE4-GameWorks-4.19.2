@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
-
-#include "CompilerResultsLog.h"
-#include "SlateIconFinder.h"
-#include "MessageLog.h"
+#include "K2Node_Variable.h"
+#include "UObject/UObjectHash.h"
+#include "Components/PrimitiveComponent.h"
+#include "GameFramework/MovementComponent.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "KismetCompilerMisc.h"
+#include "Kismet2/CompilerResultsLog.h"
+#include "Styling/SlateIconFinder.h"
+#include "Logging/MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -142,7 +148,7 @@ void UK2Node_Variable::CreatePinForSelf()
 				{
 					TargetClass = Property->GetOwnerClass()->GetAuthoritativeClass();
 				}
-				else
+				else if(GetBlueprint()->SkeletonGeneratedClass)
 				{
 					TargetClass = GetBlueprint()->SkeletonGeneratedClass->GetAuthoritativeClass();
 				}
@@ -433,10 +439,14 @@ void UK2Node_Variable::ValidateNodeDuringCompilation(class FCompilerResultsLog& 
 					OwnerName = VarOwnerClass->GetName();
 				}
 			}
-			FString const VarName = VariableReference.GetMemberName().ToString();
 
-			FText const WarningFormat = LOCTEXT("VariableNotFound", "Could not find a variable named \"%s\" in '%s'.\nMake sure '%s' has been compiled for @@");
-			MessageLog.Warning(*FString::Printf(*WarningFormat.ToString(), *VarName, *OwnerName, *OwnerName), this);
+			if (!FKismetCompilerUtilities::IsMissingMemberPotentiallyLoading(Blueprint, VariableReference.GetMemberParentClass()))
+			{
+				FString const VarName = VariableReference.GetMemberName().ToString();
+
+				FText const WarningFormat = LOCTEXT("VariableNotFound", "Could not find a variable named \"%s\" in '%s'.\nMake sure '%s' has been compiled for @@");
+				MessageLog.Warning(*FString::Printf(*WarningFormat.ToString(), *VarName, *OwnerName, *OwnerName), this);
+			}
 		}
 		else
 		{

@@ -1,11 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // ReimportTextureFactory
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EditorReimportHandler.h"
+#include "Factories/TextureFactory.h"
 #include "ReimportTextureFactory.generated.h"
+
+class UTexture2D;
+class UTextureCube;
 
 UCLASS(hidecategories=(LightMap, DitherMipMaps, LODGroup), collapsecategories)
 class UReimportTextureFactory : public UTextureFactory, public FReimportHandler

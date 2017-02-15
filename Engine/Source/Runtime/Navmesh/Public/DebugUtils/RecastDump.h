@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -21,6 +21,10 @@
 
 #ifndef RECAST_DUMP_H
 #define RECAST_DUMP_H
+
+#include "CoreMinimal.h"
+
+class rcContext;
 
 struct duFileIO
 {

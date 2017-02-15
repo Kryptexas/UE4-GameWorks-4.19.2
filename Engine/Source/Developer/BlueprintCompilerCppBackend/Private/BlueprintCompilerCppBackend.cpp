@@ -1,11 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintCompilerCppBackendModulePrivatePCH.h"
 #include "BlueprintCompilerCppBackend.h"
+#include "UObject/UnrealType.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "UObject/Interface.h"
+#include "Engine/LatentActionManager.h"
+#include "Engine/UserDefinedEnum.h"
+#include "K2Node.h"
+#include "K2Node_Event.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_ExecutionSequence.h"
+#include "K2Node_FunctionEntry.h"
+#include "KismetCompilerMisc.h"
+#include "KismetCompiler.h"
 #include "BlueprintCompilerCppBackendUtils.h"
-#include "EdGraphSchema_K2.h"
 #include "Kismet/KismetNodeHelperLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
+#include "UniquePtr.h"
 
 // Generates single "if" scope. Its condition checks context of given term.
 struct FSafeContextScopedEmmitter
@@ -262,7 +273,7 @@ void FBlueprintCompilerCppBackend::EmitAddMulticastDelegateStatement(FEmitterLoc
 	const FString Delegate = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::UnspecifiedOrReference, false);
 	const FString DelegateToAdd = TermToText(EmitterContext, Statement.RHS[0], ENativizedTermUsage::Getter);
 
-	EmitterContext.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *Delegate, *DelegateToAdd));
+	EmitterContext.AddLine(FString::Printf(TEXT("%s.AddUnique(%s);"), *Delegate, *DelegateToAdd));
 }
 
 void FBlueprintCompilerCppBackend::EmitRemoveMulticastDelegateStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
@@ -313,6 +324,36 @@ void FBlueprintCompilerCppBackend::EmitCreateArrayStatement(FEmitterLocalContext
 	}
 }
 
+void FBlueprintCompilerCppBackend::EmitCreateSetStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+{
+	FBPTerminal* SetTerm = Statement.LHS;
+	const FString Set = TermToText(EmitterContext, SetTerm, ENativizedTermUsage::UnspecifiedOrReference);
+
+	EmitterContext.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *Set, Statement.RHS.Num()));
+
+	for (int32 i = 0; i < Statement.RHS.Num(); ++i)
+	{
+		FBPTerminal* CurrentTerminal = Statement.RHS[i];
+		EmitterContext.AddLine(FString::Printf(TEXT("%s.Add( %s );"), *Set, i, *TermToText(EmitterContext, CurrentTerminal, ENativizedTermUsage::Getter)));
+	}
+}
+
+void FBlueprintCompilerCppBackend::EmitCreateMapStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+{
+	FBPTerminal* MapTerm = Statement.LHS;
+	const FString Map = TermToText(EmitterContext, MapTerm, ENativizedTermUsage::UnspecifiedOrReference);
+
+	EmitterContext.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *Map, Statement.RHS.Num()));
+
+	for (int32 i = 0; i < Statement.RHS.Num(); ++i)
+	{
+		FBPTerminal* KeyTerminal = Statement.RHS[i];
+		FBPTerminal* ValueTerminal = Statement.RHS[i];
+		EmitterContext.AddLine(FString::Printf(TEXT("%s.Add( %s, %s );"), *Map, i, *TermToText(EmitterContext, KeyTerminal, ENativizedTermUsage::Getter), *TermToText(EmitterContext, ValueTerminal, ENativizedTermUsage::Getter)));
+	}
+}
+
+
 void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	if (Statement.Type == KCST_ComputedGoto)
@@ -322,7 +363,7 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 			FString NextStateExpression;
 			NextStateExpression = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::Getter);
 
-			EmitterContext.AddLine(FString::Printf(TEXT("CurrentState = %s;"), *NextStateExpression));
+			EmitterContext.AddLine(FString::Printf(TEXT("__CurrentState = %s;"), *NextStateExpression));
 			EmitterContext.AddLine(FString::Printf(TEXT("break;\n")));
 		}
 	}
@@ -338,11 +379,11 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 		{
 			if (bUseFlowStack)
 			{
-				EmitterContext.AddLine(TEXT("CurrentState = (StateStack.Num() > 0) ? StateStack.Pop(/*bAllowShrinking=*/ false) : -1;"));
+				EmitterContext.AddLine(TEXT("__CurrentState = (__StateStack.Num() > 0) ? __StateStack.Pop(/*bAllowShrinking=*/ false) : -1;"));
 			}
 			else if (bUseGotoState)
 			{
-				EmitterContext.AddLine(TEXT("CurrentState = -1;"));
+				EmitterContext.AddLine(TEXT("__CurrentState = -1;"));
 			}
 			else
 			{
@@ -354,7 +395,7 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 		{
 			if (bUseGotoState)
 			{
-				EmitterContext.AddLine(TEXT("CurrentState = -1;"));
+				EmitterContext.AddLine(TEXT("__CurrentState = -1;"));
 			}
 			else
 			{
@@ -365,7 +406,7 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 		else
 		{
 			ensureMsgf(bUseGotoState, TEXT("KCST_GotoIfNot requires bUseGotoState == true class: %s"), *GetPathNameSafe(EmitterContext.GetCurrentlyGeneratedClass()));
-			EmitterContext.AddLine(FString::Printf(TEXT("CurrentState = %d;"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
+			EmitterContext.AddLine(FString::Printf(TEXT("__CurrentState = %d;"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
 		}
 
 		if (bUseGotoState)
@@ -379,7 +420,7 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 	{
 		if (bUseGotoState)
 		{
-			EmitterContext.AddLine(TEXT("CurrentState = -1;"));
+			EmitterContext.AddLine(TEXT("__CurrentState = -1;"));
 			EmitterContext.AddLine(FString::Printf(TEXT("break;")));
 		}
 		else
@@ -391,7 +432,7 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 	{
 		if (bUseGotoState)
 		{
-			EmitterContext.AddLine(FString::Printf(TEXT("CurrentState = %d;"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
+			EmitterContext.AddLine(FString::Printf(TEXT("__CurrentState = %d;"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
 			EmitterContext.AddLine(FString::Printf(TEXT("break;")));
 		}
 		else
@@ -408,19 +449,19 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 void FBlueprintCompilerCppBackend::EmitPushStateStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	ensure(bUseFlowStack);
-	EmitterContext.AddLine(FString::Printf(TEXT("StateStack.Push(%d);"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
+	EmitterContext.AddLine(FString::Printf(TEXT("__StateStack.Push(%d);"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
 }
 
 void FBlueprintCompilerCppBackend::EmitEndOfThreadStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext)
 {
 	if (bUseFlowStack)
 	{
-		EmitterContext.AddLine(TEXT("CurrentState = (StateStack.Num() > 0) ? StateStack.Pop(/*bAllowShrinking=*/ false) : -1;"));
+		EmitterContext.AddLine(TEXT("__CurrentState = (__StateStack.Num() > 0) ? __StateStack.Pop(/*bAllowShrinking=*/ false) : -1;"));
 		EmitterContext.AddLine(TEXT("break;"));
 	}
 	else if (bUseGotoState)
 	{
-		EmitterContext.AddLine(TEXT("CurrentState = -1;"));
+		EmitterContext.AddLine(TEXT("__CurrentState = -1;"));
 		EmitterContext.AddLine(TEXT("break;"));
 	}
 	else
@@ -444,10 +485,10 @@ FString FBlueprintCompilerCppBackend::EmitSwitchValueStatmentInner(FEmitterLocal
 		| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
 
 	check(IndexTerm && IndexTerm->AssociatedVarProperty);
-	const FString IndexDeclaration = EmitterContext.ExportCppDeclaration(IndexTerm->AssociatedVarProperty, EExportedDeclaration::Local, CppTemplateTypeFlags, true);
+	const FString IndexDeclaration = EmitterContext.ExportCppDeclaration(IndexTerm->AssociatedVarProperty, EExportedDeclaration::Local, CppTemplateTypeFlags, FEmitterLocalContext::EPropertyNameInDeclaration::Skip);
 
 	check(DefaultValueTerm && DefaultValueTerm->AssociatedVarProperty);
-	const FString ValueDeclaration = EmitterContext.ExportCppDeclaration(DefaultValueTerm->AssociatedVarProperty, EExportedDeclaration::Local, CppTemplateTypeFlags, true);
+	const FString ValueDeclaration = EmitterContext.ExportCppDeclaration(DefaultValueTerm->AssociatedVarProperty, EExportedDeclaration::Local, CppTemplateTypeFlags, FEmitterLocalContext::EPropertyNameInDeclaration::Skip);
 
 	FString Result = FString::Printf(TEXT("TSwitchValue<%s, %s>(%s, %s, %d")
 		, *IndexDeclaration
@@ -692,16 +733,40 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 		return TEXT("/*This function cannot be called from BP. See bIsValidFunction in UObject::CallFunction*/");
 	}
 
+	if (Statement.FunctionToCall->HasAllFunctionFlags(FUNC_Native))
+	{
+		// Cloned logic from: FScriptBytecodeWriter::EmitFunctionCall
+		// Array output parameters are cleared, in case the native function doesn't clear them before filling.
+		int32 NumParams = 0;
+		for (TFieldIterator<UProperty> PropIt(Statement.FunctionToCall); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
+		{
+			UProperty* Param = *PropIt;
+			if (ensure(Param) && !Param->HasAnyPropertyFlags(CPF_ReturnParm))
+			{
+				const bool bShouldParameterBeCleared = Param->IsA<UArrayProperty>()
+					&& Param->HasAllPropertyFlags(CPF_Parm | CPF_OutParm)
+					&& !Param->HasAnyPropertyFlags(CPF_ReferenceParm | CPF_ConstParm | CPF_ReturnParm);
+				if (bShouldParameterBeCleared)
+				{
+					FBPTerminal* Term = Statement.RHS[NumParams];
+					const FString TermStr = ensure(Term != nullptr) ? TermToText(EmitterContext, Term, ENativizedTermUsage::UnspecifiedOrReference) : FString();
+					EmitterContext.AddLine(FString::Printf(TEXT("(%s).Reset();"), *TermStr));
+				}
+				NumParams++;
+			}
+		}
+	}
+
 	FString Result;
 	FString CloseCast;
-	TAutoPtr<FSetterExpressionBuilder> SetterExpression;
+	TUniquePtr<FSetterExpressionBuilder> SetterExpression;
 	if (!bInline)
 	{
 		// Handle the return value of the function being called
 		UProperty* FuncToCallReturnProperty = Statement.FunctionToCall->GetReturnProperty();
 		if (FuncToCallReturnProperty && ensure(Statement.LHS))
 		{
-			SetterExpression = new FSetterExpressionBuilder(*this, EmitterContext, Statement.LHS);
+			SetterExpression = MakeUnique<FSetterExpressionBuilder>(*this, EmitterContext, Statement.LHS);
 			Result += SetterExpression->BuildStart();
 
 			FString BeginCast;
@@ -716,103 +781,78 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 		}
 	}
 
-	auto HandleSpeciallyNativizedFunction = [&]() -> bool
+	FNativizationSummaryHelper::FunctionUsed(CurrentClass, Statement.FunctionToCall);
+
+	// Emit object to call the method on
+	if (bInterfaceCallExecute)
 	{
-		const UFunction* const EnumeratorUserFriendlyName = UKismetNodeHelperLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetNodeHelperLibrary, GetEnumeratorUserFriendlyName));
-		if (EnumeratorUserFriendlyName == Statement.FunctionToCall)
-		{
-			const FBPTerminal* const EnumTerminal = Statement.RHS.IsValidIndex(0) ? Statement.RHS[0] : nullptr;
-			// We need the special path only for converted enums. All UUserDefinedEnum are converted.
-			const UUserDefinedEnum* const Enum = EnumTerminal ? Cast<UUserDefinedEnum>(EnumTerminal->ObjectLiteral) : nullptr;
-			const FBPTerminal* const ValueTerminal = Statement.RHS.IsValidIndex(1) ? Statement.RHS[1] : nullptr;
-			if (Enum && ValueTerminal)
-			{
-				const FString Value = TermToText(EmitterContext, ValueTerminal, ENativizedTermUsage::Getter);
-				const FString EnumName = FEmitHelper::GetCppName(Enum);
-				Result += FString::Printf(TEXT("%s__GetUserFriendlyName(EnumToByte<%s>(TEnumAsByte<%s>(%s)))"), *EnumName, *EnumName, *EnumName, *Value);
-				return true;
-			}
-		}
-		return false;
-	};
-
-	const bool bIsSpecialCase = HandleSpeciallyNativizedFunction();
-	if (!bIsSpecialCase)
-	{
-		FNativizationSummaryHelper::FunctionUsed(CurrentClass, Statement.FunctionToCall);
-
-		// Emit object to call the method on
-		if (bInterfaceCallExecute)
-		{
-			auto ContextInterfaceClass = CastChecked<UClass>(Statement.FunctionContext->Type.PinSubCategoryObject.Get());
-			ensure(ContextInterfaceClass->IsChildOf<UInterface>());
-			Result += FString::Printf(TEXT("%s::Execute_%s(%s.GetObject() ")
-				, *FEmitHelper::GetCppName(ContextInterfaceClass)
-				, *FunctionToCallOriginalName
-				, *TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false));
-		}
-		else
-		{
-			auto FunctionOwner = Statement.FunctionToCall->GetOwnerClass();
-			auto OwnerBPGC = Cast<UBlueprintGeneratedClass>(FunctionOwner);
-			const bool bUnconvertedClass = OwnerBPGC && !EmitterContext.Dependencies.WillClassBeConverted(OwnerBPGC);
-			const bool bIsCustomThunk = bStaticCall && ( Statement.FunctionToCall->GetBoolMetaData(TEXT("CustomThunk"))
-				|| Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam"))
-				|| Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm")) );
-			if (bUnconvertedClass)
-			{
-				ensure(!Statement.bIsParentContext); //unsupported yet
-				ensure(!bStaticCall); //unsupported yet
-				ensure(bCallOnDifferentObject); //unexpected
-				const FString WrapperName = FString::Printf(TEXT("FUnconvertedWrapper__%s"), *FEmitHelper::GetCppName(OwnerBPGC));
-				const FString CalledObject = bCallOnDifferentObject ? TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::UnspecifiedOrReference, false) : TEXT("this");
-				Result += FString::Printf(TEXT("%s(%s)."), *WrapperName, *CalledObject);
-			}
-			else if (bStaticCall)
-			{
-				auto OwnerClass = Statement.FunctionToCall->GetOuterUClass();
-				Result += bIsCustomThunk ? TEXT("FCustomThunkTemplates::") : FString::Printf(TEXT("%s::"), *FEmitHelper::GetCppName(OwnerClass));
-			}
-			else if (bCallOnDifferentObject) //@TODO: Badness, could be a self reference wired to another instance!
-			{
-				Result += FString::Printf(TEXT("%s->"), *TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false));
-			}
-
-			if (Statement.bIsParentContext)
-			{
-				Result += TEXT("Super::");
-			}
-			else if (!bUnconvertedClass && !bStaticCall && FunctionOwner && !OwnerBPGC && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Final))
-			{
-				Result += FString::Printf(TEXT("%s::"), *FEmitHelper::GetCppName(FunctionOwner));
-			}
-			Result += FunctionToCallOriginalName;
-
-			if (bIsCustomThunk)
-			{
-				Result += CustomThunkFunctionPostfix(Statement);
-			}
-
-			if (Statement.bIsParentContext && bNativeEvent)
-			{
-				ensure(!bCallOnDifferentObject);
-				Result += TEXT("_Implementation");
-			}
-
-			// Emit method parameter list
-			Result += TEXT("(");
-		}
-		const FString ParameterList = EmitMethodInputParameterList(EmitterContext, Statement);
-		if (bInterfaceCallExecute && !ParameterList.IsEmpty())
-		{
-			Result += TEXT(", ");
-		}
-		Result += ParameterList;
-		Result += TEXT(")");
+		auto ContextInterfaceClass = CastChecked<UClass>(Statement.FunctionContext->Type.PinSubCategoryObject.Get());
+		ensure(ContextInterfaceClass->IsChildOf<UInterface>());
+		Result += FString::Printf(TEXT("%s::Execute_%s(%s.GetObject() ")
+			, *FEmitHelper::GetCppName(ContextInterfaceClass)
+			, *FunctionToCallOriginalName
+			, *TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false));
 	}
+	else
+	{
+		auto FunctionOwner = Statement.FunctionToCall->GetOwnerClass();
+		auto OwnerBPGC = Cast<UBlueprintGeneratedClass>(FunctionOwner);
+		const bool bUnconvertedClass = OwnerBPGC && !EmitterContext.Dependencies.WillClassBeConverted(OwnerBPGC);
+		const bool bIsCustomThunk = bStaticCall && ( Statement.FunctionToCall->GetBoolMetaData(TEXT("CustomThunk"))
+			|| Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam"))
+			|| Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm")) );
+		if (bUnconvertedClass)
+		{
+			ensure(!Statement.bIsParentContext); //unsupported yet
+			ensure(bCallOnDifferentObject); //unexpected
+			const FString WrapperName = FString::Printf(TEXT("FUnconvertedWrapper__%s"), *FEmitHelper::GetCppName(OwnerBPGC));
+			const FString CalledObject = bCallOnDifferentObject ? TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::UnspecifiedOrReference, false) : TEXT("this");
+			Result += FString::Printf(TEXT("%s(%s)."), *WrapperName, *CalledObject);
+		}
+		else if (bStaticCall)
+		{
+			auto OwnerClass = Statement.FunctionToCall->GetOuterUClass();
+			Result += bIsCustomThunk ? TEXT("FCustomThunkTemplates::") : FString::Printf(TEXT("%s::"), *FEmitHelper::GetCppName(OwnerClass));
+		}
+		else if (bCallOnDifferentObject) //@TODO: Badness, could be a self reference wired to another instance!
+		{
+			Result += FString::Printf(TEXT("%s->"), *TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false));
+		}
+
+		if (Statement.bIsParentContext)
+		{
+			Result += TEXT("Super::");
+		}
+		else if (!bUnconvertedClass && !bStaticCall && FunctionOwner && !OwnerBPGC && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Final))
+		{
+			Result += FString::Printf(TEXT("%s::"), *FEmitHelper::GetCppName(FunctionOwner));
+		}
+		Result += FunctionToCallOriginalName;
+
+		if (bIsCustomThunk)
+		{
+			Result += CustomThunkFunctionPostfix(Statement);
+		}
+
+		if (Statement.bIsParentContext && bNativeEvent)
+		{
+			ensure(!bCallOnDifferentObject);
+			Result += TEXT("_Implementation");
+		}
+
+		// Emit method parameter list
+		Result += TEXT("(");
+	}
+	const FString ParameterList = EmitMethodInputParameterList(EmitterContext, Statement);
+	if (bInterfaceCallExecute && !ParameterList.IsEmpty())
+	{
+		Result += TEXT(", ");
+	}
+	Result += ParameterList;
+	Result += TEXT(")");
 
 	Result += CloseCast;
-	if (SetterExpression.IsValid())
+	if (SetterExpression)
 	{
 		Result += SetterExpression->BuildEnd(false);
 	}
@@ -878,10 +918,10 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 			const FString DefaultValueVariable = EmitterContext.GenerateUniqueLocalName();
 			const uint32 PropertyExportFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst;
 			const FString CppType = Term->AssociatedVarProperty
-				? EmitterContext.ExportCppDeclaration(Term->AssociatedVarProperty, EExportedDeclaration::Local, PropertyExportFlags, true)
+				? EmitterContext.ExportCppDeclaration(Term->AssociatedVarProperty, EExportedDeclaration::Local, PropertyExportFlags, FEmitterLocalContext::EPropertyNameInDeclaration::Skip)
 				: FEmitHelper::PinTypeToNativeType(Term->Type);
 
-			const FString DefaultValueConstructor = (!Term->Type.bIsArray)
+			const FString DefaultValueConstructor = (!Term->Type.IsContainer())
 				? FEmitHelper::LiteralTerm(EmitterContext, Term->Type, FString(), nullptr, &FText::GetEmpty())
 				: FString::Printf(TEXT("%s{}"), *CppType);
 
@@ -1005,29 +1045,21 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 		}
 
 		const bool bNativeConstTemplateArg = Term->AssociatedVarProperty && Term->AssociatedVarProperty->HasMetaData(FName(TEXT("NativeConstTemplateArg")));
-		if ((bNativeConst || bNativeConstTemplateArg) && bIsAccessible && bGetter)
+		if (Term->Type.bIsArray && bNativeConstTemplateArg && bIsAccessible && bGetter)
 		{
-			if (Term->Type.bIsArray && bNativeConstTemplateArg)
-			{
-				FEdGraphPinType InnerType = Term->Type;
-				InnerType.bIsArray = false;
-				InnerType.bIsConst = false;
-				const FString CppType = FEmitHelper::PinTypeToNativeType(InnerType);
-				ResultPath = FString::Printf(TEXT("TArrayCaster<const %s>(%s).Get<%s>()"), *CppType, *ResultPath, *CppType);
-			}
-			else
-			{
-				const FString CppType = FEmitHelper::PinTypeToNativeType(Term->Type);
-				ResultPath = FString::Printf(TEXT("const_cast<%s>(%s)"), *CppType, *ResultPath);
-			}
+			FEdGraphPinType InnerType = Term->Type;
+			InnerType.bIsArray = false;
+			InnerType.bIsConst = false;
+			const FString CppType = FEmitHelper::PinTypeToNativeType(InnerType);
+			ResultPath = FString::Printf(TEXT("TArrayCaster<const %s>(%s).Get<%s>()"), *CppType, *ResultPath, *CppType);
+		}
+		else if ((bNativeConst || bNativeConstTemplateArg) && bIsAccessible && bGetter) //Why only getters?
+		{
+			const FString CppType = FEmitHelper::PinTypeToNativeType(Term->Type);
+			ResultPath = FString::Printf(TEXT("const_cast<%s>(%s)"), *CppType, *ResultPath);
 		}
 
-		FString Conditions;
-		if (bUseSafeContext)
-		{
-			Conditions = FSafeContextScopedEmmitter::ValidationChain(EmitterContext, Term->Context, *this);
-		}
-
+		const FString Conditions = bUseSafeContext ? FSafeContextScopedEmmitter::ValidationChain(EmitterContext, Term->Context, *this) : FString();
 		if (!Conditions.IsEmpty())
 		{
 			const FString DefaultValueVariable = GenerateDefaultLocalVariable(Term);
@@ -1119,11 +1151,11 @@ bool FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionCo
 	{
 		if (bUseFlowStack)
 		{
-			EmitterContext.AddLine(TEXT("TArray< int32, TInlineAllocator<8> > StateStack;\n"));
+			EmitterContext.AddLine(TEXT("TArray< int32, TInlineAllocator<8> > __StateStack;\n"));
 		}
 		if (FunctionContext.bIsUbergraph)
 		{
-			EmitterContext.AddLine(TEXT("int32 CurrentState = bpp__EntryPoint__pf;"));
+			EmitterContext.AddLine(TEXT("int32 __CurrentState = bpp__EntryPoint__pf;"));
 		}
 		else
 		{
@@ -1135,12 +1167,12 @@ bool FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionCo
 				FirstStatement = (FirstStatementList && FirstStatementList->Num()) ? (*FirstStatementList)[0] : nullptr;
 			}
 			const int32 FirstIndex = FirstStatement ? StatementToStateIndex(FunctionContext, FirstStatement) : 0;
-			EmitterContext.AddLine(FString::Printf(TEXT("int32 CurrentState = %d;"), FirstIndex));
+			EmitterContext.AddLine(FString::Printf(TEXT("int32 __CurrentState = %d;"), FirstIndex));
 		}
 		EmitterContext.AddLine(TEXT("do"));
 		EmitterContext.AddLine(TEXT("{"));
 		EmitterContext.IncreaseIndent();
-		EmitterContext.AddLine(TEXT("switch( CurrentState )"));
+		EmitterContext.AddLine(TEXT("switch( __CurrentState )"));
 		EmitterContext.AddLine(TEXT("{"));
 	}
 	else if (FunctionContext.bIsUbergraph)
@@ -1172,90 +1204,140 @@ bool FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionCo
 		EmitterContext.DecreaseIndent();
 		EmitterContext.AddLine(TEXT("}"));
 		EmitterContext.DecreaseIndent();
-		EmitterContext.AddLine(TEXT("} while( CurrentState != -1 );"));
+		EmitterContext.AddLine(TEXT("} while( __CurrentState != -1 );"));
 	}
 
 	return bIsNotReducible;
 }
 
 bool FBlueprintCompilerCppBackend::SortNodesInUberGraphExecutionGroup(FKismetFunctionContext &FunctionContext, UEdGraphNode* TheOnlyEntryPoint, int32 ExecutionGroup, TArray<UEdGraphNode*> &LocalLinearExecutionList)
-{
-	bool bFoundComputedGoto = false;
+{	
 	ensure(FunctionContext.LinearExecutionList.Contains(TheOnlyEntryPoint));
-	TArray<UEdGraphNode*> RemainLinearExecutionList;
-	for (UEdGraphNode* NodeIt : FunctionContext.LinearExecutionList)
+
+	TArray<int32> ExecutionIndiceQueue;
+	int32 EntryIndiceIndex = INDEX_NONE;
+	for (int32 NodeIndex = 0; NodeIndex < FunctionContext.LinearExecutionList.Num(); ++NodeIndex)
 	{
-		if (FunctionContext.UnsortedSeparateExecutionGroups[ExecutionGroup].Contains(NodeIt))
+		UEdGraphNode* Node = FunctionContext.LinearExecutionList[NodeIndex];
+		if (FunctionContext.UnsortedSeparateExecutionGroups[ExecutionGroup].Contains(Node))
 		{
-			RemainLinearExecutionList.Push(NodeIt);
+			if (Node == TheOnlyEntryPoint)
+			{
+				EntryIndiceIndex = ExecutionIndiceQueue.Num();
+			}
+			ExecutionIndiceQueue.Add(NodeIndex);
 		}
 	}
-	UEdGraphNode* NextNode = TheOnlyEntryPoint;
-	while (RemainLinearExecutionList.Num())
+
+	bool bFoundComputedGoto = false;
+	bool bDetectedCyclicalLogic = false;
+	for (int32 IndiceIndex = EntryIndiceIndex; IndiceIndex >= 0 && IndiceIndex < ExecutionIndiceQueue.Num() && !bDetectedCyclicalLogic; )
 	{
-		UEdGraphNode* CurrentNode = NextNode;
-		NextNode = nullptr;
-		int32 IndexOfCurrentNodeInRemainList = RemainLinearExecutionList.IndexOfByKey(CurrentNode);
-		ensure(IndexOfCurrentNodeInRemainList != INDEX_NONE);
-		RemainLinearExecutionList.RemoveAt(IndexOfCurrentNodeInRemainList, 1, false);
+		int32 NodeIndex = ExecutionIndiceQueue[IndiceIndex];
+		// pop this from the execution queue (so we can detect if a separate statement requires a loop, jumping back to this one)
+		ExecutionIndiceQueue.RemoveAt(IndiceIndex, /*Count =*/1, /*bAllowShrinking =*/false);
+
+		UEdGraphNode* CurrentNode = FunctionContext.LinearExecutionList[NodeIndex];
+		// here we're defining the (possibly new) execution order
 		LocalLinearExecutionList.Push(CurrentNode);
+
+		int32 NextIndiceIndex = INDEX_NONE;
+		bool  bReturnExpected = false;
+
 		TArray<FBlueprintCompiledStatement*>* StatementList = FunctionContext.StatementsPerNode.Find(CurrentNode);
 		if (StatementList)
 		{
-			for (int32 StatementIndex = 0; StatementIndex < StatementList->Num(); ++StatementIndex)
+			for (int32 StatementIndex = 0; StatementIndex < StatementList->Num() && !bDetectedCyclicalLogic; ++StatementIndex)
 			{
 				FBlueprintCompiledStatement& Statement = *((*StatementList)[StatementIndex]);
-				if (Statement.Type == KCST_ComputedGoto)
+				switch (Statement.Type)
 				{
-					ensure(!bFoundComputedGoto);
-					bFoundComputedGoto = true;
-					ensure(CurrentNode == TheOnlyEntryPoint);
-				}
-				if (Statement.Type == KCST_UnconditionalGoto)
-				{
-					ensure(StatementIndex == (StatementList->Num() - 1)); // it should be the last statement generated from the node
-					ensure(Statement.TargetLabel);
-					auto FindNodeFormStatement = [&](FBlueprintCompiledStatement* InStatement, TArray<UEdGraphNode*> InNodes)->UEdGraphNode*
+				case KCST_ComputedGoto:
 					{
-						UEdGraphNode* FoundNode = nullptr;
-						for (UEdGraphNode* ItNode : InNodes)
+						// sanity checking, that is all
+						ensure(!bFoundComputedGoto);
+						bFoundComputedGoto = true;
+						ensure(CurrentNode == TheOnlyEntryPoint);
+					}
+					break;
+
+				case KCST_UnconditionalGoto:
+					{
+						ensure(StatementIndex == (StatementList->Num() - 1)); // it should be the last statement generated from the node
+						ensure(Statement.TargetLabel);
+
+						int32 TargetIndiceIndex = 0;
+						for ( ; TargetIndiceIndex < ExecutionIndiceQueue.Num(); ++TargetIndiceIndex)
 						{
-							TArray<FBlueprintCompiledStatement*>* LocStatementList = FunctionContext.StatementsPerNode.Find(ItNode);
-							if (LocStatementList && LocStatementList->Contains(InStatement))
+							int32 TargetNodeIndex = ExecutionIndiceQueue[TargetIndiceIndex];
+							UEdGraphNode* RemainingNode = FunctionContext.LinearExecutionList[TargetNodeIndex];
+							
+							TArray<FBlueprintCompiledStatement*>* TargetStatementList = FunctionContext.StatementsPerNode.Find(RemainingNode);
+							// check and see if the statement we're supposed to jump to is contained within this node
+							if (TargetStatementList && TargetStatementList->Contains(Statement.TargetLabel))
 							{
-								return ItNode;
+								break;
 							}
 						}
-						return nullptr;
-					};
-					NextNode = FindNodeFormStatement(Statement.TargetLabel, RemainLinearExecutionList);
-					if (!NextNode)
-					{
-						UE_LOG(LogK2Compiler, Log
-							, TEXT("Unexpected UnconditionalGoto (probably a cycle) in %s execution group %d, node: %s (%s)")
-							, *GetPathNameSafe(FunctionContext.Function)
-							, ExecutionGroup
-							, *GetPathNameSafe(CurrentNode)
-							, *CurrentNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString());
-						return false;
+						NextIndiceIndex = TargetIndiceIndex;
+
+						// if we couldn't find the target node (it was likely already processed - implying cyclical logic)
+						if (TargetIndiceIndex >= ExecutionIndiceQueue.Num())
+						{
+							bDetectedCyclicalLogic = true;
+						}
 					}
-				}
+					break;
+
+				case KCST_GotoReturn: // what about KCST_EndOfThread?
+					{
+						ensure(StatementIndex == (StatementList->Num() - 1)); // it should be the last statement generated from the node
+						bReturnExpected = true;
+					}
+					break;
+
+				default:
+					break;
+				};
 			}
 		}
-		if (!NextNode && RemainLinearExecutionList.Num())
+
+		// if there was no goto statement, then we expect the statement to fall through to the next
+		if (NextIndiceIndex == INDEX_NONE)
 		{
-			if (IndexOfCurrentNodeInRemainList >= RemainLinearExecutionList.Num())
+			// the index remains the same, because we popped the current one out of the queue
+			NextIndiceIndex = IndiceIndex;
+			if (NextIndiceIndex >= ExecutionIndiceQueue.Num())
 			{
-				UE_LOG(LogK2Compiler, Log
-					, TEXT("SortNodesInUberGraphExecutionGroup: changed the nodes sequence in %s execution group %d")
-					, *GetPathNameSafe(FunctionContext.Function)
-					, ExecutionGroup);
-				IndexOfCurrentNodeInRemainList = 0;
+				NextIndiceIndex = 0;
 			}
-			NextNode = RemainLinearExecutionList[IndexOfCurrentNodeInRemainList];
+
+			if (ExecutionIndiceQueue.Num() == 0 && !bReturnExpected)
+			{
+				// we've popped a node out of the queue that we were supposed to 
+				// fall through to (implying cyclical logic)
+				bDetectedCyclicalLogic = true;
+			}
+			// since we're falling through to the next node, we expect that node 
+			// to be what was directly next in the source LinearExecutionList, 
+			// if not, we can assume something pulled it out of order (implying cyclical logic)
+			else if (ExecutionIndiceQueue.Num() > 0 && ExecutionIndiceQueue[NextIndiceIndex] != NodeIndex+1)
+			{
+				bDetectedCyclicalLogic = true;
+			}
 		}
+		IndiceIndex = NextIndiceIndex;
 	}
-	return true;
+
+	// we didn't get through the entire execution queue, meaning we likely found 
+	// a cycle that we couldn't resolve (an UnconditionalGoto that looped back
+	// on a node we already processed)
+	if (ExecutionIndiceQueue.Num() > 0)
+	{
+		bDetectedCyclicalLogic = true;
+	}
+	// if we detected cyclical logic, then we cannot compose a sorted/linear execution list
+	return !bDetectedCyclicalLogic;
 }
 
 void FBlueprintCompilerCppBackend::EmitStatement(FBlueprintCompiledStatement &Statement, FEmitterLocalContext &EmitterContext, FKismetFunctionContext& FunctionContext)
@@ -1335,6 +1417,12 @@ void FBlueprintCompilerCppBackend::EmitStatement(FBlueprintCompiledStatement &St
 	case KCST_GotoReturn:
 	case KCST_GotoReturnIfNot:
 		EmitGotoStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_CreateSet:
+		EmitCreateSetStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_CreateMap:
+		EmitCreateMapStatement(EmitterContext, FunctionContext, Statement);
 		break;
 	case KCST_SwitchValue:
 		// Switch Value should be always an "inline" statement, so there is no point to handle it here

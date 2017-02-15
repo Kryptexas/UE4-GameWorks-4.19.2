@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MacClientTargetPlatformModule.cpp: Implements the FMacClientTargetPlatformModule class.
 =============================================================================*/
 
-#include "MacClientTargetPlatformPrivatePCH.h"
-
+#include "CoreMinimal.h"
+#include "GenericMacTargetPlatform.h"
+#include "Interfaces/ITargetPlatformModule.h"
+#include "Modules/ModuleManager.h"
 
 /**
  * Holds the target platform singleton.

@@ -1,16 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UEditorBrushBuilder.cpp: UnrealEd brush builder.
 =============================================================================*/
 
-#include "UnrealEd.h"
-#include "ScopedTransaction.h"
+#include "Builders/EditorBrushBuilder.h"
+#include "EditorStyleSet.h"
+#include "GameFramework/Actor.h"
+#include "Builders/ConeBuilder.h"
+#include "Builders/CubeBuilder.h"
+#include "Builders/CurvedStairBuilder.h"
+#include "Builders/CylinderBuilder.h"
+#include "Builders/LinearStairBuilder.h"
+#include "Builders/SheetBuilder.h"
+#include "Builders/SpiralStairBuilder.h"
+#include "Builders/TetrahedronBuilder.h"
+#include "Builders/VolumetricBuilder.h"
+#include "Engine/Brush.h"
+#include "Engine/Polys.h"
+#include "Editor.h"
 #include "BSPOps.h"
 #include "SnappingUtils.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "Engine/Polys.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "BrushBuilder"

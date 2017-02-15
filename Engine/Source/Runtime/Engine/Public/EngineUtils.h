@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Engine.h: Unreal engine public header file.
@@ -6,13 +6,22 @@
 
 #pragma once
 
-#include "Engine/Brush.h"
-#include "Engine/Level.h"
-#include "GameFramework/WorldSettings.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
 #include "HitProxies.h"
-#include "Misc/Optional.h"
+#include "Engine/World.h"
+#include "UObject/UObjectHash.h"
+#include "ProfilingDebugging/ProfilingHelpers.h"
+#include "GameFramework/WorldSettings.h"
 
-class FActorRange;
+class FCanvas;
+class FViewport;
+class UCanvas;
+class UConsole;
+class UPrimitiveComponent;
 
 /*-----------------------------------------------------------------------------
 	Hit proxies.
@@ -24,17 +33,20 @@ struct HActor : public HHitProxy
 	DECLARE_HIT_PROXY( ENGINE_API )
 	AActor* Actor;
 	const UPrimitiveComponent* PrimComponent;
+	int32 SectionIndex;
 	int32 MaterialIndex;
 
 	HActor( AActor* InActor, const UPrimitiveComponent* InPrimComponent )
 		: Actor( InActor ) 
 		, PrimComponent( InPrimComponent )
+		, SectionIndex( -1 )
 		, MaterialIndex( -1 )
 		{}
 
-	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, int32 InMaterialIndex)
+	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, int32 InSectionIndex, int32 InMaterialIndex)
 		: Actor( InActor )
 		, PrimComponent( InPrimComponent )
+		, SectionIndex(InSectionIndex)
 		, MaterialIndex( InMaterialIndex )
 		{}
 
@@ -42,13 +54,15 @@ struct HActor : public HHitProxy
 		: HHitProxy( InPriority )
 		, Actor( InActor )
 		, PrimComponent( InPrimComponent )
+		, SectionIndex( -1 )
 		, MaterialIndex( -1 )
 		{}
 
-	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, EHitProxyPriority InPriority, int32 InMaterialIndex)
+	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, EHitProxyPriority InPriority, int32 InSectionIndex, int32 InMaterialIndex)
 		: HHitProxy(InPriority)
 		, Actor(InActor)
 		, PrimComponent(InPrimComponent)
+		, SectionIndex(InSectionIndex)
 		, MaterialIndex(InMaterialIndex)
 		{}
 

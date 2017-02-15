@@ -1,6 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
+#include "SequencerSettings.h"
+#include "KeyParams.h"
+#include "ISequencer.h"
 
 USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
@@ -22,7 +24,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bSnapSectionTimesToSections = true;
 	bSnapPlayTimeToKeys = false;
 	bSnapPlayTimeToInterval = true;
-	bSnapPlayTimeToDraggedKey = false;
+	bSnapPlayTimeToDraggedKey = true;
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
 	bLabelBrowserVisible = false;
@@ -41,6 +43,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bShowViewportTransportControls = true;
 	bLockPlaybackToAudioClock = false;
 	bAllowPossessionOfPIEViewports = false;
+	bEvaluateSubSequencesInIsolation = false;
 }
 
 void USequencerSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -568,6 +571,36 @@ void USequencerSettings::SetAutoSetTrackDefaults(bool bInAutoSetTrackDefaults)
 	{
 		bAutoSetTrackDefaults = bInAutoSetTrackDefaults;
 		SaveConfig();
+	}
+}
+
+bool USequencerSettings::ShouldShowDebugVisualization() const
+{
+	return bShowDebugVisualization;
+}
+
+void USequencerSettings::SetShowDebugVisualization(bool bInShowDebugVisualization)
+{
+	if (bShowDebugVisualization != bInShowDebugVisualization)
+	{
+		bShowDebugVisualization = bInShowDebugVisualization;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::ShouldEvaluateSubSequencesInIsolation() const
+{
+	return bEvaluateSubSequencesInIsolation;
+}
+
+void USequencerSettings::SetEvaluateSubSequencesInIsolation(bool bInEvaluateSubSequencesInIsolation)
+{
+	if (bEvaluateSubSequencesInIsolation != bInEvaluateSubSequencesInIsolation)
+	{
+		bEvaluateSubSequencesInIsolation = bInEvaluateSubSequencesInIsolation;
+		SaveConfig();
+
+		OnEvaluateSubSequencesInIsolationChangedEvent.Broadcast();
 	}
 }
 

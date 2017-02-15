@@ -63,6 +63,18 @@
 	public *;
 }
 
+-keep class com.epicgames.ue4.WebViewControl {
+	public *;
+}
+
+-keep class com.epicgames.ue4.WebViewControl$ViewClient {
+	public *;
+}
+
+-keep class com.epicgames.ue4.WebViewControl$ChromeClient {
+	public *;
+}
+
 # If your project uses WebView with JS, uncomment the following
 # and specify the fully qualified class name to the JavaScript interface
 # class:
@@ -153,6 +165,14 @@
 	*;
 }
 
+-keep class com.android.vending.licensing.** {
+	*;
+}
+
+-keep class com.google.vending.licensing.** {
+	*;
+}
+
 -keep class epicgames.ue4.StoreHelper.** {
 	public *;
 }
@@ -160,3 +180,6 @@
 -keep class epicgames.ue4.GooglePlayStoreHelper.** {
 	public *;
 }
+
+-dontwarn com.google.vr.cardboard.AndroidNCompat
+-dontwarn com.google.vr.cardboard.StoragePermissionUtils

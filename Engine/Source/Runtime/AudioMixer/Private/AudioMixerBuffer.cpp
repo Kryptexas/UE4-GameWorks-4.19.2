@@ -1,11 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioMixerPCH.h"
 #include "AudioMixerBuffer.h"
 #include "AudioMixerDevice.h"
-#include "Engine.h"
-#include "SoundDefinitions.h"
-#include "TargetPlatform.h"
+#include "Interfaces/IAudioFormat.h"
 
 namespace Audio
 {
@@ -26,8 +23,7 @@ namespace Audio
 		{
 			Data = InWave->RawPCMData;
 			DataSize = InWave->RawPCMDataSize;
-// 			InWave->RawPCMData = nullptr;
-// 			InWave->RawPCMDataSize = 0;
+ 			InWave->RawPCMData = nullptr;
 		}
 
 		// Set the base-class NumChannels to wave's NumChannels

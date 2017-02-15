@@ -1,18 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IWebBrowserDialog.h"
+#include "CoreMinimal.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Widgets/SWindow.h"
 
-struct FGeometry;
-struct FKeyEvent;
-struct FCharacterEvent;
-struct FPointerEvent;
-class FReply;
-class FCursorReply;
+class Error;
 class FSlateShaderResource;
+class IWebBrowserDialog;
 class IWebBrowserPopupFeatures;
-
+enum class EWebBrowserDialogEventResponse;
 
 enum class EWebBrowserDocumentState
 {
@@ -168,6 +167,13 @@ public:
 	 * @return FReply::Handled() if the mouse event was handled, FReply::Unhandled() oterwise
 	 */
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) = 0;
+
+	/**
+	 * Notify the browser that a mouse has left the window
+	 *
+	 * @param MouseEvent Information about the input event
+	 */
+	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) = 0;
 
 	/**
 	 * Called when the mouse wheel is spun

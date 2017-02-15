@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
 #include "GroupedKeyArea.h"
-#include "MovieSceneSection.h"
+#include "Widgets/SNullWidget.h"
+#include "EditorStyleSet.h"
+#include "DisplayNodes/SequencerSectionKeyAreaNode.h"
+#include "DisplayNodes/SequencerTrackNode.h"
 
 FIndexKey::FIndexKey(FString InNodePath, UMovieSceneSection* InSection)
 	: NodePath(MoveTemp(InNodePath))
@@ -347,7 +349,7 @@ TArray<FKeyHandle> FGroupedKeyArea::GetUnsortedKeyHandles() const
 	return Array;
 }
 
-void FGroupedKeyArea::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const
+void FGroupedKeyArea::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime)
 {
 	auto* Group = FindGroup(KeyHandle);
 
@@ -361,6 +363,41 @@ float FGroupedKeyArea::GetKeyTime(FKeyHandle KeyHandle) const
 {
 	auto* Group = FindGroup(KeyHandle);
 	return Group ? Group->RepresentativeTime : 0.f;
+}
+
+FKeyHandle FGroupedKeyArea::DilateKey(FKeyHandle KeyHandle, float Scale, float Origin)
+{
+	int32* GroupIndex = nullptr;
+
+	auto* IndexEntry = GlobalIndex.Find(IndexKey);
+	if (IndexEntry)
+	{
+		GroupIndex = IndexEntry->HandleToGroup.Find(KeyHandle);
+	}
+
+	if (!GroupIndex || !Groups.IsValidIndex(*GroupIndex))
+	{
+		return KeyHandle;
+	}
+
+	bool bIsTimeUpdated = false;
+
+	FKeyGrouping& Group = Groups[*GroupIndex];
+
+	// Move all the keys
+	for (auto& Key : Group.Keys)
+	{
+		Key.KeyHandle = KeyAreas[Key.AreaIndex]->DilateKey(Key.KeyHandle, Scale, Origin);
+
+		const float KeyTime = KeyAreas[Key.AreaIndex]->GetKeyTime(Key.KeyHandle);
+		Group.RepresentativeTime = bIsTimeUpdated ? FMath::Min(Group.RepresentativeTime, KeyTime) : KeyTime;
+		bIsTimeUpdated = true;
+	}
+
+	// Update the representative time to the smallest of all the keys (so it will deterministically get the same key handle on regeneration)
+	IndexEntry->RepresentativeTimes[*GroupIndex] = Group.RepresentativeTime;
+
+	return KeyHandle;
 }
 
 FKeyHandle FGroupedKeyArea::MoveKey(FKeyHandle KeyHandle, float DeltaPosition)

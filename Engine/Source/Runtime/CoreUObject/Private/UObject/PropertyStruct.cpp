@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "Archive.h"
-#include "PropertyHelper.h"
-#include "LinkerPlaceholderBase.h" // for FScopedPlaceholderPropertyTracker
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "UObject/PropertyHelper.h"
+#include "UObject/LinkerPlaceholderBase.h"
 
 static inline void PreloadInnerStructMembers(UStructProperty* StructProperty)
 {
@@ -32,14 +35,14 @@ static inline void PreloadInnerStructMembers(UStructProperty* StructProperty)
 -----------------------------------------------------------------------------*/
 
 UStructProperty::UStructProperty(ECppProperty, int32 InOffset, uint64 InFlags, UScriptStruct* InStruct)
-	: UProperty(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
+	: UProperty(FObjectInitializer::Get(), EC_CppProperty, InOffset, InStruct->GetCppStructOps() ? InStruct->GetCppStructOps()->GetComputedPropertyFlags() | InFlags : InFlags)
 	, Struct(InStruct)
 {
 	ElementSize = Struct->PropertiesSize;
 }
 
 UStructProperty::UStructProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UScriptStruct* InStruct )
-	:	UProperty( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
+	:	UProperty( ObjectInitializer, EC_CppProperty, InOffset, InStruct->GetCppStructOps() ? InStruct->GetCppStructOps()->GetComputedPropertyFlags() | InFlags : InFlags )
 	,	Struct( InStruct )
 {
 	ElementSize = Struct->PropertiesSize;
@@ -74,17 +77,14 @@ void UStructProperty::LinkInternal(FArchive& Ar)
 	PreloadInnerStructMembers(this);
 	
 	ElementSize = Align(Struct->PropertiesSize, Struct->GetMinAlignment());
-	if (Struct->StructFlags & STRUCT_IsPlainOldData) // if there is nothing to construct or the struct is known to be memcpy-able, then allow memcpy
+	if(UScriptStruct::ICppStructOps* Ops = Struct->GetCppStructOps())
 	{
-		PropertyFlags |= CPF_IsPlainOldData;
+		PropertyFlags |= Ops->GetComputedPropertyFlags();
 	}
-	if (Struct->StructFlags & STRUCT_NoDestructor)
+	else
 	{
-		PropertyFlags |= CPF_NoDestructor;
-	}
-	if (Struct->StructFlags & STRUCT_ZeroConstructor)
-	{
-		PropertyFlags |= CPF_ZeroConstructor;
+		// User Defined structs won't have UScriptStruct::ICppStructOps. Setting their flags here.
+		PropertyFlags |= CPF_HasGetValueTypeHash;
 	}
 }
 
@@ -100,6 +100,12 @@ bool UStructProperty::UseBinaryOrNativeSerialization(const FArchive& Ar) const
 	const bool bUseBinarySerialization = Struct->UseBinarySerialization(Ar);
 	const bool bUseNativeSerialization = Struct->UseNativeSerialization();
 	return bUseBinarySerialization || bUseNativeSerialization;
+}
+
+uint32 UStructProperty::GetValueTypeHashInternal(const void* Src) const
+{
+	check(Struct);
+	return Struct->GetStructTypeHash(Src);
 }
 
 void UStructProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
@@ -202,7 +208,7 @@ bool UStructProperty::HasNoOpConstructor() const
 
 FString UStructProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CPPExportFlags/*=0*/ ) const
 {
-	return FString::Printf(TEXT("F%s"), *Struct->GetName());
+	return Struct->GetStructCPPName();
 }
 
 FString UStructProperty::GetCPPTypeForwardDeclaration() const
@@ -297,7 +303,7 @@ bool UStructProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uin
 
 	if (Struct)
 	{
-		if ((Struct->StructFlags & STRUCT_SerializeFromMismatchedTag) && (Tag.Type != NAME_StructProperty || (Tag.StructName != Struct->GetFName())) && Struct->StructFlags & STRUCT_SerializeFromMismatchedTag)
+		if ((Struct->StructFlags & STRUCT_SerializeFromMismatchedTag) && (Tag.Type != NAME_StructProperty || (Tag.StructName != Struct->GetFName())))
 		{
 			UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
 			check(CppStructOps && CppStructOps->HasSerializeFromMismatchedTag()); // else should not have STRUCT_SerializeFromMismatchedTag

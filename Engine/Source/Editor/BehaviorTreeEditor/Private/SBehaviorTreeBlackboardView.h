@@ -1,12 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SGraphPalette.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
 #include "EdGraph/EdGraphSchema.h"
 
+class FExtender;
+class FMenuBuilder;
+class FUICommandList;
+class SGraphActionMenu;
 class UBlackboardData;
 struct FBlackboardEntry;
+struct FCreateWidgetForActionData;
 
 /** Delegate executed when an entry is selected */
 DECLARE_DELEGATE_TwoParams( FOnEntrySelected, const FBlackboardEntry*, bool );

@@ -1,7 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
 #include "CustomChildBuilder.h"
+#include "Modules/ModuleManager.h"
 #include "DetailGroup.h"
 #include "PropertyHandleImpl.h"
 #include "DetailPropertyRow.h"
@@ -53,6 +53,11 @@ IDetailPropertyRow& FCustomChildrenBuilder::AddChildProperty( TSharedRef<IProper
 	ChildCustomizations.Add( NewCustomization );
 
 	return *NewCustomization.PropertyRow;
+}
+
+TArray<TSharedPtr<IPropertyHandle>> FCustomChildrenBuilder::AddChildStructure( TSharedRef<FStructOnScope> ChildStructure )
+{
+	return ParentCategory.Pin()->AddExternalProperties(ChildStructure);
 }
 
 class SStandaloneCustomStructValue : public SCompoundWidget, public IPropertyTypeCustomizationUtils
@@ -113,6 +118,11 @@ TSharedRef<SWidget> FCustomChildrenBuilder::GenerateStructValueWidget( TSharedRe
 		// Uncustomized structs have nothing for their value content
 		return SNullWidget::NullWidget;
 	}
+}
+
+IDetailCategoryBuilder& FCustomChildrenBuilder::GetParentCategory()
+{
+	return *ParentCategory.Pin();
 }
 
 FCustomChildrenBuilder& FCustomChildrenBuilder::OverrideResetChildrenToDefault(const FResetToDefaultOverride& ResetToDefault)

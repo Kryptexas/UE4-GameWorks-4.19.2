@@ -1,13 +1,19 @@
-﻿INTSourceChangelist:3106123
-title:HLOD システムを有効にする方法
+﻿INTSourceChangelist:3188567
+title:HLOD System を有効にする
 description:UE4 プロジェクトで HLOD システムを有効にする方法について説明します。
 crumbs:
-availability:docs
+availability:Public
 version:4.13
 related:Engine/HLOD/Overview
 related:Engine/HLOD/Reference
+skilllevel:beginner
+order:1
+parent:Engine/HLOD/HowTo
+type:how-to
+tags:HLOD
+topic-image:Engine/HLOD/HowTo/HLOD_howto_Topic_01.png
 
-**HLOD (Hierarchical Level of Detail System)** は、この機能を使用したい各レベルで有効にしなければなりません。HLOD システムを有効にするには以下の手順に従います。
+**HLOD (Hierarchical Level of Detail System)** は、この機能を使用する各レベルで有効にしなければなりません。HLOD システムを有効にするには以下の手順に従います。
 
 ## ステップ
 

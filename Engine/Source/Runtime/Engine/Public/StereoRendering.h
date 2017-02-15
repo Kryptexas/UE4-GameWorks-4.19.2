@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StereoRendering.h: Abstract stereoscopic rendering interface
@@ -6,7 +6,10 @@
 
 #pragma once
 
-#include "IStereoLayers.h"
+#include "CoreMinimal.h"
+#include "Engine/GameViewportClient.h"
+
+class IStereoLayers;
 
 class IStereoRendering
 {

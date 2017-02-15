@@ -1,10 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "EdGraph/EdGraphNode.h"
+#include "MaterialShared.h"
 #include "Materials/MaterialExpressionMaterialFunctionCall.h"
 
-struct FExpressionInput;
+class IMaterialEditor;
+class UMaterial;
+class UMaterialExpressionComment;
+class UMaterialExpressionFunctionInput;
+class UMaterialFunction;
+class UMaterialInstance;
+class UMaterialInterface;
+struct FGraphActionMenuBuilder;
 
 //////////////////////////////////////////////////////////////////////////
 // FMaterialEditorUtilities
@@ -67,6 +78,14 @@ public:
 	 * @param	Graph	Graph representing a material.
 	 */
 	static void DeleteSelectedNodes(const class UEdGraph* Graph);
+
+	/**
+	 * Delete the specified nodes from the graph.
+	 * @param Graph Graph representing the material.
+	 * @param NodesToDelete Array of nodes to be removed from the graph.
+	*/
+	static void DeleteNodes(const class UEdGraph* Graph, const TArray<UEdGraphNode*>& NodesToDelete);
+
 
 	/**
 	 * Gets the name of the material or material function that we are editing
@@ -161,6 +180,13 @@ public:
 	 * @param	Material	Material we are initializing
 	 */
 	static void InitExpressions(UMaterial* Material);
+
+	/**
+	 * Build the texture streaming data for a given material. Also update the parent hierarchy has only the delta are stored.
+	 *
+	 * @param	MaterialInterface	The material to update.
+	 */
+	static void BuildTextureStreamingData(UMaterialInterface* MaterialInterface);
 
 private:
 

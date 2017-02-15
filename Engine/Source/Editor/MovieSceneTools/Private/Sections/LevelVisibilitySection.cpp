@@ -1,11 +1,16 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "LevelVisibilitySection.h"
-#include "MovieSceneLevelVisibilitySection.h"
+#include "Sections/LevelVisibilitySection.h"
+#include "Sections/MovieSceneLevelVisibilitySection.h"
+#include "Misc/PackageName.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/CoreStyle.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "SequencerSectionPainter.h"
 #include "SDropTarget.h"
-#include "SExpandableArea.h"
-#include "Editor/UnrealEd/Public/DragAndDrop/LevelDragDropOp.h"
+#include "DragAndDrop/LevelDragDropOp.h"
+#include "ScopedTransaction.h"
 
 FLevelVisibilitySection::FLevelVisibilitySection( UMovieSceneLevelVisibilitySection& InSectionObject )
 	: SectionObject( InSectionObject )
@@ -98,6 +103,9 @@ FReply FLevelVisibilitySection::OnDrop( TSharedPtr<FDragDropOperation> DragDropO
 		TSharedPtr<FLevelDragDropOp> LevelDragDropOperation = StaticCastSharedPtr<FLevelDragDropOp>( DragDropOperation );
 		if ( LevelDragDropOperation->StreamingLevelsToDrop.Num() > 0 )
 		{
+			FScopedTransaction Transaction(NSLOCTEXT("LevelVisibilitySection", "TransactionText", "Add Level(s) to Level Visibility Section"));
+			SectionObject.Modify();
+
 			for ( TWeakObjectPtr<ULevelStreaming> Level : LevelDragDropOperation->StreamingLevelsToDrop )
 			{
 				if ( Level.IsValid() )

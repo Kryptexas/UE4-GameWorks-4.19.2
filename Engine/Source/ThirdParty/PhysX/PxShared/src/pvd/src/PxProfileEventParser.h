@@ -148,6 +148,14 @@ namespace physx { namespace profile {
 			return retval;
 		}
 
+		//obsolete, placeholder to skip data from PhysX SDKs < 3.4
+		bool operator()( const CUDAProfileBuffer& )
+		{
+			CUDAProfileBuffer evt;
+			bool retval = parse( evt );
+			return retval;
+		}
+
 		//Unknown event type.
 		bool operator()(uint8_t )
 		{

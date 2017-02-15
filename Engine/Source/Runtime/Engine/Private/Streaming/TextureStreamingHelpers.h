@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 TextureStreamingHelpers.h: Definitions of classes used for texture streaming.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/MemStack.h"
+
+class UTexture2D;
 
 /**
  * Streaming stats
@@ -51,6 +58,9 @@ extern TAutoConsoleVariable<float> CVarStreamingBoost;
 extern TAutoConsoleVariable<int32> CVarStreamingUseFixedPoolSize;
 extern TAutoConsoleVariable<int32> CVarStreamingPoolSize;
 extern TAutoConsoleVariable<int32> CVarStreamingCheckBuildStatus;
+extern TAutoConsoleVariable<int32> CVarStreamingUseMaterialData;
+extern TAutoConsoleVariable<int32> CVarStreamingNumStaticComponentsProcessedPerFrame;
+extern TAutoConsoleVariable<int32> CVarStreamingDefragDynamicBounds;
 
 struct FTextureStreamingSettings
 {
@@ -78,6 +88,8 @@ struct FTextureStreamingSettings
 	bool bUseAllMips;
 	bool bScaleTexturesByGlobalMyBias;
 	bool bUsePerTextureBias;
+	bool bUseMaterialData;
+	int32 MinMipForSplitRequest;
 
 protected:
 
@@ -108,14 +120,6 @@ struct FStreamingTexture;
 struct FStreamingContext;
 struct FStreamingHandlerTextureBase;
 struct FTexturePriority;
-
-/**
- * Checks whether a UTexture2D is supposed to be streaming.
- * @param Texture	Texture to check
- * @return			true if the UTexture2D is supposed to be streaming
- */
-bool IsStreamingTexture( const UTexture2D* Texture2D );
-
 
 /**
  *	Helper struct that represents a texture and the parameters used for sorting and streaming out high-res mip-levels.
@@ -174,6 +178,8 @@ struct FTextureStreamingStats
 	int64 VisibleMips;
 	int64 HiddenMips;
 	int64 ForcedMips;
+	int64 UnkownRefMips;
+	int64 LastRenderTimeMips;
 	int64 CachedMips;
 
 	int64 WantedMips;

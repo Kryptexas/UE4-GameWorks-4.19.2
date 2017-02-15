@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Base class for tracking transactions for undo/redo.
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Serialization/ArchiveUObject.h"
+#include "Misc/ITransaction.h"
 #include "Transactor.generated.h"
 
 /*-----------------------------------------------------------------------------
@@ -17,7 +23,7 @@
 struct FUndoSessionContext 
 {
 	FUndoSessionContext()
-		: Title(), Context(TEXT("")), PrimaryObject(NULL)
+		: Title(), Context(TEXT("")), PrimaryObject(nullptr)
 	{}
 	FUndoSessionContext (const TCHAR* InContext, const FText& InSessionTitle, UObject* InPrimaryObject) 
 		: Title(InSessionTitle), Context(InContext), PrimaryObject(InPrimaryObject)
@@ -103,7 +109,7 @@ protected:
 
 			UObject* operator->() const
 			{
-				auto Obj = Get();
+				UObject* Obj = Get();
 				check(Obj);
 				return Obj;
 			}
@@ -350,11 +356,11 @@ protected:
 	TMap<UObject*, TSharedPtr<ITransactionObjectAnnotation>> ChangedObjects;
 public:
 	// Constructor.
-	FTransaction(  const TCHAR* InContext=NULL, const FText& InTitle=FText(), bool InFlip=0 )
+	FTransaction(  const TCHAR* InContext=nullptr, const FText& InTitle=FText(), bool bInFlip=false )
 		:	Title( InTitle )
 		,	Context( InContext )
-		,	PrimaryObject(NULL)
-		,	bFlip(InFlip)
+		,	PrimaryObject(nullptr)
+		,	bFlip(bInFlip)
 		,	Inc(-1)
 	{}
 
@@ -486,7 +492,7 @@ class UNREALED_API UTransactor : public UObject
 	 *
 	 * @return	true if the "Undo" option should be selectable.
 	 */
-	virtual bool CanUndo( FText* Text=NULL ) PURE_VIRTUAL(UTransactor::CanUndo,return false;);
+	virtual bool CanUndo( FText* Text=nullptr ) PURE_VIRTUAL(UTransactor::CanUndo,return false;);
 
 	/**
 	 * Determines whether the redo option should be selectable.
@@ -495,7 +501,7 @@ class UNREALED_API UTransactor : public UObject
 	 *
 	 * @return	true if the "Redo" option should be selectable.
 	 */
-	virtual bool CanRedo( FText* Text=NULL ) PURE_VIRTUAL(UTransactor::CanRedo,return false;);
+	virtual bool CanRedo( FText* Text=nullptr ) PURE_VIRTUAL(UTransactor::CanRedo,return false;);
 
 	/**
 	 * Gets the current length of the transaction queue.
@@ -511,7 +517,7 @@ class UNREALED_API UTransactor : public UObject
 	 *
 	 * @return A read-only pointer to the transaction, or NULL if it does not exist.
 	 */
-	virtual const FTransaction* GetTransaction( int32 QueueIndex ) const PURE_VIRTUAL(UTransactor::GetQueueEntry,return NULL;);
+	virtual const FTransaction* GetTransaction( int32 QueueIndex ) const PURE_VIRTUAL(UTransactor::GetQueueEntry,return nullptr;);
 
 	/**
 	 * Returns the description of the undo action that will be performed next.

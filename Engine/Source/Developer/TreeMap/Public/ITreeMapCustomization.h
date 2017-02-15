@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 
+#include "CoreMinimal.h"
 #include "ITreeMap.h"
 
+class FTreeMapAttribute;
+class FTreeMapAttributeValue;
 
 typedef TSharedPtr< class FTreeMapAttributeValue > FTreeMapAttributeValuePtr;
 typedef TSharedRef< class FTreeMapAttributeValue > FTreeMapAttributeValueRef;

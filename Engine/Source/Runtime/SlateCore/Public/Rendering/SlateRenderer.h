@@ -1,15 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Textures/SlateShaderResource.h"
+#include "Brushes/SlateDynamicImageBrush.h"
+#include "Rendering/DrawElements.h"
 
-class SWindow;
 class FRHITexture2D;
-class ISlateStyle;
 class FSlateDrawBuffer;
 class FSlateUpdatableTexture;
+class ILayoutCache;
 class ISlateAtlasProvider;
-
+class ISlateStyle;
+class SWindow;
+struct Rect;
+class FSceneInterface;
 struct FSlateBrush;
 
 typedef FRHITexture2D* FTexture2DRHIParamRef;
@@ -199,6 +205,14 @@ public:
 	/** Callback that fires after Slate has rendered each window, each frame */
 	DECLARE_MULTICAST_DELEGATE_TwoParams( FOnSlateWindowRendered, SWindow&, void* );
 	FOnSlateWindowRendered& OnSlateWindowRendered() { return SlateWindowRendered; }
+
+	/**
+	 * Called on the game thread right before the slate window handle is destroyed.  
+	 * This gives users a chance to release any viewport specific resources they may have active when the window is destroyed 
+	 * @param Pointer to the API specific backbuffer type
+	 */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSlateWindowDestroyed, void*);
+	FOnSlateWindowDestroyed& OnSlateWindowDestroyed() { return OnSlateWindowDestroyedDelegate; }
 
 	/**
 	 * Called on the game thread right before a window backbuffer is about to be resized
@@ -428,6 +442,15 @@ public:
 	 */
 	FCriticalSection* GetResourceCriticalSection() { return &ResourceCriticalSection; }
 
+	/** Register the active scene pointer with the renderer. This will return the scene internal index that will be used for all subsequent elements drawn. */
+	virtual int32 RegisterCurrentScene(FSceneInterface* Scene) = 0;
+
+	/** Get the currently registered scene index (set by RegisterCurrentScene)*/
+	virtual int32 GetCurrentSceneIndex() const  = 0;
+
+	/** Reset the internal Scene tracking.*/
+	virtual void ClearScenes() = 0;
+
 private:
 
 	// Non-copyable
@@ -442,6 +465,7 @@ protected:
 	/** Callback that fires after Slate has rendered each window, each frame */
 	FOnSlateWindowRendered SlateWindowRendered;
 
+	FOnSlateWindowDestroyed OnSlateWindowDestroyedDelegate;
 	FOnPreResizeWindowBackbuffer PreResizeBackBufferDelegate;
 	FOnPostResizeWindowBackbuffer PostResizeBackBufferDelegate;
 

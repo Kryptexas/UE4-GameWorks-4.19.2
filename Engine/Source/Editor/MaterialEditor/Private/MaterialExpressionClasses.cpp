@@ -1,11 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MaterialEditorModule.h"
+#include "MaterialExpressionClasses.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "Materials/MaterialExpression.h"
+#include "UObject/Package.h"
+#include "MaterialEditor.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Preferences/MaterialEditorOptions.h"
 
 #include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialExpressionParameter.h"
 
-#include "MaterialExpressionClasses.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -93,12 +101,24 @@ void MaterialExpressionClasses::InitMaterialExpressionClasses()
 							// Trim the material expression name and add it to the list used for filtering.
 							static const FString ExpressionPrefix = TEXT("MaterialExpression");
 							FString ClassName = *Class->GetName();
+
+							if (Class->HasMetaData("DisplayName"))
+							{
+								ClassName = Class->GetDisplayNameText().ToString();
+							}
+
 							if (ClassName.StartsWith(ExpressionPrefix, ESearchCase::CaseSensitive))
 							{
 								ClassName = ClassName.Mid(ExpressionPrefix.Len());
 							}
 							MaterialExpression.Name = ClassName;
 							MaterialExpression.MaterialClass = Class;
+							UMaterialExpression* TempObject = Cast<UMaterialExpression>(Class->GetDefaultObject());
+							if (TempObject)
+							{
+								MaterialExpression.CreationDescription = TempObject->GetCreationDescription();
+								MaterialExpression.CreationName = TempObject->GetCreationName();
+							}
 
 							AllExpressionClasses.Add(MaterialExpression);
 
@@ -122,7 +142,6 @@ void MaterialExpressionClasses::InitMaterialExpressionClasses()
 							}
 
 							// Category fill...
-							UMaterialExpression* TempObject = Cast<UMaterialExpression>(Class->GetDefaultObject());
 							if (TempObject)
 							{
 								if (TempObject->MenuCategories.Num() == 0)

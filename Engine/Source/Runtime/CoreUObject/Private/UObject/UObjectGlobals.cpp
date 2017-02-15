@@ -1,27 +1,53 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnObj.cpp: Unreal object global data and functions
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
+#include "UObject/UObjectGlobals.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/ITransaction.h"
+#include "Serialization/ArchiveProxy.h"
+#include "Misc/CommandLine.h"
+#include "HAL/IOBase.h"
+#include "Misc/ConfigCacheIni.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/SlowTask.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/App.h"
+#include "UObject/ScriptInterface.h"
+#include "UObject/UObjectAllocator.h"
+#include "UObject/UObjectBase.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Object.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Serialization/SerializedPropertyScope.h"
+#include "UObject/UnrealType.h"
+#include "UObject/ObjectRedirector.h"
+#include "UObject/UObjectAnnotation.h"
+#include "Serialization/DuplicatedObject.h"
+#include "Serialization/DuplicatedDataReader.h"
+#include "Serialization/DuplicatedDataWriter.h"
+#include "Misc/PackageName.h"
+#include "UObject/LinkerLoad.h"
+#include "Blueprint/BlueprintSupport.h"
 #include "Misc/SecureHash.h"
 #include "UObject/ConstructorHelpers.h"
-#include "UObject/UObjectAnnotation.h"
 #include "UObject/UObjectThreadContext.h"
 #include "UObject/LinkerManager.h"
-#include "BlueprintSupport.h" // for FDeferredObjInitializerTracker
-#include "ExclusiveLoadPackageTimeTracker.h"
-#include "AssetRegistryInterface.h"
-#include "CookStats.h"
+#include "Misc/ExclusiveLoadPackageTimeTracker.h"
+#include "Misc/AssetRegistryInterface.h"
+#include "ProfilingDebugging/CookStats.h"
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
-
-#if !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
-#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"
-#endif
-
-#define UE_USE_ASYNCPATH_FOR_LOADPACKAGE (USE_EVENT_DRIVEN_ASYNC_LOAD)
 
 #if USE_MALLOC_PROFILER
 #include "MallocProfiler.h"
@@ -50,7 +76,7 @@ DECLARE_CYCLE_STAT(TEXT("InstanceSubobjects"), STAT_InstanceSubobjects, STATGROU
 DECLARE_CYCLE_STAT(TEXT("PostInitProperties"), STAT_PostInitProperties, STATGROUP_Object);
 
 #if ENABLE_COOK_STATS
-#include "ScopedTimers.h"
+#include "ProfilingDebugging/ScopedTimers.h"
 
 namespace LoadPackageStats
 {
@@ -66,11 +92,14 @@ namespace LoadPackageStats
 #endif
 
 /** CoreUObject delegates */
+FCoreUObjectDelegates::FRegisterHotReloadAddedClassesDelegate FCoreUObjectDelegates::RegisterHotReloadAddedClassesDelegate;
 FCoreUObjectDelegates::FRegisterClassForHotReloadReinstancingDelegate FCoreUObjectDelegates::RegisterClassForHotReloadReinstancingDelegate;
 FCoreUObjectDelegates::FReinstanceHotReloadedClassesDelegate FCoreUObjectDelegates::ReinstanceHotReloadedClassesDelegate;
 // Delegates used by SavePackage()
 FCoreUObjectDelegates::FIsPackageOKToSaveDelegate FCoreUObjectDelegates::IsPackageOKToSaveDelegate;
 FCoreUObjectDelegates::FAutoPackageBackupDelegate FCoreUObjectDelegates::AutoPackageBackupDelegate;
+
+FCoreUObjectDelegates::FOnPackageReloaded FCoreUObjectDelegates::OnPackageReloaded;
 
 FCoreUObjectDelegates::FOnPreObjectPropertyChanged FCoreUObjectDelegates::OnPreObjectPropertyChanged;
 FCoreUObjectDelegates::FOnObjectPropertyChanged FCoreUObjectDelegates::OnObjectPropertyChanged;
@@ -691,12 +720,17 @@ bool ResolveName(UObject*& InPackage, FString& InOutName, bool Create, bool Thro
 			Create         = false;
 		}
 
-		// In case this is a short script package name, convert to long name before passing to CreatePackage/FindObject.
-		FName* ScriptPackageName = FPackageName::FindScriptPackageName(*PartialName);
-		if (ScriptPackageName)
+		FName* ScriptPackageName = nullptr;
+		if (!bSubobjectPath)
 		{
-			PartialName = ScriptPackageName->ToString();
+			// In case this is a short script package name, convert to long name before passing to CreatePackage/FindObject.
+			ScriptPackageName = FPackageName::FindScriptPackageName(*PartialName);
+			if (ScriptPackageName)
+			{
+				PartialName = ScriptPackageName->ToString();
+			}
 		}
+
 		// Only long package names are allowed so don't even attempt to create one because whatever the name represents
 		// it's not a valid package name anyway.
 		
@@ -872,13 +906,22 @@ UObject* StaticLoadObject(UClass* ObjectClass, UObject* InOuter, const TCHAR* In
 		FString ObjectName = InName;
 		ResolveName(InOuter, ObjectName, true, true, LoadFlags & LOAD_EditorOnly);
 
-		// we haven't created or found the object, error
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ClassName"), FText::FromString(ObjectClass->GetName()));
-		Arguments.Add(TEXT("OuterName"), InOuter ? FText::FromString(InOuter->GetPathName()) : NSLOCTEXT("Core", "None", "None"));
-		Arguments.Add(TEXT("ObjectName"), FText::FromString(ObjectName));
-		const FString Error = FText::Format(NSLOCTEXT("Core", "ObjectNotFound", "Failed to find object '{ClassName} {OuterName}.{ObjectName}'"), Arguments).ToString();
-		SafeLoadError(InOuter, LoadFlags, *Error);
+		if (InOuter == nullptr || FLinkerLoad::IsKnownMissingPackage(FName(*InOuter->GetPathName())) == false)
+		{
+			// we haven't created or found the object, error
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("ClassName"), FText::FromString(ObjectClass->GetName()));
+			Arguments.Add(TEXT("OuterName"), InOuter ? FText::FromString(InOuter->GetPathName()) : NSLOCTEXT("Core", "None", "None"));
+			Arguments.Add(TEXT("ObjectName"), FText::FromString(ObjectName));
+			const FString Error = FText::Format(NSLOCTEXT("Core", "ObjectNotFound", "Failed to find object '{ClassName} {OuterName}.{ObjectName}'"), Arguments).ToString();
+			SafeLoadError(InOuter, LoadFlags, *Error);
+
+			if (InOuter)
+			{
+				// Stop future repeated warnings
+				FLinkerLoad::AddKnownMissingPackage(FName(*InOuter->GetPathName()));
+			}
+		}
 	}
 	return Result;
 }
@@ -980,7 +1023,7 @@ public:
 	{
 		Package->LinkerLoad = this;
 
-		while (CreateLoader() == FLinkerLoad::LINKER_TimedOut)
+		while (CreateLoader(TFunction<void()>([]() {})) == FLinkerLoad::LINKER_TimedOut)
 		{
 		}
 
@@ -1053,9 +1096,8 @@ static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLong
 
 	UPackage* Result = nullptr;
 
-#if UE_USE_ASYNCPATH_FOR_LOADPACKAGE
-	if (FPlatformProperties::RequiresCookedData()
-		&& !GIsInitialLoad //@todoio fix this so we can async load during compiled in object init		
+	if (FPlatformProperties::RequiresCookedData() && GEventDrivenLoaderEnabled
+		&& EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME
 		)
 	{
 		FString InName;
@@ -1082,35 +1124,30 @@ static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLong
 		FName PackageFName(*InPackageName);
 
 		Result = FindObjectFast<UPackage>(nullptr, PackageFName);
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 		if (!Result || !Result->IsFullyLoaded())
 		{
-			FlushAsyncLoading();
-			Result = FindObjectFast<UPackage>(nullptr, PackageFName);
-			check(!Result || Result->IsFullyLoaded());
-			if (!Result)
+			if (FLinkerLoad::IsKnownMissingPackage(PackageFName) || (Result && Result->IsPendingKill()))
 			{
-				LoadPackageAsync(InName, nullptr, *InPackageName);
+				// Don't retry if known missing or pending kill
+				UE_LOG(LogUObjectGlobals, Verbose, TEXT("Failing load of package %s because it's already failed once %s."), *InPackageName);
+			}
+			else
+			{
 				FlushAsyncLoading();
 				Result = FindObjectFast<UPackage>(nullptr, PackageFName);
+			
+				check(!Result || Result->IsFullyLoaded());
+				if (!Result)
+				{
+					LoadPackageAsync(InName, nullptr, *InPackageName);
+					FlushAsyncLoading();
+					Result = FindObjectFast<UPackage>(nullptr, PackageFName);
+				}
 			}
 		}
-#else
-		if (!Result || !Result->IsFullyLoaded())
-		{
-			int32 RequestID = LoadPackageAsync(InName, nullptr, *InPackageName);
-			FlushAsyncLoading(RequestID);
-		}
 
-		if (InOuter)
-		{
-			return InOuter;
-		}
-		Result = FindObjectFast<UPackage>(nullptr, PackageFName);
-#endif
 		return Result;
 }
-#endif	
 
 	FString FileToLoad;
 #if WITH_EDITOR
@@ -1167,7 +1204,7 @@ static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLong
 	SlowTask.EnterProgressFrame(10);
 
 	// Try to load.
-	BeginLoad();
+	BeginLoad(InLongPackageNameOrFilename);
 
 	bool bFullyLoadSkipped = false;
 
@@ -1265,11 +1302,14 @@ static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLong
 			// Make sure we pass the property that's currently being serialized by the linker that owns the import 
 			// that triggered this LoadPackage call
 			FSerializedPropertyScope SerializedProperty(*Linker, ImportLinker ? ImportLinker->GetSerializedProperty() : Linker->GetSerializedProperty());
-#if USE_NEW_ASYNC_IO 
+			if (GNewAsyncIO)
+			{
 			Linker->LoadAllObjects(true);
-#else
+			}
+			else
+			{
 			Linker->LoadAllObjects();
-#endif		
+			}	
 		}
 		else
 		{
@@ -1304,16 +1344,16 @@ static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLong
 			Result->SetLoadTime( FPlatformTime::Seconds() - StartTime );
 		}
 
-#if USE_NEW_ASYNC_IO
+		if (GNewAsyncIO)
+		{
 		Linker->Flush();
-#else
+		}
 		// @todo: the next two conditions should check the file limit
-		if (FPlatformProperties::RequiresCookedData())
+		else if (FPlatformProperties::RequiresCookedData())
 		{
 			// give a hint to the IO system that we are done with this file for now
 			FIOSystem::Get().HintDoneWithFile(*Linker->Filename);
 		}
-#endif
 
 		// With UE4 and single asset per package, we load so many packages that some platforms will run out
 		// of file handles. So, this will close the package, but just things like bulk data loading will
@@ -1384,7 +1424,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 	bool bAllowDependencyPreloading = !InOuter && ((LoadFlags & (LOAD_DisableDependencyPreloading | LOAD_ForFileDiff)) == 0);
 	static auto CVarPreloadDependencies = IConsoleManager::Get().FindConsoleVariable(TEXT("s.PreloadPackageDependencies"));
 	
-	if (bAllowDependencyPreloading && CVarPreloadDependencies && CVarPreloadDependencies->GetInt() != 0)
+	if (!GEventDrivenLoaderEnabled && bAllowDependencyPreloading && CVarPreloadDependencies && CVarPreloadDependencies->GetInt() != 0)
 	{		
 		if (IsPlatformFileCompatibleWithDependencyPreloading())
 		{
@@ -1452,11 +1492,16 @@ bool IsLoading()
 // Begin loading packages.
 //warning: Objects may not be destroyed between BeginLoad/EndLoad calls.
 //
-void BeginLoad()
+void BeginLoad(const TCHAR* DebugContext)
 {
 	auto& ThreadContext = FUObjectThreadContext::Get();
 	if (ThreadContext.ObjBeginLoadCount == 0 && !IsInAsyncLoadingThread())
 	{
+		if (IsAsyncLoading() && (DebugContext != nullptr))
+		{
+			UE_LOG(LogUObjectGlobals, Log, TEXT("BeginLoad(%s) is flushing async loading"), DebugContext);
+		}
+
 		// Make sure we're finishing up all pending async loads, and trigger texture streaming next tick if necessary.
 		FlushAsyncLoading();
 
@@ -1543,17 +1588,17 @@ void EndLoad()
 			ThreadContext.ObjLoaded.Empty();
 
 			// Sort by Filename and Offset.
-			ObjLoaded.Sort( FCompareUObjectByLinkerAndOffset() );
+			ObjLoaded.Sort(FCompareUObjectByLinkerAndOffset());
 
 			// Finish loading everything.
-			for( int32 i=0; i<ObjLoaded.Num(); i++ )
+			for (int32 i = 0; i < ObjLoaded.Num(); i++)
 			{
 				// Preload.
 				UObject* Obj = ObjLoaded[i];
-				if( Obj->HasAnyFlags(RF_NeedLoad) )
+				if (Obj->HasAnyFlags(RF_NeedLoad))
 				{
 					check(Obj->GetLinker());
-					Obj->GetLinker()->Preload( Obj );
+					Obj->GetLinker()->Preload(Obj);
 				}
 			}
 
@@ -1570,12 +1615,12 @@ void EndLoad()
 			SlowTask.CurrentFrameScope = 0;
 #endif
 
-			if ( GIsEditor )
+			if (GIsEditor)
 			{
-				for( int32 i=0; i<ObjLoaded.Num(); i++ )
+				for (int32 i = 0; i < ObjLoaded.Num(); i++)
 				{
 					UObject* Obj = ObjLoaded[i];
-					if ( Obj->GetLinker() )
+					if (Obj->GetLinker())
 					{
 						LoadedLinkers.Add(Obj->GetLinker());
 					}
@@ -1587,9 +1632,9 @@ void EndLoad()
 				TGuardValue<bool> GuardIsRoutingPostLoad(FUObjectThreadContext::Get().IsRoutingPostLoad, true);
 
 				// Postload objects.
-				for(int32 i = 0; i < ObjLoaded.Num(); i++)
+				for (int32 i = 0; i < ObjLoaded.Num(); i++)
 				{
-				
+
 					UObject* Obj = ObjLoaded[i];
 					check(Obj);
 #if WITH_EDITOR
@@ -1599,16 +1644,32 @@ void EndLoad()
 				}
 			}
 
-			// Dynamic Class doesn't require/use pre-loading (or post-loading). 
-			// The CDO is created at this point, because now it's safe to solve cyclic dependencies.
-			for (UObject* Obj : ObjLoaded)
+			if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
 			{
-				if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(Obj))
+#if DO_CHECK
+				for (UObject* Obj : ObjLoaded)
 				{
-					DynamicClass->GetDefaultObject(true);
+					if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(Obj))
+					{
+						check((DynamicClass->ClassFlags & CLASS_Constructed) != 0);
+						check(DynamicClass->GetDefaultObject(false)); // this should have already been done
+					}
+				}
+#endif
+			}
+			else
+			{
+				// Dynamic Class doesn't require/use pre-loading (or post-loading). 
+				// The CDO is created at this point, because now it's safe to solve cyclic dependencies.
+				for (UObject* Obj : ObjLoaded)
+				{
+					if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(Obj))
+					{
+						check((DynamicClass->ClassFlags & CLASS_Constructed) != 0);
+						DynamicClass->GetDefaultObject(true);
+					}
 				}
 			}
-
 			// Create clusters after all objects have been loaded
 			extern int32 GCreateGCClusters;
 			if (FPlatformProperties::RequiresCookedData() && !GIsInitialLoad && GCreateGCClusters && !GUObjectArray.IsOpenForDisregardForGC())
@@ -2405,7 +2466,7 @@ UObject* StaticAllocateObject
 	if (!bSubObject)
 	{
 		FMemory::Memzero((void *)Obj, TotalSize);
-		new ((void *)Obj) UObjectBase(InClass, InFlags, InternalSetFlags, InOuter, InName);
+		new ((void *)Obj) UObjectBase(InClass, InFlags|RF_NeedInitialization, InternalSetFlags, InOuter, InName);
 	}
 	else
 	{
@@ -2889,7 +2950,9 @@ void FObjectInitializer::PostConstructInit()
 		Obj->CheckDefaultSubobjects();
 	}
 
-	// clear the object pointer so we can guard against runing this function again
+	Obj->ClearFlags(RF_NeedInitialization);
+
+	// clear the object pointer so we can guard against running this function again
 	Obj = nullptr;
 }
 
@@ -2979,10 +3042,8 @@ void FSubobjectPtr::Set(UObject* InObject)
 // Binary initialize object properties to zero or defaults.
 void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UObject* DefaultData, bool bCopyTransientsFromClassDefaults)
 {
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-	check(!DefaultsClass || !DefaultsClass->HasAnyFlags(RF_NeedLoad));
-	check(!DefaultData || !DefaultData->HasAnyFlags(RF_NeedLoad));
-#endif
+	check(!GEventDrivenLoaderEnabled || !DefaultsClass || !DefaultsClass->HasAnyFlags(RF_NeedLoad));
+	check(!GEventDrivenLoaderEnabled || !DefaultData || !DefaultData->HasAnyFlags(RF_NeedLoad));
 
 	SCOPE_CYCLE_COUNTER(STAT_InitProperties);
 
@@ -3035,9 +3096,7 @@ void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UOb
 		bCanUsePostConstructLink &= (DefaultData == Class->GetDefaultObject(false));
 
 		UObject* ClassDefaults = bCopyTransientsFromClassDefaults ? DefaultsClass->GetDefaultObject() : NULL;	
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-		check(!bCopyTransientsFromClassDefaults || !DefaultsClass->GetDefaultObject()->HasAnyFlags(RF_NeedLoad));
-#endif
+		check(!GEventDrivenLoaderEnabled || !bCopyTransientsFromClassDefaults || !DefaultsClass->GetDefaultObject()->HasAnyFlags(RF_NeedLoad));
 
 		for (UProperty* P = bCanUsePostConstructLink ? Class->PostConstructLink : Class->PropertyLink; P; P = bCanUsePostConstructLink ? P->PostConstructLinkNext : P->PropertyLinkNext)
 		{
@@ -3614,11 +3673,6 @@ UScriptStruct* GetFallbackStruct()
 	return TBaseStructure<FFallbackStruct>::Get();
 }
 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-extern COREUOBJECT_API bool GIgnoreGetArchetypeFromRequiredInfo_RF_NeedsLoad;
-#endif
-
-
 UObject* FObjectInitializer::CreateDefaultSubobject(UObject* Outer, FName SubobjectFName, UClass* ReturnType, UClass* ClassToCreateByDefault, bool bIsRequired, bool bAbstract, bool bIsTransient) const
 {
 	UE_CLOG(!FUObjectThreadContext::Get().IsInConstructor, LogClass, Fatal, TEXT("Subobjects cannot be created outside of UObject constructors. UObject constructing subobjects cannot be created using new or placement new operator."));
@@ -3642,17 +3696,15 @@ UObject* FObjectInitializer::CreateDefaultSubobject(UObject* Outer, FName Subobj
 		if (!OverrideClass->HasAnyClassFlags(CLASS_Abstract) || !bAbstract)
 		{
 			UObject* Template = OverrideClass->GetDefaultObject(); // force the CDO to be created if it hasn't already
-			const EObjectFlags SubobjectFlags = Outer->GetMaskedFlags(RF_PropagateToSubObjects);
+			EObjectFlags SubobjectFlags = Outer->GetMaskedFlags(RF_PropagateToSubObjects);
 			bool bOwnerArchetypeIsNotNative;
 			UClass* OuterArchetypeClass;
 
-			{
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-				TGuardValue<bool> Guard(GIgnoreGetArchetypeFromRequiredInfo_RF_NeedsLoad, true);
-#endif
-				OuterArchetypeClass = Outer->GetArchetype()->GetClass();
-				bOwnerArchetypeIsNotNative = !OuterArchetypeClass->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
-			}
+			// It is not safe to mark this component as properly transient, that results in it being nulled incorrectly
+
+			OuterArchetypeClass = Outer->GetArchetype()->GetClass();
+			bOwnerArchetypeIsNotNative = !OuterArchetypeClass->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
+
 			const bool bOwnerTemplateIsNotCDO = ObjectArchetype != nullptr && ObjectArchetype != Outer->GetClass()->GetDefaultObject(false) && !Outer->HasAnyFlags(RF_ClassDefaultObject);
 #if !UE_BUILD_SHIPPING
 			// Guard against constructing the same subobject multiple times.

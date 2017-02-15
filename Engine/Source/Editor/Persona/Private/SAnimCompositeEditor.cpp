@@ -1,16 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#include "PersonaPrivatePCH.h"
 
 #include "SAnimCompositeEditor.h"
-#include "GraphEditor.h"
-#include "GraphEditorModule.h"
-#include "Editor/Kismet/Public/SKismetInspector.h"
-#include "SAnimCompositePanel.h"
-#include "ScopedTransaction.h"
+#include "Animation/EditorAnimBaseObj.h"
+#include "IDocumentation.h"
+
 #include "SAnimNotifyPanel.h"
-#include "SAnimCurvePanel.h"
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimCompositeEditor

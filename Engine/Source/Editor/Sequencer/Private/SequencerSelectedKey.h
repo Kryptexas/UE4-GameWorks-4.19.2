@@ -1,12 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneSection.h"
-
+#include "CoreMinimal.h"
+#include "Curves/KeyHandle.h"
 
 class IKeyArea;
-
+class UMovieSceneSection;
 
 /**
  * Represents a selected key in the sequencer

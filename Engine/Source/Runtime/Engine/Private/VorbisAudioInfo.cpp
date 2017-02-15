@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
 #include "VorbisAudioInfo.h"
-#include "IAudioFormat.h"
+#include "Misc/Paths.h"
+#include "Interfaces/IAudioFormat.h"
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
 
 #if WITH_OGGVORBIS
 
@@ -396,12 +399,12 @@ void LoadVorbisLibraries()
 		FString RootVorbisPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/Vorbis/") / PlatformString / VSVersion;
 
 		FString DLLToLoad = RootOggPath + TEXT("libogg") + DLLNameStub;
-		verifyf(LoadLibraryW(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
+		verifyf(FPlatformProcess::GetDllHandle(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
 		// Load the Vorbis dlls
 		DLLToLoad = RootVorbisPath + TEXT("libvorbis") + DLLNameStub;
-		verifyf(LoadLibraryW(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
+		verifyf(FPlatformProcess::GetDllHandle(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
 		DLLToLoad = RootVorbisPath + TEXT("libvorbisfile") + DLLNameStub;
-		verifyf(LoadLibraryW(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
+		verifyf(FPlatformProcess::GetDllHandle(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
 #endif	//PLATFORM_WINDOWS
 	}
 }

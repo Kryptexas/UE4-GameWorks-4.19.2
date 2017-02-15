@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:3013199
+﻿INTSourceChangelist:3150518
 Availability:Public
-Title: Android ゲームの開発
+Title:Android ゲームの開発
 Crumbs:%ROOT%, Platforms
 Description:Android プラットフォーム向けゲームの開発
 Platform:Android
@@ -21,7 +21,7 @@ type:landing
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		[DIR(output:"topiccompact" parent:"Platforms/Android" type:"quickstart")]
+		[DIR(output:"topiccompact" parent:"Platforms/Android" type:"quick start")]
 	[/PARAM]
 [/OBJECT]
 
@@ -35,7 +35,7 @@ type:landing
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		[DIR(end:"1" output:"listbutton" type:"howto" parent:"Platforms/Android")]
+		[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/Android")]
 	[/PARAM]
 [/OBJECT]
 

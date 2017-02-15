@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "AnimGraphNode_PoseHandler.h"
 #include "AnimNodes/AnimNode_PoseBlendNode.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "AnimGraphNode_PoseBlendNode.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
 
 UCLASS(MinimalAPI)
 class UAnimGraphNode_PoseBlendNode : public UAnimGraphNode_PoseHandler
@@ -27,6 +31,7 @@ class UAnimGraphNode_PoseBlendNode : public UAnimGraphNode_PoseHandler
 	virtual void ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap) override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) override;
+	virtual EAnimAssetHandlerType SupportsAssetClass(const UClass* AssetClass) const override;
 	// End of UAnimGraphNode_Base
 
 	// UK2Node interface

@@ -1,6 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "IDetailCustomization.h"
+#include "IDetailCustomNodeBuilder.h"
+
+class FDetailWidgetRow;
+class IDetailChildrenBuilder;
+class IDetailLayoutBuilder;
+class IPropertyHandle;
+class SEditableTextBox;
 
 class FDialogueContextMappingNodeBuilder : public IDetailCustomNodeBuilder, public TSharedFromThis<FDialogueContextMappingNodeBuilder>
 {

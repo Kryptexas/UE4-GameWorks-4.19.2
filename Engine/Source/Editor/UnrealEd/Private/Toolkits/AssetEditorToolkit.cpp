@@ -1,23 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "Toolkits/AssetEditorToolkit.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Framework/MultiBox/MultiBoxDefs.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "GameFramework/Actor.h"
+#include "Editor.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Modules/ModuleManager.h"
+#include "EditorStyleSet.h"
+#include "EditorStyleSettings.h"
+#include "EditorReimportHandler.h"
+#include "FileHelpers.h"
 #include "Toolkits/SStandaloneAssetEditorToolkitHost.h"
 #include "Toolkits/ToolkitManager.h"
 #include "Toolkits/AssetEditorCommonCommands.h"
 #include "Toolkits/GlobalEditorCommonCommands.h"
-#include "Editor/MainFrame/Public/MainFrame.h"
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
-#include "SlateIconFinder.h"
+#include "Styling/SlateIconFinder.h"
+#include "CollectionManagerTypes.h"
+#include "ICollectionManager.h"
 #include "CollectionManagerModule.h"
 #include "IUserFeedbackModule.h"
+#include "Widgets/SToolTip.h"
 #include "IDocumentation.h"
 #include "ReferenceViewer.h"
 #include "ISizeMapModule.h"
 #include "IIntroTutorials.h"
 #include "SuperSearchModule.h"
-#include "SDockTab.h"
-#include "AssetEditorModeManager.h"
+#include "Widgets/Docking/SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "AssetEditorToolkit"
 
@@ -101,7 +111,7 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 			const UEditorStyleSettings* StyleSettings = GetDefault<UEditorStyleSettings>();
 
 			FName PlaceholderId(TEXT("StandaloneToolkit"));
-			FTabManager::FSearchPreference* SearchPreference = nullptr;
+			TSharedPtr<FTabManager::FSearchPreference> SearchPreference = nullptr;
 			if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::Default )
 			{
 				// Work out where we should create this asset editor
@@ -114,37 +124,37 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 					);
 
 				PlaceholderId = ( SavedAssetEditorToolkitTabLocation == EAssetEditorToolkitTabLocation::Docked ) ? TEXT("DockedToolkit") : TEXT("StandaloneToolkit");
-				SearchPreference = new FTabManager::FLiveTabSearch();
+				SearchPreference = MakeShareable(new FTabManager::FLiveTabSearch());
 			}
 			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::NewWindow )
 			{
 				PlaceholderId = TEXT("StandaloneToolkit");
-				SearchPreference = new FTabManager::FRequireClosedTab();
+				SearchPreference = MakeShareable(new FTabManager::FRequireClosedTab());
 			}
 			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::MainWindow )
 			{
 				PlaceholderId = TEXT("DockedToolkit");
-				SearchPreference = new FTabManager::FLiveTabSearch(TEXT("LevelEditor"));
+				SearchPreference = MakeShareable(new FTabManager::FLiveTabSearch(TEXT("LevelEditor")));
 			}
 			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::ContentBrowser )
 			{
 				PlaceholderId = TEXT("DockedToolkit");
-				SearchPreference = new FTabManager::FLiveTabSearch(TEXT("ContentBrowserTab1"));
+				SearchPreference = MakeShareable(new FTabManager::FLiveTabSearch(TEXT("ContentBrowserTab1")));
 			}
 			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::LastDockedWindowOrNewWindow )
 			{
 				PlaceholderId = TEXT("StandaloneToolkit");
-				SearchPreference = new FTabManager::FLastMajorOrNomadTab(NAME_None);
+				SearchPreference = MakeShareable(new FTabManager::FLastMajorOrNomadTab(NAME_None));
 			}
 			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::LastDockedWindowOrMainWindow )
 			{
 				PlaceholderId = TEXT("StandaloneToolkit");
-				SearchPreference = new FTabManager::FLastMajorOrNomadTab(TEXT("LevelEditor"));
+				SearchPreference = MakeShareable(new FTabManager::FLastMajorOrNomadTab(TEXT("LevelEditor")));
 			}
 			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::LastDockedWindowOrContentBrowser )
 			{
 				PlaceholderId = TEXT("StandaloneToolkit");
-				SearchPreference = new FTabManager::FLastMajorOrNomadTab(TEXT("ContentBrowserTab1"));
+				SearchPreference = MakeShareable(new FTabManager::FLastMajorOrNomadTab(TEXT("ContentBrowserTab1")));
 			}
 			else
 			{
@@ -153,7 +163,14 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 			}
 
 			FGlobalTabmanager::Get()->InsertNewDocumentTab(PlaceholderId, *SearchPreference, NewMajorTab.ToSharedRef());
-			delete SearchPreference;
+
+			// Bring the window to front.  The tab manager will not do this for us to avoid intrusive stealing focus behavior
+			// However, here the expectation is that opening an new asset editor is something that should steal focus so the user can see their asset
+			TSharedPtr<SWindow> Window = NewMajorTab->GetParentWindow();
+			if(Window.IsValid())
+			{
+				Window->BringToFront();
+			}
 		}
 
 #if PLATFORM_MAC
@@ -553,6 +570,10 @@ void FAssetEditorToolkit::SaveAssetAs_Execute()
 	TArray<UObject*> SavedObjects;
 	FEditorFileUtils::SaveAssetsAs(ObjectsToSave, SavedObjects);
 
+	if (SavedObjects.Num() == 0)
+	{
+		return;
+	}
 
 	// close existing asset editors for resaved assets
 	FAssetEditorManager& AssetEditorManager = FAssetEditorManager::Get();
@@ -1045,6 +1066,11 @@ void FAssetEditorToolkit::RestoreFromLayout(const TSharedRef<FTabManager::FLayou
 
 		// Load the potentially previously saved new layout
 		TSharedRef<FTabManager::FLayout> UserConfiguredNewLayout = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni, NewLayout);
+
+		for (TSharedPtr<FLayoutExtender> LayoutExtender : LayoutExtenders)
+		{
+			NewLayout->ProcessExtensions(*LayoutExtender);
+		}
 
 		// Apply the new layout
 		HostWidget->RestoreFromLayout(UserConfiguredNewLayout);

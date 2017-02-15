@@ -1,7 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaPlayerEditorPCH.h"
-#include "SMediaPlayerEditorInfo.h"
+#include "Widgets/SMediaPlayerEditorInfo.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "EditorStyleSet.h"
+#include "IMediaControls.h"
+#include "IMediaPlayer.h"
+#include "MediaPlayer.h"
 
 
 #define LOCTEXT_NAMESPACE "SMediaPlayerEditorInfo"
@@ -62,21 +70,25 @@ void SMediaPlayerEditorInfo::HandleMediaPlayerMediaEvent(EMediaEvent Event)
 
 	if ((Event == EMediaEvent::MediaOpened) || (Event == EMediaEvent::MediaOpenFailed) || (Event == EMediaEvent::TracksChanged))
 	{
-		TSharedPtr<IMediaPlayer> Player = MediaPlayer->GetPlayer();
+		FMediaPlayerBase& Player = MediaPlayer->GetBasePlayer();
 
-		if (Player.IsValid())
+		if (Player.GetUrl().IsEmpty())
 		{
-			TRange<float> ThinnedForwardRates = Player->GetControls().GetSupportedRates(EMediaPlaybackDirections::Forward, false);
-			TRange<float> UnthinnedForwardRates = Player->GetControls().GetSupportedRates(EMediaPlaybackDirections::Forward, true);
-			TRange<float> ThinnedReverseRates = Player->GetControls().GetSupportedRates(EMediaPlaybackDirections::Reverse, false);
-			TRange<float> UnthinnedReverseRates = Player->GetControls().GetSupportedRates(EMediaPlaybackDirections::Reverse, true);
+			InfoTextBlock->SetText(NoMediaText);
+		}
+		else
+		{
+			TRange<float> ThinnedForwardRates = Player.GetForwardRates(false);
+			TRange<float> UnthinnedForwardRates = Player.GetForwardRates(true);
+			TRange<float> ThinnedReverseRates = Player.GetReverseRates(false);
+			TRange<float> UnthinnedReverseRates = Player.GetReverseRates(true);
 
 			FFormatNamedArguments Arguments;
 			{
-				Arguments.Add(TEXT("PlayerName"), FText::FromName(MediaPlayer->GetPlayerName()));
-				Arguments.Add(TEXT("SupportsScrubbing"), MediaPlayer->SupportsScrubbing() ? GYes : GNo);
-				Arguments.Add(TEXT("SupportsSeeking"), MediaPlayer->SupportsSeeking() ? GYes : GNo);
-				Arguments.Add(TEXT("PlayerInfo"), FText::FromString(Player->GetInfo()));
+				Arguments.Add(TEXT("PlayerName"), FText::FromName(Player.GetPlayerName()));
+				Arguments.Add(TEXT("SupportsScrubbing"), Player.SupportsScrubbing() ? GYes : GNo);
+				Arguments.Add(TEXT("SupportsSeeking"), Player.SupportsSeeking() ? GYes : GNo);
+				Arguments.Add(TEXT("PlayerInfo"), FText::FromString(Player.GetInfo()));
 
 				Arguments.Add(TEXT("ForwardRateThinned"), ThinnedForwardRates.IsEmpty()
 					? LOCTEXT("RateNotSupported", "Not supported")
@@ -119,10 +131,6 @@ void SMediaPlayerEditorInfo::HandleMediaPlayerMediaEvent(EMediaEvent Event)
 					Arguments
 				)
 			);
-		}
-		else
-		{
-			InfoTextBlock->SetText(NoMediaText);
 		}
 	}
 	else if (Event == EMediaEvent::MediaClosed)

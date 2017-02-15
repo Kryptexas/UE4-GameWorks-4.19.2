@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineLeaderboardInterface.h"
-#include "OnlineAchievementsInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/CoreOnline.h"
 #include "OnlineSubsystemSteamTypes.h"
+#include "OnlineStats.h"
+#include "Interfaces/OnlineLeaderboardInterface.h"
+#include "Interfaces/OnlineAchievementsInterface.h"
 #include "OnlineSubsystemSteamPackage.h"
+
+class FOnlineSubsystemSteam;
 
 /**
  *	Keeps track of the download state of any stats requests/unloads

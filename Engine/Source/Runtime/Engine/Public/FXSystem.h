@@ -1,10 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FXSystem.h: Interface to the effects system.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "RenderUtils.h"
+
+class FCanvas;
+class FGPUSpriteResources;
+class UVectorFieldComponent;
+struct FGPUSpriteEmitterInfo;
+struct FGPUSpriteResourceData;
+struct FParticleEmitterInstance;
 
 /*-----------------------------------------------------------------------------
 	Forward declarations.

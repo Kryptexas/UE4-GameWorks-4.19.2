@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "IMovieScenePlayer.h"
 
 struct FTimeAndDelta
 {
@@ -32,7 +35,7 @@ public:
 
 	virtual void OnStartPlaying(float InStartTime) {}
 	virtual void OnStopPlaying(float InStopTime) {}
-	virtual FTimeAndDelta AdjustTime(float InCurrentTime, float InDelta, float InPlayRate) = 0;
+	virtual FTimeAndDelta AdjustTime(float InCurrentTime, float InDelta, float InPlayRate, float InDilation) = 0;
 
 private:
 	TOptional<EMovieScenePlayerStatus::Type> Status;
@@ -41,7 +44,7 @@ private:
 /** Default timing manager that is forced to the audio device clock */
 struct FSequencerDefaultTimingManager : FSequencerTimingManager
 {
-	virtual FTimeAndDelta AdjustTime(float InCurrentTime, float InDelta, float InPlayRate) override;
+	virtual FTimeAndDelta AdjustTime(float InCurrentTime, float InDelta, float InPlayRate, float InDilation) override;
 };
 
 /**
@@ -64,5 +67,5 @@ struct FSequencerAudioClockTimer : FSequencerDefaultTimingManager
 	virtual void OnStartPlaying(float InStartTime) override;
 	virtual void OnStopPlaying(float InStopTime) override;
 
-	virtual FTimeAndDelta AdjustTime(float InCurrentTime, float InDelta, float InPlayRate) override;
+	virtual FTimeAndDelta AdjustTime(float InCurrentTime, float InDelta, float InPlayRate, float InDilation) override;
 };

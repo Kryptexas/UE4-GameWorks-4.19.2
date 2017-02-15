@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GPUSort.cpp: Interface for sorting buffers on the GPU.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "RHI.h"
 
 /**
  * The input buffers required for sorting on the GPU.

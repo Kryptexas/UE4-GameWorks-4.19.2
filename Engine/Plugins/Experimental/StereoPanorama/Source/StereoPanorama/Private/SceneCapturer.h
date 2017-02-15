@@ -2,8 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Tickable.h"
+#include "Components/SceneCaptureComponent2D.h"
 #include "SceneCapturer.generated.h"
 
+class IImageWrapperModule;
 
 DECLARE_LOG_CATEGORY_EXTERN( LogStereoPanorama, Log, All );
 

@@ -85,6 +85,8 @@ Operating system defines, see http://sourceforge.net/p/predef/wiki/OperatingSyst
 #define PX_OSX 1
 #elif defined(__ORBIS__)
 #define PX_PS4 1
+#elif defined(__NX__)
+#define PX_NX 1
 #else
 #error "Unknown operating system"
 #endif
@@ -113,7 +115,7 @@ SIMD defines
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64) || (defined (__EMSCRIPTEN__) && defined(__SSE2__))
 #define PX_SSE2 1
 #endif
-#if defined(_M_ARM) || defined(__ARM_NEON__)
+#if defined(_M_ARM) || defined(__ARM_NEON__) || defined(__ARM_NEON)
 #define PX_NEON 1
 #endif
 #if defined(_M_PPC) || defined(__CELLOS_LV2__)
@@ -156,6 +158,9 @@ define anything not defined on this platform to 0
 #endif
 #ifndef PX_PS4
 #define PX_PS4 0
+#endif
+#ifndef PX_NX
+#define PX_NX 0
 #endif
 #ifndef PX_X64
 #define PX_X64 0
@@ -410,7 +415,7 @@ General defines
 */
 
 // static assert
-#if(defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7))) || (PX_PS4) || (PX_APPLE_FAMILY)
+#if(defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7))) || (PX_PS4) || (PX_APPLE_FAMILY) || (PX_NX)
 #define PX_COMPILE_TIME_ASSERT(exp) typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : -1] __attribute__((unused))
 #else
 #define PX_COMPILE_TIME_ASSERT(exp) typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : -1]
@@ -510,7 +515,7 @@ protected:                                                                      
 
 #ifndef DISABLE_CUDA_PHYSX
 //CUDA is currently supported only on windows 
-#define PX_SUPPORT_GPU_PHYSX ((PX_WINDOWS_FAMILY && PX_VC < 14) || (PX_LINUX && PX_X64))
+#define PX_SUPPORT_GPU_PHYSX ((PX_WINDOWS_FAMILY) || (PX_LINUX && PX_X64))
 #else
 #define PX_SUPPORT_GPU_PHYSX 0
 #endif

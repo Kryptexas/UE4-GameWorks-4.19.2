@@ -116,7 +116,7 @@ We're now ready to create objects in **Unreal Editor** based on our code. For re
     [/PARAM]
     [PARAM:content]
 		**FloatingActor.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -132,9 +132,11 @@ We're now ready to create objects in **Unreal Editor** based on our code. For re
 				// Sets default values for this actor's properties
 				AFloatingActor();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
 	
+			public:
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 	
@@ -142,7 +144,7 @@ We're now ready to create objects in **Unreal Editor** based on our code. For re
 			};
 
 		**FloatingActor.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "QuickStart.h"
 			#include "FloatingActor.h"

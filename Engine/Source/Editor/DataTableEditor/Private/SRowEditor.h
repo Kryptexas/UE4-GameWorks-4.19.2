@@ -1,9 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
 #include "Kismet2/StructureEditorUtils.h"
 #include "DataTableEditorUtils.h"
+#include "Misc/NotifyHook.h"
+#include "Widgets/Input/SComboBox.h"
+
+class IStructureDetailsView;
+class SEditableTextBox;
 
 DECLARE_DELEGATE_OneParam(FOnRowModified, FName /*Row name*/);
 DECLARE_DELEGATE_OneParam(FOnRowSelected, FName /*Row name*/);

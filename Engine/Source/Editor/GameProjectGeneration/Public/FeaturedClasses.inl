@@ -1,27 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 /** Inline file to avoid introducing many UObject headers into the global namespace */
 
+#include "CoreTypes.h"
+#include "Containers/Array.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
-#include "GameFramework/Character.h"
-#include "GameFramework/Pawn.h"
+#include "UObject/Interface.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/Character.h"
+#include "Camera/PlayerCameraManager.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/WorldSettings.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameStateBase.h"
-#include "Components/ActorComponent.h"
-#include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/DirectionalLightComponent.h"
-#include "Camera/PlayerCameraManager.h"
 
+struct FFeaturedClasses;
+struct FNewClassInfo;
 
 /** Get a list of all featured native class types */
 FORCEINLINE TArray<FNewClassInfo> FFeaturedClasses::AllNativeClasses()

@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticBoundShaderState.cpp: Static bound shader state implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "StaticBoundShaderState.h"
+#include "RenderingThread.h"
+#include "Shader.h"
 
 TLinkedList<FGlobalBoundShaderStateResource*>*& FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList()
 {

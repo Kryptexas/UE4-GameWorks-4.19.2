@@ -1,30 +1,21 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:6. 직접 해보기
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:언리얼 엔진으로 안드로이드 개발을 하는 데 있어 추가로 참고할 자료입니다.
-Version:4.9
+Version:4.12
 Skilllevel:Intermediate
+tags:Android
+tags:Mobile
+type:multi-step
+parent:Platforms/Android/GettingStarted
+order:6
+Checkpoint:AndroidQS
 
 여기서는 안드로이드 디바이스에 UE4 프로젝트를 디플로이시키는 방법을 연습하고 가다듬을 수 있도록 직접 해볼 수 있는 몇 가지 것들에 대해 다루겠습니다.
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Platforms/Android/GettingStarted/5 "%Platforms/Android/GettingStarted/5:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Platforms/Android/GettingStarted)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[nav]
 
-
-%Steps%
 
 UE4 프로젝트를 패키징하고 안드로이드 디바이스에서 테스팅하기 위한 준비를 마쳤으니,
 이번 퀵스타트 가이드에서 배운 것을 토대로 다음과 같은 작업을 해 보세요.
@@ -55,4 +46,4 @@ UE4 프로젝트를 패키징하고 안드로이드 디바이스에서 테스팅
 [](Platforms\Mobile\Previewer) 를 사용하면 디바이스에 디플로이하지 않고도 모바일 게임을 미리볼 수 있습니다.
 
 
-%Steps%
+[nav]

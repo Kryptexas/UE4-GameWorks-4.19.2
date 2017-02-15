@@ -1,15 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
-
-#include "CompilerResultsLog.h"
-#include "GraphEditorActions.h"
-#include "EditorCategoryUtils.h"
-#include "AssetRegistryModule.h"
-#include "BlueprintActionDatabaseRegistrar.h"
-#include "BlueprintActionFilter.h"
-#include "BlueprintNodeSpawner.h"
 #include "AnimGraphNode_PoseBlendNode.h"
+#include "EdGraphSchema_K2_Actions.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+
+#include "GraphEditorActions.h"
+#include "ARFilter.h"
+#include "AssetRegistryModule.h"
+#include "BlueprintActionFilter.h"
+#include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "PoseBlendNode"
 
@@ -253,6 +254,18 @@ void UAnimGraphNode_PoseBlendNode::GetContextMenuActions(const FGraphNodeContext
 			Context.MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().ConvertToPoseByName);
 		}
 		Context.MenuBuilder->EndSection();
+	}
+}
+
+EAnimAssetHandlerType UAnimGraphNode_PoseBlendNode::SupportsAssetClass(const UClass* AssetClass) const
+{
+	if (AssetClass->IsChildOf(UPoseAsset::StaticClass()))
+	{
+		return EAnimAssetHandlerType::PrimaryHandler;
+	}
+	else
+	{
+		return EAnimAssetHandlerType::NotSupported;
 	}
 }
 

@@ -1,8 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FDetailCategoryWidgetDecl;
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "IPropertyUtilities.h"
+#include "IDetailTreeNode.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "PropertyNode.h"
+#include "UObject/StructOnScope.h"
+#include "PropertyHandle.h"
+#include "DetailWidgetRow.h"
+#include "DetailCustomBuilderRow.h"
+#include "DetailLayoutBuilderImpl.h"
+#include "IDetailCustomNodeBuilder.h"
+#include "DetailCategoryBuilder.h"
+
+class FDetailGroup;
+class FDetailPropertyRow;
+class IDetailGroup;
+class IDetailPropertyRow;
 
 /**
  * Defines a customization for a specific detail
@@ -138,6 +157,7 @@ public:
 	virtual IDetailPropertyRow& AddProperty( TSharedPtr<IPropertyHandle> PropertyHandle, EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
 	virtual IDetailPropertyRow* AddExternalProperty( const TArray<UObject*>& Objects, FName PropertyName, EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
 	virtual IDetailPropertyRow* AddExternalProperty( TSharedPtr<FStructOnScope> StructData, FName PropertyName, EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
+	virtual TArray<TSharedPtr<IPropertyHandle>> AddExternalProperties( TSharedRef<FStructOnScope> StructData, EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
 	virtual IDetailLayoutBuilder& GetParentLayout() const override { return *DetailLayoutBuilder.Pin(); }
 	virtual FDetailWidgetRow& AddCustomRow( const FText& FilterString, bool bForAdvanced = false ) override;
 	virtual void AddCustomBuilder( TSharedRef<IDetailCustomNodeBuilder> InCustomBuilder, bool bForAdvanced = false ) override;
@@ -145,7 +165,7 @@ public:
 	virtual void GetDefaultProperties( TArray<TSharedRef<IPropertyHandle> >& OutAllProperties, bool bSimpleProperties = true, bool bAdvancedProperties = true ) override;
 	virtual const FText& GetDisplayName() const override { return DisplayName; }
 	virtual void SetCategoryVisibility( bool bIsVisible ) override;
-
+	
 	/** IDetailTreeNode interface */
 	virtual IDetailsViewPrivate& GetDetailsView() const override{ return DetailLayoutBuilder.Pin()->GetDetailsView(); }
 	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem) override;
@@ -156,6 +176,11 @@ public:
 	virtual void Tick( float DeltaTime ) override {}
 	virtual bool ShouldShowOnlyChildren() const override { return false; }
 	virtual FName GetNodeName() const override { return GetCategoryName(); }
+
+	/**
+	 * @return true if the parent layout is valid or has been destroyed by a refresh.
+	 */
+	bool IsParentLayoutValid() const { return DetailLayoutBuilder.IsValid(); }
 
 	/**
 	 * @return The name of the category

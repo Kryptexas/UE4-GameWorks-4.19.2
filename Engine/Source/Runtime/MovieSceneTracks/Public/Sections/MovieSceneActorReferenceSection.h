@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Curves/IntegralCurve.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Curves/KeyHandle.h"
 #include "MovieSceneSection.h"
-#include "IKeyframeSection.h"
+#include "Curves/IntegralCurve.h"
+#include "Sections/IKeyframeSection.h"
 #include "MovieSceneActorReferenceSection.generated.h"
-
 
 /**
  * A single actor reference point section
@@ -42,6 +45,10 @@ public:
 	{
 		return ActorGuidIndexCurve;
 	}
+
+	const FIntegralCurve& GetActorReferenceCurve() const { return ActorGuidIndexCurve; }
+
+	const TArray<FGuid>& GetActorGuids() const { return ActorGuids; }
 
 public:
 

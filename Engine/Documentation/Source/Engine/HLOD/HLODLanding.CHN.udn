@@ -1,29 +1,28 @@
-﻿INTSourceChangelist:0
-title:Hierarchical Level of Detail
-description:Landing page for the Hierarchical Level of Detail system in Unreal Engine 4
+﻿INTSourceChangelist:3178044
+title:分层细节级别
+description:分层细节级别系统在虚幻引擎 4 中的着陆页面。
 crumbs:
-availability:docs
-version:4.12
+availability:Public
+version:4.13
+parent:Engine
+order:13
+type:landing
+tags:HLOD
+topic-image:defaultHLOD_topic.png
+social-image:HLOD_social.png
 
-**Hierarchical Level of Detail** meshes (HLODs) have been developed as a way to increase performance and keep the quality bar high for projects using Unreal Engine 4.11 or later. HLODs can replace multiple static mesh actors with a group of static mesh actors at long view distances. This helps reduce the number of actors that need to be rendered for the scene, increasing performance by lowering the number of draw calls per frame. 
+![](HLOD_header.png)
 
-[REGION:warning]
-HLOD doesn't currently work well with dynamic shadows (casting or recieving them), and as such, you should use static lighting and shadowing for the meshes that the HLOD system generates.
-[/REGION]
+**分层细节级别** 模型（HLOD）已被开发成一种方式，用于在使用虚幻引擎 4.11 或更新版本的项目中提升性能并维持高质量。HLOD 可用在远距离视野的单个组合 **静态网格体 Actor** 替代多个 **静态网格体 Actor**。这有助于减少场景中需要渲染的 **Actor** 数量，降低每帧的绘制调用数量以提升性能。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		HLOD Topics
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/HLOD/Overview "%Engine/HLOD/Overview:description%")
-	* [](Engine/HLOD/Reference "%Engine/HLOD/Reference:description%")
-	* [](Engine/HLOD/HowTo "%Engine/HLOD/HowTo:description%")
-	[/PARAM]
-[/OBJECT]
+## 开始
 
+[DIR(output:"topic" type:"overview" parent:"Engine/HLOD")]
+
+## 指南
+
+[DIR(output:"topic" type:"sequential landing" parent:"Engine/HLOD")]
+
+## 参考
+
+[DIR(output:"topic" type:"reference" parent:"Engine/HLOD")]

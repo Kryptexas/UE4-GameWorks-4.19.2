@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections;
@@ -248,12 +248,12 @@ namespace UnrealBuildTool
 		{
 			base.ParseProjectSettings();
 
-			string EngineIniPath = ProjectFile != null ? ProjectFile.Directory.FullName : null;
-			if (String.IsNullOrEmpty(EngineIniPath))
+			DirectoryReference EngineIniPath = ProjectFile != null ? ProjectFile.Directory : null;
+			if (EngineIniPath == null && UnrealBuildTool.GetRemoteIniPath() != null)
 			{
-				EngineIniPath = UnrealBuildTool.GetRemoteIniPath();
+				EngineIniPath = new DirectoryReference(UnrealBuildTool.GetRemoteIniPath());
 			}
-			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", EngineIniPath);
+			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, EngineIniPath, UnrealTargetPlatform.IOS);
 			string ServerName = RemoteServerName;
 			if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "RemoteServerName", out ServerName) && !String.IsNullOrEmpty(ServerName))
 			{

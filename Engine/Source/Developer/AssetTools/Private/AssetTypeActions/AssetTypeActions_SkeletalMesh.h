@@ -1,6 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
+#include "AssetTypeActions_Base.h"
+#include "Engine/SkeletalMesh.h"
 
 class FMenuBuilder;
 
@@ -44,6 +49,9 @@ private:
 
 	/** Handler for when FindSkeleton is selected */
 	void ExecuteFindSkeleton(TArray<TWeakObjectPtr<USkeletalMesh>> Objects);
+
+	/** Handler for skeletal mesh import */
+	static void ExecuteImportMeshLOD(class UObject* Mesh, int32 LOD);
 
 	// Helper functions
 private:

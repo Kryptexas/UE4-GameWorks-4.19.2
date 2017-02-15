@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,12 @@
  *	use in multiple files where the enum can't be mapped to a specific file.
  */
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "DialogueTypes.generated.h"
+
+class UDialogueVoice;
+class UDialogueWave;
 
 UENUM()
 namespace EGrammaticalGender

@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
-#include "ReflectionCaptureComponent.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/ReflectionCaptureComponent.h"
 #include "BoxReflectionCaptureComponent.generated.h"
 
 	// -> will be exported to EngineDecalClasses.h

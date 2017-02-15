@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealType.h: Unreal engine base type definitions.
@@ -6,10 +6,23 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "PropertyPortFlags.h"
-#include "PropertyTag.h"
-#include "Templates/IsTriviallyDestructible.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
+#include "UObject/CoreNetTypes.h"
+#include "UObject/ScriptInterface.h"
+#include "Templates/Casts.h"
+#include "Templates/IsFloatingPoint.h"
+#include "Templates/IsIntegral.h"
+#include "Templates/IsSigned.h"
+#include "Templates/Greater.h"
+#include "Containers/List.h"
+#include "UObject/LazyObjectPtr.h"
+#include "UObject/AssetPtr.h"
+#include "UObject/PropertyTag.h"
 #include "Serialization/SerializedPropertyScope.h"
 
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogType, Log, All);
@@ -201,7 +214,9 @@ public:
 	* @param	DefaultsStruct 
 	* @param	bOutAdvanceProperty whether the property should be advanced and continue to next property or not
 	*
-	* @return	true if the function has handled the tag
+	* @return	true if the function has handled the tag. Returning true but assigning bOutAdvanceProperty false 
+	*			indicates to calling code that it needs to manually advance the property. bOutAdvanceProperty true
+	*			indicates that ConvertFromType itself has handled this property tag.
 	*/
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty);
 
@@ -935,7 +950,8 @@ protected:
 		return 
 			(TIsPODType<TCppType>::Value ? CPF_IsPlainOldData : 0) 
 			| (TIsTriviallyDestructible<TCppType>::Value ? CPF_NoDestructor : 0) 
-			| (TIsZeroConstructType<TCppType>::Value ? CPF_ZeroConstructor : 0);
+			| (TIsZeroConstructType<TCppType>::Value ? CPF_ZeroConstructor : 0)
+			| (THasGetTypeHash<TCppType>::Value ? CPF_HasGetValueTypeHash : 0);
 
 	}
 };
@@ -1117,6 +1133,23 @@ class COREUOBJECT_API UNumericProperty : public UProperty
 	/** Return true if this property is for a integral or enum type **/
 	virtual bool IsInteger() const;
 
+	template <typename T>
+	bool CanHoldValue(T Value) const
+	{
+		if (!TIsFloatingPoint<T>::Value)
+		{
+			return CanHoldDoubleValueInternal(Value);
+		}
+		else if (TIsSigned<T>::Value)
+		{
+			return CanHoldSignedValueInternal(Value);
+		}
+		else
+		{
+			return CanHoldUnsignedValueInternal(Value);
+		}
+	}
+
 	/** Return true if this property is a UByteProperty with a non-null Enum **/
 	FORCEINLINE bool IsEnum() const
 	{
@@ -1186,6 +1219,11 @@ class COREUOBJECT_API UNumericProperty : public UProperty
 	// End of UNumericProperty interface
 
 	static uint8 ReadEnumAsUint8(FArchive& Ar, UStruct* DefaultsStruct, const FPropertyTag& Tag);
+
+private:
+	virtual bool CanHoldDoubleValueInternal  (double Value) const PURE_VIRTUAL(UNumericProperty::CanHoldDoubleValueInternal,   return false;);
+	virtual bool CanHoldSignedValueInternal  (int64  Value) const PURE_VIRTUAL(UNumericProperty::CanHoldSignedValueInternal,   return false;);
+	virtual bool CanHoldUnsignedValueInternal(uint64 Value) const PURE_VIRTUAL(UNumericProperty::CanHoldUnsignedValueInternal, return false;);
 };
 
 template<typename InTCppType>
@@ -1202,12 +1240,12 @@ public:
 	}
 
 	TProperty_Numeric(ECppProperty, int32 InOffset, uint64 InFlags)
-		: Super(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash)
+		: Super(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
 	{
 	}
 
 	TProperty_Numeric( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
-		:	Super( ObjectInitializer, EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash)
+		:	Super( ObjectInitializer, EC_CppProperty, InOffset, InFlags)
 	{
 	}
 
@@ -1243,8 +1281,8 @@ protected:
 			TEXT("Potential data loss during conversion of integer property %s of %s - was (%s) now (%s) - for package: %s"),
 			*this->GetName(),
 			*Ar.GetArchiveName(),
-			*LexicalConversion::ToString(OldValue),
-			*LexicalConversion::ToString(NewValue),
+			*Lex::ToString(OldValue),
+			*Lex::ToString(NewValue),
 			*Ar.GetArchiveName()
 			);
 	}
@@ -1283,6 +1321,12 @@ public:
 			{
 				ConvertFromInt<int8>(Ar, Data, Tag);
 			}
+			return true;
+		}
+		else if (Tag.Type == NAME_EnumProperty)
+		{
+			uint8 PreviousValue = this->ReadEnumAsUint8(Ar, DefaultsStruct, Tag);
+			this->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
 			return true;
 		}
 		else if (Tag.Type == NAME_UInt16Property)
@@ -1331,11 +1375,11 @@ public:
 	}
 	virtual void SetNumericPropertyValueFromString(void* Data, TCHAR const* Value) const override
 	{
-		LexicalConversion::FromString(*TTypeFundamentals::GetPropertyValuePtr(Data), Value);
+		Lex::FromString(*TTypeFundamentals::GetPropertyValuePtr(Data), Value);
 	}
 	virtual FString GetNumericPropertyValueToString(void const* Data) const override
 	{
-		return LexicalConversion::ToString(TTypeFundamentals::GetPropertyValue(Data));
+		return Lex::ToString(TTypeFundamentals::GetPropertyValue(Data));
 	}
 	virtual int64 GetSignedIntPropertyValue(void const* Data) const override
 	{
@@ -1353,6 +1397,22 @@ public:
 		return TTypeFundamentals::GetPropertyValue(Data);
 	}
 	// End of UNumericProperty interface
+
+private:
+	virtual bool CanHoldDoubleValueInternal(double Value) const
+	{
+		return (double)(InTCppType)Value == Value;
+	}
+
+	virtual bool CanHoldSignedValueInternal(int64 Value) const
+	{
+		return (int64)(InTCppType)Value == Value;
+	}
+
+	virtual bool CanHoldUnsignedValueInternal(uint64 Value) const
+	{
+		return (uint64)(InTCppType)Value == Value;
+	}
 };
 
 /*-----------------------------------------------------------------------------
@@ -1968,12 +2028,12 @@ class COREUOBJECT_API UObjectProperty : public TUObjectPropertyBase<UObject*>
 	DECLARE_CASTED_CLASS_INTRINSIC(UObjectProperty, TUObjectPropertyBase<UObject*>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UObjectProperty)
 
 	UObjectProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass)
-		: TUObjectPropertyBase(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash, InClass)
+		: TUObjectPropertyBase(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags, InClass)
 	{
 	}
 
 	UObjectProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
-		: TUObjectPropertyBase(ObjectInitializer, EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash, InClass)
+		: TUObjectPropertyBase(ObjectInitializer, EC_CppProperty, InOffset, InFlags, InClass)
 	{
 	}
 
@@ -2041,12 +2101,12 @@ class COREUOBJECT_API ULazyObjectProperty : public TUObjectPropertyBase<FLazyObj
 	DECLARE_CASTED_CLASS_INTRINSIC(ULazyObjectProperty, TUObjectPropertyBase<FLazyObjectPtr>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_ULazyObjectProperty)
 
 	ULazyObjectProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass)
-		: TUObjectPropertyBase(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash, InClass)
+		: TUObjectPropertyBase(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags, InClass)
 	{
 	}
 
 	ULazyObjectProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
-		: TUObjectPropertyBase(ObjectInitializer, EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash, InClass)
+		: TUObjectPropertyBase(ObjectInitializer, EC_CppProperty, InOffset, InFlags, InClass)
 	{
 	}
 
@@ -2079,11 +2139,11 @@ class COREUOBJECT_API UAssetObjectProperty : public TUObjectPropertyBase<FAssetP
 	DECLARE_CASTED_CLASS_INTRINSIC(UAssetObjectProperty, TUObjectPropertyBase<FAssetPtr>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UAssetObjectProperty)
 
 	UAssetObjectProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass)
-		: TUObjectPropertyBase(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash, InClass)
+		: TUObjectPropertyBase(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags, InClass)
 	{}
 
 	UAssetObjectProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
-		: TUObjectPropertyBase(ObjectInitializer, EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash, InClass)
+		: TUObjectPropertyBase(ObjectInitializer, EC_CppProperty, InOffset, InFlags, InClass)
 	{}
 
 	// UHT interface
@@ -2178,9 +2238,6 @@ public:
 #else
 	FORCEINLINE void SetMetaClass(UClass* NewMetaClass) { MetaClass = NewMetaClass; }
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-
-protected:
-	virtual void CheckValidObject(void* Value) const override;
 };
 
 /*-----------------------------------------------------------------------------
@@ -2334,12 +2391,12 @@ public:
 	typedef TTypeFundamentals::TCppType TCppType;
 
 	UNameProperty(ECppProperty, int32 InOffset, uint64 InFlags)
-		: UNameProperty_Super(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash)
+		: UNameProperty_Super(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
 	{
 	}
 
 	UNameProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
-	:	UNameProperty_Super( ObjectInitializer, EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash )
+	:	UNameProperty_Super( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 	{
 	}
 
@@ -2371,12 +2428,12 @@ public:
 	typedef TTypeFundamentals::TCppType TCppType;
 
 	UStrProperty(ECppProperty, int32 InOffset, uint64 InFlags)
-		: UStrProperty_Super(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash)
+		: UStrProperty_Super(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
 	{
 	}
 
 	UStrProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
-	:	UStrProperty_Super( ObjectInitializer, EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash)
+	:	UStrProperty_Super( ObjectInitializer, EC_CppProperty, InOffset, InFlags)
 	{
 	}
 
@@ -2490,6 +2547,7 @@ public:
 	// UProperty interface
 	virtual FString GetCPPMacroType(FString& ExtendedTypeText) const  override;
 	virtual FString GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const override;
+	virtual FString GetCPPTypeForwardDeclaration() const override;
 	virtual void LinkInternal(FArchive& Ar) override;
 	virtual bool Identical(const void* A, const void* B, uint32 PortFlags) const override;
 	virtual void SerializeItem(FArchive& Ar, void* Value, void const* Defaults) const override;
@@ -2505,9 +2563,8 @@ public:
 	virtual bool ContainsWeakObjectReference() const override;
 	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset, TArray<const UStructProperty*>& EncounteredStructProps) override;
 	virtual bool SameType(const UProperty* Other) const override;
+	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
 	// End of UProperty interface
-
-	bool HasKey(void* InMap, void* InBaseAddress, const FString& InValue) const;
 };
 
 // need to break this out a different type so that the DECLARE_CASTED_CLASS_INTRINSIC macro can digest the comma
@@ -2556,9 +2613,8 @@ public:
 	virtual bool ContainsWeakObjectReference() const override;
 	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset, TArray<const UStructProperty*>& EncounteredStructProps) override;
 	virtual bool SameType(const UProperty* Other) const override;
+	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
 	// End of UProperty interface
-
-	bool HasElement(void* InSet, void* InBaseAddress, const FString& InValue) const;
 };
 
 /**
@@ -2992,6 +3048,46 @@ public:
 	}
 
 	/**
+	 * Returns a uint8 pointer to the Key (first element) in the map. Currently 
+	 * identical to GetPairPtr, but provides clarity of purpose and avoids exposing
+	 * implementation details of TMap.
+	 *
+	 * @param  Index  index of the item to return a pointer to.
+	 *
+	 * @return Pointer to the key, or nullptr if the map is empty.
+	 */
+	FORCEINLINE uint8* GetKeyPtr(int32 Index)
+	{
+		if (Num() == 0)
+		{
+			checkSlow(!Index);
+			return nullptr;
+		}
+		
+		checkSlow(IsValidIndex(Index));
+		return (uint8*)Map->GetData(Index, MapLayout) + MapLayout.KeyOffset;
+	}
+
+	/**
+	 * Returns a uint8 pointer to the Value (second element) in the map.
+	 *
+	 * @param  Index  index of the item to return a pointer to.
+	 *
+	 * @return Pointer to the value, or nullptr if the map is empty.
+	 */
+	FORCEINLINE uint8* GetValuePtr(int32 Index)
+	{
+		if (Num() == 0)
+		{
+			checkSlow(!Index);
+			return nullptr;
+		}
+		
+		checkSlow(IsValidIndex(Index));
+		return (uint8*)Map->GetData(Index, MapLayout) + MapLayout.ValueOffset;
+	}
+
+	/**
 	 * Returns a uint8 pointer to the pair in the map.
 	 *
 	 * @param  Index  index of the item to return a pointer to.
@@ -3072,11 +3168,10 @@ public:
 
 	/**
 	 * Removes an element at the specified index, destroying it.
-	 * The map will be invalid until the next Rehash() call.
 	 *
 	 * @param  Index  The index of the element to remove.
 	 */
-	void RemoveAt_NeedsRehash(int32 Index, int32 Count = 1)
+	void RemoveAt(int32 Index, int32 Count = 1)
 	{
 		check(IsValidIndex(Index));
 
@@ -3157,6 +3252,117 @@ public:
 		return Result;
 	}
 
+	/** Finds the associated value from hash, rather than linearly searching */
+	uint8* FindValueFromHash(const void* KeyPtr)
+	{
+		UProperty* LocalKeyPropForCapture = KeyProp;
+		return Map->FindValue(
+			KeyPtr, 
+			MapLayout,
+			[LocalKeyPropForCapture](const void* ElementKey) { return LocalKeyPropForCapture->GetValueTypeHash(ElementKey); },
+			[LocalKeyPropForCapture](const void* A, const void* B) { return LocalKeyPropForCapture->Identical(A, B); }
+			);
+	}
+
+	/** Adds the (key, value) pair to the map, returning true if the element was added, or false if the element was already present and has been overwritten */
+	bool AddPair(const void* KeyPtr, const void* ValuePtr)
+	{
+		UProperty* LocalKeyPropForCapture = KeyProp;
+		UProperty* LocalValuePropForCapture = ValueProp;
+		FScriptMapLayout& LocalMapLayoutForCapture = MapLayout;
+		return Map->Add(
+			KeyPtr, 
+			ValuePtr, 
+			MapLayout,
+			[LocalKeyPropForCapture](const void* ElementKey) { return LocalKeyPropForCapture->GetValueTypeHash(ElementKey); },
+			[LocalKeyPropForCapture](const void* A, const void* B) { return LocalKeyPropForCapture->Identical(A, B); },
+			[LocalKeyPropForCapture, KeyPtr, LocalMapLayoutForCapture](void* NewElementKey)
+			{
+				if (LocalKeyPropForCapture->PropertyFlags & CPF_ZeroConstructor)
+				{
+					FMemory::Memzero(NewElementKey, LocalKeyPropForCapture->GetSize());
+				}
+				else
+				{
+					LocalKeyPropForCapture->InitializeValue(NewElementKey);
+				}
+
+				LocalKeyPropForCapture->CopySingleValueToScriptVM(NewElementKey, KeyPtr);
+			},
+			[LocalValuePropForCapture, ValuePtr, LocalMapLayoutForCapture](void* NewElementValue)
+			{
+				if (LocalValuePropForCapture->PropertyFlags & CPF_ZeroConstructor)
+				{
+					FMemory::Memzero(NewElementValue, LocalValuePropForCapture->GetSize());
+				}
+				else
+				{
+					LocalValuePropForCapture->InitializeValue(NewElementValue);
+				}
+
+				LocalValuePropForCapture->CopySingleValueToScriptVM(NewElementValue, ValuePtr);
+			},
+			[LocalValuePropForCapture, ValuePtr](void* ExistingElementValue)
+			{
+				LocalValuePropForCapture->CopySingleValueToScriptVM(ExistingElementValue, ValuePtr);
+			}
+		);
+	}
+
+	/** Removes the key and its associated value from the map */
+	bool RemovePair(const void* KeyPtr)
+	{
+		UProperty* LocalKeyPropForCapture = KeyProp;
+		if(uint8* Entry =  Map->FindValue(
+			KeyPtr, 
+			MapLayout,
+			[LocalKeyPropForCapture](const void* ElementKey) { return LocalKeyPropForCapture->GetValueTypeHash(ElementKey); },
+			[LocalKeyPropForCapture](const void* A, const void* B) { return LocalKeyPropForCapture->Identical(A, B); }
+			))
+		{
+			int32 Idx = (Entry - (uint8*)Map->GetData(0, MapLayout)) / MapLayout.SetLayout.Size;
+			RemoveAt(Idx);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	/**
+	 * Checks if a key in the map matches the specified key
+	 *
+	 * @param	InBaseAddress	The base address of the map
+	 * @param	InKeyValue		The key to find within the map
+	 *
+	 * @return	True if the key is found, false otherwise
+	 */
+	bool HasKey(const void* InBaseAddress, const FString& InKeyValue) const
+	{
+		for (int32 Index = 0, ItemsLeft = Num(); ItemsLeft > 0; ++Index)
+		{
+			if (IsValidIndex(Index))
+			{
+				--ItemsLeft;
+
+				const uint8* PairPtr = GetPairPtr(Index);
+				const uint8* KeyPtr = KeyProp->ContainerPtrToValuePtr<const uint8>(PairPtr);
+
+				FString KeyValue;
+				if (KeyPtr != InBaseAddress && KeyProp->ExportText_Direct(KeyValue, KeyPtr, KeyPtr, nullptr, 0))
+				{
+					if ((Cast<UObjectProperty>(KeyProp) != nullptr && KeyValue.Contains(InKeyValue)) || InKeyValue == KeyValue)
+					{
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
 private:
 	/**
 	 * Internal function to call into the property system to construct / initialize elements.
@@ -3209,7 +3415,7 @@ private:
 		if (bDestroyKeys || bDestroyValues)
 		{
 			uint32 Stride  = MapLayout.SetLayout.Size;
-			uint8* PairPtr = GetPairPtr(Index);
+			uint8* PairPtr = GetPairPtrWithoutCheck(Index);
 			if (bDestroyKeys)
 			{
 				if (bDestroyValues)
@@ -3453,11 +3659,10 @@ public:
 
 	/**
 	* Removes an element at the specified index, destroying it.
-	* The set will be invalid until the next Rehash() call.
 	*
 	* @param  Index  The index of the element to remove.
 	*/
-	void RemoveAt_NeedsRehash(int32 Index, int32 Count = 1)
+	void RemoveAt(int32 Index, int32 Count = 1)
 	{
 		check(IsValidIndex(Index));
 
@@ -3564,7 +3769,7 @@ public:
 			{
 				if (LocalElementPropForCapture->PropertyFlags & CPF_ZeroConstructor)
 				{
-					FMemory::Memzero(NewElement, LocalSetLayoutForCapture.Size);
+					FMemory::Memzero(NewElement, LocalElementPropForCapture->GetSize());
 				}
 				else
 				{
@@ -3573,19 +3778,60 @@ public:
 
 				LocalElementPropForCapture->CopySingleValueToScriptVM(NewElement, ElementToAdd);
 			}
-		);
+		) == nullptr;
 	}
 
-	/** Remoes the elemnt from the set */
-	void RemoveElement(const void* ElementToRemove)
+	/** Removes the element from the set */
+	bool RemoveElement(const void* ElementToRemove)
 	{
 		UProperty* LocalElementPropForCapture = ElementProp;
-		Set->Remove(
-			ElementToRemove, 
-			SetLayout, 
-			[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
-			[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); }
-		);
+		if( uint8_t* Entry = Set->Find(
+				ElementToRemove, 
+				SetLayout, 
+				[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
+				[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); } )
+			)
+		{
+			int32 Idx = (Entry - (uint8*)Set->GetData(0, SetLayout)) / SetLayout.Size;
+			RemoveAt(Idx);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	/**
+	 * Checks if an element has already been added to the set
+	 *
+	 * @param	InBaseAddress	The base address of the set
+	 * @param	InElementValue	The element value to check for
+	 *
+	 * @return	True if the element is found in the set, false otherwise
+	 */
+	bool HasElement(void* InBaseAddress, const FString& InElementValue) const
+	{
+		for (int32 Index = 0, ItemsLeft = Num(); ItemsLeft > 0; ++Index)
+		{
+			if (IsValidIndex(Index))
+			{
+				--ItemsLeft;
+
+				const uint8* Element = GetElementPtr(Index);
+
+				FString ElementValue;
+				if (Element != InBaseAddress && ElementProp->ExportText_Direct(ElementValue, Element, Element, nullptr, 0))
+				{
+					if ((Cast<UObjectProperty>(ElementProp) != nullptr && ElementValue.Contains(InElementValue)) || ElementValue == InElementValue)
+					{
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
 	}
 
 private:
@@ -3632,7 +3878,7 @@ private:
 		if (bDestroyElements)
 		{
 			uint32 Stride = SetLayout.Size;
-			uint8* ElementPtr = GetElementPtr(Index);
+			uint8* ElementPtr = GetElementPtrWithoutCheck(Index);
 
 			for (; Count; ++Index)
 			{
@@ -3739,6 +3985,9 @@ public:
 	static void ExportTextItem_Static(class UScriptStruct* InStruct, FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope);
 
 	bool UseBinaryOrNativeSerialization(const FArchive& Ar) const;
+
+private:
+	virtual uint32 GetValueTypeHashInternal(const void* Src) const;
 
 public:
 
@@ -3991,6 +4240,8 @@ namespace EPropertyChangeType
 	const Type Duplicate = 1 << 3;
 	//Interactive, e.g. dragging a slider. Will be followed by a ValueSet when finished.
 	const Type Interactive = 1 << 4;
+	//Redirected.  Used when property references are updated due to content hot-reloading, or an asset being replaced during asset deletion (aka, asset consolidation).
+	const Type Redirected = 1 << 5;
 };
 
 /**

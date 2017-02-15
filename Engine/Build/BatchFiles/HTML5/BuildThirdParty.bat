@@ -1,4 +1,4 @@
-@echo off 
+@echo off
 
 call python -u %~dp0\..\..\..\..\Engine\Source\ThirdParty\zlib\zlib-1.2.5\Src\HTML5\build_for_html5.py rebuild verbose
 call python -u %~dp0\..\..\..\..\Engine\Source\ThirdParty\FreeType2\FreeType2-2.6\Builds\html5\build_for_html5.py rebuild verbose

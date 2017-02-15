@@ -1,6 +1,5 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Sound/ReverbEffect.h"
 
 UReverbEffect::UReverbEffect(const FObjectInitializer& ObjectInitializer)
@@ -18,4 +17,15 @@ UReverbEffect::UReverbEffect(const FObjectInitializer& ObjectInitializer)
 	LateDelay = 0.011f;
 	AirAbsorptionGainHF = 0.994f;
 	RoomRolloffFactor = 0.0f;
+
+#if WITH_EDITORONLY_DATA
+	bChanged = false;
+#endif
 }
+
+#if WITH_EDITORONLY_DATA
+void UReverbEffect::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	bChanged = true;
+}
+#endif

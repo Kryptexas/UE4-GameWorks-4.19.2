@@ -1,8 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PListNode.h"
+#include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
+#include "Editor/PListEditor/Private/PListNode.h"
+
+class ITableRow;
+class SEditableTextBox;
+class SPListEditorPanel;
+class STableViewBase;
+class SWidget;
+struct FSlateBrush;
 
 /** A Node representing a string value */
 class FPListNodeString : public IPListNode

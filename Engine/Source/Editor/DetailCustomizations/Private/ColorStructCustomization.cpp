@@ -1,9 +1,17 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "ColorStructCustomization.h"
+#include "UObject/UnrealType.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Editor.h"
+#include "Widgets/Colors/SColorBlock.h"
+#include "DetailWidgetRow.h"
+#include "DetailLayoutBuilder.h"
 #include "IPropertyUtilities.h"
-#include "SColorPicker.h"
+#include "Widgets/Colors/SColorPicker.h"
+#include "SlateApplication.h"
 
 
 #define LOCTEXT_NAMESPACE "FColorStructCustomization"
@@ -200,6 +208,12 @@ void FColorStructCustomization::CreateColorPicker(bool bUseAlpha)
 		PickerArgs.OnInteractivePickEnd = FSimpleDelegate::CreateSP(this, &FColorStructCustomization::OnColorPickerInteractiveEnd);
 		PickerArgs.InitialColorOverride = InitialColor;
 		PickerArgs.ParentWidget = ColorPickerParentWidget;
+
+		FWidgetPath ParentWidgetPath;
+		if (FSlateApplication::Get().FindPathToWidget(ColorPickerParentWidget.ToSharedRef(), ParentWidgetPath))
+		{
+			PickerArgs.bOpenAsMenu = FSlateApplication::Get().FindMenuInWidgetPath(ParentWidgetPath).IsValid();
+		}
 	}
 
 	OpenColorPicker(PickerArgs);

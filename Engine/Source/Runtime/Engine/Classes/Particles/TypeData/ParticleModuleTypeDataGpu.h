@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModuleTypeDataGpu: Type data definition for GPU particle simulation.
@@ -6,11 +6,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Distributions.h"
+#include "Distributions/DistributionFloat.h"
+#include "Distributions/DistributionVector.h"
 #include "Particles/TypeData/ParticleModuleTypeDataBase.h"
 #include "Particles/ParticleSpriteEmitter.h"
-#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
 #include "ParticleModuleTypeDataGpu.generated.h"
+
+class UParticleSystemComponent;
 
 /**
  * Data needed for local vector fields.
@@ -350,6 +355,14 @@ struct FGPUSpriteResourceData
 	UPROPERTY()
 	float CollisionTimeBias;
 
+	/** Control on reflection's random distribution spread. */
+	UPROPERTY()
+	float CollisionRandomSpread;
+
+	/** Control on reflection's random distribution when colliding. (1=uniform distribution) */
+	UPROPERTY()
+	float CollisionRandomDistribution;
+
 	/** One minus the coefficient of friction applied to particles upon collision. */
 	UPROPERTY()
 	float OneMinusFriction;
@@ -413,6 +426,8 @@ struct FGPUSpriteResourceData
 		, CollisionRadiusScale(0)
 		, CollisionRadiusBias(0)
 		, CollisionTimeBias(0)
+		, CollisionRandomSpread(0)
+		, CollisionRandomDistribution(2)
 		, OneMinusFriction(0)
 		, RotationRateScale(0)
 		, CameraMotionBlurAmount(0)

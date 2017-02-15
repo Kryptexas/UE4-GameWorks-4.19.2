@@ -1,15 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Editor/ClassViewer/Public/ClassViewerModule.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/UnrealType.h"
+#include "Engine/Blueprint.h"
+#include "Widgets/SWidget.h"
 #include "EdGraph/EdGraph.h"
-#include "EdGraphSchema_K2.h"
 #include "K2Node_EditablePinBase.h"
-#include "Engine/LevelScriptBlueprint.h"
-#include "BlueprintSupport.h" // for FLegacyEditorOnlyBlueprintOptions
+#include "Editor/ClassViewer/Public/ClassViewerModule.h"
+#include "EdGraphSchema_K2.h"
 
-class  USCS_Node;
+class AActor;
+class ALevelScriptActor;
+class FBlueprintEditor;
+class FCompilerResultsLog;
+class INameValidatorInterface;
+class UActorComponent;
+class UK2Node_Variable;
+class ULevelScriptBlueprint;
+class USCS_Node;
+class UTimelineTemplate;
+struct FBlueprintCookedComponentInstancingData;
 struct FComponentKey;
 
 /** 
@@ -136,6 +152,11 @@ public:
 	 * @param	Graph	The graph to refresh.
 	 */
 	static void RefreshGraphNodes(const UEdGraph* Graph);
+
+	/**
+	 * Replaces any deprecated nodes with new ones
+	 */
+	static void ReplaceDeprecatedNodes(UBlueprint* Blueprint);
 
 	/**
 	 * Preloads the object and all the members it owns (nodes, pins, etc)
@@ -1063,6 +1084,12 @@ public:
 	/** Attempts to match up the FComponentKey with a ComponentTemplate from the Blueprint's UCS */
 	static UActorComponent* FindUCSComponentTemplate(const FComponentKey& ComponentKey);
 
+	/** Takes the Blueprint's NativizedFlag property and applies it to the authoritative config (does the same for flagged dependencies) */
+	static bool PropagateNativizationSetting(UBlueprint* Blueprint);
+
+	/** Retrieves all dependencies that need to be nativized for this to work as a nativized Blueprint */
+	static void FindNativizationDependencies(UBlueprint* Blueprint, TArray<UClass*>& NativizeDependenciesOut);
+
 	//////////////////////////////////////////////////////////////////////////
 	// Interface
 
@@ -1195,6 +1222,14 @@ public:
 	 */
 	static void FindActorsThatReferenceActor( AActor* InActor, TArray<UClass*>& InClassesToIgnore, TArray<AActor*>& OutReferencingActors );
 
+	/**
+	 * Go through the world and build a map of all actors that are referenced by other actors.
+	 * @param InWorld The world to scan for Actors.
+	 * @param InClassesToIgnore  An array of class types to ignore, even if there is an instance of one that references another Actor
+	 * @param OutReferencingActors A map of Actors that are referenced by a list of other Actors.
+	*/
+	static void GetActorReferenceMap(UWorld* InWorld, TArray<UClass*>& InClassesToIgnore, TMap<AActor*, TArray<AActor*> >& OutReferencingActors);
+
 	//////////////////////////////////////////////////////////////////////////
 	// Diagnostics
 
@@ -1301,7 +1336,7 @@ public:
 	 * @param PinType		The pin get the icon for.
 	 * @param returns a brush that best represents the icon (or Kismet.VariableList.TypeIcon if none is available )
 	 */
-	static const struct FSlateBrush* GetIconFromPin(const FEdGraphPinType& PinType);
+	static const struct FSlateBrush* GetIconFromPin(const FEdGraphPinType& PinType, bool bIsLarge = false);
 
 	/**
 	 * Determine the best secondary icon icon to represent the given pin.
@@ -1314,16 +1349,24 @@ public:
 	static bool HasGetTypeHash(const FEdGraphPinType& PinType);
 
 	/**
+	 * Returns true if this type of UProperty can be hashed. Matches native constructors of UNumericProperty, etc.
+	 */
+	static bool PropertyHasGetTypeHash(const UProperty* PropertyType);
+
+	/**
+	 * Returns true if the StructType is native and has a GetTypeHash or is non-native and all of its member types are handled by UScriptStruct::GetStructTypeHash
+	 */
+	static bool StructHasGetTypeHash(const UScriptStruct* StructType);
+
+	/**
 	 * Generate component instancing data (for cooked builds).
 	 *
-	 * @param ComponentTemplate	The component template to generate instancing data for.
-	 * @param OutData			The generated component instancing data.
-	 * @return					TRUE if component instancing data was built, FALSE otherwise.
+	 * @param ComponentTemplate		The component template to generate instancing data for.
+	 * @param OutData				The generated component instancing data.
+	 * @param bUseTemplateArchetype	Whether or not to use the template archetype or the template CDO for delta serialization (default is to use the template CDO).
+	 * @return						TRUE if component instancing data was built, FALSE otherwise.
 	 */
-	static void BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData);
-
-	/** Switch for hiding TMap/TSet support until stablized */
-	static bool ShouldEnableAdvancedContainers();
+	static void BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData, bool bUseTemplateArchetype = false);
 
 protected:
 	// Removes all NULL graph references from the SubGraphs array and recurses thru the non-NULL ones
@@ -1440,7 +1483,6 @@ struct UNREALED_API FBlueprintDuplicationScopeFlags
 	TGuardValue<uint32> Guard;
 	FBlueprintDuplicationScopeFlags(uint32 InFlags) : Guard(bStaticFlags, InFlags) {}
 };
-
 struct UNREALED_API FMakeClassSpawnableOnScope
 {
 	UClass* Class;
@@ -1472,25 +1514,4 @@ struct UNREALED_API FMakeClassSpawnableOnScope
 			}
 		}
 	}
-};
-
-/** 
- * Temporary util struct that deals with the now deprecated [EditoronlyBP] 
- * settings. Inherited from FLegacyEditorOnlyBlueprintOptions (in CoreUObject), 
- * which consolidates these settings, but is extended here to deal with UnrealEd 
- * specific types.
- */
-struct FLegacyEditorOnlyBlueprintUtils : public FLegacyEditorOnlyBlueprintOptions
-{
-	UNREALED_API static bool DoPinsMatch(const FEdGraphPinType& Input, const FEdGraphPinType& Output);
-	static bool FixupBlueprint(UBlueprint* Blueprint);
-
-private:
-	static bool HasLegacyBlueprintReferences(UBlueprint* Blueprint);
-	static bool IsUnwantedType(const FEdGraphPinType& Type);
-	static bool IsUnwantedDefaultObject(const UObject* Obj);
-	static void ChangePinType(FEdGraphPinType& Type);
-	static void HandleEditablePinNode(class UK2Node_EditablePinBase* Node);
-	static void HandleTemporaryVariableNode(class UK2Node_TemporaryVariable* Node);
-	static void HandleDefaultObjects(UK2Node* Node);
 };

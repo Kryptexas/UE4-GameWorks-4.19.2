@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Components/ShapeComponent.h"
 #include "SphereComponent.generated.h"
+
+class FPrimitiveSceneProxy;
 
 /** 
  * A sphere generally used for simple collision. Bounds are rendered as lines in the editor.

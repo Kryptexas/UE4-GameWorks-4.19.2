@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/Class.h"
+
+class FAssetData;
 /** A struct to serve as a filter for Asset Registry queries. Each component element is processed as an 'OR' operation while all the components are processed together as an 'AND' operation. */
 struct FARFilter
 {
@@ -11,15 +15,15 @@ struct FARFilter
 	TArray<FName> PackagePaths;
 	/** The filter component containing specific object paths */
 	TArray<FName> ObjectPaths;
-	/** The filter component for class names */
+	/** The filter component for class names. Instances of the specified classes, but not subclasses (by default), will be included. Derived classes will be included only if bRecursiveClasses is true. */
 	TArray<FName> ClassNames;
 	/** The filter component for properties marked with the AssetRegistrySearchable flag */
 	TMultiMap<FName, FString> TagsAndValues;
-	/** If bRecursiveClasses is true, this results will exclude classes (including subclasses) in this list */
+	/** Only if bRecursiveClasses is true, the results will exclude classes (and subclasses) in this list */
 	TSet<FName> RecursiveClassesExclusionSet;
 	/** If true, PackagePath components will be recursive */
 	bool bRecursivePaths;
-	/** If true, Classes will include subclasses */
+	/** If true, subclasses of ClassNames will also be included and RecursiveClassesExclusionSet will be excluded. */
 	bool bRecursiveClasses;
 	/** If true, only on-disk assets will be returned. Be warned that this is rarely what you want and should only be used for performance reasons */
 	bool bIncludeOnlyOnDiskAssets;

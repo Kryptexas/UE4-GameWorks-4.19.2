@@ -1,13 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/Object.h"
+#include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphPin.h"
 #if WITH_EDITOR
-
-#include "BlueprintUtilities.h"
-#include "TokenizedMessage.h"
-#include "CompilationResult.h"
+#include "Logging/TokenizedMessage.h"
+#include "Misc/CompilationResult.h"
 #include "EdGraphToken.h"
+#endif
+
+class Error;
+
+#if WITH_EDITOR
 
 /** This class maps from final objects to their original source object, across cloning, autoexpansion, etc... */
 class UNREALED_API FBacktrackMap
@@ -142,26 +150,29 @@ public:
 
 	// Note: @@ will re replaced by FEdGraphToken::Create
 	template<typename... Args>
-	void Error(const TCHAR* Format, Args... args)
+	TSharedRef<FTokenizedMessage> Error(const TCHAR* Format, Args... args)
 	{
 		++NumErrors;
 		TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create(EMessageSeverity::Error);
 		InternalLogMessage(Format, Line, args...);
+		return Line;
 	}
 
 	template<typename... Args>
-	void Warning(const TCHAR* Format, Args... args)
+	TSharedRef<FTokenizedMessage> Warning(const TCHAR* Format, Args... args)
 	{
 		++NumWarnings;
 		TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create(EMessageSeverity::Warning);
 		InternalLogMessage(Format, Line, args...);
+		return Line;
 	}
 
 	template<typename... Args>
-	void Note(const TCHAR* Format, Args... args)
+	TSharedRef<FTokenizedMessage> Note(const TCHAR* Format, Args... args)
 	{
 		TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create(EMessageSeverity::Info);
 		InternalLogMessage(Format, Line, args...);
+		return Line;
 	}
 
 	/** Update the source backtrack map to note that NewObject was most closely generated/caused by the SourceObject */

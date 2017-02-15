@@ -1,7 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/IPv4/IPv4SubnetMask.h"
 
 /**
  * Implements an IPv4 address.
@@ -14,7 +16,7 @@ struct FIPv4Address
 		struct
 		{
 #if PLATFORM_LITTLE_ENDIAN
-	#if _MSC_VER
+	#ifdef _MSC_VER
 			uint8 D, C, B, A;
 	#else
 			uint8 D GCC_ALIGN(4);

@@ -1,17 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Visibility.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
 
-class SWidget;
-struct FGeometry;
+class FCachedWidgetNode;
 class FHittestGrid;
 class FSlateRect;
 class ICustomHitTestPath;
 class ILayoutCache;
-class FCachedWidgetNode;
-
+class SWidget;
+struct FGeometry;
 
 /**
  * SWidget::OnPaint and SWidget::Paint use FPaintArgs as their

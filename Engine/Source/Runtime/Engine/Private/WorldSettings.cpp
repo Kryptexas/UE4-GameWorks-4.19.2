@@ -1,24 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "GameFramework/WorldSettings.h"
+#include "Misc/MessageDialog.h"
+#include "UObject/ConstructorHelpers.h"
+#include "EngineDefines.h"
+#include "EngineStats.h"
+#include "Engine/World.h"
+#include "SceneInterface.h"
+#include "GameFramework/DefaultPhysicsVolume.h"
+#include "EngineUtils.h"
 #include "Engine/AssetUserData.h"
 #include "Engine/WorldComposition.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/GameNetworkManager.h"
-#include "SoundDefinitions.h"
-#include "ParticleDefinitions.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
+#include "AudioDevice.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
 #include "Particles/ParticleEventManager.h"
 #include "PhysicsEngine/PhysicsSettings.h"
-#include "GameFramework/DefaultPhysicsVolume.h"
-
-#define LOCTEXT_NAMESPACE "ErrorChecking"
+#include "ReleaseObjectVersion.h"
+#include "SceneManagement.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
 #endif 
+
+#define LOCTEXT_NAMESPACE "ErrorChecking"
 
 // @todo vreditor urgent: Temporary hack to allow world-to-meters to be set before
 // input is polled for motion controller devices each frame.
@@ -55,6 +64,7 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 	KillZDamageType = ConstructorStatics.DmgType_Environmental_Object.Object;
 
 	WorldToMeters = 100.f;
+	MonoCullingDistance = 750.f;
 
 	DefaultPhysicsVolumeClass = ADefaultPhysicsVolume::StaticClass();
 	GameNetworkManagerClass = AGameNetworkManager::StaticClass();
@@ -70,6 +80,7 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 	DefaultColorScale = FVector(1.0f, 1.0f, 1.0f);
 	DefaultMaxDistanceFieldOcclusionDistance = 600;
 	GlobalDistanceFieldViewDistance = 20000;
+	DynamicIndirectShadowsSelfShadowingIntensity = .8f;
 	bPlaceCellsOnlyAlongCameraTracks = false;
 	VisibilityCellSize = 200;
 	VisibilityAggressiveness = VIS_LeastAggressive;
@@ -168,12 +179,8 @@ void AWorldSettings::NotifyBeginPlay()
 	{
 		for (FActorIterator It(World); It; ++It)
 		{
-			// Actors that have traveled seamlessly from other levels already had BeginPlay called in that level
-			if (!It->IsPendingKill() && !It->HasActorBegunPlay())
-			{
-				SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
-				It->BeginPlay();
-			}
+			SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
+			It->DispatchBeginPlay();
 		}
 		World->bBegunPlay = true;
 	}
@@ -200,6 +207,8 @@ void AWorldSettings::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
+
 	if (Ar.UE4Ver() < VER_UE4_ADD_OVERRIDE_GRAVITY_FLAG)
 	{
 		//before we had override flag we would use GlobalGravityZ != 0
@@ -208,6 +217,27 @@ void AWorldSettings::Serialize( FArchive& Ar )
 			bGlobalGravitySet = true;
 		}
 	}
+#if WITH_EDITOR	
+	if (Ar.CustomVer(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::ConvertHLODScreenSize)
+	{
+		for (FHierarchicalSimplification& Setup : HierarchicalLODSetup)
+		{
+			const float OldScreenSize = Setup.TransitionScreenSize;
+
+			const float HalfFOV = PI * 0.25f;
+			const float ScreenWidth = 1920.0f;
+			const float ScreenHeight = 1080.0f;
+			const FPerspectiveMatrix ProjMatrix(HalfFOV, ScreenWidth, ScreenHeight, 1.0f);
+
+			const float DummySphereRadius = 16.0f;
+			const float ScreenArea = OldScreenSize * (ScreenWidth * ScreenHeight);
+			const float ScreenRadius = FMath::Sqrt(ScreenArea / PI);
+			const float ScreenDistance = FMath::Max(ScreenWidth / 2.0f * ProjMatrix.M[0][0], ScreenHeight / 2.0f * ProjMatrix.M[1][1]) * DummySphereRadius / ScreenRadius;
+
+			Setup.TransitionScreenSize = ComputeBoundsScreenSize(FVector::ZeroVector, DummySphereRadius, FVector(0.0f, 0.0f, ScreenDistance), ProjMatrix);
+		}
+	}
+#endif
 }
 
 void AWorldSettings::AddAssetUserData(UAssetUserData* InUserData)

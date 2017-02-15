@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaAssetsPCH.h"
 #include "MediaTexture.h"
-#include "MediaTextureResource.h"
+#include "Misc/ScopeLock.h"
+#include "RenderUtils.h"
+#include "MediaAssetsPrivate.h"
+#include "Misc/MediaTextureResource.h"
 
 
 /* UMediaTexture structors
@@ -13,7 +15,8 @@ UMediaTexture::UMediaTexture(const FObjectInitializer& ObjectInitializer)
 	, AddressX(TA_Clamp)
 	, AddressY(TA_Clamp)
 	, ClearColor(FLinearColor::Black)
-	, SinkDimensions(FIntPoint(1, 1))
+	, SinkBufferDim(FIntPoint(1, 1))
+	, SinkOutputDim(FIntPoint(1, 1))
 	, SinkFormat(EMediaTextureSinkFormat::CharBGRA)
 	, SinkMode(EMediaTextureSinkMode::Unbuffered)
 {
@@ -24,133 +27,33 @@ UMediaTexture::UMediaTexture(const FObjectInitializer& ObjectInitializer)
 /* IMediaTextureSink interface
  *****************************************************************************/
 
-void* UMediaTexture::AcquireTextureSinkBuffer()
+float UMediaTexture::GetAspectRatio() const
 {
-	FScopeLock Lock(&CriticalSection);
-
-	return (Resource != nullptr) ? ((FMediaTextureResource*)Resource)->AcquireBuffer() : nullptr;
-}
-
-
-void UMediaTexture::DisplayTextureSinkBuffer(FTimespan /*Time*/)
-{
-	FScopeLock Lock(&CriticalSection);
-
-	if (Resource != nullptr)
-	{
-		((FMediaTextureResource*)Resource)->DisplayBuffer();
-	}
-}
-
-
-FIntPoint UMediaTexture::GetTextureSinkDimensions() const
-{
-	FScopeLock Lock(&CriticalSection);
-
-	return (Resource != nullptr) ? ((FMediaTextureResource*)Resource)->GetSizeXY() : FIntPoint::ZeroValue;
-}
-
-
-EMediaTextureSinkFormat UMediaTexture::GetTextureSinkFormat() const
-{
-	return SinkFormat;
-}
-
-
-EMediaTextureSinkMode UMediaTexture::GetTextureSinkMode() const
-{
-	return SinkMode;
-}
-
-
-FRHITexture* UMediaTexture::GetTextureSinkTexture()
-{
-	FScopeLock Lock(&CriticalSection);
-
-	return (Resource != nullptr) ? ((FMediaTextureResource*)Resource)->GetTexture() : nullptr;
-}
-
-
-bool UMediaTexture::InitializeTextureSink(FIntPoint Dimensions, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode)
-{
-	UE_LOG(LogMediaAssets, Verbose, TEXT("MediaTexture initializing sink with %i x %i pixels %s."), Dimensions.X, Dimensions.Y, (Mode == EMediaTextureSinkMode::Buffered) ? TEXT("Buffered") : TEXT("Unbuffered"));
-
-	SinkDimensions = Dimensions;
-	SinkFormat = Format;
-	SinkMode = Mode;
-
-	FScopeLock Lock(&CriticalSection);
-
 	if (Resource == nullptr)
 	{
-		return false;
+		return 0.0f;
 	}
 
-	((FMediaTextureResource*)Resource)->InitializeBuffer(Dimensions, Format, Mode);
+	const FIntPoint Dimensions = ((FMediaTextureResource*)Resource)->GetSizeXY();
 
-	return true;
+	if (Dimensions.Y == 0)
+	{
+		return 0.0f;
+	}
+
+	return Dimensions.X / Dimensions.Y;
 }
 
 
-void UMediaTexture::ReleaseTextureSinkBuffer()
+int32 UMediaTexture::GetHeight() const
 {
-	FScopeLock Lock(&CriticalSection);
-
-	if (Resource != nullptr)
-	{
-		((FMediaTextureResource*)Resource)->ReleaseBuffer();
-	}
+	return (Resource != nullptr) ? (int32)Resource->GetSizeY() : 0;
 }
 
 
-void UMediaTexture::ShutdownTextureSink()
+int32 UMediaTexture::GetWidth() const
 {
-	UE_LOG(LogMediaAssets, Verbose, TEXT("MediaTexture shutting down sink."));
-
-	if (ClearColor.A == 0.0f)
-	{
-		return;
-	}
-
-	// reset to 1x1 clear color
-	SinkDimensions = FIntPoint(1, 1);
-	SinkFormat = EMediaTextureSinkFormat::CharBGRA;
-	SinkMode = EMediaTextureSinkMode::Unbuffered;
-
-	FScopeLock Lock(&CriticalSection);
-
-	if (Resource != nullptr)
-	{
-		((FMediaTextureResource*)Resource)->InitializeBuffer(SinkDimensions, SinkFormat, SinkMode);
-	}
-}
-
-
-bool UMediaTexture::SupportsTextureSinkFormat(EMediaTextureSinkFormat Format) const
-{
-	return true; // all formats are supported
-}
-
-
-void UMediaTexture::UpdateTextureSinkBuffer(const uint8* Data, uint32 Pitch)
-{
-	FScopeLock Lock(&CriticalSection);
-
-	if (Resource != nullptr)
-	{
-		((FMediaTextureResource*)Resource)->UpdateBuffer(Data, Pitch);
-	}
-}
-
-
-void UMediaTexture::UpdateTextureSinkResource(FRHITexture* RenderTarget, FRHITexture* ShaderResource)
-{
-	FScopeLock Lock(&CriticalSection);
-
-	if (Resource != nullptr)
-	{
-		((FMediaTextureResource*)Resource)->UpdateTextures(RenderTarget, ShaderResource);
-	}
+	return (Resource != nullptr) ? (int32)Resource->GetSizeX() : 0;
 }
 
 
@@ -159,7 +62,7 @@ void UMediaTexture::UpdateTextureSinkResource(FRHITexture* RenderTarget, FRHITex
 
 FTextureResource* UMediaTexture::CreateResource()
 {
-	return new FMediaTextureResource(*this, ClearColor, SinkDimensions, SinkFormat, SinkMode);
+	return new FMediaTextureResource(*this, ClearColor, SinkOutputDim, SinkFormat, SinkMode);
 }
 
 
@@ -245,3 +148,138 @@ void UMediaTexture::PreEditChange(UProperty* PropertyAboutToChange)
 }
 
 #endif // WITH_EDITOR
+
+
+/* IMediaTextureSink interface
+ *****************************************************************************/
+
+void* UMediaTexture::AcquireTextureSinkBuffer()
+{
+	FScopeLock Lock(&CriticalSection);
+
+	return (Resource != nullptr) ? ((FMediaTextureResource*)Resource)->AcquireBuffer() : nullptr;
+}
+
+
+void UMediaTexture::DisplayTextureSinkBuffer(FTimespan /*Time*/)
+{
+	FScopeLock Lock(&CriticalSection);
+
+	if (Resource != nullptr)
+	{
+		((FMediaTextureResource*)Resource)->DisplayBuffer();
+	}
+}
+
+
+FIntPoint UMediaTexture::GetTextureSinkDimensions() const
+{
+	FScopeLock Lock(&CriticalSection);
+
+	return (Resource != nullptr) ? ((FMediaTextureResource*)Resource)->GetSizeXY() : FIntPoint::ZeroValue;
+}
+
+
+EMediaTextureSinkFormat UMediaTexture::GetTextureSinkFormat() const
+{
+	return SinkFormat;
+}
+
+
+EMediaTextureSinkMode UMediaTexture::GetTextureSinkMode() const
+{
+	return SinkMode;
+}
+
+
+FRHITexture* UMediaTexture::GetTextureSinkTexture()
+{
+	FScopeLock Lock(&CriticalSection);
+
+	return (Resource != nullptr) ? ((FMediaTextureResource*)Resource)->GetTexture() : nullptr;
+}
+
+
+bool UMediaTexture::InitializeTextureSink(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode)
+{
+	UE_LOG(LogMediaAssets, Verbose, TEXT("MediaTexture initializing sink with %ix%i output and %ix%i buffer as %s."), OutputDim.X, OutputDim.Y, BufferDim.X, BufferDim.Y, (Mode == EMediaTextureSinkMode::Buffered) ? TEXT("Buffered") : TEXT("Unbuffered"));
+
+	SinkBufferDim = BufferDim;
+	SinkOutputDim = OutputDim;
+	SinkFormat = Format;
+	SinkMode = Mode;
+
+	FScopeLock Lock(&CriticalSection);
+
+	if (Resource == nullptr)
+	{
+		return false;
+	}
+
+	((FMediaTextureResource*)Resource)->InitializeBuffer(OutputDim, BufferDim, Format, Mode);
+
+	return true;
+}
+
+
+void UMediaTexture::ReleaseTextureSinkBuffer()
+{
+	FScopeLock Lock(&CriticalSection);
+
+	if (Resource != nullptr)
+	{
+		((FMediaTextureResource*)Resource)->ReleaseBuffer();
+	}
+}
+
+
+void UMediaTexture::ShutdownTextureSink()
+{
+	UE_LOG(LogMediaAssets, Verbose, TEXT("MediaTexture shutting down sink."));
+
+	if (ClearColor.A == 0.0f)
+	{
+		return;
+	}
+
+	// reset to 1x1 clear color
+	SinkBufferDim = FIntPoint(1, 1);
+	SinkOutputDim = FIntPoint(1, 1);
+	SinkFormat = EMediaTextureSinkFormat::CharBGRA;
+	SinkMode = EMediaTextureSinkMode::Unbuffered;
+
+	FScopeLock Lock(&CriticalSection);
+
+	if (Resource != nullptr)
+	{
+		((FMediaTextureResource*)Resource)->InitializeBuffer(SinkOutputDim, SinkBufferDim, SinkFormat, SinkMode);
+	}
+}
+
+
+bool UMediaTexture::SupportsTextureSinkFormat(EMediaTextureSinkFormat Format) const
+{
+	return true; // all formats are supported
+}
+
+
+void UMediaTexture::UpdateTextureSinkBuffer(const uint8* Data, uint32 Pitch)
+{
+	FScopeLock Lock(&CriticalSection);
+
+	if (Resource != nullptr)
+	{
+		((FMediaTextureResource*)Resource)->UpdateBuffer(Data, Pitch);
+	}
+}
+
+
+void UMediaTexture::UpdateTextureSinkResource(FRHITexture* RenderTarget, FRHITexture* ShaderResource)
+{
+	FScopeLock Lock(&CriticalSection);
+
+	if (Resource != nullptr)
+	{
+		((FMediaTextureResource*)Resource)->UpdateTextures(RenderTarget, ShaderResource);
+	}
+}

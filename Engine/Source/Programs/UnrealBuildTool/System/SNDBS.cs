@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -14,19 +14,14 @@ using System.Threading;
 
 namespace UnrealBuildTool
 {
-	public class SNDBS
+	public class SNDBS : ActionExecutor
 	{
 		static private int MaxActionsToExecuteInParallel;
 		static private int JobNumber;
 
-		/// <summary>
-		/// The possible result of executing tasks with SN-DBS.
-		/// </summary>
-		public enum ExecutionResult
+		public override string Name
 		{
-			Unavailable,
-			TasksFailed,
-			TasksSucceeded,
+			get { return "SNDBS"; }
 		}
 
 		/// <summary>
@@ -45,12 +40,12 @@ namespace UnrealBuildTool
 			Log.TraceInformation(Output);
 		}
 
-		internal static ExecutionResult ExecuteLocalActions(List<Action> InLocalActions, Dictionary<Action, ActionThread> InActionThreadDictionary, int TotalNumJobs)
+		internal static bool ExecuteLocalActions(List<Action> InLocalActions, Dictionary<Action, ActionThread> InActionThreadDictionary, int TotalNumJobs)
 		{
 			// Time to sleep after each iteration of the loop in order to not busy wait.
 			const float LoopSleepTime = 0.1f;
 
-			ExecutionResult LocalActionsResult = ExecutionResult.TasksSucceeded;
+			bool LocalActionsResult = true;
 
 			while (true)
 			{
@@ -149,7 +144,7 @@ namespace UnrealBuildTool
 			return LocalActionsResult;
 		}
 
-		internal static ExecutionResult ExecuteActions(List<Action> InActions, Dictionary<Action, ActionThread> InActionThreadDictionary)
+		internal static bool ExecuteActions(List<Action> InActions, Dictionary<Action, ActionThread> InActionThreadDictionary)
 		{
 			// Build the script file that will be executed by SN-DBS
 			StreamWriter ScriptFile;
@@ -270,11 +265,7 @@ namespace UnrealBuildTool
 				int ExitCode = NewProcess.ExitCode;
 				if (ExitCode != 0)
 				{
-					return ExecutionResult.TasksFailed;
-				}
-				else
-				{
-					UnrealBuildTool.TotalCompileTime += Duration.TotalSeconds;
+					return false;
 				}
 			}
 
@@ -284,30 +275,24 @@ namespace UnrealBuildTool
 				return ExecuteLocalActions(LocalActions, InActionThreadDictionary, InActions.Count);
 			}
 
-			return ExecutionResult.TasksSucceeded;
+			return true;
 		}
 
-		public static ExecutionResult ExecuteActions(List<Action> Actions)
+		public static bool IsAvailable()
 		{
-			ExecutionResult SNDBSResult = ExecutionResult.TasksSucceeded;
+			string SCERoot = Environment.GetEnvironmentVariable("SCE_ROOT_DIR");
+			if(SCERoot == null)
+			{
+				return false;
+			}
+			return File.Exists(Path.Combine(SCERoot, "Common/SN-DBS/bin/dbsbuild.exe"));
+		}
+
+		public override bool ExecuteActions(List<Action> Actions)
+		{
+			bool SNDBSResult = true;
 			if (Actions.Count > 0)
 			{
-                string SCERoot = Environment.GetEnvironmentVariable("SCE_ROOT_DIR");
-
-                bool bSNDBSExists = false;
-                if (SCERoot != null)
-                {
-                    string SNDBSExecutable = Path.Combine(SCERoot, "Common/SN-DBS/bin/dbsbuild.exe");
-
-                    // Check that SN-DBS is available
-                    bSNDBSExists = File.Exists(SNDBSExecutable);
-				}
-
-				if (bSNDBSExists == false)
-				{
-					return ExecutionResult.Unavailable;
-				}
-
 				// Use WMI to figure out physical cores, excluding hyper threading.
 				int NumCores = 0;
 				if (!Utils.IsRunningOnMono)
@@ -361,10 +346,9 @@ namespace UnrealBuildTool
 						if (bFoundActionProcess == false)
 						{
 							bUnexecutedActions = true;
-							ExecutionResult CompileResult = ExecuteActions(Actions, ActionThreadDictionary);
-							if (CompileResult != ExecutionResult.TasksSucceeded)
+							if(!ExecuteActions(Actions, ActionThreadDictionary))
 							{
-								return ExecutionResult.TasksFailed;
+								return false;
 							}
 							break;
 						}
@@ -390,13 +374,13 @@ namespace UnrealBuildTool
 					// Check for pending actions, preemptive failure
 					if (ActionThread == null)
 					{
-						SNDBSResult = ExecutionResult.TasksFailed;
+						SNDBSResult = false;
 						continue;
 					}
 					// Check for executed action but general failure
 					if (ActionThread.ExitCode != 0)
 					{
-						SNDBSResult = ExecutionResult.TasksFailed;
+						SNDBSResult = false;
 					}
 					// Log CPU time, tool and task.
 					double ThreadSeconds = Action.Duration.TotalSeconds;
@@ -409,34 +393,6 @@ namespace UnrealBuildTool
 						Path.GetFileName(Action.CommandPath),
 						Action.StatusDescription,
 						Action.bIsUsingPCH);
-
-					// Update statistics
-					switch (Action.ActionType)
-					{
-						case ActionType.BuildProject:
-							UnrealBuildTool.TotalBuildProjectTime += ThreadSeconds;
-							break;
-
-						case ActionType.Compile:
-							UnrealBuildTool.TotalCompileTime += ThreadSeconds;
-							break;
-
-						case ActionType.CreateAppBundle:
-							UnrealBuildTool.TotalCreateAppBundleTime += ThreadSeconds;
-							break;
-
-						case ActionType.GenerateDebugInfo:
-							UnrealBuildTool.TotalGenerateDebugInfoTime += ThreadSeconds;
-							break;
-
-						case ActionType.Link:
-							UnrealBuildTool.TotalLinkTime += ThreadSeconds;
-							break;
-
-						default:
-							UnrealBuildTool.TotalOtherActionsTime += ThreadSeconds;
-							break;
-					}
 
 					// Keep track of total thread seconds spent on tasks.
 					TotalThreadSeconds += ThreadSeconds;

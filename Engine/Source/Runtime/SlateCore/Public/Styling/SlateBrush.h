@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Margin.h"
-#include "SlateColor.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Styling/SlateColor.h"
+#include "Layout/Margin.h"
 
 #include "SlateBrush.generated.h"
-
 
 /**
  * Enumerates ways in which an image can be drawn.

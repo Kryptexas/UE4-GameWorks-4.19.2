@@ -1,18 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class FFreeTypeAdvanceCache;
 class FFreeTypeFace;
 class FFreeTypeGlyphCache;
+class FFreeTypeKerningPairCache;
 
 #ifndef WITH_HARFBUZZ
 	#define WITH_HARFBUZZ	0
 #endif // WITH_HARFBUZZ
 
+#if PLATFORM_COMPILER_HAS_GENERIC_KEYWORD
+	#define generic __identifier(generic)
+#endif	//PLATFORM_COMPILER_HAS_GENERIC_KEYWORD
+
 #if WITH_HARFBUZZ
+	THIRD_PARTY_INCLUDES_START
 	#include "hb.h"
 	#include "hb-ft.h"
+	THIRD_PARTY_INCLUDES_END
 #endif // #if WITH_HARFBUZZ
+
+#if PLATFORM_COMPILER_HAS_GENERIC_KEYWORD
+	#undef generic
+#endif	//PLATFORM_COMPILER_HAS_GENERIC_KEYWORD
 
 namespace HarfBuzzUtils
 {

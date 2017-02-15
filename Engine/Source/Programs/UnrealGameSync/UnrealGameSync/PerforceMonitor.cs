@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Concurrent;
@@ -55,6 +55,7 @@ namespace UnrealGameSync
 			SelectedClientFileName = InSelectedClientFileName;
 			SelectedProjectIdentifier = InSelectedProjectIdentifier;
 			PendingMaxChangesValue = 100;
+			LastChangeByCurrentUser = -1;
 			LastCodeChangeByCurrentUser = -1;
 			OtherStreamNames = new List<string>();
 
@@ -249,9 +250,10 @@ namespace UnrealGameSync
 				}
 			}
 
-			// Insert them into the builds list
+			// Process the new changes received
 			if(NewChanges.Count > 0 || MaxChanges < CurrentMaxChanges)
 			{
+				// Insert them into the builds list
 				lock(this)
 				{
 					Changes.UnionWith(NewChanges);
@@ -261,6 +263,19 @@ namespace UnrealGameSync
 					}
 					CurrentMaxChanges = MaxChanges;
 				}
+
+				// Find the last submitted change by the current user
+				int NewLastChangeByCurrentUser = -1;
+				foreach(PerforceChangeSummary Change in Changes)
+				{
+					if(String.Compare(Change.User, Perforce.UserName, StringComparison.InvariantCultureIgnoreCase) == 0)
+					{
+						NewLastChangeByCurrentUser = Math.Max(NewLastChangeByCurrentUser, Change.Number);
+					}
+				}
+				LastChangeByCurrentUser = NewLastChangeByCurrentUser;
+
+				// Notify the main window that we've got more data
 				if(OnUpdate != null)
 				{
 					OnUpdate();
@@ -429,6 +444,12 @@ namespace UnrealGameSync
 		}
 
 		public string CurrentStream
+		{
+			get;
+			private set;
+		}
+
+		public int LastChangeByCurrentUser
 		{
 			get;
 			private set;

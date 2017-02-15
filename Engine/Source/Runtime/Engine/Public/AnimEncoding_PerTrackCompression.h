@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimEncoding_PerTrackCompression.h: Per-track decompressor.
@@ -6,7 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "AnimEncoding.h"
+
+class FMemoryArchive;
 
 /**
  * Decompression codec for the per-track compressor.

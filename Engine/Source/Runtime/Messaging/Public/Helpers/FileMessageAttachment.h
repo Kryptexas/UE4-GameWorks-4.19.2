@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "FileManager.h"
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
 #include "IMessageAttachment.h"
-
 
 /**
  * Implements a message attachment whose data is held in a file.

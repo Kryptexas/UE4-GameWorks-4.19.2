@@ -1,15 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessHierarchical.cpp: Post processing Screen Space Reflections implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessing.h"
-#include "PostProcessHierarchical.h"
+#include "PostProcess/PostProcessHierarchical.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessing.h"
 
 template< uint32 Stage >
 class TPostProcessBuildHCBPS : public FGlobalShader

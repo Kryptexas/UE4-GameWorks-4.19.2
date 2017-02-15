@@ -1,6 +1,17 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimSequence.h"
+#include "Animation/AnimationRecordingSettings.h"
+#include "IMovieSceneSectionRecorder.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "IMovieSceneSectionRecorderFactory.h"
+
+class FMovieSceneAnimationSectionRecorder;
+class UMovieSceneSkeletalAnimationSection;
 
 class FMovieSceneAnimationSectionRecorderFactory : public IMovieSceneSectionRecorderFactory
 {

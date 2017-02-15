@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "AITask.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "AITypes.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "Tasks/AITask.h"
 #include "AITask_MoveTo.generated.h"
 
-class APawn;
+class AAIController;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMoveTaskCompletedSignature, TEnumAsByte<EPathFollowingResult::Type>, Result);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMoveTaskCompletedSignature, TEnumAsByte<EPathFollowingResult::Type>, Result, AAIController*, AIController);
 
 UCLASS()
 class AIMODULE_API UAITask_MoveTo : public UAITask

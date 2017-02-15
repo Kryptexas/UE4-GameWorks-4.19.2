@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AtmosphereTextureParameters.h: Shader base classes
@@ -6,7 +6,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
 #include "RHIStaticStates.h"
+#include "SceneView.h"
+
+class FShaderParameterMap;
 
 /** Shader parameters needed for atmosphere passes. */
 class FAtmosphereShaderTextureParameters

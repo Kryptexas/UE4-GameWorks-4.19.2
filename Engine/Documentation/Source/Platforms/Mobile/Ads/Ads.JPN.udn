@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3150518
 Title:インゲーム広告を使用する
 Description: ゲームを収益化するためにインゲーム広告を使用する
 Crumbs:
 Availability:Public
 parent:Platforms/Mobile
 order:3
-type:howto
+type:how-to
 tags:mobile
 
 [VAR:Topic]
@@ -52,7 +52,7 @@ tags:mobile
 	![Android AdMob](AdMob.png)(w:320 convert:false)
 	[/PARAM]
 	[PARAMLITERAL:position]
-	上
+	top
 	[/PARAMLITERAL]
 [/OBJECT]
 
@@ -70,7 +70,7 @@ tags:mobile
 
 **Show Ad Banner** 関数は、ゲームにバナー広告を表示するために使います。例えば、メイン メニューが表示された時など、広告を表示したいロジック内のどこかに呼び出します。
 
-**ブループリント内で表示する:**
+**ブループリント内:**
 
 Unreal Match 3 のサンプル ゲームを例に取りましょう。Widget ブループリントの **Construct** イベントを使って、勝敗画面の表示時にバナー広告を表示します。
 
@@ -82,7 +82,7 @@ Unreal Match 3 のサンプル ゲームを例に取りましょう。Widget ブ
 
 **Hide Ad Banner** 関数は、表示されているバナー広告を非表示にします。メインメニューを終了するなど、広告をこれ以上表示させたくない場合に呼び出します。
 
-**ブループリント内で表示する:**
+**ブループリント内:**
 
 Unreal Match 3 のサンプル ゲームを例に取りましょう。Widget ブループリントの **Destruct** イベントを使って、勝敗画面の表示時にバナー広告を非表示にします。
 

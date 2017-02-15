@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "SlowTask.h"
+#include "Misc/SlowTask.h"
+#include "HAL/PlatformTime.h"
+#include "Misc/FeedbackContext.h"
 
 FSlowTask::FSlowTask(float InAmountOfWork, const FText& InDefaultMessage, bool bInEnabled, FFeedbackContext& InContext)
 	: DefaultMessage(InDefaultMessage)
@@ -74,6 +75,11 @@ void FSlowTask::EnterProgressFrame(float ExpectedWorkThisFrame, FText Text)
 {
 	FrameMessage = Text;
 	CompletedWork += CurrentFrameScope;
+
+#if PLATFORM_XBOXONE
+	// Make sure OS events are getting through while the task is being processed
+	FPlatformMisc::PumpMessages(true);
+#endif
 
 	const float WorkRemaining = TotalAmountOfWork - CompletedWork;
 	// Add a small threshold here because when there are a lot of tasks, numerical imprecision can add up and trigger this.

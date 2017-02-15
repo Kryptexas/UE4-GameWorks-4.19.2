@@ -1,12 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MeshParticleVertexFactory.cpp: Mesh particle vertex factory implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "ParticleDefinitions.h"
 #include "MeshParticleVertexFactory.h"
+#include "ParticleHelper.h"
 #include "ShaderParameterUtils.h"
 
 

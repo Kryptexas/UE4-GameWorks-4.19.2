@@ -1,37 +1,75 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LaunchPrivatePCH.h"
-#include "Internationalization/Internationalization.h"
-#include "Ticker.h"
-#include "ConsoleManager.h"
-#include "ExceptionHandling.h"
-#include "FileManagerGeneric.h"
-#include "TaskGraphInterfaces.h"
-#include "StatsMallocProfilerProxy.h"
+#include "LaunchEngineLoop.h"
+#include "HAL/PlatformStackWalk.h"
+#include "HAL/PlatformOutputDevices.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/QueuedThreadPool.h"
+#include "HAL/FileManager.h"
+#include "HAL/PlatformAffinity.h"
+#include "Misc/FileHelper.h"
+#include "Internationalization/TextLocalizationManagerGlobals.h"
+#include "Logging/LogSuppressionInterface.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "Misc/TimeGuard.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/OutputDeviceHelper.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/AutomationTest.h"
+#include "Misc/CommandLine.h"
+#include "Misc/App.h"
+#include "Misc/OutputDeviceConsole.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Templates/ScopedPointer.h"
+#include "HAL/FileManagerGeneric.h"
+#include "HAL/ExceptionHandling.h"
+#include "Stats/StatsMallocProfilerProxy.h"
+#include "HAL/PlatformSplash.h"
+#include "HAL/ThreadManager.h"
+#include "ProfilingDebugging/ExternalProfiler.h"
+#include "Containers/Ticker.h"
 
-#include "Projects.h"
-#include "UProjectInfo.h"
-#include "EngineVersion.h"
+#include "Interfaces/IPluginManager.h"
+#include "ProjectDescriptor.h"
+#include "Interfaces/IProjectManager.h"
+#include "Misc/UProjectInfo.h"
+#include "Misc/EngineVersion.h"
+#include "HAL/IOBase.h"
 
-#include "ModuleManager.h"
-#include "../Resources/Version.h"
+#include "Misc/CoreDelegates.h"
+#include "Modules/ModuleManager.h"
+#include "Runtime/Launch/Resources/Version.h"
 #include "VersionManifest.h"
 #include "UObject/DevObjectVersion.h"
 #include "HAL/ThreadHeartBeat.h"
-#include "MallocProfiler.h"
 
-#include "NetworkVersion.h"
+#include "Misc/NetworkVersion.h"
+#include "UniquePtr.h"
 
 #if WITH_COREUOBJECT
 	#include "Internationalization/PackageLocalizationManager.h"
-	#include "CoreUObject.h"
+	#include "Misc/PackageName.h"
+	#include "Misc/StartupPackages.h"
+	#include "UObject/UObjectHash.h"
+	#include "UObject/Package.h"
+	#include "UObject/Linker.h"
 #endif
 
 #if WITH_EDITOR
-	#include "EditorStyle.h"
-	#include "ProfilerClient.h"
-	#include "RemoteConfigIni.h"
+	#include "EditorStyleSet.h"
+	#include "Misc/RemoteConfigIni.h"
 	#include "EditorCommandLineUtils.h"
+	#include "Input/Reply.h"
+	#include "Styling/CoreStyle.h"
+	#include "RenderingThread.h"
+	#include "Editor/EditorEngine.h"
+	#include "UnrealEdMisc.h"
+	#include "UnrealEdGlobals.h"
+	#include "Editor/UnrealEdEngine.h"
+	#include "Settings/EditorExperimentalSettings.h"
+	#include "Interfaces/IEditorStyleModule.h"
 
 	#if PLATFORM_WINDOWS
 		#include "AllowWindowsPlatformTypes.h"
@@ -41,14 +79,27 @@
 #endif
 
 #if WITH_ENGINE
+	#include "Engine/GameEngine.h"
+	#include "UnrealClient.h"
+	#include "Engine/LocalPlayer.h"
+	#include "GameFramework/PlayerController.h"
+	#include "GameFramework/GameUserSettings.h"
+	#include "Features/IModularFeatures.h"
+	#include "GameFramework/WorldSettings.h"
+	#include "SystemSettings.h"
+	#include "EngineStats.h"
+	#include "EngineGlobals.h"
 	#include "AudioThread.h"
-	#include "AutomationController.h"
+	#include "Interfaces/IAutomationControllerModule.h"
 	#include "Database.h"
 	#include "DerivedDataCacheInterface.h"
-	#include "RenderCore.h"
 	#include "ShaderCompiler.h"
 	#include "DistanceFieldAtlas.h"
 	#include "GlobalShader.h"
+	#include "Materials/MaterialInterface.h"
+	#include "TextureResource.h"
+	#include "Engine/Texture2D.h"
+	#include "SceneUtils.h"
 	#include "ParticleHelper.h"
 	#include "PhysicsPublic.h"
 	#include "PlatformFeatures.h"
@@ -57,17 +108,21 @@
 	#include "EngineService.h"
 	#include "ContentStreaming.h"
 	#include "HighResScreenshot.h"
-	#include "HotReloadInterface.h"
-	#include "ISessionService.h"
+	#include "Misc/HotReloadInterface.h"
 	#include "ISessionServicesModule.h"
-	#include "Engine/GameInstance.h"
 	#include "Net/OnlineEngineInterface.h"
 	#include "Internationalization/EnginePackageLocalizationCache.h"
+	#include "Rendering/SlateRenderer.h"
+	#include "Layout/WidgetPath.h"
+	#include "Framework/Application/SlateApplication.h"
+	#include "IMessagingModule.h"
+	#include "Engine/DemoNetDriver.h"
 
 #if !UE_SERVER
+	#include "IHeadMountedDisplayModule.h"
 	#include "HeadMountedDisplay.h"
-	#include "ISlateRHIRendererModule.h"
-	#include "ISlateNullRendererModule.h"
+	#include "Interfaces/ISlateRHIRendererModule.h"
+	#include "Interfaces/ISlateNullRendererModule.h"
 	#include "EngineFontServices.h"
 #endif
 
@@ -75,18 +130,25 @@
 
 #if !UE_BUILD_SHIPPING
 	#include "STaskGraph.h"
-	#include "ProfilerService.h"
+	#include "IProfilerServiceModule.h"
 #endif
 
 #if WITH_AUTOMATION_WORKER
-	#include "AutomationWorker.h"
+	#include "Interfaces/IAutomationWorkerModule.h"
 #endif
 
 #endif  //WITH_ENGINE
 
+class FSlateRenderer;
+class SViewport;
+class IPlatformFile;
+class FExternalProfiler;
+class FFeedbackContext;
+
 #if WITH_EDITOR
 	#include "FeedbackContextEditor.h"
 	static FFeedbackContextEditor UnrealEdWarn;
+	#include "AudioEditorModule.h"
 #endif	// WITH_EDITOR
 
 #if UE_EDITOR
@@ -101,11 +163,14 @@
 	#include "HideWindowsPlatformTypes.h"
 #endif
 
-#if ENABLE_VISUAL_LOG
-	#include "VisualLogger/VisualLogger.h"
+#if WITH_ENGINE
+	#include "EngineDefines.h"
+	#if ENABLE_VISUAL_LOG
+		#include "VisualLogger/VisualLogger.h"
+	#endif
 #endif
 
-#if WITH_LAUNCHERCHECK
+#if defined(WITH_LAUNCHERCHECK) && WITH_LAUNCHERCHECK
 	#include "LauncherCheck.h"
 #endif
 
@@ -116,6 +181,50 @@
 #else
 	#define USE_LOCALIZED_PACKAGE_CACHE 0
 #endif
+
+static TAutoConsoleVariable<int32> CVarDoAsyncEndOfFrameTasksRandomize(
+	TEXT("tick.DoAsyncEndOfFrameTasks.Randomize"),
+	0,
+	TEXT("Used to add random sleeps to tick.DoAsyncEndOfFrameTasks to shake loose bugs on either thread. Also does random render thread flushes from the game thread.")
+	);
+
+static FAutoConsoleTaskPriority CPrio_AsyncEndOfFrameGameTasks(
+	TEXT("TaskGraph.TaskPriorities.AsyncEndOfFrameGameTasks"),
+	TEXT("Task and thread priority for the experiemntal async end of frame tasks."),
+	ENamedThreads::HighThreadPriority,
+	ENamedThreads::NormalTaskPriority,
+	ENamedThreads::HighTaskPriority
+	);
+
+/** Task that executes concurrently with Slate when tick.DoAsyncEndOfFrameTasks is true. */
+class FExecuteConcurrentWithSlateTickTask
+{
+	TFunctionRef<void()> TickWithSlate;
+
+public:
+
+	FExecuteConcurrentWithSlateTickTask(TFunctionRef<void()> InTickWithSlate)
+		: TickWithSlate(InTickWithSlate)
+	{
+	}
+
+	static FORCEINLINE TStatId GetStatId()
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FExecuteConcurrentWithSlateTickTask, STATGROUP_TaskGraphTasks);
+	}
+
+	static FORCEINLINE ENamedThreads::Type GetDesiredThread()
+	{
+		return CPrio_AsyncEndOfFrameGameTasks.Get();
+	}
+
+	static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		TickWithSlate();
+	}
+};
 
 // Pipe output to std output
 // This enables UBT to collect the output for it's own use
@@ -193,9 +302,9 @@ public:
 };
 
 
-static TScopedPointer<FOutputDeviceConsole>	GScopedLogConsole;
-static TScopedPointer<FOutputDeviceStdOutput> GScopedStdOut;
-static TScopedPointer<FOutputDeviceTestExit> GScopedTestExit;
+static TUniquePtr<FOutputDeviceConsole>	GScopedLogConsole;
+static TUniquePtr<FOutputDeviceStdOutput> GScopedStdOut;
+static TUniquePtr<FOutputDeviceTestExit> GScopedTestExit;
 
 
 #if WITH_ENGINE
@@ -223,10 +332,10 @@ static void RHIExitAndStopRHIThread()
 void InitializeStdOutDevice()
 {
 	// Check if something is trying to initialize std out device twice.
-	check(!GScopedStdOut.IsValid());
+	check(!GScopedStdOut);
 
-	GScopedStdOut = new FOutputDeviceStdOutput();
-	GLog->AddOutputDevice(GScopedStdOut.GetOwnedPointer());
+	GScopedStdOut = MakeUnique<FOutputDeviceStdOutput>();
+	GLog->AddOutputDevice(GScopedStdOut.Get());
 }
 
 
@@ -761,7 +870,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		return -1;
 	}
 
-#if WITH_LAUNCHERCHECK
+#if defined(WITH_LAUNCHERCHECK) && WITH_LAUNCHERCHECK
 	if (ILauncherCheckModule::Get().WasRanFromLauncher() == false)
 	{
 		// Tell Launcher to run us instead
@@ -797,7 +906,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 
 	// Initialize log console here to avoid statics initialization issues when launched from the command line.
-	GScopedLogConsole = FPlatformOutputDevices::GetLogConsole();
+	GScopedLogConsole = TUniquePtr<FOutputDeviceConsole>(FPlatformOutputDevices::GetLogConsole());
 
 	// Always enable the backlog so we get all messages, we will disable and clear it in the game
 	// as soon as we determine whether GIsEditor == false
@@ -818,8 +927,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			TArray<FString> ExitPhrasesList;
 			if (ExitPhrases.ParseIntoArray(ExitPhrasesList, TEXT("+"), true) > 0)
 			{
-				GScopedTestExit = new FOutputDeviceTestExit(ExitPhrasesList);
-				GLog->AddOutputDevice(GScopedTestExit.GetOwnedPointer());
+				GScopedTestExit = MakeUnique<FOutputDeviceTestExit>(ExitPhrasesList);
+				GLog->AddOutputDevice(GScopedTestExit.Get());
 			}
 		}
 	}
@@ -1235,17 +1344,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			}
 			verify(GThreadPool->Create(NumThreadsInThreadPool, 128 * 1024));
 		}
-#if USE_NEW_ASYNC_IO
-		{
-			GIOThreadPool = FQueuedThreadPool::Allocate();
-			int32 NumThreadsInThreadPool = FPlatformMisc::NumberOfIOWorkerThreadsToSpawn();
-			if (FPlatformProperties::IsServerOnly())
-			{
-				NumThreadsInThreadPool = 2;
-			}
-			verify(GIOThreadPool->Create(NumThreadsInThreadPool, 16 * 1024, TPri_AboveNormal));
-		}
-#endif // USE_NEW_ASYNC_IO
 
 #if WITH_EDITOR
 		// when we are in the editor we like to do things like build lighting and such
@@ -1258,7 +1356,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 
 	// Get a pointer to the log output device
-	GLogConsole = GScopedLogConsole.GetOwnedPointer();
+	GLogConsole = GScopedLogConsole.Get();
 
 	LoadPreInitModules();
 
@@ -1268,6 +1366,25 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		return 1;
 	}
 	
+#if WITH_COREUOBJECT
+	GNewAsyncIO = IsEventDrivenLoaderEnabled();
+	FPlatformFileManager::Get().InitializeNewAsyncIO();
+#endif
+
+	if (FPlatformProcess::SupportsMultithreading())
+	{
+		if (GNewAsyncIO)
+		{
+			GIOThreadPool = FQueuedThreadPool::Allocate();
+			int32 NumThreadsInThreadPool = FPlatformMisc::NumberOfIOWorkerThreadsToSpawn();
+			if (FPlatformProperties::IsServerOnly())
+			{
+				NumThreadsInThreadPool = 2;
+			}
+			verify(GIOThreadPool->Create(NumThreadsInThreadPool, 16 * 1024, TPri_AboveNormal));
+		}
+	}
+
 #if WITH_ENGINE
 	// Initialize system settings before anyone tries to use it...
 	GSystemSettings.Initialize( bHasEditorToken );
@@ -1411,14 +1528,15 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	// If std out device hasn't been initialized yet (there was no -stdout param in the command line) and
 	// we meet all the criteria, initialize it now.
-	if (!GScopedStdOut.IsValid() && !bHasEditorToken && !bIsRegularClient && !IsRunningDedicatedServer())
+	if (!GScopedStdOut && !bHasEditorToken && !bIsRegularClient && !IsRunningDedicatedServer())
 	{
 		InitializeStdOutDevice();
 	}
 
-#if !USE_NEW_ASYNC_IO
-	FIOSystem::Get(); // force it to be created if it isn't already
-#endif
+	if (!GNewAsyncIO)
+	{
+		FIOSystem::Get(); // force it to be created if it isn't already
+	}
 
 	// allow the platform to start up any features it may need
 	IPlatformFeaturesModule::Get();
@@ -1547,6 +1665,64 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			GetDerivedDataCacheRef();
 		}
 
+
+		// If platforms support early movie playback we have to start the rendering thread much earlier
+#if PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
+		RHIPostInit();
+
+		if(GUseThreadedRendering)
+		{
+			if(GRHISupportsRHIThread)
+			{
+				const bool DefaultUseRHIThread = true;
+				GUseRHIThread = DefaultUseRHIThread;
+				if(FParse::Param(FCommandLine::Get(), TEXT("rhithread")))
+				{
+					GUseRHIThread = true;
+				}
+				else if(FParse::Param(FCommandLine::Get(), TEXT("norhithread")))
+				{
+					GUseRHIThread = false;
+				}
+			}
+			StartRenderingThread();
+		}
+#endif
+
+#if !UE_SERVER// && !UE_EDITOR
+		if(!IsRunningDedicatedServer() && !IsRunningCommandlet())
+		{
+			TSharedRef<FSlateRenderer> SlateRenderer = GUsingNullRHI ?
+				FModuleManager::Get().LoadModuleChecked<ISlateNullRendererModule>("SlateNullRenderer").CreateSlateNullRenderer() :
+				FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlateRHIRenderer();
+
+			// If Slate is being used, initialize the renderer after RHIInit 
+			FSlateApplication& CurrentSlateApp = FSlateApplication::Get();
+			CurrentSlateApp.InitializeRenderer(SlateRenderer);
+
+			// Create the engine font services now that the Slate renderer is ready
+			FEngineFontServices::Create();
+
+			GetMoviePlayer()->SetSlateRenderer(SlateRenderer);
+
+			// allow the movie player to load a sequence from the .inis (a PreLoadingScreen module could have already initialized a sequence, in which case
+			// it wouldn't have anything in it's .ini file)
+			GetMoviePlayer()->SetupLoadingScreenFromIni();
+
+			if(GetMoviePlayer()->HasEarlyStartupMovie())
+			{
+				GetMoviePlayer()->Initialize();
+
+				// hide splash screen now
+				FPlatformMisc::PlatformPostInit(false);
+
+				// only allowed to play any movies marked as early startup.  These movies or widgets can have no interaction whatsoever with uobjects or engine features
+				GetMoviePlayer()->PlayEarlyStartupMovies();
+			}
+
+		}
+#endif
+
 		// In order to be able to use short script package names get all script
 		// package names from ini files and register them with FPackageName system.
 		FPackageName::RegisterShortPackageNamesForUObjectModules();
@@ -1591,44 +1767,30 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		return 1;
 	}
 
-#if !UE_SERVER// && !UE_EDITOR
-	if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
-	{
-		TSharedRef<FSlateRenderer> SlateRenderer = GUsingNullRHI ?
-			FModuleManager::Get().LoadModuleChecked<ISlateNullRendererModule>("SlateNullRenderer").CreateSlateNullRenderer() :
-			FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlateRHIRenderer();
-
-		// If Slate is being used, initialize the renderer after RHIInit 
-		FSlateApplication& CurrentSlateApp = FSlateApplication::Get();
-		CurrentSlateApp.InitializeRenderer( SlateRenderer );
-
-		GetMoviePlayer()->SetSlateRenderer(SlateRenderer);
-	}
-
-	// Create the engine font services now that the Slate renderer is ready
-	FEngineFontServices::Create();
-#endif
 
 	SlowTask.EnterProgressFrame(10);
-	
+
 	// Load up all modules that need to hook into the loading screen
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreLoadingScreen) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreLoadingScreen))
 	{
 		return 1;
 	}
 
+
+#if !UE_SERVER// && !UE_EDITOR
+	if(!IsRunningDedicatedServer() && !IsRunningCommandlet() && !GetMoviePlayer()->IsMovieCurrentlyPlaying())
+	{
+		GetMoviePlayer()->Initialize();
+
+		// Play any non-early startup loading movies.
+		GetMoviePlayer()->PlayMovie();
+	
+	}
+#endif
+
 #if !UE_SERVER
 	if ( !IsRunningDedicatedServer() )
 	{
-		// @todo ps4: If a loading movie starts earlier, which it probably should, then please see PS4's PlatformPostInit() implementation!
-
-		// allow the movie player to load a sequence from the .inis (a PreLoadingScreen module could have already initialized a sequence, in which case
-		// it wouldn't have anything in it's .ini file)
-		GetMoviePlayer()->SetupLoadingScreenFromIni();
-
-		GetMoviePlayer()->Initialize();
-		GetMoviePlayer()->PlayMovie();
-
 		// do any post appInit processing, before the render thread is started.
 		FPlatformMisc::PlatformPostInit(!GetMoviePlayer()->IsMovieCurrentlyPlaying());
 	}
@@ -1640,6 +1802,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 	SlowTask.EnterProgressFrame(5);
 
+#if !PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
 	RHIPostInit();
 
 	if (GUseThreadedRendering)
@@ -1659,6 +1822,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		}
 		StartRenderingThread();
 	}
+#endif // !PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
 	
 #if WITH_EDITOR
 	// We need to mount the shared resources for templates (if there are any) before we try and load and game classes
@@ -1765,8 +1929,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			{
 				GLog->RemoveOutputDevice( GLogConsole );
 			}
-
-			GIsRequestingExit = true;	// so CTRL-C will exit immediately
 			
 			// allow the commandlet the opportunity to create a custom engine
 			CommandletClass->GetDefaultObject<UCommandlet>()->CreateCustomEngine(CommandletCommandLine);
@@ -1842,6 +2004,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			FStats::TickCommandletStats();
 			int32 ErrorLevel = Commandlet->Main( CommandletCommandLine );
 			FStats::TickCommandletStats();
+
+			GIsRequestingExit = true;
 
 			// Log warning/ error summary.
 			if( Commandlet->ShowErrorCount )
@@ -2080,6 +2244,12 @@ void FEngineLoop::LoadPreInitModules()
 	FModuleManager::Get().LoadModule(TEXT("TextureCompressor"));
 #endif
 #endif // WITH_ENGINE
+
+#if (WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
+	// Load audio editor module before engine class CDOs are loaded
+	FModuleManager::Get().LoadModule(TEXT("AudioEditor"));
+#endif
+
 }
 
 
@@ -2162,22 +2332,14 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// Ability tasks are based on GameplayTasks, so we need to make sure that module is loaded as well
 	FModuleManager::Get().LoadModule(TEXT("GameplayTasksEditor"));
 
+	IAudioEditorModule* AudioEditorModule = &FModuleManager::LoadModuleChecked<IAudioEditorModule>("AudioEditor");
+	AudioEditorModule->RegisterAssetActions();
+
 	if( !IsRunningDedicatedServer() )
 	{
 		// VREditor needs to be loaded in non-server editor builds early, so engine content Blueprints can be loaded during DDC generation
 		FModuleManager::Get().LoadModule(TEXT("VREditor"));
 	}
-	// -----------------------------------------------------
-
-	// HACK: load AbilitySystem editor as early as possible for statically initialized assets (non cooked BT assets needs it)
-	// cooking needs this module too
-	bool bGameplayAbilitiesEnabled = false;
-	GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiesEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
-	if (bGameplayAbilitiesEnabled)
-	{
-		FModuleManager::Get().LoadModule(TEXT("GameplayAbilitiesEditor"));
-	}
-
 	// -----------------------------------------------------
 
 	// HACK: load EQS editor as early as possible for statically initialized assets (non cooked EQS assets needs it)
@@ -2201,9 +2363,6 @@ bool FEngineLoop::LoadStartupCoreModules()
 		FModuleManager::Get().LoadModule(TEXT("IntroTutorials"));
 		FModuleManager::Get().LoadModule(TEXT("Blutility"));
 	}
-
-	// Needed for extra Blueprint nodes that can be used in standalone.
-	FModuleManager::Get().LoadModule(TEXT("GameplayTagsEditor"));
 
 #endif //(WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 
@@ -2521,9 +2680,10 @@ void FEngineLoop::Exit()
 
 	FTaskGraphInterface::Shutdown();
 	IStreamingManager::Shutdown();
-#if !USE_NEW_ASYNC_IO
-	FIOSystem::Shutdown();
-#endif
+	if (!GNewAsyncIO)
+	{
+		FIOSystem::Shutdown();
+	}
 }
 
 
@@ -2549,7 +2709,7 @@ void FEngineLoop::ProcessLocalPlayerSlateOperations() const
 				{
 					for (FConstPlayerControllerIterator Iterator = CurWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 					{
-						APlayerController* PlayerController = *Iterator;
+						APlayerController* PlayerController = Iterator->Get();
 						if (PlayerController)
 						{
 							ULocalPlayer* LocalPlayer = Cast< ULocalPlayer >(PlayerController->Player);
@@ -2597,7 +2757,7 @@ bool FEngineLoop::ShouldUseIdleMode() const
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
-#include "StackTracker.h"
+#include "Containers/StackTracker.h"
 static TAutoConsoleVariable<int32> CVarLogGameThreadMallocChurn(
 	TEXT("LogGameThreadMallocChurn.Enable"),
 	0,
@@ -2725,6 +2885,12 @@ void FEngineLoop::Tick()
 
 	// Send a heartbeat for the diagnostics thread
 	FThreadHeartBeat::Get().HeartBeat();
+
+	// Make sure something is ticking the rendering tickables in -onethread mode to avoid leaks/bugs.
+	if (!GUseThreadedRendering && !GIsRenderingThreadSuspended)
+	{
+		TickRenderingTickables();
+	}
 
 	// Ensure we aren't starting a frame while loading or playing a loading movie
 	ensure(GetMoviePlayer()->IsLoadingFinished() && !GetMoviePlayer()->IsMovieCurrentlyPlaying());
@@ -2874,6 +3040,34 @@ void FEngineLoop::Tick()
 			GDistanceFieldAsyncQueue->ProcessAsyncTasks();
 		}
 
+#if WITH_ENGINE
+		FGraphEventRef ConcurrentTask;
+		const bool bDoConcurrentSlateTick = GEngine->ShouldDoAsyncEndOfFrameTasks();
+
+		if (bDoConcurrentSlateTick)
+		{
+			const float DeltaSeconds = FApp::GetDeltaTime();
+			UGameViewportClient* const GameViewport = GEngine->GameViewport;
+			ConcurrentTask = TGraphTask<FExecuteConcurrentWithSlateTickTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
+				[GameViewport, DeltaSeconds]()
+				{
+					if (CVarDoAsyncEndOfFrameTasksRandomize.GetValueOnAnyThread(true) > 0)
+					{
+						FPlatformProcess::Sleep(FMath::RandRange(0.0f, .003f)); // this shakes up the threading to find race conditions
+					}
+					if (GameViewport != nullptr)
+					{
+						UWorld* const World = GameViewport->GetWorld();
+						if (World && World->DemoNetDriver)
+						{
+							World->DemoNetDriver->TickFlushAsyncEndOfFrame(DeltaSeconds);
+						}
+					}
+				}
+			);
+		}
+#endif
+
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
 			{
@@ -2887,6 +3081,15 @@ void FEngineLoop::Tick()
 			// Tick Slate application
 			FSlateApplication::Get().Tick();
 		}
+
+#if WITH_ENGINE
+		if (ConcurrentTask.GetReference())
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_ConcurrentWithSlateTickTasks_Wait);
+			FTaskGraphInterface::Get().WaitUntilTaskCompletes(ConcurrentTask);
+			ConcurrentTask = nullptr;
+		}
+#endif
 
 #if STATS
 		// Clear any stat group notifications we have pending just incase they weren't claimed during FSlateApplication::Get().Tick
@@ -3248,26 +3451,11 @@ bool FEngineLoop::AppInit( )
 	}
 #endif
 
-#if WITH_ENGINE
-	if (!IsRunningCommandlet())
-	{
-		// Earliest place to init the online subsystems (via plugins)
-		// Code needs GConfigFile to be valid
-		// Must be after FThreadStats::StartThread();
-		// Must be before Render/RHI subsystem D3DCreate()
-		// For platform services that need D3D hooks like Steam
-		// --
-		// Why load HTTP?
-		// Because most, if not all online subsystems will load HTTP themselves. This can cause problems though, as HTTP will be loaded *after* OSS, 
-		// and if OSS holds on to resources allocated by it, this will cause crash (modules are being unloaded in LIFO order with no dependency tracking).
-		// Loading HTTP before OSS works around this problem by making ModuleManager unload HTTP after OSS, at the cost of extra module for the few OSS (like Null) that don't use it.
-
-		// These should not be LoadModuleChecked because these modules might not exist
-		FModuleManager::Get().LoadModule(TEXT("XMPP"));
-		FModuleManager::Get().LoadModule(TEXT("HTTP"));
-		// OSS Default/Console are loaded in plugins immediately following
-	}
-#endif
+	// NOTE: This is the earliest place to init the online subsystems (via plugins)
+	// Code needs GConfigFile to be valid
+	// Must be after FThreadStats::StartThread();
+	// Must be before Render/RHI subsystem D3DCreate()
+	// For platform services that need D3D hooks like Steam
 
 	// Load "pre-init" plugin modules
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostConfigInit) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostConfigInit))
@@ -3443,12 +3631,11 @@ void FEngineLoop::AppPreExit( )
 	{
 		GThreadPool->Destroy();
 	}
-#if USE_NEW_ASYNC_IO
+
 	if (GIOThreadPool != nullptr)
 	{
 		GIOThreadPool->Destroy();
 	}
-#endif // USE_NEW_ASYNC_IO
 
 #if WITH_ENGINE
 	if ( GShaderCompilingManager )

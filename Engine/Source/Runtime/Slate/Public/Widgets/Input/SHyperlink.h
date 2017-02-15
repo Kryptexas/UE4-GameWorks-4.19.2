@@ -1,7 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Layout/Margin.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+#include "Widgets/Input/SButton.h"
+
+enum class ETextFlowDirection : uint8;
+enum class ETextShapingMethod : uint8;
 
 /**
  * A hyperlink widget is what you would expect from a browser hyperlink.

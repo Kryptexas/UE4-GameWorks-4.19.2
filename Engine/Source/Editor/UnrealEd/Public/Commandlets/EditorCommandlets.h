@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Editor.h: Unreal editor public header file.
@@ -7,7 +7,9 @@
 #ifndef _INC_EDITOR_COMMANDLETS
 #define _INC_EDITOR_COMMANDLETS
 
-#include "UObjectAnnotation.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+
 /**
  * Contains stats about a single resource in a package file.
  */

@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "Delegate.h"
-#include "Boilerplate/ModuleBoilerplate.h"
-
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/UnrealTemplate.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "UObject/NameTypes.h"
+#include "Templates/SharedPointer.h"
+#include "Delegates/Delegate.h"
+#include "Misc/Optional.h"
+#include "Misc/CoreMisc.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/Boilerplate/ModuleBoilerplate.h"
 
 #if WITH_HOT_RELOAD
 	/** If true, we are reloading a class for HotReload */
@@ -198,6 +207,8 @@ public:
 
 	/**
 	 * Unloads a specific module
+	 * NOTE: You can manually unload a module before the normal shutdown occurs with this, but be careful as you may be unloading another
+	 * module's dependency too early!
 	 *
 	 * @param InModuleName The name of the module to unload.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.
 	 * @param bIsShutdown Is this unload module call occurring at shutdown (default = false).
@@ -337,7 +348,11 @@ public:
 	int32 GetModuleCount( ) const;
 
 	/**
-	 * Unloads modules during the shutdown process.
+	 * Unloads modules during the shutdown process. Modules are unloaded in reverse order to when their StartupModule() FINISHES.
+	 * The practical implication of this is that if module A depends on another module B, and A loads B during A's StartupModule, 
+	 * that B will actually get Unloaded after A during shutdown. This allows A's ShutdownModule() call to still reference module B.
+	 * You can manually unload a module yourself which will change this ordering, but be careful as you may be unloading another 
+	 * module's dependency!
 	 *
 	 * This method is Usually called at various points while exiting an application.
 	 */
@@ -516,8 +531,11 @@ protected:
 		{ }
 	};
 
+	typedef TSharedPtr<FModuleInfo, ESPMode::ThreadSafe> ModuleInfoPtr;
+	typedef TSharedRef<FModuleInfo, ESPMode::ThreadSafe> ModuleInfoRef;
+
 	/** Type definition for maps of module names to module infos. */
-	typedef TMap<FName, TSharedRef<FModuleInfo>> FModuleMap;
+	typedef TMap<FName, ModuleInfoRef> FModuleMap;
 
 public:
 	/**
@@ -525,22 +543,22 @@ public:
 	 */
 	void MakeUniqueModuleFilename( const FName InModuleName, FString& UniqueSuffix, FString& UniqueModuleFileName ) const;
 
-	void AddModuleToModulesList(const FName InModuleName, TSharedRef<FModuleInfo>& ModuleInfo);
+	void AddModuleToModulesList(const FName InModuleName, FModuleManager::ModuleInfoRef& ModuleInfo);
 
 	/** Clears module path cache */
 	void ResetModulePathsCache();
 
 private:
 	/** Thread safe module finding routine. */
-	TSharedPtr<FModuleInfo> FindModule(FName InModuleName);
-	TSharedRef<FModuleInfo> FindModuleChecked(FName InModuleName);
+	ModuleInfoPtr FindModule(FName InModuleName);
+	ModuleInfoRef FindModuleChecked(FName InModuleName);
 
-	FORCEINLINE TSharedPtr<const FModuleInfo> FindModule(FName InModuleName) const
+	FORCEINLINE TSharedPtr<const FModuleInfo, ESPMode::ThreadSafe> FindModule(FName InModuleName) const
 	{
 		return const_cast<FModuleManager*>(this)->FindModule(InModuleName);
 	}
 
-	FORCEINLINE TSharedRef<const FModuleInfo> FindModuleChecked(FName InModuleName) const
+	FORCEINLINE TSharedRef<const FModuleInfo, ESPMode::ThreadSafe> FindModuleChecked(FName InModuleName) const
 	{
 		return const_cast<FModuleManager*>(this)->FindModuleChecked(InModuleName);
 	}
@@ -559,7 +577,7 @@ private:
 
 private:
 	/** Gets module with given name from Modules or creates a new one. Doesn't modify Modules. */
-	TSharedRef<FModuleInfo> GetOrCreateModule(FName InModuleName);
+	ModuleInfoRef GetOrCreateModule(FName InModuleName);
 
 	/** Map of all modules.  Maps the case-insensitive module name to information about that module, loaded or not. */
 	FModuleMap Modules;
@@ -592,7 +610,7 @@ private:
 	TArray<FString> GameBinariesDirectories;
 
 	/** Critical section object controlling R/W access to Modules. */
-	mutable FMultiReaderSingleWriterGT ModulesCriticalSection;
+	mutable FCriticalSection ModulesCriticalSection;
 };
 
 /**
@@ -747,7 +765,7 @@ class FDefaultGameModuleImpl
  * DebugGame modules will be loaded by specifying the -debug parameter on the command-line.
  */
 #if IS_MONOLITHIC && UE_BUILD_DEVELOPMENT
-	#if UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME
+	#if defined(UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME) && UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME
 		#define IMPLEMENT_DEBUGGAME() extern const bool GIsDebugGame = true;
 	#else
 		#define IMPLEMENT_DEBUGGAME() extern const bool GIsDebugGame = false;

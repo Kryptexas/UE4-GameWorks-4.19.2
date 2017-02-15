@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SCurveEditor.h"
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "ITimeSlider.h"
+#include "Sequencer.h"
+#include "SCurveEditor.h"
+
+class FSequencerCurveOwner;
+class USequencerSettings;
 
 /** A widget for displaying and managing an SCurveEditor in sequencer. */
 class SSequencerCurveEditor : public SCurveEditor
@@ -46,6 +53,9 @@ private:
 
 	/** Gets the value snapping interval. */
 	float GetCurveValueSnapInterval() const;
+
+	/** Gets whether to show time in frames.*/
+	bool GetShowTimeInFrames() const;
 
 	/** Run whenever the selection on the FSequencerNodeTree changes. */
 	void NodeTreeSelectionChanged();

@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialShared.cpp: Shared material implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "MaterialUniformExpressions.h"
-#include "MaterialInstanceSupport.h"
+#include "Materials/MaterialUniformExpressions.h"
+#include "SceneManagement.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceSupport.h"
 #include "Materials/MaterialParameterCollection.h"
 
 TLinkedList<FMaterialUniformExpressionType*>*& FMaterialUniformExpressionType::GetTypeList()
@@ -65,7 +66,7 @@ FArchive& operator<<(FArchive& Ar,FMaterialUniformExpression*& Ref)
 
 		// Find the expression type with a matching name.
 		FMaterialUniformExpressionType* Type = FMaterialUniformExpressionType::GetTypeMap().FindRef(TypeName);
-		check(Type);
+		checkf(Type, TEXT("Unable to find FMaterialUniformExpressionType for TypeName '%s'"), *TypeName.ToString());
 
 		// Construct a new instance of the expression type.
 		Ref = (*Type->SerializationConstructor)();
@@ -303,7 +304,7 @@ void FUniformExpressionSet::CreateBufferStruct()
 	NextMemberOffset += 8;
 
 	const uint32 StructSize = Align(NextMemberOffset,UNIFORM_BUFFER_STRUCT_ALIGNMENT);
-	UniformBufferStruct = new FUniformBufferStruct(
+	UniformBufferStruct.Emplace(
 		MaterialLayoutName,
 		TEXT("MaterialUniforms"),
 		TEXT("Material"),
@@ -316,8 +317,7 @@ void FUniformExpressionSet::CreateBufferStruct()
 
 const FUniformBufferStruct& FUniformExpressionSet::GetUniformBufferStruct() const
 {
-	check(UniformBufferStruct);
-	return *UniformBufferStruct;
+	return UniformBufferStruct.GetValue();
 }
 
 FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialRenderContext& MaterialRenderContext, FRHICommandList* CommandListIfLocalMode, struct FLocalUniformBuffer* OutLocalUniformBuffer) const
@@ -607,3 +607,6 @@ IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionFrac);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionFmod);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionAbs);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionTextureProperty);
+IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionTrigMath);
+IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionRound);
+IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionTruncate);

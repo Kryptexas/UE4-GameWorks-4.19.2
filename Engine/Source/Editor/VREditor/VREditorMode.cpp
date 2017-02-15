@@ -1,36 +1,37 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
 #include "VREditorMode.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Engine/EngineTypes.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "Components/SpotLightComponent.h"
+#include "GameFramework/WorldSettings.h"
+#include "DrawDebugHelpers.h"
 #include "VREditorUISystem.h"
+#include "VIBaseTransformGizmo.h"
+#include "ViewportWorldInteraction.h"
 #include "VREditorWorldInteraction.h"
-#include "VREditorTransformGizmo.h"
-#include "VREditorFloatingText.h"
-#include "VREditorFloatingUI.h"
 #include "VREditorAvatarActor.h"
-#include "Teleporter/VREditorTeleporter.h"
-#include "Teleporter/VREditorAutoScaler.h"
+#include "VREditorTeleporter.h"
+#include "VREditorAutoScaler.h"
 
 #include "CameraController.h"
-#include "DynamicMeshBuilder.h"
-#include "Features/IModularFeatures.h"
+#include "EngineGlobals.h"
+#include "ILevelEditor.h"
 #include "LevelEditor.h"
 #include "SLevelViewport.h"
-#include "IMotionController.h"
 #include "MotionControllerComponent.h"
 #include "EngineAnalytics.h"
 #include "IHeadMountedDisplay.h"
-#include "EngineAnalytics.h"
-#include "IAnalyticsProvider.h"
+#include "Interfaces/IAnalyticsProvider.h"
 
-#include "Editor/LevelEditor/Public/LevelEditorActions.h"
-#include "ViewportInteraction.h"
-#include "ViewportWorldInteraction.h"
-#include "VREditorInteractor.h"
+#include "IViewportInteractionModule.h"
 #include "MouseCursorInteractor.h"
 #include "VREditorMotionControllerInteractor.h"
-#include "Interactables/VREditorButton.h"
-#include "IViewportInteractionModule.h"
+
 #include "ViewportWorldInteractionManager.h"
 
 #define LOCTEXT_NAMESPACE "VREditorMode"
@@ -39,6 +40,7 @@ namespace VREd
 {
 	static FAutoConsoleVariable UseMouseAsHandInForcedVRMode( TEXT( "VREd.UseMouseAsHandInForcedVRMode" ), 1, TEXT( "When in forced VR mode, enabling this setting uses the mouse cursor as a virtual hand instead of motion controllers" ) );
 	static FAutoConsoleVariable ForceOculusMirrorMode( TEXT( "VREd.ForceOculusMirrorMode" ), 3, TEXT( "Which Oculus display mirroring mode to use (see MirrorWindowModeType in OculusRiftHMD.h)" ) );
+	static FAutoConsoleVariable VRNearClipPlane(TEXT("VREd.VRNearClipPlane"), 1.0f, TEXT("The near clip plane to use for VR"));
 }
 
 // @todo vreditor: Hacky that we have to import these this way. (Plugin has them in a .cpp, not exported)
@@ -275,9 +277,8 @@ void UVREditorMode::Enter(const bool bReenteringVREditing)
 			VRViewportClient.bAlwaysShowModeWidgetAfterSelectionChanges = false;
 
 			// Force tiny near clip plane distance, because user can scale themselves to be very small.
-			// @todo vreditor: Make this automatically change based on WorldToMetersScale?
 			SavedEditorState.NearClipPlane = GNearClippingPlane;
-			GNearClippingPlane = 1.0f;	// Normally defaults to 10cm (NOTE: If we go too small, skyboxes become affected)
+			GNearClippingPlane = GetDefaultVRNearClipPlane();	
 
 			SavedEditorState.bOnScreenMessages = GAreScreenMessagesEnabled;
 			GAreScreenMessagesEnabled = false;
@@ -792,6 +793,11 @@ void UVREditorMode::DestroyTransientActor( AActor* Actor ) const
 	WorldInteraction->DestroyTransientActor( Actor );
 }
 
+bool UVREditorMode::IsShowingRadialMenu(const UVREditorInteractor* Interactor) const
+{
+	return UISystem->IsShowingRadialMenu(Interactor);
+}
+
 const SLevelViewport& UVREditorMode::GetLevelViewportPossessedForVR() const
 {
 	return *VREditorLevelViewportWeakPtr.Pin();
@@ -896,6 +902,11 @@ EHMDDeviceType::Type UVREditorMode::GetHMDDeviceType() const
 FLinearColor UVREditorMode::GetColor( const EColors Color ) const
 {
 	return Colors[ (int32)Color ];
+}
+
+float UVREditorMode::GetDefaultVRNearClipPlane() const 
+{
+	return VREd::VRNearClipPlane->GetFloat();
 }
 
 bool UVREditorMode::IsHandAimingTowardsCapsule( UViewportInteractor* Interactor, const FTransform& CapsuleTransform, FVector CapsuleStart, const FVector CapsuleEnd, const float CapsuleRadius, const float MinDistanceToCapsule, const FVector CapsuleFrontDirection, const float MinDotForAimingAtCapsule ) const

@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/PlatformInterfaceBase.h"
 #include "CloudStorageBase.generated.h"
-
 
 /** All the types of delegate callbacks that a CloudStorage subclass may receive from C++ */
 UENUM()

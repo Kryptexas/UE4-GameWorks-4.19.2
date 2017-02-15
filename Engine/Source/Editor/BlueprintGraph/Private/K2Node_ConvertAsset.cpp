@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_ConvertAsset.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Engine/Blueprint.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_DynamicCast.h"
 #include "K2Node_ClassDynamicCast.h"
 #include "KismetCompiler.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
-#include "K2Node_ConvertAsset.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_ConvertAsset"
 
@@ -70,12 +74,12 @@ void UK2Node_ConvertAsset::RefreshPinTypes()
 		const FString InputCategory = bIsConnected
 			? (bIsAssetClass ? K2Schema->PC_AssetClass : K2Schema->PC_Asset)
 			: K2Schema->PC_Wildcard;
-		InutPin->PinType = FEdGraphPinType(InputCategory, FString(), TargetType, false, false);
+		InutPin->PinType = FEdGraphPinType(InputCategory, FString(), TargetType, false, false, false, false, FEdGraphTerminalType() );
 
 		const FString OutputCategory = bIsConnected
 			? (bIsAssetClass ? K2Schema->PC_Class : K2Schema->PC_Object)
 			: K2Schema->PC_Wildcard;
-		OutputPin->PinType = FEdGraphPinType(OutputCategory, FString(), TargetType, false, false);
+		OutputPin->PinType = FEdGraphPinType(OutputCategory, FString(), TargetType, false, false, false, false, FEdGraphTerminalType() );
 
 		PinTypeChanged(InutPin);
 		PinTypeChanged(OutputPin);

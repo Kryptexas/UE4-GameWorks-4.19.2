@@ -1,10 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenRendering.cpp: Screen rendering implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "StereoLayerRendering.h"
 
 IMPLEMENT_SHADER_TYPE(,FStereoLayerVS,TEXT("StereoLayerShader"),TEXT("MainVS"),SF_Vertex);

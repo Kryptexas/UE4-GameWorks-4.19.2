@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Text.h"
-#include "ExpressionParserTypes.h"
-#include "ITextFormatArgumentModifier.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Templates/Function.h"
+#include "Containers/Map.h"
+#include "Internationalization/Text.h"
+#include "Misc/ExpressionParserTypes.h"
+#include "Internationalization/ITextFormatArgumentModifier.h"
+
+struct FPrivateTextFormatArguments;
 
 /**
  * A text formatter is responsible for formatting text patterns using a set of named or ordered arguments.

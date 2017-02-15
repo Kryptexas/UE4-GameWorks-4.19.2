@@ -1,22 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
+#include "CoreMinimal.h"
+#include "Misc/CommandLine.h"
+#include "Stats/Stats.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "HAL/IConsoleManager.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineDefines.h"
+#include "Engine/EngineTypes.h"
+#include "PhysxUserData.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "Components/PrimitiveComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "PhysicsEngine/RigidBodyIndexPair.h"
+#include "PhysicsPublic.h"
 
 #if WITH_PHYSX
-	#include "PhysXSupport.h"
-	#include "../Vehicles/PhysXVehicleManager.h"
-	#include "PhysXSupport.h"
-#if WITH_VEHICLE
-	#include "../Vehicles/PhysXVehicleManager.h"
-#include "PhysXSupport.h"
-#include "../Vehicles/PhysXVehicleManager.h"
-#endif
+	#include "PhysXPublic.h"
+	#include "PhysicsEngine/PhysXSupport.h"
 #endif
 
-#include "PhysSubstepTasks.h"	//needed even if not substepping, contains common utility class for PhysX
+#include "PhysicsEngine/PhysSubstepTasks.h"
 #include "PhysicsEngine/PhysicsCollisionHandler.h"
 #include "Components/DestructibleComponent.h"
 #include "Components/LineBatchComponent.h"
@@ -37,9 +44,6 @@ DECLARE_CYCLE_STAT(TEXT("Start Physics Time (async)"), STAT_PhysicsKickOffDynami
 DECLARE_CYCLE_STAT(TEXT("Fetch Results Time (async)"), STAT_PhysicsFetchDynamicsTime_Async, STATGROUP_Physics);
 
 DECLARE_CYCLE_STAT(TEXT("Update Kinematics On Deferred SkelMeshes"), STAT_UpdateKinematicsOnDeferredSkelMeshes, STATGROUP_Physics);
-DECLARE_CYCLE_STAT(TEXT("Update Vehicles"), STAT_UpdateVehicles, STATGROUP_Physics);
-DECLARE_CYCLE_STAT(TEXT("Pretick Vehicles"), STAT_PretickVehicles, STATGROUP_Physics);
-
 
 DECLARE_CYCLE_STAT(TEXT("Phys Events Time"), STAT_PhysicsEventTime, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("SyncComponentsToBodies (sync)"), STAT_SyncComponentsToBodies, STATGROUP_Physics);
@@ -220,6 +224,7 @@ public:
 DECLARE_CYCLE_STAT(TEXT("PhysX Single Thread Task"), STAT_PhysXSingleThread, STATGROUP_Physics);
 
 /** Used to dispatch physx tasks to the game thread */
+template <bool IsClothDispatcher>
 class FPhysXCPUDispatcherSingleThread : public PxCpuDispatcher
 {
 	TArray<PxBaseTask*> TaskStack;
@@ -227,7 +232,13 @@ class FPhysXCPUDispatcherSingleThread : public PxCpuDispatcher
 	virtual void submitTask(PxBaseTask& Task) override
 	{
 		SCOPE_CYCLE_COUNTER(STAT_PhysXSingleThread);
-		check(IsInGameThread());
+		
+		if(!IsClothDispatcher)
+		{
+			// Clothing will always be running from a worker, and the tasks
+			// are safe to run off the game thread.
+			check(IsInGameThread());
+		}
 
 		TaskStack.Push(&Task);
 		if (TaskStack.Num() > 1)
@@ -265,11 +276,7 @@ FPhysScene::FPhysScene()
 	LineBatcher = NULL;
 	OwningWorld = NULL;
 #if WITH_PHYSX
-#if WITH_VEHICLE
-	VehicleManager = NULL;
-#endif
 	PhysxUserData = FPhysxUserData(this);
-	
 #endif	//#if WITH_PHYSX
 
 	UPhysicsSettings * PhysSetting = UPhysicsSettings::Get();
@@ -282,6 +289,7 @@ FPhysScene::FPhysScene()
 	bAsyncSceneEnabled = PhysSetting->bEnableAsyncScene;
 	NumPhysScenes = bAsyncSceneEnabled ? PST_Async + 1 : PST_Cloth + 1;
 
+	FMemory::Memzero(PendingSimulationTransforms);
 
 	// Create scenes of all scene types
 	for (uint32 SceneType = 0; SceneType < NumPhysScenes; ++SceneType)
@@ -917,33 +925,23 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	// Update any skeletal meshes that need their bone transforms sent to physics sim
 	UpdateKinematicsOnDeferredSkelMeshes();
 
-#if WITH_PHYSX
 
-#if WITH_VEHICLE
-	if (VehicleManager && SceneType == PST_Sync)
-	{
-		float TickTime = AveragedFrameTime[SceneType];
-		if (IsSubstepping(SceneType))
-		{
-			TickTime = UseSyncTime(SceneType) ? SyncDeltaSeconds : DeltaSeconds;
-		}
-		{
-			SCOPE_CYCLE_COUNTER(STAT_PretickVehicles);
-			VehicleManager->PreTick(TickTime);
-		}
+	float PreTickTime = IsSubstepping(SceneType) ? UseDelta : AveragedFrameTime[SceneType];
 
+	// Broadcast 'pre tick' delegate
+	OnPhysScenePreTick.Broadcast(this, SceneType, PreTickTime);
+
+	// If not substepping, call this delegate here. Otherwise we call it in FPhysSubstepTask::SubstepSimulationStart
 		if (IsSubstepping(SceneType) == false)
 		{
-			SCOPE_CYCLE_COUNTER(STAT_UpdateVehicles);
-			VehicleManager->Update(AveragedFrameTime[SceneType]);
+		OnPhysSceneStep.Broadcast(this, SceneType, PreTickTime);
 		}
-	}
-#endif
+
 
 #if WITH_PHYSX
+
 	FlushDeferredActors((EPhysicsSceneType)SceneType);
 	DeferredSceneData[SceneType].bIsSimulating = true;
-#endif
 
 #if !WITH_APEX
 	PxScene* PScene = GetPhysXScene(SceneType);
@@ -953,6 +951,7 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	if (ApexScene && UseDelta > 0.f)
 #endif
 	{
+		PendingSimulationTransforms[SceneType] = true;
 		if(IsSubstepping(SceneType)) //we don't bother sub-stepping cloth
 		{
 			bTaskOutstanding = SubstepSimulation(SceneType, InOutCompletionEvent);
@@ -979,7 +978,8 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 #endif
 		}
 	}
-#endif
+
+#endif // WITH_PHYSX
 
 	if (!bTaskOutstanding)
 	{
@@ -1185,6 +1185,8 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 		UDestructibleComponent::UpdateDestructibleChunkTM(ActiveDestructibleActors[SceneType]);
 	}
 #endif
+
+	PendingSimulationTransforms[SceneType] = false;
 }
 
 void FPhysScene::DispatchPhysNotifications_AssumesLocked()
@@ -1581,13 +1583,6 @@ PxScene* FPhysScene::GetPhysXScene(uint32 SceneType)
 	return GetPhysXSceneFromIndex(PhysXSceneIndex[SceneType]);
 }
 
-#if WITH_VEHICLE
-FPhysXVehicleManager* FPhysScene::GetVehicleManager()
-{
-	return VehicleManager;
-}
-#endif
-
 #if WITH_APEX
 apex::Scene* FPhysScene::GetApexScene(uint32 SceneType)
 {
@@ -1711,7 +1706,14 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	// Create dispatcher for tasks
 	if (PhysSingleThreadedMode())
 	{
-		CPUDispatcher[SceneType] = new FPhysXCPUDispatcherSingleThread();
+		if(SceneType == PST_Cloth)
+		{
+			CPUDispatcher[SceneType] = new FPhysXCPUDispatcherSingleThread<true>();
+		}
+		else
+		{
+			CPUDispatcher[SceneType] = new FPhysXCPUDispatcherSingleThread<false>();
+		}
 	}
 	else
 	{
@@ -1858,30 +1860,19 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	// Increment scene count
 	PhysXSceneCount++;
 
-#if WITH_VEHICLE
-	// Only create PhysXVehicleManager in the sync scene
-	if (SceneType == PST_Sync)
-	{
-		check(VehicleManager == NULL);
-		VehicleManager = new FPhysXVehicleManager(PScene);
-	}
-#endif
-
 	//Initialize substeppers
 	//we don't bother sub-stepping cloth
 #if WITH_PHYSX
 #if WITH_APEX
-	PhysSubSteppers[SceneType] = SceneType == PST_Cloth ? NULL : new FPhysSubstepTask(ApexScene);
+	PhysSubSteppers[SceneType] = SceneType == PST_Cloth ? NULL : new FPhysSubstepTask(ApexScene, this, SceneType);
 #else
-	PhysSubSteppers[SceneType] = SceneType == PST_Cloth ? NULL : new FPhysSubstepTask(PScene);
+	PhysSubSteppers[SceneType] = SceneType == PST_Cloth ? NULL : new FPhysSubstepTask(PScene, this, SceneType);
 #endif
 #endif
-#if WITH_VEHICLE
-	if (SceneType == PST_Sync)
-	{
-		PhysSubSteppers[SceneType]->SetVehicleManager(VehicleManager);
-	}
-#endif
+
+	PendingSimulationTransforms[SceneType] = false;
+
+	FPhysicsDelegates::OnPhysSceneInit.Broadcast(this, (EPhysicsSceneType)SceneType);
 
 #endif // WITH_PHYSX
 }
@@ -1902,18 +1893,7 @@ void FPhysScene::TermPhysScene(uint32 SceneType)
 		}
 #endif // #if WITH_APEX
 
-#if WITH_VEHICLE
-		if (SceneType == PST_Sync && VehicleManager != NULL)
-		{
-			delete VehicleManager;
-			VehicleManager = NULL;
-		}
-#endif
-
-		if (SceneType == PST_Sync && PhysSubSteppers[SceneType])
-		{
-			PhysSubSteppers[SceneType]->SetVehicleManager(NULL);
-		}
+		FPhysicsDelegates::OnPhysSceneTerm.Broadcast(this, (EPhysicsSceneType)SceneType);
 
 		delete PhysSubSteppers[SceneType];
 		PhysSubSteppers[SceneType] = NULL;

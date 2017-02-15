@@ -1,7 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Containers/ResourceArray.h"
+#include "RHI.h"
+
+struct Rect;
 
 /** A null implementation of the dynamically bound RHI. */
 class FNullDynamicRHI : public FDynamicRHI , public IRHICommandContext
@@ -13,6 +18,7 @@ public:
 	// FDynamicRHI interface.
 	virtual void Init();
 	virtual void Shutdown();
+	virtual const TCHAR* GetName() override { return TEXT("Null"); }
 
 	virtual FSamplerStateRHIRef RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer) final override
 	{ 

@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "OnlinePIESettings.h"
-#include "AES.h"
+#include "UObject/UnrealType.h"
+#include "OnlineSubsystem.h"
+#include "Misc/AES.h"
 
 const int32 ONLINEPIE_XOR_KEY = 0xdeadbeef;
 void FPIELoginSettingsInternal::Encrypt()
@@ -109,14 +110,14 @@ void UOnlinePIESettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 	{
 		FName MemberPropName = PropertyChangedEvent.MemberProperty->GetFName();
 		FName SubPropName = PropertyChangedEvent.Property->GetFName();
-		if (MemberPropName == "bOnlinePIEEnabled")
+		if (MemberPropName == GET_MEMBER_NAME_CHECKED(UOnlinePIESettings, bOnlinePIEEnabled))
 		{
 			// Possibly get rid of the null subsystem in favor of the real default or if we are disabling online pie then get rid of the real subsystem to replace it with null
 			IOnlineSubsystem::ReloadDefaultSubsystem();
 		}
-		if (MemberPropName == "Logins")
+		if (MemberPropName == GET_MEMBER_NAME_CHECKED(UOnlinePIESettings, Logins))
 		{
-			if (SubPropName == "Id")
+			if (SubPropName == GET_MEMBER_NAME_CHECKED(FPIELoginSettingsInternal, Id))
 			{
 				for (FPIELoginSettingsInternal& Login : Logins)
 				{
@@ -124,7 +125,7 @@ void UOnlinePIESettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 					Login.Id = Login.Id.Trim().TrimTrailing();
 				}
 			}
-			else if (SubPropName == "Token")
+			else if (SubPropName == GET_MEMBER_NAME_CHECKED(FPIELoginSettingsInternal, Token))
 			{
 				for (FPIELoginSettingsInternal& Login : Logins)
 				{
@@ -134,7 +135,7 @@ void UOnlinePIESettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 					Login.Encrypt();
 				}
 			}
-			else if (SubPropName == "Type")
+			else if (SubPropName == GET_MEMBER_NAME_CHECKED(FPIELoginSettingsInternal, Type))
 			{
 				for (FPIELoginSettingsInternal& Login : Logins)
 				{

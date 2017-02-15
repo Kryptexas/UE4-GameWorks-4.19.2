@@ -1,22 +1,23 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessMorpheus.cpp: Post processing for Sony Morpheus HMD device.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessMorpheus.h"
-#include "PostProcessing.h"
-#include "PostProcessHistogram.h"
-#include "PostProcessEyeAdaptation.h"
-#include "IHeadMountedDisplay.h"
+#include "PostProcess/PostProcessMorpheus.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "SceneRenderTargetParameters.h"
+#include "SceneRendering.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "IHeadMountedDisplay.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMorpheusHMDPostProcess, All, All);
 
-#if MORPHEUS_ENGINE_DISTORTION
+#if defined(MORPHEUS_ENGINE_DISTORTION) && MORPHEUS_ENGINE_DISTORTION
 
 /** Encapsulates the post processing HMD distortion and correction pixel shader. */
 class FPostProcessMorpheusPS : public FGlobalShader
@@ -219,7 +220,7 @@ void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-#if MORPHEUS_ENGINE_DISTORTION
+#if defined(MORPHEUS_ENGINE_DISTORTION) && MORPHEUS_ENGINE_DISTORTION
 	TShaderMapRef<FPostProcessMorpheusVS> VertexShader(Context.GetShaderMap());
 	TShaderMapRef<FPostProcessMorpheusPS> PixelShader(Context.GetShaderMap());
 

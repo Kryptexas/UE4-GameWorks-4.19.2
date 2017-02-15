@@ -1,13 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialGraphNode_Base.cpp
 =============================================================================*/
 
-#include "UnrealEd.h"
-
-#include "EdGraph/EdGraphPin.h"
-#include "MaterialShared.h"
+#include "MaterialGraph/MaterialGraphNode_Base.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "MaterialGraph/MaterialGraph.h"
+#include "MaterialGraph/MaterialGraphSchema.h"
 
 /////////////////////////////////////////////////////
 // UMaterialGraphNode_Base

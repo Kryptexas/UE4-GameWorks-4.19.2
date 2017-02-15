@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * SpectatorPawns are simple pawns that can fly around the world, used by
@@ -6,9 +6,11 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameFramework/DefaultPawn.h"
 #include "SpectatorPawn.generated.h"
-
 
 UCLASS(config=Game, Blueprintable, BlueprintType, notplaceable)
 class ENGINE_API ASpectatorPawn : public ADefaultPawn

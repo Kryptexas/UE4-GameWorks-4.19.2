@@ -1,16 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
 #include "ComponentVisualizer.h"
 
+class FEditorViewportClient;
+class FViewport;
+class SWidget;
 struct FViewportClick;
 
 /** Class that managed active component visualizer and routes input to it */
 class UNREALED_API FComponentVisualizerManager
 {
 public:
-	FComponentVisualizerManager() {}
+	FComponentVisualizerManager();
 	virtual ~FComponentVisualizerManager() {}
 
 
@@ -47,4 +52,7 @@ public:
 private:
 	/** Currently 'active' visualizer that we should pass input to etc */
 	TWeakPtr<class FComponentVisualizer> EditedVisualizerPtr;
+
+	/** The viewport client for the currently active visualizer */
+	FEditorViewportClient* EditedVisualizerViewportClient;
 };

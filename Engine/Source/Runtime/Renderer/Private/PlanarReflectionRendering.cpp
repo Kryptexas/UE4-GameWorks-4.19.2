@@ -1,22 +1,34 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  PlanarReflectionRendering.cpp
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessing.h"
-#include "UniformBuffer.h"
-#include "ShaderParameters.h"
-#include "ScreenRendering.h"
-#include "ShaderParameterUtils.h"
-#include "LightRendering.h"
+#include "PlanarReflectionRendering.h"
+#include "Engine/Scene.h"
+#include "SceneInterface.h"
+#include "RenderingThread.h"
+#include "RHIStaticStates.h"
+#include "RendererInterface.h"
+#include "Camera/CameraTypes.h"
+#include "Shader.h"
+#include "TextureResource.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "ScenePrivateBase.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "GlobalShader.h"
+#include "SceneRenderTargetParameters.h"
+#include "SceneRendering.h"
+#include "DeferredShadingRenderer.h"
+#include "ScenePrivate.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessing.h"
+#include "LightRendering.h"
+#include "Components/SceneCaptureComponent.h"
 #include "Components/PlanarReflectionComponent.h"
 #include "PlanarReflectionSceneProxy.h"
-#include "PlanarReflectionRendering.h"
+#include "Containers/ArrayView.h"
 
 template< bool bEnablePlanarReflectionPrefilter >
 class FPrefilterPlanarReflectionPS : public FGlobalShader
@@ -135,12 +147,21 @@ void PrefilterPlanarReflection(FRHICommandListImmediate& RHICmdList, FViewInfo& 
 		PixelShader->SetParameters(RHICmdList, View, ReflectionSceneProxy, SceneColorInput);
 		VertexShader->SetSimpleLightParameters(RHICmdList, View, FSphere(0));
 
+		FIntPoint UV = View.ViewRect.Min;
+		FIntPoint UVSize = View.ViewRect.Size();
+
+		if (RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[View.FeatureLevel]) && !IsMobileHDR())
+		{
+			UV.Y = UV.Y + UVSize.Y;
+			UVSize.Y = -UVSize.Y;
+		}
+
 		DrawRectangle(
 			RHICmdList,
 			0, 0,
 			View.ViewRect.Width(), View.ViewRect.Height(),
-			View.ViewRect.Min.X, View.ViewRect.Min.Y,
-			View.ViewRect.Width(), View.ViewRect.Height(),
+			UV.X, UV.Y,
+			UVSize.X, UVSize.Y,
 			View.ViewRect.Size(),
 			FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY(),
 			*VertexShader,

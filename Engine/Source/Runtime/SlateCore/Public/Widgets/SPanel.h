@@ -1,7 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+
+class FArrangedChildren;
+class FChildren;
+class FPaintArgs;
+class FSlateWindowElementList;
 
 /**
  * A Panel arranges its child widgets on the screen.

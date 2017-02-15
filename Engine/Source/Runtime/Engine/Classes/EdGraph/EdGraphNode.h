@@ -1,18 +1,68 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "UObject/WeakObjectPtr.h"
 #include "EdGraphNode.generated.h"
 
+class INameValidatorInterface;
+class SGraphNode;
+class SWidget;
 class UBlueprint;
 class UEdGraph;
 class UEdGraphNode;
-class UEdGraphSchema;
 class UEdGraphPin;
-class SGraphNode;
+class UEdGraphSchema;
 struct FEdGraphPinType;
+struct FPropertyChangedEvent;
 struct FSlateIcon;
 
+/**
+  * Struct used to define information for terminal types, e.g. types that can be contained
+  * by a container. Currently can represent strong/weak references to a type (only UObjects), 
+  * a structure, or a primitive. Support for "Container of Containers" is done by wrapping 
+  * a structure, rather than implicitly defining names for containers.
+  */
+USTRUCT()
+struct FEdGraphTerminalType
+{
+	GENERATED_USTRUCT_BODY()
+
+	FEdGraphTerminalType()
+		: TerminalCategory()
+		, TerminalSubCategory()
+		, TerminalSubCategoryObject(nullptr)
+		, bTerminalIsConst(false)
+		, bTerminalIsWeakPointer(false)
+	{
+	}
+
+	/** Category */
+	UPROPERTY()
+	FString TerminalCategory;
+
+	/** Sub-category */
+	UPROPERTY()
+	FString TerminalSubCategory;
+
+	/** Sub-category object */
+	UPROPERTY()
+	TWeakObjectPtr<UObject> TerminalSubCategoryObject;
+
+	/** Whether or not this pin is a immutable const value */
+	UPROPERTY()
+	bool bTerminalIsConst;
+
+	/** Whether or not this is a weak reference */
+	UPROPERTY()
+	bool bTerminalIsWeakPointer;
+
+	ENGINE_API friend FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& P);
+};
 
 /** Enum used to define which way data flows into or out of this pin. */
 UENUM()
@@ -234,7 +284,19 @@ public:
 	TArray<UEdGraphPin*> GetAllPins() { return Pins; }
 
 	/** Create a new pin on this node using the supplied info, and return the new pin */
-	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst = false, int32 Index = INDEX_NONE);
+	UEdGraphPin* CreatePin(
+		EEdGraphPinDirection Dir, 
+		const FString& PinCategory, 
+		const FString& PinSubCategory, 
+		UObject* PinSubCategoryObject, 
+		bool bIsArray, 
+		bool bIsReference, 
+		const FString& PinName, 
+		bool bIsConst = false, 
+		int32 Index = INDEX_NONE, 
+		bool bIsSet = false, 
+		bool bIsMap = false,
+		const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
 
 	/** Create a new pin on this node using the supplied pin type, and return the new pin */
 	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FEdGraphPinType& InPinType, const FString& PinName, int32 Index = INDEX_NONE);
@@ -288,6 +350,12 @@ public:
 
 	/** Gets the index for a pin */
 	int32 GetPinIndex(UEdGraphPin* Pin) const;
+
+	/** Gets the pin at a given index 
+	* @param Index The zero-based index of the pin to access.
+	* @return The pin found at this location or nullptr if invalid index.
+	*/
+	UEdGraphPin* GetPinAt(int32 Index) const;
 
 	/** Break all links on this node */
 	void BreakAllNodeLinks();
@@ -508,6 +576,14 @@ public:
 	/** Return whether to draw this node as a comment node */
 	virtual bool ShouldDrawNodeAsComment() const { return false; }
 
+	/** 
+	* Returns whether to draw this node as a control point only (knot/reroute node). Note that this means that the node should only have on input and output pin.
+	* @param OutInputPinIndex The index in the pins array associated with the control point input pin.
+	* @param OutOutputPinIndex The index in the pins array associated with the control point output pin.
+	* @return Whether or not to draw this node as a control point.
+	*/
+	virtual bool ShouldDrawNodeAsControlPointOnly(int32& OutInputPinIndex, int32& OutOutputPinIndex) const;
+
 	/**
 	 * Add's node data to the search metadata, override to collect more data that may be desirable to search for
 	 *
@@ -529,6 +605,9 @@ public:
 
 	/** Create a visual widget to represent this node in a graph editor or graph panel.  If not implemented, the default node factory will be used. */
 	virtual TSharedPtr<SGraphNode> CreateVisualWidget() { return TSharedPtr<SGraphNode>(); }
+
+	/** Create the background image for the widget representing this node */
+	virtual TSharedPtr<SWidget> CreateNodeImage() const { return TSharedPtr<SWidget>(); }
 
 	/** Adds an upgrade note to this node */
 	void AddNodeUpgradeNote(FText InUpgradeNote);

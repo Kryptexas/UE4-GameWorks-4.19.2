@@ -1,11 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HlslParser.cpp - Implementation for parsing hlsl.
 =============================================================================*/
 
-#include "ShaderCompilerCommonPrivatePCH.h"
-#include "ShaderCompilerCommon.h"
 #include "HlslParser.h"
 #include "HlslExpressionParser.inl"
 #include "CCIR.h"
@@ -693,7 +691,11 @@ namespace CrossCompiler
 				do
 				{
 					auto* IdentifierToken = Scanner.GetCurrentToken();
-					if (!Scanner.MatchToken(EHlslToken::Identifier))
+					if (Scanner.MatchToken(EHlslToken::Texture) || Scanner.MatchToken(EHlslToken::Sampler) || Scanner.MatchToken(EHlslToken::Buffer))
+					{
+						// Continue, handles the case of 'float3 Texture'...
+					}
+					else if (!Scanner.MatchToken(EHlslToken::Identifier))
 					{
 						Scanner.SetCurrentTokenIndex(OriginalToken);
 						return EParseResult::NotMatched;

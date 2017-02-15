@@ -1,38 +1,67 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphRuntimePrivatePCH.h"
 #include "AnimNodes/AnimNode_TwoWayBlend.h"
+#include "AnimationRuntime.h"
 
 /////////////////////////////////////////////////////
-// FAnimationNode_TwoWayBlend
+// FAnimNode_TwoWayBlend
 
-void FAnimationNode_TwoWayBlend::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_TwoWayBlend::Initialize(const FAnimationInitializeContext& Context)
 {
 	FAnimNode_Base::Initialize(Context);
 
 	A.Initialize(Context);
 	B.Initialize(Context);
+
+	bAIsRelevant = false;
+	bBIsRelevant = false;
 }
 
-void FAnimationNode_TwoWayBlend::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_TwoWayBlend::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	A.CacheBones(Context);
 	B.CacheBones(Context);
 }
 
-void FAnimationNode_TwoWayBlend::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_TwoWayBlend::Update(const FAnimationUpdateContext& Context)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FAnimationNode_TwoWayBlend_Update);
 	EvaluateGraphExposedInputs.Execute(Context);
 
-	const float ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
-	if (ActualAlpha > ZERO_ANIMWEIGHT_THRESH)
+	InternalBlendAlpha = AlphaScaleBias.ApplyTo(Alpha);
+	const bool bNewAIsRelevant = !FAnimWeight::IsFullWeight(InternalBlendAlpha);
+	const bool bNewBIsRelevant = FAnimWeight::IsRelevant(InternalBlendAlpha);
+
+	// when this flag is true, we'll reinitialize the children
+	if (bResetChildOnActivation)
 	{
-		if (ActualAlpha < 1.0f - ZERO_ANIMWEIGHT_THRESH)
+		if (bNewAIsRelevant && !bAIsRelevant)
+		{
+			FAnimationInitializeContext ReinitializeContext(Context.AnimInstanceProxy);
+
+			// reinitialize
+			A.Initialize(ReinitializeContext);
+		}
+
+		if (bNewBIsRelevant && !bBIsRelevant)
+		{
+			FAnimationInitializeContext ReinitializeContext(Context.AnimInstanceProxy);
+
+			// reinitialize
+			B.Initialize(ReinitializeContext);
+		}
+	}
+
+	bAIsRelevant = bNewAIsRelevant;
+	bBIsRelevant = bNewBIsRelevant;
+
+	if (bBIsRelevant)
+	{
+		if (bAIsRelevant)
 		{
 			// Blend A and B together
-			A.Update(Context.FractionalWeight(1.0f - ActualAlpha));
-			B.Update(Context.FractionalWeight(ActualAlpha));
+			A.Update(Context.FractionalWeight(1.0f - InternalBlendAlpha));
+			B.Update(Context.FractionalWeight(InternalBlendAlpha));
 		}
 		else
 		{
@@ -47,12 +76,11 @@ void FAnimationNode_TwoWayBlend::Update(const FAnimationUpdateContext& Context)
 	}
 }
 
-void FAnimationNode_TwoWayBlend::Evaluate(FPoseContext& Output)
+void FAnimNode_TwoWayBlend::Evaluate(FPoseContext& Output)
 {
-	const float ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
-	if (ActualAlpha > ZERO_ANIMWEIGHT_THRESH)
+	if (bBIsRelevant)
 	{
-		if (ActualAlpha < 1.0f - ZERO_ANIMWEIGHT_THRESH)
+		if (bAIsRelevant)
 		{
 			FPoseContext Pose1(Output);
 			FPoseContext Pose2(Output);
@@ -60,7 +88,7 @@ void FAnimationNode_TwoWayBlend::Evaluate(FPoseContext& Output)
 			A.Evaluate(Pose1);
 			B.Evaluate(Pose2);
 
-			FAnimationRuntime::BlendTwoPosesTogether(Pose1.Pose, Pose2.Pose, Pose1.Curve, Pose2.Curve, (1.0f - ActualAlpha), Output.Pose, Output.Curve);
+			FAnimationRuntime::BlendTwoPosesTogether(Pose1.Pose, Pose2.Pose, Pose1.Curve, Pose2.Curve, (1.0f - InternalBlendAlpha), Output.Pose, Output.Curve);
 		}
 		else
 		{
@@ -74,14 +102,12 @@ void FAnimationNode_TwoWayBlend::Evaluate(FPoseContext& Output)
 }
 
 
-void FAnimationNode_TwoWayBlend::GatherDebugData(FNodeDebugData& DebugData)
+void FAnimNode_TwoWayBlend::GatherDebugData(FNodeDebugData& DebugData)
 {
-	const float ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
-
 	FString DebugLine = DebugData.GetNodeName(this);
-	DebugLine += FString::Printf(TEXT("(Alpha: %.1f%%)"), ActualAlpha*100);
+	DebugLine += FString::Printf(TEXT("(Alpha: %.1f%%)"), InternalBlendAlpha *100);
 	DebugData.AddDebugItem(DebugLine);
 
-	A.GatherDebugData(DebugData.BranchFlow(1.f - ActualAlpha));
-	B.GatherDebugData(DebugData.BranchFlow(ActualAlpha));
+	A.GatherDebugData(DebugData.BranchFlow(1.f - InternalBlendAlpha));
+	B.GatherDebugData(DebugData.BranchFlow(InternalBlendAlpha));
 }

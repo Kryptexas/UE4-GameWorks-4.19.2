@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -44,6 +46,12 @@ namespace AutomationTool.Tasks
 		public bool Licensee;
 
 		/// <summary>
+		/// Whether to set the ENGINE_IS_PROMOTED_BUILD flag to true
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public bool Promoted = true;
+
+		/// <summary>
 		/// If set, don't actually write to the files - just return the version files that would be updated. Useful for local builds.
 		/// </summary>
 		[TaskParameter(Optional = true)]
@@ -86,7 +94,7 @@ namespace AutomationTool.Tasks
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Update the version files
-			List<string> FileNames = UE4Build.StaticUpdateVersionFiles(Parameters.Change, Parameters.CompatibleChange, Parameters.Branch, Parameters.Build, Parameters.Licensee, !Parameters.SkipWrite);
+			List<string> FileNames = UE4Build.StaticUpdateVersionFiles(Parameters.Change, Parameters.CompatibleChange, Parameters.Branch, Parameters.Build, Parameters.Licensee, Parameters.Promoted, !Parameters.SkipWrite);
 			List<FileReference> VersionFiles = FileNames.Select(x => new FileReference(x)).ToList();
 
 			// Apply the optional tag to them

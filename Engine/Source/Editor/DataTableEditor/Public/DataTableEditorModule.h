@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "Toolkits/IToolkit.h"	// For EAssetEditorMode
-#include "Toolkits/AssetEditorToolkit.h" // For FExtensibilityManager
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Modules/ModuleInterface.h"
+#include "Toolkits/AssetEditorToolkit.h"
 
 class IDataTableEditor;
 class UDataTable;

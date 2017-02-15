@@ -1,15 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
-#include "AndroidJSScripting.h"
 #include "AndroidJSStructSerializerBackend.h"
+#include "AndroidJSScripting.h"
+#include "UObject/UnrealType.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Templates/Casts.h"
 
 void FAndroidJSStructSerializerBackend::WriteProperty(const FStructSerializerState& State, int32 ArrayIndex)
 {
 	// The parent class serialzes UObjects as NULLs
 	if (State.ValueType == UObjectProperty::StaticClass())
 	{
-		WriteUObject(State, Cast<UObjectProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		WriteUObject(State, CastChecked<UObjectProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	// basic property type (json serializable)
 	else
@@ -34,7 +36,7 @@ void FAndroidJSStructSerializerBackend::WriteUObject(const FStructSerializerStat
 	}
 	else
 	{
-		GetWriter()->WriteRawJSONValue(State.ValueProperty->GetName(), RawValue);
+		GetWriter()->WriteRawJSONValue(Scripting->GetBindingName(State.ValueProperty), RawValue);
 	}
 }
 

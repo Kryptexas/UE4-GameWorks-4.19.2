@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -285,6 +285,7 @@ namespace Tools.CrashReporter.CrashReportCommon
 		const string ExceptionMarker = "Exception was \"";
 
 		const string MachineIdMarker = "MachineId:";
+		const string LoginIdMarker = "LoginId:";
 		const string EpicAccountIdMarker = "EpicAccountId:";
 		const string UserNameMarker = "Name:";
 
@@ -389,6 +390,15 @@ namespace Tools.CrashReporter.CrashReportCommon
 			get
 			{
 				return ExtractMarkedString( MachineIdMarker );
+			}
+		}
+
+		/// <summary>The Login ID used to identify the user login the crash occurred on.</summary>
+		public string LoginId
+		{
+			get
+			{
+				return ExtractMarkedString(LoginIdMarker);
 			}
 		}
 

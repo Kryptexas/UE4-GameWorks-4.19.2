@@ -1,6 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "FbxSceneImportOptions.generated.h"
 
 UENUM()
@@ -41,6 +45,10 @@ class UFbxSceneImportOptions : public UObject
 	/** Choose if you want to generate the scene hierarchy with normal level actors, one actor with multiple components, or one blueprint asset with multiple components. */
 	UPROPERTY(EditAnywhere, config, category = ImportOptions)
 	TEnumAsByte<enum EFBXSceneOptionsCreateHierarchyType> HierarchyType;
+
+	/** Whether to force the front axis to be align with X instead of -Y. */
+	UPROPERTY(EditAnywhere, config, category = ImportOptions)
+	uint32 bForceFrontXAxis : 1;
 
 	UPROPERTY()
 	FVector ImportTranslation;

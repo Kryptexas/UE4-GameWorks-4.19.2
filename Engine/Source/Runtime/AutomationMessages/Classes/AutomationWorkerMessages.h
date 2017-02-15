@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Misc/AutomationTest.h"
 #include "AutomationWorkerMessages.generated.h"
 
 
@@ -414,6 +418,9 @@ public:
 	FString Context;
 
 	UPROPERTY(EditAnywhere, Category="Message")
+	FGuid Id;
+
+	UPROPERTY(EditAnywhere, Category="Message")
 	int32 Width;
 	UPROPERTY(EditAnywhere, Category="Message")
 	int32 Height;
@@ -474,7 +481,9 @@ public:
 	UPROPERTY(EditAnywhere, Category="Message")
 	uint8 ToleranceMaxBrightness;
 	UPROPERTY(EditAnywhere, Category="Message")
-	float MaximumAllowedError;
+	float MaximumLocalError;
+	UPROPERTY(EditAnywhere, Category="Message")
+	float MaximumGlobalError;
 	UPROPERTY(EditAnywhere, Category="Message")
 	bool bIgnoreAntiAliasing;
 	UPROPERTY(EditAnywhere, Category="Message")
@@ -487,9 +496,16 @@ public:
 
 	FAutomationScreenshotMetadata(const FAutomationScreenshotData& Data)
 	{
+		static_assert( (sizeof(FAutomationScreenshotMetadata) + sizeof(FString)) == sizeof(FAutomationScreenshotData), "These objects must match in size, to ensure we're copying all the members, except for FAutomationScreenshotData.Path, which we don't copy over." );
+
+		// Human readable name and associated context the screenshot was taken in.
 		Name = Data.Name;
 		Context = Data.Context;
 
+		// Unique Id so we know if this screenshot has already been imported.
+		Id = Data.Id;
+
+		// Resolution Details
 		Width = Data.Width;
 		Height = Data.Height;
 
@@ -516,6 +532,9 @@ public:
 		EffectsQuality = Data.EffectsQuality;
 		FoliageQuality = Data.FoliageQuality;
 
+		// Enabled Features
+		// TBD
+
 		// Comparison Requests
 		bHasComparisonRules = Data.bHasComparisonRules;
 		ToleranceRed = Data.ToleranceRed;
@@ -524,9 +543,81 @@ public:
 		ToleranceAlpha = Data.ToleranceAlpha;
 		ToleranceMinBrightness = Data.ToleranceMinBrightness;
 		ToleranceMaxBrightness = Data.ToleranceMaxBrightness;
-		MaximumAllowedError = Data.MaximumAllowedError;
+		
+		MaximumLocalError = Data.MaximumLocalError;
+		MaximumGlobalError = Data.MaximumGlobalError;
+
 		bIgnoreAntiAliasing = Data.bIgnoreAntiAliasing;
 		bIgnoreColors = Data.bIgnoreColors;
+	}
+
+	int32 Compare(const FAutomationScreenshotMetadata& OtherMetadata) const
+	{
+		int32 Score = 0;
+
+		if ( Width != OtherMetadata.Width || Height != OtherMetadata.Height || bIsStereo != OtherMetadata.bIsStereo )
+		{
+			return 0;
+		}
+		else
+		{
+			Score += 1000;
+		}
+
+		if (ResolutionQuality == OtherMetadata.ResolutionQuality && 
+			ViewDistanceQuality == OtherMetadata.ViewDistanceQuality &&
+			AntiAliasingQuality == OtherMetadata.AntiAliasingQuality &&
+			ShadowQuality == OtherMetadata.ShadowQuality &&
+			PostProcessQuality == OtherMetadata.PostProcessQuality &&
+			TextureQuality == OtherMetadata.TextureQuality &&
+			EffectsQuality == OtherMetadata.EffectsQuality &&
+			FoliageQuality == OtherMetadata.FoliageQuality
+			)
+		{
+			Score += 100;
+		}
+
+		if ( FeatureLevel == OtherMetadata.FeatureLevel )
+		{
+			Score += 100;
+		}
+
+		if ( UniqueDeviceId == OtherMetadata.UniqueDeviceId )
+		{
+			Score += 100;
+		}
+
+		if ( Rhi == OtherMetadata.Rhi )
+		{
+			Score += 100;
+		}
+
+		if ( Platform == OtherMetadata.Platform )
+		{
+			Score += 10;
+		}
+
+		if ( Vendor == OtherMetadata.Vendor )
+		{
+			Score += 10;
+		}
+
+		if ( AdapterName == OtherMetadata.AdapterName )
+		{
+			Score += 10;
+		}
+
+		if ( AdapterInternalDriverVersion == OtherMetadata.AdapterInternalDriverVersion )
+		{
+			Score += 10;
+		}
+
+		if ( AdapterUserDriverVersion == OtherMetadata.AdapterUserDriverVersion )
+		{
+			Score += 10;
+		}
+
+		return Score;
 	}
 };
 
@@ -549,4 +640,36 @@ struct FAutomationWorkerScreenImage
 
 	UPROPERTY(EditAnywhere, Category="Message")
 	FAutomationScreenshotMetadata Metadata;
+};
+
+
+
+/**
+ * Implements a message that is sent in containing a screen shot run during performance test.
+ */
+USTRUCT()
+struct FAutomationWorkerImageComparisonResults
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	FAutomationWorkerImageComparisonResults()
+		: bNew(false)
+		, bSimilar(false)
+	{
+	}
+
+	FAutomationWorkerImageComparisonResults(bool InIsNew, bool InAreSimilar)
+		: bNew(InIsNew)
+		, bSimilar(InAreSimilar)
+	{
+	}
+
+	/** Was this a new image we've never seen before and have no ground truth for? */
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool bNew;
+
+	/** Were the images similar?  If they're not you should log an error. */
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool bSimilar;
 };

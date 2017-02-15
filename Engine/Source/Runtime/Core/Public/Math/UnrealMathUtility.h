@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
 #include "HAL/PlatformMath.h"
 
 
@@ -1103,6 +1104,9 @@ struct FMath : public FPlatformMath
 
 	/** 
 	 * Find closest points between 2 segments.
+	 *
+	 * If either segment may have a length of 0, use SegmentDistToSegmentSafe instance.
+	 *
 	 * @param	(A1, B1)	defines the first segment.
 	 * @param	(A2, B2)	defines the second segment.
 	 * @param	OutP1		Closest point on segment 1 to segment 2.
@@ -1112,6 +1116,10 @@ struct FMath : public FPlatformMath
 
 	/** 
 	 * Find closest points between 2 segments.
+	 *
+	 * This is the safe version, and will check both segments' lengths.
+	 * Use this if either (or both) of the segments lengths may be 0.
+	 *
 	 * @param	(A1, B1)	defines the first segment.
 	 * @param	(A2, B2)	defines the second segment.
 	 * @param	OutP1		Closest point on segment 1 to segment 2.

@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "WidgetBlueprint.h"
 #include "KismetCompiler.h"
 
-class UWidgetBlueprint;
-class UWidgetBlueprintGeneratedClass;
 
 //////////////////////////////////////////////////////////////////////////
 // FWidgetBlueprintCompiler
@@ -29,7 +29,7 @@ protected:
 	void ValidateWidgetNames();
 
 	// FKismetCompilerContext
-	//virtual UEdGraphSchema_K2* CreateSchema() override;
+	virtual UEdGraphSchema_K2* CreateSchema() override;
 	virtual void CreateFunctionList() override;
 	virtual void SpawnNewClass(const FString& NewClassName) override;
 	virtual void PrecompileFunction(FKismetFunctionContext& Context) override;
@@ -45,6 +45,8 @@ protected:
 
 protected:
 	UWidgetBlueprintGeneratedClass* NewWidgetBlueprintClass;
+
+	class UWidgetGraphSchema* WidgetSchema;
 
 	// Map of properties created for widgets; to aid in debug data generation
 	TMap<class UWidget*, class UProperty*> WidgetToMemberVariableMap;

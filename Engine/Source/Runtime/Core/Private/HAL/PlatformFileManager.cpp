@@ -1,17 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GenericPlatformFile.cpp: Generic implementations of platform file I/O functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
-#include "ModuleManager.h"
-#include "../HAL/IPlatformFileLogWrapper.h"
-#include "../HAL/IPlatformFileProfilerWrapper.h"
-#include "../HAL/IPlatformFileCachedWrapper.h"
-#include "../HAL/IPlatformFileModule.h"
-#include "../HAL/IPlatformFileOpenLogWrapper.h"
-
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/AssertionMacros.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "Modules/ModuleManager.h"
+#include "Templates/ScopedPointer.h"
+#include "HAL/IPlatformFileLogWrapper.h"
+#include "HAL/IPlatformFileProfilerWrapper.h"
+#include "HAL/IPlatformFileCachedWrapper.h"
+#include "HAL/IPlatformFileModule.h"
+#include "HAL/IPlatformFileOpenLogWrapper.h"
+#include "UniquePtr.h"
 
 FPlatformFileManager::FPlatformFileManager()
 	: TopmostPlatformFile(NULL)
@@ -52,35 +55,35 @@ IPlatformFile* FPlatformFileManager::GetPlatformFile(const TCHAR* Name)
 	// Check Core platform files (Profile, Log) by name.
 	if (FCString::Strcmp(FLoggedPlatformFile::GetTypeName(), Name) == 0)
 	{
-		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FLoggedPlatformFile());
-		PlatformFile = AutoDestroySingleton.GetOwnedPointer();
+		static TUniquePtr<IPlatformFile> AutoDestroySingleton(new FLoggedPlatformFile());
+		PlatformFile = AutoDestroySingleton.Get();
 	}
 #if !UE_BUILD_SHIPPING
 	else if (FCString::Strcmp(TProfiledPlatformFile<FProfiledFileStatsFileDetailed>::GetTypeName(), Name) == 0)
 	{
-		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new TProfiledPlatformFile<FProfiledFileStatsFileDetailed>());
-		PlatformFile = AutoDestroySingleton.GetOwnedPointer();
+		static TUniquePtr<IPlatformFile> AutoDestroySingleton(new TProfiledPlatformFile<FProfiledFileStatsFileDetailed>());
+		PlatformFile = AutoDestroySingleton.Get();
 	}
 	else if (FCString::Strcmp(TProfiledPlatformFile<FProfiledFileStatsFileSimple>::GetTypeName(), Name) == 0)
 	{
-		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new TProfiledPlatformFile<FProfiledFileStatsFileSimple>());
-		PlatformFile = AutoDestroySingleton.GetOwnedPointer();
+		static TUniquePtr<IPlatformFile> AutoDestroySingleton(new TProfiledPlatformFile<FProfiledFileStatsFileSimple>());
+		PlatformFile = AutoDestroySingleton.Get();
 	}
 	else if (FCString::Strcmp(FPlatformFileReadStats::GetTypeName(), Name) == 0)
 	{
-		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FPlatformFileReadStats());
-		PlatformFile = AutoDestroySingleton.GetOwnedPointer();
+		static TUniquePtr<IPlatformFile> AutoDestroySingleton(new FPlatformFileReadStats());
+		PlatformFile = AutoDestroySingleton.Get();
 	}
 	else if (FCString::Strcmp(FPlatformFileOpenLog::GetTypeName(), Name) == 0)
 	{
-		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FPlatformFileOpenLog());
-		PlatformFile = AutoDestroySingleton.GetOwnedPointer();
+		static TUniquePtr<IPlatformFile> AutoDestroySingleton(new FPlatformFileOpenLog());
+		PlatformFile = AutoDestroySingleton.Get();
 	}
 #endif
 	else if (FCString::Strcmp(FCachedReadPlatformFile::GetTypeName(), Name) == 0)
 	{
-		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FCachedReadPlatformFile());
-		PlatformFile = AutoDestroySingleton.GetOwnedPointer();
+		static TUniquePtr<IPlatformFile> AutoDestroySingleton(new FCachedReadPlatformFile());
+		PlatformFile = AutoDestroySingleton.Get();
 	}
 	else if (FModuleManager::Get().ModuleExists(Name))
 	{
@@ -94,6 +97,52 @@ IPlatformFile* FPlatformFileManager::GetPlatformFile(const TCHAR* Name)
 	}
 
 	return PlatformFile;
+}
+
+void FPlatformFileManager::RemovePlatformFile(IPlatformFile* PlatformFileToRemove)
+{
+	check(TopmostPlatformFile != nullptr);
+	check(PlatformFileToRemove != nullptr);
+
+	IPlatformFile* HigherLevelPlatformFile = nullptr;
+	IPlatformFile* FoundElement = nullptr;
+	for (FoundElement = TopmostPlatformFile; FoundElement && FoundElement != PlatformFileToRemove; FoundElement = FoundElement->GetLowerLevel())
+	{
+		HigherLevelPlatformFile = FoundElement;
+	}
+	check(FoundElement == PlatformFileToRemove);
+	if (HigherLevelPlatformFile)
+	{
+		check(HigherLevelPlatformFile->GetLowerLevel() == PlatformFileToRemove);
+		HigherLevelPlatformFile->SetLowerLevel(PlatformFileToRemove->GetLowerLevel());
+	}
+	else
+	{
+		check(TopmostPlatformFile == PlatformFileToRemove);
+		check(PlatformFileToRemove->GetLowerLevel());
+		SetPlatformFile(*PlatformFileToRemove->GetLowerLevel());
+	}
+}
+
+void FPlatformFileManager::InitializeNewAsyncIO()
+{
+	// Removed the cached file wrapper because it doesn't work well with EDL
+	if (GEventDrivenLoaderEnabled)
+	{
+		IPlatformFile* CachedWrapper = FindPlatformFile(FCachedReadPlatformFile::GetTypeName());
+		if (CachedWrapper)
+		{
+			RemovePlatformFile(CachedWrapper);
+		}
+	}
+	// Make sure all platform wrappers know about new async IO and EDL
+	if (GNewAsyncIO)
+	{
+		for (IPlatformFile* ChainElement = TopmostPlatformFile; ChainElement; ChainElement = ChainElement->GetLowerLevel())
+		{
+			ChainElement->InitializeNewAsyncIO();
+		}
+	}
 }
 
 FPlatformFileManager& FPlatformFileManager::Get()

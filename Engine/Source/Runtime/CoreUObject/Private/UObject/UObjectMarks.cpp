@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectMarks.cpp: Unreal save marks annotation
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
+#include "UObject/UObjectMarks.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectIterator.h"
 
-#include "UObjectAnnotation.h"
+#include "UObject/UObjectAnnotation.h"
 
 
 struct FObjectMark

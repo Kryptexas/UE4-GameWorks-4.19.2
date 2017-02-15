@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Components/ActorComponent.h"
 #include "AnimHand.h"
 #include "AnimBody.generated.h"
+
+class UAnimBone;
 
 //NB: this is a limited class used only for leap anim, full class will have full body
 

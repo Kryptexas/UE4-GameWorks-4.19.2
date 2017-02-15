@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 // Automation
-#include "AutomationCommon.h"
-#include "Tests/AutomationTestSettings.h"
+
+#include "CoreMinimal.h"
+#include "Framework/Commands/InputChord.h"
+
+class SWidget;
+class UMaterial;
+class UTexture;
 
 //Materials
 

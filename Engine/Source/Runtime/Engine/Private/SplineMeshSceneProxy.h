@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "StaticMeshResources.h"
+#include "CoreMinimal.h"
+#include "RenderingThread.h"
+#include "ShaderParameters.h"
+#include "VertexFactory.h"
+#include "LocalVertexFactory.h"
+#include "PrimitiveViewRelevance.h"
 #include "Components/SplineMeshComponent.h"
-
-class FVertexFactoryShaderParameters;
-class USplineMeshComponent;
+#include "StaticMeshResources.h"
 
 //////////////////////////////////////////////////////////////////////////
 // SplineMeshVertexFactory

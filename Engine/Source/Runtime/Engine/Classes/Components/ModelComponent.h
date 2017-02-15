@@ -1,8 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "UObject/ObjectMacros.h"
+#include "Model.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Components/PrimitiveComponent.h"
 #include "ModelComponent.generated.h"
+
+class FLightingBuildOptions;
+class FPrimitiveSceneProxy;
+class ULightComponent;
+class UMaterialInterface;
+struct FStaticLightingPrimitiveInfo;
 
 //
 // Forward declarations
@@ -84,7 +98,7 @@ public:
 #endif
 	virtual ELightMapInteractionType GetStaticLightingType() const override	{ return LMIT_Texture;	}
 	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
-	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 	virtual class UBodySetup* GetBodySetup() override { return ModelBodySetup; };
 	virtual int32 GetNumMaterials() const override;
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;

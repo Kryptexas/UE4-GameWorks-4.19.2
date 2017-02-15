@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Model.h: Unreal UModel definition.
@@ -6,21 +6,31 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "LocalVertexFactory.h"
-#include "SceneTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Engine/EngineTypes.h"
+#include "RenderCommandFence.h"
+#include "Templates/ScopedPointer.h"
+#include "RenderResource.h"
+#include "PackedNormal.h"
+#include "Containers/DynamicRHIResourceArray.h"
 #include "RawIndexBuffer.h"
-#include "Classes/Engine/MapBuildDataRegistry.h"
+#include "LocalVertexFactory.h"
+#include "UniquePtr.h"
 
-struct FLightmassPrimitiveSettings;
-struct FStaticLightingVertex;
+class AActor;
 class ABrush;
+class FMeshMapBuildData;
 class ULevel;
 class ULightComponent;
 class UMaterialInterface;
-class FRawIndexBuffer16or32;
 class UModel;
+class UModelComponent;
 class UPolys;
+struct FStaticLightingVertex;
 
 //
 // One vertex associated with a Bsp node's polygon.  Contains a vertex index
@@ -372,7 +382,7 @@ class UModel : public UObject
 	TArray<FLightmassPrimitiveSettings>	LightmassSettings;
 
 	/** An index buffer for each material used by the model, containing all the nodes with that material applied. */
-	TMap<UMaterialInterface*,TScopedPointer<FRawIndexBuffer16or32> > MaterialIndexBuffers;
+	TMap<UMaterialInterface*,TUniquePtr<FRawIndexBuffer16or32> > MaterialIndexBuffers;
 
 	/** A vertex buffer containing the vertices for all nodes in the UModel. */
 	FModelVertexBuffer VertexBuffer;

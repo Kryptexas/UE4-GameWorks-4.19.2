@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 DynamicRHI.h: Dynamically bound Render Hardware Interface definitions.
@@ -6,7 +6,42 @@ DynamicRHI.h: Dynamically bound Render Hardware Interface definitions.
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Math/Color.h"
+#include "Math/IntPoint.h"
+#include "Math/IntRect.h"
+#include "Math/Box2D.h"
+#include "Math/PerspectiveMatrix.h"
+#include "Math/TranslationMatrix.h"
+#include "Math/ScaleMatrix.h"
+#include "Math/Float16Color.h"
+#include "Modules/ModuleInterface.h"
+
+class FBlendStateInitializerRHI;
+class FGraphicsPipelineStateInitializer;
+class FLastRenderTimeContainer;
+class FReadSurfaceDataFlags;
+class FRHICommandList;
+class FRHIComputeFence;
+class FRHIDepthRenderTargetView;
+class FRHIGraphicsPipelineStateFallBack;
+class FRHIRenderTargetView;
+class FRHISetRenderTargetsInfo;
+struct FDepthStencilStateInitializerRHI;
+struct FRasterizerStateInitializerRHI;
+struct FResolveParams;
+struct FRHIResourceCreateInfo;
+struct FRHIResourceInfo;
+struct FRHIUniformBufferLayout;
+struct FSamplerStateInitializerRHI;
+struct FTextureMemoryStats;
+struct FViewportBounds;
+struct Rect;
+enum class EAsyncComputeBudget;
+enum class EClearDepthStencil;
+enum class EResourceTransitionAccess;
+enum class EResourceTransitionPipeline;
 
 FORCEINLINE FBoundShaderStateRHIRef RHICreateBoundShaderState(
 	FVertexDeclarationRHIParamRef VertexDeclaration,
@@ -235,6 +270,29 @@ public:
 		*/
 	// This method is queued with an RHIThread, otherwise it will flush after it is queued; without an RHI thread there is no benefit to queuing this frame advance commands
 	virtual void RHIEndScene() = 0;
+
+	/**
+		* Signals the beginning and ending of rendering to a resource to be used in the next frame on a multiGPU system
+	*/
+	virtual void RHIBeginUpdateMultiFrameResource(FTextureRHIParamRef Texture)
+	{
+		/* empty default implementation */
+	}
+
+	virtual void RHIEndUpdateMultiFrameResource(FTextureRHIParamRef Texture)
+	{
+		/* empty default implementation */
+	}
+
+	virtual void RHIBeginUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAV)
+	{
+		/* empty default implementation */
+	}
+
+	virtual void RHIEndUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAV)
+	{
+		/* empty default implementation */
+	}
 
 	virtual void RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset) = 0;
 
@@ -501,7 +559,7 @@ public:
 
 	virtual void RHIPopEvent() = 0;
 
-	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) = 0;
+	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) = 0;	
 };
 
 /** The interface which is implemented by the dynamically bound RHI. */
@@ -521,6 +579,7 @@ public:
 	/** Shutdown the RHI; handle shutdown and resource destruction before the RHI's actual destructor is called (so that all resources of the RHI are still available for shutdown). */
 	virtual void Shutdown() = 0;
 
+	virtual const TCHAR* GetName() = 0;
 
 	/////// RHI Methods
 
@@ -1082,6 +1141,12 @@ public:
 	// FlushType: Thread safe
 	virtual void RHIResizeViewport(FViewportRHIParamRef Viewport, uint32 SizeX, uint32 SizeY, bool bIsFullscreen) = 0;
 
+	virtual void RHIResizeViewport(FViewportRHIParamRef Viewport, uint32 SizeX, uint32 SizeY, bool bIsFullscreen, EPixelFormat PreferredPixelFormat)
+	{
+		// Default implementation for RHIs that cannot change formats on the fly
+		RHIResizeViewport(Viewport, SizeX, SizeY, bIsFullscreen);
+	}
+
 	//  must be called from the main thread.
 	// FlushType: Thread safe
 	virtual void RHITick(float DeltaTime) = 0;
@@ -1328,9 +1393,9 @@ FORCEINLINE FViewportRHIRef RHICreateViewport(void* WindowHandle, uint32 SizeX, 
 	return GDynamicRHI->RHICreateViewport(WindowHandle, SizeX, SizeY, bIsFullscreen, PreferredPixelFormat);
 }
 
-FORCEINLINE void RHIResizeViewport(FViewportRHIParamRef Viewport, uint32 SizeX, uint32 SizeY, bool bIsFullscreen)
+FORCEINLINE void RHIResizeViewport(FViewportRHIParamRef Viewport, uint32 SizeX, uint32 SizeY, bool bIsFullscreen, EPixelFormat PreferredPixelFormat)
 {
-	GDynamicRHI->RHIResizeViewport(Viewport, SizeX, SizeY, bIsFullscreen);
+	GDynamicRHI->RHIResizeViewport(Viewport, SizeX, SizeY, bIsFullscreen, PreferredPixelFormat);
 }
 
 FORCEINLINE void RHITick(float DeltaTime)

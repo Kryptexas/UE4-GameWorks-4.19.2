@@ -1,24 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequenceRecorderPrivatePCH.h"
 #include "SequenceRecorder.h"
+#include "ISequenceAudioRecorder.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
+#include "Engine/Texture2D.h"
+#include "CanvasItem.h"
+#include "Engine/Canvas.h"
+#include "AssetData.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Editor.h"
+#include "EngineGlobals.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "LevelEditor.h"
+#include "AnimationRecorder.h"
 #include "ActorRecording.h"
+#include "AssetRegistryModule.h"
 #include "SequenceRecorderUtils.h"
 #include "SequenceRecorderSettings.h"
 #include "ObjectTools.h"
-#include "ScopedTransaction.h"
-#include "AssetRegistryModule.h"
-#include "SequenceRecorderActorFilter.h"
+#include "Features/IModularFeatures.h"
 #include "Engine/DemoNetDriver.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "DrawDebugHelpers.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "LevelSequenceActor.h"
-#include "Runtime/Core/Public/Features/IModularFeatures.h"
+#include "ILevelViewport.h"
 #include "Tracks/MovieSceneAudioTrack.h"
 #include "Sections/MovieSceneAudioSection.h"
-#include "ILevelViewport.h"
-#include "Animation/AnimSequence.h"
+#include "Sound/SoundWave.h"
 
 #define LOCTEXT_NAMESPACE "SequenceRecorder"
 
@@ -766,11 +777,11 @@ bool FSequenceRecorder::StopRecording()
 	{
 		if(LevelSequence)
 		{
-			// Stop referencing the sequence so we are listed as 'not recording'
-			CurrentSequence = nullptr;
-
 			// set movie scene playback range to encompass all sections
 			UpdateSequencePlaybackRange();
+
+			// Stop referencing the sequence so we are listed as 'not recording'
+			CurrentSequence = nullptr;
 
 			if(GEditor == nullptr)
 			{
@@ -840,6 +851,13 @@ void FSequenceRecorder::UpdateSequencePlaybackRange()
 			}
 
 			MovieScene->SetPlaybackRange(MinRange, MaxRange);
+
+			// Initialize the working and view range with a little bit more space
+			const float OutputViewSize = MaxRange - MinRange;
+			const float OutputChange = OutputViewSize * 0.1f;
+
+			MovieScene->SetWorkingRange(MinRange - OutputChange, MaxRange + OutputChange);
+			MovieScene->SetViewRange(MinRange - OutputChange, MaxRange + OutputChange);
 		}
 	}
 }
@@ -929,9 +947,13 @@ void FSequenceRecorder::HandleActorDespawned(AActor* Actor)
 
 void FSequenceRecorder::RefreshNextSequence()
 {
-	// Cache the name of the next sequence we will try to record to
 	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
-	SequenceName = Settings->SequenceName.Len() > 0 ? Settings->SequenceName : TEXT("RecordedSequence");
+	if (SequenceName.IsEmpty())
+	{
+		SequenceName = Settings->SequenceName.Len() > 0 ? Settings->SequenceName : TEXT("RecordedSequence");
+	}
+
+	// Cache the name of the next sequence we will try to record to
 	NextSequenceName = SequenceRecorderUtils::MakeNewAssetName<ULevelSequence>(Settings->SequenceRecordingBasePath.Path, SequenceName);
 }
 

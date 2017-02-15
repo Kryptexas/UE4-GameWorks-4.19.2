@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3188564
 Availability:Public
 Title:Parameter 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
@@ -170,7 +170,7 @@ TextureObjectParameter 표현식은 텍스처 파라미터를 정의하고 텍�
 | **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
 | **Texture** | 표현식이 샘플로 뽑아낼 텍스처를 나타냅니다. |
 | **Sampler Type** | 노드에서 샘플로 뽑아내 출력시킬 데이터 유형입니다. |
-| **MipValueMode** | 텍스처의 외형과 퍼포먼스에 영향을 끼치는 노이즈 값을 적용합니다. |
+| **MipValueMode** | 기본 하드웨어 계산에서 샘플의 밉레벨 또는 파생형을 커스터마이징하는 방법을 선택합니다. 모양과 퍼포먼스에 영향을 끼칩니다. |
 
 이 노드는 [MaterialFunctions](Engine/Rendering/Materials/Functions) 와 함께 사용됩니다.
 [/EXCERPT:TextureObjectParameter]
@@ -188,7 +188,7 @@ TextureSampleParameter2D 표현식은 TextureSample 과 같지만 머티리얼�
 | **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
 | **Texture** | 표현식이 샘플로 뽑아낼 텍스처를 나타냅니다. |
 | **Sampler Type** | 노드에서 샘플로 뽑아내 출력시킬 데이터 유형입니다. |
-| **MipValueMode** | 텍스처의 외형과 퍼포먼스에 영향을 끼치는 노이즈 값을 적용합니다. |
+| **MipValueMode** | 기본 하드웨어 계산에서 샘플의 밉레벨 또는 파생형을 커스터마이징하는 방법을 선택합니다. 모양과 퍼포먼스에 영향을 끼칩니다. |
 | [REGION:tablesection]입력[/REGION] ||
 | **UVs** | 텍스처에 사용할 UV 텍스처 좌표를 받습니다. UV 에 입력되는 값이 없으면, 머티리얼이 적용된 메시의 텍스처 좌표가 사용됩니다. |
 | [REGION:tablesection]출력[/REGION] ||
@@ -214,7 +214,7 @@ TextureSampleParameterCube 표현식은 TextureSample 과 같지만, 큐브맵�
 | **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
 | **Texture** | 표현식이 샘플로 뽑아낼 텍스처를 나타냅니다. |
 | **Sampler Type** | 노드에서 샘플로 뽑아내 출력시킬 데이터 유형입니다. |
-| **MipValueMode** | 텍스처의 외형과 퍼포먼스에 영향을 끼치는 노이즈 값을 적용합니다. |
+| **MipValueMode** | 기본 하드웨어 계산에서 샘플의 밉레벨 또는 파생형을 커스터마이징하는 방법을 선택합니다. 모양과 퍼포먼스에 영향을 끼칩니다. |
 | [REGION:tablesection]입력[/REGION] ||
 | **UVs** | 텍스처에 사용할 UV 텍스처 좌표를 받습니다. UVs 에 입력된 값이 없으면, 머티리얼이 적용된 메시의 텍스처 좌표가 사용됩니다. 3채널 벡터값이어야 합니다. |
 | [REGION:tablesection]입력[/REGION] ||
@@ -238,7 +238,7 @@ TextureSampleParameterMovie 표현식은 TextureSample 과 같지만, 무비 텍
 | **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
 | **Texture** | 표현식이 샘플로 뽑아낼 텍스처를 나타냅니다. |
 | **Sampler Type** | 노드에서 샘플로 뽑아내 출력시킬 데이터 유형입니다. |
-| **MipValueMode** | 텍스처의 외형과 퍼포먼스에 영향을 끼치는 노이즈 값을 적용합니다. |
+| **MipValueMode** | 기본 하드웨어 계산에서 샘플의 밉레벨 또는 파생형을 커스터마이징하는 방법을 선택합니다. 모양과 퍼포먼스에 영향을 끼칩니다. |
 | [REGION:tablesection]입력[/REGION] ||
 | **UVs** | 텍스처에 사용할 UV 텍스처 좌표를 받습니다. UVs 에 입력된 값이 없으면, 머티리얼이 적용된 메시의 텍스처 좌표가 사용됩니다. |
 | [REGION:tablesection]출력[/REGION] ||

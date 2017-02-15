@@ -1,17 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "MultiBox.h"
-#include "SHeadingBlock.h"
-#include "SMenuEntryBlock.h"
-#include "SMenuSeparatorBlock.h"
-#include "SToolBarSeparatorBlock.h"
-#include "SToolBarButtonBlock.h"
-#include "SToolBarComboButtonBlock.h"
-#include "SEditableTextBlock.h"
-#include "SButtonRowBlock.h"
-#include "SWidgetBlock.h"
-#include "SGroupMarkerBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBox.h"
+#include "Widgets/Layout/SBox.h"
+#include "Framework/MultiBox/SHeadingBlock.h"
+#include "Framework/MultiBox/SMenuEntryBlock.h"
+#include "Framework/MultiBox/SMenuSeparatorBlock.h"
+#include "Framework/MultiBox/SToolBarSeparatorBlock.h"
+#include "Framework/MultiBox/SToolBarButtonBlock.h"
+#include "Framework/MultiBox/SToolBarComboButtonBlock.h"
+#include "Framework/MultiBox/SEditableTextBlock.h"
+#include "Framework/MultiBox/SButtonRowBlock.h"
+#include "Framework/MultiBox/SWidgetBlock.h"
+#include "Framework/MultiBox/SGroupMarkerBlock.h"
 
 FMultiBoxBuilder::FMultiBoxBuilder( const EMultiBoxType::Type InType, FMultiBoxCustomization InCustomization, const bool bInShouldCloseWindowAfterMenuSelection, const TSharedPtr< const FUICommandList >& InCommandList, TSharedPtr<FExtender> InExtender, FName InTutorialHighlightName )
 	: MultiBox( FMultiBox::Create( InType, InCustomization, bInShouldCloseWindowAfterMenuSelection ) )
@@ -80,9 +83,9 @@ FMultiBoxCustomization FMultiBoxBuilder::GetCustomization() const
 	return FMultiBoxCustomization( MultiBox->GetCustomizationName() ); 
 }
 
-TSharedRef< class SWidget > FMultiBoxBuilder::MakeWidget()
+TSharedRef< class SWidget > FMultiBoxBuilder::MakeWidget( FMultiBox::FOnMakeMultiBoxBuilderOverride* InMakeMultiBoxBuilderOverride /* = nullptr */ )
 {
-	return MultiBox->MakeWidget( false );
+	return MultiBox->MakeWidget( false, InMakeMultiBoxBuilderOverride );
 }
 
 TSharedRef< class FMultiBox > FMultiBoxBuilder::GetMultiBox()
@@ -163,10 +166,10 @@ void FBaseMenuBuilder::AddMenuEntry( const FUIAction& UIAction, const TSharedRef
 	ApplyHook(InExtensionHook, EExtensionHook::After);
 }
 
-TSharedRef< class SWidget > FMenuBuilder::MakeWidget()
+TSharedRef< class SWidget > FMenuBuilder::MakeWidget( FMultiBox::FOnMakeMultiBoxBuilderOverride* InMakeMultiBoxBuilderOverride /* = nullptr */ )
 {
 	// Make menu builders searchable
-	return MultiBox->MakeWidget( true );
+	return MultiBox->MakeWidget( true, InMakeMultiBoxBuilderOverride );
 }
 
 void FMenuBuilder::BeginSection( FName InExtensionHook, const TAttribute< FText >& InHeadingText )

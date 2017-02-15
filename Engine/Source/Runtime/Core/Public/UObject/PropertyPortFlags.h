@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PropertyPortFlags.h: Property import/export flags.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreTypes.h"
 
 // Property exporting flags.
 enum EPropertyPortFlags
@@ -96,4 +98,7 @@ enum EPropertyPortFlags
 
 	/** Export in C++ form */
 	PPF_ExportCpp					= 0x10000000,
+
+	/** Ignores CPF_SkipSerialization flag when using tagged serialization */
+	PPF_ForceTaggedSerialization	= 0x20000000,
 };

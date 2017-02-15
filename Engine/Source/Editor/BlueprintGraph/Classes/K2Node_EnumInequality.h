@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "K2Node.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "K2Node_EnumEquality.h"
 #include "K2Node_EnumInequality.generated.h"
-
 
 UCLASS(MinimalAPI, meta=(Keywords = "!="))
 class UK2Node_EnumInequality : public UK2Node_EnumEquality

@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimMontage.cpp: Montage classes that contains slots
 =============================================================================*/ 
 
-#include "UnrealEd.h"
+#include "Animation/EditorAnimCompositeSegment.h"
 #include "Animation/AnimComposite.h"
 
 

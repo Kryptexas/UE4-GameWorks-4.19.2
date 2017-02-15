@@ -1,20 +1,37 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MobileShadingRenderer.cpp: Scene rendering code for the ES2 feature level.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "Engine.h"
-#include "ScenePrivate.h"
-#include "FXSystem.h"
-#include "PostProcessing.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessMobile.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/MemStack.h"
+#include "HAL/IConsoleManager.h"
+#include "EngineGlobals.h"
+#include "RHIDefinitions.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "RendererInterface.h"
 #include "SceneUtils.h"
-#include "PostProcessUpscale.h"
-#include "PostProcessCompositeEditorPrimitives.h"
-#include "PostProcessHMD.h"
+#include "UniformBuffer.h"
+#include "Engine/BlendableInterface.h"
+#include "ShaderParameters.h"
+#include "RHIStaticStates.h"
+#include "Shader.h"
+#include "StaticBoundShaderState.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "GlobalShader.h"
+#include "SceneRendering.h"
+#include "ScenePrivate.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "FXSystem.h"
+#include "PostProcess/RenderingCompositionGraph.h"
+#include "PostProcess/PostProcessing.h"
+#include "PostProcess/PostProcessMobile.h"
+#include "PostProcess/PostProcessUpscale.h"
+#include "PostProcess/PostProcessCompositeEditorPrimitives.h"
+#include "PostProcess/PostProcessHMD.h"
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
 #include "ScreenRendering.h"
@@ -86,7 +103,7 @@ void FMobileSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 
 	UpdatePostProcessUsageFlags();
 	
-	OnStartFrame();
+	OnStartFrame(RHICmdList);
 }
 
 /** 
@@ -200,6 +217,11 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	RenderModulatedShadowProjections(RHICmdList);
 
+	if (ViewFamily.IsMonoscopicFarFieldEnabled())
+	{
+		CompositeMonoscopicFarField(RHICmdList);
+	}
+
 	// Draw translucency.
 	if (ViewFamily.EngineShowFlags.Translucency)
 	{
@@ -297,7 +319,7 @@ void FMobileSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RHICmdList
 	if (bDoUpscale || bBlitRequired)
 	{	// blit from sceneRT to view family target, simple bilinear if upscaling otherwise point filtered.
 		uint32 UpscaleQuality = bDoUpscale ? 1 : 0;
-		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscale(UpscaleQuality));
+		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscale(View, UpscaleQuality));
 
 		Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 		Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.FinalOutput));

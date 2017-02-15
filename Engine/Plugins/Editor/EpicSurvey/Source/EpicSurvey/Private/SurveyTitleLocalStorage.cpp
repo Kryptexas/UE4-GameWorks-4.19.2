@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EpicSurveyPrivatePCH.h"
 #include "SurveyTitleLocalStorage.h"
-#include "OnlineSubsystemTypes.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
 
 IOnlineTitleFilePtr FSurveyTitleLocalStorage::Create( const FString& RootDirectory )
 {
@@ -78,7 +78,7 @@ bool FSurveyTitleLocalStorage::EnumerateFiles(const FPagedQuery& Page)
 
 		FCloudFileHeader NewHeader;
 		NewHeader.FileName = Filename;
-		NewHeader.DLName = Filename + LexicalConversion::ToString(FileIdx);
+		NewHeader.DLName = Filename + Lex::ToString(FileIdx);
 		NewHeader.FileSize = 0;
 		NewHeader.Hash.Empty();
 

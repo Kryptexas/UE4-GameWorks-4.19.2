@@ -1,197 +1,179 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:Public
-Title: Media Framework Overview
+Title:媒体框架总览
 Crumbs:%ROOT%, Engine
-Description:Overview of Media Framework functionality in Unreal Engine 4. 
+Description:虚幻引擎 4 中的媒体框架功能总览 
 Navigation:topic
 parent:Engine/MediaFramework
 order:2
-Version: 4.13
-Related: Engine\MediaFramework\TechReference
-Related: Engine\MediaFramework\HowTo
+Version:4.13
+Related:Engine\MediaFramework\TechReference
+Related:Engine\MediaFramework\HowTo
 
 [TOC(start:2 end:2)]
 
-**Media Framework** uses several assets to enable the playback of videos inside Unreal Engine 4. Videos can be scrubbed, paused, or rewound inside a **Media Player** asset, as well as controlled through [C++](Programming) or [](Engine/Blueprints). 
-Whether you want a surface in your level playing a video, or you want to create a [](Engine/UMG) interface to give players control over your video playback, you will first need to specify the **Media Source** so that the engine can locate your media asset.
+**媒体框架（Media Framework）** 利用数个资源在虚幻引擎 4 中播放视频。在 **媒体播放器** 资源中可对视频进行拖动、暂停或倒回，并通过 [C++](Programming) 或 [](Engine/Blueprints) 进行控制。无论是需要在关卡中的一块表面上播放视频，还是创建一个 [](Engine/UMG) 界面让玩家控制视频播放，首先需要指定 **媒体源**，以便引擎找到媒体资源。
 
-## Media Source Types
+## 媒体源类型
 
-There are several different Media Source assets that you can use to define where the media is coming from. 
-Whether you have a file that is included as part of your project, streaming media from a website, or using platform specific media, you will need to define a source before you can play the video.
-You can add a Media Source inside the **Content Browser** by clicking the **Add New** Button then specifying which source type you want under the **Media** section.  
+可使用数个不同媒体源资源定义媒体来源。无论文件是项目的一部分，还是从网页上进行流送，或者是平台特定的媒体，在播放视频前都需要定义源。点击 **Add New** 按钮，然后在 **Media** 部分指定所需的源类型，即可在 **Content Browser** 中添加媒体源。  
 
 ![](MediaSource.png)
 
 [REGION:note]
-Please see the [](Engine\MediaFramework\TechReference\) page for information on supported file types and URLs. 
+在 [](Engine\MediaFramework\TechReference\) 页面可查看支持文件类型和 URL 的内容。 
 [/REGION]
 
-### File Media Source
+### 文件媒体源
 
 ![](MediaSource_File.png)
 
-The **File Media Source** asset is used for media files stored on your device or in a shared local network file. The **File Path** section is where you specify where the media file resides. 
-While a media file can exist anywhere, it's typically a good practice to move your media files to the **Content/Movies** folder of your project and then point to the media file. 
-This will ensure that your media is packaged correctly with your project. You will also see a yellow exclamation point when pointing to a file outside of this location as a warning. 
+**文件媒体源（File Media Source）** 资源用于保存在设备或共享本地网络文件中的媒体文件。可在 **File Path** 部分指定媒体文件存放路径。媒体文件可保存在任意路径下，但建议将其保存在项目的 **Content/Movies** 文件夹中，然后指向此文件。此操作可确保媒体文件与项目正常打包。指向此路径外的文件时将出现黄色感叹号警告。 
 
-This type of source asset can be used to load the entire media file into memory and play it from there by enabling the **Precache File** option. 
-Based on the size of your file, caching time may vary, so take that into consideration when choosing this option. 
+这种类型的源资源可用于将整个媒体文件载入内存，然后启用 **Precache File** 选项进行播放。基于文件大小，缓存时间将存在差异，因此选择此项时需将其纳入考虑。 
 
-Each source asset supports a name, in the **Default Player** field, to identify the appropriate native media player for that asset. If you leave this field empty, the media player will be detected automatically. 
+每个源资源支持一个 **Default Player** 域中的命名，以便为该资源识别适当的原生媒体播放器。如将此域中留空，将自动检测媒体播放器。 
 
 [REGION:note]
-Please see the [](Engine\MediaFramework\HowTo\FileMediaSource) how-to for working with File Media Source assets. 
+请查阅 [](Engine\MediaFramework\HowTo\FileMediaSource) 指南，了解如何使用文件媒体源资源。 
 [/REGION]
 
-### Stream Media Source
+### 流送媒体源
 
 ![](MediaSource_Stream.png)
 
-This **Stream Media Source** asset takes a URL as the source of your media, and pulls it from the internet. Currently, linking to a YouTube or DailyMotion style URL is not supported, and you will need to link directly to a hosted file. 
-Please note that the URL shown above is just an example, and cannot be used.
+**流送媒体源（Stream Media Source）** 资源使用 URL 作为媒体的源，并从互联网进行获取。当前版本不支持链接到 YouTube 或 DailyMotion 式的 URL，需要直接链接到托管文件。注意：以上显示的 URL 只是一个范例，无法使用。
 
 [REGION:note]
-Please see the [](Engine\MediaFramework\HowTo\StreamMediaSource) how-to for working with Stream Media Source assets. 
+请查阅 [](Engine\MediaFramework\HowTo\StreamMediaSource) 指南，了解如何使用流送媒体源资源。 
 [/REGION]
 
-### Platform Media Source
+### 平台媒体源
 
 ![](MediaSource_Platform.png)
 
-The **Platform Media Source** asset supports overriding Media Sources on a per-platform basis. You can specify the Media Source to be used if no source was specified for a target platform, as well as define the Media Sources per platform. 
+**平台媒体源（Platform Media Source）** 资源支持以每个平台为基础覆盖媒体源。如目标平台未指定源，可指定使用的媒体源并定义每个平台的媒体源。 
 
-For example, supppose you want a particluar video to play only on Android Devices or only on PS4. Inside the **Media Sources** section, you can designate which videos play on which platforms. Leaving the Media Source blank will cause the **Default Source** to be used. 
+例如您希望只在安卓设备或只在 PS4 上播放特定视频。在 **Media Sources** 部分可指定哪些视频在哪些平台上播放。如 Media Source 为空，则将使用 **默认源**。 
 
 [REGION:warning]
-The Platform Media Source asset is experimental and is not expected to work in version 4.13 of the engine. It is planned for a 4.14 release.
+平台媒体源资源仍在实验阶段，在 4.13 版本中无法正常使用。计划在 4.14 版本中推出。
 [/REGION]
 
 
-## Media Playlists
+## 媒体播放列表
 
-While you can play Media Source assets individually, the **Media Playlist** asset can play multiple Media Sources in order. 
-After creating a few Media Source assets, you can add them to a Media Playlist, which will automatically cycle through and play each asset in the order you define.
-You can create Media Playlists inside the **Content Browser** from the **Add New** Button under the **Media** section. 
+媒体源资源可进行单个播放，使用 **媒体播放列表（Media Playlist）** 资源可按顺序播放多个媒体源。创建数个媒体源资源后可将它们添加到媒体播放列表，在此将自动循环，按定义的顺序播放每个资源。通过 **Content Browser** 中 **Media** 部分下的 **Add New** 按钮即可创建媒体播放列表。 
 
 ![](MediaPlaylistButton.png)
 
-In the Media Playstlist window (pictured below), under the **Playlist** section, you can define the source assets to include and specific the playback order. 
-Any Media Source assets you have created will be displayed in the lower **Media Library** window which you can **Double-click** on to add to the end of the playlist. 
+可在媒体播放列表窗口（下图）的 **Playlist** 部分下定义需要添加的源资源并指定播放顺序。创建的所有媒体源资源将显示在下方的 **Media Library** 窗口中，可双击资源将其添加到播放列表末尾。 
 
 ![](CustomizedPlaylist.png)
 
-Media Playlists can use a mixture of each Media Source type and playback in order unless specified through Blueprint Script. 
+除非经蓝图脚本指定，媒体播放列表可混合每种媒体源类型并按顺序播放。 
 
 [REGION:note]
-Please see the [](Engine\MediaFramework\HowTo\MediaPlaylists) how-to for working with Media Playlist assets. 
+请查阅 [](Engine\MediaFramework\HowTo\MediaPlaylists) 指南，了解如何使用媒体播放列表资源。 
 [/REGION]
 
-## Media Sound Waves
+## 媒体声波
 
-In order to hear audio associated with a video, you will need to create a **Media Sound Wave** asset.  
+创建 **媒体声波（Media Sound Wave）** 资源，以便播放与视频关联的音频。  
 
 ![](MediaPlayerSound.png)
 
-From the **Add New** button under **Media**, select the **Media Sound Wave** asset. 
+通过 **Media** 下的 **Add New** 按钮选择 **Media Sound Wave** 资源。 
 
 ![](MediaPlayerSoundWindow.png)
 
-The Media Sound Wave asset provides **Debug**, **Concurrency** and **Attenuation** settings that can be adjusted to define how the asset is processed. 
-When linked to a Media Player asset, audio attached to a video source will automatically play back along with the video. 
-Typically, you can leave the default settings for a newly created Media Sound Wave asset. However, if you need more control over how the sound is perceived, you can adjust the Concurrency and Attenuation settings. 
+媒体声波资源拥有 **Debug**、**Concurrency** 和 **Attenuation** 设置，可对它们进行调整，定义资源的处理方式。连接到媒体播放器资源时，附加到视频源的音频将随视频自动播放。通常可沿用新建媒体声波资源的默认设置。如需对声音的感知进行控制，可对 Concurrency 和 Attenuation 设置进行调整。 
 
 [REGION:note]
-Please see the [](Engine/Audio) section for more details on working with audio in Unreal Engine 4. 
+可在 [](Engine/Audio) 部分查阅虚幻引擎 4 中使用音频的更多细节内容。 
 [/REGION]
 
 
-## Media Textures
+## 媒体纹理
 
-**Media Texture** assets are used for rendering video tracks from Media Player assets. 
+**媒体纹理（Media Texture）** 资源用于从媒体播放器资源渲染视频轨。 
 
 ![](MediaTexture.png)
 
-While Media Sound Waves provide the audio, Media Textures provide the visuals from your media source assets. 
-Media Texture assets can be included within [](Engine/Rendering/Materials/) that can then be applied to meshes in your level such as a billboard, TV or monitor to make it appear as if the video is playing on that object within the game world. 
+媒体声波提供音频，而媒体纹理提供媒体源资源的视觉效果。 
+媒体纹理资源可包含在 [](Engine/Rendering/Materials/) 中，然后再应用到关卡中的模型（如公告牌、电视或显示器）进行显示，使视频在游戏世界中的物体上播放。 
 
 ![](MediaTextureWindow.png)
 
-Above, a Material including a Media Texture asset has been created and applied to a static mesh in the level. 
-Inside the [Texture Editor](Engine/Content/Types/Textures/Properties/Interface), the Media Texture displays the same playback position as it appears in the Material in the level. 
-In addition to the standard [](Engine/Content/Types/Textures/Properties), Media Textures accept X and Y Axis **Addressing** values of **Clamped**, **Mirror** or **World** values. 
+上图中，带媒体纹理资源的材质已被创建并应用到关卡中的静态网格体。 
+在 [纹理编辑器](Engine/Content/Types/Textures/Properties/Interface) 中，媒体纹理显示在关卡中其所在材质的相同播放位置。 
+除标准 [](Engine/Content/Types/Textures/Properties) 外，媒体纹理接受 **Clamped**、**Mirror** 或 **World** 值的 XY 轴 **Addressing** 值。 
 
 [REGION:note]
-Please see the [](Engine\MediaFramework\HowTo) section for guides on how to setup and use Media Textures to play videos. 
+请在 [](Engine\MediaFramework\HowTo) 部分查阅媒体纹理播放视频的设置和使用指南。 
 [/REGION]
 
-## Media Player Assets
+## 媒体播放器资源
 
-Once you have a Media Source or Media Playlist, you can play back the asset using a **Media Player** asset. 
-The Media Player asset requires the use of a Media Texture to produce the video playback and a Media Sound Wave to produce the audio associated with the video. 
-You can create Media Player assets inside the **Content Browser** from the **Add New** Button under the **Media** section. 
+拥有媒体源或媒体播放列表后，即可使用 **媒体播放器（Media Player）** 资源播放资源。媒体播放器资源需要使用媒体纹理生成视频播放、使用媒体声波生成与视频关联的音频。通过 **Content Browser** 中 **Media** 部分下的 **Add New** 按钮即可创建媒体播放器资源。 
 
 ![](MediaPlayer.png)
 
-When creating Media Player assets, the **Create Media Player** window (pictured below) will appear asking if you would also like to create and link assets to the Media Player. 
-This allows you to automatically create and assign a Media Texture and Media Sound Wave associated with the Media Player asset you are creating. 
+创建媒体播放器资源时将出现 **Create Media Player** 窗口（下图），询问是否需要创建并链接资源到媒体播放器。这将自动创建并指定与媒体播放器资源关联的媒体纹理和媒体声波文件。 
 
 ![](CreateMediaPlayer.png)
 
-**Double-clicking** on a Media Player asset will open the **Media Player Window**: 
+**双击** 媒体播放器资源将打开 **媒体播放器窗口**： 
 
 ![](MediaPlayerWindow.png)
 
-Inside the Media Player Window, you can playback and preview any Media Source assets you have created (created source media are displayed the **Media Library** panel). 
-You can play, pause, rewind, or skip to the beginning or end of a video from the toolbar across the top. Any Media Playlists that are currently playing videos will be displayed in the upper right **Playlist** window. 
+在媒体播放器窗口中可播放并预览创建的所有媒体源资源（创建的源媒体显示在 **Media Library** 面板中）。可使用顶部的工具栏播放、暂停、倒回、或跳至视频的开头和结尾。当前正在播放视频的媒体播放列表将显示在 **Playlist** 窗口的右上角。 
 
-In the lower-right **Details** panel, you can define options for **Playback** or assign the **Sound Wave** and **Video Textures** (or an **Image Texture**) associated with the Media Player. 
-There is also an **Info** panel which will display info about the source such as the stream type, codecs, sample rate, dimensions and more. 
+在 **Details** 面板的右下角可定义 **Playback** 的选项或指定与媒体播放器相关的 **声波** 和 **视频纹理**（或 **图片纹理**）。此外 **Info** 面板将显示源的信息，如流送类型、编解码、取样率、维度等。 
 
 [REGION:warning]
-Still Image Texture output is currently not implemented by any of the Media Player plug-ins and this feature is considered experimental.
+当前尚无媒体播放器插件实现静态图像纹理输出，此功能尚在实验阶段。
 [/REGION]
 
-## Media Assets & Scripting
+## 媒体资源和脚本编写
 
-Once your Media Player asset is set up and linked with the appropriate assets, it can be played during a game session. In order to play media in-game, you will first need to open the Media Source asset through Blueprint or C++. 
-To do this, create a [Variable](Engine/Blueprints/UserGuide/Variables/) inside any Blueprint that contains a reference to your Media Player asset. 
+媒体播放器资源设置完成并链接资源后，即可在游戏会话中进行播放。如需在游戏中播放媒体，首先需要通过蓝图或 C++ 打开媒体源资源。先在包含对媒体播放器资源引用的任意蓝图中创建一个 [变量](Engine/Blueprints/UserGuide/Variables/)。 
 
 ![](MediaPlayerDetailsSet.png)
 
-With a reference to your Media Player defined, you can then call an **Open** function based on the type of media source. 
+对定义的媒体播放器进行引用后，即可基于媒体源类型调用一个 **Open** 函数。 
 
 ![](MediaPlayerOpen.png)
 
-| Option | Description |
+| 选项 | 描述 |
 | -------- | ----------- |
-| **Open Playlist** | Opens the first media source in the specified play list. |
-| **Open Playlist Index** | Opens a specific media source within a specified play list. |
-| **Open Source** | Opens the specified media source (File Media, Stream Media or Platform Media). |
-| **Open URL** | Opens the specified media URL. |
-| **Reopen** | Reopens the currently opened media or play list. |
+| **Open Playlist** | 打开指定播放列表中的第一个媒体源。|
+| **Open Playlist Index** | 打开指定播放列表中指定的媒体源。|
+| **Open Source** | 打开指定的媒体源（文件媒体、流送媒体或平台媒体）。|
+| **Open URL** | 打开指定的媒体 URL。|
+| **Reopen** | 重新打开当前打开的媒体或播放列表。|
 
-Newly created Media Player assets have the **Play on Open** option enabled by default which means when you open a Media Source it will start playing the video automatically. 
-The Play on Open checkbox is a convenience, but not strictly required. If you do not want to automatically play the media once it has been opened successfully, you can also hook into the **OnMediaOpened** Blueprint event. 
-If you uncheck the Play on Open option (pictured below), you will then need to call the **Play** function on a Media Source after it has been opened. 
+新建媒体播放器资源的 **Play on Open** 选项为默认开启，意味着打开媒体源时它将自动开始播放视频。 
+Play on Open 复选框使用方便，但不强制要求。如不需要媒体在成功打开后自动播放，可挂钩到 **OnMediaOpened** 蓝图事件。 
+如取消勾选 Play on Open 选项（下图所示），则需要在媒体源打开后调用 **Play** 函数。 
 
 ![](UncheckPlayOnOpen.png)
 
-Below on **Event BeginPlay**, we open a Media Playlist and play the **Media Player** when the **Right Mouse Button** is **Pressed**. 
+下图中我们在 **Event BeginPlay** 节点上打开了媒体播放列表，并在 **Right Mouse Button** 为 **Pressed** 状态下时播放 **Media Player**。 
 
 ![](PlayWhenPressed.png)
 
 [REGION:note]
-If you are not automatically playing a Media Source on open and are using the Play function to start playback, it is advised that you do not chain the Play call directly after an Open Source or Open Playlist call. 
-This is because it may take some time for the Media Source to open and the Play command will just return false and the movie will not play as expected.
+如未在媒体源打开时自动播放而是使用 Play 函数进行播放，建议不要在 Open Source 或 Open Playlist 调用后直接连接 Play 调用。 
+这是因为媒体源需要一定时间打开，未打开前 Play 命令将返回 false，视频将无法播放。
 [/REGION]
 
-You can call other functions from a Media Player reference such as [Binding Events](Engine/Blueprints/UserGuide/EventDispatcher/BindingAndUnbinding/) to various states of playback (such if the video is paused or if the video ends). 
-You can also call several different Functions off a Media Player reference like checking if a video can be paused, is a video playing, is a video set to loop, accessing play rate information and others. 
+可从媒体播放器引用调用其他函数（如 [Binding Events](Engine/Blueprints/UserGuide/EventDispatcher/BindingAndUnbinding/)）到播放的多个状态（如视频暂停或视频终止）。 
+还可在媒体播放器引用后调用多个不同函数，如检查视频能否被暂停、视频是否正在播放、视频是否设为循环、访问播放速度信息等。 
 
 ![](MediaPlayerNodes.png)
 
-To see these options, drag off a Media Player reference then look under the **Media Player** section of the Blueprint Context Menu. 
+如需查看这些选项，从媒体播放器引用连出引线，然后在蓝图快捷菜单的 **Media Player** 部分下查看。 
 
 
 

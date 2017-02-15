@@ -1,90 +1,86 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Streaming Videos in a Level
+﻿INTSourceChangeList:3108692
+Availability:Public
+Title:レベル内でビデオをストリーム処理する
 Crumbs:%ROOT%, Engine
-Description:Describes how to use the Stream Media asset to stream videos from the internet in Unreal Engine 4. 
-parent:Engine/MediaFramework/HowTo
+Description: Stream Media アセットを使って、アンリアル エンジン 4 でインターネットからビデオへストリーム処理する方法の説明 
+parent:Engine/MediaFramework
 order:3
 checkpoint: editorqs
-Version: 4.13
-SkillLevel: Beginner
-Related: Engine\MediaFramework
+Version:4.13
+SkillLevel:Beginner
+Related:Engine\MediaFramework
 
-In this how-to we play a video on a Static Mesh inside the level when we start the game. Our source video will come from a provided URL stream and we use some **Blueprint Visual Script** to open the stream and start playback once we load into the level. 
+この操作ガイドでは、ゲーム開始時にレベル内のスタティックメッシュでビデオをプレイします。ソースビデオは提供された URL ストリームからくるので、**Blueprint Visual Script** を使ってストリームを開き、レベルにロードされたら再生を始めることができます。 
 
 [REGION:note]
-For this how-to we are using the **Blueprint Third Person Template** project with **Starter Content** enabled.
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。
 [/REGION]
 
 
-## Steps
+## ステップ
 
-1.	In the **Content Browser** expand the **Sources Panel** then create a new folder called **Media** inside the **Content** folder.
+1.	**[コンテンツ ブラウザ]** の **[Sources Panel]** を展開したら、[Content] 内に **「Movies」** という名前のフォルダを新規作成します。
 
 	![](StreamMedia_01.png)
-	
-1.	**Right-click** inside the **Content/Media** folder then under **Media** create a **Stream Media Source** and call it **MediaStream**. 
+
+1.	**「Content/Media」** フォルダを **右クリック** したら、**[Media]** の中に **「Stream Media Source」** を作成して **「MediaStream」** と名前を付けます。 
 
 	![](StreamMedia_02.png)
 
-1.	Open **MediaStream** then enter your desired **Stream URL**. 
+1.	**[MediaStream]** を開き、好きな **Stream URL** を入力します。リンクするファイルがない場合、この [サンプルビデオ](Infiltrator Demo.mp4) を **右クリック** して、アドレスをコピーし Stream URL 入力フィールドにペーストします。
 
-	![](StreamMedia_03.png)
+	![](StreamMedia_03.png) 
 
-	Your Stream URL must link directly to a [Supported Format](Engine\MediaFramework\TechReference\) in order to play back the video. If you do not have a link, **Right-click** this [Sample URL](http://s3.amazonaws.com/akamai.netstorage/mp4/AirSTAR.mp4) and copy the link address then paste it in the Stream URL field. 
+	[REGION:note]
+	ここでは嘘のアドレスを使いますが、ビデオを再生するためには Stream URL はサポートされている形式へ直接リンクしなければなりません。 
+	例えば、WmfMedia (Windows) は他のストリーム ソースに数多く対応していますが、PS4Media (PS4) のサポートは現在で HLS により MP4 のみです。 
+	プラットフォーム / プレイヤー プラグイン別サポート形式の詳細は、[](Engine\MediaFramework\TechReference\) ページをご覧ください。 
+	[/REGION]
 
-1.	**Right-click** in the **Content Browser** then under **Media** select the **Media Player** asset. 
+1.	**[コンテンツ ブラウザ]** を **右クリック** して **[Media]** から **[Media Player]** アセットを選択します。 
 
 	![](StreamMedia_04.png)
 
-1.	In the **Create Media Player** window, check **Audio output SoundWave asset** and **Video output Media Texture asset**. 
+1.	**[Create Media Player(Media Player を作成)]** ウィンドウの **[Audio output SoundWave asset]** と **[Video output Media Texture asset]** にチェックを入れます。再生する必要のあるこの Media Player アセットにリンクしている Media Sound Wave と Media Texture アセットを自動的に作成します。
 
 	![](StreamMedia_05.png)
 
-	This will automatically create a Sound Wave and Media Texture asset linked to this Media Player asset which is needed for playback. 
+1. 作成された Media Playe アセットに名前を付けます。Sound Wave と Media Texture にも適用可能な Media Player アセットの **SampleStream** を呼び出しました。 
 
-	![](StreamMedia_06.png)
+	![](StreamMedia_06.png) 
 
-	We have called our Media Player asset **SampleStream** which is also applied to the Sound Wave and Media Texture. 
+1.	**[コンテンツ ブラウザ]** の **[StarterContent/Shapes]** で、**Shape_Plane** をレベルにドラッグします。このスタティックメッシュ上でビデオを再生します。
 
-1.	In the **Content Browser** under **StarterContent/Shapes** drag a **Shape_Plane** into the level. 
+	![](StreamMedia_07.png) 
 
-	![](StreamMedia_07.png)
+1.	**Translate (W)**、**Rotation (E)**、**Scale (R)** ツールを使って、スタティックメッシュを好みのサイズと位置に調節します。
 
-	We will use this Static Mesh to playback our video on. 
+1.	**[Ctrl]** を押しながら、**Sound Wave** アセットと **Media Texture** アセットを両方選択して、レベル内の **スタティックメッシュ** 上にリリースします。すると **マテリアル** が自動作成され、スタティックメッシュに適用されます。
 
-1.	Use the **Translate (W)**, **Rotation (E)** and **Scale (R)** tools to adjust the mesh to your desired size and location.
+	![](StreamMedia_08.png) 
 
-1.	Hold **Ctrl** then select both the **Sound Wave** and **Media Texture** assets and drop them on top of the **Static Mesh** in the level. 
-
-	![](StreamMedia_08.png)
-
-	This will automatically create a **Material** and apply it to the Static Mesh. 
-
-1.	From the Toolbar, click the **Blueprints** button and **Open Level Blueprint**. 
+1.	メイン ツールバー で **[Blueprint]** ボタンをクリックして、**[Open Level Blueprint]** を選択します。 
 
 	![](StreamMedia_09.png)
 
-1.	Add a **Variable** of the **Media Player Reference** type called **Media Player** and set it to your **SampleStream** Media Player asset. 
+1.	**「Media Player」** という名前の **Media Player Reference** タイプの **変数** を追加し、**SampleStream** Media Player アセットに設定します。**Default Value** を代入するには、その前に **コンパイル** する必要があります。 
 
 	![](StreamMedia_10.png)
 
-	You may need to **Compile** before you can assign the **Default Value**. 
-
-1.	Hold **Ctrl** and drag in the **MediaPlayer** variable and also **Right-click** and add an **Event Begin Play** node. 
+1.	**Ctrl** を押しながら **MediaPlayer** 変数へドラッグし、**右クリック** して **Event Begin Play** ノードを追加します。 
 
 	![](StreamMedia_11.png)
 
-1.	Drag off the **MediaPlayer** variable and use the **Open Source** node set to your **MediaStream** Media Source then connect as shown. 
+1.	**MediaPlayer** 変数を引き出して **Open Source** ノードを **MediaStream** Media Source に設定して、以下のように接続します。 
 
 	![](StreamMedia_12.png)
 
-1.	Close the Level Blueprint, then **Play** in the editor. 
+1.	Level ブループリントを閉じてから、エディタで **プレイ** します。 
 
-	
-## End Result
 
-When you play in the editor, the video will start playing on the Static Mesh. 
+## 最終結果
+
+エディタで再生した場合、スタティックメッシュ上でビデオがプレイを開始します。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -94,11 +90,11 @@ When you play in the editor, the video will start playing on the Static Mesh.
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-0gxc69-M-Fk
+ncHIQ0QteC8
 [/PARAMLITERAL]
 [/OBJECT]
 
-Similar to using a [File Media Source](Engine\MediaFramework\HowTo\FileMediaSource) which plays a video file from disk, Stream Media Sources will automatically play when calling **Open Source** if their associated **Media Player** asset are set to **Play on Open** which by default is enabled.
-There are additional commands you can issue to the Media Player asset such as pausing, rewinding or stopping the video once it has begun playing which can be found under the **Media Player** section when dragging off the Media Player Reference.
+ディスクからビデオ ファイルをプレイする [ファイル メディア ソース](Engine\MediaFramework\HowTo\FileMediaSource) と同じ要領で、関連づいた **Media Player** アセットがデフォルトがオンの **Play on Open** に設定されていれば、Stream Media Sources は **Open Source** が呼び出されると自動的にプレイします。
+一時停止、巻き戻り、ビデオの停止など Media Player アセットに発行できるコマンドは他にもあります。プレイが開始されると Media Player Reference を引き出す時に、**Media Player** セクションに表示されます。
 
 

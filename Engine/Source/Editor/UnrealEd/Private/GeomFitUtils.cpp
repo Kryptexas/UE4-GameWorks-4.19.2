@@ -1,17 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GeomFitUtils.cpp: Utilities for fitting collision models to static meshes.
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "GeomFitUtils.h"
+#include "EngineDefines.h"
+#include "Misc/MessageDialog.h"
+#include "UObject/UObjectIterator.h"
+#include "Components/StaticMeshComponent.h"
+#include "Model.h"
+#include "Engine/Polys.h"
 #include "StaticMeshResources.h"
 #include "EditorSupportDelegates.h"
 #include "BSPOps.h"
-#include "../Private/GeomFitUtils.h"
 #include "RawMesh.h"
-#include "MeshUtilities.h"
-#include "Engine/Polys.h"
+#include "PhysicsEngine/BoxElem.h"
+#include "PhysicsEngine/SphereElem.h"
+#include "PhysicsEngine/SphylElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
 #define LOCAL_EPS (0.01f)
@@ -170,7 +176,7 @@ int32 GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh, const TArray<FVecto
 	bs->CreateFromModel(TempModel, false);
 	
 	// create all body instances
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 
 	// Mark staticmesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
@@ -234,7 +240,7 @@ int32 GenerateBoxAsSimpleCollision(UStaticMesh* StaticMesh)
 	bs->AggGeom.BoxElems.Add(BoxElem);
 
 	// refresh collision change back to staticmesh components
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 
 	// Mark staticmesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
@@ -416,7 +422,7 @@ int32 GenerateSphereAsSimpleCollision(UStaticMesh* StaticMesh)
 	bs->AggGeom.SphereElems.Add(SphereElem);
 
 	// refresh collision change back to staticmesh components
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 
 	// Mark staticmesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
@@ -559,7 +565,7 @@ int32 GenerateSphylAsSimpleCollision(UStaticMesh* StaticMesh)
 	bs->AggGeom.SphylElems.Add(SphylElem);
 
 	// refresh collision change back to staticmesh components
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 
 	// Mark staticmesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
@@ -569,12 +575,14 @@ int32 GenerateSphylAsSimpleCollision(UStaticMesh* StaticMesh)
 	return bs->AggGeom.SphylElems.Num() - 1;
 }
 
-void RefreshCollisionChange(const UStaticMesh* StaticMesh)
+void RefreshCollisionChange(UStaticMesh& StaticMesh)
 {
+	StaticMesh.CreateNavCollision(/*bIsUpdate=*/true);
+
 	for (FObjectIterator Iter(UStaticMeshComponent::StaticClass()); Iter; ++Iter)
 	{
 		UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(*Iter);
-		if  (StaticMeshComponent->GetStaticMesh() == StaticMesh)
+		if (StaticMeshComponent->GetStaticMesh() == &StaticMesh)
 		{
 			// it needs to recreate IF it already has been created
 			if (StaticMeshComponent->IsPhysicsStateCreated())
@@ -585,4 +593,13 @@ void RefreshCollisionChange(const UStaticMesh* StaticMesh)
 	}
 
 	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+}
+
+/* *************************** DEPRECATED ******************************** */
+void RefreshCollisionChange(const UStaticMesh* StaticMesh)
+{
+	if (StaticMesh)
+	{
+		RefreshCollisionChange(const_cast<UStaticMesh&>(*StaticMesh));
+	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -22,17 +22,21 @@ public class NetworkFile : ModuleRules
 				);
 		}
 
-        if (Target.Platform == UnrealTargetPlatform.HTML5)
+		if (Target.Platform == UnrealTargetPlatform.HTML5)
         { 
-            Definitions.Add("ENABLE_HTTP_FOR_NFS=1");
-            if (Target.Architecture == "-win32")
-            {
-                PrivateDependencyModuleNames.Add("HTML5Win32");
-            }
-            else
-            {
-                PrivateDependencyModuleNames.Add("HTML5JS");
-            }
-        }
+			Definitions.Add("ENABLE_HTTP_FOR_NFS=1");
+			if (Target.Architecture == "-win32")
+			{
+				PrivateDependencyModuleNames.Add("HTML5Win32");
+			}
+			else
+			{
+				PrivateDependencyModuleNames.Add("HTML5JS");
+			}
+		}
+		else
+		{
+			Definitions.Add("ENABLE_HTTP_FOR_NFS=0");
+		}
 	}
 }

@@ -1,7 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Interfaces/ITargetDeviceServiceManager.h"
+#include "Models/DeviceManagerModel.h"
+
+class FMenuBuilder;
+class FSpawnTabArgs;
+class FTabManager;
+class FUICommandList;
+class SWindow;
 
 /**
  * Implements the device manager front-end widget.

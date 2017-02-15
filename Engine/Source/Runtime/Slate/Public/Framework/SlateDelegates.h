@@ -1,7 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+
+class ITableRow;
 
 /** Notification when user clicks outside a specified region. */
 DECLARE_DELEGATE(FOnClickedOutside)
@@ -113,11 +118,26 @@ DECLARE_DELEGATE_TwoParams( FOnInt32ValueCommitted, int32, ETextCommit::Type);
 /** Notification for FLinearColor value change */
 DECLARE_DELEGATE_OneParam( FOnLinearColorValueChanged, FLinearColor )
 
+/** Notification for FVector4 value change */
+DECLARE_DELEGATE_OneParam(FOnVector4ValueChanged, FVector4&)
+
+DECLARE_DELEGATE(FOnTableViewBadState);
 
 template< typename ArgumentType >
 class TSlateDelegates
 {
 public:
+	/**
+	 * Useful for debugging issues with table views.
+	 */
+	DECLARE_DELEGATE_RetVal_OneParam (
+	/** return: String representation of the item for debugging purposes. */
+	FString,
+		FOnItemToString_Debug,
+		/** param: An item to turn into a string for debug purposes. */
+		ArgumentType);
+
+
 	/** A delegate type for OnGenerateWidget handler. Given a data item, the handler should return a Widget visualizing that item */
 	DECLARE_DELEGATE_RetVal_OneParam (
 	/** return: The Widget visualization of the item */

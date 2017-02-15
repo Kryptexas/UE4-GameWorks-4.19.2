@@ -1,11 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Collision.cpp: AActor collision implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Collision.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "CollisionQueryParams.h"
+#include "Engine/World.h"
+#include "Components/PrimitiveComponent.h"
+#include "Engine/CollisionProfile.h"
 
 // TEMP until crash is fixed in IsCollisionEnabled().
 #include "LandscapeHeightfieldCollisionComponent.h"

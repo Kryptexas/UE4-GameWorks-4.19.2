@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	LinuxPlatformThreading.h: Linux platform threading functions
@@ -6,7 +6,16 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/UnrealTemplate.h"
+#include "Containers/UnrealString.h"
+#include "Containers/StringConv.h"
+#include "Logging/LogMacros.h"
 #include "Runtime/Core/Private/HAL/PThreadRunnableThread.h"
+
+class Error;
 
 /**
 * Linux implementation of the Process OS functions

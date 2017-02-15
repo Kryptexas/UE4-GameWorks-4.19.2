@@ -1,16 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 // Includes
+
+#include "CoreMinimal.h"
+#include "NetcodeUnitTest.h"
 #include "NUTUtil.h"
-#include "StackTracker.h"
+#include "Containers/StackTracker.h"
 
-// Forward declarations
-class UClientUnitTest;
-class FStackTraceManager;
 class FLogStackTraceManager;
-
+class FStackTraceManager;
+class UClientUnitTest;
 
 // Globals
 

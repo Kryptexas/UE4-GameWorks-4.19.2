@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "FeedbackContext.h"
-#include "IBlueprintCompilerCppBackendModule.h"  //for FNativizationSummary
+#include "CoreMinimal.h"
+#include "IBlueprintCompilerCppBackendModule.h"
+#include "Misc/FeedbackContext.h"
+#include "Engine/Blueprint.h" // for FCompilerNativizationOptions
+
+class SBuildProgressWidget;
+struct FBlueprintNativeCodeGenManifest;
 
 // Forward declares
 class  SBuildProgressWidget;
@@ -30,7 +35,7 @@ public:
 	 * @param  OutHeaderSource	Output destination for the header source.
 	 * @param  OutCppSource		Output destination for the cpp source.
 	 */
-	static void GenerateCppCode(UObject* Obj, TSharedPtr<FString> OutHeaderSource, TSharedPtr<FString> OutCppSource, TSharedPtr<FNativizationSummary> NativizationSummary = TSharedPtr<FNativizationSummary>());
+	static void GenerateCppCode(UObject* Obj, TSharedPtr<FString> OutHeaderSource, TSharedPtr<FString> OutCppSource, TSharedPtr<FNativizationSummary> NativizationSummary, FCompilerNativizationOptions NativizationOptions);
 
 public: 
 	/** 

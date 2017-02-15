@@ -1,24 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HeightfieldLighting.cpp
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "UniformBuffer.h"
-#include "ShaderParameters.h"
-#include "PostProcessing.h"
-#include "SceneFilterRendering.h"
-#include "DistanceFieldLightingShared.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
-#include "DistanceFieldGlobalIllumination.h"
-#include "RHICommandList.h"
+#include "HeightfieldLighting.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
-#include "DistanceFieldAtlas.h"
+#include "Materials/Material.h"
+#include "GlobalShader.h"
+#include "MaterialShaderType.h"
+#include "MaterialShader.h"
+#include "DistanceFieldLightingShared.h"
+#include "ScreenRendering.h"
+#include "DistanceFieldSurfaceCacheLighting.h"
 #include "LightRendering.h"
 
-int32 GAOHeightfieldOcclusion = 1;
+// Currently disabled because the bHasHeightfieldRepresentation GBuffer bit has been reallocated, and self-shadowing artifacts are too severe without that bit
+int32 GAOHeightfieldOcclusion = 0;
 FAutoConsoleVariableRef CVarAOHeightfieldOcclusion(
 	TEXT("r.AOHeightfieldOcclusion"),
 	GAOHeightfieldOcclusion,

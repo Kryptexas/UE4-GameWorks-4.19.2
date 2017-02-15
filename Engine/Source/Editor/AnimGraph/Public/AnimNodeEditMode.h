@@ -1,9 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "UnrealWidget.h"
 #include "IAnimNodeEditMode.h"
 #include "BonePose.h"
+
+class FCanvas;
+class FEditorViewportClient;
+class FPrimitiveDrawInterface;
+class USkeletalMeshComponent;
+struct FViewportClick;
 
 /** Base implementation for anim node edit modes */
 class FAnimNodeEditMode : public IAnimNodeEditMode

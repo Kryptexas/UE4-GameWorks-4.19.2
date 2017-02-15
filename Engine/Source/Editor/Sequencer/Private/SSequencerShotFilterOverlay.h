@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SLeafWidget.h"
+#include "Sequencer.h"
 
-class FSequencer;
-
+class FPaintArgs;
+class FSlateWindowElementList;
 
 /**
  * The shot filter overlay displays the overlay needed to filter out widgets

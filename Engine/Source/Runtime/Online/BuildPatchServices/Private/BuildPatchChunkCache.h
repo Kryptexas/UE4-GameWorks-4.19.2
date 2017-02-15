@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchChunkCache.h: Declares chunk cache which controls the flow of
@@ -6,6 +6,14 @@
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Misc/Guid.h"
+#include "BuildPatchProgress.h"
+#include "BuildPatchManifest.h"
+
+class FBuildPatchInstallationInfo;
 
 // Forward decelerations
 class FBuildPatchAppManifest;

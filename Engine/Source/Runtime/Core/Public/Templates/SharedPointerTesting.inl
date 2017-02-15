@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,9 @@
 /** Toggle this define to enable shared pointer testing features */
 #define WITH_SHARED_POINTER_TESTS 0 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
+enum class ESPMode;
+
+template<typename KeyType,typename ValueType,typename SetAllocator ,typename KeyFuncs > class TMap;
 
 #if WITH_SHARED_POINTER_TESTS
 

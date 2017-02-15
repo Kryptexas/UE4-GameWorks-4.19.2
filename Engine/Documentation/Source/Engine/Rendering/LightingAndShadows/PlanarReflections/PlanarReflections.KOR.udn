@@ -1,57 +1,57 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:Public
-Title: Planar Reflections
+Title: 플레이너 리플렉션
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
-Description:System for capturing and displaying local glossy reflections.
+Description:국지적인 광택 리플렉션 캡처와 표시를 위한 시스템입니다.
 Version: 4.12
 
 [TOC(start:2)]
 
-## Planar Reflections
-UE4 has support for real-time Planar Reflection that can give more accurate looking reflections than Screen Space Reflections (SSR) provide but come with a higher rendering cost. This higher rendering cost is due to how Planar Reflection works, as Planar Reflection actually renders the level again from the direction of the reflection. 
+## 플레이너 리플렉션
+UE4 에는 스크린 스페이스 리플렉션(Screen Space Reflection, SSR) 보다 정확한 리플렉션을 내는 실시간 플레이너 리플렉션(Planar Reflection)이 지원되는데, 렌더링 비용이 높아진다는 단점이 있습니다. 그 이유는 플레이너 리플렉션의 작동방식 때문인데, 리플렉션 방향에서 레벨을 실제로 다시 한 번 렌더링하기 때문입니다.
 
 ![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\Planar_Reflections_00.png)
 
-### Screen Space Reflections VS Planar Reflections 
-Screen Space Reflections (SSR) are much more efficient than Planar Reflections when it comes to rendering, but are also much less reliable.The image comparison below shows the limits of SSR versus Planar Reflections. 
+### 스크린 스페이스 리플렉션 VS 플레이너 리플렉션
+스크린 스페이스 리플렉션(SSR)은 렌더링 비용 측면에서는 플레이너 리플렉션보다 훨씬 효율적이나, 안정성은 훨씬 떨어집니다. 아래 비교 그림은 플레이너 리플렉션에 비교했을 때의 SSR 한계를 보여줍니다.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Screen Space Reflections](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\SSR_Relections_00.png)(w:800 h:500)
+	![스크린 스페이스 리플렉션](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\SSR_Relections_00.png)(w:800 h:500)
 	[/PARAM]
 	[PARAM:after]
-	![Planar Reflections](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_00.png)(w:800 h:500)
+	![플레이너 리플렉션](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_00.png)(w:800 h:500)
 	[/PARAM]
 [/OBJECT]
 
-* **Screen Space Reflections:** The image on the left shows the limitation of Screen Space Reflections. Notice the significant amount of 'leaking' that happens at the edges of the image. This happens because SSR can not reflect objects that are off-screen. 
+* **스크린 스페이스 리플렉션:** 왼쪽 그림은 스크린 스페이스 리플렉션의 한계를 보여줍니다. 이미지 가장자리 부분이 심각한 '누수' 현상이 보이고 있습니다. SSR 은 화면 밖의 오브젝트를 반영하지 못하기 때문입니다.
 
-* **Planar Reflections:** The image on the right shows the same level, however, this time, Planar Reflections have been enabled. Notice how there is no leaking in the image, even at the sides. This is because Planar Reflections can reflect objects that are off-screen.
+* **플레이너 리플렉션:** 오른쪽 레벨은 플레이너 리플렉션을 켠 상태로 같은 레벨을 본 것입니다. 측면에 누수 현상이 보이지 않고 있습니다. 플레이너 리플렉션은 화면 밖의 오브젝트를 반영할 수 있기 때문입니다.
 
-### Enabling Planar Reflections 
-To use enable and use Planar Reflections in your project you will need to do the following:
+### 플레이너 리플렉션 켜기
+프로젝트에서 플레이너 리플렉션을 사용하는 방법은 다음과 같습니다:
 
-1. From the Main Toolbar go to **Edit**> **Project Settings** and from the Project Settings menu, go to the **Rendering** > **Optimizations** section.
+1. 메인 툴바에서 **편집 > 프로젝트 세팅** 으로 가서 **Rendering (렌더링) > Optimization (최적화)** 부분으로 이동합니다.
 	
 	[REGION:lightbox]
 	[![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Project_Settings_00.png)(w:502 h:322)](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Project_Settings_00.png)
 	[/REGION]
 
-1. Click on the check box next to **Support global clip plane for Planar Reflections** and re-start the UE4 Editor when prompted. 
+1. **Support global clip plane for Planar Reflections** (플레이너 리플렉션에 글로벌 클리핑 면 지원) 옆의 박스를 체크하고, UE4 에디터를 재시작합니다.
 	
 	![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Enable_PR_00.png)
 
 	[region:warning]
-	Failing to re-start the UE4 Editor after Planar Reflections are enabled will result in Planar Reflections not working.
+	플레이너 리플렉션을 켠 뒤 UE4 에디터를 재시작하지 않으면 플레이너 리플렉션이 작동하지 않습니다.
 	[/region]
 
-1. Once the UE4 Editor restarts, go to the **Modes** panel and from the **Visual Effects** section, select and drag a **Planar Reflection Actor** to the level.
+1. UE4 에디터가 재시작되면, **모드** 패널의 **비주얼 이펙트** 부분에서 **Planar Reflection Actor** (플레이너 리플렉션 액터)를 레벨에 끌어 놓습니다.
 
 	[REGION:lightbox]
 	[![](Adding_Planar_Reflection_Actor.png)(w:380 h:286)](Adding_Planar_Reflection_Actor.png)
 	[/REGION]
 
-1. With the Planar Reflection Actor now placed in the level, you can now use the **G** key to hide and unhide the Actor. You can also use the **Move**, **Rotate**, and **Scale** tools to better position and size the Planar Reflection Actor to meet your levels needs. 
+1. 레벨에 플레이너 리플렉션 액터를 놓았으면, **G** 키를 눌러 액터를 숨기거나 표시할 수 있습니다. **이동**, **회전**, **스케일** 툴을 사용하여 플레이너 리플렉션 액터의 위치와 크기를 레벨에 더욱 잘 맞게 배치할 수도 있습니다.
 	
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -66,96 +66,97 @@ To use enable and use Planar Reflections in your project you will need to do the
 	[/OBJECT]
 
 	[region:tip]
-    Any nearby reflective Materials will automatically be affected by the Planar Reflection Actor as soon as it is added to the level. Static Meshes that are placed in the level will also have their normals used to distort the reflection, allowing for the simulation of waves. 
+    근처에 리플렉션이 있는 머티리얼은 레벨에 플레이너 리플렉션 액터를 추가하자마자 바로 영향을 받습니다. 레벨에 배치된 스태틱 메시 역시 리플렉션 왜곡에 사용되는 노멀이 생겨, 파도 효과 시뮬레이션이 가능합니다.
 	[/region]
 
 
-### Planar Reflection Actor Properties Breakdown
-The Planar Reflection Actor has a number of properties that when adjusted can significantly affect the look of the reflection. The following table outlines these properties and how they will change the look of the Planar Reflection.
+### 플레이너 리플렉션 액터 프로퍼티 분석
+플레이너 리플렉션 액터에는 리플렉션의 모양을 크게 바꿀 수 있는 프로퍼티가 여러가지 있습니다. 다음 표는 그 프로퍼티의 종류와 플레이너 리플렉션 모양을 어떻게 변화시키는지에 대한 개괄적인 설명입니다.
 
 [REGION:lightbox]
 [![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Props_Breakdown_00.png)(w:238 h:232)](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Props_Breakdown_00.png)
 [/REGION]
 
-|Setting Name| Description|
+|세팅 이름| 설명 |
 |------------------|--------------------|
-||Normal Distortion Strength|Controls the strength of normals when distorting the planar reflection.|
-|Prefilter Roughness| The roughness value to prefilter the planar reflection texture with, useful for hiding low resolution. Larger values have larger GPU cost.|
-|Distance from Plane Fade Start|Receiving pixels at this distance from the reflection plane will begin to fade out the planar reflection.|
-|Distance from Plane Fade End|Receiving pixels at this distance from the reflection plane will have completely faded out the planar reflection.|
-|Angle from Plane Fade Start|Receiving pixels whose normal is at this angle from the reflection plane will begin to fade out the planar reflection.|
-|Angle from Plane Fade End|Receiving pixels whose normal is at this angle from the reflection plane will have completely fade out the planar reflection.|
-|Prefilter Roughness Distance|The distance at which the prefilter roughness value will be achieved.|
-|Screen Percentage|Downsample percent can be used to reduce GPU time rendering the planar reflection.|
-|Extra FOV|Additional FOV used when rendering to the reflection texture. This is useful when normal distortion is causing reads outside the reflection texture. Larger values increase rendering thread and GPU cost, as more objects and triangles have to be rendered into the planar reflection.|
+||Normal Distortion Strength|노멀 왜곡 세기 - 플레이너 리플렉션을 왜곡시키는 노멀 세기를 조절합니다. |
+|Prefilter Roughness| 프리필터 러프니스 - 플레이너 리플렉션 텍스처에 프리필터를 적용할 러프니스 값으로, 저해상도를 감추기에 좋습니다. 값이 크면 GPU 비용이 늘어납니다. |
+|Distance from Plane Fade Start| 플레인 페이드 시작 거리 - 리플렉션 플레인에서 이 거리에 있는 픽셀부터 플레이너 리플렉션 페이드 아웃이 시작됩니다. |
+|Distance from Plane Fade End|플레인 페이드 끝 거리 - 리플렉션 플레인에서 이 거리에 있는 픽셀에서 플레이너 리플렉션 페이드 아웃이 끝납니다. |
+|Angle from Plane Fade Start|플레인 페이드 시작 각도 - 리플렉션 플레인에서 노멀이 이 각도인 픽셀부터 플레이너 리플렉션 페이드 아웃이 시작됩니다. |
+|Angle from Plane Fade End|플레인 페이드 끝 각도 - 리플렉션 플레인에서 노멀이 이 각도인 픽셀에서 플레이너 리플렉션 페이드 아웃이 끝납니다. |
+|Prefilter Roughness Distance|프리필터 러프니스 거리 - 러프니스 값에 프리필터를 적용하기 시작할 거리입니다. |
+|Screen Percentage|화면 백분율 - 플레이너 리플렉션 렌더링 GPU 시간을 단축시키는 데 사용할 수 있는 다운샘플 백분율입니다. |
+|Extra FOV|부가 FOV - 리플렉션 텍스처에 렌더링할 때 사용할 부가 FOV 입니다. 노멀 왜곡으로 인해 리플렉션 텍스처 외부의 읽기가 발생될 때 좋습니다. 값이 크면 렌더링 스레드 및 GPU 비용이 늘어납니다. 플레이너 리플렉션에 렌더링해야 하는 오브젝트와 트라이앵글 개수가 늘어나기 때문입니다. |
 
-## Planar Reflection Limitations
-While Planar Reflections offer some very realistic reflections, this features does have a number of limitations which are listed below.
+## 플레이너 리플렉션 한계
+플레이너 리플렉션이 매우 사실적인 리플렉션을 내기는 하지만 몇 가지 한계가 있는데, 아래와 같습니다.
 
-* There's no way to control what rendering features are enabled in the reflection pass.
-* Dynamic shadowing and fog are incorrect in the reflection pass.
-* Only a constant Roughness value is supported, and it's specified on the Planar Reflection Component instead of Materials.
-* If at all possible limit the amount of Planar Reflection Actors placed in the world to only one and move, rotate, or scale it to best fit the world. While you can use multiple Planar Reflection Actors, you need to exercise caution as Planar Reflection Actors don not do any sort of distance culling, only frustum, and occlusion culling. Because of this if both Planar Reflection Actors are in view at the same time your project's frame rate will suffer severely.
-* The cost to render the Planar Reflection Actor comes directly from what's currently being rendered in the level. Scenes that are triangle and draw call heavy will suffer the most performance issues when this feature is enabled. To avoid this you must ensure that you budget enough resources so that when enabled, Planar Reflections, do not make your project run slower.
+* 리플렉션 패스에서 어떤 렌더링 기능을 사용할지 제어할 수 있는 방법이 없습니다.
+* 다이내믹 섀도잉이 리플렉션 패스에 잘못 나옵니다.
+* 프레임 속도 목표치를 내려면 플레이너 리플렉션에 충분한 리소스 예산을 확보해야 합니다.
+* 러프니스는 상수 값만 지원하며, 머티리얼이 아닌 플레이너 리플렉션 컴포넌트에 지정합니다.
+* 가급적 월드에는 플레이너 리플렉션 액터를 하나만 배치하여 월드에 잘 맞도록 이동, 회전, 스케일 조절하세요. 플레이너 리플렉션 액터를 여러 개 사용할 수는 있지만 각별히 주의해야 하는 것이, 플레이너 리플렉션 액터는 디스턴스 컬링은 하지 않고 오직 프러스텀, 오클루전 컬링만 합니다. 그렇기 때문에 한 뷰에 복수의 플레이너 리플렉션 액터가 동시에 나타나는 경우, 프로젝트의 프레임 속도가 현저히 떨어질 것입니다.
+* 플레이너 리플렉션 액터의 렌더링 비용은 현재 레벨에 무엇을 렌더링하는가에 직결됩니다. 삼각형이고 드로 콜 수가 많은 씬은 이 기능을 켰을 때의 퍼포먼스 비용이 가장 많이 드는데, 그 비용은 ScreenPercentage 에 비례하지 않기 때문입니다.
 
 
-## Planar Reflection Performance
+## 플레이너 리플렉션 퍼포먼스
 
-While enabling and using  Planar Reflections in your project will give you crisp and reasonably accurate reflections, this option will have a direct impact on the project's performance. The impact that Planar Reflections will have on  performance is not something that can quickly be determined as its impact on performance is directly related to the complexity of both the Static Meshes and Materials used in the level. Levels that use Static Meshes and Materials with high triangle and instruction counts will suffer more performances issue than projects that use less because the Planar Reflection is effectively duplicating all of these assets to make the reflection. In the following section, we will take a look at the performance impact enabling Planar Reflections will have when enabled in a high-end PC project as well as a project that geared towards mobile devices.
+프로젝트에 플레이너 리플렉션을 켜서 사용하면 깔끔하고 정확한 리플렉션이 나오지만, 보통 프로젝트의 퍼포먼스에 직접적으로 영향을 끼치게 됩니다. 여기서는 고사양 PC 프로젝트는 물론 모바일 디바이스에 초점을 맞춘 프로젝트까지, 플레이너 리플렉션을 켰을 때의 퍼포먼스 영향에 대해 살펴보도록 하겠습니다.
 
 [region:note]
-To show off, the performance impact Planar Reflections have we will be using the 4.12 version of the Kite & Infinity Blade Grass Lands project that can be found in the UE4 launcher.
+플레이너 리플렉션이 퍼포먼스에 끼치는 영향을 드러나게 하기 위해, UE4 런처에서 찾을 수 있는 Kite (소년과 연) & Infinity Blade Grass Lands (인피니티 블레이드 초원) 프로젝트 4.12 버전을 사용합니다.
 [/region]
 
-### Planar Reflection Performance & Kite Demo
+### 플레이너 리플렉션 퍼포먼스 & 소년과 연 데모
 
-Due to the size and varying height of the Kite demos Landscape terrain, adding and then scaling a single Planar Reflection Actor to encompass the entire level would not work and could  lead to very poor performance. Instead, Planar Reflection Actors were strategically placed and scaled to fit areas of the level that needed them. In the following image, we can see what the visual impact Planar Reflections have on water used the Kite demo.
+Kite (소년과 연) 데모 랜드스케이프 터레인의 크기와 다양한 높이로 인해, 하나의 플레이너 리플렉션 액터를 추가하고 전체 레벨을 덮도록 스케일을 조절하는 방법은 통하지도 않고 퍼포먼스도 매우 안좋을 것입니다. 그보다는, 플레이너 리플렉션 액터를 전략적으로 배치하여 필요한 레벨 부분에만 맞도록 스케일을 조절하는 것이 좋습니다. 다음 그림에서는 소년과 연 데모에서 사용된 물에 플레이너 리플렉션이 어떤 역할을 끼치는지 확인할 수 있습니다.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Planar Reflections Off](SSR_Reflections_00.png)(w:853 h:466)
+	![플레이너 리플렉션 꺼짐](SSR_Reflections_00.png)(w:853 h:466)
 	[/PARAM]
 	[PARAM:after]
-	![Planar Reflections On](PR_Reflections_00.png)(w:853 h:466)
+	![플레이너 리플렉션 켜짐](PR_Reflections_00.png)(w:853 h:466)
 	[/PARAM]
 [/OBJECT]
 
-While the visual impact Planar Reflections have on the level is quite dramatic, so is the impact they have on performance. If you take a look at the left hand image below, **Planar Reflection Off**, you will see that the entire level is taking 31 ms to render. If you take a look at the right hand image, **Planar Reflections On**, you will see that the entire level is taking 29.19 ms to render. On top of that, Planar Reflection are adding an additional 23.07 ms of rendering time bring the total time to render the scene with Planar Reflections enabled to around 52 ms.
+플레이너 리플렉션은 레벨에 미치는 시각적 영향력이 상당히 큰 만큼이나 퍼포먼스에 끼치는 영향 역시 큽니다. 아래 왼쪽 **플레이너 리플렉션 꺼짐** 이라는 그림을 보면, 전체 레벨을 렌더링하는 데 31 ms 가 걸리는 것이 보입니다. 오른쪽 **플레이너 리플렉션 켜짐** 이라는 그림을 보면, 전체 레벨의 렌더링에 29.19 ms 가 걸립니다. 거기에 플레이너 리플렉션으로 23.07 ms 가 추가되므로, 플레이너 리플렉션이 켜진 씬을 렌더링하는 데는 총 52 ms 정도의 시간이 걸리게 됩니다.
 
 [REGION:lightbox]
 [INCLUDE:#KitePlanarReflection]
 [/REGION]
 
-The reason why Planar Reflections are taking around 31 ms to render is due to the complex nature of the level. If you were to reduce the complexity of both the Static Meshes and their Materials the cost to render the Planar Reflections would decrease.
+플레이너 리플렉션을 렌더링하는 데 31 ms 정도나 걸리는 이유는, 데모에 풀 다이내믹 라이팅 및 섀도잉이 사용되었기 때문입니다. 스테이셔너리 / 프리컴퓨티드 라이팅 및 섀도잉을 사용하는 레벨은 플레이너 리플렉션을 위해 다시 렌더링하는 작업의 효율이 훨씬 좋습니다.
 
-### Planar Reflection Performance & Infinity Blade Dungeons
+### 플레이너 리플렉션 퍼포먼스 및 인피니티 블레이드 던전
 
-Due to the size and layout of the Infinity Blade Elven Ruins map, only one Planar Reflection was needed and it was scaled to match the already existing water Static Mesh that was placed in the level. In the following images, we can see the visual impact adding a Planar Reflection has on the look of the water in the Elven Ruins map.
+Infinity Blade Elven Ruins 맵의 크기와 레이아웃에는 플레이너 리플렉션 하나를 가지고 레벨에 배치된 기존의 물 스태틱 메시에 맞도록 스케일을 조정하는 것으로 충분했습니다. 다음 그림에서 이 맵의 물 모양에 플레이너 리플렉션이 시각적으로 어떤 영향을 끼치는지 확인할 수 있습니다.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Planar Reflections Off](SSR_Reflections_01.png)(w:853 h:466)
+	![플레이너 리플렉션 꺼짐](SSR_Reflections_01.png)(w:853 h:466)
 	[/PARAM]
 	[PARAM:after]
-	![Planar Reflections On](PR_Reflections_01.png)(w:853 h:466)
+	![플레이너 리플렉션 켜짐](PR_Reflections_01.png)(w:853 h:466)
 	[/PARAM]
 [/OBJECT]
 
-While adding a Planar Reflection makes the water look more lifelike, the impact it has on performance is quite small when compared to the Kite Demo. If you take a look at the image on the left hand side below, Planar Reflections Off, you can see that without Planar Reflections the scene is costing around 11 ms to render. If you take a look at the image on the right hand side, Planar Reflections On, you can see that with Planar Reflections cost around 1.67 ms to rendering bring the total time to render the level to around 13 ms. 
+플레이너 리플렉션을 추가하여 물의 생동감이 살아남과 동시에, 퍼포먼스에 끼친 영향은 소년과 연 데모에 비하면 꽤나 작습니다. 아래 왼쪽 플레이너 리플렉션 꺼짐이라는 그림을 보면, 플레이너 리플렉션 없이 씬을 렌더링하는 데 11 ms 정도 들었습니다. 오른쪽 플레이너 리플렉션 켜짐이라는 그림에서는, 플레이너 리플렉션에 1.67 ms 정도 들어 레벨 전체 렌더링 비용은 13 ms 정도였습니다.
 
 [REGION:lightbox]
 [INCLUDE:#ElvenRuinsReflection]
 [/REGION]
 
-The reason that Planar Reflections only cost 1.67 ms to render in the Elven Ruins map versus the 23.07 ms that it takes to render the Planar Reflections in the Kite Demo is due to how the Static Meshes and Materials that are used in the Elven Ruins were built. Since the Elven Ruins map and it's content was designed for mobile devices, close attention was paid to the amount of triangles and Material instructions each asset used. Because of this, when Planar Reflections are enabled in the Elven Ruins map, they will cost less as the assets that are used in the map are greatly reduced in complexity and size when compared to the Kite Demo assets.
+플레이너 리플렉션의 렌더링 비용이 소년과 연 데모에서는 23.07 ms 였던 것이 Elven Ruins 맵에서는 1.67 ms 밖에 들지 않는 이유는, Elven Ruins 맵을 만들 때 스태틱 메시와 머티리얼을 사용한 방법에 있습니다. Elven Ruins 맵과 그 콘텐츠는 모바일 디바이스용으로 디자인되었기에, 사용된 각각의 애셋에 들어가는 트라이앵글과 머티리얼 인스트럭션 수에 세심한 주의를 기울였습니다. 이때문에 Elven Ruins 맵에서는 플레이너 리플렉션을 켜도 소년과 연 데모에 비하면 맵에 사용된 애셋의 복잡도나 크기가 현저히 작기 때문에 비용이 적게 드는 것입니다.
 
 <!--  
 [EXCERPT:KitePlanarReflection]
 [REGION:imagetable lightbox caption]
 |[![](GPU_Profile_PR_Off_00.png)(w:400 h:200)](GPU_Profile_PR_Off_00.png)|[![](GPU_Profile_PR_On_00.png)(w:400 h:200)](GPU_Profile_PR_On_00.png) | 
 | ------ | ------ |
-| Planar Reflection Off | Planar Reflection On |
-|Click for full image |Click for full image.|
+| 플레이너 리플렉션 꺼짐 | 플레이너 리플렉션 켜짐 |
+|클릭하면 원래 크기로 봅니다. |클릭하면 원래 크기로 봅니다.|
 [/REGION] 
 [/EXCERPT:KitePlanarReflection]
 -->
@@ -165,8 +166,8 @@ The reason that Planar Reflections only cost 1.67 ms to render in the Elven Ruin
 [REGION:imagetable lightbox caption]
 |[![](GPU_Profile_PR_Off_01.png)(w:400 h:200)](GPU_Profile_PR_Off_01.png)|[![](GPU_Profile_PR_On_01.png)(w:400 h:200)](GPU_Profile_PR_On_01.png) | 
 | ------ | ------ |
-| Planar Reflection Off | Planar Reflection On |
-|Click for full image |Click for full image.|
+| 플레이너 리플렉션 꺼짐 | 플레이너 리플렉션 켜짐 |
+|클릭하면 원래 크기로 봅니다. |클릭하면 원래 크기로 봅니다.|
 [/REGION] 
 [/EXCERPT:ElvenRuinsReflection]
 -->

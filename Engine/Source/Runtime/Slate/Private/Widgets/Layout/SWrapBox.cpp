@@ -1,7 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "LayoutUtils.h"
+#include "Widgets/Layout/SWrapBox.h"
+#include "Layout/LayoutUtils.h"
 
 SWrapBox::SWrapBox()
 : Slots()
@@ -281,4 +281,14 @@ FChildren* SWrapBox::GetChildren()
 void SWrapBox::SetInnerSlotPadding(FVector2D InInnerSlotPadding)
 {
 	InnerSlotPadding = InInnerSlotPadding;
+}
+
+void SWrapBox::SetWrapWidth(const TAttribute<float>& InWrapWidth)
+{
+	PreferredWidth = InWrapWidth;
+}
+
+void SWrapBox::SetUseAllottedWidth(bool bInUseAllottedWidth)
+{
+	bUseAllottedWidth = bInUseAllottedWidth;
 }

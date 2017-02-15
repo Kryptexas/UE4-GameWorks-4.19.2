@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Distributions/DistributionFloat.h"
 #include "Particles/Attractor/ParticleModuleAttractorBase.h"
 #include "ParticleModuleAttractorParticle.generated.h"
+
+class UParticleModuleTypeDataBase;
+struct FParticleEmitterInstance;
 
 UENUM()
 enum EAttractorParticleSelectionMethod

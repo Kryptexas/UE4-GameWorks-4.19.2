@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LevelSequencePCH.h"
 #include "LevelSequenceObjectReference.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
+#include "UObject/Package.h"
+#include "UObject/ObjectMacros.h"
 
 FLevelSequenceObjectReference::FLevelSequenceObjectReference(UObject* InObject, UObject* InContext)
 {
@@ -47,7 +50,15 @@ UObject* FLevelSequenceObjectReference::Resolve(UObject* InContext) const
 
 	if (!ObjectPath.IsEmpty())
 	{
-		return FindObject<UObject>(InContext, *ObjectPath, false);
+		if (UObject* FoundObject = FindObject<UObject>(InContext, *ObjectPath, false))
+		{
+			return FoundObject;
+		}
+
+		if (UObject* FoundObject = FindObject<UObject>(ANY_PACKAGE, *ObjectPath, false))
+		{
+			return FoundObject;
+		}
 	}
 
 	return nullptr;

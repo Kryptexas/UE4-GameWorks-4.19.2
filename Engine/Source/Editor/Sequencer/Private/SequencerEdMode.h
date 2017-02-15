@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "EditorModeTools.h"
-#include "MovieSceneHitProxy.h"
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "EditorModeTools.h"
+#include "EdMode.h"
+
+class FCanvas;
+class FEditorViewportClient;
+class FPrimitiveDrawInterface;
+class FSceneView;
 class FSequencer;
+class FViewport;
+struct HMovieSceneKeyProxy;
 
 /**
  * FSequencerEdMode is the editor mode for additional drawing and handling sequencer hotkeys in the editor
@@ -26,7 +35,10 @@ public:
 	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI) override;
 	virtual void DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) override;
 
-	void SetSequencer(const TWeakPtr<FSequencer>& InSequencer) { SequencerPtr = InSequencer; }
+	void AddSequencer(TWeakPtr<FSequencer> InSequencer) { Sequencers.AddUnique(InSequencer); }
+	void RemoveSequencer(TWeakPtr<FSequencer> InSequencer) { Sequencers.Remove(InSequencer); }
+
+	void OnSequencerReceivedFocus(TWeakPtr<FSequencer> InSequencer) { Sequencers.Sort([=](TWeakPtr<FSequencer> A, TWeakPtr<FSequencer> B){ return A == InSequencer; }); }
 
 	void OnKeySelected(FViewport* Viewport, HMovieSceneKeyProxy* KeyProxy);
 
@@ -34,7 +46,7 @@ protected:
 	void DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterface* PDI);
 
 private:
-	TWeakPtr<FSequencer> SequencerPtr;
+	TArray<TWeakPtr<FSequencer>> Sequencers;
 };
 
 /**

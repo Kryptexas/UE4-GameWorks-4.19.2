@@ -10,5 +10,8 @@ typedef struct ovrInstalledApplication *ovrInstalledApplicationHandle;
 
 OVRP_PUBLIC_FUNCTION(const char *) ovr_InstalledApplication_GetApplicationId(const ovrInstalledApplicationHandle obj);
 OVRP_PUBLIC_FUNCTION(const char *) ovr_InstalledApplication_GetPackageName(const ovrInstalledApplicationHandle obj);
+OVRP_PUBLIC_FUNCTION(const char *) ovr_InstalledApplication_GetStatus(const ovrInstalledApplicationHandle obj);
+OVRP_PUBLIC_FUNCTION(int)          ovr_InstalledApplication_GetVersionCode(const ovrInstalledApplicationHandle obj);
+OVRP_PUBLIC_FUNCTION(const char *) ovr_InstalledApplication_GetVersionName(const ovrInstalledApplicationHandle obj);
 
 #endif

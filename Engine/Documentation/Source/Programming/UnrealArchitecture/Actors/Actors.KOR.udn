@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2956035
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title: 액터
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
@@ -68,7 +68,8 @@ $ UPrimitiveComponent 프리미티브 컴포넌트 : 일정한 형태의 (메시
 
 **액터** 는 모두 기본적으로 `Tick()` 함수를 통해 틱 가능합니다.
 
-**ActorComponent** 역시 기본적으로 업데이트 가능합니다. 자세한 정보는 [컴포넌트 문서의 업데이트하기](Programming/UnrealArchitecture/Actors/Components#업데이트하기) 부분을 참고하세요.
+**ActorComponent** 역시, `TickComponent()` 함수를 사용해야 한다는 점이 다르지만, 기본적으로 업데이트 가능합니다. 
+자세한 정보는 [](Programming/UnrealArchitecture/Actors/Components) 문서를 참고하세요.
 
 
 ## 수명

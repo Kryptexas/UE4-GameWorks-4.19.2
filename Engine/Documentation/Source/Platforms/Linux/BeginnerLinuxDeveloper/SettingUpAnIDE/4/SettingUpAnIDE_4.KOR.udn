@@ -1,0 +1,43 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title: 4 - Running UE4 from your IDE
+Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
+Description:Learn how to run Unreal Engine from your IDE.
+Version: 4.13
+type:how to
+parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
+order: 4
+tags:Linux
+SkillLevel:Beginner
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/3 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/5 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+You're finally ready to run UE4 from the IDE.
+
+1.	To run UE4 from the IDE, click the **Run** button. Alternatively, you can press the **Ctrl+R** keyboard combination to run UE4 from the IDE.
+
+	![](SetupIDE_Step17.png)
+
+## End Result
+
+![](SetupIDE_Step18.png)
+
+Congratulations! You should now see UE4 running from your IDE.
+
+%Steps%

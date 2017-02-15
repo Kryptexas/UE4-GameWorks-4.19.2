@@ -1,18 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneByteSection.h"
+#include "Sections/MovieSceneByteSection.h"
+#include "Evaluation/MovieScenePropertyTemplates.h"
 
 
 UMovieSceneByteSection::UMovieSceneByteSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 { }
-
-
-uint8 UMovieSceneByteSection::Eval( float Position, uint8 DefaultValue) const
-{
-	return ByteCurve.Evaluate(Position, DefaultValue);
-}
 
 
 void UMovieSceneByteSection::MoveSection( float DeltaPosition, TSet<FKeyHandle>& KeyHandles )
@@ -79,7 +73,7 @@ void UMovieSceneByteSection::AddKey( float Time, const uint8& Value, EMovieScene
 
 bool UMovieSceneByteSection::NewKeyIsNewData( float Time, const uint8& Value ) const
 {
-	return Eval( Time, Value ) != Value;
+	return ByteCurve.Evaluate( Time, Value ) != Value;
 }
 
 
@@ -91,7 +85,7 @@ bool UMovieSceneByteSection::HasKeys( const uint8& Value ) const
 
 void UMovieSceneByteSection::SetDefault( const uint8& Value )
 {
-	if (TryModify())
+	if (ByteCurve.GetDefaultValue() != Value && TryModify())
 	{
 		ByteCurve.SetDefaultValue(Value);
 	}

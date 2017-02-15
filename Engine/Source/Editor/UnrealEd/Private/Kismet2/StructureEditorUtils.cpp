@@ -1,19 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "StructureEditorUtils.h"
-#include "ScopedTransaction.h"
-#include "Kismet2NameValidators.h"
-#include "Kismet2/BlueprintEditorUtils.h"
-#include "EdGraphSchema_K2.h"
-#include "ObjectTools.h"
-#include "Editor/UnrealEd/Public/Kismet2/CompilerResultsLog.h"
-#include "Editor/UnrealEd/Public/EditorModes.h"
-#include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
-#include "Toolkits/AssetEditorManager.h"
-#include "Editor/DataTableEditor/Public/IDataTableEditor.h"
-#include "Engine/UserDefinedStruct.h"
+#include "Kismet2/StructureEditorUtils.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/CoreMisc.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UnrealType.h"
+#include "UObject/TextProperty.h"
+#include "Engine/Blueprint.h"
 #include "Engine/DataTable.h"
+#include "EdMode.h"
+#include "ScopedTransaction.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Editor/UnrealEd/Public/Kismet2/CompilerResultsLog.h"
+#include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
 
 #define LOCTEXT_NAMESPACE "Structure"
 
@@ -48,7 +49,7 @@ UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InPa
 
 		{
 			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-			AddVariable(Struct, FEdGraphPinType(K2Schema->PC_Boolean, FString(), NULL, false, false));
+			AddVariable(Struct, FEdGraphPinType(K2Schema->PC_Boolean, FString(), NULL, false, false, false, false, FEdGraphTerminalType()));
 		}
 	}
 
@@ -230,7 +231,11 @@ struct FMemberVariableNameHelper
 		FString Result;
 		if (!NameBase.IsEmpty())
 		{
-			if (ensure(FName::IsValidXName(NameBase, INVALID_OBJECTNAME_CHARACTERS)))
+			if (!FName::IsValidXName(NameBase, INVALID_OBJECTNAME_CHARACTERS))
+			{
+				Result = MakeObjectNameFromDisplayLabel(NameBase, NAME_None).GetPlainNameString();
+			}
+			else
 			{
 				Result = NameBase;
 			}
@@ -341,7 +346,6 @@ bool FStructureEditorUtils::RenameVariable(UUserDefinedStruct* Struct, FGuid Var
 		auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
 		if (VarDesc 
 			&& !NewDisplayNameStr.IsEmpty()
-			&& FName::IsValidXName(NewDisplayNameStr, INVALID_OBJECTNAME_CHARACTERS) 
 			&& IsUniqueVariableDisplayName(Struct, NewDisplayNameStr))
 		{
 			const FScopedTransaction Transaction(LOCTEXT("RenameVariable", "Rename Variable"));

@@ -1,6 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Misc/VarArgs.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/UnrealTemplate.h"
 
 // Pulled the two FOutputDevice::Logf functions into shared code. Needs to be a #define
 // since it uses GET_VARARGS_RESULT which uses the va_list stuff which operates on the

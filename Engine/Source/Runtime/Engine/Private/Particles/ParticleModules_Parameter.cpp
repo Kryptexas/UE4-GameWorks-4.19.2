@@ -1,22 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Parameter.cpp: 
 	Parameter-related particle module implementations.
 =============================================================================*/
-#include "EnginePrivate.h"
+
+#include "CoreMinimal.h"
+#include "Materials/Material.h"
+#include "ParticleHelper.h"
+#include "Particles/ParticleModule.h"
+#include "Distributions/DistributionFloatConstant.h"
 #include "Materials/MaterialExpressionDynamicParameter.h"
 #include "Materials/MaterialInstanceConstant.h"
-#include "ParticleDefinitions.h"
 #include "Particles/Parameter/ParticleModuleParameterBase.h"
 #include "Particles/Parameter/ParticleModuleParameterDynamic.h"
 #include "Particles/Parameter/ParticleModuleParameterDynamic_Seeded.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
-#include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
-#include "Engine/InterpCurveEdSetup.h"
 #include "Particles/Material/ParticleModuleMeshMaterial.h"
+#include "Engine/InterpCurveEdSetup.h"
 
 UParticleModuleParameterBase::UParticleModuleParameterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -142,10 +145,22 @@ void UParticleModuleParameterDynamic::SpawnEx(FParticleEmitterInstance* Owner, i
 	SPAWN_INIT;
 	{
 		PARTICLE_ELEMENT(FEmitterDynamicParameterPayload, DynamicPayload);
-		DynamicPayload.DynamicParameterValue[0] = GetParameterValue(DynamicParams[0], Particle, Owner, InRandomStream);
-		DynamicPayload.DynamicParameterValue[1] = GetParameterValue(DynamicParams[1], Particle, Owner, InRandomStream);
-		DynamicPayload.DynamicParameterValue[2] = GetParameterValue(DynamicParams[2], Particle, Owner, InRandomStream);
-		DynamicPayload.DynamicParameterValue[3] = GetParameterValue(DynamicParams[3], Particle, Owner, InRandomStream);
+		if (DynamicParams[0].ValueMethod != EDPV_AutoSet)
+		{
+			DynamicPayload.DynamicParameterValue[0] = GetParameterValue(DynamicParams[0], Particle, Owner, InRandomStream);
+		}
+		if (DynamicParams[1].ValueMethod != EDPV_AutoSet)
+		{
+			DynamicPayload.DynamicParameterValue[1] = GetParameterValue(DynamicParams[1], Particle, Owner, InRandomStream);
+		}
+		if (DynamicParams[2].ValueMethod != EDPV_AutoSet)
+		{
+			DynamicPayload.DynamicParameterValue[2] = GetParameterValue(DynamicParams[2], Particle, Owner, InRandomStream);
+		}
+		if (DynamicParams[3].ValueMethod != EDPV_AutoSet)
+		{
+			DynamicPayload.DynamicParameterValue[3] = GetParameterValue(DynamicParams[3], Particle, Owner, InRandomStream);
+		}
 	}
 }
 
@@ -508,7 +523,7 @@ void UParticleModuleParameterDynamic::UpdateUsageFlags()
 			{
 				UpdateFlags &= ~(1 << Index);
 			}
-			if ((DynParam.ValueMethod != EDPV_UserSet) || 
+			if ((DynParam.ValueMethod != EDPV_UserSet && DynParam.ValueMethod != EDPV_AutoSet) || 
 				(DynParam.bScaleVelocityByParamValue == true))
 			{
 				bUsesVelocity = true;

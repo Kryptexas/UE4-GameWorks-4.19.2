@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3160114
 Availability: Public
 Title:3. 메인 메뉴 제작
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:이번 단계에서는 메인 메뉴의 비주얼 레이아웃을 만듭니다.
-version: 4.9
+version: 4.13
 
 
 [VAR:Steps]
@@ -72,7 +72,7 @@ version: 4.9
 
 	모든 버튼의 크기 조절은 물론 마우스를 올렸을 때의 색을 정의하고 있습니다.
 
-1.	**계층구조** 에서 **Image** 를 선택한 다음 **디테일** 에서 _Appearance_ 와 _Brush_ 아래 사용할 **Texture** 또는 **Material** 을 선택합니다.
+1.	**계층구조** 에서 **Image** 를 선택한 다음 **디테일** 에서 _Appearance_ 와 _Brush_ 아래 사용할 **Texture**, **Sprite**, 또는 **Material** 을 선택합니다.
 
 	![](Hierarchy8.png)
 
@@ -86,7 +86,7 @@ version: 4.9
 
 	![](Hierarchy9.png)
 
-1.	**Image** 의 **디테일** 패널에서 **앵커** 버튼을 클릭한 다음 화면 채우기 옵션을 선택합니다.
+1.	**Image** 의 **디테일** 패널에서 **앵커** 버튼을 클릭한 다음 화면 채우기 옵션을 선택합니다. 스케일박스를 사용하여 이미지를 담으면, 종횡비에 맞게 스케일과 크기가 자동 조절되도록 할 수 있습니다.
 
 	![](Hierarchy10.png)
 
@@ -121,6 +121,7 @@ version: 4.9
 ---
 
 %Steps%
+
 
 
 

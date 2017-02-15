@@ -1,10 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 ShaderComplexityRendering.h: Declarations used for the shader complexity viewmode.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "GlobalShader.h"
+#include "DebugViewModeRendering.h"
+
+class FPrimitiveSceneProxy;
+struct FMeshBatchElement;
+struct FMeshDrawingRenderState;
 
 template <bool bQuadComplexity>
 class TComplexityAccumulatePS : public FGlobalShader, public IDebugViewModePSInterface
@@ -57,7 +67,7 @@ public:
 		const FPrimitiveSceneProxy* Proxy,
 		int32 VisualizeLODIndex,
 		const FMeshBatchElement& BatchElement, 
-		const FMeshDrawingRenderState& DrawRenderState
+		const FDrawingPolicyRenderState& DrawRenderState
 		) override {}
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, const FSceneView& View) override {}

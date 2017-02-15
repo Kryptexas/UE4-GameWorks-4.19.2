@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ISourceControlState.h"
+#include "SubversionSourceControlState.h"
+#include "ISourceControlOperation.h"
 #include "ISourceControlProvider.h"
 #include "ISubversionSourceControlWorker.h"
-#include "SubversionSourceControlState.h"
+
+class FSubversionSourceControlCommand;
 
 DECLARE_DELEGATE_RetVal(FSubversionSourceControlWorkerRef, FGetSubversionSourceControlWorker)
 

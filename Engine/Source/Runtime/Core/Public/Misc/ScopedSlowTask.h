@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlowTask.h"
+#include "CoreTypes.h"
+#include "Internationalization/Text.h"
+#include "Misc/SlowTask.h"
 
 /**
  * A scope block representing an amount of work divided up into sections.

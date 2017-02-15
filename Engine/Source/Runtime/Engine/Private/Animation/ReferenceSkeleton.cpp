@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "ReferenceSkeleton.h"
-#include "BonePose.h"
+#include "Animation/Skeleton.h"
+#include "Engine/SkeletalMesh.h"
 
 FReferenceSkeletonModifier::~FReferenceSkeletonModifier()
 {
@@ -249,13 +249,6 @@ FArchive & operator<<(FArchive & Ar, FReferenceSkeleton & F)
 		Ar << F.RawNameToIndexMap;
 	}
 
-	if (Ar.IsLoading())
-	{
-		F.FinalRefBoneInfo = F.RawRefBoneInfo;
-		F.FinalRefBonePose = F.RawRefBonePose;
-		F.FinalNameToIndexMap = F.RawNameToIndexMap;
-	}
-
 	// Fix up any assets that don't have an INDEX_NONE parent for Bone[0]
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FIXUP_ROOTBONE_PARENT)
 	{
@@ -263,6 +256,13 @@ FArchive & operator<<(FArchive & Ar, FReferenceSkeleton & F)
 		{
 			F.RawRefBoneInfo[0].ParentIndex = INDEX_NONE;
 		}
+	}
+
+	if (Ar.IsLoading())
+	{
+		F.FinalRefBoneInfo = F.RawRefBoneInfo;
+		F.FinalRefBonePose = F.RawRefBonePose;
+		F.FinalNameToIndexMap = F.RawNameToIndexMap;
 	}
 
 	return Ar;

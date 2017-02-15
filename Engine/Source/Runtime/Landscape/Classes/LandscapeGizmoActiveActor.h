@@ -1,12 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "LandscapeGizmoActor.h"
-#include "Materials/Material.h"
 
 #include "LandscapeGizmoActiveActor.generated.h"
+
+class ULandscapeInfo;
+class ULandscapeLayerInfoObject;
+class UMaterial;
+class UMaterialInstance;
+class UTexture2D;
 
 UENUM()
 enum ELandscapeGizmoType

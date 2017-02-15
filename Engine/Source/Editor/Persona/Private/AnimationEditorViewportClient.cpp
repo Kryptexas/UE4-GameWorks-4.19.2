@@ -1,38 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
-
-#include "SAnimationEditorViewport.h"
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
-#include "SAnimViewportToolBar.h"
-#include "AnimViewportShowCommands.h"
-#include "AnimGraphDefinitions.h"
-#include "AnimPreviewInstance.h"
 #include "AnimationEditorViewportClient.h"
-#include "AnimGraphNode_SkeletalControlBase.h"
-#include "Runtime/Engine/Classes/Components/ReflectionCaptureComponent.h"
-#include "Runtime/Engine/Classes/Components/SphereReflectionCaptureComponent.h"
-#include "UnrealWidget.h"
-#include "MouseDeltaTracker.h"
-#include "ScopedTransaction.h"
-#include "Components/DirectionalLightComponent.h"
-#include "Components/ExponentialHeightFogComponent.h"
-#include "CanvasTypes.h"
-#include "Engine/TextureCube.h"
-#include "PhysicsEngine/PhysicsAsset.h"
+#include "Modules/ModuleManager.h"
+#include "EngineGlobals.h"
+#include "Animation/AnimSequence.h"
+#include "EditorStyleSet.h"
+#include "AnimationEditorPreviewScene.h"
+#include "Materials/Material.h"
+#include "CanvasItem.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "Animation/AnimBlueprint.h"
+#include "Preferences/PersonaOptions.h"
 #include "Engine/CollisionProfile.h"
-#include "Engine/SkeletalMeshSocket.h"
-#include "EngineUtils.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
 #include "GameFramework/WorldSettings.h"
-#include "PhysicsEngine/PhysicsSettings.h"
-#include "Engine/StaticMesh.h"
-#include "SAnimationEditorViewport.h"
+#include "PersonaModule.h"
+
+#include "SEditorViewport.h"
+#include "CanvasTypes.h"
+#include "AnimPreviewInstance.h"
+#include "ScopedTransaction.h"
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "Engine/SkeletalMeshSocket.h"
 #include "ISkeletonTree.h"
-#include "IEditableSkeleton.h"
-#include "PersonaPreviewSceneDescription.h"
-#include "Engine/PreviewMeshCollection.h"
+#include "SAnimationEditorViewport.h"
 #include "AssetViewerSettings.h"
 #include "IPersonaEditorModeManager.h"
+#include "SkeletalMeshTypes.h"
 
 namespace {
 	// Value from UE3
@@ -71,6 +65,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	, bFocusOnDraw(false)
 	, bInstantFocusOnDraw(true)
 	, bShowMeshStats(bInShowStats)
+	, bInitiallyFocused(false)
 {
 	// we actually own the mode tools here, we just override its type in the FEditorViewportClient constructor above
 	bOwnsModeTools = true;
@@ -128,8 +123,9 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	}
 
 	InPreviewScene->RegisterOnPreviewMeshChanged(FOnPreviewMeshChanged::CreateRaw(this, &FAnimationViewportClient::HandleSkeletalMeshChanged));
-	HandleSkeletalMeshChanged(InPreviewScene->GetPreviewMeshComponent()->SkeletalMesh);
+	HandleSkeletalMeshChanged(nullptr, InPreviewScene->GetPreviewMeshComponent()->SkeletalMesh);
 	InPreviewScene->RegisterOnInvalidateViews(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandleInvalidateViews));
+	InPreviewScene->RegisterOnFocusViews(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandleFocusViews));
 
 	// Register delegate to update the show flags when the post processing is turned on or off
 	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().AddRaw(this, &FAnimationViewportClient::OnAssetViewerSettingsChanged);
@@ -278,13 +274,20 @@ bool FAnimationViewportClient::IsSetCameraFollowChecked() const
 	return bCameraFollow;
 }
 
-void FAnimationViewportClient::HandleSkeletalMeshChanged(USkeletalMesh* InSkeletalMesh)
+void FAnimationViewportClient::HandleSkeletalMeshChanged(USkeletalMesh* OldSkeletalMesh, USkeletalMesh* NewSkeletalMesh)
 {
-	GetSkeletonTree()->DeselectAll();
+	if (OldSkeletalMesh != NewSkeletalMesh || NewSkeletalMesh == nullptr)
+	{
+		GetSkeletonTree()->DeselectAll();
 
-	FocusViewportOnPreviewMesh();
+		if (!bInitiallyFocused)
+		{
+			FocusViewportOnPreviewMesh();
+			bInitiallyFocused = true;
+		}
 
-	UpdateCameraSetup();
+		UpdateCameraSetup();
+	}
 
 	// Setup physics data from physics assets if available, clearing any physics setup on the component
 	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
@@ -713,13 +716,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			// Draw stats about the mesh
 			const FBoxSphereBounds& SkelBounds = PreviewMeshComponent->Bounds;
-			const FPlane ScreenPosition = View->Project(SkelBounds.Origin);
-
-			const int32 HalfX = Viewport->GetSizeXY().X / 2;
-			const int32 HalfY = Viewport->GetSizeXY().Y / 2;
-
-			const float ScreenRadius = FMath::Max((float)HalfX * View->ViewMatrices.GetProjectionMatrix().M[0][0], (float)HalfY * View->ViewMatrices.GetProjectionMatrix().M[1][1]) * SkelBounds.SphereRadius / FMath::Max(ScreenPosition.W, 1.0f);
-			const float LODFactor = ScreenRadius / 320.0f;
+			const float ScreenSize = ComputeBoundsScreenSize(SkelBounds.Origin, SkelBounds.SphereRadius, *View);
 
 			int32 NumBonesInUse;
 			int32 NumBonesMappedToVerts;
@@ -749,7 +746,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
-			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f, FOV:%3.0f"), LODFactor, ViewFOV);
+			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f, FOV:%3.0f"), ScreenSize, ViewFOV);
 			CurYOffset += YL + 2;
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
@@ -838,16 +835,9 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			// current screen size
 			const FBoxSphereBounds& SkelBounds = PreviewMeshComponent->Bounds;
-			const FPlane ScreenPosition = View->Project(SkelBounds.Origin);
+			const float ScreenSize = ComputeBoundsScreenSize(SkelBounds.Origin, SkelBounds.SphereRadius, *View);
 
-			const int32 HalfX = Viewport->GetSizeXY().X / 2;
-			const int32 HalfY = Viewport->GetSizeXY().Y / 2;
-			const float ScreenRadius = FMath::Max((float)HalfX * View->ViewMatrices.GetProjectionMatrix().M[0][0], (float)HalfY * View->ViewMatrices.GetProjectionMatrix().M[1][1]) * SkelBounds.SphereRadius / FMath::Max(ScreenPosition.W, 1.0f);
-			const float LODFactor = ScreenRadius / 320.0f;
-
-			float ScreenSize = ComputeBoundsScreenSize(ScreenPosition, SkelBounds.SphereRadius, *View);
-
-			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f"), LODFactor);
+			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f"), ScreenSize);
 			CurYOffset += YL + 2;
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
@@ -979,12 +969,6 @@ void FAnimationViewportClient::RotateViewportType()
 bool FAnimationViewportClient::InputKey( FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad )
 {
 	bool bHandled = false;
-
-	if(Event == IE_Pressed && Key == EKeys::F)
-	{
-		bHandled = true;
-		FocusViewportOnPreviewMesh();
-	}
 
 	FAdvancedPreviewScene* AdvancedScene = static_cast<FAdvancedPreviewScene*>(PreviewScene);
 	bHandled |= AdvancedScene->HandleInputKey(InViewport, ControllerId, Key, Event, AmountDepressed, bGamepad);
@@ -1209,6 +1193,20 @@ void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshCompo
 	{
 		SelectedBones = DebugMeshComponent->BonesOfInterest;
 
+		if(GetBoneDrawMode() == EBoneDrawMode::SelectedAndParents)
+		{
+			int32 BoneIndex = GetAnimPreviewScene()->GetSelectedBoneIndex();
+			while (BoneIndex != INDEX_NONE)
+			{
+				int32 ParentIndex = DebugMeshComponent->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
+				if (ParentIndex != INDEX_NONE)
+				{
+					SelectedBones.AddUnique(ParentIndex);
+				}
+				BoneIndex = ParentIndex;
+			}
+		}
+
 		// we could cache parent bones as we calculate, but right now I'm not worried about perf issue of this
 		for ( int32 Index=0; Index<RequiredBones.Num(); ++Index )
 		{
@@ -1216,7 +1214,7 @@ void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshCompo
 
 			if (bForceDraw ||
 				(GetBoneDrawMode() == EBoneDrawMode::All) ||
-				((GetBoneDrawMode() == EBoneDrawMode::Selected) && SelectedBones.Contains(BoneIndex) )
+				((GetBoneDrawMode() == EBoneDrawMode::Selected || GetBoneDrawMode() == EBoneDrawMode::SelectedAndParents) && SelectedBones.Contains(BoneIndex) )
 				)
 			{
 				const int32 ParentIndex = MeshComponent->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
@@ -1700,6 +1698,11 @@ IPersonaEditorModeManager& FAnimationViewportClient::GetPersonaModeManager() con
 void FAnimationViewportClient::HandleInvalidateViews()
 {
 	Invalidate();
+}
+
+void FAnimationViewportClient::HandleFocusViews()
+{
+	FocusViewportOnPreviewMesh();
 }
 
 bool FAnimationViewportClient::CanCycleWidgetMode() const

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -15,21 +15,37 @@ namespace UnrealBuildTool
 	/// </summary>
 	public enum WindowsCompiler
 	{
-		/// Has not been initialized yet
+		/// <summary>
+		/// Use the default compiler. A specific value will always be used outside of configuration classes.
+		/// </summary>
 		Default,
 
+		/// <summary>
 		/// Visual Studio 2013 (Visual C++ 12.0)
+		/// </summary>
 		VisualStudio2013,
 
+		/// <summary>
 		/// Visual Studio 2015 (Visual C++ 14.0)
+		/// </summary>
 		VisualStudio2015,
 
+		/// <summary>
 		/// Visual Studio 2017 (Visual C++ 15.0)
+		/// </summary>
 		VisualStudio2017,
 	}
 
+	/// <summary>
+	/// Windows platform instance configured to a specific project and target
+	/// </summary>
 	public class WindowsPlatformContext : UEBuildPlatformContext
 	{
+		/// <summary>
+		/// Enable PIX debugging (automatically disabled in Shipping and Test configs)
+		/// </summary>
+		private bool bPixProfilingEnabled = true;
+
 		/// <summary>
 		/// True if we're targeting Windows XP as a minimum spec.  In Visual Studio 2012 and higher, this may change how
 		/// we compile and link the application (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
@@ -37,20 +53,67 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool SupportWindowsXP;
 
+		/// <summary>
+		/// The name of the company (author, provider) that created the project.
+		/// </summary>
+		private string CompanyName;
+
+		/// <summary>
+		/// The project's copyright and/or trademark notices.
+		/// </summary>
+		private string CopyrightNotice;
+
+		/// <summary>
+		/// The project's name.
+		/// </summary>
+		private string ProductName;
+
 		public WindowsPlatformContext(UnrealTargetPlatform InPlatform, FileReference InProjectFile) : base(InPlatform, InProjectFile)
 		{
 			if(Platform == UnrealTargetPlatform.Win32)
 			{
 				// ...check if it was supported from a config.
-				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Win64, "Engine", DirectoryReference.FromFile(ProjectFile));
+				ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Win64);
+				String IniPath = "/Script/WindowsTargetPlatform.WindowsTargetSettings";
+				bool bSetting = false;
+				if (Ini.GetBool(IniPath, "bEnablePIXProfiling", out bSetting))
+				{
+					bPixProfilingEnabled = bSetting;
+				}
+
 				string MinimumOS;
-				if (Ini.GetString("/Script/WindowsTargetPlatform.WindowsTargetSettings", "MinimumOSVersion", out MinimumOS))
+				if (Ini.GetString(IniPath, "MinimumOSVersion", out MinimumOS))
 				{
 					if (string.IsNullOrEmpty(MinimumOS) == false)
 					{
-						SupportWindowsXP = MinimumOS == "MSOS_XP";
+						SupportWindowsXP = (MinimumOS == "MSOS_XP");
+						if (SupportWindowsXP)
+						{
+							Log.TraceWarningOnce("Support for Windows XP has been deprecated in this release. Please update your MinimumOSVersion setting.");
+						}
 					}
 				}
+			}
+
+			// define and load game.ini
+			ConfigHierarchy GameIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, DirectoryReference.FromFile(ProjectFile), InPlatform);
+
+			string IniCompanyName;
+			if (GameIni.GetString("/Script/EngineSettings.GeneralProjectSettings", "CompanyName", out IniCompanyName))
+			{
+				CompanyName = IniCompanyName;
+			}
+
+			string IniCopyrightNotice;
+			if (GameIni.GetString("/Script/EngineSettings.GeneralProjectSettings", "CopyrightNotice", out IniCopyrightNotice))
+			{
+				CopyrightNotice = IniCopyrightNotice;
+			}
+
+			string IniProjectName;
+			if (GameIni.GetString("/Script/EngineSettings.GeneralProjectSettings", "ProjectName", out IniProjectName))
+			{
+				ProductName = IniProjectName;
 			}
 		}
 
@@ -114,6 +177,16 @@ namespace UnrealBuildTool
 
 			if (ModuleName == "D3D12RHI")
 			{
+				if (bPixProfilingEnabled && Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test)
+				{
+					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=1");
+					Rules.Definitions.Add("PROFILE");
+				}
+				else
+				{
+					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=0");
+				}
+
 				// To enable platform specific D3D12 RHI Types
 				Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
 			}
@@ -147,6 +220,9 @@ namespace UnrealBuildTool
 					Rules.PublicDelayLoadDLLs.Add("dxgi.dll");
 				}
 			}
+
+			// Delay-load D3D12 so we can use the latest features and still run on downlevel versions of the OS
+			Rules.PublicDelayLoadDLLs.Add("d3d12.dll");
 		}
 
 		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)
@@ -255,6 +331,8 @@ namespace UnrealBuildTool
 			}
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_WINDOWS=1");
 
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("DEPTH_32_BIT_CONVERSION=0");
+
 			String MorpheusShaderPath = Path.Combine(BuildConfiguration.RelativeEnginePath, "Shaders/PS4/PostProcessHMDMorpheus.usf");
 			if (File.Exists(MorpheusShaderPath))
 			{
@@ -313,7 +391,7 @@ namespace UnrealBuildTool
 				// that is set by the modules the target includes to allow for easier tracking.
 				// Alternatively, if VSAccessor is modified to not require ATL than we should always exclude the libraries.
 				if (InBuildTarget.ShouldCompileMonolithic() && (InBuildTarget.Rules != null) &&
-					(TargetRules.IsGameType(InBuildTarget.TargetType)) && (TargetRules.IsEditorType(InBuildTarget.TargetType) == false))
+					(InBuildTarget.TargetType == TargetRules.TargetType.Game || InBuildTarget.TargetType == TargetRules.TargetType.Client || InBuildTarget.TargetType == TargetRules.TargetType.Server))
 				{
 					InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("atl");
 					InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("atls");
@@ -363,20 +441,6 @@ namespace UnrealBuildTool
 
 				// IME
 				InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("imm32.lib");
-
-				// Setup assembly path for .NET modules.  This will only be used when CLR is enabled. (CPlusPlusCLR module types)
-				InBuildTarget.GlobalCompileEnvironment.Config.SystemDotNetAssemblyPaths.Add(
-					Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) +
-					"/Reference Assemblies/Microsoft/Framework/.NETFramework/v4.0");
-
-				// Setup default assemblies for .NET modules.  These will only be used when CLR is enabled. (CPlusPlusCLR module types)
-				InBuildTarget.GlobalCompileEnvironment.Config.FrameworkAssemblyDependencies.Add("System.dll");
-				InBuildTarget.GlobalCompileEnvironment.Config.FrameworkAssemblyDependencies.Add("System.Data.dll");
-				InBuildTarget.GlobalCompileEnvironment.Config.FrameworkAssemblyDependencies.Add("System.Drawing.dll");
-				InBuildTarget.GlobalCompileEnvironment.Config.FrameworkAssemblyDependencies.Add("System.Xml.dll");
-				InBuildTarget.GlobalCompileEnvironment.Config.FrameworkAssemblyDependencies.Add("System.Management.dll");
-				InBuildTarget.GlobalCompileEnvironment.Config.FrameworkAssemblyDependencies.Add("System.Windows.Forms.dll");
-				InBuildTarget.GlobalCompileEnvironment.Config.FrameworkAssemblyDependencies.Add("WindowsBase.dll");
 			}
 
 			// Disable Simplygon support if compiling against the NULL RHI.
@@ -392,12 +456,35 @@ namespace UnrealBuildTool
 			{
 				InBuildTarget.GlobalLinkEnvironment.Config.AdditionalArguments += " /ignore:4078";
 			}
+
+			if (InBuildTarget.TargetType != TargetRules.TargetType.Editor)
+			{
+				if (!string.IsNullOrEmpty(CompanyName))
+				{
+					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add(String.Format("PROJECT_COMPANY_NAME={0}", CompanyName));
+				}
+
+				if (!string.IsNullOrEmpty(CopyrightNotice))
+				{
+					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add(String.Format("PROJECT_COPYRIGHT_STRING={0}", CopyrightNotice));
+				}
+
+				if (!string.IsNullOrEmpty(ProductName))
+				{
+					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add(String.Format("PROJECT_PRODUCT_NAME={0}", ProductName));
+				}
+
+				if (ProjectFile != null)
+				{
+					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add(String.Format("PROJECT_PRODUCT_IDENTIFIER={0}", ProjectFile.GetFileNameWithoutExtension()));
+				}
+			}
 		}
 
 		/// <summary>
 		/// Setup the configuration environment for building
 		/// </summary>
-		/// <param name="InBuildTarget"> The target being built</param>
+		/// <param name="Target"> The target being built</param>
 		public override void SetUpConfigurationEnvironment(TargetInfo Target, CPPEnvironment GlobalCompileEnvironment, LinkEnvironment GlobalLinkEnvironment)
 		{
 			// Determine the C++ compile/link configuration based on the Unreal configuration.
@@ -439,8 +526,8 @@ namespace UnrealBuildTool
 			}
 
 			// Set up the global C++ compilation and link environment.
-			GlobalCompileEnvironment.Config.Target.Configuration = CompileConfiguration;
-			GlobalLinkEnvironment.Config.Target.Configuration = CompileConfiguration;
+			GlobalCompileEnvironment.Config.Configuration = CompileConfiguration;
+			GlobalLinkEnvironment.Config.Configuration = CompileConfiguration;
 
 			// Create debug info based on the heuristics specified by the user.
 			GlobalCompileEnvironment.Config.bCreateDebugInfo =
@@ -484,15 +571,6 @@ namespace UnrealBuildTool
 		{
 			return new VCToolChain(Platform, SupportWindowsXP);
 		}
-
-		/// <summary>
-		/// Create a build deployment handler
-		/// </summary>
-		/// <returns>New deployment handler, or null if not required</returns>
-		public override UEBuildDeploy CreateDeploymentHandler()
-		{
-			return new BaseWindowsDeploy();
-		}
 	}
 
 	public class WindowsPlatform : UEBuildPlatform
@@ -530,7 +608,7 @@ namespace UnrealBuildTool
 			}
 
 			// Read the project setting
-			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Win64, "Engine", DirectoryReference.FromFile(ProjectFile));
+			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Win64);
 
 			string CompilerVersionString;
 			if (Ini.GetString("/Script/WindowsTargetPlatform.WindowsTargetSettings", "CompilerVersion", out CompilerVersionString))
@@ -1044,8 +1122,9 @@ namespace UnrealBuildTool
 		/// Creates a context for the given project on the current platform.
 		/// </summary>
 		/// <param name="ProjectFile">The project file for the current target</param>
+		/// <param name="Target">Rules for the target being built</param>
 		/// <returns>New platform context object</returns>
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
+		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile, TargetRules Target)
 		{
 			WindowsPlatformContext Context = new WindowsPlatformContext(Platform, ProjectFile);
 			if (Context.SupportWindowsXP)
@@ -1054,6 +1133,15 @@ namespace UnrealBuildTool
 				Compiler = WindowsCompiler.VisualStudio2013;
 			}
             return Context;
+		}
+
+		/// <summary>
+		/// Deploys the given target
+		/// </summary>
+		/// <param name="Target">Information about the target being deployed</param>
+		public override void Deploy(UEBuildDeployTarget Target)
+		{
+			new BaseWindowsDeploy().PrepTargetForDeployment(Target);
 		}
 	}
 

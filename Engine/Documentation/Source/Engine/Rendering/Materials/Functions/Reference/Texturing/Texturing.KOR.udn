@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3108692
 Availability: Public
 title:텍스처링
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -201,7 +201,7 @@ Texturing 카테고리 아래 있는 함수는 다음과 같습니다.
 
 ### HeightLerp
 
-하이트맵과 이행 단계 (Transition Phase) 값에 따라 두 개의 텍스처를 선형 보간하는 함수입니다. 이를 통해 선형 보간이 일어나는 하이트맵 상의 값을 조절할 수 있습니다.
+하이트맵과 전환 단계 (Transition Phase) 값에 따라 두 개의 텍스처를 선형 보간하는 함수입니다. 이를 통해 선형 보간이 일어나는 하이트맵 상의 값을 조절할 수 있습니다.
 
 | 항목 | 설명 |
 | ---- | ---- |

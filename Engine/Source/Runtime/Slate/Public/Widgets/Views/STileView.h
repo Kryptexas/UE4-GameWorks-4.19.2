@@ -1,8 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
  
 #pragma once
-#include "SListView.h"
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Styling/SlateTypes.h"
+#include "Framework/SlateDelegates.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Framework/Views/TableViewTypeTraits.h"
+#include "Framework/Layout/Overscroll.h"
+#include "Widgets/Views/SListView.h"
 
 /**
  * A TileView widget is a list which arranges its items horizontally until there is no more space then creates a new row.
@@ -20,14 +31,16 @@ public:
 	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonDoubleClick FOnMouseButtonDoubleClick;
 	typedef typename TSlateDelegates< NullableItemType >::FOnSelectionChanged FOnSelectionChanged;
 
+	typedef typename TSlateDelegates< ItemType >::FOnItemToString_Debug FOnItemToString_Debug; 
+
 	using FOnWidgetToBeRemoved = typename SListView<ItemType>::FOnWidgetToBeRemoved;
 
 public:
 
-	SLATE_BEGIN_ARGS( STileView<ItemType> )
+	SLATE_BEGIN_ARGS(STileView<ItemType>)
 		: _OnGenerateTile()
 		, _OnTileReleased()
-		, _ListItemsSource( static_cast<TArray<ItemType>*>(nullptr) ) //@todo Slate Syntax: Initializing from nullptr without a cast
+		, _ListItemsSource(static_cast<TArray<ItemType>*>(nullptr)) //@todo Slate Syntax: Initializing from nullptr without a cast
 		, _ItemHeight(128)
 		, _ItemWidth(128)
 		, _ItemAlignment(EListItemAlignment::EvenlyDistributed)
@@ -40,9 +53,11 @@ public:
 		, _ExternalScrollbar()
 		, _ScrollbarVisibility(EVisibility::Visible)
 		, _AllowOverscroll(EAllowOverscroll::Yes)
-		, _ConsumeMouseWheel( EConsumeMouseWheel::WhenScrollingPossible )
-		, _WheelScrollMultiplier( WheelScrollAmount )
-		, _HandleGamepadEvents( true )
+		, _ConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible)
+		, _WheelScrollMultiplier(GetGlobalScrollAmount())
+		, _HandleGamepadEvents(true)
+		, _OnItemToString_Debug()
+		, _OnEnteredBadState()
 		{}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateTile )
@@ -85,6 +100,11 @@ public:
 
 		SLATE_ARGUMENT( bool, HandleGamepadEvents );
 
+		/** Assign this to get more diagnostics from the list view. */
+		SLATE_EVENT(FOnItemToString_Debug, OnItemToString_Debug)
+
+		SLATE_EVENT(FOnTableViewBadState, OnEnteredBadState);
+
 	SLATE_END_ARGS()
 
 	/**
@@ -113,6 +133,11 @@ public:
 		this->WheelScrollMultiplier = InArgs._WheelScrollMultiplier;
 
 		this->bHandleGamepadEvents = InArgs._HandleGamepadEvents;
+
+		this->OnItemToString_Debug = InArgs._OnItemToString_Debug.IsBound()
+			? InArgs._OnItemToString_Debug
+			: SListView< ItemType >::GetDefaultDebugDelegate();
+		this->OnEnteredBadState = InArgs._OnEnteredBadState;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;

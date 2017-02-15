@@ -1,15 +1,50 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Engine/Engine.h"
+#include "Sound/SoundAttenuation.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundClass.h"
+#include "Audio.h"
 #include "Sound/AudioVolume.h"
+#include "Sound/SoundConcurrency.h"
 #include "Sound/SoundMix.h"
-#include "Sound/SoundSubmix.h"
 #include "AudioDeviceManager.h"
+#include "EngineGlobals.h"
+
+class FAudioEffectsManager;
+class FCanvas;
+class FViewport;
+class FViewportClient;
+class ICompressedAudioInfo;
+class UReverbEffect;
+class USoundBase;
+class USoundEffectSourcePreset;
+class USoundEffectSubmixPreset;
+class USoundSubmix;
+class USoundWave;
+struct FActiveSound;
+struct FAudioQualitySettings;
 
 /**
  * Forward declares
  */
+class USoundClass;
+class UWorld;
+class FOutputDevice;
+class FArchive;
+class FReferenceCollector;
+struct FWaveInstance;
+class USoundWave;
+class FSoundBuffer;
+class USoundBase;
+class USoundAttenuation;
+struct FRotator;
+struct FActiveSound;
+class USoundMix;
 
 class FAudioEffectsManager;
 class FViewportClient;
@@ -305,7 +340,7 @@ struct FAudioStats
 		uint32 AudioComponentID;
 		FTransform Transform;
 		TArray<FStatWaveInstanceInfo> WaveInstanceInfos;
-		TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails> ShapeDetailsMap;
+		TMultiMap<EAttenuationShape::Type, FBaseAttenuationSettings::AttenuationShapeDetails> ShapeDetailsMap;
 	};
 
 	struct FStatSoundMix
@@ -829,16 +864,16 @@ public:
 	void SetDeviceMuted(bool bMuted);
 
 	/** Computes and returns some geometry related to the listener and the given sound transform. */
-	void GetAttenuationListenerData(FAttenuationListenerData& OutListenerData, const FTransform& SoundTransform, const FAttenuationSettings& AttenuationSettings, const FTransform* InListenerTransform = nullptr) const;
+	void GetAttenuationListenerData(FAttenuationListenerData& OutListenerData, const FTransform& SoundTransform, const FSoundAttenuationSettings& AttenuationSettings, const FTransform* InListenerTransform = nullptr) const;
 
 	/** Returns the azimuth angle of the sound relative to the sound's nearest listener. Used for 3d audio calculations. */
-	void GetAzimuth(FAttenuationListenerData& OutListenerData, const USoundBase* Sound, const FTransform& SoundTransform, const FAttenuationSettings& AttenuationSettings, const FTransform& ListenerTransform, float& OutAzimuth, float& AbsoluteAzimuth) const;
+	void GetAzimuth(FAttenuationListenerData& OutListenerData, const USoundBase* Sound, const FTransform& SoundTransform, const FSoundAttenuationSettings& AttenuationSettings, const FTransform& ListenerTransform, float& OutAzimuth, float& AbsoluteAzimuth) const;
 
 	/** Returns the focus factor of a sound based on its position and listener data. */
-	float GetFocusFactor(FAttenuationListenerData& OutListenerData, const USoundBase* Sound, const float Azimuth, const FAttenuationSettings& AttenuationSettings) const;
+	float GetFocusFactor(FAttenuationListenerData& OutListenerData, const USoundBase* Sound, const float Azimuth, const FSoundAttenuationSettings& AttenuationSettings) const;
 
 	/** Gets the max distance and focus factor of a sound. */
-	void GetMaxDistanceAndFocusFactor(USoundBase* Sound, const UWorld* World, const FVector& Location, const FAttenuationSettings* AttenuationSettingsToApply, float& OutMaxDistance, float& OutFocusFactor);
+	void GetMaxDistanceAndFocusFactor(USoundBase* Sound, const UWorld* World, const FVector& Location, const FSoundAttenuationSettings* AttenuationSettingsToApply, float& OutMaxDistance, float& OutFocusFactor);
 
 	/**
 	* Checks if the given sound would be audible.
@@ -850,7 +885,7 @@ public:
 	* @param FocusFactor			The focus factor of the sound.
 	* @param Returns true if the sound is audible, false otherwise.
 	*/
-	bool SoundIsAudible(USoundBase* Sound, const UWorld* World, const FVector& Location, const FAttenuationSettings* AttenuationSettingsToApply, float MaxDistance, float FocusFactor);
+	bool SoundIsAudible(USoundBase* Sound, const UWorld* World, const FVector& Location, const FSoundAttenuationSettings* AttenuationSettingsToApply, float MaxDistance, float FocusFactor);
 
 	/** Returns the index of the listener closest to the given sound transform */
 	static int32 FindClosestListenerIndex(const FTransform& SoundTransform, const TArray<FListener>& InListeners);
@@ -899,7 +934,7 @@ public:
 	float GetSampleRate() const { return SampleRate; }
 
 	/** Returns the buffer length of the audio device. */
-	int32 GetBufferLength() const { return BufferLength; }
+	int32 GetBufferLength() const { return DeviceOutputBufferLength; }
 
 	/** Whether or not the spatialization plugin is enabled. */
 	bool IsSpatializationPluginEnabled() const
@@ -1093,11 +1128,6 @@ public:
 	{
 	}
 
-	/** Checks hardware device state changes */
-	virtual void CheckDeviceStateChange()
-	{
-	}
-
 	/** Creates a new platform specific sound source */
 	virtual FAudioEffectsManager* CreateEffectsManager();
 
@@ -1115,9 +1145,23 @@ public:
 	FVector GetListenerTransformedDirection(const FVector& Position, float* OutDistance);
 
 	/** Returns the current audio device update delta time. */
-	float GetUpdateDeltaTime() const
+	float GetDeviceDeltaTime() const
 	{
-		return UpdateDeltaTime;
+		return DeviceDeltaTime;
+	}
+
+	/** Sets the update delta time for the audio frame */
+	void UpdateDeviceDeltaTime()
+	{
+		const double CurrTime = FPlatformTime::Seconds();
+		DeviceDeltaTime = CurrTime - LastUpdateTime;
+		LastUpdateTime = CurrTime;
+	}
+
+	/** Update the audio clock to be based off the update delta time */
+	virtual void UpdateAudioClock()
+	{
+		AudioClock += GetDeviceDeltaTime();
 	}
 
 private:
@@ -1179,8 +1223,14 @@ public:
 	/** The maximum number of concurrent audible sounds */
 	int32 MaxChannels;
 
+	/** The number of worker threads to use to process sources. (audio mixer feature) */
+	int32 NumSourceWorkers;
+
 	/** The sample rate of the audio device */
 	int32 SampleRate;
+
+	/** The length of output callback buffer */
+	int32 DeviceOutputBufferLength;
 
 	/** The length of output callback buffer */
 	int32 BufferLength;
@@ -1313,6 +1363,9 @@ protected:
 	/** The audio clock from the audio hardware. Not supported on all platforms. */
 	double AudioClock;
 
+	/** Whether or not we allow center channel panning (audio mixer only feature.) */
+	uint8 bAllowCenterChannel3DPanning : 1;
+
 private:
 
 	/** Whether the value in HighestPriorityActivatedReverb should be used - Audio Thread owned */
@@ -1325,8 +1378,8 @@ private:
 	uint8 RequestedAudioStats;
 	FAudioStats AudioStats;
 #endif
-	/** The game thread update delta time for this update tick. */
-	float UpdateDeltaTime;
+	/** The audio thread update delta time for this audio thread update tick. */
+	float DeviceDeltaTime;
 
 	TArray<FActiveSound*> ActiveSounds;
 	TArray<FWaveInstance*> ActiveWaveInstances;

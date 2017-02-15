@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 MeshTexCoordSizeAccuracyRendering.cpp: Contains definitions for rendering the viewmode.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
 #include "MeshTexCoordSizeAccuracyRendering.h"
+#include "Components.h"
+#include "PrimitiveSceneProxy.h"
+#include "EngineGlobals.h"
+#include "MeshBatch.h"
+#include "Engine/Engine.h"
 
 IMPLEMENT_SHADER_TYPE(,FMeshTexCoordSizeAccuracyPS,TEXT("MeshTexCoordSizeAccuracyPixelShader"),TEXT("Main"),SF_Pixel);
 
@@ -41,7 +44,7 @@ void FMeshTexCoordSizeAccuracyPS::SetMesh(
 	const FPrimitiveSceneProxy* Proxy,
 	int32 VisualizeLODIndex,
 	const FMeshBatchElement& BatchElement, 
-	const FMeshDrawingRenderState& DrawRenderState
+	const FDrawingPolicyRenderState& DrawRenderState
 	)
 {
 	const int32 AnalysisIndex = View.Family->GetViewModeParam() >= 0 ? FMath::Clamp<int32>(View.Family->GetViewModeParam(), 0, MAX_TEXCOORDS - 1) : -1;

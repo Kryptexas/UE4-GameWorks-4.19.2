@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Animation/AnimNodeBase.h"
-#include "Animation/PoseAsset.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "AnimNode_PoseHandler.h"
+#include "AlphaBlend.h"
 #include "AnimNode_PoseBlendNode.generated.h"
 
 // Evaluates a point in an anim sequence, using a specific time input rather than advancing time internally.
@@ -17,11 +19,16 @@ public:
 	UPROPERTY(EditAnywhere, EditFixedSize, BlueprintReadWrite, Category = Links)
 	FPoseLink SourcePose;
 
-public:	
-	FAnimNode_PoseBlendNode()
-	{
-	}
+	/** Type of blending used (Linear, Cubic, etc.) */
+	UPROPERTY(EditAnywhere, Category = "Blend")
+	EAlphaBlendOption BlendOption;
 
+	/** If you're using Custom BlendOption, you can specify curve */
+	UPROPERTY(EditAnywhere, Category = "Blend")
+	UCurveFloat* CustomCurve;
+
+public:	
+	FAnimNode_PoseBlendNode();
 
 	// FAnimNode_Base interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;

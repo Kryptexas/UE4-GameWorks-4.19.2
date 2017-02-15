@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ReferenceSkeleton.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
 #include "BoneContainer.h"
 #include "SmartName.generated.h"
 
@@ -150,6 +153,8 @@ struct ENGINE_API FSmartNameMapping
 
 	friend FArchive& operator<<(FArchive& Ar, FSmartNameMapping& Elem);
 
+	/* initialize curve meta data for the container */
+	void InitializeCurveMetaData(class USkeleton* Skeleton);
 private:
 	SmartName::UID_Type NextUid;				// The next SmartName::UID_Type to use 
 	TMap<SmartName::UID_Type, FName> UidMap;	// Mapping of UIDs and names. This is transient and built upon serialize - this is run-time data, and searching from SmartName::UID_Type to FName is important
@@ -179,6 +184,9 @@ protected:
 	FSmartNameMapping* GetContainerInternal(const FName& ContainerName);
 	const FSmartNameMapping* GetContainerInternal(const FName& ContainerName) const;
 
+	/* initialize curve meta data for the container */
+	void InitializeCurveMetaData(class USkeleton* Skeleton);
+
 private:
 	TMap<FName, FSmartNameMapping> NameMappings;	// List of smartname mappings
 };
@@ -190,7 +198,7 @@ struct ENGINE_API FSmartName
 	GENERATED_USTRUCT_BODY();
 
 	// name 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, Category=FSmartName)
 	FName DisplayName;
 
 	// SmartName::UID_Type - for faster access

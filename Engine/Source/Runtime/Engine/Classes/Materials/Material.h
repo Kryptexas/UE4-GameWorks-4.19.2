@@ -1,15 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Engine/BlendableInterface.h"
-#include "MaterialExpressionIO.h"
-#include "Materials/MaterialExpression.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "RenderCommandFence.h"
+#include "Templates/ScopedPointer.h"
 #include "Materials/MaterialInterface.h"
+#include "MaterialShared.h"
+#include "MaterialExpressionIO.h"
 #include "Materials/MaterialExpressionMaterialFunctionCall.h"
 #include "Materials/MaterialFunction.h"
+#include "UniquePtr.h"
 
 #include "Material.generated.h"
+
+class ITargetPlatform;
+class UMaterialExpressionComment;
+class UPhysicalMaterial;
+class USubsurfaceProfile;
+class UTexture;
 
 #if WITH_EDITOR
 
@@ -283,9 +294,10 @@ struct FMaterialParameterCollectionInfo
 };
 
 /**
- * A Material is an asset which can be applied to a mesh to control the visual look of the scene. In general,
- * when light from the scene hits the surface, the shading model of the material is used to calculate how
- * that light interacts with the surface. 
+ * A Material is an asset which can be applied to a mesh to control the visual look of the scene. 
+ * When light from the scene hits the surface, the shading model of the material is used to calculate how that light interacts with the surface. 
+ *
+ * Warning: Creating new materials directly increases shader compile times!  Consider creating a Material Instance off of an existing material instead.
  */
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class UMaterial : public UMaterialInterface
@@ -435,8 +447,8 @@ public:
 	UPROPERTY(EditAnywhere, Category=Material)
 	uint32 TwoSided:1;
 
-	/** Whether the material should support a dithered LOD transition. */
-	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
+	/** Whether meshes rendered with the material should support dithered LOD transitions. */
+	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay, meta = (DisplayName = "Dithered LOD Transition"))
 	uint32 DitheredLODTransition:1;
 
 	/** Dither opacity mask. When combined with Temporal AA this can be used as a form of limited translucency which supports all lighting features. */
@@ -841,6 +853,7 @@ public:
 	ENGINE_API virtual void OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel ) override;
 	ENGINE_API virtual void OverrideVectorParameterDefault(FName ParameterName, const FLinearColor& Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
 	ENGINE_API virtual void OverrideScalarParameterDefault(FName ParameterName, float Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
+	ENGINE_API virtual float GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel::Type FeatureLevel) override;
 	ENGINE_API virtual bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) override;
 	ENGINE_API virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const override;
 	ENGINE_API virtual FMaterialResource* AllocateResource();
@@ -1037,8 +1050,8 @@ public:
 	ENGINE_API void GetAllScalarParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const;
 	ENGINE_API void GetAllTextureParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const;
 	ENGINE_API void GetAllFontParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const;
-	void GetAllStaticSwitchParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const;
-	void GetAllStaticComponentMaskParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const;
+	ENGINE_API void GetAllStaticSwitchParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const;
+	ENGINE_API void GetAllStaticComponentMaskParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const;
 
 	/** Returns the material's decal blend mode, calculated from the DecalBlendMode property and what inputs are connected. */
 	uint32 GetDecalBlendMode() const { return DecalBlendMode; }
@@ -1242,12 +1255,12 @@ public:
 	 * Backs up all material shaders to memory through serialization, organized by FMaterialShaderMap. 
 	 * This will also clear all FMaterialShaderMap references to FShaders.
 	 */
-	ENGINE_API static void BackupMaterialShadersToMemory(TMap<class FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
+	ENGINE_API static void BackupMaterialShadersToMemory(TMap<class FMaterialShaderMap*, TUniquePtr<TArray<uint8> > >& ShaderMapToSerializedShaderData);
 
 	/** 
 	 * Recreates FShaders for FMaterialShaderMap's from the serialized data.  Shader maps may not be complete after this due to changes in the shader keys.
 	 */
-	ENGINE_API static void RestoreMaterialShadersFromMemory(const TMap<class FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
+	ENGINE_API static void RestoreMaterialShadersFromMemory(const TMap<class FMaterialShaderMap*, TUniquePtr<TArray<uint8> > >& ShaderMapToSerializedShaderData);
 
 	/** Builds a map from UMaterialInterface name to the shader maps that are needed for rendering on the given platform. */
 	ENGINE_API static void CompileMaterialsForRemoteRecompile(

@@ -1,12 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "RenderCommandFence.h"
 #include "Materials/MaterialInterface.h"
-#include "Materials/MaterialInstanceBasePropertyOverrides.h"
 #include "StaticParameterSet.h"
+#include "MaterialShared.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
 #include "Materials/Material.h"
+#include "Materials/MaterialInstanceBasePropertyOverrides.h"
+#include "Misc/App.h"
 #include "MaterialInstance.generated.h"
+
+class ITargetPlatform;
+class UPhysicalMaterial;
+class USubsurfaceProfile;
+class UTexture;
 
 //
 // Forward declarations.
@@ -217,6 +229,9 @@ class UMaterialInstance : public UMaterialInterface
 	 */
 	class FMaterialInstanceResource* Resources[3];
 
+	ENGINE_API virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
+	ENGINE_API virtual float GetTextureDensity(FName TextureName, const struct FMeshUVChannelInfo& UVChannelData) const override;
+
 private:
 
 #if WITH_EDITORONLY_DATA
@@ -264,6 +279,7 @@ public:
 	virtual ENGINE_API void OverrideTexture(const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel) override;
 	virtual ENGINE_API void OverrideVectorParameterDefault(FName ParameterName, const FLinearColor& Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
 	virtual ENGINE_API void OverrideScalarParameterDefault(FName ParameterName, float Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
+	virtual ENGINE_API float GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel::Type FeatureLevel) override;
 	virtual ENGINE_API bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) override;
 	virtual ENGINE_API bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const override;
 	virtual ENGINE_API bool GetStaticSwitchParameterValue(FName ParameterName, bool &OutValue, FGuid &OutExpressionGuid) const override;

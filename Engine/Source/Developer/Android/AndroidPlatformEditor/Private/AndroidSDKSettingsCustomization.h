@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EditorStyle.h"
-#include "PropertyEditorModule.h"
-#include "AndroidSDKSettings.h"
+#include "CoreMinimal.h"
+#include "IDetailCustomization.h"
+
+class IDetailLayoutBuilder;
+class ITargetPlatformManagerModule;
 
 //////////////////////////////////////////////////////////////////////////
 // FAndroidSDKSettingsCustomization

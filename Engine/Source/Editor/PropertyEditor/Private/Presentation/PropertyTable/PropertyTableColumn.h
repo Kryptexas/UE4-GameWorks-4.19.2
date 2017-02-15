@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
+#include "PropertyPath.h"
 #include "IPropertyTableColumn.h"
+#include "IPropertyTable.h"
+#include "IPropertyTableRow.h"
 
 class FPropertyTableColumn : public TSharedFromThis< FPropertyTableColumn >, public IPropertyTableColumn
 {
@@ -59,6 +63,8 @@ public:
 	FFrozenStateChanged* OnFrozenStateChanged() override { return &FrozenStateChanged; }
 
 	//~ End IPropertyTable Interface
+
+	static bool IsSupportedStructProperty(const UProperty* InProperty);
 
 private:
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //////////////////////////////////////////////////////////////////////////
 // Proxy object for displaying notifies in the details panel with
@@ -7,9 +7,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/AnimTypes.h"
+#include "Animation/EditorAnimBaseObj.h"
 #include "EditorNotifyObject.generated.h"
-
-class UEditorNotifyEntry;
 
 UCLASS(MinimalAPI)
 class UEditorNotifyObject : public UEditorAnimBaseObj

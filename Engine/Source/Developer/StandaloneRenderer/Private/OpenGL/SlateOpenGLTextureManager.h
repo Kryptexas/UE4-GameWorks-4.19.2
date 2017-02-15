@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
 */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Rendering/ShaderResourceManager.h"
+
+class FSlateOpenGLTexture;
+class ISlateAtlasProvider;
+class ISlateStyle;
 
 /**
  * Stores a mapping of texture names to their loaded opengl resource.  Resources are loaded from disk and created on demand when needed                   

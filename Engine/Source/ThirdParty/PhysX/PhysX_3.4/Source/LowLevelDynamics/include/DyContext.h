@@ -59,7 +59,7 @@ namespace IG
 	class IslandSim;
 }
 
-template<typename T, typename P> class PxcThreadCoherantCache;
+template<typename T, typename P> class PxcThreadCoherentCache;
 class PxcScratchAllocator;
 struct PxvSimStats;
 class PxTaskManager;

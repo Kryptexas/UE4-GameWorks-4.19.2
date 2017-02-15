@@ -1,9 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
-
-#include "SZoomPan.h"
-
+#include "Designer/SZoomPan.h"
+#include "Layout/LayoutUtils.h"
 
 /////////////////////////////////////////////////////
 // SZoomPan
@@ -45,8 +43,7 @@ void SZoomPan::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChi
 	}
 }
 
-float SZoomPan::GetRelativeLayoutScale(const FSlotBase& Child) const
+float SZoomPan::GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const
 {
 	return ZoomAmount.Get();
 }
-

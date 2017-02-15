@@ -1,0 +1,58 @@
+﻿INTSourceChangelist:0
+Availability:Public
+TItle:Ansel Overview
+Description:Overview of the Unreal Engine 4 integration of Nvidia's Ansel in-game photography tool that enables capturing and sharing enhanced images from games
+Crumbs:
+Parent:Engine/Plugins/Ansel
+Order:1
+type:overview
+tags:Plugins
+tags:Ansel
+version:4.14
+topic-image:Engine/Plugins/Ansel/Ansel_topic.png
+
+[EXCERPT:intro]
+Nvidia's Ansel technology makes it simple for PC gamers to capture and share enhanced images from their games. Integrating the Ansel UE4 plugin into your game is quick and easy.
+
+An end-user overview of Ansel is available on [Nvidia's Ansel Site](http://www.geforce.com/hardware/technology/ansel).
+
+The Ansel features available in Unreal Engine 4 are:
+
+* **Free Camera** - Position the camera for ideal composition before taking a picture
+* **Super Resolution** - Render at higher than game resolution for ultimate quality 
+* **Post Processing** - Apply filters to alter the mood 
+* **360 Capture** - Capture 360 panoramic images that can be viewed on PC or with a VR headset 
+[/EXCERPT:intro]
+
+## Hardware and Software Requirements
+
+| Item | Requirement |
+| ---- | ----------- |
+| Unreal Engine Version | 4.14 or later |
+| Operating System | Microsoft Windows |
+| GPU | NVIDIA GTX 780 or better [REGION:none]A full compatibility list is available on the [Ansel Supported GPUs page](http://www.geforce.com/hardware/technology/ansel/supported-gpus)[/REGION] |
+| Display Driver | 372.90 or later |
+
+## Enabling Ansel Photography for Your Game
+
+**To enable the Ansel Photography feature in your game:**
+
+1.	In the **Settings** dropdown of the Level Editor toolbar, choose Use **Plugins** to open the **Plugins Browser**.
+
+	![](Settings_Menu.png)
+
+1.	Select the **Photography** category and locate the **Nvidia Ansel Photography Plugin**. Toggle the _Enabled_ option.
+
+	![](Plugin_Enabled.png)
+
+1.	Restart Unreal Editor.
+
+Your game should now have a working Ansel Photography Mode which the player can invoke. For instruction on how to test the Ansel integration in your game, see the [](Engine/Plugins/Ansel/Testing) page.
+
+## Customizing the Player Experience
+
+The default Ansel plugin configuration is meant to provide a sane out-of-the-box experience for typical projects but for the best player experience it should be configured for your game's needs and potentially integrated with your game logic. See the [](Engine/Plugins/Ansel/Reference/ConsoleVariables) and [](Engine/Plugins/Ansel/Reference/BlueprintAPI) for information on the available options and logic hooks.
+
+## Publishing your game with Ansel photography
+
+Studios, please contact the [NVIDIA Ansel team](mailto:ansel@nvidia.com) to arrange for your title's Ansel support to be universally whitelisted for all players.

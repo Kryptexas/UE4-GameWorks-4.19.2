@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 namespace UnrealBuildTool.Rules
 {
@@ -14,8 +14,6 @@ namespace UnrealBuildTool.Rules
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
-					"Core",
-                    "CoreUObject",
                     "MediaAssets",
 				}
 			);
@@ -33,7 +31,21 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 
-			if ((Target.Platform == UnrealTargetPlatform.IOS) || (Target.Platform == UnrealTargetPlatform.Mac))
+            PublicDependencyModuleNames.AddRange(
+                new string[] {
+                    "Core",
+                    "CoreUObject",
+                }
+            );
+
+            if (Target.Type == TargetRules.TargetType.Editor)
+            {
+                DynamicallyLoadedModuleNames.Add("Settings");
+                PrivateIncludePathModuleNames.Add("Settings");
+            }
+
+            if ((Target.Platform == UnrealTargetPlatform.IOS) ||
+                (Target.Platform == UnrealTargetPlatform.Mac))
 			{
 				DynamicallyLoadedModuleNames.Add("AvfMedia");
 			}

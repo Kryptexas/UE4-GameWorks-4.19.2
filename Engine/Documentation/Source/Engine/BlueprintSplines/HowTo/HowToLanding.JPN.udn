@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangeList:3112568
 Availability:Docs
-Title:Blueprint Splines How-To's
+Title:ブループリント スプラインの使用方法
 Crumbs: %ROOT%, Engine
-Description:Various How-To's for Blueprint Spline Components and Blueprint Spline Mesh Components.
+Description:Blueprint Spline コンポーネントおよび Blueprint Spline Mesh コンポーネントの操作ガイド
 Navigation:topic
 parent:Engine/BlueprintSplines
 order:3
 social-image:Splines_social.png
+version:4.13
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,9 +48,9 @@ social-image:Splines_social.png
 [/OBJECT]
 [/VAR]
 
-Below are the how-to's available for Blueprint Spline Components and Blueprint Spline Mesh Components.
+以下は、Blueprint Spline コンポーネントおよび Blueprint Spline Mesh コンポーネントの操作ガイドです。
 
-## How-To's
+## 操作ガイド
 
 [DIR(output:"listbutton" parent:"Engine/BlueprintSplines/HowTo" org:"hierarchy" end:"1")]
 

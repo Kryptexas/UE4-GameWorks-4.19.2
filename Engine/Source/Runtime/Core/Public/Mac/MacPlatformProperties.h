@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	MacPlatformProperties.h - Basic static properties of a platform 
@@ -111,5 +111,10 @@ struct FMacPlatformProperties
 		}
 
 		return 1.0f;
+	}
+	
+	static FORCEINLINE bool SupportsTessellation()
+	{
+		return true;
 	}
 };

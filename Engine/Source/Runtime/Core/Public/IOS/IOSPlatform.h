@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	IOSPlatform.h: Setup for the iOS platform
@@ -21,7 +21,7 @@ typedef FIOSPlatformTypes FPlatformTypes;
 // Base defines, must define these for the platform, there are no defaults
 #define PLATFORM_DESKTOP				0
 
-#if __LP64__
+#ifdef __LP64__
 #define PLATFORM_64BITS					1
 #else
 #define PLATFORM_64BITS					0
@@ -42,7 +42,8 @@ typedef FIOSPlatformTypes FPlatformTypes;
 #define PLATFORM_ALLOW_NULL_RHI							1
 #define PLATFORM_ENABLE_VECTORINTRINSICS_NEON			1
 #define PLATFORM_SUPPORTS_STACK_SYMBOLS					1
-#ifdef PLATFORM_TVOS
+#define PLATFORM_NUM_AUDIODECOMPRESSION_PRECACHE_BUFFERS		0
+#if PLATFORM_TVOS
 #define PLATFORM_USES_ES2								0
 #define PLATFORM_HAS_TOUCH_MAIN_SCREEN					0
 #else

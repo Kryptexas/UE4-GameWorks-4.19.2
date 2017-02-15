@@ -81,11 +81,11 @@ In order to use Unreal Editor in VR mode, your development environment must meet
 
 ## Starting Out
 
-[DIR(end:"1" output:"topic" type:"howto" tags:"Getting Started" parent:"Engine/Editor/VR")]
+[DIR(end:"1" output:"topic" type:"how-to" tags:"Getting Started" parent:"Engine/Editor/VR")]
 
 ## Guides
 
-[DIR(end:"1" output:"topic" type:"howto" tags:"Level Editing, GitHub" parent:"Engine/Editor/VR")]
+[DIR(end:"1" output:"topic" type:"how-to" tags:"Level Editing, GitHub" parent:"Engine/Editor/VR")]
 
 ## Reference
 

@@ -1,13 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EditorObjectsTracker.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "UObject/GCObject.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "WorkflowOrientedApp/WorkflowTabFactory.h"
+#include "PersonaDelegates.h"
 #include "IDocumentation.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
+#include "EditorObjectsTracker.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonAnimnotifies"
+
+class IEditableSkeleton;
+class SToolTip;
+struct FNotificationInfo;
+
 /////////////////////////////////////////////////////
-// FSkeletonTreeSummoner
+// FSkeletonAnimNotifiesSummoner
 struct FSkeletonAnimNotifiesSummoner : public FWorkflowTabFactory
 {
 public:

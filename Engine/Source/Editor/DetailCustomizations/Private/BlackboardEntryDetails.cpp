@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "BlackboardEntryDetails.h"
-#include "BehaviorTree/Blackboard/BlackboardKeyType.h"
+#include "Widgets/SNullWidget.h"
+#include "Engine/GameViewportClient.h"
+#include "SlateOptMacros.h"
+#include "IDetailChildrenBuilder.h"
+#include "DetailWidgetRow.h"
+#include "PropertyHandle.h"
 
 #define LOCTEXT_NAMESPACE "BlackboardEntryDetails"
 

@@ -1,7 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class FExtensionBase;
+class FMenuBarBuilder;
+class FMenuBuilder;
+class FToolBarBuilder;
 class FUICommandList;
 
 /** Called on your extension to add new pull-down menus to a menu bar */

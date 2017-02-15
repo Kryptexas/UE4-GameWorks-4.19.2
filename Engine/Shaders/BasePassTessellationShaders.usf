@@ -1,10 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BasePassTessellationShaders.usf: Base pass domain and hull shaders
 =============================================================================*/
 
-#include "BasePassVertexCommon.usf"
+// Metal's include graph is different due to combined VS + HS stage.
+#if COMPILER_METAL
+	#pragma once
+	#if !METAL_PROFILE
+		#if DOMAINSHADER
+			#include "BasePassVertexCommon.usf"
+		#elif !TESSELLATIONSHADER
+			#include "BasePassVertexShader.usf"
+		#endif
+	#endif
+#else
+	#include "BasePassVertexCommon.usf"
+#endif
 
 FBasePassVSToDS PassInterpolate(FBasePassVSToDS a, float aInterp, FBasePassVSToDS b, float bInterp)
 {
@@ -65,6 +77,10 @@ FBasePassVSToPS PassFinalizeTessellationOutput(FBasePassVSToDS Interpolants, flo
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		O.BasePassInterpolants.PixelPositionExcludingWPO = Interpolants.BasePassInterpolants.WorldPositionExcludingWPO;
 	#endif
+
+#if COMPILER_HLSLCC && NEEDS_BASEPASS_FOGGING  // workaround for hlslcc miscompilation, see UE-39489
+	O.BasePassInterpolants.VertexFog = Interpolants.BasePassInterpolants.VertexFog;
+#endif // COMPILER_HLSLCC && NEEDS_BASEPASS_FOGGING
 
 	return O;
 }

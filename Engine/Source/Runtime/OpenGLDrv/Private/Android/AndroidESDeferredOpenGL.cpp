@@ -1,4 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+#include "CoreMinimal.h"
 
 #if PLATFORM_ANDROIDESDEFERRED
 /*=============================================================================
@@ -12,6 +14,8 @@
 #include <dlfcn.h>
 #include <android/log.h>
 #include <android/native_window_jni.h>
+
+#include "Misc/ScopeLock.h"
 
 
 #define	LOG_TAG "UE4"
@@ -389,7 +393,7 @@ FRHITexture* PlatformCreateBuiltinBackBuffer(FOpenGLDynamicRHI* OpenGLRHI, uint3
 	if ( FOpenGL::IsES2())
 	{
 		uint32 Flags = TexCreate_RenderTargetable;
-		Texture2D = new FOpenGLTexture2D(OpenGLRHI, AndroidEGL::GetInstance()->GetOnScreenColorRenderBuffer(), GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, PF_B8G8R8A8, false, false, Flags, nullptr, FClearValueBinding::Transparent);
+		Texture2D = new FOpenGLTexture2D(OpenGLRHI, AndroidEGL::GetInstance()->GetOnScreenColorRenderBuffer(), GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, 1, PF_B8G8R8A8, false, false, Flags, nullptr, FClearValueBinding::Transparent);
 		OpenGLTextureAllocated(Texture2D, Flags);
 	}
 
@@ -599,6 +603,11 @@ bool FAndroidMisc::SupportsFloatingPointRenderTargets()
 bool FAndroidMisc::SupportsShaderFramebufferFetch()
 {
 	return FAndroidGPUInfo::Get().bSupportsFrameBufferFetch;
+}
+
+bool FAndroidMisc::SupportsES30()
+{
+	return FAndroidGPUInfo::Get().bES30Support;
 }
 
 bool FAndroidMisc::SupportsShaderIOBlocks()

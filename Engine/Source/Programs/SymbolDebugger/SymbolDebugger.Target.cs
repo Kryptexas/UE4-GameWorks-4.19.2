@@ -1,24 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
 
+[SupportedPlatforms(UnrealTargetPlatform.Win64, UnrealTargetPlatform.Mac)]
 public class SymbolDebuggerTarget : TargetRules
 {
 	public SymbolDebuggerTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Monolithic;
 	}
 
 	//
 	// TargetRules interface.
 	//
-    public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-    {
-        OutPlatforms.Add(UnrealTargetPlatform.Win64);
-        OutPlatforms.Add(UnrealTargetPlatform.Mac);
-        return true;
-    }
 
 	public override void SetupBinaries(
 		TargetInfo Target,
@@ -32,11 +28,6 @@ public class SymbolDebuggerTarget : TargetRules
 			);
 
         OutExtraModuleNames.Add("EditorStyle");
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
 	}
 
 	public override void SetupGlobalEnvironment(

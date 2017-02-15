@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ICursor.h"
-#include "LinuxWindow.h"
-
-#include <SDL.h>
+#include "CoreTypes.h"
+#include "Math/Vector2D.h"
+#include "Math/IntRect.h"
+#include "GenericPlatform/ICursor.h"
+#include "Linux/LinuxWindow.h"
 
 typedef SDL_Cursor*		SDL_HCursor;
 
@@ -32,6 +33,8 @@ public:
 	virtual void Show( bool bShow ) override;
 
 	virtual void Lock( const RECT* const Bounds ) override;
+
+	virtual void SetCustomShape(void* CursorHandle) override;
 
 public:
 

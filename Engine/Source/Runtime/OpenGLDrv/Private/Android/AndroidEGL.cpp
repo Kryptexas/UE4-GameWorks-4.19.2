@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #if PLATFORM_ANDROID
 
@@ -8,6 +8,7 @@
 #include "AndroidWindow.h"
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
+#include "OpenGLDrvPrivate.h"
 
 
 AndroidEGL* AndroidEGL::Singleton = NULL;
@@ -157,6 +158,10 @@ void AndroidEGL::DestroySurface()
 		eglDestroySurface( PImplData->eglDisplay, PImplData->auxSurface);
 		PImplData->auxSurface = EGL_NO_SURFACE;
 	}
+
+	PImplData->RenderingContext.eglSurface = EGL_NO_SURFACE;
+	PImplData->SingleThreadedContext.eglSurface = EGL_NO_SURFACE;
+	PImplData->SharedContext.eglSurface = EGL_NO_SURFACE;
 }
 
 void AndroidEGL::TerminateEGL()
@@ -830,6 +835,16 @@ void AndroidEGL::UnBind()
 void FAndroidAppEntry::ReInitWindow(void* NewNativeWindowHandle)
 {
 	FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidEGL::ReInitWindow()"));
+
+	// It isn't safe to call ShouldUseVulkan if AndroidEGL is not initialized.
+	// However, since we don't need to ReInit the window in that case anyways we
+	// can return early.
+	if (!AndroidEGL::GetInstance()->IsInitialized())
+	{
+		return;
+	}
+
+	// @todo vulkan: Clean this up, and does vulkan need any code here?
 	if (!FAndroidMisc::ShouldUseVulkan())
 	{
 		AndroidEGL::GetInstance()->ReInit();
@@ -845,6 +860,15 @@ void FAndroidAppEntry::ReInitWindow(void* NewNativeWindowHandle)
 void FAndroidAppEntry::DestroyWindow()
 {
 	FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidEGL::DestroyWindow()"));
+
+	// It isn't safe to call ShouldUseVulkan if AndroidEGL is not initialized.
+	// However, since we don't need to UnBind AndoirdEGL in that case anyways we
+	// can return early.
+	if (!AndroidEGL::GetInstance()->IsInitialized())
+	{
+		return;
+	}
+
 	// @todo vulkan: Clean this up, and does vulkan need any code here?
 	if (!FAndroidMisc::ShouldUseVulkan())
 	{

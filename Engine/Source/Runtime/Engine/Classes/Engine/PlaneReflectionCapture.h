@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Not yet implemented plane capture class
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/ReflectionCapture.h"
 #include "PlaneReflectionCapture.generated.h"
 
 UCLASS(abstract, hidecategories=(Collision, Attachment, Actor), MinimalAPI)

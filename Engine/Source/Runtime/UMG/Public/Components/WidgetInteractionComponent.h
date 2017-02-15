@@ -1,12 +1,20 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Components/WidgetComponent.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineTypes.h"
+#include "Components/SceneComponent.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Layout/WidgetPath.h"
 #include "WidgetInteractionComponent.generated.h"
 
+class FSlateVirtualUser;
 class UPrimitiveComponent;
-class AActor;
+class UWidgetComponent;
 
 /**
  * The interaction source for the widget interaction component, e.g. where do we try and
@@ -246,14 +254,38 @@ protected:
 	/** Performs the simulation of pointer movement.  Does not run if bEnableHitTesting is set to false. */
 	void SimulatePointerMovement();
 
+	struct FWidgetTraceResult
+	{
+		FWidgetTraceResult()
+			: HitResult()
+			, LocalHitLocation(FVector2D::ZeroVector)
+			, HitWidgetComponent(nullptr)
+			, HitWidgetPath()
+			, bWasHit(false)
+		{
+		}
+
+		FHitResult HitResult;
+		FVector2D LocalHitLocation;
+		UWidgetComponent* HitWidgetComponent;
+		FWidgetPath HitWidgetPath;
+		bool bWasHit;
+	};
+
+	/** Gets the WidgetPath for the widget being hovered over based on the hit result. */
+	virtual FWidgetPath FindHoveredWidgetPath(const FWidgetTraceResult& TraceResult)  const;
+
 	/** Performs the trace and gets the hit result under the specified InteractionSource */
-	virtual bool PerformTrace(FHitResult& HitResult);
+	virtual FWidgetTraceResult PerformTrace() const;
 	
 	/**
 	 * Gets the list of components to ignore during hit testing.  Which is everything that is a parent/sibling of this 
 	 * component that's not a Widget Component.  This is so traces don't get blocked by capsules and such around the player.
 	 */
-	void GetRelatedComponentsToIgnoreInAutomaticHitTesting(TArray<UPrimitiveComponent*>& IgnorePrimitives);
+	void GetRelatedComponentsToIgnoreInAutomaticHitTesting(TArray<UPrimitiveComponent*>& IgnorePrimitives) const;
+
+	/** Returns true if the inteaction component can interact with the supplied widget component */
+	bool CanInteractWithComponent(UWidgetComponent* Component) const;
 
 protected:
 

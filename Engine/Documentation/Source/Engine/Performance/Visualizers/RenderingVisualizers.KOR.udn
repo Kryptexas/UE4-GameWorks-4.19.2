@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3155346
 Availability:Public
 Title: 렌더링 비주얼라이저
 Crumbs: %ROOT%, Engine, Engine/Performance
 Description:여러가지 렌더링 기능에 대한 결과 확인을 위한 디스플레이 옵션 및 뷰 모드입니다.
+parent:Engine/Performance
+tags:Performance and Profiling
 
 [VAR:Topic]
 [OBJECT:Topic]

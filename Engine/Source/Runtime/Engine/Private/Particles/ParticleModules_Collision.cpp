@@ -1,22 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Collision.cpp: 
 	Collision-related particle module implementations.
 =============================================================================*/
-#include "EnginePrivate.h"
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "EngineDefines.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Pawn.h"
+#include "CollisionQueryParams.h"
+#include "Materials/Material.h"
+#include "ParticleHelper.h"
+#include "Distributions/DistributionFloatConstant.h"
+#include "Distributions/DistributionFloatUniform.h"
+#include "Distributions/DistributionVectorConstant.h"
+#include "Distributions/DistributionVectorUniform.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/TriggerBase.h"
-#include "ParticleDefinitions.h"
-#include "Particles/Collision/ParticleModuleCollision.h"
 #include "Particles/Collision/ParticleModuleCollisionBase.h"
+#include "Particles/Collision/ParticleModuleCollision.h"
 #include "Particles/Collision/ParticleModuleCollisionGPU.h"
 #include "Particles/Event/ParticleModuleEventGenerator.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
-#include "Particles/ParticleSpriteEmitter.h"
-#include "Particles/ParticleSystemComponent.h"
 
 UParticleModuleCollisionBase::UParticleModuleCollisionBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -572,6 +583,8 @@ bool UParticleModuleCollision::PerformCollisionCheck(FParticleEmitterInstance* O
 UParticleModuleCollisionGPU::UParticleModuleCollisionGPU(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, Friction(0.0f)
+	, RandomSpread(0.0f)
+	, RandomDistribution(2.0f)
 	, RadiusScale(1.0f)
 	, RadiusBias(0.0f)
 	, Response(EParticleCollisionResponse::Bounce)
@@ -636,6 +649,8 @@ void UParticleModuleCollisionGPU::CompileModule(struct FParticleEmitterBuildInfo
 	EmitterInfo.CollisionResponse = Response;
 	EmitterInfo.CollisionRadiusScale = RadiusScale;
 	EmitterInfo.CollisionRadiusBias = RadiusBias;
+	EmitterInfo.CollisionRandomSpread = RandomSpread;
+	EmitterInfo.CollisionRandomDistribution = RandomDistribution;
 	EmitterInfo.Friction = Friction;
 	EmitterInfo.Resilience.Initialize(Resilience.Distribution);
 	EmitterInfo.ResilienceScaleOverLife.Initialize(ResilienceScaleOverLife.Distribution);

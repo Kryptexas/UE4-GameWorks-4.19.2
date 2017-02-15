@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 namespace UnrealBuildTool.Rules
 {
@@ -6,9 +6,11 @@ namespace UnrealBuildTool.Rules
 	{
 		public AudioMixer(TargetInfo Target)
 		{
-			//OptimizeCode = CodeOptimization.Always;
+            OptimizeCode = CodeOptimization.Always;
 
-			PrivateIncludePathModuleNames.Add("TargetPlatform");
+            //OptimizeCode = CodeOptimization.Never;
+
+            PrivateIncludePathModuleNames.Add("TargetPlatform");
 
 			PrivateIncludePaths.AddRange(
 				new string[] 

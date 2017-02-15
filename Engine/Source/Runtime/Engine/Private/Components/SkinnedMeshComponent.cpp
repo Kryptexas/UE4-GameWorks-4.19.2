@@ -1,20 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnSkeletalComponent.cpp: Actor component implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "ParticleDefinitions.h"
-#include "BlueprintUtilities.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Misc/App.h"
+#include "RenderingThread.h"
+#include "GameFramework/PlayerController.h"
+#include "ContentStreaming.h"
+#include "DrawDebugHelpers.h"
+#include "UnrealEngine.h"
+#include "SkeletalRenderPublic.h"
 #include "SkeletalRenderCPUSkin.h"
 #include "SkeletalRenderGPUSkin.h"
-#include "AnimationUtils.h"
 #include "Animation/AnimStats.h"
-#include "Animation/MorphTarget.h"
-#include "ComponentReregisterContext.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "EngineGlobals.h"
+#include "PrimitiveSceneProxy.h"
+#include "Engine/CollisionProfile.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkinnedMeshComp, Log, All);
 
@@ -274,6 +279,101 @@ namespace FAnimUpdateRateManager
 	}
 }
 
+USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, AnimUpdateRateParams(nullptr)
+{
+	bAutoActivate = true;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.TickGroup = TG_PrePhysics;
+	WireframeColor = FColor(221, 221, 28, 255);
+
+	MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+
+	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+
+	StreamingDistanceMultiplier = 1.0f;
+	bCanHighlightSelectedSections = false;
+	CanCharacterStepUpOn = ECB_Owner;
+#if WITH_EDITORONLY_DATA
+	ProgressiveDrawingFraction = 1.0f;
+	ChunkIndexPreview = -1;
+	SectionIndexPreview = -1;
+#endif // WITH_EDITORONLY_DATA
+	bPerBoneMotionBlur = true;
+	bCastCapsuleDirectShadow = false;
+	bCastCapsuleIndirectShadow = false;
+	CapsuleIndirectShadowMinVisibility = .1f;
+
+	bDoubleBufferedComponentSpaceTransforms = true;
+	CurrentEditableComponentTransforms = 0;
+	CurrentReadComponentTransforms = 1;
+	bNeedToFlipSpaceBaseBuffers = false;
+
+	bCanEverAffectNavigation = false;
+	MasterBoneMapCacheCount = 0;
+}
+
+
+void USkinnedMeshComponent::UpdateMorphMaterialUsageOnProxy()
+{
+	// update morph material usage
+	if (SceneProxy)
+	{
+		const bool bHasMorphs = ActiveMorphTargets.Num() > 0;
+		((FSkeletalMeshSceneProxy*)SceneProxy)->UpdateMorphMaterialUsage_GameThread(bHasMorphs);
+	}
+}
+
+void USkinnedMeshComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
+{
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
+	// Get Mesh Object's memory
+	if (MeshObject)
+	{
+		MeshObject->GetResourceSizeEx(CumulativeResourceSize);
+	}
+}
+
+FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
+{
+	ERHIFeatureLevel::Type SceneFeatureLevel = GetWorld()->FeatureLevel;
+	FSkeletalMeshSceneProxy* Result = nullptr;
+	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
+
+	// Only create a scene proxy for rendering if properly initialized
+	if (SkelMeshResource &&
+		SkelMeshResource->LODModels.IsValidIndex(PredictedLODLevel) &&
+		!bHideSkin &&
+		MeshObject)
+	{
+		// Only create a scene proxy if the bone count being used is supported, or if we don't have a skeleton (this is the case with destructibles)
+		int32 MaxBonesPerChunk = SkelMeshResource->GetMaxBonesPerSection();
+		if (MaxBonesPerChunk <= GetFeatureLevelMaxNumberOfBones(SceneFeatureLevel))
+		{
+			Result = ::new FSkeletalMeshSceneProxy(this, SkelMeshResource);
+		}
+	}
+
+	return Result;
+}
+
+// UObject interface
+// Override to have counting working better
+void USkinnedMeshComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsCountingMemory())
+	{
+		// add all native variables - mostly bigger chunks 
+		ComponentSpaceTransformsArray[0].CountBytes(Ar);
+		ComponentSpaceTransformsArray[1].CountBytes(Ar);
+		MasterBoneMap.CountBytes(Ar);
+	}
+}
+
 void USkinnedMeshComponent::OnRegister()
 {
 	// The reason this happens before register
@@ -457,6 +557,27 @@ void USkinnedMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Proper
 		}
 	}
 }
+
+bool USkinnedMeshComponent::CanEditChange(const UProperty* InProperty) const
+{
+	if (InProperty)
+	{
+		FString PropertyName = InProperty->GetName();
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USkinnedMeshComponent, bCastCapsuleIndirectShadow))
+		{
+			return CastShadow && bCastDynamicShadow;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USkinnedMeshComponent, CapsuleIndirectShadowMinVisibility))
+		{
+			return bCastCapsuleIndirectShadow && CastShadow && bCastDynamicShadow;
+		}
+	}
+
+	return Super::CanEditChange(InProperty);
+}
+
 #endif // WITH_EDITOR
 
 void USkinnedMeshComponent::InitLODInfos()
@@ -627,30 +748,20 @@ bool USkinnedMeshComponent::ShouldCPUSkin()
 	return bCPUSkinning;
 }
 
+bool USkinnedMeshComponent::GetMaterialStreamingData(int32 MaterialIndex, FPrimitiveMaterialInfo& MaterialData) const
+{
+	if (SkeletalMesh)
+	{
+		MaterialData.Material = GetMaterial(MaterialIndex);
+		MaterialData.UVChannelData = SkeletalMesh->GetUVChannelData(MaterialIndex);
+		MaterialData.PackedRelativeBox = PackedRelativeBox_Identity;
+	}
+	return MaterialData.IsValid();
+}
+
 void USkinnedMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
-	if( SkeletalMesh )
-	{
-		const ERHIFeatureLevel::Type FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
-		const int32 NumMaterials = GetNumMaterials();
-
-		const float TransformScale = ComponentToWorld.GetMaximumAxisScale();
-		LevelContext.BindComponent(nullptr, Bounds, TransformScale * StreamingDistanceMultiplier);
-
-		// Process the material entries.
-		for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
-		{
-			UMaterialInterface* Material = GetMaterial(MaterialIndex);
-			if (!Material) continue;
-
-			// Enumerate the textures used by the material.
-			TArray<UTexture*> Textures;
-			Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, FeatureLevel, false);
-
-			const FMeshUVChannelInfo* UVChannelData = SkeletalMesh->GetUVChannelData(MaterialIndex);
-			LevelContext.Process(Textures, UVChannelData ? UVChannelData->LocalUVDensities[0] : 1.f, OutStreamingTextures);
-		}
-	}
+	GetStreamingTextureInfoInner(LevelContext, nullptr, ComponentToWorld.GetMaximumAxisScale(), OutStreamingTextures);
 }
 
 bool USkinnedMeshComponent::ShouldUpdateBoneVisibility() const
@@ -1117,12 +1228,12 @@ void USkinnedMeshComponent::SetMasterPoseComponent(class USkinnedMeshComponent* 
 	MasterPoseComponent = NewMasterBoneComponent;
 
 	// now add to slave components list, 
-	if(MasterPoseComponent.IsValid())
+	if (MasterPoseComponent.IsValid())
 	{
-		bool bAddNew=true;
+		bool bAddNew = true;
 		// make sure no empty element is there, this is weak obj ptr, so it will go away unless there is 
 		// other reference, this is intentional as master to slave reference is weak
-		for ( auto Iter = MasterPoseComponent->SlavePoseComponents.CreateIterator(); Iter; ++Iter )
+		for (auto Iter = MasterPoseComponent->SlavePoseComponents.CreateIterator(); Iter; ++Iter)
 		{
 			TWeakObjectPtr<USkinnedMeshComponent> Comp = (*Iter);
 			if (Comp.IsValid() == false)
@@ -1134,7 +1245,7 @@ void USkinnedMeshComponent::SetMasterPoseComponent(class USkinnedMeshComponent* 
 			// if it has same as me, ignore to add
 			else if (Comp.Get() == this)
 			{
-				bAddNew	= false;
+				bAddNew = false;
 			}
 		}
 
@@ -1142,18 +1253,17 @@ void USkinnedMeshComponent::SetMasterPoseComponent(class USkinnedMeshComponent* 
 		{
 			MasterPoseComponent->AddSlavePoseComponent(this);
 		}
-	}
 
-	if(OldMasterPoseComponent != nullptr)
-	{
-		// remove tick dependency between master & slave components
-		PrimaryComponentTick.RemovePrerequisite(OldMasterPoseComponent, OldMasterPoseComponent->PrimaryComponentTick);
-	}
-
-	if (MasterPoseComponent.IsValid())
-	{
 		// set up tick dependency between master & slave components
 		PrimaryComponentTick.AddPrerequisite(MasterPoseComponent.Get(), MasterPoseComponent->PrimaryComponentTick);
+	}
+
+	if (OldMasterPoseComponent != nullptr)
+	{
+		OldMasterPoseComponent->RemoveSlavePoseComponent(this);
+
+		// remove tick dependency between master & slave components
+		PrimaryComponentTick.RemovePrerequisite(OldMasterPoseComponent, OldMasterPoseComponent->PrimaryComponentTick);
 	}
 
 	AllocateTransformData();
@@ -1164,6 +1274,11 @@ void USkinnedMeshComponent::SetMasterPoseComponent(class USkinnedMeshComponent* 
 void USkinnedMeshComponent::AddSlavePoseComponent(USkinnedMeshComponent* SkinnedMeshComponent)
 {
 	SlavePoseComponents.Add(SkinnedMeshComponent);
+}
+
+void USkinnedMeshComponent::RemoveSlavePoseComponent(USkinnedMeshComponent* SkinnedMeshComponent)
+{
+	SlavePoseComponents.Remove(SkinnedMeshComponent);
 }
 
 void USkinnedMeshComponent::InvalidateCachedBounds()
@@ -1337,7 +1452,8 @@ class USkeletalMeshSocket const* USkinnedMeshComponent::GetSocketByName(FName In
 	}
 	else
 	{
-		UE_LOG(LogSkinnedMeshComp, Warning, TEXT("GetSocketByName(%s: %s): No SkeletalMesh for %s"), *GetNameSafe(SkeletalMesh), *InSocketName.ToString(), *GetName());
+		UE_LOG(LogSkinnedMeshComp, Warning, TEXT("GetSocketByName(%s): No SkeletalMesh for Component(%s) Actor(%s)"), 
+			*InSocketName.ToString(), *GetName(), *GetNameSafe(GetOuter()));
 	}
 
 	return Socket;
@@ -1690,7 +1806,7 @@ void USkinnedMeshComponent::ShowMaterialSection(int32 MaterialID, bool bShow, in
 }
 
 
-void USkinnedMeshComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const
+void USkinnedMeshComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials ) const
 {
 	if( SkeletalMesh )
 	{
@@ -1703,18 +1819,38 @@ void USkinnedMeshComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMa
 			OutMaterials.Add( MaterialInterface );
 		}
 	}
+
+	if (bGetDebugMaterials)
+	{
+#if WITH_EDITOR
+		if (UPhysicsAsset* PhysicsAssetForDebug = GetPhysicsAsset())
+		{
+			PhysicsAssetForDebug->GetUsedMaterials(OutMaterials);
+		}
+#endif
+	}
 }
 
+/** Simple, CPU evaluation of a vertex's skinned position helper function */
 template <bool bExtraBoneInfluencesT, bool bCachedMatrices>
-FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const FSkelMeshSection& Section, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, const TArray<FMatrix> & RefToLocals) const
+FORCEINLINE FVector GetTypedSkinnedVertexPosition(
+	const USkinnedMeshComponent* SkinnedComp, 
+	const FSkelMeshSection& Section, 
+	const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin,
+	const FSkinWeightVertexBuffer& SkinWeightVertexBuffer,
+	const int32 VertIndex, 
+	const TArray<FMatrix> & RefToLocals = TArray<FMatrix>()
+	)
 {
 	FVector SkinnedPos(0,0,0);
 
-	const USkinnedMeshComponent* const MasterPoseComponentInst = MasterPoseComponent.Get();
-	const USkinnedMeshComponent* BaseComponent = MasterPoseComponentInst ? MasterPoseComponentInst : this;
+	const USkinnedMeshComponent* const MasterPoseComponentInst = SkinnedComp->MasterPoseComponent.Get();
+	const USkinnedMeshComponent* BaseComponent = MasterPoseComponentInst ? MasterPoseComponentInst : SkinnedComp;
 
 	// Do soft skinning for this vertex.
-	const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcSoftVertex = VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(Section.GetVertexBufferIndex()+VertIndex);
+	int32 BufferVertIndex = Section.GetVertexBufferIndex() + VertIndex;
+	const TGPUSkinVertexBase* SrcSoftVertex = VertexBufferGPUSkin.GetVertexPtr(BufferVertIndex);
+	const TSkinWeightInfo<bExtraBoneInfluencesT>* SrcSkinWeights = SkinWeightVertexBuffer.GetSkinWeightPtr<bExtraBoneInfluencesT>(BufferVertIndex);
 
 #if !PLATFORM_LITTLE_ENDIAN
 	// uint8[] elements in LOD.VertexBufferGPUSkin have been swapped for VET_UBYTE4 vertex stream use
@@ -1723,14 +1859,15 @@ FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const F
 	for(int32 InfluenceIndex = 0;InfluenceIndex < Section.MaxBoneInfluences;InfluenceIndex++)
 #endif
 	{
-		int32 BoneIndex = Section.BoneMap[SrcSoftVertex->InfluenceBones[InfluenceIndex]];
+		int32 BoneIndex = Section.BoneMap[SrcSkinWeights->InfluenceBones[InfluenceIndex]];
 		if(MasterPoseComponentInst)
 		{		
-			check(MasterBoneMap.Num() == SkeletalMesh->RefSkeleton.GetNum());
+			const TArray<int32>& MasterBoneMap = SkinnedComp->GetMasterBoneMap();
+			check(MasterBoneMap.Num() == SkinnedComp->SkeletalMesh->RefSkeleton.GetNum());
 			BoneIndex = MasterBoneMap[BoneIndex];
 		}
 
-		const float	Weight = (float)SrcSoftVertex->InfluenceWeights[InfluenceIndex] / 255.0f;
+		const float	Weight = (float)SrcSkinWeights->InfluenceWeights[InfluenceIndex] / 255.0f;
 		{
 			if (bCachedMatrices)
 			{
@@ -1739,7 +1876,7 @@ FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const F
 			}
 			else
 			{
-				const FMatrix RefToLocal = SkeletalMesh->RefBasesInvMatrix[BoneIndex] * BaseComponent->GetComponentSpaceTransforms()[BoneIndex].ToMatrixWithScale();
+				const FMatrix RefToLocal = SkinnedComp->SkeletalMesh->RefBasesInvMatrix[BoneIndex] * BaseComponent->GetComponentSpaceTransforms()[BoneIndex].ToMatrixWithScale();
 				SkinnedPos += RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcSoftVertex)) * Weight;
 			}
 		}
@@ -1771,8 +1908,8 @@ FVector USkinnedMeshComponent::GetSkinnedVertexPosition(int32 VertexIndex) const
 	const FSkelMeshSection& Section = Model.Sections[SectionIndex];
 
 	return bHasExtraBoneInfluences
-		? GetTypedSkinnedVertexPosition<true, false>(Section, Model.VertexBufferGPUSkin, VertIndex)
-		: GetTypedSkinnedVertexPosition<false, false>(Section, Model.VertexBufferGPUSkin, VertIndex);
+		? GetTypedSkinnedVertexPosition<true, false>(this, Section, Model.VertexBufferGPUSkin, Model.SkinWeightVertexBuffer, VertIndex)
+		: GetTypedSkinnedVertexPosition<false, false>(this, Section, Model.VertexBufferGPUSkin, Model.SkinWeightVertexBuffer, VertIndex);
 
 
 }
@@ -1812,8 +1949,8 @@ void USkinnedMeshComponent::ComputeSkinnedPositions(TArray<FVector> & OutPositio
 			const uint32 NumSoftVerts = Section.GetNumVertices();
 			for (uint32 SoftIdx = 0; SoftIdx < NumSoftVerts; ++SoftIdx)
 			{
-				FVector SkinnedPosition = bHasExtraBoneInfluences ? GetTypedSkinnedVertexPosition<true, true>(Section, Model.VertexBufferGPUSkin, SoftIdx, RefToLocals) :
-																	GetTypedSkinnedVertexPosition<false,true>(Section, Model.VertexBufferGPUSkin, SoftIdx, RefToLocals);
+				FVector SkinnedPosition = bHasExtraBoneInfluences ? GetTypedSkinnedVertexPosition<true, true>(this, Section, Model.VertexBufferGPUSkin, Model.SkinWeightVertexBuffer, SoftIdx, RefToLocals) :
+																	GetTypedSkinnedVertexPosition<false,true>(this, Section, Model.VertexBufferGPUSkin, Model.SkinWeightVertexBuffer, SoftIdx, RefToLocals);
 				OutPositions[SoftOffset + SoftIdx] = SkinnedPosition;
 			}
 		}
@@ -1827,6 +1964,15 @@ FColor USkinnedMeshComponent::GetVertexColor(int32 VertexIndex) const
 	if (!SkeletalMesh || !MeshObject)
 	{
 		return FallbackColor;
+	}
+
+	// If there is an override, return that
+	if (LODInfo.Num() > 0 && 
+		LODInfo[0].OverrideVertexColors != nullptr && 
+		LODInfo[0].OverrideVertexColors->IsInitialized() &&
+		VertexIndex < (int32)LODInfo[0].OverrideVertexColors->GetNumVertices() )
+	{
+		return LODInfo[0].OverrideVertexColors->VertexColor(VertexIndex);
 	}
 
 	FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
@@ -1850,6 +1996,36 @@ FColor USkinnedMeshComponent::GetVertexColor(int32 VertexIndex) const
 	return Model.ColorVertexBuffer.VertexColor(VertexBase + VertIndex);
 }
 
+FVector2D USkinnedMeshComponent::GetVertexUV(int32 VertexIndex, uint32 UVChannel) const
+{
+	// Fail if no mesh or no vertex buffer.
+	FVector2D FallbackUV = FVector2D::ZeroVector;
+	if (!SkeletalMesh || !MeshObject)
+	{
+		return FallbackUV;
+	}
+
+	FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
+	
+	if (!Model.VertexBufferGPUSkin.IsInitialized())
+	{
+		return FallbackUV;
+	}
+
+	// Find the chunk and vertex within that chunk, and skinning type, for this vertex.
+	int32 SectionIndex;
+	int32 VertIndex;
+	bool bHasExtraBoneInfluences;
+	Model.GetSectionFromVertexIndex(VertexIndex, SectionIndex, VertIndex, bHasExtraBoneInfluences);
+
+	check(SectionIndex < Model.Sections.Num());
+	const FSkelMeshSection& Section = Model.Sections[SectionIndex];
+	
+	int32 VertexBase = Section.GetVertexBufferIndex();
+	uint32 ClampedUVChannel = FMath::Min(UVChannel, Model.VertexBufferGPUSkin.GetNumTexCoords());
+
+	return Model.VertexBufferGPUSkin.GetVertexUV(VertexBase + VertIndex, ClampedUVChannel);
+}
 
 void USkinnedMeshComponent::HideBone( int32 BoneIndex, EPhysBodyOp PhysBodyOption)
 {
@@ -2090,6 +2266,162 @@ void USkinnedMeshComponent::GetCPUSkinnedVertices(TArray<FFinalSkinVertex>& OutV
 	ForcedLodModel = 0;
 	RecreateRenderState_Concurrent();
 }
+
+void USkinnedMeshComponent::ReleaseResources()
+{
+	for (int32 LODIndex = 0; LODIndex < LODInfo.Num(); LODIndex++)
+	{
+		LODInfo[LODIndex].BeginReleaseOverrideVertexColors();
+	}
+
+	DetachFence.BeginFence();
+}
+
+void USkinnedMeshComponent::BeginDestroy()
+{
+	Super::BeginDestroy();
+	ReleaseResources();
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+FSkelMeshComponentLODInfo::FSkelMeshComponentLODInfo()
+: OverrideVertexColors(nullptr)
+{
+
+}
+
+FSkelMeshComponentLODInfo::~FSkelMeshComponentLODInfo()
+{
+	CleanUp();
+}
+
+void FSkelMeshComponentLODInfo::ReleaseOverrideVertexColorsAndBlock()
+{
+	if (OverrideVertexColors)
+	{
+		// enqueue a rendering command to release
+		BeginReleaseResource(OverrideVertexColors);
+		// Ensure the RT no longer accessed the data, might slow down
+		FlushRenderingCommands();
+		// The RT thread has no access to it any more so it's safe to delete it.
+		CleanUp();
+	}
+}
+
+void FSkelMeshComponentLODInfo::BeginReleaseOverrideVertexColors()
+{
+	if (OverrideVertexColors)
+	{
+		// enqueue a rendering command to release
+		BeginReleaseResource(OverrideVertexColors);
+	}
+}
+
+void FSkelMeshComponentLODInfo::CleanUp()
+{
+	if (OverrideVertexColors)
+	{
+		delete OverrideVertexColors;
+		OverrideVertexColors = NULL;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+void USkinnedMeshComponent::SetVertexColorOverride_LinearColor(int32 LODIndex, const TArray<FLinearColor>& VertexColors)
+{
+	TArray<FColor> Colors;
+	if (VertexColors.Num() > 0)
+	{
+		Colors.SetNum(VertexColors.Num());
+
+		for (int32 ColorIdx = 0; ColorIdx < VertexColors.Num(); ColorIdx++)
+		{
+			Colors[ColorIdx] = VertexColors[ColorIdx].ToFColor(false);
+		}
+	}
+	SetVertexColorOverride(LODIndex, Colors);
+}
+
+
+void USkinnedMeshComponent::SetVertexColorOverride(int32 LODIndex, const TArray<FColor>& VertexColors)
+{
+	InitLODInfos();
+
+	FSkeletalMeshResource* Resource = GetSkeletalMeshResource();
+
+	// If we have a render resource, and the requested LODIndex is valid (for both component and mesh, though these should be the same)
+	if (Resource != nullptr && LODInfo.IsValidIndex(LODIndex) && Resource->LODModels.IsValidIndex(LODIndex))
+	{
+		ensure(LODInfo.Num() == Resource->LODModels.Num());
+
+		FSkelMeshComponentLODInfo& Info = LODInfo[LODIndex];
+		if (Info.OverrideVertexColors != nullptr)
+		{
+			Info.ReleaseOverrideVertexColorsAndBlock();
+		}
+
+		const TArray<FColor>* UseColors;
+		TArray<FColor> ResizedColors;
+
+		FStaticLODModel& LODModel = Resource->LODModels[LODIndex];
+		const int32 ExpectedNumVerts = LODModel.VertexBufferGPUSkin.GetNumVertices();
+
+		// If colors passed in are correct size, just use them
+		if (VertexColors.Num() == ExpectedNumVerts)
+		{
+			UseColors = &VertexColors;
+		}
+		// If not the correct size, resize to correct size
+		else
+		{
+			// presize array
+			ResizedColors.AddUninitialized(ExpectedNumVerts);
+
+			// Copy while input and output are valid
+			int32 VertCount = 0;
+			while (VertCount < ExpectedNumVerts)
+			{
+				if (VertCount < VertexColors.Num())
+				{
+					ResizedColors[VertCount] = VertexColors[VertCount];
+				}
+				else
+				{
+					ResizedColors[VertCount] = FColor::White;
+				}
+
+				VertCount++;
+			}
+
+			UseColors = &ResizedColors;
+		}
+
+		Info.OverrideVertexColors = new FColorVertexBuffer;
+		Info.OverrideVertexColors->InitFromColorArray(*UseColors);
+
+		BeginInitResource(Info.OverrideVertexColors);
+
+		MarkRenderStateDirty();
+	}
+}
+
+void USkinnedMeshComponent::ClearVertexColorOverride(int32 LODIndex)
+{
+	// If we have a render resource, and the requested LODIndex is valid (for both component and mesh, though these should be the same)
+	if (LODInfo.IsValidIndex(LODIndex))
+	{
+		FSkelMeshComponentLODInfo& Info = LODInfo[LODIndex];
+		if (Info.OverrideVertexColors != nullptr)
+		{
+			Info.ReleaseOverrideVertexColorsAndBlock();
+
+			MarkRenderStateDirty();
+		}
+	}
+}
+
 
 void FAnimUpdateRateParameters::SetTrailMode(float DeltaTime, uint8 UpdateRateShift, int32 NewUpdateRate, int32 NewEvaluationRate, bool bNewInterpSkippedFrames)
 {

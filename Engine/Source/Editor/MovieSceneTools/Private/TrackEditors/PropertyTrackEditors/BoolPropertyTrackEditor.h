@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneBoolSection.h"
-#include "MovieSceneBoolTrack.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "ISequencer.h"
+#include "Tracks/MovieSceneBoolTrack.h"
+#include "Sections/MovieSceneBoolSection.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-
-
-class ISequencer;
-
 
 /**
  * A property track editor for Booleans.

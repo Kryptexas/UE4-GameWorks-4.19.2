@@ -1,12 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 //
-#include "GearVRPrivatePCH.h"
+#include "GearVRSplash.h"
 #include "GearVR.h"
 
 #if GEARVR_SUPPORTED_PLATFORMS
-
-#include "GearVRSplash.h"
-
 
 FGearVRSplash::FGearVRSplash(FGearVR* InPlugin) : 
 	LayerMgr(MakeShareable(new GearVR::FLayerManager(InPlugin->GetCustomPresent_Internal())))
@@ -77,7 +74,7 @@ FGearVRSplash::FGearVRSplash(FGearVR* InPlugin) :
 		{
 			break;
 		}
-		num = LexicalConversion::ToString(i);
+		num = Lex::ToString(i);
 	}
 
 	// set loading icon mode in the case if:
@@ -369,6 +366,11 @@ void FGearVRSplash::UnloadTextures()
 			UnloadTexture(SplashScreenDescs[i]);
 		}
 	}
+}
+
+uint32 FGearVRSplash::GetTotalNumberOfLayersSupported() const
+{
+	return VRAPI_FRAME_LAYER_TYPE_MAX;
 }
 
 void FGearVRSplash::Hide(EShowType InShowType)

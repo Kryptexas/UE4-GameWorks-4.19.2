@@ -1,13 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FSlateTextureRenderTarget2DResource;
-class FSlateTexture2DRHIRef;
+#include "CoreMinimal.h"
+#include "Textures/SlateTextureData.h"
+
 class FObjectThumbnail;
-struct FSlateDynamicImageBrush;
-class FSlateShaderResourceProxy;
+class FSlateTextureRenderTarget2DResource;
 class FWorldTileModel;
+class UTexture2DDynamic;
+struct FSlateBrush;
+struct FSlateDynamicImageBrush;
 
 //----------------------------------------------------------------
 //

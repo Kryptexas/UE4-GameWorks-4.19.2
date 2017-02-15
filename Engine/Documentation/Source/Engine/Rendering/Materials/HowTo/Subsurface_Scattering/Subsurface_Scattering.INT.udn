@@ -1,7 +1,7 @@
 Availability:Public
-Title: Material Editor - How To Use Subsurface Scattering in Your Materials 
+Title: Using Subsurface Scattering in Your Materials 
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
-Description: How to create Materials that can 
+Description: Guide for using the Sub-Surface Scattering shading model in your Materials.
 Related: Engine/Rendering/Materials/LightingModels/SubSurfaceProfile
 Related: Engine/Rendering/Materials/LightingModels/SubSurface
 Related: Resources/ContentExamples/MaterialNodes/1_13
@@ -57,6 +57,7 @@ Continuing with our Material from above that has Subsurface Scattering enabled, 
 	* **Scalar Parameter** x 2
 
 	![](SSM_Adding_Nodes.png)
+
 	[region:tip]
 	The reason that we are using Parameter Material nodes instead of regular Material nodes is so that we can make a Material Instance out of this Material for easier tweaking inside the editor. 
 	[/region]
@@ -90,6 +91,7 @@ Continuing with our Material from above that has Subsurface Scattering enabled, 
 	[/OBJECT]
 
 1. Now that all the nodes have been connected, make sure that you compile the Material by pressing the **Apply** button. Once compiled, you should have something that looks like this. 
+	
 	![](SSM_Finshed_Material.png)
 
 1. Once the Material has been compiled, you can now close the Material window. Then inside of the **Content Browser**, select the Material, **Right-Click** on it, and then select the **Create Material Instance** option from the menu.  
@@ -153,6 +155,7 @@ Continuing with our Material from above that has Subsurface Scattering enabled, 
 	Once you have located the mesh, Drag and Drop it from the **Content Browser** into the level. 
 	Once it is in the level, set its location to **0,0,0** in the world. 
 	When completed, your level viewport should look like this. 
+	
 	![](SSM_Adding_Meshes.png)
 
 1. Now that the Static Mesh has been placed in the level, we can now apply our Subsurface Material to it. 

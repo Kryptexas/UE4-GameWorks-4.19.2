@@ -1,8 +1,10 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "TextFormatArgumentModifier.h"
-#include "TextFormatter.h"
+#include "Internationalization/TextFormatArgumentModifier.h"
+#include "Misc/Parse.h"
+#include "Internationalization/Culture.h"
+#include "Internationalization/Internationalization.h"
+#include "Internationalization/TextFormatter.h"
 
 bool ITextFormatArgumentModifier::ParseKeyValueArgs(const FTextFormatString& InArgsString, TMap<FTextFormatString, FTextFormatString>& OutArgKeyValues, const TCHAR InValueSeparator, const TCHAR InArgSeparator)
 {
@@ -403,7 +405,7 @@ FTextFormatArgumentModifier_HangulPostPositions::FTextFormatArgumentModifier_Han
 	, SuffixMode(ESuffixMode::ConsonantOrVowel)
 {
 	// We shouldn't treat Rieul as a consonant when using (eu)ro)
-	if (ConsonantSuffix.StringLen == 2 && VowelSuffix.StringLen == 1 && FCString::Strncmp(ConsonantSuffix.StringPtr, TEXT("\uC73C\uB85C")/*으로*/, 2) == 0 && FCString::Strncmp(VowelSuffix.StringPtr, TEXT("\uB85C")/*로*/, 1) == 0)
+	if (ConsonantSuffix.StringLen == 2 && VowelSuffix.StringLen == 1 && FCString::Strncmp(ConsonantSuffix.StringPtr, TEXT("\uC73C\uB85C"), 2) == 0 && FCString::Strncmp(VowelSuffix.StringPtr, TEXT("\uB85C"), 1) == 0)
 	{
 		SuffixMode = ESuffixMode::ConsonantNotRieulOrVowel;
 	}

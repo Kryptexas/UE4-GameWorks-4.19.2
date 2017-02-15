@@ -1,24 +1,54 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Scene.cpp: Scene manager implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "UObject/UObjectIterator.h"
+#include "Misc/PackageName.h"
+#include "EngineDefines.h"
+#include "EngineGlobals.h"
+#include "Components/ActorComponent.h"
+#include "RHI.h"
+#include "RenderingThread.h"
+#include "RenderResource.h"
+#include "UniformBuffer.h"
+#include "SceneTypes.h"
+#include "SceneInterface.h"
+#include "Components/PrimitiveComponent.h"
+#include "MaterialShared.h"
+#include "SceneManagement.h"
+#include "PrecomputedLightVolume.h"
+#include "Components/LightComponent.h"
+#include "GameFramework/WorldSettings.h"
+#include "Components/DecalComponent.h"
+#include "Components/ReflectionCaptureComponent.h"
+#include "ScenePrivateBase.h"
+#include "SceneCore.h"
+#include "PrimitiveSceneInfo.h"
+#include "LightSceneInfo.h"
+#include "StaticMeshDrawList.h"
+#include "LightMapRendering.h"
+#include "AtmosphereRendering.h"
+#include "BasePassRendering.h"
+#include "MobileBasePassRendering.h"
+#include "LightPropagationVolume.h"
 #include "ScenePrivate.h"
-#include "ShaderCompiler.h"
+#include "RendererModule.h"
 #include "StaticMeshResources.h"
 #include "ParameterCollection.h"
 #include "DistanceFieldSurfaceCacheLighting.h"
 #include "EngineModule.h"
-#include "PrecomputedLightVolume.h"
 #include "FXSystem.h"
 #include "DistanceFieldLightingShared.h"
 #include "SpeedTreeWind.h"
-#include "HeightfieldLighting.h"
 #include "Components/WindDirectionalSourceComponent.h"
 #include "PlanarReflectionSceneProxy.h"
-#include "ComponentRecreateRenderStateContext.h"
 
 // Enable this define to do slow checks for components being added to the wrong
 // world's scene, when using PIE. This can happen if a PIE component is reattached
@@ -252,7 +282,7 @@ FDistanceFieldSceneData::FDistanceFieldSceneData(EShaderPlatform ShaderPlatform)
 {
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
 
-	bTrackPrimitives = (DoesPlatformSupportDistanceFieldAO(ShaderPlatform) || DoesPlatformSupportDistanceFieldShadowing(ShaderPlatform)) && CVar->GetValueOnGameThread() != 0;
+	bTrackAllPrimitives = (DoesPlatformSupportDistanceFieldAO(ShaderPlatform) || DoesPlatformSupportDistanceFieldShadowing(ShaderPlatform)) && CVar->GetValueOnGameThread() != 0;
 }
 
 FDistanceFieldSceneData::~FDistanceFieldSceneData() 
@@ -264,13 +294,15 @@ void FDistanceFieldSceneData::AddPrimitive(FPrimitiveSceneInfo* InPrimitive)
 {
 	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
 
-	if (bTrackPrimitives 
+	if ((bTrackAllPrimitives || Proxy->CastsDynamicIndirectShadow())
 		&& Proxy->CastsDynamicShadow()
 		&& Proxy->AffectsDistanceFieldLighting())
 	{
 		if (Proxy->SupportsHeightfieldRepresentation())
 		{
 			HeightfieldPrimitives.Add(InPrimitive);
+			FBoxSphereBounds PrimitiveBounds = Proxy->GetBounds();
+			PrimitiveModifiedBounds.Add(FVector4(PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius));
 		}
 
 		if (Proxy->SupportsDistanceFieldRepresentation())
@@ -286,7 +318,7 @@ void FDistanceFieldSceneData::UpdatePrimitive(FPrimitiveSceneInfo* InPrimitive)
 {
 	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
 
-	if (bTrackPrimitives 
+	if ((bTrackAllPrimitives || Proxy->CastsDynamicIndirectShadow()) 
 		&& Proxy->CastsDynamicShadow() 
 		&& Proxy->AffectsDistanceFieldLighting()
 		&& Proxy->SupportsDistanceFieldRepresentation() 
@@ -304,7 +336,8 @@ void FDistanceFieldSceneData::RemovePrimitive(FPrimitiveSceneInfo* InPrimitive)
 {
 	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
 
-	if (bTrackPrimitives && Proxy->AffectsDistanceFieldLighting())
+	if ((bTrackAllPrimitives || Proxy->CastsDynamicIndirectShadow()) 
+		&& Proxy->AffectsDistanceFieldLighting())
 	{
 		if (Proxy->SupportsDistanceFieldRepresentation())
 		{
@@ -322,6 +355,9 @@ void FDistanceFieldSceneData::RemovePrimitive(FPrimitiveSceneInfo* InPrimitive)
 		if (Proxy->SupportsHeightfieldRepresentation())
 		{
 			HeightfieldPrimitives.Remove(InPrimitive);
+
+			FBoxSphereBounds PrimitiveBounds = Proxy->GetBounds();
+			PrimitiveModifiedBounds.Add(FVector4(PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius));
 		}
 	}
 }
@@ -352,14 +388,16 @@ void FDistanceFieldSceneData::VerifyIntegrity()
 
 void FScene::UpdateSceneSettings(AWorldSettings* WorldSettings)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 		UpdateSceneSettings,
 		FScene*, Scene, this,
 		float, DefaultMaxDistanceFieldOcclusionDistance, WorldSettings->DefaultMaxDistanceFieldOcclusionDistance,
 		float, GlobalDistanceFieldViewDistance, WorldSettings->GlobalDistanceFieldViewDistance,
+		float, DynamicIndirectShadowsSelfShadowingIntensity, FMath::Clamp(WorldSettings->DynamicIndirectShadowsSelfShadowingIntensity, 0.0f, 1.0f),
 	{
 		Scene->DefaultMaxDistanceFieldOcclusionDistance = DefaultMaxDistanceFieldOcclusionDistance;
 		Scene->GlobalDistanceFieldViewDistance = GlobalDistanceFieldViewDistance;
+		Scene->DynamicIndirectShadowsSelfShadowingIntensity = DynamicIndirectShadowsSelfShadowingIntensity;
 	});
 }
 
@@ -546,6 +584,7 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	SceneLODHierarchy(this)
 ,	DefaultMaxDistanceFieldOcclusionDistance(InWorld->GetWorldSettings()->DefaultMaxDistanceFieldOcclusionDistance)
 ,	GlobalDistanceFieldViewDistance(InWorld->GetWorldSettings()->GlobalDistanceFieldViewDistance)
+,	DynamicIndirectShadowsSelfShadowingIntensity(FMath::Clamp(InWorld->GetWorldSettings()->DynamicIndirectShadowsSelfShadowingIntensity, 0.0f, 1.0f))
 ,	NumVisibleLights_GameThread(0)
 ,	NumEnabledSkylights_GameThread(0)
 {
@@ -622,18 +661,18 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 
 	checkf(!Primitive->IsUnreachable(), TEXT("%s"), *Primitive->GetFullName());
 
-
+	const float WorldTime = GetWorld()->GetTimeSeconds();
 	// Save the world transform for next time the primitive is added to the scene
-	float DeltaTime = GetWorld()->GetTimeSeconds() - Primitive->LastSubmitTime;
+	float DeltaTime = WorldTime - Primitive->LastSubmitTime;
 	if ( DeltaTime < -0.0001f || Primitive->LastSubmitTime < 0.0001f )
 	{
 		// Time was reset?
-		Primitive->LastSubmitTime = GetWorld()->GetTimeSeconds();
+		Primitive->LastSubmitTime = WorldTime;
 	}
 	else if ( DeltaTime > 0.0001f )
 	{
 		// First call for the new frame?
-		Primitive->LastSubmitTime = GetWorld()->GetTimeSeconds();
+		Primitive->LastSubmitTime = WorldTime;
 	}
 
 	// Create the primitive's scene proxy.
@@ -644,6 +683,10 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 		// Primitives which don't have a proxy are irrelevant to the scene manager.
 		return;
 	}
+
+	// Create the primitive scene info.
+	FPrimitiveSceneInfo* PrimitiveSceneInfo = new FPrimitiveSceneInfo(Primitive, this);
+	PrimitiveSceneProxy->PrimitiveSceneInfo = PrimitiveSceneInfo;
 
 	// Cache the primitive's initial transform.
 	FMatrix RenderMatrix = Primitive->GetRenderMatrix();
@@ -688,10 +731,6 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 		// Create any RenderThreadResources required.
 		SceneProxy->CreateRenderThreadResources();
 	});
-
-	// Create the primitive scene info.
-	FPrimitiveSceneInfo* PrimitiveSceneInfo = new FPrimitiveSceneInfo(Primitive,this);
-	PrimitiveSceneProxy->PrimitiveSceneInfo = PrimitiveSceneInfo;
 
 	INC_DWORD_STAT_BY( STAT_GameToRendererMallocTotal, PrimitiveSceneProxy->GetMemoryFootprint() + PrimitiveSceneInfo->GetMemoryFootprint() );
 
@@ -746,16 +785,17 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 	SCOPE_CYCLE_COUNTER(STAT_UpdatePrimitiveTransformGT);
 
 	// Save the world transform for next time the primitive is added to the scene
-	float DeltaTime = GetWorld()->GetTimeSeconds() - Primitive->LastSubmitTime;
+	const float WorldTime = GetWorld()->GetTimeSeconds();
+	float DeltaTime = WorldTime - Primitive->LastSubmitTime;
 	if ( DeltaTime < -0.0001f || Primitive->LastSubmitTime < 0.0001f )
 	{
 		// Time was reset?
-		Primitive->LastSubmitTime = GetWorld()->GetTimeSeconds();
+		Primitive->LastSubmitTime = WorldTime;
 	}
 	else if ( DeltaTime > 0.0001f )
 	{
 		// First call for the new frame?
-		Primitive->LastSubmitTime = GetWorld()->GetTimeSeconds();
+		Primitive->LastSubmitTime = WorldTime;
 	}
 
 	if(Primitive->SceneProxy)
@@ -965,6 +1005,47 @@ void FScene::ReleasePrimitive( UPrimitiveComponent* PrimitiveComponent )
 	});
 }
 
+void FScene::AssignAvailableShadowMapChannelForLight(FLightSceneInfo* LightSceneInfo)
+{
+	bool bChannelAvailable[4] = { true, true, true, true };
+
+	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator It(Lights); It; ++It)
+	{
+		const FLightSceneInfoCompact& OtherLightInfo = *It;
+
+		if (OtherLightInfo.LightSceneInfo != LightSceneInfo
+			&& OtherLightInfo.LightSceneInfo->Proxy->CastsDynamicShadow()
+			&& OtherLightInfo.LightSceneInfo->GetDynamicShadowMapChannel() >= 0
+			&& OtherLightInfo.LightSceneInfo->Proxy->AffectsBounds(LightSceneInfo->Proxy->GetBoundingSphere()))
+		{
+			const int32 OtherShadowMapChannel = OtherLightInfo.LightSceneInfo->GetDynamicShadowMapChannel();
+
+			if (OtherShadowMapChannel < ARRAY_COUNT(bChannelAvailable))
+			{
+				bChannelAvailable[OtherShadowMapChannel] = false;
+			}
+		}
+	}
+
+	int32 AvailableShadowMapChannel = -1;
+
+	for (int32 TestChannelIndex = 0; TestChannelIndex < ARRAY_COUNT(bChannelAvailable); TestChannelIndex++)
+	{
+		if (bChannelAvailable[TestChannelIndex])
+		{
+			AvailableShadowMapChannel = TestChannelIndex;
+			break;
+		}
+	}
+
+	LightSceneInfo->SetDynamicShadowMapChannel(AvailableShadowMapChannel);
+
+	if (AvailableShadowMapChannel == -1)
+	{
+		OverflowingDynamicShadowedLights.AddUnique(LightSceneInfo->Proxy->GetComponentName());
+	}
+}
+
 void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AddSceneLightTime);
@@ -999,6 +1080,44 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 		    		bScenesPrimitivesNeedStaticMeshElementUpdate = true;
 				}
 		    }
+		}
+	}
+
+	const bool bForwardShading = IsForwardShadingEnabled(FeatureLevel);
+
+	if (bForwardShading && LightSceneInfo->Proxy->CastsDynamicShadow())
+	{
+		if (LightSceneInfo->Proxy->HasStaticShadowing())
+		{
+			// If we are a stationary light being added, reassign all movable light shadowmap channels
+			for (TSparseArray<FLightSceneInfoCompact>::TConstIterator It(Lights); It; ++It)
+			{
+				const FLightSceneInfoCompact& OtherLightInfo = *It;
+
+				if (OtherLightInfo.LightSceneInfo != LightSceneInfo
+					&& !OtherLightInfo.LightSceneInfo->Proxy->HasStaticShadowing()
+					&& OtherLightInfo.LightSceneInfo->Proxy->CastsDynamicShadow())
+				{
+					OtherLightInfo.LightSceneInfo->SetDynamicShadowMapChannel(-1);
+				}
+			}
+
+			for (TSparseArray<FLightSceneInfoCompact>::TConstIterator It(Lights); It; ++It)
+			{
+				const FLightSceneInfoCompact& OtherLightInfo = *It;
+
+				if (OtherLightInfo.LightSceneInfo != LightSceneInfo
+					&& !OtherLightInfo.LightSceneInfo->Proxy->HasStaticShadowing()
+					&& OtherLightInfo.LightSceneInfo->Proxy->CastsDynamicShadow())
+				{
+					AssignAvailableShadowMapChannelForLight(OtherLightInfo.LightSceneInfo);
+				}
+			}
+		}
+		else
+		{
+			// If we are a movable light being added, assign a shadowmap channel
+			AssignAvailableShadowMapChannelForLight(LightSceneInfo);
 		}
 	}
 
@@ -1301,6 +1420,16 @@ void FScene::ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureCompon
 		UReflectionCaptureComponent*,Component,CaptureComponent,
 		FScene*,Scene,this,
 	{
+		// In SM5 we track removed captures so we can remap them when reallocating the cubemap array
+		if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM5)
+		{
+			const FCaptureComponentSceneState* ComponentStatePtr = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Find(Component);
+			if (ComponentStatePtr)
+			{
+				Scene->ReflectionSceneData.CubemapIndicesRemovedSinceLastRealloc.Add(ComponentStatePtr->CaptureIndex);
+			}
+		}
+
 		Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Remove(Component);
 	});
 }
@@ -1457,26 +1586,26 @@ int64 FScene::GetCachedWholeSceneShadowMapsSize() const
 
 void FScene::AddPrecomputedLightVolume(const FPrecomputedLightVolume* Volume)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		AddVolumeCommand,
-		const FPrecomputedLightVolume*,Volume,Volume,
-		FScene*,Scene,this,
-	{
-		Scene->PrecomputedLightVolumes.Add(Volume);
-		Scene->IndirectLightingCache.SetLightingCacheDirty();
-	});
+	FScene* Scene = this;
+
+	ENQUEUE_RENDER_COMMAND(AddVolumeCommand)
+		([Scene, Volume](FRHICommandListImmediate& RHICmdList) 
+		{
+			Scene->PrecomputedLightVolumes.Add(Volume);
+			Scene->IndirectLightingCache.SetLightingCacheDirty(Scene, Volume);
+		});
 }
 
 void FScene::RemovePrecomputedLightVolume(const FPrecomputedLightVolume* Volume)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		RemoveVolumeCommand,
-		const FPrecomputedLightVolume*,Volume,Volume,
-		FScene*,Scene,this,
-	{
-		Scene->PrecomputedLightVolumes.Remove(Volume);
-		Scene->IndirectLightingCache.SetLightingCacheDirty();
-	});
+	FScene* Scene = this; 
+
+	ENQUEUE_RENDER_COMMAND(RemoveVolumeCommand)
+		([Scene, Volume](FRHICommandListImmediate& RHICmdList) 
+		{
+			Scene->PrecomputedLightVolumes.Remove(Volume);
+			Scene->IndirectLightingCache.SetLightingCacheDirty(Scene, Volume);
+		});
 }
 
 struct FUpdateLightTransformParameters
@@ -1638,6 +1767,13 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 
 		// Remove the light from the lights list.
 		Lights.RemoveAt(LightSceneInfo->Id);
+
+		if (!LightSceneInfo->Proxy->HasStaticShadowing()
+			&& LightSceneInfo->Proxy->CastsDynamicShadow()
+			&& LightSceneInfo->GetDynamicShadowMapChannel() == -1)
+		{
+			OverflowingDynamicShadowedLights.Remove(LightSceneInfo->Proxy->GetComponentName());
+		}
 	}
 	else
 	{
@@ -1714,6 +1850,8 @@ void FScene::AddWindSource(UWindDirectionalSourceComponent* WindComponent)
 		return;
 	}
 
+	WindComponents_GameThread.Add(WindComponent);
+
 	FWindSourceSceneProxy* SceneProxy = WindComponent->CreateSceneProxy();
 	WindComponent->SceneProxy = SceneProxy;
 
@@ -1728,6 +1866,8 @@ void FScene::AddWindSource(UWindDirectionalSourceComponent* WindComponent)
 
 void FScene::RemoveWindSource(UWindDirectionalSourceComponent* WindComponent)
 {
+	WindComponents_GameThread.Remove(WindComponent);
+
 	FWindSourceSceneProxy* SceneProxy = WindComponent->SceneProxy;
 	WindComponent->SceneProxy = NULL;
 
@@ -1753,7 +1893,7 @@ const TArray<FWindSourceSceneProxy*>& FScene::GetWindSources_RenderThread() cons
 
 void FScene::GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const
 {
-	FWindSourceSceneProxy::FWindData AccumWindData;
+	FWindData AccumWindData;
 	AccumWindData.PrepareForAccumulate();
 
 	int32 NumActiveWindSources = 0;
@@ -1765,7 +1905,7 @@ void FScene::GetWindParameters(const FVector& Position, FVector& OutDirection, f
 		FVector4 CurrentDirectionAndSpeed;
 		float Weight;
 		const FWindSourceSceneProxy* CurrentSource = WindSources[i];
-		FWindSourceSceneProxy::FWindData CurrentSourceData;
+		FWindData CurrentSourceData;
 		if (CurrentSource->GetWindParameters(Position, CurrentSourceData, Weight))
 		{
 			AccumWindData.AddWeighted(CurrentSourceData, Weight);
@@ -1786,9 +1926,44 @@ void FScene::GetWindParameters(const FVector& Position, FVector& OutDirection, f
 	OutMaxGustAmt	= AccumWindData.MaxGustAmt;
 }
 
+void FScene::GetWindParameters_GameThread(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const
+{
+	FWindData AccumWindData;
+	AccumWindData.PrepareForAccumulate();
+
+	const int32 NumSources = WindComponents_GameThread.Num();
+	int32 NumActiveSources = 0;
+	float TotalWeight = 0.0f;
+
+	// read the wind component array, this is safe for the game thread
+	for(UWindDirectionalSourceComponent* Component : WindComponents_GameThread)
+	{
+		float Weight = 0.0f;
+		FWindData CurrentComponentData;
+		if(Component->GetWindParameters(Position, CurrentComponentData, Weight))
+		{
+			AccumWindData.AddWeighted(CurrentComponentData, Weight);
+			TotalWeight += Weight;
+			++NumActiveSources;
+		}
+	}
+
+	AccumWindData.NormalizeByTotalWeight(TotalWeight);
+
+	if(NumActiveSources == 0)
+	{
+		AccumWindData.Direction = FVector(1.0f, 0.0f, 0.0f);
+	}
+
+	OutDirection = AccumWindData.Direction;
+	OutSpeed = AccumWindData.Speed;
+	OutMinGustAmt = AccumWindData.MinGustAmt;
+	OutMaxGustAmt = AccumWindData.MaxGustAmt;
+}
+
 void FScene::GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const
 {
-	FWindSourceSceneProxy::FWindData AccumWindData;
+	FWindData AccumWindData;
 	AccumWindData.PrepareForAccumulate();
 
 	int32 NumActiveWindSources = 0;
@@ -1799,7 +1974,7 @@ void FScene::GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed
 		FVector4 CurrentDirectionAndSpeed;
 		float Weight;
 		const FWindSourceSceneProxy* CurrentSource = WindSources[i];
-		FWindSourceSceneProxy::FWindData CurrentSourceData;
+		FWindData CurrentSourceData;
 		if (CurrentSource->GetDirectionalWindParameters(CurrentSourceData, Weight))
 		{
 			AccumWindData.AddWeighted(CurrentSourceData, Weight);			
@@ -1894,10 +2069,9 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 	UniformParameters.name = *(FVector4*)(WindShaderValues + FSpeedTreeWind::offset); \
 	UniformParameters.Prev##name = *(FVector4*)(WindShaderValues + FSpeedTreeWind::offset + FSpeedTreeWind::NUM_SHADER_VALUES);
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		FUpdateSpeedTreeWindCommand,
-		FScene*,Scene,this,
-		double,CurrentTime,CurrentTime,
+	FScene* Scene = this;
+	ENQUEUE_RENDER_COMMAND(FUpdateSpeedTreeWindCommand)(
+		[Scene, CurrentTime](FRHICommandListImmediate& RHICmdList)
 		{
 			FVector WindDirection;
 			float WindSpeed;
@@ -1910,7 +2084,7 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 				const UStaticMesh* StaticMesh = It.Key();
 				FSpeedTreeWindComputation* WindComputation = It.Value();
 
-				if( !StaticMesh->RenderData )
+				if( !(StaticMesh->RenderData.IsValid() && StaticMesh->SpeedTreeWind.IsValid()) )
 				{
 					It.RemoveCurrent();
 					continue;
@@ -2084,12 +2258,6 @@ void FScene::SetShaderMapsOnMaterialResources_RenderThread(FRHICommandListImmedi
 
 			check(MaterialForRendering.GetRenderingThreadShaderMap()->IsValidForRendering());
 		}
-	}
-
-	// Update static draw lists, which cache shader references from materials, but the shader map has now changed
-	if (bFoundAnyInitializedMaterials)
-	{
-		UpdateStaticDrawListsForMaterials_RenderThread(RHICmdList, MaterialArray);
 	}
 }
 
@@ -2467,7 +2635,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	}
 	
 	// Invalidate indirect lighting cache
-	IndirectLightingCache.SetLightingCacheDirty();
+	IndirectLightingCache.SetLightingCacheDirty(this, NULL);
 
 	// Primitives octree
 	PrimitiveOctree.ApplyOffset(InOffset, /*bGlobalOctee*/ true);
@@ -2572,6 +2740,14 @@ void FScene::OnLevelAddedToWorld_RenderThread(FName InLevelName)
 	}
 }
 
+void FScene::OnLevelRemovedFromWorld(UWorld* InWorld, bool bIsLightingScenario)
+{
+	if (bIsLightingScenario)
+	{
+		InWorld->PropagateLightingScenarioChange();
+	}
+}
+
 #if WITH_EDITOR
 bool FScene::InitializePixelInspector(FRenderTarget* BufferFinalColor, FRenderTarget* BufferSceneColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
 {
@@ -2647,6 +2823,7 @@ public:
 		return NullWindSources;
 	}
 	virtual void GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override { OutDirection = FVector(1.0f, 0.0f, 0.0f); OutSpeed = 0.0f; OutMinGustAmt = 0.0f; OutMaxGustAmt = 0.0f; }
+	virtual void GetWindParameters_GameThread(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override { OutDirection = FVector(1.0f, 0.0f, 0.0f); OutSpeed = 0.0f; OutMinGustAmt = 0.0f; OutMaxGustAmt = 0.0f; }
 	virtual void GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override { OutDirection = FVector(1.0f, 0.0f, 0.0f); OutSpeed = 0.0f; OutMinGustAmt = 0.0f; OutMaxGustAmt = 0.0f; }
 	virtual void AddSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) override {}
 	virtual void RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) override {}

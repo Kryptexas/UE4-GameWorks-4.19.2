@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemGooglePlayPrivatePCH.h"
+#include "OnlineExternalUIInterfaceGooglePlay.h"
 #include "AndroidRuntimeSettings.h"
-#include "CoreUObject.h"
+#include "UObject/Class.h"
+#include "OnlineSubsystemGooglePlay.h"
 
+THIRD_PARTY_INCLUDES_START
 #include "gpg/achievement_manager.h"
 #include "gpg/leaderboard_manager.h"
+THIRD_PARTY_INCLUDES_END
 
 FOnlineExternalUIGooglePlay::FOnlineExternalUIGooglePlay(FOnlineSubsystemGooglePlay* InSubsystem)
 	: Subsystem(InSubsystem)
@@ -24,7 +27,7 @@ bool FOnlineExternalUIGooglePlay::ShowFriendsUI(int32 LocalUserNum)
 	return false;
 }
 
-bool FOnlineExternalUIGooglePlay::ShowInviteUI(int32 LocalUserNum, FName SessionMame)
+bool FOnlineExternalUIGooglePlay::ShowInviteUI(int32 LocalUserNum, FName SessionName)
 {
 	return false;
 }

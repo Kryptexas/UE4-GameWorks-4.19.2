@@ -1,26 +1,34 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimSequence.cpp: Skeletal mesh animation functions.
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "AnimationCompression.h"
+#include "Animation/AnimSequence.h"
+#include "Misc/MessageDialog.h"
+#include "Logging/LogScopedVerbosityOverride.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "Serialization/MemoryReader.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/PropertyPortFlags.h"
+#include "EngineUtils.h"
 #include "AnimEncoding.h"
 #include "AnimationUtils.h"
+#include "BonePose.h"
 #include "AnimationRuntime.h"
-#include "TargetPlatform.h"
 #include "Animation/AnimCompress.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
-#include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/Rig.h"
 #include "Animation/AnimationSettings.h"
 #include "EditorFramework/AssetImportData.h"
-#include "Animation/AnimStats.h"
-#include "MessageLog.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "DerivedDataCacheInterface.h"
+#include "Interfaces/ITargetPlatform.h"
 #include "Animation/AnimCompressionDerivedData.h"
-#include "UObjectThreadContext.h"
-#include "FrameworkObjectVersion.h"
+#include "UObject/UObjectThreadContext.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
 
 #define USE_SLERP 0
 #define LOCTEXT_NAMESPACE "AnimSequence"
@@ -357,6 +365,9 @@ void UAnimSequence::PostLoad()
 	{
 		RemoveNaNTracks();
 	}
+
+	VerifyTrackMap(nullptr);
+
 #endif // WITH_EDITOR
 
 	Super::PostLoad();
@@ -529,12 +540,12 @@ void ShowResaveMessage(const UAnimSequence* Sequence)
 {
 	if (!IsRunningGame())
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("RESAVE ANIMATION NEEDED(%s): Fixing track data."), *GetNameSafe(Sequence));
+		UE_LOG(LogAnimation, Log, TEXT("Resave Animation Required(%s): Fixing track data and recompressing."), *GetNameSafe(Sequence));
 
 		static FName NAME_LoadErrors("LoadErrors");
 		FMessageLog LoadErrors(NAME_LoadErrors);
 
-		TSharedRef<FTokenizedMessage> Message = LoadErrors.Warning();
+		TSharedRef<FTokenizedMessage> Message = LoadErrors.Info();
 		Message->AddToken(FTextToken::Create(LOCTEXT("AnimationNeedsResave1", "The Animation ")));
 		Message->AddToken(FAssetNameToken::Create(Sequence->GetPathName(), FText::FromString(GetNameSafe(Sequence))));
 		Message->AddToken(FTextToken::Create(LOCTEXT("AnimationNeedsResave2", " needs resave.")));
@@ -546,7 +557,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 {
 	USkeleton* UseSkeleton = (MySkeleton)? MySkeleton: GetSkeleton();
 
-	if( AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && UseSkeleton!=NULL)
+	if( AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && UseSkeleton!=nullptr)
 	{
 		ShowResaveMessage(this);
 
@@ -558,7 +569,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 			AnimationTrackNames[I] = UseSkeleton->GetReferenceSkeleton().GetBoneName(TrackMap.BoneTreeIndex);
 		}
 	}
-	else if (UseSkeleton != NULL)
+	else if (UseSkeleton != nullptr)
 	{
 		// first check if any of them needs to be removed
 		{
@@ -572,7 +583,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 			{
 				int32 SkeletonBoneIndex = TrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
 				// invalid index found
-				if(NumSkeletonBone <= SkeletonBoneIndex)
+				if(SkeletonBoneIndex == INDEX_NONE || NumSkeletonBone <= SkeletonBoneIndex)
 				{
 					// if one is invalid, fix up for all.
 					// you don't know what index got messed up
@@ -938,9 +949,17 @@ FTransform UAnimSequence::ExtractRootMotion(float StartTime, float DeltaTime, bo
 
 FTransform UAnimSequence::ExtractRootMotionFromRange(float StartTrackPosition, float EndTrackPosition) const
 {
+	const FVector DefaultScale(1.f);
+
 	FTransform InitialTransform = ExtractRootTrackTransform(0.f, NULL);
 	FTransform StartTransform = ExtractRootTrackTransform(StartTrackPosition, NULL);
 	FTransform EndTransform = ExtractRootTrackTransform(EndTrackPosition, NULL);
+
+	if(IsValidAdditive())
+	{
+		StartTransform.SetScale3D(StartTransform.GetScale3D() + DefaultScale);
+		EndTransform.SetScale3D(EndTransform.GetScale3D() + DefaultScale);
+	}
 
 	// Transform to Component Space Rotation (inverse root transform from first frame)
 	const FTransform RootToComponentRot = FTransform(InitialTransform.GetRotation().Inverse());
@@ -1039,6 +1058,12 @@ void UAnimSequence::ResetRootBoneForRootMotion(FTransform& BoneTransform, const 
 		case ERootMotionRootLock::Zero: BoneTransform = FTransform::Identity; break;
 		default:
 		case ERootMotionRootLock::RefPose: BoneTransform = RequiredBones.GetRefPoseArray()[0]; break;
+	}
+
+	if (IsValidAdditive() && InRootMotionRootLock != ERootMotionRootLock::AnimFirstFrame)
+	{
+		//Need to remove default scale here for additives
+		BoneTransform.SetScale3D(BoneTransform.GetScale3D() - FVector(1.f));
 	}
 }
 
@@ -2032,9 +2057,18 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, TSharedPtr<FA
 	{
 		TArray<uint8> OutData;
 		FDerivedDataAnimationCompression* AnimCompressor = new FDerivedDataAnimationCompression(this, CompressContext, bDoCompressionInPlace);
-		if (AnimCompressor->CanBuild())
+		// For debugging DDC/Compression issues		
+		const bool bSkipDDC = false;
+		if (bSkipDDC)
 		{
-			GetDerivedDataCacheRef().GetSynchronous(AnimCompressor, OutData);
+			AnimCompressor->Build(OutData);
+		}
+		else
+		{
+			if (AnimCompressor->CanBuild())
+			{
+				GetDerivedDataCacheRef().GetSynchronous(AnimCompressor, OutData);
+			}
 		}
 
 		if (bUseRawDataOnly && OutData.Num() > 0)
@@ -2200,7 +2234,7 @@ void UAnimSequence::UpdateSHAWithCurves(FSHA1& Sha, const FRawCurveTracks& InRaw
 	{
 		UpdateWithData(Sha, Curve.Name.UID);
 		UpdateWithData(Sha, Curve.FloatCurve.DefaultValue);
-		UpdateSHAWithArray(Sha, Curve.FloatCurve.Keys);
+		UpdateSHAWithArray(Sha, Curve.FloatCurve.GetConstRefOfKeys());
 		UpdateWithData(Sha, Curve.FloatCurve.PreInfinityExtrap);
 		UpdateWithData(Sha, Curve.FloatCurve.PostInfinityExtrap);
 	}
@@ -3276,10 +3310,6 @@ void UAnimSequence::RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConv
 	}
 
 	SetSkeleton(NewSkeleton);
-
-	// We don't force gen here as that can cause us to constantly generate
-	// new anim ddc keys if users never resave anims that need to remap.
-	PostProcessSequence(false);
 }
 
 void UAnimSequence::PostProcessSequence(bool bForceNewRawDatGuid)

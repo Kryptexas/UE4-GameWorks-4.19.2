@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Canvas.h: Unreal canvas definition.
@@ -6,17 +6,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Engine/EngineTypes.h"
-#include "IBreakIterator.h"
+#include "HitProxies.h"
 #include "BatchedElements.h"
-#include "CanvasItem.h"
 #include "CanvasTypes.generated.h"
 
+class FCanvasItem;
 class FMaterialRenderProxy;
-class FTexture;
-class FRenderTarget;
-class FHitProxyConsumer;
-class FRHICommandListImmediate;
+class IBreakIterator;
+class UFont;
 
 /**
  * General purpose data structure for grouping all parameters needed when sizing or wrapping a string

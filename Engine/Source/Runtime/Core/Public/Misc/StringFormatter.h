@@ -1,6 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/UnrealString.h"
+#include "Templates/ValueOrError.h"
+#include "Misc/ExpressionParserTypes.h"
+
+template<typename KeyType,typename ValueType,typename SetAllocator ,typename KeyFuncs > class TMap;
 
 /** A string formatter is responsible for formatting string patterns using a set of named, or ordered arguments */
 class CORE_API FStringFormatter

@@ -1,10 +1,16 @@
-title:How-To Enable the HLOD System
+title:Enabling the HLOD System
 description:This how-to covers how to enable the HLOD system in your Unreal Engine 4 project.
 crumbs:
-availability:docs
+availability:Public
 version:4.13
 related:Engine/HLOD/Overview
 related:Engine/HLOD/Reference
+skilllevel:beginner
+order:1
+parent:Engine/HLOD/HowTo
+type:how-to
+tags:HLOD
+topic-image:Engine/HLOD/HowTo/HLOD_howto_Topic_01.png
 
 The **Hierarchical Level of Detail System** (HLOD) must be enabled on each Level that wants to make use of it. Follow the steps below to enable the Hierarchical LOD System.
 

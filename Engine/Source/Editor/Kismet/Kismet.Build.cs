@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -14,7 +14,6 @@ public class Kismet : ModuleRules
 				"AssetTools",
                 "BlueprintRuntime",
                 "ClassViewer",
-				"EditorWidgets",
 				"Analytics",
                 "DerivedDataCache",
                 "LevelEditor",
@@ -30,6 +29,7 @@ public class Kismet : ModuleRules
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
+				"EditorWidgets",
 				"Engine",
 				"Json",
 				"Merge",
@@ -61,7 +61,6 @@ public class Kismet : ModuleRules
                 "BlueprintRuntime",
                 "ClassViewer",
 				"Documentation",
-				"EditorWidgets",
 				"GameProjectGeneration",
                 "BlueprintCompilerCppBackend",
 			}

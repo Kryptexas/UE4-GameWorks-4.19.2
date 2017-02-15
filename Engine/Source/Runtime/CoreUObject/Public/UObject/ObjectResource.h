@@ -1,12 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "UObjectBaseUtility.h"
-
-#if !defined(USE_NEW_ASYNC_IO) || !defined(SPLIT_COOKED_FILES)
-#error "USE_NEW_ASYNC_IO and SPLIT_COOKED_FILES must be defined"
-#endif
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 
 /**
  * Wrapper for index into a ULnker's ImportMap or ExportMap.
@@ -288,9 +286,16 @@ struct FObjectExport : public FObjectResource
 	bool			bExportLoadFailed;
 
 	/**
-	* Export is a dynamic class.
+	* Export is a dynamic type.
 	*/
-	bool			bDynamicClass;
+	enum class EDynamicType : uint8
+	{
+		NotDynamicExport,
+		DynamicType,
+		ClassDefaultObject,
+	};
+
+	EDynamicType	DynamicType;
 
 	/**
 	* Export was filtered out on load
@@ -370,10 +375,9 @@ struct FObjectImport : public FObjectResource
 	 */
 	int32             SourceIndex;
 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 	bool			bImportPackageHandled;
 	bool			bImportSearchedFor;
-#endif
+	bool			bImportFailed;
 
 	/**
 	 * Constructors

@@ -1,36 +1,22 @@
-﻿INTSourceChangelist:3038435
+﻿INTSourceChangelist:3226913
 Availability:Public
 Title:Animation ブループリント
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Animation ブループリントは、複雑なアニメーション ビヘイビアを作成し、制御できるようにするペルソナで作成されるビジュアル スクリプトです。
-Related: Engine/Blueprints/Overview
-Related: Engine/Content/FBX/Animations
-Related: Engine/Content/Types/SkeletalMeshes
-Related: Engine/Animation/PhysicallyDrivenAnimation
-Related: Engine/Animation/StateMachines
-Related: Gameplay/AI
-Related: Engine/Content/Tools/MayaRiggingTool
-version: 4.12
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/AnimBlueprints:title%](AnimBP_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/AnimBlueprints:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/AnimBlueprints:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/AnimBlueprints]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+Related:Engine/Blueprints/Overview
+Related:Engine/Content/FBX/Animations
+Related:Engine/Content/Types/SkeletalMeshes
+Related:Engine/Animation/PhysicallyDrivenAnimation
+Related:Engine/Animation/StateMachines
+Related:Gameplay/AI
+Related:Engine/Content/Tools/MayaRiggingTool
+version:4.14
+type:landing
+topic-image:animbptopic.png
+tags:Animation
+tags:Animation Blueprint
+tags:Blueprints
+tags:State Machine
 
 [REGION:banner]
 ![](AnimationBlueprint.png)
@@ -38,26 +24,17 @@ version: 4.12
 
 
 [EXCERPT:Intro]
-**Animation ブループリント** は、基本的にそのグラフで、スケルタルメッシュのアニメーションを制御する 
-特殊な [**ブループリント**](Engine/Blueprints) です。Animation ブループリントは、以下を行うことができます。すなわち、アニメーションのブレンディング、スケルトンのボーンを直接制御、および 
-スケルタルメッシュの各フレームの最終ポーズを出力することができます。
-
-コントローラーは、プレイヤーの入力またはゲームプレイ環境に基づいた決定に従って 
-ポーン (またはキャラクター) の動きを指示します。各ポーンは、アニメートするスケルタルメッシュを参照し、 
-Animation ブループリントのインスタンスを持った SkeletalMesh コンポーネントを持ちます。Animation ブループリントの 2 つのグラフを通じて以下を行うことができます。所有する Pawn のプロパティへアクセス、 
-ブレンディングやステートの遷移に使用する値の計算、または AnimMontages の操作、 
-AnimationSequences のブレンディングに基づいて SkeletalMesh の現在のポーズの計算、および 
-SkeletalControls から Skeleton を直接変形させることができます。
+**Animation ブループリント** は、基本的に特殊な [ブループリント](Engine/Blueprints) であり、そのグラフでは、 [スケルタルメッシュ](Engine/Content/Types/SkeletalMeshes) のアニメーションを制御します。 
+グラフは **Animation ブループリント エディタ** 内で編集されます。ここでは、アニメーションのブレンド、スケルトンのボーンの直接制御、または各フレームで使用するスケルタルメッシュの最終的なアニメーション ポーズを定義するロジックのセットアップをすることができます。 
 [/EXCERPT:Intro]
 
 [REGION:note]
-**Animation ブループリント** の例のデモが、セクション 1.2 の [**アニメーションのコンテンツ サンプル**](Resources\ContentExamples\Animation) ページにあります。
+**Animation ブループリント** のサンプルのデモが、セクション 1.2 の [アニメーションのコンテンツ サンプル](Resources\ContentExamples\Animation) ページにあります。
 [/REGION]
 
 ## Animation ブループリントを作成し、ナビゲートする
 
 Animation ブループリントがどのように機能するかに進む前に、その作成方法を理解し、 Animation ブループリントのインターフェースに慣れるとよいでしょう。 
-詳細については以下の各リンクを参照してください。 
 
 [REGION:topics half]
 %Engine\Animation\AnimBlueprints\Creation:TopicCompact%
@@ -66,7 +43,7 @@ Animation ブループリントがどのように機能するかに進む前に�
 
 ## Animation ブループリントで作業する
 
-Animation ブループリントを作成したら UI を操作できるので、まず、どの機能で作業するかを考えます。
+Animation ブループリントを作成したら UI を操作できるので、まずどの機能で作業するかを考えます。
 
 [EXCERPT:Graphs]
 Animation ブループリントには、2 つの主要コンポーネントがあります。 
@@ -75,11 +52,30 @@ Animation ブループリントには、2 つの主要コンポーネントが�
 別のシステムへ送信します。
 [/EXCERPT:Graphs]
 
-各トピックの詳細については以下の各リンクを参照してください。 
-
 [REGION:topics half]
 %Engine\Animation\AnimBlueprints\EventGraph:TopicCompact%
 %Engine\Animation\AnimBlueprints\AnimGraph:TopicCompact%
+[/REGION]
+
+
+## Sub Animation ブループリントのインスタンスで作業する
+
+様々なキャラクター用に Animation ブループリントを作成する場合、キャラクター間でロジックを共有するのは一般的です。 
+例えば、あるキャラクターに物理アニメーションまたは [AnimDynamics](Engine\Animation\AnimHowTo\AnimDynamics) を適用していて、別のキャラクターに適用するとします。 
+**Sub Anim Instance** ノードを使って別の Animation ブループリントへの参照を作成して、別の Animation ブループリント内のすべてのロジックにアクセスしてそれらを含めることができます (関数呼び出しのようなものです)。 
+
+このやり方で大きな Animation ブループリントを別個の小さな Animation ブループリントに分けて、これを他の Animation ブループリント内に含めることができます。 
+例えば、純粋に "Locomotion" のための Animation ブループリントをひとつと、物理ベースのアニメーションを処理する Sub Anim Instance を持つことができます。 
+Sub Animation ブループリントのメンバー変数は、親の Animation ブループリント内の入力ピンとして公開することもできます。**Sub-Graph Input** ノードは、Sub Anim Instance の **In Poses** を公開するために使用することができます (以下参照)。
+
+![](SubAnimInstance.png)
+
+[REGION:warning]
+Sub Anim Instance で作業する場合、外部の Animation ブループリントと同じスケルトンを使用しなければなりません。
+[/REGION]
+
+[REGION:note]
+Sub Animation Blueprint Instance をセットアップしてキャラクターの動きに影響を与えるには、[Using Sub Anim Instances](https://docs.unrealengine.com/latest/INT/Engine/Animation/AnimHowTo/SubAnimInstance/index.html) をご覧ください。 
 [/REGION]
 
 

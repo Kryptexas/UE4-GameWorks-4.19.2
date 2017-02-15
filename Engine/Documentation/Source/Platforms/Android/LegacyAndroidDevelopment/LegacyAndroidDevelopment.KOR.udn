@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title: 레거시 안드로이드 개발
 Crumbs:%ROOT%, Platforms
@@ -210,7 +210,7 @@ TADP 인스톨러와 Android SDK 툴을 맥에서 사용하려면 Java 6 와 Jav
 
 [/EXCERPT:MacOSSetup]
 
-
+-->
 
 
 

@@ -1,39 +1,57 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Engine/GameViewportClient.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "GameMapsSettings.h"
+#include "EngineStats.h"
+#include "RenderingThread.h"
+#include "SceneView.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "CanvasItem.h"
+#include "Engine/Canvas.h"
+#include "GameFramework/Volume.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "SceneManagement.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Engine/NetDriver.h"
+#include "Engine/LocalPlayer.h"
+#include "ContentStreaming.h"
+#include "UnrealEngine.h"
+#include "EngineUtils.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/SViewport.h"
 #include "Engine/Console.h"
 #include "GameFramework/HUD.h"
-#include "ParticleDefinitions.h"
 #include "FXSystem.h"
 #include "SubtitleManager.h"
 #include "ImageUtils.h"
-#include "RenderCore.h"
-#include "ColorList.h"
-#include "SlateBasics.h"
 #include "SceneViewExtension.h"
 #include "IHeadMountedDisplay.h"
-#include "SVirtualJoystick.h"
-#include "SceneViewport.h"
 #include "EngineModule.h"
+#include "AudioDeviceManager.h"
 #include "AudioDevice.h"
 #include "Sound/SoundWave.h"
-#include "Engine/GameInstance.h"
 #include "HighResScreenshot.h"
-#include "Particles/ParticleSystemComponent.h"
 #include "Runtime/GameLiveStreaming/Public/IGameLiveStreaming.h"
 #include "BufferVisualizationData.h"
-#include "RendererInterface.h"
 #include "GameFramework/InputSettings.h"
 #include "Components/LineBatchComponent.h"
 #include "Debug/DebugDrawService.h"
 #include "Components/BrushComponent.h"
 #include "Engine/GameEngine.h"
-#include "UserWidget.h"
+#include "Logging/MessageLog.h"
+#include "Blueprint/UserWidget.h"
 #include "GameFramework/GameUserSettings.h"
-#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
-#include "SGameLayerManager.h"
-#include "IMovieSceneCapture.h"
-#include "MovieSceneCaptureSettings.h"
+#include "Engine/UserInterfaceSettings.h"
+#include "Slate/SceneViewport.h"
+#include "Slate/SGameLayerManager.h"
 #include "ActorEditorUtils.h"
 #include "ComponentRecreateRenderStateContext.h"
 
@@ -112,6 +130,7 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 	, EngineShowFlags(ESFIM_Game)
 	, CurrentBufferVisualizationMode(NAME_None)
 	, HighResScreenshotDialog(NULL)
+	, bUseSoftwareCursorWidgets(true)
 	, bIgnoreInput(false)
 	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
 	, bHideCursorDuringCapture(false)
@@ -680,10 +699,13 @@ void UGameViewportClient::AddCursor(EMouseCursor::Type Cursor, const FStringClas
 
 TOptional<TSharedRef<SWidget>> UGameViewportClient::MapCursor(FViewport* InViewport, const FCursorReply& CursorReply)
 {
-	const TSharedRef<SWidget>* CursorWidgetPtr = CursorWidgets.Find(CursorReply.GetCursorType());
-	if (CursorWidgetPtr != nullptr)
+	if (bUseSoftwareCursorWidgets)
 	{
-		return *CursorWidgetPtr;
+		const TSharedRef<SWidget>* CursorWidgetPtr = CursorWidgets.Find(CursorReply.GetCursorType());
+		if (CursorWidgetPtr != nullptr)
+		{
+			return *CursorWidgetPtr;
+		}
 	}
 	return TOptional<TSharedRef<SWidget>>();
 }
@@ -708,9 +730,11 @@ void UGameViewportClient::SetDropDetail(float DeltaSeconds)
 		}
 		const float FrameRate	= FrameTime > 0 ? 1 / FrameTime : 0;
 
+		// When using FixedFrameRate, FrameRate here becomes FixedFrameRate (even if actual framerate is smaller).
+		const bool bTimeIsManipulated = FApp::IsBenchmarking() || FApp::UseFixedTimeStep() || GEngine->bUseFixedFrameRate;
 		// Drop detail if framerate is below threshold.
-		GetWorld()->bDropDetail		= FrameRate < FMath::Clamp(GEngine->MinDesiredFrameRate, 1.f, 100.f) && !FApp::IsBenchmarking() && !FApp::UseFixedTimeStep();
-		GetWorld()->bAggressiveLOD	= FrameRate < FMath::Clamp(GEngine->MinDesiredFrameRate - 5.f, 1.f, 100.f) && !FApp::IsBenchmarking() && !FApp::UseFixedTimeStep();
+		GetWorld()->bDropDetail		= FrameRate < FMath::Clamp(GEngine->MinDesiredFrameRate, 1.f, 100.f) && !bTimeIsManipulated;
+		GetWorld()->bAggressiveLOD	= FrameRate < FMath::Clamp(GEngine->MinDesiredFrameRate - 5.f, 1.f, 100.f) && !bTimeIsManipulated;
 
 		// this is slick way to be able to do something based on the frametime and whether we are bound by one thing or another
 #if 0 
@@ -962,7 +986,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		{
 			APlayerController* PlayerController = LocalPlayer->PlayerController;
 
-			int32 NumViews = bStereoRendering ? 2 : 1;
+			const bool bEnableStereo = GEngine->IsStereoscopic3D(InViewport);
+			const int32 NumViews = bStereoRendering ? ((ViewFamily.IsMonoscopicFarFieldEnabled()) ? 3 : 2) : 1;
 
 			for (int32 i = 0; i < NumViews; ++i)
 			{
@@ -970,7 +995,23 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 				FVector		ViewLocation;
 				FRotator	ViewRotation;
 
-				EStereoscopicPass PassType = !bStereoRendering ? eSSP_FULL : ((i == 0) ? eSSP_LEFT_EYE : eSSP_RIGHT_EYE);
+				EStereoscopicPass PassType;
+				if (!bStereoRendering)
+				{
+					PassType = eSSP_FULL;
+				}
+				else if (i == 0)
+				{
+					PassType = eSSP_LEFT_EYE;
+				}
+				else if (i == 1)
+				{
+					PassType = eSSP_RIGHT_EYE;
+				}
+				else
+				{
+					PassType = eSSP_MONOSCOPIC_EYE;
+				}
 
 				FSceneView* View = LocalPlayer->CalcSceneView(&ViewFamily, ViewLocation, ViewRotation, InViewport, &GameViewDrawer, PassType);
 
@@ -1128,6 +1169,14 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	{
 		GetRendererModule().BeginRenderingViewFamily(SceneCanvas,&ViewFamily);
 	}
+	else
+	{
+		// Make sure RHI resources get flushed if we're not using a renderer
+		ENQUEUE_UNIQUE_RENDER_COMMAND( UGameViewportClient_FlushRHIResources,
+		{ 
+			FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+		});
+	}
 
 	// Clear areas of the rendertarget (backbuffer) that aren't drawn over by the views.
 	if (!bBufferCleared)
@@ -1179,7 +1228,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		bool bDisplayedSubtitles = false;
 		for( FConstPlayerControllerIterator Iterator = MyWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if (PlayerController)
 			{
 				ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(PlayerController->Player);
@@ -1425,7 +1474,7 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 	{
 		for (FConstPlayerControllerIterator Iterator = ViewportWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController* const PlayerController = *Iterator;
+			APlayerController* const PlayerController = Iterator->Get();
 			if (PlayerController)
 			{
 				PlayerController->FlushPressedKeys();
@@ -1982,6 +2031,8 @@ void UGameViewportClient::DrawTransitionMessage(UCanvas* Canvas,const FString& M
 void UGameViewportClient::NotifyPlayerAdded( int32 PlayerIndex, ULocalPlayer* AddedPlayer )
 {
 	LayoutPlayers();
+
+	FSlateApplication::Get().SetUserFocusToGameViewport(PlayerIndex);
 
 	TSharedPtr< IGameLayerManager > GameLayerManager(GameLayerManagerPtr.Pin());
 	if ( GameLayerManager.IsValid() )
@@ -2712,6 +2763,9 @@ bool UGameViewportClient::HandleToggleFullscreenCommand()
 		}
 	}
 
+	int32 ResolutionX = GSystemResolution.ResX;
+	int32 ResolutionY = GSystemResolution.ResY;
+
 	// Make sure the user's settings are updated after pressing Alt+Enter to toggle fullscreen.  Note
 	// that we don't need to "apply" the setting change, as we already did that above directly.
 	UGameEngine* GameEngine = Cast<UGameEngine>( GEngine );
@@ -2720,12 +2774,20 @@ bool UGameViewportClient::HandleToggleFullscreenCommand()
 		UGameUserSettings* UserSettings = GameEngine->GetGameUserSettings();
 		if( UserSettings != nullptr )
 		{
-			UserSettings->SetFullscreenMode( FullScreenMode );
+			// Ensure that our desired screen size will fit on the display
+			ResolutionX = UserSettings->GetScreenResolution().X;
+			ResolutionY = UserSettings->GetScreenResolution().Y;
+			UGameEngine::DetermineGameWindowResolution(ResolutionX, ResolutionY, FullScreenMode);
+
+			UserSettings->SetFullscreenMode(FullScreenMode);
 			UserSettings->ConfirmVideoMode();
 		}
 	}
 
-	FSystemResolution::RequestResolutionChange(GSystemResolution.ResX, GSystemResolution.ResY, FullScreenMode);
+	FSystemResolution::RequestResolutionChange(ResolutionX, ResolutionY, FullScreenMode);
+
+	ToggleFullscreenDelegate.Broadcast(FullScreenMode != EWindowMode::Windowed);
+
 	return true;
 }
 
@@ -3081,7 +3143,7 @@ bool UGameViewportClient::RequestBugScreenShot(const TCHAR* Cmd, bool bDisplayHU
 				{
 					for( FConstPlayerControllerIterator Iterator = ViewportWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 					{
-						APlayerController* PlayerController = *Iterator;
+						APlayerController* PlayerController = Iterator->Get();
 						if (PlayerController && PlayerController->GetHUD() )
 						{
 							PlayerController->GetHUD()->HandleBugScreenShot();

@@ -1,11 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * MaterialParameterCollection.h - defines an asset that has a list of parameters, which can be referenced by any material and updated efficiently at runtime
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Templates/ScopedPointer.h"
+#include "UniformBuffer.h"
+#include "UniquePtr.h"
 #include "MaterialParameterCollection.generated.h"
+
+struct FPropertyChangedEvent;
 
 /** Base struct for collection parameters */
 USTRUCT()
@@ -116,7 +126,7 @@ private:
 	/** Default resource used when no instance is available. */
 	class FMaterialParameterCollectionInstanceResource* DefaultResource;
 
-	TScopedPointer<FUniformBufferStruct> UniformBufferStruct;
+	TUniquePtr<FUniformBufferStruct> UniformBufferStruct;
 
 	void CreateBufferStruct();
 

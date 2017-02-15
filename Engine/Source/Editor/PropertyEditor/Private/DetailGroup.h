@@ -1,6 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "PropertyHandle.h"
+#include "DetailWidgetRow.h"
+#include "DetailCategoryBuilderImpl.h"
+#include "DetailItemNode.h"
+#include "IDetailGroup.h"
+
+class IDetailPropertyRow;
 
 class FDetailGroup : public IDetailGroup, public TSharedFromThis<FDetailGroup>
 {
@@ -12,6 +25,8 @@ public:
 	virtual IDetailPropertyRow& HeaderProperty( TSharedRef<IPropertyHandle> PropertyHandle ) override;
 	virtual FDetailWidgetRow& AddWidgetRow() override;
 	virtual IDetailPropertyRow& AddPropertyRow( TSharedRef<IPropertyHandle> PropertyHandle ) override;
+	virtual IDetailGroup& AddGroup(FName NewGroupName, const FText& InLocalizedDisplayName, bool bInStartExpanded = false) override;
+
 	virtual void ToggleExpansion( bool bExpand ) override;
 	virtual bool GetExpansionState() const override;
 

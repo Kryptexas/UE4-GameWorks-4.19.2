@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchChunk.h: Declares classes involved with chunks for the build system.
@@ -6,11 +6,17 @@
 
 #pragma once
 
-#include "CoreUObject.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "HAL/Runnable.h"
+#include "Misc/SecureHash.h"
 
 #include "Generation/StatsCollector.h"
 
 #include "BuildPatchChunk.generated.h"
+
+struct FChunkHeader;
 
 using namespace BuildPatchServices;
 /**

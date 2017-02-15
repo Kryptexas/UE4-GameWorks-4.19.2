@@ -1,13 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "Persona.h"
-#include "GraphEditor.h"
-#include "SNodePanel.h"
-#include "SAnimCurvePanel.h"
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "UObject/GCObject.h"
+#include "IPersonaPreviewScene.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "PersonaDelegates.h"
+#include "SAnimationScrubPanel.h"
 #include "EditorObjectsTracker.h"
+#include "SAnimCurvePanel.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FTrackMarkerBar

@@ -1,13 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "Factories.h"
-#include "Engine.h"
-#include "TextureLayout.h"
+#include "CoreMinimal.h"
 #include "FbxImporter.h"
 
 using namespace UnFbx;
 
+
+FbxAMatrix FFbxDataConverter::JointPostConversionMatrix;
 
 FVector FFbxDataConverter::ConvertPos(FbxVector4 Vector)
 {

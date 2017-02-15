@@ -1,10 +1,13 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3151855
 Availability:Public
 Title: 파티클 시스템
 Crumbs: %ROOT%, Engine, Engine/Rendering 
 Description:월드에 이펙트를 만들기 위해 다수의 파티클 이미터로 구성되는 애셋입니다.
 Version: 4.9
 SkillLevel: Beginner
+parent:Engine/Rendering
+order:4
+type:landing
 
 [VAR:Topic]
 [OBJECT:Topic]

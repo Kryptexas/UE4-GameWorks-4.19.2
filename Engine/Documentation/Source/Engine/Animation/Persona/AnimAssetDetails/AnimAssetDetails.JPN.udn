@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:2664805
+﻿INTSourceChangelist:3219745
 Availability:Public
-Title:ペルソナの Anim Asset Details
+Title:Animation アセットの詳細
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:ペルソナ (Persona) アニメーション エディタの Anim Asset Details に関するユーザーガイド
-version: 4.9
+Description:アニメーション エディタのAnimation アセットの詳細に関するユーザーガイドです。
+version:4.14
+related:Engine/Animation/Sequences
+related:Engine/Animation/Blendspaces
+related:Engine/Animation/AnimMontage
+related:Engine/Animation/Persona\AssetBrowser
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -25,27 +29,35 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-[EXCERPT:Overview]
+
 ![](AnimAssetDetails.png)(w:520)
 
-**[Anim Asset Details]** パネルは状況に合わせたプロパティ エディタで、Anim Sequence (アニムシーケンス)、Blend Space (ブレンドスペース)、Anim Montage (アニムモンタージュ) などさまざまなアニメーション アセットの設定変更ができます。デフォルト設定では、 **[Anim Asset Details]** パネルはペルソナが **Animation** モードの時のみ表示されます。
-
-**[Anim Asset Details] パネルでアニメーション アセットを開く**
-* ペルソナの [Asset Brower] を **ダブルクリック** します。
-
-ペルソナ アセット ブラウザに関する詳細は、 [](Engine/Animation/Persona\AssetBrowser) を参照してください。
-
-[region:note]
-**[Anim Asset Details]** パネルでアニメーション アセットを開くと、アセット エディタ内でも開きます。アセット エディタに関する詳細は、 [](Engine/Animation/Persona\AssetEditor) を参照してください。
-[/region]
-
+[EXCERPT:Overview]
+アニメーションの **[Asset Details (アセットの詳細)]** パネルは、状況に応じて変化するプロパティ エディタです。ここで以下を含む Animation アセットの設定を変更することができます。すなわち、[AnimSequence](Engine/Animation/Sequences)、[ブレンドスペース](Engine/Animation/Blendspaces) または、[AnimMontage](Engine/Animation/AnimMontage) の設定を変更することができます。 
+ **[Asset Details]** パネルは、アニメーション エディタ内で表示され、Animation アセット関連の設定があります。 [スケルタルメッシュ エディタ](Engine/Animation/Persona/Modes/Mesh) 内で利用できる **[Asset Details]** パネルもあります。このパネルのプロパティを変更して関連するスケルタルメッシュに影響を与えることができます。  
 [/EXCERPT:Overview]
 
-**[Anim Asset Details]** パネルに表示される対象プロパティは、編集中のアニメーション アセット タイプによって異なります。このパネルは、特定のアニメーションアセット用であることを除けば、メインエディタの標準 **[Details]** パネルと同様の機能です。 
+[REGION:note]
+**[Asset Details]** パネル内のオプションの内容については各 Animation アセットのドキュメントのページをご覧ください。 
+[/REGION]
+## Animation アセットの詳細を表示する
 
-このパネルの基本的な使用に関する詳細は、[エディタ詳細パネル](Engine/UI/LevelEditor\Details) ドキュメントを参照してください。
+アニメーションの **[Asset Details]** パネルを表示するには、**コンテンツ ブラウザ** から Animation アセットを開きます。 
 
+![](ContentBrowser1.png)
+
+**[Asset Details]** パネルは、エディタの左側のパネルにあります。 
+
+![](OpenAnimationAsset.png)
+
+[アセット ブラウザ](Engine/Animation/Persona\AssetBrowser) パネルでアセットを **ダブルクリック** して、アセットの **[Asset Details]** を開くこともできます。 
+
+![](OpenFromAssetBrowser.png)
 
 [REGION:note]
-**[Anim Asset Details]** パネルはアニメーション ベースのアセットを伴ってのみコンテンツを表示します。ソケットなどを選択しても、このパネルに表示されるプロパティはありません。このようなアセットに関する情報はペルソナの **[Details]** パネル (デフォルトではペルソナ UI の右上隅) を参照してください。
+[Asset Details] タブに沿ってドッキングされているタブは、現在の Skeleton アセットのスケルタル階層を表示する [](Engine/Animation/Persona/SkeletonTree) パネルです。 
 [/REGION]
+
+
+
+

@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ISourceControlState.h" // for FSourceControlStatePtr
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "ISourceControlState.h"
 
-// Forward declarations
-class  ISourceControlRevision;
+class ISourceControlRevision;
 struct FRevisionInfo;
 
 /**  */

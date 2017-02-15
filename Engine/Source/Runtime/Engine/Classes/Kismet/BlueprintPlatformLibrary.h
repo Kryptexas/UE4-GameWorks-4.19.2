@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "BlueprintFunctionLibrary.h"
-#include "GenericPlatformMisc.h"
-#include "LocalNotification.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/TextProperty.h"
+#include "Engine/GameInstance.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "BlueprintPlatformLibrary.generated.h"
+
+class ILocalNotificationService;
 
 /**
  * The list of possible device/screen orientation for mobile devices
@@ -47,7 +51,7 @@ class ENGINE_API UPlatformGameInstance : public UGameInstance
 public:
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPlatformDelegate);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformRegisteredForRemoteNotificationsDelegate, TArray<uint8>, inArray);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformRegisteredForRemoteNotificationsDelegate, const TArray<uint8>&, inArray);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformRegisteredForUserNotificationsDelegate, int32, inInt);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformFailedToRegisterForRemoteNotificationsDelegate, FString, inString);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformReceivedRemoteNotificationDelegate, FString, inString);

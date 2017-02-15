@@ -1,14 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimCompress_BitwiseCompressionOnly.cpp: Bitwise animation compression only; performs no key reduction.
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
 #include "Animation/AnimCompress_BitwiseCompressOnly.h"
-#include "AnimationUtils.h"
-#include "AnimEncoding.h"
 #include "AnimationCompression.h"
+#include "AnimEncoding.h"
 
 UAnimCompress_BitwiseCompressOnly::UAnimCompress_BitwiseCompressOnly(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

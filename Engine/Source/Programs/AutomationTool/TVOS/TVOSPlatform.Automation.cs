@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,7 +19,7 @@ public class TVOSPlatform : IOSPlatform
     public override UnrealBuildTool.UEDeployIOS GetDeployHandler(FileReference InProject, IOSPlatformContext inPlatformContext)
     {
         Console.WriteLine("Getting TVOS Deploy()");
-        return new UnrealBuildTool.UEDeployTVOS(InProject, inPlatformContext);
+        return new UnrealBuildTool.UEDeployTVOS();
     }
 
     public override UnrealBuildTool.IOSPlatformContext CreatePlatformContext(FileReference InProject, bool Distribution)
@@ -81,7 +81,7 @@ public class TVOSPlatform : IOSPlatform
                     UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath);
                     BuildPlatContext.SetUpProjectEnvironment(TargetConfiguration);
 
-                    GetDeployHandler(new FileReference(SC.ProjectRoot), BuildPlatContext).GeneratePList((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"), !SC.IsCodeBasedProject, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"), SC.ShortProjectName, SC.LocalRoot + "/Engine", (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine") + "/Binaries/TVOS/Payload/" + (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app");
+                    GetDeployHandler(new FileReference(SC.ProjectRoot), BuildPlatContext).GeneratePList(TargetConfiguration, (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"), !SC.IsCodeBasedProject, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"), SC.ShortProjectName, SC.LocalRoot + "/Engine", (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine") + "/Binaries/TVOS/Payload/" + (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app");
                 }
 
                 SC.StageFiles(StagedFileType.NonUFS, SourcePath, Path.GetFileName(TargetPListFile), false, null, "", false, false, "Info.plist");

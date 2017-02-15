@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/ActorComponent.h"
 #include "PhysicsHandleComponent.generated.h"
 
 namespace physx
@@ -96,6 +99,10 @@ public:
 	/** Release the currently held component */
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsHandle")
 	ENGINE_API virtual void ReleaseComponent();
+
+	/** Returns the currently grabbed component, or null if nothing is grabbed. */
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsHandle")
+	ENGINE_API class UPrimitiveComponent* GetGrabbedComponent() const;
 
 	/** Set the target location */
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsHandle")

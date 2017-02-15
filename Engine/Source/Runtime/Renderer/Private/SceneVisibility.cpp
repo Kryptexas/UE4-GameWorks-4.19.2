@@ -1,20 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneVisibility.cpp: Scene visibility determination.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "Engine.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Stats/Stats.h"
+#include "Misc/MemStack.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineDefines.h"
+#include "EngineGlobals.h"
+#include "RHIDefinitions.h"
+#include "SceneTypes.h"
+#include "SceneInterface.h"
+#include "RendererInterface.h"
+#include "PrimitiveViewRelevance.h"
+#include "MaterialShared.h"
+#include "SceneManagement.h"
+#include "ScenePrivateBase.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneCore.h"
+#include "LightSceneInfo.h"
+#include "SceneRendering.h"
+#include "DeferredShadingRenderer.h"
+#include "DynamicPrimitiveDrawing.h"
 #include "ScenePrivate.h"
 #include "FXSystem.h"
-#include "SceneUtils.h"
-#include "PostProcessing.h"
-#include "PlanarReflectionSceneProxy.h"
-
-// For UsePostInitView
-#include "IHeadMountedDisplay.h"
-#include "SceneViewExtension.h"
+#include "PostProcess/PostProcessing.h"
 
 /*------------------------------------------------------------------------------
 	Globals
@@ -302,6 +317,9 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 			float FadeRadius = GDisableLODFade ? 0.0f : GDistanceFadeMaxTravel;
 			uint8 CustomVisibilityFlags = EOcclusionFlags::CanBeOccluded | EOcclusionFlags::HasPrecomputedVisibility;
 
+			// Primitives may be explicitly removed from stereo views when using mono
+			const bool UseMonoCulling = View.Family->IsMonoscopicFarFieldEnabled() && (View.StereoPass == eSSP_LEFT_EYE || View.StereoPass == eSSP_RIGHT_EYE);
+
 			const int32 TaskWordOffset = TaskIndex * FrustumCullNumWordsPerTask;
 
 			for (int32 WordIndex = TaskWordOffset; WordIndex < TaskWordOffset + FrustumCullNumWordsPerTask && WordIndex * NumBitsPerDWORD < BitArrayNumInner; WordIndex++)
@@ -334,7 +352,8 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 						(DistanceSquared < Bounds.MinDrawDistanceSq) ||
 						(UseCustomCulling && !View.CustomVisibilityQuery->IsVisible(VisibilityId, FBoxSphereBounds(Bounds.Origin, Bounds.BoxExtent, Bounds.SphereRadius))) ||
 						(bAlsoUseSphereTest && View.ViewFrustum.IntersectSphere(Bounds.Origin, Bounds.SphereRadius) == false) ||
-						View.ViewFrustum.IntersectBox(Bounds.Origin, Bounds.BoxExtent) == false)
+						View.ViewFrustum.IntersectBox(Bounds.Origin, Bounds.BoxExtent) == false ||
+						(UseMonoCulling && Scene->Primitives[Index]->Proxy->RenderInMono()))
 					{
 						STAT(NumCulledPrimitives.Increment());
 					}
@@ -1586,6 +1605,7 @@ struct FRelevancePacket
 		int32 NumVisibleStaticMeshElements = 0;
 		FViewInfo& WriteView = const_cast<FViewInfo&>(View);
 		FFrozenSceneViewMatricesGuard FrozenMatricesGuard(WriteView);
+		const FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
 		const bool bHLODActive = Scene->SceneLODHierarchy.IsActive();
 
@@ -1597,8 +1617,8 @@ struct FRelevancePacket
 			const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
 
 			FLODMask LODToRender = ComputeLODForMeshes( PrimitiveSceneInfo->StaticMeshes, View, Bounds.Origin, Bounds.SphereRadius, ViewData.ForcedLODLevel, ViewData.LODScale);
-			const bool bIsHLODFading = bHLODActive && Scene->SceneLODHierarchy.IsNodeFading(PrimitiveIndex);
-			const bool bIsHLODFadingOut = bHLODActive && Scene->SceneLODHierarchy.IsNodeFadingOut(PrimitiveIndex);
+			const bool bIsHLODFading = bHLODActive && ViewState && ViewState->HLODVisibilityState.IsNodeFading(PrimitiveIndex);
+			const bool bIsHLODFadingOut = bHLODActive && ViewState && ViewState->HLODVisibilityState.IsNodeFadingOut(PrimitiveIndex);
 			const bool bIsLODDithered = LODToRender.IsDithered();
 
 			float DistanceSquared = (Bounds.Origin - ViewData.ViewOrigin).SizeSquared();
@@ -2062,7 +2082,8 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 		}
 	}
 
-	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	// Setup motion blur parameters (also check for camera movement thresholds)
+	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 	{
 		FViewInfo& View = Views[ViewIndex];
 		FSceneViewState* ViewState = View.ViewState;
@@ -2084,22 +2105,10 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 		// set up the screen area for occlusion
-		float NumPossiblePixels = SceneContext.UseDownsizedOcclusionQueries() && IsValidRef(SceneContext.GetSmallDepthSurface()) ?
+		float NumPossiblePixels = SceneContext.UseDownsizedOcclusionQueries() && IsValidRef(SceneContext.GetSmallDepthSurface()) ? 
 			(float)View.ViewRect.Width() / SceneContext.GetSmallColorDepthDownsampleFactor() * (float)View.ViewRect.Height() / SceneContext.GetSmallColorDepthDownsampleFactor() :
 			View.ViewRect.Width() * View.ViewRect.Height();
 		View.OneOverNumPossiblePixels = NumPossiblePixels > 0.0 ? 1.0f / NumPossiblePixels : 0.0f;
-	}
-}
-
-void FSceneRenderer::TemporalSamplingSetup(FRHICommandListImmediate& RHICmdList)
-{
-	SCOPED_DRAW_EVENT(RHICmdList, TemporalSamplingSetup);
-
-	// Setup motion blur parameters (also check for camera movement thresholds)
-	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-	{
-		FViewInfo& View = Views[ViewIndex];
-		FSceneViewState* ViewState = View.ViewState;
 
 		// Still need no jitter to be set for temporal feedback on SSR (it is enabled even when temporal AA is off).
 		View.TemporalJitterPixelsX = 0.0f;
@@ -2110,12 +2119,12 @@ void FSceneRenderer::TemporalSamplingSetup(FRHICommandListImmediate& RHICmdList)
 			ViewState->SetupDistanceFieldTemporalOffset(ViewFamily);
 		}
 
-		if (View.AntiAliasingMethod == AAM_TemporalAA && ViewState)
+		if( View.AntiAliasingMethod == AAM_TemporalAA && ViewState )
 		{
 			// Subpixel jitter for temporal AA
 			int32 TemporalAASamples = CVarTemporalAASamples.GetValueOnRenderThread();
-
-			if (TemporalAASamples > 1 && View.bAllowTemporalJitter)
+		
+			if( TemporalAASamples > 1 && View.bAllowTemporalJitter )
 			{
 				float SampleX, SampleY;
 
@@ -2125,41 +2134,41 @@ void FSceneRenderer::TemporalSamplingSetup(FRHICommandListImmediate& RHICmdList)
 					TemporalAASamples = 2;
 				}
 
-				if (TemporalAASamples == 2)
+				if( TemporalAASamples == 2 )
 				{
-#if 0
-					// 2xMSAA
-					// Pattern docs: http://msdn.microsoft.com/en-us/library/windows/desktop/ff476218(v=vs.85).aspx
-					//   N.
-					//   .S
-					float SamplesX[] = { -4.0f / 16.0f, 4.0 / 16.0f };
-					float SamplesY[] = { -4.0f / 16.0f, 4.0 / 16.0f };
-#else
-					// This pattern is only used for mobile.
-					// Shift to reduce blur.
-					float SamplesX[] = { -8.0f / 16.0f, 0.0 / 16.0f };
-					float SamplesY[] = { /* - */ 0.0f / 16.0f, 8.0 / 16.0f };
-#endif
+					#if 0
+						// 2xMSAA
+						// Pattern docs: http://msdn.microsoft.com/en-us/library/windows/desktop/ff476218(v=vs.85).aspx
+						//   N.
+						//   .S
+						float SamplesX[] = { -4.0f/16.0f, 4.0/16.0f };
+						float SamplesY[] = { -4.0f/16.0f, 4.0/16.0f };
+					#else
+						// This pattern is only used for mobile.
+						// Shift to reduce blur.
+						float SamplesX[] = { -8.0f/16.0f, 0.0/16.0f };
+						float SamplesY[] = { /* - */ 0.0f/16.0f, 8.0/16.0f };
+					#endif
 					ViewState->OnFrameRenderingSetup(ARRAY_COUNT(SamplesX), ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
-					SampleX = SamplesX[Index];
-					SampleY = SamplesY[Index];
+					SampleX = SamplesX[ Index ];
+					SampleY = SamplesY[ Index ];
 				}
-				else if (TemporalAASamples == 3)
+				else if( TemporalAASamples == 3 )
 				{
 					// 3xMSAA
 					//   A..
 					//   ..B
 					//   .C.
 					// Rolling circle pattern (A,B,C).
-					float SamplesX[] = { -2.0f / 3.0f,  2.0 / 3.0f,  0.0 / 3.0f };
-					float SamplesY[] = { -2.0f / 3.0f,  0.0 / 3.0f,  2.0 / 3.0f };
+					float SamplesX[] = { -2.0f/3.0f,  2.0/3.0f,  0.0/3.0f };
+					float SamplesY[] = { -2.0f/3.0f,  0.0/3.0f,  2.0/3.0f };
 					ViewState->OnFrameRenderingSetup(ARRAY_COUNT(SamplesX), ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
-					SampleX = SamplesX[Index];
-					SampleY = SamplesY[Index];
+					SampleX = SamplesX[ Index ];
+					SampleY = SamplesY[ Index ];
 				}
-				else if (TemporalAASamples == 4)
+				else if( TemporalAASamples == 4 )
 				{
 					// 4xMSAA
 					// Pattern docs: http://msdn.microsoft.com/en-us/library/windows/desktop/ff476218(v=vs.85).aspx
@@ -2168,14 +2177,14 @@ void FSceneRenderer::TemporalSamplingSetup(FRHICommandListImmediate& RHICmdList)
 					//   W...
 					//   ..S.
 					// Rolling circle pattern (N,E,S,W).
-					float SamplesX[] = { -2.0f / 16.0f,  6.0 / 16.0f, 2.0 / 16.0f, -6.0 / 16.0f };
-					float SamplesY[] = { -6.0f / 16.0f, -2.0 / 16.0f, 6.0 / 16.0f,  2.0 / 16.0f };
+					float SamplesX[] = { -2.0f/16.0f,  6.0/16.0f, 2.0/16.0f, -6.0/16.0f };
+					float SamplesY[] = { -6.0f/16.0f, -2.0/16.0f, 6.0/16.0f,  2.0/16.0f };
 					ViewState->OnFrameRenderingSetup(ARRAY_COUNT(SamplesX), ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
-					SampleX = SamplesX[Index];
-					SampleY = SamplesY[Index];
+					SampleX = SamplesX[ Index ];
+					SampleY = SamplesY[ Index ];
 				}
-				else if (TemporalAASamples == 5)
+				else if( TemporalAASamples == 5 )
 				{
 					// Compressed 4 sample pattern on same vertical and horizontal line (less temporal flicker).
 					// Compressed 1/2 works better than correct 2/3 (reduced temporal flicker).
@@ -2183,39 +2192,51 @@ void FSceneRenderer::TemporalSamplingSetup(FRHICommandListImmediate& RHICmdList)
 					//   W . E
 					//   . S .
 					// Rolling circle pattern (N,E,S,W).
-					float SamplesX[] = { 0.0f / 2.0f,  1.0 / 2.0f,  0.0 / 2.0f, -1.0 / 2.0f };
-					float SamplesY[] = { -1.0f / 2.0f,  0.0 / 2.0f,  1.0 / 2.0f,  0.0 / 2.0f };
+					float SamplesX[] = {  0.0f/2.0f,  1.0/2.0f,  0.0/2.0f, -1.0/2.0f };
+					float SamplesY[] = { -1.0f/2.0f,  0.0/2.0f,  1.0/2.0f,  0.0/2.0f };
 					ViewState->OnFrameRenderingSetup(ARRAY_COUNT(SamplesX), ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
-					SampleX = SamplesX[Index];
-					SampleY = SamplesY[Index];
+					SampleX = SamplesX[ Index ];
+					SampleY = SamplesY[ Index ];
 				}
 				else
 				{
-					static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TemporalAASharpness"));
-					float Scale = (2.0f - CVar->GetFloat()) * 0.3f;
-
-					// More than 8 samples can improve quality.
 					ViewState->OnFrameRenderingSetup(TemporalAASamples, ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
 
-					float u1 = Halton(Index + 1, 2);
-					float u2 = Halton(Index + 1, 3);
+					float u1 = Halton( Index + 1, 2 );
+					float u2 = Halton( Index + 1, 3 );
 
-					// Gaussian sample
-					float phi = 2.0f * PI * u2;
-					float r = Scale * FMath::Sqrt(-2.0f * FMath::Loge(FMath::Max(u1, 1e-6f)));
-					SampleX = r * FMath::Cos(phi);
-					SampleY = r * FMath::Sin(phi);
+					// Generates samples in normal distribution
+					// exp( x^2 / Sigma^2 )
+					
+					static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TemporalAAFilterSize"));
+					float FilterSize = CVar->GetFloat();
+
+					// Scale distribution to set non-unit variance
+					// Variance = Sigma^2
+					float Sigma = 0.47f * FilterSize;
+
+					// Window to [-0.5, 0.5] output
+					// Without windowing we could generate samples far away on the infinite tails.
+					float OutWindow = 0.5f;
+					float InWindow = FMath::Exp( -0.5 * FMath::Square( OutWindow / Sigma ) );
+					
+					// Box-Muller transform
+					float Theta = 2.0f * PI * u2;
+					float r = Sigma * FMath::Sqrt( -2.0f * FMath::Loge( (1.0f - u1) * InWindow + u1 ) );
+					
+					SampleX = r * FMath::Cos( Theta );
+					SampleY = r * FMath::Sin( Theta );
 				}
 
 				View.TemporalJitterPixelsX = SampleX;
 				View.TemporalJitterPixelsY = SampleY;
 
-				View.ViewMatrices.HackAddTemporalAAProjectionJitter(FVector2D(SampleX * 2.0f / View.ViewRect.Width(), SampleY * 2.0f / View.ViewRect.Height()));
+				View.ViewMatrices.HackAddTemporalAAProjectionJitter(FVector2D(SampleX * 2.0f / View.ViewRect.Width(), SampleY * -2.0f / View.ViewRect.Height()));
 			}
 		}
-		else if (ViewState)
+		else if(ViewState)
 		{
 			// no TemporalAA
 			ViewState->OnFrameRenderingSetup(1, ViewFamily);
@@ -2224,35 +2245,35 @@ void FSceneRenderer::TemporalSamplingSetup(FRHICommandListImmediate& RHICmdList)
 			ViewState->PendingTemporalAAHistoryRT.SafeRelease();
 		}
 
-		if (ViewState)
+		if ( ViewState )
 		{
-			// In case world origin was rebased, reset previous view transformations
-			if (View.bOriginOffsetThisFrame)
+			// update previous frame matrices in case world origin was rebased on this frame
+			if (!View.OriginOffsetThisFrame.IsZero())
 			{
-				ViewState->PrevViewMatrices = View.ViewMatrices;
-				ViewState->PendingPrevViewMatrices = View.ViewMatrices;
+				ViewState->PrevViewMatrices.ApplyWorldOffset(View.OriginOffsetThisFrame);
+				ViewState->PendingPrevViewMatrices.ApplyWorldOffset(View.OriginOffsetThisFrame);
 			}
-
+			
 			// determine if we are initializing or we should reset the persistent state
 			const float DeltaTime = View.Family->CurrentRealTime - ViewState->LastRenderTime;
 			const bool bFirstFrameOrTimeWasReset = DeltaTime < -0.0001f || ViewState->LastRenderTime < 0.0001f;
 
 			// detect conditions where we should reset occlusion queries
-			if (bFirstFrameOrTimeWasReset ||
+			if (bFirstFrameOrTimeWasReset || 
 				ViewState->LastRenderTime + GEngine->PrimitiveProbablyVisibleTime < View.Family->CurrentRealTime ||
 				View.bCameraCut ||
 				IsLargeCameraMovement(
-					View,
-					ViewState->PrevViewMatrixForOcclusionQuery,
-					ViewState->PrevViewOriginForOcclusionQuery,
-					GEngine->CameraRotationThreshold, GEngine->CameraTranslationThreshold))
+					View, 
+				    ViewState->PrevViewMatrixForOcclusionQuery, 
+				    ViewState->PrevViewOriginForOcclusionQuery, 
+				    GEngine->CameraRotationThreshold, GEngine->CameraTranslationThreshold))
 			{
 				View.bIgnoreExistingQueries = true;
 				View.bDisableDistanceBasedFadeTransitions = true;
 			}
 			ViewState->PrevViewMatrixForOcclusionQuery = View.ViewMatrices.GetViewMatrix();
 			ViewState->PrevViewOriginForOcclusionQuery = View.ViewMatrices.GetViewOrigin();
-
+				
 			// store old view matrix and detect conditions where we should reset motion blur 
 			{
 				bool bResetCamera = bFirstFrameOrTimeWasReset
@@ -2270,15 +2291,15 @@ void FSceneRenderer::TemporalSamplingSetup(FRHICommandListImmediate& RHICmdList)
 					//     shader does.  The correct fix would be to disable the effect when we don't need it and to properly mark
 					//     the uber-postprocessing effect as the last effect in the chain.
 
-					View.bPrevTransformsReset = true;
+					View.bPrevTransformsReset				= true;
 				}
 				else
 				{
 					// check for pause so we can keep motion blur in paused mode (doesn't work in editor)
-					if (!ViewFamily.bWorldIsPaused)
+					if(!ViewFamily.bWorldIsPaused)
 					{
 						ViewState->PrevViewMatrices = ViewState->PendingPrevViewMatrices;
-						if (ViewState->PendingTemporalAAHistoryRT.GetRefCount())
+						if( ViewState->PendingTemporalAAHistoryRT.GetRefCount() )
 						{
 							ViewState->TemporalAAHistoryRT = ViewState->PendingTemporalAAHistoryRT;
 							ViewState->PendingTemporalAAHistoryRT.SafeRelease();
@@ -2309,24 +2330,6 @@ void FSceneRenderer::TemporalSamplingSetup(FRHICommandListImmediate& RHICmdList)
 
 			ViewState->UpdateTemporalLODTransition(View);
 		}
-	}
-}
-
-void FSceneRenderer::InitViewsRHIResources(FRHICommandListImmediate& RHICmdList, const bool bDitheredLODTransitionsUseStencil)
-{
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_InitViews_InitRHIResources);
-
-	for (int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ++ViewIndex)
-	{
-		FViewInfo& View = Views[ViewIndex];
-
-		View.ForwardLightingResources = View.ViewState ? &View.ViewState->ForwardLightingResources : &View.ForwardLightingResourcesStorage;
-
-		// Possible stencil dither optimization approach
-		View.bAllowStencilDither = bDitheredLODTransitionsUseStencil;
-
-		// Initialize the view's RHI resources.
-		View.InitRHIResources();
 	}
 }
 
@@ -2837,7 +2840,6 @@ uint32 GetShadowQuality();
 bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList, struct FILCUpdatePrimTaskData& ILCTaskData, FGraphEventArray& SortEvents)
 {	
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
-	SCOPED_DRAW_EVENT(RHICmdList, InitViews);
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{		
@@ -2852,7 +2854,6 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 		}
 	}
 	PreVisibilityFrameSetup(RHICmdList);
-
 	ComputeViewVisibility(RHICmdList);
 
 	// This has to happen before Scene->IndirectLightingCache.UpdateCache, since primitives in View.IndirectShadowPrimitives need ILC updates
@@ -2877,13 +2878,7 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 		SortBasePassStaticData(AverageViewPosition);
 	}
 
-	const bool bHMDUsePostInit = GEngine &&
-		GEngine->HMDDevice.IsValid() &&
-		GEngine->HMDDevice->IsStereoEnabled() &&
-		GEngine->HMDDevice->GetViewExtension().IsValid() &&
-		GEngine->HMDDevice->GetViewExtension()->UsePostInitView();
-
-	bool bDoInitViewAftersPrepass = !!GDoInitViewsLightingAfterPrepass && !bHMDUsePostInit;
+	bool bDoInitViewAftersPrepass = !!GDoInitViewsLightingAfterPrepass;
 
 	if (!bDoInitViewAftersPrepass)
 	{
@@ -2891,8 +2886,25 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 	}
 
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitViews_InitRHIResources);
+		// initialize per-view uniform buffer.
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			FViewInfo& View = Views[ViewIndex];
+
+			View.ForwardLightingResources = View.ViewState ? &View.ViewState->ForwardLightingResources : &View.ForwardLightingResourcesStorage;
+
+			// Possible stencil dither optimization approach
+			View.bAllowStencilDither = bDitheredLODTransitionsUseStencil;
+
+			// Initialize the view's RHI resources.
+			View.InitRHIResources();
+		}
+	}
+
+	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitViews_OnStartFrame);
-		OnStartFrame();
+		OnStartFrame(RHICmdList);
 	}
 
 	return bDoInitViewAftersPrepass;
@@ -2993,34 +3005,53 @@ void FLODSceneTree::UpdateNodeSceneInfo(FPrimitiveComponentId NodeId, FPrimitive
 
 void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 {
-	PrimitiveFadingLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
-	PrimitiveFadingOutLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
-	FSceneBitArray& VisibilityFlags = View.PrimitiveVisibilityMap;
-	TArray<FPrimitiveViewRelevance, SceneRenderingAllocator>& RelevanceMap = View.PrimitiveViewRelevanceMap;
+	if (FSceneViewState* ViewState = (FSceneViewState*)View.State)
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		// Skip update logic when frozen
+		if (ViewState->bIsFrozen)
+		{
+			return;
+		}
+#endif
 
-	++UpdateCount;
-
-	if (const FSceneViewState* ViewState = (FSceneViewState*)View.State)
-	{		
 		const float HLODDistanceScale = FMath::Max(0.0f, CVarHLODDistanceScale.GetValueOnRenderThread());
+
+		// Per-frame initialization
+		FHLODVisibilityState& HLODState = ViewState->HLODVisibilityState;
+		TMap<FPrimitiveComponentId, FHLODSceneNodeVisibilityState>& VisibilityStates = ViewState->HLODSceneNodeVisibilityStates;
+
+		HLODState.PrimitiveFadingLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
+		HLODState.PrimitiveFadingOutLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
+		FSceneBitArray& VisibilityFlags = View.PrimitiveVisibilityMap;
+		TArray<FPrimitiveViewRelevance, SceneRenderingAllocator>& RelevanceMap = View.PrimitiveViewRelevanceMap;
+
+		int32 UpdateCount = ++HLODState.UpdateCount;
 
 		// Update persistent state on temporal dither sync frames
 		const FTemporalLODState& LODState = ViewState->GetTemporalLODState();
 		bool bSyncFrame = false;
 		
-		if (TemporalLODSyncTime != LODState.TemporalLODTime[0])
+		if (HLODState.TemporalLODSyncTime != LODState.TemporalLODTime[0])
 		{
-			TemporalLODSyncTime = LODState.TemporalLODTime[0];
+			HLODState.TemporalLODSyncTime = LODState.TemporalLODTime[0];
 			bSyncFrame = true;
 		}
 
 		for (auto Iter = SceneNodes.CreateIterator(); Iter; ++Iter)
 		{
 			FLODSceneNode& Node = Iter.Value();
+
+			if (!Node.SceneInfo)
+			{
+				continue;
+			}
+
+			FHLODSceneNodeVisibilityState& NodeVisibility = VisibilityStates.FindOrAdd(Node.SceneInfo->PrimitiveComponentId);
 			const TIndirectArray<FStaticMesh>& NodeMeshes = Node.SceneInfo->StaticMeshes;
 
 			// Ignore already updated nodes, or those that we can't work with
-			if (Node.LatestUpdateCount == UpdateCount || !Node.SceneInfo || NodeMeshes.Num() == 0)
+			if (NodeVisibility.UpdateCount == UpdateCount || NodeMeshes.Num() == 0)
 			{
 				continue;
 			}
@@ -3042,7 +3073,7 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 			const float DistanceSquared = (Bounds.Origin - View.ViewMatrices.GetViewOrigin()).SizeSquared();
 			const bool bIsInDrawRange = DistanceSquared >= Bounds.MinDrawDistanceSq;
 
-			const bool bWasFadingPreUpdate = Node.bIsFading;
+			const bool bWasFadingPreUpdate = !!NodeVisibility.bIsFading;
 
 			// Update fading state
 			if (NodeMeshes[0].bDitheredLODTransition)
@@ -3050,58 +3081,58 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 				// Fade when HLODs change threshold on-screen, else snap
 				// TODO: This logic can still be improved to clear state and
 				//       transitions when off-screen, but needs better detection
-				const bool bChangedRange = bIsInDrawRange != Node.bWasVisible;
-				const bool bIsOnScreen = bIsVisible || Node.bWasVisible;
+				const bool bChangedRange = bIsInDrawRange != !!NodeVisibility.bWasVisible;
+				const bool bIsOnScreen = bIsVisible || NodeVisibility.bWasVisible;
 				
 				// Update with syncs
 				if (bSyncFrame)
 				{
-					if (Node.bIsFading)
+					if (NodeVisibility.bIsFading)
 					{
-						Node.bIsFading = false;
+						NodeVisibility.bIsFading = false;
 					}
 					else if (bChangedRange && bIsOnScreen)
 					{
-						Node.bIsFading = true;	
+						NodeVisibility.bIsFading = true;	
 					}
 
-					Node.bWasVisible = Node.bIsVisible;
-					Node.bIsVisible = bIsInDrawRange;
+					NodeVisibility.bWasVisible = NodeVisibility.bIsVisible;
+					NodeVisibility.bIsVisible = bIsInDrawRange;
 				}
 
 				// Flag as fading or freeze visibility if waiting for a fade
-				if (Node.bIsFading)
+				if (NodeVisibility.bIsFading)
 				{
-					PrimitiveFadingLODMap[NodeIndex] = true;
-					PrimitiveFadingOutLODMap[NodeIndex] = !Node.bIsVisible;
+					HLODState.PrimitiveFadingLODMap[NodeIndex] = true;
+					HLODState.PrimitiveFadingOutLODMap[NodeIndex] = !NodeVisibility.bIsVisible;
 				}
 				else if (bChangedRange && bIsOnScreen)
 				{
-					VisibilityFlags[NodeIndex] = Node.bWasVisible;
-					bIsVisible = Node.bWasVisible;
+					VisibilityFlags[NodeIndex] = !!NodeVisibility.bWasVisible;
+					bIsVisible = !!NodeVisibility.bWasVisible;
 				}
 			}
 			else
 			{
 				// Instant transitions without dithering
-				Node.bWasVisible = Node.bIsVisible;
-				Node.bIsVisible = bIsInDrawRange;
-				Node.bIsFading = false;
+				NodeVisibility.bWasVisible = NodeVisibility.bIsVisible;
+				NodeVisibility.bIsVisible = bIsInDrawRange;
+				NodeVisibility.bIsFading = false;
 			}
 
-			if (Node.bIsFading)
+			if (NodeVisibility.bIsFading)
 			{
 				// Fade until state back in sync
-				ApplyNodeFadingToChildren(Node, VisibilityFlags, true, Node.bIsVisible);
+				ApplyNodeFadingToChildren(ViewState, Node, VisibilityFlags, true, !!NodeVisibility.bIsVisible);
 			}
 			else if (bIsVisible)
 			{
 				// If stable and visible, override hierarchy visibility
-				HideNodeChildren(Node, VisibilityFlags);
+				HideNodeChildren(ViewState, Node, VisibilityFlags);
 			}
 
 			// Flush cached lighting data when changing visible contents
-			if (Node.bIsVisible != Node.bWasVisible || bWasFadingPreUpdate || Node.bIsFading)
+			if (NodeVisibility.bIsVisible != NodeVisibility.bWasVisible || bWasFadingPreUpdate || NodeVisibility.bIsFading)
 			{
 				FLightPrimitiveInteraction* NodeLightList = Node.SceneInfo->LightList;
 				while (NodeLightList)
@@ -3112,7 +3143,7 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 			}
 
 			// Force fully disabled view relevance so shadows don't attempt to recompute
-			if (!Node.bIsVisible)
+			if (!NodeVisibility.bIsVisible)
 			{
 				FPrimitiveViewRelevance& ViewRelevance = RelevanceMap[NodeIndex];
 				FMemory::Memzero(&ViewRelevance, sizeof(FPrimitiveViewRelevance));
@@ -3123,11 +3154,16 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 	}	
 }
 
-void FLODSceneTree::ApplyNodeFadingToChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut)
+void FLODSceneTree::ApplyNodeFadingToChildren(FSceneViewState* ViewState, FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut)
 {
+	checkSlow(ViewState);
+	FHLODVisibilityState& HLODState = ViewState->HLODVisibilityState;
+	TMap<FPrimitiveComponentId, FHLODSceneNodeVisibilityState>& VisibilityStates = ViewState->HLODSceneNodeVisibilityStates;
+	FHLODSceneNodeVisibilityState& NodeVisibility = VisibilityStates.FindOrAdd(Node.SceneInfo->PrimitiveComponentId);
+
 	if (Node.SceneInfo)
 	{
-		Node.LatestUpdateCount = UpdateCount;
+		NodeVisibility.UpdateCount = HLODState.UpdateCount;
 
 		// Force visibility during fades
 		const int32 NodeIndex = Node.SceneInfo->GetIndex();
@@ -3137,24 +3173,29 @@ void FLODSceneTree::ApplyNodeFadingToChildren(FLODSceneNode& Node, FSceneBitArra
 		{
 			const int32 ChildIndex = Child->GetIndex();
 
-			PrimitiveFadingLODMap[ChildIndex] = bIsFading;
-			PrimitiveFadingOutLODMap[ChildIndex] = bIsFadingOut;
+			HLODState.PrimitiveFadingLODMap[ChildIndex] = bIsFading;
+			HLODState.PrimitiveFadingOutLODMap[ChildIndex] = bIsFadingOut;
 			VisibilityFlags[ChildIndex] = true;
 
 			// Fading only occurs at the adjacent hierarchy level, below should be hidden
 			if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))
 			{
-				HideNodeChildren(*ChildNode, VisibilityFlags);
+				HideNodeChildren(ViewState, *ChildNode, VisibilityFlags);
 			}
 		}
 	}
 }
 
-void FLODSceneTree::HideNodeChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags)
+void FLODSceneTree::HideNodeChildren(FSceneViewState* ViewState, FLODSceneNode& Node, FSceneBitArray& VisibilityFlags)
 {
-	if (Node.LatestUpdateCount != UpdateCount)
+	checkSlow(ViewState);
+	FHLODVisibilityState& HLODState = ViewState->HLODVisibilityState;
+	TMap<FPrimitiveComponentId, FHLODSceneNodeVisibilityState>& VisibilityStates = ViewState->HLODSceneNodeVisibilityStates;
+	FHLODSceneNodeVisibilityState& NodeVisibility = VisibilityStates.FindOrAdd(Node.SceneInfo->PrimitiveComponentId);
+
+	if (NodeVisibility.UpdateCount != HLODState.UpdateCount)
 	{
-		Node.LatestUpdateCount = UpdateCount;
+		NodeVisibility.UpdateCount = HLODState.UpdateCount;
 
 		for (const auto& Child : Node.ChildrenSceneInfos)
 		{
@@ -3163,7 +3204,7 @@ void FLODSceneTree::HideNodeChildren(FLODSceneNode& Node, FSceneBitArray& Visibi
 
 			if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))
 			{
-				HideNodeChildren(*ChildNode, VisibilityFlags);
+				HideNodeChildren(ViewState, *ChildNode, VisibilityFlags);
 			}
 		}
 	}

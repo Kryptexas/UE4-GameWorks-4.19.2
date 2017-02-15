@@ -2,7 +2,7 @@ Availability:Public
 Title: Widget Type Reference
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:Reference for the types of Widgets available in Unreal Motion Graphics.
-version: 4.9
+version: 4.13
 
 [TOC(start:2 end:2)]
 
@@ -26,12 +26,12 @@ The most frequently used Widgets will more than likely fall under this category.
 | **Border** | A border is a container widget that can contain one child widget, providing an opportunity to surround it with a border image and adjustable padding. |
 | **Button** | The button is a single-child, click-able primitive widget which enables basic interaction. You can place any other widget inside a button to make a more complex and interesting click-able element in your UI.  |
 | **Check Box** | The check box widget allows you to display a toggled state of 'unchecked', 'checked', and 'indeterminable'. You can use the check box for a classic check box, as a toggle button, or as radio buttons.  |
-| **Image** | The image widget allows you to display a Slate Brush, Texture, or Material in the UI. |
 | [Named Slot](Engine\UMG\UserGuide\WidgetTypeReference\NamedSlot) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\NamedSlot#desc] |
 | **Progress Bar** | The progress bar widget is a simple bar that fills up and can be restyled to fit any number of uses such as Experience, Health, Points, etc. |
 | **Slider** | A simple widget that shows a sliding bar with a handle that allows you to control the value between 0-1. |
 | **Text** | The basic method for displaying text on screen and could be used for text descriptions of options or other UI elements. |
 | **Text Box** | Allows the user to type in custom text. Only permits a single line of text to be entered. |
+| **Image** | The image widget allows you to display a Slate Brush, Texture, Sprite, or Material in the UI. [REGION:note]Sprites that are part of the same texture atlas can be batched together in Slate, provided they all share the same layer when rendered. This means that platforms where the draw call count budget is tight will render UMG and Slate Widgets significantly more efficiently if Paper2D Sprites are used as Brush inputs.[/REGION] |
 
 
 ## Input Widgets
@@ -65,7 +65,7 @@ The **Panel** category contains useful Widgets for controlling layouts and placi
 
 | Option | Description |
 | -------- | ----------- |
-| **Canvas Panel** | The canvas panel is a designer friendly panel that allows widgets to be laid out at arbitrary locations, anchored and z-ordered with other children of the canvas. The canvas panel is a great widget for manual layout, but bad when you want to procedurally just generate widgets and place them in a container (unless you want absolute layout). For more information on Anchors, see the [Anchors](Engine\UMG\UserGuide\Anchors\) page. |
+| **Canvas Panel** | The canvas panel is a designer friendly panel that allows widgets to be laid out at arbitrary locations, anchored, and z-ordered with other children of the canvas. Note that, although z-order can be altered manually, widgets are rendered in list order, and it is considered preferable to order them correctly in the list rather than to rely on z-ordering. The canvas panel is a great widget for manual layout, but not as useful when you want to generate widgets procedurally and place them in a container (unless you want an absolute layout). For more information on Anchors, see the [Anchors](Engine\UMG\UserGuide\Anchors\) page. |
 | **Grid Panel** | This is a panel that evenly divides up available space between all of its children widgets. |
 | **Horizontal Box** | Allows child widgets to be laid out in a flow horizontally. |
 | **Overlay** | Allows widgets to be stacked on top of each other and uses a simple flow layout for content on each layer.  |

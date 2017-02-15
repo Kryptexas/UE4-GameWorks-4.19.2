@@ -1,17 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorModeInterpolation : Editor mode for setting up interpolation sequences.
 
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "EditorModeInterpolation.h"
+#include "EditorViewportClient.h"
+#include "Modules/ModuleManager.h"
+#include "Editor/GroupActor.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
 #include "InterpolationHitProxy.h"
 
 #include "Editor/Matinee/Public/MatineeModule.h"
 #include "Editor/Matinee/Public/IMatinee.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 static const float	CurveHandleScale = 0.5f;
 

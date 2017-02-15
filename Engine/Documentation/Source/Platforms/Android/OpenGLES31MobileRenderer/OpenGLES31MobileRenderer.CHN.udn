@@ -1,14 +1,14 @@
-﻿INTSourceChangelist:0
-Title: Android OpenGL ES 3.1 Mobile Renderer
-Description:Setting up your UE4 Android project to work with the OpenGL ES 3.1 mobile render
+﻿INTSourceChangelist:3095085
+Title:Android OpenGL ES 3.1 移动渲染器
+Description:设置 UE4 Android 项目使用 OpenGL ES 3.1 移动渲染
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/OpenGLES31MobileRenderer/
-Availability:Docs
+Availability:Public
 version:4.12
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
 type:reference
-SkillLevel: Intermediate
+SkillLevel:Intermediate
 Related:Platforms\Android\VulkanMobileRenderer
 Related:Platforms\Android\DeviceCompatibility
 Related:Engine/Basics/Projects/Packaging
@@ -17,84 +17,84 @@ Related:Programming/Development/BuildingUnrealEngine
 
 [TOC(start:2 end:3)]
 
-While Unreal Engine 4 (UE4) has long supported many OpenGL ES 3.0 and 3.1 features on Android, you can now specifically target ES 3.1 when building a UE4 Android project. This brings feature parity with Metal and Vulkan to higher-end Android devices and gives you access to 16 Texture samplers as well as improved performance through the use of uniform buffers. In the following document we will take a look how you can setup your UE4 project to use OpenGL ES 3.1 when run on an Android device that supports it.
+虚幻引擎 4（UE4）早已支持 Android 上的许多 OpenGL ES 3.0 和 3.1 功能，现在编译 UE4 Android 项目时可特别针对 ES 3.1。这将 Metal 和 Vulkan 的特性带到了高端安卓设备，带来了 16 种纹理采样器，并通过统一缓存增强性能。在此文档中我们将了解到如何设置 UE4 项目在支持的安卓设备上运行时使用 OpenGL ES 3.1。
 
 
-## Enabling the OpenGL ES 3.1 UE4 Editor Preview 
+## 启用 OpenGL ES 3.1 UE4 编辑器预览 
 
-In order to preview what OpenGL ES 3.1 will look like in the UE4 Editor you will need to first enable it by doing the following:
+如需预览 OpenGL ES 3.1 在 UE4 编辑器中的效果，首先要执行以下步骤将其启动：
 
-1. From the **Main Toolbar** go to **Edit** and then select the **Editor Preferences** option.
+1. 前往 **主工具栏** 的 **Edit**，然后选择 **Editor Preferences** 选项。
 
 	![](OGL3_01.png)
 
-1. Under the **General** section locate the **Experimental** category and then look for the **Rendering** section and click on the checkmark box next to **Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor** to enable the option to preview OpenGL ES 3.1. 
+1. 在 **General** 部分中找到 **Experimental** 类目，然后找到 **Rendering** 部分。点击 **Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor** 旁边的勾选框启用选项预览 OpenGL ES 3.1。 
 
 	[REGION:lightbox]
 	[![](Platforms\Android\VulkanMobileRenderer\VMP_03.png)(w:447 h:308)](Platforms\Android\VulkanMobileRenderer\VMP_03.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
 	[region:note]
-	For a more detailed description on how to enable Metal/Vulkan/High-End  previewing in the UE4 Editor, check out the [Enabling Vulkan Preview Rendering in Editor](Platforms/Android/VulkanMobileRenderer/#enablingvulkanpreviewrenderingineditor) document.
+	如需了解在 UE4 编辑器中启用 Metal/Vulkan/高端预览的详细说明，请查阅 [在编辑器中启用 Vulkan 预览渲染](Platforms/Android/VulkanMobileRenderer/#enablingvulkanpreviewrenderingineditor) 文档。
 	[/region]
 
-1. Then on the **Main Tool Bar** click on the **Settings** option and go to **Preview Rendering Level** option and select the **High-End Mobile / Metal** option.
+1. 然后点击 **主工具栏** 上的 **Settings** 选项，前往 **Preview Rendering Level** 选项并选择 **High-End Mobile / Metal** 选项。
 
 	[REGION:lightbox]
 	[![](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_05.png)(w:391)](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_05.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-1. Now if you look at the lower right-hand corner of the UE4 Editor viewport, you should see the text **Feature Level: ES3_1** which means you are now previewing the level using OpenGL ES 3.1.
+1. 现在在 UE4 编辑器视口的右下角可看到文本 **Feature Level: ES3_1**，则意味着正在使用 OpenGL ES 3.1 预览关卡。
 
 	[REGION:lightbox]
 	[![](OGL3_02.png)(w:404)](OGL3_02.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-## Setting up a UE4 Project with OpenGL ES 3.1 Support
+## 使用 OpenGL ES 3.1 支持设置 UE4 项目
 
-To use OpenGL ES 3.1 in your UE4 Android project, you will need to make sure your UE4 project has the following options set:
+如要在 UE4 Android 项目中使用 OpenGL ES 3.1，需要确保 UE4 项目已设置以下选项：
 
 [region:warning]
-Please note that OpenGL ES 3.1 Support will only work on code based projects that are downloaded and compiled from Github. If you are not familiar with how to do this check out the [Download Unreal Engine Source Code](GettingStarted/DownloadingUnrealEngine) for detailed instructions on how to do this.
+请注意：OpenGL ES 3.1 支持只能用于从 Github 下载和编译的代码项目。如您不确定操作方法，请查阅 [下载虚幻引擎源代码](GettingStarted/DownloadingUnrealEngine) 中的详细说明。
 [/region]
 
-1. First, go to the **Main Toolbar** and click on the **Edit** option and then select the **Project Settings** option. 
+1. 点击 **主工具栏** 中的 **Edit** 选项，然后选择 **Project Settings** 选项。 
 
 	![](OGL3_03.png)
 
-1. From the **Project Settings** menu go to the **Platforms** section and click on the **Android** section.
+1. 前往 **Project Settings** 菜单中的 **Platforms** 部分，点击 **Android** 部分。
 
 	[REGION:lightbox]
 	[![](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_00.png)(w:639 h:385)](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_00.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-1. Now in the **APKPackaging** section, set the **Minimum SDK** and **Target SDK** version to **21**.
+1. 在 **APKPackaging** 部分中，将 **Minimum SDK** 和 **Target SDK** 版本设为 **21**。
 
 	[REGION:lightbox]
 	[![](OGL3_04.png)(w:639 h:385)](OGL3_04.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-1. Under the **APKPackaging** section, locate the  **Build** section and make sure that the following options are checked. 
+1. 在 **APKPackaging** 的 **Build** 部分中勾选以下选项： 
 	
 	* Support armv7
 	* Support OpenGL ES3.1
@@ -104,10 +104,10 @@ Please note that OpenGL ES 3.1 Support will only work on code based projects tha
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-1. Click on the **Android SDK** section and set the **SDK API Level**  and **NDK API Level** to the following.
+1. 点击 **Android SDK** 部分并将 **SDK API Level** 和 **NDK API Level** 进行如下设置。
 
 	* SDK API Level = matchndk
 	* NDK API Level = android-21
@@ -117,33 +117,33 @@ Please note that OpenGL ES 3.1 Support will only work on code based projects tha
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-## Building and Deploying a UE4 Project with OpenGL ES 3.1 Support
+## 使用 OpenGL ES 3.1 支持编译和部署 UE4 项目
 
-Now that the project has been setup to work with OpenGL ES 3.1, it is now time to build the project and deploy it to a Android based Smartphone. To build a project that has OpenGL ES 3.1 support you will need to do the following:
+项目已设置好兼容 OpenGL ES 3.1后，即可编译项目并将其部署至安卓智能手机。执行下列步骤，编译拥有 OpenGL ES 3.1 支持的项目：
 
 [region:note]
-Before you begin with the next part, make sure that you have your Android based Smartphone plugged into your development PC via a USB cable. Failing to do this will result in your project not being able to be deployed to your Android Smartphone.
+开始下一部分前，将安卓智能手机通过 USB 线连接到开发电脑。否则将导致无法部署项目。
 [/region]
 
 
-1. Locate the **Launch** option that is on the far right-hand side of the **Toolbar** menu.  
+1. 找到 **工具栏** 菜单最右侧的 **Launch** 选项。  
 
 	[REGION:lightbox]
 	[![](OGL3_07.png)(w:640)](OGL3_07.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-1. Click on the small white triangle that is on the left-hand side of the **Launch** button to expose the devices that your project can be launched on and then click on your Android device to start the build process.
+1. 点击 **Launch** 按钮左侧的白色小三角形了解项目可运行的设备，然后点击安卓设备开始编译过程。
 
 	![](OGL3_08.png)
 
-1. After this is completed, a build status bar will be displayed in the lower right-hand corner of the UE4 Editor that will show you how the build is progressing. To see a more detailed breakdown of what is going on with the build, click on the  **Show Output Log** to open the UE4 log.
+1. 操作完成后，编译状态进度条将显示在 UE4 编辑器的右下角。点击 **Show Output Log** 可查看编译的详细分解。
 
 	![](OGL3_09.png)
 

@@ -96,7 +96,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**Countdown.h**
-			// 版权所有 1998-2015 Epic Games, Inc. 保留所有权利。
+			// 版权所有 1998-2017 Epic Games, Inc. 保留所有权利。
 
 			#pragma once
 
@@ -137,7 +137,7 @@ version:4.9
 
 
 		**Countdown.cpp**
-			// 版权所有 1998-2015 Epic Games, Inc. 保留所有权利。
+			// 版权所有 1998-2017 Epic Games, Inc. 保留所有权利。
 
 			#include "HowTo_VTE.h"
 			#include "Countdown.h"

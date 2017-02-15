@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowProjectionPixelShader.usf: Pixel shader for projecting a shadow depth buffer onto the scene.
@@ -55,42 +55,6 @@ float3 ModulatedShadowBlendOp(float3 Source)
 #endif
 	return Source.rgb*Dest.rgb;
 }
-
-#if FORWARD_SHADING
-
-float GetLightInfluenceMask(float2 ScreenPosition, float SceneDepth)
-{
-	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition.xy * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
-	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
-
-	float LightRadiusMask = 1;
-	float SpotFalloff = 1;
-
-	if (DeferredLightUniforms.LightInvRadius > 0)
-	{
-		float3 ToLight = DeferredLightUniforms.LightPosition - WorldPosition;
-		float DistanceSqr = dot(ToLight, ToLight);
-		float3 L = ToLight * rsqrt(DistanceSqr);
-
-		if (DeferredLightUniforms.LightFalloffExponent == 0)
-		{
-			LightRadiusMask = Square(saturate( 1 - Square(DistanceSqr * Square(DeferredLightUniforms.LightInvRadius))));
-		}
-		else
-		{
-			LightRadiusMask = RadialAttenuation(ToLight * DeferredLightUniforms.LightInvRadius, DeferredLightUniforms.LightFalloffExponent);
-		}
-
-		if (DeferredLightUniforms.SpotAngles.x > -2.0f)
-		{
-			SpotFalloff = SpotAttenuation(L, -DeferredLightUniforms.NormalizedLightDirection, DeferredLightUniforms.SpotAngles);
-		}
-	}
-
-	return LightRadiusMask * SpotFalloff > 0.0f ? 1.0f : 0.0f;
-}
-
-#endif
 
 /**
 * Entry point for uniform manual PCF that supports lights using normal shadows.
@@ -215,7 +179,9 @@ void Main(
 	float FadedShadow = lerp(1.0f, Square(Shadow), ShadowFadeFraction);
 
 #if FORWARD_SHADING
-	float LightInfluenceMask = GetLightInfluenceMask(ScreenPosition, SceneW);
+	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition.xy * SceneW, SceneW, 1), View.ScreenToWorld);
+	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
+	float LightInfluenceMask = GetLightInfluenceMask(WorldPosition);
 	// Constrain shadowing from this light to pixels inside the light's influence, since other non-overlapping lights are packed into the same channel
 	FadedShadow = lerp(1, FadedShadow, LightInfluenceMask);
 	// Write into all channels, the write mask will constrain to the correct one
@@ -281,7 +247,7 @@ void MainOnePassPointLightPS(
 	float FadedShadow = lerp(1.0f, Square(Shadow), ShadowFadeFraction);
 
 #if FORWARD_SHADING
-	float LightInfluenceMask = GetLightInfluenceMask(ScreenPosition, SceneW);
+	float LightInfluenceMask = GetLightInfluenceMask(WorldPosition);
 	FadedShadow = lerp(1, FadedShadow, LightInfluenceMask);
 	OutColor = EncodeLightAttenuation(FadedShadow);
 #else

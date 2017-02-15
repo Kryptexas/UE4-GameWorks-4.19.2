@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "UObjectBaseUtility.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Serialization/CustomVersion.h"
+#include "Misc/EngineVersion.h"
+
+struct FCompressedChunk;
 
 /*----------------------------------------------------------------------------
 	Items stored in Unrealfiles.
@@ -122,6 +127,11 @@ public:
 	* Location into the file on disk for the string asset references map data
 	*/
 	int32		StringAssetReferencesOffset;
+
+	/**
+	* Location into the file on disk for the SearchableNamesMap data
+	*/
+	int32		SearchableNamesOffset;
 
 	/**
 	* Thumbnail table offset

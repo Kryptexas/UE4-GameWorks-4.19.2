@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Logging/IEventLogger.h"
+
+class SWidget;
 
 /**
  * Implements an event logger that forwards events to two other event loggers.

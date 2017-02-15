@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3032506
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:월드 컴포지션 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/LevelStreaming
@@ -6,7 +6,7 @@ Description:원점 시프트 기술을 포함한 대규모 월드 관리 시스�
 SkillLevel: Intermediate
 Version: 4.9
 Parent:Engine/LevelStreaming
-Label:World Composition
+tags:World Composition
 
 [TOC (start:2 end:3)]
 

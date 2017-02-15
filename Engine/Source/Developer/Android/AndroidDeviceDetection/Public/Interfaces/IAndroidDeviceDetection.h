@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IAndroidDeviceDetection.h: Declares the IAndroidDeviceDetection interface.
@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "Containers/UnrealString.h"
+#include "HAL/CriticalSection.h"
+
+template<typename KeyType,typename ValueType,typename SetAllocator ,typename KeyFuncs > class TMap;
 
 struct FAndroidDeviceInfo
 {

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -9,8 +9,10 @@ public class FontEditor : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
                 "AppFramework",
+				"AssetRegistry",
 				"Core",
 				"CoreUObject",
+				"ContentBrowser",
 				"DesktopPlatform",
 				"DesktopWidgets",
 				"Engine",
@@ -19,6 +21,7 @@ public class FontEditor : ModuleRules
 				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
+				"PropertyEditor",
 			}
 		);
 
@@ -35,7 +38,6 @@ public class FontEditor : ModuleRules
 				"MainFrame",
 				"WorkspaceMenuStructure",
 				"MainFrame",
-				"PropertyEditor"
 			}
 		);
 	}

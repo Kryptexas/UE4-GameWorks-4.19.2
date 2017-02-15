@@ -1,46 +1,82 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticLightingSystem.cpp: Bsp light mesh illumination builder code
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/Guid.h"
+#include "Misc/ConfigCacheIni.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/GarbageCollection.h"
+#include "Layout/Visibility.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/LightComponentBase.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Components/LightComponent.h"
+#include "Model.h"
+#include "Engine/Brush.h"
+#include "Misc/PackageName.h"
+#include "Editor/EditorEngine.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "Settings/LevelEditorMiscSettings.h"
+#include "Engine/Texture2D.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/GeneratedMeshAreaLight.h"
+#include "Components/SkyLightComponent.h"
+#include "Components/ModelComponent.h"
+#include "Engine/LightMapTexture2D.h"
+#include "Editor.h"
+#include "Engine/Selection.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+#include "Dialogs/Dialogs.h"
 
 FSwarmDebugOptions GSwarmDebugOptions;
 
 #include "Lightmass/LightmassCharacterIndirectDetailVolume.h"
-#include "LightingBuildOptions.h"
-#include "StaticLightingPrivate.h"
-#include "Database.h"
-#include "Sorting.h"
+#include "StaticLighting.h"
+#include "StaticLightingSystem/StaticLightingPrivate.h"
 #include "ModelLight.h"
-#include "PrecomputedLightVolume.h"
+#include "Engine/LevelStreaming.h"
 #include "LevelUtils.h"
-#include "CrashTracker.h"
+#include "Interfaces/ICrashTrackerModule.h"
 #include "EngineModule.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
-#include "RendererInterface.h"
 #include "EditorBuildUtils.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "Engine/LODActor.h"
-#include "EditorLevelUtils.h"
 
 DEFINE_LOG_CATEGORY(LogStaticLightingSystem);
 
+#include "EngineGlobals.h"
 #include "Toolkits/AssetEditorManager.h"
 
-#include "../Lightmass/Lightmass.h"
-#include "Editor/StatsViewer/Public/StatsViewerModule.h"
-#include "MessageLog.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "Engine/GeneratedMeshAreaLight.h"
-#include "Engine/LevelStreaming.h"
-#include "Engine/Selection.h"
-#include "Components/SkyLightComponent.h"
+#include "Lightmass/LightmassImportanceVolume.h"
 #include "Components/LightmassPortalComponent.h"
-#include "Runtime/CoreUObject/Public/Misc/UObjectToken.h"
+#include "Lightmass/Lightmass.h"
+#include "StatsViewerModule.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Misc/UObjectToken.h"
 
 #define LOCTEXT_NAMESPACE "StaticLightingSystem"
 
@@ -97,6 +133,13 @@ static FAutoConsoleVariableRef CVarPurgeOldLightmaps(
 	GPurgeOldLightmaps,
 	TEXT("If non-zero, purge old lightmap data when rebuilding lighting.")
 	);
+
+
+int32 GMultithreadedLightmapEncode = 1;
+static FAutoConsoleVariableRef CVarMultithreadedLightmapEncode(TEXT("r.MultithreadedLightmapEncode"), GMultithreadedLightmapEncode, TEXT("Lightmap encoding after rebuild lightmaps is done multithreaded."));
+int32 GMultithreadedShadowmapEncode = 1;
+static FAutoConsoleVariableRef CVarMultithreadedShadowmapEncode(TEXT("r.MultithreadedShadowmapEncode"), GMultithreadedShadowmapEncode, TEXT("Shadowmap encoding after rebuild lightmaps is done multithreaded."));
+
 
 
 
@@ -201,7 +244,7 @@ void FStaticLightingManager::SendBuildDoneNotification( bool AutoApplyFailed )
 {
 	FText CompletedText = LOCTEXT("LightBuildDoneMessage", "Lighting build completed");
 
-	if (ActiveStaticLightingSystem != StaticLightingSystems.Last().GetOwnedPointer() && ActiveStaticLightingSystem->LightingScenario)
+	if (ActiveStaticLightingSystem != StaticLightingSystems.Last().Get() && ActiveStaticLightingSystem->LightingScenario)
 	{
 		FString PackageName = FPackageName::GetShortName(ActiveStaticLightingSystem->LightingScenario->GetOutermost()->GetName());
 		CompletedText = FText::Format(LOCTEXT("LightScenarioBuildDoneMessage", "{0} Lighting Scenario completed"), FText::FromString(PackageName));
@@ -244,19 +287,17 @@ void FStaticLightingManager::CreateStaticLightingSystem(const FLightingBuildOpti
 		for (ULevel* Level : GWorld->GetLevels())
 		{
 			if (Level->bIsLightingScenario && Level->bIsVisible)
-			{
-				StaticLightingSystems.AddZeroed();
-				StaticLightingSystems.Last() = new FStaticLightingSystem(Options, GWorld, Level);
+	{
+				StaticLightingSystems.Emplace(new FStaticLightingSystem(Options, GWorld, Level));
 			}
 		}
 
 		if (StaticLightingSystems.Num() == 0)
 		{
-			StaticLightingSystems.AddZeroed();
-			StaticLightingSystems.Last() = new FStaticLightingSystem(Options, GWorld, NULL);
+			StaticLightingSystems.Emplace(new FStaticLightingSystem(Options, GWorld, nullptr));
 		}
 
-		ActiveStaticLightingSystem = StaticLightingSystems[0];
+		ActiveStaticLightingSystem = StaticLightingSystems[0].Get();
 
 		bool bSuccess = ActiveStaticLightingSystem->BeginLightmassProcess();
 
@@ -290,13 +331,13 @@ void FStaticLightingManager::UpdateBuildLighting()
 		ActiveStaticLightingSystem->UpdateLightingBuild();
 
 		if (ActiveStaticLightingSystem && ActiveStaticLightingSystem->CurrentBuildStage == FStaticLightingSystem::Finished)
-		{
-			ActiveStaticLightingSystem = NULL;
+	{
+			ActiveStaticLightingSystem = nullptr;
 			StaticLightingSystems.RemoveAt(0);
 
 			if (StaticLightingSystems.Num() > 0)
 			{
-				ActiveStaticLightingSystem = StaticLightingSystems[0];
+				ActiveStaticLightingSystem = StaticLightingSystems[0].Get();
 
 				bool bSuccess = ActiveStaticLightingSystem->BeginLightmassProcess();
 
@@ -470,22 +511,22 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 
 			if (ShouldOperateOnLevel(Level))
 			{
-				Level->LightmapTotalSize = 0.0f;
-				Level->ShadowmapTotalSize = 0.0f;
-				ULevelStreaming* LevelStreaming = NULL;
-				if ( World->PersistentLevel != Level )
-				{
-					LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
-				}
-				if (!Options.ShouldBuildLightingForLevel(Level))
-				{
-					if (SkippedLevels.Len() > 0)
-					{
-						SkippedLevels += FString(TEXT(", "));
-					}
-					SkippedLevels += Level->GetName();
-				}
+			Level->LightmapTotalSize = 0.0f;
+			Level->ShadowmapTotalSize = 0.0f;
+			ULevelStreaming* LevelStreaming = NULL;
+			if ( World->PersistentLevel != Level )
+			{
+				LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
 			}
+			if (!Options.ShouldBuildLightingForLevel(Level))
+			{
+				if (SkippedLevels.Len() > 0)
+				{
+					SkippedLevels += FString(TEXT(", "));
+				}
+				SkippedLevels += Level->GetName();
+			}
+		}
 		}
 
 		for( int32 LevelIndex = 0 ; LevelIndex < World->StreamingLevels.Num() ; ++LevelIndex )
@@ -563,12 +604,12 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 				{
 					if (ShouldOperateOnLevel((*LightIt)->GetLevel()))
 					{
-						if (EditorSelection)
-						{
-							EditorSelection->Deselect(*LightIt);
-						}
-						(*LightIt)->GetWorld()->DestroyActor(*LightIt);
+					if (EditorSelection)
+					{
+						EditorSelection->Deselect(*LightIt);
 					}
+					(*LightIt)->GetWorld()->DestroyActor(*LightIt);
+				}
 				}
 
 				for (TObjectIterator<ULightComponentBase> LightIt(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFlags */ EInternalObjectFlags::PendingKill); LightIt; ++LightIt)
@@ -581,17 +622,17 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 					if (bLightIsInWorld && ShouldOperateOnLevel(Light->GetOwner()->GetLevel()))
 					{
 						if (Light->bAffectsWorld
-							&& (Light->HasStaticShadowing() || Light->HasStaticLighting()))
-						{
-							// Make sure the light GUIDs are up-to-date.
-							Light->ValidateLightGUIDs();
+						&& (Light->HasStaticShadowing() || Light->HasStaticLighting()))
+					{
+						// Make sure the light GUIDs are up-to-date.
+						Light->ValidateLightGUIDs();
 
-							// Add the light to the system's list of lights in the world.
-							Lights.Add(Light);
-						}
+						// Add the light to the system's list of lights in the world.
+						Lights.Add(Light);
 					}
 				}
 			}
+		}
 		}
 
 		{
@@ -1140,16 +1181,6 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 
 void FStaticLightingSystem::EncodeTextures(bool bLightingSuccessful)
 {
-	// used to debug multithreaded issues (don't check in)
-	
-	bool bEnableMultithreadedLightmapEncode = false;
-	bool bEnableMultithreadedShadowmapEncode = false;
-	UEditorExperimentalSettings* ExperimentalSettings = UEditorExperimentalSettings::StaticClass()->GetDefaultObject<UEditorExperimentalSettings>();
-	if (ExperimentalSettings)
-	{
-		bEnableMultithreadedLightmapEncode = ExperimentalSettings->bEnableMultithreadedLightmapEncoding;
-		bEnableMultithreadedShadowmapEncode = ExperimentalSettings->bEnableMultithreadedShadowmapEncoding;
-	}
 	FLightmassStatistics::FScopedGather EncodeStatScope(LightmassStatistics.EncodingTime);
 
 	FScopedSlowTask SlowTask(2);
@@ -1157,13 +1188,13 @@ void FStaticLightingSystem::EncodeTextures(bool bLightingSuccessful)
 		FLightmassStatistics::FScopedGather EncodeStatScope2(LightmassStatistics.EncodingLightmapsTime);
 		// Flush pending shadow-map and light-map encoding.
 		SlowTask.EnterProgressFrame(1, LOCTEXT("EncodingImportedStaticLightMapsStatusMessage", "Encoding imported static light maps."));
-		FLightMap2D::EncodeTextures(World, bLightingSuccessful, bEnableMultithreadedLightmapEncode);
+		FLightMap2D::EncodeTextures(World, bLightingSuccessful, GMultithreadedLightmapEncode ? true : false);
 	}
 
 	{
 		FLightmassStatistics::FScopedGather EncodeStatScope2(LightmassStatistics.EncodingShadowMapsTime);
 		SlowTask.EnterProgressFrame(1, LOCTEXT("EncodingImportedStaticShadowMapsStatusMessage", "Encoding imported static shadow maps."));
-		FShadowMap2D::EncodeTextures(World, LightingScenario, bLightingSuccessful, bEnableMultithreadedShadowmapEncode);
+		FShadowMap2D::EncodeTextures(World, LightingScenario, bLightingSuccessful, GMultithreadedShadowmapEncode ? true : false);
 	}
 }
 
@@ -2141,7 +2172,7 @@ bool FStaticLightingSystem::FinishLightmassProcess()
 	}
 
 	ReportStatistics();
-
+	
 	return bSuccessful;
 }
 

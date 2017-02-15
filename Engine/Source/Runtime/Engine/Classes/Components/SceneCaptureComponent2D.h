@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptInterface.h"
+#include "Engine/BlendableInterface.h"
+#include "Camera/CameraTypes.h"
 #include "Components/SceneCaptureComponent.h"
 #include "SceneCaptureComponent2D.generated.h"
+
+class FSceneInterface;
 
 /**
  *	Used to capture a 'snapshot' of the scene from a single plane and feed it to a render target.
@@ -40,6 +48,29 @@ class ENGINE_API USceneCaptureComponent2D : public USceneCaptureComponent
 	/** Range (0.0, 1.0) where 0 indicates no effect, 1 indicates full effect. */
 	UPROPERTY(interp, Category=PostProcessVolume, BlueprintReadWrite, meta=(UIMin = "0.0", UIMax = "1.0"))
 	float PostProcessBlendWeight;
+
+	/** Whether a custom projection matrix will be used during rendering. Use with caution. Does not currently affect culling */
+	UPROPERTY(BlueprintReadWrite, AdvancedDisplay, Category = Projection)
+	bool bUseCustomProjectionMatrix;
+
+	/** The custom projection matrix to use */
+	UPROPERTY(BlueprintReadWrite, AdvancedDisplay, Category = Projection)
+	FMatrix CustomProjectionMatrix;
+
+	/** 
+	 * Enables a clip plane while rendering the scene capture which is useful for portals.  
+	 * The global clip plane must be enabled in the renderer project settings for this to work.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category=SceneCapture)
+	bool bEnableClipPlane;
+
+	/** Base position for the clip plane, can be any position on the plane. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category=SceneCapture)
+	FVector ClipPlaneBase;
+
+	/** Normal for the plane. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category=SceneCapture)
+	FVector ClipPlaneNormal;
 
 	//~ Begin UActorComponent Interface
 	virtual void OnRegister() override;

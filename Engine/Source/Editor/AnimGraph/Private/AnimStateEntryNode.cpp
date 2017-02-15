@@ -1,12 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimStateNode.cpp
 =============================================================================*/
 
-#include "AnimGraphPrivatePCH.h"
 #include "AnimStateEntryNode.h"
-#include "EdGraphUtilities.h"
+#include "EdGraph/EdGraph.h"
 #include "AnimationStateMachineSchema.h"
 
 #define LOCTEXT_NAMESPACE "AnimStateEntryNode"

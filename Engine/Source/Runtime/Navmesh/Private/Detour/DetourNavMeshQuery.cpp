@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -19,17 +19,9 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "NavmeshModulePrivatePCH.h"
-#include <math.h>
-#include <float.h>
-#include <string.h>
-#include "DetourNavMeshQuery.h"
-#include "DetourNavMesh.h"
-#include "DetourNode.h"
-#include "DetourCommon.h"
-#include "DetourAlloc.h"
-#include "DetourAssert.h"
-#include <new>
+#include "Detour/DetourNavMeshQuery.h"
+#include "Detour/DetourNode.h"
+#include "Detour/DetourAssert.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDebugRaycastCrash, All, All);
 
@@ -1083,7 +1075,7 @@ dtStatus dtNavMeshQuery::findNearestPoly(const float* center, const float* exten
 dtStatus dtNavMeshQuery::findNearestPoly2D(const float* center, const float* extents,
 											const dtQueryFilter* filter,
 											dtPolyRef* nearestRef, float* nearestPt,
-											const float* referencePt) const
+											const float* referencePt, float tolerance) const
 {
 	dtAssert(m_nav);
 
@@ -1095,34 +1087,57 @@ dtStatus dtNavMeshQuery::findNearestPoly2D(const float* center, const float* ext
 	if (dtStatusFailed(queryPolygons(center, extents, filter, polys, &polyCount, 128)))
 		return DT_FAILURE | DT_INVALID_PARAM;
 
+	const float toleranceSq = dtSqr(tolerance);
 	float referenceLocation[3];
 	dtVcopy(referenceLocation, referencePt ? referencePt : center);
 
 	// Find nearest polygon amongst the nearby polygons.
-	dtPolyRef nearest = 0;
+	float bestScoreInTolerance = FLT_MAX;
 	float nearestDistanceSqr = FLT_MAX;
 	float nearestVertDist = FLT_MAX;
+	int32 bestPolyInTolerance = -1;
+	int32 bestPolyOutside = -1;
+
 	for (int i = 0; i < polyCount; ++i)
 	{
 		dtPolyRef ref = polys[i];
 		float closestPtPoly[3];
 		closestPointOnPoly(ref, referenceLocation, closestPtPoly);
-		const float d = dtVdist2DSqr(referenceLocation, closestPtPoly);
+		const float dSq = dtVdist2DSqr(referenceLocation, closestPtPoly);
 		const float h = dtAbs(center[1] - closestPtPoly[1]);
+
+		if (h > extents[1])
+			continue;
 		
-		if ((d < nearestDistanceSqr && h < extents[1])
-			|| (d < nearestDistanceSqr + KINDA_SMALL_NUMBER && h < nearestVertDist))
+		// scoring depends if 2D distance to center is within tolerance value
+		if (dSq < toleranceSq)
 		{
-			if (nearestPt)
+			const float score = dtSqrt(dSq) + h;
+			if (score < bestScoreInTolerance)
+			{
 				dtVcopy(nearestPt, closestPtPoly);
-			nearestDistanceSqr = d;
-			nearestVertDist = h;
-			nearest = ref;
+				bestScoreInTolerance = score;
+				bestPolyInTolerance = i;
+			}
+		}
+		else
+		{
+			if ((dSq < nearestDistanceSqr) || (dSq < nearestDistanceSqr + KINDA_SMALL_NUMBER && h < nearestVertDist))
+			{
+				if (bestPolyInTolerance < 0)
+				{
+					dtVcopy(nearestPt, closestPtPoly);
+				}
+
+				nearestDistanceSqr = dSq;
+				nearestVertDist = h;
+				bestPolyOutside = i;
+			}
 		}
 	}
 
 	if (nearestRef)
-		*nearestRef = nearest;
+		*nearestRef = (bestPolyInTolerance >= 0) ? polys[bestPolyInTolerance] : ((bestPolyOutside >= 0) ? polys[bestPolyOutside] : 0);
 
 	return DT_SUCCESS;
 }
@@ -4101,7 +4116,7 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 }
 
 static void storeWallSegment(const dtMeshTile* tile, const dtPoly* poly, int edge,
-	dtPolyRef ref0, dtPolyRef ref1, const float* centerPos, const float radiusSqr,
+	dtPolyRef ref0, dtPolyRef ref1, const dtNavMesh* nav, const float* centerPos, const float radiusSqr,
 	float* resultWalls, dtPolyRef* resultRefs, int* resultCount, const int maxResult)
 {
 	if (*resultCount < maxResult)
@@ -4113,12 +4128,80 @@ static void storeWallSegment(const dtMeshTile* tile, const dtPoly* poly, int edg
 		float distSqr = dtDistancePtSegSqr2D(centerPos, va, vb, tseg);
 		if (distSqr <= radiusSqr)
 		{
-			dtVcopy(&resultWalls[*resultCount * 6 + 0], va);
-			dtVcopy(&resultWalls[*resultCount * 6 + 3], vb);
+			const int32 Wall0Offset = (*resultCount * 6) + 0;
+			const int32 Wall1Offset = (*resultCount * 6) + 3;
+
+			dtVcopy(&resultWalls[Wall0Offset], va);
+			dtVcopy(&resultWalls[Wall1Offset], vb);
 			resultRefs[*resultCount * 2 + 0] = ref0;
 			resultRefs[*resultCount * 2 + 1] = ref1;
 
 			*resultCount += 1;
+
+			// find intersection between two edge segments
+			if (nav)
+			{
+				const dtMeshTile* NeiTile = 0;
+				const dtPoly* NeiPoly = 0;
+				nav->getTileAndPolyByRef(ref1, &NeiTile, &NeiPoly);
+
+				unsigned int NeiLinkId = NeiPoly ? NeiPoly->firstLink : DT_NULL_LINK;
+				while (NeiLinkId != DT_NULL_LINK)
+				{
+					const dtLink& link = nav->getLink(NeiTile, NeiLinkId);
+					NeiLinkId = link.next;
+
+					if (link.ref == ref0)
+					{
+						const float* va2 = &NeiTile->verts[NeiPoly->verts[link.edge] * 3];
+						const float* vb2 = &NeiTile->verts[NeiPoly->verts[(link.edge + 1) % NeiPoly->vertCount] * 3];
+
+						// project segment va2-vb2 on va-vb: point va2
+						float seg[3], toPt[3], closestA[3], closestB[3];
+						dtVsub(seg, vb, va);
+
+						dtVsub(toPt, va2, va);
+						float d1 = dtVdot(toPt, seg);
+						float d2 = dtVdot(seg, seg);
+
+						if (d1 <= 0)
+						{
+							dtVcopy(closestA, va);
+						}
+						else if (d2 <= d1)
+						{
+							dtVcopy(closestA, vb);
+						}
+						else
+						{
+							dtVmad(closestA, va, seg, d1 / d2);
+						}
+
+						// project segment va2-vb2 on va-vb: point vb2
+						dtVsub(toPt, vb2, va);
+						d1 = dtVdot(toPt, seg);
+						d2 = dtVdot(seg, seg);
+
+						if (d1 <= 0)
+						{
+							dtVcopy(closestB, va);
+						}
+						else if (d2 <= d1)
+						{
+							dtVcopy(closestB, vb);
+						}
+						else
+						{
+							dtVmad(closestB, va, seg, d1 / d2);
+						}
+
+						// store projected segment (intersection of both edges)
+						dtVcopy(&resultWalls[Wall0Offset], closestA);
+						dtVcopy(&resultWalls[Wall1Offset], closestB);
+						break;
+					}
+				}
+			}
 		}
 	}
 }
@@ -4188,7 +4271,7 @@ dtStatus dtNavMeshQuery::findWallsInNeighbourhood(dtPolyRef startRef, const floa
 			{
 				// store wall segment
 				storeWallSegment(curTile, curPoly, link.edge, 
-					curRef, neighbourRef, centerPos, radiusSqr, 
+					curRef, 0, 0, centerPos, radiusSqr, 
 					resultWalls, resultRefs, resultCount, maxResult);
 				continue;
 			}
@@ -4214,9 +4297,10 @@ dtStatus dtNavMeshQuery::findWallsInNeighbourhood(dtPolyRef startRef, const floa
 			if (!filter->passFilter(neighbourRef, neighbourTile, neighbourPoly) || !passLinkFilterByRef(neighbourTile, neighbourRef))
 			{
 				// store wall segment
-				storeWallSegment(curTile, curPoly, link.edge, 
-					curRef, neighbourRef, centerPos, radiusSqr,
+				storeWallSegment(curTile, curPoly, link.edge,
+					curRef, neighbourRef, m_nav, centerPos, radiusSqr,
 					resultWalls, resultRefs, resultCount, maxResult);
+
 				continue;
 			}
 
@@ -4281,7 +4365,7 @@ dtStatus dtNavMeshQuery::findWallsInNeighbourhood(dtPolyRef startRef, const floa
 			if (bStoreEdge)
 			{
 				storeWallSegment(curTile, curPoly, neighbourIndex,
-					curRef, 0, centerPos, radiusSqr, 
+					curRef, 0, 0, centerPos, radiusSqr, 
 					resultWalls, resultRefs, resultCount, maxResult);
 			}
 		}

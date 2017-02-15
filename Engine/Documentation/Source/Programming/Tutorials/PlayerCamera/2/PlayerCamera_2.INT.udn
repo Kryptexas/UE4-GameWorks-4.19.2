@@ -59,7 +59,7 @@ Now that we have defined our input, we need to write some code to react to it. W
     [/PARAM]
     [PARAM:content]
 		**PawnWithCamera.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -75,9 +75,11 @@ Now that we have defined our input, we need to write some code to react to it. W
 				// Sets default values for this pawn's properties
 				APawnWithCamera();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
-	
+			
+			public:
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 
@@ -91,7 +93,7 @@ Now that we have defined our input, we need to write some code to react to it. W
 			};
 
 		**PawnWithCamera.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerCamera.h"
 			#include "PawnWithCamera.h"

@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 /*-----------------------------------------------------------------------------
 	Binary Heap, used to index another data structure.
 

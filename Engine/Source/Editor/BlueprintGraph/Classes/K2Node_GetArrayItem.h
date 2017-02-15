@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "K2Node.h"
 #include "K2Node_GetArrayItem.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
+class UEdGraphPin;
+struct FEdGraphPinType;
 
 UCLASS(MinimalAPI, Category = "Utilities|Array", meta=(Keywords = "array"))
 class UK2Node_GetArrayItem : public UK2Node

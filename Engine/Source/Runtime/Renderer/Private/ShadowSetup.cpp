@@ -1,12 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowSetup.cpp: Dynamic shadow setup implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/MemStack.h"
+#include "HAL/IConsoleManager.h"
+#include "EngineDefines.h"
+#include "RHI.h"
+#include "RenderingThread.h"
+#include "ConvexVolume.h"
+#include "SceneTypes.h"
+#include "SceneInterface.h"
+#include "RendererInterface.h"
+#include "PrimitiveViewRelevance.h"
+#include "SceneManagement.h"
+#include "ScenePrivateBase.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "GenericOctree.h"
+#include "LightSceneInfo.h"
+#include "ShadowRendering.h"
+#include "TextureLayout.h"
+#include "SceneRendering.h"
+#include "DynamicPrimitiveDrawing.h"
 #include "LightPropagationVolume.h"
+#include "ScenePrivate.h"
+#include "RendererModule.h"
 #include "LightPropagationVolumeBlendable.h"
 #include "CapsuleShadowRendering.h"
 
@@ -1220,7 +1241,7 @@ void FSceneRenderer::UpdatePreshadowCache(FSceneRenderTargets& SceneContext)
 		{
 			// Initialize the texture layout if necessary
 			const FIntPoint PreshadowCacheBufferSize = SceneContext.GetPreShadowCacheTextureResolution();
-			Scene->PreshadowCacheLayout = FTextureLayout(1, 1, PreshadowCacheBufferSize.X, PreshadowCacheBufferSize.Y, false, false);
+			Scene->PreshadowCacheLayout = FTextureLayout(1, 1, PreshadowCacheBufferSize.X, PreshadowCacheBufferSize.Y, false, false, false);
 		}
 
 		// Iterate through the cached preshadows, removing those that are not going to be rendered this frame
@@ -1466,7 +1487,6 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 	
 	// Compute the maximum resolution required for the shadow by any view. Also keep track of the unclamped resolution for fading.
 	uint32 MaxDesiredResolution = 0;
-	float MaxUnclampedResolution = 0;
 	float MaxScreenPercent = 0;
 	TArray<float, TInlineAllocator<2> > ResolutionFadeAlphas;
 	TArray<float, TInlineAllocator<2> > ResolutionPreShadowFadeAlphas;
@@ -1497,25 +1517,43 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 
 		// Determine the amount of shadow buffer resolution needed for this view.
 		const float UnclampedResolution = ScreenRadius * CVarShadowTexelsPerPixel.GetValueOnRenderThread();
-		MaxUnclampedResolution = FMath::Max( MaxUnclampedResolution, UnclampedResolution );
-		MaxDesiredResolution = FMath::Max(
-			MaxDesiredResolution,
-			FMath::Clamp<uint32>(
-				UnclampedResolution,
-				FMath::Min<int32>(MinShadowResolution,ShadowBufferResolution.X - SHADOW_BORDER * 2),
-				MaxShadowResolution
-				)
-			);
 
 		// Calculate fading based on resolution
+		// Compute FadeAlpha before ShadowResolutionScale contribution (artists want to modify the softness of the shadow, not change the fade ranges)
 		const float ViewSpecificAlpha = CalculateShadowFadeAlpha( UnclampedResolution, ShadowFadeResolution, MinShadowResolution );
 		MaxResolutionFadeAlpha = FMath::Max(MaxResolutionFadeAlpha, ViewSpecificAlpha);
 		ResolutionFadeAlphas.Add(ViewSpecificAlpha);
 
-	
 		const float ViewSpecificPreShadowAlpha = CalculateShadowFadeAlpha(UnclampedResolution * CVarPreShadowResolutionFactor.GetValueOnRenderThread(), PreShadowFadeResolution, MinPreShadowResolution);
 		MaxResolutionPreShadowFadeAlpha = FMath::Max(MaxResolutionPreShadowFadeAlpha, ViewSpecificPreShadowAlpha);
 		ResolutionPreShadowFadeAlphas.Add(ViewSpecificPreShadowAlpha);
+
+		const float ShadowResolutionScale = LightSceneInfo->Proxy->GetShadowResolutionScale();
+
+		float ClampedResolution = UnclampedResolution;
+
+		if (ShadowResolutionScale > 1.0f)
+		{
+			// Apply ShadowResolutionScale before the MaxShadowResolution clamp if raising the resolution
+			ClampedResolution *= ShadowResolutionScale;
+		}
+
+		ClampedResolution = FMath::Min<float>(ClampedResolution, MaxShadowResolution);
+
+		if (ShadowResolutionScale <= 1.0f)
+		{
+			// Apply ShadowResolutionScale after the MaxShadowResolution clamp if lowering the resolution
+			// Artists want to modify the softness of the shadow with ShadowResolutionScale
+			ClampedResolution *= ShadowResolutionScale;
+		}
+
+		MaxDesiredResolution = FMath::Max(
+			MaxDesiredResolution,
+			FMath::Max<uint32>(
+				ClampedResolution,
+				FMath::Min<int32>(MinShadowResolution, ShadowBufferResolution.X - SHADOW_BORDER * 2)
+				)
+			);
 	}
 
 	FBoxSphereBounds Bounds = OriginalBounds;
@@ -1712,7 +1750,20 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 					for (int32 ChildIndex = 0; ChildIndex < ShadowGroupPrimitives.Num(); ChildIndex++)
 					{
 						FPrimitiveSceneInfo* ShadowChild = ShadowGroupPrimitives[ChildIndex];
-						ProjectedPreShadowInfo->AddReceiverPrimitive(ShadowChild);
+						bool bChildIsVisibleInAnyView = false;
+						for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+						{
+							const FViewInfo& View = Views[ViewIndex];
+							if (View.PrimitiveVisibilityMap[ShadowChild->GetIndex()])
+							{
+								bChildIsVisibleInAnyView = true;
+								break;
+							}
+						}
+						if (bChildIsVisibleInAnyView)
+						{
+							ProjectedPreShadowInfo->AddReceiverPrimitive(ShadowChild);
+						}
 					}
 				}
 			}
@@ -1830,7 +1881,6 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightScene
 
 		// Compute the maximum resolution required for the shadow by any view. Also keep track of the unclamped resolution for fading.
 		float MaxDesiredResolution = 0;
-		float MaxUnclampedResolution = 0;
 		TArray<float, TInlineAllocator<2> > FadeAlphas;
 		float MaxFadeAlpha = 0;
 		bool bStaticSceneOnly = false;
@@ -1848,22 +1898,41 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightScene
 
 			// Determine the amount of shadow buffer resolution needed for this view.
 			const float UnclampedResolution = ScreenRadius * CVarShadowTexelsPerPixelSpotlight.GetValueOnRenderThread();
-			MaxUnclampedResolution = FMath::Max( MaxUnclampedResolution, UnclampedResolution );
+
+			// Compute FadeAlpha before ShadowResolutionScale contribution (artists want to modify the softness of the shadow, not change the fade ranges)
+			const float FadeAlpha = CalculateShadowFadeAlpha( UnclampedResolution, ShadowFadeResolution, MinShadowResolution );
+			MaxFadeAlpha = FMath::Max(MaxFadeAlpha, FadeAlpha);
+			FadeAlphas.Add(FadeAlpha);
+
+			const float ShadowResolutionScale = LightSceneInfo->Proxy->GetShadowResolutionScale();
+
+			float ClampedResolution = UnclampedResolution;
+
+			if (ShadowResolutionScale > 1.0f)
+			{
+				// Apply ShadowResolutionScale before the MaxShadowResolution clamp if raising the resolution
+				ClampedResolution *= ShadowResolutionScale;
+			}
+
+			ClampedResolution = FMath::Min<float>(ClampedResolution, MaxShadowResolution);
+
+			if (ShadowResolutionScale <= 1.0f)
+			{
+				// Apply ShadowResolutionScale after the MaxShadowResolution clamp if lowering the resolution
+				// Artists want to modify the softness of the shadow with ShadowResolutionScale
+				ClampedResolution *= ShadowResolutionScale;
+			}
+
 			MaxDesiredResolution = FMath::Max(
 				MaxDesiredResolution,
-				FMath::Clamp<float>(
-					UnclampedResolution,
-					FMath::Min<float>(MinShadowResolution,ShadowBufferResolution.X - EffectiveDoubleShadowBorder),
-					MaxShadowResolution
+				FMath::Max<float>(
+					ClampedResolution,
+					FMath::Min<float>(MinShadowResolution, ShadowBufferResolution.X - EffectiveDoubleShadowBorder)
 					)
 				);
 
 			bStaticSceneOnly = bStaticSceneOnly || View.bStaticSceneOnly;
 			bAnyViewIsSceneCapture = bAnyViewIsSceneCapture || View.bIsSceneCapture;
-
-			const float FadeAlpha = CalculateShadowFadeAlpha( MaxUnclampedResolution, ShadowFadeResolution, MinShadowResolution );
-			MaxFadeAlpha = FMath::Max(MaxFadeAlpha, FadeAlpha);
-			FadeAlphas.Add(FadeAlpha);
 		}
 
 		if (MaxFadeAlpha > 1.0f / 256.0f)
@@ -2715,9 +2784,9 @@ void FSceneRenderer::AllocateShadowDepthTargets(FRHICommandListImmediate& RHICmd
 			}
 
 			if (IsForwardShadingEnabled(FeatureLevel) 
-				&& (!ProjectedShadowInfo->GetLightSceneInfo().Proxy->HasStaticShadowing() || ProjectedShadowInfo->GetLightSceneInfo().Proxy->GetPreviewShadowMapChannel() == -1))
+				&& ProjectedShadowInfo->GetLightSceneInfo().GetDynamicShadowMapChannel() == -1)
 			{
-				// With forward shading, dynamic shadows are projected into channels of the light attenuation texture based on their assigned ShadowMapChannel
+				// With forward shading, dynamic shadows are projected into channels of the light attenuation texture based on their assigned DynamicShadowMapChannel
 				bShadowIsVisible = false;
 			}
 
@@ -2830,6 +2899,8 @@ void FSceneRenderer::AllocateShadowDepthTargets(FRHICommandListImmediate& RHICmd
 			FProjectedShadowInfo* ProjectedShadowInfo = CachedPreShadows[ShadowIndex];
 			ProjectedShadowInfo->RenderTargets.DepthTarget = Scene->PreShadowCacheDepthZ.GetReference();
 
+			// Note: adding preshadows whose depths are cached so that GatherDynamicMeshElements
+			// will still happen, which is necessary for preshadow receiver stenciling
 			ProjectedShadowInfo->SetupShadowDepthView(RHICmdList, this);
 			SortedShadowsForShadowDepthPass.PreshadowCache.Shadows.Add(ProjectedShadowInfo);
 		}
@@ -2865,7 +2936,7 @@ void FSceneRenderer::AllocatePerObjectShadowDepthTargets(FRHICommandListImmediat
 
 		int32 OriginalNumAtlases = SortedShadowsForShadowDepthPass.ShadowMapAtlases.Num();
 
-		FTextureLayout CurrentShadowLayout(1, 1, ShadowBufferResolution.X, ShadowBufferResolution.Y, false, false);
+		FTextureLayout CurrentShadowLayout(1, 1, ShadowBufferResolution.X, ShadowBufferResolution.Y, false, false, false);
 		FPooledRenderTargetDesc ShadowMapDesc2D = FPooledRenderTargetDesc::Create2DDesc(ShadowBufferResolution, PF_ShadowDepth, FClearValueBinding::DepthOne, TexCreate_None, TexCreate_DepthStencilTargetable, false);
 
 		// Sort the projected shadows by resolution.
@@ -2906,7 +2977,7 @@ void FSceneRenderer::AllocatePerObjectShadowDepthTargets(FRHICommandListImmediat
 				}
 				else
 				{
-					CurrentShadowLayout = FTextureLayout(1, 1, ShadowBufferResolution.X, ShadowBufferResolution.Y, false, false);
+					CurrentShadowLayout = FTextureLayout(1, 1, ShadowBufferResolution.X, ShadowBufferResolution.Y, false, false, false);
 					SortedShadowsForShadowDepthPass.ShadowMapAtlases.AddDefaulted();
 
 					if (CurrentShadowLayout.AddElement(
@@ -2987,7 +3058,7 @@ const TCHAR* GetCSMRenderTargetName(int32 ShadowMapIndex)
 struct FLayoutAndAssignedShadows
 {
 	FLayoutAndAssignedShadows(int32 MaxTextureSize) :
-		TextureLayout(1, 1, MaxTextureSize, MaxTextureSize, false, false)
+		TextureLayout(1, 1, MaxTextureSize, MaxTextureSize, false, false, false)
 	{}
 
 	FTextureLayout TextureLayout;
@@ -3061,7 +3132,7 @@ void FSceneRenderer::AllocateRSMDepthTargets(FRHICommandListImmediate& RHICmdLis
 		&& FeatureLevel >= ERHIFeatureLevel::SM5)
 	{
 		const int32 MaxTextureSize = 1 << (GMaxTextureMipCount - 1);
-		FTextureLayout ShadowLayout(1, 1, MaxTextureSize, MaxTextureSize, false, false);
+		FTextureLayout ShadowLayout(1, 1, MaxTextureSize, MaxTextureSize, false, false, false);
 
 		for (int32 ShadowIndex = 0; ShadowIndex < RSMShadows.Num(); ShadowIndex++)
 		{
@@ -3193,7 +3264,7 @@ void FSceneRenderer::AllocateTranslucentShadowDepthTargets(FRHICommandListImmedi
 		// Start with an empty atlas for per-object shadows (don't allow packing object shadows into the CSM atlas atm)
 		SortedShadowsForShadowDepthPass.TranslucencyShadowMapAtlases.AddDefaulted();
 
-		FTextureLayout CurrentShadowLayout(1, 1, TranslucentShadowBufferResolution.X, TranslucentShadowBufferResolution.Y, false, false);
+		FTextureLayout CurrentShadowLayout(1, 1, TranslucentShadowBufferResolution.X, TranslucentShadowBufferResolution.Y, false, false, false);
 
 		// Sort the projected shadows by resolution.
 		TranslucentShadows.Sort(FCompareFProjectedShadowInfoByResolution());
@@ -3216,7 +3287,7 @@ void FSceneRenderer::AllocateTranslucentShadowDepthTargets(FRHICommandListImmedi
 			}
 			else
 			{
-				CurrentShadowLayout = FTextureLayout(1, 1, TranslucentShadowBufferResolution.X, TranslucentShadowBufferResolution.Y, false, false);
+				CurrentShadowLayout = FTextureLayout(1, 1, TranslucentShadowBufferResolution.X, TranslucentShadowBufferResolution.Y, false, false, false);
 				SortedShadowsForShadowDepthPass.TranslucencyShadowMapAtlases.AddDefaulted();
 
 				if (CurrentShadowLayout.AddElement(

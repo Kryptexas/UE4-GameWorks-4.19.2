@@ -1,30 +1,52 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Lightmass.h: lightmass import/export implementation.
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "Lightmass/Lightmass.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/App.h"
+#include "UObject/UObjectIterator.h"
+#include "EngineDefines.h"
+#include "Engine/World.h"
+#include "StaticMeshLight.h"
 #include "PrecomputedLightVolume.h"
-#include "Runtime/Engine/Public/StaticMeshResources.h"
-#include "LandscapeRender.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "ModelLight.h"
 #include "LandscapeLight.h"
-#include "Runtime/Engine/Classes/Matinee/MatineeActor.h"
-#include "Runtime/Engine/Classes/Matinee/InterpGroup.h"
-#include "Runtime/Engine/Classes/Matinee/InterpGroupInst.h"
-#include "Runtime/Engine/Classes/Matinee/InterpTrackMove.h"
-#include "Runtime/Engine/Classes/Matinee/InterpTrackInstMove.h"
-#include "Runtime/Engine/Classes/Components/SplineMeshComponent.h"
+#include "Materials/Material.h"
+#include "Camera/CameraActor.h"
+#include "Components/PointLightComponent.h"
+#include "Components/SpotLightComponent.h"
+#include "Engine/GeneratedMeshAreaLight.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/SkyLightComponent.h"
+#include "Components/ModelComponent.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "EngineUtils.h"
+#include "Editor.h"
+#include "LevelEditorViewport.h"
+#include "StaticMeshResources.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
+#include "LandscapeProxy.h"
+#include "LandscapeComponent.h"
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpGroup.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackInstMove.h"
+#include "Components/SplineMeshComponent.h"
 #include "Lightmass/PrecomputedVisibilityVolume.h"
 #include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
 #include "ComponentReregisterContext.h"
 #include "ShaderCompiler.h"
-#include "Lightmass/Lightmass.h"
 #include "Engine/LevelStreaming.h"
-#include "Components/DirectionalLightComponent.h"
-#include "Components/ModelComponent.h"
-#include "Engine/GeneratedMeshAreaLight.h"
-#include "Components/SkyLightComponent.h"
 #include "UnrealEngine.h"
 #include "ComponentRecreateRenderStateContext.h"
 
@@ -58,16 +80,13 @@ void FSwarmDebugOptions::Touch()
 }
 #endif
 
-#include "Programs/UnrealLightmass/Public/LightmassPublic.h"
-#include "Lightmass.h"
-#include "StaticMeshLight.h"
-#include "ModelLight.h"
-#include "LandscapeLight.h"
-#include "LandscapeDataAccess.h"
-#include "Editor/StatsViewer/Public/StatsViewerModule.h"
-#include "Editor/StatsViewer/Classes/LightingBuildInfo.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
+#include "ImportExport.h"
+#include "MaterialExport.h"
+#include "StatsViewerModule.h"
+#include "LightingBuildInfo.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
 
 #define LOCTEXT_NAMESPACE "Lightmass"
 
@@ -3012,10 +3031,10 @@ void FLightmassProcessor::ImportVolumeSamples()
 		const int32 Channel = Swarm.OpenChannel( *ChannelName, LM_VOLUMESAMPLES_CHANNEL_FLAGS );
 		if (Channel >= 0)
 		{
-			FVector4 VolumeCenter;
-			Swarm.ReadChannel(Channel, &VolumeCenter, sizeof(VolumeCenter));
-			FVector4 VolumeExtent;
-			Swarm.ReadChannel(Channel, &VolumeExtent, sizeof(VolumeExtent));
+			FVector4 UnusedVolumeCenter;
+			Swarm.ReadChannel(Channel, &UnusedVolumeCenter, sizeof(UnusedVolumeCenter));
+			FVector4 UnusedVolumeExtent;
+			Swarm.ReadChannel(Channel, &UnusedVolumeExtent, sizeof(UnusedVolumeExtent));
 
 			int32 NumStreamLevels = System.GetWorld()->StreamingLevels.Num();
 			int32 NumVolumeSampleArrays;
@@ -3028,52 +3047,59 @@ void FLightmassProcessor::ImportVolumeSamples()
 				ReadArray(Channel, VolumeSamples);
 				ULevel* CurrentLevel = FindLevel(LevelGuid);
 
-				if (CurrentLevel)
+				// Only build precomputed light for visible streamed levels
+				if (CurrentLevel && CurrentLevel->bIsVisible)
 				{
 					ULevel* CurrentStorageLevel = System.LightingScenario ? System.LightingScenario : CurrentLevel;
 					UMapBuildDataRegistry* CurrentRegistry = CurrentStorageLevel->GetOrCreateMapBuildData();
 					FPrecomputedLightVolumeData& CurrentLevelData = CurrentRegistry->AllocateLevelBuildData(CurrentLevel->LevelBuildDataId);
 
-					CurrentLevelData.Initialize(FBox(VolumeCenter - VolumeExtent, VolumeCenter + VolumeExtent));
+					FBox LevelVolumeBounds(0);
 
-					// Only build precomputed light for visible streamed levels
-					if (CurrentLevel->bIsVisible)
+					for (int32 SampleIndex = 0; SampleIndex < VolumeSamples.Num(); SampleIndex++)
 					{
-						for (int32 SampleIndex = 0; SampleIndex < VolumeSamples.Num(); SampleIndex++)
-						{
-							const Lightmass::FVolumeLightingSampleData& CurrentSample = VolumeSamples[SampleIndex];
-							FVolumeLightingSample NewHighQualitySample;
-							NewHighQualitySample.Position = CurrentSample.PositionAndRadius;
-							NewHighQualitySample.Radius = CurrentSample.PositionAndRadius.W;
-							NewHighQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
-							NewHighQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
-
-							for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS; CoefficientIndex++)
-							{
-								NewHighQualitySample.Lighting.R.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][0];
-								NewHighQualitySample.Lighting.G.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][1];
-								NewHighQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][2];
-							}							
-
-							FVolumeLightingSample NewLowQualitySample;
-							NewLowQualitySample.Position = CurrentSample.PositionAndRadius;
-							NewLowQualitySample.Radius = CurrentSample.PositionAndRadius.W;
-							NewLowQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
-							NewLowQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
-
-							for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS; CoefficientIndex++)
-							{
-								NewLowQualitySample.Lighting.R.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][0];
-								NewLowQualitySample.Lighting.G.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][1];
-								NewLowQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][2];
-							}							
-
-							CurrentLevelData.AddHighQualityLightingSample(NewHighQualitySample);
-							CurrentLevelData.AddLowQualityLightingSample(NewLowQualitySample);
-						}
-
-						CurrentLevelData.FinalizeSamples();
+						const Lightmass::FVolumeLightingSampleData& CurrentSample = VolumeSamples[SampleIndex];
+						FVector SampleMin = CurrentSample.PositionAndRadius - FVector(CurrentSample.PositionAndRadius.W);
+						FVector SampleMax = CurrentSample.PositionAndRadius + FVector(CurrentSample.PositionAndRadius.W);
+						LevelVolumeBounds += FBox(SampleMin, SampleMax);
 					}
+
+					CurrentLevelData.Initialize(LevelVolumeBounds);
+
+					for (int32 SampleIndex = 0; SampleIndex < VolumeSamples.Num(); SampleIndex++)
+					{
+						const Lightmass::FVolumeLightingSampleData& CurrentSample = VolumeSamples[SampleIndex];
+						FVolumeLightingSample NewHighQualitySample;
+						NewHighQualitySample.Position = CurrentSample.PositionAndRadius;
+						NewHighQualitySample.Radius = CurrentSample.PositionAndRadius.W;
+						NewHighQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
+						NewHighQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
+
+						for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS; CoefficientIndex++)
+						{
+							NewHighQualitySample.Lighting.R.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][0];
+							NewHighQualitySample.Lighting.G.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][1];
+							NewHighQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][2];
+						}							
+
+						FVolumeLightingSample NewLowQualitySample;
+						NewLowQualitySample.Position = CurrentSample.PositionAndRadius;
+						NewLowQualitySample.Radius = CurrentSample.PositionAndRadius.W;
+						NewLowQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
+						NewLowQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
+
+						for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS; CoefficientIndex++)
+						{
+							NewLowQualitySample.Lighting.R.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][0];
+							NewLowQualitySample.Lighting.G.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][1];
+							NewLowQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][2];
+						}							
+
+						CurrentLevelData.AddHighQualityLightingSample(NewHighQualitySample);
+						CurrentLevelData.AddLowQualityLightingSample(NewLowQualitySample);
+					}
+
+					CurrentLevelData.FinalizeSamples();
 				}
 			}
 

@@ -1,8 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Widgets/SWidget.h"
+#include "ISequencer.h"
+#include "MovieSceneTrack.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
+#include "MovieSceneTrackEditor.h"
+
+class FAssetData;
+class FFloatCurveKeyArea;
+class FMenuBuilder;
+class FSequencerSectionPainter;
 class UMovieSceneSkeletalAnimationSection;
+class USkeleton;
 
 /**
  * Tools for animation tracks
@@ -39,25 +54,29 @@ public:
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
 	virtual void BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track ) override;
 	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params) override;
+	virtual EMultipleRowMode GetMultipleRowMode() const override;
 
 private:
 
 	/** Animation sub menu */
-	TSharedRef<SWidget> BuildAnimationSubMenu(FGuid ObjectBinding, USkeleton* Skeleton);
-	void AddAnimationSubMenu(FMenuBuilder& MenuBuilder, FGuid ObjectBinding, USkeleton* Skeleton);
+	TSharedRef<SWidget> BuildAnimationSubMenu(FGuid ObjectBinding, USkeleton* Skeleton, UMovieSceneTrack* Track);
+	void AddAnimationSubMenu(FMenuBuilder& MenuBuilder, FGuid ObjectBinding, USkeleton* Skeleton, UMovieSceneTrack* Track);
+
+	/** Animation sub menu filter function */
+	bool ShouldFilterAsset(const FAssetData& AssetData);
 
 	/** Animation asset selected */
-	void OnAnimationAssetSelected(const FAssetData& AssetData, FGuid ObjectBinding);
+	void OnAnimationAssetSelected(const FAssetData& AssetData, FGuid ObjectBinding, UMovieSceneTrack* Track);
 
 	/** Delegate for AnimatablePropertyChanged in AddKey */
-	bool AddKeyInternal(float KeyTime, UObject* Object, class UAnimSequenceBase* AnimSequence);
+	bool AddKeyInternal(float KeyTime, UObject* Object, class UAnimSequenceBase* AnimSequence, UMovieSceneTrack* Track);
 
 	/** Gets a skeleton from an object guid in the movie scene */
 	class USkeleton* AcquireSkeletonFromObjectGuid(const FGuid& Guid);
 };
 
 
-/** Class for animation sections, handles drawing of all waveform previews */
+/** Class for animation sections */
 class FSkeletalAnimationSection
 	: public ISequencerSection
 	, public TSharedFromThis<FSkeletalAnimationSection>
@@ -78,7 +97,7 @@ public:
 	virtual FText GetDisplayName() const override;
 	virtual FText GetSectionTitle() const override;
 	virtual float GetSectionHeight() const override;
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override {}
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;
 	virtual int32 OnPaintSection( FSequencerSectionPainter& Painter ) const override;
 	virtual void BeginResizeSection() override;
 	virtual void ResizeSection(ESequencerSectionResizeMode ResizeMode, float ResizeTime) override;
@@ -87,6 +106,9 @@ private:
 
 	/** The section we are visualizing */
 	UMovieSceneSkeletalAnimationSection& Section;
+
+	/** Weight key areas. */
+	mutable TSharedPtr<FFloatCurveKeyArea> WeightArea;
 
 	/** Cached start offset value valid only during resize */
 	float InitialStartOffsetDuringResize;

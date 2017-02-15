@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=====================================================================================================
 	AnsiAllocator.h: helper allocator that allocates directly from standard library allocation functions
@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/ContainerAllocationPolicies.h"
 
 /** Allocator that allocates memory using standard library functions. */
 class CORE_API FAnsiAllocator

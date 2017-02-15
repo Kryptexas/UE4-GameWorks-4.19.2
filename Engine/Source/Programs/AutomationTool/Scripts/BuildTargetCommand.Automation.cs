@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -81,26 +81,9 @@ class BuildTarget : BuildCommand
 
 			foreach (UnrealTargetPlatform TargetPlatform in TargetPlatforms)
 			{
-				if (TargetData.Rules.SupportsPlatform(TargetPlatform))
+				foreach (UnrealTargetConfiguration TargetConfig in ConfigsToBuild)
 				{
-                    List<UnrealTargetConfiguration> SupportedConfigurations = new List<UnrealTargetConfiguration>();
-                    TargetData.Rules.GetSupportedConfigurations(ref SupportedConfigurations, true);
-
-					foreach (UnrealTargetConfiguration TargetConfig in ConfigsToBuild)
-					{
-						if (SupportedConfigurations.Contains(TargetConfig))
-						{
-                            Agenda.AddTarget(TargetData.TargetName, TargetPlatform, TargetConfig, UProjectFileReference);
-						}
-						else
-						{
-							Log("{0} doesn't support the {1} configuration. It will not be built.", TargetData.TargetName, TargetConfig);
-						}
-					}
-				}
-				else
-				{
-					Log("{0} doesn't support the {1} platform. It will not be built.", TargetData.TargetName, TargetPlatform);
+					Agenda.AddTarget(TargetData.TargetName, TargetPlatform, TargetConfig, UProjectFileReference);
 				}
 			}
 		}

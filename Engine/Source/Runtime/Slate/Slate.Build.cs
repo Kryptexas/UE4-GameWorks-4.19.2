@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -6,7 +6,7 @@ public class Slate : ModuleRules
 {
 	public Slate(TargetInfo Target)
 	{
-		SharedPCHHeaderFile = "Runtime/Slate/Public/SlateBasics.h";
+		SharedPCHHeaderFile = "Public/SlateSharedPCH.h";
 
 		PublicDependencyModuleNames.AddRange(
 			new string[] { 

@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SocketsPrivatePCH.h"
+#include "BSDIPv6Sockets/SocketSubsystemBSDIPv6.h"
+#include "Misc/ScopeLock.h"
 
 #if PLATFORM_HAS_BSD_IPV6_SOCKETS
 
-#include "SocketSubsystemBSDIPv6.h"
-#include "SocketsBSDIPv6.h"
+#include "BSDIPv6Sockets/IPAddressBSDIPv6.h"
 
 
 class FSocketBSDIPv6* FSocketSubsystemBSDIPv6::InternalBSDSocketFactory(SOCKET Socket, ESocketType SocketType, const FString& SocketDescription)
@@ -38,6 +38,11 @@ FSocket* FSocketSubsystemBSDIPv6::CreateSocket(const FName& SocketType, const FS
 	}
 
 	return NewSocket;
+}
+
+FResolveInfoCached* FSocketSubsystemBSDIPv6::CreateResolveInfoCached(TSharedPtr<FInternetAddr> Addr) const
+{
+	return new FResolveInfoCachedBSDIPv6(*Addr);
 }
 
 void FSocketSubsystemBSDIPv6::DestroySocket(FSocket* Socket)

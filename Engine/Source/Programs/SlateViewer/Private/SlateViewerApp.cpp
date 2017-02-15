@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateViewerApp.h"
 #include "RequiredProgramMainCPPInclude.h"
@@ -7,6 +7,7 @@
 #include "SPerfSuite.h"
 #include "SDockTab.h"
 #include "SWebBrowser.h"
+#include "Framework/Application/SlateApplication.h"
 #include "IWebBrowserWindow.h"
 #include "IWebBrowserPopupFeatures.h"
 

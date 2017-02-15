@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==================================================================================================
 	FixupNeedsLoadForEditorGameCommandlet.cpp: Fixes outdated NeedsLoadForEditorGame flags on exports
 ====================================================================================================*/
 
-#include "UnrealEd.h"
 #include "Commandlets/FixupNeedsLoadForEditorGameCommandlet.h"
+#include "UObject/Class.h"
+#include "UObject/Package.h"
+#include "UObject/LinkerLoad.h"
 
 int32 UFixupNeedsLoadForEditorGameCommandlet::InitializeResaveParameters(const TArray<FString>& Tokens, TArray<FString>& MapPathNames)
 {

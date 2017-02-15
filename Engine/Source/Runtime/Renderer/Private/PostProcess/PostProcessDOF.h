@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessDOF.h: Post process Depth of Field implementation.
@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
+#include "PostProcess/RenderingCompositionGraph.h"
 
 // down sample and setup DOF input
 // ePId_Input0: SceneColor

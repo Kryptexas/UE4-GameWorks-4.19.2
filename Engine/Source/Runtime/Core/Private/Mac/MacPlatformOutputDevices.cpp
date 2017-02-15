@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MacPlatformOutputDevices.mm: Mac implementations of OutputDevices functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "MacPlatformOutputDevices.h"
 #include "Misc/App.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/ConfigCacheIni.h"
 
 #include "FeedbackContextAnsi.h"
 #include "MacApplication.h"

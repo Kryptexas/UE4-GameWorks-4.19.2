@@ -1,30 +1,60 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnParticleComponent.cpp: Particle component implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/CommandLine.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "Misc/App.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineDefines.h"
+#include "EngineGlobals.h"
+#include "Engine/EngineTypes.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "Engine/CollisionProfile.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/Emitter.h"
+#include "ParticleHelper.h"
+#include "Distributions/DistributionFloat.h"
+#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
+#include "ParticleEmitterInstances.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Distributions/DistributionFloatConstant.h"
+#include "Distributions/DistributionFloatUniform.h"
 #include "Distributions/DistributionVectorConstant.h"
-#include "Distributions/DistributionVectorConstantCurve.h"
 #include "Distributions/DistributionVectorUniform.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "UnrealEngine.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
 #include "StaticMeshResources.h"
-#include "ParticleDefinitions.h"
 #include "Particles/EmitterCameraLensEffectBase.h"
-#include "LevelUtils.h"
-#include "ImageUtils.h"
 #include "FXSystem.h"
-#include "Net/UnrealNetwork.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
 #if WITH_EDITOR
+#include "Engine/InterpCurveEdSetup.h"
 #include "ObjectEditorUtils.h"
 #endif
 
 #include "Particles/Camera/ParticleModuleCameraOffset.h"
 #include "Particles/Collision/ParticleModuleCollision.h"
 #include "Particles/Color/ParticleModuleColorOverLife.h"
+#include "Scalability.h"
+#include "Particles/ParticleEmitter.h"
 #include "Particles/Event/ParticleModuleEventGenerator.h"
 #include "Particles/Event/ParticleModuleEventReceiverBase.h"
 #include "Particles/Lifetime/ParticleModuleLifetimeBase.h"
@@ -35,29 +65,21 @@
 #include "Particles/Orbit/ParticleModuleOrbit.h"
 #include "Particles/Parameter/ParticleModuleParameterDynamic.h"
 #include "Particles/Size/ParticleModuleSize.h"
-#include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/Spawn/ParticleModuleSpawnBase.h"
+#include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/TypeData/ParticleModuleTypeDataBase.h"
 #include "Particles/TypeData/ParticleModuleTypeDataBeam2.h"
+#include "Particles/ParticleSpriteEmitter.h"
 #include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Particles/Velocity/ParticleModuleVelocity.h"
-#include "Particles/Emitter.h"
-#include "Particles/EmitterCameraLensEffectBase.h"
 #include "Particles/ParticleEventManager.h"
 #include "Particles/ParticleLODLevel.h"
-#include "Particles/ParticleModule.h"
 #include "Particles/ParticleModuleRequired.h"
-#include "Particles/ParticleSpriteEmitter.h"
-#include "Particles/ParticleSystem.h"
-#include "Particles/ParticleSystemComponent.h"
 #include "Particles/ParticleSystemReplay.h"
 #include "Distributions/DistributionFloatConstantCurve.h"
 #include "Particles/SubUV/ParticleModuleSubUV.h"
-#include "Particles/SubUVAnimation.h"
-#include "Engine/InterpCurveEdSetup.h"
 #include "GameFramework/GameState.h"
-#include "FrameworkObjectVersion.h"
 
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent InitParticles"), STAT_ParticleSystemComponent_InitParticles, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderDynamicData"), STAT_ParticleSystemComponent_SendRenderDynamicData_Concurrent, STATGROUP_Particles);
@@ -2181,7 +2203,7 @@ void UParticleSystem::PostLoad()
 		if (Emitter == NULL)
 		{
 			// Empty emitter slots are ok with cooked content.
-			if( !FPlatformProperties::RequiresCookedData() )
+			if( !FPlatformProperties::RequiresCookedData() && !GIsServer)
 			{
 				UE_LOG(LogParticles, Warning, TEXT("ParticleSystem contains empty emitter slots - %s"), *GetFullName());
 			}
@@ -2412,11 +2434,11 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 	const float BoundsSize = FixedRelativeBoundingBox.GetSize().GetMax();
 	OutTags.Add(FAssetRegistryTag("FixedBoundsSize", bUseFixedRelativeBoundingBox ? FString::Printf(TEXT("%.2f"), BoundsSize) : FString(TEXT("None")), FAssetRegistryTag::TT_Numerical));
 
-	OutTags.Add(FAssetRegistryTag("NumEmitters", LexicalConversion::ToString(Emitters.Num()), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("NumEmitters", Lex::ToString(Emitters.Num()), FAssetRegistryTag::TT_Numerical));
 
-	OutTags.Add(FAssetRegistryTag("NumLODs", LexicalConversion::ToString(LODDistances.Num()), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("NumLODs", Lex::ToString(LODDistances.Num()), FAssetRegistryTag::TT_Numerical));
 
-	OutTags.Add(FAssetRegistryTag("WarmupTime", LexicalConversion::ToString(WarmupTime), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("WarmupTime", Lex::ToString(WarmupTime), FAssetRegistryTag::TT_Numerical));
 
 	// Done here instead of as an AssetRegistrySearchable string to avoid the long prefix on the enum value string
 	FString LODMethodString = TEXT("Unknown");
@@ -2451,10 +2473,10 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 			++NumEmittersAtEachSig[(int32)Emitter->SignificanceLevel];			
 		}
 	}
-	OutTags.Add(FAssetRegistryTag("Critical Emitters", LexicalConversion::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Critical]), FAssetRegistryTag::TT_Numerical));
-	OutTags.Add(FAssetRegistryTag("High Emitters", LexicalConversion::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::High]), FAssetRegistryTag::TT_Numerical));
-	OutTags.Add(FAssetRegistryTag("Medium Emitters", LexicalConversion::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Medium]), FAssetRegistryTag::TT_Numerical));
-	OutTags.Add(FAssetRegistryTag("Low Emitters", LexicalConversion::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Low]), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Critical Emitters", Lex::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Critical]), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("High Emitters", Lex::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::High]), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Medium Emitters", Lex::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Medium]), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Low Emitters", Lex::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Low]), FAssetRegistryTag::TT_Numerical));
 
 	Super::GetAssetRegistryTags(OutTags);
 }
@@ -3500,10 +3522,10 @@ void UParticleSystemComponent::OnRegister()
 			}
 		}
 
-			SavedAutoAttachRelativeLocation = RelativeLocation;
-			SavedAutoAttachRelativeRotation = RelativeRotation;
-			SavedAutoAttachRelativeScale3D = RelativeScale3D;
-		}
+		SavedAutoAttachRelativeLocation = RelativeLocation;
+		SavedAutoAttachRelativeRotation = RelativeRotation;
+		SavedAutoAttachRelativeScale3D = RelativeScale3D;
+	}
 
 	Super::OnRegister();
 
@@ -3642,7 +3664,10 @@ void UParticleSystemComponent::DestroyRenderState_Concurrent()
 		ResetParticles();
 	}
 
-	Super::DestroyRenderState_Concurrent();
+	if (bRenderStateCreated)
+	{
+		Super::DestroyRenderState_Concurrent();
+	}
 }
 
 
@@ -4326,6 +4351,11 @@ TAutoConsoleVariable<int32> CVarFXEarlySchedule(TEXT("FX.EarlyScheduleAsync"), 0
 
 DECLARE_CYCLE_STAT(TEXT("PSys Comp Marshall Time"),STAT_UParticleSystemComponent_Marshall,STATGROUP_Particles);
 
+bool UParticleSystemComponent::IsReadyForOwnerToAutoDestroy() const
+{
+	return (!bIsActive && bWasCompleted);
+}
+
 void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bIsManagingSignificance);
@@ -4518,7 +4548,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	{
 		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if (PlayerController->IsLocalPlayerController())
 			{
 				FVector POVLoc;
@@ -4932,7 +4962,6 @@ void UParticleSystemComponent::InitParticles()
 		int32 NumInstances = EmitterInstances.Num();
 		int32 NumEmitters = Template->Emitters.Num();
 		const bool bIsFirstCreate = NumInstances == 0;
-		check(bIsFirstCreate || NumInstances == NumEmitters);
 		EmitterInstances.SetNumZeroed(NumEmitters);
 
 		bWasCompleted = bIsFirstCreate ? false : bWasCompleted;
@@ -6196,7 +6225,7 @@ int32 UParticleSystemComponent::DetermineLODLevelForLocation(const FVector& Effe
 		{
 			for( FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator )
 			{
-				APlayerController* PlayerController = *Iterator;
+				APlayerController* PlayerController = Iterator->Get();
 				if(PlayerController->IsLocalPlayerController())
 				{
 					FVector* POVLoc = new(PlayerViewLocations) FVector;
@@ -6684,57 +6713,129 @@ void UParticleSystemComponent::AutoPopulateInstanceProperties()
 	}
 }
 
-
-void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const
+void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials ) const
 {
-	if( Template )
+	if (Template)
 	{
-		for( int32 EmitterIdx = 0; EmitterIdx < Template->Emitters.Num(); ++EmitterIdx )
+		for (int32 EmitterIdx = 0; EmitterIdx < Template->Emitters.Num(); ++EmitterIdx)
 		{
-			const UParticleEmitter* Emitter = Template->Emitters[ EmitterIdx ];
-			for( int32 LodLevel = 0; LodLevel < Emitter->LODLevels.Num(); ++LodLevel )
+			const UParticleEmitter* Emitter = Template->Emitters[EmitterIdx];
+			for (int32 LodIndex = 0; LodIndex < Emitter->LODLevels.Num(); ++LodIndex)
 			{
-				const UParticleLODLevel* LOD = Emitter->LODLevels[ LodLevel ];
+				const UParticleLODLevel* LOD = Emitter->LODLevels[LodIndex];
+
 				// Only process enabled emitters
-				if( LOD->bEnabled )
+				if (LOD->bEnabled)
 				{
-					// Assume no materials will be found on the modules.  If this remains true, the material off the required module will be taken
-					bool bMaterialsFound = false;
-					for( int32 ModuleIdx = 0; ModuleIdx < LOD->Modules.Num(); ++ModuleIdx )
+					const UParticleModuleTypeDataMesh* MeshTypeData = Cast<UParticleModuleTypeDataMesh>(LOD->TypeDataModule);
+
+					if (MeshTypeData && MeshTypeData->Mesh)
 					{
-						UParticleModule* Module = LOD->Modules[ ModuleIdx ];
-						if( Module->bEnabled && // Module is enabled
-								 Module->IsA( UParticleModuleMeshMaterial::StaticClass() ) && // Module is a mesh material module
-								 LOD->TypeDataModule && // There is a type data module
-								 LOD->TypeDataModule->bEnabled && // They type data module is enabled 
-								 LOD->TypeDataModule->IsA( UParticleModuleTypeDataMesh::StaticClass() ) ) // The type data module is mesh type data
+						const FStaticMeshLODResources& LODModel = MeshTypeData->Mesh->RenderData->LODResources[0];
+
+						// Gather the materials applied to the LOD.
+						for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 						{
-							// Module is a valid TypeDataMesh module
-							const UParticleModuleTypeDataMesh* TypeDataModule = Cast<UParticleModuleTypeDataMesh>( LOD->TypeDataModule );
-							if( !TypeDataModule->bOverrideMaterial )
-							{
-								// If the material isnt being overridden by the required module, for each mesh section, find the corresponding entry in the mesh material module
-								// If that entry does not exist, take the material directly off the mesh section
-								const UParticleModuleMeshMaterial* MaterialModule = Cast<UParticleModuleMeshMaterial>( LOD->Modules[ ModuleIdx ] );
-								if( TypeDataModule->Mesh )
+							UMaterialInterface* Material = NULL;
+							
+							TArray<FName>& NamedOverrides = LOD->RequiredModule->NamedMaterialOverrides;
+							TArray<FNamedEmitterMaterial>& Slots = Template->NamedMaterialSlots;
+
+							if (NamedOverrides.IsValidIndex(SectionIndex))
+							{	
+								//If we have named material overrides then get it's index into the emitter materials array.	
+								for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
 								{
-									for (const FStaticMaterial &StaticMaterial : TypeDataModule->Mesh->StaticMaterials)
+									if (NamedOverrides[SectionIndex] == Slots[CheckIdx].Name)
 									{
-										OutMaterials.Add(StaticMaterial.MaterialInterface);
+										//Default to the default material for that slot.
+										Material = Slots[CheckIdx].Material;
+										if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx] )
+										{
+											//This material has been overridden externally, e.g. from a BP so use that one.
+											Material = EmitterMaterials[CheckIdx];
+										}
+
+										break;
 									}
 								}
 							}
+
+							// See if there is a mesh material module.
+							if (Material == NULL)
+							{
+								// Walk in reverse order as in the case of multiple modules, only the final result will be applied
+								for (int32 ModuleIndex = LOD->Modules.Num()-1; ModuleIndex >= 0; --ModuleIndex)
+								{
+									UParticleModuleMeshMaterial* MeshMatModule = Cast<UParticleModuleMeshMaterial>(LOD->Modules[ModuleIndex]);
+									if (MeshMatModule && MeshMatModule->bEnabled)
+									{
+										if (SectionIndex < MeshMatModule->MeshMaterials.Num())
+										{
+											Material = MeshMatModule->MeshMaterials[SectionIndex];
+											break;
+										}
+									}
+								}
+							}
+
+							// Overriding the material?
+							if (Material == NULL && MeshTypeData->bOverrideMaterial == true)
+							{
+								Material = LOD->RequiredModule->Material;
+							}
+
+							// Use the material set on the mesh.
+							if (Material == NULL)
+							{
+								Material = MeshTypeData->Mesh->GetMaterial(LODModel.Sections[SectionIndex].MaterialIndex);
+							}
+
+							if (Material)
+							{
+								OutMaterials.Add(Material);
+							}
 						}
 					}
-					if( bMaterialsFound == false )
+					else
 					{
-						// If no material overrides were found in any of the lod modules, take the material off the required module
-						OutMaterials.Add( LOD->RequiredModule->Material );
+						UMaterialInterface* Material = NULL;
+							
+						TArray<FName>& NamedOverrides = LOD->RequiredModule->NamedMaterialOverrides;
+						TArray<FNamedEmitterMaterial>& Slots = Template->NamedMaterialSlots;
+
+						if (NamedOverrides.Num() > 0)
+						{
+							for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
+							{
+								if (NamedOverrides[0] == Slots[CheckIdx].Name)
+								{
+									//Default to the default material for that slot.
+									Material = Slots[CheckIdx].Material;
+									if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx])
+									{
+										//This material has been overridden externally, e.g. from a BP so use that one.
+										Material = EmitterMaterials[CheckIdx];
+									}
+        
+									break;
+								}
+							}
+						}
+
+						if (!Material)
+						{
+							Material = LOD->RequiredModule->Material;
+						}
+
+						OutMaterials.Add(Material);
 					}
 				}
 			}
 		}
 	}
+
+	OutMaterials.Append(EmitterMaterials);
 }
 
 FBodyInstance* UParticleSystemComponent::GetBodyInstance(FName BoneName /*= NAME_None*/, bool bGetWelded /*= true*/) const
@@ -6860,7 +6961,7 @@ bool UParticleSystemComponent::ShouldComputeLODFromGameThread()
 
 		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if (PlayerController->IsLocalPlayerController())
 			{
 				bUseGameThread = true;
@@ -7069,6 +7170,7 @@ AEmitterCameraLensEffectBase::AEmitterCameraLensEffectBase(const FObjectInitiali
 
 	// this property is deprecated, give it the sentinel value to indicate it doesn't need to be migrated
 	DistFromCamera_DEPRECATED = TNumericLimits<float>::Max();
+	bResetWhenRetriggered = false;
 }
 
 
@@ -7117,9 +7219,9 @@ void AEmitterCameraLensEffectBase::RegisterCamera(APlayerCameraManager* C)
 void AEmitterCameraLensEffectBase::NotifyRetriggered() 
 {
 	UParticleSystemComponent* const PSC = GetParticleSystemComponent();
-	if (PSC && PSC->bWasDeactivated)
+	if (PSC && (PSC->bWasDeactivated || bResetWhenRetriggered))
 	{
-		PSC->Activate(false);
+		PSC->Activate(bResetWhenRetriggered);
 	}
 }
 

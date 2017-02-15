@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "LevelEditorViewport.h"
 #include "EditorDragTools.h"
+
+class FCanvas;
+class UModel;
 
 /**
  * Draws a box in the current viewport and when the mouse button is released,

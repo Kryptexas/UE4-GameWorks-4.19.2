@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12State.h: D3D state definitions.
@@ -11,7 +11,7 @@ class FD3D12SamplerState : public FRHISamplerState, public FD3D12DeviceChild, pu
 public:
 	D3D12_CPU_DESCRIPTOR_HANDLE Descriptor;
 	uint32 DescriptorHeapIndex;
-	uint16 ID;
+	const uint16 ID;
 
 	FD3D12SamplerState(FD3D12Device* InParent, const D3D12_SAMPLER_DESC& Desc, uint16 SamplerID);
 	~FD3D12SamplerState();

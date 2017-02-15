@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MaterialGraph.h"
-#include "MaterialGraphNode_Base.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "MaterialGraph/MaterialGraph.h"
+#include "MaterialGraph/MaterialGraphNode_Base.h"
 #include "MaterialGraphNode.generated.h"
+
+class UEdGraphPin;
 
 UCLASS(MinimalAPI)
 class UMaterialGraphNode : public UMaterialGraphNode_Base
@@ -73,6 +77,9 @@ public:
 	virtual UNREALED_API int32 GetInputIndex(const UEdGraphPin* InputPin) const override;
 	virtual uint32 GetInputType(const UEdGraphPin* InputPin) const override;
 	//~ End UMaterialGraphNode_Base Interface
+
+	/** Will return the shorten pin name to use based on long pin name */
+	FString UNREALED_API GetShortenPinName(const FString& PinName);
 
 private:
 	/** Make sure the MaterialExpression is owned by the Material */

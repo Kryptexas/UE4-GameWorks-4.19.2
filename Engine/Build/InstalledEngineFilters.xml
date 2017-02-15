@@ -5,6 +5,7 @@
 	<Property Name="ConfidentialExceptions" Value=".../EpicInternal/...;.../CarefullyRedist/...;.../NotForLicensees/...;.../NoRedist/..."/>
 	<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions);.../PS4/..." If="'$(WithPS4)' != true"/>
 	<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions);.../XboxOne/..." If="'$(WithXboxOne)' != true"/>
+	<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions);.../Switch/...;.../Wolf/...;.../WolfPlat/..." If="'$(WithSwitch)' != true"/>
 
 	<!-- List of file types to be stripped and signed for different platforms -->
 	<Property Name="Win64StripFilter" Value="*.pdb"/>
@@ -170,7 +171,6 @@
 		<!-- Extra tools -->
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/3dsMaxScripts/..."/>
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/VisualStudioDebugging/UE4.natvis"/>
-		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/Maya_AnimationRiggingTools/MayaTools/..."/>
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/MayaVelocityGridExporter/..."/>
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/UnrealVS/..."/>
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/Redist/en-us/*"/>
@@ -198,7 +198,6 @@
 
 		<!-- Extra tools -->
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/LLDBDataFormatters/UE4DataFormatters.py"/>
-		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/Maya_AnimationRiggingTools/ArtToolsOSX/..."/>
 
 		<!-- Don't want these folders, even if they're part of Windows tools -->
 		<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Binaries/Win64/...;Engine/Binaries/Win32/..."/>
@@ -306,6 +305,7 @@
 
 	<Property Name="CopyLinuxFilter" Value="$(CopyLinuxFilter);Engine/Binaries/ThirdParty/OpenAL/..."/>
 	<Property Name="CopyLinuxFilter" Value="$(CopyLinuxFilter);Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/x86_64-unknown-linux-gnu/*.so"/>
+	<Property Name="CopyLinuxFilter" Value="$(CopyLinuxFilter);Engine/Extras/ThirdPartyNotUE/putty/..."/>
 
 	<!-- Win64 specific -->
 	<Do If="'$(HostPlatform)' == 'Win64'">
@@ -343,5 +343,12 @@
 
 	<!-- Additional Binaries -->
 	<Property Name="CopyXboxOneFilter" Value="$(CopyXboxOneFilter);Engine/Binaries/Win64/XboxOne/XboxOnePackageNameUtil.exe"/>
+	
+	<!-- Switch -->
+	<Property Name="CopySwitchFilter" Value=""/>
+	<Property Name="CopySwitchExceptions" Value=""/>
+	
+	<!-- Build Files -->
+	<Property Name="CopySwitchFilter" Value="$(CopySwitchFilter);Engine/Build/Switch/..."/>
 
 </BuildGraph>

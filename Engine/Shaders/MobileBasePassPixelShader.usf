@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MobileBasePassPixelShader.usf: Base pass pixel shader used with forward shading
@@ -201,7 +201,12 @@ half3 BlendReflectionCaptures(FMaterialPixelParameters MaterialParameters, half 
 
 float4 GetPlanarReflection(float3 WorldPosition, float3 WorldNormal, float Roughness)
 {
-	return ComputePlanarReflections(WorldPosition, WorldNormal, Roughness, PlanarReflectionSampler);
+	float4 PlanarReflection = ComputePlanarReflections(WorldPosition, WorldNormal, Roughness, PlanarReflectionSampler);
+#if OUTPUT_GAMMA_SPACE
+	// the capture will also be in gamma space, convert to linear:
+	PlanarReflection.rgb *= PlanarReflection.rgb;
+#endif
+	return PlanarReflection;
 }
 
 half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameters, half Roughness)
@@ -270,7 +275,7 @@ half3 FrameBufferBlendOp(half4 Source)
 {
 #if (COMPILER_GLSL_ES2)
 	half4 Dest = FramebufferFetchES2();
-	Dest.rgb = Decode32BPPHDR(Dest).rgb;
+	Dest = half4(RGBTDecode8BPC(Dest, DEFAULT_32BPPHDR_ENCODED_RANGE), 0.0f);
 #else
 	half4 Dest = half4 (0,0,0,0);
 #endif
@@ -315,7 +320,7 @@ void Main(
 	VertexFactoryUnpackInterpolants(Interpolants, PackedInterpolants);
 #endif
 
-#if ES2_PROFILE && OUTPUT_GAMMA_SPACE && !MOBILE_EMULATION
+#if (COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1 || COMPILER_GLSL_ES3_1_EXT) && OUTPUT_GAMMA_SPACE && !MOBILE_EMULATION
 	// LDR ES2 needs screen vertical flipped
 	SvPosition.y = ResolvedView.BufferSizeAndInvSize.y - SvPosition.y - 1;
 #endif
@@ -573,7 +578,9 @@ void Main(
 	Color = lerp(Color, DiffuseColor + SpecularColor, ResolvedView.UnlitViewmodeMask);
 #endif
 
-	#if MATERIALBLENDING_TRANSLUCENT
+	#if MATERIALBLENDING_ALPHACOMPOSITE
+		OutColor = half4(Color * VertexFog.a + VertexFog.rgb * Opacity, Opacity);
+	#elif MATERIALBLENDING_TRANSLUCENT
 		OutColor = half4(Color * VertexFog.a + VertexFog.rgb, Opacity);
 	#elif MATERIALBLENDING_ADDITIVE
 		OutColor = half4(Color * (VertexFog.a * Opacity.x), 0.0f);
@@ -613,18 +620,24 @@ void Main(
 	clip(OutColor.a - GetMaterialOpacityMaskClipValue());
 #else
 	#if ES2_PROFILE && !OUTPUT_GAMMA_SPACE
-		float Mode = GetHDR32bppEncodeMode();
-		if (Mode != HDR_ENCODE_NONE)
+		half Mode = GetHDR32bppEncodeMode();
+		if (Mode == HDR_ENCODE_RGBA)
 		{
-			if (Mode == HDR_ENCODE_RGBA)
-			{
-				OutColor.rgb = FrameBufferBlendOp(OutColor);
-			}
-			OutColor = Encode32BPPHDR(OutColor, SvPosition.xy);
+			OutColor.rgb = FrameBufferBlendOp(OutColor);
+			OutColor = RGBTEncode8BPC(OutColor.rgb, DEFAULT_32BPPHDR_ENCODED_RANGE);
+		}
+		if (Mode == HDR_ENCODE_MOSAIC)
+		{
+			OutColor = half4(HdrMosaic(OutColor.rgb,  SvPosition.xy), OutColor.a);
 		}
 	#endif
 	#if OUTPUT_GAMMA_SPACE
 		OutColor.rgb = sqrt(OutColor.rgb);
+	#endif
+
+	// We write to alpha here for mono far field mask computation
+	#if MONOSCOPIC_FAR_FIELD && !MATERIALBLENDING_ANY_TRANSLUCENT
+	OutColor.a = 1.0;
 	#endif
 #endif
 }

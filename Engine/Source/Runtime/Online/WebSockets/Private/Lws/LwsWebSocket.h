@@ -1,13 +1,23 @@
-/// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Ticker.h"
+#include "Containers/Queue.h"
+
+#if WITH_WEBSOCKETS
+
 #include "IWebSocket.h"
 
 #if PLATFORM_WINDOWS
+#   include "WindowsHWrapper.h"
 #	include "AllowWindowsPlatformTypes.h"
 #endif
 
+THIRD_PARTY_INCLUDES_START
 #include "libwebsockets.h"
+THIRD_PARTY_INCLUDES_END
 
 #if PLATFORM_WINDOWS
 #	include "HideWindowsPlatformTypes.h"
@@ -138,3 +148,5 @@ private:
 
 	friend class FWebSocketsModule;
 };
+
+#endif

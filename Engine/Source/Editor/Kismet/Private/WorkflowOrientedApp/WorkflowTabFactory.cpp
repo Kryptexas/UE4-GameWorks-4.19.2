@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
+#include "WorkflowOrientedApp/WorkflowTabFactory.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EditorStyleSet.h"
+#include "WorkflowOrientedApp/ApplicationMode.h"
+#include "WorkflowOrientedApp/WorkflowTabManager.h"
 #include "IDocumentation.h"
-#include "WorkflowTabFactory.h"
-#include "SDockTab.h"
+#include "Widgets/Docking/SDockTab.h"
 
 /////////////////////////////////////////////////////
 // FWorkflowTabFactory
@@ -99,6 +104,38 @@ TSharedPtr<SToolTip> FWorkflowTabFactory::CreateTabToolTipWidget(const FWorkflow
 	return IDocumentation::Get()->CreateToolTip(GetTabToolTipText(Info), NULL, DocLink, DocExcerptName);
 }
 
+TSharedRef<SDockTab> FWorkflowTabFactory::OnSpawnTab(const FSpawnTabArgs& SpawnArgs, TWeakPtr<FTabManager> WeakTabManager) const
+{
+	FWorkflowTabSpawnInfo SpawnInfo;
+	SpawnInfo.TabManager = WeakTabManager.Pin();
+
+	return SpawnInfo.TabManager.IsValid() ? SpawnTab(SpawnInfo) : SNew(SDockTab);
+}
+
+FTabSpawnerEntry& FWorkflowTabFactory::RegisterTabSpawner(TSharedRef<FTabManager> InTabManager, const FApplicationMode* CurrentApplicationMode) const
+{
+	FWorkflowTabSpawnInfo SpawnInfo;
+	SpawnInfo.TabManager = InTabManager;
+
+	TWeakPtr<FTabManager> WeakTabManager(InTabManager);
+	FTabSpawnerEntry& SpawnerEntry = InTabManager->RegisterTabSpawner(GetIdentifier(), FOnSpawnTab::CreateSP(this, &FWorkflowTabFactory::OnSpawnTab, WeakTabManager))
+		.SetDisplayName(ConstructTabName(SpawnInfo).Get())
+		.SetTooltipText(GetTabToolTipText(SpawnInfo));
+
+	if (CurrentApplicationMode)
+	{
+		SpawnerEntry.SetGroup(CurrentApplicationMode->GetWorkspaceMenuCategory());
+	}
+	
+	// Add the tab icon to the menu entry if one was provided
+	const FSlateIcon& TabSpawnerIcon = GetTabSpawnerIcon(SpawnInfo);
+	if (TabSpawnerIcon.IsSet())
+	{
+		SpawnerEntry.SetIcon(TabSpawnerIcon);
+	}
+
+	return SpawnerEntry;
+}
 
 TAttribute<FText> FWorkflowTabFactory::ConstructTabName(const FWorkflowTabSpawnInfo& Info) const
 {

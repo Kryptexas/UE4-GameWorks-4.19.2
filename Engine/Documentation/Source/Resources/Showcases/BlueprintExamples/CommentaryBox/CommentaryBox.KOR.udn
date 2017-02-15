@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:코멘트 박스
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -33,7 +33,7 @@ Version: 4.9
 ![](BoxDemo.png)
 [/REGION]
 
-염두에 둘 것은, 이 블루프린트에서는 자동 줄바꿈이 지원되지 않는다는 점입니다. 그 대신 **Lines** 라는 스트링 배열이 있어, 텍스트의 각 줄을 담습니다. 사용자는 각 줄의 단어를 일일히 배치해 줘야 합니다.
+염두에 둘 것은, 이 블루프린트에서는 자동 줄바꿈이 지원되지 않는다는 점입니다. 그 대신 **Lines** 라는 스트링 배열이 있어, 텍스트의 각 줄을 담습니다. 사용자는 각 줄의 단어를 일일이 배치해 줘야 합니다.
 
 ![](LinesProperty.png)
 

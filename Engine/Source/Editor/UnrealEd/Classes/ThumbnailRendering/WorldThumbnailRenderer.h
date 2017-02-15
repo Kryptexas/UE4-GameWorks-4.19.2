@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -6,7 +6,15 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "ThumbnailRendering/DefaultSizedThumbnailRenderer.h"
 #include "WorldThumbnailRenderer.generated.h"
+
+class FCanvas;
+class FRenderTarget;
+class FSceneViewFamily;
 
 UCLASS(config=Editor)
 class UWorldThumbnailRenderer : public UDefaultSizedThumbnailRenderer

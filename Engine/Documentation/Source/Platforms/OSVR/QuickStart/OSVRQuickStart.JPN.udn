@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:0
-Title:OSVR Development	
+﻿INTSourceChangelist:3150518
+Title:OSVR の開発	
 Crumbs:%ROOT%, Platforms
 Description:
 Availability:Docs
 Navigation:platform
 Platform:OSVR
-Version: 4.12
-type:QuickStart
+Version:4.12
+type:quick start
 parent:Platforms/OSVR
 tags:VR
 tags:OSVR
@@ -14,9 +14,9 @@ social-image:googlevr_social.png
 
 ![](OSVR_Logo.png)
 
-## Starting Out
+## はじめよう
 
-The OSVR Quick Start will walk you through getting your PC setup to work with UE4 and OSVR.
+PC および Android ベースのスマートフォンを使って UE4 と OSV を使う方法を説明します。
 
 
 [OBJECT:TopicButtonList]
@@ -24,7 +24,7 @@ The OSVR Quick Start will walk you through getting your PC setup to work with UE
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		ステップ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

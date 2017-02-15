@@ -1,13 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#if WITH_EDITOR
-#include "AssetData.h"
-#endif
-
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "SuperSearchStyle.h"
 #include "SuperSearchModule.h"
-#include "SlateWidgetStyle.h"
+#include "Interfaces/IHttpRequest.h"
+
+class SMenuAnchor;
 
 /* 
  * Super search - Searches a number of resources including documentation, tutorials, Wiki and AnswerHub

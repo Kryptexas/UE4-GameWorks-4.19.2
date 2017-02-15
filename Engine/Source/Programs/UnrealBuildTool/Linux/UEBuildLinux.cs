@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -10,8 +10,61 @@ namespace UnrealBuildTool
 {
 	class LinuxPlatformContext : UEBuildPlatformContext
 	{
+		/** Architecture as stored in the ini. */
+		public enum LinuxArchitecture
+		{
+			/** x86_64, most commonly used architecture.*/
+			X86_64UnknownLinuxGnu,
+
+			/** A.k.a. AArch32, ARM 32-bit with hardware floats */
+			ArmUnknownLinuxGnueabihf,
+
+			/** AArch64, ARM 64-bit */
+			AArch64UnknownLinuxGnueabi
+		}
+
+		/** Currently active architecture */
+		private string ActiveArchitecture = LinuxPlatform.DefaultArchitecture;
+
 		public LinuxPlatformContext(FileReference InProjectFile) : base(UnrealTargetPlatform.Linux, InProjectFile)
 		{
+			// read settings from the config
+			string EngineIniPath = ProjectFile != null ? ProjectFile.Directory.FullName : null;
+			if (String.IsNullOrEmpty(EngineIniPath))
+			{
+				// If the project file hasn't been specified, try to get the path from -remoteini command line param
+				EngineIniPath = UnrealBuildTool.GetRemoteIniPath();
+			}
+			DirectoryReference EngineIniDir = !String.IsNullOrEmpty(EngineIniPath) ? new DirectoryReference(EngineIniPath) : null;
+
+			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, EngineIniDir, UnrealTargetPlatform.Linux);
+
+			string LinuxArchitectureString;
+			if (Ini.GetString("/Script/LinuxTargetPlatform.LinuxTargetSettings", "TargetArchitecture", out LinuxArchitectureString))
+			{
+				LinuxArchitecture Architecture;
+				if (Enum.TryParse(LinuxArchitectureString, out Architecture))
+				{
+					switch (Architecture)
+					{
+						default:
+							System.Console.WriteLine("Architecture enum value {0} does not map to a valid triplet.", Architecture);
+							break;
+
+						case LinuxArchitecture.X86_64UnknownLinuxGnu:
+							ActiveArchitecture = "x86_64-unknown-linux-gnu";
+							break;
+
+						case LinuxArchitecture.ArmUnknownLinuxGnueabihf:
+							ActiveArchitecture = "arm-unknown-linux-gnueabihf";
+							break;
+
+						case LinuxArchitecture.AArch64UnknownLinuxGnueabi:
+							ActiveArchitecture = "aarch64-unknown-linux-gnueabi";
+							break;
+					}
+				}
+			}
 		}
 
 		/// <summary>
@@ -19,7 +72,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		public override string GetActiveArchitecture()
 		{
-			return LinuxPlatform.DefaultArchitecture;
+			return ActiveArchitecture;
 		}
 
 		/// <summary>
@@ -76,6 +129,14 @@ namespace UnrealBuildTool
 					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
 				}
 			}
+			else if (ModuleName == "Launch")
+			{
+				// this is a hack to influence symbol resolution on Linux that results in global delete being called from within CEF
+				if (!Target.IsMonolithic && UEBuildConfiguration.bCompileCEF3)
+				{
+					Rules.AddEngineThirdPartyPrivateStaticDependencies(Target, "CEF3");
+				}
+			}
 		}
 
 		/// <summary>
@@ -99,6 +160,8 @@ namespace UnrealBuildTool
 		{
 			UEBuildConfiguration.bCompileSimplygon = false;
             UEBuildConfiguration.bCompileSimplygonSSF = false;
+			// depends on arch, APEX cannot be as of November'16 compiled for AArch32/64
+			UEBuildConfiguration.bCompileAPEX = GetActiveArchitecture().StartsWith("x86_64");
 		}
 
 		/// <summary>
@@ -117,8 +180,6 @@ namespace UnrealBuildTool
 
 			// Don't stop compilation at first error...
 			BuildConfiguration.bStopXGECompilationAfterErrors = true;
-
-			BuildConfiguration.bUseSharedPCHs = false;
 		}
 
 		/// <summary>
@@ -130,10 +191,10 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_LINUX=1");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("LINUX=1");
 
-		    InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_SUPPORTS_JEMALLOC=1");
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_SUPPORTS_JEMALLOC=1");	// this define does not set jemalloc as default, just indicates its support
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");		//@todo linux: valid?
 
-			if (GetActiveArchitecture().StartsWith("arm"))
+			if (GetActiveArchitecture().StartsWith("arm"))	// AArch64 doesn't strictly need that - aligned access improves perf, but this will be likely offset by memcpys we're doing to guarantee it.
 			{
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
 			}
@@ -148,9 +209,9 @@ namespace UnrealBuildTool
                 UEBuildConfiguration.bCompileSimplygonSSF = false;
 			}
 
-			if (InBuildTarget.TargetType == TargetRules.TargetType.Server)
+			// At the moment ICU has not been compiled for AArch64. Also, localization isn't needed on servers by default, and ICU is pretty heavy
+			if (GetActiveArchitecture().StartsWith("aarch64") || InBuildTarget.TargetType == TargetRules.TargetType.Server)
 			{
-				// Localization shouldn't be needed on servers by default, and ICU is pretty heavy
 				UEBuildConfiguration.bCompileICU = false;
 			}
 		}
@@ -183,17 +244,6 @@ namespace UnrealBuildTool
 		{
 			return new LinuxToolChain(this);
 		}
-
-		/// <summary>
-		/// Create a build deployment handler
-		/// </summary>
-		/// <param name="ProjectFile">The project file of the target being deployed. Used to find any deployment specific settings.</param>
-		/// <param name="DeploymentHandler">The output deployment handler</param>
-		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
-		public override UEBuildDeploy CreateDeploymentHandler()
-		{
-			return null;
-		}
 	}
 
 	class LinuxPlatform : UEBuildPlatform
@@ -204,6 +254,7 @@ namespace UnrealBuildTool
 		// FIXME: for now switching between architectures is hard-coded
 		public const string DefaultArchitecture = "x86_64-unknown-linux-gnu";
 		//public const string DefaultArchitecture = "arm-unknown-linux-gnueabihf";
+		//public const string DefaultArchitecture = "aarch64-unknown-linux-gnueabi";
 
 		LinuxPlatformSDK SDK;
 
@@ -321,13 +372,22 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a context for the given project on the current platform.
+		/// Creates a context for the given target on the current platform.
 		/// </summary>
 		/// <param name="ProjectFile">The project file for the current target</param>
+		/// <param name="Target">Rules for the target being built</param>
 		/// <returns>New platform context object</returns>
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
+		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile, TargetRules Target)
 		{
 			return new LinuxPlatformContext(ProjectFile);
+		}
+
+		/// <summary>
+		/// Deploys the given target
+		/// </summary>
+		/// <param name="Target">Information about the target being deployed</param>
+		public override void Deploy(UEBuildDeployTarget Target)
+		{
 		}
 	}
 

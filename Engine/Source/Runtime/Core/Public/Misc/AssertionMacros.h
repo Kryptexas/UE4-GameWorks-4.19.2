@@ -1,12 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 #include "HAL/PlatformMisc.h"
-#include "Misc/Build.h"
-#include "Templates/EnableIf.h"
-#include "LogVerbosity.h"
 
 /**
  * FDebug
@@ -216,6 +213,10 @@ namespace UE4Asserts_Private
 	template <typename T>
 	bool GetMemberNameCheckedJunk(const volatile T&);
 }
+
+// Returns FName(TEXT("EnumeratorName")), while statically verifying that the enumerator exists in the enum
+#define GET_ENUMERATOR_NAME_CHECKED(EnumName, EnumeratorName) \
+	((void)sizeof(UE4Asserts_Private::GetMemberNameCheckedJunk(EnumName::EnumeratorName)), FName(TEXT(#EnumeratorName)))
 
 // Returns FName(TEXT("MemberName")), while statically verifying that the member exists in ClassName
 #define GET_MEMBER_NAME_CHECKED(ClassName, MemberName) \

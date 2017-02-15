@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/ActorComponent.h"
 #include "TimelineComponent.generated.h"
+
+class UCurveFloat;
+class UCurveLinearColor;
+class UCurveVector;
 
 /** Signature of function to handle a timeline 'event' */
 DECLARE_DYNAMIC_DELEGATE( FOnTimelineEvent );
@@ -249,7 +256,7 @@ private:
 
 	/** Cached property pointer for setting timeline direction */
 	UPROPERTY(Transient, NotReplicated)
-	UByteProperty* DirectionProperty;
+	UProperty* DirectionProperty;
 
 public:
 	FTimeline()
@@ -260,7 +267,8 @@ public:
 	, bPlaying( false )
 	, PlayRate( 1.f )
 	, Position( 0.0f )	
-	, PropertySetObject(NULL)
+	, PropertySetObject(nullptr)
+	, DirectionProperty(nullptr)
 	{
 	}
 
@@ -493,6 +501,7 @@ public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void Activate(bool bReset=false) override;
 	virtual void Deactivate() override;
+	virtual bool IsReadyForOwnerToAutoDestroy() const override;
 	//~ End ActorComponent Interface.
 
 	/** Get the signature function for Timeline event functions */
@@ -527,6 +536,8 @@ public:
 
 	/** Set the delegate to call when timeline is finished */
 	ENGINE_API void SetTimelineFinishedFunc(FOnTimelineEvent NewTimelineFinishedFunc);
+	/** Set the static delegate to call when timeline is finished */
+	ENGINE_API void SetTimelineFinishedFunc(FOnTimelineEventStatic NewTimelineFinishedFunc);
 
 	/** Set the delegate to call when timeline is finished */
 	ENGINE_API void SetDirectionPropertyName(FName DirectionPropertyName);

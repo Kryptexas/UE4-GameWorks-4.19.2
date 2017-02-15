@@ -1,19 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InstancedStaticMesh.cpp: Static mesh rendering code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "NavigationSystemHelpers.h"
+#include "InstancedStaticMesh.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Components/LightComponent.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "UnrealEngine.h"
+#include "AI/NavigationSystemHelpers.h"
 #include "AI/Navigation/NavCollision.h"
 #include "AI/NavigationOctree.h"
-#include "Components/InstancedStaticMeshComponent.h"
-#include "InstancedStaticMesh.h"
-#include "../../Renderer/Private/ScenePrivate.h"
+#include "ShaderParameterUtils.h"
+#include "Misc/UObjectToken.h"
+#include "PhysXPublic.h"
+#include "PhysicsEngine/PhysXSupport.h"
 #include "PhysicsSerializer.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "GameFramework/WorldSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "SceneManagement.h"
+#if WITH_EDITOR
+#include "RawMesh.h"
+#endif
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;
 
@@ -62,7 +74,7 @@ void FStaticMeshInstanceBuffer::SetupCPUAccess(UInstancedStaticMeshComponent* In
 
 	const bool bNeedsCPUAccess = InComponent->CastShadow && InComponent->bAffectDistanceFieldLighting 
 		// Distance field algorithms need access to instance data on the CPU
-		&& CVar->GetValueOnGameThread() != 0;
+		&& (CVar->GetValueOnGameThread() != 0 || (InComponent->GetStaticMesh() && InComponent->GetStaticMesh()->bGenerateMeshDistanceField));
 
 	InstanceData->SetAllowCPUAccess(InstanceData->GetAllowCPUAccess() || bNeedsCPUAccess);
 }
@@ -1255,19 +1267,27 @@ void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimiti
 				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "LargeStaticLightingWarning", "The total lightmap size for this InstancedStaticMeshComponent is large, consider reducing the component's lightmap resolution or number of mesh instances in this component")));
 		}
 
-		bool bCanLODsShareStaticLighting = GetStaticMesh()->CanLODsShareStaticLighting();
+		bool bHasMultipleLODModels = false;
+		for (int32 LODIndex = 1; LODIndex < GetStaticMesh()->SourceModels.Num(); ++LODIndex)
+		{
+			if (!GetStaticMesh()->SourceModels[LODIndex].RawMeshBulkData->IsEmpty())
+			{
+				bHasMultipleLODModels = true;
+				break;
+			}
+		}
+
+		if (bHasMultipleLODModels)
+		{
+			//TODO: Detect if the UVs for all sub-LODs overlap the base LOD UVs and omit this warning if they do.
+			FMessageLog("LightingResults").Message(EMessageSeverity::Warning)
+				->AddToken(FUObjectToken::Create(this))
+				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "UniqueStaticLightingForLODWarning", "Instanced meshes don't yet support unique static lighting for each LOD. Lighting on LOD 1+ may be incorrect unless lightmap UVs are the same for all LODs.")));
+		}
 
 		// TODO: We currently only support one LOD of static lighting in instanced meshes
 		// Need to create per-LOD instance data to fix that
-		if (!bCanLODsShareStaticLighting)
-		{
-			FMessageLog("LightingResults").Message(EMessageSeverity::Warning)
-				->AddToken(FUObjectToken::Create(this))
-				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "UniqueStaticLightingForLODWarning", "Instanced meshes don't yet support unique static lighting for each LOD, lighting on LOD 1+ may be incorrect")));
-			bCanLODsShareStaticLighting = true;
-		}
-
-		int32 NumLODs = bCanLODsShareStaticLighting ? 1 : GetStaticMesh()->RenderData->LODResources.Num();
+		int32 NumLODs = 1;
 
 		CachedMappings.Reset(PerInstanceSMData.Num() * NumLODs);
 		CachedMappings.AddZeroed(PerInstanceSMData.Num() * NumLODs);
@@ -1664,22 +1684,17 @@ bool UInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
 	return IsRegistered() && !IsBeingDestroyed() && GetStaticMesh() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
 }
 
-FBox UInstancedStaticMeshComponent::GetTextureStreamingBox(int32 MaterialIndex) const
-{
-	// With instanced meshes, use the sum of component bounds instead of the sum of material bounds as a simplification.
-	return Bounds.GetBox();
-}
-
-bool UInstancedStaticMeshComponent::RequiresStreamingTextureData() const 
-{
-	return Super::RequiresStreamingTextureData() && GetInstanceCount() > 0;
-}
-
 float UInstancedStaticMeshComponent::GetTextureStreamingTransformScale() const
 {
-	float TransformScale = Super::GetTextureStreamingTransformScale();
-	if (GetStaticMesh() && PerInstanceSMData.Num() > 0)
+	// By default if there are no per instance data, use a scale of 1.
+	// This is required because some derived class use the instancing system without filling the per instance data. (like landscape grass)
+	// In those cases, we assume the instance are spreaded across the bounds with a scale of 1.
+	float TransformScale = 1.f; 
+
+	if (PerInstanceSMData.Num() > 0)
 	{
+		TransformScale = Super::GetTextureStreamingTransformScale();
+
 		float WeightedAxisScaleSum = 0;
 		float WeightSum = 0;
 
@@ -1697,6 +1712,38 @@ float UInstancedStaticMeshComponent::GetTextureStreamingTransformScale() const
 		}
 	}
 	return TransformScale;
+}
+
+bool UInstancedStaticMeshComponent::GetMaterialStreamingData(int32 MaterialIndex, FPrimitiveMaterialInfo& MaterialData) const
+{
+	// Same thing as StaticMesh but we take the full bounds to cover the instances.
+	if (GetStaticMesh())
+	{
+		MaterialData.Material = GetMaterial(MaterialIndex);
+		MaterialData.UVChannelData = GetStaticMesh()->GetUVChannelData(MaterialIndex);
+		MaterialData.PackedRelativeBox = PackedRelativeBox_Identity;
+	}
+	return MaterialData.IsValid();
+}
+
+bool UInstancedStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType BuildType, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TSet<FGuid>& DependentResources)
+{
+#if WITH_EDITORONLY_DATA // Only rebuild the data in editor 
+	if (GetInstanceCount() > 0)
+	{
+		return Super::BuildTextureStreamingData(BuildType, QualityLevel, FeatureLevel, DependentResources);
+	}
+#endif
+	return true;
+}
+
+void UInstancedStaticMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+{
+	// Don't only look the instance count but also if the bound is valid, as derived classes might not set PerInstanceSMData.
+	if (GetInstanceCount() > 0 || Bounds.SphereRadius > 0)
+	{
+		return Super::GetStreamingTextureInfo(LevelContext, OutStreamingTextures);
+	}
 }
 
 void UInstancedStaticMeshComponent::ClearInstances()
@@ -2013,34 +2060,31 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 			for (int32 SampleIndex = 0; SampleIndex < 2; SampleIndex++)
 			{
 				FVector4& InstancingViewZCompare(SampleIndex ? InstancingViewZCompareOne : InstancingViewZCompareZero);
-				float Fac = View.GetTemporalLODDistanceFactor(SampleIndex) * SphereRadius * SphereRadius * LODScale * LODScale;
 
 				float FinalCull = MAX_flt;
 				if (MinSize > 0.0)
 				{
-					FinalCull = FMath::Sqrt(Fac / MinSize);
+					FinalCull = ComputeBoundsDrawDistance(MinSize, SphereRadius, View.ViewMatrices.GetProjectionMatrix()) * LODScale;
 				}
-				if (InstancingUserData->EndCullDistance > 0.0f && InstancingUserData->EndCullDistance < FinalCull)
+				if (InstancingUserData->EndCullDistance > 0.0f)
 				{
-					FinalCull = InstancingUserData->EndCullDistance;
+					FinalCull = FMath::Min(FinalCull, InstancingUserData->EndCullDistance * MaxDrawDistanceScale);
 				}
-				FinalCull *= MaxDrawDistanceScale;
 
 				InstancingViewZCompare.Z = FinalCull;
 				if (BatchElement.InstancedLODIndex < InstancingUserData->MeshRenderData->LODResources.Num() - 1)
 				{
-					float NextCut = InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex + 1];
-					InstancingViewZCompare.Z = FMath::Min(FMath::Sqrt(Fac / NextCut), FinalCull);
+					float NextCut = ComputeBoundsDrawDistance(InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex + 1], SphereRadius, View.ViewMatrices.GetProjectionMatrix()) * LODScale;
+					InstancingViewZCompare.Z = FMath::Min(NextCut, FinalCull);
 				}
 
 				InstancingViewZCompare.X = MIN_flt;
 				if (BatchElement.InstancedLODIndex > FirstLOD)
 				{
-					float CurCut = FMath::Sqrt(Fac / InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex]);
+					float CurCut = ComputeBoundsDrawDistance(InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex], SphereRadius, View.ViewMatrices.GetProjectionMatrix()) * LODScale;
 					if (CurCut < FinalCull)
 					{
 						InstancingViewZCompare.Y = CurCut;
-
 					}
 					else
 					{

@@ -1,12 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLCommands.cpp: OpenGL RHI commands implementation.
 =============================================================================*/
 
-#include "OpenGLDrvPrivate.h"
-#include "OpenGLState.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "RHIDefinitions.h"
+#include "RHI.h"
+#include "EngineGlobals.h"
+#include "RenderResource.h"
 #include "ShaderCache.h"
+#include "OpenGLDrv.h"
+#include "OpenGLDrvPrivate.h"
+#include "RenderUtils.h"
 
 #define DECLARE_ISBOUNDSHADER(ShaderType) inline void ValidateBoundShader(TRefCountPtr<FOpenGLBoundShaderState> InBoundShaderState, F##ShaderType##RHIParamRef ShaderType##RHI) \
 { \
@@ -53,7 +62,7 @@ namespace OpenGLConsoleVariables
 		TEXT("If true, don't issue dispatch work.")
 		);
 
-	int32 bUseVAB = (PLATFORM_LINUX) ? 0 : 1;	// disable VAB on Linux until vertex attrib binding code path is fixed, see UE-15240
+	int32 bUseVAB = 1;
 	static FAutoConsoleVariableRef CVarUseVAB(
 		TEXT("OpenGL.UseVAB"),
 		bUseVAB,
@@ -86,6 +95,13 @@ namespace OpenGLConsoleVariables
 		TEXT("OpenGL.RebindTextureBuffers"),
 		bRebindTextureBuffers,
 		TEXT("If true, rebind GL_TEXTURE_BUFFER's to their GL_TEXTURE name whenever the buffer is modified.")
+		);
+
+	int32 bUseBufferDiscard = 1;
+	static FAutoConsoleVariableRef CVarUseBufferDiscard(
+		TEXT("OpenGL.UseBufferDiscard"),
+		bUseBufferDiscard,
+		TEXT("If true, use dynamic buffer orphaning hint.")
 		);
 	
 	static TAutoConsoleVariable<int32> CVarUseSeparateShaderObjects(
@@ -2130,11 +2146,11 @@ void FOpenGLDynamicRHI::SetupVertexArraysVAB(FOpenGLContextState& ContextState, 
 			ContextState.MaxActiveAttrib = FMath::Max( ContextState.MaxActiveAttrib, AttributeIndex);
 
 			//only setup/track attributes actually in use
+			FOpenGLCachedAttr &Attr = ContextState.VertexAttrs[AttributeIndex];
 			if (bAttribInUse)
 			{
 				if (VertexElement.StreamIndex < NumStreams)
 				{
-					FOpenGLCachedAttr &Attr = ContextState.VertexAttrs[AttributeIndex];
 
 					// Track the actively used streams, to limit the updates to those in use
 					StreamMask |= 0x1 << VertexElement.StreamIndex;
@@ -2182,6 +2198,14 @@ void FOpenGLDynamicRHI::SetupVertexArraysVAB(FOpenGLContextState& ContextState, 
 					AttributeMask &= ~(1 << AttributeIndex);
 				}
 			}
+			else
+			{
+				if (Attr.StreamIndex != StreamIndex)
+				{
+					FOpenGL::VertexAttribBinding(AttributeIndex, VertexElement.StreamIndex);
+					Attr.StreamIndex = StreamIndex;
+				}
+			}
 		}
 		ContextState.VertexDecl = VertexDeclaration;
 
@@ -2190,13 +2214,13 @@ void FOpenGLDynamicRHI::SetupVertexArraysVAB(FOpenGLContextState& ContextState, 
 	}
 
 	//setup streams
-	for (uint32 StreamIndex = 0; StreamIndex < NumStreams && StreamMask != 0; StreamIndex++, StreamMask >>= 1)
+	for (uint32 StreamIndex = 0; StreamIndex < NumStreams; StreamIndex++, StreamMask >>= 1)
 	{
 		FOpenGLStream &CachedStream = ContextState.VertexStreams[StreamIndex];
 		FOpenGLStream &Stream = Streams[StreamIndex];
+		uint32 Offset = BaseVertexIndex * Stream.Stride + Stream.Offset;
 		if ((StreamMask & 0x1) != 0 && Stream.VertexBuffer)
 		{
-			uint32 Offset = BaseVertexIndex * Stream.Stride + Stream.Offset;
 			if ( CachedStream.VertexBuffer != Stream.VertexBuffer || CachedStream.Offset != Offset || CachedStream.Stride != Stream.Stride)
 			{
 				check(Stream.VertexBuffer->Resource != 0);
@@ -2216,6 +2240,13 @@ void FOpenGLDynamicRHI::SetupVertexArraysVAB(FOpenGLContextState& ContextState, 
 			if (((StreamMask & 0x1) != 0) && (Stream.VertexBuffer == nullptr))
 			{
 				UE_LOG(LogRHI, Error, TEXT("Stream %d marked as in use, but vertex buffer provided is NULL (Mask = %x)"), StreamIndex, StreamMask);
+			}
+			if (CachedStream.VertexBuffer != Stream.VertexBuffer || CachedStream.Offset != Offset || CachedStream.Stride != Stream.Stride)
+			{
+				FOpenGL::BindVertexBuffer(StreamIndex, 0, 0, 0);
+				CachedStream.VertexBuffer = nullptr;
+				CachedStream.Offset = 0;
+				CachedStream.Stride = 0;
 			}
 		}
 	}
@@ -2328,6 +2359,21 @@ void FOpenGLDynamicRHI::OnVertexBufferDeletion( GLuint VertexBufferResource )
 		if( RenderingContextState.VertexAttrs[AttribIndex].Buffer == VertexBufferResource )
 		{
 			RenderingContextState.VertexAttrs[AttribIndex].Pointer = FOpenGLCachedAttr_Invalid;	// that'll enforce state update on next cache test
+		}
+	}
+
+	for (GLuint StreamIndex = 0; StreamIndex < NUM_OPENGL_VERTEX_STREAMS; StreamIndex++)
+	{
+		if (SharedContextState.VertexStreams[StreamIndex].VertexBuffer != nullptr && SharedContextState.VertexStreams[StreamIndex].VertexBuffer->Resource == VertexBufferResource)
+		{
+			FOpenGL::BindVertexBuffer(StreamIndex, 0, 0, 0); // brianh@nvidia: work around driver bug 1809000
+			SharedContextState.VertexStreams[StreamIndex].VertexBuffer = nullptr;
+		}
+
+		if (RenderingContextState.VertexStreams[StreamIndex].VertexBuffer != nullptr && RenderingContextState.VertexStreams[StreamIndex].VertexBuffer->Resource == VertexBufferResource)
+		{
+			FOpenGL::BindVertexBuffer(StreamIndex, 0, 0, 0); // brianh@nvidia: work around driver bug 1809000
+			RenderingContextState.VertexStreams[StreamIndex].VertexBuffer = nullptr;
 		}
 	}
 }
@@ -2621,7 +2667,7 @@ void FOpenGLDynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType,uint32 BaseVertexI
 	CommitNonComputeShaderConstants();
 	CachedBindElementArrayBuffer(ContextState,0);
 	uint32 VertexCount = GetVertexCountForPrimitiveCount(NumPrimitives,PrimitiveType);
-	SetupVertexArrays(ContextState, BaseVertexIndex, PendingState.Streams, VertexCount, NUM_OPENGL_VERTEX_STREAMS);
+	SetupVertexArrays(ContextState, BaseVertexIndex, PendingState.Streams, NUM_OPENGL_VERTEX_STREAMS, VertexCount);
 
 	GLenum DrawMode = GL_TRIANGLES;
 	GLsizei NumElements = 0;

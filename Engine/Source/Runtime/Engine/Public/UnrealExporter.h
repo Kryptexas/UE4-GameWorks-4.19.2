@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealExporter.h: Exporter class definition.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
 
 /**
  * Encapsulates a map from objects to their direct inners, used by UExporter::ExportObjectInner when exporting objects.

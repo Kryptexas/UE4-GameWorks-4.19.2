@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenShotComparisonTools.h: ScreenShotComparisonTools module public header file.
@@ -7,19 +7,26 @@
 #pragma once
 
 
+/* Boilerplate
+ *****************************************************************************/
+
+#include "Misc/MonolithicHeaderBoilerplate.h"
+MONOLITHIC_HEADER_BOILERPLATE()
+
 /* Dependencies
  *****************************************************************************/
 
 #include "Core.h"
-#include "ModuleManager.h"
-#include "IFilter.h"
-#include "TextFilter.h"
-#include "FilterCollection.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/IFilter.h"
+#include "Misc/TextFilter.h"
+#include "Misc/FilterCollection.h"
 #include "ScreenShotFilterCollection.h"
 
 /* Interfaces
  *****************************************************************************/
+#include "ImageComparer.h"
 #include "ScreenShotDataItem.h"
-#include "IScreenShotData.h"
-#include "IScreenShotManager.h"
-#include "IScreenShotToolsModule.h"
+#include "Interfaces/IScreenShotData.h"
+#include "Interfaces/IScreenShotManager.h"
+#include "Interfaces/IScreenShotToolsModule.h"

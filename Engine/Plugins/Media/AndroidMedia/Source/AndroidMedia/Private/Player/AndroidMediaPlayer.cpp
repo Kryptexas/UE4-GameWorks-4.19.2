@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AndroidMediaPCH.h"
-#include "AndroidJavaMediaPlayer.h"
 #include "AndroidMediaPlayer.h"
 #include "AndroidJavaMediaPlayer.h"
-
+#include "AndroidJavaMediaPlayer.h"
+#include "Misc/Paths.h"
+#include "Android/AndroidFile.h"
+#include "../AndroidMediaLog.h"
 
 #define LOCTEXT_NAMESPACE "FAndroidMediaModule"
 
@@ -29,32 +30,6 @@ FAndroidMediaPlayer::~FAndroidMediaPlayer()
 		JavaMediaPlayer->Reset();
 		JavaMediaPlayer->Release();
 	}
-}
-
-
-/* FTickerObjectBase interface
- *****************************************************************************/
-
-bool FAndroidMediaPlayer::Tick(float DeltaTime)
-{
-	if (State == EMediaState::Playing)
-	{
-		Tracks.Tick();
-
-		if (!JavaMediaPlayer->IsPlaying())
-		{
-			//FPlatformMisc::LowLevelOutputDebugString(TEXT("STOPPED!!!!!"));
-			State = EMediaState::Stopped;
-			MediaEvent.Broadcast(EMediaEvent::PlaybackEndReached);
-		}
-		else if (Tracks.DidPlaybackLoop())
-		{
-			//FPlatformMisc::LowLevelOutputDebugString(TEXT("LOOPED!!!!!"));
-			MediaEvent.Broadcast(EMediaEvent::PlaybackEndReached);
-		}
-	}
-
-	return true;
 }
 
 
@@ -347,6 +322,35 @@ bool FAndroidMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& 
 {
 	// @todo AndroidMedia: implement opening media from FArchive
 	return false;
+}
+
+
+void FAndroidMediaPlayer::TickPlayer(float DeltaTime)
+{
+	if (State != EMediaState::Playing)
+	{
+		return;
+	}
+
+	Tracks.Tick();
+
+	if (!JavaMediaPlayer->IsPlaying())
+	{
+		//FPlatformMisc::LowLevelOutputDebugString(TEXT("STOPPED!!!!!"));
+		State = EMediaState::Stopped;
+		MediaEvent.Broadcast(EMediaEvent::PlaybackEndReached);
+	}
+	else if (Tracks.DidPlaybackLoop())
+	{
+		//FPlatformMisc::LowLevelOutputDebugString(TEXT("LOOPED!!!!!"));
+		MediaEvent.Broadcast(EMediaEvent::PlaybackEndReached);
+	}
+}
+
+
+void FAndroidMediaPlayer::TickVideo(float DeltaTime)
+{
+
 }
 
 

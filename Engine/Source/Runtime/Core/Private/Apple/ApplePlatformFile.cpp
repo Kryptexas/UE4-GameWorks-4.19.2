@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ApplePlatformFile.mm: Apple platform implementations of File functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "ApplePlatformFile.h"
+#include "HAL/PlatformTime.h"
+#include "HAL/PlatformFile.h"
+#include "UnrealString.h"
+#include "Containers/StringConv.h"
+#include "Templates/Function.h"
+#include "CoreGlobals.h"
 #include <sys/stat.h>
 
 // make an FTimeSpan object that represents the "epoch" for time_t (from a stat struct)
@@ -316,7 +322,7 @@ private:
     int64 FileSize;
 
     // Each thread keeps a collection of active handles with access times.
-    static const int32 ACTIVE_HANDLE_COUNT = 256;
+    static const int32 ACTIVE_HANDLE_COUNT = 192;
     static __thread FFileHandleApple* ActiveHandles[ ACTIVE_HANDLE_COUNT ];
     static __thread double AccessTimes[ ACTIVE_HANDLE_COUNT ];
 #endif

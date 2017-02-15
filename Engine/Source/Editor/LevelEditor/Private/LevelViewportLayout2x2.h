@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __LevelViewportLayout2x2_h__
@@ -6,7 +6,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
 #include "LevelViewportLayout.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "LevelViewportActions.h"
 
 class FLevelViewportLayout2x2 : public FLevelViewportLayout
 {

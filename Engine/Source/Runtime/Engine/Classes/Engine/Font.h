@@ -1,12 +1,16 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Fonts/CompositeFont.h"
+#include "Fonts/SlateFontInfo.h"
 #include "Engine/FontImportOptions.h"
-#include "FontProviderInterface.h"
-#include "SlateFontInfo.h"
+#include "Fonts/FontProviderInterface.h"
 #include "Font.generated.h"
-
 
 /** Enumerates supported font caching types. */
 UENUM()
@@ -248,9 +252,6 @@ public:
 	//~ Begin UObject Interface
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void PostLoad() override;
-#if WITH_EDITORONLY_DATA
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-#endif
 	//~ End UObject interface
 
 	/**
@@ -284,10 +285,4 @@ public:
 	/** Determines the height and width for the passed in string. */
 	ENGINE_API void GetStringHeightAndWidth( const FString& InString, int32& Height, int32& Width ) const;
 	ENGINE_API void GetStringHeightAndWidth( const TCHAR *Text, int32& Height, int32& Width ) const;
-
-	/**
-	 * Loads any bulk data associated with this font, and flags it to be loaded for the lifespan of this font.
-	 * Typically this is handled automatically as fonts are used, however you'll want to call this for any fonts used by the rendering thread (as we can't load the bulk data on that thread).
-	 */
-	ENGINE_API void ForceLoadFontData();
 };

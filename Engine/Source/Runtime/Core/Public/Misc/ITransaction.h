@@ -1,7 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "UObject/UObjectHierarchyFwd.h"
 
 // Class for handling undo/redo transactions among objects.
 typedef void(*STRUCT_DC)( void* TPtr );						// default construct

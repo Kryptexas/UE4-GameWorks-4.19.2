@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangeList:3127779
 Availability:Docs
-Title:Blueprint Spline Component Property Reference
+Title:Blueprint Spline コンポーネントのプロパティ リファレンス
 Crumbs: %ROOT%, Engine
-Description:Contains a reference of all properties available in the editor for Blueprint Spline Components.
+Description:Blueprint Spline コンポーネントのエディタで使用できるすべてのプロパティのリファレンスの情報です。
 Navigation:topic
 parent:Engine/BlueprintSplines
 order:1
 social-image:Splines_social.png
+version:4.13
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -51,9 +52,9 @@ social-image:Splines_social.png
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-This page contains a reference listing of properties available on **Spline Components**. The properties displayed will be slightly different if the **Blueprint Spline Component** is selected in the **Blueprint Editor**, is a **Root Component**, or if the component is selected in the **Level Editor**.
+このページは、**Blueprint Spline コンポーネント**のプロパティのリファレンス リストです。**ブループリント エディタ** で **Blueprint Spline コンポーネント** を選択した場合、**Root コンポーネント** を選択した場合、またはコンポーネントを **レベル エディタ** で選択した場合、若干異なるプロパティが表示されます。
 
-## Properties
+## プロパティ
 
 [EXCERPT:PropTransformCat]
 [OBJECT:modulesection]
@@ -73,11 +74,11 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](TransformCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
-| **Location** || The location of the **Actor** or **Component** in **World Space** or **Relative** to its parent. |
-| **Rotation** || The rotation of the **Actor** or **Component** in **World Space** or **Relative** to its parent. |
-| **Scale** || The Scale of the **Actor** or **Component** in **World Space** or **Relative** to its parent. |
+| **Location** || **アクタ** または **コンポーネント** の **ワールド空間** もしくは親と **相対的な** 位置です。 |
+| **Rotation** || **アクタ** または **コンポーネント** の **ワールド空間** もしくは親と **相対的な** 回転です。 |
+| **Scale** || **アクタ** または **コンポーネント** の **ワールド空間** もしくは親と **相対的な** スケールです。 |
 [/REGION]
 
 [/VAR]
@@ -103,9 +104,9 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](SocketsCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
-| **Parent Socket** || When a this component is the **Child** of a **Skeletal Mesh Component** (or **Static Mesh Component** with a **Socket**) you can specify a **Socket** or **Joint** to attach this component to. |
+| **Parent Socket** || このコンポーネントが **Skeletal Mesh コンポーネント** の **子供** (あるいは **Socket** のある **Static Mesh コンポーネント**) の場合、**Socket** または **Joint** をこのコンポーネントにアタッチするように指定できます。 |
 [/REGION]
 
 [/VAR]
@@ -131,9 +132,9 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](BPS_SplineCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
-| **Duration** || %doxygen:USplineComponent::Duration% |
+| **Duration** ||
 | **Override Construction Script** || %doxygen:USplineComponent::bSplineHasBeenEdited% |
 | **Input Spline Points to Construction Script** || %doxygen:USplineComponent::bInputSplinePointsToConstructionScript% |
 | **Draw Debug** || %doxygen:USplineComponent::bDrawDebug% |
@@ -141,12 +142,12 @@ This page contains a reference listing of properties available on **Spline Compo
 | **Default Up Vector** || %doxygen:USplineComponent::DefaultUpVector% |
 [/REGION]
 
-### Advanced
+### 上級者向け
 
 ![](BPS_SplineCatRefAdv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Reparam Steps Per Segment** || %doxygen:USplineComponent::ReparamStepsPerSegment% |
 | **Stationary Endpoints** || %doxygen:USplineComponent::bStationaryEndpoints% |
@@ -175,12 +176,12 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](BPS_EditorCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
-| **Editor Unselected Spline Segment Color** || Color of an unselected spline component segment in the editor. |
-| **Editor Selected Spline Segment Color** || Color of a selected spline component segment in the editor. |
-| **Should Visualize Scale** || Whether or not scale visualization should be displayed in the editor. |
-| **Scale Visualization Width** || Width of the spline when scale visualization is enabled in the editor. |
+| **Editor Unselected Spline Segment Color** || エディタで選択されていないスプライン コンポーネント セグメントの色です。 |
+| **Editor Selected Spline Segment Color** || エディタで選択されているスプライン コンポーネント セグメントの色です。 |
+| **Should Visualize Scale** || スケールのビジュアル化をエディタ内で有効にするかどうかを設定します。 |
+| **Scale Visualization Width** || スケールのビジュアル化をエディタ内で有効にした場合のスプラインの幅です。 |
 [/REGION]
 
 [/VAR]
@@ -188,83 +189,34 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 
-[OBJECT:modulesection]
+
+[EXCERPT:PropSelectedPointsCat]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
-		PhysicsCat
+		SelectedPointsCat
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Physics
+		Selected Points
 	[/PARAM]
 	[PARAM:content]
-		%Engine/Physics/PhysicsBodies/Reference:c3%
+		%sp3%
 	[/PARAM]
 [/OBJECT]
 
+[VAR:sp3]
 
-
-
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		CollisionCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Collision
-	[/PARAM]
-	[PARAM:content]
-		%Engine/Physics/PhysicsBodies/Reference:p2%
-	[/PARAM]
-[/OBJECT]
-
-
-
-
-
-[EXCERPT:PropLightingCat]
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		LightingCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Lighting
-	[/PARAM]
-	[PARAM:content]
-		%c5%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c5]
-
-![](LightingCatRef.png)
+![](BPS_SelectedPointsRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
-| **Cast Shadow** || %doxygen:UPrimitiveComponent::CastShadow% |
-[/REGION]
-
-###Advanced
-
-![](LightingCatRefAdv.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Affect Dynamic Indirect Lighting** || %doxygen:UPrimitiveComponent::bAffectDynamicIndirectLighting% |
-| **Affect Distance Field Lighting** || %doxygen:UPrimitiveComponent::bAffectDistanceFieldLighting% |
-| **Cast Dynamic Shadow** || %doxygen:UPrimitiveComponent::bCastDynamicShadow% |
-| **Cast Static Shadow** || %doxygen:UPrimitiveComponent::bCastStaticShadow% |
-| **Cast Volumetric Translucent Shadow** || %doxygen:UPrimitiveComponent::bCastVolumetricTranslucentShadow% |
-| **Self Shadow Only** || %doxygen:UPrimitiveComponent::bSelfShadowOnly% |
-| **Cast Far Shadow** || %doxygen:UPrimitiveComponent::bCastFarShadow% |
-| **Cast Inset Shadow** || %doxygen:UPrimitiveComponent::bCastInsetShadow% |
-| **Cast Cinematic Shadow** || %doxygen:UPrimitiveComponent::bCastCinematicShadow% |
-| **Cast Hidden Shadow** || %doxygen:UPrimitiveComponent::bCastHiddenShadow% |
-| **Cast Shadow as Two Sided** || %doxygen:UPrimitiveComponent::bCastShadowAsTwoSided% |
-| **Light as if Static** || %doxygen:UPrimitiveComponent::bLightAsIfStatic% |
-| **Light Attachments as Group** || %doxygen:UPrimitiveComponent::bLightAttachmentsAsGroup% |
-| **Indirect Lighting Cache Quality** || %doxygen:UPrimitiveComponent::IndirectLightingCacheQuality% |
-| **Single Sample Shadow From Stationary Lights** || %doxygen:UPrimitiveComponent::bSingleSampleShadowFromStationaryLights% |
-| **Lighting Channles** || %doxygen:UPrimitiveComponent::LightingChannels% |
+| **Input Key** || カーブ上で選択された **カーブ ポイント** のインデックスです。 |
+| **Position** || カーブ上で選択された **カーブ ポイント** の位置です。 |
+| **Arrive Tangent** || 選択された **カーブ ポイント** に近づく時にカーブのタンジェントを定義するベクトルです。 |
+| **Leave Tangent** || 選択された **カーブ ポイント** に近づく時にカーブのタンジェントを定義するベクトルです。 |
+| **Rotation** || **カーブ ポイント** に適用してタンジェントを修正します。タンジェントとは別々に適用されるので、両方に対して期待する結果になるような修正ができます。 |
+| **Scale** || **カーブ ポイント** に適用して、タンジェントを修正します。タンジェントとは別々に適用されるので、両方に対して期待する結果になるような修正ができます。 |
+| **Type** || [INCLUDE:#PointsType] |
 [/REGION]
 
 [/VAR]
@@ -272,81 +224,6 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 
-[EXCERPT:PropRenderingCat]
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		RenderingCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Rendering
-	[/PARAM]
-	[PARAM:content]
-		%c6%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c6]
-
-![](RenderingCatRef.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Visible** || %doxygen:USceneComponent::bVisible% |
-| **Hidden in Game** ||  %doxygen:USceneComponent::bHiddenInGame%|
-[/REGION]
-
-###Advanced
-
-![](RenderingCatRefAdv.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Texture Streaming** || [INCLUDE:#TextureStreamingProp] |
-| **LOD** || [INCLUDE:#LODProp] |
-| **Render In Main Pass** || %doxygen:UPrimitiveComponent::bRenderInMainPass% |
-| **Receives Decals** || %doxygen:UPrimitiveComponent::bReceivesDecals% |
-| **Owner No See** || %doxygen:UPrimitiveComponent::bOwnerNoSee% |
-| **Only Owner See** || %doxygen:UPrimitiveComponent::bOnlyOwnerSee% |
-| **Treat As Background for Occlusion** || %doxygen:UPrimitiveComponent::bTreatAsBackgroundForOcclusion% |
-| **Use As Occluder** || %doxygen:UPrimitiveComponent::bUseAsOccluder% |
-| **Render CustomDepth Pass** || %doxygen:UPrimitiveComponent::bRenderCustomDepth% |
-| **CustomDepth Stencil Value** || %doxygen:UPrimitiveComponent::CustomDepthStencilValue% |
-| **Translucency Sort Priority** || Translucent objects with a lower sort priority draw behind objects with a higher priority. Translucent objects with the same priority are rendered from back-to-front based on their bounds origin. |
-| **Lpv Bias Multiplier** || %doxygen:UPrimitiveComponent::LpvBiasMultiplier% |
-| **Bounds Scale** || %doxygen:UPrimitiveComponent::BoundsScale% |
-| **Use Attach Parent Bound** || %doxygen:USceneComponent::bUseAttachParentBound% |
-[/REGION]
-
-[/VAR]
-[/EXCERPT]
-
-<!--
-[EXCERPT:TextureStreamingProp]
-
-[REGION:raw]
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Force Mip Streaming** || %doxygen:UPrimitiveComponent::bForceMipStreaming% |
-[/REGION]
-
-[/EXCERPT]
-
-[EXCERPT:LODProp]
-
-[REGION:raw]
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Min Draw Distance** || %doxygen:UPrimitiveComponent::MinDrawDistance% |
-| **Desired Max Draw Distance** || %doxygen:UPrimitiveComponent::LDMaxDrawDistance% |
-| **Current Max Draw Distance** || %doxygen:UPrimitiveComponent::CachedMaxDrawDistance% |
-| **Allow Cull Distance Volume** || %doxygen:UPrimitiveComponent::bAllowCullDistanceVolume% |
-| **Detail Mode** || %doxygen:USceneComponent::DetailMode% |
-[/REGION]
-
-[/EXCERPT]
--->
 
 [EXCERPT:PropTagsCat]
 [OBJECT:modulesection]
@@ -366,7 +243,7 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](TagsCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Component Tags** || %doxygen:UActorComponent::ComponentTags% |
 [/REGION]
@@ -394,7 +271,7 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](ActivationCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Auto Activate** || %doxygen:UActorComponent::bAutoActivate% |
 [/REGION]
@@ -422,11 +299,11 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](EventsCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **On Component Hit** || %doxygen:UPrimitiveComponent::OnComponentHit% |
 | **On Component Begin Overlap** || %doxygen:UPrimitiveComponent::OnComponentBeginOverlap% |
-| **On Component End Overlap** || %doxygen:UPrimitiveComponent::OnComponentEndOverlap% |
+| **On Component Begin Overlap** || %doxygen:UPrimitiveComponent::OnComponentEndOverlap% |
 | **On Component Wake** || %doxygen:UPrimitiveComponent::OnComponentWake% |
 | **On Component Sleep** || %doxygen:UPrimitiveComponent::OnComponentSleep% |
 | **On Begin Cursor Over** || %doxygen:UPrimitiveComponent::OnBeginCursorOver% |
@@ -437,38 +314,24 @@ This page contains a reference listing of properties available on **Spline Compo
 | **On Input Touch End** || %doxygen:UPrimitiveComponent::OnInputTouchEnd% |
 | **On Input Touch Enter** || %doxygen:UPrimitiveComponent::OnInputTouchEnter% |
 | **On Input Touch Leave** || %doxygen:UPrimitiveComponent::OnInputTouchLeave% |
-| **Physics Volume Changed** || Delegate that will be called when PhysicsVolume has been changed. |
+| **Physics Volume Changed** || PhysicsVolume の変更時に呼び出されるデリゲートです。 |
 [/REGION]
 
 [/VAR]
 [/EXCERPT]
 
 
+<!--
+[EXCERPT:PointsType]
+選択された **カーブ ポイント** のタイプを定義します。
 
-[EXCERPT:PropMobileCat]
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		MobileCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Mobile
-	[/PARAM]
-	[PARAM:content]
-		%c10%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c10]
-
-![](MobileCatRef.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
+| タイプ | %spacer2% | 説明 |
 | --- | :---: | :--- |
-| **Receive Combined Static and CSM Shadows from Stationary Lights** || %doxygen:UPrimitiveComponent::bReceiveCombinedCSMAndStaticShadowsFromStationaryLights%  |
-[/REGION]
-
-[/VAR]
+| **Linear** || 選択された **カーブ ポイント** から次のカーブポイントまで、カーブは直線になります。これにより、選択された **カーブポイント** に入ってくるタンジェントおよび次に向かって出ていくタンジェントにも影響します。 |
+| **Curve** || デフォルト値です。(選択されたカーブポイントの前後の) **カーブ ポイント** は、選択された **カーブ ポイント** のタンジェントを定義します。 |
+| **Constant** || **Linear** と似ていますが、Constant は選択された **カーブ ポイント** に入ってくるタンジェントにも、次に向かって出ていくタンジェントにも **影響しません**。 |
+| **CurveClamped** || **Curve** と似ていますが、カーブのタンジェントでクランプする点が異なります。 |
+| **CurveCustomTangent** ||タンジェントを **カーブ ポイント** で調節した場合に設定される値です。 |
 [/EXCERPT]
-
+-->
 

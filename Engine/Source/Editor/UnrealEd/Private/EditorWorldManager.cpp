@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "EditorWorldManager.h"
-#include "ViewportWorldInteractionInterface.h"
 #include "ViewportWorldInteraction.h"
 #include "VREditorMode.h"
 #include "IViewportInteractionModule.h"
+#include "EngineGlobals.h"
+#include "Editor.h"
 
 /************************************************************************/
 /* FEditorWorldWrapper                                                  */
@@ -73,23 +73,23 @@ FEditorWorldManager::~FEditorWorldManager()
 	EditorWorldMap.Empty();
 }
 
-TSharedPtr<FEditorWorldWrapper> FEditorWorldManager::GetEditorWorldWrapper(const UWorld* InWorld)
+TSharedPtr<FEditorWorldWrapper> FEditorWorldManager::GetEditorWorldWrapper(const UWorld* InWorld, const bool bCreateIfNeeded /**= true*/)
 {
 	// Try to find this world in the map and return it or create and add one if nothing found
 	TSharedPtr<FEditorWorldWrapper> Result;
-	check(InWorld != nullptr);
-
-	TSharedPtr<FEditorWorldWrapper>* FoundWorld = EditorWorldMap.Find(InWorld->GetUniqueID());
-	if (FoundWorld != nullptr)
+	if(InWorld)
 	{
-		Result = *FoundWorld;
+		TSharedPtr<FEditorWorldWrapper>* FoundWorld = EditorWorldMap.Find(InWorld->GetUniqueID());
+		if(FoundWorld != nullptr)
+		{
+			Result = *FoundWorld;
+		}
+		else if(bCreateIfNeeded)
+		{
+			FWorldContext* WorldContext = GEditor->GetWorldContextFromWorld(InWorld);
+			Result = OnWorldContextAdd(*WorldContext);
+		}
 	}
-	else
-	{
-		FWorldContext* WorldContext = GEditor->GetWorldContextFromWorld(InWorld);
-		Result = OnWorldContextAdd(*WorldContext);
-	}
-
 	return Result;
 }
 
@@ -98,7 +98,7 @@ TSharedPtr<FEditorWorldWrapper> FEditorWorldManager::OnWorldContextAdd(FWorldCon
 	//Only add editor type world to the map
 	UWorld* World = InWorldContext.World();
 	TSharedPtr<FEditorWorldWrapper> Result;
-	if(World /* && (InWorldContext.WorldType == EWorldType::Editor || InWorldContext.WorldType == EWorldType::EditorPreview) */)
+	if(World && (InWorldContext.WorldType == EWorldType::Editor || InWorldContext.WorldType == EWorldType::EditorPreview))
 	{
 		TSharedPtr<FEditorWorldWrapper> EditorWorld(new FEditorWorldWrapper(InWorldContext));
 		Result = EditorWorld;

@@ -21,6 +21,8 @@ Engine\Binaries\Win64\*-ProjectWorkflows.*
 Engine\Binaries\Win64\*-WorkflowEditor.*
 Engine\Binaries\Win64\*-Workflows.*
 Engine\Binaries\Win64\*-TutorialSystem.*
+Engine\Binaries\Win64\*-GameplayTagsEditor.*
+Engine\Binaries\Win64\*-GameplayAbilities*.*
 Engine\Binaries\Win32\*-CoreSlateStyle*.*
 Engine\Binaries\Win32\*-SlateStyle*.*
 Engine\Binaries\Win64\*-CoreSlateStyle*.*
@@ -65,6 +67,8 @@ Shadow\Binaries\Win64\*ShadowLoadingScreen.*
 Engine\Binaries\Win64\UnrealRemoteAgent.*
 Engine\Binaries\Win64\NotForLicensees\*-OnlineSubsystemMcp*.*
 Engine\Binaries\Win64\NotForLicensees\*-XMPP*.*
+Engine\Binaries\Win64\*-Switch*
+Engine\Binaries\Win64\*-NVNRHI*
 Engine\Binaries\DotNET\AutomationScripts\NoRedist\FotniteGame.Automation.*
 Engine\Build\Android\Java\libs\vrlib.jar
 Engine\Plugins\Editor\IntroTutorials\Binaries\Win64\*-IntroTutorials*.*
@@ -107,3 +111,8 @@ Ocean\Binaries\Mac\Ocean.app\Contents\MacOS\*-LootTables.dylib
 Engine\Intermediate\Build\Win64\UE4Editor\Inc\SimplygonUtilities\*
 Engine\Build\Android\Java\JavaLibs\google-play-services_lib_rev19
 Engine\Intermediate\Build\Android\JavaLibs\google-play-services_lib_rev19
+Engine\Plugins\Runtime\WolfPlatMoviePlayer\*
+Engine\Plugins\Runtime\WolfPlatMoviePlayer\Source\*
+Engine\Plugins\Runtime\WolfPlatMoviePlayer\Source\WolfPlatMoviePlayer\*
+Engine\Plugins\Runtime\WolfPlatMoviePlayer\Source\WolfPlatMoviePlayer\Public\*
+Engine\Plugins\Runtime\WolfPlatMoviePlayer\Source\WolfPlatMoviePlayer\Private\*

@@ -1,10 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
+#include "WidgetBlueprint.h"
+#include "Components/Widget.h"
+#include "Blueprint/UserWidget.h"
+#include "MovieScene.h"
 
-#include "Runtime/MovieScene/Public/MovieScene.h"
-#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
+#if WITH_EDITOR
+	#include "Engine/UserDefinedStruct.h"
+#endif // WITH_EDITOR
+#include "EdGraph/EdGraph.h"
+#include "Blueprint/WidgetTree.h"
+#include "Animation/WidgetAnimation.h"
 
+#include "Kismet2/StructureEditorUtils.h"
+
+#include "Kismet2/CompilerResultsLog.h"
+#include "Binding/PropertyBinding.h"
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetBlueprintGeneratedClass.h"
 #include "PropertyTag.h"
@@ -12,6 +23,8 @@
 #include "WidgetBlueprintCompiler.h"
 #include "PropertyBinding.h"
 #include "Engine/UserDefinedStruct.h"
+#include "UObject/EditorObjectVersion.h"
+#include "Classes/WidgetGraphSchema.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -500,6 +513,23 @@ UWidgetBlueprint::UWidgetBlueprint(const FObjectInitializer& ObjectInitializer)
 	WidgetTree->SetFlags(RF_Transactional);
 }
 
+void UWidgetBlueprint::ReplaceDeprecatedNodes()
+{
+	if ( GetLinkerCustomVersion(FEditorObjectVersion::GUID) < FEditorObjectVersion::WidgetGraphSchema )
+	{
+		// Update old graphs to all use the widget graph schema.
+		TArray<UEdGraph*> Graphs;
+		GetAllGraphs(Graphs);
+
+		for ( UEdGraph* Graph : Graphs )
+		{
+			Graph->Schema = UWidgetGraphSchema::StaticClass();
+		}
+	}
+
+	Super::ReplaceDeprecatedNodes();
+}
+
 void UWidgetBlueprint::PostLoad()
 {
 	Super::PostLoad();
@@ -542,6 +572,18 @@ void UWidgetBlueprint::PostLoad()
 			{
 				Binding.PropertyName = Visibility;
 			}
+		}
+	}
+
+	if ( GetLinkerCustomVersion(FEditorObjectVersion::GUID) < FEditorObjectVersion::WidgetGraphSchema )
+	{
+		// Update old graphs to all use the widget graph schema.
+		TArray<UEdGraph*> Graphs;
+		GetAllGraphs(Graphs);
+
+		for ( UEdGraph* Graph : Graphs )
+		{
+			Graph->Schema = UWidgetGraphSchema::StaticClass();
 		}
 	}
 }

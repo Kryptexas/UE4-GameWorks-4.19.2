@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
 #include "ProjectPackagingSettings.generated.h"
-
 
 /**
  * Enumerates the available build configurations for project packaging.
@@ -22,7 +25,7 @@ enum EProjectPackagingBuildConfigurations
 };
 
 /**
- * Enumerates the the available internationalization data presets for project packaging.
+ * Enumerates the available internationalization data presets for project packaging.
  */
 UENUM()
 enum class EProjectPackagingInternationalizationPresets : uint8
@@ -41,6 +44,22 @@ enum class EProjectPackagingInternationalizationPresets : uint8
 
 	/** All known cultures. */
 	All
+};
+
+/**
+* Enumerates the available methods for Blueprint nativization during project packaging.
+*/
+UENUM()
+enum class EProjectPackagingBlueprintNativizationMethod : uint8
+{
+	/** Disable Blueprint nativization (default). */
+	Disabled,
+
+	/** Enable nativization for all Blueprint assets. */
+	Inclusive,
+
+	/** Enable nativization for selected Blueprint assets only. */
+	Exclusive
 };
 
 /**
@@ -83,8 +102,16 @@ public:
 	bool IncludeDebugFiles;
 
 	/** If enabled, then the project's Blueprint assets (including structs and enums) will be intermediately converted into C++ and used in the packaged project (in place of the .uasset files).*/
-	UPROPERTY(config, EditAnywhere, Category=Experimental)
-	bool bNativizeBlueprintAssets;
+	UPROPERTY(config, EditAnywhere, Category = Blueprints)
+	EProjectPackagingBlueprintNativizationMethod BlueprintNativizationMethod;
+
+	/** List of Blueprints to include for nativization when using the exclusive method. */
+	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category = Blueprints, meta = (DisplayName = "List of Blueprint assets to nativize", RelativeToGameContentDir, LongPackageName))
+	TArray<FFilePath> NativizeBlueprintAssets;
+
+	/** If enabled, a warning will be emitted at build/cook time if nativization is turned on in the Project Settings, but the nativization flag was omitted from the command line. */
+	UPROPERTY(config, EditAnywhere, Category = Blueprints)
+	bool bWarnIfPackagedWithoutNativizationFlag;
 
 	/** If enabled, all content will be put into a single .pak file instead of many individual files (default = enabled). */
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
@@ -176,9 +203,9 @@ public:
 
 	
 	/**
-	* Skip editor content
+	* Don't include content in any editor folders when cooking.  This can cause issues with missing content in cooked games if the content is being used. 
 	*/
-	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "Do not include editor content in this package may cause game to crash / error if you are using this content."))
+	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "Exclude editor content when cooking"))
 	bool bSkipEditorContent;
 
 	/**
@@ -219,12 +246,34 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Additional Non-Asset Directories To Copy", RelativeToGameContentDir))
 	TArray<FDirectoryPath> DirectoriesToAlwaysStageAsNonUFS;	
 
+private:
+	/** Helper array used to mirror Blueprint asset selections across edits */
+	TArray<FFilePath> CachedNativizeBlueprintAssets;
 
+	UPROPERTY(config)
+	bool bNativizeBlueprintAssets_DEPRECATED;
+
+	UPROPERTY(config)
+	bool bNativizeOnlySelectedBlueprints_DEPRECATED;
 	
 public:
 
 	// UObject Interface
 
+	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
 	virtual bool CanEditChange( const UProperty* InProperty ) const override;
+
+	/** Adds the given Blueprint asset to the exclusive nativization list. */
+	bool AddBlueprintAssetToNativizationList(const class UBlueprint* InBlueprint);
+
+	/** Removes the given Blueprint asset from the exclusive nativization list. */
+	bool RemoveBlueprintAssetFromNativizationList(const class UBlueprint* InBlueprint);
+
+	/** Determines if the specified Blueprint is already saved for exclusive nativization. */
+	bool IsBlueprintAssetInNativizationList(const class UBlueprint* InBlueprint) const { return FindBlueprintInNativizationList(InBlueprint) >= 0; }
+
+private:
+	/** Returns the index of the specified Blueprint in the exclusive nativization list (otherwise INDEX_NONE) */
+	int32 FindBlueprintInNativizationList(const UBlueprint* InBlueprint) const;
 };

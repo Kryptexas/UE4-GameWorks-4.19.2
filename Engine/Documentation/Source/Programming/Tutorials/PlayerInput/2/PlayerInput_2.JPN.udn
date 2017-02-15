@@ -2,7 +2,7 @@
 Title:2.ゲーム入力の設定
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
 Description:アンリアルエンジンの入力値を設定
-バージョン:4.9
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -25,23 +25,23 @@ Description:アンリアルエンジンの入力値を設定
 入力マッピングにはアクションと軸マッピングの 2 種類があります。
 <br>**Action Mappings (アクション マッピング)** は、例えばマウスやジョイスティックのボタンで入力する 「yes」 または 「no」 入力と考えるとわかりやすいです。ボタンを押下、リリース、ダブルクリック、またはしばらくの間押したままの状態の時にレポートします。ジャンプ動作、射撃動作、またはオブジェクトとのインタラクション動作などの離散アクションがこのタイプのマッピングの有力候補です。
 <br>**Axis Mappings (軸マッピング)** は継続的な入力に使用します。ジョイスティック入力やマウスのカーソル位置など、「どれだけ」の値が入力されたか？と考えると分かりやすいです。移動してない場合でもフレームごとに値をレポートします。ウォーキング、周囲の見回しやビークルの操縦など、大きさや方向を伴う動作は通常はこの手法で処理されます。
-<br>入力マッピングはコードに直接定義することもできますが、一般的にはこのチュートリアルで紹介するように **アンリアルエンジン** エディタで定義します。
+<br>入力マッピングはコードに直接定義することもできますが、一般的にはこのチュートリアルで紹介するように **アンリアル エンジン** エディタで定義します。
 
-1. **アンリアルエンジン** エディタの **Edit (編集)** ドロップダウンメニューから **Project Settings (プロジェクト設定)** オプションをクリックします。
+1. **アンリアルエンジン** エディタの **[Edit (編集)]** ドロップダウンメニューから **[Project Settings (プロジェクト設定)]** オプションをクリックします。
 
 	[![](EditProjectSettings.png)](EditProjectSettings.png)
 
-1. そして左側の **Engine (エンジン)** セクションから **Input (入力)** オプションを選択します。右側に表示される **Bindings (バインディング)** カテゴリを展開して、**Action Mapping** を1つ、**Axis Mappings** を2つ追加します。
-	**Action Mapping** または **Axis Mapping** セクション見出しの横にある＋記号で新しいマッピングを追加します。左側の展開用の矢印でマッピングを表示または非表示にできます。
+1. そして左側の **[Engine (エンジン)]** セクションから **[Input (入力)]** オプションを選択します。右側に表示される **[Bindings (バインディング)]** カテゴリを展開して、**[Action Mapping]** を1つ、**[Axis Mappings]** を2つ追加します。
+	**[Action Mapping]** または **[Axis Mapping]** セクション見出しの横にある＋記号で新しいマッピングを追加します。左側の展開用の矢印でマッピングを表示または非表示にできます。
 
 	マッピングに入力を追加するには、対象のマッピングの横に表示される＋記号をクリックします。チュートリアルで設定するマッピングと入力は以下の通りです。"S" と A" 入力のマイナス値に留意してください。
 
 	| ----- | ----- | ----- |
-	| Action Mapping | | |
-	| Grow | Space Bar | |
+	| Action Mapping (アクション マッピング) | | |
+	| Grow | スペース バー | |
 
 	| ----- | ----- | ----- |
-	| Axis Mapping | | |
+	| Axis Mapping (軸マッピング) | | |
 	| MoveX | W | 1.0 |
 	|  | S | -1.0 |
 	| MoveY | A | -1.0 |
@@ -49,13 +49,13 @@ Description:アンリアルエンジンの入力値を設定
 
 	[![](ConfigureInput.png)](ConfigureInput.png)
 
-1. 入力を設定したので、レベルにMyPawnを設定しましょう。**コンテンツ ブラウザ** に **MyPawn** クラスが表示されて、**レベルエディタ** へのドラッグ操作が可能になります。
+1. 入力の設定が終わったので、次はレベルに MyPawn を設定しましょう。**コンテンツ ブラウザ** に **MyPawn** クラスが表示されて、**レベルエディタ** へのドラッグ操作が可能になります。
 
 	[![](ClassInContentBrowser.png)](ClassInContentBrowser.png)
 
 	[![](PawnInSceneView.png)](PawnInSceneView.png)
 
-1. **MyPawn** の設定に必要な手順がもう一つあります。ゲームに表示されるように **スタティックメッシュ** を割り当てなければいけません。作成したばかりの **MyPawn** を選択、**詳細パネル** で 「OurVisibleComponent (Inherited)」を選択、そして **スタティックメッシュ** カテゴリのドロップダウンボックスからこれにアセットを割り当てます。このチュートリアルは **Shape_Cylinder** を使用します。
+1. **MyPawn** の設定に必要な手順がもう 1 つあります。ゲームに表示されるように **スタティックメッシュ** を割り当てなければいけません。作成したばかりの **MyPawn** を選択します。そして**[Details (詳細)] パネル** で [OurVisibleComponent (Inherited)] を選択して、**Static Mesh** カテゴリのドロップダウン ボックスからアセットを割り当てます。このチュートリアルでは **Shape_Cylinder** を使用します。
 
 	[![](StaticMesh.png)](StaticMesh.png)
 
@@ -67,14 +67,14 @@ Description:アンリアルエンジンの入力値を設定
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
-    コード
+    code
     [/PARAMLITERAL]
     [PARAM:heading]
     作業中のコード
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
@@ -87,13 +87,13 @@ Description:アンリアルエンジンの入力値を設定
 				GENERATED_BODY()
 
 			public:
-				// Sets default values (デフォルト値を設定)
+				// Sets default values (デフォルト値を設定) 
 				AMyPawn();
 
-				// Called when the game starts or when spawned (ゲーム開始またはスポーン時に呼ばれます)
+				// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
 				virtual void BeginPlay() override;
-	// Called every frame (フレームごとに呼ばれます)
 
+				// Called every frame (フレームごとに呼ばれます) 
 				virtual void Tick( float DeltaSeconds ) override;
 
 				// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
@@ -103,16 +103,16 @@ Description:アンリアルエンジンの入力値を設定
 				USceneComponent* OurVisibleComponent;
 			};
 
-		**MyPawn.h**
-			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
+		**MyPawn.cpp**
+			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
 
 			#include "HowTo_PlayerInput.h"
 			#include "MyPawn.h"
 
-			// Sets default values (デフォルト値を設定)
+			// Sets default values (デフォルト値を設定) 
 			AMyPawn::AMyPawn()
 			{
- 				// Set this pawn to call Tick() every frame.(フレームごとに Tick() を呼び出すためこのポーンを設定)必要なければパフォーマンスを向上させるためにオフにできます。
+ 				// Set this pawn to call Tick() every frame. (フレーム毎に Tick() を呼び出すには、このポーンを設定します)You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 				PrimaryActorTick.bCanEverTick = true;
 
 				// Set this pawn to be controlled by the lowest-numbered player (このポーンが最小値のプレイヤーで制御されるように設定)
@@ -123,21 +123,21 @@ Description:アンリアルエンジンの入力値を設定
 				// Create a camera and a visible object (カメラと可視オブジェクトを作成)
 				UCameraComponent* OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("OurCamera"));
 				OurVisibleComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("OurVisibleComponent"));
-				// Attach our camera and visible object to our root component. (カメラと可視オブジェクトをルートコンポーネントに親子付け。カメラをオフセットして回転)
-				OurCamera->AttachTo(RootComponent);
+				// Attach our camera and visible object to our root component. (カメラと可視オブジェクトをルートコンポーネントに親子付け)Offset and rotate the camera. (カメラをオフセットして回転)
+				OurCamera->SetupAttachment(RootComponent);
 				OurCamera->SetRelativeLocation(FVector(-250.0f, 0.0f, 250.0f));
 				OurCamera->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
-				OurVisibleComponent->AttachTo(RootComponent);
+				OurVisibleComponent->SetupAttachment(RootComponent);
 			}
 
-			// Called when the game starts or when spawned (ゲーム開始またはスポーン時に呼ばれます)
+			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
 			void AMyPawn::BeginPlay()
 			{
 				Super::BeginPlay();
 
 			}
 
-			// Called every frame (フレームごとに呼ばれます)
+			// Called every frame (フレームごとに呼ばれます) 
 			void AMyPawn::Tick( float DeltaTime )
 			{
 				Super::Tick( DeltaTime );

@@ -1,14 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectBaseUtility.cpp: Unreal UObject functions that only depend on UObjectBase
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
-#include "Interface.h"
-#include "ModuleManager.h"
-#include "FastReferenceCollector.h"
-#include "MallocProfiler.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "UObject/Class.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/Interface.h"
+#include "Modules/ModuleManager.h"
+#include "ProfilingDebugging/MallocProfiler.h"
 
 /***********************/
 /******** Names ********/

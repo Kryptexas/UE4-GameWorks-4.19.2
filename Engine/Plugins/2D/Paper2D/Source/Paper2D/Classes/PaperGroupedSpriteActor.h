@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PaperGroupedSpriteComponent.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameFramework/Actor.h"
 #include "PaperGroupedSpriteActor.generated.h"
+
+class UPaperGroupedSpriteComponent;
 
 /**
  * A group of sprites that will be rendered and culled as a single unit

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2750835
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:Velocity 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:Velocity (속도) 모듈은 다양한 방법으로 파티클의 속도를 조절하는 모듈입니다.
+Description:Velocity, 속도 모듈은 다양한 방법으로 파티클의 속도를 조절하는 모듈입니다.
 Version: 4.9
 
 [TOC(start:2 end:3)]

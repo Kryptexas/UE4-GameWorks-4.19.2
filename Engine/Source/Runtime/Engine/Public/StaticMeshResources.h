@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMesh.h: Static mesh class definition.
@@ -6,15 +6,34 @@
 
 #pragma once
 
-#include "Engine/StaticMesh.h"
-#include "Components/StaticMeshComponent.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "Misc/Guid.h"
+#include "Engine/EngineTypes.h"
+#include "UObject/UObjectIterator.h"
+#include "Templates/ScopedPointer.h"
+#include "Materials/MaterialInterface.h"
+#include "RenderResource.h"
+#include "PackedNormal.h"
+#include "Containers/DynamicRHIResourceArray.h"
 #include "RawIndexBuffer.h"
-#include "TextureLayout3d.h"
+#include "Components.h"
 #include "LocalVertexFactory.h"
+#include "PrimitiveViewRelevance.h"
 #include "PrimitiveSceneProxy.h"
+#include "Engine/MeshMerging.h"
+#include "Engine/StaticMesh.h"
+#include "UObject/UObjectHash.h"
+#include "MeshBatch.h"
 #include "SceneManagement.h"
+#include "Components/StaticMeshComponent.h"
 #include "PhysicsEngine/BodySetupEnums.h"
 #include "Materials/MaterialInterface.h"
+#include "Rendering/ColorVertexBuffer.h"
+#include "UniquePtr.h"
+
+class FDistanceFieldVolumeData;
+class UBodySetup;
 
 /**
  * The LOD settings to use for a group of static meshes.
@@ -827,9 +846,6 @@ public:
 	/** Bounds of the renderable mesh. */
 	FBoxSphereBounds Bounds;
 
-	/** True if LODs share static lighting data. */
-	bool bLODsShareStaticLighting;
-
 #if WITH_EDITORONLY_DATA
 	/** The derived data key associated with this render data. */
 	FString DerivedDataKey;
@@ -846,7 +862,7 @@ public:
 	void SyncUVChannelData(const TArray<FStaticMaterial>& ObjectData);
 
 	/** The next cached derived data in the list. */
-	TScopedPointer<class FStaticMeshRenderData> NextCachedRenderData;
+	TUniquePtr<class FStaticMeshRenderData> NextCachedRenderData;
 
 	/**
 	 * Cache derived renderable data for the static mesh with the provided
@@ -962,7 +978,7 @@ class ENGINE_API FStaticMeshSceneProxy : public FPrimitiveSceneProxy
 public:
 
 	/** Initialization constructor. */
-	FStaticMeshSceneProxy(UStaticMeshComponent* Component);
+	FStaticMeshSceneProxy(UStaticMeshComponent* Component, bool bCanLODsShareStaticLighting);
 
 	virtual ~FStaticMeshSceneProxy() {}
 
@@ -1010,6 +1026,7 @@ public:
 	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, TArray<FMatrix>& ObjectLocalToWorldTransforms) const override;
 	virtual void GetDistanceFieldInstanceInfo(int32& NumInstances, float& BoundsSurfaceArea) const override;
 	virtual bool HasDistanceFieldRepresentation() const override;
+	virtual bool HasDynamicIndirectShadowCasterRepresentation() const override;
 	virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
 	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() + LODs.GetAllocatedSize() ); }
 
@@ -1062,7 +1079,7 @@ protected:
 #endif
 
 #if WITH_EDITORONLY_DATA
-			// Used to index StreamingMaterialData in the texture streaming debug views.
+			// The material index from the component. Used by the texture streaming accuracy viewmodes.
 			int32 MaterialIndex;
 #endif
 
@@ -1079,7 +1096,7 @@ protected:
 		const FRawStaticIndexBuffer* PreCulledIndexBuffer;
 
 		/** Initialization constructor. */
-		FLODInfo(const UStaticMeshComponent* InComponent,int32 InLODIndex);
+		FLODInfo(const UStaticMeshComponent* InComponent, int32 InLODIndex, bool bCanLODsShareStaticLighting);
 
 		bool UsesMeshModifyingMaterials() const { return bUsesMeshModifyingMaterials; }
 
@@ -1126,12 +1143,12 @@ protected:
 	FCollisionResponseContainer CollisionResponse;
 
 #if WITH_EDITORONLY_DATA
-	/** Data shared with the component */
-	TSharedPtr<TArray<FPrimitiveMaterialInfo>, ESPMode::NotThreadSafe> TexStreamMaterialData;
 	/** The component streaming distance multiplier */
 	float StreamingDistanceMultiplier;
 	/** The cacheed GetTextureStreamingTransformScale */
 	float StreamingTransformScale;
+	/** Material bounds used for texture streaming. */
+	TArray<uint32> MaterialStreamingRelativeBoxes;
 
 	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered */
 	int32 SectionIndexPreview;

@@ -1,17 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTasksEditorPrivatePCH.h"
+#include "K2Node_LatentGameplayTaskCall.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_AssignmentStatement.h"
+#include "K2Node_CallArrayFunction.h"
+#include "K2Node_IfThenElse.h"
+#include "K2Node_TemporaryVariable.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
-#include "GameplayTask.h"
 #include "KismetCompiler.h"
-#include "BlueprintEditorUtils.h"
-#include "K2Node_LatentGameplayTaskCall.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "K2Node_EnumLiteral.h"
+#include "BlueprintNodeSpawner.h"
 #include "BlueprintFunctionNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
-#include "K2Node_IfThenElse.h"
-#include "Kismet/KismetSystemLibrary.h"
+
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -123,6 +128,7 @@ void UK2Node_LatentGameplayTaskCall::ReallocatePinsDuringReconstruction(TArray<U
 	{
 		CreatePinsForClass(UseSpawnClass);
 	}
+	RestoreSplitPins(OldPins);
 }
 
 UEdGraphPin* UK2Node_LatentGameplayTaskCall::GetClassPin(const TArray<UEdGraphPin*>* InPinsToSearch /*= NULL*/) const
@@ -581,7 +587,7 @@ void UK2Node_LatentGameplayTaskCall::ExpandNode(class FKismetCompilerContext& Co
 		{
 			const FEdGraphPinType& PinType = CurrentPin->PinType;
 			UK2Node_TemporaryVariable* TempVarOutput = CompilerContext.SpawnInternalVariable(
-				this, PinType.PinCategory, PinType.PinSubCategory, PinType.PinSubCategoryObject.Get(), PinType.bIsArray);
+				this, PinType.PinCategory, PinType.PinSubCategory, PinType.PinSubCategoryObject.Get(), PinType.bIsArray, PinType.bIsSet, PinType.bIsMap, PinType.PinValueType);
 			bIsErrorFree &= TempVarOutput->GetVariablePin() && CompilerContext.MovePinLinksToIntermediate(*CurrentPin, *TempVarOutput->GetVariablePin()).CanSafeConnect();
 			VariableOutputs.Add(FBaseAsyncTaskHelper::FOutputPinAndLocalVariable(CurrentPin, TempVarOutput));
 		}

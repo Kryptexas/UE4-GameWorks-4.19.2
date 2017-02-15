@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateCore.h"
+#include "CoreMinimal.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Rendering/RenderingCommon.h"
 
-// Forward Declarations
+class FSlateShaderResource;
 class IWebBrowserWindow;
 
 /**

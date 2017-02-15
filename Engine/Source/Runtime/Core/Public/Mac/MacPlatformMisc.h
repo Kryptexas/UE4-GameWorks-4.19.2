@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	MacPlatformMisc.h: Mac platform misc functions
@@ -27,6 +27,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 		return TEXT(":");
 	}
 
+	DEPRECATED(4.14, "GetMacAddress is deprecated. It is not reliable on all platforms")
 	static TArray<uint8> GetMacAddress();
 #if !UE_BUILD_SHIPPING
 	FORCEINLINE static bool IsDebuggerPresent()

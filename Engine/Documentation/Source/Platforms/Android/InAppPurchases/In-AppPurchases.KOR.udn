@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2945303
+﻿INTSourceChangelist:3150518
 Title: 안드로이드에서 앱 내 구매 사용법
 Description: 앱 내 구매를 통해 안드로이드 게임에 부가 유료 콘텐츠를 제공하는 법입니다.
 Crumbs:
@@ -7,8 +7,8 @@ version:4.10
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
-type:howto
-
+type:how-to
+Related:Platforms/Mobile/InAppPurchases/
 
 ## 환경설정
 
@@ -35,6 +35,14 @@ type:howto
 1. ExtraPermissions 에 "com.android.vending.BILLING" 라는 엘리먼트를 추가합니다.
 	
 	![image alt text](image_2.png)
+
+1. [ProjectName]/Config/Android/AndroidEngine.ini 파일을 편집합니다:
+
+		[OnlineSubsystem]
+		DefaultPlatformService=GooglePlay
+
+		[OnlineSubsystemGooglePlay.Store]
+		bSupportsInAppPurchasing=True
 
 [INCLUDE:Platforms/Mobile/InAppPurchases#usage_android]
 

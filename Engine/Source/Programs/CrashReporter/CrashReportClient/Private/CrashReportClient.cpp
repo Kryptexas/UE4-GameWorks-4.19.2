@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CrashReportClientApp.h"
-#include "CrashReportUtil.h"
-#include "CrashDescription.h"
 #include "CrashReportClient.h"
-#include "UniquePtr.h"
-#include "TaskGraphInterfaces.h"
+#include "Misc/CommandLine.h"
+#include "Internationalization/Internationalization.h"
+#include "Containers/Ticker.h"
+#include "CrashReportClientConfig.h"
+#include "Templates/UniquePtr.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "IDesktopPlatform.h"
 #include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
@@ -15,13 +17,16 @@ struct FCrashReportUtil
 	/** Formats processed diagnostic text by adding additional information about machine and user. */
 	static FText FormatDiagnosticText( const FText& DiagnosticText )
 	{
-		const FString MachineId = FPrimaryCrashProperties::Get()->MachineId.AsString();
+		const FString LoginId = FPrimaryCrashProperties::Get()->LoginId.AsString();
 		const FString EpicAccountId = FPrimaryCrashProperties::Get()->EpicAccountId.AsString();
-		return FText::Format( LOCTEXT( "CrashReportClientCallstackPattern", "MachineId:{0}\nEpicAccountId:{1}\n\n{2}" ), FText::FromString( MachineId ), FText::FromString( EpicAccountId ), DiagnosticText );
+		return FText::Format( LOCTEXT( "CrashReportClientCallstackPattern", "LoginId:{0}\nEpicAccountId:{1}\n\n{2}" ), FText::FromString( LoginId ), FText::FromString( EpicAccountId ), DiagnosticText );
 	}
 };
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
+
+#include "PlatformHttp.h"
+#include "Framework/Application/SlateApplication.h"
 
 FCrashReportClient::FCrashReportClient(const FPlatformErrorReport& InErrorReport)
 	: DiagnosticText( LOCTEXT("ProcessingReport", "Processing crash report ...") )

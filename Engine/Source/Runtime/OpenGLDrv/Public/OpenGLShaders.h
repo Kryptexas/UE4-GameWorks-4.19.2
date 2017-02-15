@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLShaders.h: OpenGL shader RHI declaration.
@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "Core.h"
-#include "OpenGLShaderResources.h"
+#include "CoreMinimal.h"
+#include "OpenGLDrv.h"
 
 typedef TArray<ANSICHAR> FAnsiCharArray;
 

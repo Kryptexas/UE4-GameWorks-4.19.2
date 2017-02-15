@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-
-class UObject;
-class FOutputDevice;
-
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Misc/Crc.h"
+#include "Containers/UnrealString.h"
 
 /**
  * Enumerates known GUID formats.

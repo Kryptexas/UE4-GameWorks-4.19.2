@@ -1,10 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EditorStyle.h"
-#include "PropertyEditorModule.h"
-#include "IOSRuntimeSettings.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Misc/Attribute.h"
+#include "Input/Reply.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "IDetailCustomization.h"
+
+class FMonitoredProcess;
+class IDetailLayoutBuilder;
+class IPropertyHandle;
+class SEditableTextBox;
+class SErrorText;
 
 //////////////////////////////////////////////////////////////////////////
 // FProvision structure
@@ -84,6 +94,9 @@ private:
 	TAttribute<bool> RunningIPPProcess;
 	TSharedPtr<IPropertyHandle> MobileProvisionProperty;
 	TSharedPtr<IPropertyHandle> SignCertificateProperty;
+	TSharedPtr<IPropertyHandle> ShaderVersionPropertyHandle;
+	TSharedPtr<IPropertyHandle> MinOSPropertyHandle;
+	TSharedPtr<IPropertyHandle> GLES2PropertyHandle;
 
 	FString SelectedProvision;
 	FString SelectedFile;
@@ -94,7 +107,7 @@ private:
 
 	void BuildPListSection(IDetailLayoutBuilder& DetailLayout);
 	void BuildIconSection(IDetailLayoutBuilder& DetailLayout);
-	void BuildRemoteBuildingSection(IDetailLayoutBuilder& DetailLayout);
+    void BuildRemoteBuildingSection(IDetailLayoutBuilder& DetailLayout);
 
 	// Navigates to the plist in explorer or finder
 	FReply OpenPlistFolder();
@@ -168,9 +181,22 @@ private:
 	void HandleProvisionChanged(FString Provision);
 
 	void HandleCertificateChanged(FString Certificate);
+	
+	/** Delegate handler to get the list of shader standards */
+	TSharedRef<SWidget> OnGetShaderVersionContent();
+	
+	/** Delegate handler to get the description of the shader standard */
+	FText GetShaderVersionDesc() const;
 
+	void SetShaderStandard(int32 Value);
+	
+	void UpdateShaderStandardWarning();
+	
 	// 
 	FText GetBundleText(TSharedRef<IPropertyHandle> InPropertyHandle) const;
 
 	TSharedPtr< SEditableTextBox > BundleIdTextBox;
+	
+	/** Reference to the shader version property warning text box. */
+	TSharedPtr< SErrorText > ShaderVersionWarningTextBox;
 };

@@ -1,13 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Components/ActorComponent.h"
+#include "BlueprintNodeSignature.h"
+#include "BlueprintActionFilter.h"
 #include "BlueprintNodeSpawner.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "BlueprintComponentNodeSpawner.generated.h"
 
-// Forward declarations
-class UActorComponent;
+class UEdGraph;
 
 /**
  * Takes care of spawning UK2Node_AddComponent nodes. Acts as the "action" 

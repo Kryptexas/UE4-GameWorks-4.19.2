@@ -1,19 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "SceneOutlinerPrivatePCH.h"
-#include "SSceneOutliner.h"
-
-#include "SceneOutlinerFilters.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "ActorTreeItem.h"
-#include "FolderTreeItem.h"
-#include "WorldTreeItem.h"
-
-#include "ActorEditorUtils.h"
-#include "LevelUtils.h"
-#include "MessageLog.h"
-#include "SSocketChooser.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Editor.h"
 #include "ScopedTransaction.h"
+#include "SceneOutlinerPublicTypes.h"
+#include "DragAndDrop/ActorDragDropGraphEdOp.h"
+#include "SceneOutlinerDragDrop.h"
+#include "SceneOutlinerStandaloneTypes.h"
+
+
+
+#include "Logging/MessageLog.h"
+#include "SSocketChooser.h"
 
 #define LOCTEXT_NAMESPACE "SceneOutliner_ActorTreeItem"
 
@@ -244,7 +246,7 @@ FTreeItemPtr FActorTreeItem::CreateParent() const
 	{
 		return MakeShareable(new FActorTreeItem(ParentActor));
 	}
-	else
+	else if(!ParentActor)
 	{
 		const bool bShouldShowFolders = SharedData->Mode == ESceneOutlinerMode::ActorBrowsing || SharedData->bOnlyShowFolders;
 
@@ -253,11 +255,11 @@ FTreeItemPtr FActorTreeItem::CreateParent() const
 		{
 			return MakeShareable(new FFolderTreeItem(ActorFolder));
 		}
-	}
 
-	if (UWorld* World = ActorPtr->GetWorld())
-	{
-		return MakeShareable(new FWorldTreeItem(World));
+		if (UWorld* World = ActorPtr->GetWorld())
+		{
+			return MakeShareable(new FWorldTreeItem(World));
+		}
 	}
 
 	return nullptr;

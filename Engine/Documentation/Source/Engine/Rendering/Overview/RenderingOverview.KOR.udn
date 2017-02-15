@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3151855
 Availability:Public
 Title: 렌더링 개요
 Crumbs: %ROOT%, Engine
 Description:렌더링 서브시스템 주요 기능에 대한 개요입니다.
 Version: 4.9
+parent:Engine/Rendering
+order:1
+type:landing
 
 [VAR:Topic]
 [OBJECT:Topic]

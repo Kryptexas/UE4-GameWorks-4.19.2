@@ -1,13 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "CoreNetTypes.h"
-#include "EdGraph/EdGraphPin.h"
-#include "EdGraph/EdGraphNode.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
 #include "Engine/EngineTypes.h"
-#include "BlueprintCore.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Engine/BlueprintCore.h"
 #include "Blueprint.generated.h"
+
+class FCompilerResultsLog;
+class ITargetPlatform;
+class UActorComponent;
+class UEdGraph;
+class UInheritableComponentHandler;
 
 /**
  * Enumerates states a blueprint can be in.
@@ -74,6 +84,23 @@ enum class EBlueprintCompileMode : uint8
 	FinalRelease UMETA(ToolTip="Always compile in final release mode.")
 };
 
+USTRUCT()
+struct FCompilerNativizationOptions
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	bool ServerOnlyPlatform;
+
+	UPROPERTY()
+	bool ClientOnlyPlatform;
+
+	FCompilerNativizationOptions()
+		: ServerOnlyPlatform(false)
+		, ClientOnlyPlatform(false)
+	{}
+};
+
 struct FKismetCompilerOptions
 {
 public:
@@ -94,6 +121,7 @@ public:
 
 	TSharedPtr<FString> OutHeaderSourceCode;
 	TSharedPtr<FString> OutCppSourceCode;
+	FCompilerNativizationOptions NativizationOptions;
 
 	bool DoesRequireCppCodeGeneration() const
 	{
@@ -279,12 +307,20 @@ struct FEditedDocumentInfo
 };
 
 
+UENUM()
+enum class EBlueprintNativizationFlag : uint8
+{
+	Disabled,
+	Dependency, // conditionally enabled (set from sub-class as a dependency)
+	ExplicitlyEnabled
+};
+
 /**
  * Blueprints are special assets that provide an intuitive, node-based interface that can be used to create new types of Actors
  * and script level events; giving designers and gameplay programmers the tools to quickly create and iterate gameplay from
  * within Unreal Editor without ever needing to write a line of code.
  */
-UCLASS(config=Engine, BlueprintType)
+UCLASS(config=Engine)
 class ENGINE_API UBlueprint : public UBlueprintCore
 {
 	GENERATED_UCLASS_BODY()
@@ -344,6 +380,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	/** Additional HideCategories. These are added to HideCategories from parent. */
 	UPROPERTY(EditAnywhere, Category=BlueprintOptions)
 	TArray<FString> HideCategories;
+	 
+	/** When exclusive nativization is enabled, then this asset will be nativized. All super classes must be also nativized. */
+	UPROPERTY(transient)
+	EBlueprintNativizationFlag NativizationFlag;
 
 	/** TRUE to show a warning when attempting to start in PIE and there is a compiler error on this Blueprint */
 	UPROPERTY(transient)
@@ -551,6 +591,9 @@ public:
 	/** Find the object in the TemplateObjects array with the supplied name */
 	UActorComponent* FindTemplateByName(const FName& TemplateName) const;
 
+	/** Rename the component template in the TemplateObjects array with the supplied name */
+	bool RenameComponentTemplate(const FName& OldTemplateName, const FName& NewTemplateName);
+
 	/** Find a timeline by name */
 	class UTimelineTemplate* FindTimelineTemplateByVariableName(const FName& TimelineName);	
 
@@ -646,6 +689,8 @@ public:
 
 	/** Collect blueprints that depend on this blueprint. */
 	virtual void GatherDependencies(TSet<TWeakObjectPtr<UBlueprint>>& InDependencies) const;
+
+	virtual void ReplaceDeprecatedNodes();
 
 #endif	//#if WITH_EDITOR
 
@@ -753,6 +798,10 @@ private:
 
 	/** Broadcasts a notification whenever the blueprint is compiled. */
 	FCompiledEvent CompiledEvent;
+
+	/** Deprecated properties. */
+	UPROPERTY()
+	bool bNativize_DEPRECATED;
 
 #if WITH_EDITOR
 public:

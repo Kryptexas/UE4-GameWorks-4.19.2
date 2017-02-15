@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
 #include "GenericPlatform/GenericPlatformMisc.h"
-#include "HAL/Platform.h"
 
 
 /**
@@ -258,11 +258,5 @@ struct FGenericPlatformProperties
 	static FORCEINLINE bool AllowsCallStackDumpDuringAssert()
 	{
 		return false;
-	}
-
-	// whether or not the platform supports shader compression
-	static FORCEINLINE bool SupportsShaderCompression()
-	{
-		return true;
 	}
 };

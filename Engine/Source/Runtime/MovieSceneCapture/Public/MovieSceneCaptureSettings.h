@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
 #include "Engine/EngineTypes.h"
 #include "MovieSceneCaptureSettings.generated.h"
 
@@ -71,7 +74,7 @@ struct MOVIESCENECAPTURE_API FMovieSceneCaptureSettings
 	uint8 ZeroPadFrameNumbers;
 
 	/** The frame rate at which to capture */
-	UPROPERTY(config, EditAnywhere, Category=CaptureSettings)
+	UPROPERTY(config, EditAnywhere, Category=CaptureSettings, meta=(ClampMin=1, UIMin=1, ClampMax=200, UIMax=200))
 	int32 FrameRate;
 
 	/** The resolution at which to capture */
@@ -81,6 +84,10 @@ struct MOVIESCENECAPTURE_API FMovieSceneCaptureSettings
 	/** Whether to texture streaming should be enabled while capturing.  Turning off texture streaming may cause much more memory to be used, but also reduces the chance of blurry textures in your captured video. */
 	UPROPERTY(config, EditAnywhere, Category=CaptureSettings, AdvancedDisplay)
 	bool bEnableTextureStreaming;
+
+	/** Whether to enable cinematic engine scalability settings */
+	UPROPERTY(config, EditAnywhere, Category=Cinematic)
+	bool bCinematicEngineScalability;
 
 	/** Whether to enable cinematic mode whilst capturing */
 	UPROPERTY(config, EditAnywhere, Category=Cinematic)

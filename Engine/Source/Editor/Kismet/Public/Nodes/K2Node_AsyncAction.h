@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "K2Node_BaseAsyncTask.h"
 #include "K2Node_AsyncAction.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
 
 /** !!! The proxy object should have RF_StrongRefOnFrame flag. !!! */
 

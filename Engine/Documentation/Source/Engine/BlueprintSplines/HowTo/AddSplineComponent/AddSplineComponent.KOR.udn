@@ -1,14 +1,17 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:How-To Add a Spline Component to a Blueprint
+﻿INTSourceChangelist:3149199
+Availability:Public
+Title:블루프린트에 스플라인 컴포넌트 추가하기
 Crumbs: %ROOT%, Engine
-Description:This how-to will show you how to add a Spline or Spline Mesh Component to a Blueprint.
+Description:블루프린트에 스플라인과 스플라인 메시 컴포넌트를 추가하는 법을 보여드립니다.
 Navigation:topic
 parent:Engine/BlueprintSplines/HowTo
 order:1
 social-image:Splines_social.png
+version:4.13
+skilllevel:Beginner
 related:Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor
 related:Engine/BlueprintSplines/HowTo/EditSplineInConstScript
+tags:Splines
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,25 +53,24 @@ related:Engine/BlueprintSplines/HowTo/EditSplineInConstScript
 [/VAR]
 
 
-This page will take you through the steps necessary to add a **Blueprint Spline Component** or **Blueprint Spline Mesh Component** to any Blueprint you have available. Both of these components require that your Blueprint inherits from any class that can trace its linage back to **Actor** (Pawn, Character, etc...).
+여기서는 기존의 사용할 수 있는 블루프린트에 **Blueprint Spline Component** (블루프린트 스플라인 컴포넌트) 또는 **Blueprint Spline Mesh Component** (블루프린트 스플라인 메시 컴포넌트)를 추가하는 데 필요한 방법을 단계별로 안내해 드립니다. 이 두 컴포넌트 모두 (Pawn, Character 등) **Actor** 를 근거로 하는 클래스를 상속받은 블루프린트를 필요로 합니다.
 
-## Steps
+## 단계
 
-1. Create a new **Blueprint** or Open a **Blueprint** in the **Blueprint Editor**.
+1. **블루프린트 에디터** 에서 **블루프린트** 를 새로 만들거나 엽니다.
 
-1. **Add Component** ![](AddComp_Button.png) -> Spline **or** Add Component -> Spline Mesh.
+1. **컴포넌트 추가** ![](AddComp_Button.png) -> Spline (스플라인) **또는** 컴포넌트 추가 -> Spline Mesh (스플라인 메시).
 
 	[REGION:raw]
 	![](AddSplineComp.png)
 	[/REGION]
 	
-1. Adjust any settings for the added component. See [](Engine/BlueprintSplines/Reference/ComponentProperties) or [](Engine/BlueprintSplines/Reference/MeshComponentProperties) for more information on the properties available.
+1. 추가된 컴포넌트의 세팅을 조정합니다. 사용할 수 있는 프로퍼티 관련 상세 정보는 [](Engine/BlueprintSplines/Reference/ComponentProperties) 또는 [](Engine/BlueprintSplines/Reference/MeshComponentProperties) 문서를 참고하세요.
 
-	You won't be able to directly edit the Spline's or Spline Mesh's points in the **Blueprint Editor Viewport**. You'll either need define the curve in the **Construction Script** of your Blueprint or place your Blueprint in your level and edit the points there.
+	**블루프린트 에디터 뷰포트** 에서 **블루프린트 스플라인 컴포넌트** 의 포인트를 직접 편집할 수 있습니다.
 	
-## Result
+## 결과
 
-You will have added a **Spline Component** or **Spline Mesh Component** to your Blueprint, see the next how-to's for more information on how to manipulate them.
-
+블루프린트에 **블루프린트 스플라인 컴포넌트** 또는 **블루프린트 스플라인 메시 컴포넌트** 를 추가했으니, 다음에는 그 조작법을 살펴보겠습니다.
 
 

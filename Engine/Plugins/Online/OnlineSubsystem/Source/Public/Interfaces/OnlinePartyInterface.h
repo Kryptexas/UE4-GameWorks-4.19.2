@@ -1,12 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "OnlineKeyValuePair.h"
+#include "UObject/CoreOnline.h"
 #include "OnlineSubsystemTypes.h"
-#include "OnlineChatInterface.h"
+#include "OnlineDelegateMacros.h"
+#include "Interfaces/OnlineChatInterface.h"
 
 #define F_PREFIX(TypeToPrefix) F##TypeToPrefix
 #define PARTY_DECLARE_DELEGATETYPE(Type) typedef F##Type::FDelegate F##Type##Delegate
+
+enum class EAcceptPartyInvitationCompletionResult;
+enum class ECreatePartyCompletionResult;
+enum class EInvitationResponse;
+enum class EJoinPartyCompletionResult;
+enum class EKickMemberCompletionResult;
+enum class ELeavePartyCompletionResult;
+enum class EPromoteMemberCompletionResult;
+enum class ERejectPartyInvitationCompletionResult;
+enum class ERequestPartyInvitationCompletionResult;
+enum class ESendPartyInvitationCompletionResult;
+enum class EUpdateConfigCompletionResult;
 
 ONLINESUBSYSTEM_API DECLARE_LOG_CATEGORY_EXTERN(LogOnlineParty, Display, All);
 

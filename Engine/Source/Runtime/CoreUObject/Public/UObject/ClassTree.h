@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ClassTree.h: Class hierarchy management classes.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Containers/List.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 
 enum EClassFlagMatchType
 {

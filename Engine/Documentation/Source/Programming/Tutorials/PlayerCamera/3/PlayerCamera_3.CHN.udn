@@ -154,7 +154,7 @@ Description:应用代码以控制具有输入的pawn和相机。
     [/PARAM]
     [PARAM:content]
 		**PawnWithCamera.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -200,7 +200,7 @@ Description:应用代码以控制具有输入的pawn和相机。
 			};
 
 		**PawnWithCamera.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerCamera.h"
 			#include "PawnWithCamera.h"

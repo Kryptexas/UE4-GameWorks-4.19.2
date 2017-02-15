@@ -1,9 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AnimationEditorPreviewScene.h"
+#include "CoreMinimal.h"
+#include "IPropertyTypeCustomization.h"
+#include "IPersonaPreviewScene.h"
+#include "IDetailCustomization.h"
+#include "PropertyHandle.h"
+#include "IEditableSkeleton.h"
 #include "IPersonaToolkit.h"
+#include "AnimationEditorPreviewScene.h"
+
+class FAssetData;
+class FDetailWidgetRow;
+class IDetailChildrenBuilder;
+class IDetailLayoutBuilder;
+class IPropertyUtilities;
 
 class FPreviewSceneDescriptionCustomization : public IDetailCustomization
 {

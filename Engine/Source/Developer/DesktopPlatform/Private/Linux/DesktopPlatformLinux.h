@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "../DesktopPlatformBase.h"
+#include "CoreMinimal.h"
+#include "DesktopPlatformBase.h"
 
 class FDesktopPlatformLinux : public FDesktopPlatformBase
 {

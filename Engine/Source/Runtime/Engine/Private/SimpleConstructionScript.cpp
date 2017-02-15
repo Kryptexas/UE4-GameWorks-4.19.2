@@ -1,16 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/Blueprint.h"
+#include "Components/InputComponent.h"
+#include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/SCS_Node.h"
-#include "BlueprintsObjectVersion.h"
-#include "BlueprintUtilities.h"
+#include "UObject/BlueprintsObjectVersion.h"
+#include "UObject/LinkerLoad.h"
 #if WITH_EDITOR
 #include "Kismet2/CompilerResultsLog.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/ComponentEditorUtils.h"
 #include "Kismet2/Kismet2NameValidators.h"
 #endif
-#include "Engine/SimpleConstructionScript.h"
 
 //////////////////////////////////////////////////////////////////////////
 // USimpleConstructionScript
@@ -38,6 +40,8 @@ USimpleConstructionScript::USimpleConstructionScript(const FObjectInitializer& O
 void USimpleConstructionScript::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FBlueprintsObjectVersion::GUID);
 
 	if(Ar.IsLoading())
 	{
@@ -1008,14 +1012,12 @@ void USimpleConstructionScript::GenerateListOfExistingNames(TArray<FName>& Curre
 	// <<< End Backwards Compatibility
 	check(Blueprint);
 
-	TArray<UObject*> NativeCDOChildren;
 	UClass* FirstNativeClass = FBlueprintEditorUtils::FindFirstNativeClass(Blueprint->ParentClass);
-	GetObjectsWithOuter(FirstNativeClass->GetDefaultObject(), NativeCDOChildren, false);
 
-	for (UObject* NativeCDOChild : NativeCDOChildren)
+	ForEachObjectWithOuter(FirstNativeClass->GetDefaultObject(), [&CurrentNames](UObject* NativeCDOChild)
 	{
 		CurrentNames.Add(NativeCDOChild->GetFName());
-	}
+	});
 
 	if (Blueprint->SkeletonGeneratedClass)
 	{

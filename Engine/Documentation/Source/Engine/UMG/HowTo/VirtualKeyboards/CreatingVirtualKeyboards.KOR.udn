@@ -1,18 +1,18 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Creating Virtual Keyboard Interactions
+﻿INTSourceChangelist:3108692
+Availability: Public
+Title:가상 키보드 상호작용 생성
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:Demonstrates how you can create and interaction with a 3D Virtual Keyboard with UMG. 
+Description:UMG 로 3D 가상 키보드를 만들고 상호작용하는 법에 대한 설명입니다.
 Version: 4.13
 SkillLevel: Advanced
-parent:Engine/Editor
-order:1
+parent:Engine/UMG/HowTo
+order:4
 checkpoint: editorqs
 
-If you are looking to create a 3D keypad or virtual keyboard that allows a player to enter specified characters, you can do so with a combination of the [Widget Interaction](Engine\UMG\UserGuide\WidgetInteraction) component and [Widget](Engine/Components/Widget) components. 
-The Widget Interaction component will help facilitate which "buttons" are clicked on and processes sending the characters through to a Widget component in an Actor that will handle the display.
+3D 키패드 또는 가상 키보드를 만들어 플레이어가 지정한 글자를 입력할 수 있도록 하려는 경우, [Widget Interaction](Engine\UMG\UserGuide\WidgetInteraction) 컴포넌트와 [Widget](Engine/Components/Widget) 컴포넌트를 조합하면 됩니다.
+Widget Interaction 컴포넌트는 어떤 버튼을 클릭했는지 알아내고, 표시를 담당하는 액터의 Widget 컴포넌트에 글자 전송 처리를 할 수 있도록 합니다.
 
-In this how-to we create a keypad that can be interacted with in and provides entries to a text box. 
+여기서는 상호작용 가능한 키패드를 만들고 텍스트 박스에 무언가 입력해 보도록 하겠습니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -26,18 +26,18 @@ N2Fo4izRgh0
 [/PARAMLITERAL]
 [/OBJECT]
 
-_At the end of this guide, you will have a keypad and display that appears inside the 3D game world and can be interacted with._
+_이 안내서를 마칠 때 즈음이면, 3D 게임 월드에 나타나 상호작용이 가능한 키패드와 디스플레이가 생겨 있을 것입니다._
 
-One important aspect in setting this up will be to determine the Widgets that are (or are not) focusable. If the Text Box that displays the characters the player enters is set to focusable and the buttons that the player clicks on to send characters through is also focusable, the Text Box would lose player focus when a button (or any other widget) is clicked on and not receive the commands issued. 
+이와 같은 구성에 있어 한 가지 중요한 점은, 포커스가 가능한 (또는 가능하지 않은) 위젯을 가려내는 것입니다. 플레이어가 입력하는 글자를 표시하는 Text Box (텍스트 박스)가 포커스 가능하도록 설정되어 있고, 글자 전송을 위해 플레이어가 클릭하는 버튼 역시도 포커스 가능하도록 설정되어 있는 경우, 버튼(이나 다른 위젯)이 눌리면 플레이어 포커스가 잡히지 않아 내린 명령을 받지 못하게 될 것입니다.
 
-The first step however is to set up our character with the Widget Interaction component and create the assets to display our UI. 
+첫 단계는 캐릭터에 Widget Interaction 컴포넌트를 포함하여 구성하고, UI 표시를 위한 애셋을 생성하는 것입니다.
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		단계
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -49,6 +49,5 @@ The first step however is to set up our character with the Widget Interaction co
 [/OBJECT]
 
 [REGION:call_to_action]
-	[Click to Start](Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup "%Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup:title%")
+	[클릭하면 시작합니다.](Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup "%Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup:title%")
 [/REGION]
-

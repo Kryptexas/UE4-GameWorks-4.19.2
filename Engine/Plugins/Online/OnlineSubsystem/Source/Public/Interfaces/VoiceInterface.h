@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/CoreOnline.h"
+#include "OnlineDelegateMacros.h"
 #include "OnlineSubsystemPackage.h"
 
-class FUniqueNetId;
+class FVoicePacket;
 
 /** Enable to pipe local voice data back to this client as remote data */
 #define VOICE_LOOPBACK !UE_BUILD_SHIPPING
@@ -337,7 +340,7 @@ public:
 	 * @param LocalUserNum the controller number of the associated user
 	 * @param UniqueId the id of the player being checked
 	 *
-	 * @return true if a member of their friends list, false otherwise
+	 * @return true if the specified user is muted, false otherwise
 	 */
 	virtual bool IsMuted(uint32 LocalUserNum, const FUniqueNetId& UniqueId) const = 0;
 

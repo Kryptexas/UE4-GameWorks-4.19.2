@@ -1,18 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 /* Public dependencies
 *****************************************************************************/
 
-#include "Core.h"
-#include "Engine.h"
+#include "CoreMinimal.h"
 
-#include "SoundDefinitions.h"
-
-#include "AudioMixerDevice.h"
 #include "AudioMixerBuffer.h"
-#include "AudioMixerSourceVoice.h"
 #include "AudioMixerSourceManager.h"
 
 namespace Audio
@@ -48,7 +43,7 @@ namespace Audio
 		}
 	};
 
-	typedef FAsyncRealtimeAudioTaskProxy<FMixerBuffer> FAsyncRealtimeAudioTask;
+	typedef FAsyncTask<FAsyncRealtimeAudioTaskWorker<FMixerBuffer>> FAsyncRealtimeAudioTask;
 
 	/** 
 	 * FMixerSource
@@ -74,10 +69,12 @@ namespace Audio
 		void Pause() override;
 		bool IsFinished() override;
 		FString Describe(bool bUseLongName) override;
+		float GetPlaybackPercent() const override;
 		//~ End FSoundSource Interface
 
 		//~Begin ISourceBufferQueueListener
 		void OnSourceBufferEnd() override;
+		void OnRelease() override;
 		//~End ISourceBufferQueueListener
 
 	private:
@@ -134,11 +131,8 @@ namespace Audio
 		/** Computes the stereo-channel map. */
 		bool ComputeStereoChannelMap();
 
-		/** Computes the quad channel map. */
-		bool ComputeQuadChannelMap();
-
-		/** Computes the hex channel map. */
-		bool ComputeHexChannelMap();
+		/** Compute the channel map based on the number of channels. */
+		bool ComputeChannelMap(const int32 NumChannels);
 
 		/** Whether or not we should create the source voice with the HRTF spatializer. */
 		bool UseHRTSpatialization() const;
@@ -149,6 +143,9 @@ namespace Audio
 		FMixerBuffer* MixerBuffer;
 		FMixerSourceVoice* MixerSourceVoice;
 		FAsyncRealtimeAudioTask* AsyncRealtimeAudioTask;
+		FSoundBuffer* PendingReleaseBuffer;
+		FAsyncRealtimeAudioTask* PendingReleaseRealtimeAudioTask;
+		FCriticalSection RenderThreadCritSect;
 
 		TArray<float> ChannelMap;
 		TArray<float> StereoChannelMap;
@@ -168,10 +165,12 @@ namespace Audio
 		FThreadSafeBool bLoopCallback;
 		FThreadSafeBool bIsFinished;
 		FThreadSafeBool bBuffersToFlush;
+		FThreadSafeBool bFreeAsyncTask;
 
 		uint32 bResourcesNeedFreeing : 1;
 		uint32 bEditorWarnedChangedSpatialization : 1;
 		uint32 bUsingHRTFSpatialization : 1;
+		uint32 bIs3D : 1;
 		uint32 bDebugMode : 1;
 	};
 }

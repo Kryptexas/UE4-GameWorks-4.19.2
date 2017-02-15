@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3056059
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:프로퍼티 리플리케이션
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
@@ -54,7 +54,7 @@ order: 1
 
 ### 적응형 네트워크 업데이트 빈도
 
-Adaptive Network Update Frequency (적응형 네트워크 업데이트 빈도)를 통해 리플리케이트되는 액터는 그 업데이트의 유의미한 업데이트에 따라 업데이트 빈도를 높이거나 낮출 수 있습니다. 여기서 "유의미한" 이라 함은, 액터를 초기화시키거나, (소유된 컴포넌트같은) 서브오브젝트를 추가 또는 제거하거나, 액터 또는 그 서브오브젝트의 리플리케이티드 칸의 값을 변경하거나 하는 업데이트를 말합니다. 각 액터에 가능한 업데이트 비율 범위는 액터 자체에 있는 변수 둘로 결정됩니다. 하나는 `NetUpdateFrequency`, 다른 하나는 `MinNetUpdateFrequency` 입니다. `NetUpdateFrequency` 는 액터가 자체 업데이트를 할 때 초당 최대 몇 번까지, `MinNetUpdateFrequency` 는 최소 몇 번까지 업데이트를 시도할지 나타냅니다.
+Adaptive Network Update Frequency (적응형 네트워크 업데이트 빈도)를 쓰면, 보통은 실제로 변한 것이 없는 액터를 중복해서 리플리케이트하느라 낭비되는 CPU 사이클을 절약할 수 있습니다. 이 기능을 켜면, 시스템은 업데이트가 유의미한지에 따라 개별 액터의 업데이트 빈도를 동적으로 적응시킵니다. 여기서 "유의미한" 이라 함은, 액터를 초기화시키거나, (소유된 컴포넌트같은) 서브오브젝트를 추가 또는 제거하거나, 액터 또는 그 서브오브젝트의 리플리케이티드 칸의 값을 변경하거나 하는 업데이트를 말합니다. 각 액터에 가능한 업데이트 비율 범위는 액터 자체에 있는 변수 둘로 결정됩니다. 하나는 `NetUpdateFrequency`, 다른 하나는 `MinNetUpdateFrequency` 입니다. `NetUpdateFrequency` 는 액터가 자체 업데이트를 할 때 초당 최대 몇 번까지, `MinNetUpdateFrequency` 는 최소 몇 번까지 업데이트를 시도할지 나타냅니다. 이 기능을 사용하면 리플리케이션 퍼포먼스가 크게 향상될 수 있습니다.
 
 #### (고급) 업데이트 빈도 감소 알고리즘
 

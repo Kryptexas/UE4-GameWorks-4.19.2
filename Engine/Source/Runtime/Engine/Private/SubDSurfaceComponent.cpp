@@ -1,18 +1,25 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Components/SubDSurfaceComponent.h"
-#include "DynamicMeshBuilder.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Components/StaticMeshComponent.h"
+#include "Materials/Material.h"
+#include "Components/BillboardComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "Engine/Texture2D.h"
+#include "Engine/StaticMesh.h"
+#include "ContentStreaming.h"
+#include "UnrealEngine.h"
 #include "Engine/SubDSurface.h"
-#include "Engine/Font.h"
 #include "Engine/SubDSurfaceActor.h"
-#include "LocalVertexFactory.h"
-
-#define VS2013OR2015 (_MSC_VER == 1800 || _MSC_VER == 1900)
 
 // 0/1 - we have libs pre compiled for VS2013 and V2015 in 64bit - later we can add more or remove the dependency to OpenSubDiv
 // RawMesh is only available when using editor builds - later we want to remove this dependency (useful at the moment to compare to vertex cache optimized meshes)
-#define USE_OPENSUBDIV (VS2013OR2015 && _WIN64 && WITH_EDITORONLY_DATA)
+#if defined(_MSC_VER) && defined(_WIN64)
+#define USE_OPENSUBDIV (_MSC_VER >= 1800 && WITH_EDITORONLY_DATA)
+#else
+#define USE_OPENSUBDIV (0)
+#endif
 
 #if USE_OPENSUBDIV
 
@@ -450,7 +457,7 @@ static float const g_creaseweights[4] = { 3.0f, 3.0f, 3.0f, 3.0f };
 // degenerated cases are not handled yet
 void ComputeTangents(FVector OutTangentXYZ[3], FVector InDeltaPos[2], FVector2D InDeltaUV[2])
 {
-	// originally from: Lengyel, Eric. “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”. Terathon Software 3D Graphics Library, 2001. http://www.terathon.com/code/tangent.html
+	// originally from: Lengyel, Eric. "Computing Tangent Space Basis Vectors for an Arbitrary Mesh". Terathon Software 3D Graphics Library, 2001. http://www.terathon.com/code/tangent.html
 
 	float x1 = InDeltaPos[0].X;
     float x2 = InDeltaPos[1].X;
@@ -962,7 +969,7 @@ void USubDSurfaceComponent::RecreateMeshData()
 #endif // USE_OPENSUBDIV
 }
 
-void USubDSurfaceComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const
+void USubDSurfaceComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials ) const
 {
 /* todo
 	if( StaticMesh && StaticMesh->RenderData )

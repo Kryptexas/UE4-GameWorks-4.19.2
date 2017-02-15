@@ -1,6 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "GenericPlatform/GenericPlatformAffinity.h"
+
+class IQueuedWork;
 
 /**
  * Interface for queued thread pools.
@@ -51,6 +56,11 @@ public:
 	 */
 	virtual IQueuedWork* ReturnToPoolOrGetNextJob( class FQueuedThread* InQueuedThread ) = 0;
 
+	/**
+	 * Get the number of queued threads
+	 */
+	virtual int32 GetNumThreads() const = 0;
+
 public:
 
 	/** Virtual destructor. */
@@ -79,9 +89,7 @@ public:
  */
 extern CORE_API FQueuedThreadPool* GThreadPool;
 
-#if USE_NEW_ASYNC_IO
 extern CORE_API FQueuedThreadPool* GIOThreadPool;
-#endif // USE_NEW_ASYNC_IO
 
 #if WITH_EDITOR
 extern CORE_API FQueuedThreadPool* GLargeThreadPool;

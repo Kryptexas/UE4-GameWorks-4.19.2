@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ISlateMetaData.h"
+#include "CoreMinimal.h"
+#include "Types/SlateEnums.h"
+#include "Input/NavigationReply.h"
+#include "Types/ISlateMetaData.h"
+
+class SWidget;
 
 /**
  * Simple tagging metadata

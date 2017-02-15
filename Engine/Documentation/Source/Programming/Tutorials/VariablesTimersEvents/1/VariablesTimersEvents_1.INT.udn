@@ -116,7 +116,7 @@ At this point, we've already created a simple class that uses a timer. Non-progr
     [/PARAM]
     [PARAM:content]
 		**Countdown.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -132,9 +132,11 @@ At this point, we've already created a simple class that uses a timer. Non-progr
 				// Sets default values for this actor's properties
 				ACountdown();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
 	
+			public:
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 
@@ -154,7 +156,7 @@ At this point, we've already created a simple class that uses a timer. Non-progr
 
 
 		**Countdown.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_VTE.h"
 			#include "Countdown.h"

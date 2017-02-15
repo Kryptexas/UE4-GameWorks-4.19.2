@@ -1,6 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Templates/Casts.h"
+#include "Misc/StringAssetReference.h"
 #include "StreamableManager.generated.h"
 
 /** Defines FStreamableDelegate delegate interface */
@@ -84,9 +90,19 @@ private:
 	static void AsyncLoadCallbackWrapper(const FName& PackageName, UPackage* LevelPackage, EAsyncLoadingResult::Type Result, FCallback* Handler)
 	{
 		FCallback* Callback = Handler;
-		Callback->Manager->AsyncLoadCallback(Callback->Request);
+
+		if (Callback->Manager)
+		{
+			Callback->Manager->AsyncLoadCallback(Callback->Request);
+			Callback->Manager->ActiveCallbacks.Remove(Callback);
+		}
+
 		delete Callback;
 	}
+
+	friend FCallback;
+
+	TArray<FCallback*> ActiveCallbacks;
 
 	typedef TMap<FStringAssetReference, struct FStreamable*> TStreamableMap;
 	TStreamableMap StreamableItems;

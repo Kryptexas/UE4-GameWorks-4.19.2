@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * this volume only blocks the path builder - it has no gameplay collision
@@ -6,6 +6,10 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "AI/Navigation/NavigationTypes.h"
 #include "GameFramework/Volume.h"
 #include "NavMeshBoundsVolume.generated.h"
 

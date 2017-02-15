@@ -1,6 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "ISequencer.h"
+#include "MovieSceneTrackEditor.h"
+
+class AActor;
+class FMenuBuilder;
+class USceneComponent;
 
 /**
  * Track editor actor picker
@@ -14,7 +23,7 @@ public:
 	/** Is this actor pickable? */
 	virtual bool IsActorPickable( const AActor* const ParentActor, FGuid ObjectBinding, UMovieSceneSection* InSection) { return false; }
 
-	/** Actor socked was picked */
+	/** Actor socket was picked */
 	virtual void ActorSocketPicked(const FName SocketName, USceneComponent* Component, AActor* ParentActor, FGuid ObjectBinding, UMovieSceneSection* Section) {}
 
 	/** Show a sub menu of the pickable actors */
@@ -22,6 +31,9 @@ public:
 
 	/** Actor was picked */
 	void ActorPicked(AActor* ParentActor, FGuid ObjectBinding, UMovieSceneSection* Section);
+
+	/** Actor component was picked */
+	void ActorComponentPicked(FString ComponentName, AActor* ParentActor, FGuid ObjectBinding, UMovieSceneSection* Section);
 
 private: 
 

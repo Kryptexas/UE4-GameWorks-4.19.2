@@ -1,10 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AtmosphereRendering.h: Fog rendering
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "RenderResource.h"
+#include "Serialization/BulkData.h"
+#include "RendererInterface.h"
+
+class FScene;
+class FSceneViewFamily;
+class FShader;
+class FViewInfo;
+class UAtmosphericFogComponent;
 
 namespace EAtmosphereRenderFlag
 {

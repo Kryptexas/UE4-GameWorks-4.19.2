@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Curves/CurveBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Animation/AnimTypes.h"
+#include "Animation/SmartName.h"
 #include "Animation/Skeleton.h"
-#include "BoneContainer.h"
+#include "Curves/RichCurve.h"
 #include "AnimCurveTypes.generated.h"
 
 /** This is curve flags that are saved in asset and **/
@@ -223,10 +225,29 @@ struct FCurveElement
 {
 	/** Curve Value */
 	float					Value;
+	/** Whether this value is set or not */
+	bool					bValid;
 
-	FCurveElement(float InValue, int32	InFlags)
+	FCurveElement(float InValue)
 		:  Value(InValue)
+		,  bValid (true)
 	{}
+
+	FCurveElement()
+		: Value(0.f)
+		, bValid(false)
+	{}
+
+	bool IsValid() const 
+	{
+		return bValid;
+	}
+
+	void SetValue(float InValue)
+	{
+		Value = InValue;
+		bValid = true;
+	}
 };
 
 /**
@@ -308,11 +329,11 @@ struct FBaseBlendedCurve
 
 		if (UIDList->Find(InUid, ArrayIndex))
 		{
-			Elements[ArrayIndex].Value = InValue;
+			Elements[ArrayIndex].SetValue(InValue);
 		}
 	}
 
-	/** Get Value of InUID */
+	/** Get Value of InUID - @todo : add validation check here and make sure caller also knows it's not valid*/
 	float Get(USkeleton::AnimCurveUID InUid) const
 	{
 		int32 ArrayIndex;
@@ -349,6 +370,7 @@ struct FBaseBlendedCurve
 			InitFrom(A);
 			for (int32 CurveId = 0; CurveId < A.Elements.Num(); ++CurveId)
 			{
+				Elements[CurveId].bValid = A.Elements[CurveId].bValid || B.Elements[CurveId].bValid;
 				Elements[CurveId].Value = FMath::Lerp(A.Elements[CurveId].Value, B.Elements[CurveId].Value, Alpha);
 			}
 		}
@@ -373,6 +395,7 @@ struct FBaseBlendedCurve
 		{
 			for (int32 CurveId = 0; CurveId < Elements.Num(); ++CurveId)
 			{
+				Elements[CurveId].bValid = Elements[CurveId].bValid || Other.Elements[CurveId].bValid;
 				Elements[CurveId].Value = FMath::Lerp(Elements[CurveId].Value, Other.Elements[CurveId].Value, Alpha);
 			}
 		}
@@ -387,6 +410,7 @@ struct FBaseBlendedCurve
 
 		for (int32 CurveId = 0; CurveId < Elements.Num(); ++CurveId)
 		{
+			Elements[CurveId].bValid = Elements[CurveId].bValid || BaseCurve.Elements[CurveId].bValid;
 			Elements[CurveId].Value -= BaseCurve.Elements[CurveId].Value;
 		}
 	}
@@ -402,6 +426,7 @@ struct FBaseBlendedCurve
 		{
 			for (int32 CurveId = 0; CurveId < Elements.Num(); ++CurveId)
 			{
+				Elements[CurveId].bValid = Elements[CurveId].bValid || AdditiveCurve.Elements[CurveId].bValid;
 				Elements[CurveId].Value += AdditiveCurve.Elements[CurveId].Value * Weight;
 			}
 		}
@@ -417,12 +442,10 @@ struct FBaseBlendedCurve
 
 		for (int32 CurveId = 0; CurveId < CurveToCombine.Elements.Num(); ++CurveId)
 		{
-			// if target value is non zero, we accpet target's value
-			// originally this code was doing max, but that doesn't make sense since the values can be negative
-			// we could try to pick non-zero, but if target value is non-zero, I think we should accept that value 
-			// if source is non zero, it will be overriden
-			if (CurveToCombine.Elements[CurveId].Value != 0.f)
+			// if target value is valid, we accept target value
+			if (CurveToCombine.Elements[CurveId].bValid)
 			{
+				Elements[CurveId].bValid = true;
 				Elements[CurveId].Value = CurveToCombine.Elements[CurveId].Value;
 			}
 
@@ -444,6 +467,7 @@ struct FBaseBlendedCurve
 		{
 			for (int32 CurveId = 0; CurveId < CurveToOverrideFrom.Elements.Num(); ++CurveId)
 			{
+				Elements[CurveId].bValid = CurveToOverrideFrom.Elements[CurveId].bValid;
 				Elements[CurveId].Value = CurveToOverrideFrom.Elements[CurveId].Value * Weight;
 			}
 		}

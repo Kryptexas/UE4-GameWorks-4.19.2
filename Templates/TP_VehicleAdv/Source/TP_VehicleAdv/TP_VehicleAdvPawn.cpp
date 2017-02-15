@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "TP_VehicleAdv.h"
 #include "TP_VehicleAdvPawn.h"
@@ -12,7 +12,7 @@
 #include "Components/TextRenderComponent.h"
 #include "Sound/SoundCue.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "Vehicles/WheeledVehicleMovementComponent4W.h"
+#include "WheeledVehicleMovementComponent4W.h"
 #include "Engine/SkeletalMesh.h"
 
 

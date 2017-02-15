@@ -1,13 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SharedSettingsWidgetsPrivatePCH.h"
-#include "EditorStyle.h"
 #include "SSettingsEditorCheckoutNotice.h"
+#include "Misc/Paths.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
+#include "EditorStyleSet.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "ISourceControlProvider.h"
 #include "ISourceControlModule.h"
-#include "SWidgetSwitcher.h"
-#include "SThrobber.h"
-#include "NotificationManager.h"
-#include "SNotificationList.h"
+#include "Widgets/Layout/SWidgetSwitcher.h"
+#include "Widgets/Images/SThrobber.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "SSettingsEditorCheckoutNotice"
 
@@ -85,6 +95,12 @@ namespace SettingsHelpers
 				}
 				else if (!SourceControlState->IsUnknown()) // most likely not source controled, so we'll try add it.
 				{	
+					if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*InFileToCheckOut))
+					{
+						// Hasn't been created yet
+						return true;
+					}
+
 					ECommandResult::Type CommandResult = SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), FilesToBeCheckedOut);
 
 					if (CommandResult == ECommandResult::Failed)
@@ -124,6 +140,11 @@ namespace SettingsHelpers
 
 	bool MakeWritable(const FString& InFileToMakeWritable, bool ShowErrorInNotification, FText* OutErrorMessage)
 	{
+		if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*InFileToMakeWritable))
+		{
+			return true;
+		}
+
 		bool bSuccess = FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*InFileToMakeWritable, false);
 		if(!bSuccess)
 		{

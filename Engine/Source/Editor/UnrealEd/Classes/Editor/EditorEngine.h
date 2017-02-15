@@ -1,22 +1,60 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "InputCoreTypes.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
+#include "AssetData.h"
+#include "HAL/PlatformProcess.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Widgets/SWindow.h"
+#include "TimerManager.h"
+#include "UObject/UObjectAnnotation.h"
 #include "Engine/Brush.h"
+#include "Model.h"
+#include "Editor/Transactor.h"
 #include "Engine/Engine.h"
-#include "EditorPerProjectUserSettings.h"
-#include "Transactor.h"
-#include "../Settings/LevelEditorPlaySettings.h"
-#include "../Settings/LevelEditorViewportSettings.h"
+#include "Settings/LevelEditorPlaySettings.h"
+#include "Settings/LevelEditorViewportSettings.h"
 #include "EditorEngine.generated.h"
 
-class UEditorSettings;
+class AMatineeActor;
 class APlayerStart;
-class FAssetData;
+class Error;
+class FEditorViewportClient;
+class FEditorWorldManager;
+class FMessageLog;
+class FOutputLogErrorsToMessageLogProxy;
 class FPoly;
+class FSceneViewport;
+class FSceneViewStateInterface;
+class FViewport;
+class IEngineLoop;
+class ILauncherWorker;
+class ILayers;
+class ILevelViewport;
+class ITargetPlatform;
+class SViewport;
+class UActorFactory;
 class UAnimSequence;
-class USkeleton;
+class UAudioComponent;
+class UBrushBuilder;
 class UFoliageType;
+class UGameViewportClient;
+class ULocalPlayer;
+class UNetDriver;
+class UPrimitiveComponent;
+class USkeleton;
+class USoundBase;
+class USoundNode;
+class UTextureRenderTarget2D;
+struct FAnalyticsEventAttribute;
 
 //
 // Things to set in mapSetBrush.
@@ -792,6 +830,10 @@ private:
 
 	/** Called during editor init and whenever the vanilla status might have changed, to set the flag on the base class */
 	void UpdateIsVanillaProduct();
+
+	/** Called when hotreload adds a new class to create volume factories */
+	void CreateVolumeFactoriesForNewClasses(const TArray<UClass*>& NewClasses);
+
 public:
 	//~ End UEngine Interface.
 	
@@ -838,7 +880,8 @@ public:
 	bool	HandleRebuildVolumesCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool	HandleRemoveArchtypeFlagCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool	HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	
+	bool	HandleBuildMaterialTextureStreamingData( const TCHAR* Cmd, FOutputDevice& Ar );
+
 	/**
 	 * Initializes the Editor.
 	 */
@@ -2807,6 +2850,9 @@ private:
 	bool bPlayUsingLauncherHasCode;
 	bool bPlayUsingLauncherHasCompiler;
 
+	/** Used to prevent reentrant calls to EndPlayMap(). */
+	bool bIsEndingPlay;
+
 	/** List of files we are deferring adding to source control */
 	TArray<FString> DeferredFilesToAddToSourceControl;
 
@@ -2867,6 +2913,9 @@ protected:
 
 	// Handle requests from slate application to open assets.
 	bool HandleOpenAsset(UObject* Asset);
+
+	// Handles a package being reloaded.
+	void HandlePackageReloaded(const EPackageReloadPhase InPackageReloadPhase, FPackageReloadedEvent* InPackageReloadedEvent);
 
 public:
 	/** True if world assets are enabled */

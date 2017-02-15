@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
 #include "Components/ActorComponent.h"
+#include "EngineDefines.h"
+#include "Actions/PawnAction.h"
 #include "GameFramework/Pawn.h"
-#include "AITypes.h"
 #include "PawnActionsComponent.generated.h"
 
-class UPawnAction;
+class AController;
 
 USTRUCT()
 struct AIMODULE_API FPawnActionEvent

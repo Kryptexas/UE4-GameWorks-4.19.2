@@ -1,36 +1,48 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleGpuSimulation.cpp: Implementation of GPU particle simulation.
 ==============================================================================*/
 
-#include "EnginePrivate.h"
-#include "FXSystemPrivate.h"
-#include "ParticleSimulationGPU.h"
-#include "ParticleSortingGPU.h"
-#include "ParticleCurveTexture.h"
+#include "CoreMinimal.h"
+#include "Misc/ScopeLock.h"
+#include "Math/RandomStream.h"
+#include "Stats/Stats.h"
+#include "Misc/MemStack.h"
+#include "HAL/IConsoleManager.h"
+#include "RHIDefinitions.h"
+#include "RHI.h"
+#include "RenderingThread.h"
 #include "RenderResource.h"
-#include "ParticleResources.h"
 #include "UniformBuffer.h"
 #include "ShaderParameters.h"
-#include "ShaderParameterUtils.h"
+#include "Shader.h"
+#include "VertexFactory.h"
 #include "RHIStaticStates.h"
-#include "ParticleDefinitions.h"
+#include "GlobalDistanceFieldParameters.h"
+#include "StaticBoundShaderState.h"
+#include "Materials/Material.h"
+#include "ParticleVertexFactory.h"
+#include "SceneUtils.h"
+#include "SceneManagement.h"
+#include "ParticleHelper.h"
+#include "ParticleEmitterInstances.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "VectorField.h"
+#include "CanvasTypes.h"
+#include "Particles/FXSystemPrivate.h"
+#include "Particles/ParticleSortingGPU.h"
+#include "Particles/ParticleCurveTexture.h"
+#include "Particles/ParticleResources.h"
+#include "ShaderParameterUtils.h"
 #include "GlobalShader.h"
-#include "../VectorField.h"
-#include "../VectorFieldVisualization.h"
-#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
+#include "VectorFieldVisualization.h"
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/Spawn/ParticleModuleSpawnPerUnit.h"
 #include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
-#include "Particles/ParticleSpriteEmitter.h"
-#include "Particles/ParticleSystemComponent.h"
 #include "VectorField/VectorField.h"
-#include "SceneUtils.h"
-#include "MeshBatch.h"
-#include "GlobalDistanceFieldParameters.h"
 
 DECLARE_CYCLE_STAT(TEXT("GPUSpriteEmitterInstance Init"), STAT_GPUSpriteEmitterInstance_Init, STATGROUP_Particles);
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Particle Simulation"), Stat_GPU_ParticleSimulation, STATGROUP_GPU);
@@ -43,8 +55,8 @@ DECLARE_FLOAT_COUNTER_STAT(TEXT("Particle Simulation"), Stat_GPU_ParticleSimulat
 #define TRACK_TILE_ALLOCATIONS 0
 
 /** The texture size allocated for GPU simulation. */
-const int32 GParticleSimulationTextureSizeX = 1024;
-const int32 GParticleSimulationTextureSizeY = 1024;
+extern const int32 GParticleSimulationTextureSizeX = 1024;
+extern const int32 GParticleSimulationTextureSizeY = 1024;
 
 /** Texture size must be power-of-two. */
 static_assert((GParticleSimulationTextureSizeX & (GParticleSimulationTextureSizeX - 1)) == 0, "Particle simulation texture size X is not a power of two.");
@@ -85,6 +97,14 @@ static TAutoConsoleVariable<float> CVarGPUParticleFixTolerance(TEXT("r.GPUPartic
 static TAutoConsoleVariable<int32> CVarGPUParticleMaxNumIterations(TEXT("r.GPUParticle.MaxNumIterations"),3,TEXT("Max number of iteration when using a fix delta seconds."));
 
 static TAutoConsoleVariable<int32> CVarSimulateGPUParticles(TEXT("r.GPUParticle.Simulate"), 1, TEXT("Enable or disable GPU particle simulation"));
+
+static TAutoConsoleVariable<int32> CVarGPUParticleAFRReinject(
+	TEXT("r.GPUParticle.AFRReinject"),
+	1,
+	TEXT("Toggle optimization when running in AFR to re-inject particle injections on the next GPU rather than doing a slow GPU->GPU transfer of the texture data\n")	
+	TEXT("  0: Reinjection off\n")
+	TEXT("  1: Reinjection on"),
+	ECVF_ReadOnly);
 
 /*-----------------------------------------------------------------------------
 	Allocators used to manage GPU particle resources.
@@ -268,6 +288,8 @@ public:
 		const int32 SizeX = GParticleSimulationTextureSizeX;
 		const int32 SizeY = GParticleSimulationTextureSizeY;
 
+		const uint32 ExtraFlags = CVarGPUParticleAFRReinject.GetValueOnRenderThread() == 1 ? TexCreate_AFRManual : 0;
+
 		FRHIResourceCreateInfo CreateInfo(FClearValueBinding::None);
 		RHICreateTargetableShaderResource2D(
 			SizeX,
@@ -275,7 +297,7 @@ public:
 			PF_B8G8R8A8,
 			/*NumMips=*/ 1,
 			TexCreate_None,
-			TexCreate_RenderTargetable | TexCreate_NoFastClear,
+			TexCreate_RenderTargetable | TexCreate_NoFastClear | ExtraFlags,
 			/*bForceSeparateTargetAndShaderResource=*/ false,
 			CreateInfo,
 			TextureTargetRHI,
@@ -768,6 +790,8 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FParticleSimulationParameters,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, CollisionRadiusScale)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, CollisionRadiusBias)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, CollisionTimeBias)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, CollisionRandomSpread)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, CollisionRandomDistribution)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, OneMinusFriction)
 END_UNIFORM_BUFFER_STRUCT(FParticleSimulationParameters)
 
@@ -1553,45 +1577,6 @@ void ClearTiles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel
 	}
 }
 
-/*-----------------------------------------------------------------------------
-	Injecting particles in to the GPU for simulation.
------------------------------------------------------------------------------*/
-
-/**
- * Data passed to the GPU to inject a new particle in to the simulation.
- */
-struct FNewParticle
-{
-	/** The initial position of the particle. */
-	FVector Position;
-	/** The relative time of the particle. */
-	float RelativeTime;
-	/** The initial velocity of the particle. */
-	FVector Velocity;
-	/** The time scale for the particle. */
-	float TimeScale;
-	/** Initial size of the particle. */
-	FVector2D Size;
-	/** Initial rotation of the particle. */
-	float Rotation;
-	/** Relative rotation rate of the particle. */
-	float RelativeRotationRate;
-	/** Coefficient of drag. */
-	float DragCoefficient;
-	/** Per-particle vector field scale. */
-	float VectorFieldScale;
-	/** Resilience for collision. */
-	union
-	{
-		float Resilience;
-		int32 AllocatedTileIndex;
-	} ResilienceAndTileIndex;
-	/** Random selection of orbit attributes. */
-	float RandomOrbit;
-	/** The offset at which to inject the new particle. */
-	FVector2D Offset;
-};
-
 /**
  * Uniform buffer to hold parameters for particle simulation.
  */
@@ -1655,9 +1640,10 @@ public:
 /**
  * Pixel shader for simulating particles on the GPU.
  */
-class FParticleInjectionPS : public FGlobalShader
+template <bool StaticPropertiesOnly>
+class TParticleInjectionPS : public FGlobalShader
 {
-	DECLARE_SHADER_TYPE(FParticleInjectionPS,Global);
+	DECLARE_SHADER_TYPE(TParticleInjectionPS,Global);
 
 public:
 
@@ -1669,21 +1655,26 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
+
+		OutEnvironment.SetDefine(TEXT("STATIC_PROPERTIES_ONLY"), StaticPropertiesOnly);
+
+		
+		OutEnvironment.SetRenderTargetOutputFormat(0, StaticPropertiesOnly ? PF_A8R8G8B8 : PF_A32B32G32R32F);
 
 		if (Platform == SP_OPENGL_ES2_ANDROID)
 		{
 			OutEnvironment.CompilerFlags.Add(CFLAG_FeatureLevelES31);
 		}
+
 	}
 
 	/** Default constructor. */
-	FParticleInjectionPS()
+	TParticleInjectionPS()
 	{
 	}
 
 	/** Initialization constructor. */
-	explicit FParticleInjectionPS( const ShaderMetaType::CompiledShaderInitializerType& Initializer )
+	explicit TParticleInjectionPS( const ShaderMetaType::CompiledShaderInitializerType& Initializer )
 		: FGlobalShader(Initializer)
 	{
 	}
@@ -1698,7 +1689,9 @@ public:
 
 /** Implementation for all shaders used for particle injection. */
 IMPLEMENT_SHADER_TYPE(,FParticleInjectionVS,TEXT("ParticleInjectionShader"),TEXT("VertexMain"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(,FParticleInjectionPS,TEXT("ParticleInjectionShader"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, TParticleInjectionPS<false>, TEXT("ParticleInjectionShader"), TEXT("PixelMain"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, TParticleInjectionPS<true>, TEXT("ParticleInjectionShader"), TEXT("PixelMain"), SF_Pixel);
+
 
 /**
  * Vertex declaration for injecting particles.
@@ -1759,6 +1752,7 @@ TGlobalResource<FParticleInjectionVertexDeclaration> GParticleInjectionVertexDec
  * Injects new particles in to the GPU simulation.
  * @param NewParticles - A list of particles to inject in to the simulation.
  */
+template<bool StaticPropertiesOnly>
 void InjectNewParticles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const TArray<FNewParticle>& NewParticles)
 {
 	if (GIsRenderingThreadSuspended || !CVarSimulateGPUParticles.GetValueOnAnyThread())
@@ -1785,7 +1779,7 @@ void InjectNewParticles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Feat
 
 		// Grab shaders.
 		TShaderMapRef<FParticleInjectionVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
-		TShaderMapRef<FParticleInjectionPS> PixelShader(GetGlobalShaderMap(FeatureLevel));
+		TShaderMapRef<TParticleInjectionPS<StaticPropertiesOnly> > PixelShader(GetGlobalShaderMap(FeatureLevel));
 
 		// Bound shader state.
 		
@@ -4516,35 +4510,53 @@ void FFXSystem::SimulateGPUParticles(
 
 	const float FixDeltaSeconds = CVarGPUParticleFixDeltaSeconds.GetValueOnRenderThread();
 
-	{
-		// Grab resources.
-		FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
-		FParticleStateTextures& PrevStateTextures = ParticleSimulationResources->GetPreviousStateTextures();
+	// Grab resources.
+	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
+	FParticleStateTextures& PrevStateTextures = ParticleSimulationResources->GetPreviousStateTextures();	
 
-	
+	// Setup render states.
+	FTextureRHIParamRef CurrentStateRenderTargets[2] = { CurrentStateTextures.PositionTextureTargetRHI, CurrentStateTextures.VelocityTextureTargetRHI };
+	FTextureRHIParamRef PreviousStateRenderTargets[2] = { PrevStateTextures.PositionTextureTargetRHI, PrevStateTextures.VelocityTextureTargetRHI };
+
+	{	
+
 		// On some platforms, the textures are filled with garbage after creation, so we need to clear them to black the first time we use them
 		if ( !CurrentStateTextures.bTexturesCleared )
 		{
+
+			RHICmdList.BeginUpdateMultiFrameResource(CurrentStateRenderTargets[0]);
+			RHICmdList.BeginUpdateMultiFrameResource(CurrentStateRenderTargets[1]);
+
 			SetRenderTarget(RHICmdList, CurrentStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 			SetRenderTarget(RHICmdList, CurrentStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 
 			CurrentStateTextures.bTexturesCleared = true;
+
+			RHICmdList.EndUpdateMultiFrameResource(CurrentStateRenderTargets[0]);
+			RHICmdList.EndUpdateMultiFrameResource(CurrentStateRenderTargets[1]);
 		}
 
 		if ( !PrevStateTextures.bTexturesCleared )
 		{
+			RHICmdList.BeginUpdateMultiFrameResource(PreviousStateRenderTargets[0]);
+			RHICmdList.BeginUpdateMultiFrameResource(PreviousStateRenderTargets[1]);
+
 			SetRenderTarget(RHICmdList, PrevStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 			SetRenderTarget(RHICmdList, PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 			RHICmdList.CopyToResolveTarget(PrevStateTextures.PositionTextureTargetRHI, PrevStateTextures.PositionTextureTargetRHI, true, FResolveParams());
 			RHICmdList.CopyToResolveTarget(PrevStateTextures.VelocityTextureTargetRHI, PrevStateTextures.VelocityTextureTargetRHI, true, FResolveParams());
 		
 			PrevStateTextures.bTexturesCleared = true;
-		}
 
-		// Setup render states.
-		FTextureRHIParamRef RenderTargets[2] = { CurrentStateTextures.PositionTextureTargetRHI, CurrentStateTextures.VelocityTextureTargetRHI };
-		SetRenderTargets(RHICmdList, 2, RenderTargets, FTextureRHIParamRef(), 0, NULL);
-	}
+			RHICmdList.EndUpdateMultiFrameResource(PreviousStateRenderTargets[0]);
+			RHICmdList.EndUpdateMultiFrameResource(PreviousStateRenderTargets[1]);
+		}
+	}	
+	
+	RHICmdList.BeginUpdateMultiFrameResource(CurrentStateRenderTargets[0]);
+	RHICmdList.BeginUpdateMultiFrameResource(CurrentStateRenderTargets[1]);
+
+	SetRenderTargets(RHICmdList, 2, CurrentStateRenderTargets, FTextureRHIParamRef(), 0, NULL);
 
 	RHICmdList.SetViewport(0, 0, 0.0f, GParticleSimulationTextureSizeX, GParticleSimulationTextureSizeY, 1.0f);
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
@@ -4682,9 +4694,7 @@ void FFXSystem::SimulateGPUParticles(
 	if (NewParticles.Num())
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ParticleInjection);
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ParticleSimulation);
-
-		FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ParticleSimulation);		
 
 		// Set render targets.
 		FTextureRHIParamRef InjectRenderTargets[4] =
@@ -4694,6 +4704,9 @@ void FFXSystem::SimulateGPUParticles(
 			ParticleSimulationResources->RenderAttributesTexture.TextureTargetRHI,
 			ParticleSimulationResources->SimulationAttributesTexture.TextureTargetRHI
 		};
+		RHICmdList.BeginUpdateMultiFrameResource(ParticleSimulationResources->RenderAttributesTexture.TextureTargetRHI);
+		RHICmdList.BeginUpdateMultiFrameResource(ParticleSimulationResources->SimulationAttributesTexture.TextureTargetRHI);
+
 		SetRenderTargets(RHICmdList, 4, InjectRenderTargets, FTextureRHIParamRef(), 0, NULL, true);
 		RHICmdList.SetViewport(0, 0, 0.0f, GParticleSimulationTextureSizeX, GParticleSimulationTextureSizeY, 1.0f);
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
@@ -4701,7 +4714,7 @@ void FFXSystem::SimulateGPUParticles(
 		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 		// Inject particles.
-		InjectNewParticles(RHICmdList, FeatureLevel, NewParticles);
+		InjectNewParticles<false>(RHICmdList, FeatureLevel, NewParticles);
 
 		// Resolve attributes textures. State textures are resolved later.
 		RHICmdList.CopyToResolveTarget(
@@ -4716,21 +4729,33 @@ void FFXSystem::SimulateGPUParticles(
 			/*bKeepOriginalSurface=*/ false,
 			FResolveParams()
 			);
+
+		if (GNumActiveGPUsForRendering > 1 && CVarGPUParticleAFRReinject.GetValueOnRenderThread() == 1)
+		{			
+			ensureMsgf(GNumActiveGPUsForRendering == 2, TEXT("GPU Particles running on an AFR depth > 2 not supported.  Currently: %i"), GNumActiveGPUsForRendering);
+
+			// Place these particles into the multi-gpu update queue
+			LastFrameNewParticles.Append(NewParticles);
+		}
+		RHICmdList.EndUpdateMultiFrameResource(ParticleSimulationResources->RenderAttributesTexture.TextureTargetRHI);
+		RHICmdList.EndUpdateMultiFrameResource(ParticleSimulationResources->SimulationAttributesTexture.TextureTargetRHI);
 	}
+
+	// finish current state render
+	RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, CurrentStateRenderTargets, 2);
+	RHICmdList.EndUpdateMultiFrameResource(CurrentStateRenderTargets[0]);
+	RHICmdList.EndUpdateMultiFrameResource(CurrentStateRenderTargets[1]);
 
 
 	if (SimulationCommands.Num() && FixDeltaSeconds > 0)
 	{
-		// Transition from
-		FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
-		FTextureRHIParamRef CurrentStateRHIs[2] = { CurrentStateTextures.PositionTextureTargetRHI, CurrentStateTextures.VelocityTextureTargetRHI };
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, CurrentStateRHIs, 2);
-
+		//the fixed timestep works in two stages.  A first stage which simulates the fixed timestep and this second stage which simulates any remaining time from the actual delta time.  e.g.  fixed timestep of 16ms and actual dt of 23ms
+		//will make this second step simulate an interpolated extra 7ms.  This second interpolated step is what we render on THIS frame, but it is NOT fed into the next frame's simulation.  Thus we do not need to transfer it between GPUs in AFR mode.
 		FParticleStateTextures& VisualizeStateTextures = ParticleSimulationResources->GetPreviousStateTextures();
 		FTextureRHIParamRef VisualizeStateRHIs[2] = { VisualizeStateTextures.PositionTextureTargetRHI, VisualizeStateTextures.VelocityTextureTargetRHI };
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, VisualizeStateRHIs, 2);	
+		RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, VisualizeStateRHIs, 2);
+		
 		SetRenderTargets(RHICmdList, 2, VisualizeStateRHIs, FTextureRHIParamRef(), 0, NULL);
-
 		ExecuteSimulationCommands(
 					RHICmdList,
 					FeatureLevel,
@@ -4743,6 +4768,7 @@ void FFXSystem::SimulateGPUParticles(
 					Phase,
 					false
 					);
+		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, VisualizeStateRHIs, 2);		
 	}
 
 	SimulationCommands.Reset();
@@ -4757,6 +4783,49 @@ void FFXSystem::SimulateGPUParticles(
 	{
 		INC_DWORD_STAT_BY(STAT_FreeGPUTiles,ParticleSimulationResources->GetFreeTileCount());
 	}
+}
+
+void FFXSystem::UpdateMultiGPUResources(FRHICommandListImmediate& RHICmdList)
+{
+	if (LastFrameNewParticles.Num())
+	{		
+		//Inject particles spawned in the last frame, but only update the attribute textures
+		SCOPED_DRAW_EVENT(RHICmdList, ParticleInjection);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ParticleSimulation);
+
+		// Set render targets.
+		FTextureRHIParamRef InjectRenderTargets[2] =
+		{
+			ParticleSimulationResources->RenderAttributesTexture.TextureTargetRHI,
+			ParticleSimulationResources->SimulationAttributesTexture.TextureTargetRHI
+		};
+		SetRenderTargets(RHICmdList, 2, InjectRenderTargets, FTextureRHIParamRef(), 0, NULL, true);
+		RHICmdList.SetViewport(0, 0, 0.0f, GParticleSimulationTextureSizeX, GParticleSimulationTextureSizeY, 1.0f);
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+
+		// Inject particles.
+		InjectNewParticles<true>(RHICmdList, FeatureLevel, LastFrameNewParticles);
+
+		// Resolve attributes textures. State textures are resolved later.
+		RHICmdList.CopyToResolveTarget(
+			ParticleSimulationResources->RenderAttributesTexture.TextureTargetRHI,
+			ParticleSimulationResources->RenderAttributesTexture.TextureRHI,
+			/*bKeepOriginalSurface=*/ false,
+			FResolveParams()
+		);
+		RHICmdList.CopyToResolveTarget(
+			ParticleSimulationResources->SimulationAttributesTexture.TextureTargetRHI,
+			ParticleSimulationResources->SimulationAttributesTexture.TextureRHI,
+			/*bKeepOriginalSurface=*/ false,
+			FResolveParams()
+		);
+
+	}
+
+	// Clear out particles from last frame
+	LastFrameNewParticles.Reset();
 }
 
 void FFXSystem::VisualizeGPUParticles(FCanvas* Canvas)
@@ -4901,6 +4970,8 @@ static void SetGPUSpriteResourceData( FGPUSpriteResources* Resources, const FGPU
 	Resources->SimulationParameters.CollisionRadiusScale = InResourceData.CollisionRadiusScale;
 	Resources->SimulationParameters.CollisionRadiusBias = InResourceData.CollisionRadiusBias;
 	Resources->SimulationParameters.CollisionTimeBias = InResourceData.CollisionTimeBias;
+	Resources->SimulationParameters.CollisionRandomSpread = InResourceData.CollisionRandomSpread;
+	Resources->SimulationParameters.CollisionRandomDistribution = InResourceData.CollisionRandomDistribution;
 	Resources->SimulationParameters.OneMinusFriction = InResourceData.OneMinusFriction;
 	Resources->EmitterSimulationResources.GlobalVectorFieldScale = InResourceData.GlobalVectorFieldScale;
 	Resources->EmitterSimulationResources.GlobalVectorFieldTightness = InResourceData.GlobalVectorFieldTightness;

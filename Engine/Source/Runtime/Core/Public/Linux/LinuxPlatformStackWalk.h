@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -6,7 +6,11 @@
 ==============================================================================================*/
 
 #pragma once
+
+#include "CoreTypes.h"
 #include "GenericPlatform/GenericPlatformStackWalk.h"
+
+struct FGenericCrashContext;
 
 struct CORE_API FLinuxPlatformStackWalk : public FGenericPlatformStackWalk
 {
@@ -15,6 +19,7 @@ struct CORE_API FLinuxPlatformStackWalk : public FGenericPlatformStackWalk
 	static void CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context = nullptr );
 	static void StackWalkAndDump( ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, void* Context = nullptr );
 	static void StackWalkAndDumpEx(ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, uint32 Flags, void* Context = nullptr);
+	static void ThreadStackWalkAndDump(ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, uint32 ThreadId);
 };
 
 typedef FLinuxPlatformStackWalk FPlatformStackWalk;

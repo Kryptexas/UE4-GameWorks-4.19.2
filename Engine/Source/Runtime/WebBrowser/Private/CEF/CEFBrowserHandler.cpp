@@ -1,10 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
+#include "CEF/CEFBrowserHandler.h"
 
 #if WITH_CEF3
 
-#include "CEFBrowserHandler.h"
 #include "WebBrowserModule.h"
 #include "CEFBrowserClosureTask.h"
 #include "IWebBrowserSingleton.h"
@@ -173,7 +172,13 @@ bool FCEFBrowserHandler::OnBeforePopup( CefRefPtr<CefBrowser> Browser,
 
 
 					// Always use off screen rendering so we can integrate with our windows
-		OutWindowInfo.SetAsWindowless(nullptr, shouldUseTransparency);
+		OutWindowInfo.SetAsWindowless(
+#if PLATFORM_LINUX  // may be applicable to other platforms, but I cannot test those at the moment
+				kNullWindowHandle,
+#else
+				nullptr,
+#endif // PLATFORM_LINUX
+				shouldUseTransparency);
 
 					// We need to rely on CEF to create our window so we set the WindowInfo, BrowserSettings, Client, and then return false
 		return false;

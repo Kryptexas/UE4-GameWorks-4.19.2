@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -83,6 +83,9 @@ namespace UnrealGameSync
 		public UserWorkspaceSettings CurrentWorkspace;
 		public string CurrentProjectKey;
 		public UserProjectSettings CurrentProject;
+
+		// Perforce settings
+		public PerforceSyncOptions SyncOptions = new PerforceSyncOptions();
 
 		public UserSettings(string InFileName)
 		{
@@ -169,6 +172,20 @@ namespace UnrealGameSync
 			if(!Enum.TryParse(ConfigFile.GetValue("Schedule.Change", ""), out ScheduleChange))
 			{
 				ScheduleChange = LatestChangeType.Good;
+			}
+
+			// Perforce settings
+			if(!int.TryParse(ConfigFile.GetValue("Perforce.NumRetries", "0"), out SyncOptions.NumRetries))
+			{
+				SyncOptions.NumRetries = 0;
+			}
+			if(!int.TryParse(ConfigFile.GetValue("Perforce.NumThreads", "0"), out SyncOptions.NumThreads))
+			{
+				SyncOptions.NumThreads = 0;
+			}
+			if(!int.TryParse(ConfigFile.GetValue("Perforce.TcpBufferSize", "0"), out SyncOptions.TcpBufferSize))
+			{
+				SyncOptions.TcpBufferSize = 0;
 			}
 		}
 
@@ -360,6 +377,22 @@ namespace UnrealGameSync
 				ConfigSection ProjectSection = ConfigFile.FindOrAddSection(CurrentProjectKey);
 				ProjectSection.Clear();
 				ProjectSection.SetValues("BuildStep", CurrentProject.BuildSteps.Select(x => x.ToString()).ToArray());
+			}
+
+			// Perforce settings
+			ConfigSection PerforceSection = ConfigFile.FindOrAddSection("Perforce");
+			PerforceSection.Clear();
+			if(SyncOptions.NumRetries > 0)
+			{
+				PerforceSection.SetValue("NumRetries", SyncOptions.NumRetries);
+			}
+			if(SyncOptions.NumThreads > 0)
+			{
+				PerforceSection.SetValue("NumThreads", SyncOptions.NumThreads);
+			}
+			if(SyncOptions.TcpBufferSize > 0)
+			{
+				PerforceSection.SetValue("TcpBufferSize", SyncOptions.TcpBufferSize);
 			}
 
 			// Save the file

@@ -1,14 +1,35 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:랜드스케이프 만들기
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:랜드스케이프 터레인을 새로 만드는 방법 안내서입니다.
 version: 4.9
+parent:Engine/Landscape
+order:2
 
 [VAR:Topic]
-[OBJECT:Topiccompact]
+[OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Landscape/Creation:title%](Engine/Landscape/Creation/landscape_create_topic.png)
+		![%Engine/Landscape/Creation:title%](landscape_create_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Creation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Creation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Creation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape/Creation:title%](landscape_create_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/landscape_icon.png)(convert:false)

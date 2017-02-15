@@ -1,11 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * This thumbnail renderer displays the static mesh used by this foliage type
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "ThumbnailRendering/DefaultSizedThumbnailRenderer.h"
 #include "FoliageType_ISMThumbnailRenderer.generated.h"
+
+class FCanvas;
+class FRenderTarget;
 
 UCLASS(CustomConstructor, Config=Editor)
 class UFoliageType_ISMThumbnailRenderer : public UDefaultSizedThumbnailRenderer

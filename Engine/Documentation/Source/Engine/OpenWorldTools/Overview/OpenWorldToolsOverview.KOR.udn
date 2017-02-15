@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title: 오픈 월드 툴 개요
 Crumbs:
-Description: 레벨에 스태틱 메시를 순차적으로 배치하는 프로시저럴 시스템입니다.
+Description: 레벨에 스태틱 메시를 무작위 배치하여 자동 생성해주는 절차적 생성, 프로시저럴 시스템입니다.
 Navigation:topic
 SkillLevel:Intermediate
 Version: 4.8

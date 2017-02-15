@@ -1,13 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "ComponentTypeRegistry.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Misc/PackageName.h"
+#include "Engine/Blueprint.h"
+#include "Components/StaticMeshComponent.h"
+#include "TickableEditorObject.h"
+#include "ActorFactories/ActorFactoryBasicShape.h"
+#include "Materials/Material.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "Engine/StaticMesh.h"
+#include "AssetData.h"
 
 #include "AssetRegistryModule.h"
 #include "ClassIconFinder.h"
-#include "ComponentTypeRegistry.h"
 #include "EdGraphSchema_K2.h"
-#include "KismetEditorUtilities.h"
-#include "HotReloadInterface.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "Misc/HotReloadInterface.h"
 #include "SComponentClassCombo.h"
 
 #define LOCTEXT_NAMESPACE "ComponentTypeRegistry"
@@ -102,6 +113,26 @@ void FComponentTypeRegistryData::AddBasicShapeComponents(TArray<FComponentClassC
 
 		{
 			//Cube also goes in the common group
+			FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(CommonClassGroup, UStaticMeshComponent::StaticClass(), false, EComponentCreateAction::SpawnExistingClass, Args));
+			SortedClassList.Add(NewShape);
+		}
+	}
+
+	{
+		FComponentEntryCustomizationArgs Args;
+		Args.AssetOverride = FindOrLoadObject<UStaticMesh>(UActorFactoryBasicShape::BasicPlane.ToString());
+		Args.OnComponentCreated = FOnComponentCreated::CreateStatic(OnBasicShapeCreated);
+		Args.ComponentNameOverride = LOCTEXT("BasicPlaneShapeDisplayName", "Plane").ToString();
+		Args.IconOverrideBrushName = FName("ClassIcon.Plane");
+		Args.SortPriority = 2;
+
+		{
+			FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(BasicShapesHeading, UStaticMeshComponent::StaticClass(), true, EComponentCreateAction::SpawnExistingClass, Args));
+			SortedClassList.Add(NewShape);
+		}
+
+		{
+			//Quad also goes in the common group
 			FComponentClassComboEntryPtr NewShape = MakeShareable(new FComponentClassComboEntry(CommonClassGroup, UStaticMeshComponent::StaticClass(), false, EComponentCreateAction::SpawnExistingClass, Args));
 			SortedClassList.Add(NewShape);
 		}

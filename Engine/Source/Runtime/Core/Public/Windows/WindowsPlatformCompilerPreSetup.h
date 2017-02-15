@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -65,6 +65,17 @@
 			_Pragma("clang diagnostic pop")
 	#endif // PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 
+	#ifndef PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
+		#define PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS \
+			_Pragma("clang diagnostic push") \
+			_Pragma("clang diagnostic ignored \"-Wundef\"")
+	#endif // PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
+
+	#ifndef PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS
+		#define PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS \
+			_Pragma("clang diagnostic pop")
+	#endif // PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS
+
 	#ifndef PRAGMA_POP
 		#define PRAGMA_POP \
 			_Pragma("clang diagnostic pop")
@@ -73,11 +84,13 @@
 	// Disable common CA warnings around SDK includes
 	#ifndef THIRD_PARTY_INCLUDES_START
 		#define THIRD_PARTY_INCLUDES_START \
-			PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+			PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS \
+			PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
 	#endif
 
 	#ifndef THIRD_PARTY_INCLUDES_END
 		#define THIRD_PARTY_INCLUDES_END \
+			PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS \
 			PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 	#endif
 #else
@@ -102,6 +115,17 @@
 			__pragma(warning(pop))
 	#endif // PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 
+	#ifndef PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
+		#define PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS \
+			__pragma(warning(push)) \
+			__pragma(warning(disable: 4668))  /* 'symbol' is not defined as a preprocessor macro, replacing with '0' for 'directives' */
+	#endif // PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
+
+	#ifndef PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS
+		#define PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS \
+			__pragma(warning(pop))
+	#endif // PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS
+
 	#ifndef PRAGMA_POP
 		#define PRAGMA_POP \
 			__pragma(warning(pop))
@@ -124,12 +148,14 @@
 			__pragma(warning(disable: 28251)) /* Inconsistent annotation for '<func>': this instance has no annotations. */ \
 			__pragma(warning(disable: 28252)) /* Inconsistent annotation for '<func>': return/function has '<annotation>' on the prior instance. */ \
 			__pragma(warning(disable: 28253)) /* Inconsistent annotation for '<func>': _Param_(<num>) has '<annotation>' on the prior instance. */ \
+			PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS \
 			PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 	#endif
 
 	#ifndef THIRD_PARTY_INCLUDES_END
 		#define THIRD_PARTY_INCLUDES_END \
 			PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS \
+			PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS \
 			__pragma(warning(pop))
 	#endif
 #endif

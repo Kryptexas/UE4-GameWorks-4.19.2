@@ -1,7 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "UObject/GCObject.h"
+#include "UnrealClient.h"
+
+class FCanvas;
+class ITextureEditorToolkit;
+class STextureEditorViewport;
+class UTexture2D;
 
 class FTextureEditorViewportClient
 	: public FViewportClient

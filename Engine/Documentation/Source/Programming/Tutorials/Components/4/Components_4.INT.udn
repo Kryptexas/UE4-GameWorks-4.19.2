@@ -115,7 +115,7 @@ Our programming work is done, and we can now place our custom Pawn in the world 
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -131,9 +131,11 @@ Our programming work is done, and we can now place our custom Pawn in the world 
 				// Sets default values for this pawn's properties
 				ACollidingPawn();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
 	
+			public:
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 
@@ -152,7 +154,7 @@ Our programming work is done, and we can now place our custom Pawn in the world 
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
@@ -275,7 +277,7 @@ Our programming work is done, and we can now place our custom Pawn in the world 
 			}
 
 		**CollidingPawnMovementComponent.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -295,7 +297,7 @@ Our programming work is done, and we can now place our custom Pawn in the world 
 			};
 
 		**CollidingPawnMovementComponent.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawnMovementComponent.h"

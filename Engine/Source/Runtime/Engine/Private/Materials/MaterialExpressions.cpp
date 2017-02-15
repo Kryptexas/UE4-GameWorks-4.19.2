@@ -1,15 +1,48 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialExpressions.cpp - Material expressions implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/Guid.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "Misc/App.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "UObject/UObjectAnnotation.h"
+#include "UObject/ConstructorHelpers.h"
+#include "EngineGlobals.h"
+#include "Materials/MaterialInterface.h"
+#include "Engine/Engine.h"
+#include "Engine/Font.h"
+#include "MaterialShared.h"
+#include "MaterialExpressionIO.h"
+#include "Materials/MaterialExpression.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
+#include "Materials/MaterialFunction.h"
+#include "Materials/Material.h"
+#include "Engine/Texture2D.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/Texture2DDynamic.h"
+#include "Engine/TextureCube.h"
+#include "Engine/TextureRenderTargetCube.h"
+#include "Styling/CoreStyle.h"
 
 #include "Materials/MaterialExpressionAbs.h"
 #include "Materials/MaterialExpressionActorPositionWS.h"
 #include "Materials/MaterialExpressionAdd.h"
 #include "Materials/MaterialExpressionAppendVector.h"
+#include "Materials/MaterialExpressionArccosine.h"
+#include "Materials/MaterialExpressionArccosineFast.h"
+#include "Materials/MaterialExpressionArcsine.h"
+#include "Materials/MaterialExpressionArcsineFast.h"
+#include "Materials/MaterialExpressionArctangent.h"
+#include "Materials/MaterialExpressionArctangentFast.h"
+#include "Materials/MaterialExpressionArctangent2.h"
+#include "Materials/MaterialExpressionArctangent2Fast.h"
 #include "Materials/MaterialExpressionAtmosphericFogColor.h"
 #include "Materials/MaterialExpressionBlackBody.h"
 #include "Materials/MaterialExpressionBlendMaterialAttributes.h"
@@ -65,7 +98,6 @@
 #include "Materials/MaterialExpressionLinearInterpolate.h"
 #include "Materials/MaterialExpressionLogarithm2.h"
 #include "Materials/MaterialExpressionMakeMaterialAttributes.h"
-#include "Materials/MaterialExpressionMaterialFunctionCall.h"
 #include "Materials/MaterialExpressionMax.h"
 #include "Materials/MaterialExpressionMaterialProxyReplace.h"
 #include "Materials/MaterialExpressionMin.h"
@@ -79,6 +111,8 @@
 #include "Materials/MaterialExpressionOneMinus.h"
 #include "Materials/MaterialExpressionPanner.h"
 #include "Materials/MaterialExpressionParameter.h"
+#include "Materials/MaterialExpressionPreviousFrameSwitch.h"
+#include "Materials/MaterialExpressionReroute.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionSetMaterialAttributes.h"
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
@@ -100,11 +134,14 @@
 #include "Materials/MaterialExpressionPixelDepth.h"
 #include "Materials/MaterialExpressionPixelNormalWS.h"
 #include "Materials/MaterialExpressionPower.h"
+#include "Materials/MaterialExpressionPreSkinnedNormal.h"
 #include "Materials/MaterialExpressionPreSkinnedPosition.h"
 #include "Materials/MaterialExpressionQualitySwitch.h"
 #include "Materials/MaterialExpressionReflectionVectorWS.h"
 #include "Materials/MaterialExpressionRotateAboutAxis.h"
 #include "Materials/MaterialExpressionRotator.h"
+#include "Materials/MaterialExpressionRound.h"
+#include "Materials/MaterialExpressionSaturate.h"
 #include "Materials/MaterialExpressionSceneColor.h"
 #include "Materials/MaterialExpressionSceneDepth.h"
 #include "Materials/MaterialExpressionSceneTexelSize.h"
@@ -118,6 +155,7 @@
 #include "Materials/MaterialExpressionStaticBool.h"
 #include "Materials/MaterialExpressionStaticSwitch.h"
 #include "Materials/MaterialExpressionSubtract.h"
+#include "Materials/MaterialExpressionTangent.h"
 #include "Materials/MaterialExpressionTangentOutput.h"
 #include "Materials/MaterialExpressionTextureBase.h"
 #include "Materials/MaterialExpressionTextureObject.h"
@@ -134,6 +172,7 @@
 #include "Materials/MaterialExpressionTime.h"
 #include "Materials/MaterialExpressionTransform.h"
 #include "Materials/MaterialExpressionTransformPosition.h"
+#include "Materials/MaterialExpressionTruncate.h"
 #include "Materials/MaterialExpressionTwoSidedSign.h"
 #include "Materials/MaterialExpressionVectorNoise.h"
 #include "Materials/MaterialExpressionVertexColor.h"
@@ -143,7 +182,6 @@
 #include "Materials/MaterialExpressionWorldPosition.h"
 #include "Materials/MaterialExpressionDistanceToNearestSurface.h"
 #include "Materials/MaterialExpressionDistanceFieldGradient.h"
-#include "Materials/MaterialFunction.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "Materials/MaterialExpressionClearCoatNormalCustomOutput.h"
 #include "Materials/MaterialExpressionAtmosphericLightVector.h"
@@ -152,19 +190,12 @@
 #include "EditorSupportDelegates.h"
 #include "MaterialCompiler.h"
 #if WITH_EDITOR
-#include "SlateBasics.h"
-#include "UnrealEd.h"
-#include "UObjectAnnotation.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "MaterialGraph/MaterialGraphNode_Comment.h"
+#include "MaterialGraph/MaterialGraphNode.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #endif //WITH_EDITOR
 
-#include "Engine/Font.h"
-#include "Engine/Texture2DDynamic.h"
-#include "Engine/TextureRenderTargetCube.h"
-#include "Engine/TextureRenderTarget2D.h"
-#include "Engine/TextureCube.h"
-#include "RenderingObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "MaterialExpression"
 
@@ -513,17 +544,19 @@ void UMaterialExpression::PostEditChangeProperty(FPropertyChangedEvent& Property
 
 	if (!GIsImportingT3D && !GIsTransacting && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
 	{
+		FPropertyChangedEvent SubPropertyChangedEvent(nullptr, PropertyChangedEvent.ChangeType);
+
 		// Don't recompile the outer material if we are in the middle of a transaction or interactively changing properties
 		// as there may be many expressions in the transaction buffer and we would just be recompiling over and over again.
 		if (Material && !Material->bIsPreviewMaterial)
 		{
-			Material->PreEditChange(NULL);
-			Material->PostEditChange();
+			Material->PreEditChange(nullptr);
+			Material->PostEditChangeProperty(SubPropertyChangedEvent);
 		}
 		else if (Function)
 		{
-			Function->PreEditChange(NULL);
-			Function->PostEditChange();
+			Function->PreEditChange(nullptr);
+			Function->PostEditChangeProperty(SubPropertyChangedEvent);
 		}
 	}
 
@@ -592,7 +625,7 @@ bool UMaterialExpression::CanEditChange(const UProperty* InProperty) const
 				{
 					const FExpressionInput* Input = StructProp->ContainerPtrToValuePtr<FExpressionInput>(this);
 
-					if (Input->Expression != nullptr)
+					if (Input->Expression != nullptr && Input->GetTracedInput().Expression != nullptr)
 					{
 						bIsEditable = false;
 					}
@@ -682,6 +715,18 @@ FString UMaterialExpression::GetInputName(int32 InputIndex) const
 	}
 	return TEXT("");
 }
+
+#if WITH_EDITOR
+FString UMaterialExpression::GetCreationDescription() const
+{
+	return FString();
+}
+
+FString UMaterialExpression::GetCreationName() const
+{
+	return FString();
+}
+#endif
 
 bool UMaterialExpression::IsInputConnectionRequired(int32 InputIndex) const
 {
@@ -1006,16 +1051,57 @@ void UMaterialExpression::SetEditableName(const FString& NewName)
 	check(false);
 }
 
+void UMaterialExpression::ValidateParameterName()
+{
+	if (Material != nullptr)
+	{
+		int32 NameIndex = 1;
+		bool FoundValidName = false;
+		FName PotentialName;
+
+		// Find an available unique name
+		while (!FoundValidName)
+		{
+			PotentialName = GetParameterName();
+
+			if (NameIndex != 1)
+			{
+				PotentialName.SetNumber(NameIndex);
+			}
+
+			FoundValidName = true;
+
+			for (UMaterialExpression* Expression : Material->Expressions)
+			{
+				if (Expression != nullptr && Expression->HasAParameterName())
+				{
+					// Name are unique per class type
+					if (Expression != this && Expression->GetClass() == GetClass() && Expression->GetParameterName() == PotentialName)
+					{
+						FoundValidName = false;
+						break;
+					}
+				}
+			}
+
+			++NameIndex;
+		}
+
+		SetParameterName(PotentialName);
+	}
+}
+
 #endif // WITH_EDITOR
 
-bool UMaterialExpression::ContainsInputLoop()
+
+bool UMaterialExpression::ContainsInputLoop(const bool bStopOnFunctionCall /*= true*/)
 {
 	TArray<FMaterialExpressionKey> ExpressionStack;
 	TSet<FMaterialExpressionKey> VisitedExpressions;
-	return ContainsInputLoopInternal(ExpressionStack, VisitedExpressions);
+	return ContainsInputLoopInternal(ExpressionStack, VisitedExpressions, bStopOnFunctionCall);
 }
 
-bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack, TSet<FMaterialExpressionKey>& VisitedExpressions)
+bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack, TSet<FMaterialExpressionKey>& VisitedExpressions, const bool bStopOnFunctionCall)
 {
 #if WITH_EDITORONLY_DATA
 	const TArray<FExpressionInput*> Inputs = GetInputs();
@@ -1027,7 +1113,7 @@ bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKe
 			// ContainsInputLoop primarily used to detect safe traversal path for IsResultMaterialAttributes.
 			// In those cases we can bail on a function as the inputs are strongly typed
 			UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Input->Expression);
-			if (FunctionCall)
+			if (bStopOnFunctionCall && FunctionCall)
 			{
 				continue;
 			}
@@ -1042,7 +1128,7 @@ bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKe
 			{
 				VisitedExpressions.Add(InputExpressionKey);
 				ExpressionStack.Add(InputExpressionKey);
-				if (Input->Expression->ContainsInputLoopInternal(ExpressionStack, VisitedExpressions))
+				if (Input->Expression->ContainsInputLoopInternal(ExpressionStack, VisitedExpressions, bStopOnFunctionCall))
 				{
 					return true;
 				}
@@ -1195,12 +1281,12 @@ bool UMaterialExpressionTextureSample::CanEditChange(const UProperty* InProperty
 		}
 		else if (PropertyFName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionTextureSample, ConstCoordinate))
 		{
-			bIsEditable = !Coordinates.Expression;
+			bIsEditable = !Coordinates.GetTracedInput().Expression;
 		}
 		else if (PropertyFName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionTextureSample, Texture))
 		{
 			// The Texture property is overridden by a connection to TextureObject
-			bIsEditable = TextureObject.Expression == NULL;
+			bIsEditable = TextureObject.GetTracedInput().Expression == NULL;
 		}
 	}
 
@@ -1369,7 +1455,7 @@ static bool VerifySamplerType(
 #if WITH_EDITOR
 int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if (Texture || TextureObject.Expression)
+	if (Texture || TextureObject.Expression) // We deal with reroute textures later on in this function..
 	{
 		int32 TextureReferenceIndex = INDEX_NONE;
 		int32 TextureCodeIndex = TextureObject.Expression ? TextureObject.Compile(Compiler) : Compiler->Texture(Texture, TextureReferenceIndex, SamplerSource, MipValueMode);
@@ -1400,6 +1486,34 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 				InputExpression = NestedFunctionInput->GetEffectivePreviewExpression();
 			}
 
+			// If we are referencing a texture input through a reroute node, we'll need to backtrack
+			// to get to the real texture.
+			UMaterialExpressionReroute* RerouteInput = Cast<UMaterialExpressionReroute>(InputExpression);
+			if (RerouteInput)
+			{
+				int32 ExpressionOutputIndex = -1;
+				InputExpression  = RerouteInput->TraceInputsToRealExpression(ExpressionOutputIndex);
+				if (InputExpression == nullptr)
+				{
+					if (Desc.Len() > 0)
+					{
+						return Compiler->Errorf(TEXT("%s> Missing rerouted input texture"), *Desc);
+					}
+					else
+					{
+						return Compiler->Errorf(TEXT("TextureSample> Missing rerouted input texture"));
+					}
+				}
+				else if (OutputIndex >= 0)
+				{
+					uint32 OutputType = InputExpression->GetOutputType(OutputIndex);
+					if (OutputType != MCT_Texture2D && OutputType != MCT_TextureCube)
+					{
+						return Compiler->Errorf(TEXT("TextureSample> Reroute not bound to proper texture type!"));
+					}
+				}
+			}
+			
 			UMaterialExpressionTextureObject* TextureObjectExpression = Cast<UMaterialExpressionTextureObject>(InputExpression);
 			UMaterialExpressionTextureObjectParameter* TextureObjectParameter = Cast<UMaterialExpressionTextureObjectParameter>(InputExpression);
 			if (TextureObjectExpression)
@@ -1420,7 +1534,7 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 		{
 			return Compiler->TextureSample(
 				TextureCodeIndex,
-				Coordinates.Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
+				Coordinates.GetTracedInput().Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
 				(EMaterialSamplerType)EffectiveSamplerType,
 				CompileMipValue0(Compiler),
 				CompileMipValue1(Compiler),
@@ -1501,12 +1615,12 @@ int32 UMaterialExpressionTextureSample::CompileMipValue0(class FMaterialCompiler
 {
 	if (MipValueMode == TMVM_Derivative)
 	{
-		if (CoordinatesDX.IsConnected())
+		if (CoordinatesDX.GetTracedInput().IsConnected())
 		{
 			return CoordinatesDX.Compile(Compiler);
 		}
 	}
-	else if (MipValue.IsConnected())
+	else if (MipValue.GetTracedInput().IsConnected())
 	{
 		return MipValue.Compile(Compiler);
 	}
@@ -1520,7 +1634,7 @@ int32 UMaterialExpressionTextureSample::CompileMipValue0(class FMaterialCompiler
 
 int32 UMaterialExpressionTextureSample::CompileMipValue1(class FMaterialCompiler* Compiler)
 {
-	if (MipValueMode == TMVM_Derivative && CoordinatesDY.IsConnected())
+	if (MipValueMode == TMVM_Derivative && CoordinatesDY.GetTracedInput().IsConnected())
 	{
 		return CoordinatesDY.Compile(Compiler);
 	}
@@ -1609,7 +1723,7 @@ int32 UMaterialExpressionTextureSampleParameter::Compile(class FMaterialCompiler
 
 	return Compiler->TextureSample(
 					Compiler->TextureParameter(ParameterName, Texture, TextureReferenceIndex, SamplerSource),
-					Coordinates.Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
+					Coordinates.GetTracedInput().Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
 					(EMaterialSamplerType)SamplerType,
 					MipValue0Index,
 					MipValue1Index,
@@ -1859,7 +1973,7 @@ UMaterialExpressionTextureProperty::UMaterialExpressionTextureProperty(const FOb
 #if WITH_EDITOR
 int32 UMaterialExpressionTextureProperty::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {	
-	if (!TextureObject.Expression)
+	if (!TextureObject.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("TextureSample> Missing input texture"));
 	}
@@ -1875,7 +1989,8 @@ int32 UMaterialExpressionTextureProperty::Compile(class FMaterialCompiler* Compi
 
 void UMaterialExpressionTextureProperty::GetTexturesForceMaterialRecompile(TArray<UTexture *> &Textures) const
 {
-	UMaterialExpression *TextureObjectExpression = TextureObject.Expression;
+	UMaterialExpression *TextureObjectExpression = TextureObject.GetTracedInput().Expression;
+
 	if (TextureObjectExpression && TextureObjectExpression->IsA(UMaterialExpressionTextureBase::StaticClass()))
 	{
 		UMaterialExpressionTextureBase *TextureExpressionBase = Cast<UMaterialExpressionTextureBase>(TextureObjectExpression);
@@ -2037,7 +2152,7 @@ UMaterialExpressionTextureSampleParameterCube::UMaterialExpressionTextureSampleP
 #if WITH_EDITOR
 int32 UMaterialExpressionTextureSampleParameterCube::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if (!Coordinates.Expression)
+	if (!Coordinates.GetTracedInput().Expression)
 	{
 		return CompilerError(Compiler, TEXT("Cube sample needs UV input"));
 	}
@@ -2152,9 +2267,9 @@ const TCHAR* UMaterialExpressionTextureSampleParameterSubUV::GetRequirements()
 int32 UMaterialExpressionAdd::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg1 = A.Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
+	int32 Arg1 = A.GetTracedInput().Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg2 = B.Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
+	int32 Arg2 = B.GetTracedInput().Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
 
 	return Compiler->Add(Arg1, Arg2);
 }
@@ -2164,11 +2279,13 @@ void UMaterialExpressionAdd::GetCaption(TArray<FString>& OutCaptions) const
 {
 	FString ret = TEXT("Add");
 
-	if(!A.Expression || !B.Expression)
+	FExpressionInput ATraced = A.GetTracedInput();
+	FExpressionInput BTraced = B.GetTracedInput();
+	if(!ATraced.Expression || !BTraced.Expression)
 	{
 		ret += TEXT("(");
-		ret += A.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstA);
-		ret += B.Expression ? TEXT(")") : FString::Printf( TEXT("%.4g)"), ConstB);
+		ret += ATraced.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstA);
+		ret += BTraced.Expression ? TEXT(")") : FString::Printf( TEXT("%.4g)"), ConstB);
 	}
 
 	OutCaptions.Add(ret);
@@ -2204,9 +2321,9 @@ UMaterialExpressionMultiply::UMaterialExpressionMultiply(const FObjectInitialize
 int32 UMaterialExpressionMultiply::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg1 = A.Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
+	int32 Arg1 = A.GetTracedInput().Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg2 = B.Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
+	int32 Arg2 = B.GetTracedInput().Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
 
 	return Compiler->Mul(Arg1, Arg2);
 }
@@ -2215,11 +2332,14 @@ void UMaterialExpressionMultiply::GetCaption(TArray<FString>& OutCaptions) const
 {
 	FString ret = TEXT("Multiply");
 
-	if(!A.Expression || !B.Expression)
+	FExpressionInput ATraced = A.GetTracedInput();
+	FExpressionInput BTraced = B.GetTracedInput();
+
+	if(!ATraced.Expression || !BTraced.Expression)
 	{
 		ret += TEXT("(");
-		ret += A.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstA);
-		ret += B.Expression ? TEXT(")") : FString::Printf( TEXT("%.4g)"), ConstB);
+		ret += ATraced.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstA);
+		ret += BTraced.Expression ? TEXT(")") : FString::Printf( TEXT("%.4g)"), ConstB);
 	}
 
 	OutCaptions.Add(ret);
@@ -2252,9 +2372,9 @@ UMaterialExpressionDivide::UMaterialExpressionDivide(const FObjectInitializer& O
 int32 UMaterialExpressionDivide::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg1 = A.Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
+	int32 Arg1 = A.GetTracedInput().Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg2 = B.Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
+	int32 Arg2 = B.GetTracedInput().Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
 
 	return Compiler->Div(Arg1, Arg2);
 }
@@ -2263,11 +2383,14 @@ void UMaterialExpressionDivide::GetCaption(TArray<FString>& OutCaptions) const
 {
 	FString ret = TEXT("Divide");
 
-	if(!A.Expression || !B.Expression)
+	FExpressionInput ATraced = A.GetTracedInput();
+	FExpressionInput BTraced = B.GetTracedInput();
+
+	if(!ATraced.Expression || !BTraced.Expression)
 	{
 		ret += TEXT("(");
-		ret += A.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstA);
-		ret += B.Expression ? TEXT(")") : FString::Printf( TEXT("%.4g)"), ConstB);
+		ret += ATraced.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstA);
+		ret += BTraced.Expression ? TEXT(")") : FString::Printf( TEXT("%.4g)"), ConstB);
 	}
 
 	OutCaptions.Add(ret);
@@ -2303,9 +2426,9 @@ UMaterialExpressionSubtract::UMaterialExpressionSubtract(const FObjectInitialize
 int32 UMaterialExpressionSubtract::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg1 = A.Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
+	int32 Arg1 = A.GetTracedInput().Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg2 = B.Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
+	int32 Arg2 = B.GetTracedInput().Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
 
 	return Compiler->Sub(Arg1, Arg2);
 }
@@ -2314,11 +2437,13 @@ void UMaterialExpressionSubtract::GetCaption(TArray<FString>& OutCaptions) const
 {
 	FString ret = TEXT("Subtract");
 
-	if(!A.Expression || !B.Expression)
+	FExpressionInput ATraced = A.GetTracedInput();
+	FExpressionInput BTraced = B.GetTracedInput();
+	if(!ATraced.Expression || !BTraced.Expression)
 	{
 		ret += TEXT("(");
-		ret += A.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstA);
-		ret += B.Expression ? TEXT(")") : FString::Printf( TEXT("%.4g)"), ConstB);
+		ret += ATraced.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstA);
+		ret += BTraced.Expression ? TEXT(")") : FString::Printf( TEXT("%.4g)"), ConstB);
 	}
 
 	OutCaptions.Add(ret);
@@ -2359,11 +2484,11 @@ UMaterialExpressionLinearInterpolate::UMaterialExpressionLinearInterpolate(const
 int32 UMaterialExpressionLinearInterpolate::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg1 = A.Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
+	int32 Arg1 = A.GetTracedInput().Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg2 = B.Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
+	int32 Arg2 = B.GetTracedInput().Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg3 = Alpha.Expression ? Alpha.Compile(Compiler) : Compiler->Constant(ConstAlpha);
+	int32 Arg3 = Alpha.GetTracedInput().Expression ? Alpha.Compile(Compiler) : Compiler->Constant(ConstAlpha);
 
 	return Compiler->Lerp(Arg1, Arg2, Arg3);
 }
@@ -2372,12 +2497,16 @@ void UMaterialExpressionLinearInterpolate::GetCaption(TArray<FString>& OutCaptio
 {
 	FString ret = TEXT("Lerp");
 
-	if(!A.Expression || !B.Expression || !Alpha.Expression)
+	FExpressionInput ATraced = A.GetTracedInput();
+	FExpressionInput BTraced = B.GetTracedInput();
+	FExpressionInput AlphaTraced = Alpha.GetTracedInput();
+
+	if(!ATraced.Expression || !BTraced.Expression || !AlphaTraced.Expression)
 	{
 		ret += TEXT("(");
-		ret += A.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstA);
-		ret += B.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstB);
-		ret += Alpha.Expression ? TEXT(")") : FString::Printf( TEXT("%.4g)"), ConstAlpha);
+		ret += ATraced.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstA);
+		ret += BTraced.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstB);
+		ret += AlphaTraced.Expression ? TEXT(")") : FString::Printf( TEXT("%.4g)"), ConstAlpha);
 	}
 
 	OutCaptions.Add(ret);
@@ -2605,14 +2734,14 @@ void UMaterialExpressionClamp::Serialize(FArchive& Ar)
 #if WITH_EDITOR
 int32 UMaterialExpressionClamp::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!Input.Expression)
+	if(!Input.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing Clamp input"));
 	}
 	else
 	{
-		const int32 MinIndex = Min.Expression ? Min.Compile(Compiler) : Compiler->Constant(MinDefault);
-		const int32 MaxIndex = Max.Expression ? Max.Compile(Compiler) : Compiler->Constant(MaxDefault);
+		const int32 MinIndex = Min.GetTracedInput().Expression ? Min.Compile(Compiler) : Compiler->Constant(MinDefault);
+		const int32 MaxIndex = Max.GetTracedInput().Expression ? Max.Compile(Compiler) : Compiler->Constant(MaxDefault);
 
 		if (ClampMode == CMODE_Clamp)
 		{
@@ -2636,13 +2765,57 @@ void UMaterialExpressionClamp::GetCaption(TArray<FString>& OutCaptions) const
 
 	if (ClampMode == CMODE_ClampMin || ClampMode == CMODE_Clamp)
 	{
-		NewCaption += Min.Expression ? TEXT(" (Min)") : FString::Printf(TEXT(" (Min=%.4g)"), MinDefault);
+		NewCaption += Min.GetTracedInput().Expression ? TEXT(" (Min)") : FString::Printf(TEXT(" (Min=%.4g)"), MinDefault);
 	}
 	if (ClampMode == CMODE_ClampMax || ClampMode == CMODE_Clamp)
 	{
-		NewCaption += Max.Expression ? TEXT(" (Max)") : FString::Printf(TEXT(" (Max=%.4g)"), MaxDefault);
+		NewCaption += Max.GetTracedInput().Expression ? TEXT(" (Max)") : FString::Printf(TEXT(" (Max=%.4g)"), MaxDefault);
 	}
 	OutCaptions.Add(NewCaption);
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionSaturate
+//
+UMaterialExpressionSaturate::UMaterialExpressionSaturate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionSaturate::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Saturate input"));
+	}
+	
+	return Compiler->Saturate(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionSaturate::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Saturate"));
+}
+
+void UMaterialExpressionSaturate::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Clamps the value between 0 and 1. Saturate is free on most modern graphics hardware."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -2676,9 +2849,9 @@ UMaterialExpressionMin::UMaterialExpressionMin(const FObjectInitializer& ObjectI
 int32 UMaterialExpressionMin::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg1 = A.Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
+	int32 Arg1 = A.GetTracedInput().Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg2 = B.Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
+	int32 Arg2 = B.GetTracedInput().Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
 
 	return Compiler->Min(Arg1, Arg2);
 }
@@ -2687,11 +2860,14 @@ void UMaterialExpressionMin::GetCaption(TArray<FString>& OutCaptions) const
 {
 	FString ret = TEXT("Min");
 
-	if(!A.Expression || !B.Expression)
+	FExpressionInput ATraced = A.GetTracedInput();
+	FExpressionInput BTraced = B.GetTracedInput();
+
+	if(!ATraced.Expression || !BTraced.Expression)
 	{
 		ret += TEXT("(");
-		ret += A.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstA);
-		ret += B.Expression ? TEXT(")") : FString::Printf( TEXT("%.4g)"), ConstB);
+		ret += ATraced.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstA);
+		ret += BTraced.Expression ? TEXT(")") : FString::Printf( TEXT("%.4g)"), ConstB);
 	}
 
 	OutCaptions.Add(ret);
@@ -2728,9 +2904,9 @@ UMaterialExpressionMax::UMaterialExpressionMax(const FObjectInitializer& ObjectI
 int32 UMaterialExpressionMax::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg1 = A.Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
+	int32 Arg1 = A.GetTracedInput().Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
 	// if the input is hooked up, use it, otherwise use the internal constant
-	int32 Arg2 = B.Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
+	int32 Arg2 = B.GetTracedInput().Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
 
 	return Compiler->Max(Arg1, Arg2);
 }
@@ -2739,11 +2915,14 @@ void UMaterialExpressionMax::GetCaption(TArray<FString>& OutCaptions) const
 {
 	FString ret = TEXT("Max");
 
-	if(!A.Expression || !B.Expression)
+	FExpressionInput ATraced = A.GetTracedInput();
+	FExpressionInput BTraced = B.GetTracedInput();
+
+	if(!ATraced.Expression || !BTraced.Expression)
 	{
 		ret += TEXT("(");
-		ret += A.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstA);
-		ret += B.Expression ? TEXT(")") : FString::Printf( TEXT("%.4g)"), ConstB);
+		ret += ATraced.Expression ? TEXT(",") : FString::Printf( TEXT("%.4g,"), ConstA);
+		ret += BTraced.Expression ? TEXT(")") : FString::Printf( TEXT("%.4g)"), ConstB);
 	}
 
 	OutCaptions.Add(ret);
@@ -2825,11 +3004,11 @@ UMaterialExpressionDotProduct::UMaterialExpressionDotProduct(const FObjectInitia
 #if WITH_EDITOR
 int32 UMaterialExpressionDotProduct::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!A.Expression)
+	if(!A.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing DotProduct input A"));
 	}
-	else if(!B.Expression)
+	else if(!B.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing DotProduct input B"));
 	}
@@ -2875,11 +3054,11 @@ UMaterialExpressionCrossProduct::UMaterialExpressionCrossProduct(const FObjectIn
 #if WITH_EDITOR
 int32 UMaterialExpressionCrossProduct::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!A.Expression)
+	if(!A.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing CrossProduct input A"));
 	}
-	else if(!B.Expression)
+	else if(!B.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing CrossProduct input B"));
 	}
@@ -2925,7 +3104,7 @@ UMaterialExpressionComponentMask::UMaterialExpressionComponentMask(const FObject
 #if WITH_EDITOR
 int32 UMaterialExpressionComponentMask::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!Input.Expression)
+	if(!Input.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing ComponentMask input"));
 	}
@@ -2976,7 +3155,7 @@ UMaterialExpressionStaticComponentMaskParameter::UMaterialExpressionStaticCompon
 #if WITH_EDITOR
 int32 UMaterialExpressionStaticComponentMaskParameter::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!Input.Expression)
+	if(!Input.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing ComponentMaskParameter input"));
 	}
@@ -3166,8 +3345,9 @@ UMaterialExpressionReflectionVectorWS::UMaterialExpressionReflectionVectorWS(con
 int32 UMaterialExpressionReflectionVectorWS::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
 	int32 Result = CustomWorldNormal.Compile(Compiler);
-	if (CustomWorldNormal.Expression)
+	if (CustomWorldNormal.Expression) 
 	{
+		// Don't do anything special here in regards to if the Expression is a Reroute node, the compiler will handle properly internally and return INDEX_NONE if rerouted to nowhere.
 		return Compiler->ReflectionAboutCustomWorldNormal(Result, bNormalizeCustomWorldNormal); 
 	}
 	else
@@ -3210,10 +3390,11 @@ UMaterialExpressionPanner::UMaterialExpressionPanner(const FObjectInitializer& O
 #if WITH_EDITOR
 int32 UMaterialExpressionPanner::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	int32 TimeArg = Time.Expression ? Time.Compile(Compiler) : Compiler->GameTime(false, 0.0f);
-	int32 SpeedVectorArg = Speed.Expression ? Speed.Compile(Compiler) : INDEX_NONE;
-	int32 SpeedXArg = Speed.Expression ? Compiler->ComponentMask(SpeedVectorArg, true, false, false, false) : Compiler->Constant(SpeedX);
-	int32 SpeedYArg = Speed.Expression ? Compiler->ComponentMask(SpeedVectorArg, false, true, false, false) : Compiler->Constant(SpeedY);
+	int32 TimeArg = Time.GetTracedInput().Expression ? Time.Compile(Compiler) : Compiler->GameTime(false, 0.0f);
+	bool bIsSpeedExpressionValid = Speed.GetTracedInput().Expression != nullptr;
+	int32 SpeedVectorArg = bIsSpeedExpressionValid ? Speed.Compile(Compiler) : INDEX_NONE;
+	int32 SpeedXArg = bIsSpeedExpressionValid ? Compiler->ComponentMask(SpeedVectorArg, true, false, false, false) : Compiler->Constant(SpeedX);
+	int32 SpeedYArg = bIsSpeedExpressionValid ? Compiler->ComponentMask(SpeedVectorArg, false, true, false, false) : Compiler->Constant(SpeedY);
 	int32 Arg1;
 	int32 Arg2;
 	if (bFractionalPart)
@@ -3229,7 +3410,7 @@ int32 UMaterialExpressionPanner::Compile(class FMaterialCompiler* Compiler, int3
 		Arg2 = Compiler->PeriodicHint(Compiler->Mul(TimeArg, SpeedYArg));
 	}
 
-	int32 Arg3 = Coordinate.Expression ? Coordinate.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false);
+	int32 Arg3 = Coordinate.GetTracedInput().Expression ? Coordinate.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false);
 	return Compiler->Add(
 			Compiler->AppendVector(
 				Arg1,
@@ -3277,12 +3458,12 @@ UMaterialExpressionRotator::UMaterialExpressionRotator(const FObjectInitializer&
 #if WITH_EDITOR
 int32 UMaterialExpressionRotator::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	int32	Cosine = Compiler->Cosine(Compiler->Mul(Time.Expression ? Time.Compile(Compiler) : Compiler->GameTime(false, 0.0f),Compiler->Constant(Speed))),
-		Sine = Compiler->Sine(Compiler->Mul(Time.Expression ? Time.Compile(Compiler) : Compiler->GameTime(false, 0.0f),Compiler->Constant(Speed))),
+	int32	Cosine = Compiler->Cosine(Compiler->Mul(Time.GetTracedInput().Expression ? Time.Compile(Compiler) : Compiler->GameTime(false, 0.0f),Compiler->Constant(Speed))),
+		Sine = Compiler->Sine(Compiler->Mul(Time.GetTracedInput().Expression ? Time.Compile(Compiler) : Compiler->GameTime(false, 0.0f),Compiler->Constant(Speed))),
 		RowX = Compiler->AppendVector(Cosine,Compiler->Mul(Compiler->Constant(-1.0f),Sine)),
 		RowY = Compiler->AppendVector(Sine,Cosine),
 		Origin = Compiler->Constant2(CenterX,CenterY),
-		BaseCoordinate = Coordinate.Expression ? Coordinate.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false);
+		BaseCoordinate = Coordinate.GetTracedInput().Expression ? Coordinate.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false);
 
 	const int32 Arg1 = Compiler->Dot(RowX,Compiler->Sub(Compiler->ComponentMask(BaseCoordinate,1,1,0,0),Origin));
 	const int32 Arg2 = Compiler->Dot(RowY,Compiler->Sub(Compiler->ComponentMask(BaseCoordinate,1,1,0,0),Origin));
@@ -3346,7 +3527,7 @@ UMaterialExpressionSine::UMaterialExpressionSine(const FObjectInitializer& Objec
 #if WITH_EDITOR
 int32 UMaterialExpressionSine::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!Input.Expression)
+	if(!Input.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing Sine input"));
 	}
@@ -3360,6 +3541,9 @@ void UMaterialExpressionSine::GetCaption(TArray<FString>& OutCaptions) const
 }
 #endif // WITH_EDITOR
 
+//
+//	UMaterialExpressionCosine
+//
 UMaterialExpressionCosine::UMaterialExpressionCosine(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -3384,7 +3568,7 @@ UMaterialExpressionCosine::UMaterialExpressionCosine(const FObjectInitializer& O
 #if WITH_EDITOR
 int32 UMaterialExpressionCosine::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!Input.Expression)
+	if(!Input.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing Cosine input"));
 	}
@@ -3395,6 +3579,403 @@ int32 UMaterialExpressionCosine::Compile(class FMaterialCompiler* Compiler, int3
 void UMaterialExpressionCosine::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Cosine"));
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionTangent
+//
+UMaterialExpressionTangent::UMaterialExpressionTangent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	Period = 1.0f;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionTangent::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Tangent input"));
+	}
+
+	return Compiler->Tangent(Compiler->Mul(Input.Compile(Compiler),Period > 0.0f ? Compiler->Constant(2.0f * (float)PI / Period) : 0));
+}
+
+void UMaterialExpressionTangent::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Tangent"));
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArcsine
+//
+UMaterialExpressionArcsine::UMaterialExpressionArcsine(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArcsine::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Arcsine input"));
+	}
+
+	return Compiler->Arcsine(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionArcsine::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Arcsine"));
+}
+
+void UMaterialExpressionArcsine::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Inverse sine function. This is an expensive operation not reflected by instruction count."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArcsineFast
+//
+UMaterialExpressionArcsineFast::UMaterialExpressionArcsineFast(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArcsineFast::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing ArcsineFast input"));
+	}
+
+	return Compiler->ArcsineFast(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionArcsineFast::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("ArcsineFast"));
+}
+
+void UMaterialExpressionArcsineFast::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Approximate inverse sine function. Input must be between -1 and 1."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArccosine
+//
+UMaterialExpressionArccosine::UMaterialExpressionArccosine(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArccosine::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Arccosine input"));
+	}
+
+	return Compiler->Arccosine(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionArccosine::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Arccosine"));
+}
+
+void UMaterialExpressionArccosine::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Inverse cosine function. This is an expensive operation not reflected by instruction count."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArccosineFast
+//
+UMaterialExpressionArccosineFast::UMaterialExpressionArccosineFast(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArccosineFast::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing ArccosineFast input"));
+	}
+
+	return Compiler->ArccosineFast(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionArccosineFast::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("ArccosineFast"));
+}
+
+void UMaterialExpressionArccosineFast::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Approximate inverse cosine function. Input must be between -1 and 1."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArctangent
+//
+UMaterialExpressionArctangent::UMaterialExpressionArctangent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArctangent::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Arctangent input"));
+	}
+
+	return Compiler->Arctangent(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionArctangent::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Arctangent"));
+}
+
+void UMaterialExpressionArctangent::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Inverse tangent function. This is an expensive operation not reflected by instruction count."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArctangentFast
+//
+UMaterialExpressionArctangentFast::UMaterialExpressionArctangentFast(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArctangentFast::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing ArctangentFast input"));
+	}
+
+	return Compiler->ArctangentFast(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionArctangentFast::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("ArctangentFast"));
+}
+
+void UMaterialExpressionArctangentFast::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Approximate inverse tangent function."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArctangent2
+//
+UMaterialExpressionArctangent2::UMaterialExpressionArctangent2(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArctangent2::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Y.GetTracedInput().Expression || !X.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Arctangent2 input"));
+	}
+
+	int32 YResult = Y.Compile(Compiler);
+	int32 XResult = X.Compile(Compiler);
+	return Compiler->Arctangent2(YResult, XResult);
+}
+
+void UMaterialExpressionArctangent2::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Arctangent2"));
+}
+
+void UMaterialExpressionArctangent2::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Inverse tangent of X / Y where input signs are used to determine quadrant. This is an expensive operation not reflected by instruction count."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArctangent2Fast
+//
+UMaterialExpressionArctangent2Fast::UMaterialExpressionArctangent2Fast(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArctangent2Fast::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Y.GetTracedInput().Expression || !X.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Arctangent2Fast input"));
+	}
+
+	int32 YResult = Y.Compile(Compiler);
+	int32 XResult = X.Compile(Compiler);
+	return Compiler->Arctangent2Fast(YResult, XResult);
+}
+
+void UMaterialExpressionArctangent2Fast::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Arctangent2Fast"));
+}
+
+void UMaterialExpressionArctangent2Fast::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Approximate inverse tangent of X / Y where input signs are used to determine quadrant."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -3425,7 +4006,7 @@ UMaterialExpressionBumpOffset::UMaterialExpressionBumpOffset(const FObjectInitia
 #if WITH_EDITOR
 int32 UMaterialExpressionBumpOffset::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!Height.Expression)
+	if(!Height.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing Height input"));
 	}
@@ -3435,13 +4016,13 @@ int32 UMaterialExpressionBumpOffset::Compile(class FMaterialCompiler* Compiler, 
 				Compiler->ComponentMask(Compiler->TransformVector(MCB_World, MCB_Tangent, Compiler->CameraVector()),1,1,0,0),
 				Compiler->Add(
 					Compiler->Mul(
-						HeightRatioInput.Expression ? Compiler->ForceCast(HeightRatioInput.Compile(Compiler),MCT_Float1) : Compiler->Constant(HeightRatio),
+						HeightRatioInput.GetTracedInput().Expression ? Compiler->ForceCast(HeightRatioInput.Compile(Compiler),MCT_Float1) : Compiler->Constant(HeightRatio),
 						Compiler->ForceCast(Height.Compile(Compiler),MCT_Float1)
 						),
-					HeightRatioInput.Expression ? Compiler->Mul(Compiler->Constant(-ReferencePlane), Compiler->ForceCast(HeightRatioInput.Compile(Compiler),MCT_Float1)) : Compiler->Constant(-ReferencePlane * HeightRatio)
+					HeightRatioInput.GetTracedInput().Expression ? Compiler->Mul(Compiler->Constant(-ReferencePlane), Compiler->ForceCast(HeightRatioInput.Compile(Compiler),MCT_Float1)) : Compiler->Constant(-ReferencePlane * HeightRatio)
 					)
 				),
-			Coordinate.Expression ? Coordinate.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false)
+			Coordinate.GetTracedInput().Expression ? Coordinate.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false)
 			);
 }
 
@@ -3476,11 +4057,11 @@ UMaterialExpressionAppendVector::UMaterialExpressionAppendVector(const FObjectIn
 #if WITH_EDITOR
 int32 UMaterialExpressionAppendVector::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!A.Expression)
+	if(!A.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing AppendVector input A"));
 	}
-	else if(!B.Expression)
+	else if(!B.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing AppendVector input B"));
 	}
@@ -3535,6 +4116,7 @@ int32 UMaterialExpressionMakeMaterialAttributes::Compile(class FMaterialCompiler
 		");
 
 	EMaterialProperty Property = FMaterialAttributeDefinitionMap::GetProperty(Compiler->GetMaterialAttribute());
+	// We don't worry about reroute nodes in the switch, as we have a test for their validity afterwards.
 	switch (Property)
 	{
 	case MP_BaseColor: Ret = BaseColor.Compile(Compiler); Expression = BaseColor.Expression; break;
@@ -3561,7 +4143,7 @@ int32 UMaterialExpressionMakeMaterialAttributes::Compile(class FMaterialCompiler
 		Ret = CustomizedUVs[Property - MP_CustomizedUVs0].Compile(Compiler); Expression = CustomizedUVs[Property - MP_CustomizedUVs0].Expression;
 	}
 
-	//If we've connected an expression but its still returned INDEX_NONE, flag the error.
+	//If we've connected an expression but its still returned INDEX_NONE, flag the error. This also catches reroute nodes to nowhere.
 	if (Expression && INDEX_NONE == Ret)
 	{
 		Compiler->Errorf(TEXT("Error on property %s"), *FMaterialAttributeDefinitionMap::GetDisplayName(Property));
@@ -4236,7 +4818,7 @@ UMaterialExpressionFloor::UMaterialExpressionFloor(const FObjectInitializer& Obj
 #if WITH_EDITOR
 int32 UMaterialExpressionFloor::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!Input.Expression)
+	if(!Input.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing Floor input"));
 	}
@@ -4272,7 +4854,7 @@ UMaterialExpressionCeil::UMaterialExpressionCeil(const FObjectInitializer& Objec
 #if WITH_EDITOR
 int32 UMaterialExpressionCeil::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!Input.Expression)
+	if(!Input.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing Ceil input"));
 	}
@@ -4283,6 +4865,92 @@ int32 UMaterialExpressionCeil::Compile(class FMaterialCompiler* Compiler, int32 
 void UMaterialExpressionCeil::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Ceil"));
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionRound
+//
+UMaterialExpressionRound::UMaterialExpressionRound(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionRound::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Round input"));
+	}
+	return Compiler->Round(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionRound::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Round"));
+}
+
+void UMaterialExpressionRound::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Rounds the value up to the next whole number if the fractional part is greater than or equal to half, else rounds down."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionTruncate
+//
+UMaterialExpressionTruncate::UMaterialExpressionTruncate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionTruncate::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Truncate input"));
+	}
+	return Compiler->Truncate(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionTruncate::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Truncate"));
+}
+
+void UMaterialExpressionTruncate::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Truncates a value by discarding the fractional part."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -4312,11 +4980,11 @@ UMaterialExpressionFmod::UMaterialExpressionFmod(const FObjectInitializer& Objec
 #if WITH_EDITOR
 int32 UMaterialExpressionFmod::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if (!A.Expression)
+	if (!A.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing Fmod input A"));
 	}
-	if (!B.Expression)
+	if (!B.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing Fmod input B"));
 	}
@@ -4351,7 +5019,7 @@ UMaterialExpressionFrac::UMaterialExpressionFrac(const FObjectInitializer& Objec
 #if WITH_EDITOR
 int32 UMaterialExpressionFrac::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!Input.Expression)
+	if(!Input.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing Frac input"));
 	}
@@ -4392,13 +5060,13 @@ UMaterialExpressionDesaturation::UMaterialExpressionDesaturation(const FObjectIn
 #if WITH_EDITOR
 int32 UMaterialExpressionDesaturation::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!Input.Expression)
+	if(!Input.GetTracedInput().Expression)
 		return Compiler->Errorf(TEXT("Missing Desaturation input"));
 
-	int32	Color = Compiler->ForceCast(Input.Compile(Compiler), MCT_Float3,true,true),
+	int32 Color = Compiler->ForceCast(Input.Compile(Compiler), MCT_Float3, MFCF_ExactMatch|MFCF_ReplicateValue),
 		Grey = Compiler->Dot(Color,Compiler->Constant3(LuminanceFactors.R,LuminanceFactors.G,LuminanceFactors.B));
 
-	if(Fraction.Expression)
+	if(Fraction.GetTracedInput().Expression)
 		return Compiler->Lerp(Color,Grey,Fraction.Compile(Compiler));
 	else
 		return Grey;
@@ -4606,8 +5274,11 @@ UMaterialExpressionStaticSwitchParameter::UMaterialExpressionStaticSwitchParamet
 bool UMaterialExpressionStaticSwitchParameter::IsResultMaterialAttributes(int32 OutputIndex)
 {
 	check(OutputIndex == 0);
-	if( (A.Expression && !A.Expression->ContainsInputLoop() && A.Expression->IsResultMaterialAttributes(A.OutputIndex)) ||
-		(B.Expression && !B.Expression->ContainsInputLoop() && B.Expression->IsResultMaterialAttributes(B.OutputIndex)))
+	// This one is a little tricky. Since we are treating a dangling reroute as an empty expression, this
+	// should early out, whereas IsResultMaterialAttributes on a reroute node will return false as the 
+	// reroute node's input is dangling and therefore its type is unknown.
+	if ((A.GetTracedInput().Expression && !A.Expression->ContainsInputLoop() && A.Expression->IsResultMaterialAttributes(A.OutputIndex)) ||
+		(B.GetTracedInput().Expression && !B.Expression->ContainsInputLoop() && B.Expression->IsResultMaterialAttributes(B.OutputIndex)))
 	{
 		return true;
 	}
@@ -4623,12 +5294,12 @@ int32 UMaterialExpressionStaticSwitchParameter::Compile(class FMaterialCompiler*
 	const bool bValue = Compiler->GetStaticBoolValue(Compiler->StaticBoolParameter(ParameterName,DefaultValue), bSucceeded);
 	
 	//Both A and B must be connected in a parameter. 
-	if( !A.IsConnected() )
+	if( !A.GetTracedInput().IsConnected() )
 	{
 		Compiler->Errorf(TEXT("Missing A input"));
 		bSucceeded = false;
 	}
-	if( !B.IsConnected() )
+	if( !B.GetTracedInput().IsConnected() )
 	{
 		Compiler->Errorf(TEXT("Missing B input"));
 		bSucceeded = false;
@@ -4776,10 +5447,13 @@ UMaterialExpressionStaticSwitch::UMaterialExpressionStaticSwitch(const FObjectIn
 #if WITH_EDITOR
 bool UMaterialExpressionStaticSwitch::IsResultMaterialAttributes(int32 OutputIndex)
 {
-	// If there is a loop anywhere in this expression's inputs then we can't risk checking them
+	// If there is a loop anywhere in this expression's inputs then we can't risk checking them. 
+	// This one is a little tricky with respect to Reroute nodes. Since we are treating a dangling reroute as an empty expression, this
+	// should early out, whereas IsResultMaterialAttributes on a reroute node will return false as the 
+	// reroute node's input is dangling and therefore its type is unknown.
 	check(OutputIndex == 0);
-	if( (A.Expression && !A.Expression->ContainsInputLoop() && A.Expression->IsResultMaterialAttributes(A.OutputIndex)) ||
-		(B.Expression && !B.Expression->ContainsInputLoop() && B.Expression->IsResultMaterialAttributes(B.OutputIndex)))
+	if ((A.GetTracedInput().Expression && !A.Expression->ContainsInputLoop() && A.Expression->IsResultMaterialAttributes(A.OutputIndex)) ||
+		(B.GetTracedInput().Expression && !B.Expression->ContainsInputLoop() && B.Expression->IsResultMaterialAttributes(B.OutputIndex)))
 	{
 		return true;
 	}
@@ -4793,7 +5467,7 @@ int32 UMaterialExpressionStaticSwitch::Compile(class FMaterialCompiler* Compiler
 {
 	bool bValue = DefaultValue;
 
-	if (Value.Expression)
+	if (Value.GetTracedInput().Expression)
 	{
 		bool bSucceeded;
 		bValue = Compiler->GetStaticBoolValue(Value.Compile(Compiler), bSucceeded);
@@ -4852,6 +5526,83 @@ uint32 UMaterialExpressionStaticSwitch::GetInputType(int32 InputIndex)
 #endif
 
 //
+//	UMaterialExpressionPreviousFrameSwitch
+//
+UMaterialExpressionPreviousFrameSwitch::UMaterialExpressionPreviousFrameSwitch(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Functions;
+		FConstructorStatics()
+			: NAME_Functions(LOCTEXT("Functions", "Functions"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Functions);
+#endif
+}
+
+#if WITH_EDITOR
+bool UMaterialExpressionPreviousFrameSwitch::IsResultMaterialAttributes(int32 OutputIndex)
+{
+	// If there is a loop anywhere in this expression's inputs then we can't risk checking them
+	check(OutputIndex == 0);
+	if ((CurrentFrame.Expression && !CurrentFrame.Expression->ContainsInputLoop() && CurrentFrame.Expression->IsResultMaterialAttributes(CurrentFrame.OutputIndex)) ||
+		(PreviousFrame.Expression && !PreviousFrame.Expression->ContainsInputLoop() && PreviousFrame.Expression->IsResultMaterialAttributes(PreviousFrame.OutputIndex)))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+int32 UMaterialExpressionPreviousFrameSwitch::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if (Compiler->IsCurrentlyCompilingForPreviousFrame())
+	{
+		return PreviousFrame.Compile(Compiler);
+	}
+	return CurrentFrame.Compile(Compiler);
+}
+
+void UMaterialExpressionPreviousFrameSwitch::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(FString(TEXT("PreviousFrameSwitch")));
+}
+
+void UMaterialExpressionPreviousFrameSwitch::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Used to manually provide expressions for motion vector generation caused by changes in world position offset between frames."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+FString UMaterialExpressionPreviousFrameSwitch::GetInputName(int32 InputIndex) const
+{
+	if (InputIndex == 0)
+	{
+		return TEXT("Current Frame");
+	}
+	else
+	{
+		return TEXT("Previous Frame");
+	}
+}
+
+#if WITH_EDITOR
+uint32 UMaterialExpressionPreviousFrameSwitch::GetInputType(int32 InputIndex)
+{
+	return MCT_Unknown;
+}
+#endif
+
+//
 //	UMaterialExpressionQualitySwitch
 //
 
@@ -4879,9 +5630,10 @@ int32 UMaterialExpressionQualitySwitch::Compile(class FMaterialCompiler* Compile
 {
 	const EMaterialQualityLevel::Type QualityLevelToCompile = Compiler->GetQualityLevel();
 	check(QualityLevelToCompile < ARRAY_COUNT(Inputs));
-	FExpressionInput& QualityInput = Inputs[QualityLevelToCompile];
+	FExpressionInput QualityInput = Inputs[QualityLevelToCompile].GetTracedInput();
+	FExpressionInput DefaultTraced = Default.GetTracedInput();
 
-	if (!Default.Expression)
+	if (!DefaultTraced.Expression)
 	{
 		return Compiler->Errorf(TEXT("Quality switch missing default input"));
 	}
@@ -4891,7 +5643,7 @@ int32 UMaterialExpressionQualitySwitch::Compile(class FMaterialCompiler* Compile
 		return QualityInput.Compile(Compiler);
 	}
 
-	return Default.Compile(Compiler);
+	return DefaultTraced.Compile(Compiler);
 }
 
 void UMaterialExpressionQualitySwitch::GetCaption(TArray<FString>& OutCaptions) const
@@ -4995,12 +5747,12 @@ int32 UMaterialExpressionFeatureLevelSwitch::Compile(class FMaterialCompiler* Co
 	check(FeatureLevelToCompile < ARRAY_COUNT(Inputs));
 	FExpressionInput& FeatureInput = Inputs[FeatureLevelToCompile];
 
-	if (!Default.Expression)
+	if (!Default.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Feature Level switch missing default input"));
 	}
 
-	if (FeatureInput.Expression)
+	if (FeatureInput.GetTracedInput().Expression)
 	{
 		return FeatureInput.Compile(Compiler);
 	}
@@ -5064,7 +5816,7 @@ bool UMaterialExpressionFeatureLevelSwitch::IsResultMaterialAttributes(int32 Out
 	for (FExpressionInput* ExpressionInput : ExpressionInputs)
 	{
 		// If there is a loop anywhere in this expression's inputs then we can't risk checking them
-		if (ExpressionInput->Expression && !ExpressionInput->Expression->ContainsInputLoop() && ExpressionInput->Expression->IsResultMaterialAttributes(ExpressionInput->OutputIndex))
+		if (ExpressionInput->GetTracedInput().Expression && !ExpressionInput->Expression->ContainsInputLoop() && ExpressionInput->Expression->IsResultMaterialAttributes(ExpressionInput->OutputIndex))
 		{
 			return true;
 		}
@@ -5117,7 +5869,7 @@ UMaterialExpressionNormalize::UMaterialExpressionNormalize(const FObjectInitiali
 #if WITH_EDITOR
 int32 UMaterialExpressionNormalize::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!VectorInput.Expression)
+	if(!VectorInput.GetTracedInput().Expression)
 		return Compiler->Errorf(TEXT("Missing Normalize input"));
 
 	int32	V = VectorInput.Compile(Compiler);
@@ -5730,7 +6482,7 @@ UMaterialExpressionSquareRoot::UMaterialExpressionSquareRoot(const FObjectInitia
 #if WITH_EDITOR
 int32 UMaterialExpressionSquareRoot::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!Input.Expression)
+	if(!Input.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing square root input"));
 	}
@@ -5832,7 +6584,7 @@ int32 UMaterialExpressionSceneDepth::Compile(class FMaterialCompiler* Compiler, 
 
 	if(InputMode == EMaterialSceneAttributeInputMode::OffsetFraction)
 	{
-		if (Input.Expression)
+		if (Input.GetTracedInput().Expression)
 		{
 			OffsetIndex = Input.Compile(Compiler);
 		} 
@@ -5844,7 +6596,7 @@ int32 UMaterialExpressionSceneDepth::Compile(class FMaterialCompiler* Compiler, 
 	}
 	else if(InputMode == EMaterialSceneAttributeInputMode::Coordinates)
 	{
-		if (Input.Expression)
+		if (Input.GetTracedInput().Expression)
 		{
 			CoordinateIndex = Input.Compile(Compiler);
 		} 
@@ -5865,8 +6617,7 @@ FString UMaterialExpressionSceneDepth::GetInputName(int32 InputIndex) const
 	if(InputIndex == 0)
 	{
 		// Display the current InputMode enum's display name.
-		UByteProperty* InputModeProperty = NULL;
-		InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneDepth::StaticClass(), "InputMode" );
+		UByteProperty* InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneDepth::StaticClass(), "InputMode" );
 		return InputModeProperty->Enum->GetEnumName((int32)InputMode.GetValue());
 	}
 	return TEXT("");
@@ -5914,7 +6665,7 @@ int32 UMaterialExpressionSceneTexture::Compile(class FMaterialCompiler* Compiler
 {    
 	int32 UV = INDEX_NONE;
 
-	if (Coordinates.Expression)
+	if (Coordinates.GetTracedInput().Expression)
 	{
 		UV = Coordinates.Compile(Compiler);
 	}
@@ -6010,7 +6761,7 @@ int32 UMaterialExpressionSceneColor::Compile(class FMaterialCompiler* Compiler, 
 
 	if(InputMode == EMaterialSceneAttributeInputMode::OffsetFraction)
 	{
-		if (Input.Expression)
+		if (Input.GetTracedInput().Expression)
 		{
 			OffsetIndex = Input.Compile(Compiler);
 		}
@@ -6023,7 +6774,7 @@ int32 UMaterialExpressionSceneColor::Compile(class FMaterialCompiler* Compiler, 
 	}
 	else if(InputMode == EMaterialSceneAttributeInputMode::Coordinates)
 	{
-		if (Input.Expression)
+		if (Input.GetTracedInput().Expression)
 		{
 			CoordinateIndex = Input.Compile(Compiler);
 		} 
@@ -6063,13 +6814,13 @@ UMaterialExpressionPower::UMaterialExpressionPower(const FObjectInitializer& Obj
 #if WITH_EDITOR
 int32 UMaterialExpressionPower::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!Base.Expression)
+	if(!Base.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing Power Base input"));
 	}
 
 	int32 Arg1 = Base.Compile(Compiler);
-	int32 Arg2 = Exponent.Expression ? Exponent.Compile(Compiler) : Compiler->Constant(ConstExponent);
+	int32 Arg2 = Exponent.GetTracedInput().Expression ? Exponent.Compile(Compiler) : Compiler->Constant(ConstExponent);
 	return Compiler->Power(
 		Arg1,
 		Arg2
@@ -6080,7 +6831,7 @@ void UMaterialExpressionPower::GetCaption(TArray<FString>& OutCaptions) const
 {
 	FString ret = TEXT("Power");
 
-	if (!Exponent.Expression)
+	if (!Exponent.GetTracedInput().Expression)
 	{
 		ret += FString::Printf( TEXT("(X, %.4g)"), ConstExponent);
 	}
@@ -6111,7 +6862,7 @@ UMaterialExpressionLogarithm2::UMaterialExpressionLogarithm2(const FObjectInitia
 #if WITH_EDITOR
 int32 UMaterialExpressionLogarithm2::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!X.Expression)
+	if(!X.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing Log2 X input"));
 	}
@@ -6130,8 +6881,7 @@ FString UMaterialExpressionSceneColor::GetInputName(int32 InputIndex) const
 	if(InputIndex == 0)
 	{
 		// Display the current InputMode enum's display name.
-		UByteProperty* InputModeProperty = NULL;
-		InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneColor::StaticClass(), "InputMode" );
+		UByteProperty* InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneColor::StaticClass(), "InputMode" );
 		return InputModeProperty->Enum->GetEnumName((int32)InputMode.GetValue());
 	}
 	return TEXT("");
@@ -6162,21 +6912,21 @@ UMaterialExpressionIf::UMaterialExpressionIf(const FObjectInitializer& ObjectIni
 #if WITH_EDITOR
 int32 UMaterialExpressionIf::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!A.Expression)
+	if(!A.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing If A input"));
 	}
-	if(!AGreaterThanB.Expression)
+	if(!AGreaterThanB.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing If AGreaterThanB input"));
 	}
-	if(!ALessThanB.Expression)
+	if(!ALessThanB.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing If ALessThanB input"));
 	}
 
 	int32 CompiledA = A.Compile(Compiler);
-	int32 CompiledB = B.Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
+	int32 CompiledB = B.GetTracedInput().Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
 
 	if(Compiler->GetType(CompiledA) != MCT_Float)
 	{
@@ -6189,7 +6939,7 @@ int32 UMaterialExpressionIf::Compile(class FMaterialCompiler* Compiler, int32 Ou
 	}
 
 	int32 Arg3 = AGreaterThanB.Compile(Compiler);
-	int32 Arg4 = AEqualsB.Expression ? AEqualsB.Compile(Compiler) : INDEX_NONE;
+	int32 Arg4 = AEqualsB.GetTracedInput().Expression ? AEqualsB.Compile(Compiler) : INDEX_NONE;
 	int32 Arg5 = ALessThanB.Compile(Compiler);
 	int32 ThresholdArg = Compiler->Constant(EqualsThreshold);
 
@@ -6237,7 +6987,7 @@ UMaterialExpressionOneMinus::UMaterialExpressionOneMinus(const FObjectInitialize
 #if WITH_EDITOR
 int32 UMaterialExpressionOneMinus::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!Input.Expression)
+	if(!Input.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing 1-x input"));
 	}
@@ -6274,7 +7024,7 @@ int32 UMaterialExpressionAbs::Compile( FMaterialCompiler* Compiler, int32 Output
 {
 	int32 Result=INDEX_NONE;
 
-	if( !Input.Expression )
+	if( !Input.GetTracedInput().Expression )
 	{
 		// an input expression must exist
 		Result = Compiler->Errorf( TEXT("Missing Abs input") );
@@ -6330,7 +7080,7 @@ int32 UMaterialExpressionTransform::Compile(class FMaterialCompiler* Compiler, i
 {
 	int32 Result = INDEX_NONE;
 
-	if (!Input.Expression)
+	if (!Input.GetTracedInput().Expression)
 	{
 		Result = Compiler->Errorf(TEXT("Missing Transform input vector"));
 	}
@@ -6432,7 +7182,7 @@ int32 UMaterialExpressionTransformPosition::Compile(class FMaterialCompiler* Com
 {
 	int32 Result=INDEX_NONE;
 	
-	if( !Input.Expression )
+	if( !Input.GetTracedInput().Expression )
 	{
 		Result = Compiler->Errorf(TEXT("Missing Transform Position input vector"));
 	}
@@ -6576,13 +7326,13 @@ int32 UMaterialExpressionFresnel::Compile(class FMaterialCompiler* Compiler, int
 {
 	// pow(1 - max(0,Normal dot Camera),Exponent) * (1 - BaseReflectFraction) + BaseReflectFraction
 	//
-	int32 NormalArg = Normal.Expression ? Normal.Compile(Compiler) : Compiler->PixelNormalWS();
+	int32 NormalArg = Normal.GetTracedInput().Expression ? Normal.Compile(Compiler) : Compiler->PixelNormalWS();
 	int32 DotArg = Compiler->Dot(NormalArg,Compiler->CameraVector());
 	int32 MaxArg = Compiler->Max(Compiler->Constant(0.f),DotArg);
 	int32 MinusArg = Compiler->Sub(Compiler->Constant(1.f),MaxArg);
-	int32 ExponentArg = ExponentIn.Expression ? ExponentIn.Compile(Compiler) : Compiler->Constant(Exponent);
+	int32 ExponentArg = ExponentIn.GetTracedInput().Expression ? ExponentIn.Compile(Compiler) : Compiler->Constant(Exponent);
 	int32 PowArg = Compiler->Power(MinusArg,ExponentArg);
-	int32 BaseReflectFractionArg = BaseReflectFractionIn.Expression ? BaseReflectFractionIn.Compile(Compiler) : Compiler->Constant(BaseReflectFraction);
+	int32 BaseReflectFractionArg = BaseReflectFractionIn.GetTracedInput().Expression ? BaseReflectFractionIn.Compile(Compiler) : Compiler->Constant(BaseReflectFraction);
 	int32 ScaleArg = Compiler->Mul(PowArg, Compiler->Sub(Compiler->Constant(1.f), BaseReflectFractionArg));
 	
 	return Compiler->Add(ScaleArg, BaseReflectFractionArg);
@@ -7113,6 +7863,11 @@ UMaterialExpressionActorPositionWS::UMaterialExpressionActorPositionWS(const FOb
 #if WITH_EDITOR
 int32 UMaterialExpressionActorPositionWS::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
+	if (Material != nullptr && (Material->MaterialDomain != MD_Surface) && (Material->MaterialDomain != MD_DeferredDecal))
+	{
+		return CompilerError(Compiler, TEXT("Expression only available in the Surface and Deferred Decal material domains."));
+	}
+
 	return Compiler->ActorWorldPosition();
 }
 
@@ -7147,7 +7902,7 @@ UMaterialExpressionDeriveNormalZ::UMaterialExpressionDeriveNormalZ(const FObject
 #if WITH_EDITOR
 int32 UMaterialExpressionDeriveNormalZ::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!InXY.Expression)
+	if(!InXY.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing input normal xy vector whose z should be derived."));
 	}
@@ -7196,7 +7951,7 @@ UMaterialExpressionConstantBiasScale::UMaterialExpressionConstantBiasScale(const
 #if WITH_EDITOR
 int32 UMaterialExpressionConstantBiasScale::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if (!Input.Expression)
+	if (!Input.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing ConstantBiasScale input"));
 	}
@@ -7257,7 +8012,7 @@ int32 UMaterialExpressionCustom::Compile(class FMaterialCompiler* Compiler, int3
 		}
 		else
 		{
-			if(!Inputs[i].Input.Expression)
+			if(!Inputs[i].Input.GetTracedInput().Expression)
 			{
 				return Compiler->Errorf(TEXT("Custom material %s missing input %d (%s)"), *Description, i+1, *Inputs[i].InputName);
 			}
@@ -7845,7 +8600,7 @@ static int32 FindOutputIndexByName(const FString& Name, const TArray<FFunctionEx
 int32 UMaterialFunction::Compile(class FMaterialCompiler* Compiler, const FFunctionExpressionOutput& Output)
 {
 	int32 ReturnValue = INDEX_NONE;
-	if (Output.ExpressionOutput->A.Expression)
+	if (Output.ExpressionOutput->A.GetTracedInput().Expression)
 	{
 		// Compile the given function output
 		ReturnValue = Output.ExpressionOutput->A.Compile(Compiler);
@@ -8674,7 +9429,7 @@ void UMaterialExpressionFunctionInput::GetExpressionToolTip(TArray<FString>& Out
 
 int32 UMaterialExpressionFunctionInput::CompilePreviewValue(FMaterialCompiler* Compiler)
 {
-	if (Preview.Expression)
+	if (Preview.GetTracedInput().Expression)
 	{
 		return Preview.Compile(Compiler);
 	}
@@ -8718,13 +9473,14 @@ int32 UMaterialExpressionFunctionInput::Compile(class FMaterialCompiler* Compile
 	check(InputType < FunctionInput_MAX);
 
 	// If we are being compiled as part of a material which calls this function
-	if (EffectivePreviewDuringCompile.Expression && !bCompilingFunctionPreview)
+	FExpressionInput EffectivePreviewDuringCompileTracedInput = EffectivePreviewDuringCompile.GetTracedInput();
+	if (EffectivePreviewDuringCompileTracedInput.Expression && !bCompilingFunctionPreview)
 	{
 		int32 ExpressionResult;
 
 		// Stay in this function if we are compiling an expression that is in the current function
 		// This can happen if bUsePreviewValueAsDefault is true and the calling material didn't override the input
-		if (bUsePreviewValueAsDefault && EffectivePreviewDuringCompile.Expression->GetOuter() == GetOuter())
+		if (bUsePreviewValueAsDefault && EffectivePreviewDuringCompileTracedInput.Expression->GetOuter() == GetOuter())
 		{
 			// Compile the function input
 			ExpressionResult = EffectivePreviewDuringCompile.Compile(Compiler);
@@ -8969,7 +9725,7 @@ uint32 UMaterialExpressionFunctionOutput::GetInputType(int32 InputIndex)
 
 int32 UMaterialExpressionFunctionOutput::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if (!A.Expression)
+	if (!A.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing function output '%s'"), *OutputName);
 	}
@@ -9025,7 +9781,7 @@ void UMaterialExpressionFunctionOutput::ValidateName()
 bool UMaterialExpressionFunctionOutput::IsResultMaterialAttributes(int32 OutputIndex)
 {
 	// If there is a loop anywhere in this expression's inputs then we can't risk checking them
-	if( A.Expression && !A.Expression->ContainsInputLoop() )
+	if( A.GetTracedInput().Expression && !A.Expression->ContainsInputLoop() )
 	{
 		return A.Expression->IsResultMaterialAttributes(A.OutputIndex);
 	}
@@ -9278,11 +10034,11 @@ UMaterialExpressionLightmassReplace::UMaterialExpressionLightmassReplace(const F
 #if WITH_EDITOR
 int32 UMaterialExpressionLightmassReplace::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if (!Realtime.Expression)
+	if (!Realtime.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing LightmassReplace input Realtime"));
 	}
-	else if (!Lightmass.Expression)
+	else if (!Lightmass.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing LightmassReplace input Lightmass"));
 	}
@@ -9326,11 +10082,11 @@ UMaterialExpressionMaterialProxyReplace::UMaterialExpressionMaterialProxyReplace
 #if WITH_EDITOR
 int32 UMaterialExpressionMaterialProxyReplace::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if (!Realtime.Expression)
+	if (!Realtime.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing MaterialProxyReplace input Realtime"));
 	}
-	else if (!MaterialProxy.Expression)
+	else if (!MaterialProxy.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing MaterialProxyReplace input MaterialProxy"));
 	}
@@ -9373,10 +10129,10 @@ UMaterialExpressionGIReplace::UMaterialExpressionGIReplace(const FObjectInitiali
 #if WITH_EDITOR
 int32 UMaterialExpressionGIReplace::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	FExpressionInput& LocalStaticIndirect = StaticIndirect.Expression ? StaticIndirect : Default;
-	FExpressionInput& LocalDynamicIndirect = DynamicIndirect.Expression ? DynamicIndirect : Default;
+	FExpressionInput& LocalStaticIndirect = StaticIndirect.GetTracedInput().Expression ? StaticIndirect : Default;
+	FExpressionInput& LocalDynamicIndirect = DynamicIndirect.GetTracedInput().Expression ? DynamicIndirect : Default;
 
-	if(!Default.Expression)
+	if(!Default.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing GIReplace input 'Default'"));
 	}
@@ -9436,6 +10192,149 @@ void UMaterialExpressionObjectOrientation::GetCaption(TArray<FString>& OutCaptio
 }
 #endif // WITH_EDITOR
 
+UMaterialExpressionReroute::UMaterialExpressionReroute(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
+}
+
+
+UMaterialExpression* UMaterialExpressionReroute::TraceInputsToRealExpression(int32& OutputIndex) const
+{
+#if WITH_EDITORONLY_DATA
+	TSet<FMaterialExpressionKey> VisitedExpressions;
+	FExpressionInput RealInput = TraceInputsToRealExpressionInternal(VisitedExpressions);
+	OutputIndex = RealInput.OutputIndex;
+	return RealInput.Expression;
+#else
+	OutputIndex = 0;
+	return nullptr;
+#endif
+}
+
+FExpressionInput UMaterialExpressionReroute::TraceInputsToRealInput() const
+{
+	TSet<FMaterialExpressionKey> VisitedExpressions;
+	FExpressionInput RealInput = TraceInputsToRealExpressionInternal(VisitedExpressions);
+	return RealInput;
+}
+
+FExpressionInput UMaterialExpressionReroute::TraceInputsToRealExpressionInternal(TSet<FMaterialExpressionKey>& VisitedExpressions) const
+{
+#if WITH_EDITORONLY_DATA
+	// First check to see if this is a terminal node, if it is then we have a reroute to nowhere.
+	if (Input.Expression != nullptr)
+	{
+		// Now check to see if we're also connected to another reroute. If we are, then keep going unless we hit a loop condition.
+		UMaterialExpressionReroute* RerouteInput = Cast<UMaterialExpressionReroute>(Input.Expression);
+		if (RerouteInput != nullptr)
+		{
+			FMaterialExpressionKey InputExpressionKey(Input.Expression, Input.OutputIndex);
+			// prevent recurring visits to expressions we've already checked
+			if (VisitedExpressions.Contains(InputExpressionKey))
+			{
+				// We have a loop! This should result in not finding the value!
+				return FExpressionInput();
+			}
+			else 
+			{
+				VisitedExpressions.Add(InputExpressionKey);
+				FExpressionInput OutputExpressionInput = RerouteInput->TraceInputsToRealExpressionInternal(VisitedExpressions);
+				return OutputExpressionInput;
+			}
+		}
+		else
+		{
+			// We aren't connected to another Reroute, so we are good.
+			return Input;
+		}
+	}
+#endif // WITH_EDITORONLY_DATA
+	// We went to nowhere, so bail out.
+	return FExpressionInput();
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionReroute::Compile(FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	// Because we don't want to generate *any* additional instructions, we just forward this request
+	// to the node that this input is connected to. If it isn't connected, then the compile will return INDEX_NONE.
+	int32 Result = Input.Compile(Compiler);
+	return Result;
+}
+
+void UMaterialExpressionReroute::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Reroute Node (reroutes wires)"));
+}
+
+
+FString UMaterialExpressionReroute::GetCreationDescription() const 
+{
+	return LOCTEXT("RerouteNodeCreationDesc", "This node looks like a single pin and can be used to tidy up your graph by adding a movable control point to the connection spline.").ToString();
+}
+
+FString UMaterialExpressionReroute::GetCreationName() const
+{
+	return LOCTEXT("RerouteNodeCreationName", "Add Reroute Node...").ToString();
+}
+
+
+uint32 UMaterialExpressionReroute::GetInputType(int32 InputIndex)
+{
+	// Our input type should match the node that we are ultimately connected to, no matter how many reroute nodes lie between us.
+	if (InputIndex == 0 && Input.IsConnected() && Input.Expression != nullptr )
+	{
+		int32 RealExpressionOutputIndex = -1;
+		UMaterialExpression* RealExpression = TraceInputsToRealExpression(RealExpressionOutputIndex);
+
+		// If we found a valid connection to a real output, then our type becomes that type.
+		if (RealExpression != nullptr && RealExpressionOutputIndex != -1 && RealExpression->Outputs.Num() > RealExpressionOutputIndex && RealExpressionOutputIndex >= 0)
+		{
+			return RealExpression->GetOutputType(RealExpressionOutputIndex);
+		}
+	}
+	return MCT_Unknown;
+}
+
+uint32 UMaterialExpressionReroute::GetOutputType(int32 OutputIndex)
+{
+	// Our node is a passthrough so input and output types must match.
+	return GetInputType(0);
+}
+
+bool UMaterialExpressionReroute::IsResultMaterialAttributes(int32 OutputIndex)
+{
+	// Most code checks to make sure that there aren't loops before going here. In our case, we rely on the fact that
+	// UMaterialExpressionReroute's implementation of TraceInputsToRealExpression is resistant to input loops.
+	if (Input.IsConnected() && Input.Expression != nullptr && OutputIndex == 0)
+	{
+		int32 RealExpressionOutputIndex = -1;
+		UMaterialExpression* RealExpression = TraceInputsToRealExpression(RealExpressionOutputIndex);
+		if (RealExpression != nullptr)
+		{
+			return RealExpression->IsResultMaterialAttributes(RealExpressionOutputIndex);
+		}
+	}
+
+	return false;
+}
+
+#endif // WITH_EDITOR
+
 UMaterialExpressionRotateAboutAxis::UMaterialExpressionRotateAboutAxis(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -9460,19 +10359,19 @@ UMaterialExpressionRotateAboutAxis::UMaterialExpressionRotateAboutAxis(const FOb
 #if WITH_EDITOR
 int32 UMaterialExpressionRotateAboutAxis::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if (!NormalizedRotationAxis.Expression)
+	if (!NormalizedRotationAxis.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing RotateAboutAxis input NormalizedRotationAxis"));
 	}
-	else if (!RotationAngle.Expression)
+	else if (!RotationAngle.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing RotateAboutAxis input RotationAngle"));
 	}
-	else if (!PivotPoint.Expression)
+	else if (!PivotPoint.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing RotateAboutAxis input PivotPoint"));
 	}
-	else if (!Position.Expression)
+	else if (!Position.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing RotateAboutAxis input Position"));
 	}
@@ -9549,11 +10448,11 @@ UMaterialExpressionSphereMask::UMaterialExpressionSphereMask(const FObjectInitia
 #if WITH_EDITOR
 int32 UMaterialExpressionSphereMask::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!A.Expression)
+	if(!A.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing input A"));
 	}
-	else if(!B.Expression)
+	else if(!B.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing input B"));
 	}
@@ -9564,7 +10463,7 @@ int32 UMaterialExpressionSphereMask::Compile(class FMaterialCompiler* Compiler, 
 		int32 Distance = CompileHelperLength(Compiler, Arg1, Arg2);
 
 		int32 ArgInvRadius;
-		if(Radius.Expression)
+		if(Radius.GetTracedInput().Expression)
 		{
 			// if the radius input is hooked up, use it
 			ArgInvRadius = Compiler->Div(Compiler->Constant(1.0f), Compiler->Max(Compiler->Constant(0.00001f), Radius.Compile(Compiler)));
@@ -9578,7 +10477,7 @@ int32 UMaterialExpressionSphereMask::Compile(class FMaterialCompiler* Compiler, 
 		int32 NormalizeDistance = Compiler->Mul(Distance, ArgInvRadius);
 
 		int32 ArgInvHardness;
-		if(Hardness.Expression)
+		if(Hardness.GetTracedInput().Expression)
 		{
 			int32 Softness = Compiler->Sub(Compiler->Constant(1.0f), Hardness.Compile(Compiler));
 
@@ -9677,7 +10576,7 @@ int32 UMaterialExpressionNoise::Compile(class FMaterialCompiler* Compiler, int32
 {
 	int32 PositionInput;
 
-	if(Position.Expression)
+	if(Position.GetTracedInput().Expression)
 	{
 		PositionInput = Position.Compile(Compiler);
 	}
@@ -9688,7 +10587,7 @@ int32 UMaterialExpressionNoise::Compile(class FMaterialCompiler* Compiler, int32
 
 	int32 FilterWidthInput;
 
-	if(FilterWidth.Expression)
+	if(FilterWidth.GetTracedInput().Expression)
 	{
 		FilterWidthInput = FilterWidth.Compile(Compiler);
 	}
@@ -9761,7 +10660,7 @@ int32 UMaterialExpressionVectorNoise::Compile(class FMaterialCompiler* Compiler,
 {
 	int32 PositionInput;
 
-	if (Position.Expression)
+	if (Position.GetTracedInput().Expression)
 	{
 		PositionInput = Position.Compile(Compiler);
 	}
@@ -9806,7 +10705,7 @@ int32 UMaterialExpressionBlackBody::Compile(class FMaterialCompiler* Compiler, i
 {
 	int32 TempInput = INDEX_NONE;
 
-	if( Temp.Expression )
+	if( Temp.GetTracedInput().Expression )
 	{
 		TempInput = Temp.Compile(Compiler);
 	}
@@ -9852,7 +10751,7 @@ int32 UMaterialExpressionDistanceToNearestSurface::Compile(class FMaterialCompil
 {
 	int32 PositionArg = INDEX_NONE;
 
-	if (Position.Expression)
+	if (Position.GetTracedInput().Expression)
 	{
 		PositionArg = Position.Compile(Compiler);
 	}
@@ -9897,7 +10796,7 @@ int32 UMaterialExpressionDistanceFieldGradient::Compile(class FMaterialCompiler*
 {
 	int32 PositionArg = INDEX_NONE;
 
-	if (Position.Expression)
+	if (Position.GetTracedInput().Expression)
 	{
 		PositionArg = Position.Compile(Compiler);
 	}
@@ -9940,11 +10839,11 @@ UMaterialExpressionDistance::UMaterialExpressionDistance(const FObjectInitialize
 #if WITH_EDITOR
 int32 UMaterialExpressionDistance::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if(!A.Expression)
+	if(!A.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing input A"));
 	}
-	else if(!B.Expression)
+	else if(!B.GetTracedInput().Expression)
 	{
 		return Compiler->Errorf(TEXT("Missing input B"));
 	}
@@ -10367,7 +11266,7 @@ int32 UMaterialExpressionDecalMipmapLevel::Compile(class FMaterialCompiler* Comp
 
 	int32 TextureSizeInput = INDEX_NONE;
 
-	if (TextureSize.Expression)
+	if (TextureSize.GetTracedInput().Expression)
 	{
 		TextureSizeInput = TextureSize.Compile(Compiler);
 	}
@@ -10422,8 +11321,8 @@ int32 UMaterialExpressionDepthFade::Compile(class FMaterialCompiler* Compiler, i
 {
 	// Scales Opacity by a Linear fade based on SceneDepth, from 0 at PixelDepth to 1 at FadeDistance
 	// Result = Opacity * saturate((SceneDepth - PixelDepth) / max(FadeDistance, DELTA))
-	const int32 OpacityIndex = InOpacity.Expression ? InOpacity.Compile(Compiler) : Compiler->Constant(OpacityDefault);
-	const int32 FadeDistanceIndex = Compiler->Max(FadeDistance.Expression ? FadeDistance.Compile(Compiler) : Compiler->Constant(FadeDistanceDefault), Compiler->Constant(DELTA));
+	const int32 OpacityIndex = InOpacity.GetTracedInput().Expression ? InOpacity.Compile(Compiler) : Compiler->Constant(OpacityDefault);
+	const int32 FadeDistanceIndex = Compiler->Max(FadeDistance.GetTracedInput().Expression ? FadeDistance.Compile(Compiler) : Compiler->Constant(FadeDistanceDefault), Compiler->Constant(DELTA));
 	const int32 FadeIndex = CompileHelperSaturate(Compiler, Compiler->Div(Compiler->Sub(Compiler->SceneDepth(INDEX_NONE, INDEX_NONE, false), Compiler->PixelDepth()), FadeDistanceIndex));
 	return Compiler->Mul(OpacityIndex, FadeIndex);
 }
@@ -10458,7 +11357,7 @@ UMaterialExpressionSphericalParticleOpacity::UMaterialExpressionSphericalParticl
 #if WITH_EDITOR
 int32 UMaterialExpressionSphericalParticleOpacity::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	const int32 DensityIndex = Density.Expression ? Density.Compile(Compiler) : Compiler->Constant(ConstantDensity);
+	const int32 DensityIndex = Density.GetTracedInput().Expression ? Density.Compile(Compiler) : Compiler->Constant(ConstantDensity);
 	return Compiler->SphericalParticleOpacity(DensityIndex);
 }
 #endif // WITH_EDITOR
@@ -10492,7 +11391,7 @@ int32 UMaterialExpressionDepthOfFieldFunction::Compile(class FMaterialCompiler* 
 {
 	int32 DepthInput;
 
-	if(Depth.Expression)
+	if(Depth.GetTracedInput().Expression)
 	{
 		// using the input allows more custom behavior
 		DepthInput = Depth.Compile(Compiler);
@@ -10547,7 +11446,7 @@ int32 UMaterialExpressionDDX::Compile(class FMaterialCompiler* Compiler, int32 O
 {
 	int32 ValueInput = INDEX_NONE;
 
-	if(Value.Expression)
+	if(Value.GetTracedInput().Expression)
 	{
 		ValueInput = Value.Compile(Compiler);
 	}
@@ -10596,7 +11495,7 @@ int32 UMaterialExpressionDDY::Compile(class FMaterialCompiler* Compiler, int32 O
 {
 	int32 ValueInput = INDEX_NONE;
 
-	if(Value.Expression)
+	if(Value.GetTracedInput().Expression)
 	{
 		ValueInput = Value.Compile(Compiler);
 	}
@@ -10879,7 +11778,7 @@ int32 UMaterialExpressionAtmosphericFogColor::Compile(class FMaterialCompiler* C
 {
 	int32 WorldPositionInput = INDEX_NONE;
 
-	if( WorldPosition.Expression )
+	if( WorldPosition.GetTracedInput().Expression )
 	{
 		WorldPositionInput = WorldPosition.Compile(Compiler);
 	}
@@ -11039,12 +11938,14 @@ UMaterialExpressionTangentOutput::UMaterialExpressionTangentOutput(const FObject
 	struct FConstructorStatics
 	{
 		FText NAME_Custom;
-		FConstructorStatics()
+		FConstructorStatics(const FString& DisplayName, const FString& FunctionName)
 			: NAME_Custom(LOCTEXT( "Custom", "Custom" ))
 		{
+			// Register with attribute map to allow use with material attribute nodes and blending	
+			FMaterialAttributeDefinitionMap::AddCustomAttribute(FGuid(0x8EAB2CB2, 0x73634A24, 0x8CD14F47, 0x3F9C8E55), DisplayName, FunctionName, MCT_Float3, FVector4(0,0,0,0));
 		}
 	};
-	static FConstructorStatics ConstructorStatics;
+	static FConstructorStatics ConstructorStatics(GetDisplayName(), GetFunctionName());
 
 #if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Custom);
@@ -11057,7 +11958,7 @@ UMaterialExpressionTangentOutput::UMaterialExpressionTangentOutput(const FObject
 #if WITH_EDITOR
 int32 UMaterialExpressionTangentOutput::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if( Input.Expression )
+	if( Input.GetTracedInput().Expression )
 	{
 		return Compiler->CustomOutput(this, OutputIndex, Input.Compile(Compiler));
 	}
@@ -11086,14 +11987,14 @@ UMaterialExpressionClearCoatNormalCustomOutput::UMaterialExpressionClearCoatNorm
 	struct FConstructorStatics
 	{
 		FText NAME_Utility;
-		FConstructorStatics(FString Name)
+		FConstructorStatics(const FString& DisplayName, const FString& FunctionName)
 			: NAME_Utility(LOCTEXT("Utility", "Utility"))
 		{
 			// Register with attribute map to allow use with material attribute nodes and blending
-			FMaterialAttributeDefinitionMap::AddCustomAttribute(FGuid(0xAA3D5C04, 0x16294716, 0xBBDEC869, 0x6A27DD72), Name, MCT_Float3, FVector4(0,0,1,0));
+			FMaterialAttributeDefinitionMap::AddCustomAttribute(FGuid(0xAA3D5C04, 0x16294716, 0xBBDEC869, 0x6A27DD72), DisplayName, FunctionName, MCT_Float3, FVector4(0,0,1,0));
 		}
 	};
-	static FConstructorStatics ConstructorStatics(GetFunctionName());
+	static FConstructorStatics ConstructorStatics(GetDisplayName(), GetFunctionName());
 
 #if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
@@ -11108,7 +12009,7 @@ UMaterialExpressionClearCoatNormalCustomOutput::UMaterialExpressionClearCoatNorm
 #if WITH_EDITOR
 int32  UMaterialExpressionClearCoatNormalCustomOutput::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if (Input.Expression)
+	if (Input.GetTracedInput().Expression)
 	{
 		return Compiler->CustomOutput(this, OutputIndex, Input.Compile(Compiler));
 	}
@@ -11212,7 +12113,7 @@ UMaterialExpressionPreSkinnedPosition::UMaterialExpressionPreSkinnedPosition(con
 	{
 		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
+			: NAME_Constants(LOCTEXT( "Vectors", "Vectors" ))
 		{
 		}
 	};
@@ -11234,7 +12135,7 @@ int32 UMaterialExpressionPreSkinnedPosition::Compile(class FMaterialCompiler* Co
 	{
 		return Compiler->Errorf(TEXT("Pre-skinned position is only available in the vertex shader, pass through custom interpolators if needed."));
 	}
-			
+
 	return Compiler->PreSkinnedPosition();
 }
 
@@ -11247,6 +12148,50 @@ void UMaterialExpressionPreSkinnedPosition::GetExpressionToolTip(TArray<FString>
 {
 	ConvertToMultilineToolTip(TEXT("Returns pre-skinned local position for skeletal meshes, usable in vertex shader only."
 		"Returns the local position for non-skeletal meshes. Incompatible with GPU skin cache feature."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionPreSkinnedNormal
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionPreSkinnedNormal::UMaterialExpressionPreSkinnedNormal(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Constants;
+		FConstructorStatics()
+			: NAME_Constants(LOCTEXT( "Vectors", "Vectors" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
+	Outputs.Reset();
+	Outputs.Add(FExpressionOutput(TEXT(""), 1, 1, 1, 1, 0));
+	bShaderInputData = true;
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionPreSkinnedNormal::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	return Compiler->PreSkinnedNormal();
+}
+
+void UMaterialExpressionPreSkinnedNormal::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Pre-Skinned Local Normal"));
+}
+
+void UMaterialExpressionPreSkinnedNormal::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Returns pre-skinned local normal for skeletal meshes, usable in vertex shader only."
+		"Returns the local normal for non-skeletal meshes. Incompatible with GPU skin cache feature."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 

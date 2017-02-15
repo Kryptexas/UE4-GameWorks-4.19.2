@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateWrapperTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
+#include "Layout/Margin.h"
+#include "Components/PanelSlot.h"
 
-#include "SWidgetSwitcher.h"
+#include "Widgets/Layout/SWidgetSwitcher.h"
 #include "WidgetSwitcherSlot.generated.h"
+
+class UWidget;
 
 /** The Slot for the UWidgetSwitcher, contains the widget that is flowed vertically */
 UCLASS()

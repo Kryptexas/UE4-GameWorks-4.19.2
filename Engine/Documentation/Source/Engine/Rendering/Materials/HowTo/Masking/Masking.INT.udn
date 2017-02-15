@@ -1,7 +1,7 @@
 Availability: Public
-Title:Material Editor - How To use Texture Masking 
+Title:Using Texture Masks 
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
-Description:A How To Guide for using Texture Masking in your Materials. 
+Description:Guide for using Texture Masking in your Materials. 
 Related: Engine/Content/Types/Textures/Properties
 Related: Engine/Content/Types/Textures/SupportAndSettings
 Related: Engine/Content/Types/Textures/Properties/Interface

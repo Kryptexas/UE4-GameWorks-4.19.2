@@ -1,30 +1,60 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "MovieScene.h"
-#include "MovieSceneSection.h"
-#include "ISequencerSection.h"
-#include "MovieSceneTrack.h"
-#include "MovieSceneCameraCutTrack.h"
-#include "MovieSceneCameraCutSection.h"
-#include "ScopedTransaction.h"
-#include "ISequencerObjectChangeListener.h"
-#include "IKeyArea.h"
-#include "MovieSceneTrackEditor.h"
-#include "CameraCutTrackEditor.h"
-#include "CommonMovieSceneTools.h"
-#include "AssetToolsModule.h"
-#include "CameraCutSection.h"
+#include "TrackEditors/CameraCutTrackEditor.h"
+#include "Widgets/SBoxPanel.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Tracks/MovieSceneCameraCutTrack.h"
+#include "Modules/ModuleManager.h"
+#include "Application/ThrottleManager.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "MovieSceneCommonHelpers.h"
+#include "EditorStyleSet.h"
+#include "GameFramework/WorldSettings.h"
+#include "LevelEditorViewport.h"
+#include "Sections/CameraCutSection.h"
 #include "SequencerUtilities.h"
-
+#include "Editor.h"
 #include "ActorEditorUtils.h"
-#include "Editor/SceneOutliner/Public/SceneOutliner.h"
-#include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "SceneOutlinerPublicTypes.h"
-#include "TrackEditorThumbnailPool.h"
+#include "SceneOutlinerModule.h"
+#include "TrackEditorThumbnail/TrackEditorThumbnailPool.h"
 
 #define LOCTEXT_NAMESPACE "FCameraCutTrackEditor"
 
+
+class FCameraCutTrackCommands
+	: public TCommands<FCameraCutTrackCommands>
+{
+public:
+
+	FCameraCutTrackCommands()
+		: TCommands<FCameraCutTrackCommands>
+	(
+		"CameraCutTrack",
+		NSLOCTEXT("Contexts", "CameraCutTrack", "CameraCutTrack"),
+		NAME_None, // "MainFrame" // @todo Fix this crash
+		FEditorStyle::GetStyleSetName() // Icon Style Set
+	)
+		, BindingCount(0)
+	{ }
+		
+	/** Toggle the camera lock */
+	TSharedPtr< FUICommandInfo > ToggleLockCamera;
+
+	/**
+	 * Initialize commands
+	 */
+	virtual void RegisterCommands() override;
+
+	mutable uint32 BindingCount;
+};
+
+
+void FCameraCutTrackCommands::RegisterCommands()
+{
+	UI_COMMAND( ToggleLockCamera, "Toggle Lock Camera", "Toggle locking the viewport to the camera cut track.", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::L) );
+}
 
 /* FCameraCutTrackEditor structors
  *****************************************************************************/
@@ -33,8 +63,20 @@ FCameraCutTrackEditor::FCameraCutTrackEditor(TSharedRef<ISequencer> InSequencer)
 	: FMovieSceneTrackEditor(InSequencer) 
 {
 	ThumbnailPool = MakeShareable(new FTrackEditorThumbnailPool(InSequencer));
+
+	FCameraCutTrackCommands::Register();
 }
 
+void FCameraCutTrackEditor::OnRelease()
+{
+	const FCameraCutTrackCommands& Commands = FCameraCutTrackCommands::Get();
+	Commands.BindingCount--;
+	
+	if (Commands.BindingCount < 1)
+	{
+		FCameraCutTrackCommands::Unregister();
+	}
+}
 
 TSharedRef<ISequencerTrackEditor> FCameraCutTrackEditor::CreateTrackEditor(TSharedRef<ISequencer> InSequencer)
 {
@@ -44,6 +86,17 @@ TSharedRef<ISequencerTrackEditor> FCameraCutTrackEditor::CreateTrackEditor(TShar
 
 /* ISequencerTrackEditor interface
  *****************************************************************************/
+
+void FCameraCutTrackEditor::BindCommands(TSharedRef<FUICommandList> SequencerCommandBindings)
+{
+	const FCameraCutTrackCommands& Commands = FCameraCutTrackCommands::Get();
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleLockCamera,
+		FExecuteAction::CreateSP( this, &FCameraCutTrackEditor::ToggleLockCamera) );
+
+	Commands.BindingCount++;
+}
 
 void FCameraCutTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
@@ -128,11 +181,11 @@ void FCameraCutTrackEditor::Tick(float DeltaTime)
 	{
 		SequencerPin->EnterSilentMode();
 
-		float SavedTime = SequencerPin->GetGlobalTime();
+		float SavedTime = SequencerPin->GetLocalTime();
 
 		if (DeltaTime > 0.f && ThumbnailPool->DrawThumbnails())
 		{
-			SequencerPin->SetGlobalTimeDirectly(SavedTime);
+			SequencerPin->SetLocalTimeDirectly(SavedTime);
 		}
 
 		SequencerPin->ExitSilentMode();
@@ -301,7 +354,12 @@ void FCameraCutTrackEditor::OnLockCameraClicked(ECheckBoxState CheckBoxState)
 		GetSequencer()->SetPerspectiveViewportCameraCutEnabled(false);
 	}
 
-	GetSequencer()->SetGlobalTime(GetSequencer()->GetGlobalTime());
+	GetSequencer()->ForceEvaluate();
+}
+
+void FCameraCutTrackEditor::ToggleLockCamera()
+{
+	OnLockCameraClicked(IsCameraLocked() == ECheckBoxState::Checked ?  ECheckBoxState::Unchecked :  ECheckBoxState::Checked);
 }
 
 FText FCameraCutTrackEditor::GetLockCameraToolTip() const

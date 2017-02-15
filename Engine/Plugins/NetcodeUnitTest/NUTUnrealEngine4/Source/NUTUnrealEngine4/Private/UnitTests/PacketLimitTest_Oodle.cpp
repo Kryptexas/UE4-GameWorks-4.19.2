@@ -1,10 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "NUTUnrealEngine4PCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "UnitTests/PacketLimitTest_Oodle.h"
 
-#include "UnitTestEnvironment.h"
+
 
 /**
  * UPacketLimitTest_Oodle

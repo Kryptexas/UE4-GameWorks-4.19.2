@@ -1,7 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "HAL/PlatformMisc.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Math/Color.h"
+#include "Logging/LogMacros.h"
+#include "Misc/DateTime.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "HAL/PlatformTime.h"
+#include "Templates/ScopedPointer.h"
+#include "Misc/ScopeLock.h"
+#include "UniquePtr.h"
+
+class FLoggedPlatformFile;
+class IAsyncReadFileHandle;
 
 /**
  * Wrapper to log the low level file system
@@ -22,7 +37,7 @@ class FLoggedPlatformFile;
 
 class CORE_API FLoggedFileHandle : public IFileHandle
 {
-	TAutoPtr<IFileHandle>	FileHandle;
+	TUniquePtr<IFileHandle>	FileHandle;
 	FString					Filename;
 #if !UE_BUILD_SHIPPING
 	FLoggedPlatformFile& PlatformFile;
@@ -116,7 +131,10 @@ public:
 	{
 		return LowerLevel;
 	}
-
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) override
+	{
+		LowerLevel = NewLowerLevel;
+	}
 	virtual const TCHAR* GetName() const override
 	{
 		return FLoggedPlatformFile::GetTypeName();
@@ -428,7 +446,6 @@ public:
 	}
 	void HandleDumpCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 #endif
-#if USE_NEW_ASYNC_IO
 	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override
 	{
 		FString DataStr = FString::Printf(TEXT("OpenAsyncRead %s"), Filename);
@@ -441,6 +458,4 @@ public:
 		//@todo no wrapped logging for async file handles (yet)
 		return Result;
 	}
-#endif // USE_NEW_ASYNC_IO
-
 };

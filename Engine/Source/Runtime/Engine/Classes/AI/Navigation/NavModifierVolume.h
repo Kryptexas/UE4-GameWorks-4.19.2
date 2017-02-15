@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "AI/Navigation/NavRelevantInterface.h"
+#include "AI/Navigation/NavAreas/NavArea.h"
 #include "GameFramework/Volume.h"
-#include "NavRelevantInterface.h"
 #include "NavModifierVolume.generated.h"
 
-class UNavArea;
+struct FNavigationRelevantData;
 
 /** 
  *	Allows applying selected AreaClass to navmesh, using Volume's shape
@@ -29,6 +34,7 @@ public:
 
 	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
 	virtual FBox GetNavigationBounds() const override;
+	virtual void RebuildNavigationData() override;
 
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;

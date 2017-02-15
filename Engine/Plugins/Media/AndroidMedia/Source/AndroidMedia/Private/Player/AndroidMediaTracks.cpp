@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AndroidMediaPCH.h"
 #include "AndroidMediaTracks.h"
 #include "AndroidJavaMediaPlayer.h"
-
+#include "Misc/ScopeLock.h"
+#include "../AndroidMediaLog.h"
+#include "RenderingThread.h"
+#include "RenderResource.h"
+#include "IMediaAudioSink.h"
+#include "IMediaOverlaySink.h"
+#include "IMediaTextureSink.h"
 
 #define LOCTEXT_NAMESPACE "FAndroidMediaTracks"
 
@@ -142,6 +147,12 @@ void FAndroidMediaTracks::SetAudioSink(IMediaAudioSink* Sink)
 		AudioSink = Sink;
 		InitializeAudioSink();
 	}
+}
+
+
+void FAndroidMediaTracks::SetMetadataSink(IMediaBinarySink* Sink)
+{
+	// not supported
 }
 
 
@@ -431,7 +442,13 @@ void FAndroidMediaTracks::InitializeVideoSink()
 	}
 
 	const auto& VideoTrack = VideoTracks[SelectedVideoTrack];
-	VideoSink->InitializeTextureSink(VideoTrack.Dimensions, EMediaTextureSinkFormat::CharBGRA, EMediaTextureSinkMode::Unbuffered);
+
+	VideoSink->InitializeTextureSink(
+		VideoTrack.Dimensions,
+		VideoTrack.Dimensions,
+		EMediaTextureSinkFormat::CharBGRA,
+		EMediaTextureSinkMode::Unbuffered
+	);
 }
 
 
@@ -473,7 +490,7 @@ void FAndroidMediaTracks::UpdateVideoSink()
 			// The video track dimensions need updating
 			VideoTracks[SelectedVideoTrack].Dimensions = Dimensions;
 		}
-		VideoSink->InitializeTextureSink(Dimensions, EMediaTextureSinkFormat::CharBGRA, EMediaTextureSinkMode::Unbuffered);
+		VideoSink->InitializeTextureSink(Dimensions, Dimensions, EMediaTextureSinkFormat::CharBGRA, EMediaTextureSinkMode::Unbuffered);
 	}
 
 	// update sink
@@ -510,3 +527,5 @@ void FAndroidMediaTracks::UpdateVideoSink()
 	}
 #endif
 }
+
+#undef LOCTEXT_NAMESPACE

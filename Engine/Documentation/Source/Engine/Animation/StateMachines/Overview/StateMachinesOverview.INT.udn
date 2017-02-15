@@ -2,7 +2,7 @@ Availability:Public
 Title: Overview of State Machines
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
 Description:Breaks down how State Machines work and the core systems used within them.
-version: 4.12
+version: 4.14
 related:Engine/Animation/StateMachines/CreatingStateMachines
 related:Engine/Animation/StateMachines/EditingStateMachines
 related:Engine/Animation/StateMachines/TransitionRules
@@ -45,7 +45,7 @@ related:Engine/Animation/AnimBlueprints
 
 [TOC (start:2)]
 
-Animation **State Machines** allow you to think of your [**Animation Blueprint**](Engine/Animation/AnimBlueprints/) in a more modular sense than you would without it. 
+Animation **State Machines** allow you to think of your [Animation Blueprint](Engine/Animation/AnimBlueprints/) in a more modular sense than you would without it. 
 Users define a series of various states in which the character or Skeletal Mesh could possibly exist. 
 Next, they define the circumstances in which the character or Skeletal Mesh may enter and exit each state, similar to a flow chart. 
 
@@ -62,7 +62,7 @@ If you were to set up a State Machine for the above flow, it might end up lookin
 
 ## Anatomy of a State Machine
 
-State Machines are comprised primarily of a network of states and the rules that define transitions into and out of them. Each state, along with each rule set, is its own condensed [**Blueprint**](Engine/Blueprints) network. 
+State Machines are comprised primarily of a network of states and the rules that define transitions into and out of them. Each state, along with each rule set, is its own condensed [Blueprint](Engine/Blueprints) network. 
 This makes it very easy to handle complex animation blending without having to use an overly complicated **AnimGraph**. 
 
 ### States
@@ -82,7 +82,7 @@ Once the character started moving however, they could transition into a Movement
 
 ![](MoveState.png)
 
-Within, this state may contain a [**BlendSpace**](Engine/Animation/Blendspaces) that is being defined by the character's speed and direction of movement.
+Within, this state may contain a [BlendSpace](Engine/Animation/Blendspaces) that is being defined by the character's speed and direction of movement.
 
 ![](MovementInside.png)
 

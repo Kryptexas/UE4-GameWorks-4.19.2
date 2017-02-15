@@ -1,26 +1,46 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintEditorPrivatePCH.h"
-#include "Kismet/KismetStringLibrary.h"
-#include "Kismet/KismetSystemLibrary.h"
-#include "GraphEditor.h"
-#include "BlueprintUtilities.h"
-#include "AnimGraphDefinitions.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "SKismetInspector.h"
-#include "SKismetLinearExpression.h"
+#include "UObject/UnrealType.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/SBoxPanel.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Text/SRichTextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "EditorStyleSet.h"
+#include "EdGraph/EdGraphNode.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
+#include "Engine/Blueprint.h"
+#include "EdGraph/EdGraph.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Components/ChildActorComponent.h"
+#include "Engine/SCS_Node.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node.h"
+#include "K2Node_EditablePinBase.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_FormatText.h"
+#include "K2Node_VariableGet.h"
+#include "K2Node_VariableSet.h"
+#include "K2Node_AddComponent.h" // for GetTemplateFromNode()
+#include "IDetailCustomization.h"
+#include "Editor.h"
+#include "PropertyEditorModule.h"
 
-#include "Editor/PropertyEditor/Public/PropertyEditing.h"
+#include "IDetailsView.h"
 
-#include "SMyBlueprint.h"
+#include "EdGraph/EdGraphNode_Documentation.h"
 #include "BlueprintDetailsCustomization.h"
-#include "UserDefinedEnumEditor.h"
-#include "UserDefinedStructureEditor.h"
+#include "K2Node_BitmaskLiteral.h"
 #include "BitmaskLiteralDetails.h"
 #include "FormatTextDetails.h"
-#include "Engine/SCS_Node.h"
-#include "Components/ChildActorComponent.h"
 
 #define LOCTEXT_NAMESPACE "KismetInspector"
 
@@ -233,10 +253,10 @@ FText SKismetInspector::GetContextualEditingWidgetTitle() const
 					}
 				}
 			}
-			else if (UK2Node* K2Node = Cast<UK2Node>(Object))
+			else if (UK2Node_AddComponent* ComponentNode = Cast<UK2Node_AddComponent>(Object))
 			{
 				// Edit the component template
-				if (UActorComponent* Template = K2Node->GetTemplateFromNode())
+				if (UActorComponent* Template = ComponentNode->GetTemplateFromNode())
 				{
 					Title = FText::Format(LOCTEXT("Name_TemplateFmt", "{0} Template"), FText::FromString(Template->GetClass()->GetName()));
 				}
@@ -564,10 +584,13 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 			else if (UK2Node* K2Node = Cast<UK2Node>(Object))
 			{
 				// Edit the component template if it exists
-				if (UActorComponent* Template = K2Node->GetTemplateFromNode())
+				if (UK2Node_AddComponent* ComponentNode = Cast<UK2Node_AddComponent>(K2Node))
 				{
-					SelectionInfo.ObjectsForPropertyEditing.Add(Template);
-					SelectionInfo.EditableComponentTemplates.Add(Template);
+					if (UActorComponent* Template = ComponentNode->GetTemplateFromNode())
+					{
+						SelectionInfo.ObjectsForPropertyEditing.Add(Template);
+						SelectionInfo.EditableComponentTemplates.Add(Template);
+					}
 				}
 
 				// See if we should edit properties of the node
@@ -685,11 +708,11 @@ bool SKismetInspector::IsPropertyVisible( const FPropertyAndParent& PropertyAndP
 	bool bEditOnTemplateDisabled = Property.HasAnyPropertyFlags(CPF_DisableEditOnTemplate);
 	if (bEditOnTemplateDisabled)
 	{
-		// Only hide properties if we are editing a CDO
+		// Only hide properties if we are editing a CDO/archetype
 		for (const TWeakObjectPtr<UObject>& SelectedObject : SelectedObjects)
 		{
 			UObject* Object = Cast<UObject>(SelectedObject.Get());
-			if (!Object->HasAllFlags(RF_ClassDefaultObject))
+			if (!Object->IsTemplate())
 			{
 				bEditOnTemplateDisabled = false;
 				break;
@@ -733,10 +756,31 @@ bool SKismetInspector::IsPropertyVisible( const FPropertyAndParent& PropertyAndP
 	}
 
 	// Filter down to selected properties only if set.
-	// If the current property is selected then it is visible or if its parent is selected and the current property did not fail any of the above tests it should be visible.
-	if( SelectedObjectProperties.Find( &Property ) || ( PropertyAndParent.ParentProperty && SelectedObjectProperties.Find( PropertyAndParent.ParentProperty ) ) )
+	if ( SelectedObjectProperties.Find( &Property) ) 
 	{
+		// If the current property is selected, it is visible.
 		return true;
+	}
+	else if ( PropertyAndParent.ParentProperty )
+	{
+		const UProperty* ParentProperty = PropertyAndParent.ParentProperty;
+		const UProperty* ParentPropertyOuter = nullptr;
+		
+		if (ParentProperty)
+		{
+			ParentPropertyOuter = Cast<UProperty>(ParentProperty->GetOuter());
+		}
+
+		if ( SelectedObjectProperties.Find( ParentProperty ) )
+		{
+			// If its parent is selected, it should be visible
+			return true;
+		}
+		else if ( ParentPropertyOuter && SelectedObjectProperties.Find( ParentPropertyOuter ) )
+		{
+			// If its parent is part of a container and the container property is selected, it should be visible
+			return true;
+		}
 	}
 
 

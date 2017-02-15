@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IInputProcessor.h"
+#include "CoreMinimal.h"
+#include "GenericPlatform/ICursor.h"
+#include "Framework/Application/IInputProcessor.h"
+
+class FSlateApplication;
+struct FAnalogInputEvent;
+struct FKeyEvent;
+struct FPointerEvent;
 
 namespace AnalogCursorMode
 {

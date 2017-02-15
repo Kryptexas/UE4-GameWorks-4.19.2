@@ -1,6 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "IDetailCustomization.h"
+
+class IDetailLayoutBuilder;
+class IPropertyHandle;
 
 class FStaticMeshComponentDetails : public IDetailCustomization
 {
@@ -13,12 +19,15 @@ public:
 
 private:
 	/**
-	 * @return Whether or not override lightmap res is enabled
+	 * @return Which UI to show whether or not override lightmap res is enabled
 	 */
-	bool IsOverrideLightmapResEnabled() const;
+	int HandleNoticeSwitcherWidgetIndex() const;
 
-	bool IsDefaultCollisionSupported() const;
+	/**
+	* @return Accessor for the static mesh's light resolution value.
+	*/
+	TOptional<int32> GetStaticMeshLightResValue() const;
 private:
-	TSharedPtr<IPropertyHandle> EnableOverrideLightmapRes;
 	TArray<TWeakObjectPtr<UObject>> ObjectsCustomized;
+	TSharedPtr<IPropertyHandle> OverrideLightResProperty;
 };

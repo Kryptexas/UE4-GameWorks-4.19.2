@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessTonemap.usf: PostProcessing tone mapping
@@ -7,7 +7,6 @@
 #include "Common.usf"
 #include "PostProcessCommon.usf"
 #include "TonemapCommon.usf"
-#include "GammaCorrectionCommon.usf"
 #include "EyeAdaptationCommon.usf"
 
 // 0 / 1(slower, visualize multiple internals side by side for the same image portion, see DebugTile)
@@ -43,10 +42,8 @@ half GrainFromUV(float2 GrainUV)
 	return Grain;
 }
 
-uint InvertTonemapping;
-uint ACESInversion;
-
 uint OutputDevice;
+uint EncodeHDROutput;
 
 uint GetOutputDevice()
 {
@@ -61,8 +58,10 @@ uint GetOutputDevice()
 // LUT for color grading
 #if USE_VOLUME_LUT == 1
 	Texture3D		ColorGradingLUT;
-	SamplerState	ColorGradingLUTSampler;
-#endif
+#else
+	Texture2D       ColorGradingLUT;
+#endif 
+SamplerState        ColorGradingLUTSampler;
 
 static const float LUTSize = 32;
 
@@ -81,7 +80,8 @@ half3 ColorLookupTable( half3 LinearColor )
 #if USE_VOLUME_LUT == 1
 	half3 OutDeviceColor = ColorGradingLUT.Sample( ColorGradingLUTSampler, UVW ).rgb;
 #else
-	half3 OutDeviceColor = UnwrappedTexture3DSample( PostprocessInput3, PostprocessInput3Sampler, UVW, LUTSize ).rgb;
+	half3 OutDeviceColor = UnwrappedTexture3DSample( ColorGradingLUT, ColorGradingLUTSampler, UVW, LUTSize ).rgb;
+	//half3 OutDeviceColor = UnwrappedTexture3DSample( PostprocessInput3, PostprocessInput3Sampler, UVW, LUTSize ).rgb;
 #endif
 	
 	return OutDeviceColor * 1.05;
@@ -269,12 +269,12 @@ float3 InvertACESTonemapping( float3 OutColor )
 	// FIXME: Workaround for UE-29935, pushing all colors with a 0 component to black output
 	// Workaround in PostProcessCombineLUTs.usf mean that the output color is always in the
 	// sRGB gamut. Once that is resolved, the matrix multiply above should be re-enabled.
-	Approach1 = PseudoLinearColor;
+	//Approach1 = PseudoLinearColor;
 
-	Approach1 = InverseACESOutputTransformsRGBD65( Approach1 );
-	Approach1 = max(0, mul( sRGB_2_Output, Approach1 ));
+	//Approach1 = InverseACESOutputTransformsRGBD65( Approach1 );
+	//Approach1 = max(0, mul( sRGB_2_Output, Approach1 ));
 
-	return lerp(Approach0, Approach1, ACESInversion);
+	return Approach0;//lerp(Approach0, Approach1, ACESInversion);
 }
 
 float max4(float4 x)
@@ -520,6 +520,13 @@ void MainPS(
 			// Post-tonemap linearization. Used when writing out EXRs
 			OutColor.rgb = InvertACESTonemapping( OutColor.rgb );
 		#endif
+
+		// We always process in PQ for precision but can output in ScRGB
+		BRANCH
+		if (GetOutputDevice() == 5 || GetOutputDevice() == 6)
+		{
+			OutColor.xyz = ST2084ToScRGB(OutColor.xyz, GetOutputDevice());
+		}
 	#endif
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -21,6 +21,8 @@
 
 #ifndef RECASTASSERT_H
 #define RECASTASSERT_H
+
+#include "CoreMinimal.h"
 
 // Note: This header file's only purpose is to include define assert.
 // Feel free to change the file and include your own implementation instead.

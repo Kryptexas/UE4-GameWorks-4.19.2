@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/VoiceCodec.h"
+#include "VoicePrivate.h"
 #include "VoicePackage.h"
-#include "VoiceCodec.h"
 
 #if PLATFORM_SUPPORTS_VOICE_CAPTURE
 

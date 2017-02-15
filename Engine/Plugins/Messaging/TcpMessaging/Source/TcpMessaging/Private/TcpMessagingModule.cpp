@@ -1,12 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TcpMessagingPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/CommandLine.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Helpers/MessageBridgeBuilder.h"
+#include "Interfaces/IPv4/IPv4Endpoint.h"
+#include "TcpMessagingPrivate.h"
+#include "Settings/TcpMessagingSettings.h"
+#include "Transport/TcpMessageTransport.h"
 #if WITH_EDITOR
 #include "ISettingsModule.h"
 #include "ISettingsSection.h"
 #endif
-#include "ModuleManager.h"
-#include "IConnectionBasedMessagingModule.h"
+#include "ITcpMessagingModule.h"
 
 
 DEFINE_LOG_CATEGORY(LogTcpMessaging);
@@ -19,7 +28,7 @@ DEFINE_LOG_CATEGORY(LogTcpMessaging);
  */
 class FTcpMessagingModule
 	: public FSelfRegisteringExec
-	, public IConnectionBasedMessagingModule
+	, public ITcpMessagingModule
 {
 public:
 
@@ -311,7 +320,7 @@ private:
 private:
 
 	/** Holds the message bridge if present. */
-	IMessageBridgePtr MessageBridge;
+	TSharedPtr<IMessageBridge, ESPMode::ThreadSafe> MessageBridge;
 	
 	/** Message transport pointer, if valid */
 	TWeakPtr<FTcpMessageTransport, ESPMode::ThreadSafe> MessageTransportPtr;

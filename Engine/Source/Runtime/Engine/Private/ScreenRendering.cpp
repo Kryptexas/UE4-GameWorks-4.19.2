@@ -1,12 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenRendering.cpp: Screen rendering implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "ScreenRendering.h"
-#include "RHIStaticStates.h"
 
 /** Vertex declaration for screen-space rendering. */
 TGlobalResource<FScreenVertexDeclaration> GScreenVertexDeclaration;

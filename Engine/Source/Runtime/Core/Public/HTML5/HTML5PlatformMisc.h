@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -7,7 +7,7 @@
 
 #pragma once
 #include "GenericPlatform/GenericPlatformMisc.h"
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 #include "HTML5/HTML5DebugLogging.h"
 #include "HTML5/HTML5SystemIncludes.h"
 #include <emscripten/emscripten.h>
@@ -38,13 +38,13 @@ struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 	FORCEINLINE static void MemoryBarrier()
 	{
 		// Do nothing on x86; the spec requires load/store ordering even in the absence of a memory barrier.
-		
+
 		// @todo HTML5: Will this be applicable for final?
 	}
 	/** Return true if a debugger is present */
 	FORCEINLINE static bool IsDebuggerPresent()
 	{
-		return true; 
+		return true;
 	}
 
 	/** Break into the debugger, if IsDebuggerPresent returns true, otherwise do nothing  */

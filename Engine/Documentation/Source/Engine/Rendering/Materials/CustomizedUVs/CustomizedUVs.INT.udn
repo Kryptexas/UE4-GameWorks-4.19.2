@@ -3,45 +3,11 @@ Title:Customized UVs
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:Feature that allows running calculations in the vertex shader to increase performance over running them per-pixel.
 Version: 4.9
+parent:Engine/Rendering/Materials
+order:12
+topic-image:CUVs_topic.png
+type:overview
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/Materials/CustomizedUVs:title%](Engine/Rendering/Materials/CustomizedUVs/CUVs_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/Materials/CustomizedUVs:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/Materials/CustomizedUVs:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/Materials/CustomizedUVs]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/Materials/CustomizedUVs:title%](Engine/Rendering/Materials/CustomizedUVs/CUVs_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/Materials/CustomizedUVs:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/Materials/CustomizedUVs:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/Materials/CustomizedUVs]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2)]
 

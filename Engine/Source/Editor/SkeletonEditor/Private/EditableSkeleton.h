@@ -1,9 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IEditableSkeleton.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Animation/PreviewAssetAttachComponent.h"
+#include "BoneContainer.h"
 #include "Animation/Skeleton.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "IEditableSkeleton.h"
+
+class IPersonaPreviewScene;
+class SBlendProfilePicker;
+class SSkeletonTree;
+class UBlendProfile;
+class URig;
+class USkeletalMeshSocket;
 
 /** View-model for a skeleton tree */
 class FEditableSkeleton : public IEditableSkeleton, public FGCObject, public TSharedFromThis<FEditableSkeleton>
@@ -35,6 +47,7 @@ public:
 	virtual void RemoveSmartname(const FName& InContainerName, SmartName::UID_Type InNameUid) override;
 	virtual void RemoveSmartnamesAndFixupAnimations(const FName& InContainerName, const TArray<SmartName::UID_Type>& InNameUids) override;
 	virtual void SetCurveMetaDataMaterial(const FSmartName& CurveName, bool bOverrideMaterial) override;
+	virtual void SetCurveMetaBoneLinks(const FSmartName& CurveName, TArray<FBoneReference>& BoneLinks) override;
 	virtual void SetPreviewMesh(class USkeletalMesh* InSkeletalMesh) override;
 	virtual void LoadAdditionalPreviewSkeletalMeshes() override;
 	virtual void SetAdditionalPreviewSkeletalMeshes(class UPreviewMeshCollection* InSkeletalMeshes) override;
@@ -55,15 +68,11 @@ public:
 	virtual void RenameSlotName(const FName& InOldSlotName, const FName& InNewSlotName) override;
 	virtual FDelegateHandle RegisterOnSmartNameRemoved(const FOnSmartNameRemoved::FDelegate& InOnSmartNameRemoved) override;
 	virtual void UnregisterOnSmartNameRemoved(FDelegateHandle InHandle) override;
+	virtual void SetBoneTranslationRetargetingMode(FName InBoneName, EBoneTranslationRetargetingMode::Type NewRetargetingMode) override;
+	virtual EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(FName InBoneName) const override;
 
 	/** FGCObject interface */
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
-
-	/** Wrap USkeleton::SetBoneTranslationRetargetingMode */
-	void SetBoneTranslationRetargetingMode(FName InBoneName, EBoneTranslationRetargetingMode::Type NewRetargetingMode);
-
-	/** Wrap USkeleton::GetBoneTranslationRetargetingMode */
-	EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(FName InBoneName);
 
 	/** Generates a unique socket name from the input name, by changing the FName's number */
 	FName GenerateUniqueSocketName(FName InName, USkeletalMesh* InSkeletalMesh);
@@ -76,6 +85,9 @@ public:
 
 	/** Handle adding a new virtual bone to the skeleton */
 	bool HandleAddVirtualBone(const FName SourceBoneName, const FName TargetBoneName);
+
+	/** Handle adding a new virtual bone to the skeleton */
+	bool HandleAddVirtualBone(const FName SourceBoneName, const FName TargetBoneName, FName& NewVirtualBoneName);
 
 	/** Function to customize a socket - this essentially copies a socket from the skeleton to the mesh */
 	void HandleCustomizeSocket(USkeletalMeshSocket* InSocketToCustomize, USkeletalMesh* InSkeletalMesh);

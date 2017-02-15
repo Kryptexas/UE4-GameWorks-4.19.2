@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -14,14 +14,11 @@ public class WebSockets : ModuleRules
 			}
 		);
 
-		bool bShouldUseModule = false;
-		if (Target.Platform == UnrealTargetPlatform.Win32 ||
+		bool bShouldUseModule = 
+			Target.Platform == UnrealTargetPlatform.Win32 ||
 			Target.Platform == UnrealTargetPlatform.Win64 ||
-			Target.Platform == UnrealTargetPlatform.Mac
-			)
-		{
-			bShouldUseModule = true;
-		}
+			Target.Platform == UnrealTargetPlatform.Mac ||
+			Target.Platform == UnrealTargetPlatform.Linux;
 
 		if (bShouldUseModule)
 		{
@@ -35,6 +32,10 @@ public class WebSockets : ModuleRules
 
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "libWebSockets", "zlib");
 			PrivateDependencyModuleNames.Add("SSL");
+		}
+		else
+		{
+			Definitions.Add("WITH_WEBSOCKETS=0");
 		}
 	}
 }

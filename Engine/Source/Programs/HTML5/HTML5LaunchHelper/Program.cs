@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Net;
@@ -159,6 +159,7 @@ namespace HTML5LaunchHelper
 				}
 				Response  += "</table></html>";
 				byte[] buf = Encoding.UTF8.GetBytes(Response);
+				Context.Response.AddHeader("Access-Control-Allow-Origin", "*");
 				Context.Response.ContentLength64 = buf.Length;
 				Context.Response.OutputStream.Write(buf, 0, buf.Length);
 				Context.Response.Close();
@@ -189,6 +190,7 @@ namespace HTML5LaunchHelper
 
 					byte[] buffer = new byte[source.Length];
 					source.Read(buffer, 0, buffer.Length);
+					Context.Response.AddHeader("Access-Control-Allow-Origin", "*");
 					Context.Response.ContentType = MimeType;
 					Context.Response.ContentLength64 = buffer.Length;
 					Context.Response.OutputStream.Write(buffer, 0, buffer.Length);

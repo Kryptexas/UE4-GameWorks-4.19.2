@@ -1,11 +1,30 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchInstaller.cpp: Implements the FBuildPatchInstaller class which
 	controls the process of installing a build described by a build manifest.
 =============================================================================*/
 
-#include "BuildPatchServicesPrivatePCH.h"
+#include "BuildPatchInstaller.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "BuildPatchError.h"
+#include "BuildPatchHTTP.h"
+#include "BuildPatchVerification.h"
+#include "BuildPatchFileAttributes.h"
+#include "BuildPatchChunkCache.h"
+#include "BuildPatchFileConstructor.h"
+#include "BuildPatchDownloader.h"
+#include "BuildPatchServicesModule.h"
+#include "BuildPatchUtil.h"
+#include "BuildPatchAnalytics.h"
+#include "BuildPatchServicesPrivate.h"
 
 using namespace BuildPatchConstants;
 
@@ -461,7 +480,7 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 	// Make sure all the files won't exceed the maximum path length
 	for (const auto& FileToConstruct : FilesToConstruct)
 	{
-		if ((InstallStagingDir / FileToConstruct).Len() >= MAX_PATH)
+		if ((InstallStagingDir / FileToConstruct).Len() >= PLATFORM_MAX_FILEPATH_LENGTH)
 		{
 			GWarn->Logf(TEXT("BuildPatchServices: ERROR: Could not create new file due to exceeding maximum path length %s"), *(InstallStagingDir / FileToConstruct));
 			FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::PathLengthExceeded, PathLengthErrorCodes::StagingDirectory);

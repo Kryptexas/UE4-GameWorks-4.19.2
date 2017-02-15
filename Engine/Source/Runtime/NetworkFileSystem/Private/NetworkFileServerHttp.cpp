@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+#include "NetworkFileServerHttp.h"
+#include "NetworkFileServerConnection.h"
+#include "NetworkFileSystemLog.h"
+#include "NetworkMessage.h"
+#include "HAL/RunnableThread.h"
+#include "SocketSubsystem.h"
+#include "Misc/Paths.h"
+#include "Misc/FileHelper.h"
+#include "IPAddress.h"
+#include "Serialization/MemoryReader.h"
 
 #if ENABLE_HTTP_FOR_NFS
-
-#include "NetworkFileSystemPrivatePCH.h"
-#include "NetworkFileServerHttp.h"
 
 class FNetworkFileServerClientConnectionHTTP : public FNetworkFileServerClientConnection
 {
@@ -19,11 +27,11 @@ public:
 	{
 		// Make Boundaries between payloads, add a visual marker for easier debugging.
 
-		uint32 Marker = 0xDeadBeef;
-		uint32 Size = Out.Num();
-
-		OutBuffer.Append((uint8*)&Marker,sizeof(uint32));
-		OutBuffer.Append((uint8*)&Size,sizeof(uint32));
+//		uint32 Marker = 0xDeadBeef;
+//		uint32 Size = Out.Num();
+//
+//		OutBuffer.Append((uint8*)&Marker,sizeof(uint32));
+//		OutBuffer.Append((uint8*)&Size,sizeof(uint32));
 		OutBuffer.Append(Out);
 
 		return true;
@@ -113,7 +121,7 @@ bool FNetworkFileServerHttp::IsItReadyToAcceptConnections(void) const
 }
 
 #if UE_BUILD_DEBUG
-void lws_debugLog(int level, const char *line)
+inline void lws_debugLog(int level, const char *line)
 {
 	UE_LOG(LogFileServer, Warning, TEXT(" LibWebsocket: %s"), ANSI_TO_TCHAR(line));
 }
@@ -358,11 +366,19 @@ int FNetworkFileServerHttp::CallBack_HTTP(
 				{
 					// umm. we didn't find file, we should tell the client that we couldn't find it.
 					// send 404.
-					char Header[]= 	"HTTP/1.1 404 Not Found\x0d\x0a"
-									"Server: Unreal File Server\x0d\x0a"
-									"Connection: close\x0d\x0a";
-
-					lws_write(Wsi,(unsigned char*)Header,FCStringAnsi::Strlen(Header), LWS_WRITE_HTTP);
+					TCHAR Buffer[1024];
+					TCHAR ServerBanner[] = TEXT("<HTML>Not Found</HTML>");
+					int x = FCString::Sprintf(
+						Buffer,
+						TEXT("HTTP/1.0 404 Not Found\x0d\x0a")
+						TEXT("Server: Unreal File Server\x0d\x0a")
+						TEXT("Connection: close\x0d\x0a")
+						TEXT("Content-Type: text/html; charset=utf-8\x0d\x0a")
+						TEXT("Content-Length: %u\x0d\x0a\x0d\x0a%s"),
+						FCString::Strlen(ServerBanner),
+						ServerBanner
+						);
+					lws_write(Wsi,(unsigned char*)TCHAR_TO_ANSI(Buffer),FCStringAnsi::Strlen(TCHAR_TO_ANSI(Buffer)), LWS_WRITE_HTTP);
 					// chug along, client will close the connection.
 					break;
 				}
@@ -449,6 +465,10 @@ int FNetworkFileServerHttp::CallBack_HTTP(
 		}
 		break;
 	case LWS_CALLBACK_CLOSED_HTTP:
+
+		if ( BufferInfo == NULL )
+			break;
+
 		// client went away or
 		//clean up.
 		BufferInfo->In.Empty();

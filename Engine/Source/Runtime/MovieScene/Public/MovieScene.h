@@ -1,20 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Templates/Casts.h"
+#include "MovieSceneSpawnable.h"
 #include "MovieSceneBinding.h"
 #include "MovieScenePossessable.h"
-#include "MovieSceneSpawnable.h"
+#include "MovieSceneSignedObject.h"
 #include "MovieScene.generated.h"
 
-
-class UBlueprint;
+class UMovieSceneFolder;
 class UMovieSceneSection;
 class UMovieSceneTrack;
-class UMovieSceneFolder;
-
 
 MOVIESCENE_API DECLARE_LOG_CATEGORY_EXTERN(LogMovieScene, Log, All);
+
+USTRUCT(BlueprintType)
+struct FMovieSceneObjectBindingPtr
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category="Binding")
+	FGuid Guid;
+};
 
 
 /** @todo: remove this type when support for intrinsics on TMap values is added? */
@@ -78,9 +90,9 @@ struct FMovieSceneTrackLabels
 /**
  * Implements a movie scene asset.
  */
-UCLASS()
+UCLASS(DefaultToInstanced)
 class MOVIESCENE_API UMovieScene
-	: public UObject
+	: public UMovieSceneSignedObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -165,7 +177,15 @@ public:
 	/*
 	* Replace an existing possessable with another 
 	*/
-	bool ReplacePossessable(const FGuid& OldGuid, const FGuid& NewGuid, const FString& Name);
+	bool ReplacePossessable(const FGuid& OldGuid, const FMovieScenePossessable& InNewPosessable);
+
+	DEPRECATED(4.15, "Please use ReplacePossessable(const FGuid&, const FMovieScenePossessable&) so that the possessable class gets updated correctly.")
+	bool ReplacePossessable(const FGuid& OldGuid, const FGuid& NewGuid, const FString& Name)
+	{
+		FMovieScenePossessable NewPossessable(Name, nullptr);
+		NewPossessable.SetGuid(NewGuid);
+		return ReplacePossessable(OldGuid, NewPossessable);
+	}
 
 	/**
 	 * Tries to locate a possessable in this MovieScene for the specified possessable GUID.
@@ -214,8 +234,6 @@ public:
 
 	/**
 	* Adds a given track.
-	*
-	* Note: Function will only add if the track is not already exist.
 	*
 	* @param InTrack The track to add.
 	* @param ObjectGuid The runtime object guid that the type should bind to.
@@ -463,6 +481,34 @@ public:
 	void SetPlaybackRange(float Start, float End, bool bAlwaysMarkDirty = true);
 
 	/**
+	 * Set the start and end working range (outer) for this movie scene
+	 *
+	 * @param Start The offset from 0-time to view this movie scene.
+	 * @param End The offset from 0-time to view this movie scene
+	 */
+	void SetWorkingRange(float Start, float End);
+
+	/**
+	 * Set the start and end view range (inner) for this movie scene
+	 *
+	 * @param Start The offset from 0-time to view this movie scene
+	 * @param End The offset from 0-time to view this movie scene
+	 */
+	void SetViewRange(float Start, float End);
+
+#if WITH_EDITORONLY_DATA
+	/** 
+	 * Return whether the playback range is locked.
+	 */
+	bool IsPlaybackRangeLocked() const;
+
+	/**
+	 * Set whether the playback range is locked.
+	 */
+	void SetPlaybackRangeLocked(bool bLocked);
+#endif
+
+	/**
 	 * Gets whether or not playback should be forced to match the fixed frame interval.  When true all time values will be rounded to a fixed
 	 * frame value which will force editor and runtime playback to match exactly, but will result in duplicate frames if the runtime and editor
 	 * frame rates aren't exactly the same.
@@ -479,12 +525,17 @@ public:
 	/**
 	* Gets the fixed frame interval to be used when "force fixed frame interval playback" is set.
 	*/
-	float GetFixedFrameInterval() const;
+	float GetFixedFrameInterval() const { return FixedFrameInterval; }
 
 	/**
 	* Gets the fixed frame interval to be used when "force fixed frame interval playback" is set.
 	*/
 	void SetFixedFrameInterval( float InFixedFrameInterval );
+
+	/**
+	 * Gets the fixed frame interval to be used when "force fixed frame interval playback" is set. Only returns a valid result when GetForceFixedFrameIntervalPlayback() is true, and the interval is > 0.
+	 */
+	TOptional<float> GetOptionalFixedFrameInterval() const { return (!GetForceFixedFrameIntervalPlayback() || GetFixedFrameInterval() <= 0) ? TOptional<float>() : GetFixedFrameInterval(); }
 
 	/**
 	 * Calculates a fixed frame time based on a current time, a fixed frame interval, and an internal epsilon to account
@@ -535,6 +586,10 @@ protected:
 	/** Perform legacy upgrade of time ranges */
 	void UpgradeTimeRanges();
 
+	/** Perform legacy upgrade of track rows */
+	void UpgradeTrackRows();
+	void UpgradeTrackRow(UMovieSceneTrack*);
+
 private:
 
 	// Small value added for fixed frame interval calculations to make up for consistency in
@@ -558,11 +613,11 @@ private:
 	TArray<FMovieSceneBinding> ObjectBindings;
 
 	/** Master tracks which are not bound to spawned or possessed objects */
-	UPROPERTY()
+	UPROPERTY(Instanced)
 	TArray<UMovieSceneTrack*> MasterTracks;
 
 	/** The camera cut track is a specialized track for switching between cameras on a cinematic */
-	UPROPERTY()
+	UPROPERTY(Instanced)
 	UMovieSceneTrack* CameraCutTrack;
 
 	/** User-defined selection range. */
@@ -572,6 +627,12 @@ private:
 	/** User-defined playback range for this movie scene. Must be a finite range. Relative to this movie-scene's 0-time origin. */
 	UPROPERTY()
 	FFloatRange PlaybackRange;
+
+	/** User-defined playback range is locked. */
+#if WITH_EDITORONLY_DATA
+	UPROPERTY()
+	bool bPlaybackRangeLocked;
+#endif
 
 	UPROPERTY()
 	bool bForceFixedFrameIntervalPlayback;

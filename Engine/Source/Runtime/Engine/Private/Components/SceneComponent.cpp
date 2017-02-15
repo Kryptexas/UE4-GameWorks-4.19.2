@@ -1,22 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneComponent.cpp
 =============================================================================*/
 
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
-#include "MessageLog.h"
-#include "Net/UnrealNetwork.h"
+#include "Components/SceneComponent.h"
+#include "EngineStats.h"
+#include "Engine/Blueprint.h"
+#include "GameFramework/Actor.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/MapBuildDataRegistry.h"
 #include "GameFramework/PhysicsVolume.h"
+#include "Components/BillboardComponent.h"
+#include "Engine/Texture2D.h"
 #include "ComponentReregisterContext.h"
+#include "UnrealEngine.h"
+#include "PhysicsPublic.h"
+#include "Logging/MessageLog.h"
+#include "Net/UnrealNetwork.h"
 #include "ComponentUtils.h"
-#include "Engine/SCS_Node.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "Components/ChildActorComponent.h"
-#include "UObjectThreadContext.h"
+#include "UObject/UObjectThreadContext.h"
+#include "Engine/SCS_Node.h"
+#include "EngineGlobals.h"
 
 #define LOCTEXT_NAMESPACE "SceneComponent"
 
@@ -601,6 +614,14 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, EUpdateTr
 	//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate);
 	if (IsDeferringMovementUpdates())
 	{
+		FScopedMovementUpdate* CurrentUpdate = GetCurrentScopedMovement();
+
+		if (CurrentUpdate && Teleport == ETeleportType::TeleportPhysics)
+		{
+			// Remember this was a teleport
+			CurrentUpdate->SetHasTeleported();
+		}
+
 		// We are deferring these updates until later.
 		return;
 	}
@@ -706,8 +727,8 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 			const bool bTransformChanged = CurrentScopedUpdate->IsTransformDirty();
 			if (bTransformChanged)
 			{
-				// TODO: handle teleporting flag when it differs between accumulated moves.
-				PropagateTransformUpdate(true);
+				// Pass teleport flag if set
+				PropagateTransformUpdate(true, EUpdateTransformFlags::None, CurrentScopedUpdate->bHasTeleported ? ETeleportType::TeleportPhysics : ETeleportType::None);
 			}
 
 			// We may have moved somewhere and then moved back to the start, we still need to update overlaps if we touched things along the way.
@@ -2362,7 +2383,7 @@ void USceneComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 				bool bAnyPotentialOverlap = false;
 				for (auto VolumeIter = MyWorld->GetNonDefaultPhysicsVolumeIterator(); VolumeIter && !bAnyPotentialOverlap; ++VolumeIter, ++VolumeIndex)
 				{
-					const APhysicsVolume* Volume = *VolumeIter;
+					const APhysicsVolume* Volume = VolumeIter->Get();
 					if (Volume != nullptr)
 					{
 						const USceneComponent* VolumeRoot = Volume->GetRootComponent();
@@ -3075,6 +3096,7 @@ FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, 
 , OuterDeferredScope(nullptr)
 , bDeferUpdates(ScopeBehavior == EScopedUpdate::DeferredUpdates)
 , bHasMoved(false)
+, bHasTeleported(false)
 , CurrentOverlapState(EOverlapState::eUseParent)
 , FinalOverlapCandidatesIndex(INDEX_NONE)
 {

@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "SceneExport.h"
-
+#include "Math/LMMath.h"
+#include "Lighting.h"
 
 namespace Lightmass
 {
@@ -703,7 +705,7 @@ public:
 	const FLight* FindLightByGuid(const FGuid& Guid) const;
 
 	/** Returns true if the specified position is inside any of the importance volumes. */
-	bool IsPointInImportanceVolume(const FVector4& Position) const;
+	bool IsPointInImportanceVolume(const FVector4& Position, float Tolerance) const;
 
 	/** Returns true if the specified position is inside any of the visibility volumes. */
 	bool IsPointInVisibilityVolume(const FVector4& Position) const;

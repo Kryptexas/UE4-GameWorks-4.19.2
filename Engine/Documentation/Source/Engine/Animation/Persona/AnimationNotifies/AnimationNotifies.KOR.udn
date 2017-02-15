@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3213908
 Availability:Public
-Title:페르소나 애니메이션 노티파이
+Title:애님 노티파이 창
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:페르소나 애니메이션 에디터의 애니메이션 노티파이 창 사용 안내서입니다.
-version: 4.9
+Description:스켈레톤 에디터의 애니메이션 노티파이 창 사용 안내서입니다.
+version: 4.14
+related: Engine/Animation/Sequences/Notifies
+related: Engine/Animation/Persona/Modes/Skeleton
+related: Engine/Animation/Skeleton
+related: Engine/Animation/Persona/AssetEditor
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -25,18 +29,43 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-페르소나 애니메이션 노티파이 창에는 애셋 에디터에서 만든 커스텀 애니메이션 노티파이가 표시됩니다.
-
-애니메이션 노티파이 창은 기본적으로 보이지 않습니다. 보이도록 하려면, 페르소나의 **창** 메뉴에서 **애니메이션 노티파이** 를 클릭합니다.
-
 ![Animation Notifies Window](AnimationNotifies.png)
 
-[REGION:note]
-애니메이션 노티파이 창에서 커스텀 애니메이션 노티파이를 선택하면 그 프로퍼티가 페르소나의 **디테일 패널** 에 표시됩니다.
+**스켈레톤 에디터** 안에서 사용할 수 있는 **애님 노티파이** 창에는 현재 선택된 [스켈레톤](Engine/Animation/Skeleton) 애셋에 대한 커스텀 [애니메이션 노티파이](Engine/Animation/Sequences/Notifies) 가 전부 표시됩니다.
+애님 노티파이 창은 애니메이션 노티파이 매니저라고 생각하면 됩니다. 현재 할당된 커스텀 노티파이 전체 및 노티파이와 연결된 애니메이션을 확인할 수도 있고, 노티파이를 삭제하거나 이름을 변경할 수도 있지만, 노티파이 생성은 불가능합니다. 노티파이 생성은 애니메이션 애셋 자체의 [](Engine/Animation/Persona/AssetEditor) 에서 이루어집니다.
+
+## 애니메이션 노티파이 창 확인
+
+**애니메이션 노티파이** 창을 확인하려면, **콘텐츠 브라우저** 에서 **스켈레톤** 애셋을 엽니다:
+
+![](OpenSkeletonAsset.png)
+
+**애니메이션 노티파이** 창은 **스켈레톤 에디터** 우하단 부분에 있습니다:
+
+[REGION:lightbox]
+[![](AnimationNotifiesWindow.png)(w:800)](AnimationNotifiesWindow.png)
 [/REGION]
 
-커스텀 애니메이션 노티파이를 삭제하려면, 우클릭한 다음 **Delete** (삭제)를 클릭합니다.
+[REGION:caption]
+클릭하면 이미지 원본을 확인합니다.
+[/REGION]
 
-커스텀 애니메이션 노티파이 이름을 변경하려면, 우클릭한 다음 **Rename** (이름변경)을 클릭합니다.
+**애니메이션 노티파이** 창이 없거나 닫힌 경우, **메인 툴바** 옵션에서 다시 열 수 있습니다:
 
-페르소나의 애셋 에디터 관련 상세 정보는 [](Engine/Animation\Persona\AssetEditor) 문서를 참고해 주시기 바랍니다.
+![](MainToolbarOption.png)
+
+## 노티파이 이름변경/삭제
+
+노티파이를 **삭제** 또는 **이름변경** 하려면, **애니메이션 노티파이** 창에서 노티파이에 **우클릭** 합니다:
+
+![](RightClickMenu.png)
+
+## 스켈레톤 노티파이 창
+
+**애니메이션 노티파이** 창에서 노티파이를 선택할 때, **스켈레톤 노티파이** 창이 채워집니다:
+
+![](SkeletonNotify.png)
+
+이 창에는 노티파이 및 그 노티파이가 들어있는 애니메이션 이름이 표시됩니다.
+
+

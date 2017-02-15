@@ -1,4 +1,6 @@
-﻿using AutomationTool;
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+using AutomationTool;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -113,7 +115,7 @@ namespace Win.Automation
         {
             // Get the list of symbol file name patterns from the platform.
             UEBuildPlatform Platform = UEBuildPlatform.GetBuildPlatform(Parameters.Platform);
-            UEToolChain ToolChain = Platform.CreateContext(null).CreateToolChainForDefaultCppPlatform();
+            UEToolChain ToolChain = Platform.CreateContext(null, null).CreateToolChainForDefaultCppPlatform();
             var DirectoryStructure = ToolChain.SymbolServerDirectoryStructure;
 
             if (DirectoryStructure == null)

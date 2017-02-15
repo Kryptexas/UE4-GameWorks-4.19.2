@@ -1,29 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
 
+[SupportedPlatforms(UnrealPlatformClass.Desktop)]
+[SupportedPlatforms(UnrealTargetPlatform.IOS)]
 public class SlateViewerTarget : TargetRules
 {
 	public SlateViewerTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Monolithic;
 	}
 
 	//
 	// TargetRules interface.
 	//
-
-	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-	{
-		if (UnrealBuildTool.UnrealBuildTool.GetAllDesktopPlatforms(ref OutPlatforms, false) == true)
-		{
-			OutPlatforms.Add(UnrealTargetPlatform.IOS);
-			return true;
-		}
-
-		return false;
-	}
 
 	public override void SetupBinaries(
 		TargetInfo Target,
@@ -37,11 +29,6 @@ public class SlateViewerTarget : TargetRules
 			);
 
         OutExtraModuleNames.Add("EditorStyle");
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
 	}
 
 	public override void SetupGlobalEnvironment(

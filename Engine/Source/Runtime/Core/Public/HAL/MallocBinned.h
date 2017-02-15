@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "LockFreeList.h"
-#include "Array.h"
+#include "CoreTypes.h"
+#include "HAL/MemoryBase.h"
+#include "Containers/Array.h"
+#include "Math/UnrealMathUtility.h"
+#include "Stats/Stats.h"
+#include "HAL/MallocJemalloc.h"
 
 #define MEM_TIME(st)
 
@@ -42,7 +46,7 @@ typedef int32 BINNED_STAT_TYPE;
 //when modifying the global allocator stats, if we are using COARSE locks, then all callsites for stat modification are covered by the allocator-wide access guard. Thus the stats can be modified directly.
 //If we are using FINE locks, then we must modify the stats through atomics as the locks are either not actually covering the stat callsites, or are locking specific table locks which is not sufficient for stats.
 #if STATS
-#	if USE_COARSE_GRAIN_LOCKS
+#	ifdef USE_COARSE_GRAIN_LOCKS
 #		define BINNED_STAT BINNED_STAT_TYPE
 #		define BINNED_INCREMENT_STATCOUNTER(counter) (++(counter))
 #		define BINNED_DECREMENT_STATCOUNTER(counter) (--(counter))

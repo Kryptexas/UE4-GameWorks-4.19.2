@@ -1,11 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
-
-#include "CompilerResultsLog.h"
-#include "GraphEditorActions.h"
-#include "EditorCategoryUtils.h"
 #include "AnimGraphNode_PoseByName.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+
+#include "Kismet2/CompilerResultsLog.h"
+#include "GraphEditorActions.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_PoseByName
@@ -164,4 +163,17 @@ void UAnimGraphNode_PoseByName::GetMenuActions(FBlueprintActionDatabaseRegistrar
 {
 	// Intentionally empty; you can drop down a regular pose blend node and convert into a poseasset by name in the right-click menu.
 }
+
+EAnimAssetHandlerType UAnimGraphNode_PoseByName::SupportsAssetClass(const UClass* AssetClass) const
+{
+	if (AssetClass->IsChildOf(UPoseAsset::StaticClass()))
+	{
+		return EAnimAssetHandlerType::Supported;
+	}
+	else
+	{
+		return EAnimAssetHandlerType::NotSupported;
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

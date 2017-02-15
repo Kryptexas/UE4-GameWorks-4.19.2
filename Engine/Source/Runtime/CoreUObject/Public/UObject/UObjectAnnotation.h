@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectAnnotation.h: Unreal object annotation template
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/UObjectArray.h"
+#include "Misc/ScopeLock.h"
 
 /**
 * FUObjectAnnotationSparse is a helper class that is used to store sparse, slow, temporary, editor only, external 

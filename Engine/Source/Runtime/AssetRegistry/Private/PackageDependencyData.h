@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/Linker.h"
 
 class FPackageDependencyData : public FLinkerTables
 {
@@ -24,6 +27,11 @@ public:
 		Ar << DependencyData.PackageName;
 		Ar << DependencyData.ImportMap;
 		Ar << DependencyData.StringAssetReferencesMap;
+
+		if (Ar.UE4Ver() >= VER_UE4_ADDED_SEARCHABLE_NAMES)
+		{
+			Ar << DependencyData.SearchableNamesMap;
+		}
 
 		return Ar;
 	}

@@ -1,12 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Curves/CurveFloat.h"
-#include "UserInterfaceSettings.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/Scene.h"
+#include "Engine/DeveloperSettings.h"
 
 #include "RendererSettings.generated.h"
 
+struct FPropertyChangedEvent;
 
 /**
  * Enumerates ways to clear a scene.
@@ -35,6 +39,22 @@ namespace ECompositingSampleCount
 		Two = 2 UMETA(DisplayName="2x MSAA"),
 		Four = 4 UMETA(DisplayName="4x MSAA"),
 		Eight = 8 UMETA(DisplayName="8x MSAA"),
+	};
+}
+
+
+/**
+* Enumerates available mobile MSAA sample counts.
+*/
+UENUM()
+namespace EMobileMSAASampleCount
+{
+	enum Type
+	{
+		One = 1 UMETA(DisplayName = "No MSAA"),
+		Two = 2 UMETA(DisplayName = "2x MSAA"),
+		Four = 4 UMETA(DisplayName = "4x MSAA"),
+		Eight = 8 UMETA(DisplayName = "8x MSAA"),
 	};
 }
 
@@ -94,32 +114,25 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 
 	UPROPERTY(config, EditAnywhere, Category=Mobile, meta=(
 		ConsoleVariable="r.MobileHDR",DisplayName="Mobile HDR",
-		ToolTip="If true, mobile renders in full HDR. Disable this setting for games that do not require lighting features for better performance on slow devices."))
+		ToolTip="If true, mobile renders in full HDR. Disable this setting for games that do not require lighting features for better performance on slow devices. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired = true))
 	uint32 bMobileHDR:1;
 
 	UPROPERTY(config, EditAnywhere, Category = Mobile, meta = (
-		ConsoleVariable = "r.MobileNumDynamicPointLights", DisplayName = "Max Dynamic Point Lights", ClampMax = 4, 
-		ToolTip = "The number of dynamic point lights to support on mobile devices. Setting this to 0 for games which do not require dynamic point lights will reduce the number of shaders generated. Changing this setting requires restarting the editor.",
-		ConfigRestartRequired = true))
-	uint32 MobileNumDynamicPointLights;
-
-	UPROPERTY(config, EditAnywhere, Category = Mobile, meta = (
-		ConsoleVariable = "r.MobileDynamicPointLightsUseStaticBranch", DisplayName = "Use Shared Dynamic Point Light Shaders",
-		ToolTip = "If this setting is enabled, the same shader will be used for any number of dynamic point lights (up to the maximum specified above) hitting a surface. This is slightly slower but reduces the number of shaders generated. Changing this setting requires restarting the editor.",
-		ConfigRestartRequired = true))
-	uint32 bMobileDynamicPointLightsUseStaticBranch : 1;
-
-	UPROPERTY(config, EditAnywhere, Category = Mobile, meta = (
-		ConsoleVariable = "r.Mobile.EnableStaticAndCSMShadowReceivers", DisplayName = "Enable Combined Static and CSM Shadowing",
-		ToolTip = "Allow primitives to receive both static and CSM shadows from a stationary light. Disabling will free a mobile texture sampler.",
-		ConfigRestartRequired = true))
-		uint32 bMobileEnableStaticAndCSMShadowReceivers : 1;
-
-	UPROPERTY(config, EditAnywhere, Category = Mobile, meta = (
 		ConsoleVariable = "r.Mobile.DisableVertexFog", DisplayName = "Disable vertex fogging in mobile shaders",
-		ToolTip = "If true, vertex fog will be omitted from all mobile shaders, this can increase shading performance.",
+		ToolTip = "If true, vertex fog will be omitted from all mobile shaders. If your game does not use fog, you should choose this setting to increase shading performance.",
 		ConfigRestartRequired = true))
 		uint32 bMobileDisableVertexFog : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = Mobile, meta = (
+		ConsoleVariable = "r.Shadow.CSM.MaxMobileCascades", DisplayName = "Maximum number of CSM cascades to render", ClampMin = 1, ClampMax = 4,
+		ToolTip = "The maximum number of cascades with which to render dynamic directional light shadows when using the mobile renderer."))
+		int32 MaxMobileCascades;
+
+	UPROPERTY(config, EditAnywhere, Category = Mobile, meta = (
+		ConsoleVariable = "r.MobileMSAA", DisplayName = "Mobile MSAA",
+		ToolTip = "Multi-sample anti-aliasing setting to use on mobile. MSAA is currently supported using Metal on iOS, and on Android devices with the required support using ES 2 or ES 3.1.\nIf MSAA is not available, the current default AA method will be used."))
+	TEnumAsByte<EMobileMSAASampleCount::Type> MobileMSAASampleCount;
 
 	UPROPERTY(config, EditAnywhere, Category = Materials, meta = (
 		ConsoleVariable = "r.DiscardUnusedQuality", DisplayName = "Game Discards Unused Material Quality Levels",
@@ -178,14 +191,14 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Whether to reduce lightmap mixing with reflection captures for very smooth surfaces.  This is useful to make sure reflection captures match SSR / planar reflections in brightness."))
 	uint32 ReflectionEnvironmentLightmapMixBasedOnRoughness : 1;
 
-	UPROPERTY(config, EditAnywhere, Category=ForwardShading, meta=(
+	UPROPERTY(config, EditAnywhere, Category=ForwardRenderer, meta=(
 		ConsoleVariable="r.ForwardShading",
 		DisplayName = "Forward Shading",
 		ToolTip="Whether to use forward shading on desktop platforms, requires Shader Model 5 hardware.  Forward shading supports MSAA and has lower default cost, but fewer features supported overall.  Materials have to opt-in to more expensive features like high quality reflections.  Changing this setting requires restarting the editor.",
 		ConfigRestartRequired=true))
 	uint32 bForwardShading:1;
 
-	UPROPERTY(config, EditAnywhere, Category=ForwardShading, meta=(
+	UPROPERTY(config, EditAnywhere, Category=ForwardRenderer, meta=(
 		ConsoleVariable="r.VertexFoggingForOpaque",
 		ToolTip="Causes opaque materials to use per-vertex fogging, which costs less and integrates properly with MSAA.  Only supported with forward shading. Changing this setting requires restarting the editor.",
 		ConfigRestartRequired=true))
@@ -238,6 +251,11 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConsoleVariable="r.CustomDepth",DisplayName="Custom Depth-Stencil Pass",
 		ToolTip="Whether the custom depth pass for tagging primitives for postprocessing passes is enabled. Enabling it on demand can save memory but may cause a hitch the first time the feature is used."))
 	TEnumAsByte<ECustomDepthStencil::Type> CustomDepthStencil;
+
+	UPROPERTY(config, EditAnywhere, Category = Postprocessing, meta = (
+		ConsoleVariable = "r.CustomDepthTemporalAAJitter", DisplayName = "Custom Depth with TemporalAA Jitter",
+		ToolTip = "Whether the custom depth pass has the TemporalAA jitter enabled. Disabling this can be useful when the result of the CustomDepth Pass is used after TAA (e.g. after Tonemapping)"))
+	uint32 bCustomDepthTaaJitter : 1;
 
 	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.Bloom", DisplayName = "Bloom",
@@ -294,6 +312,13 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConsoleVariable="r.EarlyZPassMovable",DisplayName="Movables in early Z-pass",
 		ToolTip="Whether to render movable objects in the early Z pass. Need to reload the level!"))
 	uint32 bEarlyZPassMovable:1;
+
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
+		EditCondition = "EarlyZPass == OpaqueAndMasked && bEarlyZPassMovable",
+		ConsoleVariable = "r.EarlyZPassOnlyMaterialMasking", DisplayName = "Mask material only in early Z-pass",
+		ToolTip = "Whether to compute materials' mask opacity only in early Z pass. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired = true))
+	uint32 bEarlyZPassOnlyMaterialMasking : 1;
 
 	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
 		ConsoleVariable="r.DBuffer",DisplayName="DBuffer Decals",
@@ -358,6 +383,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired = true))
 		uint32 bMobileMultiView : 1;
 
+	UPROPERTY(config, EditAnywhere, Category = VR, meta = (
+		ConsoleVariable = "vr.MonoscopicFarField", DisplayName = "Monoscopic Far Field (Experimental)",
+		ToolTip = "Enable monoscopic far field rendering (only available for mobile).",
+		ConfigRestartRequired = true))
+		uint32 bMonoscopicFarField : 1;
+
 	UPROPERTY(config, EditAnywhere, Category=Editor, meta=(
 		ConsoleVariable="r.WireframeCullThreshold",DisplayName="Wireframe Cull Threshold",
 		ToolTip="Screen radius at which wireframe objects are culled. Larger values can improve performance when viewing a scene in wireframe."))
@@ -402,6 +433,38 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConsoleVariable = "r.SkinCache.CompileShaders", DisplayName = "Support Compute Skincache",
 		ConfigRestartRequired = true))
 		uint32 bSupportSkinCacheShaders : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = MobileShaderPermutationReduction, meta = (
+		ConsoleVariable = "r.Mobile.EnableStaticAndCSMShadowReceivers", DisplayName = "Support Combined Static and CSM Shadowing",
+		ToolTip = "Allow primitives to receive both static and CSM shadows from a stationary light. Disabling will free a mobile texture sampler and reduce shader permutations. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired = true))
+		uint32 bMobileEnableStaticAndCSMShadowReceivers : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = MobileShaderPermutationReduction, meta = (
+		ConsoleVariable = "r.Mobile.AllowDistanceFieldShadows",
+		DisplayName = "Support Distance Field Shadows",
+		ToolTip = "Generate shaders for primitives to receive distance field shadows from stationary directional lights. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired = true))
+		uint32 bMobileAllowDistanceFieldShadows : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = MobileShaderPermutationReduction, meta = (
+		ConsoleVariable = "r.Mobile.AllowMovableDirectionalLights",
+		DisplayName = "Support Movable Directional Lights",
+		ToolTip = "Generate shaders for primitives to receive movable directional lights. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired = true))
+		uint32 bMobileAllowMovableDirectionalLights : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = MobileShaderPermutationReduction, meta = (
+		ConsoleVariable = "r.MobileNumDynamicPointLights", DisplayName = "Max Movable Point Lights", ClampMax = 4,
+		ToolTip = "The number of dynamic point lights to support on mobile devices. Setting this to 0 for games which do not require dynamic point lights will reduce the number of shaders generated. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired = true))
+		uint32 MobileNumDynamicPointLights;
+
+	UPROPERTY(config, EditAnywhere, Category = MobileShaderPermutationReduction, meta = (
+		ConsoleVariable = "r.MobileDynamicPointLightsUseStaticBranch", DisplayName = "Use Shared Movable Point Light Shaders",
+		ToolTip = "If this setting is enabled, the same shader will be used for any number of dynamic point lights (up to the maximum specified above) hitting a surface. This is slightly slower but reduces the number of shaders generated. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired = true))
+		uint32 bMobileDynamicPointLightsUseStaticBranch : 1;
 
 public:
 

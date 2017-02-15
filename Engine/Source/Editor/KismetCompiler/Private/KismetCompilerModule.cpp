@@ -1,17 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompilerModule.cpp
 =============================================================================*/
 
-#include "KismetCompilerPrivatePCH.h"
-
+#include "KismetCompilerModule.h"
+#include "Stats/Stats.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "Engine/Blueprint.h"
+#include "Stats/StatsMisc.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/MetaData.h"
+#include "Animation/AnimBlueprint.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Kismet2/CompilerResultsLog.h"
+#include "KismetCompilerMisc.h"
 #include "KismetCompiler.h"
+
 #include "AnimBlueprintCompiler.h"
 
-#include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetReinstanceUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/KismetDebugUtilities.h"
+#include "Kismet2/KismetReinstanceUtilities.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #include "UserDefinedStructureCompilerUtils.h"
 #include "Engine/UserDefinedStruct.h"
@@ -22,13 +34,31 @@ DECLARE_CYCLE_STAT(TEXT("Compile Time"), EKismetCompilerStats_CompileTime, STATG
 DECLARE_CYCLE_STAT(TEXT("Compile Skeleton Class"), EKismetCompilerStats_CompileSkeletonClass, STATGROUP_KismetCompiler);
 DECLARE_CYCLE_STAT(TEXT("Compile Generated Class"), EKismetCompilerStats_CompileGeneratedClass, STATGROUP_KismetCompiler);
 
-IMPLEMENT_MODULE( FKismet2CompilerModule, KismetCompiler );
-
-
 #define LOCTEXT_NAMESPACE "KismetCompiler"
 
 //////////////////////////////////////////////////////////////////////////
-// FKismet2CompilerModule
+// FKismet2CompilerModule - The Kismet 2 Compiler module
+class FKismet2CompilerModule : public IKismetCompilerInterface
+{
+public:
+	// Implementation of the IKismetCompilerInterface
+	virtual void CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<class FBlueprintCompileReinstancer> ParentReinstancer = NULL, TArray<UObject*>* ObjLoaded = NULL) override;
+	virtual void CompileStructure(class UUserDefinedStruct* Struct, FCompilerResultsLog& Results) override;
+	virtual void RecoverCorruptedBlueprint(class UBlueprint* Blueprint) override;
+	virtual void RemoveBlueprintGeneratedClasses(class UBlueprint* Blueprint) override;
+	virtual TArray<IBlueprintCompiler*>& GetCompilers() override { return Compilers; }
+	virtual void GetBlueprintTypesForClass(UClass* ParentClass, UClass*& OutBlueprintClass, UClass*& OutBlueprintGeneratedClass) const override;
+	virtual void GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum, FString& OutHeaderCode, FString& OutCPPCode) override;
+	virtual FString GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct) override;
+	virtual FString GenerateCppWrapper(UBlueprintGeneratedClass* BPGC) override;
+	// End implementation
+private:
+	void CompileBlueprintInner(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<FBlueprintCompileReinstancer> Reinstancer, TArray<UObject*>* ObjLoaded);
+
+	TArray<IBlueprintCompiler*> Compilers;
+};
+
+IMPLEMENT_MODULE( FKismet2CompilerModule, KismetCompiler );
 
 struct FBlueprintIsBeingCompiledHelper
 {
@@ -148,10 +178,10 @@ void FKismet2CompilerModule::CompileStructure(UUserDefinedStruct* Struct, FCompi
 	FUserDefinedStructureCompilerUtils::CompileStruct(Struct, Results, true);
 }
 
-FString FKismet2CompilerModule::GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum)
+void FKismet2CompilerModule::GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum, FString& OutHeaderCode, FString& OutCPPCode)
 {
 	TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
-	return Backend_CPP->GenerateCodeFromEnum(UDEnum);
+	Backend_CPP->GenerateCodeFromEnum(UDEnum, OutHeaderCode, OutCPPCode);
 }
 
 FString FKismet2CompilerModule::GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct)

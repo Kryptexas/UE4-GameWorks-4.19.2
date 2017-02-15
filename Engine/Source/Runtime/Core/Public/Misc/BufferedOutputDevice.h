@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OutputDevice.h"
+#include "CoreTypes.h"
+#include "Misc/OutputDevice.h"
+#include "Containers/Array.h"
+#include "Misc/OutputDeviceRedirector.h"
 
 /** Buffered output device. */
 class CORE_API FBufferedOutputDevice : public FOutputDevice

@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
 #include "IEnvironmentQueryEditor.h"
-#include "Toolkits/AssetEditorToolkit.h"
 #include "AIGraphEditor.h"
+
+class IDetailsView;
+class UEdGraph;
+class UEnvQuery;
 
 class FEnvironmentQueryEditor : public IEnvironmentQueryEditor, public FAIGraphEditor
 {

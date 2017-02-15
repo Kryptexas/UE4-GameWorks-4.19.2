@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
-#include "ModuleInterface.h"
-#include "UnrealAudioModule.h"
-#include "UnrealAudioDeviceFormat.h"
+#include "CoreMinimal.h"
 #include "UnrealAudioTypes.h"
+#include "Modules/ModuleInterface.h"
+#include "Runtime/UnrealAudio/Private/UnrealAudioDeviceFormat.h"
+
+class Error;
 
 #if ENABLE_UNREAL_AUDIO
 

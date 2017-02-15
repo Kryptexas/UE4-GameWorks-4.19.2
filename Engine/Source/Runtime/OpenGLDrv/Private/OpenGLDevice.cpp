@@ -1,13 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLDevice.cpp: OpenGL device RHI implementation.
 =============================================================================*/
 
+#include "CoreMinimal.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ScopeLock.h"
+#include "Stats/Stats.h"
+#include "Serialization/MemoryWriter.h"
+#include "Misc/ConfigCacheIni.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
+#include "Containers/List.h"
+#include "RenderResource.h"
+#include "ShaderCore.h"
+#include "RenderUtils.h"
+#include "ShaderCache.h"
+#include "OpenGLDrv.h"
 #include "OpenGLDrvPrivate.h"
+#include "SceneUtils.h"
 
 #include "HardwareInfo.h"
-#include "ShaderCache.h"
 
 #ifndef GL_STEREO
 #define GL_STEREO			0x0C33
@@ -187,11 +201,11 @@ void FOpenGLDynamicRHI::RHIEndScene()
 
 bool GDisableOpenGLDebugOutput = false;
 
-// workaround for HTML5. 
+// workaround for HTML5.
 #if PLATFORM_HTML5
 #undef GL_ARB_debug_output
 #undef GL_KHR_debug
-#endif 
+#endif
 
 #if defined(GL_ARB_debug_output) || defined(GL_KHR_debug)
 /**
@@ -235,7 +249,7 @@ static const TCHAR* GetOpenGLDebugTypeStringARB(GLenum Type)
 	{
 		return TypeStrings[Type - GL_DEBUG_TYPE_ERROR_ARB];
 	}
-#ifdef GL_KHR_debug	
+#ifdef GL_KHR_debug
 	{
 		static const TCHAR* DebugTypeStrings[] =
 		{
@@ -392,7 +406,7 @@ static void APIENTRY OpenGLDebugMessageCallbackAMD(
 #if !NO_LOGGING
 	const TCHAR* CategoryStr = GetOpenGLDebugCategoryStringAMD(Category);
 	const TCHAR* SeverityStr = GetOpenGLDebugSeverityStringAMD(Severity);
-	
+
 	ELogVerbosity::Type Verbosity = ELogVerbosity::Warning;
 	if (Severity == GL_DEBUG_SEVERITY_HIGH_AMD)
 	{
@@ -429,7 +443,7 @@ static inline void SetupTextureFormat( EPixelFormat Format, const FOpenGLTexture
 }
 
 
-void InitDebugContext() 
+void InitDebugContext()
 {
 	// Set the debug output callback if the driver supports it.
 	VERIFY_GL(__FUNCTION__);
@@ -467,7 +481,7 @@ void InitDebugContext()
 #endif
 
 	// this is to suppress feeding back of the debug markers and groups to the log, since those originate in the app anyways...
-#if ENABLE_OPENGL_DEBUG_GROUPS && GL_ARB_debug_output && GL_KHR_debug && !OPENGL_ESDEFERRED
+#if ENABLE_OPENGL_DEBUG_GROUPS && defined(GL_ARB_debug_output) && GL_ARB_debug_output && GL_KHR_debug && !OPENGL_ESDEFERRED
 	if(glDebugMessageControlARB && bDebugOutputInitialized)
 	{
 		glDebugMessageControlARB(GL_DEBUG_SOURCE_APPLICATION_ARB, GL_DEBUG_TYPE_MARKER, GL_DONT_CARE, 0, NULL, GL_FALSE);
@@ -478,7 +492,7 @@ void InitDebugContext()
 #endif
 		UE_LOG(LogRHI,Verbose,TEXT("disabling reporting back of debug groups and markers to the OpenGL debug output callback"));
 	}
-#elif ENABLE_OPENGL_DEBUG_GROUPS && !defined(GL_ARB_debug_output) && GL_KHR_debug
+#elif ENABLE_OPENGL_DEBUG_GROUPS && !defined(GL_ARB_debug_output) && defined(GL_KHR_debug) && GL_KHR_debug
 	if(glDebugMessageControlKHR)
 	{
 		glDebugMessageControlKHR(GL_DEBUG_SOURCE_APPLICATION_KHR, GL_DEBUG_TYPE_MARKER_KHR, GL_DONT_CARE, 0, NULL, GL_FALSE);
@@ -491,14 +505,14 @@ void InitDebugContext()
 }
 
 TAutoConsoleVariable<FString> CVarOpenGLStripExtensions(
-	TEXT("r.OpenGL.StripExtensions"), 
-	TEXT(""), 
+	TEXT("r.OpenGL.StripExtensions"),
+	TEXT(""),
 	TEXT("List of comma separated OpenGL extensions to strip from a driver reported extensions string"),
 	ECVF_ReadOnly);
 
 TAutoConsoleVariable<FString> CVarOpenGLAddExtensions(
-	TEXT("r.OpenGL.AddExtensions"), 
-	TEXT(""), 
+	TEXT("r.OpenGL.AddExtensions"),
+	TEXT(""),
 	TEXT("List of comma separated OpenGL extensions to add to a driver reported extensions string"),
 	ECVF_ReadOnly);
 
@@ -531,7 +545,7 @@ void ApplyExtensionsOverrides(FString& ExtensionsString)
 			ExtName = ExtName.Trim().TrimTrailing();
 			if (!ExtensionsString.Contains(ExtName))
 			{
-				ExtensionsString.Append(TEXT(" ")); // extensions delimiter 
+				ExtensionsString.Append(TEXT(" ")); // extensions delimiter
 				ExtensionsString.Append(ExtName);
 				UE_LOG(LogRHI, Log, TEXT("Added extension: %s"), *ExtName);
 			}
@@ -550,7 +564,7 @@ static void InitRHICapabilitiesForGL()
 	GTexturePoolSize = 0;
 	GPoolSizeVRAMPercentage = 0;
 #if PLATFORM_WINDOWS || PLATFORM_LINUX
-	GConfig->GetInt( TEXT( "TextureStreaming" ), TEXT( "PoolSizeVRAMPercentage" ), GPoolSizeVRAMPercentage, GEngineIni );	
+	GConfig->GetInt( TEXT( "TextureStreaming" ), TEXT( "PoolSizeVRAMPercentage" ), GPoolSizeVRAMPercentage, GEngineIni );
 #endif
 
 	// GL vendor and version information.
@@ -633,12 +647,12 @@ static void InitRHICapabilitiesForGL()
 #endif
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_TEXTURE_SIZE, 0);
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_CUBE_MAP_TEXTURE_SIZE, 0);
-#if GL_MAX_ARRAY_TEXTURE_LAYERS
+#if defined(GL_MAX_ARRAY_TEXTURE_LAYERS) && GL_MAX_ARRAY_TEXTURE_LAYERS
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_ARRAY_TEXTURE_LAYERS, 0);
 #endif
 #if GL_MAX_3D_TEXTURE_SIZE
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_3D_TEXTURE_SIZE, 0);
-#endif 
+#endif
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_RENDERBUFFER_SIZE, 0);
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_TEXTURE_IMAGE_UNITS, 0);
 	if (FOpenGL::SupportsDrawBuffers())
@@ -747,7 +761,7 @@ static void InitRHICapabilitiesForGL()
 	GMaxTextureMipCount = FMath::Min<int32>(MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount);
 	GMaxTextureDimensions = Value_GL_MAX_TEXTURE_SIZE;
 	GMaxCubeTextureDimensions = Value_GL_MAX_CUBE_MAP_TEXTURE_SIZE;
-#if GL_MAX_ARRAY_TEXTURE_LAYERS
+#if defined(GL_MAX_ARRAY_TEXTURE_LAYERS) && GL_MAX_ARRAY_TEXTURE_LAYERS
 	GMaxTextureArrayLayers = Value_GL_MAX_ARRAY_TEXTURE_LAYERS;
 #endif
 
@@ -758,22 +772,24 @@ static void InitRHICapabilitiesForGL()
 	GSupportsDepthBoundsTest = FOpenGL::SupportsDepthBoundsTest();
 
 	GSupportsRenderTargetFormat_PF_FloatRGBA = FOpenGL::SupportsColorBufferHalfFloat();
-	
+
 	GSupportsMultipleRenderTargets = FOpenGL::SupportsMultipleRenderTargets();
 	GSupportsWideMRT = FOpenGL::SupportsWideMRT();
 	GSupportsTexture3D = FOpenGL::SupportsTexture3D();
 	GSupportsMobileMultiView = FOpenGL::SupportsMobileMultiView();
 	GSupportsResourceView = FOpenGL::SupportsResourceView();
-		
+
 	GSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();
 	GSupportsShaderDepthStencilFetch = FOpenGL::SupportsShaderDepthStencilFetch();
 	GMaxShadowDepthBufferSizeX = FMath::Min<int32>(Value_GL_MAX_RENDERBUFFER_SIZE, 4096); // Limit to the D3D11 max.
 	GMaxShadowDepthBufferSizeY = FMath::Min<int32>(Value_GL_MAX_RENDERBUFFER_SIZE, 4096);
 	GHardwareHiddenSurfaceRemoval = FOpenGL::HasHardwareHiddenSurfaceRemoval();
-	GRHISupportsInstancing = FOpenGL::SupportsInstancing(); // HTML5 does not support it. Android supports it with OpenGL ES3.0+ 
+	GRHISupportsInstancing = FOpenGL::SupportsInstancing(); // HTML5 does not support it. Android supports it with OpenGL ES3.0+
 	GSupportsTimestampRenderQueries = FOpenGL::SupportsTimestampQueries();
 
 	GSupportsHDR32bppEncodeModeIntrinsic = FOpenGL::SupportsHDR32bppEncodeModeIntrinsic();
+
+	checkf(!IsMobileHDR32bpp() || GSupportsHDR32bppEncodeModeIntrinsic || IsPCPlatform(GMaxRHIShaderPlatform), TEXT("Current platform does not support 32bpp HDR but IsMobileHDR32bpp() returned true"));
 
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2) ? GMaxRHIShaderPlatform : SP_OPENGL_PCES2;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1) ? GMaxRHIShaderPlatform : SP_OPENGL_PCES3_1;
@@ -1020,7 +1036,7 @@ FOpenGLDynamicRHI::FOpenGLDynamicRHI()
 ,	PlatformDevice(NULL)
 ,	GPUProfilingData(this)
 {
-	// This should be called once at the start 
+	// This should be called once at the start
 	check( IsInGameThread() );
 	check( !GIsThreadedRendering );
 
@@ -1103,10 +1119,10 @@ static bool VerifyCompiledShader(GLuint Shader, const ANSICHAR* GlslCode, bool I
 				Temp += Converted.Len();
 			}
 
-		}	
+		}
 #endif
 		UE_LOG(LogRHI,Warning,TEXT("Failed to compile shader. Compile log:\n%s"), ANSI_TO_TCHAR(CompileLog));
-		
+
 		if (LogLength > 1)
 		{
 			FMemory::Free(CompileLog);
@@ -1308,12 +1324,12 @@ static void CheckTextureCubeLodSupport()
 			FOpenGL::bIsCheckingShaderCompilerHacks = false;
 			return;
 		}
-		
+
 		FOpenGL::bRequiresDontEmitPrecisionForTextureSamplers = true;
 		FOpenGL::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
 
 		// second most number of devices fall into this hack category
-		// try to compile without using precision for texture samplers 
+		// try to compile without using precision for texture samplers
 		// Samsung Galaxy Express	Samsung Galaxy S3	Samsung Galaxy S3 mini	Samsung Galaxy Tab GT-P1000	Samsung Galaxy Tab 2
 		PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
 
@@ -1364,7 +1380,7 @@ void FOpenGLDynamicRHI::Init()
 {
 	check(!GIsRHIInitialized);
 	VERIFY_GL_SCOPE();
-	
+
 	FOpenGLProgramBinaryCache::Initialize();
 #if PLATFORM_DESKTOP
 	FShaderCache::InitShaderCache(SCO_Default, FOpenGL::GetMaxTextureImageUnits());
@@ -1428,7 +1444,7 @@ void FOpenGLDynamicRHI::Init()
 
 	CheckTextureCubeLodSupport();
 	CheckVaryingLimit();
-	
+
 #if PLATFORM_DESKTOP
 	FShaderCache::LoadBinaryCache();
 #endif
@@ -1577,7 +1593,7 @@ void FOpenGLDynamicRHI::InvalidateQueries( void )
 
 	{
 		FScopeLock Lock(&TimerQueriesListCriticalSection);
-		
+
 		for( int32 Index = 0; Index < TimerQueries.Num(); ++Index )
 		{
 			TimerQueries[Index]->bInvalidResource = true;

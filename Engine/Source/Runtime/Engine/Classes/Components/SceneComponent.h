@@ -1,12 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Components/ActorComponent.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/CoreNet.h"
 #include "Engine/EngineTypes.h"
+#include "ComponentInstanceDataCache.h"
+#include "Components/ActorComponent.h"
 #include "RHIDefinitions.h"
-#include "ComponentInstanceDataCache.h" // for FActorComponentInstanceData
 #include "SceneComponent.generated.h"
 
+class AActor;
+class APhysicsVolume;
+class USceneComponent;
 struct FLevelCollection;
 
 /** Overlap info consisting of the primitive and the body that is overlapping */
@@ -968,7 +976,7 @@ public:
 	/** 
 	 * Get the PhysicsVolume overlapping this component.
 	 */
-	UFUNCTION(BlueprintCallable, Category=PhysicsVolume)
+	UFUNCTION(BlueprintCallable, Category=PhysicsVolume, meta=(UnsafeDuringActorConstruction="true"))
 	APhysicsVolume* GetPhysicsVolume() const;
 
 
@@ -1006,7 +1014,7 @@ protected:
 	/** Calculate the new ComponentToWorld transform for this component.
 		Parent is optional and can be used for computing ComponentToWorld based on arbitrary USceneComponent.
 		If Parent is not passed in we use the component's AttachParent*/
-	FORCEINLINE FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent = NULL, FName SocketName = NAME_None) const
+	FORCEINLINE FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent = nullptr, FName SocketName = NAME_None) const
 	{
 		SocketName = Parent ? SocketName : GetAttachSocketName();
 		Parent = Parent ? Parent : GetAttachParent();
@@ -1015,7 +1023,7 @@ protected:
 			const bool bGeneral = bAbsoluteLocation || bAbsoluteRotation || bAbsoluteScale;
 			if (!bGeneral)
 			{
-				return NewRelativeTransform * Parent->GetSocketTransform(GetAttachSocketName());
+				return NewRelativeTransform * Parent->GetSocketTransform(SocketName);
 			}
 			
 			return CalcNewComponentToWorld_GeneralCase(NewRelativeTransform, Parent, SocketName);
@@ -1432,6 +1440,9 @@ public:
 	/** Force full overlap update once this scope finishes. */
 	void ForceOverlapUpdate();
 
+	/** Registers that this move is a teleport */
+	void SetHasTeleported();
+
 	//--------------------------------------------------------------------------------------------------------//
 
 private:
@@ -1455,6 +1466,7 @@ private:
 	FScopedMovementUpdate* OuterDeferredScope;
 	uint32 bDeferUpdates:1;
 	uint32 bHasMoved:1;
+	uint32 bHasTeleported:1;
 	EOverlapState CurrentOverlapState;
 
 	FTransform InitialTransform;
@@ -1525,6 +1537,11 @@ FORCEINLINE_DEBUGGABLE void FScopedMovementUpdate::ForceOverlapUpdate()
 	bHasMoved = true;
 	CurrentOverlapState = EOverlapState::eForceUpdate;
 	FinalOverlapCandidatesIndex = INDEX_NONE;
+}
+
+FORCEINLINE_DEBUGGABLE void FScopedMovementUpdate::SetHasTeleported()
+{
+	bHasTeleported = true;
 }
 
 FORCEINLINE_DEBUGGABLE class FScopedMovementUpdate* USceneComponent::GetCurrentScopedMovement() const

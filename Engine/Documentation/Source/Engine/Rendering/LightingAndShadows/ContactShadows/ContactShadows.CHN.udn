@@ -1,0 +1,120 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title: Contact Shadows
+Crumbs: 
+Description: This page provides an overview of contact shadows in UE4.
+Version: 4.14
+Parent: Engine/Rendering/LightingAndShadows
+Order: 6
+Tags: Rendering
+Type: Reference
+reference-image: ContactShadow.gif
+Related: Engine/Rendering/LightingAndShadows/LightTypes/Point
+
+[VAR:Params]
+[PARAM:image]
+	![%Engine/Rendering/LightingAndShadows/ContactShadows:title%](ContactShadow_Topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/tutorial_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Engine/Rendering/LightingAndShadows/ContactShadows:title%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/Rendering/LightingAndShadows/ContactShadows]
+[/PARAM]
+[/VAR]
+
+[TOC(start:1 end:4)]
+
+![](ContactShadow_Banner.png)
+
+When creating scenery and characters for your application, there are times when you'll want to add visual depth to 
+the rendering. Adding contact shadows is a great way to improve the visual depth and fidelity of your scene 
+because they provide a more accurate approximation of shadowing, allowing you to add a contoured shadow that 
+might not be achieved with other shadowing algorithms.
+
+##Adding Detail to your Characters
+
+One use case for enabling contact shadows for a given point light is to render an additional level of detail for your 
+characters. The following images should give you a good idea of what contact shadows can add to a character. As you 
+drag the comparison slider from right to left, you'll notice that the character located within the radius of a point 
+light with enabled contact shadows exhibits additional details that aren't present when contact shadows are turned off.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Contact Shadow Off](ContactShadow_Off.png)(w:900)
+	[/PARAM]
+	[PARAM:after]
+	![Light's Contact Shadow Length = 0.1](ContactShadow_On.png)(w:900)
+	[/PARAM]
+[/OBJECT]
+
+When you turn-on contact shadows, you're directing the renderer to execute a per-pixel screen space algorithm on a 
+per-light basis. What this means is that the contact shadow algorithm is executing a light computation pass, 
+performing scene depth buffer ray marching so as to determine whether the queried pixel is to be occluded from the 
+point light souce that has contact shadows enabled.
+
+##Scenes with Contact Shadows
+
+Another use case for enabling contact shadows is to eliminate the need for computing parallax occlusion mapping shadows 
+within a material's pixel shader that only supports one light. The following image provides a comparison of parallax 
+occlusion mapping materials with and without contact shadows enabled.
+
+![](ContactShadow_Comparison.png)(w:900)
+
+[REGION:note]
+It's important to note that your parallax occlusion mapping materials should output the pixel depth offset.
+[/REGION]
+
+The following is an example of contact shadows interacting with a parallax occlusion mapping material.
+
+[REGION:asyncgif]
+![image alt text](ContactShadow.gif)(w:900)
+[/REGION]
+
+[REGION:caption]
+Contact shadow length = 0.1 on both lights.
+[/REGION]
+
+##Enabling Contact Shadows
+
+By default, contact shadows are disabled on point lights, whereby the point light's contact shadow length is initialized to 0. 
+To enable contact shadows, perform the following steps:
+
+1.	First, place a [Point Light](Engine/Rendering/LightingAndShadows/LightTypes/Point) inside of your scene.
+
+	[REGION:lightbox]
+	[![](CastShadows_Step1.png)(w:640 h:360)](CastShadows_Step1.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+1.	Now, expand the **Light** section of the **Details** panel for your newly created Point Light Component by clicking on the expansion arrow.
+
+	[REGION:lightbox]
+	[![](CastShadows_Step2.png)(w:360 h:640)](CastShadows_Step2.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+1.	To enable contact shadows, set the **Contact Shadow Length** to a value greater than 0.
+
+	[REGION:lightbox]
+	[![](CastShadows_Step3.png)(w:360 h:640)](CastShadows_Step3.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+By setting the contact shadow's length to a value greater than 0, you're directing the renderer to trace rays from a pixel's position toward the 
+light source through the scene's depth buffer. Typically, you'll want to set the contact shadow's length to a maximum value of 1, where 1 means 
+that the ray traverses the entire screen. Whereas, setting the contact shadow's length to a value of 0.5 means that the ray traverses 
+only half of the screen. Note that the number of samples taken in the scene depth buffer remain constant, which means that you'll see more noise 
+(artifacts) as you increase the contact shadow's length. Basically, a contact shadow length of 0.75 generates more noise than a length of 0.1.

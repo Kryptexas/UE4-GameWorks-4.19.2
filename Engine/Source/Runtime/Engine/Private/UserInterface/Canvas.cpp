@@ -1,21 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Canvas.cpp: Unreal canvas rendering.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "SlateBasics.h"
-#include "Engine/Font.h"
-#include "EngineFontServices.h"
-#include "TileRendering.h"
-#include "TriangleRendering.h"
-#include "RHIStaticStates.h"
-#include "BreakIterator.h"
-
-#include "IHeadMountedDisplay.h"
-#include "Debug/ReporterGraph.h"
+#include "Engine/Canvas.h"
+#include "UObject/Package.h"
+#include "UObject/ConstructorHelpers.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "Materials/MaterialInterface.h"
+#include "Engine/Engine.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/Texture2D.h"
 #include "SceneUtils.h"
+#include "Framework/Application/SlateApplication.h"
+#include "EngineFontServices.h"
+#include "Internationalization/BreakIterator.h"
+#include "Misc/CoreDelegates.h"
+
+#include "StereoRendering.h"
+#include "Debug/ReporterGraph.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCanvas, Log, All);
 
@@ -449,24 +455,23 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 			Canvas->GetFeatureLevel(),
 			Canvas->GetShaderPlatform()
 		};
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-			BatchedDrawCommand,
-			FBatchedDrawParameters,Parameters,DrawParameters,
-		{
-			// draw batched items
-			Parameters.RenderData->BatchedElements.Draw(
-				RHICmdList,
-				Parameters.FeatureLevel,
-				Parameters.bNeedsToSwitchVerticalAxis,
-				FBatchedElements::CreateProxySceneView(Parameters.RenderData->Transform.GetMatrix(),FIntRect(0, 0, Parameters.ViewportSizeX, Parameters.ViewportSizeY)),
-				Parameters.bHitTesting,
-				Parameters.DisplayGamma
-				);
-			if( Parameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender )
+		ENQUEUE_RENDER_COMMAND(BatchedDrawCommand)(
+			[DrawParameters](FRHICommandList& RHICmdList)
 			{
-				delete Parameters.RenderData;
-			}
-		});
+				// draw batched items
+				DrawParameters.RenderData->BatchedElements.Draw(
+					RHICmdList,
+						DrawParameters.FeatureLevel,
+						DrawParameters.bNeedsToSwitchVerticalAxis,
+					FBatchedElements::CreateProxySceneView(DrawParameters.RenderData->Transform.GetMatrix(),FIntRect(0, 0, DrawParameters.ViewportSizeX, DrawParameters.ViewportSizeY)),
+						DrawParameters.bHitTesting,
+						DrawParameters.DisplayGamma
+					);
+				if(DrawParameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender )
+				{
+					delete DrawParameters.RenderData;
+				}
+			});
 	}
 	if( Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender )
 	{
@@ -753,25 +758,24 @@ void FCanvas::Flush_GameThread(bool bForce)
 	};
 	bool bEmitCanvasDrawEvents = GEmitDrawEvents;
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		CanvasFlushSetupCommand,
-		FCanvasFlushParameters,Parameters,FlushParameters,
-	{
-		// Set the RHI render target.
-		::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
-		// disable depth test & writes
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
-
-		if (Parameters.bIsScaledToRenderTarget)
+	ENQUEUE_RENDER_COMMAND(CanvasFlushSetupCommand)(
+		[FlushParameters](FRHICommandList& RHICmdList)
 		{
-			FIntPoint CanvasSize = Parameters.CanvasRenderTarget->GetSizeXY();
-			Parameters.ViewRect = FIntRect(0, 0, CanvasSize.X, CanvasSize.Y);
-		}
+			// Set the RHI render target.
+			::SetRenderTarget(RHICmdList, FlushParameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
+			// disable depth test & writes
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-		const FIntRect& ViewportRect = Parameters.ViewRect;
-		// set viewport to RT size
-		RHICmdList.SetViewport(ViewportRect.Min.X, ViewportRect.Min.Y, 0.0f, ViewportRect.Max.X, ViewportRect.Max.Y, 1.0f);
-	});
+			FIntRect ViewportRect = FlushParameters.ViewRect;
+			if (FlushParameters.bIsScaledToRenderTarget)
+			{
+				FIntPoint CanvasSize = FlushParameters.CanvasRenderTarget->GetSizeXY();
+				ViewportRect = FIntRect(0, 0, CanvasSize.X, CanvasSize.Y);
+			}
+
+			// set viewport to RT size
+			RHICmdList.SetViewport(ViewportRect.Min.X, ViewportRect.Min.Y, 0.0f, ViewportRect.Max.X, ViewportRect.Max.Y, 1.0f);
+		});
 
 	// iterate over the FCanvasSortElements in sorted order and render all the batched items for each entry
 	for( int32 Idx=0; Idx < SortedElements.Num(); Idx++ )
@@ -824,7 +828,7 @@ void FCanvas::PushRelativeTransform(const FMatrix& Transform)
 
 void FCanvas::PushAbsoluteTransform(const FMatrix& Transform) 
 {
-	if(ensure(TransformStack.Num()>0))
+	if(TransformStack.Num()>0)
 	{
 		TransformStack.Add(FTransformEntry(Transform * TransformStack[0].GetMatrix()));
 	}
@@ -893,57 +897,34 @@ void FCanvas::SetRenderTargetRect( const FIntRect& InViewRect )
 	ViewRect = InViewRect;
 }
 
-void FCanvas::Clear(const FLinearColor& LinearColor)
+void FCanvas::Clear(const FLinearColor& ClearColor)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		ClearCommand,
-		FLinearColor, ClearColor, LinearColor,
-		FRenderTarget*, CanvasRenderTarget, GetRenderTarget(),
-	{
-		SCOPED_DRAW_EVENT(RHICmdList, CanvasClear);
-		if( CanvasRenderTarget )
+	FRenderTarget* CanvasRenderTarget = GetRenderTarget();
+	ENQUEUE_RENDER_COMMAND(ClearCommand)(
+		[ClearColor, CanvasRenderTarget](FRHICommandList& RHICmdList)
 		{
-			::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
-			RHICmdList.SetViewport(0, 0, 0.0f, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y, 1.0f);
-			RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor, FIntRect());
-		}
-		else
-		{
-			//#todo-rco!
-			ensure(0);
-			//RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor, FIntRect());
-		}
-	});
+			SCOPED_DRAW_EVENT(RHICmdList, CanvasClear);
+			if( CanvasRenderTarget )
+			{
+				::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
+				RHICmdList.SetViewport(0, 0, 0.0f, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y, 1.0f);
+				RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor, FIntRect());
+			}
+			else
+			{
+				ensureMsgf(0, TEXT("What is the current render target here?"));
+				//RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor, FIntRect());
+			}
+		});
 }
 
 void FCanvas::DrawTile( float X, float Y, float SizeX,	float SizeY, float U, float V, float SizeU, float SizeV, const FLinearColor& Color,	const FTexture* Texture, bool AlphaBlend )
 {
 	SCOPE_CYCLE_COUNTER(STAT_Canvas_DrawTextureTileTime);
-	const float Z = 1.0f;
-	FLinearColor ActualColor = Color;
-	ActualColor.A *= AlphaModulate;
 
-	const FTexture* FinalTexture = Texture ? Texture : GWhiteTexture;
-	const ESimpleElementBlendMode BlendMode = AlphaBlend ? SE_BLEND_Translucent : SE_BLEND_Opaque;
-	FBatchedElementParameters* BatchedElementParameters = NULL;
-	FBatchedElements* BatchedElements = GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParameters, FinalTexture, BlendMode);
-	FHitProxyId HitProxyId = GetHitProxyId();
-
-
-	// Correct for Depth. This only works because we won't be applying a transform later--otherwise we'd have to adjust the transform instead.
-	float Left, Top, Right, Bottom;
-	Left = X * Z;
-	Top = Y * Z;
-	Right = (X + SizeX) * Z;
-	Bottom = (Y + SizeY) * Z;
-
-	int32 V00 = BatchedElements->AddVertex(FVector4(Left,	  Top,	0,Z),FVector2D(U,			V),			ActualColor,HitProxyId);
-	int32 V10 = BatchedElements->AddVertex(FVector4(Right,    Top,	0,Z),FVector2D(U + SizeU,	V),			ActualColor,HitProxyId);
-	int32 V01 = BatchedElements->AddVertex(FVector4(Left,	  Bottom,	0,Z),FVector2D(U,			V + SizeV),	ActualColor,HitProxyId);
-	int32 V11 = BatchedElements->AddVertex(FVector4(Right,    Bottom,	0,Z),FVector2D(U + SizeU,	V + SizeV),	ActualColor,HitProxyId);
-
-	BatchedElements->AddTriangle(V00,V10,V11,FinalTexture,BlendMode);
-	BatchedElements->AddTriangle(V00,V11,V01,FinalTexture,BlendMode);
+	FCanvasTileItem TileItem(FVector2D(X,Y), Texture ? Texture : GWhiteTexture, FVector2D(SizeX,SizeY), FVector2D(U,V), FVector2D(SizeU,SizeV), Color);
+	TileItem.BlendMode = AlphaBlend ? SE_BLEND_Translucent : SE_BLEND_Opaque;
+	DrawItem(TileItem);
 }
 
 int32 FCanvas::DrawShadowedString( float StartX,float StartY,const TCHAR* Text,const UFont* Font,const FLinearColor& Color, const FLinearColor& ShadowColor )
@@ -1173,6 +1154,8 @@ UCanvas::UCanvas(const FObjectInitializer& ObjectInitializer)
 	// only call once on construction.  Expensive on some platforms (occulus).
 	// Init gets called every frame.	
 	UpdateSafeZoneData();
+
+	FCoreDelegates::OnSafeFrameChangedEvent.AddUObject(this, &UCanvas::UpdateSafeZoneData);
 }
 
 void UCanvas::Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView)
@@ -1184,8 +1167,16 @@ void UCanvas::Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView)
 	UnsafeSizeY = SizeY;
 	SceneView = InSceneView;		
 	
-	Update();	
+	Update();
 }
+
+
+void UCanvas::BeginDestroy()
+{
+	Super::BeginDestroy();
+	FCoreDelegates::OnSafeFrameChangedEvent.RemoveAll(this);
+}
+
 
 void UCanvas::ApplySafeZoneTransform()
 {

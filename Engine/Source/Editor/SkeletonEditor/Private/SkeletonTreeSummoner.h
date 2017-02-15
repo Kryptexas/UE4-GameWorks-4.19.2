@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "WorkflowTabFactory.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "ISkeletonTree.h"
+#include "WorkflowOrientedApp/WorkflowTabFactory.h"
+
+class SToolTip;
 
 struct FSkeletonTreeSummoner : public FWorkflowTabFactory
 {

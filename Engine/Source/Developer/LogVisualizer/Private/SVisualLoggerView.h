@@ -1,6 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Input/CursorReply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "Developer/LogVisualizer/Private/LogVisualizerPrivate.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Layout/SScrollBox.h"
+
+class SVisualLoggerTimelinesContainer;
 
 class SVisualLoggerView : public SVisualLoggerBaseWidget
 {

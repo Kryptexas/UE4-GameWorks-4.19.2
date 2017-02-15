@@ -1,6 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 //
-#include "SteamVRPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "SteamVRPrivate.h"
 #include "SteamVRHMD.h"
 
 #include "RendererPrivate.h"
@@ -8,6 +9,8 @@
 #include "PostProcess/PostProcessHMD.h"
 
 #if STEAMVR_SUPPORTED_PLATFORMS
+
+static TAutoConsoleVariable<int32> CUsePostPresentHandoff(TEXT("vr.SteamVR.UsePostPresentHandoff"), 0, TEXT("Whether or not to use PostPresentHandoff.  If true, more GPU time will be available, but this relies on no SceneCaptureComponent2D or WidgetComponents being active in the scene.  Otherwise, it will break async reprojection."));
 
 void FSteamVRHMD::DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FIntPoint& TextureSize)
 {
@@ -204,7 +207,10 @@ bool FSteamVRHMD::D3D11Bridge::Present(int& SyncInterval)
 
 void FSteamVRHMD::D3D11Bridge::PostPresent()
 {
-	Plugin->VRCompositor->PostPresentHandoff();
+	if (CUsePostPresentHandoff.GetValueOnRenderThread() == 1)
+	{
+		Plugin->VRCompositor->PostPresentHandoff();
+	}
 }
 
 #endif // PLATFORM_WINDOWS

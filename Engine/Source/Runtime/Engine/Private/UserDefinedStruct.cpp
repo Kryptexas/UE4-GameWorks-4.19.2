@@ -1,12 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Engine/UserDefinedStruct.h"
+#include "UObject/UObjectHash.h"
+#include "Serialization/PropertyLocalizationDataGathering.h"
+#include "UObject/StructOnScope.h"
+#include "UObject/UnrealType.h"
+#include "UObject/LinkerLoad.h"
+#include "Misc/SecureHash.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Misc/PackageName.h" // for FPackageName::GetLongPackageAssetName()
 
 #if WITH_EDITOR
-#include "StructureEditorUtils.h"
+#include "UserDefinedStructure/UserDefinedStructEditorData.h"
+#include "Kismet2/StructureEditorUtils.h"
 #endif //WITH_EDITOR
-#include "Engine/UserDefinedStruct.h"
-#include "TextReferenceCollector.h"
+#include "Serialization/TextReferenceCollector.h"
 
 #if WITH_EDITORONLY_DATA
 namespace
@@ -22,11 +30,7 @@ namespace
 		FStructOnScope StructData(UserDefinedStruct);
 		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct, StructData.GetStructMemory());
 
-		// Iterate over all fields of the object's class.
-		for (TFieldIterator<const UProperty> PropIt(StructData.GetStruct(), EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); PropIt; ++PropIt)
-		{
-			PropertyLocalizationDataGatherer.GatherLocalizationDataFromChildTextProperties(PathToObject, *PropIt, PropIt->ContainerPtrToValuePtr<void>(StructData.GetStructMemory()), GatherTextFlags);
-		}
+		PropertyLocalizationDataGatherer.GatherLocalizationDataFromStructFields(PathToObject, StructData.GetStruct(), StructData.GetStructMemory(), nullptr, GatherTextFlags);
 	}
 
 	void CollectUserDefinedStructTextReferences(UObject* Object, FArchive& Ar)
@@ -222,6 +226,11 @@ void UUserDefinedStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, US
 	Super::SerializeTaggedProperties(Ar, Data, DefaultsStruct, Defaults);
 }
 
+uint32 UUserDefinedStruct::GetStructTypeHash(const void* Src) const
+{
+	return GetUserDefinedStructTypeHash(Src, this);
+}
+
 void UUserDefinedStruct::RecursivelyPreload()
 {
 	FLinkerLoad* Linker = GetLinker();
@@ -247,3 +256,76 @@ FGuid UUserDefinedStruct::GetCustomGuid() const
 {
 	return Guid;
 }
+
+ENGINE_API FString GetPathPostfix(const UObject* ForObject)
+{
+	FString FullAssetName = ForObject->GetOutermost()->GetPathName();
+	if (FullAssetName.StartsWith(TEXT("/Temp/__TEMP_BP__"), ESearchCase::CaseSensitive))
+	{
+		FullAssetName.RemoveFromStart(TEXT("/Temp/__TEMP_BP__"), ESearchCase::CaseSensitive);
+	}
+	FString AssetName = FPackageName::GetLongPackageAssetName(FullAssetName);
+	// append a hash of the path, this uniquely identifies assets with the same name, but different folders:
+	FullAssetName.RemoveFromEnd(AssetName);
+	return FString::Printf(TEXT("%u"), GetTypeHash(FullAssetName));
+}
+
+FString UUserDefinedStruct::GetStructCPPName() const
+{
+	return ::UnicodeToCPPIdentifier(*GetName(), false, GetPrefixCPP()) + GetPathPostfix(this);
+}
+
+uint32 UUserDefinedStruct::GetUserDefinedStructTypeHash(const void* Src, const UScriptStruct* Type)
+{
+	// Ugliness to maximize entropy on first call to HashCombine... Alternatively we could
+	// do special logic on the first iteration of the below loops (unwind loops or similar):
+	const auto ConditionalCombineHash = [](uint32 AccumulatedHash, uint32 CurrentHash) -> uint32
+	{
+		if (AccumulatedHash != 0)
+		{
+			return HashCombine(AccumulatedHash, CurrentHash);
+		}
+		else
+		{
+			return CurrentHash;
+		}
+	};
+
+	uint32 ValueHash = 0;
+	// combining bool values and hashing them together, small range enums could get stuffed into here as well,
+	// but UBoolProperty does not actually provide GetValueTypeHash (and probably shouldn't). For structs
+	// with more than 64 boolean values we lose some information, but that is acceptable, just slightly 
+	// increasing risk of hash collision:
+	bool bHasBoolValues = false;
+	uint64 BoolValues = 0;
+	// for blueprint defined structs we can just loop and hash the individual properties:
+	for (TFieldIterator<const UProperty> It(Type); It; ++It)
+	{
+		uint32 CurrentHash = 0;
+		if (const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(*It))
+		{
+			for (int32 I = 0; I < It->ArrayDim; ++I)
+			{
+				BoolValues = (BoolValues << 1) + ( BoolProperty->GetPropertyValue_InContainer(Src, I) ? 1 : 0 );
+			}
+		}
+		else if (ensure(It->HasAllPropertyFlags(CPF_HasGetValueTypeHash)))
+		{
+			for (int32 I = 0; I < It->ArrayDim; ++I)
+			{
+				uint32 Hash = It->GetValueTypeHash(It->ContainerPtrToValuePtr<void>(Src, I));
+				CurrentHash = ConditionalCombineHash(CurrentHash, Hash);
+			}
+		}
+
+		ValueHash = ConditionalCombineHash(ValueHash, CurrentHash);
+	}
+
+	if (bHasBoolValues)
+	{
+		ValueHash = ConditionalCombineHash(ValueHash, GetTypeHash(BoolValues));
+	}
+
+	return ValueHash;
+}
+

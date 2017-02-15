@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "StringClassReferenceCustomization.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Engine/GameViewportClient.h"
+#include "PropertyHandle.h"
+#include "PropertyCustomizationHelpers.h"
 #include "EditorClassUtils.h"
 
 void FStringClassReferenceCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
@@ -10,10 +13,12 @@ void FStringClassReferenceCustomization::CustomizeHeader(TSharedRef<IPropertyHan
 
 	const FString& MetaClassName = PropertyHandle->GetMetaData("MetaClass");
 	const FString& RequiredInterfaceName = PropertyHandle->GetMetaData("RequiredInterface");
-	const bool bAllowAbstract = PropertyHandle->GetBoolMetaData("AllowAbstract");
+	const bool bAllowAbstract = PropertyHandle->HasMetaData("AllowAbstract");
 	const bool bIsBlueprintBaseOnly = PropertyHandle->GetBoolMetaData("IsBlueprintBaseOnly");
 	const bool bAllowNone = !(PropertyHandle->GetMetaDataProperty()->PropertyFlags & CPF_NoClear);
-
+	const bool bShowTreeView = PropertyHandle->HasMetaData("ShowTreeView");
+	const bool bHideViewOptions = PropertyHandle->HasMetaData("HideViewOptions");
+	
 	const UClass* const MetaClass = !MetaClassName.IsEmpty()
 		? FEditorClassUtils::GetClassFromString(MetaClassName)
 		: UClass::StaticClass();
@@ -35,6 +40,8 @@ void FStringClassReferenceCustomization::CustomizeHeader(TSharedRef<IPropertyHan
 			.AllowAbstract(bAllowAbstract)
 			.IsBlueprintBaseOnly(bIsBlueprintBaseOnly)
 			.AllowNone(bAllowNone)
+			.ShowTreeView(bShowTreeView)
+			.HideViewOptions(bHideViewOptions)
 			.SelectedClass(this, &FStringClassReferenceCustomization::OnGetClass)
 			.OnSetClass(this, &FStringClassReferenceCustomization::OnSetClass)
 	];

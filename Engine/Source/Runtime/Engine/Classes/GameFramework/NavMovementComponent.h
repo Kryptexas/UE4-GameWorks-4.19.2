@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Movement component that is compatible with the navigation system's PathFollowingComponent
@@ -6,15 +6,17 @@
 
 #pragma once
 
-#include "AI/Navigation/NavigationSystem.h"
-#include "AI/Navigation/NavAgentInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
 #include "AI/Navigation/NavigationTypes.h"
+#include "AI/Navigation/NavAgentInterface.h"
 #include "GameFramework/MovementComponent.h"
-#include "Components/PrimitiveComponent.h"
 #include "NavMovementComponent.generated.h"
 
-class AActor;
 class UCapsuleComponent;
+class UPathFollowingComponent;
 
 /**
  * NavMovementComponent defines base functionality for MovementComponents that move any 'agent' that may be involved in AI pathfinding.
@@ -37,7 +39,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = NavMovement)
 	uint32 bUpdateNavAgentWithOwnersCollision:1;
 
-	/** If set, FixedPathBrakingDistance will be used for path following deceleration */
+	/** If set, pathfollowing will control character movement via acceleration values. If false, it will set velocities directly. */
 	UPROPERTY(EditAnywhere, Category = NavMovement, GlobalConfig)
 	uint32 bUseAccelerationForPaths : 1;
 

@@ -5149,13 +5149,13 @@ void Sc::Scene::addShape(RigidSim& owner, ShapeCore& shapeCore, PxBounds3* uninf
 	mNbGeometries[shapeCore.getGeometryType()]++;
 
 	//register shape
-	mSimulationController->addShape(&sim->getLLShapeSim(), sim->getID()); 
+	mSimulationController->addShape(&sim->getLLShapeSim(), sim->getID());
 	if (uninflatedBounds)
 		*uninflatedBounds = mBoundsArray->getBounds(sim->getElementID());
 	registerShapeInNphase(shapeCore);
 }
 
-void Sc::Scene::removeShape(ShapeSim &shape, bool wakeOnLostTouch)
+void Sc::Scene::removeShape(ShapeSim& shape, bool wakeOnLostTouch)
 {
 	//BodySim* body = shape.getBodySim();
 	//if(body)
@@ -6454,7 +6454,7 @@ void Sc::Scene::preallocateContactManagers(PxBaseTask* continuation)
 	{
 		//We allocate at least 1 element in this array to ensure that the onOverlapCreated functions don't go bang!
 		mPreallocatedContactManagers.reserve(totalCreatedPairs);
-		mPreallocatedShapeInteractions.reserve(totalCreatedPairs);
+		mPreallocatedShapeInteractions.reserve(totalCreatedPairs+1);
 		mPreallocatedInteractionMarkers.reserve(totalSuppressPairs);
 
 		mPreallocatedContactManagers.forceSize_Unsafe(totalCreatedPairs);

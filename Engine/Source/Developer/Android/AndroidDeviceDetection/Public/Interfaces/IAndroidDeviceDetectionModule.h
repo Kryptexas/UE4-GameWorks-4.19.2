@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IAndroidDeviceDetectionModule.h: Declares the IAndroidDeviceDetectionModule interface.
 =============================================================================*/
 
 #pragma once
+
+#include "Modules/ModuleInterface.h"
+
+class IAndroidDeviceDetection;
 
 /**
  * Interface for AndroidDeviceDetection module.

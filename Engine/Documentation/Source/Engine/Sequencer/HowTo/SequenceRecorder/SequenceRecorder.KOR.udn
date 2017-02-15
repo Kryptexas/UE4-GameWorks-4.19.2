@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3041679
+﻿INTSourceChangelist:3150518
 Availability: Public
-Title:게임플레이 녹화
+Title:시퀀서로 녹화
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:시퀀스 레코더로 게임플레이를 녹화하고 그 데이터를 시퀀서 안에서 활용합니다.
+Description:시퀀스 레코더로 동작을 녹화하고 그 데이터를 시퀀서 안에서 활용합니다.
 Version: 4.12
 SkillLevel: Advanced
 parent:Engine/Sequencer/HowTo
@@ -11,7 +11,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 
-**Sequence Recorder** (시퀀서 레코더)는 게임플레이 도중 특정 액터를 캡처하여 새로운 **레벨 시퀀스** 로 저장한 뒤 **시퀀서** 안에서 편집할 수 있습니다.
+**Sequence Recorder** (시퀀서 레코더)는 레벨 편집이나 게임플레이 도중 특정 액터를 캡처하여 새로운 **레벨 시퀀스** 로 저장한 뒤 **시퀀서** 안에서 편집할 수 있습니다.
 씬의 콘텐츠를 빠르게 캡처하는데 좋은데, 플레이가능 캐릭터를 잡아 게임플레이 도중 시퀀서 레코더로 녹화하면서 어떤 동작을 하게 한 뒤, 그 데이터를 시퀀서로 넘긴 뒤 그것을 중심으로 시네마틱 작업을 하는 것이 가능합니다.
 
 이 예제에서는 **시퀀스 레코더** 를 사용하여 플레이가능 캐릭터의 이동을 녹화한 뒤 편집해 보겠습니다.
@@ -23,9 +23,11 @@ Related: Engine\Sequencer\ReferenceEditor\
 여기서는 **블루프린트 삼인칭 템플릿** 프로젝트에 **시작용 콘텐츠** 포함한 것을 사용합니다.
 [/REGION]
 
-1.	**메뉴 바** 의 **창** 아래 **시퀀스 레코더** 를 선택합니다. 시퀀스 레코더 창이 자동으로 열립니다. **Sequence Recording** (시퀀스 녹화) 아래 있는 옵션으로 새 레벨 시퀀스 애셋을 어떻게 (그리고 어디에) 저장할지 결정할 수 있습니다. 스폰되는 (파티클 이펙트, 기타 캐릭터 등) 액터를 녹화하도록 할 수도 있고, 작명 규칙과 저장 위치를 설정할 수도 있으며, 녹화 기간이나 녹화 시작 전 지연시간 등의 설정 변경도 가능합니다.
+1.	**메뉴 바** 의 **창** 아래 **시퀀스 레코더** 를 선택합니다. 
 
 	![](RecorderStep1.png)
+
+	시퀀스 레코더 창이 자동으로 열립니다. **Sequence Recording** (시퀀스 녹화) 아래 있는 옵션으로 새 레벨 시퀀스 애셋을 어떻게 (그리고 어디에) 저장할지 결정할 수 있습니다. 스폰되는 (파티클 이펙트, 기타 캐릭터 등) 액터를 녹화하도록 할 수도 있고, 작명 규칙과 저장 위치를 설정할 수도 있으며, 녹화 기간이나 녹화 시작 전 지연시간 등의 설정 변경도 가능합니다.
 	
 1.	메인 에디터 툴바에서, **플레이** 버튼을 클릭하여 에디터에서 플레이 세션을 시작합니다.
 
@@ -82,15 +84,28 @@ hR5zBjYO5Oc
 [/PARAMLITERAL]
 [/OBJECT]
 
+게임플레이 녹화 뿐만 아니라 Actor to Record (녹화할 액터)를 할당하는 것으로 레벨 편집 도중의 작업을 녹화할 수도 있습니다.
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+rC_ZStHXm38
+[/PARAMLITERAL]
+[/OBJECT]
+
+레벨에 큐브를 배치한 뒤 시퀀서 레코더에게 큐브를 녹화하라 했습니다.
+그런 다음 큐브를 움직이면 시퀀스 레코더가 입력된 이동을 새로이 생성된 레벨 시퀀스 속 키프레임으로 캡처합니다.
+레벨 시퀀스를 재생하면, 새로운 큐브 액터가 레벨 시퀀스에 스포너블로 생성되는데, 그때문에 시퀀스가 활성화되면 두 번째 큐브가 나타나는 것입니다.
+
+[REGION:note]
+레벨 편집 녹화시에는 키프레임 설정이 가능한 프로퍼티만 캡처하여 녹화할 수 있습니다.
+[/REGION]
 
 
 
-
-
-
-
-
-
-
-	
 

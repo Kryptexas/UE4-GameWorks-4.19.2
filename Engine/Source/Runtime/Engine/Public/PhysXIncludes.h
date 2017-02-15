@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Includes all necessary PhysX headers
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
 
 #if WITH_PHYSX
 
@@ -21,6 +24,7 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 
 #pragma pack(push,8)
 
+THIRD_PARTY_INCLUDES_START
 #include "Px.h"
 #include "PxPhysicsAPI.h"
 #include "PxRenderBuffer.h"
@@ -28,17 +32,11 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include "PxCollectionExt.h"
 #include "PxPvd.h"
 
-// vehicle related header files
-#include "PxVehicleSDK.h"
-#include "PxVehicleNoDrive.h"
-#include "PxVehicleDrive4W.h"
-//#include "PxVehicleSuspLimitConstraintShader.h"
-//#include "PxVehicleUtils.h"
-
 // utils
 #include "PxGeometryQuery.h"
 #include "PxMeshQuery.h"
 #include "PxTriangle.h"
+THIRD_PARTY_INCLUDES_END
 
 // APEX
 #if WITH_APEX
@@ -48,13 +46,17 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #endif
 
 // Framework
+THIRD_PARTY_INCLUDES_START
 #include "Apex.h"
+THIRD_PARTY_INCLUDES_END
 
 // Modules
 
 #include "ModuleDestructible.h"
 #include "DestructibleAsset.h"
 #include "destructible/DestructibleActor.h"
+
+THIRD_PARTY_INCLUDES_START
 
 #if WITH_APEX_CLOTHING
 #include "ModuleClothing.h"
@@ -69,6 +71,8 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 
 // Utilities
 #include "NvParamUtils.h"
+
+THIRD_PARTY_INCLUDES_END
 
 #endif // #if WITH_APEX
 

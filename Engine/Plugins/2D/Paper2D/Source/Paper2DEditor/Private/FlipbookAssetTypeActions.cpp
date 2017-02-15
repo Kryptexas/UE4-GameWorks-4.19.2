@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "Paper2DEditorPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "FlipbookAssetTypeActions.h"
+
+#include "PaperFlipbook.h"
 #include "FlipbookEditor/FlipbookEditor.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"

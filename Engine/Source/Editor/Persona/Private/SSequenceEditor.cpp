@@ -1,23 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#include "PersonaPrivatePCH.h"
 
 #include "SSequenceEditor.h"
-#include "GraphEditor.h"
-#include "GraphEditorModule.h"
-#include "Editor/Kismet/Public/SKismetInspector.h"
-#include "SAnimationScrubPanel.h"
+#include "Animation/AnimSequence.h"
+
 #include "SAnimNotifyPanel.h"
-#include "SAnimCurvePanel.h"
 #include "SAnimTrackCurvePanel.h"
+#include "AnimPreviewInstance.h"
 
 #define LOCTEXT_NAMESPACE "AnimSequenceEditor"
 
 //////////////////////////////////////////////////////////////////////////
 // SSequenceEditor
 
-void SSequenceEditor::Construct(const FArguments& InArgs, TSharedRef<class IPersonaPreviewScene> InPreviewScene, TSharedRef<class IEditableSkeleton> InEditableSkeleton, FSimpleMulticastDelegate& OnPostUndo, FSimpleMulticastDelegate& OnCurvesChanged)
+void SSequenceEditor::Construct(const FArguments& InArgs, TSharedRef<class IPersonaPreviewScene> InPreviewScene, TSharedRef<class IEditableSkeleton> InEditableSkeleton, FSimpleMulticastDelegate& OnPostUndo)
 {
 	SequenceObj = InArgs._Sequence;
 	check(SequenceObj);
@@ -27,9 +23,8 @@ void SSequenceEditor::Construct(const FArguments& InArgs, TSharedRef<class IPers
 		.OnObjectsSelected(InArgs._OnObjectsSelected), 
 		InPreviewScene );
 
-	OnPostUndo.Add(FPersona::FOnPostUndo::CreateSP( this, &SSequenceEditor::PostUndo ) );
-	OnCurvesChanged.Add(FPersona::FOnTrackCurvesChanged::CreateSP( this, &SSequenceEditor::HandleCurvesChanged) );
-	
+	OnPostUndo.Add(FSimpleDelegate::CreateSP( this, &SSequenceEditor::PostUndo ) );
+
 	EditorPanels->AddSlot()
 	.AutoHeight()
 	.Padding(0, 10)
@@ -61,7 +56,6 @@ void SSequenceEditor::Construct(const FArguments& InArgs, TSharedRef<class IPers
 		.InputMax(this, &SAnimEditorBase::GetMaxInput)
 		.OnSetInputViewRange(this, &SAnimEditorBase::SetInputViewRange)
 		.OnGetScrubValue(this, &SAnimEditorBase::GetScrubValue)
-		.OnCurvesChanged(InArgs._OnCurvesChanged)
 	];
 
 	UAnimSequence * AnimSeq = Cast<UAnimSequence>(SequenceObj);
@@ -80,7 +74,6 @@ void SSequenceEditor::Construct(const FArguments& InArgs, TSharedRef<class IPers
 			.InputMax(this, &SAnimEditorBase::GetMaxInput)
 			.OnSetInputViewRange(this, &SAnimEditorBase::SetInputViewRange)
 			.OnGetScrubValue(this, &SAnimEditorBase::GetScrubValue)
-			.OnCurvesChanged(InArgs._OnCurvesChanged)
 		];
 	}
 }
@@ -99,14 +92,6 @@ void SSequenceEditor::PostUndo()
 		{
 			AnimTrackCurvePanel->UpdatePanel();
 		}
-	}
-}
-
-void SSequenceEditor::HandleCurvesChanged()
-{
-	if (AnimTrackCurvePanel.IsValid())
-	{
-		AnimTrackCurvePanel->UpdatePanel();
 	}
 }
 

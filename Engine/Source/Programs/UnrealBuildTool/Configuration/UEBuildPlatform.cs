@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -164,8 +164,8 @@ namespace UnrealBuildTool
 			}
 
 			// Set up the global C++ compilation and link environment.
-			GlobalCompileEnvironment.Config.Target.Configuration = CompileConfiguration;
-			GlobalLinkEnvironment.Config.Target.Configuration = CompileConfiguration;
+			GlobalCompileEnvironment.Config.Configuration = CompileConfiguration;
+			GlobalLinkEnvironment.Config.Configuration = CompileConfiguration;
 
 			// Create debug info based on the heuristics specified by the user.
 			GlobalCompileEnvironment.Config.bCreateDebugInfo =
@@ -190,7 +190,7 @@ namespace UnrealBuildTool
 					EngineIniPath = UnrealBuildTool.GetRemoteIniPath();
 				}
 				DirectoryReference EngineIniDir = !String.IsNullOrEmpty(EngineIniPath) ? new DirectoryReference(EngineIniPath) : null;
-				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", EngineIniDir);
+				ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, EngineIniDir, Platform);
 
 				bool bValue = UEBuildConfiguration.bCompileAPEX;
 				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileApex", out bValue))
@@ -258,12 +258,6 @@ namespace UnrealBuildTool
                     UEBuildConfiguration.bWithPerfCounters = bValue;
                 }
 
-                bValue = UEBuildConfiguration.bCompilePhysXVehicle;
-				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompilePhysXVehicle", out bValue))
-				{
-					UEBuildConfiguration.bCompilePhysXVehicle = bValue;
-				}
-
 				bValue = UEBuildConfiguration.bCompileFreeType;
 				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileFreeType", out bValue))
 				{
@@ -282,13 +276,6 @@ namespace UnrealBuildTool
 					UEBuildConfiguration.bCompileCEF3 = bValue;
 				}
 
-				if (Target != null && Target.IsCooked)
-				{
-					if (Ini.GetBool("/Script/Engine.StreamingSettings", "s.EventDrivenLoaderEnabled", out bValue))
-					{
-						UEBuildConfiguration.bEventDrivenLoader = bValue;
-					}
-				}
 				bInitializedProject = true;
 			}
             else
@@ -324,13 +311,6 @@ namespace UnrealBuildTool
 		/// <param name="Platform">The platform to create a toolchain for</param>
 		/// <returns>New toolchain instance.</returns>
 		public abstract UEToolChain CreateToolChain(CPPTargetPlatform Platform);
-
-		/// <summary>
-		/// Create a build deployment handler
-		/// </summary>
-		/// <param name="DeploymentHandler">The output deployment handler</param>
-		/// <returns>Deployment handler for this platform, or null if not required</returns>
-		public abstract UEBuildDeploy CreateDeploymentHandler();
 	}
 
 	public abstract class UEBuildPlatform
@@ -774,8 +754,8 @@ namespace UnrealBuildTool
 
 		protected static bool DoProjectSettingsMatchDefault(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName, string Section, string[] BoolKeys, string[] IntKeys, string[] StringKeys)
 		{
-			ConfigCacheIni ProjIni = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", ProjectDirectoryName);
-			ConfigCacheIni DefaultIni = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", (DirectoryReference)null);
+			ConfigHierarchy ProjIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, ProjectDirectoryName, Platform);
+			ConfigHierarchy DefaultIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, (DirectoryReference)null, Platform);
 
 			// look at all bool values
 			if (BoolKeys != null) foreach (string Key in BoolKeys)
@@ -785,7 +765,7 @@ namespace UnrealBuildTool
 					ProjIni.GetBool(Section, Key, out Project);
 					if (Default != Project)
 					{
-						Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
+						Log.TraceInformationOnce(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
 						return false;
 					}
 				}
@@ -798,7 +778,7 @@ namespace UnrealBuildTool
 					ProjIni.GetInt32(Section, Key, out Project);
 					if (Default != Project)
 					{
-						Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
+						Log.TraceInformationOnce(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
 						return false;
 					}
 				}
@@ -811,7 +791,7 @@ namespace UnrealBuildTool
 					ProjIni.GetString(Section, Key, out Project);
 					if (Default != Project)
 					{
-						Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
+						Log.TraceInformationOnce(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
 						return false;
 					}
 				}
@@ -826,11 +806,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		public virtual bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName)
 		{
-			if(!DoProjectSettingsMatchDefault(Platform, ProjectDirectoryName, "/Script/Engine.StreamingSettings", new string[] { "s.EventDrivenLoaderEnabled" }, null, null))
-			{
-				return false;
-			}
-
 			string[] BoolKeys = new string[] {
 				"bCompileApex", "bCompileBox2D", "bCompileICU", "bCompileSimplygon", "bCompileSimplygonSSF",
 				"bCompileLeanAndMeanUE", "bIncludeADO", "bCompileRecast", "bCompileSpeedTree", 
@@ -846,8 +821,15 @@ namespace UnrealBuildTool
 		/// Creates a context for the given project on the current platform.
 		/// </summary>
 		/// <param name="ProjectFile">The project file for the current target</param>
+		/// <param name="Target">Rules for the target being built</param>
 		/// <returns>New platform context object</returns>
-		public abstract UEBuildPlatformContext CreateContext(FileReference ProjectFile);
+		public abstract UEBuildPlatformContext CreateContext(FileReference ProjectFile, TargetRules Target);
+
+		/// <summary>
+		/// Deploys the given target
+		/// </summary>
+		/// <param name="Target">Information about the target being deployed</param>
+		public abstract void Deploy(UEBuildDeployTarget Target);
 	}
 
 	public abstract class UEBuildPlatformSDK

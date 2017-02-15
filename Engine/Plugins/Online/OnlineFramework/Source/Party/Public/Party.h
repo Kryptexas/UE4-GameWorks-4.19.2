@@ -1,13 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Online.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineBaseTypes.h"
+#include "UObject/CoreOnline.h"
+#include "GameFramework/OnlineReplStructs.h"
 #include "OnlineSubsystemTypes.h"
+#include "Interfaces/OnlinePartyInterface.h"
+#include "PartyGameState.h"
 #include "Party.generated.h"
 
-class UWorld;
-class FUniqueNetId;
+class UGameInstance;
+
 typedef FUniqueNetIdRepl FOnlinePartyIdRepl;
 class UPartyGameState;
 class UGameInstance;

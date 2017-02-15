@@ -1,8 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/SlateDelegates.h"
+#include "Framework/Commands/UICommandInfo.h"
+
+struct FSlateBrush;
+enum class ECheckBoxState : uint8;
 
 /**
  * A simple class that represents a toolbar button in an editor viewport toolbar

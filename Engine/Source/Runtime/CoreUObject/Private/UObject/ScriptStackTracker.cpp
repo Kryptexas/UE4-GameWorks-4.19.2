@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 ScriptStackTracker.cpp: Stack Tracking within Unreal Engine.
 =============================================================================*/
-#include "CoreUObjectPrivate.h"
+#include "UObject/ScriptStackTracker.h"
+#include "UObject/Stack.h"
 
-#include "ScriptStackTracker.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogScriptStackTracker, Log, All);
 

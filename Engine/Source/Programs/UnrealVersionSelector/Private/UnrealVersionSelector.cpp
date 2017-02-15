@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealVersionSelector.h"
 #include "RequiredProgramMainCPPInclude.h"
@@ -93,6 +93,35 @@ bool SwitchVersion(const FString& ProjectFileName)
 	if (!FDesktopPlatformModule::Get()->SetEngineIdentifierForProject(ProjectFileName, Identifier))
 	{
 		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't set association for project. Check the file is writeable."), TEXT("Error"));
+		return false;
+	}
+
+	// If it's a content-only project, we're done
+	FProjectStatus ProjectStatus;
+	if(IProjectManager::Get().QueryStatusForProject(ProjectFileName, ProjectStatus) && !ProjectStatus.bCodeBasedProject)
+	{
+		return true;
+	}
+
+	// Generate project files
+	return GenerateProjectFiles(ProjectFileName);
+}
+
+bool SwitchVersionSilent(const FString& ProjectFileName, const FString& IdentifierOrDirectory)
+{
+	// Convert the identifier or directory into an identifier
+	FString Identifier = IdentifierOrDirectory;
+	if (Identifier.Contains("\\") || Identifier.Contains("/"))
+	{
+		if (!FDesktopPlatformModule::Get()->GetEngineIdentifierFromRootDir(IdentifierOrDirectory, Identifier))
+		{
+			return false;
+		}
+	}
+
+	// Update the project file
+	if (!FDesktopPlatformModule::Get()->SetEngineIdentifierForProject(ProjectFileName, Identifier))
+	{
 		return false;
 	}
 
@@ -215,6 +244,11 @@ int Main(const TArray<FString>& Arguments)
 		// Associate with an engine label
 		bRes = SwitchVersion(Arguments[1]);
 	}
+	else if (Arguments.Num() == 3 && Arguments[0] == TEXT("-switchversionsilent"))
+	{
+		// Associate with a specific engine label
+		bRes = SwitchVersionSilent(Arguments[1], Arguments[2]);
+	}
 	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("-editor"))
 	{
 		// Open a project with the editor
@@ -246,7 +280,7 @@ int Main(const TArray<FString>& Arguments)
 	int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int ShowCmd)
 	{
 		int ArgC;
-		LPWSTR* ArgV = ::CommandLineToArgvW(GetCommandLine(), &ArgC);
+		LPWSTR* ArgV = ::CommandLineToArgvW(GetCommandLineW(), &ArgC);
 
 		FCommandLine::Set(TEXT(""));
 

@@ -1,6 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "IDetailCustomization.h"
+#include "PropertyHandle.h"
+
+class IDetailChildrenBuilder;
+class IDetailLayoutBuilder;
 
 /**
 *	Customization for material attribute get/set nodes to handle GUID-Name conversions.

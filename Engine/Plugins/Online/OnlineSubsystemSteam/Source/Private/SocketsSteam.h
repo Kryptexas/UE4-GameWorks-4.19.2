@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Sockets.h"
+#include "CoreMinimal.h"
+#include "OnlineSubsystemNames.h"
+#include "SocketSubsystem.h"
 #include "OnlineSubsystemSteamTypes.h"
+#include "Sockets.h"
 #include "OnlineSubsystemSteamPackage.h"
+
+class FSocketSubsystemSteam;
 
 /**
  * This is the Windows specific socket class

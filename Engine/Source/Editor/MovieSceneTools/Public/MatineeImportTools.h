@@ -1,35 +1,36 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Matinee/InterpTrackToggle.h"
-#include "MovieSceneParticleSection.h"
+#include "Sections/MovieSceneParticleSection.h"
 
-class UInterpTrackLinearColorProp;
-class UInterpTrackColorProp;
-class UInterpTrackBoolProp;
-class UInterpTrackFloatBase;
-class UInterpTrackMove;
-class UInterpTrackToggle;
+class AMatineeActor;
+class IMovieScenePlayer;
 class UInterpTrackAnimControl;
-class UInterpTrackSound;
-class UInterpTrackFade;
+class UInterpTrackBoolProp;
+class UInterpTrackColorProp;
 class UInterpTrackDirector;
 class UInterpTrackEvent;
+class UInterpTrackFade;
+class UInterpTrackFloatBase;
+class UInterpTrackLinearColorProp;
+class UInterpTrackMove;
+class UInterpTrackSound;
+class UInterpTrackVectorProp;
 class UInterpTrackVisibility;
-
-class UMovieSceneColorTrack;
-class UMovieSceneBoolTrack;
-class UMovieSceneFloatTrack;
 class UMovieScene3DTransformTrack;
+class UMovieSceneAudioTrack;
+class UMovieSceneBoolTrack;
+class UMovieSceneCameraCutTrack;
+class UMovieSceneColorTrack;
+class UMovieSceneEventTrack;
+class UMovieSceneFadeTrack;
+class UMovieSceneFloatTrack;
 class UMovieSceneParticleTrack;
 class UMovieSceneSkeletalAnimationTrack;
-class UMovieSceneAudioTrack;
-class UMovieSceneFadeTrack;
-class UMovieSceneCameraCutTrack;
-class UMovieSceneEventTrack;
+class UMovieSceneVectorTrack;
 class UMovieSceneVisibilityTrack;
-
-class UMovieSceneSequence;
 
 class MOVIESCENETOOLS_API FMatineeImportTools
 {
@@ -53,8 +54,11 @@ public:
 	/** Copies keys from a matinee float track to a sequencer float track. */
 	static bool CopyInterpFloatTrack( UInterpTrackFloatBase* MatineeFloatTrack, UMovieSceneFloatTrack* FloatTrack );
 
+	/** Copies keys from a matinee vector track to a sequencer vector track. */
+	static bool CopyInterpVectorTrack( UInterpTrackVectorProp* MatineeVectorTrack, UMovieSceneVectorTrack* VectorTrack );
+
 	/** Copies keys from a matinee move track to a sequencer transform track. */
-	static bool CopyInterpMoveTrack( UInterpTrackMove* MoveTrack, UMovieScene3DTransformTrack* TransformTrack );
+	static bool CopyInterpMoveTrack( UInterpTrackMove* MoveTrack, UMovieScene3DTransformTrack* TransformTrack, const FVector& DefaultScale = FVector(1.f) );
 
 	/** Copies keys from a matinee color track to a sequencer color track. */
 	static bool CopyInterpColorTrack( UInterpTrackColorProp* ColorPropTrack, UMovieSceneColorTrack* ColorTrack );
@@ -75,7 +79,7 @@ public:
 	static bool CopyInterpFadeTrack( UInterpTrackFade* MatineeFadeTrack, UMovieSceneFadeTrack* FadeTrack );
 
 	/** Copies keys from a matinee director track to a sequencer camera cut track. */
-	static bool CopyInterpDirectorTrack( UInterpTrackDirector* DirectorTrack, UMovieSceneCameraCutTrack* CameraCutTrack, AMatineeActor* MatineeActor, UMovieSceneSequence* MovieSceneSequence );
+	static bool CopyInterpDirectorTrack( UInterpTrackDirector* DirectorTrack, UMovieSceneCameraCutTrack* CameraCutTrack, AMatineeActor* MatineeActor, IMovieScenePlayer& Player );
 
 	/** Copies keys from a matinee event track to a sequencer event track. */
 	static bool CopyInterpEventTrack( UInterpTrackEvent* MatineeEventTrack, UMovieSceneEventTrack* EventTrack );

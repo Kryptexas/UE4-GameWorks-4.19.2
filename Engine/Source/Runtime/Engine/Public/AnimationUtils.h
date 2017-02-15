@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationUtils.h: Skeletal mesh animation utilities.
@@ -6,7 +6,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Animation/AnimSequence.h"
+
+class UAnimCompress;
+class UAnimSet;
+struct FAnimCompressContext;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogMatinee, Warning, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAnimNotify, Warning, All);

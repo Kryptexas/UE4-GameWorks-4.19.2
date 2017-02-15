@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 #include "Materials/MaterialExpressionFontSample.h"
 #include "MaterialExpressionFontSampleParameter.generated.h"
+
+class UFont;
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionFontSampleParameter : public UMaterialExpressionFontSample
@@ -32,6 +38,10 @@ class UMaterialExpressionFontSampleParameter : public UMaterialExpressionFontSam
 	virtual bool CanRenameNode() const override { return true; }
 	virtual FString GetEditableName() const override;
 	virtual void SetEditableName(const FString& NewName) override;
+
+	virtual bool HasAParameterName() const override { return true; }
+	virtual FName GetParameterName() const override { return ParameterName; }
+	virtual void SetParameterName(const FName& Name) override { ParameterName = Name; }
 #endif
 	//~ End UMaterialExpression Interface
 	

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	AndroidPlatform.h: Setup for the Android platform
@@ -45,6 +45,7 @@ typedef FAndroidTypes FPlatformTypes;
 #define PLATFORM_HAS_BSD_SOCKET_FEATURE_IOCTL		1
 #define PLATFORM_HAS_TOUCH_MAIN_SCREEN				1
 #define PLATFORM_SUPPORTS_STACK_SYMBOLS				1
+#define PLATFORM_NUM_AUDIODECOMPRESSION_PRECACHE_BUFFERS 1
 
 // Function type macros.
 #define VARARGS													/* Functions with variable arguments */

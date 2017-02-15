@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
 #include "StereoRendering.h"
-#include "Layout/SlateRect.h"
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 #include "HeadMountedDisplayTypes.h"
+
+class FPrimitiveSceneInfo;
+class FSceneInterface;
+class ISceneViewExtension;
+class UCanvas;
+class USceneComponent;
+struct FPostProcessSettings;
+struct FWorldContext;
 
 /**
  * HMD device interface
@@ -24,7 +33,7 @@ public:
 	}
 
 	/**
-	 * Returns true if HMD is currently connected.
+	 * Returns true if HMD is currently connected.  It may or may not be in use.
 	 */
 	virtual bool IsHMDConnected() = 0;
 

@@ -1,31 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "WmfMediaPCH.h"
-
-#if WMFMEDIA_SUPPORTED_PLATFORM
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfMediaSession.h"
 #include "WmfMediaUtils.h"
+#include "Misc/ScopeLock.h"
+
+#if WMFMEDIA_SUPPORTED_PLATFORM
+
 #include "AllowWindowsPlatformTypes.h"
 
 
 /* FWmfMediaSession structors
  *****************************************************************************/
 
-FWmfMediaSession::FWmfMediaSession()
+FWmfMediaSession::FWmfMediaSession(EMediaState InState)
 	: Buffering(false)
 	, CanScrub(false)
 	, Capabilities(0)
 	, ChangeRequested(false)
 	, CurrentRate(0.0f)
-	, CurrentState(EMediaState::Closed)
+	, CurrentState(InState)
 	, Duration(FTimespan::Zero())
 	, Looping(false)
 	, RefCount(0)
 	, RequestedRate(0.0f)
 	, RequestedTime(FTimespan::MinValue())
 	, StateChangePending(false)
-{ }
+{
+	check((InState == EMediaState::Closed) || (InState == EMediaState::Preparing));
+}
 
 
 FWmfMediaSession::FWmfMediaSession(const FTimespan& InDuration)
@@ -190,6 +192,11 @@ bool FWmfMediaSession::IsLooping() const
 
 bool FWmfMediaSession::Seek(const FTimespan& Time)
 {
+	if (MediaSession == NULL)
+	{
+		return false;
+	}
+
 	if ((CurrentState == EMediaState::Closed) || (CurrentState == EMediaState::Error))
 	{
 		return false;
@@ -211,6 +218,11 @@ bool FWmfMediaSession::SetLooping(bool InLooping)
 
 bool FWmfMediaSession::SetRate(float Rate)
 {
+	if (MediaSession == NULL)
+	{
+		return false;
+	}
+
 	if (!SupportsRate(Rate, false))
 	{
 		return false;
@@ -441,8 +453,8 @@ STDMETHODIMP FWmfMediaSession::Invoke(IMFAsyncResult* AsyncResult)
 
 
 #if _MSC_VER == 1900
-#pragma warning(push)
-#pragma warning(disable:4838)
+	#pragma warning(push)
+	#pragma warning(disable:4838)
 #endif // _MSC_VER == 1900
 
 STDMETHODIMP FWmfMediaSession::QueryInterface(REFIID RefID, void** Object)
@@ -455,8 +467,9 @@ STDMETHODIMP FWmfMediaSession::QueryInterface(REFIID RefID, void** Object)
 
 	return QISearch(this, QITab, RefID, Object);
 }
+
 #if _MSC_VER == 1900
-#pragma warning(pop)
+	#pragma warning(pop)
 #endif // _MSC_VER == 1900
 
 

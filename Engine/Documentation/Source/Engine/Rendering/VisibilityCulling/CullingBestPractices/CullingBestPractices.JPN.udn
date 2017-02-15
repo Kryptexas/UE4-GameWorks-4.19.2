@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: Visibility Culling Best Practices
+﻿INTSourceChangeList:3108692
+Availability:Docs
+Title:Visibility Culling のベスト プラクティス
 Crumbs: %ROOT%, Engine, 
-Description: Visibility Culling Strategies and Best Practices
-Version: 4.13
+Description:Visibility Culling のストラテジーとベスト プラクティス
+Version:4.13
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -48,44 +48,44 @@ Version: 4.13
 
 
 
-Below are some good practices to follow when designing and working with visibility culling for your game. 
+ゲームで Visibility Culling を作成および使用するためのグッドプラクティスをいくつか紹介します。 
 
 ## Large View Distances
 
-Large view distances can cause an impact on performance due to the number of Actors that need to be rendered. By blocking these large view distances with large occluders you can block Actors that would have been rendered otherwise.
-This can reduce the number of queries that need to be sent to the GPU by having fewer Actors to check. In turn, you get better performance by having fewer Actors to check and render.
+Large View Distances は、レンダリングが必要なアクタ数のために、パフォーマンスに影響を与える可能性があります。こういった Large View Distances を大きなオクルーダでブロックすれば、レンダリングされてしまう可能性のあるアクタをブロックすることができます。
+これによりチェックするアクタ数が少なくなるため、GPU へ送らなければならないクエリ数を減らすことができます。同様に、チェックおよびレンダリングするアクタ数が減れば、パフォーマンスも良くなります。
 
-* Use large occluders where possible. 
-* Use Cull Distance Volumes to remove any smaller Actors that will not be easily visible at far distances, even if they are occluded from view.
-* Limit the amount of overdraw you get from Translucent Actors, since they will not occlude.
+* 可能な限り、大きいオクルーダを使います。 
+* 小さなアクタは、例えビューからオクルードされていても、それが遠くで見えずらい場合は、Cull Distance Volumes を使って取り除きます。
+* Translucent アクタから取得したオーバードローはオクルードされないので、量を制限します。
 
-## "Popping" in/Lag from GPU Queries
+## GPU クエリによる "ポッピング" / Lag
 
-This is a common issue with using visibility culling for the view frustum and hardware occlusion queries since they are being read back from the GPU one frame later. This is often 
-noticeable when turning your player camera very fast or when you come around a corner in darkly lit areas that have a contrasting lit area behind them. 
+GPU から 1 フレーム遅れて読み取られるので、視錐台とハードウェア オクルージョン クエリに Visibility Culling を使うとこの問題がよく発生します。プレイヤー カメラを急速に切り替える、もしくは明るい照明の前の領域を暗く照らそうとすると、 
+よく分かります。 
 
-* Use other geometry to help hide this artifact. For something like caves or darkened areas with bright outsides use a large occluder mesh that can sit just outside of these pieces to hide the popping in and block the light that makes it evident.
-* Increase the Bounds Scale of the Actor that is causing the offending behavior. 
-* Build geometry in a way that does not have too many small pieces that need to be assembled. This is especially true for walls, floors, and ceilings.
+* 別のジオメトリを使って、このアーティファクトを隠します。洞窟や、暗い場所で外が明るい場合、これらの構成要素のちょうど外側に収まる大きなオクルーダ メッシュを使って、ポッピングの部分を隠し、アーティファクトを目立たせるライトをブロックします。
+* 問題のビヘイビアを発生させているアクタの Bounds Scale を増やします。 
+* 小さい構成要素を組み立てなくて済むような方法でジオメトリをビルドします。ウォール、フロア、天井に特に当てはまります。
 
-## Asset Construction
+##アセットの構築
 
-When creating geometry for your game it is a good idea to break your geometry up into modular pieces for design purposes and reusability. However, it is possible to modularize too much in the design 
-process by using pieces that are too small to make up larger geometry. Because of this, each actor will need to be have its visibility state checked. It's best to find a balance that makes sense
-for your game design and optimize for the best performance. Reducing the number of queries needed to check visibility is key for optimization and to help reduce the "Popping" in that can happen. 
+ゲームのジオメトリを作成する場合、ジオメトリをモジュラーに分割しておくと、デザインがしやすく、また再利用もできます。ただし、あまりに小さい要素で大きなジオメトリを作ろうとすると、 
+デザイン プロセスで非常に多くのモジュラーができてしまう可能性があります。そこで、各アクタの可視性ステートをチェックしておく必要があります。ゲーム デザインにぴったりのバランスを見つけ出し、
+ベストパフォーマンスを引き出すような最適化を行うことが重要です。可視性チェックに必要なクエリ数の削減が最適化には必須であり、「ポッピング」が起こる確率も減らしやすくなります。 
 
-* Use larger geometry when crafting your levels for structural surfaces rather than breaking it up into many smaller pieces. There is more impact on the GPU testing multiple smaller Actors than a single Actor.
-* "Popping" in of Actors is reduced when considering the construction of the mesh.
+* 構造的なサーフェイスに対してレベルを作る時は、小さな構成要素にたくさん分割せずに大きいジオメトリを使います。単一のアクタをテストするよりも、複数の小さなアクタをテストする方が GPU への負荷は大きくなります。
+* メッシュ構築を検討する際に、アクタの "ポッピング" を減らします。
 
 
-## Consider Occlusion vs Distance Culling Cost
+## Occlusion Culling と Distance Culling の負荷を考慮する
 
-Occlusion and visibility culling methods cost much more than distance culling since these require GPU queries, so it is a good idea to setup Cull Distance Volumes for distant stuff even if they will 
-be occluded by other Actors from a certain part of the scene.
+オクルージョンと Visibility Culling メソッドは GPU クエリを要求するため、Distance Culling よりも高負荷です。従って、そのシーンのある場所から別のアクタでオクルードされていても、 
+遠くのものには Cull Distance Volumes を設定すると良いでしょう。
 
-* Make good use of Cull Distance Volumes to reduce occlusion culling costs.
-* Stream out levels where possible instead of relying on distance or occlusion culling.
-* Use the `Stat Initviews` command to keep performance balance in check.
+* Cull Distance Volumes を活用して、Occlusion Culling 負荷を削減します。
+* Distance Culling または Occlusion Culling に依存するのではなく、できる限りレベルをストリームアウトします。
+* `Stat Initviews` コマンドを使って、常にパフォーマンス バランスを確認します。
 
-For information about [Level Streaming](Engine/LevelStreaming) see how to set this up in this page.
+* セットアップ方法については、以下の [レベル ストリーミング](Engine/LevelStreaming) セクションをご覧ください！
 

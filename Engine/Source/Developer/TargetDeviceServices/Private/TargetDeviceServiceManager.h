@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/ITargetDeviceServiceManager.h"
+#include "IMessageBus.h"
 
 /**
  * Implements a target device service manager.
@@ -120,7 +123,7 @@ private:
 	TMap<FString, ITargetDeviceServicePtr> DeviceServices;
 
 	/** Holds a weak pointer to the message bus. */
-	IMessageBusWeakPtr MessageBusPtr;
+	TWeakPtr<IMessageBus, ESPMode::ThreadSafe> MessageBusPtr;
 
 	/** Holds the collection of identifiers for devices that start automatically (shared/unshared). */
 	TMap<FString, bool> StartupServices;

@@ -1,14 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "InputCoreTypes.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "EditorViewportClient.h"
+#include "Interpolation.h"
+#include "Matinee/InterpGroup.h"
 #include "MatineeViewportData.h"
-#include "Runtime/Engine/Public/Interpolation.h"
-#include "Runtime/Engine/Classes/Matinee/InterpTrack.h"
-#include "Runtime/Engine/Classes/Matinee/InterpGroup.h"
 
-
+class FCanvas;
+class FMatinee;
+class FSceneViewport;
+class SScrollBar;
+class SSplitter;
+class SViewport;
+class UFont;
+class UInterpTrack;
+struct FSubTrackGroup;
 
 class FMatineeViewportClient : public FEditorViewportClient
 {

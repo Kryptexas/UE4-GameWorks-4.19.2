@@ -1,6 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "HAL/Runnable.h"
+#include "Interfaces/INetworkFileServer.h"
+#include "Interfaces/INetworkFileSystemModule.h"
+
+class FInternetAddr;
+class FSocket;
+class ITargetPlatform;
 
 /**
  * This class wraps the server thread and network connection

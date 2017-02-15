@@ -1,11 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HlslLexer.cpp - Implementation for scanning & tokenizing hlsl
 =============================================================================*/
 
-#include "ShaderCompilerCommonPrivatePCH.h"
-#include "ShaderCompilerCommon.h"
 #include "HlslLexer.h"
 
 namespace CrossCompiler

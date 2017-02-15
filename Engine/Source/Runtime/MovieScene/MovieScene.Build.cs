@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -9,11 +9,11 @@ public class MovieScene : ModuleRules
 		PrivateIncludePaths.Add("Runtime/MovieScene/Private");
 
 		PublicDependencyModuleNames.AddRange(
-            new string[] {
-                "Core",
-                "CoreUObject",
-                "Engine"
-            }
-        );
+			new string[] {
+				"Core",
+				"CoreUObject",
+				"Engine"
+			}
+		);
 	}
 }

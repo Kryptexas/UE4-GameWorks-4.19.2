@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3037940
+﻿INTSourceChangelist:3150518
 Availability: Public
 Title:블루프린트 형변환 예제
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -9,7 +9,7 @@ Related: Engine/Blueprints/UserGuide
 skilllevel: Advanced
 version: 4.9
 Parent:Engine/Blueprints/HowTo
-type:howto
+type:how-to
 tags:Data Types
 order:3
 

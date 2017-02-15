@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "StandaloneRenderer.h"
+#include "CoreMinimal.h"
+#include "StandaloneRendererPlatformHeaders.h"
 
 // not needed with ES2
 #if !PLATFORM_USES_ES2

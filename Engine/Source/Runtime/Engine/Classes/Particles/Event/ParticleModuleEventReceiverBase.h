@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Particles/Event/ParticleModuleEventBase.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "ParticleModuleEventReceiverBase.generated.h"
+
+struct FParticleEmitterInstance;
 
 UCLASS(editinlinenew, hidecategories=Object, abstract)
 class UParticleModuleEventReceiverBase : public UParticleModuleEventBase

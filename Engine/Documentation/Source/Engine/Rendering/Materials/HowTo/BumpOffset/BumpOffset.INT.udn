@@ -1,7 +1,7 @@
 Availability: Public
-Title:Material Editor - How To use Bump Offset 
+Title:Using Bump Offset 
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
-Description: A How To guide for using the Bump Offset node in your Material.
+Description: Guide for using the Bump Offset node in your Materials.
 Related: Resources/Showcases/RealisticRendering
 Related: Engine/Rendering/Materials/ExpressionReference/Utility
 Related: Engine/Rendering/Materials

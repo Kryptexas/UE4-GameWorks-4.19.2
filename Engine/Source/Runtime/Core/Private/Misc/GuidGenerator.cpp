@@ -1,6 +1,5 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 
 /*
 ** Copyright (c) 1990- 1993, 1996 Open Software Foundation, Inc.
@@ -20,7 +19,7 @@
 ** this software for any purpose.
 */
 
-#if __GNUC__
+#ifdef __GNUC__
 
 #include <sys/types.h>
 #include <sys/time.h>

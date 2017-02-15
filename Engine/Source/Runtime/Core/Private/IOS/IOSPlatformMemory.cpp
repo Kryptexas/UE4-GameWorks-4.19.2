@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSPlatformMemory.cpp: IOS platform memory functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "IOSPlatformMemory.h"
+#include "Misc/CoreStats.h"
 #include "MallocBinned.h"
 #include "MallocAnsi.h"
 

@@ -1,10 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "BytePropertyTrackEditor.h"
-#include "BytePropertySection.h"
-#include "MovieSceneByteTrack.h"
-#include "MovieSceneSequence.h"
+#include "TrackEditors/PropertyTrackEditors/BytePropertyTrackEditor.h"
+#include "Sections/BytePropertySection.h"
+#include "UObject/EnumProperty.h"
 
 
 TSharedRef<ISequencerTrackEditor> FBytePropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer )
@@ -24,19 +22,33 @@ TSharedRef<ISequencerSection> FBytePropertyTrackEditor::MakeSectionInterface(UMo
 
 UEnum* GetEnumForByteTrack(TSharedPtr<ISequencer> Sequencer, const FGuid& OwnerObjectHandle, FName PropertyName, UMovieSceneByteTrack* ByteTrack)
 {
-	
-	UObject* RuntimeObject = Sequencer->GetFocusedMovieSceneSequenceInstance()->FindObject(OwnerObjectHandle, *Sequencer);
 	TSet<UEnum*> PropertyEnums;
 
-	if (RuntimeObject != nullptr)
+	for (TWeakObjectPtr<> WeakObject : Sequencer->FindObjectsInCurrentSequence(OwnerObjectHandle))
 	{
+		UObject* RuntimeObject = WeakObject.Get();
+		if (!RuntimeObject)
+		{
+			continue;
+		}
+
 		UProperty* Property = RuntimeObject->GetClass()->FindPropertyByName(PropertyName);
 		if (Property != nullptr)
 		{
-			UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
-			if (ByteProperty != nullptr && ByteProperty->Enum != nullptr)
+			UEnum* Enum = nullptr;
+
+			if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
 			{
-				PropertyEnums.Add(ByteProperty->Enum);
+				Enum = EnumProperty->GetEnum();
+			}
+			else if (UByteProperty* ByteProperty = Cast<UByteProperty>(Property))
+			{
+				Enum = ByteProperty->Enum;
+			}
+
+			if (Enum != nullptr)
+			{
+				PropertyEnums.Add(Enum);
 			}
 		}
 	}

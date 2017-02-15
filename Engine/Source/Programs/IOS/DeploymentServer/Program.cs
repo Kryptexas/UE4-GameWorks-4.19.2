@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+ * Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
  */
 
 using System;
@@ -172,6 +172,14 @@ namespace DeploymentServer
 
 				case "enumerate":
 					Deployer.EnumerateConnectedDevices();
+					break;
+
+				case "listdevices":
+					Deployer.ListDevices();
+					break;
+
+				case "listentodevice":
+					Deployer.ListenToDevice(Device);
 					break;
 			}
 

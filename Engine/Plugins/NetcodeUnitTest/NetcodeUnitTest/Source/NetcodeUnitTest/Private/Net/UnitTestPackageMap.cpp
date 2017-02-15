@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "NetcodeUnitTestPCH.h"
+#include "Net/UnitTestPackageMap.h"
+#include "GameFramework/Actor.h"
 
 #include "Net/UnitTestNetConnection.h"
-#include "Net/UnitTestPackageMap.h"
 
 
 /**
@@ -13,6 +13,7 @@ UUnitTestPackageMap::UUnitTestPackageMap(const FObjectInitializer& ObjectInitial
 	: Super(ObjectInitializer)
 	, bWithinSerializeNewActor(false)
 	, bPendingArchetypeSpawn(false)
+	, ReplaceObjects()
 {
 }
 
@@ -20,7 +21,26 @@ bool UUnitTestPackageMap::SerializeObject(FArchive& Ar, UClass* InClass, UObject
 {
 	bool bReturnVal = false;
 
-	bReturnVal = Super::SerializeObject(Ar, InClass, Obj, OutNetGUID);
+	if (Ar.IsSaving())
+	{
+		UObject** ObjReplacement = ReplaceObjects.Find(Obj);
+
+		// Don't overwrite Obj when saving...
+		UObject* SaveObj = (ObjReplacement != nullptr ? *ObjReplacement : Obj);
+
+		bReturnVal = Super::SerializeObject(Ar, InClass, SaveObj, OutNetGUID);
+	}
+	else
+	{
+		bReturnVal = Super::SerializeObject(Ar, InClass, Obj, OutNetGUID);
+
+		if (Ar.IsLoading())
+		{
+			UObject** ObjReplacement = ReplaceObjects.Find(Obj);
+
+			Obj = (ObjReplacement != nullptr ? *ObjReplacement : Obj);
+		}
+	}
 
 	if (bWithinSerializeNewActor)
 	{

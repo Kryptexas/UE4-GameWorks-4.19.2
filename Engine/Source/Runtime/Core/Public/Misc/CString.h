@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "HAL/PlatformString.h"
+
+#include "CoreTypes.h"
+#include "Misc/VarArgs.h"
+#include "Misc/AssertionMacros.h"
 #include "Misc/Char.h"
+#include "HAL/PlatformString.h"
 
 #define MAX_SPRINTF 1024
 
@@ -306,6 +310,11 @@ struct TCString
 	 * strtoi wrapper
 	 */
 	static FORCEINLINE int32 Strtoi( const CharType* Start, CharType** End, int32 Base );
+
+	/**
+	 * strtoi wrapper
+	 */
+	static FORCEINLINE int64 Strtoi64( const CharType* Start, CharType** End, int32 Base );
 
 	/**
 	 * strtoui wrapper
@@ -714,6 +723,12 @@ template <typename T> FORCEINLINE
 int32 TCString<T>::Strtoi( const CharType* Start, CharType** End, int32 Base ) 
 { 
 	return FPlatformString::Strtoi(Start, End, Base);
+}
+
+template <typename T> FORCEINLINE
+int64 TCString<T>::Strtoi64( const CharType* Start, CharType** End, int32 Base ) 
+{ 
+	return FPlatformString::Strtoi64(Start, End, Base);
 }
 
 template <typename T> FORCEINLINE

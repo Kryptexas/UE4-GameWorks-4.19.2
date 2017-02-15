@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalRHI.cpp: Metal device RHI implementation.
 =============================================================================*/
 
 #include "MetalRHIPrivate.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "RenderUtils.h"
 #if PLATFORM_IOS
 #include "IOSAppDelegate.h"
 #elif PLATFORM_MAC
@@ -185,12 +188,11 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	}
 
 	// Default to Metal SM5 on 10.11.5 or later. Earlier versions should still be running SM4. Apparently so will Intel GPUs - as of 10.12.1 and UE4 4.14 the Intel drivers can't compile our compute shaders.
-	bool const bTenElevenFiveOrLater = (FPlatformMisc::MacOSXVersionCompare(10,11,5) >= 0);
+	// Similarly Metal v1.2 shaders require 10.12.1.
+	bool const bAcceptableOSVersion = (FPlatformMisc::MacOSXVersionCompare(10,11,5) >= 0) && ((RHIGetShaderLanguageVersion(SP_METAL_SM5) < 2) || (FPlatformMisc::MacOSXVersionCompare(10,12,1) >= 0));
 	bool const bRequestedSM5 = (RequestedFeatureLevel == ERHIFeatureLevel::SM5 || (!bRequestedFeatureLevel && FParse::Param(FCommandLine::Get(),TEXT("metalsm5"))));
-	if(bTenElevenFiveOrLater && !IsRHIDeviceIntel() && bRequestedSM5)
+	if(bAcceptableOSVersion && !IsRHIDeviceIntel() && bRequestedSM5)
 	{
-		ValidateTargetedRHIFeatureLevelExists(SP_METAL_SM5);
-		
 		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
 		GMaxRHIShaderPlatform = SP_METAL_SM5;
 	}
@@ -200,16 +202,28 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 		{
 			UE_LOG(LogMetal, Warning, TEXT("Metal Shader Model 5 support requires Mac OS X El Capitan 10.11.5 or later & an AMD or Nvidia GPU. Falling back to Metal Shader Model 4."));
 		}
-		
-		ValidateTargetedRHIFeatureLevelExists(SP_METAL_SM4);
-		
+	
 		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
 		GMaxRHIShaderPlatform = SP_METAL_SM4;
 	}
+
+	// ES2/3.1 feature level emulation
+	if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")) && !GIsEditor)
+	{
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::ES2;
+		GMaxRHIShaderPlatform = SP_METAL_MACES2;
+	}
+	else if ((FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES31")) || FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES3_1"))) && !GIsEditor)
+	{
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::ES3_1;
+		GMaxRHIShaderPlatform = SP_METAL_MACES3_1;
+	}
+
+	ValidateTargetedRHIFeatureLevelExists(GMaxRHIShaderPlatform);
 	
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL_MACES2;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_METAL_MACES3_1;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_METAL_SM4;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = (GMaxRHIFeatureLevel >= ERHIFeatureLevel::ES3_1) ? SP_METAL_MACES3_1 : SP_NumPlatforms;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4) ? SP_METAL_SM4 : SP_NumPlatforms;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5) ? GMaxRHIShaderPlatform : SP_NumPlatforms;
 	
 	// Mac GPUs support layer indexing.
@@ -335,7 +349,8 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	GMaxTextureArrayLayers = 2048;
 	GMaxShadowDepthBufferSizeX = 16384;
 	GMaxShadowDepthBufferSizeY = 16384;
-    bSupportsD16 = FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_OSX_GPUFamily1_v2];
+    bSupportsD16 = !FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && [Device supportsFeatureSet:MTLFeatureSet_OSX_GPUFamily1_v2];
+	GRHISupportsHDROutput = [Device supportsFeatureSet:MTLFeatureSet_OSX_GPUFamily1_v2];
 #else
 #if PLATFORM_TVOS
 	GRHISupportsBaseVertexIndex = false;
@@ -641,14 +656,17 @@ void FMetalRHICommandContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 	Profiler->PushEvent(Name, Color);
 #endif
 	// @todo zebra : this was "[NSString stringWithTCHARString:Name]", an extension only on ios for some reason, it should be on Mac also
-	Context->GetCommandEncoder().PushDebugGroup([NSString stringWithCString:TCHAR_TO_UTF8(Name) encoding:NSUTF8StringEncoding]);
+	@autoreleasepool
+	{
+		Context->GetCurrentRenderPass().PushDebugGroup([NSString stringWithCString:TCHAR_TO_UTF8(Name) encoding:NSUTF8StringEncoding]);
+	}
 #endif
 }
 
 void FMetalRHICommandContext::RHIPopEvent()
 {
 #if ENABLE_METAL_GPUEVENTS
-	Context->GetCommandEncoder().PopDebugGroup();
+	Context->GetCurrentRenderPass().PopDebugGroup();
 #if ENABLE_METAL_GPUPROFILE
 	Profiler->PopEvent();
 #endif
@@ -705,7 +723,7 @@ bool FMetalDynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 	if (AllModes)
 	{
 		const int32 NumModes = CFArrayGetCount(AllModes);
-		const int32 Scale = FMacApplication::GetPrimaryScreenBackingScaleFactor();
+		const int32 Scale = (int32)FMacApplication::GetPrimaryScreenBackingScaleFactor();
 		
 		for (int32 Index = 0; Index < NumModes; Index++)
 		{

@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3106409
-Availability:Docs
+﻿INTSourceChangelist:3124629
+Availability:Public
 Title:シーケンス レコーダー
 Crumbs: %ROOT%, Engine
 Description:シーケンス レコーダーツールの概要とゲームプレイをキャプチャーするための記録のオプションについて説明します。 
@@ -63,7 +63,7 @@ Related:Engine/Sequencer/HowTo
 | ---- | ----------- |
 | **Create Level Sequence** | 記録するときにレベル シーケンスを作成するかどうかを設定します。有効な場合、アクタとアニメーションがこのシーケンスに挿入されます。|
 | **Immersive Mode** | 記録時にビューポートを最大限大きくするかどうかを設定します。 |
-| **Sequence Length** | 記録するシーケンスの最大長を定義します。 |
+| **Sequence Length** | 記録するシーケンスの最大長を定義します (0 に設定すると Stop を呼び出さない限り記録は継続します)。 |
 | **Recording Delay** | 記録を開始する前の遅延です。 |
 | **Sequence Name** | 記録するシーケンスの名前です。この名前は記録によって作成されるアセットがあればそれを自動生成するために使用されます。 |
 | **Sequence Recording Base Path** | プロジェクト内の記録の保存場所を定義します。指定したベース パス内のサブ ディレクトリにサブ アセットが作成されます。 |
@@ -99,6 +99,15 @@ Related:Engine/Sequencer/HowTo
 ## ヒントとコツ
 
 このセクションには、シーケンス レコーダーで作業する場合に使用できるいくつかのワークフローのヒントとコツがあります。 
+
+### 連続して記録
+
+**[Sequence Recorder]** ウィンドウでは、**[Sequence Length]** を **0** に設定して、連続して記録することができます。 
+
+![](NoLength.png)
+
+0 に設定すると、**Esc** キーを押して記録を手動で停止しない限り、停止しません。 
+
 
 ### 右クリックによる記録
 
@@ -181,5 +190,6 @@ Wab8bB69TIo
 ![](ImmersiveMode.png)
 
 記録を停止すると、ビューポートは通常のサイズに戻ります。 
+
 
 

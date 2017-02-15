@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanViewport.h: Vulkan viewport RHI definitions.
@@ -51,6 +51,11 @@ public:
 	void AdvanceBackBufferFrame();
 
 	bool Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, bool bLockToVsync);
+
+	inline uint32 GetPresentCount() const
+	{
+		return PresentCount;
+	}
 
 protected:
 	VkImage BackBufferImages[NUM_BUFFERS];

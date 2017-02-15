@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
-#include "LandscapeGrassType.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "MaterialExpressionIO.h"
 
 #include "Materials/MaterialExpressionCustomOutput.h"
 #include "MaterialExpressionLandscapeGrassOutput.generated.h"
+
+class ULandscapeGrassType;
+struct FPropertyChangedEvent;
 
 USTRUCT()
 struct FGrassInput

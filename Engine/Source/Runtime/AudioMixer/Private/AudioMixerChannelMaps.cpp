@@ -1,218 +1,246 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioMixerPCH.h"
+#include "AudioMixer.h"
 #include "AudioMixerDevice.h"
+#include "Misc/ConfigCacheIni.h"
 
 namespace Audio
 {
-	/** Default 2D channel maps from input channels to output channels */
+	// Tables based on Ac-3 down-mixing
+	// Rows: output speaker configuration
+	// Cols: input source channels
 
-	static float MonoToStereoMatrix[1 * 2] =
+	static float ToMonoMatrix[AUDIO_MIXER_MAX_OUTPUT_CHANNELS * 1] =
 	{
-		// FrontLeft
-		0.707f,		// FrontLeft
-		0.707f,		// FrontRight
+		// FrontLeft	FrontRight	Center		LowFrequency	SideLeft	SideRight	BackLeft	BackRight  
+		0.707f,			0.707f,		1.0f,		0.0f,			0.5f,		0.5f,		0.5f,		0.5f,		// FrontLeft
 	};
 
-	static float MonoToQuadMatrix[1 * 4] =
+	static float ToStereoMatrix[AUDIO_MIXER_MAX_OUTPUT_CHANNELS * 2] =
 	{
-		// FrontLeft
-		0.707f,		// FrontLeft
-		0.707f,		// FrontRight
-		0.0f,		// BackLeft
-		0.0f,		// BackRight
+		// FrontLeft	FrontRight	Center		LowFrequency	SideLeft	SideRight	BackLeft	BackRight  
+		1.0f,			0.0f,		0.707f,		0.0f,			0.707f,		0.0f,		0.707f,		0.0f,		// FrontLeft
+		0.0f,			1.0f,		0.707f,		0.0f,			0.0f,		0.707f,		0.0f,		0.707f,		// FrontRight
 	};
 
-	static float MonoTo51Matrix[1 * 6] =
+	static float ToTriMatrix[AUDIO_MIXER_MAX_OUTPUT_CHANNELS * 3] =
 	{
-		// FrontLeft
-		0.707f,		// FrontLeft
-		0.707f,		// FrontRight
-		0.0f,		// FrontCenter
-		0.0f,		// LowFrequency
-		0.0f,		// BackLeft
-		0.0f,		// BackRight
+		// FrontLeft	FrontRight	Center		LowFrequency	SideLeft	SideRight	BackLeft	BackRight  
+		1.0f,			0.0f,		0.0f,		0.0f,			0.707f,		0.0f,		0.707f,		0.0f,		// FrontLeft
+		0.0f,			1.0f,		0.0f,		0.0f,			0.0f,		0.707f,		0.0f,		0.707f,		// FrontRight
+		0.0f,			0.0f,		1.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// Center
 	};
 
-	static float MonoTo71Matrix[1 * 8] =
+	static float ToQuadMatrix[AUDIO_MIXER_MAX_OUTPUT_CHANNELS * 4] =
 	{
-		// FrontLeft
-		0.707f,		// FrontLeft
-		0.707f,		// FrontRight
-		0.0f,		// FrontCenter
-		0.0f,		// LowFrequency
-		0.0f,		// BackLeft
-		0.0f,		// BackRight
-		0.0f,		// SideLeft
-		0.0f,		// SideRight
+		// FrontLeft	FrontRight	Center		LowFrequency	SideLeft	SideRight	BackLeft	BackRight	
+		1.0f,			0.0f,		0.707f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontLeft
+		0.0f,			1.0f,		0.707f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontRight
+		0.0f,			0.0f,		0.0f,		0.0f,			1.0f,		0.0f,		1.0f,		0.0f,		// SideLeft
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		1.0f,		0.0f,		1.0f,		// SideRight
 	};
 
-	static float StereoToStereoMatrix[2 * 2] =
+	static float To5Matrix[AUDIO_MIXER_MAX_OUTPUT_CHANNELS * 5] =
 	{
-		// FrontLeft		FrontRight
-		1.0f,				0.0f,		// FrontLeft
-		0.0f,				1.0f,		// FrontRight
+		// FrontLeft	FrontRight	Center		LowFrequency	SideLeft	SideRight	BackLeft	BackRight	
+		1.0f,			0.0f,		0.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontLeft
+		0.0f,			1.0f,		0.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontRight
+		0.0f,			0.0f,		1.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// Center
+		0.0f,			0.0f,		0.0f,		0.0f,			1.0f,		0.0f,		1.0f,		0.0f,		// SideLeft
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		1.0f,		0.0f,		1.0f,		// SideRight
 	};
 
-	static float StereoToQuadMatrix[2 * 4] =
+	static float To5Point1Matrix[AUDIO_MIXER_MAX_OUTPUT_CHANNELS * 6] =
 	{
-		// FrontLeft		FrontRight
-		0.707f,				0.0f,		// FrontLeft
-		0.0f,				0.707f,		// FrontRight
-		0.0f,				0.707f,		// BackLeft
-		0.707f,				0.0f,		// BackRight
+		// FrontLeft	FrontRight	Center		LowFrequency	SideLeft	SideRight	BackLeft	BackRight	
+		1.0f,			0.0f,		0.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontLeft
+		0.0f,			1.0f,		0.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontRight
+		0.0f,			0.0f,		1.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// Center
+		0.0f,			0.0f,		0.0f,		1.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// LowFrequency
+		0.0f,			0.0f,		0.0f,		0.0f,			1.0f,		0.0f,		1.0f,		0.0f,		// SideLeft
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		1.0f,		0.0f,		1.0f,		// SideRight
 	};
 
-	static float StereoTo51Matrix[2 * 6] =
+	static float ToHexMatrix[AUDIO_MIXER_MAX_OUTPUT_CHANNELS * 7] =
 	{
-		// FrontLeft		FrontRight
-		0.707f,				0.0f,		// FrontLeft
-		0.0f,				0.707f,		// FrontRight
-		0.0f,				0.0f,		// FrontCenter
-		0.0f,				0.0f,		// LowFrequency
-		0.0f,				0.707f,		// BackLeft
-		0.707f,				0.0f,		// BackRight
+		// FrontLeft	FrontRight	Center		LowFrequency	SideLeft	SideRight	BackLeft	BackRight	
+		1.0f,			0.0f,		0.707f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontLeft
+		0.0f,			1.0f,		0.707f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontRight
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		0.0f,		1.0f,		0.0f,		// BackLeft
+		0.0f,			0.0f,		0.0f,		1.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// LFE
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		0.0f,		0.0f,		1.0f,		// BackRight
+		0.0f,			0.0f,		0.0f,		0.0f,			1.0f,		0.0f,		0.0f,		0.0f,		// SideLeft
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		1.0f,		0.0f,		0.0f,		// SideRight
 	};
 
-	static float StereoTo71Matrix[2 * 8] =
+	// NOTE: the BackLeft/BackRight and SideLeft/SideRight are reversed than they should be since our 7.1 importer code has it backward
+	static float To7Point1Matrix[AUDIO_MIXER_MAX_OUTPUT_CHANNELS * 8] =
 	{
-		// FrontLeft		FrontRight
-		0.707f,				0.0f,		// FrontLeft
-		0.0f,				0.707f,		// FrontRight
-		0.0f,				0.0f,		// FrontCenter
-		0.0f,				0.0f,		// LowFrequency
-		0.0f,				0.707f,		// BackLeft
-		0.707f,				0.0f,		// BackRight
-		0.0f,				0.0f,		// SideLeft
-		0.0f,				0.0f,		// SideRight
+		// FrontLeft	FrontRight	Center		LowFrequency	SideLeft	SideRight	BackLeft	BackRight
+		1.0f,			0.0f,		0.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontLeft
+		0.0f,			1.0f,		0.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontRight
+		0.0f,			0.0f,		1.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontCenter
+		0.0f,			0.0f,		0.0f,		1.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// LowFrequency
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		0.0f,		1.0f,		0.0f,		// BackLeft
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		0.0f,		0.0f,		1.0f,		// BackRight
+		0.0f,			0.0f,		0.0f,		0.0f,			1.0f,		0.0f,		0.0f,		0.0f,		// SideLeft
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		1.0f,		0.0f,		0.0f,		// SideRight
 	};
 
-	static float QuadToStereoMatrix[4 * 2] =
+	static float* OutputChannelMaps[AUDIO_MIXER_MAX_OUTPUT_CHANNELS] =
 	{
-		// FrontLeft		FrontRight		BackLeft		BackRight
-		0.5f,				0.0f,			0.5f,			0.0f,			// FrontLeft
-		0.0f,				0.5f,			0.0f,			0.5f,			// FrontRight
+		ToMonoMatrix,
+		ToStereoMatrix,
+		ToTriMatrix,	// Experimental
+		ToQuadMatrix,
+		To5Matrix,		// Experimental
+		To5Point1Matrix,
+		ToHexMatrix,	// Experimental
+		To7Point1Matrix
 	};
 
-	static float QuadToQuadMatrix[4 * 4] =
-	{
-		// FrontLeft		FrontRight		BackLeft		BackRight
-		1.0f,				0.0f,			0.0f,			0.0f,			// FrontLeft
-		0.0f,				1.0f,			0.0f,			0.0f,			// FrontRight
-		0.0f,				0.0f,			1.0f,			0.0f,			// BackLeft
-		0.0f,				0.0f,			0.0f,			1.0f,			// BackRight
-	};
+	TMap<int32, TArray<float>> FMixerDevice::ChannelMapCache;
 
-	static float QuadTo51Matrix[4 * 6] =
+	int32 FMixerDevice::GetChannelMapCacheId(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly) const
 	{
-		// FrontLeft		FrontRight		BackLeft		BackRight
-		1.0f,				0.0f,			0.0f,			0.0f,			// FrontLeft
-		0.0f,				1.0f,			0.0f,			0.0f,			// FrontRight
-		0.0f,				0.0f,			0.0f,			0.0f,			// FrontCenter
-		0.0f,				0.0f,			0.0f,			0.0f,			// LowFrequency
-		0.0f,				0.0f,			1.0f,			0.0f,			// BackLeft
-		0.0f,				0.0f,			0.0f,			1.0f,			// BackRight
-	};
-
-	static float QuadTo71Matrix[4 * 8] =
-	{
-		// FrontLeft		FrontRight		BackLeft		BackRight
-		1.0f,				0.0f,			0.0f,			0.0f,			// FrontLeft
-		0.0f,				1.0f,			0.0f,			0.0f,			// FrontRight
-		0.0f,				0.0f,			0.0f,			0.0f,			// FrontCenter
-		0.0f,				0.0f,			0.0f,			0.0f,			// LowFrequency
-		0.0f,				0.0f,			1.0f,			0.0f,			// BackLeft
-		0.0f,				0.0f,			0.0f,			1.0f,			// BackRight
-		0.0f,				0.0f,			0.0f,			0.0f,			// SideLeft
-		0.0f,				0.0f,			0.0f,			0.0f,			// SideRight
-	};
-
-	static float HexToStereoMatrix[6 * 2] =
-	{
-		// FrontLeft		FrontRight		FrontCenter		LowFrequency		BackLeft		BackRight
-		0.577f,				0.0f,			0.577f,			0.0f,				0.577f,			0.0f,			// FrontLeft
-		0.0f,				0.577f,			0.577f,			0.0f,				0.577f,			0.577f,			// FrontRight
-	};
-
-	static float HexToQuadMatrix[6 * 4] =
-	{
-		// FrontLeft		FrontRight		FrontCenter		LowFrequency		BackLeft		BackRight
-		0.577f,				0.0f,			0.577f,			0.0f,				0.0f,			0.0f,			// FrontLeft
-		0.0f,				0.577f,			0.577f,			0.0f,				0.0f,			0.0f,			// FrontRight
-		0.0f,				0.0f,			0.0f,			0.0f,				0.577f,			0.0f,			// BackLeft
-		0.0f,				0.0f,			0.0f,			0.0f,				0.0f,			0.577f,			// BackRight
-	};
-
-	static float HexTo51Matrix[6 * 6] =
-	{
-		// FrontLeft		FrontRight		FrontCenter		LowFrequency		BackLeft		BackRight
-		1.0f,				0.0f,			0.0f,			0.0f,				0.0f,			0.0f,			// FrontLeft
-		0.0f,				1.0f,			0.0f,			0.0f,				0.0f,			0.0f,			// FrontRight
-		0.0f,				0.0f,			1.0f,			0.0f,				0.0f,			0.0f,			// FrontCenter
-		0.0f,				0.0f,			0.0f,			1.0f,				0.0f,			0.0f,			// LowFrequency
-		0.0f,				0.0f,			0.0f,			0.0f,				1.0f,			0.0f,			// BackLeft
-		0.0f,				0.0f,			0.0f,			0.0f,				0.0f,			1.0f,			// BackRight
-	};
-
-	static float HexTo71Matrix[6 * 8] =
-	{
-		// FrontLeft		FrontRight		FrontCenter		LowFrequency		BackLeft		BackRight
-		1.0f,				0.0f,			0.0f,			0.0f,				0.0f,			0.0f,			// FrontLeft
-		0.0f,				1.0f,			0.0f,			0.0f,				0.0f,			0.0f,			// FrontRight
-		0.0f,				0.0f,			1.0f,			0.0f,				0.0f,			0.0f,			// FrontCenter
-		0.0f,				0.0f,			0.0f,			1.0f,				0.0f,			0.0f,			// LowFrequency
-		0.0f,				0.0f,			0.0f,			0.0f,				1.0f,			0.0f,			// BackLeft
-		0.0f,				0.0f,			0.0f,			0.0f,				0.0f,			1.0f,			// BackRight
-		0.0f,				0.0f,			0.0f,			0.0f,				0.0f,			0.0f,			// SideLeft
-		0.0f,				0.0f,			0.0f,			0.0f,				0.0f,			0.0f,			// SideRight
-	};
-
-	static inline int32 GetChannelMapID(const int32 InputChannels, const int32 OutputChannels)
-	{
-		return InputChannels + 100 * OutputChannels;
+		// Just create a unique number for source and output channel combination
+		return NumSourceChannels + 10 * NumOutputChannels + 100 * (int32)bIsCenterChannelOnly;
 	}
 
-	void FMixerDevice::Get2DChannelMap(const int32 NumSourceChannels, TArray<float>& OutChannelMap)
+	void FMixerDevice::Get2DChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly, TArray<float>& OutChannelMap) const
 	{
-		int32 ChannelMapIndex = GetChannelMapID(NumSourceChannels, PlatformInfo.NumChannels);
-		FChannelMapEntry* Entry = ChannelMaps.Find(ChannelMapIndex);
-		if (!Entry)
+		if (NumSourceChannels > 8 || NumOutputChannels > 8)
 		{
-			OutChannelMap.AddZeroed(PlatformInfo.NumChannels);
-			UE_LOG(LogAudioMixer, Warning, TEXT("Unsupported source channel count or output channels %d"), NumSourceChannels);
+			// Return a zero'd channel map buffer in the case of an unsupported channel configuration
+			OutChannelMap.AddZeroed(NumSourceChannels * NumOutputChannels);
+			UE_LOG(LogAudioMixer, Warning, TEXT("Unsupported source channel (%d) count or output channels (%d)"), NumSourceChannels, NumOutputChannels);
 			return;
 		}
 
-		OutChannelMap = Entry->ChannelWeights;
+		const int32 CacheID = GetChannelMapCacheId(NumSourceChannels, NumOutputChannels, bIsCenterChannelOnly);
+		const TArray<float>* CachedChannelMap = ChannelMapCache.Find(CacheID);
+		if (!CachedChannelMap)
+		{
+			Get2DChannelMapInternal(NumSourceChannels, NumOutputChannels, bIsCenterChannelOnly, OutChannelMap);
+		}
+		else
+		{
+			OutChannelMap = *CachedChannelMap;
+		}
 	}
 
-	void FMixerDevice::Initialize2DChannelMaps()
+	const float* FMixerDevice::Get2DChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly) const
 	{
-		ChannelMaps.Reset();
+		if (NumSourceChannels > 8 || NumOutputChannels > 8)
+		{
+			UE_LOG(LogAudioMixer, Warning, TEXT("Unsupported source channel (%d) count or output channels (%d)"), NumSourceChannels, NumOutputChannels);
+			return nullptr;
+		}
 
-		ChannelMaps.Add(GetChannelMapID(1, 2), FChannelMapEntry(EChannelMap::MonoToStereo,	MonoToStereoMatrix, ARRAY_COUNT(MonoToStereoMatrix)));
-		ChannelMaps.Add(GetChannelMapID(1, 4), FChannelMapEntry(EChannelMap::MonoToQuad,	MonoToQuadMatrix,	ARRAY_COUNT(MonoToQuadMatrix)));
-		ChannelMaps.Add(GetChannelMapID(1, 6), FChannelMapEntry(EChannelMap::MonoTo51,		MonoTo51Matrix,		ARRAY_COUNT(MonoTo51Matrix)));
-		ChannelMaps.Add(GetChannelMapID(1, 8), FChannelMapEntry(EChannelMap::MonoTo71,		MonoTo71Matrix,		ARRAY_COUNT(MonoTo71Matrix)));
+		const int32 CacheID = GetChannelMapCacheId(NumSourceChannels, NumOutputChannels, bIsCenterChannelOnly);
+		const TArray<float>* CachedChannelMap = ChannelMapCache.Find(CacheID);
+		if (CachedChannelMap)
+		{
+			return CachedChannelMap->GetData();
+		}
 
-		ChannelMaps.Add(GetChannelMapID(2, 2), FChannelMapEntry(EChannelMap::StereoToStereo, StereoToStereoMatrix,	ARRAY_COUNT(StereoToStereoMatrix)));
-		ChannelMaps.Add(GetChannelMapID(2, 4), FChannelMapEntry(EChannelMap::StereoToQuad,	StereoToQuadMatrix,		ARRAY_COUNT(StereoToQuadMatrix)));
-		ChannelMaps.Add(GetChannelMapID(2, 6), FChannelMapEntry(EChannelMap::StereoTo51,	StereoTo51Matrix,		ARRAY_COUNT(StereoTo51Matrix)));
-		ChannelMaps.Add(GetChannelMapID(2, 8), FChannelMapEntry(EChannelMap::StereoTo71,	StereoTo71Matrix,		ARRAY_COUNT(StereoTo71Matrix)));
+		return nullptr;
+	}
 
-		ChannelMaps.Add(GetChannelMapID(4, 2), FChannelMapEntry(EChannelMap::QuadToStereo,	QuadToStereoMatrix,	ARRAY_COUNT(QuadToStereoMatrix)));
-		ChannelMaps.Add(GetChannelMapID(4, 4), FChannelMapEntry(EChannelMap::QuadToQuad,	QuadToQuadMatrix,	ARRAY_COUNT(QuadToQuadMatrix)));
-		ChannelMaps.Add(GetChannelMapID(4, 6), FChannelMapEntry(EChannelMap::QuadTo51,		QuadTo51Matrix,		ARRAY_COUNT(QuadTo51Matrix)));
-		ChannelMaps.Add(GetChannelMapID(4, 8), FChannelMapEntry(EChannelMap::QuadTo71,		QuadTo71Matrix,		ARRAY_COUNT(QuadTo71Matrix)));
 
-		ChannelMaps.Add(GetChannelMapID(6, 2), FChannelMapEntry(EChannelMap::HexToStereo,	HexToStereoMatrix,	ARRAY_COUNT(HexToStereoMatrix)));
-		ChannelMaps.Add(GetChannelMapID(6, 4), FChannelMapEntry(EChannelMap::HexToQuad,		HexToQuadMatrix,	ARRAY_COUNT(HexToQuadMatrix)));
-		ChannelMaps.Add(GetChannelMapID(6, 6), FChannelMapEntry(EChannelMap::HexTo51,		HexTo51Matrix,		ARRAY_COUNT(HexTo51Matrix)));
-		ChannelMaps.Add(GetChannelMapID(6, 8), FChannelMapEntry(EChannelMap::HexTo71,		HexTo71Matrix,		ARRAY_COUNT(HexTo71Matrix)));
+	void FMixerDevice::Get2DChannelMapInternal(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly, TArray<float>& OutChannelMap) const
+	{
+		const int32 OutputChannelMapIndex = NumOutputChannels - 1;
+		check(OutputChannelMapIndex < ARRAY_COUNT(OutputChannelMaps));
+
+		float* Matrix = OutputChannelMaps[OutputChannelMapIndex];
+		check(Matrix != nullptr);
+
+		// Mono input sources have some special cases to take into account
+		if (NumSourceChannels == 1)
+		{
+			// Mono-in mono-out channel map
+			if (NumOutputChannels == 1)
+			{
+				OutChannelMap.Add(1.0f);		
+			}
+			else
+			{
+				// If we have more than stereo output (means we have center channel, which is always the 3rd index)
+				// Then we need to only apply 1.0 to the center channel, 0.0 for everything else
+				if ((NumOutputChannels == 3 || NumOutputChannels > 4) && bIsCenterChannelOnly)
+				{
+					for (int32 OutputChannel = 0; OutputChannel < NumOutputChannels; ++OutputChannel)
+					{
+						// Center channel is always 3rd index
+						if (OutputChannel == 2)
+						{
+							OutChannelMap.Add(1.0f);
+						}
+						else
+						{
+							OutChannelMap.Add(0.0f);
+						}
+					}
+				}
+				else
+				{
+					// Mapping out to more than 2 channels, mono sources should be equally spread to left and right
+					OutChannelMap.Add(0.707f);
+					OutChannelMap.Add(0.707f);
+
+					for (int32 OutputChannel = 2; OutputChannel < NumOutputChannels; ++OutputChannel)
+					{
+						const int32 Index = OutputChannel * AUDIO_MIXER_MAX_OUTPUT_CHANNELS;
+						OutChannelMap.Add(Matrix[Index]);
+					}
+				}
+			}
+		}
+		else
+		{
+			for (int32 SourceChannel = 0; SourceChannel < NumSourceChannels; ++SourceChannel)
+			{
+				for (int32 OutputChannel = 0; OutputChannel < NumOutputChannels; ++OutputChannel)
+				{
+					const int32 Index = OutputChannel * AUDIO_MIXER_MAX_OUTPUT_CHANNELS + SourceChannel;
+					OutChannelMap.Add(Matrix[Index]);
+				}
+			}
+		}
+	}
+
+	void FMixerDevice::CacheChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly)
+	{
+		// Generate the unique cache ID for the channel count configuration
+		const int32 CacheID = GetChannelMapCacheId(NumSourceChannels, NumOutputChannels, bIsCenterChannelOnly);
+		TArray<float> ChannelMap;
+		Get2DChannelMapInternal(NumSourceChannels, NumOutputChannels, bIsCenterChannelOnly, ChannelMap);
+		ChannelMapCache.Add(CacheID, ChannelMap);
+	}
+
+	void FMixerDevice::InitializeChannelMaps()
+	{	
+		// If we haven't yet created the static channel map cache
+		if (!ChannelMapCache.Num())
+		{
+			// Loop through all input to output channel map configurations and cache them
+			for (int32 InputChannelCount = 1; InputChannelCount < 9; ++InputChannelCount)
+			{
+				for (int32 OutputChannelCount = 1; OutputChannelCount < 9; ++OutputChannelCount)
+				{
+					CacheChannelMap(InputChannelCount, OutputChannelCount, true);
+					CacheChannelMap(InputChannelCount, OutputChannelCount, false);
+				}
+			}
+		}
 	}
 
 	void FMixerDevice::InitializeChannelAzimuthMap(const int32 NumChannels)
 	{
+		// Initialize and cache 2D channel maps
+		InitializeChannelMaps();
+
 		// Now setup the hard-coded values
 		if (NumChannels == 2)
 		{
@@ -225,9 +253,19 @@ namespace Audio
 			DefaultChannelAzimuthPosition[EAudioMixerChannel::FrontRight] = { EAudioMixerChannel::FrontRight, 30 };
 		}
 
-		// Ignore front cent and low-frequency for azimuth computations. Both of these channels are manual opt-ins from data and not directly used in 3d audio calculations
-		DefaultChannelAzimuthPosition[EAudioMixerChannel::FrontCenter] = { EAudioMixerChannel::FrontCenter, -1 };
-		DefaultChannelAzimuthPosition[EAudioMixerChannel::LowFrequency] = { EAudioMixerChannel::LowFrequency, -1 };
+		if (bAllowCenterChannel3DPanning)
+		{
+			// Allow center channel for azimuth computations
+			DefaultChannelAzimuthPosition[EAudioMixerChannel::FrontCenter] = { EAudioMixerChannel::FrontCenter, 0 };
+		}
+		else
+		{
+			// Ignore front center for azimuth computations. 
+			DefaultChannelAzimuthPosition[EAudioMixerChannel::FrontCenter] = { EAudioMixerChannel::FrontCenter, INDEX_NONE };
+		}
+
+		// Always ignore low frequency channel for azimuth computations. 
+		DefaultChannelAzimuthPosition[EAudioMixerChannel::LowFrequency] = { EAudioMixerChannel::LowFrequency, INDEX_NONE };
 
 		DefaultChannelAzimuthPosition[EAudioMixerChannel::BackLeft] = { EAudioMixerChannel::BackLeft, 210 };
 		DefaultChannelAzimuthPosition[EAudioMixerChannel::BackRight] = { EAudioMixerChannel::BackRight, 150 };
@@ -244,38 +282,43 @@ namespace Audio
 			for (int32 ChannelOverrideIndex = 0; ChannelOverrideIndex < EAudioMixerChannel::MaxSupportedChannel; ++ChannelOverrideIndex)
 			{
 				EAudioMixerChannel::Type MixerChannelType = EAudioMixerChannel::Type(ChannelOverrideIndex);
-				const TCHAR* ChannelName = EAudioMixerChannel::ToString(MixerChannelType);
-				if (GConfig->GetInt(TEXT("AudioChannelAzimuthMap"), ChannelName, AzimuthPositionOverride, GEngineIni))
+				
+				// Don't allow overriding the center channel if its not allowed to spatialize.
+				if (MixerChannelType != EAudioMixerChannel::FrontCenter || bAllowCenterChannel3DPanning)
 				{
-					if (AzimuthPositionOverride >= 0 && AzimuthPositionOverride < 360)
+					const TCHAR* ChannelName = EAudioMixerChannel::ToString(MixerChannelType);
+					if (GConfig->GetInt(TEXT("AudioChannelAzimuthMap"), ChannelName, AzimuthPositionOverride, GEngineIni))
 					{
-						// Make sure no channels have this azimuth angle first, otherwise we'll get some bad math later
-						bool bIsUnique = true;
-						for (int32 ExistingChannelIndex = 0; ExistingChannelIndex < EAudioMixerChannel::MaxSupportedChannel; ++ExistingChannelIndex)
+						if (AzimuthPositionOverride >= 0 && AzimuthPositionOverride < 360)
 						{
-							if (DefaultChannelAzimuthPosition[ExistingChannelIndex].Azimuth == AzimuthPositionOverride)
+							// Make sure no channels have this azimuth angle first, otherwise we'll get some bad math later
+							bool bIsUnique = true;
+							for (int32 ExistingChannelIndex = 0; ExistingChannelIndex < EAudioMixerChannel::MaxSupportedChannel; ++ExistingChannelIndex)
 							{
-								bIsUnique = false;
-
-								// If the override is setting the same value as our default, don't print a warning
-								if (ExistingChannelIndex != ChannelOverrideIndex)
+								if (DefaultChannelAzimuthPosition[ExistingChannelIndex].Azimuth == AzimuthPositionOverride)
 								{
-									const TCHAR* ExistingChannelName = EAudioMixerChannel::ToString(EAudioMixerChannel::Type(ExistingChannelIndex));
-									UE_LOG(LogAudioMixer, Warning, TEXT("Azimuth value '%d' for audio mixer channel '%s' is already used by '%s'. Azimuth values must be unique."),
-										AzimuthPositionOverride, ChannelName, ExistingChannelName);
+									bIsUnique = false;
+
+									// If the override is setting the same value as our default, don't print a warning
+									if (ExistingChannelIndex != ChannelOverrideIndex)
+									{
+										const TCHAR* ExistingChannelName = EAudioMixerChannel::ToString(EAudioMixerChannel::Type(ExistingChannelIndex));
+										UE_LOG(LogAudioMixer, Warning, TEXT("Azimuth value '%d' for audio mixer channel '%s' is already used by '%s'. Azimuth values must be unique."),
+											AzimuthPositionOverride, ChannelName, ExistingChannelName);
+									}
+									break;
 								}
-								break;
+							}
+
+							if (bIsUnique)
+							{
+								DefaultChannelAzimuthPosition[MixerChannelType].Azimuth = AzimuthPositionOverride;
 							}
 						}
-
-						if (bIsUnique)
+						else
 						{
-							DefaultChannelAzimuthPosition[MixerChannelType].Azimuth = AzimuthPositionOverride;
+							UE_LOG(LogAudioMixer, Warning, TEXT("Azimuth value, %d, for audio mixer channel %s out of range. Must be [0, 360)."), AzimuthPositionOverride, ChannelName);
 						}
-					}
-					else
-					{
-						UE_LOG(LogAudioMixer, Warning, TEXT("Azimuth value, %d, for audio mixer channel %s out of range. Must be [0, 360)."), AzimuthPositionOverride, ChannelName);
 					}
 				}
 			}
@@ -286,7 +329,7 @@ namespace Audio
 		for (EAudioMixerChannel::Type Channel : PlatformInfo.OutputChannelArray)
 		{
 			// Only track non-LFE and non-Center channel azimuths for use with 3d channel mappings
-			if (Channel != EAudioMixerChannel::LowFrequency && Channel != EAudioMixerChannel::FrontCenter)
+			if (Channel != EAudioMixerChannel::LowFrequency && DefaultChannelAzimuthPosition[Channel].Azimuth >= 0)
 			{
 				++NumSpatialChannels;
 				CurrentChannelAzimuthPositions.Add(DefaultChannelAzimuthPosition[Channel]);

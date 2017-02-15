@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "Runtime/Engine/Classes/Engine/DestructibleFractureSettings.h"
 #include "DestructibleChunkParamsProxy.generated.h"
 
+class IDestructibleMeshEditor;
+class UDestructibleMesh;
 
 UCLASS()
 class UDestructibleChunkParamsProxy : public UObject

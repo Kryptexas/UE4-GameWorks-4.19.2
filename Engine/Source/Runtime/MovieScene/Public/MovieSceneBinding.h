@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 #include "MovieSceneBinding.generated.h"
 
-
 class UMovieSceneTrack;
-
 
 /**
  * A set of tracks bound to runtime objects
@@ -125,6 +126,6 @@ private:
 	FString BindingName;
 
 	/** All tracks in this binding */
-	UPROPERTY()
+	UPROPERTY(Instanced)
 	TArray<UMovieSceneTrack*> Tracks;
 };

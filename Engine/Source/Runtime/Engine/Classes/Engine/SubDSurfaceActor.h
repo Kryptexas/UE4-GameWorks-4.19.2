@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Subdivision Surface Actor (Experimental, Early work in progress)
@@ -6,7 +6,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameFramework/Actor.h"
 #include "SubDSurfaceActor.generated.h"
+
+class UBillboardComponent;
+class UStaticMeshComponent;
 
 UCLASS(hidecategories=(Collision, Attachment, Actor))
 class ENGINE_API ASubDSurfaceActor : public AActor

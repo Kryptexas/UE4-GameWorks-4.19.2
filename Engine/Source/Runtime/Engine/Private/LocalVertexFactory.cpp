@@ -1,13 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LocalVertexFactory.cpp: Local vertex factory implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "LocalVertexFactory.h"
+#include "SceneView.h"
+#include "MeshBatch.h"
 #include "SpeedTreeWind.h"
 #include "ShaderParameterUtils.h"
-#include "LocalVertexFactory.h"
+#include "Rendering/ColorVertexBuffer.h"
 
 class FSpeedTreeWindNullUniformBuffer : public TUniformBuffer<FSpeedTreeUniformParameters>
 {
@@ -92,13 +94,13 @@ void FLocalVertexFactory::SetData(const FDataType& InData)
 */
 void FLocalVertexFactory::Copy(const FLocalVertexFactory& Other)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		FLocalVertexFactoryCopyData,
-		FLocalVertexFactory*,VertexFactory,this,
-		const FDataType*,DataCopy,&Other.Data,
-	{
-		VertexFactory->Data = *DataCopy;
-	});
+	FLocalVertexFactory* VertexFactory = this;
+	const FDataType* DataCopy = &Other.Data;
+	ENQUEUE_RENDER_COMMAND(FLocalVertexFactoryCopyData)(
+		[VertexFactory, DataCopy](FRHICommandListImmediate& RHICmdList)
+		{
+			VertexFactory->Data = *DataCopy;
+		});
 	BeginUpdateResourceRHI(this);
 }
 

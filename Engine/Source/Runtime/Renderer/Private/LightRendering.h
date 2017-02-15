@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightRendering.h: Light rendering declarations.
@@ -6,7 +6,12 @@
 
 #pragma once
 
-#include "UniformBuffer.h"
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "GlobalShader.h"
+#include "ShadowRendering.h"
+#include "SceneRendering.h"
 
 template<typename ShaderRHIParamRef>
 void SetSimpleDeferredLightParameters(

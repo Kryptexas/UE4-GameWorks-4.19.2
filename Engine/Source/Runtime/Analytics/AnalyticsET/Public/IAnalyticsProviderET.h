@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IAnalyticsProvider.h"
+#include "CoreMinimal.h"
+#include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
 
 /** ET specific analytics provider instance. Exposes additional APIs to support Json-based events. */
 class IAnalyticsProviderET : public IAnalyticsProvider

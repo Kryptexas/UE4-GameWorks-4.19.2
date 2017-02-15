@@ -1,23 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightComponent.cpp: LightComponent implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#if WITH_EDITOR
-#include "ObjectEditorUtils.h"
-#endif
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "ComponentInstanceDataCache.h"
-#include "TargetPlatform.h"
-#include "ComponentReregisterContext.h"
-#include "Components/PointLightComponent.h"
 #include "Components/LightComponent.h"
+#include "Misc/App.h"
+#include "RenderingThread.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Materials/Material.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Engine/Texture2D.h"
+#include "Engine/TextureLightProfile.h"
+#include "SceneManagement.h"
+#include "ComponentReregisterContext.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Components/PointLightComponent.h"
 #include "Components/DirectionalLightComponent.h"
+#include "Components/BillboardComponent.h"
 #include "ComponentRecreateRenderStateContext.h"
-#include "RenderingObjectVersion.h"
 
 void FStaticShadowDepthMap::InitRHI()
 {
@@ -178,6 +184,7 @@ FBoxSphereBounds ULightComponentBase::GetPlacementExtent() const
 FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	: LightComponent(InLightComponent)
 	, IndirectLightingScale(InLightComponent->IndirectLightingIntensity)
+	, ShadowResolutionScale(InLightComponent->ShadowResolutionScale)
 	, ShadowBias(InLightComponent->ShadowBias)
 	, ShadowSharpen(InLightComponent->ShadowSharpen)
 	, ContactShadowLength(InLightComponent->ContactShadowLength)
@@ -313,6 +320,7 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	bUseTemperature = false;
 	PreviewShadowMapChannel = INDEX_NONE;
 	IndirectLightingIntensity = 1.0f;
+	ShadowResolutionScale = 1.0f;
 	ShadowBias = 0.5f;
 	ShadowSharpen = 0.0f;
 	ContactShadowLength = 0.0f;
@@ -333,6 +341,7 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	BloomTint = FColor::White;
 
 	RayStartOffsetDepthScale = .003f;
+	bAddedToSceneVisible = false;
 }
 
 
@@ -540,6 +549,7 @@ void ULightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightFunctionScale) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightFunctionFadeDistance) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, DisabledBrightness) &&
+		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ShadowResolutionScale) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ShadowBias) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ShadowSharpen) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ContactShadowLength) &&
@@ -636,25 +646,17 @@ void ULightComponent::CreateRenderState_Concurrent()
 {
 	Super::CreateRenderState_Concurrent();
 
-	bool bHidden = false;
-#if WITH_EDITORONLY_DATA
-	bHidden = GetOwner() ? GetOwner()->IsHiddenEd() : false;
-#endif // WITH_EDITORONLY_DATA
-
-	if(!ShouldComponentAddToScene())
-	{
-		bHidden = true;
-	}
-
 	if (bAffectsWorld)
 	{
 		UWorld* World = GetWorld();
-		if (bVisible && !bHidden)
+		const bool bHidden = !ShouldComponentAddToScene() || !ShouldRender() || Intensity <= 0.f;
+		if (!bHidden)
 		{
 			InitializeStaticShadowDepthMap();
 
 			// Add the light to the scene.
 			World->Scene->AddLight(this);
+			bAddedToSceneVisible = true;
 		}
 		// Add invisible stationary lights to the scene in the editor
 		// Even invisible stationary lights consume a shadowmap channel so they must be included in the stationary light overlap preview
@@ -683,6 +685,7 @@ void ULightComponent::DestroyRenderState_Concurrent()
 {
 	Super::DestroyRenderState_Concurrent();
 	GetWorld()->Scene->RemoveLight(this);
+	bAddedToSceneVisible = false;
 }
 
 /** Set brightness of the light */
@@ -694,13 +697,8 @@ void ULightComponent::SetIntensity(float NewIntensity)
 	{
 		Intensity = NewIntensity;
 
-		// Use lightweight color and brightness update 
-		UWorld* World = GetWorld();
-		if( World && World->Scene )
-		{
-			//@todo - remove from scene if brightness or color becomes 0
-			World->Scene->UpdateLightColorAndBrightness( this );
-		}
+		// Use lightweight color and brightness update if possible
+		UpdateColorAndBrightness();
 	}
 }
 
@@ -884,7 +882,19 @@ void ULightComponent::UpdateColorAndBrightness()
 	UWorld* World = GetWorld();
 	if( World && World->Scene )
 	{
-		World->Scene->UpdateLightColorAndBrightness( this );
+		const bool bNeedsToBeAddedToScene = (!bAddedToSceneVisible && Intensity > 0.f);
+		const bool bNeedsToBeRemovedFromScene = (bAddedToSceneVisible && Intensity <= 0.f);
+		if (bNeedsToBeAddedToScene || bNeedsToBeRemovedFromScene)
+		{
+			// We may have just been set to 0 intensity or we were previously 0 intensity.
+			// Mark the render state dirty to add or remove this light from the scene as necessary.
+			MarkRenderStateDirty();
+		}
+		else if (bAddedToSceneVisible && Intensity > 0.f)
+		{
+			// We are already in the scene. Just update with this fast path command
+			World->Scene->UpdateLightColorAndBrightness(this);
+		}
 	}
 }
 
@@ -1147,7 +1157,7 @@ void ULightComponent::ReassignStationaryLightChannels(UWorld* TargetWorld, bool 
 		{
 			ULevel* LightLevel = LightOwner->GetLevel();
 
-			if (!LightingScenario || LightLevel == LightingScenario)
+			if (!LightingScenario || !LightLevel->bIsLightingScenario || LightLevel == LightingScenario)
 			{				
 				if (LightComponent->bAffectsWorld
 					&& LightComponent->CastShadows 

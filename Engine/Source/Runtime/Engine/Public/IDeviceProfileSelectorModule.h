@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IDeviceProfileSelectorModule.h: Declares the IDeviceProfileSelectorModule interface.
@@ -6,7 +6,8 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
 
 
 /**

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * File to hold common package helper functions.
@@ -7,8 +7,16 @@
 
 #pragma once
 
-#include "UnrealEd.h"
-#include "Developer/CollectionManager/Public/CollectionManagerModule.h"
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "HAL/FileManager.h"
+#include "Misc/PackageName.h"
+#include "Commandlets/Commandlet.h"
+#include "Misc/FeedbackContext.h"
+#include "FileHelpers.h"
+#include "CollectionManagerTypes.h"
+
+class Error;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogPackageHelperFunctions, Log, All);
 

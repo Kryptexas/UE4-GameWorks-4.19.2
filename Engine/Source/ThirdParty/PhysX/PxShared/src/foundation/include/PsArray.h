@@ -37,9 +37,9 @@
 
 #if (PX_LINUX && !(PX_EMSCRIPTEN || defined(_LIBCPP_VERSION))) || PX_ANDROID
 #include <tr1/type_traits>
-#elif PX_XBOXONE || PX_IOS || PX_WIN64 || PX_WIN32 || PX_PS4 || PX_OSX || PX_EMSCRIPTEN || defined(_LIBCPP_VERSION)
+#elif PX_XBOXONE || PX_IOS || PX_WIN64 || PX_WIN32 || PX_PS4 || PX_OSX || PX_EMSCRIPTEN || defined(_LIBCPP_VERSION) || PX_NX
 #include <type_traits>
-#if PX_IOS&& PX_A64
+#if PX_IOS&& PX_A64 || PX_NX
 namespace std
 {
 namespace tr1

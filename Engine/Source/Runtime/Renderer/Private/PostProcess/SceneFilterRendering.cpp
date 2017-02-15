@@ -1,13 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneFilterRendering.cpp: Filter rendering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessWeightedSampleSum.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "Containers/DynamicRHIResourceArray.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 #include "IHeadMountedDisplay.h"
 
 /**

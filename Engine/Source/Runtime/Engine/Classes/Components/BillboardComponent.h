@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/PrimitiveComponent.h"
 #include "BillboardComponent.generated.h"
 
-struct FEngineShowFlags;
+class FPrimitiveSceneProxy;
 struct FConvexVolume;
+struct FEngineShowFlags;
 
 /** 
  * A 2d texture that will be rendered always facing the camera.

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3041238
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title: 시퀀서 일람표
 Crumbs: %ROOT%, Engine
-Description:시퀀서 생산성 향상에 도움이 되는 단축키 일람표입니다.
+Description:시퀀서 생산성 향상에 도움이 되는 바로가기 및 단축키 일람표입니다.
 Navigation:topic
 parent:Engine\Sequencer\Workflow
 order:1
@@ -13,7 +13,7 @@ Related: Engine\Sequencer\HowTo
 
 [TOC(start:2 end:2)]
 
-시퀀서 에디터에는 생산성 향상을 위한 여러가지 단축키가 내장되어 있습니다. 여기서는 시퀀서 작업시 흔히 사용되는 작업과 단축키 대부분을 다루도록 하겠습니다.
+시퀀서 에디터에는 생산성 향상을 위한 여러가지 바로가기가 내장되어 있습니다. 여기서는 시퀀서 작업시 흔히 사용되는 작업, 바로가기, 단축키를 다루도록 하겠습니다.
 
 ## 재생 단축키
 

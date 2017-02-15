@@ -1,13 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
 #include "BatchedElements.h"
-#include "GlobalShader.h"
-#include "ShaderParameters.h"
-#include "RHIStaticStates.h"
+#include "Misc/App.h"
+#include "Shader.h"
 #include "SimpleElementShaders.h"
-#include "RHICommandList.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogBatchedElements, Log, All);
@@ -339,6 +336,30 @@ static void SetBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode B
 		return;
 	}
 
+	// Override blending operations to accumulate alpha
+	static const auto CVarCompositeMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.UI.CompositeMode"));
+	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
+
+	const bool bCompositeUI = CVarCompositeMode->GetValueOnRenderThread() != 0 && GRHISupportsHDROutput && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
+
+	if (bCompositeUI)
+	{
+		// Compositing to offscreen buffer, so alpha needs to be accumulated in a sensible manner
+		switch (BlendMode)
+		{
+		case SE_BLEND_Translucent:
+		case SE_BLEND_TranslucentDistanceField:
+		case SE_BLEND_TranslucentDistanceFieldShadowed:
+		case SE_BLEND_TranslucentAlphaOnly:
+			BlendMode = SE_BLEND_AlphaBlend;
+			break;
+
+		default:
+			// Blend mode is reasonable as-is
+			break;
+		};
+	}
+
 	switch(BlendMode)
 	{
 	case SE_BLEND_Opaque:
@@ -363,7 +384,7 @@ static void SetBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode B
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI());
 		break;
 	case SE_BLEND_AlphaBlend:
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA,BO_Add,BF_SourceAlpha,BF_InverseSourceAlpha,BO_Add,BF_SourceAlpha,BF_InverseSourceAlpha>::GetRHI());
+		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_InverseDestAlpha, BF_One>::GetRHI());
 		break;
 	case SE_BLEND_RGBA_MASK_END:
 	case SE_BLEND_RGBA_MASK_START:
@@ -407,7 +428,8 @@ static void SetHitTestingBlendState(FRHICommandList& RHICmdList, ESimpleElementB
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::SimpleBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::RegularSRGBBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::RegularLinearBoundShaderState;
-FBatchedElements::FSimpleElementBSSContainer FBatchedElements::MaskedBoundShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::MaskedSRGBBoundShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::MaskedLinearBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::DistanceFieldBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::HitTestingBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::ColorChannelMaskShaderState;
@@ -607,7 +629,7 @@ void FBatchedElements::PrepareShaders(
 				if (Texture->bSRGB)
 				{
 					auto* MaskedPixelShader = GetPixelShader<FSimpleElementMaskedGammaPS_SRGB>(bEncodedHDR, BlendMode, FeatureLevel);
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedSRGBBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 						*VertexShader, MaskedPixelShader);
 
 					MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
@@ -616,7 +638,7 @@ void FBatchedElements::PrepareShaders(
 				else
 				{
 					auto* MaskedPixelShader = GetPixelShader<FSimpleElementMaskedGammaPS_Linear>(bEncodedHDR, BlendMode, FeatureLevel);
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedLinearBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 						*VertexShader, MaskedPixelShader);
 
 					MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
@@ -753,7 +775,7 @@ void FBatchedElements::PrepareShaders(
 
 
 //@todo.VC10: Apparent VC10 compiler bug here causes an access violation when drawing Point arrays (TTP 213844), this occurred in the next two methods
-#if _MSC_VER
+#ifdef _MSC_VER
 PRAGMA_DISABLE_OPTIMIZATION
 #endif
 
@@ -1153,7 +1175,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 	}
 }
 
-#if _MSC_VER
+#ifdef _MSC_VER
 PRAGMA_ENABLE_OPTIMIZATION
 #endif
 

@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+
+class IOnlineSubsystem;
 
 typedef TSharedPtr<class IOnlineSubsystem, ESPMode::ThreadSafe> IOnlineSubsystemPtr;
 
@@ -54,6 +56,11 @@ private:
 	 * Attempt to load the default subsystem specified in the configuration file
 	 */
 	void LoadDefaultSubsystem();
+
+	/**
+	 *	Called before ShutdownOnlineSubsystem, before other modules have been unloaded
+	 */
+	virtual void PreUnloadOnlineSubsystem();
 
 	/**
 	 *	Shuts down all registered online subsystem platforms and unloads their modules
@@ -132,6 +139,12 @@ public:
 	 * Overloaded to allow the default subsystem a chance to load
 	 */
 	virtual void StartupModule() override;
+
+	/**
+	 * Called before the module has been unloaded
+	 * Overloaded to allow online subsystems to cancel any outstanding http requests
+	 */
+	virtual void PreUnloadCallback() override;
 
 	/**
 	 * Called before the module is unloaded, right before the module object is destroyed.

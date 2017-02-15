@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IKeyframeSection.h"
-#include "MovieSceneKeyStruct.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/SceneComponent.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/RichCurve.h"
 #include "MovieSceneSection.h"
+#include "Sections/IKeyframeSection.h"
+#include "MovieSceneKeyStruct.h"
 #include "MovieScene3DTransformSection.generated.h"
 
+class FStructOnScope;
 
 namespace EKey3DTransformChannel
 {
@@ -210,6 +216,7 @@ public:
 	 * @return The curve on the axis
 	 */
 	MOVIESCENETRACKS_API FRichCurve& GetTranslationCurve( EAxis::Type Axis );
+	MOVIESCENETRACKS_API const FRichCurve& GetTranslationCurve( EAxis::Type Axis ) const;
 
 	/** 
 	 * Returns the rotation curve for a specific axis
@@ -218,6 +225,7 @@ public:
 	 * @return The curve on the axis
 	 */
 	MOVIESCENETRACKS_API FRichCurve& GetRotationCurve( EAxis::Type Axis );
+	MOVIESCENETRACKS_API const FRichCurve& GetRotationCurve( EAxis::Type Axis ) const;
 
 	/** 
 	 * Returns the scale curve for a specific axis
@@ -226,6 +234,7 @@ public:
 	 * @return The curve on the axis
 	 */
 	MOVIESCENETRACKS_API FRichCurve& GetScaleCurve( EAxis::Type Axis );
+	MOVIESCENETRACKS_API const FRichCurve& GetScaleCurve( EAxis::Type Axis ) const;
 
 	/**
 	 * Return the trajectory visibility
@@ -254,7 +263,8 @@ public:
 	virtual void AddKey( float Time, const FTransformKey& KeyData, EMovieSceneKeyInterpolation KeyInterpolation ) override;
 	virtual void SetDefault( const FTransformKey& KeyData ) override;
 	virtual void ClearDefaults() override;
-
+	virtual FMovieSceneEvalTemplatePtr GenerateTemplate() const override;
+	
 private:
 
 	/** Translation curves */

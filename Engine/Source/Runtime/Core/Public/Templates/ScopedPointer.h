@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Serialization/Archive.h"
 
 /**
  * Wrapper around a raw pointer that destroys it automatically.
@@ -22,6 +26,7 @@ private:
 public:
 
 	/** Initialization constructor. */
+	DEPRECATED(4.15, "TScopedPointer has been deprecated and should be replaced with TUniquePtr.")
 	explicit TScopedPointer(ReferencedType* InReference = nullptr)
 		: Reference(InReference)
 	{ }
@@ -170,6 +175,7 @@ private:
 public:
 
 	/** Initialization constructor. */
+	DEPRECATED(4.15, "TAutoPtr has been deprecated and should be replaced with TUniquePtr.")
 	explicit TAutoPtr(ReferencedType* InReference = nullptr)
 		:	Reference(InReference)
 	{}

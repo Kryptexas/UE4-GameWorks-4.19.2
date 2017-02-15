@@ -1,23 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "ViewportInteractionModule.h"
 #include "ViewportWorldInteraction.h"
-#include "ViewportInteractor.h"
+#include "Materials/MaterialInterface.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Settings/LevelEditorViewportSettings.h"
+#include "Editor/UnrealEdEngine.h"
+#include "EngineGlobals.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/Selection.h"
+#include "DrawDebugHelpers.h"
+#include "EditorModeManager.h"
+#include "UnrealEdGlobals.h"
 #include "MouseCursorInteractor.h"
 #include "ViewportInteractableInterface.h"
 #include "ViewportDragOperation.h"
 #include "VIGizmoHandle.h"
-#include "VIBaseTransformGizmo.h"
 #include "Gizmo/VIPivotTransformGizmo.h"
-#include "IViewportWorldInteractionManager.h"
+#include "ViewportWorldInteractionManager.h"
+#include "IViewportInteractionModule.h"
 
 #include "SnappingUtils.h"
 #include "ScopedTransaction.h"
-#include "SLevelViewport.h"
 
 // For actor placement
-#include "ObjectTools.h"
-#include "AssetSelection.h"
 #include "IHeadMountedDisplay.h"
 
 #define LOCTEXT_NAMESPACE "ViewportWorldInteraction"
@@ -1312,6 +1320,7 @@ TArray<UViewportInteractor*>& UViewportWorldInteraction::GetInteractors()
 	return Interactors;
 }
 
+BEGIN_FUNCTION_BUILD_OPTIMIZATION
 void UViewportWorldInteraction::UpdateDragging(
 	const float DeltaTime,
 	bool& bIsFirstDragUpdate,
@@ -2014,6 +2023,7 @@ void UViewportWorldInteraction::UpdateDragging(
 	bIsFirstDragUpdate = false;
 	bSkipInteractiveWorldMovementThisFrame = false;
 }
+END_FUNCTION_BUILD_OPTIMIZATION
 
 FVector UViewportWorldInteraction::ComputeConstrainedDragDeltaFromStart( 
 	const bool bIsFirstDragUpdate, 
@@ -2172,8 +2182,7 @@ void UViewportWorldInteraction::StartDraggingActors( UViewportInteractor* Intera
 		const bool bHaveLaserPointer = Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd );
 		if ( bHaveLaserPointer )
 		{
-			AActor* Actor = ClickedComponent->GetOwner();
-
+			AActor* Actor = ClickedComponent->GetOwner(); 
 			FViewportInteractorData& InteractorData = Interactor->GetInteractorData();
 
 			// Capture undo state
@@ -2250,6 +2259,9 @@ void UViewportWorldInteraction::StartDraggingActors( UViewportInteractor* Intera
 			LastDragGizmoStartTransform = InteractorData.GizmoStartTransform;
 
 			SetupTransformablesForSelectedActors();
+
+			// Calculate the offset between the average location and the hit location after setting the transformables for the new selected objects
+			InteractorData.StartHitLocationToTransformableCenter = CalculateAverageLocationOfTransformables() - HitLocation;
 
 			// If we're placing actors, start interpolating to their actual location.  This helps smooth everything out when
 			// using the laser impact point as the target transform
@@ -2420,7 +2432,9 @@ bool UViewportWorldInteraction::FindPlacementPointUnderLaser( UViewportInteracto
 			}
 
 			const FVector WorldSpaceExtremePointOnBox = InteractorData.GizmoStartTransform.TransformVectorNoScale( ExtremePointOnBox );
+
 			HitLocation -= WorldSpaceExtremePointOnBox;
+			HitLocation -= InteractorData.StartHitLocationToTransformableCenter;
 		}
 
 		OutHitLocation = HitLocation;
@@ -2790,6 +2804,7 @@ void UViewportWorldInteraction::SetWorldToMetersScale( const float NewWorldToMet
 
 	ENGINE_API extern float GNewWorldToMetersScale;
 	GNewWorldToMetersScale = NewWorldToMetersScale;
+	OnWorldScaleChangedEvent.Broadcast(NewWorldToMetersScale);
 }
 
 UViewportInteractor* UViewportWorldInteraction::GetOtherInteractorIntertiaContribute( UViewportInteractor* Interactor )
@@ -2963,6 +2978,20 @@ void UViewportWorldInteraction::SpawnGridMeshActor()
 		// The grid starts off hidden
 		SnapGridMeshComponent->SetVisibility( false );
 	}
+}
+
+FVector UViewportWorldInteraction::CalculateAverageLocationOfTransformables()
+{
+	FVector Result = FVector::ZeroVector;
+
+	for( TUniquePtr<FViewportTransformable>& TransformablePtr : Transformables )
+	{
+		Result += ((*TransformablePtr).LastTransform.GetLocation());
+	}
+
+	Result /= Transformables.Num();
+
+	return Result;
 }
 
 FLinearColor UViewportWorldInteraction::GetColor( const EColors Color ) const

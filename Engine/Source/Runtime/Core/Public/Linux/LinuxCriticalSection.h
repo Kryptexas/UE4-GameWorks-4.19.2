@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PThreadCriticalSection.h"
-#include "GenericPlatform/GenericPlatformCriticalSection.h"
+#include "CoreTypes.h"
+#include "Misc/Timespan.h"
+#include "HAL/PThreadCriticalSection.h"
 
 /**
   * Linux implementation of the FSystemWideCriticalSection. Uses exclusive file locking.

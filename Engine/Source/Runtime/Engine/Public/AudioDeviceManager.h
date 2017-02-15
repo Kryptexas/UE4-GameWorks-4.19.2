@@ -1,10 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "Containers/Queue.h"
 #include "AudioThread.h"
+
+class FAudioDevice;
+class FReferenceCollector;
+class FSoundBuffer;
 class IAudioDeviceModule;
+class UAudioComponent;
+class USoundClass;
+class USoundMix;
 class USoundSubmix;
+class USoundWave;
 
 /**
 * Class for managing multiple audio devices.
@@ -32,7 +42,7 @@ public:
 	struct FCreateAudioDeviceResults
 	{
 		uint32 Handle;
-		uint8  bNewDevice:1;
+		uint8  bNewDevice : 1;
 		FAudioDevice* AudioDevice;
 
 		FCreateAudioDeviceResults();
@@ -182,6 +192,8 @@ public:
 	/** Look up associating a USoundWave's resource ID with sound buffers	*/
 	TMap<int32, FSoundBuffer*>	WaveBufferMap;
 
+	/** Returns all the audio devices managed by device manager. */
+	TArray<FAudioDevice*>& GetAudioDevices() { return Devices; }
 
 private:
 

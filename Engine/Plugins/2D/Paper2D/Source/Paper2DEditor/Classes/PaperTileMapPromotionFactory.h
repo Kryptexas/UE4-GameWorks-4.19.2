@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,9 @@
  * Factory used to promote an instance-specific object from instance to asset by renaming it into an asset package
  */
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Factories/Factory.h"
 #include "PaperTileMapPromotionFactory.generated.h"
 
 UCLASS()

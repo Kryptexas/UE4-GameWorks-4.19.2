@@ -1,12 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "AITypes.h"
-#include "AI/Navigation/NavigationTypes.h"
-#include "GameFramework/NavMovementComponent.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Engine/EngineTypes.h"
 #include "Components/ActorComponent.h"
+#include "EngineDefines.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "AITypes.h"
 #include "AIResourceInterface.h"
+#include "AI/Navigation/NavigationData.h"
+#include "GameFramework/NavMovementComponent.h"
 #include "PathFollowingComponent.generated.h"
+
+class Error;
+class FDebugDisplayInfo;
+class INavLinkCustomInterface;
+class UCanvas;
 
 AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogPathFollowing, Warning, All);
 
@@ -292,6 +304,9 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	/** set block detection params */
 	void SetBlockDetection(float DistanceThreshold, float Interval, int32 NumSamples);
 
+	/** Returns true if pathfollowing is doing deceleration at the end of the path. */
+	bool IsDecelerating() const { return bIsDecelerating; };
+
 	/** @returns state of movement stopping on finish */
 	FORCEINLINE bool IsStopMovementOnFinishActive() const { return bStopMovementOnFinish; }
 	
@@ -509,6 +524,9 @@ protected:
 	/** increase acceptance radius with goal's radius */
 	uint32 bReachTestIncludesGoalRadius : 1;
 
+	/** if set, target location will be constantly updated to match goal actor while following last segment of full path */
+	uint32 bMoveToGoalOnLastSegment : 1;
+
 	/** if set, movement block detection will be used */
 	uint32 bUseBlockDetection : 1;
 
@@ -526,6 +544,9 @@ protected:
 
 	/** gets set when agent starts following a navigation link. Cleared after agent starts falling or changes segment to a non-link one */
 	uint32 bWalkingNavLinkStart : 1;
+
+	/** True if pathfollowing is doing deceleration at the end of the path. @see FollowPathSegment(). */
+	uint32 bIsDecelerating : 1;
 
 	/** timeout for Waiting state, negative value = infinite */
 	float WaitingTimeout;
@@ -600,7 +621,7 @@ protected:
 	bool HasReachedDestination(const FVector& CurrentLocation) const;
 
 	/** check if segment is completed */
-	bool HasReachedCurrentTarget(const FVector& CurrentLocation) const;
+	virtual bool HasReachedCurrentTarget(const FVector& CurrentLocation) const;
 
 	/** check if moving agent has reached goal defined by cylinder */
 	bool HasReachedInternal(const FVector& GoalLocation, float GoalRadius, float GoalHalfHeight, const FVector& AgentLocation, float RadiusThreshold, float AgentRadiusMultiplier) const;
@@ -660,7 +681,7 @@ protected:
 
 	/** debug point reach test values */
 	void DebugReachTest(float& CurrentDot, float& CurrentDistance, float& CurrentHeight, uint8& bDotFailed, uint8& bDistanceFailed, uint8& bHeightFailed) const;
-	
+
 	/** used to keep track of which subsystem requested this AI resource be locked */
 	FAIResourceLock ResourceLock;
 

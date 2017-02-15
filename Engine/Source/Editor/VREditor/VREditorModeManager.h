@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/GCObject.h"
+#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
+
 class UVREditorMode;
+enum class EMapChangeType : uint8;
 
 /**
  * Manages starting and closing the VREditor mode
@@ -26,6 +32,9 @@ public:
 
 	/** If the VR Editor is currently available */
 	bool IsVREditorAvailable() const;
+
+	/** Gets the current VR Editor mode */
+	UVREditorMode* GetVREditorMode();
 
 	virtual void AddReferencedObjects( FReferenceCollector& Collector );
 

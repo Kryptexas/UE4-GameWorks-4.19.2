@@ -1,0 +1,59 @@
+﻿INTSourceChangelist:3175190
+Availability:Docs
+Title:2 - IDE を UE4 が実行可能な設定にする
+Crumbs:
+Description:IDE を Debug モードと Release モードで UE4 が実行可能な設定にする方法の説明
+Version:4.14
+type:how to
+parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
+order:2
+tags:Linux
+SkillLevel:Beginner
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/1 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ホーム](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/3 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+この時点では、UE4 は Debug モードと Release モードの両方で設定できます。これで、UE4 を実行するための Qt Creator を設定する準備ができました。
+
+1.	**[Run]** ボタンをクリックして、**[Run Settings (実行設定)]** を開きます。
+
+	![](SetupIDE_Step10.png)
+
+1.	**[Run]** セクションで、**[Executable:]** のテキスト フィールドの端にある **[Browse]** ボタンをクリックします。
+
+	![](SetupIDE_Step11.png)
+
+1.	エディタのバイナリ パスのあるディレクトリへ移動し、**UE4Editor** を選択して **[Open]** ボタンをクリックします。
+
+	![](SetupIDE_Step12.png)
+
+1.	次に、**[Working directory:]** のテキスト フィールドの端にある **[Browse]** ボタンをクリックします。
+
+	![](SetupIDE_Step13.png)
+
+1.	エディタのバイナリ パスのあるディレクトリへ移動し、`[UE4ROOT]\Engine\Binaries\Linux` を選択して **[Choose]** ボタンをクリックします。
+
+	![](SetupIDE_Step14.png)
+
+## 最終結果
+
+![](QtRunSettings_UE4.png)
+
+Debug モードと Release モードの両方で、Qt Creator を使って UE4 のビルドと実行ができる状態になりました。 
+
+%Steps%

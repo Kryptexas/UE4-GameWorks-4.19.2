@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealClient.h: Interface definition for platform specific client code.
@@ -6,20 +6,19 @@
 
 #pragma once
 
-#include "RenderResource.h"
-#include "HitProxies.h"
+#include "CoreMinimal.h"
 #include "InputCoreTypes.h"
 #include "Engine/EngineBaseTypes.h"
-#include "PopupMethodReply.h"
-	
+#include "Input/PopupMethodReply.h"
+#include "Widgets/SWidget.h"
+#include "UObject/GCObject.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "HitProxies.h"
+
 class FCanvas;
+class FViewport;
 class FViewportClient;
-
-class SWidget;
-class FCursorReply;
-class FWindowActivateEvent;
-
-enum class EFocusCause : uint8;
 
 /**
  * A render target.
@@ -549,7 +548,7 @@ protected:
 	 * Updates the viewport RHI with the current viewport state.
 	 * @param bDestroyed - True if the viewport has been destroyed.
 	 */
-	ENGINE_API virtual void UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode);
+	ENGINE_API virtual void UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, EPixelFormat PreferredPixelFormat);
 
 	/**
 	 * Take a high-resolution screenshot and save to disk.
@@ -909,6 +908,11 @@ public:
 	 * Check whether a specific stat is enabled for this viewport
 	 */
 	virtual bool IsStatEnabled(const FString& InName) const { return false; }
+
+	/**
+	* Sets whether stats should be visible for the viewport
+	*/
+	virtual void SetShowStats(bool bWantStats) { }
 
 	/**
 	 * Get the sound stat flags enabled for this viewport

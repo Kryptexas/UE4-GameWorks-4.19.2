@@ -1,26 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
 #include "VREditorWorldInteraction.h"
+#include "HAL/IConsoleManager.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
+#include "Misc/CommandLine.h"
+#include "Modules/ModuleManager.h"
 #include "VREditorMode.h"
+#include "ViewportInteractionTypes.h"
+#include "Materials/MaterialInterface.h"
+#include "Engine/Texture.h"
+#include "LevelEditorViewport.h"
+#include "ViewportWorldInteraction.h"
+#include "Engine/BrushBuilder.h"
+#include "Components/PrimitiveComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet2/ComponentEditorUtils.h"
+#include "Sound/SoundCue.h"
+#include "Editor.h"
 #include "VREditorUISystem.h"
 #include "VREditorFloatingUI.h"
-#include "VREditorDockableWindow.h"
 #include "VREditorInteractor.h"
-#include "VIBaseTransformGizmo.h"
-#include "ViewportWorldInteraction.h"
-#include "SnappingUtils.h"
-#include "ScopedTransaction.h"
 
 // For actor placement
 #include "ObjectTools.h"
 #include "AssetSelection.h"
 #include "IPlacementModeModule.h"
-#include "Kismet/GameplayStatics.h"
 
 #include "LevelEditor.h"
 #include "SLevelViewport.h"
-#include "Editor/LevelEditor/Public/LevelEditorActions.h"
+#include "LevelEditorActions.h"
 
 #define LOCTEXT_NAMESPACE "VREditor"
 
@@ -57,12 +66,14 @@ void UVREditorWorldInteraction::Init( UVREditorMode* InOwner, UViewportWorldInte
 	FEditorDelegates::OnAssetDragStarted.AddUObject( this, &UVREditorWorldInteraction::OnAssetDragStartedFromContentBrowser );
 
 	ViewportWorldInteraction->OnStopDragging().AddUObject( this, &UVREditorWorldInteraction::StopDragging );
+	ViewportWorldInteraction->OnWorldScaleChanged().AddUObject( this, &UVREditorWorldInteraction::UpdateNearClipPlaneOnScaleChange );
 }
 
 void UVREditorWorldInteraction::Shutdown()
 {
 	FEditorDelegates::OnAssetDragStarted.RemoveAll( this );
 	ViewportWorldInteraction->OnStopDragging().RemoveAll( this );
+	ViewportWorldInteraction->OnWorldScaleChanged().RemoveAll( this );
 
 	PlacingMaterialOrTextureAsset = nullptr;
 	FloatingUIAssetDraggedFrom = nullptr;
@@ -110,6 +121,13 @@ void UVREditorWorldInteraction::StopDragging( UViewportInteractor* Interactor )
 			true, false, false, false );
 		FloatingUIAssetDraggedFrom = nullptr;
 	}
+}
+
+void UVREditorWorldInteraction::UpdateNearClipPlaneOnScaleChange(const float NewWorldToMetersScale)
+{
+	// Adjust the clipping plane for the user's scale, but don't let it be larger than the engine default
+	const float DefaultWorldToMetersScale = Owner->GetSavedEditorState().WorldToMetersScale;
+	GNearClippingPlane = FMath::Min((Owner->GetDefaultVRNearClipPlane()) * (NewWorldToMetersScale / DefaultWorldToMetersScale), Owner->GetSavedEditorState().NearClipPlane);
 }
 
 void UVREditorWorldInteraction::StartDraggingMaterialOrTexture( UViewportInteractor* Interactor, const FViewportActionKeyInput& Action, const FVector HitLocation, UObject* MaterialOrTextureAsset )

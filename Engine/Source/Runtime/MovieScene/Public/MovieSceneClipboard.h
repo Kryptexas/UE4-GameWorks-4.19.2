@@ -1,12 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "MovieSceneTrack.h"
+
 #if WITH_EDITOR
 
-#include "KeyParams.h"
-#include "MovieSceneTrack.h"
-#include "DateTime.h"
 
 namespace MovieSceneClipboard
 {

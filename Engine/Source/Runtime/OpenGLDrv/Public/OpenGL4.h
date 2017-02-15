@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGL4.h: Public OpenGL 4.3 definitions for non-common functionality
@@ -8,8 +8,9 @@
 
 #define OPENGL_GL4		1
 
+#include "UObject/UObjectHierarchyFwd.h"
+#include "Misc/AssertionMacros.h"
 #include "OpenGL3.h"
-
 
 struct FOpenGL4 : public FOpenGL3
 {

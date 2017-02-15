@@ -1,9 +1,12 @@
-﻿using System;
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using Newtonsoft.Json;
 using Tools.CrashReporter.CrashReportCommon;
+using Tools.CrashReporter.CrashReportWebSite.Properties;
 
 namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 {
@@ -345,7 +348,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             //fields.Add("customfield_11500", th );
 
             //Platforms - required = false
-            fields.Add("customfield_11203", new List<object>() { new Dictionary<string, object>() { { "self", "https://jira.it.epicgames.net/rest/api/2/customFieldOption/11425" }, { "value", "PC" } } });
+            fields.Add("customfield_11203", new List<object>() { new Dictionary<string, object>() { { "self", Settings.Default.JiraDeploymentAddress + "/customFieldOption/11425" }, { "value", "PC" } } });
 
             //repro rate required = false
             //fields.Add("customfield_11900", this.Buggs_Crashes.Count);

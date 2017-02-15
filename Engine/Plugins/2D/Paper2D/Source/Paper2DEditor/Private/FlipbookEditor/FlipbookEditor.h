@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "UObject/GCObject.h"
+#include "Framework/Docking/TabManager.h"
 #include "Toolkits/AssetEditorToolkit.h"
-#include "Toolkits/AssetEditorManager.h"
+#include "PaperFlipbook.h"
 #include "Editor/EditorWidgets/Public/ITransportControl.h"
-#include "PaperFlipbookComponent.h"
 
 class SFlipbookEditorViewport;
+class UPaperFlipbookComponent;
 
 //////////////////////////////////////////////////////////////////////////
 // FFlipbookEditor

@@ -2,6 +2,8 @@ Availability:Public
 Title: Rendering Visualizers
 Crumbs: %ROOT%, Engine, Engine/Performance
 Description:Display options and view modes to check on the results of various rendering features.
+parent:Engine/Performance
+tags:Performance and Profiling
 
 [VAR:Topic]
 [OBJECT:Topic]

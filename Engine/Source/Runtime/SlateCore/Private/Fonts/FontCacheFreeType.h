@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Fonts/FontCache.h"
 
 #ifndef WITH_FREETYPE
 	#define WITH_FREETYPE	0
@@ -13,6 +16,7 @@
 
 
 #if WITH_FREETYPE
+	THIRD_PARTY_INCLUDES_START
 	#include "ft2build.h"
 
 	// FreeType style include
@@ -22,6 +26,7 @@
 	#include FT_BITMAP_H
 	#include FT_ADVANCES_H
 	#include FT_STROKER_H
+	THIRD_PARTY_INCLUDES_END
 #endif // WITH_FREETYPE
 
 
@@ -107,12 +112,13 @@ private:
 
 /**
  * Wrapper around a FreeType face instance.
- * Will hold on to a copy of the memory buffer given in the constructor (this buffer was used to create the FT_Face).
+ * It will either steal the given buffer, or stream the given file from disk.
  */
 class FFreeTypeFace
 {
 public:
-	FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, const void* InRawFontData, const int32 InRawFontDataSizeBytes);
+	FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, FFontFaceDataConstRef InMemory);
+	FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, const FString& InFilename);
 	~FFreeTypeFace();
 
 	FORCEINLINE bool IsValid() const
@@ -137,13 +143,34 @@ public:
 	}
 
 private:
+#if WITH_FREETYPE
+	void ParseAttributes();
+#endif // WITH_FREETYPE
+
 	// Non-copyable
 	FFreeTypeFace(const FFreeTypeFace&);
 	FFreeTypeFace& operator=(const FFreeTypeFace&);
 
 #if WITH_FREETYPE
 	FT_Face FTFace;
-	TArray<uint8> Memory;
+	FFontFaceDataConstPtr Memory;
+
+	/** Custom FreeType stream handler for reading font data via the Unreal File System */
+	struct FFTStreamHandler
+	{
+		FFTStreamHandler();
+		FFTStreamHandler(const FString& InFilename);
+		~FFTStreamHandler();
+		static void CloseFile(FT_Stream InStream);
+		static unsigned long ReadData(FT_Stream InStream, unsigned long InOffset, unsigned char* InBuffer, unsigned long InCount);
+
+		IFileHandle* FileHandle;
+		int64 FontSizeBytes;
+	};
+
+	FFTStreamHandler FTStreamHandler;
+	FT_StreamRec FTStream;
+	FT_Open_Args FTFaceOpenArgs;
 #endif // WITH_FREETYPE
 
 	TSet<FName> Attributes;

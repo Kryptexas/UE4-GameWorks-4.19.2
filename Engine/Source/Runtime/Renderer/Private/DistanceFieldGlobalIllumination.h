@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldGlobalIllumination.h
@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include "RenderResource.h"
+#include "CoreMinimal.h"
+#include "RHI.h"
+#include "DistanceFieldSurfaceCacheLighting.h"
 
 // In float4's, must match usf
 const int32 VPLDataStride = 3;

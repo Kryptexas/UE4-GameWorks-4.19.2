@@ -1,7 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemIOSPrivatePCH.h"
-
+#import "OnlineStoreKitHelper.h"
 
 FOnlineSubsystemIOS::FOnlineSubsystemIOS()
 {
@@ -78,6 +78,16 @@ IOnlineStorePtr FOnlineSubsystemIOS::GetStoreInterface() const
 	return StoreInterface;
 }
 
+IOnlineStoreV2Ptr FOnlineSubsystemIOS::GetStoreV2Interface() const
+{
+	return StoreV2Interface;
+}
+
+IOnlinePurchasePtr FOnlineSubsystemIOS::GetPurchaseInterface() const
+{
+	return PurchaseInterface;
+}
+
 IOnlineEventsPtr FOnlineSubsystemIOS::GetEventsInterface() const
 {
 	return nullptr;
@@ -146,13 +156,40 @@ bool FOnlineSubsystemIOS::Init()
         UserCloudInterface = MakeShareable(new FOnlineUserCloudInterfaceIOS());
         SharedCloudInterface = MakeShareable(new FOnlineSharedCloudInterfaceIOS());
 	}
-
-	if( IsInAppPurchasingEnabled() )
+	
+	if(IsInAppPurchasingEnabled())
 	{
-		StoreInterface = MakeShareable(new FOnlineStoreInterfaceIOS());
+		if (IsV2StoreEnabled())
+		{
+			StoreV2Interface = MakeShareable(new FOnlineStoreIOS(this));
+			PurchaseInterface = MakeShareable(new FOnlinePurchaseIOS(this));
+			InitStoreKitHelper();
+		}
+		else
+		{
+			StoreInterface = MakeShareable(new FOnlineStoreInterfaceIOS());
+		}
 	}
 
 	return bSuccessfullyStartedUp;
+}
+
+void FOnlineSubsystemIOS::InitStoreKitHelper()
+{
+	StoreHelper = [[FStoreKitHelperV2 alloc] init];
+	[StoreHelper retain];
+	
+	// Give each interface a chance to bind to the store kit helper
+	StoreV2Interface->InitStoreKit(StoreHelper);
+	PurchaseInterface->InitStoreKit(StoreHelper);
+	
+	// Bind the observer after the interfaces have bound their delegates
+	[[SKPaymentQueue defaultQueue] addTransactionObserver:StoreHelper];
+}
+
+void FOnlineSubsystemIOS::CleanupStoreKitHelper()
+{
+	[StoreHelper release];
 }
 
 bool FOnlineSubsystemIOS::Tick(float DeltaTime)
@@ -175,6 +212,30 @@ bool FOnlineSubsystemIOS::Shutdown()
 	UE_LOG(LogOnline, Display, TEXT("FOnlineSubsystemIOS::Shutdown()"));
 
 	bSuccessfullyShutdown = FOnlineSubsystemImpl::Shutdown();
+	
+#define DESTRUCT_INTERFACE(Interface) \
+	if (Interface.IsValid()) \
+	{ \
+		ensure(Interface.IsUnique()); \
+		Interface = nullptr; \
+	}
+	
+	DESTRUCT_INTERFACE(SessionInterface);
+	DESTRUCT_INTERFACE(IdentityInterface);
+	DESTRUCT_INTERFACE(FriendsInterface);
+	DESTRUCT_INTERFACE(LeaderboardsInterface);
+	DESTRUCT_INTERFACE(AchievementsInterface);
+	DESTRUCT_INTERFACE(ExternalUIInterface);
+	DESTRUCT_INTERFACE(TurnBasedInterface);
+	DESTRUCT_INTERFACE(UserCloudInterface);
+	DESTRUCT_INTERFACE(SharedCloudInterface);
+	DESTRUCT_INTERFACE(StoreInterface);
+	DESTRUCT_INTERFACE(StoreV2Interface);
+	DESTRUCT_INTERFACE(PurchaseInterface);
+	
+	// Cleanup after the interfaces are free
+	CleanupStoreKitHelper();
+	
 	return bSuccessfullyShutdown;
 }
 
@@ -201,9 +262,19 @@ bool FOnlineSubsystemIOS::IsEnabled()
 	return bEnableGameCenter || bEnableCloudKit || IsInAppPurchasingEnabled();
 }
 
+bool FOnlineSubsystemIOS::IsV2StoreEnabled()
+{
+	bool bUseStoreV2 = false;
+	GConfig->GetBool(TEXT("OnlineSubsystemIOS.Store"), TEXT("bUseStoreV2"), bUseStoreV2, GEngineIni);
+	return bUseStoreV2;
+}
+
 bool FOnlineSubsystemIOS::IsInAppPurchasingEnabled()
 {
 	bool bEnableIAP = false;
 	GConfig->GetBool(TEXT("OnlineSubsystemIOS.Store"), TEXT("bSupportsInAppPurchasing"), bEnableIAP, GEngineIni);
-	return bEnableIAP;
+	
+	bool bEnableIAP1 = false;
+	GConfig->GetBool(TEXT("OnlineSubsystemIOS.Store"), TEXT("bSupportInAppPurchasing"), bEnableIAP1, GEngineIni);
+	return bEnableIAP || bEnableIAP1;
 }

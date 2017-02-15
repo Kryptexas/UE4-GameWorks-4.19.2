@@ -1,11 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * MaterialParameterCollectionInstance.h 
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "MaterialParameterCollectionInstance.generated.h"
+
+class FMaterialParameterCollectionInstanceResource;
+class UMaterialParameterCollection;
 
 /** 
  * Class that stores per-world instance parameter data for a given UMaterialParameterCollection resource. 

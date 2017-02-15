@@ -1,9 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "ShowFlags.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SWindow.h"
+#include "Widgets/Text/STextBlock.h"
 #include "Slate/SceneViewport.h"
+#include "SCaptureRegionWidget.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "HighResScreenshot.h"
+
+class SButton;
 
 class SHighResScreenshotDialog : public SCompoundWidget
 {
@@ -97,11 +109,22 @@ private:
 		}
 	}
 
+	void OnForce128BitRenderingChanged(ECheckBoxState NewValue)
+	{
+		Config.SetForce128BitRendering(NewValue == ECheckBoxState::Checked);
+		auto ConfigViewport = Config.TargetViewport.Pin();
+		if (ConfigViewport.IsValid())
+		{
+			ConfigViewport->Invalidate();
+		}
+	}
+
 	void OnBufferVisualizationDumpEnabledChanged(ECheckBoxState NewValue)
 	{
 		bool bEnabled = (NewValue == ECheckBoxState::Checked);
 		Config.bDumpBufferVisualizationTargets = bEnabled;
 		SetHDRUIEnableState(bEnabled);
+		SetForce128BitRenderingState(bEnabled);
 	}
 
 	EVisibility GetSpecifyCaptureRegionVisibility() const
@@ -139,6 +162,11 @@ private:
 		return Config.bCaptureHDR ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
+	ECheckBoxState GetForce128BitRenderingCheckboxUIState() const
+	{
+		return Config.bForce128BitRendering ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+
 	ECheckBoxState GetBufferVisualizationDumpEnabled() const
 	{
 		return Config.bDumpBufferVisualizationTargets ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -155,6 +183,12 @@ private:
 		HDRLabel->SetEnabled(bEnable);
 	}
 
+	void SetForce128BitRenderingState(bool bEnable)
+	{
+		Force128BitRenderingCheckBox->SetEnabled(bEnable);
+		Force128BitRenderingLabel->SetEnabled(bEnable);
+	}
+
 	static void WindowClosedHandler(const TSharedRef<SWindow>& InWindow);
 
 	static void ResetViewport();
@@ -165,6 +199,8 @@ private:
 	TSharedPtr<SHorizontalBox> RegionCaptureActiveControlRoot;
 	TSharedPtr<SCheckBox> HDRCheckBox;
 	TSharedPtr<STextBlock> HDRLabel;
+	TSharedPtr<SCheckBox> Force128BitRenderingCheckBox;
+	TSharedPtr<STextBlock> Force128BitRenderingLabel;
 
 	FHighResScreenshotConfig& Config;
 	bool bCaptureRegionControlsVisible;

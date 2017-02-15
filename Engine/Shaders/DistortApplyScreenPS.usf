@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistortApplyScreenPixelShader.usf: Pixel shader for rendering screen distortion pass
@@ -15,9 +15,15 @@ static const half InvDistortionScaleBias = 1 / 4.0f;
  * B=negative horizontal offset
  * A=negative vertical offset 
  */
+
+  
+ #if USE_MSAA
+Texture2DMS<float4> DistortionMSAATexture;
+Texture2DMS<float4> SceneColorMSAATexture;
+#else
 Texture2D		DistortionTexture;
 SamplerState	DistortionTextureSampler;
-
+#endif
 
 /**
  * Contains the valid region in the scenecolor texture (in UV space).
@@ -31,15 +37,19 @@ float4		SceneColorRect;
 void Main(
 	in noperspective float4 TexCoord: TEXCOORD0,
 	out float4 OutColor : SV_Target0
+#if USE_MSAA
+	, in uint SampleIndex : SV_SampleIndex
+#endif
 	)
 {
-	// hack
-//	OutColor = Texture2DSample(SceneColorTexture, SceneColorTextureSampler, TexCoord) * float4(1,0,0,0);
-//	return;
-
 	// sample accumulated distortion and apply inverse scale
+#if USE_MSAA
+	half4 AccumDist = DistortionMSAATexture.Load(int2(TexCoord.xy * View.BufferSizeAndInvSize.xy), SampleIndex);
+#else
 	half4 AccumDist = Texture2DSample(DistortionTexture,DistortionTextureSampler,TexCoord.xy);
+#endif
 
+	// apply inverse scale
 	// offset = [R-B,G-A] 
 	half2 DistOffset = (AccumDist.rg - AccumDist.ba);
 	//Scale by the screen size and a fudge factor to come close to the offset values we would have had under normal circumstances before my changes. Also flip Y and invert the precision bias scale.
@@ -56,14 +66,26 @@ void Main(
 	}
 
 	// sample screen using offset coords
-	half4 DistColor = Texture2DSample(SceneColorTexture, SceneColorTextureSampler, NewTexCoord);
-	OutColor = DistColor;
+#if USE_MSAA
+	OutColor = SceneColorMSAATexture.Load(int2(NewTexCoord * View.BufferSizeAndInvSize.xy), SampleIndex);
+#else
+	OutColor = Texture2DSample(SceneColorTexture, SceneColorTextureSampler, NewTexCoord);
+#endif
 }
 
 void Merge(
 	in noperspective float4 TexCoord: TEXCOORD0,
 	out float4 OutColor : SV_Target0
+#if USE_MSAA
+	, in uint SampleIndex : SV_SampleIndex
+#endif
 	)
 {
+#if USE_MSAA
+	OutColor = SceneColorMSAATexture.Load(int2(View.BufferSizeAndInvSize.xy * TexCoord.xy), SampleIndex);
+#else
 	OutColor = Texture2DSample(SceneColorTexture, SceneColorTextureSampler, TexCoord.xy);
+#endif
 }
+
+

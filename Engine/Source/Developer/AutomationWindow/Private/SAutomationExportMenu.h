@@ -1,7 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Interfaces/IAutomationControllerManager.h"
+
+class SButton;
+class SComboButton;
+class SVerticalBox;
+enum class ECheckBoxState : uint8;
 
 class SAutomationExportMenu : public SCompoundWidget
 {

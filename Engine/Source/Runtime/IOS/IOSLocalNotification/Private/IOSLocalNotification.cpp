@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  	IOSLocalNotification.cpp: Unreal IOSLocalNotification service interface object.
@@ -9,10 +9,11 @@
  ------------------------------------------------------------------------------------*/
 
 #include "IOSLocalNotification.h"
-#include "Engine.h"
 
 #include "IOSApplication.h"
 #include "IOSAppDelegate.h"
+
+#include "Modules/ModuleManager.h"
 
 DEFINE_LOG_CATEGORY(LogIOSLocalNotification);
 

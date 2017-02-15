@@ -1,9 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PaperSprite.h"
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "RenderResource.h"
 #include "SpriteDrawCall.h"
+#include "Materials/MaterialInterface.h"
+#include "PackedNormal.h"
+#include "PrimitiveViewRelevance.h"
+#include "PrimitiveSceneProxy.h"
+#include "LocalVertexFactory.h"
+#include "Paper2DModule.h"
+
+class FMeshElementCollector;
+class UBodySetup;
+class UPrimitiveComponent;
 
 #if WITH_EDITOR
 typedef TMap<const UTexture*, const UTexture*> FPaperRenderSceneProxyTextureOverrideMap;

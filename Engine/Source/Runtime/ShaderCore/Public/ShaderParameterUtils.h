@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShaderParameters.h: Shader parameter inline definitions.
@@ -6,9 +6,14 @@
 
 #pragma once
 
-#include "ShaderCore.h"
+#include "CoreMinimal.h"
+#include "RHI.h"
 #include "ShaderParameters.h"
-#include "RHICommandList.h"
+#include "ShaderCore.h"
+#include "Misc/App.h"
+
+template<typename TBufferStruct> class TUniformBuffer;
+template<typename TBufferStruct> class TUniformBufferRef;
 
 /**
  * Sets the value of a  shader parameter.  Template'd on shader type

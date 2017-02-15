@@ -1,6 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+class FConnectionDrawingPolicy;
+class FSlateRect;
+class FSlateWindowElementList;
+class SGraphNode;
+class SGraphPin;
+class UEdGraph;
+class UEdGraphNode;
+class UEdGraphPin;
+class UEdGraphSchema;
 
 /** Class that decides which widget type to create for a given data object */
 class GRAPHEDITOR_API FNodeFactory

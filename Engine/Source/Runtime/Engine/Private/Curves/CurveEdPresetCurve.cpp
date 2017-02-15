@@ -1,10 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CurveEdPresetCurve.cpp: Preset curve implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Curves/CurveEdPresetCurve.h"
 /**
  *	UCurveEdPresetCurve

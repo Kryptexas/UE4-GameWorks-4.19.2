@@ -1,13 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3.Model;
@@ -28,7 +26,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 		const string PerforceExePath = "C:\\Program Files\\Perforce\\p4.exe";
 
 		/// <summary>Give up on Perforce syncs after 2 minutes</summary>
-		const int SyncTimeoutSeconds = 2 * 60;
+		const int SyncTimeoutSeconds = 2*60;
 
 		/// <summary> Number of all processed reports. </summary>
 		public static int ProcessedReportCount = 1;
@@ -42,12 +40,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 		private static DateTime LoggingDate = DateTime.UtcNow.Date;
 
-		private static Object TickStaticLock = new Object();
-
-		private static Object MinidumpDiagnosticsLock = new Object();
-
-		private static Object FailedUploadLock = new Object();
-		private static int ConsecutiveFailedUploads = 0;
+		private static object TickStaticLock = new object();
 
 		/// <summary>The thread that handles detection of new crashes.</summary>
 		public ReportWatcher Watcher = null;
@@ -64,27 +57,11 @@ namespace Tools.CrashReporter.CrashReportProcess
 		readonly List<Task> AddReportTasks = new List<Task>();
 
 		/// <summary>
-		/// Static init for one-time init jobs
-		/// </summary>
-		static ReportProcessor()
-		{
-#if !DEBUG
-			if (Config.Default.bSyncMinidumpDiagnostics)
-			{
-				if (!SyncMinidumpDiagnostics())
-				{
-					CrashReporterProcessServicer.WriteFailure("ReportProcessor: failed to sync files from Perforce");
-				}
-			}
-#endif			
-		}
-
-		/// <summary>
 		/// Global initialization of the processor.
 		/// </summary>
 		/// <param name="InWatcher">The object that watches for new crash reports coming in.</param>
 		/// <param name="InProcessorIndex">The index of this processor in the application's thread list</param>
-		public ReportProcessor( ReportWatcher InWatcher, int InProcessorIndex )
+		public ReportProcessor(ReportWatcher InWatcher, int InProcessorIndex)
 		{
 			// Create the thread to handle processing
 			Watcher = InWatcher;
@@ -116,40 +93,40 @@ namespace Tools.CrashReporter.CrashReportProcess
 		{
 			var Cancel = CancelSource.Token;
 			ProcessorTask = new Task(() =>
-			{
-				while (!Cancel.IsCancellationRequested)
-				{
-					try
-					{
-						bool bIdle = true;
+			                         {
+				                         while (!Cancel.IsCancellationRequested)
+				                         {
+					                         try
+					                         {
+						                         bool bIdle = true;
 
-						foreach( var Queue in Watcher.ReportQueues )
-						{
-							FGenericCrashContext NewContext = null;
-							if (Queue.TryDequeueReport( out NewContext ))
-							{
-								ProcessReport( NewContext );
+						                         foreach (var Queue in Watcher.ReportQueues)
+						                         {
+							                         FGenericCrashContext NewContext = null;
+							                         if (Queue.TryDequeueReport(out NewContext))
+							                         {
+								                         ProcessReport(NewContext);
 
-								// The effect of this break is to prioritize ReportQueues by their order in the list, from highest to lowest
-								bIdle = false;
-								break;
-							}
-						}
+								                         // The effect of this break is to prioritize ReportQueues by their order in the list, from highest to lowest
+								                         bIdle = false;
+								                         break;
+							                         }
+						                         }
 
-						if (bIdle)
-						{
-							// Don't use the CPU if we don't need.
-							Thread.Sleep(1000);							
-						}
-					}
-					catch (Exception Ex)
-					{
-						CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessNewReports: " + Ex, Ex);
-					}
+						                         if (bIdle)
+						                         {
+							                         // Don't use the CPU if we don't need.
+							                         Thread.Sleep(1000);
+						                         }
+					                         }
+					                         catch (Exception Ex)
+					                         {
+						                         CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessNewReports: " + Ex, Ex);
+					                         }
 
-					TickStatic(Watcher);
-				}
-			});
+					                         TickStatic(Watcher);
+				                         }
+			                         });
 		}
 
 		/// <summary>
@@ -166,26 +143,23 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// <summary>
 		/// Requests stopping the processor thread but doesn't block.
 		/// </summary>
-		public void RequestStop()
-		{
-			CancelSource.Cancel();
-		}
+		public void RequestStop() { CancelSource.Cancel(); }
 
 		/// <summary> 
 		/// Finalizes report files. 
 		/// Thread-safe.
 		/// </summary>
-		private void FinalizeReport( bool bAdded, DirectoryInfo DirInfo, FGenericCrashContext NewContext )
+		private void FinalizeReport(bool bAdded, DirectoryInfo DirInfo, FGenericCrashContext NewContext)
 		{
 			// Only remove if we added the report, otherwise leave all files to further investigation.
-			if( bAdded )
+			if (bAdded)
 			{
 				// Remove the report files as we're done with them.
-				CleanReport( DirInfo );
+				CleanReport(DirInfo);
 			}
 			else
 			{
-				MoveReportToInvalid( NewContext.CrashDirectory, ReportQueueBase.GetSafeFilename(NewContext.GetAsFilename()) );
+				MoveReportToInvalid(NewContext.CrashDirectory, ReportQueueBase.GetSafeFilename(NewContext.GetAsFilename()));
 			}
 		}
 
@@ -199,7 +173,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			const int MaxRetries = 3;
 
 			bool bWriteException = true;
-			for( int Retry = 0; Retry < MaxRetries; ++Retry )
+			for (int Retry = 0; Retry < MaxRetries; ++Retry)
 			{
 				try
 				{
@@ -208,34 +182,34 @@ namespace Tools.CrashReporter.CrashReportProcess
 						break;
 					}
 
-					foreach ( FileInfo Info in DirInfo.GetFiles() )
+					foreach (FileInfo Info in DirInfo.GetFiles())
 					{
 						Info.IsReadOnly = false;
 						Info.Attributes = FileAttributes.Normal;
 					}
-					DirInfo.Delete( true /* delete contents */);
+					DirInfo.Delete(true /* delete contents */);
 
 					// Random failures to delete with no exception seen regularly - retry
 					DirInfo.Refresh();
 					if (DirInfo.Exists)
-                    {
+					{
 						CrashReporterProcessServicer.WriteEvent("CleanReport: Failed to delete folder without an Exception " + DirInfo);
 						Thread.Sleep(500);
-                        continue;
-                    }
+						continue;
+					}
 
 					break;
 				}
-				catch( Exception Ex )
+				catch (Exception Ex)
 				{
-					if( bWriteException )
+					if (bWriteException)
 					{
-						CrashReporterProcessServicer.WriteException( "CleanReport: " + Ex, Ex);
+						CrashReporterProcessServicer.WriteException("CleanReport: " + Ex, Ex);
 						bWriteException = false;
 					}
 
 				}
-				System.Threading.Thread.Sleep( 100 );
+				System.Threading.Thread.Sleep(100);
 			}
 
 			DirInfo.Refresh();
@@ -250,38 +224,46 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// Thread-safe.
 		/// </summary>
 		/// <param name="DirPath">The directory to delete</param>
-		public static void CleanReport(string DirPath)
-		{
-			CleanReport( new DirectoryInfo( DirPath ) );
-		}
+		public static void CleanReport(string DirPath) { CleanReport(new DirectoryInfo(DirPath)); }
 
 		/// <summary> 
 		/// Moves specified report to the directory where are stored invalid reports. 
 		/// Thread-safe.
 		/// </summary>
-		public static void MoveReportToInvalid( string ReportName, string ReportNameAsFilename )
+		public static void MoveReportToInvalid(string ReportName, string ReportNameAsFilename)
 		{
 			try
 			{
 				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ProcessingFailedEvent);
 
-				DirectoryInfo DirInfo = new DirectoryInfo( ReportName );
-				// Rename the report directory, so we should be able to quickly find the invalid reports.
-				CrashReporterProcessServicer.StatusReporter.AlertOnLowDisk(Config.Default.InvalidReportsDirectory, Config.Default.DiskSpaceAlertPercent);
-				Directory.CreateDirectory( Config.Default.InvalidReportsDirectory );
-				string DestinationDirectory = Path.Combine( Config.Default.InvalidReportsDirectory, ReportNameAsFilename);
+				DirectoryInfo DirInfo = new DirectoryInfo(ReportName);
 
-				Directory.CreateDirectory( DestinationDirectory );
-
-				// Copy all files from the source directory. We can't use MoveTo due to different disc location.
-				foreach( FileInfo File in DirInfo.GetFiles() )
+				if (Config.Default.InvalidReportsToAWS)
 				{
-					string DestinationFilepath = Path.Combine( DestinationDirectory, File.Name );
-					File.CopyTo( DestinationFilepath, true );
-				}
-				DirInfo.Delete( true );
+					string LeafReportName = Path.GetFileName(ReportName);
+					DateTime S3KeyTime = DateTime.UtcNow;
 
-				CrashReporterProcessServicer.WriteEvent( string.Format( "Moved to {0}", DestinationDirectory ) );
+					// Copy all files from the source directory. We can't use MoveTo due to different disc location.
+					int FilesMoved = 0;
+					foreach (FileInfo InvalidFile in DirInfo.GetFiles())
+					{
+						try
+						{
+							string S3IDPrefix = string.Format("/{0}_{1}_{2}/{3}/{4}/", S3KeyTime.Year, S3KeyTime.Month, S3KeyTime.Day, S3KeyTime.Hour, LeafReportName);
+							UploadFileToS3(InvalidFile, Config.Default.AWSS3InvalidKeyPrefix + S3IDPrefix + InvalidFile.Name, false);
+							FilesMoved++;
+						}
+						catch (Exception Ex)
+						{
+							CrashReporterProcessServicer.WriteEvent("MoveReportToInvalid: Failed to write report file " + LeafReportName + ": " + InvalidFile.Name);
+							CrashReporterProcessServicer.WriteException("MoveReportToInvalid: " + Ex, Ex);
+						}
+					}
+
+					CrashReporterProcessServicer.WriteEvent(string.Format("MoveReportToInvalid moved {0} file(s) from {1} to S3", FilesMoved, LeafReportName));
+				}
+
+				DirInfo.Delete( true );
 				UpdateProcessedReports();
 			}
 			catch( Exception Ex )
@@ -344,6 +326,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 				NewCrash.GameName = NewContext.PrimaryCrashProperties.GameName;
 				NewCrash.Platform = NewContext.PrimaryCrashProperties.PlatformFullName;
 				NewCrash.EngineMode = NewContext.PrimaryCrashProperties.EngineMode;
+				NewCrash.EngineModeEx = NewContext.PrimaryCrashProperties.GetEngineModeEx();
 				NewCrash.EngineVersion = EngineVersion.VersionNumber;
 			    NewCrash.BuildVersion = NewContext.PrimaryCrashProperties.BuildVersion;
 
@@ -442,12 +425,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 						RequestString = "http://localhost:80/Crashes/AddCrash/-1"; 
 					}
 
-					string ErrorMessage = string.Empty;
-
-					const int MaxRetries = 1;
-					for (int AddCrashTry = 0; AddCrashTry < MaxRetries + 1; ++AddCrashTry)
+					int Attempt = 1;
+					Func<bool> TryUpload = () =>
 					{
-						string ResponseString = SimpleWebRequest.GetWebServiceResponse(RequestString, Payload, Config.Default.AddCrashRequestTimeoutMillisec);
+						string ResponseString = SimpleWebRequest.GetWebServiceResponse(RequestString, Payload, Config.Default.AddCrashRequestTimeoutSeconds * 1000);
 						if (ResponseString.Length > 0)
 						{
 							// Convert response into a string
@@ -455,17 +436,30 @@ namespace Tools.CrashReporter.CrashReportProcess
 							if (Result.ID > 0)
 							{
 								NewID = Result.ID;
-								break;
+								return true;
 							}
-							CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash response timeout (attempt {1} of {2}): {3}", ProcessorIndex, AddCrashTry + 1, MaxRetries + 1, ErrorMessage));
-							ErrorMessage = Result.Message;
-						}
-						Thread.Sleep(Config.Default.AddCrashRetryDelayMillisec);
-					}
 
-					if (NewID == -1)
+							CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash response invalid (upload attempt {1}): {2}", ProcessorIndex, Attempt, Result.Message));
+						}
+						return false;
+					};
+					Action<bool> OnRetry = bUploaded =>
 					{
-						CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "UploadCrash failed: " + ErrorMessage);
+						if (!bUploaded)
+						{
+							Thread.Sleep(Config.Default.AddCrashRetryDelaySeconds*1000);
+							CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash retrying upload attempt {1}", ProcessorIndex, Attempt));
+							Attempt++;
+						}
+					};
+
+					for (bool bUploaded = false; !bUploaded; OnRetry(bUploaded))
+					{
+						bUploaded = TryUpload();
+						CrashReporterProcessServicer.StatusReporter.AlertOnConsecutiveFails("AddCrash",
+						                                                                    "Cannot contact CR website. CRP is paused!",
+						                                                                    "Contact with CR website restored.",
+						                                                                    TimeSpan.FromSeconds(Config.Default.FailedWebAddAlertTimeSeconds), bUploaded);
 					}
 				}
 #if DEBUG
@@ -511,25 +505,11 @@ namespace Tools.CrashReporter.CrashReportProcess
 				// Upload the crash to the database, and retrieve the new row id
 				int ReportID = UploadCrash(CrashDetails);
 
-				lock (FailedUploadLock)
+				if (ReportID <= 0)
 				{
-					if (ReportID <= 0)
-					{
-						// Upload failed
-						ConsecutiveFailedUploads++;
-						if (ConsecutiveFailedUploads == Config.Default.ConsecutiveFailedWebAddLimit)
-						{
-							CrashReporterProcessServicer.StatusReporter.Alert("ReportProcessor.AddReport.NoContact", "Cannot contact Crash Report website.", Config.Default.SlackAlertRepeatMinimumMinutes);
-							CrashReporterProcessServicer.WriteFailure("Cannot contact Crash Report website.");
-						}
-						CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "! NoUpload: Path=" + NewContext.CrashDirectory);
-						string PayloadFailedFileName = Path.Combine(DirInfo.FullName, "PayloadFailed.xml");
-						File.WriteAllText(PayloadFailedFileName, CrashDetails);
-						return false;
-					}
-
-					// Upload succeeded
-					ConsecutiveFailedUploads = 0;
+					// Upload failed
+					CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "! NoUpload: Path=" + NewContext.CrashDirectory);
+					return false;
 				}
 
 				bool bToS3 = Config.Default.CrashFilesToAWS && CrashReporterProcessServicer.OutputAWS.IsS3Valid;
@@ -558,7 +538,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 						if (bToS3)
 						{
 							WriteToS3Timer.Start();
-							UploadFileToS3(LogInfo, S3IDPrefix + "Launch.log");
+							UploadFileToS3(LogInfo, Config.Default.AWSS3OutputKeyPrefix + S3IDPrefix + "Launch.log", Config.Default.CompressCrashFilesOnAWS, Config.Default.AWSS3CompressedSuffix);
 							WriteToS3Timer.Stop();
 						}
 						if (bToDisk)
@@ -578,7 +558,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 					if (bToS3)
 					{
 						WriteToS3Timer.Start();
-						UploadFileToS3(CrashContextInfo, S3IDPrefix + FGenericCrashContext.CrashContextRuntimeXMLName);
+						UploadFileToS3(CrashContextInfo, Config.Default.AWSS3OutputKeyPrefix + S3IDPrefix + FGenericCrashContext.CrashContextRuntimeXMLName, false);
 						WriteToS3Timer.Stop();
 					}
 					if (bToDisk)
@@ -598,7 +578,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 						if (bToS3)
 						{
 							WriteToS3Timer.Start();
-							UploadFileToS3(DumpInfo, S3IDPrefix + "MiniDump.dmp");
+							UploadFileToS3(DumpInfo, Config.Default.AWSS3OutputKeyPrefix + S3IDPrefix + "MiniDump.dmp", Config.Default.CompressCrashFilesOnAWS, Config.Default.AWSS3CompressedSuffix);
 							WriteToS3Timer.Stop();
 						}
 						if (bToDisk)
@@ -622,7 +602,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 						if (bToS3)
 						{
 							WriteToS3Timer.Start();
-							UploadFileToS3(VideoInfo, S3IDPrefix + CrashReporterConstants.VideoFileName);
+							UploadFileToS3(VideoInfo, Config.Default.AWSS3OutputKeyPrefix + S3IDPrefix + CrashReporterConstants.VideoFileName, Config.Default.CompressCrashFilesOnAWS, Config.Default.AWSS3CompressedSuffix);
 							WriteToS3Timer.Stop();
 						}
 						if (bToDisk)
@@ -669,67 +649,61 @@ namespace Tools.CrashReporter.CrashReportProcess
 			return false;
 		}
 
-		private void UploadFileToS3(FileInfo FileInfo, string DestFilename)
+		private static void UploadFileToS3(FileInfo FileInfo, string DestFilepath, bool bCompressed, string CompressedSuffix = null)
 		{
 			try
 			{
-				PutObjectResponse Response = CrashReporterProcessServicer.OutputAWS.PutS3ObjectFromFile(Config.Default.AWSS3OutputBucket,
-																										Config.Default.AWSS3OutputKeyPrefix + DestFilename,
-																										FileInfo.FullName);
-
-				if (Response == null || Response.HttpStatusCode != HttpStatusCode.OK)
+				if (bCompressed)
 				{
-					throw new CrashReporterException(string.Format("Failed to upload {0} to {1}", FileInfo.FullName, DestFilename));
+					string LocalCompressedFilepath = FileInfo.FullName;
+					if (CompressedSuffix != null)
+					{
+						LocalCompressedFilepath += CompressedSuffix;
+					}
+					else
+					{
+						LocalCompressedFilepath += ".gz";
+					}
+
+					byte[] UncompressedBytes = File.ReadAllBytes(FileInfo.FullName);
+
+					int ReturnCode = NativeMethods.CompressFileGZIP(LocalCompressedFilepath, UncompressedBytes);
+					if (ReturnCode < 0)
+					{
+						throw new CrashReporterException(string.Format("Failed to compress {0} to gzip file with error {1}", FileInfo.FullName, NativeMethods.GetZlibError(ReturnCode)));
+					}
+
+					string CompressedDestFilepath = DestFilepath;
+					if (CompressedSuffix != null)
+					{
+						CompressedDestFilepath += CompressedSuffix;
+					}
+
+					PutObjectResponse Response = CrashReporterProcessServicer.OutputAWS.PutS3ObjectFromFile(Config.Default.AWSS3OutputBucket,
+																											CompressedDestFilepath,
+																											LocalCompressedFilepath);
+
+					if (Response == null || Response.HttpStatusCode != HttpStatusCode.OK)
+					{
+						throw new CrashReporterException(string.Format("Failed to upload compressed gzip {0} to {1}", LocalCompressedFilepath, CompressedDestFilepath));
+					}
+				}
+				else
+				{
+					PutObjectResponse Response = CrashReporterProcessServicer.OutputAWS.PutS3ObjectFromFile(Config.Default.AWSS3OutputBucket,
+																											DestFilepath,
+																											FileInfo.FullName);
+
+					if (Response == null || Response.HttpStatusCode != HttpStatusCode.OK)
+					{
+						throw new CrashReporterException(string.Format("Failed to upload {0} to {1}", FileInfo.FullName, DestFilepath));
+					}
 				}
 			}
 			catch (Exception Ex)
 			{
 				CrashReporterProcessServicer.WriteException("UploadFileToS3: " + Ex, Ex);
 			}
-		}
-
-		/// <summary>
-		/// Sync the MinidumpDiagnostics binary and the engine config files to #head.
-		/// </summary>
-		/// <returns>true if all the files synced without issue, false otherwise.</returns>
-		/// <remarks>As MinidumpDiagnostics is synced to #head, it requires the engine config files that match to run properly.</remarks>
-		private static bool SyncMinidumpDiagnostics()
-		{
-			// Use the latest MinidumpDiagnostics from the main branch.
-			CrashReporterProcessServicer.StatusReporter.AlertOnLowDisk(Config.Default.DepotRoot, Config.Default.DiskSpaceAlertPercent);
-			string UserString = "-u " + Config.Default.P4User;
-            string ClientString = "-c " + Config.Default.P4Client;
-            string SyncBinariesString = Path.Combine(Config.Default.DepotRoot, Config.Default.SyncBinariesFromDepot);
-            using (var MDDSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, UserString, ClientString, "sync", SyncBinariesString))
-			{
-				if( MDDSyncProc.WaitForExit( SyncTimeoutSeconds * 1000 ) == EWaitResult.TimedOut )
-				{
-					CrashReporterProcessServicer.WriteFailure("Failed to sync MinidumpDiagnostics " + SyncBinariesString);
-					return false;
-				}
-			}
-
-			string SyncConfigString = Path.Combine(Config.Default.DepotRoot, Config.Default.SyncConfigFromDepot);
-			using (var ConfigSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, UserString, ClientString, "sync", SyncConfigString))
-			{
-				if (ConfigSyncProc.WaitForExit(SyncTimeoutSeconds * 1000) == EWaitResult.TimedOut)
-				{
-					CrashReporterProcessServicer.WriteFailure("Failed to sync config files " + SyncConfigString);
-					return false;
-				}
-			}
-
-			string SyncThirdPartyString = Path.Combine(Config.Default.DepotRoot, Config.Default.SyncThirdPartyFromDepot); // Required by Perforce
-			using (var MiscSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, UserString, ClientString, "sync", SyncThirdPartyString))
-			{
-				if (MiscSyncProc.WaitForExit(SyncTimeoutSeconds * 1000) == EWaitResult.TimedOut)
-				{
-					CrashReporterProcessServicer.WriteFailure("Failed to sync OpenSSL files " + SyncThirdPartyString);
-					return false;
-				}
-			}
-
-			return true;
 		}
 
 		/// <summary>
@@ -901,19 +875,48 @@ namespace Tools.CrashReporter.CrashReportProcess
 			return AddReportTasks.Sum(AddReportTask => AddReportTask == null || AddReportTask.IsCompleted ? 0 : 1);
 		}
 
-		void ProcessDumpFile( string DiagnosticsPath, FGenericCrashContext NewContext )
+		void ProcessDumpFile( string DumpPath, FGenericCrashContext NewContext )
 		{
-			CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessDumpFile: Waiting to run MDD on " + DiagnosticsPath);
+			CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessDumpFile: Waiting to run MDD on " + DumpPath);
 
-			if (CrashReporterProcessServicer.Symbolicator.Run(DiagnosticsPath, NewContext, ProcessorIndex))
+			if (TrySimulateSymbolication(NewContext))
 			{
-				CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessDumpFile: MDD finished running on " + DiagnosticsPath);
+				CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessDumpFile: Simulated symbolication (skipped MDD) " + NewContext.CrashDirectory);
+			}
+			else if(CrashReporterProcessServicer.Symbolicator.Run(DumpPath, NewContext, ProcessorIndex))
+			{
+				CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessDumpFile: MDD finished running on " + DumpPath);
 				ReadDiagnosticsFile(NewContext);
 			}
 			else
 			{
-				CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessDumpFile: MDD didn't run on " + DiagnosticsPath);
+				CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessDumpFile: MDD didn't run on " + DumpPath);
 			}
+
+			if (string.IsNullOrWhiteSpace(NewContext.PrimaryCrashProperties.CallStack))
+			{
+				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.SymbolicationFailedEvent);
+			}
+			else
+			{
+				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.SymbolicationSucceededEvent);
+			}
+		}
+
+		bool TrySimulateSymbolication(FGenericCrashContext NewContext)
+		{
+			// Check for crashes we don't want to attempt to symbolicate
+
+			if (!string.IsNullOrWhiteSpace(NewContext.PrimaryCrashProperties.ErrorMessage) &&
+			    NewContext.PrimaryCrashProperties.ErrorMessage.Contains("Hang detected on"))
+			{
+				// Hangs from FThreadHeartBeat::Run() start wth "Hang detected on" and have a useful callstack already in the log
+				// Callstack and source from MDD will be useless so simulate a callstack that points the user to the log.
+				NewContext.PrimaryCrashProperties.CallStack = "See log for callstack from hang detection code()\nSee log for callstack from hang detection code()\nSee log for callstack from hang detection code()";
+				return true;
+			}
+
+			return false;
 		}
 
 		private static void TickStatic(ReportWatcher InWatcher)

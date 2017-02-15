@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __DRAGTOOL_MEASURE_H__
 #define __DRAGTOOL_MEASURE_H__
 
+#include "CoreMinimal.h"
 #include "EditorDragTools.h"
+
+class FCanvas;
+class FEditorViewportClient;
+class FSceneView;
 
 /**
  * Draws a line in the current viewport and displays the distance between

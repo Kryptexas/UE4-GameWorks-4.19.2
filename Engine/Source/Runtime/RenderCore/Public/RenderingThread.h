@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderingThread.h: Rendering thread definitions.
@@ -6,9 +6,11 @@
 
 #pragma once
 
-#include "RenderCore.h"
-#include "TaskGraphInterfaces.h"
-#include "RenderCommandFence.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Async/TaskGraphInterfaces.h"
+
+class FRHICommandListImmediate;
 
 ////////////////////////////////////
 // Render thread API
@@ -30,7 +32,7 @@ extern RENDERCORE_API bool GUseThreadedRendering;
  * Currently set by command line parameter and by the r.rhithread.enable cvar.
  */
 extern RENDERCORE_API bool GUseRHIThread;
-extern RENDERCORE_API void SetEnableRHIThread(bool bEnable);
+extern RENDERCORE_API void SetRHIThreadEnabled(bool bEnable);
 
 #if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	static FORCEINLINE void CheckNotBlockedOnRenderThread() {}
@@ -175,6 +177,99 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 		{ \
 			RETURN_QUICK_DECLARE_CYCLE_STAT(TypeName, STATGROUP_RenderThreadCommands); \
 		}
+
+template<typename TSTR, typename LAMBDA>
+class TEnqueueUniqueRenderCommandType : public FRenderCommand
+{
+public:
+	TEnqueueUniqueRenderCommandType(LAMBDA&& InLambda) : Lambda(Forward<LAMBDA>(InLambda)) {}
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		FRHICommandListImmediate& RHICmdList = GetImmediateCommandList_ForRenderCommand();
+		Lambda(RHICmdList);
+	}
+
+	FORCEINLINE_DEBUGGABLE TStatId GetStatId() const
+	{
+#if STATS
+		static struct FThreadSafeStaticStat<FStat_EnqueueUniqueRenderCommandType> StatPtr_EnqueueUniqueRenderCommandType;
+		return StatPtr_EnqueueUniqueRenderCommandType.GetStatId();
+#else
+		return TStatId();
+#endif
+	}
+
+private:
+#if STATS
+	struct FStat_EnqueueUniqueRenderCommandType
+	{
+		typedef FStatGroup_STATGROUP_RenderThreadCommands TGroup;
+		static FORCEINLINE const char* GetStatName()
+		{
+			return TSTR::CStr();
+		}
+		static FORCEINLINE const TCHAR* GetDescription()
+		{
+			return TSTR::TStr();
+		}
+		static FORCEINLINE EStatDataType::Type GetStatType()
+		{
+			return EStatDataType::ST_int64;
+		}
+		static FORCEINLINE bool IsClearEveryFrame()
+		{
+			return true;
+		}
+		static FORCEINLINE bool IsCycleStat()
+		{
+			return true;
+		}
+		static FORCEINLINE FPlatformMemory::EMemoryCounterRegion GetMemoryRegion()
+		{
+			return FPlatformMemory::MCR_Invalid;
+		}
+	};
+#endif
+
+private:
+	LAMBDA Lambda;
+};
+
+template<typename TSTR, typename LAMBDA>
+FORCEINLINE_DEBUGGABLE void EnqueueUniqueRenderCommand(LAMBDA&& Lambda)
+{
+	typedef TEnqueueUniqueRenderCommandType<TSTR, LAMBDA> EURCType;
+
+#if 0 // UE_SERVER && UE_BUILD_DEBUG
+	UE_LOG(LogRHI, Warning, TEXT("Render command '%s' is being executed on a dedicated server."), TSTR::TStr())
+#endif
+	if (ShouldExecuteOnRenderThread())
+	{
+		CheckNotBlockedOnRenderThread();
+		TGraphTask<EURCType>::CreateTask().ConstructAndDispatchWhenReady(Forward<LAMBDA>(Lambda));
+	}
+	else
+	{
+		EURCType TempCommand(Forward<LAMBDA>(Lambda));
+		FScopeCycleCounter EURCMacro_Scope(TempCommand.GetStatId());
+		TempCommand.DoTask(ENamedThreads::GameThread, FGraphEventRef());
+	}
+}
+
+#define ENQUEUE_RENDER_COMMAND(Type) \
+	struct Type##Name \
+	{  \
+		static const char* CStr() { return #Type; } \
+		static const TCHAR* TStr() { return TEXT(#Type); } \
+	}; \
+	EnqueueUniqueRenderCommand<Type##Name>
+
+template<typename LAMBDA>
+FORCEINLINE_DEBUGGABLE void EnqueueUniqueRenderCommand(LAMBDA& Lambda)
+{
+	static_assert(sizeof(LAMBDA) == 0, "EnqueueUniqueRenderCommand enforces use of rvalue and therefore move to avoid an extra copy of the Lambda");
+}
 
 /**
  * Declares a rendering command type with 0 parameters.

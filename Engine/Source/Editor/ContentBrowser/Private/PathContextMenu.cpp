@@ -1,20 +1,44 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "ContentBrowserPCH.h"
-#include "PathViewTypes.h"
 #include "PathContextMenu.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ObjectRedirector.h"
+#include "Misc/PackageName.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Colors/SColorBlock.h"
+#include "EditorStyleSet.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
 #include "ISourceControlModule.h"
+#include "AssetData.h"
+#include "Editor.h"
+#include "FileHelpers.h"
+#include "ARFilter.h"
+#include "AssetRegistryModule.h"
+#include "IAssetTools.h"
+#include "AssetToolsModule.h"
+#include "ContentBrowserLog.h"
+#include "ContentBrowserSingleton.h"
+#include "ContentBrowserUtils.h"
 #include "SourceControlWindows.h"
 #include "ContentBrowserModule.h"
 #include "ReferenceViewer.h"
 #include "ISizeMapModule.h"
-#include "AssetToolsModule.h"
-#include "Editor/UnrealEd/Public/PackageTools.h"
-#include "SColorPicker.h"
-#include "GenericCommands.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Colors/SColorPicker.h"
+#include "Framework/Commands/GenericCommands.h"
 #include "NativeClassHierarchy.h"
-#include "NotificationManager.h"
-#include "SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "ContentBrowserCommands.h"
 
 
@@ -888,36 +912,7 @@ void FPathContextMenu::ExecuteSCCCheckIn()
 
 void FPathContextMenu::ExecuteSCCSync() const
 {
-	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-
-	TArray<FString> RootPaths;
-	FPackageName::QueryRootContentPaths( RootPaths );
-
-	// find valid paths on disk
-	TArray<FString> PathsOnDisk;
-	for(const auto& SelectedPath : SelectedPaths)
-	{
-		// note: we make sure to terminate our path here so root directories map correctly.
-		const FString CompletePath = SelectedPath / "";
-
-		const bool bMatchesRoot = RootPaths.ContainsByPredicate([&](const FString& RootPath){ return CompletePath.StartsWith(RootPath); });
-		if(bMatchesRoot)
-		{
-			FString PathOnDisk = FPackageName::LongPackageNameToFilename(CompletePath);
-			PathsOnDisk.Add(PathOnDisk);
-		}
-	}
-
-	if ( PathsOnDisk.Num() > 0 )
-	{
-		TArray<FString> PackageNames;
-		GetPackageNamesInSelectedPaths(PackageNames);
-		ContentBrowserUtils::SyncPackagesFromSourceControl(PackageNames);
-	}
-	else
-	{
-		UE_LOG(LogContentBrowser, Warning, TEXT("Couldn't find any valid paths to sync."))
-	}
+	ContentBrowserUtils::SyncPathsFromSourceControl(SelectedPaths);
 }
 
 void FPathContextMenu::ExecuteSCCConnect() const

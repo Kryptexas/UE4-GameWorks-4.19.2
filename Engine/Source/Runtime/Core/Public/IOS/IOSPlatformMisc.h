@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	IOSPlatformMisc.h: iOS platform misc functions
@@ -138,6 +138,10 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static void ResetGamepadAssignmentToController(int32 ControllerId);
 	static bool IsControllerAssignedToGamepad(int32 ControllerId);
 
+	static int GetAudioVolume();
+	static bool AreHeadphonesPluggedIn();
+	static int GetBatteryLevel();
+
 	static void RegisterForRemoteNotifications();
 
 	static class IPlatformChunkInstall* GetPlatformChunkInstall();
@@ -147,7 +151,13 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static void ReleaseAutoreleasePool(void *Pool);
 	static void HandleLowMemoryWarning();
 	static bool IsPackagedForDistribution();
+	DEPRECATED(4.14, "GetUniqueDeviceId is deprecated. Use GetDeviceId instead.")
 	static FString GetUniqueDeviceId();
+	/**
+	 * Implemented using UIDevice::identifierForVendor,
+	 * so all the caveats that apply to that API call apply here.
+	 */
+	static FString GetDeviceId();
 
 	// Possible iOS devices
 	enum EIOSDevice
@@ -171,6 +181,8 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 		IOS_IPhone6Plus,
 		IOS_IPhone6S,
 		IOS_IPhone6SPlus,
+        IOS_IPhone7,
+        IOS_IPhone7Plus,
 		IOS_IPadPro,
 		IOS_AppleTV,
 		IOS_IPhoneSE,
@@ -203,6 +215,8 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 			L"IPhone6Plus",
 			L"IPhone6S",
 			L"IPhone6SPlus",
+            L"IPhone7",
+            L"IPhone7Plus",
 			L"IPadPro",
 			L"AppleTV",
 			L"IPhoneSE",

@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WorldCompositionUtility.cpp : Support structures for world composition
 =============================================================================*/
-#include "CoreUObjectPrivate.h"
+#include "Misc/WorldCompositionUtility.h"
+#include "HAL/FileManager.h"
+#include "Templates/ScopedPointer.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Serialization/ArchiveAsync.h"
+#include "UObject/PackageFileSummary.h"
+#include "UObject/Linker.h"
+#include "UniquePtr.h"
 
 FArchive& operator<<( FArchive& Ar, FWorldTileLayer& D )
 {
@@ -68,7 +75,7 @@ bool FWorldTileInfo::Read(const FString& InPackageFileName, FWorldTileInfo& OutI
 	OutInfo = FWorldTileInfo();
 
 	// Create a file reader to load the file
-	TScopedPointer<FArchive> FileReader(IFileManager::Get().CreateFileReader(*InPackageFileName));
+	TUniquePtr<FArchive> FileReader(IFileManager::Get().CreateFileReader(*InPackageFileName));
 	if (FileReader == NULL)
 	{
 		// Couldn't open the file
@@ -91,17 +98,14 @@ bool FWorldTileInfo::Read(const FString& InPackageFileName, FWorldTileInfo& OutI
 	{
 		if (!!(FileSummary.PackageFlags & PKG_StoreCompressed))
 		{
-#if USE_NEW_ASYNC_IO
-			check(!"Package level compression cannot be used with the async io scheme.");
-#else
+			checkf(!GNewAsyncIO, TEXT("Package level compression cannot be used with the async io scheme."));
 			check(FileSummary.CompressedChunks.Num() > 0);
 			if (!FileReader->SetCompressionMap(&FileSummary.CompressedChunks, (ECompressionFlags)FileSummary.CompressionFlags))
 			{
-				FileReader = new FArchiveAsync(*InPackageFileName); // re-assign scope pointer
+				FileReader = MakeUnique<FArchiveAsync>(*InPackageFileName); // re-assign scope pointer
 				check(!FileReader->IsError());
 				verify(FileReader->SetCompressionMap(&FileSummary.CompressedChunks, (ECompressionFlags)FileSummary.CompressionFlags));
 			}
-#endif // USE_NEW_ASYNC_IO
 		}
 				
 		// Seek the the part of the file where the structure lives

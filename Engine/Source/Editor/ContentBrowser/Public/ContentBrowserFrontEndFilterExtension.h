@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "FrontendFilterBase.h"
 #include "ContentBrowserFrontEndFilterExtension.generated.h"
 
 // Override this class in order to make an additional front-end filter available in the Content Browser

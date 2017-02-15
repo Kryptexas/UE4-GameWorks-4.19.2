@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -7,7 +7,13 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "CoreTypes.h"
+#include "Logging/LogMacros.h"
+#include "Delegates/IDelegateInstance.h"
+#include "Delegates/Delegate.h"
+#include "Modules/ModuleInterface.h"
+
+class IPlatformChunkInstall;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogChunkInstaller, Log, All);
 

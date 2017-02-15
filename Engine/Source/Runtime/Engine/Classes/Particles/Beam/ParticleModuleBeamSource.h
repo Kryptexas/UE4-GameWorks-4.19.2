@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  *	ParticleModuleBeamSource
@@ -8,8 +8,18 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Distributions/DistributionFloat.h"
+#include "Distributions/DistributionVector.h"
 #include "Particles/Beam/ParticleModuleBeamBase.h"
 #include "ParticleModuleBeamSource.generated.h"
+
+class UParticleModuleTypeDataBase;
+class UParticleSystemComponent;
+struct FParticleBeam2EmitterInstance;
+struct FParticleEmitterInstance;
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Source"))
 class UParticleModuleBeamSource : public UParticleModuleBeamBase

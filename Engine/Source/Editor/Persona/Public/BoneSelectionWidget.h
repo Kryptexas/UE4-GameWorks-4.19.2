@@ -1,9 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __BoneSelectionWidget_h__
 #define __BoneSelectionWidget_h__
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
+
+class IEditableSkeleton;
+class SComboButton;
+
 DECLARE_DELEGATE_OneParam(FOnBoneSelectionChanged, FName);
 DECLARE_DELEGATE_RetVal(FName, FGetSelectedBone);
 
@@ -25,6 +38,7 @@ public:
 
 		SLATE_ARGUMENT(FText, Title)
 		SLATE_ARGUMENT(bool, bShowVirtualBones)
+		SLATE_ARGUMENT(FName, SelectedBone)
 		SLATE_EVENT(FOnBoneSelectionChanged, OnBoneSelectionChanged)
 
 	SLATE_END_ARGS();
@@ -42,7 +56,7 @@ public:
 private:
 
 	// Using the current filter, repopulate the tree view
-	void RebuildBoneList();
+	void RebuildBoneList(const FName& SelectedBone);
 
 	// Make a single tree row widget
 	TSharedRef<ITableRow> MakeTreeRowWidget(TSharedPtr<FBoneNameInfo> InInfo, const TSharedRef<STableViewBase>& OwnerTable);
@@ -79,13 +93,9 @@ class PERSONA_API SBoneSelectionWidget : public SCompoundWidget
 public: 
 
 	SLATE_BEGIN_ARGS( SBoneSelectionWidget )
-		:_Tooltip()
-		,_OnBoneSelectionChanged()
+		:_OnBoneSelectionChanged()
 		,_OnGetSelectedBone()
 	{}
-
-		/** Set tooltip attribute */
-		SLATE_ARGUMENT(FText, Tooltip);
 
 		/** set selected bone name */
 		SLATE_EVENT(FOnBoneSelectionChanged, OnBoneSelectionChanged);
@@ -111,6 +121,8 @@ private:
 	// Gets the current bone name, used to get the right name for the combo button
 	FText GetCurrentBoneName() const;
 
+	FText GetFinalToolTip() const;
+
 	// Base combo button 
 	TSharedPtr<SComboButton> BonePickerButton;
 
@@ -120,6 +132,9 @@ private:
 	// delegates
 	FOnBoneSelectionChanged OnBoneSelectionChanged;
 	FGetSelectedBone OnGetSelectedBone;
+
+	// Cache supplied tooltip
+	FText SuppliedToolTip;
 };
 
 #endif		//__BoneSelectionWidget_h__

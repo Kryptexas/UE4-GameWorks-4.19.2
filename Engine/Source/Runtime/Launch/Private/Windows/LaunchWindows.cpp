@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 	
-#include "LaunchPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/App.h"
+#include "Misc/OutputDeviceError.h"
+#include "LaunchEngineLoop.h"
 #include "ExceptionHandling.h"
 #include "PlatformMallocCrash.h"
+#include "WindowsHWrapper.h"
 
 #if UE_BUILD_DEBUG
 #include <crtdbg.h>
@@ -17,6 +21,10 @@ extern void LaunchStaticShutdownAfterError();
 // The following line is to favor the high performance NVIDIA GPU if there are multiple GPUs
 // Has to be .exe module to be correctly detected.
 extern "C" { _declspec(dllexport) uint32 NvOptimusEnablement = 0x00000001; }
+
+// And the AMD equivalent
+// Also has to be .exe module to be correctly detected.
+extern "C" { _declspec(dllexport) uint32 AmdPowerXpressRequestHighPerformance = 0x00000001; }
 
 /**
  * Maintain a named mutex to detect whether we are the first instance of this game
@@ -103,7 +111,7 @@ void SetupWindowsEnvironment( void )
  * The inner exception handler catches crashes/asserts in native C++ code and is the only way to get the correct callstack
  * when running a 64-bit executable. However, XAudio2 doesn't always like this and it may result in no sound.
  */
-#if _WIN64
+#ifdef _WIN64
 	bool GEnableInnerException = true;
 #else
 	bool GEnableInnerException = false;
@@ -147,7 +155,7 @@ int32 WINAPI WinMain( _In_ HINSTANCE hInInstance, _In_opt_ HINSTANCE hPrevInstan
 
 	int32 ErrorLevel			= 0;
 	hInstance				= hInInstance;
-	const TCHAR* CmdLine = ::GetCommandLine();
+	const TCHAR* CmdLine = ::GetCommandLineW();
 
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
 	// Named mutex we use to figure out whether we are the first instance of the game running. This is needed to e.g.
@@ -166,7 +174,7 @@ int32 WINAPI WinMain( _In_ HINSTANCE hInInstance, _In_opt_ HINSTANCE hPrevInstan
 	// Native: WinMain() -> Native: GuardedMainWrapper().
 	// The inner exception handler in GuardedMainWrapper() catches crashes/asserts in native C++ code and is the only way to get the
 	// correct callstack when running a 64-bit executable. However, XAudio2 sometimes (?) don't like this and it may result in no sound.
-#if _WIN64
+#ifdef _WIN64
 	if ( FParse::Param(CmdLine,TEXT("noinnerexception")) || FApp::IsBenchmarking() )
 	{
 		GEnableInnerException = false;

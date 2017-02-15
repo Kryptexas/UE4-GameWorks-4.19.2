@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
  
 
 // Module includes
-#include "OnlineSharingInterface.h"
+#include "CoreMinimal.h"
+#include "Interfaces/OnlineSharingInterface.h"
+#include "Interfaces/OnlineIdentityInterface.h"
 #include "OnlineSubsystemFacebookPackage.h"
 
 /**

@@ -1,7 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/SWindow.h"
+#include "UnrealEdMisc.h"
+#include "Misc/App.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Docking/TabManager.h"
+#include "Framework/Docking/LayoutService.h"
+#include "EngineGlobals.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "Editor/UnrealEdEngine.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+#include "FileHelpers.h"
+#include "UnrealEdGlobals.h"
+#include "LevelEditor.h"
+#include "ILevelViewport.h"
+#include "MainFrameLog.h"
+
+const FText StaticGetApplicationTitle( const bool bIncludeGameName );
 
 /**
  * Helper class that handles talking to the Slate App Manager.

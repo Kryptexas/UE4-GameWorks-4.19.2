@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "ActorReferencePropertySection.h"
-#include "MovieSceneActorReferenceSection.h"
+#include "Sections/ActorReferencePropertySection.h"
+#include "GameFramework/Actor.h"
+#include "ISectionLayoutBuilder.h"
+#include "Sections/MovieSceneActorReferenceSection.h"
 
 
 void FActorReferenceKeyArea::CopyKeys(FMovieSceneClipboardBuilder& ClipboardBuilder, const TFunctionRef<bool(FKeyHandle, const IKeyArea&)>& KeyMask) const
@@ -128,7 +129,8 @@ TOptional<FGuid> FActorReferencePropertySection::GetActorGuid() const
 	TOptional<AActor*> CurrentActor = GetPropertyValue<AActor*>();
 	if (CurrentActor.IsSet() && CurrentActor.GetValue() != nullptr)
 	{
-		return TOptional<FGuid>(GetSequencer()->GetFocusedMovieSceneSequenceInstance()->FindObjectId(*CurrentActor.GetValue()));
+		ISequencer* SequencerPtr = GetSequencer();
+		return TOptional<FGuid>(SequencerPtr->FindObjectId(*CurrentActor.GetValue(), SequencerPtr->GetFocusedTemplateID()));
 	}
 	return TOptional<FGuid>(FGuid());
 }

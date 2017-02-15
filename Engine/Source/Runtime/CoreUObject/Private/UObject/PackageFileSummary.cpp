@@ -1,9 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
 #include "UObject/PackageFileSummary.h"
-#include "EngineVersion.h"
-#include "EditorObjectVersion.h"
+#include "UObject/Linker.h"
 
 FPackageFileSummary::FPackageFileSummary()
 {
@@ -184,6 +182,11 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 		if (Ar.IsSaving() || Sum.FileVersionUE4 >= VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP)
 		{
 			Ar << Sum.StringAssetReferencesCount << Sum.StringAssetReferencesOffset;
+		}
+
+		if (Ar.IsSaving() || Sum.FileVersionUE4 >= VER_UE4_ADDED_SEARCHABLE_NAMES)
+		{
+			Ar << Sum.SearchableNamesOffset;
 		}
 
 		Ar << Sum.ThumbnailTableOffset;

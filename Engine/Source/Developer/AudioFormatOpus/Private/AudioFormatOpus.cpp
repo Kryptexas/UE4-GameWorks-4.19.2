@@ -1,19 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
-#include "ModuleInterface.h"
-#include "ModuleManager.h"
-#include "TargetPlatform.h"
-#include "OpusAudioInfo.h"
 #include "AudioFormatOpus.h"
+#include "Serialization/MemoryWriter.h"
+#include "Modules/ModuleManager.h"
+#include "Interfaces/IAudioFormat.h"
+#include "Interfaces/IAudioFormatModule.h"
+#include "OpusAudioInfo.h"
 #include "VorbisAudioInfo.h"
-#include "Audio.h"
 
 // Need to define this so that resampler.h compiles - probably a way around this somehow
 #define OUTSIDE_SPEEX
 
+THIRD_PARTY_INCLUDES_START
 #include "opus_multistream.h"
 #include "speex_resampler.h"
+THIRD_PARTY_INCLUDES_END
 
 /** Use UE4 memory allocation or Opus */
 #define USE_UE4_MEM_ALLOC 1

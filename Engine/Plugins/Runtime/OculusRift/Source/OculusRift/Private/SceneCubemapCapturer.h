@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ImageWrapper.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "IOculusRiftPlugin.h"
+#include "Interfaces/IImageWrapper.h"
+#include "Tickable.h"
+#include "PixelFormat.h"
 
 #include "SceneCubemapCapturer.generated.h"
+
+class USceneCaptureComponent2D;
 
 UCLASS()
 class USceneCubemapCapturer : public UObject, public FTickableGameObject

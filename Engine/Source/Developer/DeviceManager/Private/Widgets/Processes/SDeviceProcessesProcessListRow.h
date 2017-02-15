@@ -1,10 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Margin.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Views/SExpanderArrow.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Processes/SDeviceProcessesProcessTreeNode.h"
+#include "SlateOptMacros.h"
 
 #define LOCTEXT_NAMESPACE "SDeviceProcessesProcessListRow"
-
 
 /**
  * Implements a row widget for the process list view.

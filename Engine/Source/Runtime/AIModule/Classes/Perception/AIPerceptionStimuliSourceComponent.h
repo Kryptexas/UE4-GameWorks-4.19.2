@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AISystem.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Components/ActorComponent.h"
 #include "Perception/AISense.h"
-#include "AIPerceptionSystem.h"
 
 #include "AIPerceptionStimuliSourceComponent.generated.h"
 

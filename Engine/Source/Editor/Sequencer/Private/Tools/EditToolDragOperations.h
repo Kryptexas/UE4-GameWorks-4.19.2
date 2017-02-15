@@ -1,15 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/CursorReply.h"
+#include "Curves/KeyHandle.h"
+#include "SequencerSelectedKey.h"
 #include "ISequencerEditTool.h"
-#include "ScopedTransaction.h"
 #include "SequencerHotspots.h"
-#include "SequencerSnapField.h"
+#include "ScopedTransaction.h"
+#include "Tools/SequencerSnapField.h"
 
-
+class FSequencer;
+class FSlateWindowElementList;
+class FVirtualTrackArea;
 class USequencerSettings;
-
 
 /**
  * Abstract base class for drag operations that handle an operation for an edit tool.
@@ -99,6 +104,8 @@ class FMoveSection
 public:
 	FMoveSection( FSequencer& InSequencer, TArray<FSectionHandle> Sections );
 
+	~FMoveSection();
+
 public:
 
 	// FEditToolDragOperation interface
@@ -107,6 +114,10 @@ public:
 	virtual void OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
 	virtual void OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
 	virtual FCursorReply GetCursor() const override { return FCursorReply::Cursor( EMouseCursor::CardinalCross ); }
+
+private:
+	/** Callback for when the node tree is updated in sequencer. */
+	void OnSequencerNodeTreeUpdated();
 
 private:
 	/** The sections we are interacting with */
@@ -122,6 +133,9 @@ private:
 
 	/** Optional snap field to use when dragging */
 	TOptional<FSequencerSnapField> SnapField;
+
+	/** A handle for the sequencer node tree updated delegate. */
+	FDelegateHandle SequencerNodeTreeUpdatedHandle;
 };
 
 

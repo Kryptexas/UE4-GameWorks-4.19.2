@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "LinuxCommonStartup.h"
-#include "ExceptionHandling.h"
-#include "LinuxPlatformCrashContext.h"
-#include "ModuleManager.h"
-#include "EngineVersion.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/OutputDeviceError.h"
+#include "Misc/FeedbackContext.h"
+#include "HAL/ExceptionHandling.h"
+#include "Linux/LinuxPlatformCrashContext.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/EngineVersion.h"
 
 #include <locale.h>
 #include <sys/resource.h>
@@ -120,10 +124,11 @@ static bool IncreasePerProcessLimits()
 	}
 
 	// core dump policy:
-	// - Shipping and Test disable by default (unless -core is passed)
+	// - Shipping disables it by default (unless -core is passed)
 	// - The rest set it to infinity unless -nocore is passed
 	// (in all scenarios user wish as expressed with -core or -nocore takes priority)
-	bool bDisableCore = (UE_BUILD_SHIPPING != 0 || UE_BUILD_TEST != 0);
+	// Note that we used to have Test disable cores by default too. This has been changed around UE 4.15.
+	bool bDisableCore = (UE_BUILD_SHIPPING != 0);
 	if (FParse::Param(*GSavedCommandLine, TEXT("nocore")))
 	{
 		bDisableCore = true;

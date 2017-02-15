@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
 #include "SScrubWidget.h"
 #include "Editor/EditorWidgets/Public/ITransportControl.h"
 
@@ -70,7 +74,7 @@ public:
 		/** Called when an frame is appended in the beginning or at the end */
 		SLATE_EVENT(FOnAppendAnimSequence, OnAppendAnimSequence)
 		/** Called to zero out selected frame's translation from origin */
-		SLATE_EVENT( FSimpleDelegate, OnReZeroAnimSequence )
+		SLATE_EVENT( FOnReZeroAnimSequence, OnReZeroAnimSequence )
 		SLATE_ATTRIBUTE( bool, IsRealtimeStreamingMode )
 		/** Optional, additional values to draw on the timeline **/
 		SLATE_ATTRIBUTE( TArray<float>, DraggableBars )

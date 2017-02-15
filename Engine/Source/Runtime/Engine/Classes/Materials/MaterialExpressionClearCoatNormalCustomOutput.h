@@ -1,12 +1,13 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "MaterialExpressionIO.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
 #include "MaterialExpressionClearCoatNormalCustomOutput.generated.h"
-
-
 
 UCLASS()
 class UMaterialExpressionClearCoatNormalCustomOutput : public UMaterialExpressionCustomOutput

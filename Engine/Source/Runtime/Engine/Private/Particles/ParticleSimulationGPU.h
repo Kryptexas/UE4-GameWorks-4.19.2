@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleSimulationGPU.h: Interface to GPU particle simulation.
 ==============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
 
 /*------------------------------------------------------------------------------
 	Constants to tune memory and performance for GPU particle simulation.

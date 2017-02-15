@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MacTargetPlatformClasses.cpp: Implements the module's UClasses.
 =============================================================================*/
 
-#include "MacTargetPlatformPrivatePCH.h"
-
+#include "MacTargetSettings.h"
+#include "GenericMacTargetPlatform.h"
 
 
 /* UMacTargetSettings structors

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 //This file needs to be here so the "ant" build step doesnt fail when looking for a /src folder.
 
 package com.epicgames.ue4;
@@ -8,6 +8,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.text.DecimalFormat;
 
 import android.app.NativeActivity;
 import android.os.Bundle;
@@ -98,7 +99,12 @@ import android.os.Build;
 
 import com.epicgames.ue4.DownloadShim;
 
+// used in new virtual keyboard
+import android.view.inputmethod.InputMethodManager;
+
 //$${gameActivityImportAdditions}$$
+
+//$${gameActivityPostImportAdditions}$$
 
 //Extending NativeActivity so that this Java class is instantiated
 //from the beginning of the program.  This will allow the user
@@ -144,6 +150,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	AlertDialog virtualKeyboardAlert;
 	EditText virtualKeyboardInputBox;
 	String virtualKeyboardPreviousContents;
+
+	// Keep a reference to the main content view so we can bring up the virtual keyboard without an editbox
+	private View mainView;
+	private boolean bKeyboardShowing;
 
 	// Console commands receiver
 	ConsoleCmdReceiver consoleCmdReceiver;
@@ -199,6 +209,9 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	
 	/** Check to see if we should be verifying the files once we have them */
 	public boolean VerifyOBBOnStartUp = false;
+
+	/** Use ExternalFilesDir for UE4Game files */
+    private boolean UseExternalFilesDir = false;
 
 	/** Flag to ensure we have finished startup before allowing nativeOnActivityResult to get called */
 	private boolean InitCompletedOK = false;
@@ -604,6 +617,15 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			{
 				Log.debug( "UI hiding not found. Leaving as " + ShouldHideUI);
 			}
+			if(bundle.containsKey("com.epicgames.ue4.GameActivity.bUseExternalFilesDir"))
+            {
+                UseExternalFilesDir = bundle.getBoolean("com.epicgames.ue4.GameActivity.bUseExternalFilesDir");
+                Log.debug( "UseExternalFilesDir set to " + UseExternalFilesDir);
+            }
+            else
+            {
+                Log.debug( "bUseExternalFilesDir not found. Leaving as " + UseExternalFilesDir);
+            }
 
 //$${gameActivityReadMetadataAdditions}$$
 		}
@@ -617,7 +639,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		}
 
 		// tell the engine if this is a portrait app
-		nativeSetGlobalActivity();
+		nativeSetGlobalActivity(UseExternalFilesDir);
 		nativeSetWindowInfo(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT, DepthBufferPreference);
 
 		// get the full language code, like en-US
@@ -815,6 +837,11 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		MySurfaceView.getHolder().addCallback(this);
 		setContentView(MySurfaceView);
 
+		// cache a reference to the main content view and set it so it can be focused on
+        mainView = findViewById( android.R.id.content );
+        mainView.setFocusable( true );
+        mainView.setFocusableInTouchMode( true );
+
 //$${gameActivityOnCreateAdditions}$$
 		
 		Log.debug("==============> GameActive.onCreate complete!");
@@ -892,6 +919,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 		LocalNotificationCheckAppOpen();
 
+		// Forcing this to false so the virtual keyboard can be shown again after resuming
+		// since calls to showSoftInput are ignored on resume so have to make sure state is reset
+		bKeyboardShowing = false;
+
 //$${gameActivityOnResumeAdditions}$$
 		Log.debug("==============> GameActive.onResume complete!");
 	}
@@ -900,6 +931,13 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	protected void onPause()
 	{
 		super.onPause();
+
+		// hide virtual keyboard before going into the background
+		if( bKeyboardShowing )
+		{
+			AndroidThunkJava_HideVirtualKeyboardInput();
+		}
+
 		if(CurrentDialogType != EAlertDialogType.None)
 		{
 			//	If an AlertDialog is showing when the application is paused, it can cause our main window to be terminated
@@ -910,6 +948,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				{
 					switch(CurrentDialogType)
 					{
+						// this hides the old alert dialog that was used for input
 						case Keyboard:
 							virtualKeyboardAlert.hide(); 
 							break;
@@ -1128,7 +1167,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		});
 	}
 
-	public void AndroidThunkJava_HideVirtualKeyboardInput()
+	// old virtual keyboard show/hide functions input dialog
+	public void AndroidThunkJava_HideVirtualKeyboardInputDialog()
 	{
 		if (virtualKeyboardAlert.isShowing() == false)
 		{
@@ -1151,7 +1191,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		});
 	}
 
-	public void AndroidThunkJava_ShowVirtualKeyboardInput(int InputType, String Label, String Contents)
+	public void AndroidThunkJava_ShowVirtualKeyboardInputDialog(int InputType, String Label, String Contents)
 	{
 		if (virtualKeyboardAlert.isShowing() == true)
 		{
@@ -1161,12 +1201,15 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 		// Set label and starting contents
 		virtualKeyboardAlert.setTitle(Label);
+
+		// @HSL_BEGIN - Josh.May - 11/01/2016 - Ensure the input mode of the text box is set before setting the contents.
+		// configure for type of input
+		virtualKeyboardInputBox.setRawInputType(InputType);
+		
 		virtualKeyboardInputBox.setText("");
 		virtualKeyboardInputBox.append(Contents);
 		virtualKeyboardPreviousContents = Contents;
-
-		// configure for type of input
-		virtualKeyboardInputBox.setInputType(InputType);
+		// @HSL_END - Josh.May - 11/01/2016
 
 		_activity.runOnUiThread(new Runnable()
 		{
@@ -1181,6 +1224,44 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			}
 		});
 	}
+
+	// new functions to show/hide virtual keyboard
+	public void AndroidThunkJava_HideVirtualKeyboardInput()
+	{
+		_activity.runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+		        InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+		        imm.hideSoftInputFromWindow(mainView.getWindowToken(), 0);
+
+		        bKeyboardShowing = false;
+			}
+		});
+	}
+
+	public void AndroidThunkJava_ShowVirtualKeyboardInput(int InputType, String Label, String Contents)
+	{
+		if (bKeyboardShowing)
+		{
+			Log.debug("Virtual keyboard already showing.");
+			return;
+		}
+
+		_activity.runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+				if (mainView.requestFocus())
+				{
+		            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+		            imm.showSoftInput(mainView, 0);
+
+		            bKeyboardShowing = true;
+		        }
+		    }
+	    });
+ 	}
 	
 	public void AndroidThunkJava_LaunchURL(String URL)
 	{
@@ -1574,6 +1655,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			IapStoreHelper = new GooglePlayStoreHelper(InProductKey, this, Log);
 			if (IapStoreHelper != null)
 			{
+				Log.debug("[JAVA] - AndroidThunkJava_IapSetupService - Setup started");
+			}
+			else
+			{
 				Log.debug("[JAVA] - AndroidThunkJava_IapSetupService - Failed to setup IAP service");
 			}
 		}
@@ -1586,12 +1671,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	
 
 	private String[] CachedQueryProductIDs;
-	private boolean[] CachedQueryConsumables;
-	public boolean AndroidThunkJava_IapQueryInAppPurchases(String[] ProductIDs, boolean[] bConsumable)
+	public boolean AndroidThunkJava_IapQueryInAppPurchases(String[] ProductIDs)
 	{
 		Log.debug("[JAVA] - AndroidThunkJava_IapQueryInAppPurchases");
 		CachedQueryProductIDs = ProductIDs;
-		CachedQueryConsumables = bConsumable;
 
 		boolean bTriggeredQuery = false;
 		if( IapStoreHelper != null )
@@ -1603,7 +1686,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				@Override
 				public void run()
 				{
-					IapStoreHelper.QueryInAppPurchases(CachedQueryProductIDs, CachedQueryConsumables);
+					IapStoreHelper.QueryInAppPurchases(CachedQueryProductIDs);
 				}
 			});
 		}
@@ -1698,13 +1781,13 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		}
 	}
 	
-	public boolean AndroidThunkJava_IapBeginPurchase(String ProductId, boolean bConsumable)
+	public boolean AndroidThunkJava_IapBeginPurchase(String ProductId)
 	{
 		Log.debug("[JAVA] - AndroidThunkJava_IapBeginPurchase");
 		boolean bTriggeredPurchase = false;
 		if( IapStoreHelper != null )
 		{
-			bTriggeredPurchase = IapStoreHelper.BeginPurchase(ProductId, bConsumable);
+			bTriggeredPurchase = IapStoreHelper.BeginPurchase(ProductId);
 		}
 		else
 		{
@@ -1726,6 +1809,36 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			Log.debug("[JAVA] - Store Helper is invalid");
 		}
 		return bIsAllowedToMakePurchase;
+	}
+
+	public boolean AndroidThunkJava_IapConsumePurchase(String purchaseToken)
+	{
+		Log.debug("[JAVA] - AndroidThunkJava_IapConsumePurchase " + purchaseToken);
+
+		if( IapStoreHelper != null )
+		{
+			IapStoreHelper.ConsumePurchase(purchaseToken);
+			return true;
+		}
+
+		Log.debug("[JAVA] - Store Helper is invalid");
+		return false;
+	}
+
+	public boolean AndroidThunkJava_IapQueryExistingPurchases()
+	{
+		Log.debug("[JAVA] - AndroidThunkJava_IapQueryExistingPurchases");
+		boolean bTriggeredQuery = false;
+		if( IapStoreHelper != null )
+		{
+			Log.debug("[JAVA] - AndroidThunkJava_IapQueryExistingPurchases - Kick off logic here!");
+			bTriggeredQuery = IapStoreHelper.QueryExistingPurchases();
+		}
+		else
+		{
+			Log.debug("[JAVA] - Store Helper is invalid");
+		}
+		return bTriggeredQuery;
 	}
 
 	public boolean AndroidThunkJava_IapRestorePurchases(String[] InProductIDs, boolean[] bConsumable)
@@ -2010,7 +2123,9 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		new DeviceInfoData(0x0955, 0x7203, "NVIDIA Corporation NVIDIA Controller v01.01"),
 		new DeviceInfoData(0x0955, 0x7210, "NVIDIA Corporation NVIDIA Controller v01.03"),
 		new DeviceInfoData(0x1949, 0x0404, "Amazon Fire TV Remote"),
-		new DeviceInfoData(0x1949, 0x0406, "Amazon Fire Game Controller")
+		new DeviceInfoData(0x1949, 0x0406, "Amazon Fire Game Controller"),
+		new DeviceInfoData(0x0738, 0x5263, "Mad Catz C.T.R.L.R (Smart)"),
+		new DeviceInfoData(0x0738, 0x5266, "Mad Catz C.T.R.L.R")
 	};
 
 	public class InputDeviceInfo {
@@ -2191,6 +2306,20 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 	public String AndroidThunkJava_GetMetaDataString(String key)
 	{
+		if (key.equals("ue4.displaymetrics.dpi"))
+		{
+			DisplayMetrics metrics = new DisplayMetrics();
+			if (android.os.Build.VERSION.SDK_INT >= 17)
+			{
+				getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
+			} else {
+				// note: not available so get what we can
+				getWindowManager().getDefaultDisplay().getMetrics(metrics);
+			}
+			String screenDPI = new DecimalFormat("###.##").format(metrics.xdpi) + "," + new DecimalFormat("###.##").format(metrics.ydpi) + "," + new DecimalFormat("###.##").format(metrics.densityDpi);
+			return screenDPI;
+		}
+		else
 		if (_bundle == null || key == null)
 		{
 			return null;
@@ -2199,7 +2328,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	}
 
 	public native boolean nativeIsShippingBuild();
-	public native void nativeSetGlobalActivity();
+	public native void nativeSetGlobalActivity(boolean bUseExternalFilesDir);
 	public native void nativeSetWindowInfo(boolean bIsPortrait, int DepthBufferPreference);
 	public native void nativeSetObbInfo(String ProjectName, String PackageName, int Version, int PatchVersion);
 	public native void nativeSetAndroidVersionInformation( String AndroidVersion, String PhoneMake, String PhoneModel, String OSLanguage );

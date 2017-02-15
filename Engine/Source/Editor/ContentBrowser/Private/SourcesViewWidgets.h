@@ -1,6 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Layout/Geometry.h"
+#include "Input/Reply.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/SCompoundWidget.h"
+#include "AssetData.h"
+#include "CollectionViewTypes.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Editor/ContentBrowser/Private/SPathView.h"
+
+class SEditableTextBox;
+struct FTreeItem;
 
 /** A single item in the asset tree. Represents a folder. */
 class SAssetTreeItem : public SCompoundWidget

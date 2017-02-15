@@ -1,13 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FSequencer;
-class FSequencerNodeTree;
-class FSequencerDisplayNode;
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "SequencerNodeTree.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
+#include "SSequencerTrackArea.h"
 
 class SSequencerTrackLane;
-class SSequencerTrackArea;
 class SSequencerTreeViewRow;
 
 typedef TSharedRef<FSequencerDisplayNode> FDisplayNodeRef;
@@ -163,7 +170,10 @@ public:
 protected:
 	
 	/** Linear, sorted array of nodes that we currently have generated widgets for */
-	TArray<FCachedGeometry> PhysicalNodes;
+	mutable TArray<FCachedGeometry> PhysicalNodes;
+
+	/** A flag indicating that the physical nodes need to be updated. */
+	mutable bool bPhysicalNodesNeedUpdate;
 
 	/** Map of cached geometries for visible nodes */
 	TMap<FDisplayNodeRef, FCachedGeometry> CachedRowGeometry;

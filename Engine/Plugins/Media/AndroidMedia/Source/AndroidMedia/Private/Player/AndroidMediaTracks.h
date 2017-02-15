@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "IMediaOutput.h"
 #include "IMediaTracks.h"
 #include "AndroidJavaMediaPlayer.h"
@@ -48,6 +49,7 @@ public:
 	//~ IMediaOutput interface
 
 	virtual void SetAudioSink(IMediaAudioSink* Sink) override;
+	virtual void SetMetadataSink(IMediaBinarySink* Sink) override;
 	virtual void SetOverlaySink(IMediaOverlaySink* Sink) override;
 	virtual void SetVideoSink(IMediaTextureSink* Sink) override;
 

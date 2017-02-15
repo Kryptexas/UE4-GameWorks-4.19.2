@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineKeyValuePair.h"
+#include "CoreMinimal.h"
+#include "UObject/CoreOnline.h"
 #include "OnlineSubsystemTypes.h"
+#include "OnlineKeyValuePair.h"
 
 /** Representation of a single column and its data */ 
 typedef FOnlineKeyValuePairs<FName, FVariantData> FStatsColumnArray;

@@ -1,12 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EnvQueryTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
 #include "Engine/DataAsset.h"
 #include "EnvQuery.generated.h"
 
+class UEdGraph;
 class UEnvQueryOption;
+
 #if WITH_EDITORONLY_DATA
 class UEdGraph;
 #endif // WITH_EDITORONLY_DATA
@@ -34,9 +38,6 @@ protected:
 public:
 	/** Gather all required named params */
 	void CollectQueryParams(UObject& QueryOwner, TArray<FAIDynamicParam>& NamedValues) const;
-
-	DEPRECATED(4.10, "This version of CollectQueryParams is deprecated. Please use the other version.")
-	void CollectQueryParams(TArray<FEnvNamedValue>& NamedValues) const;
 
 	virtual  void PostInitProperties() override;
 

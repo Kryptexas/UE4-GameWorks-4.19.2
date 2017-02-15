@@ -1,35 +1,61 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompiler.cpp
 =============================================================================*/
 
 
-#include "KismetCompilerPrivatePCH.h"
-#include "Engine/LevelScriptBlueprint.h"
+#include "KismetCompiler.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Misc/CoreMisc.h"
+#include "Components/ActorComponent.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/MetaData.h"
+#include "Serialization/ArchiveReplaceObjectRef.h"
+#include "Serialization/ArchiveObjectCrc32.h"
+#include "GameFramework/Actor.h"
+#include "EdGraphNode_Comment.h"
+#include "Curves/CurveBase.h"
+#include "Engine/Engine.h"
+#include "Editor/EditorEngine.h"
+#include "Components/TimelineComponent.h"
+#include "Engine/TimelineTemplate.h"
+#include "Engine/UserDefinedStruct.h"
+#include "EdGraphUtilities.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_Knot.h"
+#include "K2Node_Tunnel.h"
+#include "K2Node_Composite.h"
+#include "K2Node_CreateDelegate.h"
+#include "K2Node_CustomEvent.h"
+#include "K2Node_FunctionEntry.h"
+#include "K2Node_FunctionResult.h"
+#include "K2Node_MacroInstance.h"
+#include "K2Node_MakeArray.h"
+#include "K2Node_TemporaryVariable.h"
+#include "K2Node_Timeline.h"
+#include "K2Node_VariableGet.h"
+#include "K2Node_VariableSet.h"
+#include "K2Node_TunnelBoundary.h"
 #include "KismetCompilerBackend.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetReinstanceUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
-#include "Editor/UnrealEd/Public/ScriptDisassembler.h"
-#include "Editor/UnrealEd/Public/ComponentTypeRegistry.h"
+#include "Kismet2/KismetReinstanceUtilities.h"
+#include "Engine/SCS_Node.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "ScriptDisassembler.h"
+#include "ComponentTypeRegistry.h"
 #include "Kismet2/Kismet2NameValidators.h"
 #include "UserDefinedStructureCompilerUtils.h"
 #include "K2Node_EnumLiteral.h"
 #include "K2Node_SetVariableOnPersistentFrame.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
 #include "Engine/DynamicBlueprintBinding.h"
-#include "Kismet/KismetMathLibrary.h"
 #include "Engine/InheritableComponentHandler.h"
 #include "BlueprintCompilerCppBackendInterface.h"
-#include "Engine/SimpleConstructionScript.h"
-#include "Engine/SCS_Node.h"
-#include "Engine/TimelineTemplate.h"
-#include "Components/TimelineComponent.h"
-#include "ArchiveScriptReferenceCollector.h"
+#include "Serialization/ArchiveScriptReferenceCollector.h"
 
 static bool bDebugPropertyPropagation = false;
+
+#define USE_TRANSIENT_SKELETON 0
 
 #define LOCTEXT_NAMESPACE "KismetCompiler"
 
@@ -169,12 +195,10 @@ void FKismetCompilerContext::FSubobjectCollection::AddObject(const UObject* cons
 	if ( InObject )
 	{
 		Collection.Add(InObject);
-		TArray<UObject*> Subobjects;
-		GetObjectsWithOuter(InObject, Subobjects, true);
-		for ( auto SubObject : Subobjects )
+		ForEachObjectWithOuter(InObject, [this](UObject* Child)
 		{
-			Collection.Add(SubObject);
-		}
+			Collection.Add(Child);
+		});
 	}
 }
 
@@ -207,6 +231,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 		ParentClass = UObject::StaticClass();
 	}
 	TransientClass->ClassAddReferencedObjects = ParentClass->AddReferencedObjects;
+	TransientClass->ClassGeneratedBy = Blueprint;
 	
 	NewClass = ClassToClean;
 	OldCDO = ClassToClean->ClassDefaultObject; // we don't need to create the CDO at this point
@@ -236,7 +261,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	for( auto SubObjIt = ClassSubObjects.CreateIterator(); SubObjIt; ++SubObjIt )
 	{
 		UObject* CurrSubObj = *SubObjIt;
-		CurrSubObj->Rename(NULL, TransientClass, RenFlags);
+		CurrSubObj->Rename(nullptr, TransientClass, RenFlags);
 		if( UProperty* Prop = Cast<UProperty>(CurrSubObj) )
 		{
 			FKismetCompilerUtilities::InvalidatePropertyExport(Prop);
@@ -278,21 +303,21 @@ void FKismetCompilerContext::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectC
 
 	{
 		TSet<class UCurveBase*> Curves;
-		for ( auto Timeline : Blueprint->Timelines )
+		for ( UTimelineTemplate* Timeline : Blueprint->Timelines )
 		{
 			if ( Timeline )
 			{
 				Timeline->GetAllCurves(Curves);
 			}
 		}
-		for ( auto Component : Blueprint->ComponentTemplates )
+		for ( UActorComponent* Component : Blueprint->ComponentTemplates )
 		{
-			if ( auto TimelineComponent = Cast<UTimelineComponent>(Component) )
+			if ( UTimelineComponent* TimelineComponent = Cast<UTimelineComponent>(Component) )
 			{
 				TimelineComponent->GetAllCurves(Curves);
 			}
 		}
-		for ( auto Curve : Curves )
+		for ( UCurveBase* Curve : Curves )
 		{
 			SubObjectsToSave.AddObject(Curve);
 		}
@@ -313,17 +338,16 @@ void FKismetCompilerContext::PostCreateSchema()
 
 	TArray<UClass*> ClassesOfUK2Node;
 	GetDerivedClasses(UK2Node::StaticClass(), ClassesOfUK2Node, true);
-	for ( auto ClassIt = ClassesOfUK2Node.CreateConstIterator(); ClassIt; ++ClassIt )
+	for (UClass* Class : ClassesOfUK2Node)
 	{
-		if( !(*ClassIt)->HasAnyClassFlags(CLASS_Abstract) )
+		if( !Class->HasAnyClassFlags(CLASS_Abstract) )
 		{
-			UClass* Class = (*ClassIt);
 			UObject* CDO = Class->GetDefaultObject();
 			UK2Node* K2CDO = Class->GetDefaultObject<UK2Node>();
 			FNodeHandlingFunctor* HandlingFunctor = K2CDO->CreateNodeHandler(*this);
 			if (HandlingFunctor)
 			{
-				NodeHandlers.Add(*ClassIt, HandlingFunctor);
+				NodeHandlers.Add(Class, HandlingFunctor);
 			}
 		}
 	}
@@ -374,7 +398,7 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 {
 	Super::ValidatePin(Pin);
 
-	auto OwningNodeUnchecked = Pin ? Pin->GetOwningNodeUnchecked() : NULL;
+	UEdGraphNode* OwningNodeUnchecked = Pin ? Pin->GetOwningNodeUnchecked() : nullptr;
 	if (!OwningNodeUnchecked)
 	{
 		//handled by Super::ValidatePin
@@ -499,7 +523,7 @@ void FKismetCompilerContext::ValidateVariableNames()
 			}
 			else if (ParentClass->IsNative()) // the above case handles when the parent is a blueprint
 			{
-				if (auto ExisingField = FindField<UField>(ParentClass, *VarNameStr))
+				if (UField* ExisingField = FindField<UField>(ParentClass, *VarNameStr))
 				{
 					UE_LOG(LogK2Compiler, Warning, TEXT("ValidateVariableNames name %s (used in %s) is already taken by %s")
 						, *VarNameStr, *Blueprint->GetPathName(), *ExisingField->GetPathName());
@@ -626,7 +650,7 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 			continue;
 		}
 
-		FEdGraphPinType TimelinePinType(Schema->PC_Object, TEXT(""), UTimelineComponent::StaticClass(), false, false);
+		FEdGraphPinType TimelinePinType(Schema->PC_Object, TEXT(""), UTimelineComponent::StaticClass(), false, false, false, false, FEdGraphTerminalType());
 
 		// Previously UTimelineComponent object has exactly the same name as UTimelineTemplate object (that obj was in blueprint)
 		const FString TimelineVariableName = UTimelineTemplate::TimelineTemplateNameToVariableName(Timeline->GetFName());
@@ -639,22 +663,22 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 			TimelineToMemberVariableMap.Add(Timeline, TimelineProperty);
 		}
 
-		FEdGraphPinType DirectionPinType(Schema->PC_Byte, TEXT(""), FTimeline::GetTimelineDirectionEnum(), false, false);
+		FEdGraphPinType DirectionPinType(Schema->PC_Byte, TEXT(""), FTimeline::GetTimelineDirectionEnum(), false, false, false, false, FEdGraphTerminalType());
 		CreateVariable(Timeline->GetDirectionPropertyName(), DirectionPinType);
 
-		FEdGraphPinType FloatPinType(Schema->PC_Float, TEXT(""), NULL, false, false);
+		FEdGraphPinType FloatPinType(Schema->PC_Float, TEXT(""), NULL, false, false, false, false, FEdGraphTerminalType());
 		for(int32 i=0; i<Timeline->FloatTracks.Num(); i++)
 		{
 			CreateVariable(Timeline->GetTrackPropertyName(Timeline->FloatTracks[i].TrackName), FloatPinType);
 		}
 
-		FEdGraphPinType VectorPinType(Schema->PC_Struct, TEXT(""), VectorStruct, false, false);
+		FEdGraphPinType VectorPinType(Schema->PC_Struct, TEXT(""), VectorStruct, false, false, false, false, FEdGraphTerminalType());
 		for(int32 i=0; i<Timeline->VectorTracks.Num(); i++)
 		{
 			CreateVariable(Timeline->GetTrackPropertyName(Timeline->VectorTracks[i].TrackName), VectorPinType);
 		}
 
-		FEdGraphPinType LinearColorPinType(Schema->PC_Struct, TEXT(""), LinearColorStruct, false, false);
+		FEdGraphPinType LinearColorPinType(Schema->PC_Struct, TEXT(""), LinearColorStruct, false, false, false, false, FEdGraphTerminalType());
 		for(int32 i=0; i<Timeline->LinearColorTracks.Num(); i++)
 		{
 			CreateVariable(Timeline->GetTrackPropertyName(Timeline->LinearColorTracks[i].TrackName), LinearColorPinType);
@@ -677,7 +701,7 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 				FName VarName = Node->GetVariableName();
 				if ((VarName != NAME_None) && (Node->ComponentClass != nullptr))
 				{
-					FEdGraphPinType Type(Schema->PC_Object, TEXT(""), Node->ComponentClass, false, false);
+					FEdGraphPinType Type(Schema->PC_Object, TEXT(""), Node->ComponentClass, false, false, false, false, FEdGraphTerminalType());
 					UProperty* NewProperty = CreateVariable(VarName, Type);
 					if (NewProperty != NULL)
 					{
@@ -1580,7 +1604,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		}
 		else
 		{
-			for (auto Node : Context.SourceGraph->Nodes)
+			for (UEdGraphNode* Node : Context.SourceGraph->Nodes)
 			{
 				const bool bGenerateParameters = Node->IsA<UK2Node_FunctionEntry>();
 				const bool bGenerateResult = Node->IsA<UK2Node_FunctionResult>();
@@ -1733,7 +1757,7 @@ void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 				}
 				if (Context.bInstrumentScriptCode)
 				{
-					for (auto Pin : Node->Pins)
+					for (UEdGraphPin* Pin : Node->Pins)
 					{
 						if (Pin->Direction == EGPD_Input && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
 						{
@@ -1790,7 +1814,7 @@ void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 			const bool bDidNodeGenerateCode = SourceStatementList != nullptr && SourceStatementList->Num() > 0;
 			if (bDidNodeGenerateCode)
 			{
-				for (auto Statement : *SourceStatementList)
+				for (FBlueprintCompiledStatement* Statement : *SourceStatementList)
 				{
 					if (Statement && Statement->Type == KCST_InstrumentedPureNodeEntry)
 					{
@@ -1953,7 +1977,7 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 	{
 		Function->SetMetaData(FBlueprintMetadata::MD_CallInEditor, TEXT( "true" ));
 	}
-	if (auto WorldContextPin = EntryNode->GetAutoWorldContextPin())
+	if (UEdGraphPin* WorldContextPin = EntryNode->GetAutoWorldContextPin())
 	{
 		Function->SetMetaData(FBlueprintMetadata::MD_WorldContext, *WorldContextPin->PinName);
 	}
@@ -2195,6 +2219,15 @@ void FKismetCompilerContext::CreatePinEventNodeForTimelineFunction(UK2Node_Timel
 	{
 		MovePinLinksToIntermediate(*UpdatePin, *UpdateOutput);
 	}
+
+	if (CompileOptions.bAddInstrumentation)
+	{
+		// Register the timeline event nodes to any composite instances the timeline is located in.
+		if (UEdGraphNode* TunnelInstance = MessageLog.GetIntermediateTunnelInstance(TimelineNode))
+		{
+			MessageLog.RegisterIntermediateTunnelNode(TimelineEventNode, TunnelInstance);
+		}
+	}
 }
 
 UK2Node_CallFunction* FKismetCompilerContext::CreateCallTimelineFunction(UK2Node_Timeline* TimelineNode, UEdGraph* SourceGraph, FName FunctionName, UEdGraphPin* TimelineVarPin, UEdGraphPin* TimelineFunctionPin)
@@ -2264,7 +2297,7 @@ void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 		}
 	}
 	// Expand and validate timelines
-	for ( auto TimelinePair : Timelines )
+	for ( const FTimelinePair& TimelinePair : Timelines )
 	{
 		UK2Node_Timeline* const TimelineNode = TimelinePair.Node;
 		UTimelineTemplate* Timeline = TimelinePair.Template;
@@ -2417,11 +2450,11 @@ FPinConnectionResponse FKismetCompilerContext::CopyPinLinksToIntermediate(UEdGra
 	return ConnectionResult;
 }
 
-UK2Node_TemporaryVariable* FKismetCompilerContext::SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory, UObject* SubcategoryObject, bool bIsArray)
+UK2Node_TemporaryVariable* FKismetCompilerContext::SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory, UObject* SubcategoryObject, bool bIsArray, bool bIsSet, bool bIsMap, const FEdGraphTerminalType& ValueTerminalType)
 {
 	UK2Node_TemporaryVariable* Result = SpawnIntermediateNode<UK2Node_TemporaryVariable>(SourceNode);
 
-	Result->VariableType = FEdGraphPinType(Category, SubCategory, SubcategoryObject, bIsArray, false);
+	Result->VariableType = FEdGraphPinType(Category, SubCategory, SubcategoryObject, bIsArray, false, bIsSet, bIsMap, ValueTerminalType);
 	Result->AllocateDefaultPins();
 
 	return Result;
@@ -2459,7 +2492,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 
 	// Create the stub graph and add it to the list of functions to compile
 
-	auto ExistingGraph = static_cast<UObject*>(FindObjectWithOuter(OwnerOfTemporaries, UEdGraph::StaticClass(), EventNodeName));
+	UObject* ExistingGraph = static_cast<UObject*>(FindObjectWithOuter(OwnerOfTemporaries, UEdGraph::StaticClass(), EventNodeName));
 	if (ExistingGraph && !ExistingGraph->HasAnyFlags(RF_Transient))
 	{
 		MessageLog.Error(
@@ -2550,7 +2583,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 				}
 				else
 				{
-					auto VariableSetNode = SpawnIntermediateNode<UK2Node_VariableSet>(SrcEventNode, ChildStubGraph);
+					UK2Node_VariableSet* VariableSetNode = SpawnIntermediateNode<UK2Node_VariableSet>(SrcEventNode, ChildStubGraph);
 					VariableSetNode->VariableReference.SetSelfMember(NAME_None);
 					AssignmentNode = VariableSetNode;
 				}
@@ -2694,23 +2727,29 @@ void FKismetCompilerContext::ExpansionStep(UEdGraph* Graph, bool bAllowUbergraph
 					// Keep track of new expansion nodes
 					if (ExpansionNodeIdx < Graph->Nodes.Num())
 					{
+						bool bImpureExpansionNodeAdded = false;
 						TArray<UEdGraphNode*> ExpansionNodes;
 						for (; ExpansionNodeIdx < Graph->Nodes.Num(); ++ExpansionNodeIdx)
 						{
 							ExpansionNodes.Add(Graph->Nodes[ExpansionNodeIdx]);
 							MessageLog.RegisterExpansionNode(Graph->Nodes[ExpansionNodeIdx]);
+							// We don't want to create boundary nodes around a set of pure only expansion nodes.
+							bImpureExpansionNodeAdded |= !IsNodePure(Graph->Nodes[ExpansionNodeIdx]);
 							// Add the relevent pins to the trace suppression filter
-							for (auto ExpansionPin : Graph->Nodes[ExpansionNodeIdx]->Pins)
+							for (UEdGraphPin* ExpansionPin : Graph->Nodes[ExpansionNodeIdx]->Pins)
 							{
-								for (auto ExpansionPinLink : ExpansionPin->LinkedTo)
+								for (UEdGraphPin* ExpansionPinLink : ExpansionPin->LinkedTo)
 								{
 									MessageLog.AddPinTraceFilter(ExpansionPin);
 								}
 							}
 						}
 						// Create boundaries around expsnion nodes so we can simulate pin traces correctly
-						UK2Node_TunnelBoundary::CreateBoundariesForExpansionNodes(Node, ExpansionNodes, SourceNodeLinks, MessageLog);
-						ExpansionNodeIdx = Graph->Nodes.Num();
+						if (bImpureExpansionNodeAdded)
+						{
+							UK2Node_TunnelBoundary::CreateBoundariesForExpansionNodes(Node, ExpansionNodes, SourceNodeLinks, MessageLog);
+							ExpansionNodeIdx = Graph->Nodes.Num();
+						}
 					}
 				}
 			}
@@ -2731,12 +2770,12 @@ void FKismetCompilerContext::ExpansionStep(UEdGraph* Graph, bool bAllowUbergraph
 void FKismetCompilerContext::DetermineNodeExecLinks(UEdGraphNode* SourceNode, TMap<UEdGraphPin*, UEdGraphPin*>& SourceNodeLinks) const
 {
 	// Find all linked pins we care about from the source node.
-	for (auto SourcePin : SourceNode->Pins)
+	for (UEdGraphPin* SourcePin : SourceNode->Pins)
 	{
 		if (SourcePin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
 		{
 			UEdGraphPin* TrueSourcePin = MessageLog.FindSourcePin(SourcePin);
-			for (auto LinkedPin : SourcePin->LinkedTo)
+			for (UEdGraphPin* LinkedPin : SourcePin->LinkedTo)
 			{
 				SourceNodeLinks.Add(LinkedPin, TrueSourcePin);
 			}
@@ -3085,14 +3124,12 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 			// resolve any wildcard pins in the nodes cloned from the macro
 			if (!MacroInstanceNode->ResolvedWildcardType.PinCategory.IsEmpty())
 			{
-				for (auto ClonedNodeIt = ClonedGraph->Nodes.CreateConstIterator(); ClonedNodeIt; ++ClonedNodeIt)
+				for (UEdGraphNode* const ClonedNode : ClonedGraph->Nodes)
 				{
-					UEdGraphNode* const ClonedNode = *ClonedNodeIt;
 					if (ClonedNode)
 					{
-						for (auto ClonedPinIt = ClonedNode->Pins.CreateConstIterator(); ClonedPinIt; ++ClonedPinIt)
+						for (UEdGraphPin* const ClonedPin : ClonedNode->Pins)
 						{
-							UEdGraphPin* const ClonedPin = *ClonedPinIt;
 							if ( ClonedPin && (ClonedPin->PinType.PinCategory == Schema->PC_Wildcard) )
 							{
 								// copy only type info, so array or ref status is preserved
@@ -3100,13 +3137,13 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 								ClonedPin->PinType.PinSubCategory = MacroInstanceNode->ResolvedWildcardType.PinSubCategory;
 								ClonedPin->PinType.PinSubCategoryObject = MacroInstanceNode->ResolvedWildcardType.PinSubCategoryObject;
 							}
-							}
 						}
 					}
 				}
+			}
 
 			// Handle any nodes that need to inherit their macro instance's NodeGUID
-			for( auto ClonedNode : MacroNodes)
+			for( UEdGraphNode* ClonedNode : MacroNodes)
 			{
 				UK2Node_TemporaryVariable* TempVarNode = Cast<UK2Node_TemporaryVariable>(ClonedNode);
 				if(TempVarNode && TempVarNode->bIsPersistent)
@@ -3533,15 +3570,15 @@ void FKismetCompilerContext::Compile()
 	{
 		TArray<UEdGraph*> AllGraphs;
 		Blueprint->GetAllGraphs(AllGraphs);
-		for(auto GraphIter = AllGraphs.CreateIterator(); GraphIter; ++GraphIter)
+		for (UEdGraph* Graph : AllGraphs)
 		{
-			if(UEdGraph* Graph = *GraphIter)
+			if (Graph)
 			{
 				TArray<UK2Node*> AllNodes;
 				Graph->GetNodesOfClass(AllNodes);
-				for(auto NodeIter = AllNodes.CreateIterator(); NodeIter; ++NodeIter)
+				for (UK2Node* Node : AllNodes)
 				{
-					if(UK2Node* Node = *NodeIter)
+					if (Node)
 					{
 						Node->EarlyValidation(MessageLog);
 					}
@@ -3601,7 +3638,7 @@ void FKismetCompilerContext::Compile()
 
 	if (CompileOptions.CompileType == EKismetCompileType::Full)
 	{
-		auto InheritableComponentHandler = Blueprint->GetInheritableComponentHandler(false);
+		UInheritableComponentHandler* InheritableComponentHandler = Blueprint->GetInheritableComponentHandler(false);
 		if (InheritableComponentHandler)
 		{
 			InheritableComponentHandler->ValidateTemplates();
@@ -3648,8 +3685,8 @@ void FKismetCompilerContext::Compile()
 	if (UsePersistentUberGraphFrame() && UbergraphContext)
 	{
 		//UBER GRAPH PERSISTENT FRAME
-		FEdGraphPinType Type(TEXT("struct"), TEXT(""), FPointerToUberGraphFrame::StaticStruct(), false, false);
-		auto Property = CreateVariable(UBlueprintGeneratedClass::GetUberGraphFrameName(), Type);
+		FEdGraphPinType Type(TEXT("struct"), TEXT(""), FPointerToUberGraphFrame::StaticStruct(), false, false, false, false, FEdGraphTerminalType());
+		UProperty* Property = CreateVariable(UBlueprintGeneratedClass::GetUberGraphFrameName(), Type);
 		Property->SetPropertyFlags(CPF_DuplicateTransient | CPF_Transient);
 	}
 
@@ -3677,16 +3714,6 @@ void FKismetCompilerContext::Compile()
 			if (FunctionList[i].IsValid())
 			{
 				PostcompileFunction(FunctionList[i]);
-			}
-		}
-
-		// Create a mapping between compile time generated events and what created them.
-		if (TargetClass->bHasInstrumentation)
-		{
-			FBlueprintDebugData& DebugData = TargetClass->GetDebugData();
-			for (auto EventInfo : SourcePinToExpansionEvent)
-			{
-				DebugData.RegisterPinToEventName(EventInfo.Key, EventInfo.Value->GetFunctionName());
 			}
 		}
 
@@ -3736,19 +3763,19 @@ void FKismetCompilerContext::Compile()
 	{
 		TSet<UEdGraph*> AllGraphs;
 		AllGraphs.Add(UbergraphContext ? UbergraphContext->SourceGraph : NULL);
-		for(auto FunctionContextIter = FunctionList.CreateIterator(); FunctionContextIter; ++FunctionContextIter)
+		for (const FKismetFunctionContext& FunctionContext : FunctionList)
 		{
-			AllGraphs.Add((*FunctionContextIter).SourceGraph);
+			AllGraphs.Add(FunctionContext.SourceGraph);
 		}
-		for(auto GraphIter = AllGraphs.CreateIterator(); GraphIter; ++GraphIter)
+		for (UEdGraph* Graph : AllGraphs)
 		{
-			if(UEdGraph* Graph = *GraphIter)
+			if (Graph)
 			{
 				TArray<UK2Node_CreateDelegate*> AllNodes;
 				Graph->GetNodesOfClass(AllNodes);
-				for(auto NodeIter = AllNodes.CreateIterator(); NodeIter; ++NodeIter)
+				for (UK2Node_CreateDelegate* Node : AllNodes)
 				{
-					if(UK2Node_CreateDelegate* Node = *NodeIter)
+					if (Node)
 					{
 						Node->ValidationAfterFunctionsAreCreated(MessageLog, (0 != bIsFullCompile));
 					}
@@ -3852,9 +3879,9 @@ void FKismetCompilerContext::Compile()
 			GConfig->GetBool(TEXT("Kismet"), TEXT("CompileDisplaysBinaryBackend"), /*out*/ bDisplayBytecode, GEngineIni);
 		}
 
-		const bool bGenerateStubsOnly = !bIsFullCompile || (0 != MessageLog.NumErrors);
 		// Always run the VM backend, it's needed for more than just debug printing
 		{
+			const bool bGenerateStubsOnly = !bIsFullCompile || (0 != MessageLog.NumErrors);
 			BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CodeGenerationTime);
 			Backend_VM.GenerateCodeFromClass(NewClass, FunctionList, bGenerateStubsOnly);
 			if (!bGenerateStubsOnly)
@@ -3863,7 +3890,8 @@ void FKismetCompilerContext::Compile()
 			}
 		}
 
-		if (!bGenerateStubsOnly)
+		// Fill ScriptObjectReferences arrays in functions
+		if (bIsFullCompile && (0 == MessageLog.NumErrors)) // Backend_VM can generate errors, so bGenerateStubsOnly cannot be reused
 		{
 			for (FKismetFunctionContext& FunctionContext : FunctionList)
 			{
@@ -3881,7 +3909,7 @@ void FKismetCompilerContext::Compile()
 			}
 		}
 
-		if (bDisplayBytecode && bIsFullCompile)
+		if (bDisplayBytecode && bIsFullCompile && !IsRunningCommandlet())
 		{
 			TGuardValue<ELogTimes::Type> DisableLogTimes(GPrintLogTimes, ELogTimes::None);
 
@@ -3900,14 +3928,14 @@ void FKismetCompilerContext::Compile()
 		}
 
 		// Generate code thru the backend(s)
-		if ((bDisplayCpp && bIsFullCompile) || CompileOptions.DoesRequireCppCodeGeneration())
+		if ((bDisplayCpp && bIsFullCompile && !IsRunningCommandlet()) || CompileOptions.DoesRequireCppCodeGeneration())
 		{
 			FString CppSourceCode;
 			FString HeaderSourceCode;
 
 			{
 				TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
-				HeaderSourceCode = Backend_CPP->GenerateCodeFromClass(NewClass, FunctionList, !bIsFullCompile, CppSourceCode);
+				HeaderSourceCode = Backend_CPP->GenerateCodeFromClass(NewClass, FunctionList, !bIsFullCompile, CompileOptions.NativizationOptions, CppSourceCode);
 			}
 
 			if (CompileOptions.OutHeaderSourceCode.IsValid())
@@ -3920,7 +3948,7 @@ void FKismetCompilerContext::Compile()
 				*CompileOptions.OutCppSourceCode = CppSourceCode;
 			}
 
-			if (bDisplayCpp)
+			if (bDisplayCpp && !IsRunningCommandlet())
 			{
 				UE_LOG(LogK2Compiler, Log, TEXT("[header]\n\n\n%s"), *HeaderSourceCode);
 				UE_LOG(LogK2Compiler, Log, TEXT("[body]\n\n\n%s"), *CppSourceCode);
@@ -3928,19 +3956,19 @@ void FKismetCompilerContext::Compile()
 		}
 
 		static const FBoolConfigValueHelper DisplayLayout(TEXT("Kismet"), TEXT("bDisplaysLayout"), GEngineIni);
-		if (!Blueprint->bIsRegeneratingOnLoad && bIsFullCompile && DisplayLayout && NewClass)
+		if (!Blueprint->bIsRegeneratingOnLoad && bIsFullCompile && DisplayLayout && NewClass && !IsRunningCommandlet())
 		{
 			UE_LOG(LogK2Compiler, Log, TEXT("\n\nLAYOUT CLASS %s:"), *GetNameSafe(NewClass));
 
-			for (auto Prop : TFieldRange<UProperty>(NewClass, EFieldIteratorFlags::ExcludeSuper))
+			for (UProperty* Prop : TFieldRange<UProperty>(NewClass, EFieldIteratorFlags::ExcludeSuper))
 			{
 				UE_LOG(LogK2Compiler, Log, TEXT("%5d:\t%-64s\t%s"), Prop->GetOffset_ForGC(), *GetNameSafe(Prop), *Prop->GetCPPType());
 			}
 
-			for (auto LocFunction : TFieldRange<UFunction>(NewClass, EFieldIteratorFlags::ExcludeSuper))
+			for (UFunction* LocFunction : TFieldRange<UFunction>(NewClass, EFieldIteratorFlags::ExcludeSuper))
 			{
 				UE_LOG(LogK2Compiler, Log, TEXT("\n\nLAYOUT FUNCTION %s:"), *GetNameSafe(LocFunction));
-				for (auto Prop : TFieldRange<UProperty>(LocFunction))
+				for (UProperty* Prop : TFieldRange<UProperty>(LocFunction))
 				{
 					const bool bOutParam = Prop && (0 != (Prop->PropertyFlags & CPF_OutParm));
 					const bool bInParam = Prop && !bOutParam && (0 != (Prop->PropertyFlags & CPF_Parm));
@@ -3956,14 +3984,10 @@ void FKismetCompilerContext::Compile()
 	// If this was a skeleton compile, make sure everything is RF_Transient
 	if (bIsSkeletonOnly)
 	{
-		TArray<UObject*> Subobjects;
-		GetObjectsWithOuter(NewClass, Subobjects);
-
-		for (auto SubObjIt = Subobjects.CreateIterator(); SubObjIt; ++SubObjIt)
+		ForEachObjectWithOuter(NewClass, [](UObject* Child)
 		{
-			UObject* CurrObj = *SubObjIt;
-			CurrObj->SetFlags(RF_Transient);
-		}
+			Child->SetFlags(RF_Transient);
+		});
 
 		NewClass->SetFlags(RF_Transient);
 
@@ -3976,7 +4000,7 @@ void FKismetCompilerContext::Compile()
 	{
 		TArray<UBlueprint*> DependentBlueprints;
 		FBlueprintEditorUtils::GetDependentBlueprints(Blueprint, DependentBlueprints);
-		for (auto CurrentBP : DependentBlueprints)
+		for (UBlueprint* CurrentBP : DependentBlueprints)
 		{
 			// Get the current dirty state of the package
 			UPackage* const Package = Cast<UPackage>(CurrentBP->GetOutermost());
@@ -4040,10 +4064,10 @@ void FKismetCompilerContext::Compile()
 			{
 				check(InProperty);
 
-				auto PropertyOwnerClass = InProperty->GetOwnerClass();
+				UClass* PropertyOwnerClass = InProperty->GetOwnerClass();
 				const bool bOwnerIsNativeClass = PropertyOwnerClass && PropertyOwnerClass->HasAnyClassFlags(CLASS_Native);
 
-				auto PropertyOwnerStruct = InProperty->GetOwnerStruct();
+				UStruct* PropertyOwnerStruct = InProperty->GetOwnerStruct();
 				const bool bOwnerIsNativeStruct = !PropertyOwnerClass && (!PropertyOwnerStruct || !PropertyOwnerStruct->IsA<UUserDefinedStruct>());
 
 				return InProperty->IsA<UStructProperty>()
@@ -4073,7 +4097,7 @@ void FKismetCompilerContext::Compile()
 		public:
 			static bool IsInnerProperty(const UObject* Object)
 			{
-				auto Property = Cast<const UProperty>(Object);
+				const UProperty* Property = Cast<const UProperty>(Object);
 				return Property // check arrays
 					&& Cast<const UFunction>(Property->GetOwnerStruct())
 					&& !Property->HasAnyPropertyFlags(CPF_Parm);
@@ -4086,7 +4110,7 @@ void FKismetCompilerContext::Compile()
 				if (Object && !IsInnerProperty(Object))
 				{
 					// Names of functions and properties are significant.
-					auto UniqueName = GetPathNameSafe(Object);
+					FString UniqueName = GetPathNameSafe(Object);
 					Ar << UniqueName;
 
 					if (Object->IsIn(RootObject))
@@ -4103,11 +4127,11 @@ void FKismetCompilerContext::Compile()
 				FArchive& Ar = *this;
 
 				bool bResult = false;
-				if (auto Struct = Cast<UStruct>(Object))
+				if (UStruct* Struct = Cast<UStruct>(Object))
 				{
 					if (Object == RootObject) // name and location are significant for the signature
 					{
-						auto UniqueName = GetPathNameSafe(Object);
+						FString UniqueName = GetPathNameSafe(Object);
 						Ar << UniqueName;
 					}
 
@@ -4115,12 +4139,12 @@ void FKismetCompilerContext::Compile()
 					Ar << SuperStruct;
 					Ar << Struct->Children;
 
-					if (auto Function = Cast<UFunction>(Struct))
+					if (UFunction* Function = Cast<UFunction>(Struct))
 					{
 						Ar << Function->FunctionFlags;
 					}
 
-					if (auto AsClass = Cast<UClass>(Struct))
+					if (UClass* AsClass = Cast<UClass>(Struct))
 					{
 						Ar << AsClass->ClassFlags;
 						Ar << AsClass->Interfaces;
@@ -4136,7 +4160,7 @@ void FKismetCompilerContext::Compile()
 		};
 
 		FSignatureArchiveCrc32 SignatureArchiveCrc32;
-		auto ParentBP = UBlueprint::GetBlueprintFromClass(NewClass->GetSuperClass());
+		UBlueprint* ParentBP = UBlueprint::GetBlueprintFromClass(NewClass->GetSuperClass());
 		const uint32 ParentSignatureCrc = ParentBP ? ParentBP->CrcLastCompiledSignature : 0;
 		Blueprint->CrcLastCompiledSignature = SignatureArchiveCrc32.Crc32(NewClass, ParentSignatureCrc);
 	}

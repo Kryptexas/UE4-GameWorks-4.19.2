@@ -1,17 +1,39 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnClass.cpp: Object class implementation.
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
-#include "PropertyTag.h"
-#include "HotReloadInterface.h"
-#include "LinkerPlaceholderClass.h"
-#include "LinkerPlaceholderFunction.h"
-#include "StructScriptLoader.h"
-#include "LoadTimeTracker.h"
-#include "PropertyHelper.h"
+#include "UObject/Class.h"
+#include "HAL/ThreadSafeBool.h"
+#include "Misc/ScopeLock.h"
+#include "Serialization/MemoryWriter.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/OutputDeviceHelper.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/OutputDeviceConsole.h"
+#include "UObject/ErrorException.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectAllocator.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "UObject/MetaData.h"
+#include "Templates/Casts.h"
+#include "UObject/DebugSerializationFlags.h"
+#include "UObject/PropertyTag.h"
+#include "UObject/UnrealType.h"
+#include "UObject/Stack.h"
+#include "Misc/PackageName.h"
+#include "UObject/ObjectResource.h"
+#include "UObject/LinkerSave.h"
+#include "UObject/Interface.h"
+#include "Misc/HotReloadInterface.h"
+#include "UObject/LinkerPlaceholderClass.h"
+#include "UObject/LinkerPlaceholderFunction.h"
+#include "UObject/StructScriptLoader.h"
+#include "UObject/PropertyHelper.h"
+#include "Serialization/ArchiveScriptReferenceCollector.h"
 
 // This flag enables some expensive class tree validation that is meant to catch mutations of 
 // the class tree outside of SetSuperStruct. It has been disabled because loading blueprints 
@@ -21,14 +43,10 @@
 DEFINE_LOG_CATEGORY(LogScriptSerialization);
 DEFINE_LOG_CATEGORY(LogClass);
 
-#if _MSC_VER == 1900
+#if defined(_MSC_VER) && _MSC_VER == 1900
 	#ifdef PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 	#endif
-#endif
-
-#if !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
-#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -183,12 +201,14 @@ FText UField::GetDisplayNameText() const
 	FText LocalizedDisplayName;
 
 	static const FString Namespace = TEXT("UObjectDisplayNames");
+	static const FName NAME_DisplayName(TEXT("DisplayName"));
+
 	const FString Key = GetFullGroupName(false);
 
 	FString NativeDisplayName;
-	if( HasMetaData( TEXT("DisplayName") ) )
+	if( HasMetaData(NAME_DisplayName) )
 	{
-		NativeDisplayName = GetMetaData( TEXT("DisplayName") );
+		NativeDisplayName = GetMetaData(NAME_DisplayName);
 	}
 	else
 	{
@@ -506,8 +526,7 @@ void UStruct::StaticLink(bool bRelinkExistingProperties)
 void UStruct::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 {
 	Super::GetPreloadDependencies(OutDeps);
-	UStruct* InheritanceSuper = GetInheritanceSuper();
-	OutDeps.Add(InheritanceSuper);
+	OutDeps.Add(SuperStruct);
 
 	for (UField* Field = Children; Field; Field = Field->Next)
 	{
@@ -944,12 +963,12 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 					
 					FName EachName = GetFName();
 					// Search the current class first, then work up the class hierarchy to see if theres a match for our fixup.
-					UStruct* Owner = GetOwnerStruct();		
+					UStruct* Owner = GetOwnerStruct();
 					if( Owner )
 					{
 						UStruct* SuperClass = Owner->GetSuperStruct();
 						while( EachName != NAME_None)
-						{							
+						{
 							const TMap<FName, FName>* ClassTaggedPropertyRedirects = TaggedPropertyRedirects.Find( EachName );
 							if (ClassTaggedPropertyRedirects)
 							{
@@ -1017,15 +1036,23 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			// No need to check redirects on platforms where everything is cooked. Always check for save games
 			if (!FPlatformProperties::RequiresCookedData() || Ar.IsSaveGame())
 			{
-			if (Tag.Type == NAME_StructProperty && PropID == NAME_StructProperty)
-			{
-				FName* NewName = FLinkerLoad::StructNameRedirects.Find(Tag.StructName);
-				FName StructName = CastChecked<UStructProperty>(Property)->Struct->GetFName();
-					if (NewName != nullptr && *NewName == StructName)
+				if (Tag.Type == NAME_StructProperty && PropID == NAME_StructProperty)
 				{
-					Tag.StructName = *NewName;
+					const FName NewName = FLinkerLoad::FindNewNameForStruct(Tag.StructName);
+					const FName StructName = CastChecked<UStructProperty>(Property)->Struct->GetFName();
+					if (NewName == StructName)
+					{
+						Tag.StructName = NewName;
+					}
 				}
-			}
+				else if ((PropID == NAME_EnumProperty) && ((Tag.Type == NAME_EnumProperty) || (Tag.Type == NAME_ByteProperty)))
+				{
+					const FName NewName = FLinkerLoad::FindNewNameForEnum(Tag.EnumName);
+					if (!NewName.IsNone())
+					{
+						Tag.EnumName = NewName;
+					}
+				}
 			}
 
 			const int64 StartOfProperty = Ar.Tell();
@@ -1055,9 +1082,6 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				UE_CLOG((Ar.IsPersistent() && FPlatformProperties::RequiresCookedData()), LogClass, Warning, TEXT("Skipping saved property %s of %s since it is no longer serializable for asset:  %s. (Maybe resave asset?)"), *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName() );
 			}
 
-			// Convert properties from old type to new type automatically if types are compatible
-			// If you add an entry to this, you will also need to add an entry to the array case below
-			// For converting to a struct, you can just implement SerializeFromMismatchedTag on the struct
 			else if (Property->ConvertFromType(Tag, Ar, Data, DefaultsStruct, bAdvanceProperty))
 			{
 				if (bAdvanceProperty)
@@ -1068,9 +1092,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 
 			else if (Tag.Type != PropID)
 			{
-					UE_LOG(LogClass, Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *PropID.ToString(), *Ar.GetArchiveName() );
-				}
-
+				UE_LOG(LogClass, Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *PropID.ToString(), *Ar.GetArchiveName() );
+			}
 			else
 			{
 				uint8* DestAddress = Property->ContainerPtrToValuePtr<uint8>(Data, Tag.ArrayIndex);  
@@ -1147,7 +1170,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 						Ar << Tag;
 
 						// need to know how much data this call to SerializeTaggedProperty consumes, so mark where we are
-						int32 DataOffset = Ar.Tell();
+						int64 DataOffset = Ar.Tell();
 
 						// if using it, save the current custom property list and switch to its sub property list (in case of UStruct serialization)
 						const FCustomPropertyListNode* SavedCustomPropertyList = nullptr;
@@ -1223,7 +1246,7 @@ void UStruct::Serialize( FArchive& Ar )
 	else
 	{
 		int32 ScriptBytecodeSize = Script.Num();
-		int32 ScriptStorageSizeOffset = INDEX_NONE;
+		int64 ScriptStorageSizeOffset = INDEX_NONE;
 
 		if (Ar.IsSaving())
 		{
@@ -1243,7 +1266,7 @@ void UStruct::Serialize( FArchive& Ar )
 
 			// no bytecode patch for this struct - serialize normally [i.e. from disk]
 			int32 iCode = 0;
-			int32 const BytecodeStartOffset = Ar.Tell();
+			int64 const BytecodeStartOffset = Ar.Tell();
 
 			if (Ar.IsPersistent() && Ar.GetLinker())
 			{
@@ -1290,7 +1313,7 @@ void UStruct::Serialize( FArchive& Ar )
 			{
 				FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
 
-				int32 const BytecodeEndOffset = Ar.Tell();
+				int64 const BytecodeEndOffset = Ar.Tell();
 
 				// go back and write on-disk size
 				Ar.Seek(ScriptStorageSizeOffset);
@@ -1313,6 +1336,18 @@ void UStruct::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 		// Required by the unified GC when running in the editor
 		Collector.AddReferencedObject( This->SuperStruct, This );
 		Collector.AddReferencedObject( This->Children, This );
+
+		TArray<UObject*> ScriptObjectReferences;
+		FArchiveScriptReferenceCollector ObjectReferenceCollector( ScriptObjectReferences );
+		int32 iCode = 0;
+		while( iCode < This->Script.Num() )
+		{	
+			This->SerializeExpr( iCode, ObjectReferenceCollector );
+		}
+		for( int32 Index = 0; Index < ScriptObjectReferences.Num(); Index++ )
+		{
+			Collector.AddReferencedObject( ScriptObjectReferences[ Index ], This );
+		}
 	}
 
 	//@todo NickW, temp hack to make stale property chains less crashy
@@ -2281,6 +2316,22 @@ void UScriptStruct::CopyScriptStruct(void* InDest, void const* InSrc, int32 Arra
 	}
 }
 
+uint32 UScriptStruct::GetStructTypeHash(const void* Src) const
+{
+	// Calling GetStructTypeHash on struct types that doesn't provide a native 
+	// GetTypeHash implementation is an error that neither the C++ compiler nor the BP
+	// compiler permit. Still, old reflection data could be loaded that invalidly uses 
+	// unhashable types. 
+
+	// If any the ensure or check in this function fires the fix is to implement GetTypeHash 
+	// or erase the data. USetProperties and UMapProperties that are loaded from disk
+	// will clear themselves when they detect this error (see USetProperty and 
+	// UMapProperty::ConvertFromType).
+
+	UScriptStruct::ICppStructOps* TheCppStructOps = GetCppStructOps();
+	return TheCppStructOps->GetTypeHash(Src);
+}
+
 void UScriptStruct::InitializeStruct(void* InDest, int32 ArrayDim) const
 {
 	uint8 *Dest = (uint8*)InDest;
@@ -2446,6 +2497,11 @@ void UScriptStruct::RecursivelyPreload() {}
 FGuid UScriptStruct::GetCustomGuid() const
 {
 	return FGuid();
+}
+
+FString UScriptStruct::GetStructCPPName() const
+{
+	return FString::Printf(TEXT("F%s"), *GetName());
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UScriptStruct, UStruct,
@@ -2621,9 +2677,11 @@ UObject* UClass::CreateDefaultObject()
 		{
 			UObjectForceRegistration(ParentClass);
 			ParentDefaultObject = ParentClass->GetDefaultObject(); // Force the default object to be constructed if it isn't already
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-			check(ParentDefaultObject && !ParentDefaultObject->HasAnyFlags(RF_NeedLoad));
-#endif
+			check(GConfig);
+			if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+			{ 
+				check(ParentDefaultObject && !ParentDefaultObject->HasAnyFlags(RF_NeedLoad));
+			}
 		}
 
 		if ( (ParentDefaultObject != NULL) || (this == UObject::StaticClass()) )
@@ -3592,17 +3650,20 @@ void UClass::Serialize( FArchive& Ar )
 	{
 		if (ClassDefaultObject == NULL)
 		{
-
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
+			check(GConfig);
+			if (GEventDrivenLoaderEnabled)
+			{
 			ClassDefaultObject = GetDefaultObject();
 			// we do this later anyway, once we find it and set it in the export table. 
 			// ClassDefaultObject->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects);
-#else
+			}
+			else
+			{
 			UE_LOG(LogClass, Error, TEXT("CDO for class %s did not load!"), *GetPathName());
 			ensure(ClassDefaultObject != NULL);
 			ClassDefaultObject = GetDefaultObject();
 			Ar.ForceBlueprintFinalization();
-#endif
+			}
 		}
 	}
 }
@@ -4279,8 +4340,6 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UClass, UStruct,
 	}
 );
 
-UClass::StaticClassFunctionType GetDynamicClassConstructFn(FName ClassPathName);
-
 void GetPrivateStaticClassBody(
 	const TCHAR* PackageName,
 	const TCHAR* Name,
@@ -4389,14 +4448,6 @@ void GetPrivateStaticClassBody(
 
 	// Register the class's native functions.
 	RegisterNativeFunc();
-
-	if (bIsDynamic)
-	{
-		// Now call the UHT-generated Z_Construct* function for the dynamic class
-		UClass::StaticClassFunctionType ZConstructDynamicClassFn = GetDynamicClassConstructFn(*ReturnClass->GetPathName());
-		check(ZConstructDynamicClassFn);
-		ZConstructDynamicClassFn();
-	}
 }
 
 /*-----------------------------------------------------------------------------
@@ -4923,7 +4974,7 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UDynamicClass, UClass,
 }
 );
 
-#if _MSC_VER == 1900
+#if defined(_MSC_VER) && _MSC_VER == 1900
 	#ifdef PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 		PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 	#endif

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * This header contains the code for serialization of script bytecode and [eventually] tagged property values.
@@ -416,6 +416,16 @@
 			while( SerializeExpr( iCode, Ar) != EX_EndArray );
 			break;
 		}
+		case EX_SetSet:
+			SerializeExpr( iCode, Ar ); // set property
+			XFER(int32);			// Number of elements
+			while( SerializeExpr( iCode, Ar) != EX_EndSet );
+			break;
+		case EX_SetMap:
+			SerializeExpr( iCode, Ar ); // map property
+			XFER(int32);			// Number of elements
+			while( SerializeExpr( iCode, Ar) != EX_EndMap );
+			break;
 		case EX_ArrayConst:
 		{
 			XFERPTR(UProperty*);	// Inner property

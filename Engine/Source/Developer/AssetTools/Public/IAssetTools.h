@@ -1,16 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "CoreUObject.h"
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "UObject/Package.h"
 #include "AssetTypeCategories.h"
 
-
+class FAssetData;
 class IAssetTypeActions;
 class IClassTypeActions;
-class FAssetData;
 class UFactory;
-
 
 struct FAssetRenameData
 {
@@ -147,7 +147,7 @@ public:
 	 * @param bSyncToBrowser	If true sync content browser to first imported asset after import
 	 * @return list of sucessfully imported assets
 	 */
-	virtual TArray<UObject*> ImportAssets(const TArray<FString>& Files, const FString& DestinationPath, UFactory* ChosenFactory = NULL, bool bSyncToBrowser = true) const = 0;
+	virtual TArray<UObject*> ImportAssets(const TArray<FString>& Files, const FString& DestinationPath, UFactory* ChosenFactory = NULL, bool bSyncToBrowser = true, TArray<TPair<FString, FString>> *FilesAndDestinations = nullptr) const = 0;
 
 	/**
 	 * Imports assets using data specified completely up front.  Does not ever ask any questions of the user or show any modal error messages

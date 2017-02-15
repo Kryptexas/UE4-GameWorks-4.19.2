@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SharedPointer.h"
-#include "UnrealString.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Templates/SharedPointer.h"
+#include "Delegates/Delegate.h"
+#include "Internationalization/Text.h"
+
+class Error;
 
 /** The severity of the message type */
 namespace EMessageSeverity

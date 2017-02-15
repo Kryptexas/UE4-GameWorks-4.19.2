@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -149,7 +149,7 @@ namespace UnrealBuildTool
 		/// <param name="Modules">Array of modules</param>
 		public static void WriteArray(JsonWriter Writer, string Name, ModuleDescriptor[] Modules)
 		{
-			if (Modules.Length > 0)
+			if (Modules != null && Modules.Length > 0)
 			{
 				Writer.WriteArrayStart(Name);
 				foreach (ModuleDescriptor Module in Modules)

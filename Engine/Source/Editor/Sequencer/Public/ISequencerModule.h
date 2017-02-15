@@ -1,18 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
 #include "ISequencer.h"
-#include "Toolkits/AssetEditorToolkit.h"
-#include "Toolkits/IToolkit.h"
+#include "Modules/ModuleInterface.h"
 
-
-class ISequencerObjectBindingManager;
+class FExtender;
+class FExtensibilityManager;
+class FMenuBuilder;
 class ISequencerTrackEditor;
 class IToolkitHost;
-class ULevelSequence;
-
+class UMovieSceneSequence;
 
 namespace SequencerMenuExtensionPoints
 {
@@ -37,15 +37,22 @@ struct FSequencerViewParams
 
 	FOnGetAddMenuContent OnGetAddMenuContent;
 
+	/** Called when this sequencer has received user focus */
+	FSimpleDelegate OnReceivedFocus;
+
 	/** A menu extender for the add menu */
 	TSharedPtr<FExtender> AddMenuExtender;
 
 	/** Unique name for the sequencer. */
 	FString UniqueName;
 
+	/** Whether the sequencer is read-only */
+	bool bReadOnly;
+
 	FSequencerViewParams(FString InName = FString())
 		: InitialScrubPosition(0.0f)
 		, UniqueName(MoveTemp(InName))
+		, bReadOnly(false)
 	{ }
 };
 
@@ -68,7 +75,7 @@ struct FSequencerInitParams
 	bool bEditWithinLevelEditor;
 
 	/** Domain-specific spawn register for the movie scene */
-	TSharedPtr<IMovieSceneSpawnRegister> SpawnRegister;
+	TSharedPtr<FMovieSceneSpawnRegister> SpawnRegister;
 
 	/** Accessor for event contexts */
 	TAttribute<TArray<UObject*>> EventContexts;

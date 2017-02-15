@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "IPropertyTypeCustomization.h"
+#include "PropertyHandle.h"
+#include "Widgets/Input/SComboBox.h"
 
-class SNameComboBox;
-
+class IDetailGroup;
 
 /**
  * Customizes a CollisionProfileName property to use a dropdown

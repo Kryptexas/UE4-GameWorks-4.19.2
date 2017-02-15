@@ -1,15 +1,14 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequenceRecorderPrivatePCH.h"
-#include "MovieSceneAnimationSectionRecorder.h"
-#include "MovieSceneSkeletalAnimationTrack.h"
-#include "MovieSceneSkeletalAnimationSection.h"
+#include "Sections/MovieSceneAnimationSectionRecorder.h"
+#include "AnimationRecorder.h"
+#include "Tracks/MovieSceneSkeletalAnimationTrack.h"
+#include "Sections/MovieSceneSkeletalAnimationSection.h"
 #include "MovieScene.h"
+#include "AssetRegistryModule.h"
 #include "SequenceRecorderUtils.h"
 #include "SequenceRecorderSettings.h"
-#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "ActorRecording.h"
-#include "Animation/AnimSequence.h"
 
 TSharedPtr<IMovieSceneSectionRecorder> FMovieSceneAnimationSectionRecorderFactory::CreateSectionRecorder(const FActorRecordingSettings& InActorRecordingSettings) const
 {
@@ -118,14 +117,7 @@ void FMovieSceneAnimationSectionRecorder::FinalizeSection()
 		if (AnimationSettings.bRemoveRootAnimation)
 		{
 			// enable root motion on the animation
-			AnimSequence->bEnableRootMotion = true;
-			AnimSequence->RootMotionRootLock = ERootMotionRootLock::Zero;
-		}
-		else
-		{
-			// enable root motion on the animation
-			AnimSequence->bEnableRootMotion = false;
-			AnimSequence->RootMotionRootLock = ERootMotionRootLock::RefPose;
+			AnimSequence->bForceRootLock = true;
 		}
 	}
 

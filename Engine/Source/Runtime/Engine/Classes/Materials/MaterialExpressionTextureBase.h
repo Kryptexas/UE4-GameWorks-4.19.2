@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Node acts as a base class for TextureSamples and TextureObjects 
@@ -6,8 +6,14 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionTextureBase.generated.h"
+
+class UTexture;
+struct FPropertyChangedEvent;
 
 UCLASS(abstract, hidecategories=Object)
 class ENGINE_API UMaterialExpressionTextureBase : public UMaterialExpression 

@@ -1,31 +1,54 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Skeletal mesh creation from FBX data.
 	Largely based on SkeletalMeshImport.cpp
 =============================================================================*/
 
-#include "UnrealEd.h"
-
-#include "Engine.h"
-#include "TextureLayout.h"
-#include "SkelImport.h"
-#include "FbxImporter.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "Misc/MessageDialog.h"
+#include "Containers/IndirectArray.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/PackageName.h"
+#include "SkeletalMeshTypes.h"
+#include "Animation/Skeleton.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "AnimEncoding.h"
-#include "SSkeletonWidget.h"
+#include "Factories/Factory.h"
+#include "Factories/FbxSkeletalMeshImportData.h"
+#include "Animation/MorphTarget.h"
+#include "PhysicsAssetUtils.h"
 
+#include "SkelImport.h"
+#include "Logging/TokenizedMessage.h"
+#include "FbxImporter.h"
+
+#include "AssetData.h"
+#include "ARFilter.h"
 #include "AssetRegistryModule.h"
 #include "AssetNotifications.h"
 
 #include "ObjectTools.h"
 
 #include "ApexClothingUtils.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "MeshUtilities.h"
 
+#include "IMessageLogListing.h"
 #include "MessageLogModule.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 #include "ComponentReregisterContext.h"
 
-#include "FbxErrors.h"
+#include "Misc/FbxErrors.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Engine/SkeletalMeshSocket.h"
 
@@ -983,7 +1006,9 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 			
 			GlobalsPerLink[LinkIndex] = T0Matrix;
 		}
-	
+
+		//Add the join orientation
+		GlobalsPerLink[LinkIndex] = GlobalsPerLink[LinkIndex] * FFbxDataConverter::GetJointPostConversionMatrix();
 		if (LinkIndex)
 		{
 			FbxAMatrix	Matrix;
@@ -1296,6 +1321,14 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		}
 	}
 
+	USkeletalMesh* SkeletalMesh = nullptr;
+	if (!ExistingSkelMesh)
+	{
+		// When we are not re-importing we want to create the mesh here to be sure there is no material
+		// or texture that will be create with the same name
+		SkeletalMesh = NewObject<USkeletalMesh>(InParent, Name, Flags);
+	}
+
 	FSkeletalMeshImportData TempData;
 	// Fill with data from buffer - contains the full .FBX file. 	
 	FSkeletalMeshImportData* SkelMeshImportDataPtr = &TempData;
@@ -1314,6 +1347,11 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	if (FillSkeletalMeshImportData(NodeArray, TemplateImportData, FbxShapeArray, SkelMeshImportDataPtr, LastImportedMaterialNames) == false)
 	{
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_FillupImportData", "Get Import Data has failed.")), FFbxErrors::SkeletalMesh_FillImportDataFailed);
+		if (SkeletalMesh)
+		{
+			SkeletalMesh->ClearFlags(RF_Standalone);
+			SkeletalMesh->Rename(NULL, GetTransientPackage());
+		}
 		return nullptr;
 	}
 
@@ -1333,6 +1371,11 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	if (SkelMeshImportDataPtr->Points.Num() > 2 && BoundingBoxSize.X < THRESH_POINTS_ARE_SAME && BoundingBoxSize.Y < THRESH_POINTS_ARE_SAME && BoundingBoxSize.Z < THRESH_POINTS_ARE_SAME)
 	{
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_ErrorMeshTooSmall", "Cannot import this mesh, the bounding box of this mesh is smaller then the supported threshold[{0}]."), FText::FromString(FString::Printf(TEXT("%f"), THRESH_POINTS_ARE_SAME)))), FFbxErrors::SkeletalMesh_FillImportDataFailed);
+		if (SkeletalMesh)
+		{
+			SkeletalMesh->ClearFlags(RF_Standalone);
+			SkeletalMesh->Rename(NULL, GetTransientPackage());
+		}
 		return nullptr;
 	}
 
@@ -1349,9 +1392,13 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		//If the import fail after this step the editor can crash when updating the bone later since the LODModel will not exist anymore
 		ExistSkelMeshDataPtr = SaveExistingSkelMeshData(ExistingSkelMesh, !ImportOptions->bImportMaterials);
 	}
-
-	// [from USkeletalMeshFactory::FactoryCreateBinary]
-	USkeletalMesh* SkeletalMesh = NewObject<USkeletalMesh>(InParent, Name, Flags);
+	
+	if (SkeletalMesh == nullptr)
+	{
+		// Create the new mesh after saving the old data, since it will replace the old skeletalmesh
+		// This should happen only when doing a re-import. Otherwise the skeletal mesh is create before.
+		SkeletalMesh = NewObject<USkeletalMesh>(InParent, Name, Flags);
+	}
 
 	SkeletalMesh->PreEditChange(NULL);
 
@@ -1393,9 +1440,13 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	FStaticLODModel& LODModel = ImportedResource->LODModels[0];
 	
 	// Pass the number of texture coordinate sets to the LODModel.  Ensure there is at least one UV coord
-	LODModel.NumTexCoords = FMath::Max<uint32>(1,SkelMeshImportDataPtr->NumTexCoords);
+	LODModel.NumTexCoords = FMath::Max<uint32>(1, SkelMeshImportDataPtr->NumTexCoords);
 
-	if( bCreateRenderData )
+	// Array of re-import contexts for components using this mesh
+	// Will unregister before import, then re-register afterwards
+	TIndirectArray<FComponentReregisterContext> ComponentContexts;
+
+	if (bCreateRenderData)
 	{
 		TArray<FVector> LODPoints;
 		TArray<FMeshWedge> LODWedges;
@@ -1456,12 +1507,12 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		SkeletalMesh->MarkPackageDirty();
 
 		// Now iterate over all skeletal mesh components re-initialising them.
-		for(TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+		for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
 		{
-			USkeletalMeshComponent* SkelComp = *It;
-			if(SkelComp->SkeletalMesh == SkeletalMesh)
+			USkinnedMeshComponent* SkinComp = *It;
+			if (SkinComp->SkeletalMesh == SkeletalMesh)
 			{
-				FComponentReregisterContext ReregisterContext(SkelComp);
+				new(ComponentContexts) FComponentReregisterContext(SkinComp);
 			}
 		}
 	}
@@ -1612,6 +1663,8 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	//for supporting re-import 
 	ApexClothingUtils::ReapplyClothingDataToSkeletalMesh(SkeletalMesh);
 #endif// #if WITH_APEX_CLOTHING
+
+	// ComponentContexts will now go out of scope, causing components to be re-registered
 
 	return SkeletalMesh;
 }
@@ -1855,7 +1908,10 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 			}
 
 			// import morph target
-			if ( NewMesh)
+			if ((ImportOptions->bImportSkeletalMeshLODs || LODIndex == 0) &&
+				NewMesh &&
+				NewMesh->GetImportedResource() &&
+				NewMesh->GetImportedResource()->LODModels.IsValidIndex(LODIndex))
 			{
 				// @fixme: @question : where do they import this morph? where to? What morph target sets?
 				ImportFbxMorphTarget(SkelMeshNodeArray, NewMesh, NewMesh->GetOutermost(), LODIndex);
@@ -3525,16 +3581,21 @@ FFbxLogger::~FFbxLogger()
 			}
 		}
 	}
-	if(ShowLogMessage && TokenizedErrorMessages.Num() > 0)
-	{
-		const TCHAR* LogTitle = TEXT("FBXImport");
-		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-		TSharedPtr<class IMessageLogListing> LogListing = MessageLogModule.GetLogListing(LogTitle);
-		LogListing->SetLabel(FText::FromString("FBX Import"));
-		LogListing->ClearMessages();
 
+	//Always clear the old message after an import or re-import
+	const TCHAR* LogTitle = TEXT("FBXImport");
+	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+	TSharedPtr<class IMessageLogListing> LogListing = MessageLogModule.GetLogListing(LogTitle);
+	LogListing->SetLabel(FText::FromString("FBX Import"));
+	LogListing->ClearMessages();
+
+	if(TokenizedErrorMessages.Num() > 0)
+	{
 		LogListing->AddMessages(TokenizedErrorMessages);
-		MessageLogModule.OpenMessageLog(LogTitle);
+		if (ShowLogMessage)
+		{
+			MessageLogModule.OpenMessageLog(LogTitle);
+		}
 	}
 }
 #undef LOCTEXT_NAMESPACE

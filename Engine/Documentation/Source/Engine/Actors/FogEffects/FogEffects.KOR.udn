@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3151855
 Availability: Public
 Title:포그 이펙트
 Crumbs: %ROOT%, Engine
 Description:포그를 사용하여 월드의 환경을 조성하고 분위기를 설정하는 방법입니다.
+parent:Engine/Rendering
+order:6
+type:landing
 
 [VAR:Topic]
 [OBJECT:Topic]

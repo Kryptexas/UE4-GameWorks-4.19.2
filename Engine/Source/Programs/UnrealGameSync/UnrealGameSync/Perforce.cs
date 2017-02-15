@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -153,6 +153,18 @@ namespace UnrealGameSync
 		public string LocalPath;
 		public string ClientPath;
 		public string DepotPath;
+	}
+
+	class PerforceSyncOptions
+	{
+		public int NumRetries;
+		public int NumThreads;
+		public int TcpBufferSize;
+
+		public PerforceSyncOptions Clone()
+		{
+			return (PerforceSyncOptions)MemberwiseClone();
+		}
 	}
 
 	class PerforceSpec
@@ -697,7 +709,7 @@ namespace UnrealGameSync
 			PerforceWhereRecord WhereRecord;
 			if(Where(FileName, out WhereRecord, Log))
 			{
-				LocalFileName = WhereRecord.LocalPath;
+				LocalFileName = Utility.GetPathWithCorrectCase(new FileInfo(WhereRecord.LocalPath));
 				return true;
 			}
 			else
@@ -731,6 +743,13 @@ namespace UnrealGameSync
 			OutStreamNames = StreamNames;
 
 			return true;
+		}
+
+		public bool HasOpenFiles(TextWriter Log)
+		{
+			List<PerforceFileRecord> Records = new List<PerforceFileRecord>();
+			bool bResult = RunCommand("opened -m 1", out Records, CommandOptions.None, Log);
+			return bResult && Records.Count > 0;
 		}
 
 		public bool SwitchStream(string NewStream, TextWriter Log)
@@ -784,7 +803,7 @@ namespace UnrealGameSync
 			return RunCommand("sync " + Filter, CommandOptions.IgnoreFilesUpToDateError, Log);
 		}
 
-		public bool Sync(List<string> DepotPaths, int ChangeNumber, Action<PerforceFileRecord> SyncOutput, List<string> TamperedFiles, TextWriter Log)
+		public bool Sync(List<string> DepotPaths, int ChangeNumber, Action<PerforceFileRecord> SyncOutput, List<string> TamperedFiles, PerforceSyncOptions Options, TextWriter Log)
 		{
 			// Write all the files we want to sync to a temp file
 			string TempFileName = Path.GetTempFileName();
@@ -800,7 +819,22 @@ namespace UnrealGameSync
 			bool bResult;
 			using(PerforceTagRecordParser Parser = new PerforceTagRecordParser(x => SyncOutput(new PerforceFileRecord(x))))
 			{
-				bResult = RunCommand(String.Format("-x \"{0}\" -z tag sync", TempFileName), null, Line => FilterSyncOutput(Line, Parser, TamperedFiles, Log), CommandOptions.NoFailOnErrors | CommandOptions.IgnoreFilesUpToDateError | CommandOptions.IgnoreExitCode, Log);
+				StringBuilder CommandLine = new StringBuilder();
+				CommandLine.AppendFormat("-x \"{0}\" -z tag", TempFileName);
+				if(Options != null && Options.NumRetries > 0)
+				{
+					CommandLine.AppendFormat(" -r {0}", Options.NumRetries);
+				}
+				if(Options != null && Options.TcpBufferSize > 0)
+				{
+					CommandLine.AppendFormat(" -v net.tcpsize={0}", Options.TcpBufferSize);
+				}
+				CommandLine.Append(" sync");
+				if(Options != null && Options.NumThreads > 1)
+				{
+					CommandLine.AppendFormat(" --parallel=threads={0}", Options.NumThreads);
+				}
+				bResult = RunCommand(CommandLine.ToString(), null, Line => FilterSyncOutput(Line, Parser, TamperedFiles, Log), CommandOptions.NoFailOnErrors | CommandOptions.IgnoreFilesUpToDateError | CommandOptions.IgnoreExitCode, Log);
 			}
 			return bResult;
 		}

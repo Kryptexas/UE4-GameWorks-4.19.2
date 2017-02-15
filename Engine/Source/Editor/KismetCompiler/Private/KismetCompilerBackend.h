@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __KismetCompilerBackend_h__
@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "KismetCompiledFunctionContext.h"
 #include "KismetCompiler.h"
 
 //////////////////////////////////////////////////////////////////////////

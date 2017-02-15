@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
-#include "OnlineSessionInterface.h"
-#include "OnlineFriendsInterface.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Containers/Ticker.h"
+#include "UObject/CoreOnline.h"
+#include "OnlineSubsystemTypes.h"
+#include "OnlineSubsystem.h"
+#include "OnlineSessionSettings.h"
+#include "Interfaces/OnlineSessionInterface.h"
+
+class TestOnlineGameSettings;
+class TestOnlineSearchSettings;
 
 #if WITH_DEV_AUTOMATION_TESTS
 
@@ -69,6 +77,9 @@
 	/** Delegate for joining a new session after previously destroying it */
 	FOnDestroySessionCompleteDelegate OnDestroyForJoinSessionCompleteDelegate;
 
+	/** Delegate for matchmaking */
+	FOnMatchmakingCompleteDelegate OnMatchmakingCompleteDelegate;
+
 	/** Handles for the above delegates */
 	FDelegateHandle OnReadFriendsListCompleteDelegateHandle;
 	FDelegateHandle OnSessionUserInviteAcceptedDelegateHandle;
@@ -84,6 +95,7 @@
 	FDelegateHandle OnJoinSessionCompleteDelegateHandle;
 	FDelegateHandle OnEndForJoinSessionCompleteDelegateHandle;
 	FDelegateHandle OnDestroyForJoinSessionCompleteDelegateHandle;
+	FDelegateHandle OnMatchmakingCompleteDelegateHandle;
 
 	/** Delegate for joining a friend (JIP) */
 	FOnFindFriendSessionCompleteDelegate OnFindFriendSessionCompleteDelegate;
@@ -249,6 +261,14 @@
 	 */
 	void OnCancelFindSessionsComplete(bool bWasSuccessful);
 
+	/**
+	 * Delegate fired when matchmaking has been completed
+	 *
+	 * @param SessionName the name of the session this callback is for
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 */
+	void OnMatchmakingComplete(FName SessionName, bool bWasSuccessful);
+
 	/** Allows the world pointer to be cleaned up if it is going to be destroyed */
 	void WorldDestroyed( UWorld* InWorld );
 
@@ -309,10 +329,10 @@
 
 	/**
 	 * Kicks off all of the testing process
-	 *
+	 *z
 	 * @param bTestLAN setup settings for LAN test
 	 */
-	void Test(UWorld* InWorld, bool bTestLAN, bool bIsPresence);
+	void Test(UWorld* InWorld, bool bTestLAN, bool bIsPresence, bool bIsMatchmaking, const FOnlineSessionSettings& SettingsOverride);
 
 	/**
 	 * Clear out any existing delegates created

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -220,7 +220,7 @@ namespace UnrealBuildTool
 			// If we're generating project files for a specific game project, check the user's editor setting for preferred source code accessor - we can generate project files to match.
 			if (ProjectFileFormat == VCProjectFileFormat.Default && OnlyGameProject != null)
 			{
-				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Win64, "EditorPerProjectUserSettings", DirectoryReference.FromFile(OnlyGameProject));
+				ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.EditorPerProjectUserSettings, DirectoryReference.FromFile(OnlyGameProject), UnrealTargetPlatform.Win64);
 
 				string PreferredAccessor;
 				if (Ini.GetString("/Script/SourceCodeAccess.SourceCodeAccessSettings", "PreferredAccessor", out PreferredAccessor))
@@ -610,7 +610,7 @@ namespace UnrealBuildTool
 														string TargetConfigurationName = TargetRules.TargetType.Game.ToString();
 														if (ProjectTarget.TargetRules != null)
 														{
-															TargetConfigurationName = ProjectTarget.TargetRules.ConfigurationName;
+															TargetConfigurationName = ProjectTarget.TargetRules.Type.ToString();
 														}
 
 														string SolutionConfigName = MakeSolutionConfigurationName(CurConfiguration, TargetConfigurationName);
@@ -718,7 +718,7 @@ namespace UnrealBuildTool
 											bool IsMatchingCombination = VCProjectFile.IsValidProjectPlatformAndConfiguration(ProjectTarget, SolutionConfigCombination.Platform, SolutionConfigCombination.Configuration);
 											if (ProjectTarget.TargetRules != null)
 											{
-												if (TargetConfigurationName != ProjectTarget.TargetRules.ConfigurationName)
+												if (TargetConfigurationName != ProjectTarget.TargetRules.Type.ToString())
 												{
 													// Solution configuration name for this combination doesn't match this target's configuration name.  It's not buildable.
 													IsMatchingCombination = false;
@@ -766,11 +766,9 @@ namespace UnrealBuildTool
 											SolutionPlatform = UnrealTargetPlatform.Win64;
 											if (CurProject.ProjectTargets[0].TargetRules != null)
 											{
-												List<UnrealTargetPlatform> ProjectSupportedPlatforms = new List<UnrealTargetPlatform>();
-												CurProject.ProjectTargets[0].TargetRules.GetSupportedPlatforms(ref ProjectSupportedPlatforms);
-												if (!ProjectSupportedPlatforms.Contains(SolutionPlatform))
+												if (!CurProject.ProjectTargets[0].SupportedPlatforms.Contains(SolutionPlatform))
 												{
-													SolutionPlatform = ProjectSupportedPlatforms[0];
+													SolutionPlatform = CurProject.ProjectTargets[0].SupportedPlatforms[0];
 												}
 											}
 
@@ -842,7 +840,7 @@ namespace UnrealBuildTool
 											if (MatchingProjectTarget.TargetRules != null)
 											{
 												SupportedPlatforms = new List<UnrealTargetPlatform>();
-												MatchingProjectTarget.TargetRules.GetSupportedPlatforms(ref SupportedPlatforms);
+												SupportedPlatforms.AddRange(MatchingProjectTarget.SupportedPlatforms);
 											}
 											if (SupportedPlatforms == null || SupportedPlatforms.Contains(SolutionConfigCombination.Platform))
 											{

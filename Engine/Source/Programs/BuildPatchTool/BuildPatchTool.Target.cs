@@ -1,13 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
 
+[SupportedPlatforms(UnrealTargetPlatform.Win32, UnrealTargetPlatform.Win64, UnrealTargetPlatform.Mac, UnrealTargetPlatform.Linux)]
+[SupportedConfigurations(UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping)]
 public class BuildPatchToolTarget : TargetRules
 {
 	public BuildPatchToolTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Monolithic;
 		bOutputPubliclyDistributable = true;
 		UndecoratedConfiguration = UnrealTargetConfiguration.Shipping;
 	}
@@ -15,22 +18,6 @@ public class BuildPatchToolTarget : TargetRules
 	//
 	// TargetRules interface.
 	//
-	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-	{
-		OutPlatforms.Add(UnrealTargetPlatform.Win32);
-		OutPlatforms.Add(UnrealTargetPlatform.Win64);
-		OutPlatforms.Add(UnrealTargetPlatform.Mac);
-		OutPlatforms.Add(UnrealTargetPlatform.Linux);
-		return true;
-	}
-
-	public override bool GetSupportedConfigurations(ref List<UnrealTargetConfiguration> OutConfigurations, bool bIncludeTestAndShippingConfigs)
-	{
-		OutConfigurations.Add(UnrealTargetConfiguration.Debug);
-		OutConfigurations.Add(UnrealTargetConfiguration.Development);
-		OutConfigurations.Add(UnrealTargetConfiguration.Shipping);
-		return true;
-	}
 
 	public override void SetupBinaries(
 		TargetInfo Target,
@@ -45,11 +32,6 @@ public class BuildPatchToolTarget : TargetRules
 				}
 			)
 		);
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
 	}
 
 	public override void SetupGlobalEnvironment(

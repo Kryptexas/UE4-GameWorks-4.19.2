@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -6,26 +6,13 @@
 ==============================================================================================*/
 
 #pragma once
-#include "HAL/Platform.h"
-#include "EnumClassFlags.h"
 
-class FArchive;
-class FString;
-struct FDateTime;
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Misc/DateTime.h"
+#include "Misc/EnumClassFlags.h"
 
-#if !defined(WITH_EDITORONLY_DATA)
-#error "WITH_EDITORONLY_DATA must be defined"
-#endif
-
-#if !defined(USE_NEW_ASYNC_IO)
-#define USE_NEW_ASYNC_IO 0
-#elif USE_NEW_ASYNC_IO && WITH_EDITORONLY_DATA
-#error USE_NEW_ASYNC_IO can not be used with WITH_EDITORONLY_DATA
-#endif
-
-#if USE_NEW_ASYNC_IO
 class IAsyncReadFileHandle;
-#endif // USE_NEW_ASYNC_IO
 
 /**
 * Enum for async IO priorities.
@@ -221,6 +208,11 @@ public:
 	virtual void		InitializeAfterSetActive() { }
 
 	/**
+	* Performs initialization of the platform file after the new async IO has been enabled
+	*/
+	virtual void		InitializeNewAsyncIO() { }
+
+	/**
 	 * Identifies any platform specific paths that are guaranteed to be local (i.e. cache, scratch space)
 	 */
 	virtual void		AddLocalDirectories(TArray<FString> &LocalDirectories)
@@ -241,7 +233,9 @@ public:
 
 	/** Gets the platform file wrapped by this file. */
 	virtual IPlatformFile* GetLowerLevel() = 0;
-		/** Gets this platform file type name. */
+	/** Sets the platform file wrapped by this file. */
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) = 0;
+	/** Gets this platform file type name. */
 	virtual const TCHAR* GetName() const = 0;
 	/** Return true if the file exists. **/
 	virtual bool		FileExists(const TCHAR* Filename) = 0;
@@ -333,14 +327,12 @@ public:
 	/////////// Generally, these do not need to be implemented per platform.
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if USE_NEW_ASYNC_IO
 	/** Open a file for async reading. This call does not hit the disk or block.
 	*
 	* @param Filename file to be opened
 	* @return Close the file by delete'ing the handle. A non-null return value does not mean the file exists, since that may not be determined yet.
 	*/
 	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename);
-#endif // USE_NEW_ASYNC_IO
 
 	virtual void GetTimeStampPair(const TCHAR* PathA, const TCHAR* PathB, FDateTime& OutTimeStampA, FDateTime& OutTimeStampB);
 
@@ -450,6 +442,10 @@ public:
 	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return nullptr;
+	}
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) override
+	{
+		check(false); // can't override wrapped platform file for physical platform file
 	}
 	virtual const TCHAR* GetName() const override
 	{

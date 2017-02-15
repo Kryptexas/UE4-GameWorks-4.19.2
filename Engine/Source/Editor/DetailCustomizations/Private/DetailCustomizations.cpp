@@ -1,19 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "DetailCustomizations.h"
+#include "Modules/ModuleManager.h"
+#include "PropertyEditorModule.h"
 #include "StaticMeshComponentDetails.h"
 #include "LightComponentDetails.h"
 #include "PointLightComponentDetails.h"
 #include "DirectionalLightComponentDetails.h"
 #include "SceneComponentDetails.h"
+#include "BodyInstanceCustomization.h"
 #include "PrimitiveComponentDetails.h"
 #include "StaticMeshActorDetails.h"
 #include "SkinnedMeshComponentDetails.h"
 #include "SkeletalMeshComponentDetails.h"
 #include "SplineComponentDetails.h"
 #include "MeshComponentDetails.h"
-#include "WheeledVehicleMovementComponent4WDetails.h"
 #include "MatineeActorDetails.h"
 #include "ReflectionCaptureDetails.h"
 #include "SkyLightComponentDetails.h"
@@ -22,14 +23,11 @@
 #include "SkeletalControlNodeDetails.h"
 #include "AnimMontageSegmentDetails.h"
 #include "AnimSequenceDetails.h"
-#include "AnimStateNodeDetails.h"
 #include "AnimTransitionNodeDetails.h"
+#include "AnimStateNodeDetails.h"
 #include "PoseAssetDetails.h"
 #include "AnimationAssetDetails.h"
 #include "AmbientSoundDetails.h"
-#include "ModuleManager.h"
-#include "AnimGraphDefinitions.h"
-#include "SoundDefinitions.h"
 #include "MathStructCustomizations.h"
 #include "MathStructProxyCustomizations.h"
 #include "RangeStructCustomization.h"
@@ -43,16 +41,12 @@
 #include "DataTableCategoryCustomization.h"
 #include "CurveTableCustomization.h"
 #include "DialogueWaveDetails.h"
-#include "BodyInstanceCustomization.h"
-#include "VehicleTransmissionDataCustomization.h"
 #include "BodySetupDetails.h"
 #include "DestructibleMeshDetails.h"
-#include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
-#include "SlateBrushCustomization.h"
+#include "Customizations/SlateBrushCustomization.h"
 #include "SlateSoundCustomization.h"
-#include "SlateFontInfoCustomization.h"
+#include "Customizations/SlateFontInfoCustomization.h"
 #include "MarginCustomization.h"
-#include "SceneComponentDetails.h"
 #include "PhysicsConstraintComponentDetails.h"
 #include "GuidStructCustomization.h"
 #include "ParticleModuleDetails.h"
@@ -61,6 +55,7 @@
 #include "AIDataProviderValueDetails.h"
 #include "EnvQueryParamInstanceCustomization.h"
 #include "SkeletonNotifyDetails.h"
+#include "ColorStructCustomization.h"
 #include "SlateColorCustomization.h"
 #include "CurveStructCustomization.h"
 #include "NavLinkStructCustomization.h"
@@ -105,7 +100,13 @@
 #include "CaptureTypeCustomization.h"
 #include "RenderPassesCustomization.h"
 #include "MovieSceneCaptureCustomization.h"
+#include "MovieSceneEvalOptionsCustomization.h"
+#include "MovieSceneEventParametersCustomization.h"
+#include "MovieSceneSequencePlaybackSettingsCustomization.h"
+#include "MovieSceneCurveInterfaceKeyEditStructCustomization.h"
 #include "LevelSequenceBurnInOptionsCustomization.h"
+#include "MovieSceneBindingOverrideDataCustomization.h"
+#include "MovieSceneObjectBindingPtrCustomization.h"
 #include "TextCustomization.h"
 #include "AnimTrailNodeDetails.h"
 #include "MaterialProxySettingsCustomizations.h"
@@ -113,9 +114,9 @@
 #include "CameraFilmbackSettingsCustomization.h"
 #include "CameraLensSettingsCustomization.h"
 #include "CameraFocusSettingsCustomization.h"
-#include "ColorStructCustomization.h"
 #include "RotatorStructCustomization.h"
 #include "VectorStructCustomization.h"
+#include "Vector4StructCustomization.h"
 #include "AssetViewerSettingsCustomization.h"
 #include "MeshMergingSettingsCustomization.h"
 #include "MaterialAttributePropertyDetails.h"
@@ -171,7 +172,7 @@ void FDetailCustomizationsModule::RegisterPropertyTypeCustomizations()
 	RegisterCustomPropertyTypeLayout("DataTableCategoryHandle", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FDataTableCategoryCustomizationLayout::MakeInstance));
 	RegisterCustomPropertyTypeLayout("CurveTableRowHandle", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCurveTableCustomizationLayout::MakeInstance));
 	RegisterCustomPropertyTypeLayout(NAME_Vector, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FVectorStructCustomization::MakeInstance));
-	RegisterCustomPropertyTypeLayout(NAME_Vector4, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMathStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout(NAME_Vector4, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FVector4StructCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout(NAME_Vector2D, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMathStructCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout(NAME_IntPoint, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMathStructCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout(NAME_Rotator, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FRotatorStructCustomization::MakeInstance));
@@ -181,11 +182,11 @@ void FDetailCustomizationsModule::RegisterPropertyTypeCustomizations()
 	RegisterCustomPropertyTypeLayout(NAME_Transform, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTransformStructCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout(NAME_Quat, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FQuatStructCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("SlateColor", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateColorCustomization::MakeInstance));
-	RegisterCustomPropertyTypeLayout("AttenuationSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FAttenuationSettingsCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("ForceFeedbackAttenuationSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FForceFeedbackAttenuationSettingsCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("SoundAttenuationSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSoundAttenuationSettingsCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("DialogueContext", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FDialogueContextStructCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("DialogueWaveParameter", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FDialogueWaveParameterStructCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("BodyInstance", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FBodyInstanceCustomization::MakeInstance));
-	RegisterCustomPropertyTypeLayout("VehicleTransmissionData", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FVehicleTransmissionDataCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("SlateBrush", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateBrushStructCustomization::MakeInstance, true));
 	RegisterCustomPropertyTypeLayout("SlateSound", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateSoundStructCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("SlateFontInfo", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateFontInfoStructCustomization::MakeInstance));
@@ -233,6 +234,12 @@ void FDetailCustomizationsModule::RegisterPropertyTypeCustomizations()
 	RegisterCustomPropertyTypeLayout("CameraFilmbackSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCameraFilmbackSettingsCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("CameraLensSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCameraLensSettingsCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("CameraFocusSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCameraFocusSettingsCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("MovieSceneSequencePlaybackSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneSequencePlaybackSettingsCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("MovieSceneBindingOverrideData", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneBindingOverrideDataCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("MovieSceneObjectBindingPtr", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneObjectBindingPtrCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("MovieSceneTrackEvalOptions", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneTrackEvalOptionsCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("MovieSceneSectionEvalOptions", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneSectionEvalOptionsCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("MovieSceneEventParameters", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneEventParametersCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("LevelSequenceBurnInOptions", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FLevelSequenceBurnInOptionsCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("LevelSequenceBurnInInitSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FLevelSequenceBurnInInitSettingsCustomization::MakeInstance));
 }
@@ -251,7 +258,6 @@ void FDetailCustomizationsModule::RegisterObjectCustomizations()
 	RegisterCustomClassLayout("SkeletalMeshComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FSkeletalMeshComponentDetails::MakeInstance));
 	RegisterCustomClassLayout("SkinnedMeshComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FSkinnedMeshComponentDetails::MakeInstance));
 	RegisterCustomClassLayout("SplineComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FSplineComponentDetails::MakeInstance));
-	RegisterCustomClassLayout("WheeledVehicleMovementComponent4W", FOnGetDetailCustomizationInstance::CreateStatic(&FWheeledVehicleMovementComponent4WDetails::MakeInstance));
 	RegisterCustomClassLayout("LightComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FLightComponentDetails::MakeInstance));
 	RegisterCustomClassLayout("PointLightComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FPointLightComponentDetails::MakeInstance));
 	RegisterCustomClassLayout("DirectionalLightComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FDirectionalLightComponentDetails::MakeInstance));
@@ -327,6 +333,7 @@ void FDetailCustomizationsModule::RegisterObjectCustomizations()
 	RegisterCustomClassLayout("ConfigHierarchyPropertyView", FOnGetDetailCustomizationInstance::CreateStatic(&FConfigPropertyHelperDetails::MakeInstance));
 
 	RegisterCustomClassLayout("MovieSceneCapture", FOnGetDetailCustomizationInstance::CreateStatic(&FMovieSceneCaptureCustomization::MakeInstance));
+	RegisterCustomClassLayout("MovieSceneCurveInterfaceKeyEditStruct", FOnGetDetailCustomizationInstance::CreateStatic(&FMovieSceneCurveInterfaceKeyEditStructCustomization::MakeInstance));
 
 	RegisterCustomClassLayout("AnalyticsPrivacySettings", FOnGetDetailCustomizationInstance::CreateStatic(&FImportantToggleSettingCustomization::MakeInstance));
 	RegisterCustomClassLayout("EndUserSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FImportantToggleSettingCustomization::MakeInstance));

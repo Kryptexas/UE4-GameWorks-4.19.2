@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Attribute.h"
+#include "Layout/Margin.h"
+#include "Components/Widget.h"
+#include "Framework/Text/TextLayout.h"
 #include "TextWidgetTypes.generated.h"
+
+enum class ETextShapingMethod : uint8;
 
 /**
  * Common data for all widgets that use shaped text.

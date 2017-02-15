@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -39,6 +39,14 @@ namespace UnrealBuildTool
 		public static bool bUseAdaptiveUnityBuild;
 
 		/// <summary>
+		/// An experimental new feature that, when enabled, will disable optimization of files that are omitted from Unity so they they become
+		/// easier to debug.
+		/// IMPORTANT: This feature is not complete yet!  Currently, it requires source files to be read-only that you aren't actively working with!
+		/// </summary>
+		[XmlConfig]
+		public static bool bAdaptiveUnityDisablesOptimizations;
+
+		/// <summary>
 		/// The number of source files in a game module before unity build will be activated for that module.  This
 		/// allows small game modules to have faster iterative compile times for single files, at the expense of slower full
 		/// rebuild times.  This setting can be overridden by the bFasterWithoutUnity option in a module's Build.cs file.
@@ -51,6 +59,12 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static bool bShadowVariableErrors;
+
+		/// <summary>
+		/// Forces the use of undefined identifiers in conditional expressions to be treated as errors on platforms that support it.
+		/// </summary>
+		[XmlConfig]
+		public static bool bUndefinedIdentifierErrors;
 
 		/// <summary>
 		/// New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
@@ -100,6 +114,12 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static bool bDisableDebugInfo;
+
+		/// <summary>
+		/// Whether to disable debug info generation for generated files. This improves link times for modules that have a lot of generated glue code.
+		/// </summary>
+		[XmlConfig]
+		public static bool bDisableDebugInfoForGeneratedCode;
 
 		/// <summary>
 		/// Whether to disable debug info on PC in development builds (for faster developer iteration, as link times are extremely fast with debug info disabled.)
@@ -237,6 +257,13 @@ namespace UnrealBuildTool
 		public static bool bAllowLTCG;
 
 		/// <summary>
+		/// Whether to allow the use of ASLR (address space layout randomization) if supported. Only
+		/// applies to shipping builds.
+		/// </summary>
+		[XmlConfig]
+		public static bool bAllowASLRInShipping;
+
+		/// <summary>
 		/// Whether to support edit and continue.  Only works on Microsoft compilers in 32-bit compiles.
 		/// </summary>
 		[XmlConfig]
@@ -277,6 +304,17 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static string PCHOutputDirectory;
+
+		/// <summary>
+		/// Whether we should export a JSON file containing detailed target information.
+		/// </summary>
+		[XmlConfig]
+		public static string JsonExportFile;
+
+		/// <summary>
+		/// Skip building; just do setup and terminate.
+		/// </summary>
+		public static bool bSkipBuild;
 
 		/// <summary>
 		/// Relative root engine path.
@@ -562,11 +600,23 @@ namespace UnrealBuildTool
 		public static bool bCreateMapFile;
 
 		/// <summary>
+		/// Whether to skip checking for files identified by the junk manifest
+		/// </summary>
+		[XmlConfig]
+		public static bool bIgnoreJunk;
+
+		/// <summary>
+		/// Bundle version for Mac apps
+		/// </summary>
+		public static string BundleVersion;
+
+		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
 		public static void LoadDefaults()
 		{
 			bAllowLTCG = false;
+			bAllowASLRInShipping = true;
 			bAllowRemotelyCompiledPCHs = false;
 			bAllowXGE = true;
 			bXGENoWatchdogThread = false;
@@ -580,6 +630,7 @@ namespace UnrealBuildTool
 			bCreateStubIPA = true;
 			bDeployAfterCompile = false;
 			bDisableDebugInfo = false;
+			bDisableDebugInfoForGeneratedCode = true;
 			bEnableCodeAnalysis = false;
 			bFlushBuildDirOnRemoteMac = false;
 			bGeneratedSYMFile = true;
@@ -626,6 +677,11 @@ namespace UnrealBuildTool
 			// This experimental feature may help to improve iterative compile times when working on code, but is
 			// disabled by default until we test it sufficiently
 			bUseAdaptiveUnityBuild = true;
+
+            // This experimental feature may help to improve debugging when working on optimized builds. If a file is omitted from
+            // unity compilation due to being checked-out / editable, an assumption is made that you are working on this file
+            // and may be debugging it. Disabled by default until we test it sufficiently
+            bAdaptiveUnityDisablesOptimizations = false;
 
 			bForceUnityBuild = false;
 
@@ -735,6 +791,12 @@ namespace UnrealBuildTool
 
 			// Don't create a map file by default
 			bCreateMapFile = false;
+
+			// Always check the junk manifest by default
+			bIgnoreJunk = false;
+
+			// No manually overriden bundle version
+			BundleVersion = null;
 
 			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
@@ -890,14 +952,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		public static void PostReset()
 		{
-			// Analyzing UCA is disabled for debugging convenience.
-			if (UnrealBuildTool.CommandLineContains(@"UnrealCodeAnalyzer")
-				// UHT is necessary to generate code for proper compilation.
-				|| UnrealBuildTool.CommandLineContains(@"UnrealHeaderTool"))
-			{
-				BuildConfiguration.bRunUnrealCodeAnalyzer = false;
-			}
-
 			// Couple flags have to be set properly when running UCA.
 			if (BuildConfiguration.bRunUnrealCodeAnalyzer)
 			{

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __KismetDebugUtilities_h__
@@ -6,8 +6,14 @@
 
 #pragma once
 
-#include "Engine.h"
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Engine/Selection.h"
+
+class UBlueprint;
+class UBreakpoint;
+template<typename ElementType> class TSimpleRingBuffer;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogBlueprintDebug, Log, All);
 

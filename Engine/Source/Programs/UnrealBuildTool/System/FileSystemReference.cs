@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -779,6 +779,15 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Manually serialize a file reference to a binary stream.
+		/// </summary>
+		/// <param name="Writer">Binary writer to write to</param>
+		public static void Write(this BinaryWriter Writer, DirectoryReference Directory)
+		{
+			Writer.Write((Directory == null) ? String.Empty : Directory.FullName);
+		}
+
+		/// <summary>
 		/// Serializes a file reference, using a lookup table to avoid serializing the same name more than once.
 		/// </summary>
 		/// <param name="Writer">The writer to save this reference to</param>
@@ -813,6 +822,18 @@ namespace UnrealBuildTool
 			string FullName = Reader.ReadString();
 			return (FullName.Length == 0) ? null : FileReference.MakeFromNormalizedFullPath(FullName);
 		}
+
+		/// <summary>
+		/// Manually deserialize a directory reference from a binary stream.
+		/// </summary>
+		/// <param name="Reader">Binary reader to read from</param>
+		/// <returns>New DirectoryReference object</returns>
+		public static DirectoryReference ReadDirectoryReference(this BinaryReader Reader)
+		{
+			string FullName = Reader.ReadString();
+			return (FullName.Length == 0) ? null : DirectoryReference.MakeFromNormalizedFullPath(FullName);
+		}
+
 
 		/// <summary>
 		/// Deserializes a file reference, using a lookup table to avoid writing the same name more than once.

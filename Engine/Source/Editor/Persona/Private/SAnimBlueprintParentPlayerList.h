@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Persona.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "BlueprintEditor.h"
 #include "IDetailsView.h"
 #include "EditorObjectsTracker.h"
+
+class UAnimationAsset;
+class UAnimBlueprint;
 
 class SAnimBlueprintParentPlayerList : public SCompoundWidget
 {

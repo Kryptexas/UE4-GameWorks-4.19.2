@@ -1,20 +1,43 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "EdGraph/EdGraphNode.h"
+#include "UObject/BlueprintsObjectVersion.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Textures/SlateIcon.h"
 #include "EdGraph/EdGraph.h"
-#include "BlueprintsObjectVersion.h"
-#include "BlueprintUtilities.h"
 #if WITH_EDITOR
-#include "Editor/UnrealEd/Public/CookerSettings.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "SlateBasics.h"
+#include "CookerSettings.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/PropertyPortFlags.h"
 #include "ScopedTransaction.h"
-#include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
-#include "Editor/Kismet/Public/FindInBlueprintManager.h"
-#include "EditorStyle.h"
+#include "FindInBlueprintManager.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "EdGraph"
+
+FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& T)
+{
+	Ar << T.TerminalCategory;
+	Ar << T.TerminalSubCategory;
+
+	// See: FArchive& operator<<( FArchive& Ar, FWeakObjectPtr& WeakObjectPtr )
+	// The PinSubCategoryObject should be serialized into the package.
+	if (!Ar.IsObjectReferenceCollector() || Ar.IsModifyingWeakAndStrongReferences() || Ar.IsPersistent())
+	{
+		UObject* Object = T.TerminalSubCategoryObject.Get(true);
+		Ar << Object;
+		if (Ar.IsLoading() || Ar.IsModifyingWeakAndStrongReferences())
+		{
+			T.TerminalSubCategoryObject = Object;
+		}
+	}
+
+	Ar << T.bTerminalIsConst;
+	Ar << T.bTerminalIsWeakPointer;
+
+	return Ar;
+}
 
 FName const FNodeMetadata::DefaultGraphNode(TEXT("DefaultGraphNode"));
 
@@ -80,9 +103,9 @@ UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FEdGraphPin
 	return NewPin;
 }
 
-UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst /*= false*/, int32 Index /*= INDEX_NONE*/)
+UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst /*= false*/, int32 Index /*= INDEX_NONE*/, bool bIsSet /*= false*/, bool bIsMap /*= false*/, const FEdGraphTerminalType& ValueTerminalType /*= FEdGraphTerminalType()*/)
 {
-	FEdGraphPinType PinType(PinCategory, PinSubCategory, PinSubCategoryObject, bIsArray, bIsReference);
+	FEdGraphPinType PinType(PinCategory, PinSubCategory, PinSubCategoryObject, bIsArray, bIsReference, bIsSet, bIsMap, ValueTerminalType);
 	PinType.bIsConst = bIsConst;
 
 	return CreatePin(Dir, PinType, PinName, Index);
@@ -507,6 +530,23 @@ FText UEdGraphNode::GetPinDisplayName(const UEdGraphPin* Pin) const
 int32 UEdGraphNode::GetPinIndex(UEdGraphPin* Pin) const
 {
 	return Pins.Find(Pin);
+}
+
+bool UEdGraphNode::ShouldDrawNodeAsControlPointOnly(int32& OutInputPinIndex, int32& OutOutputPinIndex) const
+{
+	OutInputPinIndex = -1;
+	OutOutputPinIndex = -1; 
+	return false;
+}
+
+
+UEdGraphPin* UEdGraphNode::GetPinAt(int32 index) const
+{
+	if (Pins.Num() > index)
+	{
+		return Pins[index];
+	}
+	return nullptr;
 }
 
 void UEdGraphNode::AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const

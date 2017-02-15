@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintComponentNodeSpawner.h"
+#include "Engine/Blueprint.h"
+#include "GameFramework/Actor.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "EdGraphSchema_K2.h"
 #include "K2Node_AddComponent.h"
-#include "SlateIconFinder.h" // for FindIconForClass()
-#include "BlueprintNodeTemplateCache.h" // for IsTemplateOuter()
-#include "ComponentAssetBroker.h" // for GetComponentsForAsset()/AssignAssetToComponent()
-#include "BlueprintActionFilter.h"	// for FBlueprintActionContext
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Styling/SlateIconFinder.h"
+#include "BlueprintNodeTemplateCache.h"
+#include "ComponentAssetBroker.h"
 #include "ComponentTypeRegistry.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintComponenetNodeSpawner"
@@ -133,7 +136,8 @@ FBlueprintNodeSignature UBlueprintComponentNodeSpawner::GetSpawnerSignature() co
 // and FEdGraphSchemaAction_K2AddComponent::PerformAction().
 UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
-	auto PostSpawnLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FCustomizeNodeDelegate UserDelegate)
+	UClass* ComponentType = ComponentClass;
+	auto PostSpawnLambda = [ComponentType](UEdGraphNode* NewNode, bool bIsTemplateNode, FCustomizeNodeDelegate UserDelegate)
 	{		
 		UK2Node_AddComponent* AddCompNode = CastChecked<UK2Node_AddComponent>(NewNode);
 		UBlueprint* Blueprint = AddCompNode->GetBlueprint();
@@ -141,10 +145,12 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBin
 		UFunction* AddComponentFunc = FindFieldChecked<UFunction>(AActor::StaticClass(), UK2Node_AddComponent::GetAddComponentFunctionName());
 		AddCompNode->FunctionReference.SetFromField<UFunction>(AddComponentFunc, !bIsTemplateNode && FBlueprintEditorUtils::IsActorBased(Blueprint));
 
+		AddCompNode->TemplateType = ComponentType;
+
 		UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
 	};
 
-	FCustomizeNodeDelegate PostSpawnDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnLambda, CustomizeNodeDelegate);
+	FCustomizeNodeDelegate PostSpawnDelegate = FCustomizeNodeDelegate::CreateLambda(PostSpawnLambda, CustomizeNodeDelegate);
 	// let SpawnNode() allocate default pins (so we can modify them)
 	UK2Node_AddComponent* NewNode = Super::SpawnNode<UK2Node_AddComponent>(NodeClass, ParentGraph, FBindingSet(), Location, PostSpawnDelegate);
 	if (NewNode->Pins.Num() == 0)
@@ -158,7 +164,7 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBin
 	{
 		if (ComponentClass != nullptr)
 		{
-			ReturnPin->PinType.PinSubCategoryObject = *ComponentClass;
+			ReturnPin->PinType.PinSubCategoryObject = ComponentType;
 		}
 		else
 		{

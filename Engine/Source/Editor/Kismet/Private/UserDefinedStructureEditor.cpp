@@ -1,17 +1,34 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
 #include "UserDefinedStructureEditor.h"
-#include "BlueprintEditorUtils.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Misc/CoreMisc.h"
+#include "UObject/UnrealType.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/StructOnScope.h"
+#include "Misc/NotifyHook.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "EditorStyleSet.h"
+#include "UserDefinedStructure/UserDefinedStructEditorData.h"
+#include "Engine/UserDefinedStruct.h"
+#include "EdGraphSchema_K2.h"
+#include "IDetailCustomization.h"
 #include "PropertyEditorModule.h"
-#include "IStructureDetailsView.h"
+#include "IDetailCustomNodeBuilder.h"
+#include "IDetailChildrenBuilder.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Widgets/Layout/SSplitter.h"
 
 #include "PropertyCustomizationHelpers.h"
-#include "Editor/KismetWidgets/Public/SPinTypeSelector.h"
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
-#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
-#include "SDockTab.h"
-#include "Engine/UserDefinedStruct.h"
+#include "SPinTypeSelector.h"
+#include "Kismet2/StructureEditorUtils.h"
+#include "Widgets/Docking/SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "StructureEditor"
 
@@ -418,7 +435,7 @@ class FUserDefinedStructureLayout : public IDetailCustomNodeBuilder, public TSha
 public:
 	FUserDefinedStructureLayout(TWeakPtr<class FUserDefinedStructureDetails> InStructureDetails)
 		: StructureDetails(InStructureDetails)
-		, InitialPinType(GetDefault<UEdGraphSchema_K2>()->PC_Boolean, TEXT(""), NULL, false, false)
+		, InitialPinType(GetDefault<UEdGraphSchema_K2>()->PC_Boolean, TEXT(""), NULL, false, false, false, false, FEdGraphTerminalType())
 	{}
 
 	void OnChanged()

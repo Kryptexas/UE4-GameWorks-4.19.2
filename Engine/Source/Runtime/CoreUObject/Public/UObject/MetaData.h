@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "WorldCompositionUtility.h"
-#include "GatherableTextData.h"
-#include "PropertyLocalizationDataGathering.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/WeakObjectPtr.h"
 
 /*-----------------------------------------------------------------------------
 	UMetaData.
@@ -127,10 +127,10 @@ public:
 	virtual bool IsAsset() const override { return false; }
 	// End of UObject interface
 
-#if HACK_HEADER_GENERATOR
 	// Returns the remapped key name, or NAME_None was not remapped.
 	static FName GetRemappedKeyName(FName OldKey);
 
+#if HACK_HEADER_GENERATOR
 	// Required by UHT makefiles for internal data serialization.
 	friend struct FMetadataArchiveProxy;
 #endif

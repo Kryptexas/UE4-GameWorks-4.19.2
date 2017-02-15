@@ -1,7 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "Math/IntPoint.h"
+#include "Math/Vector2D.h"
+
+struct Rect;
 
 /**
  * Structure for integer rectangles in 2-d space.

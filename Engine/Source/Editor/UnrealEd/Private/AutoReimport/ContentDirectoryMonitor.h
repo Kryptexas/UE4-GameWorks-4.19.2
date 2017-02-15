@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AutoReimportUtilities.h"
+#include "CoreMinimal.h"
+#include "AssetData.h"
 #include "FileCache.h"
-#include "MessageLog.h"
 
 class FReimportFeedbackContext;
+class IAssetRegistry;
+class UFactory;
 
 /** Class responsible for watching a specific content directory for changes */
 class FContentDirectoryMonitor

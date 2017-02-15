@@ -1,10 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 DebugViewModeMaterialProxy.h : Contains definitions the debug view mode material shaders.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "DebugViewModeHelpers.h"
+
+class FMaterialCompiler;
+class UTexture;
 
 #if WITH_EDITORONLY_DATA
 
@@ -14,22 +24,24 @@ DebugViewModeMaterialProxy.h : Contains definitions the debug view mode material
 class FDebugViewModeMaterialProxy : public FMaterial, public FMaterialRenderProxy
 {
 public:
+
 	FDebugViewModeMaterialProxy()
 		: FMaterial()
 		, MaterialInterface(nullptr)
 		, Material(nullptr)
 		, Usage(EMaterialShaderMapUsage::Default)
 		, bValid(true)
+		, bSynchronousCompilation(true)
 	{
 		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GMaxRHIFeatureLevel);
 	}
 
+	FDebugViewModeMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, bool bSynchronousCompilation, EMaterialShaderMapUsage::Type InUsage);
+
 	void MarkAsInvalid() { bValid = false; }
 	bool IsValid() const { return bValid; }
-
-	FDebugViewModeMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage);
-
-	virtual bool RequiresSynchronousCompilation() const override { return false; };
+	
+	virtual bool RequiresSynchronousCompilation() const override;
 
 	/**
 	* Should shaders compiled for this material be saved to disk?
@@ -44,7 +56,9 @@ public:
 
 	virtual bool ShouldCache(EShaderPlatform Platform, const FShaderType* ShaderType, const FVertexFactoryType* VertexFactoryType) const override
 	{
-		return FString(ShaderType->GetName()).Contains(TEXT("FMaterialTexCoordScalePS"));
+		const FString ShaderTypeName = ShaderType->GetName();
+		return (ShaderTypeName.Contains(TEXT("FMaterialTexCoordScalePS")) && Usage == EMaterialShaderMapUsage::DebugViewModeTexCoordScale) || 
+			(ShaderTypeName.Contains(TEXT("FRequiredTextureResolutionPS")) && Usage == EMaterialShaderMapUsage::DebugViewModeRequiredTextureResolution);
 	}
 
 	virtual const TArray<UTexture*>& GetReferencedTextures() const override
@@ -73,7 +87,7 @@ public:
 
 	virtual FString GetFriendlyName() const override { return FString::Printf(TEXT("FDebugViewModeMaterialProxy %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
 
-	const UMaterialInterface* GetMaterialInterface() const
+	virtual UMaterialInterface* GetMaterialInterface() const override
 	{
 		return MaterialInterface;
 	}
@@ -107,11 +121,11 @@ public:
 
 	////////////////
 
-	static void AddShader(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage);
-	static const FMaterial* GetShader(EDebugViewShaderMode DebugViewShaderMode, const FMaterial* Material);
+	static void AddShader(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, bool bSynchronousCompilation, EMaterialShaderMapUsage::Type InUsage);
+	static const FMaterial* GetShader(const FMaterial* Material, EMaterialShaderMapUsage::Type Usage);
 	static void ClearAllShaders();
 	static bool HasAnyShaders() { return DebugMaterialShaderMap.Num() > 0; }
-	static void ValidateAllShaders(OUT FTexCoordScaleMap& TexCoordScales);
+	static void ValidateAllShaders(TSet<UMaterialInterface*>& Materials);
 
 private:
 
@@ -123,9 +137,28 @@ private:
 
 	/** Whether this debug material should be used or not. */
 	bool bValid;
+	bool bSynchronousCompilation;
+
+	struct FMaterialUsagePair
+	{
+		FMaterialUsagePair(const FMaterial* InMaterial, EMaterialShaderMapUsage::Type InUsage) : Material(InMaterial), Usage(InUsage) {}
+		const FMaterial* Material;
+		EMaterialShaderMapUsage::Type Usage;
+
+		friend bool operator==(const FMaterialUsagePair& Lhs, const FMaterialUsagePair& Rhs)
+		{
+			return Lhs.Material == Rhs.Material && Lhs.Usage == Rhs.Usage;
+		}
+
+		friend uint32 GetTypeHash( const FMaterialUsagePair& Pair )
+		{
+			return GetTypeHash(Pair.Material) ^ GetTypeHash(Pair.Usage);
+		}
+
+	};
 
 	static volatile bool bReentrantCall;
-	static TMap<const FMaterial*, FDebugViewModeMaterialProxy*> DebugMaterialShaderMap;
+	static TMap<FMaterialUsagePair, FDebugViewModeMaterialProxy*> DebugMaterialShaderMap;
 };
 
 #endif

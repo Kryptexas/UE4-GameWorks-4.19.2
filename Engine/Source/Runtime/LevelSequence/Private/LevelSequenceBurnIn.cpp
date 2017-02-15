@@ -1,6 +1,5 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LevelSequencePCH.h"
 #include "LevelSequenceBurnIn.h"
 
 ULevelSequenceBurnIn::ULevelSequenceBurnIn( const FObjectInitializer& ObjectInitializer )
@@ -18,7 +17,7 @@ void ULevelSequenceBurnIn::TakeSnapshotsFrom(ALevelSequenceActor& InActor)
 	}
 }
 
-void ULevelSequenceBurnIn::OnSequenceUpdated(const ULevelSequencePlayer& Player, float CurrentTime, float PreviousTime)
+void ULevelSequenceBurnIn::OnSequenceUpdated(const UMovieSceneSequencePlayer& Player, float CurrentTime, float PreviousTime)
 {
-	Player.TakeFrameSnapshot(FrameInformation);
+	static_cast<const ULevelSequencePlayer&>(Player).TakeFrameSnapshot(FrameInformation);
 }

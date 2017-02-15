@@ -2,7 +2,7 @@ Availability: Public
 Title:Creating and Using Custom Heightmaps and Layers
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:Creating and using custom Heightmaps and layers for your landscapes.
-version: 4.9
+version: 4.14
 parent:Engine/Landscape/Creation
 
 
@@ -18,15 +18,29 @@ If this is your first time using the Landscape tools, you might want to check ou
 ## Layers
 
 Landscape Layers are special textures that help to break up the look and feel of the Landscape. 
-<!--Each Landscape Layer can be thought of 
--->
-### Layer Format
-To get Landscape layers that where created in external programs to import correctly, the images need to meet the following requirements. 
-* Grayscale, 8-bit per pixel, single channel file.
-* In either .PNG or .RAW file format. 
 
-If you are creating your layers inside of Photoshop you should use the following settings when creating a new document. 
-![](Photoshop_Layer_Example.png)
+### Layer Formats
+* Landscape layers can be imported from external programs via implementation of the `ILandscapeHeightmapFileFormat` and `ILandscapeWeightmapFileFormat` interfaces. The editor's existing support for image-based importing has been converted to use this interface and is still fully supported. Images for the built-in formats are still required to be grayscale, 8 bits per pixel, single channel files in either .PNG or .RAW format. If you are creating layers in Photoshop, you should use the following settings when creating a new document:
+
+	![](Photoshop_Layer_Example.png)
+
+* In order to create new importers, your plugin should create instances of objects implementing `ILandscapeHeightmapFileFormat` and `ILandscapeWeightmapFileFormat`, and register those objects with `ILandscapeEditorModulemodule::RegisterHeightmapFileFormat` and `ILandscapeEditorModulemodule::RegisterWeightmapFileFormat`, respectively.
+
+* Implementing the `ILandscapeHeightmapFileFormat` interface in a plugin requires overriding the following functions:
+1. **const FLandscapeFileTypeInfo& GetInfo() const**: Returns type information indicating which file types this class handles, and whether or not exporting is supported.
+1. **FLandscapeHeightmapInfo Validate(const TCHAR* HeightmapFilename) const** - Validates the named file, or rejects it and returns an error code and message.
+1. **FLandscapeHeightmapImportData Import(const TCHAR* HeightmapFilename, FLandscapeFileResolution ExpectedResolution) const** - Actually imports the file.
+1. **void Export(const TCHAR* HeightmapFilename, TArrayView<const uint16> Data, FLandscapeFileResolution DataResolution, FVector Scale) const** - Exports the file, if this format supports exporting (see the return value from `GetInfo`). This is the only function that doesn't need to be overridden in order to compile. However, if it is called without being overridden, it will call `check`.
+1. **(Destructor)** - Classes that implement this interface should use a virtual destructor, as they will be deleted via a pointer to the interface class.
+
+* Implementing the `ILandscapeHeightmapFileFormat` interface is nearly identical, with only minor differences in some return types:
+1. **const FLandscapeFileTypeInfo& GetInfo() const** - Returns type information indicating which file types this class handles, and whether or not exporting is supported.
+1. **FLandscapeWeightmapInfo Validate(const TCHAR* WeightmapFilename) const** - Validates the named file, or rejects it and returns an error code and message.
+1. **FLandscapeWeightmapImportData Import(const TCHAR* WeightmapFilename, FLandscapeFileResolution ExpectedResolution) const** - Actually imports the file.
+1. **void Export(const TCHAR* WeightmapFilename, TArrayView<const uint16> Data, FLandscapeFileResolution DataResolution, FVector Scale) const** - Exports the file, if this format supports exporting (see the return value from `GetInfo`). This is the only function that doesn't need to be overridden in order to compile. However, if it is called without being overridden, it will call `check`.
+1. **(Destructor)** - Classes that implement this interface should use a virtual destructor, as they will be deleted via a pointer to the interface class.
+
+* For further information and examples, you can see the interfaces in `LandscapeFileFormatInterfaces.h`, the .PNG implementations in `LandscapeFileFormatPng.cpp1` and `LandscapeFileFormatPng.h` , and the .RAW implementations in `LandscapeFileFormatRaw.cpp` and `LandscapeFileFormatRaw.h`. All of this code is in the LandscapeEditor module in the engine.
 
 <!--
 ### Landscape Size vs. Layer Size

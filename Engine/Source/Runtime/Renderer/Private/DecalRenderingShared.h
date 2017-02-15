@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DecalRenderingShared.h
@@ -6,7 +6,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
 #include "DecalRenderingCommon.h"
+
+class FDeferredDecalProxy;
+class FScene;
+class FViewInfo;
 
 /**
  * Compact decal data for rendering

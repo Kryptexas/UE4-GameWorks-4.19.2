@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "MaterialExpressionIO.h"
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionNoise.generated.h"
 
@@ -51,7 +55,7 @@ enum ENoiseFunction
 	NOISEFUNCTION_MAX,
 };
 
-UCLASS()
+UCLASS(MinimalAPI)
 class UMaterialExpressionNoise : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

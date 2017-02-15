@@ -2,7 +2,7 @@
 Title: Transition Rules
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
 Description:Guide to rules that govern State Machine Transitions
-version: 4.9
+version: 4.14
 Related: Engine/Animation/StateMachines
 Related: Engine/Animation/AnimBlueprints
 Related: Engine/Blueprints/GettingStarted
@@ -41,7 +41,7 @@ This means that a rule can be set to exit one state to move to another and a rul
 
 ![](EditRule.png)(w:840)
 
-Similar to **Blueprints**, you can specify variables in the **My Blueprint** window and drag them into the graph. By connecting the variables to various conditions which are then connected to the **Result** node, you can define what must be _true_ in order for the transition to occur. 
+Similar to **Blueprints**, you can specify variables in the **My Blueprint** window and drag them into the graph. By connecting the variables to various conditions which are then connected to the **Result** node, you can define what must be _true_ (or _false_) in order for the transition to occur. 
 
 [REGION:note]
 For information on getting started with Blueprints, refer to the [Introduction to Blueprints](Engine/Blueprints/GettingStarted) documentation. 
@@ -58,24 +58,24 @@ When **Left-clicking** on the Transition Rule, the **Details** panel will update
 | **Transition Priority Order** | The priority order of the transition. If multiple transitions out of a state are _true_ at the same time, the one with the lowest number for priority order will take precedent. |
 | **Bidirectional** | Determines if the transition can go both directions. |
 | **Blend Logic** | Specifies what transition logic to use: Standard Blend or [Custom Blend](#customblendnodes). Selecting Custom will enable you to enter the Blend Graph to set a custom Blend Transition. |
-| **Transition Rule Sharing** | This option allows you to set whether or not the rule can be shared with other transitions or to use rule from another transition.  |
+| **Transition Rule Sharing** | This option allows you to set whether or not the rule can be shared with other transitions or to use the rule from another transition.  |
+| **Automatic Rule Based on Sequence Player in State** | This will try to set the rule automatically based on most relevant player node's remaining time and the Crossfade Duration of the transition, ignoring the internal time. |
 | **Transition Interrupt** | Set the Trigger Weight Threshold and specify a Notify State Class.  |
 | **Transition Crossfade Sharing** | Use an existing Transition Crossfade Blend or promote the existing Transition Crossfade to shared.  |
 | **Duration** | The duration to apply to the cross-fade. |
 | **Mode** | The type of blending applied to the cross-fade. See [](Engine\Animation\NonLinearBlends) for more information. |
+| **Custom Blend Curve** | Takes in a user specified blend curve and applies it during the blend. |
+| **Blend Profile** | The blend profile used to evaluate this transition per-bone.  |
 | **Start Transition Event / Custom Blueprint Event** | Call and execute an Event from within the notified Blueprint at the start of the transition. |
-| **Blueprint Notify** | Blueprint that is notified when the transition starts.  |
 | **End Transition Event / Custom Blueprint Event** | Call and execute an Event from within the notified Blueprint at the end of the transition. |
-| **Blueprint Notify** | Blueprint that is notified when the transition ends.  |
 | **Interrupt Transition Event / Custom Blueprint Event** | Call and execute an Event from within the notified Blueprint when the transition is interrupted. |
-| **Blueprint Notify** | Blueprint that is notified when the transition is interrupted. |
 
 
 ## Additional Considerations
 
-When working with child [Animation Blueprints](Engine/Animation/AnimBlueprints) and overriding animations in a State Machine, animations referenced by transition rules do not have to be the same length in every child Animation Blueprint. When using nodes like the **Time Remaining** node (which can be used to determine how much time is remaining in an animation and can be used as part of a Transition Rule), these type of nodes correctly respond to changes in animation length when animations are overridden in child Animation Blueprints. 
+When working with child [Animation Blueprints](Engine/Animation/AnimBlueprints) and overriding animations in a State Machine, animations referenced by transition rules do not have to be the same length in every child Animation Blueprint. When using nodes like the **Time Remaining** node (which can be used to determine how much time is remaining in an animation and can be used as part of a Transition Rule), these type of nodes correctly responds to changes in animation length when animations are overridden in child Animation Blueprints. 
 
-Also, rather than targeting a specific animation as part of your Transition Rule that might change or may be overridden, you can use several class based get nodes that always pick the highest weighted animation from the source state (pictured below).
+Also, rather than targeting a specific animation as part of your Transition Rule that might change or may be overridden, you can use several class-based get nodes that always pick the highest weighted animation from the source state (pictured below).
 
 ![](GetRelevantNodes.png)
 
@@ -103,8 +103,9 @@ In addition to the nodes cited above, there is also information exposed inside C
 You can also use get nodes that reference the asset players, just like a Transition Rule. 
 
 [REGION:note]
-If you have an understanding of Animation Programming in Unreal, [**Native Getters**](Programming/Animation/AnimNodes) can also be used to improve performance.
+If you have an understanding of Animation Programming in Unreal, [Native Getters](Programming/Animation/AnimNodes) can also be used to improve performance.
 [/REGION]
+
 
 
 

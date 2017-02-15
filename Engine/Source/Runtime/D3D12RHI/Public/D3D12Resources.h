@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Resources.h: D3D resource RHI definitions.
@@ -15,7 +15,7 @@ class FD3D12StateCacheBase;
 class FD3D12CommandListManager;
 class FD3D12CommandContext;
 class FD3D12CommandListHandle;
-struct FD2D12GraphicsPipelineState;
+struct FD3D12GraphicsPipelineState;
 typedef FD3D12StateCacheBase FD3D12StateCache;
 
 class FD3D12PendingResourceBarrier
@@ -102,6 +102,7 @@ private:
 	D3D12_RESOURCE_STATES WritableState;
 	bool bRequiresResourceStateTracking;
 	bool bDepthStencil;
+	bool bDeferDelete;
 	D3D12_HEAP_TYPE HeapType;
 	D3D12_GPU_VIRTUAL_ADDRESS GPUVirtualAddress;
 	void* ResourceBaseAddress;
@@ -172,7 +173,13 @@ public:
 	{
 		return DebugName;
 	}
+	
+	void DoNotDeferDelete()
+	{
+		bDeferDelete = false;
+	}
 
+	inline bool ShouldDeferDelete() const { return bDeferDelete; }
 	inline bool IsPlacedResource() const { return Heap.GetReference() != nullptr; }
 	inline bool IsDepthStencilResource() const { return bDepthStencil; }
 
@@ -206,7 +213,7 @@ public:
 			}
 			else if (bBuffer && !bUAV)
 			{
-				(bReadBackResource) ? D3D12_RESOURCE_STATE_COPY_DEST : D3D12_RESOURCE_STATE_GENERIC_READ;
+				return (bReadBackResource) ? D3D12_RESOURCE_STATE_COPY_DEST : D3D12_RESOURCE_STATE_GENERIC_READ;
 			}
 			else if (bWritable) // This things require tracking anyway
 			{
@@ -278,7 +285,7 @@ private:
 				// Buffer used for input, like Vertex/Index buffer.
 				// Don't bother tracking state for this resource.
 #if UE_BUILD_DEBUG
-				FPlatformAtomics::_InterlockedIncrement(&NoStateTrackingResourceCount);
+				FPlatformAtomics::InterlockedIncrement(&NoStateTrackingResourceCount);
 #endif
 				DefaultResourceState = (HeapType == D3D12_HEAP_TYPE_READBACK) ? D3D12_RESOURCE_STATE_COPY_DEST : D3D12_RESOURCE_STATE_GENERIC_READ;
 				bRequiresResourceStateTracking = false;
@@ -292,7 +299,7 @@ private:
 				// Texture used only as a SRV.
 				// Don't bother tracking state for this resource.
 #if UE_BUILD_DEBUG
-				FPlatformAtomics::_InterlockedIncrement(&NoStateTrackingResourceCount);
+				FPlatformAtomics::InterlockedIncrement(&NoStateTrackingResourceCount);
 #endif
 				DefaultResourceState = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 				bRequiresResourceStateTracking = false;
@@ -720,7 +727,7 @@ public:
 	// Clears the batch.
 	void Reset()
 	{
-		Barriers.SetNumUnsafeInternal(0);	// Reset the array without shrinking (Does not destruct items, does not de-allocate memory).
+		Barriers.SetNumUnsafeInternal(0);	// Reset the array without shrinking (Does not destruct items, does not de-allocate memory).
 		check(Barriers.Num() == 0);
 	}
 
@@ -807,5 +814,5 @@ struct TD3D12ResourceTraits<FRHIComputeFence>
 template<>
 struct TD3D12ResourceTraits<FRHIGraphicsPipelineState>
 {
-	typedef FD2D12GraphicsPipelineState TConcreteType;
+	typedef FD3D12GraphicsPipelineState TConcreteType;
 };

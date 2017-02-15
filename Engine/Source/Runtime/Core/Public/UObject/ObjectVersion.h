@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
 
 // Prevents incorrect files from being loaded.
 
@@ -612,7 +613,11 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_PRELOAD_DEPENDENCIES_IN_COOKED_EXPORTS,
 	// Cooked files contain the TemplateIndex used by the event driven loader (the serialization is largely independent of the use of the new loader, i.e. this will be null if cooking for the old loader)
 	VER_UE4_TemplateIndex_IN_COOKED_EXPORTS,
-	
+	// FPropertyTag includes contained type(s) for Set and Map properties:
+	VER_UE4_PROPERTY_TAG_SET_MAP_SUPPORT,
+	// Added SearchableNames to the package summary and asset registry
+	VER_UE4_ADDED_SEARCHABLE_NAMES,
+
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

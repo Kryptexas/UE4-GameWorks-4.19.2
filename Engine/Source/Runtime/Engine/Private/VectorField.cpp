@@ -1,25 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	VectorField.cpp: Implementation of vector fields.
 ==============================================================================*/
 
-#include "EnginePrivate.h"
 #include "VectorField.h"
-#include "VectorFieldVisualization.h"
-#include "RenderResource.h"
+#include "PrimitiveViewRelevance.h"
+#include "RenderingThread.h"
 #include "UniformBuffer.h"
 #include "ShaderParameters.h"
-#include "ShaderParameterUtils.h"
 #include "RHIStaticStates.h"
+#include "PrimitiveSceneProxy.h"
+#include "Containers/ResourceArray.h"
+#include "Shader.h"
+#include "SceneUtils.h"
+#include "SceneManagement.h"
+#include "Engine/CollisionProfile.h"
+#include "ComponentReregisterContext.h"
+#include "VectorFieldVisualization.h"
+#include "ShaderParameterUtils.h"
 #include "GlobalShader.h"
 #include "FXSystem.h"
 #include "VectorField/VectorField.h"
 #include "VectorField/VectorFieldAnimated.h"
 #include "VectorField/VectorFieldStatic.h"
-#include "SceneUtils.h"
-#include "ComponentReregisterContext.h"
 #include "Components/VectorFieldComponent.h"
+#include "PrimitiveSceneProxy.h"
 
 #if WITH_EDITORONLY_DATA
 	#include "EditorFramework/AssetImportData.h"

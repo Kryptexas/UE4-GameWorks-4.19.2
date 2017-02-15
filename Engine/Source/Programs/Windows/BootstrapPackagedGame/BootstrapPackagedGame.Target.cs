@@ -1,13 +1,15 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
 
+[SupportedConfigurations(UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping)]
 public class BootstrapPackagedGameTarget : TargetRules
 {
 	public BootstrapPackagedGameTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Monolithic;
 
 		bUseStaticCRT = true;
 	}
@@ -25,19 +27,6 @@ public class BootstrapPackagedGameTarget : TargetRules
 		OutBuildBinaryConfigurations.Add(
 			new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.Executable, InModuleNames: new List<string>() { "BootstrapPackagedGame" })
 			);
-	}
-
-	public override bool GetSupportedConfigurations(ref List<UnrealTargetConfiguration> OutConfigurations, bool bIncludeTestAndShippingConfigs)
-	{
-		OutConfigurations.Add(UnrealTargetConfiguration.Debug);
-		OutConfigurations.Add(UnrealTargetConfiguration.Development);
-		OutConfigurations.Add(UnrealTargetConfiguration.Shipping);
-		return true;
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
 	}
 
 	public override void SetupGlobalEnvironment(

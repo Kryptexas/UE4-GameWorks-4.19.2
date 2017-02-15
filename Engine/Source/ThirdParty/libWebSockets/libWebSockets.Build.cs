@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 using System.IO;
 
@@ -36,7 +36,22 @@ public class libWebSockets : ModuleRules
 		{
 			PublicDependencyModuleNames.Add("OpenSSL");
 		}
-	}
+
+        else if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+			string platform = "/Linux/" + Target.Architecture;
+			string IncludePath = WebsocketPath + "/include" + platform;
+			string LibraryPath = WebsocketPath + "/lib" + platform;
+
+            PublicIncludePaths.Add(WebsocketPath + "include/");
+			PublicIncludePaths.Add(IncludePath);
+			PublicLibraryPaths.Add(LibraryPath);
+
+		    PublicAdditionalLibraries.Add(LibraryPath + "/libwebsockets.a");
+
+			PublicDependencyModuleNames.Add("OpenSSL");
+        }
+     }
 }
 
 

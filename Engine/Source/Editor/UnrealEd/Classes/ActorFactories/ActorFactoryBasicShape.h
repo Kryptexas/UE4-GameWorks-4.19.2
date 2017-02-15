@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "ActorFactories/ActorFactoryStaticMesh.h"
 #include "ActorFactoryBasicShape.generated.h"
+
+class AActor;
+class FAssetData;
 
 UCLASS(MinimalAPI,config=Editor)
 class UActorFactoryBasicShape : public UActorFactoryStaticMesh
@@ -16,4 +23,5 @@ class UActorFactoryBasicShape : public UActorFactoryStaticMesh
 	UNREALED_API static const FName BasicSphere;
 	UNREALED_API static const FName BasicCylinder;
 	UNREALED_API static const FName BasicCone;
+	UNREALED_API static const FName BasicPlane;
 };

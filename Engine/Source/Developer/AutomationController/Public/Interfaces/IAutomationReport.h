@@ -1,7 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+
+class IAutomationReport;
+template< typename ItemType > class TFilterCollection;
 
 /**
 * The automation filter collection - used for updating the automation report list
@@ -170,7 +175,7 @@ public:
 	virtual void Empty() = 0;
 
 	/**
-	 * Returns the complete command line for an automation test including any relevant parameters
+	 * Returns the complete command for an automation test including any relevant parameters.  This is the class name + the parameter.
 	 */
 	virtual FString GetCommand() const = 0;
 
@@ -183,6 +188,9 @@ public:
 	 */
 	virtual const FString& GetDisplayName() const = 0;
 
+	/**
+	 * Returns the full path for the test, e.g. System.Audio.PlaySoundTest.
+	 */
 	virtual const FString& GetFullTestPath() const = 0;
 
 	/**

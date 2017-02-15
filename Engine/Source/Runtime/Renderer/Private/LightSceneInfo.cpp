@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightSceneInfo.cpp: Light scene info implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "LightSceneInfo.h"
+#include "Components/LightComponent.h"
+#include "SceneCore.h"
 #include "ScenePrivate.h"
 #include "DistanceFieldLightingShared.h"
 
@@ -39,7 +41,8 @@ FLightSceneInfo::FLightSceneInfo(FLightSceneProxy* InProxy, bool InbVisible)
 	, DynamicInteractionOftenMovingPrimitiveList(NULL)
 	, DynamicInteractionStaticPrimitiveList(NULL)
 	, Id(INDEX_NONE)
-	, TileIntersectionResources(NULL)
+	, TileIntersectionResources(nullptr)
+	, DynamicShadowMapChannel(-1)
 	, bPrecomputedLightingIsValid(InProxy->GetLightComponent()->IsPrecomputedLightingValid())
 	, bVisible(InbVisible)
 	, bEnableLightShaftBloom(InProxy->GetLightComponent()->bEnableLightShaftBloom)

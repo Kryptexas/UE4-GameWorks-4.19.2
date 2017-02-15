@@ -1,12 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
-
-#include "BlueprintUtilities.h"
-#include "BlueprintEditorUtils.h"
-#include "GraphEditorDragDropAction.h"
 #include "BPFunctionDragDropAction.h"
+#include "EdGraph/EdGraph.h"
+#include "EditorStyleSet.h"
+#include "EdGraphSchema_K2.h"
+#include "EdGraphSchema_K2_Actions.h"
+#include "K2Node_CustomEvent.h"
+#include "K2Node_MacroInstance.h"
+
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "BlueprintNodeBinder.h"
 #include "BlueprintFunctionNodeSpawner.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "FunctionDragDropAction"
 
@@ -232,6 +237,8 @@ FReply FKismetFunctionDragDropAction::DroppedOnPanel(TSharedRef<SWidget> const& 
 			if ((Function != NULL) && UEdGraphSchema_K2::CanUserKismetCallFunction(Function))
 			{
 				AnalyticCallback.ExecuteIfBound();
+
+				const FScopedTransaction Transaction( LOCTEXT("KismetFunction_DroppedOnPanel", "Function Dropped on Graph") );
 
 				IBlueprintNodeBinder::FBindingSet Bindings;
 				FunctionNodeSpawner->Invoke(&Graph, Bindings, GraphPosition);

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2819020
+﻿INTSourceChangelist:3213718
 Availability: Public
 Title:2. 게임 모드 확장
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
 Description:프로젝트의 게임 모드를 확장하여 화면에 메뉴를 추가 및 제거합니다.
-version:4.9
+version:4.14
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -78,6 +78,24 @@ version:4.9
 
 	[REGION:note]이 코드는 제공된 **위젯** 인스턴스를 만들어 화면에 넣습니다. **언리얼 엔진** 은 한 번에 다수의 **위젯** 표시 및 상호작용 처리가 가능하기는 하지만, 한 번에 하나만 활성화되도록 제거를 하기도 합니다. **위젯** 을 직접 소멸시킬 필요는 절대 없는데, 뷰포트에서의 제거 및 레퍼런싱하는 모든 변수 소거( 또는 변경) 작업은 **언리얼 엔진** 의 가비지 콜렉션 시스템에서 해 주기 때문입니다.[/REGION]
 
+1. 마지막으로, **Player Controller** 클래스에 입력 모드를 설정해 줘야 합니다. 그러기 위해 **Player Controller** 를 기반으로 프로젝트에 새로운 C++ 클래스를 추가하겠습니다. 이 클래스 안에서, 게임이 시작될 때 다른 함수 하나 추가로 호출해 주기만 하면 UI 요소와의 상호작용이 가능한지 확인할 수 있습니다.
+
+	[![](NewClass.png)](NewClass.png)
+	[![](PlayerController.png)](PlayerController.png)
+	
+	HowTo_UMGPlayerController.h 에서, 클래스에 다음 오버라이드를 추가합니다:
+	
+		public:
+			virtual void BeginPlay() override;
+
+	In HowTo_UMGPlayerController.cpp, we will add our overridden function:
+	
+		void AHowTo_UMGPlayerController::BeginPlay()
+		{
+			Super::BeginPlay();
+			SetInputMode(FInputModeGameAndUI());
+		}
+
 
 ----
 
@@ -92,7 +110,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -120,19 +138,19 @@ version:4.9
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
 			#include "Blueprint/UserWidget.h"
-			#include "GameFramework/GameMode.h"
+			#include "GameFramework/GameModeBase.h"
 			#include "HowTo_UMGGameMode.generated.h"
 
 			/**
 			 * 
 			 */
 			UCLASS()
-			class HOWTO_UMG_API AHowTo_UMGGameMode : public AGameMode
+			class HOWTO_UMG_API AHowTo_UMGGameMode : public AGameModeBase
 			{
 				GENERATED_BODY()
 
@@ -155,7 +173,7 @@ version:4.9
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"
@@ -182,6 +200,39 @@ version:4.9
 					}
 				}
 			}
+			
+		**HowTo_UMGPlayerController.h**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+			#pragma once
+
+			#include "GameFramework/PlayerController.h"
+			#include "HowTo_UMGPlayerController.generated.h"
+
+			/**
+			 * 
+			 */
+			UCLASS()
+			class HOWTO_UMG_API AHowTo_UMGPlayerController : public APlayerController
+			{
+				GENERATED_BODY()
+				
+			public:
+				virtual void BeginPlay() override;
+			};
+
+		**HowTo_UMGPlayerController.cpp**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+			#include "HowTo_UMG.h"
+			#include "HowTo_UMGPlayerController.h"
+
+			void AHowTo_UMGPlayerController::BeginPlay()
+			{
+				Super::BeginPlay();
+				SetInputMode(FInputModeGameAndUI());
+			}
+			
     [/PARAM]
 [/OBJECT]
 

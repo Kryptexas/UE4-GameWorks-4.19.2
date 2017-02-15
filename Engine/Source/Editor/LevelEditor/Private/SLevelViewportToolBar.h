@@ -1,8 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "SLevelViewport.h"
 #include "Editor/UnrealEd/Public/SViewportToolBar.h"
+
+class ACameraActor;
+class FExtender;
+class FMenuBuilder;
 
 /**
  * A level viewport toolbar widget that is placed in a viewport
@@ -139,6 +148,9 @@ private:
 	 * @return The visibility value
 	 */
 	EVisibility GetViewModeOptionsVisibility() const;
+
+	/** Get the name of the viewmode options menu */
+	FText GetViewModeOptionsMenuLabel() const;
 
 	/**
 	 * Generates the toolbar view param menu content 

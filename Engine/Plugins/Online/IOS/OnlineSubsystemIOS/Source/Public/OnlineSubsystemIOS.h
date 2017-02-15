@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemIOSPackage.h"
+
+@class FStoreKitHelperV2;
 
 
 /**
@@ -33,8 +35,8 @@ public:
 	virtual IOnlineTitleFilePtr GetTitleFileInterface() const override;
 	virtual IOnlineEntitlementsPtr GetEntitlementsInterface() const override;
 	virtual IOnlineStorePtr GetStoreInterface() const override;
-	virtual IOnlineStoreV2Ptr GetStoreV2Interface() const override { return nullptr; }
-	virtual IOnlinePurchasePtr GetPurchaseInterface() const override { return nullptr; }
+	virtual IOnlineStoreV2Ptr GetStoreV2Interface() const override;
+	virtual IOnlinePurchasePtr GetPurchaseInterface() const override;
 	virtual IOnlineEventsPtr GetEventsInterface() const override;
 	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override;
 	virtual IOnlineSharingPtr GetSharingInterface() const override;
@@ -59,15 +61,27 @@ PACKAGE_SCOPE:
 	bool IsEnabled();
 
 	/**
-	* Is IAP available for use
-	* @return true if IAP should be available, false otherwise
-	*/
+	 * Is IAP available for use
+	 * @return true if IAP should be available, false otherwise
+	 */
 	bool IsInAppPurchasingEnabled();
+	
+	/**
+	 * Is Store v2 enabled (disabling legacy store interface)
+	 * @return true if enabled, false otherwise
+	 */
+	bool IsV2StoreEnabled();
 
 private:
+	
+	void InitStoreKitHelper();
+	void CleanupStoreKitHelper();
 
 	/** Online async task thread */
 	class FRunnableThread* OnlineAsyncTaskThread;
+	
+	/** Store kit helper for interfacing with app store */
+	FStoreKitHelperV2* StoreHelper;
 
 	/** Interface to the session services */
 	FOnlineSessionIOSPtr SessionInterface;
@@ -83,6 +97,12 @@ private:
 
 	/** Interface to the online store */
 	FOnlineStoreInterfaceIOSPtr StoreInterface;
+	
+	/** Interface to the online catalog */
+	FOnlineStoreIOSPtr StoreV2Interface;
+	
+	/** Interface to the store purchasing */
+	FOnlinePurchaseIOSPtr PurchaseInterface;
 
 	/** Interface to the online achievements */
 	FOnlineAchievementsIOSPtr AchievementsInterface;

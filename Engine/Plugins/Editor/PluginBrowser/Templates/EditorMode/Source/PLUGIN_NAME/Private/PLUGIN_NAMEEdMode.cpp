@@ -1,6 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PLUGIN_NAMEPrivatePCH.h"
+#include "PLUGIN_NAME.h"
 #include "PLUGIN_NAMEEdMode.h"
 #include "PLUGIN_NAMEEdModeToolkit.h"
 #include "Toolkits/ToolkitManager.h"

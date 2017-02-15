@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SystemTextures.cpp: System textures implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
 #include "AtmosphereTextures.h"
+#include "Atmosphere/AtmosphericFogComponent.h"
+#include "PostProcess/RenderTargetPool.h"
+#include "AtmosphereTextureParameters.h"
+#include "ShaderParameterUtils.h"
 
 void FAtmosphereTextures::InitDynamicRHI()
 {

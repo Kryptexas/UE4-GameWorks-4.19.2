@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "VisualStudioSourceCodeAccessPrivatePCH.h"
-#include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "VisualStudioSourceCodeAccessModule.h"
+#include "Features/IModularFeatures.h"
+#include "Modules/ModuleManager.h"
 
 IMPLEMENT_MODULE( FVisualStudioSourceCodeAccessModule, VisualStudioSourceCodeAccess );
 

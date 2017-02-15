@@ -1,15 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AI/NavigationModifier.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
 #include "AI/Navigation/NavLinkDefinition.h"
-#include "AI/Navigation/NavigationTypes.h"
 
+class AActor;
 class UBodySetup;
 class UNavCollision;
-class AActor;
 struct FCompositeNavModifier;
+
+template<typename InElementType> class TNavStatArray;
 
 #if WITH_PHYSX
 namespace physx
@@ -64,4 +66,6 @@ namespace NavigationHelper
 	ENGINE_API void DefaultNavLinkProcessorImpl(FCompositeNavModifier* OUT CompositeModifier, const AActor* Actor, const TArray<FNavigationLink>& IN NavLinks);
 
 	ENGINE_API void DefaultNavLinkSegmentProcessorImpl(FCompositeNavModifier* OUT CompositeModifier, const AActor* Actor, const TArray<FNavigationSegmentLink>& IN NavLinks);
+
+	ENGINE_API bool IsBodyNavigationRelevant(const UBodySetup& IN BodySetup);
 }

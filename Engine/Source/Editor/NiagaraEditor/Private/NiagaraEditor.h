@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Misc/NotifyHook.h"
+#include "EditorUndoClient.h"
 #include "INiagaraEditor.h"
-#include "Toolkits/AssetEditorToolkit.h"
 
+class IDetailsView;
+class SGraphEditor;
+class UEdGraph;
+class UNiagaraScript;
 class UNiagaraScriptSource;
 
 /** Viewer/editor for a DataTable */

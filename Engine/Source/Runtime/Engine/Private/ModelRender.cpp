@@ -1,16 +1,34 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ModelRender.cpp: Unreal model rendering
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "LevelUtils.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Stats/Stats.h"
+#include "EngineGlobals.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/Level.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "RawIndexBuffer.h"
+#include "PrimitiveViewRelevance.h"
+#include "Materials/MaterialInterface.h"
+#include "PrimitiveSceneProxy.h"
+#include "Engine/MapBuildDataRegistry.h"
 #include "Model.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "MeshBatch.h"
+#include "SceneManagement.h"
+#include "TessellationRendering.h"
+#include "Engine/Engine.h"
+#include "Engine/LevelStreaming.h"
+#include "LevelUtils.h"
 #include "HModel.h"
-#include "LightMap.h"
-#include "ShadowMap.h"
 #include "Components/ModelComponent.h"
+#include "Engine/Brush.h"
 
 namespace
 {
@@ -82,12 +100,12 @@ void UModelComponent::BuildRenderData()
 		FModelElement& Element = Elements[ElementIndex];
 
 		// Find the index buffer for the element's material.
-		TScopedPointer<FRawIndexBuffer16or32>* IndexBufferRef = TheModel->MaterialIndexBuffers.Find(Element.Material);
+		TUniquePtr<FRawIndexBuffer16or32>* IndexBufferRef = TheModel->MaterialIndexBuffers.Find(Element.Material);
 		if(!IndexBufferRef)
 		{
 			IndexBufferRef = &TheModel->MaterialIndexBuffers.Emplace(Element.Material,new FRawIndexBuffer16or32());
 		}
-		FRawIndexBuffer16or32* const IndexBuffer = *IndexBufferRef;
+		FRawIndexBuffer16or32* const IndexBuffer = IndexBufferRef->Get();
 		check(IndexBuffer);
 
 		Element.IndexBuffer = IndexBuffer;

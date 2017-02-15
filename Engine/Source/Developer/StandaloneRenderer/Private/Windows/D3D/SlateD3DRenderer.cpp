@@ -1,7 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-
-#include "StandaloneRendererPrivate.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Windows/D3D/SlateD3DRenderer.h"
 #include "Windows/D3D/SlateD3DTextureManager.h"
@@ -9,6 +6,9 @@
 #include "ElementBatcher.h"
 #include "FontCache.h"
 #include "SlateStats.h"
+#include "Widgets/SWindow.h"
+#include "Misc/CommandLine.h"
+#include "StandaloneRendererLog.h"
 
 SLATE_DECLARE_CYCLE_COUNTER(GRendererDrawElementList, "Renderer DrawElementList");
 SLATE_DECLARE_CYCLE_COUNTER(GRendererUpdateBuffers, "Renderer UpdateBuffers");
@@ -171,6 +171,24 @@ ISlateAtlasProvider* FSlateD3DRenderer::GetTextureAtlasProvider()
 
 	return nullptr;
 }
+
+int32 FSlateD3DRenderer::RegisterCurrentScene(FSceneInterface* Scene) 
+{
+	// This is a no-op
+	return -1;
+}
+
+int32 FSlateD3DRenderer::GetCurrentSceneIndex() const
+{
+	// This is a no-op
+	return -1;
+}
+
+void FSlateD3DRenderer::ClearScenes() 
+{
+	// This is a no-op
+}
+
 
 void FSlateD3DRenderer::Private_CreateViewport( TSharedRef<SWindow> InWindow, const FVector2D &WindowSize )
 {

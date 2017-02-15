@@ -1,35 +1,38 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveComponent.cpp: Primitive component implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Components/PrimitiveComponent.h"
+#include "EngineStats.h"
+#include "GameFramework/DamageType.h"
+#include "GameFramework/Pawn.h"
+#include "WorldCollision.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "GameFramework/PlayerController.h"
 #include "GameFramework/PhysicsVolume.h"
+#include "GameFramework/WorldSettings.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/Texture2D.h"
+#include "ContentStreaming.h"
+#include "DrawDebugHelpers.h"
+#include "UnrealEngine.h"
 #include "PhysicsPublic.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "LevelUtils.h"
-#if WITH_EDITOR
-#include "ShowFlags.h"
-#include "Collision.h"
-#include "ConvexVolume.h"
-#endif
-#if WITH_PHYSX
-#include "PhysicsEngine/PhysXSupport.h"
-#include "Collision/PhysXCollision.h"
-#endif // WITH_PHYSX
 #if WITH_BOX2D
 #include "PhysicsEngine/BodySetup2D.h"
 #endif
-#include "Collision/CollisionDebugDrawing.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
 #include "CollisionDebugDrawingPublic.h"
 #include "GameFramework/CheatManager.h"
-#include "GameFramework/DamageType.h"
-#include "Components/ChildActorComponent.h"
 #include "Streaming/TextureStreamingHelpers.h"
+#include "PrimitiveSceneProxy.h"
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
 
@@ -238,23 +241,69 @@ bool UPrimitiveComponent::HasStaticLighting() const
 	return ((Mobility == EComponentMobility::Static) || bLightAsIfStatic) && SupportsStaticLighting();
 }
 
+void UPrimitiveComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+{
+	if (CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0)
+	{
+		LevelContext.BindBuildData(nullptr);
+
+		TArray<UMaterialInterface*> UsedMaterials;
+		GetUsedMaterials(UsedMaterials);
+
+		if (UsedMaterials.Num())
+		{
+			// As we have no idea what this component is doing, we assume something very conservative
+			// by specifying that the texture is stretched across the bounds. To do this, we use a density of 1
+			// while also specifying the component scale as the bound radius. 
+			// Note that material UV scaling will  still apply.
+			static FMeshUVChannelInfo UVChannelData;
+			if (!UVChannelData.bInitialized)
+			{
+				UVChannelData.bInitialized = true;
+				for (float& Density : UVChannelData.LocalUVDensities)
+				{
+					Density = 1.f;
+				}
+			}
+
+			FPrimitiveMaterialInfo MaterialData;
+			MaterialData.PackedRelativeBox = PackedRelativeBox_Identity;
+			MaterialData.UVChannelData = &UVChannelData;
+
+			TArray<UTexture*> UsedTextures;
+			for (UMaterialInterface* MaterialInterface : UsedMaterials)
+			{
+				if (MaterialInterface)
+				{
+					MaterialData.Material = MaterialInterface;
+					LevelContext.ProcessMaterial(Bounds, MaterialData, Bounds.SphereRadius, OutStreamingTextures);
+				}
+			}
+		}
+	}
+}
+
+
 void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(FStreamingTextureLevelContext& LevelContext, TArray<struct FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
-	GetStreamingTextureInfo(LevelContext, OutStreamingTextures);
-	for (int32 Index = 0; Index < OutStreamingTextures.Num(); Index++)
+	if (!IsRegistered() || SceneProxy) // If registered but without a scene proxy, then this is not visible.
 	{
-		const FStreamingTexturePrimitiveInfo& Info = OutStreamingTextures[Index];
-		if (!IsStreamingTexture(Info.Texture))
+		GetStreamingTextureInfo(LevelContext, OutStreamingTextures);
+		for (int32 Index = 0; Index < OutStreamingTextures.Num(); Index++)
 		{
-			OutStreamingTextures.RemoveAt(Index--);
-		}
-		else
-		{
-			// Other wise check that everything is setup right.
-			const bool bCanBeStreamedByDistance = Info.TexelFactor > SMALL_NUMBER && Info.Bounds.SphereRadius > SMALL_NUMBER && ensure(FMath::IsFinite(Info.TexelFactor));
-			if (!bForceMipStreaming && !bCanBeStreamedByDistance && !(Info.TexelFactor < 0 && Info.Texture->LODGroup == TEXTUREGROUP_Terrain_Heightmap))
+			const FStreamingTexturePrimitiveInfo& Info = OutStreamingTextures[Index];
+			if (!IsStreamingTexture(Info.Texture))
 			{
 				OutStreamingTextures.RemoveAt(Index--);
+			}
+			else
+			{
+				// Other wise check that everything is setup right. If the component is not yet registered, then the bound data is irrelevant.
+				const bool bCanBeStreamedByDistance = Info.TexelFactor > SMALL_NUMBER && (Info.Bounds.SphereRadius > SMALL_NUMBER || !IsRegistered()) && ensure(FMath::IsFinite(Info.TexelFactor));
+				if (!bForceMipStreaming && !bCanBeStreamedByDistance && !(Info.TexelFactor < 0 && Info.Texture->LODGroup == TEXTUREGROUP_Terrain_Heightmap))
+				{
+					OutStreamingTextures.RemoveAt(Index--);
+				}
 			}
 		}
 	}
@@ -553,7 +602,8 @@ void UPrimitiveComponent::OnCreatePhysicsState()
 
 #if UE_WITH_PHYSICS
 			// Create the body.
-			BodyInstance.InitBody(BodySetup, BodyTransform, this, GetWorld()->GetPhysicsScene());
+			BodyInstance.InitBody(BodySetup, BodyTransform, this, GetWorld()->GetPhysicsScene());		
+			SendRenderDebugPhysics();
 #endif //UE_WITH_PHYSICS
 
 #if WITH_EDITOR
@@ -628,7 +678,44 @@ void UPrimitiveComponent::OnDestroyPhysicsState()
 		BodyInstance.TermBody();
 	}
 
+#if !UE_BUILD_SHIPPING
+	SendRenderDebugPhysics();
+#endif
+
 	Super::OnDestroyPhysicsState();
+}
+
+void UPrimitiveComponent::SendRenderDebugPhysics()
+{
+#if !UE_BUILD_SHIPPING
+	if (SceneProxy)
+	{
+		TArray<FPrimitiveSceneProxy::FDebugMassData> DebugMassData;
+		if (!IsWelded() && Mobility != EComponentMobility::Static)
+		{
+			if (FBodyInstance* BI = GetBodyInstance())
+			{
+				if (BI->IsValidBodyInstance())
+				{
+					DebugMassData.AddDefaulted();
+					FPrimitiveSceneProxy::FDebugMassData& RootMassData = DebugMassData[0];
+					const FTransform MassToWorld = BI->GetMassSpaceToWorldSpace();
+
+					RootMassData.LocalCenterOfMass = ComponentToWorld.InverseTransformPosition(MassToWorld.GetLocation());
+					RootMassData.LocalTensorOrientation = MassToWorld.GetRotation() * ComponentToWorld.GetRotation().Inverse();
+					RootMassData.MassSpaceInertiaTensor = BI->GetBodyInertiaTensor();
+					RootMassData.BoneIndex = INDEX_NONE;
+				}
+			}
+		}
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			PrimitiveComponent_SendRenderDebugPhysics, FPrimitiveSceneProxy*, UseSceneProxy, SceneProxy, TArray<FPrimitiveSceneProxy::FDebugMassData>, UseDebugMassData, DebugMassData,
+		{
+			UseSceneProxy->SetDebugMassData(UseDebugMassData);
+		});
+	}
+#endif
 }
 
 FMatrix UPrimitiveComponent::GetRenderMatrix() const
@@ -1023,19 +1110,27 @@ bool UPrimitiveComponent::ShouldCreatePhysicsState() const
 		return false;
 	}
 
-	bool bShouldCreatePhysicsState = IsRegistered() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
+	bool bShouldCreatePhysicsState = IsRegistered() && (bAlwaysCreatePhysicsState || BodyInstance.GetCollisionEnabled() != ECollisionEnabled::NoCollision);
 
 #if WITH_EDITOR
-	if (BodyInstance.bSimulatePhysics && (GetCollisionEnabled() == ECollisionEnabled::NoCollision || GetCollisionEnabled() == ECollisionEnabled::QueryOnly))
+	if (BodyInstance.bSimulatePhysics)
 	{
-		FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidSimulateOptions", "Invalid Simulate Options: Body ({0}) is set to simulate physics but Collision Enabled is incompatible"),
-			FText::FromString(GetReadableName())));
+		const ECollisionEnabled::Type CollisionEnabled = GetCollisionEnabled();
+		if (CollisionEnabled == ECollisionEnabled::NoCollision || CollisionEnabled == ECollisionEnabled::QueryOnly)
+		{
+			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidSimulateOptions", "Invalid Simulate Options: Body ({0}) is set to simulate physics but Collision Enabled is incompatible"),
+				FText::FromString(GetReadableName())));
+		}
 	}
 
 	// if it shouldn't create physics state, but if world wants to enable trace collision for components, allow it
-	if (!bShouldCreatePhysicsState && GetWorld() && GetWorld()->bEnableTraceCollision)
+	if (!bShouldCreatePhysicsState)
 	{
-		bShouldCreatePhysicsState = true;
+		UWorld* World = GetWorld();
+		if (World && World->bEnableTraceCollision)
+		{
+			bShouldCreatePhysicsState = true;
+		}
 	}
 #endif
 	return bShouldCreatePhysicsState;
@@ -1068,8 +1163,13 @@ bool UPrimitiveComponent::ShouldRenderSelected() const
 			{
 				return true;
 			}
-			else if (AActor* ParentActor = Owner->GetParentActor())
+			else if (Owner->IsChildActor())
 			{
+				AActor* ParentActor = Owner->GetParentActor();
+				while (ParentActor->IsChildActor())
+				{
+					ParentActor = ParentActor->GetParentActor();
+				}
 				return ParentActor->IsSelected();
 			}
 		}
@@ -1131,15 +1231,28 @@ void UPrimitiveComponent::PushHoveredToProxy(const bool bInHovered)
 	}
 }
 
-void UPrimitiveComponent::SetCullDistance(float NewCullDistance)
+void UPrimitiveComponent::SetCullDistance(const float NewCullDistance)
 {
-	if (NewCullDistance >= 0)
+	if (NewCullDistance >= 0.f && NewCullDistance != LDMaxDrawDistance)
 	{
+		const float OldLDMaxDrawDistance = LDMaxDrawDistance;
+
 		LDMaxDrawDistance = NewCullDistance;
 	
-		if (LDMaxDrawDistance < CachedMaxDrawDistance)
+		if (CachedMaxDrawDistance == 0.f || LDMaxDrawDistance < CachedMaxDrawDistance)
 		{
 			SetCachedMaxDrawDistance(LDMaxDrawDistance);
+		}
+		else if (OldLDMaxDrawDistance == CachedMaxDrawDistance)
+		{
+			if (UWorld* World = GetWorld())
+			{
+				World->UpdateCullDistanceVolumes(nullptr, this);
+			}
+			else
+			{
+				SetCachedMaxDrawDistance(LDMaxDrawDistance);
+			}
 		}
 	}
 }
@@ -1958,7 +2071,7 @@ bool UPrimitiveComponent::ComponentOverlapComponentImpl(class UPrimitiveComponen
 	USkeletalMeshComponent * OtherComp = Cast<USkeletalMeshComponent>(PrimComp);
 	if (OtherComp)
 	{
-		UE_LOG(LogCollision, Log, TEXT("ComponentOverlapMulti : (%s) Does not support skeletalmesh with Physics Asset"), *PrimComp->GetPathName());
+		UE_LOG(LogCollision, Warning, TEXT("ComponentOverlapMulti : (%s) Does not support skeletalmesh with Physics Asset"), *PrimComp->GetPathName());
 		return false;
 	}
 
@@ -2292,6 +2405,11 @@ const TArray<FOverlapInfo>* UPrimitiveComponent::ConvertSweptOverlapsToCurrentOv
 							// Not handled yet. We could do it by checking every body explicitly and track each body index in the overlap test, but this seems like a rare need.
 							return nullptr;
 						}
+						else if (Cast<USkeletalMeshComponent>(OtherPrimitive) || Cast<USkeletalMeshComponent>(this))
+						{
+							// SkeletalMeshComponent does not support this operation, and would return false in the test when an actual query could return true.
+							return nullptr;
+						}
 						else if (OtherPrimitive->ComponentOverlapComponent(this, EndLocation, EndRotationQuat, UnusedQueryParams))
 						{
 							OverlapsAtEndLocation.Add(OtherOverlap);
@@ -2535,7 +2653,7 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 					Params.bIgnoreBlocks = true;	//We don't care about blockers since we only route overlap events to real overlaps
 					FCollisionResponseParams ResponseParam;
 					InitSweepCollisionParams(Params, ResponseParam);
-					MyWorld->ComponentOverlapMulti(Overlaps, this, GetComponentLocation(), GetComponentQuat(), Params);
+					ComponentOverlapMulti(Overlaps, MyWorld, GetComponentLocation(), GetComponentQuat(), GetCollisionObjectType(), Params);
 
 					for( int32 ResultIdx=0; ResultIdx<Overlaps.Num(); ResultIdx++ )
 					{
@@ -2668,7 +2786,11 @@ void UPrimitiveComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 		SCOPE_CYCLE_COUNTER(STAT_UpdatePhysicsVolume);
 		if (UWorld* MyWorld = GetWorld())
 		{
-			if (bGenerateOverlapEvents && IsQueryCollisionEnabled())
+			if (MyWorld->GetNonDefaultPhysicsVolumeCount() == 0)
+			{
+				SetPhysicsVolume(MyWorld->GetDefaultPhysicsVolume(), bTriggerNotifiers);
+			}
+			else if (bGenerateOverlapEvents && IsQueryCollisionEnabled())
 			{
 				APhysicsVolume* BestVolume = MyWorld->GetDefaultPhysicsVolume();
 				int32 BestPriority = BestVolume->Priority;
@@ -2920,6 +3042,11 @@ void UPrimitiveComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceS
 	{
 		BodyInstance.GetBodyInstanceResourceSizeEx(CumulativeResourceSize);
 	}
+	if (SceneProxy)
+	{
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(SceneProxy->GetMemoryFootprint());
+	}
+
 }
 
 void UPrimitiveComponent::SetRenderCustomDepth(bool bValue)
@@ -2948,6 +3075,15 @@ void UPrimitiveComponent::SetRenderInMainPass(bool bValue)
 	if (bRenderInMainPass != bValue)
 	{
 		bRenderInMainPass = bValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UPrimitiveComponent::SetRenderInMono(bool bValue)
+{
+	if (bRenderInMono != bValue)
+	{
+		bRenderInMono = bValue;
 		MarkRenderStateDirty();
 	}
 }
@@ -3011,4 +3147,3 @@ const bool UPrimitiveComponent::ShouldGenerateAutoLOD() const
 #endif 
 
 #undef LOCTEXT_NAMESPACE
-

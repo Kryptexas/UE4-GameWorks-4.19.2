@@ -1,19 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TTFontImport.cpp: True-type Font Importing
 =============================================================================*/
-#include "UnrealEd.h"
-#include "Factories.h"
-#include "Editor/MainFrame/Public/MainFrame.h"
-#include "DesktopPlatformModule.h"
+
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/SWindow.h"
+#include "Engine/FontImportOptions.h"
 #include "Engine/Font.h"
+#include "Factories/TrueTypeFontFactory.h"
+#include "RenderUtils.h"
+#include "Engine/Texture2D.h"
+#include "Interfaces/IMainFrameModule.h"
+#include "IDesktopPlatform.h"
+#include "DesktopPlatformModule.h"
 
 #ifndef WITH_FREETYPE
 	#define WITH_FREETYPE	0
 #endif // WITH_FREETYPE
 
 #if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 namespace TTFConstants
 {
@@ -30,7 +44,6 @@ namespace TTFConstants
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
 #endif // USE_FREETYPE
-#include "Engine/FontImportOptions.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTTFontImport, Log, All);
 
@@ -195,7 +208,7 @@ UObject* UTrueTypeFontFactory::FactoryCreateNew(
 bool UTrueTypeFontFactory::CanReimport( UObject* Obj, TArray<FString>& OutFilenames )
 {	
 	UFont* FontToReimport = Cast<UFont>(Obj);
-	if(FontToReimport)
+	if(FontToReimport && FontToReimport->FontCacheType == EFontCacheType::Offline)
 	{
 		OutFilenames.Add(TEXT("None"));
 		return true;
@@ -1029,7 +1042,7 @@ bool UTrueTypeFontFactory::CreateFontTexture(
 
 		// Create the Windows font
 		HFONT FontHandle =
-			CreateFont(
+			CreateFontW(
 				nHeight,
 				0,
 				0,
@@ -1391,7 +1404,7 @@ bool UTrueTypeFontFactory::CreateFontTexture(
 
 				TextOut( DCHandle, X, Y, Tmp, 1 );
 				
-				UE_LOG(LogTTFontImport, Warning,TEXT("OutPutGlyph X=%d Y=%d FontHeight=%d FontWidth=%d Char=%04x U=%d V=%d =Usize=%d VSIze=%d"), 
+				UE_LOG(LogTTFontImport, Log, TEXT("OutPutGlyph X=%d Y=%d FontHeight=%d FontWidth=%d Char=%04x U=%d V=%d =Usize=%d VSIze=%d"), 
 					X,Y,FontHeight,FontWidth,Char,
 					NewCharacterRef.StartU ,
 					NewCharacterRef.StartV ,
@@ -2301,7 +2314,7 @@ bool UTrueTypeFontFactory::ImportTrueTypeFont(
 	bool bResult = CreateFontTexture( Font, Warn, NumResolutions, CharsPerPage, InverseMap, ResHeights );
 
 	double EndTime = FPlatformTime::Seconds();
-	UE_LOG(LogTTFontImport, Warning,TEXT("ImportTrueTypeFont: Total Time %0.2f"), EndTime - StartTime);
+	UE_LOG(LogTTFontImport, Log,TEXT("ImportTrueTypeFont: Total Time %0.2f"), EndTime - StartTime);
 
 	return bResult;
 }

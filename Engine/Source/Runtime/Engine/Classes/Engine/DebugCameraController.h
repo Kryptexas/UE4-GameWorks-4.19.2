@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "SceneTypes.h"
+#include "GameFramework/PlayerController.h"
 #include "DebugCameraController.generated.h"
 
+class ASpectatorPawn;
 
 /**
 * Camera controller that allows you to fly around a level mostly unrestricted by normal movement rules.

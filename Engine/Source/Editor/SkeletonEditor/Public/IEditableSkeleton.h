@@ -1,14 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Animation/SmartName.h"
+#include "CoreMinimal.h"
+#include "BoneContainer.h"
+#include "Animation/Skeleton.h"
+
+class UBlendProfile;
+class USkeletalMesh;
 
 /** Delegate fired when a set of smart names is removed */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSmartNameRemoved, const FName& /*InContainerName*/, const TArray<SmartName::UID_Type>& /*InNameUids*/);
 
 /** Enum which tells us whether the parent of a socket is the skeleton or skeletal mesh */
-enum class ESocketParentType : uint8
+enum class ESocketParentType : int32
 {
 	Skeleton,
 	Mesh
@@ -62,6 +67,10 @@ public:
 
 	/** Sets Material Meta Data for the curve */
 	virtual void SetCurveMetaDataMaterial(const FSmartName& CurveName, bool bOverrideMaterial) = 0;
+
+	/** Sets Bone Links per curve */
+	virtual void SetCurveMetaBoneLinks(const FSmartName& CurveName, TArray<FBoneReference>& BoneLinks) = 0;
+
 	/**
 	 * Makes sure all attached objects are valid and removes any that aren't.
 	 *
@@ -154,4 +163,10 @@ public:
 
 	/** Register a delegate to be called when a set of smart names are removed */
 	virtual void UnregisterOnSmartNameRemoved(FDelegateHandle InHandle) = 0;
+
+	/** Wrap USkeleton::SetBoneTranslationRetargetingMode */
+	virtual void SetBoneTranslationRetargetingMode(FName InBoneName, EBoneTranslationRetargetingMode::Type NewRetargetingMode) = 0;
+
+	/** Wrap USkeleton::GetBoneTranslationRetargetingMode */
+	virtual EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(FName InBoneName) const = 0;
 };

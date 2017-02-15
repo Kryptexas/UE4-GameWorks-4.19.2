@@ -22,7 +22,7 @@ Version: 4.9
 [EXCERPT:Intensity]
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Vignetter Intensity - 0](vignette_off.png)(w:600)
+	![Vignette Intensity - 0](vignette_off.png)(w:600)
 	[/PARAM]
 	[PARAM:after]
 	![Vignette Intensity - 1](vignette_on.png)(w:600)

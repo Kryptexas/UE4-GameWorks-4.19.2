@@ -4,6 +4,9 @@ Crumbs: %ROOT%, Engine
 Description:Effects applied to the whole rendered scene prior to being rendered.
 Navigation:topic
 Version: 4.9
+parent:Engine/Rendering
+order:5
+type:landing
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -1,7 +1,7 @@
 Availability: Public
-Title:Material - Using Fresnel in your Materials
+Title:Using Fresnel in your Materials
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
-Description:A How To Guide for using the Fresnel Material node. 
+Description:Guide for using the Fresnel Material node. 
 Related: Engine/Rendering/Materials/Functions/Reference/VectorOps
 Related: Engine/Rendering/Materials/Editor/Interface
 Related: Engine/Rendering/Materials/ExpressionReference/Utility

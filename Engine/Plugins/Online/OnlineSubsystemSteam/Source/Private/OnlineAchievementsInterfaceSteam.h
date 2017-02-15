@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineAchievementsInterface.h"
+#include "CoreMinimal.h"
 #include "OnlineSubsystemSteamTypes.h"
-#include "OnlineAchievementsInterface.h"
+#include "Interfaces/OnlineAchievementsInterface.h"
+#include "Misc/ConfigCacheIni.h"
 
 /**
  *	IOnlineAchievements - Interface class for acheivements

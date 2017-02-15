@@ -1,14 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GenericApplication.h"
-#include "LinuxWindow.h"
-#include "LinuxCursor.h"
+#include "CoreTypes.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Math/Vector2D.h"
+#include "Templates/SharedPointer.h"
+#include "Misc/CoreMisc.h"
+#include "GenericPlatform/GenericWindow.h"
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
+#include "GenericPlatform/GenericWindowDefinition.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Linux/LinuxWindow.h"
+#include "Linux/LinuxCursor.h"
 
-class FLinuxWindow;
-class FGenericApplicationMessageHandler;
-
+class IInputDevice;
 
 class FLinuxApplication : public GenericApplication, public FSelfRegisteringExec
 {
@@ -121,6 +130,7 @@ public:
 	void DestroyNativeWindow(SDL_HWindow NativeWindow);
 
 	virtual bool IsMouseAttached() const override;
+
 private:
 
 	FLinuxApplication();
@@ -180,6 +190,25 @@ private:
 	 * Checks if we need to destroy any of PendingDestroy windows.
 	 */
 	void DestroyPendingWindows();
+
+	/** Gets the location from a given touch event. */
+	FVector2D GetTouchEventLocation(SDL_Event TouchEvent);
+
+	/** Stores context information about a currently active touch. */
+	struct FTouchContext
+	{
+		/** Internal touch index (0-9 normally). */
+		int TouchIndex;
+
+		/** Device id */
+		SDL_TouchID DeviceId;
+
+		/** Last known location. */
+		FVector2D Location;
+	};
+
+	/** Holds currently active touches (i.e. fingers pressed but not released) */
+	TMap<uint64, FTouchContext> Touches;
 
 	struct SDLControllerState
 	{

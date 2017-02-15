@@ -8,7 +8,7 @@ Related: Gameplay/Networking/Actors
 Related: Resources/ContentExamples/Networking
 version: 4.9
 Parent:Engine/Blueprints
-Type:guide
+type:overview
 
 [VAR:Topic]
 [OBJECT:Topic]

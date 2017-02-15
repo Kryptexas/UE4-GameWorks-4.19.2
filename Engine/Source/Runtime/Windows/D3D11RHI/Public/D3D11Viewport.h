@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11Viewport.h: D3D viewport RHI definitions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "RenderResource.h"
+#include "RenderUtils.h"
 
 /** A D3D event query resource. */
 class FD3D11EventQuery : public FRenderResource
@@ -54,7 +58,7 @@ public:
 	FD3D11Viewport(class FD3D11DynamicRHI* InD3DRHI,HWND InWindowHandle,uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen, EPixelFormat InPreferredPixelFormat);
 	~FD3D11Viewport();
 
-	void Resize(uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen);
+	void Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen, EPixelFormat PreferredPixelFormat);
 
 	/**
 	 * If the swap chain has been invalidated by DXGI, resets the swap chain to the expected state; otherwise, does nothing.
@@ -122,6 +126,10 @@ private:
 	bool bIsValid;
 	TRefCountPtr<IDXGISwapChain> SwapChain;
 	TRefCountPtr<FD3D11Texture2D> BackBuffer;
+
+	// Support for selecting non-default output for display in fullscreen exclusive
+	TRefCountPtr<IDXGIOutput>	ForcedFullscreenOutput;
+	bool						bForcedFullscreenDisplay;
 
 	/** An event used to track the GPU's progress. */
 	FD3D11EventQuery FrameSyncEvent;

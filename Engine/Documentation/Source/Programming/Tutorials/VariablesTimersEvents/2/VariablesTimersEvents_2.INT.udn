@@ -95,7 +95,7 @@ We have now made a variable and a function accessible to, and alterable by, non-
     [/PARAM]
     [PARAM:content]
 		**Countdown.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -111,9 +111,11 @@ We have now made a variable and a function accessible to, and alterable by, non-
 				// Sets default values for this actor's properties
 				ACountdown();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
 	
+			public:
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 
@@ -136,7 +138,7 @@ We have now made a variable and a function accessible to, and alterable by, non-
 
 
 		**Countdown.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_VTE.h"
 			#include "Countdown.h"

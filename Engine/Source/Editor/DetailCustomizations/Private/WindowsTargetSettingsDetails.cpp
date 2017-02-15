@@ -1,12 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "WindowsTargetSettingsDetails.h"
-#include "TargetPlatform.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Layout/Margin.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SBoxPanel.h"
+#include "Styling/SlateTypes.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "EditorStyleSet.h"
+#include "EditorDirectories.h"
+#include "PropertyHandle.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#include "IDetailPropertyRow.h"
+#include "DetailCategoryBuilder.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformModule.h"
 #include "SExternalImageReference.h"
-#include "IExternalImagePickerModule.h"
-#include "GameProjectGenerationModule.h"
-#include "ISourceControlModule.h"
 
 #if WITH_ENGINE
 #include "AudioDevice.h"
@@ -41,6 +61,14 @@ static FText GetFriendlyNameFromRHIName(const FString& InRHIName)
 	{
 		FriendlyRHIName = LOCTEXT("OpenGL3", "OpenGL 3 (SM4)");
 	}
+	else if (InRHIName == TEXT("GLSL_150_ES2"))
+	{
+		FriendlyRHIName = LOCTEXT("OpenGL3ES2", "OpenGL 3 (ES2)");
+	}
+	else if (InRHIName == TEXT("GLSL_150_ES31"))
+	{
+		FriendlyRHIName = LOCTEXT("OpenGL3ES31", "OpenGL 3 (ES3.1, Experimental)");
+	}
 	else if (InRHIName == TEXT("GLSL_430"))
 	{
 		FriendlyRHIName = LOCTEXT("OpenGL4", "OpenGL 4 (SM5, Experimental)");
@@ -55,15 +83,15 @@ static FText GetFriendlyNameFromRHIName(const FString& InRHIName)
 	}
 	else if (InRHIName == TEXT("SF_VULKAN_SM5"))
 	{
-		FriendlyRHIName = LOCTEXT("VulkanSM5", "Vulkan (SM5)");
+		FriendlyRHIName = LOCTEXT("VulkanSM5", "Vulkan Desktop (SM5, Highly Experimental!)");
 	}
-	else if (InRHIName == TEXT("GLSL_WOLF"))
+	else if (InRHIName == TEXT("GLSL_SWITCH"))
 	{
-		FriendlyRHIName = LOCTEXT("Wolf", "Wolf (Deferred)");
+		FriendlyRHIName = LOCTEXT("Switch", "Switch (Deferred)");
 	}
-	else if (InRHIName == TEXT("GLSL_WOLF_FORWARD"))
+	else if (InRHIName == TEXT("GLSL_SWITCH_FORWARD"))
 	{
-		FriendlyRHIName = LOCTEXT("WolfForward", "Wolf (Forward)");
+		FriendlyRHIName = LOCTEXT("SwitchForward", "Switch (Forward)");
 	}
 
 	return FriendlyRHIName;

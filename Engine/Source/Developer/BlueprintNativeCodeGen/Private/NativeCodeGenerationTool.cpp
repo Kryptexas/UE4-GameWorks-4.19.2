@@ -1,21 +1,36 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintNativeCodeGenPCH.h"
 #include "NativeCodeGenerationTool.h"
-#include "Editor.h"
-#include "Dialogs.h"
-#include "EditorStyle.h"
+#include "Input/Reply.h"
+#include "Misc/Paths.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SWindow.h"
+#include "Widgets/Text/STextBlock.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
+#include "Editor.h"
+#include "Widgets/Layout/SBorder.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SMultiLineEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Notifications/SErrorText.h"
+#include "EditorStyleSet.h"
 #include "SourceCodeNavigation.h"
-#include "DesktopPlatformModule.h" // for InvalidateMakefiles()
+#include "DesktopPlatformModule.h"
+#include "IBlueprintCompilerCppBackendModule.h"
 #include "BlueprintNativeCodeGenUtils.h"
 //#include "Editor/KismetCompiler/Public/BlueprintCompilerCppBackendInterface.h"
-#include "Developer/BlueprintCompilerCppBackend/Public/BlueprintCompilerCppBackendGatherDependencies.h"
-#include "IBlueprintCompilerCppBackendModule.h" // for ConstructBaseFilename()
+#include "BlueprintCompilerCppBackendGatherDependencies.h"
 #include "KismetCompilerModule.h"
-#include "SDirectoryPicker.h"
+#include "Widgets/Input/SDirectoryPicker.h"
 
 #define LOCTEXT_NAMESPACE "NativeCodeGenerationTool"
 
@@ -124,20 +139,22 @@ struct FGeneratedCodeData
 			return false;
 		}
 
-		const int WorkParts = 3 + (4 * DependentObjects.Num()) + (2 * UnconvertedNeededClasses.Num());
+		const int WorkParts = 3 + (4 * DependentObjects.Num());
 		FScopedSlowTask SlowTask(WorkParts, LOCTEXT("GeneratingCppFiles", "Generating C++ files.."));
 		SlowTask.MakeDialog();
 
 		IBlueprintCompilerCppBackendModule& CodeGenBackend = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 
 		TArray<FString> CreatedFiles;
-		for(auto Obj : DependentObjects)
+		//for(auto Obj : DependentObjects)
+		UObject* Obj = Blueprint->GeneratedClass;
 		{
 			SlowTask.EnterProgressFrame();
 
 			TSharedPtr<FString> HeaderSource(new FString());
 			TSharedPtr<FString> CppSource(new FString());
-			FBlueprintNativeCodeGenUtils::GenerateCppCode(Obj, HeaderSource, CppSource);
+			TSharedPtr<FNativizationSummary> NativizationSummary(new FNativizationSummary());
+			FBlueprintNativeCodeGenUtils::GenerateCppCode(Obj, HeaderSource, CppSource, NativizationSummary, FCompilerNativizationOptions{});
 			SlowTask.EnterProgressFrame();
 
 			const FString BackendBaseFilename = CodeGenBackend.ConstructBaseFilename(Obj);
@@ -169,72 +186,7 @@ struct FGeneratedCodeData
 			}
 		}
 
-		for (auto BPGC : UnconvertedNeededClasses)
-		{
-			SlowTask.EnterProgressFrame();
-
-			IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
-			const FString HeaderSource = Compiler.GenerateCppWrapper(BPGC);
-
-			SlowTask.EnterProgressFrame();
-
-			const FString BackendBaseFilename = CodeGenBackend.ConstructBaseFilename(BPGC);
-
-			const FString FullHeaderFilename = FPaths::Combine(*HeaderDirPath, *(BackendBaseFilename + TEXT(".h")));
-			const bool bHeaderSaved = FFileHelper::SaveStringToFile(HeaderSource, *FullHeaderFilename);
-			if (!bHeaderSaved)
-			{
-				ErrorString += FString::Printf(*LOCTEXT("HeaderNotSaved", "Header file wasn't saved. Check log for details. %s\n").ToString(), *BPGC->GetPathName());
-			}
-			else
-			{
-				CreatedFiles.Add(FullHeaderFilename);
-			}
-		}
-
 		SlowTask.EnterProgressFrame();
-
-		bool bGenerateProjectFiles = true;
-		{
-			bool bProjectHadCodeFiles = false;
-			{
-				TArray<FString> OutProjectCodeFilenames;
-				IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *FPaths::GameSourceDir(), TEXT("*.h"), true, false, false);
-				IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *FPaths::GameSourceDir(), TEXT("*.cpp"), true, false, false);
-				bProjectHadCodeFiles = OutProjectCodeFilenames.Num() > 0;
-			}
-
-			TArray<FString> CreatedFilesForExternalAppRead;
-			CreatedFilesForExternalAppRead.Reserve(CreatedFiles.Num());
-			for (const FString& CreatedFile : CreatedFiles)
-			{
-				CreatedFilesForExternalAppRead.Add(IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*CreatedFile));
-			}
-
-			// First see if we can avoid a full generation by adding the new files to an already open project
-			if (bProjectHadCodeFiles && FSourceCodeNavigation::AddSourceFiles(CreatedFilesForExternalAppRead))
-			{
-				// We successfully added the new files to the solution, but we still need to run UBT with -gather to update any UBT makefiles
-				if (FDesktopPlatformModule::Get()->InvalidateMakefiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn))
-				{
-					// We managed the gather, so we can skip running the full generate
-					bGenerateProjectFiles = false;
-				}
-			}
-		}
-
-		SlowTask.EnterProgressFrame();
-
-		bool bProjectFileUpdated = true;
-		if (bGenerateProjectFiles)
-		{
-			// Generate project files if we happen to be using a project file.
-			if (!FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn))
-			{
-				ErrorString += LOCTEXT("FailedToGenerateProjectFiles", "Failed to generate project files.").ToString();
-				bProjectFileUpdated = false;
-			}
-		}
 
 		return ErrorString.IsEmpty();
 	}

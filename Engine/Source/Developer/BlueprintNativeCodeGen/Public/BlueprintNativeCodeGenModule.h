@@ -1,19 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "Paths.h"			// for GetCleanFilename()
-#include "ModuleManager.h"	// for GetModuleChecked<>
-#include "Blueprint/BlueprintSupport.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "UObject/AssetPtr.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "Engine/Blueprint.h"
 
 class UBlueprint;
+enum class ESavePackageResult;
+
+struct FPlatformNativizationDetails
+{
+	FString PlatformName;
+	FString PlatformTargetDirectory;
+	FCompilerNativizationOptions CompilerNativizationOptions;
+};
 
 struct FNativeCodeGenInitData
 {
-	// This is an array of pairs, the pairs are PlatformName/PlatformTargetDirectory. These
-	// are determined by the cooker:
-	TArray< TPair< FString, FString > > CodegenTargets;
+	// This is an array platforms. These are determined by the cooker:
+	TArray< FPlatformNativizationDetails > CodegenTargets;
 
 	// Optional Manifest ManifestIdentifier, used for child cook processes that need a unique manifest name.
 	// The identifier is used to make a unique name for each platform that is converted.
@@ -34,7 +43,7 @@ public:
 	*
 	* Not for use with any kind of incremental cooking.
 	*/
-	FORCEINLINE static void InitializeModuleForRerunDebugOnly(const TArray< TPair< FString, FString > >& CodegenTargets);
+	FORCEINLINE static void InitializeModuleForRerunDebugOnly(const TArray<FPlatformNativizationDetails>& CodegenTargets);
 
 	/**
 	 * Wrapper function that retrieves the interface to this module from the 
@@ -75,7 +84,7 @@ public:
 	virtual const TMultiMap<FName, TAssetSubclassOf<UObject>>& GetFunctionsBoundToADelegate() = 0;
 protected:
 	virtual void Initialize(const FNativeCodeGenInitData& InitData) = 0;
-	virtual void InitializeForRerunDebugOnly(const TArray< TPair< FString, FString > >& CodegenTargets) = 0;
+	virtual void InitializeForRerunDebugOnly(const TArray<FPlatformNativizationDetails>& CodegenTargets) = 0;
 };
 
 void IBlueprintNativeCodeGenModule::InitializeModule(const FNativeCodeGenInitData& InitData)
@@ -84,7 +93,7 @@ void IBlueprintNativeCodeGenModule::InitializeModule(const FNativeCodeGenInitDat
 	Module.Initialize(InitData);
 }
 
-void IBlueprintNativeCodeGenModule::InitializeModuleForRerunDebugOnly(const TArray< TPair< FString, FString > >& CodegenTargets)
+void IBlueprintNativeCodeGenModule::InitializeModuleForRerunDebugOnly(const TArray<FPlatformNativizationDetails>& CodegenTargets)
 {
 	IBlueprintNativeCodeGenModule& Module = FModuleManager::LoadModuleChecked<IBlueprintNativeCodeGenModule>(GetModuleName());
 	Module.InitializeForRerunDebugOnly(CodegenTargets);

@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SandboxFilePrivatePCH.h"
 #include "IPlatformFileSandboxWrapper.h"
-#include "IPlatformFileModule.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Guid.h"
+#include "Stats/Stats.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "HAL/IPlatformFileModule.h"
+#include "UniquePtr.h"
 
 DEFINE_LOG_CATEGORY(SandboxFile);
 
@@ -183,7 +189,12 @@ FString FSandboxPlatformFile::ConvertToSandboxPath( const TCHAR* Filename ) cons
 			{
 				SeparatorIndex = SeparatorIndex2;
 			}
-			if( FPaths::IsDrive( SandboxPath.Mid( 0, SeparatorIndex ) ) == false )
+			FString DrivePath = SandboxPath;
+			if (SeparatorIndex != INDEX_NONE)
+			{
+				DrivePath = SandboxPath.Mid( 0, SeparatorIndex );
+			}
+			if( FPaths::IsDrive( DrivePath ) == false )
 			{
 				FString Dir = FPlatformProcess::BaseDir();
 				FPaths::MakeStandardFilename(Dir);
@@ -356,8 +367,8 @@ class FSandboxFileModule : public IPlatformFileModule
 public:
 	virtual IPlatformFile* GetPlatformFile() override
 	{
-		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FSandboxPlatformFile(true));
-		return AutoDestroySingleton.GetOwnedPointer();
+		static TUniquePtr<IPlatformFile> AutoDestroySingleton = MakeUnique<FSandboxPlatformFile>(true);
+		return AutoDestroySingleton.Get();
 	}
 };
 IMPLEMENT_MODULE(FSandboxFileModule, SandboxFile);

@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
 using System.Text;
 
+[SupportedPlatforms(UnrealTargetPlatform.Win32)]
 public class UnrealCodeAnalyzerTarget : TargetRules
 {
 	public UnrealCodeAnalyzerTarget(TargetInfo Target)
@@ -86,11 +87,5 @@ public class UnrealCodeAnalyzerTarget : TargetRules
 
 			OutCPPEnvironmentConfiguration.AdditionalArguments += ExtraArguments.ToString();
 		}
-	}
-
-	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-	{
-		OutPlatforms.Add(UnrealTargetPlatform.Win32);
-		return true;
 	}
 }

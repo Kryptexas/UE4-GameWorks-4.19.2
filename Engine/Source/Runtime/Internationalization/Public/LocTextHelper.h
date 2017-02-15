@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/EnumClassFlags.h"
 #include "Internationalization/InternationalizationManifest.h"
 #include "Internationalization/InternationalizationArchive.h"
-#include "Internationalization/InternationalizationMetadata.h"
+
+class FLocMetadataObject;
 
 /** Flags controlling the behavior used when loading manifests and archives into FLocTextHelper */
 enum class ELocTextHelperLoadFlags : uint8
@@ -161,6 +164,16 @@ public:
 	 * @param InLocFileNotifies		Interface for allowing source control integration (may be null).
 	 */
 	FLocTextHelper(FString InTargetPath, FString InManifestName, FString InArchiveName, FString InNativeCulture, TArray<FString> InForeignCultures, TSharedPtr<ILocFileNotifies> InLocFileNotifies);
+
+	/**
+	 * @return Get the culture code of the native culture (eg, en), or an empty string if the native culture is unknown.
+	 */
+	const FString& GetNativeCulture() const;
+
+	/**
+	 * @return Get an array of culture codes for the foreign cultures (does not include the native culture).
+	 */
+	const TArray<FString>& GetForeignCultures() const;
 
 	/**
 	 * Check to see whether we've loaded the manifest.
@@ -557,6 +570,17 @@ public:
 	 * @param bSkipSourceCheck		True to skip the source check and just return any matching translation.
 	 */
 	void GetRuntimeText(const FString& InCulture, const FString& InNamespace, const FString& InKey, const TSharedPtr<FLocMetadataObject> InKeyMetadataObj, const ELocTextExportSourceMethod InSourceMethod, const FLocItem& InSource, FLocItem& OutTranslation, const bool bSkipSourceCheck) const;
+
+	/**
+	 * Add a new conflict entry.
+	 *
+	 * @param InNamespace			The namespace of the entry.
+	 * @param InKey					The key/identifier of the entry.
+	 * @param InKeyMetadata			Entry Metadata keys.
+	 * @param InSource				The source info for the conflict.
+	 * @param InSourceLocation		The source location of the conflict.
+	 */
+	void AddConflict(const FString& InNamespace, const FString& InKey, const TSharedPtr<FLocMetadataObject>& InKeyMetadata, const FLocItem& InSource, const FString& InSourceLocation);
 
 	/**
 	 * Get a conflict report that can be easily saved as a report summary.

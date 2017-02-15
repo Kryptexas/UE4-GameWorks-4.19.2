@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SystemSettings.cpp: Unreal engine HW compat scalability system.
@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "ShowFlags.h"
 
 /** 

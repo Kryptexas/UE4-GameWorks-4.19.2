@@ -60,7 +60,7 @@ The current games do not contain this function, as the UEBuildGame class takes c
 
 Here is the ShaderCompileWorker.Target.cs file as a complete example:
 
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 	using UnrealBuildTool;
 	using System.Collections.Generic;

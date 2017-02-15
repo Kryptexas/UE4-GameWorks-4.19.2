@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneRendering.h: Scene rendering definitions.
@@ -6,11 +6,35 @@
 
 #pragma once
 
-#include "TextureLayout.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "Stats/Stats.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "Templates/ScopedPointer.h"
+#include "UniformBuffer.h"
+#include "GlobalDistanceFieldParameters.h"
+#include "SceneView.h"
+#include "RendererInterface.h"
+#include "BatchedElements.h"
+#include "MeshBatch.h"
+#include "SceneManagement.h"
+#include "PrimitiveSceneInfo.h"
+#include "GlobalShader.h"
+#include "ShadowRendering.h"
+#include "PrimitiveViewRelevance.h"
 #include "DistortionRendering.h"
 #include "CustomDepthRendering.h"
 #include "HeightfieldLighting.h"
 #include "GlobalDistanceFieldParameters.h"
+#include "UniquePtr.h"
+
+class FScene;
+class FSceneViewState;
+class FViewInfo;
+struct FILCUpdatePrimTaskData;
+
+template<typename ShaderMetaType> class TShaderMap;
 
 // Forward declarations.
 class FPostprocessContext;
@@ -308,7 +332,7 @@ public:
 	* @param PhaseSortedPrimitives - array with the primitives we want to draw
 	* @param TranslucenyPassType
 	*/
-	void DrawPrimitives(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType) const;
+	void DrawPrimitives(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType) const;
 
 	/**
 	* Iterate over the sorted list of prims and draw them
@@ -318,7 +342,7 @@ public:
 	* @param FirstPrimIdx, range of elements to render (included), index into SortedPrims[] after sorting
 	* @param LastPrimIdx, range of elements to render (included), index into SortedPrims[] after sorting
 	*/
-	void DrawPrimitivesParallel(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 FirstPrimIdx, int32 LastPrimIdx) const;
+	void DrawPrimitivesParallel(FRHICommandList& RHICmdList, const class FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 FirstPrimIdx, int32 LastPrimIdx) const;
 
 	/**
 	* Draw a single primitive...this is used when we are rendering in parallel and we need to handlke a translucent shadow
@@ -327,14 +351,14 @@ public:
 	* @param TranslucenyPassType
 	* @param PrimIdx in SortedPrims[]
 	*/
-	void DrawAPrimitive(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 PrimIdx) const;
+	void DrawAPrimitive(FRHICommandList& RHICmdList, const class FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 PrimIdx) const;
 
 	/** 
 	* Draw all the primitives in this set for the mobile pipeline. 
 	* @param bRenderSeparateTranslucency - If false, only primitives with materials without mobile separate translucency enabled are rendered. Opposite if true.
 	*/
 	template <class TDrawingPolicyFactory>
-	void DrawPrimitivesForMobile(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, typename TDrawingPolicyFactory::ContextType& DrawingContext) const;
+	void DrawPrimitivesForMobile(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, typename TDrawingPolicyFactory::ContextType& DrawingContext) const;
 
 	/**
 	* Insert a primitive to the translucency rendering list[s]
@@ -382,7 +406,7 @@ private:
 
 
 	/** Renders a single primitive for the deferred shading pipeline. */
-	void RenderPrimitive(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance, const FProjectedShadowInfo* TranslucentSelfShadow, ETranslucencyPass::Type TranslucenyPassType) const;
+	void RenderPrimitive(FRHICommandList& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance, const FProjectedShadowInfo* TranslucentSelfShadow, ETranslucencyPass::Type TranslucenyPassType) const;
 };
 
 template <> struct TIsPODType<FTranslucentPrimSet::FTranslucentSortedPrim> { enum { Value = true }; };
@@ -492,6 +516,7 @@ class FParallelCommandListSet
 {
 public:
 	const FViewInfo& View;
+	FDrawingPolicyRenderState DrawRenderState;
 	FRHICommandListImmediate& ParentCmdList;
 	FSceneRenderTargets* Snapshot;
 	TStatId	ExecuteStat;
@@ -531,21 +556,35 @@ public:
 
 	virtual void SetStateOnCommandList(FRHICommandList& CmdList)
 	{
-
+		DrawRenderState.ReassignResetRHICmdList(&CmdList);
 	}
 	static void WaitForTasks();
 private:
 	void WaitForTasksInternal();
 };
 
+enum EVolumeUpdateType
+{
+	VUT_MeshDistanceFields = 1,
+	VUT_Heightfields = 2,
+	VUT_All = VUT_MeshDistanceFields | VUT_Heightfields
+};
+
 class FVolumeUpdateRegion
 {
 public:
+
+	FVolumeUpdateRegion() :
+		UpdateType(VUT_All)
+	{}
+
 	/** World space bounds. */
 	FBox Bounds;
 
 	/** Number of texels in each dimension to update. */
 	FIntVector CellsSize;
+
+	EVolumeUpdateType UpdateType;
 };
 
 class FGlobalDistanceFieldClipmap
@@ -657,7 +696,7 @@ public:
 	FSceneViewState* ViewState;
 
 	/** Cached view uniform shader parameters, to allow recreating the view uniform buffer without having to fill out the entire struct. */
-	TScopedPointer<FViewUniformShaderParameters> CachedViewUniformShaderParameters;
+	TUniquePtr<FViewUniformShaderParameters> CachedViewUniformShaderParameters;
 
 	/** A map from primitive ID to a boolean visibility value. */
 	FSceneBitArray PrimitiveVisibilityMap;
@@ -762,7 +801,10 @@ public:
 	FVector4 ExponentialFogParameters;
 	FVector ExponentialFogColor;
 	float FogMaxOpacity;
-	FVector2D ExponentialFogParameters3;
+	FVector4 ExponentialFogParameters3;
+
+	UTexture* FogInscatteringColorCubemap;
+	FVector FogInscatteringTextureParameters;
 
 	/** Parameters for directional inscattering of exponential height fog. */
 	bool bUseDirectionalInscattering;
@@ -917,6 +959,19 @@ public:
 	/** Informs sceneinfo that eyedaptation has queued commands to compute it at least once */
 	void SetValidEyeAdaptation() const;
 
+	/** Informs sceneinfo that tonemapping LUT has queued commands to compute it at least once */
+	void SetValidTonemappingLUT() const;
+
+	/** Gets the tonemapping LUT texture, previously computed by the CombineLUTS post process,
+	* for stereo rendering, this will force the post-processing to use the same texture for both eyes*/
+	const FTextureRHIRef* GetTonemappingLUTTexture() const;
+
+	/** Gets the rendertarget that will be populated by CombineLUTS post process 
+	* for stereo rendering, this will force the post-processing to use the same render target for both eyes*/
+	FSceneRenderTargetItem* GetTonemappingLUTRenderTarget(FRHICommandList& RHICmdList, const int32 LUTSize, const bool bUseVolumeLUT) const;
+	
+
+
 	/** Instanced stereo and multi-view only need to render the left eye. */
 	bool ShouldRenderView() const 
 	{
@@ -936,39 +991,6 @@ public:
 		{
 			return false;
 		}
-	}
-
-	FORCEINLINE_DEBUGGABLE FMeshDrawingRenderState GetDitheredLODTransitionState(const FStaticMesh& Mesh, const bool bAllowStencil = false) const
-	{
-		FMeshDrawingRenderState DrawRenderState(EDitheredLODState::None, bAllowStencil);
-
-		if (Mesh.bDitheredLODTransition)
-		{
-			if (StaticMeshFadeOutDitheredLODMap[Mesh.Id])
-			{
-				if (bAllowStencil)
-				{
-					DrawRenderState.DitheredLODState = EDitheredLODState::FadeOut;
-				}
-				else
-				{
-					DrawRenderState.DitheredLODTransitionAlpha = GetTemporalLODTransition();
-				}
-			}
-			else if (StaticMeshFadeInDitheredLODMap[Mesh.Id])
-			{
-				if (bAllowStencil)
-				{
-					DrawRenderState.DitheredLODState = EDitheredLODState::FadeIn;
-			}
-				else
-				{
-					DrawRenderState.DitheredLODTransitionAlpha = GetTemporalLODTransition() - 1.0f;
-		}
-			}
-		}
-
-		return DrawRenderState;
 	}
 
 	inline FVector GetPrevViewDirection() const { return PrevViewMatrices.GetViewMatrix().GetColumn(2); }
@@ -1326,12 +1348,6 @@ protected:
 	/** Performs once per frame setup prior to visibility determination. */
 	void PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdList);
 
-	/** Performs once per frame temporal sampling setup. */
-	void TemporalSamplingSetup(FRHICommandListImmediate& RHICmdList);
-
-	/** Performs once per frame view RHI resource initialization. */
-	void InitViewsRHIResources(FRHICommandListImmediate& RHICmdList, const bool bDitheredLODTransitionsUseStencil);
-
 	/** Computes which primitives are visible and relevant for each view. */
 	void ComputeViewVisibility(FRHICommandListImmediate& RHICmdList);
 
@@ -1361,11 +1377,17 @@ protected:
 	void RenderCustomDepthPassAtLocation(FRHICommandListImmediate& RHICmdList, int32 Location);
 	void RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList);
 
-	void OnStartFrame();
+	void OnStartFrame(FRHICommandListImmediate& RHICmdList);
 
 	/** Renders the scene's distortion */
 	void RenderDistortion(FRHICommandListImmediate& RHICmdList);
 	void RenderDistortionES2(FRHICommandListImmediate& RHICmdList);
+
+	/** Composites the monoscopic far field view into the stereo views. */
+	void CompositeMonoscopicFarField(FRHICommandListImmediate& RHICmdList);
+
+	/** Renders a depth mask into the monoscopic far field view to ensure we only render visible pixels. */
+	void RenderMonoscopicFarFieldMask(FRHICommandListImmediate& RHICmdList);
 
 	static int32 GetRefractionQuality(const FSceneViewFamily& ViewFamily);
 
@@ -1390,7 +1412,7 @@ public:
 
 	virtual void RenderHitProxies(FRHICommandListImmediate& RHICmdList) override;
 
-	bool RenderInverseOpacity(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+	bool RenderInverseOpacity(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState);
 
 protected:
 	/** Finds the visible dynamic shadows for each view. */
@@ -1432,7 +1454,7 @@ protected:
 	void UpdatePostProcessUsageFlags();
 
 	/** Render inverse opacity for the dynamic meshes. */
-	bool RenderInverseOpacityDynamic(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+	bool RenderInverseOpacityDynamic(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState);
 	
 private:
 

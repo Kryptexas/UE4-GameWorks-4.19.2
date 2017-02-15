@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MeshRendering.h: Simple mesh rendering implementation.
@@ -6,10 +6,12 @@
 
 #pragma once
 
-struct FMaterialMergeData;
+#include "CoreMinimal.h"
+#include "SceneTypes.h"
+
 class FMaterialRenderProxy;
 class UTextureRenderTarget2D;
-struct FColor;
+struct FMaterialMergeData;
 
 /** Class used as an interface for baking materials to textures using mesh/vertex-data */
 class FMeshRenderer

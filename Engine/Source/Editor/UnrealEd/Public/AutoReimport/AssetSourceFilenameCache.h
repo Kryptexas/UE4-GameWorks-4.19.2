@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "AssetData.h"
+#include "EditorFramework/AssetImportData.h"
+
 class IAssetRegistry;
+
+template <class FKey, class FValue> class TSharedMapView;
 
 /** Class responsible for maintaing a cache of clean source file names (bla.txt) to asset data */
 class UNREALED_API FAssetSourceFilenameCache

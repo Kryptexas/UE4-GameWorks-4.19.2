@@ -1,14 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
-
-#include "ParticleDefinitions.h"
-#include "CompilerResultsLog.h"
-#include "CallFunctionHandler.h"
-#include "Particles/ParticleSystemComponent.h"
-#include "BlueprintEditorUtils.h"
-#include "ReleaseObjectVersion.h"
+#include "K2Node_AddComponent.h"
+#include "Components/ActorComponent.h"
+#include "Serialization/ObjectWriter.h"
+#include "Serialization/ObjectReader.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
+#include "Components/ChildActorComponent.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "UObject/ReleaseObjectVersion.h"
+#include "KismetCompilerMisc.h"
+#include "KismetCompiler.h"
+#include "BlueprintsObjectVersion.h" // for ComponentTemplateClassSupport
 
 #define LOCTEXT_NAMESPACE "K2Node_AddComponent"
 
@@ -26,6 +32,12 @@ const FString UK2Node_AddComponent::ComponentTemplateNamePrefix(TEXT("NODE_Add")
 
 void UK2Node_AddComponent::Serialize(FArchive& Ar)
 {
+	if (!TemplateType && Ar.IsSaving() && GetLinkerCustomVersion(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::ComponentTemplateClassSupport)
+	{
+		UActorComponent* Template = GetTemplateFromNode();
+		TemplateType = Template ? Template->GetClass() : nullptr;
+	}
+
 	Super::Serialize(Ar);
 
 	if (Ar.IsLoading())
@@ -34,6 +46,7 @@ void UK2Node_AddComponent::Serialize(FArchive& Ar)
 		{
 			if (Ar.IsPersistent() && !Ar.HasAnyPortFlags(PPF_Duplicate | PPF_DuplicateForPIE))
 			{
+				UBlueprint* Blueprint = GetBlueprint();
 				UActorComponent* Template = GetTemplateFromNode();
 
 				// Fix up old "generic" template names to conform to the new unique naming convention.
@@ -88,9 +101,7 @@ void UK2Node_AddComponent::AllocatePinsForExposedVariables()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	const UActorComponent* TemplateComponent = GetTemplateFromNode();
-	const UClass* ComponentClass = TemplateComponent ? TemplateComponent->GetClass() : nullptr;
-
+	const UClass* ComponentClass = GetSpawnedType();
 	if (ComponentClass != nullptr)
 	{
 		const UObject* ClassDefaultObject = ComponentClass ? ComponentClass->ClassDefaultObject : nullptr;
@@ -144,10 +155,15 @@ FName UK2Node_AddComponent::GetAddComponentFunctionName()
     return AddComponentFunctionName;
 }
 
-const UClass* UK2Node_AddComponent::GetSpawnedType() const
+UClass* UK2Node_AddComponent::GetSpawnedType() const
 {
+	if (TemplateType != nullptr)
+	{
+		return TemplateType;
+	}
+	
 	const UActorComponent* TemplateComponent = GetTemplateFromNode();
-	return TemplateComponent ? TemplateComponent->GetClass() : NULL;
+	return TemplateComponent ? TemplateComponent->GetClass() : nullptr;
 }
 
 void UK2Node_AddComponent::AllocateDefaultPinsWithoutExposedVariables()
@@ -185,14 +201,26 @@ void UK2Node_AddComponent::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin
 	AllocatePinsForExposedVariables();
 }
 
+void UK2Node_AddComponent::PostReconstructNode()
+{
+	Super::PostReconstructNode();
+
+	// Set the return type to the right class of component
+	UEdGraphPin* ReturnPin = GetReturnValuePin();
+	UClass* ComponentClass = GetSpawnedType();
+	if (ReturnPin && ComponentClass)
+	{
+		ReturnPin->PinType.PinSubCategoryObject = ComponentClass->GetAuthoritativeClass();
+	}
+}
+
 void UK2Node_AddComponent::ValidateNodeDuringCompilation(FCompilerResultsLog& MessageLog) const
 {
 	Super::ValidateNodeDuringCompilation(MessageLog);
 
-	UActorComponent* Template = GetTemplateFromNode();
-	if (Template)
+	const UClass* TemplateClass = GetSpawnedType();
+	if (TemplateClass)
 	{
-		UClass* TemplateClass = Template->GetClass();
 		if (!TemplateClass->IsChildOf(UActorComponent::StaticClass()) || TemplateClass->HasAnyClassFlags(CLASS_Abstract) || !TemplateClass->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent) )
 		{
 			FFormatNamedArguments Args;
@@ -201,7 +229,7 @@ void UK2Node_AddComponent::ValidateNodeDuringCompilation(FCompilerResultsLog& Me
 			MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "InvalidComponentTemplate_Error", "Invalid class '{TemplateClass}' used as template by '{NodeTitle}' for @@"), Args).ToString(), this);
 		}
 
-		if (UChildActorComponent const* ChildActorComponent = Cast<UChildActorComponent const>(Template))
+		if (UChildActorComponent const* ChildActorComponent = Cast<UChildActorComponent const>(GetTemplateFromNode()))
 		{
 			UBlueprint const* Blueprint = GetBlueprint();
 
@@ -228,7 +256,15 @@ void UK2Node_AddComponent::ValidateNodeDuringCompilation(FCompilerResultsLog& Me
 				{
 					FFormatNamedArguments Args;
 					Args.Add(TEXT("ChildActorClass"), FText::FromString(ChildActorClass->GetName()));
-					MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "AddStaticChildActorComponent_Error", "@@ cannot add a '{ChildActorClass}' component as it has static mobility, and the ChildActorComponent does not."), Args).ToString(), this);
+
+					if (IsRunningDedicatedServer())
+					{
+						MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "StrippedComponentTemplate_Error", "Unknown template referenced by '{NodeTitle}' for @@ - Please resave the blueprint to correct this."), Args).ToString(), this);
+					}
+					else
+					{
+						MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "MissingComponentTemplate_Error", "Unknown template referenced by '{NodeTitle}' for @@"), Args).ToString(), this);
+					}
 				}
 			}
 		}
@@ -375,6 +411,20 @@ bool UK2Node_AddComponent::IsCompatibleWithGraph(UEdGraph const* Graph) const
 {
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);
 	return (Blueprint != nullptr) && FBlueprintEditorUtils::IsActorBased(Blueprint) && Super::IsCompatibleWithGraph(Graph);
+}
+
+void UK2Node_AddComponent::ReconstructNode()
+{
+	Super::ReconstructNode();
+
+	if (GetLinkerCustomVersion(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::ComponentTemplateClassSupport)
+	{
+		UActorComponent* Template = GetTemplateFromNode();
+		if (Template != nullptr)
+		{
+			TemplateType = Template->GetClass();
+		}
+	}
 }
 
 void UK2Node_AddComponent::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)

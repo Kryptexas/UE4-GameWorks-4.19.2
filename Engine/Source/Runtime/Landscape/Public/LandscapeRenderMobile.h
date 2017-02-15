@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 LandscapeRenderMobile.h: Mobile landscape rendering
@@ -6,9 +6,12 @@ LandscapeRenderMobile.h: Mobile landscape rendering
 
 #pragma once
 
-#include "Landscape.h"
-
-class FLandscapeComponentSceneProxyMobile;
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "RenderResource.h"
+#include "VertexFactory.h"
+#include "LandscapeRender.h"
+#include "Runtime/Landscape/Private/LandscapePrivate.h"
 
 #define LANDSCAPE_MAX_ES_LOD_COMP	2
 #define LANDSCAPE_MAX_ES_LOD		6

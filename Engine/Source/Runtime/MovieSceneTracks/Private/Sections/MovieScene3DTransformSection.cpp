@@ -1,9 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieScene3DTransformSection.h"
-#include "MovieScene3DTransformTrack.h"
-
+#include "Sections/MovieScene3DTransformSection.h"
+#include "UObject/StructOnScope.h"
+#include "Evaluation/MovieScene3DTransformTemplate.h"
 
 /* FMovieScene3DLocationKeyStruct interface
  *****************************************************************************/
@@ -95,7 +94,9 @@ UMovieScene3DTransformSection::UMovieScene3DTransformSection(const FObjectInitia
 #if WITH_EDITORONLY_DATA
 	, Show3DTrajectory(EShow3DTrajectory::EST_OnlyWhenSelected)
 #endif
-{ }
+{
+	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::KeepState);
+}
 
 
 /* UMovieScene3DTransformSection interface
@@ -127,7 +128,8 @@ void UMovieScene3DTransformSection::EvalScale(float Time, FVector& InOutScale) c
 /**
  * Chooses an appropriate curve from an axis and a set of curves
  */
-static FRichCurve* ChooseCurve(EAxis::Type Axis, FRichCurve* Curves)
+template<typename T>
+static T* ChooseCurve(EAxis::Type Axis, T* Curves)
 {
 	switch(Axis)
 	{
@@ -153,13 +155,31 @@ FRichCurve& UMovieScene3DTransformSection::GetTranslationCurve(EAxis::Type Axis)
 }
 
 
+const FRichCurve& UMovieScene3DTransformSection::GetTranslationCurve(EAxis::Type Axis) const
+{
+	return *ChooseCurve(Axis, Translation);
+}
+
+
 FRichCurve& UMovieScene3DTransformSection::GetRotationCurve(EAxis::Type Axis)
 {
 	return *ChooseCurve(Axis, Rotation);
 }
 
 
+const FRichCurve& UMovieScene3DTransformSection::GetRotationCurve(EAxis::Type Axis) const
+{
+	return *ChooseCurve(Axis, Rotation);
+}
+
+
 FRichCurve& UMovieScene3DTransformSection::GetScaleCurve(EAxis::Type Axis)
+{
+	return *ChooseCurve(Axis, Scale);
+}
+
+
+const FRichCurve& UMovieScene3DTransformSection::GetScaleCurve(EAxis::Type Axis) const
 {
 	return *ChooseCurve(Axis, Scale);
 }
@@ -562,4 +582,9 @@ void UMovieScene3DTransformSection::ClearDefaults()
 	Scale[0].ClearDefaultValue();
 	Scale[1].ClearDefaultValue();
 	Scale[2].ClearDefaultValue();
+}
+
+FMovieSceneEvalTemplatePtr UMovieScene3DTransformSection::GenerateTemplate() const
+{
+	return FMovieScene3DTransformSectionTemplate(*this);
 }

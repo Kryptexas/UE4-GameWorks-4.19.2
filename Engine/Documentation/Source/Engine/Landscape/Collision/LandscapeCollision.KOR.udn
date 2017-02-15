@@ -1,56 +1,85 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability: Public
-Title:Landscape Collision Guide
+Title:랜드스케이프 콜리전
 Crumbs: %ROOT%, Engine, Engine/Landscape
-Description:Collision settings for Landscape.
+Description:랜드스케이프의 콜리전 세팅 안내서입니다.
 version: 4.12
+parent:Engine/Landscape
+order:7
 
-
-
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](Engine/Landscape/Landscape_Collision_Banner.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Collision:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Collision]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](Engine/Landscape/Landscape_Collision_Banner.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Collision:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Collision:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Collision]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [TOC(start:2 end:3)]
 
 
-## Landscape Collision 
+## 랜드스케이프 콜리전
 
-The Unreal Engine 4 (UE4) Landscape system enables you to specify the detail level of the geometry used for both simple and complex collisions for the entire Landscape as a whole or on a per-Component basis. In the following sections, we will go over how to use the system as well as any relevant information you must know before using this in your UE4 projects.
+언리얼 엔진 4 (UE4) 랜드스케이프 시스템은 전체 랜드스케이프의 단순 및 복합 콜리전 양쪽에 사용되는 지오메트리의 디테일 수준을 전체 단위로 혹은 컴포넌트 단위로 지정할 수 있습니다. 여기서는 시스템 사용법과 아울러 UE4 프로젝트에서 활용하는 데 관련된 정보에 대해서도 다루도록 하겠습니다.
 
 [region:note]
-For this example, we are using the Landscape Mountains project that can be found in the Learn tab of the UE4 Launcher.
+이 예제에서는 UE4 런처의 학습 탭에서 받을 수 있는 Landscape Mountains (랜드스케이프 산악) 프로젝트를 사용합니다.
 [/region]
 
-### Collision Mip Level
+### 콜리전 밉 레벨
 
-If you select any Landscape Actor that has been placed in a level and go to the **Details** panel, under the **Collision** section you will find two settings called **Collision Mip Level** and **Simple Collision Mip Level**.
+레벨에 배치된 랜드스케이프 액터를 선택하고 **디테일** 패널로 가 보면, **Collision** (콜리전) 섹션 아래 **Collision Mip Level** (콜리전 밉 레벨)과 **Simple Collision Mip Level** (단순 콜리전 밉 레벨)이라는 옵션을 둘 볼 수 있습니다.
 
 | --- | --- |
-| **Collision Mip Level** | The Collision Mip Level sets the complexity of the **Complex** collision that is used for the Landscape. Setting Collision Mip Level to **0**, the default,  will give you a very accurate Landscape collision at the expense of memory. Setting this value to **5**, the maximum setting, will make the Landscape collision cheaper, but the accuracy of the collision will suffer.  [INCLUDE:Engine\Landscape\\Collision\#VC] |
-| **Simple Collision Mip Level** | The Simple Collision Mip Level sets the complexity of the **Simple** collision that is used for the Landscape. Setting Simple Collision Mip Level to **0**, the default,  will give you a very accurate Landscape collision at the expense of memory. Setting this value to **5**, the maximum setting, will make the Landscape collision cheaper, but the accuracy of the collision will suffer. [INCLUDE:Engine\Landscape\\Collision\#PC] |
+| **Collision Mip Level** | 콜리전 밉 레벨 - 랜드스케이프에 사용되는 **Complex** (복합) 콜리전의 복잡도를 설정합니다. 이 값을 **0** (기본값)으로 설정하면 매우 정확한 랜드스케이프 콜리전이 나오는 대신 메모리 비용이 높습니다. 최대치인 **5** 로 설정하면, 랜드스케이프 콜리전 비용이 낮아지지만, 콜리전 정확도가 떨어집니다. [INCLUDE:Engine\Landscape\\Collision\#VC] |
+| **Simple Collision Mip Level** | 단순 콜리전 밉 레벨 - 랜드스케이프에 사용되는 **Simple** (단순) 콜리전 복잡도를 설정합니다. 이 값을 **0** (기본값)으로 설정하면, 매우 정확한 랜드스케이프 콜리전이 나오는 대신 메모리 비용이 높습니다. 치ㅗ대치인 **5** 로 설정하면 랜드스케이프 콜리전 비용이 낮아지지만, 콜리전 정확도가 떨어집니다. [INCLUDE:Engine\Landscape\\Collision\#PC] |
 
-### Viewing Collision Mip Level 
+### 콜리전 밉 레벨 보기
 
-You can visualize the Landscape collision geometry using the Collision Viewmodes. To enable the collision view mode, go to the **View Mode** menu in the Editor viewport toolbar, under the **Collision** section, select either **Player Collision**  or **Visibility Collision**.
+콜리전 뷰모드로 랜드스케이프 콜리전 지오메트리를 시각화시킬 수 있습니다. 콜리전 뷰모드를 켜려면, 에디터 뷰포트 툴바의 **뷰 모드** 메뉴로 가서, **Collision** (콜리전) 섹션 아래 **Player Collision** (플레이어 콜리전) 또는 **Visibility Collision** (비저빌리티 콜리전)을 선택합니다.
 
 ![](LSC_00.png)(convert:false)
 
 | --- | --- |
-| **Player Collision** | The **Player Collision** view mode displays the Simple Collision Mip Level. ![](CML_Player_Collision.png)(w:640) |
-| **Visibility Collision** | The **Visibility Collision** view mode displays the Collision Mip Level. ![](CML_Vis_Collision.png)(w:640) |
+| **Player Collision** | 플레이어 콜리전 - 단순 콜리전 밉 레벨을 표시합니다. ![](CML_Player_Collision.png)(w:640) |
+| **Visibility Collision** | 비저빌리티 콜리전 - 콜리전 밉 레벨을 표시합니다. ![](CML_Vis_Collision.png)(w:640) |
 
-### Adjusting the Landscape Collision Mip Level
+### 랜드스케이프 콜리전 밉 레벨 조절
 
-To set the complexity for both simple and complex Landscape collision you will need to do the following:
+단순과 복합 랜드스케이프 콜리전 양쪽의 복잡도를 설정하는 방법은 다음과 같습니다:
 
-1. Select your Landscape Terrain in the Editor viewport. In the **Details** panel, expand the **Collision** section.
+1. 에디터 뷰포트에서 랜드스케이프 터레인을 선택합니다. **디테일** 패널에서 **Collision** (콜리전) 섹션을 펼칩니다.
 
 	[REGION:lightbox]
 	[![](LSC_01.png)(convert:false)](LSC_01.png)
 	[/REGION]
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 확인합니다.
 	[/REGION]
 
-1. Under the **Collision** section, find the **Collision Mip Level** option. Set the value  from **0** to **5** and then press the **Enter** key to apply the change. The gray collision mesh in the level updates automatically to reflect the changes.
+1. **Collision** (콜리전) 섹션 아래 **Collision Mip Level** (콜리전 밉 레벨) 옵션을 찾습니다. **0** 이던 이 값을 **5** 로 설정한 뒤 **Enter** 키를 쳐 변경사항을 적용합니다. 레벨의 회색 콜리전 메시는 변경사항을 반영하도록 자동 업데이트됩니다.
 
 	[OBJECT:ComparisonSlider]
 		[PARAM:before]
@@ -62,24 +91,24 @@ To set the complexity for both simple and complex Landscape collision you will n
 	[/OBJECT]
 
 
-### Mixing Collision Mip Level Options 
+### 콜리전 밉 레벨 옵션 혼합
 
-You can set the complexity of both the simple and complex Landscape collision meshes to provide a better balance between performance and accuracy. To set the simple and complex collision levels independently in your project you will need to do the following:
+단순 및 복합 랜드스케이프 콜리전 메시 둘 다의 복잡도를 설정하여 퍼포먼스와 정확도 사이의 균형을 더욱 잘 맞출 수도 있습니다. 프로젝트에서 단순 및 복합 콜리전 레벨을 독립적으로 설정하는 방법은 다음과 같습니다:
 
-1. Select your Landscape and in the **Details** panel and expand the **Collision** section.
+1. 랜드스케이프를 선택하고 **디테일** 패널에서 **Collision** (콜리전) 섹션을 펼칩니다.
 
 	[REGION:lightbox]
 	[![](LSC_01.png)(convert:false)](LSC_01.png)
 	[/REGION]
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 확인합니다.
 	[/REGION]
 
-1. Set the **Collision Mip Level** to a value of **0** and **Simple Collision Mip Level** to a value of **2**.
+1. **Collision Mip Level** (콜리전 밉 레벨)을 0 으로, **Simple Collision Mip Level** (단순 콜리전 밉 레벨)을 **2** 로 설정합니다.
 
 	![](LSC_04.png)
 
-In the following image comparison, you can see what happens to the Landscape collision when the Collision Mip Level and Simple Collision Mip Level are set to different values.
+다음 비교 이미지에서 콜리전 밉 레벨과 단순 콜리전 밉 레벨을 다른 값으로 설정하면 랜드스케이프 콜리전에 어떤 일이 벌어지는지 확인할 수 있습니다.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -91,42 +120,42 @@ In the following image comparison, you can see what happens to the Landscape col
 [/OBJECT]
 
 [region:note]
-For most cases, you will want to leave the **Collision Mip Level** at 0 and then use 1 or 2 for the **Simple Collision Mip Level**. Using any higher numbers will start to show inaccuracies between the player and collision.
+대부분의 경우, **콜리전 밉 레벨** 은 0 으로 놔두고 **단순 콜리전 밉 레벨** 에 1 또는 2 를 사용하는 것이 좋습니다. 수치를 높이면 플레이어와 콜리전 사이 정확도가 떨어지기 시작합니다.
 [/region]
 
 
-### Setting Collision Mip Level Per Landscape Components
+### 랜드스케이프 컴포넌트 별 콜리전 밉 레벨 설정
 
-You can set the Collision Mip Level collision for individual Landscape Components which enables you to reduce the Landscape collision complexity even further in non-playable areas of the level.
+랜드스케이프 컴포넌트 단위로 콜리전 밉 레벨을 설정하여 레벨에 플레이어가 갈 수 없는 지역에 대해서 랜드스케이프 콜리전 복잡도를 한 층 더 낮출 수 있습니다.
 
 
- To set the Collision Mip Level for an individual component in your project, you will need to do the following:
+ 프로젝트에서 개별 컴포넌트 단위로 콜리전 밉 레벨을 설정하는 방법은 다음과 같습니다:
 
-1. From the **Modes** panel, click on the Landscape option and select **Manage** mode.
+1. **모드** 패널에서 랜드스케이프 옵션을 클릭한 다음 **관리** 모드를 선택합니다.
 
 	![](CC_01.png)
 
-1. Select a few Landscape components by clicking on them with the **Left Mouse Button**. The selected Landscape Components are highlighted in red.
+1. 몇 개의 랜드스케이프 컴포넌트를 **좌클릭** 으로 선택합니다. 선택된 랜드스케이프 컴포넌트는 빨갛게 강조됩니다.
 
 	![](CC_02.png)
 
-1. In the **Details** panel, expand the **Landscape Component** section and change both the **Collision Mip Level** and **Simple Collision Mip Level** to **5**.
+1. **디테일** 패널에서, **Landscape Component** 섹션을 펼친 뒤 **Collision Mip Level** (콜리전 밉 레벨)과 **Simple Collision Mip Level** (단순 콜리전 밉 레벨) 둘 다 **5** 로 변경합니다.
 
 	![](CC_03.png)
 
-1. In the Landscape **Manage** section under **Tool Settings**, press the **Clear Component Selection** button to deselect any currently selected Landscape components.  
+1. 랜드스케이프 **관리** 섹션에서 **툴 세팅** 아래 **Clear Component Selection** (컴포넌트 선택 비우기) 버튼을 눌러 현재 랜드스케이프 컴포넌트 선택을 해제합니다.
 
 	![](Clear_Selected_Comps.png)
 
-1. Select a few more Landscape components and this time set both Collision Mip levels to a value of 2.
+1. 랜드스케이프 컴포넌트를 몇 개 더 선택한 뒤, 이번에는 두 콜리전 밉 레벨 모두 2 로 설정합니다.
 
 	![](CC_04.png)
 
-In the following image, the Collision Mip level for each of the four outlined Landscape Component has been set to a different level. 
+다음 이미지에서, 윤곽선이 있는 네 개의 랜드스케이프 컴포넌트 각각은 콜리전 밉 레벨이 각기 다르게 설정되었습니다.
 
 ![](CC_05.png)
 
-|Number| Collision Mip Level|
+|번호| 콜리전 밉 레벨|
 |----------|-------------------------|
 |1|3|
 |2|4|
@@ -148,7 +177,7 @@ In the following image, the Collision Mip level for each of the four outlined La
 	VC
 	[/PARAMLITERAL]
 	[PARAM:caption]
-	**Drag the slider to adjust the Collision Mip Level from 0 to 5**
+	**슬라이더를 끌면 콜리전 밉 레벨이 0 에서 5 까지 조절됩니다.**
 	[/PARAM]
 	[PARAM:image_list]
 	![](VC_1.png)(w:780)

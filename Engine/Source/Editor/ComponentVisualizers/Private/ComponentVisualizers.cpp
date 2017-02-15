@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "ComponentVisualizersPrivatePCH.h"
 #include "ComponentVisualizers.h"
+#include "Modules/ModuleManager.h"
+#include "Components/PrimitiveComponent.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Components/AudioComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Components/PointLightComponent.h"
+#include "Components/SpotLightComponent.h"
+#include "Components/DecalComponent.h"
+#include "PhysicsEngine/RadialForceComponent.h"
+#include "UnrealEdGlobals.h"
 
-#include "SoundDefinitions.h"
 #include "Perception/PawnSensingComponent.h"
 #include "PhysicsEngine/PhysicsSpringComponent.h"
 
@@ -14,23 +22,18 @@
 #include "ConstraintComponentVisualizer.h"
 #include "PhysicalAnimationComponentVisualizer.h"
 #include "SpringArmComponentVisualizer.h"
+#include "Components/SplineComponent.h"
 #include "SplineComponentVisualizer.h"
+#include "Components/SplineMeshComponent.h"
 #include "SplineMeshComponentVisualizer.h"
 #include "DecalComponentVisualizer.h"
 #include "SensingComponentVisualizer.h"
 #include "SpringComponentVisualizer.h"
-#include "PrimitiveComponentVisualizer.h"
 #include "StereoLayerComponentVisualizer.h"
-#include "Components/PointLightComponent.h"
-#include "Components/SpotLightComponent.h"
-#include "Components/AudioComponent.h"
-#include "PhysicsEngine/RadialForceComponent.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "PhysicsEngine/PhysicalAnimationComponent.h"
-#include "GameFramework/SpringArmComponent.h"
-#include "Components/SplineComponent.h"
-#include "Components/PrimitiveComponent.h"
 #include "Components/StereoLayerComponent.h"
+#include "ForceFeedbackComponentVisualizer.h"
 
 IMPLEMENT_MODULE( FComponentVisualizersModule, ComponentVisualizers );
 
@@ -39,6 +42,7 @@ void FComponentVisualizersModule::StartupModule()
 	RegisterComponentVisualizer(UPointLightComponent::StaticClass()->GetFName(), MakeShareable(new FPointLightComponentVisualizer));
 	RegisterComponentVisualizer(USpotLightComponent::StaticClass()->GetFName(), MakeShareable(new FSpotLightComponentVisualizer));
 	RegisterComponentVisualizer(UAudioComponent::StaticClass()->GetFName(), MakeShareable(new FAudioComponentVisualizer));
+	RegisterComponentVisualizer(UForceFeedbackComponent::StaticClass()->GetFName(), MakeShareable(new FForceFeedbackComponentVisualizer));
 	RegisterComponentVisualizer(URadialForceComponent::StaticClass()->GetFName(), MakeShareable(new FRadialForceComponentVisualizer));
 	RegisterComponentVisualizer(UPhysicsConstraintComponent::StaticClass()->GetFName(), MakeShareable(new FConstraintComponentVisualizer));
 	RegisterComponentVisualizer(UPhysicalAnimationComponent::StaticClass()->GetFName(), MakeShareable(new FPhysicsAnimationComponentVisualizer));
@@ -47,7 +51,6 @@ void FComponentVisualizersModule::StartupModule()
 	RegisterComponentVisualizer(USplineMeshComponent::StaticClass()->GetFName(), MakeShareable(new FSplineMeshComponentVisualizer));
 	RegisterComponentVisualizer(UPawnSensingComponent::StaticClass()->GetFName(), MakeShareable(new FSensingComponentVisualizer));
 	RegisterComponentVisualizer(UPhysicsSpringComponent::StaticClass()->GetFName(), MakeShareable(new FSpringComponentVisualizer));
-	RegisterComponentVisualizer(UPrimitiveComponent::StaticClass()->GetFName(), MakeShareable(new FPrimitiveComponentVisualizer));
 	RegisterComponentVisualizer(UDecalComponent::StaticClass()->GetFName(), MakeShareable(new FDecalComponentVisualizer));
 	RegisterComponentVisualizer(UStereoLayerComponent::StaticClass()->GetFName(), MakeShareable(new FStereoLayerComponentVisualizer));
 }

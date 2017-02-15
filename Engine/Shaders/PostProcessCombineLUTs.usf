@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LUTBlender.usf: Filter pixel shader source.
@@ -11,7 +11,6 @@
 #include "Common.usf"
 #include "PostProcessCommon.usf"
 #include "TonemapCommon.usf"
-#include "GammaCorrectionCommon.usf"
 
 // ---------------------------------------------------
 
@@ -220,7 +219,6 @@ float3 ColorGrade( float3 LinearColor )
 
 uint OutputDevice;
 uint OutputGamut;
-uint ACESInversion;
 
 uint GetOutputDevice()
 {
@@ -369,8 +367,8 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 		OutDeviceColor = LinearTo709Branchless( OutputGamutColor );
 	}
 
-	// r.Tonemapper2084 1 - ACES 1000nit transform with PQ/2084 encoding, user specified gamut 
-	else if( GetOutputDevice() == 3 )
+	// ACES 1000nit transform with PQ/2084 encoding, user specified gamut 
+	else if( GetOutputDevice() == 3 || GetOutputDevice() == 5 )
 	{		
 		// 1000 nit ODT
 		float3 ODTColor = ACESOutputTransforms1000( GradedColor );
@@ -382,8 +380,8 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 		OutDeviceColor = LinearToST2084( ODTColor );
 	}
 
-	// r.Tonemapper2084 2 - ACES 2000nit transform with PQ/2084 encoding, user specified gamut 
-	else if( GetOutputDevice() == 4 )
+	// ACES 2000nit transform with PQ/2084 encoding, user specified gamut 
+	else if( GetOutputDevice() == 4 || GetOutputDevice() == 6 )
 	{		
 		// 2000 nit ODT
 		float3 ODTColor = ACESOutputTransforms2000( GradedColor );
@@ -393,18 +391,6 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 
 		// Apply conversion to ST-2084 (Dolby PQ)
 		OutDeviceColor = LinearToST2084( ODTColor );
-	}
-
-	// r.Tonemapper2084 3 - Pseudo linearization of UE Tonemapped result with PQ/2084 encoding, user specified gamut 
-	else if( GetOutputDevice() == 5 )
-	{
-		float3 pseudoLinear = lerp( aces100nitFitInverse( FilmColorAP1 ), InverseACESOutputTransformsRGBD65( FilmColor ), ACESInversion);
-
-		// Convert from AP1 to specified output gamut
-		float3 OutputGamutColor = mul( AP1_2_Output, pseudoLinear );
-
-		// Apply conversion to ST-2084 (Dolby PQ)
-		OutDeviceColor = LinearToST2084( OutputGamutColor * 200. );
 	}
 
 	// OutputDevice == 2

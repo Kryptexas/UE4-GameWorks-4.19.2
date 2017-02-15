@@ -1,6 +1,5 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemPrivatePCH.h"
 #include "OnlineError.h"
 #include "OnlineSubsystemTypes.h"
 
@@ -38,7 +37,7 @@ void FOnlineError::SetFromErrorCode(const FString& ErrorCodeIn)
 FOnlineError::FOnlineError(const FText& ErrorMessageIn)
 	: bSucceeded(false)
 	, HttpResult(0)
-	, NumericErrorCode(0)
+	, NumericErrorCode(INDEX_NONE)
 {
 	SetFromErrorMessage(ErrorMessageIn);
 }

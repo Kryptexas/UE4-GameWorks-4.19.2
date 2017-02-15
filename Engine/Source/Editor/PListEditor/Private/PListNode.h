@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+
+class ITableRow;
+class SPListEditorPanel;
+class STableViewBase;
+class SWidget;
+struct FSlateBrush;
 
 /** Forward declaration for the panel which we will need to access in delegates */
 class SPListEditorPanel;

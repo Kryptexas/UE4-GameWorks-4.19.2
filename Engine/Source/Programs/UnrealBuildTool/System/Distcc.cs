@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -11,9 +11,14 @@ using System.Reflection;
 
 namespace UnrealBuildTool
 {
-	public class Distcc
+	public class Distcc : ActionExecutor
 	{
-		public static bool ExecuteActions(List<Action> Actions)
+		public override string Name
+		{
+			get { return "Distcc"; }
+		}
+
+		public override bool ExecuteActions(List<Action> Actions)
 		{
 			bool bDistccResult = true;
 			if (Actions.Count > 0)
@@ -242,34 +247,6 @@ namespace UnrealBuildTool
 						Path.GetFileName(Action.CommandPath),
 						Action.StatusDescription,
 						Action.bIsUsingPCH);
-
-					// Update statistics
-					switch (Action.ActionType)
-					{
-						case ActionType.BuildProject:
-							UnrealBuildTool.TotalBuildProjectTime += ThreadSeconds;
-							break;
-
-						case ActionType.Compile:
-							UnrealBuildTool.TotalCompileTime += ThreadSeconds;
-							break;
-
-						case ActionType.CreateAppBundle:
-							UnrealBuildTool.TotalCreateAppBundleTime += ThreadSeconds;
-							break;
-
-						case ActionType.GenerateDebugInfo:
-							UnrealBuildTool.TotalGenerateDebugInfoTime += ThreadSeconds;
-							break;
-
-						case ActionType.Link:
-							UnrealBuildTool.TotalLinkTime += ThreadSeconds;
-							break;
-
-						default:
-							UnrealBuildTool.TotalOtherActionsTime += ThreadSeconds;
-							break;
-					}
 
 					// Keep track of total thread seconds spent on tasks.
 					TotalThreadSeconds += ThreadSeconds;

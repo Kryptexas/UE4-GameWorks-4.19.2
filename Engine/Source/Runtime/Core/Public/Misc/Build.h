@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,14 +20,17 @@
 #ifndef UE_BUILD_SHIPPING
 	#define UE_BUILD_SHIPPING			0
 #endif
-#ifndef UE_BUILD_SHIPPING_EDITOR
-	#define UE_BUILD_SHIPPING_EDITOR	(#)
-#endif
 #ifndef UE_GAME
 	#define UE_GAME						0
 #endif
 #ifndef UE_EDITOR
 	#define UE_EDITOR					0
+#endif
+#ifndef UE_BUILD_SHIPPING_WITH_EDITOR
+	#define UE_BUILD_SHIPPING_WITH_EDITOR 0
+#endif
+#ifndef UE_BUILD_DOCS
+	#define UE_BUILD_DOCS				0
 #endif
 
 /** 

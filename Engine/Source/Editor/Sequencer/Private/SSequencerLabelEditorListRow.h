@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "EditorStyleSet.h"
 
 #define LOCTEXT_NAMESPACE "SSequencerLabelListRow"
-
 
 /**
  * Implements a row widget for the label browser tree view.

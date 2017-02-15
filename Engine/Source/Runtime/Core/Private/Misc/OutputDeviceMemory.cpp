@@ -1,12 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OutputDeviceMemory.cpp: Ring buffer (memory only) output device
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
 #include "Misc/OutputDeviceMemory.h"
-#include "OutputDeviceHelper.h"
+#include "HAL/PlatformTime.h"
+#include "HAL/PlatformOutputDevices.h"
+#include "HAL/FileManager.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/OutputDeviceFile.h"
+#include "Misc/OutputDeviceHelper.h"
 
 #define DUMP_LOG_ON_EXIT (!NO_LOGGING && PLATFORM_DESKTOP && (!UE_BUILD_SHIPPING || USE_LOGGING_IN_SHIPPING))
 

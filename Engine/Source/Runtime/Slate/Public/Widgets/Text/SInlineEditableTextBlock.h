@@ -1,7 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "SlateGlobals.h"
+#include "Styling/SlateColor.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Input/Reply.h"
+#include "Styling/SlateWidgetStyleAsset.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+#include "Framework/SlateDelegates.h"
+#include "Framework/Text/TextLayout.h"
+
+class FActiveTimerHandle;
+class IBreakIterator;
+class SEditableTextBox;
+class SHorizontalBox;
+class SMultiLineEditableTextBox;
+class STextBlock;
 
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnVerifyTextChanged, const FText&, FText&)
 DECLARE_DELEGATE_OneParam(FOnBeginTextEdit, const FText&)
@@ -114,6 +134,8 @@ class SLATE_API SInlineEditableTextBlock: public SCompoundWidget
 
 	/** Checks if the widget is in edit mode */
 	bool IsInEditMode() const;
+
+	void SetReadOnly(bool bInIsReadOnly);
 
 	void SetText( const TAttribute< FText >& InText );
 	void SetText( const FString& InText );

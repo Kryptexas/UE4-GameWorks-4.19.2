@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2940199
-Title:モバイル サービスの成績表を使用する
-Description:プレイヤーのエンゲージメントを高めるためにモバイルの成績表を使用する
+﻿INTSourceChangelist:3150518
+Title:モバイル サービスのアチーブメントを使用する
+Description:プレイヤーのエンゲージメントを高めるためにモバイルのアチーブメントを使用する
 Crumbs:
 Availability:Public
 Parent:Platforms/Mobile
 order:2
-type:howto
+type:how-to
 tags:mobile
 
 [VAR:Topic]
@@ -58,7 +58,7 @@ tags:mobile
 
 ## コンフィギュレーション
 
-各プラットフォームに対するインゲーム広告の設定の詳細については、プラットフォーム専用ページをご覧ください。
+各プラットフォームに対するアチーブメントの設定の詳細については、プラットフォーム専用ページをご覧ください。
 
 [REGION:buttonlist]
 * [](Platforms/Android/Achievements)

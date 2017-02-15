@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "ICursor.h"
+#include "Math/Vector2D.h"
 
 class FHTML5Cursor : public ICursor
 {
@@ -29,6 +30,7 @@ public:
 
 	virtual void Lock( const RECT* const Bounds ) override;
 
+	virtual void SetCustomShape(void* CursorHandle) override;
 
 private:
 	EMouseCursor::Type CurrentType;

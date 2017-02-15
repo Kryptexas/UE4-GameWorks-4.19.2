@@ -1,13 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/CoreNet.h"
+#include "Engine/NetSerialization.h"
+#include "Engine/EngineTypes.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
 #include "GameFramework/Pawn.h"
+#include "Animation/AnimationAsset.h"
 #include "GameFramework/RootMotionSource.h"
 #include "Character.generated.h"
 
-class UPawnMovementComponent;
+class AController;
+class FDebugDisplayInfo;
+class UAnimMontage;
+class UArrowComponent;
+class UCapsuleComponent;
 class UCharacterMovementComponent;
+class UPawnMovementComponent;
 class UPrimitiveComponent;
+class USkeletalMeshComponent;
+struct FAnimMontageInstance;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMovementModeChangedSignature, class ACharacter*, Character, EMovementMode, PrevMovementMode, uint8, PreviousCustomMode);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FCharacterMovementUpdatedSignature, float, DeltaSeconds, FVector, OldLocation, FVector, OldVelocity);
@@ -348,9 +366,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsCrouched, Category=Character)
 	uint32 bIsCrouched:1;
 
-	UPROPERTY( replicated )
-	uint32 bReplayHasRootMotionSources:1;
-
 	/** Handle Crouching replicated from server */
 	UFUNCTION()
 	virtual void OnRep_IsCrouched();
@@ -580,7 +595,7 @@ public:
 	virtual void NotifyJumpApex();
 
 	/** Broadcast when Character's jump reaches its apex. Needs CharacterMovement->bNotifyApex = true */
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintAssignable, Category="Pawn|Character")
 	FCharacterReachedApexSignature OnReachedJumpApex;
 
 	/**
@@ -700,8 +715,10 @@ public:
 	 */
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode = 0);
 
-	/** Native multicast delegate for MovementMode changing. */
+	/** Multicast delegate for MovementMode changing. */
+	UPROPERTY(BlueprintAssignable, Category="Pawn|Character")
 	FMovementModeChangedSignature MovementModeChangedDelegate;
+
 	/**
 	 * Called from CharacterMovementComponent to notify the character that the movement mode has changed.
 	 * @param	PrevMovementMode	Movement mode before the change
@@ -764,15 +781,15 @@ public:
 
 	UFUNCTION(reliable, client)
 	void ClientCheatWalk();
-	void ClientCheatWalk_Implementation();
+	virtual void ClientCheatWalk_Implementation();
 
 	UFUNCTION(reliable, client)
 	void ClientCheatFly();
-	void ClientCheatFly_Implementation();
+	virtual void ClientCheatFly_Implementation();
 
 	UFUNCTION(reliable, client)
 	void ClientCheatGhost();
-	void ClientCheatGhost_Implementation();
+	virtual void ClientCheatGhost_Implementation();
 
 	// Root Motion
 public:

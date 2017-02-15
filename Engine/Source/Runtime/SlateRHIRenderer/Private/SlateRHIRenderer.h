@@ -1,11 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FSlateRHIResourceManager;
-class FSlateRHIRenderingPolicy;
-class FSlateElementBatcher;
+#include "CoreMinimal.h"
+#include "Textures/SlateShaderResource.h"
+#include "Rendering/DrawElements.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "SlateRHIResourceManager.h"
+#include "UnrealClient.h"
+#include "Rendering/SlateRenderer.h"
+#include "Rendering/SlateDrawBuffer.h"
+#include "Slate/SlateTextures.h"
 
+class FSlateElementBatcher;
+class FSlateRHIRenderingPolicy;
+class ISlateStyle;
+class SWindow;
+struct Rect;
+
+template<typename TCmd> struct FRHICommand;
 
 // Number of draw buffers that can be active at any given time
 const uint32 NumDrawBuffers = 3;
@@ -90,6 +104,22 @@ private:
 		FViewportRHIRef ViewportRHI;
 		/** The depth buffer texture if any */
 		FTexture2DRHIRef DepthStencil;
+
+		// Buffers used in HDR compositing
+		/** sRGB UI render target */
+		FTexture2DRHIRef UITargetRT;
+		/** HDR source data */
+		FTexture2DRHIRef HDRSourceRT;
+		/** sRGB UI render target */
+		FTexture2DRHIRef UITargetSRV;
+		/** HDR source data */
+		FTexture2DRHIRef HDRSourceSRV;
+
+		/** Color-space LUT for HDR UI composition. */
+		FTexture3DRHIRef ColorSpaceLUTRT;
+		FTexture3DRHIRef ColorSpaceLUTSRV;
+		int32 ColorSpaceLUTOutputDevice;
+		int32 ColorSpaceLUTOutputGamut;
 		
 		//FTexture2DRHIRef RenderTargetTexture;
 		/** The OS Window handle (for recreating the viewport) */
@@ -108,6 +138,13 @@ private:
 		bool bFullscreen;
 		/** The desired pixel format for this viewport */
 		EPixelFormat PixelFormat;
+		/** The desired SDR pixel format for this viewport */
+		EPixelFormat SDRPixelFormat;
+		/** Color gamut for output to HDR display */
+		int32 HDRColorGamut;
+		/** Device format for output to HDR display */
+		int32 HDROutputDevice;
+
 		IViewportRenderTargetProvider* RTProvider;
 	
 		/** FRenderResource interface */
@@ -115,7 +152,9 @@ private:
 		virtual void ReleaseRHI() override;
 
 		FViewportInfo()
-			:	OSWindow(NULL), 
+			:	ColorSpaceLUTOutputDevice(0),
+				ColorSpaceLUTOutputGamut(0),
+				OSWindow(NULL), 
 				Width(0),
 				Height(0),
 				DesiredWidth(0),
@@ -123,6 +162,7 @@ private:
 				bRequiresStencilTest(false),
 				bFullscreen(false),
 				PixelFormat(EPixelFormat::PF_Unknown),
+				SDRPixelFormat(EPixelFormat::PF_Unknown),
 				RTProvider(nullptr)
 		{
 
@@ -131,6 +171,12 @@ private:
 		~FViewportInfo()
 		{
 			DepthStencil.SafeRelease();
+			UITargetRT.SafeRelease();
+			HDRSourceRT.SafeRelease();
+			UITargetSRV.SafeRelease();
+			HDRSourceSRV.SafeRelease();
+			ColorSpaceLUTRT.SafeRelease();
+			ColorSpaceLUTSRV.SafeRelease();
 		}
 
 		void ConditionallyUpdateDepthBuffer(bool bInRequiresStencilTest);
@@ -140,8 +186,12 @@ private:
 		{
 			if (RTProvider)
 			{
-				FSlateRenderTargetRHI* SlateTarget = (FSlateRenderTargetRHI*)(RTProvider->GetViewportRenderTargetTexture());
-				return SlateTarget->GetTypedResource();
+				FSlateShaderResource* RenderTargetTexture = RTProvider->GetViewportRenderTargetTexture();
+				if( RenderTargetTexture )
+				{
+					FSlateRenderTargetRHI* RHITarget = (FSlateRenderTargetRHI*)RenderTargetTexture;
+					return RHITarget->GetTypedResource();
+				}
 			}
 			return nullptr;
 		}
@@ -188,10 +238,12 @@ public:
 	virtual void ReleaseAccessedResources(bool bImmediatelyFlush) override;
 	virtual TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> CacheElementRenderData(const ILayoutCache* Cacher, FSlateWindowElementList& ElementList) override;
 	virtual void ReleaseCachingResourcesFor(const ILayoutCache* Cacher) override;
+	virtual int32 RegisterCurrentScene(FSceneInterface* Scene) override;
+	virtual int32 GetCurrentSceneIndex() const override;
+	virtual void ClearScenes() override;
 
 	/** Draws windows from a FSlateDrawBuffer on the render thread */
-	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FSlateRHIRenderer::FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear);
-
+	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, FSlateRHIRenderer::FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear);
 
 	/**
 	 * You must call this before calling CopyWindowsToVirtualScreenBuffer(), to setup the render targets first.
@@ -295,6 +347,10 @@ private:
 	bool bTakingAScreenShot;
 	FIntRect ScreenshotRect;
 	TArray<FColor>* OutScreenshotData;
+
+	/** These are state management variables for Scenes on the game thread. A similar copy exists on the RHI Rendering Policy for the rendering thread.*/
+	TArray<FSceneInterface*> ActiveScenes;
+	int32 CurrentSceneIndex;
 };
 
 struct FSlateEndDrawingWindowsCommand : public FRHICommand < FSlateEndDrawingWindowsCommand >

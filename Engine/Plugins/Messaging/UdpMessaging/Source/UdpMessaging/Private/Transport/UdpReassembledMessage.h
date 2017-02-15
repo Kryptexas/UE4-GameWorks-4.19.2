@@ -1,14 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-
-/** Type definition for shared pointers to instances of FUdpMessage. */
-typedef TSharedPtr<class FReassembledUdpMessage, ESPMode::ThreadSafe> FUdpReassembledMessagePtr;
-
-/** Type definition for shared references to instances of FUdpMessage. */
-typedef TSharedRef<class FReassembledUdpMessage, ESPMode::ThreadSafe> FUdpReassembledMessageRef;
-
+#include "CoreMinimal.h"
+#include "Interfaces/IPv4/IPv4Endpoint.h"
 
 /**
  * Implements a reassembled message.

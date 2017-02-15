@@ -1,25 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
 #include "SDetailsViewBase.h"
-#include "AssetSelection.h"
-#include "PropertyNode.h"
-#include "ItemPropertyNode.h"
-#include "CategoryPropertyNode.h"
+#include "GameFramework/Actor.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Presentation/PropertyEditor/PropertyEditor.h"
 #include "ObjectPropertyNode.h"
+#include "Modules/ModuleManager.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "IDetailCustomization.h"
+#include "SDetailsView.h"
+#include "DetailLayoutBuilderImpl.h"
+#include "DetailCategoryBuilderImpl.h"
+#include "CategoryPropertyNode.h"
 #include "ScopedTransaction.h"
-#include "AssetThumbnail.h"
 #include "SDetailNameArea.h"
-#include "IPropertyUtilities.h"
-#include "PropertyEditorHelpers.h"
-#include "PropertyEditor.h"
-#include "PropertyDetailsUtilities.h"
-#include "SPropertyEditorEditInline.h"
+#include "UserInterface/PropertyEditor/SPropertyEditorEditInline.h"
 #include "ObjectEditorUtils.h"
-#include "SColorPicker.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Widgets/Colors/SColorPicker.h"
 #include "DetailPropertyRow.h"
-#include "SSearchBox.h"
-
+#include "Widgets/Input/SSearchBox.h"
+#include "EditorStyleSettings.h"
 
 SDetailsViewBase::~SDetailsViewBase()
 {
@@ -42,9 +44,26 @@ TSharedRef<ITableRow> SDetailsViewBase::OnGenerateRowForDetailTree(TSharedRef<ID
 
 void SDetailsViewBase::SetRootExpansionStates(const bool bExpand, const bool bRecurse)
 {
-	for (auto Iter = RootTreeNodes.CreateIterator(); Iter; ++Iter)
+	if(ContainsMultipleTopLevelObjects())
 	{
-		SetNodeExpansionState(*Iter, bExpand, bRecurse);
+		FDetailNodeList Children;
+		for(auto Iter = RootTreeNodes.CreateIterator(); Iter; ++Iter)
+		{
+			Children.Reset();
+			(*Iter)->GetChildren(Children);
+
+			for(TSharedRef<class IDetailTreeNode>& Child : Children)
+			{
+				SetNodeExpansionState(Child, bExpand, bRecurse);
+			}
+		}
+	}
+	else
+	{
+		for(auto Iter = RootTreeNodes.CreateIterator(); Iter; ++Iter)
+		{
+			SetNodeExpansionState(*Iter, bExpand, bRecurse);
+		}
 	}
 }
 
@@ -121,7 +140,8 @@ TArray< FPropertyPath > SDetailsViewBase::GetPropertiesInOrderDisplayed() const
 	return Ret;
 }
 
-static TSharedPtr< IDetailTreeNode > FindTreeNodeFromPropertyRecursive( const TArray< TSharedRef<IDetailTreeNode> >& Nodes, const FPropertyPath& Property )
+// @return populates OutNodes with the leaf node corresponding to property as the first entry in the list (e.g. [leaf, parent, grandparent]):
+static void FindTreeNodeFromPropertyRecursive( const TArray< TSharedRef<IDetailTreeNode> >& Nodes, const FPropertyPath& Property, TArray< TSharedPtr< IDetailTreeNode > >& OutNodes )
 {
 	for (auto& TreeNode : Nodes)
 	{
@@ -130,22 +150,21 @@ static TSharedPtr< IDetailTreeNode > FindTreeNodeFromPropertyRecursive( const TA
 			FPropertyPath tmp = TreeNode->GetPropertyPath();
 			if( Property == tmp )
 			{
-				return TreeNode;
+				OutNodes.Push(TreeNode);
+				return;
 			}
 		}
-		else
+
+		// Need to check children even if we're a leaf, because all DetailItemNodes are leaves, even if they may have sub-children
+		TArray< TSharedRef<IDetailTreeNode> > Children;
+		TreeNode->GetChildren(Children);
+		FindTreeNodeFromPropertyRecursive(Children, Property, OutNodes);
+		if (OutNodes.Num() > 0)
 		{
-			TArray< TSharedRef<IDetailTreeNode> > Children;
-			TreeNode->GetChildren(Children);
-			auto Result = FindTreeNodeFromPropertyRecursive(Children, Property);
-			if( Result.IsValid() )
-			{
-				return Result;
-			}
+			OutNodes.Push(TreeNode);
+			return;
 		}
 	}
-
-	return TSharedPtr< IDetailTreeNode >();
 }
 
 void SDetailsViewBase::HighlightProperty(const FPropertyPath& Property)
@@ -156,18 +175,25 @@ void SDetailsViewBase::HighlightProperty(const FPropertyPath& Property)
 		PrevHighlightedNodePtr->SetIsHighlighted(false);
 	}
 
-	auto NextNodePtr = FindTreeNodeFromPropertyRecursive( RootTreeNodes, Property );
-	if (NextNodePtr.IsValid())
+	TSharedPtr< IDetailTreeNode > FinalNodePtr = nullptr;
+	TArray< TSharedPtr< IDetailTreeNode > > TreeNodeChain;
+	FindTreeNodeFromPropertyRecursive(RootTreeNodes, Property, TreeNodeChain);
+	if (TreeNodeChain.Num() > 0)
 	{
-		NextNodePtr->SetIsHighlighted(true);
-		auto ParentCategory = NextNodePtr->GetParentCategory();
-		if (ParentCategory.IsValid())
+		FinalNodePtr = TreeNodeChain[0];
+		check(FinalNodePtr.IsValid());
+		FinalNodePtr->SetIsHighlighted(true);
+
+		for (int ParentIndex = 1; ParentIndex < TreeNodeChain.Num(); ++ParentIndex)
 		{
-			DetailTree->SetItemExpansion(ParentCategory.ToSharedRef(), true);
+			TSharedPtr< IDetailTreeNode > CurrentParent = TreeNodeChain[ParentIndex];
+			check(CurrentParent.IsValid());
+			DetailTree->SetItemExpansion(CurrentParent.ToSharedRef(), true);
 		}
-		DetailTree->RequestScrollIntoView(NextNodePtr.ToSharedRef());
+
+		DetailTree->RequestScrollIntoView(FinalNodePtr.ToSharedRef());
 	}
-	CurrentlyHighlightedNode = NextNodePtr;
+	CurrentlyHighlightedNode = FinalNodePtr;
 }
 
 void SDetailsViewBase::ShowAllAdvancedProperties()
@@ -807,6 +833,17 @@ TSharedPtr<class FUICommandList> SDetailsViewBase::GetHostCommandList() const
 	return DetailsViewArgs.HostCommandList;
 }
 
+TSharedPtr<FTabManager> SDetailsViewBase::GetHostTabManager() const
+{
+	return DetailsViewArgs.HostTabManager;
+}
+
+void SDetailsViewBase::SetHostTabManager(TSharedPtr<FTabManager> InTabManager)
+{
+	DetailsViewArgs.HostTabManager = InTabManager;
+}
+
+
 /** 
  * Hides or shows properties based on the passed in filter text
  * 
@@ -980,14 +1017,10 @@ void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutData& LayoutData)
 		}
 	}
 
-	// Query extra base classes
+	// Query extra base classes and structs
 	for (auto ParentIt = ParentClassesToQuery.CreateConstIterator(); ParentIt; ++ParentIt)
 	{
-		UClass* ParentClass = Cast<UClass>(*ParentIt);
-		if (ParentClass)
-		{
-			QueryLayoutForClass(LayoutData, ParentClass);
-		}
+		QueryLayoutForClass(LayoutData, *ParentIt);
 	}
 }
 
@@ -1329,8 +1362,11 @@ void SDetailsViewBase::UpdateFilteredDetails()
 	NumVisbleTopLevelObjectNodes = 0;
 	FRootPropertyNodeList& RootPropertyNodes = GetRootNodes();
 
-	CurrentFilter.bShowAllAdvanced = GetDefault<UEditorStyleSettings>()->bShowAllAdvancedDetails;
-
+	if( GetDefault<UEditorStyleSettings>()->bShowAllAdvancedDetails )
+	{
+		CurrentFilter.bShowAllAdvanced = true;
+	}
+	
 	for(int32 RootNodeIndex = 0; RootNodeIndex < RootPropertyNodes.Num(); ++RootNodeIndex)
 	{
 		TSharedPtr<FComplexPropertyNode>& RootPropertyNode = RootPropertyNodes[RootNodeIndex];

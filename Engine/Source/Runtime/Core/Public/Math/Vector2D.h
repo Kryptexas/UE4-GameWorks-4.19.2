@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "UnrealMathUtility.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Misc/Crc.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Parse.h"
+#include "Math/IntPoint.h"
+#include "Logging/LogMacros.h"
 
 /**
  * A vector in 2-D space composed of components (X, Y) with floating point precision.
@@ -302,7 +309,7 @@ public:
 	 *
 	 * @param V1 The first point.
 	 * @param V2 The second point.
-	 * @return The squared distance between two 2D points.
+	 * @return The distance between two 2D points.
 	 */
 	FORCEINLINE static float Distance(const FVector2D& V1, const FVector2D& V2);
 

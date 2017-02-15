@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DlgBuildProgress.h: UnrealEd dialog for displaying map build progress and cancelling builds.
@@ -6,6 +6,11 @@
 
 #ifndef __DLGBUILDPROGRESS_H__
 #define __DLGBUILDPROGRESS_H__
+
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Layout/SBorder.h"
 
 class SBuildProgressWidget : public SBorder
 {

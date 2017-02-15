@@ -1,10 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ISkeletalMeshEditor.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/GCObject.h"
 #include "TickableEditorObject.h"
 #include "EditorUndoClient.h"
+#include "Toolkits/IToolkitHost.h"
+#include "ISkeletalMeshEditor.h"
+
+class IDetailsView;
+class IPersonaToolkit;
+class IPersonaViewport;
+class ISkeletonTree;
+class USkeletalMesh;
 
 namespace SkeletalMeshEditorModes
 {

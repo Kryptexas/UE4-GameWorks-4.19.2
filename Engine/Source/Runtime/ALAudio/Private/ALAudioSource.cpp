@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*------------------------------------------------------------------------------------
 	FALSoundSource.
 ------------------------------------------------------------------------------------*/
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/App.h"
+#include "Audio.h"
+#include "Sound/SoundWave.h"
 #include "ALAudioDevice.h"
-#include "Engine.h"
 /**
  * Initializes a source with a given wave instance and prepares it for playback.
  *
@@ -14,6 +18,8 @@
  */
 bool FALSoundSource::Init( FWaveInstance* InWaveInstance )
 {
+	FSoundSource::InitCommon();
+
 	check(InWaveInstance);
 	GetALDevice()->MakeCurrent(TEXT("FALSoundSource::Init()"));
 
@@ -83,6 +89,8 @@ void FALSoundSource::Update( void )
 		return;
 	}
 
+	FSoundSource::UpdateCommon();
+
 	GetALDevice()->MakeCurrent(TEXT("FALSoundSource::Update()"));
 
 	float Volume = 1.0f;
@@ -105,8 +113,6 @@ void FALSoundSource::Update( void )
 	}
 
 	Volume = FSoundSource::GetDebugVolume(Volume);
-
-	float	Pitch	=	FMath::Clamp(WaveInstance->Pitch, MIN_PITCH, MAX_PITCH );
 
 	// Set whether to apply reverb
 	SetReverbApplied( true );

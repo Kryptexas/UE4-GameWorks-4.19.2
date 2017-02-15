@@ -1,18 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "AssetRegistryPCH.h"
-#include "ModuleManager.h"
-#include "GenericPlatformChunkInstall.h"
+#include "AssetRegistry.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Serialization/ArrayReader.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/MetaData.h"
+#include "AssetRegistryPrivate.h"
+#include "ARFilter.h"
+#include "DependsNode.h"
+#include "PackageReader.h"
+#include "GenericPlatform/GenericPlatformChunkInstall.h"
 
 #if WITH_EDITOR
+#include "IDirectoryWatcher.h"
 #include "DirectoryWatcherModule.h"
 #endif // WITH_EDITOR
 
 DEFINE_LOG_CATEGORY(LogAssetRegistry);
 
-/** Enum for tracking versions of the "mini" runtime asset registry that gets used by iterative cooking and the runtime
-	dependency preloading system */
+/** 
+ * Enum for tracking versions of the "mini" runtime asset registry that gets used by iterative cooking and the runtime
+ * dependency preloading system 
+ * This enum is NOT used for the editor caching, that uses AssetDataGathererConstants::CacheSerializationVersion
+ */
 enum class ERuntimeRegistryVersion
 {
 	PreVersioning,					// From before file versioning was implemented
@@ -288,7 +303,7 @@ FAssetRegistry::~FAssetRegistry()
 	else
 	{
 		// Delete all depends nodes in the cache
-		for (TMap<FName, FDependsNode*>::TConstIterator DependsIt(CachedDependsNodes); DependsIt; ++DependsIt)
+		for (TMap<FAssetIdentifier, FDependsNode*>::TConstIterator DependsIt(CachedDependsNodes); DependsIt; ++DependsIt)
 		{
 			if (DependsIt.Value())
 			{
@@ -374,18 +389,20 @@ void FAssetRegistry::SearchAllAssets(bool bSynchronousSearch)
 }
 
 
-bool FAssetRegistry::GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData) const
+bool FAssetRegistry::GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets ) const
 {
 	FARFilter Filter;
 	Filter.PackageNames.Add(PackageName);
+	Filter.bIncludeOnlyOnDiskAssets = bIncludeOnlyOnDiskAssets;
 	return GetAssets(Filter, OutAssetData);
 }
 
-bool FAssetRegistry::GetAssetsByPath(FName PackagePath, TArray<FAssetData>& OutAssetData, bool bRecursive) const
+bool FAssetRegistry::GetAssetsByPath(FName PackagePath, TArray<FAssetData>& OutAssetData, bool bRecursive, bool bIncludeOnlyOnDiskAssets) const
 {
 	FARFilter Filter;
 	Filter.bRecursivePaths = bRecursive;
 	Filter.PackagePaths.Add(PackagePath);
+	Filter.bIncludeOnlyOnDiskAssets = bIncludeOnlyOnDiskAssets;
 	return GetAssets(Filter, OutAssetData);
 }
 
@@ -826,9 +843,9 @@ bool FAssetRegistry::GetAllAssets(TArray<FAssetData>& OutAssetData, bool bInclud
 	return true;
 }
 
-bool FAssetRegistry::GetDependencies(FName PackageName, TArray<FName>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType, bool bResolveIniStringReferences) const
+bool FAssetRegistry::GetDependencies(const FAssetIdentifier& AssetIdentifier, TArray<FAssetIdentifier>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType) const
 {
-	const FDependsNode*const* NodePtr = CachedDependsNodes.Find(PackageName);
+	const FDependsNode*const* NodePtr = CachedDependsNodes.Find(AssetIdentifier);
 	const FDependsNode* Node = nullptr;
 	if (NodePtr != nullptr )
 	{
@@ -837,26 +854,7 @@ bool FAssetRegistry::GetDependencies(FName PackageName, TArray<FName>& OutDepend
 
 	if (Node != nullptr)
 	{
-		if (bResolveIniStringReferences)
-		{
-			TArray<FName> DependencyNodes;
-			Node->GetDependencies(DependencyNodes, InDependencyType);
-
-			for (auto NodeIt = DependencyNodes.CreateConstIterator(); NodeIt; ++NodeIt)
-			{
-				FString PackagePath = NodeIt->ToString();
-				const FString* IniFilename = GetIniFilenameFromObjectsReference(PackagePath);
-
-				OutDependencies.Add(
-					(IniFilename != nullptr)
-					? FName(*ResolveIniObjectsReference(PackagePath, IniFilename))
-					: *NodeIt);
-			}
-		}
-		else
-		{
-			Node->GetDependencies(OutDependencies, InDependencyType);
-		}
+		Node->GetDependencies(OutDependencies, InDependencyType);
 
 		return true;
 	}
@@ -866,9 +864,25 @@ bool FAssetRegistry::GetDependencies(FName PackageName, TArray<FName>& OutDepend
 	}
 }
 
-bool FAssetRegistry::GetReferencers(FName PackageName, TArray<FName>& OutReferencers, EAssetRegistryDependencyType::Type InReferenceType) const
+bool FAssetRegistry::GetDependencies(FName PackageName, TArray<FName>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType) const
 {
-	const FDependsNode*const* NodePtr = CachedDependsNodes.Find(PackageName);
+	TArray<FAssetIdentifier> TempDependencies;
+
+	if (GetDependencies(FAssetIdentifier(PackageName), TempDependencies, InDependencyType))
+	{
+		for (const FAssetIdentifier& AssetId : TempDependencies)
+		{
+			OutDependencies.AddUnique(AssetId.PackageName);
+		}
+		return true;
+	}
+
+	return false;
+}
+
+bool FAssetRegistry::GetReferencers(const FAssetIdentifier& AssetIdentifier, TArray<FAssetIdentifier>& OutReferencers, EAssetRegistryDependencyType::Type InReferenceType) const
+{
+	const FDependsNode*const* NodePtr = CachedDependsNodes.Find(AssetIdentifier);
 	const FDependsNode* Node = nullptr;
 	bool bShowingAllReferences = InReferenceType == EAssetRegistryDependencyType::All;
 
@@ -893,14 +907,14 @@ bool FAssetRegistry::GetReferencers(FName PackageName, TArray<FName>& OutReferen
 				{
 					if (Dependency == Node)
 					{
-						OutReferencers.Add((*NodeIt)->GetPackageName());
+						OutReferencers.Add((*NodeIt)->GetIdentifier());
 						break;
 					}
 				}
 			}
 			else
 			{
-				OutReferencers.Add((*NodeIt)->GetPackageName());
+				OutReferencers.Add((*NodeIt)->GetIdentifier());
 			}
 		}
 
@@ -910,6 +924,22 @@ bool FAssetRegistry::GetReferencers(FName PackageName, TArray<FName>& OutReferen
 	{
 		return false;
 	}
+}
+
+bool FAssetRegistry::GetReferencers(FName PackageName, TArray<FName>& OutReferencers, EAssetRegistryDependencyType::Type InReferenceType) const
+{
+	TArray<FAssetIdentifier> TempReferencers;
+
+	if (GetReferencers(FAssetIdentifier(PackageName), TempReferencers, InReferenceType))
+	{
+		for (const FAssetIdentifier& AssetId : TempReferencers)
+		{
+			OutReferencers.AddUnique(AssetId.PackageName);
+		}
+		return true;
+	}
+
+	return false;
 }
 
 bool FAssetRegistry::GetAncestorClassNames(FName ClassName, TArray<FName>& OutAncestorClassNames) const
@@ -1403,6 +1433,33 @@ bool FAssetRegistry::IsLoadingAssets() const
 	return !bInitialSearchCompleted;
 }
 
+IAssetRegistry::FAssetEditSearchableNameDelegate& FAssetRegistry::OnEditSearchableName(FName PackageName, FName ObjectName)
+{
+	return EditSearchableNameDelegates.FindOrAdd(FAssetIdentifier(PackageName, ObjectName));
+}
+
+bool FAssetRegistry::EditSearchableName(const FAssetIdentifier& SearchableName)
+{
+	for (TPair<FAssetIdentifier, FAssetEditSearchableNameDelegate> MapPair : EditSearchableNameDelegates)
+	{
+		if (MapPair.Key.PackageName == SearchableName.PackageName &&
+			(MapPair.Key.ObjectName == SearchableName.ObjectName || MapPair.Key.ObjectName.IsNone()) &&
+			(MapPair.Key.ValueName == SearchableName.ValueName || MapPair.Key.ValueName.IsNone()))
+		{
+			// Try this callback
+			if (MapPair.Value.IsBound())
+			{
+				if (MapPair.Value.Execute(SearchableName))
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 void FAssetRegistry::Tick(float DeltaTime)
 {
 	double TickStartTime = FPlatformTime::Seconds();
@@ -1496,6 +1553,7 @@ bool FAssetRegistry::IsUsingWorldAssets()
 
 void FAssetRegistry::Serialize(FArchive& Ar)
 {
+	// This is only used for the runtime version of the AssetRegistry
 	if (Ar.IsSaving())
 	{
 		check(CachedAssetsByObjectPath.Num() == NumAssets);
@@ -1513,6 +1571,7 @@ void FAssetRegistry::Serialize(FArchive& Ar)
 		// allocate one single block for all asset data structs (to reduce tens of thousands of heap allocations)
 		PreallocatedAssetDataBuffer = new FAssetData[LocalNumAssets];
 
+		double LastPumpTime = FPlatformTime::Seconds();
 		for (int32 AssetIndex = 0; AssetIndex < LocalNumAssets; AssetIndex++)
 		{
 			// make a new asset data object
@@ -1524,6 +1583,16 @@ void FAssetRegistry::Serialize(FArchive& Ar)
 			AddAssetData(NewAssetData);
 
 			AddAssetPath(NewAssetData->PackagePath);
+			
+#if PLATFORM_XBOXONE
+			// Pump OS messages if we've taken too much time serializing
+			double CurTime = FPlatformTime::Seconds();
+			if (CurTime - LastPumpTime > MaxSecondsPerFrame)
+			{
+				FPlatformMisc::PumpMessages(true);
+				LastPumpTime = CurTime;
+			}
+#endif
 		}
 
 		int32 LocalNumDependsNodes = LocalNumAssets;
@@ -2114,7 +2183,9 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 
 		for (const FString& StringAssetReference : Result.StringAssetReferencesMap)
 		{
-			const FName AssetReference = *StringAssetReference;
+			// Possibly resolve ini:name references before adding to dependency list
+			const FString* IniFilename = GetIniFilenameFromObjectsReference(StringAssetReference);
+			const FName AssetReference = IniFilename ? *ResolveIniObjectsReference(StringAssetReference, IniFilename) : *StringAssetReference;
 
 			// Already processed?
 			if (PackageDependencies.Contains(AssetReference))
@@ -2122,12 +2193,47 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 				continue;
 			}
 
-			if (FPackageName::IsShortPackageName(StringAssetReference))
+			if (FPackageName::IsShortPackageName(AssetReference))
 			{
 				UE_LOG(LogAssetRegistry, Warning, TEXT("Package with string asset reference with short asset path: %s. This is unsupported, can couse errors and be slow on loading. Please resave the package to fix this."), *Result.PackageName.ToString());
 			}
 
 			PackageDependencies.Add(AssetReference, EAssetRegistryDependencyType::Soft);
+		}
+
+		for (const TPair<FPackageIndex, TArray<FName>>& SearchableNameList : Result.SearchableNamesMap)
+		{
+			FName ObjectName;
+			FName PackageName;
+
+			// Find object and package name from linker
+			for (FPackageIndex LinkerIndex = SearchableNameList.Key; !LinkerIndex.IsNull();)
+			{
+				FObjectResource& Resource = Result.ImpExp(LinkerIndex);
+				LinkerIndex = Resource.OuterIndex;
+				if (ObjectName.IsNone() && !LinkerIndex.IsNull())
+				{
+					ObjectName = Resource.ObjectName;
+				}
+				else if (LinkerIndex.IsNull())
+				{
+					PackageName = Resource.ObjectName;
+				}
+			}
+
+			for (FName NameReference : SearchableNameList.Value)
+			{
+				FAssetIdentifier AssetId = FAssetIdentifier(PackageName, ObjectName, NameReference);
+
+				// Add node for all name references
+				FDependsNode* DependsNode = CreateOrFindDependsNode(AssetId);
+
+				if (DependsNode != nullptr)
+				{
+					Node->AddDependency(DependsNode, EAssetRegistryDependencyType::SearchableName);
+					DependsNode->AddReferencer(Node);
+				}
+			}	
 		}
 
 		// Doubly-link all new dependencies for this package
@@ -2183,9 +2289,9 @@ void FAssetRegistry::CookedPackageNamesWithoutAssetDataGathered(const double Tic
 	}
 }
 
-FDependsNode* FAssetRegistry::FindDependsNode(FName ObjectName)
+FDependsNode* FAssetRegistry::FindDependsNode(const FAssetIdentifier& Identifier)
 {
-	FDependsNode** FoundNode = CachedDependsNodes.Find(ObjectName);
+	FDependsNode** FoundNode = CachedDependsNodes.Find(Identifier);
 	if (FoundNode)
 	{
 		return *FoundNode;
@@ -2196,24 +2302,24 @@ FDependsNode* FAssetRegistry::FindDependsNode(FName ObjectName)
 	}
 }
 
-FDependsNode* FAssetRegistry::CreateOrFindDependsNode(FName ObjectPath)
+FDependsNode* FAssetRegistry::CreateOrFindDependsNode(const FAssetIdentifier& Identifier)
 {
-	FDependsNode* FoundNode = FindDependsNode(ObjectPath);
+	FDependsNode* FoundNode = FindDependsNode(Identifier);
 	if ( FoundNode )
 	{
 		return FoundNode;
 	}
 
-	FDependsNode* NewNode = new FDependsNode(ObjectPath);
+	FDependsNode* NewNode = new FDependsNode(Identifier);
 	NumDependsNodes++;
-	CachedDependsNodes.Add(ObjectPath, NewNode);
+	CachedDependsNodes.Add(Identifier, NewNode);
 
 	return NewNode;
 }
 
-bool FAssetRegistry::RemoveDependsNode( FName PackageName )
+bool FAssetRegistry::RemoveDependsNode(const FAssetIdentifier& Identifier)
 {
-	FDependsNode** NodePtr = CachedDependsNodes.Find( PackageName );
+	FDependsNode** NodePtr = CachedDependsNodes.Find( Identifier );
 
 	if ( NodePtr != nullptr )
 	{
@@ -2239,7 +2345,7 @@ bool FAssetRegistry::RemoveDependsNode( FName PackageName )
 			}
 
 			// Remove the node and delete it
-			CachedDependsNodes.Remove( PackageName );
+			CachedDependsNodes.Remove( Identifier );
 			NumDependsNodes--;
 			
 			// if the depends nodes were preallocated in a block, we can't delete them one at a time, only the whole chunk in the destructor
@@ -2799,9 +2905,11 @@ void FAssetRegistry::GetSubClasses(const TArray<FName>& InClassNames, const TSet
 			for (int32 i = 0; i < Class->Interfaces.Num(); ++i)
 			{
 				UClass* InterfaceClass = Class->Interfaces[i].Class;
-
-				TSet<FName>& ChildClasses = ReverseInheritanceMap.FindOrAdd(InterfaceClass->GetFName());
-				ChildClasses.Add(Class->GetFName());
+				if (ensureMsgf(InterfaceClass, TEXT("Invalid inteface class (index %d) detected on '%s' - possibly deleted?"), i, *Class->GetName()))
+				{
+					TSet<FName>& ChildClasses = ReverseInheritanceMap.FindOrAdd(InterfaceClass->GetFName());
+					ChildClasses.Add(Class->GetFName());
+				}
 			}
 
 			InMemoryClassNames.Add(Class->GetFName());

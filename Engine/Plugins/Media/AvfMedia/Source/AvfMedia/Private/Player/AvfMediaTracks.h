@@ -1,6 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "../AvfMediaPrivate.h"
 
 #include "IMediaOutput.h"
 #include "IMediaTracks.h"
@@ -80,8 +82,9 @@ public:
 	 * Initialize the track collection.
 	 *
 	 * @param PlayerItem The player item containing the track information.
+	 * @param OutInfo Will contain information about the available media tracks.
 	 */
-	void Initialize(AVPlayerItem* InPlayerItem);
+	void Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo);
 
 	/** Reset the stream collection. */
 	void Reset();
@@ -128,6 +131,7 @@ public:
 	//~ IMediaOutput interface
 
 	virtual void SetAudioSink(IMediaAudioSink* Sink) override;
+	virtual void SetMetadataSink(IMediaBinarySink* Sink) override;
 	virtual void SetOverlaySink(IMediaOverlaySink* Sink) override;
 	virtual void SetVideoSink(IMediaTextureSink* Sink) override;
 

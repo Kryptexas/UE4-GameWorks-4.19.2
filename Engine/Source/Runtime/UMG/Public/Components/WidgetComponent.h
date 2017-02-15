@@ -1,10 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Layout/ArrangedWidget.h"
+#include "WorldCollision.h"
+#include "Components/MeshComponent.h"
+#include "Blueprint/UserWidget.h"
 #include "WidgetComponent.generated.h"
 
-struct FVirtualPointerPosition;
+class FHittestGrid;
+class FPrimitiveSceneProxy;
+class FWidgetRenderer;
+class SVirtualWindow;
+class SWindow;
+class UBodySetup;
+class UMaterialInstanceDynamic;
+class UTextureRenderTarget2D;
 
 UENUM(BlueprintType)
 enum class EWidgetSpace : uint8
@@ -21,6 +35,16 @@ enum class EWidgetBlendMode : uint8
 	Opaque,
 	Masked,
 	Transparent
+};
+
+UENUM()
+enum class EWidgetGeometryMode : uint8
+{
+	/** The widget is mapped onto a plane */
+	Plane,
+
+	/** The widget is mapped onto a cylinder */
+	Cylinder
 };
 
 
@@ -56,8 +80,8 @@ public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-
 	void ApplyComponentInstanceData(class FWidgetComponentInstanceData* ComponentInstanceData);
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 
 	// Begin UObject
 	virtual void PostLoad() override;
@@ -92,6 +116,14 @@ public:
 	 */
 	virtual void GetLocalHitLocation(FVector WorldHitLocation, FVector2D& OutLocalHitLocation) const;
 
+	/**
+	 * When using EWidgetGeometryMode::Cylinder, continues the trace from the front face
+	 * of the widget component into the cylindrical geometry and returns adjusted hit results information.
+	 * 
+	 * @returns two hit locations FVector is in world space and a FVector2D is in widget-space.
+	 */
+	TTuple<FVector, FVector2D> GetCylinderHitLocation(FVector WorldHitLocation, FVector WorldHitDirection) const;
+
 	/** @return Gets the last local location that was hit */
 	FVector2D GetLastLocalHitLocation() const
 	{
@@ -110,6 +142,9 @@ public:
 
 	/** @return List of widgets with their geometry and the cursor position transformed into this Widget component's space. */
 	TArray<FWidgetAndPointer> GetHitWidgetPath(FVector WorldHitLocation, bool bIgnoreEnabledStatus, float CursorRadius = 0.0f);
+
+	/** @return List of widgets with their geometry and the cursor position transformed into this Widget space. The widget space is expressed as a Vector2D. */
+	TArray<FWidgetAndPointer> GetHitWidgetPath(FVector2D WidgetSpaceHitCoordinate, bool bIgnoreEnabledStatus, float CursorRadius = 0.0f);
 
 	/** @return The render target to which the user widget is rendered */
 	UFUNCTION(BlueprintCallable, Category=UserInterface)
@@ -181,7 +216,14 @@ public:
 	/** @return The pivot point where the UI is rendered about the origin. */
 	FVector2D GetPivot() const { return Pivot; }
 
+	/**  */
 	void SetPivot( const FVector2D& InPivot ) { Pivot = InPivot; }
+
+	/**  */
+	bool GetDrawAtDesiredSize() const { return bDrawAtDesiredSize; }
+
+	/**  */
+	void SetDrawAtDesiredSize(bool InbDrawAtDesiredSize) { bDrawAtDesiredSize = InbDrawAtDesiredSize; }
 
 	/** Get the fake window we create for widgets displayed in the world. */
 	TSharedPtr< SWindow > GetVirtualWindow() const;
@@ -200,7 +242,18 @@ public:
 
 	void SetEditTimeUsable(bool Value) { bEditTimeUsable = Value; }
 
+	/** @see EWidgetGeometryMode, @see GetCylinderArcAngle() */
+	EWidgetGeometryMode GetGeometryMode() const { return GeometryMode; }
+
+	bool GetReceiveHardwareInput() const { return bReceiveHardwareInput; }
+
+	/** Defines the curvature of the widget component when using EWidgetGeometryMode::Cylinder; ignored otherwise.  */
+	float GetCylinderArcAngle() const { return CylinderArcAngle; }
+
 protected:
+	void RegisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget);
+	void UnregisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget);
+
 	void RegisterWindow();
 	void UnregisterWindow();
 	void RemoveWidgetFromScreen();
@@ -210,6 +263,9 @@ protected:
 
 	/** Draws the current widget to the render target if possible. */
 	virtual void DrawWidgetToRenderTarget(float DeltaTime);
+
+	/** @return the width of the widget component taking GeometryMode into account. */
+	float ComputeComponentWidth() const;
 
 protected:
 	/** The coordinate space in which to render the widget */
@@ -241,12 +297,7 @@ protected:
 	float RedrawTime;
 
 	/** What was the last time we rendered the widget? */
-	UPROPERTY()
-	float LastWidgetRenderTime;
-
-	/** Is the virtual window created to host the widget focusable? */
-	UPROPERTY(EditAnywhere, Category=UserInterface)
-	bool bWindowFocusable;
+	double LastWidgetRenderTime;
 
 	/**
 	 * The actual draw size, this changes based on DrawSize - or the desired size of the widget if
@@ -268,6 +319,23 @@ protected:
 	/** The Alignment/Pivot point that the widget is placed at relative to the position. */
 	UPROPERTY(EditAnywhere, Category=UserInterface)
 	FVector2D Pivot;
+
+	/**
+	 * Register with the viewport for hardware input from the true mouse and keyboard.  These widgets
+	 * will more or less react like regular 2D widgets in the viewport, e.g. they can and will steal focus
+	 * from the viewport.
+	 * 
+	 * WARNING: If you are making a VR game, definitely do not change this to true.  This option should ONLY be used
+	 * if you're making what would otherwise be a normal menu for a game, just in 3D.  If you also need the game to 
+	 * remain responsive and for the player to be able to interact with UI and move around the world (such as a keypad on a door), 
+	 * use the WidgetInteractionComponent instead.
+	 */
+	UPROPERTY(EditAnywhere, Category=Interaction)
+	bool bReceiveHardwareInput;
+
+	/** Is the virtual window created to host the widget focusable? */
+	UPROPERTY(EditAnywhere, Category=Interaction)
+	bool bWindowFocusable;
 
 	/**
 	 * The owner player for a widget component, if this widget is drawn on the screen, this controls
@@ -364,6 +432,14 @@ protected:
 	/** ZOrder the layer will be created on, note this only matters on the first time a new layer is created, subsequent additions to the same layer will use the initially defined ZOrder */
 	UPROPERTY(EditDefaultsOnly, Category = Layers)
 	int32 LayerZOrder;
+
+	/** Controls the geometry of the widget component. See EWidgetGeometryMode. */
+	UPROPERTY(EditAnywhere, Category=UserInterface)
+	EWidgetGeometryMode GeometryMode;
+
+	/** Curvature of a cylindrical widget in degrees. */
+	UPROPERTY(EditAnywhere, Category=UserInterface, meta=(ClampMin=1.0f, ClampMax=180.0f))
+	float CylinderArcAngle;
 
 	/** The grid used to find actual hit actual widgets once input has been translated to the components local space */
 	TSharedPtr<class FHittestGrid> HitTestGrid;

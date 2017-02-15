@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AssetSelection.h"
+#include "CoreMinimal.h"
+
+class FMenuBuilder;
 
 /**
  * The mode to use when creating an actor

@@ -1,42 +1,29 @@
 Availability: Public
-Title:Graph Mode
+Title:Anim Blueprint Editor
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
-Description:User guide for Graph Mode in the Persona animation editor.
-version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/Modes/Graph:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/Modes/Graph:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/Modes/Graph:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/Modes/Graph]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+Description:Highlights the core features of the Anim Blueprint Editor in Unreal Engine 4. 
+Related: Engine/Animation/AnimBlueprints
+Related: Engine/Blueprints
+Related: Engine\Animation\Persona\Modes\Animation
+Related: Engine\Animation\Persona\Modes\Skeleton
+Related: Engine\Animation\Persona\Modes\Mesh
+version: 4.14
+type:landing
+topic-image:AnimGraphEditor_topic.png
+tags:Animation
+tags:Blueprints
 
 
 [REGION:fullwidth]
-![](AnimationGraph.png)
+![](AnimBPEditor.png)
 [/REGION]
 
-The **Graph** mode of **Persona** is where you specify the logic behind and hook up animations and animation states based off variables and conditions set within the **AnimGraph** and **EventGraph**. Working with the graphs, is similar to working with Blueprint graphs however there are some key details to Animation Blueprints as outlined below. 
+The **Animation Blueprint Editor** is where you specify the logic the drives your character's animations and can be accessed by opening any **Animation Blueprint** from the **Content Browser** (or from the **Editor Toolbar**). 
+This editor is very similar to working with the [Blueprint Editor](Engine/Blueprints) as it uses the same visual node based scripting system with an emphasis on animation features like managing animation [](Engine/Animation/StateMachines), using [](Engine/Animation/NodeReference/Blend) to control [](Engine/Animation/AnimationBlending), or direct [Skeletal Control](Engine/Animation/NodeReference/SkeletalControls) through script. 
 
-##Animation Blueprints Overview
-
-[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
-
-For more information on working with Animation Blueprints, refer to the [Animation Blueprints](Engine/Animation/AnimBlueprints) documentation. 
+[REGION:note]
+For more information on working with **Animation Blueprints** and the **Animation Blueprint Editor**, refer to the [Animation Blueprints](Engine/Animation/AnimBlueprints) documentation. 
+[/REGION]
 
 
 

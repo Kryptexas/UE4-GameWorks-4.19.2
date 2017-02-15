@@ -1,15 +1,17 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Sound/DialogueWave.h"
+#include "Internationalization/InternationalizationMetadata.h"
+#include "Internationalization/GatherableTextData.h"
+#include "Serialization/PropertyLocalizationDataGathering.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/Engine.h"
 #include "ActiveSound.h"
 #include "Sound/AudioSettings.h"
-#include "Sound/DialogueWave.h"
+#include "Sound/SoundWave.h"
 #include "Sound/DialogueSoundWaveProxy.h"
 #include "Sound/DialogueVoice.h"
-#include "Sound/SoundWave.h"
 #include "SubtitleManager.h"
-#include "GatherableTextData.h"
-#include "InternationalizationMetadata.h"
 
 const FString FDialogueConstants::DialogueNamespace						= TEXT("Dialogue");
 const FString FDialogueConstants::DialogueNotesNamespace				= TEXT("DialogueNotes");
@@ -421,7 +423,7 @@ bool UDialogueSoundWaveProxy::IsPlayable() const
 	return SoundWave->IsPlayable();
 }
 
-const FAttenuationSettings* UDialogueSoundWaveProxy::GetAttenuationSettingsToApply() const
+const FSoundAttenuationSettings* UDialogueSoundWaveProxy::GetAttenuationSettingsToApply() const
 {
 	return SoundWave->GetAttenuationSettingsToApply();
 }

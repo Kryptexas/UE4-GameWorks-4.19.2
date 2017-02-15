@@ -1,13 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
 #include "BlueprintActionMenuItem.h"
+#include "EdGraph/EdGraph.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node.h"
 #include "BlueprintNodeSpawner.h"
-#include "KismetEditorUtilities.h"	// for BringKismetToFocusAttentionOnObject()
-#include "BlueprintEditorUtils.h"	// for AnalyticsTrackNewNode(), MarkBlueprintAsModified(), etc.
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "ScopedTransaction.h"
-#include "SNodePanel.h"				// for GetSnapGridSize()
-#include "IDocumentation.h"			// for GetPage()
+#include "SNodePanel.h"
+#include "IDocumentationPage.h"
+#include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuItem"
 
@@ -199,8 +202,8 @@ static UEdGraphNode* FBlueprintMenuActionItemImpl::AutowireSpawnedNodes(UEdGraph
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FBlueprintActionUiSpec const& UiSpec, IBlueprintNodeBinder::FBindingSet const& InBindings, const FText& InNodeCategory, int32 InGrouping)
-	: FEdGraphSchemaAction(InNodeCategory, UiSpec.MenuName, UiSpec.Tooltip.ToString(), InGrouping, UiSpec.Keywords)
+FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FBlueprintActionUiSpec const& UiSpec, IBlueprintNodeBinder::FBindingSet const& InBindings, FText InNodeCategory, int32 InGrouping)
+	: FEdGraphSchemaAction(MoveTemp(InNodeCategory), UiSpec.MenuName, UiSpec.Tooltip.ToString(), InGrouping, UiSpec.Keywords)
 	, Action(NodeSpawner)
 	, IconTint(UiSpec.IconTint)
 	, IconBrush(UiSpec.Icon.GetOptionalIcon())

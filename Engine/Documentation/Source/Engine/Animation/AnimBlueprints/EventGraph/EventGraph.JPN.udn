@@ -1,67 +1,30 @@
-﻿INTSourceChangelist:3027057
+﻿INTSourceChangelist:3226913
 Availability:Public
 Title:EventGraph
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
 Description:Animation ブループリントの更新と AnimGraph で使用する値の計算に使用するイベントベースのグラフについて説明します。
-version: 4.12
 related:Engine\Animation\AnimBlueprints
 related:Engine\Animation\AnimBlueprints\AnimGraph
 related:Engine\Animation\AnimBlueprints\Interface
 related:Engine\Animation\AnimBlueprints\Creation
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Animation\AnimBlueprints\EventGraph:title%](EventGraphTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\AnimBlueprints\EventGraph:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\AnimBlueprints\EventGraph:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimBlueprints\EventGraph]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Animation\AnimBlueprints\EventGraph:title%](EventGraphTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\AnimBlueprints\EventGraph:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\AnimBlueprints\EventGraph:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimBlueprints\EventGraph]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+version:4.14
+type:reference
+topic-image:EventGraphTopic.png
+tags:Animation
+tags:Animation Blueprint
+tags:Blueprints
 
 [TOC(start:2 end:3)]
 
 [EXCERPT:Intro]
-すべての Animation ブループリントには単一の **EventGraph (イベントグラフ)** があります。 
+すべての Animation ブループリントにはひとつの **EventGraph (イベントグラフ)** があります。 
 Event Graph は特殊なアニメーション関連のイベント一式を使用して、ノードのシーケンスを開始する標準の [グラフ](Engine/Blueprints/Editor/UIComponents/GraphEditor) です。EventGraph の最も一般的な利用法は、 
-AnimGraph 内のアニメーションを操作するために、 [**ブレンド スペース**](Engine/Animation/Blendspaces) と他のブレンドノードで使用する値の更新処理です。
+AnimGraph 内でアニメーションを操作するために、 [**ブレンド スペース**](Engine/Animation/Blendspaces) と他のブレンドノードで使用する値の更新処理です。
 [/EXCERPT:Intro]
 
-![Event graph](eventgraph.png)(w:720)
+![EventGraph](eventgraph.png)
 
 例えば、Animation ブループリントの EventGraph は、方向と速度の値を決める際に所有ポーンのベロシティを使用します。この 2 つの値は、AnimGraph 内のブレンド スペースへの入力値として使用して、アイドル アニメーションと様々な方向へ動くアニメーションをブレンドすることができます。 
-
-
 同様に、所有するポーンのピッチとヨーの値を別のブレンド スペースの入力値として使用して、前述のアニメーションの動作を維持しつつ、メッシュが見ている方向に狙いを定めさせるために加算的に適用された様々な照準ポーズをブレンドすることができます。
 
 ## Animation Event
@@ -79,5 +42,7 @@ AnimGraph 内のアニメーションを操作するために、 [**ブレンド
 [INCLUDE:Engine/Animation/NodeReference/Events#Update]
 
 [REGION:note]
-ノード グラフの作業については、 [**ノードを使って作業する**](Engine/Blueprints/Editor/UIComponents/GraphEditor) のドキュメントをご覧ください。
+一般的なブループリントのスクリプティング情報については [](Engine/Blueprints/Scripting) のページを、ノード ベースのグラフのコマンドについては [ノードで作業する](Engine/Blueprints/Editor/UIComponents/GraphEditor) をご覧ください。 
 [/REGION]
+
+

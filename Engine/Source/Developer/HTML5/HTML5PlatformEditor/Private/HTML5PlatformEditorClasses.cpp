@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HTML5TargetPlatformClasses.cpp: Implements the module's UClasses.
 =============================================================================*/
 
-#include "HTML5PlatformEditorPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "HTML5TargetSettings.h"
 
 
 

@@ -1,38 +1,36 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MeshRendering.cpp: Mesh rendering implementation.
 =============================================================================*/
 
-#include "MaterialUtilitiesPrivatePCH.h"
-#include "Engine.h"
 #include "MeshRendering.h"
-#include "EngineModule.h"
-#include "LocalVertexFactory.h"
+#include "EngineDefines.h"
+#include "ShowFlags.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "HitProxies.h"
+#include "RenderingThread.h"
+#include "VertexFactory.h"
+#include "TextureResource.h"
+#include "PackedNormal.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Misc/App.h"
+#include "MaterialUtilities.h"
+#include "Misc/FileHelper.h"
+#include "RawMesh.h"
+#include "SceneView.h"
+#include "SkeletalMeshTypes.h"
 #include "MeshBatch.h"
-#include "RendererInterface.h"
-#include "SceneUtils.h"
+#include "CanvasItem.h"
 #include "CanvasTypes.h"
+#include "LocalVertexFactory.h"
+#include "SkeletalMeshTypes.h"
 
-#include "Runtime/Engine/Classes/Materials/MaterialInterface.h"
-#include "Runtime/Engine/Classes/Materials/MaterialExpressionConstant.h"
-#include "Runtime/Engine/Classes/Engine/TextureRenderTarget2D.h"
-#include "Runtime/Engine/Classes/Engine/Texture2D.h"
-#include "Runtime/Engine/Classes/Engine/TextureCube.h"
-#include "Runtime/Engine/Public/TileRendering.h"
-#include "Runtime/Engine/Public/EngineModule.h"
-#include "Runtime/Engine/Public/ImageUtils.h"
-#include "Runtime/Engine/Public/CanvasTypes.h"
-#include "Runtime/Engine/Public/MaterialCompiler.h"
-#include "Runtime/Engine/Classes/Engine/TextureLODSettings.h"
-#include "Runtime/Engine/Classes/DeviceProfiles/DeviceProfileManager.h"
-#include "Runtime/Engine/Classes/Materials/MaterialParameterCollection.h" 
 #include "RendererInterface.h"
+#include "EngineModule.h"
 
-#include "Engine.h"
-#include "UnrealEd.h"
-#include "ThumbnailHelpers.h" // for FClassThumbnailScene
-#include "ShaderCompiler.h"   // for GShaderCompilingManager
+#define SHOW_WIREFRAME_MESH 0
 
 FColor BoxBlurSample(TArray<FColor>& InBMP, int32 X, int32 Y, int32 InImageWidth, int32 InImageHeight, bool bIsNormalMap)
 {

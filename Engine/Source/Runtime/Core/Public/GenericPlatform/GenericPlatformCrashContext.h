@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FString;
+#include "CoreTypes.h"
+#include "HAL/PlatformMemory.h"
+#include "Containers/UnrealString.h"
 
 /** 
  * Symbol information associated with a program counter. 

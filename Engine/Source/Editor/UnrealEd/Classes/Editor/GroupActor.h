@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // GroupActor: Collects a group of actors, allowing for management and universal transformation.
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameFramework/Actor.h"
 #include "GroupActor.generated.h"
+
+class FLevelEditorViewportClient;
+class FViewport;
 
 UCLASS(hidedropdown,MinimalAPI, notplaceable, NotBlueprintable)
 class AGroupActor : public AActor

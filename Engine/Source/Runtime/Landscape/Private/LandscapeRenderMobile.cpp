@@ -1,14 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 LandscapeRenderMobile.cpp: Landscape Rendering without using vertex texture fetch
 =============================================================================*/
 
-#include "LandscapePrivatePCH.h"
-#include "ShaderParameters.h"
-#include "ShaderParameterUtils.h"
-#include "LandscapeRender.h"
 #include "LandscapeRenderMobile.h"
+#include "ShaderParameterUtils.h"
 
 void FLandscapeVertexFactoryMobile::InitRHI()
 {

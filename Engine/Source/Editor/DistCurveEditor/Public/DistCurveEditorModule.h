@@ -1,15 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __DistCurveEditorModule_h__
 #define __DistCurveEditorModule_h__
 
-#include "UnrealEd.h"
-#include "SlateBasics.h"
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
 #include "IDistCurveEditor.h"
 
 class UInterpCurveEdSetup;
-class FCurveEdNotifyInterface;
 
 extern const FName DistCurveEditorAppIdentifier;
 

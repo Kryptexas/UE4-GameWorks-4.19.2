@@ -1,11 +1,36 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "NetcodeUnitTestPCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "NUTUtil.h"
 
+
 #include "UnitTest.h"
+#include "ProcessUnitTest.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 #include "ClientUnitTest.h"
+
+
+// Globals
+
+static FAssertHookDevice GAssertHook;
+
+
+/**
+ * FAssertHookDevice
+ */
+
+void FAssertHookDevice::AddAssertHook(FString Assert)
+{
+	// Hook GError when an assert hook is first added
+	if (GError != &GAssertHook)
+	{
+		GAssertHook.HookDevice(GError);
+
+		GError = &GAssertHook;
+	}
+
+	GAssertHook.DisabledAsserts.Add(Assert);
+}
 
 
 /**

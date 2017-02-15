@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessHistogramReduce.h: Post processing histogram reduce implementation.
@@ -6,8 +6,10 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
-#include "PostProcessHistogram.h"
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
+#include "PostProcess/RenderingCompositionGraph.h"
+#include "PostProcess/PostProcessHistogram.h"
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
 class FRCPassPostProcessHistogramReduce : public TRenderingCompositePassBase<1, 1>

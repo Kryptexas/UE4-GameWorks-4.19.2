@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -19,14 +19,9 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "NavmeshModulePrivatePCH.h"
-#include "DetourCommon.h"
-#include "DetourStatus.h"
-#include "DetourAssert.h"
-#include "DetourTileCacheBuilder.h"
-#include <string.h>
-#include <math.h>
-#include <stdarg.h>
+#include "DetourTileCache/DetourTileCacheBuilder.h"
+#include "Detour/DetourCommon.h"
+#include "Detour/DetourAssert.h"
 
 static const int MAX_VERTS_PER_POLY = 6;	// TODO: use the DT_VERTS_PER_POLYGON
 static const int MAX_REM_EDGES = 48;		// TODO: make this an expression.

@@ -139,7 +139,15 @@ struct PxConvexFlag
 		vertex limit per face is internally set to 32.
 		\note Can be used only with eCOMPUTE_CONVEX flag.
 		*/
-		eGPU_COMPATIBLE = (1 << 8)
+		eGPU_COMPATIBLE = (1 << 8),
+
+		/**
+		\brief Convex hull input vertices are shifted to be around origin to provide better computation stability.
+		It is recommended to provide input vertices around the origin, otherwise use this flag to improve 
+		numerical stability.
+		\note Is used only with eCOMPUTE_CONVEX flag.
+		*/
+		eSHIFT_VERTICES = (1 << 9)
 	};
 };
 

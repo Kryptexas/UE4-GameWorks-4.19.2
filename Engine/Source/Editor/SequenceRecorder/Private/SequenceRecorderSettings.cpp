@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequenceRecorderPrivatePCH.h"
 #include "SequenceRecorderSettings.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Camera/CameraComponent.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Components/LightComponent.h"
 #include "SequenceRecorder.h"
 #include "CineCameraComponent.h"
 
@@ -21,6 +25,7 @@ USequenceRecorderSettings::USequenceRecorderSettings(const FObjectInitializer& O
 	bRecordNearbySpawnedActors = true;
 	NearbyActorRecordingProximity = 5000.0f;
 	bRecordWorldSettingsActor = true;
+	bReduceKeys = true;
 
 	ClassesAndPropertiesToRecord.Add(FPropertiesToRecordForClass(USkeletalMeshComponent::StaticClass()));
 	ClassesAndPropertiesToRecord.Add(FPropertiesToRecordForClass(UStaticMeshComponent::StaticClass()));

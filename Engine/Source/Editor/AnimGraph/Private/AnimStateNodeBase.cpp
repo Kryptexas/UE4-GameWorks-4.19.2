@@ -1,16 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimStateNodeBase.cpp
 =============================================================================*/
 
-#include "AnimGraphPrivatePCH.h"
+#include "AnimStateNodeBase.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "Animation/AnimBlueprint.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "AnimationStateMachineGraph.h"
 #include "AnimationStateMachineSchema.h"
-#include "EdGraphUtilities.h"
 #include "Kismet2/Kismet2NameValidators.h"
-#include "AnimStateNodeBase.h"
-#include "FrameworkObjectVersion.h"
 /////////////////////////////////////////////////////
 // FAnimStateNodeNameValidator
 

@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidOpenGL.h: Public OpenGL ES definitions for Android-specific functionality
 =============================================================================*/
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/ConfigCacheIni.h"
+#include "RenderingThread.h"
+#include "RHI.h"
 
 #if PLATFORM_ANDROID
 
@@ -464,6 +468,8 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	static FORCEINLINE GLenum GetDepthFormat() { return GL_DEPTH_COMPONENT24; }
 
+	static FORCEINLINE GLint GetMaxMSAASamplesTileMem() { return MaxMSAASamplesTileMem; }
+
 	static void ProcessExtensions(const FString& ExtensionsString);
 
 	// whether to use ES 3.0 function glTexStorage2D to allocate storage for GL_HALF_FLOAT_OES render target textures
@@ -489,6 +495,9 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	/** Whether device supports mobile multi-view */
 	static bool bSupportsMobileMultiView;
+
+	/** Maximum number of MSAA samples supported on chip in tile memory, or 1 if not available */
+	static GLint MaxMSAASamplesTileMem;
 
 	enum class EFeatureLevelSupport : uint8
 	{

@@ -1,13 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "UObject/NameTypes.h"
 
-
-class FString;
 struct FGenericCrashContext;
-
+struct FProgramCounterSymbolInfoEx;
 
 /**
  * This is used to capture all of the module information needed to load pdb's.

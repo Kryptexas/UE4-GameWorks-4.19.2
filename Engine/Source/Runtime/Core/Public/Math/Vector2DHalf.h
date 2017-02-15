@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Math/Vector2D.h"
+#include "Math/Float16.h"
 
 /**
  * Structure for two dimensional vectors with half floating point precision.

@@ -1,18 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "GameFramework/Actor.h"
+#include "EngineDefines.h"
+#include "AI/Navigation/NavRelevantInterface.h"
 #include "AI/Navigation/NavLinkDefinition.h"
 #include "AI/Navigation/NavLinkHostInterface.h"
-#include "AI/Navigation/NavRelevantInterface.h"
-#include "GameFramework/Actor.h"
 #include "NavLinkProxy.generated.h"
 
-class UNavLinkDefinition;
-class UPathFollowingComponent;
-struct FNavigationRelevantData;
+class UBillboardComponent;
 class UNavLinkCustomComponent;
 class UNavLinkRenderingComponent;
-class UBillboardComponent;
+class UPathFollowingComponent;
+struct FNavigationRelevantData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FSmartLinkReachedSignature, AActor*, MovingActor, const FVector&, DestinationPoint );
 
@@ -68,11 +72,14 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PostInitializeComponents() override;
+	virtual void PostRegisterAllComponents() override;
 	virtual void PostLoad() override;
 
 #if ENABLE_VISUAL_LOG
+protected:
 	virtual void BeginPlay() override;
+
+public:
 #endif // ENABLE_VISUAL_LOG
 
 	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const override;

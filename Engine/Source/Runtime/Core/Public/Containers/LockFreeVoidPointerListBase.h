@@ -1,14 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HAL/Platform.h"
-#include "Misc/Build.h"
+#include "CoreTypes.h"
+#include "CoreFwd.h"
 
 #define CHECK_NON_CONCURRENT_ASSUMPTIONS (0)
 
-#define USE_NEW_LOCK_FREE_LISTS (PLATFORM_PS4 || PLATFORM_XBOXONE || PLATFORM_WOLF)
+#define USE_NEW_LOCK_FREE_LISTS (PLATFORM_PS4 || PLATFORM_XBOXONE || PLATFORM_SWITCH)
 
+class FNoncopyable;
+class FNoopCounter;
+struct FMemory;
 
 /** 
  * Base class for a lock free list of pointers 
@@ -2391,6 +2394,8 @@ public:
 					T* Repush = IncomingQueue.Pop(); 
 					if (!Repush)
 					{
+						FPlatformMisc::MemoryBarrier();
+						DequeueLock = 0;
 						break;
 					}
 					bResult = false;
@@ -2533,6 +2538,8 @@ public:
 					T* Repush = IncomingQueue.Pop();
 					if (!Repush)
 					{
+						FPlatformMisc::MemoryBarrier();
+						DequeueLock = 0;
 						break;
 					}
 					bResult = false;

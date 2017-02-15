@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ViewportWorldInteraction.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "AssetData.h"
 #include "VREditorWorldInteraction.generated.h"
 
+class UActorComponent;
 class UViewportInteractor;
+class UViewportWorldInteraction;
 class UVREditorMode;
+struct FViewportActionKeyInput;
 
 /**
  * VR Editor interaction with the 3D world
@@ -33,6 +39,9 @@ public:
 protected:
 	/** When an interactor stops dragging */
 	void StopDragging( UViewportInteractor* Interactor );
+
+	/** When the world scale changes, update the near clip plane */
+	void UpdateNearClipPlaneOnScaleChange(const float NewWorldToMetersScale);
 
 	/** Starts dragging a material, allowing the user to drop it on an object in the scene to place it */
 	void StartDraggingMaterialOrTexture( UViewportInteractor* Interactor, const FViewportActionKeyInput& Action, const FVector HitLocation, UObject* MaterialOrTextureAsset );

@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "OnlineSubsystemTypes.h"
+
+#include "CoreMinimal.h"
+#include "UObject/CoreOnline.h"
 #include "OnlineDelegateMacros.h"
-#include "OnlineMessageInterface.h"
+#include "Interfaces/OnlineMessageInterface.h"
 
 /**
  * Delegate called when the external UI is opened or closed
@@ -185,10 +187,11 @@ public:
 	 *	Displays the UI that shows a user's list of friends to invite
 	 *
 	 * @param LocalUserNum the controller number of the associated user
+	 * @param SessionName name of session associated with the invite
 	 *
 	 * @return true if it was able to show the UI, false if it failed
 	 */
-	virtual bool ShowInviteUI(int32 LocalUserNum, FName SessionMame = GameSessionName) = 0;
+	virtual bool ShowInviteUI(int32 LocalUserNum, FName SessionName = GameSessionName) = 0;
 
 	/**
 	 *	Displays the UI that shows a user's list of achievements

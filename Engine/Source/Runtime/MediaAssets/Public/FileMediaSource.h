@@ -1,14 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MediaSource.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
+#include "BaseMediaSource.h"
+
 #include "FileMediaSource.generated.h"
 
 
 UCLASS(BlueprintType)
 class MEDIAASSETS_API UFileMediaSource
-	: public UMediaSource
+	: public UBaseMediaSource
 {
 	GENERATED_BODY()
 
@@ -56,6 +60,7 @@ public:
 	//~ IMediaOptions interface
 
 	virtual bool GetMediaOption(const FName& Key, bool DefaultValue) const override;
+	virtual bool HasMediaOption(const FName& Key) const override;
 
 public:
 
@@ -63,6 +68,11 @@ public:
 
 	virtual FString GetUrl() const override;
 	virtual bool Validate() const override;
+
+public:
+
+	/** Name of the PrecacheFile media option. */
+	static FName PrecacheFileOption;
 
 protected:
 

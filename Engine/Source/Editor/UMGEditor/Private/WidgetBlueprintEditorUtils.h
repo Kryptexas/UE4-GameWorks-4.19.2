@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class UWidgetTree;
+#include "CoreMinimal.h"
+#include "WidgetReference.h"
+#include "WidgetBlueprintEditor.h"
+
+class FMenuBuilder;
 class UWidgetBlueprint;
 class UWidgetSlotPair;
-struct FWidgetReference;
+class UWidgetTree;
 
 //////////////////////////////////////////////////////////////////////////
 // FWidgetBlueprintEditorUtils

@@ -1,7 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Engine/EngineBaseTypes.h"
+
+class FTickTaskLevel;
+class ULevel;
 
 DECLARE_STATS_GROUP(TEXT("TickGroups"), STATGROUP_TickGroups, STATCAT_Advanced);
 

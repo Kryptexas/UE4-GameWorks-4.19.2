@@ -1,13 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/Blueprint.h"
 #include "K2Node.h"
 #include "Engine/MemberReference.h"
+#include "Textures/SlateIcon.h"
 #include "K2Node_Variable.generated.h"
 
-// Forward Declarations
-struct FBPVariableDescription;
+class UEdGraph;
 
 UENUM()
 namespace ESelfContextInfo

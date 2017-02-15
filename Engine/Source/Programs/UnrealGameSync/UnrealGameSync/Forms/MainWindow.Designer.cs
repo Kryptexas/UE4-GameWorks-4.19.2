@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 namespace UnrealGameSync
 {
@@ -111,6 +111,7 @@ namespace UnrealGameSync
 			this.toolStripSeparator8 = new System.Windows.Forms.ToolStripSeparator();
 			this.SyncContexMenu_EnterChangelist = new System.Windows.Forms.ToolStripMenuItem();
 			this.StreamContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+			this.OptionsContextMenu_PerforceSettings = new System.Windows.Forms.ToolStripMenuItem();
 			this.OptionsContextMenu.SuspendLayout();
 			this.BuildListContextMenu.SuspendLayout();
 			this.NotifyMenu.SuspendLayout();
@@ -170,6 +171,7 @@ namespace UnrealGameSync
             this.OptionsContextMenu_SyncPrecompiledEditor,
             this.OptionsContextMenu_AutoResolveConflicts,
             this.OptionsContextMenu_SyncFilter,
+            this.OptionsContextMenu_PerforceSettings,
             this.toolStripSeparator3,
             this.OptionsContextMenu_EditorBuildConfiguration,
             this.OptionsContextMenu_UseIncrementalBuilds,
@@ -182,7 +184,7 @@ namespace UnrealGameSync
             this.toolStripSeparator6,
             this.OptionsContextMenu_Diagnostics});
 			this.OptionsContextMenu.Name = "ToolsMenuStrip";
-			this.OptionsContextMenu.Size = new System.Drawing.Size(268, 286);
+			this.OptionsContextMenu.Size = new System.Drawing.Size(268, 330);
 			// 
 			// OptionsContextMenu_ScheduledSync
 			// 
@@ -936,6 +938,13 @@ namespace UnrealGameSync
 			this.StreamContextMenu.Name = "StreamContextMenu";
 			this.StreamContextMenu.Size = new System.Drawing.Size(61, 4);
 			// 
+			// OptionsContextMenu_PerforceSettings
+			// 
+			this.OptionsContextMenu_PerforceSettings.Name = "OptionsContextMenu_PerforceSettings";
+			this.OptionsContextMenu_PerforceSettings.Size = new System.Drawing.Size(267, 22);
+			this.OptionsContextMenu_PerforceSettings.Text = "Perforce Settings...";
+			this.OptionsContextMenu_PerforceSettings.Click += new System.EventHandler(this.OptionsContextMenu_PerforceSettings_Click);
+			// 
 			// MainWindow
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1069,6 +1078,7 @@ namespace UnrealGameSync
 		private System.Windows.Forms.ToolStripMenuItem SyncContextMenu_LatestStarredChange;
 		private System.Windows.Forms.ToolStripMenuItem OptionsContextMenu_KeepInTray;
 		private System.Windows.Forms.ContextMenuStrip StreamContextMenu;
+		private System.Windows.Forms.ToolStripMenuItem OptionsContextMenu_PerforceSettings;
 	}
 }
 

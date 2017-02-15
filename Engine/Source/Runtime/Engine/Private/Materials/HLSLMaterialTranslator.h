@@ -1,31 +1,42 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 /*=============================================================================
 	HLSLMaterialTranslator.h: Translates material expressions into HLSL code.
 =============================================================================*/
 
 #pragma once
 
-#if WITH_EDITORONLY_DATA
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/Guid.h"
+#include "HAL/IConsoleManager.h"
+#include "ShaderParameters.h"
+#include "StaticParameterSet.h"
+#include "MaterialShared.h"
+#include "Stats/StatsMisc.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
+#include "Materials/Material.h"
+#include "MaterialCompiler.h"
+#include "RenderUtils.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 
-#include "EnginePrivate.h"
-#include "Materials/MaterialExpressionWorldPosition.h"
-#include "Materials/MaterialExpressionTextureSample.h"
+#if WITH_EDITORONLY_DATA
 #include "Materials/MaterialExpressionSceneTexture.h"
 #include "Materials/MaterialExpressionNoise.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
-#include "Materials/MaterialExpressionMaterialFunctionCall.h"
-#include "Materials/MaterialExpressionTransform.h"
-#include "Materials/MaterialExpressionTransformPosition.h"
 #include "Materials/MaterialExpressionCustom.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
 #include "Materials/MaterialExpressionVectorNoise.h"
-#include "Materials/MaterialFunction.h"
-#include "MaterialCompiler.h"
-#include "MaterialUniformExpressions.h"
+#include "Materials/MaterialUniformExpressions.h"
 #include "ParameterCollection.h"
 #include "Materials/MaterialParameterCollection.h"
-#include "LazyPrintf.h"
+#include "Containers/LazyPrintf.h"
+#endif
+
+class Error;
+
+#if WITH_EDITORONLY_DATA
 
 /** @return the number of components in a vector type. */
 static inline uint32 GetNumComponents(EMaterialValueType Type)
@@ -216,6 +227,7 @@ protected:
 	/** True if material will output accurate velocities during base pass rendering. */
 	uint32 bOutputsBasePassVelocities : 1;
 	uint32 bUsesPixelDepthOffset : 1;
+	uint32 bUsesEmissiveColor : 1;
 	/** Tracks the number of texture coordinates used by this material. */
 	uint32 NumUserTexCoords;
 	/** Tracks the number of texture coordinates used by the vertex shader in this material. */
@@ -264,6 +276,7 @@ public:
 	,	bCompilingPreviousFrame(false)
 	,	bOutputsBasePassVelocities(true)
 	,	bUsesPixelDepthOffset(false)
+	,	bUsesEmissiveColor(0)
 	,	NumUserTexCoords(0)
 	,	NumUserVertexTexCoords(0)
 	{
@@ -377,7 +390,8 @@ public:
 				// Note we don't test for the blend mode as you can have a translucent material using the subsurface shading model
 
 				// another ForceCast as CompilePropertyAndSetMaterialProperty() can return MCT_Float which we don't want here
-				int32 SubsurfaceColor = ForceCast(Material->CompilePropertyAndSetMaterialProperty(MP_SubsurfaceColor, this), MCT_Float3, true, true);
+				int32 SubsurfaceColor = Material->CompilePropertyAndSetMaterialProperty(MP_SubsurfaceColor, this);
+				SubsurfaceColor = ForceCast(SubsurfaceColor, FMaterialAttributeDefinitionMap::GetValueType(MP_SubsurfaceColor), MFCF_ExactMatch | MFCF_ReplicateValue);
 
 				static FName NameSubsurfaceProfile(TEXT("__SubsurfaceProfile"));
 
@@ -426,6 +440,7 @@ public:
 				}
 			}
 
+			bUsesEmissiveColor = IsMaterialPropertyUsed(MP_EmissiveColor, Chunk[MP_EmissiveColor], FLinearColor(0, 0, 0, 0), 3);
 			bUsesPixelDepthOffset = IsMaterialPropertyUsed(MP_PixelDepthOffset, Chunk[MP_PixelDepthOffset], FLinearColor(0, 0, 0, 0), 1)
 				|| (Domain == MD_DeferredDecal && Material->GetDecalBlendMode() == DBM_Volumetric_DistanceFunction);
 
@@ -530,7 +545,7 @@ public:
 			// Handle custom outputs when using material attribute output
 			if (Material->HasMaterialAttributesConnected())
 			{
-				TArray<FMaterialAttributeDefintion> CustomAttributeList;
+				TArray<FMaterialCustomOutputAttributeDefintion> CustomAttributeList;
 				FMaterialAttributeDefinitionMap::GetCustomAttributeList(CustomAttributeList);
 				TArray<FShaderCodeChunk> CustomExpressionChunks;
 				
@@ -576,7 +591,7 @@ public:
 							// Valid, non-default value so generate shader code
 							if (bValueNonDefault)
 							{
-								GenerateCustomAttributeCode(OutputIndex, Result, Attribute.ValueType, Attribute.DisplayName);
+								GenerateCustomAttributeCode(OutputIndex, Result, Attribute.ValueType, Attribute.FunctionName);
 								bValidResultCompiled = true;
 							}
 						}
@@ -585,12 +600,12 @@ public:
 					// If used, add compile data
 					if (bValidResultCompiled)
 					{
-						ResourcesString += FString::Printf(TEXT("#define NUM_MATERIAL_OUTPUTS_%s %d\r\n"), *Attribute.DisplayName.ToUpper(), NumOutputs);
+						ResourcesString += FString::Printf(TEXT("#define NUM_MATERIAL_OUTPUTS_%s %d\r\n"), *Attribute.FunctionName.ToUpper(), NumOutputs);
 					}
 				}
 			}
 			else
-#endif // #if 0
+#endif // #if HANDLE_CUSTOM_OUTPUTS_AS_MATERIAL_ATTRIBUTES
 			{
 				// Gather the implementation for any custom output expressions
 				TArray<UMaterialExpressionCustomOutput*> CustomOutputExpressions;
@@ -841,6 +856,7 @@ public:
 		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_TRANSFORM"), bUsesParticleTransform);
 		OutEnvironment.SetDefine(TEXT("USES_TRANSFORM_VECTOR"), bUsesTransformVector);
 		OutEnvironment.SetDefine(TEXT("WANT_PIXEL_DEPTH_OFFSET"), bUsesPixelDepthOffset); 
+		OutEnvironment.SetDefine(TEXT("USES_EMISSIVE_COLOR"), bUsesEmissiveColor);
 		// Distortion uses tangent space transform 
 		OutEnvironment.SetDefine(TEXT("USES_DISTORTION"), Material->IsDistorted()); 
 
@@ -1686,7 +1702,7 @@ protected:
 		// to allow result sharing. In cases where we detect an expression loop we must err on the side of caution
 		if (ExpressionKey.Expression && !ExpressionKey.Expression->ContainsInputLoop() && !ExpressionKey.Expression->IsResultMaterialAttributes(ExpressionKey.OutputIndex))
 		{
-			ExpressionKey.MaterialAttributeID = FGuid(0,0,0,0);
+			ExpressionKey.MaterialAttributeID = FGuid(0, 0, 0, 0);
 		}
 
 		// Check if this expression has already been translated.
@@ -1830,7 +1846,7 @@ protected:
 		return CompiledResult;
 	}
 
-	virtual int32 ForceCast(int32 Code,EMaterialValueType DestType,bool bExactMatch=false,bool bReplicateValue=false) override
+	virtual int32 ForceCast(int32 Code,EMaterialValueType DestType,uint32 ForceCastFlags = 0) override
 	{
 		if(Code == INDEX_NONE)
 		{
@@ -1839,10 +1855,13 @@ protected:
 
 		if(GetParameterUniformExpression(Code) && !GetParameterUniformExpression(Code)->IsConstant())
 		{
-			return ForceCast(AccessUniformExpression(Code),DestType,bExactMatch,bReplicateValue);
+			return ForceCast(AccessUniformExpression(Code),DestType,ForceCastFlags);
 		}
 
 		EMaterialValueType	SourceType = GetParameterType(Code);
+
+		bool bExactMatch = (ForceCastFlags & MFCF_ExactMatch) ? true : false;
+		bool bReplicateValue = (ForceCastFlags & MFCF_ReplicateValue) ? true : false;
 
 		if (bExactMatch ? (SourceType == DestType) : (SourceType & DestType))
 		{
@@ -2094,7 +2113,7 @@ protected:
 
 		if(GetParameterUniformExpression(X))
 		{
-			return AddUniformExpression(new FMaterialUniformExpressionSine(GetParameterUniformExpression(X),0),MCT_Float,TEXT("sin(%s)"),*CoerceParameter(X,MCT_Float));
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Sin),MCT_Float,TEXT("sin(%s)"),*CoerceParameter(X,MCT_Float));
 		}
 		else
 		{
@@ -2111,11 +2130,164 @@ protected:
 
 		if(GetParameterUniformExpression(X))
 		{
-			return AddUniformExpression(new FMaterialUniformExpressionSine(GetParameterUniformExpression(X),1),MCT_Float,TEXT("cos(%s)"),*CoerceParameter(X,MCT_Float));
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Cos),MCT_Float,TEXT("cos(%s)"),*CoerceParameter(X,MCT_Float));
 		}
 		else
 		{
 			return AddCodeChunk(GetParameterType(X),TEXT("cos(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Tangent(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Tan),MCT_Float,TEXT("tan(%s)"),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("tan(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Arcsine(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Asin),MCT_Float,TEXT("asin(%s)"),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("asin(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 ArcsineFast(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Asin),MCT_Float,TEXT("asinFast(%s)"),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("asinFast(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Arccosine(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Acos),MCT_Float,TEXT("acos(%s)"),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("acos(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 ArccosineFast(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Acos),MCT_Float,TEXT("acosFast(%s)"),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("acosFast(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Arctangent(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Atan),MCT_Float,TEXT("atan(%s)"),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("atan(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 ArctangentFast(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Atan),MCT_Float,TEXT("atanFast(%s)"),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("atanFast(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Arctangent2(int32 Y, int32 X) override
+	{
+		if(Y == INDEX_NONE || X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(Y) && GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(Y),GetParameterUniformExpression(X),TMO_Atan2),MCT_Float,TEXT("atan2(%s, %s)"),*CoerceParameter(Y,MCT_Float),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(Y),TEXT("atan2(%s, %s)"),*GetParameterCode(Y),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Arctangent2Fast(int32 Y, int32 X) override
+	{
+		if(Y == INDEX_NONE || X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(Y) && GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(Y),GetParameterUniformExpression(X),TMO_Atan2),MCT_Float,TEXT("atan2Fast(%s, %s)"),*CoerceParameter(Y,MCT_Float),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(Y),TEXT("atan2Fast(%s, %s)"),*GetParameterCode(Y),*GetParameterCode(X));
 		}
 	}
 
@@ -2150,6 +2322,40 @@ protected:
 		else
 		{
 			return AddCodeChunk(GetParameterType(X),TEXT("ceil(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Round(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionRound(GetParameterUniformExpression(X)),GetParameterType(X),TEXT("round(%s)"),*GetParameterCode(X));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("round(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Truncate(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTruncate(GetParameterUniformExpression(X)),GetParameterType(X),TEXT("trunc(%s)"),*GetParameterCode(X));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("trunc(%s)"),*GetParameterCode(X));
 		}
 	}
 
@@ -2475,8 +2681,16 @@ protected:
 
 		case WPT_ExcludeAllShaderOffsets:
 			{
-				bNeedsWorldPositionExcludingShaderOffsets = true;
-				FunctionNamePattern = TEXT("Get<PREV>WorldPosition<NO_MATERIAL_OFFSETS>");
+				if (FeatureLevel < ERHIFeatureLevel::ES3_1)
+				{
+					// World position excluding shader offsets is not available on ES2
+					FunctionNamePattern = TEXT("Get<PREV>WorldPosition");
+				}
+				else
+				{
+					bNeedsWorldPositionExcludingShaderOffsets = true;
+					FunctionNamePattern = TEXT("Get<PREV>WorldPosition<NO_MATERIAL_OFFSETS>");
+				}
 				break;
 			}
 
@@ -2488,8 +2702,16 @@ protected:
 
 		case WPT_CameraRelativeNoOffsets:
 			{
-				bNeedsWorldPositionExcludingShaderOffsets = true;
-				FunctionNamePattern = TEXT("Get<PREV>TranslatedWorldPosition<NO_MATERIAL_OFFSETS>");
+				if (FeatureLevel < ERHIFeatureLevel::ES3_1)
+				{
+					// World position excluding shader offsets is not available on ES2
+					FunctionNamePattern = TEXT("Get<PREV>TranslatedWorldPosition");
+				}
+				else
+				{
+					bNeedsWorldPositionExcludingShaderOffsets = true;
+					FunctionNamePattern = TEXT("Get<PREV>TranslatedWorldPosition<NO_MATERIAL_OFFSETS>");
+				}
 				break;
 			}
 
@@ -2832,7 +3054,9 @@ protected:
 
 		FString UVs = CoerceParameter(CoordinateIndex, UVsType);
 
-		const bool bStoreTexCoordScales = (ShaderFrequency == SF_Pixel && TextureReferenceIndex != INDEX_NONE && Material && Material->GetShaderMapUsage() == EMaterialShaderMapUsage::DebugViewModeTexCoordScale);
+		const bool bStoreTexCoordScales = ShaderFrequency == SF_Pixel && TextureReferenceIndex != INDEX_NONE && Material && 
+			(Material->GetShaderMapUsage() == EMaterialShaderMapUsage::DebugViewModeTexCoordScale || Material->GetShaderMapUsage() == EMaterialShaderMapUsage::DebugViewModeRequiredTextureResolution);
+
 		if (bStoreTexCoordScales)
 		{
 			AddCodeChunk(MCT_Float, TEXT("StoreTexCoordScale(Parameters.TexCoordScalesParams, %s, %d)"), *UVs, (int)TextureReferenceIndex);
@@ -2974,7 +3198,8 @@ protected:
 	{
 		const bool bSupportedOnMobile = InSceneTextureId == PPI_PostProcessInput0 ||
 										InSceneTextureId == PPI_CustomDepth ||
-										InSceneTextureId == PPI_SceneDepth;
+										InSceneTextureId == PPI_SceneDepth ||
+										InSceneTextureId == PPI_CustomStencil;
 
 		if (!bSupportedOnMobile	&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
@@ -3396,7 +3621,22 @@ protected:
 
 	virtual int32 PreSkinnedPosition() override
 	{
+		if (ShaderFrequency != SF_Vertex)
+		{
+			return Errorf(TEXT("Pre-skinned position is only available in the vertex shader, pass through custom interpolators if needed."));
+		}
+
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.PreSkinnedPosition"));
+	}
+
+	virtual int32 PreSkinnedNormal() override
+	{
+		if (ShaderFrequency != SF_Vertex)
+		{
+			return Errorf(TEXT("Pre-skinned normal is only available in the vertex shader, pass through custom interpolators if needed."));
+		}
+
+		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.PreSkinnedNormal"));
 	}
 
 	virtual int32 Add(int32 A,int32 B) override

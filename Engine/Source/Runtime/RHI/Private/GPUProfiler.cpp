@@ -1,17 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GPUProfiler.h: Hierarchical GPU Profiler Implementation.
 =============================================================================*/
 
-#include "RHIPrivatePCH.h"
-#include "RHI.h"
 #include "GPUProfiler.h"
+#include "Misc/WildcardString.h"
 
 #if !UE_BUILD_SHIPPING
+#include "VisualizerEvents.h"
 #include "STaskGraph.h"
-#include "ModuleManager.h"
-#include "TaskGraphInterfaces.h"
+#include "Modules/ModuleManager.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "GpuProfiler"

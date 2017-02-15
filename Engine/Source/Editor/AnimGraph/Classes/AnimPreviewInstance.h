@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "BlueprintGraphDefinitions.h"
-#include "AnimGraphNode_ModifyBone.h"
-#include "Animation/AnimSingleNodeInstance.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "BonePose.h"
 #include "BoneControllers/AnimNode_ModifyBone.h"
+#include "Animation/AnimSingleNodeInstance.h"
 #include "Animation/AnimSingleNodeInstanceProxy.h"
+#include "AnimNodes/AnimNode_CurveSource.h"
+#include "AnimNodes/AnimNode_PoseBlendNode.h"
 #include "AnimPreviewInstance.generated.h"
 
 /** Enum to know how montage is being played */
@@ -48,6 +51,7 @@ public:
 	virtual void Initialize(UAnimInstance* InAnimInstance) override;
 	virtual void Update(float DeltaSeconds) override;
 	virtual bool Evaluate(FPoseContext& Output) override;
+	virtual void PreUpdate(UAnimInstance* InAnimInstance, float DeltaSeconds) override;
 
 	void ResetModifiedBone(bool bCurveController = false);
 
@@ -85,6 +89,20 @@ public:
 #endif
 	}
 
+	void SetKey()
+	{
+#if WITH_EDITOR
+		bSetKey = true;
+#endif
+	}
+
+	void SetKeyCompleteDelegate(FSimpleDelegate InOnSetKeyCompleteDelegate)
+	{
+#if WITH_EDITOR
+		OnSetKeyCompleteDelegate = InOnSetKeyCompleteDelegate;
+#endif
+	}
+
 	void RefreshCurveBoneControllers(UAnimationAsset* AssetToRefreshFrom);
 
 	TArray<FAnimNode_ModifyBone>& GetBoneControllers()
@@ -112,6 +130,12 @@ private:
 
 	/** Curve modifiers */
 	TArray<FAnimNode_ModifyBone> CurveBoneControllers;
+
+	/** External curve for in-editor curve sources (such as audio) */
+	FAnimNode_CurveSource CurveSource;
+
+	/** Pose blend node for evaluating pose assets (for previewing curve sources) */
+	FAnimNode_PoseBlendNode PoseBlendNode;
 
 	/**
 	 * Delegate to call after Key is set
@@ -147,24 +171,7 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 {
 	GENERATED_UCLASS_BODY()
 
-	// Disable compiler-generated deprecation warnings by implementing our own destructor
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	~UAnimPreviewInstance() {}
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-
-	/** Controllers for individual bones */
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
-	TArray<FAnimNode_ModifyBone> BoneControllers;
-
-	/** Curve modifiers */
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
-	TArray<FAnimNode_ModifyBone> CurveBoneControllers;
-
-	/** Shared parameters for previewing blendspace or animsequence **/
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
-	float SkeletalControlAlpha;
-
-	/** Shared parameters for previewing blendspace or animsequence **/
+		/** Shared parameters for previewing blendspace or animsequence **/
 	UPROPERTY(transient)
 	TEnumAsByte<enum EMontagePreviewType> MontagePreviewType;
 
@@ -242,11 +249,6 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 
 	bool GetForceRetargetBasePose() const;
 
-#if WITH_EDITORONLY_DATA
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads, use SetForceRetargetBasePose/GetForceRetargetBasePose")
-	bool bForceRetargetBasePose;
-#endif
-
 	/**
 	 * Convert current modified bone transforms (BoneControllers) to transform curves (CurveControllers)
 	 * it does based on CurrentTime. This function does not set key directly here. 
@@ -256,6 +258,21 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	 * @param Delegate To be called once set key is completed
 	 */
 	void SetKey(FSimpleDelegate InOnSetKeyCompleteDelegate);
+
+	/**
+	 * Convert current modified bone transforms (BoneControllers) to transform curves (CurveControllers)
+	 * it does based on CurrentTime. This function does not set key directly here. 
+	 * It does wait until next update, and it gets the delta of transform before applying curves, and 
+	 * creates curves from it, so you'll need delegate if you'd like to do something after (set with SetKeyCompleteDelegate)
+	 */
+	void SetKey();
+
+	/**
+	 * Set the delegate to be called when a key is set.
+	 * 
+	 * @param Delegate To be called once set key is completed
+	 */
+	void SetKeyCompleteDelegate(FSimpleDelegate InOnSetKeyCompleteDelegate);
 
 	/** 
 	 * Refresh Curve Bone Controllers based on TransformCurves from Animation data

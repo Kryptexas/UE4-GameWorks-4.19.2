@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineBaseTypes.h"
 #include "ConsoleSettings.h"
+
 #include "Console.generated.h"
 
+class SWidget;
+struct FAutoCompleteCommand;
 
 /**
  * Node for storing an auto-complete tree based on each char in the command.
@@ -103,7 +111,7 @@ class ENGINE_API UConsole
 	uint32 bCtrl:1;
 
 	/** Full list of auto-complete commands and info */
-	TArray<struct FAutoCompleteCommand> AutoCompleteList;
+	TArray<FAutoCompleteCommand> AutoCompleteList;
 
 	/** Is the current auto-complete selection locked */
 	uint32 bAutoCompleteLocked:1;
@@ -123,7 +131,7 @@ class ENGINE_API UConsole
 	FAutoCompleteNode AutoCompleteTree;
 
 	/** Current list of matching commands for auto-complete, @see UpdateCompleteIndices() */
-	TArray<struct FAutoCompleteCommand> AutoComplete;
+	TArray<FAutoCompleteCommand> AutoComplete;
 
 	~UConsole();
 
@@ -239,6 +247,10 @@ class ENGINE_API UConsole
 	virtual void FakeGotoState(FName NextStateName);
 
 	virtual bool ConsoleActive() const;
+
+	/** Delegate for registering hot-reloaded classes that have been added  */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FRegisterConsoleAutoCompleteEntries, TArray<FAutoCompleteCommand>&);
+	static FRegisterConsoleAutoCompleteEntries RegisterConsoleAutoCompleteEntries;
 
 private:
 

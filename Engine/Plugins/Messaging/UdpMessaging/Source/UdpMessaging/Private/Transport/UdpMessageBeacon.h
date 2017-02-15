@@ -1,7 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "HAL/Runnable.h"
+#include "Shared/UdpMessageSegment.h"
+
+class FInternetAddr;
+class FSocket;
+struct FIPv4Endpoint;
 
 /**
  * Implements a beacon sender thread.
@@ -46,7 +54,7 @@ public:
 
 public:
 
-	// FRunnable interface
+	//~ FRunnable interface
 
 	virtual bool Init() override;
 	virtual uint32 Run() override;
@@ -60,7 +68,7 @@ protected:
 	 *
 	 * @param SegmentType The type of segment to send (Hello or Bye).
 	 */
-	void SendSegment(EUdpMessageSegments::Type SegmentType);
+	void SendSegment(EUdpMessageSegments SegmentType);
 
 private:
 

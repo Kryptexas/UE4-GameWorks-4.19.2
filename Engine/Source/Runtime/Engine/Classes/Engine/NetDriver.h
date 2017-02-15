@@ -1,21 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //
 // Base class of a network driver attached to an active or pending level.
 #pragma once
 
-#include "EngineTypes.h"
-#include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
-#include "StatelessConnectHandlerComponent.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Misc/NetworkGuid.h"
+#include "UObject/CoreNet.h"
+#include "GameFramework/WorldSettings.h"
+#include "PacketHandler.h"
 
 #include "NetDriver.generated.h"
 
+class Error;
+class FNetGUIDCache;
+class FNetworkNotify;
+class FNetworkObjectList;
+class FObjectReplicator;
 class FRepChangedPropertyTracker;
 class FRepLayout;
-class FObjectReplicator;
-class FNetworkObjectList;
-struct FNetworkObjectInfo;
 class FReplicationChangelistMgr;
+class FVoicePacket;
+class StatelessConnectHandlerComponent;
+class UNetConnection;
+struct FNetworkObjectInfo;
 
 //
 // Whether to support net lag and packet loss testing.
@@ -561,6 +572,9 @@ public:
 
 	/** Flushes actor from NetDriver's dormancy list, but does not change any state on the Actor itself */
 	ENGINE_API void FlushActorDormancy(class AActor *Actor);
+
+	/** Forces properties on this actor to do a compare for one frame (rather than share shadow state) */
+	ENGINE_API void ForcePropertyCompare( AActor* Actor );
 
 	/** Called when a spawned actor is destroyed. */
 	ENGINE_API virtual void NotifyActorDestroyed( AActor* Actor, bool IsSeamlessTravel=false );

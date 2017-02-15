@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IToolkit.h"
-#include "LightmapResRatioAdjust.h"
+#include "CoreMinimal.h"
+#include "EditorStyleSet.h"
+#include "Framework/Commands/Commands.h"
 
 /**
  * Unreal level editor actions

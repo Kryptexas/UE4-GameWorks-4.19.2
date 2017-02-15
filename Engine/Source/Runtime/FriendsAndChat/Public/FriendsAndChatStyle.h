@@ -1,15 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/NameTypes.h"
+#include "UObject/ObjectMacros.h"
+#include "Styling/SlateWidgetStyle.h"
+#include "Styling/SlateStyle.h"
+#include "Styling/SlateTypes.h"
+#include "FriendsFontStyle.h"
 #include "FriendsListStyle.h"
-#include "FriendsComboStyle.h"
 #include "FriendsChatStyle.h"
 #include "FriendsChatChromeStyle.h"
-#include "FriendsFontStyle.h"
 #include "FriendsMarkupStyle.h"
 
 #include "FriendsAndChatStyle.generated.h"
+
+class ISlateStyle;
+struct FSlateBrush;
 
 /**
  * Interface for the services manager.

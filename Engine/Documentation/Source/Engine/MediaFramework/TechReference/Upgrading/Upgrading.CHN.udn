@@ -1,45 +1,62 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Upgrading Media Framework Content to 4.13
+﻿INTSourceChangelist:3108692
+Availability:Public
+Title:将媒体框架内容更新至 4.13
 Crumbs:%ROOT%, Engine
-Description:Updating projects containing Media Framework assets and playback logic to Unreal Engine 4.13
+Description:将包含媒体框架资源和播放逻辑的项目更新至虚幻引擎 4.13
 Navigation:topic
 parent:Engine/MediaFramework
 order:3
-Version: 4.13
-Related: Engine\MediaFramework\Overview
-Related: Engine\MediaFramework\HowTo
-Related: Engine\MediaFramework\TechReference
+Version:4.13
+Related:Engine\MediaFramework\Overview
+Related:Engine\MediaFramework\HowTo
+Related:Engine\MediaFramework\TechReference
 
-In Unreal Engine 4.13, the Media Framework system received an update to the asset types and playback methods. This means that if you have existing Media Framework content in your project, you have to update your content. 
-Your project will still load, but playback will no longer work with existing 4.12 content until you have performed the updates, as the workflow is slightly different now. 
+虚幻引擎 4.13 对媒体框架系统的资源类型和播放方法进行了更新。这意味着如果您的项目中有媒体框架内容，则需要将内容更新。项目仍然可以加载，但如果不执行更新，播放功能将无法再用于现有的 4.12 内容，因为工作流发生了些许变化。 
 
-As you transition your project, keep the following items in mind:
+转换项目时，请牢记以下几点：
 
-* **Media Player** assets no longer store a URL for the media. Instead there are now new asset types called 'media sources' that describe the media. For more information on these new asset types, see [](Engine/MediaFramework/Overview).
+* **媒体播放器 (Media Player)** 资源不再存储媒体的 URL。相反，加入了称为“媒体资源”的新资源类型来描述媒体。 
 
 	![](MediaTypes.png)
+	
+	[REGION:tip]
+	有关这些新资源类型的更多信息，请查阅 [](Engine/MediaFramework/Overview)。
+	[/REGION]
 
-* **File Media Source** assets are used for media files stored on your device or in local network file shares. For an example of how to use a **File Media Source** asset, see [](Engine/MediaFramework/HowTo/FileMediaSource).
+**文件媒体源（File Media Source）** 资源用于保存在设备或局域网文件共享中的媒体文件。 
 
 	![](FileMediaSource.png)
-* **Stream Media Source** assets are used for streaming media over the internet. For an example of how to use a **Stream Media Source** asset, see [](Engine/MediaFramework/HowTo/StreamMediaSource).
+	
+	[REGION:tip]
+	有关如何使用 **文件媒体源** 资源的示例，请查阅 [](Engine/MediaFramework/HowTo/FileMediaSource)。
+	[/REGION]
+	
+* **流媒体源 (Stream Media Source)** 资源用于通过互联网流送媒体。 
 
 	![](StreamMediaSource.png)
-* **Media Playlist** assets are used to combine multiple media sources and play them one after another. Playlists will automatically cycle back to the beginning. For an example of working with playlists, see [](Engine/MediaFramework/HowTo/MediaPlaylists).
+	
+	[REGION:tip]
+	有关如何使用 **流媒体源** 资源的示例，请查阅 [](Engine/MediaFramework/HowTo/StreamMediaSource)。
+	[/REGION]
+	
+* **媒体播放列表 (Media Playlist)** 资源用于整合多个媒体源，并依次进行播放。播放列表会自动循环回到开头。 
 
 	![](MediaPlaylist.png)
+	
+	[REGION:tip]
+	有关使用播放列表的示例，请查阅 [](Engine/MediaFramework/HowTo/MediaPlaylists)。
+	[/REGION]
 
-* **Media Texture** and **Media Sound Wave** assets no longer hold a reference to the **Media Player**. Instead, the Media Player now references the texture and the sound assets. Additionally, there is no longer a many-to-one relationship between **Media Texture** / **Media Sound Wave** and 
-**Media Player** assets. Every **Media Player** now references at most one of each.
+* **媒体纹理 (Media Texture)** 和 **媒体声波 (Media Sound Wave)** 资源不再引用 **媒体播放器**。相反，媒体播放器现在会引用纹理和声音资源。此外，**媒体纹理**/**媒体声波** 和 **媒体播放器** 资源，之间不再有多对一的关系。每个 **媒体播放器** 现在最多只能各引用一个。
 
 	![](Upgrading_MediaLinks.png)
 
-* There is no longer an option for automatically starting media playback in Media Player assets. Instead you must open a media source via Blueprint. For convenience, Media Player assets have a **Play On Open** option that will begin playback after a media source opened successfully. 
-If you do not set this option, you must initiate playback via Blueprints or C++.
+* 媒体播放器资源中自动开始媒体播放的选项已被移除。必须通过蓝图打开媒体源。为便于使用，媒体播放器资源拥有 **Play On Open** 选项，可在成功打开媒体源后开始播放。如未设置此选项，则必须通过蓝图或 C++ 来启动播放。
 
 	![](PlayOnOpen.png)
 
-* The **Loop** option will loop the currently opened media source. Please note that, while looping is enabled, playlists do not advance.
+* **Loop** 选项将循环当前打开的媒体源。请注意，启用循环后播放列表不会前进。
 
 	![](Loop.png)
+
+* 如需了解更新后的媒体框架系统支持的内容类型和 URL 的详情，请参阅 [](Engine/MediaFramework/TechReference)。

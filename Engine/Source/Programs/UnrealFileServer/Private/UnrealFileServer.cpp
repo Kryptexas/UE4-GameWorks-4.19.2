@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealFileServer.h"
 
 #include "DirectoryWatcherModule.h"
 #include "RequiredProgramMainCPPInclude.h"
-#include "NetworkFileSystem.h"
+#include "Interfaces/INetworkFileServer.h"
+#include "Interfaces/INetworkFileSystemModule.h"
+#include "IDirectoryWatcher.h"
 #include "SocketSubsystem.h"
 
 

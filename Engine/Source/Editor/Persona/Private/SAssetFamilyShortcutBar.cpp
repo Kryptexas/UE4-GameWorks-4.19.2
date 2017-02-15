@@ -1,14 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
 #include "SAssetFamilyShortcutBar.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/Commands/UIAction.h"
+#include "Textures/SlateIcon.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
+#include "Framework/MultiBox/MultiBoxDefs.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "EditorStyleSet.h"
 #include "IAssetFamily.h"
-#include "AssetThumbnail.h"
-#include "SHyperlink.h"
-#include "BreakIterator.h"
+#include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
-#include "WorkflowCentricApplication.h"
+#include "WorkflowOrientedApp/WorkflowCentricApplication.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Framework/Application/SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "SAssetFamilyShortcutBar"
 
@@ -240,6 +254,7 @@ public:
 				AssetPickerConfig.bAllowNullSelection = false;
 				AssetPickerConfig.ThumbnailLabel = EThumbnailLabel::ClassName;
 				AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
+				AssetPickerConfig.InitialAssetSelection = AssetData;
 
 				MenuBuilder.AddWidget(
 					SNew(SBox)

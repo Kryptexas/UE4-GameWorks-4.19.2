@@ -1,10 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "BlueprintEditor.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/Text/SlateHyperlinkRun.h"
+#include "Editor/PropertyEditor/Public/PropertyEditorDelegates.h"
+
+class FBlueprintEditor;
+class IDetailsView;
+class SBorder;
+class SMyBlueprint;
 
 typedef TSet<class UObject*> FInspectorSelectionSet;
 

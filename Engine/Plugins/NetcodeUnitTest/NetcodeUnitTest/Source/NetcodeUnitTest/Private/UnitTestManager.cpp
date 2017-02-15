@@ -1,20 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "NetcodeUnitTestPCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "UnitTestManager.h"
-#include "LogWindowManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/OutputDeviceHelper.h"
+#include "Misc/App.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/Package.h"
+#include "Engine/NetConnection.h"
+#include "NetcodeUnitTest.h"
+
+#include "UI/LogWindowManager.h"
 
 #include "UnitTest.h"
+#include "ProcessUnitTest.h"
 #include "ClientUnitTest.h"
 
-#include "SLogWidget.h"
-#include "SLogWindow.h"
-#include "SLogDialog.h"
+#include "Widgets/SWindow.h"
+#include "UI/SLogWidget.h"
+#include "UI/SLogWindow.h"
+#include "UI/SLogDialog.h"
 
 #include "NUTUtil.h"
 #include "NUTUtilDebug.h"
-#include "NUTUtilNet.h"
+#include "Net/NUTUtilNet.h"
 #include "NUTUtilProfiler.h"
 
 // @todo #JohnBFeature: Add an overall-timer, and then start debugging the memory management in more detail
@@ -1916,6 +1924,25 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 		else
 		{
 			Ar.Logf(TEXT("Need to specify '-Data=DatAddress' and '-DataLen=Len'."));
+		}
+	}
+	/**
+	 * Watches for the specified assert log, and then blocks it to prevent the game from crashing.
+	 * Does a partial match for the assert, rather than an exact match.
+	 */
+	else if (FParse::Command(&Cmd, TEXT("AssertDisable")))
+	{
+		FString Assert = Cmd;
+
+		if (Assert.Len() > 0)
+		{
+			FAssertHookDevice::AddAssertHook(Assert);
+
+			Ar.Logf(TEXT("Blocking asserts matching '%s'."), *Assert);
+		}
+		else
+		{
+			Ar.Logf(TEXT("Need to specify the log string that should be matched, for detecting the assert."));
 		}
 	}
 

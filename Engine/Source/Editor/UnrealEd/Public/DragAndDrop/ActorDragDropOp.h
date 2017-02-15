@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "Input/DragAndDrop.h"
+#include "DragAndDrop/DecoratedDragDropOp.h"
 #include "ClassIconFinder.h"
-#include "DecoratedDragDropOp.h"
-#include "Internationalization.h"
 
 class FActorDragDropOp : public FDecoratedDragDropOp
 {

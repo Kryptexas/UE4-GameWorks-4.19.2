@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3151855
 Availability:Public
 Title: UE4 시작하기
 Crumbs: %ROOT%
@@ -8,6 +8,7 @@ version: 4.9
 parent:%ROOT%
 order:1
 tags:Getting Started
+type:landing
 
 [VAR:Params]
 [PARAM:image]

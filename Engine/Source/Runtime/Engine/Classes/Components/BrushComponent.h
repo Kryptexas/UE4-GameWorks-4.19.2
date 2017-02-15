@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/PrimitiveComponent.h"
 #include "BrushComponent.generated.h"
 
-struct FEngineShowFlags;
+class FPrimitiveSceneProxy;
+class UMaterialInterface;
 struct FConvexVolume;
+struct FEngineShowFlags;
 
 /** 
  *	A brush component defines a shape that can be modified within the editor. They are used both as part of BSP building, and for volumes. 
@@ -42,7 +48,7 @@ public:
 	//~ Begin UPrimitiveComponent Interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual class UBodySetup* GetBodySetup() override { return BrushBodySetup; };
-	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const override;
+	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false ) const override;
 	virtual uint8 GetStaticDepthPriorityGroup() const override;
 	virtual bool IsEditorOnly() const override;
 #if WITH_EDITOR

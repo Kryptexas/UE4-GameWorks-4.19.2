@@ -39,7 +39,6 @@ namespace physx {
 
 	namespace profile {
 
-	class PxUserCustomProfiler;
 	class PxProfileZoneManager;	
 
 	/**
@@ -125,11 +124,6 @@ namespace physx {
 		 */
 		virtual uint16_t getEventIdsForNames( const char** inNames, uint32_t inLen ) = 0;
 
-		/**
-		\brief Specifies an optional user custom profiler interface for this profile zone.
-		\param up Specifies the PxUserCustomProfiler interface for this zone.  A NULL disables event notification.
-		 */
-		virtual void setUserCustomProfiler(PxUserCustomProfiler* up) = 0;
 		/**
 		\brief Create a new profile zone.  
 

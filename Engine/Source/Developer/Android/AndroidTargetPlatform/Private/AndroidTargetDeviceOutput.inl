@@ -1,4 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+#include "CoreTypes.h"
+#include "CoreFwd.h"
+
+class FAndroidDeviceOutputReaderRunnable;
+class FAndroidTargetDevice;
+class FAndroidTargetDeviceOutput;
 
 inline FAndroidDeviceOutputReaderRunnable::FAndroidDeviceOutputReaderRunnable(const FString& InAdbFilename, const FString& InDeviceSerialNumber, FOutputDevice* InOutput) 
 	: StopTaskCounter(0)

@@ -1,6 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "IDetailCustomization.h"
+
+class FAssetData;
+class IDetailLayoutBuilder;
+class IPropertyHandle;
+class SComboButton;
 
 class FSkeletalMeshComponentDetails : public IDetailCustomization
 {

@@ -1,9 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Templates/Casts.h"
 #include "EdGraph/EdGraphNode.h"
 #include "EdGraphPin.generated.h"
+
+class UEdGraphPin;
+enum class EPinResolveType : uint8;
 
 USTRUCT()
 struct FSimpleMemberReference
@@ -53,49 +63,6 @@ FORCEINLINE FArchive& operator<<(FArchive& Ar, FSimpleMemberReference& Data)
 	Ar << Data.MemberGuid;
 	return Ar;
 }
-
-/**
-  * Struct used to define information for terminal types, e.g. types that can be contained
-  * by a container. Currently can represent strong/weak references to a type (only UObjects), 
-  * a structure, or a primitive. Support for "Container of Containers" is done by wrapping 
-  * a structure, rather than implicitly defining names for containers.
-  */
-USTRUCT()
-struct FEdGraphTerminalType
-{
-	GENERATED_USTRUCT_BODY()
-
-	FEdGraphTerminalType()
-		: TerminalCategory()
-		, TerminalSubCategory()
-		, TerminalSubCategoryObject(nullptr)
-		, bTerminalIsConst(false)
-		, bTerminalIsWeakPointer(false)
-	{
-	}
-
-	/** Category */
-	UPROPERTY()
-	FString TerminalCategory;
-
-	/** Sub-category */
-	UPROPERTY()
-	FString TerminalSubCategory;
-
-	/** Sub-category object */
-	UPROPERTY()
-	TWeakObjectPtr<UObject> TerminalSubCategoryObject;
-
-	/** Whether or not this pin is a immutable const value */
-	UPROPERTY()
-	bool bTerminalIsConst;
-
-	/** Whether or not this is a weak reference */
-	UPROPERTY()
-	bool bTerminalIsWeakPointer;
-
-	ENGINE_API friend FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& P);
-};
 
 inline bool operator!= (const FEdGraphTerminalType& A, const FEdGraphTerminalType& B)
 {
@@ -174,13 +141,14 @@ public:
 		bIsConst = false;
 		bIsWeakPointer = false;
 	}
-	FEdGraphPinType(const FString& InPinCategory, const FString& InPinSubCategory, UObject* InPinSubCategoryObject, bool bInIsArray, bool bInIsReference)
+	FEdGraphPinType(const FString& InPinCategory, const FString& InPinSubCategory, UObject* InPinSubCategoryObject, bool bInIsArray, bool bInIsReference, bool bInIsSet, bool bInIsMap, const FEdGraphTerminalType& InValueTerminalType )
 	{
 		PinCategory = InPinCategory;
 		PinSubCategory = InPinSubCategory;
 		PinSubCategoryObject = InPinSubCategoryObject;
-		bIsMap = false;
-		bIsSet = false;
+		PinValueType = InValueTerminalType;
+		bIsMap = bInIsMap;
+		bIsSet = bInIsSet;
 		bIsArray = bInIsArray;
 		bIsReference = bInIsReference;
 		bIsConst = false;
@@ -230,6 +198,9 @@ public:
 	}
 
 	ENGINE_API bool Serialize(FArchive& Ar);
+
+	static ENGINE_API FEdGraphPinType GetPinTypeForTerminalType( const FEdGraphTerminalType& TerminalType );
+	static ENGINE_API FEdGraphPinType GetTerminalTypeForContainer( const FEdGraphPinType& ContainerType );
 };
 
 template<>

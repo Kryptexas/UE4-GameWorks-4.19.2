@@ -1,14 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "DiagnosticTable.h"
-#include "MaterialShaderType.h"
+#include "MaterialShader.h"
+#include "Stats/StatsMisc.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "Materials/MaterialInterface.h"
+#include "ProfilingDebugging/DiagnosticTable.h"
 #include "MeshMaterialShaderType.h"
 #include "ShaderCompiler.h"
 #include "DerivedDataCacheInterface.h"
-#include "TargetPlatform.h"
-#include "../ShaderDerivedDataVersion.h"
-#include "CookStats.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "ShaderDerivedDataVersion.h"
+#include "ProfilingDebugging/CookStats.h"
 
 int32 GCreateShadersOnLoad = 0;
 static FAutoConsoleVariableRef CVarCreateShadersOnLoad(
@@ -777,7 +780,7 @@ FShader* FMaterialShaderType::FinishCompileShader(
 	if (!Shader)
 	{
 		Shader = (*ConstructCompiledRef)(CompiledShaderInitializerType(this, CurrentJob.Output, Resource, UniformExpressionSet, MaterialShaderMapHash, ShaderPipelineType, nullptr, InDebugDescription));
-		CurrentJob.Output.ParameterMap.VerifyBindingsAreComplete(GetName(), (EShaderFrequency)CurrentJob.Output.Target.Frequency, CurrentJob.VFType);
+		CurrentJob.Output.ParameterMap.VerifyBindingsAreComplete(GetName(), CurrentJob.Output.Target, CurrentJob.VFType);
 	}
 
 	return Shader;
@@ -1206,7 +1209,7 @@ void FMaterialShaderMap::Compile(
 			NewCorrespondingMaterials.Add(Material);
 			ShaderMapsBeingCompiled.Add(this, NewCorrespondingMaterials);
 #if DEBUG_INFINITESHADERCOMPILE
-			UE_LOG(LogTemp, Warning, TEXT("Added material ShaderMap 0x%08X%08X with Material 0x%08X%08X to ShaderMapsBeingCompiled"), (int)((int64)(this) >> 32), (int)((int64)(this)), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
+			UE_LOG(LogTemp, Display, TEXT("Added material ShaderMap 0x%08X%08X with Material 0x%08X%08X to ShaderMapsBeingCompiled"), (int)((int64)(this) >> 32), (int)((int64)(this)), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
 #endif  
 			// Setup the material compilation environment.
 			Material->SetupMaterialEnvironment(InPlatform, InMaterialCompilationOutput.UniformExpressionSet, *MaterialEnvironment);
@@ -1650,7 +1653,7 @@ bool FMaterialShaderMap::TryToAddToExistingCompilationTask(FMaterial* Material)
 	{
 		CorrespondingMaterials->AddUnique(Material);
 #if DEBUG_INFINITESHADERCOMPILE
-		UE_LOG(LogTemp, Warning, TEXT("Added shader map 0x%08X%08X from material 0x%08X%08X"), (int)((int64)(this) >> 32), (int)((int64)(this)), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
+		UE_LOG(LogTemp, Display, TEXT("Added shader map 0x%08X%08X from material 0x%08X%08X"), (int)((int64)(this) >> 32), (int)((int64)(this)), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
 #endif
 		return true;
 	}
@@ -2181,7 +2184,7 @@ void FMaterialShaderMap::RemovePendingMaterial(FMaterial* Material)
 #if DEBUG_INFINITESHADERCOMPILE
 		if ( Result )
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Removed shader map 0x%08X%08X from material 0x%08X%08X"), (int)((int64)(It.Key().GetReference()) >> 32), (int)((int64)(It.Key().GetReference())), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
+			UE_LOG(LogTemp, Display, TEXT("Removed shader map 0x%08X%08X from material 0x%08X%08X"), (int)((int64)(It.Key().GetReference()) >> 32), (int)((int64)(It.Key().GetReference())), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
 		}
 #endif
 	}

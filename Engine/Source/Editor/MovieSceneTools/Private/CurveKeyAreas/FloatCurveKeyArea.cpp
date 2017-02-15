@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
 #include "FloatCurveKeyArea.h"
-#include "SFloatCurveKeyEditor.h"
-#include "MovieSceneClipboard.h"
+#include "UObject/StructOnScope.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "MovieSceneTrack.h"
+#include "MovieSceneCommonHelpers.h"
+#include "ClipboardTypes.h"
+#include "CurveKeyEditors/SFloatCurveKeyEditor.h"
 #include "SequencerClipboardReconciler.h"
 
 /* IKeyArea interface
@@ -185,9 +188,20 @@ TArray<FKeyHandle> FFloatCurveKeyArea::GetUnsortedKeyHandles() const
 }
 
 
+FKeyHandle FFloatCurveKeyArea::DilateKey(FKeyHandle KeyHandle, float Scale, float Origin)
+{
+	float NewKeyTime = Curve->GetKeyTime(KeyHandle);
+	NewKeyTime = (NewKeyTime - Origin) * Scale + Origin;
+	FKeyHandle NewKeyHandle = Curve->SetKeyTime(KeyHandle, NewKeyTime);
+	Curve->AutoSetTangents();
+	return NewKeyHandle;
+}
+
 FKeyHandle FFloatCurveKeyArea::MoveKey(FKeyHandle KeyHandle, float DeltaPosition)
 {
-	return Curve->SetKeyTime(KeyHandle, Curve->GetKeyTime(KeyHandle) + DeltaPosition);
+	FKeyHandle NewKeyHandle = Curve->SetKeyTime(KeyHandle, Curve->GetKeyTime(KeyHandle) + DeltaPosition);
+	Curve->AutoSetTangents();
+	return NewKeyHandle;
 }
 
 
@@ -226,9 +240,10 @@ void FFloatCurveKeyArea::SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTange
 }
 
 
-void FFloatCurveKeyArea::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const
+void FFloatCurveKeyArea::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime)
 {
 	Curve->SetKeyTime(KeyHandle, NewKeyTime);
+	Curve->AutoSetTangents();
 }
 
 void FFloatCurveKeyArea::CopyKeys(FMovieSceneClipboardBuilder& ClipboardBuilder, const TFunctionRef<bool(FKeyHandle, const IKeyArea&)>& KeyMask) const

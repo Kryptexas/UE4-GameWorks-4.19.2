@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ConstructorHelpers.h: Constructor helper templates
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/Package.h"
 
 namespace ConstructorHelpersInternal
 {

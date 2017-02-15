@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 using System;
 using System.IO;
@@ -87,6 +87,19 @@ public class HarfBuzz : ModuleRules
 
 			PublicLibraryPaths.Add(HarfBuzzLibPath);
 			PublicAdditionalLibraries.Add("harfbuzz"); // Automatically transforms to libharfbuzz.a
+		}
+
+		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
+		{
+			Definitions.Add("WITH_HARFBUZZ=1");
+
+			string BuildTypeFolderName = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+				? "Debug"
+				: "Release";
+			HarfBuzzLibPath += "VS2015/" + BuildTypeFolderName + "/";
+
+			PublicLibraryPaths.Add(HarfBuzzLibPath);
+			PublicAdditionalLibraries.Add("harfbuzz.lib");
 		}
 
 		else if (Target.Platform == UnrealTargetPlatform.Android)

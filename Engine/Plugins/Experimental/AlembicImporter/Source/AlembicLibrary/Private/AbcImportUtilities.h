@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AlembicLibraryPublicPCH.h"
+#include "CoreMinimal.h"
 
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
+
+THIRD_PARTY_INCLUDES_START
 #include <Alembic/AbcCoreAbstract/TimeSampling.h>
 #include <Alembic/Abc/All.h>
 #include <Alembic/AbcGeom/All.h>
+THIRD_PARTY_INCLUDES_END
 
 #include "GeometryCache.h"
 #include "GeometryCacheTrackFlipbookAnimation.h"
@@ -213,9 +219,14 @@ namespace AbcImporterUtilities
 	bool AreVerticesEqual(const FSoftSkinVertex& V1, const FSoftSkinVertex& V2);
 
 	/** Applies user/preset conversion to the given sample */
-	void ApplyConversion(FAbcMeshSample* InOutSample, const FAbcConversionSettings& InConversionSettings);
+	void ApplyConversion(FAbcMeshSample* InOutSample, const FAbcConversionSettings& InConversionSettings, const bool bShouldInverseBuffers);
 
 	/** Applies user/preset conversion to the given matrices */
 	void ApplyConversion(TArray<FMatrix>& InOutMatrices, const FAbcConversionSettings& InConversionSettings);
+
+        /** Extracts the bounding box from the given alembic property (initialised to zero if the property is invalid) */
+	FBoxSphereBounds ExtractBounds(Alembic::Abc::IBox3dProperty InBoxBoundsProperty);
 	
+	/** Applies user/preset conversion to the given BoxSphereBounds */
+	void ApplyConversion(FBoxSphereBounds& InOutBounds, const FAbcConversionSettings& InConversionSettings);
 }

@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
 #include "StringCurveKeyArea.h"
-#include "SStringCurveKeyEditor.h"
-#include "MovieSceneClipboard.h"
+#include "UObject/StructOnScope.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "MovieSceneTrack.h"
+#include "ClipboardTypes.h"
+#include "CurveKeyEditors/SStringCurveKeyEditor.h"
 #include "Curves/StringCurve.h"
 #include "SequencerClipboardReconciler.h"
 
@@ -152,6 +154,14 @@ TArray<FKeyHandle> FStringCurveKeyArea::GetUnsortedKeyHandles() const
 }
 
 
+FKeyHandle FStringCurveKeyArea::DilateKey(FKeyHandle KeyHandle, float Scale, float Origin)
+{
+	float NewKeyTime = Curve->GetKeyTime(KeyHandle);
+	NewKeyTime = (NewKeyTime - Origin) * Scale + Origin;
+	return Curve->SetKeyTime(KeyHandle, NewKeyTime);
+}
+
+
 FKeyHandle FStringCurveKeyArea::MoveKey(FKeyHandle KeyHandle, float DeltaPosition)
 {
 	return Curve->SetKeyTime(KeyHandle, Curve->GetKeyTime(KeyHandle) + DeltaPosition);
@@ -180,7 +190,7 @@ void FStringCurveKeyArea::SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTang
 }
 
 
-void FStringCurveKeyArea::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const
+void FStringCurveKeyArea::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime)
 {
 	Curve->SetKeyTime(KeyHandle, NewKeyTime);
 }

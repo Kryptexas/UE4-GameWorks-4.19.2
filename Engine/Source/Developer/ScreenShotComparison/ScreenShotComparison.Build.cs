@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -21,7 +21,11 @@ public class ScreenShotComparison : ModuleRules
 				"SlateCore",
 				"ImageWrapper",
 				"CoreUObject",
-				"DesktopWidgets"
+				"DesktopWidgets",
+				"SourceControl",
+				"AutomationMessages",
+				"Json",
+				"JsonUtilities"
 			}
 		);
 

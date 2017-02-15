@@ -3,6 +3,10 @@ title:Material Expression Reference
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:Reference for all material expressions available for use in the Material Editor for creating complex node-based shader networks.
 Version: 4.9
+parent:Engine/Rendering/Materials
+order:9
+topic-image:exp_ref_topic.png
+type:overview
 
 [REGION:banner]
 ![Materials Compendium](compendium.png)

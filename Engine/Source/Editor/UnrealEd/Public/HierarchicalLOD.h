@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/MemStack.h"
+#include "GameFramework/WorldSettings.h"
 #include "LODCluster.h"
+
+class AHierarchicalLODVolume;
+class ALODActor;
 
 /*=============================================================================
 	HierarchicalLOD.h: Hierarchical LOD definition.

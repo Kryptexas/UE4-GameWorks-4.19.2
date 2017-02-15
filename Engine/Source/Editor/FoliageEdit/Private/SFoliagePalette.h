@@ -1,13 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/Text/SlateHyperlinkRun.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Views/SHeaderRow.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STileView.h"
+#include "Widgets/Views/STreeView.h"
+#include "Editor/FoliageEdit/Private/FoliageEdMode.h"
 #include "Misc/TextFilter.h"
-#include "FoliageEdMode.h"
 
-class SFoliagePaletteTile;
-class FEdModeFoliage;
+class FAssetThumbnailPool;
 class FFoliagePaletteItemModel;
+class FMenuBuilder;
+class FUICommandList;
+class IDetailsView;
+class UFoliageType;
 
 typedef TSharedPtr<FFoliagePaletteItemModel> FFoliagePaletteItemModelPtr;
 typedef STreeView<FFoliagePaletteItemModelPtr> SFoliageTypeTreeView;

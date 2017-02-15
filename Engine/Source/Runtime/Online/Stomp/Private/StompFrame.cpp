@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+#include "StompFrame.h"
+#include "GenericPlatform/GenericPlatformStackWalk.h"
+#include "StompLog.h"
 
 #if WITH_STOMP
-
-#include "StompPrivatePCH.h"
-#include "StompFrame.h"
 
 // Anonymous name space for some frame parsing helpers
 namespace
@@ -127,7 +128,7 @@ void FStompFrame::Encode(FStompBuffer& Out) const
 
 		for(auto Element : Header)
 		{
-			FTCHARToUTF8 HeaderNameEncoded(*Element.Key.ToString());
+			FTCHARToUTF8 HeaderNameEncoded(*Element.Key.ToString().ToLower());
 			FTCHARToUTF8 HeaderValueEncoded(*Element.Value);
 			AppendArray(Out, (uint8*)HeaderNameEncoded.Get(), HeaderNameEncoded.Length(), bShouldEscapeFrameHeader);
 			Out.Add(':');

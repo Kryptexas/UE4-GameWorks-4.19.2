@@ -1,21 +1,46 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "World.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Misc/StringAssetReference.h"
+#include "Misc/StringClassReference.h"
+#include "Engine/World.h"
+#include "Misc/BufferedOutputDevice.h"
 #include "Engine.generated.h"
 
-class FScreenSaverInhibitor;
-class UDeviceProfileManager;
-class FViewport;
-class FCommonViewportClient;
+class AMatineeActor;
+class APlayerController;
+class Error;
 class FCanvas;
+class FCommonViewportClient;
+class FFineGrainedPerformanceTracker;
+class FPerformanceTrackingChart;
+class FScreenSaverInhibitor;
 class FTypeContainer;
+class FViewport;
+class IEngineLoop;
+class IHeadMountedDisplay;
 class IMessageRpcClient;
+class IPerformanceDataConsumer;
 class IPortalRpcLocator;
 class IPortalServiceLocator;
-class IPerformanceDataConsumer;
-class FPerformanceTrackingChart;
+class ISceneViewExtension;
+class IStereoRendering;
+class SViewport;
+class UEditorEngine;
+class UGameUserSettings;
+class UGameViewportClient;
+class ULocalPlayer;
+class UNetDriver;
+
 #if ALLOW_DEBUG_FILES
 class FFineGrainedPerformanceTracker;
 #endif
@@ -704,14 +729,6 @@ public:
 	UPROPERTY()
 	UObject *GameSingleton;
 
-	/** The tire type used when no tire type is explicitly applied. */
-	UPROPERTY()
-	class UTireType* DefaultTireType;
-
-	/** Path to the default tire type */
-	UPROPERTY(globalconfig, EditAnywhere, Category=DefaultClasses, meta=(AllowedClasses="TireType", DisplayName="Default Tire Type"), AdvancedDisplay)
-	FStringAssetReference DefaultTireTypeName;
-
 	/** Path that levels for play on console will be saved to (relative to FPaths::GameSavedDir()) */
 	UPROPERTY(config)
 	FString PlayOnConsoleSaveDir;
@@ -1129,9 +1146,13 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints)
 	uint32 bCanBlueprintsTickByDefault:1;
 
-	/** Controls whether anim blueprint nodes that access member variables of their class directly should use the optimized path that avoids a thunk to the Blueprint VM */
+	/** Controls whether anim blueprint nodes that access member variables of their class directly should use the optimized path that avoids a thunk to the Blueprint VM. This will force all anim blueprints to be recompiled. */
 	UPROPERTY(EditAnywhere, config, Category="Anim Blueprints")
 	uint32 bOptimizeAnimBlueprintMemberVariableAccess:1;
+
+	/** Controls whether by default we allow anim blueprint graph updates to be performed on non-game threads. This enables some extra checks in the anim blueprint compiler that will warn when unsafe operations are being attempted. This will force all anim blueprints to be recompiled. */
+	UPROPERTY(EditAnywhere, config, Category="Anim Blueprints")
+	uint32 bAllowMultiThreadedAnimationUpdate:1;
 
 	/** @todo document */
 	UPROPERTY(config)
@@ -1690,10 +1711,8 @@ public:
 	bool HandleFreezeStreamingCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );		// Smedis
 	bool HandleFreezeAllCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );			// Smedis
 
-#if !USE_NEW_ASYNC_IO
 	bool HandleFlushIOManagerCommand( const TCHAR* Cmd, FOutputDevice& Ar );						// Smedis
 	bool HandleListPreCacheMapPackagesCommand(const TCHAR* Cmd, FOutputDevice& Ar);
-#endif
 
 	bool HandleToggleRenderingThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar );	
 	bool HandleToggleAsyncComputeCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -1962,6 +1981,8 @@ public:
 	 * This may require loading the header of the package in question and is therefore slow.
 	 */
 	static FGuid GetPackageGuid(FName PackageName, bool bForPIE);
+
+	static void PreGarbageCollect();
 
 	/**
 	 * Returns whether we are running on a console platform or on the PC.
@@ -2649,7 +2670,8 @@ public:
 	/** @return true if the engine is autosaving a package */
 	virtual bool IsAutosaving() const { return false; }
 
-	/** @return true if this is a "vanilla" product running only Epic-built binaries, no third-party plugins, no game modules, etc. */
+	virtual bool ShouldDoAsyncEndOfFrameTasks() const { return false; }
+
 	bool IsVanillaProduct() const { return bIsVanillaProduct; }
 
 protected:
@@ -2993,3 +3015,6 @@ private:
 
 	FDelegateHandle HandleScreenshotCapturedDelegateHandle;
 };
+
+/** Global engine pointer. Can be 0 so don't use without checking. */
+extern ENGINE_API class UEngine*			GEngine;

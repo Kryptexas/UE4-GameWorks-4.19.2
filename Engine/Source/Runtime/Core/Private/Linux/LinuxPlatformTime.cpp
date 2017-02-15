@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ApplePlatformTime.mm: Apple implementations of time functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "Linux/LinuxPlatformTime.h"
+#include "Containers/StringConv.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
 #include <sys/resource.h>
 
 int FLinuxTime::ClockSource = FLinuxTime::CalibrateAndSelectClock();

@@ -1,16 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 PostProcessVisualizeComplexity.cpp: Contains definitions for complexity viewmode.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessStreamingAccuracyLegend.h"
+#include "PostProcess/PostProcessStreamingAccuracyLegend.h"
+#include "CanvasTypes.h"
+#include "UnrealEngine.h"
+#include "RenderTargetTemp.h"
 #include "SceneUtils.h"
-#include "PostProcessing.h"
 #include "DebugViewModeRendering.h"
+#include "SceneRendering.h"
 
 void FRCPassPostProcessStreamingAccuracyLegend::DrawDesc(FCanvas& Canvas, float PosX, float PosY, const FText& Text)
 {
@@ -48,7 +48,11 @@ void FRCPassPostProcessStreamingAccuracyLegend::DrawCustom(FRenderingCompositePa
 	FRenderTargetTemp TempRenderTarget(View, (const FTexture2DRHIRef&)PassOutputs[0].RequestSurface(Context).TargetableTexture);
 	FCanvas Canvas(&TempRenderTarget, NULL, ViewFamily.CurrentRealTime, ViewFamily.CurrentWorldTime, ViewFamily.DeltaWorldTime, Context.GetFeatureLevel());
 
-	if (ViewFamily.GetDebugViewShaderMode() == DVSM_MaterialTextureScaleAccuracy)
+	if (ViewFamily.GetDebugViewShaderMode() == DVSM_RequiredTextureResolution)
+	{
+		DrawDesc(Canvas, DestRect.Min.X + 115, DestRect.Max.Y - 75, LOCTEXT("DescRequiredTextureResolution", "Shows the ratio between the currently streamed texture resolution and the resolution wanted by the GPU."));
+	}
+	else if (ViewFamily.GetDebugViewShaderMode() == DVSM_MaterialTextureScaleAccuracy)
 	{
 		DrawDesc(Canvas, DestRect.Min.X + 115, DestRect.Max.Y - 75, LOCTEXT("DescMaterialTextureScaleAccuracy", "Shows under/over texture streaming caused by the material texture scales applied when sampling."));
 	}

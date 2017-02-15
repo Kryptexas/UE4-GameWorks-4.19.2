@@ -1,28 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "AnimationBlueprintEditorPrivatePCH.h"
 #include "AnimationBlueprintEditor.h"
-#include "AnimationBlueprintEditorModule.h"
-#include "AnimGraphDefinitions.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EditorStyleSet.h"
+#include "EditorReimportHandler.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "EdGraph/EdGraph.h"
+#include "AssetData.h"
+#include "Animation/AnimSequenceBase.h"
+#include "Animation/AnimBlueprint.h"
+#include "Editor.h"
 #include "IDetailsView.h"
+#include "IAnimationBlueprintEditorModule.h"
+#include "AnimationBlueprintEditorModule.h"
 
-#include "Toolkits/IToolkitHost.h"
 
 #include "SKismetInspector.h"
 
-#include "Editor/Kismet/Public/BlueprintEditorTabs.h"
-#include "Editor/Kismet/Public/BlueprintEditorModes.h"
 
-#include "ScopedTransaction.h"
-#include "Editor/UnrealEd/Public/EdGraphUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/DebuggerCommands.h"
+#include "EdGraphUtilities.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/DebuggerCommands.h"
 
 #include "AnimationBlueprintEditorMode.h"
-#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 
-#include "ComponentAssetBroker.h"
+#include "AnimGraphNode_Base.h"
 #include "AnimGraphNode_BlendListByInt.h"
 #include "AnimGraphNode_BlendSpaceEvaluator.h"
 #include "AnimGraphNode_BlendSpacePlayer.h"
@@ -31,34 +35,29 @@
 #include "AnimGraphNode_SequenceEvaluator.h"
 #include "AnimGraphNode_PoseByName.h"
 #include "AnimGraphNode_PoseBlendNode.h"
+#include "AnimGraphNode_MultiWayBlend.h"
 
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 
 #include "AnimPreviewInstance.h"
 
-#include "Particles/ParticleSystemComponent.h"
 
-#include "AssetToolsModule.h"
 #include "AnimationEditorUtils.h"
-#include "SDockTab.h"
-#include "GenericCommands.h"
+#include "Framework/Commands/GenericCommands.h"
 
-#include "Editor/KismetWidgets/Public/SSingleObjectDetailsPanel.h"
+#include "SSingleObjectDetailsPanel.h"
 
-#include "MessageLog.h"
-#include "SAdvancedPreviewDetailsTab.h"
 #include "IPersonaToolkit.h"
+#include "ISkeletonTree.h"
 #include "ISkeletonEditorModule.h"
-#include "IEditableSkeleton.h"
 #include "SBlueprintEditorToolbar.h"
 #include "PersonaModule.h"
-#include "IPersonaViewport.h"
 #include "IPersonaPreviewScene.h"
 #include "IPersonaEditorModeManager.h"
 #include "AnimationGraph.h"
 #include "IAssetFamily.h"
 #include "PersonaCommonCommands.h"
-#include "Editor/AnimGraph/Public/AnimGraphCommands.h"
+#include "AnimGraphCommands.h"
 
 #define LOCTEXT_NAMESPACE "AnimationBlueprintEditor"
 
@@ -76,6 +75,7 @@ namespace AnimationBlueprintEditorTabs
 	const FName AnimBlueprintPreviewEditorTab(TEXT("AnimBlueprintPreviewEditor"));
 	const FName AssetOverridesTab(TEXT("AnimBlueprintParentPlayerEditor"));
 	const FName SlotNamesTab(TEXT("SkeletonSlotNames"));
+	const FName CurveNamesTab(TEXT("AnimCurveViewerTab"));
 };
 
 /////////////////////////////////////////////////////
@@ -95,7 +95,7 @@ public:
 	{
 		AnimationBlueprintEditorPtr = InAnimationBlueprintEditor;
 
-		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments().HostCommandList(InAnimationBlueprintEditor->GetToolkitCommands()), /*bAutomaticallyObserveViaGetObjectToObserve*/ true, /*bAllowSearch*/ true);
+		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments().HostCommandList(InAnimationBlueprintEditor->GetToolkitCommands()).HostTabManager(InAnimationBlueprintEditor->GetTabManager()), /*bAutomaticallyObserveViaGetObjectToObserve*/ true, /*bAllowSearch*/ true);
 
 		PropertyView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateStatic([] { return !GIntraFrameDebuggingGameThread; }));
 	}
@@ -386,6 +386,11 @@ void FAnimationBlueprintEditor::OnAddPosePin()
 				FilterNode->AddPinToBlendByFilter();
 				break;
 			}
+			else if (UAnimGraphNode_MultiWayBlend* MultiBlendNode = Cast<UAnimGraphNode_MultiWayBlend>(Node))
+			{
+				MultiBlendNode->AddPinToBlendNode();
+				break;
+			}
 		}
 	}
 }
@@ -398,8 +403,9 @@ bool FAnimationBlueprintEditor::CanAddPosePin() const
 void FAnimationBlueprintEditor::OnRemovePosePin()
 {
 	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
-	UAnimGraphNode_BlendListByInt* BlendListIntNode = NULL;
-	UAnimGraphNode_LayeredBoneBlend* BlendByFilterNode = NULL;
+	UAnimGraphNode_BlendListByInt* BlendListIntNode = nullptr;
+	UAnimGraphNode_LayeredBoneBlend* BlendByFilterNode = nullptr;
+	UAnimGraphNode_MultiWayBlend* BlendByMultiway = nullptr;
 
 	if (SelectedNodes.Num() == 1)
 	{
@@ -415,6 +421,11 @@ void FAnimationBlueprintEditor::OnRemovePosePin()
 				BlendByFilterNode = LayeredBlendNode;
 				break;
 			}		
+			else if (UAnimGraphNode_MultiWayBlend* MultiwayBlendNode = Cast<UAnimGraphNode_MultiWayBlend>(*NodeIt))
+			{
+				BlendByMultiway = MultiwayBlendNode;
+				break;
+			}
 		}
 	}
 
@@ -442,6 +453,17 @@ void FAnimationBlueprintEditor::OnRemovePosePin()
 			UEdGraphPin* SelectedPin = FocusedGraphEd->GetGraphPinForMenu();
 
 			BlendByFilterNode->RemovePinFromBlendByFilter(SelectedPin);
+
+			// Update the graph so that the node will be refreshed
+			FocusedGraphEd->NotifyGraphChanged();
+		}
+
+		if (BlendByMultiway)
+		{
+			// make sure we at least have BlendListNode selected
+			UEdGraphPin* SelectedPin = FocusedGraphEd->GetGraphPinForMenu();
+
+			BlendByMultiway->RemovePinFromBlendNode(SelectedPin);
 
 			// Update the graph so that the node will be refreshed
 			FocusedGraphEd->NotifyGraphChanged();

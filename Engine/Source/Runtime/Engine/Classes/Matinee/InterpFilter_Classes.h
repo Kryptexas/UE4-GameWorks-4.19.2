@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /** 
  * InterpFilter_Classes: Filter class for filtering matinee groups.  
@@ -7,6 +7,10 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
 #include "Matinee/InterpFilter.h"
 #include "InterpFilter_Classes.generated.h"
 

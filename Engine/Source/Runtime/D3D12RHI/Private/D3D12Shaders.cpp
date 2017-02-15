@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Shaders.cpp: D3D shader RHI implementation.
@@ -252,10 +252,8 @@ FComputeShaderRHIRef FD3D12DynamicRHI::RHICreateComputeShader(const TArray<uint8
 
 void FD3D12CommandContext::RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data)
 {
-	// structures are chosen to be directly mappable
-	D3D12_VIEWPORT* D3DData = (D3D12_VIEWPORT*)Data;
-
-	StateCache.SetViewports(Count, D3DData);
+	// Structures are chosen to be directly mappable
+	StateCache.SetViewports(Count, reinterpret_cast<const D3D12_VIEWPORT*>(Data));
 }
 
 static volatile uint64 BoundShaderStateID = 0;
@@ -270,7 +268,7 @@ FD3D12BoundShaderState::FD3D12BoundShaderState(
 	FD3D12Device* InDevice
 	) :
 	CacheLink(InVertexDeclarationRHI, InVertexShaderRHI, InPixelShaderRHI, InHullShaderRHI, InDomainShaderRHI, InGeometryShaderRHI, this),
-	UniqueID(InterlockedIncrement64(reinterpret_cast<volatile int64*>(&BoundShaderStateID))),
+	UniqueID(FPlatformAtomics::InterlockedIncrement(reinterpret_cast<volatile int64*>(&BoundShaderStateID))),
 	FD3D12DeviceChild(InDevice)
 {
 	INC_DWORD_STAT(STAT_D3D12NumBoundShaderState);

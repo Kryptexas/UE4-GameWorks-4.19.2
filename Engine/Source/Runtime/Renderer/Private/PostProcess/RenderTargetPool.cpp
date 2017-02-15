@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderTargetPool.cpp: Scene render target pool manager.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "RenderTargetPool.h"
+#include "PostProcess/RenderTargetPool.h"
+#include "RHIStaticStates.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "CanvasTypes.h"
+#include "Engine/Canvas.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneRendering.h"
+#include "RenderTargetTemp.h"
 
 /** The global render targets pool. */
 TGlobalResource<FRenderTargetPool> GRenderTargetPool;
@@ -1348,6 +1354,8 @@ void FRenderTargetPool::ReleaseDynamicRHI()
 {
 	check(IsInRenderingThread());
 	WaitForTransitionFence();
+
+	VisualizeTexture.Destroy();
 
 	PooledRenderTargets.Empty();
 	if (PooledRenderTargetSnapshots.Num())

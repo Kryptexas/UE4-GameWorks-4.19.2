@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
 
+[SupportedPlatforms(UnrealPlatformClass.Server)]
 public class UE4ServerTarget : TargetRules
 {
     public UE4ServerTarget(TargetInfo Target)
@@ -35,11 +36,5 @@ public class UE4ServerTarget : TargetRules
 	public override bool ShouldUseSharedBuildEnvironment(TargetInfo Target)
 	{
 		return true;
-	}
-
-	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-	{
-		// It is valid for only server platforms
-		return UnrealBuildTool.UnrealBuildTool.GetAllServerPlatforms(ref OutPlatforms, false);
 	}
 }

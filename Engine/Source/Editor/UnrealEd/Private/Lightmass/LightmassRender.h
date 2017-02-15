@@ -1,10 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightmassRender.h: lightmass rendering-related definitions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "PixelFormat.h"
+#include "SceneTypes.h"
+
+class FCanvas;
+class FLightmassMaterialProxy;
+class UMaterialInterface;
+class UTextureRenderTarget2D;
+struct FLightmassMaterialExportSettings;
 
 /** Forward declarations of Lightmass types */
 namespace Lightmass

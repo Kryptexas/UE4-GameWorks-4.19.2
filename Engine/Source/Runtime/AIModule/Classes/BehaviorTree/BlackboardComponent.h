@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /** 
  *  Blackboard - holds AI's world knowledge, easily accessible for behavior trees
@@ -11,18 +11,20 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "InputCoreTypes.h"
+#include "Templates/SubclassOf.h"
 #include "Components/ActorComponent.h"
-#include "BehaviorTreeTypes.h"
+#include "EngineDefines.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
-#include "BehaviorTree/Blackboard/BlackboardKeyType_Enum.h"
-#include "BehaviorTree/Blackboard/BlackboardKeyType_NativeEnum.h"
-#include "BlackboardData.h"
 #include "AISystem.h"
+#include "BehaviorTree/BlackboardData.h"
 #include "BlackboardComponent.generated.h"
 
-class UBlackboardData;
 class UBrainComponent;
-class UBlackboardKeyType;
 
 namespace EBlackboardDescription
 {
@@ -75,10 +77,18 @@ public:
 	/** unregister all observers associated with given owner */
 	void UnregisterObserversFrom(UObject* NotifyOwner);
 
+	/** pause observer change notifications, any new ones will be added to a queue */
+	void PauseObserverNotifications();
+
+	/** resume observer change notifications and, optionally, process the queued observation list */
+	void ResumeObserverNotifications(bool bSendQueuedObserverNotifications);
+
 	/** pause change notifies and add them to queue */
+	DEPRECATED(4.15, "Please call PauseObserverUpdates.")
 	void PauseUpdates();
 
 	/** resume change notifies and process queued list */
+	DEPRECATED(4.15, "Please call ResumeObserverNotifications.")
 	void ResumeUpdates();
 
 	/** @return associated behavior tree component */
@@ -243,7 +253,7 @@ protected:
 	/** queued key change notification, will be processed on ResumeUpdates call */
 	mutable TArray<uint8> QueuedUpdates;
 
-	/** set when notifies are paused and shouldn't be passed to observers */
+	/** set when observation notifies are paused and shouldn't be passed to observers */
 	uint32 bPausedNotifies : 1;
 
 	/** reset to false every time a new BB asset is assigned to this component */

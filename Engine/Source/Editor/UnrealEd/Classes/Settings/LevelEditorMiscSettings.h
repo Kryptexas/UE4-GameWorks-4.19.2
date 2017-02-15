@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
 #include "Engine/DeveloperSettings.h"
 #include "LevelEditorMiscSettings.generated.h"
 
+class ULevelStreaming;
 
 /**
  * Configure miscellaneous settings for the Level Editor.

@@ -1,17 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemUtilsPrivatePCH.h"
-#include "SocketSubsystem.h"
-#include "ModuleManager.h"
+#include "OnlineSubsystemUtils.h"
+#include "Logging/LogScopedVerbosityOverride.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Sound/SoundClass.h"
+#include "Audio.h"
+#include "GameFramework/PlayerState.h"
+#include "Engine/GameEngine.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/NetDriver.h"
+#include "OnlineSubsystemImpl.h"
+#include "OnlineSubsystemBPCallHelper.h"
 
-#include "IPAddress.h"
 
-#include "NboSerializer.h"
 
-#include "Voice.h"
-#include "SoundDefinitions.h"
-#include "Runtime/Engine/Classes/Sound/AudioSettings.h"
-#include "Runtime/Engine/Classes/Sound/SoundWaveProcedural.h"
+#include "VoiceModule.h"
+#include "AudioDevice.h"
+#include "Sound/AudioSettings.h"
+#include "Sound/SoundWaveProcedural.h"
 
 // Testing classes
 #include "Tests/TestFriendsInterface.h"
@@ -286,8 +292,26 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 						bool bTestLAN = FParse::Command(&Cmd, TEXT("LAN")) ? true : false;
 						bool bTestPresence = FParse::Command(&Cmd, TEXT("PRESENCE")) ? true : false;
 
+						FOnlineSessionSettings SettingsOverride;
+
+						FString ParamOverride;
+						while (FParse::Token(Cmd, ParamOverride, false))
+						{
+							FString Value;
+							FParse::Token(Cmd, Value, false);
+
+							if (Value.IsNumeric())
+							{
+								SettingsOverride.Set(FName(*ParamOverride), FCString::Atoi(*Value));
+							}
+							else
+							{
+								SettingsOverride.Set(FName(*ParamOverride), Value);
+							}
+						}
+
 						// This class deletes itself once done
-						(new FTestSessionInterface(SubName, true))->Test(InWorld, bTestLAN, bTestPresence);
+						(new FTestSessionInterface(SubName, true))->Test(InWorld, bTestLAN, bTestPresence, false, SettingsOverride);
 						bWasHandled = true;
 					}
 					// Spawn the object that will exercise all of the session methods as client
@@ -296,8 +320,34 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 						bool bTestLAN = FParse::Command(&Cmd, TEXT("LAN")) ? true : false;
 						bool bTestPresence = FParse::Command(&Cmd, TEXT("PRESENCE")) ? true : false;
 
+						FOnlineSessionSettings SettingsOverride;
+
 						// This class deletes itself once done
-						(new FTestSessionInterface(SubName, false))->Test(InWorld, bTestLAN, bTestPresence);
+						(new FTestSessionInterface(SubName, false))->Test(InWorld, bTestLAN, bTestPresence, false, SettingsOverride);
+						bWasHandled = true;
+					}
+					else if (FParse::Command(&Cmd, TEXT("STARTMATCHMAKING")))
+					{
+						FOnlineSessionSettings SettingsOverride;
+
+						FString ParamOverride;
+						while (FParse::Token(Cmd, ParamOverride, false))
+						{
+							FString Value;
+							FParse::Token(Cmd, Value, false);
+
+							if (Value.IsNumeric())
+							{
+								SettingsOverride.Set(FName(*ParamOverride), FCString::Atoi(*Value));
+							}
+							else
+							{
+								SettingsOverride.Set(FName(*ParamOverride), Value);
+							}
+						}
+
+						// This class deletes itself once done
+						(new FTestSessionInterface(SubName, false))->Test(InWorld, false, false, true, SettingsOverride);
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("CLOUD")))

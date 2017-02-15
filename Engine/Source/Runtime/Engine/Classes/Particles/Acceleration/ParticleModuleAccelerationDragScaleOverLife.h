@@ -1,12 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleModuleAccelerationDragScaleOverLife: Drag scale over lifetime.
 ==============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Distributions/DistributionFloat.h"
 #include "Particles/Acceleration/ParticleModuleAccelerationBase.h"
 #include "ParticleModuleAccelerationDragScaleOverLife.generated.h"
+
+class UParticleLODLevel;
 
 UCLASS(editinlinenew, hidecategories=(UObject, Acceleration), MinimalAPI, meta=(DisplayName = "Drag Scale/Life"))
 class UParticleModuleAccelerationDragScaleOverLife : public UParticleModuleAccelerationBase

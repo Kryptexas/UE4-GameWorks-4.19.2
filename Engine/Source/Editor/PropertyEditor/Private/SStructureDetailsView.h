@@ -1,8 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "UObject/StructOnScope.h"
+#include "PropertyNode.h"
+#include "IDetailsView.h"
 #include "SDetailsViewBase.h"
 #include "IStructureDetailsView.h"
+
+class AActor;
+class FDetailLayoutBuilderImpl;
+class IDetailRootObjectCustomization;
 
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 class SStructureDetailsView : public SDetailsViewBase, public IStructureDetailsView
@@ -84,7 +94,7 @@ public:
 
 	virtual void ForceRefresh() override;
 	virtual void MoveScrollOffset(int32 DeltaOffset) override {}
-	virtual void AddExternalRootPropertyNode(TSharedRef<FPropertyNode> ExternalRootNode) override {}
+	virtual void AddExternalRootPropertyNode(TSharedRef<FPropertyNode> ExternalRootNode) override;
 	virtual void ClearSearch() override;
 public:
 

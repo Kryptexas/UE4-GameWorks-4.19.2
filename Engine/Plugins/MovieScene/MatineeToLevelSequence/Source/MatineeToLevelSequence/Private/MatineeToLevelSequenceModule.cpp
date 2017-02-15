@@ -1,11 +1,77 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MatineeToLevelSequencePCH.h"
-#include "ModuleInterface.h"
-#include "NotificationManager.h"
-#include "SNotificationList.h"
-#include "Matinee/InterpTrack.h"
 #include "MatineeToLevelSequenceModule.h"
+#include "MatineeToLevelSequenceLog.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "IMovieScenePlayer.h"
+#include "MovieSceneSequence.h"
+#include "LevelSequence.h"
+#include "Factories/Factory.h"
+#include "AssetData.h"
+#include "IAssetTools.h"
+#include "AssetToolsModule.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Framework/Docking/TabManager.h"
+#include "UObject/UnrealType.h"
+#include "GameFramework/Character.h"
+#include "Camera/CameraActor.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Components/LightComponentBase.h"
+#include "Engine/Light.h"
+#include "Engine/Selection.h"
+#include "Matinee/InterpData.h"
+#include "Matinee/InterpTrackBoolProp.h"
+#include "Matinee/InterpTrackLinearColorProp.h"
+#include "Matinee/InterpTrackColorScale.h"
+#include "Matinee/InterpTrackColorProp.h"
+#include "Matinee/InterpTrackFloatProp.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackAnimControl.h"
+#include "Matinee/InterpTrackSound.h"
+#include "Matinee/InterpTrackFade.h"
+#include "Matinee/InterpTrackSlomo.h"
+#include "Matinee/InterpTrackDirector.h"
+#include "Matinee/InterpTrackEvent.h"
+#include "Matinee/InterpTrackAudioMaster.h"
+#include "Matinee/InterpTrackVectorProp.h"
+#include "Matinee/InterpTrackVisibility.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpGroupDirector.h"
+#include "Matinee/MatineeActor.h"
+#include "Matinee/MatineeActorCameraAnim.h"
+#include "Matinee/InterpTrackMoveAxis.h"
+#include "MatineeUtils.h"
+#include "Editor.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "LevelEditor.h"
+#include "MovieScene.h"
+#include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
+#include "LevelSequenceActor.h"
+#include "Tracks/MovieSceneAudioTrack.h"
+#include "Matinee/InterpTrackToggle.h"
+#include "MatineeImportTools.h"
+#include "MovieSceneFolder.h"
+#include "Tracks/MovieSceneBoolTrack.h"
+#include "Tracks/MovieSceneColorTrack.h"
+#include "Tracks/MovieSceneFloatTrack.h"
+#include "Tracks/MovieScene3DTransformTrack.h"
+#include "Tracks/MovieSceneParticleTrack.h"
+#include "Tracks/MovieSceneSkeletalAnimationTrack.h"
+#include "Tracks/MovieSceneFadeTrack.h"
+#include "Tracks/MovieSceneSlomoTrack.h"
+#include "Tracks/MovieSceneCameraCutTrack.h"
+#include "Tracks/MovieSceneEventTrack.h"
+#include "Tracks/MovieSceneVectorTrack.h"
+#include "Tracks/MovieSceneVisibilityTrack.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "Dialogs/Dialogs.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "MatineeToLevelSequence"
 
@@ -285,7 +351,7 @@ protected:
 
 	/** Add property to possessable node **/
 	template <typename T>
-	static T* AddPropertyTrack(FName InPropertyName, AActor* InActor, const FGuid& PossessableGuid, UMovieSceneSequence* NewSequence, UMovieScene* NewMovieScene, int32& NumWarnings)
+	static T* AddPropertyTrack(FName InPropertyName, AActor* InActor, const FGuid& PossessableGuid, IMovieScenePlayer& Player, UMovieSceneSequence* NewSequence, UMovieScene* NewMovieScene, int32& NumWarnings)
 	{
 		T* PropertyTrack = nullptr;
 
@@ -298,7 +364,7 @@ protected:
 		if (PropObject && Property)
 		{
 			// If the property object that owns this property isn't already bound, add a binding to the property object
-			ObjectGuid = NewSequence->FindPossessableObjectId(*PropObject);
+			ObjectGuid = Player.FindObjectId(*PropObject, MovieSceneSequenceID::Root);
 			if (!ObjectGuid.IsValid())
 			{
 				UObject* BindingContext = InActor->GetWorld();
@@ -359,7 +425,7 @@ protected:
 	}
 
 	/** Convert an interp group */
-	void ConvertInterpGroup(UInterpGroup* Group, AActor* GroupActor, UMovieScene* NewMovieScene, UMovieSceneSequence* NewSequence, int32& NumWarnings)
+	void ConvertInterpGroup(UInterpGroup* Group, AActor* GroupActor, IMovieScenePlayer& Player, UMovieSceneSequence* NewSequence, UMovieScene* NewMovieScene, int32& NumWarnings)
 	{
 		FGuid PossessableGuid;
 
@@ -410,8 +476,9 @@ protected:
 
 				if ( bHasKeyframes && PossessableGuid.IsValid())
 				{
+					FVector DefaultScale = GroupActor != nullptr ? GroupActor->GetActorScale() : FVector(1.f);
 					UMovieScene3DTransformTrack* TransformTrack = NewMovieScene->AddTrack<UMovieScene3DTransformTrack>(PossessableGuid);								
-					FMatineeImportTools::CopyInterpMoveTrack(MatineeMoveTrack, TransformTrack);
+					FMatineeImportTools::CopyInterpMoveTrack(MatineeMoveTrack, TransformTrack, DefaultScale);
 				}
 			}
 			else if (Track->IsA(UInterpTrackAnimControl::StaticClass()))
@@ -466,7 +533,7 @@ protected:
 				UInterpTrackBoolProp* MatineeBoolTrack = StaticCast<UInterpTrackBoolProp*>(Track);
 				if (MatineeBoolTrack->GetNumKeyframes() != 0 && GroupActor && PossessableGuid.IsValid())
 				{
-					UMovieSceneBoolTrack* BoolTrack = AddPropertyTrack<UMovieSceneBoolTrack>(MatineeBoolTrack->PropertyName, GroupActor, PossessableGuid, NewSequence, NewMovieScene, NumWarnings);
+					UMovieSceneBoolTrack* BoolTrack = AddPropertyTrack<UMovieSceneBoolTrack>(MatineeBoolTrack->PropertyName, GroupActor, PossessableGuid, Player, NewSequence, NewMovieScene, NumWarnings);
 					if (BoolTrack)
 					{
 						FMatineeImportTools::CopyInterpBoolTrack(MatineeBoolTrack, BoolTrack);
@@ -478,10 +545,23 @@ protected:
 				UInterpTrackFloatProp* MatineeFloatTrack = StaticCast<UInterpTrackFloatProp*>(Track);
 				if (MatineeFloatTrack->GetNumKeyframes() != 0 && GroupActor && PossessableGuid.IsValid())
 				{
-					UMovieSceneFloatTrack* FloatTrack = AddPropertyTrack<UMovieSceneFloatTrack>(MatineeFloatTrack->PropertyName, GroupActor, PossessableGuid, NewSequence, NewMovieScene, NumWarnings);
+					UMovieSceneFloatTrack* FloatTrack = AddPropertyTrack<UMovieSceneFloatTrack>(MatineeFloatTrack->PropertyName, GroupActor, PossessableGuid, Player, NewSequence, NewMovieScene, NumWarnings);
 					if (FloatTrack)
 					{
 						FMatineeImportTools::CopyInterpFloatTrack(MatineeFloatTrack, FloatTrack);
+					}
+				}
+			}
+			else if (Track->IsA(UInterpTrackVectorProp::StaticClass()))
+			{
+				UInterpTrackVectorProp* MatineeVectorTrack = StaticCast<UInterpTrackVectorProp*>(Track);
+				if (MatineeVectorTrack->GetNumKeyframes() != 0 && GroupActor && PossessableGuid.IsValid())
+				{
+					UMovieSceneVectorTrack* VectorTrack = AddPropertyTrack<UMovieSceneVectorTrack>(MatineeVectorTrack->PropertyName, GroupActor, PossessableGuid, Player, NewSequence, NewMovieScene, NumWarnings);
+					if (VectorTrack)
+					{
+						VectorTrack->SetNumChannelsUsed(3);
+						FMatineeImportTools::CopyInterpVectorTrack(MatineeVectorTrack, VectorTrack);
 					}
 				}
 			}
@@ -490,7 +570,7 @@ protected:
 				UInterpTrackColorProp* MatineeColorTrack = StaticCast<UInterpTrackColorProp*>(Track);
 				if (MatineeColorTrack->GetNumKeyframes() != 0 && GroupActor && PossessableGuid.IsValid())
 				{
-					UMovieSceneColorTrack* ColorTrack = AddPropertyTrack<UMovieSceneColorTrack>(MatineeColorTrack->PropertyName, GroupActor, PossessableGuid, NewSequence, NewMovieScene, NumWarnings);
+					UMovieSceneColorTrack* ColorTrack = AddPropertyTrack<UMovieSceneColorTrack>(MatineeColorTrack->PropertyName, GroupActor, PossessableGuid, Player, NewSequence, NewMovieScene, NumWarnings);
 					if (ColorTrack)
 					{
 						FMatineeImportTools::CopyInterpColorTrack(MatineeColorTrack, ColorTrack);
@@ -502,7 +582,7 @@ protected:
 				UInterpTrackLinearColorProp* MatineeLinearColorTrack = StaticCast<UInterpTrackLinearColorProp*>(Track);
 				if (MatineeLinearColorTrack->GetNumKeyframes() != 0 && GroupActor && PossessableGuid.IsValid())
 				{
-					UMovieSceneColorTrack* ColorTrack = AddPropertyTrack<UMovieSceneColorTrack>(MatineeLinearColorTrack->PropertyName, GroupActor, PossessableGuid, NewSequence, NewMovieScene, NumWarnings);
+					UMovieSceneColorTrack* ColorTrack = AddPropertyTrack<UMovieSceneColorTrack>(MatineeLinearColorTrack->PropertyName, GroupActor, PossessableGuid, Player, NewSequence, NewMovieScene, NumWarnings);
 					if (ColorTrack)
 					{
 						FMatineeImportTools::CopyInterpLinearColorTrack(MatineeLinearColorTrack, ColorTrack);
@@ -589,6 +669,27 @@ protected:
 
 		ALevelSequenceActor* NewActor = CastChecked<ALevelSequenceActor>(GEditor->UseActorFactory(ActorFactory, FAssetData(NewAsset), &FTransform::Identity));
 
+		struct FTemporaryPlayer : IMovieScenePlayer
+		{
+			FTemporaryPlayer(UMovieSceneSequence& InSequence, UObject* InContext)
+				: Context(InContext)
+			{
+				RootInstance.Initialize(InSequence, *this);
+			}
+
+			virtual FMovieSceneRootEvaluationTemplateInstance& GetEvaluationTemplate() { return RootInstance; }
+			virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject = nullptr, bool bJumpCut = false) {}
+			virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) {}
+			virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const {}
+			virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const { return EMovieScenePlayerStatus::Stopped; }
+			virtual void SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatus) {}
+			virtual UObject* GetPlaybackContext() const { return Context; }
+
+			FMovieSceneRootEvaluationTemplateInstance RootInstance;
+			UObject* Context;
+
+		} TemporaryPlayer(*NewSequence, NewActor->GetWorld());
+
 		// Walk through all the interp group data and create corresponding tracks on the new level sequence asset
 		if (ActorToConvert->IsA(AMatineeActor::StaticClass()))
 		{
@@ -604,7 +705,7 @@ protected:
 				UInterpGroupInst* GrInst = MatineeActor->GroupInst[i];
 				UInterpGroup* Group = GrInst->Group;
 				AActor* GroupActor = GrInst->GetGroupActor();
-				ConvertInterpGroup(Group, GroupActor, NewMovieScene, NewSequence, NumWarnings);
+				ConvertInterpGroup(Group, GroupActor, TemporaryPlayer, NewSequence, NewMovieScene, NumWarnings);
 			}
 
 			// Director group - convert this after the regular groups to ensure that the camera cut bindings are there
@@ -615,7 +716,7 @@ protected:
 				if (MatineeDirectorTrack && MatineeDirectorTrack->GetNumKeyframes() != 0)
 				{
 					UMovieSceneCameraCutTrack* CameraCutTrack = Cast<UMovieSceneCameraCutTrack>(NewMovieScene->AddMasterTrack<UMovieSceneCameraCutTrack>());
-					FMatineeImportTools::CopyInterpDirectorTrack(MatineeDirectorTrack, CameraCutTrack, MatineeActor, NewSequence);
+					FMatineeImportTools::CopyInterpDirectorTrack(MatineeDirectorTrack, CameraCutTrack, MatineeActor, TemporaryPlayer);
 				}
 
 				UInterpTrackFade* MatineeFadeTrack = DirGroup->GetFadeTrack();

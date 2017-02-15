@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Color.cpp: Unreal color implementation.
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "Math/Color.h"
+#include "Math/Vector.h"
+#include "Math/Float16Color.h"
 
 // Common colors.
 const FLinearColor FLinearColor::White(1.f,1.f,1.f);

@@ -1,9 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "LandscapeEditorDetailCustomization_Base.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Styling/SlateColor.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Editor/LandscapeEditor/Private/LandscapeEdMode.h"
+#include "LandscapeFileFormatInterface.h"
+#include "IDetailCustomization.h"
+#include "IPropertyTypeCustomization.h"
+#include "PropertyHandle.h"
+#include "Editor/LandscapeEditor/Private/LandscapeEditorDetailCustomization_Base.h"
 
+class IDetailLayoutBuilder;
 
 /**
  * Slate widgets customizer for the "New Landscape" tool

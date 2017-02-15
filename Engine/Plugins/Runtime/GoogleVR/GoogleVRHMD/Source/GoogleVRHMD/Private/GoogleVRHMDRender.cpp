@@ -13,9 +13,13 @@
  * limitations under the License.
  */
 
-#include "GoogleVRHMDPCH.h"
+#include "CoreMinimal.h"
+#include "IHeadMountedDisplay.h"
+#include "IGoogleVRHMDPlugin.h"
 #include "GoogleVRHMD.h"
 #include "ScreenRendering.h"
+
+static const float kVignetteHardness = 25;
 
 void FGoogleVRHMD::GenerateDistortionCorrectionIndexBuffer()
 {
@@ -64,24 +68,30 @@ void FGoogleVRHMD::GenerateDistortionCorrectionVertexBuffer(EStereoscopicPass Ey
 	// Allocate new vertex buffer
 	Verts = new FDistortionVertex[NumVerts];
 
-#if LOG_VIEWER_DATA_FOR_GENERATION
-	const TCHAR* EyeString = Eye == eSSP_LEFT_EYE ? TEXT("Left") : TEXT("Right");
-	UE_LOG(LogHMD, Log, TEXT("===== Begin Distortion Mesh Eye %s"), EyeString);
-	UE_LOG(LogHMD, Log, TEXT("const unsigned int Num%sVertices = %d;"), EyeString, NumVerts);
-	UE_LOG(LogHMD, Log, TEXT("FDistortionVertex %sVertices[Num%sVertices] = {"), EyeString, EyeString);
-#endif //  LOG_VIEWER_DATA_FOR_GENERATION
-
 	// Fill out distortion vertex info, using GVR Api to calculate transformation coordinates
 	const gvr_eye Type = (Eye == eSSP_RIGHT_EYE) ? GVR_RIGHT_EYE : GVR_LEFT_EYE;
-	const float XPosOffset = (Type == GVR_LEFT_EYE) ? -1.0f : 0.0f;
 	uint32 VertexIndex = 0;
 	for(uint32 y = 0; y < DistortionPointsY; ++y)
 	{
 		for(uint32 x = 0; x < DistortionPointsX; ++x)
 		{
-			gvr_vec2f UndistortedCoord = gvr_vec2f{float(x) / float(DistortionPointsX - 1), float(y) / float(DistortionPointsY - 1)};
+			FVector2D XYNorm = FVector2D(float(x) / float(DistortionPointsX - 1), float(y) / float(DistortionPointsY - 1));
 			gvr_vec2f DistortedCoords[3];
-			gvr_compute_distorted_point(GVRAPI, Type, UndistortedCoord, DistortedCoords);
+			FVector2D UnDistortedCoord = XYNorm;
+			// Approximate the vertex position using the distortion function.
+			for (uint32 i = 0; i < 10; ++i)
+			{
+				gvr_compute_distorted_point(GVRAPI, Type, gvr_vec2f{UnDistortedCoord.X, UnDistortedCoord.Y}, DistortedCoords);
+				FVector2D Delta = FVector2D(XYNorm.X - DistortedCoords[1].x, XYNorm.Y - DistortedCoords[1].y);
+				if (Delta.Size() < 0.001f)
+				{
+					break;
+				}
+				if (i != 9)
+				{
+					UnDistortedCoord += Delta * 0.5f;
+				}
+			}
 
 			float ScreenYDirection = -1.0f;
 
@@ -94,9 +104,8 @@ void FGoogleVRHMD::GenerateDistortionCorrectionVertexBuffer(EStereoscopicPass Ey
 				ScreenYDirection = 1.0f;
 			}
 #endif
-			const FVector2D ScreenPos = FVector2D(UndistortedCoord.x * 2.0f - 1.0f, (UndistortedCoord.y * 2.0f - 1.0f) * ScreenYDirection);
+			const FVector2D ScreenPos = FVector2D(UnDistortedCoord.X * 2.0f - 1.0f, (UnDistortedCoord.Y * 2.0f - 1.0f) * ScreenYDirection);
 
-			const FVector2D UndistortedUV = FVector2D(UndistortedCoord.x, UndistortedCoord.y);
 			const FVector2D OrigRedUV = FVector2D(DistortedCoords[0].x, DistortedCoords[0].y);
 			const FVector2D OrigGreenUV = FVector2D(DistortedCoords[1].x, DistortedCoords[1].y);
 			const FVector2D OrigBlueUV = FVector2D(DistortedCoords[2].x, DistortedCoords[2].y);
@@ -114,24 +123,15 @@ void FGoogleVRHMD::GenerateDistortionCorrectionVertexBuffer(EStereoscopicPass Ey
 				FinalBlueUV.Y = 1.0f - FinalBlueUV.Y;
 			}
 #endif
-			FDistortionVertex FinalVertex = FDistortionVertex{ ScreenPos, FinalRedUV, FinalGreenUV, FinalBlueUV, 1.0f, 0.0f };
-			Verts[VertexIndex++] = FinalVertex;
+			float Vignette = FMath::Clamp(XYNorm.X * kVignetteHardness, 0.0f, 1.0f)
+				* FMath::Clamp((1 - XYNorm.X)* kVignetteHardness, 0.0f, 1.0f)
+				* FMath::Clamp(XYNorm.Y * kVignetteHardness, 0.0f, 1.0f)
+				* FMath::Clamp((1 - XYNorm.Y)* kVignetteHardness, 0.0f, 1.0f);
 
-#if LOG_VIEWER_DATA_FOR_GENERATION
-			UE_LOG(LogHMD, Log, TEXT("\tFDistortionVertex{ FVector2D(%ff, %ff), FVector2D(%ff, %ff), FVector2D(%ff, %ff), FVector2D(%ff, %ff), 1.0f, 0.0f }%s"),
-				ScreenPos.X, ScreenPos.Y,
-				FinalRedUV.X, FinalRedUV.Y,
-				FinalGreenUV.X, FinalGreenUV.Y,
-				FinalBlueUV.X, FinalBlueUV.Y,
-				VertexIndex != NumVerts ? TEXT(",") : TEXT(""));
-#endif // LOG_VIEWER_DATA_FOR_GENERATION
+			FDistortionVertex FinalVertex = FDistortionVertex{ ScreenPos, FinalRedUV, FinalGreenUV, FinalBlueUV, Vignette, 0.0f };
+			Verts[VertexIndex++] = FinalVertex;
 		}
 	}
-
-#if LOG_VIEWER_DATA_FOR_GENERATION
-	UE_LOG(LogHMD, Log, TEXT("};"));
-	UE_LOG(LogHMD, Log, TEXT("===== End Distortion Mesh Eye %s"), EyeString);
-#endif // LOG_VIEWER_DATA_FOR_GENERATION
 
 	check(VertexIndex == NumVerts);
 #endif
@@ -196,8 +196,6 @@ void FGoogleVRHMD::DrawDistortionMesh_RenderThread(struct FRenderingCompositePas
  		}
 	}
 #endif
-
-
 }
 
 // If bfullResourceResolve is true: A no-op draw call is submitted which resolves all pending states
@@ -397,6 +395,7 @@ FGoogleVRHMDTexture2DSet::FGoogleVRHMDTexture2DSet(
 	uint32 InSizeZ,
 	uint32 InNumMips,
 	uint32 InNumSamples,
+	uint32 InNumSamplesTileMem,
 	uint32 InArraySize,
 	EPixelFormat InFormat,
 	bool bInCubemap,
@@ -414,6 +413,7 @@ FGoogleVRHMDTexture2DSet::FGoogleVRHMDTexture2DSet(
 	InSizeZ,
 	InNumMips,
 	InNumSamples,
+	InNumSamplesTileMem,
 	InArraySize,
 	InFormat,
 	bInCubemap,
@@ -432,7 +432,7 @@ FGoogleVRHMDTexture2DSet::~FGoogleVRHMDTexture2DSet()
 FGoogleVRHMDTexture2DSet* FGoogleVRHMDTexture2DSet::CreateTexture2DSet(
 	FOpenGLDynamicRHI* InGLRHI,
 	uint32 DesiredSizeX, uint32 DesiredSizeY,
-	uint32 InNumSamples,
+	uint32 InNumSamples, uint32 InNumSamplesTileMem,
 	EPixelFormat InFormat,
 	uint32 InFlags)
 {
@@ -444,7 +444,7 @@ FGoogleVRHMDTexture2DSet* FGoogleVRHMDTexture2DSet::CreateTexture2DSet(
 
 	// Note that here we are passing a 0 as the texture resource id which means we are not creating the actually opengl texture resource here.
 	FGoogleVRHMDTexture2DSet* NewTextureSet = new FGoogleVRHMDTexture2DSet(
-		InGLRHI, 0, Target, Attachment, DesiredSizeX, DesiredSizeY, 0, NumMips, InNumSamples, 1, InFormat, false, bAllocatedStorage, InFlags, TextureRange);
+		InGLRHI, 0, Target, Attachment, DesiredSizeX, DesiredSizeY, 0, NumMips, InNumSamples, InNumSamplesTileMem, 1, InFormat, false, bAllocatedStorage, InFlags, TextureRange);
 
 	UE_LOG(LogHMD, Log, TEXT("Created FGoogleVRHMDTexture2DSet of size (%d, %d), NewTextureSet [%p]"), DesiredSizeX, DesiredSizeY, NewTextureSet);
 
@@ -489,7 +489,7 @@ bool FGoogleVRHMDCustomPresent::AllocateRenderTargetTexture(uint32 Index, uint32
 	TextureSet = FGoogleVRHMDTexture2DSet::CreateTexture2DSet(
 		GLRHI,
 		SizeX, SizeY,
-		1,
+		1, 1,
 		EPixelFormat(Format),
 		TexCreate_RenderTargetable | TexCreate_ShaderResource
 		);
@@ -514,12 +514,12 @@ void FGoogleVRHMDCustomPresent::CreateGVRSwapChain()
 		return;
 	}
 
-	static const auto CVarMobileOnChipMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileOnChipMSAA"));
-	static bool bEnableMobileOnChipMSAA = CVarMobileOnChipMSAA->GetValueOnRenderThread();
+	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+	static int32 MobileMSAAValue = CVarMobileMSAA->GetValueOnRenderThread();
 
 	// Create resource using GVR Api
 	gvr_buffer_spec* BufferSpec = gvr_buffer_spec_create(GVRAPI);
-	gvr_buffer_spec_set_samples(BufferSpec, bEnableMobileOnChipMSAA ? 2 : 1);
+	gvr_buffer_spec_set_samples(BufferSpec, MobileMSAAValue);
 	// No need to create the depth buffer in GVR FBO since we are only use the color_buffer from FBO not the entire FBO.
 	gvr_buffer_spec_set_depth_stencil_format(BufferSpec, GVR_DEPTH_STENCIL_FORMAT_NONE);
 	// We are using the default color buffer format in GVRSDK, which is RGBA8, and that is also the format passed in.
@@ -642,7 +642,7 @@ bool FGoogleVRHMDCustomPresent::Present(int32& InOutSyncInterval)
 	}
 	else
 	{
-		UE_LOG(LogHMD, Log, TEXT("GVR frame present skipped on purpose!"));
+		//UE_LOG(LogHMD, Log, TEXT("GVR frame present skipped on purpose!"));
 	}
 
 	// Note: true causes normal swapbuffers(), false prevents normal swapbuffers()

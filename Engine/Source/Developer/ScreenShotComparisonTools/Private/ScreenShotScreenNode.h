@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenShotScreenNode.h: Declares the FScreenShotScreenNode class.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Interfaces/IScreenShotData.h"
+#include "ScreenShotBaseNode.h"
+#include "ScreenShotPlatformNode.h"
 
 class FScreenShotScreenNode : public FScreenShotBaseNode
 {

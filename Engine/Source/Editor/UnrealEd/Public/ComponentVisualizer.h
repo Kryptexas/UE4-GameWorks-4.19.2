@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-struct FViewportClick;
-class FLevelEditorViewportClient;
-class FEditorViewportClient;
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Components/ActorComponent.h"
+#include "HitProxies.h"
 
+class AActor;
+class FCanvas;
+class FEditorViewportClient;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FViewport;
+class SWidget;
+struct FViewportClick;
 
 struct HComponentVisProxy : public HHitProxy
 {

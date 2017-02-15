@@ -1,12 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
-#include "PropertyNode.h"
+#include "DetailLayoutBuilderImpl.h"
+#include "ObjectPropertyNode.h"
+#include "DetailCategoryBuilderImpl.h"
 #include "PropertyHandleImpl.h"
 #include "PropertyEditorHelpers.h"
-#include "IPropertyUtilities.h"
+#include "StructurePropertyNode.h"
 #include "DetailMultiTopLevelObjectRootNode.h"
-#include "IDetailRootObjectCustomization.h"
 
 FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl(TSharedPtr<FComplexPropertyNode>& InRootNode, FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedRef< IDetailsViewPrivate >& InDetailsView)
 	: RootNode( InRootNode )
@@ -183,8 +183,18 @@ void FDetailLayoutBuilderImpl::GenerateDetailLayout()
 	TArray< TSharedRef<FDetailCategoryImpl> > SimpleCategories;
 	TArray< TSharedRef<FDetailCategoryImpl> > AdvancedOnlyCategories;
 
-	BuildCategories( CustomCategoryMap, SimpleCategories, AdvancedOnlyCategories );
-	BuildCategories( DefaultCategoryMap, SimpleCategories, AdvancedOnlyCategories );
+	// Customizations can add more categories while customizing so just keep doing this until the maps are empty
+	while(DefaultCategoryMap.Num() > 0 || CustomCategoryMap.Num() > 0)
+	{
+		FCategoryMap DefaultCategoryMapCopy = DefaultCategoryMap;
+		FCategoryMap CustomCategoryMapCopy = CustomCategoryMap;
+
+		DefaultCategoryMap.Empty();
+		CustomCategoryMap.Empty();
+
+		BuildCategories(DefaultCategoryMapCopy, SimpleCategories, AdvancedOnlyCategories);
+		BuildCategories(CustomCategoryMapCopy, SimpleCategories, AdvancedOnlyCategories);
+	}
 
 	SimpleCategories.Sort( FCompareFDetailCategoryImpl() );
 	AdvancedOnlyCategories.Sort( FCompareFDetailCategoryImpl() );
@@ -194,12 +204,12 @@ void FDetailLayoutBuilderImpl::GenerateDetailLayout()
 	// Merge the two category lists in sorted order
 	for (int32 CategoryIndex = 0; CategoryIndex < SimpleCategories.Num(); ++CategoryIndex)
 	{
-		CategoryNodes.Add(SimpleCategories[CategoryIndex]);
+		CategoryNodes.AddUnique(SimpleCategories[CategoryIndex]);
 	}
 
 	for (int32 CategoryIndex = 0; CategoryIndex < AdvancedOnlyCategories.Num(); ++CategoryIndex)
 	{
-		CategoryNodes.Add(AdvancedOnlyCategories[CategoryIndex]);
+		CategoryNodes.AddUnique(AdvancedOnlyCategories[CategoryIndex]);
 	}
 
 	if(DetailsView.ContainsMultipleTopLevelObjects())
@@ -514,6 +524,45 @@ void FDetailLayoutBuilderImpl::GetObjectsBeingCustomized( TArray< TWeakObjectPtr
 		{
 			OutObjects.Add(RootObjectNode->GetUObject(ObjectIndex));
 		}
+	}
+}
+
+void FDetailLayoutBuilderImpl::GetStructsBeingCustomized( TArray< TSharedPtr<FStructOnScope> >& OutStructs ) const
+{
+	OutStructs.Reset();
+
+	FStructurePropertyNode* RootStructNode = RootNode.IsValid() ? RootNode.Pin()->AsStructureNode() : nullptr;
+
+	// The class to find properties in defaults to the class currently being customized
+	FName ClassName = CurrentCustomizationClass ? CurrentCustomizationClass->GetFName() : NAME_None;
+
+	if(ClassName != NAME_None && CurrentCustomizationVariableName != NAME_None)
+	{
+		// If this fails there are no properties associated with the class name provided
+		FClassInstanceToPropertyMap* ClassInstanceToPropertyMapPtr = PropertyMap.Find(ClassName);
+
+		if(ClassInstanceToPropertyMapPtr)
+		{
+			FClassInstanceToPropertyMap& ClassInstanceToPropertyMap = *ClassInstanceToPropertyMapPtr;
+
+			FPropertyNodeMap* PropertyNodeMapPtr = ClassInstanceToPropertyMap.Find(CurrentCustomizationVariableName);
+
+			if(PropertyNodeMapPtr)
+			{
+				FPropertyNodeMap& PropertyNodeMap = *PropertyNodeMapPtr;
+				FComplexPropertyNode* ParentComplexProperty = PropertyNodeMap.ParentProperty ? PropertyNodeMap.ParentProperty->AsComplexNode() : nullptr;
+				FStructurePropertyNode* StructureNode = ParentComplexProperty ? ParentComplexProperty->AsStructureNode() : nullptr;
+				if(StructureNode)
+				{
+					OutStructs.Add(StructureNode->GetStructData());
+				}
+			}
+		}
+	}
+
+	if(RootStructNode)
+	{
+		OutStructs.Add(RootStructNode->GetStructData());
 	}
 }
 

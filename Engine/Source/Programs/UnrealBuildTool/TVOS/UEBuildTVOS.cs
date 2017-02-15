@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -104,18 +104,6 @@ namespace UnrealBuildTool
 		{
 			return new TVOSToolChain(ProjectFile, this);
 		}
-
-		/// <summary>
-		/// Create a build deployment handler
-		/// </summary>
-		/// <param name="ProjectFile">The project file of the target being deployed. Used to find any deployment specific settings.</param>
-		/// <param name="DeploymentHandler">The output deployment handler</param>
-		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
-		public override UEBuildDeploy CreateDeploymentHandler()
-		{
-			return new UEDeployTVOS(ProjectFile, this);
-		}
-
 	}
 
 	class TVOSPlatform : IOSPlatform
@@ -140,9 +128,14 @@ namespace UnrealBuildTool
 			}
 		}
     
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
+		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile, TargetRules Target)
 		{
 			return new TVOSPlatformContext(ProjectFile);
+		}
+
+		public override void Deploy(UEBuildDeployTarget Target)
+		{
+			new UEDeployTVOS().PrepTargetForDeployment(Target);
 		}
 	}
 

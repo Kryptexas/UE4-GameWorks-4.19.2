@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TickableObjectRenderThread.h: Rendering thread tickable object definition.
@@ -6,7 +6,8 @@
 
 #pragma once
 
-#include "RenderCore.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
 
 /**
  * This class provides common registration for render thread tickable objects. It is an

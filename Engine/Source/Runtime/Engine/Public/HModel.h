@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HModel.h: HModel definition.
@@ -6,8 +6,13 @@
 
 #pragma once
 
-class UModelComponent;
+#include "CoreMinimal.h"
+#include "UObject/UObjectGlobals.h"
+#include "HitProxies.h"
 
+class FSceneView;
+class UModel;
+class UModelComponent;
 
 /**
  * A hit proxy representing a UModel.

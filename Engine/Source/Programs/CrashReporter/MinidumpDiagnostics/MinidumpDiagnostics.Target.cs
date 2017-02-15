@@ -1,22 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
 
+[SupportedPlatforms(UnrealTargetPlatform.Win64, UnrealTargetPlatform.Mac)]
 public class MinidumpDiagnosticsTarget : TargetRules
 {
 	public MinidumpDiagnosticsTarget( TargetInfo Target )
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Monolithic;
 	}
 
 	// TargetRules interface.
-	public override bool GetSupportedPlatforms( ref List<UnrealTargetPlatform> OutPlatforms )
-	{
-		OutPlatforms.Add( UnrealTargetPlatform.Win64 );
-		OutPlatforms.Add( UnrealTargetPlatform.Mac );
-		return true;
-	}
 
 	public override void SetupBinaries(
 		TargetInfo Target,
@@ -30,11 +26,6 @@ public class MinidumpDiagnosticsTarget : TargetRules
 			);
 
 		UEBuildConfiguration.bCompileICU = false;
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
 	}
 
 	public override void SetupGlobalEnvironment(
@@ -61,5 +52,6 @@ public class MinidumpDiagnosticsTarget : TargetRules
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;
 
 		OutCPPEnvironmentConfiguration.Definitions.Add("MINIDUMPDIAGNOSTICS=1");
-	}
+        OutCPPEnvironmentConfiguration.Definitions.Add("NOINITCRASHREPORTER=1");
+    }
 }

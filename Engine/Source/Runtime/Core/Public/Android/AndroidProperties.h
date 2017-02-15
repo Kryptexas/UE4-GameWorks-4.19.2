@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	AndroidProperties.h - Basic static properties of a platform 
@@ -9,7 +9,8 @@
 
 #pragma once
 
-#include "GenericPlatformProperties.h"
+#include "CoreTypes.h"
+#include "GenericPlatform/GenericPlatformProperties.h"
 
 
 /**
@@ -40,7 +41,7 @@ struct FAndroidPlatformProperties
 
 	static FORCEINLINE bool IsGameOnly( )
 	{
-		return UE_GAME;
+		return true;
 	}
 
 	static FORCEINLINE bool RequiresCookedData( )

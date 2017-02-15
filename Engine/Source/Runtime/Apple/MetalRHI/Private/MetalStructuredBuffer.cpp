@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #include "MetalRHIPrivate.h"
 #include "MetalProfiler.h"
 #include "MetalCommandBuffer.h"
+#include "Containers/ResourceArray.h"
 
 FMetalStructuredBuffer::FMetalStructuredBuffer(uint32 Stride, uint32 Size, FResourceArrayInterface* ResourceArray, uint32 Usage)
 	: FRHIStructuredBuffer(Stride, Size, Usage)
@@ -61,9 +62,7 @@ void* FMetalStructuredBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, ui
 		SCOPE_CYCLE_COUNTER(STAT_MetalBufferPageOffTime);
 		
 		// Synchronise the buffer with the CPU
-		id<MTLBlitCommandEncoder> Blitter = GetMetalDeviceContext().GetBlitContext();
-		METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG((&GetMetalDeviceContext()), @"SynchronizeResource(StructuredBuffer %p)", this);
-		[Blitter synchronizeResource:Buffer];
+		GetMetalDeviceContext().SynchroniseResource(Buffer);
 		
 		//kick the current command buffer.
 		GetMetalDeviceContext().SubmitCommandBufferAndWait();

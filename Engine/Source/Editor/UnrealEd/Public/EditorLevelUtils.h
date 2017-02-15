@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorLevelUtils.h: Editor-specific level management routines
@@ -8,6 +8,12 @@
 
 #ifndef __EditorLevelUtils_h__
 #define __EditorLevelUtils_h__
+
+#include "CoreMinimal.h"
+
+class AActor;
+class ULevel;
+class ULevelStreaming;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogLevelTools, Warning, All);
 

@@ -1,23 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PropertyEditorPrivatePCH.h"
-#include "AssetSelection.h"
-#include "PropertyNode.h"
-#include "ItemPropertyNode.h"
-#include "CategoryPropertyNode.h"
+#include "SDetailsView.h"
+#include "GameFramework/Actor.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "ObjectPropertyNode.h"
-#include "ScopedTransaction.h"
-#include "AssetThumbnail.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
 #include "SDetailNameArea.h"
-#include "IPropertyUtilities.h"
 #include "PropertyEditorHelpers.h"
-#include "PropertyEditor.h"
-#include "PropertyDetailsUtilities.h"
-#include "SPropertyEditorEditInline.h"
-#include "ObjectEditorUtils.h"
-#include "SColorPicker.h"
-#include "SSearchBox.h"
+#include "UserInterface/PropertyDetails/PropertyDetailsUtilities.h"
+#include "Widgets/Colors/SColorPicker.h"
+#include "Widgets/Input/SSearchBox.h"
 
 
 #define LOCTEXT_NAMESPACE "SDetailsView"
@@ -127,16 +123,29 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(this, &SDetailsView::SetRootExpansionStates, /*bExpanded=*/true, /*bRecurse=*/false )));
 
-	FilterRow = SNew( SHorizontalBox )
+	FilterRow = 
+		SNew( SHorizontalBox )
 		.Visibility( this, &SDetailsView::GetFilterBoxVisibility )
 		+SHorizontalBox::Slot()
 		.FillWidth( 1 )
-		.VAlign( VAlign_Center )
 		[
-			// Create the search box
-			SAssignNew( SearchBox, SSearchBox )
-			.OnTextChanged( this, &SDetailsView::OnFilterTextChanged  )
-			.AddMetaData<FTagMetaData>(TEXT("Details.Search"))
+			SNew(SOverlay)
+			+SOverlay::Slot()
+			.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("Searching.SearchActiveTab"))
+				.Visibility_Lambda([&](){ return this->bHasActiveFilter ? EVisibility::Visible : EVisibility::Collapsed; })
+			]
+			+SOverlay::Slot()
+			.Padding(4.0f, 2.0f)
+			.VAlign( VAlign_Center )
+			[
+				// Create the search box
+				SAssignNew(SearchBox, SSearchBox)
+				.OnTextChanged(this, &SDetailsView::OnFilterTextChanged)
+				.AddMetaData<FTagMetaData>(TEXT("Details.Search"))
+			]
 		]
 		+SHorizontalBox::Slot()
 		.Padding( 4.0f, 0.0f, 0.0f, 0.0f )
@@ -203,11 +212,11 @@ void SDetailsView::Construct(const FArguments& InArgs)
 	{
 		VerticalBox->AddSlot()
 		.AutoHeight()
-		.Padding(0.0f, 0.0f, 0.0f, 2.0f)
 		[
 			FilterRow.ToSharedRef()
 		];
 	}
+
 
 	VerticalBox->AddSlot()
 	.FillHeight(1)
@@ -226,6 +235,12 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			[
 				ExternalScrollbar
 			]
+		]
+		+ SOverlay::Slot()
+		[
+			SNew(SImage)
+			.Image(FEditorStyle::GetBrush("Searching.SearchActiveBorder"))
+			.Visibility_Lambda([&]() { return this->bHasActiveFilter ? EVisibility::HitTestInvisible : EVisibility::Collapsed; })
 		]
 	];
 
@@ -576,13 +591,15 @@ void SDetailsView::SetObjectArrayPrivate(const TArray< TWeakObjectPtr< UObject >
 	{
 		// if the object is the default metaobject for a UClass, use the UClass's name instead
 		UObject* Object = RootPropertyNodes[0]->AsObjectNode()->GetUObject(0);
-		FString ObjectName = Object->GetName();
-		if ( Object->GetClass()->GetDefaultObject() == Object )
+
+		FString ObjectName;
+		if ( Object && Object->GetClass()->GetDefaultObject() == Object )
 		{
 			ObjectName = Object->GetClass()->GetName();
 		}
-		else
+		else if( Object )
 		{
+			ObjectName = Object->GetName();
 			// Is this an actor?  If so, it might have a friendly name to display
 			const AActor* Actor = Cast<const  AActor >( Object );
 			if( Actor != nullptr)

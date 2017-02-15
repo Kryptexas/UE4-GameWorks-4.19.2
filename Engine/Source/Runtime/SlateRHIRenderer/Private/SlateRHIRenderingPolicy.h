@@ -1,11 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "RenderingPolicy.h"
+#include "CoreMinimal.h"
+#include "Rendering/RenderingCommon.h"
+#include "Rendering/ShaderResourceManager.h"
+#include "Rendering/DrawElements.h"
+#include "Rendering/RenderingPolicy.h"
+#include "SlateElementIndexBuffer.h"
+#include "SlateElementVertexBuffer.h"
+#include "SlateRHIResourceManager.h"
 
+class FSlateFontServices;
 class FSlateRHIResourceManager;
+class FSlatePostProcessor;
+class ILayoutCache;
 
 class FSlateRHIRenderingPolicy : public FSlateRenderingPolicy
 {
@@ -30,6 +40,11 @@ public:
 
 	void SetUseGammaCorrection( bool bInUseGammaCorrection ) { bGammaCorrect = bInUseGammaCorrection; }
 
+	virtual void AddSceneAt(FSceneInterface* Scene, int32 Index) override;
+	virtual void ClearScenes() override;
+
+	virtual void FlushGeneratedResources();
+
 protected:
 	void UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& BatchData, TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer, FSlateElementIndexBuffer& IndexBuffer);
 
@@ -52,6 +67,9 @@ private:
 	/** Buffers used for rendering */
 	TSlateElementVertexBuffer<FSlateVertex> VertexBuffers;
 	FSlateElementIndexBuffer IndexBuffers;
+
+	/** Handles post process effects for slate */
+	TSharedRef<FSlatePostProcessor> PostProcessor;
 
 	TSharedRef<FSlateRHIResourceManager> ResourceManager;
 

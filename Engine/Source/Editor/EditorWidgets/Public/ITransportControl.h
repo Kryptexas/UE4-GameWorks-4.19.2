@@ -1,6 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Misc/EnumRange.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/SlateDelegates.h"
 
 namespace EPlaybackMode
 {
@@ -67,6 +73,7 @@ struct FTransportControlArgs
 		, OnGetPlaybackMode()
 		, OnTickPlayback()
 		, OnGetRecording()
+		, bAreButtonsFocusable(true)
 	{}
 
 	FOnClicked OnForwardPlay;
@@ -81,6 +88,7 @@ struct FTransportControlArgs
 	FOnGetPlaybackMode OnGetPlaybackMode;
 	FOnTickPlayback OnTickPlayback;
 	FOnGetRecording OnGetRecording;
+	bool bAreButtonsFocusable;
 
 	/** 
 	 * Array of custom widgets to create - if this array is used the default widget ordering will be

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -349,6 +349,9 @@ namespace UnrealGameSync
 				return false;
 			}
 
+			// Make sure the path case is correct. This can cause UBT intermediates to be out of date if the case mismatches.
+			NewSelectedFileName = Utility.GetPathWithCorrectCase(new FileInfo(NewSelectedFileName));
+
 			// Detect the project settings in a background thread
 			using(DetectProjectSettingsTask DetectSettings = new DetectProjectSettingsTask(NewSelectedFileName, Log))
 			{
@@ -660,6 +663,7 @@ namespace UnrealGameSync
 		void StartWorkspaceUpdate(WorkspaceUpdateContext Context)
 		{
 			Context.StartTime = DateTime.UtcNow;
+			Context.PerforceSyncOptions = (PerforceSyncOptions)Settings.SyncOptions.Clone();
 
 			Log.WriteLine();
 			Log.WriteLine("Updating workspace at {0}...", Context.StartTime.ToLocalTime().ToString());
@@ -675,14 +679,17 @@ namespace UnrealGameSync
 
 			if(Context.Options.HasFlag(WorkspaceUpdateOptions.Sync) || Context.Options.HasFlag(WorkspaceUpdateOptions.Build))
 			{
-				foreach(BuildConfig Config in Enum.GetValues(typeof(BuildConfig)))
+				if(!Context.Options.HasFlag(WorkspaceUpdateOptions.ContentOnly))
 				{
-					List<string> EditorReceiptPaths = GetEditorReceiptPaths(Config);
-					foreach(string EditorReceiptPath in EditorReceiptPaths)
+					foreach(BuildConfig Config in Enum.GetValues(typeof(BuildConfig)))
 					{
-						if(File.Exists(EditorReceiptPath))
+						List<string> EditorReceiptPaths = GetEditorReceiptPaths(Config);
+						foreach(string EditorReceiptPath in EditorReceiptPaths)
 						{
-							try { File.Delete(EditorReceiptPath); } catch(Exception){ }
+							if(File.Exists(EditorReceiptPath))
+							{
+								try { File.Delete(EditorReceiptPath); } catch(Exception){ }
+							}
 						}
 					}
 				}
@@ -1815,11 +1822,17 @@ namespace UnrealGameSync
 			{
 				MessageBox.Show("Please retry after the current sync has finished.", "Sync in Progress");
 			}
-			else if(Workspace.Perforce != null && Workspace.Perforce.SwitchStream(StreamName, Log))
+			else if(Workspace.Perforce != null)
 			{
-				StatusPanel.SuspendLayout();
-				StreamChangedCallback();
-				StatusPanel.ResumeLayout();
+				if(!Workspace.Perforce.HasOpenFiles(Log) || MessageBox.Show("You have files open for edit in this workspace. If you continue, you will not be able to submit them until you switch back.\n\nContinue switching workspaces?", "Files checked out", MessageBoxButtons.YesNo) == DialogResult.Yes)
+				{
+					if(Workspace.Perforce.SwitchStream(StreamName, Log))
+					{
+						StatusPanel.SuspendLayout();
+						StreamChangedCallback();
+						StatusPanel.ResumeLayout();
+					}
+				}
 			}
 		}
 
@@ -2210,7 +2223,7 @@ namespace UnrealGameSync
 				{
 					ShowErrorDialog("Workspace is already synced to a later change ({0} vs {1}).", Workspace.CurrentChangeNumber, ChangeNumber);
 				}
-				else
+				else if(ChangeNumber >= PerforceMonitor.LastChangeByCurrentUser || MessageBox.Show(String.Format("The changelist that would be synced is before the last change you submitted.\n\nIf you continue, your changes submitted after CL {0} will be locally removed from your workspace until you can sync past them again.\n\nAre you sure you want to continue?", ChangeNumber), "Local changes will be removed", MessageBoxButtons.YesNo) == DialogResult.Yes)
 				{
 					ShowAndActivate();
 					SelectChange(ChangeNumber);
@@ -2252,7 +2265,7 @@ namespace UnrealGameSync
 
 		private void BuildListContextMenu_SyncContentOnly_Click(object sender, EventArgs e)
 		{
-			StartWorkspaceUpdate(ContextMenuChange.Number, WorkspaceUpdateOptions.Sync | WorkspaceUpdateOptions.SkipShaders);
+			StartWorkspaceUpdate(ContextMenuChange.Number, WorkspaceUpdateOptions.Sync | WorkspaceUpdateOptions.ContentOnly);
 		}
 
 		private void BuildListContextMenu_SyncOnlyThisChange_Click(object sender, EventArgs e)
@@ -3004,6 +3017,12 @@ namespace UnrealGameSync
 				int SelectedChange = ((PerforceChangeSummary)BuildList.SelectedItems[0].Tag).Number;
 				Clipboard.SetText(String.Format("{0}", SelectedChange));
 			}
+		}
+
+		private void OptionsContextMenu_PerforceSettings_Click(object sender, EventArgs e)
+		{
+			PerforceSettingsWindow Perforce = new PerforceSettingsWindow(Settings);
+			Perforce.ShowDialog();
 		}
 	}
 }

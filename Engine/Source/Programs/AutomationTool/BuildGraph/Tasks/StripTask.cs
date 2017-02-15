@@ -1,4 +1,6 @@
-﻿using AutomationTool;
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+using AutomationTool;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -95,7 +97,7 @@ namespace BuildGraph.Tasks
 
 			// Run the stripping command
 			UEBuildPlatform Platform = UEBuildPlatform.GetBuildPlatform(Parameters.Platform);
-			UEToolChain ToolChain = Platform.CreateContext(null).CreateToolChainForDefaultCppPlatform();
+			UEToolChain ToolChain = Platform.CreateContext(null, null).CreateToolChainForDefaultCppPlatform();
 			for (int Idx = 0; Idx < SourceFiles.Length; Idx++)
 			{
 				TargetFiles[Idx].Directory.CreateDirectory();

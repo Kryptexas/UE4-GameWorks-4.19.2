@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
  
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Sound/SoundNode.h"
 #include "SoundNodeMature.generated.h"
+
+class FAudioDevice;
+struct FActiveSound;
+struct FSoundParseParameters;
+struct FWaveInstance;
 
 /**
  * This SoundNode uses UEngine::bAllowMatureLanguage to determine whether child nodes

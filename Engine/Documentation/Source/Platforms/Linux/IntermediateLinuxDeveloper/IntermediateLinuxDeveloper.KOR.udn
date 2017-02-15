@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3108692
+Availability: NoPublish
 Title: Intermediate Linux Developers
 Crumbs:%ROOT%, Platforms, Platforms/Linux
 Description:Learn how to cook, package, and share your games.
 Platform:Linux
 Navigation:platform
-Version: 4.11
+Version: 4.13
 type:landing
 parent:Platforms/Linux
 order: 2
@@ -39,4 +39,3 @@ SkillLevel: Intermediate
 If you have some experience developing games on Linux, but you've never learned how to share projects with others, this learning path is for you. The following
 learning path is designed to help you gain skills with cross-compilation, multi-platform game development, cooking and packaging your Linux projects, and 
 integrating your project with Steam.
-

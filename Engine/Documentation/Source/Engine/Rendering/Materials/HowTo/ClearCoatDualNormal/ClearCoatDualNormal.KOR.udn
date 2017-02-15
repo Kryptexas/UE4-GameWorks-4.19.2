@@ -1,65 +1,65 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3196518
 Availability: Public
-Title:Material Editor - How To use Dual Normals with Clear Coat
-Description: A How-To guide for using Dual Normal maps in your Clear Coat Material.
+Title:이중 노멀 투명 코팅 사용법
+Description: Clear Coat 머티리얼에 이중 노멀 맵을 사용하는 방법 안내서입니다.
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
 Version: 4.12
 SkillLevel: Intermediate
 
 [TOC(start:2)]
 
-The Clear Coat Shading Model now has the option to add a 2nd Normal map for the surface that is below the clearcoat layer. This allows us to more accurately model complex materials such as carbon fiber which have a different geometric surface than the clearcoat layer. In the following How - To we will go over how you can enable and use this feature in your UE4 projects.
+Clear Coat (투명 코팅) 셰이딩 모델에 이제 투명 코팅 레이어 아래 있는 표면에 이차 노멀 맵을 추가하는 옵션이 생겼습니다. 이를 통해 카본 파이버처럼 투명 코팅층과 다른 지오메트리 표면을 갖는 복잡한 머티리얼을 보다 정확하게 모델링해 내는 것이 가능합니다. 여기서는 UE4 프로젝트에 이 기능을 활성화시켜 사용하는 법을 다뤄보겠습니다.
 
-## What the 2nd Normal does
-Before we get started with this How - To, let's take a quick look at what adding the 2nd Normal map allows us to achieve with the Clear Coat shading model and in the image below we can see an example of just that.
+## 이차 노멀의 역할
+이 글을 시작하기 전, 이차 노멀을 추가했을 때 투명 코팅 셰이딩 모델로 어떤 것을 할 수 있을지 간단히 살펴보겠습니다.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Clear Coat Bottom Normal Off](Dual_CC_Off.png)(w:880 h:500)
+	![Clear Coat Bottom Normal Off](Dual_CC_Off.png)(w:700 h:700)
 	[/PARAM]
 	[PARAM:after]
-	![Clear Coat Bottom Normal On](Dual_CC_On.png)(w:880 h:500)
+	![Clear Coat Bottom Normal On](Dual_CC_On.png)(w:700 h:700)
 	[/PARAM]
 [/OBJECT]
 
-If you take a look at the image on the left-hand side you can see what the Material looks like with just a regular Normal map applied. Notice how the surface is bumpy but what is under the surface is still smooth. This is not what we want, we want to be able to define the look of the not only the surface but also what is below it. In the right-hand image we are doing just that, there is a Normal map being used to define the top surface and another Normal map that is being used to define the bottom surface and this is what we are trying to achieve, having two entirely different Normal maps affecting different surface all within the same Material. 
+위 그림에서는 이차 노멀 맵을 추가했을 때 투명 코팅 아래 표면의 라이팅 방식에 끼치는 효과를 확인할 수 있습니다. 왼쪽 이미지는 Clear Coat Bottom Normal Off (클리어 코팅 하단 노멀 꺼짐) 상태로, 투명 코팅 아래 표면이 빛에 반응을 하고는 있지만, 빛이 표면에 한 방향으로만 영향을 끼치고 있어 라이팅이 약간 밋밋해 보입니다. 오른쪽 이미지는 Clear Coat Bottom Normal Off (클리어 코팅 하단 노멀 켜짐) 상태로, 라이트가 표면을 여러 방향에서 영향을 끼치고 있는 것으로 보이는데, 바로 우리가 원하는 반응입니다.
 
-## Required Files
-In order to follow along with this How - To you will need to download, extract and then import to UE4 the following Texture files. If you are unfamiliar with how to do this please check out the [Texture Import Guide](https://docs.unrealengine.com/latest/INT/Engine/Content/Types/Textures/Importing/) for more information about how to go about doing this.
+## 필수 파일
+이 글을 따라하기 위해서는 다음의 텍스처 파일을 다운로드하여 압축을 푼 뒤 UE4 에 임포트해야 합니다. 임포트가 익숙치 않은 경우 [](Engine/Content/Types/Textures/Importing) 문서를 참고하세요.
 
-**[Required Textures Download](ClearCoatDualNormalTextures.zip)** (Right - Click Save as)
+**[필수 텍스처 다운로드](ClearCoatDualNormalTextures.zip)** (우클릭 - 다른 이름으로 저장)
 
-## Enabling the Dual - Normal Clear Coat option
-Before you can use the new dual normal you will need to enable the feature by doing the following.
+## 이중 노멀 투명 코팅 옵션 활성화
+새로운 이중 노멀 기능을 사용하기 전, 먼저 다음 기능을 켜줘야 합니다.
 
-1. From the **Main Toolbar** go to **Edit** > **Project Settings**.
+1. 메인 툴바에서 **편집** > **프로젝트 세팅** 으로 갑니다.
 
 	![](Dual_CC_Enable_Option_00.png)
 
-1. In the Project Settings go to **Rendering** > **Materials** and then click on the check mark box that is next to **Clear Coat Enable Second Normal** option to enable it.
+1. 프로젝트 세팅에서 **Rendering** (렌더링) > **Materials** (머티리얼) 로 가서 **Clear Coat Enable Second Normal** (투명 코팅 이차 노멀 활성화) 옵션 옆의 박스를 체크하여 켭니다.
 
 	![](Dual_CC_Enable_Option_01.png)
 
-1. Click on the **Restart Now** option to re-launch the UE4 Editor with the Clear Coat Enable Second Normal feature now enabled.
+1. **지금 재시작** 옵션을 클릭하여 UE4 에디터를 재시작합니다. 이제 투명 코팅 이차 노멀 활성화 옵션이 활성화될 것입니다.
 
 	![](Dual_CC_Restart_Editor.png)
 
-## Using the Dual - Normal Clear Coat option
+## 이중 노멀 투명 코팅 옵션 사용
 
-With the Dual - Normal Clear Coat option now enabled, it is now time to create and setup a new  Material that can use it. To accomplish this you will need to do the following.
+Dual - Normal Clear Coat (이중 노멀 투명 코팅) 옵션이 켜졌으면, 그 옵션을 활용하는 머티리얼을 새로 만들어 구성해 줄 차례입니다. 그 방법은 다음과 같습니다.
 
-1. Create a new Material in the **Content Browser** with a name of **Dual_Normal_Clear_Coat** and then double - click on it to open it up.
+1. **콘텐츠 브라우저** 에서 새 머티리얼을 만들어 이름을 **Dual_Normal_Clear_Coat** 라 짓고 더블 클릭하여 엽니다.
 
 	![](Dual_CC_Create_Material.png)
 
-1. Select the **Main Material Node** and in the **Details** panel under the **Material** section, change the following options.
+1. **메인 머티리얼 노드** 를 선택하고 **디테일** 패널에서 **Material** 섹션 아래 다음 옵션을 변경합니다.
 	* **Shading Model:** Clear Coat
 
 	![](Dual_CC_Change_Shading_Model.png)
 
-1. Add four **Scalar Parameter Expression** nodes to the Material Graph and give them the following names and values then connect them so that they match the image below.
+1. **Scalar Parameter** 표현식 노드를 넷 머티리얼 그래프에 추가한 뒤 다음과 같이 이름과 값을 설정한 뒤 연결해 줍니다.
 
-	|Material Expression Type| Name| Default Value|
+	|머티리얼 표현식 유형| 이름| 기본 값|
 	|--------------------------------|---------|---------|
 	|Scalar Parameter| Base Color|0.1225|
 	|Scalar Parameter| Metallic|0.5|
@@ -70,9 +70,9 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 	[![](Dual_CC_Base_Nodes_Setup.png)(w:200 h:250)](Dual_CC_Base_Nodes_Setup.png)
 	[/REGION]
 
-1. To setup, the **Roughness** section of the Material add the following Material Expression nodes to the Material Graph and give them the following values and name. Once the Material Expression nodes have been added, connect them so that they match the image below.
+1. 머티리얼의 **Roughness** 섹션 구성은, 머티리얼 그래프에 다음와 같은 머티리얼 표현식 노드를 추가하고, 이름과 값을 설정합니다. 머티리얼 표현식 노드 추가가 완료되면, 아래 그림과 같이 연결합니다.
 
-	|Material Expression Type| Name| Default Value|
+	|머티리얼 표현식 유형| 이름| 기본 값|
 	|--------------------------------|---------|---------|
 	|Scalar Parameter| Roughness Scaling|30.0|
 	|Scalar Parameter| Roughness Min|0.1|
@@ -83,9 +83,9 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 
 	![](Dual_CC_Roughness_Setup.png)
 
-1. Since this Material makes use of two Normal maps, we will need to setup two different **Normal** map sections for this Material. The first Normal map section of the Material is for the Clear Coat surface and will require the following Material Expression nodes. Once the Material Expression nodes have been added, connect them so that they match the image below.
+1. 이 머티리얼은 노멀 맵을 두 개 활용하므로, 이 머티리얼에는 두 개의 **Normal** 맵 섹션을 구성해 줘야 합니다. 머티리얼의 첫 번째 노멀 맵 섹션은 투명 코팅 표면용으로, 다음과 같은 머티리얼 표현식 노드가 필요합니다. 머티리얼 표현식 노드를 추가했으면, 아래 그림과 같이 연결합니다.
 
-	|Material Expression Type| Name| Default Value|
+	|머티리얼 표현식 유형| 이름| 기본 값|
 	|--------------------------------|---------|---------|
 	|Scalar Parameter|Surface Normal Strength|0.98|
 	|Scalar Parameter| Surface Normal Scaling|30.0|
@@ -96,9 +96,9 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 
 	![](Dual_CC_Normal_Setup.png)
 
-1. This **Normal** map is for the surface that is under the Clear Coat section of the Material and will require the following Material Expression nodes be added to the Material Graph with the following values and names. When completed connect the Material Expression nodes so that they match the image below.
+1. 이 **노멀** 맵은 머티리얼의 투명 코팅 부분 아래 있는 표면용이며, 머티리얼 그래프에 다음과 같은 머티리얼 펴현식 노드를 추가하고 이름과 값을 설정해야 합니다. 완성되면 아래 그림과 같이 머티리얼 표현식 노드를 연결해 줍니다.
 
-	|Material Expression Type| Name| Default Value|
+	|머티리얼 표현식 유형| 이름| 기본 값|
 	|--------------------------------|---------|---------|
 	|Scalar Parameter| Clear Coat Scaling|30.0|
 	|Scalar Parameter|Fiber Strength|0.98|
@@ -106,23 +106,22 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 	|Texture Coordinate| N/A|N/A|
 	|Multiply| N/A|N/A|
 	|FlattenNormal| N/A|N/A|
-	|ClearCoatBottomNormal| N/A|N/A|
+	|ClearCoatBottomNormal (ClearCoatNormalCustomOutput)| N/A|N/A|
 
 	![](Dual_CC_Normal_ClearCoat_Setup.png)
 
 	[region:note]
-	Make sure that you have added the **ClearCoatBottomNormal** Material Expression node to the Material Graph and that you have connected the Normal map you want to use to its input. Failing to do this will result in you not being able to see the 2nd Normal map in your Material.
+	머티리얼 그래프에 **ClearCoatBottomNormal** 머티리얼 표현식 노드를 추가했는지, 사용하고자 하는 노멀 맵을 그 입력에 연결했는지 확인하세요. 그렇게 하지 않으면 머티리얼에 이차 노멀 맵 효과가 보이지 않을 것입니다.
 	[/region]
 
-1. With all of the individual sections of the Material now setup, connect the outputs to the Main Material node so that your Material setup matches the following image.
+1. 머티리얼의 모든 부분 구성이 완료되었으니, 다음 그림과 같이 메인 머티리얼 노드의 출력을 연결하여 머티리얼을 구성합니다.
 	
 	[REGION:lightbox]
 	[![](Dual_CC_Final_Setup.png)(w:500 h:350)](Dual_CC_Final_Setup.png)
 	[/REGION]
 
-1. Finally, once all the various sections of the Material have been connected to the appropriate places on the Main Material node, press the **Apply** button to compile the Material and then close the Material Editor. 
+1. 마지막으로 머티리얼의 여러가지 다양한 부분이 메인 머티리얼 노드의 적합한 곳에 연결되었으면, **적용** 버튼을 눌러 머티리얼을 컴파일한 뒤 머티리얼 에디터를 닫습니다.
 
 	![](Dual_CC_Apply_Material.png)
-
 
 

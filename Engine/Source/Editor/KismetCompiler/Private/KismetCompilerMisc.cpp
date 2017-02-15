@@ -1,21 +1,40 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompilerMisc.cpp
 =============================================================================*/
 
-#include "KismetCompilerPrivatePCH.h"
+#include "KismetCompilerMisc.h"
+#include "Misc/CoreMisc.h"
+#include "UObject/MetaData.h"
+#include "UObject/UnrealType.h"
+#include "UObject/TextProperty.h"
+#include "UObject/ObjectRedirector.h"
+#include "Engine/Blueprint.h"
+#include "UObject/UObjectHash.h"
+#include "Engine/MemberReference.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/UserDefinedStruct.h"
+#include "Kismet2/CompilerResultsLog.h"
+#include "EdGraphUtilities.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node.h"
+#include "K2Node_Event.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_CallArrayFunction.h"
+#include "K2Node_ExecutionSequence.h"
+#include "K2Node_FunctionEntry.h"
+#include "K2Node_FunctionResult.h"
+#include "K2Node_Timeline.h"
+#include "KismetCompiledFunctionContext.h"
+#include "KismetCompiler.h"
 
 #include "AnimGraphNode_Base.h"
-#include "KismetCompilerMisc.h"
 #include "K2Node_EnumLiteral.h"
 #include "Kismet2/KismetReinstanceUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
-#include "Editor/UnrealEd/Public/ObjectTools.h"
-#include "DefaultValueHelper.h"
-#include "Engine/UserDefinedStruct.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/StructureEditorUtils.h"
+#include "ObjectTools.h"
 #include "BlueprintEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "KismetCompiler"
@@ -27,102 +46,16 @@ DECLARE_CYCLE_STAT(TEXT("Resolve compiled statements"), EKismetCompilerStats_Res
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerUtilities
 
-/** Tests to see if a pin is schema compatible with a property */
-bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourcePin, UProperty* Property, FCompilerResultsLog& MessageLog, const UEdGraphSchema_K2* Schema, UClass* SelfClass)
+static bool IsTypeCompatibleWithProperty(UEdGraphPin* SourcePin, const FEdGraphPinType& OwningType, const FEdGraphTerminalType& TerminalType, UProperty* TestProperty, FCompilerResultsLog& MessageLog, const UEdGraphSchema_K2* Schema, UClass* SelfClass)
 {
 	check(SourcePin != NULL);
-	const FEdGraphPinType& Type = SourcePin->PinType;
 	const EEdGraphPinDirection Direction = SourcePin->Direction; 
+	const FString& PinCategory = TerminalType.TerminalCategory;
+	const FString& PinSubCategory = TerminalType.TerminalSubCategory;
+	const UObject* PinSubCategoryObject = TerminalType.TerminalSubCategoryObject.Get();
+	
+	const UFunction* OwningFunction = Cast<UFunction>(TestProperty->GetOuter());
 
-	const FString& PinCategory = Type.PinCategory;
-	const FString& PinSubCategory = Type.PinSubCategory;
-	const UObject* PinSubCategoryObject = Type.PinSubCategoryObject.Get();
-
-	UProperty* TestProperty = NULL;
-	const UFunction* OwningFunction = Cast<UFunction>(Property->GetOuter());
-	if( Type.bIsArray )
-	{
-		// For arrays, the property we want to test against is the inner property
-		if( UArrayProperty* ArrayProp = Cast<UArrayProperty>(Property) )
-		{
-			if(OwningFunction)
-			{
-				// Check for the magic ArrayParm property, which always matches array types
-				FString ArrayPointerMetaData = OwningFunction->GetMetaData(FBlueprintMetadata::MD_ArrayParam);
-				TArray<FString> ArrayPinComboNames;
-				ArrayPointerMetaData.ParseIntoArray(ArrayPinComboNames, TEXT(","), true);
-
-				for(auto Iter = ArrayPinComboNames.CreateConstIterator(); Iter; ++Iter)
-				{
-					TArray<FString> ArrayPinNames;
-					Iter->ParseIntoArray(ArrayPinNames, TEXT("|"), true);
-
-					if( ArrayPinNames[0] == SourcePin->PinName )
-					{
-						return true;
-					}
-				}
-			}
-
-			TestProperty = ArrayProp->Inner;
-		}
-		else
-		{
-			MessageLog.Error(*LOCTEXT("PinSpecifiedAsArray_Error", "Pin @@ is specified as an array, but does not have a valid array property.").ToString(), SourcePin);
-			return false;
-		}
-	}
-	else if (Type.bIsSet)
-	{
-		if (USetProperty* SetProperty = Cast<USetProperty>(Property))
-		{
-			if (OwningFunction && FEdGraphUtilities::IsSetParam(OwningFunction, SourcePin->PinName))
-			{
-				return true;
-			}
-
-			TestProperty = SetProperty->ElementProp;
-		}
-		else
-		{
-			MessageLog.Error(*LOCTEXT("PinSpecifiedAsSet_Error", "Pin @@ is specified as a set, but does not have a valid set property.").ToString(), SourcePin);
-			return false;
-		}
-	}
-	else
-	{
-		// For scalars, we just take the passed in property
-		TestProperty = Property;
-	}
-
-	// Check for the early out...if this is a type dependent parameter in an array function
-	if ( (OwningFunction != NULL) && OwningFunction->HasMetaData(FBlueprintMetadata::MD_ArrayParam) )
-	{
-		// Check to see if this param is type dependent on an array parameter
-		const FString& DependentParams = OwningFunction->GetMetaData(FBlueprintMetadata::MD_ArrayDependentParam);
-		TArray<FString>	DependentParamNames;
-		DependentParams.ParseIntoArray(DependentParamNames, TEXT(","), true);
-		if (DependentParamNames.Find(SourcePin->PinName) != INDEX_NONE)
-		{
-			//@todo:  This assumes that the wildcard coersion has done its job...I'd feel better if there was some easier way of accessing the target array type
-			return true;
-		}
-	}
-	else if ((OwningFunction != NULL) && OwningFunction->HasMetaData(FBlueprintMetadata::MD_SetParam))
-	{
-		// If the pin in question is part of a Set (inferred) parameter, then ignore pin matching:
-		// @todo:  This assumes that the wildcard coersion has done its job...I'd feel better if 
-		// there was some easier way of accessing the target array type
-		if (FEdGraphUtilities::IsSetParam(OwningFunction, SourcePin->PinName))
-		{
-			return true;
-		}
-	}
-
-
-	int32 NumErrorsAtStart = MessageLog.NumErrors;
-
-	// First check the type
 	bool bTypeMismatch = false;
 	bool bSubtypeMismatch = false;
 	FString DesiredSubType(TEXT(""));
@@ -134,8 +67,9 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 	}
 	else if (PinCategory == Schema->PC_Byte)
 	{
-		UByteProperty* SpecificProperty = Cast<UByteProperty>(TestProperty);
-		bTypeMismatch = (SpecificProperty == NULL);
+		UByteProperty* ByteProperty = Cast<UByteProperty>(TestProperty);
+		UEnumProperty* EnumProperty = Cast<UEnumProperty>(TestProperty);
+		bTypeMismatch = (ByteProperty == nullptr) && (EnumProperty == nullptr || !EnumProperty->GetUnderlyingProperty()->IsA<UByteProperty>());
 	}
 	else if ((PinCategory == Schema->PC_Class) || (PinCategory == Schema->PC_AssetClass))
 	{
@@ -195,7 +129,7 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 	}
 	else if (PinCategory == Schema->PC_Delegate)
 	{
-		const UFunction* SignatureFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Type.PinSubCategoryMemberReference);
+		const UFunction* SignatureFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(OwningType.PinSubCategoryMemberReference);
 		const UDelegateProperty* PropertyDelegate = Cast<const UDelegateProperty>(TestProperty);
 		bTypeMismatch = !(SignatureFunction 
 			&& PropertyDelegate 
@@ -218,7 +152,7 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 				DesiredSubType = ObjProperty->PropertyClass->GetName();
 
 				const UClass* OutputClass = (Direction == EGPD_Output) ? ObjectType : ObjProperty->PropertyClass;
-				const UClass* InputClass = (Direction == EGPD_Output) ? ObjProperty->PropertyClass : ObjectType;
+				const UClass* InputClass  = (Direction == EGPD_Output) ? ObjProperty->PropertyClass : ObjectType;
 
 				// Fixup stale types to avoid unwanted mismatches during the reinstancing process
 				if (OutputClass->HasAnyClassFlags(CLASS_NewerVersionExists))
@@ -226,10 +160,10 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 					UBlueprint* GeneratedByBP = Cast<UBlueprint>(OutputClass->ClassGeneratedBy);
 					if (GeneratedByBP != nullptr)
 					{
-						TSubclassOf<UObject> NewerClass = GeneratedByBP->GeneratedClass;
-						if (!NewerClass->HasAnyClassFlags(CLASS_NewerVersionExists))
+						const UClass* NewOutputClass = GeneratedByBP->GeneratedClass;
+						if (NewOutputClass && !NewOutputClass->HasAnyClassFlags(CLASS_NewerVersionExists))
 						{
-							OutputClass = NewerClass;
+							OutputClass = NewOutputClass;
 						}
 					}
 				}
@@ -238,10 +172,10 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 					UBlueprint* GeneratedByBP = Cast<UBlueprint>(InputClass->ClassGeneratedBy);
 					if (GeneratedByBP != nullptr)
 					{
-						TSubclassOf<UObject> NewerClass = GeneratedByBP->GeneratedClass;
-						if (!NewerClass->HasAnyClassFlags(CLASS_NewerVersionExists))
+						const UClass* NewInputClass = GeneratedByBP->GeneratedClass;
+						if (NewInputClass && !NewInputClass->HasAnyClassFlags(CLASS_NewerVersionExists))
 						{
-							InputClass = NewerClass;
+							InputClass = NewInputClass;
 						}
 					}
 				}
@@ -319,7 +253,137 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 	}
 	else
 	{
-		MessageLog.Error(*FString::Printf(*LOCTEXT("UnsupportedTypeForPin", "Unsupported type (%s) on @@").ToString(), *UEdGraphSchema_K2::TypeToText(Type).ToString()), SourcePin);
+		MessageLog.Error(*FString::Printf(*LOCTEXT("UnsupportedTypeForPin", "Unsupported type (%s) on @@").ToString(), *UEdGraphSchema_K2::TypeToText(OwningType).ToString()), SourcePin);
+	}
+
+	return false;
+}
+
+/** Tests to see if a pin is schema compatible with a property */
+bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourcePin, UProperty* Property, FCompilerResultsLog& MessageLog, const UEdGraphSchema_K2* Schema, UClass* SelfClass)
+{
+	check(SourcePin != NULL);
+	const FEdGraphPinType& Type = SourcePin->PinType;
+	const EEdGraphPinDirection Direction = SourcePin->Direction; 
+
+	const FString& PinCategory = Type.PinCategory;
+	const FString& PinSubCategory = Type.PinSubCategory;
+	const UObject* PinSubCategoryObject = Type.PinSubCategoryObject.Get();
+
+	UProperty* TestProperty = NULL;
+	const UFunction* OwningFunction = Cast<UFunction>(Property->GetOuter());
+	
+	int32 NumErrorsAtStart = MessageLog.NumErrors;
+	bool bTypeMismatch = false;
+
+	if( Type.bIsArray )
+	{
+		// For arrays, the property we want to test against is the inner property
+		if( UArrayProperty* ArrayProp = Cast<UArrayProperty>(Property) )
+		{
+			if(OwningFunction)
+			{
+				// Check for the magic ArrayParm property, which always matches array types
+				FString ArrayPointerMetaData = OwningFunction->GetMetaData(FBlueprintMetadata::MD_ArrayParam);
+				TArray<FString> ArrayPinComboNames;
+				ArrayPointerMetaData.ParseIntoArray(ArrayPinComboNames, TEXT(","), true);
+
+				for(auto Iter = ArrayPinComboNames.CreateConstIterator(); Iter; ++Iter)
+				{
+					TArray<FString> ArrayPinNames;
+					Iter->ParseIntoArray(ArrayPinNames, TEXT("|"), true);
+
+					if( ArrayPinNames[0] == SourcePin->PinName )
+					{
+						return true;
+					}
+				}
+			}
+			
+			bTypeMismatch = ::IsTypeCompatibleWithProperty(SourcePin, Type, SourcePin->GetPrimaryTerminalType(), ArrayProp->Inner, MessageLog, Schema, SelfClass);
+		}
+		else
+		{
+			MessageLog.Error(*LOCTEXT("PinSpecifiedAsArray_Error", "Pin @@ is specified as an array, but does not have a valid array property.").ToString(), SourcePin);
+			return false;
+		}
+	}
+	else if (Type.bIsSet)
+	{
+		if (USetProperty* SetProperty = Cast<USetProperty>(Property))
+		{
+			if (OwningFunction && FEdGraphUtilities::IsSetParam(OwningFunction, SourcePin->PinName))
+			{
+				return true;
+			}
+
+			bTypeMismatch = ::IsTypeCompatibleWithProperty(SourcePin, Type, SourcePin->GetPrimaryTerminalType(), SetProperty->ElementProp, MessageLog, Schema, SelfClass);
+		}
+		else
+		{
+			MessageLog.Error(*LOCTEXT("PinSpecifiedAsSet_Error", "Pin @@ is specified as a set, but does not have a valid set property.").ToString(), SourcePin);
+			return false;
+		}
+	}
+	else if (Type.bIsMap)
+	{
+		if (UMapProperty* MapProperty = Cast<UMapProperty>(Property))
+		{
+			if (OwningFunction && FEdGraphUtilities::IsMapParam(OwningFunction, SourcePin->PinName))
+			{
+				return true;
+			}
+
+			bTypeMismatch = ::IsTypeCompatibleWithProperty(SourcePin, Type, SourcePin->GetPrimaryTerminalType(), MapProperty->KeyProp, MessageLog, Schema, SelfClass);
+			bTypeMismatch = bTypeMismatch && ::IsTypeCompatibleWithProperty(SourcePin, Type, Type.PinValueType, MapProperty->ValueProp, MessageLog, Schema, SelfClass);
+		}
+		else
+		{
+			MessageLog.Error(*LOCTEXT("PinSpecifiedAsSet_Error", "Pin @@ is specified as a set, but does not have a valid set property.").ToString(), SourcePin);
+			return false;
+		}
+	}
+	else
+	{
+		// For scalars, we just take the passed in property
+		bTypeMismatch = ::IsTypeCompatibleWithProperty(SourcePin, Type, SourcePin->GetPrimaryTerminalType(), Property, MessageLog, Schema, SelfClass);
+	}
+
+	// Check for the early out...if this is a type dependent parameter in an array function
+	if( OwningFunction )
+	{
+		if ( OwningFunction->HasMetaData(FBlueprintMetadata::MD_ArrayParam) )
+		{
+			// Check to see if this param is type dependent on an array parameter
+			const FString& DependentParams = OwningFunction->GetMetaData(FBlueprintMetadata::MD_ArrayDependentParam);
+			TArray<FString>	DependentParamNames;
+			DependentParams.ParseIntoArray(DependentParamNames, TEXT(","), true);
+			if (DependentParamNames.Find(SourcePin->PinName) != INDEX_NONE)
+			{
+				//@todo:  This assumes that the wildcard coercion has done its job...I'd feel better if there was some easier way of accessing the target array type
+				return true;
+			}
+		}
+		else if (OwningFunction->HasMetaData(FBlueprintMetadata::MD_SetParam))
+		{
+			// If the pin in question is part of a Set (inferred) parameter, then ignore pin matching:
+			// @todo:  This assumes that the wildcard coercion has done its job...I'd feel better if 
+			// there was some easier way of accessing the target set type
+			if (FEdGraphUtilities::IsSetParam(OwningFunction, SourcePin->PinName))
+			{
+				return true;
+			}
+		}
+		else if(OwningFunction->HasMetaData(FBlueprintMetadata::MD_MapParam))
+		{
+			// If the pin in question is part of a Set (inferred) parameter, then ignore pin matching:
+			// @todo:  This assumes that the wildcard coercion has done its job...I'd feel better if 
+			// there was some easier way of accessing the target container type
+			if(FEdGraphUtilities::IsMapParam(OwningFunction, SourcePin->PinName))
+			{
+				return true;
+			}
+		}
 	}
 
 	if (bTypeMismatch)
@@ -465,6 +529,7 @@ void FKismetCompilerUtilities::EnsureFreeNameForNewClass(UClass* ClassToConsign,
 /** Finds a property by name, starting in the specified scope; Validates property type and returns NULL along with emitting an error if there is a mismatch. */
 UProperty* FKismetCompilerUtilities::FindPropertyInScope(UStruct* Scope, UEdGraphPin* Pin, FCompilerResultsLog& MessageLog, const UEdGraphSchema_K2* Schema, UClass* SelfClass)
 {
+	UStruct* InitialScope = Scope;
 	while (Scope != NULL)
 	{
 		for (TFieldIterator<UProperty> It(Scope, EFieldIteratorFlags::IncludeSuper); It; ++It)
@@ -491,7 +556,10 @@ UProperty* FKismetCompilerUtilities::FindPropertyInScope(UStruct* Scope, UEdGrap
 	}
 
 	// Couldn't find the name
-	MessageLog.Error(*LOCTEXT("PropertyNotFound_Error", "The property associated with @@ could not be found").ToString(), Pin);
+	if (!FKismetCompilerUtilities::IsMissingMemberPotentiallyLoading(Cast<UBlueprint>(SelfClass->ClassGeneratedBy), InitialScope))
+	{
+		MessageLog.Error(*LOCTEXT("PropertyNotFound_Error", "The property associated with @@ could not be found").ToString(), Pin);
+	}
 	return NULL;
 }
 
@@ -551,19 +619,32 @@ void FKismetCompilerUtilities::ValidateEnumProperties(UObject* DefaultObject, FC
 	check(DefaultObject);
 	for (TFieldIterator<UProperty> It(DefaultObject->GetClass()); It; ++It)
 	{
-		const UByteProperty* ByteProperty = Cast<UByteProperty>(*It);
-		if(ByteProperty && !ByteProperty->HasAnyPropertyFlags(CPF_Transient))
+		UProperty* Property = *It;
+
+		if(!Property->HasAnyPropertyFlags(CPF_Transient))
 		{
-			const UEnum* Enum = ByteProperty->GetIntPropertyEnum();
+			const UEnum* Enum = nullptr;
+			const UNumericProperty* UnderlyingProp = nullptr;
+			if (const UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
+			{
+				Enum = EnumProperty->GetEnum();
+				UnderlyingProp = EnumProperty->GetUnderlyingProperty();
+			}
+			else if(const UByteProperty* ByteProperty = Cast<UByteProperty>(Property))
+			{
+				Enum = ByteProperty->GetIntPropertyEnum();
+				UnderlyingProp = ByteProperty;
+			}
+
 			if(Enum)
-			{		
-				const uint8 EnumValue = ByteProperty->GetPropertyValue_InContainer(DefaultObject);
+			{
+				const int64 EnumValue = UnderlyingProp->GetSignedIntPropertyValue(Property->ContainerPtrToValuePtr<void>(DefaultObject));
 				if(!Enum->IsValidEnumValue(EnumValue))
 				{
 					MessageLog.Warning(
 						*FString::Printf(
-							*LOCTEXT("InvalidEnumDefaultValue_Error", "Default Enum value '%s' for class '%s' is invalid in object '%s'. EnumVal: %d. EnumAcceptableMax: %d ").ToString(),
-							*ByteProperty->GetName(),
+							*LOCTEXT("InvalidEnumDefaultValue_Error", "Default Enum value '%s' for class '%s' is invalid in object '%s'. EnumVal: %lld. EnumAcceptableMax: %lld ").ToString(),
+							*Property->GetName(),
 							*DefaultObject->GetClass()->GetName(),
 							*DefaultObject->GetName(),
 							EnumValue,
@@ -825,6 +906,7 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 				// PropertyClass member directly, because it properly handles  
 				// placeholder classes (classes that are stubbed in during load)
 				NewPropertyObj->SetPropertyClass(SubType);
+				NewPropertyObj->SetPropertyFlags(CPF_HasGetValueTypeHash);
 				NewProperty = NewPropertyObj;
 			}
 		}
@@ -844,6 +926,12 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 				if (SubType->StructFlags & STRUCT_HasInstancedReference)
 				{
 					NewProperty->SetPropertyFlags(CPF_ContainsInstancedReference);
+				}
+
+				if (FBlueprintEditorUtils::StructHasGetTypeHash(SubType))
+				{
+					// tag the type as hashable to avoid crashes in core:
+					NewProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
 				}
 			}
 			else
@@ -884,6 +972,7 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 				// placeholder classes (classes that are stubbed in during load)
 				AssetClassProperty->SetMetaClass(SubType);
 				AssetClassProperty->PropertyClass = UClass::StaticClass();
+				AssetClassProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
 				NewProperty = AssetClassProperty;
 			}
 			else
@@ -894,6 +983,7 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 				// placeholder classes (classes that are stubbed in during load)
 				NewPropertyClass->SetMetaClass(SubType);
 				NewPropertyClass->PropertyClass = UClass::StaticClass();
+				NewPropertyClass->SetPropertyFlags(CPF_HasGetValueTypeHash);
 				NewProperty = NewPropertyClass;
 			}
 		}
@@ -901,10 +991,12 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 	else if (PinCategory == Schema->PC_Int)
 	{
 		NewProperty = NewObject<UIntProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+		NewProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
 	}
 	else if (PinCategory == Schema->PC_Float)
 	{
 		NewProperty = NewObject<UFloatProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+		NewProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
 	}
 	else if (PinCategory == Schema->PC_Boolean)
 	{
@@ -915,6 +1007,7 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 	else if (PinCategory == Schema->PC_String)
 	{
 		NewProperty = NewObject<UStrProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+		NewProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
 	}
 	else if (PinCategory == Schema->PC_Text)
 	{
@@ -922,19 +1015,37 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 	}
 	else if (PinCategory == Schema->PC_Byte)
 	{
-		UByteProperty* ByteProp = NewObject<UByteProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
-		ByteProp->Enum = Cast<UEnum>(PinSubCategoryObject);
+		UEnum* Enum = Cast<UEnum>(PinSubCategoryObject);
 
-		NewProperty = ByteProp;
+		if (Enum && Enum->GetCppForm() == UEnum::ECppForm::EnumClass)
+		{
+			UEnumProperty* EnumProp = new (EC_InternalUseOnlyConstructor, PropertyScope, ValidatedPropertyName, ObjectFlags) UEnumProperty(FObjectInitializer(), CastChecked<UEnum>(PinSubCategoryObject));
+			UNumericProperty* UnderlyingProp = NewObject<UByteProperty>(EnumProp, TEXT("UnderlyingType"), ObjectFlags);
+
+			EnumProp->AddCppProperty(UnderlyingProp);
+
+			NewProperty = EnumProp;
+		}
+		else
+		{
+			UByteProperty* ByteProp = NewObject<UByteProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+			ByteProp->Enum = Cast<UEnum>(PinSubCategoryObject);
+
+			NewProperty = ByteProp;
+		}
+
+		NewProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
 	}
 	else if (PinCategory == Schema->PC_Name)
 	{
 		NewProperty = NewObject<UNameProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+		NewProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
 	}
 	else
 	{
 		// Failed to resolve the type-subtype, create a generic property to survive VM bytecode emission
 		NewProperty = NewObject<UIntProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+		NewProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
 	}
 
 	return NewProperty;
@@ -1036,13 +1147,23 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	{
 		if (NewProperty)
 		{
+			if (!NewProperty->HasAnyPropertyFlags(CPF_HasGetValueTypeHash))
+			{
+
+				MessageLog.Error(
+					*FString::Printf(
+						*LOCTEXT("MapKeyTypeUnhashable_Error", "Map Property @@ has key type of %s which cannot be hashed and is therefore invalid").ToString(),
+						*(Schema->GetCategoryText(Type.PinCategory).ToString())),
+					NewMapProperty
+				);
+			}
 			// make the value property:
 			// not feelign good about myself..
 			// Fix up the array property to have the new type-specific property as its inner, and return the new UArrayProperty
 			NewMapProperty->KeyProp = NewProperty;
 			// make sure the value property does not collide with the key property:
-			FName KeyName = FName( *(ValidatedPropertyName.GetPlainNameString() + FString(TEXT("_Key") )) );
-			NewMapProperty->ValueProp = CreatePrimitiveProperty(PropertyScope, KeyName, Type.PinValueType.TerminalCategory, Type.PinValueType.TerminalSubCategory, Type.PinValueType.TerminalSubCategoryObject.Get(), SelfClass, Type.bIsWeakPointer, Schema, MessageLog);;
+			FName ValueName = FName( *(ValidatedPropertyName.GetPlainNameString() + FString(TEXT("_Value") )) );
+			NewMapProperty->ValueProp = CreatePrimitiveProperty(PropertyScope, ValueName, Type.PinValueType.TerminalCategory, Type.PinValueType.TerminalSubCategory, Type.PinValueType.TerminalSubCategoryObject.Get(), SelfClass, Type.bIsWeakPointer, Schema, MessageLog);;
 			if (!NewMapProperty->ValueProp)
 			{
 				NewMapProperty->MarkPendingKill();
@@ -1066,7 +1187,19 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	{
 		if (NewProperty)
 		{
-			NewProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
+			if (!NewProperty->HasAnyPropertyFlags(CPF_HasGetValueTypeHash))
+			{
+				MessageLog.Error(
+					*FString::Printf(
+						*LOCTEXT("SetKeyTypeUnhashable_Error", "Set Property @@ has contained type of %s which cannot be hashed and is therefore invalid").ToString(), 
+						*(Schema->GetCategoryText(Type.PinCategory).ToString())),
+					NewSetProperty
+				);
+
+				// We need to be able to serialize (for CPFUO to migrate data), so force the 
+				// property to hash:
+				NewProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
+			}
 			NewSetProperty->ElementProp = NewProperty;
 			NewProperty = NewSetProperty;
 		}
@@ -1351,6 +1484,20 @@ bool FKismetCompilerUtilities::IsStatementReducible(EKismetCompiledStatementType
 		return true;
 	}
 	return false;
+}
+
+bool FKismetCompilerUtilities::IsMissingMemberPotentiallyLoading(const UBlueprint* SelfBlueprint, const UStruct* MemberOwner)
+{
+	bool bCouldBeCompiledInOnLoad = false;
+	if (SelfBlueprint && SelfBlueprint->bIsRegeneratingOnLoad)
+	{
+		if (const UClass* OwnerClass = Cast<UClass>(MemberOwner))
+		{
+			UBlueprint* OwnerBlueprint = Cast<UBlueprint>(OwnerClass->ClassGeneratedBy);
+			bCouldBeCompiledInOnLoad = OwnerBlueprint && !OwnerBlueprint->bHasBeenRegenerated;
+		}
+	}
+	return bCouldBeCompiledInOnLoad;
 }
 
 //////////////////////////////////////////////////////////////////////////

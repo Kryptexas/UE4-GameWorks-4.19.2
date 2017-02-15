@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "DragAndDrop.h"
+#include "CoreMinimal.h"
+#include "Input/CursorReply.h"
+#include "Input/DragAndDrop.h"
+#include "UObject/GCObject.h"
+
+class SObjectWidget;
+class SWidget;
+class UDragDropOperation;
+class UGameViewportClient;
 
 /**
  * This is the drag/drop class used for UMG, all UMG drag drop operations utilize this operation.

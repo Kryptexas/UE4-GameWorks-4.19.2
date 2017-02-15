@@ -1,7 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 
 #if PLATFORM_WINDOWS
 #include "Windows/WindowsPlatformStackWalk.h"
@@ -19,6 +19,6 @@
 #include "HTML5/HTML5PlatformStackWalk.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformStackWalk.h"
-#elif PLATFORM_WOLF
-#include "WolfPlat/WolfPlatformStackWalk.h"
+#elif PLATFORM_SWITCH
+#include "Switch/SwitchPlatformStackWalk.h"
 #endif

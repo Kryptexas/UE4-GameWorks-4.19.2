@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "AutomatedAssetImportData.generated.h"
+
+class UFactory;
+class FJsonObject;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAutomatedImport, Log, All);
 
@@ -21,7 +27,7 @@ public:
 	bool IsValid() const;
 
 	/** Initalizes the group */
-	void Initialize();
+	void Initialize(TSharedPtr<FJsonObject> InImportGroupJsonData);
 
 	/** @return the display name of the group */
 	FString GetDisplayName() const; 
@@ -53,5 +59,8 @@ public:
 	/** Pointer to the factory currently being sued */
 	UPROPERTY()
 	UFactory* Factory;
+
+	/** Json data to be read when importing this group */
+	TSharedPtr<FJsonObject> ImportGroupJsonData;
 
 };

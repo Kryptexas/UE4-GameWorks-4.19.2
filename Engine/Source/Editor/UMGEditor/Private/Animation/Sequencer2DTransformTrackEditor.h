@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-#include "MovieScene2DTransformTrack.h"
-#include "MovieScene2DTransformSection.h"
-
+#include "Animation/MovieScene2DTransformTrack.h"
+#include "Animation/MovieScene2DTransformSection.h"
 
 class F2DTransformTrackEditor
 	: public FPropertyTrackEditor<UMovieScene2DTransformTrack, UMovieScene2DTransformSection, F2DTransformKey>

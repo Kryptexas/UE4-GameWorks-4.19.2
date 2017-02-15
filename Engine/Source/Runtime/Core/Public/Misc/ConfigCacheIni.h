@@ -1,10 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*-----------------------------------------------------------------------------
 	Config cache.
 -----------------------------------------------------------------------------*/
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Math/Color.h"
+#include "UObject/NameTypes.h"
+#include "Logging/LogMacros.h"
+#include "Math/Vector2D.h"
+#include "Delegates/Delegate.h"
+#include "Math/Vector.h"
+#include "Math/Rotator.h"
+#include "Misc/Paths.h"
 
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogConfig, Warning, All);
 

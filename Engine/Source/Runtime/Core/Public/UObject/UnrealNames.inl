@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // Special zero value, meaning no name.
 REGISTER_NAME(0,None)
@@ -38,6 +38,9 @@ REGISTER_NAME(30,Core)
 REGISTER_NAME(31,Engine)
 REGISTER_NAME(32,Editor)
 REGISTER_NAME(33,CoreUObject)
+
+// More class properties
+REGISTER_NAME(34,EnumProperty)
 
 // Special types.
 REGISTER_NAME(50,Cylinder)

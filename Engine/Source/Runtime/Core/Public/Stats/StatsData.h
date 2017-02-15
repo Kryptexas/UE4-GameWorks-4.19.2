@@ -1,7 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/UnrealTemplate.h"
+#include "Math/NumericLimits.h"
+#include "Containers/Array.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Set.h"
+#include "Containers/Map.h"
+#include "Misc/Parse.h"
+#include "UObject/NameTypes.h"
+#include "Delegates/Delegate.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Containers/IndirectArray.h"
+#include "Stats/Stats.h"
+
+struct FEventData;
 
 #if STATS
 
@@ -52,7 +69,7 @@ struct CORE_API FStatConstants
 	static const FStatNameAndInfo AdvanceFrame;
 };
 
-namespace LexicalConversion
+namespace Lex
 {
 	inline void FromString(FName& OutValue, const TCHAR* Buffer )
 	{
@@ -61,7 +78,7 @@ namespace LexicalConversion
 }
 
 /** Parse a typed value into the specified out parameter.
- * 	Expects to find a FromString function that takes a reference to T. Defaults are provided in the LexicalConversion namespace.
+ * 	Expects to find a FromString function that takes a reference to T. Defaults are provided in the Lex namespace.
  */
 template <typename T>
 void ParseTypedValue( const TCHAR* Stream, const TCHAR* Match, T& Out )
@@ -69,7 +86,7 @@ void ParseTypedValue( const TCHAR* Stream, const TCHAR* Match, T& Out )
 	TCHAR Temp[64] = TEXT( "" );
 	if( FParse::Value( Stream, Match, Temp, ARRAY_COUNT( Temp ) ) )
 	{
-		using namespace LexicalConversion;
+		using namespace Lex;
 		FromString( Out, Temp );
 	}
 }

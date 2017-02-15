@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Common Tabs
-Description:Descriptions of tabs in the editor
+﻿INTSourceChangelist:3108692
+Availability:Docs
+Title:常用标签
+Description:编辑器中标签的说明
 Crumbs:
 
 
 [EXCERPT:MyBlueprint]
-The MyBlueprint tab is used to manage all the different elements of your Blueprint. It is broken into sections for Graphs, Functions, Macros, Variables and Event Dispatchers. Double-clicking on a Graph, Function, or Macro will open it for editing in a new tab. You can use the 'Add' buttons at the top to create new elements for your Blueprint. Graphs show all the Event nodes within them as well. Variables can be dragged around in the list to change their order and category. You can also drag Functions, Macros, Variables, and Event Dispatchers into a graph to add a node using them.
+MyBlueprint 标签用于管理蓝图的所有不同元素。它被分为图表、函数、宏、变量和事件调度器等各部分。双击图表、函数或宏将其在新标签中打开进行编辑。可使用顶部的“Add”按钮为蓝图创建新元素。图表将在其中显示所有事件节点。可在列表中随意拖动变量，变更其顺序和类目。也可将函数、宏、变量和事件调度器拖入图表，添加一个使用它们的节点。
 
 [VAR:ToolTipFullLink]
 Engine/Blueprints/Editor/UIComponents/MyBlueprint
@@ -14,7 +14,7 @@ Engine/Blueprints/Editor/UIComponents/MyBlueprint
 [/EXCERPT:MyBlueprint]
 
 [EXCERPT:PaletteList]
-The Palette gives you a list of all possible nodes that can be searched. It also gives you the ability to manage 'Favorites'.
+调色板（Palette）中包含所有可进行搜索节点的列表。也可通过它管理“Favorites”。
 
 [VAR:ToolTipFullLink]
 Engine/Blueprints/Editor/UIComponents/Palette
@@ -22,5 +22,5 @@ Engine/Blueprints/Editor/UIComponents/Palette
 [/EXCERPT:PaletteList]
 
 [EXCERPT:Inspector]
-The Details tab lets you see and edit properties of your selection. This could be nodes on the graph, Components in the 3D viewport (Components mode), or Variables/Functions etc. in the My Blueprint tab. 
+通过 Details 面板即可对选项的属性进行查看和编辑。选项可以是图表中的节点、3D 视口中的组件（组件模式），或 My Blueprint 标签中的变量/函数等。 
 [/EXCERPT:Inspector]

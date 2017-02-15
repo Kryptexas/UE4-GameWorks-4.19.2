@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 
-#include "EngineVersion.h"
+#include "CoreMinimal.h"
 #include "ModuleDescriptor.h"
-#include "ProjectDescriptor.h"
+
+struct FProjectDescriptor;
 
 /**
  * Simple data structure that is filled when querying information about projects

@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioMixerPCH.h"
 #include "AudioMixerSource.h"
 #include "AudioMixerDevice.h"
+#include "AudioMixerSourceVoice.h"
 #include "IAudioExtensionPlugin.h"
+#include "Sound/AudioSettings.h"
 
 namespace Audio
 {
@@ -14,6 +15,8 @@ namespace Audio
 		, MixerBuffer(nullptr)
 		, MixerSourceVoice(nullptr)
 		, AsyncRealtimeAudioTask(nullptr)
+		, PendingReleaseBuffer(nullptr)
+		, PendingReleaseRealtimeAudioTask(nullptr)
 		, CurrentBuffer(0)
 		, PreviousAzimuth(-1.0f)
 		, bPlayedCachedBuffer(false)
@@ -24,6 +27,7 @@ namespace Audio
 		, bResourcesNeedFreeing(false)
 		, bEditorWarnedChangedSpatialization(false)
 		, bUsingHRTFSpatialization(false)
+		, bIs3D(false)
 		, bDebugMode(false)
 	{
 		// Create the source voice buffers
@@ -42,6 +46,8 @@ namespace Audio
 	{
 		AUDIO_MIXER_CHECK(MixerBuffer);
 		AUDIO_MIXER_CHECK(MixerBuffer->IsRealTimeSourceReady());
+
+		FSoundSource::InitCommon();
 
 		// Get the number of frames before creating the buffer
 		int32 NumFrames = INDEX_NONE;
@@ -64,25 +70,49 @@ namespace Audio
 				return false;
 			}
 
-			// Default the submix to use to use the master submix
-			FMixerSubmix* SourceSubmix = MixerDevice->GetMasterSubmix();
-
-			// If we're told to use a different submix, then grab that submix and set it for the sound
-			if (InWaveInstance->SoundSubmix)
-			{
-				FMixerSubmix** Submix = MixerDevice->GetSubmix(InWaveInstance->SoundSubmix);
-				check(Submix);
-				SourceSubmix = *Submix;
-			}
-
 			// Initialize the source voice with the necessary format information
 			FMixerSourceVoiceInitParams InitParams;
 			InitParams.BufferQueueListener = this;
 			InitParams.NumInputChannels = InWaveInstance->WaveData->NumChannels;
 			InitParams.NumInputFrames = NumFrames;
-			InitParams.OwningSubmix = SourceSubmix;
 			InitParams.SourceVoice = MixerSourceVoice;
 			InitParams.bUseHRTFSpatialization = UseHRTSpatialization();
+
+			if (InWaveInstance->SoundSubmixSends.Num())
+			{
+				for (int32 i = 0; i < InWaveInstance->SoundSubmixSends.Num(); ++i)
+				{
+					FMixerSourceSubmixSend SubmixSend;
+					SubmixSend.Submix = MixerDevice->GetSubmixInstance(InWaveInstance->SoundSubmixSends[i].SoundSubmix);
+					SubmixSend.WetLevel = InWaveInstance->SoundSubmixSends[i].WetLevel;
+					SubmixSend.DryLevel = InWaveInstance->SoundSubmixSends[i].DryLevel;
+
+					InitParams.SubmixSends.Add(SubmixSend);
+				}
+			}
+			else
+			{
+				// Send the voice to the EQ submix if it's enabled
+				const bool bIsEQDisabled = GetDefault<UAudioSettings>()->bDisableMasterEQ;
+				if (!bIsEQDisabled && IsEQFilterApplied())
+				{
+					// Default the submix to use to use the master submix if none are set
+					FMixerSourceSubmixSend SubmixSend;
+					SubmixSend.Submix = MixerDevice->GetMasterEQSubmix();
+					SubmixSend.WetLevel = 1.0f;
+					SubmixSend.DryLevel = 0.0f;
+					InitParams.SubmixSends.Add(SubmixSend);
+				}
+				else
+				{
+					// Default the submix to use to use the master submix if none are set
+					FMixerSourceSubmixSend SubmixSend;
+					SubmixSend.Submix = MixerDevice->GetMasterSubmix();
+					SubmixSend.WetLevel = 1.0f;
+					SubmixSend.DryLevel = 0.0f;
+					InitParams.SubmixSends.Add(SubmixSend);
+				}
+			}
 
 			// Check to see if this sound has been flagged to be in debug mode
 #if AUDIO_MIXER_ENABLE_DEBUG_MODE
@@ -98,10 +128,16 @@ namespace Audio
 			}
 #endif
 
+			// Whether or not we're 3D
+			bIs3D = !UseHRTSpatialization() && WaveInstance->bUseSpatialization && SoundBuffer->NumChannels < 3;
+
+			// We support reverb
+			SetReverbApplied(true);
+
 			if (MixerSourceVoice->Init(InitParams))
 			{
 				AUDIO_MIXER_CHECK(WaveInstance);
-				if (WaveInstance->StartTime)
+				if (WaveInstance->StartTime > 0.0f)
 				{
 					MixerBuffer->Seek(WaveInstance->StartTime);
 				}
@@ -185,6 +221,14 @@ namespace Audio
 			LastLPFFrequency = FLT_MAX;
 			bIsFinished = false;
 
+			// Not all wave data types have PCM data size at this point (e.g. procedural sound waves)
+			if (InWaveInstance->WaveData->RawPCMDataSize > 0)
+			{
+				int32 NumBytes = InWaveInstance->WaveData->RawPCMDataSize;
+				NumTotalFrames = NumBytes / (Buffer->NumChannels * sizeof(int16));
+				check(NumTotalFrames > 0);
+			}
+
 			// We succeeded in preparing the buffer for initialization, but we are not technically initialized yet.
 			// If the buffer is asynchronously preparing a file-handle, we may not yet initialize the source.
 			return true;
@@ -224,6 +268,8 @@ namespace Audio
 		bInitialized = false;
 		if (WaveInstance)
 		{
+			FScopeLock Lock(&RenderThreadCritSect);
+
 			if (MixerSourceVoice && Playing)
 			{
 				MixerSourceVoice->Stop();
@@ -285,13 +331,48 @@ namespace Audio
 		return FString(TEXT("Stub"));
 	}
 
+	float FMixerSource::GetPlaybackPercent() const
+	{
+		if (NumTotalFrames > 0)
+		{
+			int64 NumFrames = MixerSourceVoice->GetNumFramesPlayed();
+			AUDIO_MIXER_CHECK(NumTotalFrames > 0);
+			return (float)NumFrames / NumTotalFrames;
+		}
+		else
+		{
+			// If we don't have any frames, that means it's a procedural sound wave, which means
+			// that we're never going to have a playback percentage.
+			return 0.0f;
+		}
+	}
+
 	void FMixerSource::SubmitPCMBuffers()
 	{
+		if (!AudioDevice)
+		{
+			UE_LOG(LogAudioMixer, Error, TEXT("SubmitPCMBuffers: Audio device is nullptr"));
+			return;
+		}
+
+		if (!MixerSourceVoice)
+		{
+			UE_LOG(LogAudioMixer, Error, TEXT("SubmitPCMBuffers: Source is nullptr"));
+			return;
+		}
+
 		CurrentBuffer = 0;
 
 		uint8* Data = nullptr;
 		uint32 DataSize = 0;
 		MixerBuffer->GetPCMData(&Data, &DataSize);
+
+		// Only submit data if we've successfully loaded it
+		if (!Data || !DataSize)
+		{
+			UE_LOG(LogAudioMixer, Error, TEXT("Failed to load PCM data from sound source %s"), *WaveInstance->GetName());
+			return;
+		}
 
 		// Reset the data, copy it over
 		SourceVoiceBuffers[0]->AudioData.Reset();
@@ -378,7 +459,6 @@ namespace Audio
 		}
 		else
 		{
-			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 			check(!AsyncRealtimeAudioTask);
 			AsyncRealtimeAudioTask = new FAsyncRealtimeAudioTask(MixerBuffer, SourceVoiceBuffers[BufferIndex]->AudioData.GetData(), WaveInstance->LoopingMode != LOOP_Never, BufferReadMode == EBufferReadMode::AsynchronousSkipFirstFrame);
 			AsyncRealtimeAudioTask->StartBackgroundTask();
@@ -390,8 +470,6 @@ namespace Audio
 
 	void FMixerSource::SubmitRealTimeSourceData(bool bLooped)
 	{
-		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
-
 		// Have we reached the end of the sound
 		if (bLooped)
 		{
@@ -414,7 +492,7 @@ namespace Audio
 			}
 		}
 
-		if (SourceVoiceBuffers[CurrentBuffer]->AudioData.Num() > 0)
+		if (MixerSourceVoice && SourceVoiceBuffers[CurrentBuffer]->AudioData.Num() > 0)
 		{
 			MixerSourceVoice->SubmitBufferAudioThread(SourceVoiceBuffers[CurrentBuffer]);
 		}
@@ -482,7 +560,7 @@ namespace Audio
 
 	void FMixerSource::OnSourceBufferEnd()
 	{
-		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
+		FScopeLock Lock(&RenderThreadCritSect);
 
 		if (Playing && MixerSourceVoice)
 		{
@@ -501,15 +579,25 @@ namespace Audio
 		}
 	}
 
+	void FMixerSource::OnRelease()
+	{
+		// This can only be freed from the audio render thread
+		if (PendingReleaseRealtimeAudioTask)
+		{
+			PendingReleaseRealtimeAudioTask->EnsureCompletion();
+			delete PendingReleaseRealtimeAudioTask;
+			PendingReleaseRealtimeAudioTask = nullptr;
+
+			if (PendingReleaseBuffer)
+			{
+				delete PendingReleaseBuffer;
+				PendingReleaseBuffer = nullptr;
+			}
+		}
+	}
+
 	void FMixerSource::FreeResources()
 	{
-		if (AsyncRealtimeAudioTask)
-		{
-			AsyncRealtimeAudioTask->EnsureCompletion();
-			delete AsyncRealtimeAudioTask;
-			AsyncRealtimeAudioTask = nullptr;
-		}
-
 		if (MixerBuffer)
 		{
 			MixerBuffer->EnsureHeaderParseTaskFinished();
@@ -517,22 +605,28 @@ namespace Audio
 
 		if (MixerSourceVoice)
 		{
+			// Hand off the ptr of the async task so it can be shutdown on the audio render thread.
+			PendingReleaseRealtimeAudioTask = AsyncRealtimeAudioTask;
+
+			// This will trigger FMixerSource::OnRelease from audio render thread.
 			MixerSourceVoice->Release();
 			MixerSourceVoice = nullptr;
 		}
 
 		if (bResourcesNeedFreeing)
 		{
+			// If we have a buffer, we can't delete until the async decoding task has been ensured to complete.
 			if (Buffer)
 			{
 				check(Buffer->ResourceID == 0);
-				delete Buffer;
+				PendingReleaseBuffer = Buffer;
 			}
 
 			CurrentBuffer = 0;
 		}
 
 		MixerBuffer = nullptr;
+		AsyncRealtimeAudioTask = nullptr;
 		Buffer = nullptr;
 		bBuffersToFlush = false;
 		bLoopCallback = false;
@@ -541,19 +635,26 @@ namespace Audio
 
 	void FMixerSource::UpdatePitch()
 	{
-		float Pitch = WaveInstance->Pitch;
+		AUDIO_MIXER_CHECK(MixerBuffer);
 
+		check(WaveInstance);
+
+		Pitch = WaveInstance->Pitch;
+
+		// Don't apply global pitch scale to UI sounds
 		if (!WaveInstance->bIsUISound)
-		{	
+		{
 			Pitch *= AudioDevice->GetGlobalPitchScale().GetValue();
 		}
 
+		Pitch = FMath::Clamp<float>(Pitch, AUDIO_MIXER_MIN_PITCH, AUDIO_MIXER_MAX_PITCH);
+
 		// Scale in the sound sample rate divided by device sample rate so pitch is 
 		// accurate independent of sound source sample rate or device sample rate
-		AUDIO_MIXER_CHECK(MixerBuffer);
-		Pitch *= (MixerBuffer->GetSampleRate() / AudioDevice->GetSampleRate());
-
-		Pitch = FMath::Clamp<float>(Pitch, AUDIO_MIXER_MIN_PITCH, AUDIO_MIXER_MAX_PITCH);
+		if (MixerBuffer)
+		{
+			Pitch *= (MixerBuffer->GetSampleRate() / AudioDevice->GetSampleRate());
+		}
 
 		MixerSourceVoice->SetPitch(Pitch);
 	}
@@ -592,8 +693,25 @@ namespace Audio
 			LastLPFFrequency = LPFFrequency;
 		}
 
-		// TODO: Update the wet level of the sound based on game data
-		MixerSourceVoice->SetWetLevel(0.5f);
+		if (bReverbApplied)
+		{
+			// Get fraction of the sound to the 
+			if (WaveInstance->bUseSpatialization && WaveInstance->ReverbDistanceMax > WaveInstance->ReverbDistanceMin)
+			{
+				float Alpha = (WaveInstance->ListenerToSoundDistance - WaveInstance->ReverbDistanceMin) / (WaveInstance->ReverbDistanceMax - WaveInstance->ReverbDistanceMin);
+				Alpha = FMath::Clamp(Alpha, 0.0f, 1.0f);
+				float WetLevel = FMath::Lerp(WaveInstance->ReverbWetLevelMin, WaveInstance->ReverbWetLevelMax, Alpha);
+				FMixerSubmixPtr MasterReverbSubmix = MixerDevice->GetMasterReverbSubmix();
+				MixerSourceVoice->SetSubmixSendInfo(MasterReverbSubmix, 0.0f, WetLevel);
+			}
+			else
+			{
+				// If we're not 3d spatializing a sound, then use the default send amount, which is
+				// set to ReverbWetLevelMin in the WaveInstance initialization
+				FMixerSubmixPtr MasterReverbSubmix = MixerDevice->GetMasterReverbSubmix();
+				MixerSourceVoice->SetSubmixSendInfo(MasterReverbSubmix, 0.0f, WaveInstance->ReverbWetLevelMin);
+			}
+		}
 	}
 
 	void FMixerSource::UpdateChannelMaps()
@@ -605,31 +723,11 @@ namespace Audio
 		bool bChanged = false;
 
 		check(Buffer);
-		if (Buffer->NumChannels == 1)
-		{
-			bChanged = ComputeMonoChannelMap();
-		}
-		else if (Buffer->NumChannels == 2)
-		{
-			bChanged = ComputeStereoChannelMap();
-		}
-		else if (Buffer->NumChannels == 4)
-		{
-			bChanged = ComputeQuadChannelMap();
-		}
-		else if (Buffer->NumChannels == 6)
-		{
-			bChanged = ComputeHexChannelMap();
-		}
-		else
-		{
-			UE_LOG(LogAudioMixer, Warning, TEXT("Unsupported input audio channels '%d'"), Buffer->NumChannels);
-			return;
-		}
+		bChanged = ComputeChannelMap(Buffer->NumChannels);
 
 		if (bChanged)
 		{
-			MixerSourceVoice->SetChannelMap(ChannelMap);
+			MixerSourceVoice->SetChannelMap(ChannelMap, bIs3D, WaveInstance->bCenterChannelOnly);
 		}
 	}
 
@@ -646,7 +744,7 @@ namespace Audio
 			// Treat the source as if it is a 2D stereo source
 			return ComputeStereoChannelMap();
 		}
-		else if (WaveInstance->bUseSpatialization && !FMath::IsNearlyEqual(WaveInstance->AbsoluteAzimuth, PreviousAzimuth, 0.01f))
+		else if (WaveInstance->bUseSpatialization && (!FMath::IsNearlyEqual(WaveInstance->AbsoluteAzimuth, PreviousAzimuth, 0.01f) || MixerSourceVoice->NeedsSpeakerMap()))
 		{
 			// Don't need to compute the source channel map if the absolute azimuth hasn't changed much
 			PreviousAzimuth = WaveInstance->AbsoluteAzimuth;
@@ -657,7 +755,7 @@ namespace Audio
 		else if (!ChannelMap.Num())
 		{
 			// Only need to compute the 2D channel map once
-			MixerDevice->Get2DChannelMap(1, ChannelMap);
+			MixerDevice->Get2DChannelMap(1, MixerDevice->GetNumDeviceChannels(), WaveInstance->bCenterChannelOnly, ChannelMap);
 			return true;
 		}
 
@@ -667,15 +765,15 @@ namespace Audio
 
 	bool FMixerSource::ComputeStereoChannelMap()
 	{
-		if (!UseHRTSpatialization() && WaveInstance->bUseSpatialization)
+		if (!UseHRTSpatialization() && WaveInstance->bUseSpatialization && (!FMath::IsNearlyEqual(WaveInstance->AbsoluteAzimuth, PreviousAzimuth, 0.01f) || MixerSourceVoice->NeedsSpeakerMap()))
 		{
 			// Make sure our stereo emitter positions are updated relative to the sound emitter position
 			UpdateStereoEmitterPositions();
 
 			float AzimuthOffset = 0.0f;
-			if (WaveInstance->AttenuationDistance > 0.0f)
+			if (WaveInstance->ListenerToSoundDistance > 0.0f)
 			{
-				AzimuthOffset = FMath::Atan(0.5f * WaveInstance->StereoSpread / WaveInstance->AttenuationDistance);
+				AzimuthOffset = FMath::Atan(0.5f * WaveInstance->StereoSpread / WaveInstance->ListenerToSoundDistance);
 				AzimuthOffset = FMath::RadiansToDegrees(AzimuthOffset);
 			}
 
@@ -692,58 +790,37 @@ namespace Audio
 			}
 
 			// Reset the channel map, the stereo spatialization channel mapping calls below will append their mappings
-			StereoChannelMap.Reset();
-
-			MixerDevice->Get3DChannelMap(WaveInstance, LeftAzimuth, SpatializationParams.NormalizedOmniRadius, StereoChannelMap);
-			MixerDevice->Get3DChannelMap(WaveInstance, RightAzimuth, SpatializationParams.NormalizedOmniRadius, StereoChannelMap);
-
 			ChannelMap.Reset();
 
+			MixerDevice->Get3DChannelMap(WaveInstance, LeftAzimuth, SpatializationParams.NormalizedOmniRadius, ChannelMap);
+			MixerDevice->Get3DChannelMap(WaveInstance, RightAzimuth, SpatializationParams.NormalizedOmniRadius, ChannelMap);
+
 			int32 NumDeviceChannels = MixerDevice->GetNumDeviceChannels();
-			check(StereoChannelMap.Num() == 2 * NumDeviceChannels);
-
-			int32 LeftIndex = 0;
-			int32 RightIndex = NumDeviceChannels;
-
-			for (int32 i = 0; i < StereoChannelMap.Num(); ++i)
-			{
-				// Interleave the left and right channel maps to a single stereo source -> output channel map
-				if (i % 2 == 0)
-				{
-					ChannelMap.Add(StereoChannelMap[LeftIndex++]);
-				}
-				else
-				{
-					ChannelMap.Add(StereoChannelMap[RightIndex++]);
-				}
-			}
-
+			check(ChannelMap.Num() == 2 * NumDeviceChannels);
 			return true;
 		}
 		else if (!ChannelMap.Num())
 		{
-			MixerDevice->Get2DChannelMap(2, ChannelMap);
+			MixerDevice->Get2DChannelMap(2, MixerDevice->GetNumDeviceChannels(), WaveInstance->bCenterChannelOnly, ChannelMap);
 			return true;
 		}
 
 		return false;
 	}
 
-	bool FMixerSource::ComputeQuadChannelMap()
+	bool FMixerSource::ComputeChannelMap(const int32 NumChannels)
 	{
-		if (!ChannelMap.Num())
+		if (NumChannels == 1)
 		{
-			MixerDevice->Get2DChannelMap(4, ChannelMap);
-			return true;
+			return ComputeMonoChannelMap();
 		}
-		return false;
-	}
-
-	bool FMixerSource::ComputeHexChannelMap()
-	{
-		if (!ChannelMap.Num())
+		else if (NumChannels == 2)
 		{
-			MixerDevice->Get2DChannelMap(6, ChannelMap);
+			return ComputeStereoChannelMap();
+		}
+		else if (!ChannelMap.Num())
+		{
+			MixerDevice->Get2DChannelMap(NumChannels, MixerDevice->GetNumDeviceChannels(), WaveInstance->bCenterChannelOnly, ChannelMap);
 			return true;
 		}
 		return false;

@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // UAimOffsetBlendSpaceFactory1D
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Factories/BlendSpaceFactory1D.h"
 #include "AimOffsetBlendSpaceFactory1D.generated.h"
 
 UCLASS(hidecategories=Object, MinimalAPI)

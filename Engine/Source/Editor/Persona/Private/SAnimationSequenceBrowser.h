@@ -1,13 +1,30 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "AssetData.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
 #include "PreviewScene.h"
+#include "EditorViewportClient.h"
+#include "AssetData.h"
+#include "Widgets/SToolTip.h"
+#include "PersonaDelegates.h"
+#include "Editor/ContentBrowser/Public/ContentBrowserDelegates.h"
 #include "EditorAnimUtils.h"
 #include "IAnimationSequenceBrowser.h"
+
+class FSceneViewport;
+class FUICommandList;
+class IPersonaToolkit;
+class SMenuAnchor;
+class SViewport;
+class UAnimationAsset;
+class UDebugSkelMeshComponent;
+class USoundWave;
 
 //////////////////////////////////////////////////////////////////////////
 // FAnimationAssetViewportClient
@@ -38,7 +55,7 @@ public:
 
 	SLATE_END_ARGS()
 public:
-	void Construct(const FArguments& InArgs, const TSharedRef<IPersonaToolkit>& InPersonaToolkit);
+	void Construct(const FArguments& InArgs, const TSharedRef<class IPersonaToolkit>& InPersonaToolkit);
 
 	void OnRequestOpenAsset(const FAssetData& AssetData, bool bFromHistory);
 
@@ -162,6 +179,19 @@ protected:
 
 	/** Returns visible when not in a Blueprint mode (anim mode, etc...) */
 	EVisibility GetHistoryVisibility() const;
+
+	/** Perform additional filtering */
+	bool HandleFilterAsset(const FAssetData& InAssetData) const;
+
+	/** Handle playing audio from the right-click menu */
+	void HandlePlayAudio(FAssetData InAssetData);
+
+	/** Handle stopping audio from the right-click menu */
+	void HandleStopAudio();
+
+	/** Play the specified sound on the preview audio component */
+	void PlayPreviewAudio(USoundWave* InSoundWave);
+
 protected:
 	/**
 	 * The actual viewport widget

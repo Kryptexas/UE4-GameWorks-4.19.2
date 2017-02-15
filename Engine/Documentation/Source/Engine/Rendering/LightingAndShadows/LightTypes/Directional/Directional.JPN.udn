@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2954984
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:指向性ライト
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
@@ -53,16 +53,16 @@ Version:4.9
 
 
 [EXCERPT:Intro]
-**指向性ライト** ははるか遠くにある大量の光源から放出されるライトをシミュレートします。つまりこのライトから投影されるシャドウは全て平行になるため、太陽光のシミュレーションに理想的な選択肢です。指向性ライト を配置する場合、以下の 3 つの可動設定のいずれかを設定できます。
+DirectionalLight (指向性ライト) は、はるか遠くにある光源から放出されるライトをシミュレートします。つまりこのライトからキャストされるシャドウは全て平行になるため、太陽光のシミュレーションに理想的な選択肢です。指向性ライトを配置する場合、以下の 3 つの可動設定のいずれかを設定できます。
 
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](Directional_LightStationary.png)(w:150 convert:false)
 	[/PARAM]
 	[PARAM:description]
-	**Static (静的)** - (左の図) インゲームでライトは変更できません。これは、最速のレンダリング方法であり、ベイクしたライティングを可能にします。
+	**Static (静的)** - (左の画像) ゲーム中のライトの変更が不可能です。これは、最速のレンダリング方法であり、焼き付けたライティングを可能にします。
 
-	**Stationary (固定)** - (左の図) ライトは **ライトマス** で焼き付けられた静的ジオメトリからのシャドウイングと反射光のみを持ちます。この設定により、ゲーム中にライトのカラーと強度を変更することが可能となりますが、移動および部分的なライトの焼付けはできません。 
+	**Stationary (固定)** - (同じく左の画像) ライトは **Lightmass** で焼き付けられた静的ジオメトリからのシャドウイングと反射光のみを持ちます。この設定により、ゲーム中にライトのカラーと強度を変更することが可能となりますが、移動および部分的なライトの焼付けはできません。 
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:Intro]
@@ -76,7 +76,7 @@ Version:4.9
 	[/PARAM]
 [/OBJECT]
 
-下図で、天井の空いた部分からキャストされている日光が分かります。 
+下図で、天井の空いた部分から日光がキャストされていることが分かります。 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -118,7 +118,7 @@ Version:4.9
 | **Used As Atmosphere Sun Light** | 空の太陽の位置を決定するのにこの **指向性ライト** を使用します。 |
 | **Affects World** | ライトを完全に無効にします。ランタイム時に設定することはできません。ランタイム時にライトの効果を無効にするには、**Visibility** プロパティを変更します。 |
 | **Casts Shadows** | ライトにシャドウをキャストさせる場合に使用します。 |
-| **Indirect Lighting Intensity** | ライトからの間接光の寄与をスケーリングします。 |
+| **Indirect Lighting Intensity** | ライトからの間接光の効果をスケーリングします。 |
 | **Min Roughness** | ライトに有効なラフネス (粗さ) の最低値です。スペキュラ ハイライトをソフトにする際に使用します。 |
 | **Shadow Bias** | ライトが作成するシャドウの精度を制御します。 |
 | **Shadow Filter Sharpen** | ライトのシャドウ フィルタリングをシャープにする度合いです。 |
@@ -136,7 +136,7 @@ Version:4.9
 | **Occlusion Depth Range** | この距離よりもカメラに近いものは全てライトシャフトをオクルードします。 |
 | **Enable Light Shaft Bloom**  | ライトに対してライトシャフト ブルームをレンダリングするか否かを設定します。|
 | **Bloom Scale** | 加算ブルームのカラーをスケーリングします。 |
-| **Bloom Threshold** | ライトシャフトにブルームを作成するためにシーンカラーに必要な閾値です。。 |
+| **Bloom Threshold** | ライトシャフトにブルームを作成するためにシーンカラーに必要な閾値です。 |
 | **Bloom Tint** | ライトシャフトから差し込むブルームの色調を弱める色を決定します。 |
 | **Light Shaft Override Direction** | ライトの実際の方向以外のどこかから発生するライトシャフトの作成に使用します。|
 
@@ -164,4 +164,4 @@ Version:4.9
 | **Cascade Distribution Exponent** | カスケードがカメラにより近く分散するか (より大きな指数) 、またはカメラからより離れて分散するか (より小さな指数) を制御します。 |
 | **Cascade Transition Fraction** | あるカスケードから次のカスケードへのフェード領域の割合です。|
 | **Shadow Distance Fadeout Fraction** | 動的シャドウの影響から離れた場所でのフェードアウト領域のサイズを制御します。|
-| **Use Inset Shadows for Movable Objects** | (Stationary lights (固定ライトのみ) ) カスケード処理されたシャドウ マップが有効の場合でも、オブジェクト別に挿入するシャドウを可動コンポーネントに使用するかどうかを設定します。|
+| **Use Inset Shadows for Movable Objects** | (Stationary lights (固定ライトのみ) ) カスケード シャドウ マップが有効の場合でも、オブジェクト別に挿入するシャドウを可動コンポーネントに使用するかどうかを設定します。|

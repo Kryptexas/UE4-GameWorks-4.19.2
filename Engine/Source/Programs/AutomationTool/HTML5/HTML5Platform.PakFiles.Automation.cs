@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -23,7 +23,7 @@ public class HTMLPakAutomation
 	public static bool CanCreateMapPaks(ProjectParams Param)
 	{
 		bool UseAsyncLevelLoading = false;
-		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", DirectoryReference.FromFile(Param.RawProjectPath), new DirectoryReference(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine")));
+		var ConfigCache = UnrealBuildTool.ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Param.RawProjectPath), UnrealTargetPlatform.HTML5);
 		ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "UseAsyncLevelLoading", out UseAsyncLevelLoading);
 
 		if (Param.Run)

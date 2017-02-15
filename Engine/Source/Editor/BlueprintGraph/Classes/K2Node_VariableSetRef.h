@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "K2Node.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
+#include "EdGraph/EdGraphNodeUtils.h"
 #include "K2Node_VariableSetRef.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
 
 UCLASS(MinimalAPI)
 class UK2Node_VariableSetRef : public UK2Node

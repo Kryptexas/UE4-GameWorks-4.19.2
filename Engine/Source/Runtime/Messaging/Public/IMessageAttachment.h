@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 
 /**
  * Interface for message attachments.
@@ -36,10 +37,3 @@ public:
 	/** Virtual destructor. */
 	virtual ~IMessageAttachment() { }
 };
-
-
-/** Type definition for shared pointers to instances of IMessageAttachment. */
-typedef TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe> IMessageAttachmentPtr;
-
-/** Type definition for shared references to instances of IMessageAttachment. */
-typedef TSharedRef<IMessageAttachment, ESPMode::ThreadSafe> IMessageAttachmentRef;

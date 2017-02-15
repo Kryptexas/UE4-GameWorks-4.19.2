@@ -1,7 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Framework/SlateDelegates.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Framework/Views/TableViewTypeTraits.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/STreeView.h"
 
 /**
  * Implements the automation test tree view.  Same slate interface as STreeView but adds the ability to clear the internal widget cache.

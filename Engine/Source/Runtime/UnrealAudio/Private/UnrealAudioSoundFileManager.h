@@ -1,16 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Stats/Stats.h"
 #include "UnrealAudioTypes.h"
-#include "UnrealAudioSoundFile.h"
-#include "UnrealAudioSoundFileInternal.h"
-#include "UnrealAudioEntityManager.h"
+#include "UnrealAudioUtilities.h"
+#include "UnrealAudioHandles.h"
+#include "Async/AsyncWork.h"
+
+class Error;
 
 #if ENABLE_UNREAL_AUDIO
 
 namespace UAudio
 {
+	class FUnrealAudioModule;
+
 	class FAsyncSoundFileLoadTask : public FNonAbandonableTask
 	{
 	public:

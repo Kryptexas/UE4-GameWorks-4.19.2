@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaPlayerEditorPCH.h"
-#include "SMediaPlayerEditorOverlay.h"
+#include "Widgets/SMediaPlayerEditorOverlay.h"
+#include "IMediaOverlaySink.h"
+#include "Widgets/Text/SRichTextBlock.h"
+#include "MediaPlayer.h"
+#include "MediaOverlays.h"
 
 
 /* SMediaPlayerEditorOverlay interface
@@ -58,18 +61,25 @@ void SMediaPlayerEditorOverlay::AddOverlays(EMediaOverlayType Type, float Layout
 		return;
 	}
 
-	TArray<FMediaPlayerOverlay> Overlays;
-	MediaPlayer->GetOverlays(Type, Overlays);
+	UMediaOverlays* Overlays = MediaPlayer->GetOverlays();
 
-	for (const FMediaPlayerOverlay& Overlay : Overlays)
+	if (Overlays == nullptr)
+	{
+		return;
+	}
+
+	TArray<FMediaPlayerOverlay> OutItems;
+	Overlays->GetItems(Type, OutItems, MediaPlayer->GetTime());
+
+	for (const FMediaPlayerOverlay& Item : OutItems)
 	{
 		SConstraintCanvas::FSlot* Slot = Slots[InOutSlotIndex];
 		TSharedPtr<SRichTextBlock> TextBlock = TextBlocks[InOutSlotIndex];
 
-		if (Overlay.HasPosition)
+		if (Item.HasPosition)
 		{
 			Slot->Alignment(FVector2D(0.0f, 0.0f));
-			Slot->Offset(FMargin(Overlay.Position.X, Overlay.Position.Y, 0.0f, 0.0f));
+			Slot->Offset(FMargin(Item.Position.X, Item.Position.Y, 0.0f, 0.0f));
 		}
 		else
 		{
@@ -77,7 +87,7 @@ void SMediaPlayerEditorOverlay::AddOverlays(EMediaOverlayType Type, float Layout
 			Slot->Offset(FMargin(0.0f));
 		}
 
-		TextBlock->SetText(Overlay.Text);
+		TextBlock->SetText(Item.Text);
 		TextBlock->SlatePrepass(LayoutScale);
 
 		if (++InOutSlotIndex == 10)

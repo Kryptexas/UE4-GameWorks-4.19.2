@@ -1,12 +1,18 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineIdentityInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
+#include "Templates/Casts.h"
+#include "Interfaces/OnlineIdentityInterface.h"
 #include "UpdateManager.generated.h"
 
+class Error;
+class UGameInstance;
 enum class EHotfixResult : uint8;
-class UEnum;
 
 /**
  * Various states the update manager flows through as it checks for patches/hotfixes
@@ -182,6 +188,11 @@ public:
 	bool IsUpdating() const { return !bCheckHotfixAvailabilityOnly && (CurrentUpdateState != EUpdateState::UpdateIdle) && (CurrentUpdateState != EUpdateState::UpdateComplete); }
 
 	/**
+	* @return true if the update manager is actively checking
+	*/
+	bool IsActivelyUpdating() const { return IsUpdating() && (CurrentUpdateState != EUpdateState::UpdatePending); }
+
+	/**
 	 * @return the current state of the update check process
 	 */
 	EUpdateState GetUpdateState() const { return CurrentUpdateState; }
@@ -348,6 +359,7 @@ protected:
 	EUpdateCompletionStatus LastCompletionResult[2];
 
 	FDelegateHandle TickerHandle;
+	FTimerHandle StartCheckInternalTimerHandle;
 
 private:
 
@@ -364,6 +376,9 @@ private:
 	/** Fire a delegate after a given amount of time */
 	typedef TFunction<void(void)> DelayCb;
 	FTimerHandle DelayResponse(DelayCb&& Delegate, float Delay);
+
+	/** Helper function to check if a timer is running. */
+	bool IsTimerHandleActive(const FTimerHandle& TimerHandle) const;
 
 	friend bool SkipPatchCheck(UUpdateManager* UpdateManager);
 

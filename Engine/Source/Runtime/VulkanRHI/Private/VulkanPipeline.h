@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved..
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved..
 
 /*=============================================================================
 	VulkanPipeline.h: Private Vulkan RHI definitions.
@@ -28,6 +28,7 @@ struct FVulkanComputePipelineState
 	}
 
 	TRefCountPtr<FVulkanComputeShaderState> CSS;
+	TArray<FVulkanUnorderedAccessView*> UAVListForAutoFlush;
 };
 
 
@@ -36,9 +37,6 @@ struct FVulkanGfxPipelineState
 {
 	FVulkanGfxPipelineState()
 		: RenderPass(nullptr)
-#if !VULKAN_USE_NEW_RENDERPASSES
-		, FrameBuffer(nullptr)
-#endif
 	{
 		Reset();
 	}
@@ -51,9 +49,6 @@ struct FVulkanGfxPipelineState
 
 	TRefCountPtr<FVulkanBoundShaderState> BSS;
 	FVulkanRenderPass* RenderPass;
-#if !VULKAN_USE_NEW_RENDERPASSES
-	FVulkanFramebuffer* FrameBuffer;
-#endif
 
 	VkPipelineDynamicStateCreateInfo DynamicState;
 	VkPipelineInputAssemblyStateCreateInfo InputAssembly;
@@ -131,10 +126,7 @@ protected:
 class FVulkanComputePipeline : public FVulkanPipeline
 {
 public:
-	FVulkanComputePipeline(FVulkanDevice* InDevice)
-		: FVulkanPipeline(InDevice)
-	{
-	}
+	FVulkanComputePipeline(FVulkanDevice* InDevice, FVulkanComputeShaderState* CSS);
 };
 
 class FVulkanGfxPipeline : public FVulkanPipeline
@@ -199,11 +191,7 @@ public:
 	FVulkanPipelineStateCache(FVulkanDevice* InParent);
 	~FVulkanPipelineStateCache();
 
-#if VULKAN_USE_NEW_RENDERPASSES
 	void CreateAndAdd(FVulkanRenderPass* RenderPass, const FVulkanGfxPipelineStateKey& CreateInfo, FVulkanGfxPipeline* Pipeline, const FVulkanGfxPipelineState& State, const FVulkanBoundShaderState& BSS);
-#else
-	void CreateAndAdd(const FVulkanGfxPipelineStateKey& CreateInfo, FVulkanGfxPipeline* Pipeline, const FVulkanGfxPipelineState& State, const FVulkanBoundShaderState& BSS);
-#endif
 	void RebuildCache();
 
 	static TLinkedList<FVulkanBoundShaderState*>*& GetBSSList();
@@ -569,7 +557,7 @@ private:
 
 	VkPipelineCache PipelineCache;
 
-	void CreateGfxPipelineFromEntry(const FGfxPipelineEntry* GfxEntry, FVulkanGfxPipeline* Pipeline);
+	void CreateGfxPipelineFromEntry(const FGfxPipelineEntry* GfxEntry, FVulkanGfxPipeline* Pipeline, const FVulkanBoundShaderState* BSS);
 	void PopulateGfxEntry(const FVulkanGfxPipelineState& State, const FVulkanRenderPass* RenderPass, FGfxPipelineEntry* OutGfxEntry);
 	void CreatGfxEntryRuntimeObjects(FGfxPipelineEntry* GfxEntry);
 	bool Load(const TArray<FString>& CacheFilenames, TArray<uint8>& OutDeviceCache);

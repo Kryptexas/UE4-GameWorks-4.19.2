@@ -1,12 +1,30 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchServicesModule.cpp: Implements the FBuildPatchServicesModule class.
 =============================================================================*/
 
-#include "BuildPatchServicesPrivatePCH.h"
+#include "BuildPatchServicesModule.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Containers/Ticker.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
+#include "BuildPatchError.h"
+#include "BuildPatchHTTP.h"
+#include "BuildPatchCompactifier.h"
+#include "BuildPatchDataEnumeration.h"
+#include "BuildPatchMergeManifests.h"
+#include "BuildPatchDiffManifests.h"
+#include "BuildPatchHash.h"
+#include "BuildPatchGeneration.h"
+#include "BuildPatchAnalytics.h"
+#include "BuildPatchServicesPrivate.h"
 
 using namespace BuildPatchConstants;
 

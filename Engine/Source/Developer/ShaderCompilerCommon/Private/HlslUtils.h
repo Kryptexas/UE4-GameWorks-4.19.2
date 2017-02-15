@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HlslUtils.h - Utilities for Hlsl.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
 
 #define USE_UNREAL_ALLOCATOR	0
 #define USE_PAGE_POOLING		0

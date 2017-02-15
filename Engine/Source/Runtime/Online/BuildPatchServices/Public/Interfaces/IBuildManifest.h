@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IBuildManifest.h: Declares the IBuildManifest and IManifestField interfaces.
@@ -7,6 +7,11 @@
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+class IBuildManifest;
+class IManifestField;
 
 typedef TSharedPtr< class IManifestField, ESPMode::ThreadSafe > IManifestFieldPtr;
 typedef TSharedRef< class IManifestField, ESPMode::ThreadSafe > IManifestFieldRef;

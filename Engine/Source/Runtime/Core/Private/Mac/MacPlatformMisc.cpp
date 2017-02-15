@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MacPlatformMisc.mm: Mac implementations of misc functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "MacPlatformMisc.h"
 #include "Misc/App.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
@@ -20,6 +20,14 @@
 #include "PLCrashReporter.h"
 #include "GenericPlatformDriver.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "HAL/PlatformOutputDevices.h"
+#include "HAL/IConsoleManager.h"
+#include "HAL/FileManager.h"
+#include "Misc/OutputDeviceError.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/FeedbackContext.h"
+#include "Internationalization/Internationalization.h"
+#include "Internationalization/Culture.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
@@ -34,18 +42,6 @@
 #include <libproc.h>
 #include <notify.h>
 #include <uuid/uuid.h>
-
-/*------------------------------------------------------------------------------
- Settings defines.
- ------------------------------------------------------------------------------*/
-
-#if WITH_EDITOR
-#define MAC_GRAPHICS_SETTINGS TEXT("/Script/MacGraphicsSwitching.MacGraphicsSwitchingSettings")
-#define MAC_GRAPHICS_INI GEditorSettingsIni
-#else
-#define MAC_GRAPHICS_SETTINGS TEXT("/Script/MacTargetPlatform.MacTargetSettings")
-#define MAC_GRAPHICS_INI GEngineIni
-#endif
 
 /*------------------------------------------------------------------------------
  Console variables.
@@ -110,7 +106,7 @@ struct FMacApplicationInfo
 		OSVersion = FString::Printf(TEXT("%ld.%ld.%ld"), OSXVersion.majorVersion, OSXVersion.minorVersion, OSXVersion.patchVersion);
 		FCStringAnsi::Strcpy(OSVersionUTF8, PATH_MAX+1, TCHAR_TO_UTF8(*OSVersion));
 		
-		// OS X build number is only accessible on non-sandboxed applications as it resides outside the accessible sandbox
+		// macOS build number is only accessible on non-sandboxed applications as it resides outside the accessible sandbox
 		if(!bIsSandboxed)
 		{
 			NSDictionary* SystemVersion = [NSDictionary dictionaryWithContentsOfFile: @"/System/Library/CoreServices/SystemVersion.plist"];
@@ -410,7 +406,7 @@ void FMacPlatformMisc::PlatformPreInit()
 
 void FMacPlatformMisc::PlatformInit()
 {
-	UE_LOG(LogInit, Log, TEXT("OS X %s (%s)"), *GMacAppInfo.OSVersion, *GMacAppInfo.OSBuild);
+	UE_LOG(LogInit, Log, TEXT("macOS %s (%s)"), *GMacAppInfo.OSVersion, *GMacAppInfo.OSBuild);
 	UE_LOG(LogInit, Log, TEXT("Model: %s"), *GMacAppInfo.MachineModel);
 	UE_LOG(LogInit, Log, TEXT("CPU: %s"), UTF8_TO_TCHAR(GMacAppInfo.MachineCPUString));
 	
@@ -494,7 +490,7 @@ void FMacPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
 
 	if (!MacApplication)
 	{
-		// No MacApplication means that app is a dedicated server, commandline tool or the editor running a commandlet. In these cases we don't want OS X to put our app into App Nap mode.
+		// No MacApplication means that app is a dedicated server, commandline tool or the editor running a commandlet. In these cases we don't want macOS to put our app into App Nap mode.
 		CommandletActivity = [[NSProcessInfo processInfo] beginActivityWithOptions:NSActivityUserInitiated reason:IsRunningCommandlet() ? @"Running commandlet" : @"Running dedicated server"];
 		[CommandletActivity retain];
 	}
@@ -1206,8 +1202,10 @@ FMacPlatformMisc::FGPUDescriptor& FMacPlatformMisc::FGPUDescriptor::operator=(FG
 
 TMap<FString, float> FMacPlatformMisc::FGPUDescriptor::GetPerformanceStatistics() const
 {
+	SCOPED_AUTORELEASE_POOL;
+	static CFStringRef PerformanceStatisticsRef = CFSTR("PerformanceStatistics");
 	TMap<FString, float> Data;
-	const CFDictionaryRef PerformanceStats = (const CFDictionaryRef)IORegistryEntrySearchCFProperty(PCIDevice, kIOServicePlane, CFSTR("PerformanceStatistics"), kCFAllocatorDefault, kIORegistryIterateRecursively);
+	const CFDictionaryRef PerformanceStats = (const CFDictionaryRef)IORegistryEntrySearchCFProperty(PCIDevice, kIOServicePlane, PerformanceStatisticsRef, kCFAllocatorDefault, kIORegistryIterateRecursively);
 	if(PerformanceStats)
 	{
 		if(CFGetTypeID(PerformanceStats) == CFDictionaryGetTypeID())
@@ -1242,7 +1240,8 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 				if(IORegistryEntryCreateCFProperties(ServiceEntry, &ServiceInfo, kCFAllocatorDefault, kNilOptions) == kIOReturnSuccess)
 				{
 					// GPUs are class-code 0x30000
-					const CFDataRef ClassCode = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, CFSTR("class-code"));
+					static CFStringRef ClassCodeRef = CFSTR("class-code");
+					const CFDataRef ClassCode = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, ClassCodeRef);
 					if(ClassCode && CFGetTypeID(ClassCode) == CFDataGetTypeID())
 					{
 						const uint32* ClassCodeValue = reinterpret_cast<const uint32*>(CFDataGetBytePtr(ClassCode));
@@ -1255,7 +1254,8 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 							IOObjectRetain(ServiceEntry);
 							Desc.PCIDevice = (uint32)ServiceEntry;
 							
-							const CFDataRef Model = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, CFSTR("model"));
+							static CFStringRef ModelRef = CFSTR("model");
+							const CFDataRef Model = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, ModelRef);
 							if(Model)
 							{
 								if(CFGetTypeID(Model) == CFDataGetTypeID())
@@ -1270,27 +1270,31 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 								}
 							}
 							
-							const CFDataRef DeviceID = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, CFSTR("device-id"));
+							static CFStringRef DeviceIDRef = CFSTR("device-id");
+							const CFDataRef DeviceID = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, DeviceIDRef);
 							if(DeviceID && CFGetTypeID(DeviceID) == CFDataGetTypeID())
 							{
 								const uint32* Value = reinterpret_cast<const uint32*>(CFDataGetBytePtr(DeviceID));
 								Desc.GPUDeviceId = *Value;
 							}
 							
-							const CFDataRef VendorID = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, CFSTR("vendor-id"));
+							static CFStringRef VendorIDRef = CFSTR("vendor-id");
+							const CFDataRef VendorID = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, VendorIDRef);
 							if(DeviceID && CFGetTypeID(DeviceID) == CFDataGetTypeID())
 							{
 								const uint32* Value = reinterpret_cast<const uint32*>(CFDataGetBytePtr(VendorID));
 								Desc.GPUVendorId = *Value;
 							}
 							
-							const CFBooleanRef Headless = (const CFBooleanRef)CFDictionaryGetValue(ServiceInfo, CFSTR("headless"));
+							static CFStringRef HeadlessRef = CFSTR("headless");
+							const CFBooleanRef Headless = (const CFBooleanRef)CFDictionaryGetValue(ServiceInfo, HeadlessRef);
 							if(Headless && CFGetTypeID(Headless) == CFBooleanGetTypeID())
 							{
 								Desc.GPUHeadless = (bool)CFBooleanGetValue(Headless);
 							}
 							
-							CFTypeRef VRAM = IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, CFSTR("VRAM,totalMB"), kCFAllocatorDefault, kIORegistryIterateRecursively);
+							static CFStringRef VRAMTotal = CFSTR("VRAM,totalMB");
+							CFTypeRef VRAM = IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, VRAMTotal, kCFAllocatorDefault, kIORegistryIterateRecursively);
 							if (VRAM)
 							{
 								if(CFGetTypeID(VRAM) == CFDataGetTypeID())
@@ -1305,7 +1309,8 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 								CFRelease(VRAM);
 							}
 							
-							const CFStringRef MetalLibName = (const CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, CFSTR("MetalPluginName"), kCFAllocatorDefault, kIORegistryIterateRecursively);
+							static CFStringRef MetalPluginName = CFSTR("MetalPluginName");
+							const CFStringRef MetalLibName = (const CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, MetalPluginName, kCFAllocatorDefault, kIORegistryIterateRecursively);
 							if(MetalLibName)
 							{
 								if(CFGetTypeID(MetalLibName) == CFStringGetTypeID())
@@ -1318,20 +1323,23 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 								}
 							}
 							
-							const CFStringRef OpenGLLibName = (const CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, CFSTR("IOGLBundleName"), kCFAllocatorDefault, kIORegistryIterateRecursively);
+							static CFStringRef IOGLBundleName = CFSTR("IOGLBundleName");
+							const CFStringRef OpenGLLibName = (const CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, IOGLBundleName, kCFAllocatorDefault, kIORegistryIterateRecursively);
 							if(OpenGLLibName)
 							{
 								if(CFGetTypeID(OpenGLLibName) == CFStringGetTypeID())
-									{
+								{
 									Desc.GPUOpenGLBundle = (NSString*)OpenGLLibName;
-									}
-									else
-									{
-									CFRelease(OpenGLLibName);
-									}
 								}
+								else
+								{
+									CFRelease(OpenGLLibName);
+								}
+							}
 							
 							CFStringRef BundleID = nullptr;
+							
+							static CFStringRef CFBundleIdentifier = CFSTR("CFBundleIdentifier");
 							
 							io_iterator_t ChildIterator;
 							if(IORegistryEntryGetChildIterator(ServiceEntry, kIOServicePlane, &ChildIterator) == kIOReturnSuccess)
@@ -1339,10 +1347,12 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 								io_registry_entry_t ChildEntry;
 								while((BundleID == nullptr) && (ChildEntry = IOIteratorNext(ChildIterator)))
 								{
-									CFStringRef IOMatchCategory = (CFStringRef)IORegistryEntrySearchCFProperty(ChildEntry, kIOServicePlane, CFSTR("IOMatchCategory"), kCFAllocatorDefault, 0);
-									if (IOMatchCategory && CFGetTypeID(IOMatchCategory) == CFStringGetTypeID() && CFStringCompare(IOMatchCategory, CFSTR("IOAccelerator"), 0) == kCFCompareEqualTo)
+									static CFStringRef IOMatchCategoryRef = CFSTR("IOMatchCategory");
+									CFStringRef IOMatchCategory = (CFStringRef)IORegistryEntrySearchCFProperty(ChildEntry, kIOServicePlane, IOMatchCategoryRef, kCFAllocatorDefault, 0);
+									static CFStringRef IOAcceleratorRef = CFSTR("IOAccelerator");
+									if (IOMatchCategory && CFGetTypeID(IOMatchCategory) == CFStringGetTypeID() && CFStringCompare(IOMatchCategory, IOAcceleratorRef, 0) == kCFCompareEqualTo)
 									{
-										BundleID = (CFStringRef)IORegistryEntrySearchCFProperty(ChildEntry, kIOServicePlane, CFSTR("CFBundleIdentifier"), kCFAllocatorDefault, 0);
+										BundleID = (CFStringRef)IORegistryEntrySearchCFProperty(ChildEntry, kIOServicePlane, CFBundleIdentifier, kCFAllocatorDefault, 0);
 									}
 									if (IOMatchCategory)
 									{
@@ -1356,7 +1366,7 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 							
 							if (BundleID == nullptr)
 							{
-								BundleID = (CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, CFSTR("CFBundleIdentifier"), kCFAllocatorDefault, kIORegistryIterateRecursively);
+								BundleID = (CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, CFBundleIdentifier, kCFAllocatorDefault, kIORegistryIterateRecursively);
 							}
 							
 							if(BundleID)
@@ -1389,8 +1399,7 @@ int32 FMacPlatformMisc::GetExplicitRendererIndex()
 	check(GConfig && GConfig->IsReadyForUse());
 	
 	int32 ExplicitRenderer = -1;
-	if ((FParse::Value(FCommandLine::Get(),TEXT("MacExplicitRenderer="), ExplicitRenderer) && ExplicitRenderer >= 0)
-		|| (GConfig->GetInt(MAC_GRAPHICS_SETTINGS, TEXT("RendererID"), ExplicitRenderer, MAC_GRAPHICS_INI) && ExplicitRenderer >= 0))
+	if (FParse::Value(FCommandLine::Get(),TEXT("MacExplicitRenderer="), ExplicitRenderer) && ExplicitRenderer >= 0)
 	{
 		return ExplicitRenderer;
 	}
@@ -1775,8 +1784,12 @@ FString FMacPlatformMisc::GetXcodePath()
 
 float FMacPlatformMisc::GetDPIScaleFactorAtPoint(float X, float Y)
 {
-	TSharedRef<FMacScreen> Screen = FMacApplication::FindScreenBySlatePosition(X, Y);
-	return Screen->Screen.backingScaleFactor;
+	if (MacApplication && MacApplication->IsHighDPIModeEnabled())
+	{
+		TSharedRef<FMacScreen> Screen = FMacApplication::FindScreenBySlatePosition(X, Y);
+		return Screen->Screen.backingScaleFactor;
+	}
+	return 1.0f;
 }
 
 /** Global pointer to crash handler */
@@ -2215,7 +2228,7 @@ void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool b
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
 		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/" );
 		FCStringAnsi::Strcat(FilePath, PATH_MAX, FGenericCrashContext::CrashContextRuntimeXMLNameA );
-		//SerializeAsXML( FilePath ); @todo uncomment after verification - need to do a bit more work on this for OS X
+		//SerializeAsXML( FilePath ); @todo uncomment after verification - need to do a bit more work on this for macOS
 		
 		// copy log
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
@@ -2333,7 +2346,7 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 			}
 		}
 		// We no longer wait here because on return the OS will scribble & crash again due to the behaviour of the XPC function
-		// OS X uses internally to launch/wait on the CrashReportClient. It is simpler, easier & safer to just die here like a good little Mac.app.
+		// macOS uses internally to launch/wait on the CrashReportClient. It is simpler, easier & safer to just die here like a good little Mac.app.
 	}
 	
 	// Sandboxed applications re-raise the signal to trampoline into the system crash reporter as suppressing it may fall foul of Apple's Mac App Store rules.
@@ -2381,7 +2394,16 @@ void FMacCrashContext::GenerateEnsureInfoAndLaunchReporter() const
 		const bool bIsEnsure = true;
 		GenerateInfoInFolder(TCHAR_TO_UTF8(*EnsureLogFolder), bIsEnsure);
 		
-		FString Arguments = FString::Printf(TEXT("\"%s/\" -Unattended"), *EnsureLogFolder);
+		FString Arguments;
+		if (IsInteractiveEnsureMode())
+		{
+			Arguments = FString::Printf(TEXT("\"%s/\""), *EnsureLogFolder);
+		}
+		else
+		{
+			Arguments = FString::Printf(TEXT("\"%s/\" -Unattended"), *EnsureLogFolder);
+		}
+
 		FString ReportClient = FPaths::ConvertRelativePathToFull(FPlatformProcess::GenerateApplicationPath(TEXT("CrashReportClient"), EBuildConfigurations::Development));
 		FPlatformProcess::ExecProcess(*ReportClient, *Arguments, nullptr, nullptr, nullptr);
 	}
@@ -2426,7 +2448,7 @@ bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 	{
 		bool bHasMetal = false;
 		
-		if (!FParse::Param(FCommandLine::Get(),TEXT("opengl")) && FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
+		if (FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
 		{
 			// Find out if there are any Metal devices on the system - some Mac's have none
 			void* DLLHandle = FPlatformProcess::GetDllHandle(TEXT("/System/Library/Frameworks/Metal.framework/Metal"));
@@ -2445,16 +2467,7 @@ bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 				FPlatformProcess::FreeDllHandle(DLLHandle);
 			}
 		}
-		
-		// Metal is only permitted on 10.11.4 and above now because of all the bug-fixes Apple made for us in 10.11.4.
-		if (bHasMetal && FPlatformMisc::MacOSXVersionCompare(10, 11, 4) < 0)
-		{
-			bHasMetal = false;
-			FText Title = NSLOCTEXT("MacPlatform", "UpdateMacOSTitle","Update Mac OS");
-			FText Msg = NSLOCTEXT("MacPlatform", "UpdateMacOS.", "Please update to Mac OS X 10.11.4 or later (macOS Sierra 10.12 or later strongly recommended) to enable Metal rendering support for improved compatibility and performance.");
-			FMacPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *Msg.ToString(), *Title.ToString());
-		}
-		
+
 		return bHasMetal;
 	}
 

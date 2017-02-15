@@ -1,15 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ClipboardTypes.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/IntegralCurve.h"
+#include "MovieSceneTrack.h"
 #include "NamedKeyArea.h"
-#include "MovieSceneClipboard.h"
 #include "SequencerClipboardReconciler.h"
+#include "ClipboardTypes.h"
 
-
-struct FIntegralCurve;
-
+class FStructOnScope;
 
 /**
  * Abstract base class for integral curve key areas.
@@ -41,11 +43,12 @@ public:
 	virtual UMovieSceneSection* GetOwningSection() override;
 	virtual FRichCurve* GetRichCurve() override;
 	virtual TArray<FKeyHandle> GetUnsortedKeyHandles() const override;
+	virtual FKeyHandle DilateKey(FKeyHandle KeyHandle, float Scale, float Origin) override;
 	virtual FKeyHandle MoveKey(FKeyHandle KeyHandle, float DeltaPosition) override;
 	virtual void SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity) override;
 	virtual void SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode InterpMode) override;
 	virtual void SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTangentMode TangentMode) override;
-	virtual void SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const override;
+	virtual void SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) override;
 
 protected:
 

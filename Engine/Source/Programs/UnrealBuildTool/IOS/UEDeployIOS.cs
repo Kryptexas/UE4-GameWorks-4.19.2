@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections;
@@ -14,18 +14,13 @@ namespace UnrealBuildTool
 {
 	public class UEDeployIOS : UEBuildDeploy
 	{
-		FileReference ProjectFile;
-        IOSPlatformContext IOSPlatformContext;
-
-        public UEDeployIOS(FileReference InProjectFile, IOSPlatformContext inIOSPlatformContext)
+        public UEDeployIOS()
         {
-            ProjectFile = InProjectFile;
-            IOSPlatformContext = inIOSPlatformContext;
         }
 
         protected UnrealPluginLanguage UPL = null;
 
-		public void SetIOSPluginData(List<string> Architectures, List<string> inPluginExtraData)
+		public void SetIOSPluginData(FileReference ProjectFile, List<string> Architectures, List<string> inPluginExtraData)
 		{
 			UPL = new UnrealPluginLanguage(ProjectFile, inPluginExtraData, Architectures, "", "", UnrealTargetPlatform.IOS);
 			//UPL.SetTrace ();
@@ -186,7 +181,7 @@ namespace UnrealBuildTool
 			return result;
 		}
 
-		public static bool GenerateIOSPList(string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory, UEDeployIOS InThis = null)
+		public static bool GenerateIOSPList(UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory, UEDeployIOS InThis = null)
 		{
 			// generate the Info.plist for future use
 			string BuildDirectory = ProjectDirectory + "/Build/IOS";
@@ -210,7 +205,7 @@ namespace UnrealBuildTool
 			// get the settings from the ini file
 			// plist replacements
 			DirectoryReference DirRef = bIsUE4Game ? (!string.IsNullOrEmpty(UnrealBuildTool.GetRemoteIniPath()) ? new DirectoryReference(UnrealBuildTool.GetRemoteIniPath()) : null) : new DirectoryReference(ProjectDirectory);
-			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", DirRef);
+			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirRef, UnrealTargetPlatform.IOS);
 
 			// orientations
 			string SupportedOrientations = "";
@@ -247,13 +242,20 @@ namespace UnrealBuildTool
             // required capabilities
             string RequiredCaps = "";
 
-            if (InThis != null)
-            {
-                // required capabilities
-                RequiredCaps += InThis.IOSPlatformContext.GetRequiredCapabilities();
-            }
+			if (InThis != null)
+			{
+				List<string> Arches = (Config == UnrealTargetConfiguration.Shipping) ? IOSPlatformContext.GetShippingArchitectures(Ini) : IOSPlatformContext.GetNonShippingArchitectures(Ini);
+				if (Arches.Count > 1)
+				{
+					RequiredCaps += "\t\t<string>armv7</string>\n";
+				}
+				else
+				{
+					RequiredCaps += "\t\t<string>" + Arches[0] + "</string>\n";
+				}
+			}
 
-            Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsOpenGLES2", out bSupported);
+			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsOpenGLES2", out bSupported);
 			RequiredCaps += bSupported ? "\t\t<string>opengles-2</string>\n" : "";
 			if (!bSupported)
 			{
@@ -295,6 +297,16 @@ namespace UnrealBuildTool
 			string FacebookAppID = "";
 			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "FacebookAppID", out FacebookAppID);
 			bEnableFacebookSupport = bEnableFacebookSupport && !string.IsNullOrWhiteSpace(FacebookAppID);
+
+			// Add remote-notifications as background mode
+			bool bRemoteNotificationsSupported = false;
+			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableRemoteNotificationsSupport", out bRemoteNotificationsSupported);
+
+			// Get any Location Services permission descriptions added 
+			string LocationAlwaysUsageDescription = "";
+			string LocationWhenInUseDescription = "";
+			Ini.GetString("/Script/LocationServicesIOSEditor.LocationServicesIOSSettings", "LocationAlwaysUsageDescription", out LocationAlwaysUsageDescription);
+			Ini.GetString("/Script/LocationServicesIOSEditor.LocationServicesIOSSettings", "LocationWhenInUseDescription", out LocationWhenInUseDescription);
 
 			// extra plist data
 			string ExtraData = "";
@@ -469,13 +481,13 @@ namespace UnrealBuildTool
 				{
 					Text.AppendLine("\t\t<dict>");
 					Text.AppendLine("\t\t\t<key>UILaunchImageMinimumOSVersion</key>");
-					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPhoneConfigs[ConfigIndex + 3]));
+					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPadConfigs[ConfigIndex + 3]));
 					Text.AppendLine("\t\t\t<key>UILaunchImageName</key>");
-					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPhoneConfigs[ConfigIndex + 0]));
+					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPadConfigs[ConfigIndex + 0]));
 					Text.AppendLine("\t\t\t<key>UILaunchImageOrientation</key>");
-					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPhoneConfigs[ConfigIndex + 1]));
+					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPadConfigs[ConfigIndex + 1]));
 					Text.AppendLine("\t\t\t<key>UILaunchImageSize</key>");
-					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPhoneConfigs[ConfigIndex + 2]));
+					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPadConfigs[ConfigIndex + 2]));
 					Text.AppendLine("\t\t</dict>");
 				}
 				Text.AppendLine("\t</array>");
@@ -489,6 +501,11 @@ namespace UnrealBuildTool
 			// disable exempt encryption
 			Text.AppendLine("\t<key>ITSAppUsesNonExemptEncryption</key>");
 			Text.AppendLine("\t<false/>");
+			// add location services descriptions if used
+			Text.AppendLine ("\t<key>NSLocationAlwaysUsageDescription</key>");
+			Text.AppendLine (string.Format("\t<string>{0}</string>", LocationAlwaysUsageDescription));
+			Text.AppendLine ("\t<key>NSLocationWhenInUseUsageDescription</key>");
+			Text.AppendLine (string.Format("\t<string>{0}></string>", LocationWhenInUseDescription));
 			
 			// disable HTTPS requirement
             if (bDisableHTTPS)
@@ -516,6 +533,16 @@ namespace UnrealBuildTool
 					}
 				}
 			}
+
+			// Add remote-notifications as background mode
+			if (bRemoteNotificationsSupported)
+			{
+                Text.AppendLine("\t<key>UIBackgroundModes</key>");
+                Text.AppendLine("\t<array>");
+                Text.AppendLine("\t\t<string>remote-notification</string>");
+                Text.AppendLine("\t</array>");
+			}
+
 			Text.AppendLine("</dict>");
 			Text.AppendLine("</plist>");
 
@@ -560,9 +587,9 @@ namespace UnrealBuildTool
 			return bSkipDefaultPNGs;
 		}
 
-		public virtual bool GeneratePList(string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
+		public virtual bool GeneratePList(UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
 		{
-			return GenerateIOSPList(ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, this);
+			return GenerateIOSPList(Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, this);
 		}
 
 		protected virtual void CopyGraphicsResources(bool bSkipDefaultPNGs, string InEngineDir, string AppDirectory, string BuildDirectory, string IntermediateDir)
@@ -585,7 +612,7 @@ namespace UnrealBuildTool
             }
         }
 
-        public override bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
+        public bool PrepForUATPackageOrDeploy(UnrealTargetConfiguration Config, FileReference ProjectFile, string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
 		{
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
@@ -610,7 +637,7 @@ namespace UnrealBuildTool
 			Directory.CreateDirectory(BuildDirectory);
 
 			// create the entitlements file
-			WriteEntitlementsFile(Path.Combine(IntermediateDirectory, GameName + ".entitlements"), ProjectFile);
+			WriteEntitlementsFile(Path.Combine(IntermediateDirectory, GameName + ".entitlements"), ProjectFile, bForDistribution);
 
 			// delete some old files if they exist
 			if (Directory.Exists(AppDirectory + "/_CodeSignature"))
@@ -745,7 +772,7 @@ namespace UnrealBuildTool
 //				LaunchXib = BuildDirectory + "/Resources/Interface/LaunchScreen.xib";
 //			}
 
-			bool bSkipDefaultPNGs = GeneratePList(InProjectDirectory, bIsUE4Game, GameName, InProjectName, InEngineDir, AppDirectory);
+			bool bSkipDefaultPNGs = GeneratePList(Config, InProjectDirectory, bIsUE4Game, GameName, InProjectName, InEngineDir, AppDirectory);
 
 			// ensure the destination is writable
 			if (File.Exists(AppDirectory + "/" + GameName))
@@ -782,7 +809,7 @@ namespace UnrealBuildTool
             return true;
 		}
 
-		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
+		public override bool PrepTargetForDeployment(UEBuildDeployTarget InTarget)
 		{
 			string SubDir = GetTargetPlatformName();
 
@@ -807,27 +834,39 @@ namespace UnrealBuildTool
 
             string BaseSoName = InTarget.OutputPaths[0].FullName;
 
+            ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(InTarget.ProjectFile), InTarget.Platform);
+
+			List<string> ProjectArches;
+			if(InTarget.Configuration == UnrealTargetConfiguration.Shipping)
+			{
+				ProjectArches = IOSPlatformContext.GetShippingArchitectures(Ini);
+			}
+			else
+			{
+				ProjectArches = IOSPlatformContext.GetNonShippingArchitectures(Ini);
+			}
+
 			// get the receipt
 			UnrealTargetPlatform Platform = InTarget.Platform;
 			UnrealTargetConfiguration Configuration = InTarget.Configuration;
 			string ProjectBaseName = Path.GetFileName(BaseSoName).Replace("-" + Platform, "").Replace("-" + Configuration, "").Replace(".so", "");
 			string ReceiptFilename = TargetReceipt.GetDefaultPath(InTarget.ProjectDirectory.FullName, ProjectBaseName, Platform, Configuration, "");
 			Log.TraceInformation("Receipt Filename: {0}", ReceiptFilename);
-			SetIOSPluginData(PlatformContext.ProjectArches, CollectPluginDataPaths(TargetReceipt.Read(ReceiptFilename)));
+			SetIOSPluginData(InTarget.ProjectFile, ProjectArches, CollectPluginDataPaths(TargetReceipt.Read(ReceiptFilename)));
 
 			string BundlePath = Path.Combine (ProjectDirectory, "Binaries", "IOS", "Payload", ProjectBaseName + ".app");
 
 			// Passing in true for distribution is not ideal here but given the way that ios packaging happens and this call chain it seems unavoidable for now, maybe there is a way to correctly pass it in that I can't find?
-			UPL.Init (PlatformContext.ProjectArches, true, BuildConfiguration.RelativeEnginePath, BundlePath, ProjectDirectory);
+			UPL.Init (ProjectArches, true, BuildConfiguration.RelativeEnginePath, BundlePath, ProjectDirectory);
 
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac && Environment.GetEnvironmentVariable("UBT_NO_POST_DEPLOY") != "true")
 			{
-				return PrepForUATPackageOrDeploy(InTarget.ProjectFile, GameName, ProjectDirectory, BuildPath + "/" + DecoratedGameName, "../../Engine", false, "", false);
+				return PrepForUATPackageOrDeploy(InTarget.Configuration, InTarget.ProjectFile, GameName, ProjectDirectory, BuildPath + "/" + DecoratedGameName, "../../Engine", false, "", false);
 			}
 			else
 			{
 				// @todo tvos merge: This used to copy the bundle back - where did that code go? It needs to be fixed up for TVOS directories
-				GeneratePList(ProjectDirectory, bIsUE4Game, GameName, (InTarget.ProjectFile == null) ? "" : Path.GetFileNameWithoutExtension(InTarget.ProjectFile.FullName), "../../Engine", "");
+				GeneratePList(InTarget.Configuration, ProjectDirectory, bIsUE4Game, GameName, (InTarget.ProjectFile == null) ? "" : Path.GetFileNameWithoutExtension(InTarget.ProjectFile.FullName), "../../Engine", "");
 			}
 			return true;
 		}
@@ -857,14 +896,14 @@ namespace UnrealBuildTool
 			return PluginExtras;
 		}
 
-		private void WriteEntitlementsFile(string OutputFilename, FileReference ProjectFile)
+		private void WriteEntitlementsFile(string OutputFilename, FileReference ProjectFile, bool bForDistribution)
 		{
 			// get the settings from the ini file
 			// plist replacements
 			// @todo tvos: Separate TVOS version?
-			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", DirectoryReference.FromFile(ProjectFile));
-			bool bSupported = false;
-			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableCloudKitSupport", out bSupported);
+			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.IOS);
+			bool bCloudKitSupported = false;
+			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableCloudKitSupport", out bCloudKitSupported);
 
 			Directory.CreateDirectory(Path.GetDirectoryName(OutputFilename));
 			// we need to have something so Xcode will compile, so we just set the get-task-allow, since we know the value, 
@@ -874,8 +913,10 @@ namespace UnrealBuildTool
 			Text.AppendLine("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
 			Text.AppendLine("<plist version=\"1.0\">");
 			Text.AppendLine("<dict>");
-			Text.AppendLine(string.Format("\t<key>get-task-allow</key><{0}/>",	/*Config.bForDistribution ? "false" : */"true"));
-			if (bSupported)
+			Text.AppendLine("\t<key>get-task-allow</key>");
+			Text.AppendLine(string.Format("\t<{0}/>", bForDistribution ? "false" : "true"));
+
+			if (bCloudKitSupported)
 			{
 				Text.AppendLine("\t<key>com.apple.developer.icloud-container-identifiers</key>");
 				Text.AppendLine("\t<array>");
@@ -886,9 +927,36 @@ namespace UnrealBuildTool
 				Text.AppendLine("\t\t<string>CloudKit</string>");
 				Text.AppendLine("\t</array>");
 			}
+
+			bool bRemoteNotificationsSupported = false;
+			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableRemoteNotificationsSupport", out bRemoteNotificationsSupported);
+
+			if (bRemoteNotificationsSupported)
+			{
+				Text.AppendLine("\t<key>aps-environment</key>");
+				Text.AppendLine(string.Format("\t<string>{0}</string>", bForDistribution ? "production" : "development"));
+			}
+
 			Text.AppendLine("</dict>");
 			Text.AppendLine("</plist>");
-			File.WriteAllText(OutputFilename, Text.ToString());
+
+			if (File.Exists(OutputFilename))
+			{
+				// read existing file
+				string ExisitingFileContents = File.ReadAllText(OutputFilename);
+
+				bool bFileChanged = !ExisitingFileContents.Equals(Text.ToString(), StringComparison.Ordinal);
+
+				// overwrite file if there are content changes
+				if (bFileChanged)
+				{
+					File.WriteAllText(OutputFilename, Text.ToString());
+				}
+			}
+			else
+			{
+				File.WriteAllText(OutputFilename, Text.ToString());
+			}
 		}
 
 		static void SafeFileCopy(FileInfo SourceFile, string DestinationPath, bool bOverwrite)

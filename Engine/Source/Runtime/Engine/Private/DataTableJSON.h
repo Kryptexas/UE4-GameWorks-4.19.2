@@ -1,12 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "DataTableUtils.h"
+#include "CoreMinimal.h"
+#include "Policies/PrettyJsonPrintPolicy.h"
+#include "Dom/JsonValue.h"
+#include "Dom/JsonObject.h"
 
 class UDataTable;
-class FJsonValue;
-class FJsonObject;
+enum class EDataTableExportFlags : uint8;
+
+template <class CharType> struct TPrettyJsonPrintPolicy;
 
 // forward declare JSON writer
 template <class CharType>

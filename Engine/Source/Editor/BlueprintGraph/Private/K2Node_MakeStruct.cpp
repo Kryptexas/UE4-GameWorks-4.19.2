@@ -1,14 +1,21 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
-#include "KismetCompiler.h"
+#include "K2Node_MakeStruct.h"
+#include "UObject/StructOnScope.h"
+#include "UObject/TextProperty.h"
+#include "Engine/UserDefinedStruct.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/CompilerResultsLog.h"
 #include "MakeStructHandler.h"
+#include "BlueprintNodeBinder.h"
+#include "BlueprintActionFilter.h"
 #include "BlueprintFieldNodeSpawner.h"
 #include "EditorCategoryUtils.h"
-#include "TextPackageNamespaceUtil.h"
+#include "Internationalization/TextPackageNamespaceUtil.h"
 #include "BlueprintActionDatabaseRegistrar.h"
-#include "BlueprintActionFilter.h"	// for FBlueprintActionContext
-#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+#include "PropertyCustomizationHelpers.h"
+#include "Kismet/KismetMathLibrary.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MakeStruct"
 
@@ -143,6 +150,7 @@ void UK2Node_MakeStruct::AllocateDefaultPins()
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	if(Schema && StructType)
 	{
+		PreloadObject(StructType);
 		CreatePin(EGPD_Output, Schema->PC_Struct, TEXT(""), StructType, false, false, StructType->GetName());
 		
 		bool bHasAdvancedPins = false;
@@ -459,5 +467,57 @@ void UK2Node_MakeStruct::Serialize(FArchive& Ar)
 		}
 	}
 }
+
+void UK2Node_MakeStruct::ConvertDeprecatedNode(UEdGraph* Graph, bool bOnlySafeChanges)
+{
+	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+
+	// User may have since deleted the struct type
+	if (StructType == nullptr)
+	{
+		return;
+	}
+
+	// Check to see if the struct has a native make/break that we should try to convert to.
+	if (StructType->HasMetaData(FBlueprintMetadata::MD_NativeMakeFunction))
+	{
+		UFunction* MakeNodeFunction = nullptr;
+
+		// If any pins need to change their names during the conversion, add them to the map.
+		TMap<FString, FString> OldPinToNewPinMap;
+
+		if (StructType == TBaseStructure<FRotator>::Get())
+		{
+			MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeRotator));
+			OldPinToNewPinMap.Add(TEXT("Rotator"), TEXT("ReturnValue"));
+		}
+		else if (StructType == TBaseStructure<FVector>::Get())
+		{
+			MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeVector));
+			OldPinToNewPinMap.Add(TEXT("Vector"), TEXT("ReturnValue"));
+		}
+		else if (StructType == TBaseStructure<FVector2D>::Get())
+		{
+			MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeVector2D));
+			OldPinToNewPinMap.Add(TEXT("Vector2D"), TEXT("ReturnValue"));
+		}
+		else
+		{
+			const FString& MetaData = StructType->GetMetaData(FBlueprintMetadata::MD_NativeMakeFunction);
+			MakeNodeFunction = FindObject<UFunction>(nullptr, *MetaData, true);
+
+			if (MakeNodeFunction)
+			{
+				OldPinToNewPinMap.Add(*StructType->GetName(), TEXT("ReturnValue"));
+			}
+		}
+
+		if (MakeNodeFunction)
+		{
+			Schema->ConvertDeprecatedNodeToFunctionCall(this, MakeNodeFunction, OldPinToNewPinMap, Graph);
+		}
+	}
+}
+
 
 #undef LOCTEXT_NAMESPACE

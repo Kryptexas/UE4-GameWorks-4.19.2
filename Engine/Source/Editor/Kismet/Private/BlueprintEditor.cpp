@@ -1,60 +1,114 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
+#include "BlueprintEditor.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Components/PrimitiveComponent.h"
+#include "Engine/Engine.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
+#include "Logging/TokenizedMessage.h"
+#include "Misc/PackageName.h"
+#include "AssetData.h"
+#include "Editor/EditorEngine.h"
+#include "Widgets/Layout/SBorder.h"
+#include "HAL/FileManager.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/MetaData.h"
+#include "EdGraph/EdGraph.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
+#include "EditorStyleSet.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "EdGraphNode_Comment.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "GeneralProjectSettings.h"
+#include "Kismet/GameplayStatics.h"
+#include "Components/TimelineComponent.h"
+#include "Engine/LevelStreamingKismet.h"
+#include "Dialogs/Dialogs.h"
+#include "UnrealEdGlobals.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "WorkflowOrientedApp/WorkflowUObjectDocuments.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node.h"
+#include "EdGraphSchema_K2_Actions.h"
+#include "K2Node_Event.h"
+#include "K2Node_ActorBoundEvent.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_Variable.h"
+#include "K2Node_CallFunctionOnMember.h"
+#include "K2Node_CallParentFunction.h"
+#include "K2Node_Tunnel.h"
+#include "K2Node_Composite.h"
+#include "K2Node_CustomEvent.h"
+#include "K2Node_ExecutionSequence.h"
+#include "K2Node_FunctionEntry.h"
+#include "K2Node_FunctionResult.h"
+#include "K2Node_Literal.h"
+#include "K2Node_MacroInstance.h"
+#include "K2Node_Select.h"
+#include "K2Node_Switch.h"
+#include "K2Node_SwitchInteger.h"
+#include "K2Node_SwitchName.h"
+#include "K2Node_Timeline.h"
+#include "K2Node_VariableGet.h"
+#include "K2Node_VariableSet.h"
+#include "K2Node_SetFieldsInStruct.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "Engine/Breakpoint.h"
 #include "ScopedTransaction.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "GraphEditor.h"
-#include "BlueprintUtilities.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "Kismet2/KismetDebugUtilities.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
-#include "Editor/ClassViewer/Public/ClassViewerModule.h"
-#include "Editor/UnrealEd/Public/FileHelpers.h"
-#include "Runtime/Engine/Public/EngineUtils.h"
+#include "EngineUtils.h"
+#include "EdGraphToken.h"
+#include "Kismet2/CompilerResultsLog.h"
 #include "EdGraphUtilities.h"
-#include "Toolkits/IToolkitHost.h"
+#include "IMessageLogListing.h"
 #include "Developer/MessageLog/Public/MessageLogModule.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "Kismet/GameplayStatics.h"
-#include "Editor/Kismet/Public/FindInBlueprintManager.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
 #include "BlueprintEditorCommands.h"
-#include "BlueprintEditor.h"
-#include "BlueprintEditorModule.h"
 #include "GraphEditorActions.h"
 #include "SNodePanel.h"
-#include "SDockTab.h"
+#include "Widgets/Docking/SDockTab.h"
 #include "EditorClassUtils.h"
 #include "IDocumentation.h"
+#include "BlueprintNodeBinder.h"
 #include "BlueprintFunctionNodeSpawner.h"
-
 #include "SBlueprintEditorToolbar.h"
 #include "FindInBlueprints.h"
 #include "SGraphTitleBar.h"
-#include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
-#include "Editor/UnrealEd/Public/Kismet2/DebuggerCommands.h"
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "Kismet2/Kismet2NameValidators.h"
+#include "Kismet2/DebuggerCommands.h"
+#include "Editor.h"
+#include "IDetailsView.h"
 
 #include "BlueprintEditorTabs.h"
-#include "StructureEditorUtils.h"
 
-#include "ClassIconFinder.h"
 
-#include "IProjectManager.h"
+#include "Interfaces/IProjectManager.h"
 
 // Core kismet tabs
 #include "SGraphNode.h"
 #include "SSCSEditor.h"
 #include "SSCSEditorViewport.h"
-#include "STimelineEditor.h"
 #include "SKismetInspector.h"
 #include "SBlueprintPalette.h"
 #include "SBlueprintActionMenu.h"
 #include "SMyBlueprint.h"
 #include "SReplaceNodeReferences.h"
-#include "FindInBlueprints.h"
 // End of core kismet tabs
 
 // Debugging
@@ -70,9 +124,10 @@
 #include "AssetRegistryModule.h"
 #include "BlueprintEditorTabFactories.h"
 #include "SPinTypeSelector.h"
-#include "AnimGraphDefinitions.h"
+#include "Animation/AnimBlueprint.h"
 #include "AnimStateConduitNode.h"
 #include "AnimationGraphSchema.h"
+#include "AnimationGraph.h"
 #include "AnimationStateGraph.h"
 #include "AnimationStateMachineSchema.h"
 #include "AnimationTransitionGraph.h"
@@ -81,28 +136,23 @@
 #include "K2Node_SwitchString.h"
 
 #include "EngineAnalytics.h"
-#include "IAnalyticsProvider.h"
-#include "ISCSEditorCustomization.h"
-#include "Editor/UnrealEd/Public/SourceCodeNavigation.h"
-#include "Developer/HotReload/Public/IHotReload.h"
+#include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
+#include "SourceCodeNavigation.h"
+#include "IHotReload.h"
 
 #include "AudioDevice.h"
 
 // Blueprint merging
-#include "Merge.h"
-#include "SHyperlink.h"
-#include "GenericCommands.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Widgets/Input/SHyperlink.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "NativeCodeGenerationTool.h"
-#include "GeneralProjectSettings.h"
-#include "Engine/LevelStreaming.h"
-#include "Engine/LevelStreamingKismet.h"
 
-#include "IMenu.h"
 
 // Blueprint Profiler
-#include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
+#include "BlueprintProfilerModule.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
@@ -134,6 +184,8 @@ TSharedRef<SDockTab> FSelectionDetailsSummoner::SpawnTab(const FWorkflowTabSpawn
 
 	TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 	BlueprintEditorPtr->GetInspector()->SetOwnerTab(Tab);
+
+	BlueprintEditorPtr->GetInspector()->GetPropertyView()->SetHostTabManager(Info.TabManager);
 
 	return Tab;
 }
@@ -812,14 +864,14 @@ void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType
 
 	// Update the selection visualization
 	AActor* EditorActorInstance = Blueprint->SimpleConstructionScript->GetComponentEditorActorInstance();
-	if (EditorActorInstance != NULL)
+	if (EditorActorInstance != nullptr)
 	{
 		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
-		EditorActorInstance->GetComponents(PrimitiveComponents);
+		EditorActorInstance->GetComponents(PrimitiveComponents, true);
 
-		for (int32 Idx = 0; Idx < PrimitiveComponents.Num(); ++Idx)
+		for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
 		{
-			PrimitiveComponents[Idx]->PushSelectionToProxy();
+			PrimitiveComponent->PushSelectionToProxy();
 		}
 	}
 
@@ -2564,6 +2616,16 @@ void FBlueprintEditor::CreateDefaultCommands()
 	ToolkitCommands->MapAction(FBlueprintEditorCommands::Get().GenerateNativeCode,
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::OpenNativeCodeGenerationTool),
 		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanGenerateNativeCode));
+
+	ToolkitCommands->MapAction(FBlueprintEditorCommands::Get().ShowActionMenuItemSignatures,
+		FExecuteAction::CreateLambda([]()
+			{ 
+				UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
+				Settings->bShowActionMenuItemSignatures = !Settings->bShowActionMenuItemSignatures;
+				Settings->SaveConfig();
+			}),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateLambda([]()->bool{ return GetDefault<UBlueprintEditorSettings>()->bShowActionMenuItemSignatures; }));
 }
 
 bool FBlueprintEditor::IsProfilerAvailable() const
@@ -2687,7 +2749,7 @@ void FBlueprintEditor::ReparentBlueprint_NewParentChosen(UClass* ChosenClass)
 		}
 
 		// If the chosen class differs hierarchically from the current class, warn that there may be data loss
-		if (bReparent && !ChosenClass->GetDefaultObject()->IsA(BlueprintObj->ParentClass))
+		if (bReparent && (!BlueprintObj->ParentClass || !ChosenClass->GetDefaultObject()->IsA(BlueprintObj->ParentClass)))
 		{
 			const FText Title = LOCTEXT("ReparentTitle", "Reparent Blueprint"); 
 			const FText Message = LOCTEXT("ReparentWarning", "Reparenting this blueprint may cause data loss.  Continue reparenting?"); 
@@ -2707,7 +2769,7 @@ void FBlueprintEditor::ReparentBlueprint_NewParentChosen(UClass* ChosenClass)
 
 		if ( bReparent )
 		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Reparenting blueprint %s from %s to %s..."), *BlueprintObj->GetFullName(), *BlueprintObj->ParentClass->GetName(), *ChosenClass->GetName());
+			UE_LOG(LogBlueprint, Warning, TEXT("Reparenting blueprint %s from %s to %s..."), *BlueprintObj->GetFullName(), BlueprintObj->ParentClass ? *BlueprintObj->ParentClass->GetName() : TEXT("[None]"), *ChosenClass->GetName());
 
 			UClass* OldParentClass = BlueprintObj->ParentClass ;
 			BlueprintObj->ParentClass = ChosenClass;
@@ -2721,6 +2783,25 @@ void FBlueprintEditor::ReparentBlueprint_NewParentChosen(UClass* ChosenClass)
 
 			// Ensure that the Blueprint is up-to-date (valid SCS etc.) after compiling (new parent class)
 			EnsureBlueprintIsUpToDate(BlueprintObj);
+
+			if (BlueprintObj->NativizationFlag != EBlueprintNativizationFlag::Disabled)
+			{
+				UBlueprint* ParentBlueprint = UBlueprint::GetBlueprintFromClass(ChosenClass);
+				if (ParentBlueprint && ParentBlueprint->NativizationFlag == EBlueprintNativizationFlag::Disabled)
+				{
+					ParentBlueprint->NativizationFlag = EBlueprintNativizationFlag::Dependency;
+
+					FNotificationInfo Warning(FText::Format(
+						LOCTEXT("InterfaceFlaggedForNativization", "{0} flagged for nativization (as a required dependency)."),
+						FText::FromName(ParentBlueprint->GetFName())
+						)
+					);
+					Warning.ExpireDuration = 5.0f;
+					Warning.bFireAndForget = true;
+					Warning.Image = FCoreStyle::Get().GetBrush(TEXT("MessageLog.Warning"));
+					FSlateNotificationManager::Get().AddNotification(Warning);
+				}
+			}
 
 			if (SCSEditor.IsValid())
 			{
@@ -6566,6 +6647,8 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 			InDestinationGraph->SubGraphs.Add(Composite->BoundGraph);
 		}
 
+		TArray<UEdGraphPin*> OutputGatewayExecPins;
+
 		// Find cross-graph links
 		for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
 		{
@@ -6585,13 +6668,20 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 				}
 			}
 			// If the pin has no links but is an exec pin and this is a function graph, then it is a gateway pin
-			else if(InGatewayNode->GetClass() == UK2Node_CallFunction::StaticClass() && LocalPin->PinType.PinCategory == K2Schema->PC_Exec)
+			else if (InGatewayNode->GetClass() == UK2Node_CallFunction::StaticClass() && K2Schema->IsExecPin(*LocalPin))
 			{
-				// Connect the gateway pin to the node, there is no remote pin to hook up because the exec pin was not originally connected
-				LocalPin->Modify();
-				UK2Node_EditablePinBase* LocalPort = (LocalPin->Direction == EGPD_Input) ? InEntryNode : InResultNode;
-				UEdGraphPin* LocalPortPin = LocalPort->Pins[0];
-				LocalPin->MakeLinkTo(LocalPortPin);
+				if (LocalPin->Direction == EGPD_Input)
+				{
+					// Connect the gateway pin to the node, there is no remote pin to hook up because the exec pin was not originally connected
+					LocalPin->Modify();
+					UK2Node_EditablePinBase* LocalPort = InEntryNode;
+					UEdGraphPin* LocalPortPin = LocalPort->Pins[0];
+					LocalPin->MakeLinkTo(LocalPortPin);
+				}
+				else
+				{
+					OutputGatewayExecPins.Add(LocalPin);
+				}
 			}
 
 			// Thunk cross-graph links thru the gateway
@@ -6681,6 +6771,24 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 			}
 		}
 
+		if (OutputGatewayExecPins.Num() > 0)
+		{
+			UEdGraphPin* LocalResultPortPin = K2Schema->FindExecutionPin(*InResultNode, EGPD_Input);
+
+			// If the Result Node already contains links, then we don't need to make these connections as the intended connections have already been
+			// transferred from original graph.
+			if (LocalResultPortPin != nullptr && LocalResultPortPin->LinkedTo.Num() == 0)
+			{
+				// TODO: Some of these pins may not necessarily be terminal pins. We should prompt the user to choose which of these connections should
+				// be made to the return node.
+				for (UEdGraphPin* LocalPin : OutputGatewayExecPins)
+				{
+					// Connect the gateway pin to the node, there is no remote pin to hook up because the exec pin was not originally connected
+					LocalPin->Modify();
+					LocalPin->MakeLinkTo(LocalResultPortPin);
+				}
+			}
+		}
 	}
 
 	// Reposition the newly created nodes
@@ -7293,17 +7401,17 @@ void FBlueprintEditor::NewDocument_OnClicked(ECreatedDocumentType GraphType)
 
 	if (GraphType == CGT_NewFunctionGraph)
 	{
-		NewGraph = FBlueprintEditorUtils::CreateNewGraph(GetBlueprintObj(), DocumentName, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+		NewGraph = FBlueprintEditorUtils::CreateNewGraph(GetBlueprintObj(), DocumentName, UEdGraph::StaticClass(), GetDefaultSchemaClass());
 		FBlueprintEditorUtils::AddFunctionGraph<UClass>(GetBlueprintObj(), NewGraph, /*bIsUserCreated=*/ true, NULL);
 	}
 	else if (GraphType == CGT_NewMacroGraph)
 	{
-		NewGraph = FBlueprintEditorUtils::CreateNewGraph(GetBlueprintObj(), DocumentName, UEdGraph::StaticClass(),  UEdGraphSchema_K2::StaticClass());
+		NewGraph = FBlueprintEditorUtils::CreateNewGraph(GetBlueprintObj(), DocumentName, UEdGraph::StaticClass(), GetDefaultSchemaClass());
 		FBlueprintEditorUtils::AddMacroGraph(GetBlueprintObj(), NewGraph, /*bIsUserCreated=*/ true, NULL);
 	}
 	else if (GraphType == CGT_NewEventGraph)
 	{
-		NewGraph = FBlueprintEditorUtils::CreateNewGraph(GetBlueprintObj(), DocumentName, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+		NewGraph = FBlueprintEditorUtils::CreateNewGraph(GetBlueprintObj(), DocumentName, UEdGraph::StaticClass(), GetDefaultSchemaClass());
 		FBlueprintEditorUtils::AddUbergraphPage(GetBlueprintObj(), NewGraph);
 	}
 	else if (GraphType == CGT_NewAnimationGraph)
@@ -7352,6 +7460,11 @@ bool FBlueprintEditor::NewDocument_IsVisibleForType(ECreatedDocumentType GraphTy
 	}
 
 	return false;
+}
+
+TSubclassOf<UEdGraphSchema> FBlueprintEditor::GetDefaultSchemaClass() const
+{
+	return UEdGraphSchema_K2::StaticClass();
 }
 
 bool FBlueprintEditor::AddNewDelegateIsVisible() const

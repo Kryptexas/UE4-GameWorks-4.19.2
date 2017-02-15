@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 PlanarReflectionRendering.h: shared planar reflection rendering declarations.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+
+class FShaderParameterMap;
 
 /** Parameters needed for planar reflections, shared by multiple shaders. */
 class FPlanarReflectionParameters

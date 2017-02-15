@@ -1,10 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MeshBatch.h"
-#include "Archive.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "EdGraph/EdGraphPin.h"
 #include "BlueprintGeneratedClass.generated.h"
+
+class AActor;
+class UActorComponent;
+class UDynamicBlueprintBinding;
+class UInheritableComponentHandler;
+class UTimelineTemplate;
 
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Persistent Uber Graph Frame memory"), STAT_PersistentUberGraphFrameMemory, STATGROUP_Memory, );
 
@@ -198,7 +210,7 @@ protected:
 	TArray<struct FNodeToCodeAssociation> DebugNodeLineNumbers;
 
 	// List of entry points that contributed to the ubergraph
-	TMap<FName, FEdGraphPinReference> DelegatePins;
+	TMap<int32, FName> EntryPoints;
 
 	// Acceleration structure for execution wire highlighting at runtime
 	TMap<TWeakObjectPtr<UFunction>, FDebuggingInfoForSingleFunction> PerFunctionLineNumbers;
@@ -433,11 +445,13 @@ public:
 		PerFuncInfo.SourcePinToLineNumbersMap.Add(SourcePin, CodeOffset);
 	}
 
-	const TMap<FName, FEdGraphPinReference>& GetCompilerGeneratedEvents() const { return DelegatePins; }
+	const TMap<int32, FName>& GetEntryPoints() const { return EntryPoints; }
 
-	void RegisterPinToEventName(UEdGraphPin const* SourcePin, const FName FunctionName)
+	bool IsValidEntryPoint(const int32 LinkId) const { return EntryPoints.Contains(LinkId); }
+
+	void RegisterEntryPoint(const int32 ScriptOffset, const FName FunctionName)
 	{
-		DelegatePins.Add(FunctionName) = SourcePin;
+		EntryPoints.Add(ScriptOffset, FunctionName);
 	}
 
 	// Registers an association between an object (pin or node typically) and an associated class member property
@@ -651,6 +665,10 @@ public:
 	UPROPERTY()
 	TMap<FName, struct FBlueprintCookedComponentInstancingData> CookedComponentInstancingData;
 
+	/** Flag used to indicate if this class has a nativized parent in a cooked build. */
+	UPROPERTY()
+	bool bHasNativizedParent;
+
 	/** 
 	 * Gets an array of all BPGeneratedClasses (including InClass as 0th element) parents of given generated class 
 	 *
@@ -668,6 +686,9 @@ public:
 	/** Create Timeline objects for this Actor based on the Timelines array*/
 	static void CreateComponentsForActor(const UClass* ThisClass, AActor* Actor);
 	static void CreateTimelineComponent(AActor* Actor, const UTimelineTemplate* TimelineTemplate);
+
+	/** Check for and handle manual application of default value overrides to instanced component subobjects that were inherited from a nativized parent class */
+	static void CheckAndApplyComponentTemplateOverrides(AActor* Actor);
 
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
@@ -765,4 +786,6 @@ protected:
 private:
 	/** List of native class-owned properties that differ from defaults. This is used to optimize property initialization during post-construction by minimizing the number of native class-owned property values that get copied to the new instance. */
 	TIndirectArray<FCustomPropertyListNode> CustomPropertyListForPostConstruction;
+	/** In some cases UObject::ConditionalPostLoad() code calls PostLoadDefaultObject() on a class that's still being serialized. */
+	FCriticalSection SerializeAndPostLoadCritical;
 };

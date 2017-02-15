@@ -1,15 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "MultiBox.h"
-#include "SButtonRowBlock.h"
-#include "SToolBarButtonBlock.h"
-#include "SMenuEntryBlock.h"
-#include "SWidgetBlock.h"
-#include "MultiBoxCustomization.h"
-#include "SClippingHorizontalBox.h"
-#include "UICommandInfo.h"
-#include "UICommandDragDropOp.h"
+#include "Framework/MultiBox/MultiBox.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/SToolTip.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STileView.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "Framework/MultiBox/SToolBarButtonBlock.h"
+#include "Framework/MultiBox/SMenuEntryBlock.h"
+#include "Framework/MultiBox/MultiBoxCustomization.h"
+#include "Framework/MultiBox/SClippingHorizontalBox.h"
+#include "Framework/Commands/UICommandDragDropOp.h"
 
 
 TAttribute<bool> FMultiBoxSettings::UseSmallToolBarIcons;
@@ -248,7 +257,7 @@ void FMultiBox::InsertCustomMultiBlock( TSharedRef<const FMultiBlock> InBlock, i
  *
  * @return  MultiBox widget object
  */
-TSharedRef< SMultiBoxWidget > FMultiBox::MakeWidget( bool bSearchable )
+TSharedRef< SMultiBoxWidget > FMultiBox::MakeWidget( bool bSearchable, FOnMakeMultiBoxBuilderOverride* InMakeMultiBoxBuilderOverride /* = nullptr */ )
 {	
 	ApplyCustomizedBlocks();
 
@@ -261,8 +270,16 @@ TSharedRef< SMultiBoxWidget > FMultiBox::MakeWidget( bool bSearchable )
 	// Assign ourselves to the MultiBox widget
 	NewMultiBoxWidget->SetMultiBox( AsShared() );
 
-	// Build up the widget
-	NewMultiBoxWidget->BuildMultiBoxWidget();
+	if( (InMakeMultiBoxBuilderOverride != nullptr) && (InMakeMultiBoxBuilderOverride->IsBound()) )
+	{
+		TSharedRef<FMultiBox> ThisMultiBox = AsShared();
+		InMakeMultiBoxBuilderOverride->Execute( ThisMultiBox, NewMultiBoxWidget );
+	}
+	else
+	{
+		// Build up the widget
+		NewMultiBoxWidget->BuildMultiBoxWidget();
+	}
 	
 #if PLATFORM_MAC
 	if(Type == EMultiBoxType::MenuBar)

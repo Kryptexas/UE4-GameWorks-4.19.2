@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ContentStreaming.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "RenderingThread.h"
+#include "UObject/UObjectIterator.h"
+#include "Components/PrimitiveComponent.h"
+#include "Engine/World.h"
 #include "AI/Navigation/NavigationSystem.h"
+#include "ContentStreaming.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActorComponent, Log, All);
 
@@ -87,24 +93,24 @@ class FComponentReregisterContext : public FComponentReregisterContextBase
 {
 private:
 	/** Pointer to component we are unregistering */
-	UActorComponent* Component;
+	TWeakObjectPtr<UActorComponent> Component;
 	/** Cache pointer to world from which we were removed */
-	UWorld* World;
+	TWeakObjectPtr<UWorld> World;
 public:
 	FComponentReregisterContext(UActorComponent* InComponent)
-		: World(NULL)
+		: World(nullptr)
 	{
 		World = UnRegister(InComponent);
 		// If we didn't get a scene back NULL the component so we dont try to
 		// process it on destruction
-		Component = World ? InComponent : NULL;
+		Component = World.IsValid() ? InComponent : nullptr;
 	}
 
 	~FComponentReregisterContext()
 	{
-		if( Component != NULL )
+		if( Component.IsValid() )
 		{
-			ReRegister(Component, World);
+			ReRegister(Component.Get(), World.Get());
 		}
 	}
 };

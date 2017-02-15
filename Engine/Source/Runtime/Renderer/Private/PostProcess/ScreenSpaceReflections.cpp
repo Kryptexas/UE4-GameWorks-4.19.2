@@ -1,18 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenSpaceReflections.cpp: Post processing Screen Space Reflections implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessing.h"
-#include "ScreenSpaceReflections.h"
-#include "PostProcessTemporalAA.h"
-#include "PostProcessAmbientOcclusion.h"
-#include "PostProcessHierarchical.h"
+#include "PostProcess/ScreenSpaceReflections.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneRenderTargetParameters.h"
+#include "ScenePrivate.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessInput.h"
+#include "PostProcess/PostProcessOutput.h"
+#include "PostProcess/PostProcessing.h"
+#include "PostProcess/PostProcessTemporalAA.h"
+#include "PostProcess/PostProcessHierarchical.h"
+#include "ClearQuad.h"
 
 static TAutoConsoleVariable<int32> CVarSSRQuality(
 	TEXT("r.SSR.Quality"),
@@ -421,7 +425,7 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 		}
 
 		// clear DestRenderTarget only outside of the view's rectangle
-		RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, View.ViewRect);
+		DrawClearQuad(RHICmdList, SceneContext.GetCurrentFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
 
 		// set the state
 		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());

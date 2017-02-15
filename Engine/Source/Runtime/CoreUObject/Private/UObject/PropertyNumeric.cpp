@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "PropertyTag.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/UnrealType.h"
 
 uint8 UNumericProperty::ReadEnumAsUint8(FArchive& Ar, UStruct* DefaultsStruct, const FPropertyTag& Tag)
 {
-	//@warning: mirrors loading code in UByteProperty::SerializeItem()
+	//@warning: mirrors loading code in UByteProperty::SerializeItem() and UEnumProperty::SerializeItem()
 	FName EnumName;
 	Ar << EnumName;
 
@@ -23,7 +27,15 @@ uint8 UNumericProperty::ReadEnumAsUint8(FArchive& Ar, UStruct* DefaultsStruct, c
 
 	Ar.Preload(Enum);
 
-	uint8 Result = Enum->GetValueByName(EnumName);
+	int64 Result = Enum->GetValueByName(EnumName);
+	if (!Enum->IsValidEnumValue(Result))
+	{
+		const int32 EnumIndex = UEnum::FindEnumRedirects(Enum, EnumName);
+		if (EnumIndex != INDEX_NONE)
+		{
+			Result = Enum->GetValueByIndex(EnumIndex);
+		}
+	}
 	if (!Enum->IsValidEnumValue(Result))
 	{
 		UE_LOG(
@@ -51,10 +63,10 @@ const TCHAR* UNumericProperty::ImportText_Internal( const TCHAR* Buffer, void* D
 		{
 			if (FChar::IsAlpha(*Buffer))
 			{
-				int32 EnumValue = UEnum::ParseEnum(Buffer);
+				int64 EnumValue = UEnum::ParseEnum(Buffer);
 				if (EnumValue != INDEX_NONE)
 				{
-					SetIntPropertyValue(Data, int64(EnumValue));
+					SetIntPropertyValue(Data, EnumValue);
 					return Buffer;
 				}
 				else

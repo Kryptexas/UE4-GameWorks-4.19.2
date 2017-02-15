@@ -1,6 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "EditorStyleSet.h"
+#include "Framework/Commands/Commands.h"
 
 class PERSONA_API FPersonaCommonCommands : public TCommands<FPersonaCommonCommands>
 {
@@ -11,6 +15,7 @@ public:
 	}
 
 	virtual void RegisterCommands() override;
+	FORCENOINLINE static const FPersonaCommonCommands& Get();
 
 public:
 	// Toggle playback

@@ -1,10 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "GenericPlatformChunkInstall.h"
 #include "UniquePtr.h"
-#include "BuildPatchServices.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineSubsystem.h"
 #include "ChunkInstall.h"

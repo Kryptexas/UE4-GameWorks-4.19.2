@@ -1,17 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateBasics.h"
-#include "XmlParser.h"
-#include "../Private/PListNode.h"
-#include "../Private/PListNodeArray.h"
-#include "../Private/PListNodeBoolean.h"
-#include "../Private/PListNodeDictionary.h"
-#include "../Private/PListNodeFile.h"
-#include "../Private/PListNodeString.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "InputCoreTypes.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/Commands/InputChord.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/Commands/Commands.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
+#include "EditorStyleSet.h"
 
 #define LOCTEXT_NAMESPACE "PListEditorCommands"
+
+class FXmlFile;
+class IPListNode;
+class SEditableText;
 
 // Type of notification to spawn
 enum ENTF_Types

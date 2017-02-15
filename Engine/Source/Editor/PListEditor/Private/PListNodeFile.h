@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PListNode.h"
+#include "CoreMinimal.h"
+#include "Editor/PListEditor/Private/PListNode.h"
+
+class ITableRow;
+class SPListEditorPanel;
+class STableViewBase;
+class STextBlock;
+class SWidget;
 
 /** A Node representing the plist as a whole */
 class FPListNodeFile : public IPListNode

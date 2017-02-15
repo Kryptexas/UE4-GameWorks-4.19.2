@@ -1,11 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TextureEditorPrivatePCH.h"
-#include "CanvasTypes.h"
+#include "Models/TextureEditorViewportClient.h"
+#include "Widgets/Layout/SScrollBar.h"
 #include "CanvasItem.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Engine/Texture2D.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
 #include "Engine/TextureCube.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/TextureRenderTargetCube.h"
+#include "UnrealEdGlobals.h"
+#include "CubemapUnwrapUtils.h"
+#include "Slate/SceneViewport.h"
+#include "Texture2DPreview.h"
+#include "TextureEditorSettings.h"
+#include "Widgets/STextureEditorViewport.h"
+#include "CanvasTypes.h"
 #include "ImageUtils.h"
 
 
@@ -119,17 +129,20 @@ void FTextureEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 		float Exposure = FMath::Pow(2.0f, (float)TextureEditorViewportPtr.Pin()->GetExposureBias());
 
-		FCanvasTileItem TileItem( FVector2D( XPos, YPos ), Texture->Resource, FVector2D( Width, Height ), FLinearColor(Exposure, Exposure, Exposure) );
-		TileItem.BlendMode = TextureEditorPtr.Pin()->GetColourChannelBlendMode();
-		TileItem.BatchedElementParameters = BatchedElementParameters;
-		Canvas->DrawItem( TileItem );
-
-		// Draw a white border around the texture to show its extents
-		if (Settings.TextureBorderEnabled)
+		if ( Texture->Resource != nullptr )
 		{
-			FCanvasBoxItem BoxItem( FVector2D(XPos, YPos), FVector2D(Width , Height ) );
-			BoxItem.SetColor( Settings.TextureBorderColor );
-			Canvas->DrawItem( BoxItem );
+			FCanvasTileItem TileItem( FVector2D( XPos, YPos ), Texture->Resource, FVector2D( Width, Height ), FLinearColor(Exposure, Exposure, Exposure) );
+			TileItem.BlendMode = TextureEditorPtr.Pin()->GetColourChannelBlendMode();
+			TileItem.BatchedElementParameters = BatchedElementParameters;
+			Canvas->DrawItem( TileItem );
+
+			// Draw a white border around the texture to show its extents
+			if (Settings.TextureBorderEnabled)
+			{
+				FCanvasBoxItem BoxItem( FVector2D(XPos, YPos), FVector2D(Width , Height ) );
+				BoxItem.SetColor( Settings.TextureBorderColor );
+				Canvas->DrawItem( BoxItem );
+			}
 		}
 	}
 }

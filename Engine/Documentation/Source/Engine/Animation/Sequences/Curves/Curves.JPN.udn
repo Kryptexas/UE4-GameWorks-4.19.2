@@ -1,24 +1,33 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3197215
 Availability:Public
-Title:アニメーション カーブ
+Title:アニメーションのカーブ
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
 Description:アニメーション再生中にモーフターゲットとマテリアルのプロパティを操作するカーブシステム
-version:4.9
+version:4.14
+Related:Engine/Content\FBX\MorphTargets
+Related:Engine\Rendering\Materials
+Related:Engine/Animation/Persona/AnimCurves
+
+
 
 [EXCERPT:Intro]
-**アニメーション カーブ** には、アニメーション再生中にマテリアル パラメータまたはモーフターゲットの値を変更する手段があります。そのワークフローは非常に単純です。変更したいアセットを指定し (マテリアルまたはモーフターゲットのどちらか)、カーブに適切な名前を付けるだけです。その後アニメーションの持続期間中のキーフレームを調整するだけです。
+**アニメーション カーブ** には、アニメーション再生中にマテリアル パラメータまたはモーフターゲットの値を変更する手段があります。このワークフローでは、変更対象のアセットを指定し (マテリアルまたはモーフターゲットのどちらか)、カーブに適切な名前を付けて、アニメーションの持続期間中のキーフレームを調整します。
 [/EXCERPT:Intro]
 
+FBX 経由で UE4 へモーフターゲット アニメーションをインポートすると、AnimSequence に対して Morph Target Curves (モーフターゲットのカーブ) が自動的に生成されます。しかし、モーフターゲットのカーブはデフォルトで非表示になっています。これは設計上、多数になるかもしれない Morph Target curve を非表示にすることでエディタの速度低下を防ぐものです。
 
-FBX 経由で UE4 へモーフターゲット アニメーションをインポートすると、AnimSequence に対して Morph Target Curves (モーフターゲットのカーブ) が自動的に生成されます。しかし、モーフターゲットのカーブはデフォルトで非表示になっています。これはデザインによるもので、多様な Morph Target curve を非表示にすることでエディタの速度が落ちることを防ぎます。
+モーフターゲットのカーブ調整機能は実用的で、便利な機能です。複雑なモーフターゲット アニメーションを処理する場合、オリジナルのモーフターゲットのエクスポート元である 3D アニメーション パッケージを用いてアニメーションを実行した方がはるかに容易でしょう。
 
-モーフターゲットのカーブ調整機能は実用的である上に、何よりも便利な機能です。とても複雑なモーフターゲットアニメーションを処理する場合、オリジナルのモーフターゲットのエクスポート元である 3D アニメーション パッケージを用いてアニメーションを実行した方がはるかに容易でしょう。
+## マテリアル カーブの設定
 
-## マテリアルカーブの設定
+この例では、近接攻撃を行うと、攻撃しているクマの目を怒りで赤くさせる簡単なマテリアルカーブの設定方法を紹介します。 
 
-この例では、アニメーション過程でキャラクターの顔を赤面させる簡単なマテリアルカーブの設定方法を紹介します。モーフターゲットカーブの設定も同様ですが、カーブの名前がインポートされたモーフターゲットの名前と完全に一致しなければいけません。モーフターゲットの詳細は [](Engine/Content\FBX\MorphTargets) および [](Engine/Animation/Persona\MorphTargetPreviewer) をご覧ください。
+[REGION:note]
+モーフターゲットカーブの設定も同様ですが、カーブの名前がインポートされたモーフターゲットの名前と完全に一致しなければいけません。 
+モーフターゲットの詳細は [](Engine/Content\FBX\MorphTargets) および [](Engine/Animation/Persona\MorphTargetPreviewer) をご覧ください。
+[/REGION]
 
-まずハンマーを持ったキャラクターが突然前へ動き出す簡単なアニメーションから開始します。そして動作中にキャラクターの顔をどんどん赤面させる簡易なマテリアルカーブを設定します。初めにアニメーションを見てみましょう。
+この例では、攻撃すると目が赤くなっていくクマのキャラクターの近接攻撃から始めます。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -28,47 +37,52 @@ FBX 経由で UE4 へモーフターゲット アニメーションをインポ�
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-TKAcNubFOH8
+5Qt6xJlWRPA
 [/PARAMLITERAL]
 [/OBJECT]
 
-ペルソナでアニメーション シーケンスを開き、**コンテンツブラウザ** でダブルクリックしてアニメーションを見ることができます。
+クマのマテリアルを開くと、**Material Expression Scalar Parameter** があるのがわかります。これは、**Eye Glow Intensity** という名前のパラメータを使って目の輝きの強度を制御します。
+マテリアル カーブを使って操作するパラメータ名を控えておきます。この名前は、操作するマテリアル内で使われるものと同じでなければならないからです。
+Eye Glow Intensity のデフォルト値は 20 です。この値でマテリアル カーブを操作し、アニメーション中により赤く輝かせます。 
 
-[REGION:fullwidth]
-![](Persona_HammerSlam.png)
+[REGION:lightbox]
+[![](BearMaterial.png)(w:800)](BearMaterial.png)
 [/REGION]
 
-キャラクターの頭には **Blush** と名前が付けられたパラメータで簡易なマテリアルが設定されています。こちらがマテリアルグラフです。
-
-[REGION:fullwidth]
-![](BlushMaterial.png)
+[REGION:caption]
+画像をクリックしてフルサイズで表示 
 [/REGION]
 
-[REGION:note]
-また、このマテリアルから [マテリアル インスタンス](Engine/Rendering/Materials\MaterialInstances) を作成し、キャラクターに適用しています。
-[/REGION]
+近接攻撃の **アニメーション エディタ** で、まずカーブ領域にある ![](button_AddFloatTrack.png) ボタンをクリックします。次に、**[Add Variable Curve...]** と **[Create Curve]** を選択します。 
 
-ペルソナでカーブ領域にある ![](button_AddFloatTrack.png) ボタンをクリックして開始します。ここから、**Add Variable Curve...** 欄に移動し、**Create Curve** を選択します。Curve に "Blush" と名前を付けます。この名前はマテリアル パラメータで使用する名前と一致しなければいけません。
+![](CreateCurve.png)
 
-![](AddingBlushCurve.png)
+カーブ名の入力を求められたら、マテリアル内のパラメータ名と一致するように、**Eye Glow Intensity** と入力します。 
 
-これで必要とするカーブが作成されますが、このカーブを確実にマテリアルカーブとして特定しなくてはいけません。これを行うには、カーブの一番右よりにあるドロップダウンリストを使用します。
+![](NameCurve.png)
 
-![](SettingCurveToMaterial.png)
+これで必要とするカーブが作成されますが、このカーブを **マテリアルカーブ** として特定しなければなりません。これは **[Anim Curves]** メニューの **[Window]** で行うことができます。  
 
-ドロップダウンリストの横にある目の形をしたアイコンをクリックすると、カーブ領域のサイズを拡大することができます。
+![](OpenAnimCurvesWindow.png)
 
-![](ExpandingCurve.png)
+**[Anim Curves]** ウィンドウで、**[Type]** のオプションをクリックしてマテリアル カーブにします。 
 
-カーブ領域を **シフト キーを押しながら左クリック** すると新規キーフレームを作成することができます。キーフレームの値と時間は、キーフレーム選択時に表示されるフィールドを使用して調整します。
+![](ConvertToMaterialCurve2.png)
 
-![](CreateMaterialCurve.png)
+カーブ ウィンドウにキーを追加して (**Shift + 左クリック**) パラメータの値をいつ、どこで調整するかに影響を与えることができます (以下の動画のように 4 つのキーを追加しました)。 
 
-キーフレーム上で **右クリック** して、タンジェント タイプを変更することもできます。
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+9XMBcDlBXR4
+[/PARAMLITERAL]
+[/OBJECT]
+
+最終結果では、カーブによって関連マテリアル パラメータを操作し、近接攻撃を行うとクマの目が赤くなります。 
 
 
-![](CurveType.png)
-
-最終結果としては、カーブによって関連マテリアル パラメータを操作し、キャラクターがハンマーを振りかざしながら顔が紅潮します。
-
-![](BlushInAction.png)

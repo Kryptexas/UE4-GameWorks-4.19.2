@@ -1,12 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-
-// forward declarations
-class ISessionManager;
-class ISessionService;
-
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "ISessionManager.h"
+#include "ISessionService.h"
 
 /**
  * Interface for session core modules.
@@ -20,6 +19,7 @@ public:
 	 * Gets the session manager.
 	 *
 	 * @return The session manager.
+	 * @see GetSessionService
 	 */
 	virtual TSharedRef<ISessionManager> GetSessionManager() = 0;
 
@@ -27,6 +27,7 @@ public:
 	 * Gets the session service.
 	 *
 	 * @return The session service.
+	 * @see GetSessionManager
 	 */
 	virtual TSharedRef<ISessionService> GetSessionService() = 0;
 

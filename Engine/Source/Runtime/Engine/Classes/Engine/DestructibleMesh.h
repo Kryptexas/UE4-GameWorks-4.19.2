@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EngineDefines.h"
 #include "Engine/SkeletalMesh.h"
 #include "DestructibleMesh.generated.h"
 
+class UPhysicalMaterial;
+class UStaticMesh;
 
 #if WITH_APEX
 namespace NvParameterized

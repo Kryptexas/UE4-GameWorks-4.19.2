@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "Persona.h"
-#include "GraphEditor.h"
-#include "SNodePanel.h"
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "IPersonaPreviewScene.h"
 #include "SAnimCurvePanel.h"
+#include "SAnimationScrubPanel.h"
 #include "SAnimEditorBase.h"
+
+class SAnimNotifyPanel;
+class SAnimTrackCurvePanel;
 
 //////////////////////////////////////////////////////////////////////////
 // SSequenceEditor
@@ -24,7 +28,6 @@ public:
 		SLATE_EVENT(FOnObjectsSelected, OnObjectsSelected)
 		SLATE_EVENT(FSimpleDelegate, OnAnimNotifiesChanged)
 		SLATE_EVENT(FOnInvokeTab, OnInvokeTab)
-		SLATE_EVENT(FSimpleDelegate, OnCurvesChanged)
 
 	SLATE_END_ARGS()
 
@@ -35,7 +38,7 @@ private:
 	TSharedPtr<class SAnimationScrubPanel> AnimScrubPanel;
 	TWeakPtr<class IPersonaPreviewScene> PreviewScenePtr;
 public:
-	void Construct(const FArguments& InArgs, TSharedRef<class IPersonaPreviewScene> InPreviewScene, TSharedRef<class IEditableSkeleton> InEditableSkeleton, FSimpleMulticastDelegate& OnPostUndo, FSimpleMulticastDelegate& OnCurvesChanged);
+	void Construct(const FArguments& InArgs, TSharedRef<class IPersonaPreviewScene> InPreviewScene, TSharedRef<class IEditableSkeleton> InEditableSkeleton, FSimpleMulticastDelegate& OnPostUndo);
 
 	virtual UAnimationAsset* GetEditorObject() const override { return SequenceObj; }
 
@@ -45,5 +48,4 @@ private:
 
 	/** Post undo **/
 	void PostUndo();
-	void HandleCurvesChanged();
 };

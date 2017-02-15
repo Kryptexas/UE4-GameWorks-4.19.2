@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * This class handles hotkey binding management for the editor.
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "InputCoreTypes.h"
 #include "UnrealEdKeyBindings.generated.h"
 
 /** An editor hotkey binding to a parameterless exec. */

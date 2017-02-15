@@ -1,14 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SequencerEntityVisitor.h"
+#include "CoreMinimal.h"
+#include "Curves/KeyHandle.h"
+#include "Tools/SequencerEntityVisitor.h"
 
-struct FKeyHandle;
-
-class ISequencer;
 class IKeyArea;
-class UMovieSceneSection;
+class ISequencer;
 
 /** Structure defining a point to snap to in the sequencer */
 struct FSequencerSnapPoint

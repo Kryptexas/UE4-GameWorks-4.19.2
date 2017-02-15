@@ -1,17 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "SplineComponentDetails.h"
-#include "Components/SplineComponent.h"
-#include "IDetailsView.h"
-#include "DetailCategoryBuilder.h"
-#include "DetailWidgetRow.h"
+#include "Misc/MessageDialog.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "Layout/Visibility.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SComboBox.h"
+#include "ComponentVisualizer.h"
+#include "Editor/UnrealEdEngine.h"
+#include "UnrealEdGlobals.h"
 #include "IDetailCustomNodeBuilder.h"
+#include "IDetailChildrenBuilder.h"
+#include "DetailWidgetRow.h"
+#include "DetailLayoutBuilder.h"
+#include "Components/SplineComponent.h"
+#include "DetailCategoryBuilder.h"
 #include "SplineComponentVisualizer.h"
-#include "SVectorInputBox.h"
-#include "SRotatorInputBox.h"
-#include "SNumericEntryBox.h"
-#include "STextComboBox.h"
+#include "Widgets/Input/SVectorInputBox.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 #include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "SplineComponentDetails"
@@ -176,6 +188,7 @@ private:
 };
 
 FSplinePointDetails::FSplinePointDetails()
+	: SplineComp(nullptr)
 {
 	TSharedPtr<FComponentVisualizer> Visualizer = GUnrealEd->FindComponentVisualizer(USplineComponent::StaticClass());
 	SplineVisualizer = (FSplineComponentVisualizer*)Visualizer.Get();
@@ -416,15 +429,18 @@ void FSplinePointDetails::UpdateValues()
 	Scale.Reset();
 	PointType.Reset();
 
-	for (int32 Index : SelectedKeys)
+	if (SplineComp)
 	{
-		InputKey.Add(SplineComp->GetSplinePointsPosition().Points[Index].InVal);
-		Position.Add(SplineComp->GetSplinePointsPosition().Points[Index].OutVal);
-		ArriveTangent.Add(SplineComp->GetSplinePointsPosition().Points[Index].ArriveTangent);
-		LeaveTangent.Add(SplineComp->GetSplinePointsPosition().Points[Index].LeaveTangent);
-		Rotation.Add(SplineComp->GetSplinePointsRotation().Points[Index].OutVal.Rotator());
-		Scale.Add(SplineComp->GetSplinePointsScale().Points[Index].OutVal);
-		PointType.Add(ConvertInterpCurveModeToSplinePointType(SplineComp->GetSplinePointsPosition().Points[Index].InterpMode));
+		for (int32 Index : SelectedKeys)
+		{
+			InputKey.Add(SplineComp->GetSplinePointsPosition().Points[Index].InVal);
+			Position.Add(SplineComp->GetSplinePointsPosition().Points[Index].OutVal);
+			ArriveTangent.Add(SplineComp->GetSplinePointsPosition().Points[Index].ArriveTangent);
+			LeaveTangent.Add(SplineComp->GetSplinePointsPosition().Points[Index].LeaveTangent);
+			Rotation.Add(SplineComp->GetSplinePointsRotation().Points[Index].OutVal.Rotator());
+			Scale.Add(SplineComp->GetSplinePointsScale().Points[Index].OutVal);
+			PointType.Add(ConvertInterpCurveModeToSplinePointType(SplineComp->GetSplinePointsPosition().Points[Index].InterpMode));
+		}
 	}
 }
 
@@ -436,7 +452,7 @@ FName FSplinePointDetails::GetName() const
 
 void FSplinePointDetails::OnSetInputKey(float NewValue, ETextCommit::Type CommitInfo)
 {
-	if (CommitInfo != ETextCommit::OnEnter && CommitInfo != ETextCommit::OnUserMovedFocus)
+	if ((CommitInfo != ETextCommit::OnEnter && CommitInfo != ETextCommit::OnUserMovedFocus) || !SplineComp)
 	{
 		return;
 	}
@@ -506,6 +522,11 @@ void FSplinePointDetails::OnSetInputKey(float NewValue, ETextCommit::Type Commit
 
 void FSplinePointDetails::OnSetPosition(float NewValue, ETextCommit::Type CommitInfo, int32 Axis)
 {
+	if (!SplineComp)
+	{
+		return;
+	}
+
 	const FScopedTransaction Transaction(LOCTEXT("SetSplinePointPosition", "Set spline point position"));
 	SplineComp->Modify();
 
@@ -524,6 +545,11 @@ void FSplinePointDetails::OnSetPosition(float NewValue, ETextCommit::Type Commit
 
 void FSplinePointDetails::OnSetArriveTangent(float NewValue, ETextCommit::Type CommitInfo, int32 Axis)
 {
+	if (!SplineComp)
+	{
+		return;
+	}
+
 	const FScopedTransaction Transaction(LOCTEXT("SetSplinePointTangent", "Set spline point tangent"));
 	SplineComp->Modify();
 
@@ -543,6 +569,11 @@ void FSplinePointDetails::OnSetArriveTangent(float NewValue, ETextCommit::Type C
 
 void FSplinePointDetails::OnSetLeaveTangent(float NewValue, ETextCommit::Type CommitInfo, int32 Axis)
 {
+	if (!SplineComp)
+	{
+		return;
+	}
+
 	const FScopedTransaction Transaction(LOCTEXT("SetSplinePointTangent", "Set spline point tangent"));
 	SplineComp->Modify();
 
@@ -562,6 +593,11 @@ void FSplinePointDetails::OnSetLeaveTangent(float NewValue, ETextCommit::Type Co
 
 void FSplinePointDetails::OnSetRotation(float NewValue, ETextCommit::Type CommitInfo, int32 Axis)
 {
+	if (!SplineComp)
+	{
+		return;
+	}
+
 	const FScopedTransaction Transaction(LOCTEXT("SetSplinePointRotation", "Set spline point rotation"));
 	SplineComp->Modify();
 
@@ -587,6 +623,11 @@ void FSplinePointDetails::OnSetRotation(float NewValue, ETextCommit::Type Commit
 
 void FSplinePointDetails::OnSetScale(float NewValue, ETextCommit::Type CommitInfo, int32 Axis)
 {
+	if (!SplineComp)
+	{
+		return;
+	}
+
 	const FScopedTransaction Transaction(LOCTEXT("SetSplinePointScale", "Set spline point scale"));
 	SplineComp->Modify();
 
@@ -615,6 +656,11 @@ FText FSplinePointDetails::GetPointType() const
 
 void FSplinePointDetails::OnSplinePointTypeChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo)
 {
+	if (!SplineComp)
+	{
+		return;
+	}
+
 	const FScopedTransaction Transaction(LOCTEXT("SetSplinePointType", "Set spline point type"));
 	SplineComp->Modify();
 

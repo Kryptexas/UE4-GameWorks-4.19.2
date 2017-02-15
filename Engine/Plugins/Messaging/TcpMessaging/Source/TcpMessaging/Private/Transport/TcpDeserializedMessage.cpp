@@ -1,18 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TcpMessagingPrivatePCH.h"
-#include "JsonStructDeserializerBackend.h"
+#include "Transport/TcpDeserializedMessage.h"
+#include "UObject/Package.h"
+#include "TcpMessagingPrivate.h"
+#include "Backends/JsonStructDeserializerBackend.h"
 #include "StructDeserializer.h"
 
 
 /* FTcpDeserializedMessage structors
 *****************************************************************************/
 
-FTcpDeserializedMessage::FTcpDeserializedMessage(const IMessageAttachmentPtr& InAttachment)
+FTcpDeserializedMessage::FTcpDeserializedMessage(const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& InAttachment)
 	: Attachment(InAttachment)
 	, MessageData(nullptr)
-{
-}
+{ }
 
 
 FTcpDeserializedMessage::~FTcpDeserializedMessage()
@@ -136,7 +137,7 @@ const TMap<FName, FString>& FTcpDeserializedMessage::GetAnnotations() const
 }
 
 
-IMessageAttachmentPtr FTcpDeserializedMessage::GetAttachment() const
+TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe> FTcpDeserializedMessage::GetAttachment() const
 {
 	return Attachment;
 }

@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/StaticMeshComponent.h"
 #include "InteractiveFoliageComponent.generated.h"
+
+class FPrimitiveSceneProxy;
 
 UCLASS(hidecategories=Object)
 class UInteractiveFoliageComponent : public UStaticMeshComponent

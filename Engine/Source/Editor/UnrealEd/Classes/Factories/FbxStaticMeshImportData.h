@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Import data and options used when importing a static mesh from fbx
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Factories/FbxMeshImportData.h"
 #include "FbxStaticMeshImportData.generated.h"
+
+class UStaticMesh;
 
 UENUM()
 namespace EVertexColorImportOption
@@ -26,8 +32,8 @@ class UFbxStaticMeshImportData : public UFbxMeshImportData
 {
 	GENERATED_UCLASS_BODY()
 
-	/** For static meshes, enabling this option will combine all meshes in the FBX into a single monolithic mesh in Unreal */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=ImportSettings, meta=(ImportType="StaticMesh"))
+	/** The LODGroup to associate with this mesh when it is imported */
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=ImportSettings, meta=(ImportType="StaticMesh"))
 	FName StaticMeshLODGroup;
 
 	/** Specify how vertex colors should be imported */
@@ -59,6 +65,10 @@ class UFbxStaticMeshImportData : public UFbxMeshImportData
 	/** If checked, collision will automatically be generated (ignored if custom collision is imported or used). */
 	UPROPERTY(EditAnywhere, config, Category = ImportSettings, meta=(OBJRestrict="true", ImportType="StaticMesh"))
 	uint32 bAutoGenerateCollision : 1;
+
+	/** For static meshes, enabling this option will combine all meshes in the FBX into a single monolithic mesh in Unreal */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = Mesh, meta = (ToolTip = "If enabled, combines all meshes into a single mesh", ImportType = "StaticMesh"))
+	uint32 bCombineMeshes : 1;
 
 	/** Gets or creates fbx import data for the specified static mesh */
 	static UFbxStaticMeshImportData* GetImportDataForStaticMesh(UStaticMesh* StaticMesh, UFbxStaticMeshImportData* TemplateForCreation);

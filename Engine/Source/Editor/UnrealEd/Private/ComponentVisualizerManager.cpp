@@ -1,9 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "ComponentVisualizerManager.h"
-#include "ILevelEditor.h"
-#include "SLevelViewport.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Editor/UnrealEdEngine.h"
+#include "UnrealEdGlobals.h"
+#include "SEditorViewport.h"
+
+
+FComponentVisualizerManager::FComponentVisualizerManager()
+	: EditedVisualizerViewportClient(nullptr)
+{
+}
 
 /** Handle a click on the specified editor viewport client */
 bool FComponentVisualizerManager::HandleClick(FEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click)
@@ -54,6 +63,7 @@ bool FComponentVisualizerManager::HandleProxyForComponentVis(FEditorViewportClie
 					}
 
 					EditedVisualizerPtr = Visualizer;
+					EditedVisualizerViewportClient = InViewportClient;
 					return true;
 				}
 			}
@@ -74,8 +84,10 @@ void FComponentVisualizerManager::ClearActiveComponentVis()
 	if (EditedVisualizer.IsValid())
 	{
 		EditedVisualizer->EndEditing();
-		EditedVisualizerPtr = NULL;
 	}
+
+	EditedVisualizerPtr.Reset();
+	EditedVisualizerViewportClient = nullptr;
 }
 
 bool FComponentVisualizerManager::HandleInputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) const
@@ -97,7 +109,7 @@ bool FComponentVisualizerManager::HandleInputDelta(FEditorViewportClient* InView
 {
 	TSharedPtr<FComponentVisualizer> EditedVisualizer = EditedVisualizerPtr.Pin();
 
-	if (EditedVisualizer.IsValid() && InViewportClient->GetCurrentWidgetAxis() != EAxisList::None)
+	if (EditedVisualizer.IsValid() && EditedVisualizerViewportClient == InViewportClient && InViewportClient->GetCurrentWidgetAxis() != EAxisList::None)
 	{
 		if (EditedVisualizer->HandleInputDelta(InViewportClient, InViewport, InDrag, InRot, InScale))
 		{

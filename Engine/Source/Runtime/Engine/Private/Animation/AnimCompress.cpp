@@ -1,14 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimCompress.cpp: Skeletal mesh animation compression.
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
 #include "Animation/AnimCompress.h"
+#include "Misc/MessageDialog.h"
+#include "Serialization/MemoryWriter.h"
+#include "Misc/FeedbackContext.h"
 #include "AnimationCompression.h"
-#include "AnimationUtils.h"
-#include "FloatPacker.h"
 #include "AnimEncoding.h"
 
 DEFINE_LOG_CATEGORY(LogAnimationCompression);

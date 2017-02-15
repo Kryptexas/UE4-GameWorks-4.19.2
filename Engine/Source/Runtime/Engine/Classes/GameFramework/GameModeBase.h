@@ -1,20 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
 #include "GameFramework/Info.h"
+#include "UObject/CoreOnline.h"
+#include "GameFramework/PlayerController.h"
 #include "GameModeBase.generated.h"
 
-class FDebugDisplayInfo;
-class FUniqueNetId;
-struct FUniqueNetIdRepl;
-class AGameStateBase;
 class AGameSession;
-class AController;
-class APlayerController;
-class APlayerState;
+class AGameStateBase;
 class AHUD;
-class APawn;
+class APlayerState;
 class ASpectatorPawn;
+class UNetConnection;
 class UPlayer;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogGameMode, Log, All);
@@ -177,6 +181,9 @@ public:
 	/** Returns true if the player is allowed to pause the game */
 	virtual bool AllowPausing(APlayerController* PC = nullptr);
 
+	/** Returns true if the game is paused */
+	virtual bool IsPaused() const;
+
 	/**
 	 * Overridable function to determine whether an Actor should have Reset called when the game has Reset called on it.
 	 * Default implementation returns true
@@ -216,6 +223,15 @@ public:
 	 * @param ActorList (out) list of actors to maintain
 	 */
 	virtual void GetSeamlessTravelActorList(bool bToTransition, TArray<AActor*>& ActorList);
+
+	/**
+	 * Used to swap a viewport/connection's PlayerControllers when seamless traveling and the new GameMode's
+	 * controller class is different than the previous
+	 * includes network handling
+	 * @param OldPC - the old PC that should be discarded
+	 * @param NewPC - the new PC that should be used for the player
+	 */
+	virtual void SwapPlayerControllers(APlayerController* OldPC, APlayerController* NewPC);
 
 	/**
 	 * Handles reinitializing players that remained through a seamless level transition
@@ -506,15 +522,6 @@ protected:
 
 	/** Handles initializing a seamless travel player, handles logic similar to InitNewPlayer */
 	virtual void InitSeamlessTravelPlayer(AController* NewController);
-
-	/** 
-	 * Used to swap a viewport/connection's PlayerControllers when seamless traveling and the new GameMode's
-	 * controller class is different than the previous
-	 * includes network handling
-	 * @param OldPC - the old PC that should be discarded
-	 * @param NewPC - the new PC that should be used for the player
-	 */
-	virtual void SwapPlayerControllers(APlayerController* OldPC, APlayerController* NewPC);
 
 	/** Called when a PlayerController is swapped to a new one during seamless travel */
 	UFUNCTION(BlueprintImplementableEvent, Category=Game, meta=(DisplayName="OnSwapPlayerControllers"))

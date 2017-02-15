@@ -1,22 +1,34 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Components/SceneComponent.h"
+#include "EngineDefines.h"
+#include "CollisionQueryParams.h"
+#include "SkeletalMeshTypes.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimCurveTypes.h"
 #include "Components/SkinnedMeshComponent.h"
-#include "AnimCurveTypes.h"
 #include "ClothSimData.h"
 #include "SingleAnimationPlayData.h"
+#include "Animation/PoseSnapshot.h"
 #include "SkeletalMeshComponent.generated.h"
 
-
-
+class Error;
+class FPhysScene;
+class FPrimitiveDrawInterface;
 class UAnimInstance;
-struct FEngineShowFlags;
-struct FConvexVolume;
-struct FClothingAssetData;
-struct FRootMotionMovementParams;
-struct FApexClothCollisionVolumeData;
+class UPhysicalMaterial;
+class UPhysicsAsset;
+class USkeletalMeshComponent;
+struct FConstraintInstance;
+struct FNavigableGeometryExport;
 
 DECLARE_MULTICAST_DELEGATE(FOnSkelMeshPhysicsCreatedMultiCast);
 typedef FOnSkelMeshPhysicsCreatedMultiCast::FDelegate FOnSkelMeshPhysicsCreated;
@@ -240,7 +252,9 @@ namespace EAnimationMode
 	enum Type
 	{
 		AnimationBlueprint UMETA(DisplayName="Use Animation Blueprint"), 
-		AnimationSingleNode UMETA(DisplayName="Use Animation Asset")
+		AnimationSingleNode UMETA(DisplayName="Use Animation Asset"), 
+		// This is custom type, engine leaves AnimInstance as it is
+		AnimationCustomMode UMETA(DisplayName = "Use Custom Mode"),
 	};
 }
 
@@ -286,6 +300,16 @@ struct FSkeletalMeshComponentEndPhysicsTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
+template<>
+struct TStructOpsTypeTraits<FSkeletalMeshComponentEndPhysicsTickFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
+
+
 /**
 * Tick function that prepares and simulates cloth
 **/
@@ -307,6 +331,16 @@ struct FSkeletalMeshComponentClothTickFunction : public FTickFunction
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph. */
 	virtual FString DiagnosticMessage() override;
 };
+
+template<>
+struct TStructOpsTypeTraits<FSkeletalMeshComponentClothTickFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
+
 
 struct ENGINE_API FClosestPointOnPhysicsAsset
 {
@@ -390,6 +424,9 @@ public:
 	/** Temporary array of local-space (relative to parent bone) rotation/translation for each bone. */
 	TArray<FTransform> BoneSpaceTransforms;
 	
+	/** Temporary storage for curves */
+	FBlendedHeapCurve AnimCurves;
+
 	// Update Rate
 
 	/** Cached BoneSpaceTransforms for Update Rate optimization. */
@@ -554,6 +591,8 @@ public:
 
 	void CreateBodySetup();
 
+	virtual void SendRenderDebugPhysics() override;
+
 	/**
 	 * Misc 
 	 */
@@ -561,7 +600,11 @@ public:
 	/** If true TickPose() will not be called from the Component's TickComponent function.
 	* It will instead be called from Autonomous networking updates. See ACharacter. */
 	UPROPERTY(Transient)
-	uint32 bAutonomousTickPose : 1;
+	uint32 bOnlyAllowAutonomousTickPose : 1;
+
+	/** True if calling TickPose() from Autonomous networking updates. See ACharacter. */
+	UPROPERTY(Transient)
+	uint32 bIsAutonomousTickPose : 1;
 
 	/** If true, force the mesh into the reference pose - is an optimization. */
 	UPROPERTY()
@@ -591,6 +634,15 @@ public:
 	/** If true, line checks will test against the bounding box of this skeletal mesh component and return a hit if there is a collision. */
 	UPROPERTY()
 	uint32 bEnableLineCheckWithBounds:1;
+
+protected:
+#if WITH_EDITORONLY_DATA
+	/** If true, this will Tick until disabled */
+	UPROPERTY(AdvancedDisplay, EditInstanceOnly, transient, Category = SkeletalMesh)
+	uint32 bUpdateAnimationInEditor : 1;
+#endif
+
+public:
 
 	/** Cache AnimCurveUidVersion from Skeleton and this will be used to identify if it needs to be updated */
 	UPROPERTY(transient)
@@ -743,6 +795,14 @@ public:
 	float GetMorphTarget(FName MorphTargetName) const;
 
 	/**
+	 * Takes a snapshot of this skeletal mesh component's pose and saves it to the specified snapshot.
+	 * The snapshot is taken at the current LOD, so if for example you took the snapshot at LOD1 
+	 * and then used it at LOD0 any bones not in LOD1 will use the reference pose 
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Pose")
+	void SnapshotPose(UPARAM(ref) FPoseSnapshot& Snapshot);
+
+	/**
 	 * Get/Set the max distance scale of clothing mesh vertices
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
@@ -762,6 +822,18 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
 	void ForceClothNextUpdateTeleportAndReset();
+
+	/** Stops simulating clothing, but does not show clothing ref pose. Keeps the last known simulation state */
+	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
+	void SuspendClothingSimulation();
+
+	/** Resumes a previously suspended clothing simulation, teleporting the clothing on the next tick */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	void ResumeClothingSimulation();
+
+	/** Gets whether or not the clothing simulation is currently suspended */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	bool IsClothingSimulationSuspended();
 
 	/**
 	 * Reset the teleport mode of a next update to 'Continuous'
@@ -788,6 +860,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh", meta=(UnsafeDuringActorConstruction="true"))
 	void UnbindClothFromMasterPoseComponent(bool bRestoreSimulationSpace = true);
 
+	/**
+	* Sets whether or not to force tick component in order to update animation and refresh transform for this component
+	* This is supported only in the editor
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh", meta = (DevelopmentOnly, UnsafeDuringActorConstruction = "true"))
+	void SetUpdateAnimationInEditor(const bool NewUpdateState);
+
 	/** We detach the Component once we are done playing it.
 	 *
 	 * @param	ParticleSystemComponent that finished
@@ -812,6 +891,11 @@ public:
 	*/
 	virtual void ClearAnimNotifyErrors(UObject* InSourceNotify){}
 #endif
+
+protected:
+
+	/** Whether the clothing simulation is suspended (not the same as disabled, we no longer run the sim but keep the last valid sim data around) */
+	bool bClothingSimulationSuspended;
 
 public:
 	/** Temporary array of bone indices required this frame. Filled in by UpdateSkelPose. */
@@ -876,8 +960,6 @@ private:
 
 	/** Copies the data from the external cloth simulation context. We copy instead of flipping because the API has to return the full struct to make backwards compat easy*/
 	void UpdateClothSimulationContext();
-
-
 
    /** 
 	* clothing actors will be created from clothing assets for cloth simulation 
@@ -1288,6 +1370,9 @@ public:
 	/** Utility which returns total mass of all bones below the supplied one in the hierarchy (including this one). */
 	float GetTotalMassBelowBone(FName InBoneName);
 
+	/** Set the collision object type on the skeletal mesh */
+	virtual void SetCollisionObjectType(ECollisionChannel Channel) override;
+
 	/** Set the movement channel of all bodies */
 	void SetAllBodiesCollisionObjectType(ECollisionChannel NewChannel);
 
@@ -1606,15 +1691,20 @@ public:
 	/** Apply animation curves to this component */
 	void ApplyAnimationCurvesToComponent(const TMap<FName, float>* InMaterialParameterCurves, const TMap<FName, float>* InAnimationMorphCurves);
 	
+protected:
+
+	// Returns whether we need to run the Cloth Tick or not
+	virtual bool ShouldRunClothTick() const;
+
+	// Returns whether we're able to run a simulation (ignoring the suspend flag)
+	bool CanSimulateClothing() const;
+
 private:
 	/** Override USkinnedMeshComponent */
 	virtual void AddSlavePoseComponent(USkinnedMeshComponent* SkinnedMeshComponent) override;
 
 	// Returns whether we need to run the Pre Cloth Tick or not
 	bool ShouldRunEndPhysicsTick() const;
-
-	// Returns whether we need to run the Cloth Tick or not
-	bool ShouldRunClothTick() const;
 
 	// Handles registering/unregistering the pre cloth tick as it is needed
 	void UpdateEndPhysicsTickRegisteredState();
@@ -1675,9 +1765,13 @@ private:
 	
 
 	/*
-	 * Update MorphTargetCurves - these are not animation curves, but SetMorphTarget and similar functions that can set to this mesh component
+	 * Update MorphTargetCurves from mesh - these are not animation curves, but SetMorphTarget and similar functions that can set to this mesh component
 	 */
-	void UpdateMorphTargetCurves();
+	void UpdateMorphTargetOverrideCurves();
+	/*
+	 * Reset MorphTarget Curves - Reset all morphtarget curves
+	 */
+	void ResetMorphTargetCurves();
 
 public:
 	/** Keep track of when animation has been ticked to ensure it is ticked only once per frame. */

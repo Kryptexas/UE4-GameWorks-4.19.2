@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
-#include "ModuleManager.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
 
 /** Generic interface for an advertising provider. Other modules can define more and register them with this module. */
 class IAdvertisingProvider : public IModuleInterface

@@ -1,12 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "LightComponentBase.h"
-#include "SceneTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "RenderCommandFence.h"
 #include "EngineDefines.h"
-#include "Classes/Engine/MapBuildDataRegistry.h"
+#include "SceneTypes.h"
+#include "RenderResource.h"
+#include "Components/LightComponentBase.h"
 #include "LightComponent.generated.h"
+
+class FLightComponentMapBuildData;
+class FStaticShadowDepthMapData;
+class ULevel;
+class UMaterialInterface;
+class UPrimitiveComponent;
+class UTextureLightProfile;
 
 /** 
  * A texture containing depth values of static objects that was computed during the lighting build.
@@ -59,6 +70,13 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	/** Min roughness effective for this light. Used for softening specular highlights. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay, meta=(UIMin = "0.08", UIMax = "1.0"))
 	float MinRoughness;
+
+	/** 
+	 * Scales the resolution of shadowmaps used to shadow this light.  By default shadowmap resolution is chosen based on screen size of the caster. 
+	 * Note: shadowmap resolution is still clamped by 'r.Shadow.MaxResolution'
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay, meta=(UIMin = ".125", UIMax = "8"))
+	float ShadowResolutionScale;
 
 	/** 
 	 * Controls how accurate self shadowing of whole scene shadows from this light are.  
@@ -234,6 +252,9 @@ public:
 
 	/** Fence used to track progress of render resource destruction. */
 	FRenderCommandFence DestroyFence;
+
+	/** true when this light component has been added to the scene as a normal visible light. Used to keep track of whether we need to dirty the render state in UpdateColorAndBrightness */
+	uint32 bAddedToSceneVisible:1;
 
 	/**
 	 * Test whether this light affects the given primitive.  This checks both the primitive and light settings for light relevance

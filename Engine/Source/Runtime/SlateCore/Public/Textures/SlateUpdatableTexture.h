@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FSlateShaderResource;
+#include "CoreMinimal.h"
+
 class FRenderResource;
+class FSlateShaderResource;
+struct FSlateTextureData;
 
 /**
  * An interface to deal with a slate texture that can be updated dynamically

@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class IDetailCustomNodeBuilder;
+#include "CoreMinimal.h"
+
+class SWidget;
 class IPropertyHandle;
+class IDetailCategoryBuilder;
+class IDetailCustomNodeBuilder;
+class FStructOnScope;
 
 /**
  * Builder for adding children to a detail customization
@@ -46,11 +51,24 @@ public:
 	virtual class IDetailPropertyRow& AddChildProperty( TSharedRef<IPropertyHandle> PropertyHandle ) = 0;
 
 	/**
+	 * Adds a child structure
+	 * 
+	 * @param ChildStructure	The structure to add
+	 * @return An array of interfaces to the properties that were added
+	 */
+	virtual TArray<TSharedPtr<IPropertyHandle>> AddChildStructure( TSharedRef<FStructOnScope> ChildStructure ) = 0;
+
+	/**
 	 * Generates a value widget from a customized struct
 	 * If the customized struct has no value widget an empty widget will be returned
 	 *
 	 * @param StructPropertyHandle	The handle to the struct property to generate the value widget from
 	 */
 	virtual TSharedRef<SWidget> GenerateStructValueWidget(TSharedRef<IPropertyHandle> StructPropertyHandle) = 0;
+
+	/**
+	 * @return the parent category on the customized object that this children is in.
+	 */
+	virtual IDetailCategoryBuilder& GetParentCategory() = 0;
 
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "ShaderCompilerCommon.h"
 #include "glsl_parser_extras.h"
@@ -885,16 +885,13 @@ static int ProcessPackedImages(int UniformIndex, _mesa_glsl_parse_state* ParseSt
 		
 		if (ParseState->bGenerateLayoutLocations)
 		{
-			if (ParseState->target == compute_shader)
-			{
-				var->explicit_location = true;
-				var->location = NumElements;
-			}
-			else
+			if (ParseState->target != compute_shader)
 			{
 				// easy for compute shaders, since all the bindings start at 0, harder for a set of graphics shaders
-				_mesa_glsl_error(ParseState, "assigning explicit locations to UAVs/images is currently only implemented for compute shaders");
+				_mesa_glsl_warning(ParseState, "assigning explicit locations to UAVs/images is currently only fully tested for compute shaders");
 			}
+			var->explicit_location = true;
+			var->location = NumElements;
 		}
 
 		NumElements += PackedImage.num_components;

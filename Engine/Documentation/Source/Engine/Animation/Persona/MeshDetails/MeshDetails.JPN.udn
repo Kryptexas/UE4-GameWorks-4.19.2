@@ -1,38 +1,162 @@
-﻿INTSourceChangelist:2666004
+﻿INTSourceChangelist:3223542
 Availability:Public
-Title:ペルソナのメッシュ詳細パネル
+Title:Skeletal Mesh アセットの詳細
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:ペルソナ アニメーション エディタのメッシュ詳細パネルのユーザーガイド
-version: 4.9
+Description:アニメーション エディタのメッシュ詳細パネルのユーザーガイド
+Related:Engine/Content/Types/SkeletalMeshes
+Related:Engine/Rendering/Materials
+Related:Engine/Content/Types/StaticMeshes/HowTo/LODCollision
+Related:Resources/ContentExamples/Cloth
+Related:Engine/Content/FBX/SkeletalMeshes
+version:4.14
+type:reference
+topic-image:SkeletalMeshAssetDetails.png
+tags:Animation
+tags:Skeletal Mesh
+tags:FBX Importing
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/MeshDetails:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/MeshDetails:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/MeshDetails:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/MeshDetails]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+![](MeshDetails.png)(w:940)
 
 [EXCERPT:Overview]
-![](MeshDetails.png)
-
-
-**[Mesh Details]** パネルは、表面、スキニングや LOD オプションなどに適用されたマテリアルなど、スケルタル メッシュのメッシュに関する特定のプロパティを表示します。このモードが表示されるのは、ペルソナが **Mesh** モードの場合のみです。 
+**スケルタルメッシュ エディタ** の **[Asset Details (アセットの詳細)]** パネルには、サーフェスに適用されたマテリアル、スキニングや LOD オプションなどのスケルタルメッシュに関するプロパティが表示されます。 
+APEX Clothing を割り当てて調整したり、ラグドール タイプの動きを作成するために必要なスケルタルメッシュの **Physics アセット** を定義し、関連付けることもできます。 
 [/EXCERPT:Overview]
 
-このパネルはペルソナ内で特定のメッシュの編集作業用に確保されていますが、機能的にはメインエディタの標準 **[Details]** パネルと同じです。 
+このページでは、 [Asset Details] パネル内の各セクションについて説明し、参照ドキュメントがあればリンクを示します。以下の各セクションをご覧ください。 
 
-このパネルの基本的な使用に関する詳細は、[エディタ詳細パネル](Engine/UI/LevelEditor\Details) ドキュメントを参照してください。
+[TOC (start:2)]
+
+## マテリアル 
+
+![](MaterialsTable.png)
+
+外部アプリケーションでモデリングされたメッシュに適用されたマテリアルは、メッシュとともにエクスポートされます。 
+メッシュをアンリアル エンジン 4 にインポートする場合、こうしたマテリアルを [FBX インポート プロセス](Engine/Content/FBX/Materials) の一部として自動的にインポートすることができます。
+マテリアルはスケルタルメッシュ エディタ内の **Material** セクションに表示され、プロジェクト内にある任意のマテリアルでオーバーライドすることができます。 
+LOD セクション (ベース LOD は除く) をオーバーライドするために使用可能な **マテリアル スロット** を追加することができます。 
+
+## LOD
+
+![](LODSection.png)
+
+スケルタルメッシュをインポートする場合、作成し、メッシュに関連付けた [Level of Details](Engine/Content/ImportingContent/ImportingSkeletalLODs/) (**LODs**) もインポートすることができます。 
+必要とするオプションのチェックボックスにチェックを入れてメッシュの一部を **ハイライト** したり、一部を **切り分けて** 特定のセクションだけを表示することができます。マテリアル セクションからマテリアル エレメントを **マテリアル スロット** に割り当てたり、LOD ベース毎にセクションをオーバーライドすることができます。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Highlight On](HighlightOption.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Isolate On](IsolateOption.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+上の図ではキャラクターのヘルメットをハイライトする状態から、ヘルメットだけを表示する状態との間を切り替えています。 
+
+LOD セクションでは、**[Screen Size]** オプション (どの程度、近くまたは遠くで LOD を可視にするか) を使っていつ LOD を使用するかを定義することができます。さらに、**LODHysteresis** の量を定義して、LOD 境界上にある場合に、ちらつきを避けるために使用します。 
+**ビューポート** 内で **[Preview LODs]** ボタン (以下) をクリックして利用可能な LOD 間を切り替えることができます (**Display Info** を有効にして統計情報を得ることもできます)。 
+
+![](previewLODs.png)
+
+以下では、LOD プレビューアを使って、LOD 間の見た目の違いを確認できます。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![LOD 0](LOD0.png)
+	[/PARAM]
+	[PARAM:after]
+	![LOD 2](LOD2.png)
+	[/PARAM]
+[/OBJECT]
+
+統計情報が表示されていると、各 LOD の統計情報も見ることができます。上の図では、LOD2 のトライアングルの量が、LOD 0 のトライアングルの量のほぼ半分になっています。 
+
+LOD 内のセクションで、**シャドウをキャストする** かどうかの機能のオン、オフを切り替えることもできます。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Cast Shadows On](castshadows1.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Cast Shadows Off](castshadows2.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+エレメント毎、LOD ベースでシャドウのキャストのオン、オフを切り替えることができます (一部のエリアではシャドウをキャストする必要がない場合があるかもしれません)。 
+
+## クロス
+
+**Clothing** セクションでは、[](Engine/Physics/Apex) クロスのファイルを追加してメッシュに関連付けることができます。 
+
+**[Add APEX clothing file...]** ボタンをクリックして、FBX ファイルのインポートと同じパイプラインに従う .apb ファイルまたは .apx ファイルのインポートを開始します。 
+
+![](AddApex.png)
+
+Apex ファイルをインポートしたら望ましい結果になるように [物理のプロパティ](Engine/Physics/PhAT/Reference) を調整することができます。 
+
+![](OwenApexCloth.png)
+
+上の図ではキャラクターには 2 つの Apex ファイルが関連付けられています。ひとつはキャラクターのネクタイでもうひとつはキャラクターのコートに関連付けられています。 
+
+## メッシュ
+
+![](MeshSection.png)
+
+**メッシュ** セクションで、メッシュがどの [Skeleton](Engine/Animation/Skeleton) アセットを使っているかを確認し、**コンテンツ ブラウザ** でブラウズすることができます。 
+**[Positive Bounds Extension]** と **[Negative Bounds Extension]** の値を設定するためのオプションもあります。これらを使って、メッシュのインポート時に境界値をオフセットすることができます。 
+もうひとつのオプション、**[Use Full Precision UVs]** をオンにして、32 ビット UV を使用することができます (メモリを節約する場合、16 ビット UV を使用します)。 
+
+## 物理
+
+![](PhysicsSection.png)
+
+**[Physics]** セクションでは、コリジョン データにスキン データを使うメッシュに対して **Enable Per Poly Collision (ポリゴン毎のコリジョンを有効)** にすることができます。ポリゴン毎のコリジョンは、シミュレーションには使用できません。ほとんどの場合、代わりに **Physics アセット** を使ったほうが良い結果が得られます。 
+[Physics アセット](Engine/Physics/PhAT) をスケルタルメッシュに割り当てる機能もあり、物理やコリジョン情報の処理に使用します。ボーン単位のヒット検知、正確なバウンディング ボックスの計算、ラグドールの物理に使用します。 
+
+## ライティング
+
+![](Lighting.png)
+
+[Lighting] セクションの **[Shadow Physics Asset (シャドウ物理アセット)]** オプションでは、Physics アセットを指定することができます。このアセットの形状は、コンポーネントで **[Cast Character Capsule Direct Shadow]** または **[Cast Character Capsule Indirect Shadow]** のオプションが有効な場合にシャドウイングに使われます。 
+Physics アセットの球体とカプセルの形状だけがサポートされており、使用する形状が増えるほど、カプセル シャドウの負荷が高くなります。 
+
+インゲームでは、間接的なカプセル シャドウを使うのがキャラクターを自然に背景に配置する良い方法です。 
+
+![](IndirectShadows.png)(w:840)
+
+間接的なカプセルシャドウを使って、効率的にベイクされたライティング環境下で非常にソフトなシャドウをキャラクターに落とすことができます。 
+
+![](DirectShadows.png)(w:840)
+
+ライトの **ソース半径** または **ソース アングル** によって、シャドウがどの程度ソフトになるかが決まります。カプセル シャドウは非常に効率的です。深度を意識したアップサンプルを使って半分の解像度でシャドウイングを計算し、スクリーン タイル カリングを使ってシャドウイング作業を必要な場所のみに制限します。 
+GPU 負荷は、カプセル数およびキャストされたシャドウの影響を受けるピクセル数に比例します。 
+
+## スケルタルメッシュ
+
+![](SkeletalMesh.png)
+
+このセクションでは、 [Animation ブループリント](Engine/Animation/AnimBlueprints) クラスである **Post Process Anim ブループリント** を割り当てて、メッシュのポストプロセスとして実行することができます。このブループリントは物理の前で、このメッシュを使う Skeletal Mesh コンポーネントの Main Anim Instance の後に実行されます。 
+Animation ブループリントを割り当てるには、ドロップダウン メニューをクリックして必要な Animation ブループリントを指定してください。 
+
+展開したメニュー オプションから **Asset User Data** を割り当てて、**+** 記号をクリックして配列に要素を追加することもできます。追加があれば、Skeletal Mesh アセットと合わせて保存されます。 
+
+## トランスフォーム
+
+![](TransformSection.png)
+
+スケルタルメッシュ エディタ内の **[Transform]** セクションでは、**[Import Translation]** オプションを使ってインポート時にソース アート プログラムの位置と一致するようにワールド基点からメッシュをオフセットします。 
+**[Import Rotation]** は、インポート時に、ソース アート プログラムの位置と一致するようにメッシュを回転させます。一方、**[Import Uniform Scale]** オプションは、ソース アート プログラムからメッシュの均一なスケーリングをインポートします。 
+
+##サムネイル
+
+![](ThumbnailSection.png)
+
+**[Thumbnail]** オプションでは、**コンテンツブラウザ** や **エディタのツールバー** で表示されるサムネイルにメッシュがどのように入るかを変更することができます。 
+
+## インポート設定
+
+![](ImportSettingsSection.png)
+
+**[Import Settings]** セクションでは、最初の [FBX スケルタルメッシュのインポート プロセス](https://docs.unrealengine.com/latest/INT/Engine/Content/FBX/ImportOptions/#skeletalmeshoptions) 中にメッシュに対して使った設定を変更することができます。 
+
 

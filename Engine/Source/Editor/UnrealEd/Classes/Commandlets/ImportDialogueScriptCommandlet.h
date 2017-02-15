@@ -1,13 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Commandlets/GatherTextCommandletBase.h"
-#include "ExportDialogueScriptCommandlet.h" // For FDialogueScriptEntry
 #include "ImportDialogueScriptCommandlet.generated.h"
-
-class FInternationalizationManifest;
-class FInternationalizationArchive;
 
 /**
  *	UImportDialogueScriptCommandlet: Handles importing localized script sheets to update the translated archive text.

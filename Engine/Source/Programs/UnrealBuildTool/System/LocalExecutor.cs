@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -316,13 +316,18 @@ namespace UnrealBuildTool
 		}
 	};
 
-	public class LocalExecutor
+	public class LocalExecutor : ActionExecutor
 	{
+		public override string Name
+		{
+			get { return "Local"; }
+		}
+
 		/// <summary>
 		/// Executes the specified actions locally.
 		/// </summary>
 		/// <returns>True if all the tasks successfully executed, or false if any of them failed.</returns>
-		public static bool ExecuteActions(List<Action> Actions)
+		public override bool ExecuteActions(List<Action> Actions)
 		{
 			// Time to sleep after each iteration of the loop in order to not busy wait.
 			const float LoopSleepTime = 0.1f;
@@ -490,6 +495,12 @@ namespace UnrealBuildTool
 
 			// Check whether any of the tasks failed and log action stats if wanted.
 			bool bSuccess = true;
+			double TotalBuildProjectTime = 0;
+			double TotalCompileTime = 0;
+			double TotalCreateAppBundleTime = 0;
+			double TotalGenerateDebugInfoTime = 0;
+			double TotalLinkTime = 0;
+			double TotalOtherActionsTime = 0;
 			foreach (KeyValuePair<Action, ActionThread> ActionProcess in ActionThreadDictionary)
 			{
 				Action Action = ActionProcess.Key;
@@ -522,27 +533,27 @@ namespace UnrealBuildTool
 				switch (Action.ActionType)
 				{
 					case ActionType.BuildProject:
-						UnrealBuildTool.TotalBuildProjectTime += ThreadSeconds;
+						TotalBuildProjectTime += ThreadSeconds;
 						break;
 
 					case ActionType.Compile:
-						UnrealBuildTool.TotalCompileTime += ThreadSeconds;
+						TotalCompileTime += ThreadSeconds;
 						break;
 
 					case ActionType.CreateAppBundle:
-						UnrealBuildTool.TotalCreateAppBundleTime += ThreadSeconds;
+						TotalCreateAppBundleTime += ThreadSeconds;
 						break;
 
 					case ActionType.GenerateDebugInfo:
-						UnrealBuildTool.TotalGenerateDebugInfoTime += ThreadSeconds;
+						TotalGenerateDebugInfoTime += ThreadSeconds;
 						break;
 
 					case ActionType.Link:
-						UnrealBuildTool.TotalLinkTime += ThreadSeconds;
+						TotalLinkTime += ThreadSeconds;
 						break;
 
 					default:
-						UnrealBuildTool.TotalOtherActionsTime += ThreadSeconds;
+						TotalOtherActionsTime += ThreadSeconds;
 						break;
 				}
 
@@ -555,6 +566,19 @@ namespace UnrealBuildTool
 			// Log total CPU seconds and numbers of processors involved in tasks.
 			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
 				LogEventType.Console, "Cumulative thread seconds ({0} processors): {1:0.00}", System.Environment.ProcessorCount, TotalThreadSeconds);
+
+			// Log detailed stats
+			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
+				LogEventType.Console,
+				"Cumulative action seconds ({0} processors): {1:0.00} building projects, {2:0.00} compiling, {3:0.00} creating app bundles, {4:0.00} generating debug info, {5:0.00} linking, {6:0.00} other",
+				System.Environment.ProcessorCount,
+				TotalBuildProjectTime,
+				TotalCompileTime,
+				TotalCreateAppBundleTime,
+				TotalGenerateDebugInfoTime,
+				TotalLinkTime,
+				TotalOtherActionsTime
+			);
 
 			return bSuccess;
 		}

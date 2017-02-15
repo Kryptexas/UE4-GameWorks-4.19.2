@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -27,13 +27,18 @@ public class ImageWrapper : ModuleRules
             Definitions.Add("WITH_UNREALEXR=1");
             AddEngineThirdPartyPrivateStaticDependencies(Target, "UEOpenExr");
         }
+		else
+		{
+			Definitions.Add("WITH_UNREALEXR=0");
+		}
 
-        bEnableShadowVariableWarnings = false;
+		bEnableShadowVariableWarnings = false;
 
 		// Enable exceptions to allow error handling
 		bEnableExceptions = true;
 
 		// Disable shared PCHs to handle warning C4652
 		PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
+		PrivatePCHHeaderFile = "Private/ImageWrapperPrivatePCH.h";
     }
 }

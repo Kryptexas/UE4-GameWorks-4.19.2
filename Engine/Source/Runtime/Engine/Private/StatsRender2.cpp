@@ -1,15 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
  * This file contains the rendering functions used in the stats code
  */
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Stats/Stats.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "CanvasItem.h"
+#include "Engine/Canvas.h"
+#include "Engine/Texture2D.h"
 
 #if STATS
 
-#include "StatsData.h"
+#include "Stats/StatsData.h"
 #include "Performance/EnginePerformanceTargets.h"
 
 /** Stats rendering constants. */

@@ -1,7 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Serialization/BufferArchive.h"
+#include "Misc/ScopedEvent.h"
+#include "Misc/ScopeLock.h"
+#include "Serialization/MemoryReader.h"
+#include "MultichannelTcpReceiver.h"
+#include "MultichannelTcpSender.h"
+
+class FSocket;
 
 /**
  * Class to multiplex several streams on a single TCP socket.

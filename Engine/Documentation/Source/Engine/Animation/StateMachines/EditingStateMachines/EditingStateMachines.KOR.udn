@@ -1,14 +1,14 @@
-﻿INTSourceChangelist:3032506
+﻿INTSourceChangelist:3198499
 Availability:Public
 Title: 스테이트 머신 편집
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
 Description:애니메이션 스테이트 머신 편집 안내서입니다.
-version: 4.12
+version: 4.14
 related:Engine\Animation\StateMachines\CreatingStateMachines
 related:Engine\Animation\StateMachines\TransitionRules
 related:Engine\Animation\AnimBlueprints
 
-스테이트 머신(State Machine) 이란 것이 스켈레탈 메시의 애니메이션 이행 흐름을 편하게 분석해 볼 수 있는 수단이 되기는 하지만, 그 중에서도 가장 중요한 부분은 스테이트 머신의 각 노드 안에서 실제로 어떤 일이 벌어지는가 입니다. 이 점을 염두에 두고서 꼭 기억해야 할 것은, 스테이트 머신의 각 노드 유형의 주목적은 다음과 같습니다:
+State Machine, [스테이트 머신](Engine\Animation\StateMachines\Overview) 이라는 것이 스켈레탈 메시의 애니메이션 전환 흐름을 편하게 분석해 볼 수 있는 수단이 되기는 하지만, 그 중에서도 가장 중요한 부분은 스테이트 머신의 각 노드 안에서 실제로 어떤 일이 벌어지는가 입니다. 이 점을 염두에 두고서 꼭 기억해야 할 것은, 스테이트 머신의 각 노드 유형의 주목적은 다음과 같습니다:
 
 | **노드** | **목적** |
 | --- | --- |
@@ -43,7 +43,7 @@ related:Engine\Animation\AnimBlueprints
 
 ### 애니메이션 요소 추가
 
-애님 시퀀스 또는 블렌드 스페이스를 스테이트에 추가하려면, 페르소나 애셋 브라우저에서 드래그 앤 드롭을 하거나:
+애님 시퀀스 또는 블렌드 스페이스를 스테이트에 추가하려면, **애니메이션 블루프린트 에디터** 의 **애셋 브라우저** 에서 드래그 앤 드롭을 하거나:
 
 ![](DragDropAnimSeqState.png)(w:800)
 
@@ -55,12 +55,14 @@ related:Engine\Animation\AnimBlueprints
 
 스테이트 머신에 스테이트를 자동 생성하려면, 애님 시퀀스 또는 블렌드 스페이스 애셋을 그래프에 끌어 놓으면 됩니다.
 
-![](AutoStateCreationDrag.png)(w:505)
+![](AutoStateCreationDrag.png)
 
 끌어 놓으면 스테이트가 자동으로 생성되며, 그 애셋의 이름을 따릅니다.
 
-![](AutoStateCreation.png)(w:505)
+![](AutoStateCreation.png)
 
 안에 보면, 애니메이션 애셋이 최종 애니메이션 포즈 결과에 자동으로 연결된 것을 확인할 수 있습니다.
 
-![](AutoStateCreationInside.png)(w:505)
+![](AutoStateCreationInside.png)
+
+

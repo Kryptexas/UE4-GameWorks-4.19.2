@@ -1,13 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EngineDefines.h"
 #include "ProceduralFoliageInstance.generated.h"
 
-class ALandscapeProxy;
-class ULandscapeComponent;
-class UFoliageType;
-class UProceduralFoliageTile;
+class UActorComponent;
+class UFoliageType_InstancedStaticMesh;
+struct FProceduralFoliageInstance;
 
 #if WITH_PHYSX
 namespace physx

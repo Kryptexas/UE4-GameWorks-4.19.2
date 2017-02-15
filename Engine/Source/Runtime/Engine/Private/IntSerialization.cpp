@@ -1,11 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IntSerialization.cpp: UObject class for testing serialization int types
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Runtime/Engine/Classes/Engine/IntSerialization.h"
+#include "Engine/IntSerialization.h"
 
 UIntSerialization::UIntSerialization(const FObjectInitializer& ObjectInitializer)
 	: UObject(ObjectInitializer)

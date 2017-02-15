@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
 #include "Engine/Texture.h"
 #include "IMediaTextureSink.h"
 #include "MediaTexture.generated.h"
 
-
-class IMediaTextureSink;
-
+class FTextureResource;
 
 /**
  * Implements a texture asset for rendering video tracks from UMediaPlayer assets.
@@ -21,41 +22,58 @@ class MEDIAASSETS_API UMediaTexture
 	GENERATED_UCLASS_BODY()
 
 	/** The addressing mode to use for the X axis. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaTexture, AssetRegistrySearchable)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Media|MediaTexture", AssetRegistrySearchable)
 	TEnumAsByte<TextureAddress> AddressX;
 
 	/** The addressing mode to use for the Y axis. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaTexture, AssetRegistrySearchable)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Media|MediaTexture", AssetRegistrySearchable)
 	TEnumAsByte<TextureAddress> AddressY;
 
 	/** The color used to clear the texture if CloseAction is set to Clear (default = black). */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaTexture, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Media|MediaTexture", AdvancedDisplay)
 	FLinearColor ClearColor;
 
 public:
 
+	/**
+	 * Gets the current aspect ratio of the texture.
+	 *
+	 * @return Texture aspect ratio.
+	 * @see GetHeight, GetWidth
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaTexture")
+	float GetAspectRatio() const;
+
+	/**
+	 * Gets the current height of the texture.
+	 *
+	 * @return Texture height (in pixels).
+	 * @see GetAspectRatio, GetWidth
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaTexture")
+	int32 GetHeight() const;
+
+	/**
+	 * Gets the current width of the texture.
+	 *
+	 * @return Texture width (in pixels).
+	 * @see GetAspectRatio, GetHeight
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaTexture")
+	int32 GetWidth() const;
+
+public:
+
+	/**
+	 * Get the event delegate that is invoked when this asset is being destroyed.
+	 *
+	 * @return The delegate.
+	 */
 	DECLARE_EVENT_OneParam(UMediaTexture, FOnBeginDestroy, UMediaTexture& /*DestroyedMediaTexture*/)
 	FOnBeginDestroy& OnBeginDestroy()
 	{
 		return BeginDestroyEvent;
 	}
-
-public:
-
-	//~ IMediaTextureSink interface
-
-	virtual void* AcquireTextureSinkBuffer() override;
-	virtual void DisplayTextureSinkBuffer(FTimespan Time) override;
-	virtual FIntPoint GetTextureSinkDimensions() const override;
-	virtual EMediaTextureSinkFormat GetTextureSinkFormat() const override;
-	virtual EMediaTextureSinkMode GetTextureSinkMode() const override;
-	virtual FRHITexture* GetTextureSinkTexture() override;
-	virtual bool InitializeTextureSink(FIntPoint Dimensions, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode) override;
-	virtual void ReleaseTextureSinkBuffer() override;
-	virtual void ShutdownTextureSink() override;
-	virtual bool SupportsTextureSinkFormat(EMediaTextureSinkFormat Format) const override;
-	virtual void UpdateTextureSinkBuffer(const uint8* Data, uint32 Pitch = 0) override;
-	virtual void UpdateTextureSinkResource(FRHITexture* RenderTarget, FRHITexture* ShaderResource) override;
 
 public:
 
@@ -80,6 +98,23 @@ public:
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 #endif
 
+public:
+
+	//~ IMediaTextureSink interface
+
+	virtual void* AcquireTextureSinkBuffer() override;
+	virtual void DisplayTextureSinkBuffer(FTimespan Time) override;
+	virtual FIntPoint GetTextureSinkDimensions() const override;
+	virtual EMediaTextureSinkFormat GetTextureSinkFormat() const override;
+	virtual EMediaTextureSinkMode GetTextureSinkMode() const override;
+	virtual FRHITexture* GetTextureSinkTexture() override;
+	virtual bool InitializeTextureSink(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode) override;
+	virtual void ReleaseTextureSinkBuffer() override;
+	virtual void ShutdownTextureSink() override;
+	virtual bool SupportsTextureSinkFormat(EMediaTextureSinkFormat Format) const override;
+	virtual void UpdateTextureSinkBuffer(const uint8* Data, uint32 Pitch = 0) override;
+	virtual void UpdateTextureSinkResource(FRHITexture* RenderTarget, FRHITexture* ShaderResource) override;
+
 protected:
 
 	//~ Deprecated members
@@ -94,18 +129,21 @@ protected:
 
 private:
 
-	/** An event delegate that is invoked when this media texture is being destroyed. */
+	/** An event delegate that is invoked when this asset is being destroyed. */
 	FOnBeginDestroy BeginDestroyEvent;
 
 	/** Critical section for synchronizing access to texture resource object. */
 	mutable FCriticalSection CriticalSection;
 
-	/** Width and height of the texture (in pixels). */
-	FIntPoint SinkDimensions;
+	/** Width and height of the sink buffers (in pixels). */
+	FIntPoint SinkBufferDim;
+
+	/** Width and height of the video output (in pixels). */
+	FIntPoint SinkOutputDim;
 
 	/** The render target's pixel format. */
 	EMediaTextureSinkFormat SinkFormat;
 
 	/** The mode that this sink is currently operating in. */
 	EMediaTextureSinkMode SinkMode;
-	};
+};

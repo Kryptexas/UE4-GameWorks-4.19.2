@@ -1,14 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Engine/EngineBaseTypes.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/CoreNet.h"
 #include "Engine/EngineTypes.h"
-#include "Engine/MemberReference.h"
+#include "Engine/EngineBaseTypes.h"
+#include "UObject/ScriptMacros.h"
+#include "EdGraph/EdGraphPin.h"
 #include "Interfaces/Interface_AssetUserData.h"
 #include "ActorComponent.generated.h"
 
-struct FReplicationFlags;
-class UWorld;
+class AActor;
+class UActorComponent;
+class UAssetUserData;
+class ULevel;
 
 UENUM()
 enum class EComponentCreationMethod : uint8
@@ -189,7 +199,7 @@ public:
 	uint32 bWantsInitializeComponent:1;
 
 	/** If true, we call the virtual BeginPlay */
-	DEPRECATED(4.14, "bWantsBeginPlay was inconsistently enforced and is now unused")
+	DEPRECATED(4.14, "bWantsBeginPlay was inconsistently enforced and is now unused. BeginPlay will now always be called for Actor Components.")
 	uint32 bWantsBeginPlay:1;
 
 	/** If true, the component will be excluded from non-editor builds */
@@ -223,6 +233,9 @@ private:
 
 	friend class FActorComponentInstanceData;
 	friend class FActorComponentDetails;
+
+	/** True if this component was owned by a net startup actor during level load. */
+	bool bIsNetStartupComponent;
 
 public:
 	UPROPERTY()
@@ -294,34 +307,41 @@ public:
 	 * Activates the SceneComponent
 	 * @param bReset - The value to assign to HiddenGame.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
+	UFUNCTION(BlueprintCallable, Category="Components|Activation", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void Activate(bool bReset=false);
 	
 	/**
 	 * Deactivates the SceneComponent.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
+	UFUNCTION(BlueprintCallable, Category="Components|Activation", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void Deactivate();
 
 	/**
 	 * Sets whether the component is active or not
 	 * @param bNewActive - The new active state of the component
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
+	UFUNCTION(BlueprintCallable, Category="Components|Activation", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void SetActive(bool bNewActive, bool bReset=false);
 
 	/**
 	 * Toggles the active state of the component
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
+	UFUNCTION(BlueprintCallable, Category="Components|Activation", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void ToggleActive();
 
 	/**
 	 * Returns whether the component is active or not
 	 * @return - The active state of the component.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
+	UFUNCTION(BlueprintCallable, Category="Components|Activation", meta=(UnsafeDuringActorConstruction="true"))
 	virtual bool IsActive() const;
+
+	/**
+	 * Sets whether the component should be auto activate or not. Only safe during construction scripts.
+	 * @param bNewAutoActivate - The new auto activate state of the component
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|Activation")
+	virtual void SetAutoActivate(bool bNewAutoActivate);
 
 	/** Sets whether this component can tick when paused. */
 	UFUNCTION(BlueprintCallable, Category="Utilities")
@@ -389,6 +409,12 @@ public:
 	* because it can check the static build flags without considering PIE.
 	*/
 	bool IsNetMode(ENetMode Mode) const;
+
+	/** Returns true if this component was owned by a net startup actor during level load. */
+	bool IsNetStartupComponent() const { return bIsNetStartupComponent; }
+
+	/** This should only be called by the engine in ULevel::InitializeNetworkActors to initialize bIsNetStartupComponent. */
+	void SetIsNetStartupComponent(const bool bInIsNetStartupComponent) { bIsNetStartupComponent = bInIsNetStartupComponent; }
 
 private:
 
@@ -586,6 +612,9 @@ private:
 	friend struct FActorComponentTickFunction;
 
 public:
+
+	/** Overridable check for a component to indicate to its Owner that it should prevent the Actor from auto destroying when finished */
+	virtual bool IsReadyForOwnerToAutoDestroy() const { return true; }
 
 	/**
 	 * Returns whether the component's owner is selected.
@@ -824,6 +853,11 @@ private:
 	virtual void Tick( float DeltaTime ) final { check(0); }
 
 #endif
+
+public:
+
+	/** Prefix used to identify template component instances */
+	static const FString ComponentTemplateNameSuffix;
 };
 
 //////////////////////////////////////////////////////////////////////////

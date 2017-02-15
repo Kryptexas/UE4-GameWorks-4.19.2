@@ -1,9 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemSteamPrivatePCH.h"
 #include "OnlineExternalUIInterfaceSteam.h"
-#include "OnlineSessionInterfaceSteam.h"
-#include "OnlineSubsystemSteam.h"
+#include "Interfaces/OnlineSessionInterface.h"
+#include "OnlineSubsystemSteamTypes.h"
 
 // Other external UI possibilities in Steam
 // "Players" - recently played with players
@@ -47,7 +46,7 @@ bool FOnlineExternalUISteam::ShowFriendsUI(int32 LocalUserNum)
 	return true;
 }
 
-bool FOnlineExternalUISteam::ShowInviteUI(int32 LocalUserNum, FName SessionMame)
+bool FOnlineExternalUISteam::ShowInviteUI(int32 LocalUserNum, FName SessionName)
 {
 	IOnlineSessionPtr SessionInt = SteamSubsystem->GetSessionInterface();
 	if (SessionInt.IsValid() && SessionInt->HasPresenceSession())

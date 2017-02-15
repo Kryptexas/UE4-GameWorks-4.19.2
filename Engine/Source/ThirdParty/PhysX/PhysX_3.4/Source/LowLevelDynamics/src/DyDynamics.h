@@ -35,7 +35,7 @@
 #include "CmSpatialVector.h"
 #include "CmTask.h"
 #include "CmPool.h"
-#include "PxcThreadCoherantCache.h"
+#include "PxcThreadCoherentCache.h"
 #include "DyThreadContext.h"
 #include "PxcConstraintBlockStream.h"
 #include "DySolverBody.h"
@@ -363,7 +363,7 @@ protected:
 	/**
 	\brief A thread context pool
 	*/
-	PxcThreadCoherantCache<ThreadContext, PxcNpMemBlockPool> mThreadContextPool;
+	PxcThreadCoherentCache<ThreadContext, PxcNpMemBlockPool> mThreadContextPool;
 
 	/**
 	\brief Solver constraint desc array

@@ -1,13 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/TargetPoint.h"
+#include "EdGraph/EdGraphNodeUtils.h"
 #include "AnimGraphNode_SkeletalControlBase.h"
 #include "BoneControllers/AnimNode_TwoBoneIK.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_TwoBoneIK.generated.h"
 
 // actor class used for bone selector
 #define ABoneSelectActor ATargetPoint
+
+class FTwoBoneIKDelegate;
+class IDetailLayoutBuilder;
 
 UCLASS(MinimalAPI)
 class UAnimGraphNode_TwoBoneIK : public UAnimGraphNode_SkeletalControlBase
@@ -21,6 +28,10 @@ class UAnimGraphNode_TwoBoneIK : public UAnimGraphNode_SkeletalControlBase
 	static TSharedPtr<class FTwoBoneIKDelegate> TwoBoneIKDelegate;
 
 public:
+	// UObject interface
+	virtual void Serialize(FArchive& Ar) override;
+	// End of UObject interface
+
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;

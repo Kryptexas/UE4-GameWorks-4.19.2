@@ -1,4 +1,5 @@
-﻿
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -72,7 +73,7 @@ namespace AutomationTool
             bool bSuccess = false;
 
             UEBuildPlatform Platform = UEBuildPlatform.GetBuildPlatform(Parameters.Platform);
-            UEToolChain ToolChain = Platform.CreateContext(null).CreateToolChainForDefaultCppPlatform();
+            UEToolChain ToolChain = Platform.CreateContext(null, null).CreateToolChainForDefaultCppPlatform();
             
             // Find the matching files
             List<FileReference> Files = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Files, TagNameToFileSet).ToList();

@@ -1,12 +1,14 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3108692
 Title: Unreal Engine 4.1 Release Notes
 Crumbs:%ROOT%, Support/Builds
-Description: ###DO NOT TRANSLATE###
+Description:
 Availability:Public
 version: 4.1
 order:1
 
 [TOC(start:2 end:2)]
+
+_과거 버전에 대한 릴리즈 노트는 번역 제공하지 않습니다._
 
 [PUBLISH:Licensee]
 ## Build Info

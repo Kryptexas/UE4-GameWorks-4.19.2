@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -22,9 +22,11 @@
 #ifndef DETOURTILECACHE_H
 #define DETOURTILECACHE_H
 
-#include "DetourStatus.h"
+#include "CoreMinimal.h"
+#include "Detour/DetourStatus.h"
 
-
+struct dtTileCacheAlloc;
+struct dtTileCacheCompressor;
 
 typedef unsigned int dtObstacleRef;
 

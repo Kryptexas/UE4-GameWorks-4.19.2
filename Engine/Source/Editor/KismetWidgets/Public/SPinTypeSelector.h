@@ -1,8 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "BlueprintGraphDefinitions.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Misc/Attribute.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Types/SlateStructs.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
+#include "EditorStyleSet.h"
+#include "EdGraphSchema_K2.h"
+
+class SComboButton;
+class SMenuOwner;
+class SToolTip;
+struct FObjectReferenceType;
 
 DECLARE_DELEGATE_OneParam(FOnPinTypeChanged, const FEdGraphPinType&)
 
@@ -23,6 +43,8 @@ class KISMETWIDGETS_API SPinTypeSelector : public SCompoundWidget
 {
 public:
 	static TSharedRef<SWidget> ConstructPinTypeImage(const FSlateBrush* PrimaryIcon, const FSlateColor& PrimaryColor, const FSlateBrush* SecondaryIcon, const FSlateColor& SecondaryColor, TSharedPtr<SToolTip> InToolTip);
+	static TSharedRef<SWidget> ConstructPinTypeImage(TAttribute<const FSlateBrush*> PrimaryIcon, TAttribute<FSlateColor> PrimaryColor, TAttribute<const FSlateBrush*> SecondaryIcon, TAttribute<FSlateColor> SecondaryColor );
+	static TSharedRef<SWidget> ConstructPinTypeImage(UEdGraphPin* Pin);
 
 	SLATE_BEGIN_ARGS( SPinTypeSelector )
 		: _TargetPinType()

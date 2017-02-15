@@ -1,14 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimEncoding_VariableKeyLerp.cpp: Skeletal mesh animation functions.
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "SoundDefinitions.h"
-#include "AnimationCompression.h"
 #include "AnimEncoding_VariableKeyLerp.h"
-#include "AnimationUtils.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/MemoryWriter.h"
 
 /**
  * Handles the ByteSwap of compressed rotation data on import

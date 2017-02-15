@@ -1,14 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GCObject.h"
+#include "CoreMinimal.h"
+#include "BlueprintNodeSpawner.h"
+#include "UObject/GCObject.h"
 
-// Forward declarations
-class UBlueprintNodeSpawner;
 class UBlueprint;
-class UEdGraphNode;
-class FReferenceCollector;
+class UEdGraph;
 
 /**
  * Serves as a centralized data-store for all UBlueprintNodeSpawner node-

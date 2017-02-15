@@ -1,8 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma  once
 
+#include "CoreMinimal.h"
+#include "UObject/Class.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/UnrealType.h"
+#include "IBlueprintCompilerCppBackendModule.h"
 #include "BlueprintCompilerCppBackendGatherDependencies.h"
-#include "BlueprintCompilerCppBackend.h"
+#include "Engine/Blueprint.h" // for FCompilerNativizationOptions
+
+class USCS_Node;
+class UUserDefinedEnum;
+class UUserDefinedStruct;
+struct FNonativeComponentData;
+enum class ENativizedTermUsage : uint8;
+struct FEmitterLocalContext;
 
 struct FCodeText
 {
@@ -23,6 +35,26 @@ struct FCodeText
 	{
 		Result += FString::Printf(TEXT("%s%s\n"), *Indent, *Line);
 	}
+};
+
+/** 
+ * A helper struct that adds indented {} scope to the specified context. 
+ * Additionally, manages locals that were added via FEmitHelper::GenerateGetPropertyByName()
+ * and removes them from the cache on destruction, so we don't try to use the
+ * variables outside of the scope.
+ */
+struct FScopeBlock
+{
+public:
+	 FScopeBlock(FEmitterLocalContext& Context);
+	~FScopeBlock();
+
+	void TrackLocalAccessorDecl(const UProperty* Property);
+
+private:
+	FEmitterLocalContext& Context;
+	FScopeBlock*  OuterScopeBlock;
+	TArray<const UProperty*> LocalAccessorDecls;
 };
 
 struct FEmitterLocalContext
@@ -51,13 +83,19 @@ struct FEmitterLocalContext
 	// Nativized UDS doesn't reference its default value dependencies. When ::GetDefaultValue is used, then we need to reference the dependencies in the class.
 	TArray<UUserDefinedStruct*> StructsWithDefaultValuesUsed;
 
-private:
-	int32 LocalNameIndexMax;
-
 	//ConstructorOnly Local Names
 	TMap<UObject*, FString> ClassSubobjectsMap;
 	//ConstructorOnly Local Names
 	TMap<UObject*, FString> CommonSubobjectsMap;
+
+	// used to track the innermost FScopeBlock on the stack, so GenerateGetPropertyByName() can register added locals
+	FScopeBlock* ActiveScopeBlock;
+
+	// See TInlineValue. If the structure is initialized in constructor, then its header must be included.
+	TSet<UField*> StructsUsedAsInlineValues;
+
+private:
+	int32 LocalNameIndexMax;
 
 	// Class subobjects
 	TArray<UObject*> MiscConvertedSubobjects;
@@ -77,6 +115,7 @@ public:
 
 	FEmitterLocalContext(const FGatherConvertedClassDependencies& InDependencies)
 		: CurrentCodeType(EGeneratedCodeType::Regular)
+		, ActiveScopeBlock(nullptr)
 		, LocalNameIndexMax(0)
 		, DefaultTarget(&Body)
 		, Dependencies(InDependencies)
@@ -162,7 +201,14 @@ public:
 	FString FindGloballyMappedObject(const UObject* Object, const UClass* ExpectedClass = nullptr, bool bLoadIfNotFound = false, bool bTryUsedAssetsList = true);
 
 	// Functions needed for Unconverted classes
-	FString ExportCppDeclaration(const UProperty* Property, EExportedDeclaration::Type DeclarationType, uint32 AdditionalExportCPPFlags, bool bSkipParameterName = false, const FString& NamePostfix = FString(), const FString& TypePrefix = FString()) const;
+	enum class EPropertyNameInDeclaration
+	{
+		Regular,
+		Skip,
+		ForceConverted,
+	};
+
+	FString ExportCppDeclaration(const UProperty* Property, EExportedDeclaration::Type DeclarationType, uint32 AdditionalExportCPPFlags, EPropertyNameInDeclaration ParameterName = EPropertyNameInDeclaration::Regular, const FString& NamePostfix = FString(), const FString& TypePrefix = FString()) const;
 	FString ExportTextItem(const UProperty* Property, const void* PropertyValue) const;
 
 	// AS FCodeText
@@ -188,7 +234,7 @@ private:
 struct FEmitHelper
 {
 	// bUInterface - use interface with "U" prefix, by default there is "I" prefix
-	static FString GetCppName(const UField* Field, bool bUInterface = false);
+	static FString GetCppName(const UField* Field, bool bUInterface = false, bool bForceParameterNameModification = false);
 
 	// returns an unique number for a structure in structures hierarchy
 	static int32 GetInheritenceLevel(const UStruct* Struct);
@@ -272,8 +318,6 @@ struct FEmitDefaultValueHelper
 
 	static void GenerateConstructor(FEmitterLocalContext& Context);
 
-	static void FillCommonUsedAssets(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
-
 	static void GenerateCustomDynamicClassInitialization(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
 
 	enum class EPropertyAccessOperator
@@ -298,7 +342,7 @@ struct FEmitDefaultValueHelper
 	static bool SpecialStructureConstructor(const UStruct* Struct, const uint8* ValuePtr, FString* OutResult);
 
 	// Add static initialization functions. Must be called after Context.UsedObjectInCurrentClass is fully filled
-	static void AddStaticFunctionsForDependencies(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
+	static void AddStaticFunctionsForDependencies(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies, FCompilerNativizationOptions NativizationOptions);
 
 	static void AddRegisterHelper(FEmitterLocalContext& Context);
 private:
@@ -322,6 +366,11 @@ struct FBackendHelperUMG
 	static void CreateClassSubobjects(FEmitterLocalContext& Context, bool bCreate, bool bInitialize);
 	static void EmitWidgetInitializationFunctions(FEmitterLocalContext& Context);
 
+	static bool SpecialStructureConstructorUMG(const UStruct* Struct, const uint8* ValuePtr, /*out*/ FString* OutResult);
+
+	static UScriptStruct* InlineValueStruct(UScriptStruct* OuterStruct, const uint8* ValuePtr);
+	static const uint8* InlineValueData(UScriptStruct* OuterStruct, const uint8* ValuePtr);
+	static bool IsTInlineStruct(UScriptStruct* OuterStruct);
 };
 
 struct FBackendHelperAnim
@@ -340,7 +389,6 @@ struct FBackendHelperStaticSearchableValues
 	static void EmitFunctionDeclaration(FEmitterLocalContext& Context);
 	static void EmitFunctionDefinition(FEmitterLocalContext& Context);
 };
-
 struct FNativizationSummaryHelper
 {
 	static void InaccessibleProperty(const UProperty* Property);
@@ -351,4 +399,24 @@ struct FNativizationSummaryHelper
 	static void RegisterClass(const UClass* OriginalClass);
 
 	static void ReducibleFunciton(const UClass* OriginalClass);
+};
+struct FDependenciesGlobalMapHelper
+{
+	static FString EmitHeaderCode();
+	static FString EmitBodyCode();
+
+	static FNativizationSummary::FDependencyRecord& FindDependencyRecord(const FStringAssetReference& Key);
+
+private:
+	static TMap<FStringAssetReference, FNativizationSummary::FDependencyRecord>& GetDependenciesGlobalMap();
+};
+
+struct FDisableUnwantedWarningOnScope
+{
+private:
+	FCodeText& CodeText;
+
+public:
+	FDisableUnwantedWarningOnScope(FCodeText& InCodeText);
+	~FDisableUnwantedWarningOnScope();
 };

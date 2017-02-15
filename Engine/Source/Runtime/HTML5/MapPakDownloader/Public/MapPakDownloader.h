@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
-#include "SlateCore.h"
+#include "CoreMinimal.h"
+#include "Styling/SlateStyleRegistry.h"
+#include "Widgets/SWidget.h"
 #include "SlateFwd.h"
 
 class FMapPakDownloader

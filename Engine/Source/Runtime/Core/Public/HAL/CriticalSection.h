@@ -1,9 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HAL/Platform.h"
-#include "GenericPlatform/GenericPlatformCriticalSection.h"
+#include "CoreTypes.h"
 
 #if PLATFORM_WINDOWS
 	#include "Windows/WindowsCriticalSection.h"
@@ -21,6 +20,6 @@
 	#include "HTML5/HTML5CriticalSection.h"
 #elif PLATFORM_LINUX
 	#include "Linux/LinuxCriticalSection.h"
-#elif PLATFORM_WOLF
-	#include "WolfPlat/WolfCriticalSection.h"
+#elif PLATFORM_SWITCH
+	#include "Switch/SwitchCriticalSection.h"
 #endif

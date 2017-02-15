@@ -1,9 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+#include "Widgets/Input/SEditableTextBox.h"
+
 #define LOCTEXT_NAMESPACE "Slate"
 
+class FActiveTimerHandle;
 
 /** A text box that is used for searching. Meant to be as easy to use as possible with as few options as possible. */
 class SLATE_API SSearchBox

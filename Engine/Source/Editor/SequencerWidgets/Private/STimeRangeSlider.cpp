@@ -1,15 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerWidgetsPrivatePCH.h"
 #include "STimeRangeSlider.h"
-#include "SlateStyle.h"
-#include "EditorStyle.h"
+#include "Rendering/DrawElements.h"
+#include "ITimeSlider.h"
+#include "EditorStyleSet.h"
 
 #define LOCTEXT_NAMESPACE "STimeRangeSlider"
 
 namespace TimeRangeSliderConstants
 {
 	const int32 HandleSize = 14;
+	const int32 MinimumScrubberWidth = HandleSize * 2;
 }
 
 void STimeRangeSlider::Construct( const FArguments& InArgs, TSharedRef<ITimeSliderController> InTimeSliderController)
@@ -58,6 +59,14 @@ void STimeRangeSlider::ComputeHandleOffsets(float& LeftHandleOffset, float& Hand
 	LeftHandleOffset = (InTime - StartTime) * UnitsToPixel;
 	HandleOffset = LeftHandleOffset + TimeRangeSliderConstants::HandleSize;
 	RightHandleOffset = HandleOffset + (OutTime - InTime) * UnitsToPixel;
+	
+	float ScrubberWidth = RightHandleOffset-LeftHandleOffset-TimeRangeSliderConstants::HandleSize;
+	if (ScrubberWidth < (float)TimeRangeSliderConstants::MinimumScrubberWidth)
+	{
+		HandleOffset = HandleOffset - ((float)TimeRangeSliderConstants::MinimumScrubberWidth - ScrubberWidth) / 2.f;
+		LeftHandleOffset = HandleOffset - TimeRangeSliderConstants::HandleSize;
+		RightHandleOffset = HandleOffset + (float)TimeRangeSliderConstants::MinimumScrubberWidth;
+	}
 }
 
 

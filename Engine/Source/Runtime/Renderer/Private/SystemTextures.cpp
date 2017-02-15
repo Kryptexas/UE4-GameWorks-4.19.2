@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SystemTextures.cpp: System textures implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
+#include "SystemTextures.h"
+#include "Math/RandomStream.h"
+#include "PostProcess/RenderTargetPool.h"
 
 /*-----------------------------------------------------------------------------
 SystemTextures
@@ -14,14 +15,8 @@ SystemTextures
 /** The global render targets used for scene rendering. */
 TGlobalResource<FSystemTextures> GSystemTextures;
 
-void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel)
+void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel)
 {
-	if (bTexturesInitialized && FeatureLevelInitializedTo >= InFeatureLevel)
-	{
-		// Already initialized up to at least the feature level we need, so do nothing
-		return;
-	}
-
 	// First initialize textures that are common to all feature levels. This is always done the first time we come into this function, as doesn't care about the
 	// requested feature level
 	if (!bTexturesInitialized)
@@ -45,16 +40,35 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 			SetRenderTarget(RHICmdList, BlackDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
 			RHICmdList.CopyToResolveTarget(BlackDummy->GetRenderTargetItem().TargetableTexture, BlackDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
-		
+
 		// Create a BlackAlphaOneDummy texture
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, FClearValueBinding::Black, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable | TexCreate_NoFastClear, false));
 			Desc.AutoWritable = false;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, BlackAlphaOneDummy, TEXT("BlackAlphaOneDummy"));
 
-			SetRenderTarget(RHICmdList, BlackAlphaOneDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
-			RHICmdList.ClearColorTexture(BlackAlphaOneDummy->GetRenderTargetItem().TargetableTexture, FLinearColor(0, 0, 0, 1), FIntRect());
+			SetRenderTarget(RHICmdList, BlackAlphaOneDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
 			RHICmdList.CopyToResolveTarget(BlackAlphaOneDummy->GetRenderTargetItem().TargetableTexture, BlackAlphaOneDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+		}
+
+		// Create a GreenDummy texture
+		{
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, FClearValueBinding::Green, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable | TexCreate_NoFastClear, false));
+			Desc.AutoWritable = false;
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GreenDummy, TEXT("GreenDummy"));
+
+			SetRenderTarget(RHICmdList, GreenDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
+			RHICmdList.CopyToResolveTarget(GreenDummy->GetRenderTargetItem().TargetableTexture, GreenDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+		}
+
+		// Create a MidGrayDummy texture
+		{
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, FClearValueBinding::MidGray, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable | TexCreate_NoFastClear, false));
+			Desc.AutoWritable = false;
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, MidGrayDummy, TEXT("MidGrayDummy"));
+
+			SetRenderTarget(RHICmdList, MidGrayDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
+			RHICmdList.CopyToResolveTarget(MidGrayDummy->GetRenderTargetItem().TargetableTexture, MidGrayDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 
 		// Create the PerlinNoiseGradient texture
@@ -421,6 +435,8 @@ void FSystemTextures::ReleaseDynamicRHI()
 	PreintegratedGF.SafeRelease();
 	MaxFP16Depth.SafeRelease();
 	DepthDummy.SafeRelease();
+	GreenDummy.SafeRelease();
+	MidGrayDummy.SafeRelease();
 
 	GRenderTargetPool.FreeUnusedResources();
 

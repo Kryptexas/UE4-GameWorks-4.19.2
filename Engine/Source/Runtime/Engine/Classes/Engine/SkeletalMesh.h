@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,24 +6,33 @@
  * Contains the shared data that is used by all SkeletalMeshComponents (instances).
  */
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Interfaces/Interface_AssetUserData.h"
+#include "RenderCommandFence.h"
+#include "EngineDefines.h"
+#include "Components.h"
+#include "ReferenceSkeleton.h"
+#include "GPUSkinPublicDefs.h"
 #include "SkeletalMeshTypes.h"
 #include "Animation/PreviewAssetAttachComponent.h"
 #include "BoneContainer.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
-#include "Interfaces/Interface_AssetUserData.h"
-#include "BoneIndices.h"
-#include "Components.h"
 #include "SkeletalMesh.generated.h"
 
 /** The maximum number of skeletal mesh LODs allowed. */
 #define MAX_SKELETAL_MESH_LODS 5
 
-class UMorphTarget;
-class USkeleton;
 class UAnimInstance;
+class UAssetUserData;
+class UBodySetup;
+class UMorphTarget;
+class USkeletalMeshSocket;
+class USkeleton;
 
 #if WITH_APEX_CLOTHING
-struct FApexClothCollisionVolumeData;
 
 namespace nvidia
 {
@@ -236,7 +245,11 @@ struct FSkeletalMeshLODInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**	Indicates when to use this LOD. A smaller number means use this LOD when further away. */
+	/** 
+	 * ScreenSize to display this LOD.
+	 * The screen size is based around the projected diameter of the bounding
+	 * sphere of the model. i.e. 0.5 means half the screen's maximum dimension.
+	 */
 	UPROPERTY(EditAnywhere, Category=SkeletalMeshLODInfo)
 	float ScreenSize;
 
@@ -266,6 +279,10 @@ struct FSkeletalMeshLODInfo
 	/** This has been removed in editor. We could re-apply this in import time or by mesh reduction utilities*/
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
 	TArray<FName> RemovedBones;
+
+	/** The filename of the file tha was used to import this LOD if it was not auto generated. */
+	UPROPERTY(VisibleAnywhere, Category= SkeletalMeshLODInfo, AdvancedDisplay)
+	FString SourceImportFilename;
 
 	FSkeletalMeshLODInfo()
 		: ScreenSize(0)
@@ -416,6 +433,57 @@ struct FClothPhysicsProperties
 	UPROPERTY(EditAnywhere, Category = FiberSoftZone, meta = (UIMin = "0.0", UIMax = "1.0"))
 	float FiberResistance;
 
+};
+
+/**
+* A structure for holding the APEX cloth collision volumes data
+*/
+struct FApexClothCollisionVolumeData
+{
+	/**
+	\brief structure for presenting collision volume data
+
+	\note contains either capsule data or convex data.
+	*/
+
+	int32	BoneIndex;
+	// For convexes
+	uint32	ConvexVerticesCount;
+	// For convexes
+	uint32	ConvexVerticesStart;
+	TArray<FVector> BoneVertices;
+	TArray<FPlane>  BonePlanes;
+	// For capsules
+	float	CapsuleRadius;
+	// For capsules
+	float	CapsuleHeight;
+	FMatrix LocalPose;
+
+	FApexClothCollisionVolumeData()
+	{
+		BoneIndex = -1;
+		ConvexVerticesCount = 0;
+		ConvexVerticesStart = 0;
+		CapsuleRadius = 0.0f;
+		CapsuleHeight = 0.0f;
+		LocalPose.SetIdentity();
+	}
+
+	bool IsCapsule() const
+	{
+		return (ConvexVerticesCount == 0);
+	}
+};
+
+/**
+* \brief A structure for holding bone sphere ( one of the APEX cloth collision volumes data )
+* \note 2 bone spheres present a capsule
+*/
+struct FApexClothBoneSphereData
+{
+	int32	BoneIndex;
+	float	Radius;
+	FVector LocalPos;
 };
 
 USTRUCT()
@@ -696,6 +764,18 @@ public:
 	UPROPERTY()
 	FPreviewAssetAttachContainer PreviewAttachedAssetContainer;
 
+	/**
+	 * If true on post load we need to calculate resolution independent Display Factors from the
+	 * loaded LOD screen sizes.
+	 */
+	uint32 bRequiresLODScreenSizeConversion : 1;
+
+	/**
+	 * If true on post load we need to calculate resolution independent LOD hysteresis from the
+	 * loaded LOD hysteresis.
+	 */
+	uint32 bRequiresLODHysteresisConversion : 1;
+
 #endif // WITH_EDITORONLY_DATA
 
 	UPROPERTY(Category=Mesh, BlueprintReadWrite)
@@ -973,6 +1053,11 @@ public:
 	ENGINE_API void BuildPhysicsData();
 	ENGINE_API void AddBoneToReductionSetting(int32 LODIndex, const TArray<FName>& BoneNames);
 	ENGINE_API void AddBoneToReductionSetting(int32 LODIndex, FName BoneName);
+#endif
+
+#if WITH_EDITORONLY_DATA
+	/** Convert legacy screen size (based on fixed resolution) into screen size (diameter in screen units) */
+	void ConvertLegacyLODScreenSize();
 #endif
 	
 

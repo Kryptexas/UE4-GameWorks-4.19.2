@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -84,10 +84,6 @@
 	#define CA_CONSTANT_IF(Condition) if (Condition)
 #endif
 
-#ifndef USING_SIGNED_CONTENT
-	#define USING_SIGNED_CONTENT 0
-#endif
-
 enum {INDEX_NONE	= -1				};
 enum {UNICODE_BOM   = 0xfeff			};
 
@@ -121,3 +117,12 @@ const FPlatformUserId PLATFORMUSERID_NONE = INDEX_NONE;
 
 // When passed to pragma message will result in clickable warning in VS
 #define WARNING_LOCATION(Line) __FILE__ "(" PREPROCESSOR_TO_STRING(Line) ")"
+
+// Push and pop macro definitions
+#ifdef __clang__
+	#define PUSH_MACRO(name) _Pragma(PREPROCESSOR_TO_STRING(push_macro(PREPROCESSOR_TO_STRING(name))))
+	#define POP_MACRO(name) _Pragma(PREPROCESSOR_TO_STRING(pop_macro(PREPROCESSOR_TO_STRING(name))))
+#else
+	#define PUSH_MACRO(name) __pragma(push_macro(PREPROCESSOR_TO_STRING(name)))
+	#define POP_MACRO(name) __pragma(pop_macro(PREPROCESSOR_TO_STRING(name)))
+#endif

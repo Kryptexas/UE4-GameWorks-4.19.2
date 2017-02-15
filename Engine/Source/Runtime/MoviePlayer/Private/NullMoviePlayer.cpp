@@ -1,11 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "MoviePlayerPrivatePCH.h"
-#include "MoviePlayer.h"
-
-#include "Engine.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "NullMoviePlayer.h"
+
+
 
 
 TSharedPtr<FNullGameMoviePlayer> FNullGameMoviePlayer::MoviePlayer;

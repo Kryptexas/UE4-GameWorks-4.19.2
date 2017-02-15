@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/TextProperty.h"
 #include "Components/PrimitiveComponent.h"
 #include "TextRenderComponent.generated.h"
+
+class FPrimitiveSceneProxy;
+class UFont;
+class UMaterialInterface;
 
 UENUM()
 enum EHorizTextAligment
@@ -158,7 +166,7 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 
 	//~ Begin UPrimitiveComponent Interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
-	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const override;
+	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false ) const override;
 	virtual int32 GetNumMaterials() const override;
 	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const override;
 	virtual bool ShouldRecreateProxyOnUpdateTransform() const override;

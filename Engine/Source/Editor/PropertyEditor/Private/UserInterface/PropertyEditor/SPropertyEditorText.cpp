@@ -1,11 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
-#include "SPropertyEditorText.h"
-#include "PropertyNode.h"
-#include "ObjectPropertyNode.h"
-#include "PropertyEditor.h"
-#include "PropertyEditorHelpers.h"
+#include "UserInterface/PropertyEditor/SPropertyEditorText.h"
+#include "UObject/TextProperty.h"
+#include "Widgets/Input/SMultiLineEditableTextBox.h"
+#include "Widgets/Input/SEditableTextBox.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
@@ -73,8 +71,6 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 		// Object properties should display their entire text in a tooltip
 		PrimaryWidget->SetToolTipText( TAttribute<FText>( InPropertyEditor, &FPropertyEditor::GetValueAsText ) );
 	}
-
-	SetEnabled( TAttribute<bool>( this, &SPropertyEditorText::CanEdit ) );
 }
 
 void SPropertyEditorText::GetDesiredWidth( float& OutMinDesiredWidth, float& OutMaxDesiredWidth )
@@ -152,7 +148,7 @@ void SPropertyEditorText::OnSingleLineTextChanged( const FText& NewText )
 
 bool SPropertyEditorText::SupportsKeyboardFocus() const
 {
-	return PrimaryWidget.IsValid() && PrimaryWidget->SupportsKeyboardFocus();
+	return PrimaryWidget.IsValid() && PrimaryWidget->SupportsKeyboardFocus() && CanEdit();
 }
 
 FReply SPropertyEditorText::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )

@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AnimNode_SkeletalControlBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "BoneIndices.h"
+#include "BoneContainer.h"
+#include "BonePose.h"
+#include "BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "AnimNode_Fabrik.generated.h"
+
+class FPrimitiveDrawInterface;
+class USkeletalMeshComponent;
 
 /**
 *	Controller which implements the FABRIK IK approximation algorithm -  see http://andreasaristidou.com/publications/FABRIK.pdf for details

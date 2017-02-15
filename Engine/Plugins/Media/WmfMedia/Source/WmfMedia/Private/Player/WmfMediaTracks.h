@@ -1,20 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "../WmfMediaPrivate.h"
 #include "IMediaOutput.h"
+#include "IMediaTextureSink.h"
 #include "IMediaTracks.h"
+
+#if WMFMEDIA_SUPPORTED_PLATFORM
+
 #include "AllowWindowsPlatformTypes.h"
 
 
 class FWmfMediaSampler;
 class IMediaAudioSink;
+class IMediaBinarySink;
+class IMediaOptions;
 class IMediaStringSink;
 class IMediaTextureSink;
-enum class EWmfMediaSamplerClockEvent;
+
 enum class EMediaTrackType;
+enum class EWmfMediaSamplerClockEvent;
 
 
+/**
+ * Implements the track collection for Windows Media Framework based media players.
+ */
 class FWmfMediaTracks
 	: public IMediaOutput
 	, public IMediaTracks
@@ -28,7 +39,7 @@ class FWmfMediaTracks
 		TComPtr<IMFMediaType> OutputType;
 		bool Protected;
 		TComPtr<FWmfMediaSampler> Sampler;
-		DWORD StreamIndex;	
+		DWORD StreamIndex;
 	};
 	
 	struct FAudioTrack : public FStreamInfo
@@ -36,6 +47,10 @@ class FWmfMediaTracks
 		uint32 BitsPerSample;
 		uint32 NumChannels;
 		uint32 SampleRate;
+	};
+
+	struct FBinaryTrack : public FStreamInfo
+	{
 	};
 	
 	struct FCaptionTrack : public FStreamInfo
@@ -45,9 +60,9 @@ class FWmfMediaTracks
 	struct FVideoTrack : public FStreamInfo
 	{
 		uint32 BitRate;
-		FIntPoint Dimensions;
+		FIntPoint BufferDim;
 		float FrameRate;
-		uint32 Pitch;
+		FIntPoint OutputDim;
 		EMediaTextureSinkFormat SinkFormat;
 	};
 	
@@ -112,6 +127,7 @@ public:
 	//~ IMediaOutput interface
 
 	virtual void SetAudioSink(IMediaAudioSink* Sink) override;
+	virtual void SetMetadataSink(IMediaBinarySink* Sink) override;
 	virtual void SetOverlaySink(IMediaOverlaySink* Sink) override;
 	virtual void SetVideoSink(IMediaTextureSink* Sink) override;
 
@@ -155,11 +171,11 @@ protected:
 	/** Initialize the current audio sink. */
 	void InitializeAudioSink();
 
+	/** Initialize the current metadata sink. */
+	void InitializeMetadataSink();
+
 	/** Initialize the current text overlay sink. */
 	void InitializeOverlaySink();
-
-	/** Initialize the current subtitle sink. */
-	void InitializeSubtitleSink();
 
 	/** Initialize the current video sink. */
 	void InitializeVideoSink();
@@ -177,6 +193,9 @@ private:
 	/** The currently used audio sink. */
 	IMediaAudioSink* AudioSink;
 
+	/** The currently used metadata sink. */
+	IMediaBinarySink* MetadataSink;
+
 	/** The currently used text overlay sink. */
 	IMediaOverlaySink* OverlaySink;
 
@@ -188,6 +207,9 @@ private:
 	/** The available audio tracks. */
 	TArray<FAudioTrack> AudioTracks;
 
+	/** The available binary tracks. */
+	TArray<FBinaryTrack> BinaryTracks;
+
 	/** The available caption tracks. */
 	TArray<FCaptionTrack> CaptionTracks;
 
@@ -198,6 +220,9 @@ private:
 
 	/** Index of the selected audio track. */
 	int32 SelectedAudioTrack;
+
+	/** Index of the selected binary track. */
+	int32 SelectedBinaryTrack;
 
 	/** Index of the selected caption track. */
 	int32 SelectedCaptionTrack;
@@ -222,3 +247,5 @@ private:
 
 
 #include "HideWindowsPlatformTypes.h"
+
+#endif

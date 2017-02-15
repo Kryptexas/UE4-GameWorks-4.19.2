@@ -1,20 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
    DebugCameraController.cpp: Native implementation for the debug camera
 
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "GameFramework/PawnMovementComponent.h"
+#include "Engine/DebugCameraController.h"
+#include "EngineGlobals.h"
+#include "CollisionQueryParams.h"
+#include "Engine/World.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Engine/Engine.h"
+#include "Engine/Player.h"
+#include "EngineUtils.h"
 #include "GameFramework/SpectatorPawn.h"
 #include "GameFramework/SpectatorPawnMovement.h"
 #include "Engine/DebugCameraHUD.h"
 #include "LightMap.h"
-#include "Engine/DebugCameraController.h"
 #include "Components/DrawFrustumComponent.h"
 #include "GameFramework/PlayerInput.h"
-#include "GameFramework/GameState.h"
+#include "GameFramework/GameStateBase.h"
 
 /** The currently selected actor. */
 AActor* GDebugSelectedActor = NULL;

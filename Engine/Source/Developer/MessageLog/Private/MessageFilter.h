@@ -1,5 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+
+struct FSlateBrush;
+enum class ECheckBoxState : uint8;
 
 /**
  * Represents a message log attribute that can be filtered.

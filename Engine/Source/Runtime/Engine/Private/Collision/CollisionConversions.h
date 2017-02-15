@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Utilities to convert from PhysX result structs to Unreal ones
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "EngineDefines.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "PhysicsPublic.h"
+#include "PhysXIncludes.h"
+
 #if WITH_PHYSX
 
-#include "../PhysicsEngine/PhysXSupport.h"
 
 enum class EConvertQueryResult
 {

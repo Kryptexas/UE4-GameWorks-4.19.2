@@ -1,29 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
 
+[SupportedPlatforms(UnrealPlatformClass.Desktop)]
 public class UnrealLightmassTarget : TargetRules
 {
 	public UnrealLightmassTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Modular;
 		AdditionalPlugins.Add("UdpMessaging");
 	}
 
 	//
 	// TargetRules interface.
 	//
-
-	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-	{
-		return UnrealBuildTool.UnrealBuildTool.GetAllDesktopPlatforms(ref OutPlatforms, false);
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return false;
-	}
 
 	public override void SetupBinaries(
 		TargetInfo Target,

@@ -1,8 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "MovieSceneMarginSection.h"
-#include "MovieSceneMarginTrack.h"
+#include "Animation/MovieSceneMarginSection.h"
 
 UMovieSceneMarginSection::UMovieSceneMarginSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
@@ -112,15 +110,6 @@ void UMovieSceneMarginSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
 	{
 		BottomCurve.SetKeyTime( KeyHandle, Time );
 	}
-}
-
-
-FMargin UMovieSceneMarginSection::Eval( float Position, const FMargin& DefaultValue ) const
-{
-	return FMargin(	LeftCurve.Eval(Position, DefaultValue.Left),
-					TopCurve.Eval(Position, DefaultValue.Top),
-					RightCurve.Eval(Position, DefaultValue.Right),
-					BottomCurve.Eval(Position, DefaultValue.Bottom));
 }
 
 

@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HTML5Misc.cpp: HTML5 implementations of misc functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "HTML5PlatformMisc.h"
 #include "HTML5Application.h"
+#include "HTML5PlatformProcess.h"
 
 #if PLATFORM_HTML5_BROWSER
 #include "HTML5JavaScriptFx.h"
@@ -17,8 +18,10 @@ THIRD_PARTY_INCLUDES_START
 	#include "unicode/locid.h"
 THIRD_PARTY_INCLUDES_END
 #include "GenericPlatformCrashContext.h"
-#include <SDL.h>
-#include <ctime>
+THIRD_PARTY_INCLUDES_START
+	#include <SDL.h>
+	#include <ctime>
+THIRD_PARTY_INCLUDES_END
 
 #include "MapPakDownloaderModule.h"
 #include "MapPakDownloader.h"

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalMeshMerge.h: Merging of unreal skeletal mesh objects.
@@ -9,6 +9,18 @@ FSkeletalMeshMerge
 -----------------------------------------------------------------------------*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "ReferenceSkeleton.h"
+#include "SkeletalMeshTypes.h"
+
+class FStaticLODModel;
+class UMaterialInterface;
+class USkeletalMesh;
+class USkeletalMeshSocket;
+class USkeleton;
+struct FSkelMeshSection;
 
 struct FRefPoseOverride
 {
@@ -230,7 +242,7 @@ private:
 	* Creates a new LOD model and adds the new merged sections to it. Modifies the MergedMesh.
 	* @param LODIdx - current LOD to process
 	*/
-	template<typename VertexDataType>
+	template<typename VertexDataType, typename SkinWeightType>
 	void GenerateLODModel( int32 LODIdx );
 
 	/**
@@ -306,8 +318,12 @@ private:
 	void OverrideMergedSockets(const TArray<FRefPoseOverride>& PoseOverrides);
 
 	/*
-	 * Copy Vertex Buffer from Source LOD Model - templatized per SourceLODModel extra bone influence
+	 * Copy Vertex Buffer from Source LOD Model
 	 */
-	template<typename VertexDataType, bool bHasExtraBoneInfluences>
+	template<typename VertexDataType>
 	void CopyVertexFromSource(VertexDataType& DestVert, const FStaticLODModel& SrcLODModel, int32 SourceVertIdx, const FMergeSectionInfo& MergeSectionInfo);
+
+	/** Copy skin weight info from source LOD model - templatized per SourceLODModel extra bone influence */
+	template<typename SkinWeightType, bool bHasExtraBoneInfluences>
+	void CopyWeightFromSource(SkinWeightType& DestWeight, const FStaticLODModel& SrcLODModel, int32 SourceVertIdx, const FMergeSectionInfo& MergeSectionInfo);
 };

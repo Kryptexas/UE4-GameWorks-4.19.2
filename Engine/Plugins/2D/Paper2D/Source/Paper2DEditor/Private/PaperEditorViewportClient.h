@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SceneViewport.h"
-#include "AssetEditorModeManager.h"
+#include "CoreMinimal.h"
+#include "EditorViewportClient.h"
+#include "SEditorViewport.h"
+
+class FCanvas;
 
 struct FViewportSelectionRectangle
 {

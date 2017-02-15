@@ -1,6 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Framework/Commands/Commands.h"
+#include "EditorStyleSet.h"
 
 class FSequencerCommands : public TCommands<FSequencerCommands>
 {
@@ -66,6 +70,9 @@ public:
 	/** Zoom out of the view range */
 	TSharedPtr< FUICommandInfo > ZoomOutViewRange;
 
+	/** Toggle locking the playback range. */
+	TSharedPtr< FUICommandInfo > TogglePlaybackRangeLocked;
+
 	/** Forces playback both in editor and at runtime to be evaluated at fixed frame intervals. */
 	TSharedPtr< FUICommandInfo > ToggleForceFixedFrameIntervalPlayback;
 
@@ -98,6 +105,12 @@ public:
 
 	/** Select all keys that fall into the selection range*/
 	TSharedPtr< FUICommandInfo > SelectKeysInSelectionRange;
+
+	/** Select all sections that fall into the selection range*/
+	TSharedPtr< FUICommandInfo > SelectSectionsInSelectionRange;
+
+	/** Select all keys and sections that fall into the selection range*/
+	TSharedPtr< FUICommandInfo > SelectAllInSelectionRange;
 
 	/** Sets a key at the current time for the selected actor */
 	TSharedPtr< FUICommandInfo > SetKey;
@@ -143,6 +156,9 @@ public:
 
 	/** Toggle the visibility of the goto box. */
 	TSharedPtr< FUICommandInfo > ToggleShowGotoBox;
+
+	/** Toggle the visibility of the transform box. */
+	TSharedPtr< FUICommandInfo > ToggleShowTransformBox;
 
 	/** Turns the range slider on and off. */
 	TSharedPtr< FUICommandInfo > ToggleShowRangeSlider;
@@ -216,6 +232,12 @@ public:
 	/** Convert the selected spawnable objects to possessables. The newly created possessables will be created in the current level. */
 	TSharedPtr< FUICommandInfo > ConvertToPossessable;
 
+	/** Saves the current state of this object as the default spawnable state. */
+	TSharedPtr< FUICommandInfo > SaveCurrentSpawnableState;
+
+	/** Restores all animated state for the current sequence. */
+	TSharedPtr< FUICommandInfo > RestoreAnimatedState;
+
 	/** Discard all changes to the current movie scene. */
 	TSharedPtr< FUICommandInfo > DiscardChanges;
 
@@ -233,6 +255,9 @@ public:
 
 	/** Exports animation to fbx. */
 	TSharedPtr< FUICommandInfo > ExportFBX;
+
+	/** Toggle whether we should evaluate sub sequences in isolation */
+	TSharedPtr< FUICommandInfo > ToggleEvaluateSubSequencesInIsolation;
 
 	/**
 	 * Initialize commands

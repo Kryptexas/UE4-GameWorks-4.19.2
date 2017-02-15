@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Class.h: UClass definition.
@@ -6,9 +6,23 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "Object.h"
-#include "GarbageCollection.h"
+#include "CoreMinimal.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Math/RandomStream.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/CoreNative.h"
+#include "Templates/HasGetTypeHash.h"
+#include "Templates/IsEnum.h"
+
+struct FCustomPropertyListNode;
+struct FFrame;
+struct FNetDeltaSerializeInfo;
+struct FObjectInstancingGraph;
+struct FPropertyTag;
 
 /*-----------------------------------------------------------------------------
 	Mirrors of mirror structures in Object.h. These are used by generated code 
@@ -746,6 +760,22 @@ FORCEINLINE typename TEnableIf<TStructOpsTypeTraits<CPPSTRUCT>::WithSerializeFro
 
 
 /**
+ * Selection of GetTypeHash call.
+ */
+template<class CPPSTRUCT>
+FORCEINLINE typename TEnableIf<!THasGetTypeHash<CPPSTRUCT>::Value, uint32>::Type GetTypeHashOrNot(const CPPSTRUCT *Data)
+{
+	return 0;
+}
+
+template<class CPPSTRUCT>
+FORCEINLINE typename TEnableIf<THasGetTypeHash<CPPSTRUCT>::Value, uint32>::Type GetTypeHashOrNot(const CPPSTRUCT *Data)
+{
+	return GetTypeHash(*Data);
+}
+
+
+/**
  * Reflection data for a structure.
  */
 class UScriptStruct : public UStruct
@@ -868,6 +898,14 @@ public:
 		**/
 		virtual bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar, void *Data) = 0;
 
+		/** return true if this struct has a GetTypeHash */
+		virtual bool HasGetTypeHash() = 0;
+
+		/** Calls GetTypeHash if enabled */
+		virtual uint32 GetTypeHash(const void* Src) = 0;
+
+		/** Returns property flag values that can be computed at compile time */
+		virtual uint64 GetComputedPropertyFlags() const = 0;
 	private:
 		/** sizeof() of the structure **/
 		const int32 Size;
@@ -1002,6 +1040,23 @@ public:
 		{
 			check(TTraits::WithSerializeFromMismatchedTag); // don't call this if we have indicated it is not allowed
 			return SerializeFromMismatchedTagOrNot(Tag, Ar, (CPPSTRUCT*)Data);
+		}
+		virtual bool HasGetTypeHash() override
+		{
+			return THasGetTypeHash<CPPSTRUCT>::Value;
+		}
+		uint32 GetTypeHash(const void* Src) override
+		{
+			ensure(HasGetTypeHash());
+			return GetTypeHashOrNot((const CPPSTRUCT*)Src);
+		}
+		virtual uint64 GetComputedPropertyFlags() const override
+		{
+			return 
+				(TIsPODType<CPPSTRUCT>::Value ? CPF_IsPlainOldData : 0) 
+				| (TIsTriviallyDestructible<CPPSTRUCT>::Value ? CPF_NoDestructor : 0) 
+				| (TIsZeroConstructType<CPPSTRUCT>::Value ? CPF_ZeroConstructor : 0)
+				| (THasGetTypeHash<CPPSTRUCT>::Value ? CPF_HasGetValueTypeHash : 0);;
 		}
 	};
 
@@ -1179,9 +1234,20 @@ public:
 	 */
 	COREUOBJECT_API void ClearScriptStruct(void* Dest, int32 ArrayDim = 1) const;
 
+	/**
+	 * Calls GetTypeHash for native structs, otherwise computes a hash of all struct members
+	 * 
+	 * @param Src		Pointer to instance to hash
+	 * @return hashed value of Src
+	 */
+	virtual COREUOBJECT_API uint32 GetStructTypeHash(const void* Src) const;
+
 	virtual COREUOBJECT_API void RecursivelyPreload();
 
 	virtual COREUOBJECT_API FGuid GetCustomGuid() const;
+	
+	/** Returns the (native, c++) name of the struct */
+	virtual COREUOBJECT_API FString GetStructCPPName() const;
 
 #if WITH_EDITOR
 	/**
@@ -1313,7 +1379,7 @@ public:
 	{
 		//@TODO: UCREMOVAL: CPF_ConstParm added as a hack to get blueprints compiling with a const DamageType parameter.
 		const uint64 IgnoreFlags = CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference 
-			| CPF_ContainsInstancedReference | CPF_ComputedFlags | CPF_ConstParm | CPF_HasGetValueTypeHash | CPF_UObjectWrapper
+			| CPF_ContainsInstancedReference | CPF_ComputedFlags | CPF_ConstParm | CPF_UObjectWrapper
 			| CPF_NativeAccessSpecifiers | CPF_AdvancedDisplay;
 		return IgnoreFlags;
 	}
@@ -1355,12 +1421,21 @@ public:
 	UEnum.
 -----------------------------------------------------------------------------*/
 
+typedef FText(*FEnumDisplayNameFn)(int32);
+
 //
 // Reflection data for an enumeration.
 //
 class COREUOBJECT_API UEnum : public UField
 {
-	DECLARE_CASTED_CLASS_INTRINSIC_WITH_API(UEnum, UField, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UEnum, NO_API)
+	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UEnum, UField, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UEnum, NO_API)
+	UEnum(const FObjectInitializer& ObjectInitialzer);
+
+	/** Associate a function for looking up Enum display names by index, only intended for use by generated code: */
+	void SetEnumDisplayNameFn(FEnumDisplayNameFn InEnumDisplayNameFn)
+	{ 
+		EnumDisplayNameFn = InEnumDisplayNameFn; 
+	}
 
 public:
 	enum class ECppForm
@@ -1374,25 +1449,25 @@ public:
 	FString CppType;
 
 	/** Gets enum name by index in Names array. Returns NAME_None if Index is not valid. */
-	FName GetNameByIndex(uint8 Index) const;
-		
+	FName GetNameByIndex(int32 Index) const;
+
 	/** Gets enum value by index in Names array. */
-	uint8 GetValueByIndex(uint8 Index) const;
+	int64 GetValueByIndex(int32 Index) const;
 
 	/** Gets enum name by value. Returns NAME_None if value is not found. */
-	FName GetNameByValue(uint8 InValue) const;
-		
+	FName GetNameByValue(int64 InValue) const;
+
 	/** Gets enum value by name. Returns INDEX_NONE when name is not found. */
-	int32 GetValueByName(FName InName) const;
+	int64 GetValueByName(FName InName) const;
 
 	/** Gets index of name in enum. Returns INDEX_NONE when name is not found. */
 	int32 GetIndexByName(FName InName) const;
 
 	/** Gets max value of Enum. Defaults to zero if there are no entries. */
-	uint8 GetMaxEnumValue() const;
+	int64 GetMaxEnumValue() const;
 
 	/** Checks if enum has entry with given value. Includes autogenerated _MAX entry. */
-	bool IsValidEnumValue(uint8 InValue) const;
+	bool IsValidEnumValue(int64 InValue) const;
 
 	/** Checks if enum has entry with given name. Includes autogenerated _MAX entry. */
 	bool IsValidEnumName(FName InName) const;
@@ -1400,10 +1475,13 @@ public:
 protected:
 	// Variables.
 	/** List of pairs of all enum names and values. */
-	TArray<TPair<FName, uint8>> Names;
+	TArray<TPair<FName, int64>> Names;
 
 	/** How the enum was originally defined. */
 	ECppForm CppForm;
+
+	/** pointer to function used to look up the enum's display name. Currently only assigned for UEnums generated for nativized blueprints */
+	FEnumDisplayNameFn EnumDisplayNameFn;
 
 	/** global list of all value names used by all enums in memory, used for property text import */
 	static TMap<FName, UEnum*> AllEnumNames;
@@ -1426,7 +1504,7 @@ public:
 	/*
 	 *	Try to update an out-of-date enum index after an enum's change
 	 */
-	virtual int32 ResolveEnumerator(FArchive& Ar, int32 EnumeratorIndex) const;
+	virtual int64 ResolveEnumerator(FArchive& Ar, int64 EnumeratorIndex) const;
 
 	/**
 	 * Returns the type of enum: whether it's a regular enum, namespaced enum or C++11 enum class.
@@ -1469,7 +1547,7 @@ public:
 	/** searches the list of all enum value names for the specified name
 	 * @return the value the specified name represents if found, otherwise INDEX_NONE
 	 */
-	static int32 LookupEnumName(FName TestName, UEnum** FoundEnum = nullptr)
+	static int64 LookupEnumName(FName TestName, UEnum** FoundEnum = nullptr)
 	{
 		UEnum* TheEnum = AllEnumNames.FindRef(TestName);
 		if (FoundEnum != nullptr)
@@ -1482,10 +1560,10 @@ public:
 	/** searches the list of all enum value names for the specified name
 	 * @return the value the specified name represents if found, otherwise INDEX_NONE
 	 */
-	static int32 LookupEnumNameSlow(const TCHAR* InTestShortName, UEnum** FoundEnum = NULL)
+	static int64 LookupEnumNameSlow(const TCHAR* InTestShortName, UEnum** FoundEnum = NULL)
 	{
-		int32 EnumIndex = LookupEnumName(InTestShortName, FoundEnum);
-		if (EnumIndex == INDEX_NONE)
+		int64 Result = LookupEnumName(InTestShortName, FoundEnum);
+		if (Result == INDEX_NONE)
 		{
 			FString TestShortName = FString(TEXT("::")) + InTestShortName;
 			UEnum* TheEnum = NULL;
@@ -1500,16 +1578,16 @@ public:
 			{
 				*FoundEnum = TheEnum;
 			}
-			EnumIndex = (TheEnum != NULL) ? TheEnum->GetValueByName(InTestShortName) : INDEX_NONE;
+			Result = (TheEnum != NULL) ? TheEnum->GetValueByName(InTestShortName) : INDEX_NONE;
 		}
-		return EnumIndex;
+		return Result;
 	}
 
 	/** parses the passed in string for a name, then searches for that name in any Enum (in any package)
 	 * @param Str	pointer to string to parse; if we successfully find an enum, this pointer is advanced past the name found
 	 * @return index of the value the parsed enum name matches, or INDEX_NONE if no matches
 	 */
-	static int32 ParseEnum(const TCHAR*& Str);
+	static int64 ParseEnum(const TCHAR*& Str);
 
 	/**
 	 * Sets the array of enums.
@@ -1519,7 +1597,7 @@ public:
 	 * @param bAddMaxKeyIfMissing Should a default Max item be added.
 	 * @return	true unless the MAX enum already exists and isn't the last enum.
 	 */
-	virtual bool SetEnums(TArray<TPair<FName, uint8>>& InNames, ECppForm InCppForm, bool bAddMaxKeyIfMissing = true);
+	virtual bool SetEnums(TArray<TPair<FName, int64>>& InNames, ECppForm InCppForm, bool bAddMaxKeyIfMissing = true);
 
 	/**
 	 * @return	The enum name at the specified Index.
@@ -1533,7 +1611,7 @@ public:
 		return NAME_None;
 	}
 
-	int32 GetIndexByValue(int32 Value) const
+	int32 GetIndexByValue(int64 Value) const
 	{
 		for (int32 i = 0; i < Names.Num(); ++i)
 		{
@@ -1545,7 +1623,7 @@ public:
 
 		return INDEX_NONE;
 	}
-	FString GetEnumNameStringByValue(int32 Value) const
+	FString GetEnumNameStringByValue(int64 Value) const
 	{
 		int32 Index = GetIndexByValue(Value);
 		return GetEnumName(Index);
@@ -1556,7 +1634,7 @@ public:
 	 */
 	FString GetEnumName(int32 InIndex) const;
 
-	FText GetEnumTextByValue(int32 Value)
+	FText GetEnumTextByValue(int64 Value)
 	{
 		int32 Index = GetIndexByValue(Value);
 		return GetEnumText(Index);
@@ -1596,8 +1674,8 @@ public:
 	 *
 	 * @return The display name for this object.
 	 */
-	FText GetDisplayNameText(int32 NameIndex=INDEX_NONE) const;
-	FText GetDisplayNameTextByValue(int32 Value = INDEX_NONE) const;
+	virtual FText GetDisplayNameText(int32 NameIndex=INDEX_NONE) const;
+	FText GetDisplayNameTextByValue(int64 Value = INDEX_NONE) const;
 
 	/**
 	 * Finds the localized tooltip or native tooltip as a fallback.
@@ -1660,55 +1738,61 @@ public:
 
 
 	/**
-	 * @param EnumPath	- Full enum path
-	 * @param EnumValue - Enum value
+	 * @param EnumPath         Full enum path.
+	 * @param EnumeratorIndex  Enumerator index.
 	 *
-	 * @return the string associated with the specified enum value for the enum specified by a path
+	 * Note: Despite the name, this function actually uses the enumerator at a given index.  If the
+	 *       enum is not zero-based or is non-consecutive, this will give surprising results.
+	 *
+	 * @return the string associated with the enumerator at a given index for the enum specified by a path.
 	 */
 	template <typename T>
-	FORCEINLINE static FString GetValueAsString( const TCHAR* EnumPath, const T EnumValue )
+	FORCEINLINE static FString GetValueAsString( const TCHAR* EnumPath, const T EnumeratorIndex )
 	{
 		// For the C++ enum.
 		static_assert(TIsEnum<T>::Value, "Should only call this with enum types");
-		return GetValueAsString_Internal(EnumPath, (int32)EnumValue);
+		return GetIndexAsString_Internal(EnumPath, (int32)EnumeratorIndex);
 	}
 
 	template <typename T>
-	FORCEINLINE static FString GetValueAsString( const TCHAR* EnumPath, const TEnumAsByte<T> EnumValue )
+	FORCEINLINE static FString GetValueAsString( const TCHAR* EnumPath, const TEnumAsByte<T> EnumeratorIndex )
 	{
-		return GetValueAsString_Internal(EnumPath, (int32)EnumValue.GetValue());
+		return GetIndexAsString_Internal(EnumPath, (int32)EnumeratorIndex.GetValue());
 	}
 
 	template< class T >
-	FORCEINLINE static void GetValueAsString( const TCHAR* EnumPath, const T EnumValue, FString& out_StringValue )
+	FORCEINLINE static void GetValueAsString( const TCHAR* EnumPath, const T EnumeratorIndex, FString& out_StringValue )
 	{
-		out_StringValue = GetValueAsString( EnumPath, EnumValue );
+		out_StringValue = GetValueAsString( EnumPath, EnumeratorIndex );
 	}
 
 	/**
-	 * @param EnumPath	- Full enum path
-	 * @param EnumValue - Enum value
+	 * @param EnumPath         Full enum path.
+	 * @param EnumeratorIndex  Enumerator index.
+	 *
+	 * Note: Despite the name, this function actually uses the enumerator at a given index.  If the
+	 *       enum is not zero-based or is non-consecutive, this will give surprising results.
 	 *
 	 * @return the localized display string associated with the specified enum value for the enum specified by a path
 	 */
 	template <typename T>
-	FORCEINLINE static FText GetDisplayValueAsText( const TCHAR* EnumPath, const T EnumValue )
+	FORCEINLINE static FText GetDisplayValueAsText( const TCHAR* EnumPath, const T EnumeratorIndex )
 	{
 		// For the C++ enum.
 		static_assert(TIsEnum<T>::Value, "Should only call this with enum types");
-		return GetDisplayValueAsText_Internal(EnumPath, (int32)EnumValue);
+		return GetDisplayIndexAsText_Internal(EnumPath, (int32)EnumeratorIndex);
 	}
 
 	template <typename T>
-	FORCEINLINE static FText GetDisplayValueAsText( const TCHAR* EnumPath, const TEnumAsByte<T> EnumValue )
+	FORCEINLINE static FText GetDisplayValueAsText( const TCHAR* EnumPath, const TEnumAsByte<T> EnumeratorIndex )
 	{
-		return GetDisplayValueAsText_Internal(EnumPath, (int32)EnumValue.GetValue());
+		return GetDisplayIndexAsText_Internal(EnumPath, (int32)EnumeratorIndex.GetValue());
 	}
 
 	template< class T >
-	FORCEINLINE static void GetDisplayValueAsText( const TCHAR* EnumPath, const T EnumValue, FText& out_TextValue )
+	FORCEINLINE static void GetDisplayValueAsText( const TCHAR* EnumPath, const T EnumeratorIndex, FText& out_TextValue )
 	{
-		out_TextValue = GetDisplayValueAsText( EnumPath, EnumValue );
+		out_TextValue = GetDisplayValueAsText( EnumPath, EnumeratorIndex );
 	}
 
 private:
@@ -1718,18 +1802,18 @@ private:
 	static TMap<FName,TMap<FString,FString> > EnumSubstringRedirects;
 	static void InitEnumRedirectsMap();
 
-	FORCEINLINE static FString GetValueAsString_Internal( const TCHAR* EnumPath, const int32 Value )
+	FORCEINLINE static FString GetIndexAsString_Internal( const TCHAR* EnumPath, const int32 Index )
 	{
 		UEnum* EnumClass = FindObject<UEnum>( nullptr, EnumPath );
 		UE_CLOG( !EnumClass, LogClass, Fatal, TEXT("Couldn't find enum '%s'"), EnumPath );
-		return EnumClass->GetEnumName(Value);
+		return EnumClass->GetEnumName(Index);
 	}
 
-	FORCEINLINE static FText GetDisplayValueAsText_Internal( const TCHAR* EnumPath, const int32 Value )
+	FORCEINLINE static FText GetDisplayIndexAsText_Internal( const TCHAR* EnumPath, const int32 EnumeratorIndex )
 	{
 		UEnum* EnumClass = FindObject<UEnum>(nullptr, EnumPath);
 		UE_CLOG(!EnumClass, LogClass, Fatal, TEXT("Couldn't find enum '%s'"), EnumPath);
-		return EnumClass->GetEnumText(Value);
+		return EnumClass->GetEnumText(EnumeratorIndex);
 	}
 
 	/**
@@ -1779,7 +1863,6 @@ struct COREUOBJECT_API FImplementedInterface
 	friend COREUOBJECT_API FArchive& operator<<(FArchive& Ar, FImplementedInterface& A);
 };
 
-#include "CoreNative.h"
 
 /** A struct that maps a string name to a native function */
 struct FNativeFunctionLookup
@@ -1989,11 +2072,15 @@ public:
 
 	/** Reference token stream used by realtime garbage collector, finalized in AssembleReferenceTokenStream */
 	FGCReferenceTokenStream ReferenceTokenStream;
+	/** CS for the token stream. Token stream can assemble code can sometimes be called from two threads throuh a web of async loading calls. */
+	FCriticalSection ReferenceTokenStreamCritical;
 
 #if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
 	/* TokenIndex map to look-up token stream index origin. */
 	FGCDebugReferenceTokenMap DebugTokenMap;
 #endif
+
+	
 
 	/** This class's native functions. */
 	TArray<FNativeFunctionLookup> NativeFunctionLookupTable;

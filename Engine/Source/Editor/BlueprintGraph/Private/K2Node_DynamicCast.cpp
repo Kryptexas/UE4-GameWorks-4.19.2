@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_DynamicCast.h"
+#include "UObject/Interface.h"
+#include "Engine/Blueprint.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EdGraphSchema_K2.h"
 
 #include "BlueprintEditorSettings.h"
+#include "Kismet2/CompilerResultsLog.h"
 #include "DynamicCastHandler.h"
 #include "EditorCategoryUtils.h"
-#include "KismetEditorUtilities.h"
+#include "Kismet2/KismetEditorUtilities.h"
 #include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_DynamicCast"
@@ -401,11 +407,12 @@ void UK2Node_DynamicCast::ValidateNodeDuringCompilation(FCompilerResultsLog& Mes
 	UEdGraphPin* SourcePin = GetCastSourcePin();
 	if (SourcePin->LinkedTo.Num() > 0)
 	{
-		const UClass* SourceType = *TargetType;
+		UClass* SourceType = *TargetType;
 		if (SourceType == nullptr)
 		{
 			return;
 		}
+		SourceType = SourceType->GetAuthoritativeClass();
 
 		for (UEdGraphPin* CastInput : SourcePin->LinkedTo)
 		{
@@ -434,20 +441,21 @@ void UK2Node_DynamicCast::ValidateNodeDuringCompilation(FCompilerResultsLog& Mes
 
 				continue;
 			}
+			SourceClass = SourceClass->GetAuthoritativeClass();
 
 			if (SourceClass == SourceType)
 			{
 				const FString SourcePinName = CastInput->PinFriendlyName.IsEmpty() ? CastInput->PinName : CastInput->PinFriendlyName.ToString();
 
 				FText const WarningFormat = LOCTEXT("EqualObjectCast", "'%s' is already a '%s', you don't need @@.");
-				MessageLog.Warning( *FString::Printf(*WarningFormat.ToString(), *SourcePinName, *TargetType->GetDisplayNameText().ToString()), this );
+				MessageLog.Note( *FString::Printf(*WarningFormat.ToString(), *SourcePinName, *TargetType->GetDisplayNameText().ToString()), this );
 			}
 			else if (SourceClass->IsChildOf(SourceType))
 			{
 				const FString SourcePinName = CastInput->PinFriendlyName.IsEmpty() ? CastInput->PinName : CastInput->PinFriendlyName.ToString();
 
 				FText const WarningFormat = LOCTEXT("UnneededObjectCast", "'%s' is already a '%s' (which inherits from '%s'), so you don't need @@.");
-				MessageLog.Warning( *FString::Printf(*WarningFormat.ToString(), *SourcePinName, *SourceClass->GetDisplayNameText().ToString(), *TargetType->GetDisplayNameText().ToString()), this );
+				MessageLog.Note( *FString::Printf(*WarningFormat.ToString(), *SourcePinName, *SourceClass->GetDisplayNameText().ToString(), *TargetType->GetDisplayNameText().ToString()), this );
 			}
 			else if (!SourceType->IsChildOf(SourceClass) && !FKismetEditorUtilities::IsClassABlueprintInterface(SourceType))
 			{

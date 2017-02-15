@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2637589
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:3. 입력에 반응하는 C++ 코드 작성
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
@@ -159,7 +159,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**PawnWithCamera.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -205,7 +205,7 @@ version:4.9
 			};
 
 		**PawnWithCamera.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerCamera.h"
 			#include "PawnWithCamera.h"
@@ -219,13 +219,13 @@ version:4.9
 				//Create our components
 				RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 				OurCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
-				OurCameraSpringArm->AttachTo(RootComponent);
+				OurCameraSpringArm->SetupAttachment(RootComponent);
 				OurCameraSpringArm->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f));
 				OurCameraSpringArm->TargetArmLength = 400.f;
 				OurCameraSpringArm->bEnableCameraLag = true;
 				OurCameraSpringArm->CameraLagSpeed = 3.0f;
 				OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("GameCamera"));
-				OurCamera->AttachTo(OurCameraSpringArm, USpringArmComponent::SocketName);
+				OurCamera->SetupAttachment(OurCameraSpringArm, USpringArmComponent::SocketName);
 
 				//Take control of the default Player
 				AutoPossessPlayer = EAutoReceiveInput::Player0;

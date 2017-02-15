@@ -1,13 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FileServerCommandlet.h: Declares the UFileServerCommandlet class.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 #include "Commandlets/Commandlet.h"
 #include "FileServerCommandlet.generated.h"
-
 
 /**
  * Implements a file server commandlet.

@@ -1,7 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "HAL/PlatformAtomics.h"
+#include "HAL/PlatformMisc.h"
 
 /**
  * Template for triple buffers.

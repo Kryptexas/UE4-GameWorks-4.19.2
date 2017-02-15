@@ -1,12 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleModuleAccelerationDrag: Drag coefficient.
 ==============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Distributions/DistributionFloat.h"
 #include "Particles/Acceleration/ParticleModuleAccelerationBase.h"
 #include "ParticleModuleAccelerationDrag.generated.h"
+
+class UParticleLODLevel;
+struct FParticleEmitterInstance;
 
 UCLASS(editinlinenew, hidecategories=(Object, Acceleration), MinimalAPI, meta=(DisplayName = "Drag"))
 class UParticleModuleAccelerationDrag : public UParticleModuleAccelerationBase

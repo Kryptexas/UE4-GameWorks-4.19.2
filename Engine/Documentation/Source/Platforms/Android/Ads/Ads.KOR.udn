@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2945303
+﻿INTSourceChangelist:3150518
 Title: 안드로이드에서 Ad Mob 게임내 광고 사용법
 Description:안드로이드에서 AdMob 게임내 광고 시스템을 사용하는 법입니다.
 Crumbs:
@@ -7,7 +7,7 @@ version:4.10
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
-type:howto
+type:how-to
 
 [VAR:Topic]
 [OBJECT:Topic]

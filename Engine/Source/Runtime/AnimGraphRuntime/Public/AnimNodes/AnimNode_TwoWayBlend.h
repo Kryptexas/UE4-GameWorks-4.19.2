@@ -1,14 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Animation/AnimNodeBase.h"
 #include "Animation/InputScaleBias.h"
 #include "AnimNode_TwoWayBlend.generated.h"
 
 // This represents a baked transition
 USTRUCT()
-struct ANIMGRAPHRUNTIME_API FAnimationNode_TwoWayBlend : public FAnimNode_Base
+struct ANIMGRAPHRUNTIME_API FAnimNode_TwoWayBlend : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()
 public:
@@ -25,9 +27,24 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings)
 	FInputScaleBias AlphaScaleBias;
 
+protected:
+	UPROPERTY(Transient)
+	mutable float InternalBlendAlpha;
+
+	UPROPERTY(Transient)
+	mutable bool bAIsRelevant;
+
+	UPROPERTY(Transient)
+	mutable bool bBIsRelevant;
+
+	/** This reinitializes child pose when re-activated. For example, when active child changes */
+	UPROPERTY(EditAnywhere, Category = Option)
+	bool bResetChildOnActivation;
+
 public:
-	FAnimationNode_TwoWayBlend()
+	FAnimNode_TwoWayBlend()
 		: Alpha(0.0f)
+		, bResetChildOnActivation(false)
 	{
 	}
 

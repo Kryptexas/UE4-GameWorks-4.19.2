@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "BlueprintEditor.h"
+#include "CoreMinimal.h"
+#include "Input/DragAndDrop.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "EdGraphSchema_K2_Actions.h"
+#include "GraphEditorDragDropAction.h"
 #include "BPVariableDragDropAction.h"
+
+class UEdGraph;
 
 /** DragDropAction class for dropping a Variable onto a graph */
 class KISMET_API FKismetDelegateDragDropAction : public FKismetVariableDragDropAction

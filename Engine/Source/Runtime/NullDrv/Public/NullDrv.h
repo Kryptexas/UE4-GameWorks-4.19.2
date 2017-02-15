@@ -1,12 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 // Dependencies.
-#include "Core.h"
+
+#include "CoreMinimal.h"
 #include "RHI.h"
 #include "NullRHI.h"
-
 
 /** Implements the NullDrv module as a dynamic RHI providing module. */
 class FNullDynamicRHIModule

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -29,8 +29,6 @@ public class WebRTC : ModuleRules
 
 		if (bShouldUseWebRTC)
 		{
-			Definitions.Add("WITH_XMPP_JINGLE=1");
-
 			string VS2013Friendly_WebRtcSdkPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "WebRTC/VS2013_friendly";
 			string LinuxTrunk_WebRtcSdkPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "WebRTC/sdk_trunk_linux";
 

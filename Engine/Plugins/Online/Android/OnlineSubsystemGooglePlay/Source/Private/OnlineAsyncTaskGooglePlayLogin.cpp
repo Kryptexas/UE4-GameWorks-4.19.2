@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemGooglePlayPrivatePCH.h"
 #include "OnlineAsyncTaskGooglePlayLogin.h"
+#include "OnlineSubsystemGooglePlay.h"
 
+THIRD_PARTY_INCLUDES_START
 #include "gpg/builder.h"
 #include "gpg/debug.h"
 #include "gpg/types.h"
+THIRD_PARTY_INCLUDES_END
 
 FOnlineAsyncTaskGooglePlayLogin::FOnlineAsyncTaskGooglePlayLogin(
 	FOnlineSubsystemGooglePlay* InSubsystem,

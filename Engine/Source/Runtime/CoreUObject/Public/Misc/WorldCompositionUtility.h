@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WorldCompositionUtility.h: Support structures for world composition
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
 
 #define WORLDTILE_LOD_PACKAGE_SUFFIX	TEXT("_LOD")
 #define WORLDTILE_LOD_MAX_INDEX			4

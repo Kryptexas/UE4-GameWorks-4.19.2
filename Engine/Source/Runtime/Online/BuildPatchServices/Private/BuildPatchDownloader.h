@@ -1,9 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FBuildPatchDownloader.h: Declares the BuildPatchChunkDownloader
 	that runs a thread to download chunks in it's queue.
 =============================================================================*/
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Misc/Guid.h"
+#include "HAL/Runnable.h"
+#include "Interfaces/IHttpRequest.h"
+#include "BuildPatchProgress.h"
+#include "BuildPatchManifest.h"
+
+enum class EBuildPatchDownloadHealth;
 
 /**
  * FChunkDownloadRecord

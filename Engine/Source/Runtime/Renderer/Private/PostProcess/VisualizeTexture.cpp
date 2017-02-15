@@ -1,17 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VisualizeTexture.cpp: Post processing visualize texture.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "ScreenRendering.h"
-#include "SceneFilterRendering.h"
-#include "VisualizeTexture.h"
-#include "PostProcessing.h"
-#include "PostProcessWeightedSampleSum.h"
+#include "PostProcess/VisualizeTexture.h"
+#include "ShaderParameters.h"
+#include "RHIStaticStates.h"
+#include "Shader.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/App.h"
+#include "CanvasTypes.h"
+#include "UnrealEngine.h"
+#include "PostProcess/RenderTargetPool.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "GlobalShader.h"
+#include "RenderTargetTemp.h"
+#include "ScreenRendering.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessing.h"
 
 
 /** A pixel shader which filters a texture. */
@@ -283,6 +294,12 @@ FVisualizeTexture::FVisualizeTexture()
 	bFullList = false;
 	SortOrder = -1;
 	bEnabled = true;
+}
+
+void FVisualizeTexture::Destroy()
+{
+	VisualizeTextureContent.SafeRelease();
+	StencilSRV.SafeRelease();
 }
 
 FIntRect FVisualizeTexture::ComputeVisualizeTextureRect(FIntPoint InputTextureSize) const

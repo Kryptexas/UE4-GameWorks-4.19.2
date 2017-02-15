@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 
+class IMessageReceiver;
 enum class EMessageScope : uint8;
-class IReceiveMessages;
-
 
 /**
  * Interface for message subscriptions.
@@ -58,7 +58,7 @@ public:
 	 * @return The subscriber.
 	 * @see GetMessageType, GetScopeRange
 	 */
-	virtual const TWeakPtr<IReceiveMessages, ESPMode::ThreadSafe>& GetSubscriber() = 0;
+	virtual const TWeakPtr<IMessageReceiver, ESPMode::ThreadSafe>& GetSubscriber() = 0;
 
 	/**
 	 * Checks whether the subscription is enabled.
@@ -73,10 +73,3 @@ public:
 	/** Virtual destructor. */
 	virtual ~IMessageSubscription() { }
 };
-
-
-/** Type definition for shared pointers to instances of IMessageSubscription. */
-typedef TSharedPtr<IMessageSubscription, ESPMode::ThreadSafe> IMessageSubscriptionPtr;
-
-/** Type definition for shared references to instances of IMessageSubscription. */
-typedef TSharedRef<IMessageSubscription, ESPMode::ThreadSafe> IMessageSubscriptionRef;

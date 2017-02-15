@@ -1,19 +1,38 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMeshRender.cpp: Static mesh rendering code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "HitProxies.h"
+#include "PrimitiveViewRelevance.h"
+#include "Materials/MaterialInterface.h"
+#include "SceneInterface.h"
+#include "PrimitiveSceneProxy.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Engine/Brush.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "MeshBatch.h"
+#include "SceneManagement.h"
+#include "Engine/MeshMerging.h"
+#include "Engine/StaticMesh.h"
+#include "ComponentReregisterContext.h"
+#include "EngineUtils.h"
 #include "StaticMeshResources.h"
 
 
+#include "Engine/Engine.h"
+#include "Engine/LevelStreaming.h"
 #include "LevelUtils.h"
 #include "TessellationRendering.h"
-#include "LightMap.h"
-#include "ShadowMap.h"
 #include "DistanceFieldAtlas.h"
-#include "ComponentReregisterContext.h"
 #include "Components/BrushComponent.h"
 #include "AI/Navigation/NavCollision.h"
 #include "ComponentRecreateRenderStateContext.h"
@@ -85,21 +104,21 @@ static FAutoConsoleCommand GToggleForceDefaultMaterialCmd(
 	);
 
 /** Initialization constructor. */
-FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
+FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent, bool bCanLODsShareStaticLighting):
 	FPrimitiveSceneProxy(InComponent, InComponent->GetStaticMesh()->GetFName())
 	, Owner(InComponent->GetOwner())
 	, StaticMesh(InComponent->GetStaticMesh())
 	, BodySetup(InComponent->GetBodySetup())
-	, RenderData(InComponent->GetStaticMesh()->RenderData)
+	, RenderData(InComponent->GetStaticMesh()->RenderData.Get())
 	, ForcedLodModel(InComponent->ForcedLodModel)
 	, bCastShadow(InComponent->CastShadow)
 	, CollisionTraceFlag(ECollisionTraceFlag::CTF_UseSimpleAndComplex)
 	, MaterialRelevance(InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
 #if WITH_EDITORONLY_DATA
-	, TexStreamMaterialData(InComponent->TexStreamMaterialData)
 	, StreamingDistanceMultiplier(FMath::Max(0.0f, InComponent->StreamingDistanceMultiplier))
 	, StreamingTransformScale(InComponent->GetTextureStreamingTransformScale())
+	, MaterialStreamingRelativeBoxes(InComponent->MaterialStreamingRelativeBoxes)
 	, SectionIndexPreview(InComponent->SectionIndexPreview)
 #endif
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -119,6 +138,8 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	LevelColor = FLinearColor(1,1,1);
 	PropertyColor = FLinearColor(1,1,1);
 	bSupportsDistanceFieldRepresentation = true;
+	bCastsDynamicIndirectShadow = InComponent->bCastDynamicShadow && InComponent->CastShadow && InComponent->bCastDistanceFieldIndirectShadow && InComponent->Mobility != EComponentMobility::Static;
+	DynamicIndirectShadowMinVisibility = FMath::Clamp(InComponent->DistanceFieldIndirectShadowMinVisibility, 0.0f, 1.0f);
 
 	const auto FeatureLevel = GetScene().GetFeatureLevel();
 
@@ -133,9 +154,12 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	// Build the proxy's LOD data.
 	bool bAnySectionCastsShadows = false;
 	LODs.Empty(RenderData->LODResources.Num());
+
+	// SpeedTrees are set up for lighting to share between LODs
+	bCanLODsShareStaticLighting |= InComponent->GetStaticMesh()->SpeedTreeWind.IsValid();
 	for(int32 LODIndex = 0;LODIndex < RenderData->LODResources.Num();LODIndex++)
 	{
-		FLODInfo* NewLODInfo = new(LODs) FLODInfo(InComponent,LODIndex);
+		FLODInfo* NewLODInfo = new(LODs) FLODInfo(InComponent,LODIndex,bCanLODsShareStaticLighting);
 
 		// Under certain error conditions an LOD's material will be set to 
 		// DefaultMaterial. Ensure our material view relevance is set properly.
@@ -430,12 +454,13 @@ bool FStaticMeshSceneProxy::GetPrimitiveDistance(int32 LODIndex, int32 SectionIn
 		// The LOD-section data is stored per material index as it is only used for texture streaming currently.
 		const int32 MaterialIndex = LODs[LODIndex].Sections[SectionIndex].MaterialIndex;
 
-		if (TexStreamMaterialData.IsValid() && TexStreamMaterialData->IsValidIndex(MaterialIndex))
+		if (MaterialStreamingRelativeBoxes.IsValidIndex(MaterialIndex))
 		{
-			const FBox& MaterialBox = (*TexStreamMaterialData)[MaterialIndex].Box;
+			FBoxSphereBounds MaterialBounds;
+			UnpackRelativeBox(GetBounds(), MaterialStreamingRelativeBoxes[MaterialIndex], MaterialBounds);
 
-			FVector ViewToObject = (MaterialBox.GetCenter() - ViewOrigin).GetAbs();
-			FVector BoxViewToObject = ViewToObject.ComponentMin(MaterialBox.GetExtent());
+			FVector ViewToObject = (MaterialBounds.Origin - ViewOrigin).GetAbs();
+			FVector BoxViewToObject = ViewToObject.ComponentMin(MaterialBounds.BoxExtent);
 			float DistSq = FVector::DistSquared(BoxViewToObject, ViewToObject);
 
 			PrimitiveDistance = FMath::Sqrt(FMath::Max<float>(1.f, DistSq)) * OneOverDistanceMultiplier;
@@ -478,30 +503,23 @@ bool FStaticMeshSceneProxy::GetMaterialTextureScales(int32 LODIndex, int32 Secti
 {
 	if (LODs.IsValidIndex(LODIndex) && LODs[LODIndex].Sections.IsValidIndex(SectionIndex))
 	{
-		// The LOD-section data is stored per material index as it is only used for texture streaming currently.
-		const int32 MaterialIndex = LODs[LODIndex].Sections[SectionIndex].MaterialIndex;
-
-		if (TexStreamMaterialData.IsValid() && TexStreamMaterialData->IsValidIndex(MaterialIndex))
+		const UMaterialInterface* Material = LODs[LODIndex].Sections[SectionIndex].Material;
+		if (Material)
 		{
-			const TArray<FMaterialTextureInfo>& TextureData = (*TexStreamMaterialData)[MaterialIndex].TextureData;
-			for (int32 TextureIndex = 0; TextureIndex < TEXSTREAM_MAX_NUM_TEXTURES_PER_MATERIAL; ++TextureIndex)
+			// This is thread safe because material texture data is only updated while the renderthread is idle.
+			for (const FMaterialTextureInfo TextureData : Material->GetTextureStreamingData())
 			{
-				const float Scale = TextureData.IsValidIndex(TextureIndex) ? TextureData[TextureIndex].SamplingScale : 0;
-				if (Scale > 0)
+				const int32 TextureIndex = TextureData.TextureIndex;
+				if (TextureData.IsValid(true))
 				{
-					OneOverScales[TextureIndex / 4][TextureIndex % 4] = 1.f / Scale;
-					UVChannelIndices[TextureIndex / 4][TextureIndex % 4] = TextureData[TextureIndex].UVChannelIndex;
-				}
-				else
-				{
-					OneOverScales[TextureIndex / 4][TextureIndex % 4] = 0.f;
-					UVChannelIndices[TextureIndex / 4][TextureIndex % 4] = 0;
+					OneOverScales[TextureIndex / 4][TextureIndex % 4] = 1.f / TextureData.SamplingScale;
+					UVChannelIndices[TextureIndex / 4][TextureIndex % 4] = TextureData.UVChannelIndex;
 				}
 			}
 			return true;
 		}
 	}
-	return FPrimitiveSceneProxy::GetMaterialTextureScales(LODIndex, SectionIndex, MaterialRenderProxy, OneOverScales, UVChannelIndices);
+	return false;
 }
 #endif
 
@@ -598,13 +616,14 @@ HHitProxy* FStaticMeshSceneProxy::CreateHitProxies(UPrimitiveComponent* Componen
 			{
 				HHitProxy* ActorHitProxy;
 
+				int32 MaterialIndex = LODModel.Sections[SectionIndex].MaterialIndex;
 				if ( Component->GetOwner()->IsA(ABrush::StaticClass()) && Component->IsA(UBrushComponent::StaticClass()) )
 				{
-					ActorHitProxy = new HActor(Component->GetOwner(), Component, HPP_Wireframe, SectionIndex);
+					ActorHitProxy = new HActor(Component->GetOwner(), Component, HPP_Wireframe, SectionIndex, MaterialIndex);
 				}
 				else
 				{
-					ActorHitProxy = new HActor(Component->GetOwner(), Component, SectionIndex);
+					ActorHitProxy = new HActor(Component->GetOwner(), Component, SectionIndex, MaterialIndex);
 				}
 
 				FLODInfo::FSectionInfo& Section = LODs[LODIndex].Sections[SectionIndex];
@@ -1146,6 +1165,11 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 					}
 				}
 			}
+
+			if(EngineShowFlags.MassProperties && DebugMassData.Num() > 0)
+			{
+				DebugMassData[0].DrawDebugMass(Collector.GetPDI(ViewIndex), FTransform(GetLocalToWorld()));
+			}
 	
 			if (EngineShowFlags.StaticMeshes)
 			{
@@ -1336,8 +1360,13 @@ bool FStaticMeshSceneProxy::HasDistanceFieldRepresentation() const
 	return CastsDynamicShadow() && AffectsDistanceFieldLighting() && DistanceFieldData && DistanceFieldData->VolumeTexture.IsValidDistanceFieldVolume();
 }
 
+bool FStaticMeshSceneProxy::HasDynamicIndirectShadowCasterRepresentation() const
+{
+	return bCastsDynamicIndirectShadow && FStaticMeshSceneProxy::HasDistanceFieldRepresentation();
+}
+
 /** Initialization constructor. */
-FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent,int32 LODIndex)
+FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent, int32 LODIndex, bool bCanLODsShareStaticLighting)
 	: FLightCacheInterface(nullptr, nullptr)
 	, OverrideColorVertexBuffer(0)
 	, PreCulledIndexBuffer(NULL)
@@ -1345,7 +1374,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 {
 	const auto FeatureLevel = InComponent->GetWorld()->FeatureLevel;
 
-	FStaticMeshRenderData* MeshRenderData = InComponent->GetStaticMesh()->RenderData;
+	FStaticMeshRenderData* MeshRenderData = InComponent->GetStaticMesh()->RenderData.Get();
 	FStaticMeshLODResources& LODModel = MeshRenderData->LODResources[LODIndex];
 	if (LODIndex < InComponent->LODData.Num())
 	{
@@ -1382,7 +1411,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		}
 	}
 
-	if (MeshRenderData->bLODsShareStaticLighting && InComponent->LODData.IsValidIndex(0))
+	if (bCanLODsShareStaticLighting && InComponent->LODData.IsValidIndex(0))
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[0];
 		const FMeshMapBuildData* MeshMapBuildData = InComponent->GetMeshMapBuildData(ComponentLODInfo);
@@ -1611,7 +1640,7 @@ FPrimitiveSceneProxy* UStaticMeshComponent::CreateSceneProxy()
 		return NULL;
 	}
 
-	FPrimitiveSceneProxy* Proxy = ::new FStaticMeshSceneProxy(this);
+	FPrimitiveSceneProxy* Proxy = ::new FStaticMeshSceneProxy(this, false);
 	return Proxy;
 }
 

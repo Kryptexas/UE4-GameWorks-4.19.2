@@ -1,13 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Templates/SubclassOf.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
+#include "Styling/SlateColor.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Styling/SlateBrush.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
+#include "Engine/SCS_Node.h"
 #include "BlueprintEditor.h"
+#include "Widgets/SToolTip.h"
 #include "SComponentClassCombo.h"
 
+class FMenuBuilder;
+class FSCSEditorTreeNode;
 class SSCSEditor;
-class USCS_Node;
-class USimpleConstructionScript;
+class UPrimitiveComponent;
+struct EventData;
 
 // SCS tree node pointer type
 typedef TSharedPtr<class FSCSEditorTreeNode> FSCSEditorTreeNodePtrType;
@@ -501,6 +521,8 @@ public:
 	FString GetDocumentationLink() const;
 	FString GetDocumentationExcerptName() const;
 	
+	KISMET_API static FSlateColor GetColorTintForIcon(FSCSEditorTreeNodePtrType InNode);
+
 	FText GetAssetName() const;
 	FText GetAssetPath() const;
 	EVisibility GetAssetVisibility() const;
@@ -645,6 +667,7 @@ public:
 		, _SelectionMode(ESelectionMode::Multi)
 		, _ClearSelectionOnClick(true)
 		, _ExternalScrollbar()
+		, _OnTableViewBadState()
 		{}
 
 		SLATE_ARGUMENT( SSCSEditor*, SCSEditor )
@@ -676,6 +699,8 @@ public:
 		SLATE_ARGUMENT ( bool, ClearSelectionOnClick )
 
 		SLATE_ARGUMENT( TSharedPtr<SScrollBar>, ExternalScrollbar )
+
+		SLATE_EVENT( FOnTableViewBadState, OnTableViewBadState )
 
 	SLATE_END_ARGS()
 	/** Object construction - mostly defers to the base STreeView */
@@ -819,6 +844,9 @@ public:
 
 	/** Refresh the tree control to reflect changes in the SCS */
 	void UpdateTree(bool bRegenerateTreeNodes = true);
+
+	/** Dumps out the tree view contents to the log (used to assist with debugging widget hierarchy issues) */
+	void DumpTree();
 
 	/** Forces the details panel to refresh on the same objects */
 	void RefreshSelectionDetails();

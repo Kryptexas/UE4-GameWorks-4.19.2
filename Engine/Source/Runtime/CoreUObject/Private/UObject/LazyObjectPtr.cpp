@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LazyObjectPtr.cpp: Guid-based lazy pointer to UObject
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
-#include "UObjectAnnotation.h"
+#include "UObject/LazyObjectPtr.h"
+#include "Misc/CommandLine.h"
+#include "Misc/App.h"
+#include "UObject/Package.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/UObjectAnnotation.h"
 
 
 /** Annotation associating objects with their guids **/
@@ -133,21 +137,29 @@ void FLazyObjectPtr::PossiblySerializeObjectGuid(UObject *Object, FArchive& Ar)
 
 					if (bDuplicate || bReassigning)
 					{
-						if (!bReassigning)
+						if (!bReassigning && OtherObject && OtherObject->HasAnyFlags(RF_NewerVersionExists))
 						{
-							// Always warn for non-map packages, skip map packages in PIE or game
-							const bool bInGame = FApp::IsGame() || Package->HasAnyPackageFlags(PKG_PlayInEditor);
-
-							UE_CLOG(!Package->ContainsMap() || !bInGame, LogUObjectGlobals, Warning, 
-								TEXT("Guid referenced by %s is already used by %s, which should never happen in the editor but could happen at runtime with duplicate level loading or PIE"), 
-								*Object->GetFullName(), *OtherObject->GetFullName());
+							GuidAnnotation.RemoveAnnotation(OtherObject);
+							GuidAnnotation.AddAnnotation(Object, Guid);
 						}
 						else
 						{
-							UE_LOG(LogUObjectGlobals, Warning, TEXT("Assigning new Guid to %s"), *Object->GetFullName());
+							if (!bReassigning)
+							{
+								// Always warn for non-map packages, skip map packages in PIE or game
+								const bool bInGame = FApp::IsGame() || Package->HasAnyPackageFlags(PKG_PlayInEditor);
+
+								UE_CLOG(!Package->ContainsMap() || !bInGame, LogUObjectGlobals, Warning,
+									TEXT("Guid referenced by %s is already used by %s, which should never happen in the editor but could happen at runtime with duplicate level loading or PIE"),
+									*Object->GetFullName(), *OtherObject->GetFullName());
+							}
+							else
+							{
+								UE_LOG(LogUObjectGlobals, Warning, TEXT("Assigning new Guid to %s"), *Object->GetFullName());
+							}
+							// This guid is in use, which should never happen in the editor but could happen at runtime with duplicate level loading or PIE. If so give it an invalid GUID and don't add to the annotation map.
+							Guid = FGuid();
 						}
-						// This guid is in use, which should never happen in the editor but could happen at runtime with duplicate level loading or PIE. If so give it an invalid GUID and don't add to the annotation map.
-						Guid = FGuid();
 					}
 					else
 					{

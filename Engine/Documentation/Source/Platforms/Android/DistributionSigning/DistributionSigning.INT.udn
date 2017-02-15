@@ -6,7 +6,7 @@ version:4.10
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
-type:howto
+type:how-to
 
 
 In the following document, we will cover what you will need to do in order to get your UE4 mobile project ready to be released on the Google Play store.

@@ -1,8 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "ConstraintTypes.h"
-#include "ConstraintDrives.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "EngineDefines.h"
+#include "PhysxUserData.h"
+#include "PhysicsEngine/ConstraintTypes.h"
+#include "PhysicsEngine/ConstraintDrives.h"
 #include "ConstraintInstance.generated.h"
+
+class FMaterialRenderProxy;
+class FMeshElementCollector;
+class FPrimitiveDrawInterface;
+class UMaterialInterface;
+struct FBodyInstance;
 
 #if WITH_PHYSX
 namespace physx
@@ -390,8 +402,17 @@ public:
 	/** Set the linear drive's strength parameters */
 	void SetLinearDriveParams(float InPositionStrength, float InVelocityStrength, float InForceLimit);
 
+	DEPRECATED(4.15, "Please call SetOrientationDriveTwistAndSwing. Note the order of bools is reversed (Make sure to pass Twist and then Swing)")
+	void SetAngularPositionDrive(bool bInEnableSwingDrive, bool bInEnableTwistDrive)
+	{
+		SetOrientationDriveTwistAndSwing(bInEnableTwistDrive, bInEnableSwingDrive);
+	}
+
 	/** Set which twist and swing orientation drives are enabled. Only applicable when Twist And Swing drive mode is used */
-	void SetAngularPositionDrive(bool bInEnableSwingDrive, bool bInEnableTwistDrive);
+	void SetOrientationDriveTwistAndSwing(bool bInEnableTwistDrive, bool bInEnableSwingDrive);
+
+	/** Set whether the SLERP angular position drive is enabled. Only applicable when SLERP drive mode is used */
+	void SetOrientationDriveSLERP(bool bInEnableSLERP);
 
 	/** Whether the angular orientation drive is enabled */
 	bool IsAngularOrientationDriveEnabled() const
@@ -402,8 +423,17 @@ public:
 	/** Set the angular drive's orientation target*/
 	void SetAngularOrientationTarget(const FQuat& InPosTarget);
 
+	DEPRECATED(4.15, "Please call SetAngularVelocityDriveTwistAndSwing. Note the order of bools is reversed (Make sure to pass Twist and then Swing)")
+	void SetAngularVelocityDrive(bool bInEnableSwingDrive, bool bInEnableTwistDrive)
+	{
+		SetAngularVelocityDriveTwistAndSwing(bInEnableTwistDrive, bInEnableSwingDrive);
+	}
+
 	/** Set which twist and swing angular velocity drives are enabled. Only applicable when Twist And Swing drive mode is used */
-	void SetAngularVelocityDrive(bool bInEnableSwingDrive, bool bInEnableTwistDrive);
+	void SetAngularVelocityDriveTwistAndSwing(bool bInEnableTwistDrive, bool bInEnableSwingDrive);
+
+	/** Set whether the SLERP angular velocity drive is enabled. Only applicable when SLERP drive mode is used */
+	void SetAngularVelocityDriveSLERP(bool bInEnableSLERP);
 
 	/** Whether the angular velocity drive is enabled */
 	bool IsAngularVelocityDriveEnabled() const
@@ -416,6 +446,9 @@ public:
 
 	/** Set the angular drive's strength parameters*/
 	void SetAngularDriveParams(float InSpring, float InDamping, float InForceLimit);
+
+	/** Set the angular drive mode */
+	void SetAngularDriveMode(EAngularDriveMode::Type DriveMode);
 
 	/** Refreshes the physics engine joint's linear limits. Only applicable if the joint has been created already.*/
 	void UpdateLinearLimit();
@@ -484,6 +517,8 @@ public:
 	{
 		DrawConstraintImp(FPDIOrCollector(PDI), Scale, LimitDrawScale, bDrawLimits, bDrawSelected, Con1Frame, Con2Frame, bDrawAsPoint);
 	}
+
+	void GetUsedMaterials(TArray<UMaterialInterface*>& Materials);
 
 	bool Serialize(FArchive& Ar);
 	void PostSerialize(const FArchive& Ar);

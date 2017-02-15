@@ -1,21 +1,43 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompilerVMBackend.cpp
 =============================================================================*/
 
-#include "KismetCompilerPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/Class.h"
+#include "UObject/AssetPtr.h"
+#include "UObject/Interface.h"
+#include "UObject/UnrealType.h"
+#include "UObject/TextProperty.h"
+#include "Internationalization/TextNamespaceUtil.h"
+#include "UObject/PropertyPortFlags.h"
+#include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Engine/LatentActionManager.h"
+#include "Engine/UserDefinedStruct.h"
+#include "BPTerminal.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_MacroInstance.h"
+#include "BlueprintCompiledStatement.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "KismetCompiledFunctionContext.h"
+#include "Misc/FeedbackContext.h"
 
+#include "KismetCompilerMisc.h"
 #include "KismetCompilerBackend.h"
 
-#include "DefaultValueHelper.h"
+#include "Misc/DefaultValueHelper.h"
 
-#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
-#include "Engine/UserDefinedStruct.h"
+#include "Kismet2/StructureEditorUtils.h"
+#include "Kismet2/KismetDebugUtilities.h"
 
-#include "TextPackageNamespaceUtil.h"
+#include "Internationalization/TextPackageNamespaceUtil.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "KismetCompilerVMBackend"
 //////////////////////////////////////////////////////////////////////////
@@ -198,6 +220,30 @@ struct FSkipOffsetEmitter
 };
 
 //////////////////////////////////////////////////////////////////////////
+// FCodeSkipInfo
+
+class FCodeSkipInfo
+{
+public:
+	enum ECodeSkipType
+	{
+		Fixup = 0,
+		InstrumentedDelegateFixup
+	};
+	FCodeSkipInfo(ECodeSkipType TypeIn, FBlueprintCompiledStatement* TargetLabelIn = nullptr, FBlueprintCompiledStatement* SourceLabelIn = nullptr)
+		: Type(TypeIn)
+		, SourceLabel(SourceLabelIn)
+		, TargetLabel(TargetLabelIn)
+	{
+	}
+
+	ECodeSkipType Type;
+	FBlueprintCompiledStatement* SourceLabel;
+	FBlueprintCompiledStatement* TargetLabel;
+	FName DelegateName;
+};
+
+//////////////////////////////////////////////////////////////////////////
 // FScriptBuilderBase
 
 class FScriptBuilderBase
@@ -219,7 +265,7 @@ private:
 	FKismetCompilerVMBackend::TStatementToSkipSizeMap& UbergraphStatementLabelMap;
 
 	// Fixup list for jump targets (location to overwrite; jump target)
-	TMap<CodeSkipSizeType, FBlueprintCompiledStatement*> JumpTargetFixupMap;
+	TMap<CodeSkipSizeType, FCodeSkipInfo> JumpTargetFixupMap;
 	
 	// Is this compiling the ubergraph?
 	bool bIsUbergraph;
@@ -297,9 +343,7 @@ protected:
 				}
 			}
 
-			// Function contexts must always be objects, so if we have a literal, give it the default object property so the compiler knows how to handle it
-			UProperty* CoerceProperty = Term->bIsLiteral ? ((UProperty*)(GetDefault<UObjectProperty>())) : NULL;
-			ScriptBuilder.EmitTerm(Term, CoerceProperty);
+			ScriptBuilder.EmitTerm(Term);
 
 			// Skip offset if the expression evaluates to null (counting from later on)
 			FSkipOffsetEmitter Skipper(ScriptBuilder.Writer.ScriptBuffer);
@@ -456,7 +500,7 @@ public:
 		{
 			if (Property)
 			{
-				return Property->IsA<UByteProperty>();
+				return Property->IsA<UByteProperty>() || (Property->IsA<UEnumProperty>() && static_cast<const UEnumProperty*>(Property)->GetUnderlyingProperty()->IsA<UByteProperty>());
 			}
 			return Type && ((Type->PinCategory == UEdGraphSchema_K2::PC_Byte) || (Type->PinCategory == UEdGraphSchema_K2::PC_Enum));
 		}
@@ -497,6 +541,7 @@ public:
 			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Asset);
 		}
 
+		// Will handle Class properties as well
 		static bool IsObject(const FEdGraphPinType* Type, const UProperty* Property)
 		{
 			if (Property)
@@ -504,6 +549,15 @@ public:
 				return Property->IsA<UObjectPropertyBase>();
 			}
 			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Object);
+		}
+
+		static bool IsClass(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UClassProperty>();
+			}
+			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Class);
 		}
 
 		static bool IsInterface(const FEdGraphPinType* Type, const UProperty* Property)
@@ -521,6 +575,43 @@ public:
 		if (Term->bIsLiteral)
 		{
 			check(!Term->Type.bIsArray || CoerceProperty);
+
+			// Additional Validation, since we cannot trust custom k2nodes
+			const bool bSecialCaseSelf = (Term->Type.PinSubCategory == Schema->PN_Self);
+			if (CoerceProperty && ensure(Schema) && ensure(CurrentCompilerContext) && !bSecialCaseSelf)
+			{
+				FEdGraphPinType TrueType;
+				const bool bValidProperty = Schema->ConvertPropertyToPinType(CoerceProperty, TrueType);
+
+				auto AreTypesBinaryCompatible = [](const FEdGraphPinType& TypeA, const FEdGraphPinType& TypeB) -> bool
+				{
+					if (TypeA.PinCategory != TypeB.PinCategory)
+					{
+						return false;
+					}
+					if ((TypeA.bIsMap != TypeB.bIsMap)
+						|| (TypeA.bIsSet != TypeB.bIsSet)
+						|| (TypeA.bIsArray != TypeB.bIsArray)
+						|| (TypeA.bIsWeakPointer != TypeB.bIsWeakPointer))
+					{
+						return false;
+					}
+					if (TypeA.PinCategory == UEdGraphSchema_K2::PC_Struct)
+					{
+						if (TypeA.PinSubCategoryObject != TypeB.PinSubCategoryObject)
+						{
+							return false;
+						}
+					}
+					return true;
+				};
+
+				if (!bValidProperty || !AreTypesBinaryCompatible(Term->Type, TrueType))
+				{
+					const FString ErrorMessage = FString::Printf(TEXT("ICE: The type of property %s doesn't match a term. @@"), *CoerceProperty->GetPathName());
+					CurrentCompilerContext->MessageLog.Error(*ErrorMessage, Term->SourcePin);
+				}
+			}
 
 			if (FLiteralTypeHelper::IsString(&Term->Type, CoerceProperty))
 			{
@@ -613,14 +704,14 @@ public:
 			else if (FLiteralTypeHelper::IsInt64(&Term->Type, CoerceProperty))
 			{
 				int64 Value = 0;
-				LexicalConversion::FromString(Value, *(Term->Name));
+				Lex::FromString(Value, *(Term->Name));
 				Writer << EX_Int64Const;
 				Writer << Value;
 			}
 			else if (FLiteralTypeHelper::IsUInt64(&Term->Type, CoerceProperty))
 			{
 				uint64 Value = 0;
-				LexicalConversion::FromString(Value, *(Term->Name));
+				Lex::FromString(Value, *(Term->Name));
 				Writer << EX_UInt64Const;
 				Writer << Value;
 			}
@@ -628,9 +719,23 @@ public:
 			{
 				uint8 Value = 0;
 
-				UByteProperty* ByteProp = Cast< UByteProperty >(CoerceProperty);
+				UEnum* EnumPtr = nullptr;
+
+				if (UByteProperty* ByteProp = Cast< UByteProperty >(CoerceProperty))
+				{
+					EnumPtr = ByteProp->Enum;
+				}
+				else if (UEnumProperty* EnumProp = Cast< UEnumProperty >(CoerceProperty))
+				{
+					EnumPtr = EnumProp->GetEnum();
+				}
+
 				//Parameter property can represent a generic byte. we need the actual type to parse the value.
-				UEnum* EnumPtr = (ByteProp && ByteProp->Enum) ? ByteProp->Enum : Cast<UEnum>(Term->Type.PinSubCategoryObject.Get()); 
+				if (!EnumPtr)
+				{
+					EnumPtr = Cast<UEnum>(Term->Type.PinSubCategoryObject.Get());
+				}
+
 				//Check for valid enum object reference
 				if (EnumPtr)
 				{
@@ -656,10 +761,6 @@ public:
 				Writer << EX_NameConst;
 				Writer << LiteralName;
 			}
-			//else if (UClassProperty* ClassProperty = Cast<UClassProperty>(CoerceProperty))
-			//{
-			//	ensureMsgf(false, TEXT("Class property literals are not supported yet!"));
-			//}
 			else if (FLiteralTypeHelper::IsStruct(&Term->Type, CoerceProperty))
 			{
 				UStructProperty* StructProperty = Cast<UStructProperty>(CoerceProperty);
@@ -691,10 +792,13 @@ public:
 				else if (Struct == TransformStruct)
 				{
 					FTransform T = FTransform::Identity;
-					const bool bParsedUsingCustomFormat = T.InitFromString(Term->Name);
-					if (!bParsedUsingCustomFormat)
+					if (!Term->Name.IsEmpty())
 					{
-						Struct->ImportText(*Term->Name, &T, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
+						const bool bParsedUsingCustomFormat = T.InitFromString(Term->Name);
+						if (!bParsedUsingCustomFormat)
+						{
+							Struct->ImportText(*Term->Name, &T, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
+						}
 					}
 					Writer << EX_TransformConst;
 					Writer << T;
@@ -721,12 +825,14 @@ public:
 					Writer << Struct;
 					Writer << StructSize;
 
+					checkSlow(Schema);
 					for( UProperty* Prop = Struct->PropertyLink; Prop; Prop = Prop->PropertyLinkNext )
 					{
 						for (int32 ArrayIter = 0; ArrayIter < Prop->ArrayDim; ++ArrayIter)
 						{
 							// Create a new term for each property, and serialize it out
 							FBPTerminal NewTerm;
+							Schema->ConvertPropertyToPinType(Prop, NewTerm.Type);
 							NewTerm.bIsLiteral = true;
 							NewTerm.Source = Term->Source;
 							Prop->ExportText_InContainer(ArrayIter, NewTerm.Name, StructData, StructData, NULL, PPF_None);
@@ -763,6 +869,7 @@ public:
 				for (int32 ElemIdx = 0; ElemIdx < ElementNum; ++ElemIdx)
 				{
 					FBPTerminal NewTerm;
+					Schema->ConvertPropertyToPinType(InnerProp, NewTerm.Type);
 					NewTerm.bIsLiteral = true;
 					NewTerm.Source = Term->Source;
 					uint8* RawElemData = ScriptArrayHelper.GetRawPtr(ElemIdx);
@@ -800,7 +907,7 @@ public:
 				FAssetPtr AssetPtr(Term->ObjectLiteral);
 				EmitStringLiteral(AssetPtr.GetUniqueID().ToString());
 			}
-			else if (FLiteralTypeHelper::IsObject(&Term->Type, CoerceProperty))
+			else if (FLiteralTypeHelper::IsObject(&Term->Type, CoerceProperty) || FLiteralTypeHelper::IsClass(&Term->Type, CoerceProperty))
 			{
 				// Note: This case handles both UObjectProperty and UClassProperty
 				if (Term->Type.PinSubCategory == Schema->PN_Self)
@@ -831,6 +938,10 @@ public:
 				{
 					ensureMsgf(false, TEXT("It is not possible to express this interface property as a literal value! (%s)"), *CoerceProperty->GetFullName());
 				}
+			}
+			else if (!CoerceProperty && Term->Type.PinCategory.IsEmpty() && (Term->Type.PinSubCategory == Schema->PN_Self))
+			{
+				Writer << EX_Self;
 			}
 			// else if (CoerceProperty->IsA(UMulticastDelegateProperty::StaticClass()))
 			// Cannot assign a literal to a multicast delegate; it should be added instead of assigned
@@ -881,6 +992,7 @@ public:
 		Writer << LatentInfoStruct;
 		Writer << StructSize;
 
+		checkSlow(Schema);
 		for (UProperty* Prop = LatentInfoStruct->PropertyLink; Prop; Prop = Prop->PropertyLinkNext)
 		{
 			if (TargetLabel && Prop->GetBoolMetaData(FBlueprintMetadata::MD_NeedsLatentFixup))
@@ -888,7 +1000,7 @@ public:
 				// Emit the literal and queue a fixup to correct it once the address is known
 				Writer << EX_SkipOffsetConst;
 				CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
-				JumpTargetFixupMap.Add(PatchUpNeededAtOffset, TargetLabel);
+				JumpTargetFixupMap.Add(PatchUpNeededAtOffset, FCodeSkipInfo(FCodeSkipInfo::Fixup, TargetLabel));
 			}
 			else if (Prop->GetBoolMetaData(FBlueprintMetadata::MD_LatentCallbackTarget))
 			{
@@ -901,6 +1013,7 @@ public:
 			{
 				// Create a new term for each property, and serialize it out
 				FBPTerminal NewTerm;
+				Schema->ConvertPropertyToPinType(Prop, NewTerm.Type);
 				NewTerm.bIsLiteral = true;
 				Prop->ExportText_InContainer(0, NewTerm.Name, StructData, StructData, NULL, PPF_None);
 
@@ -1162,7 +1275,7 @@ public:
 	{
 		check(Schema && DestinationExpression && !DestinationExpression->Type.PinCategory.IsEmpty());
 
-		const bool bIsArray = DestinationExpression->Type.bIsArray;
+		const bool bIsContainer = DestinationExpression->Type.bIsArray || DestinationExpression->Type.bIsSet || DestinationExpression->Type.bIsMap;
 		const bool bIsDelegate = Schema->PC_Delegate == DestinationExpression->Type.PinCategory;
 		const bool bIsMulticastDelegate = Schema->PC_MCDelegate == DestinationExpression->Type.PinCategory;
 		const bool bIsBoolean = Schema->PC_Boolean == DestinationExpression->Type.PinCategory;
@@ -1170,7 +1283,7 @@ public:
 		const bool bIsAsset = Schema->PC_Asset == DestinationExpression->Type.PinCategory;
 		const bool bIsWeakObjPtr = DestinationExpression->Type.bIsWeakPointer;
 
-		if (bIsArray)
+		if (bIsContainer)
 		{
 			Writer << EX_Let;
 			ensure(DestinationExpression->AssociatedVarProperty);
@@ -1405,6 +1518,53 @@ public:
 		Writer << EX_EndArray;
 	}
 
+	void EmitCreateSetStatement(FBlueprintCompiledStatement& Statement)
+	{
+		Writer << EX_SetSet;
+
+		FBPTerminal* SetTerm = Statement.LHS;
+		EmitTerm(SetTerm);
+		int32 ElementNum = Statement.RHS.Num();
+
+		Writer << ElementNum; // number of elements in the set, used for reserve call
+		
+		USetProperty* SetProperty = CastChecked<USetProperty>(SetTerm->AssociatedVarProperty);
+		UProperty* InnerProperty = SetProperty->ElementProp;
+
+		for(FBPTerminal* Item : Statement.RHS)
+		{
+			EmitTerm(Item, (Item->bIsLiteral ? InnerProperty : NULL));
+		}
+
+		Writer << EX_EndSet;
+	}
+
+	void EmitCreateMapStatement(FBlueprintCompiledStatement& Statement)
+	{
+		Writer << EX_SetMap;
+
+		FBPTerminal* MapTerm = Statement.LHS;
+		EmitTerm(MapTerm);
+		
+		ensureMsgf(Statement.RHS.Num() % 2 == 0, TEXT("Expected even number of key/values whe emitting map statement"));
+		int32 ElementNum = Statement.RHS.Num() / 2;
+
+		Writer << ElementNum;
+
+		UMapProperty* MapProperty = CastChecked<UMapProperty>(MapTerm->AssociatedVarProperty);
+		
+		for(auto MapItemIt = Statement.RHS.CreateIterator(); MapItemIt; ++MapItemIt)
+		{
+			FBPTerminal* Item = *MapItemIt;
+			EmitTerm(Item, (Item->bIsLiteral ? MapProperty->KeyProp : NULL));
+			++MapItemIt;
+			Item = *MapItemIt;
+			EmitTerm(Item, (Item->bIsLiteral ? MapProperty->ValueProp : NULL));
+		}
+
+		Writer << EX_EndMap;
+	}
+
 	void EmitGoto(FBlueprintCompiledStatement& Statement)
 	{
 		if (Statement.Type == KCST_ComputedGoto)
@@ -1422,7 +1582,7 @@ public:
 			CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
 
 			// Queue up a fixup to be done once all label offsets are known
-			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, Statement.TargetLabel);
+			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, FCodeSkipInfo(FCodeSkipInfo::Fixup, Statement.TargetLabel));
 
 			// Now include the boolean expression
 			EmitTerm(Statement.LHS, (UProperty*)(GetDefault<UBoolProperty>()));
@@ -1442,7 +1602,7 @@ public:
 			CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
 
 			// Queue up a fixup to be done once all label offsets are known
-			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, Statement.TargetLabel);
+			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, FCodeSkipInfo(FCodeSkipInfo::Fixup, Statement.TargetLabel));
 		}
 		else if (Statement.Type == KCST_GotoReturn)
 		{
@@ -1451,7 +1611,7 @@ public:
 			CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
 
 			// Queue up a fixup to be done once all label offsets are known
-			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, &ReturnStatement);
+			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, FCodeSkipInfo(FCodeSkipInfo::Fixup, &ReturnStatement));
 		}
 		else if (Statement.Type == KCST_GotoReturnIfNot)
 		{
@@ -1460,7 +1620,7 @@ public:
 			CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
 
 			// Queue up a fixup to be done once all label offsets are known
-			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, &ReturnStatement);
+			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, FCodeSkipInfo(FCodeSkipInfo::Fixup, &ReturnStatement));
 
 			// Now include the boolean expression
 			EmitTerm(Statement.LHS, (UProperty*)(GetDefault<UBoolProperty>()));
@@ -1478,7 +1638,7 @@ public:
 		CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
 
 		// Mark the target for fixup once the addresses have been resolved
-		JumpTargetFixupMap.Add(PatchUpNeededAtOffset, Statement.TargetLabel);
+		JumpTargetFixupMap.Add(PatchUpNeededAtOffset, FCodeSkipInfo(FCodeSkipInfo::Fixup, Statement.TargetLabel));
 	}
 
 	void EmitPopExecState(FBlueprintCompiledStatement& Statement)
@@ -1585,6 +1745,20 @@ public:
 				FName EventName(*Statement.Comment);
 				Writer << EventName;
 			}
+			else if (EventType == EScriptInstrumentation::SuspendState)
+			{
+				if (Statement.TargetLabel->TargetLabel)
+				{
+					CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
+					FCodeSkipInfo CodeSkipInfo(FCodeSkipInfo::InstrumentedDelegateFixup, Statement.TargetLabel->TargetLabel, &Statement);
+					if (Statement.TargetLabel && Statement.TargetLabel->FunctionToCall)
+					{
+						CodeSkipInfo.DelegateName = Statement.TargetLabel->FunctionToCall->GetFName();
+					}
+					// Queue up a fixup to be done once all label offsets are known
+					JumpTargetFixupMap.Add(PatchUpNeededAtOffset, CodeSkipInfo);
+				}
+			}
 		}
 
 		TArray<UEdGraphPin*> PinContextArray(Statement.PureOutputContextArray);
@@ -1612,7 +1786,8 @@ public:
 			{
 				// If this is a debug site for an expanded macro instruction, there should also be a macro source node associated with it
 				UEdGraphNode* MacroSourceNode = CompilerContext.MessageLog.GetSourceTunnelNode(SourceNode);
-				if (MacroSourceNode == TrueSourceNode)
+				// We need to ensure that macro/composite instances also record the tunnels present at any script location ( including themselves )
+				if (MacroSourceNode == TrueSourceNode && !FBlueprintEditorUtils::IsTunnelInstanceNode(MacroSourceNode))
 				{
 					// The function above will return the given node if not found in the map. In that case there is no associated source macro node, so we clear it.
 					MacroSourceNode = NULL;
@@ -1685,7 +1860,7 @@ public:
 		Writer << EX_PushExecutionFlow;
 		CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
 
-		JumpTargetFixupMap.Add(PatchUpNeededAtOffset, &ReturnTarget);
+		JumpTargetFixupMap.Add(PatchUpNeededAtOffset, FCodeSkipInfo(FCodeSkipInfo::Fixup, &ReturnTarget));
 	}
 
 	void CloseScript()
@@ -1800,6 +1975,12 @@ public:
 		case KCST_ArrayGetByRef:
 			EmitArrayGetByRef(Statement);
 			break;
+		case KCST_CreateSet:
+			EmitCreateSetStatement(Statement);
+			break;
+		case KCST_CreateMap:
+			EmitCreateMapStatement(Statement);
+			break;
 		default:
 			UE_LOG(LogK2Compiler, Warning, TEXT("VM backend encountered unsupported statement type %d"), (int32)Statement.Type);
 		}
@@ -1808,14 +1989,20 @@ public:
 	// Fix up all jump targets
 	void PerformFixups()
 	{
-		for (TMap<CodeSkipSizeType, FBlueprintCompiledStatement*>::TIterator It(JumpTargetFixupMap); It; ++It)
+		for (TMap<CodeSkipSizeType, FCodeSkipInfo>::TIterator It(JumpTargetFixupMap); It; ++It)
 		{
 			CodeSkipSizeType OffsetToFix = It.Key();
-			FBlueprintCompiledStatement* TargetStatement = It.Value();
+			FCodeSkipInfo& CodeSkipInfo = It.Value();
 
-			CodeSkipSizeType TargetStatementOffset = StatementLabelMap.FindChecked(TargetStatement);
+			CodeSkipSizeType TargetStatementOffset = StatementLabelMap.FindChecked(CodeSkipInfo.TargetLabel);
 
 			Writer.CommitSkip(OffsetToFix, TargetStatementOffset);
+
+			if (CodeSkipInfo.Type == FCodeSkipInfo::InstrumentedDelegateFixup)
+			{
+				// Register delegate entrypoint offsets
+				ClassBeingBuilt->GetDebugData().RegisterEntryPoint(TargetStatementOffset, CodeSkipInfo.DelegateName);
+			}
 		}
 
 		JumpTargetFixupMap.Empty();
@@ -1899,6 +2086,21 @@ void FKismetCompilerVMBackend::ConstructFunction(FKismetFunctionContext& Functio
 	if (bIsUbergraph)
 	{
 		ScriptWriter.CopyStatementMapToUbergraphMap();
+
+		// Create a mapping between compile time generated events and what created them.
+		if (FunctionContext.bInstrumentScriptCode)
+		{
+			FBlueprintDebugData& DebugData = CompilerContext.NewClass->GetDebugData();
+			for (const TPair<UEdGraphPin*, UK2Node_Event*>& EventInfo : CompilerContext.SourcePinToExpansionEvent)
+			{
+				TArray<int32> PinOffsets;
+				DebugData.FindAllCodeLocationsFromSourcePin(EventInfo.Key, Function, PinOffsets);
+				for (const int32 ScriptOffset : PinOffsets)
+				{
+					DebugData.RegisterEntryPoint(ScriptOffset, EventInfo.Value->GetFunctionName());
+				}
+			}
+		}
 	}
 
 	// Make sure we didn't overflow the maximum bytecode size

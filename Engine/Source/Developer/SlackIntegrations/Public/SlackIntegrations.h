@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ISlackIncomingWebhookInterface.h"
-#include "SlackIntegrationsModule.h"
+#include "CoreMinimal.h"
+#include "Containers/UnrealString.h"
 
 /**  
  * Simple struct represents the parameters used for incoming webhook requests

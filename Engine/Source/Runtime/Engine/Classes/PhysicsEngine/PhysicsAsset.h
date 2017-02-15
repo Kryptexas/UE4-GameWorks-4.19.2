@@ -1,12 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "RigidBodyIndexPair.h"
-#include "PhysicalAnimationComponent.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "PhysicsEngine/RigidBodyIndexPair.h"
+#include "Engine/SkeletalMesh.h"
+#include "PhysicsEngine/PhysicalAnimationComponent.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsAsset.generated.h"
 
+class FMeshElementCollector;
 class USkeletalBodySetup;
 
 /**
@@ -137,6 +142,7 @@ public:
 	// @todo document
 	void DrawConstraints(int32 ViewIndex, FMeshElementCollector& Collector, const USkeletalMesh* SkelMesh, const TArray<FTransform>& SpaceBases, const FTransform& LocalToWorld, float Scale);
 
+	void GetUsedMaterials(TArray<UMaterialInterface*>& Materials);
 
 	// @todo document
 	ENGINE_API void DisableCollision(int32 BodyIndexA, int32 BodyIndexB);
@@ -160,6 +166,11 @@ public:
 	 * @param	Constraints		Returns the found constraints
 	 **/
 	ENGINE_API void BodyFindConstraints(int32 BodyIndex, TArray<int32>& Constraints);
+
+#if WITH_EDITOR
+	/** Update skeletal meshes when physics asset changes*/
+	ENGINE_API void RefreshPhysicsAssetChange() const;
+#endif
 
 private:
 

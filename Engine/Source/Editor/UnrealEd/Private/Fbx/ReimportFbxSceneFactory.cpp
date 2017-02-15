@@ -1,31 +1,58 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "Factories.h"
-#include "BusyCursor.h"
-#include "Dialogs/DlgPickPath.h"
-
-#include "FbxImporter.h"
-#include "AssetSelection.h"
-
-#include "FbxErrors.h"
-#include "AssetRegistryModule.h"
-#include "Engine/StaticMesh.h"
-#include "Animation/SkeletalMeshActor.h"
+#include "Factories/ReimportFbxSceneFactory.h"
+#include "Misc/Paths.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "Serialization/ObjectWriter.h"
+#include "Serialization/ObjectReader.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Components/SceneComponent.h"
+#include "Engine/Blueprint.h"
+#include "Components/StaticMeshComponent.h"
+#include "Animation/AnimTypes.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Materials/Material.h"
 #include "Animation/AnimSequence.h"
+#include "Factories/FbxAssetImportData.h"
+#include "Factories/FbxAnimSequenceImportData.h"
+#include "Factories/FbxSkeletalMeshImportData.h"
+#include "Factories/FbxSceneImportData.h"
+#include "Factories/FbxSceneImportOptions.h"
+#include "Factories/FbxSceneImportOptionsSkeletalMesh.h"
+#include "Factories/FbxSceneImportOptionsStaticMesh.h"
+#include "Camera/CameraComponent.h"
+#include "Components/PointLightComponent.h"
+#include "Components/SpotLightComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Engine/AssetUserData.h"
+#include "FileHelpers.h"
+
+#include "Logging/TokenizedMessage.h"
+#include "FbxImporter.h"
+
+#include "Misc/FbxErrors.h"
+#include "AssetRegistryModule.h"
 #include "PackageTools.h"
 
 #include "SFbxSceneOptionWindow.h"
-#include "MainFrame.h"
+#include "Interfaces/IMainFrameModule.h"
 
-#include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 #include "Toolkits/AssetEditorManager.h"
+#include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 
 #include "ObjectTools.h"
-#include "FileHelpers.h"
 
 #include "AI/Navigation/NavCollision.h"
 
@@ -257,6 +284,7 @@ bool GetFbxSceneReImportOptions(UnFbx::FFbxImporter* FbxImporter
 	//Set the bakepivot option in the SceneImportOptions
 	SceneImportOptions->bBakePivotInVertex = GlobalImportSettings->bBakePivotInVertex;
 	//setup all options
+	GlobalImportSettings->bForceFrontXAxis = SceneImportOptions->bForceFrontXAxis;
 	GlobalImportSettings->bImportStaticMeshLODs = SceneImportOptions->bImportStaticMeshLODs;
 	GlobalImportSettings->bImportSkeletalMeshLODs = SceneImportOptions->bImportSkeletalMeshLODs;
 	SceneImportOptions->bInvertNormalMaps = GlobalImportSettings->bInvertNormalMap;
@@ -361,7 +389,7 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 		GlobalImportSettings->bBakePivotInVertex = DefaultOption->bBakePivotInVertex;
 		GlobalImportSettings->bInvertNormalMap = DefaultOption->bInvertNormalMap;
 	}
-
+	bool OriginalForceFrontXAxis = GlobalImportSettings->bForceFrontXAxis;
 	//Read the fbx and store the hierarchy's information so we can reuse it after importing all the model in the fbx file
 	if (!FbxImporter->ImportFromFile(*FbxImportFileName, FPaths::GetExtension(FbxImportFileName), true))
 	{
@@ -427,6 +455,7 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	FbxSceneReimportStatusMap NodeStatusMap;
 	bool bCanReimportHierarchy = ReimportData->HierarchyType == (int32)EFBXSceneOptionsCreateHierarchyType::FBXSOCHT_CreateBlueprint && !ReimportData->BluePrintFullName.IsEmpty();
 
+	SceneImportOptions->bForceFrontXAxis = GlobalImportSettings->bForceFrontXAxis;
 	if (!GetFbxSceneReImportOptions(FbxImporter
 		, SceneInfoPtr
 		, ReimportData->SceneInfoSourceData
@@ -450,6 +479,13 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	
 	GlobalImportSettingsReference = new UnFbx::FBXImportOptions();
 	SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettings, GlobalImportSettingsReference);
+
+	//Convert the scene to the correct axis system. Option like force front X
+	//We need to get the new convert transform
+	if (OriginalForceFrontXAxis != GlobalImportSettings->bForceFrontXAxis)
+	{
+		ChangeFrontAxis(FbxImporter, &SceneInfo, SceneInfoPtr);
+	}
 
 	//Overwrite the reimport asset data with the new data
 	ReimportData->SceneInfoSourceData = SceneInfoPtr;
@@ -1129,6 +1165,12 @@ EReimportResult::Type UReimportFbxSceneFactory::ImportStaticMesh(void* VoidFbxIm
 		}
 		return EReimportResult::Failed;
 	}
+	else
+	{
+		//Mark any re-imported package dirty
+		NewObject->MarkPackageDirty();
+	}
+
 	AllNewAssets.Add(MeshInfo, NewObject);
 	AssetToSyncContentBrowser.Add(NewObject);
 	return EReimportResult::Succeeded;

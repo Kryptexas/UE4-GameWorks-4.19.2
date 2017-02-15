@@ -1,6 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/CoreOnline.h"
+#include "OnlineSessionSettings.h"
+
+class IAnalyticsProvider;
 
 /** Types of result determination types */
 
@@ -86,7 +92,7 @@ private:
 	struct FQosStats_QosSearchResult
 	{
 		/** Owner of the session */
-		TSharedPtr<const FUniqueNetId> OwnerId;
+		FString OwnerId;
 		/** Datacenter Id */
 		FString DatacenterId;
 		/** Ping time */
@@ -95,7 +101,6 @@ private:
 		bool bIsValid;
 
 		FQosStats_QosSearchResult() :
-			OwnerId(NULL),
 			PingInMs(0),
 			bIsValid(false)
 		{}
@@ -212,10 +217,11 @@ public:
 	 * Record a single ping attempt
 	 * 
 	 * @param Region region of the server
+	 * @param OwnerId the owner of the server (ip address)
 	 * @param PingInMs ping to the server
 	 * @param bSuccess was the attempt successful
 	 */
-	void RecordQosAttempt(const FString& Region, int32 PingInMs, bool bSuccess);
+	void RecordQosAttempt(const FString& Region, const FString& OwnerId, int32 PingInMs, bool bSuccess);
 
 	/**
 	 * End recording of a Qos determination

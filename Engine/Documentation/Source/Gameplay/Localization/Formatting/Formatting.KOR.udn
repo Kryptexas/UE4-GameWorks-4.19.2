@@ -1,64 +1,74 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Formatting User-Facing Text
+﻿INTSourceChangelist:3124628
+Availability:Public
+Title:사용자에 맞는 텍스트 포맷
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
-Description:Using the Format function to present localized text to your users
+Description:Format 함수를 사용하여 사용자에 맞게 현지화된 텍스트를 제공하는 방법입니다.
 Parent:Gameplay/Localization
 Order:3
 version: 4.13
+Related:Programming/UnrealArchitecture/StringHandling/FText
 
-FText is used to create user-facing text, which is often localized. This means that user interface text that changes dynamically over the course of gameplay can also be subject to grammar rules from a number of different languages. Using `FText::Format` and the corresponding 
-**Format Text** Blueprint node enables you to construct reusable format patterns to make the localization process easier and less prone to edge-case errors. Both functions support ordered arguments, named arguments, and specialized arguments based on plural forms, gender forms, 
-and Hangul post-positions.
+FText 는 사용자에 맞는 텍스트를 만드는 데 사용되는데, 보통 현지화된 상태이기 마련입니다. 즉 게임플레이 진행에 따라 동적으로 변하는 사용자 인터페이스 텍스트 역시도 여러가지 언어의 문법 규칙에 따라 바뀔 수 있는 대상이 될 수 있다는 뜻입니다. `FText::Format` 와 그에 맞는 
+**Format Text** 블루프린트 노드를 사용하면 현지화 프로세스의 노고를 덜어주면서 희귀한 오류 상황에도 강한 재사용 가능 포맷 패턴을 만들 수 있습니다. 이 두 함수 모두 서수 및 이름 인수는 물론, 복수, 성별, 한글 조사에 따른 
+특수 인수 역시도 지원합니다.
 
-FText::Format is also available in Blueprints. The Format text can be a literal or connected to a pin. When used as a literal, it will auto-generate arguments for formatting. So by entering the literal "There are {number} days until {day}.", a Number pin and a Day pin will be 
-automatically added to the node. These pins can be filled in as a literal or from a variable and the output Text will replace the arguments with whatever values are hooked to the pins.
+C++ 에서는 FText 포맷 패턴을 FTextFormat 으로 미리 컴파일해 넣고, 그 컴파일된 포맷 패턴을 재사용할 수 있습니다. 어떤 포맷 패턴의 사용 빈도가 높은 경우에 좋은 방식인데, 이는 컬처 변경에 따라 소스 포맷 패턴이 변하는 경우 자동으로 다시 컴파일되기도 합니다.
 
-When the Format pin is connected, the Format can not be deciphered because it is variable. In this case, you can add pins yourself and name them after the possible arguments. In this way, you can set up the Format Text node to be ready for multiple possibilities. Whenever an argument 
-matches an argument in the Format variable, it will utilize the provided information.
+블루프린트에서의 FText 포맷은 **Format Text** 노드를 사용해서도 정할 수 있습니다. **Format** 텍스트는 리터럴이 될 수도, 핀에 연결할 수도 있습니다. 리터럴로 사용할 경우, 포맷에 쓸 인수를 자동 생성합니다. 즉 "There are {number} days until {day}." 와 같은 리터럴을 사용할 경우, **Number** 핀과 **Day** 핀이 
+노드에 자동 추가됩니다. 이 핀들도 리터럴이나 변수로 채워넣을 수 있으며, 출력 **Text** 는 그 핀에 연결된 값에 따라 대체됩니다.
 
-Pin names can be changed, added, and removed from the Details Panel.
+**Format** 핀이 변수에 연결되면 해독이 불가능한데, **Format** 은 게임플레이에 따라 바뀔 수가 있기 때문입니다. 이 경우 핀을 직접 추가하여 가능한 인수 이름을 따서 지어주면 됩니다. 이런 식으로 **Format Text** 노드를 여러가지 가능성에 대비하여 구성할 수 있습니다. 어느 한 인수가 
+Format 변수의 인수에 일치할 때마다, 제공된 정보를 사용할 것입니다.
 
-[REGION:tip]
-For users using a source build of Unreal Engine, `TextTest.cpp` can show you examples of how to perform valid culture aware formatting, comparison, and sorting.
+핀 이름은 **디테일** 패널에서 변경, 추가, 제거 가능합니다.
+
+[REGION:imagetable]
+|![](FormatNode.png)(h:400) | ![](FormatNodeDetails.png)(h:400)|
+|--- |---- |
+|**Format Text** 노드 | **디테일** 패널 | 
 [/REGION]
 
-## Ordered Arguments
+
+[REGION:tip]
+언리얼 엔진 소스 빌드를 사용하시는 경우, `TextTest.cpp` 를 통해 유효 컬처를 인식하는 포맷, 비교, 소팅 수행 방법 예제를 확인할 수 있습니다.
+[/REGION]
+
+## 서수 인수
  
- When building a format argument with ordered arguments, curly braces denote the beginning and end of the format argument and the number indicates the parameter passed.
- Arguments start at {0} and proceed sequentially ( {0}, {1}, {2}, etc.). The `Format` function and **Format Text** node slot variables into the format argument in the order 
- they are provided. 
+ 서수 인수로 포맷 인수를 만들 때, 대괄호를 통해 포맷 인수의 시작과 끝을 알리고, 그 안의 수치를 통해 전달되는 파라미터를 나타냅니다.
+ 인수는 {0} 에서 시작해서 ( {0}, {1}, {2}, 식으로) 순차 진행합니다. Format 함수와 **Format Text** 노드는 변수를 제공된 순서대로 포맷 인수에 
+ 끼워 넣습니다.
 
- The following C++ and Blueprint snippets show an ordered format argument to display the player's current health and maximum health.
+ 다음 C++ 및 블루프린트 조각은 플레이어의 현재 생명력과 최대 생명력 표시를 위한 서수 포맷 인수를 나타냅니다.
 
-### C++ Example
+### C++ 예
 
 	FText::Format( LOCTEXT( "HealthFormatStr",  "{0} / {1}" ), FText::AsNumber( CurrentHealth ), FText::AsNumber( MaxHealth )  ) 
 		
-### Blueprint Example
+### 블루프린트 예
 
 ![](OrderedArgs.png)
 
-## Named Arguments 
+## 이름 인수
 
-When building a format argument with named arguments, curly braces denote the beginning and end of the format argument and the text in the braces is the name of the argument to be found in the arguments passed in.
-Common argument examples are {Name}, {ID}, {Health}, etc.
+이름 인수로 포맷 인수를 만들 때는, 대괄호로 포맷 인수의 시작과 끝을, 그 안의 텍스트로 전달받을 인수의 인수 이름을 나타냅니다.
+흔한 인수 예제는 {Name}, {ID}, {Health} 정도입니다.
 
-The following C++ and Blueprint snippets show a named format argument to display the player's current health.
+다음 C++ 및 블루프린트 조각은 플레이어의 현재 생명력 표시를 위한 이름 포맷 인수를 보여줍니다.
 
-### C++ Example
+### C++ 예
 
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("CurrentHealth"), FText::AsNumber( CurrentHealth ));
 	EditorErrors.Error(FText::Format(LOCTEXT("ExampleFText", "You currently have {CurrentHealth} health left."), Arguments ) );
 
-### Blueprint Example
+### 블루프린트 예
 			
 ![](CurrentHealth.png)
 
-## Specialized Arguments
+## 특수 인수
 
-To allow you to pass in the numeric/gender values needed for plural/gender form support, all of the FText::Format(...) family of functions now take their values as FFormatArgumentValue rather than FText. This can be implicitly constructed from any numeric type, ETextGender, or FText.
+복수/성별 형태 지원에 필요한 숫자/성별 값을 전달하기 위해, 모든 `FText::Format(...)` 군 함수는 이제 그 값을 FText 가 아닌 FFormatArgumentValue 값으로 받습니다. 이는 묵시적으로 어떠한 숫자 유형, ETextGender, FText 로 구성할 수 있습니다.
 
 The ability to set these value types in Blueprints has been exposed using wildcard pins on the **Format Text** node.
 
@@ -89,4 +99,3 @@ Hangul post-positions help you deal with the grammar rules present in Korean, an
 Hangul post-positions are specified as a list of values in the order of [consonant, verb]. Values are an optionally quoted string.
 
 Format Example: `"{Arg}|hpp(은,는)"`
-

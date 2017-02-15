@@ -1,20 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysXSupport.cpp: PhysX
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
+#include "PhysicsEngine/PhysXSupport.h"
+#include "Engine/World.h"
+#include "Components/PrimitiveComponent.h"
+#include "PhysicsEngine/RigidBodyIndexPair.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "PhysicsEngine/ConvexElem.h"
 
 #if WITH_PHYSX
 
-#include "PhysXSupport.h"
+#include "PhysXPublic.h"
 #include "Components/DestructibleComponent.h"
-#include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicsEngine/ConstraintInstance.h"
+#include "PhysicsEngine/BodySetup.h"
 
 PxFoundation*			GPhysXFoundation = NULL;
 PxPvd*					GPhysXVisualDebugger = NULL;
@@ -865,8 +866,8 @@ PxCollection* MakePhysXCollection(const TArray<UPhysicalMaterial*>& PhysicalMate
 
 		for (const FKConvexElem& ConvexElem : BodySetup->AggGeom.ConvexElems)
 		{
-			AddToCollection(PCollection, ConvexElem.ConvexMesh);
-			AddToCollection(PCollection, ConvexElem.ConvexMeshNegX);
+			AddToCollection(PCollection, ConvexElem.GetConvexMesh());
+			AddToCollection(PCollection, ConvexElem.GetMirroredConvexMesh());
 		}
 	}
 

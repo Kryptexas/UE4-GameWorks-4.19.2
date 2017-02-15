@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "Runtime/Launch/Resources/Version.h"
 #include "Misc/App.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogApp, Log, All);
 
@@ -84,7 +86,7 @@ EBuildConfigurations::Type FApp::GetBuildConfiguration()
 		return bUsingDebugGame? EBuildConfigurations::DebugGame : EBuildConfigurations::Development;
 	#endif
 
-#elif UE_BUILD_SHIPPING || UI_BUILD_SHIPPING_EDITOR
+#elif UE_BUILD_SHIPPING
 	return EBuildConfigurations::Shipping;
 
 #elif UE_BUILD_TEST

@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FoliageComponent.cpp: Foliage rendering implementation.
 =============================================================================*/
 
-#include "FoliagePrivate.h"
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "RenderingThread.h"
+#include "GameFramework/Controller.h"
+#include "Components/CapsuleComponent.h"
+#include "StaticMeshResources.h"
 #include "InteractiveFoliageActor.h"
 #include "InteractiveFoliageComponent.h"
-#include "Components/CapsuleComponent.h"
 
 /** Scene proxy class for UInteractiveFoliageComponent. */
 class FInteractiveFoliageSceneProxy : public FStaticMeshSceneProxy
@@ -15,7 +19,7 @@ class FInteractiveFoliageSceneProxy : public FStaticMeshSceneProxy
 public:
 
 	FInteractiveFoliageSceneProxy(UInteractiveFoliageComponent* InComponent) :
-		FStaticMeshSceneProxy(InComponent),
+		FStaticMeshSceneProxy(InComponent, false),
 		FoliageImpluseDirection(0,0,0),
 		FoliageNormalizedRotationAxisAndAngle(0,0,1,0)
 	{}

@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "SpriteEditorOnlyTypes.h"
-#include "Engine/DataAsset.h"
-#include "Engine/EngineTypes.h"
 #include "IntMargin.h"
 
 #include "PaperTileSet.generated.h"

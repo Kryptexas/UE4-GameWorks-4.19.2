@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "IGitSourceControlWorker.h"
 #include "GitSourceControlState.h"
-#include "GitSourceControlRevision.h"
 
 /** Called when first activated on a project, and then at project load time.
  *  Look for the root directory of the git repository (where the ".git/" subdirectory is located). */

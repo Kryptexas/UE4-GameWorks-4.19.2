@@ -1,6 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemIOSPrivatePCH.h"
+#include "OnlineSessionSettings.h"
 
 #if !PLATFORM_TVOS // @todo tvos: What is up with all this being busted?? Multipeer is gone, but so is older stuff? What's to do??
 
@@ -666,7 +667,7 @@ bool FOnlineSessionIOS::GetResolvedConnectString(FName SessionName, FString& Con
 }
 
 
-bool FOnlineSessionIOS::GetResolvedConnectString(const class FOnlineSessionSearchResult& SearchResult, FName PortType, FString& ConnectInfo)
+bool FOnlineSessionIOS::GetResolvedConnectString(const FOnlineSessionSearchResult& SearchResult, FName PortType, FString& ConnectInfo)
 {
 	return false;
 }

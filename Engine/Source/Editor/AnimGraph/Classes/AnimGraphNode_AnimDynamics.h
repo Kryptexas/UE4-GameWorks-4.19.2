@@ -1,12 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AnimNode_AnimDynamics.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Input/Reply.h"
+#include "EdGraph/EdGraphNodeUtils.h"
+#include "Animation/AnimPhysicsSolver.h"
+#include "BoneControllers/AnimNode_AnimDynamics.h"
 #include "AnimGraphNode_SkeletalControlBase.h"
-#include "AnimPhysicsSolver.h"
 
 #include "AnimGraphNode_AnimDynamics.generated.h"
+
+class FCompilerResultsLog;
+class FPrimitiveDrawInterface;
+class IDetailLayoutBuilder;
+class USkeletalMeshComponent;
 
 namespace AnimDynamicsNodeConstants
 {

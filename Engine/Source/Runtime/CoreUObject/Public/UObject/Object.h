@@ -1,9 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "UObjectBaseUtility.h"
-#include "ResourceSize.h"
+#include "CoreMinimal.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "ProfilingDebugging/ResourceSize.h"
+
+class FConfigCacheIni;
+class FEditPropertyChain;
+class ITargetPlatform;
+class ITransactionObjectAnnotation;
+struct FFrame;
+struct FObjectInstancingGraph;
+struct FPropertyChangedChainEvent;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogObj, Log, All);
 
@@ -53,9 +64,8 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 	/**
 	* Create a component or subobject only to be used with the editor.
 	* @param	TReturnType					class of return type, all overrides must be of this type
-	* @param	Outer						outer to construct the subobject in
 	* @param	SubobjectName				name of the new component
-	* @param bTransient		true if the component is being assigned to a transient property
+	* @param	bTransient					true if the component is being assigned to a transient property. This does not make the component itself transient, but does stop it from inheriting parent defaults
 	*/
 	template<class TReturnType>
 	TReturnType* CreateEditorOnlyDefaultSubobject(FName SubobjectName, bool bTransient = false)
@@ -67,9 +77,8 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 	/**
 	* Create a component or subobject
 	* @param	TReturnType					class of return type, all overrides must be of this type
-	* @param	Outer						outer to construct the subobject in
 	* @param	SubobjectName				name of the new component
-	* @param bTransient		true if the component is being assigned to a transient property
+	* @param	bTransient					true if the component is being assigned to a transient property. This does not make the component itself transient, but does stop it from inheriting parent defaults
 	*/
 	template<class TReturnType>
 	TReturnType* CreateDefaultSubobject(FName SubobjectName, bool bTransient = false)
@@ -82,9 +91,8 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 	* Create a component or subobject
 	* @param TReturnType class of return type, all overrides must be of this type
 	* @param TClassToConstructByDefault class to construct by default
-	* @param Outer outer to construct the subobject in
 	* @param SubobjectName name of the new component
-	* @param bTransient		true if the component is being assigned to a transient property
+	* @param bTransient		true if the component is being assigned to a transient property. This does not make the component itself transient, but does stop it from inheriting parent defaults
 	*/
 	template<class TReturnType, class TClassToConstructByDefault>
 	TReturnType* CreateDefaultSubobject(FName SubobjectName, bool bTransient = false)
@@ -96,9 +104,8 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 	* Create optional component or subobject. Optional subobjects may not get created
 	* when a derived class specified DoNotCreateDefaultSubobject with the subobject's name.
 	* @param	TReturnType					class of return type, all overrides must be of this type
-	* @param	Outer						outer to construct the subobject in
 	* @param	SubobjectName				name of the new component
-	* @param bTransient		true if the component is being assigned to a transient property
+	* @param	bTransient					true if the component is being assigned to a transient property. This does not make the component itself transient, but does stop it from inheriting parent defaults
 	*/
 	template<class TReturnType>
 	TReturnType* CreateOptionalDefaultSubobject(FName SubobjectName, bool bTransient = false)
@@ -111,9 +118,8 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 	* Create optional component or subobject. Optional subobjects may not get created
 	* when a derived class specified DoNotCreateDefaultSubobject with the subobject's name.
 	* @param	TReturnType					class of return type, all overrides must be of this type
-	* @param	Outer						outer to construct the subobject in
 	* @param	SubobjectName				name of the new component
-	* @param bTransient		true if the component is being assigned to a transient property
+	* @param	bTransient					true if the component is being assigned to a transient property. This does not make the component itself transient, but does stop it from inheriting parent defaults
 	*/
 	template<class TReturnType>
 	TReturnType* CreateAbstractDefaultSubobject(FName SubobjectName, bool bTransient = false)
@@ -189,6 +195,11 @@ public:
 	 * @return true if the object was saved to the transaction buffer
 	 */
 	virtual bool Modify( bool bAlwaysMarkDirty=true );
+
+	/** 
+	 * Utility to allow overrides of Modify to avoid doing work if the base class is not going modify anyways.
+	 */
+	bool CanModify() const;
 
 #if WITH_EDITOR
 	/** 
@@ -778,6 +789,15 @@ public:
 	 * @param	TargetPlatform	target platform to cache platform specific data for
 	 */
 	virtual void ClearAllCachedCookedPlatformData() { }
+
+	/**
+	 * Called during cook to allow objects to generate additional cooked files alongside their cooked package.
+	 * @note These should typically match the name of the package, but with a different extension.
+	 *
+	 * @param	PackageFilename full path to the package that this object is being saved to on disk
+	 * @param	TargetPlatform	target platform to cook additional files for
+	 */
+	virtual void CookAdditionalFiles( const TCHAR* PackageFilename, const ITargetPlatform* TargetPlatform ) { }
 #endif
 	/**
 	 * Determine if this object has SomeObject in its archetype chain.
@@ -786,6 +806,14 @@ public:
 
 	UFunction* FindFunction( FName InName ) const;
 	UFunction* FindFunctionChecked( FName InName ) const;
+
+	/**
+	 * Given OtherObject (which will be the same type as 'this'), recursively find any matching sub-objects from 'this' that also exist within OtherObject, and add the mappings to ObjectMapping.
+	 *
+	 * @param	OtherObject		The to find matching sub-objects within.
+	 * @param	ObjectMapping	The complete mapping between this object hierarchy and the other object hierarchy.
+	 */
+	virtual void BuildSubobjectMapping(UObject* OtherObject, TMap<UObject*, UObject*>& ObjectMapping) const;
 
 	/**
 	 * Uses the TArchiveObjectReferenceCollector to build a list of all components referenced by this object which have this object as the outer
@@ -1142,6 +1170,8 @@ public:
 	DECLARE_FUNCTION(execTransformConst);
 	DECLARE_FUNCTION(execStructConst);
 	DECLARE_FUNCTION(execSetArray);
+	DECLARE_FUNCTION(execSetSet);
+	DECLARE_FUNCTION(execSetMap);
 	DECLARE_FUNCTION(execArrayConst);
 
 	// Object construction
@@ -1236,3 +1266,4 @@ FORCEINLINE bool IsValid(const UObject *Test)
 {
 	return Test && !Test->IsPendingKill();
 }
+

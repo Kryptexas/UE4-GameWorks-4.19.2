@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // ApplicationLifecycleComponent.:  See FCoreDelegates for details
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/ActorComponent.h"
 #include "ApplicationLifecycleComponent.generated.h"
 
 /** Component to handle receiving notifications from the OS about application state (activated, suspended, termination, etc). */

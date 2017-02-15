@@ -1,13 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
 
+[SupportedPlatforms(UnrealTargetPlatform.IOS)]
 public class UnrealLaunchDaemonTarget : TargetRules
 {
 	public UnrealLaunchDaemonTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Monolithic;
 		bUsesSlate = false;
 		//PlatformType = TargetRules.TargetPlatformType.Mobile;
 		//bRequiresUnrealHeaderGeneration = true;
@@ -17,12 +19,6 @@ public class UnrealLaunchDaemonTarget : TargetRules
 	//
 	// TargetRules interface.
 	//
-
-	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-	{
-		OutPlatforms.Add(UnrealTargetPlatform.IOS);
-		return true;
-	}
 
 	public override void SetupBinaries(
 		TargetInfo Target,
@@ -34,11 +30,6 @@ public class UnrealLaunchDaemonTarget : TargetRules
 			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
 											InModuleNames: new List<string>() { "UnrealLaunchDaemon" })
 			);
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
 	}
 
 	public override void SetupGlobalEnvironment(

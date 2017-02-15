@@ -1,30 +1,34 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
-#include "SHierarchyViewItem.h"
-
-#include "UMGEditorActions.h"
-#include "WidgetTemplateDragDropOp.h"
-
-#include "PreviewScene.h"
-#include "SceneViewport.h"
-
-#include "BlueprintEditor.h"
-#include "SKismetInspector.h"
-#include "BlueprintEditorUtils.h"
-
-#include "Kismet2NameValidators.h"
-
-#include "WidgetBlueprintEditor.h"
-#include "SInlineEditableTextBlock.h"
-#include "Components/Widget.h"
-
-#include "WidgetBlueprintEditorUtils.h"
-#include "Components/PanelSlot.h"
-#include "ScopedTransaction.h"
+#include "Hierarchy/SHierarchyViewItem.h"
+#include "Components/NamedSlotInterface.h"
+#include "Blueprint/UserWidget.h"
+#include "Widgets/Text/STextBlock.h"
 #include "WidgetBlueprint.h"
-#include "Blueprint/WidgetTree.h"
+#include "WidgetBlueprintEditor.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Views/SListView.h"
+
+#if WITH_EDITOR
+	#include "EditorStyleSet.h"
+#endif // WITH_EDITOR
 #include "Components/PanelWidget.h"
+
+#include "Kismet2/BlueprintEditorUtils.h"
+
+#include "DragAndDrop/DecoratedDragDropOp.h"
+#include "WidgetTemplate.h"
+#include "DragDrop/WidgetTemplateDragDropOp.h"
+
+
+
+
+#include "Widgets/Text/SInlineEditableTextBlock.h"
+
+#include "Blueprint/WidgetTree.h"
+#include "WidgetBlueprintEditorUtils.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -153,6 +157,7 @@ TOptional<EItemDropZone> ProcessHierarchyDragDrop(const FDragDropEvent& DragDrop
 	}
 
 	UWidgetBlueprint* Blueprint = BlueprintEditor->GetWidgetBlueprintObj();
+	check( Blueprint != nullptr && Blueprint->WidgetTree != nullptr );
 
 	// Is this a drag/drop op to create a new widget in the tree?
 	TSharedPtr<FWidgetTemplateDragDropOp> TemplateDragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
@@ -326,7 +331,35 @@ TOptional<EItemDropZone> ProcessHierarchyDragDrop(const FDragDropEvent& DragDrop
 						}
 					}
 
+					UPanelWidget* OriginalParent = TemplateWidget->GetParent();
+					UBlueprint* OriginalBP = nullptr;
+
+					// The widget's parent is changing
+					if (OriginalParent != NewParent)
+					{
+						NewParent->SetFlags(RF_Transactional);
+						NewParent->Modify();
+
+						Blueprint->WidgetTree->SetFlags(RF_Transactional);
+						Blueprint->WidgetTree->Modify();
+
+						UWidgetTree* OriginalWidgetTree = Cast<UWidgetTree>(TemplateWidget->GetOuter());
+
+						if (OriginalWidgetTree != nullptr && UWidgetTree::TryMoveWidgetToNewTree(TemplateWidget, Blueprint->WidgetTree))
+						{
+							OriginalWidgetTree->SetFlags(RF_Transactional);
+							OriginalWidgetTree->Modify();
+
+							OriginalBP = OriginalWidgetTree->GetTypedOuter<UBlueprint>();
+						}
+					}
+
 					TemplateWidget->RemoveFromParent();
+
+					if (OriginalBP != nullptr && OriginalBP != Blueprint)
+					{
+						FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(OriginalBP);
+					}
 
 					UPanelSlot* NewSlot = nullptr;
 					if (Index.IsSet())

@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Layout/Margin.h"
+#include "Widgets/SWidget.h"
+#include "Components/PanelWidget.h"
 #include "UniformGridPanel.generated.h"
+
+class SUniformGridPanel;
+class UUniformGridSlot;
 
 /**
  * A panel that evenly divides up available space between all of its children.

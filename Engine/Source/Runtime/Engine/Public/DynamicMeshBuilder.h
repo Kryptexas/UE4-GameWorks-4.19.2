@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DynamicMeshBuilder.h: Dynamic mesh builder definitions.
@@ -6,11 +6,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "PackedNormal.h"
+#include "HitProxies.h"
 #include "RenderUtils.h"
-#include "SceneManagement.h"
 
-class FPrimitiveDrawInterface;
 class FMaterialRenderProxy;
+class FMeshElementCollector;
+class FPrimitiveDrawInterface;
 
 /** The vertex type used for dynamic meshes. */
 struct FDynamicMeshVertex

@@ -1,51 +1,84 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "EditorSupportDelegates.h"
+#include "UnrealEdMisc.h"
+#include "TickableEditorObject.h"
+#include "Components/PrimitiveComponent.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/AutomationTest.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Commands/InputBindingManager.h"
+#include "Framework/Docking/TabManager.h"
+#include "TexAlignTools.h"
 #include "ISourceControlModule.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "Settings/EditorLoadingSavingSettings.h"
+#include "GameMapsSettings.h"
+#include "GeneralProjectSettings.h"
+#include "Lightmass/LightmappedSurfaceCollection.h"
+#include "HAL/PlatformSplash.h"
+#include "Internationalization/Culture.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/UObjectIterator.h"
+#include "EngineUtils.h"
+#include "EditorViewportClient.h"
+#include "EditorModeRegistry.h"
+#include "EditorModeManager.h"
+#include "FileHelpers.h"
+#include "Dialogs/Dialogs.h"
+#include "UnrealEdGlobals.h"
+#include "EditorSupportDelegates.h"
 #include "Kismet2/DebuggerCommands.h"
 #include "Toolkits/AssetEditorCommonCommands.h"
 #include "SoundCueGraphEditorCommands.h"
 #include "RichCurveEditorCommands.h"
-#include "FileHelpers.h"
 #include "EditorBuildUtils.h"
-#include "AssetToolsModule.h"
-#include "MessageLog.h"
-#include "Developer/MessageLog/Public/MessageLogModule.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "MessageLogInitializationOptions.h"
+#include "MessageLogModule.h"
 #include "Kismet2/KismetDebugUtilities.h"
-#include "SourceControlWindows.h"
 #include "FbxLibs.h"
-#include "CompilerResultsLog.h"
-#include "AssetEditorManager.h"
+#include "Kismet2/CompilerResultsLog.h"
 #include "AssetRegistryModule.h"
 #include "EngineAnalytics.h"
-#include "IAnalyticsProvider.h"
+#include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
 #include "ISettingsEditorModule.h"
+#include "EngineGlobals.h"
 #include "LevelEditor.h"
-#include "Toolkits/AssetEditorManager.h"
-#include "UObjectToken.h"
+#include "Misc/UObjectToken.h"
 #include "BusyCursor.h"
 #include "ComponentAssetBroker.h"
 #include "PackageTools.h"
 #include "GameProjectGenerationModule.h"
 #include "MaterialEditorActions.h"
-#include "EngineBuildSettings.h"
-#include "SlateBasics.h"
-#include "DesktopPlatformModule.h"
+#include "Misc/EngineBuildSettings.h"
 #include "ShaderCompiler.h"
 #include "NavigationBuildingNotification.h"
-#include "HotReloadInterface.h"
+#include "Misc/HotReloadInterface.h"
 #include "PerformanceMonitor.h"
 #include "Engine/WorldComposition.h"
-#include "GameMapsSettings.h"
-#include "GeneralProjectSettings.h"
-#include "Lightmass/LightmappedSurfaceCollection.h"
-#include "IProjectManager.h"
+#include "Interfaces/IProjectManager.h"
 #include "FeaturePackContentSource.h"
+#include "ProjectDescriptor.h"
 #include "TemplateProjectDefs.h"
 #include "GameProjectUtils.h"
-#include "IPortalApplicationWindow.h"
+#include "Async/AsyncResult.h"
+#include "Application/IPortalApplicationWindow.h"
 #include "IPortalServiceLocator.h"
+#include "IDesktopPlatform.h"
+#include "DesktopPlatformModule.h"
+#include "UserActivityTracking.h"
+#include "Widgets/Docking/SDockTab.h"
+
+#define USE_UNIT_TESTS 0
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
@@ -223,9 +256,6 @@ void FUnrealEdMisc::OnInit()
 	// Register common asset editor commands
 	FAssetEditorCommonCommands::Register();
 
-	// Register Graph based SoundCue editor commands
-	FSoundCueGraphEditorCommands::Register();
-
 	// Register Material Editor commands
 	FMaterialEditorCommands::Register();
 
@@ -234,6 +264,12 @@ void FUnrealEdMisc::OnInit()
 
 	// Register curve editor commands.
 	FRichCurveEditorCommands::Register();
+
+	// Have the User Activity Tracker reject non-editor activities for this run
+	FUserActivityTracking::SetContextFilter(EUserActivityContext::Editor);
+	OnActiveTabChangedDelegateHandle = FGlobalTabmanager::Get()->OnActiveTabChanged_Subscribe(FOnActiveTabChanged::FDelegate::CreateRaw(this, &FUnrealEdMisc::OnActiveTabChanged));
+	OnTabForegroundedDelegateHandle = FGlobalTabmanager::Get()->OnTabForegrounded_Subscribe(FOnActiveTabChanged::FDelegate::CreateRaw(this, &FUnrealEdMisc::OnTabForegrounded));
+	FUserActivityTracking::SetActivity(FUserActivity(TEXT("EditorInit"), EUserActivityContext::Editor));
 
 	FEditorModeRegistry::Initialize();
 	GLevelEditorModeTools().ActivateDefaultMode();
@@ -559,6 +595,13 @@ void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 	}
 
 	static double LastHeartbeatTime = FPlatformTime::Seconds();
+
+	bool bIsDebuggerPresent = FPlatformMisc::IsDebuggerPresent();
+	static bool bWasDebuggerPresent = false;
+	if (!bWasDebuggerPresent)
+	{
+		bWasDebuggerPresent = bIsDebuggerPresent;
+	}
 	
 	double LastInteractionTime = FSlateApplication::Get().GetLastUserInteractionTime();
 	
@@ -579,7 +622,8 @@ void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 	}
 	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsVanilla"), (GEngine && GEngine->IsVanillaProduct())));
 	Attributes.Add(FAnalyticsEventAttribute(TEXT("IntervalSec"), UnrealEdMiscDefs::HeartbeatIntervalSeconds));
-	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsDebugger"), FPlatformMisc::IsDebuggerPresent()));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsDebugger"), bIsDebuggerPresent));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("WasDebuggerPresent"), bWasDebuggerPresent));
 	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Heartbeat"), Attributes);
 	
 	LastHeartbeatTime = FPlatformTime::Seconds();
@@ -794,6 +838,9 @@ void FUnrealEdMisc::OnExit()
 	MessageLogModule.UnregisterLogListing("PIE");
 
 	// Unregister all events
+	FGlobalTabmanager::Get()->OnActiveTabChanged_Unsubscribe(OnActiveTabChangedDelegateHandle);
+	FGlobalTabmanager::Get()->OnTabForegrounded_Unsubscribe(OnTabForegroundedDelegateHandle);
+	FUserActivityTracking::SetActivity(FUserActivity(TEXT("EditorExit"), EUserActivityContext::Editor));
 	FEditorDelegates::SelectedProps.RemoveAll(this);
 	FEditorDelegates::DisplayLoadErrors.RemoveAll(this);
 	FEditorDelegates::MapChange.RemoveAll(this);
@@ -1024,6 +1071,26 @@ void FUnrealEdMisc::OnEditorPostModal()
 	if( FSlateApplication::IsInitialized() )
 	{
 		FSlateApplication::Get().ExternalModalStop();
+	}
+}
+
+void FUnrealEdMisc::OnActiveTabChanged(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated)
+{
+	OnUserActivityTabChanged(NewlyActivated);
+}
+
+void FUnrealEdMisc::OnTabForegrounded(TSharedPtr<SDockTab> ForegroundTab, TSharedPtr<SDockTab> BackgroundTab)
+{
+	OnUserActivityTabChanged(ForegroundTab);
+}
+
+void FUnrealEdMisc::OnUserActivityTabChanged(TSharedPtr<SDockTab> InTab)
+{
+	if (InTab.IsValid())
+	{
+		FString Activity = FString::Printf(TEXT("Layout=\"%s\" Label=\"%s\" Content=%s"), *InTab->GetLayoutIdentifier().ToString(), *InTab->GetTabLabel().ToString(), *InTab->GetContent()->GetTypeAsString());
+
+		FUserActivityTracking::SetActivity(FUserActivity(Activity, EUserActivityContext::Editor));
 	}
 }
 

@@ -1,8 +1,30 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "CorePrivatePCH.h"
-#include "TaskGraphInterfaces.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Math/NumericLimits.h"
+#include "Math/UnrealMathUtility.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Logging/LogMacros.h"
+#include "Misc/ScopedEvent.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/SingleThreadRunnable.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Misc/NoopCounter.h"
+#include "Misc/ScopeLock.h"
+#include "Containers/LockFreeList.h"
+#include "Templates/Function.h"
+#include "Stats/Stats.h"
+#include "Misc/CoreStats.h"
+#include "Math/RandomStream.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "Containers/LockFreeFixedSizeAllocator.h"
+#include "Async/TaskGraphInterfaces.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTaskGraph, Log, All);
 
@@ -2500,9 +2522,12 @@ static FLockFreePointerListFIFOIntrusive<FGraphEventAndSmallTaskStorage> TheGrap
 
 #endif
 
+#define USE_NIEVE_GRAPH_EVENT_ALLOCTOR (0) // this is useful for tracking leaked handles
+
 FGraphEventRef FGraphEvent::CreateGraphEvent()
 {
 	GraphEventsInUse.Increment();
+#if !USE_NIEVE_GRAPH_EVENT_ALLOCTOR
 	FGraphEvent* Used =  TheGraphEventAllocator.Pop();
 	if (Used)
 	{
@@ -2516,13 +2541,16 @@ FGraphEventRef FGraphEvent::CreateGraphEvent()
 //		Used->LockFreePointerQueueNext = nullptr; // temp
 		return FGraphEventRef(Used);
 	}
+#endif
 	return FGraphEventRef(new FGraphEvent(false));
 }
 
 FGraphEvent* FGraphEvent::CreateGraphEventWithInlineStorage()
 {
 	GraphEventsWithInlineStorageInUse.Increment();
-	FGraphEventAndSmallTaskStorage* Used =  TheGraphEventWithInlineStorageAllocator.Pop();
+	FGraphEventAndSmallTaskStorage* Used;
+#if !USE_NIEVE_GRAPH_EVENT_ALLOCTOR
+	Used = TheGraphEventWithInlineStorageAllocator.Pop();
 	if (Used)
 	{
 		FPlatformMisc::MemoryBarrier();
@@ -2533,6 +2561,7 @@ FGraphEvent* FGraphEvent::CreateGraphEventWithInlineStorage()
 		checkThreadGraph(Used->bInline);
 	}
 	else
+#endif
 	{
 		Used = new FGraphEventAndSmallTaskStorage();
 	}
@@ -2547,12 +2576,20 @@ void FGraphEvent::Recycle(FGraphEvent* ToRecycle)
 	if (ToRecycle->bInline)
 	{
 		GraphEventsWithInlineStorageInUse.Decrement();
+#if USE_NIEVE_GRAPH_EVENT_ALLOCTOR
+		delete ToRecycle;
+#else
 		TheGraphEventWithInlineStorageAllocator.Push((FGraphEventAndSmallTaskStorage*)ToRecycle);
+#endif
 	}
 	else
 	{
 		GraphEventsInUse.Decrement();
+#if USE_NIEVE_GRAPH_EVENT_ALLOCTOR
+		delete ToRecycle;
+#else
 		TheGraphEventAllocator.Push(ToRecycle);
+#endif
 	}
 }
 
@@ -2785,7 +2822,7 @@ void FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoTaskTh
 
 // Benchmark
 
-#include "ParallelFor.h"
+#include "Async/ParallelFor.h"
 
 static FORCEINLINE void DoWork(void* Hash, FThreadSafeCounter& Counter, FThreadSafeCounter& Cycles, int32 Work)
 {

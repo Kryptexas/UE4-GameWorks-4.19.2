@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MetalRHIPrivate.h"
 
 #include "MetalBufferPools.h"
 #include "MetalProfiler.h"
+
+#if METAL_DEBUG_OPTIONS
+extern int32 GMetalBufferZeroFill;
+#endif
 
 FMetalPooledBuffer::FMetalPooledBuffer()
 : Buffer(nil)
@@ -117,6 +121,7 @@ FMetalPooledBuffer FMetalBufferPoolPolicyData::CreateResource(CreationArguments 
 					 | (Args.Storage << MTLResourceStorageModeShift)
 #endif
 					 ];
+	check(NewBuf.Buffer);
 	TRACK_OBJECT(STAT_MetalBufferCount, NewBuf.Buffer);
 	INC_DWORD_STAT(STAT_MetalPooledBufferCount);
 	INC_MEMORY_STAT_BY(STAT_MetalPooledBufferMem, BufferSize);
@@ -154,6 +159,9 @@ uint32 FMetalBufferPoolPolicyData::BucketSizes[NumPoolBucketSizes] = {
 	256, 512, 768, 1024, 2048, 4096, 8192, 16384,
 	32768, 65536, 131072, 262144, 524288, 1048576, 2097152,
 	4194304, 8388608, 16777216, 33554432, 67108864, 134217728, 268435456
+#if PLATFORM_MAC // Mac allows for up-to 1GB but iOS does not, so add a few more sizes
+	, 402653184, 536870912, 671088640, 805306368, 939524096, 1073741824
+#endif
 };
 
 /** Destructor */
@@ -166,11 +174,6 @@ void FMetalQueryBufferPool::Allocate(FMetalQueryResult& NewQuery)
     FMetalQueryBuffer* QB = IsValidRef(CurrentBuffer) ? CurrentBuffer.GetReference() : GetCurrentQueryBuffer();
     if(Align(QB->WriteOffset, EQueryBufferAlignment) + EQueryResultMaxSize <= EQueryBufferMaxSize)
     {
-		if(!QB->CommandBuffer)
-		{
-			QB->CommandBuffer = Context->GetCurrentCommandBuffer();
-			[QB->CommandBuffer retain];
-		}
 		NewQuery.SourceBuffer = QB;
         NewQuery.Offset = Align(QB->WriteOffset, EQueryBufferAlignment);
         FMemory::Memzero((((uint8*)[QB->Buffer contents]) + NewQuery.Offset), EQueryResultMaxSize);
@@ -219,6 +222,7 @@ FRingBuffer::FRingBuffer(id<MTLDevice> Device, uint32 Size, uint32 InDefaultAlig
 	Buffer = [Device newBufferWithLength:Size options:BUFFER_CACHE_MODE];
 	Offset = 0;
 	LastRead = Size;
+	LastWritten = 0;
 	TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 }
 
@@ -240,6 +244,14 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 			// get current location
 			uint32 ReturnOffset = Offset;
 			Offset += Size;
+			
+#if METAL_DEBUG_OPTIONS
+			if (GMetalBufferZeroFill)
+			{
+				FMemory::Memset(((uint8*)[Buffer contents]) + ReturnOffset, 0x0, Size);
+			}
+#endif
+
 			return ReturnOffset;
 		}
 		else // wrap
@@ -255,6 +267,14 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 		// get current location
 		uint32 ReturnOffset = Offset;
 		Offset += Size;
+
+#if METAL_DEBUG_OPTIONS
+		if (GMetalBufferZeroFill)
+		{
+			FMemory::Memset(((uint8*)[Buffer contents]) + ReturnOffset, 0x0, Size);
+		}
+#endif
+		
 		return ReturnOffset;
 	}
 	else
@@ -270,6 +290,14 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 		// get current location
 		uint32 ReturnOffset = Offset;
 		Offset += Size;
+
+#if METAL_DEBUG_OPTIONS
+		if (GMetalBufferZeroFill)
+		{
+			FMemory::Memset(((uint8*)[Buffer contents]) + ReturnOffset, 0x0, Size);
+		}
+#endif
+
 		return ReturnOffset;
 	}
 }

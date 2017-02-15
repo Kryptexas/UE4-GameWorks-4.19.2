@@ -1,14 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialGraphNode_Comment.cpp
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "MaterialGraph/MaterialGraphNode_Comment.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "MaterialGraph/MaterialGraphSchema.h"
 #include "Materials/MaterialExpressionComment.h"
-#include "Materials/MaterialFunction.h"
-#include "MaterialEditorUtilities.h"
-#include "GenericCommands.h"
+#include "Framework/Commands/GenericCommands.h"
 
 /////////////////////////////////////////////////////
 // UMaterialGraphNode_Comment

@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2958335
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title: HTML5 프로젝트 개발 시작하기
 Crumbs:%ROOT%, Platforms, Platforms/HTML5
 Description:HTML5 플랫폼용 개발을 위한 셋업입니다.
 Version: 4.11
 SkillLevel: Intermediate
-type:quickstart
+type:quick start
 parent:Platforms/HTML5
 tags:HTML5
 

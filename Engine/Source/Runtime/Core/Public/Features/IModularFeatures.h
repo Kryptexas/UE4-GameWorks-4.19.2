@@ -1,6 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "UObject/NameTypes.h"
+#include "Delegates/Delegate.h"
 
 /**
  * Public interface to all known modular features

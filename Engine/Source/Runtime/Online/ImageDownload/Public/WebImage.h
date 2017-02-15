@@ -1,8 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/DateTime.h"
+#include "Containers/UnrealString.h"
+#include "Templates/SharedPointer.h"
+#include "Delegates/Delegate.h"
+#include "Misc/Attribute.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Interfaces/IHttpResponse.h"
+#include "Brushes/SlateDynamicImageBrush.h"
+
 class IHttpRequest;
+struct FSlateBrush;
+
 typedef TSharedPtr<class IHttpRequest> FHttpRequestPtr;
 typedef TSharedPtr<class IHttpResponse, ESPMode::ThreadSafe> FHttpResponsePtr;
 

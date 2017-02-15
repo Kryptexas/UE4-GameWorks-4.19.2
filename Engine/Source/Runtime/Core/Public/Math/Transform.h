@@ -1,15 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-	/**
-* Include the current implementation of a FTransform, depending on the vector processing mode
-	 */
+/**
+ * Include the current implementation of a FTransform, depending on the vector processing mode
+ */
 
-#include "ScalarRegister.h"
-
-#if ENABLE_VECTORIZED_TRANSFORM
-#include "TransformVectorized.h"
-#else
-#include "TransformNonVectorized.h"
-#endif
+#include "CoreTypes.h"
+#include "Math/Quat.h"
+#include "Math/ScalarRegister.h"
+#include "Math/TransformVectorized.h"
+#include "Math/TransformNonVectorized.h"

@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
 
 class UViewportWorldInteraction;
 class UVREditorMode;
+struct FWorldContext;
 
 /**
  * Holds ViewportWorldInteraction for every world with corresponding VR Editor mode
@@ -62,7 +64,7 @@ public:
 
 	/** Gets the editor world wrapper that is found with the world passed.
 	 * Adds one for this world if there was non found. */
-	TSharedPtr<FEditorWorldWrapper> GetEditorWorldWrapper(const UWorld* InWorld);
+	TSharedPtr<FEditorWorldWrapper> GetEditorWorldWrapper(const UWorld* InWorld, const bool bCreateIfNeeded = true);
 
 	void Tick( float DeltaTime );
 

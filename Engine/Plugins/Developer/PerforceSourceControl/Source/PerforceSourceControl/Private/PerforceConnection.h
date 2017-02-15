@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ISourceControlProvider.h"
+#include "CoreMinimal.h"
+#include "PerforceSourceControlPrivate.h"
 #include "PerforceSourceControlCommand.h"
 
 /** A map containing result of running Perforce command */

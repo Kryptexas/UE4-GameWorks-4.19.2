@@ -1,30 +1,40 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "GameFramework/Actor.h"
+#include "Serialization/AsyncLoading.h"
+#include "EngineDefines.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "GameFramework/DamageType.h"
+#include "TimerManager.h"
+#include "GameFramework/Pawn.h"
+#include "Components/PrimitiveComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Components/InputComponent.h"
+#include "Engine/Engine.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/LocalPlayer.h"
+#include "ContentStreaming.h"
+#include "DrawDebugHelpers.h"
 #include "Engine/InputDelegateBinding.h"
 #include "Engine/LevelStreamingPersistent.h"
 #include "PhysicsPublic.h"
-#include "ParticleDefinitions.h"
-#include "Sound/SoundCue.h"
-#include "LatentActions.h"
-#include "MessageLog.h"
+#include "Logging/MessageLog.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/RepLayout.h"
-#include "DisplayDebugHelpers.h"
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpGroup.h"
 #include "Matinee/InterpGroupInst.h"
-#include "Particles/ParticleSystemComponent.h"
-#include "VisualLogger/VisualLogger.h"
+#include "Engine/Canvas.h"
+#include "DisplayDebugHelpers.h"
 #include "Animation/AnimInstance.h"
 #include "Engine/DemoNetDriver.h"
-#include "GameFramework/Pawn.h"
 #include "Components/PawnNoiseEmitterComponent.h"
-#include "Components/TimelineComponent.h"
 #include "Components/ChildActorComponent.h"
 #include "Camera/CameraComponent.h"
-#include "GameFramework/DamageType.h"
-#include "Kismet/GameplayStatics.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 
 DEFINE_LOG_CATEGORY(LogActor);
@@ -45,6 +55,8 @@ FMakeNoiseDelegate AActor::MakeNoiseDelegate = FMakeNoiseDelegate::CreateStatic(
 #if !UE_BUILD_SHIPPING
 FOnProcessEvent AActor::ProcessEventDelegate;
 #endif
+
+uint32 AActor::BeginPlayCallDepth = 0;
 
 AActor::AActor()
 {
@@ -134,12 +146,9 @@ bool AActor::CheckActorComponents()
 	DEFINE_LOG_CATEGORY_STATIC(LogCheckComponents, Warning, All);
 
 	bool bResult = true;
-	TInlineComponentArray<UActorComponent*> Components;
-	GetComponents(Components);
 
-	for (int32 Index = 0; Index < Components.Num(); Index++)
+	for (UActorComponent* Inner : GetComponents())
 	{
-		UActorComponent* Inner = Components[Index];
 		if (!Inner)
 		{
 			continue;
@@ -231,12 +240,10 @@ void AActor::ResetOwnedComponents()
 	}
 #endif
 
-	TArray<UObject*> ActorChildren;
 	OwnedComponents.Reset();
 	ReplicatedComponents.Reset();
-	GetObjectsWithOuter(this, ActorChildren, true, RF_NoFlags, EInternalObjectFlags::PendingKill);
 
-	for (UObject* Child : ActorChildren)
+	ForEachObjectWithOuter(this, [this](UObject* Child)
 	{
 		UActorComponent* Component = Cast<UActorComponent>(Child);
 		if (Component && Component->GetOwner() == this)
@@ -248,7 +255,7 @@ void AActor::ResetOwnedComponents()
 				ReplicatedComponents.Add(Component);
 			}
 		}
-	}
+	}, true, RF_NoFlags, EInternalObjectFlags::PendingKill);
 }
 
 void AActor::PostInitProperties()
@@ -596,6 +603,7 @@ void AActor::PostLoad()
 void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 {
 	USceneComponent* OldRoot = RootComponent;
+	USceneComponent* OldRootParent = (OldRoot ? OldRoot->GetAttachParent() : nullptr);
 	bool bHadRoot = !!OldRoot;
 	FRotator OldRotation;
 	FVector OldTranslation;
@@ -609,6 +617,17 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 
 	Super::PostLoadSubobjects(OuterInstanceGraph);
 
+	// If this is a Blueprint class, we may need to manually apply default value overrides to some inherited components in a cooked
+	// build scenario. This can occur, for example, if we have a nativized Blueprint class somewhere in the class inheritance hierarchy.
+	if (FPlatformProperties::RequiresCookedData())
+	{
+		const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(GetClass());
+		if (BPGC != nullptr && BPGC->bHasNativizedParent)
+		{
+			UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(this);
+		}
+	}
+
 	ResetOwnedComponents();
 
 	if (RootComponent && bHadRoot && OldRoot != RootComponent)
@@ -619,10 +638,20 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 		GetRootComponent()->RelativeScale3D = OldScale;
 		
 		// Migrate any attachment to the new root
-		if(OldRoot->GetAttachParent())
+		if (OldRoot->GetAttachParent())
 		{
-			RootComponent->SetupAttachment(OldRoot->GetAttachParent());
-			OldRoot->SetupAttachment(nullptr);
+			// Users may try to fixup attachment to the root on their own, avoid creating a cycle.
+			if (OldRoot->GetAttachParent() != RootComponent)
+			{
+				RootComponent->SetupAttachment(OldRoot->GetAttachParent());
+			}
+		}
+
+		// Attach old root to new root, if the user did not do something on their own during construction that differs from the serialized value.
+		if (OldRoot->GetAttachParent() == OldRootParent && OldRoot->GetAttachParent() != RootComponent)
+		{
+			UE_LOG(LogActor, Log, TEXT("--- Attaching old root to new root %s->%s"), *OldRoot->GetFullName(), *GetRootComponent()->GetFullName());
+			OldRoot->SetupAttachment(RootComponent);
 		}
 
 		// Reset the transform on the old component
@@ -738,12 +767,12 @@ void AActor::RegisterAllActorTickFunctions(bool bRegister, bool bDoComponents)
 
 		if (bDoComponents)
 		{
-			TInlineComponentArray<UActorComponent*> Components;
-			GetComponents(Components);
-
-			for (int32 Index = 0; Index < Components.Num(); Index++)
+			for (UActorComponent* Component : GetComponents())
 			{
-				Components[Index]->RegisterAllComponentTickFunctions(bRegister);
+				if (Component)
+				{
+					Component->RegisterAllComponentTickFunctions(bRegister);
+				}
 			}
 		}
 	}
@@ -856,27 +885,9 @@ void AActor::Tick( float DeltaSeconds )
 	{
 		bool bOKToDestroy = true;
 
-		// @todo: naive implementation, needs improved
-		TInlineComponentArray<UActorComponent*> Components(this);
-
-		for (UActorComponent* const Comp : Components)
+		for (UActorComponent* const Comp : GetComponents())
 		{
-			UParticleSystemComponent* const PSC = Cast<UParticleSystemComponent>(Comp);
-			if ( PSC && (PSC->bIsActive || !PSC->bWasCompleted) )
-			{
-				bOKToDestroy = false;
-				break;
-			}
-
-			UAudioComponent* const AC = Cast<UAudioComponent>(Comp);
-			if (AC && AC->IsPlaying())
-			{
-				bOKToDestroy = false;
-				break;
-			}
-
-			UTimelineComponent* const TL = Cast<UTimelineComponent>(Comp);
-			if (TL && TL->IsPlaying())
+			if (Comp && !Comp->IsReadyForOwnerToAutoDestroy())
 			{
 				bOKToDestroy = false;
 				break;
@@ -1023,6 +1034,11 @@ bool AActor::IsBasedOnActor(const AActor* Other) const
 
 bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )
 {
+	if (!CanModify())
+	{
+		return false;
+	}
+
 	// Any properties that reference a blueprint constructed component needs to avoid creating a reference to the component from the transaction
 	// buffer, so we temporarily switch the property to non-transactional while the modify occurs
 	TArray<UObjectProperty*> TemporarilyNonTransactionalProperties;
@@ -1055,8 +1071,6 @@ bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )
 	{
 		bSavedToTransactionBuffer = RootComponent->Modify( bAlwaysMarkDirty ) || bSavedToTransactionBuffer;
 	}
-
-	ULevel* Level = GetLevel();
 
 	return bSavedToTransactionBuffer;
 }
@@ -1833,6 +1847,33 @@ void AActor::FlushNetDormancy()
 	}
 }
 
+void AActor::ForcePropertyCompare()
+{
+	if ( IsNetMode( NM_Client ) )
+	{
+		return;
+	}
+
+	if ( !bReplicates )
+	{
+		return;
+	}
+
+	const UWorld* MyWorld = GetWorld();
+
+	UNetDriver* NetDriver = GetNetDriver();
+
+	if ( NetDriver )
+	{
+		NetDriver->ForcePropertyCompare( this );
+
+		if ( MyWorld->DemoNetDriver && MyWorld->DemoNetDriver != NetDriver )
+		{
+			MyWorld->DemoNetDriver->ForcePropertyCompare( this );
+		}
+	}
+}
+
 void AActor::PostRenderFor(APlayerController *PC, UCanvas *Canvas, FVector CameraPosition, FVector CameraDir) {}
 
 void AActor::PrestreamTextures( float Seconds, bool bEnableStreaming, int32 CinematicTextureGroups )
@@ -2418,6 +2459,8 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 {
 	check(Component->GetOwner() == this);
 
+	Modify();
+
 	bool bAlreadyInSet = false;
 	OwnedComponents.Add(Component, &bAlreadyInSet);
 
@@ -2441,6 +2484,8 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 
 void AActor::RemoveOwnedComponent(UActorComponent* Component)
 {
+	Modify();
+
 	if (OwnedComponents.Remove(Component) > 0)
 	{
 		ReplicatedComponents.Remove(Component);
@@ -2715,6 +2760,18 @@ void AActor::PostSpawnInitialize(FTransform const& UserSpawnTransform, AActor* I
 	// Call OnComponentCreated on all default (native) components
 	DispatchOnComponentsCreated(this);
 
+	// If this is a Blueprint class, we may need to manually apply default value overrides to some inherited components in a
+	// cooked build scenario. This can occur, for example, if we have a nativized Blueprint class in the inheritance hierarchy.
+	// Note: This should be done prior to executing the construction script, in case there are any dependencies on default values.
+	if (FPlatformProperties::RequiresCookedData())
+	{
+		const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(GetClass());
+		if (BPGC != nullptr && BPGC->bHasNativizedParent)
+		{
+			UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(this);
+		}
+	}
+
 	// Register the actor's default (native) components, but only if we have a native scene root. If we don't, it implies that there could be only non-scene components
 	// at the native class level. In that case, if this is a Blueprint instance, we need to defer native registration until after SCS execution can establish a scene root.
 	// Note: This API will also call PostRegisterAllComponents() on the actor instance. If deferred, PostRegisterAllComponents() won't be called until the root is set by SCS.
@@ -2890,20 +2947,20 @@ void AActor::PostActorConstruction()
 					UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *GetFullName());
 				}
 
-				bool bRunBeginPlay = !bDeferBeginPlayAndUpdateOverlaps && World->HasBegunPlay();
+				bool bRunBeginPlay = !bDeferBeginPlayAndUpdateOverlaps && (BeginPlayCallDepth > 0 || World->HasBegunPlay());
 				if (bRunBeginPlay)
 				{
 					if (AActor* ParentActor = GetParentActor())
 					{
 						// Child Actors cannot run begin play until their parent has run
-						bRunBeginPlay = ParentActor->HasActorBegunPlay();
+						bRunBeginPlay = (ParentActor->HasActorBegunPlay() || ParentActor->IsActorBeginningPlay());
 					}
 				}
 
 				if (bRunBeginPlay)
 				{
 					SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
-					BeginPlay();
+					DispatchBeginPlay();
 				}
 			}
 		}
@@ -2957,11 +3014,20 @@ void AActor::SetReplicateMovement(bool bInReplicateMovement)
 	bReplicateMovement = bInReplicateMovement;
 }
 
-void AActor::SetAutonomousProxy(bool bInAutonomousProxy)
+void AActor::SetAutonomousProxy(const bool bInAutonomousProxy, const bool bAllowForcePropertyCompare)
 {
 	if (bReplicates)
 	{
+		const TEnumAsByte<enum ENetRole> OldRemoteRole = RemoteRole;
+
 		RemoteRole = (bInAutonomousProxy ? ROLE_AutonomousProxy : ROLE_SimulatedProxy);
+
+		if (bAllowForcePropertyCompare && RemoteRole != OldRemoteRole)
+		{ 
+			// We have to do this so the role change above will replicate (turn off shadow state sharing for a frame)
+			// This is because RemoteRole is special since it will change between connections, so we have to special case
+			ForcePropertyCompare();
+		}
 	}
 	else
 	{
@@ -2992,7 +3058,7 @@ void AActor::PostNetInit()
 		if (MyWorld && MyWorld->HasBegunPlay())
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
-			BeginPlay();
+			DispatchBeginPlay();
 		}
 	}
 
@@ -3016,6 +3082,21 @@ void AActor::ExchangeNetRoles(bool bRemoteOwned)
 void AActor::SwapRolesForReplay()
 {
 	Swap(Role, RemoteRole);
+}
+
+void AActor::DispatchBeginPlay()
+{
+	UWorld* World = (!HasActorBegunPlay() && !IsPendingKill() ? GetWorld() : nullptr);
+
+	if (World)
+	{
+		const uint32 CurrentCallDepth = BeginPlayCallDepth++;
+
+		BeginPlay();
+
+		ensure(BeginPlayCallDepth - 1 == CurrentCallDepth);
+		BeginPlayCallDepth = CurrentCallDepth;
+	}
 }
 
 void AActor::BeginPlay()
@@ -3508,38 +3589,6 @@ bool AActor::SetRootComponent(class USceneComponent* NewRootComponent)
 	}
 
 	return false;
-}
-
-/** K2 exposed 'get location' */
-FVector AActor::K2_GetActorLocation() const
-{
-	return GetActorLocation();
-}
-
-/** K2 exposed 'get rotation' */
-FRotator AActor::K2_GetActorRotation() const
-{
-	return GetActorRotation();
-}
-
-FVector AActor::GetActorForwardVector() const
-{
-	return GetActorQuat().RotateVector(FVector::ForwardVector);
-}
-
-FVector AActor::GetActorUpVector() const
-{
-	return GetActorQuat().RotateVector(FVector::UpVector);
-}
-
-FVector AActor::GetActorRightVector() const
-{
-	return GetActorQuat().RotateVector(FVector::RightVector);
-}
-
-USceneComponent* AActor::K2_GetRootComponent() const
-{
-	return GetRootComponent();
 }
 
 void AActor::GetActorBounds(bool bOnlyCollidingComponents, FVector& Origin, FVector& BoxExtent) const
@@ -4089,13 +4138,9 @@ void AActor::ReregisterAllComponents()
 
 void AActor::UpdateComponentTransforms()
 {
-	TInlineComponentArray<UActorComponent*> Components;
-	GetComponents(Components);
-
-	for (int32 Idx = 0; Idx < Components.Num(); Idx++)
+	for (UActorComponent* ActorComp : GetComponents())
 	{
-		UActorComponent* ActorComp = Components[Idx];
-		if (ActorComp->IsRegistered())
+		if (ActorComp && ActorComp->IsRegistered())
 		{
 			ActorComp->UpdateComponentToWorld();
 		}
@@ -4104,11 +4149,9 @@ void AActor::UpdateComponentTransforms()
 
 void AActor::MarkComponentsRenderStateDirty()
 {
-	TInlineComponentArray<UActorComponent*> Components(this);
-
-	for (UActorComponent* ActorComp : Components)
+	for (UActorComponent* ActorComp : GetComponents())
 	{
-		if (ActorComp->IsRegistered())
+		if (ActorComp && ActorComp->IsRegistered())
 		{
 			ActorComp->MarkRenderStateDirty();
 			if (UChildActorComponent* ChildActorComponent = Cast<UChildActorComponent>(ActorComp))
@@ -4131,12 +4174,12 @@ void AActor::InitializeComponents()
 	{
 		if (ActorComp->IsRegistered())
 		{
-			if (!ActorComp->IsActive() && ActorComp->bAutoActivate)
+			if (ActorComp->bAutoActivate && !ActorComp->IsActive())
 			{
 				ActorComp->Activate(true);
 			}
 
-			if (ActorComp->bWantsInitializeComponent)
+			if (ActorComp->bWantsInitializeComponent && !ActorComp->HasBeenInitialized())
 			{
 				// Broadcast the activation event since Activate occurs too early to fire a callback in a game
 				ActorComp->InitializeComponent();
@@ -4192,25 +4235,13 @@ void AActor::DrawDebugComponents(FColor const& BaseColor) const
 
 void AActor::InvalidateLightingCacheDetailed(bool bTranslationOnly)
 {
-	TInlineComponentArray<UActorComponent*> Components;
-	GetComponents(Components);
-
-	for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
+	for (UActorComponent* Component : GetComponents())
 	{
-		UActorComponent* Component = Components[ComponentIndex]; 
-
 		if(Component && Component->IsRegistered())
 		{
 			Component->InvalidateLightingCacheDetailed(true, bTranslationOnly);
 		}
 	}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	// Validate that we didn't change it during this action
-	TInlineComponentArray<UActorComponent*> NewComponents;
-	GetComponents(NewComponents);
-	ensure(Components == NewComponents);
-#endif
 }
 
  // COLLISION

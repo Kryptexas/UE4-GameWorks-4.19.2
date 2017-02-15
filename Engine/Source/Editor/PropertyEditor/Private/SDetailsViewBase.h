@@ -1,15 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IDetailsViewPrivate.h"
-#include "AssetSelection.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "PropertyPath.h"
+#include "Input/Reply.h"
+#include "AssetThumbnail.h"
 #include "IPropertyUtilities.h"
-
+#include "IDetailTreeNode.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "PropertyNode.h"
+#include "Widgets/SWindow.h"
+#include "PropertyEditorModule.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "Widgets/Views/STreeView.h"
+#include "IDetailsView.h"
+#include "IDetailsViewPrivate.h"
 
 class FDetailCategoryImpl;
 class FDetailLayoutBuilderImpl;
-
+class FNotifyHook;
+class IDetailCustomization;
+class IDetailKeyframeHandler;
+class IDetailPropertyExtensionHandler;
+class SDetailNameArea;
 
 struct FPropertyNodeMap
 {
@@ -337,6 +355,8 @@ protected:
 	virtual TSharedPtr<SWidget> GetNameAreaWidget() override;
 	virtual TSharedPtr<SWidget> GetFilterAreaWidget() override;
 	virtual TSharedPtr<class FUICommandList> GetHostCommandList() const override;
+	virtual TSharedPtr<FTabManager> GetHostTabManager() const override;
+	virtual void SetHostTabManager(TSharedPtr<FTabManager> InTabManager) override;
 
 	/** 
 	 * Hides or shows properties based on the passed in filter text

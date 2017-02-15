@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Engine.h"
 #include "MeshBoneReduction.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "Modules/ModuleManager.h"
+#include "GPUSkinPublicDefs.h"
+#include "ReferenceSkeleton.h"
+#include "SkeletalMeshTypes.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "UObject/UObjectHash.h"
+#include "Templates/ScopedPointer.h"
 #include "ComponentReregisterContext.h"
+#include "UniquePtr.h"
+#include "SkeletalMeshTypes.h"
 
 class FMeshBoneReductionModule : public IMeshBoneReductionModule
 {
@@ -292,19 +300,19 @@ public:
 	}
 };
 
-TScopedPointer<FMeshBoneReduction> GMeshBoneReduction;
+TUniquePtr<FMeshBoneReduction> GMeshBoneReduction;
 
 void FMeshBoneReductionModule::StartupModule()
 {
-	GMeshBoneReduction = new FMeshBoneReduction();
+	GMeshBoneReduction = MakeUnique<FMeshBoneReduction>();
 }
 
 void FMeshBoneReductionModule::ShutdownModule()
 {
-	GMeshBoneReduction = NULL;
+	GMeshBoneReduction = nullptr;
 }
 
 IMeshBoneReduction* FMeshBoneReductionModule::GetMeshBoneReductionInterface()
 {
-	return GMeshBoneReduction;
+	return GMeshBoneReduction.Get();
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved..
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved..
 
 /*=============================================================================
 	VulkanRHIPrivate.h: Private Vulkan RHI definitions.
@@ -7,13 +7,23 @@
 #pragma once
 
 // Dependencies
+#include "CoreMinimal.h"
+#include "Misc/ScopeLock.h"
+#include "RHI.h"
+#include "RenderUtils.h"
 #include "VulkanConfiguration.h"
-#include "Engine.h"
+
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
 
 DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 
 /** How many back buffers to cycle through */
-#define NUM_RENDER_BUFFERS 2
+enum
+{
+	NUM_RENDER_BUFFERS = 3,
+};
 
 #ifndef VK_PROTOTYPES
 #define VK_PROTOTYPES	1
@@ -27,7 +37,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 #endif
 
 #if PLATFORM_ANDROID
-	#define VULKAN_COMMANDWRAPPERS_ENABLE VULKAN_ENABLE_API_DUMP
+	#define VULKAN_COMMANDWRAPPERS_ENABLE VULKAN_ENABLE_DUMP_LAYER
 	#define VULKAN_DYNAMICALLYLOADED 1
 #else
 	#define VULKAN_COMMANDWRAPPERS_ENABLE 1
@@ -125,7 +135,8 @@ public:
 	inline uint32 GetNumColorAttachments() const { return NumColorAttachments; }
 	inline bool GetHasDepthStencil() const { return bHasDepthStencil; }
 	inline bool GetHasResolveAttachments() const { return bHasResolveAttachments; }
-	inline uint32 GetNumAttachments() const { return NumAttachments; }
+	inline uint32 GetNumAttachmentDescriptions() const { return NumAttachmentDescriptions; }
+	inline uint32 GetNumSamples() const { return NumSamples; }
 
 	inline const VkAttachmentReference* GetColorAttachmentReferences() const { return NumColorAttachments > 0 ? ColorReferences : nullptr; }
 	inline const VkAttachmentReference* GetResolveAttachmentReferences() const { return bHasResolveAttachments ? ResolveReferences : nullptr; }
@@ -138,10 +149,11 @@ protected:
 
 	VkAttachmentDescription Desc[MaxSimultaneousRenderTargets * 2 + 1];
 
-	uint32 NumAttachments;
+	uint32 NumAttachmentDescriptions;
 	uint32 NumColorAttachments;
 	bool bHasDepthStencil;
 	bool bHasResolveAttachments;
+	uint32 NumSamples;
 
 	uint32 Hash;
 
@@ -158,7 +170,7 @@ protected:
 		FMemory::Memzero(ResolveReferences);
 		FMemory::Memzero(DepthStencilReference);
 		FMemory::Memzero(Desc);
-		NumAttachments = 0;
+		NumAttachmentDescriptions = 0;
 		NumColorAttachments = 0;
 		bHasDepthStencil = 0;
 		bHasResolveAttachments = 0;
@@ -227,14 +239,8 @@ public:
 	}
 
 	TArray<VkImageView> AttachmentViews;
-#if VULKAN_USE_NEW_RENDERPASSES
 	TArray<VkImageView> AttachmentViewsToDelete;
-#endif
 	TArray<VkImageSubresourceRange> SubresourceRanges;
-
-#if !VULKAN_USE_NEW_RENDERPASSES
-	void InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer);
-#endif
 
 	inline bool ContainsRenderTarget(FRHITexture* Texture) const
 	{
@@ -261,23 +267,10 @@ public:
 		for (int32 Index = 0; Index < FMath::Min((int32)NumColorAttachments, RTInfo.NumColorRenderTargets); ++Index)
 		{
 			FRHITexture* RHITexture = RTInfo.ColorRenderTarget[Index].Texture;
-			if (auto* Texture2D = RHITexture->GetTexture2D())
+			if (RHITexture)
 			{
-				if (Image == ((FVulkanTexture2D*)Texture2D)->Surface.Image)
-				{
-					return true;
-				}
-			}
-			else if (auto* TextureCube = RHITexture->GetTextureCube())
-			{
-				if (Image == ((FVulkanTextureCube*)TextureCube)->Surface.Image)
-				{
-					return true;
-				}
-			}
-			else if (auto* Texture3D = RHITexture->GetTexture3D())
-			{
-				if (Image == ((FVulkanTexture3D*)Texture3D)->Surface.Image)
+				FVulkanTextureBase* Base = (FVulkanTextureBase*)RHITexture->GetTextureBaseRHI();
+				if (Image == Base->Surface.Image)
 				{
 					return true;
 				}
@@ -361,7 +354,7 @@ public:
 	// Can be called only once, the idea is that the Layout remains fixed.
 	void Compile();
 
-	inline const TArray<VkDescriptorSetLayout> GetHandles() const
+	inline const TArray<VkDescriptorSetLayout>& GetHandles() const
 	{
 		return LayoutHandles;
 	}
@@ -526,7 +519,6 @@ inline void VulkanSetImageLayoutSimple(VkCommandBuffer CmdBuffer, VkImage Image,
 void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI);
 
 // Stats
-#include "Engine.h"
 #include "Stats2.h"
 DECLARE_STATS_GROUP(TEXT("Vulkan RHI"), STATGROUP_VulkanRHI, STATCAT_Advanced);
 //DECLARE_STATS_GROUP(TEXT("Vulkan RHI Verbose"), STATGROUP_VulkanRHIVERBOSE, STATCAT_Advanced);
@@ -559,6 +551,9 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("SRV Update Time"), STAT_VulkanSRVUpdateTime, STA
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Deletion Queue"), STAT_VulkanDeletionQueue, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Queue Submit"), STAT_VulkanQueueSubmit, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Queue Present"), STAT_VulkanQueuePresent, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Wait For Query"), STAT_VulkanWaitQuery, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Reset Queries"), STAT_VulkanResetQuery, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Wait For Swapchain"), STAT_VulkanWaitSwapchain, STATGROUP_VulkanRHI, );
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Apply DS Shader Resources"), STAT_VulkanApplyDSResources, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Update DescriptorSets"), STAT_VulkanUpdateDescriptorSets, STATGROUP_VulkanRHI, );
@@ -621,6 +616,8 @@ namespace VulkanRHI
 			Flags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 			break;
 		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+			Flags = VK_ACCESS_MEMORY_READ_BIT;
+			break;
 		case VK_IMAGE_LAYOUT_GENERAL:
 		case VK_IMAGE_LAYOUT_UNDEFINED:
 			Flags = 0;

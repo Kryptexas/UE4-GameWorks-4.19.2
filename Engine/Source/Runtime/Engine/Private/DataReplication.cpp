@@ -1,16 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DataChannel.cpp: Unreal datachannel implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Net/UnrealNetwork.h"
-#include "Net/NetworkProfiler.h"
-#include "Net/RepLayout.h"
 #include "Net/DataReplication.h"
-#include "Engine/ActorChannel.h"
+#include "Misc/MemStack.h"
+#include "HAL/IConsoleManager.h"
+#include "EngineStats.h"
+#include "Engine/World.h"
+#include "Net/DataBunch.h"
+#include "Net/NetworkProfiler.h"
 #include "Engine/PackageMapClient.h"
+#include "Net/RepLayout.h"
+#include "Engine/ActorChannel.h"
 #include "Engine/DemoNetDriver.h"
 
 static TAutoConsoleVariable<int32> CVarMaxRPCPerNetUpdate( TEXT( "net.MaxRPCPerNetUpdate" ), 2, TEXT( "Maximum number of RPCs allowed per net update" ) );
@@ -132,6 +135,12 @@ void FObjectReplicator::InitRecentProperties( uint8* Source )
 	RepLayout->InitRepState( RepState, InObjectClass, Source, RepChangedPropertyTracker );
 	RepState->RepLayout = RepLayout;
 
+	if ( !Connection->Driver->IsServer() )
+	{
+		// Clients don't need to initialize shadow state (and in fact it causes issues in replays)
+		return;
+	}
+
 	// Init custom delta property state
 	for ( TFieldIterator<UProperty> It( InObjectClass ); It; ++It )
 	{
@@ -229,6 +238,33 @@ void FObjectReplicator::CleanUp()
 		StopReplicating( OwningChannel );		// We shouldn't get here, but just in case
 	}
 
+	if ( Connection != nullptr )
+	{
+		for ( const FNetworkGUID& GUID : ReferencedGuids )
+		{
+			TSet< FObjectReplicator* >& Replicators = Connection->Driver->GuidToReplicatorMap.FindChecked( GUID );
+
+			Replicators.Remove( this );
+
+			if ( Replicators.Num() == 0 )
+			{
+				Connection->Driver->GuidToReplicatorMap.Remove( GUID );
+			}
+		}
+
+		Connection->Driver->UnmappedReplicators.Remove( this );
+
+		Connection->Driver->TotalTrackedGuidMemoryBytes -= TrackedGuidMemoryBytes;
+	}
+	else
+	{
+		ensureMsgf( TrackedGuidMemoryBytes == 0, TEXT( "TrackedGuidMemoryBytes should be 0" ) );
+		ensureMsgf( ReferencedGuids.Num() == 0, TEXT( "ReferencedGuids should be 0" ) );
+	}
+
+	ReferencedGuids.Empty();
+	TrackedGuidMemoryBytes = 0;
+
 	SetObject( NULL );
 
 	ObjectClass					= NULL;
@@ -318,7 +354,7 @@ FReplicationChangelistMgr::~FReplicationChangelistMgr()
 {
 }
 
-void FReplicationChangelistMgr::Update( const UObject* InObject, const uint32 ReplicationFrame, const int32 LastCompareIndex, const FReplicationFlags& RepFlags )
+void FReplicationChangelistMgr::Update( const UObject* InObject, const uint32 ReplicationFrame, const int32 LastCompareIndex, const FReplicationFlags& RepFlags, const bool bForceCompare )
 {
 	// See if we can re-use the work already done on a previous connection
 	// Rules:
@@ -326,7 +362,7 @@ void FReplicationChangelistMgr::Update( const UObject* InObject, const uint32 Re
 	//	2. We check LastCompareIndex > 1 so we can do at least one pass per connection to compare all properties
 	//		This is necessary due to how RemoteRole is manipulated per connection, so we need to give all connections a chance to see if it changed
 	//	3. We ALWAYS compare on bNetInitial to make sure we have a fresh changelist of net initial properties in this case
-	if ( CVarShareShadowState.GetValueOnGameThread() && !RepFlags.bNetInitial && LastCompareIndex > 1 && LastReplicationFrame == ReplicationFrame )
+	if ( !bForceCompare && CVarShareShadowState.GetValueOnAnyThread() && !RepFlags.bNetInitial && LastCompareIndex > 1 && LastReplicationFrame == ReplicationFrame )
 	{
 		INC_DWORD_STAT_BY( STAT_NetSkippedDynamicProps, 1 );
 		return;
@@ -362,25 +398,6 @@ void FObjectReplicator::StopReplicating( class UActorChannel * InActorChannel )
 	check( OwningChannel != NULL );
 	check( OwningChannel->Connection == Connection );
 	check( OwningChannel == InActorChannel );
-
-	for ( const FNetworkGUID& GUID : ReferencedGuids )
-	{
-		TSet< FObjectReplicator* >& Replicators = Connection->Driver->GuidToReplicatorMap.FindChecked( GUID );
-
-		Replicators.Remove( this );
-
-		if ( Replicators.Num() == 0 )
-		{
-			Connection->Driver->GuidToReplicatorMap.Remove( GUID );
-		}
-	}
-
-	Connection->Driver->UnmappedReplicators.Remove( this );
-
-	ReferencedGuids.Empty();
-	
-	Connection->Driver->TotalTrackedGuidMemoryBytes -= TrackedGuidMemoryBytes;
-	TrackedGuidMemoryBytes = 0;
 
 	OwningChannel = NULL;
 
@@ -1020,6 +1037,7 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FNetBitWriter & Bunch, F
 	ConditionMap[COND_Custom] = true;
 	ConditionMap[COND_ReplayOrOwner] = bIsReplay || bIsOwner;
 	ConditionMap[COND_ReplayOnly] = bIsReplay;
+	ConditionMap[COND_SkipReplay] = !bIsReplay;
 
 	// Make sure net field export group is registered
 	FNetFieldExportGroup* NetFieldExportGroup = OwningChannel->GetOrCreateNetFieldExportGroupForClassNetCache( Object );
@@ -1128,7 +1146,7 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 	FNetBitWriter Writer( Bunch.PackageMap, 0 );
 
 	// Update change list (this will re-use work done by previous connections)
-	ChangelistMgr->Update( Object, Connection->Driver->ReplicationFrame, RepState->LastCompareIndex, RepFlags );
+	ChangelistMgr->Update( Object, Connection->Driver->ReplicationFrame, RepState->LastCompareIndex, RepFlags, OwningChannel->bForceCompareProperties );
 
 	// Replicate properties in the layout
 	const bool bHasRepLayout = RepLayout->ReplicateProperties( RepState, ChangelistMgr->GetRepChangelistState(), ( uint8* )Object, ObjectClass, OwningChannel, Writer, RepFlags );
@@ -1159,7 +1177,7 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 	{
 		static const auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt( TEXT( "net.RPC.Debug" ) );
 
-		if ( UNLIKELY( CVar && CVar->GetValueOnGameThread() == 1 ) )
+		if ( UNLIKELY( CVar && CVar->GetValueOnAnyThread() == 1 ) )
 		{
 			UE_LOG( LogRepTraffic, Warning,	TEXT("      Sending queued RPCs: %s. Channel[%d] [%.1f bytes]"), *Object->GetName(), OwningChannel->ChIndex, RemoteFunctions->GetNumBits() / 8.f );
 		}
@@ -1269,7 +1287,7 @@ void FObjectReplicator::QueueRemoteFunctionBunch( UFunction* Func, FOutBunch &Bu
 		RemoteFuncInfo[InfoIdx].Calls = 0;
 	}
 	
-	if (++RemoteFuncInfo[InfoIdx].Calls > CVarMaxRPCPerNetUpdate.GetValueOnGameThread())
+	if (++RemoteFuncInfo[InfoIdx].Calls > CVarMaxRPCPerNetUpdate.GetValueOnAnyThread())
 	{
 		UE_LOG(LogRep, Verbose, TEXT("Too many calls (%d) to RPC %s within a single netupdate. Skipping. %s.  LastCallTime: %.2f. CurrentTime: %.2f. LastRelevantTime: %.2f. LastUpdateTime: %.2f "),
 			RemoteFuncInfo[InfoIdx].Calls, *Func->GetName(), *GetPathNameSafe(GetObject()), RemoteFuncInfo[InfoIdx].LastCallTime, OwningChannel->Connection->Driver->Time, OwningChannel->RelevantTime, OwningChannel->LastUpdateTime);
@@ -1472,7 +1490,7 @@ void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 
 		FNetDeltaSerializeInfo Parms;
 
-		FNetSerializeCB NetSerializeCB( OwningChannel->Connection->Driver );
+		FNetSerializeCB NetSerializeCB( Connection->Driver );
 
 		Parms.DebugName			= StructProperty->GetName();
 		Parms.Struct			= InnerStruct;

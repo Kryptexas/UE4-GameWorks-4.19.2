@@ -1,8 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Editor/UnrealEdTypes.h"
+#include "Framework/Docking/TabManager.h"
+#include "Framework/Commands/UICommandList.h"
+#include "AssetThumbnail.h"
 #include "Toolkits/IToolkitHost.h"
+
+class ILevelViewport;
+class SLevelViewport;
 
 /**
  * Public interface to SLevelEditor

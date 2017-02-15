@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WindowsD3D11ConstantBuffer.cpp: D3D Constant Buffer functions
 =============================================================================*/
 
-#include "D3D11RHIPrivate.h"
 #include "WindowsD3D11ConstantBuffer.h"
+#include "D3D11RHIPrivate.h"
 
 void FWinD3D11ConstantBuffer::InitDynamicRHI()
 {

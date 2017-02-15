@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "CorePrivatePCH.h"
-#include "EventPool.h"
-#include "LockFreeList.h"
-#include "StatsData.h"
+#include "HAL/ThreadingBase.h"
+#include "UObject/NameTypes.h"
+#include "Stats/Stats.h"
+#include "Misc/CoreStats.h"
+#include "Misc/EventPool.h"
 
 DEFINE_STAT( STAT_EventWaitWithId );
 DEFINE_STAT( STAT_EventTriggerWithId );
@@ -14,9 +15,7 @@ DECLARE_DWORD_COUNTER_STAT( TEXT( "ThreadPoolDummyCounter" ), STAT_ThreadPoolDum
 /** The global thread pool */
 FQueuedThreadPool* GThreadPool = nullptr;
 
-#if USE_NEW_ASYNC_IO
 FQueuedThreadPool* GIOThreadPool = nullptr;
-#endif // USE_NEW_ASYNC_IO
 
 #if WITH_EDITOR
 FQueuedThreadPool* GLargeThreadPool = nullptr;
@@ -650,13 +649,16 @@ public:
 		}
 	}
 
-	int32 GetNumQueuedJobs()
+	int32 GetNumQueuedJobs() const
 	{
 		// this is a estimate of the number of queued jobs. 
 		// no need for thread safe lock as the queuedWork array isn't moved around in memory so unless this class is being destroyed then we don't need to wrory about it
 		return QueuedWork.Num();
 	}
-
+	virtual int32 GetNumThreads() const 
+	{
+		return AllThreads.Num();
+	}
 	void AddQueuedWork(IQueuedWork* InQueuedWork) override
 	{
 		if (TimeToDie)
@@ -773,58 +775,5 @@ void FTlsAutoCleanup::Register()
 	if( RunnableThread )
 	{
 		RunnableThread->TlsInstances.Add( this );
-	}
-}
-
-void FMultiReaderSingleWriterGT::LockRead()
-{
-	if (!IsInGameThread())
-	{		
-		SCOPE_CYCLE_COUNTER(STAT_Sleep);
-
-		FThreadIdleStats::FScopeIdle Scope;
-		while (!CanRead())
-		{
-			FPlatformProcess::SleepNoStats(0.0f);
-		}
-	}
-	CriticalSection.ReadCounter.Increment();
-}
-
-void FMultiReaderSingleWriterGT::UnlockRead()
-{
-	if (CriticalSection.ReadCounter.Decrement() != 0)
-	{
-		return;
-	}
-
-	if (!IsInGameThread())
-	{
-		FPlatformAtomics::InterlockedExchange(&CriticalSection.Action, NoAction);
-	}
-}
-
-void FMultiReaderSingleWriterGT::LockWrite()
-{
-	check(IsInGameThread());
-
-	{
-		SCOPE_CYCLE_COUNTER(STAT_Sleep);
-
-		FThreadIdleStats::FScopeIdle Scope;
-		while (!CanWrite())
-		{
-			FPlatformProcess::SleepNoStats(0.0f);
-		}
-	}
-
-	CriticalSection.WriteCounter.Increment();
-}
-
-void FMultiReaderSingleWriterGT::UnlockWrite()
-{
-	if (CriticalSection.WriteCounter.Decrement() == 0)
-	{
-		FPlatformAtomics::InterlockedExchange(&CriticalSection.Action, NoAction);
 	}
 }

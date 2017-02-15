@@ -1,18 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Paper2DEditorPrivatePCH.h"
-#include "TileMapEditor.h"
-#include "SSingleObjectDetailsPanel.h"
-#include "SceneViewport.h"
-#include "PaperEditorViewportClient.h"
+#include "CoreMinimal.h"
+#include "UnrealWidget.h"
 #include "PreviewScene.h"
-#include "ScopedTransaction.h"
+#include "TileMapEditing/TileMapEditor.h"
+#include "PaperEditorViewportClient.h"
 
-class UPaperTileMapComponent;
-class STileMapEditorViewport;
+class FCanvas;
 class FScopedTransaction;
+class STileMapEditorViewport;
+class UPaperTileMap;
+class UPaperTileMapComponent;
 
 //////////////////////////////////////////////////////////////////////////
 // FTileMapEditorViewportClient

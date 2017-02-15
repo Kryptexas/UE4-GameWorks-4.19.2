@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ISceneOutliner.h"
-#include "ISceneOutlinerColumn.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/SHeaderRow.h"
+#include "Widgets/Views/STableRow.h"
 #include "SceneOutlinerPublicTypes.h"
+#include "Misc/EnumRange.h"
+#include "ISceneOutlinerColumn.h"
+
+class ISceneOutliner;
 
 namespace SceneOutliner
 {

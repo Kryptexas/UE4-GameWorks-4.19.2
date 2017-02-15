@@ -1,5 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreTypes.h"
+#include "Misc/Guid.h"
 
 // Custom serialization version for changes made in Dev-Framework stream
 struct CORE_API FFrameworkObjectVersion
@@ -62,6 +65,21 @@ struct CORE_API FFrameworkObjectVersion
 
 	        // Added serialization of materials applied to geometry cache objects
 		GeometryCacheMissingMaterials,
+
+		// Switch static & skeletal meshes to calculate LODs based on resolution-independent screen size
+		LODsUseResolutionIndependentScreenSize,
+
+		// Blend space post load verification
+		BlendSpacePostLoadSnapToGrid,
+
+		// Addition of rate scales to blend space samples
+		SupportBlendSpaceRateScale,
+
+		// LOD hysteresis also needs conversion from the LODsUseResolutionIndependentScreenSize version
+		LODHysteresisUseResolutionIndependentScreenSize,
+
+		// AudioComponent override subtitle priority default change
+		ChangeAudioComponentOverrideSubtitlePriorityDefault,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

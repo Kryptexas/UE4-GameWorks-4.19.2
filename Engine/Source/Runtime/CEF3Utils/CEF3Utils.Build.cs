@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -18,7 +18,8 @@ public class CEF3Utils : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Win64
 		||  Target.Platform == UnrealTargetPlatform.Win32
-        ||  Target.Platform == UnrealTargetPlatform.Mac)
+		||  Target.Platform == UnrealTargetPlatform.Mac
+		||  Target.Platform == UnrealTargetPlatform.Linux)
 		{
 			AddEngineThirdPartyPrivateStaticDependencies(Target,
 				"CEF3"

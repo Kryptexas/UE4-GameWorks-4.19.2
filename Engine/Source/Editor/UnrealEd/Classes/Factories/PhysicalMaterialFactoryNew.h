@@ -1,11 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // PhysicalMaterialFactoryNew
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Factories/Factory.h"
 #include "PhysicalMaterialFactoryNew.generated.h"
+
+class UPhysicalMaterial;
 
 UCLASS(MinimalAPI, HideCategories=Object)
 class UPhysicalMaterialFactoryNew : public UFactory

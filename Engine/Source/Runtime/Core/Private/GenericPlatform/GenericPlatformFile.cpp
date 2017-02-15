@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "ModuleManager.h"
-
-#if USE_NEW_ASYNC_IO
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "HAL/FileManager.h"
+#include "Templates/ScopedPointer.h"
+#include "Misc/Paths.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "UniquePtr.h"
 
 #include "AsyncFileHandle.h"
 
@@ -288,14 +292,13 @@ bool FGenericReadRequest::CheckForPrecache()
 
 IAsyncReadFileHandle* IPlatformFile::OpenAsyncRead(const TCHAR* Filename)
 {
+	check(GNewAsyncIO);
 	return new FGenericAsyncReadFileHandle(this, Filename);
 }
 
 DEFINE_STAT(STAT_AsyncFileMemory);
 DEFINE_STAT(STAT_AsyncFileHandles);
 DEFINE_STAT(STAT_AsyncFileRequests);
-
-#endif //USE_NEW_ASYNC_IO
 
 int64 IFileHandle::Size()
 {
@@ -411,13 +414,13 @@ bool IPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From, EPlatformFileRe
 {
 	const int64 MaxBufferSize = 1024*1024;
 
-	TAutoPtr<IFileHandle> FromFile(OpenRead(From, (ReadFlags & EPlatformFileRead::AllowWrite) != EPlatformFileRead::None));
-	if (!FromFile.IsValid())
+	TUniquePtr<IFileHandle> FromFile(OpenRead(From, (ReadFlags & EPlatformFileRead::AllowWrite) != EPlatformFileRead::None));
+	if (!FromFile)
 	{
 		return false;
 	}
-	TAutoPtr<IFileHandle> ToFile(OpenWrite(To, false, (WriteFlags & EPlatformFileWrite::AllowRead) != EPlatformFileWrite::None));
-	if (!ToFile.IsValid())
+	TUniquePtr<IFileHandle> ToFile(OpenWrite(To, false, (WriteFlags & EPlatformFileWrite::AllowRead) != EPlatformFileWrite::None));
+	if (!ToFile)
 	{
 		return false;
 	}

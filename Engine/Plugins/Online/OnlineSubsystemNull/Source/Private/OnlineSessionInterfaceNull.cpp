@@ -1,16 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemNullPrivatePCH.h"
 #include "OnlineSessionInterfaceNull.h"
-#include "OnlineIdentityInterface.h"
+#include "Misc/Guid.h"
+#include "OnlineSubsystem.h"
 #include "OnlineSubsystemNull.h"
+#include "OnlineSubsystemNullTypes.h"
 #include "OnlineSubsystemUtils.h"
-#include "OnlineAsyncTaskManagerNull.h"
+#include "OnlineAsyncTaskManager.h"
 #include "SocketSubsystem.h"
-#include "LANBeacon.h"
 #include "NboSerializerNull.h"
 
-#include "VoiceInterface.h"
 
 
 FOnlineSessionInfoNull::FOnlineSessionInfoNull() :
@@ -736,7 +735,7 @@ bool FOnlineSessionNull::GetResolvedConnectString(FName SessionName, FString& Co
 	return bSuccess;
 }
 
-bool FOnlineSessionNull::GetResolvedConnectString(const class FOnlineSessionSearchResult& SearchResult, FName PortType, FString& ConnectInfo)
+bool FOnlineSessionNull::GetResolvedConnectString(const FOnlineSessionSearchResult& SearchResult, FName PortType, FString& ConnectInfo)
 {
 	bool bSuccess = false;
 	if (SearchResult.Session.SessionInfo.IsValid())
@@ -745,11 +744,11 @@ bool FOnlineSessionNull::GetResolvedConnectString(const class FOnlineSessionSear
 
 		if (PortType == BeaconPort)
 		{
-			int32 BeaconListenPort = 15000;
+			int32 BeaconListenPort = DEFAULT_BEACON_PORT;
 			if (!SearchResult.Session.SessionSettings.Get(SETTING_BEACONPORT, BeaconListenPort) || BeaconListenPort <= 0)
 			{
-				// Reset the default BeaconListenPort back to 15000 because the SessionSettings value does not exist or was not valid
-				BeaconListenPort = 15000;
+				// Reset the default BeaconListenPort back to DEFAULT_BEACON_PORT because the SessionSettings value does not exist or was not valid
+				BeaconListenPort = DEFAULT_BEACON_PORT;
 			}
 			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo, BeaconListenPort);
 
@@ -1012,14 +1011,19 @@ void FOnlineSessionNull::OnValidQueryPacketReceived(uint8* PacketData, int32 Pac
 	for (int32 SessionIndex = 0; SessionIndex < Sessions.Num(); SessionIndex++)
 	{
 		FNamedOnlineSession* Session = &Sessions[SessionIndex];
-
+							
+		// Don't respond to query if the session is not a joinable LAN match.
 		if (Session)
 		{
-			bool bAdvertiseSession = ( ( Session->SessionSettings.bIsLANMatch || Session->SessionSettings.bAllowJoinInProgress ) && Session->NumOpenPublicConnections > 0 ) ||
-				Session->SessionSettings.bAllowJoinViaPresence || 
-				Session->SessionSettings.bAllowJoinViaPresenceFriendsOnly;
+			const FOnlineSessionSettings& Settings = Session->SessionSettings;
 
-			if ( bAdvertiseSession )
+			const bool bIsMatchInProgress = Session->SessionState == EOnlineSessionState::InProgress;
+
+			const bool bIsMatchJoinable = Settings.bIsLANMatch &&
+				(!bIsMatchInProgress || Settings.bAllowJoinInProgress) &&
+				Settings.NumPublicConnections > 0;
+
+			if (bIsMatchJoinable)
 			{
 				FNboSerializeToBufferNull Packet(LAN_BEACON_MAX_PACKET_SIZE);
 				// Create the basic header before appending additional information

@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PackageName.h: Unreal package name utility functions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+struct FFileStatData;
 
 class COREUOBJECT_API FPackageName
 {
@@ -89,6 +93,14 @@ public:
 	 * @return Clean asset name.
 	 */
 	static FString GetLongPackageAssetName(const FString& InLongPackageName);
+	/**
+	 * Convert a root path to the content path associated with it
+	 * Similar to TryConvertLongPackageNameToFilename except doesn't require a file just returns the pat
+	 * See also RegisterMountPoint and UnRegisterMountPoint
+	 * @param RootPath The package root path, eg "/Game/"
+	 * @param OutContentPath The path from the mount point to the package, eg "Maps/TestMaps/
+	 */
+	static bool ConvertRootPathToContentPath(const FString& RootPath, FString& OutContentPath);
 	/** 
 	 * Returns true if the path starts with a valid root (i.e. /Game/, /Engine/, etc) and contains no illegal characters.
 	 *

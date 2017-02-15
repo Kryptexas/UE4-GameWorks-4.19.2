@@ -1,14 +1,14 @@
-﻿INTSourceChangelist:2950818
+﻿INTSourceChangelist:3150518
 Title: VR 모드 가동
 Description: 언리얼 에디터의 VR 모드 활성화 방법을 배워봅니다.
 Crumbs:
 Availability: public
 parent: Engine/Editor/VR
-type: howto
+type:how-to
 order: 2
 tags: VR
 tags: Getting Started
-version: 4.11
+version: 4.13
 skilllevel: intermediate
 
 [VAR:Topic]
@@ -45,6 +45,8 @@ skilllevel: intermediate
 [/OBJECT]
 [/VAR]
 
+언리얼 엔진 4.12 버전 이후부터 에픽 게임스 런처를 통해 실행되는 엔진에서도 VR 편집 모드가 지원됩니다. [GitHub](Engine/Editor/VR/Setup) 에서 최신 업데이트 빌드를 받으실 수도 있습니다.
+
 [EXCERPT:main]
 
 1. 에디터가 로드된 이후, **파일 > 새 레벨** 을 선택하여 "VR-Basic" 레벨을 엽니다. 이 환경은 조작법을 배워보기에 좋은 놀이터입니다.
@@ -60,8 +62,36 @@ skilllevel: intermediate
 	[REGION:tip]
 	명령줄 UE4Editor.exe 에 `-VREditor` 옵션을 붙이면 바로 VR 모드로 시작할 수 있습니다.
 	[/REGION]
-1. 튜토리얼을 사용하려면, 콘트롤러를 읽고자 하는 섹션 위에 올린 다음 콘트롤러 트리거를 조작하여 섹션을 열면 됩니다.
+1. 튜토리얼을 사용하려면, 컨트롤러를 읽고자 하는 섹션 위에 올린 다음 컨트롤러 트리거를 조작하여 섹션을 열면 됩니다.
 
 언제든 홈 버튼을 눌러 이 메뉴로 돌아온 뒤 다른 도움말 섹션을 선택할 수 있습니다.
 
 [/EXCERPT:main]
+
+## 자동 VR 편집 모드
+
+4.13 버전 이후로 VR 편집 모드에 자동으로 들어가고 나올 수 있습니다. 에디터가 포어그라운드 상태로 실행중이고 VR 편집 모드가 켜진 상태에서, HMD 를 쓰면 자동으로 VR 편집 모드에 들어가고, 벗으면 나옵니다.
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+cZJmh881FCo
+[/PARAMLITERAL]
+[/OBJECT]
+
+**VR 편집 모드 자동 전환 켜고/끄기:**
+1. **편집** 메뉴에서 **에디터 개인설정** 을 클릭하고 언리얼 에디터 옵션을 확인합니다.
+	
+	![](EditorPref.png)
+2. **General** (일반) 아래 **Experimental** (실험단계) 부분을 선택하고 VR 에디터 옵션이 들어있는 **VR** 카테고리를 찾습니다.
+
+	![](ExperimentalVR.png)
+3. **Enable VR Mode Auto-Entry** (VR 모드 자동 전환 켜기) 옵션으로 이 기능을 켜거나 끌 수 있습니다.
+
+	![](AutoEntryMenu_Highlight.png)
+

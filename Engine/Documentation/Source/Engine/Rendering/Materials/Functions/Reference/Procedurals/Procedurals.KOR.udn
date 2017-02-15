@@ -1,17 +1,17 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3108692
 Availability: Public
-title:순차함수
+title:프로시저럴 함수
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
-Description:Procedurals (순차함수) 카테고리 아래 있는 머티리얼 함수에 대한 설명과 예제입니다.
+Description:Procedurals, 프로시저럴 카테고리 아래 있는 머티리얼 함수에 대한 설명과 예제입니다.
 Version: 4.9
 
 [TOC (start:2 end:3)]
 
 
 
-Procedural (순차) 함수로는 단순한 순차 생성 텍스처와 마스크를 빠르게 만들 수 있습니다. 임포트된 텍스처를 사용해야 하는 것에 비해 메모리가 절약됩니다.
+Procedural, 프로시저럴 함수로는 단순한 절차적 생성 텍스처와 마스크를 빠르게 만들 수 있습니다. 임포트된 텍스처에 비해 메모리가 절약됩니다.
 
-## 순차 함수
+## 프로시저럴 함수
 
 Procedurals 카테고리 아래 있는 함수들은 다음과 같습니다.
 
@@ -22,7 +22,7 @@ Procedurals 카테고리 아래 있는 함수들은 다음과 같습니다.
 | 항목 | 설명 |
 | ---- | ---- |
 |[REGION:tablesection]입력[/REGION] ||
-| **Width (Scalar)** | 순차 밴드의 폭을 계산하는 0-1 값입니다. 기본값은 0.25 입니다. |
+| **Width (Scalar)** | 절차적 생성 밴드의 폭을 계산하는 0-1 값입니다. 기본값은 0.25 입니다. |
 | **Sharpness (Scalar)** | 밴드의 에지 부분 감쇠를 조절합니다. 100 이면 매우 선명한 각진 밴드가 나옵니다. |
 | **Offset (Scalar)** | 밴드를 텍스처 스페이스 주변으로 미끄러뜨리는 값입니다. |
 | **Direction Switch (StaticBool)** | _True_ 로 설정하면 가로가 아닌 세로 밴드가 됩니다. 기본값은 _False_, 가로 밴드입니다. |
@@ -34,12 +34,12 @@ Procedurals 카테고리 아래 있는 함수들은 다음과 같습니다.
 
 ### GeneratedOffsetBands
 
-GeneratedBand 함수처럼 GeneratedOffsetBands 도 UV 스페이스에 걸쳐 순차 생성되는 텍스처 밴드를 만듭니다만, 이 함수는 밴드를 딱 하나가 아닌 여러 개 만들 수 있습니다.
+GeneratedBand 함수처럼 GeneratedOffsetBands 도 UV 스페이스에 걸쳐 절차적 생성되는 텍스처 밴드를 만듭니다만, 이 함수는 밴드를 딱 하나가 아닌 여러 개 만들 수 있습니다.
 
 | 항목 | 설명 |
 | ---- | ---- |
 |[REGION:tablesection]입력[/REGION] ||
-| **Width (Scalar)** | 순차 밴드의 폭을 계산하는 0-1 값입니다. 기본값은 0.25 입니다. |
+| **Width (Scalar)** | 절차적 생성 밴드의 폭을 계산하는 0-1 값입니다. 기본값은 0.25 입니다. |
 | **Sharpness (Scalar)** | 밴드의 에지 부분 감쇠를 조절합니다. 100 이면 매우 선명한 각진 밴드가 나옵니다. |
 | **Offset (Scalar)** | 밴드를 텍스처 스페이스 주변으로 미끄러뜨리는 값입니다. |
 | **Direction Switch (StaticBool)** | _True_ 로 설정하면 가로가 아닌 세로 밴드가 됩니다. 기본값은 _False_, 가로 밴드입니다. |

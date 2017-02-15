@@ -1,47 +1,60 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnMaterial.cpp: Shader implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Materials/MaterialFunction.h"
+#include "Materials/Material.h"
+#include "Stats/StatsMisc.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "Misc/App.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "UObject/UObjectAnnotation.h"
+#include "UObject/LinkerLoad.h"
+#include "EngineGlobals.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "UnrealEngine.h"
 #include "Materials/MaterialExpressionCollectionParameter.h"
-#include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
 #include "Materials/MaterialExpressionDynamicParameter.h"
 #include "Materials/MaterialExpressionFontSampleParameter.h"
-#include "Materials/MaterialExpressionMaterialFunctionCall.h"
-#include "Materials/MaterialExpressionMultiply.h"
 #include "Materials/MaterialExpressionQualitySwitch.h"
+#include "Materials/MaterialExpressionParameter.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
 #include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
 #include "Materials/MaterialExpressionStaticSwitchParameter.h"
+#include "Materials/MaterialExpressionTextureBase.h"
+#include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionSceneColor.h"
-#include "MaterialUniformExpressions.h"
+#include "SceneManagement.h"
+#include "Materials/MaterialUniformExpressions.h"
 #include "Engine/SubsurfaceProfile.h"
 #include "EditorSupportDelegates.h"
-#include "MaterialShaderType.h"
-#include "MaterialInstanceSupport.h"
-#include "UObjectAnnotation.h"
-#include "MaterialCompiler.h"
-#include "TargetPlatform.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "ShaderCompiler.h"
 #include "Materials/MaterialParameterCollection.h"
+#include "ShaderPlatformQualitySettings.h"
 #include "MaterialShaderQualitySettings.h"
-#include "LoadTimeTracker.h"
-#include "RenderingObjectVersion.h"
+#include "ProfilingDebugging/LoadTimeTracker.h"
+#include "MaterialCompiler.h"
+#include "Materials/MaterialInstanceSupport.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Materials/MaterialExpressionComment.h"
 #if WITH_EDITOR
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "UnrealEd.h"
-#include "SlateBasics.h"  // For AddNotification
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "MaterialGraph/MaterialGraph.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "Material"
@@ -100,19 +113,19 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 		case MP_EmissiveColor:
 			if (SelectionColorIndex != INDEX_NONE)
 			{
-				Ret = Compiler->Add(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor), MCT_Float3), SelectionColorIndex);
+				Ret = Compiler->Add(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor, MFCF_ForceCast), SelectionColorIndex);
 			}
 			else
 			{
-				Ret = Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor), MCT_Float3);
+				Ret = MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor);
 			}
 			break;
 
 		case MP_DiffuseColor: 
-			Ret = Compiler->Mul(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor), MCT_Float3), Compiler->Sub(Compiler->Constant(1.0f), SelectionColorIndex));
+			Ret = Compiler->Mul(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor, MFCF_ForceCast), Compiler->Sub(Compiler->Constant(1.0f), SelectionColorIndex));
 			break;
 		case MP_BaseColor: 
-			Ret = Compiler->Mul(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_BaseColor),MCT_Float3),Compiler->Sub(Compiler->Constant(1.0f),SelectionColorIndex));
+			Ret = Compiler->Mul(MaterialInterface->CompileProperty(Compiler, MP_BaseColor, MFCF_ForceCast), Compiler->Sub(Compiler->Constant(1.0f), SelectionColorIndex));
 			break;
 		case MP_MaterialAttributes:
 			Ret = INDEX_NONE;
@@ -204,6 +217,11 @@ public:
 	{
 		checkSlow(IsInRenderingThread());
 		return Material->GetMaterialResource(InFeatureLevel);
+	}
+
+	virtual UMaterialInterface* GetMaterialInterface() const override
+	{
+		return Material;
 	}
 
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
@@ -947,6 +965,36 @@ void UMaterial::OverrideScalarParameterDefault(FName ParameterName, float Value,
 		RecacheMaterialInstanceUniformExpressions(this);
 	}
 #endif // #if WITH_EDITOR
+}
+
+float UMaterial::GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel::Type InFeatureLevel)
+{
+	if (FApp::CanEverRender())
+	{
+		FMaterialResource* Resource = GetMaterialResource(InFeatureLevel);
+		check(Resource);
+
+		// Iterate over both the 2D textures and cube texture expressions.
+		const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = Resource->GetUniformScalarParameterExpressions();
+
+		// Iterate over each of the material's texture expressions.
+		for (FMaterialUniformExpression* UniformExpression : UniformExpressions)
+		{
+			if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
+			{
+				FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+
+				if (ScalarExpression->GetParameterName() == ParameterName)
+				{
+					float Value = 0.f;
+					ScalarExpression->GetDefaultValue(Value);
+					return Value;
+				}
+			}
+		}
+	}
+
+	return 0.f;
 }
 
 void UMaterial::RecacheUniformExpressions() const
@@ -2155,14 +2203,17 @@ void UMaterial::FlushResourceShaderMaps()
 {
 	FPlatformMisc::CreateGuid(StateId);
 
-	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel)
+	if(FApp::CanEverRender())
 	{
-		for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+		UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel)
 		{
-			FMaterialResource* CurrentResource = MaterialResources[QualityLevelIndex][InFeatureLevel];
-			CurrentResource->ReleaseShaderMap();
-		}
-	});
+			for(int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+			{
+				FMaterialResource* CurrentResource = MaterialResources[QualityLevelIndex][InFeatureLevel];
+				CurrentResource->ReleaseShaderMap();
+			}
+		});
+	}
 }
 
 void UMaterial::RebuildMaterialFunctionInfo()
@@ -2677,7 +2728,8 @@ void UMaterial::PostLoad()
 	STAT(double MaterialLoadTime = 0);
 	{
 		SCOPE_SECONDS_COUNTER(MaterialLoadTime);
-#if WITH_EDITOR
+// Daniel: Disable compiling shaders for cooked platforms as the cooker will manually call the BeginCacheForCookedPlatformData function and load balence
+/*#if WITH_EDITOR
 		// enable caching in postload for derived data cache commandlet and cook by the book
 		ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
 		if (TPM && (TPM->RestrictFormatsToRuntimeOnly() == false))
@@ -2689,7 +2741,7 @@ void UMaterial::PostLoad()
 				BeginCacheForCookedPlatformData(Platforms[FormatIndex]);
 			}
 		}
-#endif
+#endif*/
 		//Don't compile shaders in post load for dev overhead materials.
 		if (FApp::CanEverRender() && !bIsMaterialEditorStatsMaterial)
 		{
@@ -3005,16 +3057,17 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 
 	TranslucencyDirectionalLightingIntensity = FMath::Clamp(TranslucencyDirectionalLightingIntensity, .1f, 10.0f);
 
-	// Don't want to recompile after a duplicate because it's just been done by PostLoad
-	if( PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate )
+	// Don't want to recompile after a duplicate because it's just been done by PostLoad, nor during interactive changes to prevent constant recompliation while spinning properties.
+	if( PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate || PropertyChangedEvent.ChangeType == EPropertyChangeType::Interactive )
 	{
 		bRequiresCompilation = false;
 	}
-
-	// Prevent constant recompliation while spinning properties
-	if (bRequiresCompilation && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
+	
+	if (bRequiresCompilation)
 	{
-		CacheResourceShadersForRendering(true);
+		// When redirecting an object pointer, we trust that the DDC hash will detect the change and that we don't need to force a recompile.
+		const bool bRegenerateId = PropertyChangedEvent.ChangeType != EPropertyChangeType::Redirected;
+		CacheResourceShadersForRendering(bRegenerateId);
 		RecacheMaterialInstanceUniformExpressions(this);
 
 		// Ensure that the ReferencedTextureGuids array is up to date.
@@ -3553,7 +3606,7 @@ void UMaterial::UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, 
 	FMaterial::UpdateEditorLoadedMaterialResources(ShaderPlatform);
 }
 
-void UMaterial::BackupMaterialShadersToMemory(TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData)
+void UMaterial::BackupMaterialShadersToMemory(TMap<FMaterialShaderMap*, TUniquePtr<TArray<uint8> > >& ShaderMapToSerializedShaderData)
 {
 	// Process FMaterialShaderMap's referenced by UObjects (UMaterial, UMaterialInstance)
 	for (TObjectIterator<UMaterialInterface> It; It; ++It)
@@ -3604,7 +3657,7 @@ void UMaterial::BackupMaterialShadersToMemory(TMap<FMaterialShaderMap*, TScopedP
 	FMaterial::BackupEditorLoadedMaterialShadersToMemory(ShaderMapToSerializedShaderData);
 }
 
-void UMaterial::RestoreMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData)
+void UMaterial::RestoreMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TUniquePtr<TArray<uint8> > >& ShaderMapToSerializedShaderData)
 {
 	// Process FMaterialShaderMap's referenced by UObjects (UMaterial, UMaterialInstance)
 	for (TObjectIterator<UMaterialInterface> It; It; ++It)
@@ -3626,7 +3679,7 @@ void UMaterial::RestoreMaterialShadersFromMemory(const TMap<FMaterialShaderMap*,
 
 					if (ShaderMap)
 					{
-						const TScopedPointer<TArray<uint8> >* ShaderData = ShaderMapToSerializedShaderData.Find(ShaderMap);
+						const TUniquePtr<TArray<uint8> >* ShaderData = ShaderMapToSerializedShaderData.Find(ShaderMap);
 
 						if (ShaderData)
 						{
@@ -3647,7 +3700,7 @@ void UMaterial::RestoreMaterialShadersFromMemory(const TMap<FMaterialShaderMap*,
 
 					if (ShaderMap)
 					{
-						const TScopedPointer<TArray<uint8> >* ShaderData = ShaderMapToSerializedShaderData.Find(ShaderMap);
+						const TUniquePtr<TArray<uint8> >* ShaderData = ShaderMapToSerializedShaderData.Find(ShaderMap);
 
 						if (ShaderData)
 						{

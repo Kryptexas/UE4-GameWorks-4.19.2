@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class SDockingTabStack;
+#include "CoreMinimal.h"
+#include "Layout/SlateRect.h"
+#include "Input/DragAndDrop.h"
+#include "Framework/Docking/SDockingNode.h"
+#include "Framework/Docking/SDockingArea.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "Framework/Docking/SDockingTabStack.h"
+#include "Framework/Docking/SDockingTabWell.h"
 
 /** A Sample implementation of IDragDropOperation */
 class FDockingDragOperation : public FDragDropOperation

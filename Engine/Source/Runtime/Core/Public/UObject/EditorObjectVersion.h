@@ -1,5 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreTypes.h"
+#include "Misc/Guid.h"
 
 // Custom serialization version for changes made in Dev-Editor stream
 struct CORE_API FEditorObjectVersion
@@ -24,6 +27,18 @@ struct CORE_API FEditorObjectVersion
 		ComboBoxControllerSupportUpdate,
 		// Refactor mesh editor materials
 		RefactorMeshEditorMaterials,
+		// Added UFontFace assets
+		AddedFontFaceAssets,
+		// Add UPROPERTY for TMap of Mesh section, so the serialize will be done normally (and export to text will work correctly)
+		UPropertryForMeshSection,
+		// Update the schema of all widget blueprints to use the WidgetGraphSchema
+		WidgetGraphSchema,
+		// Added a specialized content slot to the background blur widget
+		AddedBackgroundBlurContentSlot,
+		// Updated UserDefinedEnums to have stable keyed display names
+		StableUserDefinedEnumDisplayNames,
+		// Added "Inline" option to UFontFace assets
+		AddedInlineFontFaceAssets,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

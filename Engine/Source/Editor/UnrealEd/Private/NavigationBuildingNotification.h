@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Stats/Stats.h"
+#include "TickableEditorObject.h"
 
 /** Notification class for asynchronous shader compiling. */
 class FNavigationBuildingNotificationImpl

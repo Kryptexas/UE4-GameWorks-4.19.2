@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2669538
+﻿INTSourceChangelist:3177942
 Availability:Public
 Title:インターフェース
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
@@ -24,11 +24,12 @@ h file (例、 `ItemInterface.h`) で以下のようにします。
     UINTERFACE(Blueprintable)
     class UItemInterface : public UInterface
     {
-        GENERATED_UINTERFACE_BODY()
+        GENERATED_BODY()
     };
 
     class IItemInterface
-    {    GENERATED_IINTERFACE_BODY()
+    {    
+		GENERATED_BODY()
 
     public:
 
@@ -36,7 +37,7 @@ h file (例、 `ItemInterface.h`) で以下のようにします。
         FItemStruct GetItem() const;
     };
 
-.cpp ファイル (例、 `ItemInterface.cpp`) で以下のようにします。
+In your .cpp file (e.g. `ItemInterface.cpp`):
 
     #include "ItemInterface.h"
 
@@ -44,7 +45,7 @@ h file (例、 `ItemInterface.h`) で以下のようにします。
     {
     }
 
-宣言は、クラス用の標準の C++ クラス宣言で構成されています。標準の宣言の上で、クラス指定子やメタデータなどの記述子が UINTERFACE マクロへ渡されます。これらは宣言されているインターフェースに対して UInterface を作成するために使用され、エンジンの特別なクラス表現とみなされます。GENERATED_UINTERFACE_BODY() マクロはクラス本体の冒頭に配置しなくてはいけません。
+宣言は、クラスのための標準の C++ クラス宣言で構成されています。標準の宣言の上で、クラス指定子やメタデータなどの記述子が UINTERFACE マクロへ渡されます。これらは宣言されているインターフェースに対して UInterface を作成するために使用され、エンジンの特別なクラス表現とみなされます。GENERATED_UINTERFACE_BODY() マクロはクラス本体の冒頭に配置しなくてはいけません。
 
 エンジンにインターフェースを認識させるためには、2 つのクラスを作成しなければなりません。ひとつは、UInterface から継承する UINTERFACE クラスで、もうひとつは純粋なインターフェースです。
 
@@ -58,7 +59,7 @@ UINTERFACE クラスには、UObject から拡張すると U のプレフィッ�
 
 ## C++ で Interface を実装する
 
-C++ でクラスを宣言する場合、単にインターフェースから継承します (ただし、UInterface クラスではありません)。
+C++ でクラスを宣言する場合、インターフェースから継承します (ただし、UInterface クラスではありません)。
 
     class AItem : public AActor, public IItemInterface
     {

@@ -1,11 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
  
 #pragma once
 
-#include "IBreakIterator.h"
-#include "UniquePtr.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Input/Reply.h"
+#include "Layout/Margin.h"
+#include "Styling/SlateWidgetStyleAsset.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Widgets/SLeafWidget.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+#include "Framework/SlateDelegates.h"
+#include "Framework/Text/TextLayout.h"
 
+class FPaintArgs;
+class FSlateWindowElementList;
 class FTextBlockLayout;
+class IBreakIterator;
+enum class ETextShapingMethod : uint8;
 
 namespace ETextRole
 {

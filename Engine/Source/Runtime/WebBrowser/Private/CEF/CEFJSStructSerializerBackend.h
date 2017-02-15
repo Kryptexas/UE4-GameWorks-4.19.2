@@ -1,31 +1,44 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+
 #if WITH_CEF3
 
+#include "Containers/UnrealString.h"
+#include "WebBrowserSingleton.h"
+#include "UObject/UnrealType.h"
 #include "IStructSerializerBackend.h"
-#include "Core.h"
 #include "CEFJSScripting.h"
 
-
-
-// forward declarations
-class UProperty;
-class UStruct;
-
 #if PLATFORM_WINDOWS
+	#include "WindowsHWrapper.h"
 	#include "AllowWindowsPlatformTypes.h"
 #endif
 
 #pragma push_macro("OVERRIDE")
 #undef OVERRIDE // cef headers provide their own OVERRIDE macro
+THIRD_PARTY_INCLUDES_START
 #include "include/cef_values.h"
+THIRD_PARTY_INCLUDES_END
 #pragma pop_macro("OVERRIDE")
 
 #if PLATFORM_WINDOWS
 	#include "HideWindowsPlatformTypes.h"
 #endif
 
+#endif
+
+class FCEFJSScripting;
+class IStructSerializerBackend;
+struct FStructSerializerState;
+class FWebJSScripting;
+class UObject;
+class UProperty;
+class UStruct;
+
+#if WITH_CEF3
 
 /**
  * Implements a writer for UStruct serialization using CefDictionary.

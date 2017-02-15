@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RendererInterface.h: Renderer interface definition.
@@ -6,19 +6,22 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "ModuleManager.h"
-#include "RenderingThread.h"
+#include "CoreMinimal.h"
+#include "Templates/RefCounting.h"
+#include "Misc/MemStack.h"
+#include "Modules/ModuleInterface.h"
+#include "RHI.h"
+#include "RenderResource.h"
 #include "RenderUtils.h"
 
-// Forward declarations.
-class FPrimitiveSceneProxy;
-class FPrimitiveSceneInfo;
-class FSceneViewFamily;
 class FCanvas;
-class UWorld;
-class FSceneInterface;
 class FMaterial;
+class FSceneInterface;
+class FSceneRenderTargets;
+class FSceneView;
+class FSceneViewFamily;
+struct FMeshBatch;
+struct FSynthBenchmarkResults;
 
 // Shortcut for the allocator used by scene rendering.
 class SceneRenderingAllocator
@@ -474,7 +477,7 @@ public:
 	}
 };
 
-// use r.DrawDenormalizedQuadMode to override the function call setting (quick way to see if an artifact is caused why this optimization)
+// use r.DrawDenormalizedQuadMode to override the function call setting (quick way to see if an artifact is caused by this optimization)
 enum EDrawRectangleFlags
 {
 	// Rectangle is created by 2 triangles (diagonal can cause some slightly less efficient shader execution), this is the default as it has no artifacts

@@ -1,13 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "OnlineAchievementsInterface.h"
 #include "OnlineSubsystemTypes.h"
 #include "AndroidRuntimeSettings.h"
-#include <jni.h>
 
+THIRD_PARTY_INCLUDES_START
+#include <jni.h>
 #include "gpg/achievement_manager.h"
+THIRD_PARTY_INCLUDES_END
 
 /**
  *	IOnlineAchievements - Interface class for Achievements

@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SequencerDisplayNode.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Widgets/SWidget.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+
+class FMenuBuilder;
+struct FSlateBrush;
 
 /** Enumeration specifying what kind of object binding this is */
 enum class EObjectBindingType

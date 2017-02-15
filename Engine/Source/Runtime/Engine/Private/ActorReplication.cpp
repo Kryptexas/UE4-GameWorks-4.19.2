@@ -1,6 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "UObject/CoreNet.h"
+#include "EngineGlobals.h"
+#include "Engine/EngineTypes.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
+#include "Components/PrimitiveComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/Engine.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/BlueprintGeneratedClass.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
 #include "GameFramework/GameNetworkManager.h"
@@ -174,7 +184,12 @@ void AActor::OnRep_ReplicatedMovement()
 		{
 			// Sync physics state
 			checkSlow(RootComponent->IsSimulatingPhysics());
-			PostNetReceivePhysicState();
+			// If we are welded we just want the parent's update to move us.
+			UPrimitiveComponent* RootPrimComp = Cast<UPrimitiveComponent>(RootComponent);
+			if (!RootPrimComp || !RootPrimComp->IsWelded())
+			{
+				PostNetReceivePhysicState();
+			}
 		}
 		else
 		{
@@ -293,7 +308,9 @@ void AActor::GatherCurrentMovement()
 		RootPrimComp->GetRigidBodyState(RBState);
 
 		ReplicatedMovement.FillFrom(RBState, this);
-		ReplicatedMovement.bRepPhysics = true;
+		// Don't replicate movement if we're welded to another parent actor.
+		// Their replication will affect our position indirectly since we are attached.
+		ReplicatedMovement.bRepPhysics = !RootPrimComp->IsWelded();
 	}
 	else if (RootComponent != nullptr)
 	{

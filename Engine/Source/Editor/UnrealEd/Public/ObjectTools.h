@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ObjectTools.h: Object-related utilities
@@ -7,10 +7,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Serialization/ArchiveUObject.h"
+#include "AssetData.h"
+#include "UObject/GCObject.h"
 #include "CollectionManagerTypes.h"
 
+class FTextureRenderTargetResource;
+class SWindow;
 class UExporter;
 class UFactory;
+class USoundWave;
 
 namespace ObjectTools
 {

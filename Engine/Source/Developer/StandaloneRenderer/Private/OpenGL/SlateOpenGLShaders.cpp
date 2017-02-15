@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "StandaloneRendererPrivate.h"
+#include "OpenGL/SlateOpenGLShaders.h"
+#include "Misc/FileHelper.h"
+#include "OpenGL/SlateOpenGLExtensions.h"
 
 #include "OpenGL/SlateOpenGLRenderer.h"
-#include "OpenGL/SlateOpenGLShaders.h"
-#include "OpenGL/SlateOpenGLRenderingPolicy.h"
+
+#define USE_709 0
 
 /**
  * Returns the current program log for a GLSL program                   

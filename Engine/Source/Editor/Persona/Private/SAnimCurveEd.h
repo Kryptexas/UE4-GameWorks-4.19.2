@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "Persona.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
 #include "SCurveEditor.h"
+
+class FPaintArgs;
+class FSlateWindowElementList;
 
 DECLARE_DELEGATE_OneParam(FOnSelectionChanged, const TArray<UObject*>&)
 DECLARE_DELEGATE(FOnUpdatePanel)

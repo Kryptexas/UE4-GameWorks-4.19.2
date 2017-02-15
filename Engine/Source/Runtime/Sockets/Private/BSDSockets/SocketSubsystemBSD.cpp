@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SocketsPrivatePCH.h"
+#include "BSDSockets/SocketSubsystemBSD.h"
+#include "Misc/ScopeLock.h"
 
 #if PLATFORM_HAS_BSD_SOCKETS
 
-#include "SocketSubsystemBSD.h"
-#include "SocketsBSD.h"
-
+#include "IPAddress.h"
+#include "BSDSockets/IPAddressBSD.h"
+#include "BSDSockets/SocketsBSD.h"
+#include <errno.h>
 
 FSocketBSD* FSocketSubsystemBSD::InternalBSDSocketFactory(SOCKET Socket, ESocketType SocketType, const FString& SocketDescription)
 {
@@ -211,9 +213,8 @@ ESocketErrors FSocketSubsystemBSD::TranslateErrorCode(int32 Code)
 	}
 #endif
 
-	UE_LOG(LogSockets, Warning, TEXT("Unhandled socket error! Error Code: %d"), Code);
-	check(0);
-	return SE_NO_ERROR;
+	UE_LOG(LogSockets, Warning, TEXT("Unhandled socket error! Error Code: %d. Returning SE_EINVAL!"), Code);
+	return SE_EINVAL;
 }
 
 

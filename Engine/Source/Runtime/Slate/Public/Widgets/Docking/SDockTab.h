@@ -1,12 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SBorder.h"
-#include "TabManager.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Margin.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Styling/StyleDefaults.h"
+#include "Animation/CurveSequence.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Framework/Docking/TabManager.h"
 
-class SDockingTabWell;
+class FActiveTimerHandle;
+class SDockingArea;
 class SDockingTabStack;
+class SDockingTabWell;
 class SImage;
 class STextBlock;
 class SToolTip;

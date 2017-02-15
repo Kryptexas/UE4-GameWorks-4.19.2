@@ -1,7 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "PropertyEditorConstants.h"
+#include "CoreMinimal.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "EditorStyleSet.h"
+#include "Presentation/PropertyEditor/PropertyEditor.h"
+#include "UserInterface/PropertyEditor/PropertyEditorConstants.h"
+
+class SPropertyComboBox;
 
 class SPropertyEditorCombo : public SCompoundWidget
 {
@@ -19,8 +27,7 @@ public:
 
 	void GetDesiredWidth( float& OutMinDesiredWidth, float& OutMaxDesiredWidth );
 private:
-
-	void GenerateComboBoxStrings( TArray< TSharedPtr<FString> >& OutComboBoxStrings, TArray< FText >& OutToolTips, TArray<bool>& OutRestrictedItems );
+	void GenerateComboBoxStrings( TArray< TSharedPtr<FString> >& OutComboBoxStrings, TArray<TSharedPtr<class SToolTip>>& OutToolTips, TArray<bool>& OutRestrictedItems );
 	void OnComboSelectionChanged( TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo );
 	void OnComboOpening();
 

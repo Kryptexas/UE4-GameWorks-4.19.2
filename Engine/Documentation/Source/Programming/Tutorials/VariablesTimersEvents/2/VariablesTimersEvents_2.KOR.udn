@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2819020
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:2. 에디터에 변수와 함수를 노출
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
@@ -96,7 +96,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**Countdown.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -137,7 +137,7 @@ version:4.9
 
 
 		**Countdown.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_VTE.h"
 			#include "Countdown.h"

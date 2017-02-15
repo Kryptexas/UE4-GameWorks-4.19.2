@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GCObject.h: Abstract base class to allow non-UObject objects reference
@@ -8,7 +8,11 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+
+class FGCObject;
 
 class COREUOBJECT_API FGCObject;
 

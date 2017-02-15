@@ -1,12 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneSkeletalAnimationSection.h"
-#include "MovieSceneSkeletalAnimationTrack.h"
-#include "IMovieScenePlayer.h"
-#include "MovieSceneSkeletalAnimationTrackInstance.h"
-#include "Animation/AnimSequenceBase.h"
-
+#include "Tracks/MovieSceneSkeletalAnimationTrack.h"
+#include "Sections/MovieSceneSkeletalAnimationSection.h"
+#include "Compilation/MovieSceneCompilerRules.h"
+#include "Evaluation/MovieSceneEvaluationTrack.h"
+#include "Evaluation/MovieSceneSkeletalAnimationTemplate.h"
+#include "Compilation/IMovieSceneTemplateGenerator.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneSkeletalAnimationTrack"
 
@@ -20,6 +19,8 @@ UMovieSceneSkeletalAnimationTrack::UMovieSceneSkeletalAnimationTrack(const FObje
 #if WITH_EDITORONLY_DATA
 	TrackTint = FColor(124, 15, 124, 65);
 #endif
+
+	EvalOptions.bEvaluateNearestSection = EvalOptions.bCanEvaluateNearestSection = true;
 }
 
 
@@ -31,7 +32,7 @@ void UMovieSceneSkeletalAnimationTrack::AddNewAnimation(float KeyTime, UAnimSequ
 	UMovieSceneSkeletalAnimationSection* NewSection = Cast<UMovieSceneSkeletalAnimationSection>(CreateNewSection());
 	{
 		NewSection->InitialPlacement(AnimationSections, KeyTime, KeyTime + AnimSequence->SequenceLength, SupportsMultipleRows());
-		NewSection->SetAnimSequence(AnimSequence);
+		NewSection->Params.Animation = AnimSequence;
 	}
 
 	AddSection(*NewSection);
@@ -56,15 +57,16 @@ TArray<UMovieSceneSection*> UMovieSceneSkeletalAnimationTrack::GetAnimSectionsAt
 /* UMovieSceneTrack interface
  *****************************************************************************/
 
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneSkeletalAnimationTrack::CreateInstance()
-{
-	return MakeShareable(new FMovieSceneSkeletalAnimationTrackInstance(*this)); 
-}
-
 
 const TArray<UMovieSceneSection*>& UMovieSceneSkeletalAnimationTrack::GetAllSections() const
 {
 	return AnimationSections;
+}
+
+
+bool UMovieSceneSkeletalAnimationTrack::SupportsMultipleRows() const
+{
+	return true;
 }
 
 
@@ -116,7 +118,6 @@ TRange<float> UMovieSceneSkeletalAnimationTrack::GetSectionBoundaries() const
 	return TRange<float>::Hull(Bounds);
 }
 
-
 #if WITH_EDITORONLY_DATA
 
 FText UMovieSceneSkeletalAnimationTrack::GetDefaultDisplayName() const
@@ -126,5 +127,31 @@ FText UMovieSceneSkeletalAnimationTrack::GetDefaultDisplayName() const
 
 #endif
 
+TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneSkeletalAnimationTrack::GetRowCompilerRules() const
+{
+	// Apply an upper bound exclusive blend
+	struct FSkeletalAnimationRowCompilerRules : FMovieSceneSegmentCompilerRules
+	{
+		virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const
+		{	
+			// Run the default high pass filter for overlap priority
+			MovieSceneSegmentCompiler::BlendSegmentHighPass(Segment, SourceData);
+
+			// Weed out based on array index (legacy behaviour)
+			MovieSceneSegmentCompiler::BlendSegmentLegacySectionOrder(Segment, SourceData);
+		}
+	};
+	return FSkeletalAnimationRowCompilerRules();
+}
+
+void UMovieSceneSkeletalAnimationTrack::PostCompile(FMovieSceneEvaluationTrack& OutTrack, const FMovieSceneTrackCompilerArgs& Args) const
+{
+	FMovieSceneSharedDataId UniqueId = FMovieSceneSkeletalAnimationSharedTrack::GetSharedDataKey().UniqueId;
+
+	FMovieSceneEvaluationTrack ActuatorTemplate(Args.ObjectBindingId);
+	ActuatorTemplate.DefineAsSingleTemplate(FMovieSceneSkeletalAnimationSharedTrack());
+	ActuatorTemplate.SetEvaluationPriority(ActuatorTemplate.GetEvaluationPriority() - 1);
+	Args.Generator.AddSharedTrack(MoveTemp(ActuatorTemplate), UniqueId, *this);
+}
 
 #undef LOCTEXT_NAMESPACE

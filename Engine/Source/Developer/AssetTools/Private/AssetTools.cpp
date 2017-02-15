@@ -1,21 +1,111 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AssetToolsPrivatePCH.h"
+#include "AssetTools.h"
+#include "Factories/Factory.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopedSlowTask.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/Blueprint.h"
+#include "Exporters/Exporter.h"
+#include "Editor/EditorEngine.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "ISourceControlModule.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Settings/EditorLoadingSavingSettings.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
+#include "Editor.h"
+#include "EditorDirectories.h"
+#include "FileHelpers.h"
+#include "UnrealEdGlobals.h"
+#include "AssetToolsLog.h"
+#include "AssetToolsModule.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "IClassTypeActions.h"
+#include "AssetTypeActions/AssetTypeActions_Blueprint.h"
+#include "AssetTypeActions/AssetTypeActions_Curve.h"
+#include "AssetTypeActions/AssetTypeActions_MaterialInterface.h"
+#include "AssetTypeActions/AssetTypeActions_SkeletalMesh.h"
+#include "AssetTypeActions/AssetTypeActions_FbxSceneImportData.h"
+#include "AssetTypeActions/AssetTypeActions_Texture.h"
+#include "AssetTypeActions/AssetTypeActions_TextureRenderTarget.h"
+#include "AssetTypeActions/AssetTypeActions_VectorField.h"
+#include "AssetTypeActions/AssetTypeActions_AnimationAsset.h"
+#include "AssetTypeActions/AssetTypeActions_AnimBlueprint.h"
+#include "AssetTypeActions/AssetTypeActions_AnimComposite.h"
+#include "AssetTypeActions/AssetTypeActions_AnimMontage.h"
+#include "AssetTypeActions/AssetTypeActions_AnimSequence.h"
+#include "AssetTypeActions/AssetTypeActions_BlendSpace.h"
+#include "AssetTypeActions/AssetTypeActions_AimOffset.h"
+#include "AssetTypeActions/AssetTypeActions_BlendSpace1D.h"
+#include "AssetTypeActions/AssetTypeActions_AimOffset1D.h"
+#include "AssetTypeActions/AssetTypeActions_CameraAnim.h"
+#include "AssetTypeActions/AssetTypeActions_TextureRenderTarget2D.h"
+#include "AssetTypeActions/AssetTypeActions_CanvasRenderTarget2D.h"
+#include "AssetTypeActions/AssetTypeActions_CurveFloat.h"
+#include "AssetTypeActions/AssetTypeActions_CurveTable.h"
+#include "AssetTypeActions/AssetTypeActions_CurveVector.h"
+#include "AssetTypeActions/AssetTypeActions_CurveLinearColor.h"
+#include "AssetTypeActions/AssetTypeActions_DataAsset.h"
+#include "AssetTypeActions/AssetTypeActions_DataTable.h"
+#include "AssetTypeActions/AssetTypeActions_DestructibleMesh.h"
+#include "AssetTypeActions/AssetTypeActions_Enum.h"
+#include "AssetTypeActions/AssetTypeActions_Class.h"
+#include "AssetTypeActions/AssetTypeActions_Struct.h"
+#include "AssetTypeActions/AssetTypeActions_Font.h"
+#include "AssetTypeActions/AssetTypeActions_FontFace.h"
+#include "AssetTypeActions/AssetTypeActions_ForceFeedbackEffect.h"
+#include "AssetTypeActions/AssetTypeActions_SubsurfaceProfile.h"
+#include "AssetTypeActions/AssetTypeActions_InstancedFoliageSettings.h"
+#include "AssetTypeActions/AssetTypeActions_InterpData.h"
+#include "AssetTypeActions/AssetTypeActions_LandscapeLayer.h"
+#include "AssetTypeActions/AssetTypeActions_LandscapeGrassType.h"
+#include "AssetTypeActions/AssetTypeActions_Material.h"
+#include "AssetTypeActions/AssetTypeActions_MaterialFunction.h"
+#include "AssetTypeActions/AssetTypeActions_MaterialInstanceConstant.h"
+#include "AssetTypeActions/AssetTypeActions_MaterialParameterCollection.h"
+#include "AssetTypeActions/AssetTypeActions_ObjectLibrary.h"
+#include "AssetTypeActions/AssetTypeActions_ParticleSystem.h"
+#include "AssetTypeActions/AssetTypeActions_PhysicalMaterial.h"
+#include "AssetTypeActions/AssetTypeActions_PhysicsAsset.h"
+#include "AssetTypeActions/AssetTypeActions_PoseAsset.h"
+#include "AssetTypeActions/AssetTypeActions_PreviewMeshCollection.h"
+#include "AssetTypeActions/AssetTypeActions_ProceduralFoliageSpawner.h"
+#include "AssetTypeActions/AssetTypeActions_Redirector.h"
+#include "AssetTypeActions/AssetTypeActions_Rig.h"
+#include "AssetTypeActions/AssetTypeActions_Skeleton.h"
+#include "AssetTypeActions/AssetTypeActions_SlateBrush.h"
+#include "AssetTypeActions/AssetTypeActions_SlateWidgetStyle.h"
+#include "AssetTypeActions/AssetTypeActions_StaticMesh.h"
+#include "AssetTypeActions/AssetTypeActions_Texture2D.h"
+#include "AssetTypeActions/AssetTypeActions_TextureCube.h"
+#include "AssetTypeActions/AssetTypeActions_TextureRenderTargetCube.h"
+#include "AssetTypeActions/AssetTypeActions_TextureLightProfile.h"
+#include "AssetTypeActions/AssetTypeActions_TouchInterface.h"
+#include "AssetTypeActions/AssetTypeActions_VectorFieldAnimated.h"
+#include "AssetTypeActions/AssetTypeActions_VectorFieldStatic.h"
+#include "AssetTypeActions/AssetTypeActions_World.h"
+#include "SDiscoveringAssetsDialog.h"
+#include "AssetFixUpRedirectors.h"
 #include "ObjectTools.h"
 #include "PackageTools.h"
 #include "AssetRegistryModule.h"
 #include "DesktopPlatformModule.h"
-#include "AssetToolsModule.h"
-#include "MainFrame.h"
+#include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
-#include "ReferencedAssetsUtils.h"
 #include "SPackageReportDialog.h"
 #include "EngineAnalytics.h"
-#include "IAnalyticsProvider.h"
-#include "MessageLog.h"
+#include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
+#include "Logging/MessageLog.h"
 #include "UnrealExporter.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "AutomatedAssetImportData.h"
 
 #define LOCTEXT_NAMESPACE "AssetTools"
@@ -60,13 +150,12 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DataAsset) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DataTable) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DestructibleMesh) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DialogueVoice) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DialogueWave) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Enum) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Class) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Struct) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SceneImportData));
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Font) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_FontFace) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ForceFeedbackEffect) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SubsurfaceProfile));
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_InstancedFoliageSettings) );
@@ -78,7 +167,6 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MaterialInstanceConstant(BlendablesCategoryBit)) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MaterialInterface) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MaterialParameterCollection) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MorphTarget) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ObjectLibrary) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ParticleSystem) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_PhysicalMaterial) );
@@ -86,19 +174,11 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_PreviewMeshCollection) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ProceduralFoliageSpawner) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Redirector) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ReverbEffect) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Rig) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SkeletalMesh) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Skeleton) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SlateBrush) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SlateWidgetStyle) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundAttenuation) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundConcurrency));
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundBase) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundClass) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundCue) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundMix) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundWave) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_StaticMesh) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Texture) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Texture2D) );
@@ -575,7 +655,7 @@ TArray<UObject*> FAssetTools::ImportAssetsAutomated(const UAutomatedAssetImportD
 	Params.SpecifiedFactory = ImportData.Factory;
 	Params.ImportData = &ImportData;
 
-	return ImportAssetsInternal(ImportData.Filenames, ImportData.DestinationPath, Params);
+	return ImportAssetsInternal(ImportData.Filenames, ImportData.DestinationPath, nullptr, Params);
 }
 
 void FAssetTools::ExpandDirectories(const TArray<FString>& Files, const FString& DestinationPath, TArray<TPair<FString, FString>>& FilesAndDestinations) const
@@ -614,7 +694,7 @@ void FAssetTools::ExpandDirectories(const TArray<FString>& Files, const FString&
 	}
 }
 
-TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const FString& RootDestinationPath, UFactory* SpecifiedFactory, bool bSyncToBrowser) const
+TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const FString& RootDestinationPath, UFactory* SpecifiedFactory, bool bSyncToBrowser, TArray<TPair<FString, FString>> *FilesAndDestinations) const
 {
 	const bool bForceOverrideExisting = false;
 
@@ -625,7 +705,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 	Params.bSyncToBrowser = bSyncToBrowser;
 	Params.SpecifiedFactory = SpecifiedFactory;
 
-	return ImportAssetsInternal(Files, RootDestinationPath, Params);
+	return ImportAssetsInternal(Files, RootDestinationPath, FilesAndDestinations, Params);
 }
 
 void FAssetTools::CreateUniqueAssetName(const FString& InBasePackageName, const FString& InSuffix, FString& OutPackageName, FString& OutAssetName) const
@@ -1002,7 +1082,7 @@ void FAssetTools::OnNewCreateRecord(UClass* AssetType, bool bDuplicated)
 	}
 }
 
-TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files, const FString& RootDestinationPath, const FAssetImportParams& Params) const
+TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files, const FString& RootDestinationPath, TArray<TPair<FString, FString>> *FilesAndDestinationsPtr, const FAssetImportParams& Params) const
 {
 	UFactory* SpecifiedFactory = Params.SpecifiedFactory;
 	const bool bForceOverrideExisting = Params.bForceOverrideExisting;
@@ -1017,9 +1097,15 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 
 
 	SlowTask.EnterProgressFrame();
-
 	TArray<TPair<FString, FString>> FilesAndDestinations;
-	ExpandDirectories(Files, RootDestinationPath, FilesAndDestinations);
+	if (FilesAndDestinationsPtr == nullptr)
+	{
+		ExpandDirectories(Files, RootDestinationPath, FilesAndDestinations);
+	}
+	else
+	{
+		FilesAndDestinations = (*FilesAndDestinationsPtr);
+	}
 
 	SlowTask.EnterProgressFrame(1, LOCTEXT("Import_DeterminingImportTypes", "Determining asset types"));
 

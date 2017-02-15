@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "KismetWidgetsPrivatePCH.h"
 #include "SSingleObjectDetailsPanel.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/SBoxPanel.h"
+#include "Framework/Application/SlateApplication.h"
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "PropertyEditorModule.h"
+#include "IDetailsView.h"
 
 /////////////////////////////////////////////////////
 // SSingleObjectDetailsPanel
@@ -16,6 +18,7 @@ void SSingleObjectDetailsPanel::Construct(const FArguments& InArgs, bool bAutoma
 
 	FDetailsViewArgs DetailsViewArgs(/*bUpdateFromSelection=*/ false, /*bLockable=*/ false, bAllowSearch, FDetailsViewArgs::HideNameArea, /*bHideSelectionTip=*/ true);
 	DetailsViewArgs.HostCommandList = InArgs._HostCommandList;
+	DetailsViewArgs.HostTabManager = InArgs._HostTabManager;
 
 	PropertyView = EditModule.CreateDetailView(DetailsViewArgs);
 	

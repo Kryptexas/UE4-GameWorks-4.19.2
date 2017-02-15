@@ -5,7 +5,7 @@ Description:System for rendering instanced meshes on the surfaces of other geome
 Version: 4.12
 SkillLevel:Intermediate
 parent:Engine
-order:9
+order:11
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HModel.cpp: HModel implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Model.h"
 #include "HModel.h"
+#include "SceneView.h"
+#include "Model.h"
 #include "Raster.h"
 #include "Engine/Polys.h"
+#include "Engine/Brush.h"
 
 IMPLEMENT_HIT_PROXY(HModel,HHitProxy);
 

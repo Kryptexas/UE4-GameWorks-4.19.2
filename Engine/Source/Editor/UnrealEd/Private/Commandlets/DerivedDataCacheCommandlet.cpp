@@ -1,17 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 DerivedDataCacheCommandlet.cpp: Commandlet for DDC maintenence
 =============================================================================*/
-#include "UnrealEd.h"
+#include "Commandlets/DerivedDataCacheCommandlet.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
 #include "PackageHelperFunctions.h"
 #include "DerivedDataCacheInterface.h"
-#include "ISourceControlModule.h"
 #include "GlobalShader.h"
-#include "TargetPlatform.h"
-#include "IConsoleManager.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
 #include "ShaderCompiler.h"
 #include "DistanceFieldAtlas.h"
+#include "Misc/RedirectCollector.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDerivedDataCacheCommandlet, Log, All);
 
@@ -23,10 +27,9 @@ UDerivedDataCacheCommandlet::UDerivedDataCacheCommandlet(const FObjectInitialize
 
 void UDerivedDataCacheCommandlet::MaybeMarkPackageAsAlreadyLoaded(UPackage *Package)
 {
-	FString Name = Package->GetName();
-	if (PackagesToNotReload.Contains(Name))
+	if (ProcessedPackages.Contains(Package->GetFName()))
 	{
-		UE_LOG(LogDerivedDataCacheCommandlet, Verbose, TEXT("Marking %s already loaded."), *Name);
+		UE_LOG(LogDerivedDataCacheCommandlet, Verbose, TEXT("Marking %s already loaded."), *Package->GetName());
 		Package->SetPackageFlags(PKG_ReloadingForCooker);
 	}
 }
@@ -161,7 +164,6 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 		const int32 GCInterval = 100;
 		int32 NumProcessedSinceLastGC = 0;
 		bool bLastPackageWasMap = false;
-		TSet<FString> ProcessedPackages;
 
 		UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("%d packages to load..."), FilesInPath.Num());
 
@@ -173,14 +175,24 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 			}
 			{
 				const FString& Filename = FilesInPath[FileIndex];
-				if (ProcessedPackages.Contains(Filename))
+
+				FString PackageName; 
+				FString FailureReason;
+				if ( !FPackageName::TryConvertFilenameToLongPackageName(Filename, PackageName, &FailureReason) )
+				{
+					UE_LOG(LogDerivedDataCacheCommandlet, Warning, TEXT("Unable to resolve filename %s to package name because: %s"), *Filename, *FailureReason);
+					continue;
+				}
+
+				FName PackageFName( *PackageName );
+				if (ProcessedPackages.Contains(PackageFName))
 				{
 					continue;
 				}
 				if (bDoSubset)
 				{
-					const FString& PackageName = FPackageName::PackageFromPath(*Filename);
-					if (FCrc::StrCrc_DEPRECATED(*PackageName.ToUpper()) % SubsetMod != SubsetTarget)
+					const FString& PackageString = FPackageName::PackageFromPath(*Filename);
+					if (FCrc::StrCrc_DEPRECATED(*PackageString.ToUpper()) % SubsetMod != SubsetTarget)
 					{
 						continue;
 					}
@@ -195,22 +207,27 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 				}
 				else
 				{
-					GRedirectCollector.ResolveStringAssetReference();
-
-					// cache all the resources for this platform
-					for (TObjectIterator<UObject> It; It; ++It)
-					{
-						if (ProcessedPackages.Contains(It->GetOutermost()->GetName()))
-						{
-							for (auto Platform : Platforms)
-							{
-								It->BeginCacheForCookedPlatformData(Platform);
-							}
-						}
-					}
-
 					bLastPackageWasMap = Package->ContainsMap();
 					NumProcessedSinceLastGC++;
+				}
+			}
+
+			// even if the load failed this could be the first time through the loop so it might have all the startup packages to resolve
+			GRedirectCollector.ResolveStringAssetReference();
+
+			// cache all the resources for this platform
+			for (TObjectIterator<UObject> It; It; ++It)
+			{
+				if ((PackageFilter&NORMALIZE_ExcludeEnginePackages) == 0 || !It->GetOutermost()->GetName().StartsWith(TEXT("/Engine")))
+				{
+					if (!ProcessedPackages.Contains(It->GetOutermost()->GetFName()))
+					{
+						check( (It->GetOutermost()->GetPackageFlags() & PKG_ReloadingForCooker) == 0 );
+						for (auto Platform : Platforms)
+						{
+							It->BeginCacheForCookedPlatformData(Platform);
+						}
+					}
 				}
 			}
 
@@ -227,23 +244,17 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 					{
 						continue;
 					}
-					FString Filename;
-					if (FPackageName::DoesPackageExist(Pkg->GetName(), NULL, &Filename))
+					if (!ProcessedPackages.Contains(Pkg->GetFName()))
 					{
-						if (!ProcessedPackages.Contains(Filename))
+						ProcessedPackages.Add(Pkg->GetFName());
+						Pkg->SetPackageFlags(PKG_ReloadingForCooker);
 						{
-							ProcessedPackages.Add(Filename);
-
-							PackagesToNotReload.Add(Pkg->GetName());
-							Pkg->SetPackageFlags(PKG_ReloadingForCooker);
+							TArray<UObject *> ObjectsInPackage;
+							GetObjectsWithOuter(Pkg, ObjectsInPackage, true);
+							for (int32 IndexPackage = 0; IndexPackage < ObjectsInPackage.Num(); IndexPackage++)
 							{
-								TArray<UObject *> ObjectsInPackage;
-								GetObjectsWithOuter(Pkg, ObjectsInPackage, true);
-								for (int32 IndexPackage = 0; IndexPackage < ObjectsInPackage.Num(); IndexPackage++)
-								{
-									ObjectsInPackage[IndexPackage]->WillNeverCacheCookedPlatformDataAgain();
-									ObjectsInPackage[IndexPackage]->ClearAllCachedCookedPlatformData();
-								}
+								ObjectsInPackage[IndexPackage]->WillNeverCacheCookedPlatformDataAgain();
+								ObjectsInPackage[IndexPackage]->ClearAllCachedCookedPlatformData();
 							}
 						}
 					}

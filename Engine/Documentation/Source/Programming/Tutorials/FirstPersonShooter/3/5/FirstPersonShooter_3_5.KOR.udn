@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3032506
-Availability: Docs
+﻿INTSourceChangelist:3108692
+Availability: Public
 Title: 3.5 - 뷰포트에 조준선 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description: 일인칭 슈팅 프로젝트의 뷰포트에 조준선을 추가하는 법을 배워봅니다.
@@ -159,7 +159,7 @@ Version: 4.11
     [/PARAM]
     [PARAM:content]
 		**FPSProjectile.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 			
@@ -198,7 +198,7 @@ Version: 4.11
 			};
 
 		**FPSProjectile.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "FPSProject.h"
 			#include "FPSProjectile.h"
@@ -261,7 +261,7 @@ Version: 4.11
 			}
 
 		**FPSCharacter.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 			
 			#pragma once
 			
@@ -324,7 +324,7 @@ Version: 4.11
 			};
 
 		**FPSCharacter.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 			
 			#include "FPSProject.h"
 			#include "FPSCharacter.h"
@@ -455,7 +455,7 @@ Version: 4.11
 			}
 
 		**FPSHUD.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 			
 			#pragma once
 			
@@ -481,7 +481,7 @@ Version: 4.11
 			};
 
 		**FPSHUD.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 			
 			#include "FPSProject.h"
 			#include "FPSHUD.h"

@@ -1,17 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneCapturePCH.h"
-
-#include "LevelSequencePlayer.h"
 #include "AutomatedLevelSequenceCapture.h"
-#include "ErrorCodes.h"
-#include "SceneViewport.h"
-#include "ActiveMovieSceneCaptures.h"
+#include "MovieScene.h"
+#include "Dom/JsonValue.h"
+#include "Dom/JsonObject.h"
+#include "Slate/SceneViewport.h"
+#include "Misc/CommandLine.h"
+#include "LevelSequenceActor.h"
 #include "JsonObjectConverter.h"
-#include "LevelSequenceBurnIn.h"
 #include "Tracks/MovieSceneCinematicShotTrack.h"
-#include "Sections/MovieSceneCinematicShotSection.h"
 #include "MovieSceneCaptureHelpers.h"
+#include "EngineUtils.h"
+#include "Sections/MovieSceneCinematicShotSection.h"
 
 UAutomatedLevelSequenceCapture::UAutomatedLevelSequenceCapture(const FObjectInitializer& Init)
 	: Super(Init)
@@ -473,7 +473,7 @@ void UAutomatedLevelSequenceCapture::Tick(float DeltaSeconds)
 	}
 }
 
-void UAutomatedLevelSequenceCapture::SequenceUpdated(const ULevelSequencePlayer& Player, float CurrentTime, float PreviousTime)
+void UAutomatedLevelSequenceCapture::SequenceUpdated(const UMovieSceneSequencePlayer& Player, float CurrentTime, float PreviousTime)
 {
 	if (bCapturing)
 	{
@@ -575,8 +575,8 @@ void UAutomatedLevelSequenceCapture::ExportEDL()
 	
 	ALevelSequenceActor* Actor = LevelSequenceActor.Get();
 	ULevelSequencePlayer* Player = Actor ? Actor->SequencePlayer : nullptr;
-	ULevelSequence* LevelSequence = Player ? Player->GetLevelSequence() : nullptr;
-	UMovieScene* MovieScene = LevelSequence ? LevelSequence->GetMovieScene() : nullptr;
+	UMovieSceneSequence* Sequence = Player ? Player->GetSequence() : nullptr;
+	UMovieScene* MovieScene = Sequence ? Sequence->GetMovieScene() : nullptr;
 
 	if (!MovieScene)
 	{

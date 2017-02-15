@@ -1,6 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
+#include "Designer/SDesignerView.h"
+#include "Rendering/DrawElements.h"
+#include "Components/PanelWidget.h"
+#include "Misc/ConfigCacheIni.h"
+#include "WidgetBlueprint.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/SCanvas.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
+
+#include "Components/CanvasPanelSlot.h"
+#include "Blueprint/WidgetTree.h"
+#include "Settings/WidgetDesignerSettings.h"
 
 #include "ISettingsModule.h"
 
@@ -11,41 +31,33 @@
 #include "Extensions/HorizontalSlotExtension.h"
 #include "Extensions/UniformGridSlotExtension.h"
 #include "Extensions/VerticalSlotExtension.h"
-#include "SDesignerView.h"
+#include "Designer/SPaintSurface.h"
 
-#include "BlueprintEditor.h"
-#include "SKismetInspector.h"
-#include "BlueprintEditorUtils.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
-#include "WidgetTemplateDragDropOp.h"
+#include "DragAndDrop/DecoratedDragDropOp.h"
+#include "DragDrop/WidgetTemplateDragDropOp.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 
 #include "Templates/WidgetTemplateBlueprintClass.h"
 #include "Templates/WidgetTemplateImageClass.h"
 
-#include "SZoomPan.h"
-#include "SRuler.h"
-#include "SDisappearingBar.h"
-#include "SDesignerToolBar.h"
-#include "DesignerCommands.h"
-#include "STransformHandle.h"
-#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
-#include "Runtime/Engine/Classes/Engine/RendererSettings.h"
-#include "SDPIScaler.h"
-#include "SNumericEntryBox.h"
+#include "Designer/SZoomPan.h"
+#include "Designer/SRuler.h"
+#include "Designer/SDisappearingBar.h"
+#include "Designer/SDesignerToolBar.h"
+#include "Designer/DesignerCommands.h"
+#include "Designer/STransformHandle.h"
+#include "Engine/UserInterfaceSettings.h"
+#include "Widgets/Layout/SDPIScaler.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 
-#include "Components/PanelWidget.h"
-#include "Components/Widget.h"
-#include "WidgetBlueprint.h"
-#include "WidgetBlueprintCompiler.h"
-#include "WidgetBlueprintEditor.h"
+#include "Engine/Texture2D.h"
+#include "Editor.h"
 #include "WidgetBlueprintEditorUtils.h"
 
 #include "ObjectEditorUtils.h"
-#include "Blueprint/WidgetTree.h"
 #include "ScopedTransaction.h"
-#include "Settings/WidgetDesignerSettings.h"
-#include "Components/CanvasPanelSlot.h"
 #include "Components/NamedSlot.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
@@ -1023,6 +1035,7 @@ FGeometry SDesignerView::MakeGeometryWindowLocal(const FGeometry& WidgetGeometry
 		TSharedRef<SWindow> CurrentWindowRef = WidgetWindow.ToSharedRef();
 
 		NewGeometry.AppendTransform(FSlateLayoutTransform(Inverse(CurrentWindowRef->GetPositionInScreen())));
+		//NewGeometry.AppendTransform(Inverse(CurrentWindowRef->GetLocalToScreenTransform()));
 	}
 
 	return NewGeometry;
@@ -1085,19 +1098,16 @@ FVector2D SDesignerView::GetExtensionPosition(TSharedRef<FDesignerSurfaceElement
 
 	if ( SelectedWidget.IsValid() )
 	{
-		FGeometry SelectedWidgetGeometry_RelativeToDesigner;
-		FGeometry SelectedWidgetParentGeometry_RelativeToDesigner;
+		FGeometry SelectedWidgetGeometry;
+		FGeometry SelectedWidgetParentGeometry;
 
-		if ( GetWidgetGeometry(SelectedWidget, SelectedWidgetGeometry_RelativeToDesigner) && GetWidgetParentGeometry(SelectedWidget, SelectedWidgetParentGeometry_RelativeToDesigner) )
+		if ( GetWidgetGeometry(SelectedWidget, SelectedWidgetGeometry) && GetWidgetParentGeometry(SelectedWidget, SelectedWidgetParentGeometry) )
 		{
-			SelectedWidgetGeometry_RelativeToDesigner.AppendTransform(FSlateLayoutTransform(Inverse(CachedGeometry.AbsolutePosition)));
-			SelectedWidgetParentGeometry_RelativeToDesigner.AppendTransform(FSlateLayoutTransform(Inverse(CachedGeometry.AbsolutePosition)));
+			const FVector2D WidgetPostion_DesignerSpace = (SelectedWidgetGeometry.AbsolutePosition - CachedGeometry.AbsolutePosition) / CachedGeometry.Scale;
+			const FVector2D WidgetSize = SelectedWidgetGeometry.Size * GetPreviewScale();
 
-			const FVector2D WidgetPostion_DesignerSpace = SelectedWidgetGeometry_RelativeToDesigner.AbsolutePosition;
-			const FVector2D WidgetSize = SelectedWidgetGeometry_RelativeToDesigner.Size * GetPreviewScale();
-
-			const FVector2D ParentPostion_DesignerSpace = SelectedWidgetParentGeometry_RelativeToDesigner.AbsolutePosition;
-			const FVector2D ParentSize = SelectedWidgetParentGeometry_RelativeToDesigner.Size * GetPreviewScale();
+			const FVector2D ParentPostion_DesignerSpace = (SelectedWidgetParentGeometry.AbsolutePosition - CachedGeometry.AbsolutePosition) / CachedGeometry.Scale;
+			const FVector2D ParentSize = SelectedWidgetParentGeometry.Size * GetPreviewScale();
 
 			FVector2D FinalPosition(0, 0);
 

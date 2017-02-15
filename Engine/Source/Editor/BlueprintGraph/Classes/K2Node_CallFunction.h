@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "K2Node.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "Textures/SlateIcon.h"
 #include "Engine/MemberReference.h"
+#include "EdGraph/EdGraphNodeUtils.h"
+#include "K2Node.h"
 #include "K2Node_CallFunction.generated.h"
+
+class FKismetCompilerContext;
+class SWidget;
+class UEdGraph;
 
 UCLASS()
 class BLUEPRINTGRAPH_API UK2Node_CallFunction : public UK2Node
@@ -65,7 +74,6 @@ public:
 	// UEdGraphNode interface
 	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	virtual void AllocateDefaultPins() override;
-	virtual void DestroyNode() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
@@ -80,6 +88,7 @@ public:
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph) const override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	virtual void AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const override;
+	virtual TSharedPtr<SWidget> CreateNodeImage() const override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface

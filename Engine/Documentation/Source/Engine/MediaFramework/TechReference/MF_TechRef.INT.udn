@@ -5,7 +5,7 @@ Description:Technical information regarding Media Framework in Unreal Engine 4.
 Navigation:topic
 parent:Engine/MediaFramework
 order:2
-Version: 4.13
+Version: 4.14
 Related: Engine\MediaFramework\Overview
 Related: Engine\MediaFramework\HowTo
 
@@ -22,43 +22,50 @@ If you are upgrading Media Framework content from a pre-4.13 project, see the ti
 
 The table below indicates the supported extensions based on each media player platform. 
 
-| | Android Media Player | AVF Media Player | PS4 Media Player | WMF Media Player | Xbox One Media Player |
-| --- | --- | --- |--- | --- | --- |
-| **.3g2** | No | No | No | Yes | No |
-| **.3gp** | No | No | No | Yes | No |
-| **.3gp2** | No | No | No | Yes | No |
-| **.3gpp** | Yes | No | No | Yes | No |
-| **.aac** | Yes | No | No | Yes | No |
-| **.adts** | No | No | No | Yes | No |
-| **.asf** | No | No | No | Yes | No |
-| **.avi** | No | Yes | No | Yes | No |
-| **.m4a** | No | No | No | Yes | No |
-| **.m4v** | No | Yes | No | Yes | No |
-| **.mov** | No | Yes | No | Yes | No |
-| **.mp3** | No | No | No | Yes | No |
-| **.mp4** | Yes | Yes | Yes | Yes | No |
-| **.sami** | No | No | No | Yes | No |
-| **.smi** | No | No | No | Yes | No |
-| **.wav** | No | No | No | Yes | No |
-| **.wma** | No | No | No | Yes | No |
-| **.wmv** | No | No | No | Yes | No |
+_Click the image below to download a .xlsx version of the Supported Files & URLs spreadsheets._
+
+[REGION:raw]
+[![](MediaFrameworkExtentions.png)](SupportedExtentions.xlsx)
+[/REGION]
+
+<!-- Editor Note - you can update the table inside the Attachments folder if need be. -->
+
+The list of supported file formats above is ongoing and support for additional file extensions will come online in future engine updates. For the best compatibility and performance, it is recommended that the **.mp4** file extension in H.264 be used. 
+Also denoted in the table above are extensions that are expected to be supported as of the 4.15 engine release. 
 
 [REGION:warning]
-The MfMedia player plug-in for XboxOne is currently in development and does not work in 4.13. The AvfMedia player plug-in for macOS and iOS is in an experimental state and not all features may work as expected. We are working to resolve both issues and hope to have them addressed in a future engine release.  
+The MfMedia player plug-in for XboxOne is currently in development is partially supported if UE4 is built against Windows 7 or later. The AvfMedia player plug-in for macOS and iOS is in an experimental state and not all features may work as expected. We are working to resolve both issues and hope to have them addressed in a future engine release.  
 [/REGION]
 
 This table shows the supported URLs based on media player platform. 
 
-| | Android Media Player | AVF Media Player | PS4 Media Player | WMF Media Player | Xbox One Media Player |
-| --- | --- | --- |--- | --- | --- |
-| **file://** | Yes | Yes | Yes | Yes | No |
-| **http://** | Yes | No | Yes | Yes | No |
-| **httpd://** | Yes | No | No | Yes | No |
-| **https://** | Yes | No | Yes | Yes | No |
-| **mms://** | Yes | No | No | Yes | No |
-| **rtsp://** | Yes | No | No | Yes | No |
-| **rtspt://** | Yes | No | No | Yes | No |
-| **rtspu://** | Yes | Yes | No | Yes | No |
+[REGION:raw]
+![](URLSheet.png)
+[/REGION]
+
+## WMF Media Configuration Settings
+
+Windows Media Foundation (WMF) handles standard audio/video playback and recording on the Windows Platform, however, WMF is also extensible. 
+By default, WMF supports a number of different formats, encoding, and file containers, but it can also be extended with the use of optional codec packs that can be downloaded and installed from the Internet. 
+What this means, however, is that certain users may not have a particular codec needed to decode and playback a media file. 
+
+In the past, Unreal Engine only supported default codecs that are supplied with WMF to ensure that everyone can handle and process media the same way. 
+There may be times when you want to use a different method of encoding your media or your own proprietary media encoder that you want to ship your game with (for example, you ship your game with an installer that provides the needed encoder). 
+
+You can now enable and allow non-standard codecs for **WMF Media** from the **Plugins** section of **Project Settings**. 
+
+![](ProjectSettings.png)
+
+By default, the player plugin will attempt to detect audio and video codecs that are not supported by the operating system, requiring the user to install additional codec packs. 
+If the player plugin detects an unsupported format when accessing the media, a warning message is provided in the **Output Log**. 
+
+![](UnsupportedLog.png)
+
+Additionally, you can see media asset information inside a **Media Player** asset in the **Info** panel. 
+
+![](MediaInfo.png)
+
+When enabling **Allow non-supported codecs**, the plugin player will skip the check and allow the usage of non-standard codecs. 
 
 
 ## Troubleshooting
@@ -81,6 +88,7 @@ If a media source fails to open or play, check the **Output Log** under the [Dev
 [/REGION]
 
 You can also check information about a Media Source inside the Media Player asset and **Info** tab. 
+This will show what options are available for the media source (Forward/Reverse Rates nad Scrubbing/Seeking), as well as the different Audio and Video streams and information about each stream. 
 
 ![](InfoWindow.png)
 
@@ -118,4 +126,7 @@ See Microsoft's [MPEG-4 File Source](https://msdn.microsoft.com/en-us/library/wi
 	* Some videos with multiple audio tracks fail to open.
 	* QuickTime movie (.mov) support on Windows 7 and later is currently unreliable. 
 		*	Workaround: This format is currently not recommended for use. 
+
+
+
 

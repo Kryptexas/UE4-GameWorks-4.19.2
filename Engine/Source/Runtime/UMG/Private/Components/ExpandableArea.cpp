@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Components/ExpandableArea.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 
-#include "SExpandableArea.h"
+#include "Widgets/Layout/SExpandableArea.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -42,6 +44,15 @@ void UExpandableArea::SetIsExpanded(bool IsExpanded)
 	if ( MyExpandableArea.IsValid() )
 	{
 		MyExpandableArea->SetExpanded(IsExpanded);
+	}
+}
+
+void UExpandableArea::SetIsExpanded_Animated(bool IsExpanded)
+{
+	bIsExpanded = IsExpanded;
+	if (MyExpandableArea.IsValid())
+	{
+		MyExpandableArea->SetExpanded_Animated(IsExpanded);
 	}
 }
 

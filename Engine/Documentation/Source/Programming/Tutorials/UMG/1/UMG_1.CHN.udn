@@ -62,7 +62,7 @@ Description:修改项目以包含用来编译菜单所需的模块。
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 

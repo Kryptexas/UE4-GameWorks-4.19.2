@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
 #include "UnrealAudioTypes.h"
-#include "UnrealAudioHandles.h"
+#include "HAL/Runnable.h"
+#include "HAL/ThreadSafeBool.h"
 #include "UnrealAudioSoundFileManager.h"
-#include "UnrealAudioTypes.h"
-#include "UnrealAudioSoundFile.h"
 #include "UnrealAudioSoundFileInternal.h"
 
 #if ENABLE_UNREAL_AUDIO

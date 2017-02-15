@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/PrimitiveComponent.h"
+#include "PrimitiveSceneProxy.h"
+#include "DynamicMeshBuilder.h"
 #include "LineBatchComponent.generated.h"
+
+class FPrimitiveSceneProxy;
 
 USTRUCT()
 struct FBatchedLine
@@ -121,9 +129,11 @@ class ULineBatchComponent : public UPrimitiveComponent
 	float DefaultLifeTime;
 	/** Buffer of simple meshes to draw */
 	TArray<struct FBatchedMesh> BatchedMeshes;
+	/** Whether to calculate a tight accurate bounds (encompassing all points), or use a giant bounds that is fast to compute. */
+	uint32 bCalculateAccurateBounds:1;
 
 	/** Provide many lines to draw - faster than calling DrawLine many times. */
-	void DrawLines(const TArray<FBatchedLine>& InLines);
+	ENGINE_API void DrawLines(const TArray<FBatchedLine>& InLines);
 
 	/** Draw a box */
 	ENGINE_API void DrawBox(const FBox& Box, const FMatrix& TM, const FColor& Color, uint8 InDepthPriorityGroup);
@@ -134,7 +144,7 @@ class ULineBatchComponent : public UPrimitiveComponent
 	/** Draw a circle */
 	ENGINE_API void DrawCircle(const FVector& Base, const FVector& X, const FVector& Y, FColor Color, float Radius, int32 NumSides, uint8 DepthPriority);
 
-	virtual void DrawLine(
+	ENGINE_API virtual void DrawLine(
 		const FVector& Start,
 		const FVector& End,
 		const FLinearColor& Color,
@@ -142,7 +152,7 @@ class ULineBatchComponent : public UPrimitiveComponent
 		float Thickness = 0.0f,
 		float LifeTime = 0.0f
 		);
-	virtual void DrawPoint(
+	ENGINE_API virtual void DrawPoint(
 		const FVector& Position,
 		const FLinearColor& Color,
 		float PointSize,
@@ -151,19 +161,19 @@ class ULineBatchComponent : public UPrimitiveComponent
 		);
 
 	/** Draw a box */
-	void DrawSolidBox(FBox const& Box, FTransform const& Xform, const FColor& Color, uint8 DepthPriority, float LifeTime);
+	ENGINE_API void DrawSolidBox(FBox const& Box, FTransform const& Xform, const FColor& Color, uint8 DepthPriority, float LifeTime);
 	/** Draw a mesh */
-	void DrawMesh(TArray<FVector> const& Verts, TArray<int32> const& Indices, FColor const& Color, uint8 DepthPriority, float LifeTime);
+	ENGINE_API void DrawMesh(TArray<FVector> const& Verts, TArray<int32> const& Indices, FColor const& Color, uint8 DepthPriority, float LifeTime);
 
 	//~ Begin UPrimitiveComponent Interface.
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
-	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
+	ENGINE_API virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	ENGINE_API virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	//~ End UPrimitiveComponent Interface.
 	
 	
 	//~ Begin UActorComponent Interface.
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
+	ENGINE_API virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+	ENGINE_API virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	//~ End UActorComponent Interface.
 
 	/** Clear all batched lines, points and meshes */
@@ -172,3 +182,26 @@ class ULineBatchComponent : public UPrimitiveComponent
 
 
 
+
+/** Represents a LineBatchComponent to the scene manager. */
+class ENGINE_API FLineBatcherSceneProxy : public FPrimitiveSceneProxy
+{
+public:
+	FLineBatcherSceneProxy(const ULineBatchComponent* InComponent);
+
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
+
+	/**
+	*  Returns a struct that describes to the renderer when to draw this proxy.
+	*	@param		Scene view to use to determine our relevence.
+	*  @return		View relevance struct
+	*/
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
+	virtual uint32 GetMemoryFootprint( void ) const override;
+	uint32 GetAllocatedSize( void ) const;
+
+private:
+	TArray<FBatchedLine> Lines;
+	TArray<FBatchedPoint> Points;
+	TArray<FBatchedMesh> Meshes;
+};

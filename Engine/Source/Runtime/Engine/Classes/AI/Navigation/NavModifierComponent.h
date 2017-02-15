@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "AI/Navigation/NavAreas/NavArea.h"
 #include "AI/Navigation/NavRelevantComponent.h"
 #include "NavModifierComponent.generated.h"
 
-class UNavArea;
-struct FCompositeNavModifier;
+struct FNavigationRelevantData;
 
 UCLASS(ClassGroup = (Navigation), meta = (BlueprintSpawnableComponent), hidecategories = (Activation))
 class ENGINE_API UNavModifierComponent : public UNavRelevantComponent

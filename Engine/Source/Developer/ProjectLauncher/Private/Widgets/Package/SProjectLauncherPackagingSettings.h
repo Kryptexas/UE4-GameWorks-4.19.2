@@ -1,7 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Models/ProjectLauncherModel.h"
+
+class SEditableTextBox;
+enum class ECheckBoxState : uint8;
 
 /**
  * Implements the packaging settings panel.
@@ -43,6 +51,9 @@ private:
 	// Callback for getting the content text of the 'Directory' label.
 	FText HandleDirectoryTitleText() const;
 	FText HandleDirectoryPathText() const;
+
+	// Callback for getting the hint text which contains the default project output path
+	FText HandleHintPathText() const;
 
 	// Callback for changing the selected profile in the profile manager.
 	void HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile );

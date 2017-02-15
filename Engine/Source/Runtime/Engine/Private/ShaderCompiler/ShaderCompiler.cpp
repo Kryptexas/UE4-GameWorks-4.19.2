@@ -1,20 +1,42 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShaderCompiler.cpp: Platform independent shader compilations.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "EditorSupportDelegates.h"
-#include "ExceptionHandling.h"
-#include "GlobalShader.h"
-#include "TargetPlatform.h"
-#include "DerivedDataCacheInterface.h"
-#include "EngineModule.h"
 #include "ShaderCompiler.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "HAL/ExceptionHandling.h"
+#include "Serialization/NameAsStringProxyArchive.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/Guid.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Materials/MaterialInterface.h"
+#include "StaticBoundShaderState.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "EditorSupportDelegates.h"
+#include "GlobalShader.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "Interfaces/IShaderFormat.h"
+#include "Interfaces/IShaderFormatModule.h"
 #include "RendererInterface.h"
+#include "EngineModule.h"
 #include "ComponentRecreateRenderStateContext.h"
-#include "CookStats.h"
+#include "ProfilingDebugging/CookStats.h"
+#include "Components/PrimitiveComponent.h"
 
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
@@ -176,7 +198,7 @@ namespace XGEConsoleVariables
 }
 
 #if ENABLE_COOK_STATS
-#include "ScopedTimers.h"
+#include "ProfilingDebugging/ScopedTimers.h"
 namespace ShaderCompilerCookStats
 {
 	static double BlockingTimeSec = 0.0;
@@ -784,7 +806,7 @@ FShaderCompileThreadRunnable::~FShaderCompileThreadRunnable()
 /** Entry point for the shader compiling thread. */
 uint32 FShaderCompileThreadRunnableBase::Run()
 {
-#if _MSC_VER
+#ifdef _MSC_VER
 	if(!FPlatformMisc::IsDebuggerPresent())
 	{
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
@@ -1291,7 +1313,6 @@ FShaderCompilingManager::FShaderCompilingManager() :
 {
 	WorkersBusyTime = 0;
 	bFallBackToDirectCompiles = false;
-	bRecreateComponentRenderStateOutstanding = false;
 
 	// Threads must use absolute paths on Windows in case the current directory is changed on another thread!
 	ShaderCompileWorkerName = FPaths::ConvertRelativePathToFull(ShaderCompileWorkerName);
@@ -1390,12 +1411,12 @@ FShaderCompilingManager::FShaderCompilingManager() :
 	if (FShaderCompileXGEThreadRunnable::IsSupported())
 	{
 		UE_LOG(LogShaderCompilers, Display, TEXT("Using XGE Shader Compiler."));
-		Thread = new FShaderCompileXGEThreadRunnable(this);
+		Thread = MakeUnique<FShaderCompileXGEThreadRunnable>(this);
 	}
 	else
 	{
 		UE_LOG(LogShaderCompilers, Display, TEXT("Using Local Shader Compiler."));
-		Thread = new FShaderCompileThreadRunnable(this);
+		Thread = MakeUnique<FShaderCompileThreadRunnable>(this);
 	}
 	Thread->StartThread();
 }
@@ -1534,11 +1555,6 @@ void FShaderCompilingManager::BlockOnShaderMapCompletion(const TArray<int32>& Sh
 						{
 							CompiledShaderMaps.Add(ShaderMapIdsToFinishCompiling[ShaderMapIndex], FShaderMapFinalizeResults(Results));
 							ShaderMapJobs.Remove(ShaderMapIdsToFinishCompiling[ShaderMapIndex]);
-
-							if (Results.bRecreateComponentRenderStateOnCompletion)
-							{
-								bRecreateComponentRenderStateOutstanding = true;
-							}
 						}
 						else
 						{
@@ -1578,11 +1594,6 @@ void FShaderCompilingManager::BlockOnShaderMapCompletion(const TArray<int32>& Sh
 
 				CompiledShaderMaps.Add(ShaderMapIdsToFinishCompiling[ShaderMapIndex], FShaderMapFinalizeResults(Results));
 				ShaderMapJobs.Remove(ShaderMapIdsToFinishCompiling[ShaderMapIndex]);
-
-				if (Results.bRecreateComponentRenderStateOnCompletion)
-				{
-					bRecreateComponentRenderStateOutstanding = true;
-				}
 			}
 		}
 	}
@@ -1651,8 +1662,7 @@ void FShaderCompilingManager::BlockOnAllShaderMapCompletion(TMap<int32, FShaderM
 
 void FShaderCompilingManager::ProcessCompiledShaderMaps(
 	TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps, 
-	float TimeBudget,
-	bool bRecreateComponentRenderState)
+	float TimeBudget)
 {
 	// Keeps shader maps alive as they are passed from the shader compiler and applied to the owning FMaterial
 	TArray<TRefCountPtr<FMaterialShaderMap> > LocalShaderMapReferences;
@@ -1724,16 +1734,16 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 				LocalShaderMapReferences.Add(ShaderMap);
 				FMaterialShaderMap::ShaderMapsBeingCompiled.Remove(ShaderMap);
 #if DEBUG_INFINITESHADERCOMPILE
-				UE_LOG(LogTemp, Warning, TEXT("Finished compile of shader map 0x%08X%08X"), (int)((int64)(ShaderMap.GetReference()) >> 32), (int)((int64)(ShaderMap.GetReference())));
+				UE_LOG(LogTemp, Display, TEXT("Finished compile of shader map 0x%08X%08X"), (int)((int64)(ShaderMap.GetReference()) >> 32), (int)((int64)(ShaderMap.GetReference())));
 #endif
 				for (int32 MaterialIndex = 0; MaterialIndex < MaterialsArray.Num(); MaterialIndex++)
 				{
 					FMaterial* Material = MaterialsArray[MaterialIndex];
 					FMaterialShaderMap* CompletedShaderMap = ShaderMap;
 #if DEBUG_INFINITESHADERCOMPILE
-					UE_LOG(LogTemp, Warning, TEXT("Shader map %s complete, GameThreadShaderMap 0x%08X%08X, marking material %s as finished"), *ShaderMap->GetFriendlyName(), (int)((int64)(ShaderMap.GetReference()) >> 32), (int)((int64)(ShaderMap.GetReference())), *Material->GetFriendlyName());
+					UE_LOG(LogTemp, Display, TEXT("Shader map %s complete, GameThreadShaderMap 0x%08X%08X, marking material %s as finished"), *ShaderMap->GetFriendlyName(), (int)((int64)(ShaderMap.GetReference()) >> 32), (int)((int64)(ShaderMap.GetReference())), *Material->GetFriendlyName());
 
-					UE_LOG(LogTemp, Warning, TEXT("Marking material as finished 0x%08X%08X"), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
+					UE_LOG(LogTemp, Display, TEXT("Marking material as finished 0x%08X%08X"), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
 #endif
 					Material->RemoveOutstandingCompileId(ShaderMap->CompilingId);
 
@@ -1858,13 +1868,7 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 			Material->NotifyCompilationFinished();
 		}
 
-		if (bRecreateComponentRenderState)
-		{
-			// This is necessary because scene proxies cache material / shadermap state, like material view relevance
-			//@todo - find a way to only recreate the components referencing materials that have been updated
-			FGlobalComponentRecreateRenderStateContext Context;
-			bRecreateComponentRenderStateOutstanding = false;
-		}
+		PropagateMaterialChangesToPrimitives(MaterialsToUpdate);
 
 #if WITH_EDITOR
 		FEditorSupportDelegates::RedrawAllViewports.Broadcast();
@@ -1872,6 +1876,56 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 	}
 }
 
+void FShaderCompilingManager::PropagateMaterialChangesToPrimitives(const TMap<FMaterial*, FMaterialShaderMap*>& MaterialsToUpdate)
+{
+	TArray<UMaterialInterface*> UsedMaterials;
+	TIndirectArray<FComponentRecreateRenderStateContext> ComponentContexts;
+
+	for (TObjectIterator<UPrimitiveComponent> PrimitiveIt; PrimitiveIt; ++PrimitiveIt)
+	{
+		UPrimitiveComponent* PrimitiveComponent = *PrimitiveIt;
+
+		if (PrimitiveComponent->IsRenderStateCreated())
+		{
+			UsedMaterials.Reset();
+			bool bPrimitiveIsDependentOnMaterial = false;
+
+			// Note: relying on GetUsedMaterials to be accurate, or else we won't propagate to the right primitives and the renderer will crash later
+			// FPrimitiveSceneProxy::VerifyUsedMaterial is used to make sure that all materials used for rendering are reported in GetUsedMaterials
+			PrimitiveComponent->GetUsedMaterials(UsedMaterials);
+
+			if (UsedMaterials.Num() > 0)
+			{
+				for (TMap<FMaterial*, FMaterialShaderMap*>::TConstIterator MaterialIt(MaterialsToUpdate); MaterialIt; ++MaterialIt)
+				{
+					FMaterial* UpdatedMaterial = MaterialIt.Key();
+					UMaterialInterface* UpdatedMaterialInterface = UpdatedMaterial->GetMaterialInterface();
+						
+					if (UpdatedMaterialInterface)
+					{
+						for (int32 MaterialIndex = 0; MaterialIndex < UsedMaterials.Num(); MaterialIndex++)
+						{
+							UMaterialInterface* TestMaterial = UsedMaterials[MaterialIndex];
+
+							if (TestMaterial && (TestMaterial == UpdatedMaterialInterface || TestMaterial->IsDependent(UpdatedMaterialInterface)))
+							{
+								bPrimitiveIsDependentOnMaterial = true;
+								break;
+							}
+						}
+					}
+				}
+
+				if (bPrimitiveIsDependentOnMaterial)
+				{
+					new(ComponentContexts) FComponentRecreateRenderStateContext(PrimitiveComponent);
+				}
+			}
+		}
+	}
+
+	ComponentContexts.Empty();
+}
 
 /**
  * Shutdown the shader compile manager
@@ -2173,8 +2227,7 @@ void FShaderCompilingManager::FinishCompilation(const TCHAR* MaterialName, const
 	} 
 	while (bRetry);
 
-	const bool bRecreateComponentRenderState = bRecreateComponentRenderStateOutstanding;
-	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX, bRecreateComponentRenderState);
+	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX);
 	check(CompiledShaderMaps.Num() == 0);
 
 	const double EndTime = FPlatformTime::Seconds();
@@ -2199,7 +2252,7 @@ void FShaderCompilingManager::FinishAllCompilation()
 	} 
 	while (bRetry);
 
-	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX, false);
+	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX);
 	check(CompiledShaderMaps.Num() == 0);
 
 	const double EndTime = FPlatformTime::Seconds();
@@ -2246,11 +2299,6 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 
 					if (GetNumTotalJobs(Results.FinishedJobs) == Results.NumJobsQueued)
 					{
-						if (Results.bRecreateComponentRenderStateOnCompletion)
-						{
-							bRecreateComponentRenderStateOutstanding = true;
-						}
-
 						PendingFinalizeShaderMaps.Add(It.Key(), FShaderMapFinalizeResults(Results));
 						ShaderMapsToRemove.Add(It.Key());
 					}
@@ -2276,9 +2324,7 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 				while (bRetry);
 
 				const float TimeBudget = bLimitExecutionTime ? ProcessGameThreadTargetTime : FLT_MAX;
-				// Only do the recreate when we are finished all compiling, to limit the number of hitchy global render state recreates
-				const bool bRecreateComponentRenderState = bRecreateComponentRenderStateOutstanding && NumCompilingShaderMaps == 0;
-				ProcessCompiledShaderMaps(PendingFinalizeShaderMaps, TimeBudget, bRecreateComponentRenderState);
+				ProcessCompiledShaderMaps(PendingFinalizeShaderMaps, TimeBudget);
 				check(bLimitExecutionTime || PendingFinalizeShaderMaps.Num() == 0);
 			}
 
@@ -2555,15 +2601,20 @@ void GlobalBeginCompileShader(
 		Input.Environment.SetDefine(TEXT("COMPUTESHADER"), Target.Frequency == SF_Compute);
 	}
 
-	// Set instanced stereo define
+	// #defines get stripped out by the preprocessor without this. We can override with this
+	Input.Environment.SetDefine(TEXT("COMPILER_DEFINE"), TEXT("#define"));
+
+	// Set VR definitions
 	{
 		static const auto CVarInstancedStereo = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
 		static const auto CVarMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
 		static const auto CVarMobileMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
+		static const auto CVarMonoscopicFarField = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MonoscopicFarField"));
 
 		const bool bIsInstancedStereoCVar = CVarInstancedStereo ? (CVarInstancedStereo->GetValueOnGameThread() != 0) : false;
 		const bool bIsMultiViewCVar = CVarMultiView ? (CVarMultiView->GetValueOnGameThread() != 0) : false;
 		const bool bIsMobileMultiViewCVar = CVarMobileMultiView ? (CVarMobileMultiView->GetValueOnGameThread() != 0) : false;
+		const bool bIsMonoscopicFarField = CVarMonoscopicFarField && (CVarMonoscopicFarField->GetValueOnGameThread() != 0);
 
 		const EShaderPlatform ShaderPlatform = static_cast<EShaderPlatform>(Target.Platform);
 		
@@ -2577,9 +2628,11 @@ void GlobalBeginCompileShader(
 		// Throw a warning if we are silently disabling ISR due to missing platform support.
 		if (bIsInstancedStereoCVar && !bIsInstancedStereo && !GShaderCompilingManager->AreWarningsSuppressed(ShaderPlatform))
 		{
-			UE_LOG(LogShaderCompilers, Warning, TEXT("Instanced stereo rendering is not supported for the %s shader platform."), *LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString());
+			UE_LOG(LogShaderCompilers, Log, TEXT("Instanced stereo rendering is not supported for the %s shader platform."), *LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString());
 			GShaderCompilingManager->SuppressWarnings(ShaderPlatform);
 		}
+
+		Input.Environment.SetDefine(TEXT("MONOSCOPIC_FAR_FIELD"), bIsMonoscopicFarField);
 	}
 
 	ShaderType->AddReferencedUniformBufferIncludes(Input.Environment, Input.SourceFilePrefix, (EShaderPlatform)Target.Platform);
@@ -2658,6 +2711,12 @@ void GlobalBeginCompileShader(
 			Input.Environment.SetDefine(TEXT("SHADER_PDB_ROOT"), *ShaderPDBRoot);
 		}
 	}
+    
+    if (IsMetalPlatform(EShaderPlatform(Target.Platform)))
+    {
+		uint32 ShaderVersion = RHIGetShaderLanguageVersion(EShaderPlatform(Target.Platform));
+        Input.Environment.SetDefine(TEXT("MAX_SHADER_LANGUAGE_VERSION"), ShaderVersion);
+    }
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ClearCoatNormal"));
@@ -2682,7 +2741,7 @@ void GlobalBeginCompileShader(
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BasePassOutputsVelocity"));
-		Input.Environment.SetDefine(TEXT("OUTPUT_GBUFFER_VELOCITY"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
+		Input.Environment.SetDefine(TEXT("GBUFFER_HAS_VELOCITY"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
 	}
 
 	{
@@ -2706,6 +2765,11 @@ void GlobalBeginCompileShader(
 	Input.Environment.SetDefine(TEXT("FORWARD_SHADING"), bForwardShading);
 
 	{
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.EarlyZPassOnlyMaterialMasking"));
+		Input.Environment.SetDefine(TEXT("EARLY_Z_PASS_ONLY_MATERIAL_MASKING"), CVar ? (CVar->GetInt() != 0) : 0);
+	}
+
+	{
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VertexFoggingForOpaque"));
 		Input.Environment.SetDefine(TEXT("VERTEX_FOGGING_FOR_OPAQUE"), bForwardShading && (CVar ? (CVar->GetInt() != 0) : 0));
 	}
@@ -2713,6 +2777,11 @@ void GlobalBeginCompileShader(
 	{
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Mobile.DisableVertexFog"));
 		Input.Environment.SetDefine(TEXT("PROJECT_MOBILE_DISABLE_VERTEX_FOG"), CVar ? (CVar->GetInt() != 0) : 0);
+	}
+
+	{
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SceneAlpha"));
+		Input.Environment.SetDefine(TEXT("SCENE_ALPHA"), CVar ? (CVar->GetInt() != 0) : 0);
 	}
 
 	if (GSupportsRenderTargetWriteMask)
@@ -2979,13 +3048,15 @@ bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			FRecompileShadersTimer TestTimer(TEXT("RecompileShaders"));
 			RecompileGlobalShaders();
+
+			FMaterialUpdateContext UpdateContext;
 			for( TObjectIterator<UMaterial> It; It; ++It )
 			{
 				UMaterial* Material = *It;
 				if( Material )
 				{
 					UE_LOG(LogShaderCompilers, Log, TEXT("recompiling [%s]"),*Material->GetFullName());
-
+					UpdateContext.AddMaterial(Material);
 #if WITH_EDITOR
 					// <Pre/Post>EditChange will force a re-creation of the resource,
 					// in turn recompiling the shader.

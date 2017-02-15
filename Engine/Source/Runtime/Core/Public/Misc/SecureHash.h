@@ -1,7 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Containers/StringConv.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "Serialization/BufferReader.h"
+
+struct FMD5Hash;
 
 /*-----------------------------------------------------------------------------
 	MD5 functions.
@@ -89,7 +99,7 @@ private:
 
 struct FMD5Hash;
 
-namespace LexicalConversion
+namespace Lex
 {
 	CORE_API FString ToString(const FMD5Hash& Hash);
 	CORE_API void FromString(FMD5Hash& Hash, const TCHAR* Buffer);
@@ -137,6 +147,10 @@ struct FMD5Hash
 
 	/** Hash the specified file contents (using the optionally supplied scratch buffer) */
 	CORE_API static FMD5Hash HashFile(const TCHAR* InFilename, TArray<uint8>* Buffer = nullptr);
+	CORE_API static FMD5Hash HashFileFromArchive(FArchive* Ar, TArray<uint8>* ScratchPad = nullptr);
+
+	const uint8* GetBytes() const { return Bytes; }
+	const int32 GetSize() const { return sizeof(Bytes); }
 
 private:
 	/** Whether this hash is valid or not */
@@ -145,8 +159,8 @@ private:
 	/** The bytes this hash comprises */
 	uint8 Bytes[16];
 
-	friend FString LexicalConversion::ToString(const FMD5Hash&);
-	friend void LexicalConversion::FromString(FMD5Hash& Hash, const TCHAR*);
+	friend FString Lex::ToString(const FMD5Hash&);
+	friend void Lex::FromString(FMD5Hash& Hash, const TCHAR*);
 };
 
 /*-----------------------------------------------------------------------------

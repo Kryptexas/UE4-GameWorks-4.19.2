@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Containers/UnrealString.h"
+#include "Delegates/Delegate.h"
+#include "Styling/SlateTypes.h"
 
 /**
  * Delegate type for session owner filter state changes.

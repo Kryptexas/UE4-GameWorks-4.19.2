@@ -1,13 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
 
+class UAudioComponent;
 class UMaterial;
 class UMaterialExpressionTextureSample;
 class UMediaPlayer;
+class UMediaSoundWave;
 class UMediaTexture;
-
+struct FSlateBrush;
+enum class EMediaEvent;
 
 /**
  * Handles content output in the viewer tab in the UMediaPlayer asset editor.

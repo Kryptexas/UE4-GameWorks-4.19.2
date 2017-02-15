@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+#include "StompClient.h"
+#include "StompLog.h"
 
 #if WITH_STOMP
 
-#include "StompPrivatePCH.h"
-#include "StompClient.h"
 #include "StompMessage.h"
 #include "StompFrame.h"
 
@@ -196,11 +197,11 @@ void FStompClient::HandleIncomingFrame(const uint8* Data, SIZE_T Length)
 			Header[HeartBeatHeader].Split(TEXT(","), &Left, &Right, ESearchCase::CaseSensitive, ESearchDir::FromStart) )
 		{
 			// Note that the server reply swaps the "ping" and "pong" intervals compared to the client CONNECT command header.
-			int32 ServerPing = Right.IsNumeric()?FCString::Atoi(*Right):0;
-			int32 ServerPong = Left.IsNumeric()?FCString::Atoi(*Left):0;
+			int32 ServerPing = Right.IsNumeric() ? FCString::Atoi(*Right) : 0;
+			int32 ServerPong = Left.IsNumeric() ? FCString::Atoi(*Left) : 0;
 
 			int32 ClientPing = PingInterval.GetTotalMilliseconds();
-			int32 ClientPong = PingInterval.GetTotalMilliseconds();
+			int32 ClientPong = PongInterval.GetTotalMilliseconds();
 
 			PingInterval = (ServerPing == 0 || ClientPing == 0) ? FTimespan::Zero() : FTimespan::FromMilliseconds(FMath::Max(ServerPing, ClientPing));
 			PongInterval = (ServerPong == 0 || ClientPong == 0) ? FTimespan::Zero() : FTimespan::FromMilliseconds(FMath::Max(ServerPong, ClientPong));

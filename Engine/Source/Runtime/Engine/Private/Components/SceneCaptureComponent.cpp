@@ -1,11 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "../../Renderer/Private/ScenePrivate.h"
+#include "Components/SceneCaptureComponent.h"
+#include "Misc/ScopeLock.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "UObject/ConstructorHelpers.h"
+#include "GameFramework/Actor.h"
+#include "RenderingThread.h"
+#include "Components/StaticMeshComponent.h"
+#include "Materials/Material.h"
+#include "Components/BillboardComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "Engine/Texture2D.h"
+#include "SceneManagement.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/SceneCapture.h"
 #include "Engine/SceneCapture2D.h"
 #include "Components/SceneCaptureComponent2D.h"
@@ -16,8 +27,7 @@
 #include "Components/PlanarReflectionComponent.h"
 #include "PlanarReflectionSceneProxy.h"
 #include "Components/BoxComponent.h"
-#include "MessageLog.h"
-#include "RenderingObjectVersion.h"
+#include "Logging/MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "SceneCaptureComponent"
 
@@ -238,6 +248,29 @@ void USceneCaptureComponent::ShowOnlyActorComponents(AActor* InActor)
 	}
 }
 
+void USceneCaptureComponent::RemoveShowOnlyComponent(UPrimitiveComponent* InComponent)
+{
+	ShowOnlyComponents.Remove(InComponent);
+}
+
+void USceneCaptureComponent::RemoveShowOnlyActorComponents(AActor* InActor)
+{
+	if (InActor)
+	{
+		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
+		InActor->GetComponents(PrimitiveComponents);
+		for (int32 ComponentIndex = 0, NumComponents = PrimitiveComponents.Num(); ComponentIndex < NumComponents; ++ComponentIndex)
+		{
+			ShowOnlyComponents.Remove(PrimitiveComponents[ComponentIndex]);
+		}
+	}
+}
+
+void USceneCaptureComponent::ClearShowOnlyComponents(UPrimitiveComponent* InComponent)
+{
+	ShowOnlyComponents.Reset();
+}
+
 FSceneViewStateInterface* USceneCaptureComponent::GetViewState()
 {
 	FSceneViewStateInterface* ViewStateInterface = ViewState.GetReference();
@@ -321,6 +354,7 @@ USceneCaptureComponent2D::USceneCaptureComponent2D(const FObjectInitializer& Obj
 {
 	FOVAngle = 90.0f;
 	OrthoWidth = 512;
+	bUseCustomProjectionMatrix = false;
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
@@ -331,6 +365,8 @@ USceneCaptureComponent2D::USceneCaptureComponent2D(const FObjectInitializer& Obj
 	// default to full blend weight..
 	PostProcessBlendWeight = 1.0f;
 	CaptureStereoPass = EStereoscopicPass::eSSP_FULL;
+	CustomProjectionMatrix.SetIdentity();
+	ClipPlaneNormal = FVector(0, 0, 1);
 }
 
 void USceneCaptureComponent2D::OnRegister()
@@ -426,6 +462,14 @@ bool USceneCaptureComponent2D::CanEditChange(const UProperty* InProperty) const
 	{
 		FString PropertyName = InProperty->GetName();
 
+		if (bUseCustomProjectionMatrix 
+			&& (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent2D, ProjectionType)
+				|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent2D, FOVAngle)
+				|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent2D, OrthoWidth)))
+		{
+			return false;
+		}
+
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent2D, FOVAngle))
 		{
 			return ProjectionType == ECameraProjectionMode::Perspective;
@@ -437,6 +481,24 @@ bool USceneCaptureComponent2D::CanEditChange(const UProperty* InProperty) const
 		else if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent2D, CompositeMode))
 		{
 			return CaptureSource == SCS_SceneColorHDR;
+		}
+
+		static IConsoleVariable* ClipPlaneCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowGlobalClipPlane"));
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent2D, bEnableClipPlane))
+		{
+			return ClipPlaneCVar->GetInt() != 0;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent2D, ClipPlaneBase)
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent2D, ClipPlaneNormal))
+		{
+			return bEnableClipPlane && ClipPlaneCVar->GetInt() != 0;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent2D, CustomProjectionMatrix))
+		{
+			return bUseCustomProjectionMatrix;
 		}
 	}
 
@@ -592,6 +654,7 @@ UPlanarReflectionComponent::UPlanarReflectionComponent(const FObjectInitializer&
 	ProjectionWithExtraFOV[1] = FMatrix::Identity;
 
 	ShowFlags.SetLightShafts(0);
+	ShowFlags.SetContactShadows(0);
 
 	NextPlanarReflectionId++;
 	PlanarReflectionId = NextPlanarReflectionId;

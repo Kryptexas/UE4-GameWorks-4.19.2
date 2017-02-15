@@ -35,7 +35,6 @@
 #include "ScElementSimInteraction.h"
 #include "ScSqBoundsManager.h"
 #include "ScSimStats.h"
-#include "ScObjectIDTracker.h"
 
 using namespace physx;
 using namespace Sc;
@@ -83,29 +82,25 @@ Sc::ElementSimInteraction* Sc::ElementSim::ElementInteractionReverseIterator::ge
 	return NULL;
 }
 
-
-Sc::ElementSim::ElementSim(ActorSim& actor, ElementType::Enum type)
-	: mNextInActor(NULL)
-	, mActor(actor)
-	, mElementID(actor.getScene().getElementIDPool().createID())
-	, mType(Ps::to8(type))
-	, mInBroadPhase(false)
+Sc::ElementSim::ElementSim(ActorSim& actor, ElementType::Enum type) :
+	mNextInActor	(NULL),
+	mActor			(actor),
+	mType			(Ps::to8(type)),
+	mInBroadPhase	(false)
 {
-	getScene().getBoundsArray().initEntry(mElementID);
+	initID();
+
 	PX_ASSERT((type & 0x03) == type);	// we use 2 bits to store
+
 	actor.onElementAttach(*this);
 }
-
-
 
 Sc::ElementSim::~ElementSim()
 {
 	PX_ASSERT(!mInBroadPhase);
-	getScene().getElementIDPool().releaseID(mElementID);
+	releaseID();
 	mActor.onElementDetach(*this);
 }
-
-
 
 void Sc::ElementSim::setElementInteractionsDirty(InteractionDirtyFlag::Enum flag, PxU8 interactionFlag)
 {
@@ -126,7 +121,6 @@ void Sc::ElementSim::setElementInteractionsDirty(InteractionDirtyFlag::Enum flag
 PX_COMPILE_TIME_ASSERT(PxU32(PxSimulationStatistics::eRIGID_BODY) == PxU32(Sc::ElementType::eSHAPE));
 PX_COMPILE_TIME_ASSERT(PxU32(PxSimulationStatistics::eCLOTH) == PxU32(Sc::ElementType::eCLOTH));
 PX_COMPILE_TIME_ASSERT(PxU32(PxSimulationStatistics::ePARTICLE_SYSTEM) == PxU32(Sc::ElementType::ePARTICLE_PACKET));
-
 
 void Sc::ElementSim::addToAABBMgr(PxReal contactDistance, PxU32 group, bool isTrigger)
 {

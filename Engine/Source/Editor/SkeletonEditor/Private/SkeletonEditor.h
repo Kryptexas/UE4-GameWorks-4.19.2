@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ISkeletonEditor.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Toolkits/IToolkitHost.h"
 #include "TickableEditorObject.h"
 #include "EditorUndoClient.h"
+#include "IDetailsView.h"
+#include "ISkeletonEditor.h"
+
+class IPersonaToolkit;
+class IPersonaViewport;
+class ISkeletonTree;
+class USkeleton;
 
 namespace SkeletonEditorModes
 {

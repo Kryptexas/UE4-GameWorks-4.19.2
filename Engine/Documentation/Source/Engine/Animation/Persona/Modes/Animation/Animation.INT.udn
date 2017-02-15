@@ -1,40 +1,60 @@
 Availability: Public
-Title:Animation Mode
+Title:Animation Editor
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
-Description:User guide for Animation Mode in the Persona animation editor.
-version: 4.9
+Description:Highlights the core features of the Animation Editor in Unreal Engine 4. 
+version: 4.14
+type:landing
+topic-image:animEditor_topic.png
+Related: Engine\Animation\Persona\Modes\Skeleton
+Related: Engine\Animation\Persona\Modes\Mesh
+Related: Engine\Animation\Persona\Modes\Graph
+Related: Engine/Content/FBX/Animations
+tags:Animation
+tags:Skeletal Mesh
+tags:FBX Importing
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/Modes/Animation:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/Modes/Animation:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/Modes/Animation:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/Modes/Animation]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[EXCERPT:Overview]
+The **Animation Editor** provides easy access to the various animation-centric assets available for a Skeletal Mesh. 
+In the Animation Editor, you can preview playback of animation assets such as Animation Sequences, Blend Spaces, Animation Montages, make edits to animation assets, add and edit curves for Material Parameters or Morph Targets as well as define Animation Notifies (events that occur during designated points in an animation). 
+[/EXCERPT:Overview]
 
-
+When opening any animation asset through the **Content Browser** (or Editor Toolbar), the Animation Editor will open: 
 
 [REGION:fullwidth]
 ![](AnimationModeWindow.png)
 [/REGION]
 
-The **Animation** mode of **Persona** (accessed by selecting the **Animation** tab from the toolbar window) contains several windows which appear in other modes, however the three windows (denoted above) are the ones used most when working in Animation mode. 
+Please refer to each section below for a breakdown of the Animation Editor user interface: 
 
-1. [Anim Asset Details](Engine\Animation\Persona\AnimAssetDetails) - The **Anim Asset Details** panel is a context-sensitive property editor that allows you to change settings on various animation assets, such as Anim Sequences, Blend Spaces, Anim Montages, and so on. By default, the **Anim Asset Details** panel is only visible when Persona is in **Animation** mode.
-1. [Anim Sequence Editor](Engine\Animation\Sequences\Editor) - The **Animation Sequence Editor** provides functionality for previewing and editing individual AnimationSequence assets. The properties, including compression scheme, of the AnimationSequence can be set, and animation notification events - also called Notifies - can be added to allow camera effects, particle effects, sounds, and more to be triggered based on the animation.
-1. [Asset Browser](Engine\Animation\Persona\AssetBrowser) - The **Asset Browser** panel displays the AnimSequences, BlendSpaces, AnimMontages, and AimOffsetBlendSpaces that are valid for the target Skeleton in a mini **Content Browser**-style interface. 
+## 1. Toolbar
+
+The [Toolbar](Engine/Animation/Persona/Toolbar) inside the Animation Editor provides you with options for saving any changes to your animation or locating it in the Content Browser. It also allows you to create new animation assets, define compression settings, adjust additive layer tracks, or create a static mesh out of the preview's current pose. 
+On the far right of the Toolbar is the **Editor Toolbar** which allows you to switch between the different Animation Tools in Unreal Engine 4. 
+
+## 2. Asset Details / Skeleton Tree
+
+The [Asset Details](Engine\Animation\Persona\AnimAssetDetails) tab provides you with options to define how your animation asset functions and will change based on the type of animation asset you have open. 
+Docked next to the Asset Details is the [](Engine/Animation/Persona/SkeletonTree) which displays the skeletal hierarchy of the current Skeleton asset and allows you to create/edit Sockets and define settings related to animation retargeting. 
+
+## 3. Viewport
+
+The [Viewport](Engine/Animation/Persona/Viewport) window allows you to preview playback of animation assets on your selected Skeletal Mesh and provides information about your assets. You can change lighting modes, show or hide the bones of your skeleton, adjust animation playback speeds, even set your Skeletal Mesh to automatically rotate around on a turntable allowing you view it from all angles. 
+
+## 4. Details
+
+The [Details](Engine/UI/LevelEditor/Details) panel, which is similar to the Main Editor, is primarily used for modifying options that have been added while working in the **Asset Editor**. 
+For example, when you add a notify to an Animation Sequence, clicking on the notify will populate the Details panel with options related to the notify. Adding a new section to an Animation Montage, you can modify the content of the section from the Details panel. 
+
+## 5. Asset Editor
+
+The [Asset Editor](Engine/Animation/Persona/AssetEditor) is a contextual editor that changes interface layout and options based on the type of animation asset opened. You can modify Anim Sequences, Blend Spaces, Anim Montages or any other animation asset inside this window as well as playback animations (or record new animations) from the toolbar located at the bottom. 
+
+## 6. Asset Browser
+
+The [](Engine\Animation\Persona\AssetBrowser) allows you to view all the animation assets that are associated with and can be used by the current Skeleton asset. 
+
+
+
 
 
 

@@ -1,31 +1,50 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LandscapePrivatePCH.h"
+#include "CoreMinimal.h"
+#include "GenericPlatform/GenericPlatformStackWalk.h"
+#include "Misc/Guid.h"
+#include "Stats/Stats.h"
+#include "Serialization/BufferArchive.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/PropertyPortFlags.h"
+#include "EngineDefines.h"
+#include "Engine/EngineTypes.h"
+#include "Components/SceneComponent.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "Misc/SecureHash.h"
+#include "CollisionQueryParams.h"
+#include "Engine/World.h"
+#include "PhysxUserData.h"
+#include "LandscapeProxy.h"
+#include "LandscapeInfo.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "LandscapeComponent.h"
+#include "LandscapeLayerInfoObject.h"
+#include "LandscapePrivate.h"
 #include "PhysicsPublic.h"
 #include "LandscapeDataAccess.h"
-#include "LandscapeRender.h"
-#include "Collision/PhysXCollision.h"
-#include "DerivedDataPluginInterface.h"
-#include "DerivedDataCacheInterface.h"
+#include "PhysXPublic.h"
 #include "PhysicsEngine/PhysXSupport.h"
-#include "PhysicsEngine/PhysDerivedData.h"
+#include "DerivedDataCacheInterface.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeMeshCollisionComponent.h"
-#include "InstancedFoliage.h"
-#include "FoliageType.h"
-#include "Engine/StaticMesh.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
-#include "Interfaces/Interface_CollisionDataProvider.h"
-#include "AI/NavigationSystemHelpers.h"
-#include "AI/Navigation/NavigationSystem.h"
-#include "Engine/CollisionProfile.h"
-#include "Engine/Engine.h"
-#include "EngineGlobals.h"
+#include "FoliageInstanceBase.h"
 #include "InstancedFoliageActor.h"
+#include "InstancedFoliage.h"
+#include "AI/NavigationSystemHelpers.h"
+#include "Engine/CollisionProfile.h"
+#include "ProfilingDebugging/CookStats.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "EngineGlobals.h"
 #include "EngineUtils.h"
-#include "CookStats.h"
+#include "Engine/Engine.h"
 #include "Materials/MaterialInstanceConstant.h"
+#if WITH_EDITOR
+	#include "IPhysXFormat.h"
+#endif
 
 #if ENABLE_COOK_STATS
 namespace LandscapeCollisionCookStats
@@ -197,7 +216,7 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 			const float SimpleCollisionScale = bCreateSimpleCollision ? CollisionScale * CollisionSizeQuads / SimpleCollisionSizeQuads : 0;
 
 			// Create the geometry
-			PxHeightFieldGeometry LandscapeComponentGeom(HeightfieldRef->RBHeightfield, PxMeshGeometryFlags(), LandscapeScale.Z * LANDSCAPE_ZSCALE, LandscapeScale.Y * CollisionScale, LandscapeScale.X * CollisionScale);
+			PxHeightFieldGeometry LandscapeComponentGeom(HeightfieldRef->RBHeightfield, PxMeshGeometryFlag::eDOUBLE_SIDED, LandscapeScale.Z * LANDSCAPE_ZSCALE, LandscapeScale.Y * CollisionScale, LandscapeScale.X * CollisionScale);
 
 			if (LandscapeComponentGeom.isValid())
 			{
@@ -1121,6 +1140,10 @@ void ULandscapeHeightfieldCollisionComponent::UpdateHeightfieldRegion(int32 Comp
 			return;
 		}
 
+		// We don't lock the async scene as we only set the geometry in the sync scene's RigidActor.
+		// This function is used only during painting for line traces by the painting tools.
+		SCOPED_SCENE_WRITE_LOCK(GetPhysXSceneFromIndex(BodyInstance.SceneIndexSync));
+
 		int32 CollisionSizeVerts = CollisionSizeQuads + 1;
 
 		bool bIsMirrored = GetComponentToWorld().GetDeterminant() < 0.f;
@@ -1176,14 +1199,11 @@ void ULandscapeHeightfieldCollisionComponent::UpdateHeightfieldRegion(int32 Comp
 		// Create the geometry
 		PxHeightFieldGeometry LandscapeComponentGeom(HeightfieldRef->RBHeightfieldEd, PxMeshGeometryFlags(), LandscapeScale.Z * LANDSCAPE_ZSCALE, LandscapeScale.Y * CollisionScale, LandscapeScale.X * CollisionScale);
 
-		if (BodyInstance.RigidActorSync)
+		FInlinePxShapeArray PShapes;
+		const int32 NumShapes = FillInlinePxShapeArray(PShapes, *(BodyInstance.RigidActorSync));
+		if (NumShapes > 1)
 		{
-			FInlinePxShapeArray PShapes;
-			const int32 NumShapes = FillInlinePxShapeArray(PShapes, *(BodyInstance.RigidActorSync));
-			if (NumShapes > 1)
-			{
-				PShapes[1]->setGeometry(LandscapeComponentGeom);
-			}
+			PShapes[1]->setGeometry(LandscapeComponentGeom);
 		}
 	}
 
@@ -1263,6 +1283,8 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& I
 
 				bool bFirst = true;
 				TArray<int32> InstancesToRemove;
+				TSet<UHierarchicalInstancedStaticMeshComponent*> AffectedFoliageComponets;
+
 				for (int32 InstanceIndex : *InstanceSet)
 				{
 					FFoliageInstance& Instance = MeshInfo.Instances[InstanceIndex];
@@ -1324,8 +1346,6 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& I
 									check(MeshInfo.Component);
 									MeshInfo.Component->Modify();
 									MeshInfo.Component->UpdateInstanceTransform(InstanceIndex, Instance.GetInstanceWorldTransform(), true);
-									MeshInfo.Component->InvalidateLightingCache();
-
 									// Re-add the new instance location to the hash
 									MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIndex);
 								}
@@ -1338,11 +1358,18 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& I
 							// Couldn't find new spot - remove instance
 							InstancesToRemove.Add(InstanceIndex);
 						}
+
+						AffectedFoliageComponets.Add(MeshInfo.Component);
 					}
 				}
 
 				// Remove any unused instances
 				MeshInfo.RemoveInstances(IFA, InstancesToRemove);
+
+				for (UHierarchicalInstancedStaticMeshComponent* FoliageComp : AffectedFoliageComponets)
+				{
+					FoliageComp->InvalidateLightingCache();
+				}
 			}
 		}
 	}

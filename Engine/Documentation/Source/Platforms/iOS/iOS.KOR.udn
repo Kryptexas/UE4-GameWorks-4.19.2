@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3150518
 Availability: Public
 Title: iOS 게임 개발
 Crumbs:%ROOT%, Platforms
@@ -21,7 +21,7 @@ tags:iOS
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		[DIR(output:"topiccompact" parent:"Platforms/iOS" type:"quickstart")]
+		[DIR(output:"topiccompact" parent:"Platforms/iOS" type:"quick start")]
 	[/PARAM]
 [/OBJECT]
 
@@ -35,7 +35,7 @@ tags:iOS
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		[DIR(end:"1" output:"listbutton" type:"howto" parent:"Platforms/iOS")]
+		[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/iOS")]
 	[/PARAM]
 [/OBJECT]
 

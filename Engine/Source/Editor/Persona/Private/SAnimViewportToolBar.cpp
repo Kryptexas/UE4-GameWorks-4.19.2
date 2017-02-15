@@ -1,27 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
 #include "SAnimViewportToolBar.h"
-#include "SAnimationEditorViewport.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EngineGlobals.h"
+#include "AssetData.h"
+#include "Engine/Engine.h"
+#include "EditorStyleSet.h"
+#include "PropertyEditorModule.h"
+#include "IDetailsView.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Colors/SColorBlock.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "Preferences/PersonaOptions.h"
 #include "EditorViewportCommands.h"
 #include "AnimViewportMenuCommands.h"
 #include "AnimViewportShowCommands.h"
 #include "AnimViewportLODCommands.h"
 #include "AnimViewportPlaybackCommands.h"
 #include "SAnimPlusMinusSlider.h"
-#include "AnimationEditorViewportClient.h"
-#include "Editor/UnrealEd/Public/SEditorViewportToolBarMenu.h"
-#include "Editor/UnrealEd/Public/STransformViewportToolbar.h"
+#include "SEditorViewportToolBarMenu.h"
+#include "STransformViewportToolbar.h"
 #include "SEditorViewportViewMenu.h"
-#include "SColorPicker.h"
-#include "SNumericEntryBox.h"
-#include "STextComboBox.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Widgets/Colors/SColorPicker.h"
+#include "Widgets/Input/SNumericEntryBox.h"
+#include "Widgets/Input/STextComboBox.h"
 #include "AssetViewerSettings.h"
-#include "IPersonaToolkit.h"
 #include "PersonaPreviewSceneDescription.h"
-#include "ISkeletonTree.h"
-#include "IEditableSkeleton.h"
 #include "Engine/PreviewMeshCollection.h"
 #include "PreviewSceneCustomizations.h"
 
@@ -397,17 +405,13 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateViewMenu() const
 		{
 			ViewMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().PreviewSceneSettings);
 
-			// We cant allow animation configuration via the viewport menu in 'old regular' Persona
-			if (GetDefault<UPersonaOptions>()->bUseStandaloneAnimationEditors)
-			{
-				ViewMenuBuilder.AddSubMenu(
-					LOCTEXT("SceneSetupLabel", "Scene Setup"),
-					LOCTEXT("SceneSetupTooltip", "Set up preview meshes, animations etc."),
-					FNewMenuDelegate::CreateRaw(this, &SAnimViewportToolBar::GenerateSceneSetupMenu),
-					false,
-					FSlateIcon(FEditorStyle::GetStyleSetName(), "AnimViewportMenu.SceneSetup")
-					);
-			}
+			ViewMenuBuilder.AddSubMenu(
+				LOCTEXT("SceneSetupLabel", "Scene Setup"),
+				LOCTEXT("SceneSetupTooltip", "Set up preview meshes, animations etc."),
+				FNewMenuDelegate::CreateRaw(this, &SAnimViewportToolBar::GenerateSceneSetupMenu),
+				false,
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "AnimViewportMenu.SceneSetup")
+				);
 
 			ViewMenuBuilder.AddSubMenu(
 				LOCTEXT("TurnTableLabel", "Turn Table"),
@@ -422,6 +426,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateViewMenu() const
 		ViewMenuBuilder.BeginSection("AnimViewportCamera", LOCTEXT("ViewMenu_CameraLabel", "Camera"));
 		{
 			ViewMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().CameraFollow);
+			ViewMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().FocusViewportToSelection);
 		}
 		ViewMenuBuilder.EndSection();
 	}
@@ -589,10 +594,11 @@ void SAnimViewportToolBar::FillShowBoneDrawMenu(FMenuBuilder& MenuBuilder) const
 {
 	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
 
-	MenuBuilder.BeginSection("AnimViewportPreviewHierarchyBoneDraw", LOCTEXT("ShowMenu_Actions_HierarchyAxes", "Hierarchy Local Axes"));
+	MenuBuilder.BeginSection("AnimViewportPreviewHierarchyBoneDraw", LOCTEXT("ShowMenu_Actions_BoneDrawing", "Bone Drawing"));
 	{
 		MenuBuilder.AddMenuEntry(Actions.ShowBoneDrawAll);
 		MenuBuilder.AddMenuEntry(Actions.ShowBoneDrawSelected);
+		MenuBuilder.AddMenuEntry(Actions.ShowBoneDrawSelectedAndParents);
 		MenuBuilder.AddMenuEntry(Actions.ShowBoneDrawNone);
 	}
 	MenuBuilder.EndSection();
@@ -679,6 +685,7 @@ void SAnimViewportToolBar::FillShowClothingMenu(FMenuBuilder& MenuBuilder) const
 		MenuBuilder.AddMenuEntry(Actions.ShowClothMaxDistances);
 		MenuBuilder.AddMenuEntry(Actions.ShowClothBackstop);
 		MenuBuilder.AddMenuEntry(Actions.ShowClothFixedVertices);
+		MenuBuilder.AddMenuEntry(Actions.PauseClothWithAnim);
 	}
 	MenuBuilder.EndSection();
 

@@ -1,21 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
-#include "SequencerSectionLayoutBuilder.h"
-#include "ISequencerSection.h"
-#include "Sequencer.h"
-#include "MovieScene.h"
-#include "SSequencer.h"
-#include "SSequencerSectionAreaView.h"
-#include "MovieSceneSection.h"
-#include "MovieSceneSequence.h"
-#include "MovieSceneTrack.h"
-#include "MovieSceneTrackEditor.h"
-#include "CommonMovieSceneTools.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+#include "Curves/KeyHandle.h"
+#include "Widgets/SNullWidget.h"
+#include "Rendering/DrawElements.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SLeafWidget.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EditorStyleSet.h"
+#include "DisplayNodes/SequencerObjectBindingNode.h"
+#include "DisplayNodes/SequencerSectionCategoryNode.h"
+#include "DisplayNodes/SequencerSectionKeyAreaNode.h"
 #include "IKeyArea.h"
+#include "DisplayNodes/SequencerTrackNode.h"
+#include "Sequencer.h"
 #include "GroupedKeyArea.h"
-#include "ObjectEditorUtils.h"
-#include "GenericCommands.h"
+#include "SAnimationOutlinerTreeNode.h"
+#include "SequencerSettings.h"
+#include "SSequencerSectionAreaView.h"
+#include "CommonMovieSceneTools.h"
+#include "Framework/Commands/GenericCommands.h"
 
 
 #define LOCTEXT_NAMESPACE "SequencerDisplayNode"
@@ -274,7 +281,7 @@ TSharedRef<FSequencerSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode
 }
 
 
-TSharedRef<FSequencerTrackNode> FSequencerDisplayNode::AddSectionAreaNode(UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor)
+TSharedRef<FSequencerTrackNode> FSequencerDisplayNode::AddTrackNode(UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor)
 {
 	TSharedPtr<FSequencerTrackNode> SectionNode;
 
@@ -457,6 +464,9 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 {
 	TSharedRef<FSequencerDisplayNode> ThisNode = SharedThis(this);
 
+	bool bIsReadOnly = !GetSequencer().IsReadOnly();
+	FCanExecuteAction CanExecute = FCanExecuteAction::CreateLambda([bIsReadOnly]{ return bIsReadOnly; });
+
 	MenuBuilder.BeginSection("Edit", LOCTEXT("EditContextMenuSectionName", "Edit"));
 	{
 		MenuBuilder.AddMenuEntry(
@@ -465,7 +475,7 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::ToggleNodeActive),
-				FCanExecuteAction(),
+				CanExecute,
 				FIsActionChecked::CreateSP(&GetSequencer(), &FSequencer::IsNodeActive)
 			),
 			NAME_None,
@@ -478,7 +488,7 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::ToggleNodeLocked),
-				FCanExecuteAction(),
+				CanExecute,
 				FIsActionChecked::CreateSP(&GetSequencer(), &FSequencer::IsNodeLocked)
 			),
 			NAME_None,
@@ -497,7 +507,7 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			LOCTEXT("DeleteNode", "Delete"),
 			LOCTEXT("DeleteNodeTooltip", "Delete this or selected tracks"),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::DeleteNode, ThisNode))
+			FUIAction(FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::DeleteNode, ThisNode), CanExecute)
 		);
 
 		MenuBuilder.AddMenuEntry(

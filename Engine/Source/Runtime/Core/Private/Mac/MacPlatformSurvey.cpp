@@ -1,12 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=================================================================================
  MacPlatformSurvey.mm: Mac OS X platform hardware-survey classes
  =================================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "MacPlatformSurvey.h"
 #include "UnrealString.h"
 #include "SynthBenchmark.h"
+#include "HAL/PlatformTime.h"
+#include "HAL/PlatformProcess.h"
+#include "CoreGlobals.h"
+
 #import <IOKit/graphics/IOGraphicsLib.h>
 #import <IOKit/ps/IOPowerSources.h>
 #import <IOKit/ps/IOPSKeys.h>

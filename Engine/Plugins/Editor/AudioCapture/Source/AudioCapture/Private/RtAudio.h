@@ -49,10 +49,12 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #define RTAUDIO_VERSION "4.1.2"
 
-#include <string>
-#include <vector>
-#include <exception>
-#include <iostream>
+THIRD_PARTY_INCLUDES_START
+	#include <string>
+	#include <vector>
+	#include <exception>
+	#include <iostream>
+THIRD_PARTY_INCLUDES_END
 
 /*! \typedef typedef unsigned long RtAudioFormat;
 \brief RtAudio data format type.

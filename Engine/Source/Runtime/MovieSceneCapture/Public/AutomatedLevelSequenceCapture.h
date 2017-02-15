@@ -1,13 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneCapture.h"
-#include "LevelSequenceActor.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/StringAssetReference.h"
 #include "LevelSequencePlayer.h"
+#include "MovieSceneCapture.h"
 #include "AutomatedLevelSequenceCapture.generated.h"
 
 class ALevelSequenceActor;
+class FJsonObject;
+class FSceneViewport;
+class ULevelSequenceBurnInOptions;
 
 UCLASS(config=EditorSettings)
 class MOVIESCENECAPTURE_API UAutomatedLevelSequenceCapture : public UMovieSceneCapture
@@ -79,7 +84,7 @@ private:
 	void UpdateFrameState();
 
 	/** Called when the level sequence has updated the world */
-	void SequenceUpdated(const ULevelSequencePlayer& Player, float CurrentTime, float PreviousTime);
+	void SequenceUpdated(const UMovieSceneSequencePlayer& Player, float CurrentTime, float PreviousTime);
 
 	/** Called to set up the player's playback range */
 	void SetupFrameRange();

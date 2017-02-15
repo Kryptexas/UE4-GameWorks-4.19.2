@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #include "MetalRHIPrivate.h"
@@ -323,9 +323,7 @@ void FMetalRHICommandContext::RHIClearUAV(FUnorderedAccessViewRHIParamRef Unorde
 		check(UnorderedAccessView->SourceVertexBuffer);
 		
 		// Fill the buffer via a blit encoder - I hope that is sufficient.
-		id<MTLBlitCommandEncoder> Blitter = Context->GetBlitContext();
-		METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG(Context, @"RHIClearUAV(UAV %p, %d)", UnorderedAccessViewRHI, Values[0]);
-		[Blitter fillBuffer:UnorderedAccessView->SourceVertexBuffer->Buffer range:NSMakeRange(0, UnorderedAccessView->SourceVertexBuffer->GetSize()) value:Values[0]];
+		GetMetalDeviceContext().FillBuffer(UnorderedAccessView->SourceVertexBuffer->Buffer, NSMakeRange(0, UnorderedAccessView->SourceVertexBuffer->GetSize()), Values[0]);
 		
 		// If there are problems you may need to add calls to restore the render command encoder at this point
 		// but we don't generally want to do that.

@@ -1,15 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "Runtime/CoreUObject/Public/UObject/ObjectMacros.h"
-#include "Runtime/Engine/Classes/Engine/EngineTypes.h"
-#include "Runtime/Engine/Classes/Engine/Texture.h"
-#include "Runtime/Engine/Public/SceneTypes.h"
-#include "Runtime/Engine/Classes/Materials/Material.h"
-#include "Runtime/Engine/Classes/Engine/TextureStreamingTypes.h"
-#include "RawMesh.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "SceneTypes.h"
+#include "Modules/ModuleInterface.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "UObject/ErrorException.h"
+#include "Engine/Texture.h"
+
+class ALandscapeProxy;
+class Error;
+class FStaticLODModel;
+class ULandscapeComponent;
+class UMaterial;
+class UMaterialInstanceConstant;
+class UMaterialInterface;
+class UTexture2D;
+class UTextureRenderTarget2D;
+struct FMaterialProxySettings;
+struct FRawMesh;
 
 /* TODO replace this with rendering property enum when extending the system */
 UENUM()
@@ -125,7 +137,7 @@ struct FMaterialMergeData
 	/** Material index to use when the material is baked out using mesh data (face material indices) */
 	int32 MaterialIndex;
 	/** Optional tex coordinate bounds of original texture coordinates set */
-	const FBox2D& TexcoordBounds;
+	FBox2D TexcoordBounds;
 	/** Optional new set of non-overlapping texture coordinates */
 	const TArray<FVector2D>& TexCoords;
 
@@ -137,7 +149,7 @@ struct FMaterialMergeData
 		const FRawMesh* InMesh,
 		const FStaticLODModel* InLODModel,
 		int32 InMaterialIndex,
-		const FBox2D& InTexcoordBounds,
+		FBox2D InTexcoordBounds,
 		const TArray<FVector2D>& InTexCoords)
 		: ProxyCache(nullptr)
 		, Material(InMaterial)
@@ -431,10 +443,10 @@ public:
 	* @param InMaterial			Target material
 	* @param QualityLevel		Quality level used for the shader profiling.
 	* @param FeatureLevel		Feature level used for the shader profiling.
-	* @param OutScales			TheOutput array of rendered samples	
+	* @param OutErrors			Manager to log errors (removes duplicates and similar errors)	
 	* @return					Whether operation was successful
 	*/
-	static bool ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTextureInfo>& OutScales, FExportErrorManager& OutErrors);
+	static bool ExportMaterialUVDensities(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, FExportErrorManager& OutErrors);
 
 	// QQQ COMMENTS
 	static void DetermineMaterialImportance(const TArray<UMaterialInterface*>& InMaterials, TArray<float>& OutImportance);

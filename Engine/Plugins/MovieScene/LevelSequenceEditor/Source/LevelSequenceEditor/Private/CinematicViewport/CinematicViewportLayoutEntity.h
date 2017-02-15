@@ -1,10 +1,16 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Framework/Application/SlateApplication.h"
 #include "LevelViewportLayout.h"
-#include "SCinematicLevelViewport.h"
-#include "UnrealEd.h"
+#include "SLevelViewport.h"
+#include "CinematicViewport/SCinematicLevelViewport.h"
+#include "Editor/UnrealEdEngine.h"
+#include "UnrealEdGlobals.h"
 
 class FCinematicViewportLayoutEntity : public IViewportLayoutEntity
 {

@@ -1,11 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // Physics engine integration utilities
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/World.h"
+#include "PhysxUserData.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "Components/PrimitiveComponent.h"
 #include "Model.h"
-#include "PhysXSupport.h"
+#include "PhysicsPublic.h"
+#include "PhysXPublic.h"
+#include "PhysicsEngine/PhysXSupport.h"
+#include "PhysicsEngine/ConvexElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
 /** Returns false if ModelToHulls operation should halt because of vertex count overflow. */
@@ -115,7 +123,7 @@ void UBodySetup::CreateFromModel(UModel* InModel, bool bRemoveExisting)
 		if ( !bSuccess )
 		{
 			// ModelToHullsWorker failed.  Clear out anything that may have been created.
-			RemoveSimpleCollision();
+			AggGeom.ConvexElems.Empty();
 		}
 	}
 

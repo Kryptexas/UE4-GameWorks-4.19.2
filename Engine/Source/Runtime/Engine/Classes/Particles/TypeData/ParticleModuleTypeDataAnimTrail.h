@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  *	ParticleModuleTypeDataAnimTrail
@@ -7,8 +7,15 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Particles/TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleModuleTypeDataAnimTrail.generated.h"
+
+class UParticleEmitter;
+class UParticleSystemComponent;
+struct FParticleEmitterInstance;
 
 UCLASS(MinimalAPI, editinlinenew, hidecategories=Object, meta=(DisplayName = "AnimTrail Data"))
 class UParticleModuleTypeDataAnimTrail : public UParticleModuleTypeDataBase

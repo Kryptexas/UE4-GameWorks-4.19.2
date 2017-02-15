@@ -1,6 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_CommutativeAssociativeBinaryOperator.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #include "ScopedTransaction.h"
 
@@ -154,7 +158,12 @@ void UK2Node_CommutativeAssociativeBinaryOperator::AddInputPinInner(int32 Additi
 		InputType.PinSubCategoryObject.Get(), 
 		InputType.bIsArray, 
 		InputType.bIsReference, 
-		*GetNameForPin(AdditionalPinIndex + BinaryOperatorInputsNum)
+		*GetNameForPin(AdditionalPinIndex + BinaryOperatorInputsNum),
+		false,
+		INDEX_NONE,
+		InputType.bIsSet,
+		InputType.bIsMap,
+		InputType.PinValueType
 	);
 }
 

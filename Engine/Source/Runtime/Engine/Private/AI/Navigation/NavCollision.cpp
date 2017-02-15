@@ -1,15 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "AI/Navigation/NavCollision.h"
+#include "Serialization/MemoryWriter.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Engine/StaticMesh.h"
+#include "SceneManagement.h"
+#include "AI/Navigation/NavAreas/NavArea.h"
+#include "AI/NavigationModifier.h"
 #include "AI/NavigationSystemHelpers.h"
-#include "NavigationModifier.h"
-#include "AI/Navigation/RecastNavMeshGenerator.h"
 #include "DerivedDataPluginInterface.h"
 #include "DerivedDataCacheInterface.h"
-#include "TargetPlatform.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "CookStats.h"
+#include "ProfilingDebugging/CookStats.h"
 
 #if ENABLE_COOK_STATS
 namespace NavCollisionCookStats
@@ -160,7 +163,7 @@ FGuid UNavCollision::GetGuid() const
 void UNavCollision::Setup(UBodySetup* BodySetup)
 {
 	// Create meshes from cooked data if not already done
-	if (bHasConvexGeometry || BodySetup == NULL)
+	if (bHasConvexGeometry || BodySetup == NULL || BodySetupGuid == BodySetup->BodySetupGuid)
 	{
 		return;
 	}
@@ -491,4 +494,13 @@ void UNavCollision::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 		const FByteBulkData& FmtData = CookedFormatData.GetFormat(NAVCOLLISION_FORMAT);
 		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(FmtData.GetElementSize() * FmtData.GetElementCount());
 	}
+}
+
+void UNavCollision::CopyUserSettings(const UNavCollision& OtherData)
+{
+	CylinderCollision = OtherData.CylinderCollision;
+	BoxCollision = OtherData.BoxCollision;
+	AreaClass = OtherData.AreaClass;
+	bIsDynamicObstacle = OtherData.bIsDynamicObstacle;
+	bGatherConvexGeometry = OtherData.bGatherConvexGeometry;
 }

@@ -1,13 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EdGraphCompilerUtilities.h"
-#include "BlueprintGraphDefinitions.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "UObject/Class.h"
+#include "EdGraphSchema_K2.h"
 #include "BPTerminal.h"
 #include "BlueprintCompiledStatement.h"
+#include "Kismet2/CompilerResultsLog.h"
 
+class Error;
+class UBlueprint;
 class UBlueprintGeneratedClass;
+class UK2Node_FunctionEntry;
+struct FNetNameMapping;
 
 namespace KismetCompilerDebugOptions
 {
@@ -313,10 +320,9 @@ public:
 		}
 		else
 		{
-			MessageLog.Warning(
-				*FString::Printf(TEXT("A node that generated no code of it's own (@@) tried to inject code into @@. %s"), *GetFullNameSafe(Source))
-				, Source
-				, Destination);
+			// A node that generated no code of it's own (Source) tried to inject code into (Destination).
+			// It is ok, for example: UK2Node_GetClassDefaults works like this.
+			// Moreover when KismetCompilerDebugOptions::EmitNodeComments is enabled there is always a Comment state generated anyway.
 		}
 	}
 

@@ -1,8 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "UObject/AssetPtr.h"
+#include "EdGraph/EdGraphPin.h"
+#include "UObject/StructOnScope.h"
 #include "UserDefinedStructEditorData.generated.h"
+
+class ITransactionObjectAnnotation;
 
 USTRUCT()
 struct FStructVariableDescription
@@ -32,7 +41,16 @@ struct FStructVariableDescription
 	TAssetPtr<UObject> SubCategoryObject;
 
 	UPROPERTY()
+	FEdGraphTerminalType PinValueType;
+
+	UPROPERTY()
 	bool bIsArray;
+
+	UPROPERTY()
+	bool bIsSet;
+
+	UPROPERTY()
+	bool bIsMap;
 
 	UPROPERTY(Transient)
 	bool bInvalidMember;
@@ -59,6 +77,8 @@ struct FStructVariableDescription
 
 	FStructVariableDescription()
 		: bIsArray(false)
+		, bIsSet(false)
+		, bIsMap(false)
 		, bInvalidMember(false)
 		, bDontEditoOnInstance(false)
 		, bEnableMultiLineText(false)

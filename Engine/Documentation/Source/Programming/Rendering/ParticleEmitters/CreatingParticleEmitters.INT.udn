@@ -3,6 +3,7 @@ Title:Particle Emitter Technical Guide
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:Programmer's guide to adding new particle emitter types.
 Version: 4.9
+tags:Rendering
 
 [TOC (start:2 end:3)]
 

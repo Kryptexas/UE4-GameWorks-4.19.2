@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -6,11 +6,13 @@
 ==============================================================================================*/
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
 #include "GenericPlatform/GenericPlatformTLS.h"
-#include "Linux/LinuxSystemIncludes.h"
 
 #if defined(_GNU_SOURCE)
-	#include <sys/syscall.h>	// SYS_gettid
+	#include <sys/syscall.h>
 #endif // _GNU_SOURCE
 
 /**

@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Developer/LocalizationService/Public/ILocalizationServiceRevision.h"
 
 class FOneSkyLocalizationServiceRevision : public ILocalizationServiceRevision, public TSharedFromThis<FOneSkyLocalizationServiceRevision, ESPMode::ThreadSafe>

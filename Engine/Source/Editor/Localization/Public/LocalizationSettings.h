@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Object.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "LocalizationTargetTypes.h"
 #include "LocalizationSettings.generated.h"
+
+struct FPropertyChangedEvent;
 
 // Class for loading/saving configuration settings and the details view objects needed for localization dashboard functionality.
 UCLASS(Config=Editor, defaultconfig)

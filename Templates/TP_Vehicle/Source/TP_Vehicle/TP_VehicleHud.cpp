@@ -1,13 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "TP_Vehicle.h"
 #include "TP_VehicleHud.h"
 #include "TP_VehiclePawn.h"
-#include "GameFramework/WheeledVehicle.h"
+#include "WheeledVehicle.h"
 #include "RenderResource.h"
 #include "Shader.h"
 #include "Engine/Canvas.h"
-#include "Vehicles/WheeledVehicleMovementComponent.h"
+#include "WheeledVehicleMovementComponent.h"
 #include "Engine/Font.h"
 #include "CanvasItem.h"
 #include "Engine.h"

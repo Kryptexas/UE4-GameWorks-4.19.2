@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "EnginePrivate.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "PacketHandlers/EngineHandlerComponentFactory.h"
+#include "PacketHandlers/StatelessConnectHandlerComponent.h"
+
 
 /**
  * UEngineHandlerComponentFactor

@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Common/TargetPlatformBase.h"
+#include "Misc/ConfigCacheIni.h"
+#include "LocalPcTargetDevice.h"
 
 #if WITH_ENGINE
+	#include "Sound/SoundWave.h"
+	#include "TextureResource.h"
 	#include "StaticMeshResources.h"
 #endif // WITH_ENGINE
 
@@ -25,7 +31,10 @@ public:
 	 */
 	TGenericWindowsTargetPlatform( )
 	{
-		LocalDevice = MakeShareable(new TLocalPcTargetDevice<HAS_EDITOR_DATA>(*this));
+#if PLATFORM_WINDOWS
+		// only add local device if actually running on Windows
+		LocalDevice = MakeShareable(new TLocalPcTargetDevice<PLATFORM_64BITS>(*this));
+#endif
 		
 		#if WITH_ENGINE
 			FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *PlatformName());
@@ -64,7 +73,10 @@ public:
 	virtual void GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const override
 	{
 		OutDevices.Reset();
-		OutDevices.Add(LocalDevice);
+		if (LocalDevice.IsValid())
+		{
+			OutDevices.Add(LocalDevice);
+		}
 	}
 
 	virtual ECompressionFlags GetBaseCompressionMethod( ) const override
@@ -79,7 +91,12 @@ public:
 
 	virtual ITargetDevicePtr GetDefaultDevice( ) const override
 	{
-		return LocalDevice;
+		if (LocalDevice.IsValid())
+		{
+			return LocalDevice;
+		}
+
+		return nullptr;
 	}
 
 	virtual ITargetDevicePtr GetDevice( const FTargetDeviceId& DeviceId )
@@ -128,8 +145,8 @@ public:
 			static FName NAME_VULKAN_ES31(TEXT("SF_VULKAN_ES31"));
 			static FName NAME_OPENGL_150_ES2(TEXT("GLSL_150_ES2"));
 			static FName NAME_OPENGL_150_ES3_1(TEXT("GLSL_150_ES31"));
-			static FName NAME_OPENGL_WOLF(TEXT("GLSL_WOLF"));
-			static FName NAME_OPENGL_WOLF_FORWARD(TEXT("GLSL_WOLF_FORWARD"));
+			static FName NAME_OPENGL_SWITCH(TEXT("GLSL_SWITCH"));
+			static FName NAME_OPENGL_SWITCH_FORWARD(TEXT("GLSL_SWITCH_FORWARD"));
 			static FName NAME_VULKAN_SM4(TEXT("SF_VULKAN_SM4"));
 
 			OutFormats.AddUnique(NAME_PCD3D_SM5);
@@ -139,8 +156,8 @@ public:
 			OutFormats.AddUnique(NAME_VULKAN_ES31);
 			OutFormats.AddUnique(NAME_OPENGL_150_ES2);
 			OutFormats.AddUnique(NAME_OPENGL_150_ES3_1);
-			OutFormats.AddUnique(NAME_OPENGL_WOLF_FORWARD);
-			OutFormats.AddUnique(NAME_OPENGL_WOLF);
+			OutFormats.AddUnique(NAME_OPENGL_SWITCH_FORWARD);
+			OutFormats.AddUnique(NAME_OPENGL_SWITCH);
 			OutFormats.AddUnique(NAME_VULKAN_SM4);
 		}
 	}
@@ -164,7 +181,7 @@ public:
 	{
 		if (!IS_DEDICATED_SERVER)
 		{
-			FName TextureFormatName = GetDefaultTextureFormatName(InTexture, EngineSettings, bSupportDX11TextureFormats);
+			FName TextureFormatName = GetDefaultTextureFormatName(this, InTexture, EngineSettings, bSupportDX11TextureFormats);
 			OutFormats.Add(TextureFormatName);
 		}
 	}

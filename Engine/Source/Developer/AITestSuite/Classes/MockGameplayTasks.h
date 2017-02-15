@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "GameplayTaskOwnerInterface.h"
 #include "GameplayTask.h"
 #include "GameplayTasksComponent.h"
 #include "MockGameplayTasks.generated.h"
+
+class AActor;
+template<typename ValueType> struct FTestLogger;
 
 namespace ETestTaskMessage
 {

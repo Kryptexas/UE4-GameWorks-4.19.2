@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -68,17 +68,19 @@ public abstract class LocalizationProvider
 	{
 		public string RootWorkingDirectory;
 		public string RemoteFilenamePrefix;
-		public CommandUtils CommandUtils;
+		public BuildCommand Command;
+		public int PendingChangeList;
 	};
 
 	public LocalizationProvider(LocalizationProviderArgs InArgs)
 	{
 		RootWorkingDirectory = InArgs.RootWorkingDirectory;
 		RemoteFilenamePrefix = InArgs.RemoteFilenamePrefix;
-		CommandUtils = InArgs.CommandUtils;
+		Command = InArgs.Command;
+		PendingChangeList = InArgs.PendingChangeList;
 
-		LocalizationBranchName = CommandUtils.ParseParamValue("LocalizationBranch");
-		bUploadAllCultures = CommandUtils.ParseParam("UploadAllCultures");
+		LocalizationBranchName = Command.ParseParamValue("LocalizationBranch");
+		bUploadAllCultures = Command.ParseParam("UploadAllCultures");
 	}
 
 	public virtual string GetLocalizationProviderId()
@@ -141,9 +143,9 @@ public abstract class LocalizationProvider
 			{
 				return Activator.CreateInstance(LocalizationNodeType, new object[] { InLocalizationProviderArgs }) as LocalizationProvider;
 			}
-			catch
+			catch (Exception e)
 			{
-				BuildCommand.LogWarning("Unable to create an instance of the type '{0}'", LocalizationNodeType.FullName);
+				BuildCommand.LogWarning("Unable to create an instance of the type '{0}'. {1}", LocalizationNodeType.FullName, e.ToString());
 			}
 		}
 		else
@@ -158,7 +160,8 @@ public abstract class LocalizationProvider
 	protected string LocalizationBranchName;
 	protected string RemoteFilenamePrefix;
 	protected bool bUploadAllCultures;
-	protected CommandUtils CommandUtils;
+	protected BuildCommand Command;
+	protected int PendingChangeList;
 
 	private static Dictionary<string, Type> CachedLocalizationProviderTypes;
 };

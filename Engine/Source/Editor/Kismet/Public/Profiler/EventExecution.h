@@ -1,9 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "TracePath.h"
-#include "ScriptPerfData.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/SWidget.h"
+#include "Profiler/TracePath.h"
+#include "Profiler/ScriptPerfData.h"
+
+class FScriptExecutionNode;
+class FScriptExecutionTunnelEntry;
+class FScriptExecutionTunnelExit;
+struct FSlateBrush;
 
 /**  Execution node flags */
 namespace EScriptExecutionNodeFlags
@@ -36,6 +46,7 @@ namespace EScriptExecutionNodeFlags
 		InvalidTrace				= 0x00400000,	// Indicates that node doesn't contain a valid script trace.
 		RuntimeEvent				= 0x01000000,	// Event that is considered part of the runtime cost.
 		ConstructionEvent			= 0x02000000,	// Event that is considered part of the construction cost.
+		RequiresRefresh				= 0x04000000,	// This event has updated stats and requires a refresh.
 		// Groups
 		CallSite					= FunctionCall|ParentFunctionCall|MacroCall|TunnelInstance,
 		BranchNode					= ConditionalBranch|SequentialBranch,

@@ -1,8 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IScrollableWidget.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Styling/SlateColor.h"
+#include "Styling/SlateWidgetStyleAsset.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+
+class IScrollableWidget;
 
 /**
  * Shows a border above and below a scrollable area.

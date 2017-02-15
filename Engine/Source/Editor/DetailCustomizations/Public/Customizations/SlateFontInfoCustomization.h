@@ -1,6 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "IPropertyTypeCustomization.h"
+#include "Widgets/Input/SComboBox.h"
+
+class FAssetData;
+class IPropertyHandle;
 
 /** Customize the appearance of an FSlateFontInfo */
 class DETAILCUSTOMIZATIONS_API FSlateFontInfoStructCustomization : public IPropertyTypeCustomization

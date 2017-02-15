@@ -1,11 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectBase.cpp: Unreal UObject base class
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
-#include "GCObject.h"
+#include "UObject/UObjectBase.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/ConfigCacheIni.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectAllocator.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/GCObject.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUObjectBase, Log, All);
 DEFINE_STAT(STAT_UObjectsStatGroupTester);
@@ -321,8 +332,10 @@ void UObjectBase::EmitBaseReferences(UClass *RootClass)
 /** Enqueue the registration for this object. */
 void UObjectBase::Register(const TCHAR* PackageName,const TCHAR* InName)
 {
+	TMap<UObjectBase*, FPendingRegistrantInfo>& PendingRegistrants = FPendingRegistrantInfo::GetMap();
+
 	FPendingRegistrant* PendingRegistration = new FPendingRegistrant(this);
-	FPendingRegistrantInfo::GetMap().Add(this, FPendingRegistrantInfo(InName, PackageName));
+	PendingRegistrants.Add(this, FPendingRegistrantInfo(InName, PackageName));
 	if(GLastPendingRegistrant)
 	{
 		GLastPendingRegistrant->NextAutoRegister = PendingRegistration;
@@ -381,12 +394,14 @@ static void UObjectProcessRegistrants()
 
 void UObjectForceRegistration(UObjectBase* Object)
 {
-	FPendingRegistrantInfo* Info = FPendingRegistrantInfo::GetMap().Find(Object);
+	TMap<UObjectBase*, FPendingRegistrantInfo>& PendingRegistrants = FPendingRegistrantInfo::GetMap();
+
+	FPendingRegistrantInfo* Info = PendingRegistrants.Find(Object);
 	if (Info)
 	{
 		const TCHAR* PackageName = Info->PackageName;
 		const TCHAR* Name = Info->Name;
-		FPendingRegistrantInfo::GetMap().Remove(Object);  // delete this first so that it doesn't try to do it twice
+		PendingRegistrants.Remove(Object);  // delete this first so that it doesn't try to do it twice
 		Object->DeferredRegister(UClass::StaticClass(),PackageName,Name);
 	}
 }
@@ -654,12 +669,29 @@ void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(),
 /** Register all loaded classes */
 void UClassRegisterAllCompiledInClasses()
 {
+#if WITH_HOT_RELOAD
+	TArray<UClass*> AddedClasses;
+#endif
+
 	TArray<FFieldCompiledInInfo*>& DeferredClassRegistration = GetDeferredClassRegistration();
 	for (const FFieldCompiledInInfo* Class : DeferredClassRegistration)
 	{
-		Class->Register();
+		UClass* RegisteredClass = Class->Register();
+#if WITH_HOT_RELOAD
+		if (GIsHotReload && Class->OldClass == nullptr)
+		{
+			AddedClasses.Add(RegisteredClass);
+		}
+#endif
 	}
 	DeferredClassRegistration.Empty();
+
+#if WITH_HOT_RELOAD
+	if (AddedClasses.Num() > 0)
+	{
+		FCoreUObjectDelegates::RegisterHotReloadAddedClassesDelegate.Broadcast(AddedClasses);
+	}
+#endif
 }
 
 #if WITH_HOT_RELOAD
@@ -680,11 +712,11 @@ void UClassReplaceHotReloadClasses()
 				RegisteredClass = Class->Register();
 			}
 
-			FCoreUObjectDelegates::RegisterClassForHotReloadReinstancingDelegate.Execute(Class->OldClass, RegisteredClass);
+			FCoreUObjectDelegates::RegisterClassForHotReloadReinstancingDelegate.Broadcast(Class->OldClass, RegisteredClass);
 		}
 	}
 
-	FCoreUObjectDelegates::ReinstanceHotReloadedClassesDelegate.ExecuteIfBound();
+	FCoreUObjectDelegates::ReinstanceHotReloadedClassesDelegate.Broadcast();
 	HotReloadClasses.Empty();
 }
 
@@ -1144,27 +1176,23 @@ UEnum* FindExistingEnumIfHotReloadOrDynamic(UObject* Outer, const TCHAR* EnumNam
 	return Result;
 }
 
-UClass::StaticClassFunctionType GetDynamicClassConstructFn(FName ClassPathName)
-{
-	FDynamicClassStaticData* ClassConstructFn = GetDynamicClassMap().Find(ClassPathName);
-	UE_CLOG(!ClassConstructFn, LogUObjectBase, Fatal, TEXT("Unable to find construct function pointer for dynamic class %s. Make sure dynamic class exists."), *ClassPathName.ToString());
-	if (ClassConstructFn)
-	{
-		return ClassConstructFn->ZConstructFn;
-	}
-	// We should never get here. We either find the class or assert.
-	return nullptr;
-}
-
-UObject* ConstructDynamicType(FName TypePathName)
+UObject* ConstructDynamicType(FName TypePathName, EConstructDynamicType ConstructionSpecifier)
 {
 	UObject* Result = nullptr;
 	if (FDynamicClassStaticData* ClassConstructFn = GetDynamicClassMap().Find(TypePathName))
 	{
-		UClass* DynamicClass = ClassConstructFn->StaticClassFn();
-		check(DynamicClass);
-		DynamicClass->AssembleReferenceTokenStream();
-		Result = DynamicClass;
+		if (ConstructionSpecifier == EConstructDynamicType::CallZConstructor)
+		{
+			UClass* DynamicClass = ClassConstructFn->ZConstructFn();
+			check(DynamicClass);
+			DynamicClass->AssembleReferenceTokenStream();
+			Result = DynamicClass;
+		}
+		else if (ConstructionSpecifier == EConstructDynamicType::OnlyAllocateClassObject)
+		{
+			Result = ClassConstructFn->StaticClassFn();
+			check(Result);
+		}
 	}
 	else if (UScriptStruct *(**StaticStructFNPtr)() = GetDynamicStructMap().Find(TypePathName))
 	{
@@ -1201,7 +1229,10 @@ UPackage* FindOrConstructDynamicTypePackage(const TCHAR* PackageName)
 	if (!Package)
 	{
 		Package = CreatePackage(nullptr, PackageName);
-		Package->SetPackageFlags(PKG_CompiledIn);
+		if (!GEventDrivenLoaderEnabled)
+		{
+			Package->SetPackageFlags(PKG_CompiledIn);
+		}
 	}
 	check(Package);
 	return Package;

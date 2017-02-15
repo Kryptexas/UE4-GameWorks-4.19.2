@@ -1,11 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IVREditorModule.h"
-#include "HeadMountedDisplayTypes.h"					// For EHMDDeviceType::Type
-#include "Kismet/HeadMountedDisplayFunctionLibrary.h"	// For EHMDTrackingOrigin::Type
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "InputCoreTypes.h"
+#include "Templates/SubclassOf.h"
+#include "Editor/UnrealEdTypes.h"
+#include "ShowFlags.h"
+#include "Misc/App.h"
+#include "Widgets/SWindow.h"
+#include "HeadMountedDisplayTypes.h"
+#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 #include "VREditorMode.generated.h"
+
+class AActor;
+class FEditorViewportClient;
+class SLevelViewport;
+enum class EGizmoHandleTypes : uint8;
 
 // Forward declare the GizmoHandleTypes that is defined in VIBaseTransformGizmo.h
 enum class EGizmoHandleTypes : uint8;
@@ -193,6 +206,9 @@ public:
 	{
 		return *UISystem;
 	}
+
+	/** Lets other modules know if the radial menu is visible on a given interactor so input should be handled differently */
+	bool IsShowingRadialMenu( const class UVREditorInteractor* Interactor ) const;
 
 	/** Gets the viewport that VR Mode is activated in.  Even though editor modes are available in all
 	    level viewports simultaneously, only one viewport is "possessed" by the HMD.  Generally try to avoid using
@@ -426,6 +442,9 @@ public:
 	// Gets the color
 	FLinearColor GetColor( const EColors Color ) const;
 
+	// Get the default near clipping plane for VR editing
+	float GetDefaultVRNearClipPlane() const;
+
 private:
 
 	// All the colors for this mode
@@ -440,4 +459,3 @@ private:
 	/** If this current mode is running */
 	bool bIsActive;
 };
-

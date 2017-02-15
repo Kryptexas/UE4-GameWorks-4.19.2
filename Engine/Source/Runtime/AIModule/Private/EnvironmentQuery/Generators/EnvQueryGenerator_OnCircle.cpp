@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
+#include "EnvironmentQuery/Generators/EnvQueryGenerator_OnCircle.h"
+#include "GameFramework/Actor.h"
+#include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
+#include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
+#include "VisualLogger/VisualLogger.h"
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Querier.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_Point.h"
-#include "EnvironmentQuery/Generators/EnvQueryGenerator_OnCircle.h"
 #include "EnvironmentQuery/EnvQueryTraceHelpers.h"
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
@@ -132,6 +135,7 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	SpaceBetween.BindData(QueryOwner, QueryInstance.QueryID);
 	ArcAngle.BindData(QueryOwner, QueryInstance.QueryID);
 	CircleCenterZOffset.BindData(QueryOwner, QueryInstance.QueryID);
+	NumberOfPoints.BindData(QueryOwner, QueryInstance.QueryID);
 
 	float AngleDegree = ArcAngle.GetValue();
 	float RadiusValue = CircleRadius.GetValue();

@@ -1,12 +1,11 @@
-﻿INTSourceChangelist:3091977
-Availability:Docs
+﻿INTSourceChangelist:3126630
+Availability:Public
 Title:BuildGraph スクリプトの型
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/ScriptAnatomy
+Crumbs:
 Description:BuildGraph 属性の有効なデータ型について学習しましょう。
 version:4.13
 parent:Programming/Development/BuildGraph
 type:Reference
-related:Programming/Development/BuildGraph/ScriptAnatomy
 tags:BuildGraph
 
 [VAR:TopicCompact]
@@ -45,7 +44,7 @@ tags:BuildGraph
 | **Name**                | 固有表現。`^  <  >  :  "  /  \  |  ?  *  ;` を除く、印刷可能なすべての文字。シングル スペースを使用可能 (ただし名前の始まりと終わりは除く)。                                                                                                                                      |
 | **Name List**           | セミコロンで区切られる識別子のリスト                                                                                                                                                                                                                                            |
 | **Tag**                 | ファイルのリストに与えられるラベルであり、# character (すなわち `#My Files`) で始まります。                                                                                                                                                                                                      |
-| **Tag List**            | セミコロンで区切られるタグのリスト (すなわち `#My Files;#Other Files`).                                                                                                                                                                                                                 |
+| **Tag List**            | セミコロンで区切られるタグのリストです (すなわち `#My Files;#Other Files`)。                                                                                                                                                                                                                 |
 | **Target**              | ノード名、 aggregate 名、 agent 名、または tag 名。実行する必要があるノードのシーケンスを示します。これは、[UnrealBuildTool](Programming/UnrealBuildSystem) (これはビルドされている単一プログラムを参照します) に適用するため、`Target` の意味と重複することに注意してください。
 | **Target list**         | セミコロンで区切られるターゲット名のリストです。                                                                                                                                                                                                                                           |
 | **File Spec**           | セミコロンで区切られるファイルとタグの名前のリストです。ファイルを参照する場合、`"..."`、 `"*"`、および `"?"` などのワイルドカードの使用が認められます (すなわち、 `Engine/.../*.bat`)。特に指定がない限り、相対パスは作業ルート ディレクトリに対して相対的に変換されます。                        |

@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "WorldCompositionUtility.h"
-#include "GatherableTextData.h"
-#include "PropertyLocalizationDataGathering.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Misc/WorldCompositionUtility.h"
+#include "Templates/ScopedPointer.h"
+#include "Misc/OutputDeviceError.h"
+#include "Misc/ObjectThumbnail.h"
+#include "Serialization/CustomVersion.h"
+#include "UniquePtr.h"
+
+class Error;
 
 /**
  * Represents the result of saving a package
@@ -27,6 +36,9 @@ enum class ESavePackageResult
 	/** [When cooking] Package was saved, but we should generate a stub so that other converted packages can interface with it*/
 	GenerateStub
 };
+
+COREUOBJECT_API void StartSavingEDLCookInfoForVerification();
+COREUOBJECT_API void VerifyEDLCookInfo();
 
 /**
  * A package.
@@ -64,7 +76,11 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPackageSaved, const FString&, UObject*);					
 	/** delegate type for when a package is marked as dirty via UObjectBaseUtilty::MarkPackageDirty ( Params: UPackage* ModifiedPackage, bool bWasDirty ) */
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPackageMarkedDirty, class UPackage*, bool);
+	/** delegate type for when a package is about to be saved */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FPreSavePackage, class UPackage*);
 
+	/** Delegate to notify subscribers when a package is about to be saved. */
+	static FPreSavePackage PreSavePackageEvent;
 	/** Delegate to notify subscribers when a package has been saved. This is triggered when the package saving
 	 *  has completed and was successful. */
 	static FOnPackageSaved PackageSavedEvent;
@@ -89,7 +105,7 @@ private:
 #endif
 public:
 	/** Whether this package has been fully loaded (aka had all it's exports created) at some point.															*/
-	bool	bHasBeenFullyLoaded;
+	mutable bool	bHasBeenFullyLoaded;
 private:
 	/** Returns whether exports should be found in memory first before trying to load from disk from within CreateExport.										*/
 	bool	bShouldFindExportsInMemoryFirst;
@@ -144,13 +160,13 @@ public:
 	int64 FileSize;
 	
 	/** Editor only: Thumbnails stored in this package */
-	TScopedPointer< FThumbnailMap > ThumbnailMap;
+	TUniquePtr< FThumbnailMap > ThumbnailMap;
 
 	// MetaData for the editor, or NULL in the game
 	class UMetaData*	MetaData;
 	
 	// World browser information
-	TScopedPointer< FWorldTileInfo > WorldTileInfo;
+	TUniquePtr< FWorldTileInfo > WorldTileInfo;
 
 	TMap<FName, int32> ClassUniqueNameIndexMap;
 
@@ -243,7 +259,7 @@ public:
 	 *
 	 * @return true if fully loaded or no file associated on disk, false otherwise
 	 */
-	bool IsFullyLoaded();
+	bool IsFullyLoaded() const;
 
 	/**
 	 * Fully loads this package. Safe to call multiple times and won't clobber already loaded assets.

@@ -1,8 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AssetEditorSelectedItem.h"
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "UnrealWidget.h"
+#include "PaperEditorShared/AssetEditorSelectedItem.h"
+
+class FCanvas;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FViewport;
+class UPrimitiveComponent;
 
 //////////////////////////////////////////////////////////////////////////
 // FSpriteSelectedSocket

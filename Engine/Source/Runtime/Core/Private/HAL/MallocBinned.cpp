@@ -1,13 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocBinned.cpp: Binned memory allocator
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "HAL/MallocBinned.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/BufferedOutputDevice.h"
 
-#include "MallocBinned.h"
-#include "MemoryMisc.h"
+#include "HAL/MemoryMisc.h"
 
 /** Malloc binned allocator specific stats. */
 DEFINE_STAT(STAT_Binned_OsCurrent);
@@ -1059,6 +1060,14 @@ bool FMallocBinned::GetAllocationSize(void *Original, SIZE_T &SizeOut)
 
 	UPTRINT BasePtr;
 	FPoolInfo* Pool = Private::FindPoolInfo(*this, (UPTRINT)Original, BasePtr);
+
+#if PLATFORM_IOS || PLATFORM_MAC
+	if (Pool == NULL)
+	{
+		UE_LOG(LogMemory, Warning, TEXT("Attempting to access memory pool info for a pointer we didn't allocate!"));
+		return false;
+	}
+#endif
 
 	PTRINT OffsetFromBase = (PTRINT)Original - (PTRINT)BasePtr;
 	check(OffsetFromBase >= 0);

@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DecalRenderingShared.h
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Materials/Material.h"
+#include "RenderUtils.h"
 
 // Actual values are used in the shader so do not change
 enum EDecalRenderStage

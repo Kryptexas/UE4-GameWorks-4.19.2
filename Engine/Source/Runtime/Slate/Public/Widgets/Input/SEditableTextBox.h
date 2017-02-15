@@ -1,6 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Styling/SlateColor.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Layout/Margin.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Input/SEditableText.h"
+
+class IErrorReportingWidget;
+class SBox;
+class SHorizontalBox;
+enum class ETextFlowDirection : uint8;
+enum class ETextShapingMethod : uint8;
 
 /**
  * Editable text box widget
@@ -114,7 +132,7 @@ public:
 	 * @param	InArgs	The declaration data for this widget
 	 */
 	void Construct( const FArguments& InArgs );
-	
+
 	/**
 	 * Returns the text string
 	 *
@@ -281,9 +299,6 @@ protected:
 	/** Read-only foreground color (overrides style) */
 	TAttribute<FSlateColor> ReadOnlyForegroundColorOverride;
 
-	/** Read-only foreground color */
-	TAttribute<FSlateColor> ReadOnlyForegroundColor;
-
 	/** Allows for inserting additional widgets that extend the functionality of the text box */
 	TSharedPtr<SHorizontalBox> Box;
 
@@ -291,6 +306,12 @@ protected:
 	TSharedPtr<class IErrorReportingWidget> ErrorReporting;
 
 private:
+
+	FMargin FORCEINLINE DeterminePadding() const { check(Style);  return PaddingOverride.IsSet() ? PaddingOverride.Get() : Style->Padding; }
+	FSlateFontInfo FORCEINLINE DetermineFont() const { check(Style);  return FontOverride.IsSet() ? FontOverride.Get() : Style->Font;  }
+	FSlateColor FORCEINLINE DetermineBackgroundColor() const { check(Style);  return BackgroundColorOverride.IsSet() ? BackgroundColorOverride.Get() : Style->BackgroundColor; }
+	
+	FSlateColor DetermineForegroundColor() const;
 
 	/** Styling: border image to draw when not hovered or focused */
 	const FSlateBrush* BorderImageNormal;

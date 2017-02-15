@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "StandaloneRendererPrivate.h"
 #include "OpenGL/SlateOpenGLRenderer.h"
 
 #include "SlateOpenGLMac.h"
 
+#include "MacApplication.h"
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
 #include "CocoaTextView.h"
@@ -113,11 +114,12 @@ void UnlockGLContext(NSOpenGLContext* Context)
 {
 	if (Framebuffer && [(FCocoaWindow*)[self window] isRenderInitialized] && ViewportRect.IsValid())
 	{
+		const float DPIScaleFactor = (MacApplication && MacApplication->IsHighDPIModeEnabled()) ? self.window.backingScaleFactor : 1.0f;
 		int32 CurrentReadFramebuffer = 0;
 		glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &CurrentReadFramebuffer);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, Framebuffer);
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
-		glBlitFramebuffer(0, 0, ViewportRect.Right, ViewportRect.Bottom, 0, 0, self.frame.size.width * self.window.backingScaleFactor, self.frame.size.height * self.window.backingScaleFactor, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBlitFramebuffer(0, 0, ViewportRect.Right, ViewportRect.Bottom, 0, 0, self.frame.size.width * DPIScaleFactor, self.frame.size.height * DPIScaleFactor, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		CHECK_GL_ERRORS;
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, CurrentReadFramebuffer);
 	}
@@ -185,7 +187,10 @@ void FSlateOpenGLContext::Initialize(void* InWindow, const FSlateOpenGLContext* 
 		const NSRect ViewRect = NSMakeRect(0, 0, Window.frame.size.width, Window.frame.size.height);
 		View = [[FSlateCocoaView alloc] initWithFrame:ViewRect context:Context pixelFormat:PixelFormat];
 		[View setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-		[View setWantsBestResolutionOpenGLSurface:YES];
+		if (MacApplication && MacApplication->IsHighDPIModeEnabled())
+		{
+			[View setWantsBestResolutionOpenGLSurface:YES];
+		}
 
 		if (FPlatformMisc::IsRunningOnMavericks() && ([Window styleMask] & NSTexturedBackgroundWindowMask))
 		{

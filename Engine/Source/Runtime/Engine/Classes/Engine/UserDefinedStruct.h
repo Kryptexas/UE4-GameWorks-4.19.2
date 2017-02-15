@@ -1,7 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
 #include "UserDefinedStruct.generated.h"
 
 UENUM()
@@ -62,9 +67,13 @@ public:
 	virtual FString PropertyNameToDisplayName(FName InName) const override;
 
 	// UScriptStruct interface.
+	virtual uint32 GetStructTypeHash(const void* Src) const override;
 	virtual void RecursivelyPreload() override;
 	virtual FGuid GetCustomGuid() const override;
+	virtual FString GetStructCPPName() const override;
 	// End of  UScriptStruct interface.
+
+	static uint32 GetUserDefinedStructTypeHash(const void* Src, const UScriptStruct* Type);
 
 #if WITH_EDITOR
 public:

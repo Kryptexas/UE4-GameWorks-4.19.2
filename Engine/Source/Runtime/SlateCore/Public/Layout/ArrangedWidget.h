@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Geometry.h"
+#include "CoreMinimal.h"
+#include "Layout/Geometry.h"
+#include "Input/Events.h"
 
-struct FVirtualPointerPosition;
+class SWidget;
 
 /**
  * A pair: Widget and its Geometry. Widgets populate an list of WidgetGeometries

@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "StructureEditorUtils.h"
+#include "UserDefinedStructure/UserDefinedStructEditorData.h"
+#include "Misc/ITransaction.h"
+#include "UObject/UnrealType.h"
 #include "Engine/UserDefinedStruct.h"
-#include "BlueprintEditorUtils.h"
+#include "Kismet2/StructureEditorUtils.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Blueprint/BlueprintSupport.h"
 
 #define LOCTEXT_NAMESPACE "UserDefinedStructEditorData"
 
@@ -12,14 +15,17 @@ bool FStructVariableDescription::SetPinType(const FEdGraphPinType& VarType)
 	Category = VarType.PinCategory;
 	SubCategory = VarType.PinSubCategory;
 	SubCategoryObject = VarType.PinSubCategoryObject.Get();
+	PinValueType = VarType.PinValueType;
 	bIsArray = VarType.bIsArray;
+	bIsSet = VarType.bIsSet;
+	bIsMap = VarType.bIsMap;
 
 	return !VarType.bIsReference && !VarType.bIsWeakPointer;
 }
 
 FEdGraphPinType FStructVariableDescription::ToPinType() const
 {
-	return FEdGraphPinType(Category, SubCategory, SubCategoryObject.Get(), bIsArray, false);
+	return FEdGraphPinType(Category, SubCategory, SubCategoryObject.Get(), bIsArray, false, bIsSet, bIsMap, PinValueType);
 }
 
 UUserDefinedStructEditorData::UUserDefinedStructEditorData(const FObjectInitializer& ObjectInitializer)
@@ -114,6 +120,11 @@ void UUserDefinedStructEditorData::RecreateDefaultInstance(FString* OutLog)
 	ensure(DefaultStructInstance.IsValid() && DefaultStructInstance.GetStruct() == ScriptStruct);
 	if (DefaultStructInstance.IsValid() && StructData && ScriptStruct)
 	{
+		// When loading, the property's default value may end up being filled with a placeholder. 
+		// This tracker object allows the linker to track the actual object that is being filled in 
+		// so it can calculate an offset to the property and write in the placeholder value:
+		FScopedPlaceholderRawContainerTracker TrackDefaultObject(StructData);
+
 		DefaultStructInstance.SetPackage(ScriptStruct->GetOutermost());
 
 		for (TFieldIterator<UProperty> It(ScriptStruct); It; ++It)

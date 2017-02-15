@@ -1,29 +1,46 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimationEditorPrivatePCH.h"
-#include "IAnimationEditorModule.h"
 #include "AnimationEditor.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EditorStyleSet.h"
+#include "EditorReimportHandler.h"
+#include "Animation/SmartName.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "AssetData.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "Animation/AnimSequence.h"
+#include "Animation/AnimMontage.h"
+#include "Editor/EditorEngine.h"
+#include "Factories/AnimSequenceFactory.h"
+#include "Factories/PoseAssetFactory.h"
+#include "EngineGlobals.h"
+#include "Editor.h"
+#include "IAnimationEditorModule.h"
 #include "IPersonaToolkit.h"
 #include "PersonaModule.h"
 #include "AnimationEditorMode.h"
 #include "IPersonaPreviewScene.h"
 #include "AnimationEditorCommands.h"
-#include "IEditableSkeleton.h"
 #include "IDetailsView.h"
 #include "ISkeletonTree.h"
 #include "ISkeletonEditorModule.h"
 #include "IDocumentation.h"
-#include "SDockTab.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "Animation/PoseAsset.h"
 #include "AnimPreviewInstance.h"
 #include "ScopedTransaction.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
 #include "AnimationEditorUtils.h"
 #include "AssetRegistryModule.h"
 #include "IAssetFamily.h"
-#include "AssetEditorModeManager.h"
 #include "IAnimationSequenceBrowser.h"
-#include "Animation/PoseAsset.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "PersonaCommonCommands.h"
 
 const FName AnimationEditorAppIdentifier = FName(TEXT("AnimationEditorApp"));
@@ -164,6 +181,10 @@ void FAnimationEditor::BindCommands()
 		FExecuteAction::CreateSP(this, &FAnimationEditor::OnSetKey),
 		FCanExecuteAction::CreateSP(this, &FAnimationEditor::CanSetKey));
 
+	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().ReimportAnimation,
+		FExecuteAction::CreateSP(this, &FAnimationEditor::OnReimportAnimation),
+		FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence));
+
 	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().ApplyAnimation,
 		FExecuteAction::CreateSP(this, &FAnimationEditor::OnApplyRawAnimChanges),
 		FCanExecuteAction::CreateSP(this, &FAnimationEditor::CanApplyRawAnimChanges));
@@ -224,7 +245,9 @@ void FAnimationEditor::ExtendToolbar()
 						);
 				}
 
+				ToolbarBuilder.AddToolBarButton(FAnimationEditorCommands::Get().ReimportAnimation);
 				ToolbarBuilder.AddToolBarButton(FAnimationEditorCommands::Get().ApplyCompression, NAME_None, LOCTEXT("Toolbar_ApplyCompression", "Compression"));
+				ToolbarBuilder.AddToolBarButton(FAnimationEditorCommands::Get().ExportToFBX);
 			}
 			ToolbarBuilder.EndSection();
 
@@ -327,11 +350,10 @@ TSharedPtr<SDockTab> FAnimationEditor::OpenNewAnimationDocumentTab(UAnimationAss
 	{
 		FString	DocumentLink;
 
-		FAnimDocumentArgs Args(PersonaToolkit->GetPreviewScene(), GetPersonaToolkit(), GetSkeletonTree()->GetEditableSkeleton(), OnPostUndo, OnCurvesChanged, OnChangeAnimNotifies, OnSectionsChanged);
+		FAnimDocumentArgs Args(PersonaToolkit->GetPreviewScene(), GetPersonaToolkit(), GetSkeletonTree()->GetEditableSkeleton(), OnPostUndo, OnChangeAnimNotifies, OnSectionsChanged);
 		Args.OnDespatchObjectsSelected = FOnObjectsSelected::CreateSP(this, &FAnimationEditor::HandleObjectsSelected);
 		Args.OnDespatchAnimNotifiesChanged = FSimpleDelegate::CreateSP(this, &FAnimationEditor::HandleAnimNotifiesChanged);
 		Args.OnDespatchInvokeTab = FOnInvokeTab::CreateSP(this, &FAssetEditorToolkit::InvokeTab);
-		Args.OnDespatchCurvesChanged = FSimpleDelegate::CreateSP(this, &FAnimationEditor::HandleCurvesChanged);
 		Args.OnDespatchSectionsChanged = FSimpleDelegate::CreateSP(this, &FAnimationEditor::HandleSectionsChanged);
 
 		FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
@@ -404,11 +426,6 @@ void FAnimationEditor::HandleAnimNotifiesChanged()
 	OnChangeAnimNotifies.Broadcast();
 }
 
-void FAnimationEditor::HandleCurvesChanged()
-{
-	OnCurvesChanged.Broadcast();
-}
-
 void FAnimationEditor::HandleSectionsChanged()
 {
 	OnSectionsChanged.Broadcast();
@@ -425,11 +442,6 @@ void FAnimationEditor::HandleOpenNewAsset(UObject* InNewAsset)
 UObject* FAnimationEditor::HandleGetAsset()
 {
 	return GetEditingObject();
-}
-
-void FAnimationEditor::HandleSetKeyCompleted()
-{
-	OnCurvesChanged.Broadcast();
 }
 
 bool FAnimationEditor::HasValidAnimationSequence() const
@@ -449,7 +461,7 @@ void FAnimationEditor::OnSetKey()
 	if (AnimationAsset)
 	{
 		UDebugSkelMeshComponent* Component = PersonaToolkit->GetPreviewMeshComponent();
-		Component->PreviewInstance->SetKey(FSimpleDelegate::CreateSP(this, &FAnimationEditor::HandleSetKeyCompleted));
+		Component->PreviewInstance->SetKey();
 	}
 }
 
@@ -481,6 +493,15 @@ void FAnimationEditor::OnApplyRawAnimChanges()
 				AnimSequence->RequestSyncAnimRecompression(false);
 			}
 		}
+	}
+}
+
+void FAnimationEditor::OnReimportAnimation()
+{
+	UAnimSequence* AnimSequence = Cast<UAnimSequence>(AnimationAsset);
+	if (AnimSequence)
+	{
+		FReimportManager::Instance()->Reimport(AnimSequence, true);
 	}
 }
 
@@ -851,7 +872,7 @@ void FAnimationEditor::ConditionalRefreshEditor(UObject* InObject)
 	if (bInterestingAsset)
 	{
 		GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
-		OpenNewAnimationDocumentTab(CastChecked<UAnimationAsset>(InObject));
+		OpenNewAnimationDocumentTab(Cast<UAnimationAsset>(InObject));
 	}
 }
 

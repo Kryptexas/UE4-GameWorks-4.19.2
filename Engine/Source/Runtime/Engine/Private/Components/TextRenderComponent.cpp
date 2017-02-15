@@ -1,11 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Components/TextRenderComponent.h"
-#include "DynamicMeshBuilder.h"
-#include "Engine/Font.h"
-#include "Engine/TextRenderActor.h"
+#include "UObject/ConstructorHelpers.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "VertexFactory.h"
 #include "LocalVertexFactory.h"
+#include "UObject/GCObject.h"
+#include "PrimitiveViewRelevance.h"
+#include "Materials/MaterialInterface.h"
+#include "PrimitiveSceneProxy.h"
+#include "Engine/Font.h"
+#include "Materials/Material.h"
+#include "Components/BillboardComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "Containers/Ticker.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "MeshBatch.h"
+#include "Engine/Texture2D.h"
+#include "SceneManagement.h"
+#include "DynamicMeshBuilder.h"
+#include "Engine/TextRenderActor.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 #define LOCTEXT_NAMESPACE "TextRenderComponent"
 
@@ -364,7 +381,10 @@ public:
 			bIsCustomMID = false;
 
 			const int32 NumFontPages = InFont->Textures.Num();
-			if (NumFontPages > 0)
+
+			// Checking GIsRequestingExit as a workaround for lighting rebuild command let crash.
+			// Happening because GIsRequestingExit is true preventing the FTextRenderComponentMIDCache from registering into the GGCObjectReferencer
+			if (!GIsRequestingExit && NumFontPages > 0)
 			{
 				TArray<FGuid> FontParameterIds;
 				InMaterial->GetMaterial()->GetAllFontParameterNames(FontParameters, FontParameterIds);
@@ -407,6 +427,7 @@ public:
 			// We can only test for stale MIDs when we created the MIDs ourselves
 			if (GIsEditor && !bIsCustomMID)
 			{
+				// We only test against the number of font pages when we created the MIDs
 				bIsStale = MIDs.Num() != InFont->Textures.Num();
 
 				if (!bIsStale)
@@ -425,6 +446,7 @@ public:
 
 			return bIsStale;
 		}
+
 
 		TArray<UMaterialInstanceDynamic*> MIDs;
 		TArray<FName> FontParameters;
@@ -693,6 +715,9 @@ FTextRenderSceneProxy::FTextRenderSceneProxy( UTextRenderComponent* Component) :
 	{
 		FontMIDs = FTextRenderComponentMIDCache::Get().GetMIDData(TextMaterial, Font);
 	}
+
+	// The MID from the cache isn't known by the UTextRenderComponent
+	bVerifyUsedMaterials = false;
 }
 
 FTextRenderSceneProxy::~FTextRenderSceneProxy()
@@ -1098,7 +1123,7 @@ FPrimitiveSceneProxy* UTextRenderComponent::CreateSceneProxy()
 	return new FTextRenderSceneProxy(this);
 }
 
-void UTextRenderComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const
+void UTextRenderComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials ) const
 {
 	OutMaterials.Add(TextMaterial);
 }

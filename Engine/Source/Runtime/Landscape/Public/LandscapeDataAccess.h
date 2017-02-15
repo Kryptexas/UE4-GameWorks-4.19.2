@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 LandscapeDataAccess.h: Classes for the editor to access to Landscape data
@@ -6,6 +6,7 @@ LandscapeDataAccess.h: Classes for the editor to access to Landscape data
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Engine/Texture2D.h"
 
 #define LANDSCAPE_VALIDATE_DATA_ACCESS 1
@@ -14,6 +15,9 @@ LandscapeDataAccess.h: Classes for the editor to access to Landscape data
 
 #define LANDSCAPE_XYOFFSET_SCALE	(1.0f/256.f)
 #define LANDSCAPE_INV_XYOFFSET_SCALE	256.f
+
+class ULandscapeComponent;
+class ULandscapeLayerInfoObject;
 
 namespace LandscapeDataAccess
 {
@@ -104,7 +108,7 @@ private:
 };
 
 //@todo.VC10: Apparent VC10 compiler bug here causes an access violation in UnlockMip in Shipping builds
-#if _MSC_VER
+#ifdef _MSC_VER
 PRAGMA_ENABLE_OPTIMIZATION
 #endif
 

@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorUndoClient.h: Declares the FEditorUndoClient interface.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
 
 /**
  * Interface for tools wanting to handle undo/redo operations

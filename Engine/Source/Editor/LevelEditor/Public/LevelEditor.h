@@ -1,14 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __LevelEditor_h__
 #define __LevelEditor_h__
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "Modules/ModuleInterface.h"
+#include "Framework/Docking/TabManager.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "Framework/Docking/LayoutService.h"
 #include "ILevelEditor.h"
-#include "ModuleInterface.h"
-#include "SEditorViewport.h"
-#include "Toolkits/AssetEditorToolkit.h" // For FExtensibilityManager
+#include "Toolkits/AssetEditorToolkit.h"
 #include "ViewportTypeDefinition.h"
+
+class AActor;
+class ILevelViewport;
+class IViewportLayoutEntity;
+class SLevelEditor;
+class UAnimSequence;
+class USkeletalMeshComponent;
+struct FViewportConstructionArgs;
+enum class EMapChangeType : uint8;
 
 extern const FName LevelEditorApp;
 
@@ -208,6 +222,7 @@ public:
 	virtual TArray<FLevelViewportMenuExtender_SelectedObjects>& GetAllLevelViewportDragDropContextMenuExtenders() {return LevelViewportDragDropContextMenuExtenders;}
 	virtual TArray<FLevelViewportMenuExtender_SelectedActors>& GetAllLevelViewportContextMenuExtenders() {return LevelViewportContextMenuExtenders;}
 	virtual TArray<FLevelEditorMenuExtender>& GetAllLevelViewportOptionsMenuExtenders() {return LevelViewportOptionsMenuExtenders;}
+	virtual TArray<FLevelEditorMenuExtender>& GetAllLevelViewportShowMenuExtenders() { return LevelViewportShowMenuExtenders; }
 	virtual TArray<FLevelEditorMenuExtender>& GetAllLevelEditorToolbarViewMenuExtenders() {return LevelEditorToolbarViewMenuExtenders;}
 	virtual TArray<FLevelEditorMenuExtender>& GetAllLevelEditorToolbarBuildMenuExtenders() {return LevelEditorToolbarBuildMenuExtenders;}
 	virtual TArray<FLevelEditorMenuExtender>& GetAllLevelEditorToolbarCompileMenuExtenders() {return LevelEditorToolbarCompileMenuExtenders;}
@@ -221,6 +236,12 @@ public:
 	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() override {return ToolBarExtensibilityManager;}
 	virtual TSharedPtr<FExtensibilityManager> GetModeBarExtensibilityManager() {return ModeBarExtensibilityManager;}
 	virtual TSharedPtr<FExtensibilityManager> GetNotificationBarExtensibilityManager() {return NotificationBarExtensibilityManager;}
+
+	DECLARE_EVENT_OneParam(ILevelEditor, FOnRegisterTabs, TSharedPtr<FTabManager>);
+	FOnRegisterTabs& OnRegisterTabs() { return RegisterTabs; }
+
+	DECLARE_EVENT_OneParam(ILevelEditor, FOnRegisterLayoutExtensions, FLayoutExtender&);
+	FOnRegisterLayoutExtensions& OnRegisterLayoutExtensions() { return RegisterLayoutExtensions; }
 
 	/** Called when a new map is loaded */
 	DECLARE_EVENT( FLevelEditorModule, FNotificationBarChanged );
@@ -346,6 +367,7 @@ private:
 	TArray<FLevelViewportMenuExtender_SelectedObjects> LevelViewportDragDropContextMenuExtenders;
 	TArray<FLevelViewportMenuExtender_SelectedActors> LevelViewportContextMenuExtenders;
 	TArray<FLevelEditorMenuExtender> LevelViewportOptionsMenuExtenders;
+	TArray<FLevelEditorMenuExtender> LevelViewportShowMenuExtenders;
 	TArray<FLevelEditorMenuExtender> LevelEditorToolbarViewMenuExtenders;
 	TArray<FLevelEditorMenuExtender> LevelEditorToolbarBuildMenuExtenders;
 	TArray<FLevelEditorMenuExtender> LevelEditorToolbarCompileMenuExtenders;
@@ -365,6 +387,12 @@ private:
 
 	/** Map of named viewport types to factory functions */
 	TMap<FName, FViewportTypeDefinition> CustomViewports;
+
+	/** Register layout extensions event */
+	FOnRegisterLayoutExtensions RegisterLayoutExtensions;
+
+	/** Register external tabs event */
+	FOnRegisterTabs RegisterTabs;
 
 	/** Array of delegates that are used to check if the specified objects should be editable on the details panel */
 	TArray<FAreObjectsEditable> AreObjectsEditableDelegates;

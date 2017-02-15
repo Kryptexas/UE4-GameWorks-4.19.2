@@ -1,12 +1,28 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightGridInjection.cpp
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
+#include "UniformBuffer.h"
+#include "ShaderParameters.h"
+#include "RendererInterface.h"
+#include "EngineDefines.h"
+#include "PrimitiveSceneProxy.h"
+#include "Shader.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "LightSceneInfo.h"
+#include "GlobalShader.h"
+#include "SceneRendering.h"
+#include "DeferredShadingRenderer.h"
+#include "BasePassRendering.h"
+#include "RendererModule.h"
+#include "ScenePrivate.h"
 
 int32 GLightGridPixelSize = 64;
 FAutoConsoleVariableRef CVarLightGridPixelSize(
@@ -367,24 +383,23 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 						}
 
 						int32 ShadowMapChannel = LightSceneInfo->Proxy->GetShadowMapChannel();
-						int32 PreviewShadowMapChannel = LightSceneInfo->Proxy->GetPreviewShadowMapChannel();
+						int32 DynamicShadowMapChannel = LightSceneInfo->GetDynamicShadowMapChannel();
 
 						if (!bAllowStaticLighting)
 						{
 							ShadowMapChannel = INDEX_NONE;
-							PreviewShadowMapChannel = INDEX_NONE;
 						}
 
-						// Static shadowing uses ShadowMapChannel, dynamic shadows are packed into light attenuation using PreviewShadowMapChannel
+						// Static shadowing uses ShadowMapChannel, dynamic shadows are packed into light attenuation using DynamicShadowMapChannel
 						uint32 ShadowMapChannelMaskPacked =
 							(ShadowMapChannel == 0 ? 1 : 0) |
 							(ShadowMapChannel == 1 ? 2 : 0) |
 							(ShadowMapChannel == 2 ? 4 : 0) |
 							(ShadowMapChannel == 3 ? 8 : 0) |
-							(PreviewShadowMapChannel == 0 ? 16 : 0) |
-							(PreviewShadowMapChannel == 1 ? 32 : 0) |
-							(PreviewShadowMapChannel == 2 ? 64 : 0) |
-							(PreviewShadowMapChannel == 3 ? 128 : 0);
+							(DynamicShadowMapChannel == 0 ? 16 : 0) |
+							(DynamicShadowMapChannel == 1 ? 32 : 0) |
+							(DynamicShadowMapChannel == 2 ? 64 : 0) |
+							(DynamicShadowMapChannel == 3 ? 128 : 0);
 
 						ShadowMapChannelMaskPacked |= LightSceneInfo->Proxy->GetLightingChannelMask() << 8;
 
@@ -613,8 +628,13 @@ void FDeferredShadingSceneRenderer::RenderForwardShadingShadowProjections(FRHICo
 			{
 				FSceneRenderer::RenderShadowProjections(RHICmdList, LightSceneInfo, true, false);
 			}
-		
+
 			RenderCapsuleDirectShadows(*LightSceneInfo, RHICmdList, VisibleLightInfo.CapsuleShadowsToProject, true);
+
+			if (LightSceneInfo->GetDynamicShadowMapChannel() >= 0 && LightSceneInfo->GetDynamicShadowMapChannel() < 4)
+			{
+				RenderLightFunction(RHICmdList, LightSceneInfo, true, true);
+			}
 		}
 
 		SceneRenderTargets.FinishRenderingLightAttenuation(RHICmdList);

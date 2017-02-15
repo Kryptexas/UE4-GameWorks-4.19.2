@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	XAudio2Support.h: XAudio2 specific structures.
@@ -23,17 +23,19 @@
 /*------------------------------------------------------------------------------------
 	XAudio2 system headers
 ------------------------------------------------------------------------------------*/
-#include "Engine.h"
-#include "SoundDefinitions.h"
 #include "AudioDecompress.h"
 #include "AudioEffect.h"
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
+#include "AllowWindowsPlatformAtomics.h"
 	#include <xaudio2.h>
 	#include <X3Daudio.h>
+#include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
+#include "AllowWindowsPlatformAtomics.h"
 #include <mmdeviceapi.h>
 #include <functiondiscoverykeys_devpkey.h>
 
@@ -139,6 +141,7 @@ private:
 	bool bComInitialized;
 };
 
+#include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 #endif 
 
@@ -618,12 +621,6 @@ protected:
 
 	/** Which sound buffer should be written to next - used for triple buffering. */
 	int32 CurrentBuffer;
-
-	/** The duration of the sound to use when playing virtualized. */
-	float VirtualDuration;
-
-	/** The virtual current playback time. Used to trigger notifications when finished. */
-	float VirtualPlaybackTime;
 
 	/** Set to true when the loop end callback is hit */
 	FThreadSafeBool bLoopCallback;

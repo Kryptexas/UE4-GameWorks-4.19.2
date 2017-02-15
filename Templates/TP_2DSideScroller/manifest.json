@@ -54,8 +54,8 @@
 		{
 			"Language": "ko",
 			"Text": "횡,스크롤,플랫폼,2D,페이퍼"
-		},
-	],	
+		}
+	],
 	"ClassTypes": "PaperCharacter, GameMode, CameraComponent, SpringArmComponent, PaperFlipbook",
 	"Category": "CodeFeature",
 	"FocusAsset": "/Game/2DSideScrollerCPP/2DSideScrollerOverview.2DSideScrollerOverview",
@@ -71,7 +71,7 @@
 			"MountName": "2DSideScroller",
 			"DetailLevels":
 			[
-				"Standard",
+				"Standard"
 			]
 		},
 		{
@@ -79,7 +79,7 @@
 			"DetailLevels":
 			[
 				"Standard",
-				"High",
+				"High"
 			]
 		}
 	]

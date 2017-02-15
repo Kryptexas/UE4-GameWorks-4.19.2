@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections;
@@ -237,7 +237,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
         /// Retrieve all Buggs matching the search criteria.
 	    /// </summary>
 	    /// <returns></returns>
-        private ReportsViewModel GetResults(string branchName, DateTime startDate, DateTime endDate, int BuggIDToBeAddedToJira)
+        private ReportsViewModel GetResults(string branchName, DateTime startDate, DateTime endDate, int BuggIDToBeAddedToJira, bool sigbool)
 	    {
 	        // It would be great to have a CSV export of this as well with buggs ID being the key I can then use to join them :)
 	        // 
@@ -247,37 +247,31 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	        var JiraComponents = JC.GetNameToComponents();
 	        var JiraVersions = JC.GetNameToVersions();
 
-	        using (FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer(this.GetType().ToString()))
+	        using (var logTimer = new FAutoScopedLogTimer(this.GetType().ToString()))
 	        {
-	            string AnonumousGroup = "Anonymous";
-	            //List<String> Users = FRepository.Get().GetUserNamesFromGroupName( AnonumousGroup );
-	            int AnonymousGroupID = _unitOfWork.UserGroupRepository.First(data => data.Name == "Anonymous").Id;
-	            List<int> AnonumousIDs =
-                    _unitOfWork.UserGroupRepository.First(data => data.Name == "Anonymous").Users.Select(data => data.Id).ToList();
-	            int AnonymousID = AnonumousIDs.First();
+	            const string anonymousGroup = "Anonymous";
+                var anonymousGroupId = _unitOfWork.UserGroupRepository.First(data => data.Name == anonymousGroup).Id;
+	            var anonymousIDs =
+                    _unitOfWork.UserGroupRepository.First(data => data.Id == anonymousGroupId).Users.Select(data => data.Id).ToList();
+	            var anonymousId = anonymousIDs.First();
 
-	            var CrashesQuery = _unitOfWork.CrashRepository.ListAll().Where(data => data.TimeOfCrash > startDate && data.TimeOfCrash <= endDate)
+	            var crashesQuery = _unitOfWork.CrashRepository.ListAll().Where(data => data.TimeOfCrash > startDate && data.TimeOfCrash <= endDate)
 	                // Only crashes and asserts
-	                .Where(Crash => Crash.CrashType == 1 || Crash.CrashType == 2)
+	                .Where(crash => crash.CrashType == 1 || crash.CrashType == 2)
 	                // Only anonymous user
-	                .Where(Crash => Crash.UserNameId.Value == AnonymousID);
+	                .Where(crash => crash.UserNameId.Value == anonymousId);
 
 	            // Filter by BranchName
 	            if (!string.IsNullOrEmpty(branchName))
 	            {
-	                CrashesQuery =
-	                    (
-	                        from CrashDetail in CrashesQuery
-	                        where CrashDetail.Branch.Equals(branchName)
-	                        select CrashDetail
-	                        );
+	                crashesQuery = crashesQuery.Where(data => data.Branch == branchName);
 	            }
 
-	            var crashes = CrashesQuery.Select(data => new
+	            var crashes = crashesQuery.Select(data => new
 	            {
                     ID = data.Id,
                     TimeOfCrash = data.TimeOfCrash.Value,
-	                //UserID = Crash.UserNameId.Value, 
+	                UserID = data.UserNameId,
                     BuildVersion = data.BuildVersion,
                     JIRA = data.Jira,
                     Platform = data.PlatformName,
@@ -289,120 +283,90 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                     Description = data.Description,
                     RawCallStack = data.RawCallStack,
 	            }).ToList();
-                var numCrashes = CrashesQuery.Count();
-
-	            /*
-                // Build patterns for crashes where patters is null.
-                var CrashesWithoutPattern = FRepository.Get().Crashes
-                    .FilterByDate( FRepository.Get().Crashes.ListAll(), startDate, endDate.AddDays( 1 ) )
-                    // Only crashes and asserts
-                    .Where( Crash => Crash.Pattern == null || Crash.Pattern == "" )
-                    .Select( Crash => Crash )
-                    .ToList();
-
-                foreach( var Crash in CrashesWithoutPattern )
-                {
-                    Crash.BuildPattern();
-                }
-                */
+                var numCrashes = crashesQuery.Count();
 
 	            // Total # of ALL (Anonymous) crashes in timeframe
-	            int TotalAnonymousCrashes = numCrashes;
+	            var totalAnonymousCrashes = numCrashes;
 
 	            // Total # of UNIQUE (Anonymous) crashes in timeframe
-	            HashSet<string> UniquePatterns = new HashSet<string>();
-	            HashSet<string> UniqueMachines = new HashSet<string>();
-	            Dictionary<string, int> PatternToCount = new Dictionary<string, int>();
-
-	            //List<int> CrashesWithoutPattern = new List<int>();
-	            //List<DateTime> CrashesWithoutPatternDT = new List<DateTime>();
-
-	            foreach (var Crash in crashes)
+                var uniquePatterns = new HashSet<string>();
+                var uniqueMachines = new HashSet<string>();
+	            var patternToCount = new Dictionary<string, int>();
+                
+	            foreach (var crash in crashes)
 	            {
-	                if (string.IsNullOrEmpty(Crash.Pattern))
-	                {
-	                    //CrashesWithoutPattern.Add( Crash.ID );
-	                    //CrashesWithoutPatternDT.Add( Crash.TimeOfCrash );
-	                    continue;
-	                }
+	                uniquePatterns.Add(crash.Pattern);
+	                uniqueMachines.Add(crash.MachineID);
 
-	                UniquePatterns.Add(Crash.Pattern);
-	                UniqueMachines.Add(Crash.MachineID);
-
-	                bool bAdd = !PatternToCount.ContainsKey(Crash.Pattern);
+	                var bAdd = !patternToCount.ContainsKey(crash.Pattern);
 	                if (bAdd)
 	                {
-	                    PatternToCount.Add(Crash.Pattern, 1);
+	                    patternToCount.Add(crash.Pattern, 1);
 	                }
 	                else
 	                {
-	                    PatternToCount[Crash.Pattern]++;
+	                    patternToCount[crash.Pattern]++;
 	                }
 	            }
-	            var PatternToCountOrdered = PatternToCount.OrderByDescending(X => X.Value).ToList();
+	            var PatternToCountOrdered = patternToCount.OrderByDescending(X => X.Value).ToList();
 	            const int NumTopRecords = 200;
-	            var PatternAndCount = PatternToCountOrdered.Take(NumTopRecords).ToDictionary(X => X.Key, Y => Y.Value);
+	            var PatternAndCount = PatternToCountOrdered.Take(NumTopRecords).ToDictionary(x => x.Key, y => y.Value);
 
-	            int TotalUniqueAnonymousCrashes = UniquePatterns.Count;
+	            int TotalUniqueAnonymousCrashes = uniquePatterns.Count;
 
 	            // Total # of AFFECTED USERS (Anonymous) in timeframe
-	            int TotalAffectedUsers = UniqueMachines.Count;
+	            int TotalAffectedUsers = uniqueMachines.Count;
 
 	            var RealBuggs = _unitOfWork.BuggRepository.ListAll().Where(Bugg => PatternAndCount.Keys.Contains(Bugg.Pattern));
 
 	            // Build search string.
-	            HashSet<string> FoundJiras = new HashSet<string>();
-	            Dictionary<string, List<Bugg>> JiraIDtoBugg = new Dictionary<string, List<Bugg>>();
+	            var foundJiras = new HashSet<string>();
+	            var jiraIDtoBugg = new Dictionary<string, List<Bugg>>();
 
-	            List<Bugg> Buggs = new List<Bugg>(NumTopRecords);
+	            var buggs = new List<Bugg>(NumTopRecords);
 	            foreach (var Top in PatternAndCount)
 	            {
-	                Bugg NewBugg = RealBuggs.FirstOrDefault(X => X.Pattern == Top.Key);
-	                if (NewBugg != null)
+	                var newBugg = RealBuggs.FirstOrDefault(X => X.Pattern == Top.Key);
+	                if (newBugg != null)
 	                {
-	                    using (
-	                        FAutoScopedLogTimer TopTimer =
-	                            new FAutoScopedLogTimer(string.Format("{0}:{1}", Buggs.Count + 1, NewBugg.Id)))
+                        var crashesForBugg = crashes.Where(Crash => Crash.Pattern == Top.Key).ToList();
+
+	                    // Convert anonymous to full type;
+	                    var fullCrashesForBugg = new List<Crash>(crashesForBugg.Count);
+	                    foreach (var anon in crashesForBugg)
 	                    {
-	                        var CrashesForBugg = crashes.Where(Crash => Crash.Pattern == Top.Key).ToList();
-
-	                        // Convert anonymous to full type;
-	                        var FullCrashesForBugg = new List<Crash>(CrashesForBugg.Count);
-	                        foreach (var Anon in CrashesForBugg)
+	                        fullCrashesForBugg.Add(new Crash()
 	                        {
-	                            FullCrashesForBugg.Add(new Crash()
-	                            {
-	                                Id = Anon.ID,
-	                                TimeOfCrash = Anon.TimeOfCrash,
-	                                BuildVersion = Anon.BuildVersion,
-	                                Jira = Anon.JIRA,
-	                                PlatformName = Anon.Platform,
-	                                FixedChangeList = Anon.FixCL,
-	                                ChangeListVersion = Anon.BuiltFromCL,
-	                                Pattern = Anon.Pattern,
-	                                ComputerName = Anon.MachineID,
-	                                Branch = Anon.Branch,
-	                                Description = Anon.Description,
-	                                RawCallStack = Anon.RawCallStack,
-	                            });
-	                        }
-
-	                        NewBugg.PrepareBuggForJira(FullCrashesForBugg);
-
-	                        // Verify valid JiraID, this may be still a TTP 
-	                        if (!string.IsNullOrEmpty(NewBugg.TTPID))
-	                        {
-	                            int TTPID = 0;
-	                            int.TryParse(NewBugg.TTPID, out TTPID);
-
-	                            if (TTPID == 0)
-	                            {
-	                                AddBuggJiraMapping(NewBugg, ref FoundJiras, ref JiraIDtoBugg);
-	                            }
-	                        }
-
-	                        Buggs.Add(NewBugg);
+	                            Id = anon.ID,
+	                            TimeOfCrash = anon.TimeOfCrash,
+	                            BuildVersion = anon.BuildVersion,
+	                            Jira = anon.JIRA,
+	                            PlatformName = anon.Platform,
+	                            FixedChangeList = anon.FixCL,
+	                            ChangeListVersion = anon.BuiltFromCL,
+	                            Pattern = anon.Pattern,
+	                            ComputerName = anon.MachineID,
+	                            Branch = anon.Branch,
+	                            Description = anon.Description,
+	                            RawCallStack = anon.RawCallStack,
+	                        });
 	                    }
+
+	                    newBugg.PrepareBuggForJira(fullCrashesForBugg);
+
+	                    // Verify valid JiraID, this may be still a TTP 
+	                    if (!string.IsNullOrEmpty(newBugg.TTPID))
+	                    {
+	                        int ttpid = 0;
+	                        int.TryParse(newBugg.TTPID, out ttpid);
+
+	                        if (ttpid == 0)
+	                        {
+	                            AddBuggJiraMapping(newBugg, ref foundJiras, ref jiraIDtoBugg);
+	                        }
+	                    }
+
+	                    buggs.Add(newBugg);
 	                }
 	                else
 	                {
@@ -412,47 +376,71 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 	            if (BuggIDToBeAddedToJira > 0)
 	            {
-                    var Bugg = Buggs.Where(X => X.Id == BuggIDToBeAddedToJira).FirstOrDefault();
-                    if (Bugg != null)
+                    var bugg = buggs.FirstOrDefault(x => x.Id == BuggIDToBeAddedToJira);
+                    if (bugg != null)
                     {
-                        Bugg.CopyToJira();
-                        AddBuggJiraMapping(Bugg, ref FoundJiras, ref JiraIDtoBugg);
+                        bugg.CopyToJira();
+                        AddBuggJiraMapping(bugg, ref foundJiras, ref jiraIDtoBugg);
                     }
 	            }
 
 	            if (JC.CanBeUsed())
 	            {
-	                var BuggsCopy = new List<Bugg>(Buggs);
+	                var buggsCopy = new List<Bugg>(buggs);
 
-	                HashSet<string> InvalidJiras = new HashSet<string>();
+	                var invalidJiras = new HashSet<string>();
 
 	                // Simple verification of JIRA
-	                foreach (var Value in FoundJiras)
+	                foreach (var Value in foundJiras)
 	                {
 	                    if (Value.Length < 3 || !Value.Contains('-'))
 	                    {
-	                        InvalidJiras.Add(Value);
+	                        invalidJiras.Add(Value);
 	                    }
 	                }
 
-	                foreach (var InvalidJira in InvalidJiras)
+	                foreach (var invalidJira in invalidJiras)
 	                {
-	                    FoundJiras.Remove(InvalidJira);
+	                    foundJiras.Remove(invalidJira);
 	                }
 
 	                // Grab the data form JIRA.
-	                string JiraSearchQuery = string.Join(" OR ", FoundJiras);
-
-	                using (FAutoScopedLogTimer JiraResultsTimer = new FAutoScopedLogTimer("JiraResults"))
+	                string JiraSearchQuery = string.Join(" OR ", foundJiras);
+                    
+                    bool bInvalid = false;
+                    var jiraResults = new Dictionary<string, Dictionary<string, object>>();
+	                try
 	                {
-	                    bool bInvalid = false;
-	                    var JiraResults = new Dictionary<string, Dictionary<string, object>>();
-	                    try
+	                    if (!string.IsNullOrWhiteSpace(JiraSearchQuery))
 	                    {
-	                        if (!string.IsNullOrWhiteSpace(JiraSearchQuery))
+	                        jiraResults = JC.SearchJiraTickets(
+	                            JiraSearchQuery,
+	                            new string[]
+	                            {
+	                                "key", // string
+	                                "summary", // string
+	                                "components", // System.Collections.ArrayList, Dictionary<string,object>, name
+	                                "resolution",
+	                                //System.Collections.Generic.Dictionary`2[System.String,System.Object], name
+	                                "fixVersions", // System.Collections.ArrayList, Dictionary<string,object>, name
+	                                "customfield_11200" // string
+	                            });
+	                    }
+	                }
+	                catch (System.Exception)
+	                {
+	                    bInvalid = true;
+	                }
+
+	                // Invalid records have been found, find the broken using the slow path.
+	                if (bInvalid)
+	                {
+	                    foreach (var Query in foundJiras)
+	                    {
+	                        try
 	                        {
-	                            JiraResults = JC.SearchJiraTickets(
-	                                JiraSearchQuery,
+	                            var TempResult = JC.SearchJiraTickets(
+	                                Query,
 	                                new string[]
 	                                {
 	                                    "key", // string
@@ -463,105 +451,78 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	                                    "fixVersions", // System.Collections.ArrayList, Dictionary<string,object>, name
 	                                    "customfield_11200" // string
 	                                });
-	                        }
-	                    }
-	                    catch (System.Exception)
-	                    {
-	                        bInvalid = true;
-	                    }
 
-	                    // Invalid records have been found, find the broken using the slow path.
-	                    if (bInvalid)
-	                    {
-	                        foreach (var Query in FoundJiras)
-	                        {
-	                            try
+	                            foreach (var Temp in TempResult)
 	                            {
-	                                var TempResult = JC.SearchJiraTickets(
-	                                    Query,
-	                                    new string[]
-	                                    {
-	                                        "key", // string
-	                                        "summary", // string
-	                                        "components", // System.Collections.ArrayList, Dictionary<string,object>, name
-	                                        "resolution",
-	                                        // System.Collections.Generic.Dictionary`2[System.String,System.Object], name
-	                                        "fixVersions", // System.Collections.ArrayList, Dictionary<string,object>, name
-	                                        "customfield_11200" // string
-	                                    });
-
-	                                foreach (var Temp in TempResult)
-	                                {
-	                                    JiraResults.Add(Temp.Key, Temp.Value);
-	                                }
-	                            }
-	                            catch (System.Exception)
-	                            {
-
+	                                jiraResults.Add(Temp.Key, Temp.Value);
 	                            }
 	                        }
+	                        catch (System.Exception)
+	                        {
+
+	                        }
+	                    }
+	                }
+
+	                // Jira Key, Summary, Components, Resolution, Fix version, Fix changelist
+	                foreach (var Jira in jiraResults)
+	                {
+	                    string JiraID = Jira.Key;
+
+	                    string Summary = (string) Jira.Value["summary"];
+
+	                    string ComponentsText = "";
+	                    System.Collections.ArrayList Components =
+	                        (System.Collections.ArrayList) Jira.Value["components"];
+	                    foreach (Dictionary<string, object> Component in Components)
+	                    {
+	                        ComponentsText += (string) Component["name"];
+	                        ComponentsText += " ";
 	                    }
 
-	                    // Jira Key, Summary, Components, Resolution, Fix version, Fix changelist
-	                    foreach (var Jira in JiraResults)
+	                    Dictionary<string, object> ResolutionFields =
+	                        (Dictionary<string, object>) Jira.Value["resolution"];
+	                    string Resolution = ResolutionFields != null ? (string) ResolutionFields["name"] : "";
+
+	                    string FixVersionsText = "";
+	                    System.Collections.ArrayList FixVersions =
+	                        (System.Collections.ArrayList) Jira.Value["fixVersions"];
+	                    foreach (Dictionary<string, object> FixVersion in FixVersions)
 	                    {
-	                        string JiraID = Jira.Key;
+	                        FixVersionsText += (string) FixVersion["name"];
+	                        FixVersionsText += " ";
+	                    }
 
-	                        string Summary = (string) Jira.Value["summary"];
+	                    int FixCL = Jira.Value["customfield_11200"] != null
+	                        ? (int) (decimal) Jira.Value["customfield_11200"]
+	                        : 0;
 
-	                        string ComponentsText = "";
-	                        System.Collections.ArrayList Components =
-	                            (System.Collections.ArrayList) Jira.Value["components"];
-	                        foreach (Dictionary<string, object> Component in Components)
+	                    List<Bugg> BuggsForJira;
+	                    jiraIDtoBugg.TryGetValue(JiraID, out BuggsForJira);
+
+	                    //var BuggsForJira = JiraIDtoBugg[JiraID];
+
+	                    if (BuggsForJira != null)
+	                    {
+	                        foreach (Bugg Bugg in BuggsForJira)
 	                        {
-	                            ComponentsText += (string) Component["name"];
-	                            ComponentsText += " ";
-	                        }
-
-	                        Dictionary<string, object> ResolutionFields =
-	                            (Dictionary<string, object>) Jira.Value["resolution"];
-	                        string Resolution = ResolutionFields != null ? (string) ResolutionFields["name"] : "";
-
-	                        string FixVersionsText = "";
-	                        System.Collections.ArrayList FixVersions =
-	                            (System.Collections.ArrayList) Jira.Value["fixVersions"];
-	                        foreach (Dictionary<string, object> FixVersion in FixVersions)
-	                        {
-	                            FixVersionsText += (string) FixVersion["name"];
-	                            FixVersionsText += " ";
-	                        }
-
-	                        int FixCL = Jira.Value["customfield_11200"] != null
-	                            ? (int) (decimal) Jira.Value["customfield_11200"]
-	                            : 0;
-
-	                        List<Bugg> BuggsForJira;
-	                        JiraIDtoBugg.TryGetValue(JiraID, out BuggsForJira);
-
-	                        //var BuggsForJira = JiraIDtoBugg[JiraID];
-
-	                        if (BuggsForJira != null)
-	                        {
-	                            foreach (Bugg Bugg in BuggsForJira)
+	                            Bugg.JiraSummary = Summary;
+	                            Bugg.JiraComponentsText = ComponentsText;
+	                            Bugg.JiraResolution = Resolution;
+	                            Bugg.JiraFixVersionsText = FixVersionsText;
+	                            if (FixCL != 0)
 	                            {
-	                                Bugg.JiraSummary = Summary;
-	                                Bugg.JiraComponentsText = ComponentsText;
-	                                Bugg.JiraResolution = Resolution;
-	                                Bugg.JiraFixVersionsText = FixVersionsText;
-	                                if (FixCL != 0)
-	                                {
-	                                    Bugg.JiraFixCL = FixCL.ToString();
-	                                }
-
-	                                BuggsCopy.Remove(Bugg);
+	                                Bugg.JiraFixCL = FixCL.ToString();
 	                            }
+
+	                            buggsCopy.Remove(Bugg);
 	                        }
 	                    }
 	                }
 
 	                // If there are buggs, we need to update the summary to indicate an error.
 	                // Usually caused when bugg's project has changed.
-	                foreach (var Bugg in BuggsCopy.Where(b => !string.IsNullOrEmpty(b.TTPID)))
+	                foreach (var Bugg in buggsCopy.Where(b => !string.IsNullOrEmpty(b.TTPID)))
 	                {
 	                    Bugg.JiraSummary = "JIRA MISMATCH";
 	                    Bugg.JiraComponentsText = "JIRA MISMATCH";
@@ -571,21 +532,185 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	                }
 	            }
 
-	            Buggs = Buggs.OrderByDescending(b => b.CrashesInTimeFrameGroup).ToList();
+	            buggs = buggs.OrderByDescending(b => b.CrashesInTimeFrameGroup).ToList();
 
 	            return new ReportsViewModel
 	            {
-	                Buggs = Buggs,
+	                Buggs = buggs,
                     BranchName = branchName,
 	                BranchNames = _unitOfWork.CrashRepository.GetBranchesAsListItems(),
 	                DateFrom = (long) (startDate - CrashesViewModel.Epoch).TotalMilliseconds,
 	                DateTo = (long) (endDate - CrashesViewModel.Epoch).TotalMilliseconds,
 	                TotalAffectedUsers = TotalAffectedUsers,
-	                TotalAnonymousCrashes = TotalAnonymousCrashes,
+	                TotalAnonymousCrashes = totalAnonymousCrashes,
 	                TotalUniqueAnonymousCrashes = TotalUniqueAnonymousCrashes
 	            };
 	        }
 	    }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="branchName"></param>
+        /// <param name="startDate"></param>
+        /// <param name="endDate"></param>
+        /// <returns></returns>
+        private ReportsViewModel GetResults(string branchName, DateTime startDate, DateTime endDate, int BuggIDToBeAddedToJira)
+        {
+            const string anonymousGroup = "Anonymous";
+            var anonymousGroupId = _unitOfWork.UserGroupRepository.First(data => data.Name == anonymousGroup).Id;
+            var anonymousIDs =
+                _unitOfWork.UserGroupRepository.First(data => data.Id == anonymousGroupId).Users.Select(data => data.Id).ToList();
+            var anonymousId = anonymousIDs.First();
+
+            var crashesQuery = _unitOfWork.CrashRepository.ListAll()
+                .Where(data => data.TimeOfCrash > startDate && data.TimeOfCrash <= endDate)
+                // Only crashes and asserts
+                .Where(crash => crash.CrashType == 1 || crash.CrashType == 2);
+                // Only anonymous user
+                    //.Where(crash => crash.UserNameId.Value == anonymousId);
+
+            // Filter by BranchName
+            if (!string.IsNullOrEmpty(branchName))
+            {
+                crashesQuery = crashesQuery.Where(data => data.Branch == branchName);
+            }
+
+            var crashesList = crashesQuery.ToList();
+
+            var buggsList = crashesQuery.Where(data => data.Bugg != null).GroupBy(data => data.Bugg).Select(data => data.Key).ToList();
+
+            foreach (var bugg in buggsList)
+            {
+                if (bugg == null)
+                    continue;
+
+                var crashes = crashesList.Where(data => data.BuggId == bugg.Id).ToList();
+
+                bugg.PrepareBuggForJira(crashes);
+
+                bugg.CrashesInTimeFrameGroup = crashesList.Count(data => data.BuggId == bugg.Id);
+                bugg.AffectedVersions = new SortedSet<string>(crashes.Select(data => data.BuildVersion));
+                bugg.NumberOfUniqueMachines = crashes.GroupBy(data => data.ComputerName).Count();
+
+                //get latest changelist
+                int latestClAffected;
+                int.TryParse(crashes.Max(data => data.ChangeListVersion), out latestClAffected);
+                bugg.LatestCLAffected = latestClAffected;
+
+                if (string.IsNullOrWhiteSpace(bugg.TTPID))
+                {
+                    bugg.JiraSummary = "JIRA MISMATCH";
+                    bugg.JiraComponentsText = "JIRA MISMATCH";
+                    bugg.JiraResolution = "JIRA MISMATCH";
+                    bugg.JiraFixVersionsText = "JIRA MISMATCH";
+                    bugg.JiraFixCL = "JIRA MISMATCH";
+                }
+            }
+
+            //Get jira connection
+            var jiraConnection = JiraConnection.Get();
+
+            if (BuggIDToBeAddedToJira > 0)
+            {
+                var bugg = buggsList.FirstOrDefault(x => x.Id == BuggIDToBeAddedToJira);
+                if (bugg != null)
+                {
+                    bugg.CopyToJira();
+                }
+            }
+
+            var jiraResults = new Dictionary<string, Dictionary<string, object>>();
+
+            foreach (var Query in buggsList.Where(data =>
+                !string.IsNullOrWhiteSpace(data.TTPID)).Select(data => data.TTPID))
+            {
+                try
+                {
+                    var TempResult = jiraConnection.SearchJiraTickets(
+                        "key = " + Query,
+                        new string[]
+	                    {
+	                        "key", // string
+	                        "summary", // string
+	                        "components", // System.Collections.ArrayList, Dictionary<string,object>, name
+	                        "resolution",
+	                        // System.Collections.Generic.Dictionary`2[System.String,System.Object], name
+	                        "fixVersions", // System.Collections.ArrayList, Dictionary<string,object>, name
+	                        "customfield_11200" // string
+	                    });
+
+                    foreach (var Temp in TempResult)
+                    {
+                        jiraResults.Add(Temp.Key, Temp.Value);
+                    }
+                }
+                catch (System.Exception)
+                {
+
+                }
+            }
+
+            // Jira Key, Summary, Components, Resolution, Fix version, Fix changelist
+            foreach (var Jira in jiraResults)
+            {
+                var jiraId = Jira.Key;
+
+                var summary = (string)Jira.Value["summary"];
+
+                var ComponentsText = "";
+                System.Collections.ArrayList Components =
+                    (System.Collections.ArrayList)Jira.Value["components"];
+                foreach (Dictionary<string, object> Component in Components)
+                {
+                    ComponentsText += (string)Component["name"];
+                    ComponentsText += " ";
+                }
+
+                Dictionary<string, object> ResolutionFields =
+                    (Dictionary<string, object>)Jira.Value["resolution"];
+                string Resolution = ResolutionFields != null ? (string)ResolutionFields["name"] : "";
+
+                string FixVersionsText = "";
+                System.Collections.ArrayList FixVersions =
+                    (System.Collections.ArrayList)Jira.Value["fixVersions"];
+                foreach (Dictionary<string, object> FixVersion in FixVersions)
+                {
+                    FixVersionsText += (string)FixVersion["name"];
+                    FixVersionsText += " ";
+                }
+
+                int FixCL = Jira.Value["customfield_11200"] != null
+                    ? (int)(decimal)Jira.Value["customfield_11200"]
+                    : 0;
+
+
+                if (buggsList.Any(data => data.TTPID == jiraId))
+                {
+                    var bugg = buggsList.First(data => data.TTPID == jiraId);
+                    bugg.JiraSummary = summary;
+                    bugg.JiraComponentsText = ComponentsText;
+                    bugg.JiraResolution = Resolution;
+                    bugg.JiraFixVersionsText = FixVersionsText;
+                    if (FixCL != 0)
+                    {
+                        bugg.JiraFixCL = FixCL.ToString();
+                    }
+                }
+            }
+
+            return new ReportsViewModel
+            {
+                Buggs = buggsList.OrderByDescending(data => data.CrashesInTimeFrameGroup).ToList(),
+                BranchName = branchName,
+                BranchNames = _unitOfWork.CrashRepository.GetBranchesAsListItems(),
+                DateFrom = (long)(startDate - CrashesViewModel.Epoch).TotalMilliseconds,
+                DateTo = (long)(endDate - CrashesViewModel.Epoch).TotalMilliseconds,
+                TotalAffectedUsers = crashesQuery.GroupBy(data => data.ComputerName).Count(),
+                TotalAnonymousCrashes = crashesQuery.Count(),
+                TotalUniqueAnonymousCrashes = crashesQuery.GroupBy(data => data.BuggId).Count()
+            };
+        }
 
         /// <summary>
         /// Private method to get reports page for a branch and render to an HTML string
@@ -627,6 +752,23 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
         {
             _unitOfWork.Dispose();
             base.Dispose(disposing);
+        }
+
+        /// <summary>
+        /// Get a list of bugs within a specified date range
+        /// </summary>
+        /// <param name="results"></param>
+        /// <param name="dateFrom"></param>
+        /// <param name="dateTo"></param>
+        /// <returns></returns>
+        public IQueryable<Bugg> FilterByDate(IQueryable<Bugg> results, DateTime dateFrom, DateTime dateTo)
+        {
+            dateTo = dateTo.AddDays(1);
+            var buggsInTimeFrame =
+                results.Where(bugg => (bugg.TimeOfFirstCrash >= dateFrom && bugg.TimeOfFirstCrash <= dateTo) ||
+                    (bugg.TimeOfLastCrash >= dateFrom && bugg.TimeOfLastCrash <= dateTo) || (bugg.TimeOfFirstCrash <= dateFrom && bugg.TimeOfLastCrash >= dateTo));
+
+            return buggsInTimeFrame;
         }
 
         #endregion

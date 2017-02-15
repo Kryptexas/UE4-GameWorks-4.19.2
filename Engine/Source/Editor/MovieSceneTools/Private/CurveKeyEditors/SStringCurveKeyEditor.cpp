@@ -1,7 +1,10 @@
-// Copyright 1998t-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "SStringCurveKeyEditor.h"
+#include "CurveKeyEditors/SStringCurveKeyEditor.h"
+#include "Widgets/Input/SEditableText.h"
+#include "Curves/KeyHandle.h"
+#include "ISequencer.h"
+#include "ScopedTransaction.h"
 #include "Curves/StringCurve.h"
 
 #define LOCTEXT_NAMESPACE "StringCurveKeyEditor"
@@ -13,7 +16,7 @@ void SStringCurveKeyEditor::Construct(const FArguments& InArgs)
 	Curve = InArgs._Curve;
 	ExternalValue = InArgs._ExternalValue;
 
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+	float CurrentTime = Sequencer->GetLocalTime();
 	ChildSlot
 	[
 		SNew(SEditableText)
@@ -29,7 +32,7 @@ FText SStringCurveKeyEditor::GetText() const
 	{
 		return FText::FromString(ExternalValue.Get().GetValue());
 	}
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+	float CurrentTime = Sequencer->GetLocalTime();
 	FString DefaultValue;
 	FString CurrentValue = Curve->Eval(CurrentTime, DefaultValue);
 	
@@ -42,7 +45,7 @@ void SStringCurveKeyEditor::OnTextCommitted(const FText& InText, ETextCommit::Ty
 	OwningSection->SetFlags(RF_Transactional);
 	if (OwningSection->TryModify())
 	{
-		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		float CurrentTime = Sequencer->GetLocalTime();
 		bool bAutoSetTrackDefaults = Sequencer->GetAutoSetTrackDefaults();
 
 		FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);
@@ -59,13 +62,16 @@ void SStringCurveKeyEditor::OnTextCommitted(const FText& InText, ETextCommit::Ty
 				Curve->AddKey(CurrentTime, InText.ToString(), CurrentKeyHandle);
 			}
 
-			if (OwningSection->GetStartTime() > CurrentTime)
+			if (Curve->GetNumKeys() != 0)
 			{
-				OwningSection->SetStartTime(CurrentTime);
-			}
-			if (OwningSection->GetEndTime() < CurrentTime)
-			{
-				OwningSection->SetEndTime(CurrentTime);
+				if (OwningSection->GetStartTime() > CurrentTime)
+				{
+					OwningSection->SetStartTime(CurrentTime);
+				}
+				if (OwningSection->GetEndTime() < CurrentTime)
+				{
+					OwningSection->SetEndTime(CurrentTime);
+				}
 			}
 		}
 

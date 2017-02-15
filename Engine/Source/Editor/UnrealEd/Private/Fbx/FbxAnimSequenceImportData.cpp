@@ -1,6 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "Factories/FbxAnimSequenceImportData.h"
 #include "Animation/AnimSequence.h"
 
 UFbxAnimSequenceImportData::UFbxAnimSequenceImportData(const FObjectInitializer& ObjectInitializer)
@@ -67,7 +67,7 @@ void UFbxAnimSequenceImportData::PostEditChangeProperty(FPropertyChangedEvent& P
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	if(PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UFbxAnimSequenceImportData, FrameImportRange))
+	if(PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UFbxAnimSequenceImportData, FrameImportRange))
 	{
 		FrameImportRange.Min = FMath::Max(0, FMath::Min(FrameImportRange.Min, FrameImportRange.Max));
 		FrameImportRange.Max = FMath::Max(0, FMath::Max(FrameImportRange.Min, FrameImportRange.Max));

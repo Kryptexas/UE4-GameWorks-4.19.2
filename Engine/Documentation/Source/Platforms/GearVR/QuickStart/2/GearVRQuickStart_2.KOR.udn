@@ -1,40 +1,30 @@
-﻿INTSourceChangelist:2745726
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:2. 기어 VR 프로젝트 구성
-Crumbs:%ROOT%, Platforms/GearVR
+Crumbs:%ROOT%, Platforms, Platforms/GearVR
 Description:기어 VR 헤드셋과 사용할 C++ 기반 UE4 프로젝트 구성 방법입니다.
-Navigation:platform
-Skilllevel: Intermediate
 Version: 4.9
+Skilllevel: Intermediate
+tags:VR
+tags:GearVR
+type:multi-step
+parent:Platforms/GearVR/QuickStart
+order:2
+Checkpoint:GearVRQS
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[예전 단계](Platforms/GearVR/QuickStart/1 "%Platforms/GearVR/QuickStart/1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Platforms/GearVR/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Platforms/GearVR/QuickStart/3 "%Platforms/GearVR/QuickStart/3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[nav]
 
-%Steps%
+## 단계
 
-
-1. 프로젝트 생성 및 컴파일이 완료되면, Visual Studio 2013 이 (설치된 경우) 에디터와 함께 자동으로 열립니다.
+1. 프로젝트 생성 및 컴파일이 완료되면, Visual Studio 2015 이 (설치된 경우) 에디터와 함께 자동으로 열립니다.
 
 	![](GVR_Editor_Opened.png)
 
 	[region:note]
-	언리얼 엔진 4.8 이상 버전에 블루프린트 기반 프로젝트를 사용하시는 경우, Visual Studio 2013 은 필요치 않아 열리지 않을 것입니다.
+	언리얼 엔진 4.8 이상 버전에 블루프린트 기반 프로젝트를 사용하시는 경우, Visual Studio 2015 은 필요치 않아 열리지 않을 것입니다.
 	[/region]
 
-1. UE4 에디터가 로드되면, **메인 툴바** 에서 **창** 탭을 열고 **플러그인** 메뉴 항목을 선택합니다.
+1. UE4 에디터가 로드되면, **메인 툴바** 에서 **창** 탭을 열고 **플러그인** 메뉴를 선택합니다.
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -48,7 +38,7 @@ Version: 4.9
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. 플러그인 메뉴에서 **Head Mounted Displays** 섹션으로 가서 **Oculus** 옵션을 **disable**, **Gear VR** 옵션을 **enable** 합니다. 그런 다음 **지금 재시작** 버튼을 눌러 에디터를 재시작, 변경내용이 적용되도록 합니다.
+1. **Plugins** 메뉴에서 **Head Mounted Displays** 섹션으로 가서 **Oculus** 옵션을 **disable**, **Gear VR** 옵션을 **enable** 합니다. 그런 다음 **지금 재시작** 버튼을 눌러 에디터를 재시작, 변경내용이 적용되도록 합니다.
 
 	![](GVR_Plugin_Options_Toggle.png)
 
@@ -82,7 +72,7 @@ Version: 4.9
 	Tegra 파일을 설치한 위치에 필요한 폴더를 찾을 수 있습니다.
 	
 	[Region:note]
-	이미 TADP 를 설치했다면 이 정보가 채워져 있을 것입니다. 여기서 뭔가 바꿔야 하는 이유는, 정보가 없거나 잘못된 위치로 되어있을 경우입니다.
+	이미 CodeWorks for Android 1R4 를 설치했다면 이 정보가 채워져 있을 것입니다. 여기서 뭔가 바꿔야 하는 이유는, 정보가 없거나 잘못된 위치로 되어있을 경우입니다.
 	[/region]
 
 	![](GVR_Android_SDK_Setup.png)
@@ -115,4 +105,7 @@ Version: 4.9
 	[/region]
 	-->
 
-%Steps%
+[nav]
+
+## 최종 결과
+완료되면 빌드하여 삼성 갤럭시 스마트폰에 설치하고 볼 수 있는 UE4 프로젝트가 생겨 있을 것입니다.

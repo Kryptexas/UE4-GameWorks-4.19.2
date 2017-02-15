@@ -1,9 +1,13 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
-#include "Curves/IndexedCurve.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
 #include "Curves/KeyHandle.h"
+#include "Curves/IndexedCurve.h"
 #include "StringCurve.generated.h"
-
 
 /**
  * One key in a curve of FStrings.
@@ -46,13 +50,6 @@ public:
 		Key.Serialize(Ar);
 		return Ar;
 	}
-};
-
-
-template<>
-struct TIsPODType<FStringCurveKey>
-{
-	enum { Value = true };
 };
 
 

@@ -1,15 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "GameFramework/Actor.h"
 #include "GameplayDebuggerTypes.h"
 #include "GameplayDebuggerCategoryReplicator.generated.h"
 
+class AGameplayDebuggerCategoryReplicator;
 class APlayerController;
-class UInputComponent;
 class FGameplayDebuggerCategory;
 class FGameplayDebuggerExtension;
-class AGameplayDebuggerCategoryReplicator;
 class UGameplayDebuggerRenderingComponent;
 
 USTRUCT()
@@ -65,7 +68,11 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggerCategoryReplicator : public AActor
 
 	virtual class UNetConnection* GetNetConnection() const override;
 	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
+
+protected:
 	virtual void BeginPlay() override;
+
+public:
 	virtual void Destroyed() override;
 	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
 
@@ -86,6 +93,9 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggerCategoryReplicator : public AActor
 
 	/** [ALL] send input event to extension */
 	void SendExtensionInputEvent(int32 ExtensionId, int32 HandlerId);
+
+	/** [AUTH] starts data collection */
+	void CollectCategoryData(bool bForce = false);
 
 	/** get current debug actor */
 	AActor* GetDebugActor() const { return IsValid(DebugActor.Actor) ? DebugActor.Actor : nullptr; }

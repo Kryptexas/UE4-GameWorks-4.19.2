@@ -124,26 +124,26 @@ PxQuat diagonalize(const PxMat33& m)	// jacobi rotation using quaternions
 	PxMat33 d;
 	for(PxU32 i=0; i < MAX_ITERS;i++)
 	{
-		PxMat33 axes(q);
+		const PxMat33 axes(q);
 		d = axes.getTranspose() * m * axes;
 
-		PxReal d0 = PxAbs(d[1][2]), d1 = PxAbs(d[0][2]), d2 = PxAbs(d[0][1]);
-		PxU32 a = PxU32(d0 > d1 && d0 > d2 ? 0 : d1 > d2 ? 1 : 2);						// rotation axis index, from largest off-diagonal element
+		const PxReal d0 = PxAbs(d[1][2]), d1 = PxAbs(d[0][2]), d2 = PxAbs(d[0][1]);
+		const PxU32 a = PxU32(d0 > d1 && d0 > d2 ? 0 : d1 > d2 ? 1 : 2);						// rotation axis index, from largest off-diagonal element
 
-		PxU32 a1 = Ps::getNextIndex3(a), a2 = Ps::getNextIndex3(a1);											
+		const PxU32 a1 = Ps::getNextIndex3(a), a2 = Ps::getNextIndex3(a1);											
 		if(d[a1][a2] == 0.0f || PxAbs(d[a1][a1]-d[a2][a2]) > 2e6f*PxAbs(2.0f*d[a1][a2]))
 			break;
 
-		PxReal w = (d[a1][a1]-d[a2][a2]) / (2.0f*d[a1][a2]);					// cot(2 * phi), where phi is the rotation angle
-		PxReal absw = PxAbs(w);
+		const PxReal w = (d[a1][a1]-d[a2][a2]) / (2.0f*d[a1][a2]);					// cot(2 * phi), where phi is the rotation angle
+		const PxReal absw = PxAbs(w);
 
 		PxQuat r;
 		if(absw>1000)
-			r = indexedRotation(a, 1/(4*w), 1.f);									// h will be very close to 1, so use small angle approx instead
+			r = indexedRotation(a, 1.0f/(4.0f*w), 1.f);									// h will be very close to 1, so use small angle approx instead
 		else
 		{
-  			PxReal t = 1 / (absw + PxSqrt(w*w+1));								// absolute value of tan phi
-			PxReal h = 1 / PxSqrt(t*t+1);										// absolute value of cos phi
+  			const PxReal t = 1 / (absw + PxSqrt(w*w+1));								// absolute value of tan phi
+			const PxReal h = 1 / PxSqrt(t*t+1);										// absolute value of cos phi
 
 			PX_ASSERT(h!=1);													// |w|<1000 guarantees this with typical IEEE754 machine eps (approx 6e-8)
 			r = indexedRotation(a, PxSqrt((1-h)/2) * PxSign(w), PxSqrt((1+h)/2));

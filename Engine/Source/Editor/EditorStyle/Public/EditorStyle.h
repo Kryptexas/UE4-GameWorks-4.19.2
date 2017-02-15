@@ -1,20 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+
+/* Boilerplate
+ *****************************************************************************/
+
+#include "Misc/MonolithicHeaderBoilerplate.h"
+MONOLITHIC_HEADER_BOILERPLATE()
 
 
 /* Dependencies
  *****************************************************************************/
 
 #include "CoreUObject.h"
-#include "ModuleInterface.h"
+#include "Modules/ModuleInterface.h"
 #include "SlateBasics.h"
 
 
 /* Interfaces
  *****************************************************************************/
 
-#include "IEditorStyleModule.h"
+#include "Interfaces/IEditorStyleModule.h"
 #include "EditorStyleSet.h"
 
 

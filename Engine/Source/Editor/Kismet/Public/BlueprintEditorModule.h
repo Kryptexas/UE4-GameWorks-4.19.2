@@ -1,15 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Engine/Blueprint.h"
+#include "Framework/Commands/UICommandList.h"
 #include "Toolkits/AssetEditorToolkit.h"
-#include "Toolkits/IToolkit.h"
 #include "WorkflowOrientedApp/WorkflowCentricApplication.h"
+
+class FSCSEditorTreeNode;
+class UUserDefinedEnum;
+class UUserDefinedStruct;
+struct Rect;
 
 extern const FName BlueprintEditorAppName;
 
 class FBlueprintEditor;
 class UUserDefinedEnum;
+class UUserDefinedStruct;
+
 
 /** Describes the reason for Refreshing the editor */
 namespace ERefreshBlueprintEditorReason
@@ -134,6 +144,12 @@ public:
 	DECLARE_EVENT_TwoParams(FBlueprintEditorModule, FBlueprintMenuExtensionEvent, TSharedPtr<FExtender>, UBlueprint*);
 	FBlueprintMenuExtensionEvent& OnGatherBlueprintMenuExtensions() { return GatherBlueprintMenuExtensions; }
 
+	DECLARE_EVENT_ThreeParams(IBlueprintEditor, FOnRegisterTabs, FWorkflowAllowedTabSet&, FName /** ModeName */, TSharedPtr<FBlueprintEditor>);
+	FOnRegisterTabs& OnRegisterTabsForEditor() { return RegisterTabsForEditor; }
+
+	DECLARE_EVENT_OneParam(IBlueprintEditor, FOnRegisterLayoutExtensions, FLayoutExtender&);
+	FOnRegisterLayoutExtensions& OnRegisterLayoutExtensions() { return RegisterLayoutExtensions; }
+
 	/** 
 	 * Register a customization for interacting with the SCS editor 
 	 * @param	InComponentName			The name of the component to customize behavior for
@@ -167,6 +183,10 @@ private:
 
 	//
 	FBlueprintMenuExtensionEvent GatherBlueprintMenuExtensions;
+
+	/** Event called to allow external clients to register additional tabs for the specified editor */
+	FOnRegisterTabs RegisterTabsForEditor;
+	FOnRegisterLayoutExtensions RegisterLayoutExtensions;
 
 	// Event to be called when the blueprint editor is opened
 	FBlueprintEditorOpenedEvent BlueprintEditorOpened;

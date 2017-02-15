@@ -1,7 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Models/ProjectLauncherModel.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+
+class Error;
+class SEditableTextBox;
 
 namespace EShowMapsChoices
 {
@@ -72,6 +84,10 @@ private:
 
 	/** Handles determining the checked state of the 'Incremental' check box. */
 	ECheckBoxState HandleIncrementalCheckBoxIsChecked( ) const;
+	
+	void HandleSharedCookedBuildCheckBoxCheckStateChanged(ECheckBoxState NewState);
+	ECheckBoxState HandleSharedCookedBuildCheckBoxIsChecked() const;
+
 
 	void HandleCompressedCheckBoxCheckStateChanged( ECheckBoxState NewState );
 	void HandleEncryptIniFilesCheckBoxCheckStateChanged(ECheckBoxState NewState );

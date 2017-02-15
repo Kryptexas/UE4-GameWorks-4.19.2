@@ -1,9 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintProfilerPCH.h"
-#include "EditorStyleSet.h"
+#include "BlueprintProfiler.h"
+#include "Engine/Blueprint.h"
+#include "GameFramework/Actor.h"
+#include "Modules/ModuleManager.h"
+
+#if WITH_EDITOR
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Editor.h"
+#include "Profiler/BlueprintProfilerSettings.h"
+#include "BlueprintProfilerConnectionDrawingPolicy.h"
+#endif // WITH_EDITOR
+
+#include "ScriptInstrumentationPlayback.h"
+
+#include "BlueprintProfilerStats.h"
+
 #include "ActorEditorUtils.h"
-#include "Editor/UnrealEd/Classes/Settings/EditorExperimentalSettings.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintProfiler"
 
@@ -336,13 +349,22 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 									SuspendedEventMap->Remove(LatentLinkId);
 								}
 							}
+							else 
+							{
+								const int32 EntryPointId = InstrumentationEventQueue[EventRangeToProcess.StartIdx].GetScriptCodeOffset();
+								UBlueprintGeneratedClass* BPGC = EventRangeToProcess.BlueprintContext->GetBlueprintClass().Get();
+								if (BPGC && BPGC->GetDebugData().IsValidEntryPoint(EntryPointId))
+								{
+									EventToProcess = (MakeShareable(new FScriptEventPlayback(EventRangeToProcess.BlueprintContext, EventRangeToProcess.InstanceName)));
+								}
+							}
 						}
 						else
 						{
 							EventToProcess = (MakeShareable(new FScriptEventPlayback(EventRangeToProcess.BlueprintContext, EventRangeToProcess.InstanceName)));
 						}
-						check(EventToProcess.IsValid());
-						if (EventToProcess->Process(InstrumentationEventQueue, EventRangeToProcess.StartIdx, EventRangeToProcess.StopIdx))
+						// Checking the event to process so we can continue problem discovery while we look into the latent id issue.
+						if (EventToProcess.IsValid() && EventToProcess->Process(InstrumentationEventQueue, EventRangeToProcess.StartIdx, EventRangeToProcess.StopIdx))
 						{
 							const int32 NumEventsToRemove = (EventRangeToProcess.StopIdx - EventRangeToProcess.StartIdx) + 1;
 							InstrumentationEventQueue.RemoveAt(EventRangeToProcess.StartIdx, NumEventsToRemove, false);
@@ -363,10 +385,6 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 			}
 		}
 	}
-	// For the time being, we should have processed all events in the queue.
-	// In the future we will potentially only process a few events at a time, and this check should be removed.
-	// Removed this check after finding an issue with it switching out maps.
-//	check(InstrumentationEventQueue.Num() == 0);
 	// Update all active contexts if the display settings changed.
 	UBlueprintProfilerSettings* Settings = GetMutableDefault<UBlueprintProfilerSettings>();
 	if (Settings->GetPerformanceThresholdsModified())

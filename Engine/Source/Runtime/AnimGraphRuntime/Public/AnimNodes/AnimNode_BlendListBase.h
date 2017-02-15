@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AlphaBlend.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/AnimationAsset.h"
 #include "Animation/AnimNodeBase.h"
+#include "AlphaBlend.h"
 #include "AnimNode_BlendListBase.generated.h"
+
+class UBlendProfile;
+class UCurveFloat;
 
 // Blend list node; has many children
 USTRUCT()

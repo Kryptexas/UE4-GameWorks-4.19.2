@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -55,8 +55,8 @@
 // These numbers define the banner UE4 version, and are the most significant numbers when ordering two engine versions (that is, a 4.12.* version is always 
 // newer than a 4.11.* version, regardless of the changelist that it was built with)
 #define ENGINE_MAJOR_VERSION	4
-#define ENGINE_MINOR_VERSION	14
-#define ENGINE_PATCH_VERSION	3
+#define ENGINE_MINOR_VERSION	15
+#define ENGINE_PATCH_VERSION	0
 
 // If set to 1, indicates that this is a licensee build of the engine. For the same major/minor/patch release of the engine, licensee changelists are always 
 // considered newer than Epic changelists for engine versions. This follows the assumption that content is developed by Epic leading up to a release, and which 
@@ -86,7 +86,7 @@
 	#if ENGINE_IS_LICENSEE_VERSION
 		#define ENGINE_COMPATIBLE_CL_VERSION ENGINE_CURRENT_CL_VERSION
 	#else
-		#define ENGINE_COMPATIBLE_CL_VERSION 3195953 /* Or hotfix compatibility changelist */
+		#define ENGINE_COMPATIBLE_CL_VERSION ENGINE_CURRENT_CL_VERSION /* Or hotfix compatibility changelist */
 	#endif
 #else
 	#define ENGINE_COMPATIBLE_CL_VERSION 0
@@ -103,7 +103,7 @@
 
 // The branch that this engine is being built from. When set by UAT, this has the form of a Perforce depot path with forward slashes escaped by plus characters 
 // (eg. //UE4/Main -> ++UE4+Main)
-#define BRANCH_NAME "++UE4+Release-4.14"
+#define BRANCH_NAME "++UE4+Release-4.15"
 
 // Macros for encoding strings
 #define VERSION_TEXT_2(x) L ## x
@@ -115,11 +115,33 @@
 // This string should be used to uniquely identify a build of the current product, as opposed to something built with this version of the engine.
 #define BUILD_VERSION VERSION_TEXT(BRANCH_NAME) VERSION_TEXT("-CL-") VERSION_STRINGIFY(BUILT_FROM_CHANGELIST) 
 
-// Various strings used for resources
+// Various strings used for engine resources
 #define EPIC_COMPANY_NAME  "Epic Games, Inc."
-#define EPIC_COPYRIGHT_STRING "Copyright 1998-2016 Epic Games, Inc. All Rights Reserved."
+#define EPIC_COPYRIGHT_STRING "Copyright 1998-2017 Epic Games, Inc. All Rights Reserved."
 #define EPIC_PRODUCT_NAME "Unreal Engine"
 #define EPIC_PRODUCT_IDENTIFIER "UnrealEngine"
+
+// Various strings used for project resources
+#ifdef PROJECT_COMPANY_NAME
+	#define BUILD_PROJECT_COMPANY_NAME PREPROCESSOR_TO_STRING(PROJECT_COMPANY_NAME)
+#else
+	#define BUILD_PROJECT_COMPANY_NAME EPIC_COMPANY_NAME
+#endif // !PROJECT_COMPANY_NAME
+#ifdef PROJECT_COPYRIGHT_STRING
+	#define BUILD_PROJECT_COPYRIGHT_STRING PREPROCESSOR_TO_STRING(PROJECT_COPYRIGHT_STRING)
+#else
+	#define BUILD_PROJECT_COPYRIGHT_STRING EPIC_COPYRIGHT_STRING
+#endif // !PROJECT_COPYRIGHT_STRING
+#ifdef PROJECT_PRODUCT_NAME
+	#define BUILD_PROJECT_PRODUCT_NAME PREPROCESSOR_TO_STRING(PROJECT_PRODUCT_NAME)
+#else
+	#define BUILD_PROJECT_PRODUCT_NAME EPIC_PRODUCT_NAME
+#endif // !PROJECT_PRODUCT_NAME
+#ifdef PROJECT_PRODUCT_IDENTIFIER
+	#define BUILD_PROJECT_PRODUCT_IDENTIFIER PREPROCESSOR_TO_STRING(PROJECT_PRODUCT_IDENTIFIER)
+#else
+	#define BUILD_PROJECT_PRODUCT_IDENTIFIER EPIC_PRODUCT_IDENTIFIER
+#endif // !PROJECT_PRODUCT_IDENTIFIER
 
 #define ENGINE_VERSION_STRING \
 	VERSION_STRINGIFY(ENGINE_MAJOR_VERSION) \

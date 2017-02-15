@@ -1,6 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
 
 /**
  * Aligns a value to the nearest higher multiple of 'Alignment', which must be a power of two.

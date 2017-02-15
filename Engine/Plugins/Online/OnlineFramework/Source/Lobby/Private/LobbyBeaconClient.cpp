@@ -1,20 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LobbyPrivatePCH.h"
 #include "LobbyBeaconClient.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/NetConnection.h"
+#include "GameFramework/PlayerState.h"
+#include "Engine/LocalPlayer.h"
+#include "Net/UnrealNetwork.h"
 #include "LobbyBeaconHost.h"
-#include "LobbyBeaconState.h"
 #include "LobbyBeaconPlayerState.h"
 #include "OnlineSubsystemUtils.h"
-#include "Engine/GameInstance.h"
-#include "Engine/LocalPlayer.h"
 #include "OnlineSessionClient.h"
 
 ALobbyBeaconClient::ALobbyBeaconClient(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	LobbyState(nullptr),
 	PlayerState(nullptr),
-	bLoggedIn(false)
+	bLoggedIn(false),
+	bLobbyJoinAcked(false)
 {
 	bOnlyRelevantToOwner = true;
 }
@@ -124,6 +126,7 @@ void ALobbyBeaconClient::JoiningServer()
 	if (bLoggedIn)
 	{
 		UE_LOG(LogBeacon, Log, TEXT("JoiningServer %s Id: %s"), *GetName(), PlayerState ? *PlayerState->UniqueId->ToString() : TEXT("Unknown"));
+		bLobbyJoinAcked = false;
 		ServerNotifyJoiningServer();
 	}
 	else
@@ -152,7 +155,7 @@ void ALobbyBeaconClient::LoginLocalPlayers()
 	UWorld* World = GetWorld();
 	for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
-		APlayerController* PC = (*Iterator);
+		APlayerController* PC = Iterator->Get();
 		if (PC && PC->PlayerState && PC->PlayerState->UniqueId.IsValid())
 		{
 			ULocalPlayer* LP = Cast<ULocalPlayer>(PC->Player);
@@ -264,6 +267,7 @@ void ALobbyBeaconClient::AckJoiningServer()
 void ALobbyBeaconClient::ClientAckJoiningServer_Implementation()
 {
 	UE_LOG(LogBeacon, Log, TEXT("ClientAckJoiningServer %s Id: %s LoggedIn: %d"), *GetName(), PlayerState ? *PlayerState->UniqueId->ToString() : TEXT("Unknown"), bLoggedIn);
+	bLobbyJoinAcked = true;
 	OnJoiningGameAck().ExecuteIfBound();
 }
 

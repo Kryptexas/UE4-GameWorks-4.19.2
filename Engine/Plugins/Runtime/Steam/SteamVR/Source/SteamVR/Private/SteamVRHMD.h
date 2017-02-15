@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "ISteamVRPlugin.h"
@@ -6,6 +6,7 @@
 #include "IHeadMountedDisplay.h"
 #include "SteamVRFunctionLibrary.h"
 #include "SteamVRSplash.h"
+#include "IStereoLayers.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
@@ -16,6 +17,8 @@
 #if STEAMVR_SUPPORTED_PLATFORMS
 
 #include "SceneViewExtension.h"
+
+class IRendererModule;
 
 /** Stores vectors, in clockwise order, to define soft and hard bounds for Chaperone */
 struct FBoundingQuad
@@ -104,6 +107,8 @@ public:
 
 	virtual void SetTrackingOrigin(EHMDTrackingOrigin::Type NewOrigin) override;
 	virtual EHMDTrackingOrigin::Type GetTrackingOrigin() override;
+
+	virtual void RecordAnalytics() override;
 
 	/** IStereoRendering interface */
 	virtual bool IsStereoEnabled() const override;

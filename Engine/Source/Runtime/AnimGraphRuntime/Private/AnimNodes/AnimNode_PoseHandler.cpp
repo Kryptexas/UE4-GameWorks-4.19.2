@@ -1,6 +1,5 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphRuntimePrivatePCH.h"
 #include "AnimNodes/AnimNode_PoseHandler.h"
 #include "Animation/AnimInstanceProxy.h"
 
@@ -88,6 +87,12 @@ void FAnimNode_PoseHandler::UpdatePoseAssetProperty(struct FAnimInstanceProxy* I
 			}
 
 			CacheBones(FAnimationCacheBonesContext(InstanceProxy));
+		}
+		else
+		{
+			PoseUIDList.Reset();
+			PoseExtractContext.PoseCurves.Reset();
+			BoneBlendWeights.Reset();
 		}
 	}
 	else

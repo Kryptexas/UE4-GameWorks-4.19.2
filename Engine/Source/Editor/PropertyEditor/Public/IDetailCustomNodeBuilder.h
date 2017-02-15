@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class IDetailChildrenBuilder;
+#include "CoreMinimal.h"
+
 class FDetailWidgetRow;
+class IDetailChildrenBuilder;
 
 /**
  * A custom node that can be given to a details panel category to customize widgets

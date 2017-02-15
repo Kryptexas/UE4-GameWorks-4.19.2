@@ -1,6 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "StompCommand.h"
+#include "IStompClient.h"
+
+#if WITH_STOMP
 
 /**
  * Class for encoding and parsing stomp frames
@@ -38,3 +44,5 @@ private:
 	FStompHeader Header;
 	FStompBuffer Body;
 };
+
+#endif

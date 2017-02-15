@@ -1,20 +1,30 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldShadowing.cpp
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "UniformBuffer.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
 #include "ShaderParameters.h"
-#include "PostProcessing.h"
-#include "SceneFilterRendering.h"
+#include "RenderResource.h"
+#include "RendererInterface.h"
+#include "Shader.h"
+#include "StaticBoundShaderState.h"
+#include "SceneUtils.h"
+#include "RHIStaticStates.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "LightSceneInfo.h"
+#include "GlobalShader.h"
+#include "SceneRenderTargetParameters.h"
+#include "ShadowRendering.h"
+#include "DeferredShadingRenderer.h"
+#include "PostProcess/PostProcessing.h"
+#include "PostProcess/SceneFilterRendering.h"
 #include "DistanceFieldLightingShared.h"
 #include "DistanceFieldSurfaceCacheLighting.h"
-#include "RHICommandList.h"
-#include "SceneUtils.h"
-#include "DistanceFieldAtlas.h"
 
 int32 GDistanceFieldShadowing = 1;
 FAutoConsoleVariableRef CVarDistanceFieldShadowing(
@@ -729,7 +739,7 @@ void CullDistanceFieldObjectsForLight(
 	const FPlane* PlaneData, 
 	const FVector4& ShadowBoundingSphereValue,
 	float ShadowBoundingRadius,
-	TScopedPointer<FLightTileIntersectionResources>& TileIntersectionResources)
+	TUniquePtr<FLightTileIntersectionResources>& TileIntersectionResources)
 {
 	const FScene* Scene = (const FScene*)(View.Family->Scene);
 
@@ -773,7 +783,7 @@ void CullDistanceFieldObjectsForLight(
 			}
 			else
 			{
-				TileIntersectionResources = new FLightTileIntersectionResources();
+				TileIntersectionResources = MakeUnique<FLightTileIntersectionResources>();
 			}
 
 			TileIntersectionResources->TileDimensions = LightTileDimensions;
@@ -788,10 +798,10 @@ void CullDistanceFieldObjectsForLight(
 			TShaderMapRef<FWorkaroundAMDBugCS> ComputeShader(View.ShaderMap);
 
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-			ComputeShader->SetParameters(RHICmdList, View, TileIntersectionResources);
+			ComputeShader->SetParameters(RHICmdList, View, TileIntersectionResources.Get());
 			DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
 
-			ComputeShader->UnsetParameters(RHICmdList, TileIntersectionResources);
+			ComputeShader->UnsetParameters(RHICmdList, TileIntersectionResources.Get());
 		}
 		
 		{
@@ -801,10 +811,10 @@ void CullDistanceFieldObjectsForLight(
 			uint32 GroupSizeY = FMath::DivideAndRoundUp(LightTileDimensions.Y, GDistanceFieldAOTileSizeY);
 
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-			ComputeShader->SetParameters(RHICmdList, View, FVector2D(LightTileDimensions.X, LightTileDimensions.Y), TileIntersectionResources);
+			ComputeShader->SetParameters(RHICmdList, View, FVector2D(LightTileDimensions.X, LightTileDimensions.Y), TileIntersectionResources.Get());
 			DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-			ComputeShader->UnsetParameters(RHICmdList, TileIntersectionResources);
+			ComputeShader->UnsetParameters(RHICmdList, TileIntersectionResources.Get());
 		}
 
 		{
@@ -812,7 +822,7 @@ void CullDistanceFieldObjectsForLight(
 			TShaderMapRef<FShadowObjectCullPS> PixelShader(View.ShaderMap);
 
 			TArray<FUnorderedAccessViewRHIParamRef> UAVs;
-			PixelShader->GetUAVs(View, TileIntersectionResources, UAVs);
+			PixelShader->GetUAVs(View, TileIntersectionResources.Get(), UAVs);
 			RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToGfx, UAVs.GetData(), UAVs.Num());
 			RHICmdList.SetRenderTargets(0, (const FRHIRenderTargetView *)NULL, NULL, UAVs.Num(), UAVs.GetData());
 
@@ -848,6 +858,7 @@ bool SupportsDistanceFieldShadows(ERHIFeatureLevel::Type FeatureLevel, EShaderPl
 {
 	return GDistanceFieldShadowing
 		&& FeatureLevel >= ERHIFeatureLevel::SM5
+		&& (!IsMetalPlatform(ShaderPlatform) || !IsRHIDeviceIntel())
 		&& DoesPlatformSupportDistanceFieldShadowing(ShaderPlatform);
 }
 
@@ -895,7 +906,6 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 		{
 			check(!Scene->DistanceFieldSceneData.HasPendingOperations());
 
-			FSceneRenderTargets::Get(RHICmdList).FinishRenderingLightAttenuation(RHICmdList);
 			SetRenderTarget(RHICmdList, NULL, NULL);
 
 			int32 NumPlanes = 0;
@@ -932,7 +942,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 				LightSceneInfo->TileIntersectionResources
 				);
 
-			FLightTileIntersectionResources* TileIntersectionResources = LightSceneInfo->TileIntersectionResources;
+			FLightTileIntersectionResources* TileIntersectionResources = LightSceneInfo->TileIntersectionResources.Get();
 
 			View.HeightfieldLightingViewInfo.ComputeRayTracedShadowing(View, RHICmdList, this, TileIntersectionResources, GShadowCulledObjectBuffers);
 

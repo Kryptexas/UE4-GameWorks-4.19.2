@@ -1,7 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 
 /**
  * Structure for log messages.
@@ -64,10 +66,3 @@ public:
 		}
 	};
 };
-
-
-/** Type definition for shared pointers to instances of FLauncherLogMessage. */
-typedef TSharedPtr<FSessionLogMessage> FSessionLogMessagePtr;
-
-/** Type definition for shared references to instances of FLauncherLogMessage. */
-typedef TSharedRef<FSessionLogMessage> FSessionLogMessageRef;

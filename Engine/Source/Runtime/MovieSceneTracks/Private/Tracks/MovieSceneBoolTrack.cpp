@@ -1,11 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneBoolSection.h"
-#include "MovieSceneBoolTrack.h"
-#include "IMovieScenePlayer.h"
-#include "MovieSceneBoolTrackInstance.h"
-
+#include "Tracks/MovieSceneBoolTrack.h"
+#include "MovieSceneCommonHelpers.h"
+#include "Sections/MovieSceneBoolSection.h"
+#include "Evaluation/MovieScenePropertyTemplates.h"
 
 UMovieSceneSection* UMovieSceneBoolTrack::CreateNewSection()
 {
@@ -13,11 +11,10 @@ UMovieSceneSection* UMovieSceneBoolTrack::CreateNewSection()
 }
 
 
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneBoolTrack::CreateInstance()
+FMovieSceneEvalTemplatePtr UMovieSceneBoolTrack::CreateTemplateForSection(const UMovieSceneSection& InSection) const
 {
-	return MakeShareable( new FMovieSceneBoolTrackInstance( *this ) );
+	return FMovieSceneBoolPropertySectionTemplate(*CastChecked<const UMovieSceneBoolSection>(&InSection), *this);
 }
-
 
 bool UMovieSceneBoolTrack::Eval( float Position, float LastPostion, bool& InOutBool ) const
 {	

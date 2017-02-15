@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3156615
 Availability: Public
-Title:머티리얼 에디터 - 사람 피부 구성 비법
+Title:사람 피부 제작
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
-Description: 사람 피부를 만드는 비법 안내입니다.
+Description: 사람 피부를 만드는 방법 안내입니다.
 Related: Resources/Showcases/RealisticRendering
 Related: Engine/Rendering/Materials
 Related: Engine/Rendering/Materials/HowTo/Subsurface_Scattering

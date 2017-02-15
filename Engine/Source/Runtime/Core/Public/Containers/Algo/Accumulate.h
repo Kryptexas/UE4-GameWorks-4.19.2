@@ -1,6 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
 
 // TPlus<T> specifically takes const T& and returns T.
 // TPlus<> (empty angle brackets) is late-binding, taking whatever is passed and returning the correct result type for (A+B)

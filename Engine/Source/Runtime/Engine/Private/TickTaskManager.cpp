@@ -1,12 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TickTaskManager.cpp: Manager for ticking tasks
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "UObject/Package.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/World.h"
 #include "TickTaskManagerInterface.h"
-#include "ParallelFor.h"
+#include "Async/ParallelFor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTick, Log, All);
 
@@ -252,7 +262,10 @@ public:
 				Target->ShowPrerequistes();
 			}
 		}
-		Target->ExecuteTick(Target->CalculateDeltaTime(Context), Context.TickType, CurrentThread, MyCompletionGraphEvent);
+		if (Target->IsTickFunctionEnabled())
+		{
+			Target->ExecuteTick(Target->CalculateDeltaTime(Context), Context.TickType, CurrentThread, MyCompletionGraphEvent);
+		}
 		Target->TaskPointer = nullptr;  // This is stale and a good time to clear it for safety
 	}
 };
@@ -1944,6 +1957,15 @@ struct FTestTickFunction : public FTickFunction
 	{
 		return FString(TEXT("test"));
 	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FTestTickFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
 };
 
 static const int32 NumTestTickFunctions = 10000;

@@ -1,9 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Animation/SmartName.h"
+#include "IPersonaPreviewScene.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
 #include "Animation/AnimInstance.h"
+#include "EditorObjectsTracker.h"
+#include "PersonaDelegates.h"
 
+class FUICommandList;
+class IEditableSkeleton;
 class SAnimCurveViewer;
 
 //////////////////////////////////////////////////////////////////////////
@@ -18,21 +35,23 @@ public:
 	TWeakPtr<class IEditableSkeleton> EditableSkeleton;		// The skeleton we're associated with
 	TSharedPtr<SInlineEditableTextBlock> EditableText;	// The editable text box in the list, used to focus from the context menu
 	FName ContainerName;	// The container in the skeleton this name resides in
+	class UEditorAnimCurveBoneLinks* EditorMirrorObject;
 
 	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
-	static TSharedRef<FDisplayedAnimCurveInfo> Make(TWeakPtr<class IEditableSkeleton> InEditableSkeleton, const FName& InContainerName, const FSmartName& InSmartName)
+	static TSharedRef<FDisplayedAnimCurveInfo> Make(TWeakPtr<class IEditableSkeleton> InEditableSkeleton, const FName& InContainerName, const FSmartName& InSmartName, class UEditorAnimCurveBoneLinks* InEditorMirrorObject)
 	{
-		return MakeShareable(new FDisplayedAnimCurveInfo(InEditableSkeleton, InContainerName, InSmartName));
+		return MakeShareable(new FDisplayedAnimCurveInfo(InEditableSkeleton, InContainerName, InSmartName, InEditorMirrorObject));
 	}
 
 protected:
 	/** Hidden constructor, always use Make above */
-	FDisplayedAnimCurveInfo(TWeakPtr<class IEditableSkeleton> InEditableSkeleton, const FName& InContainerName, const FSmartName& InSmartName)
+	FDisplayedAnimCurveInfo(TWeakPtr<class IEditableSkeleton> InEditableSkeleton, const FName& InContainerName, const FSmartName& InSmartName, class UEditorAnimCurveBoneLinks* InEditorMirrorObject)
 		: SmartName(InSmartName)
 		, Weight( 0 )
 		, bAutoFillData(true)
 		, EditableSkeleton(InEditableSkeleton)
 		, ContainerName(InContainerName)
+		, EditorMirrorObject(InEditorMirrorObject)
 	{}
 };
 
@@ -55,7 +74,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView, const TSharedRef<IPersonaPreviewScene>& InPreviewScene);
+	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene);
 
 	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the tree row. */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
@@ -104,9 +123,12 @@ private:
 	TSharedPtr<FDisplayedAnimCurveInfo>	Item;
 
 	/** Preview scene used to update on scrub */
-	TWeakPtr<IPersonaPreviewScene> PreviewScenePtr;
+	TWeakPtr<class IPersonaPreviewScene> PreviewScenePtr;
 	/** Returns curve type widget constructed */
 	TSharedRef<SWidget> GetCurveTypeWidget();
+
+	/** returns display text for number of connected joint setting */
+	FText GetNumConntectedBones() const;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -117,7 +139,7 @@ class SAnimCurveViewer : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS( SAnimCurveViewer )
 	{}
-		
+	
 	SLATE_END_ARGS()
 
 	/**
@@ -126,7 +148,7 @@ public:
 	* @param InArgs - Arguments passed from Slate
 	*
 	*/
-	void Construct( const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo );
+	void Construct( const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected);
 
 	/**
 	* Destructor - resets the animation curve
@@ -143,7 +165,7 @@ public:
 	* @param NewPreviewMesh - The new preview mesh being used by Persona
 	*
 	*/
-	void OnPreviewMeshChanged(class USkeletalMesh* NewPreviewMesh);
+	void OnPreviewMeshChanged(class USkeletalMesh* OldPreviewMesh, class USkeletalMesh* NewPreviewMesh);
 
 	/**
 	* Is registered with Persona to handle when its preview asset is changed.
@@ -231,6 +253,7 @@ private:
 
 	/** Handler for context menus */
 	TSharedPtr<SWidget> OnGetContextMenuContent() const;
+	void OnSelectionChanged(TSharedPtr<FDisplayedAnimCurveInfo> InItem, ESelectInfo::Type SelectInfo);
 
 	/**
 	* Clears and rebuilds the table, according to an optional search string
@@ -261,6 +284,9 @@ private:
 	// Adds a new smartname entry to the skeleton in the container we are managing
 	void CreateNewNameEntry(const FText& CommittedText, ETextCommit::Type CommitType);
 
+	/** Handle smart name (i.e. curve) removal */
+	void HandleSmartNameRemoved(const FName& InContainerName, const TArray<SmartName::UID_Type>& InNameUids);
+
 	/** Get the SmartNameMapping for anim curves */
 	const struct FSmartNameMapping* GetAnimCurveMapping();
 
@@ -290,6 +316,8 @@ private:
 
 	int32 CurrentCurveFlag;
 
+	bool bShowAllCurves;
+
 	TMap<FName, float> OverrideCurves;
 
 	/** Commands that are bound to delegates*/
@@ -300,4 +328,16 @@ private:
 
 	friend class SAnimCurveListRow;
 	friend class SAnimCurveTypeList;
+
+	/** Tracks objects created for the details panel */
+	FEditorObjectTracker EditorObjectTracker;
+
+	/** Delegate called to select objects */
+	FOnObjectsSelected OnObjectsSelected;
+
+	/** apply curve bone links from editor mirror object to skeleton */
+	void ApplyCurveBoneLinks(class UEditorAnimCurveBoneLinks* EditorObj);
+
+	/** Delegate handle for HandleSmartNameRemoved callback */
+	FDelegateHandle SmartNameRemovedHandle;
 };

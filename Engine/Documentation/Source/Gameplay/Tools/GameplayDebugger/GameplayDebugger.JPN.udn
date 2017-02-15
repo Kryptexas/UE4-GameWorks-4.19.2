@@ -1,21 +1,21 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Title:Gameplay Debugger
 Availability:Public
 Crumbs:
-Description: Tool that enables analyzing realtime gameplay data at runtime.
+Description:ランタイムにリアルタイムのゲームプレイ データを分析できるツールについて説明します。
 
-The Gameplay Debugger is useful for watching real-time data at runtime, even on clients in networked games using replication. It works in Play In Editor, Simulate In Editor, and standalone game sessions, and all of the data is displayed overlaid on the game viewport. The system provides a framework that can be extended to enable debugging of game-specific data.
+Gameplay Debugger は、リアルタイム データをランタイムに見るのに便利です。レプリケーションを使用するネットワーク ゲームのクライアントに対しても使用可能です。Play In Editor (エディタでプレイする(PIE))、 Simulate In Editor (エディタでシミュレートする)、およびスタンドアロンのゲーム セッションで機能します。すべてのデータはゲームのビューポートにオーバーレイ表示されます。このシステムには、ゲーム固有のデータのデバッグを有効にするために拡張可能なフレームワークがあります。
 
-Engine implementation can show:
+以下が表示されます。
 
-* Basic data from Pawn
-* Basic data from AIController
-* Information about Behavior Tree and Blackboard data
-* Information about executed Environment Queries (EQS)
-* Information from perception system
-* Navmesh around player or selected Pawn with all details like links or areas
+* ポーンからの基本データ
+* AIController からの基本データ
+* ビヘイビア ツリーとブラックボード データに関する情報
+* 実行した EQS に関する情報
+* 知覚システムからの情報
+* プレイヤー周囲の Navmesh またはリンクやエリアなどのあらゆる詳細を含む選択したポーン
 
-Usually there is a lot of data so GDT use categories to limit amount of information on screen. Data from only enabled categories is replicated which saves replication channel's bandwidth. There are 5 default categories and 5 categories to use by projects:
+通常、多くのデータがあるため、GDT ではカテゴリを使ってオンスクリーンの情報量を制限しています。有効にしたカテゴリのデータのみをレプリケートします。これにより、レプリケーション チャンネルの帯域幅を節約します。5 つのデフォルト カテゴリとプロジェクトによって使用される 5 つのカテゴリがあります。
 
 ![image alt text](image_1.png)
 
@@ -24,34 +24,34 @@ Usually there is a lot of data so GDT use categories to limit amount of informat
 * Behavior Tree
 * EQS
 * Perception
-* and 5 categories to use by projects
+* およびプロジェクトによって使用される 5 つのカテゴリ
 
 
-Existing categories can be extended to show more game specific data too.
+既存のカテゴリを拡張して、ゲーム固有のデータをさらに表示することもできます。
 
-Below we have screen-shots captured on client with enabled few categories: Basic, EQS, NavMesh and Behavior Tree:
+以下は Basic、 EQS、 NavMesh、 および Behavior Tree のカテゴリを有効にした状態でクライアント側でキャプチャしたスクリーン ショットです。
 
 ![image alt text](image_2.png)
 
-Gameplay Debugger can be activated with ' (Apostrophe) key by default or with *EnableGDT* cheat. Key binding is set in file and can be easily changed. To select enemy for debugging press ' key while pointing that enemy on screen. Numeric keyboard is used to switch between visible categories. GameplayDebugger module has to be added to project's dependency modules to be activated and usable. 
+Gameplay Debugger は、デフォルトで ' (アポストロフィ) キーまたは *EnableGDT* cheat を使ってアクティベートすることができます。キー バインドはファイルで設定し、簡単に変更することができます。デバッグする敵を選択するには、オンスクリーンでその敵をポイントしながら ' キーを押します。可視のカテゴリ間で切り替えるには数字キーボードを使います。アクティベートし、使用可能な状態にするには、GameplayDebugger モジュールをプロジェクトの依存関係のあるモジュールに追加しなければなりません。 
 
-## Editor - Working with Gameplay Debugger 
+## エディタ - Gameplay Debugger を使って作業する 
 
-While working in editor GDT can be used in PIE or in Simulate. Binded key or *EnableGDT *cheat can be used to activate GDT in PIE. Simulate mode is little different from PIE so to activate this debug tool it's needed to enable "*Debug AI*" show flag. There is an option to change visible categories in Simulate too. *GameplayDebuggingReplicator *actor is used for that. This actor can be find in Scene Outliner and his properties are used to control GDT:
+エディタで作業中に、GDT を PIE またはシミュレーションで使用することができます。バインドされたキーまたは *EnableGDT * cheat を使って PIE で GDT をアクティベートすることができます。シミュレート モードは PIE とほとんど変わらないため、このデバッグ ツールをアクティベートするには、"*Debug AI*" 表示フラグを有効にする必要があります。シミュレートで可視カテゴリを変更するオプションもあり、そのために *GameplayDebuggingReplicator * アクタを使います。このアクタはシーン アウトライナーにあり、プロパティを使って GDT を制御します。
 
 ![image alt text](image_3.jpg)
 
 
-## Basic extension
+## 基本的な拡張子
 
-Gameplay Debugger can be only extended with C++ code. For Blueprint projects it can only be used as is - to display basic debug information for now. It's quite easy to extend Gameplay Debugger, to collect and display game specific data. Custom classes inherited from *UGameplayDebuggingComponent *class and *AGameplayDebuggingHUDComponent *class are needed for that. First class is used to collect and eventually replicate the data and second class is used to display all collected data on screen.
+Gameplay Debugger は C++ コードでのみ拡張することができます。ブループリントのプロジェクトの場合は、そのままの状態でのみ使用することができます。現時点では、基本的なデバッグ情報を表示します。Gameplay Debugger を簡単に拡張してゲーム固有のデータを集めて表示することができます。そのためには、*UGameplayDebuggingComponent * クラスから継承したカスタム クラスと *AGameplayDebuggingHUDComponent * クラスが必要です。ひとつめのクラスはデータを集めて最終的にレプリケートし、2 つめのクラスは集めた全データをオンスクリーンに表示するために使用します。
 
-Below is a simple class which collects game specific data:
+以下はゲーム固有のデータを集める単純なクラスです。
 
 
 GDTComponent.h
 
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 	#pragma once
 	#include "GameplayDebuggingComponent.h"
 	#include "GDTComponent.generated.h"
@@ -64,17 +64,17 @@ GDTComponent.h
 		virtual void CollectBasicData() override;
 
 		UPROPERTY(Replicated)
-		float TestData; //custom data replicated to clients
+		float TestData; //custom data replicated to clients (クライアントにレプリケートされたカスタム データ) 
 	};
 
 GDTComponent.cpp
 
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 	#include "MyGameProject.h"
 	#include "GameplayDebuggingComponent.h"
 	#include "GDTComponent.h"
 
-	UGDTComponent::UGDTComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) { }
+	UGDTComponent::UGDTComponent(const class FPostConstructInitializeProperties& PCIP) :Super(PCIP) { }
 
 	void UGDTComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimeProps) const
 	{
@@ -88,16 +88,16 @@ GDTComponent.cpp
 	{
 		Super::CollectBasicData();
 	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		TestData= FMath::RandRange(2.75, 8.25); //collect data and store it
+		TestData= FMath::RandRange(2.75, 8.25); //collect data and store it (データを集めてそれを保存)
 	#endif
 	}
 
-Next class is used to display new data on screen:
+次のクラスは、新しいデータをオンスクリーンに表示するために使用します。
 
 
 GDTHUDComponent.h
 
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 	#pragma once
 
 	#include "GameplayDebuggingHUDComponent.h"
@@ -113,13 +113,13 @@ GDTHUDComponent.h
 
 GDTHUDComponent.cpp
 
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 	#include "MyGameProject.h"
 	#include "GDTComponent.h"
 	#include "GDTHUDComponent.h"
 
 	AGDTHUDComponent::AGDTHUDComponent(const class FPostConstructInitializeProperties& PCIP)
-		: Super(PCIP)
+		:Super(PCIP)
 	{
 	}
 	void AGDTHUDComponent::DrawBasicData(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)
@@ -134,7 +134,7 @@ GDTHUDComponent.cpp
 	#endif
 	}
 
-Gameplay Debugger needs to know about new classes and that information can be set in DefaultEngine.ini configuration file:
+Gameplay Debugger は新しいクラスについて認識する必要があり、その情報は DefaultEngine.ini コンフィギュレーション ファイルで設定することができます。
 
 
 DefaultEngine.ini
@@ -143,16 +143,16 @@ DefaultEngine.ini
 	DebugComponentClassName="/Script/MyGameProject.GDTComponent"
 	DebugComponentHUDClassName="/Script/MyGameProject.GDTHUDComponent" |
 
-## Custom categories
+## カスタム カテゴリ
 
-Few more steps are needed to add project specific category to Gameplay Debugger. 
+プロジェクト固有のカテゴリを Gameplay Debugger に追加するにはさらにステップが必要です。 
 
-Let's extend GDTComponent class:
+GDTComponent クラスを拡張しましょう。
 
 
 GDTComponent.h
 
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 	#pragma once
 	#include "GameplayDebuggingComponent.h"
 	#include "GDTComponent.generated.h"
@@ -167,17 +167,17 @@ GDTComponent.h
 		void CollectCustomData();
 	public:
 		UPROPERTY(Replicated)
-		float TestData; //custom data replicated to clients
+		float TestData; //custom data replicated to clients (クライアントにレプリケートされたカスタム データ) 
 	};
 
 GDTComponent.cpp
 
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 	#include "MyGameProject.h"
 	#include "GameplayDebuggingComponent.h"
 	#include "GDTComponent.h"
 
-	UGDTComponent::UGDTComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) { }
+	UGDTComponent::UGDTComponent(const class FPostConstructInitializeProperties& PCIP) :Super(PCIP) { }
 
 	void UGDTComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimeProps) const
 	{
@@ -191,7 +191,7 @@ GDTComponent.cpp
 	{
 		Super::CollectBasicData();
 	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		TestData= FMath::RandRange(2.75, 8.25); //collect data and store it
+		TestData= FMath::RandRange(2.75, 8.25); //collect data and store it (データを集めてそれを保存)
 	#endif
 	}
 
@@ -204,18 +204,18 @@ GDTComponent.cpp
 			CollectCustomData();
 			if (bCollectExtendedData)
 			{
-				// collect additional data for selected Pawn/AIController 
+				// collect additional data for selected Pawn/AIController (選択した Pawn/AIController に対して追加データを収集)  
 			}
 		}
 	#endif
 	}
 
-Extended HUD component, to display data in new view:
+HUD コンポーネントを拡張し、新しいビューにデータを表示させます。
 
 
 GDTHUDComponent.h
 
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 	#pragma once
 
 	#include "GameplayDebuggingHUDComponent.h"
@@ -233,13 +233,13 @@ GDTHUDComponent.h
 
 GDTHUDComponent.cpp
 
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 	#include "MyGameProject.h"
 	#include "GDTComponent.h"
 	#include "GDTHUDComponent.h"
 
 	AGDTHUDComponent::AGDTHUDComponent(const class FPostConstructInitializeProperties& PCIP)
-		: Super(PCIP)
+		:Super(PCIP)
 	{
 	}
 	void AGDTHUDComponent::DrawCustomData(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)
@@ -271,18 +271,18 @@ GDTHUDComponent.cpp
 	#endif
 	}
 
-New category is ready and can be used to debug project specific data:
+新しいカテゴリの準備が整い、プロジェクト固有のデータをデバッグできます。
 
 ![image alt text](image_4.jpg)
 
-To draw debug information in colors *PrintString *function can use tags in string, to change active color. It makes easier to draw string with different colors:
+デバッグ情報を色分けして描画するために、 *PrintString * 関数で文字列でタグを使ってアクティブ カラーを変更します。これにより、異なる色で文字列を描画できます。
 
 	void PrintString(FPrintContext& Context, const FString& InString );
 	void PrintString(FPrintContext& Context, const FColor& InColor, const FString& InString );
 	PrintString(DefaultContext, FColor::Green, TEXT("Whole text in green"));
 	PrintString(DefaultContext, TEXT("String {green}in green, {red}in red {white}or {R=0,G=0,B=255,A=255}in blue"));
 
-Last PrintString function generates string with 4 different colors:
+最後の PrintString 関数は 4 種類の色で文字列を生成します。:
 
 ![image alt text](image_5.jpg)
 

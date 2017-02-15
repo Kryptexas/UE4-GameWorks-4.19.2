@@ -1,10 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Modules/ModuleInterface.h"
+#include "Components.h"
 #include "SkeletalMeshTypes.h"
 #include "Engine/MeshMerging.h"
+
+class UMeshComponent;
+class USkeletalMesh;
+class UStaticMesh;
+class UStaticMeshComponent;
+struct FFlattenMaterial;
+struct FRawMesh;
+struct FStaticMeshLODResources;
 
 typedef FIntPoint FMeshIdAndLOD;
 struct FFlattenMaterial;

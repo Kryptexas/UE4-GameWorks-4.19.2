@@ -1,12 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidOutputDevices.cpp: Android implementations of OutputDevices functions
 =============================================================================*/
 
-
-#include "CorePrivatePCH.h"
+#include "AndroidOutputDevices.h"
 #include "AndroidPlatformOutputDevicesPrivate.h"
+#include "OutputDeviceHelper.h"
+#include "CoreGlobals.h"
+#include "UnrealString.h"
+#include "HAL/OutputDevices.h"
+#include "Misc/OutputDeviceRedirector.h"
 
 class FOutputDeviceError* FAndroidOutputDevices::GetError()
 {

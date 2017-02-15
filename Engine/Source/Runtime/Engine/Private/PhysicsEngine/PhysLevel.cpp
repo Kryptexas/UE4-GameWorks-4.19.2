@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "Misc/CommandLine.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/UObjectGlobals.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineDefines.h"
+#include "Engine/World.h"
 #include "PhysicsPublic.h"
-#include "ParticleDefinitions.h"
-#include "PrecomputedLightVolume.h"
 
 #if WITH_PHYSX
-	#include "PhysXSupport.h"
+	#include "PhysicsEngine/PhysXSupport.h"
 #endif
 
 #if WITH_BOX2D
@@ -21,6 +27,11 @@
 
 FPhysCommandHandler * GPhysCommandHandler = NULL;
 FDelegateHandle GPreGarbageCollectDelegateHandle;
+
+FPhysicsDelegates::FOnUpdatePhysXMaterial FPhysicsDelegates::OnUpdatePhysXMaterial;
+FPhysicsDelegates::FOnPhysicsAssetChanged FPhysicsDelegates::OnPhysicsAssetChanged;
+FPhysicsDelegates::FOnPhysSceneInit FPhysicsDelegates::OnPhysSceneInit;
+FPhysicsDelegates::FOnPhysSceneTerm FPhysicsDelegates::OnPhysSceneTerm;
 
 // CVars
 static TAutoConsoleVariable<float> CVarToleranceScaleLength(
@@ -293,9 +304,6 @@ void InitGamePhys()
 
 	// Init Extensions
 	PxInitExtensions(*GPhysXSDK, GPhysXVisualDebugger);
-#if WITH_VEHICLE
-	PxInitVehicleSDK(*GPhysXSDK);
-#endif
 
 	if (CVarUseUnifiedHeightfield.GetValueOnGameThread())
 	{
@@ -500,7 +508,6 @@ void TermGamePhys()
 	if (GPhysXSDK != NULL)
 	{
 		PxCloseExtensions();
-		PxCloseVehicleSDK();
 	}
 
 	if(GPhysXSDK != NULL)

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2725188
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title: 애니메이션 컴포짓
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -69,9 +69,27 @@ version: 4.9
 합성한 이후 애니메이션 컴포짓은 [애니메이션 블루프린트](Engine\Animation\AnimBlueprints) 의 애님 그래프에서 하나의 [애니메이션 시퀀스](Engine\Animation\Sequences) 처럼 취급됩니다.
 
 ![](PlayComposite.png)
+
 [REGION:note]
 **애니메이션 블루프린트** 에서의 애니메이션 재생 관련 상세 정보는 [](Engine/Animation/Sequences/UserGuide) 문서를 참고하시기 바랍니다.
 [/REGION]
+
+하나의 애님 컴포짓을 다른 애님 컴포짓 안에 또는 [**애님 몽타주**](Engine/Animation/AnimMontage) 안에 넣을 수도 있습니다.
+
+아래는 애님 몽타주 안에 애님 몽타주를 하나 더 만든 모습입니다.
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+qm0KEa8K1A8
+[/PARAMLITERAL]
+[/OBJECT]
+
 
 
 ## 애님 애셋 디테일

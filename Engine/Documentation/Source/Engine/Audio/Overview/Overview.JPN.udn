@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3038387
+﻿INTSourceChangelist:3148741
 Availability:Public
 Title:オーディオ システムの概要
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -170,6 +170,8 @@ Dialogue Wave アセットは、**Sound Cue Editor** 内で Dialogue Player ノ�
 
 Dialogue Contexts に加えて、**Mature** フィルタを適用することができます。**Mature** フィルタは、年齢制限のあるアダルト コンテンツを含む旨をダイアログにフラグ付けします。**Script** で、**Spoken Text** セクション内でアタッチされたオーディオで話されているテキストを入力することができます。 
 翻訳目的またはボイスアクタへの注記のためにオーディオの状況に応じた情報を **Voice Actor Direction** セクションに入力することもできます。 
+
+詳細は、[](Engine/Audio/Dialogue) の例を参照してください。
 
 
 ## 戦略

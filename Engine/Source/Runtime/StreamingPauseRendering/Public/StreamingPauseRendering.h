@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Engine.h"
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Engine/Engine.h"
 
+class FBackgroundView;
+class FSceneViewport;
+class SViewport;
 
 /** 
  * Module handling default behavior for streaming pause rendering. 
@@ -49,4 +53,10 @@ public:
 
 	/** Delegate providing default functionality for ending streaming pause. */
 	FEndStreamingPauseDelegate EndDelegate;
+
+	/**
+	 * If a movie was started by BeginStreamingPause.  
+	 * This could be false if a movie was already playing when BeginStreamingPause was called
+	 */
+	bool bMovieWasStarted;
 };

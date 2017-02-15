@@ -1,8 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "WidgetLayoutLibrary.generated.h"
+
+class APlayerController;
+class UCanvasPanelSlot;
+class UGridSlot;
+class UHorizontalBoxSlot;
+class UOverlaySlot;
+class UUniformGridSlot;
+class UVerticalBoxSlot;
+class UWidget;
 
 UCLASS()
 class UMG_API UWidgetLayoutLibrary : public UBlueprintFunctionLibrary
@@ -35,6 +47,11 @@ public:
 	 */
 	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Viewport", meta=( WorldContext="WorldContextObject" ))
 	static float GetViewportScale(UObject* WorldContextObject);
+
+	/**
+	 * Gets the current DPI Scale being applied to the viewport and all the Widgets.
+	 */
+	static float GetViewportScale(class UGameViewportClient* ViewportClient);
 
 	/**
 	 * Gets the size of the game viewport.

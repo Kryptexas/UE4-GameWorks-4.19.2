@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PopupMethodReply.h"
+#include "CoreMinimal.h"
+#include "Layout/SlateRect.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Input/NavigationReply.h"
+#include "Input/PopupMethodReply.h"
 
-struct FVector2D;
-class FSlateRect;
-enum class EPopupMethod : uint8;
+class FSlateInstanceBufferUpdate;
+class FWidgetStyle;
+class SWidget;
+struct Rect;
 
 #define SLATE_USE_32BIT_INDICES !PLATFORM_USES_ES2
 
@@ -44,6 +50,8 @@ namespace ESlateShader
 	const Type LineSegment = 3;
 	/** For completely customized materials.  Makes no assumptions on use*/
 	const Type Custom = 4;
+	/** For post processing passes */
+	const Type PostProcess = 5;
 };
 
 /**

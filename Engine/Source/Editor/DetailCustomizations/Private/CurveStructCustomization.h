@@ -1,13 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class UObject;
-class SCurveEditor;
-class IPropertyHandle;
-class FDetailWidgetRow;
-class IDetailChildrenBuilder;
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "IPropertyTypeCustomization.h"
+#include "PropertyHandle.h"
+#include "Curves/CurveOwnerInterface.h"
+#include "IDetailChildrenBuilder.h"
 
+class FDetailWidgetRow;
+class SCurveEditor;
 struct FRuntimeFloatCurve;
 
 /**
@@ -31,6 +34,7 @@ public:
 	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
 	virtual TArray<FRichCurveEditInfo> GetCurves() override;
 	virtual void ModifyOwner() override;
+	virtual TArray<const UObject*> GetOwners() const override;
 	virtual void MakeTransactional() override;
 	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
 	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) override;

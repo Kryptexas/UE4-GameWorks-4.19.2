@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AnimNode_SkeletalControlBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/AnimNodeBase.h"
 #include "AnimNode_CopyPoseFromMesh.generated.h"
+
+class USkeletalMeshComponent;
+struct FAnimInstanceProxy;
 
 /**
  *	Simple controller to copy a bone's transform to another one.

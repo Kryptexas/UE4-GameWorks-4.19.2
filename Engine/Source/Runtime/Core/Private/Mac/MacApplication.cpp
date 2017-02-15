@@ -1,6 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "CorePrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MacApplication.h"
 #include "MacWindow.h"
@@ -15,6 +13,11 @@
 #include "CocoaThread.h"
 #include "ModuleManager.h"
 #include "CocoaTextView.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/App.h"
+
+#include <IOKit/IOKitLib.h>
+#include <IOKit/graphics/IOGraphicsLib.h>
 
 FMacApplication* MacApplication = nullptr;
 
@@ -30,6 +33,31 @@ extern "C" void MTRegisterContactFrameCallback(void*, MTContactCallbackFunction)
 extern "C" void MTDeviceStart(void*, int);
 extern "C" bool MTDeviceIsBuiltIn(void*);
 #endif
+
+static bool IsAppHighResolutionCapable()
+{
+	SCOPED_AUTORELEASE_POOL;
+
+	static bool bIsAppHighResolutionCapable = false;
+	static bool bInitialized = false;
+
+	if (!bInitialized)
+	{
+		NSDictionary<NSString *,id>* BundleInfo = [[NSBundle mainBundle] infoDictionary];
+		if (BundleInfo)
+		{
+			NSNumber* Value = (NSNumber*)[BundleInfo objectForKey:@"NSHighResolutionCapable"];
+			if (Value)
+			{
+				bIsAppHighResolutionCapable = [Value boolValue];
+			}
+		}
+
+		bInitialized = true;
+	}
+
+	return bIsAppHighResolutionCapable;
+}
 
 FMacApplication* FMacApplication::CreateMacApplication()
 {
@@ -87,6 +115,8 @@ FMacApplication::FMacApplication()
 
 	MouseMovedEventMonitor = [NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event) { DeferEvent(Event); }];
 	EventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSAnyEventMask handler:^(NSEvent* Event) { return HandleNSEvent(Event); }];
+
+	bIsHighDPIModeEnabled = IsAppHighResolutionCapable();
 
 	CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
 
@@ -999,6 +1029,15 @@ void FMacApplication::OnWindowDidMove(TSharedRef<FMacWindow> Window)
 	Window->PositionY = SlatePosition.Y;
 }
 
+void FMacApplication::OnWindowWillResize(TSharedRef<FMacWindow> Window)
+{
+	SCOPED_AUTORELEASE_POOL;
+	
+	// OnResizingWindow flushes the renderer commands which is needed before we start resizing, but also right after that
+	// because window view's drawRect: can be called before Slate has a chance to flush them.
+	MessageHandler->OnResizingWindow(Window);
+}
+
 void FMacApplication::OnWindowDidResize(TSharedRef<FMacWindow> Window, bool bRestoreMouseCursorLocking)
 {
 	SCOPED_AUTORELEASE_POOL;
@@ -1015,10 +1054,6 @@ void FMacApplication::OnWindowDidResize(TSharedRef<FMacWindow> Window, bool bRes
 		Width = FMath::TruncToInt([[Window->GetWindowHandle() screen] frame].size.width * Window->GetDPIScaleFactor());
 		Height = FMath::TruncToInt([[Window->GetWindowHandle() screen] frame].size.height * Window->GetDPIScaleFactor());
 	}
-
-	// OnResizingWindow flushes the renderer commands which is needed before we start resizing, but also right after that
-	// because window view's drawRect: can be called before Slate has a chance to flush them.
-	MessageHandler->OnResizingWindow(Window);
 
 	if (bRestoreMouseCursorLocking)
 	{
@@ -1097,7 +1132,10 @@ void FMacApplication::OnApplicationDidBecomeActive()
 	FApp::SetVolumeMultiplier(1.0f);
 
 	GameThreadCall(^{
-		MessageHandler->OnApplicationActivationChanged(true);
+		if (MacApplication)
+		{
+			MessageHandler->OnApplicationActivationChanged(true);
+		}
 	}, @[ NSDefaultRunLoopMode ], false);
 }
 
@@ -1145,7 +1183,10 @@ void FMacApplication::OnApplicationWillResignActive()
 	FApp::SetVolumeMultiplier(FApp::GetUnfocusedVolumeMultiplier());
 
 	GameThreadCall(^{
-		MessageHandler->OnApplicationActivationChanged(false);
+		if (MacApplication)
+		{
+			MessageHandler->OnApplicationActivationChanged(false);
+		}
 	}, @[ NSDefaultRunLoopMode ], false);
 }
 
@@ -1201,26 +1242,30 @@ void FMacApplication::OnActiveSpaceDidChange()
 
 void FMacApplication::OnCursorLock()
 {
-	NSWindow* NativeWindow = [NSApp keyWindow];
-	if (NativeWindow)
-	{
-		const bool bIsCursorLocked = ((FMacCursor*)Cursor.Get())->IsLocked();
-		if (bIsCursorLocked)
+	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
+		NSWindow* NativeWindow = [NSApp keyWindow];
+		// This block can be called after MacApplication is destroyed
+		if (MacApplication && NativeWindow && Cursor.IsValid())
 		{
-			[NativeWindow setMinSize:NSMakeSize(NativeWindow.frame.size.width, NativeWindow.frame.size.height)];
-			[NativeWindow setMaxSize:NSMakeSize(NativeWindow.frame.size.width, NativeWindow.frame.size.height)];
-		}
-		else
-		{
-			TSharedPtr<FMacWindow> Window = FindWindowByNSWindow((FCocoaWindow*)NativeWindow);
-			if (Window.IsValid())
+			const bool bIsCursorLocked = ((FMacCursor*)Cursor.Get())->IsLocked();
+			if (bIsCursorLocked)
 			{
-				const FGenericWindowDefinition& Definition = Window->GetDefinition();
-				[NativeWindow setMinSize:NSMakeSize(Definition.SizeLimits.GetMinWidth().Get(10.0f), Definition.SizeLimits.GetMinHeight().Get(10.0f))];
-				[NativeWindow setMaxSize:NSMakeSize(Definition.SizeLimits.GetMaxWidth().Get(10000.0f), Definition.SizeLimits.GetMaxHeight().Get(10000.0f))];
+				[NativeWindow setMinSize:NSMakeSize(NativeWindow.frame.size.width, NativeWindow.frame.size.height)];
+				[NativeWindow setMaxSize:NSMakeSize(NativeWindow.frame.size.width, NativeWindow.frame.size.height)];
+			}
+			else
+			{
+				TSharedPtr<FMacWindow> Window = FindWindowByNSWindow((FCocoaWindow*)NativeWindow);
+				if (Window.IsValid())
+				{
+					const FGenericWindowDefinition& Definition = Window->GetDefinition();
+					[NativeWindow setMinSize:NSMakeSize(Definition.SizeLimits.GetMinWidth().Get(10.0f), Definition.SizeLimits.GetMinHeight().Get(10.0f))];
+					[NativeWindow setMaxSize:NSMakeSize(Definition.SizeLimits.GetMaxWidth().Get(10000.0f), Definition.SizeLimits.GetMaxHeight().Get(10000.0f))];
+				}
 			}
 		}
-	}
+	}, NSDefaultRunLoopMode, false);
 }
 
 void FMacApplication::ConditionallyUpdateModifierKeys(const FDeferredMacEvent& Event)
@@ -1318,18 +1363,21 @@ void FMacApplication::UpdateScreensArray()
 		CurScreen->VisibleFrame.origin.y = WholeWorkspace.origin.y + WholeWorkspace.size.height - CurScreen->VisibleFrame.size.height - CurScreen->VisibleFrame.origin.y;
 	}
 
+	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+
 	TArray<TSharedRef<FMacScreen>> SortedScreens;
 
 	for (TSharedRef<FMacScreen> CurScreen : AllScreens)
 	{
+		const float DPIScaleFactor = bUseHighDPIMode ? CurScreen->Screen.backingScaleFactor : 1.0f;
 		CurScreen->FramePixels.origin.x = CurScreen->Frame.origin.x;
 		CurScreen->FramePixels.origin.y = CurScreen->Frame.origin.y;
-		CurScreen->FramePixels.size.width = CurScreen->Frame.size.width * CurScreen->Screen.backingScaleFactor;
-		CurScreen->FramePixels.size.height = CurScreen->Frame.size.height * CurScreen->Screen.backingScaleFactor;
-		CurScreen->VisibleFramePixels.origin.x = CurScreen->Frame.origin.x + (CurScreen->VisibleFrame.origin.x - CurScreen->Frame.origin.x) * CurScreen->Screen.backingScaleFactor;
-		CurScreen->VisibleFramePixels.origin.y = CurScreen->Frame.origin.y + (CurScreen->VisibleFrame.origin.y - CurScreen->Frame.origin.y) * CurScreen->Screen.backingScaleFactor;
-		CurScreen->VisibleFramePixels.size.width = CurScreen->VisibleFrame.size.width * CurScreen->Screen.backingScaleFactor;
-		CurScreen->VisibleFramePixels.size.height = CurScreen->VisibleFrame.size.height * CurScreen->Screen.backingScaleFactor;
+		CurScreen->FramePixels.size.width = CurScreen->Frame.size.width * DPIScaleFactor;
+		CurScreen->FramePixels.size.height = CurScreen->Frame.size.height * DPIScaleFactor;
+		CurScreen->VisibleFramePixels.origin.x = CurScreen->Frame.origin.x + (CurScreen->VisibleFrame.origin.x - CurScreen->Frame.origin.x) * DPIScaleFactor;
+		CurScreen->VisibleFramePixels.origin.y = CurScreen->Frame.origin.y + (CurScreen->VisibleFrame.origin.y - CurScreen->Frame.origin.y) * DPIScaleFactor;
+		CurScreen->VisibleFramePixels.size.width = CurScreen->VisibleFrame.size.width * DPIScaleFactor;
+		CurScreen->VisibleFramePixels.size.height = CurScreen->VisibleFrame.size.height * DPIScaleFactor;
 
 		SortedScreens.Add(CurScreen);
 	}
@@ -1339,13 +1387,14 @@ void FMacApplication::UpdateScreensArray()
 	for (int32 Index = 0; Index < SortedScreens.Num(); ++Index)
 	{
 		TSharedRef<FMacScreen> CurScreen = SortedScreens[Index];
-		if (CurScreen->Screen.backingScaleFactor != 1.0f)
+		const float DPIScaleFactor = bUseHighDPIMode ? CurScreen->Screen.backingScaleFactor : 1.0f;
+		if (DPIScaleFactor != 1.0f)
 		{
 			for (int32 OtherIndex = Index + 1; OtherIndex < SortedScreens.Num(); ++OtherIndex)
 			{
 				TSharedRef<FMacScreen> OtherScreen = SortedScreens[OtherIndex];
-				const float DiffFrame = (OtherScreen->Frame.origin.x - CurScreen->Frame.origin.x) * CurScreen->Screen.backingScaleFactor;
-				const float DiffVisibleFrame = (OtherScreen->VisibleFrame.origin.x - CurScreen->VisibleFrame.origin.x) * CurScreen->Screen.backingScaleFactor;
+				const float DiffFrame = (OtherScreen->Frame.origin.x - CurScreen->Frame.origin.x) * DPIScaleFactor;
+				const float DiffVisibleFrame = (OtherScreen->VisibleFrame.origin.x - CurScreen->VisibleFrame.origin.x) * DPIScaleFactor;
 				OtherScreen->FramePixels.origin.x = CurScreen->Frame.origin.x + DiffFrame;
 				OtherScreen->VisibleFramePixels.origin.x = CurScreen->VisibleFrame.origin.x + DiffVisibleFrame;
 			}
@@ -1357,13 +1406,14 @@ void FMacApplication::UpdateScreensArray()
 	for (int32 Index = 0; Index < SortedScreens.Num(); ++Index)
 	{
 		TSharedRef<FMacScreen> CurScreen = SortedScreens[Index];
-		if (CurScreen->Screen.backingScaleFactor != 1.0f)
+		const float DPIScaleFactor = bUseHighDPIMode ? CurScreen->Screen.backingScaleFactor : 1.0f;
+		if (DPIScaleFactor != 1.0f)
 		{
 			for (int32 OtherIndex = Index + 1; OtherIndex < SortedScreens.Num(); ++OtherIndex)
 			{
 				TSharedRef<FMacScreen> OtherScreen = SortedScreens[OtherIndex];
-				const float DiffFrame = (OtherScreen->Frame.origin.y - CurScreen->Frame.origin.y) * CurScreen->Screen.backingScaleFactor;
-				const float DiffVisibleFrame = (OtherScreen->VisibleFrame.origin.y - CurScreen->VisibleFrame.origin.y) * CurScreen->Screen.backingScaleFactor;
+				const float DiffFrame = (OtherScreen->Frame.origin.y - CurScreen->Frame.origin.y) * DPIScaleFactor;
+				const float DiffVisibleFrame = (OtherScreen->VisibleFrame.origin.y - CurScreen->VisibleFrame.origin.y) * DPIScaleFactor;
 				OtherScreen->FramePixels.origin.y = CurScreen->Frame.origin.y + DiffFrame;
 				OtherScreen->VisibleFramePixels.origin.y = CurScreen->VisibleFrame.origin.y + DiffVisibleFrame;
 			}
@@ -1404,10 +1454,11 @@ FVector2D FMacApplication::CalculateScreenOrigin(NSScreen* Screen)
 	return FVector2D(ScreenFrame.origin.x, WholeWorkspace.size.height - ScreenFrame.size.height - ScreenFrame.origin.y);
 }
 
-int32 FMacApplication::GetPrimaryScreenBackingScaleFactor()
+float FMacApplication::GetPrimaryScreenBackingScaleFactor()
 {
 	FScopeLock Lock(&GAllScreensMutex);
-	return (int32)AllScreens[0]->Screen.backingScaleFactor;
+	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+	return bUseHighDPIMode ? AllScreens[0]->Screen.backingScaleFactor : 1.0f;
 }
 
 TSharedRef<FMacScreen> FMacApplication::FindScreenBySlatePosition(float X, float Y)
@@ -1451,21 +1502,27 @@ TSharedRef<FMacScreen> FMacApplication::FindScreenByCocoaPosition(float X, float
 FVector2D FMacApplication::ConvertSlatePositionToCocoa(float X, float Y)
 {
 	TSharedRef<FMacScreen> Screen = FindScreenBySlatePosition(X, Y);
-	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Screen->FramePixels.origin.y + Screen->FramePixels.size.height - Y) / Screen->Screen.backingScaleFactor;
+	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+	const float DPIScaleFactor = bUseHighDPIMode ? Screen->Screen.backingScaleFactor : 1.0f;
+	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Screen->FramePixels.origin.y + Screen->FramePixels.size.height - Y) / DPIScaleFactor;
 	return FVector2D(Screen->Screen.frame.origin.x + OffsetOnScreen.X, Screen->Screen.frame.origin.y + OffsetOnScreen.Y);
 }
 
 FVector2D FMacApplication::ConvertCocoaPositionToSlate(float X, float Y)
 {
 	TSharedRef<FMacScreen> Screen = FindScreenByCocoaPosition(X, Y);
-	const FVector2D OffsetOnScreen = FVector2D(X - Screen->Screen.frame.origin.x, Screen->Screen.frame.origin.y + Screen->Screen.frame.size.height - Y) * Screen->Screen.backingScaleFactor;
+	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+	const float DPIScaleFactor = bUseHighDPIMode ? Screen->Screen.backingScaleFactor : 1.0f;
+	const FVector2D OffsetOnScreen = FVector2D(X - Screen->Screen.frame.origin.x, Screen->Screen.frame.origin.y + Screen->Screen.frame.size.height - Y) * DPIScaleFactor;
 	return FVector2D(Screen->FramePixels.origin.x + OffsetOnScreen.X, Screen->FramePixels.origin.y + OffsetOnScreen.Y);
 }
 
 CGPoint FMacApplication::ConvertSlatePositionToCGPoint(float X, float Y)
 {
 	TSharedRef<FMacScreen> Screen = FindScreenBySlatePosition(X, Y);
-	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Y - Screen->FramePixels.origin.y) / Screen->Screen.backingScaleFactor;
+	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+	const float DPIScaleFactor = bUseHighDPIMode ? Screen->Screen.backingScaleFactor : 1.0f;
+	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Y - Screen->FramePixels.origin.y) / DPIScaleFactor;
 	return CGPointMake(Screen->Frame.origin.x + OffsetOnScreen.X, Screen->Frame.origin.y + OffsetOnScreen.Y);
 }
 
@@ -1665,24 +1722,91 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 	const TArray<TSharedRef<FMacScreen>>& AllScreens = FMacApplication::GetAllScreens();
 	TSharedRef<FMacScreen> PrimaryScreen = AllScreens[0];
 
-	NSRect ScreenFrame = PrimaryScreen->FramePixels;
-	NSRect VisibleFrame = PrimaryScreen->VisibleFramePixels;
+	const NSRect ScreenFrame = PrimaryScreen->FramePixels;
+	const NSRect VisibleFrame = PrimaryScreen->VisibleFramePixels;
 
 	// Total screen size of the primary monitor
 	OutDisplayMetrics.PrimaryDisplayWidth = ScreenFrame.size.width;
 	OutDisplayMetrics.PrimaryDisplayHeight = ScreenFrame.size.height;
 
-	// Virtual desktop area
+	OutDisplayMetrics.MonitorInfo.Empty();
+
 	NSRect WholeWorkspace = {{0,0},{0,0}};
 	for (TSharedRef<FMacScreen> Screen : AllScreens)
 	{
 		WholeWorkspace = NSUnionRect(WholeWorkspace, Screen->FramePixels);
+
+		NSDictionary* ScreenDesc = Screen->Screen.deviceDescription;
+		const CGDirectDisplayID DisplayID = [[ScreenDesc objectForKey:@"NSScreenNumber"] unsignedIntegerValue];
+
+		FMonitorInfo Info;
+		Info.ID = FString::Printf(TEXT("%u"), DisplayID);
+		Info.NativeWidth = CGDisplayPixelsWide(DisplayID);
+		Info.NativeHeight = CGDisplayPixelsHigh(DisplayID);
+		Info.DisplayRect = FPlatformRect(Screen->FramePixels.origin.x, Screen->FramePixels.origin.y, Screen->FramePixels.origin.x + Screen->FramePixels.size.width, Screen->FramePixels.origin.y + Screen->FramePixels.size.height);
+		Info.WorkArea = FPlatformRect(Screen->VisibleFramePixels.origin.x, Screen->VisibleFramePixels.origin.y, Screen->VisibleFramePixels.origin.x + Screen->VisibleFramePixels.size.width, Screen->VisibleFramePixels.origin.y + Screen->VisibleFramePixels.size.height);
+		Info.bIsPrimary = Screen->Screen == [NSScreen mainScreen];
+
+		// Monitor's name can only be obtained from IOKit
+		io_iterator_t IOIterator;
+		kern_return_t Result = IOServiceGetMatchingServices(kIOMasterPortDefault, IOServiceMatching("IODisplayConnect"), &IOIterator);
+		if (Result == kIOReturnSuccess)
+		{
+			io_object_t Device;
+			while ((Device = IOIteratorNext(IOIterator)))
+			{
+				CFDictionaryRef Dictionary = IODisplayCreateInfoDictionary(Device, kIODisplayOnlyPreferredName);
+				if (Dictionary)
+				{
+					const uint32 VendorID = [(__bridge NSNumber*)CFDictionaryGetValue(Dictionary, CFSTR(kDisplayVendorID)) unsignedIntegerValue];
+					const uint32 ProductID = [(__bridge NSNumber*)CFDictionaryGetValue(Dictionary, CFSTR(kDisplayProductID)) unsignedIntegerValue];
+					const uint32 SerialNumber = [(__bridge NSNumber*)CFDictionaryGetValue(Dictionary, CFSTR(kDisplaySerialNumber)) unsignedIntegerValue];
+
+					if (VendorID == CGDisplayVendorNumber(DisplayID) && ProductID == CGDisplayModelNumber(DisplayID) && SerialNumber == CGDisplaySerialNumber(DisplayID))
+					{
+						NSDictionary* NamesDictionary = (__bridge NSDictionary*)CFDictionaryGetValue(Dictionary, CFSTR(kDisplayProductName));
+						if (NamesDictionary && NamesDictionary.count > 0)
+						{
+							Info.Name = (NSString*)[NamesDictionary objectForKey:[NamesDictionary.allKeys objectAtIndex:0]];
+							CFRelease(Dictionary);
+							IOObjectRelease(Device);
+							break;
+						}
+					}
+
+					CFRelease(Dictionary);
+				}
+
+				IOObjectRelease(Device);
+			}
+
+			IOObjectRelease(IOIterator);
+		}
+
+		OutDisplayMetrics.MonitorInfo.Add(Info);
 	}
+
+						// Now that we have the whole workspace rect calculated, we can fix DisplayRect's and WorkArea's top and bottom coordinates
+						//
+						// IMPORTANT!
+						// The following code should not be merged to //UE4/Main. FMacScreen-related code was heavily modified as part of work on high-DPI support
+						// and Info.DisplayRect and Info.WorkArea in //UE4/Main already have the origin in top-left corner, so they don't need this.
+						//
+/********************/	for (FMonitorInfo& Info : OutDisplayMetrics.MonitorInfo)
+/*					*/	{
+/* DO NOT MERGE		*/		Info.DisplayRect.Top = WholeWorkspace.size.height - (Info.DisplayRect.Top + Info.DisplayRect.Bottom);
+/* TO //UE4/Main	*/		Info.DisplayRect.Bottom += Info.DisplayRect.Top;
+/* See comment		*/		Info.WorkArea.Top = WholeWorkspace.size.height - (Info.WorkArea.Top + Info.WorkArea.Bottom);
+/*					*/		Info.WorkArea.Bottom += Info.WorkArea.Top;
+/********************/	}
+
+
+	// Virtual desktop area
 	OutDisplayMetrics.VirtualDisplayRect.Left = WholeWorkspace.origin.x;
 	OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min(WholeWorkspace.origin.y, 0.0);
 	OutDisplayMetrics.VirtualDisplayRect.Right = WholeWorkspace.origin.x + WholeWorkspace.size.width;
 	OutDisplayMetrics.VirtualDisplayRect.Bottom = WholeWorkspace.size.height + OutDisplayMetrics.VirtualDisplayRect.Top;
-	
+
 	// Get the screen rect of the primary monitor, excluding taskbar etc.
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = VisibleFrame.origin.x;
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = VisibleFrame.origin.y;

@@ -1,13 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DynamicMeshBuilder.cpp: Dynamic mesh builder implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "DynamicMeshBuilder.h"
-#include "ResourcePool.h"
+#include "RenderingThread.h"
+#include "RenderResource.h"
+#include "UniformBuffer.h"
+#include "VertexFactory.h"
+#include "MeshBatch.h"
+#include "SceneManagement.h"
 #include "LocalVertexFactory.h"
+#include "ResourcePool.h"
 
 class FGlobalDynamicMeshPoolPolicy
 {

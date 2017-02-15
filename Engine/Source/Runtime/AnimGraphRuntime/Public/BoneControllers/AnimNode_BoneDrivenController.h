@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AnimNode_SkeletalControlBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "BoneContainer.h"
+#include "BonePose.h"
+#include "BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "AnimNode_BoneDrivenController.generated.h"
+
+class UCurveFloat;
+class USkeletalMeshComponent;
 
 // Evaluation of the bone transforms relies on the size and ordering of this
 // enum, if this needs to change make sure EvaluateBoneTransforms is updated.

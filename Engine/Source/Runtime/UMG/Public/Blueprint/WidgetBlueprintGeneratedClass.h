@@ -1,16 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Binding/DynamicPropertyPath.h"
 #include "Engine/BlueprintGeneratedClass.h"
-#include "DynamicPropertyPath.h"
 
 #include "WidgetBlueprintGeneratedClass.generated.h"
 
-class UMovieScene;
-class UStructProperty;
 class UUserWidget;
 class UWidgetAnimation;
+class UWidgetTree;
 
 UENUM()
 enum class EBindingKind : uint8
@@ -81,6 +82,7 @@ public:
 public:
 
 	virtual void PostLoad() override;
+	virtual bool NeedsLoadForServer() const override;
 
 	/**
 	 * This is the function that makes UMG work.  Once a user widget is constructed, it will post load

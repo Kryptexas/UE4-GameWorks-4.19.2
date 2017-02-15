@@ -1,7 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneBoolSection.h"
+#include "Sections/MovieSceneBoolSection.h"
 
 
 UMovieSceneBoolSection::UMovieSceneBoolSection( const FObjectInitializer& ObjectInitializer )
@@ -90,9 +89,10 @@ void UMovieSceneBoolSection::AddKey( float Time, const bool& Value, EMovieSceneK
 
 void UMovieSceneBoolSection::SetDefault( const bool& Value )
 {
-	if (TryModify())
+	uint8 NewValue = Value ? 1 : 0;
+	if (BoolCurve.GetDefaultValue() != NewValue && TryModify())
 	{
-		BoolCurve.SetDefaultValue(Value ? 1 : 0);
+		BoolCurve.SetDefaultValue(NewValue);
 	}
 }
 

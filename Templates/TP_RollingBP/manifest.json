@@ -37,7 +37,7 @@
 			"DetailLevels":
 			[
 				"Standard",
-				"High",
+				"High"
 			]
 		},
 		{
@@ -45,9 +45,9 @@
 			"DetailLevels":
 			[
 				"Standard",
-				"High",
+				"High"
 			]
-		},
+		}
 	],
 	"AssetTypes":
 	[
@@ -73,8 +73,8 @@
 		{
 			"Language": "ko",
 			"Text": "굴리기,마블"
-		},
-	],	
+		}
+	],
 	"ClassTypes": "GameMode, Pawn, StaticMeshComponent, SpringArmComponent, CameraComponent, PrimitiveComponent",
 	"Category": "BlueprintFeature",
 	"FocusAsset": "/Game/RollingBP/RollingOverview.RollingOverview",

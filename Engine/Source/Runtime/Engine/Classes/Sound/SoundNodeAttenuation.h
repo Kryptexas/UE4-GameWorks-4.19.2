@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
  
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Sound/SoundAttenuation.h"
 #include "Sound/SoundNode.h"
-#include "SoundAttenuation.h"
 #include "SoundNodeAttenuation.generated.h"
 
-struct FAttenuationSettings;
-class USoundAttenuation;
+struct FActiveSound;
+struct FSoundParseParameters;
+struct FWaveInstance;
 
 /** 
  * Defines how a sound's volume changes based on distance to the listener
@@ -21,7 +25,7 @@ class USoundNodeAttenuation : public USoundNode
 	USoundAttenuation* AttenuationSettings;
 
 	UPROPERTY(EditAnywhere, Category=Attenuation, meta=(EditCondition="bOverrideAttenuation"))
-	FAttenuationSettings AttenuationOverrides;
+	FSoundAttenuationSettings AttenuationOverrides;
 
 	UPROPERTY(EditAnywhere, Category=Attenuation)
 	uint32 bOverrideAttenuation:1;
@@ -32,7 +36,7 @@ public:
 	virtual float MaxAudibleDistance( float CurrentMaxDistance ) override;
 	//~ End USoundNode Interface. 
 
-	ENGINE_API FAttenuationSettings* GetAttenuationSettingsToApply();
+	ENGINE_API FSoundAttenuationSettings* GetAttenuationSettingsToApply();
 };
 
 

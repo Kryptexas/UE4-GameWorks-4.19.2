@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3032506
+﻿INTSourceChangelist:3151861
 Availability: Docs
 Title: 1.5 - 디폴트 게임 모드 설정
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
@@ -55,14 +55,14 @@ Version: 4.11
 			
 			#pragma once
 			
-			#include "GameFramework/GameMode.h"
+			#include "GameFramework/GameModeBase.h"
 			#include "FPSGameMode.generated.h"
 			
 			/**
 			 * 
 			 */
 			UCLASS()
-			class FPSPROJECT_API AFPSProjectGameMode : public AGameMode
+			class FPSPROJECT_API AFPSProjectGameMode : public AGameModeBase
 			{
 				GENERATED_BODY()
 

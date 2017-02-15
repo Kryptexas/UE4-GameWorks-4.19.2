@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Engine/StaticMesh.h"
 #include "RawMesh.h"
 #include "PhysicsEngine/AggregateGeom.h"
-#include "Engine/StaticMesh.h"
 
 /** Structure holding intermediate mesh merging data that is used throughout the mesh merging and proxy creation processes */
 struct FMeshMergeData

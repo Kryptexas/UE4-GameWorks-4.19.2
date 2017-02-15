@@ -1,13 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "../WmfMediaPrivate.h"
+#include "WmfMediaPlayer.h"
 #include "IMediaPlayer.h"
 #include "IMediaTracks.h"
 #include "IWmfMediaResolverCallbacks.h"
 #include "WmfMediaTracks.h"
-#include "AllowWindowsPlatformTypes.h"
+#include "Containers/Ticker.h"
+#include "Containers/Queue.h"
 
+#if WMFMEDIA_SUPPORTED_PLATFORM
+
+#include "AllowWindowsPlatformTypes.h"
 
 class FWmfMediaResolver;
 class FWmfMediaSession;
@@ -20,8 +26,7 @@ class IMediaTracks;
  * Implements a media player using the Windows Media Foundation framework.
  */
 class FWmfMediaPlayer
-	: public FTickerObjectBase
-	, public IMediaPlayer
+	: public IMediaPlayer
 	, protected IWmfMediaResolverCallbacks
 {
 public:
@@ -31,12 +36,6 @@ public:
 
 	/** Destructor. */
 	~FWmfMediaPlayer();
-
-public:
-
-	//~ FTickerObjectBase interface
-
-	virtual bool Tick(float DeltaTime) override;
 
 public:
 
@@ -52,6 +51,8 @@ public:
 	virtual FString GetUrl() const override;
 	virtual bool Open(const FString& Url, const IMediaOptions& Options) override;
 	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions& Options) override;
+	virtual void TickPlayer(float DeltaTime) override;
+	virtual void TickVideo(float DeltaTime) override;
 	
 	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnMediaEvent, FOnMediaEvent);
 	virtual FOnMediaEvent& OnMediaEvent() override
@@ -90,8 +91,8 @@ private:
 	/** Media information string. */
 	FString Info;
 
-	/** Asynchronous tasks for the game thread. */
-	TQueue<TFunction<void()>> GameThreadTasks;
+	/** Tasks to execute on the player thread. */
+	TQueue<TFunction<void()>> PlayerTasks;
 
 	/** Event delegate that is invoked when a media event occurred. */
 	FOnMediaEvent MediaEvent;
@@ -114,3 +115,5 @@ private:
 
 
 #include "HideWindowsPlatformTypes.h"
+
+#endif

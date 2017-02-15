@@ -1,9 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "Commandlets/NativeCodeGenCommandlet.h"
+#include "Misc/Paths.h"
 
 #include "BlueprintNativeCodeGenModule.h"
-#include "Commandlets/NativeCodeGenCommandlet.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogNativeCodeGenCommandletCommandlet, Log, All);
 
@@ -23,12 +23,17 @@ int32 UNativeCodeGenCommandlet::Main(const FString& Params)
 		return 0;
 	}
 
-	TArray< TPair< FString, FString > > CodeGenTargets;
+	TArray<FPlatformNativizationDetails> CodeGenTargets;
 	{
 		for (auto& Platform : Platforms)
 		{
+			FPlatformNativizationDetails PlatformNativizationDetails;
+			PlatformNativizationDetails.PlatformName = Platform;
 			// If you change this target path you must also update logic in CookCommand.Automation.CS. Passing a single directory around is cumbersome for testing, so I have hard coded it.
-			CodeGenTargets.Push(TPairInitializer<FString, FString>(Platform, FString(FPaths::Combine(*FPaths::GameIntermediateDir(), *Platform))));
+			PlatformNativizationDetails.PlatformTargetDirectory = FString(FPaths::Combine(*FPaths::GameIntermediateDir(), *Platform));
+			// CompilerNativizationOptions will be serialized from saved manifest
+
+			CodeGenTargets.Push(PlatformNativizationDetails);
 		}
 	}
 

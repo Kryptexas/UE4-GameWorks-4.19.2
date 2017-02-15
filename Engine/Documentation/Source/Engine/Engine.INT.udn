@@ -5,74 +5,11 @@ Description:Complete guide to using the tools and systems that make up Unreal En
 Navigation:topic
 parent:%ROOT%
 order:3
+topic-image:Engine/Rendering/rendering_topic.png
+topic-icon:%ROOT%/docs_icon.png
+type:landing
 
-[VAR:Params]
-[PARAM:image]
-	![%Engine:title%](Engine/Rendering/rendering_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/docs_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Engine:title%
-[/PARAM]
-[PARAM:description]
-	%Engine:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Engine]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine:title%](Engine/Rendering/rendering_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/docs_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine:title%](Engine/Rendering/rendering_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/docs_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-engine
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
 
 ## Browse Topics
 
-[DIR(end:"1" output:"topiccompact" parent:"Engine" org:"hierarchy")]
+[DIR(end:"1" output:"topiccompact" parent:"Engine")]

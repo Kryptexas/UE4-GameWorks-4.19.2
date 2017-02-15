@@ -1,8 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
+#include "Rendering/SlateLayoutTransform.h"
+#include "Layout/Geometry.h"
+#include "Widgets/SNullWidget.h"
+#include "Layout/ArrangedWidget.h"
 #include "AssetData.h"
+
+class FJsonValue;
+class FWidgetPath;
+class SWidget;
 
 /**
  * Enum used as crude RTTI for the widget reflector node types

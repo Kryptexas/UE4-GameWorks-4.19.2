@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "ReflectionMetadata.h"
+#include "Rendering/DrawElements.h"
+#include "Application/SlateApplicationBase.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SWindow.h"
 
 DECLARE_CYCLE_STAT(TEXT("FSlateDrawElement::Make Time"), STAT_SlateDrawElementMakeTime, STATGROUP_SlateVerbose);
+DECLARE_CYCLE_STAT(TEXT("FSlateDrawElement::MakeCustomVerts Time"), STAT_SlateDrawElementMakeCustomVertsTime, STATGROUP_Slate);
 
 DEFINE_STAT(STAT_SlateBufferPoolMemory);
 
@@ -41,6 +44,13 @@ void FSlateDrawElement::Init(uint32 InLayer, const FPaintGeometry& PaintGeometry
 	DrawEffects = InDrawEffects;
 	extern SLATECORE_API TOptional<FShortRect> GSlateScissorRect;
 	ScissorRect = GSlateScissorRect;
+
+	// Like GSlateScissorRect above, this is a workaround because we want to keep track of the various Scenes 
+	// in use throughout the UI. We keep a synchronized set with the render thread on the SlateRenderer and 
+	// use indices to synchronize between them.
+	TSharedPtr<FSlateRenderer> Renderer = FSlateApplicationBase::Get().GetRenderer();
+	check(Renderer.IsValid());
+	SceneIndex = Renderer->GetCurrentSceneIndex();
 
 	DataPayload.BatchFlags = ESlateBatchDrawFlag::None;
 	if ( InDrawEffects & ESlateDrawEffect::NoBlending )
@@ -204,16 +214,18 @@ void FSlateDrawElement::MakeDrawSpaceSpline( FSlateWindowElementList& ElementLis
 	MakeSpline( ElementList, InLayer, FPaintGeometry(), InStart, InStartDir, InEnd, InEndDir, InClippingRect, InThickness, InDrawEffects, InTint );
 }
 
-void FSlateDrawElement::MakeDrawSpaceGradientSpline( FSlateWindowElementList& ElementList, uint32 InLayer, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, const TArray<FSlateGradientStop>& InGradientStops, float InThickness, ESlateDrawEffect::Type InDrawEffects )
+
+void FSlateDrawElement::MakeDrawSpaceGradientSpline(FSlateWindowElementList& ElementList, uint32 InLayer, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, const TArray<FSlateGradientStop>& InGradientStops, float InThickness, ESlateDrawEffect::Type InDrawEffects)
 {
-	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
+	SCOPE_CYCLE_COUNTER(STAT_SlateDrawElementMakeTime)
 	const FPaintGeometry PaintGeometry;
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Spline;
-	DrawElt.DataPayload.SetGradientSplinePayloadProperties( InStart, InStartDir, InEnd, InEndDir, InThickness, InGradientStops );
+	DrawElt.DataPayload.SetGradientSplinePayloadProperties(InStart, InStartDir, InEnd, InEndDir, InThickness, InGradientStops);
 }
+
 
 void FSlateDrawElement::MakeLines(FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const TArray<FVector2D>& Points, const FSlateRect InClippingRect, ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint, bool bAntialias, float Thickness)
 {
@@ -251,6 +263,7 @@ void FSlateDrawElement::MakeCustom( FSlateWindowElementList& ElementList, uint32
 void FSlateDrawElement::MakeCustomVerts(FSlateWindowElementList& ElementList, uint32 InLayer, const FSlateResourceHandle& InRenderResourceHandle, const TArray<FSlateVertex>& InVerts, const TArray<SlateIndex>& InIndexes, ISlateUpdatableInstanceBuffer* InInstanceData, uint32 InInstanceOffset, uint32 InNumInstances)
 {
 	SCOPE_CYCLE_COUNTER(STAT_SlateDrawElementMakeTime)
+	SCOPE_CYCLE_COUNTER(STAT_SlateDrawElementMakeCustomVertsTime)
 
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, FPaintGeometry(),/*Clip rect is ignored*/ FSlateRect(1,1,1,1), ESlateDrawEffect::None);
@@ -284,6 +297,17 @@ void FSlateDrawElement::MakeLayer(FSlateWindowElementList& ElementList, uint32 I
 	DrawElt.DataPayload.SetLayerPayloadProperties(DrawLayerHandle.Get());
 }
 
+void FSlateDrawElement::MakePostProcessPass(FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect, const FVector4& Params, int32 DownsampleAmount)
+{
+	SCOPE_CYCLE_COUNTER(STAT_SlateDrawElementMakeTime)
+
+	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, ESlateDrawEffect::None);
+	DrawElt.ElementType = ET_PostProcessPass;
+	DrawElt.DataPayload.DownsampleAmount = DownsampleAmount;
+	DrawElt.DataPayload.PostProcessData = Params;
+}
+
 FVector2D FSlateDrawElement::GetRotationPoint(const FPaintGeometry& PaintGeometry, const TOptional<FVector2D>& UserRotationPoint, ERotationSpace RotationSpace)
 {
 	FVector2D RotationPoint(0, 0);
@@ -292,17 +316,17 @@ FVector2D FSlateDrawElement::GetRotationPoint(const FPaintGeometry& PaintGeometr
 
 	switch (RotationSpace)
 	{
-	case RelativeToElement:
-	{
-		// If the user did not specify a rotation point, we rotate about the center of the element
-		RotationPoint = UserRotationPoint.Get(LocalSize * 0.5f);
-	}
+		case RelativeToElement:
+		{
+			// If the user did not specify a rotation point, we rotate about the center of the element
+			RotationPoint = UserRotationPoint.Get(LocalSize * 0.5f);
+		}
 		break;
-	case RelativeToWorld:
-	{
-		// its in world space, must convert the point to local space.
-		RotationPoint = TransformPoint(Inverse(PaintGeometry.GetAccumulatedRenderTransform()), UserRotationPoint.Get(FVector2D::ZeroVector));
-	}
+		case RelativeToWorld:
+		{
+			// its in world space, must convert the point to local space.
+			RotationPoint = TransformPoint(Inverse(PaintGeometry.GetAccumulatedRenderTransform()), UserRotationPoint.Get(FVector2D::ZeroVector));
+		}
 		break;
 	default:
 		check(0);
@@ -470,6 +494,10 @@ void FSlateBatchData::Merge(FElementBatchMap& InLayerToElementBatches, uint32& V
 			{
 				AddRenderBatch(Layer, ElementBatch, 0, 0, 0, 0);
 			}
+			else if(ElementBatch.GetShaderType() == ESlateShader::PostProcess)
+			{
+				AddRenderBatch(Layer,ElementBatch, 0, 0, 0, 0);
+			}
 			else
 			{
 				if ( bExpandLayersAndCachedHandles )
@@ -522,7 +550,7 @@ void FSlateBatchData::Merge(FElementBatchMap& InLayerToElementBatches, uint32& V
 					FSlateIndexArray& BatchIndices = GetBatchIndexList(ElementBatch);
 
 					// We should have at least some vertices and indices in the batch or none at all
-					check((BatchVertices.Num() > 0 && BatchIndices.Num() > 0) || (BatchVertices.Num() == 0 && BatchIndices.Num() == 0));
+					check(BatchVertices.Num() > 0 && BatchIndices.Num() > 0 || BatchVertices.Num() == 0 && BatchIndices.Num() == 0);
 
 					if ( BatchVertices.Num() > 0 && BatchIndices.Num() > 0 )
 					{

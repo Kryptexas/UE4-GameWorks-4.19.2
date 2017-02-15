@@ -1,17 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightMap.cpp: Light-map implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "TargetPlatform.h"
-#include "StaticLighting.h"
 #include "LightMap.h"
+#include "UnrealEngine.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "StaticLighting.h"
 #include "Components/InstancedStaticMeshComponent.h"
-#if WITH_EDITOR
-#include "Editor/UnrealEd/Classes/Settings/EditorExperimentalSettings.h"
-#endif
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/Package.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/MapBuildDataRegistry.h"
+
+#define VISUALIZE_PACKING 0
+
 DEFINE_LOG_CATEGORY_STATIC(LogLightMap, Log, All);
 
 FLightmassDebugOptions GLightmassDebugOptions;
@@ -395,7 +401,7 @@ struct FLightMapPendingTexture : public FTextureLayout
 	bool							bTexelDebuggingEnabled;
 
 	FLightMapPendingTexture(UWorld* InWorld, uint32 InSizeX,uint32 InSizeY)
-		: FTextureLayout(4, 4, InSizeX, InSizeY, /* PowerOfTwo */ true, /* AlignByFour */ true) // Min size is 4x4 in case of block compression.
+		: FTextureLayout(4, 4, InSizeX, InSizeY, /* PowerOfTwo */ true, /* Force2To1Aspect */ true, /* AlignByFour */ true) // Min size is 4x4 in case of block compression.
 		, SkyOcclusionTexture(nullptr)
 		, AOMaterialMaskTexture(nullptr)
 		, OwningWorld(InWorld)

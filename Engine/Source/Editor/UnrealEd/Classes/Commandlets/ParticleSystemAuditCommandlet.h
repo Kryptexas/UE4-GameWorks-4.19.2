@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Runtime/Engine/Classes/Particles/ParticleSystem.h"
-#include "ParticleDefinitions.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Commandlets/Commandlet.h"
 #include "ParticleSystemAuditCommandlet.generated.h"
 
 UCLASS(config=Editor)

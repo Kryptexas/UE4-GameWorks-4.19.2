@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
+#include "Widgets/Input/SButton.h"
+#include "Rendering/DrawElements.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Text/STextBlock.h"
 
 
 /**
@@ -143,7 +146,7 @@ void SButton::OnFocusLost( const FFocusEvent& InFocusEvent )
 FReply SButton::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	FReply Reply = FReply::Unhandled();
-	if (IsEnabled() && (InKeyEvent.GetKey() == EKeys::Enter || InKeyEvent.GetKey() == EKeys::SpaceBar || InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Bottom))
+	if (IsEnabled() && (InKeyEvent.GetKey() == EKeys::Enter || InKeyEvent.GetKey() == EKeys::SpaceBar || InKeyEvent.GetKey() == EKeys::Virtual_Accept))
 	{
 		Press();
 
@@ -174,7 +177,7 @@ FReply SButton::OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent
 	FReply Reply = FReply::Unhandled();
 
 
-	if (IsEnabled() && (InKeyEvent.GetKey() == EKeys::Enter || InKeyEvent.GetKey() == EKeys::SpaceBar || InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Bottom))
+	if (IsEnabled() && (InKeyEvent.GetKey() == EKeys::Enter || InKeyEvent.GetKey() == EKeys::SpaceBar || InKeyEvent.GetKey() == EKeys::Virtual_Accept))
 	{
 		const bool bWasPressed = bIsPressed;
 
@@ -412,6 +415,16 @@ void SButton::SetPressedSound(TOptional<FSlateSound> InPressedSound)
 void SButton::SetOnClicked(FOnClicked InOnClicked)
 {
 	OnClicked = InOnClicked;
+}
+
+void SButton::SetOnHovered(FSimpleDelegate InOnHovered)
+{
+	OnHovered = InOnHovered;
+}
+
+void SButton::SetOnUnhovered(FSimpleDelegate InOnUnhovered)
+{
+	OnUnhovered = InOnUnhovered;
 }
 
 void SButton::SetButtonStyle(const FButtonStyle* ButtonStyle)

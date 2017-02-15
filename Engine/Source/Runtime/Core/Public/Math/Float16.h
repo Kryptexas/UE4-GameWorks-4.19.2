@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Serialization/Archive.h"
+#include "Math/UnrealMathUtility.h"
+#include "Math/Float32.h"
 
 /**
 * 16 bit float components and conversion

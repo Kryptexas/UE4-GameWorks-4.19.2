@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
-#include "SequencerEditTool_Movement.h"
-#include "Sequencer.h"
-#include "VirtualTrackArea.h"
+#include "Tools/SequencerEditTool_Movement.h"
+#include "Editor.h"
+#include "Fonts/FontMeasure.h"
+#include "EditorStyleSet.h"
+#include "SequencerCommonHelpers.h"
+#include "SSequencer.h"
+#include "ISequencerHotspot.h"
 #include "SequencerHotspots.h"
-#include "EditToolDragOperations.h"
+#include "VirtualTrackArea.h"
+#include "SequencerSettings.h"
+#include "Tools/EditToolDragOperations.h"
 
 
 const FName FSequencerEditTool_Movement::Identifier = "Movement";
@@ -36,7 +41,7 @@ FReply FSequencerEditTool_Movement::OnMouseButtonDown(SWidget& OwnerWidget, cons
 				if (DelayedDrag->Hotspot->GetType() == ESequencerHotspot::Key)
 				{
 					FSequencerSelectedKey& ThisKey = StaticCastSharedPtr<FKeyHotspot>(DelayedDrag->Hotspot)->Key;
-					Sequencer.SetGlobalTime(ThisKey.KeyArea->GetKeyTime(ThisKey.KeyHandle.GetValue()));
+					Sequencer.SetLocalTime(ThisKey.KeyArea->GetKeyTime(ThisKey.KeyHandle.GetValue()));
 				}
 			}
 		}

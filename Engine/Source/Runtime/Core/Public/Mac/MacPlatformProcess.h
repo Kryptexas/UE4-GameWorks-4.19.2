@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	MacPlatformProcess.h: Mac platform Process functions
 ==============================================================================================*/
 
 #pragma once
-#include "GenericPlatform/GenericPlatformProcess.h"
 
+#include "GenericPlatform/GenericPlatformProcess.h"
+#include <sys/sysctl.h>
 
 /** Mac implementation of the process handle. */
 struct FProcHandle : public TProcHandle<void*, nullptr>
@@ -115,6 +116,7 @@ struct CORE_API FMacPlatformProcess : public FGenericPlatformProcess
 	static void LaunchURL(const TCHAR* URL, const TCHAR* Parms, FString* Error);
 	static FString GetGameBundleId();
 	static FProcHandle CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void * PipeReadChild = nullptr);
+	static FProcHandle OpenProcess(uint32 ProcessID);
 	static bool IsProcRunning( FProcHandle & ProcessHandle );
 	static void WaitForProc( FProcHandle & ProcessHandle );
 	static void CloseProc( FProcHandle & ProcessHandle );

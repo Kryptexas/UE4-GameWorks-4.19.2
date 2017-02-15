@@ -93,7 +93,6 @@ PvdImpl::PvdImpl()
 , mIsNVTXSupportEnabled(true)
 , mNVTXContext(0)
 , mNextStreamId(1)
-, mUserProfilerCallback(NULL)
 , mProfileClient(NULL)
 , mProfileZone(NULL)
 {
@@ -300,11 +299,6 @@ uint64_t PvdImpl::getNextStreamId()
 	return retval;
 }
 
-PsPvd* PvdImpl::getPvdInternal()
-{
-	return this;
-}
-
 bool PvdImpl::initialize()
 {
 	if(0 == sRefCount)
@@ -371,9 +365,6 @@ void* PvdImpl::zoneStart(const char* eventName, bool detached, uint64_t contextI
 		}
 	}
 #endif
-	if(mUserProfilerCallback)
-		mUserProfilerCallback->zoneStart(eventName, detached, contextId);
-
 	return NULL;
 }
 
@@ -408,29 +399,7 @@ void PvdImpl::zoneEnd(void* /*profilerData*/, const char* eventName, bool detach
 		}
 	}
 #endif
-	if(mUserProfilerCallback)
-		mUserProfilerCallback->zoneEnd(NULL, eventName, detached, contextId);
 }
-
-/**
-\brief Set the user profiler if they want to intercept profiling events for themselves.
-\param callback The user's profiler to callback to
-*/
-void PvdImpl::setUserProfiler(physx::PxProfilerCallback* callback) 
-{
-	mUserProfilerCallback = callback;
-}
-
-/**
-\brief Returns the current user profiler callback
-\return Returns the current user profiler callback
-*/
-physx::PxProfilerCallback* PvdImpl::getUserProfiler() 
-{
-	return mUserProfilerCallback;
-}
-
-
 } // pvd
 
 } // physx

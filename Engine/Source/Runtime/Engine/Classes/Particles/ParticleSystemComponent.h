@@ -1,13 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Components/SceneComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Materials/MaterialInterface.h"
-#include "Particles/Emitter.h"
 #include "Particles/ParticleSystem.h"
-#include "Particles/ParticleEmitter.h"
+#include "Particles/Emitter.h"
 #include "ParticleSystemComponent.generated.h"
+
+class FParticleDynamicData;
+class FPrimitiveSceneProxy;
+class UParticleSystemReplay;
+class UPhysicalMaterial;
+struct EventData;
+struct FDynamicEmitterDataBase;
+struct FDynamicEmitterReplayDataBase;
+struct FParticleEmitterInstance;
+enum class EParticleSignificanceLevel : uint8;
 
 //
 // Forward declarations.
@@ -1079,6 +1093,7 @@ public:
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif
+	virtual bool IsReadyForOwnerToAutoDestroy() const override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual UObject const* AdditionalStatObject() const override
 	{
@@ -1149,7 +1164,7 @@ public:
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
-	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const override;
+	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false ) const override;
 	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None, bool bGetWelded = true) const override;
 	//End UPrimitiveComponent Interface
 

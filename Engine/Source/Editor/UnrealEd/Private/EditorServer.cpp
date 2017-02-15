@@ -1,80 +1,157 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/Guid.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/ObjectThumbnail.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "ProfilingDebugging/ResourceSize.h"
+#include "UObject/Object.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "UObject/UnrealType.h"
+#include "UObject/UObjectAnnotation.h"
+#include "Serialization/ArchiveCountMem.h"
+#include "Serialization/ArchiveTraceRoute.h"
+#include "Misc/PackageName.h"
+#include "UObject/PackageFileSummary.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "EditorStyleSet.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Engine/Level.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "Engine/World.h"
+#include "Materials/MaterialInterface.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/MeshComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Components/LightComponent.h"
+#include "Model.h"
+#include "Exporters/Exporter.h"
+#include "Materials/Material.h"
+#include "Editor/Transactor.h"
+#include "Settings/LevelEditorViewportSettings.h"
+#include "Engine/Brush.h"
+#include "Engine/Engine.h"
+#include "Animation/AnimSequence.h"
+#include "AssetData.h"
+#include "Editor/EditorEngine.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Factories/Factory.h"
+#include "Factories/PolysFactory.h"
+#include "Engine/Texture.h"
+#include "Factories/WorldFactory.h"
+#include "Editor/GroupActor.h"
+#include "Settings/LevelEditorMiscSettings.h"
+#include "Editor/PropertyEditorTestObject.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "Editor/TransBuffer.h"
+#include "Components/ShapeComponent.h"
+#include "Particles/Emitter.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Sound/SoundWave.h"
+#include "GameFramework/Volume.h"
+#include "Logging/LogScopedCategoryAndVerbosityOverride.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/Light.h"
+#include "Engine/StaticMeshActor.h"
+#include "Components/BillboardComponent.h"
+#include "Components/BrushComponent.h"
+#include "Components/DrawFrustumComponent.h"
+#include "Layers/Layer.h"
+#include "Engine/Polys.h"
+#include "Engine/Selection.h"
+#include "UnrealEngine.h"
+#include "EngineUtils.h"
+#include "Editor.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+#include "UnrealEdMisc.h"
+#include "Utils.h"
+#include "FileHelpers.h"
+#include "Dialogs/Dialogs.h"
+#include "UnrealEdGlobals.h"
 #include "EditorSupportDelegates.h"
-#include "Factories.h"
 #include "BusyCursor.h"
-#include "SoundDefinitions.h"
-#include "ParticleDefinitions.h"
-#include "AnimationUtils.h"
+#include "AudioDevice.h"
+#include "Engine/LevelStreaming.h"
 #include "LevelUtils.h"
-#include "EditorLevelUtils.h"
+#include "LevelEditorViewport.h"
 #include "Layers/ILayers.h"
 #include "ScopedTransaction.h"
 #include "SurfaceIterators.h"
 #include "LightMap.h"
 #include "BSPOps.h"
 #include "EditorLevelUtils.h"
-#include "Editor/MainFrame/Public/MainFrame.h"
+#include "Interfaces/IMainFrameModule.h"
 #include "PackageTools.h"
-#include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "../Private/GeomFitUtils.h"
+#include "LevelEditor.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
 #include "Editor/GeometryMode/Public/EditorGeometry.h"
 #include "LandscapeProxy.h"
 #include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
 #include "Animation/AnimSet.h"
 #include "Matinee/InterpTrackAnimControl.h"
-#include "Matinee/InterpData.h"
-#include "Animation/SkeletalMeshActor.h"
 #include "InstancedFoliageActor.h"
+#include "IMovieSceneCapture.h"
 #include "MovieSceneCaptureModule.h"
 
-#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/PropertyEditor/Public/IPropertyTable.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
-#include "Toolkits/AssetEditorManager.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "PropertyEditorModule.h"
+#include "IPropertyTable.h"
+#include "IDetailsView.h"
 #include "AssetRegistryModule.h"
 #include "SnappingUtils.h"
 
-#include "TargetPlatform.h"
-#include "IConsoleManager.h"
 
 #include "Editor/ActorPositioning.h"
 
-#include "Editor/StatsViewer/Public/StatsViewerModule.h"
+#include "StatsViewerModule.h"
 #include "ActorEditorUtils.h"
+#include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
 
-#include "Particles/Emitter.h"
-#include "Particles/ParticleSystemComponent.h"
 
 #include "ComponentReregisterContext.h"
 #include "Engine/DocumentationActor.h"
 #include "ShaderCompiler.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "EditorUndoClient.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "DesktopPlatformModule.h"
-#include "Layers/Layer.h"
-#include "Engine/Light.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
-#include "Components/BillboardComponent.h"
-#include "Components/DrawFrustumComponent.h"
-#include "UnrealEngine.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
-#include "PhysicsPublic.h"
 #include "Analytics/AnalyticsPrivacySettings.h"
-#include "KismetReinstanceUtilities.h"
+#include "Kismet2/KismetReinstanceUtilities.h"
 #include "AnalyticsEventAttribute.h"
 #include "Developer/SlateReflector/Public/ISlateReflectorModule.h"
-#include "Editor/PropertyEditorTestObject.h"
+#include "MaterialUtilities.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -3792,11 +3869,10 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 
 	Game_Map_Check(InWorld, Str, Ar, bCheckDeprecatedOnly);
 
-
-	CheckTextureStreamingBuild(InWorld);
+	CheckTextureStreamingBuildValidity(InWorld);
 	if (InWorld->NumTextureStreamingUnbuiltComponents > 0 || InWorld->NumTextureStreamingDirtyResources > 0)
 	{
-		FMessageLog("MapCheck").Warning()->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_TextureStreamingNeedsRebuild", "Texture streaming needs to be rebuilt, run 'Build Texture Streaming'.")));
+		FMessageLog("MapCheck").Warning()->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_Message_TextureStreamingNeedsRebuild", "Texture streaming needs to be rebuilt ({0} Components, {1} Resource Refs), run 'Build Texture Streaming'."), InWorld->NumTextureStreamingUnbuiltComponents, InWorld->NumTextureStreamingDirtyResources)));
 	}
 
 	GWarn->StatusUpdate( 0, ProgressDenominator, CheckMapLocText );
@@ -5824,6 +5900,10 @@ bool UEditorEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice& A
 	{
 		bProcessed = HandleStartMovieCaptureCommand( Str, Ar );
 	}
+	else if( FParse::Command(&Str,TEXT("BUILDMATERIALTEXTURESTREAMINGDATA")) )
+	{
+		bProcessed = HandleBuildMaterialTextureStreamingData( Str, Ar );
+	}
 	else
 	{
 		bProcessed = FBlueprintEditorUtils::KismetDiagnosticExec(Stream, Ar);
@@ -6618,6 +6698,49 @@ bool UEditorEngine::HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDev
 	return false;
 }
 
+bool UEditorEngine::HandleBuildMaterialTextureStreamingData( const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	const EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::High;
+	const ERHIFeatureLevel::Type FeatureLevel = GMaxRHIFeatureLevel;
+
+	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+
+	TSet<UMaterialInterface*> Materials;
+	for (TObjectIterator<UMaterialInterface> MaterialIt; MaterialIt; ++MaterialIt)
+	{
+		UMaterialInterface* Material = *MaterialIt;
+		if (Material && Material->GetOutermost() != GetTransientPackage() && Material->HasAnyFlags(RF_Public) && Material->UseAnyStreamingTexture() && !Material->HasTextureStreamingData()) 
+		{
+			Materials.Add(Material);
+		}
+	}
+
+	FScopedSlowTask SlowTask(3.f); // { Sync Pending Shader, Wait for Compilation, Export }
+	SlowTask.MakeDialog(true);
+
+	if (CompileDebugViewModeShaders(DVSM_OutputMaterialTextureScales, QualityLevel, FeatureLevel, true, true, Materials, SlowTask))
+	{
+		FMaterialUtilities::FExportErrorManager ExportErrors(FeatureLevel);
+		for (UMaterialInterface* MaterialInterface : Materials)
+		{
+			if (MaterialInterface && FMaterialUtilities::ExportMaterialUVDensities(MaterialInterface, QualityLevel, FeatureLevel, ExportErrors))
+			{
+				// Only mark dirty if there is now data, when there wasn't before.
+				if (MaterialInterface->HasTextureStreamingData())
+				{
+					MaterialInterface->MarkPackageDirty();
+				}
+			}
+		}
+		ExportErrors.OutputToLog();
+	}
+
+	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+	return true;
+}
+
+
+
 /**
  * @return true if the given component's StaticMesh can be merged with other StaticMeshes
  */
@@ -6678,7 +6801,7 @@ void UEditorEngine::UnregisterForUndo( FEditorUndoClient* Client)
 
 void UEditorEngine::AutoMergeStaticMeshes()
 {
-#if TODO_STATICMESH
+#ifdef TODO_STATICMESH
 	TArray<AStaticMeshActor*> SMAs;
 	for (FActorIterator It; It; ++It)
 	{

@@ -1,9 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Misc/NotifyHook.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "PreviewScene.h"
+#include "EditorViewportClient.h"
 #include "SEditorViewport.h"
+
+class FDestructibleMeshEditorViewportClient;
+class IDestructibleMeshEditor;
+class SDockableTab;
+class UDestructibleComponent;
+class UDestructibleMesh;
 
 /**
  * DestructibleMesh Editor Preview viewport widget

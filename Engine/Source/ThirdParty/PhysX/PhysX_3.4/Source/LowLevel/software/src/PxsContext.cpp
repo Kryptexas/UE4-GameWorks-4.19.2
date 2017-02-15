@@ -296,19 +296,20 @@ void PxsContext::destroyContactManager(PxsContactManager* cm)
 	mContactManagerPool.put(cm);
 }
 
-void PxsContext::destroyCache(Gu::Cache& cache, PxU8 geomType0, PxU8 geomType1)
+void PxsContext::destroyCache(Gu::Cache& cache)
 {
 	if(cache.isManifold())
 	{
 		if(!cache.isMultiManifold())
 		{
-			if(geomType0 == PxGeometryType::eSPHERE || geomType1 == PxGeometryType::eSPHERE)
+			Gu::PersistentContactManifold& manifold = cache.getManifold();
+			if (manifold.mCapacity == GU_SPHERE_MANIFOLD_CACHE_SIZE)
 			{
-				mSphereManifoldPool.deallocate(static_cast<Gu::SpherePersistentContactManifold*>(&cache.getManifold()));
+				mSphereManifoldPool.deallocate(static_cast<Gu::SpherePersistentContactManifold*>(&manifold));
 			}
 			else
 			{
-				mManifoldPool.deallocate(static_cast<Gu::LargePersistentContactManifold*>(&cache.getManifold()));
+				mManifoldPool.deallocate(static_cast<Gu::LargePersistentContactManifold*>(&manifold));
 			}
 		}
 		cache.mCachedData = NULL;
@@ -416,7 +417,7 @@ void PxsContext::mergeCMDiscreteUpdateResults(PxBaseTask* /*continuation*/)
 	this->mNpImplementationContext->appendContactManagers();
 
 	//Note: the iterator extracts all the items and returns them to the cache on destruction(for thread safety).
-	PxcThreadCoherantCacheIterator<PxcNpThreadContext, PxcNpContext> threadContextIt(mNpThreadContextPool);
+	PxcThreadCoherentCacheIterator<PxcNpThreadContext, PxcNpContext> threadContextIt(mNpThreadContextPool);
 
 	for(PxcNpThreadContext* threadContext = threadContextIt.getNext(); threadContext; threadContext = threadContextIt.getNext())
 	{
@@ -462,7 +463,7 @@ void PxsContext::mergeCMDiscreteUpdateResults(PxBaseTask* /*continuation*/)
 void PxsContext::setCreateContactStream(bool to)
 { 
 	mCreateContactStream = to; 
-	PxcThreadCoherantCacheIterator<PxcNpThreadContext, PxcNpContext> threadContextIt(mNpThreadContextPool);
+	PxcThreadCoherentCacheIterator<PxcNpThreadContext, PxcNpContext> threadContextIt(mNpThreadContextPool);
 	for(PxcNpThreadContext* threadContext = threadContextIt.getNext(); threadContext; threadContext = threadContextIt.getNext())
 	{
 		threadContext->setCreateContactStream(to);
@@ -491,7 +492,7 @@ void PxsContext::fetchUpdateContactManager()
 void PxsContext::resetThreadContexts()
 {
 	//Note: the iterator extracts all the items and returns them to the cache on destruction(for thread safety).
-	PxcThreadCoherantCacheIterator<PxcNpThreadContext, PxcNpContext> threadContextIt(mNpThreadContextPool);
+	PxcThreadCoherentCacheIterator<PxcNpThreadContext, PxcNpContext> threadContextIt(mNpThreadContextPool);
 	PxcNpThreadContext* threadContext = threadContextIt.getNext();
 
 	while(threadContext != NULL)

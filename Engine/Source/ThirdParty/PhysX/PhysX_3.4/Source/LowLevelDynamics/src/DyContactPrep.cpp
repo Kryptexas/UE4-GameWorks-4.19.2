@@ -607,6 +607,8 @@ bool createFinalizeSolverContacts(
 		//output.nbContacts = Ps::to8(numContacts);
 		contactDesc.frictionCount = Ps::to8(numFrictionPatches);
 		desc.constraintLengthOver16 = Ps::to16(solverConstraintByteSize / 16);
+		desc.writeBack = contactDesc.contactForces;
+		desc.writeBackLengthOver4 = PxU16(contactDesc.contactForces ? contactDesc.numContacts : 0);
 
 		//Initialise friction buffer.
 		if (frictionPatches)

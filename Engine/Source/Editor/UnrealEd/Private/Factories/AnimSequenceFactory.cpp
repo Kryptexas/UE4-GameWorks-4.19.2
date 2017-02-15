@@ -1,14 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimSequenceFactory.cpp: Factory for AnimSequence
 =============================================================================*/
 
-#include "UnrealEd.h"
-
-#include "AssetData.h"
-#include "ContentBrowserModule.h"
+#include "Factories/AnimSequenceFactory.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWindow.h"
+#include "Widgets/Layout/SBorder.h"
+#include "EditorStyleSet.h"
+#include "Animation/Skeleton.h"
 #include "Animation/AnimSequence.h"
+#include "Editor.h"
+
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
 
 #define LOCTEXT_NAMESPACE "AnimSequenceFactory"
 

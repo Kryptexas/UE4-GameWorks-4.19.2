@@ -15,10 +15,14 @@
 	<Option Name="WithHTML5" Restrict="true|false" DefaultValue="true" Description="Include the HTML5 target platform"/>
 	<Option Name="WithPS4" Restrict="true|false" DefaultValue="false" Description="Include the PS4 target platform"/>
 	<Option Name="WithXboxOne" Restrict="true|false" DefaultValue="false" Description="Include the XboxOne target platform"/>
+	<Option Name="WithSwitch" Restrict="true|false" DefaultValue="false" Description="Include the Switch target platform"/>
 
 	<!-- Whether to create a prebuilt DDC -->
 	<Option Name="WithDDC" Restrict="true|false" DefaultValue="true" Description="Build a standalone derived-data cache for the engine content and templates" />
-	
+
+	<!-- Whether to build DDC for the host platform only -->
+	<Option Name="HostPlatformDDCOnly" Restrict="true|false" DefaultValue="true" Description="Whether to include DDC for the host platform only"/>
+
 	<!-- Whether to sign any executables produced -->
 	<Option Name="SignExecutables" Restrict="true|false" DefaultValue="false" Description="Sign the executables produced where signing is available"/>
 
@@ -59,6 +63,7 @@
 		<Property Name="WithHTML5" Value="false"/>
 		<Property Name="WithPS4" Value="false"/>
 		<Property Name="WithXboxOne" Value="false"/>
+		<Property Name="WithSwitch" Value="false"/>
 	</Do>
 
 	<!-- The local output directory -->
@@ -100,7 +105,7 @@
 
 			<Do If="'$(SignExecutables)' == true">
 				<Tag Files="#UE4Editor Win64" Filter="$(WindowsSignFilter)" With="#UE4Editor Win64 Unsigned"/>
-				<Copy Files="#UE4Editor Win64 Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Editor_ToSign_Win64"/>
+				<Copy Files="#UE4Editor Win64 Unsigned" From="$(RootDir)" To="$(SavedOutput)" Tag="#Editor_ToSign_Win64"/>
 				<Sign Files="#Editor_ToSign_Win64" Tag="#UE4Editor Win64 Signed"/>
 			</Do>
 
@@ -123,7 +128,7 @@
 
 			<Do If="'$(SignExecutables)' == true">
 				<Tag Files="#UE4Editor Mac" Filter="$(MacSignFilter)" With="#UE4Editor Mac Unsigned"/>
-				<Copy Files="#UE4Editor Mac Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Editor_ToSign_Mac"/>
+				<Copy Files="#UE4Editor Mac Unsigned" From="$(RootDir)" To="$(SavedOutput)" Tag="#Editor_ToSign_Mac"/>
 				<Sign Files="#Editor_ToSign_Mac" Tag="#UE4Editor Mac Signed"/>
 			</Do>
 		
@@ -144,7 +149,7 @@
 			<Strip BaseDir="$(RootDir)" OutputDir="$(SavedOutput)" Platform="Linux" Files="#UE4Editor Linux Unstripped" Tag="#UE4Editor Linux Stripped"/>
 
 			<!-- Tag the generated includes for this target -->
-			<Tag Files="Engine/Intermediate/Build/Linux/UE4Editor/Inc/...;Engine/Plugins/.../Intermediate/Build/Linux/UE4Editor/Inc/..." With="#UE4Editor Linux Includes"/>
+			<Tag Files="Engine/Intermediate/Build/Linux/B4D820EA/UE4Editor/Inc/...;Engine/Plugins/.../Intermediate/Build/Linux/B4D820EA/UE4Editor/Inc/..." With="#UE4Editor Linux Includes"/>
 		</Node>
 	</Agent>
 
@@ -167,7 +172,7 @@
 
 			<Do If="'$(SignExecutables)' == true">
 				<Tag Files="#UE4Game Win64" Filter="$(WindowsSignFilter)" With="#UE4Game Win64 Unsigned"/>
-				<Copy Files="#UE4Game Win64 Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Game_ToSign_Win64"/>
+				<Copy Files="#UE4Game Win64 Unsigned" From="$(RootDir)" To="$(SavedOutput)" Tag="#Game_ToSign_Win64"/>
 				<Sign Files="#Game_ToSign_Win64" Tag="#UE4Game Win64 Signed"/>
 			</Do>
 		
@@ -192,7 +197,7 @@
 
 			<Do If="'$(SignExecutables)' == true">
 				<Tag Files="#UE4Game Win32" Filter="$(WindowsSignFilter)" With="#UE4Game Win32 Unsigned"/>
-				<Copy Files="#UE4Game Win32 Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Game_ToSign_Win32"/>
+				<Copy Files="#UE4Game Win32 Unsigned" From="$(RootDir)" To="$(SavedOutput)" Tag="#Game_ToSign_Win32"/>
 				<Sign Files="#Game_ToSign_Win32" Tag="#UE4Game Win32 Signed"/>
 			</Do>
 
@@ -209,7 +214,7 @@
 			<Strip BaseDir="$(RootDir)" OutputDir="$(SavedOutput)" Platform="Linux" Files="#UE4Game Linux Unstripped" Tag="#UE4Game Linux Stripped"/>
 
 			<!-- Tag the generated includes for this target -->
-			<Tag Files="Engine/Intermediate/Build/Linux/UE4/Inc/...;Engine/Plugins/.../Intermediate/Build/Linux/UE4/Inc/..." With="#UE4Game Linux Includes"/>
+			<Tag Files="Engine/Intermediate/Build/Linux/B4D820EA/UE4/Inc/...;Engine/Plugins/.../Intermediate/Build/Linux/B4D820EA/UE4/Inc/..." With="#UE4Game Linux Includes"/>
 		</Node>
 
 		<!-- Downstream monolithics and tools Android-->
@@ -250,6 +255,15 @@
 			<!-- Tag the generated includes for this target -->
 			<Tag Files="Engine/Intermediate/Build/XboxOne/UE4/Inc/...;Engine/Plugins/.../Intermediate/Build/XboxOne/UE4/Inc/..." With="#UE4Game XboxOne Includes"/>
 		</Node>
+	
+		<!-- Downstream monolithics Switch -->
+		<Node Name="Compile UE4Game Switch" Requires="Compile UnrealHeaderTool Win64" Produces="#UE4Game Switch;#UE4Game Switch Includes" If="'$(WithSwitch)' == true">
+			<Compile Target="UE4Game" Platform="Switch" Configuration="Development" Tag="#UE4Game Switch" Arguments="-precompile"/>
+			<Compile Target="UE4Game" Platform="Switch" Configuration="Shipping" Tag="#UE4Game Switch" Arguments="-precompile"/>
+
+			<!-- Tag the generated includes for this target -->
+			<Tag Files="Engine/Intermediate/Build/Switch/UE4/Inc/...;Engine/Plugins/.../Intermediate/Build/Switch/UE4/Inc/..." With="#UE4Game Switch Includes"/>
+		</Node>
 	</Agent>
 
 	<!-- Target Platforms normally built from a Mac machine -->
@@ -264,7 +278,7 @@
 
 			<Do If="'$(SignExecutables)' == true">
 				<Tag Files="#UE4Game Mac" Filter="$(MacSignFilter)" With="#UE4Game Mac Unsigned"/>
-				<Copy Files="#UE4Game Mac Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Game_ToSign_Mac"/>
+				<Copy Files="#UE4Game Mac Unsigned" From="$(RootDir)" To="$(SavedOutput)" Tag="#Game_ToSign_Mac"/>
 				<Sign Files="#Game_ToSign_Mac" Tag="#UE4Game Mac Signed"/>
 			</Do>
 
@@ -301,6 +315,7 @@
 		<Node Name="Build Tools Win64" Requires="Compile UnrealHeaderTool Win64">
 			<Compile Target="CrashReportClient" Configuration="Shipping" Platform="Win64" Tag="#Build Tools Win64"/>
 			<Compile Target="CrashReportClient" Configuration="Shipping" Platform="Win32" Tag="#Build Tools Win64"/>
+			<Compile Target="UnrealWatchdog" Configuration="Shipping" Platform="Win64" Tag="#Build Tools Win64"/>
 			<Compile Target="ShaderCompileWorker" Configuration="Development" Platform="Win64" Tag="#Build Tools Win64"/>
 			<Compile Target="UnrealCEFSubProcess" Configuration="Development" Platform="Win32" Tag="#Build Tools Win64"/>
 			<Compile Target="UnrealCEFSubProcess" Configuration="Development" Platform="Win64" Tag="#Build Tools Win64"/>
@@ -365,15 +380,18 @@
 		</Node>
 	</Agent>
 
-	<Property Name="CookPlatformsWin64" Value="Windows"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+WindowsNoEditor" If="'$(WithWin64)' == true Or '$(WithWin32)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+Android_ATC" If="'$(WithAndroid)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+IOS" If="'$(WithIOS)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+TVOS" If="'$(WithTVOS)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+LinuxNoEditor" If="'$(WithLinux)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+HTML5" If="'$(WithHTML5)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+PS4" If="'$(WithPS4)' == true"/>
-	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+XboxOne" If="'$(WithXboxOne)' == true"/>
+	<Property Name="DDCPlatformsWin64" Value="Windows"/>
+	<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+WindowsNoEditor" If="'$(WithWin64)' == true Or '$(WithWin32)' == true"/>
+	<Do If="'$(HostPlatformDDCOnly)' == false">
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+Android_ATC" If="'$(WithAndroid)' == true"/>
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+IOS" If="'$(WithIOS)' == true"/>
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+TVOS" If="'$(WithTVOS)' == true"/>
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+LinuxNoEditor" If="'$(WithLinux)' == true"/>
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+HTML5" If="'$(WithHTML5)' == true"/>
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+PS4" If="'$(WithPS4)' == true"/>
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+XboxOne" If="'$(WithXboxOne)' == true"/>
+		<Property Name="DDCPlatformsWin64" Value="$(DDCPlatformsWin64)+Switch" If="'$(WithSwitch)' == true"/>
+	</Do>
 
 	<Agent Name="DDC Group Win64" Type="Win64">
 		<Node Name="Build DDC Win64" Requires="#UE4Editor Win64;Build Tools Win64;Build Tools CS" Produces="#CompressedDDCWin64">
@@ -400,20 +418,22 @@
 			<Tag Files="Engine\Build\NotForLicensees\EpicInternal.txt" With="#FilteredCopyList" If="Exists('Engine\Build\NotForLicensees\EpicInternal.txt')"/>
 			<Tag Files="Engine\Binaries\...\*DDCUtils*" With="#FilteredCopyList"/>
 			<!-- Copy everything to a temporary directory -->
-			<Copy FromDir="$(RootDir)" ToDir="$(DDCDir)" Files="#FilteredCopyList"/>
+			<Copy From="$(RootDir)" To="$(DDCDir)" Files="#FilteredCopyList"/>
 
-			<Command Name="BuildDerivedDataCache" Arguments="-TempDir=$(DDCDir) -FeaturePacks=$(ProjectsToBuildDDC) -TargetPlatforms=$(CookPlatformsWin64) -HostPlatform=Win64 -SavedDir=$(SavedDir)"/>
+			<Command Name="BuildDerivedDataCache" Arguments="-TempDir=$(DDCDir) -FeaturePacks=$(ProjectsToBuildDDC) -TargetPlatforms=$(DDCPlatformsWin64) -HostPlatform=Win64 -SavedDir=$(SavedDir)"/>
 
 			<Tag Files="$(SavedDir)/Engine/DerivedDataCache/Compressed.ddp" With="#CompressedDDCWin64"/>
 		</Node>
 	</Agent>
 
-	<Property Name="CookPlatformsMac" Value="Mac"/>
-	<Property Name="CookPlatformsMac" Value="$(CookPlatformsMac)+MacNoEditor" If="'$(WithMac)' == true"/>
-	<Property Name="CookPlatformsMac" Value="$(CookPlatformsMac)+Android_ATC" If="'$(WithAndroid)' == true"/>
-	<Property Name="CookPlatformsMac" Value="$(CookPlatformsMac)+IOS" If="'$(WithIOS)' == true"/>
-	<Property Name="CookPlatformsMac" Value="$(CookPlatformsMac)+TVOS" If="'$(WithTVOS)' == true"/>
-	<Property Name="CookPlatformsMac" Value="$(CookPlatformsMac)+HTML5" If="'$(WithHTML5)' == true"/>
+	<Property Name="DDCPlatformsMac" Value="Mac"/>
+	<Property Name="DDCPlatformsMac" Value="$(DDCPlatformsMac)+MacNoEditor" If="'$(WithMac)' == true"/>
+	<Do If="'$(HostPlatformDDCOnly)' == false">
+		<Property Name="DDCPlatformsMac" Value="$(DDCPlatformsMac)+Android_ATC" If="'$(WithAndroid)' == true"/>
+		<Property Name="DDCPlatformsMac" Value="$(DDCPlatformsMac)+IOS" If="'$(WithIOS)' == true"/>
+		<Property Name="DDCPlatformsMac" Value="$(DDCPlatformsMac)+TVOS" If="'$(WithTVOS)' == true"/>
+		<Property Name="DDCPlatformsMac" Value="$(DDCPlatformsMac)+HTML5" If="'$(WithHTML5)' == true"/>
+	</Do>
 
 	<Agent Name="DDC Group Mac" Type="Mac">
 		<Node Name="Build DDC Mac" Requires="#UE4Editor Mac;Build Tools Mac;Build Tools CS" Produces="#CompressedDDCMac">
@@ -440,16 +460,16 @@
 			<Tag Files="Engine/Build/NotForLicensees/EpicInternal.txt" With="#FilteredCopyList" If="Exists('Engine/Build/NotForLicensees/EpicInternal.txt')"/>
 			<Tag Files="Engine/Binaries/.../*DDCUtils*" With="#FilteredCopyList"/>
 			<!-- Copy everything to a temporary directory -->
-			<Copy FromDir="$(RootDir)" ToDir="$(DDCDir)" Files="#FilteredCopyList"/>
+			<Copy From="$(RootDir)" To="$(DDCDir)" Files="#FilteredCopyList"/>
 
-			<Command Name="BuildDerivedDataCache" Arguments="-TempDir=$(DDCDir) -FeaturePacks=$(ProjectsToBuildDDC) -TargetPlatforms=$(CookPlatformsMac) -HostPlatform=Mac -SavedDir=$(SavedDir)"/>
+			<Command Name="BuildDerivedDataCache" Arguments="-TempDir=$(DDCDir) -FeaturePacks=$(ProjectsToBuildDDC) -TargetPlatforms=$(DDCPlatformsMac) -HostPlatform=Mac -SavedDir=$(SavedDir)"/>
 
 			<Tag Files="$(SavedDir)/Engine/DerivedDataCache/Compressed.ddp" With="#CompressedDDCMac"/>
 		</Node>
 	</Agent>
 
-	<Property Name="CookPlatformsLinux" Value="Linux"/>
-	<Property Name="CookPlatformsLinux" Value="$(CookPlatformsWin64)+LinuxNoEditor" If="'$(WithLinux)' == true"/>
+	<Property Name="DDCPlatformsLinux" Value="Linux"/>
+	<Property Name="DDCPlatformsLinux" Value="$(DDCPlatformsLinux)+LinuxNoEditor" If="'$(WithLinux)' == true"/>
 
 	<Agent Name="DDC Group Linux" Type="Linux">
 		<Node Name="Build DDC Linux" Requires="#UE4Editor Linux;Build Tools Linux;Build Tools CS" Produces="#CompressedDDCLinux">
@@ -476,9 +496,9 @@
 			<Tag Files="Engine/Build/NotForLicensees/EpicInternal.txt" With="#FilteredCopyList" If="Exists('Engine/Build/NotForLicensees/EpicInternal.txt')"/>
 			<Tag Files="Engine/Binaries/.../*DDCUtils*" With="#FilteredCopyList"/>
 			<!-- Copy everything to a temporary directory -->
-			<Copy FromDir="$(RootDir)" ToDir="$(DDCDir)" Files="#FilteredCopyList"/>
+			<Copy From="$(RootDir)" To="$(DDCDir)" Files="#FilteredCopyList"/>
 
-			<Command Name="BuildDerivedDataCache" Arguments="-TempDir=$(DDCDir) -FeaturePacks=$(ProjectsToBuildDDC) -TargetPlatforms=$(CookPlatformsLinux) -HostPlatform=Linux -SavedDir=$(SavedDir)"/>
+			<Command Name="BuildDerivedDataCache" Arguments="-TempDir=$(DDCDir) -FeaturePacks=$(ProjectsToBuildDDC) -TargetPlatforms=$(DDCPlatformsLinux) -HostPlatform=Linux -SavedDir=$(SavedDir)"/>
 
 			<Tag Files="$(SavedDir)/Engine/DerivedDataCache/Compressed.ddp" With="#CompressedDDCLinux"/>
 		</Node>
@@ -497,6 +517,7 @@
 		<Property Name="InstalledRequirements" Value="$(InstalledRequirements);#UE4Game HTML5;#UE4Game HTML5 Includes" If="'$(WithHTML5)' == true"/>
 		<Property Name="InstalledRequirements" Value="$(InstalledRequirements);#UE4Game PS4;#UE4Game PS4 Includes" If="'$(WithPS4)' == true"/>
 		<Property Name="InstalledRequirements" Value="$(InstalledRequirements);#UE4Game XboxOne;#UE4Game XboxOne Includes" If="'$(WithXboxOne)' == true"/>
+		<Property Name="InstalledRequirements" Value="$(InstalledRequirements);#UE4Game Switch;#UE4Game Switch Includes" If="'$(WithSwitch)' == true"/>
 		<Property Name="InstalledRequirements" Value="$(InstalledRequirements);#CompressedDDCWin64" If="'$(WithDDC)' == true"/>
 		<!-- Feature packs -->
 		<Property Name="InstalledRequirements" Value="$(InstalledRequirements);Make Feature Packs"/>
@@ -573,6 +594,11 @@
 				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);$(CopyXboxOneFilter)"/>
 				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);$(CopyXboxOneExceptions)"/>
 			</Do>
+			<Do If="'$(WithSwitch)' == true">
+				<Tag Files="#UE4Game Switch;#UE4Game Switch Includes" With="#Installed Win64"/>
+				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);$(CopySwitchFilter)"/>
+				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);$(CopySwitchExceptions)"/>
+			</Do>
 
 			<!-- Tag any dependencies from all previous build products -->
 			<Tag Files="#Installed Win64" Filter="*.target" With="#TargetReceipts"/>
@@ -594,24 +620,24 @@
 
 			<!-- Tag files that need to be copied directly -->
 			<Tag Files="#Installed Win64" Except="$(CopyInstalledExceptions);#Strip Tools for Installed Win64;#Sign Tools for Installed Win64" With="#Copy for Installed Win64"/>
-			<Copy Files="#Copy for Installed Win64" FromDir="$(RootDir)" ToDir="$(LocalInstalledDir)" Tag="#Installed Build Win64 Files"/>
+			<Copy Files="#Copy for Installed Win64" From="$(RootDir)" To="$(LocalInstalledDir)" Tag="#Installed Build Win64 Files"/>
 
 			<!-- Tag saved output that needs to be copied directly -->
 			<Tag BaseDir="$(SavedOutput)" Files="#Saved Output" Except="$(CopyInstalledExceptions)" With="#Copy Saved Output"/>
-			<Copy Files="#Copy Saved Output" FromDir="$(SavedOutput)" ToDir="$(LocalInstalledDir)" Tag="#Installed Build Win64 Files"/>
+			<Copy Files="#Copy Saved Output" From="$(SavedOutput)" To="$(LocalInstalledDir)" Tag="#Installed Build Win64 Files"/>
 
 			<!-- Strip required files into their final location -->
 			<Strip Files="#Strip Tools for Installed Win64" BaseDir="$(RootDir)" OutputDir="$(LocalInstalledDir)" Platform="Win64" Tag="#Installed Build Win64 Files"/>
 
 			<Do If="'$(SignExecutables)' == true">
 				<!-- Copy then Sign required files in their final location -->
-				<Copy Files="#Sign Tools for Installed Win64" FromDir="$(RootDir)" ToDir="$(LocalInstalledDir)" Tag="#Files to Sign"/>
+				<Copy Files="#Sign Tools for Installed Win64" From="$(RootDir)" To="$(LocalInstalledDir)" Tag="#Files to Sign"/>
 				<Sign Files="#Files to Sign" Tag="#Installed Build Win64 Files"/>
 			</Do>
 
 			<!-- Copy the compressed DDC -->
 			<Property Name="SavedDir" Value="$(SavedOutput)\Installed\Win64"/>
-			<Copy Files="#CompressedDDCWin64" FromDir="$(SavedDir)" ToDir="$(LocalInstalledDir)" If="'$(WithDDC)' == true" Tag="#Installed Build Win64 Files"/>
+			<Copy Files="#CompressedDDCWin64" From="$(SavedDir)" To="$(LocalInstalledDir)" If="'$(WithDDC)' == true" Tag="#Installed Build Win64 Files"/>
 
 			<!-- List all of the platforms that we only allow for content projects -->
 			<Property Name="ContentOnlyPlatforms" Value="Linux"/>
@@ -710,24 +736,24 @@
 
 			<!-- Tag files that need to be copied directly -->
 			<Tag Files="#Installed Mac" Except="$(CopyInstalledExceptions);#Strip Tools for Installed Mac;#Sign Tools for Installed Mac" With="#Copy for Installed Mac"/>
-			<Copy Files="#Copy for Installed Mac" FromDir="$(RootDir)" ToDir="$(LocalInstalledDirMac)" Tag="#Installed Build Mac Files"/>
+			<Copy Files="#Copy for Installed Mac" From="$(RootDir)" To="$(LocalInstalledDirMac)" Tag="#Installed Build Mac Files"/>
 
 			<!-- Tag saved output that needs to be copied directly -->
 			<Tag BaseDir="$(SavedOutput)" Files="#Saved Output" Except="$(CopyInstalledExceptions)" With="#Copy Saved Output"/>
-			<Copy Files="#Copy Saved Output" FromDir="$(SavedOutput)" ToDir="$(LocalInstalledDirMac)" Tag="#Installed Build Mac Files"/>
+			<Copy Files="#Copy Saved Output" From="$(SavedOutput)" To="$(LocalInstalledDirMac)" Tag="#Installed Build Mac Files"/>
 
 			<!-- Strip required files into their final location -->
 			<Strip Files="#Strip Tools for Installed Mac" BaseDir="$(RootDir)" OutputDir="$(LocalInstalledDirMac)" Platform="Mac" Tag="#Installed Build Mac Files"/>
 
 			<Do If="'$(SignExecutables)' == true">
 				<!-- Copy then Sign required files in their final location -->
-				<Copy Files="#Sign Tools for Installed Mac" FromDir="$(RootDir)" ToDir="$(LocalInstalledDirMac)" Tag="#Files to Sign"/>
+				<Copy Files="#Sign Tools for Installed Mac" From="$(RootDir)" To="$(LocalInstalledDirMac)" Tag="#Files to Sign"/>
 				<Sign Files="#Files to Sign" Tag="#Installed Build Mac Files"/>
 			</Do>
 
 			<!-- Copy the compressed DDC -->
 			<Property Name="SavedDir" Value="$(SavedOutput)/Installed/Mac"/>
-			<Copy Files="#CompressedDDCMac" FromDir="$(SavedDir)" ToDir="$(LocalInstalledDirMac)" If="'$(WithDDC)' == true" Tag="#Installed Build Mac Files"/>
+			<Copy Files="#CompressedDDCMac" From="$(SavedDir)" To="$(LocalInstalledDirMac)" If="'$(WithDDC)' == true" Tag="#Installed Build Mac Files"/>
 
 			<!-- Create command line arguments for any platforms that were built with additional architectures -->
 			<Property Name="ArchitectureCommands" Value=""/>
@@ -790,18 +816,18 @@
 
 			<!-- Tag files that need to be copied directly -->
 			<Tag Files="#Installed Linux" Except="$(CopyInstalledExceptions);#Strip Tools for Installed Linux" With="#Copy for Installed Linux"/>
-			<Copy Files="#Copy for Installed Linux" FromDir="$(RootDir)" ToDir="$(LocalInstalledDirLinux)" Tag="#Installed Build Linux Files"/>
+			<Copy Files="#Copy for Installed Linux" From="$(RootDir)" To="$(LocalInstalledDirLinux)" Tag="#Installed Build Linux Files"/>
 
 			<!-- Tag saved output that needs to be copied directly -->
 			<Tag BaseDir="$(SavedOutput)" Files="#Saved Output" Except="$(CopyInstalledExceptions)" With="#Copy Saved Output"/>
-			<Copy Files="#Copy Saved Output" FromDir="$(SavedOutput)" ToDir="$(LocalInstalledDirLinux)" Tag="#Installed Build Linux Files"/>
+			<Copy Files="#Copy Saved Output" From="$(SavedOutput)" To="$(LocalInstalledDirLinux)" Tag="#Installed Build Linux Files"/>
 
 			<!-- Strip required files into their final location -->
 			<Strip Files="#Strip Tools for Installed Linux" BaseDir="$(RootDir)" OutputDir="$(LocalInstalledDirLinux)" Platform="Linux" Tag="#Installed Build Linux Files"/>
 
 			<!-- Copy the compressed DDC -->
 			<Property Name="SavedDir" Value="$(SavedOutput)\Installed\Linux"/>
-			<Copy Files="#CompressedDDCLinux" FromDir="$(SavedDir)" ToDir="$(LocalInstalledDirLinux)" If="'$(WithDDC)' == true" Tag="#Installed Build Linux Files"/>
+			<Copy Files="#CompressedDDCLinux" From="$(SavedDir)" To="$(LocalInstalledDirLinux)" If="'$(WithDDC)' == true" Tag="#Installed Build Linux Files"/>
 
 			<!-- List all of the platforms that we only allow for content projects -->
 			<Property Name="ContentOnlyPlatforms" Value=""/>

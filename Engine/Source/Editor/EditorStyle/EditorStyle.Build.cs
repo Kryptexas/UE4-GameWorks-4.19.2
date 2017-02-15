@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -42,6 +42,5 @@ public class EditorStyle : ModuleRules
 
 		// I'm told this is to improve compilation performance of this module
 		OptimizeCode = CodeOptimization.Never;
-		PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
 	}
 }

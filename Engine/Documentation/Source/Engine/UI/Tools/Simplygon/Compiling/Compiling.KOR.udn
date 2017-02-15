@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3108692
 Availability: Licensee
 Title:Simplygon 컴파일하기
 Crumbs:%ROOT%, Engine, Engine/UI/Tools/Simplygon
@@ -29,7 +29,7 @@ Simplygon 은 에디터와 함께 발매되기는 하지만, 이 기능을 사�
 
 ## 통합 배포하기
 
-또는 DLL 과 라이선스 파일을 퍼포스에 체크인 시키면 모든 개발자의 기계에서 일일히 설치하지 않아도 됩니다.
+또는 DLL 과 라이선스 파일을 퍼포스에 체크인 시키면 모든 개발자의 기계에서 일일이 설치하지 않아도 됩니다.
 
 
 1. Simplygon SDK 로 UE4 를 컴파일하는 데 관련된 위 지침을 따릅니다.

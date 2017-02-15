@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3054319
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:Level アセットで作業する
 Crumbs: %ROOT%, Engine
@@ -6,7 +6,7 @@ Description:UE4 で Level アセットを作成、保存し、開きます。
 SkillLevel:Beginner
 Version:4.12
 parent:Engine/Levels
-type:howto
+type:how-to
 order:1
 
 [VAR:Topic]
@@ -124,13 +124,14 @@ Blueprint クラス、マテリアル、パーティクル システムのよう
 1. **[Open Level]** を選択します。
 
 	![](Level_Open_New_Level.jpg)
-	[Region:tip]
 
+	[Region:tip]
 	キーボードのショートカット、**Ctrl + O** キーを使用してレベルを開くこともできます。 
 	[/region]
 
 
 1. 表示される **[Open Level]** ウィンドウからレベルを選択し、**[Open]** をクリックします。  
+
 	![](AvailableLevels.png)
 
 

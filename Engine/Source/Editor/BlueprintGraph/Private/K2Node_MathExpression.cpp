@@ -1,12 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_MathExpression.h"
-#include "Kismet2NameValidators.h"
+#include "UObject/UnrealType.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/MemberReference.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "EdGraphSchema_K2.h"
+#include "EdGraphSchema_K2_Actions.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_MacroInstance.h"
+#include "K2Node_VariableGet.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/Kismet2NameValidators.h"
 #include "EdGraphUtilities.h"
 #include "BasicTokenParser.h"
-#include "UnrealMathUtility.h"
-#include "BlueprintEditorUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "DiffResults.h"
 #include "MathExpressionHandler.h"
@@ -990,6 +998,14 @@ private:
 			ADD_ALIAS("RandomFloat")
 			ADD_ALIAS("RAND")
 			ADD_ALIAS("RANDOM")
+		FUNC_ALIASES_END
+
+		FUNC_ALIASES_BEGIN("Dot_VectorVector")
+			ADD_ALIAS("Dot")
+		FUNC_ALIASES_END
+
+		FUNC_ALIASES_BEGIN("Cross_VectorVector")
+			ADD_ALIAS("Cross")
 		FUNC_ALIASES_END
 				
 		// if none of the above aliases returned, then we don't have any for

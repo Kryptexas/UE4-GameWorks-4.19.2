@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // Module includes
 #include "OnlineSubsystemIOSPrivatePCH.h"
@@ -46,7 +46,7 @@ bool FOnlineExternalUIIOS::ShowFriendsUI(int32 LocalUserNum)
 	return false;
 }
 
-bool FOnlineExternalUIIOS::ShowInviteUI(int32 LocalUserNum, FName SessionMame)
+bool FOnlineExternalUIIOS::ShowInviteUI(int32 LocalUserNum, FName SessionName)
 {
 	return false;
 }

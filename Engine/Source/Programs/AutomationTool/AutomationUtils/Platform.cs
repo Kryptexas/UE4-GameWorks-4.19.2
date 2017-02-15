@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -518,11 +518,6 @@ namespace AutomationTool
 
 		}
 
-		public virtual void PostBuildTarget(UE4Build Build, FileReference UProjectPath, string TargetName, string Config)
-		{
-
-		}
-
 		/// <summary>
 		/// General purpose command to run generic string commands inside the platform interfeace
 		/// </summary>
@@ -594,24 +589,27 @@ namespace AutomationTool
 		{
 			Platform Plat = GetPlatform(Target);
 			string PlatformExeExtension = Plat.GetPlatformExeExtension();
-			if (string.IsNullOrEmpty(PlatformExeExtension))
+			if (!string.IsNullOrEmpty(PlatformExeExtension))
 			{
-				switch (Target)
-				{
-					case UnrealTargetPlatform.Win32:
-					case UnrealTargetPlatform.Win64:
-					case UnrealTargetPlatform.XboxOne:
-						return ".exe";
-					case UnrealTargetPlatform.PS4:
-						return ".self";
-					case UnrealTargetPlatform.IOS:
-						return ".stub";
-					case UnrealTargetPlatform.Linux:
-						return "";
-					case UnrealTargetPlatform.HTML5:
-						return ".js";
-				}
+				return PlatformExeExtension;
 			}
+
+			switch (Target)
+			{
+				case UnrealTargetPlatform.Win32:
+				case UnrealTargetPlatform.Win64:
+				case UnrealTargetPlatform.XboxOne:
+					return ".exe";
+				case UnrealTargetPlatform.PS4:
+					return ".self";
+				case UnrealTargetPlatform.IOS:
+					return ".stub";
+				case UnrealTargetPlatform.Linux:
+					return "";
+				case UnrealTargetPlatform.HTML5:
+					return ".js";
+			}
+
 			return String.Empty;
 		}
 

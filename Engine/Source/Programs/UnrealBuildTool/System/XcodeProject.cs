@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -602,9 +602,7 @@ namespace UnrealBuildTool
 			bool bMacOnly = true;
 			if (Config.ProjectTarget.TargetRules != null && XcodeProjectFileGenerator.ProjectFilePlatform.HasFlag(XcodeProjectFileGenerator.XcodeProjectFilePlatform.iOS))
 			{
-				var SupportedPlatforms = new List<UnrealTargetPlatform>();
-				Config.ProjectTarget.TargetRules.GetSupportedPlatforms(ref SupportedPlatforms);
-				if (SupportedPlatforms.Contains(UnrealTargetPlatform.IOS))
+				if (Config.ProjectTarget.SupportedPlatforms.Contains(UnrealTargetPlatform.IOS))
 				{
 					bMacOnly = false;
 				}
@@ -617,13 +615,13 @@ namespace UnrealBuildTool
             if (UnrealBuildTool.IsValidPlatform(UnrealTargetPlatform.Mac))
             {
                 MacPlatform MacBuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.Mac) as MacPlatform;
-                MacPlatformContext PlatformContextMac = (MacPlatformContext)MacBuildPlat.CreateContext(ProjectFile);
+                MacPlatformContext PlatformContextMac = (MacPlatformContext)MacBuildPlat.CreateContext(ProjectFile, Config.ProjectTarget.TargetRules);
                 PlatformContextMac.SetUpProjectEnvironment(Config.BuildConfig);
             }
             else if (UnrealBuildTool.IsValidPlatform(UnrealTargetPlatform.IOS))
             {
                 IOSPlatform IOSBuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as IOSPlatform;
-                IOSPlatformContext PlatformContextIOS = (IOSPlatformContext)IOSBuildPlat.CreateContext(ProjectFile);
+                IOSPlatformContext PlatformContextIOS = (IOSPlatformContext)IOSBuildPlat.CreateContext(ProjectFile, Config.ProjectTarget.TargetRules);
                 PlatformContextIOS.SetUpProjectEnvironment(Config.BuildConfig);
             }
             else
@@ -661,7 +659,7 @@ namespace UnrealBuildTool
                 if (UnrealBuildTool.IsValidPlatform(UnrealTargetPlatform.IOS))
                 {
                     IOSPlatform IOSBuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as IOSPlatform;
-					IOSPlatformContext PlatformContextIOS = (IOSPlatformContext)IOSBuildPlat.CreateContext(ProjectFile);
+					IOSPlatformContext PlatformContextIOS = (IOSPlatformContext)IOSBuildPlat.CreateContext(ProjectFile, Config.ProjectTarget.TargetRules);
 					PlatformContextIOS.SetUpProjectEnvironment(Config.BuildConfig);
 					IOSRunTimeVersion = PlatformContextIOS.GetRunTimeVersion();
 					IOSRunTimeDevices = PlatformContextIOS.GetRunTimeDevices();
@@ -675,7 +673,7 @@ namespace UnrealBuildTool
                 if (UnrealBuildTool.IsValidPlatform(UnrealTargetPlatform.TVOS))
 				{
 					TVOSPlatform TVOSBuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.TVOS) as TVOSPlatform;
-					TVOSPlatformContext PlatformContextTVOS = (TVOSPlatformContext)TVOSBuildPlat.CreateContext(ProjectFile);
+					TVOSPlatformContext PlatformContextTVOS = (TVOSPlatformContext)TVOSBuildPlat.CreateContext(ProjectFile, Config.ProjectTarget.TargetRules);
 					PlatformContextTVOS.SetUpProjectEnvironment(Config.BuildConfig);
 					TVOSRunTimeVersion = PlatformContextTVOS.GetRunTimeVersion();
 					TVOSRunTimeDevices = PlatformContextTVOS.GetRunTimeDevices();
@@ -726,11 +724,13 @@ namespace UnrealBuildTool
 				string IOSInfoPlistPath = null;
 				string TVOSInfoPlistPath = null;
 				string MacInfoPlistPath = null;
+				string IOSEntitlementPath = null;
 				if (bIsUE4Game)
 				{
 					IOSInfoPlistPath = UE4Dir + "/Engine/Intermediate/IOS/" + Config.BuildTarget + "-Info.plist";
 					TVOSInfoPlistPath = UE4Dir + "/Engine/Intermediate/TVOS/" + Config.BuildTarget + "-Info.plist";
 					MacInfoPlistPath = UE4Dir + "/Engine/Intermediate/Mac/" + MacExecutableFileName + "-Info.plist";
+					IOSEntitlementPath = "";
 					if (IOSRunTimeVersion != null)
 					{
 						Content.Append("\t\t\t\t\"CONFIGURATION_BUILD_DIR[sdk=iphoneos*]\" = \"" + UE4Dir + "/Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
@@ -745,6 +745,7 @@ namespace UnrealBuildTool
 					IOSInfoPlistPath = UE4Dir + "/Engine/Intermediate/IOS/UE4Game-Info.plist";
 					TVOSInfoPlistPath = UE4Dir + "/Engine/Intermediate/TVOS/UE4Game-Info.plist";
 					MacInfoPlistPath = UE4Dir + "/Engine/Intermediate/Mac/" + MacExecutableFileName + "-Info.plist";
+					IOSEntitlementPath = "";
 					if (IOSRunTimeVersion != null)
 					{
 						Content.Append("\t\t\t\t\"CONFIGURATION_BUILD_DIR[sdk=iphoneos*]\" = \"" + UE4Dir + "/Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
@@ -759,6 +760,7 @@ namespace UnrealBuildTool
 					IOSInfoPlistPath = GamePath + "/Intermediate/IOS/" + Config.BuildTarget + "-Info.plist";
 					TVOSInfoPlistPath = GamePath + "/Intermediate/TVOS/" + Config.BuildTarget + "-Info.plist";
 					MacInfoPlistPath = GamePath + "/Intermediate/Mac/" + MacExecutableFileName + "-Info.plist";
+					IOSEntitlementPath = GamePath + "/Intermediate/IOS/" + Config.BuildTarget + ".entitlements";
 					if (IOSRunTimeVersion != null)
 					{
 						Content.Append("\t\t\t\t\"CONFIGURATION_BUILD_DIR[sdk=iphoneos*]\" = \"" + GamePath + "/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
@@ -795,6 +797,7 @@ namespace UnrealBuildTool
 				if (XcodeProjectFileGenerator.bGeneratingRunIOSProject)
 				{
 					Content.Append("\t\t\t\tINFOPLIST_FILE = \"" + IOSInfoPlistPath + "\";" + ProjectFileGenerator.NewLine);
+					Content.Append("\t\t\t\tCODE_SIGN_ENTITLEMENTS = \"" + IOSEntitlementPath + "\";" + ProjectFileGenerator.NewLine);
 				}
 				else if (XcodeProjectFileGenerator.bGeneratingRunTVOSProject)
 				{
@@ -806,6 +809,7 @@ namespace UnrealBuildTool
 					if (IOSRunTimeVersion != null)
 					{
 						Content.Append("\t\t\t\t\"INFOPLIST_FILE[sdk=iphoneos*]\" = \"" + IOSInfoPlistPath + "\";" + ProjectFileGenerator.NewLine);
+						Content.Append("\t\t\t\t\"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]\" = \"" + IOSEntitlementPath + "\";" + ProjectFileGenerator.NewLine);
 					}
 					if (TVOSRunTimeVersion != null)
 					{
@@ -843,7 +847,7 @@ namespace UnrealBuildTool
 						if (bCreateIOSInfoPlist)
 						{
 							Directory.CreateDirectory(Path.GetDirectoryName(IOSInfoPlistPath));
-							UEDeployIOS.GenerateIOSPList(ProjectPath.FullName, bIsUE4Game, GameName, Config.BuildTarget, EngineDir.FullName, ProjectPath + "/Binaries/IOS/Payload");
+							UEDeployIOS.GenerateIOSPList(Config.BuildConfig, ProjectPath.FullName, bIsUE4Game, GameName, Config.BuildTarget, EngineDir.FullName, ProjectPath + "/Binaries/IOS/Payload");
 						}
 						if (bCreateTVOSInfoPlist)
 						{
@@ -867,9 +871,7 @@ namespace UnrealBuildTool
 			bool bMacOnly = true;
 			if (Config.ProjectTarget.TargetRules != null && XcodeProjectFileGenerator.ProjectFilePlatform.HasFlag(XcodeProjectFileGenerator.XcodeProjectFilePlatform.iOS))
 			{
-				var SupportedPlatforms = new List<UnrealTargetPlatform>();
-				Config.ProjectTarget.TargetRules.GetSupportedPlatforms(ref SupportedPlatforms);
-				if (SupportedPlatforms.Contains(UnrealTargetPlatform.IOS))
+				if (Config.ProjectTarget.SupportedPlatforms.Contains(UnrealTargetPlatform.IOS))
 				{
 					bMacOnly = false;
 				}
@@ -1020,12 +1022,12 @@ namespace UnrealBuildTool
 									{
 										// Figure out if this is a monolithic build
 										bool bShouldCompileMonolithic = BuildPlatform.ShouldCompileMonolithicBinary(Platform);
-										bShouldCompileMonolithic |= ProjectTarget.TargetRules.ShouldCompileMonolithic(Platform, Configuration);
+										bShouldCompileMonolithic |= (ProjectTarget.CreateRulesDelegate(Platform, Configuration).GetLegacyLinkType(Platform, Configuration) == TargetRules.TargetLinkType.Monolithic);
 
 										var ConfigName = Configuration.ToString();
-										if (ProjectTarget.TargetRules.ConfigurationName != "Game" && ProjectTarget.TargetRules.ConfigurationName != "Program")
+										if (ProjectTarget.TargetRules.Type != TargetRules.TargetType.Game && ProjectTarget.TargetRules.Type != TargetRules.TargetType.Program)
 										{
-											ConfigName += " " + ProjectTarget.TargetRules.ConfigurationName;
+											ConfigName += " " + ProjectTarget.TargetRules.Type.ToString();
 										}
 
 										if (BuildConfigs.Where(Config => Config.DisplayName == ConfigName).ToList().Count == 0)
@@ -1034,7 +1036,7 @@ namespace UnrealBuildTool
 
 											// Get the output directory
 											DirectoryReference RootDirectory = UnrealBuildTool.EngineDirectory;
-											if ((TargetRules.IsAGame(ProjectTarget.TargetRules.Type) || ProjectTarget.TargetRules.Type == TargetRules.TargetType.Server) && bShouldCompileMonolithic && !ProjectTarget.TargetRules.bOutputToEngineBinaries)
+											if ((ProjectTarget.TargetRules.Type == TargetRules.TargetType.Game || ProjectTarget.TargetRules.Type == TargetRules.TargetType.Client || ProjectTarget.TargetRules.Type == TargetRules.TargetType.Server) && bShouldCompileMonolithic && !ProjectTarget.TargetRules.bOutputToEngineBinaries)
 											{
 												if (OnlyGameProject != null && ProjectTarget.TargetFilePath.IsUnderDirectory(OnlyGameProject.Directory))
 												{
@@ -1066,17 +1068,16 @@ namespace UnrealBuildTool
 											if (!bShouldCompileMonolithic && ProjectTarget.TargetRules.Type != TargetRules.TargetType.Program)
 											{
 												// Figure out what the compiled binary will be called so that we can point the IDE to the correct file
-												string TargetConfigurationName = ProjectTarget.TargetRules.ConfigurationName;
-												if (TargetConfigurationName != TargetRules.TargetType.Game.ToString() && TargetConfigurationName != TargetRules.TargetType.Program.ToString())
+												if (ProjectTarget.TargetRules.Type != TargetRules.TargetType.Game && ProjectTarget.TargetRules.Type != TargetRules.TargetType.Program)
 												{
-													ExeName = "UE4" + TargetConfigurationName;
+													ExeName = "UE4" + ProjectTarget.TargetRules.Type.ToString();
 												}
 											}
 
                                             if (BuildPlatform.Platform == UnrealTargetPlatform.Mac)
                                             {
                                                 MacPlatform MacBuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.Mac) as MacPlatform;
-                                                MacPlatformContext PlatformContextMac = (MacPlatformContext)MacBuildPlat.CreateContext(OnlyGameProject);
+                                                MacPlatformContext PlatformContextMac = (MacPlatformContext)MacBuildPlat.CreateContext(OnlyGameProject, ProjectTarget.TargetRules);
 
                                                 string MacExecutableName = UEBuildTarget.MakeBinaryFileName(ExeName, UnrealTargetPlatform.Mac, (ExeName == "UE4Editor" && Configuration == UnrealTargetConfiguration.DebugGame) ? UnrealTargetConfiguration.Development : Configuration, PlatformContextMac.GetActiveArchitecture(), ProjectTarget.TargetRules.UndecoratedConfiguration, UEBuildBinaryType.Executable);
                                                 string IOSExecutableName = MacExecutableName.Replace("-Mac-", "-IOS-");
@@ -1086,7 +1087,7 @@ namespace UnrealBuildTool
                                             else if (BuildPlatform.Platform == UnrealTargetPlatform.IOS)
                                             {
                                                 IOSPlatform IOSBuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as IOSPlatform;
-                                                IOSPlatformContext PlatformContextIOS = (IOSPlatformContext)IOSBuildPlat.CreateContext(OnlyGameProject);
+                                                IOSPlatformContext PlatformContextIOS = (IOSPlatformContext)IOSBuildPlat.CreateContext(OnlyGameProject, ProjectTarget.TargetRules);
 
                                                 string IOSExecutableName = UEBuildTarget.MakeBinaryFileName(ExeName, UnrealTargetPlatform.IOS, (ExeName == "UE4Editor" && Configuration == UnrealTargetConfiguration.DebugGame) ? UnrealTargetConfiguration.Development : Configuration, PlatformContextIOS.GetActiveArchitecture(), ProjectTarget.TargetRules.UndecoratedConfiguration, UEBuildBinaryType.Executable);
                                                 string TVOSExecutableName = IOSExecutableName.Replace("-IOS-", "-TVOS-");

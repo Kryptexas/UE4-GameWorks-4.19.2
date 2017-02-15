@@ -1,9 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class SCurveEditorViewport;
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "IDistCurveEditor.h"
+#include "Widgets/SBoxPanel.h"
+
 class FCurveEditorSharedData;
+class FUICommandList;
+class IMenu;
+class SCurveEditorViewport;
+class UInterpCurveEdSetup;
+struct FCurveEdEntry;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCurveEd, Log, All);
 

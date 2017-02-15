@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of D3D12 Pipelinestate related functions
 
@@ -50,9 +50,9 @@ FORCEINLINE uint32 SSE4_CRC32(void* Data, SIZE_T NumBytes)
 {
 	check(GCPUSupportsSSE4);
 	uint32 Hash = 0;
-#if _WIN64
+#if defined(_WIN64)
 	static const SIZE_T Alignment = 8;//64 Bit
-#elif _WIN32
+#elif defined(_WIN32)
 	static const SIZE_T Alignment = 4;//32 Bit
 #else
 	check(0);
@@ -73,7 +73,7 @@ FORCEINLINE uint32 SSE4_CRC32(void* Data, SIZE_T NumBytes)
 	const SIZE_T NumIterations = (NumBytes / Alignment);
 	for (SIZE_T i = 0; i < NumIterations; i++)
 	{
-#if _WIN64
+#ifdef _WIN64
 		Hash = _mm_crc32_u64(Hash, AlignedData[i]);
 #else
 		Hash = _mm_crc32_u32(Hash, AlignedData[i]);

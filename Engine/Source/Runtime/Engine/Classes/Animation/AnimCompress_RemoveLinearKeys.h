@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Keyframe reduction algorithm that simply removes keys which are linear interpolations of surrounding keys.
@@ -6,6 +6,11 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/AnimSequence.h"
+#include "AnimationUtils.h"
 #include "Animation/AnimCompress.h"
 #include "AnimCompress_RemoveLinearKeys.generated.h"
 

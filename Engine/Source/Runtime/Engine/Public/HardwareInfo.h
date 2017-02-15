@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HardwareInfo.h: Declares the hardware info class
@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 
 /** Hardware entry lookups */
 static const FName NAME_RHI( "RHI" );

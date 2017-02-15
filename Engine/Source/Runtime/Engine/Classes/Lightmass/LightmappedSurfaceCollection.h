@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  *	Collection of surfaces in a single static lighting mapping.
@@ -6,6 +6,10 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "LightmappedSurfaceCollection.generated.h"
 
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI)

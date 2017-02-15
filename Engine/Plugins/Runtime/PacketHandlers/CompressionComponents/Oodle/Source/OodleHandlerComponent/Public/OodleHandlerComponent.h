@@ -1,25 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 // @todo #JohnB: Separate module-based header code, from other class implementations, so that you can setup the PCH.h file correctly
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
 #include "PacketHandler.h"
-#include "ModuleManager.h"
-#include "Core.h"
-#include "CoreUObject.h"
+#include "UObject/CoreNet.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(OodleHandlerComponentLog, Log, All);
 
-
-/**
- * Whether or not to enable Oodle dev code (packet capturing, dictionary training, and automatic dictionary finding) in shipping mode.
- *
- * This may be useful for multiplayer game mod authors, to optimize netcode compression for their mod (not officially supported).
- * However, Oodle compression makes the games network protocol harder to reverse-engineer - enabling this removes that slight benefit.
- */
-#ifndef OODLE_DEV_SHIPPING
-#define OODLE_DEV_SHIPPING	FALSE
-#endif
 
 // The maximum packet size that this component can handle - UNetConnection's should never allow MaxPacket to exceed MAX_PACKET_SIZE
 #define MAX_OODLE_PACKET_BYTES	MAX_PACKET_SIZE
@@ -27,12 +18,12 @@ DECLARE_LOG_CATEGORY_EXTERN(OodleHandlerComponentLog, Log, All);
 // The maximum compress/decompress buffer size - overkill, as buffers are statically allocated, and can't use Oodle runtime buffer calc
 #define MAX_OODLE_BUFFER	(MAX_OODLE_PACKET_BYTES * 2)
 
-
-#if HAS_OODLE_SDK
 #include "OodleArchives.h"
 
+#if HAS_OODLE_SDK
+
 #if UE4_OODLE_VER >= 200
-#include "oodle2.h"
+#include <oodle2.h>
 #else
 #include "oodle.h"
 #endif

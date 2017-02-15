@@ -1,12 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ISourceControlOperation.h"
 #include "SourceControlOperations.h"
+#include "Features/IModularFeature.h"
+#include "ISourceControlState.h"
 #include "SourceControlHelpers.h"
-#include "Runtime/Core/Public/Features/IModularFeature.h"
 
 #define SOURCE_CONTROL_WITH_SLATE			(!(PLATFORM_LINUX && IS_PROGRAM))
+
+class ISourceControlLabel;
 
 /**
  * Hint for how to execute the operation. Note that asynchronous operations require

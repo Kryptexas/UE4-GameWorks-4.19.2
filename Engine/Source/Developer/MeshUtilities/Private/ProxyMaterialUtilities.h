@@ -1,6 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Engine/MaterialMerging.h"
+#include "StaticParameterSet.h"
+#include "Materials/Material.h"
+#include "Engine/Texture2D.h"
+#include "MaterialUtilities.h"
+#include "Materials/MaterialInstanceConstant.h"
 
 namespace ProxyMaterialUtilities
 {
@@ -16,6 +24,7 @@ namespace ProxyMaterialUtilities
 		SwitchParameter.bOverride = true; \
 		NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter); \
 		a##Texture->PostEditChange(); \
+		OutAssetsToSync.Add(a##Texture); \
 	} 
 
 #define TEXTURE_MACRO_VECTOR(a, b, c) TEXTURE_MACRO_BASE(a, b, c)\
@@ -90,12 +99,13 @@ namespace ProxyMaterialUtilities
 		return NumPacked >= 2;
 	}
 
-	static UMaterialInstanceConstant* CreateProxyMaterialInstance(UPackage* InOuter, const FMaterialProxySettings& InMaterialProxySettings, FFlattenMaterial& FlattenMaterial, const FString& AssetBasePath, const FString& AssetBaseName)
+	static UMaterialInstanceConstant* CreateProxyMaterialInstance(UPackage* InOuter, const FMaterialProxySettings& InMaterialProxySettings, FFlattenMaterial& FlattenMaterial, const FString& AssetBasePath, const FString& AssetBaseName, TArray<UObject*>& OutAssetsToSync)
 	{
 		UMaterial* BaseMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EngineMaterials/BaseFlattenMaterial.BaseFlattenMaterial"), NULL, LOAD_None, NULL);
 		check(BaseMaterial);
 
 		UMaterialInstanceConstant* OutMaterial = FMaterialUtilities::CreateInstancedMaterial(BaseMaterial, InOuter, AssetBasePath + AssetBaseName, RF_Public | RF_Standalone);
+		OutAssetsToSync.Add(OutMaterial);
 
 		OutMaterial->BasePropertyOverrides.TwoSided = false;
 		OutMaterial->BasePropertyOverrides.bOverride_TwoSided = true;
@@ -146,12 +156,15 @@ namespace ProxyMaterialUtilities
 			MergedTexture.AddZeroed(NumSamples);
 
 			// Merge properties into one texture using the separate colour channels
-
-			// R G B masks
-			const uint32 ColorMask[3] = { FColor::Red.DWColor(), FColor::Green.DWColor(), FColor::Blue.DWColor() };
+			const EFlattenMaterialProperties Properties[3] = { EFlattenMaterialProperties::Metallic , EFlattenMaterialProperties::Roughness, EFlattenMaterialProperties::Specular};
+			// Red mask (all properties are rendered into the red channel)
+			FColor NonAlphaRed = FColor::Red;
+			NonAlphaRed.A = 0;
+			const uint32 ColorMask = NonAlphaRed.DWColor();
+			const uint32 Shift[3] = { 0, 8, 16 };
 			for (int32 PropertyIndex = 0; PropertyIndex < 3; ++PropertyIndex)
 			{
-				EFlattenMaterialProperties Property = (EFlattenMaterialProperties)(PropertyIndex + (int32)EFlattenMaterialProperties::Metallic);
+				const EFlattenMaterialProperties Property = Properties[PropertyIndex];
 				const bool HasProperty = FlattenMaterial.DoesPropertyContainData(Property) && !FlattenMaterial.IsPropertyConstant(Property);
 
 				if (HasProperty)
@@ -160,7 +173,8 @@ namespace ProxyMaterialUtilities
 					// OR masked values (samples initialized to zero, so no random data)
 					for (int32 SampleIndex = 0; SampleIndex < NumSamples; ++SampleIndex)
 					{
-						MergedTexture[SampleIndex].DWColor() |= (PropertySamples[SampleIndex].DWColor() & ColorMask[PropertyIndex]);
+						// Black adds the alpha + red channel value shifted into the correct output channel
+						MergedTexture[SampleIndex].DWColor() |= (FColor::Black.DWColor() + ((PropertySamples[SampleIndex].DWColor() & ColorMask) >> Shift[PropertyIndex]));
 					}
 				}
 			}
@@ -168,6 +182,7 @@ namespace ProxyMaterialUtilities
 			// Create texture using the merged property data
 			UTexture2D* PackedTexture = FMaterialUtilities::CreateTexture(InOuter, AssetBasePath + TEXT("T_") + AssetBaseName + TEXT("_MRS"), PackedSize, MergedTexture, TC_Default, TEXTUREGROUP_HierarchicalLOD, RF_Public | RF_Standalone, bSRGB);
 			checkf(PackedTexture, TEXT("Failed to create texture"));
+			OutAssetsToSync.Add(PackedTexture);
 
 			// Setup switches for whether or not properties will be packed into one texture
 			FStaticSwitchParameter SwitchParameter;

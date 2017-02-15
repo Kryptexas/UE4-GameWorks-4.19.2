@@ -1,12 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FixupRedirectsCommandlet.cpp: Object redirect cleaner commandlet
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "Commandlets/FixupRedirectsCommandlet.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Class.h"
+#include "UObject/Package.h"
+#include "UObject/MetaData.h"
+#include "UObject/ObjectRedirector.h"
+#include "Misc/PackageName.h"
+#include "Misc/RedirectCollector.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
 #include "ISourceControlModule.h"
+#include "EngineGlobals.h"
 #include "Engine/UserDefinedEnum.h"
+#include "Editor.h"
+#include "FileHelpers.h"
 #include "AutoSaveUtils.h"
 #include "AssetRegistryModule.h"
 

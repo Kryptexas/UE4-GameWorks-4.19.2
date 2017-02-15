@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3158648
 Availability: Public
 Title:머티리얼 함수
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:패키지에 저장한 다음 여러 머티리얼에 재사용할 수 있는 머티리얼 그래프 조각입니다.
 Version: 4.9
+parent:Engine/Rendering/Materials
+order:10
+topic-image:Engine/Rendering/Materials/FunctionTopic.png
+type:overview
 
 [REGION:full_feature]
 [/REGION]
@@ -17,7 +21,7 @@ Version: 4.9
 
 무엇보다도 함수 하나만 수정해도 그것을 사용한 모든 네트워크에 그 내용이 전파됩니다. 
 즉 함수 작동 방식을 고치거나 바꿀 필요가 생겨도 해당 함수를 사용하는 다수의 머티리얼을 
-일일히 수정하지 않아도 되는 것입니다.
+일일이 수정하지 않아도 되는 것입니다.
 
 
 

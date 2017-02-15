@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:NoPublish
 Title:FullBlueprintEditorCommands RTTs
 Crumbs:
@@ -6,7 +6,7 @@ Crumbs:
 [EXCERPT:Compile]
 
 
-This will compile the current Blueprint (default keyboard short cut of F7). Any errors or warnings will be flagged in the "Compiler Results" pane, and also any applicable node will have a red warning placed on it.
+此操作将编译当前蓝图（默认键盘快捷键为 F7。）错误或警告将显示在“Compiler Results”窗格中；可应用的节点上方拥有一个红色警告。
 
 [/EXCERPT:Compile]
 
@@ -32,11 +32,11 @@ This will compile the current Blueprint (default keyboard short cut of F7). Any 
 [EXCERPT:EditGlobalOptions]
 
 
-This will open the Blueprint Properties in the Details Pane of the Blueprint Editor:
+这会在蓝图编辑器的 Details 面板中打开 Blueprint Properties：
 
 ![](k2_blueprintProps.png)
 
-Here you can add Blueprint Interfaces, re-parent the Blueprint, and change some other properties that exist solely on the Blueprint.
+可在此处添加蓝图接口、重设蓝图父项，并修改单独存在于蓝图中的部分其他属性。
 
 [/EXCERPT:EditGlobalOptions]
 

@@ -1,7 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneActorReferenceSection.h"
+#include "Sections/MovieSceneActorReferenceSection.h"
 
 
 UMovieSceneActorReferenceSection::UMovieSceneActorReferenceSection( const FObjectInitializer& ObjectInitializer )
@@ -122,8 +121,15 @@ bool UMovieSceneActorReferenceSection::HasKeys( const FGuid& Value ) const
 
 void UMovieSceneActorReferenceSection::SetDefault( const FGuid& Value )
 {
-	int32 DefaultIndex = ActorGuids.Add( Value );
-	ActorGuidIndexCurve.SetDefaultValue( DefaultIndex );
+	int32 CurrentDefault = ActorGuidIndexCurve.GetDefaultValue();
+	if (!ActorGuids.IsValidIndex(CurrentDefault) || ActorGuids[CurrentDefault] != Value)
+	{
+		if (TryModify())
+		{
+			int32 DefaultIndex = ActorGuids.Add( Value );
+			ActorGuidIndexCurve.SetDefaultValue( DefaultIndex );
+		}
+	}
 }
 
 

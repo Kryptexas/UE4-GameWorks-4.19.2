@@ -1,17 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ShapeElem.h"
-#include "ConvexElem.h"
-#include "BoxElem.h"
-#include "SphereElem.h"
-#include "SphylElem.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "PhysicsEngine/ConvexElem.h"
+#include "PhysicsEngine/BoxElem.h"
+#include "PhysicsEngine/SphereElem.h"
+#include "PhysicsEngine/SphylElem.h"
 #include "AggregateGeom.generated.h"
 
 class FMaterialRenderProxy;
-class FPrimitiveDrawInterface;
-
 
 /** Container for an aggregate of collision shapes */
 USTRUCT()

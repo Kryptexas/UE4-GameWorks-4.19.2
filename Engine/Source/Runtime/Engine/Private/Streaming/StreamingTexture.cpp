@@ -1,14 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 StreamingTexture.cpp: Definitions of classes used for texture.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "StreamingTexture.h"
-#include "StreamingManagerTexture.h"
-#include "Engine/LightMapTexture2D.h"
-#include "Engine/ShadowMapTexture2D.h"
+#include "Streaming/StreamingTexture.h"
+#include "Misc/App.h"
+#include "Streaming/StreamingManagerTexture.h"
 
 FStreamingTexture::FStreamingTexture(UTexture2D* InTexture, const int32 NumStreamedMips[TEXTUREGROUP_MAX], const FTextureStreamingSettings& Settings)
 : Texture(InTexture)
@@ -21,7 +19,11 @@ FStreamingTexture::FStreamingTexture(UTexture2D* InTexture, const int32 NumStrea
 	LastRenderTimeRefCount = 0;
 	DynamicBoostFactor = 1.f;
 
+	bHasUpdatePending = InTexture && InTexture->bHasStreamingUpdatePending;
+
 	bForceFullyLoadHeuristic = false;
+	bUseLastRenderTimeHeuristic = false;
+	bUseUnkownRefHeuristic = false;
 	NumMissingMips = 0;
 	bLooksLowRes = false;
 	VisibleWantedMips = MinAllowedMips;
@@ -165,7 +167,7 @@ void FStreamingTexture::UpdateStreamingStatus()
 
 float FStreamingTexture::GetExtraBoost(TextureGroup	LODGroup, const FTextureStreamingSettings& Settings)
 {
-	// When accurate distance computation, we need to relax the distance otherwhise it get's too conservative. (ex 513 goes to 1024)
+	// When accurate distance computation, we need to relax the distance otherwise it gets too conservative. (ex 513 goes to 1024)
 	const float DistanceScale = Settings.bUseNewMetrics ? .71f : 1.f;
 
 	if (LODGroup == TEXTUREGROUP_Terrain_Heightmap || LODGroup == TEXTUREGROUP_Terrain_Weightmap) 
@@ -306,15 +308,24 @@ int64 FStreamingTexture::KeepOneMip_Async()
 	}
 }
 
-bool FStreamingTexture::UpdateLoadOrderPriority_Async()
+bool FStreamingTexture::UpdateLoadOrderPriority_Async(int32 MinMipForSplitRequest)
 {
 	LoadOrderPriority = 0;
-	WantedMips = BudgetedMips;
+
+	// First load the visible mips, then later load the non visible part.
+	if (ResidentMips < VisibleWantedMips && VisibleWantedMips < BudgetedMips && BudgetedMips >= MinMipForSplitRequest)
+	{
+		WantedMips = VisibleWantedMips;
+	}
+	else
+	{
+		WantedMips = BudgetedMips;
+	}
 
 	// If the entry is valid and we need to send a new request to load/drop the right mip.
 	if (bReadyForStreaming && Texture && WantedMips != RequestedMips)
 	{
-		const bool bIsVisible			= WantedMips <= VisibleWantedMips; // Otherwise it means we are loading mips that are only usefull for non visible primitives.
+		const bool bIsVisible			= ResidentMips < VisibleWantedMips; // Otherwise it means we are loading mips that are only useful for non visible primitives.
 		const bool bMustLoadFirst		= bForceFullyLoadHeuristic || bIsTerrainTexture || bIsCharacterTexture;
 		const bool bMipIsImportant		= WantedMips - ResidentMips > (bLooksLowRes ? 1 : 2);
 

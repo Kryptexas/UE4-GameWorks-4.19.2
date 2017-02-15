@@ -1,6 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
 
 // Just to be sure, also added this in Eigen.Build.cs
 #ifndef EIGEN_MPL2_ONLY

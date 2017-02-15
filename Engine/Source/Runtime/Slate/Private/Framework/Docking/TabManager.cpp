@@ -1,7 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "DockingPrivate.h"
+#include "Framework/Docking/TabManager.h"
+#include "Dom/JsonValue.h"
+#include "Dom/JsonObject.h"
+#include "Framework/Commands/UIAction.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBox.h"
+#include "Framework/Docking/SDockingNode.h"
+#include "Framework/Docking/SDockingSplitter.h"
+#include "Framework/Docking/SDockingArea.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "Framework/Docking/SDockingTabStack.h"
+#include "Framework/Docking/SDockingTabWell.h"
+#include "LayoutExtender.h"
 #if PLATFORM_MAC
 #include "../MultiBox/Mac/MacMenu.h"
 #endif
@@ -372,6 +388,96 @@ TSharedRef<FJsonObject> FTabManager::FLayout::PersistToString_Helper(const TShar
 	return JsonObj;
 }
 
+void FTabManager::FLayout::ProcessExtensions(const FLayoutExtender& Extender)
+{
+	struct FTabInformation
+	{
+		FTabInformation(FTabManager::FLayout& Layout)
+		{
+			Gather(Layout);
+		}
+
+		void Gather(FTabManager::FLayout& Layout)
+		{
+			for (TSharedRef<FTabManager::FArea>& Area : Layout.Areas)
+			{
+				Gather(*Area);
+			}
+		}
+
+		void Gather(FTabManager::FSplitter& Splitter)
+		{
+			for (TSharedRef<FTabManager::FLayoutNode>& Child : Splitter.ChildNodes)
+			{
+				TSharedPtr<FTabManager::FStack> Stack = Child->AsStack();
+				if (Stack.IsValid())
+				{
+					AllStacks.Add(Stack.Get());
+
+					for (FTabManager::FTab& Tab : Stack->Tabs)
+					{
+						AllDefinedTabs.Add(Tab.TabId);
+					}
+
+					continue;
+				}
+
+				TSharedPtr<FTabManager::FSplitter> ChildSplitter = Child->AsSplitter();
+				if (ChildSplitter.IsValid())
+				{
+					Gather(*ChildSplitter);
+					continue;
+				}
+
+				TSharedPtr<FTabManager::FArea> Area = Child->AsArea();
+				if (Area.IsValid())
+				{
+					Gather(*Area);
+					continue;
+				}
+			}
+		}
+
+		bool Contains(FTabId TabId) const
+		{
+			return AllDefinedTabs.Contains(TabId);
+		}
+
+		TArray<FTabManager::FStack*> AllStacks;
+		TSet<FTabId> AllDefinedTabs;
+	};
+	FTabInformation AllTabs(*this);
+
+	TArray<FTab, TInlineAllocator<1>> ExtendedTabs;
+
+	for (FTabManager::FStack* Stack : AllTabs.AllStacks)
+	{
+		for (int32 TabIndex = 0; TabIndex < Stack->Tabs.Num();)
+		{
+			FTabId TabId = Stack->Tabs[TabIndex].TabId;
+
+			Extender.FindExtensions(TabId, ELayoutExtensionPosition::Before, ExtendedTabs);
+			for (FTab& NewTab : ExtendedTabs)
+			{
+				if (!AllTabs.Contains(NewTab.TabId))
+				{
+					Stack->Tabs.Insert(NewTab, TabIndex++);
+				}
+			}
+
+			++TabIndex;
+
+			Extender.FindExtensions(TabId, ELayoutExtensionPosition::After, ExtendedTabs);
+			for (FTab& NewTab : ExtendedTabs)
+			{
+				if (!AllTabs.Contains(NewTab.TabId))
+				{
+					Stack->Tabs.Insert(NewTab, TabIndex++);
+				}
+			}
+		}
+	}
+}
 
 //////////////////////////////////////////////////////////////////////////
 // FTabManager::PrivateApi
@@ -904,11 +1010,17 @@ void FTabManager::DrawAttention( const TSharedRef<SDockTab>& TabToHighlight )
 		}
 
 		TSharedPtr<SWindow> OwnerWindow = DockingArea->GetParentWindow();
-		if ( OwnerWindow.IsValid() && ( OwnerWindow->IsActive() || OwnerWindow->HasActiveParent() ) )
+
+		if ( SWindow* OwnerWindowPtr = OwnerWindow.Get() )
 		{
-			// Only bring windows to the front and draw attention if that window is active.  If we don't do this,
-			// it's very easy to make code do annoying things, eg. stealing focus from PIE windows.
-			OwnerWindow->BringToFront();
+			// When should we force a window to the front?
+			// 1) The owner window is already active, so we know the user is using this screen.
+			// 2) This window is a child window of another already active window (same as 1).
+			// 3) Slate is currently processing input, which would imply we got this request at the behest of a user's click or press.
+			if ( OwnerWindowPtr->IsActive() || OwnerWindowPtr->HasActiveParent() || FSlateApplication::Get().IsProcessingInput() )
+			{
+				OwnerWindowPtr->BringToFront();
+			}
 		}
 
 		TabToHighlight->GetParentDockTabStack()->BringToFront(TabToHighlight);

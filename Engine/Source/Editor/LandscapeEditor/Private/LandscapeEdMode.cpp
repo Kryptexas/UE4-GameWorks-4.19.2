@@ -1,49 +1,51 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LandscapeEditorPrivatePCH.h"
+#include "LandscapeEdMode.h"
+#include "SceneView.h"
+#include "Engine/Texture2D.h"
+#include "EditorViewportClient.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "Engine/Light.h"
+#include "Engine/Selection.h"
+#include "EditorModeManager.h"
+#include "LandscapeFileFormatInterface.h"
+#include "LandscapeEditorModule.h"
+#include "LandscapeEditorObject.h"
+#include "Landscape.h"
+#include "LandscapeStreamingProxy.h"
 
 #include "EditorSupportDelegates.h"
-#include "ObjectTools.h"
-#include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
 #include "LandscapeEdit.h"
 #include "LandscapeEditorUtils.h"
 #include "LandscapeRender.h"
 #include "LandscapeDataAccess.h"
-#include "LandscapeSplineProxies.h"
-#include "LandscapeEditorModule.h"
-#include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/UnrealEd/Public/Toolkits/ToolkitManager.h"
-#include "LandscapeEdModeTools.h"
-#include "ScopedTransaction.h"
-#include "ImageWrapper.h"
-#include "DynamicMeshBuilder.h"
-
-//Slate dependencies
-#include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "Editor/LevelEditor/Public/SLevelViewport.h"
-#include "SLandscapeEditor.h"
-
-// VR Editor
+#include "Framework/Commands/UICommandList.h"
+#include "LevelEditor.h"
+#include "Toolkits/ToolkitManager.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
+#include "InstancedFoliageActor.h"
 #include "IVREditorModule.h"
 #include "ViewportWorldInteraction.h"
 #include "VREditorInteractor.h"
+#include "LandscapeEdModeTools.h"
+#include "LandscapeInfoMap.h"
+
+//Slate dependencies
+#include "Misc/FeedbackContext.h"
+#include "ILevelViewport.h"
+#include "SLandscapeEditor.h"
+
+// VR Editor
 #include "VREditorMode.h"
 #include "EditorWorldManager.h"
 
 // Classes
-#include "LandscapeInfoMap.h"
-#include "LandscapeStreamingProxy.h"
-#include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeMaterialInstanceConstant.h"
 #include "LandscapeSplinesComponent.h"
-#include "InstancedFoliageActor.h"
 #include "ComponentReregisterContext.h"
-#include "Engine/Selection.h"
-#include "LandscapeGizmoActiveActor.h"
 #include "EngineUtils.h"
-#include "Engine/Light.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -264,6 +266,7 @@ void FEdModeLandscape::AddReferencedObjects(FReferenceCollector& Collector)
 	Collector.AddReferencedObject(GSelectionRegionMaterial);
 	Collector.AddReferencedObject(GMaskRegionMaterial);
 	Collector.AddReferencedObject(GLandscapeBlackTexture);
+	Collector.AddReferencedObject(GLandscapeLayerUsageMaterial);
 }
 
 void FEdModeLandscape::InitializeToolModes()
@@ -353,8 +356,9 @@ void FEdModeLandscape::Enter()
 	if (CurrentGizmoActor.IsValid())
 	{
 		CurrentGizmoActor->SetTargetLandscape(CurrentToolTarget.LandscapeInfo.Get());
+
+		CastChecked<ALandscapeGizmoActiveActor>(CurrentGizmoActor.Get())->bSnapToLandscapeGrid = UISettings->bSnapGizmo;
 	}
-	CastChecked<ALandscapeGizmoActiveActor>(CurrentGizmoActor.Get())->bSnapToLandscapeGrid = UISettings->bSnapGizmo;
 
 	int32 SquaredDataTex = ALandscapeGizmoActiveActor::DataTexSize * ALandscapeGizmoActiveActor::DataTexSize;
 
@@ -472,14 +476,18 @@ void FEdModeLandscape::Enter()
 	}
 
 	// Register to find out about VR input events
-	UViewportWorldInteraction* ViewportWorldInteraction = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld())->GetViewportWorldInteraction();
-	if (ViewportWorldInteraction != nullptr)
+	TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld(), false);
+	if (EditorWorldWrapper.IsValid())
 	{
-		ViewportWorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
-		ViewportWorldInteraction->OnViewportInteractionInputAction().AddRaw(this, &FEdModeLandscape::OnVRAction);
+		UViewportWorldInteraction* WorldInteraction = EditorWorldWrapper->GetViewportWorldInteraction();
+		if (WorldInteraction != nullptr)
+		{
+			WorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
+			WorldInteraction->OnViewportInteractionInputAction().AddRaw(this, &FEdModeLandscape::OnVRAction);
 
-		ViewportWorldInteraction->OnViewportInteractionHoverUpdate().RemoveAll(this);
-		ViewportWorldInteraction->OnViewportInteractionHoverUpdate().AddRaw(this, &FEdModeLandscape::OnVRHoverUpdate);
+			WorldInteraction->OnViewportInteractionHoverUpdate().RemoveAll(this);
+			WorldInteraction->OnViewportInteractionHoverUpdate().AddRaw(this, &FEdModeLandscape::OnVRHoverUpdate);
+		}
 	}
 }
 
@@ -488,24 +496,16 @@ void FEdModeLandscape::Enter()
 void FEdModeLandscape::Exit()
 {
 	// Unregister VR mode from event handlers
-	if(IVREditorModule::IsAvailable() && GEditor != nullptr)
+	if (IVREditorModule::IsAvailable())
 	{
-		// Because it is unknown if the mode entered with a play or editor mode we have to do this for both
-		for(int i = 0; i < 2; i++)
+		TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld(), false);
+		if (EditorWorldWrapper.IsValid())
 		{
-			UWorld* World = i == 0 ? GEditor->PlayWorld : GEditor->EditorWorld;
-			if(World != nullptr)
+			UViewportWorldInteraction* WorldInteraction = EditorWorldWrapper->GetViewportWorldInteraction();
+			if (WorldInteraction != nullptr)
 			{
-				TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(World);
-				if(EditorWorldWrapper.IsValid())
-				{
-					UViewportWorldInteraction* WorldInteraction = EditorWorldWrapper->GetViewportWorldInteraction();
-					if(WorldInteraction != nullptr)
-					{
-						WorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
-						WorldInteraction->OnViewportInteractionHoverUpdate().RemoveAll(this);
-					}
-				}
+				WorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
+				WorldInteraction->OnViewportInteractionHoverUpdate().RemoveAll(this);
 			}
 		}
 	}
@@ -581,31 +581,30 @@ void FEdModeLandscape::Exit()
 
 void FEdModeLandscape::OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled)
 {
-	TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
-	if(InteractorPainting != nullptr && InteractorPainting == Interactor && EditorWorldWrapper.IsValid())
+	if (InteractorPainting != nullptr && InteractorPainting == Interactor && IVREditorModule::Get().IsVREditorModeActive())
 	{
-		UVREditorMode* VREditorMode = EditorWorldWrapper->GetVREditorMode();
-		if(VREditorMode != nullptr && VREditorMode->IsActive() && Interactor != nullptr)
+		UVREditorMode* VREditorMode = IVREditorModule::Get().GetVREditorMode();
+		if (VREditorMode != nullptr && VREditorMode->IsActive() && Interactor != nullptr)
 		{
 			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
 
-			if(!VRInteractor->IsHoveringOverPriorityType() && CurrentTool && (CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid))
+			if (!VRInteractor->IsHoveringOverPriorityType() && CurrentTool && (CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid))
 			{
 				FVector HitLocation;
 				FVector LaserPointerStart, LaserPointerEnd;
-				if(Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
+				if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
 				{
-					if(LandscapeTrace(&ViewportClient, LaserPointerStart, LaserPointerEnd, HitLocation))
+					if (LandscapeTrace(&ViewportClient, LaserPointerStart, LaserPointerEnd, HitLocation))
 					{
-						if(bIsPaintingInVR && !(CurrentToolTarget.TargetType == ELandscapeToolTargetType::Weightmap && CurrentToolTarget.LayerInfo == NULL))
+						if (bIsPaintingInVR && !(CurrentToolTarget.TargetType == ELandscapeToolTargetType::Weightmap && CurrentToolTarget.LayerInfo == NULL))
 						{
-							if(CurrentTool->BeginTool(&ViewportClient, CurrentToolTarget, HitLocation, Interactor))
+							if (CurrentTool->BeginTool(&ViewportClient, CurrentToolTarget, HitLocation, Interactor))
 							{
 								ToolActiveViewport = ViewportClient.Viewport;
 							}
 						}
 
-						if(CurrentBrush)
+						if (CurrentBrush)
 						{
 							// Inform the brush of the current location, to update the cursor
 							CurrentBrush->MouseMove(HitLocation.X, HitLocation.Y);
@@ -622,65 +621,61 @@ void FEdModeLandscape::OnVRAction(FEditorViewportClient& ViewportClient, UViewpo
 	// Never show the traditional Unreal transform widget.  It doesn't work in VR because we don't have hit proxies.
 	ViewportClient.EngineShowFlags.SetModeWidgets(false);
 
-	TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
-	if(EditorWorldWrapper.IsValid())
+	if (IVREditorModule::Get().IsVREditorModeActive() && Interactor != nullptr)
 	{
-		UVREditorMode* VREditorMode = EditorWorldWrapper->GetVREditorMode();
-		if(VREditorMode != nullptr && VREditorMode->IsActive() && Interactor != nullptr)
+		if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed || Action.ActionType == ViewportWorldActionTypes::SelectAndMove)
 		{
-			if(Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed || Action.ActionType == ViewportWorldActionTypes::SelectAndMove)
+			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
+
+			// Begin landscape brush
+			if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverUI() && !VRInteractor->IsHoveringOverPriorityType() )
 			{
-				const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
-
-				// Begin landscape brush
-				if(Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverUI() && !VRInteractor->IsHoveringOverPriorityType())
+				if (ViewportClient.Viewport != nullptr && ViewportClient.Viewport == ToolActiveViewport)
 				{
-					if(ViewportClient.Viewport != nullptr && ViewportClient.Viewport == ToolActiveViewport)
-					{
-						CurrentTool->EndTool(&ViewportClient);
-						ToolActiveViewport = nullptr;
-					}
+					CurrentTool->EndTool(&ViewportClient);
+					ToolActiveViewport = nullptr;
+				}
 
-					if(CurrentTool && (CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid))
+				if (CurrentTool && (CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid))
+				{
+					FVector HitLocation;
+					FVector LaserPointerStart, LaserPointerEnd;
+					if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
 					{
-						FVector HitLocation;
-						FVector LaserPointerStart, LaserPointerEnd;
-						if(Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
+						if (LandscapeTrace(&ViewportClient, LaserPointerStart, LaserPointerEnd, HitLocation))
 						{
-							if(LandscapeTrace(&ViewportClient, LaserPointerStart, LaserPointerEnd, HitLocation))
+							if (!(CurrentToolTarget.TargetType == ELandscapeToolTargetType::Weightmap && CurrentToolTarget.LayerInfo == NULL))
 							{
-								if(!(CurrentToolTarget.TargetType == ELandscapeToolTargetType::Weightmap && CurrentToolTarget.LayerInfo == NULL))
+								if( CurrentTool->BeginTool( &ViewportClient, CurrentToolTarget, HitLocation, Interactor ) )
 								{
-									if(CurrentTool->BeginTool(&ViewportClient, CurrentToolTarget, HitLocation, Interactor))
-									{
-										ToolActiveViewport = ViewportClient.Viewport;
-									}
+									ToolActiveViewport = ViewportClient.Viewport;
 								}
-
-								bIsPaintingInVR = true;
-								bWasHandled = true;
-								bOutIsInputCaptured = false;
-
-								InteractorPainting = Interactor;
 							}
+
+							bIsPaintingInVR = true;
+							bWasHandled = true;
+							bOutIsInputCaptured = false;
+
+							InteractorPainting = Interactor;
 						}
 					}
 				}
+			}
 
-				// End landscape brush
-				else if(Action.Event == IE_Released)
+			// End landscape brush
+			else if (Action.Event == IE_Released)
+			{
+				if (CurrentTool && ViewportClient.Viewport != nullptr && ViewportClient.Viewport == ToolActiveViewport)
 				{
-					if(CurrentTool && ViewportClient.Viewport != nullptr && ViewportClient.Viewport == ToolActiveViewport)
-					{
-						CurrentTool->EndTool(&ViewportClient);
-						ToolActiveViewport = nullptr;
-					}
-
-					bIsPaintingInVR = false;
+					CurrentTool->EndTool(&ViewportClient);
+					ToolActiveViewport = nullptr;
 				}
+
+				bIsPaintingInVR = false;
 			}
 		}
 	}
+
 }
 
 /** FEdMode: Called once per frame */
@@ -1377,6 +1372,12 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 		if (CurrentBrush->GetBrushType() == ELandscapeBrushType::Splines)
 		{
 			LandscapeEditorControlType = ELandscapeFoliageEditorControlType::RequireCtrl;
+		}
+
+		// Special case to handle where user paint with Left Click then pressing a moving camera input, we do not want to process them so as long as the tool is active ignore other input
+		if (CurrentTool != nullptr && CurrentTool->IsToolActive())
+		{
+			return true;
 		}
 
 		if (Key == EKeys::LeftMouseButton && Event == IE_Pressed)
@@ -2511,6 +2512,7 @@ void FEdModeLandscape::PostUndo()
 
 /** Forces all level editor viewports to realtime mode */
 void FEdModeLandscape::ForceRealTimeViewports(const bool bEnable, const bool bStoreCurrentState)
+
 {
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
 	TSharedPtr<ILevelEditor> LevelEditor = LevelEditorModule.GetFirstLevelEditor();
@@ -2527,18 +2529,13 @@ void FEdModeLandscape::ForceRealTimeViewports(const bool bEnable, const bool bSt
 					Viewport.SetRealtime(bEnable, bStoreCurrentState);
 
 					// @todo vreditor: Force game view to true in VREditor since we can't use hitproxies and debug objects yet
-					TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
-					if (EditorWorldWrapper.IsValid())
+					if (IVREditorModule::Get().IsVREditorModeActive())
 					{
-						UVREditorMode* VREditorMode = EditorWorldWrapper->GetVREditorMode();
-						if (VREditorMode != nullptr && VREditorMode->IsActive())
-						{
-							Viewport.SetGameView(true);
-						}
-						else
-						{
-							Viewport.SetGameView(false);
-						}
+						Viewport.SetGameView(true);
+					} 
+					else
+					{
+						Viewport.SetGameView(false);
 					}
 				}
 				else

@@ -1,13 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Styling/ISlateStyle.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
 
-enum class EMediaTrackType;
-class ISlateStyle;
+class FMenuBuilder;
+class SEditableTextBox;
 class SSlider;
 class UMediaPlayer;
-
+enum class EMediaEvent;
+enum class EMediaPlayerTrack : uint8;
 
 /**
  * Implements the contents of the viewer tab in the UMediaPlayer asset editor.
@@ -50,8 +56,8 @@ public:
 
 protected:
 
-	/** Open the media URL in the url text box. */
-	void OpenUrlTextBoxUrl();
+	/** Open the specified media URL. */
+	void OpenUrl(const FText& TextUrl);
 
 	/** Set the name of the desired native media player. */
 	void SetDesiredPlayerName(FName PlayerName);

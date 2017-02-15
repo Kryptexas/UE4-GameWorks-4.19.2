@@ -1,6 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "SlotBase.h"
+#include "Layout/Children.h"
+#include "Widgets/SPanel.h"
+
+class FArrangedChildren;
 
 /** Arrange 3 widgets: the top track, bottom track, and thumb. */
 class SLATE_API SScrollBarTrack : public SPanel

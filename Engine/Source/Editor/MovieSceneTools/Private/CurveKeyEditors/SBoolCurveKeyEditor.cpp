@@ -1,7 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "SBoolCurveKeyEditor.h"
+#include "CurveKeyEditors/SBoolCurveKeyEditor.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Curves/KeyHandle.h"
+#include "ISequencer.h"
+#include "ScopedTransaction.h"
+#include "Curves/IntegralCurve.h"
 
 #define LOCTEXT_NAMESPACE "BoolCurveKeyEditor"
 
@@ -29,7 +34,7 @@ ECheckBoxState SBoolCurveKeyEditor::IsChecked() const
 	}
 	else
 	{
-		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		float CurrentTime = Sequencer->GetLocalTime();
 		bool DefaultValue = false;
 		bCurrentValue = Curve->Evaluate(CurrentTime, DefaultValue) != 0;
 	}
@@ -43,7 +48,7 @@ void SBoolCurveKeyEditor::OnCheckStateChanged(ECheckBoxState NewCheckboxState)
 	OwningSection->SetFlags(RF_Transactional);
 	if (OwningSection->TryModify())
 	{
-		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		float CurrentTime = Sequencer->GetLocalTime();
 		bool bAutoSetTrackDefaults = Sequencer->GetAutoSetTrackDefaults();
 		int32 NewValue = NewCheckboxState == ECheckBoxState::Checked ? 1 : 0;
 
@@ -61,13 +66,16 @@ void SBoolCurveKeyEditor::OnCheckStateChanged(ECheckBoxState NewCheckboxState)
 				Curve->AddKey(CurrentTime, NewValue, CurrentKeyHandle);
 			}
 
-			if (OwningSection->GetStartTime() > CurrentTime)
+			if (Curve->GetNumKeys() != 0)
 			{
-				OwningSection->SetStartTime(CurrentTime);
-			}
-			if (OwningSection->GetEndTime() < CurrentTime)
-			{
-				OwningSection->SetEndTime(CurrentTime);
+				if (OwningSection->GetStartTime() > CurrentTime)
+				{
+					OwningSection->SetStartTime(CurrentTime);
+				}
+				if (OwningSection->GetEndTime() < CurrentTime)
+				{
+					OwningSection->SetEndTime(CurrentTime);
+				}
 			}
 		}
 

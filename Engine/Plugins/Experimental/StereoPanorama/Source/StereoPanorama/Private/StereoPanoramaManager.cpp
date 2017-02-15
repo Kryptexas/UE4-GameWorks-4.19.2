@@ -1,6 +1,9 @@
 // Copyright 2015 Kite & Lightning.  All rights reserved.
 
-#include "StereoPanoramaPrivatePCH.h"
+#include "StereoPanoramaManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/GameModeBase.h"
+#include "Engine/World.h"
 
 #if WITH_EDITOR
 #include "Editor.h"

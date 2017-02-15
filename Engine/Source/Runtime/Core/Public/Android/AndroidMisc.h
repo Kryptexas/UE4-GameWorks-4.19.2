@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -38,6 +38,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static bool AllowRenderThread();
 	static bool HasPlatformFeature(const TCHAR* FeatureName);
 	static bool ShouldDisablePluginAtRuntime(const FString& PluginName);
+	static bool SupportsES30();
 
 	static bool AllowThreadHeartBeat()
 	{
@@ -85,7 +86,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static void ResetGamepadAssignments();
 	static void ResetGamepadAssignmentToController(int32 ControllerId);
 	static bool IsControllerAssignedToGamepad(int32 ControllerId);
-	// Returns current volume, 0-100 (%)
+	// Returns current volume, 0-15
 	static int GetVolumeState(double* OutTimeOfChangeInSec = nullptr);
 	static const TCHAR* GamePersistentDownloadDir();
 

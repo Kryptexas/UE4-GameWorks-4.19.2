@@ -74,7 +74,7 @@ We're now ready to finish coding our MyPawn class in **Visual Studio**.
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -90,9 +90,11 @@ We're now ready to finish coding our MyPawn class in **Visual Studio**.
 				// Sets default values
 				AMyPawn();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
-	
+			
+			public:
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 
@@ -104,7 +106,7 @@ We're now ready to finish coding our MyPawn class in **Visual Studio**.
 			};
 
 		**MyPawn.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerInput.h"
 			#include "MyPawn.h"

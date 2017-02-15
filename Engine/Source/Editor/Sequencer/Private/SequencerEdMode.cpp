@@ -1,12 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
 #include "SequencerEdMode.h"
+#include "EditorViewportClient.h"
+#include "Curves/KeyHandle.h"
+#include "ISequencer.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
 #include "Sequencer.h"
-#include "SubtitleManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "DisplayNodes/SequencerObjectBindingNode.h"
+#include "DisplayNodes/SequencerTrackNode.h"
+#include "SequencerCommonHelpers.h"
 #include "MovieSceneHitProxy.h"
 #include "Tracks/MovieScene3DTransformTrack.h"
 #include "Sections/MovieScene3DTransformSection.h"
+#include "SubtitleManager.h"
 
 const FEditorModeID FSequencerEdMode::EM_SequencerMode(TEXT("EM_SequencerMode"));
 
@@ -29,7 +36,7 @@ void FSequencerEdMode::Enter()
 
 void FSequencerEdMode::Exit()
 {
-	SequencerPtr.Reset();
+	Sequencers.Reset();
 
 	FEdMode::Exit();
 }
@@ -42,18 +49,22 @@ bool FSequencerEdMode::IsCompatibleWith(FEditorModeID OtherModeID) const
 
 bool FSequencerEdMode::InputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
 {
-	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+	TSharedPtr<FSequencer> ActiveSequencer;
 
-	if (!Sequencer.IsValid())
+	for (TWeakPtr<FSequencer> WeakSequencer : Sequencers)
 	{
-		return false;
+		ActiveSequencer = WeakSequencer.Pin();
+		if (ActiveSequencer.IsValid())
+		{
+			break;
+		}
 	}
 
-	if (Event != IE_Released)
+	if (ActiveSequencer.IsValid() && Event != IE_Released)
 	{
 		FModifierKeysState KeyState = FSlateApplication::Get().GetModifierKeys();
 
-		if (Sequencer->GetCommandBindings(ESequencerCommandBindings::Shared).Get()->ProcessCommandBindings(Key, KeyState, (Event == IE_Repeat) ))
+		if (ActiveSequencer->GetCommandBindings(ESequencerCommandBindings::Shared).Get()->ProcessCommandBindings(Key, KeyState, (Event == IE_Repeat) ))
 		{
 			return true;
 		}
@@ -64,13 +75,6 @@ bool FSequencerEdMode::InputKey( FEditorViewportClient* ViewportClient, FViewpor
 
 void FSequencerEdMode::Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI)
 {
-	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
-
-	if (!Sequencer.IsValid())
-	{
-		return;
-	}
-
 	FEdMode::Render(View, Viewport, PDI);
 
 #if WITH_EDITORONLY_DATA
@@ -101,19 +105,19 @@ void FSequencerEdMode::DrawHUD(FEditorViewportClient* ViewportClient,FViewport* 
 
 void FSequencerEdMode::OnKeySelected(FViewport* Viewport, HMovieSceneKeyProxy* KeyProxy)
 {
-	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
-
-	if (!Sequencer.IsValid())
-	{
-		return;
-	}
-
 	bool bCtrlDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
 	bool bAltDown = Viewport->KeyState(EKeys::LeftAlt) || Viewport->KeyState(EKeys::RightAlt);
 	bool bShiftDown = Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift);
 
-	Sequencer->SetGlobalTimeDirectly(KeyProxy->Time);
-	Sequencer->SelectTrackKeys(KeyProxy->MovieSceneSection, KeyProxy->Time, bShiftDown, bCtrlDown);
+	for (TWeakPtr<FSequencer> WeakSequencer : Sequencers)
+	{
+		TSharedPtr<FSequencer> Sequencer = WeakSequencer.Pin();
+		if (Sequencer.IsValid())
+		{
+			Sequencer->SetLocalTimeDirectly(KeyProxy->Time);
+			Sequencer->SelectTrackKeys(KeyProxy->MovieSceneSection, KeyProxy->Time, bShiftDown, bCtrlDown);
+		}
+	}
 }
 
 namespace SequencerEdMode_Draw3D
@@ -376,22 +380,26 @@ void DrawTransformTrack(const FSceneView* View, FPrimitiveDrawInterface* PDI, UM
 
 void FSequencerEdMode::DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
-	TSet<TSharedRef<FSequencerDisplayNode> > ObjectBindingNodes;
-
-	// Map between object binding nodes and selection
-	TMap<TSharedRef<FSequencerDisplayNode>, bool > ObjectBindingNodesSelectionMap;
-
-	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
-
-	if (!Sequencer.IsValid())
+	for (TWeakPtr<FSequencer> WeakSequencer : Sequencers)
 	{
-		return;
-	}
-
-	for (auto ObjectBinding : Sequencer->GetNodeTree()->GetObjectBindingMap() )
-	{
-		if (ObjectBinding.Value.IsValid())
+		TSharedPtr<FSequencer> Sequencer = WeakSequencer.Pin();
+		if (!Sequencer.IsValid())
 		{
+			continue;
+		}
+
+		TSet<TSharedRef<FSequencerDisplayNode> > ObjectBindingNodes;
+
+		// Map between object binding nodes and selection
+		TMap<TSharedRef<FSequencerDisplayNode>, bool > ObjectBindingNodesSelectionMap;
+
+		for (auto ObjectBinding : Sequencer->GetNodeTree()->GetObjectBindingMap() )
+		{
+			if (!ObjectBinding.Value.IsValid())
+			{
+				continue;
+			}
+
 			TSharedRef<FSequencerObjectBindingNode> ObjectBindingNode = ObjectBinding.Value.ToSharedRef();
 
 			TSet<TSharedRef<FSequencerDisplayNode> > DescendantNodes;
@@ -411,31 +419,33 @@ void FSequencerEdMode::DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterf
 
 			ObjectBindingNodesSelectionMap.Add(ObjectBindingNode, bSelected);
 		}
-	}
 
+		// Gather up the transform track nodes from the object binding nodes
 
-	// Gather up the transform track nodes from the object binding nodes
-
-	for (auto ObjectBindingNode : ObjectBindingNodesSelectionMap)
-	{
-		TSet<TSharedRef<FSequencerDisplayNode> > AllNodes;
-		SequencerHelpers::GetDescendantNodes(ObjectBindingNode.Key, AllNodes);
-
-		FGuid ObjectBinding = StaticCastSharedRef<FSequencerObjectBindingNode>(ObjectBindingNode.Key)->GetObjectBinding();
-
-		TArray<TWeakObjectPtr<UObject>> BoundObjects;
-		Sequencer->GetRuntimeObjects(Sequencer->GetFocusedMovieSceneSequenceInstance(), ObjectBinding, BoundObjects);
-
-		for (auto DisplayNode : AllNodes)
+		for (auto ObjectBindingNode : ObjectBindingNodesSelectionMap)
 		{
-			if (DisplayNode->GetType() == ESequencerNode::Track)
+			TSet<TSharedRef<FSequencerDisplayNode> > AllNodes;
+			SequencerHelpers::GetDescendantNodes(ObjectBindingNode.Key, AllNodes);
+
+			FGuid ObjectBinding = StaticCastSharedRef<FSequencerObjectBindingNode>(ObjectBindingNode.Key)->GetObjectBinding();
+
+			TArray<TWeakObjectPtr<UObject>> BoundObjects;
+			for (TWeakObjectPtr<> Ptr : Sequencer->FindObjectsInCurrentSequence(ObjectBinding))
 			{
-				TSharedRef<FSequencerTrackNode> TrackNode = StaticCastSharedRef<FSequencerTrackNode>(DisplayNode);
-				UMovieSceneTrack* TrackNodeTrack = TrackNode->GetTrack();
-				UMovieScene3DTransformTrack* TransformTrack = Cast<UMovieScene3DTransformTrack>(TrackNodeTrack);
-				if (TransformTrack != nullptr)
+				BoundObjects.Add(Ptr);
+			}
+
+			for (auto DisplayNode : AllNodes)
+			{
+				if (DisplayNode->GetType() == ESequencerNode::Track)
 				{
-					DrawTransformTrack(View, PDI, TransformTrack, BoundObjects, ObjectBindingNode.Value);
+					TSharedRef<FSequencerTrackNode> TrackNode = StaticCastSharedRef<FSequencerTrackNode>(DisplayNode);
+					UMovieSceneTrack* TrackNodeTrack = TrackNode->GetTrack();
+					UMovieScene3DTransformTrack* TransformTrack = Cast<UMovieScene3DTransformTrack>(TrackNodeTrack);
+					if (TransformTrack != nullptr)
+					{
+						DrawTransformTrack(View, PDI, TransformTrack, BoundObjects, ObjectBindingNode.Value);
+					}
 				}
 			}
 		}

@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "LevelEditor.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #include "HighresScreenshotUI.h"
-#include "SCaptureRegionWidget.h"
-#include "HighResScreenshot.h"
-#include "SNumericEntryBox.h"
+#include "Framework/Docking/TabManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "Widgets/Input/SSlider.h"
+#include "EditorStyleSet.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 
 TWeakPtr<class SWindow> SHighResScreenshotDialog::CurrentWindow = NULL;
 TWeakPtr<class SHighResScreenshotDialog> SHighResScreenshotDialog::CurrentDialog = NULL;
@@ -55,6 +62,12 @@ void SHighResScreenshotDialog::Construct( const FArguments& InArgs )
 							+SVerticalBox::Slot()
 							.VAlign(VAlign_Center)
 							[
+								SAssignNew(Force128BitRenderingLabel, STextBlock)
+								.Text(NSLOCTEXT("HighResScreenshot", "Force128BitPipeline", "Force 128-bit buffers for rendering pipeline"))
+							]
+							+SVerticalBox::Slot()
+							.VAlign(VAlign_Center)
+							[
 								SNew( STextBlock )
 								.Text( NSLOCTEXT("HighResScreenshot", "UseCustomDepth", "Use custom depth as mask") )
 							]
@@ -97,6 +110,13 @@ void SHighResScreenshotDialog::Construct( const FArguments& InArgs )
 								SAssignNew(HDRCheckBox, SCheckBox)
 								.OnCheckStateChanged(this, &SHighResScreenshotDialog::OnHDREnabledChanged)
 								.IsChecked(this, &SHighResScreenshotDialog::GetHDRCheckboxUIState)
+							]
+							+ SVerticalBox::Slot()
+							.VAlign(VAlign_Center)
+							[
+								SAssignNew(Force128BitRenderingCheckBox, SCheckBox)
+								.OnCheckStateChanged(this, &SHighResScreenshotDialog::OnForce128BitRenderingChanged)
+								.IsChecked(this, &SHighResScreenshotDialog::GetForce128BitRenderingCheckboxUIState)
 							]
 							+SVerticalBox::Slot()
 							.VAlign(VAlign_Center)
@@ -217,6 +237,7 @@ void SHighResScreenshotDialog::Construct( const FArguments& InArgs )
 		];
 
 	SetHDRUIEnableState(Config.bDumpBufferVisualizationTargets);
+	SetForce128BitRenderingState(Config.bDumpBufferVisualizationTargets);
 	bCaptureRegionControlsVisible = false;
 }
 

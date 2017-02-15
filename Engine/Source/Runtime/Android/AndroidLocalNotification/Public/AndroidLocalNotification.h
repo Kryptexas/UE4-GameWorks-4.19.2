@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidLocalNotification.h: Unreal Android local notification interface object.
@@ -15,7 +15,6 @@
 #endif
 
 #include "Runtime/Core/Public/Modules/ModuleManager.h"
-#include "Engine.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAndroidLocalNotification, Log, All);
 

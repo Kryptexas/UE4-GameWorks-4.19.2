@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include <initializer_list>
-
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/UnrealTypeTraits.h"
 #include "Containers/Array.h"
 #include "Misc/ITransaction.h"
+
 
 extern CORE_API ITransaction* GUndo;
 

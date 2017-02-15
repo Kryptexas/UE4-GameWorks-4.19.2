@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "BlendProfilePicker.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "IEditableSkeleton.h"
+#include "Widgets/SCompoundWidget.h"
 #include "EditorUndoClient.h"
+#include "BlendProfilePicker.h"
 
 class UBlendProfile;
 

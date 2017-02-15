@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -146,10 +146,9 @@ namespace UnrealBuildTool
 		public static bool bCleanProject;
 
 		/// <summary>
-		/// Whether we are just running the PrepTargetForDeployment step
+		/// If we are just running the deployment step, specifies the path to the given deployment settings
 		/// </summary>
-		[XmlConfig]
-		public static bool bPrepForDeployment;
+		public static FileReference DeployTargetFile;
 
 		/// <summary>
 		/// Enabled for all builds that include the engine project.  Disabled only when building standalone apps that only link with Core.
@@ -162,6 +161,14 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static bool bCompileAgainstCoreUObject;
+
+		/// <summary>
+		/// Indicates that this is a formal build, intended for distribution. This flag is automatically set to true when Build.version has a changelist set.
+		/// The only behavior currently bound to this flag is to compile the default resource file separately for each binary so that the OriginalFilename field is set correctly. 
+		/// By default, we only compile the resource once to reduce build times.
+		/// </summary>
+		[XmlConfig]
+		public static bool bFormalBuild;
 
 		/// <summary>
 		/// If true, include ADO database support in core
@@ -225,6 +232,12 @@ namespace UnrealBuildTool
 		public static bool bForceEnableExceptions;
 
 		/// <summary>
+		/// Enable RTTI for all modules
+		/// </summary>
+		[XmlConfig]
+		public static bool bForceEnableRTTI;
+
+		/// <summary>
 		/// Compile server-only code.
 		/// </summary>
 		[XmlConfig]
@@ -271,12 +284,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static bool bUseChecksInShipping;
-
-		/// <summary>
-		/// True if we need PhysX vehicle support
-		/// </summary>
-		[XmlConfig]
-		public static bool bCompilePhysXVehicle;
 
 		/// <summary>
 		/// True if we need FreeType support
@@ -352,6 +359,12 @@ namespace UnrealBuildTool
 		public static bool bEventDrivenLoader;
 
 		/// <summary>
+		/// Enforce "include what you use" rules; warns if monolithic headers (Engine.h, UnrealEd.h, etc...) are used, and checks that source files include their matching header first.
+		/// </summary>
+		[XmlConfig]
+		public static bool bEnforceIWYU;
+
+		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
 		public static void LoadDefaults()
@@ -378,6 +391,7 @@ namespace UnrealBuildTool
 			UEThirdPartyBinariesDirectory = "../Binaries/ThirdParty/";
 			bCompileRecast = true;
 			bForceEnableExceptions = false;
+			bForceEnableRTTI = false;
 			bWithServerCode = true;
 			bCompileSpeedTree = true;
 			bCompileWithStatsWithoutEngine = false;
@@ -386,7 +400,6 @@ namespace UnrealBuildTool
             bUseLoggingInShipping = false;
 			bUseChecksInShipping = false;
             bUseLauncherChecks = false;
-			bCompilePhysXVehicle = true;
 			bCompileFreeType = true;
 			bCompileForSize = false;
 			bHotReloadFromIDE = false;
@@ -399,7 +412,7 @@ namespace UnrealBuildTool
 			bEditorDependsOnShaderCompileWorker = true;
             bForceCompileDevelopmentAutomationTests = false;
             bForceCompilePerformanceAutomationTests = false;
-			bEventDrivenLoader = false;
+			bEnforceIWYU = true;
 		}
 
 		/// <summary>

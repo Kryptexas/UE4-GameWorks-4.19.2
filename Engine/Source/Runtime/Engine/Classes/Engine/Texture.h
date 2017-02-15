@@ -1,13 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Engine/TextureDefines.h"
-#include "TextureResource.h"
-#include "MaterialShared.h"
-#include "RenderResource.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
 #include "Interfaces/Interface_AssetUserData.h"
+#include "RenderCommandFence.h"
+#include "RenderResource.h"
+#include "Serialization/BulkData.h"
+#include "Engine/TextureDefines.h"
+#include "MaterialShared.h"
 #include "Texture.generated.h"
+
+class ITargetPlatform;
+class UAssetUserData;
+struct FPropertyChangedEvent;
 
 // This needs to be mirrored in EditorFactories.cpp.
 UENUM()

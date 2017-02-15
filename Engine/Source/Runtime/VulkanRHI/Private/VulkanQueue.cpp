@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanQueue.cpp: Vulkan Queue implementation.
@@ -74,6 +74,8 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, FVulkanSemaphore* WaitSem
 	{
 		VERIFYVULKANRESULT(VulkanRHI::vkQueueWaitIdle(Queue));
 		CmdBuffer->GetOwner()->RefreshFenceStatus();
+		// 60 ms timeout
+		Device->GetFenceManager().WaitForFence(CmdBuffer->Fence, 1000 * 60000);
 		ensure(Device->GetFenceManager().IsFenceSignaled(CmdBuffer->Fence));
 	}
 

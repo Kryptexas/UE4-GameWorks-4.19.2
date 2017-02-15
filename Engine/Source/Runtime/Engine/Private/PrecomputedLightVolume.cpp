@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrecomputedLightVolume.cpp: Implementation of a precomputed light volume.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "PrecomputedLightVolume.h"
-#include "TargetPlatform.h"
-#include "RenderingObjectVersion.h"
+#include "Stats/Stats.h"
+#include "EngineDefines.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "SceneManagement.h"
+#include "UnrealEngine.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Interfaces/ITargetPlatform.h"
 
 template<> TVolumeLightingSample<2>::TVolumeLightingSample(const TVolumeLightingSample<2>& Other)
 {
@@ -388,16 +392,24 @@ void FPrecomputedLightVolume::AddToScene(FSceneInterface* Scene, UMapBuildDataRe
 {
 	check(!bAddedToScene);
 
+	const FPrecomputedLightVolumeData* NewData = NULL;
+
 	if (Registry)
 	{
-		Data = Registry->GetLevelBuildData(LevelBuildDataId);
+		NewData = Registry->GetLevelBuildData(LevelBuildDataId);
 	}
 
-	if (Data && Data->bInitialized && Scene)
+	if (NewData && NewData->bInitialized && Scene)
 	{
 		bAddedToScene = true;
 
-		OctreeForRendering = AllowHighQualityLightmaps(Scene->GetFeatureLevel()) ? &Data->HighQualityLightmapOctree : &Data->LowQualityLightmapOctree;
+		FPrecomputedLightVolume* Volume = this;
+
+		ENQUEUE_RENDER_COMMAND(SetVolumeDataCommand)
+			([Volume, NewData, Scene](FRHICommandListImmediate& RHICmdList) 
+			{
+				Volume->SetData(NewData, Scene);
+			});
 		Scene->AddPrecomputedLightVolume(this);
 	}
 }
@@ -415,6 +427,12 @@ void FPrecomputedLightVolume::RemoveFromScene(FSceneInterface* Scene)
 	}
 
 	WorldOriginOffset = FVector::ZeroVector;
+}
+
+void FPrecomputedLightVolume::SetData(const FPrecomputedLightVolumeData* NewData, FSceneInterface* Scene)
+{
+	Data = NewData;
+	OctreeForRendering = AllowHighQualityLightmaps(Scene->GetFeatureLevel()) ? &Data->HighQualityLightmapOctree : &Data->LowQualityLightmapOctree;
 }
 
 void FPrecomputedLightVolume::InterpolateIncidentRadiancePoint(
@@ -553,6 +571,17 @@ void FPrecomputedLightVolume::DebugDrawSamples(FPrimitiveDrawInterface* PDI, boo
 		FVector SamplePosition = VolumeSample.Position + WorldOriginOffset; //relocate from volume to world space
 		PDI->DrawPoint(SamplePosition, AverageColor, 10, SDPG_World);
 	}
+}
+
+bool FPrecomputedLightVolume::IntersectBounds(const FBoxSphereBounds& InBounds) const
+{
+	if (OctreeForRendering)
+	{
+		FBox VolumeBounds = OctreeForRendering->GetRootBounds().GetBox();
+		return InBounds.GetBox().Intersect(VolumeBounds);
+	}
+
+	return false;
 }
 
 void FPrecomputedLightVolume::ApplyWorldOffset(const FVector& InOffset)

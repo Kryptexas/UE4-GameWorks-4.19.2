@@ -1,22 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationUE4.cpp: Animation runtime utilities
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "BlueprintUtilities.h"
-#include "AnimEncoding.h"
 #include "AnimationRuntime.h"
-#include "AnimationUtils.h"
 #include "Animation/AnimData/BoneMaskFilter.h"
 #include "Animation/BlendSpaceBase.h"
-#include "Animation/AnimCompositeBase.h"
 #include "Animation/AnimInstance.h"
-#include "BonePose.h"
-#include "Animation/BlendProfile.h"
 #include "SkeletalRender.h"
-#include "Animation/MorphTarget.h"
 
 DEFINE_LOG_CATEGORY(LogAnimation);
 DEFINE_LOG_CATEGORY(LogRootMotion);
@@ -282,9 +274,14 @@ void FAnimationRuntime::BlendTwoPosesTogetherPerBone(
 	}
 
 	// Ensure that all of the resulting rotations are normalized
-	// @fixme: this has to be fixed with name mapping to joint in the future
 	ResultPose.NormalizeRotations();
-	ResultCurve.Lerp(SourceCurve1, SourceCurve2, 1.f);
+
+	// @note : This isn't perfect as curve can link to joint, and it would be the best to use that information
+	// but that is very expensive option as we have to have another indirect look up table to search. 
+	// For now, replacing with combine (non-zero will be overriden)
+	// in the future, we might want to do this outside if we want per bone blend to apply curve also UE-39182
+	ResultCurve.Override(SourceCurve1);
+	ResultCurve.Combine(SourceCurve2);
 }
 
 template <int32 TRANSFORM_BLEND_MODE>
@@ -1430,18 +1427,18 @@ void FAnimationRuntime::AppendActiveMorphTargets(const USkeletalMesh* InSkeletal
 		// if somehow it gets rendered without going through these places, there will be crash. Renderer expect the buffer size being same. 
 		InOutMorphTargetWeights.SetNumZeroed(InSkeletalMesh->MorphTargets.Num());
 
-		// If it has a valid weight
-		if(FMath::Abs(Weight) > MinMorphTargetBlendWeight)
+		// Find morph reference
+		int32 SkeletalMorphIndex = INDEX_NONE;
+		UMorphTarget* Target = InSkeletalMesh->FindMorphTargetAndIndex(CurveName, SkeletalMorphIndex);
+		if (Target != nullptr)
 		{
-			// Find morph reference
-			int32 SkeletalMorphIndex = INDEX_NONE;
-			UMorphTarget* Target = InSkeletalMesh->FindMorphTargetAndIndex(CurveName, SkeletalMorphIndex);
-			if (Target != nullptr)
+			// If it has a valid weight
+			if (FMath::Abs(Weight) > MinMorphTargetBlendWeight)
 			{
 				// See if this morph target already has an entry
 				int32 MorphIndex = FindMorphTarget(InOutActiveMorphTargets, Target);
 				// If not, add it
-				if(MorphIndex == INDEX_NONE)
+				if (MorphIndex == INDEX_NONE)
 				{
 					InOutActiveMorphTargets.Add(FActiveMorphTarget(Target, SkeletalMorphIndex));
 					InOutMorphTargetWeights[SkeletalMorphIndex] = Weight;
@@ -1450,10 +1447,19 @@ void FAnimationRuntime::AppendActiveMorphTargets(const USkeletalMesh* InSkeletal
 				{
 					// If it does, use the max weight
 					check(SkeletalMorphIndex == InOutActiveMorphTargets[MorphIndex].WeightIndex);
-					float& CurrentWeight = InOutMorphTargetWeights[SkeletalMorphIndex];
-					CurrentWeight = FMath::Max<float>(CurrentWeight, Weight);
+					InOutMorphTargetWeights[SkeletalMorphIndex] = Weight;
 				}
 			}
+			else
+			{
+				int32 MorphIndex = FindMorphTarget(InOutActiveMorphTargets, Target);
+				if (MorphIndex != INDEX_NONE)
+				{
+					// clear weight
+					InOutMorphTargetWeights[SkeletalMorphIndex] = 0.f;
+				}
+			}
+
 		}
 	}
 }

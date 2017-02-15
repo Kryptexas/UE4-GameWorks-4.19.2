@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLWindows.h: Manual loading of OpenGL functions from DLL.
@@ -10,7 +10,7 @@
 	#error "OpenGLWindows.h included for a platform other than Windows."
 #endif
 
-#include "Windows/MinWindows.h"
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 	#include <GL/glcorearb.h>
 	#include <GL/glext.h>
@@ -296,6 +296,7 @@
 	EnumMacro(PFNGLBINDBUFFERRANGEPROC, glBindBufferRange)
 
 #define ENUM_GL_ENTRYPOINTS_OPTIONAL(EnumMacro) \
+	EnumMacro(PFNGLCLIPCONTROLPROC,glClipControl) \
 	EnumMacro(PFNGLDEBUGMESSAGECALLBACKARBPROC,glDebugMessageCallbackARB) \
 	EnumMacro(PFNGLDEBUGMESSAGECONTROLARBPROC,glDebugMessageControlARB) \
 	EnumMacro(PFNGLDEBUGMESSAGECALLBACKAMDPROC,glDebugMessageCallbackAMD) \

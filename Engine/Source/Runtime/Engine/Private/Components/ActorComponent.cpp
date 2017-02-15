@@ -1,17 +1,37 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // ActorComponent.cpp: Actor component implementation.
 
-#include "EnginePrivate.h"
+#include "Components/ActorComponent.h"
+#include "Misc/App.h"
+#include "EngineStats.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/MemberReference.h"
+#include "ComponentInstanceDataCache.h"
+#include "Engine/Level.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "Components/PrimitiveComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "ContentStreaming.h"
+#include "ComponentReregisterContext.h"
 #include "Engine/AssetUserData.h"
 #include "Engine/LevelStreamingPersistent.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/UObjectHash.h"
+#include "Engine/NetDriver.h"
 #include "Net/UnrealNetwork.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
-#include "ComponentReregisterContext.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "ComponentUtils.h"
+
+#if WITH_EDITOR
+#include "Kismet2/ComponentEditorUtils.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "ActorComponent"
 
@@ -105,6 +125,8 @@ FGlobalComponentRecreateRenderStateContext::~FGlobalComponentRecreateRenderState
 FActorComponentCreatePhysicsSignature UActorComponent::CreatePhysicsDelegate;
 // Destroy Physics global delegate
 FActorComponentDestroyPhysicsSignature UActorComponent::DestroyPhysicsDelegate;
+
+const FString UActorComponent::ComponentTemplateNameSuffix(TEXT("_GEN_VARIABLE"));
 
 UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
@@ -365,7 +387,7 @@ ULevel* UActorComponent::GetComponentLevel() const
 {
 	// For model components Level is outer object
 	AActor* MyOwner = GetOwner();
-	return (MyOwner ? CastChecked<ULevel>(MyOwner->GetOuter()) : Cast<ULevel>( GetOuter() ) );
+	return (MyOwner ? Cast<ULevel>(MyOwner->GetOuter()) : Cast<ULevel>( GetOuter() ) );
 }
 
 bool UActorComponent::ComponentIsInLevel(const ULevel *TestLevel) const
@@ -1324,7 +1346,7 @@ void UActorComponent::DoDeferredRenderUpdates_Concurrent()
 
 void UActorComponent::MarkRenderStateDirty()
 {
-	// If registered and has a render state to make as dirty
+	// If registered and has a render state to mark as dirty
 	if(IsRegistered() && bRenderStateCreated && (!bRenderStateDirty || !GetWorld()))
 	{
 		// Flag as dirty
@@ -1346,7 +1368,7 @@ void UActorComponent::MarkRenderTransformDirty()
 
 void UActorComponent::MarkRenderDynamicDataDirty()
 {
-	// If registered and has a render state to make as dirty
+	// If registered and has a render state to mark as dirty
 	if(IsRegistered() && bRenderStateCreated)
 	{
 		// Flag as dirty
@@ -1444,6 +1466,18 @@ void UActorComponent::SetActive(bool bNewActive, bool bReset)
 	else 
 	{
 		Deactivate();
+	}
+}
+
+void UActorComponent::SetAutoActivate(bool bNewAutoActivate)
+{
+	if (!bRegistered || IsOwnerRunningUserConstructionScript())
+	{
+		bAutoActivate = bNewAutoActivate;
+	}
+	else
+	{
+		UE_LOG(LogActorComponent, Warning, TEXT("SetAutoActivate called on component %s after construction!"), *GetFullName());
 	}
 }
 
@@ -1626,6 +1660,9 @@ void UActorComponent::DetermineUCSModifiedProperties()
 				: FArchive()
 			{
 				ArIsSaving = true;
+
+				// Include properties that would normally skip tagged serialization (e.g. bulk serialization of array properties).
+				ArPortFlags |= PPF_ForceTaggedSerialization;
 			}
 
 			virtual bool ShouldSkipProperty(const UProperty* InProperty) const override

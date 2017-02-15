@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //
 // Unreal networking serialization helpers
 //
 
 #pragma once
-#include "CoreOnline.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "UObject/CoreOnline.h"
 #include "OnlineReplStructs.generated.h"
 
 class FJsonValue;
@@ -45,7 +49,7 @@ struct FUniqueNetIdRepl : public FUniqueNetIdWrapper
  	{
  	}
 
-	~FUniqueNetIdRepl() {}
+	virtual ~FUniqueNetIdRepl() {}
 
     /** Export contents of this struct as a string */
 	bool ExportTextItem(FString& ValueStr, FUniqueNetIdRepl const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;

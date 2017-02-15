@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -43,7 +43,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <limits.h>
-#if __APPLE__
+#ifdef __APPLE__
 #else
 #include <malloc.h>
 #endif

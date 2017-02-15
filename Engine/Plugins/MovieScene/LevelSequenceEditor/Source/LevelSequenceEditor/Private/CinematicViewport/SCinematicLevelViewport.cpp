@@ -1,25 +1,34 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LevelSequenceEditorPCH.h"
-#include "SCinematicLevelViewport.h"
-#include "ISequencer.h"
-#include "SequencerCommands.h"
-#include "MovieScene.h"
-#include "MovieSceneCinematicShotTrack.h"
-#include "MovieSceneCinematicShotSection.h"
-#include "MovieSceneSubTrack.h"
-#include "MovieSceneSubSection.h"
-#include "MovieSceneCommonHelpers.h"
-#include "SCinematicTransportRange.h"
-#include "FilmOverlays.h"
-#include "LevelViewportLayout.h"
-#include "LevelViewportTabContent.h"
-#include "LevelSequenceEditorStyle.h"
-#include "SWidgetSwitcher.h"
-#include "CineCameraComponent.h"
-#include "UnitConversion.h"
-#include "ScopedTransaction.h"
+#include "CinematicViewport/SCinematicLevelViewport.h"
+#include "Widgets/SBoxPanel.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBorder.h"
+#include "LevelSequenceEditorToolkit.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/NumericTypeInterface.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "EditorStyleSet.h"
+#include "LevelSequenceEditorCommands.h"
 #include "SLevelViewport.h"
+#include "MovieScene.h"
+#include "ISequencer.h"
+#include "MovieSceneSequence.h"
+#include "Sections/MovieSceneSubSection.h"
+#include "Tracks/MovieSceneSubTrack.h"
+#include "Tracks/MovieSceneCinematicShotTrack.h"
+#include "Sections/MovieSceneCinematicShotSection.h"
+#include "ISequencerKeyCollection.h"
+#include "CinematicViewport/SCinematicTransportRange.h"
+#include "CinematicViewport/FilmOverlays.h"
+#include "Widgets/Layout/SWidgetSwitcher.h"
+#include "CineCameraComponent.h"
+#include "Math/UnitConversion.h"
+#include "LevelEditorSequencerIntegration.h"
+
 
 #define LOCTEXT_NAMESPACE "SCinematicLevelViewport"
 
@@ -286,9 +295,26 @@ void SCinematicLevelViewport::Construct(const FArguments& InArgs)
 							+ SHorizontalBox::Slot()
 							.HAlign(HAlign_Left)
 							[
-								SNew(STextBlock)
-								.ColorAndOpacity(Gray)
-								.Text_Lambda([=]{ return UIData.ShotName; })
+								SNew(SHorizontalBox)
+
+								+ SHorizontalBox::Slot()
+								.HAlign(HAlign_Left)
+								.AutoWidth()
+								[
+									SNew(STextBlock)
+									.ColorAndOpacity(Gray)
+									.Text_Lambda([=]{ return UIData.ShotName; })
+								]
+
+								+ SHorizontalBox::Slot()
+								.HAlign(HAlign_Right)
+								.AutoWidth()
+								.Padding(FMargin(5.f, 0.f, 0.f, 0.f))
+								[
+									SNew(STextBlock)
+									.ColorAndOpacity(Gray)
+									.Text_Lambda([=]{ return UIData.CameraName; })
+								]
 							]
 
 							+ SHorizontalBox::Slot()
@@ -435,7 +461,7 @@ void SCinematicLevelViewport::SetTime(float Value)
 	ISequencer* Sequencer = GetSequencer();
 	if (Sequencer)
 	{
-		Sequencer->SetGlobalTime(Value);
+		Sequencer->SetLocalTime(Value);
 	}
 }
 
@@ -444,7 +470,7 @@ float SCinematicLevelViewport::GetTime() const
 	ISequencer* Sequencer = GetSequencer();
 	if (Sequencer)
 	{
-		return Sequencer->GetGlobalTime();
+		return Sequencer->GetLocalTime();
 	}
 	return 0.f;
 }
@@ -500,7 +526,8 @@ void SCinematicLevelViewport::Setup(FLevelSequenceEditorToolkit& NewToolkit)
 	ISequencer* Sequencer = GetSequencer();
 	if (Sequencer)
 	{
-		Sequencer->SetViewportTransportControlsVisibility(false);
+		FLevelEditorSequencerIntegration::Get().SetViewportTransportControlsVisibility(false);
+
 		TypeInterfaceProxy->Impl = Sequencer->GetZeroPadNumericTypeInterface();
 
 		if (TransportRange.IsValid())
@@ -589,7 +616,7 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 	UMovieSceneSubSection* SubSection = nullptr;
 	if (SubTrack)
 	{
-		const float CurrentTime = Sequencer->GetGlobalTime();
+		const float CurrentTime = Sequencer->GetLocalTime();
 
 		for (UMovieSceneSection* Section : SubTrack->GetAllSections())
 		{
@@ -600,7 +627,7 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 		}
 	}
 
-	const float AbsoluteTime = Sequencer->GetGlobalTime();
+	const float AbsoluteTime = Sequencer->GetLocalTime();
 
 	FText TimeFormat = LOCTEXT("TimeFormat", "{0}");
 
@@ -615,8 +642,9 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 			PlaybackRangeStart = ShotMovieScene->GetPlaybackRange().GetLowerBoundValue();
 		}
 
-		const float ShotOffset = SubSection->StartOffset + PlaybackRangeStart - SubSection->PrerollTime;
-		const float AbsoluteShotPosition = ShotOffset + (AbsoluteTime - (SubSection->GetStartTime() - SubSection->PrerollTime)) / SubSection->TimeScale;
+		const float InnerOffset = (AbsoluteTime - SubSection->GetStartTime()) * SubSection->Parameters.TimeScale;
+		const float AbsoluteShotPosition = PlaybackRangeStart + SubSection->Parameters.StartOffset + InnerOffset;
+
 		UIData.Frame = FText::Format(
 			TimeFormat,
 			FText::FromString(ZeroPadTypeInterface->ToString(AbsoluteShotPosition))
@@ -654,9 +682,17 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 		FText::FromString(ZeroPadTypeInterface->ToString(EntireRange.GetUpperBoundValue()))
 	);
 
+	UIData.CameraName = FText::GetEmpty();
+
 	UCameraComponent* CameraComponent = ViewportClient->GetCameraComponentForView();
 	if (CameraComponent)
 	{
+		AActor* OuterActor = Cast<AActor>(CameraComponent->GetOuter());
+		if (OuterActor != nullptr)
+		{
+			UIData.CameraName = FText::FromString(OuterActor->GetActorLabel());
+		}
+
 		if (UCineCameraComponent* CineCam = Cast<UCineCameraComponent>(CameraComponent))
 		{
 			const float SensorWidth = CineCam->FilmbackSettings.SensorWidth;
@@ -684,7 +720,7 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 		else
 		{
 			// Just use the FoV
-			UIData.Filmback = FText::FromString(LexicalConversion::ToString(FNumericUnit<float>(CameraComponent->FieldOfView, EUnit::Degrees)));
+			UIData.Filmback = FText::FromString(Lex::ToString(FNumericUnit<float>(CameraComponent->FieldOfView, EUnit::Degrees)));
 		}
 	}
 	else

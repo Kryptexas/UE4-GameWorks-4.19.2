@@ -1,8 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "RenderCommandFence.h"
+#include "RenderResource.h"
+#include "RenderingThread.h"
+#include "Components/LightComponentBase.h"
+#include "Math/SHMath.h"
 #include "SkyLightComponent.generated.h"
+
+class FSkyLightSceneProxy;
+class UTextureCube;
 
 /** 
  * A cubemap texture resource that knows how to upload the capture data from a sky capture. 

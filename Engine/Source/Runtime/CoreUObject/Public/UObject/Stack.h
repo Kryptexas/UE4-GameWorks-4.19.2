@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Stack.h: Kismet VM execution stack definition.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/Script.h"
+#include "Misc/CoreMisc.h"
+#include "Templates/Casts.h"
+#include "UObject/UnrealType.h"
+#include "UObject/EnumProperty.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogScriptFrame, Warning, All);
 

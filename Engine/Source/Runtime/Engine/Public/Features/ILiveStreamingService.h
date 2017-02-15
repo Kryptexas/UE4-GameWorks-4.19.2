@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Runtime/Core/Public/Features/IModularFeature.h"
-
+#include "CoreMinimal.h"
+#include "Features/IModularFeature.h"
 
 /**
  * Contains information about the status of the live streaming service.  This is passed along to a user's

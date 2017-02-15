@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "SecureHash.h"
+#include "Misc/SecureHash.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogSecureHash, Log, All);
@@ -457,7 +458,7 @@ void FMD5::Decode( uint32* output, const uint8* input, int32 len )
 // 		(((uint32)input[j+2]) << 16) | (((uint32)input[j+3]) << 24);
 // }
 
-namespace LexicalConversion
+namespace Lex
 {
 	FString ToString(const FMD5Hash& Hash)
 	{
@@ -528,14 +529,21 @@ namespace LexicalConversion
 FMD5Hash FMD5Hash::HashFile(const TCHAR* InFilename, TArray<uint8>* Buffer)
 {
 	FArchive* Ar = IFileManager::Get().CreateFileReader(InFilename);
+	FMD5Hash Result = HashFileFromArchive( Ar, Buffer );
+	delete Ar;
 
+	return Result;
+}
+
+FMD5Hash FMD5Hash::HashFileFromArchive( FArchive* Ar, TArray<uint8>* Buffer)
+{
 	FMD5Hash Hash;
 	if (Ar)
 	{
 		TArray<uint8> LocalScratch;
 		if (!Buffer)
 		{
-			LocalScratch.SetNumUninitialized(1024*64);
+			LocalScratch.SetNumUninitialized(1024 * 64);
 			Buffer = &LocalScratch; //-V506
 		}
 		FMD5 MD5;
@@ -554,11 +562,11 @@ FMD5Hash FMD5Hash::HashFile(const TCHAR* InFilename, TArray<uint8>* Buffer)
 		}
 
 		Hash.Set(MD5);
-		delete Ar;
 	}
 
 	return Hash;
 }
+
 
 /*-----------------------------------------------------------------------------
 	SHA-1

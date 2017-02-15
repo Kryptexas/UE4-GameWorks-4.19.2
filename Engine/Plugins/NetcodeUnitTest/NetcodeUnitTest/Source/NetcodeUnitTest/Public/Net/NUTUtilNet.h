@@ -1,13 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Engine/Channel.h"
+#include "NetcodeUnitTest.h"
+#include "Engine/PendingNetGame.h"
+#include "Engine/World.h"
 #include "Sockets.h"
 
-
-// Forward declarations
+class APlayerController;
+class FInBunch;
+class FInternetAddr;
+class FOutBunch;
+class UNetConnection;
+class UNetDriver;
 class UUnitTestChannel;
 class UUnitTestNetDriver;
+struct FUniqueNetIdRepl;
+class UClientUnitTest;
 
 
 /**
@@ -302,6 +313,26 @@ private:
 	FDelegateHandle PostTickFlushDelegateHandle;
 #endif
 };
+
+
+/**
+ * Hooks netcode object serialization, in order to replace replication of a specific object, with another specified object,
+ * for the lifetime of the scoped instance
+ */
+class NETCODEUNITTEST_API FScopedNetObjectReplace
+{
+public:
+	FScopedNetObjectReplace(UClientUnitTest* InUnitTest, UObject* InObjToReplace, UObject* InObjReplacement);
+
+	~FScopedNetObjectReplace();
+
+
+private:
+	UClientUnitTest* UnitTest;
+
+	UObject* ObjToReplace;
+};
+
 
 /**
  * Netcode based utility functions

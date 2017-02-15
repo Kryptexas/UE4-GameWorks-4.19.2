@@ -1,6 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Components/SceneComponent.h"
+#include "Engine/LatentActionManager.h"
+#include "LatentActions.h"
 
 /** Action that interpolates a component over time to a desired position */
 class FInterpolateComponentToAction : public FPendingLatentAction

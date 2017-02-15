@@ -1,13 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "Async/AsyncWork.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "StaticMeshResources.h"
 
 #include "HierarchicalInstancedStaticMeshComponent.generated.h"
 
 class FClusterBuilder;
+class FStaticLightingTextureMapping_InstancedStaticMesh;
 
 USTRUCT()
 struct FClusterNode
@@ -137,6 +142,7 @@ public:
 
 	//Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void PostLoad() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& BoundTransform) const override;

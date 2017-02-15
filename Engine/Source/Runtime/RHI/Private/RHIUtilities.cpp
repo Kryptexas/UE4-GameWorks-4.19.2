@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 RHIUtilities.cpp:
 =============================================================================*/
-#include "RHIPrivatePCH.h"
-#include "RHIUtilities.h"
-#include "Core.h"
+
+#include "CoreMinimal.h"
+#include "HAL/PlatformStackWalk.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
 
 
 TAutoConsoleVariable<FString> FDumpTransitionsHelper::CVarDumpTransitionsForResource(

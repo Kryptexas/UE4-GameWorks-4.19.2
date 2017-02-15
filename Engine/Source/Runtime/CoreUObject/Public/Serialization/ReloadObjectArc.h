@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
-struct FObjectInstancingGraph;
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveUObject.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
 
 /**
  * Archive for reloading UObjects without requiring the UObject to be completely unloaded.

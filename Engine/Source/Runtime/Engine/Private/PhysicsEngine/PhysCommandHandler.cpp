@@ -1,12 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
 #include "PhysicsPublic.h"
 
 #if WITH_PHYSX
-	#include "PhysXSupport.h"
-	#include "../Vehicles/PhysXVehicleManager.h"
+	#include "PhysicsEngine/PhysXSupport.h"
 #endif
 
 FPhysCommandHandler::~FPhysCommandHandler()

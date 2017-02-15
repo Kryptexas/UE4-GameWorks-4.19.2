@@ -1,6 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Containers/Array.h"
+#include "Containers/Map.h"
+#include "Containers/UnrealString.h"
+#include "Templates/ScopedPointer.h"
+#include "WindowsHWrapper.h"
+#include "UniquePtr.h"
 
 struct FRegistryValue
 {
@@ -45,7 +53,7 @@ struct FRegistryRootedKey
 {
 	HKEY hRootKey;
 	FString Path;
-	TScopedPointer<FRegistryKey> Key;
+	TUniquePtr<FRegistryKey> Key;
 
 	FRegistryRootedKey(HKEY hInKeyRoot, const FString &InPath);
 

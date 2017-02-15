@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "RHIDefinitions.h"
-#include "ShaderPlatformQualitySettings.h"
+#include "SceneTypes.h"
 #include "MaterialShaderQualitySettings.generated.h"
+
+class UShaderPlatformQualitySettings;
 
 //UCLASS(config = Engine, defaultconfig)
 UCLASS()
@@ -20,8 +25,8 @@ public:
 	bool HasPlatformQualitySettings(EShaderPlatform ShaderPlatform, EMaterialQualityLevel::Type QualityLevel);
 
 #if WITH_EDITOR
-	// Override GetForwardShadingQuality() return value with the specified platform's settings.
-	// An empty PlatformName or otherwise non existant platform will cause GetForwardShadingQuality() 
+	// Override GetShaderPlatformQualitySettings() return value with the specified platform's settings.
+	// An empty PlatformName or otherwise non existent platform will cause GetShaderPlatformQualitySettings() 
 	// to revert to its default behaviour.
 	void SetPreviewPlatform(FName PlatformName);
 	const FName& GetPreviewPlatform();

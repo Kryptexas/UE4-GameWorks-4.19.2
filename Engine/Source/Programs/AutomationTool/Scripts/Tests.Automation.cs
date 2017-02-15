@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -685,7 +685,7 @@ class TestTestFarm : BuildCommand
 
 		string Exe = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "Win64", "UE4Editor.exe");
 		string ClientLogFile = CombinePaths(CmdEnv.LogFolder, "HoverGameRun");
-		string CmdLine = " ../../../Samples/HoverShip/HoverShip.uproject -game -forcelogflush -log -abslog=" + ClientLogFile;
+		string CmdLine = " ../../../Samples/HoverShip/HoverShip.uproject -game -log -abslog=" + ClientLogFile;
 
 		IProcessResult App = Run(Exe, CmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
 
@@ -798,7 +798,7 @@ class TestLog : BuildCommand
 		string ServerLogFile = CombinePaths(CmdEnv.LogFolder, "Server.log");
 
 		string ServerApp = EditorExe;
-		string OtherArgs = String.Format("{0} -server -abslog={1} -FORCELOGFLUSH -log", MapToRun, ServerLogFile);
+		string OtherArgs = String.Format("{0} -server -abslog={1} -log", MapToRun, ServerLogFile);
 		string StartArgs = "ShooterGame ";
 
 		string ServerCmdLine = StartArgs + OtherArgs;
@@ -1581,7 +1581,7 @@ class TestKillAll : BuildCommand
 
 		string Exe = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "Win64", "UE4Editor.exe");
 		string ClientLogFile = CombinePaths(CmdEnv.LogFolder, "HoverGameRun");
-		string CmdLine = " ../../../Samples/Sandbox/HoverShip/HoverShip.uproject -game -forcelogflush -log -abslog=" + ClientLogFile;
+		string CmdLine = " ../../../Samples/Sandbox/HoverShip/HoverShip.uproject -game -log -abslog=" + ClientLogFile;
 
 		Run(Exe, CmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
 		Thread.Sleep(10000);
@@ -1609,7 +1609,7 @@ class TestStopProcess : BuildCommand
 
 		string Exe = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "Win64", "UE4Editor.exe");
 		string ClientLogFile = CombinePaths(CmdEnv.LogFolder, "HoverGameRun");
-		string CmdLine = " ../../../Samples/Sandbox/HoverShip/HoverShip.uproject -game -forcelogflush -log -ddc=noshared -abslog=" + ClientLogFile;
+		string CmdLine = " ../../../Samples/Sandbox/HoverShip/HoverShip.uproject -game -log -ddc=noshared -abslog=" + ClientLogFile;
 
 		for (int Attempt = 0; Attempt < 5; ++Attempt)
 		{

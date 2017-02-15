@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#if __cplusplus_cli
+struct FMath;
+
+#ifdef __cplusplus_cli
 // there are compile issues with this file in managed mode, so use the FPU version
 #include "UnrealMathFPU.h"
 #else
@@ -81,7 +83,7 @@ FORCEINLINE VectorRegisterInt MakeVectorRegisterInt(int32 X, int32 Y, int32 Z, i
  *	Constants:
  *============================================================================*/
 
-#include "UnrealMathVectorConstants.h"
+#include "Math/UnrealMathVectorConstants.h"
 
 /*=============================================================================
  *	Intrinsics:
@@ -842,8 +844,8 @@ FORCEINLINE uint32 appCountTrailingZeros(uint32 Value)
 	{
 		return 32;
 	}
-	uint32 BitIndex;	// 0-based, where the LSB is 0 and MSB is 31
-	_BitScanForward( (::DWORD *)&BitIndex, Value );	// Scans from LSB to MSB
+	unsigned long BitIndex;	// 0-based, where the LSB is 0 and MSB is 31
+	_BitScanForward( &BitIndex, Value );	// Scans from LSB to MSB
 	return BitIndex;
 }
 #else // PLATFORM_WINDOWS

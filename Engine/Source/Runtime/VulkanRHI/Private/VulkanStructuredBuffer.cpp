@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #include "VulkanRHIPrivate.h"
-
+#include "Containers/ResourceArray.h"
 
 FVulkanStructuredBuffer::FVulkanStructuredBuffer(uint32 Stride, uint32 Size, FResourceArrayInterface* ResourceArray, uint32 Usage)
 	: FRHIStructuredBuffer(Stride, Size, Usage)

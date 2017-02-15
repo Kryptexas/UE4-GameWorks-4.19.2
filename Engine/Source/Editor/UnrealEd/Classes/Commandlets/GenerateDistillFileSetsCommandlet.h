@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  *	Find AnimNotify instances that do not have the AnimSeqeunce that 'owns' them as their outer.
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Commandlets/Commandlet.h"
 #include "GenerateDistillFileSetsCommandlet.generated.h"
 

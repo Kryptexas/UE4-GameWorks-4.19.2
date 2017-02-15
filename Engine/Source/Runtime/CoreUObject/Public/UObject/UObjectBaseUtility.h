@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectBaseUtility.h: Unreal UObject functions that only depend on UObjectBase
@@ -6,16 +6,19 @@
 
 #pragma once
 
-#include "UObjectArray.h"
-#include "UObjectMarks.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectBase.h"
+#include "UObject/UObjectArray.h"
+#include "UObject/UObjectMarks.h"
 
-#if _MSC_VER == 1900
+#if defined(_MSC_VER) && _MSC_VER == 1900
 	#ifdef PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 	#endif
 #endif
 
-#include "Templates/PointerIsConvertibleFromTo.h"
 
 class COREUOBJECT_API UObjectBaseUtility : public UObjectBase
 {
@@ -734,8 +737,9 @@ struct FScopeCycleCounterUObject
 };
 #endif
 
-#if _MSC_VER == 1900
+#if defined(_MSC_VER) && _MSC_VER == 1900
 	#ifdef PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 		PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 	#endif
 #endif
+

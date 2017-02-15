@@ -1,23 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "ApexClothingUtils.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogApexClothingUtils, Log, All);
 
-#include "PhysicsPublic.h"
-#include "ApexClothingUtils.h"
+#include "PhysXPublic.h"
+
+#define USE_MATERIAL_MAP 0
 
 #if WITH_APEX
 
-#include "EditorPhysXSupport.h"
 // Utilities
-#include "NvParamUtils.h"
 
 #if WITH_APEX_CLOTHING
 	#include "ClothingAssetAuthoring.h"
 #endif // #if WITH_APEX_CLOTHING
 
-#include "Runtime/Engine/Private/PhysicsEngine/PhysXSupport.h"
 
 #endif // #if WITH_APEX
 
@@ -1650,6 +1655,24 @@ EClothUtilRetType ImportApexAssetFromApexFile(FString& ApexFile, USkeletalMesh* 
 		return CURT_Cancel;
 	}
 
+	const int32 NumLods = SkelMesh->GetImportedResource()->LODModels.Num();
+
+	TArray<FSubmeshInfo> AllInfos;
+
+	for(int32 CurrLodIdx = 0; CurrLodIdx < NumLods; ++CurrLodIdx)
+	{
+		TArray<FSubmeshInfo> CurrLodInfos;
+		ApexClothingUtils::GetSubmeshInfoFromApexAsset(ApexClothingAsset, CurrLodIdx, AllInfos);
+
+		AllInfos.Append(CurrLodInfos);
+	}
+
+	if(AllInfos.Num() == 0)
+	{
+		UE_LOG(LogApexClothingUtils, Warning, TEXT("Importing %s failed. Could not find any valid submeshes. Either there are no submeshes, or all submeshes have zero simulated vertices."), *ApexFile);
+		return CURT_Fail;
+	}
+
 	ApexClothingAsset = ApplyTransform(ApexClothingAsset);
 
 	FName AssetName = FName(*FPaths::GetCleanFilename(ApexFile));
@@ -2245,8 +2268,6 @@ void GenerateMeshToMeshSkinningData(TArray<FApexClothPhysToRenderVertData>& OutS
 	}
 }
 
-// Temporary duplication of FMath::ComputeBaryCentric2D for patch. Original function checked against SMALL_NUMBER for coplanar points
-// but this tolerance is a little too large, prefer to warn about small triangles and attempt to calculate anyway.
 FVector ComputeBaryCentric2D_Clothing(const FVector& Point, const FVector& A, const FVector& B, const FVector& C, float CoplanarTolerance = SMALL_NUMBER)
 {
 	// Compute the normal of the triangle
@@ -2284,9 +2305,9 @@ FVector4 GetPointBaryAndDist(const FVector& A, const FVector& B, const FVector& 
 	if(NormalSizeSq < SMALL_NUMBER)
 	{
 		UE_LOG(LogApexClothingUtils, Log, TEXT("Tiny triangle detected when generating clothing skinning data. (A=%.5f,%.5f,%.5f, B=%.5f,%.5f,%.5f, C=%.5f,%.5f,%.5f). This may cause rendering issues, consider improving the topology of the simulation mesh."),
-			   A.X,A.Y,A.Z,
-			   B.X,B.Y,B.Z,
-			   C.X,C.Y,C.Z);
+			   A.X, A.Y, A.Z,
+			   B.X, B.Y, B.Z,
+			   C.X, C.Y, C.Z);
 
 		check(NormalSizeSq > 0.0f);
 	}

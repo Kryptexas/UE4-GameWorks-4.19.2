@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GPUProfiler.h: Hierarchical GPU Profiler.
@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Templates/RefCounting.h"
+#include "RHI.h"
 
 /** Stats for a single perf event node. */
 class FGPUProfilerEventNodeStats : public FRefCountedObject

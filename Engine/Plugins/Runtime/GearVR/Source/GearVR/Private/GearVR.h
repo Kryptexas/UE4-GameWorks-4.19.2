@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "HeadMountedDisplay.h"
+
+#include "CoreMinimal.h"
 #include "IHeadMountedDisplay.h"
+#include "IGearVRPlugin.h"
+#include "HeadMountedDisplay.h"
 #include "HeadMountedDisplayCommon.h"
 
 #if GEARVR_SUPPORTED_PLATFORMS
@@ -39,12 +42,32 @@ using namespace OVR;
 #define OVR_DEFAULT_EYE_RENDER_TARGET_WIDTH		1024
 #define OVR_DEFAULT_EYE_RENDER_TARGET_HEIGHT	1024
 
-//#define OVR_DEBUG_DRAW
+#define OVR_DEBUG_DRAW 0
 
 class FGearVR;
 
 namespace GearVR
 {
+
+inline int32 ViewIndexFromStereoPass(const EStereoscopicPass StereoPassType) {
+	switch (StereoPassType)
+	{
+	case eSSP_LEFT_EYE:
+	case eSSP_FULL:
+		return 0;
+
+	case eSSP_RIGHT_EYE:
+		return 1;
+
+	case eSSP_MONOSCOPIC_EYE:
+		return 2;
+
+	default:
+		check(0);
+		return -1;
+	}
+}
+
 /**
  * Converts quat from Oculus ref frame to Unreal
  */
@@ -126,6 +149,7 @@ public:
 
 	int				CpuLevel;
 	int				GpuLevel;
+	int				MaxFullspeedMSAASamples;
 
 	ovrHeadModelParms HeadModelParms;
 
@@ -138,10 +162,10 @@ public:
 class FGameFrame : public FHMDGameFrame
 {
 public:
-	ovrPosef				CurEyeRenderPose[2];// eye render pose read at the beginning of the frame
+	ovrPosef				CurEyeRenderPose[3];// eye render pose read at the beginning of the frame
 	ovrTracking				CurSensorState;	    // sensor state read at the beginning of the frame
 
-	ovrPosef				EyeRenderPose[2];	// eye render pose actually used
+	ovrPosef				EyeRenderPose[3];	// eye render pose actually used
 	ovrRigidBodyPosef		HeadPose;			// position of head actually used
 	ovrMatrix4f				TanAngleMatrix;
 	
@@ -220,6 +244,7 @@ public:
 		uint32 InSizeZ,
 		uint32 InNumMips,
 		uint32 InNumSamples,
+		uint32 InNumSamplesTileMem,
 		uint32 InArraySize,
 		EPixelFormat InFormat,
 		bool bInCubemap,
@@ -237,13 +262,14 @@ public:
 			InSizeZ,
 			InNumMips,
 			InNumSamples,
+			InNumSamplesTileMem,
 			InArraySize,
 			InFormat,
 			bInCubemap,
 			bInAllocatedStorage,
 			InFlags,
 			InTextureRange,
-			FClearValueBinding::Black
+			FClearValueBinding()
 			)
 	{
 		ColorTextureSet = nullptr;
@@ -265,6 +291,7 @@ public:
 		FOpenGLDynamicRHI* InGLRHI,
 		uint32 SizeX, uint32 SizeY,
 		uint32 InNumSamples,
+		uint32 InNumSamplesTileMem,
 		uint32 InNumMips,
 		EPixelFormat InFormat,
 		uint32 InFlags,
@@ -459,7 +486,7 @@ public:
 	// If returns false then a default RT texture will be used.
 	bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples);
 
-	FTexture2DSetProxyPtr CreateTextureSet(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, bool bBuffered, bool bInCubemap);
+	FTexture2DSetProxyPtr CreateTextureSet(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumSamples, uint32 NumMips, bool bBuffered, bool bInCubemap);
 
 	void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTextureRHIParamRef SrcTexture, int SrcSizeX, int SrcSizeY, FIntRect DstRect = FIntRect(), FIntRect SrcRect = FIntRect(), bool bAlphaPremultiply = false) const;
 		

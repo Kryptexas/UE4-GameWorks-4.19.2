@@ -3,7 +3,7 @@ Title: 1 - Required Setup
 Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 Description:Learn how to set up Git on Linux.
 Version: 4.13
-type:QuickStart
+type:quick start
 parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 order: 1
 tags:Linux

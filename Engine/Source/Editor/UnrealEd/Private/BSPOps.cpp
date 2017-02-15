@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
 #include "BSPOps.h"
-#include "Engine/Polys.h"
+#include "EngineDefines.h"
+#include "Model.h"
+#include "Materials/Material.h"
+#include "Engine/BrushBuilder.h"
+#include "Editor/EditorEngine.h"
 #include "Components/BrushComponent.h"
 #include "GameFramework/Volume.h"
 
@@ -527,6 +530,7 @@ void FBSPOps::csgPrepMovingBrush( ABrush* Actor )
 
 	// Make sure simplified collision is up to date.
 	Actor->GetBrushComponent()->BuildSimpleBrushCollision();
+	Actor->RebuildNavigationData();
 }
 
 /**

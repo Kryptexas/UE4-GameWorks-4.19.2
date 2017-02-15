@@ -1,15 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class SSequencerTreeViewRow;
-class SSequencerTreeView;
-class SSequencerTrackLane;
-class FSequencerTimeSliderController;
-class FSequencer;
-
+#include "CoreMinimal.h"
+#include "Layout/Geometry.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "SlotBase.h"
+#include "Layout/Children.h"
+#include "Widgets/SPanel.h"
+#include "Sequencer.h"
+#include "SequencerTimeSliderController.h"
 #include "SequencerInputHandlerStack.h"
-#include "ISequencerEditTool.h"
+
+class FArrangedChildren;
+class FPaintArgs;
+class FSlateWindowElementList;
+class ISequencerEditTool;
+class SSequencerTrackLane;
+class SSequencerTreeView;
 
 /**
  * Structure representing a slot in the track area.

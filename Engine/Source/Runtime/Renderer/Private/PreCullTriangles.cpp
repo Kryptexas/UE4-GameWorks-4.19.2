@@ -1,21 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PreCullTriangles.cpp : implementation of offline visibility culling of static triangles
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "UniformBuffer.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/MemStack.h"
+#include "HAL/IConsoleManager.h"
+#include "RHIDefinitions.h"
+#include "RHI.h"
+#include "RenderingThread.h"
+#include "RenderResource.h"
+#include "ShowFlags.h"
+#include "UnrealClient.h"
 #include "ShaderParameters.h"
-#include "PostProcessing.h"
-#include "SceneFilterRendering.h"
+#include "SceneView.h"
+#include "RawIndexBuffer.h"
+#include "Shader.h"
+#include "SceneUtils.h"
+#include "GlobalShader.h"
+#include "HeightfieldLighting.h"
+#include "SceneRendering.h"
+#include "DeferredShadingRenderer.h"
+#include "ScenePrivate.h"
 #include "DistanceFieldLightingShared.h"
 #include "DistanceFieldSurfaceCacheLighting.h"
-#include "DistanceFieldGlobalIllumination.h"
-#include "RHICommandList.h"
-#include "SceneUtils.h"
-#include "DistanceFieldAtlas.h"
 #include "StaticMeshResources.h"
 
 TGlobalResource<FDistanceFieldObjectBufferResource> GPreCullTrianglesCulledObjectBuffers;

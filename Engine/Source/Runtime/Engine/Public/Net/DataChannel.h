@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DataChannel.h: Unreal datachannel class.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Misc/NetworkGuid.h"
+#include "GameFramework/OnlineReplStructs.h"
+#include "Net/DataBunch.h"
 #include "Engine/ChildConnection.h"
 
 /*-----------------------------------------------------------------------------

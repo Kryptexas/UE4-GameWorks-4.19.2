@@ -1,14 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "NameTypes.h"
-#include "SlateIcon.h"
+#include "CoreMinimal.h"
+#include "Textures/SlateIcon.h"
 
-struct FSlateIcon;
-
-class UClass;
-class ISlateStyle;
+struct FSlateBrush;
 
 /** Class used for finding icons within a registered set of styles */
 class SLATECORE_API FSlateIconFinder

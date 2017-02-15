@@ -7,7 +7,7 @@ Skilllevel: Intermediate
 Version: 4.12
 Parent:Platforms/GoogleVR/QuickStart
 order:2
-type:step
+type:multi-step
 tags:VR
 tags:Google VR
 
@@ -92,7 +92,7 @@ tags:Google VR
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. In the **Platforms** section under the **Android** section press the **Configure Now** button in the **APKPackaging** and **Google Play Services** sections to ensure that our project can .
+1. In the **Platforms** section under the **Android** section press the **Configure Now** button in the **APKPackaging** and **Google Play Services** sections to ensure that our project can package properly.
 
 	![](GVRQS_Config_Now_00.png)
 

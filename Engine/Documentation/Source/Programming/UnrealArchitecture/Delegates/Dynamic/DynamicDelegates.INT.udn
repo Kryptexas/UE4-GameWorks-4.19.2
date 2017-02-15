@@ -27,12 +27,3 @@ variations specific to dynamic delegates.
 ## Executing Dynamic Delegates
 
 [INCLUDE:Programming/UnrealArchitecture/Delegates#ExecutingDelegates]
-
-## Wrapped Dynamic Delegates
-
-Dynamic delegates can be declared with a wrapper proxy method for executing the delegate.
-
-| Declaration Macro | Description |
-| --- | --- |
-| `DECLARE_DYNAMIC_DELEGATE[_RetVal, etc.]( DelegateName )` | Creates a wrapped dynamic delegate. |
-| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_RetVal, etc.]( DelegateName )` | Creates a wrapped dynamic multi-cast delegate. |

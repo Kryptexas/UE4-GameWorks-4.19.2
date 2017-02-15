@@ -1,7 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "MakefileHelpers.h"
+
+class FUHTMakefile;
+class FArchive;
 class FUnrealSourceFile;
 
 /* See UHTMakefile.h for overview how makefiles work. */

@@ -1,17 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 
+class FMessageEndpoint;
+class IMessageContext;
 struct FEngineServiceAuthDeny;
 struct FEngineServiceAuthGrant;
 struct FEngineServiceExecuteCommand;
 struct FEngineServicePing;
 struct FEngineServiceTerminate;
 struct FMessageAddress;
-class FMessageEndpoint;
-class IMessageContext;
-
 
 /**
  * Implements an application session service.

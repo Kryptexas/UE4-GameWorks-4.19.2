@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	VectorFieldAnimated: An animated 3D grid of vectors.
@@ -6,7 +6,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "VectorField/VectorField.h"
 #include "VectorFieldAnimated.generated.h"
+
+struct FPropertyChangedEvent;
 
 /**
  * Operation used to construct the vector field from a 2D texture.

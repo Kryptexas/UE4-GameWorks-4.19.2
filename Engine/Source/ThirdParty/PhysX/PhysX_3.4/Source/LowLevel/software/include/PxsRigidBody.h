@@ -104,7 +104,7 @@ class PxsRigidBody : public PxcRigidBody
 	PX_FORCE_INLINE		void						setPosition(const PxVec3& position)				{ mCore->body2World.p = position; }
 	PX_FORCE_INLINE		PxReal						getInvMass()							const	{ return mCore->inverseMass; }	
 	PX_FORCE_INLINE		PxVec3						getInvInertia()							const	{ return mCore->inverseInertia; }
-	PX_FORCE_INLINE		PxReal						getMass()								const	{ return 1/mCore->inverseMass; }	
+	PX_FORCE_INLINE		PxReal						getMass()								const	{ return 1.0f/mCore->inverseMass; }	
 	PX_FORCE_INLINE		PxVec3						getInertia()							const	{ return PxVec3(1.0f/mCore->inverseInertia.x,
 																													1.0f/mCore->inverseInertia.y,
 																													1.0f/mCore->inverseInertia.z); }
@@ -135,7 +135,7 @@ class PxsRigidBody : public PxcRigidBody
 
 void PxsRigidBody::constrainLinearVelocity()
 {
-	PxU32 lockFlags = mCore->lockFlags;
+	const PxU32 lockFlags = mCore->lockFlags;
 
 	if (lockFlags)
 	{
@@ -150,7 +150,7 @@ void PxsRigidBody::constrainLinearVelocity()
 
 void PxsRigidBody::constrainAngularVelocity()
 {
-	PxU32 lockFlags = mCore->lockFlags;
+	const PxU32 lockFlags = mCore->lockFlags;
 
 	if (lockFlags)
 	{

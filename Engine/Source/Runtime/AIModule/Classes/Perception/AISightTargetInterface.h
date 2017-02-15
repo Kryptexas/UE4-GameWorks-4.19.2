@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Interface.h"
 #include "AISightTargetInterface.generated.h"
+
+class AActor;
 
 UINTERFACE()
 class AIMODULE_API UAISightTargetInterface : public UInterface
@@ -24,13 +29,6 @@ class AIMODULE_API IAISightTargetInterface
 		NumberOfLoSChecksPerformed = 0;
 		OutSightStrength = 0;
 		return false; 
-	}
-
-	DEPRECATED(4.8, "This function is deprecated. Please use the other CanBeSeenFrom version.")
-	virtual bool CanBeSeenFrom(const FVector& ObserverLocation, FVector& OutSeenLocation, int32& NumberOfLoSChecksPerformed, const AActor* IgnoreActor = NULL) const
-	{
-		float SightStrength = 1.f;
-		return CanBeSeenFrom(ObserverLocation, OutSeenLocation, NumberOfLoSChecksPerformed, SightStrength, IgnoreActor);
 	}
 };
 

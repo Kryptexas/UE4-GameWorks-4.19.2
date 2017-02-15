@@ -1,8 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
 #include "IntegralKeyArea.h"
-#include "MovieSceneClipboard.h"
+#include "UObject/StructOnScope.h"
 
 /* IKeyArea interface
  *****************************************************************************/
@@ -112,6 +111,14 @@ TArray<FKeyHandle> FIntegralCurveKeyAreaBase::GetUnsortedKeyHandles() const
 }
 
 
+FKeyHandle FIntegralCurveKeyAreaBase::DilateKey(FKeyHandle KeyHandle, float Scale, float Origin)
+{
+	float NewKeyTime = Curve.GetKeyTime(KeyHandle);
+	NewKeyTime = (NewKeyTime - Origin) * Scale + Origin;
+	return Curve.SetKeyTime(KeyHandle, NewKeyTime);
+}
+
+
 FKeyHandle FIntegralCurveKeyAreaBase::MoveKey(FKeyHandle KeyHandle, float DeltaPosition)
 {
 	return Curve.SetKeyTime(KeyHandle, Curve.GetKeyTime(KeyHandle) + DeltaPosition);
@@ -136,7 +143,7 @@ void FIntegralCurveKeyAreaBase::SetKeyTangentMode(FKeyHandle KeyHandle, ERichCur
 }
 
 
-void FIntegralCurveKeyAreaBase::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const
+void FIntegralCurveKeyAreaBase::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime)
 {
 	Curve.SetKeyTime(KeyHandle, NewKeyTime);
 }

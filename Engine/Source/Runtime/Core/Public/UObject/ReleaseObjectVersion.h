@@ -1,5 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreTypes.h"
+#include "Misc/Guid.h"
 
 // Custom serialization version for changes made in Dev-Core stream
 struct CORE_API FReleaseObjectVersion
@@ -21,6 +24,15 @@ struct CORE_API FReleaseObjectVersion
 
 		// Add Component node templates now use their own unique naming scheme to ensure more reliable archetype lookups.
 		AddComponentNodeTemplateUniqueNames,
+
+		// Fix a serialization issue with static mesh FMeshSectionInfoMap UProperty
+		UPropertryForMeshSectionSerialize,
+
+		// Existing HLOD settings screen size to screen area conversion
+		ConvertHLODScreenSize,
+
+		// Adding mesh section info data for existing billboard LOD models
+		SpeedTreeBillboardSectionInfoFixup,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

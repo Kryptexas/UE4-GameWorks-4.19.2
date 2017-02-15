@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Margin.h"
+#include "Styling/SlateBrush.h"
 
 /**
  * Ignores the Margin. Just renders the image. Can tile the image instead of stretching.

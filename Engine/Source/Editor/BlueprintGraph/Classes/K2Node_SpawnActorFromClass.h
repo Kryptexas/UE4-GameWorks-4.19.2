@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "K2Node.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
+#include "Textures/SlateIcon.h"
+#include "EdGraph/EdGraphNodeUtils.h"
 #include "K2Node_SpawnActorFromClass.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
+class UEdGraph;
 
 UCLASS()
 class BLUEPRINTGRAPH_API UK2Node_SpawnActorFromClass : public UK2Node

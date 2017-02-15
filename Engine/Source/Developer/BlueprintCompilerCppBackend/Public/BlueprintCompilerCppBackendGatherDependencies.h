@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma  once
 
-#include "Engine/BlueprintGeneratedClass.h"
-#include "Engine/UserDefinedStruct.h"
-#include "Engine/UserDefinedEnum.h"
+#include "CoreMinimal.h"
+
+class UBlueprintGeneratedClass;
+class UUserDefinedEnum;
+class UUserDefinedStruct;
 
 /** The struct gathers dependencies of a converted BPGC */
 struct BLUEPRINTCOMPILERCPPBACKEND_API FGatherConvertedClassDependencies

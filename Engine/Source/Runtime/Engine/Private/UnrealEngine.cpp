@@ -1,89 +1,135 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealEngine.cpp: Implements the UEngine class and helpers.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "UnrealEngine.h"
+#include "UObject/GCObject.h"
+#include "Misc/IQueuedWork.h"
+#include "HAL/RunnableThread.h"
+#include "RHI.h"
+#include "Widgets/SWidget.h"
+#include "UnrealClient.h"
+#include "Engine/DebugDisplayProperty.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Engine/GameViewportClient.h"
+#include "RenderingThread.h"
+#include "RHIStaticStates.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Components/PrimitiveComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "HAL/Runnable.h"
+#include "Misc/OutputDeviceArchiveWrapper.h"
+#include "Stats/StatsMisc.h"
+#include "HAL/IOBase.h"
+#include "Containers/Ticker.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/AutomationTest.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/ObjectThumbnail.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "UObject/MetaData.h"
+#include "UObject/ObjectMemoryAnalyzer.h"
+#include "Serialization/ArchiveCountMem.h"
+#include "Serialization/ObjectWriter.h"
+#include "Serialization/ObjectReader.h"
+#include "Serialization/ArchiveTraceRoute.h"
+#include "Misc/PackageName.h"
+#include "Misc/EngineVersion.h"
+#include "UObject/LinkerLoad.h"
+#include "Misc/StartupPackages.h"
+#include "GameMapsSettings.h"
+#include "Materials/MaterialInterface.h"
+#include "Logging/LogScopedCategoryAndVerbosityOverride.h"
+#include "Misc/WildcardString.h"
+#include "Misc/OutputDeviceConsole.h"
+#include "Serialization/ArchiveReplaceOrClearExternalReferences.h"
+#include "GameFramework/PlayerController.h"
 #include "Engine/Font.h"
+#include "Materials/Material.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
+#include "Sound/SoundAttenuation.h"
+#include "GameFramework/GameModeBase.h"
+#include "Features/IModularFeatures.h"
+#include "GameFramework/WorldSettings.h"
+#include "Components/AudioComponent.h"
+#include "Particles/ParticleSystem.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/Texture.h"
+#include "Engine/Texture2D.h"
+#include "ParticleHelper.h"
+#include "Particles/ParticleModule.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Exporters/Exporter.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/NetDriver.h"
+#include "Widgets/SBoxPanel.h"
+#include "Engine/LocalPlayer.h"
+#include "Engine/StaticMesh.h"
+#include "SystemSettings.h"
+#include "ContentStreaming.h"
+#include "DrawDebugHelpers.h"
+#include "EngineUtils.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Input/SButton.h"
+#include "Engine/TextureLODSettings.h"
 #include "Engine/LevelStreamingPersistent.h"
 #include "Engine/ObjectReferencer.h"
-#include "Net/UnrealNetwork.h"
+#include "Misc/NetworkVersion.h"
 #include "Net/OnlineEngineInterface.h"
 #include "Engine/Console.h"
 #include "VisualLogger/VisualLogger.h"
-#include "FileManagerGeneric.h"
-#include "Database.h"
 #include "SkeletalMeshMerge.h"
-#include "SlateBasics.h"
-#include "RenderCore.h"
 #include "ShaderCompiler.h"
-#include "ColorList.h"
-#include "AVIWriter.h"
 #include "Slate/SlateSoundDevice.h"
 #include "DerivedDataCacheInterface.h"
-#include "Networking.h"
-#include "ProfilingHelpers.h"
-#include "ImageWrapper.h"
+#include "Interfaces/IImageWrapperModule.h"
 #include "EngineAnalytics.h"
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-#if WITH_EDITOR
-#include "CrashTracker.h"
-#endif
 #include "TickTaskManagerInterface.h"
-#include "TargetPlatform.h"
-#include "AudioEffect.h"
 #include "Net/NetworkProfiler.h"
-#include "MallocProfiler.h"
+#include "ProfilingDebugging/MallocProfiler.h"
 #include "StereoRendering.h"
 #include "IHeadMountedDisplayModule.h"
 #include "IHeadMountedDisplay.h"
-#include "IMotionController.h"
-#include "Scalability.h"
-#include "StatsData.h"
-#include "StatsFile.h"
-#include "ScreenRendering.h"
-#include "RHIStaticStates.h"
+#include "Stats/StatsData.h"
+#include "Stats/StatsFile.h"
+#include "AudioThread.h"
 #include "AudioDeviceManager.h"
+#include "Sound/ReverbEffect.h"
 #include "AudioDevice.h"
-#include "ActiveSound.h"
-#include "DeviceProfiles/DeviceProfileManager.h"
 #include "Animation/SkeletalMeshActor.h"
+#include "Engine/Canvas.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/Character.h"
-#include "GameFramework/GameModeBase.h"
 #include "GameDelegates.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/WorldComposition.h"
 #include "Engine/LevelScriptActor.h"
-#include "Vehicles/TireType.h"
-#include "RHICommandList.h"
-#include "HardwareSurvey.h"
+#include "IHardwareSurveyModule.h"
 
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
-#include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleLODLevel.h"
-#include "Particles/ParticleModule.h"
 #include "Particles/ParticleModuleRequired.h"
-#include "Particles/ParticleSpriteEmitter.h"
-#include "Particles/ParticleSystem.h"
-#include "Particles/ParticleSystemComponent.h"
 
 #include "Components/TextRenderComponent.h"
 
-#include "AudioThread.h"
-#include "Sound/ReverbEffect.h"
-#include "Sound/SoundWave.h"
 
 // @todo this is here only due to circular dependency to AIModule. To be removed
-#include "BehaviorTree/BehaviorTreeManager.h"
-#include "EnvironmentQuery/EnvQueryManager.h"
 
-#if !UE_BUILD_SHIPPING
-#include "STaskGraph.h"
-#endif
 #if WITH_EDITORONLY_DATA
 #include "ObjectEditorUtils.h"
 #endif
@@ -91,15 +137,12 @@
 #include "HardwareInfo.h"
 #include "EngineModule.h"
 #include "UnrealExporter.h"
-#include "ComponentReregisterContext.h"
-#include "ContentStreaming.h"
 #include "BufferVisualizationData.h"
 
-#include "Engine/GameInstance.h"
-#include "HotReloadInterface.h"
-#include "STestSuite.h"
+#include "Misc/HotReloadInterface.h"
+#include "Widgets/Testing/STestSuite.h"
 #include "Engine/DemoNetDriver.h"
-#include "SThrobber.h"
+#include "Widgets/Images/SThrobber.h"
 #include "Engine/TextureCube.h"
 #include "AI/Navigation/AvoidanceManager.h"
 #include "Engine/GameEngine.h"
@@ -107,44 +150,43 @@
 #include "Components/BrushComponent.h"
 #include "GameFramework/GameUserSettings.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "NotificationManager.h"
-#include "SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/UserInterfaceSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
-#include "TextPackageNamespaceUtil.h"
 #include "TextLocalizationResourceGenerator.h"
 
-#include "IMessagingRpcModule.h"
 #include "IMessageRpcClient.h"
+#include "IMessagingRpcModule.h"
 #include "IPortalRpcModule.h"
 #include "IPortalRpcLocator.h"
 #include "IPortalServicesModule.h"
 #include "IPortalServiceLocator.h"
-#include "TypeContainer.h"
+#include "Misc/TypeContainer.h"
 
+#include "IMovieSceneCapture.h"
 #include "MovieSceneCaptureModule.h"
 #include "GameFramework/OnlineSession.h"
-#include "ABTesting.h"
+#include "ProfilingDebugging/ABTesting.h"
 #include "Performance/EnginePerformanceTargets.h"
 
 #include "InstancedReferenceSubobjectHelper.h"
 #include "Engine/EndUserSettings.h"
-#include "ABTesting.h"
-#include "Performance/EnginePerformanceTargets.h"
 
-#include "Classes/Engine/LODActor.h"
+#include "Engine/LODActor.h"
 
 #if !UE_BUILD_SHIPPING
-#include "AutomationTest.h"
-#include "IAutomationWorkerModule.h"
+#include "Interfaces/IAutomationWorkerModule.h"
 #include "HAL/ExceptionHandling.h"
 #endif	// UE_BUILD_SHIPPING
 
 #include "GeneralProjectSettings.h"
-#include "LoadTimeTracker.h"
+#include "ProfilingDebugging/LoadTimeTracker.h"
 
 DEFINE_LOG_CATEGORY(LogEngine);
 IMPLEMENT_MODULE( FEngineModule, Engine );
+
+#define DEBUGGING_VIEWPORT_SIZES 0
 
 #define LOCTEXT_NAMESPACE "UnrealEngine"
 
@@ -209,7 +251,6 @@ static FAutoConsoleVariable CVarSystemResolution(
 	TEXT("e.g. 1280x720w for windowed\n")
 	TEXT("     1920x1080f for fullscreen\n")
 	TEXT("     1920x1080wf for windowed fullscreen\n")
-	TEXT("     1920x1080wm for windowed mirror")
 	);
 
 #if !UE_BUILD_SHIPPING
@@ -334,12 +375,17 @@ void ScalabilityCVarsSinkCallback()
 	}
 }
 
+static bool GHDROutputEnabled = false;
+
 void SystemResolutionSinkCallback()
 {
 	auto ResString = CVarSystemResolution->GetString();
 	
 	uint32 ResX, ResY;
 	int32 WindowModeInt = GSystemResolution.WindowMode;
+
+	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
+	bool bHDROutputEnabled = GRHISupportsHDROutput && CVarHDROutputEnabled->GetValueOnAnyThread() != 0;
 	
 	if (FParse::Resolution(*ResString, ResX, ResY, WindowModeInt))
 	{
@@ -348,12 +394,14 @@ void SystemResolutionSinkCallback()
 		if( GSystemResolution.ResX != ResX ||
 			GSystemResolution.ResY != ResY ||
 			GSystemResolution.WindowMode != WindowMode ||
+			GHDROutputEnabled != bHDROutputEnabled ||
 			GSystemResolution.bForceRefresh)
 		{
 			GSystemResolution.ResX = ResX;
 			GSystemResolution.ResY = ResY;
 			GSystemResolution.WindowMode = WindowMode;
 			GSystemResolution.bForceRefresh = false;
+			GHDROutputEnabled = bHDROutputEnabled;
 
 			if(GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame)
 			{
@@ -761,6 +809,21 @@ void EngineMemoryWarningHandler(const FGenericMemoryWarningContext& GenericConte
 
 UEngine::FOnNewStatRegistered UEngine::NewStatDelegate;
 
+void UEngine::PreGarbageCollect()
+{
+	for (TObjectIterator<UWorld> WorldIt; WorldIt; ++WorldIt)
+	{
+		UWorld* World = *WorldIt;
+
+		if (World && World->HasEndOfFrameUpdates())
+		{
+			// Make sure deferred component updates have been sent to the rendering thread before deleting any UObjects which the rendering thread may be referencing
+			// This fixes rendering thread crashes in the following order of operations 1) UMeshComponent::SetMaterial 2) GC 3) Rendering command that dereferences the UMaterial
+			World->SendAllEndOfFrameUpdates();
+		}
+	}
+}
+
 //
 // Initialize the engine.
 //
@@ -799,6 +862,8 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Add to root.
 	AddToRoot();
+
+	FCoreUObjectDelegates::PreGarbageCollect.AddStatic(UEngine::PreGarbageCollect);
 
 	// Initialize the HMDs and motion controllers, if any
 	InitializeHMDDevice();
@@ -1376,6 +1441,11 @@ void UEngine::ParseCommandline()
 		bUseSound = false;
 	}
 
+	if (FParse::Param(FCommandLine::Get(), TEXT("enablesound")))
+	{
+		bUseSound = true;
+	}
+
 	if( FParse::Param( FCommandLine::Get(), TEXT("noailogging")) )
 	{
 		bDisableAILogging = true;
@@ -1594,10 +1664,6 @@ void UEngine::InitializeObjectReferences()
 			{
 				FontPtr = LoadObject<UFont>(nullptr, *FontName, nullptr, LOAD_None, nullptr);
 			}
-			if (FontPtr)
-			{
-				FontPtr->ForceLoadFontData();
-			}
 		};
 
 		// Standard fonts.
@@ -1629,11 +1695,6 @@ void UEngine::InitializeObjectReferences()
 		{
 			UE_LOG(LogEngine, Error, TEXT("Engine config value GameSingletonClassName '%s' is not a valid class name."), *GameSingletonClassName.ToString());
 		}
-	}
-
-	if (DefaultTireType == nullptr && DefaultTireTypeName.ToString().Len())
-	{
-		DefaultTireType = LoadObject<UTireType>(NULL, *DefaultTireTypeName.ToString());
 	}
 
 	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
@@ -1887,10 +1948,7 @@ bool UEngine::InitializeAudioDeviceManager()
 			FString AudioDeviceModuleName;
 			if (bForceAudioMixer)
 			{
-			 	// Only implemented windows for now
-#if PLATFORM_WINDOWS
-				AudioDeviceModuleName = TEXT("AudioMixerXAudio2");
-#endif
+				GConfig->GetString(TEXT("Audio"), TEXT("AudioMixerModuleName"), AudioDeviceModuleName, GEngineIni);
 			}
 
 			// get the module name from the ini file
@@ -1944,6 +2002,7 @@ class FFakeStereoRenderingDevice : public IStereoRendering
 public:
 	FFakeStereoRenderingDevice() 
 	: FOVInDegrees(100)
+	, MonoCullingDistance(0.0f)
 	, Width(640)
 	, Height(480)
 	{
@@ -1976,7 +2035,7 @@ public:
 	virtual void AdjustViewRect(EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const override
 	{
 		SizeX = SizeX / 2;
-		if( StereoPass == eSSP_RIGHT_EYE )
+		if (StereoPass == eSSP_RIGHT_EYE)
 		{
 			X += SizeX;
 		}
@@ -1984,7 +2043,7 @@ public:
 
 	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) override
 	{
-		if( StereoPassType != eSSP_FULL)
+		if (StereoPassType != eSSP_FULL && StereoPassType != eSSP_MONOSCOPIC_EYE)
 		{
 			float EyeOffset = 3.20000005f;
 			const float PassOffset = (StereoPassType == eSSP_LEFT_EYE) ? EyeOffset : -EyeOffset;
@@ -1994,27 +2053,28 @@ public:
 
 	virtual FMatrix GetStereoProjectionMatrix(const enum EStereoscopicPass StereoPassType, const float FOV) const override
 	{
-		const float ProjectionCenterOffset = 0.151976421f;
-		const float PassProjectionOffset = (StereoPassType == eSSP_LEFT_EYE) ? ProjectionCenterOffset : -ProjectionCenterOffset;
-
 		const float HalfFov = FMath::DegreesToRadians(FOVInDegrees) / 2.f;
 		const float InWidth = Width;
 		const float InHeight = Height;
-		const float XS = 1.0f / tan(HalfFov);
-		const float YS = InWidth / tan(HalfFov) / InHeight;
+		const float XS = 1.0f / FMath::Tan(HalfFov);
+		const float YS = InWidth / FMath::Tan(HalfFov) / InHeight;
+		const float NearZ = (StereoPassType != eSSP_MONOSCOPIC_EYE) ? GNearClippingPlane : MonoCullingDistance;
 
-		const float InNearZ = GNearClippingPlane;
 		return FMatrix(
-			FPlane(XS,                      0.0f,								    0.0f,							0.0f),
-			FPlane(0.0f,					YS,	                                    0.0f,							0.0f),
-			FPlane(0.0f,	                0.0f,								    0.0f,							1.0f),
-			FPlane(0.0f,					0.0f,								    InNearZ,						0.0f))
- 
-			* FTranslationMatrix(FVector(PassProjectionOffset,0,0));
-
+			FPlane(XS, 0.0f, 0.0f, 0.0f),
+			FPlane(0.0f, YS, 0.0f, 0.0f),
+			FPlane(0.0f, 0.0f, 0.0f, 1.0f),
+			FPlane(0.0f, 0.0f, NearZ, 0.0f));
 	}
 
-	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override {}
+	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override
+	{
+		if (InView != nullptr && InView->Family != nullptr)
+		{
+			const FSceneViewFamily& ViewFamily = *InView->Family;
+			MonoCullingDistance = ViewFamily.MonoParameters.CullingDistance - ViewFamily.MonoParameters.OverlapDistance;
+		}
+	}
 
 	virtual void GetEyeRenderParams_RenderThread(const struct FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override
 	{
@@ -2047,6 +2107,7 @@ public:
 	}
 
 	float FOVInDegrees;		// max(HFOV, VFOV) in degrees of imaginable HMD
+	float MonoCullingDistance;
 	int32 Width, Height;	// resolution of imaginable HMD
 };
 
@@ -2727,17 +2788,16 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleFreezeAllCommand( Cmd, Ar, InWorld );
 	}
-#if !USE_NEW_ASYNC_IO
-	else if( FParse::Command(&Cmd, TEXT("FLUSHIOMANAGER")) )
+	
+	else if( !GNewAsyncIO && FParse::Command(&Cmd, TEXT("FLUSHIOMANAGER")) )
 	{
 		return HandleFlushIOManagerCommand( Cmd, Ar );
 	}
 	// This will list out the packages which are in the precache list and have not been "loaded" out.  (e.g. could be just there taking up memory!)
-	else if (FParse::Command(&Cmd, TEXT("ListPrecacheMapPackages")))
+	else if ( !GNewAsyncIO && FParse::Command(&Cmd, TEXT("ListPrecacheMapPackages")))
 	{
 		return HandleListPreCacheMapPackagesCommand(Cmd, Ar);
 	}
-#endif
 
 	else if( FParse::Command(&Cmd,TEXT("ToggleRenderingThread")) )
 	{
@@ -3371,14 +3431,15 @@ bool UEngine::HandleFreezeAllCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	return true;
 }
 
-#if !USE_NEW_ASYNC_IO
 bool UEngine::HandleFlushIOManagerCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
+	check(!GNewAsyncIO);
 	FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
 	return true;
 }
 bool UEngine::HandleListPreCacheMapPackagesCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
+	check(!GNewAsyncIO);
 	TArray<FString> Packages;
 	FLinkerLoad::GetListOfPackagesInPackagePrecacheMap(Packages);
 
@@ -3394,8 +3455,6 @@ bool UEngine::HandleListPreCacheMapPackagesCommand(const TCHAR* Cmd, FOutputDevi
 
 	return true;
 }
-
-#endif
 
 bool UEngine::HandleFreezeRenderingCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld  )
 {
@@ -3694,7 +3753,7 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		// Use the existing texture streaming functionality to gather referenced textures. Worth noting
 		// that GetStreamingTextureInfo doesn't check whether a texture is actually streamable or not
 		// and is also implemented for skeletal meshes and such.
-		FStreamingTextureLevelContext LevelContext;
+		FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num, PrimitiveComponent);
 		TArray<FStreamingTexturePrimitiveInfo> StreamingTextures;
 		PrimitiveComponent->GetStreamingTextureInfo( LevelContext, StreamingTextures );
 
@@ -4686,7 +4745,7 @@ bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	USkeletalMesh * PlayerMesh = NULL;
 	for (FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
-		APlayerController* PlayerController = *Iterator;
+		APlayerController* PlayerController = Iterator->Get();
 		if (PlayerController->GetCharacter() != NULL && PlayerController->GetCharacter()->GetMesh())
 		{
 			PlayerPawn = PlayerController->GetCharacter();
@@ -4708,7 +4767,7 @@ bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 		// we don't have a pawn (because we couldn't find a mesh), use any pawn as a spawn point
 		for (FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if (PlayerController->GetPawn() != NULL)
 			{
 				PlayerPawn = PlayerController->GetPawn();
@@ -6503,6 +6562,22 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 		FPlatformProcess::Sleep(3600);
 		return true;
 	}
+	else if (FParse::Command(&Cmd, TEXT("AUDIOGPF")))
+	{
+		FAudioThread::RunCommandOnAudioThread([]()
+		{
+			*(int32 *)3 = 123;
+		}, TStatId());
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("AUDIOCHECK")))
+	{
+		FAudioThread::RunCommandOnAudioThread([]()
+		{
+			check(!"Crashing the audio thread via check(0) at your request");
+		}, TStatId());
+		return true;
+	}
 #endif // !UE_BUILD_SHIPPING
 	return false;
 }
@@ -6981,7 +7056,7 @@ FGuid UEngine::GetPackageGuid(FName PackageName, bool bForPIE)
 {
 	FGuid Result(0,0,0,0);
 
-	BeginLoad();
+	BeginLoad(*PackageName.ToString());
 	uint32 LoadFlags = LOAD_NoWarn | LOAD_NoVerify;
 	if (bForPIE)
 	{
@@ -7926,6 +8001,35 @@ float DrawMapWarnings(UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanv
 		MessageY += FontSizeY;
 	}
 #endif
+
+	// ask any delegates for extra messages
+	if (FCoreDelegates::OnGetOnScreenMessages.IsBound())
+	{
+		FCoreDelegates::FSeverityMessageMap ExtraMessages;
+		FCoreDelegates::OnGetOnScreenMessages.Broadcast(ExtraMessages);
+
+		// draw them all!
+		for (auto It = ExtraMessages.CreateConstIterator(); It; ++It)
+		{
+			SmallTextItem.Text = It.Value();
+			switch (It.Key())
+			{
+				case FCoreDelegates::EOnScreenMessageSeverity::Info:
+					SmallTextItem.SetColor(FLinearColor::White);
+					break;
+				case FCoreDelegates::EOnScreenMessageSeverity::Warning:
+					SmallTextItem.SetColor(FLinearColor::Yellow);
+					break;
+				case FCoreDelegates::EOnScreenMessageSeverity::Error:
+					SmallTextItem.SetColor(FLinearColor::Red);
+					break;
+			}
+
+			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+			MessageY += FontSizeY;
+		}
+	}
+
 
 	return MessageY;
 }
@@ -9782,6 +9886,15 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			}
 		}
 
+		for (ULevelStreaming* LevelStreaming : WorldContext.World()->StreamingLevels)
+		{
+			// If an unloaded levelstreaming still has a loaded level we need to mark its objects to be deleted as well
+			if ((!LevelStreaming->bShouldBeLoaded || !LevelStreaming->bShouldBeVisible) && LevelStreaming->GetLoadedLevel())
+			{
+				CastChecked<UWorld>(LevelStreaming->GetLoadedLevel()->GetOuter())->MarkObjectsPendingKill();
+			}
+		}
+
 		// Stop all audio to remove references to current level.
 		if (FAudioDevice* AudioDevice = WorldContext.World()->GetAudioDevice())
 		{
@@ -10258,6 +10371,9 @@ void UEngine::MovePendingLevel(FWorldContext &Context)
 
 		FLevelCollection& SourceLevels = Context.World()->FindOrAddCollectionByType(ELevelCollectionType::DynamicSourceLevels);
 		SourceLevels.SetNetDriver(NetDriver);
+			
+		FLevelCollection& StaticLevels = Context.World()->FindOrAddCollectionByType(ELevelCollectionType::StaticLevels);
+		StaticLevels.SetNetDriver(NetDriver);
 	}
 
 	// Attach the DemoNetDriver to the world if there is one
@@ -10800,7 +10916,7 @@ static void AsyncMapChangeLevelLoadCompletionCallback(const FName& PackageName, 
 			}
 		}
 
-		ULevel* Level = World ? World->PersistentLevel : NULL;	
+		ULevel* Level = World ? World->PersistentLevel : nullptr;	
 		
 		// Print out a warning and set the error if we couldn't find a level in this package.
 		if( !Level )
@@ -10818,7 +10934,7 @@ static void AsyncMapChangeLevelLoadCompletionCallback(const FName& PackageName, 
 	else
 	{
 		// Add NULL entry so we don't end up waiting forever on a level that is never going to be loaded.
-		Context.LoadedLevelsForPendingMapChange.Add( NULL );
+		Context.LoadedLevelsForPendingMapChange.Add( nullptr );
 		UE_LOG(LogEngine, Warning, TEXT("NULL LevelPackage as argument to AsyncMapChangeLevelCompletionCallback") );
 	}
 
@@ -10860,7 +10976,7 @@ bool UEngine::PrepareMapChange(FWorldContext &Context, const TArray<FName>& Leve
 #endif
 
 		// copy LevelNames into the WorldInfo's array to keep track of the map change that we're preparing (primarily for servers so clients that join in progress can be notified)
-		if (Context.World() != NULL)
+		if (Context.World() != nullptr)
 		{
 			Context.World()->PreparingLevelNames = LevelNames;
 		}
@@ -11025,7 +11141,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 
 		// The new fake persistent level is first in the LevelsToLoadForPendingMapChange array.
 		FName	FakePersistentLevelName = Context.LevelsToLoadForPendingMapChange[0];
-		ULevel*	FakePersistentLevel		= NULL;
+		ULevel*	FakePersistentLevel		= nullptr;
 		// copy to WorldInfo to keep track of the last map change we performed (primarily for servers so clients that join in progress can be notified)
 		// we don't need to remember secondary levels as the join code iterates over all streaming levels and updates them
 		Context.World()->CommittedPersistentLevelName = FakePersistentLevelName;
@@ -11046,7 +11162,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 
 		// Construct a new ULevelStreamingPersistent for the new persistent level.
 		ULevelStreamingPersistent* LevelStreamingPersistent = NewObject<ULevelStreamingPersistent>(
-			GetTransientPackage(),
+			Context.World(),
 			*FString::Printf(TEXT("LevelStreamingPersistent_%s"), *FakePersistentLevel->GetOutermost()->GetName()) );
 
 		// Propagate level and name to streaming object.
@@ -11056,8 +11172,16 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 		Context.World()->StreamingLevels.Add( LevelStreamingPersistent );
 
 		UWorld* FakeWorld = CastChecked<UWorld>(FakePersistentLevel->GetOuter());
-		// Add secondary levels to the world info levels array.
-		Context.World()->StreamingLevels += FakeWorld->StreamingLevels;
+
+		// Rename the newly loaded streaming levels so that their outer is correctly set to the main context's world,
+		// rather than the fake world.
+		for (ULevelStreaming* const FakeWorldStreamingLevel : FakeWorld->StreamingLevels)
+		{
+			FakeWorldStreamingLevel->Rename(nullptr, Context.World(), REN_ForceNoResetLoaders | REN_DontCreateRedirectors);
+		}
+
+		// Move the secondary levels to the world info levels array.
+		Context.World()->StreamingLevels += MoveTemp(FakeWorld->StreamingLevels);
 
 		// fixup up any kismet streaming objects to force them to be loaded if they were preloaded, this
 		// will keep streaming volumes from immediately unloading the levels that were just loaded
@@ -11270,22 +11394,22 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	// Serialize out the modified properties on the old default object
 	TArray<uint8> SavedProperties;
 	TIndirectArray<FInstancedObjectRecord> SavedInstances;
-	TMap<FName, int32> OldInstanceMap;
+	TMap<FString, int32> OldInstanceMap;
 
-	const uint32 AdditinalPortFlags = Params.bCopyDeprecatedProperties ? PPF_UseDeprecatedProperties : PPF_None;
+	const uint32 AdditionalPortFlags = Params.bCopyDeprecatedProperties ? PPF_UseDeprecatedProperties : PPF_None;
 	// Save the modified properties of the old CDO
 	{
 		class FCopyPropertiesArchiveObjectWriter : public FObjectWriter
 		{
 		public:
-			FCopyPropertiesArchiveObjectWriter(UObject* InSrcObj, TArray<uint8>& InSrcBytes, UObject* InDstObject, bool bIgnoreClassRef, bool bIgnoreArchetypeRef, bool bDoDelta , uint32 AdditionalPortFlags, bool bInSkipCompilerGeneratedDefaults)
+			FCopyPropertiesArchiveObjectWriter(UObject* InSrcObj, TArray<uint8>& InSrcBytes, UObject* InDstObject, bool bIgnoreClassRef, bool bIgnoreArchetypeRef, bool bDoDelta , uint32 InAdditionalPortFlags, bool bInSkipCompilerGeneratedDefaults)
 				: FObjectWriter(InSrcBytes)
 			{	
 				bSkipCompilerGeneratedDefaults = bInSkipCompilerGeneratedDefaults;
 				ArIgnoreClassRef = bIgnoreClassRef;
 				ArIgnoreArchetypeRef = bIgnoreArchetypeRef;
 				ArNoDelta = !bDoDelta;
-				ArPortFlags |= AdditionalPortFlags;
+				ArPortFlags |= InAdditionalPortFlags;
 
 #if USE_STABLE_LOCALIZATION_KEYS
 				if (GIsEditor && !(ArPortFlags & PPF_DuplicateForPIE))
@@ -11309,7 +11433,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 			bool bSkipCompilerGeneratedDefaults;
 		};
 
-		FCopyPropertiesArchiveObjectWriter Writer(OldObject, SavedProperties, NewObject, true, true, Params.bDoDelta, AdditinalPortFlags, Params.bSkipCompilerGeneratedDefaults);
+		FCopyPropertiesArchiveObjectWriter Writer(OldObject, SavedProperties, NewObject, true, true, Params.bDoDelta, AdditionalPortFlags, Params.bSkipCompilerGeneratedDefaults);
 	}
 
 	{
@@ -11322,8 +11446,8 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 			FInstancedObjectRecord* pRecord = new(SavedInstances) FInstancedObjectRecord();
 			UObject* OldInstance = Components[Index];
 			pRecord->OldInstance = OldInstance;
-			OldInstanceMap.Add(OldInstance->GetFName(), SavedInstances.Num() - 1);
-			FObjectWriter Writer(OldInstance, pRecord->SavedProperties, true, true, true, AdditinalPortFlags);
+			OldInstanceMap.Add(OldInstance->GetPathName(OldObject), SavedInstances.Num() - 1);
+			FObjectWriter Writer(OldInstance, pRecord->SavedProperties, true, true, true, AdditionalPortFlags);
 		}
 	}
 
@@ -11346,7 +11470,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 		for (int32 Index = 0; Index < ComponentsOnNewObject.Num(); Index++)
 		{
 			UObject* NewInstance = ComponentsOnNewObject[Index];
-			if (int32* pOldInstanceIndex = OldInstanceMap.Find(NewInstance->GetFName()))
+			if (int32* pOldInstanceIndex = OldInstanceMap.Find(NewInstance->GetPathName(NewObject)))
 			{
 				FInstancedObjectRecord& Record = SavedInstances[*pOldInstanceIndex];
 				ReferenceReplacementMap.Add(Record.OldInstance, NewInstance);
@@ -11403,7 +11527,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 		for (int32 Index = 0; Index < ComponentsOnNewObject.Num(); Index++)
 		{
 			UObject* NewInstance = ComponentsOnNewObject[Index];
-			if (int32* pOldInstanceIndex = OldInstanceMap.Find(NewInstance->GetFName()))
+			if (int32* pOldInstanceIndex = OldInstanceMap.Find(NewInstance->GetPathName(NewObject)))
 			{
 				// Restore modified properties into the new instance
 				FInstancedObjectRecord& Record = SavedInstances[*pOldInstanceIndex];
@@ -11417,15 +11541,13 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	FFindInstancedReferenceSubobjectHelper::Duplicate(OldObject, NewObject, ReferenceReplacementMap, ComponentsOnNewObject);
 
 	// Replace anything with an outer of the old object with NULL, unless it already has a replacement
-	TArray<UObject*> ObjectsInOuter;
-	GetObjectsWithOuter(OldObject, ObjectsInOuter, true);
-	for (int32 ObjectIndex = 0; ObjectIndex < ObjectsInOuter.Num(); ObjectIndex++)
+	ForEachObjectWithOuter(OldObject, [&ReferenceReplacementMap](UObject* ObjectInOuter)
 	{
-		if (!ReferenceReplacementMap.Contains(ObjectsInOuter[ObjectIndex]))
+		if (!ReferenceReplacementMap.Contains(ObjectInOuter))
 		{
-			ReferenceReplacementMap.Add(ObjectsInOuter[ObjectIndex], NULL);
+			ReferenceReplacementMap.Add(ObjectInOuter, nullptr);
 		}
-	}
+	});
 
 	// Replace references to old classes and instances on this object with the corresponding new ones
 	UPackage* NewPackage = Cast<UPackage>(NewObject->GetOutermost());
@@ -12516,6 +12638,36 @@ void FAudioDevice::ResolveDesiredStats(FViewportClient* ViewportClient)
 		ClearStats |= ERequestedAudioStats::SoundMixes;
 	}
 
+	if (ViewportClient->IsStatEnabled(TEXT("Sounds")))
+	{
+		const FViewportClient::ESoundShowFlags::Type SoundShowFlags = ViewportClient->GetSoundShowFlags();
+		SetStats |= ERequestedAudioStats::Sounds;
+		
+		if (SoundShowFlags & FViewportClient::ESoundShowFlags::Debug)
+		{
+			SetStats |= ERequestedAudioStats::DebugSounds;
+		}
+		else
+		{
+			ClearStats |= ERequestedAudioStats::DebugSounds;
+		}
+
+		if (SoundShowFlags & FViewportClient::ESoundShowFlags::Long_Names)
+		{
+			SetStats |= ERequestedAudioStats::LongSoundNames;
+		}
+		else
+		{
+			ClearStats |= ERequestedAudioStats::LongSoundNames;
+		}
+	}
+	else
+	{
+		ClearStats |= ERequestedAudioStats::Sounds;
+		ClearStats |= ERequestedAudioStats::DebugSounds;
+		ClearStats |= ERequestedAudioStats::LongSoundNames;
+	}
+
 	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.ResolveDesiredStats"), STAT_AudioResolveDesiredStats, STATGROUP_TaskGraphTasks);
 
 	FAudioDevice* AudioDevice = this;
@@ -12528,9 +12680,17 @@ void FAudioDevice::ResolveDesiredStats(FViewportClient* ViewportClient)
 
 void FAudioDevice::UpdateRequestedStat(const uint8 RequestedStat)
 {
-	check(IsInAudioThread());
+	if (!IsInAudioThread())
+	{
+		DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.UpdateRequestedStat"), STAT_AudioUpdateRequestedStat, STATGROUP_TaskGraphTasks);
 
-	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.UpdateRequestedStat"), STAT_AudioUpdateRequestedStat, STATGROUP_TaskGraphTasks);
+		FAudioDevice* AudioDevice = this;
+		FAudioThread::RunCommandOnAudioThread([AudioDevice, RequestedStat]()
+		{
+			AudioDevice->UpdateRequestedStat(RequestedStat);
+		}, GET_STATID(STAT_AudioUpdateRequestedStat));
+		return;
+	}
 
 	RequestedAudioStats ^= RequestedStat;
 }
@@ -12599,7 +12759,7 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 				FString TheString = *FString::Printf(TEXT("%4i.    %6.2f  %s   Owner: %s   SoundClass: %s"),
 					WaveInstanceInfo.Key->InstanceIndex,
 					WaveInstanceInfo.Key->ActualVolume,
-					*WaveInstanceInfo.Value->SoundName,
+					*WaveInstanceInfo.Key->WaveInstanceName.ToString(),
 					SoundOwner ? *SoundOwner->GetName() : TEXT("None"),
 					*WaveInstanceInfo.Value->SoundClassName.ToString());
 
@@ -12674,7 +12834,7 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 // SOUNDS
 bool UEngine::ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
-	if( ViewportClient == nullptr )
+	if (ViewportClient == nullptr)
 	{
 		// Ignore if all Viewports are closed.
 		return false;
@@ -12699,7 +12859,7 @@ bool UEngine::ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportCli
 	uint32 OldSoundShowFlags = ViewportClient->GetSoundShowFlags();
 
 	uint32 ShowSounds = FViewportClient::ESoundShowFlags::Disabled;
-	
+
 	if (Stream)
 	{
 		const bool bHide = FParse::Command(&Stream, TEXT("off"));
@@ -12746,6 +12906,38 @@ bool UEngine::ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportCli
 		}
 	}
 
+	if (OldSoundShowFlags != FViewportClient::ESoundShowFlags::Disabled)
+	{
+		if (ShowSounds != FViewportClient::ESoundShowFlags::Disabled && ShowSounds != FViewportClient::ESoundShowFlags::Sort_Disabled)
+		{
+			if (!ViewportClient->IsStatEnabled(TEXT("Sounds")))
+			{
+				if (const TArray<FString>* CurrentStats = ViewportClient->GetEnabledStats())
+				{
+					TArray<FString> NewStats = *CurrentStats;
+					NewStats.Add(TEXT("Sounds"));
+					ViewportClient->SetEnabledStats(NewStats);
+					ViewportClient->SetShowStats(true);
+				}
+			}
+		}
+		else
+		{
+			ShowSounds = FViewportClient::ESoundShowFlags::Disabled;
+		}
+	}
+	else if (ShowSounds == FViewportClient::ESoundShowFlags::Disabled)
+	{
+		if (ViewportClient->IsStatEnabled(TEXT("Sounds")))
+		{
+			if (const TArray<FString>* CurrentStats = ViewportClient->GetEnabledStats())
+			{
+				TArray<FString> NewStats = *CurrentStats;
+				NewStats.Remove(TEXT("Sounds"));
+				ViewportClient->SetEnabledStats(NewStats);
+			}
+		}
+	}
 	ViewportClient->SetSoundShowFlags((FViewportClient::ESoundShowFlags::Type)ShowSounds);
 
 	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
@@ -12851,7 +13043,7 @@ int32 UEngine::RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Can
 
 						for (auto ShapeDetailsIt = StatSoundInfo.ShapeDetailsMap.CreateConstIterator(); ShapeDetailsIt; ++ShapeDetailsIt)
 						{
-							const FAttenuationSettings::AttenuationShapeDetails& ShapeDetails = ShapeDetailsIt.Value();
+							const FBaseAttenuationSettings::AttenuationShapeDetails& ShapeDetails = ShapeDetailsIt.Value();
 							switch (ShapeDetailsIt.Key())
 							{
 							case EAttenuationShape::Sphere:
@@ -12934,7 +13126,7 @@ int32 UEngine::RenderStatAI(UWorld* World, FViewport* Viewport, FCanvas* Canvas,
 	int32 NumAIRendered = 0;
 	for (FConstControllerIterator Iterator = World->GetControllerIterator(); Iterator; ++Iterator)
 	{
-		AController* Controller = *Iterator;
+		AController* Controller = Iterator->Get();
 		if (!Cast<APlayerController>(Controller))
 		{
 			++NumAI;
@@ -13029,7 +13221,5 @@ int32 UEngine::RenderStatSlateBatches(UWorld* World, FViewport* Viewport, FCanva
 	return Y;
 }
 #endif
-
-ENGINE_API UGameplayTagsManager* GGameplayTagsManager = nullptr;
 
 #undef LOCTEXT_NAMESPACE

@@ -1,21 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
-#include "Engine/Blueprint.h"
-#include "Runtime/Engine/Classes/Components/SceneComponent.h"
-#include "Engine/SCS_Node.h"
-#include "Engine/SimpleConstructionScript.h"
+#include "Kismet2/ComponentEditorUtils.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "EditorStyleSet.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/MeshComponent.h"
+#include "Exporters/Exporter.h"
+#include "Materials/Material.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Components/DecalComponent.h"
+#include "UnrealEdGlobals.h"
 #include "ScopedTransaction.h"
-#include "BlueprintEditorUtils.h"
-#include "KismetEditorUtilities.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/KismetEditorUtilities.h"
 #include "Factories.h"
 #include "UnrealExporter.h"
-#include "GenericCommands.h"
+#include "Framework/Commands/GenericCommands.h"
 #include "SourceCodeNavigation.h"
-#include "SlateIconFinder.h"
-#include "AssetEditorManager.h"
-#include "Components/DecalComponent.h"
+#include "Styling/SlateIconFinder.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Editor.h"
+#include "Toolkits/AssetEditorManager.h"
 
 #define LOCTEXT_NAMESPACE "ComponentEditorUtils"
 
@@ -272,10 +282,10 @@ FString FComponentEditorUtils::GenerateValidVariableNameFromAsset(UObject* Asset
 USceneComponent* FComponentEditorUtils::FindClosestParentInList(UActorComponent* ChildComponent, const TArray<UActorComponent*>& ComponentList)
 {
 	USceneComponent* ClosestParentComponent = nullptr;
-	for (auto Component : ComponentList)
+	for (UActorComponent* Component : ComponentList)
 	{
-		auto ChildAsScene = Cast<USceneComponent>(ChildComponent);
-		auto SceneComponent = Cast<USceneComponent>(Component);
+		USceneComponent* ChildAsScene = Cast<USceneComponent>(ChildComponent);
+		USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
 		if (ChildAsScene && SceneComponent)
 		{
 			// Check to see if any parent is also in the list
@@ -339,7 +349,7 @@ void FComponentEditorUtils::CopyComponents(const TArray<UActorComponent*>& Compo
 		if (DuplicatedComponent)
 		{
 			// If the duplicated component is a scene component, wipe its attach parent (to prevent log warnings for referencing a private object in an external package)
-			if (auto DuplicatedCompAsSceneComp = Cast<USceneComponent>(DuplicatedComponent))
+			if (USceneComponent* DuplicatedCompAsSceneComp = Cast<USceneComponent>(DuplicatedComponent))
 			{
 				DuplicatedCompAsSceneComp->SetupAttachment(nullptr);
 			}
@@ -424,7 +434,7 @@ void FComponentEditorUtils::PasteComponents(TArray<UActorComponent*>& OutPastedC
 		FString NewComponentName = FComponentEditorUtils::GenerateValidVariableName(NewActorComponent->GetClass(), TargetActor);
 		NewActorComponent->Rename(*NewComponentName, TargetActor, REN_DontCreateRedirectors | REN_DoNotDirty);
 
-		if (auto NewSceneComponent = Cast<USceneComponent>(NewActorComponent))
+		if (USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewActorComponent))
 		{
 			// Default to attaching to the target component's parent if possible, otherwise attach to the root
 			USceneComponent* NewComponentParent = TargetParent ? TargetParent : TargetActor->GetRootComponent();
@@ -482,7 +492,7 @@ void FComponentEditorUtils::GetComponentsFromClipboard(TMap<FName, FName>& OutPa
 bool FComponentEditorUtils::CanDeleteComponents(const TArray<UActorComponent*>& ComponentsToDelete)
 {
 	bool bCanDelete = true;
-	for (auto ComponentToDelete : ComponentsToDelete)
+	for (UActorComponent* ComponentToDelete : ComponentsToDelete)
 	{
 		// We can't delete non-instance components or the default scene root
 		if (ComponentToDelete->CreationMethod != EComponentCreationMethod::Instance 
@@ -502,7 +512,7 @@ int32 FComponentEditorUtils::DeleteComponents(const TArray<UActorComponent*>& Co
 
 	TArray<AActor*> ActorsToReconstruct;
 
-	for (auto ComponentToDelete : ComponentsToDelete)
+	for (UActorComponent* ComponentToDelete : ComponentsToDelete)
 	{
 		if (ComponentToDelete->CreationMethod != EComponentCreationMethod::Instance)
 		{
@@ -523,7 +533,7 @@ int32 FComponentEditorUtils::DeleteComponents(const TArray<UActorComponent*>& Co
 				// Worst-case, the root can be selected
 				OutComponentToSelect = RootComponent;
 
-				if (auto ComponentToDeleteAsSceneComp = Cast<USceneComponent>(ComponentToDelete))
+				if (USceneComponent* ComponentToDeleteAsSceneComp = Cast<USceneComponent>(ComponentToDelete))
 				{
 					if (USceneComponent* ParentComponent = ComponentToDeleteAsSceneComp->GetAttachParent())
 					{
@@ -572,7 +582,7 @@ int32 FComponentEditorUtils::DeleteComponents(const TArray<UActorComponent*>& Co
 	}
 
 	// Reconstruct owner instance(s) after deletion
-	for(auto ActorToReconstruct : ActorsToReconstruct)
+	for(AActor* ActorToReconstruct : ActorsToReconstruct)
 	{
 		ActorToReconstruct->RerunConstructionScripts();
 	}
@@ -665,25 +675,45 @@ void FComponentEditorUtils::BindComponentSelectionOverride(USceneComponent* Scen
 	if (SceneComponent)
 	{
 		// If the scene component is a primitive component, set the override for it
-		auto PrimComponent = Cast<UPrimitiveComponent>(SceneComponent);
-		if (PrimComponent && PrimComponent->SelectionOverrideDelegate.IsBound() != bBind)
+		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(SceneComponent);
+		if (PrimitiveComponent && PrimitiveComponent->SelectionOverrideDelegate.IsBound() != bBind)
 		{
 			if (bBind)
 			{
-				PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
+				PrimitiveComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
 			}
 			else
 			{
-				PrimComponent->SelectionOverrideDelegate.Unbind();
+				PrimitiveComponent->SelectionOverrideDelegate.Unbind();
 			}
 		}
 		else
 		{
+			TArray<UPrimitiveComponent*> ComponentsToBind;
+
+			if (UChildActorComponent* ChildActorComponent = Cast<UChildActorComponent>(SceneComponent))
+			{
+				if (AActor* ChildActor = ChildActorComponent->GetChildActor())
+				{
+					ChildActor->GetComponents(ComponentsToBind,true);
+				}
+			}
+
 			// Otherwise, make sure the override is set properly on any attached editor-only primitive components (ex: billboards)
 			for (USceneComponent* Component : SceneComponent->GetAttachChildren())
 			{
-				PrimComponent = Cast<UPrimitiveComponent>(Component);
-				if (PrimComponent && PrimComponent->IsEditorOnly() && PrimComponent->SelectionOverrideDelegate.IsBound() != bBind)
+				if (UPrimitiveComponent* PrimComponent = Cast<UPrimitiveComponent>(Component))
+				{
+					if (PrimComponent->IsEditorOnly())
+					{
+						ComponentsToBind.Add(PrimComponent);
+					}
+				}
+			}
+
+			for (UPrimitiveComponent* PrimComponent : ComponentsToBind)
+			{
+				if (PrimComponent->SelectionOverrideDelegate.IsBound() != bBind)
 				{
 					if (bBind)
 					{
@@ -703,8 +733,8 @@ bool FComponentEditorUtils::AttemptApplyMaterialToComponent(USceneComponent* Sce
 {
 	bool bResult = false;
 	
-	auto MeshComponent = Cast<UMeshComponent>(SceneComponent);
-	auto DecalComponent = Cast<UDecalComponent>(SceneComponent);
+	UMeshComponent* MeshComponent = Cast<UMeshComponent>(SceneComponent);
+	UDecalComponent* DecalComponent = Cast<UDecalComponent>(SceneComponent);
 
 	UMaterial* BaseMaterial = MaterialToApply->GetBaseMaterial();
 

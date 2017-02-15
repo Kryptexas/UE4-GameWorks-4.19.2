@@ -1,16 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_TwoBoneIK.h"
-#include "DebugRenderSceneProxy.h"
 #include "AnimNodeEditModes.h"
+#include "AnimationCustomVersion.h"
 
 // for customization details
-#include "../../PropertyEditor/Public/PropertyHandle.h"
-#include "../../PropertyEditor/Public/DetailLayoutBuilder.h"
-#include "../../PropertyEditor/Public/DetailCategoryBuilder.h"
-#include "../../PropertyEditor/Public/DetailWidgetRow.h"
-#include "../../PropertyEditor/Public/IDetailPropertyRow.h"
+#include "PropertyHandle.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
@@ -151,9 +148,7 @@ void UAnimGraphNode_TwoBoneIK::CustomizeDetails(class IDetailLayoutBuilder& Deta
 	}
 	else // hide all properties in JointTarget category except for JointTargetLocationSpace
 	{
-		TSharedPtr<IPropertyHandle> PropertyHandle = DetailBuilder.GetProperty(*JointTargetLocation, GetClass());
-		DetailBuilder.HideProperty(PropertyHandle);
-		PropertyHandle = DetailBuilder.GetProperty(*JointTargetSpaceBoneName, GetClass());
+		TSharedPtr<IPropertyHandle> PropertyHandle = DetailBuilder.GetProperty(*JointTargetSpaceBoneName, GetClass());
 		DetailBuilder.HideProperty(PropertyHandle);
 	}
 
@@ -181,4 +176,19 @@ FEditorModeID UAnimGraphNode_TwoBoneIK::GetEditorMode() const
 	return AnimNodeEditModes::TwoBoneIK;
 }
 
+void UAnimGraphNode_TwoBoneIK::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FAnimationCustomVersion::GUID);
+
+	const int32 CustomAnimVersion = Ar.CustomVer(FAnimationCustomVersion::GUID);
+
+	if (CustomAnimVersion < FAnimationCustomVersion::RenamedStretchLimits)
+	{
+		// fix up deprecated variables
+		Node.StartStretchRatio = Node.StretchLimits_DEPRECATED.X;
+		Node.MaxStretchScale = Node.StretchLimits_DEPRECATED.Y;
+	}
+}
 #undef LOCTEXT_NAMESPACE

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title: 컴포넌트
 Crumbs:%ROOT%, Programming
@@ -53,7 +53,7 @@ Version: 4.9
 | ---- | ---- |
 | UActorComponent::OnRegister() | 컴포넌트 등록시 필요에 따라 추가적인 초기화를 가능케 하는 이벤트입니다. |
 | UActorComponent::CreateRenderState() | 컴포넌트에 대한 렌더 스테이트를 초기화시킵니다. |
-| UActorComponent::CreatePhysicsState() | 컴포넌트에 대한 피직스 스테이트를 초기화시킵니다. |
+| UActorComponent::OnCreatePhysicsState() | 컴포넌트에 대한 피직스 스테이트를 초기화시킵니다. |
 
 
 ### 컴포넌트 등록해제하기
@@ -70,7 +70,7 @@ Version: 4.9
 | ---- | ---- |
 | UActorComponent::OnUnRegister() | 컴포넌트 등록해제시 필요에 따라 추가적인 동작을 가능케 하는 이벤트입니다. |
 | UActorComponent::DestroyRenderState() | 컴포넌트에 대한 렌더 스테이트를 소멸시킵니다. |
-| UActorComponent::DestroyPhysicsState() | 컴포넌트에 대한 피직스 스테이트를 소멸시킵니다. |
+| UActorComponent::OnDestroyPhysicsState() | 컴포넌트에 대한 피직스 스테이트를 소멸시킵니다. |
 
 
 ### 업데이트하기

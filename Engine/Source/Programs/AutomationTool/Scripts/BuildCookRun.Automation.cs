@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -209,10 +209,33 @@ public class BuildCookRun : BuildCommand
 
         Project.Build(this, Params, WorkingCL, bGenerateNativeScripts ? (ProjectBuildTargets.All & ~ClientTargets) : ProjectBuildTargets.All);
 		Project.Cook(Params);
-		if (bGenerateNativeScripts)
-		{
+        if (bGenerateNativeScripts)
+        {
             Project.Build(this, Params, WorkingCL, ClientTargets);
-		}
+        }
+        else
+        {
+            ConfigHierarchy GameIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, Params.RawProjectPath.Directory, HostPlatform.Current.HostEditorPlatform);
+            if (GameIni != null)
+            {
+                List<string> NativizeBlueprintAssets = null;
+                string BlueprintNativizationMethod = "Disabled";
+                bool bWarnIfPackagedWithoutNativizationFlag = true;
+                GameIni.GetString("/Script/UnrealEd.ProjectPackagingSettings", "BlueprintNativizationMethod", out BlueprintNativizationMethod);
+                GameIni.GetBool("/Script/UnrealEd.ProjectPackagingSettings", "bWarnIfPackagedWithoutNativizationFlag", out bWarnIfPackagedWithoutNativizationFlag);
+                GameIni.GetArray("/Script/UnrealEd.ProjectPackagingSettings", "NativizeBlueprintAssets", out NativizeBlueprintAssets);
+
+                if (bWarnIfPackagedWithoutNativizationFlag && BlueprintNativizationMethod != "Disabled")
+                {
+                    // Warn if we're cooking without the -nativizeAssets flag, when the project settings specify a nativization method.
+                    // If the "exclusive" (whitelist) method is set, we only warn if at least one asset has been selected for conversion.
+                    if (BlueprintNativizationMethod != "Exclusive" || (NativizeBlueprintAssets != null && NativizeBlueprintAssets.Count > 0))
+                    {
+                        LogWarning("Project is configured for Blueprint nativization, but the conversion flag (-nativizeAssets) was omitted from the command line. No nativized assets have been built as a result.");
+                    }
+                }
+            }
+        }
 		Project.CopyBuildToStagingDirectory(Params);
 		Project.Package(Params, WorkingCL);
 		Project.Archive(Params);
@@ -332,7 +355,7 @@ public class BuildCookRun : BuildCommand
 						{
 							ProjectFullPath = GameProj.FilePath;
 						}
-						if (!FileExists_NoExceptions(ProjectFullPath.FullName))
+						if (ProjectFullPath == null || !FileExists_NoExceptions(ProjectFullPath.FullName))
 						{
 							throw new AutomationException("Could not find a project file {0}.", ProjectName);
 						}

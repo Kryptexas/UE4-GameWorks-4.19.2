@@ -1,9 +1,15 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Components/PrimitiveComponent.h"
 #include "SubDSurfaceComponent.generated.h"
+
+class UMaterialInterface;
+class UStaticMeshComponent;
 
 /**
  * Subdivision Surface Component (Experimental, Early work in progress)
@@ -41,7 +47,7 @@ public:
 	// End UObject interface.
 
 	// Begin UPrimitiveComponent interface.
-	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const;
+	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false ) const;
 	virtual int32 GetNumMaterials() const;
 	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const;
 	virtual bool ShouldRecreateProxyOnUpdateTransform() const override;

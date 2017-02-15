@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Pawn.cpp: APawn AI implementation
@@ -6,29 +6,30 @@
 	some AI related natives
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/DamageType.h"
+#include "Engine/World.h"
+#include "GameFramework/Controller.h"
+#include "Components/PrimitiveComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Components/InputComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/Engine.h"
+#include "Engine/Canvas.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "UnrealEngine.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "ConfigCacheIni.h"
-#include "ParticleDefinitions.h"
 #include "DisplayDebugHelpers.h"
-#include "NetworkingDistanceConstants.h"
-#include "VisualLogger/VisualLogger.h"
 #include "Engine/InputDelegateBinding.h"
-#include "GameFramework/DamageType.h"
 #include "Interfaces/NetworkPredictionInterface.h"
-#include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerState.h"
 #include "Components/PawnNoiseEmitterComponent.h"
 
 DEFINE_LOG_CATEGORY(LogDamage);
 DEFINE_LOG_CATEGORY_STATIC(LogPawn, Warning, All);
-
-#if LOG_DETAILED_PATHFINDING_STATS
-/** Global detailed pathfinding stats. */
-FDetailedTickStats GDetailedPathFindingStats( 30, 10, 1, 20, TEXT("pathfinding") );
-#endif
 
 APawn::APawn(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -280,7 +281,7 @@ FRotator APawn::GetViewRotation() const
 		// check if being spectated
 		for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if(PlayerController && PlayerController->PlayerCameraManager->GetViewTargetPawn() == this)
 			{
 				return PlayerController->BlendedTargetViewRotation;

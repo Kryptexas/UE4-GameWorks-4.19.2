@@ -1,20 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
-#include "SPropertyEditorAsset.h"
-#include "PropertyNode.h"
-#include "PropertyEditor.h"
-#include "AssetThumbnail.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "Runtime/AssetRegistry/Public/AssetData.h"
-#include "PropertyHandleImpl.h"
-#include "DelegateFilter.h"
-#include "Developer/AssetTools/Public/AssetToolsModule.h"
+#include "UserInterface/PropertyEditor/SPropertyEditorAsset.h"
+#include "Engine/Texture.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Editor.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Widgets/Layout/SBox.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Particles/ParticleSystem.h"
+#include "UserInterface/PropertyEditor/PropertyEditorConstants.h"
+#include "PropertyEditorHelpers.h"
+#include "IAssetTools.h"
+#include "IAssetTypeActions.h"
+#include "AssetToolsModule.h"
 #include "SAssetDropTarget.h"
 #include "AssetRegistryModule.h"
-#include "Particles/ParticleSystem.h"
 #include "Engine/Selection.h"
-#include "Engine/StaticMesh.h"
+#include "ObjectPropertyNode.h"
+#include "PropertyHandleImpl.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
@@ -208,7 +215,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 			// Go through all the found objects and see if any are a CDO, we can't set an actor in a CDO default.
 			for (UObject* Obj : ObjectList)
 			{
-				if (Obj->HasAllFlags(RF_ClassDefaultObject))
+				if (Obj->IsTemplate())
 				{
 					IsEnabledAttribute.Set(false);
 					TooltipAttribute.Set(LOCTEXT("VariableHasDisableEditOnTemplateTooltip", "Editing this value in a Class Default Object is not allowed"));
@@ -246,6 +253,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		IsEnabledAttribute.Set(true);
 	}
 
+	TSharedPtr<SWidget> ButtonBoxWrapper;
 	TSharedRef<SHorizontalBox> ButtonBox = SNew( SHorizontalBox );
 	
 	TSharedPtr<SVerticalBox> CustomContentBox;
@@ -290,9 +298,12 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				]
 				+ SVerticalBox::Slot()
 				.AutoHeight()
-				.Padding( 0.0f, 2.0f, 4.0f, 2.0f )
 				[
-					ButtonBox
+					SAssignNew(ButtonBoxWrapper, SBox)
+					.Padding( FMargin( 0.0f, 2.0f, 4.0f, 2.0f ) )
+					[
+						ButtonBox
+					]
 				]
 			]
 		];
@@ -312,9 +323,12 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding( 4.f, 0.f )
 				[
-					ButtonBox
+					SAssignNew(ButtonBoxWrapper, SBox)
+					.Padding( FMargin( 4.f, 0.f ) )
+					[
+						ButtonBox
+					]
 				]
 			]
 		];
@@ -381,6 +395,11 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		[
 			ResetToDefaultWidget
 		];
+	}
+
+	if (ButtonBoxWrapper.IsValid())
+	{
+		ButtonBoxWrapper->SetVisibility(ButtonBox->NumSlots() > 0 ? EVisibility::Visible : EVisibility::Collapsed);
 	}
 }
 
@@ -962,7 +981,7 @@ UClass* SPropertyEditorAsset::GetObjectPropertyClass(const UProperty* Property)
 		Class = Cast<const UInterfaceProperty>(Property)->InterfaceClass;
 	}
 
-	check(Class != NULL);
+	checkf(Class != NULL, TEXT("Property (%s) is not an object or interface class"), Property ? *Property->GetFullName() : TEXT("null"));
 	return Class;
 }
 

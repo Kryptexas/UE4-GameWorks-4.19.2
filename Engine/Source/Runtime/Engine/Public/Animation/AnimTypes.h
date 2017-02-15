@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/MemStack.h"
+//#include "Animation/AnimationAsset.h"
 #include "Animation/AnimLinkableElement.h"
 #include "AnimTypes.generated.h"
 
 struct FMarkerPair;
-struct FPassedMarker;
 struct FMarkerSyncAnimPosition;
+struct FPassedMarker;
 
 // Disable debugging information for shipping and test builds.
 #define ENABLE_ANIM_DEBUG (1 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
@@ -272,6 +276,10 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 #if WITH_EDITORONLY_DATA
 		, TrackIndex(0)
 #endif // WITH_EDITORONLY_DATA
+	{
+	}
+
+	virtual ~FAnimNotifyEvent()
 	{
 	}
 

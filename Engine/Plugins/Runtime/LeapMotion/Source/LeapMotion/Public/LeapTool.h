@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "LeapMotionPublicPCH.h"
+#include "CoreMinimal.h"
 #include "LeapPointable.h"
+#include "Leap_NoPI.h"
 #include "LeapTool.generated.h"
 
 /**

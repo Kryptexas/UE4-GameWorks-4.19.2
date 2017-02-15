@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -7,10 +7,11 @@ public class OnlineSubsystemUtils : ModuleRules
 	public OnlineSubsystemUtils(TargetInfo Target)
 	{
 		Definitions.Add("ONLINESUBSYSTEMUTILS_PACKAGE=1");
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
         PrivateIncludePaths.Add("OnlineSubsystemUtils/Private");
 
-        PrivateDependencyModuleNames.AddRange(
+		PrivateDependencyModuleNames.AddRange(
 			new string[] { 
 				"Core", 
 				"CoreUObject",

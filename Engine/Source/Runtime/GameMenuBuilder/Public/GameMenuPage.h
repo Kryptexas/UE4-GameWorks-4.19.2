@@ -1,6 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Delegates/Delegate.h"
+#include "Internationalization/Text.h"
+#include "GameFramework/PlayerController.h"
+#include "GameMenuItem.h"
+
+class FString;
+class SGameMenuItemWidget;
+class SGameMenuPageWidget;
+class UGameViewportClient;
 
 class GAMEMENUBUILDER_API FGameMenuPage : public TSharedFromThis<FGameMenuPage>
 {

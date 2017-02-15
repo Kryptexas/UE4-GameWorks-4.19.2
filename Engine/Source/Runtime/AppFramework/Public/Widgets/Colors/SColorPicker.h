@@ -1,11 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SWindow.h"
+#include "Framework/SlateDelegates.h"
 
-
-// forward declarations
+class FColorTheme;
+class SBorder;
 class SColorThemesViewer;
 class SComboButton;
 class SThemeColorBlocksBar;
@@ -477,7 +485,7 @@ struct FColorPickerArgs
 	bool bIsModal;
 
 	/** The parent for the new color picker window */
-	TSharedPtr<const SWidget> ParentWidget;
+	TSharedPtr<SWidget> ParentWidget;
 
 	/** Whether or not to enable the alpha slider. */
 	bool bUseAlpha;
@@ -490,6 +498,9 @@ struct FColorPickerArgs
 
 	/** Whether to automatically expand the Advanced section. */
 	bool bExpandAdvancedSection;
+	
+	/** Whether to open the color picker as a menu window. */
+	bool bOpenAsMenu;
 
 	/** The current display gamma used to correct colors picked from the display. */
 	TAttribute<float> DisplayGamma;
@@ -534,6 +545,7 @@ struct FColorPickerArgs
 		, bOnlyRefreshOnMouseUp(false)
 		, bOnlyRefreshOnOk(false)
 		, bExpandAdvancedSection(true)
+		, bOpenAsMenu(false)
 		, DisplayGamma(2.2f)
 		, sRGBOverride()
 		, ColorArray(nullptr)

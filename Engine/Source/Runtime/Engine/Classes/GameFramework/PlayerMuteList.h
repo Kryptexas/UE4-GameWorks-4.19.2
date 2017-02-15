@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/CoreOnline.h"
 #include "PlayerMuteList.generated.h"
 
 struct FUniqueNetIdRepl;
-class FUniqueNetId;
 
 /**
  * Container responsible for managing the mute state of a player controller

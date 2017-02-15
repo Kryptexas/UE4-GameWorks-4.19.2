@@ -1,7 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Templates/PointerIsConvertibleFromTo.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/AreTypesEqual.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Containers/UnrealString.h"
+#include "Templates/Function.h"
+#include "Containers/Map.h"
+#include "Templates/SharedPointer.h"
+#include "HAL/TlsAutoCleanup.h"
+#include "Misc/ScopeLock.h"
 
 /**
  * Enumerates the scopes for instance creation in type containers.
@@ -329,7 +340,7 @@ public:
 		AddProvider(TNameOf<R>::GetName(), Provider);
 	}
 
-#if _MSC_VER >= 1900 || __clang__
+#if (defined(_MSC_VER) && _MSC_VER >= 1900) || defined(__clang__)
 	/**
 	 * Register a factory function for the specified class.
 	 *

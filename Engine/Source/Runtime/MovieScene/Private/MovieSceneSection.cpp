@@ -1,7 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
 #include "MovieSceneSection.h"
+#include "MovieSceneTrack.h"
+#include "MovieSceneCommonHelpers.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 
 
 UMovieSceneSection::UMovieSceneSection(const FObjectInitializer& ObjectInitializer)
@@ -14,6 +16,18 @@ UMovieSceneSection::UMovieSceneSection(const FObjectInitializer& ObjectInitializ
 	, bIsLocked(false)
 	, bIsInfinite(false)
 { }
+
+
+void UMovieSceneSection::PostInitProperties()
+{
+	// Propagate sub object flags from our outer (track) to ourselves. This is required for sections that are stored on blueprints (archetypes) so that they can be referenced in worlds.
+	if (GetOuter()->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))
+	{
+		SetFlags(GetOuter()->GetMaskedFlags(RF_PropagateToSubObjects));
+	}
+	
+	Super::PostInitProperties();
+}
 
 
 bool UMovieSceneSection::TryModify(bool bAlwaysMarkDirty)
@@ -159,8 +173,14 @@ void UMovieSceneSection::AddKeyToCurve(FRichCurve& InCurve, float Time, float Va
 
 void UMovieSceneSection::SetCurveDefault(FRichCurve& InCurve, float Value)
 {
-	if (TryModify())
+	if (InCurve.GetDefaultValue() != Value && TryModify())
 	{
 		InCurve.SetDefaultValue(Value);
 	}
+}
+
+
+FMovieSceneEvalTemplatePtr UMovieSceneSection::GenerateTemplate() const
+{
+	return FMovieSceneEvalTemplatePtr();
 }

@@ -1,18 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMeshEdit.cpp: Static mesh edit functions.
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "Misc/FeedbackContext.h"
+#include "Engine/EngineTypes.h"
+#include "Model.h"
+#include "EditorFramework/AssetImportData.h"
+#include "EditorFramework/ThumbnailInfo.h"
+#include "Engine/MeshMerging.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/Polys.h"
+#include "Editor.h"
 #include "StaticMeshResources.h"
-#include "Factories.h"
-#include "TextureLayout.h"
 #include "BSPOps.h"
 #include "RawMesh.h"
-#include "MeshUtilities.h"
-#include "Engine/Polys.h"
+#include "PhysicsEngine/ConvexElem.h"
+#include "PhysicsEngine/BoxElem.h"
+#include "PhysicsEngine/SphereElem.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "FbxImporter.h"
+
 
 bool GBuildStaticMeshCollision = 1;
 
@@ -762,7 +772,7 @@ static inline void FTexCoordsToVectors(const FVector& V0, const FVector& UV0,
  */
 void CreateModelFromStaticMesh(UModel* Model,AStaticMeshActor* StaticMeshActor)
 {
-#if TODO_STATICMESH
+#ifdef TODO_STATICMESH
 	UStaticMesh*	StaticMesh = StaticMeshActor->StaticMeshComponent->StaticMesh;
 	FMatrix			ActorToWorld = StaticMeshActor->ActorToWorld().ToMatrixWithScale();
 
@@ -860,12 +870,13 @@ struct ExistingStaticMeshData
 };
 
 
-ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, bool bSaveMaterials)
+ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, UnFbx::FBXImportOptions* ImportOptions)
 {
 	struct ExistingStaticMeshData* ExistingMeshDataPtr = NULL;
 
 	if (ExistingMesh)
 	{
+		bool bSaveMaterials = !ImportOptions->bImportMaterials;
 		ExistingMeshDataPtr = new ExistingStaticMeshData();
 
 		ExistingMeshDataPtr->ImportVersion = ExistingMesh->ImportVersion;
@@ -916,6 +927,11 @@ ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, bo
 					ExistingMeshDataPtr->ExistingSectionInfoMap.Set(i, SectionIndex, Info);
 				}
 			}
+
+			//The normals, tangent and tangent space build setting depend of the import options, so we cannot restore them, we have to set them when re-importing
+			ExistingMesh->SourceModels[i].BuildSettings.bRecomputeNormals = ImportOptions->NormalImportMethod == FBXNIM_ComputeNormals;
+			ExistingMesh->SourceModels[i].BuildSettings.bRecomputeTangents = ImportOptions->NormalImportMethod != FBXNIM_ImportNormalsAndTangents;
+			ExistingMesh->SourceModels[i].BuildSettings.bUseMikkTSpace = (ImportOptions->NormalGenerationMethod == EFBXNormalGenerationMethod::MikkTSpace) && (!ImportOptions->ShouldImportNormals() || !ImportOptions->ShouldImportTangents());
 
 			ExistingMeshDataPtr->ExistingLODData[i].ExistingBuildSettings = ExistingMesh->SourceModels[i].BuildSettings;
 			ExistingMeshDataPtr->ExistingLODData[i].ExistingReductionSettings = ExistingMesh->SourceModels[i].ReductionSettings;
@@ -1177,7 +1193,7 @@ void RestoreExistingMeshData(ExistingStaticMeshData* ExistingMeshDataPtr, UStati
 					for (int32 ExistSectionIndex = 0; ExistSectionIndex < OldSectionNumber; ++ExistSectionIndex)
 					{
 						FMeshSectionInfo OldSectionInfo = ExistingMeshDataPtr->ExistingSectionInfoMap.Get(i, ExistSectionIndex);
-						if (RemapMaterial[NewSectionInfo.MaterialIndex] == OldSectionInfo.MaterialIndex)
+						if (RemapMaterial.IsValidIndex(NewSectionInfo.MaterialIndex) && RemapMaterial[NewSectionInfo.MaterialIndex] == OldSectionInfo.MaterialIndex)
 						{
 							if (NewMesh->StaticMaterials.IsValidIndex(NewSectionInfo.MaterialIndex))
 							{

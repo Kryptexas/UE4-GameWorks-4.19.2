@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Camera modifier that provides support for code-based oscillating camera shakes.
@@ -6,8 +6,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Camera/CameraTypes.h"
 #include "Camera/CameraModifier.h"
 #include "CameraModifier_CameraShake.generated.h"
+
+class UCameraShake;
 
 //~=============================================================================
 /**

@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ApplePlatformTime.mm: Apple implementations of time functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "ApplePlatformTime.h"
+#include "HAL/PlatformTime.h"
+#include "Misc/AssertionMacros.h"
+#include "CoreGlobals.h"
 
 namespace
 {
@@ -20,6 +23,7 @@ double FApplePlatformTime::InitTiming(void)
 	mach_timebase_info_data_t Info;
 	verify( mach_timebase_info( &Info ) == 0 );
 	SecondsPerCycle = 1e-9 * (double)Info.numer / (double)Info.denom;
+	SecondsPerCycle64 = 1e-9 * (double)Info.numer / (double)Info.denom;
 	return FPlatformTime::Seconds();
 }
 

@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:3076265
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:2.Gear VR プロジェクトの設定
 Crumbs:%ROOT%, Platforms, Platforms/GearVR
-Description:Gear VR ヘッドセットを使用する C++ ベースの UE4 プロジェクトの作成方法
+Description:Gear VR ヘッドセットを使用する C++ ベースの UE4 プロジェクトの設定方法
 Version:4.9
 Skilllevel:Intermediate
 tags:VR
 tags:GearVR
-type:sequential
+type:multi-step
 parent:Platforms/GearVR/QuickStart
 order:2
 Checkpoint:GearVRQS
@@ -56,11 +56,11 @@ Checkpoint:GearVRQS
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. 次に **Minimum SDK Version** を **9** から **19** に変更します。
+1. 次に **[Minimum SDK Version]** を **9** から **19** に変更します。
 
 	![](GVR_Android_SDK_Version.png)
 
-1. **[Configure the Android Manifest for deployment to Gear VR]** チェックボックスが表示されるまでスクロールダウンして、これを有効にします。 
+1. **[Configure the Android Manifest for deployment to Gear VR (Gear VR にデプロイする Android Manifest の設定]** チェックボックスが表示されるまでスクロールダウンして、これを有効にします。 
 
 	[Region:note]
 	これを設定しないと Gear VR ヘッドセットでプロジェクトが実行しないので、とても重要な手順です。
@@ -96,7 +96,7 @@ Checkpoint:GearVRQS
 	[/OBJECT]
 
 	<!-- This was step six, removed based on Josh Adams advice.
-	1. 次に **[Android Package Name]** セクションでプロジェクトに名前を付けます。ここの例では、**「com.Company.GearVR_QS」** を使用します。 
+	1. 次に **[Android Package Name (Android パッケージ名)]** セクションでプロジェクトに名前を付けます。ここの例では、**「com.Company.GearVR_QS」** を使用します。 
 
 	![](GVR_Android_Game_Name.png)
 

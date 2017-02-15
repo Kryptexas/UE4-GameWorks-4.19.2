@@ -1,38 +1,24 @@
-﻿INTSourceChangelist:2666276
+﻿INTSourceChangelist:3223542
 Availability:Public
 Title:モーフ ターゲット プレビューア
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:ペルソナのアニメーション エディタで利用可能な編集モードのユーザーガイド
-Related:Engine/Content/FBX/Animations
+Description:アニメーション エディタで利用可能な編集モードのユーザーガイド
 Related:Engine/Content/FBX/MorphTargets
 Related:Engine/Content/Types/SkeletalMeshes
 Related:Engine/Content/Tools/MayaRiggingTool
 Related:Engine/Content/Types/StaticMeshes/MorphTargets
-Related:Engine/Animation/AnimBlueprints
-バージョン：4.9
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/MorphTargetPreviewer:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/MorphTargetPreviewer:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/MorphTargetPreviewer:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/MorphTargetPreviewer]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+Related:Resources/ContentExamples/MorphTargets
+version:4.14
+type:reference
+topic-image:MorphTargetSmall.png
+tags:Animation
+tags:Morph Target
+tags:Skeletal Mesh
+tags:FBX Importing
 
-[TOC (start:2 end:3)]
-
-
+<!--
+[TOC (start:2)]
+-->
 
 [EXCERPT:Overview]
 
@@ -44,14 +30,14 @@ Related:Engine/Animation/AnimBlueprints
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-CfAI0c-Br8Y
+YoEQYVEEcKo
 [/PARAMLITERAL]
 [/OBJECT]
 
-モーフ ターゲット プレビューアは、スケルタル メッシュに適用されたモーフ ターゲット (3D アニメーション パッケージによっては「モーフ」や「ブレンドシェイプ」) のプレビューを可能にします。それぞれのモーフ ターゲットは、既存のスケルタル メッシュ ジオメトリへ加算的にブレンドされます。これによって複数のモーフターゲットが結合し、複雑で頂点に依存するアニメーションを作成します。表情の作成などに最適な場合が多いです。
+**モーフ ターゲット プレビューア** は、スケルタル メッシュに適用されたモーフ ターゲット (3D アニメーション パッケージによっては「モーフ」や「ブレンドシェイプ」という) のプレビューを可能にします。それぞれのモーフ ターゲットは、既存のスケルタル メッシュ ジオメトリへ加算的にブレンドされます。これによって複数のモーフターゲットが結合し、複雑な頂点操作のアニメーションを作成します。表情の作成などに最適な場合が多いです。
 [/EXCERPT:Overview]
 
-**モーフ ターゲット プレビューア** はペルソナが **Mesh** モードの場合のみ表示されます。
+**モーフターゲット プレビューア** ウィンドウは、[](Engine\Animation\Persona\Modes\Mesh) が開いている場合にデフォルトで表示されます。 
 
 [REGION:tip]
 キャラクターに適用されているモーフ ターゲットの例は、セクション 1.6 の [アニメーション コンテンツ サンプル](Resources\ContentExamples\Animation) ページを参照してください。
@@ -60,45 +46,56 @@ CfAI0c-Br8Y
 
 ## インターフェース
 
-**[Morph Target Previewer]** パネルは比較的単純なインターフェースを利用します。
+**[Morph Target Previewer]** パネルは 2 つの主なセクションに分けられます。 
 
 ![](MorphTargetPreviewerInterface.png)
 
 1. 検索バー
 1. モーフターゲットのリスト
 
-検索バーで、モーフ ターゲットのリストを素早くフィルタリングして、必要なモーフ ターゲットが迅速に見つかります。ターゲットの最初の文字をいくつかタイプすると、リストのフィルタリングが開始します。
+検索バーで、モーフ ターゲットのリストをフィルタリングすると、必要なモーフ ターゲットが見つかります。ターゲットの最初の文字をいくつかタイプすると、リストのフィルタリングが開始します。
 
-**[Morph Target]** を **右クリック** すると、 **[Delete]** などの追加アクションでダイアログ ボックスがポップアップ表示されます。 
+**[Morph Target]** を **右クリック** すると、 [Delete] などの追加アクションがあるダイアログ ボックスがポップアップ表示されます。 
 
 ![](RightClickDelete.png)
 
-## モーフ ターゲットの作成
+## モーフターゲットの作成
 
-モーフ ターゲットはスケルタル メッシュの一部として、また任意のメッシュとして単独でインポートが可能です。これは FBX ファイル フォーマットでサポートされています。設定手順、アンリアルへモーフ ターゲットをインポートする方法についての詳細は、 [](Engine/Content\FBX\MorphTargets) を参照してください。
+モーフ ターゲットはスケルタル メッシュの一部として、また任意のメッシュとして単独でインポートが可能です。これは FBX ファイル フォーマットでサポートされています。 
 
-[REGION:tip]
-モーフ ターゲットを削除するには、**[Morph Target Previewer]** ウィンドウの名前を右クリックし、表示されるコンテキスト メニュー上の **[Delete]** をクリックします。
+[REGION:note]
+設定手順、アンリアルへモーフ ターゲットをインポートする方法についての詳細は、 [](Engine/Content\FBX\MorphTargets) を参照してください。
 [/REGION]
 
 ## モーフ ターゲットの使用
 
-モーフターゲットが作成されたら、今度はこれを使うために Animation ブループリント を設定します。設定は **Set Morph Target** ノードの Event Graph 内で行います。
+モーフターゲットを作成したら、今度はこれを使うために [Animation ブループリント](Engine/Animation/AnimBlueprints) を設定します。設定はEvent Graph 内の **Set Morph Target** ノードで行います。
 
 ![](SetMorphTarget.png)
 
 | ピン | 説明 |
 | --- | --- |
 | [REGION:tablesection] 入力ピン [/REGION] ||
-| Execution | ノードのエフェクトをトリガーする実行ワイヤーを受け取ります。 |
-| **Target** | ターゲットとなるスケルタルメッシュです。ほとんどの状況において、「自ら」をポイントします。|
+| Execution | ノードのエフェクトをトリガーする実行ワイヤーです。 |
+| **Target** | ターゲットとなるスケルタルメッシュです。ほとんどの状況において、"self" をポイントします。|
 | **Morph Target Name** | 編集中のモーフ ターゲットの名前を受け取ります。 |
-| **Value** | この浮動小数値は 0 と 1 の間の値を受け取り、編集中のモーフターゲットの値の設定に使用します。 |
+| **Value** | 編集中のモーフターゲットの値の設定に使用する float 値 (0 と 1 の間) です。 |
 |[REGION:tablesection] 出力ピン [/REGION] ||
 | Execution | 次のノードへ実行を渡します。 |
 
 
+## 最適化
 
+Shader Model 5 をサポートするターゲット プラットフォームでは、GPU で計算中のモーフターゲットを有効にすることができます。つまり、CPU が計算を行う必要がないことを意味します。
+
+この設定を有効にするには、以下の手順に従います。
+1. ファイル メニューで **[Edit (編集)]** > **[Project Settings (プロジェクト設定)]** の順に選択します。
+1. **[Project Settings]** の **[Rendering]** セクションを開きます。
+1. **[Optimizations]** カテゴリの **[Use GPU for computing morph targets (モーフターゲットの計算に  GPU を使用する)]** チェックボックスを有効にします。 
+
+[REGION:lightbox]
+[![](ProjectSettingsMorphGPU.png)(w:600)](ProjectSettingsMorphGPU.png)
+[/REGION]
 
 
 

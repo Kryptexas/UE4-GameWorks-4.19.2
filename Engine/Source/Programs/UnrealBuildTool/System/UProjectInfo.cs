@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -213,11 +213,6 @@ namespace UnrealBuildTool
 			{
 				TimeSpan TotalProjectInfoTime = StopTime - StartTime;
 				Log.TraceInformation("FillProjectInfo took {0} milliseconds", TotalProjectInfoTime.Milliseconds);
-			}
-
-			if (UnrealBuildTool.CommandLineContains("-dumpprojectinfo"))
-			{
-				UProjectInfo.DumpProjectInfo();
 			}
 		}
 

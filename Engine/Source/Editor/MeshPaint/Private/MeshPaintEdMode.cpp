@@ -1,44 +1,57 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MeshPaintPrivatePCH.h"
+#include "MeshPaintEdMode.h"
+#include "SceneView.h"
+#include "Engine/Texture2D.h"
+#include "BatchedElements.h"
+#include "EditorViewportClient.h"
+#include "Components/MeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Modules/ModuleManager.h"
+#include "EditorReimportHandler.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Factories/MaterialInstanceConstantFactoryNew.h"
+#include "Factories/Texture2dFactoryNew.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "Engine/Selection.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "EngineUtils.h"
+#include "EditorModeManager.h"
+#include "Utils.h"
+#include "Dialogs/Dialogs.h"
+#include "UnrealEdGlobals.h"
 
 #include "StaticMeshResources.h"
-#include "MeshPaintEdMode.h"
-#include "Factories.h"
+#include "VREditorMode.h"
+#include "IVREditorModule.h"
 #include "ScopedTransaction.h"
 #include "MeshPaintRendering.h"
-#include "ImageUtils.h"
-#include "Editor/UnrealEd/Public/Toolkits/ToolkitManager.h"
+#include "Toolkits/ToolkitManager.h"
 #include "RawMesh.h"
-#include "Editor/UnrealEd/Public/ObjectTools.h"
+#include "ObjectTools.h"
+#include "IAssetTools.h"
 #include "AssetToolsModule.h"
 #include "AssetRegistryModule.h"
 #include "EditorSupportDelegates.h"
-#include "EditorReimportHandler.h"
 
 //Slate dependencies
-#include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "Editor/LevelEditor/Public/SLevelViewport.h"
-#include "MessageLog.h"
+#include "LevelEditor.h"
+#include "ILevelViewport.h"
+#include "Logging/MessageLog.h"
 
-#include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
 #include "SMeshPaint.h"
 #include "ComponentReregisterContext.h"
-#include "CanvasTypes.h"
-#include "Engine/Selection.h"
-#include "Engine/TextureRenderTarget2D.h"
-#include "EngineUtils.h"
-#include "Engine/StaticMeshActor.h"
-#include "Materials/MaterialInstanceConstant.h"
 #include "MeshPaintAdapterFactory.h"
-#include "Components/SplineMeshComponent.h"
 
-#include "VREditorMode.h"
 #include "ViewportWorldInteraction.h"
 #include "ViewportInteractableInterface.h"
 #include "VREditorInteractor.h"
-#include "VIBaseTransformGizmo.h"
 #include "EditorWorldManager.h"
+#include "UniquePtr.h"
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
 
@@ -100,6 +113,9 @@ FEdModeMeshPaint::FEdModeMeshPaint()
 	  bPushInstanceColorsToMesh( false ),
 	  PaintingStartTime( 0.0 ),
 	  ModifiedStaticMeshes(),
+	  PaintingMeshLODIndex(0),
+	  AllowPaintingAllLOD(false),
+	  IsUserPaintAnySubLOD(false),
 	  TexturePaintingCurrentMeshComponent( NULL ),
 	  TexturePaintingStaticMeshLOD(0),
 	  PaintingTexture2D( NULL ),
@@ -164,6 +180,7 @@ void FEdModeMeshPaint::Enter()
 		bShouldUpdateTextureList = true;
 
 	}
+	PaintingMeshLODIndex = 0;
 
 	// Catch when objects are replaced when a construction script is rerun
 	GEditor->OnObjectsReplaced().AddSP(this, &FEdModeMeshPaint::OnObjectsReplaced);
@@ -184,6 +201,29 @@ void FEdModeMeshPaint::Enter()
 
 	// Create adapters for currently selected mesh components
 	CreateGeometryAdaptersForSelectedComponents();
+	//All selected staticmesh component must have the same value for bCustomOverrideVertexColorPerLOD
+	//The first item selected will rule if the AllowPaintingAllLOD will be true or false
+	TArray<UMeshComponent*> SelectedComponents = GetSelectedMeshComponents();
+	for (UMeshComponent* SelectedComponent : SelectedComponents)
+	{
+		UStaticMeshComponent *SMComponent = Cast<UStaticMeshComponent>(SelectedComponent);
+		if (SMComponent)
+		{
+			if (SelectedComponents.Num() > 1 && ComponentToAdapterMap.Num() > 1)
+			{
+				if (AllowPaintingAllLOD != SMComponent->bCustomOverrideVertexColorPerLOD)
+				{
+					SMComponent->bCustomOverrideVertexColorPerLOD = AllowPaintingAllLOD;
+					SMComponent->Modify();
+				}
+			}
+			else
+			{
+				AllowPaintingAllLOD = SMComponent->bCustomOverrideVertexColorPerLOD;
+			}
+		}
+	}
+	IsUserPaintAnySubLOD = true;
 
 	if (!Toolkit.IsValid())
 	{
@@ -214,10 +254,10 @@ void FEdModeMeshPaint::Enter()
 	//When painting vertex colors we want to force the lod level of objects being painted to LOD0.
 	if( FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors )
 	{
-		ApplyOrRemoveForceBestLOD(/*bApply=*/ true);
+		ApplyOrRemoveForceBestLOD(/*bApply=*/ true, PaintingMeshLODIndex);
 	}
 
-	TSharedPtr<FEditorWorldWrapper> EditorWorld = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper( GetWorld() );
+	TSharedPtr<FEditorWorldWrapper> EditorWorld = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
 	if(EditorWorld.IsValid())
 	{
 		// Register to find out about VR input events
@@ -236,27 +276,19 @@ void FEdModeMeshPaint::Enter()
 /** FEdMode: Called when the mode is exited */
 void FEdModeMeshPaint::Exit()
 {
-	if (IVREditorModule::IsAvailable())
+	if(IVREditorModule::IsAvailable() && IVREditorModule::Get().IsVREditorModeActive())
 	{
-		// Because it is unknown if the mode entered with a play or editor mode we have to do this for both
-		for(int i = 0; i < 2; i++)
+		TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld(), false);
+		if (EditorWorldWrapper.IsValid())
 		{
-			UWorld* World = i == 0 ? GEditor->PlayWorld : GEditor->EditorWorld;
-			if(World != nullptr)
+			UViewportWorldInteraction* WorldInteraction = EditorWorldWrapper->GetViewportWorldInteraction();
+			if (WorldInteraction != nullptr)
 			{
-				TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(World);
-				if(EditorWorldWrapper.IsValid())
-				{
-					UViewportWorldInteraction* WorldInteraction = EditorWorldWrapper->GetViewportWorldInteraction();
-					if(WorldInteraction != nullptr)
-					{
-						// Restore the transform gizmo visibility
-						WorldInteraction->SetTransformGizmoVisible(true);
+				// Restore the transform gizmo visibility
+				WorldInteraction->SetTransformGizmoVisible(true);
 
-						// Unregister from event handlers
-						WorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
-					}
-				}
+				// Unregister from event handlers
+				WorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
 			}
 		}
 	}
@@ -265,8 +297,11 @@ void FEdModeMeshPaint::Exit()
 	//Then stop forcing the LOD level of the mesh to LOD0.
 	if( FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors )
 	{
-		ApplyVertexColorsToAllLODs();
-		ApplyOrRemoveForceBestLOD(/*bApply=*/ false);
+		if (!AllowPaintingAllLOD)
+		{
+			ApplyVertexColorsToAllLODs();
+		}
+		ApplyOrRemoveForceBestLOD(/*bApply=*/ false, PaintingMeshLODIndex);
 	}
 
 	// The user can manipulate the editor selection lock flag in paint mode so we make sure to restore it here
@@ -1364,7 +1399,7 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 					if (UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh())
 					{
 						//@TODO: MESHPAINT: Direct assumptions about StaticMeshComponent
-						check(StaticMesh->GetNumLODs() > PaintingMeshLODIndex);
+						check(StaticMesh->GetNumLODs() > (int32)PaintingMeshLODIndex);
 						FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[PaintingMeshLODIndex];
 
 						// Painting vertex colors
@@ -1401,8 +1436,7 @@ static bool PropagateColorsToRawMesh(UStaticMesh* StaticMesh, int32 LODIndex, FS
 	FStaticMeshRenderData& RenderData = *StaticMesh->RenderData;
 	FStaticMeshLODResources& RenderModel = RenderData.LODResources[LODIndex];
 	FColorVertexBuffer& ColorVertexBuffer = *ComponentLODInfo.OverrideVertexColors;
-
-	if (RenderData.WedgeMap.Num() > 0 && ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices())
+	if (LODIndex == 0 && RenderData.WedgeMap.Num() > 0 && ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices())
 	{
 		// Use the wedge map if it is available as it is lossless.
 		FRawMesh RawMesh;
@@ -1498,8 +1532,8 @@ void FEdModeMeshPaint::PaintMeshVertices(
 	// Paint the mesh
 	uint32 NumVerticesInfluencedByBrush = 0;
 	{
-		TScopedPointer< FStaticMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
-		TScopedPointer< FComponentReregisterContext > ComponentReregisterContext;
+		TUniquePtr< FStaticMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
+		TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
 
 
 		FStaticMeshComponentLODInfo* InstanceMeshLODInfo = NULL;
@@ -1509,11 +1543,16 @@ void FEdModeMeshPaint::PaintMeshVertices(
 			{
 				// We're only changing instanced vertices on this specific mesh component, so we
 				// only need to detach our mesh component
-				ComponentReregisterContext.Reset( new FComponentReregisterContext( StaticMeshComponent ) );
+				ComponentReregisterContext = MakeUnique<FComponentReregisterContext>( StaticMeshComponent );
 
 				// Mark the mesh component as modified
 				StaticMeshComponent->SetFlags(RF_Transactional);
 				StaticMeshComponent->Modify();
+				//Set the flag for when a lower mesh is paint, so we know if the user will loose some data when
+				if (PaintingMeshLODIndex > 0)
+				{
+					IsUserPaintAnySubLOD = true;
+				}
 
 				// Ensure LODData has enough entries in it, free not required.
 				StaticMeshComponent->SetLODDataCount(PaintingMeshLODIndex + 1, StaticMeshComponent->LODData.Num());
@@ -1563,7 +1602,7 @@ void FEdModeMeshPaint::PaintMeshVertices(
 			}
 			else
 			{
-				if( StaticMeshComponent->LODData.Num() > PaintingMeshLODIndex )
+				if( StaticMeshComponent->LODData.Num() > (int32)PaintingMeshLODIndex )
 				{
 					InstanceMeshLODInfo = &StaticMeshComponent->LODData[ PaintingMeshLODIndex ];
 				}
@@ -1575,7 +1614,7 @@ void FEdModeMeshPaint::PaintMeshVertices(
 			{
 				// We're changing the mesh itself, so ALL static mesh components in the scene will need
 				// to be unregistered for this (and reregistered afterwards.)
-				RecreateRenderStateContext.Reset( new FStaticMeshComponentRecreateRenderStateContext( StaticMesh ) );
+				RecreateRenderStateContext = MakeUnique<FStaticMeshComponentRecreateRenderStateContext>( StaticMesh );
 
 				// Dirty the mesh
 				StaticMesh->SetFlags(RF_Transactional);
@@ -1663,19 +1702,23 @@ void FEdModeMeshPaint::PaintMeshVertices(
 			}
 			else if (Params.PaintAction == EMeshPaintAction::PushInstanceColorsToMesh)
 			{
-				InstanceMeshLODInfo = &StaticMeshComponent->LODData[ PaintingMeshLODIndex ];
-				if (InstanceMeshLODInfo->OverrideVertexColors)
+				bool SomePaintWasPropagated = false;
+				for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); LODIndex++)
 				{
-					// Try using the mapping generated when building the mesh.
-					if(PropagateColorsToRawMesh(StaticMesh, PaintingMeshLODIndex, *InstanceMeshLODInfo))
+					InstanceMeshLODInfo = &StaticMeshComponent->LODData[LODIndex];
+					if (InstanceMeshLODInfo->OverrideVertexColors)
 					{
-						for (int32 LODIndex = 1; LODIndex < StaticMesh->RenderData->LODResources.Num(); LODIndex++)
+						// Try using the mapping generated when building the mesh.
+						if (PropagateColorsToRawMesh(StaticMesh, LODIndex, *InstanceMeshLODInfo))
 						{
-							PropagateColorsToRawMesh(StaticMesh, LODIndex, *InstanceMeshLODInfo);
+							SomePaintWasPropagated = true;
 						}
-						RemoveComponentInstanceVertexColors(StaticMeshComponent);
-						StaticMesh->Build();
 					}
+				}
+				if (SomePaintWasPropagated)
+				{
+					RemoveComponentInstanceVertexColors(StaticMeshComponent);
+					StaticMesh->Build();
 				}
 				FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 			}
@@ -1860,7 +1903,7 @@ void FEdModeMeshPaint::PaintMeshTexture( UMeshComponent* MeshComponent, const FM
 	if ((StaticMeshComponent != nullptr) && (StaticMeshComponent->GetStaticMesh() != nullptr))
 	{
 		//@TODO: Find a better way to move this generically to the adapter
-		check(StaticMeshComponent->GetStaticMesh()->GetNumLODs() > PaintingMeshLODIndex);
+		check(StaticMeshComponent->GetStaticMesh()->GetNumLODs() > (int32)PaintingMeshLODIndex);
 		FStaticMeshLODResources& LODModel = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[PaintingMeshLODIndex];
 		const int32 NumSections = LODModel.Sections.Num();
 
@@ -2710,34 +2753,27 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 		static TArray<FPaintRay> PaintRays;
 		PaintRays.Reset();
 		
-		UVREditorMode* VREditorMode = nullptr;
-		{
-			TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(Viewport->GetClient()->GetWorld());
-			if(EditorWorldWrapper.IsValid())
-			{
-				VREditorMode = EditorWorldWrapper->GetVREditorMode();
-			}
-		}
+		UVREditorMode* VREditorMode = IVREditorModule::Get().GetVREditorMode();
 
 		// Check to see if VREditorMode is active. If so, we're painting with interactor
 		bool bIsInVRMode = false;
-		if (IVREditorModule::IsAvailable())
+		if ( IVREditorModule::IsAvailable() )
 		{
-			if (VREditorMode != nullptr && VREditorMode->IsFullyInitialized() && VREditorMode->IsActive())
+			if ( VREditorMode != nullptr && VREditorMode->IsFullyInitialized() && VREditorMode->IsActive())
 			{
 				bIsInVRMode = true;
-				for (UViewportInteractor* Interactor : VREditorMode->GetWorldInteraction().GetInteractors())
+				for ( UViewportInteractor* Interactor : VREditorMode->GetWorldInteraction().GetInteractors() )
 				{
 					// Skip other interactors if we are painting with one
-					if (PaintingWithInteractorInVR && Interactor != PaintingWithInteractorInVR)
+					if ( PaintingWithInteractorInVR && Interactor != PaintingWithInteractorInVR )
 					{
 						continue;
 					}
 
 					FVector LaserPointerStart, LaserPointerEnd;
-					if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
+					if ( Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd ) )
 					{
-						const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
+						const FVector LaserPointerDirection = ( LaserPointerEnd - LaserPointerStart ).GetSafeNormal();
 
 						FPaintRay& NewPaintRay = *new( PaintRays ) FPaintRay();
 						NewPaintRay.CameraLocation = VREditorMode->GetHeadTransform().GetLocation();
@@ -2778,7 +2814,7 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 		}
 
 		// Apply paint pressure and start painting (or if not currently painting, draw a preview of where paint will be applied)
-		for (const FPaintRay& PaintRay : PaintRays)
+		for( const FPaintRay& PaintRay : PaintRays )
 		{
 			// Unless "Flow" mode is enabled, we'll only draw a visual cue while rendering and won't
 			// do any actual painting.  When "Flow" is turned on we will paint here, too!
@@ -2786,35 +2822,36 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 			float StrengthScale = (PaintingWithInteractorInVR == nullptr && FMeshPaintSettings::Get().bEnableFlow) ? FMeshPaintSettings::Get().FlowAmount : 1.0f;
 
 			bool bIsHoveringOverPriorityTypeVR = false;
-			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(PaintRay.ViewportInteractor);
-			if (VRInteractor != nullptr)
+			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( PaintRay.ViewportInteractor );
+			if( VRInteractor != nullptr )
 			{
 				bIsHoveringOverPriorityTypeVR = VRInteractor->IsHoveringOverPriorityType();
 			}
 
 			// Don't draw visual cue for paint brush when the interactor is hovering over UI
-			if (!bVisualCueOnly || PaintRay.ViewportInteractor == nullptr || !bIsHoveringOverPriorityTypeVR)
+			if( !bVisualCueOnly || PaintRay.ViewportInteractor == nullptr || !bIsHoveringOverPriorityTypeVR )
 			{
 				// Don't draw visual cue if we're hovering over a viewport interactable, such as a dockable window selection bar
 				bool bIsHoveringOverViewportInteractable = false;
-				if (bVisualCueOnly && PaintRay.ViewportInteractor != nullptr)
+				if( bVisualCueOnly && PaintRay.ViewportInteractor != nullptr )
 				{
 					FHitResult HitResult = PaintRay.ViewportInteractor->GetHitResultFromLaserPointer();
-					if (HitResult.Actor.IsValid() && VREditorMode != nullptr)
+					if(HitResult.Actor.IsValid() && VREditorMode != nullptr)
 					{
 						UViewportWorldInteraction& WorldInteraction = VREditorMode->GetWorldInteraction();
-						if (WorldInteraction.IsInteractableComponent(HitResult.GetComponent()))
+
+						if( WorldInteraction.IsInteractableComponent( HitResult.GetComponent() ) )
 						{
 							AActor* Actor = HitResult.Actor.Get();
 
 							// Make sure we're not hovering over some other viewport interactable, such as a dockable window selection bar or close button
-							IViewportInteractableInterface* ActorInteractable = Cast<IViewportInteractableInterface>(Actor);
-							bIsHoveringOverViewportInteractable = (ActorInteractable != nullptr);
+							IViewportInteractableInterface* ActorInteractable = Cast<IViewportInteractableInterface>( Actor );
+							bIsHoveringOverViewportInteractable = ( ActorInteractable != nullptr );
 						}
 					}
 				}
 
-				if (!bIsHoveringOverViewportInteractable)
+				if( !bIsHoveringOverViewportInteractable )
 				{
 					// Apply VR controller trigger pressure if we're painting in VR
 					if (bIsPainting && PaintingWithInteractorInVR && VREditorMode != nullptr && VRInteractor != nullptr)
@@ -2988,8 +3025,11 @@ bool FEdModeMeshPaint::Select( AActor* InActor, bool bInSelected )
 				else if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors)
 				{
 					// Propagate painting to lower LODs and stop forcing the rendered mesh to LOD0.
-					ApplyVertexColorsToAllLODs(*GeomInfo, MeshComponent);
-					ApplyOrRemoveForceBestLOD(*GeomInfo, MeshComponent, /*bApply=*/ false);
+					if (!AllowPaintingAllLOD)
+					{
+						ApplyVertexColorsToAllLODs(*GeomInfo, MeshComponent);
+					}
+					ApplyOrRemoveForceBestLOD(*GeomInfo, MeshComponent, /*bApply=*/ false, PaintingMeshLODIndex);
 					{
 						FComponentReregisterContext ReregisterContext(MeshComponent);
 					}
@@ -3010,8 +3050,26 @@ bool FEdModeMeshPaint::Select( AActor* InActor, bool bInSelected )
 				}
 				else if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors)
 				{
+					//Make sure all selected component have the same value for bCustomOverrideVertexColorPerLOD
+					//The first selected item will set the AllowPaintingAllLOD value
+					UStaticMeshComponent *SMComponent = Cast<UStaticMeshComponent>(MeshComponent);
+					if (SMComponent)
+					{
+						if (MeshComponents.Num() > 1 && ComponentToAdapterMap.Num() > 1)
+						{
+							if (AllowPaintingAllLOD != SMComponent->bCustomOverrideVertexColorPerLOD)
+							{
+								SMComponent->bCustomOverrideVertexColorPerLOD = AllowPaintingAllLOD;
+								SMComponent->Modify();
+							}
+						}
+						else
+						{
+							AllowPaintingAllLOD = SMComponent->bCustomOverrideVertexColorPerLOD;
+						}
+					}
 					//Painting is done on LOD0 so force the mesh to render only LOD0.
-					ApplyOrRemoveForceBestLOD(*GeomInfo, MeshComponent, /*bApply=*/ true);
+					ApplyOrRemoveForceBestLOD(*GeomInfo, MeshComponent, /*bApply=*/ true, PaintingMeshLODIndex);
 					{
 						FComponentReregisterContext ReregisterContext(MeshComponent);
 					}
@@ -3019,7 +3077,7 @@ bool FEdModeMeshPaint::Select( AActor* InActor, bool bInSelected )
 			}
 		}
 	}
-	
+	IsUserPaintAnySubLOD = true;
 	return false;
 }
 
@@ -3655,7 +3713,7 @@ void FEdModeMeshPaint::RemoveInstanceVertexColors(UObject* Obj) const
 
 void FEdModeMeshPaint::RemoveComponentInstanceVertexColors(UStaticMeshComponent* StaticMeshComponent) const
 {
-	if( StaticMeshComponent != NULL && StaticMeshComponent->GetStaticMesh() != nullptr && StaticMeshComponent->GetStaticMesh()->GetNumLODs() > PaintingMeshLODIndex )
+	if( StaticMeshComponent != NULL && StaticMeshComponent->GetStaticMesh() != nullptr && StaticMeshComponent->GetStaticMesh()->GetNumLODs() > (int32)PaintingMeshLODIndex )
 	{
 		// Mark the mesh component as modified
 		StaticMeshComponent->Modify();
@@ -3778,7 +3836,7 @@ void FEdModeMeshPaint::PasteInstanceVertexColors()
 
 	USelection& SelectedActors = *Owner->GetSelectedActors();
 
-	TScopedPointer< FComponentReregisterContext > ComponentReregisterContext;
+	TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
 
 	for( int32 ActorIndex = 0; ActorIndex < SelectedActors.Num(); ActorIndex++ )
 	{
@@ -3813,7 +3871,7 @@ void FEdModeMeshPaint::PasteInstanceVertexColors()
 
 					if(FoundColors != NULL)
 					{
-						ComponentReregisterContext.Reset( new FComponentReregisterContext( StaticMeshComponent ) );
+						ComponentReregisterContext = MakeUnique<FComponentReregisterContext>( StaticMeshComponent );
 						StaticMeshComponent->SetFlags(RF_Transactional);
 						StaticMeshComponent->Modify();
 						StaticMeshComponent->SetLODDataCount( NumLods, NumLods );
@@ -3948,7 +4006,7 @@ void FEdModeMeshPaint::FixupInstanceVertexColors() const
 	}
 }
 
-void FEdModeMeshPaint::ApplyOrRemoveForceBestLOD(bool bApply)
+void FEdModeMeshPaint::ApplyOrRemoveForceBestLOD(bool bApply, uint32 LODIndex)
 {
 	TArray<UMeshComponent*> SelectedMeshComponents = GetSelectedMeshComponents();
 
@@ -3957,18 +4015,18 @@ void FEdModeMeshPaint::ApplyOrRemoveForceBestLOD(bool bApply)
 		IMeshPaintGeometryAdapter* MeshAdapter = FindGeometryAdapter(MeshComponent);
 		if (MeshAdapter)
 		{
-			ApplyOrRemoveForceBestLOD(*MeshAdapter, MeshComponent, bApply);
+			ApplyOrRemoveForceBestLOD(*MeshAdapter, MeshComponent, bApply, LODIndex);
 		}
 	}
 }
 
-void FEdModeMeshPaint::ApplyOrRemoveForceBestLOD(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* MeshComponent, bool bApply)
+void FEdModeMeshPaint::ApplyOrRemoveForceBestLOD(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* MeshComponent, bool bApply, uint32 LODIndex)
 {
 	if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(MeshComponent))
 	{
 		//=0 means do not force the LOD.
 		//>0 means force the lod to x-1.
-		StaticMeshComponent->ForcedLodModel = bApply ? 1 : 0;
+		StaticMeshComponent->ForcedLodModel = bApply ? (LODIndex+1) : 0;
 	}
 }
 
@@ -3989,67 +4047,79 @@ void FEdModeMeshPaint::ApplyVertexColorsToAllLODs()
 void FEdModeMeshPaint::ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* InMeshComponent)
 {
 	UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(InMeshComponent);
-
-	// If a static mesh component was found, apply LOD0 painting to all lower LODs.
-	if( StaticMeshComponent && StaticMeshComponent->GetStaticMesh() && FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors )
+		// If a static mesh component was found, apply LOD0 painting to all lower LODs.
+	if (!StaticMeshComponent || !StaticMeshComponent->GetStaticMesh() || FMeshPaintSettings::Get().ResourceType != EMeshPaintResource::VertexColors)
 	{
-		uint32 NumLODs = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources.Num();
-		StaticMeshComponent->Modify();
+		return;
+	}
+	
+	if (StaticMeshComponent->LODData.Num() < 1)
+	{
+		//We need at least some painting on the base LOD to apply it to the lower LODs
+		return;
+	}
+	FStaticMeshComponentLODInfo& SourceCompLODInfo = StaticMeshComponent->LODData[0];
+	FStaticMeshLODResources& SourceRenderData = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[0];
+	//Make sure we have something paint in the LOD 0 to apply it to all lower LODs.
+	if (SourceCompLODInfo.OverrideVertexColors == nullptr || SourceCompLODInfo.PaintedVertices.Num() <= 0)
+	{
+		return;
+	}
 
-		// Ensure LODData has enough entries in it, free not required.
-		StaticMeshComponent->SetLODDataCount(NumLODs, StaticMeshComponent->LODData.Num());
-		for( uint32 i = 1 ; i < NumLODs ; ++i )
+	uint32 NumLODs = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources.Num();
+	StaticMeshComponent->Modify();
+
+	// Ensure LODData has enough entries in it, free not required.
+	StaticMeshComponent->SetLODDataCount(NumLODs, StaticMeshComponent->LODData.Num());
+	for( uint32 i = 1 ; i < NumLODs ; ++i )
+	{
+		FStaticMeshComponentLODInfo* CurrInstanceMeshLODInfo = &StaticMeshComponent->LODData[ i ];
+		FStaticMeshLODResources& CurrRenderData = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[ i ];
+		// Destroy the instance vertex  color array if it doesn't fit
+		if(CurrInstanceMeshLODInfo->OverrideVertexColors
+			&& CurrInstanceMeshLODInfo->OverrideVertexColors->GetNumVertices() != CurrRenderData.GetNumVertices())
 		{
-			FStaticMeshComponentLODInfo* CurrInstanceMeshLODInfo = &StaticMeshComponent->LODData[ i ];
-			FStaticMeshLODResources& CurrRenderData = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[ i ];
-			// Destroy the instance vertex  color array if it doesn't fit
-			if(CurrInstanceMeshLODInfo->OverrideVertexColors
-				&& CurrInstanceMeshLODInfo->OverrideVertexColors->GetNumVertices() != CurrRenderData.GetNumVertices())
-			{
-				CurrInstanceMeshLODInfo->ReleaseOverrideVertexColorsAndBlock();
-			}	
+			CurrInstanceMeshLODInfo->ReleaseOverrideVertexColorsAndBlock();
+		}	
 
-			if(CurrInstanceMeshLODInfo->OverrideVertexColors)
-			{
-				CurrInstanceMeshLODInfo->BeginReleaseOverrideVertexColors();
-			}
-			else
-			{
-				// Setup the instance vertex color array if we don't have one yet
-				CurrInstanceMeshLODInfo->OverrideVertexColors = new FColorVertexBuffer;
-			}
+		if(CurrInstanceMeshLODInfo->OverrideVertexColors)
+		{
+			CurrInstanceMeshLODInfo->BeginReleaseOverrideVertexColors();
 		}
+		else
+		{
+			// Setup the instance vertex color array if we don't have one yet
+			CurrInstanceMeshLODInfo->OverrideVertexColors = new FColorVertexBuffer;
+		}
+	}
 			
-		FlushRenderingCommands();
-		FStaticMeshComponentLODInfo& SourceCompLODInfo = StaticMeshComponent->LODData[ 0 ];
-		FStaticMeshLODResources& SourceRenderData = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[ 0 ];
-		for( uint32 i=1 ; i < NumLODs ; ++i )
+	FlushRenderingCommands();
+	for( uint32 i=1 ; i < NumLODs ; ++i )
+	{
+		FStaticMeshComponentLODInfo& CurCompLODInfo = StaticMeshComponent->LODData[ i ];
+		FStaticMeshLODResources& CurRenderData = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[ i ];
+
+		check(CurCompLODInfo.OverrideVertexColors);
+
+		TArray<FColor> NewOverrideColors;
+
+		if( SourceCompLODInfo.PaintedVertices.Num() > 0 )
 		{
-			FStaticMeshComponentLODInfo& CurCompLODInfo = StaticMeshComponent->LODData[ i ];
-			FStaticMeshLODResources& CurRenderData = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[ i ];
-
-			check(CurCompLODInfo.OverrideVertexColors);
-
-			TArray<FColor> NewOverrideColors;
-
-			if( SourceCompLODInfo.PaintedVertices.Num() > 0 )
-			{
-				RemapPaintedVertexColors(
-				SourceCompLODInfo.PaintedVertices,
-					*SourceCompLODInfo.OverrideVertexColors,
-					CurRenderData.PositionVertexBuffer,
-					&CurRenderData.VertexBuffer,
-					NewOverrideColors
-					);
-			}
-			if (NewOverrideColors.Num())
-			{
-				CurCompLODInfo.OverrideVertexColors->InitFromColorArray(NewOverrideColors);
-			}
-
-			// Initialize the vert. colors
-			BeginInitResource( CurCompLODInfo.OverrideVertexColors );
+			RemapPaintedVertexColors(
+			SourceCompLODInfo.PaintedVertices,
+				*SourceCompLODInfo.OverrideVertexColors,
+				CurRenderData.PositionVertexBuffer,
+				&CurRenderData.VertexBuffer,
+				NewOverrideColors
+				);
 		}
+		if (NewOverrideColors.Num())
+		{
+			CurCompLODInfo.OverrideVertexColors->InitFromColorArray(NewOverrideColors);
+		}
+
+		// Initialize the vert. colors
+		BeginInitResource( CurCompLODInfo.OverrideVertexColors );
 	}
 }
 
@@ -4140,14 +4210,14 @@ bool FEdModeMeshPaint::GetSelectedMeshInfo( int32& OutTotalBaseVertexColorBytes,
 			SelectedActor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
 			for(const auto& StaticMeshComponent : StaticMeshComponents)
 			{
-				if( StaticMeshComponent != nullptr && StaticMeshComponent->GetStaticMesh() != nullptr && StaticMeshComponent->GetStaticMesh()->GetNumLODs() > PaintingMeshLODIndex )
+				if( StaticMeshComponent != nullptr && StaticMeshComponent->GetStaticMesh() != nullptr && StaticMeshComponent->GetStaticMesh()->GetNumLODs() >(int32)PaintingMeshLODIndex )
 				{
 					// count the base mesh color data
 					FStaticMeshLODResources& LODModel = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[ PaintingMeshLODIndex ];
 					OutTotalBaseVertexColorBytes += LODModel.ColorVertexBuffer.GetNumVertices();
 
 					// count the instance color data
-					if( StaticMeshComponent->LODData.Num() > PaintingMeshLODIndex )
+					if( StaticMeshComponent->LODData.Num() > (int32)PaintingMeshLODIndex )
 					{
 						const FStaticMeshComponentLODInfo& InstanceMeshLODInfo = StaticMeshComponent->LODData[ PaintingMeshLODIndex ];
 						if( InstanceMeshLODInfo.OverrideVertexColors )
@@ -4163,6 +4233,177 @@ bool FEdModeMeshPaint::GetSelectedMeshInfo( int32& OutTotalBaseVertexColorBytes,
 	}
 
 	return ( NumValidMeshes > 0 );
+}
+
+uint32 FEdModeMeshPaint::GetMeshesLODMax() const
+{
+	//The maximum LOD we can paint is decide by the lowest number of LOD in the selection
+	int32 LODMin = MAX_int32;
+	for (UMeshComponent *MeshComponent : GetSelectedMeshComponents())
+	{
+		UStaticMeshComponent *SMComponent = Cast<UStaticMeshComponent>(MeshComponent);
+		if (!SMComponent || !SMComponent->GetStaticMesh())
+			continue;
+		if (LODMin > SMComponent->GetStaticMesh()->GetNumLODs() - 1)
+		{
+			LODMin = SMComponent->GetStaticMesh()->GetNumLODs() - 1;
+		}
+	}
+	if (LODMin == MAX_int32)
+	{
+		LODMin = 0;
+	}
+	return LODMin;
+}
+
+uint32 FEdModeMeshPaint::GetCurrentMeshesLOD() const
+{
+	return PaintingMeshLODIndex;
+}
+
+void FEdModeMeshPaint::SetCurrentMeshesLOD(const uint32 InLODIndex)
+{
+	//Cannot set a LOD index bigger then the max LOD
+	if (GetMeshesLODMax() < InLODIndex || InLODIndex == PaintingMeshLODIndex)
+		return;
+
+	TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
+	PaintingMeshLODIndex = InLODIndex;
+	RemoveAllGeometryAdapters();
+	CreateGeometryAdaptersForSelectedComponents();
+	ApplyOrRemoveForceBestLOD(/*bApply=*/ true, PaintingMeshLODIndex);
+	TArray<UMeshComponent*> SelectedComponents = GetSelectedMeshComponents();
+	
+	//Make sure all static mesh render is dirty since we change the force LOD
+	for (UMeshComponent* SelectedComponent : SelectedComponents)
+	{
+		UStaticMeshComponent *StaticMeshComponent = Cast<UStaticMeshComponent>(SelectedComponent);
+		if (StaticMeshComponent)
+		{
+			ComponentReregisterContext.Reset(new FComponentReregisterContext(StaticMeshComponent));
+		}
+	}
+}
+
+bool FEdModeMeshPaint::IsPaintingAllLODEnable() const
+{
+	return AllowPaintingAllLOD;
+}
+
+void FEdModeMeshPaint::SetAllowPaintingAllLOD(bool InAllowPaintingAllLOD)
+{
+	bool AbortChange = false;
+	if (!InAllowPaintingAllLOD)
+	{
+		//Only show the lost data warning if there is actually some data to loose
+		bool bShowWarningMessage = false;
+		TArray<UMeshComponent*> SelectedComponents = GetSelectedMeshComponents();
+		for (UMeshComponent* SelectedComponent : SelectedComponents)
+		{
+			UStaticMeshComponent *StaticMeshComponent = Cast<UStaticMeshComponent>(SelectedComponent);
+			if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh() && FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors)
+			{
+				for (int32 LODIndex = 1; !bShowWarningMessage && LODIndex < StaticMeshComponent->LODData.Num(); ++LODIndex)
+				{
+					FStaticMeshComponentLODInfo& CompLODInfo = StaticMeshComponent->LODData[LODIndex];
+					if (CompLODInfo.OverrideVertexColors != nullptr || CompLODInfo.PaintedVertices.Num() > 0)
+					{
+						bShowWarningMessage = true;
+					}
+				}
+			}
+			if (bShowWarningMessage)
+			{
+				break;
+			}
+		}
+
+		if (bShowWarningMessage && IsUserPaintAnySubLOD)
+		{
+			//Warn the user he will loose is custom painting data
+			FSuppressableWarningDialog::FSetupInfo SetupInfo(LOCTEXT("LooseLowersLODsVertexColorsPrompt_Message", "Changing from custom LODs to base LOD only painting will propagate the base lod vertex color to all lowers LODs. This mean all lowers LODs custom vertex painting will be lost."),
+				LOCTEXT("LooseLowersLODsVertexColorsPrompt_Title", "Warning: Lowers LODs custom vertex painting will be lost!"), "Warning_LooseLowersLODsVertexColorsPrompt");
+
+			SetupInfo.ConfirmText = LOCTEXT("LooseLowersLODsVertexColorsPrompt_ConfirmText", "Continue");
+			SetupInfo.CancelText = LOCTEXT("LooseLowersLODsVertexColorsPrompt_CancelText", "Abort");
+			SetupInfo.CheckBoxText = LOCTEXT("LooseLowersLODsVertexColorsPrompt_CheckBoxText", "Always copy vertex colors without prompting");
+
+			FSuppressableWarningDialog LooseLowersLODsVertexColorsWarning(SetupInfo);
+			
+			// Prompt the user to see if they really want to propagate the base lod vert colors to the lowers LODs.
+			if (LooseLowersLODsVertexColorsWarning.ShowModal() == FSuppressableWarningDialog::Cancel)
+			{
+				AbortChange = true;
+			}
+			else
+			{
+				//Remove painting on all lowers LODs before doing the propagation
+				for (UMeshComponent* SelectedComponent : SelectedComponents)
+				{
+					UStaticMeshComponent *StaticMeshComponent = Cast<UStaticMeshComponent>(SelectedComponent);
+					if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh() && FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors)
+					{
+						// Mark the mesh component as modified
+						StaticMeshComponent->Modify();
+
+						// If this is called from the Remove button being clicked the SMC wont be in a Reregister context,
+						// but when it gets called from a Paste or Copy to Source operation it's already inside a more specific
+						// SMCRecreateScene context so we shouldn't put it inside another one.
+						if (StaticMeshComponent->IsRenderStateCreated())
+						{
+							// Detach all instances of this static mesh from the scene.
+							FComponentReregisterContext ComponentReregisterContext(StaticMeshComponent);
+
+							for (int32 LODIndex = 1; LODIndex < StaticMeshComponent->LODData.Num(); ++LODIndex)
+							{
+								StaticMeshComponent->RemoveInstanceVertexColorsFromLOD(LODIndex);
+							}
+						}
+						else
+						{
+							for (int32 LODIndex = 1; LODIndex < StaticMeshComponent->LODData.Num(); ++LODIndex)
+							{
+								StaticMeshComponent->RemoveInstanceVertexColorsFromLOD(LODIndex);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	//The user cancel the change, avoid changing the value
+	if (AbortChange)
+	{
+		return;
+	}
+	
+	//Reset the flag that tell us if there was a change in the lower LODs
+	IsUserPaintAnySubLOD = false;
+	
+	AllowPaintingAllLOD = InAllowPaintingAllLOD;
+
+	TArray<UMeshComponent*> SelectedComponents = GetSelectedMeshComponents();
+	for (UMeshComponent* SelectedComponent : SelectedComponents)
+	{
+		UStaticMeshComponent *StaticMeshComponent = Cast<UStaticMeshComponent>(SelectedComponent);
+		if (StaticMeshComponent)
+		{
+			StaticMeshComponent->Modify();
+			StaticMeshComponent->bCustomOverrideVertexColorPerLOD = InAllowPaintingAllLOD;
+		}
+	}
+	//Always propagate the base LOD when we switch the painting to all LODs
+	//In case we go from false to true, we want to tweak the propagation of the base LOD
+	//In case we go from true to false, we want to force a propagate to be sure the custom painting is done over what the user already paint
+	//In case the staticmesh has some data comming from fbx, the propagate will not do anything
+	//if there is nothing that was overrite in the base LOD. So the user will be able to paint
+	//over the painting done in a DCC.
+	ApplyVertexColorsToAllLODs();
+	if (!AllowPaintingAllLOD)
+	{
+		SetCurrentMeshesLOD(0);
+	}
 }
 
 void FEdModeMeshPaint::SetBrushRadiiDefault( float InBrushRadius )
@@ -4358,8 +4599,8 @@ void FImportVertexTextureHelper::ImportVertexColors(FEditorModeTools* ModeTools,
 
 		FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[ ImportLOD ];
 
-		TScopedPointer< FStaticMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
-		TScopedPointer< FComponentReregisterContext > ComponentReregisterContext;
+		TUniquePtr< FStaticMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
+		TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
 
 		FStaticMeshComponentLODInfo* InstanceMeshLODInfo = NULL;
 
@@ -4370,7 +4611,7 @@ void FImportVertexTextureHelper::ImportVertexColors(FEditorModeTools* ModeTools,
 
 		if (bComponent)
 		{
-			ComponentReregisterContext.Reset( new FComponentReregisterContext( StaticMeshComponent ) );
+			ComponentReregisterContext = MakeUnique<FComponentReregisterContext>( StaticMeshComponent );
 			StaticMeshComponent->Modify();
 
 			// Ensure LODData has enough entries in it, free not required.
@@ -4418,7 +4659,7 @@ void FImportVertexTextureHelper::ImportVertexColors(FEditorModeTools* ModeTools,
 			}
 			// We're changing the mesh itself, so ALL static mesh components in the scene will need
 			// to be detached for this (and reattached afterwards.)
-			RecreateRenderStateContext.Reset( new FStaticMeshComponentRecreateRenderStateContext( StaticMesh ) );
+			RecreateRenderStateContext = MakeUnique<FStaticMeshComponentRecreateRenderStateContext>( StaticMesh );
 
 			// Dirty the mesh
 			StaticMesh->Modify();
@@ -5191,84 +5432,80 @@ TWeakObjectPtr<AActor> FEdModeMeshPaint::GetEditingActor() const
 void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, 
 	const FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled )
 {
-	TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
-	if (EditorWorldWrapper.IsValid())
+	UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
+	if (IVREditorModule::Get().IsVREditorModeActive() && VRInteractor != nullptr)
 	{
-		UVREditorMode* VREditorMode = EditorWorldWrapper->GetVREditorMode();
-		UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
-		if (VREditorMode != nullptr && VREditorMode->IsActive() && VRInteractor != nullptr)
+		UVREditorMode* VREditorMode = IVREditorModule::Get().GetVREditorMode();
+		if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed)
 		{
-			if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed)
+			if (!bIsPainting && Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverPriorityType())
 			{
-				if (!bIsPainting && Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverPriorityType())
+				// Check to see that we're clicking on a selected object.  You can only paint on selected things.  Otherwise,
+				// we'll fall through to the normal interaction code which might cause the object to become selected.
+				bool bIsClickingOnSelectedObject = false;
 				{
-					// Check to see that we're clicking on a selected object.  You can only paint on selected things.  Otherwise,
-					// we'll fall through to the normal interaction code which might cause the object to become selected.
-					bool bIsClickingOnSelectedObject = false;
+					FHitResult HitResult = VRInteractor->GetHitResultFromLaserPointer();
+					if (HitResult.Actor.IsValid())
 					{
-						FHitResult HitResult = VRInteractor->GetHitResultFromLaserPointer();
-						if (HitResult.Actor.IsValid())
+						UViewportWorldInteraction& WorldInteraction = VREditorMode->GetWorldInteraction();
+
+						if (WorldInteraction.IsInteractableComponent(HitResult.GetComponent()))
 						{
-							UViewportWorldInteraction& WorldInteraction = VREditorMode->GetWorldInteraction();
+							AActor* Actor = HitResult.Actor.Get();
 
-							if (WorldInteraction.IsInteractableComponent(HitResult.GetComponent()))
+							// Make sure we're not hovering over some other viewport interactable, such as a dockable window selection bar or close button
+							IViewportInteractableInterface* ActorInteractable = Cast<IViewportInteractableInterface>(Actor);
+							if (ActorInteractable == nullptr)
 							{
-								AActor* Actor = HitResult.Actor.Get();
-
-								// Make sure we're not hovering over some other viewport interactable, such as a dockable window selection bar or close button
-								IViewportInteractableInterface* ActorInteractable = Cast<IViewportInteractableInterface>(Actor);
-								if (ActorInteractable == nullptr)
+								if (Actor != WorldInteraction.GetTransformGizmoActor())  // Don't change any actor selection state if the user clicked on a gizmo
 								{
-									if (Actor != WorldInteraction.GetTransformGizmoActor())  // Don't change any actor selection state if the user clicked on a gizmo
+									if (Actor->IsSelected())
 									{
-										if (Actor->IsSelected())
-										{
-											bIsClickingOnSelectedObject = true;
-										}
+										bIsClickingOnSelectedObject = true;
 									}
 								}
 							}
 						}
 					}
+				}
 
-					if (bIsClickingOnSelectedObject)
+				if (bIsClickingOnSelectedObject)
+				{
+					bWasHandled = true;
+					bOutIsInputCaptured = true;
+
+					// Don't allow a "full press" to happen at all with this trigger pull.  We don't need full press for anything, and it
+					// would interrupt our light press.
+					VRInteractor->SetAllowTriggerFullPress(false);
+
+					StartPainting();
+					PaintingWithInteractorInVR = Interactor;
+
+					// Go ahead and paint immediately
+					FVector LaserPointerStart, LaserPointerEnd;
+					if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
 					{
-						bWasHandled = true;
-						bOutIsInputCaptured = true;
+						const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
 
-						// Don't allow a "full press" to happen at all with this trigger pull.  We don't need full press for anything, and it
-						// would interrupt our light press.
-						VRInteractor->SetAllowTriggerFullPress(false);
+						// Apply VR controller trigger pressure
+						float StrengthScale = VRInteractor->GetSelectAndMoveTriggerValue();
 
-						StartPainting();
-						PaintingWithInteractorInVR = Interactor;
-
-						// Go ahead and paint immediately
-						FVector LaserPointerStart, LaserPointerEnd;
-						if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
-						{
-							const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
-
-							// Apply VR controller trigger pressure
-							float StrengthScale = VRInteractor->GetSelectAndMoveTriggerValue();
-
-							// Paint!
-							const bool bVisualCueOnly = false;
-							const EMeshPaintAction::Type PaintAction = GetPaintAction(ViewportClient.Viewport);
-							bool bAnyPaintableActorsUnderCursor = false;
-							DoPaint(VREditorMode->GetHeadTransform().GetLocation(), LaserPointerStart, LaserPointerDirection, NULL, PaintAction, bVisualCueOnly, StrengthScale, /* Out */ bAnyPaintableActorsUnderCursor);
-						}
+						// Paint!
+						const bool bVisualCueOnly = false;
+						const EMeshPaintAction::Type PaintAction = GetPaintAction(ViewportClient.Viewport);
+						bool bAnyPaintableActorsUnderCursor = false;
+						DoPaint(VREditorMode->GetHeadTransform().GetLocation(), LaserPointerStart, LaserPointerDirection, NULL, PaintAction, bVisualCueOnly, StrengthScale, /* Out */ bAnyPaintableActorsUnderCursor);
 					}
 				}
+			}
 
-				// Stop current tracking if the user is no longer painting
-				else if (bIsPainting && Action.Event == IE_Released && PaintingWithInteractorInVR && PaintingWithInteractorInVR == Interactor)
-				{
-					EndPainting();
+			// Stop current tracking if the user is no longer painting
+			else if (bIsPainting && Action.Event == IE_Released && PaintingWithInteractorInVR && PaintingWithInteractorInVR == Interactor)
+			{
+				EndPainting();
 
-					bWasHandled = true;
-					bOutIsInputCaptured = false;
-				}
+				bWasHandled = true;
+				bOutIsInputCaptured = false;
 			}
 		}
 	}

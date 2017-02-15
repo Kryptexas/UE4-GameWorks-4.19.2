@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "VoicePrivatePCH.h"
 #include "VoiceCodecOpus.h"
+#include "VoiceModule.h"
 
 #if PLATFORM_SUPPORTS_VOICE_CAPTURE
 
+THIRD_PARTY_INCLUDES_START
 #include "opus.h"
+THIRD_PARTY_INCLUDES_END
 
 /** Turn on extra logging for codec */
 #define DEBUG_OPUS 0

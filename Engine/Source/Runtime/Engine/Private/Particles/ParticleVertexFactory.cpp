@@ -1,12 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleVertexFactory.cpp: Particle vertex factory implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "ParticleDefinitions.h"
-#include "ParticleResources.h"
+#include "ParticleVertexFactory.h"
+#include "ParticleHelper.h"
+#include "Particles/ParticleResources.h"
 #include "ShaderParameterUtils.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FParticleSpriteUniformParameters,TEXT("SpriteVF"));

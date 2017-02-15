@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // ParticleEmitter
@@ -6,12 +6,17 @@
 //~=============================================================================
 
 #pragma once
-#include "Components/SceneComponent.h"
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "ParticleEmitterInstances.h"
-#include "Scalability.h"
 #include "ParticleEmitter.generated.h"
 
 class UInterpCurveEdSetup;
+class UParticleLODLevel;
+class UParticleSystemComponent;
 
 //~=============================================================================
 //	Burst emissions

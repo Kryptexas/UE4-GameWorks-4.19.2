@@ -1,8 +1,11 @@
 Title:TMap
 Crumbs:
-Description:
+Description:TMaps are primarily defined by two types - a key type and a value type - which are stored as associated pairs in the map. 
 Availability:Public
-Version:4.9
+Version:4.14
+Related:Engine/UI/LevelEditor/Details/Properties/Map
+
+[TOC]
 
 After TArray, the most commonly used container in **Unreal Engine 4** (UE4) is **TMap**.  This container is an associative container, which means that every key has an associated value, and you can efficiently look up a value object by its key.
 
@@ -93,7 +96,13 @@ It's also possible to insert all the elements from another map by using the Appe
 	// 	{ Key: 9, Value: "Melon"     }
 	// ]
 
-Here, the resulting map is equivalent to using Add/Emplace to add them individually, so that duplicate keys from the source map replace ones in the target.
+In the above example, the resulting map is equivalent to using Add/Emplace to add them individually, so that duplicate keys from the source map replace ones in the target.
+
+
+If you mark the TMap with the `UPROPERTY()` macro and one of the editable keywords (`EditAnywhere`, `EditDefaultsOnly`, `EditInstanceOnly`), you can [add and edit elements in Unreal Editor](Engine/UI/LevelEditor/Details/Properties/Map).
+
+	UPROPERTY(Category = MapsAndSets, EditAnywhere)
+	TMap<int32, FString> FruitMap;
 
 ## Iteration
 
@@ -183,7 +192,9 @@ The **FindOrAdd** function will search for a given key and return a reference to
 	// 	{ Key: 8, Value: ""          }
 	// ]
 
+[REGION:note]
 Note that here the Ref7 reference may have been invalidated by the call to FruitMap.FindOrAdd(8) if a reallocation occurred.
+[/REGION]
 
 Despite its name, the **FindRef** function searches for a key and returns a value rather than a reference.  If the key was found, a copy of the associated value is returned, otherwise a default-constructed value type is returned.  This results in similar behavior to FindOrAdd but, because FindRef function returns a value rather than a reference, the map will not be modified and so can be called on a const object:
 
@@ -234,7 +245,9 @@ Elements can be removed from maps by using the **Remove** function and providing
 	// 	{ Key: 9, Value: "Melon"     }
 	// ]
 
+[REGION:note]
 Removing elements actually leaves holes in the data structure, which you can see when visualizing the map in Visual Studio's watch window, but they have been omitted here for clarity.
+[/REGION]
 
 The **FindAndRemoveChecked** function can be used to remove an element from the map and return its value.  The "checked" part of the name means that the key will be checked for existence and assert if it doesn't exist:
 
@@ -366,7 +379,9 @@ TMap does not provide a way of checking how many elements are preallocated, like
 	// 	{ Key: 0, Value: "Fruit0" }
 	// ]
 
+[REGION:note]
 Note that the slack happens to have caused the new elements to be added in reverse order. This is an example of why element order in maps should not be relied upon in any way.
+[/REGION]
 
 The **Shrink** function also works like the TArray equivalent in that it removes any wasted slack from the end of the container.  However, as TMap allows holes in its data structure, this will only remove slack from holes left at the end of the structure:
 
@@ -487,45 +502,45 @@ An example of a custom KeyFuncs might look like this:
 
 Here, we have a type which has a unique identifier as part of its state, but also has some other state that does not contribute to its identity.  GetTypeHash and operator== would be inappropriate here, as it would be a lie for operator== to ignore part of the state and GetTypeHash needs to match operator==, which it couldn't if operator== was defined properly.  However, for the purpose of identifying this type in a map, we are happy to just use the UniqueID part of the state.
 
-First, we inherit **BaseKeyFuncs** as it helpfully defines some stuff for us, including KeyInitType and ElementInitType.  We pull these directly from Super into the derived class so that we can use them in the rest of the implementation.
+1. First, we inherit **BaseKeyFuncs** as it helpfully defines some types for us, including KeyInitType and ElementInitType.  We pull these directly from Super into the derived class so that we can use them in the rest of the implementation.
 
-BaseKeyFuncs takes two template parameters: the element type of the map and the type of our key: the object being returned from GetSetKey.  As with all maps, the element type is a TPair, taking FMyStruct as its KeyType and TMyStructMapKeyFuncs's template parameter as its ValueType.  We make our replacement KeyFuncs a template to allow the ValueType to be specified on a per-map basis, rather than needing to define a new KeyFuncs every time we want to create a TMap keyed on FMyStruct.  The second BaseKeyFuncs argument is the type of the key, not to be confused with TPair's 'KeyType', which is what is being stored in the Key field of the element.  As we want to use FMyStruct::UniqueID as our key, we specify FString here.
+	BaseKeyFuncs takes two template parameters: the element type of the map and the type of our key: the object being returned from GetSetKey.  As with all maps, the element type is a TPair, taking FMyStruct as its KeyType and TMyStructMapKeyFuncs's template parameter as its ValueType.  We make our replacement KeyFuncs a template to allow the ValueType to be specified on a per-map basis, rather than needing to define a new KeyFuncs every time we want to create a TMap keyed on FMyStruct.  The second BaseKeyFuncs argument is the type of the key, not to be confused with TPair's 'KeyType', which is what is being stored in the Key field of the element.  As we want to use FMyStruct::UniqueID as our key, we specify FString here.
 
-We then define our three required KeyFuncs static functions.  The first is GetSetKey which, given an element type, returns the key.  Our element type is TPair, and our key is UniqueID, so we simply return that directly.
+1. We then define our three required KeyFuncs static functions.  The first is GetSetKey which, given an element type, returns the key.  Our element type is TPair, and our key is UniqueID, so we simply return that directly.
 
-The second static function is Matches which takes the keys of two elements, having already been extracted from the element types using GetSetKey, and compares them to see if they are equivalent.  FString's operator== is case-insensitive, and we want a case sensitive search, so we use the FString::Compare function with an appropriate option.
+	The second static function is Matches which takes the keys of two elements, having already been extracted from the element types using GetSetKey, and compares them to see if they are equivalent.  FString's operator== is case-insensitive, and we want a case sensitive search, so we use the FString::Compare function with an appropriate option.
 
-Finally, the GetKeyHash static function takes an extracted key and returns a hashed value for it.  Again, the GetTypeHash behavior for FString is to ignore case, so we call a case-sensitive FCrc function to calculate our hash for us.
+1. Finally, the GetKeyHash static function takes an extracted key and returns a hashed value for it.  Again, the GetTypeHash behavior for FString is to ignore case, so we call a case-sensitive FCrc function to calculate our hash for us.
 
-Now we can create a TMap using our new KeyFuncs.  We also need to provide an allocator, because the KeyFuncs parameter is last, but we'll just substitute the default:
+1. Now we can create a TMap using our new KeyFuncs.  We also need to provide an allocator, because the KeyFuncs parameter is last, but we'll just substitute the default:
 
-	TMap<
-		FMyStruct,
-		int32,
-		FDefaultSetAllocator,
-		TMyStructMapKeyFuncs<int32>
-	> MyMapToInt32;
+		TMap<
+			FMyStruct,
+			int32,
+			FDefaultSetAllocator,
+			TMyStructMapKeyFuncs<int32>
+		> MyMapToInt32;
 	
-	// Add some elements
-	MyMapToInt32.Add(FMyStruct(3.14f), 5);
-	MyMapToInt32.Add(FMyStruct(1.23f), 2);
+		// Add some elements
+		MyMapToInt32.Add(FMyStruct(3.14f), 5);
+		MyMapToInt32.Add(FMyStruct(1.23f), 2);
 	
-	// MyMapToInt32 == [
-	// 	{
-	// 		Key: {
-	// 			UniqueID:  "D06AABBA466CAA4EB62D2F97936274E4",
-	// 			SomeFloat: 3.14f
-	// 		},
-	// 		Value: 5
-	//	},
-	// 	{
-	// 		Key: {
-	// 			UniqueID:  "0661218447650259FD4E33AD6C9C5DCB",
-	// 			SomeFloat: 1.23f
-	// 		},
-	// 		Value: 5
-	//	}
-	// ]
+		// MyMapToInt32 == [
+		// 	{
+		// 		Key: {
+		// 			UniqueID:  "D06AABBA466CAA4EB62D2F97936274E4",
+		// 			SomeFloat: 3.14f
+		// 		},
+		// 		Value: 5
+		//	},
+		// 	{
+		// 		Key: {
+		// 			UniqueID:  "0661218447650259FD4E33AD6C9C5DCB",
+		// 			SomeFloat: 1.23f
+		// 		},
+		// 		Value: 5
+		//	}
+		// ]
 
 A note about providing your own KeyFuncs: be aware that TMap assumes that two items that compare equal using KeyFuncs::Matches return the same value from KeyFuncs::GetKeyHash.  In addition, modifying the key of an existing map element in a way which will change the results from either of these functions is considered undefined behavior, as this will invalidate TMap's internal hash.  These rules also apply to the overloads of operator== and GetKeyHash when using the default KeyFuncs.
 

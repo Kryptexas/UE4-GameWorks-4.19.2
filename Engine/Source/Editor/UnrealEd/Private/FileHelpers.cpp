@@ -1,38 +1,65 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
+#include "FileHelpers.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateTypes.h"
+#include "EditorStyleSet.h"
+#include "Engine/Brush.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Editor/EditorEngine.h"
+#include "ISourceControlModule.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Settings/EditorLoadingSavingSettings.h"
+#include "Factories/Factory.h"
+#include "Factories/FbxSceneImportFactory.h"
+#include "GameMapsSettings.h"
+#include "Editor.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+#include "UnrealEdMisc.h"
+#include "EditorDirectories.h"
+#include "Dialogs/Dialogs.h"
+#include "UnrealEdGlobals.h"
 #include "EditorLevelUtils.h"
 #include "BusyCursor.h"
-#include "Database.h"
-#include "ISourceControlModule.h"
 #include "MRUFavoritesList.h"
+#include "Framework/Application/SlateApplication.h"
 
-#include "Kismet2/KismetEditorUtilities.h"
-#include "LevelEditor.h"
 
 #include "PackagesDialog.h"
-#include "MainFrame.h"
+#include "Interfaces/IMainFrameModule.h"
+#include "IAssetTools.h"
 #include "AssetToolsModule.h"
 
 #include "DesktopPlatformModule.h"
-#include "MessageLog.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
 
-#include "LevelUtils.h"
 
-#include "Dialogs/DlgPickAssetPath.h"
 #include "Dialogs/DlgPickPath.h"
 
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "Runtime/AssetRegistry/Public/AssetData.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
 
 #include "PackageTools.h"
 #include "ObjectTools.h"
-#include "TextPackageNamespaceUtil.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/LevelStreaming.h"
-#include "GameMapsSettings.h"
 #include "AutoSaveUtils.h"
 #include "AssetRegistryModule.h"
 
@@ -538,7 +565,8 @@ static bool SaveWorld(UWorld* World,
 			SaveErrors.Flush();
 		}
 
-		if (bSuccess)
+		// @todo Autosaving should save build data as well
+		if (bSuccess && !bAutosaving)
 		{
 			// Also save MapBuildData packages when saving the current level
 			FEditorFileUtils::SaveMapDataPackages(DuplicatedWorld ? DuplicatedWorld : World, bCheckDirty);
@@ -939,7 +967,7 @@ void FEditorFileUtils::SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObje
 		{
 			if (!OpenSaveAsDialog(Asset->GetClass(), OldPackagePath, OldAssetName, NewPackageName))
 			{
-				break;
+				return;
 			}
 
 			FText OutError;
@@ -1365,6 +1393,10 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 							bPackageFailedWritable = true;
 							PkgsWhichFailedWritable += FString::Printf( TEXT("\n%s"), *PackageToMakeWritable->GetName() );
 						}
+					}
+					else if (OutPackagesCheckedOutOrMadeWritable)
+					{
+						OutPackagesCheckedOutOrMadeWritable->Append(PackagesToCheckOut);
 					}
 				}
 
@@ -2135,6 +2167,14 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 
 	FString Filename( InFilename );
 
+	FString LongMapPackageName;
+	if ( FPackageName::IsValidLongPackageName(InFilename) )
+	{
+		LongMapPackageName = InFilename;
+		FPackageName::TryConvertLongPackageNameToFilename(InFilename, Filename);
+	}
+	else
+	{
 #if PLATFORM_WINDOWS
 	{
 		// Check if the Filename is actually from network drive and if so attempt to
@@ -2148,11 +2188,11 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	}
 #endif
 
-	FString LongMapPackageName;
-	if ( !FPackageName::TryConvertFilenameToLongPackageName(Filename, LongMapPackageName) )
-	{
-		FMessageDialog::Open( EAppMsgType::Ok, FText::Format( NSLOCTEXT("Editor", "MapLoad_FriendlyBadFilename", "Map load failed. The filename '{0}' is not within the game or engine content folders found in '{1}'."), FText::FromString( Filename ), FText::FromString( FPaths::RootDir() ) ) );
-		return;
+		if ( !FPackageName::TryConvertFilenameToLongPackageName(Filename, LongMapPackageName) )
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, FText::Format(NSLOCTEXT("Editor", "MapLoad_FriendlyBadFilename", "Map load failed. The filename '{0}' is not within the game or engine content folders found in '{1}'."), FText::FromString(Filename), FText::FromString(FPaths::RootDir())));
+			return;
+		}
 	}
 
 	// If a PIE world exists, warn the user that the PIE session will be terminated.
@@ -2201,7 +2241,7 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	if( !LoadAsTemplate )
 	{
 		// Don't set the last directory when loading the simple map or template as it is confusing to users
-			FEditorDirectories::Get().SetLastDirectory(ELastDirectory::UNR, FPaths::GetPath(Filename)); // Save path as default for next time.
+		FEditorDirectories::Get().SetLastDirectory(ELastDirectory::UNR, FPaths::GetPath(Filename)); // Save path as default for next time.
 	}
 
 	//ensure the name wasn't mangled during load before adding to the Recent File list
@@ -3672,18 +3712,13 @@ void FEditorFileUtils::GetDirtyWorldPackages(TArray<UPackage*>& OutDirtyPackages
 				OutDirtyPackages.Add(WorldPackage);
 			}
 
-			TArray<ULevel*> Levels = WorldIt->GetLevels();
-
-			for (auto Level : Levels)
+			if (WorldIt->PersistentLevel && WorldIt->PersistentLevel->MapBuildData)
 			{
-				if (Level->MapBuildData)
-				{
-					UPackage* BuiltDataPackage = Level->MapBuildData->GetOutermost();
+				UPackage* BuiltDataPackage = WorldIt->PersistentLevel->MapBuildData->GetOutermost();
 
-					if (BuiltDataPackage->IsDirty() && BuiltDataPackage != WorldPackage)
-					{
-						OutDirtyPackages.Add(BuiltDataPackage);
-					}
+				if (BuiltDataPackage->IsDirty() && BuiltDataPackage != WorldPackage)
+				{
+					OutDirtyPackages.Add(BuiltDataPackage);
 				}
 			}
 		}

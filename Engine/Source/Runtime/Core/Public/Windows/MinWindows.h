@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#ifdef _WINDOWS_
+#include "CoreTypes.h"
+
+#if defined(_WINDOWS_) && !defined(UE4_MINIMAL_WINDOWS_INCLUDE)
 	#pragma message ( " " )
 	#pragma message ( "You have included windows.h before MinWindows.h" )
 	#pragma message ( "All useless stuff from the windows headers won't be excluded !!!" )
 	#pragma message ( " " )
 #endif // _WINDOWS_
+
+#define UE4_MINIMAL_WINDOWS_INCLUDE
 
 // WIN32_LEAN_AND_MEAN excludes rarely-used services from windows headers.
 #define WIN32_LEAN_AND_MEAN
@@ -59,4 +63,4 @@
 #define NORPC
 
 // Finally now we can include windows.h
-#include <windows.h>
+#include <Windows.h>

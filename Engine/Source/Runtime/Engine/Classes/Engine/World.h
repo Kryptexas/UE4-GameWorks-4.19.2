@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,35 +6,55 @@
 	World.h: UWorld definition.
 =============================================================================*/
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "CollisionQueryParams.h"
 #include "WorldCollision.h"
-#include "PendingNetGame.h"
+#include "GameFramework/Pawn.h"
 #include "EngineDefines.h"
+#include "Engine/Blueprint.h"
+#include "Engine/PendingNetGame.h"
 #include "Engine/LatentActionManager.h"
-#include "Runtime/RHI/Public/RHIDefinitions.h"
-#include "GameFramework/Actor.h"
-#include "GameInstance.h"
+#include "Engine/GameInstance.h"
 
 #include "World.generated.h"
 
-class FPhysScene;
-class FSceneViewFamily;
-class IInterface_PostProcessVolume;
-class ULocalPlayer;
-class UGameViewportClient;
 class ABrush;
-class UModel;
-class APhysicsVolume;
-class UTexture2D;
-class AController;
-class APlayerController;
-class AMatineeActor;
-class AWorldSettings;
 class ACameraActor;
-class FUniqueNetId;
-class FWorldInGamePerformanceTrackers;
+class AController;
 class AGameModeBase;
 class AGameStateBase;
-class UActorComponent;
+class AMatineeActor;
+class APhysicsVolume;
+class APlayerController;
+class AWorldSettings;
+class Error;
+class FPhysScene;
+class FTimerManager;
+class FUniqueNetId;
+class FWorldInGamePerformanceTrackers;
+class IInterface_PostProcessVolume;
+class UAISystemBase;
+class UCanvas;
+class UDemoNetDriver;
+class UGameViewportClient;
+class ULevelStreaming;
+class ULocalPlayer;
+class UMaterialParameterCollection;
+class UMaterialParameterCollectionInstance;
+class UModel;
+class UNavigationSystem;
+class UNetConnection;
+class UNetDriver;
+class UPrimitiveComponent;
+class UTexture2D;
 struct FUniqueNetIdRepl;
 
 template<typename,typename> class TOctree;
@@ -355,6 +375,15 @@ struct FStartPhysicsTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
+template<>
+struct TStructOpsTypeTraits<FStartPhysicsTickFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
+
 /** 
 * Tick function that ends the physics tick
 **/
@@ -376,6 +405,15 @@ struct FEndPhysicsTickFunction : public FTickFunction
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	virtual FString DiagnosticMessage() override;
+};
+
+template<>
+struct TStructOpsTypeTraits<FEndPhysicsTickFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
 };
 
 /**
@@ -401,6 +439,14 @@ struct FStartAsyncSimulationFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
+template<>
+struct TStructOpsTypeTraits<FStartAsyncSimulationFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
 
 /* Struct of optional parameters passed to SpawnActor function(s). */
 PRAGMA_DISABLE_DEPRECATION_WARNINGS // Required for auto-generated functions referencing bNoCollisionFail
@@ -734,9 +780,13 @@ class ENGINE_API UWorld final : public UObject, public FNetworkNotify
 	UPROPERTY()
 	FString										StreamingLevelsPrefix;
 	
-	/** Pointer to the current level in the queue to be made visible, NULL if none are pending.									*/
+	/** Pointer to the current level in the queue to be made visible, NULL if none are pending.					*/
 	UPROPERTY(Transient)
 	class ULevel*								CurrentLevelPendingVisibility;
+
+	/** Pointer to the current level in the queue to be made invisible, NULL if none are pending.					*/
+	UPROPERTY(Transient)
+	class ULevel*								CurrentLevelPendingInvisibility;
 	
 	/** Fake NetDriver for capturing network traffic to record demos															*/
 	UPROPERTY()
@@ -889,19 +939,19 @@ public:
 private:
 
 	/** List of all the controllers in the world. */
-	TArray<TAutoWeakObjectPtr<class AController> > ControllerList;
+	TArray<TWeakObjectPtr<class AController> > ControllerList;
 
 	/** List of all the player controllers in the world. */
-	TArray<TAutoWeakObjectPtr<class APlayerController> > PlayerControllerList;
+	TArray<TWeakObjectPtr<class APlayerController> > PlayerControllerList;
 
 	/** List of all the pawns in the world. */
-	TArray<TAutoWeakObjectPtr<class APawn> > PawnList;	
+	TArray<TWeakObjectPtr<class APawn> > PawnList;
 
 	/** List of all the cameras in the world that auto-activate for players. */
-	TArray<TAutoWeakObjectPtr<ACameraActor> > AutoCameraActorList;
+	TArray<TWeakObjectPtr<ACameraActor> > AutoCameraActorList;
 
 	/** List of all physics volumes in the world. Does not include the DefaultPhysicsVolume. */
-	TArray<TAutoWeakObjectPtr<APhysicsVolume> > NonDefaultPhysicsVolumeList;
+	TArray<TWeakObjectPtr<APhysicsVolume> > NonDefaultPhysicsVolumeList;
 
 	/** Physics scene for this world. */
 	FPhysScene*									PhysicsScene;
@@ -1137,8 +1187,8 @@ public:
 	/** Requested new world origin location */
 	FIntVector RequestedOriginLocation;
 
-	/** Whether world origin was rebased this frame */
-	bool bOriginOffsetThisFrame;
+	/** World origin offset value. Non-zero only for a single frame when origin is rebased */
+	FVector OriginOffsetThisFrame;
 		
 	/** All levels information from which our world is composed */
 	UPROPERTY()
@@ -1907,6 +1957,9 @@ public:
 	/** Helper for getting the time since a certain time. */
 	float TimeSince( float Time ) const;
 
+	/** Helper for getting the mono far field culling distance. */
+	float GetMonoFarFieldCullingDistance() const;
+
 	/** Creates a new physics scene for this world. */
 	void CreatePhysicsScene();
 
@@ -2143,7 +2196,7 @@ public:
 	 *
 	 * @param Level			Level object we should remove
 	 */
-	void RemoveFromWorld( ULevel* Level );
+	void RemoveFromWorld( ULevel* Level, bool bAllowIncrementalRemoval = false );
 
 	/**
 	 * Updates sub-levels (load/unload/show/hide) using streaming levels current state
@@ -2378,11 +2431,12 @@ public:
 	 */
 	void UpdateActorComponentEndOfFrameUpdateState(UActorComponent* Component) const;
 
+	bool HasEndOfFrameUpdates();
+
 	/**
 	 * Send all render updates to the rendering thread.
 	 */
 	void SendAllEndOfFrameUpdates();
-
 
 	/** Do per frame tick behaviors related to the network driver */
 	void TickNetClient( float DeltaSeconds );
@@ -3251,7 +3305,7 @@ FORCEINLINE_DEBUGGABLE float UWorld::GetUnpausedTimeSeconds() const
 
 FORCEINLINE_DEBUGGABLE float UWorld::GetRealTimeSeconds() const
 {
-	checkSlow(IsInGameThread());
+	checkSlow(!IsInActualRenderingThread());
 	return RealTimeSeconds;
 }
 

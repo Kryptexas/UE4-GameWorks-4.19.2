@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "InputCorePrivatePCH.h"
-#include "PropertyTag.h"
 #include "InputCoreTypes.h"
+#include "UObject/UnrealType.h"
+#include "UObject/PropertyPortFlags.h"
 
 DEFINE_LOG_CATEGORY(LogInput);
 
@@ -314,6 +314,14 @@ const FKey EKeys::Invalid(NAME_None);
 const FName EKeys::NAME_GamepadCategory("Gamepad");
 const FName EKeys::NAME_MouseCategory("Mouse");
 const FName EKeys::NAME_KeyboardCategory("Key");
+
+#if PLATFORM_USES_FACE_BUTTON_RIGHT_FOR_ACCEPT
+const FKey EKeys::Virtual_Accept = EKeys::Gamepad_FaceButton_Right;
+const FKey EKeys::Virtual_Back = EKeys::Gamepad_FaceButton_Bottom;
+#else
+const FKey EKeys::Virtual_Accept = EKeys::Gamepad_FaceButton_Bottom;
+const FKey EKeys::Virtual_Back = EKeys::Gamepad_FaceButton_Right;
+#endif
 
 bool EKeys::bInitialized = false;
 TMap<FKey, TSharedPtr<FKeyDetails> > EKeys::InputKeys;
@@ -1133,8 +1141,8 @@ FKey FInputKeyManager::GetKeyFromCodes( const uint32 KeyCode, const uint32 CharC
 
 void FInputKeyManager::GetCodesFromKey(const FKey Key, const uint32*& KeyCode, const uint32*& CharCode) const
 {
-	KeyCode = KeyMapCharToEnum.FindKey(Key);
-	CharCode = KeyMapVirtualToEnum.FindKey(Key);
+	CharCode = KeyMapCharToEnum.FindKey(Key);
+	KeyCode = KeyMapVirtualToEnum.FindKey(Key);
 }
 
 #undef LOCTEXT_NAMESPACE

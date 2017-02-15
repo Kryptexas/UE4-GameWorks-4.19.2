@@ -1,11 +1,36 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintCompilerCppBackendModulePrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/Package.h"
+#include "UObject/StructOnScope.h"
+#include "UObject/UnrealType.h"
+#include "UObject/UObjectHash.h"
+#include "Misc/PackageName.h"
+#include "Engine/Blueprint.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
+#include "Engine/LatentActionManager.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "Components/PrimitiveComponent.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/TimelineTemplate.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
+#include "EdGraphSchema_K2.h"
+#include "KismetCompiler.h"
+#include "BlueprintCompilerCppBackend.h"
+#include "BlueprintCompilerCppBackendGatherDependencies.h"
+#include "IBlueprintCompilerCppBackendModule.h"
 #include "BlueprintCompilerCppBackendUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
+#include "Kismet2/StructureEditorUtils.h"
+#include "Engine/SCS_Node.h"
 #include "Engine/InheritableComponentHandler.h"
 #include "Engine/DynamicBlueprintBinding.h"
-#include "Runtime/Core/Public/Math/Box2D.h"
+#include "Blueprint/BlueprintSupport.h"
 
 void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 	, const UProperty* Property
@@ -142,14 +167,39 @@ void FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruct* 
 
 void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const UProperty* Property, const FString& PathToMember, const uint8* ValuePtr, const uint8* DefaultValuePtr, bool bWithoutFirstConstructionLine)
 {
-	auto OneLineConstruction = [](FEmitterLocalContext& LocalContext, const UProperty* LocalProperty, const uint8* LocalValuePtr, FString& OutSingleLine, bool bGenerateEmptyStructConstructor) -> bool
+	auto InlineValueStruct = [&](UScriptStruct* OuterStruct, const uint8* LocalValuePtr) -> UScriptStruct*
+	{ 
+		UScriptStruct* InnerStruct = FBackendHelperUMG::InlineValueStruct(OuterStruct, LocalValuePtr);
+		if (InnerStruct)
+		{
+			Context.StructsUsedAsInlineValues.Add(InnerStruct);
+		}
+		return InnerStruct;
+	};
+	auto InlineValueData = [](UScriptStruct* OuterStruct, const uint8* LocalValuePtr) -> const uint8*{ return FBackendHelperUMG::InlineValueData(OuterStruct, LocalValuePtr); };
+	auto IsTInlineStruct = [](UScriptStruct* OuterStruct) -> bool { return FBackendHelperUMG::IsTInlineStruct(OuterStruct); };
+	auto OneLineConstruction = [&](FEmitterLocalContext& LocalContext, const UProperty* LocalProperty, const uint8* LocalValuePtr, FString& OutSingleLine, bool bGenerateEmptyStructConstructor) -> bool
 	{
 		bool bComplete = true;
 		FString ValueStr = HandleSpecialTypes(LocalContext, LocalProperty, LocalValuePtr);
 		if (ValueStr.IsEmpty())
 		{
-			ValueStr = LocalContext.ExportTextItem(LocalProperty, LocalValuePtr);
-			auto StructProperty = Cast<const UStructProperty>(LocalProperty);
+			const UStructProperty* StructProperty = Cast<const UStructProperty>(LocalProperty);
+			UScriptStruct* InnerInlineStruct = InlineValueStruct(StructProperty ? StructProperty->Struct : nullptr, LocalValuePtr);
+			if (StructProperty && StructProperty->Struct && InnerInlineStruct)
+			{
+				check(InnerInlineStruct);
+				FString StructConstructor;
+				bComplete = SpecialStructureConstructor(InnerInlineStruct, InlineValueData(StructProperty->Struct, LocalValuePtr), &StructConstructor);
+				const FString InnerConstructor = bComplete
+					? StructConstructor 
+					: FString::Printf(TEXT("%s%s"), *FEmitHelper::GetCppName(InnerInlineStruct), FEmitHelper::EmptyDefaultConstructor(InnerInlineStruct));
+				ValueStr = FString::Printf(TEXT("%s(%s)"), *FEmitHelper::GetCppName(StructProperty->Struct), *InnerConstructor);
+			}
+			else
+			{
+				ValueStr = LocalContext.ExportTextItem(LocalProperty, LocalValuePtr);
+			}
 			if (ValueStr.IsEmpty() && StructProperty)
 			{
 				check(StructProperty->Struct);
@@ -168,11 +218,6 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 		return bComplete;
 	};
 
-	auto StructProperty = Cast<const UStructProperty>(Property);
-	check(!StructProperty || StructProperty->Struct);
-	auto ArrayProperty = Cast<const UArrayProperty>(Property);
-	check(!ArrayProperty || ArrayProperty->Inner);
-
 	if (!bWithoutFirstConstructionLine)
 	{
 		FString ValueStr;
@@ -182,85 +227,258 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 			Context.AddLine(FString::Printf(TEXT("%s = %s;"), *PathToMember, *ValueStr));
 		}
 		// array initialization "array_var = TArray<..>()" is complete, but it still needs items.
-		if (bComplete && !ArrayProperty)
+		if (bComplete && !Property->IsA<UArrayProperty>() && !Property->IsA<USetProperty>() && !Property->IsA<UMapProperty>())
 		{
 			return;
 		}
 	}
 
-	if (StructProperty)
+	if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Property))
 	{
-		// Create default struct instance, only when DefaultValuePtr is null.
-		FStructOnScope DefaultStructOnScope(DefaultValuePtr ? nullptr : StructProperty->Struct);
+		check(StructProperty->Struct);
+		UScriptStruct* InnerInlineStruct = InlineValueStruct(StructProperty->Struct, ValuePtr);
 
-		for (auto LocalProperty : TFieldRange<const UProperty>(StructProperty->Struct))
+		UScriptStruct* ActualStruct = InnerInlineStruct ? InnerInlineStruct : StructProperty->Struct;
+		const uint8* ActualValuePtr = InnerInlineStruct ? InlineValueData(StructProperty->Struct, ValuePtr) : ValuePtr;
+		const uint8* ActualDefaultValuePtr = InnerInlineStruct ? InlineValueData(StructProperty->Struct, DefaultValuePtr) : DefaultValuePtr;
+		// Create default struct instance, only when DefaultValuePtr is null.
+		FStructOnScope DefaultStructOnScope(ActualDefaultValuePtr ? nullptr : ActualStruct);
+
+		const FString ActualPathToMember = InnerInlineStruct ? FString::Printf(TEXT("((%s*)%s.GetPtr())"), *FEmitHelper::GetCppName(InnerInlineStruct), *PathToMember) : PathToMember;
+
+		for (auto LocalProperty : TFieldRange<const UProperty>(ActualStruct))
 		{
-			OuterGenerate(Context, LocalProperty, PathToMember, ValuePtr
-				, (DefaultValuePtr ? DefaultValuePtr : DefaultStructOnScope.GetStructMemory())
-				, EPropertyAccessOperator::Dot);
+			OuterGenerate(Context, LocalProperty, ActualPathToMember, ActualValuePtr
+				, (ActualDefaultValuePtr ? ActualDefaultValuePtr : DefaultStructOnScope.GetStructMemory())
+				, InnerInlineStruct ? EPropertyAccessOperator::Pointer : EPropertyAccessOperator::Dot);
 		}
 	}
-	
-	if (ArrayProperty)
-	{
-		FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ValuePtr);
-		UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner);
-		
-		const bool bNoExportStructure = InnerStructProperty && InnerStructProperty->Struct
-			&& InnerStructProperty->Struct->IsNative()
-			&& (InnerStructProperty->Struct->StructFlags & STRUCT_NoExport);
-		const bool bInitializeWithoutScriptStruct = bNoExportStructure;
 
-		UScriptStruct* RegularInnerStruct = nullptr;
+	enum class EStructConstructionType
+	{
+		InitializeStruct,
+		EmptyConstructor,
+		Custom,
+	};
+
+	auto StructConstruction = [IsTInlineStruct](const UStructProperty* InnerStructProperty) -> EStructConstructionType
+	{
+		//TODO: if the struct has a custom ExportTextItem, that support PPF_ExportCpp, then ELocalConstructionType::Custom should be returned
+
+		//For regular native structs default constructor is not relaible, so we need to use InitializeStruct
+		const bool bUDS = InnerStructProperty && (nullptr != Cast<UUserDefinedStruct>(InnerStructProperty->Struct));
+		const bool bSpecialNativeStruct = InnerStructProperty && InnerStructProperty->Struct
+			&& InnerStructProperty->Struct->IsNative()
+			&& ((0 != (InnerStructProperty->Struct->StructFlags & STRUCT_NoExport)) || IsTInlineStruct(InnerStructProperty->Struct));
+		const bool bInitializeWithoutScriptStruct = bUDS || bSpecialNativeStruct;
 		if (!bInitializeWithoutScriptStruct)
 		{
 			if (InnerStructProperty && !FEmitDefaultValueHelper::SpecialStructureConstructor(InnerStructProperty->Struct, nullptr, nullptr))
 			{
-				RegularInnerStruct = InnerStructProperty->Struct;
+				return EStructConstructionType::InitializeStruct;
 			}
 		}
+		return bInitializeWithoutScriptStruct ? EStructConstructionType::EmptyConstructor : EStructConstructionType::Custom;
+	};
 
+	auto CreateElementSimple = [OneLineConstruction](FEmitterLocalContext& LocalContext, const UProperty* LocalProperty, const uint8* LocalValuePtr) -> FString
+	{
+		FString ValueStr;
+		const bool bComplete = OneLineConstruction(LocalContext, LocalProperty, LocalValuePtr, ValueStr, true);
+		ensure(!ValueStr.IsEmpty());
+		if (!bComplete)
+		{
+			const FString ElemLocName = LocalContext.GenerateUniqueLocalName();
+			LocalContext.AddLine(FString::Printf(TEXT("auto %s = %s;"), *ElemLocName, *ValueStr));
+			InnerGenerate(LocalContext, LocalProperty, ElemLocName, LocalValuePtr, nullptr, /*bWithoutFirstConstructionLine=*/true);
+			ValueStr = ElemLocName;
+		}
+		return ValueStr;
+	};
+
+	if (const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(Property))
+	{
+		check(ArrayProperty->Inner);
+		FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ValuePtr);
 		if (ScriptArrayHelper.Num())
 		{
-			const TCHAR* ArrayReserveFunctionName = RegularInnerStruct ? TEXT("AddUninitialized") : TEXT("Reserve");
-			Context.AddLine(FString::Printf(TEXT("%s.%s(%d);"), *PathToMember, ArrayReserveFunctionName, ScriptArrayHelper.Num()));
-
-			if (RegularInnerStruct)
+			const UStructProperty* StructProperty = Cast<const UStructProperty>(ArrayProperty->Inner);
+			const EStructConstructionType Construction = StructConstruction(StructProperty);
+			if(EStructConstructionType::InitializeStruct == Construction)
 			{
-				const FString InnerStructStr = Context.FindGloballyMappedObject(RegularInnerStruct, UScriptStruct::StaticClass());
+				const UScriptStruct* InnerStruct = StructProperty ? StructProperty->Struct : nullptr;
+				ensure(InnerStruct);
+				Context.AddLine(FString::Printf(TEXT("%s.%s(%d);"), *PathToMember, TEXT("AddUninitialized"), ScriptArrayHelper.Num()));
 				Context.AddLine(FString::Printf(TEXT("%s->%s(%s.GetData(), %d);")
-					, *InnerStructStr
+					, *Context.FindGloballyMappedObject(InnerStruct, UScriptStruct::StaticClass())
 					, GET_FUNCTION_NAME_STRING_CHECKED(UStruct, InitializeStruct)
 					, *PathToMember
 					, ScriptArrayHelper.Num()));
-			}
-		}
 
-		const FStructOnScope DefaultStruct(RegularInnerStruct);
-
-		for (int32 Index = 0; Index < ScriptArrayHelper.Num(); ++Index)
-		{
-			const uint8* LocalValuePtr = ScriptArrayHelper.GetRawPtr(Index);
-
-			bool bComplete = false;
-			if (!RegularInnerStruct)
-			{
-				FString ValueStr;
-				bComplete = OneLineConstruction(Context, ArrayProperty->Inner, LocalValuePtr, ValueStr, bInitializeWithoutScriptStruct);
-				ensure(bComplete || bInitializeWithoutScriptStruct);
-				Context.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *PathToMember, *ValueStr));
-			}
-			
-			if (RegularInnerStruct || (bInitializeWithoutScriptStruct && !bComplete))
-			{
-				FString LocalPathToMember = FString::Printf(TEXT("%s[%d]"), *PathToMember, Index);
-				if (RegularInnerStruct)
+				for (int32 Index = 0; Index < ScriptArrayHelper.Num(); ++Index)
 				{
 					const FString ArrayElementRefName = Context.GenerateUniqueLocalName();
-					Context.AddLine(FString::Printf(TEXT("auto& %s = %s;"), *ArrayElementRefName, *LocalPathToMember));
-					LocalPathToMember = ArrayElementRefName;
+					Context.AddLine(FString::Printf(TEXT("auto& %s = %s[%d];"), *ArrayElementRefName, *PathToMember, Index));
+					// This is a Regular Struct (no special constructor), so we don't need to call constructor
+					InnerGenerate(Context, ArrayProperty->Inner, ArrayElementRefName, ScriptArrayHelper.GetRawPtr(Index), nullptr, /*bWithoutFirstConstructionLine=*/ true);
 				}
-				InnerGenerate(Context, ArrayProperty->Inner, LocalPathToMember, LocalValuePtr, DefaultStruct.GetStructMemory(), true);
+			}
+			else
+			{
+				Context.AddLine(FString::Printf(TEXT("%s.%s(%d);"), *PathToMember, TEXT("Reserve"), ScriptArrayHelper.Num()));
+				
+				for (int32 Index = 0; Index < ScriptArrayHelper.Num(); ++Index)
+				{
+					const uint8* LocalValuePtr = ScriptArrayHelper.GetRawPtr(Index);
+
+					FString ValueStr;
+					bool bComplete = OneLineConstruction(Context, ArrayProperty->Inner, LocalValuePtr, ValueStr, true);
+					Context.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *PathToMember, *ValueStr));
+					if (!bComplete)
+					{
+						// The constructor was already called
+						InnerGenerate(Context, ArrayProperty->Inner, FString::Printf(TEXT("%s[%d]"), *PathToMember, Index), LocalValuePtr, nullptr, /*bWithoutFirstConstructionLine=*/ true);
+					}
+				}
+			}
+		}
+	}
+	else if(const USetProperty* SetProperty = Cast<const USetProperty>(Property))
+	{
+		check(SetProperty->ElementProp);
+		FScriptSetHelper ScriptSetHelper(SetProperty, ValuePtr);
+		if (ScriptSetHelper.Num())
+		{
+			auto ForEachElementInSet = [&](TFunctionRef<void(int32)> Process)
+			{
+				int32 Size = ScriptSetHelper.Num();
+				for (int32 I = 0; Size; ++I)
+				{
+					if (ScriptSetHelper.IsValidIndex(I))
+					{
+						--Size;
+						Process(I);
+					}
+				}
+			};
+			Context.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *PathToMember, ScriptSetHelper.Num()));
+
+			const UStructProperty* StructProperty = Cast<const UStructProperty>(SetProperty->ElementProp);
+			const EStructConstructionType Construction = StructConstruction(StructProperty);
+			if (EStructConstructionType::InitializeStruct == Construction)
+			{
+				const UScriptStruct* InnerStruct = StructProperty ? StructProperty->Struct : nullptr;
+				ensure(InnerStruct);
+				const FString SetHelperName = Context.GenerateUniqueLocalName();
+				const FString PropertyLocalName = FEmitHelper::GenerateGetPropertyByName(Context, SetProperty);
+				const FString StructCppName = FEmitHelper::GetCppName(InnerStruct);
+				Context.AddLine(FString::Printf(TEXT("FScriptSetHelper %s(CastChecked<USetProperty>(%s), &%s);"), *SetHelperName, *PropertyLocalName, *PathToMember));
+				ForEachElementInSet([&](int32 Index)
+				{
+					const FString ElementName = Context.GenerateUniqueLocalName();
+					Context.AddLine(FString::Printf(TEXT("%s& %s = *(%s*)%s.GetElementPtr(%s.AddDefaultValue_Invalid_NeedsRehash());")
+						, *StructCppName, *ElementName, *StructCppName, *SetHelperName, *SetHelperName));
+					InnerGenerate(Context, StructProperty, ElementName, ScriptSetHelper.GetElementPtr(Index), nullptr, /*bWithoutFirstConstructionLine=*/true);
+				});
+				Context.AddLine(FString::Printf(TEXT("%s.Rehash();"), *SetHelperName));
+			}
+			else
+			{
+				ForEachElementInSet([&](int32 Index)
+				{
+					const FString Element = CreateElementSimple(Context, SetProperty->ElementProp, ScriptSetHelper.GetElementPtr(Index));
+					Context.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *PathToMember, *Element));
+				});
+			}
+		}
+	}
+	else if(const UMapProperty* MapProperty = Cast<const UMapProperty>(Property))
+	{
+		check(MapProperty->KeyProp && MapProperty->ValueProp);
+		FScriptMapHelper ScriptMapHelper(MapProperty, ValuePtr);
+		if (ScriptMapHelper.Num())
+		{	
+			auto ForEachPairInMap = [&](TFunctionRef<void(int32)> Process)
+			{
+				int32 Size = ScriptMapHelper.Num();
+				for (int32 I = 0; Size; ++I)
+				{
+					if (ScriptMapHelper.IsValidIndex(I))
+					{
+						--Size;
+						Process(I);
+					}
+				}
+			};
+
+			Context.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *PathToMember, ScriptMapHelper.Num()));
+
+			const UStructProperty* KeyStructProperty = Cast<const UStructProperty>(MapProperty->KeyProp);
+			const EStructConstructionType KeyConstruction = StructConstruction(KeyStructProperty);
+			const UStructProperty* ValueStructProperty = Cast<const UStructProperty>(MapProperty->ValueProp);
+			const EStructConstructionType ValueConstruction = StructConstruction(ValueStructProperty);
+			if ((EStructConstructionType::InitializeStruct == KeyConstruction) || (EStructConstructionType::InitializeStruct == ValueConstruction))
+			{
+				const FString MapHelperName = Context.GenerateUniqueLocalName();
+				const FString PropertyLocalName = FEmitHelper::GenerateGetPropertyByName(Context, MapProperty);
+				Context.AddLine(FString::Printf(TEXT("FScriptMapHelper %s(CastChecked<UMapProperty>(%s), &%s);"), *MapHelperName, *PropertyLocalName, *PathToMember));
+				const uint32 ElementTypeCppExportFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst;
+				const FString ElementTypeStr = Context.ExportCppDeclaration(MapProperty, EExportedDeclaration::Member, ElementTypeCppExportFlags, FEmitterLocalContext::EPropertyNameInDeclaration::Skip).TrimTrailing()
+					+ TEXT("::ElementType");
+
+				ForEachPairInMap([&](int32 Index)
+				{
+					const FString PairName = Context.GenerateUniqueLocalName();
+					Context.AddLine(FString::Printf(TEXT("%s& %s = *(%s*)%s.GetPairPtr(%s.AddDefaultValue_Invalid_NeedsRehash());")
+						, *ElementTypeStr, *PairName, *ElementTypeStr, *MapHelperName, *MapHelperName));
+
+					{
+						bool bKeyComplete = false;
+						const FString KeyPath = FString::Printf(TEXT("%s.Key"), *PairName);
+						if (EStructConstructionType::Custom == KeyConstruction)
+						{
+							FString KeyStr;
+							bKeyComplete = OneLineConstruction(Context, MapProperty->KeyProp, ScriptMapHelper.GetKeyPtr(Index), KeyStr, /*bGenerateEmptyStructConstructor=*/ false);
+							if (!KeyStr.IsEmpty())
+							{
+								Context.AddLine(FString::Printf(TEXT("%s = %s;"), *KeyPath, *KeyStr));
+							}
+						}
+						if (!bKeyComplete)
+						{
+							InnerGenerate(Context, MapProperty->KeyProp, KeyPath, ScriptMapHelper.GetKeyPtr(Index), nullptr, /*bWithoutFirstConstructionLine=*/true);
+						}
+					}
+
+					{
+						bool bValueComplete = false;
+						const FString ValuePath = FString::Printf(TEXT("%s.Value"), *PairName);
+						if (EStructConstructionType::Custom == ValueConstruction)
+						{
+							FString ValueStr;
+							bValueComplete = OneLineConstruction(Context, MapProperty->ValueProp, ScriptMapHelper.GetKeyPtr(Index), ValueStr, /*bGenerateEmptyStructConstructor=*/ false);
+							if (!ValueStr.IsEmpty())
+							{
+								Context.AddLine(FString::Printf(TEXT("%s = %s;"), *ValuePath, *ValueStr));
+							}
+						}
+						if (!bValueComplete)
+						{
+							InnerGenerate(Context, MapProperty->ValueProp, ValuePath, ScriptMapHelper.GetValuePtr(Index), nullptr, /*bWithoutFirstConstructionLine=*/true);
+						}
+					}
+
+				});
+				Context.AddLine(FString::Printf(TEXT("%s.Rehash();"), *MapHelperName));
+			}
+			else
+			{
+				ForEachPairInMap([&](int32 Index)
+				{
+					const FString KeyStr = CreateElementSimple(Context, MapProperty->KeyProp, ScriptMapHelper.GetKeyPtr(Index));
+					const FString ValueStr = CreateElementSimple(Context, MapProperty->ValueProp, ScriptMapHelper.GetValuePtr(Index));
+					Context.AddLine(FString::Printf(TEXT("%s.Add(%s, %s);"), *PathToMember, *KeyStr, *ValueStr));
+				});
 			}
 		}
 	}
@@ -269,6 +487,11 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UStruct* Struct, const uint8* ValuePtr, /*out*/ FString* OutResult)
 {
 	check(ValuePtr || !OutResult);
+
+	if (FBackendHelperUMG::SpecialStructureConstructorUMG(Struct, ValuePtr, OutResult))
+	{
+		return true;
+	}
 
 	if (FLatentActionInfo::StaticStruct() == Struct)
 	{
@@ -767,7 +990,119 @@ public:
 	}
 };
 
-void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies)
+struct FFakeImportTableHelper
+{
+	TSet<UObject*> SerializeBeforeSerializeClassDependencies;
+
+	TSet<UObject*> SerializeBeforeCreateCDODependencies;
+
+	FFakeImportTableHelper(UClass* SourceClass, UClass* OriginalClass, FEmitterLocalContext& Context)
+	{
+		if (ensure(SourceClass) && ensure(OriginalClass))
+		{
+			auto GatherDependencies = [&](UClass* InClass)
+			{
+				SerializeBeforeSerializeClassDependencies.Add(InClass->GetSuperClass());
+
+				for (const FImplementedInterface& ImplementedInterface : InClass->Interfaces)
+				{
+					SerializeBeforeSerializeClassDependencies.Add(ImplementedInterface.Class);
+				}
+
+				TArray<UObject*> ObjectsInsideClass;
+				GetObjectsWithOuter(InClass, ObjectsInsideClass, true);
+				for (UObject* Obj : ObjectsInsideClass)
+				{
+					UProperty* Property = Cast<UProperty>(Obj);
+					if (!Property)
+					{
+						continue;
+					}
+					const UProperty* OwnerProperty = Property->GetOwnerProperty();
+					if (!ensure(IsValid(OwnerProperty)))
+					{
+						continue;
+					}
+						
+					// TODO:
+					// Let UDS_A contain UDS_B. Let UDS_B contain an array or a set of UDS_A. It causes a cyclic dependency. 
+					// Should we try to fix it at this stage?
+
+					const bool bIsParam = (0 != (OwnerProperty->PropertyFlags & CPF_Parm)) && OwnerProperty->IsIn(InClass);
+					const bool bIsMemberVariable = (OwnerProperty->GetOuter() == InClass);
+					if (bIsParam || bIsMemberVariable) // Affects the class signature. It is necessary while ZCOnstructor/linking.
+					{
+						TArray<UObject*> LocalPreloadDependencies;
+						Property->GetPreloadDependencies(LocalPreloadDependencies);
+						for (UObject* Dependency : LocalPreloadDependencies)
+						{
+							const bool bDependencyMustBeSerializedBeforeClassIsLinked = Dependency
+								&& (Dependency->IsA<UScriptStruct>() || Dependency->IsA<UEnum>());
+							if (bDependencyMustBeSerializedBeforeClassIsLinked)
+							{
+								SerializeBeforeSerializeClassDependencies.Add(Dependency);
+							}
+						}
+					}
+				}
+				SerializeBeforeCreateCDODependencies.Add(InClass->GetSuperClass()->GetDefaultObject());
+			};
+
+			GatherDependencies(SourceClass);
+			GatherDependencies(OriginalClass);
+
+			auto GetClassesOfSubobjects = [&](TMap<UObject*, FString>& SubobjectsMap)
+			{
+				TArray<UObject*> Subobjects;
+				SubobjectsMap.GetKeys(Subobjects);
+				for (UObject* Subobject : Subobjects)
+				{
+					if (Subobject)
+					{
+						SerializeBeforeCreateCDODependencies.Add(Subobject->GetClass());
+					}
+				}
+			};
+			GetClassesOfSubobjects(Context.ClassSubobjectsMap);
+			GetClassesOfSubobjects(Context.CommonSubobjectsMap);
+		}
+	}
+
+	void FillDependencyData(const UObject* Asset, FCompactBlueprintDependencyData& CompactDataRef) const
+	{
+		ensure(Asset);
+
+		{
+			//Dynamic Class requires no non-native class, owner, archetype..
+			CompactDataRef.ClassDependency.bSerializationBeforeCreateDependency = false;
+			CompactDataRef.ClassDependency.bCreateBeforeCreateDependency = false;
+
+			const bool bDependencyNecessaryForLinking = SerializeBeforeSerializeClassDependencies.Contains(const_cast<UObject*>(Asset));
+
+			// Super Class, Interfaces, ScriptStructs, Enums..
+			CompactDataRef.ClassDependency.bSerializationBeforeSerializationDependency = bDependencyNecessaryForLinking;
+
+			// Everything else
+			CompactDataRef.ClassDependency.bCreateBeforeSerializationDependency = !bDependencyNecessaryForLinking;
+		}
+
+		{
+			//everything was created for class
+			CompactDataRef.CDODependency.bCreateBeforeCreateDependency = false; 
+
+			// Classes of subobjects, created while CDO construction
+			CompactDataRef.CDODependency.bSerializationBeforeCreateDependency = SerializeBeforeCreateCDODependencies.Contains(const_cast<UObject*>(Asset));
+
+			// CDO is not serialized
+			CompactDataRef.CDODependency.bCreateBeforeSerializationDependency = false;
+			CompactDataRef.CDODependency.bSerializationBeforeSerializationDependency = false;
+		}
+	}
+};
+
+void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalContext& Context
+	, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies
+	, FCompilerNativizationOptions NativizationOptions)
 {
 	// 1. GATHER UDS DEFAULT VALUE DEPENDENCIES
 	{
@@ -784,17 +1119,26 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 
 	// 2. ALL ASSETS TO LIST
 	TSet<const UObject*> AllDependenciesToHandle = Context.Dependencies.AllDependencies();
-	if (ParentDependencies.IsValid())
+	AllDependenciesToHandle.Append(Context.UsedObjectInCurrentClass);
+	AllDependenciesToHandle.Remove(nullptr);
+
+	// Special case, we don't need to load any dependencies from CoreUObject.
+	UPackage* CoreUObjectPackage = UProperty::StaticClass()->GetOutermost();
+	for (auto Iter = AllDependenciesToHandle.CreateIterator(); Iter; ++Iter)
 	{
-		AllDependenciesToHandle = AllDependenciesToHandle.Difference(ParentDependencies->AllDependencies());
+		if ((*Iter)->GetOutermost() == CoreUObjectPackage)
+		{
+			Iter.RemoveCurrent();
+		}
 	}
 
 	// HELPERS
 	auto SourceClass = Context.GetCurrentlyGeneratedClass();
 	auto OriginalClass = Context.Dependencies.FindOriginalClass(SourceClass);
-	const FString CppClassName = FEmitHelper::GetCppName(OriginalClass);
+	const FString CppClassName = FEmitHelper::GetCppName(SourceClass);
+	FFakeImportTableHelper FakeImportTableHelper(SourceClass, OriginalClass, Context);
 
-	auto CreateAssetToLoadString = [&](const UObject* AssetObj, const FString& LongPathVariable) -> FString
+	auto CreateAssetToLoadString = [&](const UObject* AssetObj) -> FString
 	{
 		UClass* AssetType = AssetObj->GetClass();
 		if (AssetType->IsChildOf<UUserDefinedEnum>())
@@ -810,118 +1154,130 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 			AssetType = UDynamicClass::StaticClass();
 		}
 
-		return FString::Printf(TEXT("FBlueprintDependencyData(%s, TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\")),")
-			, *LongPathVariable
+		const FString LongPackagePath = FPackageName::GetLongPackagePath(AssetObj->GetOutermost()->GetPathName());
+		return FString::Printf(TEXT("FBlueprintDependencyObjectRef(TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\")),")
+			, *LongPackagePath
 			, *FPackageName::GetShortName(AssetObj->GetOutermost()->GetPathName())
 			, *AssetObj->GetName()
 			, *AssetType->GetOutermost()->GetPathName()
 			, *AssetType->GetName());
 	};
 
-	auto AddAssetArray = [&](const TArray<const UObject*>& Assets)
+	auto CreateDependencyRecord = [&](const UObject* InAsset, FString& OptionalComment) -> FCompactBlueprintDependencyData
 	{
-		TMap<FString, FString> PrefixToLocalVariable;
-		for (const UObject* LocAsset : Assets)
+		ensure(InAsset);
+		if (InAsset && IsEditorOnlyObject(InAsset))
 		{
-			FString LongPackagePath = FPackageName::GetLongPackagePath(LocAsset->GetOutermost()->GetPathName());
-			if (!PrefixToLocalVariable.Find(LongPackagePath))
+			UE_LOG(LogK2Compiler, Warning, TEXT("Nativized %d depends on editor only asset: %s")
+				, (OriginalClass ? *OriginalClass->GetPathName() : *CppClassName)
+				,*InAsset->GetPathName());
+			OptionalComment = TEXT("Editor Only asset");
+			return FCompactBlueprintDependencyData{};
+		}
+
+		{
+			bool bNotForClient = false;
+			bool bNotForServer = false;
+			for (const UObject* Search = InAsset; Search && !Search->IsA(UPackage::StaticClass()); Search = Search->GetOuter())
 			{
-				FString VariableName = Context.GenerateUniqueLocalName();
-				Context.AddLine(FString::Printf(TEXT("const TCHAR* %s = TEXT(\"%s\");"), *VariableName, *LongPackagePath));
-				PrefixToLocalVariable.Add(LongPackagePath, VariableName);
+				bNotForClient = bNotForClient || !Search->NeedsLoadForClient();
+				bNotForServer = bNotForServer || !Search->NeedsLoadForServer();
+			}
+			if (bNotForServer && NativizationOptions.ServerOnlyPlatform)
+			{
+				OptionalComment = TEXT("Not for server");
+				return FCompactBlueprintDependencyData{};
+			}
+			if (bNotForClient && NativizationOptions.ClientOnlyPlatform)
+			{
+				OptionalComment = TEXT("Not for client");
+				return FCompactBlueprintDependencyData{};
 			}
 		}
 
+		FNativizationSummary::FDependencyRecord& DependencyRecord = FDependenciesGlobalMapHelper::FindDependencyRecord(InAsset);
+		ensure(DependencyRecord.Index >= 0);
+		if (DependencyRecord.NativeLine.IsEmpty())
+		{
+			DependencyRecord.NativeLine = CreateAssetToLoadString(InAsset);
+		}
+
+		FCompactBlueprintDependencyData Result;
+		Result.ObjectRefIndex = static_cast<int16>(DependencyRecord.Index);
+		FakeImportTableHelper.FillDependencyData(InAsset, Result);
+		return Result;
+	};
+
+	auto AddAssetArray = [&](const TArray<const UObject*>& Assets)
+	{
 		if (Assets.Num())
 		{
-			Context.AddLine(TEXT("FBlueprintDependencyData LocAssets[] ="));
+			Context.AddLine(TEXT("const FCompactBlueprintDependencyData LocCompactBlueprintDependencyData[] ="));
 			Context.AddLine(TEXT("{"));
 			Context.IncreaseIndent();
 		}
 
+		auto BlueprintDependencyTypeToString = [](FBlueprintDependencyType DependencyType) -> FString
+		{
+			return FString::Printf(TEXT("FBlueprintDependencyType(%s, %s, %s, %s)")
+				, DependencyType.bSerializationBeforeSerializationDependency ? TEXT("true") : TEXT("false")
+				, DependencyType.bCreateBeforeSerializationDependency ? TEXT("true") : TEXT("false")
+				, DependencyType.bSerializationBeforeCreateDependency ? TEXT("true") : TEXT("false")
+				, DependencyType.bCreateBeforeCreateDependency ? TEXT("true") : TEXT("false"));
+		};
+
 		for (const UObject* LocAsset : Assets)
 		{
-			FString* LongPathVar = PrefixToLocalVariable.Find(FPackageName::GetLongPackagePath(LocAsset->GetOutermost()->GetPathName()));
-			check(LongPathVar);
-			Context.AddLine(CreateAssetToLoadString(LocAsset, *LongPathVar));
+			FString OptionalComment;
+			const FCompactBlueprintDependencyData DependencyRecord = CreateDependencyRecord(LocAsset, OptionalComment);
+			Context.AddLine(FString::Printf(TEXT("{%d, %s, %s},  // %s %s ")
+				, DependencyRecord.ObjectRefIndex
+				, *BlueprintDependencyTypeToString(DependencyRecord.ClassDependency)
+				, *BlueprintDependencyTypeToString(DependencyRecord.CDODependency)
+				, *OptionalComment
+				, *LocAsset->GetFullName()));
 		}
 
 		if (Assets.Num())
 		{
 			Context.DecreaseIndent();
 			Context.AddLine(TEXT("};"));
-			Context.AddLine(TEXT("for(auto& LocAsset : LocAssets) { AssetsToLoad.Add(LocAsset); } "));
+			Context.AddLine(TEXT("for(const FCompactBlueprintDependencyData CompactData : LocCompactBlueprintDependencyData)"));
+			Context.AddLine(TEXT("{"));
+			Context.AddLine(TEXT("\tAssetsToLoad.Add(FBlueprintDependencyData("));
+			Context.AddLine(TEXT("\t\tF__NativeDependencies::Get(CompactData.ObjectRefIndex)"));
+			Context.AddLine(TEXT("\t\t,CompactData.ClassDependency"));
+			Context.AddLine(TEXT("\t\t,CompactData.CDODependency"));
+			Context.AddLine(TEXT("\t));"));
+			Context.AddLine(TEXT("} "));
 		}
 	};
 
-	int32 UsedAssetIndex = 0; //We need this, to preserve the order of assets in UsedAssets. They are identified by index. 
-
-	// 3. COMMON DEPENDENCIES ASSETS - USED BOTH BY __StaticDependenciesAssets and __StaticDependencies_DirectlyUsedAssets
-	{
-		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependencies_CommonAssets(TArray<FBlueprintDependencyData>& AssetsToLoad)"), *CppClassName));
-		Context.AddLine(TEXT("{"));
-		Context.IncreaseIndent();
-
-		TArray<const UObject*> AssetsToAdd;
-		for (;UsedAssetIndex < Context.UsedObjectInCurrentClass.Num(); ++UsedAssetIndex)
-		{
-			const UObject* LocAsset = Context.UsedObjectInCurrentClass[UsedAssetIndex];
-			if (!AllDependenciesToHandle.Contains(LocAsset))
-			{
-				UE_LOG(LogK2Compiler, Log, TEXT("FEmitDefaultValueHelper::AddStaticFunctionsForDependencies [%s] %s is directly used, but is not inluded in static dependencies")
-					, *GetPathNameSafe(OriginalClass)
-					, *GetPathNameSafe(LocAsset));
-				break;
-			}
-			AllDependenciesToHandle.Remove(LocAsset);
-			AssetsToAdd.Add(LocAsset);
-		}
-		AddAssetArray(AssetsToAdd);
-
-		Context.DecreaseIndent();
-		Context.AddLine(TEXT("}"));
-	}
-
-	// 4. LIST OF UsedAssets
+	// 3. LIST OF UsedAssets
 	{
 		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependencies_DirectlyUsedAssets(TArray<FBlueprintDependencyData>& AssetsToLoad)"), *CppClassName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
-
-		Context.AddLine(FString(TEXT("__StaticDependencies_CommonAssets(AssetsToLoad);")));
-
 		TArray<const UObject*> AssetsToAdd;
-		for (; UsedAssetIndex < Context.UsedObjectInCurrentClass.Num(); ++UsedAssetIndex)
+		for (int32 UsedAssetIndex = 0; UsedAssetIndex < Context.UsedObjectInCurrentClass.Num(); ++UsedAssetIndex)
 		{
 			const UObject* LocAsset = Context.UsedObjectInCurrentClass[UsedAssetIndex];
-			if (AllDependenciesToHandle.Contains(LocAsset))
-			{
-				UE_LOG(LogK2Compiler, Log, TEXT("FEmitDefaultValueHelper::AddStaticFunctionsForDependencies %s should be listed as common asset"), *GetPathNameSafe(LocAsset));
-			}
+			ensure(AllDependenciesToHandle.Contains(LocAsset));
 			AssetsToAdd.Add(LocAsset);
+			AllDependenciesToHandle.Remove(LocAsset);
 		}
 		AddAssetArray(AssetsToAdd);
-
 		Context.DecreaseIndent();
 		Context.AddLine(TEXT("}"));
 	}
 
-	// 5. REMAINING DEPENDENCIES
+	// 4. REMAINING DEPENDENCIES
 	{
 		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad)"), *CppClassName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
-
-		UBlueprintGeneratedClass* ParentBPGC = Cast<UBlueprintGeneratedClass>(SourceClass->GetSuperClass());
-		ensure(ParentDependencies.IsValid() == !!ParentBPGC);
-		if (ParentBPGC)
-		{
-			Context.AddLine(FString::Printf(TEXT("%s::__StaticDependenciesAssets(AssetsToLoad);"), *FEmitHelper::GetCppName(ParentBPGC)));
-		}
-		Context.AddLine(FString(TEXT("__StaticDependencies_CommonAssets(AssetsToLoad);")));
-
+		Context.AddLine(FString(TEXT("__StaticDependencies_DirectlyUsedAssets(AssetsToLoad);")));
 		AddAssetArray(AllDependenciesToHandle.Array());
-
 		Context.DecreaseIndent();
 		Context.AddLine(TEXT("}"));
 	}
@@ -931,7 +1287,7 @@ void FEmitDefaultValueHelper::AddRegisterHelper(FEmitterLocalContext& Context)
 {
 	auto SourceClass = Context.GetCurrentlyGeneratedClass();
 	auto OriginalClass = Context.Dependencies.FindOriginalClass(SourceClass);
-	const FString CppClassName = FEmitHelper::GetCppName(OriginalClass);
+	const FString CppClassName = FEmitHelper::GetCppName(SourceClass);
 
 	const FString RegisterHelperName = FString::Printf(TEXT("FRegisterHelper__%s"), *CppClassName);
 	Context.AddLine(FString::Printf(TEXT("struct %s"), *RegisterHelperName));
@@ -943,7 +1299,7 @@ void FEmitDefaultValueHelper::AddRegisterHelper(FEmitterLocalContext& Context)
 	Context.IncreaseIndent();
 
 	Context.AddLine(FString::Printf(
-		TEXT("FConvertedBlueprintsDependencies::Get().RegisterClass(TEXT(\"%s\"), &%s::__StaticDependenciesAssets);")
+		TEXT("FConvertedBlueprintsDependencies::Get().RegisterConvertedClass(TEXT(\"%s\"), &%s::__StaticDependenciesAssets);")
 		, *OriginalClass->GetOutermost()->GetPathName()
 		, *CppClassName));
 
@@ -956,19 +1312,6 @@ void FEmitDefaultValueHelper::AddRegisterHelper(FEmitterLocalContext& Context)
 	Context.AddLine(TEXT("};"));
 
 	Context.AddLine(FString::Printf(TEXT("%s %s::Instance;"), *RegisterHelperName, *RegisterHelperName));
-}
-
-
-void FEmitDefaultValueHelper::FillCommonUsedAssets(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies)
-{
-	ensure(0 == Context.UsedObjectInCurrentClass.Num());
-	for (auto LocAsset : Context.Dependencies.Assets)
-	{
-		if (!ParentDependencies.IsValid() || !ParentDependencies->Assets.Contains(LocAsset))
-		{
-			Context.UsedObjectInCurrentClass.Add(LocAsset);
-		}
-	}
 }
 
 void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies)
@@ -1042,6 +1385,15 @@ void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterL
 	// Gather all CT from SCS and IH, the remaining ones are generated for class..
 	if (auto SCS = BPGC->SimpleConstructionScript)
 	{
+		// >>> This code should be removed, once UE-39168 is fixed
+		//TODO: it's an ugly workaround - template from DefaultSceneRootNode is unnecessarily cooked :(
+		UActorComponent* DefaultSceneRootComponentTemplate = SCS->GetDefaultSceneRootNode() ? SCS->GetDefaultSceneRootNode()->ComponentTemplate : nullptr;
+		if (DefaultSceneRootComponentTemplate)
+		{
+			ActorComponentTempatesOwnedByClass.Add(DefaultSceneRootComponentTemplate);
+		}
+		// <<< This code should be removed, once UE-39168 is fixed
+
 		for (auto Node : SCS->GetAllNodes())
 		{
 			ActorComponentTempatesOwnedByClass.RemoveSwap(Node->ComponentTemplate);
@@ -1308,6 +1660,11 @@ FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Cont
 		UClass* ObjectClass = Object->GetClass();
 		const FString ActualClass = Context.FindGloballyMappedObject(ObjectClass, UClass::StaticClass());
 		const FString NativeType = FEmitHelper::GetCppName(Context.GetFirstNativeOrConvertedClass(ObjectClass));
+		if(!ObjectClass->IsNative())
+		{
+			// make sure CDO has been created for NativeType:
+			Context.AddLine(FString::Printf(TEXT("%s::StaticClass()->GetDefaultObject();"), *NativeType));
+		}
 		Context.AddLine(FString::Printf(
 			TEXT("auto %s = NewObject<%s>(%s, %s, TEXT(\"%s\"));")
 			, *LocalNativeName
@@ -1422,6 +1779,11 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 
 		const FString ActualClass = Context.FindGloballyMappedObject(ObjectClass, UClass::StaticClass());
 		const FString NativeType = FEmitHelper::GetCppName(Context.GetFirstNativeOrConvertedClass(ObjectClass));
+		if(!ObjectClass->IsNative())
+		{
+			// make sure CDO has been created for NativeType:
+			Context.AddLine(FString::Printf(TEXT("%s::StaticClass()->GetDefaultObject();"), *NativeType));
+		}
 		Context.AddLine(FString::Printf(
 			TEXT("auto %s = NewObject<%s>(%s, %s, TEXT(\"%s\"));")
 			, *LocalNativeName

@@ -1,13 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "FloatPropertyTrackEditor.h"
-
-
-class ISequencer;
-class UMovieSceneTrack;
-
+#include "CoreMinimal.h"
+#include "Templates/SubclassOf.h"
+#include "ISequencer.h"
+#include "MovieSceneTrack.h"
+#include "ISequencerTrackEditor.h"
+#include "TrackEditors/PropertyTrackEditors/FloatPropertyTrackEditor.h"
 
 /**
 * A property track editor for slow motion control.

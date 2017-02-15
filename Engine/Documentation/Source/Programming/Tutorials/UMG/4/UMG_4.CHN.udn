@@ -82,7 +82,7 @@ Description:设置游戏模式以使用主菜单控件。
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -110,7 +110,7 @@ Description:设置游戏模式以使用主菜单控件。
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -145,7 +145,7 @@ Description:设置游戏模式以使用主菜单控件。
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"

@@ -2,7 +2,7 @@ Availability: Public
 Title:4. Configure Our Game Mode
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
 Description:Set up our Game Mode to use our Main Menu Widget.
-version:4.9
+version:4.14
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -83,7 +83,7 @@ Our custom GameMode asset is now in effect on our level, configured to load our 
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -111,7 +111,7 @@ Our custom GameMode asset is now in effect on our level, configured to load our 
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -128,14 +128,14 @@ Our custom GameMode asset is now in effect on our level, configured to load our 
 				GENERATED_BODY()
 
 			public:
-				/** Called when the game starts. */
-				virtual void BeginPlay() override;
-
 				/** Remove the current menu widget and create a new one from the specified class, if provided. */
 				UFUNCTION(BlueprintCallable, Category = "UMG Game")
 				void ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass);
 
 			protected:
+				/** Called when the game starts. */
+				virtual void BeginPlay() override;
+
 				/** The widget class we will use as our menu when the game starts. */
 				UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UMG Game")
 				TSubclassOf<UUserWidget> StartingWidgetClass;
@@ -146,7 +146,7 @@ Our custom GameMode asset is now in effect on our level, configured to load our 
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"
@@ -173,6 +173,39 @@ Our custom GameMode asset is now in effect on our level, configured to load our 
 					}
 				}
 			}
+			
+		**HowTo_UMGPlayerController.h**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+			#pragma once
+
+			#include "GameFramework/PlayerController.h"
+			#include "HowTo_UMGPlayerController.generated.h"
+
+			/**
+			 * 
+			 */
+			UCLASS()
+			class HOWTO_UMG_API AHowTo_UMGPlayerController : public APlayerController
+			{
+				GENERATED_BODY()
+				
+			public:
+				virtual void BeginPlay() override;
+			};
+
+		**HowTo_UMGPlayerController.cpp**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+			#include "HowTo_UMG.h"
+			#include "HowTo_UMGPlayerController.h"
+
+			void AHowTo_UMGPlayerController::BeginPlay()
+			{
+				Super::BeginPlay();
+				SetInputMode(FInputModeGameAndUI());
+			}
+
     [/PARAM]
 [/OBJECT]
 

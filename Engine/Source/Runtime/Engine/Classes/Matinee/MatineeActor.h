@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //  AActor  used to controll matinee's and to replicate activation, playback, and other relevant flags to net clients
 
 #pragma once
 
-#include "Engine/EngineBaseTypes.h"
-#include "TimerManager.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
 #include "MatineeActor.generated.h"
+
+class APlayerController;
+class UActorChannel;
+class UInterpGroupInst;
 
 /** Signature of function to handle a matinee event track key */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMatineeEvent);
@@ -333,9 +339,13 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void PreNetReceive() override;
 	virtual void PostNetReceive() override;
-	virtual void BeginPlay() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	virtual void PostLoad() override;
+
+protected:
+	virtual void BeginPlay() override;
+
+public:
 
 #if WITH_EDITOR
 	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;

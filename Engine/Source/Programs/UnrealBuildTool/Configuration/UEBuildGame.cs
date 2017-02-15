@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -20,30 +20,11 @@ namespace UnrealBuildTool
 		public UEBuildGame(TargetDescriptor InDesc, TargetRules InRulesObject, RulesAssembly InRulesAssembly, FileReference InTargetCsFilename)
 			: base(InDesc, InRulesObject, InRulesAssembly, "UE4", InTargetCsFilename)
 		{
-			if (ShouldCompileMonolithic())
-			{
-				if (!UnrealBuildTool.IsDesktopPlatform(Platform))
-				{
-					// We are compiling for a console...
-					// We want the output to go into the <GAME>\Binaries folder
-					if (!InRulesObject.bOutputToEngineBinaries)
-					{
-						OutputPaths = OutputPaths.Select(Path => new FileReference(Path.FullName.Replace("Engine\\Binaries", InDesc.TargetName + "\\Binaries"))).ToList();
-					}
-				}
-			}
 		}
 
 		//
 		// UEBuildTarget interface.
 		//
-
-
-		protected override void SetupModules()
-		{
-			base.SetupModules();
-		}
-
 
 		/// <summary>
 		/// Setup the binaries for this target

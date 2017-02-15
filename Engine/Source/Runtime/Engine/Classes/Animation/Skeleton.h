@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /** 
  * This is the definition for a skeleton, used to animate USkeletalMesh
@@ -6,14 +6,23 @@
  */
 
 #pragma once
-#include "PreviewAssetAttachComponent.h"
-#include "SmartName.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
 #include "ReferenceSkeleton.h"
+#include "Animation/PreviewAssetAttachComponent.h"
+#include "Animation/SmartName.h"
+
 #include "Skeleton.generated.h"
 
 class UAnimSequence;
-class USkeletalMesh;
 class UBlendProfile;
+class UPreviewMeshCollection;
+class URig;
+class USkeletalMesh;
+class USkeletalMeshSocket;
 
 /** This is a mapping table between bone in a particular skeletal mesh and bone of this skeleton set. */
 USTRUCT()
@@ -328,12 +337,15 @@ public:
 	// you'll have to call REfreshCAchedAnimationCurveData to apply
 	ENGINE_API FCurveMetaData* GetCurveMetaData(const FName& CurveName);
 	ENGINE_API const FCurveMetaData* GetCurveMetaData(const FName& CurveName) const;
+	ENGINE_API const FCurveMetaData* GetCurveMetaData(const SmartName::UID_Type CurveUID) const;
 	ENGINE_API FCurveMetaData* GetCurveMetaData(const FSmartName& CurveName);
 	ENGINE_API const FCurveMetaData* GetCurveMetaData(const FSmartName& CurveName) const;
 	// this is called when you know both flags - called by post serialize
 	ENGINE_API void AccumulateCurveMetaData(FName CurveName, bool bMaterialSet, bool bMorphtargetSet);
 
 	ENGINE_API bool AddNewVirtualBone(const FName SourceBoneName, const FName TargetBoneName);
+
+	ENGINE_API bool AddNewVirtualBone(const FName SourceBoneName, const FName TargetBoneName, FName& NewVirtualBoneName);
 
 	ENGINE_API void RemoveVirtualBones(const TArray<FName>& BonesToRemove);
 	
@@ -509,7 +521,7 @@ public:
 	typedef TArray<FBoneNode> FBoneTreeType;
 
 	/** Runtime built mapping table between SkeletalMeshes, and LinkupCache array indices. */
-	TMap<TAutoWeakObjectPtr<class USkeletalMesh>, int32> SkelMesh2LinkupCache;
+	TMap<TWeakObjectPtr<USkeletalMesh>, int32> SkelMesh2LinkupCache;
 
 #if WITH_EDITORONLY_DATA
 
@@ -697,6 +709,13 @@ public:
 	 * @param	InSkelMesh	: SkeletalMesh to build look up for
 	 */
 	void RebuildLinkup(const USkeletalMesh* InSkelMesh);
+
+	/**
+	 * Remove Link up cache for the SkelMesh
+	 *
+	 * @param	InSkelMesh	: SkeletalMesh to remove linkup cache for 
+	 */
+	void RemoveLinkup(const USkeletalMesh* InSkelMesh);
 
 	ENGINE_API void SetBoneTranslationRetargetingMode(const int32& BoneIndex, EBoneTranslationRetargetingMode::Type NewRetargetingMode, bool bChildrenToo=false);
 

@@ -1,14 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintEditorPrivatePCH.h"
-#include "SlateBasics.h"
 #include "BlueprintEditorCommands.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Engine/Selection.h"
+#include "EdGraph/EdGraphNode.h"
+#include "Engine/Blueprint.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "UObject/UnrealType.h"
 #include "Engine/LevelScriptActor.h"
-#include "BlueprintFunctionNodeSpawner.h" 
-#include "BlueprintEventNodeSpawner.h" 
+#include "UObject/UObjectHash.h"
+#include "Engine/Selection.h"
+#include "Editor.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_Literal.h"
+#include "K2Node_MacroInstance.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "BlueprintNodeBinder.h"
+#include "BlueprintNodeSpawner.h"
+#include "BlueprintFunctionNodeSpawner.h"
+#include "UObject/UObjectIterator.h"
+#include "BlueprintEventNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditorCommands"
 
@@ -66,6 +76,8 @@ void FBlueprintEditorCommands::RegisterCommands()
 	UI_COMMAND( RecompilePersona, "Recompile Persona", "Recompiles and reloads C++ code for Persona", EUserInterfaceActionType::Button, FInputChord() );
 
 	UI_COMMAND(GenerateNativeCode, "Generate Native Code", "Generate C++ code from the blueprint", EUserInterfaceActionType::Button, FInputChord());
+
+	UI_COMMAND(ShowActionMenuItemSignatures, "Show Action Menu Item Signatures", "If enabled, tooltips on action menu items will show the associated action's signature id (can be used to setup custom favorites menus).", EUserInterfaceActionType::ToggleButton, FInputChord());
 
 	// SCC commands
 	UI_COMMAND( BeginBlueprintMerge, "Merge", "Shows the Blueprint merge panel and toolbar, allowing the user to resolve conflicted blueprints", EUserInterfaceActionType::Button, FInputChord() );

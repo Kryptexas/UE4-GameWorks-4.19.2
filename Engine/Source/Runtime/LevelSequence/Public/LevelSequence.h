@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneSequence.h"
 #include "LevelSequenceObject.h"
 #include "LevelSequenceObjectReference.h"
 #include "LevelSequence.generated.h"
+
+class UMovieScene;
 
 /**
  * Movie scene animation for Actors.
@@ -33,17 +37,15 @@ public:
 public:
 
 	// UMovieSceneSequence interface
-	
 	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject, UObject* Context) override;
-	virtual bool CanPossessObject(UObject& Object) const override;
-	virtual UObject* FindPossessableObject(const FGuid& ObjectId, UObject* Context) const override;
-	virtual FGuid FindPossessableObjectId(UObject& Object) const override;
+	virtual bool CanPossessObject(UObject& Object, UObject* InPlaybackContext) const override;
+	virtual void LocateBoundObjects(const FGuid& ObjectId, UObject* Context, TArray<UObject*, TInlineAllocator<1>>& OutObjects) const override;
 	virtual UMovieScene* GetMovieScene() const override;
 	virtual UObject* GetParentObject(UObject* Object) const override;
 	virtual void UnbindPossessableObjects(const FGuid& ObjectId) override;
 	virtual bool AllowsSpawnableObjects() const override;
+	virtual bool CanRebindPossessable(const FMovieScenePossessable& InPossessable) const override;
 	virtual UObject* MakeSpawnableTemplateFromInstance(UObject& InSourceObject, FName ObjectName) override;
-	
 
 	virtual void PostLoad() override;
 

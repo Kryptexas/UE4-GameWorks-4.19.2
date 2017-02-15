@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "BlueprintGraphPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "CallFunctionHandler.h"
+#include "UObject/MetaData.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_Event.h"
+#include "K2Node_CallParentFunction.h"
+#include "K2Node_ExecutionSequence.h"
+
+#include "EdGraphUtilities.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "KismetCompiler.h"
 
 #define LOCTEXT_NAMESPACE "CallFunctionHandler"
 
@@ -44,7 +51,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // FKCHandler_CallFunction
 
-#if _MSC_VER
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4750)
 #endif
@@ -88,23 +95,6 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 		if (bIsLatent && (CompilerContext.UbergraphContext != &Context))
 		{
 			CompilerContext.MessageLog.Error(*LOCTEXT("ContainsLatentCall_Error", "@@ contains a latent call, which cannot exist outside of the event graph").ToString(), Node);
-		}
-
-		// Check access specifier
-		const uint32 AccessSpecifier = Function->FunctionFlags & FUNC_AccessSpecifiers;
-		if(FUNC_Private == AccessSpecifier)
-		{
-			if(Function->GetOuter() != Context.NewClass)
-			{
-				CompilerContext.MessageLog.Warning(*LOCTEXT("PrivateFunctionCall_Error", "Function @@ is private and cannot be called outside its class").ToString(), Node);
-			}
-		}
-		else if(FUNC_Protected == AccessSpecifier)
-		{
-			if( !Context.NewClass->IsChildOf( Cast<UStruct>( Function->GetOuter() ) ) )
-			{
-				CompilerContext.MessageLog.Warning(*LOCTEXT("ProtectedFunctionCall_Error", "Function @@ is protected and can be called only from its class or subclasses").ToString(), Node);
-			}
 		}
 
 		UEdGraphPin* LatentInfoPin = NULL;
@@ -391,7 +381,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 					for(int32 i = 0; i < SelfPin->LinkedTo.Num(); i++)
 					{
 						FBPTerminal** pContextTerm = Context.NetMap.Find(SelfPin->LinkedTo[i]);
-						if(ensure(pContextTerm != nullptr))
+						if(ensureMsgf(pContextTerm != nullptr, TEXT("'%s' is missing a target input - if this is a server build, the input may be a cosmetic only property which was discarded (if this is the case, and this is expecting component variable try resaving.)"), *Node->GetPathName()))
 						{
 							CheckAndAddSelfTermLambda(*pContextTerm);
 						}
@@ -447,6 +437,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 			}
 
 			// Iterate over all the contexts this functions needs to be called on, and emit a call function statement for each
+			FBlueprintCompiledStatement* LatentStatement = nullptr;
 			for (auto TargetListIt = ContextTerms.CreateIterator(); TargetListIt; ++TargetListIt)
 			{
 				FBPTerminal* Target = *TargetListIt;
@@ -481,6 +472,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 						check(LatentTargetParamIndex != INDEX_NONE);
 						Statement.UbergraphCallIndex = LatentTargetParamIndex;
 						Context.GotoFixupRequestMap.Add(&Statement, ThenExecPin);
+						LatentStatement = &Statement;
 					}
 				}
 
@@ -494,6 +486,12 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 				{
 					FBlueprintCompiledStatement& SuspendState = Context.AppendStatementForNode(Node);
 					SuspendState.Type = KCST_InstrumentedStateSuspend;
+					if (LatentTargetNode != NULL)
+					{
+						check(LatentTargetParamIndex != INDEX_NONE);
+						SuspendState.UbergraphCallIndex = LatentTargetParamIndex;
+						SuspendState.TargetLabel = LatentStatement;
+					}
 				}
 				// End this thread of execution; the latent function will resume it at some point in the future
 				FBlueprintCompiledStatement& PopStatement = Context.AppendStatementForNode(Node);
@@ -820,7 +818,7 @@ FString FKCHandler_CallFunction::GetFunctionNameFromNode(UEdGraphNode* Node) con
 	}
 }
 
-#if _MSC_VER
+#ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 

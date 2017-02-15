@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/IPropertyTableColumn.h"
+#include "CoreMinimal.h"
+#include "IPropertyTableCellPresenter.h"
+#include "IPropertyTableColumn.h"
+#include "IPropertyTableUtilities.h"
 #include "Editor/PropertyEditor/Public/IPropertyTableCustomColumn.h"
-#include "Editor/PropertyEditor/Public/IPropertyTableCellPresenter.h"
 
+class IPropertyHandle;
+class IPropertyTableCell;
 
 class FConfigPropertyConfigFileStateCellPresenter : public TSharedFromThis< FConfigPropertyConfigFileStateCellPresenter >, public IPropertyTableCellPresenter
 {

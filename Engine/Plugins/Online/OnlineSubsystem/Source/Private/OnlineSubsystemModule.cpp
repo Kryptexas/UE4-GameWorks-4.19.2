@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemPrivatePCH.h"
-#include "ModuleManager.h"
+#include "OnlineSubsystemModule.h"
+#include "Misc/CommandLine.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/ConfigCacheIni.h"
+#include "OnlineSubsystem.h"
 #include "OnlineSubsystemImpl.h"
 
 IMPLEMENT_MODULE( FOnlineSubsystemModule, OnlineSubsystem );
@@ -56,9 +59,26 @@ static TSharedPtr<IModuleInterface> LoadSubsystemModule(const FString& Subsystem
 
 void FOnlineSubsystemModule::StartupModule()
 {
+	// These should not be LoadModuleChecked because these modules might not exist
+	// Load dependent modules to ensure they will still exist during ShutdownModule.
+	// We will alwawys load these modules at the cost of extra modules loaded for the few OSS (like Null) that don't use it.
+	if (FModuleManager::Get().ModuleExists(TEXT("HTTP")))
+	{
+		FModuleManager::Get().LoadModule(TEXT("HTTP"));
+	}
+	if (FModuleManager::Get().ModuleExists(TEXT("XMPP")))
+	{
+		FModuleManager::Get().LoadModule(TEXT("XMPP"));
+	}
+
 	LoadDefaultSubsystem();
 	// Also load the console/platform specific OSS which might not necessarily be the default OSS instance
 	IOnlineSubsystem::GetByPlatform();
+}
+
+void FOnlineSubsystemModule::PreUnloadCallback()
+{
+	PreUnloadOnlineSubsystem();
 }
 
 void FOnlineSubsystemModule::ShutdownModule()
@@ -117,6 +137,15 @@ void FOnlineSubsystemModule::ReloadDefaultSubsystem()
 {
 	DestroyOnlineSubsystem(DefaultPlatformService);
 	LoadDefaultSubsystem();
+}
+
+void FOnlineSubsystemModule::PreUnloadOnlineSubsystem()
+{
+	// Shutdown all online subsystem instances
+	for (TMap<FName, IOnlineSubsystemPtr>::TIterator It(OnlineSubsystems); It; ++It)
+	{
+		It.Value()->PreUnload();
+	}
 }
 
 void FOnlineSubsystemModule::ShutdownOnlineSubsystem()

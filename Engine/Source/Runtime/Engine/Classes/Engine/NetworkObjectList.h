@@ -1,11 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Set.h"
+#include "CoreMinimal.h"
 
 class AActor;
-class UWorld;
 
 /**
  * Struct to store an actor pointer and any internal metadata for that actor used

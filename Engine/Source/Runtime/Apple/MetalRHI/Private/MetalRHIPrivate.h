@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalRHIPrivate.h: Private Metal RHI definitions.
@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include "Engine.h"
+#include "CoreMinimal.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/CommandLine.h"
 
 // UE4 has a Max of 8 RTs, but we can spend less time looping with 6
 const uint32 MaxMetalRenderTargets = 6;
@@ -18,7 +20,7 @@ const uint32 BufferOffsetAlignment = 256;
 const uint32 MetalBufferPageSize = 4096;
 
 #define METAL_API_1_1 (__IPHONE_9_0 || __MAC_10_11)
-#define METAL_API_1_2 ((__IPHONE_10_0 && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_10_0) || (__MAC_10_12 && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_12))
+#define METAL_API_1_2 ((__IPHONE_10_0 && defined(__IPHONE_OS_VERSION_MIN_REQUIRED) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_10_0) || (__MAC_10_12 && defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_12))
 
 #if METAL_API_1_1
 #define BUFFER_CACHE_MODE MTLResourceCPUCacheModeWriteCombined
@@ -44,6 +46,13 @@ const uint32 MaxMetalStreams = 30;
 
 #ifndef METAL_STATISTICS
 #define METAL_STATISTICS 0
+#endif
+
+#define METAL_DEBUG_OPTIONS !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if METAL_DEBUG_OPTIONS
+#define METAL_DEBUG_OPTION(Code) Code
+#else
+#define METAL_DEBUG_OPTION(Code)
 #endif
 
 #define SHOULD_TRACK_OBJECTS (UE_BUILD_DEBUG)
@@ -97,6 +106,36 @@ void UntrackMetalObject(NSObject* Object);
 #define UNTRACK_OBJECT(Stat, Obj) DEC_DWORD_STAT(Stat)
 #endif
 
+enum EMetalIndexType
+{
+	EMetalIndexType_None   = 0,
+	EMetalIndexType_UInt16 = 1,
+	EMetalIndexType_UInt32 = 2
+};
+
+FORCEINLINE MTLIndexType GetMetalIndexType(EMetalIndexType IndexType)
+{
+	switch (IndexType)
+	{
+		case EMetalIndexType_UInt16: return MTLIndexTypeUInt16;
+		case EMetalIndexType_UInt32: return MTLIndexTypeUInt32;
+		case EMetalIndexType_None:
+		{
+			UE_LOG(LogMetal, Fatal, TEXT("There is not equivalent MTLIndexType for EMetalIndexType_None"));
+			return MTLIndexTypeUInt16;
+		}
+	}
+}
+
+FORCEINLINE EMetalIndexType GetRHIMetalIndexType(MTLIndexType IndexType)
+{
+	switch (IndexType)
+	{
+		case MTLIndexTypeUInt16: return EMetalIndexType_UInt16;
+		case MTLIndexTypeUInt32: return EMetalIndexType_UInt32;
+	}
+}
+
 FORCEINLINE int32 GetMetalCubeFace(ECubeFace Face)
 {
 	// According to Metal docs these should match now: https://developer.apple.com/library/prerelease/ios/documentation/Metal/Reference/MTLTexture_Ref/index.html#//apple_ref/c/tdef/MTLTextureType
@@ -134,5 +173,10 @@ FORCEINLINE MTLStoreAction GetMetalRTStoreAction(ERenderTargetStoreAction StoreA
 	}
 }
 
+uint32 TranslateElementTypeToSize(EVertexElementType Type);
+
+MTLPrimitiveType TranslatePrimitiveType(uint32 PrimitiveType);
+
 #include "MetalStateCache.h"
 #include "MetalContext.h"
+

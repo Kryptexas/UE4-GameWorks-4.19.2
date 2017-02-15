@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3151861
 Availability: Public
 Title:전략 게임
 Crumbs:%ROOT%, Resources
@@ -258,7 +258,7 @@ _Remote Event_ 노드를 사용해서 다음 웨이브에 대한 _Custom Event_ 
 
 게임에서 기지의 생명은 세 개 입니다. 적 폰이 아군 양조장에 도달하면 생명이 하나 깎이고, 모든 생명이 깎이면 게임에 패배하게 됩니다. 적 보스가 아군 양조장에 도달해도 역시 게임에 패배하게 됩니다.
 게임에 승리하기 위해서는 생명을 다 잃기 전까지 적 폰의 다섯 웨이브 모두를 무찔러야 합니다. 승리 및 패배 결정 조건을 구성하는 망은 **TowerDefenseMap** 의 _레벨 블루프린트_ 안에 있으며, 함수 호출은 
-`AGameInfo` 클래스에서 파생되는 `StrategyGameInfo` 클래스에 구성되어 있습니다. `StrategyGameInfo` 클래스에는 게임을 초기화키며 액터의 PreInitializeComponents, `SetGamePaused`, `SetGameDifficulty` 이전에 호출되기도 하는 `InitGame` 와 같은 함수도 들어 있습니다.
+`AGameModeBase` 클래스에서 파생되는 `StrategyGameInfo` 클래스에 구성되어 있습니다. `StrategyGameInfo` 클래스에는 게임을 초기화키며 액터의 PreInitializeComponents, `SetGamePaused`, `SetGameDifficulty` 이전에 호출되기도 하는 `InitGame` 와 같은 함수도 들어 있습니다.
 
 웨이브 5 에 스폰되는 최종 보스를 죽이고 나면 _Remote Event_ 노드를 통해 **Winning** _Custom Event_ 가 호출됩니다. 그 후 **Win Condition** 코멘트 박스 안에 있는 이 _Custom Event_ 는 **WaitForWin** 하위망 실행을 발동 및 트리거시켜 
 아직 살아있는 적 폰이 없는지 검사합니다. 살아있는 적이 없으면 `Finish Game` 함수에 **WinningTeam** 입력을 "Player" 로 설정하여 호출합니다.

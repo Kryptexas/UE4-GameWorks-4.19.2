@@ -1,27 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DestructibleComponent.cpp: UDestructibleComponent methods.
 =============================================================================*/
 
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
-#include "PhysicsEngine/DestructibleActor.h"
-#include "PhysicsEngine/PhysXSupport.h"
-#include "Collision/PhysXCollision.h"
-#include "ParticleDefinitions.h"
-#include "ObjectEditorUtils.h"
+#include "Components/DestructibleComponent.h"
+#include "EngineStats.h"
+#include "GameFramework/DamageType.h"
+#include "AI/Navigation/NavigationSystem.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "PhysicsEngine/DestructibleActor.h"
+#include "PhysXPublic.h"
+#include "PhysicsEngine/PhysXSupport.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "Engine/DestructibleMesh.h"
-#include "Components/DestructibleComponent.h"
-#include "AI/Navigation/NavigationSystem.h"
-#include "NavigationSystemHelpers.h"
+#include "AI/NavigationSystemHelpers.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "Kismet/GameplayStatics.h"
-#include "GameFramework/DamageType.h"
+#include "ObjectEditorUtils.h"
+#include "Engine/StaticMesh.h"
 
 UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -1254,21 +1252,28 @@ void UDestructibleComponent::SetCollisionResponseToChannel(ECollisionChannel Cha
 void UDestructibleComponent::SetCollisionResponseToAllChannels(ECollisionResponse NewResponse)
 {
 #if WITH_APEX
-	PxU32 NumChunks = GetDestructibleMesh()->GetApexDestructibleAsset()->getChunkCount();
-
-	for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+	if(ApexDestructibleActor)
 	{
-		PxRigidDynamic* PxActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
-		int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIdx);
+		if (DestructibleAsset* Asset = GetDestructibleMesh()->GetApexDestructibleAsset())
+		{
+			PxU32 NumChunks = Asset->getChunkCount();
 
-		SetupFakeBodyInstance(PxActor, BoneIndex);
 
-		BodyInstance.SetResponseToAllChannels(NewResponse);
-	}
+			for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+			{
+				PxRigidDynamic* PxActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
+				int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIdx);
 
-	if(NumChunks > 0)
-	{
-		OnComponentCollisionSettingsChanged();
+				SetupFakeBodyInstance(PxActor, BoneIndex);
+
+				BodyInstance.SetResponseToAllChannels(NewResponse);
+			}
+
+			if(NumChunks > 0)
+			{
+				OnComponentCollisionSettingsChanged();
+			}
+		}
 	}
 #endif
 }
@@ -1276,21 +1281,28 @@ void UDestructibleComponent::SetCollisionResponseToAllChannels(ECollisionRespons
 void UDestructibleComponent::SetCollisionResponseToChannels(const FCollisionResponseContainer& NewReponses)
 {
 #if WITH_APEX
-	PxU32 NumChunks = GetDestructibleMesh()->GetApexDestructibleAsset()->getChunkCount();
-
-	for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+	if(ApexDestructibleActor)
 	{
-		PxRigidDynamic* PxActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
-		int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIdx);
+		if (DestructibleAsset* Asset = GetDestructibleMesh()->GetApexDestructibleAsset())
+		{
+			PxU32 NumChunks = Asset->getChunkCount();
 
-		SetupFakeBodyInstance(PxActor, BoneIndex);
 
-		BodyInstance.SetResponseToChannels(NewReponses);
-	}
+			for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+			{
+				PxRigidDynamic* PxActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
+				int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIdx);
 
-	if(NumChunks > 0)
-	{
-		OnComponentCollisionSettingsChanged();
+				SetupFakeBodyInstance(PxActor, BoneIndex);
+
+				BodyInstance.SetResponseToChannels(NewReponses);
+			}
+
+			if(NumChunks > 0)
+			{
+				OnComponentCollisionSettingsChanged();
+			}
+		}
 	}
 #endif
 }

@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "EngineModule.h"
-#include "RendererInterface.h"
+#include "ThumbnailRendering/LevelThumbnailRenderer.h"
+#include "EngineDefines.h"
+#include "Misc/App.h"
+#include "Engine/Level.h"
+#include "ShowFlags.h"
+#include "SceneView.h"
 #include "Engine/LevelBounds.h"
+#include "RendererInterface.h"
+#include "EngineModule.h"
 
 ULevelThumbnailRenderer::ULevelThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -20,6 +25,7 @@ void ULevelThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Wid
 
 		ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
 		ViewFamily.EngineShowFlags.MotionBlur = 0;
+		ViewFamily.EngineShowFlags.SetDistanceCulledPrimitives(true); // show distance culled objects
 		ViewFamily.EngineShowFlags.SetPostProcessing(false);
 
 		GetView(Level, &ViewFamily, X, Y, Width, Height);

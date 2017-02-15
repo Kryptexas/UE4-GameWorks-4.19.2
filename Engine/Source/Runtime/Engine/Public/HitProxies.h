@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HitProxies.h: Hit proxy definitions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Templates/RefCounting.h"
+#include "GenericPlatform/ICursor.h"
+
+class FReferenceCollector;
 
 /**
  * The priority a hit proxy has when choosing between several hit proxies near the point the user clicked.

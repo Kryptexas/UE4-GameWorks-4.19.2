@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectIterator.h: High level iterators for uobject
@@ -6,7 +6,12 @@
 
 #pragma once
 
-#include "Class.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectArray.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
 
 /**
  * Class for iterating through all objects, including class default objects, unreachable objects...all UObjects

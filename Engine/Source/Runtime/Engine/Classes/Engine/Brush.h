@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Model.h"
-#include "Level.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameFramework/Actor.h"
 #include "Brush.generated.h"
 
+class UBrushBuilder;
 
 //-----------------------------------------------------------------------------
 // Variables.
@@ -101,7 +102,7 @@ class ENGINE_API ABrush
 	UPROPERTY()
 	uint32 bNotForClientOrServer:1;
 
-	UPROPERTY(export)
+	UPROPERTY(Instanced)
 	class UModel* Brush;
 
 private_subobject:
@@ -162,6 +163,7 @@ public:
 	
 	// AActor interface
 	virtual bool IsLevelBoundsRelevant() const override;
+	virtual void RebuildNavigationData();
 
 #if WITH_EDITOR
 	virtual void Destroyed() override;

@@ -1,7 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
-#include "KismetCompiler.h"
+#include "K2Node_TunnelBoundary.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_Tunnel.h"
+#include "K2Node_Composite.h"
+#include "K2Node_ExecutionSequence.h"
+#include "K2Node_MacroInstance.h"
+#include "KismetCompiledFunctionContext.h"
+#include "KismetCompilerMisc.h"
 
 #define LOCTEXT_NAMESPACE "FKCHandler_TunnelBoundary"
 
@@ -188,6 +194,11 @@ void UK2Node_TunnelBoundary::CreateBoundariesForExpansionNodes(UEdGraphNode* Sou
 		{
 			for (UEdGraphPin* LinkedPin : Pin->LinkedTo)
 			{
+				//if (ExpansionNode->IsA<UK2Node_Event>() && Pin->Direction == EGPD_Output && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
+				//{
+				//	// Add boundary for expansion events.
+				//	LinkedPinMap.Add(Pin, LinkedPin);
+				//}
 				if (UEdGraphPin** SourcePin = LinkedPinMap.Find(LinkedPin))
 				{
 					if (Pin->Direction == EGPD_Input)
@@ -207,21 +218,27 @@ void UK2Node_TunnelBoundary::CreateBoundariesForExpansionNodes(UEdGraphNode* Sou
 	// Create the Boundary nodes for each unique entry/exit site.
 	if (TargetGraph)
 	{
-		// Create entry node and pins
-		UK2Node_TunnelBoundary* EntryBoundaryNode = TargetGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
-		MessageLog.NotifyIntermediateObjectCreation(EntryBoundaryNode, SourceNode);
-		EntryBoundaryNode->CreateNewGuid();
-		for (auto PinEntry : EntryPins)
+		if (EntryPins.Num() > 0)
 		{
-			EntryBoundaryNode->WireUpEntry(SourceNode, PinEntry.Key, PinEntry.Value, MessageLog);
+			for (auto PinEntry : EntryPins)
+			{
+				// Create entry node and pins
+				UK2Node_TunnelBoundary* EntryBoundaryNode = TargetGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
+				MessageLog.NotifyIntermediateObjectCreation(EntryBoundaryNode, SourceNode);
+				EntryBoundaryNode->CreateNewGuid();
+				EntryBoundaryNode->WireUpEntry(SourceNode, PinEntry.Key, PinEntry.Value, MessageLog);
+			}
 		}
-		// Create exit node and pins
-		UK2Node_TunnelBoundary* ExitBoundaryNode = TargetGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
-		MessageLog.NotifyIntermediateObjectCreation(ExitBoundaryNode, SourceNode);
-		ExitBoundaryNode->CreateNewGuid();
-		for (auto PinExit : ExitPins)
+		if (ExitPins.Num() > 0)
 		{
-			ExitBoundaryNode->WireUpExit(SourceNode, PinExit.Key, PinExit.Value, MessageLog);
+			for (auto PinExit : ExitPins)
+			{
+				// Create exit node and pins
+				UK2Node_TunnelBoundary* ExitBoundaryNode = TargetGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
+				MessageLog.NotifyIntermediateObjectCreation(ExitBoundaryNode, SourceNode);
+				ExitBoundaryNode->CreateNewGuid();
+				ExitBoundaryNode->WireUpExit(SourceNode, PinExit.Key, PinExit.Value, MessageLog);
+			}
 		}
 	}
 }
@@ -266,12 +283,12 @@ void UK2Node_TunnelBoundary::WireUpTunnelExit(UK2Node_Tunnel* TunnelInstance, UE
 		UEdGraphPin* SourcePin = TunnelInstance->FindPin(TunnelPin->PinName);
 		// Wire in the node
 		UEdGraphPin* InputPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, TEXT(""), NULL, false, false, SourcePin->PinName);
-		MessageLog.NotifyIntermediatePinCreation(InputPin, SourcePin);
 		for (auto LinkedPin : TunnelPin->LinkedTo)
 		{
 			LinkedPin->MakeLinkTo(InputPin);
 		}
 		UEdGraphPin* OutputPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, TEXT(""), NULL, false, false, TEXT("TunnelExitExec"));
+		MessageLog.NotifyIntermediatePinCreation(OutputPin, SourcePin);
 		TunnelPin->BreakAllPinLinks();
 		TunnelPin->MakeLinkTo(OutputPin);
 	}
@@ -286,9 +303,9 @@ void UK2Node_TunnelBoundary::WireUpEntry(UEdGraphNode* SourceNode, UEdGraphPin* 
 		// Create the pin base name
 		CreateBaseNodeName(SourceNode);
 		// Wire in the node
-		UEdGraphPin* InputPin = CreatePin(EGPD_Input, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), SourcePin->PinType.bIsArray, SourcePin->PinType.bIsReference, TEXT("EntryBoundary"), SourcePin->PinType.bIsConst);
+		UEdGraphPin* InputPin = CreatePin(EGPD_Input, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), SourcePin->PinType.bIsArray, SourcePin->PinType.bIsReference, TEXT("EntryBoundary"), SourcePin->PinType.bIsConst, INDEX_NONE, SourcePin->PinType.bIsSet, SourcePin->PinType.bIsMap, SourcePin->PinType.PinValueType);
 		MessageLog.NotifyIntermediatePinCreation(InputPin, SourcePin);
-		UEdGraphPin* OutputPin = CreatePin(EGPD_Output, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), SourcePin->PinType.bIsArray, SourcePin->PinType.bIsReference, SourcePin->PinName, SourcePin->PinType.bIsConst);
+		UEdGraphPin* OutputPin = CreatePin(EGPD_Output, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), SourcePin->PinType.bIsArray, SourcePin->PinType.bIsReference, SourcePin->PinName, SourcePin->PinType.bIsConst, INDEX_NONE, SourcePin->PinType.bIsSet, SourcePin->PinType.bIsMap, SourcePin->PinType.PinValueType);
 		MessageLog.AddPinTraceFilter(OutputPin);
 		for (auto EntryPin : EntryPins)
 		{
@@ -313,9 +330,9 @@ void UK2Node_TunnelBoundary::WireUpExit(UEdGraphNode* SourceNode, UEdGraphPin* S
 		// Create the pin base name
 		CreateBaseNodeName(SourceNode);
 		// Wire in the node
-		UEdGraphPin* OutputPin = CreatePin(EGPD_Output, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), SourcePin->PinType.bIsArray, SourcePin->PinType.bIsReference, SourcePin->PinName, SourcePin->PinType.bIsConst);
+		UEdGraphPin* OutputPin = CreatePin(EGPD_Output, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), SourcePin->PinType.bIsArray, SourcePin->PinType.bIsReference, SourcePin->PinName, SourcePin->PinType.bIsConst, INDEX_NONE, SourcePin->PinType.bIsSet, SourcePin->PinType.bIsMap, SourcePin->PinType.PinValueType);
 		MessageLog.NotifyIntermediatePinCreation(OutputPin, SourcePin);
-		UEdGraphPin* InputPin = CreatePin(EGPD_Input, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), SourcePin->PinType.bIsArray, SourcePin->PinType.bIsReference, TEXT("ExitBoundary"), SourcePin->PinType.bIsConst);
+		UEdGraphPin* InputPin = CreatePin(EGPD_Input, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), SourcePin->PinType.bIsArray, SourcePin->PinType.bIsReference, TEXT("ExitBoundary"), SourcePin->PinType.bIsConst, INDEX_NONE, SourcePin->PinType.bIsSet, SourcePin->PinType.bIsMap, SourcePin->PinType.PinValueType);
 		MessageLog.AddPinTraceFilter(InputPin);
 		for (auto ExitPin : ExitPins)
 		{

@@ -1,7 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/Docking/TabManager.h"
+#include "ILocalizationDashboardModule.h"
+
+class FMenuBuilder;
 
 /**
  * Unreal editor main frame Slate widget

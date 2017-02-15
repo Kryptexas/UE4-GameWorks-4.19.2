@@ -1,36 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysXLibs.cpp: PhysX library imports
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "EngineDefines.h"
+#include "HAL/FileManager.h"
+#include "HAL/PlatformProcess.h"
+#include "EngineLogs.h"
 
-#if WITH_PHYSX
-
+#if WITH_PHYSX 
 
 // PhysX library imports
-#include "PhysXSupport.h"
 
-#if PLATFORM_WINDOWS
-	HMODULE	PxFoundationHandle = 0;
-	HMODULE PhysX3CommonHandle = 0;
-	HMODULE	PhysX3Handle = 0;
-	HMODULE	PxPvdSDKHandle = 0;
-	#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
-		HMODULE	PhysX3CookingHandle = 0;
-	#endif
-	HMODULE	nvToolsExtHandle = 0;
-	#if WITH_APEX
-			HMODULE	APEXFrameworkHandle = 0;
-			HMODULE	APEX_DestructibleHandle = 0;
-			HMODULE	APEX_LegacyHandle = 0;
-		#if WITH_APEX_CLOTHING
-				HMODULE	APEX_ClothingHandle = 0;
-		#endif  //WITH_APEX_CLOTHING
-	#endif	//WITH_APEX
-#elif PLATFORM_MAC
+#if PLATFORM_WINDOWS || PLATFORM_MAC
 	void* PxFoundationHandle = nullptr;
 	void* PhysX3CommonHandle = nullptr;
 	void* PhysX3Handle = nullptr;
@@ -40,11 +25,11 @@
 	#endif
 	void* nvToolsExtHandle = nullptr;
 	#if WITH_APEX
-			void* APEXFrameworkHandle = nullptr;
-			void* APEX_DestructibleHandle = nullptr;
-			void* APEX_LegacyHandle = nullptr;
+		void* APEXFrameworkHandle = nullptr;
+		void* APEX_DestructibleHandle = nullptr;
+		void* APEX_LegacyHandle = nullptr;
 		#if WITH_APEX_CLOTHING
-				void* APEX_ClothingHandle = nullptr;
+			void* APEX_ClothingHandle = nullptr;
 		#endif  //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
 #endif
@@ -52,7 +37,7 @@
 /**
  *	Load the required modules for PhysX
  */
-void LoadPhysXModules()
+ENGINE_API void LoadPhysXModules()
 {
 
 
@@ -95,9 +80,9 @@ void LoadPhysXModules()
 	FString APEXSuffix(ArchName + TEXT(".dll"));
 #endif
 
-	auto LoadPhysicsLibrary([](const FString& Path) -> HMODULE
+	auto LoadPhysicsLibrary([](const FString& Path) -> void*
 	{
-		HMODULE Handle = LoadLibraryW(*Path);
+		void* Handle = FPlatformProcess::GetDllHandle(*Path);
 		if (Handle == nullptr)
 		{
 			UE_LOG(LogPhysics, Fatal, TEXT("Failed to load module '%s'."), *Path);
@@ -191,23 +176,7 @@ void LoadPhysXModules()
  */
 void UnloadPhysXModules()
 {
-#if PLATFORM_WINDOWS
-	FreeLibrary(PxPvdSDKHandle);
-	FreeLibrary(PhysX3Handle);
-	#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
-		FreeLibrary(PhysX3CookingHandle);
-	#endif
-	FreeLibrary(PhysX3CommonHandle);
-	FreeLibrary(PxFoundationHandle);
-	#if WITH_APEX
-		FreeLibrary(APEXFrameworkHandle);
-		FreeLibrary(APEX_DestructibleHandle);
-		FreeLibrary(APEX_LegacyHandle);
-		#if WITH_APEX_CLOTHING
-			FreeLibrary(APEX_ClothingHandle);
-		#endif //WITH_APEX_CLOTHING
-	#endif	//WITH_APEX
-#elif PLATFORM_MAC
+#if PLATFORM_WINDOWS || PLATFORM_MAC
 	FPlatformProcess::FreeDllHandle(PxPvdSDKHandle);
 	FPlatformProcess::FreeDllHandle(PhysX3Handle);
 	#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
@@ -227,3 +196,4 @@ void UnloadPhysXModules()
 }
 
 #endif // WITH_PHYSX
+

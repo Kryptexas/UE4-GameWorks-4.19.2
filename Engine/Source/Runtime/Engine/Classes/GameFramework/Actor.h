@@ -1,22 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "ComponentInstanceDataCache.h"
-#include "Components/SceneComponent.h"
-#include "EngineDefines.h"
-#include "Engine/EngineBaseTypes.h"
-#include "Engine/EngineTypes.h"
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "UObject/Object.h"
 #include "InputCoreTypes.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/CoreNet.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "ComponentInstanceDataCache.h"
+#include "Components/ChildActorComponent.h"
 #include "RenderCommandFence.h"
-#include "TimerManager.h"
+#include "Misc/ITransaction.h"
 #include "Engine/Level.h"
 
 #include "Actor.generated.h"
 
-struct FHitResult;
 class AActor;
-class FTimerManager; 
+class AController;
+class AMatineeActor;
+class APawn;
+class APlayerController;
+class UActorChannel;
+class UChildActorComponent;
 class UNetDriver;
+class UPrimitiveComponent;
+struct FAttachedActorInfo;
 struct FNetViewer;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActor, Log, Warning);
@@ -264,7 +277,7 @@ public:
 	virtual void SetReplicateMovement(bool bInReplicateMovement);
 
 	/** Sets whether or not this Actor is an autonomous proxy, which is an actor on a network client that is controlled by a user on that client. */
-	void SetAutonomousProxy(bool bInAutonomousProxy);
+	void SetAutonomousProxy(const bool bInAutonomousProxy, const bool bAllowForcePropertyCompare=true);
 	
 	/** Copies RemoteRole from another Actor and adds this actor to the list of network actors if necessary. */
 	void CopyRemoteRoleFrom(const AActor* CopyFromActor);
@@ -584,9 +597,15 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Actor)
 	uint8 bIgnoresOriginShifting:1;
 	
-	/** If true, and if World setting has bEnableHigerarhicalLOD is true, then it will generate LODActor from groups of clustered Actor */
+	/** If true, and if World setting has bEnableHierarchicalLOD equal to true, then it will generate LODActor from groups of clustered Actor */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Actor)
 	uint8 bEnableAutoLODGeneration:1;
+
+private:
+
+	static uint32 BeginPlayCallDepth;
+
+public:
 
 	/** Array of tags that can be used for grouping and categorizing. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category=Actor)
@@ -1282,15 +1301,18 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AI", meta=(BlueprintProtected = "true"))
 	void MakeNoise(float Loudness=1.f, APawn* NoiseInstigator=NULL, FVector NoiseLocation=FVector::ZeroVector, float MaxRange = 0.f, FName Tag = NAME_None);
 
-	//~=============================================================================
-	// Blueprint
-	
+protected:
 	/** Event when play begins for this actor. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "BeginPlay"))
 	void ReceiveBeginPlay();
 
-	/** Event when play begins for this actor. */
+	/** Overridable native event for when play begins for this actor. */
 	virtual void BeginPlay();
+
+public:
+
+	/** Initiate a begin play call on this Actor, will handle . */
+	void DispatchBeginPlay();
 
 	/** Returns whether an actor has been initialized */
 	bool IsActorInitialized() const { return bActorInitialized; }
@@ -1584,56 +1606,6 @@ public:
 		return false;
 	}
 
-	/*~
-	 * Returns transform of the RootComponent 
-	 * this is a template for no other reason than to delay compilation until USceneComponent is defined
-	 */ 
-	template<class T>
-	static FORCEINLINE FTransform GetActorTransform(const T* RootComponent)
-	{
-		return (RootComponent != nullptr) ? RootComponent->GetComponentTransform() : FTransform();
-	}
-
-	/*~
-	 * Returns location of the RootComponent 
-	 * this is a template for no other reason than to delay compilation until USceneComponent is defined
-	 */ 
-	template<class T>
-	static FORCEINLINE FVector GetActorLocation(const T* RootComponent)
-	{
-		return (RootComponent != nullptr) ? RootComponent->GetComponentLocation() : FVector(0.f,0.f,0.f);
-	}
-
-	/*~
-	 * Returns rotation of the RootComponent 
-	 * this is a template for no other reason than to delay compilation until USceneComponent is defined
-	 */ 
-	template<class T>
-	static FORCEINLINE FRotator GetActorRotation(T* RootComponent)
-	{
-		return (RootComponent != nullptr) ? RootComponent->GetComponentRotation() : FRotator(0.f,0.f,0.f);
-	}
-
-	/*~
-	 * Returns scale of the RootComponent 
-	 * this is a template for no other reason than to delay compilation until USceneComponent is defined
-	 */ 
-	template<class T>
-	static FORCEINLINE FVector GetActorScale(T* RootComponent)
-	{
-		return (RootComponent != nullptr) ? RootComponent->GetComponentScale() : FVector(1.f,1.f,1.f);
-	}
-
-	/*~
-	 * Returns quaternion of the RootComponent
-	 * this is a template for no other reason than to delay compilation until USceneComponent is defined
-	 */ 
-	template<class T>
-	static FORCEINLINE FQuat GetActorQuat(T* RootComponent)
-	{
-		return (RootComponent != nullptr) ? RootComponent->GetComponentQuat() : FQuat(ForceInit);
-	}
-
 	/** Returns this actor's root component. */
 	FORCEINLINE USceneComponent* GetRootComponent() const { return RootComponent; }
 
@@ -1656,31 +1628,31 @@ public:
 	/** Returns the transform of the RootComponent of this Actor*/ 
 	FORCEINLINE FTransform GetActorTransform() const
 	{
-		return GetActorTransform(RootComponent);
+		return TemplateGetActorTransform(RootComponent);
 	}
 
 	/** Returns the location of the RootComponent of this Actor*/ 
 	FORCEINLINE FVector GetActorLocation() const
 	{
-		return GetActorLocation(RootComponent);
+		return TemplateGetActorLocation(RootComponent);
 	}
 
 	/** Returns the rotation of the RootComponent of this Actor */
 	FORCEINLINE FRotator GetActorRotation() const
 	{
-		return GetActorRotation(RootComponent);
+		return TemplateGetActorRotation(RootComponent);
 	}
 
 	/** Returns the scale of the RootComponent of this Actor */
 	FORCEINLINE FVector GetActorScale() const
 	{
-		return GetActorScale(RootComponent);
+		return TemplateGetActorScale(RootComponent);
 	}
 
 	/** Returns the quaternion of the RootComponent of this Actor */
 	FORCEINLINE FQuat GetActorQuat() const
 	{
-		return GetActorQuat(RootComponent);
+		return TemplateGetActorQuat(RootComponent);
 	}
 
 #if WITH_EDITOR
@@ -2186,6 +2158,9 @@ public:
 	UFUNCTION(BlueprintAuthorityOnly, BlueprintCallable, Category="Networking")
 	void FlushNetDormancy();
 
+	/** Forces properties on this actor to do a compare for one frame (rather than share shadow state) */
+	void ForcePropertyCompare();
+
 	/** Returns whether this Actor was spawned by a child actor component */
 	UFUNCTION(BlueprintCallable, Category="Actor")
 	bool IsChildActor() const;
@@ -2194,9 +2169,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Actor")
 	void GetAllChildActors(TArray<AActor*>& ChildActors, bool bIncludeDescendants = true) const;
 
+	/** If this Actor was created by a Child Actor Component returns that Child Actor Component  */
 	UFUNCTION(BlueprintCallable, Category="Actor")
 	UChildActorComponent* GetParentComponent() const;
 
+	/** If this Actor was created by a Child Actor Component returns the Actor that owns that Child Actor Component  */
 	UFUNCTION(BlueprintCallable, Category="Actor")
 	AActor* GetParentActor() const;
 
@@ -2439,14 +2416,16 @@ public:
 	void CheckComponentInstanceName(const FName InName);
 
 	/** Walk up the attachment chain from RootComponent until we encounter a different actor, and return it. If we are not attached to a component in a different actor, returns NULL */
-	virtual AActor* GetAttachParentActor() const;
+	UFUNCTION(BlueprintPure, Category = "Utilities")
+	AActor* GetAttachParentActor() const;
 
 	/** Walk up the attachment chain from RootComponent until we encounter a different actor, and return the socket name in the component. If we are not attached to a component in a different actor, returns NAME_None */
-	virtual FName GetAttachParentSocketName() const;
+	UFUNCTION(BlueprintPure, Category = "Utilities")
+	FName GetAttachParentSocketName() const;
 
 	/** Find all Actors which are attached directly to a component in this actor */
 	UFUNCTION(BlueprintPure, Category = "Utilities")
-	virtual void GetAttachedActors(TArray<AActor*>& OutActors) const;
+	void GetAttachedActors(TArray<AActor*>& OutActors) const;
 
 	/**
 	 * Sets the ticking group for this actor.
@@ -2694,21 +2673,44 @@ public:
 	 * {
 	 * 	   TInlineComponentArray<UPrimitiveComponent*> PrimComponents(Actor);
 	 * }
+	 *
+	 * @param bIncludeFromChildActors	If true then recurse in to ChildActor components and find components of the appropriate type in those Actors as well
 	 */
 	template<class T, class AllocatorType>
-	void GetComponents(TArray<T*, AllocatorType>& OutComponents) const
+	void GetComponents(TArray<T*, AllocatorType>& OutComponents, bool bIncludeFromChildActors = false) const
 	{
 		static_assert(TPointerIsConvertibleFromTo<T, const UActorComponent>::Value, "'T' template parameter to GetComponents must be derived from UActorComponent");
 		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
 
 		OutComponents.Reset(OwnedComponents.Num());
 
+		TArray<UChildActorComponent*> ChildActorComponents;
+
 		for (UActorComponent* OwnedComponent : OwnedComponents)
 		{
-			T* Component = Cast<T>(OwnedComponent);
-			if (Component)
+			if (T* Component = Cast<T>(OwnedComponent))
 			{
 				OutComponents.Add(Component);
+			}
+			else if (bIncludeFromChildActors)
+			{
+				if (UChildActorComponent* ChildActorComponent = Cast<UChildActorComponent>(OwnedComponent))
+				{
+					ChildActorComponents.Add(ChildActorComponent);
+				}
+			}
+		}
+
+		if (bIncludeFromChildActors)
+		{
+			TArray<T*, AllocatorType> ComponentsInChildActor;
+			for (UChildActorComponent* ChildActorComponent : ChildActorComponents)
+			{
+				if (AActor* ChildActor = ChildActorComponent->GetChildActor())
+				{
+					ChildActor->GetComponents(ComponentsInChildActor, true);
+					OutComponents.Append(MoveTemp(ComponentsInChildActor));
+				}
 			}
 		}
 	}
@@ -2721,13 +2723,17 @@ public:
 	 * 	   TInlineComponentArray<UPrimitiveComponent*> PrimComponents;
 	 *     Actor->GetComponents(PrimComponents);
 	 * }
+	 *
+	 * @param bIncludeFromChildActors	If true then recurse in to ChildActor components and find components of the appropriate type in those Actors as well
 	 */
 	template<class AllocatorType>
-	void GetComponents(TArray<UActorComponent*, AllocatorType>& OutComponents) const
+	void GetComponents(TArray<UActorComponent*, AllocatorType>& OutComponents, bool bIncludeFromChildActors = false) const
 	{
 		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
 
 		OutComponents.Reset(OwnedComponents.Num());
+
+		TArray<UChildActorComponent*> ChildActorComponents;
 
 		for (UActorComponent* Component : OwnedComponents)
 		{
@@ -2735,7 +2741,28 @@ public:
 			{
 				OutComponents.Add(Component);
 			}
+			else if (bIncludeFromChildActors)
+			{
+				if (UChildActorComponent* ChildActorComponent = Cast<UChildActorComponent>(Component))
+				{
+					ChildActorComponents.Add(ChildActorComponent);
+				}
+			}
 		}
+
+		if (bIncludeFromChildActors)
+		{
+			TArray<UActorComponent*, AllocatorType> ComponentsInChildActor;
+			for (UChildActorComponent* ChildActorComponent : ChildActorComponents)
+			{
+				if (AActor* ChildActor = ChildActorComponent->GetChildActor())
+				{
+					ChildActor->GetComponents(ComponentsInChildActor, true);
+					OutComponents.Append(MoveTemp(ComponentsInChildActor));
+				}
+			}
+		}
+
 	}
 
 	/**
@@ -2894,7 +2921,85 @@ private:
 
 	friend struct FMarkActorIsBeingDestroyed;
 	friend struct FActorParentComponentSetter;
+
+private:
+
+	// Static helpers for accessing functions on SceneComponent.
+	// These are templates for no other reason than to delay compilation until USceneComponent is defined.
+
+	/*~
+	 * Returns transform of the RootComponent 
+	 */ 
+	template<class T>
+	static FORCEINLINE FTransform TemplateGetActorTransform(const T* RootComponent)
+	{
+		return (RootComponent != nullptr) ? RootComponent->GetComponentTransform() : FTransform();
+	}
+
+	/*~
+	 * Returns location of the RootComponent 
+	 */ 
+	template<class T>
+	static FORCEINLINE FVector TemplateGetActorLocation(const T* RootComponent)
+	{
+		return (RootComponent != nullptr) ? RootComponent->GetComponentLocation() : FVector::ZeroVector;
+	}
+
+	/*~
+	 * Returns rotation of the RootComponent 
+	 */ 
+	template<class T>
+	static FORCEINLINE FRotator TemplateGetActorRotation(const T* RootComponent)
+	{
+		return (RootComponent != nullptr) ? RootComponent->GetComponentRotation() : FRotator::ZeroRotator;
+	}
+
+	/*~
+	 * Returns scale of the RootComponent 
+	 */ 
+	template<class T>
+	static FORCEINLINE FVector TemplateGetActorScale(const T* RootComponent)
+	{
+		return (RootComponent != nullptr) ? RootComponent->GetComponentScale() : FVector(1.f,1.f,1.f);
+	}
+
+	/*~
+	 * Returns quaternion of the RootComponent
+	 */ 
+	template<class T>
+	static FORCEINLINE FQuat TemplateGetActorQuat(const T* RootComponent)
+	{
+		return (RootComponent != nullptr) ? RootComponent->GetComponentQuat() : FQuat(ForceInit);
+	}
+
+	/*~
+	 * Returns the forward (X) vector (length 1.0) of the RootComponent, in world space.
+	 */ 
+	template<class T>
+	static FORCEINLINE FVector TemplateGetActorForwardVector(const T* RootComponent)
+	{
+		return (RootComponent != nullptr) ? RootComponent->GetForwardVector() : FVector::ForwardVector;
+	}
+
+	/*~
+	* Returns the Up (Z) vector (length 1.0) of the RootComponent, in world space.
+	*/ 
+	template<class T>
+	static FORCEINLINE FVector TemplateGetActorUpVector(const T* RootComponent)
+	{
+		return (RootComponent != nullptr) ? RootComponent->GetUpVector() : FVector::UpVector;
+	}
+
+	/*~
+	* Returns the Right (Y) vector (length 1.0) of the RootComponent, in world space.	
+	*/ 
+	template<class T>
+	static FORCEINLINE FVector TemplateGetActorRightVector(const T* RootComponent)
+	{
+		return (RootComponent != nullptr) ? RootComponent->GetRightVector() : FVector::RightVector;
+	}
 };
+
 
 struct FMarkActorIsBeingDestroyed
 {
@@ -2956,6 +3061,37 @@ void FActorComponentTickFunction::ExecuteTickHelper(UActorComponent* Target, boo
 
 //////////////////////////////////////////////////////////////////////////
 // Inlines
+
+FORCEINLINE_DEBUGGABLE FVector AActor::K2_GetActorLocation() const
+{
+	return GetActorLocation();
+}
+
+FORCEINLINE_DEBUGGABLE FRotator AActor::K2_GetActorRotation() const
+{
+	return GetActorRotation();
+}
+
+FORCEINLINE_DEBUGGABLE USceneComponent* AActor::K2_GetRootComponent() const
+{
+	return GetRootComponent();
+}
+
+FORCEINLINE_DEBUGGABLE FVector AActor::GetActorForwardVector() const
+{
+	return TemplateGetActorForwardVector(RootComponent);
+}
+
+FORCEINLINE_DEBUGGABLE FVector AActor::GetActorUpVector() const
+{
+	return TemplateGetActorUpVector(RootComponent);
+}
+
+FORCEINLINE_DEBUGGABLE FVector AActor::GetActorRightVector() const
+{
+	return TemplateGetActorRightVector(RootComponent);
+}
+
 
 FORCEINLINE float AActor::GetSimpleCollisionRadius() const
 {

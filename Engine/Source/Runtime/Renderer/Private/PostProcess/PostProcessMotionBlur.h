@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessMotionBlur.h: Post process MotionBlur implementation.
@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
+#include "PostProcess/RenderingCompositionGraph.h"
 
 // Find max velocity per 16x16 tile
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>

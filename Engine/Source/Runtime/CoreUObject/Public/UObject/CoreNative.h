@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CoreNative.h: Native function lookup table.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/Script.h"
+#include "UObject/Object.h"
+
+struct FFrame;
+
+/** The type of a native function callable by script */
+typedef void (UObject::*Native)(FFrame& TheStack, RESULT_DECL);
 
 extern COREUOBJECT_API Native GCasts[];
 uint8 COREUOBJECT_API GRegisterCast( int32 CastCode, const Native& Func );

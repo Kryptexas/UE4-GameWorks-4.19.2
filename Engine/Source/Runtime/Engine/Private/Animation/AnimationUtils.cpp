@@ -1,20 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationUtils.cpp: Skeletal mesh animation utilities.
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
+#include "AnimationUtils.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/Package.h"
+#include "Animation/AnimCompress.h"
 #include "Animation/AnimCompress_BitwiseCompressOnly.h"
+#include "Animation/AnimCompress_RemoveLinearKeys.h"
 #include "Animation/AnimCompress_PerTrackCompression.h"
 #include "Animation/AnimCompress_LeastDestructive.h"
 #include "Animation/AnimCompress_RemoveEverySecondKey.h"
 #include "Animation/AnimSet.h"
 #include "Animation/AnimationSettings.h"
-#include "AnimationUtils.h"
 #include "AnimationCompression.h"
-#include "AnimEncoding.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "AnimEncoding.h"
 
 /** Array to keep track of SkeletalMeshes we have built metadata for, and log out the results just once. */
 //static TArray<USkeleton*> UniqueSkeletonsMetadataArray;
@@ -717,12 +720,6 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 		if( (bFirstRecompressUsingCurrentOrDefault && !bTryAlternateCompressor) )
 		{
 			UAnimCompress* OriginalCompressionAlgorithm = AnimSeq->CompressionScheme ? AnimSeq->CompressionScheme : FAnimationUtils::GetDefaultAnimationCompressionAlgorithm();
-
-			if( OriginalCompressionAlgorithm->IsA(UAnimCompress_LeastDestructive::StaticClass()) )
-			{
-				UE_LOG(LogAnimation, Warning, TEXT("FAnimationUtils::CompressAnimSequence %s (%s) Not allowed to least destructive. Using default compression scheme."), *AnimSeq->GetName(), *AnimSeq->GetFullName());
-				OriginalCompressionAlgorithm = FAnimationUtils::GetDefaultAnimationCompressionAlgorithm();
-			}
 
 			OriginalCompressionAlgorithm->Reduce( AnimSeq, CompressContext );
 			AnimSeq->SetUseRawDataOnly(false);

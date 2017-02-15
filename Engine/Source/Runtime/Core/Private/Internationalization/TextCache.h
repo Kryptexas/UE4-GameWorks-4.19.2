@@ -1,6 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Misc/Crc.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Internationalization/Text.h"
 
 /** Caches FText instances generated via the LOCTEXT macro to avoid repeated constructions */
 class FTextCache

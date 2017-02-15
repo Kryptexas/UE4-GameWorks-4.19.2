@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#if !USE_NEW_ASYNC_IO
+
+#include "CoreTypes.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+
 /*-----------------------------------------------------------------------------
 	FIOSystem.
 -----------------------------------------------------------------------------*/
@@ -132,4 +135,3 @@ struct CORE_API FIOSystem
 	virtual void FlushLog() = 0;
 };
 
-#endif

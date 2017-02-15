@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	LinuxPlatform.h: Setup for the linux platform
@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include <linux/version.h>	// for checking if SOCK_CLOEXEC is defined - including sys/socket.h at this stage pollutes the namespaces with macros which cause collisions (e.g. PF_MAX)
+#include <linux/version.h>
+
+struct FGenericPlatformTypes;
 
 /**
 * Linux specific types
@@ -73,9 +75,10 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define FUNCTION_NO_RETURN_END __attribute__ ((noreturn))				/* Wrap a function signature in this to indicate that the function never returns. */
 
 // Optimization macros (uses _Pragma to enable inside a #define).
-// @todo linux: do these actually work with clang?  (no, they do not, but keeping in in case we switch to gcc)
-#define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("optimize(\"\",off)")
-#define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  _Pragma("optimize(\"\",on)")
+#if (__clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 6))
+	#define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("clang optimize off")
+	#define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  _Pragma("clang optimize on")
+#endif
 
 #define ABSTRACT abstract
 

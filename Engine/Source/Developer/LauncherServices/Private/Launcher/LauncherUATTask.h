@@ -1,15 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PlatformInfo.h"
-
+#include "CoreMinimal.h"
+#include "Interfaces/ILauncherWorker.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Launcher/LauncherTask.h"
+#include "Misc/App.h"
 
 /**
  * class for UAT launcher tasks.
  */
-static const FString ConfigStrings[] = { TEXT("Unknown"), TEXT("Debug"), TEXT("DebugGame"), TEXT("Development"), TEXT("Shipping"), TEXT("Test") };
-
 class FLauncherUATTask
 	: public FLauncherTask
 {
@@ -49,6 +51,7 @@ protected:
 #endif
 
 		// base UAT command arguments
+		static const FString ConfigStrings[] = { TEXT("Unknown"), TEXT("Debug"), TEXT("DebugGame"), TEXT("Development"), TEXT("Shipping"), TEXT("Test") };
 		FString UATCommandLine;
 		FString ProjectPath = *ChainState.Profile->GetProjectPath();
 		ProjectPath = FPaths::ConvertRelativePathToFull(ProjectPath);

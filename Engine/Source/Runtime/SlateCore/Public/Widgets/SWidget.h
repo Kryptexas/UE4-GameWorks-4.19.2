@@ -1,46 +1,54 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Visibility.h"
-#include "SlateRenderTransform.h"
-#include "NavigationReply.h"
-#include "SlateColor.h"
-#include "WidgetActiveTimerDelegate.h"
-#include "DeclarativeSyntaxSupport.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Stats/Stats.h"
+#include "Styling/SlateColor.h"
+#include "Layout/SlateRect.h"
+#include "Layout/Visibility.h"
+#include "Rendering/SlateLayoutTransform.h"
+#include "Layout/Geometry.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Input/NavigationReply.h"
+#include "Input/PopupMethodReply.h"
+#include "Types/ISlateMetaData.h"
+#include "Layout/ArrangedWidget.h"
+#include "Types/WidgetActiveTimerDelegate.h"
 #include "Layout/LayoutGeometry.h"
 
-class ISlateMetaData;
 class FActiveTimerHandle;
+class FArrangedChildren;
+class FCachedWidgetNode;
+class FChildren;
 class FPaintArgs;
-class FSlateRect;
 class FSlateWindowElementList;
-class FWidgetStyle;
+class FSlotBase;
 class FWeakWidgetPath;
 class FWidgetPath;
-class FDragDropEvent;
-class FSlotBase;
-class FArrangedChildren;
-class FChildren;
-class FArrangedWidget;
+class IToolTip;
+class SWidget;
 struct FSlateBrush;
-struct FGeometry;
-struct FFocusEvent;
-struct FKeyboardFocusEvent;
-struct FCharacterEvent;
-struct FKeyEvent;
-struct FControllerEvent;
-struct FAnalogInputEvent;
-struct FPointerEvent;
-struct FMotionEvent;
-struct FVirtualPointerPosition;
-struct FNavigationEvent;
 
 /** Delegate type for handling mouse events */
 DECLARE_DELEGATE_RetVal_TwoParams(
 	FReply, FPointerEventHandler,
 	/** The geometry of the widget*/
 	const FGeometry&,
+	/** The Mouse Event that we are processing */
+	const FPointerEvent&)
+
+DECLARE_DELEGATE_TwoParams(
+	FNoReplyPointerEventHandler,
+	/** The geometry of the widget*/
+	const FGeometry&,
+	/** The Mouse Event that we are processing */
+	const FPointerEvent&)
+
+DECLARE_DELEGATE_OneParam(
+	FSimpleNoReplyPointerEventHandler,
 	/** The Mouse Event that we are processing */
 	const FPointerEvent&)
 
@@ -217,9 +225,6 @@ public:
 	 */
 	int32 Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const;
 
-	DEPRECATED(4.4, "Paint() now requires an extra FPaintArgs parameter. When calling paint on a child widget, use Args.WithNewParent(this).")
-	int32 Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const { return 0; }
-
 	/**
 	 * Ticks this widget with Geometry.  Override in derived classes, but always call the parent implementation.
 	 *
@@ -228,13 +233,6 @@ public:
 	 * @param  InDeltaTime  Real time passed since last tick
 	 */
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
-
-	/**
-	 * DEPRECATED: This function caused a lot of confusion, and we found that all known uses of it were unnecessary.
-	 * We will provide a less confusing API for supporting non-rectangular hittesting and pixel-perfect hit testing.
-	 */
-	DEPRECATED(4.5, "OnHitTest is no longer called. It will be replaced by more robust hit testing logic in the near future.")
-	virtual bool OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition ){return false;}
 
 	//
 	// KEY INPUT
@@ -294,9 +292,6 @@ public:
 	 */
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent);
 
-	DEPRECATED(4.6, "SWidget::OnControllerButtonPressed() is deprecated, SWidget::OnKeyDown() now handles controller input as well as controller.")
-	virtual FReply OnControllerButtonPressed(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent);
-
 	/**
 	 * Called after a key is released when this widget has focus
 	 *
@@ -306,9 +301,6 @@ public:
 	 */
 	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
 
-	DEPRECATED(4.6, "SWidget::OnControllerButtonReleased() is deprecated, SWidget::OnKeyUp() now handles controller input as well as controller.")
-	virtual FReply OnControllerButtonReleased(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent);
-
 	/**
 	 * Called when an analog value changes on a button that supports analog
 	 *
@@ -317,9 +309,6 @@ public:
 	 * @return Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnAnalogValueChanged( const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent );
-
-	DEPRECATED(4.6, "SWidget::OnControllerAnalogValueChanged() is deprecated, SWidget::OnAnalogValueChanged() handles keyboard and controller input.")
-	virtual FReply OnControllerAnalogValueChanged(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent);
 
 	//
 	// MOUSE INPUT
@@ -629,9 +618,30 @@ public:
 	private: virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const = 0;
 
 public:
+	void CreateStatID() const;
+
+	FORCEINLINE TStatId GetStatID() const
+	{
+#if STATS
+		// this is done to avoid even registering stats for a disabled group (unless we plan on using it later)
+		if (FThreadStats::IsCollectingData())
+		{
+			if (!StatID.IsValidStat())
+			{
+				CreateStatID();
+			}
+			return StatID;
+		}
+#endif
+		return TStatId(); // not doing stats at the moment, or ever
+	}
 
 	/** What is the Child's scale relative to this widget. */
-	virtual float GetRelativeLayoutScale( const FSlotBase& Child ) const;
+	DEPRECATED(4.15, "This version is no longer used, please use the new version which also provides the incoming prepass scale, in case that has bearing on the relative layout scale.")
+	virtual float GetRelativeLayoutScale(const FSlotBase& Child) const { return 1.0f; }
+
+	/** What is the Child's scale relative to this widget. */
+	virtual float GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const;
 
 	/**
 	 * Non-virtual entry point for arrange children. ensures common work is executed before calling the virtual
@@ -740,12 +750,12 @@ public:
 	}
 
 	/** @return Whether or not this widget is enabled */
-	bool IsEnabled() const 
+	FORCEINLINE bool IsEnabled() const 
 	{
 		return EnabledState.Get();
 	}
 
-	/** @return Is this widget interactable or not? Defaults to false */
+	/** @return Is this widget interactive or not? Defaults to false */
 	virtual bool IsInteractable() const
 	{
 		return false;
@@ -977,6 +987,12 @@ public:
 	/** See OnMouseDoubleClick event */
 	void SetOnMouseDoubleClick(FPointerEventHandler EventHandler);
 
+	/** See OnMouseEnter event */
+	void SetOnMouseEnter(FNoReplyPointerEventHandler EventHandler);
+
+	/** See OnMouseLeave event */
+	void SetOnMouseLeave(FSimpleNoReplyPointerEventHandler EventHandler);
+
 public:
 
 	// Widget Inspector and debugging methods
@@ -1001,6 +1017,17 @@ public:
 
 	/** @return the Foreground color that this widget sets; unset options if the widget does not set a foreground color */
 	virtual FSlateColor GetForegroundColor() const;
+
+	/**
+	 * Gets the last geometry used to Tick the widget.  This data may not exist yet if this call happens prior to 
+	 * the widget having been ticked/painted, or it may be out of date, or a frame behind.
+	 *
+	 * We recommend not to use this data unless there's no other way to solve your problem.  Normally in Slate we
+	 * try and handle these issues by making a dependent widget part of the hierarchy, as to avoid frame behind
+	 * or what are referred to as hysteresis problems, both caused by depending on geometry from the previous frame
+	 * being used to advise how to layout a dependent object the current frame.
+	 */
+	const FGeometry& GetCachedGeometry() const { return CachedGeometry; }
 
 protected:
 
@@ -1100,9 +1127,6 @@ private:
 	 */
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const = 0;
 
-	DEPRECATED(4.4, "OnPaint() now requires an extra FPaintArgs parameter. When calling Superclass::OnPaint() you can simply pass through the existing Args.")
-	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const { return 0; }
-
 	/**
 	 * Compute the Geometry of all the children and add populate the ArrangedChildren list with their values.
 	 * Each type of Layout panel should arrange children based on desired behavior.
@@ -1167,8 +1191,13 @@ protected:
 	//	DEBUG INFORMATION
 	// @todo Slate: Should compile out in final release builds?
 	FName TypeOfWidget;
+
+#if !UE_BUILD_SHIPPING
+
 	/** Full file path (and line) in which this widget was created */
 	FName CreatedInLocation;
+
+#endif
 
 	/** Tag for this widget */
 	FName Tag;
@@ -1200,11 +1229,24 @@ private:
 	 */
 	FVector2D DesiredSize;
 
+	/**
+	 * Stores the cached Tick Geometry of the widget.  This information can and will be outdated, that's the
+	 * nature of it.  However, users were found to often need access to the geometry at times inconvenient to always
+	 * need to be located in Widget Tick.
+	 */
+	mutable FGeometry CachedGeometry;
+
 	/** Tool tip content for this widget */
 	TSharedPtr<IToolTip> ToolTip;
 
 	/** The current layout cache that may need to invalidated by changes to this widget. */
 	mutable TWeakPtr<ILayoutCache> LayoutCache;
+
+	STAT(mutable TStatId				StatID;)
+
+private:
+	// Events
+	TMap<FName, FPointerEventHandler> PointerEvents;
 
 protected:
 	/** Is this widget hovered? */
@@ -1238,11 +1280,8 @@ private:
 
 	/** If we're owned by a volatile widget, we need inherit that volatility and use as part of our volatility, but don't cache it. */
 	mutable bool bInheritedVolatility : 1;
-
-	FPointerEventHandler MouseButtonDownHandler;
-	FPointerEventHandler MouseButtonUpHandler;
-	FPointerEventHandler MouseMoveHandler;
-	FPointerEventHandler MouseDoubleClickHandler;
+	FNoReplyPointerEventHandler MouseEnterHandler;
+	FSimpleNoReplyPointerEventHandler MouseLeaveHandler;
 };
 
 //=================================================================

@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/StringAssetReference.h"
+#include "Misc/StringClassReference.h"
 #include "GameMapsSettings.generated.h"
-
 
 /** Ways the screen can be split with two players. */
 UENUM()

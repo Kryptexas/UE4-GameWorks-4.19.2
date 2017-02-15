@@ -1,13 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TextureCube.cpp: UTextureCube implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "RenderUtils.h"
-#include "DDSLoader.h"
 #include "Engine/TextureCube.h"
+#include "RenderUtils.h"
+#include "TextureResource.h"
+#include "EngineUtils.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 
 UTextureCube::UTextureCube(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -112,7 +114,7 @@ uint32 UTextureCube::CalcTextureMemorySizeEnum( ETextureMipCount Enum ) const
 {
 	if ( Enum == TMC_ResidentMips || Enum == TMC_AllMipsBiased )
 	{
-		return CalcTextureMemorySize( GetNumMips() - LODBias );
+		return CalcTextureMemorySize( GetNumMips() - GetCachedLODBias() );
 	}
 	else
 	{

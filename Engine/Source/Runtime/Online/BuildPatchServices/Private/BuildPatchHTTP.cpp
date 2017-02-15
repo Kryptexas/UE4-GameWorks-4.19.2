@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchHTTP.cpp: Implements a simple class to wrap queuing HTTP requests
 	in order to insure the HTTP module is only used from the main thread.
 =============================================================================*/
 
-#include "BuildPatchServicesPrivatePCH.h"
+#include "BuildPatchHTTP.h"
+#include "Misc/ScopeLock.h"
+#include "Containers/Ticker.h"
+#include "HttpModule.h"
+#include "BuildPatchError.h"
+#include "BuildPatchAnalytics.h"
 #include "AnalyticsEventAttribute.h"
 
 /* FBuildPatchHTTP implementation

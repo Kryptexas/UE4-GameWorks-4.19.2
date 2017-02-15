@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ObjectBase.h: Unreal object base class.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/EnumClassFlags.h"
+#include "UObject/Script.h"
+
+class FObjectInitializer;
+struct FCompiledInDefer;
+struct FFrame;
+template <typename TClass> struct TClassCompiledInDefer;
 
 /** Represents a serializable object pointer in blueprint bytecode. This is always 64-bits, even on 32-bit platforms. */
 typedef	uint64 ScriptPointerType;
@@ -29,12 +38,16 @@ typedef	uint64 ScriptPointerType;
 #define UCLASS_ISA_CLASSARRAY 3 // stores an array of parents per class and uses this to compare - faster than 1, slower but comparable with 2, and thread-safe
 
 // UCLASS_FAST_ISA_IMPL sets which implementation of IsA to use.
-#define UCLASS_FAST_ISA_IMPL UCLASS_ISA_CLASSARRAY
+#if UE_EDITOR
+	// On editor, we use the outerwalk implementation because BP reinstancing and hot reload
+	// mess up the class array
+	#define UCLASS_FAST_ISA_IMPL UCLASS_ISA_OUTERWALK
+#else
+	#define UCLASS_FAST_ISA_IMPL UCLASS_ISA_CLASSARRAY
+#endif
 
 // UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK, if set, does a checked comparison of the current implementation against the outer walk - used for testing.
-#if 0//!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	#define UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK 1
-#endif
+#define UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK 0
 
 /*-----------------------------------------------------------------------------
 	Core enumerations.
@@ -340,6 +353,7 @@ typedef uint64 EClassCastFlags;
 #define CASTCLASS_UStaticMeshComponent			DECLARE_UINT64(0x0000200000000000)
 #define CASTCLASS_UMapProperty					DECLARE_UINT64(0x0000400000000000)
 #define CASTCLASS_USetProperty					DECLARE_UINT64(0x0000800000000000)
+#define CASTCLASS_UEnumProperty					DECLARE_UINT64(0x0001000000000000)
 
 #define CASTCLASS_AllFlags						DECLARE_UINT64(0xFFFFFFFFFFFFFFFF)
 
@@ -428,7 +442,7 @@ typedef uint64 EClassCastFlags;
 #define CPF_DevelopmentAssets		(CPF_EditorOnly)
 
 /** all the properties that should never be loaded or saved */
-#define CPF_ComputedFlags			(CPF_IsPlainOldData | CPF_NoDestructor | CPF_ZeroConstructor)
+#define CPF_ComputedFlags			(CPF_IsPlainOldData | CPF_NoDestructor | CPF_ZeroConstructor | CPF_HasGetValueTypeHash)
 
 #define CPF_AllFlags				DECLARE_UINT64(0xFFFFFFFFFFFFFFFF)
 
@@ -455,15 +469,15 @@ enum EObjectFlags
 
 	// This group of flags is primarily concerned with garbage collection.
 	RF_MarkAsRootSet					=0x00000080,	///< Object will be marked as root set on construction and not be garbage collected, even if unreferenced (DO NOT USE THIS FLAG in HasAnyFlags() etc)
-	//RF_Unused				=0x00000100,	///
-	RF_TagGarbageTemp			=0x00000200,	///< This is a temp user flag for various utilities that need to use the garbage collector. The garbage collector itself does not interpret it.
+	RF_TagGarbageTemp			=0x00000100,	///< This is a temp user flag for various utilities that need to use the garbage collector. The garbage collector itself does not interpret it.
 
 	// The group of flags tracks the stages of the lifetime of a uobject
+	RF_NeedInitialization		=0x00000200,	///< This object has not completed its initialization process. Cleared when ~FObjectInitializer completes
 	RF_NeedLoad					=0x00000400,	///< During load, indicates object needs loading.
 	RF_KeepForCooker			=0x00000800,	///< Keep this object during garbage collection because it's still being used by the cooker
 	RF_NeedPostLoad				=0x00001000,	///< Object needs to be postloaded.
 	RF_NeedPostLoadSubobjects	=0x00002000,	///< During load, indicates that the object still needs to instance subobjects and fixup serialized component references
-	//RF_Unused				=0x00004000,	///
+	RF_NewerVersionExists		=0x00004000,	///< Object has been consigned to oblivion due to its owner package being reloaded, and a newer version currently exists
 	RF_BeginDestroyed			=0x00008000,	///< BeginDestroy has been called on the object.
 	RF_FinishDestroyed			=0x00010000,	///< FinishDestroy has been called on the object.
 
@@ -942,9 +956,6 @@ namespace UP
 
 		/// Property shouldn't be serialized, can still be exported to text
 		SkipSerialization,
-
-		/// Property wont have a 'reset to default' button when displayed in property windows
-		NoResetToDefault,
 	};
 }
 
@@ -1025,6 +1036,9 @@ namespace UM
 
 		//[ClassMetadata] Expose a proxy object of this class in Async Task node.
 		ExposedAsyncProxy,
+
+		//[ClassMetadata] Only valid on Blueprint Function Libraries. Mark the functions in this class as callable on non-game threads in an Animation Blueprint.
+		BlueprintThreadSafe,
 	};
 
 	// Metadata usable in USTRUCT
@@ -1150,6 +1164,9 @@ namespace UM
 
 		/// [PropertyMetadata] Used by FDirectoryPath properties.  Converts the path to a long package name
 		LongPackageName,
+
+		/// [PropertyMetadata] Property wont have a 'reset to default' button when displayed in property windows
+		NoResetToDefault,
 	};
 
 	// Metadata usable in UPROPERTY for customizing the behavior of Persona and UMG
@@ -1260,11 +1277,14 @@ namespace UM
 		/// [FunctionMetadata] Used by BlueprintCallable functions to indicate that this function is not to be allowed in the Construction Script.
 		UnsafeDuringActorConstruction,
 
-		/// [FunctionMetadta] Used by BlueprintCallable functions to indicate which parameter is used to determine the World that the operation is occurring within.
+		/// [FunctionMetadata] Used by BlueprintCallable functions to indicate which parameter is used to determine the World that the operation is occurring within.
 		WorldContext,
 
-		/// [FunctionMetadta] Used only by static BlueprintPure functions from BlueprintLibrary. A cast node will be automatically added for the return type and the type of the first parameter of the function.
+		/// [FunctionMetadata] Used only by static BlueprintPure functions from BlueprintLibrary. A cast node will be automatically added for the return type and the type of the first parameter of the function.
 		BlueprintAutocast,
+
+		// [FunctionMetadata] Only valid in Blueprint Function Libraries. Mark this function as an exception to the class's general BlueprintThreadSafe metadata.
+		NotBlueprintThreadSafe,
 	};
 
 	// Metadata usable in UINTERFACE

@@ -1,10 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-
-class IMessageContext;
-
+#include "CoreMinimal.h"
+#include "IMessageContext.h"
 
 /**
  * Interface for message interceptors.
@@ -42,10 +41,3 @@ public:
 	/** Virtual destructor. */
 	virtual ~IMessageInterceptor() { }
 };
-
-
-/** Type definition for shared pointers to instances of IInterceptMessages. */
-typedef TSharedPtr<IMessageInterceptor, ESPMode::ThreadSafe> IMessageInterceptorPtr;
-
-/** Type definition for shared references to instances of IInterceptMessages. */
-typedef TSharedRef<IMessageInterceptor, ESPMode::ThreadSafe> IMessageInterceptorRef;

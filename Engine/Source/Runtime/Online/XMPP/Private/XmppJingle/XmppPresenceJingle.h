@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "XmppJingle.h"
+#include "CoreMinimal.h"
+#include "Containers/Ticker.h"
+#include "XmppConnection.h"
+#include "XmppJingle/XmppJingle.h"
+#include "Containers/Queue.h"
 #include "XmppPresence.h"
 
 #if WITH_XMPP_JINGLE

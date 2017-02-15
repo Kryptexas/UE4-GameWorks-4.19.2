@@ -1,9 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneColorSection.h"
-#include "MovieSceneColorTrack.h"
-
+#include "Sections/MovieSceneColorSection.h"
+#include "UObject/StructOnScope.h"
 
 /* FMovieSceneColorKeyStruct interface
  *****************************************************************************/
@@ -33,20 +31,6 @@ void FMovieSceneColorKeyStruct::PropagateChanges(const FPropertyChangedEvent& Ch
 UMovieSceneColorSection::UMovieSceneColorSection(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 { }
-
-
-/* UMovieSceneColorSection interface
- *****************************************************************************/
-
-FLinearColor UMovieSceneColorSection::Eval(float Position, const FLinearColor& DefaultColor) const
-{
-	return FLinearColor(
-		RedCurve.Eval(Position, DefaultColor.R),
-		GreenCurve.Eval(Position, DefaultColor.G),
-		BlueCurve.Eval(Position, DefaultColor.B),
-		AlphaCurve.Eval(Position, DefaultColor.A));
-}
-
 
 /* UMovieSceneSection interface
  *****************************************************************************/

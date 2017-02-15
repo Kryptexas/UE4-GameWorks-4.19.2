@@ -1,9 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "NullDrvPrivate.h"
-#include "RHI.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "NullRHI.h"
+#include "Misc/CoreMisc.h"
+#include "Containers/List.h"
 #include "RenderResource.h"
 
 

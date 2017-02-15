@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Thumbnail information for assets that need a scene
@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Runtime/Engine/Classes/EditorFramework/ThumbnailInfo.h"
 #include "SceneThumbnailInfo.generated.h"
 

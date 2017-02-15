@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
+#include "Designer/SDesignSurface.h"
+#include "Rendering/DrawElements.h"
+#include "Framework/Application/SlateApplication.h"
 
-#include "SDesignSurface.h"
+#if WITH_EDITOR
+	#include "Settings/LevelEditorViewportSettings.h"
+#endif // WITH_EDITOR
+
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -104,9 +109,9 @@ struct FFixedZoomLevelsContainerDesignSurface : public FZoomLevelsContainer
 
 void SDesignSurface::Construct(const FArguments& InArgs)
 {
-	if ( !ZoomLevels.IsValid() )
+	if ( !ZoomLevels )
 	{
-		ZoomLevels = new FFixedZoomLevelsContainerDesignSurface();
+		ZoomLevels = MakeUnique<FFixedZoomLevelsContainerDesignSurface>();
 	}
 	ZoomLevel = ZoomLevels->GetDefaultZoomLevel();
 	PreviousZoomLevel = ZoomLevels->GetDefaultZoomLevel();
@@ -184,6 +189,16 @@ void SDesignSurface::Tick( const FGeometry& AllottedGeometry, const double InCur
 	}
 }
 
+FCursorReply SDesignSurface::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
+{
+	if ( bIsPanning )
+	{
+		return FCursorReply::Cursor(EMouseCursor::GrabHand);
+	}
+
+	return SCompoundWidget::OnCursorQuery(MyGeometry, CursorEvent);
+}
+
 int32 SDesignSurface::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const FSlateBrush* BackgroundImage = FEditorStyle::GetBrush(TEXT("Graph.Panel.SolidBackground"));
@@ -201,6 +216,9 @@ FReply SDesignSurface::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoi
 	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
 		bIsPanning = false;
+
+		ViewOffsetStart = ViewOffset;
+		MouseDownPositionAbsolute = MouseEvent.GetLastScreenSpacePosition();
 	}
 
 	if (FSlateApplication::Get().IsUsingTrackpad())
@@ -267,7 +285,7 @@ FReply SDesignSurface::OnMouseMove(const FGeometry& MyGeometry, const FPointerEv
 			FReply ReplyState = FReply::Handled();
 
 			bIsPanning = true;
-			ViewOffset -= CursorDelta / GetZoomAmount();
+			ViewOffset = ViewOffsetStart + ( (MouseDownPositionAbsolute - MouseEvent.GetScreenSpacePosition()) / MyGeometry.Scale) / GetZoomAmount();
 
 			return ReplyState;
 		}

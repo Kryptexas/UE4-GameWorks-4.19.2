@@ -1,15 +1,42 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Factories.h"
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Misc/SecureHash.h"
+#include "Factories/FbxAnimSequenceImportData.h"
+#include "Factories/FbxImportUI.h"
+#include "Logging/TokenizedMessage.h"
+#include "Factories/FbxStaticMeshImportData.h"
+#include "Factories/FbxTextureImportData.h"
+#include "Factories/FbxSceneImportFactory.h"
 
-class ALight;
-class UInterpGroupInst;
-class AMatineeActor;
 class AActor;
+class ACameraActor;
+class ALight;
+class AMatineeActor;
+class Error;
+class FSkeletalMeshImportData;
+class UActorComponent;
+class UAnimSequence;
+class UFbxSkeletalMeshImportData;
+class UInterpGroupInst;
 class UInterpTrackMove;
+class UInterpTrackMoveAxis;
+class ULightComponent;
+class UMaterial;
+class UMaterialInstanceConstant;
+class UMaterialInterface;
+class UPhysicsAsset;
+class USkeletalMesh;
+class USkeleton;
+class UStaticMesh;
 class USubDSurface;
+class UTexture;
+struct FExpressionInput;
+struct FRawMesh;
+struct FRichCurve;
 
 // Temporarily disable a few warnings due to virtual function abuse in FBX source files
 #pragma warning( push )
@@ -46,12 +73,14 @@ class USubDSurface;
 
 #endif // PLATFORM_WINDOWS
 
+// FBX casts null pointer to a reference
+THIRD_PARTY_INCLUDES_START
 #include <fbxsdk.h>
+THIRD_PARTY_INCLUDES_END
 
 #pragma pack(pop)
 
 
-#include "TokenizedMessage.h"
 
 
 #ifdef TMP_UNFBX_BACKUP_O_RDONLY
@@ -86,6 +115,7 @@ struct FBXImportOptions
 	bool bImportLOD;
 	bool bUsedAsFullName;
 	bool bConvertScene;
+	bool bForceFrontXAxis;
 	bool bConvertSceneUnit;
 	bool bRemoveNameSpace;
 	FVector ImportTranslation;
@@ -115,6 +145,7 @@ struct FBXImportOptions
 	FString BaseNormalTextureName;
 	FString BaseEmmisiveTextureName;
 	FString BaseSpecularTextureName;
+	EMaterialSearchLocation::Type MaterialSearchLocation;
 	// Skeletal Mesh options
 	bool bImportMorph;
 	bool bImportAnimations;
@@ -369,6 +400,19 @@ struct FbxSceneInfo
 	double FrameRate;
 	double TotalTime;
 
+	void Reset()
+	{
+		NonSkinnedMeshNum = 0;
+		SkinnedMeshNum = 0;
+		TotalGeometryNum = 0;
+		TotalMaterialNum = 0;
+		TotalTextureNum = 0;
+		MeshInfo.Empty();
+		HierarchyInfo.Empty();
+		bHasAnimation = false;
+		FrameRate = 0.0;
+		TotalTime = 0.0;
+	}
 };
 
 /**
@@ -377,6 +421,9 @@ struct FbxSceneInfo
 class FFbxDataConverter
 {
 public:
+	static void SetJointPostConversionMatrix(FbxAMatrix ConversionMatrix) { JointPostConversionMatrix = ConversionMatrix; }
+	static const FbxAMatrix &GetJointPostConversionMatrix() { return JointPostConversionMatrix; }
+
 	static FVector ConvertPos(FbxVector4 Vector);
 	static FVector ConvertDir(FbxVector4 Vector);
 	static FRotator ConvertEuler(FbxDouble3 Euler);
@@ -405,6 +452,8 @@ public:
 	static FbxDouble3   ConvertToFbxColor(FColor Color);
 	static FbxString	ConvertToFbxString(FName Name);
 	static FbxString	ConvertToFbxString(const FString& String);
+private:
+	static FbxAMatrix JointPostConversionMatrix;
 };
 
 FBXImportOptions* GetImportOptions( class FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, bool bIsAutomated, const FString& FullPath, bool& OutOperationCanceled, bool& OutImportAll, bool bIsObjFormat, bool bForceImportType = false, EFBXImportType ImportType = FBXIT_StaticMesh );
@@ -471,6 +520,12 @@ public:
 	 */
 	bool ImportFile(FString Filename, bool bPreventMaterialNameClash = false);
 	
+	/**
+	 * Convert the scene from the current options.
+	 * The scene will be converted to RH -Y or RH X depending if we force a front X axis or not
+	 */
+	void ConvertScene();
+
 	/**
 	 * Attempt to load an FBX scene from a given filename.
 	 *
@@ -566,7 +621,8 @@ public:
 	*/
 	UNREALED_API bool ImportSubDSurface(USubDSurface* Out, UObject* InParent, TArray<FbxNode*>& MeshNodeArray, const FName InName, EObjectFlags Flags, UFbxStaticMeshImportData* TemplateImportData);
 
-	void ImportStaticMeshSockets( UStaticMesh* StaticMesh );
+	void ImportStaticMeshGlobalSockets( UStaticMesh* StaticMesh );
+	void ImportStaticMeshLocalSockets( UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray);
 
 	/**
 	 * re-import Unreal static mesh from updated Fbx file
@@ -750,6 +806,15 @@ public:
 	UNREALED_API void FillFbxMeshArray(FbxNode* Node, TArray<FbxNode*>& outMeshArray, UnFbx::FFbxImporter* FFbxImporter);
 	
 	/**
+	* Get all Fbx mesh objects not under a LOD group and all LOD group node
+	*
+	* @param Node Root node to find meshes
+	* @param outLODGroupArray return Fbx LOD group
+	* @param outMeshArray return Fbx meshes with no LOD group
+	*/
+	UNREALED_API void FillFbxMeshAndLODGroupArray(FbxNode* Node, TArray<FbxNode*>& outLODGroupArray, TArray<FbxNode*>& outMeshArray);
+
+	/**
 	* Fill FBX skeletons to OutSortedLinks recursively
 	*
 	* @param Link Fbx node of skeleton root
@@ -807,6 +872,19 @@ public:
 	 * @param AssetData The asset data to extract the transform info from
 	 */
 	void BuildFbxMatrixForImportTransform(FbxAMatrix& OutMatrix, UFbxAssetImportData* AssetData);
+
+	/**
+	 * Import FbxCurve to Curve
+	 */
+	bool ImportCurve(const FbxAnimCurve* FbxCurve, FRichCurve& RichCurve, const FbxTimeSpan &AnimTimeSpan, const float ValueScale = 1.f) const;
+
+	/**
+	 * Merge all layers of one AnimStack to one layer.
+	 *
+	 * @param AnimStack     AnimStack which layers will be merged
+	 * @param ResampleRate  resample rate for the animation
+	 */
+	void MergeAllLayerAnimation(FbxAnimStack* AnimStack, int32 ResampleRate);
 
 private:
 	/**
@@ -1184,6 +1262,15 @@ protected:
 	void CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets, bool bForSkeletalMesh);
 	
 	/**
+	* Search for an existing Unreal material based on import option settings
+	*
+	* @param BasePath Folder to start looking from, recursively.
+	* @param MaterialName Name of the material to search for.
+	* @return Material found
+	*/
+	UMaterialInterface* FindExistingUnrealMaterial(const FString& BasePath, const FString& MaterialName);
+
+	/**
 	 * Visit all materials of one node, import textures from materials.
 	 *
 	 * @param Node FBX node.
@@ -1233,14 +1320,6 @@ protected:
 	 * @return int32 number of points that added when process unsmooth faces
 	*/
 	int32 DoUnSmoothVerts(FSkeletalMeshImportData &ImportData, bool bDuplicateUnSmoothWedges = true);
-	
-	/**
-	 * Merge all layers of one AnimStack to one layer.
-	 *
-	 * @param AnimStack     AnimStack which layers will be merged
-	 * @param ResampleRate  resample rate for the animation
-	 */
-	void MergeAllLayerAnimation(FbxAnimStack* AnimStack, int32 ResampleRate);
 	
 	/**
 	* Fill the FbxNodeInfo structure recursively to reflect the FbxNode hierarchy. The result will be an array sorted with the parent first
@@ -1381,11 +1460,11 @@ private:
 
 	FImportedMaterialData ImportedMaterialData;
 
+	//Cache to create unique name for mesh. This is use to fix name clash
+	TArray<FString> MeshNamesCache;
+
 private:
-	/**
-	 * Import FbxCurve to Curve
-	 */
-	bool ImportCurve(const FbxAnimCurve* FbxCurve, FFloatCurve * Curve, const FbxTimeSpan &AnimTimeSpan, const float ValueScale = 1.f) const;
+
 
 
 	/**

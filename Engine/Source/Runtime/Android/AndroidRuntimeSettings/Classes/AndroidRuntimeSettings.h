@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
 #include "AndroidRuntimeSettings.generated.h"
 
 UENUM()
@@ -139,6 +143,18 @@ namespace EGoogleVRMode
 	};
 }
 
+UENUM()
+namespace EAndroidGraphicsDebugger
+{
+	enum Type
+	{
+		None = 0 UMETA(DisplayName = "None"),
+		Mali = 1 UMETA(DisplayName = "Mali Graphics Debugger", ToolTip = "Configure for Mali Graphics Debugger."),
+		Adreno = 2 UMETA(DisplayName = "Adreno Profiler", ToolTip = "Configure for Adreno Profiler.")
+	};
+}
+
+
 /**
  * Implements the settings for the Android runtime platform.
  */
@@ -188,6 +204,11 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Disable verify OBB on first start/update."))
 	bool bDisableVerifyOBBOnStartUp;
 
+	// If checked, UE4Game files will be placed in ExternalFilesDir which is removed on uninstall.
+	// You should also check this if you need to save you game progress without requesting runtime WRITE_EXTERNAL_STORAGE permission in android api 23+
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Use ExternalFilesDir for UE4Game files?"))
+	bool bUseExternalFilesDir;
+
 	// The permitted orientation of the application on the device
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
 	TEnumAsByte<EAndroidScreenOrientation::Type> Orientation;
@@ -236,10 +257,6 @@ public:
 	// Removes Oculus Signature Files (osig) from APK if GearVR APK signed for distribution and enables entitlement checker
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Remove Oculus Signature Files from Distribution APK"))
 	bool bRemoveOSIG;
-
-	// Configure AndroidManifest.xml and Resrouces for Daydream
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure for deployment to Daydream"))
-	bool bPackageForDaydream;
 
 	// Configure AndroidManifest.xml for Cardboard, Cardboard Advanced, or Daydream deployment. If running in Daydream-only mode, sustained performance and async reprojection are forced.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure GoogleVR Deployment Mode"))
@@ -339,7 +356,15 @@ public:
 	/** Android Audio encoding options */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DataCooker, meta = (DisplayName = "Audio encoding"))
 	TEnumAsByte<EAndroidAudio::Type> AndroidAudio;
-	
+
+	// Several Android graphics debuggers require configuration changes to be made to your application in order to operate. Choosing an option from this menu will configure your project to work with that graphics debugger. 
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GraphicsDebugger)
+	TEnumAsByte<EAndroidGraphicsDebugger::Type> AndroidGraphicsDebugger;
+
+	/** The path to your Mali Graphics Debugger installation (eg C:/Program Files/ARM/Mali Developer Tools/Mali Graphics Debugger v4.2.0) */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GraphicsDebugger)
+	FDirectoryPath MaliGraphicsDebuggerPath;
+
 	/** Include ETC1 textures when packaging with the Android (Multi) variant. ETC1 will be included if no other formats are selected. */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = MultiTextureFormats, meta = (DisplayName = "Include ETC1 textures"))
 	bool bMultiTargetFormat_ETC1;

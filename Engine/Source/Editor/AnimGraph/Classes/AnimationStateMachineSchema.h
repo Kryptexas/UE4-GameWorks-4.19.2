@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "AssetData.h"
+#include "EdGraph/EdGraphSchema.h"
 #include "AnimationStateMachineSchema.generated.h"
+
+class FMenuBuilder;
+class UEdGraph;
 
 /** Action to add a node to the graph */
 USTRUCT()
@@ -14,12 +22,12 @@ struct ANIMGRAPH_API FEdGraphSchemaAction_NewStateNode : public FEdGraphSchemaAc
 
 	FEdGraphSchemaAction_NewStateNode() 
 		: FEdGraphSchemaAction()
-		, NodeTemplate(NULL)
+		, NodeTemplate(nullptr)
 	{}
 
-	FEdGraphSchemaAction_NewStateNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
-		, NodeTemplate(NULL)
+	FEdGraphSchemaAction_NewStateNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
+		, NodeTemplate(nullptr)
 	{}
 
 	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
@@ -45,8 +53,8 @@ struct ANIMGRAPH_API FEdGraphSchemaAction_NewStateComment : public FEdGraphSchem
 		: FEdGraphSchemaAction()
 	{}
 
-	FEdGraphSchemaAction_NewStateComment(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FEdGraphSchemaAction_NewStateComment(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 
 	//~ Begin FEdGraphSchemaAction Interface

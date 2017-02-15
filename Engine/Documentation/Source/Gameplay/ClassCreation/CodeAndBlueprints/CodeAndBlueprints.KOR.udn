@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2944273
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:C++ 와 블루프린트
 Crumbs: %ROOT%, Gameplay, Gameplay/ClassCreation
@@ -36,7 +36,7 @@ DesiredBrightness 변수, OnOverlap 함수가 생성되는지 확인해 보는 �
 LightSwitchBoth.h
 [/REGION:codetitlebar]
 		
-		// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+		// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 		#pragma once
 
@@ -93,7 +93,7 @@ LightSwitchBoth 에 대한 소스 파일 모습은 이렇습니다:
 LightSwitchBoth.cpp
 [/REGION:codetitlebar]
 
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 	#include "BasicClasses.h"
 	#include "LightSwitchBoth.h"

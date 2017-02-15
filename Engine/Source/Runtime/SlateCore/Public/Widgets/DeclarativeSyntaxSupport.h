@@ -1,11 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SNullWidget.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Rendering/SlateRenderTransform.h"
+#include "GenericPlatform/ICursor.h"
+#include "Types/ISlateMetaData.h"
+#include "Widgets/SNullWidget.h"
 
-class ISlateMetaData;
 class IToolTip;
+class SUserWidget;
+class SWidget;
+template<typename WidgetType> struct TSlateBaseNamedArgs;
 
 /**
  * Slate widgets are constructed through SNew and SAssignNew.

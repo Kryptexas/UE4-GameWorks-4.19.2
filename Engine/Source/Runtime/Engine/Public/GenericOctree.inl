@@ -1,10 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GenericOctree.inl: Generic octree implementation.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "CoreFwd.h"
+
+class FBoxCenterAndExtent;
+class FOctreeChildNodeRef;
+class FOctreeChildNodeSubset;
+class FOctreeElementId;
+class FOctreeNodeContext;
+struct FMath;
+template<typename ElementType,typename OctreeSemantics> class TOctree;
+template<typename T> struct TTypeTraits;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogGenericOctree, Log, All);
 

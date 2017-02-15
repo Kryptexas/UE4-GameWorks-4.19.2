@@ -85,7 +85,7 @@ No further code is needed. We can set up our CameraDirector in our world now.
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -101,9 +101,11 @@ No further code is needed. We can set up our CameraDirector in our world now.
 				// Sets default values for this actor's properties
 				ACameraDirector();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
 	
+			public:
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 
@@ -117,7 +119,7 @@ No further code is needed. We can set up our CameraDirector in our world now.
 			};
 
 		**MyPawn.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_AutoCamera.h"
 			#include "CameraDirector.h"

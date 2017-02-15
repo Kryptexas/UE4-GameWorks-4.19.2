@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealEngine.h: Unreal engine helper definitions.
@@ -6,7 +6,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RenderCommandFence.h"
+#include "GenericPlatform/GenericWindow.h"
 #include "Engine/Engine.h"
+#include "SceneTypes.h"
+
+class FViewportClient;
+class UFont;
+class ULocalPlayer;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 //

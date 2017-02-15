@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleCurveTexture.h: Texture used to hold particle curves.
@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "RenderResource.h"
 
 /** The texture size allocated for particle curves. */

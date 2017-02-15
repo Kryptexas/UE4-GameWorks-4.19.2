@@ -1,31 +1,39 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "Engine/Breakpoint.h"
+#include "Engine/Blueprint.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/BlueprintsObjectVersion.h"
+#include "UObject/UObjectHash.h"
+#include "Serialization/PropertyLocalizationDataGathering.h"
+#include "UObject/UnrealType.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
+#include "Misc/SecureHash.h"
+#include "Engine/BlueprintGeneratedClass.h"
 #include "EdGraph/EdGraph.h"
-#include "BlueprintUtilities.h"
-#include "LatentActions.h"
+#include "Engine/Breakpoint.h"
+#include "Components/TimelineComponent.h"
 
 #if WITH_EDITOR
-#include "UObject/DevObjectVersion.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/CompilerResultsLog.h"
-#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
-#include "Editor/Kismet/Public/FindInBlueprintManager.h"
-#include "Editor/UnrealEd/Public/CookerSettings.h"
-#include "Editor/UnrealEd/Public/Editor.h"
-#include "Crc.h"
-#include "MessageLog.h"
-#include "Editor/UnrealEd/Classes/Settings/EditorLoadingSavingSettings.h"
-#include "BlueprintEditorUtils.h"
-#include "Engine/TimelineTemplate.h"
+#include "Blueprint/BlueprintSupport.h"
+#include "Editor/UnrealEd/Classes/Settings/ProjectPackagingSettings.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "Kismet2/CompilerResultsLog.h"
+#include "Kismet2/StructureEditorUtils.h"
+#include "FindInBlueprintManager.h"
+#include "CookerSettings.h"
+#include "Editor.h"
+#include "Logging/MessageLog.h"
+#include "Settings/EditorLoadingSavingSettings.h"
+#include "Engine/TimelineTemplate.h"
+#include "Curves/CurveBase.h"
 #endif
-#include "Components/TimelineComponent.h"
 #include "Engine/InheritableComponentHandler.h"
-#include "BlueprintSupport.h" // for FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds()
 
 DEFINE_LOG_CATEGORY(LogBlueprint);
 
@@ -421,6 +429,48 @@ void UBlueprint::Serialize(FArchive& Ar)
 		}
 	}
 
+	if (Ar.IsPersistent())
+	{
+		bool bSettingsChanged = false;
+		const FString PackageName = GetOutermost()->GetName();
+		UProjectPackagingSettings* PackagingSettings = GetMutableDefault<UProjectPackagingSettings>();
+
+		if (Ar.IsLoading())
+		{
+			if (bNativize_DEPRECATED)
+			{
+				// Migrate to the new transient flag.
+				bNativize_DEPRECATED = false;
+
+				NativizationFlag = EBlueprintNativizationFlag::ExplicitlyEnabled;
+				// Add this Blueprint asset to the exclusive list in the Project Settings (in case it doesn't exist).
+				bSettingsChanged |= PackagingSettings->AddBlueprintAssetToNativizationList(this);
+			}
+			else
+			{
+				// Cache whether or not this Blueprint asset was selected for exclusive nativization in the Project Settings.
+				for (int AssetIndex = 0; AssetIndex < PackagingSettings->NativizeBlueprintAssets.Num(); ++AssetIndex)
+				{
+					if (PackagingSettings->NativizeBlueprintAssets[AssetIndex].FilePath.Equals(PackageName, ESearchCase::IgnoreCase))
+					{
+						NativizationFlag = EBlueprintNativizationFlag::ExplicitlyEnabled;
+						break;
+					}
+				}
+			}
+		}
+		else if (Ar.IsSaving())
+		{
+			bSettingsChanged |= FBlueprintEditorUtils::PropagateNativizationSetting(this);
+		}
+
+		if (bSettingsChanged)
+		{
+			// Update cached config settings and save.
+			PackagingSettings->SaveConfig();
+			PackagingSettings->UpdateDefaultConfigFile();
+		}
+	}
 #endif // WITH_EDITORONLY_DATA
 }
 
@@ -471,7 +521,7 @@ bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Fl
 	bool bSuccess = Super::Rename( InName, NewOuter, Flags );
 
 	// Finally, do a compile, but only if the new name differs from before
-	if(bSuccess && !(Flags & REN_Test) && !(Flags & REN_DoNotDirty) && InName != OldName)
+	if(bSuccess && !(Flags & REN_Test) && !(Flags & REN_DoNotDirty) && InName && InName != OldName)
 	{
 		// Gather all blueprints that currently depend on this one.
 		TArray<UBlueprint*> Dependents;
@@ -638,19 +688,7 @@ void UBlueprint::PostLoad()
 	FBlueprintEditorUtils::UpdateStalePinWatches(this);
 #endif // WITH_EDITORONLY_DATA
 
-	{
-		TArray<UEdGraph*> Graphs;
-		GetAllGraphs(Graphs);
-		for (auto It = Graphs.CreateIterator(); It; ++It)
-		{
-			UEdGraph* const Graph = *It;
-			const UEdGraphSchema* Schema = Graph->GetSchema();
-			Schema->BackwardCompatibilityNodeConversion(Graph, true);
-		}
-	}
-
 	FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(this);
-
 
 #if WITH_EDITOR
 	// Do not want to run this code without the editor present nor when running commandlets.
@@ -714,7 +752,7 @@ void UBlueprint::SetObjectBeingDebugged(UObject* NewObject)
 				NewObject->IsA(this->GeneratedClass), 
 				TEXT("Type mismatch: Expected %s, Found %s"), 
 				this->GeneratedClass ? *(this->GeneratedClass->GetName()) : TEXT("NULL"), 
-				NewObject->GetClass() ? *(this->GetClass()->GetName()) : TEXT("NULL")))
+				NewObject->GetClass() ? *(NewObject->GetClass()->GetName()) : TEXT("NULL")))
 		{
 			NewObject = NULL;
 		}
@@ -1038,55 +1076,118 @@ void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 {
 	Super::BeginCacheForCookedPlatformData(TargetPlatform);
 
-	// Only cook component data if the setting is enabled and this is an Actor-based Blueprint class.
-	if (GeneratedClass && GeneratedClass->IsChildOf<AActor>() && GetDefault<UCookerSettings>()->bCookBlueprintComponentTemplateData)
+	if (GeneratedClass && GeneratedClass->IsChildOf<AActor>())
 	{
 		int32 NumCookedComponents = 0;
 		const double StartTime = FPlatformTime::Seconds();
 
-		UBlueprintGeneratedClass* BPGClass = Cast<UBlueprintGeneratedClass>(*GeneratedClass);
-		if (BPGClass)
+		// If nativization is enabled and this Blueprint class will NOT be nativized, we need to determine if any of its parent Blueprints will be nativized and flag it for the runtime code.
+		// Note: Currently, this flag is set on Actor-based Blueprint classes only. If it's ever needed for non-Actor-based Blueprint classes at runtime, then this needs to be updated to match.
+		const IBlueprintNativeCodeGenCore* NativeCodeGenCore = IBlueprintNativeCodeGenCore::Get();
+		if (GeneratedClass != nullptr && NativeCodeGenCore != nullptr && FParse::Param(FCommandLine::Get(), TEXT("NativizeAssets")))
 		{
-			// Cook all overridden SCS component node templates inherited from the parent class hierarchy.
-			if (UInheritableComponentHandler* TargetInheritableComponentHandler = BPGClass->GetInheritableComponentHandler())
+			TArray<const UBlueprintGeneratedClass*> ParentBPClassStack;
+			UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(GeneratedClass->GetSuperClass(), ParentBPClassStack);
+			for (const UBlueprintGeneratedClass *ParentBPClass : ParentBPClassStack)
 			{
-				for (auto RecordIt = TargetInheritableComponentHandler->CreateRecordIterator(); RecordIt; ++RecordIt)
+				if (NativeCodeGenCore->IsTargetedForReplacement(ParentBPClass) == EReplacementResult::ReplaceCompletely)
 				{
-					if (!RecordIt->CookedComponentInstancingData.bIsValid)
+					if (UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(*GeneratedClass))
+					{
+						// Flag that this BP class will have a nativized parent class.
+						BPGC->bHasNativizedParent = true;
+
+						// Cache the IsTargetedForReplacement() result for the parent BP class that we know to be nativized.
+						TMap<const UClass*, bool> ParentBPClassNativizationResultMap;
+						ParentBPClassNativizationResultMap.Add(ParentBPClass, true);
+
+						// Cook all overridden SCS component node templates inherited from parent BP classes that will be nativized.
+						if (UInheritableComponentHandler* TargetInheritableComponentHandler = BPGC->GetInheritableComponentHandler())
+						{
+							for (auto RecordIt = TargetInheritableComponentHandler->CreateRecordIterator(); RecordIt; ++RecordIt)
+							{
+								if (!RecordIt->CookedComponentInstancingData.bIsValid)
+								{
+									// Get the original class that we're overriding a template from.
+									const UClass* ComponentTemplateOwnerClass = RecordIt->ComponentKey.GetComponentOwner();
+
+									// Check to see if we've already checked this class for nativization; if not, then cache the result of a new query and return the result.
+									bool bIsOwnerClassTargetedForReplacement = false;
+									bool* bCachedResult = ParentBPClassNativizationResultMap.Find(ComponentTemplateOwnerClass);
+									if (bCachedResult)
+									{
+										bIsOwnerClassTargetedForReplacement = *bCachedResult;
+									}
+									else
+									{
+										bool bResult = (NativeCodeGenCore->IsTargetedForReplacement(RecordIt->ComponentKey.GetComponentOwner()) == EReplacementResult::ReplaceCompletely);
+										bIsOwnerClassTargetedForReplacement = ParentBPClassNativizationResultMap.Add(ComponentTemplateOwnerClass, bResult);
+									}
+
+									if (bIsOwnerClassTargetedForReplacement)
+									{
+										// Use the template's archetype for the delta serialization here; remaining properties will have already been set via native subobject instancing at runtime.
+										const bool bUseTemplateArchetype = true;
+										FBlueprintEditorUtils::BuildComponentInstancingData(RecordIt->ComponentTemplate, RecordIt->CookedComponentInstancingData, bUseTemplateArchetype);
+										++NumCookedComponents;
+									}
+								}
+							}
+						}
+					}
+					
+					// All remaining antecedent classes should be native or nativized; no need to continue.
+					break;
+				}
+			}
+		}
+
+		// Only cook component data if the setting is enabled and this is an Actor-based Blueprint class.
+		if (GetDefault<UCookerSettings>()->bCookBlueprintComponentTemplateData)
+		{
+			if (UBlueprintGeneratedClass* BPGClass = CastChecked<UBlueprintGeneratedClass>(*GeneratedClass))
+			{
+				// Cook all overridden SCS component node templates inherited from the parent class hierarchy.
+				if (UInheritableComponentHandler* TargetInheritableComponentHandler = BPGClass->GetInheritableComponentHandler())
+				{
+					for (auto RecordIt = TargetInheritableComponentHandler->CreateRecordIterator(); RecordIt; ++RecordIt)
+					{
+						if (!RecordIt->CookedComponentInstancingData.bIsValid)
+						{
+							// Note: This will currently block until finished.
+							// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
+							FBlueprintEditorUtils::BuildComponentInstancingData(RecordIt->ComponentTemplate, RecordIt->CookedComponentInstancingData);
+							++NumCookedComponents;
+						}
+					}
+				}
+
+				// Cook all SCS component templates that are owned by this class.
+				if (BPGClass->SimpleConstructionScript)
+				{
+					for (auto Node : BPGClass->SimpleConstructionScript->GetAllNodes())
+					{
+						if (!Node->CookedComponentInstancingData.bIsValid)
+						{
+							// Note: This will currently block until finished.
+							// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
+							FBlueprintEditorUtils::BuildComponentInstancingData(Node->ComponentTemplate, Node->CookedComponentInstancingData);
+							++NumCookedComponents;
+						}
+					}
+				}
+
+				// Cook all UCS/AddComponent node templates that are owned by this class.
+				for (UActorComponent* ComponentTemplate : BPGClass->ComponentTemplates)
+				{
+					FBlueprintCookedComponentInstancingData& CookedComponentInstancingData = BPGClass->CookedComponentInstancingData.FindOrAdd(ComponentTemplate->GetFName());
+					if (!CookedComponentInstancingData.bIsValid)
 					{
 						// Note: This will currently block until finished.
 						// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
-						FBlueprintEditorUtils::BuildComponentInstancingData(RecordIt->ComponentTemplate, RecordIt->CookedComponentInstancingData);
+						FBlueprintEditorUtils::BuildComponentInstancingData(ComponentTemplate, CookedComponentInstancingData);
 						++NumCookedComponents;
 					}
-				}
-			}
-
-			// Cook all SCS component templates that are owned by this class.
-			if (BPGClass->SimpleConstructionScript)
-			{
-				for (auto Node : BPGClass->SimpleConstructionScript->GetAllNodes())
-				{
-					if (!Node->CookedComponentInstancingData.bIsValid)
-					{
-						// Note: This will currently block until finished.
-						// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
-						FBlueprintEditorUtils::BuildComponentInstancingData(Node->ComponentTemplate, Node->CookedComponentInstancingData);
-						++NumCookedComponents;
-					}
-				}
-			}
-
-			// Cook all UCS/AddComponent node templates that are owned by this class.
-			for (UActorComponent* ComponentTemplate : BPGClass->ComponentTemplates)
-			{
-				FBlueprintCookedComponentInstancingData& CookedComponentInstancingData = BPGClass->CookedComponentInstancingData.FindOrAdd(ComponentTemplate->GetFName());
-				if (!CookedComponentInstancingData.bIsValid)
-				{
-					// Note: This will currently block until finished.
-					// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
-					FBlueprintEditorUtils::BuildComponentInstancingData(ComponentTemplate, CookedComponentInstancingData);
-					++NumCookedComponents;
 				}
 			}
 		}
@@ -1232,12 +1333,12 @@ FString UBlueprint::GetDesc(void)
 
 bool UBlueprint::NeedsLoadForClient() const
 {
-	return FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds();
+	return false;
 }
 
 bool UBlueprint::NeedsLoadForServer() const
 {
-	return FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds();
+	return false;
 }
 
 bool UBlueprint::NeedsLoadForEditorGame() const
@@ -1497,6 +1598,19 @@ void UBlueprint::GatherDependencies(TSet<TWeakObjectPtr<UBlueprint>>& InDependen
 
 }
 
+void UBlueprint::ReplaceDeprecatedNodes()
+{
+	TArray<UEdGraph*> Graphs;
+	GetAllGraphs(Graphs);
+
+	for ( auto It = Graphs.CreateIterator(); It; ++It )
+	{
+		UEdGraph* const Graph = *It;
+		const UEdGraphSchema* Schema = Graph->GetSchema();
+		Schema->BackwardCompatibilityNodeConversion(Graph, true);
+	}
+}
+
 UInheritableComponentHandler* UBlueprint::GetInheritableComponentHandler(bool bCreateIfNecessary)
 {
 	static const FBoolConfigValueHelper EnableInheritableComponents(TEXT("Kismet"), TEXT("bEnableInheritableComponents"), GEngineIni);
@@ -1517,7 +1631,6 @@ UInheritableComponentHandler* UBlueprint::GetInheritableComponentHandler(bool bC
 #endif
 
 #if WITH_EDITOR
-
 FName UBlueprint::GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid)
 {
 	return FBlueprintEditorUtils::GetFunctionNameFromClassByGuid(InClass, FunctionGuid);

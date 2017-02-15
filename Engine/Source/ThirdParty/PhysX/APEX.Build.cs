@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System;
@@ -249,12 +249,12 @@ public class APEX : ModuleRules
 
 			LibraryFormatString = "{0}.lib";
 		}
-		else if (Target.Platform == UnrealTargetPlatform.WolfPlat)
+		else if (Target.Platform == UnrealTargetPlatform.Switch)
 		{
 			Definitions.Add("APEX_STATICALLY_LINKED=1");
 			Definitions.Add("WITH_APEX_LEGACY=0");
 
-			APEXLibDir += "/WolfPlat";
+			APEXLibDir += "/Switch";
 			PublicLibraryPaths.Add(APEXLibDir);
 
 			LibraryFormatString = "{0}";

@@ -1,17 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "UnrealEd.h"
-#include "UObjectGlobals.h"
-#include "FbxImporter.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #include "SFbxSceneOptionWindow.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Input/SEditableText.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "EditorStyleSet.h"
+#include "Factories/FbxSceneImportOptions.h"
+#include "Factories/FbxSceneImportOptionsSkeletalMesh.h"
+#include "Factories/FbxSceneImportOptionsStaticMesh.h"
+#include "Fbx/SSceneImportNodeTreeView.h"
+#include "Fbx/SSceneImportStaticMeshListView.h"
+#include "Fbx/SSceneReimportNodeTreeView.h"
+#include "Fbx/SSceneSkeletalMeshListView.h"
+#include "Fbx/SSceneReimportSkeletalMeshListView.h"
+#include "Fbx/SSceneReimportStaticMeshListView.h"
 #include "IDocumentation.h"
 #include "PropertyEditorModule.h"
 #include "IDetailsView.h"
-#include "SDockTab.h"
-#include "TabManager.h"
-#include "STextComboBox.h"
-#include "SEditableTextBox.h"
-#include "../FbxImporter.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "Widgets/Input/STextComboBox.h"
+#include "FbxImporter.h"
 #include "Dialogs/DlgPickPath.h"
 
 #define LOCTEXT_NAMESPACE "FBXOption"
@@ -180,6 +190,7 @@ void SFbxSceneOptionWindow::OnFinishedChangingPropertiesSceneTabDetailView(const
 		MaterialsTabListView->UpdateMaterialBasePath();
 	}
 	//Set the Global Import setting
+	GlobalImportSettings->bForceFrontXAxis = SceneImportOptionsDisplay->bForceFrontXAxis;
 	GlobalImportSettings->bBakePivotInVertex = SceneImportOptionsDisplay->bBakePivotInVertex;
 	GlobalImportSettings->bInvertNormalMap = SceneImportOptionsDisplay->bInvertNormalMaps;
 	GlobalImportSettings->ImportTranslation = SceneImportOptionsDisplay->ImportTranslation;

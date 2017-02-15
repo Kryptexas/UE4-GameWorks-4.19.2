@@ -1,7 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
 #include "MatineeImportTools.h"
+#include "MovieSceneSequence.h"
+#include "Tracks/MovieSceneAudioTrack.h"
+#include "ScopedTransaction.h"
+#include "MovieSceneCommonHelpers.h"
+#include "IMovieScenePlayer.h"
+
+#include "Curves/CurveInterface.h"
 
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpData.h"
@@ -9,40 +15,39 @@
 #include "Matinee/InterpTrackLinearColorProp.h"
 #include "Matinee/InterpTrackColorProp.h"
 #include "Matinee/InterpTrackBoolProp.h"
-#include "Matinee/InterpTrackFloatBase.h"
-#include "Matinee/InterpTrackMove.h"
 #include "Matinee/InterpTrackMoveAxis.h"
 #include "Matinee/InterpTrackAnimControl.h"
 #include "Matinee/InterpTrackSound.h"
 #include "Matinee/InterpTrackFade.h"
 #include "Matinee/InterpTrackDirector.h"
 #include "Matinee/InterpTrackEvent.h"
+#include "Matinee/InterpTrackVectorProp.h"
 #include "Matinee/InterpTrackVisibility.h"
 
-#include "MovieSceneColorTrack.h"
-#include "MovieSceneBoolTrack.h"
-#include "MovieSceneFloatTrack.h"
-#include "MovieScene3DTransformTrack.h"
-#include "MovieSceneParticleTrack.h"
-#include "MovieSceneSkeletalAnimationTrack.h"
-#include "MovieSceneAudioTrack.h"
-#include "MovieSceneFadeTrack.h"
-#include "MovieSceneCameraCutTrack.h"
-#include "MovieSceneEventTrack.h"
-#include "MovieSceneVisibilityTrack.h"
+#include "Tracks/MovieSceneBoolTrack.h"
+#include "Tracks/MovieSceneFloatTrack.h"
+#include "Tracks/MovieSceneColorTrack.h"
+#include "Tracks/MovieScene3DTransformTrack.h"
+#include "Tracks/MovieSceneParticleTrack.h"
+#include "Tracks/MovieSceneSkeletalAnimationTrack.h"
+#include "Tracks/MovieSceneFadeTrack.h"
+#include "Tracks/MovieSceneCameraCutTrack.h"
+#include "Tracks/MovieSceneEventTrack.h"
+#include "Tracks/MovieSceneVisibilityTrack.h"
+#include "Tracks/MovieSceneAudioTrack.h"
+#include "Tracks/MovieSceneVectorTrack.h"
 
-#include "MovieSceneColorSection.h"
-#include "MovieSceneBoolSection.h"
-#include "MovieSceneFloatSection.h"
-#include "MovieScene3DTransformSection.h"
-#include "MovieSceneSkeletalAnimationSection.h"
-#include "MovieSceneAudioSection.h"
-#include "MovieSceneFadeSection.h"
-#include "MovieSceneCameraCutSection.h"
-#include "MovieSceneEventSection.h"
-#include "MovieSceneVisibilitySection.h"
+#include "Sections/MovieSceneColorSection.h"
+#include "Sections/MovieSceneBoolSection.h"
+#include "Sections/MovieSceneFloatSection.h"
+#include "Sections/MovieScene3DTransformSection.h"
+#include "Sections/MovieSceneSkeletalAnimationSection.h"
+#include "Sections/MovieSceneAudioSection.h"
+#include "Sections/MovieSceneFadeSection.h"
+#include "Sections/MovieSceneCameraCutSection.h"
+#include "Sections/MovieSceneEventSection.h"
+#include "Sections/MovieSceneVectorSection.h"
 
-#include "MovieSceneSequence.h"
 
 #include "Animation/AnimSequence.h"
 
@@ -198,6 +203,54 @@ bool FMatineeImportTools::CopyInterpFloatTrack( UInterpTrackFloatBase* MatineeFl
 	return bSectionCreated;
 }
 
+bool FMatineeImportTools::CopyInterpVectorTrack( UInterpTrackVectorProp* MatineeVectorTrack, UMovieSceneVectorTrack* VectorTrack )
+{
+	const FScopedTransaction Transaction( NSLOCTEXT( "Sequencer", "PasteMatineeVectorTrack", "Paste Matinee Vector Track" ) );
+	bool bSectionCreated = false;
+
+	VectorTrack->Modify();
+
+	float KeyTime = MatineeVectorTrack->GetKeyframeTime( 0 );
+	UMovieSceneVectorSection* Section = Cast<UMovieSceneVectorSection>( MovieSceneHelpers::FindSectionAtTime( VectorTrack->GetAllSections(), KeyTime ) );
+	if ( Section == nullptr )
+	{
+		Section = Cast<UMovieSceneVectorSection>( VectorTrack->CreateNewSection() );
+		VectorTrack->AddSection( *Section );
+		Section->SetIsInfinite(true);
+		bSectionCreated = true;
+	}
+	if (Section->TryModify())
+	{
+		float SectionMin = Section->GetStartTime();
+		float SectionMax = Section->GetEndTime();
+
+		if (Section->GetChannelsUsed() == 3)
+		{
+			FRichCurve& XCurve = Section->GetCurve(0);
+			FRichCurve& YCurve = Section->GetCurve(1);
+			FRichCurve& ZCurve = Section->GetCurve(2);
+
+			for ( const auto& Point : MatineeVectorTrack->VectorTrack.Points )
+			{
+				FMatineeImportTools::SetOrAddKey( XCurve, Point.InVal, Point.OutVal.X, Point.ArriveTangent.X, Point.LeaveTangent.X, Point.InterpMode );
+				FMatineeImportTools::SetOrAddKey( YCurve, Point.InVal, Point.OutVal.Y, Point.ArriveTangent.Y, Point.LeaveTangent.Y, Point.InterpMode );
+				FMatineeImportTools::SetOrAddKey( ZCurve, Point.InVal, Point.OutVal.Z, Point.ArriveTangent.Z, Point.LeaveTangent.Z, Point.InterpMode );
+				SectionMin = FMath::Min( SectionMin, Point.InVal );
+				SectionMax = FMath::Max( SectionMax, Point.InVal );
+			}
+			
+			CleanupCurveKeys(XCurve);
+			CleanupCurveKeys(YCurve);
+			CleanupCurveKeys(ZCurve);
+		}
+
+		Section->SetStartTime( SectionMin );
+		Section->SetEndTime( SectionMax );
+	}
+
+	return bSectionCreated;
+}
+
 
 bool FMatineeImportTools::CopyInterpColorTrack( UInterpTrackColorProp* ColorPropTrack, UMovieSceneColorTrack* ColorTrack )
 {
@@ -303,7 +356,7 @@ bool FMatineeImportTools::CopyInterpLinearColorTrack( UInterpTrackLinearColorPro
 	return bSectionCreated;
 }
 
-bool FMatineeImportTools::CopyInterpMoveTrack( UInterpTrackMove* MoveTrack, UMovieScene3DTransformTrack* TransformTrack )
+bool FMatineeImportTools::CopyInterpMoveTrack( UInterpTrackMove* MoveTrack, UMovieScene3DTransformTrack* TransformTrack, const FVector& DefaultScale )
 {
 	const FScopedTransaction Transaction( NSLOCTEXT( "Sequencer", "PasteMatineeMoveTrack", "Paste Matinee Move Track" ) );
 	bool bSectionCreated = false;
@@ -315,9 +368,9 @@ bool FMatineeImportTools::CopyInterpMoveTrack( UInterpTrackMove* MoveTrack, UMov
 	if ( Section == nullptr )
 	{
 		Section = Cast<UMovieScene3DTransformSection>( TransformTrack->CreateNewSection() );
-		Section->GetScaleCurve(EAxis::X).SetDefaultValue(1);
-		Section->GetScaleCurve(EAxis::Y).SetDefaultValue(1);
-		Section->GetScaleCurve(EAxis::Z).SetDefaultValue(1);
+		Section->GetScaleCurve(EAxis::X).SetDefaultValue(DefaultScale.X);
+		Section->GetScaleCurve(EAxis::Y).SetDefaultValue(DefaultScale.Y);
+		Section->GetScaleCurve(EAxis::Z).SetDefaultValue(DefaultScale.Z);
 		TransformTrack->AddSection( *Section );
 		Section->SetIsInfinite(true);
 		bSectionCreated = true;
@@ -499,11 +552,11 @@ bool FMatineeImportTools::CopyInterpAnimControlTrack( UInterpTrackAnimControl* M
 		UMovieSceneSkeletalAnimationSection* NewSection = Cast<UMovieSceneSkeletalAnimationSection>( SkeletalAnimationTrack->CreateNewSection() );
 		NewSection->SetStartTime( AnimSeq.StartTime );
 		NewSection->SetEndTime( EndTime );
-		NewSection->SetStartOffset( AnimSeq.AnimStartOffset );
-		NewSection->SetEndOffset( AnimSeq.AnimEndOffset );
-		NewSection->SetPlayRate( AnimSeq.AnimPlayRate );
-		NewSection->SetAnimSequence( AnimSeq.AnimSeq );
-		NewSection->SetSlotName( MatineeAnimControlTrack->SlotName );
+		NewSection->Params.StartOffset = AnimSeq.AnimStartOffset;
+		NewSection->Params.EndOffset = AnimSeq.AnimEndOffset;
+		NewSection->Params.PlayRate = AnimSeq.AnimPlayRate;
+		NewSection->Params.Animation = AnimSeq.AnimSeq;
+		NewSection->Params.SlotName = MatineeAnimControlTrack->SlotName;
 
 		SkeletalAnimationTrack->AddSection( *NewSection );
 		bSectionCreated = true;
@@ -531,9 +584,8 @@ bool FMatineeImportTools::CopyInterpSoundTrack( UInterpTrackSound* MatineeSoundT
 
 		UMovieSceneAudioSection* NewAudioSection = Cast<UMovieSceneAudioSection>(AudioTrack->GetAllSections().Last());
 		NewAudioSection->SetRowIndex( MaxSectionRowIndex + 1 );
-		// The audio dilation is inverted before it's set as the pitch, so we need to invert the pitch here to get the same result.
-		NewAudioSection->SetAudioDilationFactor( 1 / SoundTrackKey.Pitch );
-		NewAudioSection->SetAudioVolume( SoundTrackKey.Volume );
+		NewAudioSection->GetPitchMultiplierCurve().SetDefaultValue( SoundTrackKey.Pitch );
+		NewAudioSection->GetSoundVolumeCurve().SetDefaultValue( SoundTrackKey.Volume );
 
 		AudioTrack->AddSection( *NewAudioSection );
 		bSectionCreated = true;
@@ -580,7 +632,7 @@ bool FMatineeImportTools::CopyInterpFadeTrack( UInterpTrackFade* MatineeFadeTrac
 	return bSectionCreated;
 }
 
-bool FMatineeImportTools::CopyInterpDirectorTrack( UInterpTrackDirector* DirectorTrack, UMovieSceneCameraCutTrack* CameraCutTrack, AMatineeActor* MatineeActor, UMovieSceneSequence* MovieSceneSequence )
+bool FMatineeImportTools::CopyInterpDirectorTrack( UInterpTrackDirector* DirectorTrack, UMovieSceneCameraCutTrack* CameraCutTrack, AMatineeActor* MatineeActor, IMovieScenePlayer& Player )
 {
 	const FScopedTransaction Transaction( NSLOCTEXT( "Sequencer", "PasteMatineeDirectorTrack", "Paste Matinee Director Track" ) );
 	bool bCutsAdded = false;
@@ -600,7 +652,7 @@ bool FMatineeImportTools::CopyInterpDirectorTrack( UInterpTrackDirector* Directo
 			{
 				AActor* CameraActor = ViewGroupInst->GetGroupActor();
 		
-				FGuid CameraHandle = MovieSceneSequence->FindPossessableObjectId(*CameraActor);
+				FGuid CameraHandle = Player.FindObjectId(*CameraActor, MovieSceneSequenceID::Root);
 				if (CameraHandle.IsValid())
 				{
 					CameraCutTrack->AddNewCameraCut(CameraHandle, TrackCut.Time);
@@ -634,11 +686,11 @@ bool FMatineeImportTools::CopyInterpEventTrack( UInterpTrackEvent* MatineeEventT
 		{
 			float SectionMin = Section->GetStartTime();
 			float SectionMax = Section->GetEndTime();
-			
-			FNameCurve& EventCurve = Section->GetEventCurve();
+
+			TCurveInterface<FEventPayload, float> CurveInterface = Section->GetCurveInterface();
 			for (FEventTrackKey EventTrackKey : MatineeEventTrack->EventTrack)
 			{
-				EventCurve.UpdateOrAddKey(EventTrackKey.Time, EventTrackKey.EventName);
+				CurveInterface.UpdateOrAddKey(EventTrackKey.Time, FEventPayload(EventTrackKey.EventName), KINDA_SMALL_NUMBER);
 				SectionMin = FMath::Min( SectionMin, EventTrackKey.Time );
 				SectionMax = FMath::Max( SectionMax, EventTrackKey.Time );
 			}
@@ -661,10 +713,10 @@ bool FMatineeImportTools::CopyInterpVisibilityTrack( UInterpTrackVisibility* Mat
 	if (MatineeVisibilityTrack->VisibilityTrack.Num())
 	{
 		float KeyTime = MatineeVisibilityTrack->VisibilityTrack[0].Time;
-		UMovieSceneVisibilitySection* Section = Cast<UMovieSceneVisibilitySection>( MovieSceneHelpers::FindSectionAtTime( VisibilityTrack->GetAllSections(), KeyTime ) );
+		UMovieSceneBoolSection* Section = Cast<UMovieSceneBoolSection>( MovieSceneHelpers::FindSectionAtTime( VisibilityTrack->GetAllSections(), KeyTime ) );
 		if ( Section == nullptr )
 		{
-			Section = Cast<UMovieSceneVisibilitySection>( VisibilityTrack->CreateNewSection() );
+			Section = Cast<UMovieSceneBoolSection>( VisibilityTrack->CreateNewSection() );
 			VisibilityTrack->AddSection( *Section );
 			bSectionCreated = true;
 		}

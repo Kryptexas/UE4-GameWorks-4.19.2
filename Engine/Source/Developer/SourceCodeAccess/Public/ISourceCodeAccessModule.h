@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ISourceCodeAccessor.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+
+class ISourceCodeAccessor;
 
 /** Event fired when launching code accessor */
 DECLARE_MULTICAST_DELEGATE( FLaunchingCodeAccessor );

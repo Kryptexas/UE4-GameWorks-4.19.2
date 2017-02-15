@@ -1,6 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintCompilerCppBackendModulePrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Object.h"
+#include "UObject/Package.h"
+#include "UObject/UnrealType.h"
+#include "Serialization/ArchiveObjectCrc32.h"
+#include "Engine/Blueprint.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
 
 class FArchiveSkipTransientObjectCRC32 : public FArchiveObjectCrc32
 {
@@ -102,7 +113,7 @@ static UClass* GetNativeClass(const TCHAR* TestFolder, const TCHAR* ClassName, F
 	check(NativePackage);
 
 	const FString FStringFullPathName = FString::Printf(TEXT("%s.%s_C"), *FullName, ClassName);
-	UClass* Ret = (UClass*)ConstructDynamicType(*FStringFullPathName); //FindObjectFast<UClass>(NativePackage, *(FString(ClassName) + TEXT("_C")));
+	UClass* Ret = (UClass*)ConstructDynamicType(*FStringFullPathName, EConstructDynamicType::CallZConstructor); //FindObjectFast<UClass>(NativePackage, *(FString(ClassName) + TEXT("_C")));
 
 	if (!Ret)
 	{

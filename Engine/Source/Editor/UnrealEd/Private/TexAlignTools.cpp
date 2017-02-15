@@ -1,13 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TexAlignTools.cpp: Tools for aligning textures on surfaces
 =============================================================================*/
 
-#include "UnrealEd.h"
 #include "TexAlignTools.h"
-#include "BSPOps.h"
+#include "Engine/Level.h"
+#include "Model.h"
+#include "TexAligner/TexAlignerBox.h"
+#include "TexAligner/TexAlignerDefault.h"
+#include "TexAligner/TexAlignerFit.h"
+#include "TexAligner/TexAlignerPlanar.h"
 #include "Engine/Polys.h"
+#include "Editor.h"
+#include "BSPOps.h"
 
 FTexAlignTools GTexAlignTools;
 

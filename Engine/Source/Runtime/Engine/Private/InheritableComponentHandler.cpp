@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "Engine/SCS_Node.h"
 #include "Engine/InheritableComponentHandler.h"
+#include "Components/ActorComponent.h"
+#include "Engine/Engine.h"
+#include "Engine/SCS_Node.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/LinkerLoad.h"
+#include "UObject/BlueprintsObjectVersion.h"
+#include "UObject/UObjectHash.h" // for FindObjectWithOuter()
 
 #if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -11,6 +16,13 @@
 // UInheritableComponentHandler
 
 const FString UInheritableComponentHandler::SCSDefaultSceneRootOverrideNamePrefix(TEXT("ICH-"));
+
+void UInheritableComponentHandler::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FBlueprintsObjectVersion::GUID);
+}
 
 void UInheritableComponentHandler::PostLoad()
 {
@@ -23,29 +35,32 @@ void UInheritableComponentHandler::PostLoad()
 			FComponentOverrideRecord& Record = Records[Index];
 			if (Record.ComponentTemplate)
 			{
-				// Fix up component class on load, if it's not already set.
-				if (Record.ComponentClass == nullptr)
+				if (GetLinkerCustomVersion(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::SCSHasComponentTemplateClass)
 				{
-					Record.ComponentClass = Record.ComponentTemplate->GetClass();
-				}
-
-				// Fix up component template name on load, if it doesn't match the original template name. Otherwise, archetype lookups will fail for this template.
-				// For example, this can occur after a component variable rename in a parent BP class, but before a child BP class with an override template is loaded.
-				if (UActorComponent* OriginalTemplate = Record.ComponentKey.GetOriginalTemplate())
-				{
-					FString ExpectedTemplateName = OriginalTemplate->GetName();
-					if (USCS_Node* SCSNode = Record.ComponentKey.FindSCSNode())
+					// Fix up component class on load, if it's not already set.
+					if (Record.ComponentClass == nullptr)
 					{
-						// We append a prefix onto SCS default scene root node overrides. This is done to ensure that the override template does not collide with our owner's own SCS default scene root node template.
-						if (SCSNode == SCSNode->GetSCS()->GetDefaultSceneRootNode())
-						{
-							ExpectedTemplateName = SCSDefaultSceneRootOverrideNamePrefix + ExpectedTemplateName;
-						}
+						Record.ComponentClass = Record.ComponentTemplate->GetClass();
 					}
 
-					if (ExpectedTemplateName != Record.ComponentTemplate->GetName())
+					// Fix up component template name on load, if it doesn't match the original template name. Otherwise, archetype lookups will fail for this template.
+					// For example, this can occur after a component variable rename in a parent BP class, but before a child BP class with an override template is loaded.
+					if (UActorComponent* OriginalTemplate = Record.ComponentKey.GetOriginalTemplate())
 					{
-						Record.ComponentTemplate->Rename(*ExpectedTemplateName, nullptr, REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
+						FString ExpectedTemplateName = OriginalTemplate->GetName();
+						if (USCS_Node* SCSNode = Record.ComponentKey.FindSCSNode())
+						{
+							// We append a prefix onto SCS default scene root node overrides. This is done to ensure that the override template does not collide with our owner's own SCS default scene root node template.
+							if (SCSNode == SCSNode->GetSCS()->GetDefaultSceneRootNode())
+							{
+								ExpectedTemplateName = SCSDefaultSceneRootOverrideNamePrefix + ExpectedTemplateName;
+							}
+						}
+
+						if (ExpectedTemplateName != Record.ComponentTemplate->GetName())
+						{
+							FixComponentTemplateName(Record.ComponentTemplate, ExpectedTemplateName);
+						}
 					}
 				}
 
@@ -56,7 +71,7 @@ void UInheritableComponentHandler::PostLoad()
 				}
 				else if (Record.CookedComponentInstancingData.bIsValid)
 				{
-					// Generate "fast path" instancing data.
+					// Generate "fast path" instancing data. This data may also be used to override components inherited from a nativized BP parent class.
 					Record.CookedComponentInstancingData.LoadCachedPropertyDataForSerialization(Record.ComponentTemplate);
 				}
 			}
@@ -119,6 +134,17 @@ UActorComponent* UInheritableComponentHandler::CreateOverridenComponentTemplate(
 	if (NewComponentTemplate->IsPendingKill())
 	{
 		NewComponentTemplate->ClearPendingKill();
+		UEngine::FCopyPropertiesForUnrelatedObjectsParams CopyParams;
+		CopyParams.bDoDelta = false;
+		UEngine::CopyPropertiesForUnrelatedObjects(BestArchetype, NewComponentTemplate, CopyParams);
+	}
+
+	// Clear transient flag if it was transient before and re copy off archetype
+	if (NewComponentTemplate->HasAnyFlags(RF_Transient) && UnnecessaryComponents.Contains(NewComponentTemplate))
+	{
+		NewComponentTemplate->ClearFlags(RF_Transient);
+		UnnecessaryComponents.Remove(NewComponentTemplate);
+
 		UEngine::FCopyPropertiesForUnrelatedObjectsParams CopyParams;
 		CopyParams.bDoDelta = false;
 		UEngine::CopyPropertiesForUnrelatedObjects(BestArchetype, NewComponentTemplate, CopyParams);
@@ -187,10 +213,11 @@ void UInheritableComponentHandler::ValidateTemplates()
 				}
 				else
 				{
-					// Set pending kill so this object does not get used as an archetype for subclasses
+					// Set transient flag so this object does not get used as an archetype for subclasses
 					if (Record.ComponentTemplate)
 					{
-						Record.ComponentTemplate->MarkPendingKill();
+						Record.ComponentTemplate->SetFlags(RF_Transient);
+						UnnecessaryComponents.AddUnique(Record.ComponentTemplate);
 					}
 
 					UE_LOG(LogBlueprint, Log, TEXT("ValidateTemplates '%s': overridden template is unnecessary and will be removed - component '%s' from '%s'"),
@@ -251,7 +278,7 @@ bool UInheritableComponentHandler::IsRecordValid(const FComponentOverrideRecord&
 		return false;
 	}
 
-	UBlueprintGeneratedClass* ComponentOwner = Record.ComponentKey.GetComponentOwner();
+	UClass* ComponentOwner = Record.ComponentKey.GetComponentOwner();
 	if (!ComponentOwner || !OwnerClass->IsChildOf(ComponentOwner))
 	{
 		return false;
@@ -451,6 +478,36 @@ const FComponentOverrideRecord* UInheritableComponentHandler::FindRecord(const F
 	return nullptr;
 }
 
+void UInheritableComponentHandler::FixComponentTemplateName(UActorComponent* ComponentTemplate, const FString& NewName)
+{
+	// Override template names were not previously kept in sync w/ past node rename operations. Thus, we need to check for
+	// and correct other (stale) template names. Otherwise, these could collide with the one we're trying to correct here.
+	for (int32 Index = 0; Index < Records.Num(); ++Index)
+	{
+		FComponentOverrideRecord& Record = Records[Index];
+		if (Record.ComponentTemplate && Record.ComponentTemplate != ComponentTemplate && Record.ComponentTemplate->GetName() == NewName)
+		{
+			if (UActorComponent* OriginalTemplate = Record.ComponentKey.GetOriginalTemplate())
+			{
+				if (OriginalTemplate->GetName() != Record.ComponentTemplate->GetName())
+				{
+					// Recursively fix up this record's component template name first to also match its original template, which will then free up the name.
+					FixComponentTemplateName(Record.ComponentTemplate, OriginalTemplate->GetName());
+				}
+			}
+
+			// There should only be at most one collision, so we'll stop looking now.
+			break;
+		}
+	}
+
+	// Precondition: There are no other objects in the same scope with this name.
+	check(!FindObjectWithOuter(ComponentTemplate->GetOuter(), nullptr, FName(*NewName)));
+
+	// Now that we're sure there are no collisions with other records, we can safely rename this one to its new name.
+	ComponentTemplate->Rename(*NewName, nullptr, REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
+}
+
 // FComponentOverrideRecord
 
 FComponentKey::FComponentKey(const USCS_Node* SCSNode) : OwnerClass(nullptr)
@@ -458,7 +515,7 @@ FComponentKey::FComponentKey(const USCS_Node* SCSNode) : OwnerClass(nullptr)
 	if (SCSNode)
 	{
 		const USimpleConstructionScript* ParentSCS = SCSNode->GetSCS();
-		OwnerClass      = ParentSCS ? Cast<UBlueprintGeneratedClass>(ParentSCS->GetOwnerClass()) : nullptr;
+		OwnerClass      = ParentSCS ? ParentSCS->GetOwnerClass() : nullptr;
 		AssociatedGuid  = SCSNode->VariableGuid;
 		SCSVariableName = SCSNode->GetVariableName();
 	}
@@ -467,7 +524,7 @@ FComponentKey::FComponentKey(const USCS_Node* SCSNode) : OwnerClass(nullptr)
 #if WITH_EDITOR
 FComponentKey::FComponentKey(UBlueprint* Blueprint, const FUCSComponentId& UCSComponentID)
 {
-	OwnerClass     = CastChecked<UBlueprintGeneratedClass>(Blueprint->GeneratedClass);
+	OwnerClass     = Blueprint->GeneratedClass;
 	AssociatedGuid = UCSComponentID.GetAssociatedGuid();
 }
 #endif // WITH_EDITOR
@@ -479,7 +536,7 @@ bool FComponentKey::Match(const FComponentKey OtherKey) const
 
 USCS_Node* FComponentKey::FindSCSNode() const
 {
-	USimpleConstructionScript* ParentSCS = (OwnerClass && IsSCSKey()) ? OwnerClass->SimpleConstructionScript : nullptr;
+	USimpleConstructionScript* ParentSCS = (OwnerClass && IsSCSKey()) ? CastChecked<UBlueprintGeneratedClass>(OwnerClass)->SimpleConstructionScript : nullptr;
 	return ParentSCS ? ParentSCS->FindSCSNodeByGuid(AssociatedGuid) : nullptr;
 }
 

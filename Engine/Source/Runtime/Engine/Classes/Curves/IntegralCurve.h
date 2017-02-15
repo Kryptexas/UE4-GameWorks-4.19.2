@@ -1,7 +1,11 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
-#include "Curves/IndexedCurve.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Curves/KeyHandle.h"
+#include "Curves/IndexedCurve.h"
 #include "IntegralCurve.generated.h"
 
 

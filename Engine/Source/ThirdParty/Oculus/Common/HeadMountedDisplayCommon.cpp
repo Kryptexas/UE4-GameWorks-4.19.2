@@ -1,12 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Engine.h"
 #include "HeadMountedDisplayCommon.h"
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "PostProcess/PostProcessHMD.h"
 #include "ScreenRendering.h"
 #include "AsyncLoadingSplash.h"
+#include "Engine/StaticMesh.h"
+#include "GameFramework/WorldSettings.h"
+#include "GameFramework/PlayerController.h"
+#include "DrawDebugHelpers.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Engine/StaticMeshActor.h"
 
 #if OCULUS_STRESS_TESTS_ENABLED
 #include "OculusStressTests.h"
@@ -44,7 +49,7 @@ FHMDSettings::FHMDSettings() :
 	Flags.bPlayerControllerFollowsHmd = true;
 	Flags.bPlayerCameraManagerFollowsHmdOrientation = true;
 	Flags.bPlayerCameraManagerFollowsHmdPosition = true;
-	EyeRenderViewport[0] = EyeRenderViewport[1] = FIntRect(0, 0, 0, 0);
+	EyeRenderViewport[0] = EyeRenderViewport[1] = EyeRenderViewport[2] = FIntRect(0, 0, 0, 0);
 
 	CameraScale3D = FVector(1.0f, 1.0f, 1.0f);
 	PositionScale3D = FVector(1.0f, 1.0f, 1.0f);
@@ -79,6 +84,7 @@ float FHMDSettings::GetActualScreenPercentage() const
 
 FHMDGameFrame::FHMDGameFrame() :
 	FrameNumber(0),
+	MonoCullingDistance(0.0f),
 	WorldToMetersScaleWhileInFrame(100.f)
 {
 	LastHmdOrientation = FQuat::Identity;
@@ -182,7 +188,7 @@ void FHMDViewExtension::PostRenderViewFamily_RenderThread(FRHICommandListImmedia
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-	SetRenderTarget(RHICmdList, InViewFamily.RenderTarget->GetRenderTargetTexture(), SceneContext.GetSceneDepthSurface());
+	SetRenderTarget(RHICmdList, InViewFamily.RenderTarget->GetRenderTargetTexture(), SceneContext.GetSceneDepthTexture());
 
 	FHMDLayerManager *LayerMgr = HeadMountedDisplay->GetLayerManager();//->GetLayerMgr();
 	LayerMgr->PokeAHole(RHICmdList, RenderContext.RenderFrame.Get(), HeadMountedDisplay->GetRendererModule(), InViewFamily);
@@ -542,17 +548,23 @@ bool FHeadMountedDisplay::IsStereoEnabled() const
 {
 	if (IsInGameThread())
 	{
-		// If IsStereoEnabled is called when a game frame hasn't started, then always return false.
-		// In the case when you need to check if stereo is GOING TO be enabled in next frame,
-		// use explicit call to Settings->IsStereoEnabled()
 		const auto frame = GetCurrentFrame();
 		if (frame && frame->Settings.IsValid())
 		{
 			return (frame->Settings->IsStereoEnabled());
 		}
+		else
+		{
+			// If IsStereoEnabled is called when a game frame hasn't started, then always return false.
+			// In the case when you need to check if stereo is GOING TO be enabled in next frame,
+			// use explicit call to IsStereoEnabledOnNextFrame()
+			return false;
+		}
 	}
-
-	return false;
+	else
+	{
+		return false;
+	}
 }
 
 bool FHeadMountedDisplay::IsStereoEnabledOnNextFrame() const
@@ -1941,7 +1953,6 @@ FHMDLayerDesc& FHMDLayerDesc::operator=(const FHMDLayerDesc& InSrc)
 
 void FHMDLayerDesc::ResetChangedFlags()
 {
-	bTextureCopyPending |= !!bTextureHasChanged;
 	bTextureHasChanged = bTransformHasChanged = bNewLayer = bAlreadyAdded = false;
 }
 
@@ -2259,7 +2270,6 @@ void FHMDLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RH
 			{
 				LayersToRender.Add(CreateRenderLayer_RenderThread(*pLayer.Get()));
 			}
-			pLayer->ResetChangedFlags();
 		}
 		for (uint32 i = 0, n = DebugLayers.Num(); i < n; ++i)
 		{
@@ -2269,7 +2279,6 @@ void FHMDLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RH
 			{
 				LayersToRender.Add(CreateRenderLayer_RenderThread(*pLayer.Get()));
 			}
-			pLayer->ResetChangedFlags();
 		}
 
 		struct Comparator
@@ -2372,7 +2381,7 @@ static void DrawPokeAHoleCylinderMesh(FRHICommandList& RHICmdList, FVector Base,
 	DrawIndexedPrimitiveUP(RHICmdList, PT_TriangleList, 0, 2*(Sides+1), 2*Sides, Indices, sizeof(Indices[0]), Vertices, sizeof(Vertices[0]));
 }
 
-static void DrawPokeAHoleMesh(FRHICommandList& RHICmdList,const FHMDLayerDesc& LayerDesc, FMatrix& matrix, float scale, bool invertCoords)
+static void DrawPokeAHoleMesh(FRHICommandList& RHICmdList,const FHMDLayerDesc& LayerDesc, const FMatrix& matrix, float scale, bool invertCoords)
 {
 	if (LayerDesc.GetType() == FHMDLayerDesc::Quad)
 	{
@@ -2454,7 +2463,7 @@ void FHMDLayerManager::PokeAHole(FRHICommandListImmediate& RHICmdList, const FHM
 
 					RHICmdList.SetBlendState(TStaticBlendState<CW_ALPHA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
 					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-						false, CF_DepthNearOrEqual
+						false, CF_Always
 					>::GetRHI());
 					DrawPokeAHoleQuadMesh(RHICmdList, FMatrix::Identity, -1, -1, 0, 2, 2, 0, false);
 

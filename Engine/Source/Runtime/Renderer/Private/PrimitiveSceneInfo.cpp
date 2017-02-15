@@ -1,14 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveSceneInfo.cpp: Primitive scene info implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "PrimitiveSceneInfo.h"
+#include "PrimitiveSceneProxy.h"
+#include "Components/PrimitiveComponent.h"
+#include "SceneManagement.h"
+#include "SceneCore.h"
+#include "VelocityRendering.h"
 #include "ScenePrivate.h"
-#include "../../Engine/Classes/Components/SkeletalMeshComponent.h"
-#include "LightMapRendering.h"
-#include "ParticleDefinitions.h"
 
 /** An implementation of FStaticPrimitiveDrawInterface that stores the drawn elements for the rendering thread to use. */
 class FBatchingSPDI : public FStaticPrimitiveDrawInterface
@@ -46,6 +48,8 @@ public:
 #if DO_CHECK
 			Mesh.CheckUniformBuffers();
 #endif
+			PrimitiveSceneInfo->Proxy->VerifyUsedMaterial(Mesh.MaterialRenderProxy);
+
 			FStaticMesh* StaticMesh = new(PrimitiveSceneInfo->StaticMeshes) FStaticMesh(
 				PrimitiveSceneInfo,
 				Mesh,
@@ -128,6 +132,8 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FScene
 	{
 		LODParentComponentId = LODParent->ComponentId;
 	}
+
+	FMemory::Memzero(CachedReflectionCaptureProxies);
 }
 
 FPrimitiveSceneInfo::~FPrimitiveSceneInfo()
@@ -202,9 +208,9 @@ void FPrimitiveSceneInfo::AddToScene(FRHICommandListImmediate& RHICmdList, bool 
 	Scene->PrimitiveOctree.AddElement(LocalCompactPrimitiveSceneInfo);
 	check(OctreeId.IsValidId());
 
-	if (Proxy->CastsCapsuleIndirectShadow())
+	if (Proxy->CastsDynamicIndirectShadow())
 	{
-		Scene->CapsuleIndirectCasterPrimitives.Add(this);
+		Scene->DynamicIndirectCasterPrimitives.Add(this);
 	}
 
 	// Set bounds.
@@ -302,9 +308,9 @@ void FPrimitiveSceneInfo::RemoveFromScene(bool bUpdateStaticDrawLists)
 	Scene->PrimitiveOctree.RemoveElement(OctreeId);
 	OctreeId = FOctreeElementId();
 
-	if (Proxy->CastsCapsuleIndirectShadow())
+	if (Proxy->CastsDynamicIndirectShadow())
 	{
-		Scene->CapsuleIndirectCasterPrimitives.RemoveSingleSwap(this);
+		Scene->DynamicIndirectCasterPrimitives.RemoveSingleSwap(this);
 	}
 
 	IndirectLightingCacheAllocation = NULL;

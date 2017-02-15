@@ -4,12 +4,8 @@
   <Location>/Engine/Source/Runtime/Core/Private/Math/</Location>
   <Function />
   <Justification />
-  <Platforms />
-  <Products />
   <Eula />
   <RedistributeTo />
-  <Redistribute>false</Redistribute>
-  <IsSourceAvailable>false</IsSourceAvailable>
   <Notification>
 Redirect: ../../../Engine/Classes/Kismet/KismetMathLibrary.tps
 Notes:

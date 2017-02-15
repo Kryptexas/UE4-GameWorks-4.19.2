@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "Misc/Attribute.h"
+#include "Layout/Margin.h"
+#include "Widgets/SNullWidget.h"
 #include "SlotBase.h"
-#include "Margin.h"
-
-class SWidget;
+#include "Widgets/SWidget.h"
 
 /**
  * FChildren is an interface that must be implemented by all child containers.

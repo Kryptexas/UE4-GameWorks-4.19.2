@@ -1,7 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Widgets/SWidget.h"
+#include "ISequencerSection.h"
+#include "MovieSceneTrack.h"
+#include "ISequencer.h"
+#include "ISequencerTrackEditor.h"
+#include "MovieSceneTrackEditor.h"
+
+class FAssetData;
+class FAudioThumbnail;
+class FFloatCurveKeyArea;
+class FMenuBuilder;
+class FSequencerSectionPainter;
+class USoundWave;
 
 /**
  * Tools for audio tracks
@@ -40,6 +56,7 @@ public:
 	virtual bool SupportsType(TSubclassOf<UMovieSceneTrack> Type) const override;
 	virtual void BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track ) override;
 	virtual const FSlateBrush* GetIconBrush() const override;
+	virtual EMultipleRowMode GetMultipleRowMode() const override;
 	
 protected:
 
@@ -85,10 +102,10 @@ public:
 	virtual FText GetDisplayName() const override;
 	virtual FText GetSectionTitle() const override;
 	virtual float GetSectionHeight() const override;
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder) const override { }
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder) const override;
 	virtual int32 OnPaintSection(FSequencerSectionPainter& Painter) const override;
 	virtual void Tick(const FGeometry& AllottedGeometry, const FGeometry& ParentGeometry, const double InCurrentTime, const float InDeltaTime) override;
-	
+
 private:
 
 	/* Re-creates the texture used to preview the waveform. */
@@ -98,13 +115,18 @@ private:
 
 	/** The section we are visualizing. */
 	UMovieSceneSection& Section;
-	
+
 	/** The waveform thumbnail render object. */
 	TSharedPtr<class FAudioThumbnail> WaveformThumbnail;
+
+	/** Sound volume/pitch key areas. */
+	mutable TSharedPtr<FFloatCurveKeyArea> SoundVolumeArea;
+	mutable TSharedPtr<FFloatCurveKeyArea> PitchMultiplierArea;
 
 	/** Stored data about the waveform to determine when it is invalidated. */
 	TRange<float> StoredDrawRange;
 	bool StoredShowIntensity;
+	float StoredStartOffset;
 	int32 StoredXOffset;
 	int32 StoredXSize;
 	FColor StoredColor;

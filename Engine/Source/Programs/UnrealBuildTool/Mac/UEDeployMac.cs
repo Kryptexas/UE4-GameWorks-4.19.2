@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections;
@@ -13,7 +13,7 @@ namespace UnrealBuildTool
 {
 	class UEDeployMac : UEBuildDeploy
 	{
-		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
+		public override bool PrepTargetForDeployment(UEBuildDeployTarget InTarget)
 		{
 			Log.TraceInformation("Deploying now!");
 			return true;

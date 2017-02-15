@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLES2.h: Public OpenGL ES 2.0 definitions for non-common functionality
@@ -789,7 +789,7 @@ public:
 #endif
 
 // Normalize debug macros due to naming differences across GL versions
-#if GL_KHR_debug
+#if defined(GL_KHR_debug) && GL_KHR_debug
 #define GL_DEBUG_SOURCE_OTHER_ARB GL_DEBUG_SOURCE_OTHER_KHR
 #define GL_DEBUG_SOURCE_API_ARB GL_DEBUG_SOURCE_API_KHR
 #define GL_DEBUG_TYPE_ERROR_ARB GL_DEBUG_TYPE_ERROR_KHR

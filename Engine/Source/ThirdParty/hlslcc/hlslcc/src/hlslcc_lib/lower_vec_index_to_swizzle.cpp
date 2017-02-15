@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -77,6 +77,11 @@ ir_rvalue * ir_vec_index_to_swizzle_visitor::convert_vec_index_to_swizzle(ir_rva
 	}
 
 	if (deref->array->type->is_matrix() || deref->array->type->is_array())
+	{
+		return ir;
+	}
+
+	if (deref->array->type->is_patch())
 	{
 		return ir;
 	}

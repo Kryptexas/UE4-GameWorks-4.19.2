@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Commandlet to allow diff in P4V, and expose that functionality to the editor
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Commandlets/Commandlet.h"
 #include "DiffAssetsCommandlet.generated.h"
 

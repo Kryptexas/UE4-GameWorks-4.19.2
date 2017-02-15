@@ -1,14 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Engine/BlueprintGeneratedClass.h"
 #include "InheritableComponentHandler.generated.h"
 
-class  USCS_Node;
-class  UActorComponent;
+class UActorComponent;
+class UBlueprint;
+class USCS_Node;
 struct FUCSComponentId;
-class  UBlueprint;
-class  UBlueprintGeneratedClass;
 
 USTRUCT()
 struct ENGINE_API FComponentKey
@@ -45,13 +50,13 @@ struct ENGINE_API FComponentKey
 	UActorComponent* GetOriginalTemplate() const;
 	bool RefreshVariableName();
 
-	class UBlueprintGeneratedClass* GetComponentOwner()  const { return OwnerClass; }
+	UClass* GetComponentOwner()  const { return OwnerClass; }
 	FName   GetSCSVariableName() const { return SCSVariableName; }
 	FGuid   GetAssociatedGuid()  const { return AssociatedGuid; }
 
 private: 
 	UPROPERTY()
-	class UBlueprintGeneratedClass* OwnerClass;
+	UClass* OwnerClass;
 
 	UPROPERTY()
 	FName SCSVariableName;
@@ -120,6 +125,7 @@ public:
 public:
 
 	//~ Begin UObject Interface
+	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
 	//~ End UObject Interface
@@ -147,7 +153,15 @@ public:
 
 private:
 	const FComponentOverrideRecord* FindRecord(const FComponentKey Key) const;
+
+	/** Helper method used to assist with fixing up component template names at load time. */
+	void FixComponentTemplateName(UActorComponent* ComponentTemplate, const FString& NewName);
 	
+	/** All component records */
 	UPROPERTY()
 	TArray<FComponentOverrideRecord> Records;
+
+	/** List of components that were marked unnecessary, need to keep these around so it doesn't regenerate them when a child asks for one */
+	UPROPERTY(Transient)
+	TArray<UActorComponent*> UnnecessaryComponents;
 };

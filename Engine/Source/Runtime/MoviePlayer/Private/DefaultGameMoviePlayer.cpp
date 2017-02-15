@@ -1,22 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MoviePlayerPrivatePCH.h"
-#include "MoviePlayer.h"
+#include "DefaultGameMoviePlayer.h"
+#include "HAL/PlatformSplash.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/CoreDelegates.h"
+#include "EngineGlobals.h"
+#include "Widgets/SViewport.h"
+#include "Engine/GameEngine.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBox.h"
 
-#include "Engine.h"
-#include "SlateBasics.h"
-#include "RenderingCommon.h"
-#include "Slate/SlateTextures.h"
-#include "Slate/SceneViewport.h"
 #include "GlobalShader.h"
 
-#include "SpinLock.h"
 #include "MoviePlayerThreading.h"
-#include "DefaultGameMoviePlayer.h"
 #include "MoviePlayerSettings.h"
 #include "ShaderCompiler.h"
 #include "IHeadMountedDisplay.h"
-
+#include "IStereoLayers.h"
+#include "ConfigCacheIni.h"
+#include "FileManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMoviePlayer, Log, All);
 
@@ -41,13 +43,13 @@ public:
 	*/
 	void Construct(const FArguments& InArgs)
 	{
-		OnKeyDown = InArgs._OnKeyDown;		
+		OnKeyDownHandler = InArgs._OnKeyDown;
 
-		SBorder::Construct(SBorder::FArguments()			
+		SBorder::Construct(SBorder::FArguments()
 			.BorderImage(FCoreStyle::Get().GetBrush(TEXT("BlackBrush")))
 			.OnMouseButtonDown(InArgs._OnMouseButtonDown)
 			.Padding(0)[InArgs._Content.Widget]);
-		
+
 	}
 
 	/**
@@ -57,12 +59,35 @@ public:
 	*/
 	void SetOnOnKeyDown(const FOnKeyDown& InHandler)
 	{
-		OnKeyDown = InHandler;
-	}	
+		OnKeyDownHandler = InHandler;
+	}
+
+	/**
+	* Overrides SWidget::OnKeyDown()
+	* executes OnKeyDownHandler if it is bound
+	*/
+	FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override
+	{
+		if (OnKeyDownHandler.IsBound())
+		{
+			// If a handler is assigned, call it.
+			return OnKeyDownHandler.Execute(MyGeometry, InKeyEvent);
+		}
+		return SBorder::OnKeyDown(MyGeometry, InKeyEvent);
+	}
+
+	/**
+	* Overrides SWidget::SupportsKeyboardFocus()
+	* Must support keyboard focus to accept OnKeyDown events
+	*/
+	bool SupportsKeyboardFocus() const override
+	{
+		return true;
+	}
 
 protected:
-	
-	FOnKeyDown OnKeyDown;	
+
+	FOnKeyDown OnKeyDownHandler;
 };
 
 TSharedPtr<FDefaultGameMoviePlayer> FDefaultGameMoviePlayer::MoviePlayer;
@@ -110,6 +135,7 @@ FDefaultGameMoviePlayer::~FDefaultGameMoviePlayer()
 void FDefaultGameMoviePlayer::RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer)
 {
 	MovieStreamer = InMovieStreamer;
+	MovieStreamer->OnCurrentMovieClipFinished().AddRaw(this, &FDefaultGameMoviePlayer::BroadcastMovieClipFinished);
 }
 
 void FDefaultGameMoviePlayer::SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlateRenderer)
@@ -119,6 +145,11 @@ void FDefaultGameMoviePlayer::SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlat
 
 void FDefaultGameMoviePlayer::Initialize()
 {
+	if(bInitialized)
+	{
+		return;
+	}
+
 	UE_LOG(LogMoviePlayer, Log, TEXT("Initializing movie player"));
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(RegisterMoviePlayerTickable, FDefaultGameMoviePlayer*, MoviePlayer, this,
@@ -241,6 +272,25 @@ void FDefaultGameMoviePlayer::SetupLoadingScreen(const FLoadingScreenAttributes&
 	LoadingScreenAttributes = InLoadingScreenAttributes;
 }
 
+bool FDefaultGameMoviePlayer::HasEarlyStartupMovie() const
+{
+#if PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
+	return LoadingScreenAttributes.bAllowInEarlyStartup == true;
+#else
+	return false;
+#endif
+}
+
+bool FDefaultGameMoviePlayer::PlayEarlyStartupMovies()
+{
+	if(HasEarlyStartupMovie())
+	{
+		return PlayMovie();
+	}
+
+	return false;
+}
+
 bool FDefaultGameMoviePlayer::PlayMovie()
 {
 	bool bBeganPlaying = false;
@@ -322,6 +372,15 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 		const bool bWaitForManualStop = LoadingScreenAttributes.bWaitForManualStop;
 
 		FSlateApplication& SlateApp = FSlateApplication::Get();
+
+		// Make sure the movie player widget has user focus to accept keypresses
+		if (LoadingScreenContents.IsValid())
+		{
+			SlateApp.ForEachUser([&](FSlateUser* User) {
+				SlateApp.SetUserFocus(User->GetUserIndex(), LoadingScreenContents);
+			});
+		}
+
 		// Continue to wait until the user calls finish (if enabled) or when loading completes or the minimum enforced time (if any) has been reached.
 		while ( (bWaitForManualStop && !bUserCalledFinish) || (!bUserCalledFinish && ((!bEnforceMinimumTime && !IsMovieStreamingFinished() && !bAutoCompleteWhenLoadingCompletes) || (bEnforceMinimumTime && (FPlatformTime::Seconds() - LastPlayTime) < LoadingScreenAttributes.MinimumLoadingScreenDisplayTime))))
 		{
@@ -491,30 +550,52 @@ void FDefaultGameMoviePlayer::SetupLoadingScreenFromIni()
 	{
 		// fill out the attributes
 		FLoadingScreenAttributes LoadingScreen;
-		LoadingScreen.bAutoCompleteWhenLoadingCompletes = !GetDefault<UMoviePlayerSettings>()->bWaitForMoviesToComplete;
-		LoadingScreen.bMoviesAreSkippable = GetDefault<UMoviePlayerSettings>()->bMoviesAreSkippable;
 
-		// look in the settings for a list of loading movies
-		GetMutableDefault<UMoviePlayerSettings>()->LoadConfig();
-		const TArray<FString>& StartupMovies = GetDefault<UMoviePlayerSettings>()->StartupMovies;
+		bool bWaitForMoviesToComplete = false;
+		// Note: this code is executed too early so we cannot access UMoviePlayerSettings because the configs for that object have not been loaded and coalesced .  Have to read directly from the configs instead
+		GConfig->GetBool(TEXT("/Script/MoviePlayer.MoviePlayerSettings"), TEXT("bWaitForMoviesToComplete"), bWaitForMoviesToComplete, GGameIni);
+		GConfig->GetBool(TEXT("/Script/MoviePlayer.MoviePlayerSettings"), TEXT("bMoviesAreSkippable"), LoadingScreen.bMoviesAreSkippable, GGameIni);
+
+		LoadingScreen.bAutoCompleteWhenLoadingCompletes = !bWaitForMoviesToComplete;
+
+		TArray<FString> StartupMovies;
+		GConfig->GetArray(TEXT("/Script/MoviePlayer.MoviePlayerSettings"), TEXT("StartupMovies"), StartupMovies, GGameIni);
 
 		if (StartupMovies.Num() == 0)
 		{
-			LoadingScreen.MoviePaths.Add(TEXT("Default_Startup"));
+			StartupMovies.Add(TEXT("Default_Startup"));
 		}
-		else
+
+		// double check that the movies exist
+		// We dont know the extension so compare against any file in the directory with the same name for now
+		// @todo New Movie Player: movies should have the extension on them when set via the project settings
+		TArray<FString> ExistingMovieFiles;
+		IFileManager::Get().FindFiles(ExistingMovieFiles, *(FPaths::GameContentDir() + TEXT("Movies")));
+
+		bool bHasValidMovie = false;
+		for(const FString& Movie : StartupMovies)
 		{
-			for (const FString& Movie : StartupMovies)
-			{
-				if (!Movie.IsEmpty())
+			bool bFound = ExistingMovieFiles.ContainsByPredicate(
+				[&Movie](const FString& ExistingMovie)
 				{
-					LoadingScreen.MoviePaths.Add(Movie);
-				}
+					return ExistingMovie.Contains(Movie);
+				});
+
+			if(bFound)
+			{
+				bHasValidMovie = true;
+				LoadingScreen.MoviePaths.Add(Movie);
 			}
 		}
 
-		// now setup the actual loading screen
-		SetupLoadingScreen(LoadingScreen);
+		if(bHasValidMovie)
+		{
+			// These movies are all considered safe to play in very early startup sequences
+			LoadingScreen.bAllowInEarlyStartup = true;
+
+			// now setup the actual loading screen
+			SetupLoadingScreen(LoadingScreen);
+		}
 	}
 }
 

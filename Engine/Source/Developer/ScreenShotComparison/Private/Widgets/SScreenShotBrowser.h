@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SScreenShotBrowser.h: Declares the SScreenShotBrowser class.
@@ -6,6 +6,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Interfaces/IScreenShotManager.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+
+class FScreenComparisonModel;
 
 /**
  * Implements a Slate widget for browsing active game sessions.
@@ -31,7 +39,7 @@ public:
 
 public:
 
-	TSharedRef<ITableRow> OnGenerateWidgetForScreenResults(TSharedPtr<FImageComparisonResult> InItem, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> OnGenerateWidgetForScreenResults(TSharedPtr<FScreenComparisonModel> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 private:
 
@@ -57,10 +65,10 @@ private:
 	TSharedPtr<FComparisonResults> CurrentComparisons;
 
 	/** The imported screenshot results copied into an array usable by the list view */
-	TArray<TSharedPtr<FImageComparisonResult>> ComparisonList;
+	TArray<TSharedPtr<FScreenComparisonModel>> ComparisonList;
 
 	/**  */
-	TSharedPtr< SListView< TSharedPtr<FImageComparisonResult> > > ComparisonView;
+	TSharedPtr< SListView< TSharedPtr<FScreenComparisonModel> > > ComparisonView;
 
 	// Delegate to call when screen shot data changes 
 	FOnScreenFilterChanged ScreenShotDelegate;

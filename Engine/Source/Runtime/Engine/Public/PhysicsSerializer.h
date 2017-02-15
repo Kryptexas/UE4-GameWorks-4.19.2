@@ -1,5 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "EngineDefines.h"
+#include "Serialization/BulkData.h"
+
+class UBodySetup;
+class UPhysicalMaterial;
+struct FBodyInstance;
 
 /**
  * Helper class used to serialize a collection of BodyInstances. This allows the physics engine to serialize whatever expensive computations it needs offline.

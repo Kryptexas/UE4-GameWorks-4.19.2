@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System;
@@ -80,12 +80,6 @@ public class PhysX : ModuleRules
 			// This will properly cover the case where PhysX is compiled but APEX is not.
 			Definitions.Add("WITH_APEX=0");
 		}
-		if (UEBuildConfiguration.bCompilePhysXVehicle == false)
-		{
-			// Since PhysX Vehicle is dependent on PhysX, if Vehicle is not being include, set the flag properly.
-			// This will properly cover the case where PhysX is compiled but Vehicle is not.
-			Definitions.Add("WITH_VEHICLE=0");
-		}
 
 		if (LibraryMode == PhysXLibraryMode.Shipping)
 		{
@@ -107,13 +101,6 @@ public class PhysX : ModuleRules
 
 		string PhysXIncludeDir = PhysXDir + "Include/";
 		string PxSharedIncludeDir = PxSharedDir + "include/";
-		if (Target.Platform == UnrealTargetPlatform.WolfPlat)
-		{
-			// all physx includes in a WolfPlat subdir
-			PhysXIncludeDir = PhysXIncludeDir + "WolfPlat/";
-			PxSharedIncludeDir = PxSharedIncludeDir + "WolfPlat/";
-		}
-
 
 		PublicSystemIncludePaths.AddRange(
 			new string[] {
@@ -128,8 +115,7 @@ public class PhysX : ModuleRules
 				PhysXIncludeDir + "cooking",
 				PhysXIncludeDir + "common",
 				PhysXIncludeDir + "extensions",
-				PhysXIncludeDir + "geometry",
-				PhysXIncludeDir + "vehicle"
+				PhysXIncludeDir + "geometry"
 			}
 			);
 
@@ -146,7 +132,6 @@ public class PhysX : ModuleRules
 				"PhysX3Extensions{0}_x64.lib",
 				"PhysX3Cooking{0}_x64.lib",
 				"PhysX3Common{0}_x64.lib",
-				"PhysX3Vehicle{0}_x64.lib",
 				"PsFastXml{0}_x64.lib",
 				"PxFoundation{0}_x64.lib",
 				"PxPvdSDK{0}_x64.lib",
@@ -207,7 +192,6 @@ public class PhysX : ModuleRules
 				"PhysX3Extensions{0}_x86.lib",
 				"PhysX3Cooking{0}_x86.lib",
 				"PhysX3Common{0}_x86.lib",
-				"PhysX3Vehicle{0}_x86.lib",
 				"PsFastXml{0}_x86.lib",
 				"PxFoundation{0}_x86.lib",
 				"PxPvdSDK{0}_x86.lib",
@@ -257,7 +241,6 @@ public class PhysX : ModuleRules
 				PhysXLibDir + "/libLowLevel{0}.a",
 				PhysXLibDir + "/libLowLevelCloth{0}.a",
 				PhysXLibDir + "/libPhysX3Extensions{0}.a",
-				PhysXLibDir + "/libPhysX3Vehicle{0}.a",
 				PhysXLibDir + "/libSceneQuery{0}.a",
 				PhysXLibDir + "/libSimulationController{0}.a",
 				PxSharedLibDir + "/libPxTask{0}.a",
@@ -312,7 +295,6 @@ public class PhysX : ModuleRules
 				"PhysX3Extensions{0}",
 				// "PhysX3Cooking{0}", // not needed until Apex
 				"PhysX3Common{0}",
-				"PhysX3Vehicle{0}",
 				//"PhysXVisualDebuggerSDK{0}",
 				"SceneQuery{0}",
 				"SimulationController{0}",
@@ -341,31 +323,41 @@ public class PhysX : ModuleRules
 			PublicLibraryPaths.Add(PhysXLibDir);
 			PublicLibraryPaths.Add(PxSharedLibDir);
 
-			string[] StaticLibrariesLinux = new string[] {
+			string[] StaticLibrariesPhysXLinux = new string[] {
 				"rt",
 				"LowLevel{0}",
 				"LowLevelAABB{0}",
 				"LowLevelCloth{0}",
 				"LowLevelDynamics{0}",
 				"LowLevelParticles{0}",
-				"NvParameterized{0}",
                 "PhysX3{0}",
 				"PhysX3Extensions{0}",
 				"PhysX3Cooking{0}",
 				"PhysX3Common{0}",
-				"PhysX3Vehicle{0}",
 				"SceneQuery{0}",
 				"SimulationController{0}",
 				"PxFoundation{0}",
 				"PxTask{0}",
 				"PxPvdSDK{0}",
-				"PsFastXml{0}",
-				"RenderDebug{0}"
+				"PsFastXml{0}"
 			};
 
-			foreach (string Lib in StaticLibrariesLinux)
+			foreach (string Lib in StaticLibrariesPhysXLinux)
 			{
 				PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
+			}
+
+			if (UEBuildConfiguration.bCompileAPEX)
+			{
+				string[] StaticLibrariesApexLinux = new string[] {
+					"NvParameterized{0}",
+					"RenderDebug{0}"
+				};
+
+				foreach (string Lib in StaticLibrariesApexLinux)
+				{
+					PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
+				}
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.IOS)
@@ -386,7 +378,6 @@ public class PhysX : ModuleRules
 					"PhysX3Common",
 					// "PhysX3Cooking", // not needed until Apex
 					"PhysX3Extensions",
-					"PhysX3Vehicle",
 					"SceneQuery",
 					"SimulationController",
 					"PxFoundation",
@@ -419,7 +410,6 @@ public class PhysX : ModuleRules
 					"PhysX3Common",
 					// "PhysX3Cooking", // not needed until Apex
 					"PhysX3Extensions",
-					"PhysX3Vehicle",
 					"SceneQuery",
 					"SimulationController",
 					"PxFoundation",
@@ -451,7 +441,6 @@ public class PhysX : ModuleRules
 					"PhysX3Common",
 					"PhysX3Cooking",
 					"PhysX3Extensions",
-					"PhysX3Vehicle",
 					//"PhysXVisualDebuggerSDK",
 					"SceneQuery",
 					"SimulationController",
@@ -461,28 +450,26 @@ public class PhysX : ModuleRules
 					"PsFastXml"
 				};
 
-			foreach (var lib in PhysXLibs)
+			string OpimizationSuffix = "";
+			if (UEBuildConfiguration.bCompileForSize)
 			{
-				if (!lib.Contains("Cooking") || Target.IsCooked == false)
+				OpimizationSuffix = "_Oz";
+			}
+			else
+			{
+				if (Target.Configuration == UnrealTargetConfiguration.Development)
 				{
-					PublicAdditionalLibraries.Add(PhysXLibDir + lib + (UEBuildConfiguration.bCompileForSize ? "_Oz" : "") + ".bc");
+					OpimizationSuffix = "_O2";
+				}
+				else if (Target.Configuration == UnrealTargetConfiguration.Shipping)
+				{
+					OpimizationSuffix = "_O3";
 				}
 			}
 
-			if (UEBuildConfiguration.bCompilePhysXVehicle)
+			foreach (var lib in PhysXLibs)
 			{
-				string[] PhysXVehicleLibs = new string[]
-				{
-					"PhysX3Vehicle",
-				};
-
-				foreach (var lib in PhysXVehicleLibs)
-				{
-					if (!lib.Contains("Cooking") || Target.IsCooked == false)
-					{
-						PublicAdditionalLibraries.Add(PhysXLibDir + lib + (UEBuildConfiguration.bCompileForSize ? "_Oz" : "") + ".bc");
-					}
-				}
+				PublicAdditionalLibraries.Add(PhysXLibDir + lib + OpimizationSuffix + ".bc");
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.PS4)
@@ -494,7 +481,6 @@ public class PhysX : ModuleRules
 				"PhysX3Extensions{0}",
 				"PhysX3Cooking{0}",
 				"PhysX3Common{0}",
-				"PhysX3Vehicle{0}",
 				"LowLevel{0}",
 				"LowLevelAABB{0}",
 				"LowLevelCloth{0}",
@@ -525,7 +511,6 @@ public class PhysX : ModuleRules
 				"PhysX3Extensions{0}.lib",
 				"PhysX3Cooking{0}.lib",
 				"PhysX3Common{0}.lib",
-				"PhysX3Vehicle{0}.lib",
 				"LowLevel{0}.lib",
 				"LowLevelAABB{0}.lib",
 				"LowLevelCloth{0}.lib",
@@ -544,12 +529,12 @@ public class PhysX : ModuleRules
 				PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
 			}
 		}
-		else if (Target.Platform == UnrealTargetPlatform.WolfPlat)
+		else if (Target.Platform == UnrealTargetPlatform.Switch)
 		{
-			PublicLibraryPaths.Add(PhysXLibDir + "WolfPlat");
-			PublicLibraryPaths.Add(PxSharedLibDir + "WolfPlat");
+			PublicLibraryPaths.Add(PhysXLibDir + "Switch");
+			PublicLibraryPaths.Add(PxSharedLibDir + "Switch");
 
-			string[] StaticLibrariesWolf = new string[] {
+			string[] StaticLibrariesSwitch = new string[] {
 					"LowLevel",
 					"LowLevelAABB",
 					"LowLevelCloth",
@@ -559,7 +544,6 @@ public class PhysX : ModuleRules
 					"PhysX3Common",
 					// "PhysX3Cooking", // not needed until Apex
 					"PhysX3Extensions",
-					"PhysX3Vehicle",
 					"SceneQuery",
 					"SimulationController",
 					"PxFoundation",
@@ -568,7 +552,7 @@ public class PhysX : ModuleRules
 					"PsFastXml"
 			};
 
-			foreach (string Lib in StaticLibrariesWolf)
+			foreach (string Lib in StaticLibrariesSwitch)
 			{
 				PublicAdditionalLibraries.Add(Lib + LibrarySuffix);
 			}

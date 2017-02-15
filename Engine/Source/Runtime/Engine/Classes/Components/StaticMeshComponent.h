@@ -1,20 +1,34 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SceneTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "Engine/EngineTypes.h"
+#include "Templates/ScopedPointer.h"
+#include "Engine/TextureStreamingTypes.h"
 #include "Components/MeshComponent.h"
-#include "Runtime/RenderCore/Public/PackedNormal.h"
+#include "PackedNormal.h"
 #include "RawIndexBuffer.h"
+#include "UniquePtr.h"
 #include "StaticMeshComponent.generated.h"
 
 class FColorVertexBuffer;
-class UStaticMesh;
+class FLightingBuildOptions;
+class FMeshMapBuildData;
+class FPrimitiveSceneProxy;
 class FStaticMeshStaticLightingMesh;
 class ULightComponent;
-struct FEngineShowFlags;
+class UStaticMesh;
+class UStaticMeshComponent;
 struct FConvexVolume;
-struct FStreamingTextureBuildInfo;
+struct FEngineShowFlags;
+struct FNavigableGeometryExport;
+struct FNavigationRelevantData;
+struct FStaticLightingPrimitiveInfo;
 
 /** Cached vertex information at the time the mesh was painted. */
 USTRUCT()
@@ -68,7 +82,7 @@ struct FStaticMeshComponentLODInfo
 	FMeshMapBuildData* LegacyMapBuildData;
 
 	/** Transient override lightmap data, used by landscape grass. */
-	TScopedPointer<FMeshMapBuildData> OverrideMapBuildData;
+	TUniquePtr<FMeshMapBuildData> OverrideMapBuildData;
 
 	/** Vertex data cached at the time this LOD was painted, if any */
 	UPROPERTY()
@@ -226,9 +240,23 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, meta=(InlineEditConditionToggle))
 	uint32 bOverrideLightMapRes:1;
 
-	/** Light map resolution to use on this component, used if bOverrideLightMapRes is true */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, meta=(editcondition="bOverrideLightMapRes") )
+	/** Light map resolution to use on this component, used if bOverrideLightMapRes is true and there is a valid StaticMesh. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, meta=(ClampMax = 4096, editcondition="bOverrideLightMapRes") )
 	int32 OverriddenLightMapRes;
+
+	/** 
+	 * Whether to use the mesh distance field representation (when present) for shadowing indirect lighting (from lightmaps or skylight) on Movable components.
+	 * This works like capsule shadows on skeletal meshes, except using the mesh distance field so no physics asset is required.
+	 * The StaticMesh must have 'Generate Mesh Distance Field' enabled, or the project must have 'Generate Mesh Distance Fields' enabled for this feature to work.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(DisplayName = "Distance Field Indirect Shadow"))
+	uint32 bCastDistanceFieldIndirectShadow:1;
+
+	/** 
+	 * Controls how dark the dynamic indirect shadow can be.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(UIMin = "0", UIMax = "1", DisplayName = "Distance Field Indirect Shadow Min Visibility"))
+	float DistanceFieldIndirectShadowMinVisibility;
 
 	/**
 	 * Allows adjusting the desired streaming distance of streaming textures that uses UV 0.
@@ -263,19 +291,17 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	bool bUseDefaultCollision;
 
 #if WITH_EDITORONLY_DATA
-	/** 
-	 * Temporary section data used in the texture streaming build. 
-	 * Stays persistent to allow texture streaming accuracy view mode to inspect it.
-	 * The shared ptr is used to allow a safe way for the proxy to access it without duplicating it.
-	 */
-	TSharedPtr<TArray<FPrimitiveMaterialInfo>, ESPMode::NotThreadSafe> TexStreamMaterialData;
-
 	/** Derived data key of the static mesh, used to determine if an update from the source static mesh is required. */
 	UPROPERTY()
 	FString StaticMeshDerivedDataKey;
 
+	/** Material Bounds used for texture streaming. */
+	UPROPERTY(NonTransactional)
+	TArray<uint32> MaterialStreamingRelativeBoxes;
+
+	/** The component has some custom painting on LODs or not. */
 	UPROPERTY()
-	bool bStreamingTextureDataValid;
+	bool bCustomOverrideVertexColorPerLOD;
 #endif
 
 	/** The Lightmass settings for this object. */
@@ -319,6 +345,7 @@ public:
 	virtual void PostEditUndo() override;
 	virtual void PreEditUndo() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
 #endif // WITH_EDITOR
 	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void PostLoad() override;
@@ -345,6 +372,8 @@ public:
 protected: 
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
+	virtual void OnCreatePhysicsState() override;
+	virtual void OnDestroyPhysicsState() override;
 public:
 	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
 	virtual UObject const* AdditionalStatObject() const override;
@@ -368,54 +397,13 @@ public:
 	virtual ELightMapInteractionType GetStaticLightingType() const override;
 	virtual bool IsPrecomputedLightingValid() const override;
 
-	/**
-	* Return whether this primitive should have data for texture streaming. Used to optimize the texture streaming build.
-	*
-	* @return	true if a rebuild is required.
-	*/
-	virtual bool RequiresStreamingTextureData() const override;
-
-
-	/**
-	* Return whether this primitive has (good) material texcoord size for texture streaming. Used in the texture streaming build and accuracy viewmodes.
-	*
-	* @param bCheckForScales - If true, section data must contains texcoord scales to be valid.
-	* @param TextureIndex - Specific texture index to check. INDEX_NONE if to check for any texture.
-	* @param OutTextureData - Information about how the texture was sampled.
-	*
-	* @return - true if streaming section data is valid.
-	*/
-	virtual bool HasTextureStreamingMaterialData(bool bCheckForScales, int32 TextureIndex = INDEX_NONE, FMaterialTextureInfo* OutTextureData = nullptr) const override;
-
-	/**
-	* Return whether this primitive has (good) built data for texture streaming. Used for the "Texture Streaming Needs Rebuilt" check.
-	*
-	* @return	true if all texture streaming data is valid.
-	*/
-	virtual bool HasStreamingTextureData() const override;
-
-	/**
-	* Update material texcoord scales for texture streaming. Note that this data is expected to be transient.
-	* Only useful within the texture streaming build, or streaming accuracy viewmodes.
-	*
-	* @param	TexCoordScales - The texcoord scales for each texture register of each relevant materials.
-	*/
-	virtual void UpdateTextureStreamingMaterialData(const FTexCoordScaleMap& TexCoordScales) override;
-
-	/**
-	 *	Update the precomputed streaming data of this component.
-	 *
-	 *	@param	LevelTextures	[in,out]	The list of textures referred by all component of a level. The array index maps to UTexture2D::LevelIndex.
-	 *	@param	TexCoordScales	[in]		The texcoord scales for each texture register of each relevant materials.
-	 *	@param	QualityLevel	[in]		The quality level being used in the texture streaming build.
-	 *	@param	FeatureLevel	[in]		The feature level being used in the texture streaming build.
-	 */
-	virtual void UpdateStreamingTextureData(TArray<UTexture2D*>& LevelTextures, const FTexCoordScaleMap& TexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel) override;
-
-	/** Get the texture streaming box related to the given material. Used to support instanced meshes */
-	virtual FBox GetTextureStreamingBox(int32 MaterialIndex) const;
-	/** Get the scale to apply to the UV densities that come from the component and transform type.	Used to support instanced meshes */
+	/** Get the scale comming form the component, when computing StreamingTexture data. Used to support instanced meshes. */
 	virtual float GetTextureStreamingTransformScale() const;
+	/** Get material, UV density and bounds for a given material index. */
+	virtual bool GetMaterialStreamingData(int32 MaterialIndex, FPrimitiveMaterialInfo& MaterialData) const override;
+	/** Build the data to compute accuracte StreaminTexture data. */
+	virtual bool BuildTextureStreamingData(ETextureStreamingBuildType BuildType, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TSet<FGuid>& DependentResources) override;
+	/** Get the StreaminTexture data. */
 	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 
 	virtual class UBodySetup* GetBodySetup() override;
@@ -429,7 +417,7 @@ public:
 	virtual bool HasValidSettingsForStaticLighting(bool bOverlookInvalidComponents) const override;
 
 	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const override;
-	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
 	virtual int32 GetMaterialIndex(FName MaterialSlotName) const override;
 	virtual TArray<FName> GetMaterialSlotNames() const override;
@@ -548,6 +536,9 @@ public:
 
 	/** Whether or not the component supports default collision from its static mesh asset */
 	virtual bool SupportsDefaultCollision();
+
+	/** Whether we can support dithered LOD transitions (default behavior checks all materials). Used for HISMC LOD. */
+	virtual bool SupportsDitheredLODTransitions();
 
 private:
 	/** Initializes the resources used by the static mesh component. */

@@ -1,19 +1,36 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "BlueprintUtilities.h"
-#include "LatentActions.h"
+#include "CoreMinimal.h"
+#include "Math/RandomStream.h"
+#include "Stats/Stats.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "Serialization/ObjectReader.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/Blueprint.h"
 #include "ComponentInstanceDataCache.h"
+#include "HAL/IConsoleManager.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/BillboardComponent.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Engine/World.h"
+#include "Engine/Texture2D.h"
+#include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/LevelScriptActor.h"
 #include "Engine/CullDistanceVolume.h"
+#include "Engine/SimpleConstructionScript.h"
 #include "Components/ChildActorComponent.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #endif
-#include "Engine/SimpleConstructionScript.h"
 
 DEFINE_LOG_CATEGORY(LogBlueprintUserMessages);
 
@@ -58,7 +75,9 @@ void AActor::ResetPropertiesForConstruction()
 	const FName RandomStreamName(TEXT("RandomStream"));
 
 	// We don't want to reset references to world object
-	const bool bIsLevelScriptActor = IsA(ALevelScriptActor::StaticClass());
+	UWorld* World = GetWorld();
+	const bool bIsLevelScriptActor = IsA<ALevelScriptActor>();
+	const bool bIsPlayInEditor = World && World->IsPlayInEditor();
 
 	// Iterate over properties
 	for( TFieldIterator<UProperty> It(GetClass()) ; It ; ++It )
@@ -67,26 +86,27 @@ void AActor::ResetPropertiesForConstruction()
 		UStructProperty* StructProp = Cast<UStructProperty>(Prop);
 		UClass* PropClass = CastChecked<UClass>(Prop->GetOuter()); // get the class that added this property
 
-		bool const bCanEditInstanceValue = !Prop->HasAnyPropertyFlags(CPF_DisableEditOnInstance) &&
-			Prop->HasAnyPropertyFlags(CPF_Edit);
-		bool const bCanBeSetInBlueprints = Prop->HasAnyPropertyFlags(CPF_BlueprintVisible) && 
-			!Prop->HasAnyPropertyFlags(CPF_BlueprintReadOnly);
-
 		// First see if it is a random stream, if so reset before running construction script
-		if( (StructProp != NULL) && (StructProp->Struct != NULL) && (StructProp->Struct->GetFName() == RandomStreamName) )
+		if( (StructProp != nullptr) && (StructProp->Struct != nullptr) && (StructProp->Struct->GetFName() == RandomStreamName) )
 		{
 			FRandomStream* StreamPtr =  StructProp->ContainerPtrToValuePtr<FRandomStream>(this);
 			StreamPtr->Reset();
 		}
 		// If it is a blueprint exposed variable that is not editable per-instance, reset to default before running construction script
-		else if( !bIsLevelScriptActor 
+		else if (!bIsLevelScriptActor && !Prop->ContainsInstancedObjectProperty())
+		{
+			const bool bExposedOnSpawn = bIsPlayInEditor && Prop->HasAnyPropertyFlags(CPF_ExposeOnSpawn);
+			const bool bCanEditInstanceValue = !Prop->HasAnyPropertyFlags(CPF_DisableEditOnInstance) && Prop->HasAnyPropertyFlags(CPF_Edit);
+			const bool bCanBeSetInBlueprints = Prop->HasAnyPropertyFlags(CPF_BlueprintVisible) && !Prop->HasAnyPropertyFlags(CPF_BlueprintReadOnly);
+
+			if (!bExposedOnSpawn
 				&& !bCanEditInstanceValue
 				&& bCanBeSetInBlueprints
-				&& !Prop->IsA(UDelegateProperty::StaticClass()) 
-				&& !Prop->IsA(UMulticastDelegateProperty::StaticClass())
-				&& !Prop->ContainsInstancedObjectProperty())
-		{
-			Prop->CopyCompleteValue_InContainer(this, Default);
+				&& !Prop->IsA<UDelegateProperty>()
+				&& !Prop->IsA<UMulticastDelegateProperty>())
+			{
+				Prop->CopyCompleteValue_InContainer(this, Default);
+			}
 		}
 	}
 }
@@ -183,8 +203,9 @@ void AActor::RerunConstructionScripts()
 	checkf(!HasAnyFlags(RF_ClassDefaultObject), TEXT("RerunConstructionScripts should never be called on a CDO as it can mutate the transient data on the CDO which then propagates to instances!"));
 
 	FEditorScriptExecutionGuard ScriptGuard;
-	// don't allow (re)running construction scripts on dying actors
-	bool bAllowReconstruction = !IsPendingKill() && !HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed);
+	// don't allow (re)running construction scripts on dying actors and Actors that seamless traveled 
+	// were constructed in the previous level and should not have construction scripts rerun
+	bool bAllowReconstruction =  !bActorSeamlessTraveled && !IsPendingKill() && !HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed);
 #if WITH_EDITOR
 	if(bAllowReconstruction && GIsEditor)
 	{
@@ -708,7 +729,8 @@ bool AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 			for (UActorComponent* ActorComponent : PostSCSComponents)
 			{
 				// Limit registration to components that are known to have been created during SCS execution
-				if (!ActorComponent->IsRegistered() && (ActorComponent->CreationMethod == EComponentCreationMethod::SimpleConstructionScript || !PreSCSComponents.Contains(ActorComponent)))
+				if (!ActorComponent->IsRegistered() && ActorComponent->bAutoRegister && !ActorComponent->IsPendingKill()
+					&& (ActorComponent->CreationMethod == EComponentCreationMethod::SimpleConstructionScript || !PreSCSComponents.Contains(ActorComponent)))
 				{
 					USimpleConstructionScript::RegisterInstancedComponent(ActorComponent);
 				}

@@ -1,10 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TextureDerivedData.cpp: Derived data management for textures.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/CommandLine.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "Serialization/MemoryWriter.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Serialization/MemoryReader.h"
+#include "UObject/Package.h"
+#include "RenderUtils.h"
+#include "TextureResource.h"
+#include "Engine/Texture.h"
+#include "Engine/Texture2D.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 
 enum
 {
@@ -14,18 +29,15 @@ enum
 
 #if WITH_EDITOR
 
-#include "UObjectAnnotation.h"
 #include "DerivedDataCacheInterface.h"
-#include "DerivedDataPluginInterface.h"
-#include "DDSLoader.h"
-#include "RenderUtils.h"
-#include "TargetPlatform.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "Interfaces/ITextureFormat.h"
 #include "TextureCompressorModule.h"
 #include "ImageCore.h"
 #include "Engine/TextureCube.h"
 
-#include "DebugSerializationFlags.h"
-#include "CookStats.h"
+#include "ProfilingDebugging/CookStats.h"
 
 /*------------------------------------------------------------------------------
 	Versioning for texture derived data.
@@ -249,6 +261,7 @@ static void GetTextureDerivedDataKey(
 static void GetTextureBuildSettings(
 	const UTexture& Texture,
 	const UTextureLODSettings& TextureLODSettings,
+	bool bPlatformSupportsTextureStreaming,
 	FTextureBuildSettings& OutBuildSettings
 	)
 {
@@ -322,7 +335,7 @@ static void GetTextureBuildSettings(
 	OutBuildSettings.CompositeTextureMode = Texture.CompositeTextureMode;
 	OutBuildSettings.CompositePower = Texture.CompositePower;
 	OutBuildSettings.LODBias = TextureLODSettings.CalculateLODBias(Texture.Source.GetSizeX(), Texture.Source.GetSizeY(), Texture.LODGroup, Texture.LODBias, Texture.NumCinematicMipLevels, Texture.MipGenSettings);
-	OutBuildSettings.bStreamable = !Texture.NeverStream && (Texture.LODGroup != TEXTUREGROUP_UI) && (Cast<const UTexture2D>(&Texture) != NULL);
+	OutBuildSettings.bStreamable = bPlatformSupportsTextureStreaming && !Texture.NeverStream && (Texture.LODGroup != TEXTUREGROUP_UI) && (Cast<const UTexture2D>(&Texture) != NULL);
 	OutBuildSettings.PowerOfTwoMode = Texture.PowerOfTwoMode;
 	OutBuildSettings.PaddingColor = Texture.PaddingColor;
 	OutBuildSettings.ChromaKeyColor = Texture.ChromaKeyColor;
@@ -368,7 +381,8 @@ static void GetBuildSettingsForRunningPlatform(
 		// Assume there is at least one format and the first one is what we want at runtime.
 		check(PlatformFormats.Num());
 		const UTextureLODSettings* LODSettings = (UTextureLODSettings*)UDeviceProfileManager::Get().FindProfile(CurrentPlatform->PlatformName());
-		GetTextureBuildSettings(Texture, *LODSettings, OutBuildSettings);
+
+		GetTextureBuildSettings(Texture, *LODSettings, CurrentPlatform->SupportsFeature(ETargetPlatformFeatures::TextureStreaming), OutBuildSettings);
 		OutBuildSettings.TextureFormatName = PlatformFormats[0];
 	}
 }
@@ -1540,7 +1554,7 @@ void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPla
 		TArray<FTextureBuildSettings> BuildSettingsToCache;
 
 		FTextureBuildSettings BuildSettings;
-		GetTextureBuildSettings(*this, TargetPlatform->GetTextureLODSettings(), BuildSettings);
+		GetTextureBuildSettings(*this, TargetPlatform->GetTextureLODSettings(), TargetPlatform->SupportsFeature(ETargetPlatformFeatures::TextureStreaming), BuildSettings);
 		TargetPlatform->GetTextureFormats(this, PlatformFormats);
 		for (int32 FormatIndex = 0; FormatIndex < PlatformFormats.Num(); ++FormatIndex)
 		{
@@ -1619,7 +1633,7 @@ void UTexture::ClearCachedCookedPlatformData( const ITargetPlatform* TargetPlatf
 		TArray<FTextureBuildSettings> BuildSettingsToCache;
 
 		FTextureBuildSettings BuildSettings;
-		GetTextureBuildSettings(*this, TargetPlatform->GetTextureLODSettings(), BuildSettings);
+		GetTextureBuildSettings(*this, TargetPlatform->GetTextureLODSettings(), TargetPlatform->SupportsFeature(ETargetPlatformFeatures::TextureStreaming), BuildSettings);
 		TargetPlatform->GetTextureFormats(this, PlatformFormats);
 		for (int32 FormatIndex = 0; FormatIndex < PlatformFormats.Num(); ++FormatIndex)
 		{
@@ -1672,7 +1686,7 @@ bool UTexture::IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPl
 	TArray<FName> PlatformFormats;
 	TArray<FTexturePlatformData*> PlatformDataToSerialize;
 
-	GetTextureBuildSettings(*this, TargetPlatform->GetTextureLODSettings(), BuildSettings);
+	GetTextureBuildSettings(*this, TargetPlatform->GetTextureLODSettings(), TargetPlatform->SupportsFeature(ETargetPlatformFeatures::TextureStreaming), BuildSettings);
 	TargetPlatform->GetTextureFormats(this, PlatformFormats);
 
 	for (int32 FormatIndex = 0; FormatIndex < PlatformFormats.Num(); FormatIndex++)
@@ -1892,7 +1906,7 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 		if (!Ar.CookingTarget()->IsServerOnly())
 		{
 			FTextureBuildSettings BuildSettings;
-			GetTextureBuildSettings(*this, Ar.CookingTarget()->GetTextureLODSettings(), BuildSettings);
+			GetTextureBuildSettings(*this, Ar.CookingTarget()->GetTextureLODSettings(), Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::TextureStreaming), BuildSettings);
 
 			TArray<FTexturePlatformData*> PlatformDataToSerialize;
 

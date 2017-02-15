@@ -1,9 +1,37 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GraphEditorModule.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Layout/SlateRect.h"
+#include "Layout/Geometry.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Styling/SlateColor.h"
+#include "Layout/ArrangedWidget.h"
+#include "Layout/Margin.h"
+#include "Animation/CurveSequence.h"
+#include "SlotBase.h"
+#include "Layout/Children.h"
+#include "Widgets/SPanel.h"
+#include "Styling/CoreStyle.h"
+#include "Framework/Commands/InputChord.h"
+#include "GraphEditor.h"
+#include "Templates/ScopedPointer.h"
+#include "Layout/ArrangedChildren.h"
+#include "Types/PaintArgs.h"
+#include "EditorStyleSet.h"
+#include "Layout/LayoutUtils.h"
 #include "MarqueeOperation.h"
+#include "UniquePtr.h"
+
+class FActiveTimerHandle;
+class FScopedTransaction;
+class FSlateWindowElementList;
+struct FMarqueeOperation;
+struct Rect;
 
 //@TODO: Too generic of a name to expose at this scope
 typedef class UObject* SelectedItemType;
@@ -325,7 +353,7 @@ public:
 			return FVector2D::ZeroVector;
 		}
 
-		virtual float GetRelativeLayoutScale(const FSlotBase& Child) const override
+		virtual float GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const override
 		{
 			const FNodeSlot& ThisSlot = static_cast<const FNodeSlot&>(Child);
 			if ( !ThisSlot.AllowScale.Get() )
@@ -372,7 +400,7 @@ public:
 						CurChild.GetWidget(),
 						CurChild.Offset.Get(),
 						Size,
-						GetRelativeLayoutScale(CurChild)
+						GetRelativeLayoutScale(CurChild, AllottedGeometry.Scale)
 					);
 					ArrangedChildren.AddWidget( ChildVisibility, ChildGeom );
 				}
@@ -622,7 +650,7 @@ public:
 	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
 	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent ) override;
 	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
-	virtual float GetRelativeLayoutScale(const FSlotBase& Child) const override;
+	virtual float GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const override;
 	// End of SWidget interface
 public:
 	/**
@@ -650,10 +678,7 @@ public:
 	void RestoreViewSettings(const FVector2D& InViewOffset, float InZoomAmount);
 
 	/** Get the grid snap size */
-	static float GetSnapGridSize()
-	{
-		return 16.f;
-	}
+	static float GetSnapGridSize();
 
 	/** 
 	 * Zooms out to fit either all nodes or only the selected ones.
@@ -826,7 +851,7 @@ protected:
 	void CancelZoomToFit();
 protected:
 	// The interface for mapping ZoomLevel values to actual node scaling values
-	TScopedPointer<FZoomLevelsContainer> ZoomLevels;
+	TUniquePtr<FZoomLevelsContainer> ZoomLevels;
 
 	/** The position within the graph at which the user is looking */
 	FVector2D ViewOffset;

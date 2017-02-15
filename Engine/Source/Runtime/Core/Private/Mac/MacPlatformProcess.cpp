@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MacPlatformProcess.mm: Mac implementations of Process functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "MacPlatformProcess.h"
 #include "Misc/App.h"
+#include "Misc/Paths.h"
 #include "MacApplication.h"
 #include <mach-o/dyld.h>
 #include <libproc.h>
@@ -81,6 +82,7 @@ FString FMacPlatformProcess::GenerateApplicationPath( const FString& AppName, EB
 	}
 	else
 	{
+		// Try expected path of an executable inside an app package in Engine Binaries
 		FString ExecutablePath = FString::Printf(TEXT("../../../Engine/Binaries/%s/%s.app/Contents/MacOS/%s"), *PlatformName, *ExecutableName, *ExecutableName);
 			
 		NSString* LaunchPath = ExecutablePath.GetNSString();
@@ -91,18 +93,30 @@ FString FMacPlatformProcess::GenerateApplicationPath( const FString& AppName, EB
 		}
 		else
 		{
-			CFStringRef App = FPlatformString::TCHARToCFString(*ExecutableName);
-			NSWorkspace* Workspace = [NSWorkspace sharedWorkspace];
-			NSString* AppPath = [Workspace fullPathForApplication:(NSString*)App];
-			CFRelease(App);
-			if (AppPath)
+			// Next try expected path of a simple executable file in Engine Binaries
+			ExecutablePath = FString::Printf(TEXT("../../../Engine/Binaries/%s/%s"), *PlatformName, *ExecutableName);
+
+			LaunchPath = ExecutablePath.GetNSString();
+
+			if ([[NSFileManager defaultManager] fileExistsAtPath:LaunchPath])
 			{
-				ExecutablePath = FString::Printf(TEXT("%s/Contents/MacOS/%s"), *FString(AppPath), *ExecutableName);
 				return ExecutablePath;
 			}
 			else
 			{
-				return FString();
+				CFStringRef App = FPlatformString::TCHARToCFString(*ExecutableName);
+				NSWorkspace* Workspace = [NSWorkspace sharedWorkspace];
+				NSString* AppPath = [Workspace fullPathForApplication : (NSString*)App];
+				CFRelease(App);
+				if (AppPath)
+				{
+					ExecutablePath = FString::Printf(TEXT("%s/Contents/MacOS/%s"), *FString(AppPath), *ExecutableName);
+					return ExecutablePath;
+				}
+				else
+				{
+					return FString();
+				}
 			}
 		}
 	}
@@ -602,6 +616,16 @@ FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parm
 	}
 
 	return FProcHandle(ProcessHandle);
+}
+
+FProcHandle FMacPlatformProcess::OpenProcess(uint32 ProcessID)
+{
+	for (NSRunningApplication *app in[[NSWorkspace sharedWorkspace] runningApplications])
+	{
+		NSLog(@"%@",[app localizedName]);
+	}
+
+	return FProcHandle();
 }
 
 bool FMacPlatformProcess::IsProcRunning( FProcHandle& ProcessHandle )

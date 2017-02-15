@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "HTML5Window.h"
+#include "HAL/OutputDevices.h"
 
-#if !PLATFORM_HTML5_WIN32 
-#include <emscripten/emscripten.h>
-#endif
-#include <SDL.h>
+THIRD_PARTY_INCLUDES_START
+	#if !PLATFORM_HTML5_WIN32
+		#include <emscripten/emscripten.h>
+	#endif
+	#include <SDL.h>
+THIRD_PARTY_INCLUDES_END
 
 DEFINE_LOG_CATEGORY_STATIC(LogHTML5Window, Log, All);
 
@@ -55,7 +57,7 @@ FPlatformRect FHTML5Window::GetScreenRect()
 	SDL_Window* WindowHandle= SDL_GL_GetCurrentWindow();
 	SDL_GetWindowSize(WindowHandle, &Width, &Height);
 	UE_LOG(LogHTML5Window, Verbose, TEXT("SDL_GetWindowSize: Width:%d, Height:%d"), Width, Height);
-#endif 
+#endif
 	CalculateSurfaceSize(NULL,Width,Height);
 	ScreenRect.Right = Width;
 	ScreenRect.Bottom = Height;
@@ -71,15 +73,15 @@ void FHTML5Window::CalculateSurfaceSize(void* InWindow, int32_t& SurfaceWidth, i
 
 }
 
-EWindowMode::Type FHTML5Window::GetWindowMode() const 
+EWindowMode::Type FHTML5Window::GetWindowMode() const
 {
 #if !PLATFORM_HTML5_WIN32
-	int Width,Height,FullScreen; 
+	int Width,Height,FullScreen;
 	emscripten_get_canvas_size(&Width,&Height,&FullScreen);
 	return FullScreen ? EWindowMode::Fullscreen : EWindowMode::Windowed;
 #else
-	return EWindowMode::Windowed; 
-#endif 
+	return EWindowMode::Windowed;
+#endif
 
 }
 

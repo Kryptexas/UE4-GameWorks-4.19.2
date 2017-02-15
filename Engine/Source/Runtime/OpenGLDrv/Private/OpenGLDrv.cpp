@@ -1,20 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLDrv.cpp: Unreal OpenGL RHI library implementation.
 =============================================================================*/
 
+#include "OpenGLDrv.h"
+#include "Modules/ModuleManager.h"
+#include "EngineGlobals.h"
+#include "StaticBoundShaderState.h"
+#include "RHIStaticStates.h"
+#include "Engine/Engine.h"
 #include "OpenGLDrvPrivate.h"
 
 IMPLEMENT_MODULE(FOpenGLDynamicRHIModule, OpenGLDrv);
 
-#include "ShaderParameterUtils.h"
-#include "RHIStaticStates.h"
+#include "Shader.h"
 #include "OneColorShader.h"
-
-#if !UE_BUILD_SHIPPING
-#include "STaskGraph.h"
-#endif
 
 /** OpenGL Logging. */
 DEFINE_LOG_CATEGORY(LogOpenGL);
@@ -446,6 +447,7 @@ GLint FOpenGLBase::MaxPixelUniformComponents = -1;
 GLint FOpenGLBase::MaxGeometryUniformComponents = -1;
 GLint FOpenGLBase::MaxHullUniformComponents = -1;
 GLint FOpenGLBase::MaxDomainUniformComponents = -1;
+bool  FOpenGLBase::bSupportsClipControl = false;
 bool  FOpenGLBase::bSupportsASTC = false;
 bool  FOpenGLBase::bSupportsCopyImage = false;
 bool  FOpenGLBase::bSupportsSeamlessCubemap = false;
@@ -574,6 +576,21 @@ void GetExtensionsString( FString& ExtensionsString)
 	}
 }
 
+namespace OpenGLConsoleVariables
+{
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
+	int32 bUseGlClipControlIfAvailable = 1;
+#else
+	int32 bUseGlClipControlIfAvailable = 0;
+#endif
+	static FAutoConsoleVariableRef CVarUseGlClipControlIfAvailable(
+		TEXT("OpenGL.UseGlClipControlIfAvailable"),
+		bUseGlClipControlIfAvailable,
+		TEXT("If true, the engine trys to use glClipControl if the driver supports it."),
+		ECVF_RenderThreadSafe | ECVF_ReadOnly
+	);
+}
+
 void InitDefaultGLContextState(void)
 {
 	// NOTE: This function can be called before capabilities setup, so extensions need to be checked directly
@@ -595,4 +612,12 @@ void InitDefaultGLContextState(void)
 	{
 		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	}
+
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
+	if (OpenGLConsoleVariables::bUseGlClipControlIfAvailable && ExtensionsString.Contains(TEXT("GL_ARB_clip_control")))
+	{
+		FOpenGL::EnableSupportsClipControl();
+		glClipControl(GL_UPPER_LEFT, GL_ZERO_TO_ONE);
+	}
+#endif
 }

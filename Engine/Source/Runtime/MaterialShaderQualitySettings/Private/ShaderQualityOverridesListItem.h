@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "PropertyHandle.h"
+#include "SceneTypes.h"
 
 // FShaderQualityOverridesListItem
 // Helper struct for FMaterialShaderQualitySettingsCustomization, contains info required to populate a material quality row.

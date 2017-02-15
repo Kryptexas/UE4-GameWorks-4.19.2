@@ -1,13 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //
 // A channel for exchanging voice data.
 //
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
 #include "Engine/Channel.h"
 #include "Net/VoiceDataCommon.h"
 #include "VoiceChannel.generated.h"
+
+class FInBunch;
 
 UCLASS(transient, customConstructor)
 class ENGINE_API UVoiceChannel : public UChannel

@@ -1,11 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
-#include "Sequencer.h"
-#include "SequencerDisplayNode.h"
-#include "SequencerEntityVisitor.h"
-#include "MovieSceneSection.h"
-#include "ISequencerSection.h"
+#include "Tools/SequencerEntityVisitor.h"
+#include "IKeyArea.h"
+#include "DisplayNodes/SequencerTrackNode.h"
+#include "GroupedKeyArea.h"
+#include "MovieSceneTrack.h"
 
 FSequencerEntityRange::FSequencerEntityRange(const TRange<float>& InRange)
 	: StartTime(InRange.GetLowerBoundValue()), EndTime(InRange.GetUpperBoundValue())
@@ -102,7 +101,18 @@ void FSequencerEntityWalker::HandleTrackNode(const ISequencerEntityVisitor& Visi
 
 	if (Range.IntersectNode(InTrackNode))
 	{
-		const int32 MaxRowIndex = InTrackNode->GetMaxRowIndex();
+
+		int32 MaxRowIndex;
+		if (InTrackNode->GetSubTrackMode() == FSequencerTrackNode::ESubTrackMode::None)
+		{
+			MaxRowIndex = InTrackNode->GetTrack()->GetMaxRowIndex();
+		}
+		else
+		{
+			// When using sub-tracks each section index gets it's own track so the effective max index
+			// within the track will always be 0.
+			MaxRowIndex = 0;
+		}
 
 		// Prune the selections to anything that is in the range, visiting if necessary
 		for (int32 SectionIndex = 0; SectionIndex < Sections.Num();)

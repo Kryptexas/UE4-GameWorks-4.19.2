@@ -1,17 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "LinuxApplication.h"
-#include "LinuxWindow.h"
-#include "LinuxCursor.h"
-#include "GenericApplicationMessageHandler.h"
-#include "IInputInterface.h"
+#include "Linux/LinuxApplication.h"
+#include "HAL/PlatformTime.h"
+#include "Misc/StringUtility.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
+#include "Features/IModularFeatures.h"
 #include "IInputDeviceModule.h"
-#include "IInputDevice.h"
-
-#if WITH_EDITOR
-#include "ModuleManager.h"
-#endif
 
 //
 // GameController thresholds
@@ -239,6 +234,7 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 	{
 		return;
 	}
+
 	switch(Event.type)
 	{
 	case SDL_KEYDOWN:
@@ -340,10 +336,10 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 			if(bUsingHighPrecisionMouseInput)
 			{
-				// hack to work around jumps
+				// hack to work around jumps (only matters when we have more than one window)
 				const int kTooFarAway = 250;
 				const int kTooFarAwaySquare = kTooFarAway * kTooFarAway;
-				if (motionEvent.xrel * motionEvent.xrel + motionEvent.yrel * motionEvent.yrel > kTooFarAwaySquare)
+				if (Windows.Num() > 1 && motionEvent.xrel * motionEvent.xrel + motionEvent.yrel * motionEvent.yrel > kTooFarAwaySquare)
 				{
 					UE_LOG(LogLinuxWindowEvent, Warning, TEXT("Suppressing too large relative mouse movement due to an apparent bug (%d, %d is larger than threshold %d)"),
 						motionEvent.xrel, motionEvent.yrel,
@@ -985,8 +981,126 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			}
 		}
 		break;
+
+	case SDL_FINGERDOWN:
+		{
+			// touch events can have no window associated with them, in that case ignore (with a warning)
+			if (LIKELY(!bWindowlessEvent))
+			{
+				int xOffset, yOffset;
+				GetWindowPositionInEventLoop(NativeWindow, &xOffset, &yOffset);
+				FVector2D Offset(static_cast<float>(xOffset), static_cast<float>(yOffset));
+
+				// remove touch context even if it existed
+				uint64 FingerId = static_cast<uint64>(Event.tfinger.fingerId);
+				if (UNLIKELY(Touches.Find(FingerId) != nullptr))
+				{
+					Touches.Remove(FingerId);
+					UE_LOG(LogLinuxWindow, Warning, TEXT("Received another SDL_FINGERDOWN for finger %llu which was already down."), FingerId);
+				}
+
+				FTouchContext NewTouch;
+				NewTouch.TouchIndex = Touches.Num() + 1;	// +1 to mimic Windows behavior (arguably wrong)
+				NewTouch.Location = GetTouchEventLocation(Event) + Offset;
+				NewTouch.DeviceId = Event.tfinger.touchId;
+				Touches.Add(FingerId, NewTouch);
+
+				UE_LOG(LogLinuxWindow, Verbose, TEXT("OnTouchStarted at (%f, %f), finger %d (system touch id %llu)"), NewTouch.Location.X, NewTouch.Location.Y, NewTouch.TouchIndex, FingerId);
+				MessageHandler->OnTouchStarted(CurrentEventWindow, NewTouch.Location, NewTouch.TouchIndex, 0);// NewTouch.DeviceId);
+			}
+			else
+			{
+				UE_LOG(LogLinuxWindow, Warning, TEXT("Ignoring touch event SDL_FINGERDOWN (finger: %llu, x=%f, y=%f) that doesn't have a window associated with it"),
+					Event.tfinger.fingerId, Event.tfinger.x, Event.tfinger.y);
+			}
+		}
+		break;
+	case SDL_FINGERUP:
+		{
+			UE_LOG(LogLinuxWindow, Verbose, TEXT("Finger %llu is up at (%f, %f)"), Event.tfinger.fingerId, Event.tfinger.x, Event.tfinger.y);
+
+			// touch events can have no window associated with them, in that case ignore (with a warning)
+			if (LIKELY(!bWindowlessEvent))
+			{
+				int xOffset, yOffset;
+				GetWindowPositionInEventLoop(NativeWindow, &xOffset, &yOffset);
+				FVector2D Offset(static_cast<float>(xOffset), static_cast<float>(yOffset));
+
+				uint64 FingerId = static_cast<uint64>(Event.tfinger.fingerId);
+				FTouchContext* TouchContext = Touches.Find(FingerId);
+				if (UNLIKELY(TouchContext == nullptr))
+				{
+					UE_LOG(LogLinuxWindow, Warning, TEXT("Received SDL_FINGERUP for finger %llu which was already up."), FingerId);
+					// do not send a duplicate up
+				}
+				else
+				{
+					TouchContext->Location = GetTouchEventLocation(Event) + Offset;
+					// check touch device?
+
+					UE_LOG(LogLinuxWindow, Verbose, TEXT("OnTouchEnded at (%f, %f), finger %d (system touch id %llu)"), TouchContext->Location.X, TouchContext->Location.Y, TouchContext->TouchIndex, FingerId);
+					MessageHandler->OnTouchEnded(TouchContext->Location, TouchContext->TouchIndex, 0);// TouchContext->DeviceId);
+
+					// remove the touch
+					Touches.Remove(FingerId);
+				}
+			}
+			else
+			{
+				UE_LOG(LogLinuxWindow, Warning, TEXT("Ignoring touch event SDL_FINGERUP (finger: %llu, x=%f, y=%f) that doesn't have a window associated with it"),
+					Event.tfinger.fingerId, Event.tfinger.x, Event.tfinger.y);
+			}
+		}
+		break;
+	case SDL_FINGERMOTION:
+		{
+			// touch events can have no window associated with them, in that case ignore (with a warning)
+			if (LIKELY(!bWindowlessEvent))
+			{
+				int xOffset, yOffset;
+				GetWindowPositionInEventLoop(NativeWindow, &xOffset, &yOffset);
+				FVector2D Offset(static_cast<float>(xOffset), static_cast<float>(yOffset));
+
+				uint64 FingerId = static_cast<uint64>(Event.tfinger.fingerId);
+				FTouchContext* TouchContext = Touches.Find(FingerId);
+				if (UNLIKELY(TouchContext == nullptr))
+				{
+					UE_LOG(LogLinuxWindow, Warning, TEXT("Received SDL_FINGERMOTION for finger %llu which was not down."), FingerId);
+					// ignore the event
+				}
+				else
+				{
+					// do not send moved event if position has not changed
+					FVector2D Location = GetTouchEventLocation(Event) + Offset;
+					if (LIKELY((Location - TouchContext->Location).IsNearlyZero() == false))
+					{
+						TouchContext->Location = Location;
+						UE_LOG(LogLinuxWindow, Verbose, TEXT("OnTouchMoved at (%f, %f), finger %d (system touch id %llu)"), TouchContext->Location.X, TouchContext->Location.Y, TouchContext->TouchIndex, FingerId);
+						MessageHandler->OnTouchMoved(TouchContext->Location, TouchContext->TouchIndex, 0);// TouchContext->DeviceId);
+					}
+				}
+			}
+			else
+			{
+				UE_LOG(LogLinuxWindow, Warning, TEXT("Ignoring touch event SDL_FINGERMOTION (finger: %llu, x=%f, y=%f) that doesn't have a window associated with it"),
+					Event.tfinger.fingerId, Event.tfinger.x, Event.tfinger.y);
+			}
+		}
+		break;
+
+	default:
+		UE_LOG(LogLinuxWindow, Verbose, TEXT("Received unknown SDL event type=%d"), Event.type);
+		break;
 	}
 }
+
+FVector2D FLinuxApplication::GetTouchEventLocation(SDL_Event TouchEvent)
+{
+	checkf(TouchEvent.type == SDL_FINGERDOWN || TouchEvent.type == SDL_FINGERUP || TouchEvent.type == SDL_FINGERMOTION, TEXT("Wrong touch event."));
+	// contrary to SDL2 documentation, the coordinates received from touchscreen monitors are screen space (window space to be more correct)
+	return FVector2D(TouchEvent.tfinger.x, TouchEvent.tfinger.y);
+}
+
 
 EWindowZone::Type FLinuxApplication::WindowHitTest(const TSharedPtr< FLinuxWindow > &Window, int x, int y)
 {
@@ -1173,7 +1287,7 @@ TCHAR FLinuxApplication::ConvertChar( SDL_Keysym Keysym )
 
 TSharedPtr< FLinuxWindow > FLinuxApplication::FindEventWindow(SDL_Event* Event, bool& bOutWindowlessEvent)
 {
-	uint16 WindowID = 0;
+	uint32 WindowID = 0;
 	bOutWindowlessEvent = false;
 
 	switch (Event->type)
@@ -1207,7 +1321,19 @@ TSharedPtr< FLinuxWindow > FLinuxApplication::FindEventWindow(SDL_Event* Event, 
 		case SDL_DROPCOMPLETE:
 			WindowID = Event->drop.windowID;
 			break;
-
+		case SDL_FINGERDOWN:
+			// SDL touch events are windowless, but Slate needs to associate touch down with a particular window.
+			// Assume that the current focus window is the one relevant for the touch and if there's none, assume the event windowless
+			if (CurrentFocusWindow.IsValid())
+			{
+				return CurrentFocusWindow;
+			}
+			else
+			{
+				bOutWindowlessEvent = true;
+				return TSharedPtr<FLinuxWindow>(nullptr);
+			}
+			break;
 		default:
 			bOutWindowlessEvent = true;
 			return TSharedPtr< FLinuxWindow >(nullptr);
@@ -1408,61 +1534,52 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 		}
 	}
 
-	// loop over all monitors to determine which one is the best
+	OutDisplayMetrics.MonitorInfo.Empty();
+
+	// exit early if no displays connected
 	if (NumDisplays <= 0)
 	{
-		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = 0;
-		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = 0;
-		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = 0;
-		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = 0;
+		OutDisplayMetrics.PrimaryDisplayWorkAreaRect = FPlatformRect(0, 0, 0, 0);
 		OutDisplayMetrics.VirtualDisplayRect = OutDisplayMetrics.PrimaryDisplayWorkAreaRect;
 		OutDisplayMetrics.PrimaryDisplayWidth = 0;
 		OutDisplayMetrics.PrimaryDisplayHeight = 0;
 
 		return;
 	}
-	
-	OutDisplayMetrics.MonitorInfo.Empty();
-	
-	FMonitorInfo Primary;
-	SDL_Rect PrimaryBounds, PrimaryUsableBounds;
-	SDL_GetDisplayBounds(0, &PrimaryBounds);
-	SDL_GetDisplayUsableBounds(0, &PrimaryUsableBounds);
 
-	Primary.Name = UTF8_TO_TCHAR(SDL_GetDisplayName(0));
-	Primary.ID = TEXT("display0");
-	Primary.NativeWidth = PrimaryBounds.w;
-	Primary.NativeHeight = PrimaryBounds.h;
-	Primary.bIsPrimary = true;
-	OutDisplayMetrics.MonitorInfo.Add(Primary);
-
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = PrimaryUsableBounds.x;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = PrimaryUsableBounds.y;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = PrimaryUsableBounds.x + PrimaryUsableBounds.w;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = PrimaryUsableBounds.y + PrimaryUsableBounds.h;
-
-	OutDisplayMetrics.PrimaryDisplayWidth = PrimaryBounds.w;
-	OutDisplayMetrics.PrimaryDisplayHeight = PrimaryBounds.h;
-
-	// accumulate the total bound rect
-	OutDisplayMetrics.VirtualDisplayRect = OutDisplayMetrics.PrimaryDisplayWorkAreaRect;
-	for (int DisplayIdx = 1; DisplayIdx < NumDisplays; ++DisplayIdx)
+	for (int32 DisplayIdx = 0; DisplayIdx < NumDisplays; ++DisplayIdx)
 	{
-		SDL_Rect DisplayBounds;
+		SDL_Rect DisplayBounds, UsableBounds;
 		FMonitorInfo Display;
 		SDL_GetDisplayBounds(DisplayIdx, &DisplayBounds);
-		
+		SDL_GetDisplayUsableBounds(DisplayIdx, &UsableBounds);
+
 		Display.Name = UTF8_TO_TCHAR(SDL_GetDisplayName(DisplayIdx));
 		Display.ID = FString::Printf(TEXT("display%d"), DisplayIdx);
 		Display.NativeWidth = DisplayBounds.w;
 		Display.NativeHeight = DisplayBounds.h;
-		Display.bIsPrimary = false;
+		Display.DisplayRect = FPlatformRect(DisplayBounds.x, DisplayBounds.y, DisplayBounds.x + DisplayBounds.w, DisplayBounds.y + DisplayBounds.h);
+		Display.WorkArea = FPlatformRect(UsableBounds.x, UsableBounds.y, UsableBounds.x + UsableBounds.w, UsableBounds.y + UsableBounds.h);
+		Display.bIsPrimary = DisplayIdx == 0;
 		OutDisplayMetrics.MonitorInfo.Add(Display);
-		
-		OutDisplayMetrics.VirtualDisplayRect.Left = FMath::Min(DisplayBounds.x, OutDisplayMetrics.VirtualDisplayRect.Left);
-		OutDisplayMetrics.VirtualDisplayRect.Right = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Right, DisplayBounds.x + DisplayBounds.w);
-		OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min(DisplayBounds.y, OutDisplayMetrics.VirtualDisplayRect.Top);
-		OutDisplayMetrics.VirtualDisplayRect.Bottom = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Bottom, DisplayBounds.y + DisplayBounds.h);
+
+		if (Display.bIsPrimary)
+		{
+			OutDisplayMetrics.PrimaryDisplayWorkAreaRect = FPlatformRect(UsableBounds.x, UsableBounds.y, UsableBounds.x + UsableBounds.w, UsableBounds.y + UsableBounds.h);
+
+			OutDisplayMetrics.PrimaryDisplayWidth = DisplayBounds.w;
+			OutDisplayMetrics.PrimaryDisplayHeight = DisplayBounds.h;
+
+			OutDisplayMetrics.VirtualDisplayRect = OutDisplayMetrics.PrimaryDisplayWorkAreaRect;
+		}
+		else
+		{
+			// accumulate the total bound rect
+			OutDisplayMetrics.VirtualDisplayRect.Left = FMath::Min(DisplayBounds.x, OutDisplayMetrics.VirtualDisplayRect.Left);
+			OutDisplayMetrics.VirtualDisplayRect.Right = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Right, DisplayBounds.x + DisplayBounds.w);
+			OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min(DisplayBounds.y, OutDisplayMetrics.VirtualDisplayRect.Top);
+			OutDisplayMetrics.VirtualDisplayRect.Bottom = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Bottom, DisplayBounds.y + DisplayBounds.h);
+		}
 	}
 
 	// Apply the debug safe zones

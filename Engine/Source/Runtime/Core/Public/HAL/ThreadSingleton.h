@@ -1,6 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Templates/Function.h"
+#include "HAL/PlatformTLS.h"
+#include "HAL/TlsAutoCleanup.h"
+
+template <typename FuncType> class TFunctionRef;
 
 /**
  * Thread singleton initializer.

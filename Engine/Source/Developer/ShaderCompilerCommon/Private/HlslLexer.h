@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HlslLexer.h - Interface for scanning & tokenizing hlsl.
@@ -6,7 +6,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
 #include "HlslUtils.h"
+
+class Error;
 
 namespace CrossCompiler
 {

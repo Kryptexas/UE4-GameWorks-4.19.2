@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateCore.h"
-typedef FKeyEvent FKeyEvent;
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "InputCoreTypes.h"
+#include "Framework/Commands/InputChord.h"
+#include "Input/Events.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "KismetInputLibrary.generated.h"
 
 UCLASS()

@@ -2,6 +2,8 @@ Title:Site Map
 Availability:Public
 Crumbs:%ROOT%
 Description:Index of all pages in the Unreal Engine documentation
+parent:%ROOT%
+order:1000
 Template:DefaultSiteMap.html
 
 [OBJECT:Expander]
@@ -27,7 +29,7 @@ Template:DefaultSiteMap.html
 			[REGION:normaltitle]
 				By Engine Version:
 			[/REGION]
-			[tagfilters(type:"engine_version" filter:"used")]
+			[tagfilters(type:"engine_version")]
 		[/REGION]
 		[REGION:wrapper transparent]
 			[REGION:normaltitle]
@@ -35,7 +37,17 @@ Template:DefaultSiteMap.html
 			[/REGION]
 			[tagfilters(type:"tag" filter:"used")]
 		[/REGION]
+		[REGION:wrapper transparent]
+			[REGION:normaltitle]
+				By Type:
+			[/REGION]
+			[tagfilters(type:"type" filter:"used")]
+		[/REGION]
 	[/PARAM]
 [/OBJECT]
 
 [DIR(output:"listbutton" parent:"%ROOT%" org:"hierarchy" id:"sitemap" itemclass:"link")]
+
+<!--
+[DIR(output:"listbutton" type:"playlist" org:"hierarchy" id:"videomap" itemclass:"link")]
+-->

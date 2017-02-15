@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalVertexDeclaration.cpp: Metal vertex declaration RHI implementation.
@@ -36,7 +36,7 @@ static MTLVertexFormat TranslateElementTypeToMTLType(EVertexElementType Type)
 
 }
 
-static uint32 TranslateElementTypeToSize(EVertexElementType Type)
+uint32 TranslateElementTypeToSize(EVertexElementType Type)
 {
 	switch (Type)
 	{
@@ -155,6 +155,7 @@ bool FMetalHashedVertexDescriptor::operator==(FMetalHashedVertexDescriptor const
 
 FMetalVertexDeclaration::FMetalVertexDeclaration(const FVertexDeclarationElementList& InElements)
 	: Elements(InElements)
+	, BaseHash(0)
 {
 	GenerateLayout(InElements);
 }
@@ -193,7 +194,7 @@ void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList
 	TRACK_OBJECT(STAT_MetalVertexDescriptorCount, NewLayout);
 
 	BaseHash = FCrc::MemCrc_DEPRECATED(InElements.GetData(),InElements.Num()*sizeof(FVertexElement));
-	uint32 StrideHash = 0;
+	uint32 StrideHash = BaseHash;
 
 	TMap<uint32, uint32> BufferStrides;
 	for (uint32 ElementIndex = 0; ElementIndex < InElements.Num(); ElementIndex++)
@@ -203,7 +204,7 @@ void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList
 		checkf(Element.Stride == 0 || Element.Offset + TranslateElementTypeToSize(Element.Type) <= Element.Stride, 
 			TEXT("Stream component is bigger than stride: Offset: %d, Size: %d [Type %d], Stride: %d"), Element.Offset, TranslateElementTypeToSize(Element.Type), (uint32)Element.Type, Element.Stride);
 
-		StrideHash ^= (Element.Stride << 1);
+		StrideHash = FCrc::MemCrc32(&Element.Stride, sizeof(Element.Stride), StrideHash);
 
 		// Vertex & Constant buffers are set up in the same space, so add VB's from the top
 		uint32 ShaderBufferIndex = UNREAL_TO_METAL_BUFFER_INDEX(Element.StreamIndex);
@@ -245,5 +246,5 @@ void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList
 		NewLayout.attributes[Element.AttributeIndex].bufferIndex = ShaderBufferIndex;
 	}
 	
-	Layout = FMetalHashedVertexDescriptor(NewLayout, (BaseHash ^ StrideHash));
+	Layout = FMetalHashedVertexDescriptor(NewLayout, StrideHash);
 }

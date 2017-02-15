@@ -1,16 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "WmfMediaPCH.h"
-
-#if WMFMEDIA_SUPPORTED_PLATFORM
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfMediaPlayer.h"
 #include "WmfMediaResolver.h"
 #include "WmfMediaSession.h"
 #include "WmfMediaSampler.h"
 #include "WmfMediaUtils.h"
-#include "AllowWindowsPlatformTypes.h"
+#include "Serialization/ArrayReader.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
 
+#if WMFMEDIA_SUPPORTED_PLATFORM
+
+#include "AllowWindowsPlatformTypes.h"
 
 /* FWmfVideoPlayer structors
  *****************************************************************************/
@@ -18,7 +19,7 @@
 FWmfMediaPlayer::FWmfMediaPlayer()
 	: Duration(0)
 {
-	MediaSession = new FWmfMediaSession();
+	MediaSession = new FWmfMediaSession(EMediaState::Closed);
 	Resolver = new FWmfMediaResolver;
 
 	Tracks.OnSelectionChanged().AddLambda([this]() {
@@ -33,22 +34,6 @@ FWmfMediaPlayer::FWmfMediaPlayer()
 FWmfMediaPlayer::~FWmfMediaPlayer()
 {
 	Close();
-}
-
-
-/* FTickerObjectBase interface
- *****************************************************************************/
-
-bool FWmfMediaPlayer::Tick(float DeltaTime)
-{
-	TFunction<void()> Task;
-
-	while (GameThreadTasks.Dequeue(Task))
-	{
-		Task();
-	}
-
-	return true;
 }
 
 
@@ -74,7 +59,7 @@ void FWmfMediaPlayer::Close()
 
 	// close and release session
 	MediaSession->SetState(EMediaState::Closed);
-	MediaSession = new FWmfMediaSession();
+	MediaSession = new FWmfMediaSession(EMediaState::Closed);
 
 	// release media source
 	if (MediaSource != NULL)
@@ -152,6 +137,8 @@ bool FWmfMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 	}
 
 	// open local files via platform file system
+	bool Resolving = false;
+
 	if (Url.StartsWith(TEXT("file://")))
 	{
 		TSharedPtr<FArchive, ESPMode::ThreadSafe> Archive;
@@ -182,10 +169,19 @@ bool FWmfMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 			return false;
 		}
 
-		return Resolver->ResolveByteStream(Archive.ToSharedRef(), Url, *this);
+		Resolving = Resolver->ResolveByteStream(Archive.ToSharedRef(), Url, *this);
+	}
+	else
+	{
+		Resolving = Resolver->ResolveUrl(Url, *this);
 	}
 
-	return Resolver->ResolveUrl(Url, *this);
+	if (Resolving)
+	{
+		MediaSession = new FWmfMediaSession(EMediaState::Preparing);
+	}
+
+	return Resolving;
 }
 
 
@@ -202,12 +198,30 @@ bool FWmfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Arch
 }
 
 
+void FWmfMediaPlayer::TickPlayer(float DeltaTime)
+{
+	TFunction<void()> Task;
+
+	while (PlayerTasks.Dequeue(Task))
+	{
+		Task();
+	}
+}
+
+
+void FWmfMediaPlayer::TickVideo(float DeltaTime)
+{
+	// do nothing
+}
+
+
+
 /* IWmfMediaResolverCallbacks interface
  *****************************************************************************/
 
 void FWmfMediaPlayer::ProcessResolveComplete(TComPtr<IUnknown> SourceObject, FString ResolvedUrl)
 {
-	GameThreadTasks.Enqueue([=]() {
+	PlayerTasks.Enqueue([=]() {
 		MediaEvent.Broadcast(
 			InitializeMediaSession(SourceObject, ResolvedUrl)
 				? EMediaEvent::MediaOpened
@@ -219,7 +233,8 @@ void FWmfMediaPlayer::ProcessResolveComplete(TComPtr<IUnknown> SourceObject, FSt
 
 void FWmfMediaPlayer::ProcessResolveFailed(FString FailedUrl)
 {
-	GameThreadTasks.Enqueue([=]() {
+	PlayerTasks.Enqueue([=]() {
+		MediaSession = new FWmfMediaSession(EMediaState::Closed);
 		MediaEvent.Broadcast(EMediaEvent::MediaOpenFailed);
 	});
 }
@@ -328,7 +343,7 @@ void FWmfMediaPlayer::HandleSessionEvent(MediaEventType EventType)
 	// forward event to game thread
 	if (Event.IsSet())
 	{
-		GameThreadTasks.Enqueue([=]() {
+		PlayerTasks.Enqueue([=]() {
 			MediaEvent.Broadcast(Event.GetValue());
 		});
 	}

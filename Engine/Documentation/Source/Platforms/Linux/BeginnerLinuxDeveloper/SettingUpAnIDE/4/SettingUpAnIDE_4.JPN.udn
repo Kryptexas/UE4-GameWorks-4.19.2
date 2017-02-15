@@ -1,0 +1,43 @@
+﻿INTSourceChangeList:3175190
+Availability:Docs
+Title:4 - IDE から UE4 をビルドする
+Crumbs:
+Description:IDE から UE4 をビルドする方法の説明
+Version:4.14
+type:how to
+parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
+order:4
+tags:Linux
+SkillLevel:Beginner
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/3 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ホーム](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/5 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+ついに、IDE から UE4 を実行する準備ができました。
+
+1.	IDE から UE4 を実行するためには、**[Run (実行)]** ボタンをクリックします。または、キーボードの **Ctrl+R** キーの組み合わせでも IDE から UE4 を実行することができます。
+
+	![](SetupIDE_Step17.png)
+
+## 最終結果
+
+![](SetupIDE_Step18.png)
+
+これで終わりです！IDE から UE4 が実行されているはずです。
+
+%Steps%

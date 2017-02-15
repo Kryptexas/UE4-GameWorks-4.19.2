@@ -1,15 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "AssetDeleteModel.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "UObject/MetaData.h"
+#include "UObject/ObjectRedirector.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
+#include "Engine/Blueprint.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "ISourceControlModule.h"
+#include "AssetData.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Settings/EditorLoadingSavingSettings.h"
+#include "EngineGlobals.h"
+#include "Editor.h"
+#include "FileHelpers.h"
+#include "UnrealEdGlobals.h"
 
 #include "ObjectTools.h"
 #include "AssetRegistryModule.h"
-#include "AssetEditorManager.h"
 #include "AutoReimport/AutoReimportUtilities.h"
 #include "AutoReimport/AutoReimportManager.h"
-#include "ISourceControlModule.h"
-#include "BlueprintEditorUtils.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "FAssetDeleteModel"
 
@@ -21,14 +39,25 @@ FAssetDeleteModel::FAssetDeleteModel( const TArray<UObject*>& InObjectsToDelete 
 	, PendingDeleteIndex(0)
 	, ObjectsDeleted(0)
 {
+	// Take a weak copy in-case GC purges any objects from this array.
+	TArray<TWeakObjectPtr<UObject>> WeakObjectsToDelete;
+	WeakObjectsToDelete.Reserve( InObjectsToDelete.Num() );
+	for ( UObject* ObjectToDelete : InObjectsToDelete )
+	{
+		WeakObjectsToDelete.Add( ObjectToDelete );
+	}
+
 	// Purge unclaimed objects.
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 
-	// Create a pending delete object for each object needing to be deleted so that we can store
-	// reference tracing information.
-	for ( UObject* ObjectToDelete : InObjectsToDelete )
+	// Create a pending delete object for each object needing to be deleted so that we can store reference tracing information.
+	for ( const TWeakObjectPtr<UObject>& WeakObjectToDelete : WeakObjectsToDelete )
 	{
-		AddObjectToDelete( ObjectToDelete );
+		UObject* ObjectToDelete = WeakObjectToDelete.Get();
+		if ( ObjectToDelete )
+		{
+			AddObjectToDelete( ObjectToDelete );
+		}
 	}
 }
 
@@ -138,26 +167,29 @@ void FAssetDeleteModel::DiscoverSourceFileReferences(FPendingDelete& PendingDele
 	TArray<FString> SourceContentFiles;
 	Utils::ExtractSourceFilePaths(PendingDelete.GetObject(), SourceContentFiles);
 
-	auto MonitoredDirectories = GUnrealEd->AutoReimportManager->GetMonitoredDirectories();
+	if ( GUnrealEd->AutoReimportManager )
+	{
+		TArray<FPathAndMountPoint> MonitoredDirectories = GUnrealEd->AutoReimportManager->GetMonitoredDirectories();
 
-	// Remove anything that's not under a monitored, mounted path, or doesn't exist
-	SourceContentFiles.RemoveAll([&](const FString& InFilename){
-		for (const auto& Dir : MonitoredDirectories)
-		{
-			if (!Dir.MountPoint.IsEmpty() && InFilename.StartsWith(Dir.Path))
+		// Remove anything that's not under a monitored, mounted path, or doesn't exist
+		SourceContentFiles.RemoveAll([&] (const FString& InFilename) {
+			for ( const FPathAndMountPoint& Dir : MonitoredDirectories )
 			{
-				if (FPaths::FileExists(InFilename))
+				if ( !Dir.MountPoint.IsEmpty() && InFilename.StartsWith(Dir.Path) )
 				{
-					return false;
-				}
-				else
-				{
-					return true;
+					if ( FPaths::FileExists(InFilename) )
+					{
+						return false;
+					}
+					else
+					{
+						return true;
+					}
 				}
 			}
-		}
-		return true;
-	});
+			return true;
+		});
+	}
 
 	// Now accumulate references to the same source content file. We only offer to delete a file if it is only referenced by the deleted object(s)
 	IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
@@ -512,11 +544,11 @@ int32 FAssetDeleteModel::GetDeletedObjectCount() const
 
 void FAssetDeleteModel::PrepareToDelete(UObject* InObject)
 {
-	if ( InObject->IsA<UObjectRedirector>() )
+	if ( UObjectRedirector* RedirectorObj = Cast<UObjectRedirector>(InObject) )
 	{
 		// Add all redirectors found in this package to the redirectors to delete list.
 		// All redirectors in this package should be fixed up.
-		UPackage* RedirectorPackage = InObject->GetOutermost();
+		UPackage* RedirectorPackage = RedirectorObj->GetOutermost();
 		TArray<UObject*> AssetsInRedirectorPackage;
 		
 		GetObjectsWithOuter(RedirectorPackage, AssetsInRedirectorPackage, /*bIncludeNestedObjects=*/false);
@@ -571,10 +603,8 @@ FPendingDelete::FPendingDelete(UObject* InObject)
 	// Blueprints actually contain 3 assets, the UBlueprint, GeneratedClass and SkeletonGeneratedClass
 	// we need to add them all to the pending deleted objects so that the memory reference detection system
 	// can know those references don't count towards the in memory references.
-	if ( InObject->IsA(UBlueprint::StaticClass()) )
+	if ( UBlueprint* BlueprintObj = Cast<UBlueprint>(InObject) )
 	{
-		UBlueprint* BlueprintObj = Cast<UBlueprint>(InObject);
-
 		if ( BlueprintObj->GeneratedClass != NULL )
 		{
 			InternalObjects.Add(BlueprintObj->GeneratedClass);

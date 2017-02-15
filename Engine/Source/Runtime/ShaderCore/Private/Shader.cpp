@@ -1,18 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Shader.cpp: Shader implementation.
 =============================================================================*/
 
-#include "ShaderCorePrivatePCH.h"
-#include "ShaderCore.h"
 #include "Shader.h"
+#include "Misc/CoreMisc.h"
+#include "Stats/StatsMisc.h"
+#include "Serialization/MemoryWriter.h"
 #include "VertexFactory.h"
-#include "DiagnosticTable.h"
-#include "DerivedDataCacheInterface.h"
-#include "ModuleManager.h"
-#include "TargetPlatform.h"
-#include "RHICommandList.h"
+#include "ProfilingDebugging/DiagnosticTable.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
 #include "ShaderCache.h"
 
 
@@ -62,7 +61,7 @@ FArchive& operator<<(FArchive& Ar, const FShaderPipelineType*& TypeRef)
 }
 
 
-void FShaderParameterMap::VerifyBindingsAreComplete(const TCHAR* ShaderTypeName, EShaderFrequency Frequency, FVertexFactoryType* InVertexFactoryType) const
+void FShaderParameterMap::VerifyBindingsAreComplete(const TCHAR* ShaderTypeName, FShaderTarget Target, FVertexFactoryType* InVertexFactoryType) const
 {
 #if WITH_EDITORONLY_DATA
 	// Only people working on shaders (and therefore have LogShaders unsuppressed) will want to see these errors
@@ -88,11 +87,13 @@ void FShaderParameterMap::VerifyBindingsAreComplete(const TCHAR* ShaderTypeName,
 		if (!bBindingsComplete)
 		{
 			FString ErrorMessage = FString(TEXT("Found unbound parameters being used in shadertype ")) + ShaderTypeName + TEXT(" (VertexFactory: ") + VertexFactoryName + TEXT(")\n") + UnBoundParameters;
-			// An unbound parameter means the engine is not going to set its value (because it was never bound) 
-			// but it will be used in rendering, which will most likely cause artifacts
 
-			// We use a non-Slate message box to avoid problem where we haven't compiled the shaders for Slate.
-			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage, TEXT("Error"));
+			// There will be unbound parameters for Metal's "Hull" shader stage as it is merely a placeholder to provide binding indices to the RHI
+			if(!IsMetalPlatform((EShaderPlatform)Target.Platform) || Target.Frequency != SF_Hull)
+			{
+				// We use a non-Slate message box to avoid problem where we haven't compiled the shaders for Slate.
+				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage, TEXT("Error"));
+			}
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
@@ -507,10 +508,13 @@ FShaderResource* FShaderResource::FindOrCreateShaderResource(const FShaderCompil
 {
 	const FShaderResourceId ResourceId(Output, SpecificType ? SpecificType->GetName() : NULL);
 	FShaderResource* Resource = FindShaderResourceById(ResourceId);
-
 	if (!Resource)
 	{
 		Resource = new FShaderResource(Output, SpecificType);
+	}
+	else
+	{
+		check(Resource->Canary == FShader::ShaderMagic_Initialized);
 	}
 
 	return Resource;
@@ -1701,12 +1705,15 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		static const auto CVarInstancedStereo = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
 		static const auto CVarMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
 		static const auto CVarMobileMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
+		static const auto CVarMonoscopicFarField = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MonoscopicFarField"));
 
 		const bool bIsInstancedStereo = ((Platform == EShaderPlatform::SP_PCD3D_SM5 || Platform == EShaderPlatform::SP_PS4) && (CVarInstancedStereo && CVarInstancedStereo->GetValueOnGameThread() != 0));
 		const bool bIsMultiView = (Platform == EShaderPlatform::SP_PS4 && (CVarMultiView && CVarMultiView->GetValueOnGameThread() != 0));
 
 		const bool bIsAndroidGLES = (Platform == EShaderPlatform::SP_OPENGL_ES3_1_ANDROID || Platform == EShaderPlatform::SP_OPENGL_ES2_ANDROID);
 		const bool bIsMobileMultiView = (bIsAndroidGLES && (CVarMobileMultiView && CVarMobileMultiView->GetValueOnGameThread() != 0));
+
+		const bool bIsMonoscopicFarField = CVarMonoscopicFarField && (CVarMonoscopicFarField->GetValueOnGameThread() != 0);
 
 		if (bIsInstancedStereo)
 		{
@@ -1721,6 +1728,11 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		if (bIsMobileMultiView)
 		{
 			KeyString += TEXT("_MMVIEW");
+		}
+
+		if (bIsMonoscopicFarField)
+		{
+			KeyString += TEXT("_MONO");
 		}
 	}
 
@@ -1809,6 +1821,13 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 			}
 		}
 	}
+    
+    // Encode the Metal standard into the shader compile options so that they recompile if the settings change.
+    if (IsMetalPlatform(Platform))
+    {
+        uint32 ShaderVersion = RHIGetShaderLanguageVersion(Platform);
+        KeyString += FString::Printf(TEXT("_MTLSTD%u_"), ShaderVersion);
+    }
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StencilForLODDither"));
@@ -1827,10 +1846,26 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	}
 
 	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneAlpha"));
+		if (CVar && CVar->GetValueOnAnyThread() > 0)
+		{
+			KeyString += TEXT("_SA");
+		}
+	}
+
+	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VertexFoggingForOpaque"));
 		if (CVar && CVar->GetValueOnAnyThread() > 0)
 		{
 			KeyString += TEXT("_VFO");
+		}
+	}
+
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.EarlyZPassOnlyMaterialMasking"));
+		if (CVar && CVar->GetValueOnAnyThread() > 0)
+		{
+			KeyString += TEXT("_EZPMM");
 		}
 	}
 }

@@ -2,7 +2,7 @@ Availability: Public
 Title:1. Set Up Module Dependencies for UMG
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
 Description:Modifying our project to include the modules needed to build menus.
-version:4.9
+version:4.14
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -63,7 +63,7 @@ With UMG set up, we can add code to our project's custom **Game Mode** to create
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 

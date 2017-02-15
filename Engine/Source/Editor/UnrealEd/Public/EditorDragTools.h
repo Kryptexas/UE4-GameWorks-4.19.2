@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-// Forward declarations.
+#include "CoreMinimal.h"
+
+class FCanvas;
+class FEditorModeTools;
 class FEditorViewportClient;
+class FPrimitiveDrawInterface;
+class FSceneView;
 
 /**
  * The base class that all drag tools inherit from.

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
  
 /** 
@@ -7,8 +7,16 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Sound/SoundNode.h"
 #include "SoundNodeConcatenator.generated.h"
+
+class FAudioDevice;
+struct FActiveSound;
+struct FSoundParseParameters;
+struct FWaveInstance;
 
 /**
  Plays child nodes sequentially

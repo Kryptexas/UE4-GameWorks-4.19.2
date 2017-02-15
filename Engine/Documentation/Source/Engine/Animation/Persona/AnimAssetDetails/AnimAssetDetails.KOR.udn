@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3219745
 Availability:Public
-Title:페르소나 애님 애셋 디테일
+Title:애니메이션 애셋 디테일
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:페르소나 애니메이션 에디터의 애님 애셋 디테일에 대한 사용 안내서입니다.
-version: 4.9
+Description:애니메이션 에디터의 애니메이션 애셋 디테일 사용 안내서입니다.
+version: 4.14
+related: Engine/Animation/Sequences
+related: Engine/Animation/blendspaces
+related: Engine/Animation/animmontage
+related: Engine/Animation/Persona\AssetBrowser
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -25,27 +29,35 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-[EXCERPT:Overview]
+
 ![](AnimAssetDetails.png)(w:520)
 
-애님 애셋 디테일 패널은 맥락에 따라 달라지는 프로퍼티 에디터로, 애님 시퀀스, 블렌드 스페이스, 애님 몽타주 등과 같은 다양한 애니메이션 애셋의 세팅을 바꿀 수 있습니다. 기본적으로 애님 애셋 디테일 패널은 페르소나가 **애니메이션** 모드에 있을 때만 보입니다.
-
-**애님 애셋 디테일 패널에서 애니메이션 애셋을 열려면:**
-* 페르소나 애셋 브라우저에서 애니메이션 애셋을 더블클릭합니다.
-
-페르소나 애셋 브라우저 관련 상세 정보는 [](Engine/Animation\Persona\AssetBrowser) 문서를 참고해 주시기 바랍니다.
-
-[region:note]
-애님 애셋 디테일 패널에서 애니메이션 애셋을 열면 애셋 에디터에서도 열립니다. 애셋 에디터 관련 상세 정보는 [](Engine/Animation\Persona\AssetEditor) 문서를 참고해 주시기 바랍니다.
-[/region]
-
+[EXCERPT:Overview]
+애니메이션 **애셋 디테일** 패널은 맥락에 따라 달라지는 프로퍼티 에디터로, [애님 시퀀스](Engine/Animation/Sequences), [블렌드 스페이스](Engine/Animation/Blendspaces), [애님 몽타주](Engine/Animation/AnimMontage) 등을 포함한 애니메이션 애셋의 세팅을 변경할 수 있습니다.
+**애셋 디테일** 패널은 애니메이션 에디터에 있을 때 보이며 애니메이션 애셋 관련 세팅으로 구성되지만, [스켈레탈 메시 에디터](Engine/Animation/Persona/Modes/Mesh) 안에서 작업할 때 사용할 수 있는 **애셋 디테일** 패널이란 것이 있습니다. 여기에는 관련된 스켈레탈 메시에 영향을 끼칠 수 있는 프로퍼티가 들어있습니다.
 [/EXCERPT:Overview]
 
-**애님 애셋 디테일** 패널에는 편집중인 애니메이션 애셋의 유형에 따라 각기 다른 세트의 프로퍼티가 표시됩니다. 이 패널은 특정 애니메이션 애셋용으로 예약된 것이라는 사실 외에도, 메인 에디터의 표준 디테일 패널과 기능적으로 동일합니다.
+[REGION:note]
+**애셋 디테일** 패널에 들어있는 옵션에 대한 분석은, 각 애니메이션 애셋 관련 문서를 참고하세요.
+[/REGION]
+## 애니메이션 애셋 디테일 보기
 
-이 패널 사용에 관련된 기본 정보는 [](Engine/UI/LevelEditor/Details) 문서를 확인해 보시기 바랍니다.
+애니메이션 **애셋 디테일** 패널을 확인하려면, **콘텐츠 브라우저** 에서 애니메이션 애셋을 엽니다:
 
+![](ContentBrowser1.png)
+
+**애셋 디테일** 패널은 에디터 왼쪽 패널에 있습니다:
+
+![](OpenAnimationAsset.png)
+
+[애셋 브라우저](Engine/Animation/Persona\AssetBrowser) 패널에서 애셋을 **더블클릭** 하여 **애셋 디테일** 패널을 열 수도 있습니다:
+
+![](OpenFromAssetBrowser.png)
 
 [REGION:note]
-**애님 애셋 디테일** 패널은 애니메이션 기반 애셋을 가진 콘텐츠만 표시합니다. 소켓같은 것을 선택해도 이 패널에는 아무 프로퍼티도 표시되지 않습니다. 그러한 애셋에 대한 정보는, (기본적으로 페르소나 우상단 구석에 있는) 페르소나 디테일 패널을 살펴보시기 바랍니다.
+애셋 디테일 탭과 함께 탭으로 도킹된 것은 [](Engine/Animation/Persona/SkeletonTree) 패널로, 현재 스켈레톤 애셋의 스켈레탈 계층구조가 표시됩니다.
 [/REGION]
+
+
+
+

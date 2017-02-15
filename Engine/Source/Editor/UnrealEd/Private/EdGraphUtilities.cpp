@@ -1,13 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
 #include "EdGraphUtilities.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Styling/CoreStyle.h"
+#include "Exporters/Exporter.h"
+#include "EdGraph/EdGraph.h"
+#include "Kismet2/CompilerResultsLog.h"
 #include "Factories.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "UnrealExporter.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "K2Node_TunnelBoundary.h"
 #include "K2Node_Composite.h"
 
@@ -204,6 +209,7 @@ UEdGraph* FEdGraphUtilities::CloneGraph(UEdGraph* InSource, UObject* NewOuter, F
 	if (bCloningForCompile || (NewOuter == NULL))
 	{
 		Parameters.ApplyFlags |= RF_Transient;
+		Parameters.FlagMask &= ~RF_Transactional;
 	}
 
 	UEdGraph* ClonedGraph = CastChecked<UEdGraph>(StaticDuplicateObjectEx(Parameters));
@@ -481,6 +487,105 @@ bool FEdGraphUtilities::IsSetParam(const UFunction* Function, const FString& Par
 	}
 
 	return false;
+}
+
+bool FEdGraphUtilities::IsMapParam(const UFunction* Function, const FString& ParameterName)
+{
+	if (Function == nullptr)
+	{
+		return false;
+	}
+
+	const FString& MapParamMetaData = Function->GetMetaData(FBlueprintMetadata::MD_MapParam);
+	const FString& MapValueParamMetaData = Function->GetMetaData(FBlueprintMetadata::MD_MapValueParam);
+	const FString& MapKeyParamMetaData = Function->GetMetaData(FBlueprintMetadata::MD_MapKeyParam);
+	if (MapParamMetaData.IsEmpty() && MapValueParamMetaData.IsEmpty() && MapKeyParamMetaData.IsEmpty() )
+	{
+		return false;
+	}
+
+	const auto PipeSeparatedStringContains = [ParameterName](const FString& List)
+	{
+		TArray<FString> GroupEntries;
+		List.ParseIntoArray(GroupEntries, TEXT("|"), true);
+		if (GroupEntries.Contains(ParameterName))
+		{
+			return true;
+		}
+		return false;
+	};
+
+	return PipeSeparatedStringContains(MapParamMetaData)
+		|| PipeSeparatedStringContains(MapValueParamMetaData) 
+		|| PipeSeparatedStringContains(MapKeyParamMetaData);
+}
+
+bool FEdGraphUtilities::IsArrayDependentParam(const UFunction* Function, const FString& ParameterName)
+{
+	if (Function == nullptr)
+	{
+		return false;
+	}
+
+	const FString& DependentPinMetaData = Function->GetMetaData(FBlueprintMetadata::MD_ArrayDependentParam);
+	if( DependentPinMetaData.IsEmpty() )
+	{
+		return false;
+	}
+
+	TArray<FString> TypeDependentPinNames;
+	DependentPinMetaData.ParseIntoArray(TypeDependentPinNames, TEXT(","), true);
+
+	return TypeDependentPinNames.Contains(ParameterName);
+}
+
+UEdGraphPin* FEdGraphUtilities::FindArrayParamPin(const UFunction* Function, const UEdGraphNode* Node)
+{
+	return FEdGraphUtilities::FindPinFromMetaData(Function, Node, FBlueprintMetadata::MD_ArrayParam);
+}
+
+UEdGraphPin* FEdGraphUtilities::FindSetParamPin(const UFunction* Function, const UEdGraphNode* Node)
+{
+	return FEdGraphUtilities::FindPinFromMetaData(Function, Node, FBlueprintMetadata::MD_SetParam);
+}
+	
+UEdGraphPin* FEdGraphUtilities::FindMapParamPin(const UFunction* Function, const UEdGraphNode* Node)
+{
+	return FEdGraphUtilities::FindPinFromMetaData(Function, Node, FBlueprintMetadata::MD_MapParam);
+}
+
+UEdGraphPin* FEdGraphUtilities::FindPinFromMetaData(const UFunction* Function, const UEdGraphNode* Node, FName MetaData )
+{
+	if(!Function || !Node)
+	{
+		return nullptr;
+	}
+
+	if(!Function->HasMetaData(MetaData))
+	{
+		return nullptr;
+	}
+
+	const FString& PinMetaData = Function->GetMetaData(MetaData);
+	TArray<FString> ParamPinGroups;
+	PinMetaData.ParseIntoArray(ParamPinGroups, TEXT(","), true);
+
+	for (const FString& Entry : ParamPinGroups)
+	{
+		// split the group:
+		TArray<FString> GroupEntries;
+		Entry.ParseIntoArray(GroupEntries, TEXT("|"), true);
+		// resolve pins
+		for(const FString& PinName : GroupEntries)
+		{
+			if(UEdGraphPin* Pin = Node->FindPin(PinName))
+			{
+				return Pin;
+			}
+		}
+	}
+
+	return nullptr;
 }
 
 void FEdGraphUtilities::RegisterVisualNodeFactory(TSharedPtr<FGraphPanelNodeFactory> NewFactory)

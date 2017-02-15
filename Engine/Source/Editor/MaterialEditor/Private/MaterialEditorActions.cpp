@@ -1,16 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MaterialEditorModule.h"
-#include "Materials/MaterialExpressionComment.h"
-#include "MaterialEditor.h"
 #include "MaterialEditorActions.h"
-#include "SMaterialEditorViewport.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Materials/MaterialExpression.h"
+#include "MaterialGraph/MaterialGraphSchema.h"
+#include "Materials/MaterialExpressionComment.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditorCommands"
 
 void FMaterialEditorCommands::RegisterCommands()
 {
-	UI_COMMAND( Apply, "Apply", "Apply changes to original material and it's use in the world.", EUserInterfaceActionType::Button, FInputChord(EKeys::Enter) );
+	UI_COMMAND( Apply, "Apply", "Apply changes to original material and its use in the world.", EUserInterfaceActionType::Button, FInputChord(EKeys::Enter) );
 	UI_COMMAND( Flatten, "Flatten", "Flatten the material to a texture for mobile devices.", EUserInterfaceActionType::Button, FInputChord() );
 
 	UI_COMMAND( ShowAllMaterialParameters, "Params", "Show or Hide all the materials parameters", EUserInterfaceActionType::ToggleButton, FInputChord() );
@@ -25,7 +25,7 @@ void FMaterialEditorCommands::RegisterCommands()
 
 	UI_COMMAND( CameraHome, "Home", "Goes home on the canvas.", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( CleanUnusedExpressions, "Clean Up", "Cleans up any unused Expressions.", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND(ShowHideConnectors, "Connectors", "Show or Hide Unused Connectors", EUserInterfaceActionType::ToggleButton, FInputChord());
+	UI_COMMAND( ShowHideConnectors, "Connectors", "Show or Hide Unused Connectors", EUserInterfaceActionType::ToggleButton, FInputChord());
 	UI_COMMAND( ToggleLivePreview, "Live Preview", "Toggles real time update of the preview material.", EUserInterfaceActionType::ToggleButton, FInputChord());
 	UI_COMMAND( ToggleRealtimeExpressions, "Live Nodes", "Toggles real time update of the graph canvas.", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( AlwaysRefreshAllPreviews, "Live Update", "All nodes are previewed live.", EUserInterfaceActionType::ToggleButton, FInputChord() );
@@ -53,6 +53,7 @@ void FMaterialEditorCommands::RegisterCommands()
 	UI_COMMAND( ForceRefreshPreviews, "Force Refresh Previews", "Forces a refresh of all previews", EUserInterfaceActionType::Button, FInputChord(EKeys::SpaceBar) );
 	UI_COMMAND( CreateComponentMaskNode, "Create ComponentMask Node", "Creates a ComponentMask node at the current cursor position.", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift, EKeys::C));
 	UI_COMMAND( FindInMaterial, "Search", "Finds expressions and comments in the current Material", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::F));
+	UI_COMMAND( PromoteToParameter, "Promote to Parameter", "Promote selected Pin to parameter of pin type", EUserInterfaceActionType::Button, FInputChord());	
 }
 
 //////////////////////////////////////////////////////////////////////////

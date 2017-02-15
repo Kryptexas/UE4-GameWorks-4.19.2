@@ -1,9 +1,15 @@
-﻿INTSourceChangelist:2741682
+﻿INTSourceChangelist:3158648
 Availability:Public
 Title:基于物理的材质		
 Crumbs:%ROOT%, Engine
 Description:有关主要材质输入及如何加以善用的概述。
-Version:4.9
+Version: 4.9
+parent:Engine/Rendering/Materials
+order:13
+topic-image:physically_based_topic.png
+type:overview
+tags:Physically Based Shading
+tags:PBR
 
 [REGION:fullwidth]
 ![](PhysMatHeader.png)
@@ -12,7 +18,7 @@ Version:4.9
 
 本文旨在为那些需要快速开始了解虚幻引擎 4 中基于物理的材质系统的用户提供帮助。本文假定
 您至少在一定程度上熟悉虚幻引擎（至少虚幻引擎 3 或更高版本）中的材质创建。如果您完全不熟悉虚幻引擎中的材质，
-您可从[](Engine/Rendering/Materials\IntroductionToMaterials)页面入手。
+您可从 [](Engine/Rendering/Materials\IntroductionToMaterials) 页面入手。
 
 在这里，我们的目标只是“以普通语言”向您提供有关如何使用此系统建立标准材质的基本知识，因为
 即使是有先前虚幻引擎迭代经验的用户也可能会在这方面遇到困扰。我们仅将注意力放在

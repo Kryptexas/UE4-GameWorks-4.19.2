@@ -1,8 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "PreviewScene.h"
 #include "EditorViewportClient.h"
+#include "PreviewScene.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "EditorStyleSet.h"
+#include "CanvasItem.h"
+#include "Engine/Canvas.h"
+#include "Settings/LevelEditorViewportSettings.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/BillboardComponent.h"
+#include "Debug/DebugDrawService.h"
+#include "EngineUtils.h"
+#include "Editor.h"
+#include "LevelEditorViewport.h"
+#include "EditorModes.h"
 #include "MouseDeltaTracker.h"
 #include "CameraController.h"
 #include "Editor/Matinee/Public/IMatinee.h"
@@ -12,21 +29,14 @@
 #include "Editor/MeshPaint/Public/MeshPaintEdMode.h"
 #include "EngineAnalytics.h"
 #include "AnalyticsEventAttribute.h"
-#include "IAnalyticsProvider.h"
+#include "Interfaces/IAnalyticsProvider.h"
 #include "Matinee/MatineeActor.h"
 #include "EngineModule.h"
-#include "RendererInterface.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "CanvasItem.h"
-#include "CanvasTypes.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "Components/LineBatchComponent.h"
-#include "Debug/DebugDrawService.h"
-#include "Components/BillboardComponent.h"
-#include "EngineUtils.h"
 #include "SEditorViewport.h"
 #include "AssetEditorModeManager.h"
-#include "Components/DirectionalLightComponent.h"
 #include "PixelInspectorModule.h"
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
@@ -278,6 +288,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, bNeedsLinkedRedraw(false)
 	, bNeedsInvalidateHitProxy(false)
 	, bUsingOrbitCamera(false)
+	, bUseNumpadCameraControl(true)
 	, bDisableInput(false)
 	, bDrawAxes(true)
 	, bSetListenerPosition(false)
@@ -327,6 +338,8 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, FarPlane(0.0f)
 	, bInGameViewMode(false)
 	, bShouldInvalidateViewportWidget(false)
+	, DragStartView(nullptr)
+	, DragStartViewFamily(nullptr)
 {
 	InitViewOptionsArray();
 	if (ModeTools == nullptr)
@@ -1526,13 +1539,13 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 		// Forward/back
 		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Forward->GetActiveChord()->Key ) ) ||
 			( bRemapArrowKeys && Viewport->KeyState( EKeys::Up ) ) ||
-			( bUnmodifiedPress && Viewport->KeyState(EKeys::NumPadEight) ) )
+			( bUnmodifiedPress && bUseNumpadCameraControl && Viewport->KeyState(EKeys::NumPadEight) ) )
 		{
 			CameraUserImpulseData->MoveForwardBackwardImpulse += 1.0f;
 		}
 		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Backward->GetActiveChord()->Key ) ) ||
 			( bRemapArrowKeys && Viewport->KeyState( EKeys::Down ) ) ||
-			( bUnmodifiedPress && Viewport->KeyState( EKeys::NumPadTwo ) ) )
+			( bUnmodifiedPress && bUseNumpadCameraControl && Viewport->KeyState( EKeys::NumPadTwo ) ) )
 		{
 			CameraUserImpulseData->MoveForwardBackwardImpulse -= 1.0f;
 		}
@@ -1540,37 +1553,39 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 		// Right/left
 		if ( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Right->GetActiveChord()->Key) ) ||
 			( bRemapArrowKeys && Viewport->KeyState( EKeys::Right ) ) ||
-			( bUnmodifiedPress && Viewport->KeyState( EKeys::NumPadSix ) ) )
+			( bUnmodifiedPress && bUseNumpadCameraControl && Viewport->KeyState( EKeys::NumPadSix ) ) )
 		{
 			CameraUserImpulseData->MoveRightLeftImpulse += 1.0f;
 		}
 		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Left->GetActiveChord()->Key ) ) ||
 			( bRemapArrowKeys && Viewport->KeyState( EKeys::Left ) ) ||
-			( bUnmodifiedPress && Viewport->KeyState( EKeys::NumPadFour ) ) )
+			( bUnmodifiedPress && bUseNumpadCameraControl && Viewport->KeyState( EKeys::NumPadFour ) ) )
 		{
 			CameraUserImpulseData->MoveRightLeftImpulse -= 1.0f;
 		}
 
 		// Up/down
 		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Up->GetActiveChord()->Key ) ) ||
-			( bUnmodifiedPress && ( Viewport->KeyState( EKeys::PageUp ) || Viewport->KeyState( EKeys::NumPadNine ) || Viewport->KeyState( EKeys::Add ) ) ) )
+			( bUnmodifiedPress && Viewport->KeyState( EKeys::PageUp ) ) ||
+			( bUnmodifiedPress && bUseNumpadCameraControl && ( Viewport->KeyState( EKeys::NumPadNine ) || Viewport->KeyState( EKeys::Add ) ) ) )
 		{
 			CameraUserImpulseData->MoveUpDownImpulse += 1.0f;
 		}
 		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Down->GetActiveChord()->Key) ) ||
-			( bUnmodifiedPress && ( Viewport->KeyState( EKeys::PageDown ) || Viewport->KeyState( EKeys::NumPadSeven ) || Viewport->KeyState( EKeys::Subtract ) ) ) )
+			( bUnmodifiedPress && Viewport->KeyState( EKeys::PageDown ) ) ||
+			( bUnmodifiedPress && bUseNumpadCameraControl && ( Viewport->KeyState( EKeys::NumPadSeven ) || Viewport->KeyState( EKeys::Subtract ) ) ) )
 		{
 			CameraUserImpulseData->MoveUpDownImpulse -= 1.0f;
 		}
 
 		// Zoom FOV out/in
 		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().FovZoomOut->GetActiveChord()->Key ) ) ||
-			( bUnmodifiedPress && Viewport->KeyState( EKeys::NumPadOne ) ) )
+			( bUnmodifiedPress && bUseNumpadCameraControl && Viewport->KeyState( EKeys::NumPadOne ) ) )
 		{
 			CameraUserImpulseData->ZoomOutInImpulse += 1.0f;
 		}
 		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().FovZoomIn->GetActiveChord()->Key ) ) ||
-			( bUnmodifiedPress && Viewport->KeyState( EKeys::NumPadThree ) ) )
+			( bUnmodifiedPress && bUseNumpadCameraControl && Viewport->KeyState( EKeys::NumPadThree ) ) )
 		{
 			CameraUserImpulseData->ZoomOutInImpulse -= 1.0f;
 		}
@@ -1984,15 +1999,17 @@ void FEditorViewportClient::UpdateMouseDelta()
 				//if Absolute Translation, and not just moving the camera around
 				if (IsUsingAbsoluteTranslation())
 				{
-					// Compute a view.
-					FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-						Viewport,
-						GetScene(),
-						EngineShowFlags)
-						.SetRealtimeUpdate( IsRealtime() ) );
-					FSceneView* View = CalcSceneView( &ViewFamily );
-
-					MouseDeltaTracker->AbsoluteTranslationConvertMouseToDragRot(View, this, Drag, Rot, Scale);
+					if (DragStartView == nullptr)
+					{
+						// Compute a view.
+						DragStartViewFamily = new FSceneViewFamily(FSceneViewFamily::ConstructionValues(
+							Viewport,
+							GetScene(),
+							EngineShowFlags)
+							.SetRealtimeUpdate(IsRealtime()));
+						DragStartView = CalcSceneView(DragStartViewFamily);
+					}
+					MouseDeltaTracker->AbsoluteTranslationConvertMouseToDragRot(DragStartView, this, Drag, Rot, Scale);
 				} 
 				else
 				{
@@ -2185,7 +2202,7 @@ void FEditorViewportClient::MarkMouseMovedSinceClick()
 bool FEditorViewportClient::IsUsingAbsoluteTranslation() const
 {
 	bool bIsHotKeyAxisLocked = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
-	bool bCameraLockedToWidget = Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift);
+	bool bCameraLockedToWidget = !(Widget && Widget->GetCurrentAxis() & EAxisList::Screen) && (Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift));
 	// Screen-space movement must always use absolute translation
 	bool bScreenSpaceTransformation = Widget && (Widget->GetCurrentAxis() == EAxisList::Screen);
 	bool bAbsoluteMovementEnabled = GetDefault<ULevelEditorViewportSettings>()->bUseAbsoluteTranslation || bScreenSpaceTransformation;
@@ -2401,6 +2418,12 @@ void FEditorViewportClient::StopTracking()
 {
 	if( bIsTracking )
 	{
+		DragStartView = nullptr;
+		if (DragStartViewFamily != nullptr)
+		{
+			delete DragStartViewFamily;
+			DragStartViewFamily = nullptr;
+		}
 		MouseDeltaTracker->EndTracking( this );
 
 		Widget->SetCurrentAxis( EAxisList::None );
@@ -3269,7 +3292,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		EngineShowFlags)
 		.SetWorldTimes( TimeSeconds, DeltaTimeSeconds, RealTimeSeconds )
 		.SetRealtimeUpdate( IsRealtime() )
-		.SetViewModeParam( ViewModeParam ) );
+		.SetViewModeParam( ViewModeParam, ViewModeParamName ) );
 
 	ViewFamily.EngineShowFlags = EngineShowFlags;
 
@@ -4678,13 +4701,21 @@ void FEditorViewportClient::SetRealtimePreview()
 void FEditorViewportClient::SetViewMode(EViewModeIndex InViewModeIndex)
 {
 	ViewModeParam = -1; // Reset value when the viewmode changes
+	ViewModeParamName = NAME_None;
+	ViewModeParamNameMap.Empty();
 
 	if (IsPerspective())
 	{
+
 		if (InViewModeIndex == VMI_PrimitiveDistanceAccuracy || InViewModeIndex == VMI_MeshUVDensityAccuracy || InViewModeIndex == VMI_MaterialTextureScaleAccuracy)
 		{
-			FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld(), InViewModeIndex == VMI_MaterialTextureScaleAccuracy, true);
+			FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld(), InViewModeIndex);
 		}
+		else // Otherwise compile any required shader if needed.
+		{
+			FEditorBuildUtils::CompileViewModeShaders(GetWorld(), InViewModeIndex);
+		}
+			 
 		PerspViewModeIndex = InViewModeIndex;
 		ApplyViewMode(PerspViewModeIndex, true, EngineShowFlags);
 		bForcingUnlitForNewMap = false;
@@ -4720,7 +4751,24 @@ void FEditorViewportClient::SetViewModes(const EViewModeIndex InPerspViewModeInd
 void FEditorViewportClient::SetViewModeParam(int32 InViewModeParam)
 {
 	ViewModeParam = InViewModeParam;
+	FName* BoundName = ViewModeParamNameMap.Find(ViewModeParam);
+	ViewModeParamName = BoundName ? *BoundName : FName();
+
 	Invalidate();
+}
+
+bool FEditorViewportClient::IsViewModeParam(int32 InViewModeParam) const
+{
+	const FName* MappedName = ViewModeParamNameMap.Find(ViewModeParam);
+	// Check if the param and names match. The param name only gets updated on click, while the map is built at menu creation.
+	if (MappedName)
+	{
+		return ViewModeParam == InViewModeParam && ViewModeParamName == *MappedName;
+	}
+	else
+	{
+		return ViewModeParam == InViewModeParam && ViewModeParamName == NAME_None;
+	}
 }
 
 EViewModeIndex FEditorViewportClient::GetViewMode() const
@@ -4942,7 +4990,7 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 				GetScene(),
 				EngineShowFlags)
 				.SetRealtimeUpdate(IsRealtime())
-				.SetViewModeParam(ViewModeParam));
+				.SetViewModeParam(ViewModeParam, ViewModeParamName));
 			auto* ViewportBak = Viewport;
 			Viewport = InViewport;
 			FSceneView* View = CalcSceneView(&ViewFamily);

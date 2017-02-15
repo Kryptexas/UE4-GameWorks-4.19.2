@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ViewportInteractionTypes.h"
+#include "CoreMinimal.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
 #include "ViewportInteractionTypes.h"
 
 /** Represents a single virtual hand */
@@ -136,6 +138,10 @@ struct FViewportInteractorData
 	/** If the latest hitresult is hovering over a priority type */
 	bool bHitResultIsPriorityType;
 
+	/** The offset between the hitlocation of the object selected to start dragging and its center. 
+		This is used to offset the objects when dragging to the end of the laser */
+	FVector StartHitLocationToTransformableCenter;
+
 	/** Default constructor for FVirtualHand that initializes safe defaults */
 	FViewportInteractorData()
 	{
@@ -171,6 +177,8 @@ struct FViewportInteractorData
 		bAllowTriggerLightPressLocking = true;
 		bAllowTriggerFullPress = true;
 		bHitResultIsPriorityType = false;
+
+		StartHitLocationToTransformableCenter = FVector::ZeroVector;
 	}
 };
 

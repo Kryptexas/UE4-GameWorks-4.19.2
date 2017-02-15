@@ -1,17 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "AITypes.h"
 #include "GenericTeamAgentInterface.h"
-#include "AITypes.h"
 #include "AIPerceptionTypes.generated.h"
 
-class UAISense;
-class UAISenseEvent;
-class UAISenseConfig;
 class UAIPerceptionComponent;
-class UWorld;
+class UAISense;
 
 //////////////////////////////////////////////////////////////////////////
 struct AIMODULE_API FAISenseCounter : FAIBasicCounter<uint8>
@@ -124,14 +122,6 @@ struct FPerceptionChannelWhitelist
 			FindNextAcceptedChannel();
 		}
 	};
-};
-
-struct FPerceptionChannelFilter : public FPerceptionChannelWhitelist
-{
-	DEPRECATED(4.5, "FPerceptionChannelFilter has been renamed to FPerceptionChannelWhitelist. Please use that instead.")
-	FPerceptionChannelFilter()
-	{
-	}
 };
 
 USTRUCT(BlueprintType)
@@ -281,6 +271,7 @@ public:
 	FORCEINLINE FPerceptionListenerID GetListenerID() const { return ListenerID; }
 
 	FName GetBodyActorName() const;
+	uint32 GetBodyActorUniqueID() const;
 
 	/** Returns pointer to the actor representing this listener's physical body */
 	const AActor* GetBodyActor() const;

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2819020
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title: 언리얼 빌드 시스템 타겟 파일
 Crumbs: %ROOT%, Programming, Programming\UnrealBuildSystem
@@ -61,7 +61,7 @@ UnrealBuildTool 은 Rules DLL 에서 빌드 타겟을 요청할 때, `[APPNAME]`
 
 완성 예제로 ShaderCompileWorker.Target.cs 파일을 들어보겠습니다:
 
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 	using UnrealBuildTool;
 	using System.Collections.Generic;

@@ -1,22 +1,22 @@
-﻿INTSourceChangelist:2638642
+﻿INTSourceChangelist:3213718
 Availability:Public
-Title:5.セカンド メニューの構築
+Title:5.セカンド メニューを構築する
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
-Description:新しい機能を搭載したセカンド メニューの構築
-バージョン:4.9
+Description:新しい機能を搭載したセカンド メニューを構築します。
+version:4.14
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[前の手順](Programming\Tutorials\UMG\4 "%Programming\Tutorials\UMG\4:title%")
+		[前のステップ](Programming\Tutorials\UMG\4 "%Programming\Tutorials\UMG\4:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[UMG チュートリアルのホームページ](Programming\Tutorials\UMG)
+		[](Programming\Tutorials\UMG)
 	[/PARAM]
 	[PARAM:next]
-		[次の手順](Programming\Tutorials\UMG\6 "%Programming\Tutorials\UMG\6:title%")
+		[次のステップ](Programming\Tutorials\UMG\6 "%Programming\Tutorials\UMG\6:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -24,22 +24,21 @@ Description:新しい機能を搭載したセカンド メニューの構築
 %Steps%
 
 
-1. **コンテンツブラウザ** で以前に作成済みの "NewGameMenu" アセットを検索して開きます。このメニューには、名前を入力する **テキストボックス**、名前を入力するまでクリックできないゲームプレイ用の **ボタン**、メインメニューに戻る**ボタン**があります。
+1. **コンテンツブラウザ** で以前に作成済みの "NewGameMenu" アセットを検索して開きます。このメニューには、名前を入力する **テキストボックス**、名前を入力するまでクリックできないゲームプレイ用の **ボタン**、メインメニューに戻るボタンがあります。
 
 1. 名前の入力欄を作成するには、**Text Box** ( **Text Block** ではありません) をレイアウトへドラッグします。
 
 	[![](CreateTextEntryBox.png)](CreateTextEntryBox.png)
 
 1. Text Box は以下の値で設定します。
-
 	* [NameTextEntry] の名前を変更します。
-	* 位置は (325, 200) に設定。この値に設定することで、Text Block を Text Box の左に配置するための余白ができます。
+	* Position は (325, 200) に設定。この値に設定することで、Text Block を Text Box の左に配置するための余白ができます。
 	* [Size] は 250x40 に設定。
-	* ([Style] ヘッダの下) の [Font size]  は 20 に設定。
-
+	* ([Style] ヘッダの下) の [Font size] は 20 に設定。
+	
 	[![](TextBoxDetails.png)](TextBoxDetails.png)
 
-1. 前回のメニューに作成したボタンと同じ方法で Text Block ラベルを使用して プレイゲーム ボタンを作成することができます。
+1. 前回のメニューに作成したボタンと同じ方法で Text Block ラベルを使用してプレイゲーム ボタンを作成することができます。
 	* Button の設定値PlayGameButton 名を変更し、**[Position (位置)]** を 200 と 300、**Size** を 200, 100 に設定します。
 	* Text Block の設定値PlayGameText 名を変更し、**Visibility (ビジビリティ)** を [Hit Test Visible] にして、PlayGameButton 上にドラッグします。
 
@@ -47,9 +46,9 @@ Description:新しい機能を搭載したセカンド メニューの構築
 
 	[![](PlayGameButtonDetails.png)](PlayGameButtonDetails.png)
 
-	[REGION:note]ゲームに有効なプレイヤー名を構成するルールが複雑な場合、またはプレイヤー名を C++ 変数に保存する必要がある場合は、**Game Mode** に **UFUNCTION** として公開するか、プロジェクト内のどこかで静的関数として公開します。一方で、名前文字列が空白ではないことだけをチェックするだけであれば、**ウィジェット** にスクリプトを記述することができます。**[/REGION]
+	[REGION:note]ゲームで有効なプレイヤー名であることを判断するために複雑なルールがある場合、またはプレイヤー名を C++ 変数に保存する必要がある場合は、**Game Mode** に **UFUNCTION** として公開するか、プロジェクト内のどこかで静的関数として公開します。ただし、名前文字列が空白ではないことだけが重要であるため、ここで **ウィジェット** にスクリプトを記述することができます。[/REGION]
 
-1. ボタンが有効なことを確認するには、Text Box が空白でない場合に限り、Text Box のテキストを文字列に変換することができるので、その後文字列の長さがゼロ以上であることを確認します。ロジックはこのように表示されます。
+1. Text Box が空白でない場合に限りボタンを有効にするために、Text Box のテキストを文字列に変換し、その後文字列の長さがゼロ以上であることを確認します。ロジックはこのように表示されます。
 
 	[![](PlayGameButtonEnableFunction.png)](PlayGameButtonEnableFunction.png)
 
@@ -60,15 +59,15 @@ Description:新しい機能を搭載したセカンド メニューの構築
 
 	[![](SelectAnchor.png)](SelectAnchor.png)
 
-	[REGION:tip]右下の隅にアンカーを配置してもサイズや位置の値の機能に変更はないため、スクリーンに表示するために位置は負の値に設定しなくてはいけません。サイズ値は正の値のままにします。[/REGION]
+	[REGION:tip]右下隅にアンカーを配置するとサイズと位置の値を変えても変わりません。そのため、スクリーン上に存在するためには位置を負の値にする必要があります。サイズの値は正のままです。[/REGION]
 
 1. **OnClicked** Event を再度追加して、新規ボタンにスクリプトを追加していきます。Main Menu Button は単に Main Menu Widget を再ロードするだけですが、Play Game Button は **ChangeMenuWidget** 関数の呼び出しに新規ウィジェットを使用せずにメニュー全体を非アクティブにします。実際のクラスやアセット名の代わりに、**Select Class** と表示して表されます。
 
 	[![](NewGameButtonBPs.png)](NewGameButtonBPs.png)
 
-	[REGION:note]Play Game Button でメニューを非アクティブにした後は、ゲームでは何もできなくなります。一般的に最初のレベルのロード時、紹介カットシーンの再生時、または **ポーン** をスポーンしたり所有する時を指します。**[/REGION]
+	[REGION:note]Play Game Button でメニューを非アクティブにしたら、ゲーム内でそれ以上何かをすることはできません。この時点で、一般的に最初のレベルをロードし、紹介カットシーンを再生、または **ポーン** をスポーンしたり、所有したりします。[/REGION]
 
-1. 次のような 2 つのシーンが出来上がったと思います。
+1. だいたい以下の 2 つの画面のようになるはずです。
 
 	[![](FinalScreen.png)](FinalScreen.png)
 
@@ -78,14 +77,14 @@ Description:新しい機能を搭載したセカンド メニューの構築
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
-    コード
+    code
     [/PARAMLITERAL]
     [PARAM:heading]
     完成コード
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -99,8 +98,8 @@ Description:新しい機能を搭載したセカンド メニューの構築
 
 					// Uncomment if you are using Slate UI (スレート UI を使用している場合はコメント行を外します)
 					PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-		// Uncomment if you are using online features (オンライン機能を使用している場合はコメント行を外します)
 
+					// Uncomment if you are using online features(オンライン機能を使用している場合はコメント行を外します)
 					// PrivateDependencyModuleNames.Add("OnlineSubsystem");
 					// if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
 					// {
@@ -113,42 +112,42 @@ Description:新しい機能を搭載したセカンド メニューの構築
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
 			#include "Blueprint/UserWidget.h"
-			#include "GameFramework/GameMode.h"
+			#include "GameFramework/GameModeBase.h"
 			#include "HowTo_UMGGameMode.generated.h"
 
 			/**
 			 * 
 			 */
 			UCLASS()
-			class HOWTO_UMG_API AHowTo_UMGGameMode : public AGameMode
+			class HOWTO_UMG_API AHowTo_UMGGameMode : public AGameModeBase
 			{
 				GENERATED_BODY()
 
 			public:
-				/** Called when the game starts. */
+				/** ゲーム開始時に呼び出されます */
 				virtual void BeginPlay() override;
 
-				/** Remove the current menu widget and create a new one from the specified class, if provided. */
+				/** 現在のメニューウィジェットを取り除き、指定されたクラスがあればそこから新しいものを作成します */
 				UFUNCTION(BlueprintCallable, Category = "UMG Game")
 				void ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass);
 
 			protected:
-				/** The widget class we will use as our menu when the game starts. */
+				/** ゲーム開始時にメニューとして使用するウィジェット クラスです */
 				UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UMG Game")
 				TSubclassOf<UUserWidget> StartingWidgetClass;
 
-				/** The widget instance that we are using as our menu. */
+				/** メニューとして使用するウィジェット インスタンスです */
 				UPROPERTY()
 				UUserWidget* CurrentWidget;
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"
@@ -175,6 +174,39 @@ Description:新しい機能を搭載したセカンド メニューの構築
 					}
 				}
 			}
+
+			**HowTo_UMGPlayerController.h**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+			#pragma once
+
+			#include "GameFramework/PlayerController.h"
+			#include "HowTo_UMGPlayerController.generated.h"
+
+			/**
+			 * 
+			 */
+			UCLASS()
+			class HOWTO_UMG_API AHowTo_UMGPlayerController : public APlayerController
+			{
+				GENERATED_BODY()
+
+			public:
+				virtual void BeginPlay() override;
+			};
+
+		**HowTo_UMGPlayerController.cpp**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+			#include "HowTo_UMG.h"
+			#include "HowTo_UMGPlayerController.h"
+
+			void AHowTo_UMGPlayerController::BeginPlay()
+			{
+				Super::BeginPlay();
+				SetInputMode(FInputModeGameAndUI());
+			}
+
     [/PARAM]
 [/OBJECT]
 

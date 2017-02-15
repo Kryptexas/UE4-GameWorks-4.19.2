@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneViewExtension.h: Allow changing the view parameters on the render thread
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+class APlayerController;
+class FRHICommandListImmediate;
+class FSceneView;
+class FSceneViewFamily;
+struct FMinimalViewInfo;
 
 class ISceneViewExtension
 {

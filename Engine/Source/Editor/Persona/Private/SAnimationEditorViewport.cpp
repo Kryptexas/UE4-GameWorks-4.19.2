@@ -1,27 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#include "PersonaPrivatePCH.h"
 
 #include "SAnimationEditorViewport.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EditorStyleSet.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Animation/AnimMontage.h"
+#include "Preferences/PersonaOptions.h"
+
 #include "SAnimationScrubPanel.h"
 #include "SAnimMontageScrubPanel.h"
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "SAnimViewportToolBar.h"
 #include "AnimViewportMenuCommands.h"
 #include "AnimViewportShowCommands.h"
 #include "AnimViewportLODCommands.h"
 #include "AnimViewportPlaybackCommands.h"
-#include "AnimGraphDefinitions.h"
 #include "AnimPreviewInstance.h"
-#include "AnimationEditorViewportClient.h"
-#include "ScopedTransaction.h"
-#include "Editor/UnrealEd/Public/LODUtilities.h"
-#include "DetailLayoutBuilder.h"
-#include "STextComboBox.h"
-#include "ISkeletonTree.h"
+#include "Widgets/Input/STextComboBox.h"
 #include "IEditableSkeleton.h"
-#include "IPersonaPreviewScene.h"
+#include "EditorViewportCommands.h"
+#include "TabSpawners.h"
+#include "SkeletalMeshTypes.h"
 
 #define LOCTEXT_NAMESPACE "PersonaViewportToolbar"
 
@@ -69,6 +71,12 @@ TSharedPtr<SWidget> SAnimationEditorViewport::MakeViewportToolbar()
 void SAnimationEditorViewport::OnUndoRedo()
 {
 	LevelViewportClient->Invalidate();
+}
+
+void SAnimationEditorViewport::OnFocusViewportToSelection()
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->FocusViewportOnPreviewMesh();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -263,6 +271,11 @@ void SAnimationEditorViewportTabBody::RestoreState(TSharedRef<IPersonaViewportSt
 {
 	TSharedRef<FPersonaModeSharedData> State = StaticCastSharedRef<FPersonaModeSharedData>(InState);
 	State->Restore(StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef()));
+}
+
+FEditorViewportClient& SAnimationEditorViewportTabBody::GetViewportClient() const
+{
+	return *LevelViewportClient;
 }
 
 void SAnimationEditorViewportTabBody::RefreshViewport()
@@ -552,7 +565,7 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingSockets));
 
-	// Set bone local axes mode
+	// Set bone drawing mode
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowBoneDrawNone,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetBoneDrawMode, (int32)EBoneDrawMode::None),
@@ -564,6 +577,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetBoneDrawMode, (int32)EBoneDrawMode::Selected),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsBoneDrawModeSet, (int32)EBoneDrawMode::Selected));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowBoneDrawSelectedAndParents,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetBoneDrawMode, (int32)EBoneDrawMode::SelectedAndParents),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsBoneDrawModeSet, (int32)EBoneDrawMode::SelectedAndParents));
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowBoneDrawAll,
@@ -653,6 +672,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP( this, &SAnimationEditorViewportTabBody::OnShowClothFixedVertices ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SAnimationEditorViewportTabBody::IsShowingClothFixedVertices ) );
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.PauseClothWithAnim,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnPauseClothingSimWithAnim),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsPausingClothingSimWithAnim));
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowAllSections,
@@ -757,6 +782,10 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetTurnTableMode, int32(EPersonaTurnTableMode::Stopped)),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsTurnTableModeSelected, int32(EPersonaTurnTableMode::Stopped)));
+
+	CommandList.MapAction(
+		FEditorViewportCommands::Get().FocusViewportToSelection,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::HandleFocusCamera));
 }
 
 void SAnimationEditorViewportTabBody::OnSetTurnTableSpeed(int32 SpeedIndex)
@@ -1155,7 +1184,7 @@ bool SAnimationEditorViewportTabBody::IsUsingInGameBound() const
 	return PreviewComponent != NULL && PreviewComponent->IsUsingInGameBounds();
 }
 
-void SAnimationEditorViewportTabBody::HandlePreviewMeshChanged(class USkeletalMesh* SkeletalMesh)
+void SAnimationEditorViewportTabBody::HandlePreviewMeshChanged(class USkeletalMesh* OldSkeletalMesh, class USkeletalMesh* NewSkeletalMesh)
 {
 	PopulateNumUVChannels();
 }
@@ -1381,7 +1410,6 @@ bool SAnimationEditorViewportTabBody::IsCameraFollowEnabled() const
 	return (AnimViewportClient->IsSetCameraFollowChecked());
 }
 
-
 bool SAnimationEditorViewportTabBody::CanChangeCameraMode() const
 {
 	//Not allowed to change camera type when we are in an ortho camera
@@ -1465,6 +1493,45 @@ void SAnimationEditorViewportTabBody::OnApplyClothWind()
 {
 	GetPreviewScene()->EnableWind(!GetPreviewScene()->IsWindEnabled());
 	RefreshViewport();
+}
+
+void SAnimationEditorViewportTabBody::OnPauseClothingSimWithAnim()
+{
+	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+
+	if(PreviewComponent)
+	{
+		PreviewComponent->bPauseClothingSimulationWithAnim = !PreviewComponent->bPauseClothingSimulationWithAnim;
+
+		bool bShouldPause = PreviewComponent->bPauseClothingSimulationWithAnim;
+
+		if(PreviewComponent->IsPreviewOn() && PreviewComponent->PreviewInstance)
+		{
+			UAnimSingleNodeInstance* PreviewInstance = PreviewComponent->PreviewInstance;
+			const bool bPlaying = PreviewInstance->IsPlaying();
+
+			if(!bPlaying && bShouldPause)
+			{
+				PreviewComponent->SuspendClothingSimulation();
+			}
+			else if(!bShouldPause && PreviewComponent->IsClothingSimulationSuspended())
+			{
+				PreviewComponent->ResumeClothingSimulation();
+			}
+		}
+	}
+}
+
+bool SAnimationEditorViewportTabBody::IsPausingClothingSimWithAnim()
+{
+	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+	
+	if(PreviewComponent)
+	{
+		return PreviewComponent->bPauseClothingSimulationWithAnim;
+	}
+
+	return false;
 }
 
 void SAnimationEditorViewportTabBody::SetWindStrength(float SliderPos)
@@ -1842,6 +1909,12 @@ FReply SAnimationEditorViewportTabBody::ClickedOnViewportCornerText()
 	}
 
 	return FReply::Handled();
+}
+
+void SAnimationEditorViewportTabBody::HandleFocusCamera()
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->FocusViewportOnPreviewMesh();
 }
 
 #undef LOCTEXT_NAMESPACE

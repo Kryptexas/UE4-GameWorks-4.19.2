@@ -1,12 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SkeletonEditorPrivatePCH.h"
 #include "EditableSkeleton.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "AssetData.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "Animation/AnimSequenceBase.h"
+#include "Animation/AnimSequence.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "ISkeletonTree.h"
 #include "SSkeletonTree.h"
-#include "IPersonaToolkit.h"
-#include "MeshUtilities.h"
-#include "BoneControllers/AnimNode_ModifyBone.h"
-#include "AnimPreviewInstance.h"
 #include "ScopedTransaction.h"
 #include "Factories.h"
 #include "Animation/BlendProfile.h"
@@ -14,9 +22,9 @@
 #include "SBlendProfilePicker.h"
 #include "AssetNotifications.h"
 #include "BlueprintActionDatabase.h"
+#include "ARFilter.h"
 #include "AssetRegistryModule.h"
 #include "SSkeletonWidget.h"
-#include "Animation/DebugSkelMeshComponent.h"
 
 const FString FEditableSkeleton::SocketCopyPasteHeader = TEXT("SocketCopyPasteBuffer");
 
@@ -171,7 +179,7 @@ void FEditableSkeleton::SetBoneTranslationRetargetingMode(FName InBoneName, EBon
 	FAssetNotifications::SkeletonNeedsToBeSaved(Skeleton);
 }
 
-EBoneTranslationRetargetingMode::Type FEditableSkeleton::GetBoneTranslationRetargetingMode(FName InBoneName)
+EBoneTranslationRetargetingMode::Type FEditableSkeleton::GetBoneTranslationRetargetingMode(FName InBoneName) const
 {
 	const int32 BoneIndex = Skeleton->GetReferenceSkeleton().FindBoneIndex(InBoneName);
 	return Skeleton->GetBoneTranslationRetargetingMode(BoneIndex);
@@ -357,11 +365,29 @@ void FEditableSkeleton::RemoveSmartnamesAndFixupAnimations(const FName& InContai
 
 void FEditableSkeleton::SetCurveMetaDataMaterial(const FSmartName& CurveName, bool bOverrideMaterial)
 {
+	Skeleton->Modify();
 	FCurveMetaData* CurveMetaData = Skeleton->GetCurveMetaData(CurveName);
 	if (CurveMetaData)
 	{
 		// override curve data
 		CurveMetaData->Type.bMaterial = !!bOverrideMaterial;
+	}
+}
+
+void FEditableSkeleton::SetCurveMetaBoneLinks(const FSmartName& CurveName, TArray<FBoneReference>& BoneLinks)
+{
+	Skeleton->Modify();
+	FCurveMetaData* CurveMetaData = Skeleton->GetCurveMetaData(CurveName);
+	if (CurveMetaData)
+	{
+		// override curve data
+		CurveMetaData->LinkedBones = BoneLinks;
+		
+		//  initialize to this skeleton
+		for (FBoneReference& BoneReference : CurveMetaData->LinkedBones)
+		{
+			BoneReference.Initialize(Skeleton);
+		}
 	}
 }
 
@@ -529,8 +555,14 @@ USkeletalMeshSocket* FEditableSkeleton::HandleAddSocket(const FName& InBoneName)
 
 bool FEditableSkeleton::HandleAddVirtualBone(const FName SourceBoneName, const FName TargetBoneName)
 {
+	FName Dummy;
+	return HandleAddVirtualBone(SourceBoneName, TargetBoneName, Dummy);
+}
+
+bool FEditableSkeleton::HandleAddVirtualBone(const FName SourceBoneName, const FName TargetBoneName, FName& NewVirtualBoneName)
+{
 	FScopedTransaction Transaction(LOCTEXT("AddVirtualBone", "Add Virtual Bone to Skeleton"));
-	const bool Success = Skeleton->AddNewVirtualBone(SourceBoneName, TargetBoneName);
+	const bool Success = Skeleton->AddNewVirtualBone(SourceBoneName, TargetBoneName, NewVirtualBoneName);
 	if (!Success)
 	{
 		Transaction.Cancel();
@@ -709,7 +741,7 @@ void FEditableSkeleton::HandleAttachAssets(const TArray<UObject*>& InObjects, co
 				{
 					InPreviewScene->AttachObjectToPreviewComponent(Object, InAttachToName);
 				}
-				SkeletalMesh->PreviewAttachedAssetContainer.AddUniqueAttachedObject(Object, InAttachToName);
+				SkeletalMesh->PreviewAttachedAssetContainer.AddAttachedObject(Object, InAttachToName);
 			}
 		}
 		else
@@ -720,7 +752,7 @@ void FEditableSkeleton::HandleAttachAssets(const TArray<UObject*>& InObjects, co
 			{
 				InPreviewScene->AttachObjectToPreviewComponent(Object, InAttachToName);
 			}
-			Skeleton->PreviewAttachedAssetContainer.AddUniqueAttachedObject(Object, InAttachToName);
+			Skeleton->PreviewAttachedAssetContainer.AddAttachedObject(Object, InAttachToName);
 		}
 	}
 }
@@ -873,6 +905,11 @@ int32 FEditableSkeleton::DeleteAnimNotifies(const TArray<FName>& InNotifyNames)
 	const FScopedTransaction Transaction(LOCTEXT("DeleteAnimNotify", "Delete Anim Notify"));
 	Skeleton->Modify();
 
+	for (FName Notify : InNotifyNames)
+	{
+		Skeleton->AnimationNotifies.Remove(Notify);
+	}
+
 	TArray<FAssetData> CompatibleAnimSequences;
 	GetCompatibleAnimSequences(CompatibleAnimSequences);
 
@@ -883,25 +920,9 @@ int32 FEditableSkeleton::DeleteAnimNotifies(const TArray<FName>& InNotifyNames)
 		const FAssetData& PossibleAnimSequence = CompatibleAnimSequences[AssetIndex];
 		UAnimSequenceBase* Sequence = Cast<UAnimSequenceBase>(PossibleAnimSequence.GetAsset());
 
-		bool SequenceModified = false;
-		for (int32 NotifyIndex = Sequence->Notifies.Num() - 1; NotifyIndex >= 0; --NotifyIndex)
+		if (Sequence->RemoveNotifies(InNotifyNames))
 		{
-			FAnimNotifyEvent& AnimNotify = Sequence->Notifies[NotifyIndex];
-			if (InNotifyNames.Contains(AnimNotify.NotifyName))
-			{
-				if (!SequenceModified)
-				{
-					Sequence->Modify();
-					++NumAnimationsModified;
-					SequenceModified = true;
-				}
-				Sequence->Notifies.RemoveAtSwap(NotifyIndex);
-			}
-		}
-
-		if (SequenceModified)
-		{
-			Sequence->MarkPackageDirty();
+			++NumAnimationsModified;
 		}
 	}
 
@@ -991,8 +1012,11 @@ void FEditableSkeleton::UnregisterOnSkeletonHierarchyChanged(void* Thing)
 
 void FEditableSkeleton::SetPreviewMesh(class USkeletalMesh* InSkeletalMesh)
 {
-	const FScopedTransaction Transaction(LOCTEXT("ChangeSkeletonPreviewMesh", "Change Skeleton Preview Mesh"));
-	Skeleton->SetPreviewMesh(InSkeletalMesh);
+	if (InSkeletalMesh != Skeleton->GetPreviewMesh())
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ChangeSkeletonPreviewMesh", "Change Skeleton Preview Mesh"));
+		Skeleton->SetPreviewMesh(InSkeletalMesh);
+	}
 }
 
 void FEditableSkeleton::LoadAdditionalPreviewSkeletalMeshes()

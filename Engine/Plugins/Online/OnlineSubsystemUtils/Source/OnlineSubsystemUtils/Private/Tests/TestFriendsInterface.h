@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
-#include "OnlineFriendsInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/CoreOnline.h"
+#include "Interfaces/OnlineFriendsInterface.h"
+
+class IOnlineSubsystem;
 
 #if WITH_DEV_AUTOMATION_TESTS
 /**
@@ -19,10 +22,13 @@
 	FOnDeleteFriendCompleteDelegate OnDeleteFriendCompleteDelegate;
 	/** Delegate to use for querying for recent players */
 	FOnQueryRecentPlayersCompleteDelegate OnQueryRecentPlayersCompleteDelegate;
+	/** Delegate to use for querying the blocked players list */
+	FOnQueryBlockedPlayersCompleteDelegate OnQueryBlockedPlayersCompleteDelegate;
 
 	/** Handles to the above delegates */
 	FDelegateHandle OnDeleteFriendCompleteDelegateHandle;
 	FDelegateHandle OnQueryRecentPlayersCompleteDelegateHandle;
+	FDelegateHandle OnQueryBlockedPlayersCompleteDelegateHandle;
 
 	/** Default name of friends list for running tests */
 	FString FriendsListName;
@@ -45,6 +51,8 @@
 	bool bDeleteFriendsList;
 	/** true to query for recent players */
 	bool bQueryRecentPlayers;
+	/** true to query the block list */
+	bool bQueryBlockedPlayers;
 
 	FString RecentPlayersNamespace;
 
@@ -125,6 +133,15 @@
 	 * @param ErrorStr string representing the error condition
      */
 	void OnDeleteFriendsListComplete(int32 LocalPlayer, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr);
+
+	/**
+	* Delegate used when the friends list delete request has completed
+	*
+	* @param UserId the UniqueNetId of the associated user that made the request
+	* @param bWasSuccessful true if the async action completed without error, false if there was an error
+	* @param ErrorStr string representing the error condition
+	*/
+	void OnQueryBlockedPlayersComplete(const FUniqueNetId& UserId, bool bWasSuccessful, const FString& Error);
 
  public:
 	/**

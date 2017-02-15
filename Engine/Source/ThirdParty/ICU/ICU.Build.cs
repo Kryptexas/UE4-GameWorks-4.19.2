@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 using System;
 using System.IO;
@@ -272,7 +272,7 @@ public class ICU : ModuleRules
 				PublicAdditionalLibraries.Add(LibraryName);
 			}
 		}
-		else if (Target.Platform == UnrealTargetPlatform.WolfPlat)
+		else if (Target.Platform == UnrealTargetPlatform.Switch)
 		{
 			string LibraryNamePrefix = "sicu";
 			string[] LibraryNameStems =
@@ -288,7 +288,7 @@ public class ICU : ModuleRules
 			string LibraryExtension = "a";
 			foreach (string Stem in LibraryNameStems)
 			{
-				string LibraryName = ICURootPath + "WolfPlat/lib/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
+				string LibraryName = ICURootPath + "Switch/lib/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
 				PublicAdditionalLibraries.Add(LibraryName);
 			}
 		}
@@ -331,7 +331,7 @@ public class ICU : ModuleRules
 			(Target.Platform == UnrealTargetPlatform.PS4) ||
             (Target.Platform == UnrealTargetPlatform.XboxOne) ||
             (Target.Platform == UnrealTargetPlatform.HTML5) ||
-            (Target.Platform == UnrealTargetPlatform.WolfPlat)
+            (Target.Platform == UnrealTargetPlatform.Switch)
 			)
 		{
 			// Definitions

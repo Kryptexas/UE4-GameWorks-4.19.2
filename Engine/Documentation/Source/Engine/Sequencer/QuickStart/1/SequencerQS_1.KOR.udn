@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3038380
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:1 - 필수 구성
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
@@ -9,7 +9,7 @@ Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
 checkpoint: sequencerqs
 parent:Engine/Sequencer/QuickStart
-type:sequential
+type:multi-step
 order:1
  
 [NAV]

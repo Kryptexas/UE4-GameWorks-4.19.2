@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Json.h"
+#include "CoreMinimal.h"
+#include "Serialization/JsonWriter.h"
+
+class FJsonObject;
 
 /**
  * Policy by which the localization data associated with a target should be loaded.

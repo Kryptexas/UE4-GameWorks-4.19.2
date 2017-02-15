@@ -3,7 +3,7 @@ Title: GPU Profiling
 Crumbs: %ROOT%, Engine
 Description:How to optimize the GPU demands of your game.
 Navigation:topic
-version: 4.9
+version: 4.14
 
 The GPU has many units working in parallel and it is common to be bound by different units for different parts of the frame.
 Because of this, it makes sense to look at finding where the GPU cost is going when looking for the bottleneck and what a GPU bottleneck is.
@@ -61,7 +61,7 @@ Often, the performance cost scales with the amount of pixels. To test that, you 
 Using **_r.ScreenPercentage_** is even more convenient but keep in mind there is some extra upsampling cost added once the feature gets used.
 
 If you see a measurable performance change, you are bound by something pixel related. Usually, it is either memory bandwidth (reading and writing) or math bound (ALU), but in rare cases, some specific 
-units are saturated (e.g. MRT export). If you can lower memory (or math) on the relevant passes and see a performance difference, you know it was bound by the memory bandwith (or the ALU units). 
+units are saturated (e.g. MRT export). If you can lower memory (or math) on the relevant passes and see a performance difference, you know it was bound by the memory bandwidth (or the ALU units). 
 The change does not have to look the same - this is just a test. Now you know you have to reduce the cost there to improve the performance.
 
 The shadow map resolution does not scale with the screen resolution (use **_r.Shadow.MaxResolution_**), but unless you have very large areas of shadow casting masked or translucent materials, 
@@ -82,20 +82,62 @@ You can adjust _r.EarlyZPass_ to see if your scene would benefit from a full ear
 If changing the resolution does not matter much, you are likely bound by vertex processing (vertex shader, or tessellation) cost.
 Often, you will have to change content to verify that. Typical causes include:
 
-* Too many vertices (Use Level of Detail meshes)
-* Complex WorldPositionOffset / Displacement material using textures with poor mip mapping (adjust the material)
+* Too many vertices. (Use Level of Detail meshes)
+* Complex World Position Offset / Displacement Material using Textures with poor MIP mapping. (adjust the Material)
 * Tessellation (Avoid if possible, adjust tessellation factor - fastest way: show Tessellation, some hardware scales badly with larger tessellation levels)
-* Many UV or normal seams result in more vertices (look at unwrapped UV - many island are bad, flat shaded meshes have a 3 vertices per triangle)
-* Too many vertex attributes (extra UV channels)
-* Verify the vertex count is reasonable, some importer code might not have welded the vertices (combine vertices that have same position, UV and normal)
+* Many UV or Normal seams result in more vertices. (look at unwrapped UV - many islands are bad, flat shaded meshes have 3 vertices per triangle)
+* Too many vertex attributes. (extra UV channels)
+* Verify the vertex count is reasonable, some importer code might not have welded the vertices. (combine vertices that have same position, UV and normal)
 
 
 Less often, you are bound by something else. That could be:
 * Object cost (more likely a CPU e.g. cost but there might be some GPU cost)
 * Triangle setup cost (very high poly meshes with a cheap vertex shader e.g. shadow map static meshes, rarely the issue)
-  * use level of detail (LOD) meshes
+* Use level of detail (LOD) meshes
 * View cost (e.g. HZB occlusion culling)
 * Scene cost (e.g. GPU particle simulation)
+
+
+## Live GPU Profiler
+
+The live GPU profiler provides real-time  per-frame stats for the major rendering categories. To use the live GPU profiler, press the **Backtick** key to open the console and then input **stat GPU** and press **Enter**. You can also bring the live GPU profiler up via the **Stat** submenu in the **Viewport Options** dropdown.
+
+![](GPU_Stats.png)
+
+The stats are cumulative and non-hierarchical, so you can see the major categories without having to dig down through a tree of events. For example, **Shadow Projection** is the sum of all the shadow projections for all lights across all the views. The on-screen GPU stats provide a simple visual breakdown of the GPU load when your title is running. They are also useful to measure the impact of changes instantaneously; for example when changing console variables, modifying materials in the editor or modifying and re-compiling shaders on the fly (with recompileshaders changed). The GPU stats can be recorded to a file when the title is running for analysis later. 
+
+As with existing stats, you can use the console commands **stat startfile** and **stat stopfile** to record the stats to a **ue4stats** file, and then visualize them by opening the file in the [Unreal Frontend tool](Engine/Deployment/UnrealFrontend/).
+
+![](Saved_Profile.png)
+
+[REGION:caption]
+Profiling the GPU with UnrealFrontend. Total, postprocessing and basepass times are shown.
+[/REGION]
+
+
+
+Stats are declared in code as float counters, e.g:
+
+    DECLARE_FLOAT_COUNTER_STAT(TEXT("Postprocessing"), Stat_GPU_Postprocessing, STATGROUP_GPU);
+
+
+Code blocks on the rendering thread can then be instrumented with SCOPED_GPU_STAT macros which reference those stat names. These work similarly to SCOPED_DRAW_EVENT. For example:
+
+    SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Postprocessing);
+
+
+GPU work that isn’t explicitly instrumented will be included in a catch-all [unaccounted] stat. If that gets too high, it indicates that some additional **SCOPED_GPU_STAT** events are needed to account for the missing work. It’s worth noting that unlike the draw events, GPU stats are cumulative. You can add multiple entries for the same stat, and these are aggregated across the frame. Certain CPU-bound cases the GPU timings can be affected by CPU bottlenecks (bubbles) where the GPU is waiting for the CPU to catch up, so please consider that if you see unexpected results in cases where draw thread time is high. On PlayStation 4 we correct those bubbles by excluding the time between command list submissions from the timings. In future releases, we will be extending that functionality to other modern rendering APIs.
+
+
+
+
+
+
+
+
+
+
+
 
 
 

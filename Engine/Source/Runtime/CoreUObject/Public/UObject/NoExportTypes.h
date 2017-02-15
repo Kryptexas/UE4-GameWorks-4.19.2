@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 
@@ -487,7 +487,7 @@ struct FIntPoint
  * An integer vector in 3D space.
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\IntVector.h
  */
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FIntVector
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=IntVector, SaveGame)
@@ -549,7 +549,7 @@ struct FLinearColor
  * A bounding box.
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\Box.h
  */
-USTRUCT(immutable, noexport, BlueprintType)
+USTRUCT(immutable, noexport, BlueprintType, meta=(HasNativeMake="Engine.KismetMathLibrary.MakeBox"))
 struct FBox
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Box, SaveGame)
@@ -567,7 +567,7 @@ struct FBox
  * A rectangular 2D Box.
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\Box2D.h
  */
-USTRUCT(immutable, noexport, BlueprintType)
+USTRUCT(immutable, noexport, BlueprintType, meta=(HasNativeMake="Engine.KismetMathLibrary.MakeBox2D"))
 struct FBox2D
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Box2D, SaveGame)

@@ -1,35 +1,38 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "MovieScene.h"
-#include "MovieSceneSection.h"
-#include "ISequencerSection.h"
-#include "PropertyEditorModule.h"
-#include "PropertyHandle.h"
-#include "MovieSceneTrack.h"
-#include "MovieSceneAudioTrack.h"
-#include "ScopedTransaction.h"
-#include "ISequencerObjectChangeListener.h"
-#include "ISectionLayoutBuilder.h"
-#include "IKeyArea.h"
-#include "MovieSceneTrackEditor.h"
-#include "AudioTrackEditor.h"
-#include "MovieSceneAudioSection.h"
-#include "CommonMovieSceneTools.h"
-#include "SoundDefinitions.h"
-#include "Sound/SoundNodeWavePlayer.h"
-#include "Runtime/Engine/Public/Slate/SlateTextures.h"
-#include "ObjectTools.h"
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
-#include "Runtime/Engine/Public/AudioDecompress.h"
+#include "TrackEditors/AudioTrackEditor.h"
+#include "Textures/SlateTextureData.h"
+#include "Rendering/RenderingCommon.h"
+#include "Rendering/DrawElements.h"
+#include "Widgets/SBoxPanel.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "RenderUtils.h"
+#include "Modules/ModuleManager.h"
+#include "Audio.h"
 #include "Sound/SoundBase.h"
 #include "Sound/SoundWave.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBox.h"
+#include "SequencerSectionPainter.h"
+#include "EditorStyleSet.h"
+#include "Editor/UnrealEdEngine.h"
 #include "Sound/SoundCue.h"
+#include "UnrealEdGlobals.h"
+#include "Tracks/MovieSceneAudioTrack.h"
+#include "Sections/MovieSceneAudioSection.h"
+#include "CommonMovieSceneTools.h"
+#include "AudioDevice.h"
+#include "Sound/SoundNodeWavePlayer.h"
+#include "Slate/SlateTextures.h"
+#include "AudioDecompress.h"
+#include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 #include "SequencerUtilities.h"
 #include "AssetRegistryModule.h"
 #include "MatineeImportTools.h"
 #include "Matinee/InterpTrackSound.h"
+#include "FloatCurveKeyArea.h"
+#include "ISectionLayoutBuilder.h"
 
 
 #define LOCTEXT_NAMESPACE "FAudioTrackEditor"
@@ -38,7 +41,7 @@
 namespace AnimatableAudioEditorConstants
 {
 	// @todo Sequencer Allow this to be customizable
-	const uint32 AudioTrackHeight = 50;
+	const uint32 WaveformHeight = 50;
 
 	// Optimization - maximum samples per pixel this sound allows
 	const uint32 MaxSamplesPerPixel = 60;
@@ -69,7 +72,7 @@ USoundWave* DeriveSoundWave(UMovieSceneAudioSection* AudioSection)
 		const TArray<USoundNode*>& AllNodes = SoundCue->AllNodes;
 		for (int32 Index = 0; Index < AllNodes.Num() && SoundWave == nullptr; ++Index)
 		{
-			if (AllNodes[Index]->IsA<USoundNodeWavePlayer>())
+			if (AllNodes[Index] && AllNodes[Index]->IsA<USoundNodeWavePlayer>())
 			{
 				SoundWave = Cast<USoundNodeWavePlayer>(AllNodes[Index])->GetSoundWave();
 			}
@@ -121,7 +124,7 @@ struct FSplineSegment
 
 
 /**
- * The audio thumnail, which holds a texture which it can pass back to a viewport to render
+ * The audio thumbnail, which holds a texture which it can pass back to a viewport to render
  */
 class FAudioThumbnail
 	: public ISlateViewport
@@ -230,7 +233,7 @@ FAudioThumbnail::~FAudioThumbnail()
 }
 
 
-FIntPoint FAudioThumbnail::GetSize() const {return FIntPoint(TextureSize, AnimatableAudioEditorConstants::AudioTrackHeight);}
+FIntPoint FAudioThumbnail::GetSize() const {return FIntPoint(TextureSize, AnimatableAudioEditorConstants::WaveformHeight);}
 FSlateShaderResource* FAudioThumbnail::GetViewportRenderTargetTexture() const {return Texture;}
 bool FAudioThumbnail::RequiresVsync() const {return false;}
 
@@ -324,8 +327,8 @@ void FAudioThumbnail::GenerateWaveformPreview(TArray<uint8>& OutData, TRange<flo
 
 	// @todo Sequencer This fixes looping drawing by pretending we are only dealing with a SoundWave
 	TRange<float> AudioTrueRange = TRange<float>(
-		AudioSection->GetAudioStartTime(),
-		AudioSection->GetAudioStartTime() + DeriveUnloopedDuration(AudioSection) * AudioSection->GetAudioDilationFactor());
+		AudioSection->GetStartTime() - AudioSection->GetStartOffset(),
+		AudioSection->GetStartTime() - AudioSection->GetStartOffset() + DeriveUnloopedDuration(AudioSection) * AudioSection->GetPitchMultiplierCurve().GetDefaultValue());
 	float TrueRangeSize = AudioTrueRange.Size<float>();
 
 	float DrawRangeSize = DrawRange.Size<float>();
@@ -626,7 +629,6 @@ FAudioSection::~FAudioSection()
 {
 }
 
-
 UMovieSceneSection* FAudioSection::GetSectionObject()
 { 
 	return &Section;
@@ -652,9 +654,19 @@ FText FAudioSection::GetSectionTitle() const
 
 float FAudioSection::GetSectionHeight() const
 {
-	return (float)AnimatableAudioEditorConstants::AudioTrackHeight;
+	return (float)AnimatableAudioEditorConstants::WaveformHeight;
 }
 
+void FAudioSection::GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const
+{
+	UMovieSceneAudioSection* AudioSection = Cast<UMovieSceneAudioSection>( &Section );
+
+	SoundVolumeArea = MakeShareable( new FFloatCurveKeyArea( &AudioSection->GetSoundVolumeCurve(), AudioSection ) ) ;
+	PitchMultiplierArea = MakeShareable( new FFloatCurveKeyArea( &AudioSection->GetPitchMultiplierCurve(), AudioSection ) );
+
+	LayoutBuilder.AddKeyArea( "Volume", NSLOCTEXT( "FAudioSection", "SoundVolumeArea", "Volume" ), SoundVolumeArea.ToSharedRef() );
+	LayoutBuilder.AddKeyArea( "Pitch Multiplier", NSLOCTEXT( "FAudioSection", "PitchMultiplierArea", "Pitch Multiplier" ), PitchMultiplierArea.ToSharedRef() );
+}
 
 int32 FAudioSection::OnPaintSection( FSequencerSectionPainter& Painter ) const
 {
@@ -666,7 +678,7 @@ int32 FAudioSection::OnPaintSection( FSequencerSectionPainter& Painter ) const
 		FSlateDrawElement::MakeViewport(
 			Painter.DrawElements,
 			++LayerId,
-			Painter.SectionGeometry.ToPaintGeometry(FVector2D(StoredXOffset, 0), FVector2D(StoredXSize, Painter.SectionGeometry.Size.Y)),
+			Painter.SectionGeometry.ToPaintGeometry(FVector2D(StoredXOffset, 0), FVector2D(StoredXSize, (float)AnimatableAudioEditorConstants::WaveformHeight + 8.f)),
 			WaveformThumbnail,
 			Painter.SectionClippingRect,
 			(Painter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect) | ESlateDrawEffect::NoGamma,
@@ -712,7 +724,8 @@ void FAudioSection::Tick( const FGeometry& AllottedGeometry, const FGeometry& Pa
 			!FMath::IsNearlyEqual(DrawRange.GetUpperBoundValue(), StoredDrawRange.GetUpperBoundValue()) ||
 			XOffset != StoredXOffset || XSize != StoredXSize || Track->GetColorTint() != StoredColor ||
 			StoredSoundWave != SoundWave ||
-			StoredShowIntensity != AudioSection->ShouldShowIntensity())
+			StoredShowIntensity != AudioSection->ShouldShowIntensity() ||
+			StoredStartOffset != AudioSection->GetStartOffset())
 		{
 			float DisplayScale = XSize / DrawRange.Size<float>();
 
@@ -738,13 +751,16 @@ void FAudioSection::Tick( const FGeometry& AllottedGeometry, const FGeometry& Pa
 
 void FAudioSection::RegenerateWaveforms(TRange<float> DrawRange, int32 XOffset, int32 XSize, const FColor& ColorTint, float DisplayScale)
 {
+	UMovieSceneAudioSection* AudioSection = Cast<UMovieSceneAudioSection>(&Section);
+
 	StoredDrawRange = DrawRange;
 	StoredXOffset = XOffset;
 	StoredXSize = XSize;
 	StoredColor = ColorTint;
-	StoredShowIntensity =  Cast<UMovieSceneAudioSection>(&Section)->ShouldShowIntensity();
+	StoredShowIntensity = AudioSection->ShouldShowIntensity();
+	StoredStartOffset = AudioSection->GetStartOffset();
 
-	if (DrawRange.IsDegenerate() || DrawRange.IsEmpty() || Cast<UMovieSceneAudioSection>(&Section)->GetSound() == NULL)
+	if (DrawRange.IsDegenerate() || DrawRange.IsEmpty() || AudioSection->GetSound() == NULL)
 	{
 		WaveformThumbnail.Reset();
 	}
@@ -825,6 +841,11 @@ const FSlateBrush* FAudioTrackEditor::GetIconBrush() const
 	return FEditorStyle::GetBrush("Sequencer.Tracks.Audio");
 }
 
+EMultipleRowMode FAudioTrackEditor::GetMultipleRowMode() const
+{
+	return EMultipleRowMode::MultipleTrack;
+}
+
 TSharedRef<ISequencerSection> FAudioTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
@@ -855,8 +876,11 @@ bool FAudioTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObje
 		
 		if (TargetObjectGuid.IsValid())
 		{
-			TArray<TWeakObjectPtr<UObject>> OutObjects;
-			GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneSequenceInstance(), TargetObjectGuid, OutObjects);
+			TArray<TWeakObjectPtr<>> OutObjects;
+			for (TWeakObjectPtr<> Object : GetSequencer()->FindObjectsInCurrentSequence(TargetObjectGuid))
+			{
+				OutObjects.Add(Object);
+			}
 
 			AnimatablePropertyChanged( FOnKeyProperty::CreateRaw(this, &FAudioTrackEditor::AddNewAttachedSound, Sound, OutObjects));
 		}
@@ -996,7 +1020,7 @@ void FAudioTrackEditor::OnAudioAssetSelected(const FAssetData& AssetData, UMovie
 			auto AudioTrack = Cast<UMovieSceneAudioTrack>(Track);
 			AudioTrack->Modify();
 
-			float KeyTime = GetSequencer()->GetGlobalTime();
+			float KeyTime = GetSequencer()->GetLocalTime();
 			AudioTrack->AddNewSound( NewSound, KeyTime );
 
 			GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );

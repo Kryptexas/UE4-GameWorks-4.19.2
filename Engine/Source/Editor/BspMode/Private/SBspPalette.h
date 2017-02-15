@@ -1,6 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "BspModeModule.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Misc/NotifyHook.h"
+
+class IDetailsView;
+class ITableRow;
+class STableViewBase;
+class UBrushBuilder;
+struct FSlateBrush;
+enum class ECheckBoxState : uint8;
 
 class SBspPalette : public SCompoundWidget, public FNotifyHook
 {

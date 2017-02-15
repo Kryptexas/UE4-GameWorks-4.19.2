@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "ModuleManager.h"
-#include "Runtime/Core/Public/Features/IModularFeatures.h"
-
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "Features/IModularFeature.h"
+#include "Features/IModularFeatures.h"
 
 /**
 * FSpatializationParams
@@ -45,6 +46,7 @@ struct FSpatializationParams
 		, LeftChannelPosition(FVector::ZeroVector)
 		, RightChannelPosition(FVector::ZeroVector)
 		, Distance(0.0f)
+		, NormalizedOmniRadius(0.0f)
 	{}
 };
 

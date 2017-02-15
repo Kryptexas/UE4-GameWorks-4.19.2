@@ -1,8 +1,15 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ITextFormatArgumentModifier.h"
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Internationalization/Text.h"
+#include "Internationalization/ITextFormatArgumentModifier.h"
+
+struct FPrivateTextFormatArguments;
+
+template<typename KeyType,typename ValueType,typename SetAllocator ,typename KeyFuncs > class TMap;
 
 /**
  * Plural form argument modifier.
@@ -59,7 +66,6 @@ private:
 /**
  * Hangul Post-Positions argument modifier.
  * Takes two value arguments, where the 0th entry is the consonant version and the 1st entry is the vowel version.
- *  eg) |hpp(과,와)
  */
 class FTextFormatArgumentModifier_HangulPostPositions : public ITextFormatArgumentModifier
 {

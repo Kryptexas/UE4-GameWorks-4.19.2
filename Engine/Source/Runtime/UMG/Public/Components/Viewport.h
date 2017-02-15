@@ -1,13 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "GameFramework/Actor.h"
+#include "ShowFlags.h"
+#include "Widgets/SWidget.h"
+#include "UnrealClient.h"
+#include "SceneTypes.h"
 #include "Camera/CameraTypes.h"
-#include "ContentWidget.h"
 #include "SceneManagement.h"
+#include "Components/ContentWidget.h"
 #include "Viewport.generated.h"
 
+class FCanvas;
 class FPreviewScene;
+class SAutoRefreshViewport;
 
 /**
 * Stores the transformation data for the viewport camera

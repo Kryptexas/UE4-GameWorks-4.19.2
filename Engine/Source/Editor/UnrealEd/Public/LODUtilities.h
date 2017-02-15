@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class USkeletalMesh;
+#include "CoreMinimal.h"
+#include "Engine/SkeletalMesh.h"
+#include "Framework/Commands/UIAction.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FSkeletalMeshUpdateContext

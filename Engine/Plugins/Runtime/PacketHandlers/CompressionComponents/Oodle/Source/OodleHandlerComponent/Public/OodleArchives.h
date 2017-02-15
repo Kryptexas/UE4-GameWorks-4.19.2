@@ -1,9 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveProxy.h"
+#include "Misc/CommandLine.h"
+
+/**
+ * Whether or not to enable Oodle dev code (packet capturing, dictionary training, and automatic dictionary finding) in shipping mode.
+ *
+ * This may be useful for multiplayer game mod authors, to optimize netcode compression for their mod (not officially supported).
+ * However, Oodle compression makes the games network protocol harder to reverse-engineer - enabling this removes that slight benefit.
+ */
+#ifndef OODLE_DEV_SHIPPING
+#define OODLE_DEV_SHIPPING	0
+#endif
+
+
 #if HAS_OODLE_SDK
-#include "ArchiveProxy.h"
 
 #define CAPTURE_HEADER_MAGIC		0x41091CC4
 #define CAPTURE_FILE_VERSION		0x00000002

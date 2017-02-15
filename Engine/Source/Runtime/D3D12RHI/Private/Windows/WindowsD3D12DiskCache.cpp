@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of D3D12 Disk caching functions to preserve state across runs
 
@@ -53,6 +53,7 @@ void FDiskCacheInterface::Init(FString &filename)
 		{
 			UE_LOG(LogD3D12RHI, Warning, TEXT("Disk cache is stale. Disk Cache version: %d App version: %d"), mHeader.mHeaderVersion, mCurrentHeaderVersion);
 			ClearDiskCache();
+			Init(filename);
 		}
 	}
 	else

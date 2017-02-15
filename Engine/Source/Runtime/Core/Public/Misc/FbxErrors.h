@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "TokenizedMessage.h"
+#include "CoreTypes.h"
+#include "UObject/NameTypes.h"
+#include "Templates/SharedPointer.h"
+#include "Logging/TokenizedMessage.h"
 
 
 /**
@@ -13,6 +16,8 @@ struct CORE_API FFbxErrors
 {
 	/** Generic */
 	static FName Generic_ImportingNewObjectFailed;
+
+	static FName Generic_ReimportingObjectFailed;
 
 	static FName Generic_LoadingSceneFailed;
 
@@ -27,6 +32,8 @@ struct CORE_API FFbxErrors
 	static FName Generic_FBXFileParseFailed;
 
 	static FName Generic_MeshNotFound;
+
+	static FName Generic_CannotDetectImportType;
 
 	/** Mesh Generic **/
 
@@ -71,6 +78,8 @@ struct CORE_API FFbxErrors
 	static FName SkeletalMesh_DuplicateBones;
 
 	static FName SkeletalMesh_NoInfluences;
+
+	static FName SkeletalMesh_TooManyInfluences;
 
 	static FName SkeletalMesh_RestoreSortingMismatchedStrips;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLResources.h: OpenGL resource RHI definitions.
@@ -6,9 +6,26 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/ContainerAllocationPolicies.h"
+#include "Containers/Array.h"
+#include "Math/UnrealMathUtility.h"
+#include "Logging/LogMacros.h"
+#include "Containers/BitArray.h"
+#include "Math/IntPoint.h"
+#include "Misc/CommandLine.h"
+#include "Templates/RefCounting.h"
+#include "Stats/Stats.h"
+#include "RHI.h"
 #include "BoundShaderStateCache.h"
+#include "RenderResource.h"
 #include "OpenGLShaderResources.h"
 #include "ShaderCache.h"
+
+class FOpenGLDynamicRHI;
+class FOpenGLLinkedProgram;
 
 extern void OnVertexBufferDeletion( GLuint VertexBufferResource );
 extern void OnIndexBufferDeletion( GLuint IndexBufferResource );
@@ -29,6 +46,7 @@ namespace OpenGLConsoleVariables
 	extern int32 MaxSubDataSize;
 	extern int32 bUseStagingBuffer;
 	extern int32 bBindlessTexture;
+	extern int32 bUseBufferDiscard;
 };
 
 #if PLATFORM_WINDOWS || PLATFORM_ANDROIDESDEFERRED
@@ -207,7 +225,7 @@ public:
 		uint32 DiscardSize = (bDiscard && !bUseMapBuffer && InSize == RealSize && !RESTRICT_SUBDATA_SIZE) ? 0 : RealSize;
 		
 		// Don't call BufferData if Bindless is on, as bindless texture buffers make buffers immutable
-		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture )
+		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture && OpenGLConsoleVariables::bUseBufferDiscard)
 		{
 			if (BaseType::GLSupportsType())
 			{
@@ -267,7 +285,7 @@ public:
 		uint32 DiscardSize = (bDiscard && !bUseMapBuffer && InSize == RealSize && !RESTRICT_SUBDATA_SIZE) ? 0 : RealSize;
 		
 		// Don't call BufferData if Bindless is on, as bindless texture buffers make buffers immutable
-		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture )
+		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture && OpenGLConsoleVariables::bUseBufferDiscard)
 		{
 			if (BaseType::GLSupportsType())
 			{
@@ -848,6 +866,7 @@ public:
 		uint32 InSizeZ,
 		uint32 InNumMips,
 		uint32 InNumSamples,
+		uint32 InNumSamplesTileMem, /* For render targets on Android tiled GPUs, the number of samples to use internally */
 		uint32 InArraySize,
 		EPixelFormat InFormat,
 		bool bInCubemap,
@@ -856,7 +875,7 @@ public:
 		uint8* InTextureRange,
 		const FClearValueBinding& InClearValue
 		)
-	: BaseType(InSizeX,InSizeY,InSizeZ,InNumMips,InNumSamples, InArraySize, InFormat,InFlags, InClearValue)
+	: BaseType(InSizeX,InSizeY,InSizeZ,InNumMips,InNumSamples, InNumSamplesTileMem, InArraySize, InFormat,InFlags, InClearValue)
 	, FOpenGLTextureBase(
 		InOpenGLRHI,
 		InResource,
@@ -1064,35 +1083,40 @@ private:
 class OPENGLDRV_API FOpenGLBaseTexture2D : public FRHITexture2D
 {
 public:
-	FOpenGLBaseTexture2D(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples, uint32 InArraySize, EPixelFormat InFormat, uint32 InFlags, const FClearValueBinding& InClearValue)
+	FOpenGLBaseTexture2D(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, uint32 InArraySize, EPixelFormat InFormat, uint32 InFlags, const FClearValueBinding& InClearValue)
 	: FRHITexture2D(InSizeX,InSizeY,InNumMips,InNumSamples,InFormat,InFlags, InClearValue)
 	, SampleCount(InNumSamples)
+	, SampleCountTileMem(InNumSamplesTileMem)
 	{}
 	uint32 GetSizeZ() const { return 0; }
 	uint32 GetNumSamples() const { return SampleCount; }
+	uint32 GetNumSamplesTileMem() const { return SampleCountTileMem; }
 private:
 	uint32 SampleCount;
+	/* For render targets on Android tiled GPUs, the number of samples to use internally */
+	uint32 SampleCountTileMem; 
 };
 
 class FOpenGLBaseTexture2DArray : public FRHITexture2DArray
 {
 public:
-	FOpenGLBaseTexture2DArray(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples, uint32 InArraySize, EPixelFormat InFormat, uint32 InFlags, const FClearValueBinding& InClearValue)
+	FOpenGLBaseTexture2DArray(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, uint32 InArraySize, EPixelFormat InFormat, uint32 InFlags, const FClearValueBinding& InClearValue)
 	: FRHITexture2DArray(InSizeX,InSizeY,InSizeZ,InNumMips,InFormat,InFlags, InClearValue)
 	{
 		check(InNumSamples == 1);	// OpenGL supports multisampled texture arrays, but they're currently not implemented in OpenGLDrv.
+		check(InNumSamplesTileMem == 1);
 	}
 };
 
 class FOpenGLBaseTextureCube : public FRHITextureCube
 {
 public:
-	FOpenGLBaseTextureCube(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples, uint32 InArraySize, EPixelFormat InFormat, uint32 InFlags, const FClearValueBinding& InClearValue)
+	FOpenGLBaseTextureCube(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, uint32 InArraySize, EPixelFormat InFormat, uint32 InFlags, const FClearValueBinding& InClearValue)
 	: FRHITextureCube(InSizeX,InNumMips,InFormat,InFlags,InClearValue)
 	, ArraySize(InArraySize)
 	{
 		check(InNumSamples == 1);	// OpenGL doesn't currently support multisampled cube textures
-	
+		check(InNumSamplesTileMem == 1);
 	}
 	uint32 GetSizeX() const { return GetSize(); }
 	uint32 GetSizeY() const { return GetSize(); } //-V524
@@ -1106,10 +1130,11 @@ private:
 class FOpenGLBaseTexture3D : public FRHITexture3D
 {
 public:
-	FOpenGLBaseTexture3D(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples, uint32 InArraySize, EPixelFormat InFormat, uint32 InFlags, const FClearValueBinding& InClearValue)
+	FOpenGLBaseTexture3D(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, uint32 InArraySize, EPixelFormat InFormat, uint32 InFlags, const FClearValueBinding& InClearValue)
 	: FRHITexture3D(InSizeX,InSizeY,InSizeZ,InNumMips,InFormat,InFlags,InClearValue)
 	{
 		check(InNumSamples == 1);	// Can't have multisampled texture 3D. Not supported anywhere.
+		check(InNumSamplesTileMem == 1);
 	}
 };
 

@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __SourceCodeNavigation_h__
 #define __SourceCodeNavigation_h__
 
 #pragma once
-#include "IHttpRequest.h"
+
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+
+class AActor;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSelectionDetails, Log, All);
 

@@ -1,5 +1,5 @@
 Availability:Public
-Title: Material Editor - Using a Subsurface Profile in your Materials 
+Title: Using a Subsurface Profile in your Materials 
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description: Setting up Materials to use Subsurface Profiles as they offer a better way to render skin and wax like surfaces.
 Related: Engine/Rendering/Materials/LightingModels/SubSurfaceProfile
@@ -23,9 +23,11 @@ Enabling your Material to use a Subsurface Profile can be done in the following 
 1. First create a new Material by **Right-Clicking** in the **Content Browser** and then selecting Material from the **Create Basic Asset** list. 
 Once created, make sure that you name the Material. For this example, the Material will be named **MAT_Subsurface_Profile_00**. 
 When completed, your **Content Browser** should look like this. 
+	
 	![](SSP_Create_New_Material.png)
 
 1. Next, open up the Material by **Double-Clicking** on it in the **Content Browser** with the **Left Mouse Button**.
+	
 	[REGION:lightbox]
 	![](SSP_Open_New_Material.png)
 	[/REGION]
@@ -44,6 +46,7 @@ When completed, your **Content Browser** should look like this.
 	[/OBJECT]
 
 1. At this time, you can assign a **Subsurface Profile** by inputting one into the **Subsurface Profile** section in the **Details** panel.
+	
 	![](SSP_Apply_SSP.png)
 
 1. Now the Material is ready to be used with a Subsurface Profile. 
@@ -89,6 +92,7 @@ In the following steps, we will be creating a Material and a Material Instance t
 | **Subsurface_Amount**| 0.5|
 
 	When everything has been filled in, your shader graph should look something like this. 
+	
 	![](SSP_Named_Value_Nodes.png)
 
 1. With the Material Expression nodes now setup, it is time to connect all of them to the main Material node. 
@@ -210,6 +214,7 @@ When completed, your **Content Browser** should look something like this.
 	Once you have located the mesh, Drag and Drop it from the **Content Browser** into the level. 
 	Once it is in the level, set its location to **0,0,0** in the world. 
 	When completed, your level viewport should look like this. 
+	
 	![](Engine\Rendering\Materials\HowTo\Subsurface_Scattering\SSM_Adding_Meshes.png)
 
 1. Now that the Static Mesh has been placed in the level, we can now apply our Subsurface Material to it. 

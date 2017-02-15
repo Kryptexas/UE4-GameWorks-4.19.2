@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSPlatformMisc.mm: iOS implementations of misc functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "IOSPlatformMisc.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
 #include "IOSApplication.h"
@@ -12,6 +12,8 @@
 #include "IOSView.h"
 #include "IOSChunkInstaller.h"
 #include "IOSInputInterface.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ConfigCacheIni.h"
 
 #include "Apple/ApplePlatformCrashContext.h"
 
@@ -349,6 +351,21 @@ bool FIOSPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
 	return true;
 }
 
+int FIOSPlatformMisc::GetAudioVolume()
+{
+	return [[IOSAppDelegate GetDelegate] GetAudioVolume];
+}
+
+bool FIOSPlatformMisc::AreHeadphonesPluggedIn()
+{
+	return [[IOSAppDelegate GetDelegate] AreHeadphonesPluggedIn];
+}
+
+int FIOSPlatformMisc::GetBatteryLevel()
+{
+	return [[IOSAppDelegate GetDelegate] GetBatteryLevel];
+}
+
 int32 FIOSPlatformMisc::NumberOfCores()
 {
 	// cache the number of cores
@@ -560,19 +577,30 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 				DeviceType = IOS_IPhoneSE;
 			}
 		}
-		else if (Major >= 9)
+		else if (Major == 9)
 		{
-			// for going forward into unknown devices (like 7/7+?), we can't use Minor,
-			// so treat devices with a scale > 2.5 to be 6SPlus type devices, < 2.5 to be 6S type devices
-			if ([UIScreen mainScreen].scale > 2.5f)
-			{
-				DeviceType = IOS_IPhone6SPlus;
-			}
-			else
-			{
-				DeviceType = IOS_IPhone6S;
-			}
+            if (Minor == 1 || Minor == 3)
+            {
+                DeviceType = IOS_IPhone7;
+            }
+            else if (Minor == 2 || Minor == 4)
+            {
+                DeviceType = IOS_IPhone7Plus;
+            }
 		}
+        else if (Major >= 10)
+        {
+            // for going forward into unknown devices (like 8/8+?), we can't use Minor,
+            // so treat devices with a scale > 2.5 to be 6SPlus type devices, < 2.5 to be 6S type devices
+            if ([UIScreen mainScreen].scale > 2.5f)
+            {
+                DeviceType = IOS_IPhone7Plus;
+            }
+            else
+            {
+                DeviceType = IOS_IPhone7;
+            }
+        }
 	}
 	// tvOS
 	else if ([DeviceIDString hasPrefix:@"AppleTV"])
@@ -666,7 +694,26 @@ FString FIOSPlatformMisc::GetUniqueDeviceId()
 			return IDFV;
 		}
 	}
+
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return FPlatformMisc::GetHashedMacAddressString();
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+FString FIOSPlatformMisc::GetDeviceId()
+{
+	// Check to see if this OS has this function
+	if ([[UIDevice currentDevice] respondsToSelector:@selector(identifierForVendor)])
+	{
+	    NSUUID* Id = [[UIDevice currentDevice] identifierForVendor];
+	    if (Id != nil)
+	    {
+		    NSString* IdfvString = [Id UUIDString];
+		    FString IDFV(IdfvString);
+		    return IDFV;
+	    }
+	}
+	return FString();
 }
 
 class IPlatformChunkInstall* FIOSPlatformMisc::GetPlatformChunkInstall()
@@ -883,7 +930,7 @@ FString FIOSPlatformMisc::GetLocalCurrencySymbol()
 
 void FIOSPlatformMisc::RegisterForRemoteNotifications()
 {
-#if !PLATFORM_TVOS
+#if !PLATFORM_TVOS && NOTIFICATIONS_ENABLED
 	UIApplication* application = [UIApplication sharedApplication];
 	if ([application respondsToSelector : @selector(registerUserNotificationSettings:)])
 	{

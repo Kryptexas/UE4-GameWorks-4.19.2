@@ -1,13 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocProfiler.h: Memory profiling support.
 =============================================================================*/
 #pragma once
 
-#include "UMemoryDefines.h"
-#include "CompressedGrowableBuffer.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/MemoryBase.h"
+#include "Serialization/Archive.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "UObject/NameTypes.h"
+#include "Misc/CompressedGrowableBuffer.h"
 
+class FScopeLock;
 
 #if USE_MALLOC_PROFILER
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // Disable the warning that the pack size is changed in this header.
 #pragma warning(disable:4103)
@@ -14,3 +14,6 @@
 #ifndef _WINNT_
 #undef TEXT
 #endif
+
+// Disable all normal third party headers
+THIRD_PARTY_INCLUDES_START

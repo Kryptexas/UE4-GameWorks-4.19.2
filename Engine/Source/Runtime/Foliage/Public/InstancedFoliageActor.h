@@ -1,24 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
 #include "GameFramework/Actor.h"
-#include "Templates/UniqueObj.h"
-#include "Components/InstancedStaticMeshComponent.h"
+#include "FoliageType_InstancedStaticMesh.h"
 #include "FoliageInstanceBase.h"
 
 #include "InstancedFoliageActor.generated.h"
 
-// Forward declarations
-class UFoliageType;
+class UProceduralFoliageComponent;
+struct FDesiredFoliageInstance;
+struct FFoliageInstance;
 struct FFoliageInstancePlacementInfo;
 struct FFoliageMeshInfo;
-class UFoliageType_InstancedStaticMesh;
-class UProceduralFoliageComponent;
-struct FFoliageInstance;
-struct FHitResult;
-struct FDesiredFoliageInstance;
 
 // Function for filtering out hit components during FoliageTrace
 typedef TFunction<bool(const UPrimitiveComponent*)> FFoliageTraceFilterFunc;

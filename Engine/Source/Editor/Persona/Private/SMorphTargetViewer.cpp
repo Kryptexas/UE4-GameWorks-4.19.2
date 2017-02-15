@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
 #include "SMorphTargetViewer.h"
-#include "ObjectTools.h"
-#include "AssetRegistryModule.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Framework/Commands/UIAction.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Animation/DebugSkelMeshComponent.h"
 #include "ScopedTransaction.h"
-#include "SSearchBox.h"
+#include "Widgets/Input/SSearchBox.h"
 #include "Animation/MorphTarget.h"
 #include "Animation/AnimInstance.h"
 
@@ -188,6 +191,11 @@ void SMorphTargetListRow::OnMorphTargetAutoFillChecked(ECheckBoxState InState)
 		// clear value so that it can be filled up
 		MorphTargetViewer->AddMorphTargetOverride(Item->Name, 0.f, true);
 	}
+	else
+	{
+		// Setting value, add the override
+		MorphTargetViewer->AddMorphTargetOverride(Item->Name, Item->Weight, false);
+	}
 }
 
 ECheckBoxState SMorphTargetListRow::IsMorphTargetAutoFillChangedChecked() const
@@ -261,6 +269,8 @@ float SMorphTargetListRow::GetWeight() const
 { 
 	if (Item->bAutoFillData)
 	{
+		float CurrentWeight = 0.f;
+
 		USkeletalMeshComponent* SkelComp = PreviewScenePtr.Pin()->GetPreviewMeshComponent();
 		UAnimInstance* AnimInstance = (SkelComp) ? SkelComp->GetAnimInstance() : nullptr;
 		if (AnimInstance)
@@ -268,15 +278,18 @@ float SMorphTargetListRow::GetWeight() const
 			// make sure if they have value that's not same as saved value
 			TMap<FName, float> MorphCurves;
 			AnimInstance->GetAnimationCurveList(EAnimCurveType::MorphTargetCurve, MorphCurves);
-			const float* CurrentValue = MorphCurves.Find(Item->Name);
-			if (CurrentValue && *CurrentValue != 0.f)
+			const float* CurrentWeightPtr = MorphCurves.Find(Item->Name);
+			if (CurrentWeightPtr)
 			{
-				return *CurrentValue;
+				CurrentWeight = *CurrentWeightPtr;
 			}
 		}
+		return CurrentWeight;
 	}
-
-	return Item->Weight; 
+	else
+	{
+		return Item->Weight;
+	}
 }
 //////////////////////////////////////////////////////////////////////////
 // SMorphTargetViewer
@@ -348,7 +361,7 @@ void SMorphTargetViewer::Construct(const FArguments& InArgs, const TSharedRef<IP
 	CreateMorphTargetList();
 }
 
-void SMorphTargetViewer::OnPreviewMeshChanged(class USkeletalMesh* NewPreviewMesh)
+void SMorphTargetViewer::OnPreviewMeshChanged(class USkeletalMesh* OldPreviewMesh, class USkeletalMesh* NewPreviewMesh)
 {
 	SkeletalMesh = NewPreviewMesh;
 	CreateMorphTargetList( NameFilterBox->GetText().ToString() );

@@ -1,14 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HlslUtils.cpp - Utils for HLSL.
 =============================================================================*/
 
-#include "ShaderCompilerCommonPrivatePCH.h"
-#include "ShaderCompilerCommon.h"
 #include "HlslUtils.h"
+#include "Misc/ScopeLock.h"
 #include "HlslAST.h"
 #include "HlslParser.h"
+#include "ShaderCompilerCommon.h"
 
 static bool bLeaveAllUsed = false;
 

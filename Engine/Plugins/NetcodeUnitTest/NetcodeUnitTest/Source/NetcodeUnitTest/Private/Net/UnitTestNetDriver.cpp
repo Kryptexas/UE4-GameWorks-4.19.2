@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "NetcodeUnitTestPCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Net/UnitTestNetDriver.h"
+#include "Engine/Channel.h"
+
 #include "Net/UnitTestNetConnection.h"
 #include "Net/UnitTestChannel.h"
 

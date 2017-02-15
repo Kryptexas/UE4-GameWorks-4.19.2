@@ -1,20 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Character.cpp: ACharacter implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/DamageType.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/ArrowComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Components/PrimitiveComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "DisplayDebugHelpers.h"
+#include "Engine/Canvas.h"
 #include "Animation/AnimInstance.h"
-#include "Animation/AnimMontage.h"
-#include "Components/CapsuleComponent.h"
-#include "GameFramework/DamageType.h"
-#include "Engine/SkeletalMeshSocket.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacter, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogAvatar, Log, All);
@@ -796,7 +797,7 @@ void ACharacter::PossessedBy(AController* NewController)
 	// If we are controlled remotely, set animation timing to be driven by client's network updates. So timing and events remain in sync.
 	if (Mesh && (GetRemoteRole() == ROLE_AutonomousProxy && GetNetConnection() != nullptr))
 	{
-		Mesh->bAutonomousTickPose = true;
+		Mesh->bOnlyAllowAutonomousTickPose = true;
 	}
 }
 
@@ -813,7 +814,7 @@ void ACharacter::UnPossessed()
 	// We're no longer controlled remotely, resume regular ticking of animations.
 	if (Mesh)
 	{
-		Mesh->bAutonomousTickPose = false;
+		Mesh->bOnlyAllowAutonomousTickPose = false;
 	}
 }
 
@@ -831,7 +832,7 @@ void ACharacter::TornOff()
 	// We're no longer controlled remotely, resume regular ticking of animations.
 	if (Mesh)
 	{
-		Mesh->bAutonomousTickPose = false;
+		Mesh->bOnlyAllowAutonomousTickPose = false;
 	}
 }
 
@@ -1435,8 +1436,6 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 
 		ChangedPropertyTracker.SetExternalData( Writer.GetData(), Writer.GetNumBits() );
 	}
-
-	bReplayHasRootMotionSources = CharacterMovement ? CharacterMovement->HasRootMotionSources() : false;
 }
 
 void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
@@ -1449,7 +1448,6 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedMovementMode,			COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, bIsCrouched,						COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, AnimRootMotionTranslationScale,	COND_SimulatedOnly );
-	DOREPLIFETIME_CONDITION( ACharacter, bReplayHasRootMotionSources,		COND_ReplayOnly );
 
 	// Change the condition of the replicated movement property to not replicate in replays since we handle this specifically via saving this out in external replay data
 	DOREPLIFETIME_CHANGE_CONDITION( AActor, ReplicatedMovement,				COND_SimulatedOrPhysicsNoReplay );

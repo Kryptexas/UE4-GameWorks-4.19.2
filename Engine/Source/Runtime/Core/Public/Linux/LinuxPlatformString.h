@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	LinuxPlatformString.h: Linux platform string classes, mostly implemented with ANSI C++
 ==============================================================================================*/
 
 #pragma once
+
+#include "CoreTypes.h"
 #include "GenericPlatform/StandardPlatformString.h"
-#include "Linux/LinuxSystemIncludes.h"
 /**
 * Linux string implementation
 **/

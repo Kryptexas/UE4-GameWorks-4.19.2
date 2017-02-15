@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "DirectoryWatcherModule.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "IContentSource.h"
+#include "IContentSourceProvider.h"
+#include "IDirectoryWatcher.h"
 
 /** A content source provider for available content upacks. */
 class FFeaturePackContentSourceProvider : public IContentSourceProvider

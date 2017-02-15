@@ -1,7 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Animation/CurveHandle.h"
+#include "Animation/CurveSequence.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "OutputLogModule.h"
+
+class SEditableTextBox;
 
 /**
  * Debug console widget, designed to be summoned on top of a viewport or window

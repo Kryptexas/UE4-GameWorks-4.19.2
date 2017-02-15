@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleSimulationShader.usf: Shaders for simulating particles on the GPU.
@@ -270,6 +270,42 @@ float3 WorldPositionFromSceneDepth(float2 ScreenPosition, float SceneDepth)
 	return HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 }
 
+float3 ComputeCollidingVelocity(
+	in float3 MidVelocity,
+	in float3 CollisionNormal,
+	in float RelativeTime,
+	in float Resilience)
+{
+	float3 PerpVelocity = dot(MidVelocity, CollisionNormal) * CollisionNormal;
+	float3 TanVelocity = MidVelocity - PerpVelocity;
+	float3 Reflection = Simulation.OneMinusFriction * TanVelocity - Resilience * PerpVelocity;
+
+	if (Simulation.CollisionRandomSpread == 0)
+	{
+		return Reflection;
+	}
+
+	float Rand0 = frac(RelativeTime * 131) * 2 * 3.1415;
+	float Rand1 = frac(RelativeTime * 937);
+	
+	float3 ReflectionLength = length(Reflection);
+	Reflection *= 1.0 / ReflectionLength;
+
+	// Spread particules uniformely through the reflection cone for View.GeneralPurposeTweak < 1.
+	float RoN = dot(Reflection, CollisionNormal);
+	float ZDistributionRange = 1 - Simulation.CollisionRandomSpread * pow(Rand1, Simulation.CollisionRandomDistribution) * (1 - sqrt(1 - RoN * RoN));
+	float TangentDistributionRange = sqrt(1 - ZDistributionRange * ZDistributionRange);
+	
+	float3 UpVector = abs(Reflection.z) < 0.999 ? float3(0,0,1) : float3(1,0,0);
+	float3 ReflectionTangentX = normalize( cross( UpVector, Reflection ) );
+	float3 ReflectionTangentY = cross( Reflection, ReflectionTangentX );
+
+	return ReflectionLength * (
+		ReflectionTangentX * (cos(Rand0) * TangentDistributionRange) +
+		ReflectionTangentY * (sin(Rand0) * TangentDistributionRange) +
+		Reflection * ZDistributionRange);
+}
+
 /**
  * Compute collision with the depth buffer.
  */
@@ -348,12 +384,7 @@ void CollideWithDepthBuffer(
 
 			if (d_back >= 0.0f && d_front <= 0.0f && VelocityDot<0.0f)
 			{
-				// Separate velocity in to the components perpendicular and tangent to the collision plane.
-				float3 PerpVelocity = dot(MidVelocity,CollisionPlane.xyz) * CollisionPlane.xyz;
-				float3 TanVelocity = MidVelocity - PerpVelocity;
-
-				// Compute the new velocity accounting for resilience and friction.
-				NewVelocity = Simulation.OneMinusFriction * TanVelocity - Resilience * PerpVelocity;
+				NewVelocity = ComputeCollidingVelocity(MidVelocity, CollisionPlane.xyz, RelativeTime, Resilience);
 
 				// If the particle lies approximately on the collision plane, don't jump to the point of collision.
 				d_back *= step(VelocityDot,-1);
@@ -382,12 +413,7 @@ void CollideWithDepthBuffer(
 
 			if (step(0, t_back) * step(t_front, 1) * step(0, DistanceToPlane))
 			{
-				// Separate velocity in to the components perpendicular and tangent to the collision plane.
-				float3 PerpVelocity = dot(MidVelocity,CollisionPlane.xyz) * CollisionPlane.xyz;
-				float3 TanVelocity = MidVelocity - PerpVelocity;
-
-				// Compute the new velocity accounting for resilience and friction.
-				NewVelocity = Simulation.OneMinusFriction * TanVelocity - Resilience * PerpVelocity;
+				NewVelocity = ComputeCollidingVelocity(MidVelocity, CollisionPlane.xyz, RelativeTime, Resilience);
 
 				// If the particle lies approximately on the collision plane, don't jump to the point of collision.
 				t_front *= step(VelocityDot,-1);

@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CrashDebugHelperPrivatePCH.h"
-#include "GenericPlatform/GenericPlatformCrashContext.h"
 #include "WindowsPlatformStackWalkExt.h"
+#include "CrashDebugHelperPrivate.h"
+#include "GenericPlatform/GenericPlatformStackWalk.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
 #include "CrashDebugPDBCache.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "Misc/MemStack.h"
+#include "Misc/Paths.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/FileManager.h"
 
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #include "dbgeng.h"
 #include <DbgHelp.h>
@@ -74,7 +82,7 @@ void FWindowsPlatformStackWalkExt::InitSymbols()
 	// This option allows for undecorated names to be handled by the symbol engine.
 	SymOpts |= SYMOPT_UNDNAME;
 
-#if	_DEBUG
+#ifdef	_DEBUG
 	// Disable by default as it can be very spammy/slow.  Turn it on if you are debugging symbol look-up!
 	SymOpts |= SYMOPT_DEBUG;
 #endif // _DEBUG

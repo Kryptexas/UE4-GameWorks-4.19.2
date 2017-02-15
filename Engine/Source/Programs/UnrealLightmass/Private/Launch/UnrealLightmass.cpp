@@ -1,18 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // UnrealLightmass.cpp : Defines the entry point for the console application.
 //
 
-#include "LightmassPCH.h"
+#include "UnrealLightmass.h"
 #include "CPUSolver.h"
 #include "UnitTest.h"
 #include "LightmassSwarm.h"
 #include "Runtime/Core/Public/HAL/ExceptionHandling.h"
 #include "RequiredProgramMainCPPInclude.h"
 #include "LMDebug.h"
+#include "LMHelpers.h"
+#include "ImportExport.h"
 
 #if USE_LOCAL_SWARM_INTERFACE
-#include "Messaging.h"
+#include "IMessagingModule.h"
 #endif
 
 #if PLATFORM_WINDOWS

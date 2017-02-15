@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
+#include "DisplayNodes/SequencerSectionKeyAreaNode.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBox.h"
+#include "SSequencer.h"
 #include "IKeyArea.h"
-#include "Sequencer.h"
 #include "SKeyNavigationButtons.h"
 
 /* FSectionKeyAreaNode interface
@@ -43,6 +46,7 @@ TSharedRef<SWidget> FSequencerSectionKeyAreaNode::GetCustomOutlinerContent()
 				.VAlign(VAlign_Center)
 				[
 					SNew(SBox)
+					.IsEnabled(!GetSequencer().IsReadOnly())
 					.WidthOverride(100)
 					.HAlign(HAlign_Left)
 					[

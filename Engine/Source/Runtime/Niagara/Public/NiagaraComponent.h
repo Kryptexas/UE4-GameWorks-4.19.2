@@ -1,13 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "NiagaraCommon.h"
+#include "PrimitiveViewRelevance.h"
+#include "PrimitiveSceneProxy.h"
+#include "Components/PrimitiveComponent.h"
 
 #include "NiagaraComponent.generated.h"
 
-class UNiagaraEffect;
+class FMeshElementCollector;
 class FNiagaraEffectInstance;
+class NiagaraEffectRenderer;
+class UNiagaraEffect;
 
 /**
 * UNiagaraComponent is the primitive component for a Niagara effect.

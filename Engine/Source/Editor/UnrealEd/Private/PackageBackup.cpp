@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PackageBackup.cpp: Utility class for backing up a package.
 =============================================================================*/
 
-#include "UnrealEd.h"
 #include "PackageBackup.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
 
 /**
  * Helper struct to hold information on backup files to prevent redundant checks

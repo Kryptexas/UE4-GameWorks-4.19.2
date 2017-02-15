@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +12,7 @@ using Ionic.Zlib;
 using System.Security.Principal; 
 using System.Threading;
 using System.Diagnostics;
-using Manzana;
+//using Manzana;
 
 static class IOSEnvVarNames
 {
@@ -24,14 +24,14 @@ class IOSClientProcess : IProcessResult
 {
 	private IProcessResult	childProcess;
 	private Thread			consoleLogWorker;
-	private bool			processConsoleLogs;
+	//private bool			processConsoleLogs;
 	
 	public IOSClientProcess(IProcessResult inChildProcess, string inDeviceID)
 	{
 		childProcess = inChildProcess;
 		
 		// Startup another thread that collect device console logs
-		processConsoleLogs = true;
+		//processConsoleLogs = true;
 		consoleLogWorker = new Thread(() => ProcessConsoleOutput(inDeviceID));
 		consoleLogWorker.Start();
 	}
@@ -111,37 +111,37 @@ class IOSClientProcess : IProcessResult
 	
 	private void StopConsoleOutput()
 	{
-		processConsoleLogs = false;
+		//processConsoleLogs = false;
 		consoleLogWorker.Join();
 	}
 	
 	public void ProcessConsoleOutput(string inDeviceID)
 	{		
-		MobileDeviceInstance	targetDevice = null;
-		foreach(MobileDeviceInstance curDevice in MobileDeviceInstanceManager.GetSnapshotInstanceList())
-		{
-			if(curDevice.DeviceId == inDeviceID)
-			{
-				targetDevice = curDevice;
-				break;
-			}
-		}
-		
-		if(targetDevice == null)
-		{
-			return;
-		}
-		
-		targetDevice.StartSyslogService();
-		
-		while(processConsoleLogs)
-		{
-			string logData = targetDevice.GetSyslogData();
-			
-			Console.WriteLine("DeviceLog: " + logData);
-		}
-		
-		targetDevice.StopSyslogService();
+// 		MobileDeviceInstance	targetDevice = null;
+// 		foreach(MobileDeviceInstance curDevice in MobileDeviceInstanceManager.GetSnapshotInstanceList())
+// 		{
+// 			if(curDevice.DeviceId == inDeviceID)
+// 			{
+// 				targetDevice = curDevice;
+// 				break;
+// 			}
+// 		}
+// 		
+// 		if(targetDevice == null)
+// 		{
+// 			return;
+// 		}
+// 		
+// 		targetDevice.StartSyslogService();
+// 		
+// 		while(processConsoleLogs)
+// 		{
+// 			string logData = targetDevice.GetSyslogData();
+// 			
+// 			Console.WriteLine("DeviceLog: " + logData);
+// 		}
+// 		
+// 		targetDevice.StopSyslogService();
 	}
 
 };
@@ -227,7 +227,7 @@ public class IOSPlatform : Platform
     public virtual UnrealBuildTool.UEDeployIOS GetDeployHandler(FileReference InProject, UnrealBuildTool.IOSPlatformContext inPlatformContext)
     {
         Console.WriteLine("Getting IOS Deploy()");
-        return new UnrealBuildTool.UEDeployIOS(InProject, inPlatformContext);
+        return new UnrealBuildTool.UEDeployIOS();
     }
 
     public virtual UnrealBuildTool.IOSPlatformContext CreatePlatformContext(FileReference InProject, bool Distribution)
@@ -320,7 +320,7 @@ public class IOSPlatform : Platform
             // copy in all of the artwork and plist
             var DeployHandler = GetDeployHandler(Params.RawProjectPath, BuildPlatContext);
 
-            DeployHandler.PrepForUATPackageOrDeploy(Params.RawProjectPath,
+            DeployHandler.PrepForUATPackageOrDeploy(TargetConfiguration, Params.RawProjectPath,
 				Params.ShortProjectName,
 				Path.GetDirectoryName(Params.RawProjectPath.FullName),
 				CombinePaths(Path.GetDirectoryName(Params.ProjectGameExeFilename), SC.StageExecutables[0]),
@@ -849,6 +849,7 @@ public class IOSPlatform : Platform
 
                     GetDeployHandler(
                         new FileReference(SC.ProjectRoot), BuildPlatContext).GeneratePList(
+							TargetConfiguration,
                             (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"),
                             !SC.IsCodeBasedProject,
                             (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"),
@@ -880,7 +881,7 @@ public class IOSPlatform : Platform
 			throw new AutomationException("ARCHIVE FAILED - {0} was not found", ProjectIPA);
 		}
 
-		ConfigCacheIni PlatformGameConfig;
+		ConfigHierarchy PlatformGameConfig;
 		bool bXCArchive = false;
 		if (Params.EngineConfigs.TryGetValue(SC.StageTargetPlatform.PlatformType, out PlatformGameConfig))
 		{
@@ -1188,13 +1189,13 @@ public class IOSPlatform : Platform
         return new List<string> { ".dsym" };
     }
 	
-	void MobileDeviceConnected(object sender, ConnectEventArgs args)
-	{
-	}
-	
-	void MobileDeviceDisconnected(object sender, ConnectEventArgs args)
-	{
-	}
+// 	void MobileDeviceConnected(object sender, ConnectEventArgs args)
+// 	{
+// 	}
+// 	
+// 	void MobileDeviceDisconnected(object sender, ConnectEventArgs args)
+// 	{
+// 	}
 
 	public override IProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
@@ -1206,13 +1207,13 @@ public class IOSPlatform : Platform
             }
 			
 			// This code only cares about connected devices so just call the run loop a few times to get the existing connected devices
-			MobileDeviceInstanceManager.Initialize(MobileDeviceConnected, MobileDeviceDisconnected);
-			for(int i = 0; i < 4; ++i)
-			{
-				System.Threading.Thread.Sleep(1);
-				CoreFoundationRunLoop.RunLoopRunInMode(CoreFoundationRunLoop.kCFRunLoopDefaultMode(), 0.25, 0);
-			}
-			
+// 			MobileDeviceInstanceManager.Initialize(MobileDeviceConnected, MobileDeviceDisconnected);
+// 			for(int i = 0; i < 4; ++i)
+// 			{
+// 				System.Threading.Thread.Sleep(1);
+// 				CoreFoundationRunLoop.RunLoopRunInMode(CoreFoundationRunLoop.kCFRunLoopDefaultMode(), 0.25, 0);
+// 			}
+// 			
             /*			string AppDirectory = string.Format("{0}/Payload/{1}.app",
 				Path.GetDirectoryName(Params.ProjectGameExeFilename), 
 				Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename));

@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Serialization/CustomVersion.h"
-#include "FileCacheUtilities.h"
-#include "SecureHash.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Misc/Guid.h"
+#include "Misc/SecureHash.h"
+#include "HAL/ThreadSafeBool.h"
 #include "IDirectoryWatcher.h"
+#include "FileCacheUtilities.h"
 
 namespace DirectoryWatcher
 {

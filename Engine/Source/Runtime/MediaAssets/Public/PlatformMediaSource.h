@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MediaSource.h"
+
 #include "PlatformMediaSource.generated.h"
 
 
@@ -11,7 +14,7 @@
  *
  * Use this asset to override media sources on a per-platform basis.
  */
-UCLASS(BlueprintType, hidecategories=(Overrides))
+UCLASS(BlueprintType)
 class MEDIAASSETS_API UPlatformMediaSource
 	: public UMediaSource
 {

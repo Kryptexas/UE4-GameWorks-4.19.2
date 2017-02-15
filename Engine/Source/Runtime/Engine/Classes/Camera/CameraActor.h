@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameFramework/Actor.h"
 #include "Engine/Scene.h"
 
 #include "CameraActor.generated.h"
+
+class UCameraAnim;
 
 /** 
  * A CameraActor is a camera viewpoint that can be placed in a level.
@@ -65,13 +70,14 @@ public:
 #endif
 
 	virtual class USceneComponent* GetDefaultAttachComponent() const override;
-
 	//~ End UObject Interface
-	
+
+protected:
 	//~ Begin AActor Interface
 	virtual void BeginPlay() override;
 	//~ End AActor Interface
 
+public:
 	/** Returns CameraComponent subobject **/
 	class UCameraComponent* GetCameraComponent() const;
 

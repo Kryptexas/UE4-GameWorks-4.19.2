@@ -505,7 +505,7 @@ namespace physx
 
 		for (PxU32 i = nbPositionIterations; i > 1; --i)
 		{
-			cache.doFriction = nbPositionIterations <= 3;
+			cache.doFriction = i <= 3;
 			for (PxU32 a = 0; a < nbBatchHeaders; ++a)
 			{
 				PxConstraintBatchHeader& batch = batchHeaders[a];

@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "K2Node.h"
 #include "K2Node_GetClassDefaults.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
+class UBlueprint;
+class UEdGraph;
+class UEdGraphPin;
 
 UCLASS(MinimalAPI)
 class UK2Node_GetClassDefaults : public UK2Node
@@ -91,7 +99,11 @@ private:
 	UPROPERTY(EditAnywhere, Category=PinOptions, EditFixedSize)
 	TArray<FOptionalPinFromProperty> ShowPinForProperties;
 
-	/** Whether or not to exclude object array properties */
+	/** Whether or not to exclude object container properties */
 	UPROPERTY()
-	bool bExcludeObjectArrays;
+	bool bExcludeObjectContainers;
+
+	/** Whether or not to exclude object array properties (deprecated) */
+	UPROPERTY()
+	bool bExcludeObjectArrays_DEPRECATED;
 };

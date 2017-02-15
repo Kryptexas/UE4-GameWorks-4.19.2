@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	IOSPlatformString.h: Additional NSString methods
 ==================================================================================*/
 
 #pragma once
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 #import <Foundation/NSString.h>
 
 class FString;

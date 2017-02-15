@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #if WITH_EDITOR
+
 #include "IPropertyTypeCustomization.h"
+
+class IPropertyHandle;
 
 class FGameplayDebuggerInputConfigCustomization : public IPropertyTypeCustomization
 {

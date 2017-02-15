@@ -1,19 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
 
 #if WITH_CEF3
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
+#include "AllowWindowsPlatformAtomics.h"
 #endif
 
 #pragma push_macro("OVERRIDE")
 #undef OVERRIDE // cef headers provide their own OVERRIDE macro
+THIRD_PARTY_INCLUDES_START
 #include "include/cef_app.h"
 #include "include/cef_v8.h"
+THIRD_PARTY_INCLUDES_END
 #pragma pop_macro("OVERRIDE")
 
 #if PLATFORM_WINDOWS
+#include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 #endif
 

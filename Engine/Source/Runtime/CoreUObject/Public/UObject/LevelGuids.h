@@ -1,13 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "WorldCompositionUtility.h"
-#include "GatherableTextData.h"
-#include "PropertyLocalizationDataGathering.h"
-#include "Package.h"
-#include "MetaData.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 
 /**
  * Structure to hold information about an external packages objects used in cross-level references

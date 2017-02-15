@@ -1,11 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Interfaces/Interface_AssetUserData.h"
+#include "GameFramework/Actor.h"
+#include "Engine/MeshMerging.h"
+#include "GameFramework/DamageType.h"
 #include "GameFramework/Info.h"
 #include "Sound/AudioVolume.h"
-#include "Engine/MeshMerging.h"
 #include "WorldSettings.generated.h"
 
+class UAssetUserData;
 class UNetConnection;
 
 UENUM()
@@ -205,7 +213,7 @@ struct ENGINE_API FHierarchicalSimplification
 	float DrawDistance;
 
 	/** The screen radius an mesh object should reach before swapping to the LOD actor, once one of parent displays, it won't draw any of children. */
-	UPROPERTY(Category = FHierarchicalSimplification, EditAnywhere, meta = (UIMin = "0.0000", ClampMin = "0.00000", UIMax = "1.0", ClampMax = "1.0"))
+	UPROPERTY(Category = FHierarchicalSimplification, EditAnywhere, meta = (UIMin = "0.00001", ClampMin = "0.000001", UIMax = "1.0", ClampMax = "1.0"))
 	float TransitionScreenSize;
 
 	/** If this is true, it will simplify mesh but it is slower.
@@ -237,7 +245,7 @@ struct ENGINE_API FHierarchicalSimplification
 	int32 MinNumberOfActorsToBuild;	
 
 	FHierarchicalSimplification()
-		: TransitionScreenSize(0.0435f)
+		: TransitionScreenSize(0.315f)
 		, bSimplifyMesh(false)		
 		, DesiredBoundRadius(2000) 
 		, DesiredFillingPercentage(50)
@@ -266,7 +274,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 /**
  * Actor containing all script accessible world properties.
  */
-UCLASS(config=game, hidecategories=(Actor, Advanced, Display, Events, Object, Attachment, Info, Input, Blueprint, Layers, Tags, Replication), showcategories=("Input|MouseInput", "Input|TouchInput"), notplaceable)
+UCLASS(config=game, hidecategories=(Actor, Advanced, Display, Events, Object, Attachment, Info, Input, Blueprint, Layers, Tags, Replication), showcategories=(Rendering, "Input|MouseInput", "Input|TouchInput"), notplaceable)
 class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 {
 	GENERATED_UCLASS_BODY()
@@ -370,12 +378,19 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	FVector DefaultColorScale;
 
 	/** Max occlusion distance used by mesh distance fields, overridden if there is a movable skylight. */
-	UPROPERTY(EditAnywhere, Category=World, meta=(UIMin = "500", UIMax = "5000", DisplayName = "Default Max DistanceField Occlusion Distance"))
+	UPROPERTY(EditAnywhere, Category=Rendering, meta=(UIMin = "500", UIMax = "5000", DisplayName = "Default Max DistanceField Occlusion Distance"))
 	float DefaultMaxDistanceFieldOcclusionDistance;
 
 	/** Distance from the camera that the global distance field should cover. */
-	UPROPERTY(EditAnywhere, Category=World, meta=(UIMin = "10000", UIMax = "100000", DisplayName = "Global DistanceField View Distance"))
+	UPROPERTY(EditAnywhere, Category=Rendering, meta=(UIMin = "10000", UIMax = "100000", DisplayName = "Global DistanceField View Distance"))
 	float GlobalDistanceFieldViewDistance;
+
+	/** 
+	 * Controls the intensity of self-shadowing from capsule indirect shadows. 
+	 * These types of shadows use approximate occluder representations, so reducing self-shadowing intensity can hide those artifacts.
+	 */
+	UPROPERTY(EditAnywhere, Category=Rendering, meta=(UIMin = "0", UIMax = "1"))
+	float DynamicIndirectShadowsSelfShadowingIntensity;
 
 	/************************************/
 	
@@ -454,6 +469,10 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	/** scale of 1uu to 1m in real world measurements, for HMD and other physically tracked devices (e.g. 1uu = 1cm would be 100.0) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=VR)
 	float WorldToMeters;
+
+	/** Distance from the player after which content will be rendered in mono if monoscopic far field rendering is activated */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=VR)
+	float MonoCullingDistance;
 
 	/************************************/
 	/** EDITOR ONLY SETTINGS **/

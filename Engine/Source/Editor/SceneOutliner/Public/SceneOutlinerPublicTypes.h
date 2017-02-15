@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SceneOutlinerFwd.h"
+#include "CoreMinimal.h"
+#include "Layout/Margin.h"
+#include "Framework/SlateDelegates.h"
+#include "Engine/World.h"
 
 #include "SceneOutlinerFilters.h"
-#include "ISceneOutlinerColumn.h"
-#include "ISceneOutliner.h"
+
+class FExtender;
 
 enum class ESceneOutlinerMode : uint8
 {

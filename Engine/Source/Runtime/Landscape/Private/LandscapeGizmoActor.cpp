@@ -1,6 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LandscapePrivatePCH.h"
+#include "LandscapeGizmoActor.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/FileHelper.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/ConstructorHelpers.h"
+#include "EngineDefines.h"
+#include "RHI.h"
+#include "PrimitiveViewRelevance.h"
+#include "PrimitiveSceneProxy.h"
+#include "MaterialShared.h"
+#include "LandscapeInfo.h"
+#include "Engine/Texture2D.h"
+#include "LandscapeLayerInfoObject.h"
 #include "LandscapeInfoMap.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeRender.h"
@@ -9,7 +21,9 @@
 #include "DynamicMeshBuilder.h"
 #include "Engine/CollisionProfile.h"
 #include "EngineUtils.h"
+#include "Materials/Material.h"
 #include "Materials/MaterialInstanceConstant.h"
+#include "Components/BillboardComponent.h"
 
 namespace
 {
@@ -349,6 +363,24 @@ ULandscapeGizmoRenderComponent::ULandscapeGizmoRenderComponent(const FObjectInit
 FPrimitiveSceneProxy* ULandscapeGizmoRenderComponent::CreateSceneProxy()
 {
 	return new FLandscapeGizmoRenderSceneProxy(this);
+}
+
+void ULandscapeGizmoRenderComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials) const 
+{
+#if WITH_EDITORONLY_DATA
+	ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(GetOwner());
+	if (Gizmo)
+	{
+		UMaterialInterface* GizmoMat = (Gizmo->DataType != LGT_None) ?
+			(UMaterialInterface*)Gizmo->GizmoDataMaterial :
+			(UMaterialInterface*)Gizmo->GizmoMaterial;
+
+		if (GizmoMat)
+		{
+			OutMaterials.Add(GizmoMat);
+		}
+	}
+#endif
 }
 
 FBoxSphereBounds ULandscapeGizmoRenderComponent::CalcBounds(const FTransform& LocalToWorld) const

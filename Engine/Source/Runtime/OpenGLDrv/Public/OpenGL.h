@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGL.h: Public OpenGL base definitions for non-common functionality
 =============================================================================*/
 #pragma once
-	
+
+#include "Containers/ContainersFwd.h"
+
+struct FPlatformOpenGLContext;
+struct FPlatformOpenGLDevice;
 
 /** OpenGL Logging. */
 OPENGLDRV_API DECLARE_LOG_CATEGORY_EXTERN(LogOpenGL,Log,VeryVerbose);
@@ -142,6 +146,8 @@ public:
 	static FORCEINLINE bool SupportsShaderTextureCubeLod()				{ return true; }
 	static FORCEINLINE bool SupportsSeparateAlphaBlend()				{ return bSupportsDrawBuffersBlend; }
 	static FORCEINLINE bool SupportsTessellation()						{ return false; }
+	static FORCEINLINE void EnableSupportsClipControl()					{ bSupportsClipControl = true; }
+	static FORCEINLINE bool SupportsClipControl()						{ return bSupportsClipControl; }
 	static FORCEINLINE bool SupportsComputeShaders()					{ return false; }
 	static FORCEINLINE bool SupportsTextureView()						{ return false; }
 	static FORCEINLINE bool SupportsSeamlessCubeMap()					{ return false; }
@@ -201,6 +207,7 @@ public:
 
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum() UGL_REQUIRED(0)
 
+	static FORCEINLINE GLint GetMaxMSAASamplesTileMem()			{ return 0; /* not supported */ }
 
 	// Silently ignored if not implemented:
 	static FORCEINLINE void QueryTimestampCounter(GLuint QueryID) UGL_OPTIONAL_VOID
@@ -381,6 +388,9 @@ protected:
 	static GLint MaxHullUniformComponents;
 	static GLint MaxDomainUniformComponents;
 	static GLint MaxVaryingVectors;
+
+	/** GL_ARB_clip_control */
+	static bool bSupportsClipControl;
 
 	/** GL_KHR_texture_compression_astc_ldr */
 	static bool bSupportsASTC;

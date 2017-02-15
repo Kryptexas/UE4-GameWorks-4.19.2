@@ -1,8 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Attribute.h"
+#include "Styling/SlateColor.h"
+#include "Styling/SlateWidgetStyleAsset.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SLeafWidget.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
 #include "SProgressBar.generated.h"
+
+class FActiveTimerHandle;
+class FPaintArgs;
+class FSlateWindowElementList;
 
 /**
  * SProgressBar Fill Type 

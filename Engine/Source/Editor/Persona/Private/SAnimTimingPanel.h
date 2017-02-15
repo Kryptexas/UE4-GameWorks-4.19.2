@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Persona.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
 #include "SAnimTrackPanel.h"
-#include "SWidget.h"
 #include "STrack.h"
 
-// Forward declarations
+class SBorder;
+class UAnimMontage;
 class UAnimSequenceBase;
 
 //////////////////////////////////////////////////////////////////////////

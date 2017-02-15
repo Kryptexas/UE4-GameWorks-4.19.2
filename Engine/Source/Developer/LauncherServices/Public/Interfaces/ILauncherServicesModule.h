@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Interfaces/ILauncherProfileManager.h"
+#include "Interfaces/ILauncher.h"
 
 /**
  * Declares a delegate to be invoked when a launcher profile manager has been initialized.

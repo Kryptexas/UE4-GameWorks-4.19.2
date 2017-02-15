@@ -1,7 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "Interfaces/ITextureEditorToolkit.h"
+#include "Modules/ModuleInterface.h"
+
+class UTexture;
 
 /**
  * Interface for texture editor modules.

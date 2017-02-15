@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Input/CursorReply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
 #include "Editor/Sequencer/Public/ISequencerInputHandler.h"
 #include "IMovieScenePlayer.h"
 
+class FSlateWindowElementList;
 class USequencerSettings;
 
 /** Enum specifying how to interpolate to a new view range */
@@ -93,6 +100,9 @@ struct FTimeSliderArgs
 	/** Called when the clamp range changes */
 	FOnRangeChanged OnClampRangeChanged;
 
+	/** Attribute defining the active sub-sequence range for this controller */
+	TAttribute<TOptional<TRange<float>>> SubSequenceRange;
+
 	/** Attribute defining the playback range for this controller */
 	TAttribute<TRange<float>> PlaybackRange;
 
@@ -118,6 +128,12 @@ struct FTimeSliderArgs
 	FSimpleDelegate OnSelectionRangeEndDrag;
 	/** Round the scrub position to an integer during playback */
 	TAttribute<EMovieScenePlayerStatus::Type> PlaybackStatus;
+
+	/** Attribute defining whether the playback range is locked */
+	TAttribute<bool> IsPlaybackRangeLocked;
+
+	/** Called when toggling the playback range lock */
+	FSimpleDelegate OnTogglePlaybackRangeLocked;
 
 	/** If we are allowed to zoom */
 	bool AllowZoom;

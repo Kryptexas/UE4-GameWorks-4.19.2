@@ -1,15 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLShaders.cpp: OpenGL shader RHI implementation.
 =============================================================================*/
  
-#include "OpenGLDrvPrivate.h"
 #include "OpenGLShaders.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "OpenGLDrvPrivate.h"
 #include "Shader.h"
 #include "GlobalShader.h"
-#include "ShaderCache.h"
-#include "CrossCompilerCommon.h"
 
 #define CHECK_FOR_GL_SHADERS_TO_REPLACE 0
 
@@ -18,6 +21,7 @@
 #elif PLATFORM_MAC
 #include <xmmintrin.h>
 #endif
+#include "SceneUtils.h"
 
 const uint32 SizeOfFloat4 = 16;
 const uint32 NumFloatsInFloat4 = 4;
@@ -460,7 +464,7 @@ GLint CompileCurrentShader(const GLuint Resource, const FAnsiCharArray& GlslCode
 		glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
 	}
 #endif
-#if (PLATFORM_HTML5 || PLATFORM_ANDROID) && !UE_BUILD_SHIPPING
+#if (PLATFORM_HTML5 || PLATFORM_ANDROID || PLATFORM_IOS) && !UE_BUILD_SHIPPING
 	if (!FOpenGL::IsCheckingShaderCompilerHacks())
 	{
 		glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
@@ -703,6 +707,11 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		AppendCString(GlslCode, "#version 330\n");
 		ReplaceCString(GlslCodeOriginal, "#version 150", "");
 	}
+	else if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_iOS)
+	{
+		AppendCString(GlslCode, "#version 100\n");
+		ReplaceCString(GlslCodeOriginal, "#version 100", "");
+	}
 
 	if (bEmitMobileMultiView)
 	{
@@ -786,7 +795,7 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 
 		if (IsES2Platform(Capabilities.MaxRHIShaderPlatform) && !bES31)
 		{
-			if (Capabilities.bSupportsRenderTargetFormat_PF_FloatRGBA)
+			if (Capabilities.bSupportsRenderTargetFormat_PF_FloatRGBA || !IsMobileHDR())
 			{
 				AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 0.0\n");
 			}
@@ -925,11 +934,20 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		}
 	}
 
-		// Append the possibly edited shader to the one we will compile.
-		// This is to make it easier to debug as we can see the whole
-		// shader source.
-		AppendCString(GlslCode, "\n\n");
-		AppendCString(GlslCode, GlslCodeOriginal.GetData());
+	if (FOpenGL::SupportsClipControl())
+	{
+		AppendCString(GlslCode, "#define HLSLCC_DX11ClipSpace 0 \n");
+	}
+	else
+	{
+		AppendCString(GlslCode, "#define HLSLCC_DX11ClipSpace 1 \n");
+	}
+
+	// Append the possibly edited shader to the one we will compile.
+	// This is to make it easier to debug as we can see the whole
+	// shader source.
+	AppendCString(GlslCode, "\n\n");
+	AppendCString(GlslCode, GlslCodeOriginal.GetData());
 }
 
 /**

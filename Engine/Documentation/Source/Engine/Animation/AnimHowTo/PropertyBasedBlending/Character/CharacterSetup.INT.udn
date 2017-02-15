@@ -10,7 +10,7 @@ Related: Engine/Animation/StateMachines
 version: 4.10
 skilllevel: Intermediate
 checkpoint: animpropertyblend
-type:sequential
+type:multi-step
 order:3
 parent:Engine/Animation/AnimHowTo/PropertyBasedBlending
 

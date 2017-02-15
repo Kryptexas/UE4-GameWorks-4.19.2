@@ -1,34 +1,43 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelEditor.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBox.h"
+#include "EditorStyleSet.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "Editor/UnrealEdEngine.h"
+#include "LevelEditorViewport.h"
+#include "EditorModes.h"
+#include "UnrealEdGlobals.h"
+#include "Misc/ConfigCacheIni.h"
+#include "LevelViewportLayout.h"
 #include "SLevelEditor.h"
-#include "ModuleManager.h"
+#include "LightmapResRatioAdjust.h"
 #include "LevelEditorActions.h"
 #include "LevelEditorModesActions.h"
-#include "AssetSelection.h"
-#include "LevelEditorContextMenu.h"
-#include "SLevelViewport.h"
+#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructure.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
-#include "Developer/MessageLog/Public/MessageLogModule.h"
+#include "MessageLogModule.h"
 #include "EditorViewportCommands.h"
 #include "LevelViewportActions.h"
-#include "GlobalEditorCommonCommands.h"
+#include "Toolkits/GlobalEditorCommonCommands.h"
 #include "IUserFeedbackModule.h"
 #include "ISlateReflectorModule.h"
-#include "SDockTab.h"
-#include "ToolkitManager.h"
-#include "TargetPlatform.h"
+#include "Widgets/Docking/SDockTab.h"
 #include "IIntroTutorials.h"
-#include "IProjectManager.h"
-#include "LevelViewportLayout.h"
+#include "Interfaces/IProjectManager.h"
 #include "LevelViewportLayoutEntity.h"
 #include "PixelInspectorModule.h"
 
 // @todo Editor: remove this circular dependency
-#include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
-#include "GenericCommands.h"
-#include "EngineBuildSettings.h"
+#include "Interfaces/IMainFrameModule.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "Misc/EngineBuildSettings.h"
 
 #define LOCTEXT_NAMESPACE "LevelEditor"
 
@@ -1690,19 +1699,45 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 
 	ActionList.MapAction(
 		Commands.PreviewPlatformOverride_DefaultES2,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, FName()),
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, FName(), ERHIFeatureLevel::ES2),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, FName()));
+		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, FName(), ERHIFeatureLevel::ES2));
 	ActionList.MapAction(
-		Commands.PreviewPlatformOverride_AndroidES2,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_ANDROID)),
+		Commands.PreviewPlatformOverride_AndroidGLES2,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_ANDROID), ERHIFeatureLevel::ES2),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_ANDROID)));
+		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_ANDROID), ERHIFeatureLevel::ES2));
 	ActionList.MapAction(
-		Commands.PreviewPlatformOverride_IOSES2,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_IOS)),
+		Commands.PreviewPlatformOverride_IOSGLES2,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_IOS), ERHIFeatureLevel::ES2),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked,LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_IOS)));
+		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked,LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_IOS), ERHIFeatureLevel::ES2));
+
+	ActionList.MapAction(
+		Commands.PreviewPlatformOverride_DefaultES31,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, FName(), ERHIFeatureLevel::ES3_1),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, FName(), ERHIFeatureLevel::ES3_1));
+	ActionList.MapAction(
+		Commands.PreviewPlatformOverride_AndroidGLES31,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES3_1_ANDROID), ERHIFeatureLevel::ES3_1),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES3_1_ANDROID), ERHIFeatureLevel::ES3_1));
+	ActionList.MapAction(
+		Commands.PreviewPlatformOverride_AndroidVulkanES31,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, LegacyShaderPlatformToShaderFormat(SP_VULKAN_ES3_1_ANDROID), ERHIFeatureLevel::ES3_1),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, LegacyShaderPlatformToShaderFormat(SP_VULKAN_ES3_1_ANDROID), ERHIFeatureLevel::ES3_1));
+	ActionList.MapAction(
+		Commands.PreviewPlatformOverride_IOSMetalES31,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, LegacyShaderPlatformToShaderFormat(SP_METAL), ERHIFeatureLevel::ES3_1),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, LegacyShaderPlatformToShaderFormat(SP_METAL), ERHIFeatureLevel::ES3_1));
+
+	ActionList.MapAction(
+		Commands.OpenMergeActor,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::OpenMergeActor_Clicked)
+	);
 
 	for (int32 i = 0; i < ERHIFeatureLevel::Num; ++i)
 	{

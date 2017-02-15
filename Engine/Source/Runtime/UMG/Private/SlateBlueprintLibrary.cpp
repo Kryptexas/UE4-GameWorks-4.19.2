@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Blueprint/SlateBlueprintLibrary.h"
+#include "EngineGlobals.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/Engine.h"
 
+#include "Engine/UserInterfaceSettings.h"
 #include "Slate/SlateBrushAsset.h"
 #include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "SlateBlueprintLibrary.h"
+#include "Slate/SceneViewport.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -36,6 +42,11 @@ FVector2D USlateBlueprintLibrary::GetLocalSize(const FGeometry& Geometry)
 	return Geometry.GetLocalSize();
 }
 
+bool USlateBlueprintLibrary::EqualEqual_SlateBrush(const FSlateBrush& A, const FSlateBrush& B)
+{
+	return A == B;
+}
+
 void USlateBlueprintLibrary::LocalToViewport(UObject* WorldContextObject, const FGeometry& Geometry, FVector2D LocalCoordinate, FVector2D& PixelPosition, FVector2D& ViewportPosition)
 {
 	FVector2D AbsoluteCoordinate = Geometry.LocalToAbsolute(LocalCoordinate);
@@ -49,17 +60,15 @@ void USlateBlueprintLibrary::AbsoluteToViewport(UObject* WorldContextObject, FVe
 	{
 		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
 		{
-			if ( FViewport* Viewport = ViewportClient->Viewport )
+			if ( FSceneViewport* Viewport = ViewportClient->GetGameViewport() )
 			{
 				FVector2D ViewportSize;
 				ViewportClient->GetViewportSize(ViewportSize);
 
 				PixelPosition = Viewport->VirtualDesktopPixelToViewport(FIntPoint((int32)AbsoluteDesktopCoordinate.X, (int32)AbsoluteDesktopCoordinate.Y)) * ViewportSize;
 
-				float CurrentViewportScale = GetDefault<UUserInterfaceSettings>()->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
-
 				// Remove DPI Scaling.
-				ViewportPosition = PixelPosition / CurrentViewportScale;
+				ViewportPosition = PixelPosition / UWidgetLayoutLibrary::GetViewportScale(ViewportClient);
 
 				return;
 			}
@@ -100,6 +109,14 @@ void USlateBlueprintLibrary::ScreenToWidgetAbsolute(UObject* WorldContextObject,
 	}
 
 	AbsoluteCoordinate = FVector2D(0, 0);
+}
+
+void USlateBlueprintLibrary::ScreenToViewport(UObject* WorldContextObject, FVector2D ScreenPosition, FVector2D& ViewportPosition)
+{
+	FVector2D AbsolutePosition;
+	USlateBlueprintLibrary::ScreenToWidgetAbsolute(WorldContextObject, ScreenPosition, AbsolutePosition);
+	FVector2D PixelPosition;
+	USlateBlueprintLibrary::AbsoluteToViewport(WorldContextObject, AbsolutePosition, PixelPosition, ViewportPosition);
 }
 
 #undef LOCTEXT_NAMESPACE

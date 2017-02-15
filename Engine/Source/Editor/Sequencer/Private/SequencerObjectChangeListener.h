@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 //#include "ISequencerObjectChangeListener.h"
-#include "ObjectKey.h"
 
+#include "CoreMinimal.h"
+#include "KeyPropertyParams.h"
+#include "UObject/ObjectKey.h"
+#include "ISequencer.h"
+#include "ISequencerObjectChangeListener.h"
+
+class AActor;
+class IPropertyChangeListener;
 class IPropertyHandle;
 
 /**

@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "InputCoreTypes.h"
 #include "EditorExperimentalSettings.generated.h"
-
 
 /**
  * Implements Editor settings for experimental features.
@@ -38,6 +41,10 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Enable Details Panel Favorites"))
 	bool bEnableFavoriteSystem;
+
+	/** Enables content hot-reloading in the editor (eg, when syncing new assets via source control) */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Content Hot-Reloading"))
+	bool bEnableContentHotReloading;
 
 	/** Enable being able to subclass components in blueprints */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(ConfigRestartRequired=true))
@@ -98,10 +105,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools)
 	bool bLiveStreamingFromEditor;
 
-	/** Enables Metal/High-end mobile rendering path preview on Desktop */
-	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor"))
-	bool bFeatureLevelES31Preview;
-
 	/** Enable late joining in PIE */
 	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Allow late joining"))
 	bool bAllowLateJoinInPIE;
@@ -137,6 +140,10 @@ public:
 	/** Allows editing of potentially unsafe properties during PIE. Advanced use only - use with caution. */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Allow editing of potentially unsafe properties."))
 	bool bAllowPotentiallyUnsafePropertyEditing;
+
+	/** Enable experimental bulk facial animation importer (found in Developer Tools menu, requires editor restart) */
+	UPROPERTY(EditAnywhere, config, Category = Tools)
+	bool bFacialAnimationImporter;
 
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.

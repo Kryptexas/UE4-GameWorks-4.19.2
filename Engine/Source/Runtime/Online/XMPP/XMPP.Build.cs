@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -30,6 +30,11 @@ public class XMPP : ModuleRules
 			Target.Platform == UnrealTargetPlatform.PS4 )
 		{
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "WebRTC");
+			Definitions.Add("WITH_XMPP_JINGLE=1");
+		}
+		else
+		{
+			Definitions.Add("WITH_XMPP_JINGLE=0");
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 ||

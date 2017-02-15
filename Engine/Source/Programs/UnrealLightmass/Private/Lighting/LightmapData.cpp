@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LightmassPCH.h"
+#include "LightmapData.h"
 #include "Exporter.h"
 #include "LightmassSwarm.h"
 
 /** Maximum light intensity stored in vertex/ texture lightmaps. */
 #define MAX_LIGHT_INTENSITY	16.f
 
-
+THIRD_PARTY_INCLUDES_START
 #include "ThirdParty/zlib/zlib-1.2.5/Inc/zlib.h"
+THIRD_PARTY_INCLUDES_END
 
 namespace Lightmass
 {

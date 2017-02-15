@@ -30,6 +30,7 @@
 !*.m
 !*.mm
 !*.rc
+!*.rc2
 !*.def
 !*.exp
 !*.manifest
@@ -113,6 +114,7 @@
 /CMakeLists.txt
 *.target.xml
 *.exe.config
+*.exe.manifest
 
 # Add exceptions for Mac Mono binaries needed to run GitDependencies.exe.
 !/Engine/Binaries/ThirdParty/Mono/Mac/bin/*
@@ -147,6 +149,8 @@ obj/
 # Ignore any saved local files
 Saved/
 /Engine/Programs/UnrealBuildTool/**
+/LocalBuilds/
 
 # Explcitly ignore Mac DS_Store files, regardless of where they are
 .DS_Store
+

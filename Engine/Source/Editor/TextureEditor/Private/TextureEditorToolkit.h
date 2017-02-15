@@ -1,10 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Toolkits/AssetEditorToolkit.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
 #include "EditorUndoClient.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Interfaces/ITextureEditorToolkit.h"
+#include "IDetailsView.h"
+#include "TextureEditorSettings.h"
 
+class SDockableTab;
+class STextBlock;
+class STextureEditorViewport;
+class UFactory;
+class UTexture;
 
 /**
  * Implements an Editor toolkit for textures.
@@ -50,6 +62,7 @@ public:
 	virtual bool GetFitToViewport( ) const override;
 	virtual int32 GetMipLevel( ) const override;
 	virtual UTexture* GetTexture( ) const override;
+	virtual bool HasValidTextureResource( ) const override;
 	virtual bool GetUseSpecifiedMip( ) const override;
 	virtual double GetZoom( ) const override;
 	virtual void PopulateQuickInfo( ) override;

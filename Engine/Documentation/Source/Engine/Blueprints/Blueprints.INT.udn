@@ -6,6 +6,7 @@ version: 4.9
 parent:%ROOT%
 order:5
 social-image:bp_social_image.png
+type:landing
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -191,7 +192,7 @@ Blueprint-specific markup available in Unreal Engine's C++ implementation enable
 [/OBJECT]
 [/REGION]
 
-[DIR(output:"listbutton" parent:"Engine/Blueprints" type:"guide")]
+[DIR(output:"listbutton" parent:"Engine/Blueprints" type:"overview" org:"hierarchy")]
 
 
 <!--

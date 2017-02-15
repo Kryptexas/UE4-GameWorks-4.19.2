@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneStringSection.h"
-#include "MovieSceneStringTrack.h"
-#include "MovieSceneStringTrackInstance.h"
+#include "Tracks/MovieSceneStringTrack.h"
+#include "MovieSceneCommonHelpers.h"
+#include "Sections/MovieSceneStringSection.h"
+#include "Evaluation/MovieScenePropertyTemplates.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieSceneStringTrack"
@@ -65,17 +65,16 @@ void UMovieSceneStringTrack::AddSection(UMovieSceneSection& Section)
 }
 
 
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneStringTrack::CreateInstance()
-{
-	return MakeShareable(new FMovieSceneStringTrackInstance(*this));
-}
-
-
 UMovieSceneSection* UMovieSceneStringTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieSceneStringSection::StaticClass(), NAME_None, RF_Transactional);
 }
 
+
+FMovieSceneEvalTemplatePtr UMovieSceneStringTrack::CreateTemplateForSection(const UMovieSceneSection& InSection) const
+{
+	return FMovieSceneStringPropertySectionTemplate(*CastChecked<UMovieSceneStringSection>(&InSection), *this);
+}
 
 const TArray<UMovieSceneSection*>& UMovieSceneStringTrack::GetAllSections() const
 {

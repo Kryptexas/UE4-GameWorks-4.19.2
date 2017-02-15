@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GCObject.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSingleton.h"
+#include "UObject/UObjectGlobals.h"
+
+class UDynamicClass;
 
 struct FBlueprintWarningDeclaration
 {
@@ -100,6 +104,16 @@ enum class EReplacementResult
 
 	/** Completely replace the file with generated code */
 	ReplaceCompletely
+};
+
+struct COREUOBJECT_API FScopedPlaceholderRawContainerTracker
+{
+public:
+	FScopedPlaceholderRawContainerTracker(void* InData);
+	~FScopedPlaceholderRawContainerTracker();
+
+private:
+	void* Data;
 };
 
 /**
@@ -210,21 +224,80 @@ private:
 	TMultiMap<UClass*, FObjectInitializer> DeferredSubObjInitializers;
 };
 
+struct FBlueprintDependencyType
+{
+	uint8 bSerializationBeforeSerializationDependency : 1;
+	uint8 bCreateBeforeSerializationDependency : 1;
+	uint8 bSerializationBeforeCreateDependency : 1;
+	uint8 bCreateBeforeCreateDependency : 1;
 
-struct COREUOBJECT_API FBlueprintDependencyData
+	FBlueprintDependencyType()
+		: bSerializationBeforeSerializationDependency(0)
+		, bCreateBeforeSerializationDependency(0)
+		, bSerializationBeforeCreateDependency(0)
+		, bCreateBeforeCreateDependency(0) {}
+
+	FBlueprintDependencyType(bool bInSerializationBeforeSerializationDependency
+		, bool bInCreateBeforeSerializationDependency
+		, bool bInSerializationBeforeCreateDependency
+		, bool bInCreateBeforeCreateDependency)
+		: bSerializationBeforeSerializationDependency(bInSerializationBeforeSerializationDependency)
+		, bCreateBeforeSerializationDependency(bInCreateBeforeSerializationDependency)
+		, bSerializationBeforeCreateDependency(bInSerializationBeforeCreateDependency)
+		, bCreateBeforeCreateDependency(bInCreateBeforeCreateDependency)
+	{}
+};
+
+struct COREUOBJECT_API FCompactBlueprintDependencyData
+{
+	int16 ObjectRefIndex;
+	FBlueprintDependencyType ClassDependency;
+	FBlueprintDependencyType CDODependency;
+
+	FCompactBlueprintDependencyData()
+		: ObjectRefIndex(-1)
+	{}
+
+	FCompactBlueprintDependencyData(int16 InObjectRefIndex
+		, FBlueprintDependencyType InClassDependency
+		, FBlueprintDependencyType InCDODependency)
+		: ObjectRefIndex(InObjectRefIndex)
+		, ClassDependency(InClassDependency)
+		, CDODependency(InCDODependency)
+	{}
+};
+
+struct COREUOBJECT_API FBlueprintDependencyObjectRef
 {
 	FName PackageName;
 	FName ObjectName;
 	FName ClassPackageName;
 	FName ClassName;
 
-	FBlueprintDependencyData() {}
+	FBlueprintDependencyObjectRef() {}
 
-	FORCENOINLINE FBlueprintDependencyData(const TCHAR* InPackageFolder
+	FORCENOINLINE FBlueprintDependencyObjectRef(const TCHAR* InPackageFolder
 		, const TCHAR* InShortPackageName
 		, const TCHAR* InObjectName
 		, const TCHAR* InClassPackageName
 		, const TCHAR* InClassName);
+};
+
+struct COREUOBJECT_API FBlueprintDependencyData
+{
+	FBlueprintDependencyObjectRef ObjectRef;
+	// 0 - dependency type for dynamic class
+	// 1 - dependency type for CD0
+	FBlueprintDependencyType DependencyTypes[2];
+
+	FBlueprintDependencyData(const FBlueprintDependencyObjectRef& InObjectRef
+		, FBlueprintDependencyType InClassDependency
+		, FBlueprintDependencyType InCDODependency)
+		: ObjectRef(InObjectRef)
+	{
+		DependencyTypes[0] = InClassDependency;
+		DependencyTypes[1] = InCDODependency;
+	}
 };
 
 /**
@@ -241,30 +314,10 @@ private:
 public:
 	static FConvertedBlueprintsDependencies& Get();
 
-	void RegisterClass(FName PackageName, GetDependenciesNamesFunc GetAssets);
+	void RegisterConvertedClass(FName PackageName, GetDependenciesNamesFunc GetAssets);
 
 	/** Get all assets paths necessary for the class with the given class name and all converted classes that dependencies. */
 	void GetAssets(FName PackageName, TArray<FBlueprintDependencyData>& OutDependencies) const;
 
 	static void FillUsedAssetsInDynamicClass(UDynamicClass* DynamicClass, GetDependenciesNamesFunc GetUsedAssets);
-};
-
-/** 
- * Temporary util struct that consolidates the now deprecated [EditoronlyBP] 
- * settings. Aimed at providing warnings for users who are mistakenly using or 
- * relying on them (and centralizing their usage so it is easy to strip in later 
- * versions).
- *
- * Here in the CoreUObject module because UClassProperty::CheckValidObject() and 
- * UPackage::Save() use some of these settings.
- */
-struct COREUOBJECT_API FLegacyEditorOnlyBlueprintOptions
-{
-	static FString GetDefaultEditorConfig();
-	static bool IncludeUBlueprintObjsInCookedBuilds();
-	static bool AllowLegacyBlueprintPinMatchesWithClass();
-	static bool FixupLegacyBlueprintReferences();
-	static bool DetectInvalidBlueprintExport(const FLinkerSave* Linker, const int32 ExportIndex);
-	static bool FixupClassProperty(const UClassProperty* Property, void* Value);
-	static bool IsTypeProhibited(const UClass* VarType);
 };

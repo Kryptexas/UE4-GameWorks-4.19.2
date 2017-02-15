@@ -1,16 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShaderCache.cpp: Bound shader state cache implementation.
 =============================================================================*/
 
-#include "ShaderCorePrivatePCH.h"
-#include "ShaderCore.h"
 #include "ShaderCache.h"
-#include "Shader.h"
-#include "RHI.h"
 #include "RenderingThread.h"
-#include "EngineVersion.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/ArchiveSaveCompressedProxy.h"
+#include "Serialization/ArchiveLoadCompressedProxy.h"
+#include "Serialization/CustomVersion.h"
+#include "Shader.h"
+#include "Misc/EngineVersion.h"
 
 DECLARE_STATS_GROUP(TEXT("Shader Cache"),STATGROUP_ShaderCache, STATCAT_Advanced);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Shaders Cached"),STATGROUP_NumShadersCached,STATGROUP_ShaderCache);
@@ -151,8 +154,8 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 		case SP_METAL_SM5:
 		case SP_METAL_MACES3_1:
 		case SP_METAL_MACES2:
-		case SP_WOLF:
-		case SP_WOLF_FORWARD:
+		case SP_SWITCH:
+		case SP_SWITCH_FORWARD:
 		{
 			return true;
 		}

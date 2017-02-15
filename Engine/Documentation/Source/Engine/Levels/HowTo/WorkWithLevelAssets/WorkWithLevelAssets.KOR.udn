@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Work with Level Assets
+﻿INTSourceChangelist:3150518
+Availability: Public
+Title:레벨 애셋 작업
 Crumbs: %ROOT%, Engine
-Description:How to create, save, and open Level assets in UE4
+Description:UE4 에서 레벨 애셋을 생성, 저장하고 여는 방법입니다.
 SkillLevel: Beginner
 Version: 4.12
 parent:Engine/Levels
-type:howto
+type:how-to
 order:1
 
 [VAR:Topic]
@@ -50,89 +50,88 @@ order:1
 
 [TOC]
 
-For the most part, Levels in Unreal Engine 4 can be handled much like other assets in the **Content Browser**. There are a few considerations to keep in mind while
-creating, saving, and opening Levels, and this guide will cover the basics. 
+대부분의 경우 언리얼 엔진 4 의 레벨은 **콘텐츠 브라우저** 의 다른 애셋과 거의 마찬가지로 처리할 수 있습니다. 레벨을 만들고 저장하여 여는 데는 유념해야 할 것들이 몇 가지 있는데, 
+여기서는 그 기본적인 부분에 대해 안내해 드리겠습니다.
 
-## Creating Levels
+## 레벨 제작
 
-You can create a new Level in the **Content Browser** in the same way that you would [create other assets](Engine/Content/Browser/UserGuide/BrowserAssetCreation#addingassets) 
-like Blueprint Classes, Materials, or Particle Systems. However, because Levels are also how you lay out and organize your project, you can create them from the **File** menu as well. 
+**콘텐츠 브라우저** 에서 새로운 레벨을 만드는 방법은, 블루프린트 클래스, 머티리얼, 파티클 시스템 등 [다른 애셋을 생성](Engine/Content/Browser/UserGuide/BrowserAssetCreation) 하는 
+방법과 똑같이 만들 수 있습니다. 하지만 레벨은 프로젝트의 근본적인 레이아웃과 체계를 이루기도 하므로, **파일** 메뉴에서도 생성할 수 있습니다.
 
-1. Open the **File** menu. 
+1. **파일** 메뉴를 엽니다.
 
 	![](Level_File_New_Level.jpg)
 
-1. Select **New Level**.
+1. **새 레벨** 을 선택합니다.
 
 	![](Level_Create_New_Level.jpg)
 	[Region:tip]
-	You can also create new levels by using the keyboard shortcut  **Ctrl + N**. 
+	키보드 단축키 **Ctrl + N** 으로도 새로운 레벨을 만들 수 있습니다.
 	[/region]
 
-	When **New Level** is selected, you will be presented with a pop-up box displaying the different templates you can base your new Level on.
+	**새 레벨** 을 선택하면 뜨는 창에서 여러가지 템플릿 중 어느 것을 기반으로 새로운 레벨을 만들 것인지 선택할 수 있습니다.
 
 	![](NewLevel.png)
 
-	* **Default:** This will give you a new level with a basic setup that includes a player start, a light, a sky dome, and other various Actors you need for a level to work correctly.
-	* **VR-Basic:**  This will give you a new level with Actors to interact with designed to guide you in learning the VR Editor controls. 
-	* **Blank:** This will give you a new level that is completely empty. 
+	* **Default** (기본): 플레이어 스타트, 라이트, 스카이 돔, 그 외 레벨의 정상 작동을 위해 필요한 여러가지 액터가 들어있는 기본 구성 레벨을 새로 만들 수 있습니다.
+	* **VR-Basic** (VR-기본): VR 에디터 조작법 학습용 액터가 들어있는 새 레벨입니다.
+	* **Blank** (공백): 완전히 비어있는 새 레벨입니다.
 
-1. Select the template that you want to start with left-clicking on it. 
+1. 시작하고자 하는 템플릿 레벨을 좌클릭하여 선택합니다.
 
 [region:tip]
-When connected to source control, new Levels that you create and save will be automatically added to source control.
+소스 콘트롤에 연결되어 있을 때 새 레벨을 만들어 저장하면 소스 콘트롤에 자동 추가됩니다.
 [/region]
 
-You can also create new blank Levels or split a section of an existing Level off using the [Levels window](Engine/Levels/LevelsWindow).
+[레벨 창](Engine/Levels/LevelsWindow) 을 사용하여 기존 레벨의 일부분을 분할하거나 새로운 공백 레벨을 만들 수도 있습니다.
 
 
 
-## Saving Levels 
+## 레벨 저장
 
-Saving levels after the initial save is a fairly transparent process you can initiate from the **File** menu or the **Content Browser**, but there are some additional steps required on the 
-first save. In addition, changing Levels will prompt you to save your current Level(s) with the **Save Content** dialog. 
+생성된 레벨을 저장하는 것은 **파일** 메뉴나 **콘텐츠 브라우저** 에서 내릴 수 있는 꽤나 투명한 프로세스이나, 몇 가지 단계를 추가로 거쳐야 합니다. 
+게다가 레벨을 변경하면 **콘텐츠 저장** 창을 통해 현재 레벨을 저장하겠냐고 물어옵니다.
 
 ![](SaveContentLevels.png)
 
-You can also save your current persistent level and/or sublevels through the [Levels window](Engine/Levels/LevelsWindow).
+[레벨 창](Engine/Levels/LevelsWindow) 을 통해 현재 퍼시스턴트 레벨 및/또는 서브레벨을 저장할 수도 있습니다.
 
-**To save a level for the first time:**
+**레벨을 처음 저장하는 방법은:**
 
-1. Open the **File** menu. 
+1. **파일** 메뉴를 엽니다.
 
 	![](Level_File_New_Level.png)
 
-1. Select **Save**.
+1. **저장** 을 선택합니다.
 
 	![](Level_Save_Level.jpg)
 
-1. Pick a location and name for the new Level and click **Save** in the **Save Level As** window that appears. This is the same menu you would see if you selected **Save As...** from the 
-file menu or used the **Ctrl+Shift+S** keyboard shortcut. 
+1. **다른 이름으로 저장** 창에서 새 레벨을 저장할 위치와 이름을 선택한 뒤 **저장** 을 클릭합니다. 파일 메뉴의 **다른 이름으로 저장...** 또는 키보드 단축키 **Ctrl+Shift+S** 키를 누르면 
+뜨는 것과 같은 메뉴입니다.
 
 	![](SaveLevelAs.png)
 
 
 
-## Opening Levels 
+## 레벨 열기
 
-You can open Levels by double-clicking on the Level asset in the **Content Browser**, but much like creating Levels, you can also work with the **File** menu. 
+**콘텐츠 브라우저** 에서 레벨 애셋을 더블클릭하는 방법으로 레벨을 열 수 있는데, 레벨을 만들 때와 마찬가지로 **파일** 메뉴에서도 가능합니다.
 
-1. Open the **File** menu. 
+1. **파일** 메뉴를 엽니다.
 
 	![](Level_File_New_Level.png)
 
-1. Select **Open Level**.
+1. **레벨 열기** 를 선택합니다.
 
 	![](Level_Open_New_Level.jpg)
 	
 	[Region:tip]
-	You can also open levels by using the keyboard shortcut  **Ctrl + O**. 
+	키보드 단축키 **Ctrl + O** 로도 레벨을 열 수 있습니다. 
 	[/region]
 
 
-1. Select a level from the **Open Level** window that appears, then click on **Open**.  
+1. 뜨는 **레벨 열기** 창에서 레벨을 선택한 뒤, **열기** 를 클릭합니다.
 	![](AvailableLevels.png)
-
 
 
 

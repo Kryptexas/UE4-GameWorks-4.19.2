@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "PropertyHelper.h"
-#include "PropertyTag.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/UnrealType.h"
+#include "UObject/PropertyHelper.h"
 
 /*-----------------------------------------------------------------------------
 	UBoolProperty.
@@ -235,6 +237,15 @@ bool UBoolProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8
 		// if the byte property was an enum we won't allow a conversion to bool
 		if (Tag.EnumName == NAME_None)
 		{
+			// If we're a nested property the EnumName tag got lost, don't allow this
+			UProperty* const PropertyOwner = Cast<UProperty>(GetOuterUField());
+
+			if (PropertyOwner)
+			{
+				bOutAdvanceProperty = false;
+				return bOutAdvanceProperty;
+			}
+
 			LoadFromType<uint8>(this, Tag, Ar, Data);
 		}
 		else

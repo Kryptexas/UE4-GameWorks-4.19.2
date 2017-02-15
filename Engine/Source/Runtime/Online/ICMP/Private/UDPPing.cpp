@@ -1,5 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "IcmpPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+#include "CoreMinimal.h"
+#include "Misc/ConfigCacheIni.h"
+#include "HAL/ThreadSafeBool.h"
+#include "Containers/Ticker.h"
+#include "Async/Future.h"
+#include "Async/Async.h"
+#include "IcmpPrivate.h"
 #include "Icmp.h"
 #include "SocketSubsystem.h"
 #include "IPAddress.h"
@@ -69,7 +76,7 @@ FIcmpEchoResult UDPEchoImpl(ISocketSubsystem* SocketSub, const FString& TargetAd
 	}
 
 	int32 Port = 0;
-	LexicalConversion::FromString(Port, *PortStr);
+	Lex::FromString(Port, *PortStr);
 
 	//ISocketSubsystem* SocketSub = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 	if (SocketSub)

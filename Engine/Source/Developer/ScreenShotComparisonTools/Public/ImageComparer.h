@@ -1,39 +1,69 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "CoreUObject.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "ImageComparer.generated.h"
+
+class Error;
+class FComparableImage;
 
 /**
  * 
  */
+USTRUCT()
 struct FImageTolerance
 {
+	GENERATED_USTRUCT_BODY()
+
 public:
+
+	UPROPERTY()
 	uint8 Red;
+
+	UPROPERTY()
 	uint8 Green;
+
+	UPROPERTY()
 	uint8 Blue;
+
+	UPROPERTY()
 	uint8 Alpha;
+
+	UPROPERTY()
 	uint8 MinBrightness;
+
+	UPROPERTY()
 	uint8 MaxBrightness;
 
+	UPROPERTY()
 	bool IgnoreAntiAliasing;
+
+	UPROPERTY()
 	bool IgnoreColors;
 
+	UPROPERTY()
+	float MaximumLocalError;
+
+	UPROPERTY()
+	float MaximumGlobalError;
+
 	FImageTolerance()
-		: Red(16)
-		, Green(16)
-		, Blue(16)
-		, Alpha(16)
-		, MinBrightness(16)
-		, MaxBrightness(240)
+		: Red(0)
+		, Green(0)
+		, Blue(0)
+		, Alpha(0)
+		, MinBrightness(0)
+		, MaxBrightness(255)
 		, IgnoreAntiAliasing(false)
 		, IgnoreColors(false)
+		, MaximumLocalError(0.0f)
+		, MaximumGlobalError(0.0f)
 	{
 	}
 
-	FImageTolerance(uint8 R, uint8 G, uint8 B, uint8 A, uint8 InMinBrightness, uint8 InMaxBrightness, bool InIgnoreAntiAliasing, bool InIgnoreColors)
+	FImageTolerance(uint8 R, uint8 G, uint8 B, uint8 A, uint8 InMinBrightness, uint8 InMaxBrightness, bool InIgnoreAntiAliasing, bool InIgnoreColors, float InMaximumLocalError, float InMaximumGlobalError)
 		: Red(R)
 		, Green(G)
 		, Blue(B)
@@ -42,6 +72,8 @@ public:
 		, MaxBrightness(InMaxBrightness)
 		, IgnoreAntiAliasing(InIgnoreAntiAliasing)
 		, IgnoreColors(InIgnoreColors)
+		, MaximumLocalError(InMaximumLocalError)
+		, MaximumGlobalError(InMaximumGlobalError)
 	{
 	}
 
@@ -57,18 +89,18 @@ class FComparableImage;
 class FPixelOperations
 {
 public:
-	static FORCEINLINE float GetBrightness(const FColor& Color)
+	static FORCEINLINE double GetLuminance(const FColor& Color)
 	{
 		// https://en.wikipedia.org/wiki/Relative_luminance
-		return 0.2126 * Color.R + 0.7152 * Color.G + 0.0722 * Color.B;
+		return (0.2126 * Color.R + 0.7152 * Color.G + 0.0722 * Color.B) * (Color.A / 255.0);
 	}
 
 	static bool IsBrightnessSimilar(const FColor& ColorA, const FColor& ColorB, const FImageTolerance& Tolerance)
 	{
 		const bool AlphaSimilar = FMath::IsNearlyEqual((float)ColorA.A, ColorB.A, Tolerance.Alpha);
 
-		const float BrightnessA = FPixelOperations::GetBrightness(ColorA);
-		const float BrightnessB = FPixelOperations::GetBrightness(ColorB);
+		const float BrightnessA = FPixelOperations::GetLuminance(ColorA);
+		const float BrightnessB = FPixelOperations::GetLuminance(ColorB);
 		const bool BrightnessSimilar = FMath::IsNearlyEqual(BrightnessA, BrightnessB, Tolerance.MinBrightness);
 
 		return BrightnessSimilar && AlphaSimilar;
@@ -93,8 +125,8 @@ public:
 
 	static FORCEINLINE bool IsContrasting(const FColor& ColorA, const FColor& ColorB, const FImageTolerance& Tolerance)
 	{
-		const float BrightnessA = FPixelOperations::GetBrightness(ColorA);
-		const float BrightnessB = FPixelOperations::GetBrightness(ColorB);
+		const float BrightnessA = FPixelOperations::GetLuminance(ColorA);
+		const float BrightnessB = FPixelOperations::GetLuminance(ColorB);
 
 		return FMath::Abs(BrightnessA - BrightnessB) > Tolerance.MaxBrightness;
 	}
@@ -119,12 +151,12 @@ public:
 		, GreenTotal(0)
 		, BlueTotal(0)
 		, AlphaTotal(0)
-		, BrightnessTotal(0)
+		, LuminanceTotal(0)
 		, RedAverage(0)
 		, GreenAverage(0)
 		, BlueAverage(0)
 		, AlphaAverage(0)
-		, BbrightnessAverage(0)
+		, LuminanceAverage(0)
 	{
 	}
 
@@ -153,13 +185,13 @@ public:
 	double GreenTotal;
 	double BlueTotal;
 	double AlphaTotal;
-	double BrightnessTotal;
+	double LuminanceTotal;
 
 	double RedAverage;
 	double GreenAverage;
 	double BlueAverage;
 	double AlphaAverage;
-	double BbrightnessAverage;
+	double LuminanceAverage;
 };
 
 /**
@@ -169,6 +201,8 @@ USTRUCT()
 struct FImageComparisonResult
 {
 	GENERATED_USTRUCT_BODY()
+
+public:
 
 	UPROPERTY()
 	FString ApprovedFile;
@@ -180,27 +214,49 @@ struct FImageComparisonResult
 	FString ComparisonFile;
 
 	UPROPERTY()
-	double Difference;
+	double MaxLocalDifference;
+
+	UPROPERTY()
+	double GlobalDifference;
 
 	UPROPERTY()
 	FText ErrorMessage;
 
+	UPROPERTY()
+	FImageTolerance Tolerance;
+
 	FImageComparisonResult()
-		: Difference(0.0f)
+		: MaxLocalDifference(0.0f)
+		, GlobalDifference(0.0f)
 		, ErrorMessage()
 	{
 	}
 
-	FImageComparisonResult(bool InWithinTolerance, bool InDifference)
-		: Difference(InDifference)
-		, ErrorMessage(FText::GetEmpty())
+	FImageComparisonResult(const FText& Error)
+		: MaxLocalDifference(0.0f)
+		, GlobalDifference(0.0f)
+		, ErrorMessage(Error)
 	{
 	}
 
-	FImageComparisonResult(const FText& Error)
-		: Difference(0.0f)
-		, ErrorMessage(Error)
+	bool IsNew() const
 	{
+		return ApprovedFile.IsEmpty();
+	}
+
+	bool AreSimilar() const
+	{
+		if ( IsNew() )
+		{
+			return false;
+		}
+
+		if ( MaxLocalDifference > Tolerance.MaximumLocalError || GlobalDifference > Tolerance.MaximumGlobalError )
+		{
+			return false;
+		}
+
+		return true;
 	}
 };
 
@@ -232,6 +288,12 @@ public:
 
 	UPROPERTY()
 	TArray<FImageComparisonResult> Comparisons;
+
+	UPROPERTY()
+	TArray<FString> Added;
+
+	UPROPERTY()
+	TArray<FString> Missing;
 };
 
 /**
@@ -247,6 +309,17 @@ public:
 	FImageComparer();
 
 	FImageComparisonResult Compare(const FString& ImagePathA, const FString& ImagePathB, FImageTolerance Tolerance);
+
+	enum class EStructuralSimilarityComponent : uint8
+	{
+		Luminance,
+		Color
+	};
+
+	/**
+	 * https://en.wikipedia.org/wiki/Structural_similarity
+	 */
+	double CompareStructuralSimilarity(const FString& ImagePathA, const FString& ImagePathB, EStructuralSimilarityComponent InCompareComponent);
 
 private:
 	TSharedPtr<FComparableImage> Open(const FString& ImagePath, FText& OutError);

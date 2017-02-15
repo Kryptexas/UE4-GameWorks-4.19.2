@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateBasics.h"
-#include "IWebBrowserDialog.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
 #include "SWebBrowserView.h"
 
+class IWebBrowserAdapter;
+class IWebBrowserDialog;
+class IWebBrowserWindow;
+class SEditableTextBox;
+struct FWebNavigationRequest;
+enum class EWebBrowserDialogEventResponse;
 
 class WEBBROWSER_API SWebBrowser
 	: public SCompoundWidget

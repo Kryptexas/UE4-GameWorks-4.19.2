@@ -1,10 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidFile.cpp: Android platform implementations of File functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
 #include "AndroidFile.h"
 #include "Misc/App.h"
 
@@ -65,6 +64,8 @@ static int32 GPackagePatchVersion = 0;
 
 // External File Path base - setup during load
 FString GFilePathBase;
+// Obb File Path base - setup during load
+FString GOBBFilePathBase;
 // External File Direcory Path (for application) - setup during load
 FString GExternalFilePath;
 // External font path base - setup during load
@@ -897,8 +898,8 @@ public:
 			// For external OBBs we mount the specific OBB files,
 			// main and patch, only. As required by Android specs.
 			// See <http://developer.android.com/google/play/expansion-files.html>
-			FString OBBDir1 = GFilePathBase + FString(TEXT("/Android/obb/") + GPackageName);
-			FString OBBDir2 = GFilePathBase + FString(TEXT("/obb/") + GPackageName);
+			FString OBBDir1 = GOBBFilePathBase + FString(TEXT("/Android/obb/") + GPackageName);
+			FString OBBDir2 = GOBBFilePathBase + FString(TEXT("/obb/") + GPackageName);
 			FString MainOBBName = FString::Printf(TEXT("main.%d.%s.obb"), GPackageVersion, *GPackageName);
 			FString PatchOBBName = FString::Printf(TEXT("patch.%d.%s.obb"), GPackageVersion, *GPackageName);
 			if (FileExists(*(OBBDir1 / MainOBBName), true))

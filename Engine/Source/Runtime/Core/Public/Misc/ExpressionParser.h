@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ExpressionParserTypes.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Templates/ValueOrError.h"
+#include "Misc/ExpressionParserTypes.h"
 
 /** An expression parser, responsible for lexing, compiling, and evaluating expressions.
  *	The parser supports 3 functions:

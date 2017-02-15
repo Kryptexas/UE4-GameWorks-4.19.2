@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "GearVRPrivatePCH.h"
+#include "CoreMinimal.h"
 #include "GearVR.h"
+#include "IHeadMountedDisplay.h"
+#include "IGearVRPlugin.h"
 #include "RHIStaticStates.h"
+#include "HeadMountedDisplayCommon.h"
 
 #if GEARVR_SUPPORTED_PLATFORMS
 
@@ -14,8 +17,6 @@
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidEGL.h"
 #endif
-
-#define OCULUS_STRESS_TESTS_ENABLED	0
 
 #if OCULUS_STRESS_TESTS_ENABLED
 #include "OculusStressTests.h"
@@ -73,6 +74,7 @@ FOpenGLTexture2DSet* FOpenGLTexture2DSet::CreateTexture2DSet(
 	FOpenGLDynamicRHI* InGLRHI,
 	uint32 SizeX, uint32 SizeY,
 	uint32 InNumSamples,
+	uint32 InNumSamplesTileMem,
 	uint32 InNumMips,
 	EPixelFormat InFormat,
 	uint32 InFlags,
@@ -86,7 +88,7 @@ FOpenGLTexture2DSet* FOpenGLTexture2DSet::CreateTexture2DSet(
 	uint8* TextureRange = nullptr;
 
 	FOpenGLTexture2DSet* NewTextureSet = new FOpenGLTexture2DSet(
-		InGLRHI, 0, Target, Attachment, SizeX, SizeY, 0, InNumMips, InNumSamples, 1, InFormat, bInCubemap, bAllocatedStorage, InFlags, TextureRange);
+		InGLRHI, 0, Target, Attachment, SizeX, SizeY, 0, InNumMips, InNumSamples, InNumSamplesTileMem, 1, InFormat, bInCubemap, bAllocatedStorage, InFlags, TextureRange);
 
 	const int32 NumLevels = (InNumMips == 0) ? VRAPI_TEXTURE_SWAPCHAIN_FULL_MIP_CHAIN : int(InNumMips);
     if (bInCubemap)
@@ -316,10 +318,10 @@ void FLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICm
 
 				if (!RenderLayer->TextureSet.IsValid())
 				{
-					RenderLayer->TextureSet = pPresentBridge->CreateTextureSet(SizeX, SizeY, VrApiFormat, 1, false, IsCubemap);
+					RenderLayer->TextureSet = pPresentBridge->CreateTextureSet(SizeX, SizeY, VrApiFormat, 1, 1, false, IsCubemap);
 					if (LeftTexture)
 					{
-						RenderLayer->LeftTextureSet = pPresentBridge->CreateTextureSet(SizeX, SizeY, VrApiFormat, 1, false, IsCubemap);
+						RenderLayer->LeftTextureSet = pPresentBridge->CreateTextureSet(SizeX, SizeY, VrApiFormat, 1, 1, false, IsCubemap);
 					}
 				
 					if (!RenderLayer->TextureSet.IsValid())
@@ -581,7 +583,7 @@ bool FGearVR::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 Siz
 #if !OVR_DEBUG_DRAW
 	UE_LOG(LogHMD, Log, TEXT("Allocating Render Target textures"));
 	// ignore NumMips for RT, use 1 
-	pGearVRBridge->AllocateRenderTargetTexture(SizeX, SizeY, Format, 1, InFlags, TargetableTextureFlags, OutTargetableTexture, OutShaderResourceTexture, NumSamples);
+	pGearVRBridge->AllocateRenderTargetTexture(SizeX, SizeY, Format, 1, InFlags, TargetableTextureFlags, OutTargetableTexture, OutShaderResourceTexture, GetSettings()->MaxFullspeedMSAASamples);
 	return true;
 #else
 	return false;
@@ -605,7 +607,7 @@ bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uin
 		TextureSet->ReleaseResources();
 	}
 
-	FTexture2DSetProxyPtr ColorTextureSet = CreateTextureSet(SizeX, SizeY, EPixelFormat(Format), NumMips, true, false);
+	FTexture2DSetProxyPtr ColorTextureSet = CreateTextureSet(SizeX, SizeY, EPixelFormat(Format), NumSamples, NumMips, true, false);
 	if (ColorTextureSet.IsValid())
 	{
 		OutTargetableTexture = ColorTextureSet->GetRHITexture2D();
@@ -618,7 +620,7 @@ bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uin
 
 		check(IsInGameThread() && IsInRenderingThread()); // checking if rendering thread is suspended
 
-		UE_LOG(LogHMD, Log, TEXT("New swap texture %p (%d x %d) has been allocated"), ColorTextureSet->GetTextureSet()->GetColorTextureSet(), SizeX, SizeY);
+		UE_LOG(LogHMD, Log, TEXT("New swap texture %p (%d x %d) has been allocated with %d samples"), ColorTextureSet->GetTextureSet()->GetColorTextureSet(), SizeX, SizeY, NumSamples);
 
 		return true;
 	}
@@ -626,7 +628,7 @@ bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uin
 	return false;
 }
 
-FTexture2DSetProxyPtr FCustomPresent::CreateTextureSet(uint32 InSizeX, uint32 InSizeY, uint8 InFormat, uint32 InNumMips, bool bBuffered, bool bInCubemap)
+FTexture2DSetProxyPtr FCustomPresent::CreateTextureSet(uint32 InSizeX, uint32 InSizeY, uint8 InFormat, uint32 NumSamples, uint32 InNumMips, bool bBuffered, bool bInCubemap)
 {
 	check(InSizeX != 0 && InSizeY != 0);
 	auto GLRHI = static_cast<FOpenGLDynamicRHI*>(GDynamicRHI);
@@ -635,6 +637,7 @@ FTexture2DSetProxyPtr FCustomPresent::CreateTextureSet(uint32 InSizeX, uint32 In
 		GLRHI,
 		InSizeX, InSizeY,
 		1,
+		NumSamples,
 		NumMips,
 		EPixelFormat(InFormat),
 		TexCreate_RenderTargetable | TexCreate_ShaderResource,
@@ -663,12 +666,12 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 		return;
 	}
 
-	const int eyeIdx = (View.StereoPass == eSSP_LEFT_EYE) ? 0 : 1;
+	const int32 ViewIndex = ViewIndexFromStereoPass(View.StereoPass);
 	if (ShowFlags.Rendering && CurrentFrame->Settings->Flags.bUpdateOnRT)
 	{
 		FQuat	CurrentEyeOrientation;
 		FVector	CurrentEyePosition;
-		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->CurEyeRenderPose[eyeIdx], CurrentEyeOrientation, CurrentEyePosition);
+		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->CurEyeRenderPose[ViewIndex], CurrentEyeOrientation, CurrentEyePosition);
 
 		const FQuat ViewOrientation = View.ViewRotation.Quaternion();
 
@@ -676,10 +679,10 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 		FVector GameEyePosition;
 		FQuat GameEyeOrient;
 
-		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->EyeRenderPose[eyeIdx], GameEyeOrient, GameEyePosition);
+		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->EyeRenderPose[ViewIndex], GameEyeOrient, GameEyePosition);
 		const FQuat DeltaControlOrientation = ViewOrientation * GameEyeOrient.Inverse();
 		// make sure we use the same viewrotation as we had on a game thread
-		check(View.ViewRotation == CurrentFrame->CachedViewRotation[eyeIdx]);
+		check(View.ViewRotation == CurrentFrame->CachedViewRotation[ViewIndex]);
 
 		if (CurrentFrame->Flags.bOrientationChanged)
 		{
@@ -1263,7 +1266,7 @@ void FCustomPresent::SetLoadingIconTexture_RenderThread(FTextureRHIRef InTexture
 		const uint32 SizeX = InTexture->GetTexture2D()->GetSizeX();
 		const uint32 SizeY = InTexture->GetTexture2D()->GetSizeY();
 
-		LoadingIconTextureSet = FCustomPresent::CreateTextureSet(SizeX, SizeY, EPixelFormat::PF_B8G8R8A8, 0, false, false);
+		LoadingIconTextureSet = FCustomPresent::CreateTextureSet(SizeX, SizeY, EPixelFormat::PF_B8G8R8A8, 1, 0, false, false);
 		CopyTexture_RenderThread(FRHICommandListExecutor::GetImmediateCommandList(), LoadingIconTextureSet->GetRHITexture2D(), InTexture->GetTexture2D() , SizeX, SizeY, FIntRect(), FIntRect(), false);
 	}
 }
@@ -1386,7 +1389,9 @@ void FCustomPresent::PushBlack(const FGameFrame* frame, bool isFinal)
 	{
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("+++++++ PushBlack() ++++++, On RT! tid = %d, final = %b"), FPlatformTLS::GetCurrentThreadId(), isFinal);
 		
+#if PLATFORM_ANDROID
 		check(JavaRT.Vm != nullptr);
+#endif
 		ovrFrameParms frameParms = vrapi_DefaultFrameParms(&JavaRT, isFinal ? VRAPI_FRAME_INIT_BLACK_FINAL : VRAPI_FRAME_INIT_BLACK, vrapi_GetTimeInSeconds(), nullptr);
 		frameParms.PerformanceParms = DefaultPerfParms;
 		frameParms.Java = JavaRT;
@@ -1420,7 +1425,9 @@ void FCustomPresent::PushFrame(FLayerManager* pInLayerMgr, const FGameFrame* InC
 		}
 		else
 		{
+#if PLATFORM_ANDROID
 			check(JavaRT.Vm != nullptr);
+#endif
 			ovrFrameParms frameParms = vrapi_DefaultFrameParms(&JavaRT, VRAPI_FRAME_INIT_DEFAULT, vrapi_GetTimeInSeconds(), nullptr);
 			frameParms.MinimumVsyncs = MinimumVsyncs;
 			frameParms.ExtraLatencyMode = (bExtraLatencyMode) ? VRAPI_EXTRA_LATENCY_MODE_ON : VRAPI_EXTRA_LATENCY_MODE_OFF;

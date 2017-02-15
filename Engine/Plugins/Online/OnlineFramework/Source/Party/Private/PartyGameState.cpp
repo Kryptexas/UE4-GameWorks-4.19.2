@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PartyPrivatePCH.h"
 #include "PartyGameState.h"
+#include "Engine/LocalPlayer.h"
+#include "UnrealEngine.h"
+#include "PartyModule.h"
 #include "PartyMemberState.h"
 #include "Party.h"
 #include "PartyBeaconClient.h"
-#include "Online.h"
 #include "OnlineSubsystemUtils.h"
 
 namespace PartyConsoleVariables
@@ -221,6 +222,7 @@ bool UPartyGameState::ResetForFrontend()
 	UE_LOG(LogParty, Verbose, TEXT("Resetting parties for frontend"));
 
 	bool bSuccess = false;
+	bool bPendingApprovalsReprocessed = false;
 
 	CleanupReservationBeacon();
 
@@ -290,6 +292,25 @@ bool UPartyGameState::ResetForFrontend()
 						ResetPartySize();
 						UpdateAcceptingMembers();
 					}
+
+					// Re-process any outstanding approval requests now that we are not connected to the reservation beacon anymore
+					bPendingApprovalsReprocessed = true;
+					if (!PendingApprovals.IsEmpty())
+					{
+						UE_LOG(LogParty, Verbose, TEXT("Reprocessing pending approvals as we are no longer connected to the reservation beacon"));
+						FPendingMemberApproval PendingApproval;
+						TQueue<FPendingMemberApproval> ExistingPendingApprovals;
+						while (PendingApprovals.Dequeue(PendingApproval))
+						{
+							ExistingPendingApprovals.Enqueue(PendingApproval);
+						}
+
+						while (ExistingPendingApprovals.Dequeue(PendingApproval))
+						{
+							HandlePartyJoinRequestReceived(*PendingApproval.RecipientId, *PendingApproval.SenderId);
+						}
+
+					}
 				}
 				else
 				{
@@ -309,6 +330,12 @@ bool UPartyGameState::ResetForFrontend()
 	else
 	{
 		UE_LOG(LogParty, Warning, TEXT("Invalid party info during reset!"));
+	}
+
+	if (!bPendingApprovalsReprocessed && !PendingApprovals.IsEmpty())
+	{
+		UE_LOG(LogParty, Verbose, TEXT("Rejecting pending approvals as we are no longer connected to the reservation beacon"));
+		RejectAllPendingJoinRequests();
 	}
 
 	if (!bSuccess)

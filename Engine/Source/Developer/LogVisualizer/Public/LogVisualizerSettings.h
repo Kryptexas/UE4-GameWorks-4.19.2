@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 GameplayDebuggerSettings.h: Declares the UGameplayDebuggerSettings class.
 =============================================================================*/
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "LogVisualizerSettings.generated.h"
+
+struct FVisualLoggerDBRow;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnFilterCategoryAdded, FString, ELogVerbosity::Type);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnFilterCategoryRemoved, FString);

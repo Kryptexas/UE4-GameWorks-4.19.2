@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -331,9 +331,6 @@ public:
 	 */
 	virtual void RHIWaitComputeFence(FComputeFenceRHIParamRef InFence) final override;
 
-protected:
-	// Helper for ClearMRT so that it can properly perform volumetric clears
-	void RHIDrawInstancedPrimitiveUP( FRHICommandList& RHICmdList, uint32 PrimitiveType, uint32 NumPrimitives, const void* VertexData, uint32 VertexDataStride, uint32 InstanceCount );
 	
 protected:
 	static TGlobalResource<TBoundShaderStateHistory<10000>> BoundShaderStateHistory;
@@ -344,7 +341,7 @@ protected:
 	/** Profiling implementation details. */
 	struct FMetalGPUProfiler* Profiler;
 	
-	/** Some local variables to track the pending primitive information uised in RHIEnd*UP functions */
+	/** Some local variables to track the pending primitive information used in RHIEnd*UP functions */
 	uint32 PendingVertexBufferOffset;
 	uint32 PendingVertexDataStride;
 	

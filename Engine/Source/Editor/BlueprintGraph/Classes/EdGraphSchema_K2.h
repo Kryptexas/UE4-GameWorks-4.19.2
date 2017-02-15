@@ -1,9 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "EdGraph/EdGraphSchema.h"
+
+#include "CoreMinimal.h"
+#include "Misc/EnumClassFlags.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Misc/StringAssetReference.h"
+#include "EdGraph/EdGraphNode.h"
 #include "EdGraph/EdGraphPin.h"
+#include "AssetData.h"
+#include "EdGraph/EdGraph.h"
+#include "EdGraph/EdGraphSchema.h"
 #include "EdGraphSchema_K2.generated.h"
+
+class AActor;
+class FMenuBuilder;
+class UBlueprint;
+class UK2Node;
+struct FTypesDatabase;
 
 /** Reference to an structure (only used in 'docked' palette) */
 USTRUCT()
@@ -35,8 +50,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Struct : public FEdGraphSchemaA
 		, Struct(nullptr)
 	{}
 
-	FEdGraphSchemaAction_K2Struct (const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FEdGraphSchemaAction_K2Struct (FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 		, Struct(nullptr)
 	{}
 };
@@ -175,7 +190,13 @@ public:
 	static const FName MD_ArrayParam;
 	static const FName MD_ArrayDependentParam;
 
+	/** Metadata that flags TSet parameters that will have their type determined at blueprint compile time */
 	static const FName MD_SetParam;
+
+	/** Metadata that flags TMap function parameters that will have their type determined at blueprint compile time */
+	static const FName MD_MapParam;
+	static const FName MD_MapKeyParam;
+	static const FName MD_MapValueParam;
 
 	/** Metadata that identifies an integral property as a bitmask. */
 	static const FName MD_Bitmask;
@@ -460,6 +481,7 @@ public:
 	virtual bool IsCacheVisualizationOutOfDate(int32 InVisualizationCacheID) const override;
 	virtual int32 GetCurrentVisualizationCacheID() const override;
 	virtual void ForceVisualizationCacheClear() const override;
+	virtual bool SafeDeleteNodeFromGraph(UEdGraph* Graph, UEdGraphNode* NodeToDelete) const override;
 	//~ End EdGraphSchema Interface
 
 	/**
@@ -1015,6 +1037,9 @@ public:
 	 * Make links from all data pins from InOutputNode output to InInputNode input.
 	 */
 	void LinkDataPinFromOutputToInput(UEdGraphNode* InOutputNode, UEdGraphNode* InInputNode) const;
+
+	/** Convert a deprecated node into a function call node, called from per-node ConvertDeprecatedNode */
+	UK2Node* ConvertDeprecatedNodeToFunctionCall(UK2Node* OldNode, UFunction* NewFunction, TMap<FString, FString>& OldPinToNewPinMap, UEdGraph* Graph) const;
 
 	/** some inherited schemas don't want anim-notify actions listed, so this is an easy way to check that */
 	virtual bool DoesSupportAnimNotifyActions() const { return true; }

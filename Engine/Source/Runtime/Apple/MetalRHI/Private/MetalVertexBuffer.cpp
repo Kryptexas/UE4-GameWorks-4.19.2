@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalVertexBuffer.cpp: Metal vertex buffer RHI implementation.
@@ -7,7 +7,7 @@
 #include "MetalRHIPrivate.h"
 #include "MetalProfiler.h"
 #include "MetalCommandBuffer.h"
-
+#include "Containers/ResourceArray.h"
 
 FMetalVertexBuffer::FMetalVertexBuffer(uint32 InSize, uint32 InUsage)
 	: FRHIVertexBuffer(InSize, InUsage)
@@ -84,7 +84,7 @@ void* FMetalVertexBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, uint32
 	
 	if (Data)
 	{
-		return ((uint8*)Data.bytes) + Offset;
+		return ((uint8*)Data.mutableBytes) + Offset;
 	}
 	
 	// In order to properly synchronise the buffer access, when a dynamic buffer is locked for writing, discard the old buffer & create a new one. This prevents writing to a buffer while it is being read by the GPU & thus causing corruption. This matches the logic of other RHIs.
@@ -121,9 +121,7 @@ void* FMetalVertexBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, uint32
 		SCOPE_CYCLE_COUNTER(STAT_MetalBufferPageOffTime);
 		
 		// Synchronise the buffer with the CPU
-		id<MTLBlitCommandEncoder> Blitter = GetMetalDeviceContext().GetBlitContext();
-		METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG((&GetMetalDeviceContext()), @"SynchronizeResource(VertexBuffer %p)", this);
-		[Blitter synchronizeResource:Buffer];
+		GetMetalDeviceContext().SynchroniseResource(Buffer);
 		
 		//kick the current command buffer.
 		GetMetalDeviceContext().SubmitCommandBufferAndWait();

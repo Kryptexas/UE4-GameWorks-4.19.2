@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "TP_Vehicle.h"
 #include "TP_VehiclePawn.h"
@@ -9,7 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
-#include "Vehicles/WheeledVehicleMovementComponent4W.h"
+#include "WheeledVehicleMovementComponent4W.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine.h"
 

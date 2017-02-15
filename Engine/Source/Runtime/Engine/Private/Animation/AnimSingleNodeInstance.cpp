@@ -1,20 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UAnimSingleNodeInstance.cpp: Single Node Tree Instance 
 	Only plays one animation at a time. 
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "Animation/AnimNodeBase.h"
 #include "Animation/AnimSingleNodeInstance.h"
-#include "AnimationRuntime.h"
-#include "Animation/BlendSpace.h"
 #include "Animation/BlendSpaceBase.h"
-#include "Animation/AnimComposite.h"
-#include "Animation/AimOffsetBlendSpace.h"
-#include "Animation/AimOffsetBlendSpace1D.h"
-#include "Animation/AnimMontage.h"
+#include "Animation/BlendSpace.h"
 #include "Animation/AnimSingleNodeInstanceProxy.h"
 
 /////////////////////////////////////////////////////
@@ -41,7 +34,7 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 #endif
 		NewAsset && NewAsset->IsValidAdditive())
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("Setting an additive animation (%s) on an AnimSingleNodeInstance is not allowed. This will not function correctly in cooked builds!"), *NewAsset->GetName());
+		UE_LOG(LogAnimation, Warning, TEXT("Setting an additive animation (%s) on an AnimSingleNodeInstance (%s) is not allowed. This will not function correctly in cooked builds!"), *NewAsset->GetName(), *GetFullName());
 	}
 
 	USkeletalMeshComponent* MeshComponent = GetSkelMeshComponent();
@@ -151,6 +144,18 @@ void UAnimSingleNodeInstance::SetMontageLoop(UAnimMontage* Montage, bool bIsLoop
 void UAnimSingleNodeInstance::UpdateMontageWeightForTimeSkip(float TimeDifference)
 {
 	Montage_UpdateWeight(TimeDifference);
+	if (UAnimMontage * Montage = Cast<UAnimMontage>(CurrentAsset))
+	{
+		FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
+
+		UpdateMontageEvaluationData();
+
+		if(Montage->SlotAnimTracks.Num() > 0)
+		{
+			const FName CurrentSlotNodeName = Montage->SlotAnimTracks[0].SlotName;
+			Proxy.UpdateMontageWeightForSlot(CurrentSlotNodeName, 1.f);
+		}
+	}
 }
 
 void UAnimSingleNodeInstance::UpdateBlendspaceSamples(FVector InBlendInput)

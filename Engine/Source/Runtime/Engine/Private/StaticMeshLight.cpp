@@ -1,16 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMeshLight.cpp: Static mesh lighting code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "StaticMeshResources.h"
-#include "Raster.h"
 #include "StaticMeshLight.h"
-#include "LightMap.h"
-#include "ShadowMap.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
+#include "CollisionQueryParams.h"
+#include "Components/StaticMeshComponent.h"
+#include "Misc/ConfigCacheIni.h"
 #include "ComponentReregisterContext.h"
+#include "StaticMeshResources.h"
+#include "LightMap.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Components/LightComponent.h"
+#include "ShadowMap.h"
 
 /**
  * Creates a static lighting vertex to represent the given static mesh vertex.
@@ -298,7 +303,7 @@ void UStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& O
 		GetLightMapResolution( BaseLightMapWidth, BaseLightMapHeight );
 
 		TArray<FStaticMeshStaticLightingMesh*> StaticLightingMeshes;
-		bool bCanLODsShareStaticLighting = GetStaticMesh()->CanLODsShareStaticLighting();
+		bool bCanLODsShareStaticLighting = GetStaticMesh()->SpeedTreeWind.IsValid();
 		int32 NumLODs = bCanLODsShareStaticLighting ? 1 : GetStaticMesh()->RenderData->LODResources.Num();
 		for(int32 LODIndex = 0;LODIndex < NumLODs;LODIndex++)
 		{
@@ -407,29 +412,21 @@ void UStaticMeshComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuild
 	// Save the static mesh state for transactions, force it to be marked dirty if we are going to discard any static lighting data.
 	Modify(true);
 
-	// Detach the component from the scene for the duration of this function.
-	FComponentReregisterContext ReregisterContext(this);
-
-	// Block until the RT processes the unregister before modifying variables that it may need to access
-	FlushRenderingCommands();
-
 	Super::InvalidateLightingCacheDetailed(bInvalidateBuildEnqueuedLighting, bTranslationOnly);
-
-	// Discard all cached lighting.
-	check(AttachmentCounter.GetValue() == 0);
 
 	for(int32 i = 0; i < LODData.Num(); i++)
 	{
 		FStaticMeshComponentLODInfo& LODDataElement = LODData[i];
 		LODDataElement.MapBuildDataId = FGuid::NewGuid();
 	}
+
+	MarkRenderStateDirty();
 }
 
 UObject const* UStaticMeshComponent::AdditionalStatObject() const
 {
 	return GetStaticMesh();
 }
-
 
 bool UStaticMeshComponent::SetStaticLightingMapping(bool bTextureMapping, int32 ResolutionToUse)
 {

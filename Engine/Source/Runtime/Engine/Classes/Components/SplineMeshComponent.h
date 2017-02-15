@@ -1,11 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Components/StaticMeshComponent.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Components/StaticMeshComponent.h"
 
 #include "SplineMeshComponent.generated.h"
+
+class FPrimitiveSceneProxy;
+class ULightComponent;
+struct FNavigableGeometryExport;
 
 UENUM(BlueprintType)
 namespace ESplineMeshAxis

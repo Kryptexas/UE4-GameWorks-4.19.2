@@ -1,15 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Engine/LevelStreaming.h"
+#include "ContentStreaming.h"
+#include "Misc/App.h"
+#include "UObject/Package.h"
+#include "Serialization/ArchiveTraceRoute.h"
+#include "Misc/PackageName.h"
+#include "UObject/LinkerLoad.h"
+#include "EngineGlobals.h"
+#include "Engine/Level.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/World.h"
+#include "UObject/ObjectRedirector.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/Engine.h"
 #include "Engine/LevelStreamingAlwaysLoaded.h"
 #include "Engine/LevelStreamingPersistent.h"
 #include "Engine/LevelStreamingVolume.h"
-#include "Engine/LevelBounds.h"
 #include "LevelUtils.h"
+#include "EngineUtils.h"
 #if WITH_EDITOR
-	#include "SlateBasics.h"
-	#include "SNotificationList.h"
-	#include "NotificationManager.h"
+	#include "Framework/Notifications/NotificationManager.h"
+	#include "Widgets/Notifications/SNotificationList.h"
 #endif
 #include "Engine/LevelStreamingKismet.h"
 #include "Components/BrushComponent.h"
@@ -134,7 +146,7 @@ void FStreamLevelAction::ActivateLevel( ULevelStreaming* LevelStreamingObject )
 			// Notify players of the change
 			for( FConstPlayerControllerIterator Iterator = LevelWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 			{
-				APlayerController* PlayerController = *Iterator;
+				APlayerController* PlayerController = Iterator->Get();
 
 				UE_LOG(LogLevel, Log, TEXT("ActivateLevel %s %i %i %i"), 
 					*LevelStreamingObject->GetWorldAssetPackageName(), 
@@ -255,7 +267,7 @@ UWorld* ULevelStreaming::GetWorld() const
 	// Fail gracefully if a CDO
 	if(IsTemplate())
 	{
-		return NULL;
+		return nullptr;
 	}
 	// Otherwise 
 	else
@@ -317,7 +329,7 @@ void ULevelStreaming::SetLoadedLevel(class ULevel* Level)
 
 	FLevelCollection& LC = GetWorld()->FindOrAddCollectionByType(CollectionType);
 	LC.RemoveLevel(PendingUnloadLevel);
-	
+
 	// Remove the loaded level from its current collection, if any.
 	if (LoadedLevel && LoadedLevel->GetCachedLevelCollection())
 	{
@@ -382,7 +394,56 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 		UE_LOG(LogLevelStreaming, Verbose, TEXT("Delaying load of new level %s, because %s still processing visibility request."), *DesiredPackageName.ToString(), *CachedLoadedLevelPackageName.ToString());
 		return false;
 	}
-		
+
+	EPackageFlags PackageFlags = PKG_ContainsMap;
+	int32 PIEInstanceID = INDEX_NONE;
+
+	// copy streaming level on demand if we are in PIE
+	// (the world is already loaded for the editor, just find it and copy it)
+	if ( PersistentWorld->IsPlayInEditor() )
+	{
+		if (PersistentWorld->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor))
+		{
+			PackageFlags |= PKG_PlayInEditor;
+		}
+		PIEInstanceID = PersistentWorld->GetOutermost()->PIEInstanceID;
+
+		const FString NonPrefixedLevelName = UWorld::StripPIEPrefixFromPackageName(DesiredPackageName.ToString(), PersistentWorld->StreamingLevelsPrefix);
+		UPackage* EditorLevelPackage = FindObjectFast<UPackage>(nullptr, FName(*NonPrefixedLevelName));
+
+		bool bShouldDuplicate = EditorLevelPackage && (BlockPolicy == AlwaysBlock || EditorLevelPackage->IsDirty() || !GEngine->PreferToStreamLevelsInPIE());
+		if (bShouldDuplicate)
+		{
+			// Do the duplication
+			UWorld* PIELevelWorld = UWorld::DuplicateWorldForPIE(NonPrefixedLevelName, PersistentWorld);
+			if (PIELevelWorld)
+			{
+				PIELevelWorld->PersistentLevel->bAlreadyMovedActors = true; // As we have duplicated the world, the actors will already have been transformed
+				check(PendingUnloadLevel == NULL);
+				SetLoadedLevel(PIELevelWorld->PersistentLevel);
+
+				// Broadcast level loaded event to blueprints
+				{
+					QUICK_SCOPE_CYCLE_COUNTER(STAT_OnLevelLoaded_Broadcast);
+					OnLevelLoaded.Broadcast();
+				}
+
+				return true;
+			}
+			else if (PersistentWorld->WorldComposition == NULL) // In world composition streaming levels are not loaded by default
+			{
+				if ( bAllowLevelLoadRequests )
+				{
+					UE_LOG(LogLevelStreaming, Log, TEXT("World to duplicate for PIE '%s' not found. Attempting load."), *NonPrefixedLevelName);
+				}
+				else
+				{
+					UE_LOG(LogLevelStreaming, Warning, TEXT("Unable to duplicate PIE World: '%s'"), *NonPrefixedLevelName);
+				}
+			}
+		}
+	}
+
 	// Try to find the [to be] loaded package.
 	UPackage* LevelPackage = (UPackage*)StaticFindObjectFast(UPackage::StaticClass(), NULL, DesiredPackageName, 0, 0, RF_NoFlags, EInternalObjectFlags::PendingKill);
 
@@ -437,55 +498,6 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 		}
 	}
 
-	EPackageFlags PackageFlags = PKG_ContainsMap;
-	int32 PIEInstanceID = INDEX_NONE;
-
-	// copy streaming level on demand if we are in PIE
-	// (the world is already loaded for the editor, just find it and copy it)
-	if ( PersistentWorld->IsPlayInEditor() )
-	{
-		if (PersistentWorld->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor))
-		{
-			PackageFlags |= PKG_PlayInEditor;
-		}
-		PIEInstanceID = PersistentWorld->GetOutermost()->PIEInstanceID;
-
-		const FString NonPrefixedLevelName = UWorld::StripPIEPrefixFromPackageName(DesiredPackageName.ToString(), PersistentWorld->StreamingLevelsPrefix);
-		UPackage* EditorLevelPackage = FindObjectFast<UPackage>(nullptr, FName(*NonPrefixedLevelName));
-		
-		bool bShouldDuplicate = EditorLevelPackage && (BlockPolicy == AlwaysBlock || EditorLevelPackage->IsDirty() || !GEngine->PreferToStreamLevelsInPIE());
-		if (bShouldDuplicate)
-		{
-			// Do the duplication
-			UWorld* PIELevelWorld = UWorld::DuplicateWorldForPIE(NonPrefixedLevelName, PersistentWorld);
-			if (PIELevelWorld)
-			{
-				PIELevelWorld->PersistentLevel->bAlreadyMovedActors = true; // As we have duplicated the world, the actors will already have been transformed
-				check(PendingUnloadLevel == NULL);
-				SetLoadedLevel(PIELevelWorld->PersistentLevel);
-
-				// Broadcast level loaded event to blueprints
-				{
-					QUICK_SCOPE_CYCLE_COUNTER(STAT_OnLevelLoaded_Broadcast);
-					OnLevelLoaded.Broadcast();
-				}
-
-				return true;
-			}
-			else if (PersistentWorld->WorldComposition == NULL) // In world composition streaming levels are not loaded by default
-			{
-				if ( bAllowLevelLoadRequests )
-				{
-					UE_LOG(LogLevelStreaming, Log, TEXT("World to duplicate for PIE '%s' not found. Attempting load."), *NonPrefixedLevelName);
-				}
-				else
-				{
-					UE_LOG(LogLevelStreaming, Warning, TEXT("Unable to duplicate PIE World: '%s'"), *NonPrefixedLevelName);
-				}
-			}
-		}
-	}
-
 	// Async load package if world object couldn't be found and we are allowed to request a load.
 	if (bAllowLevelLoadRequests)
 	{
@@ -507,6 +519,11 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 			// Editor immediately blocks on load and we also block if background level streaming is disabled.
 			if (BlockPolicy == AlwaysBlock || (ShouldBeAlwaysLoaded() && BlockPolicy != NeverBlock))
 			{
+				if (IsAsyncLoading())
+				{
+					UE_LOG(LogStreaming, Log, TEXT("ULevelStreaming::RequestLevel(%s) is flushing async loading"), *DesiredPackageName.ToString());
+				}
+
 				// Finish all async loading.
 				FlushAsyncLoading();
 			}
@@ -557,6 +574,9 @@ void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackag
 				}
 
 				Level->HandleLegacyMapBuildData();
+
+				// Notify the streamer to start building incrementally the level streaming data.
+				IStreamingManager::Get().AddLevel(Level);
 
 				// Make sure this level will start to render only when it will be fully added to the world
 				if (LODPackageNames.Num() > 0)
@@ -693,11 +713,6 @@ bool ULevelStreaming::IsLevelVisible() const
 	return LoadedLevel != NULL && LoadedLevel->bIsVisible;
 }
 
-bool ULevelStreaming::IsLevelLoaded() const
-{
-	return LoadedLevel != NULL;
-}
-
 bool ULevelStreaming::IsStreamingStatePending() const
 {
 	UWorld* PersistentWorld = GetWorld();
@@ -759,17 +774,17 @@ ULevelStreaming* ULevelStreaming::CreateInstance(FString InstanceUniqueName)
 
 void ULevelStreaming::BroadcastLevelLoadedStatus(UWorld* PersistentWorld, FName LevelPackageName, bool bLoaded)
 {
-	for (auto It = PersistentWorld->StreamingLevels.CreateIterator(); It; ++It)
+	for (ULevelStreaming* StreamingLevel : PersistentWorld->StreamingLevels)
 	{
-		if ((*It)->GetWorldAssetPackageFName() == LevelPackageName)
+		if (StreamingLevel->GetWorldAssetPackageFName() == LevelPackageName)
 		{
 			if (bLoaded)
 			{
-				(*It)->OnLevelLoaded.Broadcast();
+				StreamingLevel->OnLevelLoaded.Broadcast();
 			}
 			else
 			{
-				(*It)->OnLevelUnloaded.Broadcast();
+				StreamingLevel->OnLevelUnloaded.Broadcast();
 			}
 		}
 	}
@@ -777,17 +792,17 @@ void ULevelStreaming::BroadcastLevelLoadedStatus(UWorld* PersistentWorld, FName 
 	
 void ULevelStreaming::BroadcastLevelVisibleStatus(UWorld* PersistentWorld, FName LevelPackageName, bool bVisible)
 {
-	for (auto It = PersistentWorld->StreamingLevels.CreateIterator(); It; ++It)
+	for (ULevelStreaming* StreamingLevel : PersistentWorld->StreamingLevels)
 	{
-		if ((*It)->GetWorldAssetPackageFName() == LevelPackageName)
+		if (StreamingLevel->GetWorldAssetPackageFName() == LevelPackageName)
 		{
 			if (bVisible)
 			{
-				(*It)->OnLevelShown.Broadcast();
+				StreamingLevel->OnLevelShown.Broadcast();
 			}
 			else
 			{
-				(*It)->OnLevelHidden.Broadcast();
+				StreamingLevel->OnLevelHidden.Broadcast();
 			}
 		}
 	}
@@ -844,13 +859,13 @@ void ULevelStreaming::RenameForPIE(int32 PIEInstanceID)
 	// Rename LOD levels if any
 	if (LODPackageNames.Num() > 0)
 	{
-		LODPackageNamesToLoad.Empty();
-		for (auto It = LODPackageNames.CreateIterator(); It; ++It)
+		LODPackageNamesToLoad.Reset(LODPackageNames.Num());
+		for (FName& LODPackageName : LODPackageNames)
 		{
 			// Store LOD level original package name
-			LODPackageNamesToLoad.Add(*It); 
+			LODPackageNamesToLoad.Add(LODPackageName); 
 			// Apply PIE prefix to package name
-			*It = FName(*UWorld::ConvertToPIEPackageName((*It).ToString(), PIEInstanceID)); 
+			LODPackageName = FName(*UWorld::ConvertToPIEPackageName(LODPackageName.ToString(), PIEInstanceID)); 
 		}
 	}
 }

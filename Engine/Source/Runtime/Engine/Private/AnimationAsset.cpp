@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Animation/AnimationAsset.h"
 #include "Engine/AssetUserData.h"
+#include "Animation/AssetMappingTable.h"
 #include "Animation/AnimSequence.h"
 #include "AnimationUtils.h"
-#include "Animation/AnimInstanceProxy.h"
+#include "Animation/AnimInstance.h"
+#include "UObject/LinkerLoad.h"
 
 #define LEADERSCORE_ALWAYSLEADER  	2.f
 #define LEADERSCORE_MONTAGE			3.f
@@ -151,7 +153,7 @@ void FAnimGroupInstance::Prepare(const FAnimGroupInstance* PreviousGroup)
 
 		ValidMarkers.Sort();
 
-		if (PreviousGroup && (ValidMarkers != PreviousGroup->ValidMarkers))
+		if (!PreviousGroup || (ValidMarkers != PreviousGroup->ValidMarkers))
 		{
 			for (int32 InternalActivePlayerIndex = 0; InternalActivePlayerIndex < ActivePlayers.Num(); ++InternalActivePlayerIndex)
 			{
@@ -221,13 +223,6 @@ void UAnimationAsset::SetSkeleton(USkeleton* NewSkeleton)
 	}
 }
 
-void UAnimationAsset::TickAssetPlayerInstance(FAnimTickRecord& Instance, class UAnimInstance* AnimInstance, FAnimAssetTickContext& Context) const
-{ 
-	// @todo: remove after deprecation
-	// Forward to non-deprecated function
-	TickAssetPlayer(Instance, AnimInstance->NotifyQueue, Context); 
-}
-
 #if WITH_EDITOR
 void UAnimationAsset::RemapTracksToNewSkeleton(USkeleton* NewSkeleton, bool bConvertSpaces)
 {
@@ -248,12 +243,23 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 		}
 		if (GetAllAnimationSequencesReferred(AnimAssetsToReplace))
 		{
-			for (auto Iter = AnimAssetsToReplace.CreateIterator(); Iter; ++Iter)
+			//Firstly need to remap
+			for (UAnimationAsset* AnimAsset : AnimAssetsToReplace)
 			{
-				UAnimationAsset* IterAsset = (*Iter);
 				// these two are different functions for now
 				// technically if you have implementation for Remap, it will also set skeleton 
-				IterAsset->RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);
+				AnimAsset->RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);
+			}
+
+			//Second need to process anim sequences themselves. This is done in two stages as additives can rely on other animations.
+			for (UAnimationAsset* AnimAsset : AnimAssetsToReplace)
+			{
+				if (UAnimSequence* Seq = Cast<UAnimSequence>(AnimAsset))
+				{
+					// We don't force gen here as that can cause us to constantly generate
+					// new anim ddc keys if users never resave anims that need to remap.
+					Seq->PostProcessSequence(false);
+				}
 			}
 		}
 

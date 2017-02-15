@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  	IOSAudioSession.mm: Unreal IOSAudio audio session functionality.
@@ -10,7 +10,6 @@
 
 #include "IOSAudioDevice.h"
 #include "AudioEffect.h"
-#include "Engine.h"
 
 /*------------------------------------------------------------------------------------
 	FIOSAudioDevice

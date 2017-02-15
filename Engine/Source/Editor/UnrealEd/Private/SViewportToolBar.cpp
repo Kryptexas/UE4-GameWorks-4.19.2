@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
 #include "SViewportToolBar.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Input/SMenuAnchor.h"
 
 #define LOCTEXT_NAMESPACE "ViewportToolBar"
 
@@ -102,6 +103,7 @@ bool SViewportToolBar::IsViewModeSupported(EViewModeIndex ViewModeIndex) const
 	{
 	case VMI_PrimitiveDistanceAccuracy:
 	case VMI_MaterialTextureScaleAccuracy:
+	case VMI_RequiredTextureResolution:
 		return false;
 	default:
 		return true;

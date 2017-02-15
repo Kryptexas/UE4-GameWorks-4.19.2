@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "TextStoreACP.h"
+#include "Windows/TextStoreACP.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "Math/Vector2D.h"
+#include "Logging/LogCategory.h"
+#include "GenericPlatform/GenericWindow.h"
+#include "GenericPlatform/ITextInputMethodSystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTextStoreACP, Log, All);
 
-#include "AllowWindowsPlatformTypes.h"
+#include "Windows/AllowWindowsPlatformTypes.h"
 #include <OleCtl.h>
 #include <tsattrs.h>
 
@@ -562,22 +567,20 @@ STDAPI FTextStoreACP::QueryInsert(LONG acpInsertStart, LONG acpInsertEnd, ULONG 
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("QueryInsert"));
 
-	const LONG StringLength = TextContext->GetTextLength();
-
-	// Query range is invalid.
-	if(acpInsertStart < 0 || acpInsertStart > StringLength || acpInsertEnd < 0 || acpInsertEnd > StringLength)
-	{
-		return E_INVALIDARG;
-	}
-
 	// Can't successfully query if there's nowhere to write a result.
 	if(!pacpResultStart || !pacpResultEnd)
 	{
 		return E_INVALIDARG;
 	}
 
-	*pacpResultStart = acpInsertStart;
-	*pacpResultEnd = acpInsertEnd;
+	uint32 BeginIndex;
+	uint32 Length;
+	ITextInputMethodContext::ECaretPosition CaretPosition;
+	TextContext->GetSelectionRange(BeginIndex, Length, CaretPosition);
+
+	// Workaround for Microsoft IMEs that expect QueryInsert to return the current selection range (since they omit a call to GetSelection).
+	*pacpResultStart = static_cast<LONG>(BeginIndex);
+	*pacpResultEnd = static_cast<LONG>(BeginIndex + Length);
 
 	return S_OK;
 }
@@ -827,4 +830,4 @@ STDAPI FTextStoreACP::OnEndComposition(__RPC__in_opt ITfCompositionView *pCompos
 	return S_OK;
 }
 
-#include "HideWindowsPlatformTypes.h"
+#include "Windows/HideWindowsPlatformTypes.h"

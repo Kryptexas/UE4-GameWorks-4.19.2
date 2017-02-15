@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "ParticleHelper.h"
 #include "Particles/Location/ParticleModuleLocationBase.h"
 #include "ParticleModuleLocationBoneSocket.generated.h"
 
+class UParticleModuleTypeDataBase;
+class UParticleSystemComponent;
+class USkeletalMeshComponent;
+class USkeletalMeshSocket;
 struct FModuleLocationBoneSocketInstancePayload;
+struct FParticleEmitterInstance;
 
 UENUM()
 enum ELocationBoneSocketSource

@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
 #include "RuntimeAssetCacheBackend.h"
+
+class FArchive;
+class FRuntimeAssetCacheBucket;
 
 /**
  * File system implementation of runtime asset cache backend.

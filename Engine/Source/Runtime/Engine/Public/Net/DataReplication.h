@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DataReplication.h:
@@ -6,9 +6,19 @@
 =============================================================================*/
 #pragma once
 
-class FRepState;
+#include "CoreMinimal.h"
+#include "Misc/NetworkGuid.h"
+#include "UObject/CoreNet.h"
+#include "Engine/EngineTypes.h"
+#include "UObject/UnrealType.h"
+
 class FNetFieldExportGroup;
+class FOutBunch;
 class FRepChangelistState;
+class FRepLayout;
+class FRepState;
+class UNetConnection;
+class UNetDriver;
 
 bool FORCEINLINE IsCustomDeltaProperty( const UProperty* Property )
 {
@@ -49,7 +59,7 @@ public:
 
 	~FReplicationChangelistMgr();
 
-	void Update( const UObject* InObject, const uint32 ReplicationFrame, const int32 LastCompareIndex, const FReplicationFlags& RepFlags );
+	void Update( const UObject* InObject, const uint32 ReplicationFrame, const int32 LastCompareIndex, const FReplicationFlags& RepFlags, const bool bForceCompare );
 
 	FRepChangelistState* GetRepChangelistState() const { return RepChangelistState.Get(); }
 

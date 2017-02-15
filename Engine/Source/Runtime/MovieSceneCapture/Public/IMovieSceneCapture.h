@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Interface.h"
 #include "IMovieSceneCapture.generated.h"
 
 class FSceneViewport;
-struct FMovieSceneCaptureSettings;
 struct FMovieSceneCaptureHandle;
+struct FMovieSceneCaptureSettings;
 
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UMovieSceneCaptureInterface : public UInterface

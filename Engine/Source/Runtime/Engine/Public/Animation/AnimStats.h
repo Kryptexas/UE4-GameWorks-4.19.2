@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimStats.h:	Animation stats
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
 
 /** Skeletal stats */
 DECLARE_CYCLE_STAT_EXTERN(TEXT("SkinnedMeshComp Tick"), STAT_SkinnedMeshCompTick, STATGROUP_Anim, );

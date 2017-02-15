@@ -1,4 +1,4 @@
-Availability:Docs
+Availability:Public
 Title:Blueprint Spline Component Property Reference
 Crumbs: %ROOT%, Engine
 Description:Contains a reference of all properties available in the editor for Blueprint Spline Components.
@@ -6,6 +6,9 @@ Navigation:topic
 parent:Engine/BlueprintSplines
 order:1
 social-image:Splines_social.png
+version:4.13
+type:reference
+tags:Splines
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,12 +53,12 @@ social-image:Splines_social.png
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-This page contains a reference listing of properties available on **Spline Components**. The properties displayed will be slightly different if the **Blueprint Spline Component** is selected in the **Blueprint Editor**, is a **Root Component**, or if the component is selected in the **Level Editor**.
+This page contains a reference listing of properties available on **Blueprint Spline Components**. The properties displayed will be slightly different if the **Blueprint Spline Component** is selected in the **Blueprint Editor**, is a **Root Component**, or if the component is selected in the **Level Editor**.
 
 ## Properties
 
 [EXCERPT:PropTransformCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		TransformCat
 	[/PARAMLITERAL]
@@ -85,7 +88,7 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 [EXCERPT:PropSocketsCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		SocketsCat
 	[/PARAMLITERAL]
@@ -104,7 +107,7 @@ This page contains a reference listing of properties available on **Spline Compo
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Parent Socket** || When a this component is the **Child** of a **Skeletal Mesh Component** (or **Static Mesh Component** with a **Socket**) you can specify a **Socket** or **Joint** to attach this component to. |
+| **Parent Socket** || When this component is the **Child** of a **Skeletal Mesh Component** (or **Static Mesh Component** with a **Socket**), you can specify a **Socket** or **Joint** to attach this component to. |
 [/REGION]
 
 [/VAR]
@@ -187,83 +190,34 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 
-[OBJECT:modulesection]
+
+[EXCERPT:PropSelectedPointsCat]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
-		PhysicsCat
+		SelectedPointsCat
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Physics
+		Selected Points
 	[/PARAM]
 	[PARAM:content]
-		%Engine/Physics/PhysicsBodies/Reference:c3%
+		%sp3%
 	[/PARAM]
 [/OBJECT]
 
+[VAR:sp3]
 
-
-
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		CollisionCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Collision
-	[/PARAM]
-	[PARAM:content]
-		%Engine/Physics/PhysicsBodies/Reference:p2%
-	[/PARAM]
-[/OBJECT]
-
-
-
-
-
-[EXCERPT:PropLightingCat]
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		LightingCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Lighting
-	[/PARAM]
-	[PARAM:content]
-		%c5%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c5]
-
-![](LightingCatRef.png)
+![](BPS_SelectedPointsRef.png)
 
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Cast Shadow** || %doxygen:UPrimitiveComponent::CastShadow% |
-[/REGION]
-
-###Advanced
-
-![](LightingCatRefAdv.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Affect Dynamic Indirect Lighting** || %doxygen:UPrimitiveComponent::bAffectDynamicIndirectLighting% |
-| **Affect Distance Field Lighting** || %doxygen:UPrimitiveComponent::bAffectDistanceFieldLighting% |
-| **Cast Dynamic Shadow** || %doxygen:UPrimitiveComponent::bCastDynamicShadow% |
-| **Cast Static Shadow** || %doxygen:UPrimitiveComponent::bCastStaticShadow% |
-| **Cast Volumetric Translucent Shadow** || %doxygen:UPrimitiveComponent::bCastVolumetricTranslucentShadow% |
-| **Self Shadow Only** || %doxygen:UPrimitiveComponent::bSelfShadowOnly% |
-| **Cast Far Shadow** || %doxygen:UPrimitiveComponent::bCastFarShadow% |
-| **Cast Inset Shadow** || %doxygen:UPrimitiveComponent::bCastInsetShadow% |
-| **Cast Cinematic Shadow** || %doxygen:UPrimitiveComponent::bCastCinematicShadow% |
-| **Cast Hidden Shadow** || %doxygen:UPrimitiveComponent::bCastHiddenShadow% |
-| **Cast Shadow as Two Sided** || %doxygen:UPrimitiveComponent::bCastShadowAsTwoSided% |
-| **Light as if Static** || %doxygen:UPrimitiveComponent::bLightAsIfStatic% |
-| **Light Attachments as Group** || %doxygen:UPrimitiveComponent::bLightAttachmentsAsGroup% |
-| **Indirect Lighting Cache Quality** || %doxygen:UPrimitiveComponent::IndirectLightingCacheQuality% |
-| **Single Sample Shadow From Stationary Lights** || %doxygen:UPrimitiveComponent::bSingleSampleShadowFromStationaryLights% |
-| **Lighting Channles** || %doxygen:UPrimitiveComponent::LightingChannels% |
+| **Input Key** || This is the index of the selected **Curve Point** on the curve. |
+| **Position** || This is the location of the selected **Curve Point** in local space. |
+| **Arrive Tangent** || This is the vector that defines the tangent of the curve as it approaches the selected **Curve Point**. |
+| **Leave Tangent** || This is the vector that defines the tangent of the curve as it departs the selected **Curve Point**. |
+| **Rotation** || Rotation can be applied to a **Curve Point** to modify its tangents. This value is applied separately from the tangents, so both can be modified to create the desired results. |
+| **Scale** || Scale can be applied to a **Curve Point** to modify its tangents. This value is applied separately from the tangents, so both can be modified to create the desired results. |
+| **Type** || [INCLUDE:#PointsType] |
 [/REGION]
 
 [/VAR]
@@ -271,84 +225,9 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 
-[EXCERPT:PropRenderingCat]
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		RenderingCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Rendering
-	[/PARAM]
-	[PARAM:content]
-		%c6%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c6]
-
-![](RenderingCatRef.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Visible** || %doxygen:USceneComponent::bVisible% |
-| **Hidden in Game** ||  %doxygen:USceneComponent::bHiddenInGame%|
-[/REGION]
-
-###Advanced
-
-![](RenderingCatRefAdv.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Texture Streaming** || [INCLUDE:#TextureStreamingProp] |
-| **LOD** || [INCLUDE:#LODProp] |
-| **Render In Main Pass** || %doxygen:UPrimitiveComponent::bRenderInMainPass% |
-| **Receives Decals** || %doxygen:UPrimitiveComponent::bReceivesDecals% |
-| **Owner No See** || %doxygen:UPrimitiveComponent::bOwnerNoSee% |
-| **Only Owner See** || %doxygen:UPrimitiveComponent::bOnlyOwnerSee% |
-| **Treat As Background for Occlusion** || %doxygen:UPrimitiveComponent::bTreatAsBackgroundForOcclusion% |
-| **Use As Occluder** || %doxygen:UPrimitiveComponent::bUseAsOccluder% |
-| **Render CustomDepth Pass** || %doxygen:UPrimitiveComponent::bRenderCustomDepth% |
-| **CustomDepth Stencil Value** || %doxygen:UPrimitiveComponent::CustomDepthStencilValue% |
-| **Translucency Sort Priority** || Translucent objects with a lower sort priority draw behind objects with a higher priority. Translucent objects with the same priority are rendered from back-to-front based on their bounds origin. |
-| **Lpv Bias Multiplier** || %doxygen:UPrimitiveComponent::LpvBiasMultiplier% |
-| **Bounds Scale** || %doxygen:UPrimitiveComponent::BoundsScale% |
-| **Use Attach Parent Bound** || %doxygen:USceneComponent::bUseAttachParentBound% |
-[/REGION]
-
-[/VAR]
-[/EXCERPT]
-
-<!--
-[EXCERPT:TextureStreamingProp]
-
-[REGION:raw]
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Force Mip Streaming** || %doxygen:UPrimitiveComponent::bForceMipStreaming% |
-[/REGION]
-
-[/EXCERPT]
-
-[EXCERPT:LODProp]
-
-[REGION:raw]
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Min Draw Distance** || %doxygen:UPrimitiveComponent::MinDrawDistance% |
-| **Desired Max Draw Distance** || %doxygen:UPrimitiveComponent::LDMaxDrawDistance% |
-| **Current Max Draw Distance** || %doxygen:UPrimitiveComponent::CachedMaxDrawDistance% |
-| **Allow Cull Distance Volume** || %doxygen:UPrimitiveComponent::bAllowCullDistanceVolume% |
-| **Detail Mode** || %doxygen:USceneComponent::DetailMode% |
-[/REGION]
-
-[/EXCERPT]
--->
 
 [EXCERPT:PropTagsCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		TagsCat
 	[/PARAMLITERAL]
@@ -376,7 +255,7 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 [EXCERPT:PropActivationCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		ActivationCat
 	[/PARAMLITERAL]
@@ -404,7 +283,7 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 [EXCERPT:PropEventsCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		EventsCat
 	[/PARAMLITERAL]
@@ -443,31 +322,17 @@ This page contains a reference listing of properties available on **Spline Compo
 [/EXCERPT]
 
 
+<!--
+[EXCERPT:PointsType]
+Defines the type of curve at the selected **Curve Point**.
 
-[EXCERPT:PropMobileCat]
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		MobileCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Mobile
-	[/PARAM]
-	[PARAM:content]
-		%c10%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c10]
-
-![](MobileCatRef.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
+| Type | %spacer2% | Description |
 | --- | :---: | :--- |
-| **Receive Combined Static and CSM Shadows from Stationary Lights** || %doxygen:UPrimitiveComponent::bReceiveCombinedCSMAndStaticShadowsFromStationaryLights%  |
-[/REGION]
-
-[/VAR]
+| **Linear** || From the selected **Curve Point** to the next, the curve will be straight. This affects the tangent coming into the selected **Curve Point** as well as the tanget departing the next. |
+| **Curve** || Default value. The locations of the **Curve Points** (before and after the selected one) define the tangents of the selected **Curve Point**. |
+| **Constant** || Like **Linear** but **doesn't** affect the tangent coming into the selected **Curve Point** as well as the tanget departing the next. |
+| **CurveClamped** || Like **Curve** but it clamps the tangents of the curve. |
+| **CurveCustomTangent** || If you adjust any tangent on a **Curve Point**, it is set to this value. |
 [/EXCERPT]
-
+-->
 

@@ -1,14 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "KismetCompilerPrivatePCH.h"
-#include "KismetEditorUtilities.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimBlueprintCompiler.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetArrayLibrary.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetReinstanceUtilities.h"
+#include "UObject/UObjectHash.h"
+#include "Animation/AnimInstance.h"
+#include "EdGraphUtilities.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_StructMemberGet.h"
+#include "K2Node_BreakStruct.h"
+#include "K2Node_CallArrayFunction.h"
+#include "K2Node_CustomEvent.h"
+#include "K2Node_Knot.h"
+#include "K2Node_StructMemberSet.h"
+#include "K2Node_VariableGet.h"
+#include "K2Node_VariableSet.h"
+
 #include "AnimationGraphSchema.h"
+#include "K2Node_TransitionRuleGetter.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "Kismet/KismetArrayLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/KismetReinstanceUtilities.h"
+#include "AnimStateNodeBase.h"
 #include "AnimStateNode.h"
 #include "AnimStateConduitNode.h"
 #include "AnimStateEntryNode.h"
@@ -18,24 +31,21 @@
 #include "AnimationStateMachineGraph.h"
 #include "AnimationStateMachineSchema.h"
 #include "AnimationTransitionGraph.h"
-#include "AnimGraphNode_Base.h"
-#include "AnimGraphNode_CustomTransitionResult.h"
 #include "AnimGraphNode_Root.h"
+#include "AnimGraphNode_CustomTransitionResult.h"
+#include "Animation/AnimNode_UseCachedPose.h"
+#include "AnimGraphNode_SaveCachedPose.h"
 #include "AnimGraphNode_UseCachedPose.h"
 #include "AnimGraphNode_StateMachineBase.h"
 #include "AnimGraphNode_StateResult.h"
-#include "AnimGraphNode_SaveCachedPose.h"
 #include "AnimGraphNode_SequencePlayer.h"
 #include "AnimGraphNode_TransitionPoseEvaluator.h"
 #include "AnimGraphNode_TransitionResult.h"
-#include "K2Node_TransitionRuleGetter.h"
 #include "K2Node_AnimGetter.h"
 #include "AnimGraphNode_StateMachine.h"
-#include "AnimGraphNode_SubInput.h"
 #include "Animation/AnimNode_SubInstance.h"
 #include "AnimGraphNode_SubInstance.h"
 #include "AnimGraphNode_Slot.h"
-#include "EdGraph/EdGraphPin.h"
 #include "AnimationEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "AnimBlueprintCompiler"
@@ -183,11 +193,6 @@ void FAnimBlueprintCompiler::CreateEvaluationHandlerStruct(UAnimGraphNode_Base* 
 		// Does it get serviced by this handler?
 		if (FAnimNodeSinglePropertyHandler* SourceInfo = Record.ServicedProperties.Find(PropertyName))
 		{
-			if (SourceInfo->SimpleCopyPropertyName != NAME_None)
-			{
-				continue;
-			}
-
 			if (TargetPin->PinType.bIsArray)
 			{
 				// Grab the array that we need to set members for
@@ -198,13 +203,13 @@ void FAnimBlueprintCompiler::CreateEvaluationHandlerStruct(UAnimGraphNode_Base* 
 
 				UEdGraphPin* ArrayVariableNode = FetchArrayNode->FindPin(PropertyNameStr);
 
-				if (SourceInfo->ArrayPins.Num() > 0)
+				if (SourceInfo->CopyRecords.Num() > 0)
 				{
 					// Set each element in the array
-					for (auto SourcePinIt = SourceInfo->ArrayPins.CreateIterator(); SourcePinIt; ++SourcePinIt)
+					for (FPropertyCopyRecord& CopyRecord : SourceInfo->CopyRecords)
 					{
-						int32 ArrayIndex = SourcePinIt.Key();
-						UEdGraphPin* SourcePin = SourcePinIt.Value();
+						int32 ArrayIndex = CopyRecord.DestArrayIndex;
+						UEdGraphPin* DestPin = CopyRecord.DestPin;
 
 						// Create an array element set node
 						UK2Node_CallArrayFunction* ArrayNode = SpawnIntermediateNode<UK2Node_CallArrayFunction>(VisualAnimNode, ConsolidatedEventGraph);
@@ -226,23 +231,23 @@ void FAnimBlueprintCompiler::CreateEvaluationHandlerStruct(UAnimGraphNode_Base* 
 
 						// Wire up the data input
 						UEdGraphPin* TargetItemPin = ArrayNode->FindPinChecked(TEXT("Item"));
-						TargetItemPin->CopyPersistentDataFromOldPin(*SourcePin);
-						MessageLog.NotifyIntermediatePinCreation(TargetItemPin, SourcePin);
-						SourcePin->BreakAllPinLinks();
+						TargetItemPin->CopyPersistentDataFromOldPin(*DestPin);
+						MessageLog.NotifyIntermediatePinCreation(TargetItemPin, DestPin);
+						DestPin->BreakAllPinLinks();
 					}
 				}
 			}
 			else
 			{
 				// Single property
-				if (SourceInfo->SinglePin != NULL)
+				if (SourceInfo->CopyRecords.Num() > 0 && SourceInfo->CopyRecords[0].DestPin != nullptr)
 				{
-					UEdGraphPin* SourcePin = SourceInfo->SinglePin;
+					UEdGraphPin* DestPin = SourceInfo->CopyRecords[0].DestPin;
 
-					PropertiesBeingSet.Add(FName(*SourcePin->PinName));
-					TargetPin->CopyPersistentDataFromOldPin(*SourcePin);
-					MessageLog.NotifyIntermediatePinCreation(TargetPin, SourcePin);
-					SourcePin->BreakAllPinLinks();
+					PropertiesBeingSet.Add(FName(*DestPin->PinName));
+					TargetPin->CopyPersistentDataFromOldPin(*DestPin);
+					MessageLog.NotifyIntermediatePinCreation(TargetPin, DestPin);
+					DestPin->BreakAllPinLinks();
 				}
 			}
 		}
@@ -262,7 +267,7 @@ void FAnimBlueprintCompiler::CreateEvaluationHandlerInstance(UAnimGraphNode_Base
 	// Shouldn't create a handler if there is nothing to work with
 	check(Record.ServicedProperties.Num() > 0);
 	check(Record.NodeVariableProperty != nullptr);
-	check(Record.InstanceProperty != nullptr)
+	check(Record.bServicesInstanceProperties);
 
 	// Use the node GUID for a stable name across compiles
 	FString FunctionName = FString::Printf(TEXT("%s_%s_%s_%s"), *Record.EvaluationHandlerProperty->GetName(), *VisualAnimNode->GetOuter()->GetName(), *VisualAnimNode->GetClass()->GetName(), *VisualAnimNode->NodeGuid.ToString());
@@ -290,44 +295,58 @@ void FAnimBlueprintCompiler::CreateEvaluationHandlerInstance(UAnimGraphNode_Base
 	// The ExecChain is the current exec output pin in the linear chain
 	UEdGraphPin* ExecChain = Schema->FindExecutionPin(*EntryNode, EGPD_Output);
 
-	// Create the set node for the instance variable
-	UK2Node_VariableSet* VarAssignNode = SpawnIntermediateNode<UK2Node_VariableSet>(VisualAnimNode, ConsolidatedEventGraph);
-	VarAssignNode->VariableReference.SetSelfMember(Record.InstanceProperty->GetFName());
-	VarAssignNode->AllocateDefaultPins();
-
-	// Wire up the variable node execution wires
-	UEdGraphPin* ExecVariablesIn = Schema->FindExecutionPin(*VarAssignNode, EGPD_Input);
-	ExecChain->MakeLinkTo(ExecVariablesIn);
-	ExecChain = Schema->FindExecutionPin(*VarAssignNode, EGPD_Output);
-
-	// Run through each property
-	for(auto TargetPinIt = VarAssignNode->Pins.CreateIterator(); TargetPinIt; ++TargetPinIt)
+	// Need to create a variable set call for each serviced property in the handler
+	for(TPair<FName, FAnimNodeSinglePropertyHandler>& PropHandlerPair : Record.ServicedProperties)
 	{
-		UEdGraphPin* TargetPin = *TargetPinIt;
-		FString PropertyNameStr = TargetPin->PinName;
-		FName PropertyName(*PropertyNameStr);
+		FAnimNodeSinglePropertyHandler& PropHandler = PropHandlerPair.Value;
+		FName PropertyName = PropHandlerPair.Key;
 
-		// Does it get serviced by this handler?
-		if(FAnimNodeSinglePropertyHandler* SourceInfo = Record.ServicedProperties.Find(PropertyName))
+		// Should be true, we only want to deal with instance targets in here
+		check(PropHandler.bInstanceIsTarget);
+
+		for(FPropertyCopyRecord& CopyRecord : PropHandler.CopyRecords)
 		{
-			// Check for arrays, we can't copy from array properties yet so we need to wire it up properly
-			if(SourceInfo->SimpleCopyPropertyName != NAME_None && !TargetPin->PinType.bIsArray)
+			// New set node for the property
+			UK2Node_VariableSet* VarAssignNode = SpawnIntermediateNode<UK2Node_VariableSet>(VisualAnimNode, ConsolidatedEventGraph);
+			VarAssignNode->VariableReference.SetSelfMember(CopyRecord.DestProperty->GetFName());
+			VarAssignNode->AllocateDefaultPins();
+
+			// Wire up the exec line, and update the end of the chain
+			UEdGraphPin* ExecVariablesIn = Schema->FindExecutionPin(*VarAssignNode, EGPD_Input);
+			ExecChain->MakeLinkTo(ExecVariablesIn);
+			ExecChain = Schema->FindExecutionPin(*VarAssignNode, EGPD_Output);
+
+			// Find the property pin on the set node and configure
+			for(UEdGraphPin* TargetPin : VarAssignNode->Pins)
 			{
-				continue;
+				if(TargetPin->PinType.bIsArray)
+				{
+					// Currently unsupported
+					continue;
+				}
+
+				FString PropertyNameStr = TargetPin->PinName;
+				FName PinPropertyName(*PropertyNameStr);
+
+				if(PinPropertyName == PropertyName)
+				{
+					// This is us, wire up the variable
+					UEdGraphPin* DestPin = CopyRecord.DestPin;
+
+					// Copy the data (link up to the source nodes)
+					TargetPin->CopyPersistentDataFromOldPin(*DestPin);
+					MessageLog.NotifyIntermediatePinCreation(TargetPin, DestPin);
+
+					// Old pin needs to not be connected now - break all its links
+					DestPin->BreakAllPinLinks();
+
+					break;
+				}
 			}
 
-			if(SourceInfo->SinglePin != NULL)
-			{
-				UEdGraphPin* SourcePin = SourceInfo->SinglePin;
-
-				TargetPin->CopyPersistentDataFromOldPin(*SourcePin);
-				MessageLog.NotifyIntermediatePinCreation(TargetPin, SourcePin);
-				SourcePin->BreakAllPinLinks();
-			}
+			//VarAssignNode->ReconstructNode();
 		}
 	}
-
-	VarAssignNode->ReconstructNode();
 }
 
 void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAnimNode)
@@ -469,7 +488,7 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 
 					if(SubInstanceNode)
 					{
-						EvalHandler.InstanceProperty = SourcePinProperty;
+						EvalHandler.bServicesInstanceProperties = true;
 
 						FAnimNodeSinglePropertyHandler* SinglePropHandler = EvalHandler.ServicedProperties.Find(SourcePinProperty->GetFName());
 						check(SinglePropHandler); // Should have been added in RegisterPin
@@ -527,7 +546,14 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 
 		if (Record.IsValid())
 		{
-			if(Record.InstanceProperty)
+			// build fast path copy records here
+			// we need to do this at this point as they rely on traversing the original wire path
+			// to determine source data. After we call CreateEvaluationHandlerStruct (etc) the original 
+			// graph is modified to hook up to the evaluation handler custom functions & pins are no longer
+			// available
+			Record.BuildFastPathCopyRecords();
+
+			if(Record.bServicesInstanceProperties)
 			{
 				CreateEvaluationHandlerInstance(VisualAnimNode, Record);
 			}
@@ -927,33 +953,59 @@ void FAnimBlueprintCompiler::GetLinkedAnimNodes(UAnimGraphNode_Base* InGraphNode
 			{
 				if(Struct->IsChildOf(FPoseLinkBase::StaticStruct()))
 				{
-					for(UEdGraphPin* LinkedPin : Pin->LinkedTo)
-					{
-						if(UAnimGraphNode_Base* AnimNode = Cast<UAnimGraphNode_Base>(LinkedPin->GetOwningNode()))
-						{
-							if(!AllocatedAnimNodes.Contains(AnimNode))
-							{
-								UAnimGraphNode_Base* TrueSourceNode = MessageLog.FindSourceObjectTypeChecked<UAnimGraphNode_Base>(AnimNode);
-
-								if(UAnimGraphNode_Base** AllocatedNode = SourceNodeToProcessedNodeMap.Find(TrueSourceNode))
-								{
-									LinkedAnimNodes.Add(*AllocatedNode);
-								}
-								else
-								{
-									FString ErrorString = FString::Printf(*LOCTEXT("MissingLink", "Missing allocated node for %s while searching for node links - likely due to the node having outstanding errors.").ToString(), *AnimNode->GetName());
-									MessageLog.Error(*ErrorString);
-								}
-							}
-							else
-							{
-								LinkedAnimNodes.Add(AnimNode);
-							}
-						}
-					}
+					GetLinkedAnimNodes_TraversePin(Pin, LinkedAnimNodes);
 				}
 			}
 		}
+	}
+}
+
+void FAnimBlueprintCompiler::GetLinkedAnimNodes_TraversePin(UEdGraphPin* InPin, TArray<UAnimGraphNode_Base*>& LinkedAnimNodes)
+{
+	if(!InPin)
+	{
+		return;
+	}
+
+	for(UEdGraphPin* LinkedPin : InPin->LinkedTo)
+	{
+		if(!LinkedPin)
+		{
+			continue;
+		}
+		
+		UEdGraphNode* OwningNode = LinkedPin->GetOwningNode();
+
+		if(UK2Node_Knot* InnerKnot = Cast<UK2Node_Knot>(OwningNode))
+		{
+			GetLinkedAnimNodes_TraversePin(InnerKnot->GetInputPin(), LinkedAnimNodes);
+		}
+		else if(UAnimGraphNode_Base* AnimNode = Cast<UAnimGraphNode_Base>(OwningNode))
+		{
+			GetLinkedAnimNodes_ProcessAnimNode(AnimNode, LinkedAnimNodes);
+		}
+	}
+}
+
+void FAnimBlueprintCompiler::GetLinkedAnimNodes_ProcessAnimNode(UAnimGraphNode_Base* AnimNode, TArray<UAnimGraphNode_Base *> &LinkedAnimNodes)
+{
+	if(!AllocatedAnimNodes.Contains(AnimNode))
+	{
+		UAnimGraphNode_Base* TrueSourceNode = MessageLog.FindSourceObjectTypeChecked<UAnimGraphNode_Base>(AnimNode);
+
+		if(UAnimGraphNode_Base** AllocatedNode = SourceNodeToProcessedNodeMap.Find(TrueSourceNode))
+		{
+			LinkedAnimNodes.Add(*AllocatedNode);
+		}
+		else
+		{
+			FString ErrorString = FString::Printf(*LOCTEXT("MissingLink", "Missing allocated node for %s while searching for node links - likely due to the node having outstanding errors.").ToString(), *AnimNode->GetName());
+			MessageLog.Error(*ErrorString);
+		}
+	}
+	else
+	{
+		LinkedAnimNodes.Add(AnimNode);
 	}
 }
 
@@ -1584,6 +1636,11 @@ void FAnimBlueprintCompiler::CopyTermDefaultsToDefaultObject(UObject* DefaultObj
 	for (auto EvalLinkIt = ValidEvaluationHandlerList.CreateIterator(); EvalLinkIt; ++EvalLinkIt)
 	{
 		FEvaluationHandlerRecord& Record = *EvalLinkIt;
+
+		// validate fast path copy records before patching
+		Record.ValidateFastPath(DefaultObject->GetClass());
+
+		// patch either fast-path copy records or generated function names into the CDO
 		Record.PatchFunctionNameAndCopyRecordsInto(DefaultObject);
 	}
 
@@ -1758,9 +1815,12 @@ void FAnimBlueprintCompiler::PostCompile()
 	UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = CastChecked<UAnimBlueprintGeneratedClass>(NewClass);
 
 	UAnimInstance* DefaultAnimInstance = CastChecked<UAnimInstance>(AnimBlueprintGeneratedClass->GetDefaultObject());
-	DefaultAnimInstance->bCanUseParallelUpdateAnimation = DefaultAnimInstance->bRunUpdatesInWorkerThreads;
 
-	if(DefaultAnimInstance->bCanUseParallelUpdateAnimation)
+	// copy threaded update flag to CDO
+	DefaultAnimInstance->bUseMultiThreadedAnimationUpdate = AnimBlueprint->bUseMultiThreadedAnimationUpdate;
+
+	// Verify thread-safety
+	if(GetDefault<UEngine>()->bAllowMultiThreadedAnimationUpdate && DefaultAnimInstance->bUseMultiThreadedAnimationUpdate)
 	{
 		// iterate all properties to determine validity
 		for (UStructProperty* Property : TFieldRange<UStructProperty>(AnimBlueprintGeneratedClass, EFieldIteratorFlags::IncludeSuper))
@@ -1770,26 +1830,85 @@ void FAnimBlueprintCompiler::PostCompile()
 				FAnimNode_Base* AnimNode = Property->ContainerPtrToValuePtr<FAnimNode_Base>(DefaultAnimInstance);
 				if(!AnimNode->CanUpdateInWorkerThread())
 				{
-					DefaultAnimInstance->bCanUseParallelUpdateAnimation = false;
-					if(DefaultAnimInstance->bRunUpdatesInWorkerThreads)
-					{
-						MessageLog.Warning(*FText::Format(LOCTEXT("HasIncompatibleNode", "Found incompatible node \"{0}\" in blend graph. Parallel update will be disabled."), FText::FromName(Property->Struct->GetFName())).ToString());
-					}
+					MessageLog.Warning(*FText::Format(LOCTEXT("HasIncompatibleNode", "Found incompatible node \"{0}\" in blend graph. Disable threaded update or use member variable access."), FText::FromName(Property->Struct->GetFName())).ToString())
+						->AddToken(FDocumentationToken::Create(TEXT("Engine/Animation/AnimBlueprints/AnimGraph")));;
+
+					DefaultAnimInstance->bUseMultiThreadedAnimationUpdate = false;
 				}
 			}
 		}
 
-		for(auto& EvaluationHandler : ValidEvaluationHandlerList)
+		if (FunctionList.Num() > 0)
 		{
-			for(auto& Property : EvaluationHandler.ServicedProperties)
+			// check the assumption that the ubergraph is the first function
+			check(FunctionList[0].Function->GetName().StartsWith(TEXT("ExecuteUbergraph")));
+			FKismetFunctionContext& UbergraphFunctionContext = FunctionList[0];
+
+			// run through the per-node compiled statements looking for struct-sets used by anim nodes
+			for (auto& StatementPair : UbergraphFunctionContext.StatementsPerNode)
 			{
-				if(Property.Value.SimpleCopyPropertyName == NAME_None && !Property.Value.bHasOnlyMemberAccess)
+				if (UK2Node_StructMemberSet* StructMemberSetNode = Cast<UK2Node_StructMemberSet>(StatementPair.Key))
 				{
-					DefaultAnimInstance->bCanUseParallelUpdateAnimation = false;
-					if(DefaultAnimInstance->bRunUpdatesInWorkerThreads)
+					UObject* SourceNode = MessageLog.FindSourceObject(StructMemberSetNode);
+
+					if (SourceNode && StructMemberSetNode->StructType->IsChildOf(FAnimNode_Base::StaticStruct()))
 					{
-						UEdGraphNode* Node = Property.Value.ArrayPins.Num() > 0 ? Property.Value.ArrayPins[0]->GetOwningNode() : Property.Value.SinglePin->GetOwningNode();
-						MessageLog.Warning(*LOCTEXT("HasNonNativeMemberAccess", "Found non-native or non-member access in node @@ in blend graph. Parallel update will be disabled.").ToString(), Node);
+						for (FBlueprintCompiledStatement* Statement : StatementPair.Value)
+						{
+							if (Statement->Type == KCST_CallFunction && Statement->FunctionToCall)
+							{
+								// pure function?
+								const bool bPureFunctionCall = Statement->FunctionToCall->HasAnyFunctionFlags(FUNC_BlueprintPure);
+
+								// function called on something other than function library or anim instance?
+								UClass* FunctionClass = CastChecked<UClass>(Statement->FunctionToCall->GetOuter());
+								const bool bFunctionLibraryCall = FunctionClass->IsChildOf<UBlueprintFunctionLibrary>();
+								const bool bAnimInstanceCall = FunctionClass->IsChildOf<UAnimInstance>();
+
+								// Whitelisted/blacklisted? Some functions are not really 'pure', so we give people the opportunity to mark them up.
+								// Mark up the class if it is generally thread safe, then unsafe functions can be marked up individually. We assume
+								// that classes are unsafe by default, as well as if they are marked up NotBlueprintThreadSafe.
+								const bool bClassThreadSafe = FunctionClass->HasMetaData(TEXT("BlueprintThreadSafe"));
+								const bool bClassNotThreadSafe = FunctionClass->HasMetaData(TEXT("NotBlueprintThreadSafe")) || !FunctionClass->HasMetaData(TEXT("BlueprintThreadSafe"));
+								const bool bFunctionThreadSafe = Statement->FunctionToCall->HasMetaData(TEXT("BlueprintThreadSafe"));
+								const bool bFunctionNotThreadSafe = Statement->FunctionToCall->HasMetaData(TEXT("NotBlueprintThreadSafe"));
+
+								const bool bThreadSafe = (bClassThreadSafe && !bFunctionNotThreadSafe) || (bClassNotThreadSafe && bFunctionThreadSafe);
+
+								const bool bValidForUsage = bPureFunctionCall && bThreadSafe && (bFunctionLibraryCall || bAnimInstanceCall);
+
+								if (!bValidForUsage)
+								{
+									UEdGraphNode* FunctionNode = nullptr;
+									if (Statement->FunctionContext && Statement->FunctionContext->SourcePin)
+									{
+										FunctionNode = Statement->FunctionContext->SourcePin->GetOwningNode();
+									}
+									else if (Statement->LHS && Statement->LHS->SourcePin)
+									{
+										FunctionNode = Statement->LHS->SourcePin->GetOwningNode();
+									}
+
+									if (FunctionNode)
+									{
+										MessageLog.Warning(*LOCTEXT("NotThreadSafeWarningNodeContext", "Node @@ uses potentially thread-unsafe call @@. Disable threaded update or use a thread-safe call. Function may need BlueprintThreadSafe metadata adding.").ToString(), SourceNode, FunctionNode)
+											->AddToken(FDocumentationToken::Create(TEXT("Engine/Animation/AnimBlueprints/AnimGraph")));
+									}
+									else if(Statement->FunctionToCall)
+									{
+										MessageLog.Warning(*FText::Format(LOCTEXT("NotThreadSafeWarningFunctionContext", "Node @@ uses potentially thread-unsafe call {0}. Disable threaded update or use a thread-safe call. Function may need BlueprintThreadSafe metadata adding."), Statement->FunctionToCall->GetDisplayNameText()).ToString(), SourceNode)
+											->AddToken(FDocumentationToken::Create(TEXT("Engine/Animation/AnimBlueprints/AnimGraph")));
+									}
+									else
+									{
+										MessageLog.Warning(*LOCTEXT("NotThreadSafeWarningUnknownContext", "Node @@ uses potentially thread-unsafe call. Disable threaded update or use a thread-safe call.").ToString(), SourceNode)
+											->AddToken(FDocumentationToken::Create(TEXT("Engine/Animation/AnimBlueprints/AnimGraph")));
+									}
+
+									DefaultAnimInstance->bUseMultiThreadedAnimationUpdate = false;
+								}
+							}
+						}
 					}
 				}
 			}
@@ -1808,13 +1927,15 @@ void FAnimBlueprintCompiler::PostCompile()
 		if(EvaluationHandler.ServicedProperties.Num() > 0)
 		{
 			const FAnimNodeSinglePropertyHandler& Handler = EvaluationHandler.ServicedProperties.CreateConstIterator()->Value;
-			UAnimGraphNode_Base* Node = CastChecked<UAnimGraphNode_Base>(Handler.ArrayPins.Num() > 0 ? Handler.ArrayPins.CreateConstIterator()->Value->GetOwningNode() : Handler.SinglePin->GetOwningNode());
+			check(Handler.CopyRecords.Num() > 0);
+			check(Handler.CopyRecords[0].DestPin != nullptr);
+			UAnimGraphNode_Base* Node = CastChecked<UAnimGraphNode_Base>(Handler.CopyRecords[0].DestPin->GetOwningNode());
 			UAnimGraphNode_Base* TrueNode = MessageLog.FindSourceObjectTypeChecked<UAnimGraphNode_Base>(Node);	
 
 			FExposedValueHandler* HandlerPtr = EvaluationHandler.EvaluationHandlerProperty->ContainerPtrToValuePtr<FExposedValueHandler>(EvaluationHandler.NodeVariableProperty->ContainerPtrToValuePtr<void>(DefaultAnimInstance));
 			TrueNode->BlueprintUsage = HandlerPtr->BoundFunction != NAME_None ? EBlueprintUsage::UsesBlueprint : EBlueprintUsage::DoesNotUseBlueprint;
 
-			if(TrueNode->BlueprintUsage == EBlueprintUsage::UsesBlueprint && DefaultAnimInstance->bWarnAboutBlueprintUsage)
+			if(TrueNode->BlueprintUsage == EBlueprintUsage::UsesBlueprint && AnimBlueprint->bWarnAboutBlueprintUsage)
 			{
 				MessageLog.Warning(*LOCTEXT("BlueprintUsageWarning", "Node @@ uses Blueprint to update its values, access member variables directly or use a constant value for better performance.").ToString(), Node);
 			}
@@ -2373,145 +2494,36 @@ void FAnimBlueprintCompiler::FEvaluationHandlerRecord::PatchFunctionNameAndCopyR
 	FExposedValueHandler* HandlerPtr = EvaluationHandlerProperty->ContainerPtrToValuePtr<FExposedValueHandler>(NodeVariableProperty->ContainerPtrToValuePtr<void>(TargetObject));
 	HandlerPtr->CopyRecords.Empty();
 
-	bool bOnlyUsesCopyRecords = true;
-	for(TPair<FName, FAnimNodeSinglePropertyHandler> ServicedPropPair : ServicedProperties)
+	if (IsFastPath())
 	{
-		const FName& PropertyName = ServicedPropPair.Key;
-		const FAnimNodeSinglePropertyHandler& PropertyHandler = ServicedPropPair.Value;
-
-		if(PropertyHandler.SimpleCopyPropertyName != NAME_None)
+		for (const TPair<FName, FAnimNodeSinglePropertyHandler>& ServicedPropPair : ServicedProperties)
 		{
-			UProperty* SimpleCopyPropertySource = TargetObject->GetClass()->FindPropertyByName(PropertyHandler.SimpleCopyPropertyName);
+			const FName& PropertyName = ServicedPropPair.Key;
+			const FAnimNodeSinglePropertyHandler& PropertyHandler = ServicedPropPair.Value;
 
-			// we dont support copying *from* array properties at the moment
-			if (SimpleCopyPropertySource && !SimpleCopyPropertySource->IsA<UArrayProperty>())
+			for (const FPropertyCopyRecord& PropertyCopyRecord : PropertyHandler.CopyRecords)
 			{
-				// are we copying to an array element (or more than one)?
-				if (PropertyHandler.ArrayPins.Num() > 0)
-				{
-					UArrayProperty* SimpleCopyPropertyDest = CastChecked<UArrayProperty>(NodeVariableProperty->Struct->FindPropertyByName(PropertyName));
+				  // get the correct property sizes for the type we are dealing with (array etc.)
+				  int32 DestPropertySize = PropertyCopyRecord.DestProperty->GetSize();
+				  if (UArrayProperty* DestArrayProperty = Cast<UArrayProperty>(PropertyCopyRecord.DestProperty))
+				  {
+					  DestPropertySize = DestArrayProperty->Inner->GetSize();
+				  }
 
-					if (PropertyHandler.SubStructPropertyName != NAME_None)
-					{
-						UStructProperty* SourceStructProperty = CastChecked<UStructProperty>(SimpleCopyPropertySource);
-						UProperty* SourceSubProperty = SourceStructProperty->Struct->FindPropertyByName(PropertyHandler.SubStructPropertyName);
-						if (SourceSubProperty == nullptr || SourceSubProperty->GetSize() != SimpleCopyPropertyDest->Inner->GetSize())
-						{
-							bOnlyUsesCopyRecords = false;
-							break;
-						}
-
-						for (TMap<int32, UEdGraphPin*>::TConstIterator ArrayIt(PropertyHandler.ArrayPins); ArrayIt; ++ArrayIt)
-						{
-							// Single sub-struct variable get->array set
-							FExposedValueCopyRecord CopyRecord;
-							CopyRecord.DestProperty = SimpleCopyPropertyDest;
-							CopyRecord.DestArrayIndex = ArrayIt.Key();
-							CopyRecord.SourcePropertyName = PropertyHandler.SimpleCopyPropertyName;
-							CopyRecord.SourceSubPropertyName = PropertyHandler.SubStructPropertyName;
-							CopyRecord.SourceArrayIndex = 0;
-							CopyRecord.Size = SimpleCopyPropertyDest->Inner->GetSize();
-							CopyRecord.PostCopyOperation = PropertyHandler.Operation;
-							CopyRecord.bInstanceIsTarget = PropertyHandler.bInstanceIsTarget;
-							HandlerPtr->CopyRecords.Add(CopyRecord);
-						}
-					}
-					else
-					{
-						if (SimpleCopyPropertySource->GetSize() != SimpleCopyPropertyDest->Inner->GetSize())
-						{
-							bOnlyUsesCopyRecords = false;
-							break;
-						}
-
-						for (TMap<int32, UEdGraphPin*>::TConstIterator ArrayIt(PropertyHandler.ArrayPins); ArrayIt; ++ArrayIt)
-						{
-							// Single variable get->array set
-							FExposedValueCopyRecord CopyRecord;
-							CopyRecord.DestProperty = SimpleCopyPropertyDest;
-							CopyRecord.DestArrayIndex = ArrayIt.Key();
-							CopyRecord.SourcePropertyName = PropertyHandler.SimpleCopyPropertyName;
-							CopyRecord.SourceSubPropertyName = NAME_None;
-							CopyRecord.SourceArrayIndex = 0;
-							CopyRecord.Size = SimpleCopyPropertyDest->Inner->GetSize();
-							CopyRecord.PostCopyOperation = PropertyHandler.Operation;
-							CopyRecord.bInstanceIsTarget = PropertyHandler.bInstanceIsTarget;
-							HandlerPtr->CopyRecords.Add(CopyRecord);
-						}
-					}
-				}
-				else
-				{
-					UProperty* SimpleCopyPropertyDest = NodeVariableProperty->Struct->FindPropertyByName(PropertyName);
-
-					if(!SimpleCopyPropertyDest)
-					{
-						SimpleCopyPropertyDest = FindField<UProperty>(TargetObject->GetClass(), PropertyName);
-					}
-
-					if(SimpleCopyPropertyDest == nullptr)
-					{
-						bOnlyUsesCopyRecords = false;
-						break;
-					}
-
-					if(PropertyHandler.SubStructPropertyName != NAME_None)
-					{
-						UStructProperty* SourceStructProperty = CastChecked<UStructProperty>(SimpleCopyPropertySource);
-						UProperty* SourceSubProperty = SourceStructProperty->Struct->FindPropertyByName(PropertyHandler.SubStructPropertyName);
-						if(SourceSubProperty == nullptr || SourceSubProperty->GetSize() != SimpleCopyPropertyDest->GetSize())
-						{
-							bOnlyUsesCopyRecords = false;
-							break;
-						}
-
-						// Single sub-struct variable get->single variable set
-						FExposedValueCopyRecord CopyRecord;
-						CopyRecord.DestProperty = SimpleCopyPropertyDest;
-						CopyRecord.DestArrayIndex = 0;
-						CopyRecord.SourcePropertyName = PropertyHandler.SimpleCopyPropertyName;
-						CopyRecord.SourceSubPropertyName = PropertyHandler.SubStructPropertyName;
-						CopyRecord.SourceArrayIndex = 0;
-						CopyRecord.Size = SimpleCopyPropertyDest->GetSize();
-						CopyRecord.PostCopyOperation = PropertyHandler.Operation;
-						CopyRecord.bInstanceIsTarget = PropertyHandler.bInstanceIsTarget;
-						HandlerPtr->CopyRecords.Add(CopyRecord);
-					}
-					else
-					{
-						if(SimpleCopyPropertySource->GetSize() != SimpleCopyPropertyDest->GetSize())
-						{
-							bOnlyUsesCopyRecords = false;
-							break;
-						}
-
-						// Single variable get->single variable set
-						FExposedValueCopyRecord CopyRecord;
-						CopyRecord.DestProperty = SimpleCopyPropertyDest;
-						CopyRecord.DestArrayIndex = 0;
-						CopyRecord.SourcePropertyName = PropertyHandler.SimpleCopyPropertyName;
-						CopyRecord.SourceSubPropertyName = NAME_None;
-						CopyRecord.SourceArrayIndex = 0;
-						CopyRecord.Size = SimpleCopyPropertyDest->GetSize();
-						CopyRecord.PostCopyOperation = PropertyHandler.Operation;
-						CopyRecord.bInstanceIsTarget = PropertyHandler.bInstanceIsTarget;
-						HandlerPtr->CopyRecords.Add(CopyRecord);
-					}
-				}
+				  FExposedValueCopyRecord CopyRecord;
+				  CopyRecord.DestProperty = PropertyCopyRecord.DestProperty;
+				  CopyRecord.DestArrayIndex = PropertyCopyRecord.DestArrayIndex == INDEX_NONE ? 0 : PropertyCopyRecord.DestArrayIndex;
+				  CopyRecord.SourcePropertyName = PropertyCopyRecord.SourcePropertyName;
+				  CopyRecord.SourceSubPropertyName = PropertyCopyRecord.SourceSubStructPropertyName;
+				  CopyRecord.SourceArrayIndex = 0;
+				  CopyRecord.Size = DestPropertySize;
+				  CopyRecord.PostCopyOperation = PropertyCopyRecord.Operation;
+				  CopyRecord.bInstanceIsTarget = PropertyHandler.bInstanceIsTarget;
+				  HandlerPtr->CopyRecords.Add(CopyRecord);
 			}
-			else
-			{
-				// property removed or unsupported property
-				bOnlyUsesCopyRecords = false;
-			}
-		}
-		else
-		{
-			bOnlyUsesCopyRecords = false;
 		}
 	}
-
-	if(!bOnlyUsesCopyRecords)
+	else
 	{
 		// not all of our pins use copy records so we will need to call our exposed value handler
 		HandlerPtr->BoundFunction = HandlerFunctionName;
@@ -2533,7 +2545,7 @@ static UEdGraphPin* FindFirstInputPin(UEdGraphNode* InNode)
 	return nullptr;
 }
 
-static UEdGraphNode* FollowKnots(UEdGraphPin* FromPin, UEdGraphPin*& DestPin)
+static UEdGraphNode* FollowKnots(UEdGraphPin* FromPin, UEdGraphPin*& ToPin)
 {
 	if (FromPin->LinkedTo.Num() == 0)
 	{
@@ -2541,7 +2553,7 @@ static UEdGraphNode* FollowKnots(UEdGraphPin* FromPin, UEdGraphPin*& DestPin)
 	}
 
 	UEdGraphPin* LinkedPin = FromPin->LinkedTo[0];
-	DestPin = LinkedPin;
+	ToPin = LinkedPin;
 	if(LinkedPin)
 	{
 		UEdGraphNode* LinkedNode = LinkedPin->GetOwningNode();
@@ -2552,7 +2564,7 @@ static UEdGraphNode* FollowKnots(UEdGraphPin* FromPin, UEdGraphPin*& DestPin)
 			{
 				if (InputPin->LinkedTo.Num() > 0 && InputPin->LinkedTo[0])
 				{
-					DestPin = InputPin->LinkedTo[0];
+					ToPin = InputPin->LinkedTo[0];
 					LinkedNode = InputPin->LinkedTo[0]->GetOwningNode();
 					KnotNode = Cast<UK2Node_Knot>(LinkedNode);
 				}
@@ -2568,57 +2580,40 @@ static UEdGraphNode* FollowKnots(UEdGraphPin* FromPin, UEdGraphPin*& DestPin)
 	return nullptr;
 }
 
-void FAnimBlueprintCompiler::FEvaluationHandlerRecord::RegisterPin(UEdGraphPin* SourcePin, UProperty* AssociatedProperty, int32 AssociatedPropertyArrayIndex)
+void FAnimBlueprintCompiler::FEvaluationHandlerRecord::RegisterPin(UEdGraphPin* DestPin, UProperty* AssociatedProperty, int32 AssociatedPropertyArrayIndex)
 {
-	bool bAddedNew = false;
-	FAnimNodeSinglePropertyHandler* HandlerPtr = ServicedProperties.Find(AssociatedProperty->GetFName());
-	if (HandlerPtr == nullptr)
-	{
-		HandlerPtr = &ServicedProperties.Add(AssociatedProperty->GetFName());
-		bAddedNew = true;
-	}
+	FAnimNodeSinglePropertyHandler& Handler = ServicedProperties.FindOrAdd(AssociatedProperty->GetFName());
+	Handler.CopyRecords.Emplace(DestPin, AssociatedProperty, AssociatedPropertyArrayIndex);
+}
 
-	FAnimNodeSinglePropertyHandler& Handler = *HandlerPtr;
-
-	bool bIsMultiPropertyToArrayCopy = false;
-	if (AssociatedPropertyArrayIndex != INDEX_NONE)
+void FAnimBlueprintCompiler::FEvaluationHandlerRecord::BuildFastPathCopyRecords()
+{
+	if (GetDefault<UEngine>()->bOptimizeAnimBlueprintMemberVariableAccess)
 	{
-		if (!bAddedNew)
+		for (TPair<FName, FAnimNodeSinglePropertyHandler>& ServicedPropPair : ServicedProperties)
 		{
-			// already-existing handler with a simple copy into an array, so we will need multiple copy records. 
-			// For now we just fall back to slow path
-			Handler.SimpleCopyPropertyName = NAME_None;
-			Handler.bHasOnlyMemberAccess = false;
-			bIsMultiPropertyToArrayCopy = true;
-		}
-		Handler.ArrayPins.Add(AssociatedPropertyArrayIndex, SourcePin);
-	}
-	else
-	{
-		check(Handler.SinglePin == NULL);
-		Handler.SinglePin = SourcePin;
-	}
-
-	if(GetDefault<UEngine>()->bOptimizeAnimBlueprintMemberVariableAccess && !bIsMultiPropertyToArrayCopy)
-	{
-		typedef bool (FAnimBlueprintCompiler::FEvaluationHandlerRecord::*GraphCheckerFunc)(FAnimNodeSinglePropertyHandler&, UEdGraphPin*);
-
-		GraphCheckerFunc GraphCheckerFuncs[] =
-		{
-			&FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForVariableGet,
-			&FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForLogicalNot,
-			&FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForStructMemberAccess,
-		};
-
-		for(GraphCheckerFunc& CheckFunc : GraphCheckerFuncs)
-		{
-			if((this->*CheckFunc)(Handler, SourcePin))
+			for (FPropertyCopyRecord& CopyRecord : ServicedPropPair.Value.CopyRecords)
 			{
-				break;
+				typedef bool (FAnimBlueprintCompiler::FEvaluationHandlerRecord::*GraphCheckerFunc)(FPropertyCopyRecord&, UEdGraphPin*);
+
+				GraphCheckerFunc GraphCheckerFuncs[] =
+				{
+					&FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForVariableGet,
+					&FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForLogicalNot,
+					&FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForStructMemberAccess,
+				};
+
+				for (GraphCheckerFunc& CheckFunc : GraphCheckerFuncs)
+				{
+					if ((this->*CheckFunc)(CopyRecord, CopyRecord.DestPin))
+					{
+						break;
+					}
+				}
+
+				CheckForMemberOnlyAccess(CopyRecord, CopyRecord.DestPin);
 			}
 		}
-
-		CheckForMemberOnlyAccess(Handler, SourcePin);
 	}
 }
 
@@ -2632,26 +2627,26 @@ static FName RecoverSplitStructPinName(UEdGraphPin* OutputPin)
 	return FName(*PinName.Replace(*(ParentPinName + TEXT("_")), TEXT("")));
 }
 
-bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForVariableGet(FAnimNodeSinglePropertyHandler& Handler, UEdGraphPin* SourcePin)
+bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForVariableGet(FPropertyCopyRecord& CopyRecord, UEdGraphPin* DestPin)
 {
-	if(SourcePin)
+	if(DestPin)
 	{
-		UEdGraphPin* DestPin = nullptr;
-		if(UK2Node_VariableGet* VariableGetNode = Cast<UK2Node_VariableGet>(FollowKnots(SourcePin, DestPin)))
+		UEdGraphPin* SourcePin = nullptr;
+		if(UK2Node_VariableGet* VariableGetNode = Cast<UK2Node_VariableGet>(FollowKnots(DestPin, SourcePin)))
 		{
 			if(VariableGetNode && VariableGetNode->IsNodePure() && VariableGetNode->VariableReference.IsSelfContext())
 			{
-				if(DestPin)
+				if(SourcePin)
 				{
 					// variable get could be a 'split' struct
-					if(DestPin->ParentPin != nullptr)
+					if(SourcePin->ParentPin != nullptr)
 					{
-						Handler.SimpleCopyPropertyName = VariableGetNode->VariableReference.GetMemberName();
-						Handler.SubStructPropertyName = RecoverSplitStructPinName(DestPin);
+						CopyRecord.SourcePropertyName = VariableGetNode->VariableReference.GetMemberName();
+						CopyRecord.SourceSubStructPropertyName = RecoverSplitStructPinName(SourcePin);
 					}
 					else
 					{
-						Handler.SimpleCopyPropertyName = VariableGetNode->VariableReference.GetMemberName();
+						CopyRecord.SourcePropertyName = VariableGetNode->VariableReference.GetMemberName();
 					}
 					return true;
 				}
@@ -2662,22 +2657,22 @@ bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForVariableGet(FAnim
 	return false;
 }
 
-bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForLogicalNot(FAnimNodeSinglePropertyHandler& Handler, UEdGraphPin* SourcePin)
+bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForLogicalNot(FPropertyCopyRecord& CopyRecord, UEdGraphPin* DestPin)
 {
-	if(SourcePin)
+	if(DestPin)
 	{
-		UEdGraphPin* DestPin = nullptr;
-		UK2Node_CallFunction* CallFunctionNode = Cast<UK2Node_CallFunction>(FollowKnots(SourcePin, DestPin));
+		UEdGraphPin* SourcePin = nullptr;
+		UK2Node_CallFunction* CallFunctionNode = Cast<UK2Node_CallFunction>(FollowKnots(DestPin, SourcePin));
 		if(CallFunctionNode && CallFunctionNode->FunctionReference.GetMemberName() == FName(TEXT("Not_PreBool")))
 		{
 			// find and follow input pin
 			if(UEdGraphPin* InputPin = FindFirstInputPin(CallFunctionNode))
 			{
 				check(InputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Boolean);
-				if(CheckForVariableGet(Handler, InputPin) || CheckForStructMemberAccess(Handler, InputPin))
+				if(CheckForVariableGet(CopyRecord, InputPin) || CheckForStructMemberAccess(CopyRecord, InputPin))
 				{
-					check(Handler.SimpleCopyPropertyName != NAME_None);	// this should have been filled in by CheckForVariableGet() or CheckForStructMemberAccess() above
-					Handler.Operation = EPostCopyOperation::LogicalNegateBool;
+					check(CopyRecord.SourcePropertyName != NAME_None);	// this should have been filled in by CheckForVariableGet() or CheckForStructMemberAccess() above
+					CopyRecord.Operation = EPostCopyOperation::LogicalNegateBool;
 					return true;
 				}
 			}
@@ -2709,35 +2704,35 @@ static bool IsWhitelistedNativeBreak(const FName& InFunctionName)
 	return false;
 }
 
-bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForStructMemberAccess(FAnimNodeSinglePropertyHandler& Handler, UEdGraphPin* SourcePin)
+bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForStructMemberAccess(FPropertyCopyRecord& CopyRecord, UEdGraphPin* DestPin)
 {
-	if(SourcePin)
+	if(DestPin)
 	{
-		UEdGraphPin* DestPin = nullptr;
-		if(UK2Node_BreakStruct* BreakStructNode = Cast<UK2Node_BreakStruct>(FollowKnots(SourcePin, DestPin)))
+		UEdGraphPin* SourcePin = nullptr;
+		if(UK2Node_BreakStruct* BreakStructNode = Cast<UK2Node_BreakStruct>(FollowKnots(DestPin, SourcePin)))
 		{
 			if(UEdGraphPin* InputPin = FindFirstInputPin(BreakStructNode))
 			{
-				if(CheckForVariableGet(Handler, InputPin))
+				if(CheckForVariableGet(CopyRecord, InputPin))
 				{
-					check(Handler.SimpleCopyPropertyName != NAME_None);	// this should have been filled in by CheckForVariableGet() above
-					Handler.SubStructPropertyName = *DestPin->PinName;
+					check(CopyRecord.SourcePropertyName != NAME_None);	// this should have been filled in by CheckForVariableGet() above
+					CopyRecord.SourceSubStructPropertyName = *SourcePin->PinName;
 					return true;
 				}
 			}
 		}
 		// could be a native break
-		else if(UK2Node_CallFunction* NativeBreakNode = Cast<UK2Node_CallFunction>(FollowKnots(SourcePin, DestPin)))
+		else if(UK2Node_CallFunction* NativeBreakNode = Cast<UK2Node_CallFunction>(FollowKnots(DestPin, SourcePin)))
 		{
 			UFunction* Function = NativeBreakNode->FunctionReference.ResolveMember<UFunction>(UKismetMathLibrary::StaticClass());
 			if(Function && Function->HasMetaData(TEXT("NativeBreakFunc")) && IsWhitelistedNativeBreak(Function->GetFName()))
 			{
 				if(UEdGraphPin* InputPin = FindFirstInputPin(NativeBreakNode))
 				{
-					if(CheckForVariableGet(Handler, InputPin))
+					if(CheckForVariableGet(CopyRecord, InputPin))
 					{
-						check(Handler.SimpleCopyPropertyName != NAME_None);	// this should have been filled in by CheckForVariableGet() above
-						Handler.SubStructPropertyName = *DestPin->PinName;
+						check(CopyRecord.SourcePropertyName != NAME_None);	// this should have been filled in by CheckForVariableGet() above
+						CopyRecord.SourceSubStructPropertyName = *SourcePin->PinName;
 						return true;
 					}
 				}
@@ -2748,17 +2743,15 @@ bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForStructMemberAcces
 	return false;
 }
 
-bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForMemberOnlyAccess(FAnimNodeSinglePropertyHandler& Handler, UEdGraphPin* SourcePin)
+bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForMemberOnlyAccess(FPropertyCopyRecord& CopyRecord, UEdGraphPin* DestPin)
 {
 	const UAnimationGraphSchema* AnimGraphDefaultSchema = GetDefault<UAnimationGraphSchema>();
 
-	Handler.bHasOnlyMemberAccess = true;
-
-	if(SourcePin)
+	if(DestPin)
 	{
 		// traverse pins to leaf nodes and check for member access/pure only
 		TArray<UEdGraphPin*> PinStack;
-		PinStack.Add(SourcePin);
+		PinStack.Add(DestPin);
 		while(PinStack.Num() > 0)
 		{
 			UEdGraphPin* CurrentPin = PinStack.Pop(false);
@@ -2784,7 +2777,7 @@ bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForMemberOnlyAccess(
 							if(!LinkedVariableGetNode->IsNodePure() || !LinkedVariableGetNode->VariableReference.IsSelfContext())
 							{
 								// only local variable access is allowed for leaf nodes 
-								Handler.bHasOnlyMemberAccess = false;
+								CopyRecord.InvalidateFastPath();
 							}
 						}
 						else if(UK2Node_CallFunction* CallFunctionNode = Cast<UK2Node_CallFunction>(LinkedNode))
@@ -2792,12 +2785,12 @@ bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForMemberOnlyAccess(
 							if(!CallFunctionNode->IsNodePure())
 							{
 								// only allow pure function calls
-								Handler.bHasOnlyMemberAccess = false;
+								CopyRecord.InvalidateFastPath();
 							}
 						}
 						else if(!LinkedNode->IsA<UK2Node_TransitionRuleGetter>())
 						{
-							Handler.bHasOnlyMemberAccess = false;
+							CopyRecord.InvalidateFastPath();
 						}
 					}
 				}
@@ -2805,7 +2798,67 @@ bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForMemberOnlyAccess(
 		}
 	}
 
-	return Handler.bHasOnlyMemberAccess;
+	return CopyRecord.IsFastPath();
+}
+
+void FAnimBlueprintCompiler::FEvaluationHandlerRecord::ValidateFastPath(UClass* InCompiledClass)
+{
+	for (TPair<FName, FAnimNodeSinglePropertyHandler>& ServicedPropPair : ServicedProperties)
+	{
+		for (FPropertyCopyRecord& CopyRecord : ServicedPropPair.Value.CopyRecords)
+		{
+			CopyRecord.ValidateFastPath(InCompiledClass);
+		}
+	}
+}
+
+void FAnimBlueprintCompiler::FPropertyCopyRecord::ValidateFastPath(UClass* InCompiledClass)
+{
+	if (IsFastPath())
+	{
+		int32 DestPropertySize = DestProperty->GetSize();
+		if (UArrayProperty* DestArrayProperty = Cast<UArrayProperty>(DestProperty))
+		{
+			DestPropertySize = DestArrayProperty->Inner->GetSize();
+		}
+
+		UProperty* SourceProperty = InCompiledClass->FindPropertyByName(SourcePropertyName);
+		if (SourceProperty)
+		{
+			if (UArrayProperty* SourceArrayProperty = Cast<UArrayProperty>(SourceProperty))
+			{
+				// We dont support arrays as source properties
+				InvalidateFastPath();
+				return;
+			}
+
+			int32 SourcePropertySize = SourceProperty->GetSize();
+			if (SourceSubStructPropertyName != NAME_None)
+			{
+				UProperty* SourceSubStructProperty = CastChecked<UStructProperty>(SourceProperty)->Struct->FindPropertyByName(SourceSubStructPropertyName);
+				if (SourceSubStructProperty)
+				{
+					SourcePropertySize = SourceSubStructProperty->GetSize();
+				}
+				else
+				{
+					InvalidateFastPath();
+					return;
+				}
+			}
+
+			if (SourcePropertySize != DestPropertySize)
+			{
+				InvalidateFastPath();
+				return;
+			}
+		}
+		else
+		{
+			InvalidateFastPath();
+			return;
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////

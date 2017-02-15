@@ -1,37 +1,37 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:NoPublish
-Title:Welcome to the Sprite Editor
+Title:欢迎使用 Sprite 编辑器
 Crumbs:
-Description: The contents of all introductory tutorials for Unreal Engine 4
+Description:虚幻引擎 4 全部指导教程内容
 
 
 [EXCERPT:SpriteEditor1]
 [VAR:StageTitle]
-Welcome to the Paper2D Sprite Editor
+欢迎使用 Paper2D Sprite 编辑器
 [/VAR]
 
-Welcome to the Paper2D Sprite Editor which enables setup and editing of individual sprite assets.  This quick start guide describes the basic usage of commonly used interface elements.
+欢迎使用 Paper2D Sprite 编辑器，对个体 sprite 资源进行设置和编辑。此快速入门指南说明常用接口元素的基础用法。
 
 ![](PaperSpriteHeader.png)
 
-### Early Access Preview
+### 早期使用预览
 
-Sprites and the sprite editor are considered an 'early access preview'.  While not considered production-ready, they are a step beyond 'experimental' and are being provided as a preview of things to come:
+Sprite 和 sprite 编辑器仍在“早期预览”阶段。虽然并不建议用于生产，但这些功能已经渡过“实验性”阶段，并作为预览内容开放：
 
-* We will try to provide forward-compatibility for content you create.
-* The classes may change significantly in the future.
-* The code is in an early state and may not meet the desired polish / quality bar.
-* There is probably no documentation or example content yet.
-* They will be promoted out of 'Early Access' when they are production ready.
+* 我们将尝试向前兼容您创建的内容。
+* 未来类可能发生重大变更。
+* 代码仍在早期阶段，无法满足所需的优化/质量标准。
+* 可能还未准备文档或范例。
+* 可用于生产后，它们将被移出“早期使用”。
 
 [/EXCERPT:SpriteEditor1]
 
 
 [EXCERPT:SpriteEditor2]
 [VAR:StageTitle]
-Toolbar
+工具栏
 [/VAR]
-The toolbar provides access to commonly used tools and enables switching between editing modes.
+工具栏可访问常用工具并启用编辑模式之间的切换。
 
 ![](toolbar.png)
 [/EXCERPT:SpriteEditor2]
@@ -39,9 +39,9 @@ The toolbar provides access to commonly used tools and enables switching between
 
 [EXCERPT:SpriteEditor3]
 [VAR:StageTitle]
-Preview Viewport
+预览视口
 [/VAR]
-The Preview Viewport shows the sprite being edited and enables access to interactive editing tools.
+预览视口显示正在编辑的 sprite，并可借助它访问互动编辑工具。
 
 ![](preview.png)
 [/EXCERPT:SpriteEditor3]
@@ -51,7 +51,7 @@ The Preview Viewport shows the sprite being edited and enables access to interac
 [VAR:StageTitle]
 View
 [/VAR]
-The View mode simply displays a preview of the sprite in the viewport along with general statistics.
+View 模式在视口中显示 sprite 预览和总体数据。
 
 ![](view.png)
 [/EXCERPT:SpriteEditor3.1]
@@ -61,7 +61,7 @@ The View mode simply displays a preview of the sprite in the viewport along with
 [VAR:StageTitle]
 Edit Source Region
 [/VAR]
-The Edit Source Region mode displays the full source texture and enables you to set the area within the source texture that composes the individual sprite.
+Edit Source Region 模式显示完整源纹理，并可利用它在源纹理中设置构成个体 sprite 的区域。
 
 ![](edit_source.png)
 [/EXCERPT:SpriteEditor3.2]
@@ -71,7 +71,7 @@ The Edit Source Region mode displays the full source texture and enables you to 
 [VAR:StageTitle]
 Edit Collision
 [/VAR]
-The Edit Collision mode displays, and provides tools for editing, the geometry used for calculating collisions in the world as well as enabling tools for reshaping existing polygons and adding new ones and grid snapping.
+Edit Collision 模式显示并提供编辑工具、用于在世界场景中计算碰撞的几何体，以及启用工具重塑现有多边形并添加新多边形和网格捕捉。
 
 ![](edit_collision.png)
 [/EXCERPT:SpriteEditor3.3]
@@ -79,9 +79,9 @@ The Edit Collision mode displays, and provides tools for editing, the geometry u
 
 [EXCERPT:SpriteEditor3.4]
 [VAR:StageTitle]
-Edit Render Geometry
+编辑渲染几何体
 [/VAR]
-The Edit Render Geometry mode displays, and provides tools for editing, the geometry used to render the sprite as well as enabling tools for reshaping existing polygons and adding new ones and grid snapping.
+Edit Render Geometry 模式显示并提供编辑工具、用于渲染 sprite 的几何体，以及启用工具重塑现有多边形并添加新多边形和网格捕捉。
 
 ![](edit_render.png)
 [/EXCERPT:SpriteEditor3.4]
@@ -89,9 +89,9 @@ The Edit Render Geometry mode displays, and provides tools for editing, the geom
 
 [EXCERPT:SpriteEditor4]
 [VAR:StageTitle]
-Details
+细节（Details）
 [/VAR]
-The Details panel is where you can view and edit the properties of the sprite.
+在 Details 面板中可查看并编辑 sprite 的属性。
 
 ![](details.png)
 [/EXCERPT:SpriteEditor4]
@@ -99,9 +99,9 @@ The Details panel is where you can view and edit the properties of the sprite.
 
 [EXCERPT:SpriteEditor5]
 [VAR:StageTitle]
-Sprite List
+Sprite 列表
 [/VAR]
-The Sprite List displays all sprites derived from the same base texture. Double-clicking a sprite in the list will open it for editing in the Sprite Editor (replacing the sprite currently being edited).
+Sprite 列表显示派生自相同基础纹理的所有 sprite。双击列表中的 sprite 会将其在 Sprite 编辑器中打开进行编辑（代替当前正在编辑的 sprite）。
 
 ![](sprite_list.png)
 [/EXCERPT:SpriteEditor5]

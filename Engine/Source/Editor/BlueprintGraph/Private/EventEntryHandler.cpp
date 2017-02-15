@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "BlueprintGraphPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "EventEntryHandler.h"
+#include "K2Node_Event.h"
+
+#include "KismetCompiledFunctionContext.h"
 
 void FKCHandler_EventEntry::RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net)
 {

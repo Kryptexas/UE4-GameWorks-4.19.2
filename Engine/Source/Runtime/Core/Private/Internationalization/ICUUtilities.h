@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Timespan.h"
+
 #if UE_ENABLE_ICU
 THIRD_PARTY_INCLUDES_START
-	#include "unicode/unistr.h"
+	#include <unicode/unistr.h>
 THIRD_PARTY_INCLUDES_END
 
 namespace ICUUtilities

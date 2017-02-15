@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BasePassRendering.h: Base pass rendering definitions.
@@ -6,11 +6,33 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "HitProxies.h"
+#include "RHIStaticStates.h"
+#include "SceneManagement.h"
+#include "Materials/Material.h"
+#include "DrawingPolicy.h"
+#include "PostProcess/SceneRenderTargets.h"
 #include "LightMapRendering.h"
 #include "VelocityRendering.h"
+#include "MeshMaterialShaderType.h"
+#include "MeshMaterialShader.h"
 #include "ShaderBaseClasses.h"
+#include "DebugViewModeRendering.h"
+#include "FogRendering.h"
 #include "EditorCompositeParams.h"
 #include "PlanarReflectionRendering.h"
+#include "UnrealEngine.h"
+
+class FScene;
+
+template<typename TBufferStruct> class TUniformBufferRef;
+
+class FViewInfo;
 
 /** Whether to allow the indirect lighting cache to be applied to dynamic objects. */
 extern int32 GIndirectLightingCache;
@@ -49,6 +71,7 @@ public:
 		IndirectOcclusionTexture.Bind(ParameterMap, TEXT("IndirectOcclusionTexture"));
 		IndirectOcclusionTextureSampler.Bind(ParameterMap, TEXT("IndirectOcclusionTextureSampler"));
 		ReflectionCaptureBuffer.Bind(ParameterMap, TEXT("ReflectionCapture"));
+		ResolvedSceneDepthTexture.Bind(ParameterMap, TEXT("ResolvedSceneDepthTexture"));
 	}
 
 	template<typename RHICommandListType, typename ShaderRHIParamRef>
@@ -70,10 +93,10 @@ public:
 			InstancedCulledLightDataGrid.SetBuffer(RHICmdList, ShaderRHI, InstancedView.ForwardLightingResources->CulledLightDataGrid);
 		}
 
+		FSceneRenderTargets& SceneRenderTargets = FSceneRenderTargets::Get(RHICmdList);
+
 		if (LightAttenuationTexture.IsBound() || IndirectOcclusionTexture.IsBound())
 		{
-			FSceneRenderTargets& SceneRenderTargets = FSceneRenderTargets::Get(RHICmdList);
-
 			SetTextureParameter(
 				RHICmdList, 
 				ShaderRHI,
@@ -101,6 +124,23 @@ public:
 		}
 
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, ReflectionCaptureBuffer, View.ReflectionCaptureUniformBuffer);
+
+		if (ResolvedSceneDepthTexture.IsBound())
+		{
+			FTextureRHIParamRef ResolvedSceneDepthTextureValue = GSystemTextures.WhiteDummy->GetRenderTargetItem().ShaderResourceTexture;
+
+			if (SceneRenderTargets.GetMSAACount() > 1)
+			{
+				ResolvedSceneDepthTextureValue = SceneRenderTargets.SceneDepthZ->GetRenderTargetItem().ShaderResourceTexture;
+			}
+
+			SetTextureParameter(
+				RHICmdList, 
+				ShaderRHI,
+				ResolvedSceneDepthTexture,
+				ResolvedSceneDepthTextureValue
+				);
+		}
 	}
 
 	template<typename ShaderRHIParamRef>
@@ -154,6 +194,7 @@ public:
 		Ar << P.IndirectOcclusionTexture;
 		Ar << P.IndirectOcclusionTextureSampler;
 		Ar << P.ReflectionCaptureBuffer;
+		Ar << P.ResolvedSceneDepthTexture;
 		return Ar;
 	}
 
@@ -174,6 +215,8 @@ private:
 	FShaderResourceParameter IndirectOcclusionTexture;
 	FShaderResourceParameter IndirectOcclusionTextureSampler;
 	FShaderUniformBufferParameter ReflectionCaptureBuffer;
+
+	FShaderResourceParameter ResolvedSceneDepthTexture;
 };
 
 /** Parameters needed for looking up into translucency lighting volumes. */
@@ -343,7 +386,7 @@ public:
 		}
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState);
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, const FDrawingPolicyRenderState& DrawRenderState);
 
 	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex);
 
@@ -433,7 +476,7 @@ public:
 /**
  * The base shader type for hull shaders.
  */
-template<typename LightMapPolicyType>
+template<typename LightMapPolicyType, bool bEnableAtmosphericFog>
 class TBasePassHS : public FBaseHS
 {
 	DECLARE_SHADER_TYPE(TBasePassHS,MeshMaterial);
@@ -449,14 +492,16 @@ protected:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Re-use vertex shader gating
-		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& TBasePassVS<LightMapPolicyType,false>::ShouldCache(Platform,Material,VertexFactoryType);
+		// Metal requires matching permutations, but no other platform should worry about this complication.
+		return (bEnableAtmosphericFog == false || IsMetalPlatform(Platform))
+			&& FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
+			&& TBasePassVS<LightMapPolicyType,bEnableAtmosphericFog>::ShouldCache(Platform,Material,VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		// Re-use vertex shader compilation environment
-		TBasePassVS<LightMapPolicyType,false>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		TBasePassVS<LightMapPolicyType,bEnableAtmosphericFog>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
 
 	// Don't implement : void SetParameters(...) or SetMesh() unless changing the shader reference in TBasePassDrawingPolicy
@@ -580,6 +625,7 @@ public:
 		SingleCubemapArrayIndex.Bind(ParameterMap, TEXT("SingleCubemapArrayIndex"));	
 		SingleCaptureOffsetAndAverageBrightness.Bind(ParameterMap, TEXT("SingleCaptureOffsetAndAverageBrightness"));
 		SingleCapturePositionAndRadius.Bind(ParameterMap, TEXT("SingleCapturePositionAndRadius"));
+		SingleCaptureBrightness.Bind(ParameterMap, TEXT("SingleCaptureBrightness"));
 		SkyLightReflectionParameters.Bind(ParameterMap);
 	}
 
@@ -596,6 +642,7 @@ public:
 		Ar << P.SingleCubemapArrayIndex;
 		Ar << P.SingleCaptureOffsetAndAverageBrightness;
 		Ar << P.SingleCapturePositionAndRadius;
+		Ar << P.SingleCaptureBrightness;
 		Ar << P.SkyLightReflectionParameters;
 		return Ar;
 	}
@@ -609,6 +656,7 @@ private:
 	FShaderParameter SingleCubemapArrayIndex;
 	FShaderParameter SingleCaptureOffsetAndAverageBrightness;
 	FShaderParameter SingleCapturePositionAndRadius;
+	FShaderParameter SingleCaptureBrightness;
 
 	FSkyLightReflectionParameters SkyLightReflectionParameters;
 };
@@ -718,7 +766,7 @@ public:
 		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, *View, bIsInstancedStereo);
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState, EBlendMode BlendMode);
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, const FDrawingPolicyRenderState& DrawRenderState, EBlendMode BlendMode);
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
@@ -826,8 +874,17 @@ void GetBasePassShaders(
 {
 	if (bNeedsHSDS)
 	{
-		HullShader = Material.GetShader<TBasePassHS<LightMapPolicyType> >(VertexFactoryType);
-		DomainShader = Material.GetShader<TBasePassDS<LightMapPolicyType> >(VertexFactoryType);
+		DomainShader = Material.GetShader<TBasePassDS<LightMapPolicyType > >(VertexFactoryType);
+		
+		// Metal requires matching permutations, but no other platform should worry about this complication.
+		if (bEnableAtmosphericFog && DomainShader && IsMetalPlatform(EShaderPlatform(DomainShader->GetTarget().Platform)))
+		{
+			HullShader = Material.GetShader<TBasePassHS<LightMapPolicyType, true > >(VertexFactoryType);
+		}
+		else
+		{
+			HullShader = Material.GetShader<TBasePassHS<LightMapPolicyType, false > >(VertexFactoryType);
+		}
 	}
 
 	if (bEnableAtmosphericFog)
@@ -862,11 +919,31 @@ void GetBasePassShaders<FUniformLightMapPolicy>(
 	TBasePassPixelShaderPolicyParamType<FUniformLightMapPolicyShaderParametersType>*& PixelShader
 	);
 
+class FBasePassDrawingPolicy : public FMeshDrawingPolicy
+{
+public:
+	FBasePassDrawingPolicy(
+		const FVertexFactory* InVertexFactory,
+		const FMaterialRenderProxy* InMaterialRenderProxy, 
+		const FMaterial& InMaterialResource, 
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
+		EDebugViewShaderMode InDebugViewShaderMode,
+		bool bInEnableReceiveDecalOutput) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode), bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput)
+	{}
+
+	void ApplyDitheredLODTransitionState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither);
+
+protected:
+
+	/** Whether or not outputing the receive decal boolean */
+	uint32 bEnableReceiveDecalOutput : 1;
+};
+
 /**
  * Draws the emissive color and the light-map of a mesh.
  */
 template<typename LightMapPolicyType>
-class TBasePassDrawingPolicy : public FMeshDrawingPolicy
+class TBasePassDrawingPolicy : public FBasePassDrawingPolicy
 {
 public:
 
@@ -899,18 +976,18 @@ public:
 		ESceneRenderTargetsMode::Type InSceneTextureMode,
 		bool bInEnableSkyLight,
 		bool bInEnableAtmosphericFog,
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		EDebugViewShaderMode InDebugViewShaderMode = DVSM_None,
 		bool bInEnableEditorPrimitiveDepthTest = false,
 		bool bInEnableReceiveDecalOutput = false
 		):
-		FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InDebugViewShaderMode, false, false, false),
+		FBasePassDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode, bInEnableReceiveDecalOutput),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode), 
 		SceneTextureMode(InSceneTextureMode),
 		bEnableSkyLight(bInEnableSkyLight),
 		bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest),
-		bEnableAtmosphericFog(bInEnableAtmosphericFog),
-		bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput)
+		bEnableAtmosphericFog(bInEnableAtmosphericFog)
 	{
 		HullShader = NULL;
 		DomainShader = NULL;
@@ -955,11 +1032,12 @@ public:
 			DRAWING_POLICY_MATCH(DomainShader == Other.DomainShader) &&
 			DRAWING_POLICY_MATCH(SceneTextureMode == Other.SceneTextureMode) &&
 			DRAWING_POLICY_MATCH(bEnableSkyLight == Other.bEnableSkyLight) && 
-			DRAWING_POLICY_MATCH(LightMapPolicy == Other.LightMapPolicy);
+			DRAWING_POLICY_MATCH(LightMapPolicy == Other.LightMapPolicy) &&
+			DRAWING_POLICY_MATCH(bEnableReceiveDecalOutput == Other.bEnableReceiveDecalOutput);
 		DRAWING_POLICY_MATCH_END
 	}
 
-	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext, bool bUseDownsampledTranslucencyViewUniformBuffer = false) const
+	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext, const FDrawingPolicyRenderState& DrawRenderState, bool bUseDownsampledTranslucencyViewUniformBuffer = false) const
 	{
 		// If the current debug view shader modes are allowed, different VS/DS/HS must be used (with only SV_POSITION as PS interpolant).
 		if (View->Family->UseDebugViewVSDSHS())
@@ -1070,8 +1148,7 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
-		bool bBackFace,
-		const FMeshDrawingRenderState& DrawRenderState,
+		FDrawingPolicyRenderState& DrawRenderState,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
 		) const
@@ -1124,35 +1201,7 @@ public:
 			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState,BlendMode);
 		}
 
-		if (bEnableReceiveDecalOutput && !UseDebugViewPS())
-		{
-			// Set stencil value for this draw call
-			// This is effectively extending the GBuffer using the stencil bits
-			const uint8 StencilValue = GET_STENCIL_BIT_MASK(RECEIVE_DECAL, PrimitiveSceneProxy ? !!PrimitiveSceneProxy->ReceivesDecals() : 0x00)
-				| STENCIL_LIGHTING_CHANNELS_MASK(PrimitiveSceneProxy ? PrimitiveSceneProxy->GetLightingChannelStencilValue() : 0x00);
-			
-			const bool bStencilDithered = DrawRenderState.bAllowStencilDither && DrawRenderState.DitheredLODState != EDitheredLODState::None;
-			if (bStencilDithered)
-			{
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-					false, CF_Equal,
-					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
-					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
-				>::GetRHI(), StencilValue);
-			}
-			else
-			{
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-					true, CF_GreaterEqual,
-					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
-					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
-				>::GetRHI(), StencilValue);
-			}
-		}
-
-		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DrawRenderState,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
+		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,DrawRenderState,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 	}
 
 	friend int32 CompareDrawingPolicy(const TBasePassDrawingPolicy& A,const TBasePassDrawingPolicy& B)
@@ -1190,9 +1239,6 @@ protected:
 	uint32 bEnableEditorPrimitiveDepthTest : 1;
 	/** Whether or not this policy enables atmospheric fog */
 	uint32 bEnableAtmosphericFog : 1;
-
-	/** Whether or not outputing the receive decal boolean */
-	uint32 bEnableReceiveDecalOutput : 1;
 };
 
 /**
@@ -1222,8 +1268,8 @@ public:
 		const FViewInfo& View,
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
-		bool bBackFace,
 		bool bPreFog,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId, 
 		const bool bIsInstancedStereo = false
@@ -1309,7 +1355,7 @@ template<typename ProcessActionType>
 void ProcessBasePassMeshForSimpleForwardShading(
 	FRHICommandList& RHICmdList,
 	const FProcessBasePassMeshParameters& Parameters,
-	const ProcessActionType& Action,
+	ProcessActionType&& Action,
 	const FLightMapInteraction& LightMapInteraction,
 	bool bIsLitMaterial,
 	bool bAllowStaticLighting
@@ -1371,7 +1417,7 @@ template<typename ProcessActionType>
 void ProcessBasePassMesh(
 	FRHICommandList& RHICmdList,
 	const FProcessBasePassMeshParameters& Parameters,
-	const ProcessActionType& Action
+	ProcessActionType&& Action
 	)
 {
 	// Check for a cached light-map.

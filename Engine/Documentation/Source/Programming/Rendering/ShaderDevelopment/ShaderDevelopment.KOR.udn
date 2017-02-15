@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3151855
 Availability:Public
 Title:셰이더 개발
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:셰이더를 작성하는 그래픽 프로그래머를 위한 정보입니다.
 Version: 4.9
+tags:Rendering
 
 ## 퀵 스타트
 

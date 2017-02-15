@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "EngineDefines.h"
+#include "AI/Navigation/NavigationTypes.h"
 #include "AI/Navigation/NavigationData.h"
-#include "Tickable.h"
 #include "RecastNavMesh.generated.h"
 
 /** Initial checkin. */
@@ -34,14 +38,14 @@
 #define RECAST_STRAIGHTPATH_OFFMESH_CONNECTION 0x04
 #define RECAST_UNWALKABLE_POLY_COST	FLT_MAX
 
-class FNavDataGenerator;
 class FPImplRecastNavMesh;
 class FRecastQueryFilter;
 class INavLinkCustomInterface;
+class UCanvas;
 class UNavArea;
 class UNavigationSystem;
+class UPrimitiveComponent;
 class URecastNavMeshDataChunk;
-struct FAreaNavModifier;
 struct FRecastAreaNavModifierElement;
 
 UENUM()
@@ -369,7 +373,7 @@ struct FNavMeshTileData
 	// size of allocated data
 	int32	DataSize;
 	// actual tile data
-	TSharedPtr<FNavData> NavData;
+	TSharedPtr<FNavData, ESPMode::ThreadSafe> NavData;
 	
 	FNavMeshTileData() : LayerIndex(0), DataSize(0) { }
 	~FNavMeshTileData();
@@ -950,6 +954,9 @@ public:
 
 	/** Get all polys that overlap the specified box */
 	bool GetPolysInBox(const FBox& Box, TArray<FNavPoly>& Polys, FSharedConstNavQueryFilter Filter = nullptr, const UObject* Owner = nullptr) const;
+
+	/** Get all polys from tile */
+	bool GetNavLinksInTile(const int32 TileIndex, TArray<FNavPoly>& Polys, const bool bIncludeLinksFromNeighborTiles) const;
 
 	/** Projects point on navmesh, returning all hits along vertical line defined by min-max Z params */
 	bool ProjectPointMulti(const FVector& Point, TArray<FNavLocation>& OutLocations, const FVector& Extent,

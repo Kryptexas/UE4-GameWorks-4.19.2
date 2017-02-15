@@ -81,7 +81,6 @@ namespace physx { namespace profile {
 
 		PxProfileArray<PxProfileZoneClient*>				mClients;
 		volatile bool									mEventsActive;
-		PxUserCustomProfiler*							mUserCustomProfiler;
 
 		PX_NOCOPY(ZoneImpl<TNameProvider>)
 	public:
@@ -97,7 +96,6 @@ namespace physx { namespace profile {
 			, mProfileZoneManager( NULL )
 			, mClients( mWrapper )
 			, mEventsActive( false )
-			, mUserCustomProfiler(NULL)
 		{
 			TZoneEventBufferType::setBufferMutex( &mMutex );
 			//Initialize the event name structure with existing names from the name provider.
@@ -115,11 +113,6 @@ namespace physx { namespace profile {
 				mProfileZoneManager->removeProfileZone( *this );
 			mProfileZoneManager = NULL;
 			TZoneEventBufferType::removeClient( *this );
-		}
-
-		virtual void setUserCustomProfiler(PxUserCustomProfiler* up)
-		{
-			mUserCustomProfiler = up;
 		}
 
 		void doAddName( const char* inName, uint16_t inEventId, bool inCompileTimeEnabled )
@@ -266,11 +259,6 @@ namespace physx { namespace profile {
 		//and context in the client side.
 		virtual void startEvent( uint16_t inId, uint64_t contextId)
 		{
-			if ( mUserCustomProfiler )
-			{
-				const char* name = mEvtIdToNameMap[inId];
-				mUserCustomProfiler->onStartEvent(name,contextId,0);
-			}
 			if( mEventsActive )
 			{
 				TZoneEventBufferType::startEvent( inId, contextId );
@@ -278,11 +266,6 @@ namespace physx { namespace profile {
 		}
 		virtual void stopEvent( uint16_t inId, uint64_t contextId)
 		{
-			if ( mUserCustomProfiler )
-			{
-				const char* name = mEvtIdToNameMap[inId];
-				mUserCustomProfiler->onStopEvent(name,contextId,0);
-			}
 			if( mEventsActive )
 			{
 				TZoneEventBufferType::stopEvent( inId, contextId );
@@ -291,11 +274,6 @@ namespace physx { namespace profile {
 
 		virtual void startEvent( uint16_t inId, uint64_t contextId, uint32_t threadId)
 		{
-			if ( mUserCustomProfiler )
-			{
-				const char* name = mEvtIdToNameMap[inId];
-				mUserCustomProfiler->onStartEvent(name,contextId,threadId);
-			}
 			if( mEventsActive )
 			{
 				TZoneEventBufferType::startEvent( inId, contextId, threadId );
@@ -303,11 +281,6 @@ namespace physx { namespace profile {
 		}
 		virtual void stopEvent( uint16_t inId, uint64_t contextId, uint32_t threadId )
 		{
-			if ( mUserCustomProfiler )
-			{
-				const char* name = mEvtIdToNameMap[inId];
-				mUserCustomProfiler->onStopEvent(name,contextId,threadId);
-			}
 			if( mEventsActive )
 			{
 				TZoneEventBufferType::stopEvent( inId, contextId, threadId );
@@ -316,12 +289,6 @@ namespace physx { namespace profile {
 
 		virtual void atEvent(uint16_t inId, uint64_t contextId, uint32_t threadId, uint64_t start, uint64_t stop)
 		{
-			if (mUserCustomProfiler)
-			{
-				const char* name = mEvtIdToNameMap[inId];
-				mUserCustomProfiler->onStartEvent(name, contextId, threadId);
-				mUserCustomProfiler->onStopEvent(name, contextId, threadId);
-			}
 			if (mEventsActive)
 			{
 				TZoneEventBufferType::startEvent(inId, threadId, contextId, 0, 0, start);
@@ -336,17 +303,15 @@ namespace physx { namespace profile {
 		 */
 		virtual void eventValue( uint16_t inId, uint64_t contextId, int64_t inValue )
 		{
-			if ( mUserCustomProfiler )
-			{
-				const char* name = mEvtIdToNameMap[inId];
-				mUserCustomProfiler->onEventValue(name,inValue);
-			}
 			if( mEventsActive )
 			{
 				TZoneEventBufferType::eventValue( inId, contextId, inValue );
 			}
 		}
-		virtual void flushProfileEvents() { TZoneEventBufferType::flushProfileEvents(); }
+		virtual void flushProfileEvents()
+		{
+			TZoneEventBufferType::flushProfileEvents();
+		}
 	};
 
 }}

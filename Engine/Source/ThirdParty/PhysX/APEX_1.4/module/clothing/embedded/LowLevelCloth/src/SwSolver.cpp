@@ -280,7 +280,7 @@ cloth::SwSolver::CpuClothSimulationTask::CpuClothSimulationTask(SwCloth& cloth, 
 cloth::SwSolver::CpuClothSimulationTask::~CpuClothSimulationTask()
 {
 	deallocate(mScratchMemory);
-	mCloth->mSimulationTask = nullptr;
+	mCloth->mSimulationTask = NULL;
 }
 
 void cloth::SwSolver::CpuClothSimulationTask::runInternal()

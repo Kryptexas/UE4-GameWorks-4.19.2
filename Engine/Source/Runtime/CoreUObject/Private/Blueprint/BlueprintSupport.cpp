@@ -1,18 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
+#include "Blueprint/BlueprintSupport.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/CoreMisc.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Object.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/UnrealType.h"
+#include "Serialization/DuplicatedDataWriter.h"
+#include "Misc/PackageName.h"
+#include "UObject/ObjectResource.h"
+#include "UObject/GCObject.h"
 #include "UObject/LinkerPlaceholderClass.h"
 #include "UObject/LinkerPlaceholderExportObject.h"
 #include "UObject/LinkerPlaceholderFunction.h"
-#include "Linker.h"
-#include "PropertyTag.h"
 #include "UObject/StructScriptLoader.h"
 #include "UObject/UObjectThreadContext.h"
-#include "ModuleManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintSupport, Log, All);
 
-/** 
+/**
  * Defined in BlueprintSupport.cpp
  * Duplicates all fields of a class in depth-first order. It makes sure that everything contained
  * in a class is duplicated before the class itself, as well as all function parameters before the
@@ -448,6 +458,52 @@ static PlaceholderType* MakeImportPlaceholder(UObject* Outer, const TCHAR* Targe
 	return PlaceholderObj;
 }
 
+/** Recursive utility function, set up to find a specific import that has already been created (emulates a block from FLinkerLoad::CreateImport)*/
+static UObject* FindExistingImportObject(const int32 Index, const TArray<FObjectImport>& ImportMap)
+{
+	const FObjectImport& Import = ImportMap[Index];
+
+	UObject* FindOuter = nullptr;
+	if (Import.OuterIndex.IsImport())
+	{
+		int32 OuterIndex = Import.OuterIndex.ToImport();
+		const FObjectImport& OuterImport = ImportMap[OuterIndex];
+
+		if (OuterImport.XObject != nullptr)
+		{
+			FindOuter = OuterImport.XObject;
+		}
+		else
+		{
+			FindOuter = FindExistingImportObject(OuterIndex, ImportMap);
+		}
+	}
+
+	UObject* FoundObject = nullptr;
+	if (FindOuter != nullptr || Import.OuterIndex.IsNull())
+	{
+		if (UObject* ClassPackage = FindObject<UPackage>(/*Outer =*/nullptr, *Import.ClassPackage.ToString()))
+		{
+			if (UClass* ImportClass = FindObject<UClass>(ClassPackage, *Import.ClassName.ToString()))
+			{
+				// This function is set up to emulate a block towards the top of 
+				// FLinkerLoad::CreateImport(). However, since this is used in 
+				// deferred dependency loading we need to be careful not to invoke
+				// subsequent loads. The block in CreateImport() calls Preload() 
+				// and GetDefaultObject() which are not suitable here, so to 
+				// emulate/keep the contract that that block provides, we'll only 
+				// lookup the object if its class is loaded, and has a CDO (this
+				// is just to mitigate risk from this change)
+				if (!ImportClass->HasAnyFlags(RF_NeedLoad) && ImportClass->ClassDefaultObject)
+				{
+					FoundObject = StaticFindObjectFast(ImportClass, FindOuter, Import.ObjectName);
+				}				
+			}
+		}
+	}
+	return FoundObject;
+}
+
 bool FLinkerLoad::DeferPotentialCircularImport(const int32 Index)
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
@@ -469,6 +525,22 @@ bool FLinkerLoad::DeferPotentialCircularImport(const int32 Index)
 
 	if ((LoadFlags & LOAD_DeferDependencyLoads) && !IsImportNative(Index))
 	{
+		// emulate the block in CreateImport(), that attempts to find an existing
+		// object in memory first... this is to account for async loading, which
+		// can clear Import.XObject (via FLinkerManager::DissociateImportsAndForcedExports)
+		// at inopportune times (after it's already been set) - in this case
+		// we shouldn't need a placeholder, because the object already exists; we
+		// just need to keep from serializing it any further (which is why we've
+		// emulated it here, to cut out on a Preload() call)
+		if (!GIsEditor && !IsRunningCommandlet())
+		{
+			Import.XObject = FindExistingImportObject(Index, ImportMap);
+			if (Import.XObject)
+			{
+				return true;
+			}
+		}
+
 		if (UObject* ClassPackage = FindObject<UPackage>(/*Outer =*/nullptr, *Import.ClassPackage.ToString()))
 		{
 			if (const UClass* ImportClass = FindObject<UClass>(ClassPackage, *Import.ClassName.ToString()))
@@ -1717,33 +1789,170 @@ void FLinkerLoad::CreateDynamicTypeLoader()
 	bHasSerializedPackageFileSummary = true;
 
 	// Try to get dependencies for dynamic classes
-	TArray<FBlueprintDependencyData> ImportDependencyPackages;
-	FConvertedBlueprintsDependencies::Get().GetAssets(LinkerRoot->GetFName(), ImportDependencyPackages);
+	TArray<FBlueprintDependencyData> DependencyData;
+	FConvertedBlueprintsDependencies::Get().GetAssets(LinkerRoot->GetFName(), DependencyData);
+
+	const FName DynamicClassName = UDynamicClass::StaticClass()->GetFName();
+	const FName DynamicClassPackageName = UDynamicClass::StaticClass()->GetOuterUPackage()->GetFName();
+
+	ensure(!ImportMap.Num());
 
 	// Create Imports
-	for (FBlueprintDependencyData& Import : ImportDependencyPackages)
+	for (FBlueprintDependencyData& Import : DependencyData)
 	{
 		FObjectImport* ObjectImport = new(ImportMap)FObjectImport(nullptr);
-		ObjectImport->ClassName = Import.ClassName;
-		ObjectImport->ClassPackage = Import.ClassPackageName;
-		ObjectImport->ObjectName = Import.ObjectName;
+		ObjectImport->ClassName = Import.ObjectRef.ClassName;
+		ObjectImport->ClassPackage = Import.ObjectRef.ClassPackageName;
+		ObjectImport->ObjectName = Import.ObjectRef.ObjectName;
 		ObjectImport->OuterIndex = FPackageIndex::FromImport(ImportMap.Num());
 
 		FObjectImport* OuterImport = new(ImportMap)FObjectImport(nullptr);
 		OuterImport->ClassName = NAME_Package;
 		OuterImport->ClassPackage = GLongCoreUObjectPackageName;
-		OuterImport->ObjectName = Import.PackageName;
+		OuterImport->ObjectName = Import.ObjectRef.PackageName;
+
+		if ((Import.ObjectRef.ClassName == DynamicClassName) 
+			&& (!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+			&& (Import.ObjectRef.ClassPackageName == DynamicClassPackageName))
+		{
+			const FString DynamicClassPath = Import.ObjectRef.PackageName.ToString() + TEXT(".") + Import.ObjectRef.ObjectName.ToString();
+			const FName DynamicClassPathName(*DynamicClassPath);
+			FDynamicClassStaticData* ClassConstructFn = GetDynamicClassMap().Find(DynamicClassPathName);
+			if (ensure(ClassConstructFn))
+			{
+				// The class object is created here. The class is not fully constructed yet (no CLASS_Constructed flag), ZConstructor will do that later.
+				// The class object is needed to resolve circular dependencies. Regular native classes use deferred initialization/registration to avoid them.
+
+				ClassConstructFn->StaticClassFn();
+
+				//We don't fill the ObjectImport->XObject and OuterImport->XObject, because the class still must be created as export.
+			}
+		}
 	}
 
-	// Create Exports
+	// Create Export
+	const int32 DynamicTypeExportIndex = ExportMap.Num();
+	FObjectExport* const DynamicTypeExport = new (ExportMap)FObjectExport();
 	{
-		FObjectExport* Export = new (ExportMap)FObjectExport();
 		const FName* TypeNamePtr = GetConvertedDynamicPackageNameToTypeName().Find(LinkerRoot->GetFName());
-		Export->ObjectName = TypeNamePtr ? *TypeNamePtr : NAME_None;
-		Export->ThisIndex = FPackageIndex::FromExport(ExportMap.Num() - 1);
+		DynamicTypeExport->ObjectName = TypeNamePtr ? *TypeNamePtr : NAME_None;
+		DynamicTypeExport->ThisIndex = FPackageIndex::FromExport(DynamicTypeExportIndex);
 		// This allows us to skip creating two additional imports for UDynamicClass and its package
-		Export->bDynamicClass = true;
-		Export->ObjectFlags |= RF_Public;
+		DynamicTypeExport->DynamicType = FObjectExport::EDynamicType::DynamicType;
+		DynamicTypeExport->ObjectFlags |= RF_Public;
+	}
+
+	if (GEventDrivenLoaderEnabled)
+	{
+	const FString DynamicTypePath = GetExportPathName(DynamicTypeExportIndex);
+	const FName DynamicTypeClassName = GetDynamicTypeClassName(*DynamicTypePath);
+	ensure(DynamicTypeClassName != NAME_None);
+	const bool bIsDynamicClass = DynamicTypeClassName == DynamicClassName;
+	const bool bIsDynamicStruct = DynamicTypeClassName == UScriptStruct::StaticClass()->GetFName();
+
+	if(bIsDynamicClass || bIsDynamicStruct)
+	{
+		FObjectExport* const CDOExport = bIsDynamicClass ? (new (ExportMap)FObjectExport()) : nullptr;
+		if(CDOExport)
+		{
+			const FString CDOName = FString(DEFAULT_OBJECT_PREFIX) + DynamicTypeExport->ObjectName.ToString();
+			CDOExport->ObjectName = *CDOName;
+			CDOExport->ThisIndex = FPackageIndex::FromExport(ExportMap.Num() - 1);
+			CDOExport->DynamicType = FObjectExport::EDynamicType::ClassDefaultObject;
+			CDOExport->ObjectFlags |= RF_Public | RF_ClassDefaultObject; //? 
+			CDOExport->ClassIndex = DynamicTypeExport->ThisIndex;
+		}
+
+		FObjectExport* const FakeExports[] = { DynamicTypeExport , CDOExport }; // must be sync'ed with FBlueprintDependencyData::DependencyTypes
+		int32 RunningIndex = 0;
+		for(int32 LocExportIndex = 0; LocExportIndex < (sizeof(FakeExports)/sizeof(FakeExports[0])); LocExportIndex++)
+		{
+			FObjectExport* const Export = FakeExports[LocExportIndex];
+			if (!Export)
+			{
+				continue;
+			}
+			Export->FirstExportDependency = RunningIndex;
+
+			enum class EDependencyType : uint8
+			{
+				SerializationBeforeSerialization,
+				CreateBeforeSerialization,
+				SerializationBeforeCreate,
+				CreateBeforeCreate,
+			};
+
+			auto HandleDependencyTypeForExport = [&](EDependencyType InDependencyType)
+			{
+				for (int32 DependencyDataIndex = 0; DependencyDataIndex < DependencyData.Num(); DependencyDataIndex++)
+				{
+					const FBlueprintDependencyData& Import = DependencyData[DependencyDataIndex];
+					const FBlueprintDependencyType DependencyType = Import.DependencyTypes[LocExportIndex];
+					auto IsMatchingDependencyType = [](FBlueprintDependencyType InDependencyTypeStruct, EDependencyType InDependencyTypeLoc) -> bool
+					{
+						switch (InDependencyTypeLoc)
+						{
+						case EDependencyType::SerializationBeforeSerialization:
+							return InDependencyTypeStruct.bSerializationBeforeSerializationDependency;
+						case EDependencyType::CreateBeforeSerialization:
+							return InDependencyTypeStruct.bCreateBeforeSerializationDependency;
+						case EDependencyType::SerializationBeforeCreate:
+							return InDependencyTypeStruct.bSerializationBeforeCreateDependency;
+						case EDependencyType::CreateBeforeCreate:
+							return InDependencyTypeStruct.bCreateBeforeCreateDependency;
+						}
+						check(false);
+						return false;
+					};
+					if (IsMatchingDependencyType(DependencyType, InDependencyType))
+					{
+						auto IncreaseDependencyTypeInExport = [](FObjectExport* InExport, EDependencyType InDependencyTypeLoc)
+						{
+							check(InExport);
+							switch (InDependencyTypeLoc)
+							{
+							case EDependencyType::SerializationBeforeSerialization:
+								InExport->SerializationBeforeSerializationDependencies++;
+								break;
+							case EDependencyType::CreateBeforeSerialization:
+								InExport->CreateBeforeSerializationDependencies++;
+								break;
+							case EDependencyType::SerializationBeforeCreate:
+								InExport->SerializationBeforeCreateDependencies++;
+								break;
+							case EDependencyType::CreateBeforeCreate:
+								InExport->CreateBeforeCreateDependencies++;
+								break;
+							}
+						};
+						IncreaseDependencyTypeInExport(Export, InDependencyType);
+
+						auto IndexInDependencyDataToImportIndex = [](int32 ArrayIndex) -> int32 { return ArrayIndex * 2; };
+						const int32 ImportIndex = IndexInDependencyDataToImportIndex(DependencyDataIndex);
+						PreloadDependencies.Add(FPackageIndex::FromImport(ImportIndex));
+						RunningIndex++;
+					}
+				}
+			};
+
+			// the order of Packages in PreloadDependencie must match FAsyncPackage::SetupExports_Event
+
+			HandleDependencyTypeForExport(EDependencyType::SerializationBeforeSerialization);
+			HandleDependencyTypeForExport(EDependencyType::CreateBeforeSerialization);
+
+			if (bIsDynamicClass && (Export == CDOExport))
+			{
+				// Add a serializebeforecreate arc from the class on the CDO. That will force us to finish the class before we create the CDO....
+				// and that will make sure that we load the class before we serialize things that reference the CDO.
+				Export->SerializationBeforeCreateDependencies++;
+				PreloadDependencies.Add(DynamicTypeExport->ThisIndex);
+				RunningIndex++;
+			}
+
+			HandleDependencyTypeForExport(EDependencyType::SerializationBeforeCreate);
+			HandleDependencyTypeForExport(EDependencyType::CreateBeforeCreate);
+		}
+	}
 	}
 
 	LinkerRoot->SetPackageFlags(LinkerRoot->GetPackageFlags() | PKG_CompiledIn);
@@ -2078,7 +2287,7 @@ void FDeferredObjInitializerTracker::ResolveDeferredSubClassObjects(UClass* Supe
 // don't want other files ending up with this internal define
 #undef DEFERRED_DEPENDENCY_CHECK
 
-FBlueprintDependencyData::FBlueprintDependencyData(const TCHAR* InPackageFolder
+FBlueprintDependencyObjectRef::FBlueprintDependencyObjectRef(const TCHAR* InPackageFolder
 	, const TCHAR* InShortPackageName
 	, const TCHAR* InObjectName
 	, const TCHAR* InClassPackageName
@@ -2095,11 +2304,16 @@ FConvertedBlueprintsDependencies& FConvertedBlueprintsDependencies::Get()
 	return ConvertedBlueprintsDependencies;
 }
 
-void FConvertedBlueprintsDependencies::RegisterClass(FName PackageName, GetDependenciesNamesFunc GetAssets)
+void FConvertedBlueprintsDependencies::RegisterConvertedClass(FName PackageName, GetDependenciesNamesFunc GetAssets)
 {
 	check(!PackageNameToGetter.Contains(PackageName));
 	ensure(GetAssets);
 	PackageNameToGetter.Add(PackageName, GetAssets);
+}
+
+static bool IsBlueprintDependencyDataNull(const FBlueprintDependencyData& Dependency)
+{
+	return Dependency.ObjectRef.ObjectName == NAME_None;
 }
 
 void FConvertedBlueprintsDependencies::GetAssets(FName PackageName, TArray<FBlueprintDependencyData>& OutDependencies) const
@@ -2110,6 +2324,7 @@ void FConvertedBlueprintsDependencies::GetAssets(FName PackageName, TArray<FBlue
 	if (Func)
 	{
 		Func(OutDependencies);
+		OutDependencies.RemoveAll(IsBlueprintDependencyDataNull);
 	}
 }
 
@@ -2121,11 +2336,46 @@ void FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass(UDynamicClas
 	TArray<FBlueprintDependencyData> UsedAssetdData;
 	GetUsedAssets(UsedAssetdData);
 
+	if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+	{
+		FLinkerLoad* Linker = DynamicClass->GetOutermost()->LinkerLoad;
+		if (Linker)
+		{
+			int32 ImportIndex = 0;
+			for (FBlueprintDependencyData& ItData : UsedAssetdData)
+			{
+				if (!IsBlueprintDependencyDataNull(ItData))
+				{
+					FObjectImport& Import = Linker->Imp(FPackageIndex::FromImport(ImportIndex));
+					check(Import.ObjectName == ItData.ObjectRef.ObjectName);
+					UObject* TheAsset = Import.XObject;
+					UE_CLOG(!TheAsset, LogBlueprintSupport, Error, TEXT("Could not find UDynamicClass dependent asset (EDL) %s in %s"), *ItData.ObjectRef.ObjectName.ToString(), *ItData.ObjectRef.PackageName.ToString());
+					DynamicClass->UsedAssets.Add(TheAsset);
+					ImportIndex += 2;
+				}
+				else
+				{
+					DynamicClass->UsedAssets.Add(nullptr);
+				}
+			}
+			return;
+		}
+		check(0);
+	}
+
 	for (FBlueprintDependencyData& ItData : UsedAssetdData)
 	{
-		const FString PathToObj = FString::Printf(TEXT("%s.%s"), *ItData.PackageName.ToString(), *ItData.ObjectName.ToString());
-		UObject* TheAsset = LoadObject<UObject>(nullptr, *PathToObj);
-		DynamicClass->UsedAssets.Add(TheAsset);
+		if (ItData.ObjectRef.ObjectName != NAME_None)
+		{
+			const FString PathToObj = FString::Printf(TEXT("%s.%s"), *ItData.ObjectRef.PackageName.ToString(), *ItData.ObjectRef.ObjectName.ToString());
+			UObject* TheAsset = LoadObject<UObject>(nullptr, *PathToObj);
+			UE_CLOG(!TheAsset, LogBlueprintSupport, Error, TEXT("Could not find UDynamicClass dependent asset (non-EDL) %s in %s"), *ItData.ObjectRef.ObjectName.ToString(), *ItData.ObjectRef.PackageName.ToString());
+			DynamicClass->UsedAssets.Add(TheAsset);
+		}
+		else
+		{
+			DynamicClass->UsedAssets.Add(nullptr);
+		}
 	}
 }
 
@@ -2149,174 +2399,6 @@ void IBlueprintNativeCodeGenCore::Register(const IBlueprintNativeCodeGenCore* Co
 
 #endif // WITH_EDITOR
 
-
-/*******************************************************************************
- * FLegacyEditorOnlyBlueprintManager
- ******************************************************************************/
-
-struct FLegacyEditorOnlyBlueprintOptions_Impl
-{
-	static void Init();
-	static const UClass* GetUBlueprintObjType();
-
-	static bool bExcludeBlueprintObjectsFromCookedBuilds;
-	static bool bFixupLegacyBlueprintProperties;
-	static bool bProhibitLegacyBlueprintVarType;
-	static bool bForceAllowLegacyBlueprintPinConnections;
-};
-
-bool FLegacyEditorOnlyBlueprintOptions_Impl::bExcludeBlueprintObjectsFromCookedBuilds = false;
-bool FLegacyEditorOnlyBlueprintOptions_Impl::bFixupLegacyBlueprintProperties = false;
-bool FLegacyEditorOnlyBlueprintOptions_Impl::bProhibitLegacyBlueprintVarType = false;
-bool FLegacyEditorOnlyBlueprintOptions_Impl::bForceAllowLegacyBlueprintPinConnections = false;
-
-void FLegacyEditorOnlyBlueprintOptions_Impl::Init()
-{
-	static bool bInited = false;
-	if (!bInited)
-	{
-		const TCHAR* SectionId = TEXT("EditoronlyBP");
-
-		bool bHasSettings = GConfig->GetBool(SectionId, TEXT("bDontLoadBlueprintOutsideEditor"), bExcludeBlueprintObjectsFromCookedBuilds, GEditorIni);
-		bHasSettings |= GConfig->GetBool(SectionId, TEXT("bReplaceBlueprintWithClass"),   bFixupLegacyBlueprintProperties, GEditorIni);
-		bHasSettings |= GConfig->GetBool(SectionId, TEXT("bBlueprintIsNotBlueprintType"), bProhibitLegacyBlueprintVarType, GEditorIni);
-		bHasSettings |= GConfig->GetBool(SectionId, TEXT("bAllowClassAndBlueprintPinMatching"), bForceAllowLegacyBlueprintPinConnections, GEditorIni);
-
-		// we expect all these settings to be enabled
-		const bool bOptionsDisabled = !bExcludeBlueprintObjectsFromCookedBuilds || !bFixupLegacyBlueprintProperties ||
-			!bProhibitLegacyBlueprintVarType || !bForceAllowLegacyBlueprintPinConnections;
-		if (bOptionsDisabled)
-		{
-			if (bHasSettings)
-			{
-				UE_LOG(LogBlueprintSupport, Warning, TEXT("Editor config [EditoronlyBP] settings are DEPRECATED. You're explicitly disabling some. If you're relying on this functionality, then please fix it up so your Blueprints don't break in a future release."));
-			}
-			else
-			{
-				UE_LOG(LogBlueprintSupport, Warning, TEXT("Editor config [EditoronlyBP] settings are DEPRECATED. You're not explicitly setting any, but they've been defaulting to off. If you are relying on this functionality, then please fix it up so your Blueprints don't break in a future release."));
-			}
-		}
-
-		bInited = true;
-	}
-}
-
-const UClass* FLegacyEditorOnlyBlueprintOptions_Impl::GetUBlueprintObjType()
-{
-	static const UClass* BlueprintClass = FindObject<UClass>(nullptr, TEXT("/Script/Engine.Blueprint"));
-	return BlueprintClass;
-}
-
-FString FLegacyEditorOnlyBlueprintOptions::GetDefaultEditorConfig()
-{
-	FString ConfigStr;
-	ConfigStr += TEXT("[EditoronlyBP]") LINE_TERMINATOR;
-	ConfigStr += TEXT("bAllowClassAndBlueprintPinMatching=true") LINE_TERMINATOR;
-	ConfigStr += TEXT("bReplaceBlueprintWithClass=true") LINE_TERMINATOR;
-	ConfigStr += TEXT("bDontLoadBlueprintOutsideEditor=true") LINE_TERMINATOR;
-	ConfigStr += TEXT("bBlueprintIsNotBlueprintType=true") LINE_TERMINATOR;
-	return ConfigStr;
-}
-
-bool FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds()
-{
-	FLegacyEditorOnlyBlueprintOptions_Impl::Init();
-	return !FLegacyEditorOnlyBlueprintOptions_Impl::bExcludeBlueprintObjectsFromCookedBuilds;
-}
-
-bool FLegacyEditorOnlyBlueprintOptions::AllowLegacyBlueprintPinMatchesWithClass()
-{
-	FLegacyEditorOnlyBlueprintOptions_Impl::Init();
-	return FLegacyEditorOnlyBlueprintOptions_Impl::bForceAllowLegacyBlueprintPinConnections;
-}
-
-bool FLegacyEditorOnlyBlueprintOptions::FixupLegacyBlueprintReferences()
-{
-	FLegacyEditorOnlyBlueprintOptions_Impl::Init();
-	return FLegacyEditorOnlyBlueprintOptions_Impl::bFixupLegacyBlueprintProperties;
-}
-
-bool FLegacyEditorOnlyBlueprintOptions::DetectInvalidBlueprintExport(const FLinkerSave* Linker, const int32 ExportIndex)
-{
-	const UObject* ExportObj = Linker->ExportMap[ExportIndex].Object;
-	if (Linker->IsCooking() && ExportObj && IncludeUBlueprintObjsInCookedBuilds())
-	{
-		const UClass* BlueprintClass = FLegacyEditorOnlyBlueprintOptions_Impl::GetUBlueprintObjType();
-		if (BlueprintClass && ExportObj->IsA(BlueprintClass))
-		{
-			const bool bIsFatal = IsEventDrivenLoaderEnabledInCookedBuilds();
-			if (bIsFatal)
-			{
-				UE_LOG(LogBlueprintSupport, Fatal,
-					TEXT("You're exporting a UBlueprint ('%s') editor object with your cook. This is now DEPRECATED (the Blueprint's class & CDO should be all that's needed). This is incompatible with the new event-driven loader. Please add the following to your editor ini file to strip UBluprints from cooked packages (these settings will become the default):\n%s"),
-					*ExportObj->GetName(),
-					*GetDefaultEditorConfig());
-			}
-			else
-			{
-				UE_LOG(LogBlueprintSupport, Warning,
-					TEXT("You're exporting a UBlueprint ('%s') editor object with your cook. This is now DEPRECATED (the Blueprint's class & CDO should be all that's needed). Please fix up any relience you have on it, and add the following to your editor ini file (these settings will become the default):\n%s"),
-					*ExportObj->GetName(),
-					*GetDefaultEditorConfig());
-			}
-			return true;
-		}
-	}
-	return false;
-}
-
-bool FLegacyEditorOnlyBlueprintOptions::FixupClassProperty(const UClassProperty* Property, void* Value)
-{
-	const UObject* ObjValue = Property->GetObjectPropertyValue(Value);
-	if (ObjValue && (Property->MetaClass == UObject::StaticClass()))
-	{
-		// since we're in core, we don't have access to UBlueprint::StaticClass()
-		const UClass* BlueprintClass = FLegacyEditorOnlyBlueprintOptions_Impl::GetUBlueprintObjType();
-		if (BlueprintClass && ObjValue->IsA(BlueprintClass))
-		{
-			FLegacyEditorOnlyBlueprintOptions_Impl::Init();
-			if (FLegacyEditorOnlyBlueprintOptions_Impl::bFixupLegacyBlueprintProperties)
-			{
-				UE_LOG(LogBlueprintSupport, Warning,
-					TEXT("Attempting to fix up an old Blueprint property (%s), which is referencing a UBlueprint (%s) instead of its class - this fixup is DEPRECATED; please fix manually (possibly just a resave)"),
-					*Property->GetFullName(),
-					*ObjValue->GetFullName());
-
-				// again, no access to UBlueprint, so we have to sift through reflection data to get what we want
-				if (UClassProperty* BPGeneratedClassProp = FindField<UClassProperty>(BlueprintClass, TEXT("GeneratedClass")))
-				{
-					UObject* ClassObject = BPGeneratedClassProp->GetPropertyValue_InContainer(ObjValue);
-					Property->SetObjectPropertyValue(Value, ClassObject);
-					return true;
-				}
-			}
-			else
-			{
-				UE_LOG(LogBlueprintSupport, Warning,
-					TEXT("An old Blueprint property (%s), references a UBlueprint (%s) instead of its class - this is DEPRECATED in packaged builds; please fix (possibly by enabling bReplaceBlueprintWithClass and resaving)"),
-					*Property->GetFullName(),
-					*ObjValue->GetFullName());
-			}
-		}
-	}
-
-	return false;
-}
-
-bool FLegacyEditorOnlyBlueprintOptions::IsTypeProhibited(const UClass* VarType)
-{
-	// since we're in core, we don't have access to UBlueprint::StaticClass()
-	const UClass* BlueprintClass = FLegacyEditorOnlyBlueprintOptions_Impl::GetUBlueprintObjType();
-	if (BlueprintClass && VarType->IsChildOf(BlueprintClass))
-	{
-		FLegacyEditorOnlyBlueprintOptions_Impl::Init();
-		if (FLegacyEditorOnlyBlueprintOptions_Impl::bForceAllowLegacyBlueprintPinConnections)
-		{
-			return true;
-		}
-	}
-	return false;
-}
 
 
 

@@ -1,12 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Distributions/DistributionFloat.h"
+#include "Distributions/DistributionVector.h"
 #include "Particles/Color/ParticleModuleColorBase.h"
 #include "ParticleModuleColor.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Initial Color"))
-class UParticleModuleColor : public UParticleModuleColorBase
+class UInterpCurveEdSetup;
+class UParticleEmitter;
+struct FCurveEdEntry;
+struct FParticleEmitterInstance;
+
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Initial Color"))
+class ENGINE_API UParticleModuleColor : public UParticleModuleColorBase
 {
 	GENERATED_UCLASS_BODY()
 

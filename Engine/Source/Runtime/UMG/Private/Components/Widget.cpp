@@ -1,9 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-
-#include "ReflectionMetadata.h"
-#include "SObjectWidget.h"
+#include "Components/Widget.h"
+#include "Widgets/SNullWidget.h"
+#include "Types/NavigationMetaData.h"
+#include "Widgets/IToolTip.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SOverlay.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/LocalPlayer.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/SToolTip.h"
+#include "Binding/PropertyBinding.h"
+#include "Blueprint/WidgetNavigation.h"
+#include "Logging/MessageLog.h"
+#include "Blueprint/UserWidget.h"
+#include "Slate/SObjectWidget.h"
+#include "Blueprint/WidgetTree.h"
+#include "UMGStyle.h"
+#include "Types/ReflectionMetadata.h"
+#include "PropertyLocalizationDataGathering.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -96,6 +114,30 @@ private:
 };
 
 
+#if WITH_EDITORONLY_DATA
+namespace
+{
+	void GatherWidgetForLocalization(const UObject* const Object, FPropertyLocalizationDataGatherer& PropertyLocalizationDataGatherer, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
+	{
+		const UWidget* const Widget = CastChecked<UWidget>(Object);
+
+		EPropertyLocalizationGathererTextFlags WidgetGatherTextFlags = GatherTextFlags;
+
+		// If we've instanced this widget from another asset, then we only want to process the widget itself (to process any overrides against the archetype), but skip all of its children
+		if (UObject* WidgetGenerator = Widget->WidgetGeneratedBy.Get())
+		{
+			if (WidgetGenerator->GetOutermost() != Widget->GetOutermost())
+			{
+				WidgetGatherTextFlags |= EPropertyLocalizationGathererTextFlags::SkipSubObjects;
+			}
+		}
+
+		PropertyLocalizationDataGatherer.GatherLocalizationDataFromObject(Widget, WidgetGatherTextFlags);
+	}
+}
+#endif
+
+
 /////////////////////////////////////////////////////
 // UWidget
 
@@ -112,6 +154,10 @@ UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
 	Visiblity_DEPRECATED = Visibility = ESlateVisibility::Visible;	
 	RenderTransformPivot = FVector2D(0.5f, 0.5f);
 	Cursor = EMouseCursor::Default;
+
+#if WITH_EDITORONLY_DATA
+	{ static const FAutoRegisterLocalizationDataGatheringCallback AutomaticRegistrationOfLocalizationGatherer(UWidget::StaticClass(), &GatherWidgetForLocalization); }
+#endif
 }
 
 void UWidget::SetRenderTransform(FWidgetTransform Transform)
@@ -502,6 +548,17 @@ void UWidget::RemoveFromParent()
 	{
 		CurrentParent->RemoveChild(this);
 	}
+}
+
+const FGeometry& UWidget::GetCachedGeometry() const
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		return SafeWidget->GetCachedGeometry();
+	}
+
+	return SNullWidget::NullWidget->GetCachedGeometry();
 }
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "CocoaWindow.h"
 #include "MacApplication.h"
 #include "CocoaTextView.h"
 #include "CocoaThread.h"
 #include "MacCursor.h"
+#include "HAL/IConsoleManager.h"
 
 NSString* NSDraggingExited = @"NSDraggingExited";
 NSString* NSDraggingUpdated = @"NSDraggingUpdated";
@@ -437,11 +437,27 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	}
 }
 
+- (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize
+{
+	SCOPED_AUTORELEASE_POOL;
+	if (MacApplication && sender == self)
+	{
+		GameThreadCall(^{
+			TSharedPtr<FMacWindow> Window = MacApplication->FindWindowByNSWindow((FCocoaWindow*)sender);
+			if (Window.IsValid())
+			{
+				MacApplication->OnWindowWillResize(Window.ToSharedRef());
+			}
+		}, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], true);
+	}
+	return frameSize;
+}
+
 - (void)windowDidResize:(NSNotification*)Notification
 {
 	SCOPED_AUTORELEASE_POOL;
 	bZoomed = [self isZoomed];
-	if (MacApplication && self.TargetWindowMode == WindowMode)
+	if (MacApplication)
 	{
 		MacApplication->DeferEvent(Notification);
 	}

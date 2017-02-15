@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3075225
+﻿INTSourceChangelist:3157305
 Availability:Public
 Title:고급 블루프린트 네이티브화
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
@@ -18,6 +18,9 @@ type:reference
 
 네이티브화된 블루프린트는 새로운 별도의 모듈에 저장되는데, 게임플레이 모듈에서 온 헤더를 이제 그 모듈 밖에서도 사용할 수 있다는 뜻입니다.
 모든 헤더에 사용되는 클래스와 구조체 전부가 선언되었는지, 헤더를 포함시켜서든 직접 선언을 해서든 확인해 줘야 합니다.
+
+여러 프로젝트에 통합 헤더 `[GameName]/[GameName].h` 또는 `[GameName]/Public/[GameName].h` 가 있습니다. 이 헤더의 `DefaultEditor.ini` 내
+`[BlueprintNativizationSettings]` 섹션의 `FilesToIncludeInModuleHeader` 에 경로를 추가하면, 헤더가 없어서 발생하는 문제가 많이 해결될 수 있습니다.
 
 손수 작성한 코드와 네이티브화된 코드 사이 협동의 안정성과 효율성을 높이는 데 도움이 되는 규칙/제약이 몇 가지 있습니다.
 

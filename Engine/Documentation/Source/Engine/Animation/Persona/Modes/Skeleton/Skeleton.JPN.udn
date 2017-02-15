@@ -1,27 +1,58 @@
-﻿INTSourceChangelist:2666250
+﻿INTSourceChangelist:3237313
 Availability:Public
-Title:Skeleton モード
+Title:スケルトン エディタ
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:
-バージョン：4.9
+Description:UE4 のスケルトン エディタの主な機能 
+version:4.14
+Related:Engine\Animation\Persona\Modes\Mesh
+Related:Engine\Animation\Persona\Modes\Animation
+Related:Engine\Animation\Persona\Modes\Graph
+Related:Engine/Content/FBX/SkeletalMeshes
+type:landing
+topic-image:skeletonEdtior_topic.png
+tags:Skeleton
+tags:Skeletal Mesh
+tags:Animation
 
 [EXCERPT:Overview]
-**Skeleton** モード では、ボーンやジョイントの階層に関与するキャラクターやスケルタルメッシュの様々なビジュアル化や制御を行うことができます。以下はその使用例です。
-
-* アイテムをスケルタルメッシュにアタッチするための [ソケット](Engine/Content\Types\SkeletalMeshes\Sockets) を作成する
-* 各 [ソケット](Engine/Content\Types\SkeletalMeshes\Sockets) に対して相対位置と回転を編集する
-* アニメーションのリターゲット関係を確立する
-
+**スケルトン エディタ** は、UE4 内の [](Engine/Animation/Skeleton) で作業するために使うツールです。 
+このエディタではスケルタルメッシュに関連するボーンやジョイント階層の視覚化や制御を行うことができます。 
+また、スケルタルメッシュにアイテムを適用するための [スケルタルメッシュのソケット](Engine/Content\Types\SkeletalMeshes\Sockets) の作成、[](Engine/Animation/Sequences/Curves) のプレビュー、およびスケルトンの関連 [](Engine/Animation/Sequences/Notifies) の追跡を行うことができます。 
+さらに、[](Engine/Animation/AnimationRetargeting) オプションをセットアップし、 [リターゲット マネージャ](Engine/Animation/Persona/BasePoseManager/) でリターゲット ソースを管理することができます。 
 [/EXCERPT:Overview]
 
 [REGION:fullwidth]
 ![](Persona_MODE_Skeleton_Large.png)
-
-
-[INCLUDE:Engine/Animation/Persona#skeletonui]
-
-
 [/REGION]
+
+スケルトン エディタのユーザー インターフェースの内容については以下の各セクションをご覧ください。 
+
+## 1.ツールバー
+
+スケルトン エディタ内の [ツールバー](Engine/Animation/Persona/Toolbar) には、スケルトンに加えた変更を保存したり、コンテンツ ブラウザでスケルトンを探すためのオプションがあります。 
+**アニメーション通知** を見て、**Retarget Manager** を開き、スケルトンと関連付ける新しいスケルタルメッシュをインポートして、プレビューの現在のポーズからスタティックメッシュを作成することができます。 
+ツールバーの右端に、**エディタのツールバー** があり、UE4 の様々なアニメーション ツール間で切り替えることができます。 
+
+## 2.スケルトン ツリー
+
+[](Engine/Animation/Persona/SkeletonTree) には、現在の Skeleton アセットのスケルタル階層が表示されます。ここで、ソケットの作成と編集、アセットのプレビュー、およびアニメーション リターゲットの制御を行うことができます。 
+
+## 3.ビューポート
+
+[ビューポート](Engine/Animation/Persona/Viewport) ウィンドウでは、加えた変更のプレビュー、ソケットの位置の調整、アニメーション カーブのプレビューを行うことができます。 
+ビューポートから使用するスケルタルメッシュのアニメーションのプレビューを指定し、ライティング モードの変更、スケルトンのボーンの表示、非表示、アニメーションの再生速度の調整、ターンテーブル上でスケルタルメッシュを自動的に回転させてあらゆるアングルから見ることもできます。 
+
+## 4.詳細
+
+メイン エディタと似ている [Details (詳細)](Engine/UI/LevelEditor/Details) パネルは、主にソケットのような追加エレメントのプロパティを修正するために使用します。 
+例えば、スケルトンにソケットを追加し、スケルトン ツリーでそのソケットをクリックすると、 [Details (詳細)] パネルにそのソケットがどのように機能するかに関連するオプションが表示されます。 
+
+## 5.アニメーション カーブ / アニメーション通知
+
+[アニメーション カーブ](Engine/Animation/Persona/AnimCurves) ビューアでは、ビューポートの現在のメッシュで利用可能なアニメーション カーブをプレビューすることができます。 
+[アニメーション通知](Engine/Animation/Persona/AnimationNotifies) ウィンドウでは、Skelton アセットに関連するカスタム作成したアニメーション通知を修正することができます。 
+
+
 <!--
 
 [EXCERPT:SkeletonUses]
@@ -33,8 +64,5 @@ Description:
 
 [/EXCERPT:SkeletonUI]
 
-
-
-
-
 -->
+

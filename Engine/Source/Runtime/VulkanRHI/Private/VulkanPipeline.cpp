@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanPipeline.cpp: Vulkan device RHI implementation.
@@ -6,6 +6,11 @@
 
 #include "VulkanRHIPrivate.h"
 #include "VulkanPipeline.h"
+#include "Misc/FileHelper.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/MemoryWriter.h"
+
+static const double HitchTime = 0.003;
 
 void FVulkanGfxPipelineState::Reset()
 {
@@ -60,6 +65,21 @@ FVulkanPipeline::~FVulkanPipeline()
 #endif
 }
 
+FVulkanComputePipeline::FVulkanComputePipeline(FVulkanDevice* InDevice, FVulkanComputeShaderState* CSS)
+	: FVulkanPipeline(InDevice)
+{
+	//#todo-rco: Move to shader pipeline
+	VkComputePipelineCreateInfo PipelineInfo;
+	FMemory::Memzero(PipelineInfo);
+	PipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+	PipelineInfo.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	PipelineInfo.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+	PipelineInfo.stage.module = CSS->ComputeShader->GetHandle();
+	PipelineInfo.stage.pName = "main";
+	PipelineInfo.layout = CSS->GetPipelineLayout();
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateComputePipelines(Device->GetInstanceHandle(), VK_NULL_HANDLE, 1, &PipelineInfo, nullptr, &Pipeline));
+}
+
 #if !VULKAN_ENABLE_PIPELINE_CACHE
 void FVulkanGfxPipeline::Create(const FVulkanGfxPipelineState& State)
 {
@@ -75,18 +95,13 @@ void FVulkanGfxPipeline::Create(const FVulkanGfxPipelineState& State)
 	VkPipelineColorBlendStateCreateInfo CBInfo;
 	FMemory::Memzero(CBInfo);
 	CBInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-#if VULKAN_USE_NEW_RENDERPASSES
 	CBInfo.attachmentCount = State.RenderPass->GetLayout().GetNumColorAttachments();
-#else
-	CBInfo.attachmentCount = State.FrameBuffer->GetNumColorAttachments();
-#endif
 	CBInfo.pAttachments = State.BlendState->BlendStates;
-#if VULKAN_USE_NEW_RENDERPASSES
 	CBInfo.blendConstants[0] = 1.0f;
 	CBInfo.blendConstants[1] = 1.0f;
 	CBInfo.blendConstants[2] = 1.0f;
 	CBInfo.blendConstants[3] = 1.0f;
-#endif
+
 	// Viewport
 	VkPipelineViewportStateCreateInfo VPInfo;
 	FMemory::Memzero(VPInfo);
@@ -257,7 +272,7 @@ bool FVulkanPipelineStateCache::Load(const TArray<FString>& CacheFilenames, TArr
 				FGfxPipelineEntry* GfxEntry = &GfxPipelineEntries[Index];
 				GfxEntry->bLoaded = true;
 				CreatGfxEntryRuntimeObjects(GfxEntry);
-				CreateGfxPipelineFromEntry(GfxEntry, Pipeline);
+				CreateGfxPipelineFromEntry(GfxEntry, Pipeline, nullptr);
 
 				FVulkanGfxPipelineStateKey CreateInfo(GfxEntry->GraphicsKey, GfxEntry->VertexInputKey, GfxEntry->ShaderHashes);
 
@@ -363,11 +378,7 @@ void FVulkanPipelineStateCache::Save(FString& CacheFilename)
 	}
 }
 
-#if VULKAN_USE_NEW_RENDERPASSES
 void FVulkanPipelineStateCache::CreateAndAdd(FVulkanRenderPass* RenderPass, const FVulkanGfxPipelineStateKey& CreateInfo, FVulkanGfxPipeline* Pipeline, const FVulkanGfxPipelineState& State, const FVulkanBoundShaderState& BSS)
-#else
-void FVulkanPipelineStateCache::CreateAndAdd(const FVulkanGfxPipelineStateKey& CreateInfo, FVulkanGfxPipeline* Pipeline, const FVulkanGfxPipelineState& State, const FVulkanBoundShaderState& BSS)
-#endif
 {
 	//if (EnablePipelineCacheCvar.GetValueOnRenderThread() == 1)
 	//SCOPE_CYCLE_COUNTER(STAT_VulkanCreatePipeline);
@@ -375,14 +386,10 @@ void FVulkanPipelineStateCache::CreateAndAdd(const FVulkanGfxPipelineStateKey& C
 	FGfxPipelineEntry* GfxEntry = new FGfxPipelineEntry();
 	GfxEntry->GraphicsKey = CreateInfo.PipelineKey;
 	GfxEntry->VertexInputKey = CreateInfo.VertexInputKey;
-#if VULKAN_USE_NEW_RENDERPASSES
 	PopulateGfxEntry(State, RenderPass, GfxEntry);
-#else
-	PopulateGfxEntry(State, State.RenderPass, GfxEntry);
-#endif
 
 	// Create the pipeline
-	CreateGfxPipelineFromEntry(GfxEntry, Pipeline);
+	CreateGfxPipelineFromEntry(GfxEntry, Pipeline, &BSS);
 
 	//UE_LOG(LogVulkanRHI, Display, TEXT("PK: Added Entry %llx Index %d"), CreateInfo.PipelineKey, GfxEntries.Num());
 
@@ -672,7 +679,7 @@ FArchive& operator << (FArchive& Ar, FVulkanPipelineStateCache::FGfxPipelineEntr
 
 void FVulkanPipelineStateCache::FGfxPipelineEntry::FRenderTargets::ReadFrom(const FVulkanRenderTargetLayout& RTLayout)
 {
-	NumAttachments =			RTLayout.NumAttachments;
+	NumAttachments =			RTLayout.NumAttachmentDescriptions;
 	NumColorAttachments =		RTLayout.NumColorAttachments;
 
 	bHasDepthStencil =			RTLayout.bHasDepthStencil;
@@ -704,7 +711,7 @@ void FVulkanPipelineStateCache::FGfxPipelineEntry::FRenderTargets::ReadFrom(cons
 
 void FVulkanPipelineStateCache::FGfxPipelineEntry::FRenderTargets::WriteInto(FVulkanRenderTargetLayout& Out) const
 {
-	Out.NumAttachments =			NumAttachments;
+	Out.NumAttachmentDescriptions =	NumAttachments;
 	Out.NumColorAttachments =		NumColorAttachments;
 
 	Out.bHasDepthStencil =			bHasDepthStencil;
@@ -792,7 +799,7 @@ FArchive& operator << (FArchive& Ar, FVulkanPipelineStateCache::FGfxPipelineEntr
 	return Ar << (*Entry);
 }
 
-void FVulkanPipelineStateCache::CreateGfxPipelineFromEntry(const FGfxPipelineEntry* GfxEntry, FVulkanGfxPipeline* Pipeline)
+void FVulkanPipelineStateCache::CreateGfxPipelineFromEntry(const FGfxPipelineEntry* GfxEntry, FVulkanGfxPipeline* Pipeline, const FVulkanBoundShaderState* BSS)
 {
 	// Pipeline
 	VkGraphicsPipelineCreateInfo PipelineInfo;
@@ -812,12 +819,11 @@ void FVulkanPipelineStateCache::CreateGfxPipelineFromEntry(const FGfxPipelineEnt
 		GfxEntry->ColorAttachmentStates[Index].WriteInto(BlendStates[Index]);
 	}
 	CBInfo.pAttachments = BlendStates;
-#if VULKAN_USE_NEW_RENDERPASSES
 	CBInfo.blendConstants[0] = 1.0f;
 	CBInfo.blendConstants[1] = 1.0f;
 	CBInfo.blendConstants[2] = 1.0f;
 	CBInfo.blendConstants[3] = 1.0f;
-#endif
+
 	// Viewport
 	VkPipelineViewportStateCreateInfo VPInfo;
 	FMemory::Memzero(VPInfo);
@@ -913,24 +919,30 @@ void FVulkanPipelineStateCache::CreateGfxPipelineFromEntry(const FGfxPipelineEnt
 
 	PipelineInfo.pDynamicState = &DynamicState;
 
+	double BeginTime = BSS ? FPlatformTime::Seconds() : 0.0;
 	//#todo-rco: Group the pipelines and create multiple (derived) pipelines at once
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateGraphicsPipelines(Device->GetInstanceHandle(), PipelineCache, 1, &PipelineInfo, nullptr, &Pipeline->Pipeline));
+	double EndTime = BSS ? FPlatformTime::Seconds() : 0.0;
+	double Delta = EndTime - BeginTime;
+	if (Delta > HitchTime)
+	{
+		UE_LOG(LogVulkanRHI, Verbose, TEXT("Hitchy pipeline key 0x%08x%08x 0x%08x%08x VtxInKey 0x%08x VS %s GS %s PS %s (%.3f seconds)"), 
+			(uint32)((GfxEntry->GraphicsKey.Key[0] >> 32) & 0xffffffff), (uint32)(GfxEntry->GraphicsKey.Key[0] & 0xffffffff),
+			(uint32)((GfxEntry->GraphicsKey.Key[1] >> 32) & 0xffffffff), (uint32)(GfxEntry->GraphicsKey.Key[1] & 0xffffffff),
+			GfxEntry->VertexInputKey,
+			*BSS->VertexShader->DebugName,
+			BSS->GeometryShader ? *BSS->GeometryShader->DebugName : TEXT("nullptr"),
+			BSS->PixelShader ? *BSS->PixelShader->DebugName : TEXT("nullptr"),
+			(float)Delta);
+	}
 }
 
 void FVulkanPipelineStateCache::PopulateGfxEntry(const FVulkanGfxPipelineState& State, const FVulkanRenderPass* RenderPass, FVulkanPipelineStateCache::FGfxPipelineEntry* OutGfxEntry)
 {
-#if VULKAN_USE_NEW_RENDERPASSES
 	OutGfxEntry->RasterizationSamples = RenderPass->GetLayout().GetAttachmentDescriptions()[0].samples;
-#else
-	OutGfxEntry->RasterizationSamples = State.RenderPass->GetLayout().GetAttachmentDescriptions()[0].samples;
-#endif
 	OutGfxEntry->Topology = (uint32)State.InputAssembly.topology;
 
-#if VULKAN_USE_NEW_RENDERPASSES
 	OutGfxEntry->ColorAttachmentStates.AddUninitialized(RenderPass->GetLayout().GetNumColorAttachments());
-#else
-	OutGfxEntry->ColorAttachmentStates.AddUninitialized(State.FrameBuffer->GetNumColorAttachments());
-#endif
 	for (int32 Index = 0; Index < OutGfxEntry->ColorAttachmentStates.Num(); ++Index)
 	{
 		OutGfxEntry->ColorAttachmentStates[Index].ReadFrom(State.BlendState->BlendStates[Index]);

@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "EngineVersion.h"
-#include "GatherableTextData.h"
-#include "Linker.h"
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/ObjectResource.h"
+#include "UObject/Linker.h"
+
+class FAssetPtr;
+class FLazyObjectPtr;
+struct FUntypedBulkData;
 
 /*----------------------------------------------------------------------------
 	FLinkerSave.
@@ -34,6 +38,9 @@ public:
 
 	/** Index array - location of the resource for a UObject is stored in the ObjectIndices array using the UObject's Index */
 	TMap<UObject *,FPackageIndex> ObjectIndicesMap;
+
+	/** List of Searchable Names, by object containing them. This gets turned into package indices later */
+	TMap<const UObject *, TArray<FName> > SearchableNamesObjectMap;
 
 	/** Index array - location of the name in the NameMap array for each FName is stored in the NameIndices array using the FName's Index */
 	TMap<FName, int32, FDefaultSetAllocator, TLinkerNameMapKeyFuncs<int32>> NameIndices;

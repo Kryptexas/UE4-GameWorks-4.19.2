@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -29,6 +29,7 @@ namespace UnrealBuildTool
 		public int Changelist;
 		public int CompatibleChangelist;
 		public int IsLicenseeVersion;
+		public int IsPromotedBuild;
 		public string BranchName;
 
 		/// <summary>
@@ -93,6 +94,7 @@ namespace UnrealBuildTool
 			Object.TryGetIntegerField("Changelist", out NewVersion.Changelist);
 			Object.TryGetIntegerField("CompatibleChangelist", out NewVersion.CompatibleChangelist);
 			Object.TryGetIntegerField("IsLicenseeVersion", out NewVersion.IsLicenseeVersion);
+			Object.TryGetIntegerField("IsPromotedBuild", out NewVersion.IsPromotedBuild);
 			Object.TryGetStringField("BranchName", out NewVersion.BranchName);
 
 			Version = NewVersion;
@@ -129,6 +131,7 @@ namespace UnrealBuildTool
 			Writer.WriteValue("Changelist", Changelist);
 			Writer.WriteValue("CompatibleChangelist", CompatibleChangelist);
 			Writer.WriteValue("IsLicenseeVersion", IsLicenseeVersion);
+			Writer.WriteValue("IsPromotedBuild", IsPromotedBuild);
 			Writer.WriteValue("BranchName", BranchName);
 		}
 	}
@@ -402,6 +405,27 @@ namespace UnrealBuildTool
 			}
 
 			return FullOutput;
+		}
+
+		/// <summary>
+		/// Find all the platforms in a given class
+		/// </summary>
+		/// <param name="Class">Class of platforms to return</param>
+		/// <returns>Array of platforms in the given class</returns>
+		public static UnrealTargetPlatform[] GetPlatformsInClass(UnrealPlatformClass Class)
+		{
+			switch (Class)
+			{
+				case UnrealPlatformClass.All:
+					return ((UnrealTargetPlatform[])Enum.GetValues(typeof(UnrealTargetPlatform))).Where(x => x != UnrealTargetPlatform.Unknown).ToArray();
+				case UnrealPlatformClass.Desktop:
+					return new UnrealTargetPlatform[] { UnrealTargetPlatform.Win32, UnrealTargetPlatform.Win64, UnrealTargetPlatform.Linux, UnrealTargetPlatform.Mac };
+				case UnrealPlatformClass.Editor:
+					return new UnrealTargetPlatform[] { UnrealTargetPlatform.Win64, UnrealTargetPlatform.Linux, UnrealTargetPlatform.Mac };
+				case UnrealPlatformClass.Server:
+					return new UnrealTargetPlatform[] { UnrealTargetPlatform.Win32, UnrealTargetPlatform.Win64, UnrealTargetPlatform.Linux, UnrealTargetPlatform.Mac };
+			}
+			throw new ArgumentException(String.Format("'{0}' is not a valid value for UnrealPlatformClass", (int)Class));
 		}
 
 		/// <summary>

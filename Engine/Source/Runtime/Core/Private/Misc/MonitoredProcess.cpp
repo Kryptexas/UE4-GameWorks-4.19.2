@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "Misc/MonitoredProcess.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/Paths.h"
 
 /* FMonitoredProcess structors
  *****************************************************************************/
@@ -80,6 +81,10 @@ bool FMonitoredProcess::Launch()
 
 	bIsRunning = true;
 	Thread = FRunnableThread::Create(this, *MonitoredProcessName, 128 * 1024, TPri_AboveNormal);
+	if (Thread == nullptr)
+	{
+		bIsRunning = false;
+	}
 
 	return true;
 }

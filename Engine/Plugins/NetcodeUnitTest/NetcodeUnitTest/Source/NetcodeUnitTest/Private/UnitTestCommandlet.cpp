@@ -1,13 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "NetcodeUnitTestPCH.h"
-#include "NUTUtil.h"
-#include "NUTUtilNet.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "UnitTestCommandlet.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UnrealClient.h"
+#include "Engine/GameViewportClient.h"
+#include "Widgets/SWindow.h"
+#include "Engine/GameEngine.h"
+#include "Framework/Application/SlateApplication.h"
+#include "NetcodeUnitTest.h"
+#include "NUTUtil.h"
+#include "Net/NUTUtilNet.h"
+
 #include "UnitTestManager.h"
 
-#include "SLogDialog.h"
+#include "UI/SLogDialog.h"
 
 
 // @todo #JohnBLowPri: Fix StandaloneRenderer support for static builds
@@ -15,10 +23,7 @@
 #include "StandaloneRenderer.h"
 #endif
 
-#include "Engine/GameInstance.h"
 
-#include "UnrealClient.h"
-#include "SlateBasics.h"
 
 
 // @todo #JohnB_NUTClient: If you later end up doing test client instances that are unit tested against client netcode
@@ -120,6 +125,8 @@ int32 UUnitTestCommandlet::Main(const FString& Params)
 		// Now, after init stages are done, enable GIsClient for netcode and such
 		GIsClient = true;
 
+		// Required for the unit test commandlet
+		PRIVATE_GAllowCommandletRendering = true;
 
 		// Before running any unit tests, create a world object, which will contain the unit tests manager etc.
 		//	(otherwise, when the last unit test world is cleaned up, the unit test manager stops functioning)

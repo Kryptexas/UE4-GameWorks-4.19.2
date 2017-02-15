@@ -1,15 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "HAL/ThreadSafeBool.h"
+#include "Animation/CurveSequence.h"
+#include "Rendering/RenderingCommon.h"
 #include "MovieSceneToolsUserSettings.h"
 
-class FThumbnailSection;
-class FSlateRenderTargetRHI;
+class FLevelEditorViewportClient;
+class FSceneViewport;
+class FSlateShaderResource;
 class FSlateTexture2DRHIRef;
+class FThumbnailViewportClient;
 class FTrackEditorThumbnail;
 class FTrackEditorThumbnailPool;
-class FTrackEditorThumbnailCache;
 
 DECLARE_DELEGATE_OneParam(FOnThumbnailDraw, FTrackEditorThumbnail&);
 

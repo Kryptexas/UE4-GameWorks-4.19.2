@@ -1,10 +1,16 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "OnlineChatInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
+#include "Interfaces/OnlineChatInterface.h"
 #include "Chatroom.generated.h"
 
-class UWorld;
+class Error;
+class FTimerManager;
+struct FUniqueNetIdRepl;
 
 /**
  * Delegate fired when chat room attempt has completed
@@ -47,8 +53,9 @@ public:
 	 * @param ChatRoomId chat room id to connect with
 	 * @param CompletionDelegate delegate fired when operation completes
 	 * @param Password optional password for the room
+     * NOTE: All parameters are by value because ClearTimer/SetTimer can destroy the internal lambda function
 	 */
-	void CreateOrJoinChatRoom(const FUniqueNetIdRepl& LocalUserId, const FChatRoomId& ChatRoomId, const FOnChatRoomCreatedOrJoined& CompletionDelegate, const FString& Password = FString());
+	void CreateOrJoinChatRoom(FUniqueNetIdRepl LocalUserId, FChatRoomId ChatRoomId, FOnChatRoomCreatedOrJoined CompletionDelegate, FString Password = FString());
 
 	/**
 	 * Leave the joined chat room
@@ -83,6 +90,14 @@ private:
 	 * @param CompletionDelegate user passed in delegate
 	 */
 	void OnChatRoomLeft(const FUniqueNetId& LocalUserId, const FChatRoomId& RoomId, bool bWasSuccessful, const FString& Error, FChatRoomId ChatRoomIdCopy, FOnChatRoomLeft CompletionDelegate);
+
+	/**
+	 * Common code called at the end of chat room cleanup
+	 *
+	 * @param RoomId id of the room let
+	 * @param CompletionDelegate delegate to fire to notify that the room has been left
+	 */
+	void ChatRoomLeftInternal(const FChatRoomId& RoomId, const FOnChatRoomLeft& CompletionDelegate);
 
 private:
 

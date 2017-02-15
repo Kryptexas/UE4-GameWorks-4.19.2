@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLIndexBuffer.cpp: OpenGL Index buffer RHI implementation.
 =============================================================================*/
 
-#include "OpenGLDrvPrivate.h"
+#include "CoreMinimal.h"
+#include "Containers/ResourceArray.h"
+#include "OpenGLDrv.h"
 
 FIndexBufferRHIRef FOpenGLDynamicRHI::RHICreateIndexBuffer(uint32 Stride,uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {

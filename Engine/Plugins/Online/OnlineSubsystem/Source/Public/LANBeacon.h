@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "CoreNet.h"
+#include "CoreMinimal.h"
+#include "OnlineSubsystemTypes.h"
+#include "OnlineDelegateMacros.h"
 
 /**
  * This value indicates which packet version the server is sending. Clients with
@@ -32,6 +34,8 @@
 #define LAN_SERVER_RESPONSE1 (uint8)'S'
 #define LAN_SERVER_RESPONSE2 (uint8)'R'
 
+class FInternetAddr;
+class FNboSerializeToBuffer;
 
 // LAN Session Delegates
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnValidQueryPacket, uint8*, int32, uint64);

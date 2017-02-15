@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HardwareTargetingModule.h"
-#include "ProjectDescriptor.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "AddToProjectConfig.h"
+#include "GameProjectGenerationModule.h"
+#include "HardwareTargetingSettings.h"
 
-struct FModuleContextInfo;
-struct FAddToProjectConfig;
-struct FNewClassInfo;
 class UTemplateProjectDefs;
+struct FProjectDescriptor;
 enum class EClassDomain : uint8;
 
 struct FProjectInformation

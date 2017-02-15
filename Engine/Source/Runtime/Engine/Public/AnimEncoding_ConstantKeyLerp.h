@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimEncoding_ConstantKeyLerp.h: Constant key compression.
@@ -6,7 +6,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "AnimEncoding.h"
+#include "AnimationCompression.h"
+
+class FMemoryWriter;
 
 /**
  * Base class for all Animation Encoding Formats using consistently-spaced key interpolation.

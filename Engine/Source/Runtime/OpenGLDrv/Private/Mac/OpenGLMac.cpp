@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "OpenGLDrvPrivate.h"
 
@@ -13,6 +13,10 @@
 #include "CocoaWindow.h"
 #include <IOKit/IOKitLib.h>
 #include <mach-o/dyld.h>
+
+#include "Misc/ScopeLock.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CoreMisc.h"
 
 /*------------------------------------------------------------------------------
  OpenGL static variables.
@@ -752,7 +756,7 @@ bool PlatformGetAvailableResolutions(FScreenResolutionArray& Resolutions, bool b
 	if (AllModes)
 	{
 		const int32 NumModes = CFArrayGetCount(AllModes);
-		const int32 Scale = FMacApplication::GetPrimaryScreenBackingScaleFactor();
+		const int32 Scale = (int32)FMacApplication::GetPrimaryScreenBackingScaleFactor();
 
 		for (int32 Index = 0; Index < NumModes; Index++)
 		{

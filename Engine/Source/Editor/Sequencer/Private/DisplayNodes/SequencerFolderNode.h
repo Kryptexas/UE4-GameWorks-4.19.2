@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SequencerDisplayNode.h"
+#include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+#include "Widgets/SWindow.h"
+
+class FMenuBuilder;
+class FSequencerDisplayNodeDragDropOp;
+class UMovieSceneFolder;
+enum class EItemDropZone;
 
 /** A sequencer display node representing folders in the outliner. */
 class FSequencerFolderNode : public FSequencerDisplayNode

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Base class for Camera Lens Effects.  Needed so we can have AnimNotifies be able to show camera effects
@@ -6,8 +6,14 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
 #include "Particles/Emitter.h"
 #include "EmitterCameraLensEffectBase.generated.h"
+
+class APlayerCameraManager;
 
 UCLASS(abstract, Blueprintable)
 class ENGINE_API AEmitterCameraLensEffectBase : public AEmitter
@@ -42,6 +48,10 @@ public:
 	/** true if multiple instances of this emitter can exist simultaneously, false otherwise.  */
 	UPROPERTY(EditAnywhere, Category = EmitterCameraLensEffectBase)
 	uint8 bAllowMultipleInstances:1;
+
+	/** If bAllowMultipleInstances is true and this effect is retriggered, the particle system will be reset if this is true */
+	UPROPERTY(EditAnywhere, Category = EmitterCameraLensEffectBase)
+	uint8 bResetWhenRetriggered:1;
 
 	/** 
 	 *  If an emitter class in this array is currently playing, do not play this effect.

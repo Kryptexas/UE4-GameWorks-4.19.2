@@ -1,30 +1,36 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "GraphEditorCommon.h"
+#include "SGraphPanel.h"
+#include "Rendering/DrawElements.h"
+#include "EdGraph/EdGraph.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "EdGraphNode_Comment.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "Editor.h"
+#include "GraphEditorSettings.h"
+#include "GraphEditorDragDropAction.h"
 #include "NodeFactory.h"
 
-#include "Editor/UnrealEd/Public/DragAndDrop/ActorDragDropGraphEdOp.h"
-#include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
-#include "Editor/UnrealEd/Public/DragAndDrop/LevelDragDropOp.h"
+#include "DragAndDrop/DecoratedDragDropOp.h"
+#include "DragAndDrop/ActorDragDropGraphEdOp.h"
+#include "DragAndDrop/AssetDragDropOp.h"
+#include "DragAndDrop/LevelDragDropOp.h"
 
 #include "GraphEditorActions.h"
-#include "UICommandInfo.h"
-#include "InputChord.h"
 
 #include "ConnectionDrawingPolicy.h"
 
 #include "AssetSelection.h"
-#include "ComponentAssetBroker.h"
 
 #include "KismetNodes/KismetNodeInfoContext.h"
 #include "GraphDiffControl.h"
 
-#include "AnimationGraphSchema.h"
-#include "AnimationStateMachineSchema.h"
 
 // Blueprint Profiler
-#include "Editor/Kismet/Public/Profiler/BlueprintProfilerSettings.h"
+#include "Profiler/BlueprintProfilerSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGraphPanel, Log, All);
 
@@ -329,7 +335,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 		}
 		ConnectionDrawingPolicy->SetHoveredPins(CurrentHoveredPins, OverridePins, TimeWhenMouseEnteredPin);
 		ConnectionDrawingPolicy->SetMarkedPin(MarkedPin);
-		ConnectionDrawingPolicy->SetMousePosition(AllottedGeometry.AbsolutePosition + SavedMousePosForOnPaintEventLocalSpace);
+		ConnectionDrawingPolicy->SetMousePosition(AllottedGeometry.LocalToAbsolute(SavedMousePosForOnPaintEventLocalSpace));
 
 		// Get the set of pins for all children and synthesize geometry for culled out pins so lines can be drawn to them.
 		TMap<TSharedRef<SWidget>, FArrangedWidget> PinGeometries;
@@ -391,13 +397,13 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 					if (CurrentStartPin->GetDirection() == EGPD_Input)
 					{
-						StartPoint = AllottedGeometry.AbsolutePosition + PreviewConnectorEndpoint;
+						StartPoint = AllottedGeometry.LocalToAbsolute(PreviewConnectorEndpoint);
 						EndPoint = FGeometryHelper::VerticalMiddleLeftOf( PinGeometry->Geometry ) - FVector2D(ConnectionDrawingPolicy->ArrowRadius.X, 0);
 					}
 					else
 					{
 						StartPoint = FGeometryHelper::VerticalMiddleRightOf( PinGeometry->Geometry );
-						EndPoint = AllottedGeometry.AbsolutePosition + PreviewConnectorEndpoint;
+						EndPoint = AllottedGeometry.LocalToAbsolute(PreviewConnectorEndpoint);
 					}
 
 					ConnectionDrawingPolicy->DrawPreviewConnector(PinGeometry->Geometry, StartPoint, EndPoint, CurrentStartPin.Get()->GetPinObj());
@@ -425,7 +431,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 				OverlapData.ComputeBestPin();
 
 				// Only allow spline overlaps when there is no node under the cursor (unless it is a comment box)
-				const FVector2D PaintAbsoluteSpaceMousePos = AllottedGeometry.AbsolutePosition + SavedMousePosForOnPaintEventLocalSpace;
+				const FVector2D PaintAbsoluteSpaceMousePos = AllottedGeometry.LocalToAbsolute(SavedMousePosForOnPaintEventLocalSpace);
 				const int32 HoveredNodeIndex = SWidget::FindChildUnderPosition(ArrangedChildren, PaintAbsoluteSpaceMousePos);
 				if (HoveredNodeIndex != INDEX_NONE)
 				{

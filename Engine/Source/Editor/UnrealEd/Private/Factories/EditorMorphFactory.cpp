@@ -1,13 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorMorphFactory.cpp: Morph target mesh factory import code.
 =============================================================================*/
 
-#include "UnrealEd.h"
-#include "Factories.h"
-#include "SkelImport.h"
+#include "CoreMinimal.h"
+#include "Misc/FeedbackContext.h"
+#include "Engine/SkeletalMesh.h"
 #include "Engine/StaticMesh.h"
+#include "Animation/MorphTarget.h"
+#include "Factories.h"
 
 #define SET_MORPH_ERROR( ErrorType ) { if( Error ) *Error = ErrorType; }
 

@@ -1,18 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
+#include "PhysicsEngine/PhysSubstepTasks.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
 #if WITH_PHYSX
-#include "PhysXSupport.h"
-#include "../Vehicles/PhysXVehicleManager.h"
+#include "PhysXPublic.h"
 #endif
 
-#include "PhysSubstepTasks.h"
 
 #if WITH_PHYSX
-FPhysSubstepTask::FPhysSubstepTask(PxApexScene * GivenScene) :
+FPhysSubstepTask::FPhysSubstepTask(PxApexScene * GivenScene, FPhysScene* InPhysScene, uint32 InSceneType) :
 	NumSubsteps(0),
 	SubTime(0.f),
 	DeltaSeconds(0.f),
@@ -21,7 +18,8 @@ FPhysSubstepTask::FPhysSubstepTask(PxApexScene * GivenScene) :
 	StepScale(0.f),
 	TotalSubTime(0.f),
 	CurrentSubStep(0),
-	VehicleManager(NULL),
+	PhysScene(InPhysScene),
+	SceneType(InSceneType),
 	PAScene(GivenScene)
 {
 	check(PAScene);
@@ -383,12 +381,11 @@ void FPhysSubstepTask::SubstepSimulationStart()
 	float DeltaTime = bLastSubstep ? (DeltaSeconds - TotalSubTime) : SubTime;
 	float Interpolation = bLastSubstep ? 1.f : Alpha;
 
-#if WITH_VEHICLE
-	if (VehicleManager)
+	// Call scene step delegate
+	if (PhysScene != nullptr)
 	{
-		VehicleManager->Update(DeltaTime);
+		PhysScene->OnPhysSceneStep.Broadcast(PhysScene, SceneType, DeltaTime);
 	}
-#endif
 
 	SubstepInterpolation(Interpolation, DeltaTime);
 
@@ -443,7 +440,3 @@ void FPhysSubstepTask::SubstepSimulationEnd(ENamedThreads::Type CurrentThread, c
 }
 
 
-void FPhysSubstepTask::SetVehicleManager(FPhysXVehicleManager * InVehicleManager)
-{
-	VehicleManager = InVehicleManager;
-}

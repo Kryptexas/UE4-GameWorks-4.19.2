@@ -1,6 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "IDetailCustomization.h"
+
+class ABrush;
+class IDetailLayoutBuilder;
+class SHorizontalBox;
 
 class FBrushDetails : public IDetailCustomization
 {

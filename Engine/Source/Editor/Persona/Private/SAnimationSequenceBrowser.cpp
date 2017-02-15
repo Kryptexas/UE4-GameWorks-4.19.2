@@ -1,23 +1,42 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#include "PersonaPrivatePCH.h"
 
 #include "SAnimationSequenceBrowser.h"
-#include "Persona.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SMenuAnchor.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimSequenceBase.h"
+#include "Animation/AnimSequence.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "EditorStyleSet.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "IPersonaPreviewScene.h"
+#include "PersonaModule.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/SViewport.h"
+#include "EditorReimportHandler.h"
+#include "Settings/DestructableMeshEditorSettings.h"
+#include "FileHelpers.h"
+
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
 #include "SSkeletonWidget.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "FeedbackContextEditor.h"
-#include "EditorAnimUtils.h"
 #include "Toolkits/GlobalEditorCommonCommands.h"
-#include "Editor/ContentBrowser/Public/FrontendFilterBase.h"
-#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
-#include "SceneViewport.h"
+#include "FrontendFilterBase.h"
+#include "Slate/SceneViewport.h"
 #include "AnimPreviewInstance.h"
 #include "ObjectEditorUtils.h"
 #include "IPersonaToolkit.h"
 #include "IAnimationEditorModule.h"
+#include "Sound/SoundWave.h"
+#include "Components/AudioComponent.h"
 
 #define LOCTEXT_NAMESPACE "SequenceBrowser"
 
@@ -39,6 +58,25 @@ public:
 	{
 		const FString TagValue = InItem.GetTagValueRef<FString>(GET_MEMBER_NAME_CHECKED(UAnimSequence, AdditiveAnimType));
 		return !TagValue.IsEmpty() && !TagValue.Equals(TEXT("AAT_None"));
+	}
+};
+
+/** A filter that displays sound waves */
+class FFrontendFilter_SoundWaves : public FFrontendFilter
+{
+public:
+	FFrontendFilter_SoundWaves(TSharedPtr<FFrontendFilterCategory> InCategory) : FFrontendFilter(InCategory) {}
+
+	// FFrontendFilter implementation
+	virtual FString GetName() const override { return TEXT("ShowSoundWaves"); }
+	virtual FText GetDisplayName() const override { return LOCTEXT("FFrontendFilter_SoundWaves", "Show Sound Waves"); }
+	virtual FText GetToolTipText() const override { return LOCTEXT("FFrontendFilter_SoundWavesToolTip", "Show sound waves."); }
+	virtual bool IsInverseFilter() const override { return true; }
+
+	// IFilter implementation
+	virtual bool PassesFilter(FAssetFilterType InItem) const override
+	{
+		return !InItem.GetClass()->IsChildOf(USoundWave::StaticClass());
 	}
 };
 
@@ -71,14 +109,18 @@ void SAnimationSequenceBrowser::OnRequestOpenAsset(const FAssetData& AssetData, 
 {
 		if (UObject* RawAsset = AssetData.GetAsset())
 		{
-			if (UAnimationAsset* Asset = Cast<UAnimationAsset>(RawAsset))
+		if (UAnimationAsset* AnimationAsset = Cast<UAnimationAsset>(RawAsset))
 			{
-			if(!bFromHistory)
+			if (!bFromHistory)
 			{
 				AddAssetToHistory(AssetData);
 			}
 
-			OnOpenNewAsset.ExecuteIfBound(Asset);
+			OnOpenNewAsset.ExecuteIfBound(AnimationAsset);
+		}
+		else if (USoundWave* SoundWave = Cast<USoundWave>(RawAsset))
+		{
+			PlayPreviewAudio(SoundWave);
 		}
 	}
 }
@@ -86,6 +128,7 @@ void SAnimationSequenceBrowser::OnRequestOpenAsset(const FAssetData& AssetData, 
 TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArray<FAssetData>& SelectedAssets)
 {
 	bool bHasSelectedAnimSequence = false;
+	bool bHasSelectedAnimAsset = false;
 	if ( SelectedAssets.Num() )
 	{
 		for(auto Iter = SelectedAssets.CreateConstIterator(); Iter; ++Iter)
@@ -94,7 +137,10 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 			if(Cast<UAnimSequence>(Asset))
 			{
 				bHasSelectedAnimSequence = true;
-				break;
+			}
+			if (Cast<UAnimationAsset>(Asset))
+			{
+				bHasSelectedAnimAsset = true;
 			}
 		}
 	}
@@ -103,7 +149,7 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 
 	if(bHasSelectedAnimSequence)
 	{
-		MenuBuilder.BeginSection("AnimationSequenceOptions", NSLOCTEXT("Docking", "TabAnimationHeading", "Animation"));
+		MenuBuilder.BeginSection("AnimationSequenceOptions", LOCTEXT("AnimationHeading", "Animation"));
 		{
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("RunCompressionOnAnimations", "Apply Compression"),
@@ -158,7 +204,41 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 		MenuBuilder.EndSection();
 	}
 
-	MenuBuilder.BeginSection("AnimationSequenceOptions", NSLOCTEXT("Docking", "TabOptionsHeading", "Options") );
+	if (SelectedAssets.Num() == 1 && SelectedAssets[0].GetClass()->IsChildOf(USoundWave::StaticClass()))
+	{
+		MenuBuilder.BeginSection("AnimationSequenceAudioOptions", LOCTEXT("AudioOptionsHeading", "Audio"));
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("PlayAudio", "Play Audio"),
+				LOCTEXT("PlayAudio_ToolTip", "Play this audio asset as a preview"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::HandlePlayAudio, SelectedAssets[0]),
+					FCanExecuteAction()
+				)
+			);
+
+			UAudioComponent* AudioComponent = PersonaToolkitPtr.Pin()->GetPreviewScene()->GetActor()->FindComponentByClass<UAudioComponent>();
+			if (AudioComponent)
+			{
+				if (AudioComponent->IsPlaying())
+				{
+					MenuBuilder.AddMenuEntry(
+						LOCTEXT("StopAudio", "Stop Audio"),
+						LOCTEXT("StopAudio_ToolTip", "Stop the currently playing preview audio"),
+						FSlateIcon(),
+						FUIAction(
+							FExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::HandleStopAudio),
+							FCanExecuteAction()
+						)
+					);
+				}
+			}
+		}
+		MenuBuilder.EndSection();
+	}
+
+	MenuBuilder.BeginSection("AnimationSequenceOptions", LOCTEXT("OptionsHeading", "Options") );
 	{
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("SaveSelectedAssets", "Save"),
@@ -174,7 +254,9 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 	}
 	MenuBuilder.EndSection();
 
-	MenuBuilder.BeginSection("AnimationSequenceAdvancedOptions", NSLOCTEXT("Docking", "TabAdvancedOptionsHeading", "Advanced") );
+	if (bHasSelectedAnimAsset)
+	{
+		MenuBuilder.BeginSection("AnimationSequenceAdvancedOptions", LOCTEXT("AdvancedOptionsHeading", "Advanced") );
 	{
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("ChangeSkeleton", "Create a copy for another Skeleton..."),
@@ -185,6 +267,8 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 			FCanExecuteAction()
 			)
 			);
+	}
+		MenuBuilder.EndSection();
 	}
 
 	return MenuBuilder.MakeWidget();
@@ -404,23 +488,18 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs, const TShare
 	FAssetPickerConfig Config;
 	Config.Filter.bRecursiveClasses = true;
 	Config.Filter.ClassNames.Add(UAnimationAsset::StaticClass()->GetFName());
+	Config.Filter.ClassNames.Add(USoundWave::StaticClass()->GetFName());
 	Config.InitialAssetViewType = EAssetViewType::Column;
 	Config.bAddFilterUI = true;
 	Config.bShowPathInColumnView = true;
 	Config.bSortByPathInColumnView = true;
-
-	USkeleton* DesiredSkeleton = InPersonaToolkit->GetSkeleton();
-		if(DesiredSkeleton)
-		{
-			FString SkeletonString = FAssetData(DesiredSkeleton).GetExportTextName();
-			Config.Filter.TagsAndValues.Add(TEXT("Skeleton"), SkeletonString);
-		}
 
 	// Configure response to click and double-click
 	Config.OnAssetDoubleClicked = FOnAssetDoubleClicked::CreateSP(this, &SAnimationSequenceBrowser::OnRequestOpenAsset, false);
 	Config.OnGetAssetContextMenu = FOnGetAssetContextMenu::CreateSP(this, &SAnimationSequenceBrowser::OnGetAssetContextMenu);
 	Config.OnAssetTagWantsToBeDisplayed = FOnShouldDisplayAssetTag::CreateSP(this, &SAnimationSequenceBrowser::CanShowColumnForAssetRegistryTag);
 	Config.SyncToAssetsDelegates.Add(&SyncToAssetsDelegate);
+	Config.OnShouldFilterAsset = FOnShouldFilterAsset::CreateSP(this, &SAnimationSequenceBrowser::HandleFilterAsset);
 	Config.GetCurrentSelectionDelegates.Add(&GetCurrentSelectionDelegate);
 	Config.bFocusSearchBoxWhenOpened = false;
 	Config.DefaultFilterMenuExpansion = EAssetTypeCategories::Animation;
@@ -429,6 +508,8 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs, const TShare
 
 	TSharedPtr<FFrontendFilterCategory> AnimCategory = MakeShareable( new FFrontendFilterCategory(LOCTEXT("ExtraAnimationFilters", "Anim Filters"), LOCTEXT("ExtraAnimationFiltersTooltip", "Filter assets by all filters in this category.")) );
 	Config.ExtraFrontendFilters.Add( MakeShareable(new FFrontendFilter_AdditiveAnimAssets(AnimCategory)) );
+	TSharedPtr<FFrontendFilterCategory> AudioCategory = MakeShareable(new FFrontendFilterCategory(LOCTEXT("AudioFilters", "Audio Filters"), LOCTEXT("AudioFiltersTooltip", "Filter audio assets.")));
+	Config.ExtraFrontendFilters.Add( MakeShareable(new FFrontendFilter_SoundWaves(AudioCategory)) );
 	
 	Config.OnGetCustomAssetToolTip = FOnGetCustomAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::CreateCustomAssetToolTip);
 	Config.OnVisualizeAssetToolTip = FOnVisualizeAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::OnVisualizeAssetToolTip);
@@ -802,7 +883,7 @@ TSharedRef<SToolTip> SAnimationSequenceBrowser::CreateCustomAssetToolTip(FAssetD
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::Format(LOCTEXT("AssetTagKey", "{0} :"), DisplayName))
+					.Text(FText::Format(LOCTEXT("AssetTagKey", "{0}: "), DisplayName))
 					.ColorAndOpacity(FSlateColor::UseSubduedForeground())
 				]
 
@@ -859,7 +940,7 @@ TSharedRef<SToolTip> SAnimationSequenceBrowser::CreateCustomAssetToolTip(FAssetD
 				.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
 				[
 					SNew(SBox)
-					.HAlign(HAlign_Center)
+					.HAlign(HAlign_Left)
 					[
 						SNew(STextBlock)
 						.Text(FText::FromName(AssetData.AssetName))
@@ -876,6 +957,7 @@ TSharedRef<SToolTip> SAnimationSequenceBrowser::CreateCustomAssetToolTip(FAssetD
 				[
 					SNew(SBorder)
 					.Padding(6)
+					.Visibility(AssetClass->IsChildOf<UAnimationAsset>() ? EVisibility::Visible : EVisibility::Collapsed)
 					.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
 					[
 						SNew(SOverlay)
@@ -901,7 +983,7 @@ TSharedRef<SToolTip> SAnimationSequenceBrowser::CreateCustomAssetToolTip(FAssetD
 
 	// add an extra section to the tooltip for it.
 	ContentBox->AddSlot()
-	.Padding(4, 0, 0, 0)
+	.Padding(AssetClass->IsChildOf<UAnimationAsset>() ? 4 : 0, 0, 0, 0)
 	[
 		SNew(SBorder)
 		.Padding(6)
@@ -1059,7 +1141,57 @@ EVisibility SAnimationSequenceBrowser::GetHistoryVisibility() const
 	return bShowHistory ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
+bool SAnimationSequenceBrowser::HandleFilterAsset(const FAssetData& InAssetData) const
+{
+	if (InAssetData.GetClass()->IsChildOf(UAnimationAsset::StaticClass()))
+	{
+		USkeleton* DesiredSkeleton = PersonaToolkitPtr.Pin()->GetSkeleton();
+		if (DesiredSkeleton)
+		{
+			FString SkeletonString = FAssetData(DesiredSkeleton).GetExportTextName();
 
+			return (InAssetData.TagsAndValues.FindRef(TEXT("Skeleton")) != SkeletonString);
+		}
+	}
+
+	return false;
+}
+
+void SAnimationSequenceBrowser::HandlePlayAudio(FAssetData InAssetData)
+{
+	PlayPreviewAudio(Cast<USoundWave>(InAssetData.GetAsset()));
+}
+
+void SAnimationSequenceBrowser::HandleStopAudio()
+{
+	UAudioComponent* AudioComponent = PersonaToolkitPtr.Pin()->GetPreviewScene()->GetActor()->FindComponentByClass<UAudioComponent>();
+	if (AudioComponent)
+	{
+		AudioComponent->Stop();
+	}
+}
+
+void SAnimationSequenceBrowser::PlayPreviewAudio(USoundWave* InSoundWave)
+{
+	if (InSoundWave)
+	{
+		UAudioComponent* AudioComponent = PersonaToolkitPtr.Pin()->GetPreviewScene()->GetActor()->FindComponentByClass<UAudioComponent>();
+		if (AudioComponent)
+		{
+			// If we are playing this soundwave, stop
+			if (AudioComponent->IsPlaying() && AudioComponent->Sound == InSoundWave)
+			{
+				AudioComponent->Stop();
+			}
+			else
+			{
+				AudioComponent->Stop();
+				AudioComponent->SetSound(InSoundWave);
+				AudioComponent->Play();
+			}
+		}
+	}
+}
 
 FAnimationAssetViewportClient::FAnimationAssetViewportClient(FPreviewScene& InPreviewScene)
 	: FEditorViewportClient(nullptr, &InPreviewScene)

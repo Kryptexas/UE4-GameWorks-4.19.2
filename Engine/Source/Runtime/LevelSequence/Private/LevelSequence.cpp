@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LevelSequencePCH.h"
 #include "LevelSequence.h"
-#include "LevelSequenceObject.h"
+#include "Engine/EngineTypes.h"
+#include "HAL/IConsoleManager.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/Engine.h"
 #include "MovieScene.h"
-#include "MovieSceneCommonHelpers.h"
+#include "UObject/Package.h"
+#include "UObject/UObjectHash.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLevelSequence, Log, All);
 
@@ -18,6 +23,7 @@ ULevelSequence::ULevelSequence(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, MovieScene(nullptr)
 {
+	bParentContextsAreSignificant = true;
 }
 
 void ULevelSequence::Initialize()
@@ -127,19 +133,19 @@ void ULevelSequence::BindPossessableObject(const FGuid& ObjectId, const FLevelSe
 	ObjectReferences.CreateBinding(ObjectId, ObjectReference);
 }
 
-bool ULevelSequence::CanPossessObject(UObject& Object) const
+bool ULevelSequence::CanPossessObject(UObject& Object, UObject* InPlaybackContext) const
 {
 	return Object.IsA<AActor>() || Object.IsA<UActorComponent>();
 }
 
-UObject* ULevelSequence::FindPossessableObject(const FGuid& ObjectId, UObject* Context) const
+void ULevelSequence::LocateBoundObjects(const FGuid& ObjectId, UObject* Context, TArray<UObject*, TInlineAllocator<1>>& OutObjects) const
 {
-	return Context ? ObjectReferences.ResolveBinding(ObjectId, Context) : nullptr;
-}
-
-FGuid ULevelSequence::FindPossessableObjectId(UObject& Object) const
-{
-	return ObjectReferences.FindBindingId(&Object, Object.GetWorld());
+	// @todo: support multiple bindings
+	UObject* Object = Context ? ObjectReferences.ResolveBinding(ObjectId, Context) : nullptr;
+	if (Object)
+	{
+		OutObjects.Add(Object);
+	}
 }
 
 UMovieScene* ULevelSequence::GetMovieScene() const
@@ -162,6 +168,11 @@ UObject* ULevelSequence::GetParentObject(UObject* Object) const
 bool ULevelSequence::AllowsSpawnableObjects() const
 {
 	return true;
+}
+
+bool ULevelSequence::CanRebindPossessable(const FMovieScenePossessable& InPossessable) const
+{
+	return !InPossessable.GetParent().IsValid();
 }
 
 void ULevelSequence::UnbindPossessableObjects(const FGuid& ObjectId)

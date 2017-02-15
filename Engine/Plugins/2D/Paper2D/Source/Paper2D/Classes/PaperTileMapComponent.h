@@ -1,15 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PaperSprite.h"
-#include "PaperTileMap.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "PaperTileLayer.h"
+#include "Components/MeshComponent.h"
 #include "PaperTileMapComponent.generated.h"
 
 class FPaperTileMapRenderSceneProxy;
-struct FSpriteRenderSection;
+class FPrimitiveSceneProxy;
+class UPaperTileMap;
+class UTexture;
 struct FPaperSpriteVertex;
+struct FSpriteRenderSection;
 
 /**
  * A component that handles rendering and collision for a single instance of a UPaperTileMap asset.

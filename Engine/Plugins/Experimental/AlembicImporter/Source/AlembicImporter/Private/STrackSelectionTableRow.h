@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AlembicImporterPrivatePCH.h"
+#include "STrackSelectionTableRow.h"
 
 #include "AbcImporter.h"
 #include "AbcImportData.h"
+
+#include "SlateOptMacros.h"
 
 struct FAbcTrackInformation;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 DebugViewModeRendering.h: Contains definitions for rendering debug viewmodes.
@@ -6,11 +6,21 @@ DebugViewModeRendering.h: Contains definitions for rendering debug viewmodes.
 
 #pragma once
 
-#include "DebugViewModeHelpers.h"
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "GlobalShader.h"
 #include "ShaderParameterUtils.h"
+#include "MeshMaterialShaderType.h"
+#include "MeshMaterialShader.h"
+#include "ShaderBaseClasses.h"
+
+class FPrimitiveSceneProxy;
+struct FMeshBatchElement;
+struct FMeshDrawingRenderState;
 
 static const int32 NumStreamingAccuracyColors = 5;
-static const float UndefinedStreamingAccuracyIntensity = .02f;
+static const float UndefinedStreamingAccuracyIntensity = .015f;
 
 /**
  * Vertex shader for quad overdraw. Required because overdraw shaders need to have SV_Position as first PS interpolant.
@@ -50,7 +60,7 @@ public:
 		}
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FDrawingPolicyRenderState& DrawRenderState)
 	{
 		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement,DrawRenderState);
 	}
@@ -160,7 +170,7 @@ public:
 		const FPrimitiveSceneProxy* Proxy,
 		int32 VisualizeLODIndex,
 		const FMeshBatchElement& BatchElement, 
-		const FMeshDrawingRenderState& DrawRenderState
+		const FDrawingPolicyRenderState& DrawRenderState
 		) = 0;
 
 	// Used for custom rendering like decals.
@@ -193,7 +203,7 @@ struct FDebugViewMode
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* Proxy,
 		const FMeshBatchElement& BatchElement, 
-		const FMeshDrawingRenderState& DrawRenderState,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const FMaterial* Material, 
 		bool bHasHullAndDomainShader
 		);

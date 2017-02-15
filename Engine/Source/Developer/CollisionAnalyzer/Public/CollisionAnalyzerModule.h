@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ICollisionAnalyzer.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
 
-#include "SlateBasics.h"
+class FSpawnTabArgs;
+class ICollisionAnalyzer;
 
 class FCollisionAnalyzerModule : public IModuleInterface
 {

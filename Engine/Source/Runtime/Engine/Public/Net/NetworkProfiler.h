@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	NetworkProfiler.h: network profiling support.
@@ -6,10 +6,13 @@
 
 #pragma once
 
-#include "UnrealString.h"
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
 
+class AActor;
+class FOutBunch;
 class UNetConnection;
-class FInternetAddr;
+struct FURL;
 
 #if USE_NETWORK_PROFILER 
 

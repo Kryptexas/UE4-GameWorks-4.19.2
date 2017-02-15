@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11RHIPrivate.h: Private D3D RHI definitions.
@@ -6,13 +6,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "D3D11RHI.h"
 // Dependencies.
-#include "Core.h"
 #include "RHI.h"
 #include "GPUProfiler.h"
 #include "ShaderCore.h"
-#include "Engine.h"
+#include "Containers/ResourceArray.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogD3D11RHI, Log, All);
 
@@ -26,6 +28,10 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D11RHI, Log, All);
 #include "D3D11Viewport.h"
 #include "D3D11ConstantBuffer.h"
 #include "D3D11StateCache.h"
+
+#ifndef WITH_DX_PERF
+#define WITH_DX_PERF	1
+#endif
 
 #if UE_BUILD_SHIPPING || UE_BUILD_TEST
 #define CHECK_SRV_TRANSITIONS 0
@@ -278,6 +284,9 @@ struct FD3DGPUProfiler : public FGPUProfiler
 	void EndFrame();
 };
 
+/** Forward declare the context for the AMD AGS utility library. */
+struct AGSContext;
+
 /** The interface which is implemented by the dynamically bound RHI. */
 class D3D11RHI_API FD3D11DynamicRHI : public FDynamicRHI, public IRHICommandContext
 {
@@ -300,6 +309,11 @@ public:
 	// FDynamicRHI interface.
 	virtual void Init() override;
 	virtual void Shutdown() override;
+	virtual const TCHAR* GetName() override { return TEXT("D3D11"); }
+
+	// HDR display output
+	virtual void EnableHDR();
+	virtual void ShutdownHDR();
 
 	virtual void FlushPendingLogs() override;
 
@@ -319,6 +333,12 @@ public:
 	 * @return true if the query finished.
 	 */
 	bool GetQueryData(ID3D11Query* Query,void* Data,SIZE_T DataSize,bool bWait, ERenderQueryType QueryType);
+
+	virtual void RHIBeginUpdateMultiFrameResource(FTextureRHIParamRef Texture) override;
+	virtual void RHIEndUpdateMultiFrameResource(FTextureRHIParamRef Texture) override;
+
+	virtual void RHIBeginUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAV) override;
+	virtual void RHIEndUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAV) override;
 
 	virtual FSamplerStateRHIRef RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer) final override;
 	virtual FRasterizerStateRHIRef RHICreateRasterizerState(const FRasterizerStateInitializerRHI& Initializer) final override;
@@ -400,6 +420,7 @@ public:
 	virtual uint32 RHIGetGPUFrameCycles() final override;
 	virtual FViewportRHIRef RHICreateViewport(void* WindowHandle, uint32 SizeX, uint32 SizeY, bool bIsFullscreen, EPixelFormat PreferredPixelFormat) final override;
 	virtual void RHIResizeViewport(FViewportRHIParamRef Viewport, uint32 SizeX, uint32 SizeY, bool bIsFullscreen) final override;
+	virtual void RHIResizeViewport(FViewportRHIParamRef Viewport, uint32 SizeX, uint32 SizeY, bool bIsFullscreen, EPixelFormat PreferredPixelFormat) final override;
 	virtual void RHITick(float DeltaTime) final override;
 	virtual void RHISetStreamOutTargets(uint32 NumTargets,const FVertexBufferRHIParamRef* VertexBuffers,const uint32* Offsets) final override;
 	virtual void RHIDiscardRenderTargets(bool Depth,bool Stencil,uint32 ColorBitMask) final override;
@@ -567,6 +588,17 @@ public:
 	virtual bool HandleSpecialUnlock(uint32 MipIndex, uint32 Flags, void* D3DTextureResource, void* RawTextureMemory) = 0;
 #endif
 
+	uint32 GetHDRDetectedDisplayIndex() const
+	{
+		return HDRDetectedDisplayIndex;
+	}
+
+	void SetHDRDetectedDisplayIndices(const uint32 DisplayIndex, const uint32 IHVIndex)
+	{
+		HDRDetectedDisplayIndex = DisplayIndex;
+		HDRDetectedDisplayIHVIndex = IHVIndex;
+	}
+
 protected:
 	/** The global D3D interface. */
 	TRefCountPtr<IDXGIFactory1> DXGIFactory1;
@@ -587,6 +619,13 @@ protected:
 
 	/** The feature level of the device. */
 	D3D_FEATURE_LEVEL FeatureLevel;
+
+	/**
+	 * The context for the AMD AGS utility library.
+	 * AGSContext does not implement AddRef/Release.
+	 * Just use a bare pointer.
+	 */
+	AGSContext* AmdAgsContext;
 
 	// set by UpdateMSAASettings(), get by GetMSAAQuality()
 	// [SampleCount] = Quality, 0xffffffff if not supported
@@ -662,6 +701,10 @@ protected:
 	/** A history of the most recently used bound shader states, used to keep transient bound shader states from being recreated for each use. */
 	TGlobalResource< TBoundShaderStateHistory<10000> > BoundShaderStateHistory;
 	FComputeShaderRHIRef CurrentComputeShader;
+
+	/** If HDR display detected, we store the output device. */
+	uint32 HDRDetectedDisplayIndex;
+	uint32 HDRDetectedDisplayIHVIndex;
 
 #if CHECK_SRV_TRANSITIONS
 	/*

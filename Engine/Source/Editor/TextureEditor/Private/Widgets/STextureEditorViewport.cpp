@@ -1,7 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TextureEditorPrivatePCH.h"
-#include "SNumericEntryBox.h"
+#include "Widgets/STextureEditorViewport.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Layout/SScrollBar.h"
+#include "Widgets/SToolTip.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/SViewport.h"
+#include "Widgets/Input/SSlider.h"
+#include "Engine/Texture.h"
+#include "Slate/SceneViewport.h"
+#include "TextureEditorConstants.h"
+#include "Widgets/STextureEditorViewportToolbar.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 
 
 #define LOCTEXT_NAMESPACE "STextureEditorViewport"
@@ -60,7 +72,9 @@ void STextureEditorViewport::Construct( const FArguments& InArgs, const TSharedR
 	
 	if (InToolkit->GetTexture() != nullptr)
 	{
-		TextureName = FText::FromName(InToolkit->GetTexture()->GetFName());
+		FText FormattedText = InToolkit->HasValidTextureResource() ? FText::FromString(TEXT("{0}")) : LOCTEXT( "InvalidTexture", "{0} (Invalid Texture)");
+
+		TextureName = FText::Format(FormattedText, FText::FromName(InToolkit->GetTexture()->GetFName()));
 	}
 
 	this->ChildSlot
@@ -383,6 +397,11 @@ void STextureEditorViewport::HandleZoomMenuFitClicked()
 bool STextureEditorViewport::IsZoomMenuFitChecked() const
 {
 	return ToolkitPtr.Pin()->GetFitToViewport();
+}
+
+bool STextureEditorViewport::HasValidTextureResource() const
+{
+	return ToolkitPtr.Pin()->HasValidTextureResource();
 }
 
 FText STextureEditorViewport::HandleZoomPercentageText( ) const

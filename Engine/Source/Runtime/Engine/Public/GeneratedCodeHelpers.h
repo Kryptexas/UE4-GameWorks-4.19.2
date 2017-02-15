@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -329,6 +329,154 @@ public:
 	static bool Array_IsValidIndex(const TArray<T>& TargetArray, int32 Index)
 	{
 		return TargetArray.IsValidIndex(Index);
+	}
+	
+	//Replacements for CustomThunk functions from UBlueprintSetLibrary
+	template<typename T, typename U>
+	static bool Set_Add(TSet<T>& TargetSet, const U& NewItem)
+	{
+		if(T* Result = TargetSet.Find(NewItem))
+		{
+			return false;
+		}
+		TargetSet.Add(NewItem);
+		return true;
+	}
+	
+	template<typename T, typename U>
+	static void Set_AddItems(TSet<T>& TargetSet, const TArray<U>& NewItems)
+	{
+		for(const auto& Entry : NewItems)
+		{
+			TargetSet.Add(Entry);
+		}
+	}
+	
+	template<typename T, typename U>
+	static bool Set_Remove(TSet<T>& TargetSet, const U& Item)
+	{
+		return TargetSet.Remove(Item) > 0;
+	}
+
+	template<typename T, typename U>
+	static void Set_RemoveItems(TSet<T>& TargetSet, const TArray<U>& Items)
+	{
+		for(const U& Entry : Items)
+		{
+			TargetSet.Remove(Entry);
+		}
+	}
+	
+	template<typename T, typename U>
+	static void Set_ToArray(const TSet<T>& A, TArray<U>& Result)
+	{
+		ensure(Result.Num() == 0);
+		for(const T& Entry : A)
+		{
+			Result.Add(Entry);
+		}
+	}
+	
+	template<typename T>
+	static void Set_Clear(TSet<T>& TargetSet)
+	{
+		TargetSet.Empty();
+	}
+	
+	template<typename T>
+	static int32 Set_Length(const TSet<T>& TargetSet)
+	{
+		return TargetSet.Num();
+	}
+	
+	template<typename T, typename U>
+	static bool Set_Contains(const TSet<T>& TargetSet, const U& ItemToFind)
+	{
+		return TargetSet.Find(ItemToFind) != nullptr;
+	}
+	
+	template<typename T>
+	static void Set_Intersection(const TSet<T>& A, const TSet<T>& B, TSet<T>& Result )
+	{
+		Result = A.Intersect(B);
+	}
+	
+	template<typename T>
+	static void Set_Union(const TSet<T>& A, const TSet<T>& B, TSet<T>& Result )
+	{
+		Result = A.Union(B);
+	}
+	
+	template<typename T>
+	static void Set_Difference(const TSet<T>& A, const TSet<T>& B, TSet<T>& Result )
+	{
+		Result = A.Difference(B);
+	}
+
+	//Replacements for CustomThunk functions from UBlueprintMapLibrary
+	template<typename T, typename U, typename V, typename W>
+	static bool Map_Add(TMap<T, U>& TargetMap, const V& Key, const W& Value)
+	{
+		if(U* CurrentValue = TargetMap.Find(Key))
+		{
+			*CurrentValue = Value;
+			return false;
+		}
+		else
+		{
+			TargetMap.Add(Key, Value);
+			return true;
+		}
+	}
+	
+	template<typename T, typename U, typename V>
+	static bool Map_Remove(TMap<T, U>& TargetMap, const V& Key)
+	{
+		return TargetMap.Remove(Key) > 0;
+	}
+	
+	template<typename T, typename U, typename V, typename W>
+	static bool Map_Find(const TMap<T, U>& TargetMap, const V& Key, W& Value)
+	{
+		if(const U* CurrentValue = TargetMap.Find(Key))
+		{
+			Value = *CurrentValue;
+			return true;
+		}
+		return false;
+	}
+	
+	template<typename T, typename U, typename V>
+	static bool Map_Contains(const TMap<T, U>& TargetMap, const V& Key)
+	{
+		return TargetMap.Find(Key) != nullptr;
+	}
+	
+	template<typename T, typename U, typename V>
+	static void Map_Keys(const TMap<T, U>& TargetMap, TArray<V>& Keys)
+	{
+		TargetMap.GetKeys(Keys);
+	}
+
+	template<typename T, typename U, typename V>
+	static void Map_Values(const TMap<T, U>& TargetMap, TArray<V>& Values)
+	{
+		for (typename TMap<T, U>::TConstIterator Iterator(TargetMap); Iterator; ++Iterator)
+		{
+			Values.Add(Iterator.Value());
+		}
+	}
+	
+	template<typename T, typename U>
+	static int32 Map_Length(const TMap<T, U>& TargetMap)
+	{
+		return TargetMap.Num();
+	}
+	
+	template<typename T, typename U>
+	static void Map_Clear(TMap<T, U>& TargetMap)
+	{
+		TargetMap.Empty();
 	}
 
 	//Replacements for CustomThunk functions from UDataTableFunctionLibrary

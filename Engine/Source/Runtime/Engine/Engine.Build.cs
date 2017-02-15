@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -7,9 +7,11 @@ public class Engine : ModuleRules
 {
 	public Engine(TargetInfo Target)
 	{
-		SharedPCHHeaderFile = "Runtime/Engine/Public/Engine.h";
+		PrivatePCHHeaderFile = "Private/EnginePrivatePCH.h";
 
-		PublicIncludePathModuleNames.AddRange(new string[] { "Renderer", "PacketHandler" });
+		SharedPCHHeaderFile = "Public/EngineSharedPCH.h";
+
+		PublicIncludePathModuleNames.AddRange(new string[] { "Renderer", "PacketHandler", "NetworkReplayStreaming" });
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -69,6 +71,7 @@ public class Engine : ModuleRules
 				"EngineMessages",
 				"EngineSettings",
 				"SynthBenchmark",
+                "GameplayTags",
                 "AIModule",
 				"DatabaseSupport",
                 "PacketHandler",
@@ -148,6 +151,7 @@ public class Engine : ModuleRules
         }
         }
 
+        CircularlyReferencedDependentModules.Add("GameplayTags");
         CircularlyReferencedDependentModules.Add("AIModule");
 		CircularlyReferencedDependentModules.Add("Landscape");
         CircularlyReferencedDependentModules.Add("UMG");
@@ -163,6 +167,7 @@ public class Engine : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{
+				"ActorSequence",
 				"MovieScene",
 				"MovieSceneCapture",
 				"MovieSceneTracks",

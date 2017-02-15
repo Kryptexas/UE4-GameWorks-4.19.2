@@ -1,11 +1,37 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SourceControlWindowsPCH.h"
-#include "AssetToolsModule.h"
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "SourceControlWindows.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SWindow.h"
+#include "SlateOptMacros.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "EditorStyleSet.h"
+#include "ISourceControlModule.h"
 #include "PackageTools.h"
-
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Linker.h"
 
 #define LOCTEXT_NAMESPACE "SSourceControlRevert"
 
@@ -413,40 +439,85 @@ bool FSourceControlWindows::PromptForRevert( const TArray<FString>& InPackageNam
 			if (PackagesToRevert.Num() > 0)
 			{
 				// attempt to unload the packages we are about to revert
-				TArray<UPackage*> PackagesToUnload;
+				TArray<UPackage*> LoadedPackages;
 				for (TArray<FString>::TConstIterator PackageIter(InPackageNames); PackageIter; ++PackageIter)
 				{
 					UPackage* Package = FindPackage(NULL, **PackageIter);
 					if (Package != NULL)
 					{
-						PackagesToUnload.Add(Package);
+						LoadedPackages.Add(Package);
 					}
 				}
 
-				if (PackagesToUnload.Num() == 0 || PackageTools::UnloadPackages(PackagesToUnload))
+				if (GetDefault<UEditorExperimentalSettings>()->bEnableContentHotReloading)
 				{
-					// Iterate over the names again, the UPackage*'s may be invalid if they have been GC'd
-					for (TArray<FString>::TConstIterator PackageIter(InPackageNames); PackageIter; ++PackageIter)
+					const TArray<FString> RevertPackageFilenames = SourceControlHelpers::PackageFilenames(PackagesToRevert);
+
+					// Prepare the packages to be reverted...
+					for (UPackage* Package : LoadedPackages)
 					{
-						UPackage* Package = FindPackage(NULL, **PackageIter);
-						if (Package != NULL)
+						// Detach the linkers of any loaded packages so that SCC can overwrite the files...
+						if (!Package->IsFullyLoaded())
 						{
-							Package->ClearFlags(RF_WasLoaded);
-							
-							// Create and display a notification about the revert failing (the object was still being used)
-							const FText NotificationErrorText = FText::Format(LOCTEXT("RevertFailed", "Failed to revert file {0} since it is currently in use."), 
-								FText::AsCultureInvariant(Package->GetName()));
-							FNotificationInfo Info(NotificationErrorText);
-							Info.ExpireDuration = 2.0f;
-							FSlateNotificationManager::Get().AddNotification(Info);
+							FlushAsyncLoading();
+							Package->FullyLoad();
 						}
+						ResetLoaders(Package);
 					}
 
-					SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), SourceControlHelpers::PackageFilenames(PackagesToRevert));
+					// Revert everything...
+					SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), RevertPackageFilenames);
+
+					// Reverting may have deleted some packages, so we need to unload those rather than re-load them...
+					TArray<UPackage*> PackagesToUnload;
+					LoadedPackages.RemoveAll([&](UPackage* InPackage) -> bool
+					{
+						const FString PackageExtension = InPackage->ContainsMap() ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension();
+						const FString PackageFilename = FPackageName::LongPackageNameToFilename(InPackage->GetName(), PackageExtension);
+						if (!FPaths::FileExists(PackageFilename))
+						{
+							PackagesToUnload.Emplace(InPackage);
+							return true; // remove package
+						}
+						return false; // keep package
+					});
+
+					// Hot-reload the new packages...
+					PackageTools::ReloadPackages(LoadedPackages);
+
+					// Unload any deleted packages...
+					PackageTools::UnloadPackages(PackagesToUnload);
+
+					// Re-cache the SCC state...
+					SourceControlProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), RevertPackageFilenames, EConcurrency::Asynchronous);
 				}
 				else
 				{
-					FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("SCC_Revert_PackageUnloadFailed", "Could not unload assets when reverting files"));
+					if (LoadedPackages.Num() == 0 || PackageTools::UnloadPackages(LoadedPackages))
+					{
+						// Iterate over the names again, the UPackage*'s may be invalid if they have been GC'd
+						for (TArray<FString>::TConstIterator PackageIter(InPackageNames); PackageIter; ++PackageIter)
+						{
+							UPackage* Package = FindPackage(NULL, **PackageIter);
+							if (Package != NULL)
+							{
+								Package->ClearFlags(RF_WasLoaded);
+								
+								// Create and display a notification about the revert failing (the object was still being used)
+								const FText NotificationErrorText = FText::Format(LOCTEXT("RevertFailed", "Failed to revert file {0} since it is currently in use."), 
+									FText::AsCultureInvariant(Package->GetName()));
+								FNotificationInfo Info(NotificationErrorText);
+								Info.ExpireDuration = 2.0f;
+								FSlateNotificationManager::Get().AddNotification(Info);
+							}
+						}
+
+						SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), SourceControlHelpers::PackageFilenames(PackagesToRevert));
+					}
+					else
+					{
+						FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("SCC_Revert_PackageUnloadFailed", "Could not unload assets when reverting files"));
+					}
 				}
 
 				bReverted = true;

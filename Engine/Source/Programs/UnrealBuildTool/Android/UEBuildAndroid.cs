@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -207,11 +207,6 @@ namespace UnrealBuildTool
 		{
 			return new AndroidToolChain(ProjectFile);
 		}
-
-		public override UEBuildDeploy CreateDeploymentHandler()
-		{
-			return new UEDeployAndroid(ProjectFile);
-		}
 	}
 
 	class AndroidPlatform : UEBuildPlatform
@@ -391,13 +386,23 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a context for the given project on the current platform.
+		/// Creates a context for the given target on the current platform.
 		/// </summary>
 		/// <param name="ProjectFile">The project file for the current target</param>
+		/// <param name="Target">Rules for the target being built</param>
 		/// <returns>New platform context object</returns>
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
+		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile, TargetRules Target)
 		{
 			return new AndroidPlatformContext(ProjectFile);
+		}
+
+		/// <summary>
+		/// Deploys the given target
+		/// </summary>
+		/// <param name="Target">Information about the target being deployed</param>
+		public override void Deploy(UEBuildDeployTarget Target)
+		{
+			new UEDeployAndroid(Target.ProjectFile).PrepTargetForDeployment(Target);
 		}
 	}
 
@@ -429,6 +434,39 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		private static bool ExtractPath(string Source, out string Path)
+		{
+			int start = Source.IndexOf('"');
+			int end = Source.LastIndexOf('"');
+			if (start != 1 && end != -1 && start < end)
+			{
+				++start;
+				Path = Source.Substring(start, end - start);
+				return true;
+			}
+			else
+			{
+				Path = "";
+			}
+
+			return false;
+		}
+
+		public static bool GetPath(ConfigHierarchy Ini, string SectionName, string Key, out string Value)
+		{
+			string temp;
+			if (Ini.TryGetValue(SectionName, Key, out temp))
+			{
+				return ExtractPath(temp, out Value);
+			}
+			else
+			{
+				Value = "";
+			}
+
+			return false;
+		}
+
 		/// <summary>
 		/// checks if the sdk is installed or has been synced
 		/// </summary>
@@ -437,7 +475,7 @@ namespace UnrealBuildTool
 		{
 			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
 			{
-				var configCacheIni = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Unknown, "Engine", (DirectoryReference)null);
+				var configCacheIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, (DirectoryReference)null, UnrealTargetPlatform.Unknown);
 				var AndroidEnv = new Dictionary<string, string>();
 
 				Dictionary<string, string> EnvVarNames = new Dictionary<string, string> { 
@@ -450,7 +488,7 @@ namespace UnrealBuildTool
 				string path;
 				foreach (var kvp in EnvVarNames)
 				{
-					if (configCacheIni.GetPath("/Script/AndroidPlatformEditor.AndroidSDKSettings", kvp.Value, out path) && !string.IsNullOrEmpty(path))
+					if (GetPath(configCacheIni, "/Script/AndroidPlatformEditor.AndroidSDKSettings", kvp.Value, out path) && !string.IsNullOrEmpty(path))
 					{
 						AndroidEnv.Add(kvp.Key, path);
 					}

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialShader.h: Shader base classes
@@ -6,11 +6,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
+#include "ShaderParameters.h"
+#include "SceneView.h"
+#include "Shader.h"
+#include "MaterialShared.h"
+#include "GlobalShader.h"
 #include "MaterialShaderType.h"
-#include "AtmosphereTextureParameters.h"
 #include "SceneRenderTargetParameters.h"
-#include "PostProcessParameters.h"
-#include "GlobalDistanceFieldParameters.h"
+
+template<typename TBufferStruct> class TUniformBufferRef;
 
 template<typename ParameterType> 
 struct TUniformParameter

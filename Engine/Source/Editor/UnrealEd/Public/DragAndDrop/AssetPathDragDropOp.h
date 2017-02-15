@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "DecoratedDragDropOp.h"
+#include "CoreMinimal.h"
+#include "Input/DragAndDrop.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SBoxPanel.h"
+#include "EditorStyleSet.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "DragAndDrop/DecoratedDragDropOp.h"
 
 class FAssetPathDragDropOp : public FDecoratedDragDropOp
 {

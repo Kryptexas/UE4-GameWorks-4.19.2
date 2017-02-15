@@ -1,17 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Misc/Attribute.h"
+#include "Templates/SubclassOf.h"
+#include "Framework/Commands/UICommandList.h"
+#include "ISequencerSection.h"
+#include "MovieSceneTrack.h"
 
-class ISequencerSection;
-class UMovieSceneSection;
-class UMovieSceneTrack;
+class FMenuBuilder;
+class FPaintArgs;
+class FSlateWindowElementList;
+class SHorizontalBox;
+class UMovieScene;
 
 /** Data structure containing information required to build an edit widget */
 struct FBuildEditWidgetParams
 {
 	/** Attribute that specifies when the node relating to this edit widget is hovered */
 	TAttribute<bool> NodeIsHovered;
+};
+
+/** Defines different modes for editing sections on multiple rows. */
+enum class EMultipleRowMode
+{
+	/** Edit sections on multiple rows in a single track.  This does support editing keys in each section but results in a more compact UI. */
+	SingleTrack,
+	/** Edit sections on multiple sub-tracks contained in a single top level track.  The supports editing keys in sections, but results in a less compact UI. */
+	MultipleTrack
 };
 
 /**
@@ -131,6 +149,9 @@ public:
 	 * @param DeltaTime The time since the last tick.
 	 */
 	virtual void Tick(float DeltaTime) = 0;
+
+	/** Gets the mode used when supporting sections on multiple rows. */
+	virtual EMultipleRowMode GetMultipleRowMode() const = 0;
 
 public:
 

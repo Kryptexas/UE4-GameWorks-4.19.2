@@ -1,43 +1,66 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LevelTick.cpp: Level timer tick function
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Components/SceneCaptureComponent2D.h"
-#include "Components/SceneCaptureComponentCube.h"
+#include "CoreMinimal.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/CoreMisc.h"
+#include "Stats/Stats.h"
+#include "Misc/TimeGuard.h"
+#include "Misc/MemStack.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "UObject/GarbageCollection.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "Engine/EngineTypes.h"
+#include "RHI.h"
+#include "RenderingThread.h"
+#include "Engine/World.h"
+#include "GameFramework/Controller.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "GameFramework/PlayerController.h"
+#include "SceneUtils.h"
+#include "ParticleHelper.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/NetConnection.h"
+#include "UnrealEngine.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/WorldComposition.h"
-#include "Net/UnrealNetwork.h"
 #include "Collision.h"
 #include "PhysicsPublic.h"
 #include "Tickable.h"
 #include "IHeadMountedDisplay.h"
+#include "TimerManager.h"
+#include "Camera/CameraPhotography.h"
 
-#include "ParticleDefinitions.h"
 //#include "SoundDefinitions.h"
 #include "FXSystem.h"
 #include "TickTaskManagerInterface.h"
-#include "IPlatformFileProfilerWrapper.h"
-#if WITH_PHYSX
-#include "PhysicsEngine/PhysXSupport.h"
-#endif
+#include "HAL/IPlatformFileProfilerWrapper.h"
 #if !UE_BUILD_SHIPPING
+#include "VisualizerEvents.h"
 #include "STaskGraph.h"
 #endif
-#include "ParallelFor.h"
+#include "Async/ParallelFor.h"
 #include "Engine/CoreSettings.h"
 
 #include "InGamePerformanceTracker.h"
 #include "Streaming/TextureStreamingHelpers.h"
 
 #if WITH_EDITOR
-	#include "UnrealEd.h"
+	#include "Editor.h"
 #endif
 
 // this will log out all of the objects that were ticked in the FDetailedTickStats struct so you can isolate what is expensive
 #define LOG_DETAILED_DUMPSTATS 0
+
+#define LOG_DETAILED_PATHFINDING_STATS 0
 
 /** Global boolean to toggle the log of detailed tick stats. */
 /** Needs LOG_DETAILED_DUMPSTATS to be 1 **/
@@ -113,6 +136,11 @@ extern bool GShouldLogOutAFrameOfSetBodyTransform;
 /** Static array of tickable objects */
 TArray<FTickableGameObject*> FTickableGameObject::TickableObjects;
 bool FTickableGameObject::bIsTickingObjects = false;
+
+#if LOG_DETAILED_PATHFINDING_STATS
+/** Global detailed pathfinding stats. */
+FDetailedTickStats GDetailedPathFindingStats(30, 10, 1, 20, TEXT("pathfinding"));
+#endif
 
 /*-----------------------------------------------------------------------------
 	Detailed tick stats helper classes.
@@ -570,7 +598,7 @@ void UWorld::ProcessLevelStreamingVolumes(FVector* OverrideViewLocation)
 	bool bStreamingVolumesAreRelevant = false;
 	for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
-		APlayerController* PlayerActor = *Iterator;
+		APlayerController* PlayerActor = Iterator->Get();
 		if (PlayerActor->bIsUsingStreamingVolumes)
 		{
 			bStreamingVolumesAreRelevant = true;
@@ -704,7 +732,7 @@ void UWorld::ProcessLevelStreamingVolumes(FVector* OverrideViewLocation)
 				{
 					for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
 					{
-						APlayerController* PlayerController = *Iterator;
+						APlayerController* PlayerController = Iterator->Get();
 						PlayerController->LevelStreamingStatusChanged( 
 								LevelStreamingObject, 
 								LevelStreamingObject->bShouldBeLoaded, 
@@ -846,13 +874,18 @@ void UWorld::MarkActorComponentForNeededEndOfFrameUpdate(UActorComponent* Compon
 	}
 }
 
+bool UWorld::HasEndOfFrameUpdates()
+{
+	return ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Num() > 0 || ComponentsThatNeedEndOfFrameUpdate.Num() > 0;
+}
+
 /**
 	* Send all render updates to the rendering thread.
 	*/
 void UWorld::SendAllEndOfFrameUpdates()
 {
 	SCOPE_CYCLE_COUNTER(STAT_PostTickComponentUpdate);
-	if (!ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Num() && !ComponentsThatNeedEndOfFrameUpdate.Num())
+	if (!HasEndOfFrameUpdates())
 	{
 		return;
 	}
@@ -1062,6 +1095,7 @@ public:
 #endif // !UE_BUILD_SHIPPING
 
 #if ENABLE_COLLISION_ANALYZER
+#include "ICollisionAnalyzer.h"
 #include "CollisionAnalyzerModule.h"
 extern bool GCollisionAnalyzerIsRecording;
 #endif // ENABLE_COLLISION_ANALYZER
@@ -1276,11 +1310,10 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	if (OriginLocation != RequestedOriginLocation)
 	{
 		SetNewWorldOrigin(RequestedOriginLocation);
-		bOriginOffsetThisFrame = true;
 	}
 	else
 	{
-		bOriginOffsetThisFrame = false;
+		OriginOffsetThisFrame = FVector::ZeroVector;
 	}
 	
 	// update world's subsystems (NavigationSystem for now)
@@ -1403,8 +1436,15 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 				// Update cameras last. This needs to be done before NetUpdates, and after all actors have been ticked.
 				for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
 				{
-					APlayerController* PlayerController = *Iterator;			
-					PlayerController->UpdateCameraManager(DeltaSeconds);
+					APlayerController* PlayerController = Iterator->Get();
+					if (!bIsPaused || PlayerController->ShouldPerformFullTickWhenPaused())
+					{
+						PlayerController->UpdateCameraManager(DeltaSeconds);
+					}
+					else if (PlayerController->PlayerCameraManager && FCameraPhotographyManager::IsSupported())
+					{
+						PlayerController->PlayerCameraManager->UpdateCameraPhotographyOnly();
+					}
 				}
 
 				if( !bIsPaused )

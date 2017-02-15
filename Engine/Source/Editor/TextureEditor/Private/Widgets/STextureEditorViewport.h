@@ -1,7 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Models/TextureEditorViewportClient.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Interfaces/ITextureEditorToolkit.h"
+
+class FSceneViewport;
+class SScrollBar;
+class SViewport;
 
 /**
  * Implements the texture editor's view port.
@@ -108,6 +118,9 @@ private:
 
 	// Callback for getting the zoom slider's value.
 	float HandleZoomSliderValue( ) const;
+
+	// Checks if the texture being edited has a valid texture resource
+	bool HasValidTextureResource( ) const;
 
 private:
 

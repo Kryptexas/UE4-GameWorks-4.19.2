@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
-#include "SaveGameSystem.h"
-#include "DVRStreaming.h"
-#include "VideoRecordingSystem.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+
+class IVideoRecordingSystem;
 
 /**
  * Interface for platform feature modules

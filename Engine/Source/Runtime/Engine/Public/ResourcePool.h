@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  Resource.h: Template for pooling resources using buckets.
@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RenderResource.h"
 #include "TickableObjectRenderThread.h"
 
 /** A templated pool for resources that can only be freed at a 'safe' point in the frame. */

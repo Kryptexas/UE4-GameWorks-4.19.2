@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ISlateSoundDevice.h"
+#include "CoreMinimal.h"
+#include "Sound/ISlateSoundDevice.h"
+
+struct FSlateSound;
 
 /** Silent implementation of ISlateSoundDevice; it plays nothing. */
 class SLATECORE_API FNullSlateSoundDevice : public ISlateSoundDevice

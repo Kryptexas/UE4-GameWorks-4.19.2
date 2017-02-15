@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLShaderResources.h: OpenGL shader resource RHI definitions.
@@ -6,7 +6,19 @@
 
 #pragma once
 
+#include "HAL/UnrealMemory.h"
+#include "Templates/UnrealTemplate.h"
+#include "Containers/Array.h"
+#include "Misc/Crc.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Misc/SecureHash.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
+#include "ShaderCore.h"
 #include "CrossCompilerCommon.h"
+
+class FOpenGLLinkedProgram;
 
 /**
  * Shader related constants.

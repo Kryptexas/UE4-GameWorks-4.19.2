@@ -1,19 +1,41 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#include "LevelEditor.h"
 #include "LevelEditorToolBar.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Framework/MultiBox/MultiBoxDefs.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Widgets/Input/SSlider.h"
+#include "EditorStyleSet.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "ISourceControlProvider.h"
+#include "ISourceControlModule.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "GameMapsSettings.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/HUD.h"
+#include "GameFramework/GameStateBase.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "LevelEditor.h"
 #include "LevelEditorActions.h"
-#include "Editor/UnrealEd/Public/SourceCodeNavigation.h"
-#include "Editor/UnrealEd/Public/Kismet2/DebuggerCommands.h"
-#include "Editor/SceneOutliner/Public/SceneOutliner.h"
-#include "DelegateFilter.h"
-#include "EditorViewportCommands.h"
+#include "SourceCodeNavigation.h"
+#include "Kismet2/DebuggerCommands.h"
+#include "SceneOutlinerPublicTypes.h"
+#include "SceneOutlinerModule.h"
 #include "SScalabilitySettings.h"
-#include "Editor/LevelEditor/Private/SLevelEditor.h"
-#include "AssetData.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "EngineBuildSettings.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
 #include "Matinee/MatineeActor.h"
 #include "LevelSequenceActor.h"
 #include "Engine/LevelScriptBlueprint.h"
@@ -24,21 +46,13 @@
 #include "DesktopPlatformModule.h"
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
-#include "KismetEditorUtilities.h"
-#include "ISourceControlModule.h"
-#include "SVolumeControl.h"
-#include "ModuleManager.h"
-#include "GameFramework/GameModeBase.h"
-#include "GameFramework/GameStateBase.h"
-#include "GameFramework/HUD.h"
-#include "GameFramework/Pawn.h"
-#include "GameFramework/PlayerController.h"
-#include "GameFramework/WorldSettings.h"
-#include "EngineUtils.h"
-#include "GameMapsSettings.h"
-#include "ScopedTransaction.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "Widgets/Input/SVolumeControl.h"
 #include "Features/IModularFeatures.h"
+#include "EngineUtils.h"
+#include "ScopedTransaction.h"
 #include "Features/EditorFeatures.h"
+#include "ConfigCacheIni.h"
 
 namespace LevelEditorActionHelpers
 {
@@ -1626,8 +1640,37 @@ static void MakeES2PreviewPlatformOverrideMenu(FMenuBuilder& MenuBuilder)
 	MenuBuilder.BeginSection("LevelEditorShaderModelPreview", NSLOCTEXT("LevelToolBarViewMenu", "ES2PreviewPlatformOverrideHeading", "Preview Platform"));
 	{
 		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_DefaultES2);
-		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_AndroidES2);
-		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_IOSES2);
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_AndroidGLES2);
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_IOSGLES2);
+	}
+	MenuBuilder.EndSection();
+}
+
+static void MakeES31PreviewPlatformOverrideMenu(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.BeginSection("LevelEditorShaderModelPreview", NSLOCTEXT("LevelToolBarViewMenu", "ES31PreviewPlatformOverrideHeading", "Preview Platform"));
+	{
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_DefaultES31);
+
+		bool bAndroidBuildForES31 = false;
+		bool bAndroidSupportsVulkan = false;
+		bool bIOSSupportsMetal = false;
+		GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES31"), bAndroidBuildForES31, GEngineIni);
+		GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bSupportsVulkan"), bAndroidSupportsVulkan, GEngineIni);
+		GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetal"), bIOSSupportsMetal, GEngineIni);
+
+		if(bAndroidBuildForES31)
+		{
+			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_AndroidGLES31);
+		}
+		if(bAndroidSupportsVulkan)
+		{
+			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_AndroidVulkanES31);
+		}
+		if(bIOSSupportsMetal)
+		{
+			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_IOSMetalES31);
+		}
 	}
 	MenuBuilder.EndSection();
 }
@@ -1649,16 +1692,22 @@ static void MakeShaderModelPreviewMenu(FMenuBuilder& MenuBuilder)
 	{
 		for (int32 i = GMaxRHIFeatureLevel; i >= 0; --i)
 		{
-			if (i == ERHIFeatureLevel::ES2)
+			switch (i)
 			{
-				MenuBuilder.AddSubMenu(
-					FLevelEditorCommands::Get().FeatureLevelPreview[i]->GetLabel(),
-					FLevelEditorCommands::Get().FeatureLevelPreview[i]->GetDescription(),
-					FNewMenuDelegate::CreateStatic(&MakeES2PreviewPlatformOverrideMenu));
-			}
-			else if (i != ERHIFeatureLevel::ES3_1 || GetDefault<UEditorExperimentalSettings>()->bFeatureLevelES31Preview)
-			{
-				MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().FeatureLevelPreview[i]);
+				case ERHIFeatureLevel::ES2:
+					MenuBuilder.AddSubMenu(
+						FLevelEditorCommands::Get().FeatureLevelPreview[i]->GetLabel(),
+						FLevelEditorCommands::Get().FeatureLevelPreview[i]->GetDescription(),
+						FNewMenuDelegate::CreateStatic(&MakeES2PreviewPlatformOverrideMenu));
+					break;
+				case ERHIFeatureLevel::ES3_1:
+					MenuBuilder.AddSubMenu(
+						FLevelEditorCommands::Get().FeatureLevelPreview[i]->GetLabel(),
+						FLevelEditorCommands::Get().FeatureLevelPreview[i]->GetDescription(),
+						FNewMenuDelegate::CreateStatic(&MakeES31PreviewPlatformOverrideMenu));
+					break;
+				default:
+					MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().FeatureLevelPreview[i]);
 			}
 		}
 	}

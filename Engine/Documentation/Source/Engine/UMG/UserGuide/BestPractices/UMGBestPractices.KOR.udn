@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2802414
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:UMG 실전 사례
 Crumbs:%ROOT%, Engine\UMG\UserGuide
@@ -6,7 +6,7 @@ Description:UMG, 언리얼 모션 그래픽 관련 팁과 꼼수입니다.
 version: 4.10
 parent:Engine/UMG	
 order:2
-type:howto
+type:how-to
 
 
 [VAR:Topic]

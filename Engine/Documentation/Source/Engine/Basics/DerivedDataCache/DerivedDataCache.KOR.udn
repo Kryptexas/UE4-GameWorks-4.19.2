@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3175238
 Availability:Public
 Title:파생 데이터 캐시
 Crumbs:%ROOT%, Engine
@@ -30,7 +30,7 @@ version: 4.9
 공유 경로로 설정되어 있습니다. 다른 네트워크 공유 경로로 설정하려면 이 섹션을 다시 선언하고 
 경로를 (Path=\\mystudio.net\DDC 식으로) 바꿔 주어야 합니다.
 
-	[DerivedDataBackendGraph]
+	[InstalledDerivedDataBackendGraph]
 	MinimumDaysToKeepFile=7
 	Root=(Type=KeyLength, Length=120, Inner=AsyncPut)
 	AsyncPut=(Type=AsyncPut, Inner=Hierarchy)

@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "CorePrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "IOSPlatformFile.h"
+#include "HAL/PlatformTLS.h"
+#include "Containers/StringConv.h"
+#include "HAL/PlatformTime.h"
+#include "Templates/Function.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/Parse.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/CommandLine.h"
+
 
 //#if PLATFORM_IOS
 //#include "IPlatformFileSandboxWrapper.h"

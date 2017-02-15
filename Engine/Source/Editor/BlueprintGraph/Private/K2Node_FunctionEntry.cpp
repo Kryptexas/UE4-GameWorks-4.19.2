@@ -1,10 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
-#include "KismetCompiler.h"
+#include "K2Node_FunctionEntry.h"
+#include "Engine/Blueprint.h"
+#include "UObject/UnrealType.h"
+#include "UObject/BlueprintsObjectVersion.h"
+#include "UObject/StructOnScope.h"
+#include "Engine/UserDefinedStruct.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "EdGraphSchema_K2.h"
 #include "K2Node_CallFunction.h"
-#include "BlueprintsObjectVersion.h"
+#include "K2Node_MakeArray.h"
+#include "K2Node_MakeVariable.h"
+#include "K2Node_VariableSet.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "EdGraphUtilities.h"
+#include "BPTerminal.h"
+#include "UObject/PropertyPortFlags.h"
+#include "KismetCompilerMisc.h"
+#include "KismetCompiler.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_FunctionEntry"
 
@@ -416,7 +430,6 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 						VariableSetNode->SetFromProperty(Property, false);
 						Schema->ConfigureVarNode(VariableSetNode, LocalVar.VarName, Function, CompilerContext.Blueprint);
 						VariableSetNode->AllocateDefaultPins();
-						CompilerContext.MessageLog.NotifyIntermediateObjectCreation(VariableSetNode, this);
 
 						if(UEdGraphPin* SetPin = VariableSetNode->FindPin(Property->GetName()))
 						{
@@ -437,23 +450,10 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 								FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, StructData->GetStructMemory());
 								FScriptArrayHelper_InContainer DefaultArrayHelper(ArrayProperty, StructData->GetStructMemory());
 
-								uint8* StructDefaults = NULL;
-								UStructProperty* StructProperty = dynamic_cast<UStructProperty*>(ArrayProperty->Inner);
-								if ( StructProperty != NULL )
-								{
-									checkSlow(StructProperty->Struct);
-									StructDefaults = (uint8*)FMemory::Malloc(StructProperty->Struct->GetStructureSize());
-									StructProperty->InitializeValue(StructDefaults);
-								}
-
 								// Go through each element in the array to set the default value
 								for( int32 ArrayIndex = 0 ; ArrayIndex < ArrayHelper.Num() ; ArrayIndex++ )
 								{
 									uint8* PropData = ArrayHelper.GetRawPtr(ArrayIndex);
-
-									// Always use struct defaults if the inner is a struct, for symmetry with the import of array inner struct defaults
-									uint8* PropDefault = ( StructProperty != NULL ) ? StructDefaults :
-										( ( StructData->GetStructMemory() && DefaultArrayHelper.Num() > ArrayIndex ) ? DefaultArrayHelper.GetRawPtr(ArrayIndex) : NULL );
 
 									// Retrieve the element's default value
 									FString DefaultValue;
@@ -467,6 +467,11 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 									// Add one to the index for the pin to set the default on to skip the output pin
 									Schema->TrySetDefaultValue(*MakeArray->Pins[ArrayIndex + 1], DefaultValue);
 								}
+							}
+							else if(LocalVar.VarType.bIsSet || LocalVar.VarType.bIsMap)
+							{
+								UK2Node_MakeVariable* MakeVariableNode = CompilerContext.SpawnIntermediateNode<UK2Node_MakeVariable>(this, SourceGraph);
+								MakeVariableNode->SetupVariable(LocalVar, SetPin, CompilerContext, Function, Property);
 							}
 							else
 							{

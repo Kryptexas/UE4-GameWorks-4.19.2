@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -21,7 +21,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="TempFileName">Name of response file</param>
 		/// <param name="Lines">List of lines to write to the response file</param>
-		public static FileReference Create(FileReference TempFileName, List<string> Lines, CreateOptions Options = CreateOptions.None)
+		public static FileReference Create(FileReference TempFileName, IEnumerable<string> Lines, CreateOptions Options = CreateOptions.None)
 		{
 			FileInfo TempFileInfo = new FileInfo(TempFileName.FullName);
 			if (TempFileInfo.Exists)

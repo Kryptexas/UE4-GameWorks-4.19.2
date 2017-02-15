@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "CurveEditorSettings.generated.h"
 
 /** Defines visibility states for the curves in the curve editor. */
@@ -67,16 +70,16 @@ public:
 	FOnCurveEditorCurveVisibilityChanged& GetOnCurveEditorCurveVisibilityChanged();
 
 protected:
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category="Curve Editor" )
 	bool bAutoFrameCurveEditor;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category="Curve Editor" )
 	bool bShowCurveEditorCurveToolTips;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category="Curve Editor" )
 	TEnumAsByte<ECurveEditorCurveVisibility::Type> CurveVisibility;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category="Curve Editor" )
 	TEnumAsByte<ECurveEditorTangentVisibility::Type> TangentVisibility;
 
 	FOnCurveEditorCurveVisibilityChanged OnCurveEditorCurveVisibilityChanged;

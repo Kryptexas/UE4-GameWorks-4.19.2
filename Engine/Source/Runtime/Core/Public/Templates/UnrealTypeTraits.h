@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealTypeTraits.h: Unreal type traits definitions.
@@ -7,28 +7,25 @@
 =============================================================================*/
 
 #pragma once
-#include "AndOrNot.h"
-#include "AreTypesEqual.h"
-#include "RemoveCV.h"
 
-#include "IsArithmetic.h"
-#include "IsFloatingPoint.h"
-#include "IsIntegral.h"
-#include "IsPODType.h"
-#include "IsPointer.h"
-#include "IsSigned.h"
-#include "IsTriviallyCopyAssignable.h"
-#include "IsTriviallyCopyConstructible.h"
+#include "CoreTypes.h"
+#include "Templates/IsPointer.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/AndOrNot.h"
+#include "Templates/AreTypesEqual.h"
+#include "Templates/IsArithmetic.h"
+#include "Templates/IsEnum.h"
+#include "Templates/RemoveCV.h"
 
-#include "AssertionMacros.h"
-#include "Misc/OutputDevice.h"
+#include "Templates/IsPODType.h"
+#include "Templates/IsTriviallyCopyConstructible.h"
+
 
 /*-----------------------------------------------------------------------------
  * Macros to abstract the presence of certain compiler intrinsic type traits 
  -----------------------------------------------------------------------------*/
 #define HAS_TRIVIAL_CONSTRUCTOR(T) __has_trivial_constructor(T)
 #define IS_POD(T) __is_pod(T)
-#define IS_ENUM(T) __is_enum(T)
 #define IS_EMPTY(T) __is_empty(T)
 
 
@@ -176,7 +173,7 @@ struct TIsFunction<RetType(Params...)>
 template<typename T> 
 struct TIsZeroConstructType 
 { 
-	enum { Value = TOrValue<IS_ENUM(T), TIsArithmetic<T>, TIsPointer<T>>::Value };
+	enum { Value = TOr<TIsEnum<T>, TIsArithmetic<T>, TIsPointer<T>>::Value };
 };
 
 /**
@@ -353,14 +350,15 @@ public:
  * Helper for array traits. Provides a common base to more easily refine a portion of the traits
  * when specializing. Mainly used by MemoryOps.h which is used by the contiguous storage containers like TArray.
  */
-template<typename T> struct TTypeTraitsBase
+template<typename T>
+struct TTypeTraitsBase
 {
 	typedef typename TCallTraits<T>::ParamType ConstInitType;
 	typedef typename TCallTraits<T>::ConstPointerType ConstPointerType;
 
 	// There's no good way of detecting this so we'll just assume it to be true for certain known types and expect
 	// users to customize it for their custom types.
-	enum { IsBytewiseComparable = TOrValue<IS_ENUM(T), TIsArithmetic<T>, TIsPointer<T>>::Value };
+	enum { IsBytewiseComparable = TOr<TIsEnum<T>, TIsArithmetic<T>, TIsPointer<T>>::Value };
 };
 
 /**
@@ -500,16 +498,9 @@ public:																											\
 	enum { Value = sizeof(MemberTest<T>(nullptr)) == sizeof(char) };											\
 };
 
-template <typename T>
-struct TIsEnum
-{
-	enum { Value = IS_ENUM(T) };
-};
-
 /*-----------------------------------------------------------------------------
  * Undef Macros abstracting the presence of certain compiler intrinsic type traits
  -----------------------------------------------------------------------------*/
 #undef IS_EMPTY
-#undef IS_ENUM
 #undef IS_POD
 #undef HAS_TRIVIAL_CONSTRUCTOR

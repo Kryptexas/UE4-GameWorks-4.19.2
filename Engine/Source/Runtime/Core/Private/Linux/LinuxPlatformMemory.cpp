@@ -1,18 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LinuxPlatformMemory.cpp: Linux platform memory functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
-#include "MallocAnsi.h"
-#include "MallocJemalloc.h"
-#include "MallocBinned.h"
-#include "MallocBinned2.h"
+#include "Linux/LinuxPlatformMemory.h"
+#include "Misc/AssertionMacros.h"
+#include "Math/NumericLimits.h"
+#include "Math/UnrealMathUtility.h"
+#include "Templates/UnrealTemplate.h"
+#include "Containers/UnrealString.h"
+#include "Logging/LogMacros.h"
+#include "HAL/MallocAnsi.h"
+#include "HAL/MallocJemalloc.h"
+#include "HAL/MallocBinned.h"
+#include "HAL/MallocBinned2.h"
 #include <sys/sysinfo.h>
 #include <sys/file.h>
 #include <sys/mman.h>
-#include <unistd.h>		// sysconf
+
+// do not do a root privilege check on non-x86-64 platforms (assume an embedded device)
+#if defined(_M_X64) || defined(__x86_64__) || defined (__amd64__) 
+	#define UE4_DO_ROOT_PRIVILEGE_CHECK	 1
+#else
+	#define UE4_DO_ROOT_PRIVILEGE_CHECK	 0
+#endif // defined(_M_X64) || defined(__x86_64__) || defined (__amd64__) 
+
 
 void FLinuxPlatformMemory::Init()
 {
@@ -31,6 +44,7 @@ void FLinuxPlatformMemory::Init()
 
 class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 {
+#if UE4_DO_ROOT_PRIVILEGE_CHECK
 	// This function gets executed very early, way before main() (because global constructors will allocate memory).
 	// This makes it ideal, if unobvious, place for a root privilege check.
 	if (geteuid() == 0)
@@ -40,6 +54,7 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 		// unreachable
 		return nullptr;
 	}
+#endif // UE4_DO_ROOT_PRIVILEGE_CHECK
 
 	if (USE_MALLOC_BINNED2)
 	{

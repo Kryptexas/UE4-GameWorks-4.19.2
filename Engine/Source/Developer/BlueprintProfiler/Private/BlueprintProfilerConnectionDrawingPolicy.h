@@ -1,9 +1,18 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/ArrangedWidget.h"
+#include "EdGraphUtilities.h"
+#include "Widgets/SWidget.h"
 #include "Editor/GraphEditor/Public/BlueprintConnectionDrawingPolicy.h"
-#include "Editor/Kismet/Public/Profiler/BlueprintProfilerSettings.h"
+#include "Editor/GraphEditor/Public/BlueprintConnectionDrawingPolicy.h"
+
+class FBlueprintExecutionContext;
+class FSlateWindowElementList;
+class UEdGraph;
+enum class EBlueprintProfilerHeatMapDisplayMode : uint8;
 
 /////////////////////////////////////////////////////
 // FBlueprintProfilerPinConnectionFactory

@@ -1,16 +1,34 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LevelSequenceEditorPCH.h"
+#include "LevelSequenceEditorModule.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/Class.h"
+#include "LevelSequence.h"
+#include "Factories/Factory.h"
+#include "AssetData.h"
+#include "AssetToolsModule.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "IAssetTypeActions.h"
+#include "AssetTools/LevelSequenceActions.h"
+#include "LevelSequenceEditorCommands.h"
+#include "Misc/LevelSequenceEditorSettings.h"
+#include "Misc/LevelSequenceEditorHelpers.h"
+#include "Styles/LevelSequenceEditorStyle.h"
 #include "CineCameraActor.h"
 #include "CameraRig_Crane.h"
 #include "CameraRig_Rail.h"
 #include "IPlacementModeModule.h"
 #include "ISettingsModule.h"
+#include "ViewportTypeDefinition.h"
 #include "LevelEditor.h"
+#include "LevelSequencePlayer.h"
 #include "LevelSequenceActor.h"
-#include "LevelSequenceEditorStyle.h"
-#include "ModuleInterface.h"
 #include "PropertyEditorModule.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 #include "CinematicViewport/CinematicViewportLayoutEntity.h"
 
 
@@ -35,7 +53,6 @@ public:
 		FLevelSequenceEditorStyle::Get();
 
 		RegisterAssetTools();
-		RegisterCustomizations();
 		RegisterMenuExtensions();
 		RegisterLevelEditorExtensions();
 		RegisterPlacementModeExtensions();
@@ -45,7 +62,6 @@ public:
 	virtual void ShutdownModule() override
 	{
 		UnregisterAssetTools();
-		UnregisterCustomizations();
 		UnregisterMenuExtensions();
 		UnregisterLevelEditorExtensions();
 		UnregisterPlacementModeExtensions();
@@ -71,14 +87,6 @@ protected:
 	{
 		AssetTools.RegisterAssetTypeActions(Action);
 		RegisteredAssetTypeActions.Add(Action);
-	}
-
-	/** Register details view customizations. */
-	void RegisterCustomizations()
-	{
-		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		LevelSequencePlayingSettingsName = FLevelSequencePlaybackSettings::StaticStruct()->GetFName();
-		PropertyModule.RegisterCustomPropertyTypeLayout(LevelSequencePlayingSettingsName, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FLevelSequencePlaybackSettingsCustomization::MakeInstance));
 	}
 
 	/** Registers level editor extensions. */
@@ -163,16 +171,6 @@ protected:
 			{
 				AssetTools.UnregisterAssetTypeActions(Action);
 			}
-		}
-	}
-
-	/** Unregister details view customizations. */
-	void UnregisterCustomizations()
-	{
-		FPropertyEditorModule* PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor");
-		if (PropertyModule)
-		{
-			PropertyModule->UnregisterCustomPropertyTypeLayout(LevelSequencePlayingSettingsName);
 		}
 	}
 
@@ -292,9 +290,6 @@ private:
 	TSharedPtr<FExtender> CinematicsMenuExtender;
 
 	TSharedPtr<FUICommandList> CommandList;
-
-	/** Captured name of the FLevelSequencePlaybackSettings struct */
-	FName LevelSequencePlayingSettingsName;
 
 	FOnMasterSequenceCreated OnMasterSequenceCreatedEvent;
 };

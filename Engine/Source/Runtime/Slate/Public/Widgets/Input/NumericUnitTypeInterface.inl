@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "UnitConversion.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Optional.h"
+#include "Internationalization/Text.h"
+#include "Templates/ValueOrError.h"
+#include "Math/UnitConversion.h"
+
+template<typename NumericType> struct TDefaultNumericTypeInterface;
+template<typename NumericType> struct TNumericUnitTypeInterface;
 
 template<typename NumericType>
 TNumericUnitTypeInterface<NumericType>::TNumericUnitTypeInterface(EUnit InUnits)
@@ -17,7 +24,7 @@ FString TNumericUnitTypeInterface<NumericType>::ToString(const NumericType& Valu
 		return TDefaultNumericTypeInterface<NumericType>::ToString(Value);
 	}
 
-	using namespace LexicalConversion;
+	using namespace Lex;
 
 	FNumericUnit<NumericType> FinalValue(Value, UnderlyingUnits);
 
@@ -41,7 +48,7 @@ TOptional<NumericType> TNumericUnitTypeInterface<NumericType>::FromString(const 
 		return TDefaultNumericTypeInterface<NumericType>::FromString(InString, InExistingValue);
 	}
 
-	using namespace LexicalConversion;
+	using namespace Lex;
 
 	EUnit DefaultUnits = FixedDisplayUnits.IsSet() ? FixedDisplayUnits.GetValue() : UnderlyingUnits;
 

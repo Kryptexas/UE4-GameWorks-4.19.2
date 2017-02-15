@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2976781
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:액터 틱
 Crumbs:%ROOT%, Programming
@@ -96,13 +96,25 @@ HUD 는 어느 틱 그룹에서 업데이트해도 되지만, 두 가지 이유�
 
 `BeginPlay` 에서, 액터는 주요 틱 함수와 그 컴포넌트의 틱 함수를 엔진에 등록합니다. 액터의 틱 함수는 특정 틱 그룹에서 실행되도록 설정하거나, 
 완전히 비활성화시킬 수도 있는데, `PrimaryActorTick` 멤버를 통해서입니다. 이는 일반적으로 생성자 안에서 `BeginPlay` 호출 전 데이터가 제대로 설정되었는지를 확인하기 위해 이루어집니다.
+자주 사용되는 코드는 다음과 같습니다:
+
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bTickEvenWhenPaused = true;
+	PrimaryActorTick.TickGroup = TG_PrePhysics;
 
 ## 컴포넌트 틱
 
-액터를 각기 다른 틱 그룹으로 분리할 수 있듯이, 컴포넌트도 마찬가지입니다. 기존에는, 액터가 틱  도중 그 모든 컴포넌트에 틱을 적용했습니다. 이 부분은 지금도 여전하나, 다른 그룹에서 틱을 적용해야 하는 
-컴포넌트는 별도의 틱 시기를 관리하는 리스트에 추가됩니다. 컴포넌트는 액터의 틱 그룹을 나눌 때와 같은 범주로 틱 그룹을 나눕니다.
+액터를 각기 다른 틱 그룹으로 분리할 수 있듯이, 컴포넌트도 마찬가지입니다. 기존에는, 액터가 틱  도중 그 모든 컴포넌트에 틱을 적용했습니다. 
+이 부분은 지금도 여전하나, 다른 그룹에서 틱을 적용해야 하는 컴포넌트는 별도의 틱 시기를 관리하는 리스트에 추가됩니다. 컴포넌트는 액터의 틱 그룹을 나눌 때와 같은 범주로 틱 그룹을 나눕니다.
+컴포넌트의 틱 구조는 액터가 사용하는 것과 이름은 다르지만, 같은 식으로 작동합니다:
 
-## 고급 틱 함수성
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bTickEvenWhenPaused = true;
+	PrimaryComponentTick.TickGroup = TG_PrePhysics;
+
+[REGION:note]`PrimaryActorTick` 은 액터의 `Tick()` 함수를 사용하는 반면, PrimaryComponentTick 은 액터 컴포넌트의 `TickComponent()` 함수를 사용한다는 점, 기억해 주시기 바랍니다.[/REGION]
+
+## 고급 틱 함수 기능
 
 액터나 컴포넌트에 대한 기본 틱 함수는 `AActor::SetActorTickEnabled` 와 `UActorComponent::SetComponentTickEnabled` 함수로 게임 도중 활성화 또는 비활성화시킬 수 있습니다.
 추가로 액터나 컴포넌트는 다수의 틱 함수를 가질 수 있습니다. `FTickFunction` 를 상속하는 구조체를 만들고 `ExecuteTick` 와 `DiagnosticMessage` 함수를 덮어쓰면 됩니다.

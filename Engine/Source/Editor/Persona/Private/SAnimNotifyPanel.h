@@ -1,15 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "Persona.h"
-#include "GraphEditor.h"
-#include "SNodePanel.h"
-#include "SCurveEditor.h"
+#include "CoreMinimal.h"
+#include "UObject/UObjectGlobals.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "EditorStyleSet.h"
+#include "Framework/MarqueeRect.h"
 #include "SAnimTrackPanel.h"
 #include "SAnimEditorBase.h"
+#include "AssetData.h"
+#include "Framework/Commands/Commands.h"
 #include "SAnimTimingPanel.h"
+
+class FSlateWindowElementList;
+class SAnimNotifyNode;
+class SAnimNotifyTrack;
+class SBorder;
+class SScrollBar;
+struct Rect;
 
 DECLARE_DELEGATE_OneParam( FOnSelectionChanged, const TArray<UObject*>& )
 DECLARE_DELEGATE( FOnTrackSelectionChanged )

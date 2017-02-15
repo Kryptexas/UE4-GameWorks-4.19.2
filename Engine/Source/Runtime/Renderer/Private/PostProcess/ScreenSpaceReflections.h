@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenSpaceReflections.h: Post processing Screen Space Reflections implementation.
@@ -6,7 +6,11 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
+#include "PostProcess/RenderingCompositionGraph.h"
+
+class FViewInfo;
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 
 class FRCPassPostProcessDepthDownSample : public TRenderingCompositePassBase<1, 1>

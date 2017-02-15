@@ -1,22 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LinuxPlatformStackWalk.cpp: Linux implementations of stack walk functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
-#include "Misc/App.h"
-#include "LinuxPlatformCrashContext.h"
+#include "Linux/LinuxPlatformStackWalk.h"
+#include "Misc/Parse.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/CommandLine.h"
+#include "Linux/LinuxPlatformCrashContext.h"
+#include <cxxabi.h>
+#include "HAL/ExceptionHandling.h"
 #include <execinfo.h>
 #include <dlfcn.h>
 #include <cxxabi.h>
 #include <stdio.h>
 
 // these are not actually system headers, but a TPS library (see ThirdParty/elftoolchain)
+THIRD_PARTY_INCLUDES_START
 #include <libelf.h>
 #include <_libelf.h>
 #include <libdwarf.h>
 #include <dwarf.h>
+THIRD_PARTY_INCLUDES_END
 
 #ifndef DW_AT_MIPS_linkage_name
 	#define DW_AT_MIPS_linkage_name		0x2007			// common extension, used before DW_AT_linkage_name became standard
@@ -950,6 +956,21 @@ void FLinuxPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 M
 		{
 			// #CrashReport: 2014-09-29 Replace with backtrace_symbols_fd due to malloc()
 			LinuxContext->BacktraceSymbols = backtrace_symbols(reinterpret_cast< void** >( BackTrace ), MaxDepth);
+		}
+	}
+}
+
+void FLinuxPlatformStackWalk::ThreadStackWalkAndDump(ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, uint32 ThreadId)
+{
+	// This is intentional on servers. Right now we cannot symbolicate the other thread, so we crash it instead, which also helps in identifying lock ups
+	if (UE_SERVER)
+	{
+		if (kill(ThreadId, SIGQUIT) == 0)
+		{
+			// do not exit, crash is imminent anyway (signals are delivered asynchronously)
+			for(;;)
+			{
+			}
 		}
 	}
 }

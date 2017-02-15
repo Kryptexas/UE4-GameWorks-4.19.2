@@ -1,8 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "HAL/MallocStomp.h"
+#include "Math/UnrealMathUtility.h"
+#include "HAL/UnrealMemory.h"
+#include "HAL/IConsoleManager.h"
 
-#include "MallocStomp.h"
 
 #if USE_MALLOC_STOMP
 
@@ -26,7 +28,7 @@ void* FMallocStomp::Malloc(SIZE_T Size, uint32 Alignment)
 {
 	if(Size == 0U)
 	{
-		return nullptr;
+		Size = 1U;
 	}
 
 	const SIZE_T AlignedSize = (Alignment > 0U) ? ((Size + Alignment - 1U) & -static_cast<int32>(Alignment)) : Size;

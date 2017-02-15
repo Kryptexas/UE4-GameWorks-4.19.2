@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -7,9 +7,9 @@
 
 
 #pragma once
-#include "HAL/Platform.h"
 
-class FEvent;
+#include "CoreTypes.h"
+#include "CoreFwd.h"
 
 /**
  * Generic implementation for most platforms, these tend to be unused and unimplemented

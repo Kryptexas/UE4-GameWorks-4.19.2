@@ -1,7 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LinuxPlatformString.cpp: Linux implementations of string functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "Linux/LinuxPlatformString.h"

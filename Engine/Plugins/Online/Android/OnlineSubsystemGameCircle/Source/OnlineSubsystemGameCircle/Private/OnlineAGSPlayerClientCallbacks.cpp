@@ -1,8 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "OnlineSubsystemGameCirclePrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineAGSPlayerClientCallbacks.h"
+#include "OnlineSubsystemGameCircle.h"
 
 
 // This callback is a listener and will be called multiple times. Do not use the callback manager

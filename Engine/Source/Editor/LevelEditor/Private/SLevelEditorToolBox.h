@@ -1,7 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Textures/SlateIcon.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Editor.h"
+#include "ILevelEditor.h"
+#include "Misc/NotifyHook.h"
+
+class FExtender;
+class SBorder;
 
 /**
  * Tools for the level editor                   

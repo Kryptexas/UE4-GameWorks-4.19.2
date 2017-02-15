@@ -1,7 +1,12 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "UObject/Interface.h"
 #include "ViewportWorldInteractionInterface.generated.h"
 
 UINTERFACE( MinimalAPI )
@@ -50,4 +55,8 @@ public:
 	/** Gets the event for when an interactor stops dragging */
 	DECLARE_EVENT_OneParam( IViewportWorldInteractionInterface, FOnStopDragging, class UViewportInteractor* /** Interactor */ );
 	virtual FOnStopDragging& OnStopDragging() = 0;
+
+	/** Gets the event for when the world scale changes */
+	DECLARE_EVENT_OneParam(IViewportWorldInteractionInterface, FOnWorldScaleChanged, const float /* NewWorldToMetersScale */);
+	virtual FOnWorldScaleChanged& OnWorldScaleChanged() = 0;
 };

@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:FText
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/StringHandling
 Description:
 Version: 4.9
+Related:Gameplay/Localization
+Related:Gameplay/Localization/Formatting
 
 
 
@@ -101,36 +103,7 @@ FName 스트링에서 숫자 변수로의 변환은 존재하지 않습니다.
 FText 는 현재 그 비교 연산에 연산자를 노출시키지 않는데, 그 연산이 FString 같은 단순 서수 비교가 아니기 때문입니다. 연산 비용을 염두에 두고, 
 일반 연산자는 사용하지 않기로 했습니다.
 
-## 포맷 텍스트
-  
-`FText::Format()` 함수를 사용해서 각기 다른 FText 를 합칠 수도 있고, 원한다면 FText 변수에 저장할 수도 있습니다.
-  
-	FText::Format( LOCTEXT( "HelloMessageFormat",  "Hello {0}," ), PlayerName ) 
-  
-현재, Format 함수는 인수로 FText 만을 받습니다.
 
-`FText::Format` 은 두 가지 유형의 포맷 인수를 받는데, 순서형과 이름형입니다.
-
-### 순서형 인수
- 
-* 인수 = {0}, {1}, {2}, 등... 
-* 대괄호는 포맷 인수의 시작과 끝을 나타내며, 숫자는 전달된 파라미터 순서를 나타냅니다.
-
-		FText::Format( LOCTEXT( "HealthFormatStr",  "{0} / {1}" ), FText::AsNumber( CurrentHealth ), FText::AsNumber( MaxHealth )  ) 
-
-### 이름형 인수
-
-* 인수 = {Name}, {ID}, {Health}, 등... 
-* 대괄호는 포맷 인수의 시작과 끝을 나타내며, 그 안의 텍스트는 전달된 `FFormatNamedArgs` 콜렉션에서 찾을 수 있는 인수 이름을 뜻합니다.
-
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("CurrentHealth"), FText::AsNumber( CurrentHealth ));
-		EditorErrors.Error(FText::Format(LOCTEXT("ExampleFText", "You currently have {CurrentHealth} health left."), Arguments ) );
-			
-
-[PUBLISH:Licensee]
-TextTest.cpp 에는 유효 문화권을 인지하여 포맷, 비교, 소팅을 적용하는 예제가 될 수 있습니다.
-[/PUBLISH:Licensee]
 
 ## HUD 의 FText
 
@@ -159,13 +132,4 @@ HUD 클래스의 `DrawHUD()` 함수 안에서 `DrawItem()` 함수를 호출해�
 
 블루프린트는 Text 리터럴을 지원합니다. Text 값에 대한 입력 핀은 노드의 값에 할당되는 것을 지원하며, 이러한 스트링이 현지화용으로 수집됩니다.
 
-`FText::Format` 역시도 블루프린트에서 사용가능합니다. "Format" 텍스트는 리터럴이거나 핀에 연결될 수도 있습니다. 리터럴로 사용될 때는 포맷용 인수를 자동 생성합니다.
-즉 "There are {number} days until {day}." 리터럴을 입력하면, 노드에 **Number** 핀과 **Day** 핀이 자동으로 추가됩니다. 
-이 핀을 리터럴이나 변수를 통해 채우면 출력 Text 는 그 인수를 핀에 연결된 값으로 대체하게 됩니다.
 
-"Format" 핀이 연결되면, "Format" 은 변수가 아니기에 판독 불가능합니다. 이 경우 직접 핀을 추가한 다음 가능한 인수 이름을 따서 이름을 지어줍니다. 이런 식으로 
-여러가지 가능성에 대비한 Format Text 노드 셋업이 가능합니다. 하나의 인수가 Format 변수에 있는 인수에 일치할 때마다, 제공된 정보를 활용할 것입니다.
-
-핀 이름은 디테일 패널에서 변경, 추가, 제거 가능합니다.
-
- 

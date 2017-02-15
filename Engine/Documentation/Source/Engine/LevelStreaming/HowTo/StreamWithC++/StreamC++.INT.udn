@@ -3,7 +3,7 @@ Title:Load and Unload Levels with C++
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:How to stream levels with a custom streaming Actor created in C++
 parent:Engine/LevelStreaming/HowTo
-type:howto
+type:how-to
 order:3
 tags:Level Streaming
 
@@ -46,15 +46,11 @@ OverlapBegins must be tagged with a UFUNCTION macro, and must have the same sign
 
 		#include "Kismet/GameplayStatics.h"
 		
-1. Now you are ready to create your OverlapBegins functionality. In `LevelStreamerActor.cpp`, begin defining the function. Add an if statement to check if we have a world, which 
-will allow us to get and check for our Character. You can use the GameplayStatics function `GetPlayerCharacter` to get the Character at index 0. 
+1. Now you are ready to create your OverlapBegins functionality. In `LevelStreamerActor.cpp`, begin defining the function. You can use the GameplayStatics function `GetPlayerCharacter` to get the Character at index 0. 
 
 		void ALevelStreamerActor::OverlapBegins(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 		{
-			if(GWorld)
-			{
-				ACharacter* MyCharacter = UGameplayStatics::GetPlayerCharacter(this, 0);			
-			}
+				ACharacter* MyCharacter = UGameplayStatics::GetPlayerCharacter(this, 0);		
 		}
 
 1. After getting MyCharacter, check it against the OtherActor overlapping your BoxComponent. Also, verify that LevelToLoad is not empty, then call LoadStreamLevel. 
@@ -84,15 +80,15 @@ will allow us to get and check for our Character. You can use the GameplayStatic
 		public:	
 			// Sets default values for this actor's properties
 			ALevelStreamerActor();
-
-			// Called when the game starts or when spawned
-			virtual void BeginPlay() override;
-			
+	
 			// Called every frame
 			virtual void Tick( float DeltaSeconds ) override;
 
 		protected:
 			
+			// Called when the game starts or when spawned
+			virtual void BeginPlay() override;
+
 			UFUNCTION()
 			void OverlapBegins(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
 			
@@ -139,15 +135,12 @@ will allow us to get and check for our Character. You can use the GameplayStatic
 
 		void ALevelStreamerActor::OverlapBegins(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 		{
-			if(GWorld)
-			{
 				ACharacter* MyCharacter = UGameplayStatics::GetPlayerCharacter(this, 0);
 				if (OtherActor == MyCharacter && LevelToLoad != "")
 				{
 					FLatentActionInfo LatentInfo;
 					UGameplayStatics::LoadStreamLevel(this, LevelToLoad, true, true, LatentInfo);
 				}
-			}
 		}
 1. Compile your code, then switch back to the editor.
 
@@ -174,15 +167,12 @@ In LevelStreamerActor.cpp:
 
 	void ALevelStreamerActor::OverlapEnds(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 	{
-		if (GWorld)
-		{
 			ACharacter* MyCharacter = UGameplayStatics::GetPlayerCharacter(this, 0);
 			if (OtherActor == MyCharacter && LevelToLoad != "")
 			{
 				FLatentActionInfo LatentInfo;
 				UGameplayStatics::UnloadStreamLevel(this, LevelToLoad, LatentInfo);
 			}
-		}
 	}
 
 In the constructor:

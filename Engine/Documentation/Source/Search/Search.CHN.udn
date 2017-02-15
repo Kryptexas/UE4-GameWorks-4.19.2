@@ -6,9 +6,12 @@ Availability:Rocket
 Template:DefaultSearch.html
 
 [OBJECT:SearchBox]
-	[PARAM:path]
-	[RELATIVE:Search]
-	[/PARAM]
+	[PARAMLITERAL:path]
+	https://www.unrealengine.com/bingSearch
+	[/PARAMLITERAL]
+	[PARAMLITERAL:variable]
+	keyword
+	[/PARAMLITERAL]
 	[PARAMLITERAL:placeholder]
 	Need Help? Find a topic by searching the documentation.
 	[/PARAMLITERAL]

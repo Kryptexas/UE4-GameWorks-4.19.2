@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -57,6 +57,7 @@ namespace AutomationTool
         Error_MissingExecutable = 103,
         Error_DeviceNotSetupForDevelopment = 150,
         Error_DeviceOSNewerThanSDK = 151,
+		Error_TestFailure = 152,
     };
 
     /// <summary>

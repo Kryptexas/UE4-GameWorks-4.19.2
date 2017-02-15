@@ -1,13 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "Animation/AnimSequence.h"
+#include "BonePose.h"
+#include "Materials/Material.h"
+#include "Animation/AnimMontage.h"
+#include "Engine/Engine.h"
+#include "SceneManagement.h"
+#include "EngineGlobals.h"
+#include "GameFramework/WorldSettings.h"
 #include "SkeletalRenderPublic.h"
-#include "AnimationRuntime.h"
 #include "AnimPreviewInstance.h"
 #include "Animation/AnimComposite.h"
-#include "Animation/AnimInstance.h"
-#include "Animation/BlendSpace.h"
+#include "Animation/BlendSpaceBase.h"
+#include "SkeletalMeshTypes.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FDebugSkelMeshSceneProxy
@@ -92,6 +99,9 @@ UDebugSkelMeshComponent::UDebugSkelMeshComponent(const FObjectInitializer& Objec
 	// always shows cloth morph target when previewing in editor
 	bClothMorphTarget = false;
 #endif //#if WITH_APEX_CLOTHING
+
+	bPauseClothingSimulationWithAnim = false;
+	bPerformSingleClothingTick = false;
 }
 
 FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
@@ -314,7 +324,7 @@ void UDebugSkelMeshComponent::InitAnim(bool bForceReinit)
 	{
 		// Add the same settings as the preview instance in this case.
 		PostProcessAnimInstance->RootMotionMode = ERootMotionMode::RootMotionFromEverything;
-		PostProcessAnimInstance->bCanUseParallelUpdateAnimation = false;
+		PostProcessAnimInstance->bUseMultiThreadedAnimationUpdate = false;
 	}
 }
 
@@ -422,6 +432,21 @@ void UDebugSkelMeshComponent::EnableOverlayMaterial(bool bEnable)
 		}
 	}
 }
+
+bool UDebugSkelMeshComponent::ShouldRunClothTick() const
+{
+	const bool bBaseShouldTick = Super::ShouldRunClothTick();
+	const bool bBaseCouldTick = CanSimulateClothing();
+
+	// If we could tick, but our simulation is suspended - only tick if we've attempted to step the animation
+	if(bBaseCouldTick && bClothingSimulationSuspended && bPerformSingleClothingTick)
+	{
+		return true;
+	}
+
+	return bBaseShouldTick;
+}
+
 void UDebugSkelMeshComponent::SetShowMorphTargetVerts(bool bNewShowMorphTargetVerts)
 {
 	// Check we are actually changing it!
@@ -777,5 +802,12 @@ void UDebugSkelMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 		SetRelativeRotation(Rotation);
 	}
 
+        // Brute force approach to ensure that when materials are changed the names are cached parameter names are updated 
+	bCachedMaterialParameterIndicesAreDirty = true;
+
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	// The tick from our super will call ShouldRunClothTick on us which will 'consume' this flag.
+	// flip this flag here to only allow a single tick.
+	bPerformSingleClothingTick = false;
 }

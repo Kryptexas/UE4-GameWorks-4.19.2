@@ -1,7 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Input/Reply.h"
+#include "IDetailCustomization.h"
+#include "PersonaDelegates.h"
+
+class IPropertyHandle;
+class USkeleton;
 
 /**
  * Customizes a DataTable asset to use a dropdown

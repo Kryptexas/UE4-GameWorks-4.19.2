@@ -1,10 +1,14 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 
 class FRHITexture;
-class FRHITexture2D;
+
+#if WITH_ENGINE
+	class FRHITexture;
+#endif
 
 
 /**
@@ -17,6 +21,9 @@ enum class EMediaTextureSinkFormat
 
 	/** Four 8-bit unsigned integer components (Blue, Green, Red, Alpha) per pixel. */
 	CharBGRA,
+
+	/**  Windows bitmap (like CharBGRA, but flipped vertically). */
+	CharBMP,
 
 	/** NV12 encoded monochrome texture with 8 bits per channel. */
 	CharNV12,
@@ -37,7 +44,7 @@ enum class EMediaTextureSinkFormat
 	FloatRGB,
 
 	/** Four floating point components (Red, Green, Blue, Alpha) per pixel. */
-	FloatRGBA,
+	FloatRGBA
 };
 
 
@@ -119,7 +126,7 @@ public:
 	/**
 	 * Get the sink's current texture format.
 	 *
-	 * @return texture format.
+	 * @return Texture format.
 	 * @see GetTextureSinkDimensions, GetTextureSinkMode, InitializeTextureSink
 	 */
 	virtual EMediaTextureSinkFormat GetTextureSinkFormat() const = 0;
@@ -135,13 +142,14 @@ public:
 	/**
 	 * Initialize the sink.
 	 *
-	 * @param Dimensions Width and height of the texture (in pixels).
+	 * @param OutputDim Width and height of the video output (in pixels).
+	 * @param BufferDim Width and height of the sink buffer(s) (in pixels).
 	 * @param Format The pixel format of the sink's render target texture.
 	 * @param Mode The mode to operate the sink in (buffered vs. unbuffered).
 	 * @return true on success, false if initialization is already in progress or failed.
 	 * @see GetTextureSinkDimensions, GetTextureSinkMode, ShutdownSink, SupportsTextureSinkFormat
 	 */
-	virtual bool InitializeTextureSink(FIntPoint Dimensions, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode) = 0;
+	virtual bool InitializeTextureSink(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode) = 0;
 
 	/**
 	 * Shut down the sink.
@@ -177,7 +185,7 @@ public:
 	 */
 	virtual FRHITexture* GetTextureSinkTexture() = 0;
 
-#endif
+#endif //WITH_ENGINE
 
 public:
 
@@ -277,7 +285,7 @@ public:
 	 */
 	virtual void UpdateTextureSinkResource(FRHITexture* RenderTarget, FRHITexture* ShaderResource) = 0;
 
-#endif
+#endif //WITH_ENGINE
 
 public:
 

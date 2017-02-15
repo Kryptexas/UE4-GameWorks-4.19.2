@@ -1,13 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "TickableEditorObject.h"
+#include "EdGraphUtilities.h"
 #include "BlueprintProfilerModule.h"
 #include "ScriptInstrumentationCapture.h"
 
-#if WITH_EDITOR
-#include "ScriptInstrumentationPlayback.h"
-#endif
+class FBlueprintExecutionContext;
+class FScriptEventPlayback;
+class FScriptExecutionBlueprint;
+class FScriptExecutionNode;
+class UBlueprint;
 
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintProfiler

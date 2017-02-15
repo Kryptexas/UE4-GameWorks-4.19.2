@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // UCanvasRenderTarget2DFactoryNew
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Factories/Factory.h"
 #include "CanvasRenderTarget2DFactoryNew.generated.h"
 
 UCLASS(hidecategories=(Object, Texture))

@@ -1,11 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EnvQueryTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/ScriptMacros.h"
+#include "EnvironmentQuery/Items/EnvQueryItemType.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
 #include "EnvQueryInstanceBlueprintWrapper.generated.h"
 
+class AActor;
 struct FEnvQueryRequest;
 
 UCLASS(Blueprintable, BlueprintType, meta = (DisplayName = "EQS Query Instance"))

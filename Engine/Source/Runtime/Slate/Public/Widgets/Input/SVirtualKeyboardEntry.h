@@ -1,9 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IVirtualKeyboardEntry.h"
-#include "SlateScrollHelper.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Styling/SlateColor.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SLeafWidget.h"
+#include "Styling/CoreStyle.h"
+#include "Framework/SlateDelegates.h"
+#include "Widgets/Input/IVirtualKeyboardEntry.h"
+#include "Framework/Layout/SlateScrollHelper.h"
+
+class FPaintArgs;
+class FSlateWindowElementList;
 
 class SLATE_API SVirtualKeyboardEntry : public SLeafWidget, public IVirtualKeyboardEntry
 {

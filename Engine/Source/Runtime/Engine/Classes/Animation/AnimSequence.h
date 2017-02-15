@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,9 +7,18 @@
  *
  */
 
-#include "AnimTypes.h"
-#include "AnimSequenceBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Animation/AnimTypes.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimCurveTypes.h"
+#include "Animation/AnimSequenceBase.h"
 #include "AnimSequence.generated.h"
+
+struct FAnimCompressContext;
+struct FCompactPose;
 
 typedef TArray<FTransform> FTransformArrayA2;
 
@@ -55,7 +64,7 @@ enum EAdditiveBasePoseType
 	/** Will be deprecated. */
 	ABPT_None UMETA(DisplayName="None"),
 	/** Use the Skeleton's ref pose as base. */
-	ABPT_RefPose UMETA(DisplayName="Reference Pose"),
+	ABPT_RefPose UMETA(DisplayName="Skeleton Reference Pose"),
 	/** Use a whole animation as a base pose. BasePoseSeq must be set. */
 	ABPT_AnimScaled UMETA(DisplayName="Selected animation scaled"),
 	/** Use one frame of an animation as a base pose. BasePoseSeq and RefFrameIndex must be set (RefFrameIndex will be clamped). */

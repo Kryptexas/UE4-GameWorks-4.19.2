@@ -1,14 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Toolkits/AssetEditorToolkit.h"
-#include "Toolkits/AssetEditorManager.h"
-#include "Kismet2/KismetEditorUtilities.h"
-#include "WorkflowOrientedApp/WorkflowTabFactory.h"
-#include "WorkflowOrientedApp/WorkflowTabManager.h"
-#include "WorkflowOrientedApp/WorkflowUObjectDocuments.h"
-#include "WorkflowOrientedApp/ApplicationMode.h"
+
+class FApplicationMode;
+class FWorkflowAllowedTabSet;
+class FWorkflowTabFactory;
 
 // Delegate for mutating a mode
 DECLARE_DELEGATE_RetVal_TwoParams(TSharedRef<FApplicationMode>, FWorkflowApplicationModeExtender, const FName /*ModeName*/, TSharedRef<FApplicationMode> /*InMode*/);
@@ -41,7 +40,6 @@ public:
 	// Gets the mode extender list for all workflow applications (append to customize a specific mode)
 	static TArray<FWorkflowApplicationModeExtender>& GetModeExtenderList() { return ModeExtenderList; }
 protected:
-	TSharedRef<SDockTab> CreatePanelTab(const FSpawnTabArgs& Args, TSharedPtr<FWorkflowTabFactory> TabFactory);
 
 	virtual void AddApplicationMode(FName ModeName, TSharedRef<FApplicationMode> Mode);
 protected:

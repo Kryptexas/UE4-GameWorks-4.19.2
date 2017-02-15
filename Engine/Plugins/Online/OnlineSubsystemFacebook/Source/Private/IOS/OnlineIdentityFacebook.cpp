@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 // Module includes
-#include "OnlineSubsystemFacebookPrivatePCH.h"
 #include "OnlineIdentityFacebook.h"
+#include "OnlineSubsystemFacebookPrivate.h"
 
 #import <FBSDKCoreKit/FBSDKCoreKit.h>
 #import <FBSDKLoginKit/FBSDKLoginKit.h>

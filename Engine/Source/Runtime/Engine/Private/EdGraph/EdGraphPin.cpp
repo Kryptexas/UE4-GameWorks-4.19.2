@@ -1,18 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-
-#include "BlueprintsObjectVersion.h"
+#include "EdGraph/EdGraphPin.h"
+#include "UObject/BlueprintsObjectVersion.h"
+#include "UObject/UnrealType.h"
+#include "UObject/TextProperty.h"
 #include "EdGraph/EdGraph.h"
 #include "EdGraph/EdGraphSchema.h"
-#include "BlueprintUtilities.h"
 #include "Tickable.h"
+#include "EngineLogs.h"
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "SlateBasics.h"
-#include "ScopedTransaction.h"
-#include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
+#include "Misc/ConfigCacheIni.h"
 #include "TickableEditorObject.h"
 #endif
 
@@ -58,29 +56,6 @@ FPinDeletionQueue* PinDeletionQueue = new FPinDeletionQueue();;
 #ifdef TRACK_PINS
 TArray<TPair<UEdGraphPin*, FString>> PinAllocationTracking;
 #endif //TRACK_PINS
-
-FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& T)
-{
-	Ar << T.TerminalCategory;
-	Ar << T.TerminalSubCategory;
-
-	// See: FArchive& operator<<( FArchive& Ar, FWeakObjectPtr& WeakObjectPtr )
-	// The PinSubCategoryObject should be serialized into the package.
-	if (!Ar.IsObjectReferenceCollector() || Ar.IsModifyingWeakAndStrongReferences() || Ar.IsPersistent())
-	{
-		UObject* Object = T.TerminalSubCategoryObject.Get(true);
-		Ar << Object;
-		if (Ar.IsLoading() || Ar.IsModifyingWeakAndStrongReferences())
-		{
-			T.TerminalSubCategoryObject = Object;
-		}
-	}
-
-	Ar << T.bTerminalIsConst;
-	Ar << T.bTerminalIsWeakPointer;
-
-	return Ar;
-}
 
 /////////////////////////////////////////////////////
 // FEdGraphPinType
@@ -153,6 +128,27 @@ bool FEdGraphPinType::Serialize(FArchive& Ar)
 	}
 
 	return true;
+}
+
+FEdGraphPinType FEdGraphPinType::GetPinTypeForTerminalType( const FEdGraphTerminalType& TerminalType )
+{
+	FEdGraphPinType TerminalTypeAsPin;
+	TerminalTypeAsPin.PinCategory = TerminalType.TerminalCategory;
+	TerminalTypeAsPin.PinSubCategory = TerminalType.TerminalSubCategory;
+	TerminalTypeAsPin.PinSubCategoryObject = TerminalType.TerminalSubCategoryObject;
+
+	return TerminalTypeAsPin;
+}
+
+FEdGraphPinType FEdGraphPinType::GetTerminalTypeForContainer( const FEdGraphPinType& ContainerType )
+{
+	ensure(ContainerType.IsContainer());
+	
+	FEdGraphPinType TerminalType = ContainerType;
+	TerminalType.bIsArray = false;
+	TerminalType.bIsMap = false;
+	TerminalType.bIsSet = false;
+	return TerminalType;
 }
 
 /////////////////////////////////////////////////////

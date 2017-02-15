@@ -1,7 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "ISessionInstanceInfo.h"
+#include "ISessionInfo.h"
+#include "ISessionManager.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
+
+class FSessionBrowserGroupTreeItem;
+class FSessionBrowserTreeItem;
+class SSessionBrowserCommandBar;
 
 /**
  * Implements a Slate widget for browsing active game sessions.
@@ -27,7 +42,7 @@ public:
 	 * @param InArgs The declaration data for this widget.
 	 * @param InSessionManager The session manager to use.
 	 */
-	void Construct( const FArguments& InArgs, ISessionManagerRef InSessionManager );
+	void Construct( const FArguments& InArgs, TSharedRef<ISessionManager> InSessionManager );
 
 protected:
 
@@ -53,7 +68,7 @@ private:
 	void HandleSessionManagerInstanceSelectionChanged(const TSharedPtr<ISessionInstanceInfo>& Instance, bool Selected);
 
 	/** Callback for changing the selected session in the session manager. */
-	void HandleSessionManagerSelectedSessionChanged(const ISessionInfoPtr& SelectedSession);
+	void HandleSessionManagerSelectedSessionChanged(const TSharedPtr<ISessionInfo>& SelectedSession);
 
 	/** Callback for updating the session list in the session manager. */
 	void HandleSessionManagerSessionsUpdated();
@@ -85,7 +100,7 @@ private:
 private:
 
 	/** Holds an unfiltered list of available sessions. */
-	TArray<ISessionInfoPtr> AvailableSessions;
+	TArray<TSharedPtr<ISessionInfo>> AvailableSessions;
 
 	/** Holds the command bar. */
 	TSharedPtr<SSessionBrowserCommandBar> CommandBar;
@@ -100,7 +115,7 @@ private:
 	TMap<FGuid, TSharedPtr<FSessionBrowserTreeItem>> ItemMap;
 
 	/** Holds a reference to the session manager. */
-	ISessionManagerPtr SessionManager;
+	TSharedPtr<ISessionManager> SessionManager;
 
 	/** Holds the filtered list of tree items. */
 	TArray<TSharedPtr<FSessionBrowserTreeItem>> SessionTreeItems;

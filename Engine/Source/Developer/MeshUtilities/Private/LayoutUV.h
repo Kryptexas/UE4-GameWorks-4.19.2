@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Allocator2D.h"
+#include "CoreMinimal.h"
+#include "RawMesh.h"
+#include "Developer/MeshUtilities/Private/Allocator2D.h"
 
 struct FMeshChart
 {

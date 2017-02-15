@@ -1,8 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Editor/Kismet/Public/Profiler/TracePath.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Profiler/TracePath.h"
+#include "Profiler/EventExecution.h"
+#include "Engine/BlueprintGeneratedClass.h"
+
+class FBlueprintFunctionContext;
+class FScriptInstrumentedEvent;
+class UBlueprint;
+class UEdGraph;
+class UK2Node_Tunnel;
 
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintExecutionTrace
@@ -201,6 +213,9 @@ public:
 	/** Returns if the function context is fully formed */
 	bool IsContextValid() const { return Function.IsValid() && BlueprintClass.IsValid(); }
 
+	/** Returns if the function context is represents the ubergraph */
+	bool IsUbergraphFunction() const;
+
 	/** Returns if the function context is inherited */
 	bool IsInheritedContext() const { return bIsInheritedContext; }
 
@@ -324,10 +339,10 @@ protected:
 	void AddExitPoint(TSharedPtr<FScriptExecutionNode> ExitPoint);
 
 	/** Creates an event for delegate pin entry points */
-	void CreateDelegatePinEvents(TSharedPtr<FBlueprintExecutionContext> BlueprintContextIn, const TMap<FName, FEdGraphPinReference>& PinEvents);
+	void CreateDelegatePinEvents();
 
 	/** Processes and detects any cyclic links making the linkage safe for traversal */
-	bool DetectCyclicLinks(TSharedPtr<FScriptExecutionNode> ExecNode, TSet<TSharedPtr<FScriptExecutionNode>>& Filter);
+	bool DetectCyclicLinks(TSharedPtr<FScriptExecutionNode> ExecNode, TArray<TSharedPtr<FScriptExecutionNode>>& Filter);
 
 	/** Add child function context */
 	void AddChildFunctionContext(const FName FunctionNameIn, TSharedPtr<FBlueprintFunctionContext> ChildContext);
@@ -444,6 +459,9 @@ private:
 	virtual FName GetTunnelInstanceFunctionName(const UEdGraphNode* GraphNode) const override;
 	// ~FBlueprintFunctionContext End
 	
+	/** Maps any events nested inside a composite node in the event graph */
+	void MapCompositeEvents(UEdGraph* CompositeGraph);
+
 	/** Maps input and output pins in a tunnel graph */
 	void MapTunnelIO(TMap<UEdGraphPin*, UEdGraphPin*>& PurePinsOut);
 

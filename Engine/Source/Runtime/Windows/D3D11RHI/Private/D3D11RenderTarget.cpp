@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11RenderTarget.cpp: D3D render target implementation.
@@ -1325,42 +1325,56 @@ static void ConvertRAWSurfaceDataToFLinearColor(EPixelFormat Format, uint32 Widt
 	}
 	else if (Format == PF_A32B32G32R32F)
 	{
-		FPlane MinValue(0.0f, 0.0f, 0.0f, 0.0f);
-		FPlane MaxValue(1.0f, 1.0f, 1.0f, 1.0f);
-
-		for (uint32 Y = 0; Y < Height; Y++)
+		if (InFlags.GetCompressionMode() == RCM_MinMax)
 		{
-			float* SrcPtr = (float*)(In + Y * SrcPitch);
+			// Copy data directly, respecting existing min-max values
+			FLinearColor* SrcPtr = (FLinearColor*)In;
+			FLinearColor* DestPtr = (FLinearColor*)Out;
+			const int32 ImageSize = sizeof(FLinearColor) * Height * Width;
 
-			for (uint32 X = 0; X < Width; X++)
-			{
-				MinValue.X = FMath::Min<float>(SrcPtr[0], MinValue.X);
-				MinValue.Y = FMath::Min<float>(SrcPtr[1], MinValue.Y);
-				MinValue.Z = FMath::Min<float>(SrcPtr[2], MinValue.Z);
-				MinValue.W = FMath::Min<float>(SrcPtr[3], MinValue.W);
-				MaxValue.X = FMath::Max<float>(SrcPtr[0], MaxValue.X);
-				MaxValue.Y = FMath::Max<float>(SrcPtr[1], MaxValue.Y);
-				MaxValue.Z = FMath::Max<float>(SrcPtr[2], MaxValue.Z);
-				MaxValue.W = FMath::Max<float>(SrcPtr[3], MaxValue.W);
-				SrcPtr += 4;
-			}
+			FMemory::Memcpy(DestPtr, SrcPtr, ImageSize);
 		}
-
-		for (uint32 Y = 0; Y < Height; Y++)
+		else
 		{
-			float* SrcPtr = (float*)In;
-			FLinearColor* DestPtr = Out + Y * Width;
+			// Normalize data
+			FPlane MinValue(0.0f, 0.0f, 0.0f, 0.0f);
+			FPlane MaxValue(1.0f, 1.0f, 1.0f, 1.0f);
 
-			for (uint32 X = 0; X < Width; X++)
+			for (uint32 Y = 0; Y < Height; Y++)
 			{
-				*DestPtr = FLinearColor(
-						(SrcPtr[0] - MinValue.X) / (MaxValue.X - MinValue.X),
-						(SrcPtr[1] - MinValue.Y) / (MaxValue.Y - MinValue.Y),
-						(SrcPtr[2] - MinValue.Z) / (MaxValue.Z - MinValue.Z),
-						(SrcPtr[3] - MinValue.W) / (MaxValue.W - MinValue.W)
-						);
-				++DestPtr;
-				SrcPtr += 4;
+				float* SrcPtr = (float*)(In + Y * SrcPitch);
+
+				for (uint32 X = 0; X < Width; X++)
+				{
+					MinValue.X = FMath::Min<float>(SrcPtr[0], MinValue.X);
+					MinValue.Y = FMath::Min<float>(SrcPtr[1], MinValue.Y);
+					MinValue.Z = FMath::Min<float>(SrcPtr[2], MinValue.Z);
+					MinValue.W = FMath::Min<float>(SrcPtr[3], MinValue.W);
+					MaxValue.X = FMath::Max<float>(SrcPtr[0], MaxValue.X);
+					MaxValue.Y = FMath::Max<float>(SrcPtr[1], MaxValue.Y);
+					MaxValue.Z = FMath::Max<float>(SrcPtr[2], MaxValue.Z);
+					MaxValue.W = FMath::Max<float>(SrcPtr[3], MaxValue.W);
+					SrcPtr += 4;
+				} 
+			}
+
+			float* SrcPtr = (float*)In;
+
+			for (uint32 Y = 0; Y < Height; Y++)
+			{
+				FLinearColor* DestPtr = Out + Y * Width;
+
+				for (uint32 X = 0; X < Width; X++)
+				{
+					*DestPtr = FLinearColor(
+							(SrcPtr[0] - MinValue.X) / (MaxValue.X - MinValue.X),
+							(SrcPtr[1] - MinValue.Y) / (MaxValue.Y - MinValue.Y),
+							(SrcPtr[2] - MinValue.Z) / (MaxValue.Z - MinValue.Z),
+							(SrcPtr[3] - MinValue.W) / (MaxValue.W - MinValue.W)
+							);
+					++DestPtr;
+					SrcPtr += 4;
+				}
 			}
 		}
 	}

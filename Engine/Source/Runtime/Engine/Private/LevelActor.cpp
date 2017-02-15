@@ -1,24 +1,43 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "Misc/OutputDeviceFile.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
+#include "UObject/ScriptStackTracker.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/Level.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "Engine/World.h"
+#include "Components/PrimitiveComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/Brush.h"
+#include "UObject/LinkerLoad.h"
+#include "UObject/CoreOnline.h"
+#include "GameFramework/OnlineReplStructs.h"
+#include "Engine/Engine.h"
+#include "Engine/LevelStreaming.h"
+#include "ContentStreaming.h"
 #include "EditorSupportDelegates.h"
-#include "Net/UnrealNetwork.h"
-#include "Collision.h"
+#include "GameFramework/GameModeBase.h"
 #include "Engine/DemoNetDriver.h"
 #include "AudioDeviceManager.h"
-#include "MessageLog.h"
-#include "MapErrors.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/MapErrors.h"
 
-#if WITH_PHYSX
-	#include "PhysicsEngine/PhysXSupport.h"
-#endif // WITH_PHYSX
-
-#include "Components/SphereComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/MovementComponent.h"
-#include "GameFramework/GameModeBase.h"
 
 #define LOCTEXT_NAMESPACE "LevelActor"
 
@@ -30,6 +49,7 @@ static TAutoConsoleVariable<float> CVarEncroachEpsilon(
 	TEXT("0: use full sized shape. > 0: shrink shape size by this amount (world units)"),
 	ECVF_Default);
 
+#define LINE_CHECK_TRACING 0
 
 #if LINE_CHECK_TRACING
 
@@ -775,7 +795,7 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 	return !EncroachingBlockingGeometry(TestActor, TestLocation, TestRotation, &Adjust);
 }
 
-static FName NAME_ComponentEncroachesBlockingGeometry_NoAdjustment = FName(TEXT("ComponentEncroachesBlockingGeometry_NoAdjustment"));
+static const FName NAME_ComponentEncroachesBlockingGeometry_NoAdjustment = FName(TEXT("ComponentEncroachesBlockingGeometry_NoAdjustment"));
 
 /** Tests shape components more efficiently than the with-adjustment case, but does less-efficient ppr-poly collision for meshes. */
 static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform, const TArray<AActor*>& IgnoreActors)
@@ -822,7 +842,7 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 	return false;
 }
 
-static FName NAME_ComponentEncroachesBlockingGeometry_WithAdjustment = FName(TEXT("ComponentEncroachesBlockingGeometry_WithAdjustment"));
+static const FName NAME_ComponentEncroachesBlockingGeometry_WithAdjustment = FName(TEXT("ComponentEncroachesBlockingGeometry_WithAdjustment"));
 
 /** Tests shape components less efficiently than the no-adjustment case, but does quicker aabb collision for meshes. */
 static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform, FVector& OutProposedAdjustment, const TArray<AActor*>& IgnoreActors)

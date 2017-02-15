@@ -1,24 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameMode.cpp: AGameMode c++ code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "GameFramework/GameNetworkManager.h"
-#include "Net/OnlineEngineInterface.h"
-#include "GameFramework/HUD.h"
-#include "GameFramework/DefaultPawn.h"
-#include "GameFramework/SpectatorPawn.h"
-#include "Engine/PlayerStartPIE.h"
+#include "GameFramework/GameMode.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/NetDriver.h"
+#include "GameFramework/LocalMessage.h"
 #include "GameFramework/EngineMessage.h"
 #include "GameFramework/GameState.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameSession.h"
 #include "GameFramework/CheatManager.h"
-#include "GameFramework/GameMode.h"
-#include "Engine/GameInstance.h"
 #include "GameDelegates.h"
+#include "GameMapsSettings.h"
 
 namespace MatchState
 {
@@ -209,7 +207,7 @@ void AGameMode::HandleMatchHasStarted()
 	// start human players first
 	for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
-		APlayerController* PlayerController = *Iterator;
+		APlayerController* PlayerController = Iterator->Get();
 		if ((PlayerController->GetPawn() == nullptr) && PlayerCanRestart(PlayerController))
 		{
 			RestartPlayer(PlayerController);
@@ -232,7 +230,7 @@ void AGameMode::HandleMatchHasStarted()
 	{
 		for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if( PlayerController->CheatManager != nullptr )
 			{
 				PlayerController->CheatManager->BugItGoString( BugLocString, BugRotString );
@@ -663,8 +661,6 @@ void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* 
 			}
 		}
 	}
-
-	PlayerState->OnDeactivated();
 }
 
 bool AGameMode::FindInactivePlayer(APlayerController* PC)
@@ -751,16 +747,15 @@ void AGameMode::PostSeamlessTravel()
 
 	// We have to make a copy of the controller list, since the code after this will destroy
 	// and create new controllers in the world's list
-	TArray<TAutoWeakObjectPtr<class AController> >	OldControllerList;
+	TArray<AController*> OldControllerList;
 	for (auto It = GetWorld()->GetControllerIterator(); It; ++It)
 	{
-		OldControllerList.Add(*It);
+		OldControllerList.Add(It->Get());
 	}
 
 	// handle players that are already loaded
-	for( FConstControllerIterator Iterator = OldControllerList.CreateConstIterator(); Iterator; ++Iterator )
+	for( AController* Controller : OldControllerList )
 	{
-		AController* Controller = *Iterator;
 		if (Controller->PlayerState)
 		{
 			APlayerController* PlayerController = Cast<APlayerController>(Controller);

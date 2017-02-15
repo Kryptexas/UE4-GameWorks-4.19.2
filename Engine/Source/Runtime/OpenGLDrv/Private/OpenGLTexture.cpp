@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLVertexBuffer.cpp: OpenGL texture RHI implementation.
 =============================================================================*/
 
-#include "OpenGLDrvPrivate.h"
+#include "CoreMinimal.h"
+#include "Containers/ResourceArray.h"
+#include "Stats/Stats.h"
+#include "RHI.h"
+#include "RenderUtils.h"
 #include "ShaderCache.h"
+#include "OpenGLDrv.h"
+#include "OpenGLDrvPrivate.h"
 
 /*-----------------------------------------------------------------------------
 	Texture allocator support.
@@ -255,6 +261,15 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 	check( !( NumSamples > 1 && bCubeTexture) );
 	check( bArrayTexture != (ArraySize == 1));
 #endif
+
+	// Move NumSamples to on-chip MSAA if supported
+	uint32 NumSamplesTileMem = 1;
+	GLint MaxSamplesTileMem = FOpenGL::GetMaxMSAASamplesTileMem(); /* RHIs which do not support tiled GPU MSAA return 0 */
+	if (MaxSamplesTileMem > 0)
+	{
+		NumSamplesTileMem = FMath::Min<uint32>(NumSamples, MaxSamplesTileMem);
+		NumSamples = 1;
+	}
 
 	bool bNoSRGBSupport = (GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1);
 
@@ -574,12 +589,12 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 	FRHITexture* Texture;
 	if (bCubeTexture)
 	{
-		FOpenGLTextureCube* TextureCube = new FOpenGLTextureCube(this, TextureID, Target, Attachment, SizeX, SizeY, 0, NumMips, 1, ArraySize, (EPixelFormat)Format, true, bAllocatedStorage, Flags, TextureRange, InClearValue);
+		FOpenGLTextureCube* TextureCube = new FOpenGLTextureCube(this, TextureID, Target, Attachment, SizeX, SizeY, 0, NumMips, 1, 1, ArraySize, (EPixelFormat)Format, true, bAllocatedStorage, Flags, TextureRange, InClearValue);
 		Texture = TextureCube;
 	}
 	else
 	{
-		FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(this,TextureID,Target,Attachment,SizeX,SizeY,0,NumMips,NumSamples, 1, (EPixelFormat)Format,false,bAllocatedStorage,Flags,TextureRange, InClearValue);
+		FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(this,TextureID,Target,Attachment,SizeX,SizeY,0,NumMips,NumSamples, NumSamplesTileMem, 1, (EPixelFormat)Format,false,bAllocatedStorage,Flags,TextureRange, InClearValue);
 		Texture = Texture2D;
 	}
 	OpenGLTextureAllocated( Texture, Flags );
@@ -1564,7 +1579,7 @@ FTexture2DArrayRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArray(uint32 SizeX,ui
 			: GL_COLOR_ATTACHMENT0);
 	}
 
-	FOpenGLTexture2DArray* Texture = new FOpenGLTexture2DArray(this,TextureID,Target,Attachment,SizeX,SizeY,SizeZ,NumMips,1, SizeZ, (EPixelFormat)Format,false,true,Flags,nullptr,Info.ClearValueBinding);
+	FOpenGLTexture2DArray* Texture = new FOpenGLTexture2DArray(this,TextureID,Target,Attachment,SizeX,SizeY,SizeZ,NumMips,1, 1, SizeZ, (EPixelFormat)Format,false,true,Flags,nullptr,Info.ClearValueBinding);
 	OpenGLTextureAllocated( Texture, Flags );
 
 	// No need to restore texture stage; leave it like this,
@@ -1674,7 +1689,7 @@ FTexture3DRHIRef FOpenGLDynamicRHI::RHICreateTexture3D(uint32 SizeX,uint32 SizeY
 			: GL_COLOR_ATTACHMENT0);
 	}
 
-	FOpenGLTexture3D* Texture = new FOpenGLTexture3D(this,TextureID,Target,Attachment,SizeX,SizeY,SizeZ,NumMips,1,1, (EPixelFormat)Format,false,true,Flags,nullptr,CreateInfo.ClearValueBinding);
+	FOpenGLTexture3D* Texture = new FOpenGLTexture3D(this,TextureID,Target,Attachment,SizeX,SizeY,SizeZ,NumMips,1,1,1, (EPixelFormat)Format,false,true,Flags,nullptr,CreateInfo.ClearValueBinding);
 	OpenGLTextureAllocated( Texture, Flags );
 
 	// No need to restore texture stage; leave it like this,

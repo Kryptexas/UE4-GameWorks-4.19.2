@@ -5,7 +5,7 @@ Description:Details the process of importing fonts, working with the Font Editor
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide/WidgetBlueprints
 Related: Engine/UMG/UserGuide/WidgetTypeReference
-Version: 4.9
+Version: 4.14
 
 [TOC(start:2 end:2)]
 
@@ -97,25 +97,25 @@ As seen in the example image above, the Japanese text falls within the character
 
 Once you have created a [Widget Blueprint](Engine/UMG/UserGuide/WidgetBlueprints) and placed a Widget that contains Text (such as a Text Box or Text Widget), when clicking on it and accessing the **Details** panel, under **Appearance**, you will see a **Font** option. 
 
-![](UMGFonts1.png)
+![](FontWithNewOptions.png)
 
 By default the Engine uses **Roboto**, however if you click the drop-down menu, any Composite Font assets created can be selected and used instead. 
 
-![](UMGFonts2.png)
+![](NewFontWithNewOptions.png)
 
 You can also choose to create a Composite Font from this menu and specify where the new asset should be saved (it will be blank by default and you will have to fill it out). 
 
 Once you select your Composite Font, the second drop-down menu will allow you to select a font to use from the **Default Font Family**. 
 
-![](UMGFonts3.png)
+![](FontStyleNewOptions.png)
 
 You can also specify the size of the font in the input box. 
 
-![](UMGFonts4.png)
+![](FontSizeNewOptions.png)
 
 Currently UMG only supports **Runtime** cached font assets. Also, if you have assigned fonts using the old method, none of your existing file based font settings will be lost, however going forward, you will need to create a Composite Font asset in order to use custom fonts with UMG. 
 
-
+You can style your **Font** by [setting colors, Materials, and outline properties](Engine/UMG/UserGuide/Fonts/Materials), as well as by using shadows. 
 
 
 

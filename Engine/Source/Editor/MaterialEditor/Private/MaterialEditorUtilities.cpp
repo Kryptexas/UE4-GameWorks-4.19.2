@@ -1,27 +1,34 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#include "MaterialEditorModule.h"
+#include "MaterialEditorUtilities.h"
+#include "UObject/UObjectHash.h"
+#include "EdGraph/EdGraph.h"
+#include "Materials/Material.h"
+#include "MaterialGraph/MaterialGraphSchema.h"
+#include "IMaterialEditor.h"
 
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
+#include "Materials/MaterialExpressionParameter.h"
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
 #include "Materials/MaterialExpressionStaticBool.h"
 #include "Materials/MaterialExpressionStaticSwitch.h"
 #include "Materials/MaterialExpressionComment.h"
-#include "Materials/MaterialExpressionParameter.h"
+#include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionFontSampleParameter.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionStaticSwitchParameter.h"
-#include "Materials/MaterialFunction.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
 
-#include "MaterialEditorUtilities.h"
 #include "Toolkits/ToolkitManager.h"
+#include "MaterialEditor.h"
 #include "MaterialExpressionClasses.h"
 #include "Materials/MaterialInstance.h"
+#include "MaterialUtilities.h"
+#include "Misc/ScopedSlowTask.h"
+#include "UniquePtr.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditorUtilities"
 
@@ -71,6 +78,16 @@ void FMaterialEditorUtilities::DeleteSelectedNodes(const class UEdGraph* Graph)
 	if (MaterialEditor.IsValid())
 	{
 		MaterialEditor->DeleteSelectedNodes();
+	}
+}
+
+
+void FMaterialEditorUtilities::DeleteNodes(const class UEdGraph* Graph, const TArray<UEdGraphNode*>& NodesToDelete)
+{
+	TSharedPtr<class IMaterialEditor> MaterialEditor = GetIMaterialEditorForObject(Graph);
+	if (MaterialEditor.IsValid())
+	{
+		MaterialEditor->DeleteNodes(NodesToDelete);
 	}
 }
 
@@ -200,9 +217,9 @@ void FMaterialEditorUtilities::GetVisibleMaterialParameters(const UMaterial* Mat
 {
 	VisibleExpressions.Empty();
 
-	TScopedPointer<FGetVisibleMaterialParametersFunctionState> FunctionState(new FGetVisibleMaterialParametersFunctionState(NULL));
+	TUniquePtr<FGetVisibleMaterialParametersFunctionState> FunctionState = MakeUnique<FGetVisibleMaterialParametersFunctionState>(nullptr);
 	TArray<FGetVisibleMaterialParametersFunctionState*> FunctionStack;
-	FunctionStack.Push(FunctionState.GetOwnedPointer());
+	FunctionStack.Push(FunctionState.Get());
 
 	for(uint32 i = 0; i < MP_MAX; ++i)
 	{
@@ -498,8 +515,8 @@ void FMaterialEditorUtilities::GetVisibleMaterialParametersFromExpression(
 				checkSlow(FunctionStack[FunctionCallIndex]->FunctionCall != FunctionCallExpression);
 			}
 
-			TScopedPointer<FGetVisibleMaterialParametersFunctionState> NewFunctionState(new FGetVisibleMaterialParametersFunctionState(FunctionCallExpression));
-			FunctionStack.Push(NewFunctionState.GetOwnedPointer());
+			TUniquePtr<FGetVisibleMaterialParametersFunctionState> NewFunctionState = MakeUnique<FGetVisibleMaterialParametersFunctionState>(FunctionCallExpression);
+			FunctionStack.Push(NewFunctionState.Get());
 			
 			GetVisibleMaterialParametersFromExpression(FMaterialExpressionKey(FunctionCallExpression->FunctionOutputs[MaterialExpressionKey.OutputIndex].ExpressionOutput, 0), MaterialInstance, VisibleExpressions, FunctionStack);
 		
@@ -572,13 +589,20 @@ void FMaterialEditorUtilities::AddMaterialExpressionCategory(FGraphActionMenuBui
 		{
 			if (!ActionMenuBuilder.FromPin || HasCompatibleConnection(MaterialExpression.MaterialClass, FromPinType, ActionMenuBuilder.FromPin->Direction, bMaterialFunction))
 			{
+				FString CreationName = MaterialExpression.Name;
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("Name"), FText::FromString( *MaterialExpression.Name ));
-				const FText ToolTip = FText::Format( LOCTEXT( "NewMaterialExpressionTooltip", "Adds a {Name} node here" ), Arguments );
+				FString ToolTip = FText::Format(LOCTEXT("NewMaterialExpressionTooltip", "Adds a {Name} node here"), Arguments).ToString();
+				if (MaterialExpression.CreationDescription.Len() != 0)
+					ToolTip = MaterialExpression.CreationDescription;
+				if (MaterialExpression.CreationName.Len() != 0)
+					CreationName = MaterialExpression.CreationName;
+
+
 				TSharedPtr<FMaterialGraphSchemaAction_NewNode> NewNodeAction(new FMaterialGraphSchemaAction_NewNode(
 					CategoryName,
-					FText::FromString(MaterialExpression.Name),
-					ToolTip.ToString(), 0, CastChecked<UMaterialExpression>(MaterialExpression.MaterialClass->GetDefaultObject())->GetKeywords()));
+					FText::FromString(CreationName),
+					ToolTip, 0, CastChecked<UMaterialExpression>(MaterialExpression.MaterialClass->GetDefaultObject())->GetKeywords()));
 				NewNodeAction->MaterialExpressionClass = MaterialExpression.MaterialClass;
 				ActionMenuBuilder.AddAction(NewNodeAction);
 			}
@@ -637,6 +661,50 @@ bool FMaterialEditorUtilities::HasCompatibleConnection(UClass* ExpressionClass, 
 	}
 
 	return false;
+}
+
+void FMaterialEditorUtilities::BuildTextureStreamingData(UMaterialInterface* UpdatedMaterial)
+{
+	const EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::High;
+	const ERHIFeatureLevel::Type FeatureLevel = GMaxRHIFeatureLevel;
+
+	if (UpdatedMaterial)
+	{
+		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+
+		FScopedSlowTask SlowTask(2.f, (LOCTEXT("MaterialEditorUtilities_UpdatingTextureStreamingData", "Updating Texture Streaming Data")));
+		SlowTask.MakeDialog(true);
+
+		TSet<UMaterialInterface*> Materials;
+		Materials.Add(UpdatedMaterial);
+
+		// Clear the build data.
+		const TArray<FMaterialTextureInfo> EmptyTextureStreamingData;
+
+		// Here we also update the parents as we just want to save the delta between the hierarchy.
+		// Since the instance may only override partially the parent params, we try to find what the child has overridden.
+		UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(UpdatedMaterial);
+		while (MaterialInstance)
+		{
+			// Clear the data in case the build is canceled.
+			MaterialInstance->SetTextureStreamingData(EmptyTextureStreamingData);
+			Materials.Add(MaterialInstance);
+			MaterialInstance = Cast<UMaterialInstance>(MaterialInstance->Parent);
+		};
+
+		// Here we need a full rebuild since the shader changed. Although don't wait for previous shaders to fasten the process.
+		if (CompileDebugViewModeShaders(DVSM_OutputMaterialTextureScales, QualityLevel, FeatureLevel, true, false, Materials, SlowTask))
+		{
+			FMaterialUtilities::FExportErrorManager ExportErrors(FeatureLevel);
+			for (UMaterialInterface* MaterialInterface : Materials)
+			{
+				FMaterialUtilities::ExportMaterialUVDensities(MaterialInterface, QualityLevel, FeatureLevel, ExportErrors);
+			}
+			ExportErrors.OutputToLog();
+
+			CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

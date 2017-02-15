@@ -1,19 +1,41 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaPlayerEditorPCH.h"
-#include "FileMediaSourceActions.h"
-#include "FileMediaSourceCustomization.h"
-#include "MediaPlayerActions.h"
-#include "MediaPlayerEditorCommands.h"
-#include "MediaPlayerEditorStyle.h"
-#include "MediaPlaylistActions.h"
-#include "MediaSoundWaveActions.h"
-#include "MediaSoundWaveCustomization.h"
-#include "MediaSourceActions.h"
-#include "MediaSourceCustomization.h"
-#include "MediaTextureActions.h"
-#include "MediaTextureCustomization.h"
-#include "PlatformMediaSourceCustomization.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "AssetToolsModule.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Editor.h"
+#include "IAssetTypeActions.h"
+#include "PropertyEditorModule.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
+#include "ThumbnailRendering/TextureThumbnailRenderer.h"
+#include "Toolkits/AssetEditorToolkit.h"
+
+#include "BaseMediaSource.h"
+#include "FileMediaSource.h"
+#include "MediaPlayer.h"
+#include "MediaSoundWave.h"
+#include "MediaTexture.h"
+#include "PlatformMediaSource.h"
+
+#include "AssetTools/MediaSourceActions.h"
+#include "AssetTools/MediaTextureActions.h"
+#include "AssetTools/FileMediaSourceActions.h"
+#include "AssetTools/MediaPlayerActions.h"
+#include "AssetTools/MediaPlaylistActions.h"
+#include "AssetTools/MediaSoundWaveActions.h"
+
+#include "Customizations/BaseMediaSourceCustomization.h"
+#include "Customizations/FileMediaSourceCustomization.h"
+#include "Customizations/MediaSoundWaveCustomization.h"
+#include "Customizations/MediaTextureCustomization.h"
+#include "Customizations/PlatformMediaSourceCustomization.h"
+
+#include "Models/MediaPlayerEditorCommands.h"
+#include "Shared/MediaPlayerEditorStyle.h"
+#include "MediaPlayerEditorLog.h"
 
 
 #define LOCTEXT_NAMESPACE "FMediaPlayerEditorModule"
@@ -121,9 +143,9 @@ protected:
 	/** Register details view customizations. */
 	void RegisterCustomizations()
 	{
+		BaseMediaSourceName = UBaseMediaSource::StaticClass()->GetFName();
 		FileMediaSourceName = UFileMediaSource::StaticClass()->GetFName();
 		MediaSoundWaveName = UMediaSoundWave::StaticClass()->GetFName();
-		MediaSourceName = UMediaSource::StaticClass()->GetFName();
 		MediaTextureName = UMediaTexture::StaticClass()->GetFName();
 		PlatformMediaSourceName = UPlatformMediaSource::StaticClass()->GetFName();
 
@@ -131,9 +153,9 @@ protected:
 		{
 			PropertyModule.RegisterCustomClassLayout(FileMediaSourceName, FOnGetDetailCustomizationInstance::CreateStatic(&FFileMediaSourceCustomization::MakeInstance));
 			PropertyModule.RegisterCustomClassLayout(MediaSoundWaveName, FOnGetDetailCustomizationInstance::CreateStatic(&FMediaSoundWaveCustomization::MakeInstance));
-			PropertyModule.RegisterCustomClassLayout(MediaSourceName, FOnGetDetailCustomizationInstance::CreateStatic(&FMediaSourceCustomization::MakeInstance));
 			PropertyModule.RegisterCustomClassLayout(MediaTextureName, FOnGetDetailCustomizationInstance::CreateStatic(&FMediaTextureCustomization::MakeInstance));
 			PropertyModule.RegisterCustomClassLayout(PlatformMediaSourceName, FOnGetDetailCustomizationInstance::CreateStatic(&FPlatformMediaSourceCustomization::MakeInstance));
+			PropertyModule.RegisterCustomClassLayout(BaseMediaSourceName, FOnGetDetailCustomizationInstance::CreateStatic(&FBaseMediaSourceCustomization::MakeInstance));
 		}
 	}
 
@@ -142,9 +164,9 @@ protected:
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		{
+			PropertyModule.UnregisterCustomClassLayout(BaseMediaSourceName);
 			PropertyModule.UnregisterCustomClassLayout(FileMediaSourceName);
 			PropertyModule.UnregisterCustomClassLayout(MediaSoundWaveName);
-			PropertyModule.UnregisterCustomClassLayout(MediaSourceName);
 			PropertyModule.UnregisterCustomClassLayout(MediaTextureName);
 			PropertyModule.UnregisterCustomClassLayout(PlatformMediaSourceName);
 		}
@@ -252,9 +274,9 @@ private:
 	TSharedPtr<FExtensibilityManager> ToolBarExtensibilityManager;
 
 	/** Class names. */
+	FName BaseMediaSourceName;
 	FName FileMediaSourceName;
 	FName MediaSoundWaveName;
-	FName MediaSourceName;
 	FName MediaTextureName;
 	FName PlatformMediaSourceName;
 };

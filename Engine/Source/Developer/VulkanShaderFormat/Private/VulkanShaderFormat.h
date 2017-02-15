@@ -1,14 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "hlslcc.h"
 
 enum class EVulkanShaderVersion
 {
 	ES3_1,
-	ES3_1_UB,
+	SM4_UB,
 	ES3_1_ANDROID,
 	SM4,
 	SM5,

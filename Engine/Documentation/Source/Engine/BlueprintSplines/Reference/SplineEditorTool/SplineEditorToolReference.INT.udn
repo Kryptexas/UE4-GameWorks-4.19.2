@@ -1,4 +1,4 @@
-Availability:Docs
+Availability:Public
 Title:Blueprint Spline Editor Tool Reference
 Crumbs: %ROOT%, Engine
 Description:A quick reference of the tools and procedures for editing Blueprint Spline Components while in the Level Editor.
@@ -6,6 +6,13 @@ Navigation:topic
 parent:Engine/BlueprintSplines
 order:1
 social-image:Splines_social.png
+version:4.13
+type:reference
+reference-image:MovePoint.gif
+reference-image:MoveTangent.gif
+reference-image:RotatePoint.gif
+reference-image:ScalePoint.gif
+tags:Splines
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,18 +57,18 @@ social-image:Splines_social.png
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-This page contains information on tools and procedures for editing **Blueprint Spline Components** and **Blueprint Spline Mesh Components** in the Level Editor.
+This page contains information on tools and procedures for editing **Blueprint Spline Components** and **Blueprint Spline Mesh Components** in the Level Editor. As of 4.13, **Blueprint Spline Components** can also be edited in the **Blueprint Editor Viewport** using all the tools and procedures below.
 
 ## Tools
 
-With a Spline Point (selecting a Spline Curve selects the last point on it) selected in the editor, you can use the standard manipulation tools (move, rotate, and scale) to adjust positions and tangents of the points.
+With a Spline Point (selecting a Spline Curve selects the last point on it) selected in the editor, you can use the standard manipulation tools (move, rotate, and scale) to select and adjust the positions and tangents of the spline curve's points.
 
 | Tool | Result |
 | --- | :--- |
-| **Move Selected Point** | ![](MovePoint.gif)(convert:false) |
-| **Move Selected Tangent** | ![](MoveTangent.gif)(convert:false) |
-| **Rotate** | ![](RotatePoint.gif)(convert:false) |
-| **Scale** | ![](ScalePoint.gif)(convert:false) |
+| **Move Selected Point** | [REGION:asyncgif]![](MovePoint.gif)[/REGION] |
+| **Move Selected Tangent** | [REGION:asyncgif]![](MoveTangent.gif)[/REGION] |
+| **Rotate** | [REGION:asyncgif]![](RotatePoint.gif)[/REGION] |
+| **Scale** | [REGION:asyncgif]![](ScalePoint.gif)[/REGION] |
 
 
 ## Procedures
@@ -70,50 +77,54 @@ There are a few menus accessable by right-clicking on the spline either on a poi
 
 ### Right-Click on a Spline Point
 
-Right-clicking on a **point** will give you the following menu and options.
+Right-clicking on a point will give you the following menu and options:
 
 ![](Spline_RC_Point.png)
 
 [REGION:raw]
-| Option | %spacer% | Description |
-| --- | :---: | :--- |
-| **Delete Spline Point** || Removes the selected Spline Point. |
-| **Duplicate Spline Point** || Duplicates the currently selected Spline Point. |
-| **Spline Point Type** || [INCLUDE:#SplinePointType] |
-| **Reset to Automatic Tangent** || [INCLUDE:#ResetToAutomaticTanget] |
-| **Reset to Default** || Resets the Spline to its archetype default. |
-| **Visualize Roll and Scale** || Whether or not the spline should visualize roll and scale in the editor. |
+| Option | Description |
+| --- | :--- |
+| **Delete Spline Point** | Removes the selected Spline Point. |
+| **Duplicate Spline Point** | Duplicates the currently selected Spline Point. |
+| **Spline Point Type** | [INCLUDE:#SplinePointType] |
+| **Reset to Automatic Tangent** | [INCLUDE:#ResetToAutomaticTanget] |
+| **Reset to Default** | Resets the Spline to its archetype default. |
+| **Visualize Roll and Scale** | Whether or not the spline should visualize roll and scale in the editor. |
+| **Allow Discontinous Splines** | Toggles whether the visualization allows **Arrive** and **Leave** tangents to be set separately. |
 [/REGION]
 
 <!--
 [EXCERPT:SplinePointType]
 
-Changes the interpolation style for the selected Spline Point. The Spline Curve associated with the Spline Curve point is displayed in red (by default). It will be the curve affected by changing this. The default **Point Type** is **Curve**. Below are examples of what 
+Changes the interpolation style for the selected Spline Point. The Spline Curve associated with the Spline Curve point is displayed in red (by default). It will be the curve affected by changing this. The default **Point Type** is **Curve**. Below are examples of what the different types look like:
 
 ![](Spline_RC_Point_Type.png)
 
-| Option | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Curve** || ![](PointTypeCurve.png)(convert:false) |
-| **Linear** || ![](PointTypeLinear.png)(convert:false) |
-| **Constant** || ![](PointTypeConstant.png)(convert:false) |
+[REGION:transparenttable]
+| Option | Description |
+| --- | --- |
+| **Curve** | ![](PointTypeCurve.PNG)(convert:false) |
+| **Linear** | ![](PointTypeLinear.PNG)(convert:false) |
+| **Constant** | ![](PointTypeConstant.PNG)(convert:false) |
+[/REGION]
 [/EXCERPT]
 
 [EXCERPT:ResetToAutomaticTanget]
 
 ![](Spline_RC_Point_Reset.png)
 
-| Option | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Unclamped Tangent** || Resets the tangents of the selected **Curve Point** to their **Unclamped Tangent** values. |
-| **Clamped Tangent** || Resets the tangents of the selected **Curve Point** to their **Clamped Tangent** values. |
-
+[REGION:transparenttable]
+| Option | Description |
+| --- | :--- |
+| **Unclamped Tangent** | Resets the tangents of the selected **Curve Point** to their **Unclamped Tangent** values. |
+| **Clamped Tangent** | Resets the tangents of the selected **Curve Point** to their **Clamped Tangent** values. |
+[/REGION]
 [/EXCERPT]
 -->
 
 ### Right-Click on a Spline Curve
 
-Right-clicking on a **curve** will give you the following menu and options.
+Right-clicking on a curve will give you the following menu and options:
 
 ![](Spline_RC_Curve.png)
 
@@ -122,7 +133,8 @@ Right-clicking on a **curve** will give you the following menu and options.
 | --- | :---: | :--- |
 | **Add Spline Point Here** || Adds a new Spline Point at the cursor's location. |
 | **Reset to Default** || Resets the Spline to its archetype default. |
-| **Visualize Roll and Scale** || Whether or not the spline should visualize roll and scale in the editor. |
+| **Visualize Roll and Scale** || Toggles whether or not the spline will visualize roll and scale in the editor. |
+| **Allow Discontinous Splines** || Toggles whether the visualization allows **Arrive** and **Leave** tangents to be set separately. |
 [/REGION]
 
 

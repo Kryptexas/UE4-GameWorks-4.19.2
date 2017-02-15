@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Developer/LocalizationService/Public/ILocalizationServiceProvider.h"
-#include "OneSkyLocalizationServiceCommand.h"
+
+struct FOneSkyConnectionInfo;
 
 class FOneSkyConnection
 {

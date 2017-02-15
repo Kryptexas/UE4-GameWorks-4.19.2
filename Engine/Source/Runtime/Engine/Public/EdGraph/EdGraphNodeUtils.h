@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EdGraph/EdGraphNode.h" // for ENodeTitleType
+#include "CoreMinimal.h"
 #include "EdGraph/EdGraphSchema.h"
+#include "Misc/ConfigCacheIni.h"
 
 /*******************************************************************************
  * FNodeTextCache

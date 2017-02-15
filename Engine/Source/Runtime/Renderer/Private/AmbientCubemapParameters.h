@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AmbientCubemapParameters.h: Shared shader parameters for ambient cubemap
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "FinalPostProcessSettings.h"
+#include "ShaderParameters.h"
+
+class FShaderParameterMap;
 
 /** Pixel shader parameters needed for deferred passes. */
 class FCubemapShaderParameters

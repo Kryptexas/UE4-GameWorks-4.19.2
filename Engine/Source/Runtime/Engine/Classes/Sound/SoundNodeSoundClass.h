@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
  
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Sound/SoundNode.h"
 #include "SoundNodeSoundClass.generated.h"
+
+class USoundClass;
+struct FActiveSound;
+struct FSoundParseParameters;
+struct FWaveInstance;
 
 /** 
  * Remaps the SoundClass of SoundWaves underneath this

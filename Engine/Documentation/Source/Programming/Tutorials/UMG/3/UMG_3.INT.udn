@@ -2,7 +2,7 @@ Availability: Public
 Title:3. Create Menu Widget Blueprints
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
 Description:Create widget blueprints to be used as menu screens.
-version:4.9
+version:4.14
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -87,7 +87,7 @@ With our main menu built, we can set up a GameMode asset that will load it as so
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -115,7 +115,7 @@ With our main menu built, we can set up a GameMode asset that will load it as so
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -132,14 +132,14 @@ With our main menu built, we can set up a GameMode asset that will load it as so
 				GENERATED_BODY()
 
 			public:
-				/** Called when the game starts. */
-				virtual void BeginPlay() override;
-
 				/** Remove the current menu widget and create a new one from the specified class, if provided. */
 				UFUNCTION(BlueprintCallable, Category = "UMG Game")
 				void ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass);
 
 			protected:
+				/** Called when the game starts. */
+				virtual void BeginPlay() override;
+
 				/** The widget class we will use as our menu when the game starts. */
 				UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UMG Game")
 				TSubclassOf<UUserWidget> StartingWidgetClass;
@@ -150,7 +150,7 @@ With our main menu built, we can set up a GameMode asset that will load it as so
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"
@@ -177,7 +177,40 @@ With our main menu built, we can set up a GameMode asset that will load it as so
 					}
 				}
 			}
-    [/PARAM]
+
+		**HowTo_UMGPlayerController.h**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+			#pragma once
+
+			#include "GameFramework/PlayerController.h"
+			#include "HowTo_UMGPlayerController.generated.h"
+
+			/**
+			 * 
+			 */
+			UCLASS()
+			class HOWTO_UMG_API AHowTo_UMGPlayerController : public APlayerController
+			{
+				GENERATED_BODY()
+				
+			public:
+				virtual void BeginPlay() override;
+			};
+
+		**HowTo_UMGPlayerController.cpp**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+			#include "HowTo_UMG.h"
+			#include "HowTo_UMGPlayerController.h"
+
+			void AHowTo_UMGPlayerController::BeginPlay()
+			{
+				Super::BeginPlay();
+				SetInputMode(FInputModeGameAndUI());
+			}
+			
+	[/PARAM]
 [/OBJECT]
 
 %Steps%

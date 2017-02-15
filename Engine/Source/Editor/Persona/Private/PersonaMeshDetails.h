@@ -1,8 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "EngineDefines.h"
+#include "Engine/SkeletalMesh.h"
+#include "PropertyHandle.h"
 #include "IDetailCustomNodeBuilder.h"
+#include "IDetailCustomization.h"
+
+class FAssetData;
+class FDetailWidgetRow;
+class FPersonaMeshDetails;
+class IDetailChildrenBuilder;
+class IDetailLayoutBuilder;
+class IPersonaToolkit;
+class SUniformGridPanel;
+struct FSectionLocalizer;
+
 /**
  * Struct to uniquely identify clothing applied to a material section
  * Contains index into the ClothingAssets array and the submesh index.
@@ -120,6 +139,7 @@ class FPersonaMeshDetails : public IDetailCustomization
 {
 public:
 	FPersonaMeshDetails(TSharedRef<class IPersonaToolkit> InPersonaToolkit) : PersonaToolkitPtr(InPersonaToolkit) {}
+	~FPersonaMeshDetails();
 
 	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
 	static TSharedRef<IDetailCustomization> MakeInstance(TSharedRef<class IPersonaToolkit> InPersonaToolkit);
@@ -349,6 +369,7 @@ private:
 
 	/** Access the persona toolkit ptr. It should always be valid in the lifetime of this customization */
 	TSharedRef<IPersonaToolkit> GetPersonaToolkit() const { check(PersonaToolkitPtr.IsValid()); return PersonaToolkitPtr.Pin().ToSharedRef(); }
+	bool HasValidPersonaToolkit() const { return PersonaToolkitPtr.IsValid(); }
 
 	EVisibility GetOverrideUVDensityVisibililty() const;
 	ECheckBoxState IsUVDensityOverridden(int32 MaterialIndex) const;
@@ -359,6 +380,34 @@ private:
 	void SetUVDensityValue(float InDensity, ETextCommit::Type CommitType, int32 MaterialIndex, int32 UVChannelIndex);
 
 	SVerticalBox::FSlot& GetUVDensitySlot(int32 MaterialIndex, int32 UVChannelIndex) const;
+
+	// Used to control the type of reimport to do with a named parameter
+	enum class EReimportButtonType : uint8
+	{
+		Reimport,
+		ReimportWithNewFile
+	};
+
+	// Handler for reimport buttons in LOD details
+	FReply OnReimportLodClicked(IDetailLayoutBuilder* DetailLayout, EReimportButtonType InReimportType, int32 InLODIndex);
+
+	void OnCopySectionList(int32 LODIndex);
+	bool OnCanCopySectionList(int32 LODIndex) const;
+	void OnPasteSectionList(int32 LODIndex);
+
+	void OnCopySectionItem(int32 LODIndex, int32 SectionIndex);
+	bool OnCanCopySectionItem(int32 LODIndex, int32 SectionIndex) const;
+	void OnPasteSectionItem(int32 LODIndex, int32 SectionIndex);
+
+	void OnCopyMaterialList();
+	bool OnCanCopyMaterialList() const;
+	void OnPasteMaterialList();
+
+	void OnCopyMaterialItem(int32 CurrentSlot);
+	bool OnCanCopyMaterialItem(int32 CurrentSlot) const;
+	void OnPasteMaterialItem(int32 CurrentSlot);
+
+	void OnPreviewMeshChanged(USkeletalMesh* OldSkeletalMesh, USkeletalMesh* NewMesh);
 
 public:
 

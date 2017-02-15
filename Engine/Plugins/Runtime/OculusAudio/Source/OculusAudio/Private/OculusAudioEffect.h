@@ -1,17 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "XAudio2Device.h"
 #include "AudioEffect.h"
 #include "Runtime/Windows/XAudio2/Private/XAudio2Support.h"
-#include "Engine.h"
 #include "AudioDevice.h"
 
 #include "AllowWindowsPlatformTypes.h"
-#include <xapobase.h>
-#include <xapofx.h>
-#include <xaudio2fx.h>
+#include "AllowWindowsPlatformAtomics.h"
+THIRD_PARTY_INCLUDES_START
+	#include <xapobase.h>
+	#include <xapofx.h>
+	#include <xaudio2fx.h>
+THIRD_PARTY_INCLUDES_END
+#include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 
 #define AUDIO_HRTF_EFFECT_CLASS_ID __declspec( uuid( "{8E67E588-FFF5-4860-A323-5E89B325D5EF}" ) )

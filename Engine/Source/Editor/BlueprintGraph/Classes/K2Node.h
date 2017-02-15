@@ -1,15 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "EdGraph/EdGraphNode.h"
+#include "UObject/LinkerLoad.h"
 #include "BlueprintNodeSignature.h"
-#include "EngineLogs.h"
 #include "K2Node.generated.h"
 
-class UActorComponent;
-class UBlueprintNodeSpawner;
+class AActor;
 class FBlueprintActionDatabaseRegistrar;
+class UActorComponent;
+class UBlueprint;
 class UDynamicBlueprintBinding;
+class UEdGraph;
+class UEdGraphPin;
+class UEdGraphSchema;
 
 /** Helper structure to cache old data for optional pins so the data can be restored during reconstruction */
 struct FOldOptionalPinSettings
@@ -146,6 +153,7 @@ class UK2Node : public UEdGraphNode
 
 	// UObject interface
 	BLUEPRINTGRAPH_API virtual void PostLoad() override;
+	BLUEPRINTGRAPH_API virtual void Serialize(FArchive& Ar) override;
 	// End of UObject interface
 
 	// UEdGraphNode interface
@@ -231,7 +239,12 @@ class UK2Node : public UEdGraphNode
 	 */
 	bool CreatePinsForFunctionEntryExit(const UFunction* Function, bool bForFunctionEntry);
 
+	/** Expands a node while compiling, which may add additional nodes or delete this node */
 	BLUEPRINTGRAPH_API virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph);
+
+	/** Performs a node-specific deprecation fixup, which may delete this node and replace it with another one */
+	BLUEPRINTGRAPH_API virtual void ConvertDeprecatedNode(UEdGraph* Graph, bool bOnlySafeChanges) {}
+
 	BLUEPRINTGRAPH_API virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const { return NULL; }
 
 	BLUEPRINTGRAPH_API void ExpandSplitPin(class FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin);
@@ -242,9 +255,6 @@ class UK2Node : public UEdGraphNode
 	 * @return	true if node safe to ignore.
 	 */
 	virtual bool IsNodeSafeToIgnore() const { return false; }
-
-	/** Tries to get a template object from this node. Will only work for 'Add Component' nodes */
-	virtual UActorComponent* GetTemplateFromNode() const { return NULL; }
 
 	/** Called at the end of ReconstructNode, allows node specific work to be performed */
 	BLUEPRINTGRAPH_API virtual void PostReconstructNode();

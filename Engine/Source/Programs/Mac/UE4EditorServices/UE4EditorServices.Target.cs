@@ -1,13 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
 
+[SupportedPlatforms(UnrealTargetPlatform.Mac)]
 public class UE4EditorServicesTarget : TargetRules
 {
 	public UE4EditorServicesTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Monolithic;
 	}
 
 	//
@@ -25,10 +27,6 @@ public class UE4EditorServicesTarget : TargetRules
 			);
 	}
 
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,

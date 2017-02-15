@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PropertyEditing.h"
-#include "PropertyCustomizationHelpers.h"
-#include "BehaviorDecoratorDetails.h"
+#include "CoreMinimal.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Layout/Visibility.h"
+#include "IDetailCustomization.h"
+#include "DetailCustomizations/BehaviorDecoratorDetails.h"
+
+class IDetailLayoutBuilder;
+class IPropertyHandle;
+class SWidget;
+class UBlackboardData;
 
 class FBlackboardDecoratorDetails : public FBehaviorDecoratorDetails
 {

@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "ImageWrapperPrivatePCH.h"
+#include "ExrImageWrapper.h"
+#include "HAL/PlatformTime.h"
+#include "ImageWrapperPrivate.h"
+
 
 #if WITH_UNREALEXR
 /**
@@ -311,8 +314,11 @@ void FExrImageWrapper::CompressRaw(const sourcetype* SrcData, bool bIgnoreAlpha)
 		Header.channels().insert(GetRawChannelName(Channel), Imf::Channel(OutputFormat));
 	}
 
+	// OutputFormat is 0 UINT, 1 HALF or 2 FLOAT. Size evaluates to 2/4/8 or 1/2/4 compressed
+	const int32 OutputPixelSize = (bUseCompression ? 1 : 2) << OutputFormat;
+	checkSlow(OutputPixelSize >= 1 && OutputPixelSize <= 8);
+
 	FMemFileOut MemFile("");
-	const int32 OutputPixelSize = ((OutputFormat == Imf::HALF && bUseCompression) ? 2 : 4);
 	MemFile.Data.AddUninitialized(Width * Height * NumWriteComponents * OutputPixelSize);
 
 	Imf::FrameBuffer ImfFrameBuffer;

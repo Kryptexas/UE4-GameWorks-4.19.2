@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2983460
+﻿INTSourceChangelist:3198499
 Availability:Public
 Title: 트랜지션 룰
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
 Description:스테이트 머신 트랜지션을 관장하는 규칙에 대한 안내입니다.
-version: 4.9
+version: 4.14
 Related: Engine/Animation/StateMachines
 Related: Engine/Animation/AnimBlueprints
 Related: Engine/Blueprints/GettingStarted
@@ -42,7 +42,7 @@ _이 예제에서 **JumpLoop** 가 **JumpEnd** 로 트랜지션하기 위해서�
 
 ![](EditRule.png)(w:840)
 
-**블루프린트** 와 비슷하게, **내 블루프린트** 창에서 변수를 지정한 뒤 그래프에 끌어놓을 수 있습니다. 변수를 다양한 조건에 연결한 뒤 다시 **결과** 노드에 연결하는 것으로, 어떤 것이 _true_ 가 되면 트랜지션이 일어나도록 할 것인가 정의할 수 있습니다.
+**블루프린트** 와 비슷하게, **내 블루프린트** 창에서 변수를 지정한 뒤 그래프에 끌어놓을 수 있습니다. 변수를 다양한 조건에 연결한 뒤 다시 **결과** 노드에 연결하는 것으로, 어떤 것이 _true_ (또는 _false_) 가 되면 트랜지션이 일어나도록 할 것인가 정의할 수 있습니다.
 
 [REGION:note]
 블루프린트 시작 관련 정보는 [](Engine/Blueprints/GettingStarted) 문서를 참고하세요.
@@ -56,20 +56,20 @@ _이 예제에서 **JumpLoop** 가 **JumpEnd** 로 트랜지션하기 위해서�
 
 | **프로퍼티** | **설명** |
 | --- | --- |
-| **Transition Priority Order** | 트랜지션 우선권 순서 - 트랜지션 우선권 순서입니다. 한 스테이트에서 나가는 트랜지션 다수가 동시에 True 인 경우, 우선권 순서가 가장 작은 것이 우선합니다. |
+| **Transition Priority Order** | 트랜지션 우선권 순서 - 트랜지션 우선권 순서입니다. 한 스테이트에서 나가는 트랜지션 다수가 동시에 True 인 경우, 우선권 순서 번호가 가장 작은 것이 우선합니다. |
 | **Bidirectional** | 양방향 - 양방향이 가능한 트랜지션인지를 나타냅니다. |
 | **Blend Logic** | 블렌드 로직 - 사용할 트랜지션 로직을 Standard Blend (표준 블렌드) 또는 Custom Blend (커스텀 블렌드) 중에서 선택합니다. 커스텀을 선택하면 블렌드 그래프를 입력하여 커스텀 블렌드 트랜지션 설정이 가능합니다. |
 | **Transition Rule Sharing** | 트랜지션 룰 공유 - 다른 트랜지션에서 룰을 공유 또는 사용할 수 있도록 설정할 수 있는 옵션입니다. |
+| **Automatic Rule Based on Sequence Player in State** | 스테이트의 시퀀스 플레이어에 따른 자동 룰 - 내부 시간을 무시하고, 트랜지션의 Crossfade Duration 과 관련성이 가장 높은 플레이어 노드에 남은 시간에 따라 룰을 자동 설정 시도합니다. |
 | **Transition Interrupt** | 트랜지션 중단 - **Trigger Weight Threshold** (트리거 웨이트 한계치)를 설정하고 **Notify State Class** (노티파이 스테이트 클래스)를 지정합니다. |
 | **Transition Crossfade Sharing** | 트랜지션 크로스페이드 공유 - 기존 **Transition Crossfade Blend** (트랜지션 크로스페이드 블렌드)를 사용하거나 기존 **Transition Crossfade** (트랜지션 크로스페이드)를 공유 상태로 승격시킵니다. |
 | **Duration** | 기간 - 크로스페이드에 적용되는 기간입니다. |
 | **Mode** | 모드 - 크로스페이드에 적용되는 블렌딩 유형입니다. 자세한 정보는 [](Engine\Animation\NonLinearBlends) 문서를 참고하세요. |
+| **Custom Blend Curve** | 커스텀 블렌드 커브 - 사용자 정의 블렌드 커브를 받아 블렌드 도중 적용합니다. |
+| **Blend Profile** | 블렌드 프로파일 - 본 별로 이 트랜지션을 평가하는 데 사용되는 블렌드 프로파일입니다. |
 | **Start Transition Event / Custom Blueprint Event** | 트랜지션 시작 이벤트 / 커스텀 블루프린트 이벤트 - 트랜지션 시작시 통지받은 **블루프린트** 내부에서 **이벤트** 를 호출 및 실행합니다. |
-| **Blueprint Notify** | 블루프린트 노티파이 - 트랜지션 시작시 통지를 받는 **블루프린트** 입니다. |
 | **End Transition Event / Custom Blueprint Event** | 트랜지션 종료 이벤트 / 커스텀 블루프린트 이벤트 - 트랜지션 종료시 통지받은 **블루프린트** 내부에서 **이벤트** 를 호출 및 실행합니다. |
-| **Blueprint Notify** | 블루프린트 노티파이 - 트랜지션이 종료되면 통지를 받는 **블루프린트** 입니다. |
 | **Interrupt Transition Event / Custom Blueprint Event** | 트랜지션 중단 이벤트 / 커스텀 블루프린트 이벤트 - 트랜지션이 중단되면 통지받은 **블루프린트** 내부에서 **이벤트** 를 호출 및 실행합니다. |
-| **Blueprint Notify** | 블루프린트 노티파이 - 트랜지션이 중단되면 통지를 받는 **블루프린트** 입니다. |
 
 
 ## 부가 고려사항
@@ -103,32 +103,9 @@ _이 예제에서 **JumpLoop** 가 **JumpEnd** 로 트랜지션하기 위해서�
 
 트랜지션 룰과 같은 애셋 플레이어를 레퍼런싱하는 Get 메소드를 사용할 수도 있습니다.
 
-### 파생된 네이티브 Getter
-
-다수의 프로젝트에서는 별도의 UAnimInstance 파생 클래스를 만들어 퍼포먼스를 높이고 있습니다. 그에 보조를 맞추기 위해서는 필요에 따라 새로운 getter 를 추가하면 됩니다. 하지만 그 정상 작동을 위해서는 약간의 구성 절차가 필요합니다.
-
-* getter 함수는 반드시 **UFUNCTIONS** 태그를 붙여야 합니다. 
-* 반드시 **BlueprintPure** 여야 합니다. 
-* 반드시 **AnimGetter="True"** 메타데이터를 포함해야 합니다. 
-
-또한 구체적인 이름이 있는 파라미터도 정의해야 합니다 (이 부분은 AnimInstance.h 의 베이스 애님 getter 함수 위에도 설명되어 있습니다). 그 파라미터 목록은 다음과 같습니다:
-
-| **파라미터** | **설명** |
-| --- | --- |
-| **int32 AssetPlayerIndex**| 애셋 플레이어에 작용하는 getter 로, 가능한 애셋 플레이어마다 에디터에 하나의 항목이 추가됩니다. |
-| **int32 MachineIndex**| 스테이트 머신에 작용하는 getter 로, 스테이트 머신마다 하나의 항목이 추가됩니다. |
-| **int32 StateIndex**| 이 부분도 MachineIndex 를 요합니다. 스테이트에 작용하는 getter 로, 스테이트마다 하나의 항목이 추가됩니다. |
-| **int32 TransitionIndex**| 이 부분도 MachineIndex 를 요합니다. 트랜지션에 작용하는 getter 로, 트랜지션마다 하나의 항목이 추가됩니다. |
-
-getter 에서 실제 노드를 구하는 헬퍼 함수도 있는데, UAnimInstance 에 존재합니다: 
-
-| **함수** | **설명** |
-| --- | --- |
-| **GetStateMachineInstance(int32 MachineIndex)**| 구은 스테이트 머신 인스턴스를 구합니다. |
-| **GetCheckedNodeFromIndex(int32 NodeIdx)**| 인덱스에서 노드를 구하며, 유효하지 않은 경우 어서트가 납니다. |
-| **GetNodeFromIndex(int32 NodeIdx)**| 위와 마찬가지로, nullptr 반환이 가능합니다. |
-| **GetRelevantAssetPlayerFromState(int32 MachineIndex, int32 StateIndex)**| 스테이트에서 가중치가 가장 높은 애셋 플레이어를 구합니다. |
-
+[REGION:note]
+언리얼의 애니메이션 프로그래밍에 대한 이해가 있는 분들은, [**네이티브 Getter**](Programming/Animation/AnimNodes) 를 사용하여 퍼포먼스를 향상시킬 수도 있습니다.
+[/REGION]
 
 
 

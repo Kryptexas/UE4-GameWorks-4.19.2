@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-struct FWidgetReference;
+#include "CoreMinimal.h"
+#include "Layout/Geometry.h"
+#include "WidgetReference.h"
 
 /**
  * The logical type of transform that can be applied to a widget.

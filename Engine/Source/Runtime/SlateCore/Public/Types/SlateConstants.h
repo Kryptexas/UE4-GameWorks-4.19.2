@@ -1,6 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+
 /** How much to scroll for each click of the mouse wheel (in Slate Screen Units). */
-const float WheelScrollAmount = 32.0f;
+extern SLATECORE_API TAutoConsoleVariable<float> GlobalScrollAmount;
+inline float GetGlobalScrollAmount() { return GlobalScrollAmount.GetValueOnAnyThread(); }

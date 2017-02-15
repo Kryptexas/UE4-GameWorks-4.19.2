@@ -65,20 +65,22 @@ make sure that it looks right. You may also want to have several different light
 [![](FootPlacement1.png)(w:600)](FootPlacement1.png)
 [/REGION]
 
-In this setup the capsules for the feet are close to relative size of the feet and have some overlap with the capsules for the shins. The shadows are soft and not overly dark.
+In this setup, the capsules for the feet are close to relative size of the feet and have some overlap with the capsules for the shins. The shadows are soft and not overly dark.
 
 [REGION:lightbox]
 [![](FootPlacement2.png)(w:600)](FootPlacement2.png)
 [/REGION]
  
-In this setup the capsules are too large for the feet and extend beyond the back of the heel leaving the soft shadows to appear darker than they should.
+In this setup, the capsules are too large for the feet and extend beyond the back of the heel, leaving the soft shadows to appear darker than they should.
 
 
 ### Limit Capsule Bodies
 
-Capsule Shadows can be considered an advanced form of "blob" shadows. You can simply use a single capsule or as many as you need to get better shadowing accuracy. With that in mind, start by 
-determining the needs of your character's movement for your game and whether they will ever be near a surface by using a cover system or falling down. If they will never be near surfaces consider
-not having capsule bodies for the arms of your character, since the performance costs is determined by the number of capsule bodies.
+Capsule Shadows can be considered an advanced form of "blob" shadows. You can simply use a single capsule, or as many as you need to get better shadowing accuracy. With that in mind, start by 
+determining the needs of your character's movement for your game and consider what parts of the character will get close to surfaces. For example, a character who takes cover or lies prone in a third-person shooter 
+will likely need capsule shadows on the head, arms and torso, whereas a character who stays upright and doesn't press against walls might not need those capsules, and performance can be 
+improved by not having capsule bodies for the arms of your character, since the performance costs is determined by the number of capsule bodies.
+
 
 [REGION:lightbox]
 [![](BlobShadow.png)(w:400)](BlobShadow.png)
@@ -99,8 +101,7 @@ if accuracy is not a concern.
 	[/PARAM]
 [/OBJECT]
 
-In this comparison, the arms have been removed from the character's representation. In the directly lit character areas not near surfaces you can see that it only makes a slight visual difference. 
-
+In this comparison, the arms have been removed from the character's representation. The visual effect of the arm capsules is slight in the directly-lit areas, and almost imperceptible in the darker regions. 
 
 ### Indirect Lighting Cache (Volume Light Samples)
 
@@ -109,7 +110,6 @@ soft shadow. Sometimes this requires tweaking the placement of the light samples
 
 To adjust the **Volume Light Sample Placement** you must enable the **World Settings** panel by going to **Settings** > **World Settings** in the main toolbar. Then in the World Settings panel under the 
 **Lightmass** section you can change the **Volume Light Sample Placement**. Use lower values to make the placement of samples more dense or higher values to make them more spread out.
-
 
 You can visualize these samples in your level by going to the **Viewport** > **Show** > **Visualize** > **Volume Lighting Samples**. 
 
@@ -128,8 +128,3 @@ this may be different for your game.
 [REGION:warning]
 Values too low will cause a "popping" as the capsule moves between the samples instead of providing a soft smooth transition between them, since the placement of the samples is so close together.
 [/REGION]
-
-
-
-
-

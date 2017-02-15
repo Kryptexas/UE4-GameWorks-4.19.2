@@ -1,8 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "PropertyEditorPrivatePCH.h"
-#include "SResetToDefaultPropertyEditor.h"
-#include "PropertyEditor.h"
-#include "IDetailPropertyRow.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+#include "UserInterface/PropertyEditor/SResetToDefaultPropertyEditor.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
 
 #define LOCTEXT_NAMESPACE "ResetToDefaultPropertyEditor"
 

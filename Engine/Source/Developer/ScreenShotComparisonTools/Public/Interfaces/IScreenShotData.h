@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IScreenShotData.h: Declares the IScreenShotData interface.
@@ -6,8 +6,11 @@
 
 #pragma once
 
-#include "ScreenShotDataItem.h"
+#include "CoreMinimal.h"
 #include "ScreenShotFilterCollection.h"
+
+class IScreenShotData;
+struct FScreenShotDataItem;
 
 /** Flags for specifying the screen shot data type */
 namespace EScreenShotDataType

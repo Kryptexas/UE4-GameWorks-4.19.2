@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
 
 #define SUBTITLE_SCREEN_DEPTH_FOR_3D 0.1f
 
+class FCanvas;
 
 /**
  * A collection of subtitles, rendered at a certain priority.

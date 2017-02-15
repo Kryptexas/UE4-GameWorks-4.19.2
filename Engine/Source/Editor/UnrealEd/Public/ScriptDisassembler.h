@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScriptDisassembler.h: Disassembler for Kismet bytecode.
@@ -6,6 +6,9 @@
 
 #ifndef __SCRIPTDISASSEMBLER_H__
 #define __SCRIPTDISASSEMBLER_H__
+
+#include "CoreMinimal.h"
+#include "UObject/Script.h"
 
 /**
  * Kismet bytecode disassembler; Can be used to create a human readable version

@@ -1,16 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessCombineLUTs.cpp: Post processing tone mapping implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessCombineLUTs.h"
-#include "PostProcessing.h"
-#include "ScreenRendering.h"
+#include "PostProcess/PostProcessCombineLUTs.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "TranslucentRendering.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessing.h"
+#include "ScreenRendering.h"
 
 
 // CVars
@@ -45,7 +45,7 @@ static FAutoConsoleVariableRef CVarLUTSize(
 
 static TAutoConsoleVariable<int32> CVarTonemapperFilm(
 	TEXT("r.TonemapperFilm"),
-	0,
+	1,
 	TEXT("Use new film tone mapper"),
 	ECVF_RenderThreadSafe
 	);
@@ -54,8 +54,7 @@ static TAutoConsoleVariable<int32> CVarTonemapperFilm(
 // USE_VOLUME_LUT: needs to be the same for C++ and HLSL
 bool UseVolumeTextureLUT(EShaderPlatform Platform) 
 {
-	// @todo Mac OS X: in order to share precompiled shaders between GL 3.3 & GL 4.1 devices we mustn't use volume-texture rendering as it isn't universally supported.
-	return (IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM4) && GSupportsVolumeTextureRendering && Platform != EShaderPlatform::SP_OPENGL_SM4_MAC && RHISupportsGeometryShaders(Platform));
+	return (IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM4) && GSupportsVolumeTextureRendering && (RHISupportsGeometryShaders(Platform) || RHISupportsVertexShaderLayer(Platform)));
 }
 
 // including the neutral one at index 0
@@ -189,7 +188,6 @@ public:
 
 		OutputDevice.Bind(Initializer.ParameterMap, TEXT("OutputDevice"));
 		OutputGamut.Bind(Initializer.ParameterMap, TEXT("OutputGamut"));
-		ACESInversion.Bind(Initializer.ParameterMap, TEXT("ACESInversion"));
 
 		ColorMatrixR_ColorCurveCd1.Bind(Initializer.ParameterMap, TEXT("ColorMatrixR_ColorCurveCd1"));
 		ColorMatrixG_ColorCurveCd3Cm3.Bind(Initializer.ParameterMap, TEXT("ColorMatrixG_ColorCurveCd3Cm3"));
@@ -267,38 +265,28 @@ public:
 		SetShaderValue( RHICmdList, ShaderRHI, FilmWhiteClip,	Settings.FilmWhiteClip );
 
 		{
-			static TConsoleVariableData<int32>* CVar709 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper709"));
-			static TConsoleVariableData<float>* CVarGamma = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperGamma"));
-			static TConsoleVariableData<int32>* CVar2084 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper2084"));
+			static TConsoleVariableData<int32>* CVarOutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
+			static TConsoleVariableData<float>* CVarOutputGamma = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperGamma"));
 
-			int32 Rec709 = CVar709->GetValueOnRenderThread();
-			int32 ST2084 = CVar2084->GetValueOnRenderThread();
-			float Gamma = CVarGamma->GetValueOnRenderThread();
+			int32 OutputDeviceValue = CVarOutputDevice->GetValueOnRenderThread();
+			float Gamma = CVarOutputGamma->GetValueOnRenderThread();
 
 			if (PLATFORM_APPLE && Gamma == 0.0f)
 			{
 				Gamma = 2.2f;
 			}
+	
+			if (Gamma > 0.0f)
+			{
+				// Enforce user-controlled ramp over sRGB or Rec709
+				OutputDeviceValue = FMath::Max(OutputDeviceValue, 2);
+			}
 
-			int32 Value = 0;						// sRGB
-			Value = Rec709 ? 1 : Value;	// Rec709
-			Value = Gamma != 0.0f ? 2 : Value;	// Explicit gamma
-			// ST-2084 (Dolby PQ) options 
-			// 1 = ACES 1000 nit
-			// 2 = ACES 2000 nit
-			// 3 = Unreal FilmToneMap + Inverted ACES + PQ
-			Value = ST2084 >= 1 ? ST2084 + 2 : Value;
+			SetShaderValue(RHICmdList, ShaderRHI, OutputDevice, OutputDeviceValue);
 
-			SetShaderValue(RHICmdList, ShaderRHI, OutputDevice, Value);
-
-			static TConsoleVariableData<int32>* CVarOutputGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperOutputGamut"));
+			static TConsoleVariableData<int32>* CVarOutputGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.ColorGamut"));
 			int32 OutputGamutValue = CVarOutputGamut->GetValueOnRenderThread();
 			SetShaderValue(RHICmdList, ShaderRHI, OutputGamut, OutputGamutValue);
-
-			// The approach to use when applying the inverse ACES Output Transform
-			static TConsoleVariableData<int32>* CVarACESInversion = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperACESInversion"));
-			int32 ACESInversionValue = CVarACESInversion->GetValueOnRenderThread();
-			SetShaderValue(RHICmdList, ShaderRHI, ACESInversion, ACESInversionValue);
 
 			FVector InvDisplayGammaValue;
 			InvDisplayGammaValue.X = 1.0f / ViewFamily.RenderTarget->GetDisplayGamma();
@@ -487,7 +475,6 @@ public:
 
 		Ar << OutputDevice;
 		Ar << OutputGamut;
-		Ar << ACESInversion;
 
 		Ar << FilmSlope;
 		Ar << FilmToe;
@@ -550,7 +537,6 @@ private: // ---------------------------------------------------
 
 	FShaderParameter OutputDevice;
 	FShaderParameter OutputGamut;
-	FShaderParameter ACESInversion;
 
 	// Legacy
 	FShaderParameter ColorMatrixR_ColorCurveCd1;
@@ -570,7 +556,7 @@ IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderPS<3>,TEXT("PostProcessCombineLUTs")
 IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderPS<4>,TEXT("PostProcessCombineLUTs"),TEXT("MainPS"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderPS<5>,TEXT("PostProcessCombineLUTs"),TEXT("MainPS"),SF_Pixel);
 
-void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCount, FTexture* Texture[], float Weights[], const FVolumeBounds& VolumeBounds)
+static void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCount, FTexture* Texture[], float Weights[], const FVolumeBounds& VolumeBounds)
 {
 	check(BlendCount > 0);
 
@@ -608,12 +594,15 @@ void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCo
 	if(UseVolumeTextureLUT(Context.View.GetShaderPlatform()))
 	{
 		TShaderMapRef<FWriteToSliceVS> VertexShader(ShaderMap);
-		TShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
+		TOptionalShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
 
 		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, *LocalBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader, *GeometryShader);
 
 		VertexShader->SetParameters(Context.RHICmdList, VolumeBounds, VolumeBounds.MaxX - VolumeBounds.MinX);
-		GeometryShader->SetParameters(Context.RHICmdList, VolumeBounds);
+		if(GeometryShader.IsValid())
+		{
+			GeometryShader->SetParameters(Context.RHICmdList, VolumeBounds);
+		}
 	}
 	else
 	{
@@ -755,13 +744,12 @@ uint32 FRCPassPostProcessCombineLUTs::GenerateFinalTable(const FFinalPostProcess
 
 void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessCombineLUTs, TEXT("PostProcessCombineLUTs %dx%dx%d"), GLUTSize, GLUTSize, GLUTSize);
-
 	FTexture* LocalTextures[GMaxLUTBlendCount];
 	float LocalWeights[GMaxLUTBlendCount];
 
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
+
 
 	uint32 LocalCount = 1;
 
@@ -774,13 +762,22 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 		LocalCount = GenerateFinalTable(Context.View.FinalPostProcessSettings, LocalTextures, LocalWeights, GMaxLUTBlendCount);
 	}
 
-	// for a 3D texture, the viewport is 16x16 (per slice), for a 2D texture, it's unwrapped to 256x16
-	FIntPoint DestSize(UseVolumeTextureLUT(ShaderPlatform) ? GLUTSize : GLUTSize * GLUTSize, GLUTSize);
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessCombineLUTs, TEXT("PostProcessCombineLUTs [%d] %dx%dx%d"), LocalCount, GLUTSize, GLUTSize, GLUTSize);
 
-	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
+	const bool bUseVolumeTextureLUT = UseVolumeTextureLUT(ShaderPlatform);
+	// for a 3D texture, the viewport is 16x16 (per slice), for a 2D texture, it's unwrapped to 256x16
+	FIntPoint DestSize(bUseVolumeTextureLUT ? GLUTSize : GLUTSize * GLUTSize, GLUTSize);
+
+	// The view owns this texture.  For stereo rendering the combine LUT pass should only be executed for eSSP_LEFT_EYE
+	// and the result is reused by eSSP_RIGHT_EYE.   Eye-adaptation for stereo works in a similar way.
+	// Fundamentally, this relies on the fact that the view is recycled when doing stereo rendering and the LEFT eye is done first.
+	const FSceneRenderTargetItem* DestRenderTarget = !bAllocateOutput ?
+	Context.View.GetTonemappingLUTRenderTarget(Context.RHICmdList, GLUTSize, bUseVolumeTextureLUT) : &PassOutputs[0].RequestSurface(Context);
+	
+	check(DestRenderTarget);
 
 	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EUninitializedColorAndDepth);
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget->TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EUninitializedColorAndDepth);
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
 	// set the state
@@ -792,7 +789,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 
 	SetLUTBlenderShader(Context, LocalCount, LocalTextures, LocalWeights, VolumeBounds);
 
-	if (UseVolumeTextureLUT(ShaderPlatform))
+	if (bUseVolumeTextureLUT)
 	{
 		// use volume texture 16x16x16
 		RasterizeToVolumeTexture(Context.RHICmdList, VolumeBounds);
@@ -814,26 +811,39 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 			EDRF_UseTriangleOptimization);
 	}
 
-	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget->TargetableTexture, DestRenderTarget->ShaderResourceTexture, false, FResolveParams());
+
+	Context.View.SetValidTonemappingLUT();
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	EPixelFormat LUTPixelFormat = PF_A2B10G10R10;
-	if (!GPixelFormats[LUTPixelFormat].Supported)
-	{
-		LUTPixelFormat = PF_R8G8B8A8;
-	}
+	// Specify invalid description to avoid the creation of an intermediate rendertargets.
+	// We want to use ViewState->GetTonemappingLUTRT instead.
+	FPooledRenderTargetDesc Ret;
 	
-	FPooledRenderTargetDesc Ret = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(GLUTSize * GLUTSize, GLUTSize), LUTPixelFormat, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false);
-
-	if(UseVolumeTextureLUT(ShaderPlatform))
+	if (!bAllocateOutput)
 	{
-		Ret.Extent = FIntPoint(GLUTSize, GLUTSize);
-		Ret.Depth = GLUTSize;
+		Ret.DebugName = TEXT("DummyLUT");
 	}
-
-	Ret.DebugName = TEXT("CombineLUTs");
+	else
+	{
+		EPixelFormat LUTPixelFormat = PF_A2B10G10R10;
+		if (!GPixelFormats[LUTPixelFormat].Supported)
+		{
+			LUTPixelFormat = PF_R8G8B8A8;
+		}
+		
+		Ret = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(GLUTSize * GLUTSize, GLUTSize), LUTPixelFormat, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false);
+		
+		if(UseVolumeTextureLUT(ShaderPlatform))
+		{
+			Ret.Extent = FIntPoint(GLUTSize, GLUTSize);
+			Ret.Depth = GLUTSize;
+		}
+		
+		Ret.DebugName = TEXT("CombineLUTs");
+	}
 
 	return Ret;
 }

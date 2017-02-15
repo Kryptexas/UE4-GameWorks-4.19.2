@@ -1,14 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 #include "Containers/Array.h"
 #include "Containers/UnrealString.h"
 
 /*-----------------------------------------------------------------------------
 	Command line.
 -----------------------------------------------------------------------------*/
+
+#ifndef WANTS_COMMANDLINE_WHITELIST
+	#define WANTS_COMMANDLINE_WHITELIST 0
+#endif
 
 struct CORE_API FCommandLine
 {

@@ -1,6 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "BuildPatchManifest.h"
+#include "Interfaces/IBuildPatchServicesModule.h"
 
 // A delegate returning a bool. Used to pass a paused state
 DECLARE_DELEGATE_RetVal(bool, FBuildPatchBoolRetDelegate);

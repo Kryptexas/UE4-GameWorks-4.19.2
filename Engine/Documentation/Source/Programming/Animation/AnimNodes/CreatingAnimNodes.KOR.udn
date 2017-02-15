@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2719731
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title: 애니메이션 노드 테크니컬 가이드
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -187,3 +187,29 @@ Version: 4.9
 			}
 		}
 	}
+
+## 파생된 네이티브 Getter
+
+다수의 프로젝트에서는 별도의 UAnimInstance 파생 클래스를 만들어 퍼포먼스를 높이고 있습니다. 그에 보조를 맞추기 위해서는 필요에 따라 새로운 getter 를 추가하면 됩니다. 하지만 그 정상 작동을 위해서는 약간의 구성 절차가 필요합니다.
+
+* getter 함수는 반드시 **UFUNCTIONS** 태그를 붙여야 합니다. 
+* 반드시 **BlueprintPure** 여야 합니다. 
+* 반드시 **AnimGetter="True"** 메타데이터를 포함해야 합니다. 
+
+또한 구체적인 이름이 있는 파라미터도 정의해야 합니다 (이 부분은 AnimInstance.h 의 베이스 애님 getter 함수 위에도 설명되어 있습니다). 그 파라미터 목록은 다음과 같습니다:
+
+| **파라미터** | **설명** |
+| --- | --- |
+| **int32 AssetPlayerIndex**| 애셋 플레이어에 작용하는 getter 로, 가능한 애셋 플레이어마다 에디터에 하나의 항목이 추가됩니다. |
+| **int32 MachineIndex**| 스테이트 머신에 작용하는 getter 로, 스테이트 머신마다 하나의 항목이 추가됩니다. |
+| **int32 StateIndex**| 이 부분도 MachineIndex 를 요합니다. 스테이트에 작용하는 getter 로, 스테이트마다 하나의 항목이 추가됩니다. |
+| **int32 TransitionIndex**| 이 부분도 MachineIndex 를 요합니다. 트랜지션에 작용하는 getter 로, 트랜지션마다 하나의 항목이 추가됩니다. |
+
+getter 에서 실제 노드를 구하는 헬퍼 함수도 있는데, UAnimInstance 에 존재합니다: 
+
+| **함수** | **설명** |
+| --- | --- |
+| **GetStateMachineInstance(int32 MachineIndex)**| 구은 스테이트 머신 인스턴스를 구합니다. |
+| **GetCheckedNodeFromIndex(int32 NodeIdx)**| 인덱스에서 노드를 구하며, 유효하지 않은 경우 어서트가 납니다. |
+| **GetNodeFromIndex(int32 NodeIdx)**| 위와 마찬가지로, nullptr 반환이 가능합니다. |
+| **GetRelevantAssetPlayerFromState(int32 MachineIndex, int32 StateIndex)**| 스테이트에서 가중치가 가장 높은 애셋 플레이어를 구합니다. |

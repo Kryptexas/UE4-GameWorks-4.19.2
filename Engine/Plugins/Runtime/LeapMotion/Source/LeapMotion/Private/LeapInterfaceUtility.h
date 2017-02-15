@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Leap.h"
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "Leap_NoPI.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LeapPluginLog, Log, All);
 

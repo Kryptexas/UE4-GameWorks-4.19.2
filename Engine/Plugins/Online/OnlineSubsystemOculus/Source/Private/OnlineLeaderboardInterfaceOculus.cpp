@@ -1,7 +1,7 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemOculusPrivatePCH.h"
 #include "OnlineLeaderboardInterfaceOculus.h"
+#include "OnlineSubsystemOculusPrivate.h"
 #include "OnlineIdentityOculus.h"
 #include "OnlineSubsystemOculusPackage.h"
 
@@ -107,7 +107,7 @@ bool FOnlineLeaderboardOculus::WriteLeaderboards(const FName& SessionName, const
 		return false;
 	}
 
-	double Score;
+	long long Score;
 
 	switch (StatData->GetType())
 	{
@@ -115,42 +115,26 @@ bool FOnlineLeaderboardOculus::WriteLeaderboards(const FName& SessionName, const
 		{
 			int32 Value;
 			StatData->GetValue(Value);
-			Score = (double)Value;
+			Score = Value;
 			break;
 		}
 		case EOnlineKeyValuePairDataType::UInt32:
 		{
 			uint32 Value;
 			StatData->GetValue(Value);
-			Score = (double)Value;
+			Score = Value;
 			break;
 		}
 		case EOnlineKeyValuePairDataType::Int64:
 		{
 			int64 Value;
 			StatData->GetValue(Value);
-			Score = (double)Value;
+			Score = Value;
 			break;
 		}
 		case EOnlineKeyValuePairDataType::UInt64:
-		{
-			uint64 Value;
-			StatData->GetValue(Value);
-			Score = (double)Value;
-			break;
-		}
 		case EOnlineKeyValuePairDataType::Double:
-		{
-			StatData->GetValue(Score);
-			break;
-		}
 		case EOnlineKeyValuePairDataType::Float:
-		{
-			float Value;
-			StatData->GetValue(Value);
-			Score = (double)Value;
-			break;
-		}
 		default:
 		{
 			UE_LOG_ONLINE(Error, TEXT("Invalid Stat type to save to the leaderboard: %s"), EOnlineKeyValuePairDataType::ToString(StatData->GetType()));

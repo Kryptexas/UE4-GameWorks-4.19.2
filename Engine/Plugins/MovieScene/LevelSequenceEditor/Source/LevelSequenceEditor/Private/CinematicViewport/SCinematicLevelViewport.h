@@ -1,18 +1,26 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Types/SlateStructs.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
 #include "LevelEditorViewport.h"
-#include "SLevelViewport.h"
-
 
 class FLevelSequenceEditorToolkit;
-class ISequencer;
-class SCinematicTransportRange;
-class SCinematicPreviewViewport;
 class FLevelViewportLayout;
+class FUICommandList;
+class ILevelEditor;
+class ISequencer;
+class SBox;
+class SCinematicPreviewViewport;
+class SCinematicTransportRange;
+class SEditorViewport;
+class SLevelViewport;
 struct FTypeInterfaceProxy;
-
 
 /** Overridden level viewport client for this viewport */
 struct FCinematicViewportClient : FLevelEditorViewportClient
@@ -27,6 +35,8 @@ struct FUIData
 {
 	/** The name of the current shot */
 	FText ShotName;
+	/** The name of the current camera */
+	FText CameraName;
 	/** The name of the current shot's lens */
 	FText Lens;
 	/** The name of the current shot's filmback */

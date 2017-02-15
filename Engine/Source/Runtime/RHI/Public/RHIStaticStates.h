@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHIStaticStates.h: RHI static state template definition.
@@ -6,8 +6,14 @@
 
 #pragma once
 
-#include "StaticArray.h"
-
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "Containers/StaticArray.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "UnrealClient.h"
+#include "Misc/ScopedEvent.h"
 
 extern RHI_API FCriticalSection StaticStateRHICriticalSection;
 

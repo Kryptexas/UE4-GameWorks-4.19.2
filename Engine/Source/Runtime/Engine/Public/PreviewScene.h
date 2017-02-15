@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PreviewScene.h: Preview scene definitions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Engine/World.h"
+
+class FSceneInterface;
 
 /**
  * Encapsulates a simple scene setup for preview or thumbnail rendering.
@@ -55,12 +61,12 @@ public:
 	/**
 	 * Adds a component to the preview scene.  This attaches the component to the scene, and takes ownership of it.
 	 */
-	void AddComponent(class UActorComponent* Component,const FTransform& LocalToWorld);
+	virtual void AddComponent(class UActorComponent* Component,const FTransform& LocalToWorld);
 
 	/**
 	 * Removes a component from the preview scene.  This detaches the component from the scene, and returns ownership of it.
 	 */
-	void RemoveComponent(class UActorComponent* Component);
+	virtual void RemoveComponent(class UActorComponent* Component);
 
 	// Serializer.
 	void AddReferencedObjects( FReferenceCollector& Collector ) override;

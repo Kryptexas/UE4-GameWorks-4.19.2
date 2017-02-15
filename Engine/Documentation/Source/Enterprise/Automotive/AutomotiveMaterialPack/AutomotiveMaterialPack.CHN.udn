@@ -1,81 +1,105 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3112291
 Availability:Public
-Title: Automotive Material Pack
-Description:A breakdown of what assets the Automotive Material pack contains and how to use them.
+Title:汽车材质包
+Description:汽车材质包所含资源的详解和使用方法。
 Crumbs:%ROOT%,
-version:4.12
+version:4.13
 Parent:Enterprise/Automotive
 tags:Enterprise
+tags:Automotive
+tags:Materials
 type:overview
 order:1
+Related:Engine/Rendering/Materials/PhysicallyBased/
 Related:Engine/Rendering/Materials/MaterialProperties/LightingModels
 Related:Engine/Rendering/Materials/HowTo/ClearCoatDualNormal
 Related:Engine/Content/Types/Textures/Cubemaps
 Related:Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
+topic-image:AP_Topic.png
+social-image:automotive_material_pack_social.png
 
-[TOC(start:2 end:3)]
+[TOC(end:2)]
 
 ![](AP_Intro.png)
 
-The Automotive Material Pack is a collection of automotive-themed PBR Materials and Textures that have been setup for use in Unreal Engine 4(UE4). The pack features 21 Master Materials and 75 Material Instances taken from Epic's 2016 GDC Mclaren 570S demo. In the following document we will take a look at what Materials the Automotive Material Pack contains and any special information you might need to know in order to use these Materials in your UE4 projects.
+汽车材质包（可在虚幻引擎市场中下载）是汽车主题 [PBR 材质](Engine/Rendering/Materials/PhysicallyBased/) 和纹理合集，可直接在虚幻引擎 4（UE4）中使用。此包内含取自 Epic 2016 GDC Mclaren 570S demo 的 21 个主材质和 75 个材质实例。在下文中我们将查看汽车材质包中内含的材质，以及在 UE4 项目中使用这些材质须知的特殊信息。
 
-## What's in the Automotive Material Pack
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	l4FiJ1A5veY
+	[/PARAMLITERAL]
+[/OBJECT]
 
-Inside of the Automotive Material Pack you will find the following Materials types:
 
-* Car Paint
-* Carbon Fiber
-* Caliper
-* Rim
-* Brake Rotor
-* Exhaust
-* Reflector
-* Tire (Rubber)
-* Metal (Anodized/Dirt)
-* Leather (Perforated)
-* Alcantara
-* Fabric
-* Plastic
-* Glass
+[region:note]
+在 [基于物理的材质](Engine/Rendering/Materials/PhysicallyBased/) 文档页面可阅读“基于物理的渲染”深度解析和在 UE4 中的使用方法。
+[/region]
+
+## 汽车材质包所含内容
+
+汽车材质包中内含以下材质类型：
+
+* 车漆
+* 碳纤维
+* 卡钳
+* 轮毂
+* 刹车盘
+* 排气管
+* 反光片
+* 轮胎（橡胶）
+* 金属（电镀/污垢）
+* 皮革（孔洞）
+* 阿尔坎塔拉面料
+* 织物
+* 塑料
+* 玻璃
 
 [region:tip]
-If you are unsure what a certain parameter in the Material does, hovering your mouse over the parameter will display additional information.
+如您不确定参数在材质中的作用，将鼠标悬停在参数上即可显示附加信息。
+![](AP-Param-Description.png)
 [/region]
 
 [region:note]
-The vehicle meshes used in the documentation below **are not** included with the asset pack.
+下文中使用的载具模型 **未包含** 在资源包中。
 [/region]
 
-## Standard Material Parameters
 
-In the following section, we will take a look at some of the parameters that all of the Materials share, what those parameters do and how you can use them.
+## 常规材质参数
 
-* **Material Scale:** Material Scale gives you control over the Scaling / Tiling of a Texture or pattern that is used in the Material.
+在以下部分中我们将了解到所有材质共享的部分参数、它们的作用以及使用方法。
 
-* **Scale-Aware Tiling:** Scale- Aware Tiling scales the Materials UV's up or down based on the World Size of the Static Mesh that it is applied to resulting in a uniform Material scale on all objects the Material is applied to regardless of their current size or scale settings. 
+* **Material Scale：**可通过 Material Scale 控制材质中所用纹理或图案的缩放/平铺。
+
+* **Scale-Aware Tiling：**Scale- Aware Tiling 基于静态网格体的世界尺寸放大或缩小材质 UV。使用世界尺寸后，应用材质的所有物体将无视其当前的尺寸或比例设置，形成统一的材质比例。 
 
 	[OBJECT:ComparisonSlider]
 		[PARAM:before]
-		![Scale Aware Tiling](AP_02_SMP_01_Scale-Aware.png)
-		[/PARAM]
-		[PARAM:after]
 		![Normal Tiling](AP_02_SMP_02_NormalUV.png)
 		[/PARAM]
+		[PARAM:after]
+		![Scale Aware Tiling](AP_02_SMP_01_Scale-Aware.png)
+		[/PARAM]
 	[/OBJECT]
-
-* **World Aligned:** World Aligned allows objects that have incorrect or poorly setup UV's to correctly display the applied Material.
+	
+* **World Aligned：**利用 World Aligned 可在拥有错误/不佳设置 UV 的物体上正常显示应用的材质。
 
 	[OBJECT:ComparisonSlider]
 		[PARAM:before]
-		![World Aligned OFF and no UVs](AP_02_SMP_03_WA_OFF.png)
+		![World Aligned OFF and no UV's](AP_02_SMP_03_WA_OFF.png)
 		[/PARAM]
 		[PARAM:after]
-		![World Aligned ON and no UVs](AP_02_SMP_04_WA_ON.png)
+		![World Aligned ON and no UV's](AP_02_SMP_04_WA_ON.png)
 		[/PARAM]
 	[/OBJECT]
 
 	[region:note]
-	Please note that World Aligned UV's work best when used on static objects. When World Aligned UV's are applied to objects that move the Texture will  exhibit texture 'swimming' like in the video below.
+	注意：World Aligned UV 在静态物体上使用时效果最佳。World Aligned UV 应用到移动物体上时，材质将会出现类似于以下视频中的“游泳”效果。
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
 		640
@@ -89,16 +113,16 @@ In the following section, we will take a look at some of the parameters that all
 	[/OBJECT]
 	[/region]
 
-## Car Paint Material
+### 车漆
 
-The Car Paint Material is a very robust Material that has 29 unique parameters that can be adjusted. When trying to modify this Material for your project, we recommend you starting adjusting and experimenting with the following parameters:
+车漆材质是非常强大的材质，拥有 29 项专属可调参数。尝试修改项目材质时，我们建议您从调整和测试以下参数开始：
 
 * **Base Color/Flake**
 * **Scale/Flake**
 * **Normal Scale/Flake**
 * **Normal Strength/Parameters**
  
-By adjusting just these four different parameters you can achieve vastly different looks for your car paint Material. Here are two examples of what can be achieved by changing just those four parameters:
+仅调整这四项参数即可实现诸多不同的车漆材质效果。以下两个实例说明修改这四项参数可实现的效果：
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -109,52 +133,49 @@ By adjusting just these four different parameters you can achieve vastly differe
 	[/PARAM]
 [/OBJECT]
 
-The following image sequence shows off the variety of paint colors and surface looks that can be achieved by using just  the parameters listed above.
+以下图片序列展示可通过以上所列参数实现的各种油漆颜色和表面效果。
 
 [REGION:fullwidth]
 [INCLUDE:Enterprise\Automotive\AutomotiveMaterialPack\#CP]
 [/REGION]
 
-## Orange Peel Material Parameter
+### Orange Peel 材质参数
 
-The Clearcoat lacquer that is applied on top of automotive paint often has a slightly bumpy surface similar to the peel of an Orange. Because of this resemblance this layer of lacquer is referred to as Orange Peel. You can control the intensity of the Orange Peel using the **Orange Peel Strength** and **Orange Peel Scale** parameters. To disable the Orange Peel effect, set the **Orange Peel Strength** to **0**.
+应用在车漆上的透明涂层表面常有些许不平，和橘皮类似。因此，透明涂层的凹陷/不平部分被称作 Orange Peel。可通过 **Orange Peel Strength** 和 **Orange Peel Scale** 参数控制 Orange Peel 的强度。将 **Orange Peel Strength** 设为 **0** 即可禁用 Orange Peel 效果。
 
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Orange Peel Off](AP_03_Carpaint_03_OrangPeel_OFF.png)
-	[/PARAM]
-	[PARAM:after]
-	![Orange Peel On](AP_03_Carpaint_04_OrangPeel_ON.png)
-	[/PARAM]
-[/OBJECT]
+[REGION:fullwidth]
+[INCLUDE:Enterprise\Automotive\AutomotiveMaterialPack\#OP]
+[/REGION]
 
-## Carbon Fiber Material
+### 碳纤维
 
-The Carbon Fiber Material makes use of the new Dual Normal option that is available when using a  Clearcoat Material. The Dual Normal option allows you to add a 2nd Normal map to the Clearcoat Material so that both the bottom and top layers of the Material will react to changes to lighting. Without this feature, the glossy effect of the Carbon Fiber Material is lost, making the Carbon Fiber look not as realistic as it could be. 
+碳纤维材质利用了使用透明涂层材质时可用的全新 Dual Normal 选项。Dual Normal 选项可为透明涂层材质添加第二张法线贴图，因此材质的上下层将随灯光变化出现效果变化。脱离此功能，碳纤维材质的光滑效果将不复存在，真实感大大降低。 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Dual Normal On](AP_04_CarbonFiber.png)
-	[/PARAM]
-	[PARAM:after]
 	![Dual Normal Off](AP_04_CarbonFiber_No_2nd_Normal.png)
+	[/PARAM]
+	[PARAM:after]
+	![Dual Normal On](AP_04_CarbonFiber.png)
 	[/PARAM]
 [/OBJECT]
 
 [region:note]
-For more information on using Dual Normals with a Clearcoat Material make sure to check out the [Dual Normals](Engine/Rendering/Materials/HowTo/ClearCoatDualNormal) Material page.
+在 [双法线](Engine/Rendering/Materials/HowTo/ClearCoatDualNormal) 材质页面可查阅结合透明涂层材质使用双法线的更多内容。
 [/region]
 
-## Caliper Material
+## 车轮
 
-The caliper is part of a car's braking system and is usually placed on the brake disc in between the wheel rim and the brake pad. 
+### 卡钳
+
+卡钳是汽车刹车系统的一个部分，放置在刹车盘之上、刹车片和轮毂之间。 
 
 ![](AP_05_Caliper_01.png)
 
-When using the brake caliper Material you can adjust the following two parameters.
+使用刹车卡钳材质时，可对以下两项参数进行调整。
 
-* **Painted Caliper:** Plain color.
-* **Painted Caliper with Metallic Flakes:** Silver color with metallic flakes. 
+* **Painted Caliper：**油漆颜色。
+* **Painted Caliper with Metallic Flakes：**带金属薄片的银色。 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -165,27 +186,27 @@ When using the brake caliper Material you can adjust the following two parameter
 	[/PARAM]
 [/OBJECT]
 
-## Rim Material
+### 轮毂
 
-There are five different Materials that can be used for the rims of the wheels including a Two Tone option. When using the Two Tone Rim keep in mind that the Two Tone Rim is made up of two different Materials with one Material being blue-black and the other material is silver. The **Red Channel** of the Vertex Color on the Rim Static Mesh is used to define which areas of the wheel should be silver. Any areas that are not using red Vertex color should use black as the Vertex Color so that they will display the 2nd Material.
+可用于轮毂的材质有五种，包括一个 Two Tone 选项。使用双色调轮毂时请注意，它由两种不同材质组成，一种材质是蓝黑色、另一种材质是银色。轮毂静态网格体顶点颜色的 **红色通道** 用于定义车轮的哪些部分为银色。不使用红色顶点颜色的部分均使用黑色作为顶点颜色，使其显示第二项材质。
 
 ![](AP_06_Rim_Ball_01.png)
 
 [region:note]
-If you are unfamiliar with how to use Vertex Paint in UE4 please check out the [Mesh Paint](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/) user guide.
+如您不熟悉如何在 UE4 中使用顶点颜色，请查阅 [网格体绘制](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/) 用户指南。
 [/region]
 
 [REGION:fullwidth]
 [INCLUDE:Enterprise\Automotive\AutomotiveMaterialPack\#RM]
 [/REGION]
 
-## Brake Rotor Material
+### 刹车盘
 
-Since the brake rotor Material uses a radial Texture pattern the UV's of the brake rotor need to use planar UV project mapping to display the brake rotor Material correctly. Failing to setup the meshes UVs in this manner will result in the brake rotor Material not being displayed correctly when applied to the brake rotor mesh.  The image below shows an example of how a Texture should look when placed on an object that has planar projection mapping.
+材质使用刹车盘 UV 所需的放射状纹理图案，利用平面 UV 投射贴图正确显示刹车盘材质。如未以此方式正确设置刹车盘模型 UV，刹车盘材质应用到模型后将无法正常显示。下图为纹理放置到拥有平面投射贴图的物体上的效果。
 
 ![](AP_07_BrakeRotor_01.png)
 
-The following images show examples of the different types of brake rotor Materials that are available for use.
+以下图片为可用的不同刹车片材质类型。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -196,64 +217,52 @@ The following images show examples of the different types of brake rotor Materia
 	[/PARAM]
 [/OBJECT]
 
-## Reflector Material
+### 橡胶/轮胎 
 
-The reflector Material is used for the plastic  reflectors you find next to turn singles and on lights.  When looking at the reflector Material you will find that it comes with the following three reflector pattern presets:
+汽车材质包中的橡胶材质可用于汽车上的任意橡胶表面。举例而言，橡胶材质适用于以下表面。
 
-* **Hexagon**
-* **Honeycomb**
-* **Triangle**
+* **车门密封条**
+* **脚垫**
+* **内饰件**
+* **轮胎**
 
-	![](AP_08_Reflector_02.png)
-
-To change which reflector pattern is used,  open up the **Reflector** Material Instance and change the **Reflector(Bottom Layer) Normal** to the reflector pattern you want to use.
-
-![](AP_08_Reflector_01.png)
-
-## Rubber / Tire Material
-
-The rubber Material that comes with the Automotive Material Pack can be used for any general rubber surface you might find in a car. For example, the following surfaces would make good use of the rubber Material.
-
-* **Door Seals**
-* **Floor Mats**
-* **Interior Pieces**
-* **Tires**
-
-When looking at the rubber Material Instance you will notice that it has a tire-specific option called **Use Sidewall**. Enabling this option will add a new Normal Map Texture that is for display the lettering that can be found on the tire sidewalls. Failing to properly line up the UV of the tire sidewall to the Normal map of the tire will result in the tire lettering and logos not show up correctly on the tire sidewall like in the image below. 
+查看橡胶材质实例时，您将看到一个名为 **Use Sidewall** 的选项（橡胶材质专有）。启用该项将新添加一个法线贴图纹理，用于显示轮胎侧壁上的文字。如未将轮胎侧壁 UV 和轮胎的法线贴图正确排列，将导致侧壁上的文字和标志无法正常显示。 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Correct Way](AP_09_Rubber_04_Right.png)
+	![Misaligned UV Layout](AP_09_Rubber_04_Wrong.png)
 	[/PARAM]
 	[PARAM:after]
-	![Wrong Way](AP_09_Rubber_04_Wrong.png)
+	![Aligned UV Layout](AP_09_Rubber_04_Right.png)
 	[/PARAM]
 [/OBJECT]
 
 [region:note]
-When using the sidewall option for a tire you will need to make sure that the UV for the tire sidewall mesh line up with the Normal Map like in the image marked Correct UV Layout.
+使用轮胎的侧壁选项时，需确保轮胎侧壁模型的 UV 与法线贴图正确排列，如名为“正确 UV 排列”的图片中所示。
 [/region]
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Correct UV Layout](AP_09_Rubber_05_UV_LineUp.png)
+	![Misaligned UV Layout](AP_09_Rubber_06_UV_Wrong.png)
 	[/PARAM]
 	[PARAM:after]
-	![Wrong UV Layout](AP_09_Rubber_06_UV_Wrong.png)
+	![Aligned UV Layout](AP_09_Rubber_05_UV_LineUp.png)
 	[/PARAM]
 [/OBJECT]
-
+	
 [REGION:lightbox]
 [![](AP_Tire_Sidewall.png)(w:800)](AP_Tire_Sidewall.png)
 [/REGION]
 
 [REGION:caption]
-Click for full image.
+点击查看全图。
 [/REGION]
 
-## Leather / Perforated Material
+## 内饰 
 
-The leather Material that comes with the Automotive Material Pack has 12 different preset leather colors to choose from and also contains five different perforated leather presets. 
+### 皮革/孔洞 
+
+汽车材质包中内含的皮革材质拥有 12 种不同预设皮革颜色可供选择、5 种不同带孔皮革预设。 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -264,15 +273,15 @@ The leather Material that comes with the Automotive Material Pack has 12 differe
 	[/PARAM]
 [/OBJECT]
 
-## Alcantara Material
+### 阿尔坎塔拉面料 
 
-The alcantara Material that comes with the Automotive Material Pack is used to display the fabrics you find in car's. When using the alcantara Material you can adjust the following parameters to manipulate the look of the fabric.
+汽车材质包中内含的阿尔坎塔拉材质是一种仿麂皮材质，常用于高端跑车。使用阿尔坎塔拉材质时，可通过以下参数调整面料效果。
 
 * **Fabric Scale / Strength**
 * **Cloth Folds Scale / Strength**
 * **Fabric Detail Scale / Strength**
 
-In the following set of images, you can see the effect that the **Cloth Folds** parameter has on the look of the alcantara fabric Material.
+以下图片集展示 **Cloth Folds** 参数在阿尔坎塔拉面料材质上的效果。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -283,19 +292,19 @@ In the following set of images, you can see the effect that the **Cloth Folds** 
 	[/PARAM]
 [/OBJECT]
 
-## Glass Material
+## 玻璃 
 
-The glass Material that comes with the Automotive Material Pack has the ability to display two completely different reflections in one Material. With this Material you can select what the exterior glass should reflect as well as what the interior glass should reflect. 
+汽车材质包中内含的玻璃材质可在一个材质上显示两个完全不同的反射。可通过此材质选择玻璃内侧和外侧反射的内容。 
 
-* **Outer Reflection:** Helps to reflect the scene around the exterior of the glass. 
+* **Outer Reflection：**反射玻璃外侧周围的场景。 
 
 	![](AP_12_Glass_06_Ex.png)
 
-* **Inner Reflection:** Helps to reflect the scene around the interor of the glass.
+* **Inner Reflection：**反射玻璃内侧周围的场景。
 
 	![](AP_12_Glass_07_Ex.png)
 
-Here is an example of what the glass Material looks like with the inner reflections enabled and without the inner reflection enabled. 
+此例显示玻璃材质启用内侧反射和不启用内侧反射的效果。 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -306,14 +315,30 @@ Here is an example of what the glass Material looks like with the inner reflecti
 	[/PARAM]
 [/OBJECT]
 
-When using the inner reflections for a car windshield the best workflow is to capture a Cubemap from the inside of the car. Then in the glass Material Instance, enable the **Use Glass Inner Reflections Cubemap** option and then input the Cubemap you want to use into the **Cubemap** input.
+使用汽车挡风玻璃的内侧反射时，最佳方法是先从车内获取一张立方体贴图。然后在玻璃材质实例中启用 **Use Glass Inner Reflections Cubemap** 选项，并将需要使用的立方体贴图输入到 **Cubemap** 输入中。
 
 ![](AP_12_Glass_01.png)
 
 [region:note]
-If you are unfamiliar with how to capture and use Cubemap in UE4 please check out the [Cubemap user guide](Engine/Content/Types/Textures/Cubemaps) for more information on how to capture and use Cubemaps in UE4.
+如您不熟悉如何在 UE4 中获取和使用立方体贴图，请查阅 [立方体贴图用户指南](Engine/Content/Types/Textures/Cubemaps) 中的详细内容。
 [/region]
 
+
+## 反光片 
+
+反光片材质用于转向灯、上下灯旁的塑料反光片上。反光片材质带以下三种图案预设：
+
+* **Hexagon**
+* **Honeycomb**
+* **Triangle**
+
+	[REGION:fullwidth]
+	[INCLUDE:Enterprise\Automotive\AutomotiveMaterialPack\#RF]
+	[/REGION]
+
+如需变更使用的反光片图案，打开 **Reflector** 材质实例，将 **Reflector(Bottom Layer) Normal** 改为需要使用的图案。
+
+![](AP_08_Reflector_01.png)
 
 <!-----
 [EXCERPT:RM]
@@ -328,7 +353,7 @@ If you are unfamiliar with how to capture and use Cubemap in UE4 please check ou
 	RM
 	[/PARAMLITERAL]
 	[PARAM:caption]
-	**1:Two Tone 2:Brushed 3:Grey 4:Blue Black 5:Silver**
+	**1：双色调 2：拉丝 3：灰色 4：蓝黑色 5：银色**
 	[/PARAM]
 	[PARAM:image_list]
 	![](RM_1.png)
@@ -354,7 +379,7 @@ If you are unfamiliar with how to capture and use Cubemap in UE4 please check ou
 	CP
 	[/PARAMLITERAL]
 	[PARAM:caption]
-	**Drag the slider to see the different colors of paint.**
+	**拖动滑条查看不同油漆颜色。**
 	[/PARAM]
 	[PARAM:image_list]
 	![](CP_1.png)
@@ -374,4 +399,54 @@ If you are unfamiliar with how to capture and use Cubemap in UE4 please check ou
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:CP]
+-->
+
+<!-----
+[EXCERPT:RF]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	3
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	RF
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**拖动滑条查看六边形、蜂窝状和三角形反光片图案。**
+	[/PARAM]
+	[PARAM:image_list]
+	![](RF_1.png)
+	![](RF_2.png)
+	![](RF_3.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:RF]
+-->
+
+<!-----
+[EXCERPT:OP]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	5
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	OP
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**拖动滑条查看 Orange Peel 强度从 0.0 逐渐增加到 0.8 时的效果变化。**
+	[/PARAM]
+	[PARAM:image_list]
+	![](OP_1.png)
+	![](OP_2.png)
+	![](OP_3.png)
+	![](OP_4.png)
+	![](OP_5.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:OP]
 -->

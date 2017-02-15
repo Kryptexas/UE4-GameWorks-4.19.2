@@ -70,7 +70,7 @@ We now have a simple Pawn that will allow us to control our camera comfortably. 
     [/PARAM]
     [PARAM:content]
 		**PawnWithCamera.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -86,9 +86,11 @@ We now have a simple Pawn that will allow us to control our camera comfortably. 
 				// Sets default values for this pawn's properties
 				APawnWithCamera();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
-	
+			
+			public:
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 
@@ -102,7 +104,7 @@ We now have a simple Pawn that will allow us to control our camera comfortably. 
 			};
 
 		**PawnWithCamera.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerCamera.h"
 			#include "PawnWithCamera.h"

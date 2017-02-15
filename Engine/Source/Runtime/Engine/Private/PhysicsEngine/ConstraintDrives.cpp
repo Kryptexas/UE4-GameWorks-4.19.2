@@ -1,9 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "PhysicsEngine/ConstraintDrives.h"
 #include "PhysicsPublic.h"
-#include "PhysXSupport.h"
-#include "PhysicsEngine/ConstraintInstance.h"
+#include "PhysXIncludes.h"
 
 const bool bIsAccelerationDrive = true;
 
@@ -101,16 +100,26 @@ void FLinearDriveConstraint::SetLinearVelocityDrive(bool bEnableXDrive, bool bEn
 	ZDrive.bEnableVelocityDrive = bEnableZDrive;
 }
 
-void FAngularDriveConstraint::SetAngularPositionDrive(bool InEnableSwingDrive, bool InEnableTwistDrive)
+void FAngularDriveConstraint::SetOrientationDriveTwistAndSwing(bool InEnableTwistDrive, bool InEnableSwingDrive)
 {
 	SwingDrive.bEnablePositionDrive = InEnableSwingDrive;
 	TwistDrive.bEnablePositionDrive = InEnableTwistDrive;
 }
 
-void FAngularDriveConstraint::SetAngularVelocityDrive(bool InEnableSwingDrive, bool InEnableTwistDrive)
+void FAngularDriveConstraint::SetOrientationDriveSLERP(bool InEnableSLERP)
+{
+	SlerpDrive.bEnablePositionDrive = InEnableSLERP;
+}
+
+void FAngularDriveConstraint::SetAngularVelocityDriveTwistAndSwing(bool InEnableTwistDrive, bool InEnableSwingDrive)
 {
 	SwingDrive.bEnableVelocityDrive = InEnableSwingDrive;
 	TwistDrive.bEnableVelocityDrive = InEnableTwistDrive;
+}
+
+void FAngularDriveConstraint::SetAngularVelocityDriveSLERP(bool InEnableSLERP)
+{
+	SlerpDrive.bEnableVelocityDrive = InEnableSLERP;
 }
 
 void FConstraintDrive::SetDriveParams(float InStiffness, float InDamping, float InForceLimit)
@@ -125,6 +134,11 @@ void FLinearDriveConstraint::SetDriveParams(float InStiffness, float InDamping, 
 	XDrive.SetDriveParams(InStiffness, InDamping, InForceLimit);
 	YDrive.SetDriveParams(InStiffness, InDamping, InForceLimit);
 	ZDrive.SetDriveParams(InStiffness, InDamping, InForceLimit);
+}
+
+void FAngularDriveConstraint::SetAngularDriveMode(EAngularDriveMode::Type DriveMode)
+{
+	AngularDriveMode = DriveMode;
 }
 
 void FAngularDriveConstraint::SetDriveParams(float InStiffness, float InDamping, float InForceLimit)

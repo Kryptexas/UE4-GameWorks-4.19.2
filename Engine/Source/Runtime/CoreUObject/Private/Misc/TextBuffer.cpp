@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TextBuffer.cpp: UObject class for storing text
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
 #include "Misc/TextBuffer.h"
+#include "UObject/Class.h"
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UTextBuffer, UObject, { });
 

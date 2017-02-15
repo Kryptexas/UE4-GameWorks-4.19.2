@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11Viewport.cpp: D3D viewport RHI implementation.
@@ -6,6 +6,7 @@
 
 #include "D3D11RHIPrivate.h"
 #include "RenderCore.h"
+#include "Misc/CommandLine.h"
 
 #include "AllowWindowsPlatformTypes.h"
 #include <dwmapi.h>
@@ -37,6 +38,33 @@ FD3D11Viewport::FD3D11Viewport(FD3D11DynamicRHI* InD3DRHI,HWND InWindowHandle,ui
 	// Create a backbuffer/swapchain for each viewport
 	TRefCountPtr<IDXGIDevice> DXGIDevice;
 	VERIFYD3D11RESULT_EX(D3DRHI->GetDevice()->QueryInterface(IID_IDXGIDevice, (void**)DXGIDevice.GetInitReference()), D3DRHI->GetDevice());
+
+	// If requested, keep a handle to a DXGIOutput so we can force that display on fullscreen swap
+	uint32 DisplayIndex = D3DRHI->GetHDRDetectedDisplayIndex();
+	bForcedFullscreenDisplay = FParse::Value(FCommandLine::Get(), TEXT("FullscreenDisplay="), DisplayIndex);
+
+	if (bForcedFullscreenDisplay || GRHISupportsHDROutput)
+	{
+		TRefCountPtr<IDXGIAdapter> DXGIAdapter;
+		DXGIDevice->GetAdapter((IDXGIAdapter**)DXGIAdapter.GetInitReference());
+
+		if (S_OK != DXGIAdapter->EnumOutputs(DisplayIndex, ForcedFullscreenOutput.GetInitReference()))
+		{
+			UE_LOG(LogD3D11RHI, Log, TEXT("Failed to find requested output display (%i)."), DisplayIndex);
+			ForcedFullscreenOutput = nullptr;
+			bForcedFullscreenDisplay = false;
+		}
+	}
+	else
+	{
+		ForcedFullscreenOutput = nullptr;
+	}
+
+	if (PixelFormat == PF_FloatRGBA && bIsFullscreen)
+	{
+		// Send HDR meta data to enable
+		D3DRHI->EnableHDR();
+	}
 
 	// Create the swapchain.
 	DXGI_SWAP_CHAIN_DESC SwapChainDesc;
@@ -85,7 +113,10 @@ void FD3D11Viewport::ConditionalResetSwapChain(bool bIgnoreFocus)
 			RECT OriginalCursorRect;
 			GetClipCursor(&OriginalCursorRect);
 
-			HRESULT Result = SwapChain->SetFullscreenState(bIsFullscreen,NULL);
+			// Explicit output selection in fullscreen only (commandline or HDR enabled)
+			bool bNeedsForcedDisplay = bIsFullscreen && (bForcedFullscreenDisplay || PixelFormat == PF_FloatRGBA);
+			HRESULT Result = SwapChain->SetFullscreenState(bIsFullscreen, bNeedsForcedDisplay ? ForcedFullscreenOutput : nullptr);
+
 			if(SUCCEEDED(Result))
 			{
 				ClipCursor(&OriginalCursorRect);

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620109
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:1. 폰에 카메라 붙이기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
@@ -42,7 +42,7 @@ version:4.9
 		//컴포넌트를 생성합니다
 		RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 		OurCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
-		OurCameraSpringArm->AttachTo(RootComponent);
+		OurCameraSpringArm->SetupAttachment(RootComponent);
 		OurCameraSpringArm->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f));
 		OurCameraSpringArm->TargetArmLength = 400.f;
 		OurCameraSpringArm->bEnableCameraLag = true;
@@ -51,7 +51,7 @@ version:4.9
 	그러면 기본 공백 **Scene** 컴포넌트가 계층구조의 루트로 생성되며, 거기에 **Spring Arm** 컴포넌트를 만들어 붙입니다. 그런 다음 **Spring Arm** 의 기본 핏치를 -60 도로 (즉 아래로 60 도를 향하도록) 설정하고, 위치를 루트에서 50 유닛 위로 잡습니다. **SpringArmComponent** 에 그 길이와 동작의 유연성을 결정하기 위한 전용 변수를 몇 개 만들어 주기도 했습니다. 그 작업이 완료되면 다음과 같이 **SpringArmComponent** 끝의 소켓에 **CameraComponent** 를 만들어 추가해 주기만 하면 됩니다:
 
 		OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("GameCamera"));
-		OurCamera->AttachTo(OurCameraSpringArm, USpringArmComponent::SocketName);
+		OurCamera->SetupAttachment(OurCameraSpringArm, USpringArmComponent::SocketName);
 
 1. 마지막으로 로컬 플레이어 스폰시 자동으로 **Pawn** 을 기본 제어하도록, 다음 코드 조각을 추가하여 설정하면 됩니다:
 
@@ -71,7 +71,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**PawnWithCamera.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -103,7 +103,7 @@ version:4.9
 			};
 
 		**PawnWithCamera.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerCamera.h"
 			#include "PawnWithCamera.h"
@@ -117,13 +117,13 @@ version:4.9
 				//Create our components
 				RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 				OurCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
-				OurCameraSpringArm->AttachTo(RootComponent);
+				OurCameraSpringArm->SetupAttachment(RootComponent);
 				OurCameraSpringArm->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f));
 				OurCameraSpringArm->TargetArmLength = 400.f;
 				OurCameraSpringArm->bEnableCameraLag = true;
 				OurCameraSpringArm->CameraLagSpeed = 3.0f;
 				OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("GameCamera"));
-				OurCamera->AttachTo(OurCameraSpringArm, USpringArmComponent::SocketName);
+				OurCamera->SetupAttachment(OurCameraSpringArm, USpringArmComponent::SocketName);
 
 				//Take control of the default Player
 				AutoPossessPlayer = EAutoReceiveInput::Player0;

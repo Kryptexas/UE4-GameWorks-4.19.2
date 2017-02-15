@@ -1,11 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "EngineVersion.h"
-#include "GatherableTextData.h"
-#include "Linker.h"
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/LazyObjectPtr.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/AssetPtr.h"
+#include "UObject/ObjectResource.h"
+#include "UObject/Linker.h"
+
+class FLinkerPlaceholderBase;
+struct FScopedSlowTask;
+struct FUntypedBulkData;
 
 /*----------------------------------------------------------------------------
 	FLinkerLoad.
@@ -61,12 +68,11 @@ struct FScopedCreateImportCounter
 /**
  * Handles loading Unreal package files, including reading UObject data from disk.
  */
-#if USE_NEW_ASYNC_IO
 class FArchiveAsync2;
-#endif
-class FLinkerLoad
-#if USE_NEW_ASYNC_IO
-	final
+
+class FLinkerLoad 
+#if !WITH_EDITOR
+	final 
 #endif
 	: public FLinker, public FArchiveUObject
 {
@@ -113,19 +119,19 @@ public:
 	bool					bHaveImportsBeenVerified;
 	/** Indicates that this linker was created for a dynamic class package and will not use Loader */
 	bool					bDynamicClassLinker;
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
+
 	UObject*				TemplateForGetArchetypeFromLoader;
 	bool					bForceSimpleIndexToObject;
 	bool					bLockoutLegacyOperations;
-#endif
-#if USE_NEW_ASYNC_IO
+
 	/** True if Loader is FArchiveAsync2  */
 	bool					bLoaderIsFArchiveAsync2;
 	FORCEINLINE FArchiveAsync2* GetFArchiveAsync2Loader()
 	{
+		check(GNewAsyncIO);
 		return bLoaderIsFArchiveAsync2 ? (FArchiveAsync2*)Loader : nullptr;
 	}
-#endif
+
 	/** The archive that actually reads the raw data from disk.																*/
 	FArchive*				Loader;
 	/** The async package associated with this linker */
@@ -187,17 +193,40 @@ public:
 	/** 
 	 * Utility functions to query the object name redirects list for the current name for a class
 	 * @param OldClassName An old class name, without path
-	 * @param bIsInstance If true, we're an instance, so check instance only maps as well
-	 * @return Current full path of this class. It will be None if no redirect found
+	 * @return Current full path of the class. It will be None if no redirect found
 	 */
 	COREUOBJECT_API static FName FindNewNameForClass(FName OldClassName, bool bIsInstance);
 
-	/**
-	* Utility functions to check the list of known missing packages and silence any warnings
-	* that may have occurred on load.
-	* @return true if the provided package is in the KnownMissingPackage list
+	/** 
+	* Utility functions to query the enum name redirects list for the current name for an enum
+	* @param OldEnumName An old enum name, without path
+	* @return Current full path of the enum. It will be None if no redirect found
 	*/
+	COREUOBJECT_API static FName FindNewNameForEnum(FName OldEnumName);
+
+	/** 
+	* Utility functions to query the struct name redirects list for the current name for a struct
+	* @param OldStructName An old struct name, without path
+	* @return Current full path of the struct. It will be None if no redirect found
+	*/
+	COREUOBJECT_API static FName FindNewNameForStruct(FName OldStructName);
+
+	/**
+	 * Utility functions to check the list of known missing packages and silence any warnings
+	 * that may have occurred on load.
+	 * @return true if the provided package is in the KnownMissingPackage list
+	 */
 	COREUOBJECT_API static bool IsKnownMissingPackage(FName PackageName);
+
+	/**
+	 * Register that a package is now known missing and that it should silence future warnings/issues
+	 */
+	COREUOBJECT_API static void AddKnownMissingPackage(FName PackageName);
+
+	/**
+	* Checks if the linker has any objects in the export table that require loading.
+	*/
+	COREUOBJECT_API bool HasAnyObjectsPendingLoad() const;
 
 private:
 
@@ -253,7 +282,6 @@ private:
 	/** Id of the thread that created this linker. This is to guard against using this linker on other threads than the one it was created on **/
 	int32					OwnerThread;
 
-#if !USE_NEW_ASYNC_IO
 	/**
 	 * Helper struct to keep track of background file reads
 	 */
@@ -298,8 +326,6 @@ public:
 	COREUOBJECT_API static void GetListOfPackagesInPackagePrecacheMap(TArray<FString>& ListOfPackages);
 private:
 
-#endif
-
 	/** Allows access to UTexture2D::StaticClass() without linking Core with Engine											*/
 	static UClass* UTexture2DStaticClass;
 
@@ -327,6 +353,11 @@ public:
 	 * Add redirects to FLinkerLoad static map
 	 */
 	static void CreateActiveRedirectsMap(const FString& GEngineIniName);
+
+	/**
+	 * Test whether the given package index is a valid import or export in this package
+	 */
+	bool IsValidPackageIndex(FPackageIndex InIndex);
 
 	/**
 	 * Locates the class adjusted index and its package adjusted index for a given class name in the import map
@@ -464,7 +495,7 @@ public:
 	 *					If Object is a UClass and the class default object has already been created, calls
 	 *					Preload for the class default object as well.
 	 */
-	void Preload( UObject* Object ) override;
+	COREUOBJECT_API void Preload( UObject* Object ) override;
 
 	/**
 	 * Before loading a persistent object from disk, this function can be used to discover
@@ -495,14 +526,12 @@ public:
 	 */
 	COREUOBJECT_API bool WillTextureBeLoaded( UClass* Class, int32 ExportIndex );
 
-#if !USE_NEW_ASYNC_IO
 	/**
 	 * Kick off an async load of a package file into memory
 	 * 
 	 * @param PackageName Name of package to read in. Must be the same name as passed into LoadPackage/CreateLinker
 	 */
 	COREUOBJECT_API static void AsyncPreloadPackage(const TCHAR* PackageName);
-#endif
 
 	/**
 	 * Called when an object begins serializing property data using script serialization.
@@ -514,9 +543,7 @@ public:
 	 */
 	virtual void MarkScriptSerializationEnd( const UObject* Obj ) override;
 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 	virtual UObject* GetArchetypeFromLoader(const UObject* Obj) override;
-#endif
 
 	/**
 	 * Looks for an existing linker for the given package, without trying to make one if it doesn't exist
@@ -677,7 +704,7 @@ public:
 	/**
 	 * Detaches linker from bulk data.
 	 */
-	void LoadAndDetachAllBulkData();
+	COREUOBJECT_API void LoadAndDetachAllBulkData();
 
 	/**
 	* Detaches linker from bulk data/ exports and removes itself from array of loaders.
@@ -781,9 +808,7 @@ private:
 	 * @return	new FLinkerLoad object for Parent/ Filename
 	 */
 	COREUOBJECT_API static FLinkerLoad* CreateLinkerAsync(UPackage* Parent, const TCHAR* Filename, uint32 LoadFlags
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-		, TFunction<void()>&& InSummaryReadyCallback
-#endif		
+		, TFunction<void()>&& InSummaryReadyCallback	
 	);
 
 	/**
@@ -822,9 +847,7 @@ protected: // Daniel L: Made this protected so I can override the constructor an
 	 * Creates loader used to serialize content.
 	 */
 	ELinkerStatus CreateLoader(
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 		TFunction<void()>&& InSummaryReadyCallback
-#endif
 	);
 private:
 	/**

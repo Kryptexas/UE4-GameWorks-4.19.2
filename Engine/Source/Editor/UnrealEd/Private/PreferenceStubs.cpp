@@ -1,7 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "Preferences/CascadeOptions.h"
+#include "Preferences/CurveEdOptions.h"
+#include "Preferences/MaterialEditorOptions.h"
+#include "Preferences/PersonaOptions.h"
+#include "Preferences/PhATSimOptions.h"
 
 // @todo find a better place for all of this, preferably in the appropriate modules
 // though this would require the classes to be relocated as well
@@ -49,7 +54,6 @@ UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
 	BranchingPointTimingNodeColor = FLinearColor(0.5f, 1.0f, 1.0f);
 
 	bAutoAlignFloorToMesh = true;
-	bUseStandaloneAnimationEditors = true;
 }
 
 void UPersonaOptions::SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor)

@@ -1,18 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "HardwareTargetingPrivatePCH.h"
 #include "HardwareTargetingModule.h"
-#include "HardwareTargetingSettings.h"
-#include "Internationalization.h"
+#include "HAL/FileManager.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UnrealType.h"
+#include "GameMapsSettings.h"
+#include "GameFramework/InputSettings.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Textures/SlateIcon.h"
+#include "EditorStyleSet.h"
 #include "ISettingsModule.h"
-#include "ModuleManager.h"
+#include "Widgets/SWidget.h"
 #include "SDecoratedEnumCombo.h"
 
-#include "Runtime/Engine/Classes/Engine/RendererSettings.h"
-#include "Editor/Documentation/Public/IDocumentation.h"
-#include "GameFramework/InputSettings.h"
-#include "GameMapsSettings.h"
-#include "EditorProjectSettings.h"
+#include "Engine/RendererSettings.h"
+#include "Widgets/SToolTip.h"
+#include "IDocumentation.h"
+#include "Settings/EditorProjectSettings.h"
 
 #define LOCTEXT_NAMESPACE "HardwareTargeting"
 
@@ -114,12 +118,19 @@ FText FMetaSettingGatherer::ValueToString(EAntiAliasingMethod Value)
 	}
 }
 
+static FName HardwareTargetingConsoleVariableMetaFName(TEXT("ConsoleVariable"));
+
 #define UE_META_SETTING_ENTRY(Builder, Class, PropertyName, TargetValue) \
 { \
 	Class* SettingsObject = GetMutableDefault<Class>(); \
 	bool bModified = SettingsObject->PropertyName != (TargetValue); \
-	if (!Builder.bReadOnly) { SettingsObject->PropertyName = (TargetValue); } \
-	Builder.AddEntry(SettingsObject, FindFieldChecked<UProperty>(Class::StaticClass(), GET_MEMBER_NAME_CHECKED(Class, PropertyName)), FMetaSettingGatherer::ValueToString(TargetValue), bModified); \
+	UProperty* Property = FindFieldChecked<UProperty>(Class::StaticClass(), GET_MEMBER_NAME_CHECKED(Class, PropertyName)); \
+	if (!Builder.bReadOnly) { \
+		FString CVarName = Property->GetMetaData(HardwareTargetingConsoleVariableMetaFName); \
+		if (!CVarName.IsEmpty()) { IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(*CVarName); \
+			if (CVar) { CVar->Set(TargetValue, ECVF_SetByProjectSetting); } } \
+		SettingsObject->PropertyName = (TargetValue); } \
+	Builder.AddEntry(SettingsObject, Property, FMetaSettingGatherer::ValueToString(TargetValue), bModified); \
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -1,27 +1,37 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Engine/LocalPlayer.h"
+#include "Misc/FileHelper.h"
+#include "EngineDefines.h"
+#include "EngineGlobals.h"
+#include "Engine/Scene.h"
+#include "Camera/CameraTypes.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
+#include "Engine/World.h"
+#include "SceneView.h"
+#include "UObject/UObjectAnnotation.h"
+#include "Logging/LogScopedCategoryAndVerbosityOverride.h"
+#include "UObject/UObjectIterator.h"
+#include "GameFramework/OnlineReplStructs.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "UnrealEngine.h"
+#include "EngineUtils.h"
 
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpGroupInst.h"
-#include "SubtitleManager.h"
-#include "Net/UnrealNetwork.h"
 #include "Net/OnlineEngineInterface.h"
+#include "SceneManagement.h"
 #include "PhysicsPublic.h"
+#include "SkeletalMeshTypes.h"
 
-#include "RenderCore.h"
-#include "ColorList.h"
-#include "SlateBasics.h"
-#include "UObjectAnnotation.h"
 
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
-#include "DataChannel.h"
-#include "GameFramework/OnlineSession.h"
-#include "GameFramework/PlayerInput.h"
-#include "GameFramework/GameModeBase.h"
-#include "GameFramework/GameStateBase.h"
+#include "Net/DataChannel.h"
 #include "GameFramework/PlayerState.h"
 
 #include "GameDelegates.h"
@@ -183,6 +193,7 @@ void ULocalPlayer::PostInitProperties()
 		if( GEngine->StereoRenderingDevice.IsValid() )
 		{
 			StereoViewState.Allocate();
+			MonoViewState.Allocate();
 		}
 	}
 }
@@ -313,6 +324,7 @@ void ULocalPlayer::FinishDestroy()
 	{
 		ViewState.Destroy();
 		StereoViewState.Destroy();
+		MonoViewState.Destroy();
 	}
 	Super::FinishDestroy();
 }
@@ -694,7 +706,21 @@ bool ULocalPlayer::CalcSceneViewInitOptions(
 	}
 
 	check(PlayerController && PlayerController->GetWorld());
-	ViewInitOptions.SceneViewStateInterface = ((StereoPass != eSSP_RIGHT_EYE) ? ViewState.GetReference() : StereoViewState.GetReference());
+	switch (StereoPass)
+	{
+	case eSSP_FULL:
+	case eSSP_LEFT_EYE:
+		ViewInitOptions.SceneViewStateInterface = ViewState.GetReference();
+		break;
+
+	case eSSP_RIGHT_EYE:
+		ViewInitOptions.SceneViewStateInterface = StereoViewState.GetReference();
+		break;
+
+	case eSSP_MONOSCOPIC_EYE:
+		ViewInitOptions.SceneViewStateInterface = MonoViewState.GetReference();
+		break;
+	}
 	ViewInitOptions.ViewActor = PlayerController->GetViewTarget();
 	ViewInitOptions.ViewElementDrawer = ViewDrawer;
 	ViewInitOptions.BackgroundColor = FLinearColor::Black;
@@ -702,11 +728,37 @@ bool ULocalPlayer::CalcSceneViewInitOptions(
 	ViewInitOptions.StereoPass = StereoPass;
 	ViewInitOptions.WorldToMetersScale = PlayerController->GetWorldSettings()->WorldToMeters;
 	ViewInitOptions.CursorPos = Viewport->HasMouseCapture() ? FIntPoint(-1, -1) : FIntPoint(Viewport->GetMouseX(), Viewport->GetMouseY());
-	ViewInitOptions.bOriginOffsetThisFrame = PlayerController->GetWorld()->bOriginOffsetThisFrame;
+	ViewInitOptions.OriginOffsetThisFrame = PlayerController->GetWorld()->OriginOffsetThisFrame;
 
 	return true;
 }
 
+static void SetupMonoParameters(FSceneViewFamily& ViewFamily, const FSceneView& MonoView)
+{
+	// Compute the NDC depths for the far field clip plane. This assumes symmetric projection.
+	const FMatrix& LeftEyeProjection = ViewFamily.Views[0]->ViewMatrices.GetProjectionMatrix();
+
+	// Start with a point on the far field clip plane in eye space. The mono view uses a point slightly biased towards the camera to ensure there's overlap.
+	const FVector4 StereoDepthCullingPointEyeSpace(0.0f, 0.0f, ViewFamily.MonoParameters.CullingDistance, 1.0f);
+	const FVector4 FarFieldDepthCullingPointEyeSpace(0.0f, 0.0f, ViewFamily.MonoParameters.CullingDistance - ViewFamily.MonoParameters.OverlapDistance, 1.0f);
+
+	// Project into clip space
+	const FVector4 ProjectedStereoDepthCullingPointClipSpace = LeftEyeProjection.TransformFVector4(StereoDepthCullingPointEyeSpace);
+	const FVector4 ProjectedFarFieldDepthCullingPointClipSpace = LeftEyeProjection.TransformFVector4(FarFieldDepthCullingPointEyeSpace);
+
+	// Perspective divide for NDC space
+	ViewFamily.MonoParameters.StereoDepthClip = ProjectedStereoDepthCullingPointClipSpace.Z / ProjectedStereoDepthCullingPointClipSpace.W;
+	ViewFamily.MonoParameters.MonoDepthClip = ProjectedFarFieldDepthCullingPointClipSpace.Z / ProjectedFarFieldDepthCullingPointClipSpace.W;
+
+	// We need to determine the stereo disparity difference between the center mono view and an offset stereo view so we can account for it when compositing.
+	// We take a point on a stereo view far field clip plane, unproject it, then reproject it using the mono view. The stereo disparity offset is then
+	// the difference between the original test point and the reprojected point.
+	const FVector4 ProjectedPointAtLimit(0.0f, 0.0f, ViewFamily.MonoParameters.MonoDepthClip, 1.0f);
+	const FVector4 WorldProjectedPoint = ViewFamily.Views[0]->ViewMatrices.GetInvViewProjectionMatrix().TransformFVector4(ProjectedPointAtLimit);
+	FVector4 MonoProjectedPoint = MonoView.ViewMatrices.GetViewProjectionMatrix().TransformFVector4(WorldProjectedPoint / WorldProjectedPoint.W);
+	MonoProjectedPoint = MonoProjectedPoint / MonoProjectedPoint.W;
+	ViewFamily.MonoParameters.LateralOffset = (MonoProjectedPoint.X - ProjectedPointAtLimit.X) / 2.0f;
+}
 
 FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily, 
 	FVector& OutViewLocation, 
@@ -777,6 +829,13 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	{
 		ViewFamily->ViewExtensions[ViewExt]->SetupView(*ViewFamily, *View);
 	}
+
+	// Monoscopic far field setup
+	if (ViewFamily->IsMonoscopicFarFieldEnabled() && StereoPass == eSSP_MONOSCOPIC_EYE)
+	{
+		SetupMonoParameters(*ViewFamily, *View);
+	}
+
 	return View;
 }
 
@@ -1519,6 +1578,12 @@ void ULocalPlayer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 	if (StereoRef)
 	{
 		StereoRef->AddReferencedObjects(Collector);
+	}
+
+	FSceneViewStateInterface* MonoRef = This->MonoViewState.GetReference();
+	if (MonoRef)
+	{
+		MonoRef->AddReferencedObjects(Collector);
 	}
 
 	UPlayer::AddReferencedObjects(This, Collector);

@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __SkeletonTreeCommands_h_
 #define __SkeletonTreeCommands_h_
+
+#include "CoreMinimal.h"
+#include "EditorStyleSet.h"
+#include "Framework/Commands/Commands.h"
 
 /**
  * Class containing commands for skeleton tree actions
@@ -41,6 +45,9 @@ public:
 
 	/** Show retargeting options */
 	TSharedPtr< FUICommandInfo > ShowRetargeting;
+
+	/** Flatten hierarchy on filter */
+	TSharedPtr< FUICommandInfo > FilteringFlattensHierarchy;
 
 	/** Add a socket to the skeleton */
 	TSharedPtr< FUICommandInfo > AddSocket;
@@ -86,6 +93,9 @@ public:
 
 	/** Paste sockets from clipboard */
 	TSharedPtr< FUICommandInfo > PasteSocketsToSelectedBone;
+
+	/** Focus the camera on the current selection */
+	TSharedPtr< FUICommandInfo > FocusCamera;
 };
 
 #endif // __SkeletonTreeCommands_h_

@@ -1,12 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnMisc.cpp: Various core platform-independent functions.
 =============================================================================*/
 
 // Core includes.
-#include "CoreUObjectPrivate.h"
 #include "Misc/NotifyHook.h"
+#include "UObject/UnrealType.h"
 
 void FNotifyHook::NotifyPreChange( FEditPropertyChain* PropertyAboutToChange )
 {

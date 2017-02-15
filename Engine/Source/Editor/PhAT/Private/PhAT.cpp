@@ -1,45 +1,55 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PhATPrivatePCH.h"
+#include "PhAT.h"
+#include "Framework/MultiBox/MultiBox.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EngineGlobals.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimSequence.h"
+#include "Engine/StaticMesh.h"
+#include "Editor.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/SRichTextBlock.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
+#include "EditorStyleSet.h"
+#include "Preferences/PhATSimOptions.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 #include "PhATModule.h"
-#include "AssetSelection.h"
 #include "ScopedTransaction.h"
-#include "ObjectTools.h"
-#include "Toolkits/IToolkitHost.h"
-#include "PreviewScene.h"
 #include "PhATPreviewViewportClient.h"
 #include "SPhATPreviewViewport.h"
 #include "PhATActions.h"
-#include "PhATSharedData.h"
 #include "PhATEdSkeletalMeshComponent.h"
-#include "PhAT.h"
 
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "Editor/PropertyEditor/Public/DetailLayoutBuilder.h"
+#include "PropertyEditorModule.h"
+#include "IDetailsView.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
 
 #include "WorkflowOrientedApp/SContentReference.h"
-#include "AssetData.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
-#include "UnrealEd.h"
+#include "MeshUtilities.h"
 
 #include "EngineAnalytics.h"
+#include "Runtime/Analytics/Analytics/Public/AnalyticsEventAttribute.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-#include "SDockTab.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "PhysicsEngine/ConvexElem.h"
+#include "PhysicsEngine/BoxElem.h"
+#include "PhysicsEngine/SphereElem.h"
+#include "PhysicsEngine/SphylElem.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "PhysicsEngine/ConstraintUtils.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Engine/Selection.h"
-#include "Engine/StaticMesh.h"
-#include "EngineLogs.h"
-#include "PhysicalMaterials/PhysicalMaterial.h"
 #include "PersonaModule.h"
-#include "Animation/AnimSequence.h"
 
-#include "STextComboBox.h"
 
 const FName PhATAppIdentifier = FName(TEXT("PhATApp"));
 
@@ -406,8 +416,8 @@ void FPhAT::InitPhAT(const EToolkitMode::Type Mode, const TSharedPtr< class IToo
 	SharedData->SelectionChangedEvent.AddRaw(this, &FPhAT::SetPropertiesSelection);
 	SharedData->GroupSelectionChangedEvent.AddRaw(this, &FPhAT::SetPropertiesGroupSelection);
 	SharedData->HierarchyChangedEvent.AddRaw(this, &FPhAT::RefreshHierachyTree);
-	SharedData->HierarchySelectionChangedEvent.AddRaw(this, &FPhAT::RefreshHierachyTreeSelection);
 	SharedData->PreviewChangedEvent.AddRaw(this, &FPhAT::RefreshPreviewViewport);
+	SharedData->PreviewChangedEvent.AddRaw(this, &FPhAT::RefreshHierachyTreeSelection);
 
 	SharedData->PhysicsAsset = ObjectToEdit;
 
@@ -564,11 +574,9 @@ void FPhAT::SetPropertiesGroupSelection(const TArray<UObject*> & Objs)
 
 bool TreeElemSelected(FTreeElemPtr TreeElem, TSharedPtr<FPhATSharedData> SharedData, TSharedPtr< STreeView<FTreeElemPtr> > Hierarchy)
 {
-	bool bIsExpanded = Hierarchy->IsItemExpanded(TreeElem);
-
 	if(SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit)
 	{
-		if(TreeElem->BoneOrConstraintIdx != INDEX_NONE && bIsExpanded == false)	//we're selecting a bone so ignore prims, but make sure to only do this if not expanded
+		if(TreeElem->BoneOrConstraintIdx != INDEX_NONE)
 		{
 			for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
 			{
@@ -590,7 +598,27 @@ bool TreeElemSelected(FTreeElemPtr TreeElem, TSharedPtr<FPhATSharedData> SharedD
 		}
 	}else
 	{
-		//for(int32 i=0; i<SharedData->SetSelectedConstraint())
+		if (TreeElem->BoneOrConstraintIdx != INDEX_NONE)
+		{
+			for (int32 i = 0; i<SharedData->SelectedConstraints.Num(); ++i)
+			{
+				if (SharedData->PhysicsAsset->ConstraintSetup[SharedData->SelectedConstraints[i].Index]->DefaultInstance.JointName == (*TreeElem).Name)
+				{
+					return true;
+				}
+			}
+		}
+		else
+		{
+			FPhATSharedData::FSelection Selection(TreeElem->BodyIdx, TreeElem->CollisionType, TreeElem->CollisionIdx);
+			for (int32 i = 0; i<SharedData->SelectedConstraints.Num(); ++i)
+			{
+				if (Selection == SharedData->SelectedConstraints[i])
+				{
+					return true;
+				}
+			}
+		}
 	}
 
 	return false;
@@ -603,6 +631,8 @@ void FPhAT::RefreshHierachyTreeSelection()
 		return;
 	}
 
+	InsideSelChanged = true;
+
 	if(Hierarchy.Get())
 	{
 		for(int32 i=0; i<TreeElements.Num(); ++i)
@@ -610,6 +640,8 @@ void FPhAT::RefreshHierachyTreeSelection()
 			Hierarchy->SetItemSelection(TreeElements[i], TreeElemSelected(TreeElements[i], SharedData, Hierarchy), ESelectInfo::Direct);
 		}
 	}
+
+	InsideSelChanged = false;
 }
 
 bool FPhAT::FilterTreeElement(FTreeElemPtr TreeElem) const
@@ -791,7 +823,7 @@ void FPhAT::PostRedo( bool bSuccess )
 		{
 			FKConvexElem& Element = Body->AggGeom.ConvexElems[ElemIdx];
 
-			if (Element.ConvexMesh == NULL)
+			if (Element.GetConvexMesh() == NULL)
 			{
 				bRecreate = true;
 				break;
@@ -1350,7 +1382,7 @@ void FPhAT::ExtendMenu()
 	AddMenuExtender(MenuExtender);
 
 	IPhATModule* PhATModule = &FModuleManager::LoadModuleChecked<IPhATModule>( "PhAT" );
-	AddMenuExtender(PhATModule->GetToolBarExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
+	AddMenuExtender(PhATModule->GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 }
 
 void FPhAT::BindCommands()

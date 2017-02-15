@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanState.h: Vulkan state definitions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "RHIResources.h"
 
 class FVulkanDevice;
 
@@ -42,13 +45,6 @@ public:
 	VkPipelineDepthStencilStateCreateInfo DepthStencilState;
 	uint8 FrontStencilKey;
 	uint8 BackStencilKey;
-
-protected:
-	uint8 StencilStateToKey(const VkStencilOpState& State);
-		
-	// this tracks blend settings (in a bit flag) into a unique key that uses few bits, for PipelineState MRT setup
-	static TMap<uint64, uint8> StencilSettingsToUniqueKeyMap;
-	static uint8 NextKey;
 };
 
 class FVulkanBlendState : public FRHIBlendState
@@ -58,10 +54,6 @@ public:
 
 	// array the pipeline state can point right to
 	VkPipelineColorBlendAttachmentState BlendStates[MaxSimultaneousRenderTargets];
-	uint8 BlendStateKeys[MaxSimultaneousRenderTargets];
 
-protected:
-	// this tracks blend settings (in a bit flag) into a unique key that uses few bits, for PipelineState MRT setup
-	static TMap<uint32, uint8> BlendSettingsToUniqueKeyMap;
-	static uint8 NextKey;
+	uint64 BlendStateKey;
 };

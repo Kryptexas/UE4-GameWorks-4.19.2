@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+# Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 HARFBUZZ_HTML5=$(pwd)
 
 cd ../../../../HTML5/
@@ -23,7 +23,21 @@ build_via_cmake()
 	else
 		DBGFLAG=NDEBUG
 	fi
-# ----------------------------------------
+build_via_cmake()
+{
+	SUFFIX=_O$OLEVEL
+	OPTIMIZATION=-O$OLEVEL
+	# ----------------------------------------
+	rm -rf BUILD$SUFFIX
+	mkdir BUILD$SUFFIX
+	cd BUILD$SUFFIX
+	# ----------------------------------------
+	if [ $TYPE == "DEBUG" ]; then
+		DBGFLAG=_DEBUG
+	else
+		DBGFLAG=NDEBUG
+	fi
+	# ----------------------------------------
 	emcmake cmake -G "Unix Makefiles" \
 		-DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
 		-DUSE_INTEL_ATOMIC_PRIMITIVES=ON \
@@ -35,7 +49,7 @@ build_via_cmake()
 	# ----------------------------------------
 	if [ $OLEVEL == 0 ]; then
 		SUFFIX=
-fi
+	fi
 	cp ../libharfbuzz.bc ../../../HTML5/libharfbuzz${SUFFIX}.bc
 	cd ..
 }
@@ -56,7 +70,7 @@ build_all()
 	if [ -d $MAKE_PATH$OPTIMIZATION ]; then
 		rm -rf $MAKE_PATH$OPTIMIZATION
 	fi
-		mkdir -p $MAKE_PATH$OPTIMIZATION
+	mkdir -p $MAKE_PATH$OPTIMIZATION
 
 	# modify (custom) CMakeLists.txt
 	# output library with optimization level appended
@@ -64,7 +78,7 @@ build_all()
 
 	# modify CMAKE_TOOLCHAIN_FILE
 	sed -e "s/\(EPIC_BUILD_FLAGS\} \).*-O2\"/\1$OPTIMIZATION\"/" "$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake" > $MAKE_PATH$OPTIMIZATION/Emscripten.cmake
-	
+
 	#note: this has been merged into Emscripten.cmake (above)
 	#EMFLAGS="-msse -msse2 -s FULL_ES2=1 -s USE_PTHREADS=1"
 
@@ -83,6 +97,7 @@ build_all()
 #		cp -vp libXXX ../.
 	cd -
 }
+	
 
 build_via_makefile()
 {
@@ -100,23 +115,5 @@ build_via_makefile()
 	# ----------------------------------------
 	# MAKE
 	
-MAKE_PATH=../../HTML5/Build
-
-OPTIMIZATION=-O3; LIB_SUFFIX=_O3; build_all
-
-OPTIMIZATION=-O2; LIB_SUFFIX=_O2; build_all
-
-OPTIMIZATION=-Oz; LIB_SUFFIX=_Oz; build_all
-
-OPTIMIZATION=-O0; LIB_SUFFIX=
-build_all
-
-
-# ----------------------------------------
-# restore
-
-if [ -e ../CMakeLists.txt.save ]; then
-	mv ../CMakeLists.txt.save ../CMakeLists.txt
-fi
 }
 

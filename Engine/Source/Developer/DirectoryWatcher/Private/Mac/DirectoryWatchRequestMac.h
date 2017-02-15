@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #ifndef _INC_DIRECTORYWATCHREQUESTMAC
 #define _INC_DIRECTORYWATCHREQUESTMAC
 
+#include "Delegates/Delegate.h"
+#include "IDirectoryWatcher.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Array.h"
 #include <CoreServices/CoreServices.h>
 
 class FDirectoryWatchRequestMac

@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OutputDevice.h"
+#include "CoreTypes.h"
+#include "Misc/OutputDevice.h"
 
 /** string added to the filename of timestamped backup log files */
 #define BACKUP_LOG_FILENAME_POSTFIX TEXT("-backup-")
+
+class FAsyncWriter;
 
 /** Used by FOutputDeviceFile to write to a file on a separate thread */
 class FAsyncWriter;
@@ -29,6 +32,12 @@ public:
 	* @param bDisableBackup If true, existing files will not be backed up
 	*/
 	FOutputDeviceFile(const TCHAR* InFilename = nullptr, bool bDisableBackup = false);
+
+	/**
+	* Destructor to perform teardown
+	*
+	*/
+	~FOutputDeviceFile();
 
 	/** Sets the filename that the output device writes to.  If the output device was already writing to a file, closes that file. */
 	void SetFilename(const TCHAR* InFilename);

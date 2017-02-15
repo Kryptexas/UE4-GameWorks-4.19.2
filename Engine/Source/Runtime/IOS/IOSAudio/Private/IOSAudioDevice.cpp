@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  	IOSAudioDevice.cpp: Unreal IOSAudio audio interface object.
@@ -10,7 +10,7 @@
 
 #include "IOSAudioDevice.h"
 #include "AudioEffect.h"
-#include "Engine.h"
+#include "ADPCMAudioInfo.h"
 
 DEFINE_LOG_CATEGORY(LogIOSAudio);
 
@@ -70,7 +70,7 @@ FIOSAudioDevice::FIOSAudioDevice() :
 	MixerNode(0),
 	NextBusNumber(0)
 {
-	;
+	bDisableAudioCaching = true;	// Do not allow DTYPE_Native buffers, only DTYPE_RealTime or DTYPE_Streaming since on the fly decompression is so cheap, it saves memory, and requires fewer code paths
 }
 
 bool FIOSAudioDevice::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
@@ -253,6 +253,12 @@ void FIOSAudioDevice::HandleError(const TCHAR* InLogOutput, bool bTeardown)
 		Teardown();
 	}
 }
+
+class ICompressedAudioInfo* FIOSAudioDevice::CreateCompressedAudioInfo(USoundWave* SoundWave)
+{
+	return new FADPCMAudioInfo();
+}
+
 
 FAudioEffectsManager* FIOSAudioDevice::CreateEffectsManager()
 {

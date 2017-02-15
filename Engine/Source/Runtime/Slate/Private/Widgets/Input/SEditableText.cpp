@@ -1,12 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "BreakIterator.h"
-#include "TextEditHelper.h"
-#include "PlainTextLayoutMarshaller.h"
-#include "SlateEditableTextLayout.h"
-#include "ReflectionMetadata.h"
-#include "IMenu.h"
+#include "Widgets/Input/SEditableText.h"
+#include "Framework/Text/TextEditHelper.h"
+#include "Framework/Text/PlainTextLayoutMarshaller.h"
+#include "Widgets/Text/SlateEditableTextLayout.h"
+#include "Types/ReflectionMetadata.h"
 
 SEditableText::SEditableText()
 {
@@ -197,7 +195,7 @@ FReply SEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& I
 
 FReply SEditableText::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	return FReply::Unhandled();
+	return EditableTextLayout->HandleKeyUp(InKeyEvent);
 }
 
 FReply SEditableText::OnMouseButtonDown( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )

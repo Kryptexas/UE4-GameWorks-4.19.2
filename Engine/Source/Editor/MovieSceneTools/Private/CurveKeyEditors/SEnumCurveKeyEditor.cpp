@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
+#include "CurveKeyEditors/SEnumCurveKeyEditor.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/IntegralCurve.h"
+#include "ISequencer.h"
+#include "ScopedTransaction.h"
 #include "MovieSceneToolHelpers.h"
-#include "SEnumCurveKeyEditor.h"
 
 
 #define LOCTEXT_NAMESPACE "EnumCurveKeyEditor"
@@ -33,7 +36,7 @@ int32 SEnumCurveKeyEditor::OnGetCurrentValue() const
 		return ExternalValue.Get().GetValue();
 	}
 
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+	float CurrentTime = Sequencer->GetLocalTime();
 	int32 DefaultValue = 0;
 	return Curve->Evaluate(CurrentTime, DefaultValue);
 }
@@ -46,7 +49,7 @@ void SEnumCurveKeyEditor::OnComboSelectionChanged(int32 InSelectedItem, ESelectI
 
 	if (OwningSection->TryModify())
 	{
-		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		float CurrentTime = Sequencer->GetLocalTime();
 		bool bAutoSetTrackDefaults = Sequencer->GetAutoSetTrackDefaults();
 
 		FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);
@@ -63,13 +66,16 @@ void SEnumCurveKeyEditor::OnComboSelectionChanged(int32 InSelectedItem, ESelectI
 				Curve->AddKey(CurrentTime, InSelectedItem, CurrentKeyHandle);
 			}
 
-			if (OwningSection->GetStartTime() > CurrentTime)
+			if (Curve->GetNumKeys() != 0)
 			{
-				OwningSection->SetStartTime(CurrentTime);
-			}
-			if (OwningSection->GetEndTime() < CurrentTime)
-			{
-				OwningSection->SetEndTime(CurrentTime);
+				if (OwningSection->GetStartTime() > CurrentTime)
+				{
+					OwningSection->SetStartTime(CurrentTime);
+				}
+				if (OwningSection->GetEndTime() < CurrentTime)
+				{
+					OwningSection->SetEndTime(CurrentTime);
+				}
 			}
 		}
 

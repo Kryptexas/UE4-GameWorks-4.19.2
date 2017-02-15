@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorPhysXSupport.h: Editor version of the engine's PhysXSupport.h
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
 
 #if WITH_PHYSX
 
@@ -19,6 +22,7 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #endif	// USING_CODE_ANALYSIS
 
 #pragma pack(push,8)
+THIRD_PARTY_INCLUDES_START
 
 #include "Px.h"
 #include "PxPhysicsAPI.h"
@@ -58,6 +62,7 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 
 #endif // #if WITH_APEX
 
+THIRD_PARTY_INCLUDES_END
 #pragma pack(pop)
 
 #if USING_CODE_ANALYSIS

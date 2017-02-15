@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -19,14 +19,10 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "NavmeshModulePrivatePCH.h"
-#include <math.h>
-#include <string.h>
-#include <new>
-#include "DetourProximityGrid.h"
-#include "DetourCommon.h"
-#include "DetourAlloc.h"
-#include "DetourAssert.h"
+#include "DetourCrowd/DetourProximityGrid.h"
+#include "Detour/DetourCommon.h"
+#include "Detour/DetourAlloc.h"
+#include "Detour/DetourAssert.h"
 
 
 dtProximityGrid* dtAllocProximityGrid()

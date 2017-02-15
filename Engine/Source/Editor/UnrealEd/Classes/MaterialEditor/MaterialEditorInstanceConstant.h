@@ -1,14 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * MaterialEditorInstanceConstant.h: This class is used by the material instance editor to hold a set of inherited parameters which are then pushed to a material instance.
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "StaticParameterSet.h"
 #include "Editor/UnrealEdTypes.h"
 #include "Materials/MaterialInstanceBasePropertyOverrides.h"
-#include "StaticParameterSet.h"
 #include "MaterialEditorInstanceConstant.generated.h"
+
+class UDEditorParameterValue;
+class UMaterial;
+class UMaterialInstanceConstant;
+struct FPropertyChangedEvent;
 
 USTRUCT()
 struct FEditorParameterGroup

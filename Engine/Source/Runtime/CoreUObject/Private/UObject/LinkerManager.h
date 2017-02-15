@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LinkerManager.h: Unreal object linker manager
@@ -6,7 +6,10 @@
 
 #pragma once
 
-#include "Linker.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/ScopeLock.h"
 
 class FLinkerManager : private FSelfRegisteringExec
 {

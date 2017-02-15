@@ -1,23 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AnimBlueprint.h"
-#include "AnimBlueprintGeneratedClass.h"
-#include "AnimationRuntime.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Animation/AnimTypes.h"
+#include "Animation/AnimCurveTypes.h"
 #include "BonePose.h"
 #include "AnimNodeBase.generated.h"
 
-struct FAnimInstanceProxy;
+class IAnimClassInterface;
+class UAnimBlueprint;
 class UAnimInstance;
+struct FAnimInstanceProxy;
+struct FAnimNode_Base;
 
 /** Base class for update/evaluate contexts */
 struct FAnimationBaseContext
 {
 public:
-	DEPRECATED(4.11, "Please use AnimInstanceProxy")
-	UAnimInstance* AnimInstance;
-
 	FAnimInstanceProxy* AnimInstanceProxy;
 
 protected:
@@ -31,11 +33,6 @@ public:
 	ENGINE_API FAnimationBaseContext(const FAnimationBaseContext& InContext);
 
 public:
-	// Get the Blueprint Generated Class associated with this context, if there is one.
-	// Note: This can return NULL, so check the result.
-	DEPRECATED(4.11, "GetAnimBlueprintClass() is deprecated, UAnimBlueprintGeneratedClass should not be directly used at runtime. Please use GetAnimClass() instead.")
-	ENGINE_API UAnimBlueprintGeneratedClass* GetAnimBlueprintClass() const;
-
 	// Get the Blueprint IAnimClassInterface associated with this context, if there is one.
 	// Note: This can return NULL, so check the result.
 	ENGINE_API IAnimClassInterface* GetAnimClass() const;
@@ -52,12 +49,6 @@ public:
 struct FAnimationInitializeContext : public FAnimationBaseContext
 {
 public:
-	DEPRECATED(4.11, "Please use constructor that uses an FAnimInstanceProxy*")
-	FAnimationInitializeContext(UAnimInstance* InAnimInstance)
-		: FAnimationBaseContext(InAnimInstance)
-	{
-	}
-
 	FAnimationInitializeContext(FAnimInstanceProxy* InAnimInstanceProxy)
 		: FAnimationBaseContext(InAnimInstanceProxy)
 	{
@@ -71,12 +62,6 @@ public:
 struct FAnimationCacheBonesContext : public FAnimationBaseContext
 {
 public:
-	DEPRECATED(4.11, "Please use constructor that uses an FAnimInstanceProxy*")
-	FAnimationCacheBonesContext(UAnimInstance* InAnimInstance)
-		: FAnimationBaseContext(InAnimInstance)
-	{
-	}
-
 	FAnimationCacheBonesContext(FAnimInstanceProxy* InAnimInstanceProxy)
 		: FAnimationBaseContext(InAnimInstanceProxy)
 	{
@@ -92,15 +77,6 @@ private:
 
 	float DeltaTime;
 public:
-	DEPRECATED(4.11, "Please use constructor that uses an FAnimInstanceProxy*")
-	FAnimationUpdateContext(UAnimInstance* InAnimInstance, float InDeltaTime)
-		: FAnimationBaseContext(InAnimInstance)
-		, CurrentWeight(1.0f)
-		, RootMotionWeightModifier(1.f)
-		, DeltaTime(InDeltaTime)
-	{
-	}
-
 	FAnimationUpdateContext(FAnimInstanceProxy* InAnimInstanceProxy, float InDeltaTime)
 		: FAnimationBaseContext(InAnimInstanceProxy)
 		, CurrentWeight(1.0f)
@@ -163,13 +139,6 @@ public:
 	FBlendedCurve	Curve;
 
 public:
-	DEPRECATED(4.11, "Please use constructor that uses an FAnimInstanceProxy*")
-	FPoseContext(UAnimInstance* InAnimInstance)
-		: FAnimationBaseContext(InAnimInstance)
-	{
-		Initialize(AnimInstanceProxy);
-	}
-
 	// This constructor allocates a new uninitialized pose for the specified anim instance
 	FPoseContext(FAnimInstanceProxy* InAnimInstanceProxy)
 		: FAnimationBaseContext(InAnimInstanceProxy)
@@ -228,12 +197,6 @@ public:
 	FBlendedCurve			Curve;
 
 public:
-	DEPRECATED(4.11, "Please use constructor that uses an FAnimInstanceProxy*")
-	FComponentSpacePoseContext(UAnimInstance* InAnimInstance)
-		: FAnimationBaseContext(InAnimInstance)
-	{
-	}
-
 	// This constructor allocates a new uninitialized pose for the specified anim instance
 	FComponentSpacePoseContext(FAnimInstanceProxy* InAnimInstanceProxy)
 		: FAnimationBaseContext(InAnimInstanceProxy)
@@ -418,6 +381,8 @@ public:
 
 	/** Try to re-establish the linked node pointer. */
 	void AttemptRelink(const FAnimationBaseContext& Context);
+	/** This only used by custom handlers, and it is advanced feature. */
+	void SetLinkNode(struct FAnimNode_Base* NewLinkNode);
 };
 
 #define ENABLE_ANIMNODE_POSE_DEBUG 0

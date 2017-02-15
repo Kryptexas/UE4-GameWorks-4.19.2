@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Components/ChildActorComponent.h"
+#include "Engine/World.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Package.h"
+#include "UObject/PropertyPortFlags.h"
 #include "Net/UnrealNetwork.h"
+#include "Engine/Engine.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogChildActorComponent, Warning, All);
 
@@ -83,12 +87,24 @@ void UChildActorComponent::Serialize(FArchive& Ar)
 	}
 
 #if WITH_EDITOR
-	// Since we sometimes serialize properties in instead of using duplication if we are a template
-	// and are not pointing at a component we own we'll need to fix that
-	if (ChildActorTemplate && ChildActorTemplate->GetOuter() != this && IsTemplate())
+	// Since we sometimes serialize properties in instead of using duplication and we can end up pointing at the wrong template
+	if (!Ar.IsPersistent() && ChildActorTemplate)
 	{
-		const FString TemplateName = FString::Printf(TEXT("%s_%s_CAT"), *GetName(), *ChildActorClass->GetName());
-		ChildActorTemplate = CastChecked<AActor>(StaticDuplicateObject(ChildActorTemplate, this, *TemplateName));
+		if (IsTemplate())
+		{
+			// If we are a template and are not pointing at a component we own we'll need to fix that
+			if (ChildActorTemplate->GetOuter() != this)
+			{
+				const FString TemplateName = FString::Printf(TEXT("%s_%s_CAT"), *GetName(), *ChildActorClass->GetName());
+				ChildActorTemplate = CastChecked<AActor>(StaticDuplicateObject(ChildActorTemplate, this, *TemplateName));
+			}
+		}
+		else
+		{
+			// Because the template may have fixed itself up, the tagged property delta serialized for 
+			// the instance may point at a trashed template, so always repoint us to the archetypes template
+			ChildActorTemplate = CastChecked<UChildActorComponent>(GetArchetype())->ChildActorTemplate;
+		}
 	}
 #endif
 }
@@ -498,6 +514,21 @@ void UChildActorComponent::CreateChildActor()
 					ChildActor->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
 					SetIsReplicated(ChildActor->GetIsReplicated());
+
+					if (CachedInstanceData)
+					{
+						for (const FChildActorComponentInstanceData::FAttachedActorInfo& AttachedActorInfo : CachedInstanceData->AttachedActors)
+						{
+							AActor* AttachedActor = AttachedActorInfo.Actor.Get();
+
+							if (AttachedActor && AttachedActor->GetAttachParentActor() == nullptr)
+							{
+								AttachedActor->AttachToActor(ChildActor, FAttachmentTransformRules::KeepWorldTransform, AttachedActorInfo.SocketName);
+								AttachedActor->SetActorRelativeTransform(AttachedActorInfo.RelativeTransform);
+							}
+						}
+					}
+
 				}
 			}
 		}
@@ -579,6 +610,6 @@ void UChildActorComponent::BeginPlay()
 
 	if (ChildActor && !ChildActor->HasActorBegunPlay())
 	{
-		ChildActor->BeginPlay();
+		ChildActor->DispatchBeginPlay();
 	}
 }

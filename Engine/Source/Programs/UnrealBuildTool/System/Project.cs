@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -44,6 +44,9 @@ namespace UnrealBuildTool
 		/// For targets that are synthetic (like UnrealBuildTool or other manually added project files) we won't have a rules object for those.
 		public TargetRules TargetRules;
 
+		/// Platforms supported by the target
+		public UnrealTargetPlatform[] SupportedPlatforms;
+
 		/// Extra supported build platforms.  Normally the target rules determines these, but for synthetic targets we'll add them here.
 		public List<UnrealTargetPlatform> ExtraSupportedPlatforms = new List<UnrealTargetPlatform>();
 
@@ -55,6 +58,9 @@ namespace UnrealBuildTool
 
 		/// Whether the project requires 'Deploy' option set (VC projects)
 		public bool ProjectDeploys = false;
+
+		/// Delegate for creating a rules instance for a given platform/configuration
+		public Func<UnrealTargetPlatform, UnrealTargetConfiguration, TargetRules> CreateRulesDelegate = null;
 
 		public override string ToString()
 		{

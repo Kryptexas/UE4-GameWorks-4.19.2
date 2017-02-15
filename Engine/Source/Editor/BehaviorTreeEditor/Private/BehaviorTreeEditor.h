@@ -1,14 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "GraphEditor.h"
+#include "BehaviorTreeGraphNode_CompositeDecorator.h"
+#include "Misc/NotifyHook.h"
+#include "Toolkits/IToolkitHost.h"
 #include "IBehaviorTreeEditor.h"
-#include "Toolkits/AssetEditorToolkit.h"
 #include "AIGraphEditor.h"
 
+class FBehaviorTreeDebugger;
+class FBehaviorTreeEditorToolbar;
+class FDocumentTabFactory;
+class FDocumentTracker;
+class IDetailsView;
+class SBehaviorTreeBlackboardEditor;
+class SBehaviorTreeBlackboardView;
+class SFindInBT;
 class UBehaviorTree;
+class UBehaviorTreeComponent;
 class UBlackboardData;
+class UEdGraph;
 struct FBlackboardEntry;
+struct Rect;
 
 class FBehaviorTreeEditor : public IBehaviorTreeEditor, public FAIGraphEditor, public FNotifyHook
 {

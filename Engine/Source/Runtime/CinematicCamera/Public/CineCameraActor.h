@@ -1,10 +1,14 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "CineCameraComponent.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Camera/CameraActor.h"
 
 #include "CineCameraActor.generated.h"
+
+class UCineCameraComponent;
 
 /** Settings to control the camera's lookat feature */
 USTRUCT()

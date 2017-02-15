@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
 #include "Sequencer.h"
 #include "SequencerClipboardReconciler.h"
+
+class FMenuBuilder;
 
 /**
  * Class responsible for generating a menu for the currently selected sections.
@@ -57,7 +61,11 @@ private:
 
 	void SplitSection();
 
+	void ReduceKeys();
+
 	bool IsTrimmable() const;
+
+	bool CanReduceKeys() const;
 
 	void SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity);
 

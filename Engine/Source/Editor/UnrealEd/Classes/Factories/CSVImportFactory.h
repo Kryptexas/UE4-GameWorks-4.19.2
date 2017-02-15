@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Factory for importing table from text (CSV)
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/RichCurve.h"
+#include "Factories/Factory.h"
+#include "Factories/ImportSettings.h"
 #include "CSVImportFactory.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCSVImportFactory, Log, All);

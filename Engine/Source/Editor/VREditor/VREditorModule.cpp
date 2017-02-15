@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "VREditorModule.h"
+#include "Modules/ModuleManager.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
 #include "IVREditorModule.h"
+#include "TickableEditorObject.h"
 #include "VREditorModeManager.h"
+#include "VREditorStyle.h"
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"	// For EHMDWornState::Type
 
 class FVREditorModule : public IVREditorModule, public FTickableEditorObject
@@ -26,6 +31,7 @@ public:
 	virtual bool IsVREditorAvailable() const override;
 	virtual void EnableVREditor( const bool bEnable, const bool bForceWithoutHMD ) override;
 	virtual bool IsVREditorModeActive() override;
+	virtual class UVREditorMode* GetVREditorMode() override;
 
 	// FTickableEditorObject overrides
 	virtual void Tick( float DeltaTime ) override;
@@ -54,10 +60,20 @@ namespace VREd
 
 void FVREditorModule::StartupModule()
 {
+	if (GIsEditor)
+	{
+		FVREditorStyle::Initialize();
+	}
+
 }
 
 void FVREditorModule::ShutdownModule()
 {
+
+	if (GIsEditor)
+	{
+		FVREditorStyle::Shutdown();
+	}
 }
 
 void FVREditorModule::PostLoadCallback()
@@ -83,6 +99,11 @@ void FVREditorModule::EnableVREditor( const bool bEnable, const bool bForceWitho
 bool FVREditorModule::IsVREditorModeActive()
 {
 	return ModeManager.IsVREditorActive();
+}
+
+class UVREditorMode* FVREditorModule::GetVREditorMode()
+{
+	return ModeManager.GetVREditorMode();
 }
 
 void FVREditorModule::ToggleForceVRMode()

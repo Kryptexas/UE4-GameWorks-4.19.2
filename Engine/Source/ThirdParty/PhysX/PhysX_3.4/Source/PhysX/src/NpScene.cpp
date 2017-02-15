@@ -80,7 +80,6 @@ using namespace Sq;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-
 static PX_FORCE_INLINE bool removeFromSceneCheck(NpScene* npScene, PxScene* scene, const char* name)
 {
 	if (scene == static_cast<PxScene*>(npScene))
@@ -1712,7 +1711,6 @@ PxCCDContactModifyCallback* NpScene::getCCDContactModifyCallback() const
 	return mScene.getCCDContactModifyCallback();
 }
 
-
 void NpScene::setBroadPhaseCallback(PxBroadPhaseCallback* callback, PxClientID client)
 {
 	NP_WRITE_CHECK(this);
@@ -1956,11 +1954,8 @@ void NpScene::simulateOrCollide(PxReal elapsedTime, physx::PxBaseTask* completio
 		PX_CHECK_AND_RETURN((scratchBlockSize&16383) == 0, "PxScene::simulate: scratch block size must be a multiple of 16K");
 	
 #if PX_SUPPORT_PVD		
-		{
-			PX_PROFILE_ZONE("Basic.pvdFrameStart", getContextId());
-			//signal the frame is starting.	
-			mScene.getScenePvdClient().frameStart(elapsedTime);
-		}
+		//signal the frame is starting.	
+		mScene.getScenePvdClient().frameStart(elapsedTime);
 #endif
 
 #if PX_ENABLE_DEBUG_VISUALIZATION
@@ -2113,7 +2108,6 @@ bool NpScene::checkCollision(bool block)
 	return checkCollisionInternal(block);
 }
 
-
 void NpScene::fireOutOfBoundsCallbacks()
 {
 	PX_PROFILE_ZONE("Sim.fireOutOfBoundsCallbacks", getContextId());
@@ -2169,7 +2163,6 @@ void NpScene::fireOutOfBoundsCallbacks()
 	}
 }
 
-
 bool NpScene::fetchCollision(bool block)
 {
 	if(getSimulationStage() != Sc::SimulationStage::eCOLLIDE)
@@ -2202,7 +2195,6 @@ public:
 private:
 };
 
-
 // The order of the following operations is important!
 // 1. Process object deletions which were carried out while the simulation was running (since these effect contact and trigger reports)
 // 2. Write contact reports to global stream (taking pending deletions into account), clear some simulation buffers (deleted objects etc.), ...
@@ -2228,7 +2220,6 @@ void NpScene::fetchResultsPreContactCallbacks()
 		mScene.fireTriggerCallbacks();
 	}
 }
-
 
 void NpScene::fetchResultsPostContactCallbacks()
 {
@@ -2282,12 +2273,7 @@ void NpScene::fetchResultsPostContactCallbacks()
 
 	mPhysicsDone.reset();				// allow Physics to run again
 	mCollisionDone.reset();
-
-#if PX_SUPPORT_PVD
-	mScene.getScenePvdClient().frameEnd();
-#endif
 }
-
 
 bool NpScene::fetchResults(bool block, PxU32* errorState)
 {
@@ -2300,39 +2286,45 @@ bool NpScene::fetchResults(bool block, PxU32* errorState)
 	if(!checkResultsInternal(block))
 		return false;
 
-	PX_SIMD_GUARD;
-
-	// take write check *after* simulation has finished, otherwise 
-	// we will block simulation callbacks from using the API
-	// disallow re-entry to detect callbacks making write calls
-	NP_WRITE_CHECK_NOREENTRY(this);
-
-	// we use cross thread profile here, to show the event in cross thread view
-	PX_PROFILE_START_CROSSTHREAD("Basic.fetchResults", getContextId());
-	PX_PROFILE_ZONE("Sim.fetchResults", getContextId());
-
-	fetchResultsPreContactCallbacks();
-
 	{
-		PX_PROFILE_START_CROSSTHREAD("Basic.processCallbacks", getContextId());
-		mScene.fireQueuedContactCallbacks();
-		PX_PROFILE_STOP_CROSSTHREAD("Basic.processCallbacks", getContextId());
+		PX_SIMD_GUARD;
+
+		// take write check *after* simulation has finished, otherwise 
+		// we will block simulation callbacks from using the API
+		// disallow re-entry to detect callbacks making write calls
+		NP_WRITE_CHECK_NOREENTRY(this);
+
+		// we use cross thread profile here, to show the event in cross thread view
+		// PT: TODO: why do we want to show it in the cross thread view?
+		PX_PROFILE_START_CROSSTHREAD("Basic.fetchResults", getContextId());
+		PX_PROFILE_ZONE("Sim.fetchResults", getContextId());
+
+		fetchResultsPreContactCallbacks();
+
+		{
+			// PT: TODO: why a cross-thread event here?
+			PX_PROFILE_START_CROSSTHREAD("Basic.processCallbacks", getContextId());
+			mScene.fireQueuedContactCallbacks();
+			PX_PROFILE_STOP_CROSSTHREAD("Basic.processCallbacks", getContextId());
+		}
+
+		fetchResultsPostContactCallbacks();
+	
+		PX_PROFILE_STOP_CROSSTHREAD("Basic.fetchResults", getContextId());
+		PX_PROFILE_STOP_CROSSTHREAD("Basic.simulate", getContextId());
+
+		if(errorState)
+			*errorState = mScene.getScScene().getErrorState();
 	}
 
-	fetchResultsPostContactCallbacks();
-	
-	PX_PROFILE_STOP_CROSSTHREAD("Basic.fetchResults", getContextId());
-	PX_PROFILE_STOP_CROSSTHREAD("Basic.simulate", getContextId());
-
-	if (errorState)
-		*errorState = mScene.getScScene().getErrorState();
-
+#if PX_SUPPORT_PVD
+	mScene.getScenePvdClient().frameEnd();
+#endif
 	return true;
 }
 
 bool NpScene::fetchResultsStart(const PxContactPairHeader*& contactPairs, PxU32& nbContactPairs, bool block)
 {
-
 	if (getSimulationStage() != Sc::SimulationStage::eADVANCE)
 	{
 		Ps::getFoundation().error(PxErrorCode::eINVALID_OPERATION, __FILE__, __LINE__, "PXScene::fetchResultsStart: fetchResultsStart() called illegally! It must be called after advance() or simulate()");
@@ -2357,7 +2349,6 @@ bool NpScene::fetchResultsStart(const PxContactPairHeader*& contactPairs, PxU32&
 	mBetweenFetchResults = true;
 	return true;
 }
-
 
 void NpContactCallbackTask::setData(NpScene* scene, const PxContactPairHeader* contactPairHeaders, const uint32_t nbContactPairHeaders)
 {
@@ -2405,8 +2396,6 @@ void NpContactCallbackTask::run()
 	mScene->unlockRead();
 }
 
-
-
 void NpScene::processCallbacks(physx::PxBaseTask* continuation)
 {
 	PX_PROFILE_START_CROSSTHREAD("Basic.processCallbacks", getContextId());
@@ -2430,25 +2419,27 @@ void NpScene::processCallbacks(physx::PxBaseTask* continuation)
 
 void NpScene::fetchResultsFinish(PxU32* errorState)
 {
-	PX_SIMD_GUARD;
-	PX_PROFILE_STOP_CROSSTHREAD("Basic.processCallbacks", getContextId());
-	PX_PROFILE_ZONE("Basic.fetchResultsFinish", getContextId());
+	{
+		PX_SIMD_GUARD;
+		PX_PROFILE_STOP_CROSSTHREAD("Basic.processCallbacks", getContextId());
+		PX_PROFILE_ZONE("Basic.fetchResultsFinish", getContextId());
 
-	mBetweenFetchResults = false;
-	NP_WRITE_CHECK(this);
+		mBetweenFetchResults = false;
+		NP_WRITE_CHECK(this);
 		
-	fetchResultsPostContactCallbacks();
+		fetchResultsPostContactCallbacks();
 
-	if (errorState)
-		*errorState = mScene.getScScene().getErrorState();
+		if (errorState)
+			*errorState = mScene.getScScene().getErrorState();
 
-	PX_PROFILE_STOP_CROSSTHREAD("Basic.fetchResults", getContextId());
-	PX_PROFILE_STOP_CROSSTHREAD("Basic.simulate", getContextId());
+		PX_PROFILE_STOP_CROSSTHREAD("Basic.fetchResults", getContextId());
+		PX_PROFILE_STOP_CROSSTHREAD("Basic.simulate", getContextId());
+	}
 
-
+#if PX_SUPPORT_PVD
+	mScene.getScenePvdClient().frameEnd();
+#endif
 }
-
-
 
 void NpScene::flushSimulation(bool sendPendingReports)
 {
@@ -2485,7 +2476,6 @@ void NpScene::flushQueryUpdates()
 
 	mSQManager.flushUpdates();
 }
-
 
 /*
 Replaces finishRun() with the addition of appropriate thread sync(pulled out of PhysicsThread())
@@ -2544,7 +2534,6 @@ void NpScene::setDominanceGroupPair(PxDominanceGroup group1, PxDominanceGroup gr
 
 	mScene.setDominanceGroupPair(group1, group2, dominance);
 }
-
 
 PxDominanceGroupPair NpScene::getDominanceGroupPair(PxDominanceGroup group1, PxDominanceGroup group2) const
 {
@@ -2963,7 +2952,6 @@ void NpScene::stopRead() const {}
 
 #endif // NP_ENABLE_THREAD_CHECKS
 
-
 void NpScene::lockRead(const char* /*file*/, PxU32 /*line*/)
 {
 	// increment this threads read depth
@@ -3044,14 +3032,12 @@ void NpScene::unlockWrite()
 	}
 }
 
-
 PxReal NpScene::getWakeCounterResetValue() const
 {
 	NP_READ_CHECK(this);
 
 	return getWakeCounterResetValueInteral();
 }
-
 
 static PX_FORCE_INLINE void shiftRigidActor(PxRigidActor* a, const PxVec3& shift)
 {
@@ -3073,7 +3059,6 @@ static PX_FORCE_INLINE void shiftRigidActor(PxRigidActor* a, const PxVec3& shift
 		al->getScbBodyFast().onOriginShift(shift);
 	}
 }
-
 
 void NpScene::shiftOrigin(const PxVec3& shift)
 {

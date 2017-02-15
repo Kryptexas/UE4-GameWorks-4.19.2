@@ -1,9 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintCompilerCppBackendModulePrivatePCH.h"
 #include "BlueprintCompilerCppBackendGatherDependencies.h"
+#include "Misc/CoreMisc.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "UObject/StructOnScope.h"
+#include "UObject/UnrealType.h"
+#include "UObject/EnumProperty.h"
+#include "Engine/Blueprint.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
+#include "EdGraphSchema_K2.h"
 #include "IBlueprintCompilerCppBackendModule.h"
-#include "BlueprintEditorUtils.h"
+#include "K2Node.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "K2Node_EnumLiteral.h"
 
 struct FGatherConvertedClassDependenciesHelperBase : public FReferenceCollector
@@ -68,9 +82,14 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override
 	{
 		UObject* Object = InObject;
-		if (!Object || Object->IsA<UBlueprint>())
+		if (!Object)
 		{
 			return;
+		}
+
+		if (Object->IsA<UBlueprint>())
+		{
+			Object = CastChecked<UBlueprint>(Object)->GeneratedClass;
 		}
 
 		UClass* ActualClass = Cast<UClass>(Dependencies.GetActualStruct());
@@ -175,12 +194,29 @@ struct FFindHeadersToInclude : public FGatherConvertedClassDependenciesHelperBas
 			{
 				if (Graph)
 				{
-					TArray<UK2Node_EnumLiteral*> LiteralEnumNodes;
-					Graph->GetNodesOfClass<UK2Node_EnumLiteral>(LiteralEnumNodes);
-					for (UK2Node_EnumLiteral* LiteralEnumNode : LiteralEnumNodes)
+					TArray<UK2Node*> AllNodes;
+					Graph->GetNodesOfClass<UK2Node>(AllNodes);
+					for (UK2Node* K2Node : AllNodes)
 					{
-						UEnum* Enum = LiteralEnumNode ? LiteralEnumNode->Enum : nullptr;
-						IncludeTheHeaderInBody(Enum);
+						if (UK2Node_EnumLiteral* LiteralEnumNode = Cast<UK2Node_EnumLiteral>(K2Node))
+						{
+							UEnum* Enum = LiteralEnumNode ? LiteralEnumNode->Enum : nullptr;
+							IncludeTheHeaderInBody(Enum);
+						}
+						// HACK FOR LITERAL ENUMS:
+						else if(K2Node)
+						{
+							for (UEdGraphPin* Pin : K2Node->Pins)
+							{
+								if (Pin && (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Byte))
+								{
+									if (UEnum* Enum = Cast<UEnum>(Pin->PinType.PinSubCategoryObject.Get()))
+									{
+										IncludeTheHeaderInBody(Enum);
+									}
+								}
+							}
+						}
 					}
 				}
 			}
@@ -405,6 +441,14 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 		const bool bIsMemberVariable = OwnerProperty && (OwnerProperty->GetOuter() == OriginalStruct);
 		if (bIsParam || bIsMemberVariable)
 		{
+			if (auto AssetClassProperty = Cast<const UAssetClassProperty>(Property))
+			{
+				DeclareInHeader.Add(GetFirstNativeOrConvertedClass(AssetClassProperty->MetaClass));
+			}
+			if (auto ClassProperty = Cast<const UClassProperty>(Property))
+			{
+				DeclareInHeader.Add(GetFirstNativeOrConvertedClass(ClassProperty->MetaClass));
+			}
 			if (auto ObjectProperty = Cast<const UObjectPropertyBase>(Property))
 			{
 				DeclareInHeader.Add(GetFirstNativeOrConvertedClass(ObjectProperty->PropertyClass));
@@ -427,6 +471,11 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 			{ 
 				// HeaderReferenceFinder.FindReferences(Obj); cannot find this enum..
 				IncludeInHeader.Add(ByteProperty->Enum);
+			}
+			else if (const UEnumProperty* EnumProperty = Cast<const UEnumProperty>(Property))
+			{ 
+				// HeaderReferenceFinder.FindReferences(Obj); cannot find this enum..
+				IncludeInHeader.Add(EnumProperty->GetEnum());
 			}
 			else
 			{
@@ -499,6 +548,25 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 TSet<const UObject*> FGatherConvertedClassDependencies::AllDependencies() const
 {
 	TSet<const UObject*> All;
+
+	UBlueprintGeneratedClass* SuperClass = Cast<UBlueprintGeneratedClass>(OriginalStruct->GetSuperStruct());
+	if (SuperClass && WillClassBeConverted(SuperClass))
+	{
+		All.Add(SuperClass);
+	}
+
+	if (auto SourceClass = Cast<UClass>(OriginalStruct))
+	{
+		for (auto& ImplementedInterface : SourceClass->Interfaces)
+		{
+			UBlueprintGeneratedClass* InterfaceClass = Cast<UBlueprintGeneratedClass>(ImplementedInterface.Class);
+			if (InterfaceClass && WillClassBeConverted(InterfaceClass))
+			{
+				All.Add(InterfaceClass);
+			}
+		}
+	}
+
 	for (auto It : Assets)
 	{
 		All.Add(It);

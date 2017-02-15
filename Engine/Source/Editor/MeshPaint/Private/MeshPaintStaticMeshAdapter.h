@@ -1,9 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "MeshPaintModule.h"
+#include "GenericOctreePublic.h"
+#include "RawIndexBuffer.h"
+#include "Components/StaticMeshComponent.h"
 #include "GenericOctree.h"
+
+class UBodySetup;
+class UStaticMesh;
+class UTexture;
+struct FStaticMeshLODResources;
 
 //////////////////////////////////////////////////////////////////////////
 // FMeshPaintGeometryAdapterForStaticMeshes

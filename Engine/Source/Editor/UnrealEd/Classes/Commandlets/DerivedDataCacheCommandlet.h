@@ -1,13 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DerivedDataCacheCommandlet.cpp: Commandlet for DDC maintenence
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Commandlets/Commandlet.h"
 #include "DerivedDataCacheCommandlet.generated.h"
-
 
 UCLASS()
 class UDerivedDataCacheCommandlet : public UCommandlet
@@ -18,7 +20,7 @@ class UDerivedDataCacheCommandlet : public UCommandlet
 	//~ End UCommandlet Interface
 
 	// We hook this up to a delegate to avoid reloading textures and whatnot
-	TSet<FString> PackagesToNotReload;
+	TSet<FName> ProcessedPackages;
 
 	void MaybeMarkPackageAsAlreadyLoaded(UPackage *Package);
 };
