@@ -1498,12 +1498,25 @@ bool UEdGraphPin::SerializePin(FArchive& Ar, UEdGraphPin*& PinRef, int32 ArrayId
 
 		Ar << LocalOwningNode;
 		Ar << PinGuid;
-		check(LocalOwningNode);
+
+		// The connected Pin may no longer exist if the node it belonged to failed to load, 
+		// treat it as if it was serialized as bNullPtr = true
+		if (ResolveType == EPinResolveType::LinkedTo && Ar.IsLoading())
+		{
+			if (LocalOwningNode == nullptr)
+			{
+				PinRef = nullptr;
+			}
+		}
+		else
+		{
+			check(LocalOwningNode);
+		}
 		check(PinGuid.IsValid());
 
 		if (ResolveType != EPinResolveType::OwningNode)
 		{
-			if (Ar.IsLoading())
+			if (LocalOwningNode && Ar.IsLoading())
 			{
 				UEdGraphPin** ExistingPin = LocalOwningNode->Pins.FindByPredicate([&PinGuid](const UEdGraphPin* Pin) { return Pin && Pin->PinId == PinGuid; });
 				if (ExistingPin
