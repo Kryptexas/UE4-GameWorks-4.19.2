@@ -22,8 +22,11 @@ class FPerformanceMonitorModule : public IModuleInterface, public FSelfRegisteri
 	};
 private: 
 	TArray<FString> DesiredStats;
+	TArray<FString> StatGroupsToUse;
 #if STATS
 	TArray<TArray<FStatMessage>> StoredMessages;
+	// Received frame data. Cleared after parsing.
+	TArray<FStatMessage> ReceivedFramePayload;
 #endif
 	TMap<FString, TArray<float>> GeneratedStats;
 	FArchive * FileToLogTo;
@@ -39,7 +42,6 @@ private:
 	bool bHasWarnedAboutTime;
 	bool bExitOnCompletion;
 	bool bRequiresCutsceneStart;
-
 protected:
 public:
 
@@ -81,6 +83,9 @@ public:
 	///** [FTickableGameObject] tick when recording as long as we are not CDO. */
 	bool IsTickable() const { return bRecording; }
 
+	// Whether the received frame is ready to be interacted with on the game thread.
+	bool bNewFrameDataReady;
+	void GetDataFromStatsThread(int64 CurrentFrame);
 
 	bool IsRecordingPerfTimers() { return bRecording; }
 	void StartRecordingPerfTimers(FString FileName, TArray<FString> StatsToRecord);

@@ -10,17 +10,18 @@
 
 // prior frame's eye adaptation exposure scale
 Texture2D EyeAdaptationTexture;
-uint2 EyeAdaptionSrcExtent;
+uint4 EyeAdaptionSrcRect;
 
 
 // Compute the average alpha stored in a 2D texture.
-float ComputeWeightedTextureAverageAlpha(Texture2D InBuffer, float slope)
+// in uint4 ROI:  region of interest.  (min, min, max, max).
+// in float Slope 
+float ComputeWeightedTextureAverageAlpha(Texture2D InBuffer, in uint4 ROI, in float Slope)
 {
-	uint Xmax = EyeAdaptionSrcExtent.x;
-	uint Ymax = EyeAdaptionSrcExtent.y;
-
-	float InvXmax = 1.f / float(Xmax);
-	float InvYmax = 1.f / float(Ymax);
+	
+	// The inverse of the Region of Interest size.
+	const float InvXMax = 1.f / float(ROI.z - ROI.x);
+	const float InvYMax = 1.f / float(ROI.w - ROI.y);
 
 	// use product of linear weight in x and y.  
 
@@ -28,12 +29,12 @@ float ComputeWeightedTextureAverageAlpha(Texture2D InBuffer, float slope)
 	float WeightTotal = 0.0f;
 
 
-	for (uint i = 0; i < Xmax; ++i)
+	for (uint i = ROI.x; i < ROI.z; ++i)
 	{
-		float IWeight = AdaptationWeight( i * InvXmax, slope);  
-		for (uint j = 0; j < Ymax; ++j)
+		float IWeight = AdaptationWeight( i * InvXMax, Slope);  
+		for (uint j = ROI.y; j < ROI.w; ++j)
 		{
-			float JWeight = AdaptationWeight( j * InvYmax, slope);
+			float JWeight = AdaptationWeight( j * InvYMax, Slope);
 			float Weight = max(IWeight * JWeight, 0.05f);
 			
 			WeightTotal += Weight;
@@ -142,7 +143,7 @@ void MainLogLuminance2ExposureScalePS(
 	float WeightSlope = EyeAdaptationParams[2].w;
 	
 	// Compute scaled Log Luminance Average 
-	float LogLumAve = ComputeWeightedTextureAverageAlpha(PostprocessInput0, WeightSlope);
+	float LogLumAve = ComputeWeightedTextureAverageAlpha(PostprocessInput0,  EyeAdaptionSrcRect, WeightSlope);
 
 	// Correct for [0,1] scaling
 	LogLumAve = (LogLumAve - EyeAdaptationParams[2].y) / EyeAdaptationParams[2].x;

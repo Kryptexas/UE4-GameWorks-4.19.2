@@ -90,7 +90,7 @@ void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextOb
 
 		FName RTName = TextureRenderTarget->GetFName();
 		ENQUEUE_RENDER_COMMAND(BeginDrawEventCommand)(
-			[&RTName ,DrawMaterialToTargetEvent](FRHICommandList& RHICmdList)
+			[RTName ,DrawMaterialToTargetEvent](FRHICommandList& RHICmdList)
 			{
 				BEGIN_DRAW_EVENTF(
 					RHICmdList, 

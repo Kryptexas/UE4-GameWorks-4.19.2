@@ -2108,6 +2108,17 @@ int32 FMaterialResource::GetSamplerUsage() const
 	return -1;
 }
 
+void FMaterialResource::GetUserInterpolatorUsage(uint32& NumUsedUVScalars, uint32& NumUsedCustomInterpolatorScalars) const
+{
+	NumUsedUVScalars = NumUsedCustomInterpolatorScalars = 0;
+
+	if (const FMaterialShaderMap* ShaderMap = GetGameThreadShaderMap())
+	{
+		NumUsedUVScalars = ShaderMap->GetNumUsedUVScalars();
+		NumUsedCustomInterpolatorScalars = ShaderMap->GetNumUsedCustomInterpolatorScalars();
+	}
+}
+
 FString FMaterialResource::GetMaterialUsageDescription() const
 {
 	check(Material);

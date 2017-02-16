@@ -176,6 +176,7 @@
 #include "Materials/MaterialExpressionTwoSidedSign.h"
 #include "Materials/MaterialExpressionVectorNoise.h"
 #include "Materials/MaterialExpressionVertexColor.h"
+#include "Materials/MaterialExpressionVertexInterpolator.h"
 #include "Materials/MaterialExpressionVertexNormalWS.h"
 #include "Materials/MaterialExpressionViewProperty.h"
 #include "Materials/MaterialExpressionViewSize.h"
@@ -4708,9 +4709,6 @@ int32 UMaterialExpressionBlendMaterialAttributes::Compile(class FMaterialCompile
 {
 	const FGuid AttributeID = Compiler->GetMaterialAttribute();
 
-	int32 ResultA = A.CompileWithDefault(Compiler, AttributeID);
-	int32 ResultB = B.CompileWithDefault(Compiler, AttributeID);
-
 	// Blending is optional, can skip on a per-node basis
 	EMaterialAttributeBlend::Type BlendType;
 	EShaderFrequency AttributeFrequency = FMaterialAttributeDefinitionMap::GetShaderFrequency(AttributeID);
@@ -4727,13 +4725,15 @@ int32 UMaterialExpressionBlendMaterialAttributes::Compile(class FMaterialCompile
 
 	switch (BlendType)
 	{
-	case EMaterialAttributeBlend::UseA: return ResultA;
-	case EMaterialAttributeBlend::UseB: return ResultB;
+	case EMaterialAttributeBlend::UseA: return A.CompileWithDefault(Compiler, AttributeID);
+	case EMaterialAttributeBlend::UseB: return B.CompileWithDefault(Compiler, AttributeID);
 	default:
 		check(BlendType == EMaterialAttributeBlend::Blend);
 	}
 
 	// Allow custom blends or fallback to standard interpolation
+	int32 ResultA = A.CompileWithDefault(Compiler, AttributeID);
+	int32 ResultB = B.CompileWithDefault(Compiler, AttributeID);
 	int32 ResultAlpha = Alpha.Compile(Compiler);
 
 	MaterialAttributeBlendFunction BlendFunction = FMaterialAttributeDefinitionMap::GetBlendFunction(AttributeID);
@@ -12028,6 +12028,87 @@ void UMaterialExpressionClearCoatNormalCustomOutput::GetCaption(TArray<FString>&
 #endif // WITH_EDITOR
 
 FExpressionInput* UMaterialExpressionClearCoatNormalCustomOutput::GetInput(int32 InputIndex)
+{
+	return &Input;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Vertex to pixel interpolated data handler
+///////////////////////////////////////////////////////////////////////////////
+
+UMaterialExpressionVertexInterpolator::UMaterialExpressionVertexInterpolator(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
+
+	Outputs.Reset();
+	Outputs.Add(FExpressionOutput(TEXT("PS"), 0, 0, 0, 0, 0));
+	bShowOutputNameOnPin = true;
+
+	InterpolatorIndex = INDEX_NONE;
+	InterpolatedType = MCT_Unknown;
+	InterpolatorOffset = INDEX_NONE;
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionVertexInterpolator::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if (Input.Expression)
+	{
+		if (InterpolatorIndex == INDEX_NONE || InterpolatorOffset != INDEX_NONE)
+		{
+			return Compiler->Errorf(TEXT("Failed interpolator pre-compile or recursively post-compiled."));
+		}
+		else
+		{
+			return Compiler->VertexInterpolator(InterpolatorIndex);
+		}
+	}
+	else
+	{
+		return CompilerError(Compiler, TEXT("Input missing"));
+	}
+}
+
+int32 UMaterialExpressionVertexInterpolator::CompileInput(class FMaterialCompiler* Compiler, int32 AssignedInterpolatorIndex)
+{
+	int32 Ret = INDEX_NONE;
+	InterpolatorIndex = INDEX_NONE;
+	InterpolatedType = MCT_Unknown;
+	InterpolatorOffset = INDEX_NONE;
+
+	if (Input.Expression)
+	{
+		int32 InternalCode = Input.Compile(Compiler);
+		Compiler->CustomOutput(this, AssignedInterpolatorIndex, InternalCode);
+		InterpolatorIndex = AssignedInterpolatorIndex;
+		InterpolatedType = Compiler->GetType(InternalCode);
+		Ret = InternalCode;
+	}
+
+	return Ret;
+}
+
+void UMaterialExpressionVertexInterpolator::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(FString(TEXT("VertexInterpolator")));
+}
+#endif // WITH_EDITOR
+
+FExpressionInput* UMaterialExpressionVertexInterpolator::GetInput(int32 InputIndex)
 {
 	return &Input;
 }

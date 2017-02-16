@@ -1761,6 +1761,24 @@ void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
 					Line->AddToken( FTextToken::Create( FText::FromString( SamplersString ) ) );
 					Messages.Add(Line);
 				}
+
+				// Display the number of custom/user interpolators used by the material.
+				uint32 UVScalarsUsed, CustomInterpolatorScalarsUsed;
+				MaterialResource->GetUserInterpolatorUsage(UVScalarsUsed, CustomInterpolatorScalarsUsed);
+
+				if (UVScalarsUsed > 0 || CustomInterpolatorScalarsUsed > 0)
+				{
+					uint32 TotalScalars = UVScalarsUsed + CustomInterpolatorScalarsUsed;
+					uint32 MaxScalars = FMath::DivideAndRoundUp(TotalScalars, 4u) * 4;
+
+					FString InterpolatorsString = FString::Printf(TEXT("User interpolators: %u/%u Scalars (%u/4 Vectors) (TexCoords: %i, Custom: %i)"),
+						TotalScalars, MaxScalars, MaxScalars / 4, UVScalarsUsed, CustomInterpolatorScalarsUsed);
+
+					TempMaterialInfoList.Add(MakeShareable(new FMaterialInfo(InterpolatorsString, FLinearColor::Yellow)));
+					TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create( EMessageSeverity::Info );
+					Line->AddToken(FTextToken::Create(FText::FromString(InterpolatorsString)));
+					Messages.Add(Line);
+				}
 			}
 
 			FString FeatureLevelName;

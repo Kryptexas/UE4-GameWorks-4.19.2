@@ -984,24 +984,39 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 
 			if (DistanceFieldVolume.Num() > 0)
 			{
-				const int32 UncompressedSize = DistanceFieldVolume.Num() * DistanceFieldVolume.GetTypeSize();
-				TArray<uint8> TempCompressedMemory;
-				// Compressed can be slightly larger than uncompressed
-				TempCompressedMemory.Empty(UncompressedSize * 4 / 3);
-				TempCompressedMemory.AddUninitialized(UncompressedSize * 4 / 3);
-				int32 CompressedSize = TempCompressedMemory.Num() * TempCompressedMemory.GetTypeSize();
+				static const auto CVarCompress = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CompressMeshDistanceFields"));
+				const bool bCompress = CVarCompress->GetValueOnAnyThread() != 0;
 
-				verify(FCompression::CompressMemory(
-					(ECompressionFlags)(COMPRESS_ZLIB | COMPRESS_BiasMemory), 
-					TempCompressedMemory.GetData(), 
-					CompressedSize, 
-					DistanceFieldVolume.GetData(), 
-					UncompressedSize));
+				if (bCompress)
+				{
+					const int32 UncompressedSize = DistanceFieldVolume.Num() * DistanceFieldVolume.GetTypeSize();
+					TArray<uint8> TempCompressedMemory;
+					// Compressed can be slightly larger than uncompressed
+					TempCompressedMemory.Empty(UncompressedSize * 4 / 3);
+					TempCompressedMemory.AddUninitialized(UncompressedSize * 4 / 3);
+					int32 CompressedSize = TempCompressedMemory.Num() * TempCompressedMemory.GetTypeSize();
 
-				OutData.CompressedDistanceFieldVolume.Empty(CompressedSize);
-				OutData.CompressedDistanceFieldVolume.AddUninitialized(CompressedSize);
+					verify(FCompression::CompressMemory(
+						(ECompressionFlags)(COMPRESS_ZLIB | COMPRESS_BiasMemory), 
+						TempCompressedMemory.GetData(), 
+						CompressedSize, 
+						DistanceFieldVolume.GetData(), 
+						UncompressedSize));
 
-				FPlatformMemory::Memcpy(OutData.CompressedDistanceFieldVolume.GetData(), TempCompressedMemory.GetData(), CompressedSize);
+					OutData.CompressedDistanceFieldVolume.Empty(CompressedSize);
+					OutData.CompressedDistanceFieldVolume.AddUninitialized(CompressedSize);
+
+					FPlatformMemory::Memcpy(OutData.CompressedDistanceFieldVolume.GetData(), TempCompressedMemory.GetData(), CompressedSize);
+				}
+				else
+				{
+					int32 CompressedSize = DistanceFieldVolume.Num() * DistanceFieldVolume.GetTypeSize();
+
+					OutData.CompressedDistanceFieldVolume.Empty(CompressedSize);
+					OutData.CompressedDistanceFieldVolume.AddUninitialized(CompressedSize);
+
+					FPlatformMemory::Memcpy(OutData.CompressedDistanceFieldVolume.GetData(), DistanceFieldVolume.GetData(), CompressedSize);
+				}
 			}
 			else
 			{

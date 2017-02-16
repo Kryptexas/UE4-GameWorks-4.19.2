@@ -240,7 +240,7 @@ void FD3D11Viewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen
 	}
 
 	// Float RGBA backbuffers are requested whenever HDR mode is desired
-	if (PixelFormat == PF_FloatRGBA && bIsFullscreen)
+	if (PixelFormat == GRHIHDRDisplayOutputFormat && bIsFullscreen)
 	{
 		D3DRHI->EnableHDR();
 	}

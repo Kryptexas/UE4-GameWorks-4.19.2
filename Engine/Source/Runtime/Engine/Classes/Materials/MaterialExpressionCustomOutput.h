@@ -17,6 +17,11 @@ class UMaterialExpressionCustomOutput : public UMaterialExpression
 	virtual int32 GetNumOutputs() const { return 1; };
 	virtual FString GetFunctionName() const PURE_VIRTUAL(UMaterialExpressionCustomOutput::GetFunctionName, return TEXT("GetCustomOutput"););
 	virtual FString GetDisplayName() const { return GetFunctionName(); }
+
+#if WITH_EDITOR
+	// Allow custom outputs to generate their own source code
+	virtual bool HasCustomSourceOutput() { return false; }
+#endif
 };
 
 

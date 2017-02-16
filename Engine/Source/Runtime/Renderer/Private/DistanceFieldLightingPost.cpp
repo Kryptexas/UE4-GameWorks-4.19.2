@@ -11,23 +11,6 @@
 #include "DistanceFieldAmbientOcclusion.h"
 #include "CompositionLighting/PostProcessAmbientOcclusion.h"
 
-int32 GAOFillGaps = 1;
-FAutoConsoleVariableRef CVarAOFillGaps(
-	TEXT("r.AOFillGaps"),
-	GAOFillGaps,
-	TEXT("Whether to fill in pixels using a screen space filter that had no valid world space interpolation weight from surface cache samples.\n")
-	TEXT("This is needed whenever r.AOMinLevel is not 0."),
-	ECVF_RenderThreadSafe
-	);
-
-int32 GAOFillGapsHighQuality = 1;
-FAutoConsoleVariableRef CVarAOFillGapsHighQuality(
-	TEXT("r.AOFillGapsHighQuality"),
-	GAOFillGapsHighQuality,
-	TEXT("Whether to use the higher quality gap filling method that does a 5x5 gather, or the cheaper method that just looks up the 4 grid samples."),
-	ECVF_RenderThreadSafe
-	);
-
 int32 GAOUseHistory = 1;
 FAutoConsoleVariableRef CVarAOUseHistory(
 	TEXT("r.AOUseHistory"),
@@ -52,6 +35,15 @@ FAutoConsoleVariableRef CVarAOHistoryWeight(
 	ECVF_RenderThreadSafe
 	);
 
+float GAOHistoryMinConfidenceScale = .8f;
+FAutoConsoleVariableRef CVarAOHistoryMinConfidenceScale(
+	TEXT("r.AOHistoryMinConfidenceScale"),
+	GAOHistoryMinConfidenceScale,
+	TEXT("Minimum amount that confidence can scale down the history weight. Pixels whose AO value was interpolated from foreground onto background incorrectly have a confidence of 0.\n")
+	TEXT("At a value of 1, confidence is effectively disabled.  Lower values increase the convergence speed of AO history for pixels with low confidence, but introduce jittering (history is thrown away)."),
+	ECVF_RenderThreadSafe
+	);
+
 float GAOHistoryDistanceThreshold = 30;
 FAutoConsoleVariableRef CVarAOHistoryDistanceThreshold(
 	TEXT("r.AOHistoryDistanceThreshold"),
@@ -69,9 +61,9 @@ FAutoConsoleVariableRef CVarAOViewFadeDistanceScale(
 	);
 
 template<bool bSupportIrradiance>
-class TDistanceFieldAOCombinePS : public FGlobalShader
+class TUpdateHistoryDepthRejectionPS : public FGlobalShader
 {
-	DECLARE_SHADER_TYPE(TDistanceFieldAOCombinePS, Global);
+	DECLARE_SHADER_TYPE(TUpdateHistoryDepthRejectionPS, Global);
 public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
@@ -86,231 +78,25 @@ public:
 	}
 
 	/** Default constructor. */
-	TDistanceFieldAOCombinePS() {}
+	TUpdateHistoryDepthRejectionPS() {}
 
 	/** Initialization constructor. */
-	TDistanceFieldAOCombinePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer)
-	{
-		DeferredParameters.Bind(Initializer.ParameterMap);
-		AOParameters.Bind(Initializer.ParameterMap);
-		BentNormalAOTexture.Bind(Initializer.ParameterMap,TEXT("BentNormalAOTexture"));
-		BentNormalAOSampler.Bind(Initializer.ParameterMap,TEXT("BentNormalAOSampler"));
-		IrradianceTexture.Bind(Initializer.ParameterMap,TEXT("IrradianceTexture"));
-		IrradianceSampler.Bind(Initializer.ParameterMap,TEXT("IrradianceSampler"));
-		DistanceFieldNormalTexture.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalTexture"));
-		DistanceFieldNormalSampler.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalSampler"));
-		DistanceFadeScale.Bind(Initializer.ParameterMap, TEXT("DistanceFadeScale"));
-		SelfOcclusionReplacement.Bind(Initializer.ParameterMap, TEXT("SelfOcclusionReplacement"));
-	}
-
-	void SetParameters(
-		FRHICommandList& RHICmdList, 
-		const FSceneView& View, 
-		FSceneRenderTargetItem& InBentNormalTexture, 
-		IPooledRenderTarget* InIrradianceTexture, 
-		FSceneRenderTargetItem& DistanceFieldNormal, 
-		const FDistanceFieldAOParameters& Parameters)
-	{
-		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
-		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
-
-		SetTextureParameter(RHICmdList, ShaderRHI, BentNormalAOTexture, BentNormalAOSampler, TStaticSamplerState<SF_Point>::GetRHI(), InBentNormalTexture.ShaderResourceTexture);
-
-		if (IrradianceTexture.IsBound())
-		{
-			SetTextureParameter(RHICmdList, ShaderRHI, IrradianceTexture, IrradianceSampler, TStaticSamplerState<SF_Point>::GetRHI(), InIrradianceTexture->GetRenderTargetItem().ShaderResourceTexture);
-		}
-
-		SetTextureParameter(
-			RHICmdList,
-			ShaderRHI,
-			DistanceFieldNormalTexture,
-			DistanceFieldNormalSampler,
-			TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-			DistanceFieldNormal.ShaderResourceTexture
-			);
-
-		const float DistanceFadeScaleValue = 1.0f / ((1.0f - GAOViewFadeDistanceScale) * GetMaxAOViewDistance());
-		SetShaderValue(RHICmdList, ShaderRHI, DistanceFadeScale, DistanceFadeScaleValue);
-
-		extern float GVPLSelfOcclusionReplacement;
-		SetShaderValue(RHICmdList, ShaderRHI, SelfOcclusionReplacement, GVPLSelfOcclusionReplacement);
-	}
-
-	// FShader interface.
-	virtual bool Serialize(FArchive& Ar) override
-	{
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << DeferredParameters;
-		Ar << AOParameters;
-		Ar << BentNormalAOTexture;
-		Ar << BentNormalAOSampler;
-		Ar << IrradianceTexture;
-		Ar << IrradianceSampler;
-		Ar << DistanceFieldNormalTexture;
-		Ar << DistanceFieldNormalSampler;
-		Ar << DistanceFadeScale;
-		Ar << SelfOcclusionReplacement;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-
-	FDeferredPixelShaderParameters DeferredParameters;
-	FAOParameters AOParameters;
-	FShaderResourceParameter BentNormalAOTexture;
-	FShaderResourceParameter BentNormalAOSampler;
-	FShaderResourceParameter IrradianceTexture;
-	FShaderResourceParameter IrradianceSampler;
-	FShaderResourceParameter DistanceFieldNormalTexture;
-	FShaderResourceParameter DistanceFieldNormalSampler;
-	FShaderParameter DistanceFadeScale;
-	FShaderParameter SelfOcclusionReplacement;
-};
-
-IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldAOCombinePS<true>,TEXT("DistanceFieldLightingPost"),TEXT("AOCombinePS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldAOCombinePS<false>,TEXT("DistanceFieldLightingPost"),TEXT("AOCombinePS"),SF_Pixel);
-
-template<bool bSupportIrradiance, bool bHighQuality>
-class TFillGapsPS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(TFillGapsPS, Global);
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		OutEnvironment.SetDefine(TEXT("DOWNSAMPLE_FACTOR"), GAODownsampleFactor);
-		OutEnvironment.SetDefine(TEXT("SUPPORT_IRRADIANCE"), bSupportIrradiance);
-		OutEnvironment.SetDefine(TEXT("HIGH_QUALITY_FILL_GAPS"), bHighQuality);
-	}
-
-	/** Default constructor. */
-	TFillGapsPS() {}
-
-	/** Initialization constructor. */
-	TFillGapsPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer)
-	{
-		BentNormalAOTexture.Bind(Initializer.ParameterMap, TEXT("BentNormalAOTexture"));
-		BentNormalAOSampler.Bind(Initializer.ParameterMap, TEXT("BentNormalAOSampler"));
-		IrradianceTexture.Bind(Initializer.ParameterMap, TEXT("IrradianceTexture"));
-		IrradianceSampler.Bind(Initializer.ParameterMap, TEXT("IrradianceSampler"));
-		BentNormalAOTexelSize.Bind(Initializer.ParameterMap, TEXT("BentNormalAOTexelSize"));
-		MinDownsampleFactorToBaseLevel.Bind(Initializer.ParameterMap, TEXT("MinDownsampleFactorToBaseLevel"));
-	}
-
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FSceneRenderTargetItem& DistanceFieldAOBentNormal2, IPooledRenderTarget* DistanceFieldIrradiance2)
-	{
-		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-
-		SetTextureParameter(
-			RHICmdList,
-			ShaderRHI,
-			BentNormalAOTexture,
-			BentNormalAOSampler,
-			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-			DistanceFieldAOBentNormal2.ShaderResourceTexture
-			);
-
-		if (IrradianceTexture.IsBound())
-		{
-			SetTextureParameter(
-				RHICmdList,
-				ShaderRHI,
-				IrradianceTexture,
-				IrradianceSampler,
-				TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-				DistanceFieldIrradiance2->GetRenderTargetItem().ShaderResourceTexture
-				);
-		}
-		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-
-		const FIntPoint DownsampledBufferSize(SceneContext.GetBufferSizeXY() / FIntPoint(GAODownsampleFactor, GAODownsampleFactor));
-		const FVector2D BaseLevelTexelSizeValue(1.0f / DownsampledBufferSize.X, 1.0f / DownsampledBufferSize.Y);
-		SetShaderValue(RHICmdList, ShaderRHI, BentNormalAOTexelSize, BaseLevelTexelSizeValue);
-
-		extern int32 GAOMinLevel;
-		extern int32 GAOPowerOfTwoBetweenLevels;
-		const float MinDownsampleFactor = 1 << (GAOMinLevel * GAOPowerOfTwoBetweenLevels); 
-		SetShaderValue(RHICmdList, ShaderRHI, MinDownsampleFactorToBaseLevel, MinDownsampleFactor);
-	}
-	// FShader interface.
-	virtual bool Serialize(FArchive& Ar) override
-	{
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << BentNormalAOTexture;
-		Ar << BentNormalAOSampler;
-		Ar << IrradianceTexture;
-		Ar << IrradianceSampler;
-		Ar << BentNormalAOTexelSize;
-		Ar << MinDownsampleFactorToBaseLevel;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-
-	FShaderResourceParameter BentNormalAOTexture;
-	FShaderResourceParameter BentNormalAOSampler;
-	FShaderResourceParameter IrradianceTexture;
-	FShaderResourceParameter IrradianceSampler;
-	FShaderParameter BentNormalAOTexelSize;
-	FShaderParameter MinDownsampleFactorToBaseLevel;
-};
-
-#define IMPLEMENT_FILLGAPS_PS_TYPE(bSupportIrradiance,bHighQuality) \
-	typedef TFillGapsPS<bSupportIrradiance, bHighQuality> TFillGapsPS##bSupportIrradiance##bHighQuality; \
-	IMPLEMENT_SHADER_TYPE(template<>,TFillGapsPS##bSupportIrradiance##bHighQuality,TEXT("DistanceFieldLightingPost"),TEXT("FillGapsPS"),SF_Pixel); 
-
-IMPLEMENT_FILLGAPS_PS_TYPE(true, true);
-IMPLEMENT_FILLGAPS_PS_TYPE(true, false);
-IMPLEMENT_FILLGAPS_PS_TYPE(false, true);
-IMPLEMENT_FILLGAPS_PS_TYPE(false, false);
-
-template<bool bSupportIrradiance>
-class TUpdateHistoryPS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(TUpdateHistoryPS, Global);
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		OutEnvironment.SetDefine(TEXT("DOWNSAMPLE_FACTOR"), GAODownsampleFactor);
-		OutEnvironment.SetDefine(TEXT("SUPPORT_IRRADIANCE"), bSupportIrradiance);
-	}
-
-	/** Default constructor. */
-	TUpdateHistoryPS() {}
-
-	/** Initialization constructor. */
-	TUpdateHistoryPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+	TUpdateHistoryDepthRejectionPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
 	{
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		BentNormalAOTexture.Bind(Initializer.ParameterMap, TEXT("BentNormalAOTexture"));
+		ConfidenceTexture.Bind(Initializer.ParameterMap, TEXT("ConfidenceTexture"));
 		BentNormalAOSampler.Bind(Initializer.ParameterMap, TEXT("BentNormalAOSampler"));
 		BentNormalHistoryTexture.Bind(Initializer.ParameterMap, TEXT("BentNormalHistoryTexture"));
+		ConfidenceHistoryTexture.Bind(Initializer.ParameterMap, TEXT("ConfidenceHistoryTexture"));
 		BentNormalHistorySampler.Bind(Initializer.ParameterMap, TEXT("BentNormalHistorySampler"));
 		IrradianceTexture.Bind(Initializer.ParameterMap, TEXT("IrradianceTexture"));
 		IrradianceSampler.Bind(Initializer.ParameterMap, TEXT("IrradianceSampler"));
 		IrradianceHistoryTexture.Bind(Initializer.ParameterMap, TEXT("IrradianceHistoryTexture"));
 		IrradianceHistorySampler.Bind(Initializer.ParameterMap, TEXT("IrradianceHistorySampler"));
 		HistoryWeight.Bind(Initializer.ParameterMap, TEXT("HistoryWeight"));
+		AOHistoryMinConfidenceScale.Bind(Initializer.ParameterMap, TEXT("AOHistoryMinConfidenceScale"));
 		HistoryDistanceThreshold.Bind(Initializer.ParameterMap, TEXT("HistoryDistanceThreshold"));
 		UseHistoryFilter.Bind(Initializer.ParameterMap, TEXT("UseHistoryFilter"));
 		VelocityTexture.Bind(Initializer.ParameterMap, TEXT("VelocityTexture"));
@@ -324,8 +110,10 @@ public:
 		const FSceneView& View, 
 		FSceneRenderTargetItem& DistanceFieldNormal, 
 		FSceneRenderTargetItem& BentNormalHistoryTextureValue, 
+		FSceneRenderTargetItem& ConfidenceHistoryTextureValue,
 		TRefCountPtr<IPooledRenderTarget>* IrradianceHistoryRT, 
 		FSceneRenderTargetItem& DistanceFieldAOBentNormal, 
+		FSceneRenderTargetItem& DistanceFieldAOConfidence, 
 		IPooledRenderTarget* DistanceFieldIrradiance,
 		IPooledRenderTarget* VelocityTextureValue)
 	{
@@ -346,10 +134,28 @@ public:
 		SetTextureParameter(
 			RHICmdList,
 			ShaderRHI,
+			ConfidenceTexture,
+			BentNormalAOSampler,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			DistanceFieldAOConfidence.ShaderResourceTexture
+			);
+
+		SetTextureParameter(
+			RHICmdList,
+			ShaderRHI,
 			BentNormalHistoryTexture,
 			BentNormalHistorySampler,
-			TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 			BentNormalHistoryTextureValue.ShaderResourceTexture
+			);
+
+		SetTextureParameter(
+			RHICmdList,
+			ShaderRHI,
+			ConfidenceHistoryTexture,
+			BentNormalHistorySampler,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			ConfidenceHistoryTextureValue.ShaderResourceTexture
 			);
 
 		SetTextureParameter(
@@ -388,6 +194,7 @@ public:
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FCameraMotionParameters>(), CreateCameraMotionParametersUniformBuffer(View));
 
 		SetShaderValue(RHICmdList, ShaderRHI, HistoryWeight, GAOHistoryWeight);
+		SetShaderValue(RHICmdList, ShaderRHI, AOHistoryMinConfidenceScale, GAOHistoryMinConfidenceScale);
 		SetShaderValue(RHICmdList, ShaderRHI, HistoryDistanceThreshold, GAOHistoryDistanceThreshold);
 		SetShaderValue(RHICmdList, ShaderRHI, UseHistoryFilter, (GAOHistoryStabilityPass ? 1.0f : 0.0f));
 
@@ -406,14 +213,17 @@ public:
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << DeferredParameters;
 		Ar << BentNormalAOTexture;
+		Ar << ConfidenceTexture;
 		Ar << BentNormalAOSampler;
 		Ar << BentNormalHistoryTexture;
+		Ar << ConfidenceHistoryTexture;
 		Ar << BentNormalHistorySampler;
 		Ar << IrradianceTexture;
 		Ar << IrradianceSampler;
 		Ar << IrradianceHistoryTexture;
 		Ar << IrradianceHistorySampler;
 		Ar << HistoryWeight;
+		Ar << AOHistoryMinConfidenceScale;
 		Ar << HistoryDistanceThreshold;
 		Ar << UseHistoryFilter;
 		Ar << VelocityTexture;
@@ -427,14 +237,17 @@ private:
 
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderResourceParameter BentNormalAOTexture;
+	FShaderResourceParameter ConfidenceTexture;
 	FShaderResourceParameter BentNormalAOSampler;
 	FShaderResourceParameter BentNormalHistoryTexture;
+	FShaderResourceParameter ConfidenceHistoryTexture;
 	FShaderResourceParameter BentNormalHistorySampler;
 	FShaderResourceParameter IrradianceTexture;
 	FShaderResourceParameter IrradianceSampler;
 	FShaderResourceParameter IrradianceHistoryTexture;
 	FShaderResourceParameter IrradianceHistorySampler;
 	FShaderParameter HistoryWeight;
+	FShaderParameter AOHistoryMinConfidenceScale;
 	FShaderParameter HistoryDistanceThreshold;
 	FShaderParameter UseHistoryFilter;
 	FShaderResourceParameter VelocityTexture;
@@ -443,8 +256,8 @@ private:
 	FShaderResourceParameter DistanceFieldNormalSampler;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TUpdateHistoryPS<true>,TEXT("DistanceFieldLightingPost"),TEXT("UpdateHistoryPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TUpdateHistoryPS<false>,TEXT("DistanceFieldLightingPost"),TEXT("UpdateHistoryPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TUpdateHistoryDepthRejectionPS<true>,TEXT("DistanceFieldLightingPost"),TEXT("UpdateHistoryDepthRejectionPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TUpdateHistoryDepthRejectionPS<false>,TEXT("DistanceFieldLightingPost"),TEXT("UpdateHistoryDepthRejectionPS"),SF_Pixel);
 
 
 template<bool bSupportIrradiance>
@@ -472,6 +285,7 @@ public:
 		: FGlobalShader(Initializer)
 	{
 		BentNormalAOTexture.Bind(Initializer.ParameterMap, TEXT("BentNormalAOTexture"));
+		ConfidenceTexture.Bind(Initializer.ParameterMap, TEXT("ConfidenceTexture"));
 		BentNormalAOSampler.Bind(Initializer.ParameterMap, TEXT("BentNormalAOSampler"));
 		IrradianceTexture.Bind(Initializer.ParameterMap, TEXT("IrradianceTexture"));
 		IrradianceSampler.Bind(Initializer.ParameterMap, TEXT("IrradianceSampler"));
@@ -486,6 +300,7 @@ public:
 		const FSceneView& View, 
 		FSceneRenderTargetItem& DistanceFieldNormal, 
 		FSceneRenderTargetItem& BentNormalHistoryTextureValue, 
+		FSceneRenderTargetItem& ConfidenceHistoryTextureValue, 
 		IPooledRenderTarget* IrradianceHistoryRT)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
@@ -499,6 +314,15 @@ public:
 			BentNormalAOSampler,
 			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 			BentNormalHistoryTextureValue.ShaderResourceTexture
+			);
+
+		SetTextureParameter(
+			RHICmdList,
+			ShaderRHI,
+			ConfidenceTexture,
+			BentNormalAOSampler,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			ConfidenceHistoryTextureValue.ShaderResourceTexture
 			);
 
 		SetTextureParameter(
@@ -535,6 +359,7 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << BentNormalAOTexture;
+		Ar << ConfidenceTexture;
 		Ar << BentNormalAOSampler;
 		Ar << IrradianceTexture;
 		Ar << IrradianceSampler;
@@ -548,6 +373,7 @@ public:
 private:
 
 	FShaderResourceParameter BentNormalAOTexture;
+	FShaderResourceParameter ConfidenceTexture;
 	FShaderResourceParameter BentNormalAOSampler;
 	FShaderResourceParameter IrradianceTexture;
 	FShaderResourceParameter IrradianceSampler;
@@ -561,13 +387,13 @@ IMPLEMENT_SHADER_TYPE(template<>,TFilterHistoryPS<true>,TEXT("DistanceFieldLight
 IMPLEMENT_SHADER_TYPE(template<>,TFilterHistoryPS<false>,TEXT("DistanceFieldLightingPost"),TEXT("FilterHistoryPS"),SF_Pixel);
 
 
-void AllocateOrReuseAORenderTarget(FRHICommandList& RHICmdList, TRefCountPtr<IPooledRenderTarget>& Target, const TCHAR* Name, bool bWithAlphaOrFP16Precision)
+void AllocateOrReuseAORenderTarget(FRHICommandList& RHICmdList, TRefCountPtr<IPooledRenderTarget>& Target, const TCHAR* Name, EPixelFormat Format)
 {
 	if (!Target)
 	{
 		FIntPoint BufferSize = GetBufferSizeForAO();
 
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, bWithAlphaOrFP16Precision ? PF_FloatRGBA : PF_FloatRGB, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, Format, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
 		Desc.AutoWritable = false;
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, Target, Name);
 	}
@@ -577,14 +403,17 @@ void UpdateHistory(
 	FRHICommandList& RHICmdList,
 	const FViewInfo& View, 
 	const TCHAR* BentNormalHistoryRTName,
+	const TCHAR* ConfidenceHistoryRTName,
 	const TCHAR* IrradianceHistoryRTName,
 	IPooledRenderTarget* VelocityTexture,
 	FSceneRenderTargetItem& DistanceFieldNormal,
 	/** Contains last frame's history, if non-NULL.  This will be updated with the new frame's history. */
 	TRefCountPtr<IPooledRenderTarget>* BentNormalHistoryState,
+	TRefCountPtr<IPooledRenderTarget>* ConfidenceHistoryState,
 	TRefCountPtr<IPooledRenderTarget>* IrradianceHistoryState,
 	/** Source */
 	TRefCountPtr<IPooledRenderTarget>& BentNormalSource, 
+	TRefCountPtr<IPooledRenderTarget>& ConfidenceSource,
 	TRefCountPtr<IPooledRenderTarget>& IrradianceSource, 
 	/** Output of Temporal Reprojection for the next step in the pipeline. */
 	TRefCountPtr<IPooledRenderTarget>& BentNormalHistoryOutput,
@@ -603,21 +432,25 @@ void UpdateHistory(
 		{
 			// Reuse a render target from the pool with a consistent name, for vis purposes
 			TRefCountPtr<IPooledRenderTarget> NewBentNormalHistory;
-			AllocateOrReuseAORenderTarget(RHICmdList, NewBentNormalHistory, BentNormalHistoryRTName, true);
+			AllocateOrReuseAORenderTarget(RHICmdList, NewBentNormalHistory, BentNormalHistoryRTName, PF_FloatRGBA);
+
+			TRefCountPtr<IPooledRenderTarget> NewConfidenceHistory;
+			AllocateOrReuseAORenderTarget(RHICmdList, NewConfidenceHistory, ConfidenceHistoryRTName, PF_G8);
 
 			TRefCountPtr<IPooledRenderTarget> NewIrradianceHistory;
 
 			if (bUseDistanceFieldGI)
 			{
-				AllocateOrReuseAORenderTarget(RHICmdList, NewIrradianceHistory, IrradianceHistoryRTName, false);
+				AllocateOrReuseAORenderTarget(RHICmdList, NewIrradianceHistory, IrradianceHistoryRTName, PF_FloatRGB);
 			}
 
 			SCOPED_DRAW_EVENT(RHICmdList, UpdateHistory);
 
 			{
-				FTextureRHIParamRef RenderTargets[2] =
+				FTextureRHIParamRef RenderTargets[3] =
 				{
 					NewBentNormalHistory->GetRenderTargetItem().TargetableTexture,
+					NewConfidenceHistory->GetRenderTargetItem().TargetableTexture,
 					bUseDistanceFieldGI ? NewIrradianceHistory->GetRenderTargetItem().TargetableTexture : NULL,
 				};
 
@@ -632,19 +465,19 @@ void UpdateHistory(
 
 				if (bUseDistanceFieldGI)
 				{
-					TShaderMapRef<TUpdateHistoryPS<true> > PixelShader(View.ShaderMap);
+					TShaderMapRef<TUpdateHistoryDepthRejectionPS<true> > PixelShader(View.ShaderMap);
 
 					static FGlobalBoundShaderState BoundShaderState;
 					SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-					PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, (*BentNormalHistoryState)->GetRenderTargetItem(), IrradianceHistoryState, BentNormalSource->GetRenderTargetItem(), IrradianceSource, VelocityTexture);
+					PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, (*BentNormalHistoryState)->GetRenderTargetItem(), (*ConfidenceHistoryState)->GetRenderTargetItem(), IrradianceHistoryState, BentNormalSource->GetRenderTargetItem(), ConfidenceSource->GetRenderTargetItem(), IrradianceSource, VelocityTexture);
 				}
 				else
 				{
-					TShaderMapRef<TUpdateHistoryPS<false> > PixelShader(View.ShaderMap);
+					TShaderMapRef<TUpdateHistoryDepthRejectionPS<false> > PixelShader(View.ShaderMap);
 
 					static FGlobalBoundShaderState BoundShaderState;
 					SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-					PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, (*BentNormalHistoryState)->GetRenderTargetItem(), IrradianceHistoryState, BentNormalSource->GetRenderTargetItem(), IrradianceSource, VelocityTexture);
+					PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, (*BentNormalHistoryState)->GetRenderTargetItem(), (*ConfidenceHistoryState)->GetRenderTargetItem(), IrradianceHistoryState, BentNormalSource->GetRenderTargetItem(), ConfidenceSource->GetRenderTargetItem(), IrradianceSource, VelocityTexture);
 				}
 
 				VertexShader->SetParameters(RHICmdList, View);
@@ -660,6 +493,7 @@ void UpdateHistory(
 					*VertexShader);
 
 				RHICmdList.CopyToResolveTarget(NewBentNormalHistory->GetRenderTargetItem().TargetableTexture, NewBentNormalHistory->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
+				RHICmdList.CopyToResolveTarget(NewConfidenceHistory->GetRenderTargetItem().TargetableTexture, NewConfidenceHistory->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 			
 				if (bUseDistanceFieldGI)
 				{
@@ -675,22 +509,26 @@ void UpdateHistory(
 				if (HistoryDesc.Extent != SceneContext.GetBufferSizeXY() / FIntPoint(GAODownsampleFactor, GAODownsampleFactor))
 				{
 					GRenderTargetPool.FreeUnusedResource(*BentNormalHistoryState);
+					GRenderTargetPool.FreeUnusedResource(*ConfidenceHistoryState);
 					*BentNormalHistoryState = NULL;
+					*ConfidenceHistoryState = NULL;
 					// Update the view state's render target reference with the new history
-					AllocateOrReuseAORenderTarget(RHICmdList, *BentNormalHistoryState, BentNormalHistoryRTName, true);
+					AllocateOrReuseAORenderTarget(RHICmdList, *BentNormalHistoryState, BentNormalHistoryRTName, PF_FloatRGBA);
+					AllocateOrReuseAORenderTarget(RHICmdList, *ConfidenceHistoryState, ConfidenceHistoryRTName, PF_G8);
 
 					if (bUseDistanceFieldGI)
 					{
 						GRenderTargetPool.FreeUnusedResource(*IrradianceHistoryState);
 						*IrradianceHistoryState = NULL;
-						AllocateOrReuseAORenderTarget(RHICmdList, *IrradianceHistoryState, IrradianceHistoryRTName, false);
+						AllocateOrReuseAORenderTarget(RHICmdList, *IrradianceHistoryState, IrradianceHistoryRTName, PF_FloatRGB);
 					}
 				}
 
 				{
-					FTextureRHIParamRef RenderTargets[2] =
+					FTextureRHIParamRef RenderTargets[3] =
 					{
 						(*BentNormalHistoryState)->GetRenderTargetItem().TargetableTexture,
+						(*ConfidenceHistoryState)->GetRenderTargetItem().TargetableTexture,
 						bUseDistanceFieldGI ? (*IrradianceHistoryState)->GetRenderTargetItem().TargetableTexture : NULL,
 					};
 
@@ -709,7 +547,7 @@ void UpdateHistory(
 
 						static FGlobalBoundShaderState BoundShaderState;
 						SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-						PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, NewBentNormalHistory->GetRenderTargetItem(), NewIrradianceHistory);
+						PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, NewBentNormalHistory->GetRenderTargetItem(), NewConfidenceHistory->GetRenderTargetItem(), NewIrradianceHistory);
 					}
 					else
 					{
@@ -717,7 +555,7 @@ void UpdateHistory(
 
 						static FGlobalBoundShaderState BoundShaderState;
 						SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-						PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, NewBentNormalHistory->GetRenderTargetItem(), NewIrradianceHistory);
+						PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, NewBentNormalHistory->GetRenderTargetItem(), NewConfidenceHistory->GetRenderTargetItem(), NewIrradianceHistory);
 					}
 
 					VertexShader->SetParameters(RHICmdList, View);
@@ -733,7 +571,8 @@ void UpdateHistory(
 						*VertexShader);
 
 					RHICmdList.CopyToResolveTarget((*BentNormalHistoryState)->GetRenderTargetItem().TargetableTexture, (*BentNormalHistoryState)->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
-			
+					RHICmdList.CopyToResolveTarget((*ConfidenceHistoryState)->GetRenderTargetItem().TargetableTexture, (*ConfidenceHistoryState)->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
+
 					if (bUseDistanceFieldGI)
 					{
 						RHICmdList.CopyToResolveTarget((*IrradianceHistoryState)->GetRenderTargetItem().TargetableTexture, (*IrradianceHistoryState)->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
@@ -749,6 +588,8 @@ void UpdateHistory(
 				*BentNormalHistoryState = NewBentNormalHistory;
 				BentNormalHistoryOutput = NewBentNormalHistory;
 
+				*ConfidenceHistoryState = NewConfidenceHistory;
+
 				*IrradianceHistoryState = NewIrradianceHistory;
 				IrradianceHistoryOutput = NewIrradianceHistory;
 			}
@@ -759,6 +600,9 @@ void UpdateHistory(
 			*BentNormalHistoryState = BentNormalSource;
 			BentNormalHistoryOutput = BentNormalSource;
 			BentNormalSource = NULL;
+
+			*ConfidenceHistoryState = ConfidenceSource;
+			ConfidenceSource = NULL;
 
 			*IrradianceHistoryState = IrradianceSource;
 			IrradianceHistoryOutput = IrradianceSource;

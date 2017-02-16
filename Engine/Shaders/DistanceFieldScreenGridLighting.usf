@@ -431,12 +431,26 @@ float4 GetNormalWeights(float2 Corner00UV, float2 LowResTexelSize, float3 WorldN
 // 1 / ((1 - FadeDistanceFraction) * AOMaxViewDistance)
 float DistanceFadeScale;
 
+float ComputeSampleWeightBasedOnPosition(float4 ReferencePlane, float2 SampleScreenUV, float SampleDepth)
+{
+	float2 SampleScreenPosition = (SampleScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
+	float4 SampleHomogeneousWorldPosition = mul(float4(SampleScreenPosition * SampleDepth, SampleDepth, 1), View.ScreenToWorld);
+	float3 SampleWorldPosition = SampleHomogeneousWorldPosition.xyz / SampleHomogeneousWorldPosition.w;
+
+	float PlaneDistance = dot(ReferencePlane, float4(SampleWorldPosition, 1));
+
+	float Epsilon = .0001f;
+	float RelativeDistance = 1000 * abs(PlaneDistance) / SampleDepth;
+	return min(10.0f / (RelativeDistance + Epsilon), 1);
+}
+
 /**  */
 void GeometryAwareUpsamplePS(
 	in float4 UVAndScreenPos : TEXCOORD0
 	,out float4 OutBentNormal : SV_Target0
+	,out float OutConfidence : SV_Target1
 #if SUPPORT_IRRADIANCE
-	,out float4 OutIrradiance : SV_Target1
+	,out float4 OutIrradiance : SV_Target2
 #endif
 	)
 {
@@ -445,6 +459,11 @@ void GeometryAwareUpsamplePS(
 	bool bHasDistanceFieldRepresentation;
 	bool bLit;
 	GetDownsampledGBuffer(UVAndScreenPos.xy, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bLit);
+
+	float4 HomogeneousWorldPosition = mul(float4(UVAndScreenPos.zw * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
+	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
+
+	float4 ReferencePlane = float4(WorldNormal, -dot(WorldPosition, WorldNormal));
 
 	float2 LowResBufferSize = BentNormalBufferAndTexelSize.xy;
 	float2 LowResTexelSize = BentNormalBufferAndTexelSize.zw;
@@ -463,16 +482,22 @@ void GeometryAwareUpsamplePS(
 		BilinearWeights.y * (1 - BilinearWeights.x),
 		BilinearWeights.y * BilinearWeights.x);
 
-	float4 CornerDepths = abs(float4(TextureValues00.w, TextureValues10.w, TextureValues01.w, TextureValues11.w));
+	float4 CornerDepths = float4(TextureValues00.w, TextureValues10.w, TextureValues01.w, TextureValues11.w);
+
+	float4 PositionWeights;
+	PositionWeights.x = ComputeSampleWeightBasedOnPosition(ReferencePlane, LowResCorner00UV, CornerDepths.x);
+	PositionWeights.y = ComputeSampleWeightBasedOnPosition(ReferencePlane, LowResCorner00UV + float2(LowResTexelSize.x, 0), CornerDepths.y);
+	PositionWeights.z = ComputeSampleWeightBasedOnPosition(ReferencePlane, LowResCorner00UV + float2(0, LowResTexelSize.y), CornerDepths.z);
+	PositionWeights.w = ComputeSampleWeightBasedOnPosition(ReferencePlane, LowResCorner00UV + LowResTexelSize, CornerDepths.w);
 
 	//float4 DepthWeights = max(exp2(-abs(CornerDepths - SceneDepth.xxxx) * .01f), .001f);
 	float Epsilon = .0001f;
-	float4 DepthWeights = min(10.0f / (abs(CornerDepths - SceneDepth.xxxx) + Epsilon), 1);
+	//float4 DepthWeights = min(10.0f / (abs(CornerDepths - SceneDepth.xxxx) + Epsilon), 1);
 
 	float2 FullResCorner00UV = Corner00UV + (JitterOffset + .5f) * DistanceFieldGBufferTexelSize;
 	float4 NormalWeights = GetNormalWeights(FullResCorner00UV, LowResTexelSize, WorldNormal);
 	
-	float4 FinalWeights = CornerWeights * DepthWeights * NormalWeights;
+	float4 FinalWeights = CornerWeights * PositionWeights * NormalWeights;
 
 	float InvSafeWeight = 1.0f / max(dot(FinalWeights, 1), .00001f);
 
@@ -483,8 +508,12 @@ void GeometryAwareUpsamplePS(
 		+ FinalWeights.w * TextureValues11.xyz)
 		* InvSafeWeight;
 	
+	// Output a confidence value based on position weights
+	// Confidence will be 0 when we detect that foreground occlusion values have been leaked onto the background, because no better low res samples were available
+	OutConfidence = dot(PositionWeights, 1) < .5f ? 0 : 1;
+
 	float BentNormalLength = length(AverageBentNormal);
-	
+
 #if !PASS_THROUGH_DEBUG_VALUE
 	float AverageLength = 
 		(FinalWeights.x * length(TextureValues00.xyz) 
@@ -499,6 +528,7 @@ void GeometryAwareUpsamplePS(
 		AverageBentNormal = AverageBentNormal / BentNormalLength * AverageLength;
 	}
 #endif
+
 	OutBentNormal = float4(AverageBentNormal, SceneDepth);
 
 	// Fade to unoccluded in the distance
@@ -507,7 +537,6 @@ void GeometryAwareUpsamplePS(
 	float FadeAlpha = saturate((AOMaxViewDistance - SceneDepth) * DistanceFadeScale);
 	float3 NormalizedBentNormal = OutBentNormal.rgb / max(BentNormalLength, .0001f);
 	OutBentNormal.rgb = NormalizedBentNormal * lerp(1, BentNormalLength, FadeAlpha);
-
 	//OutBentNormal = float4(WorldNormal, SceneDepth);
 
 	#if SUPPORT_IRRADIANCE

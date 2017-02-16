@@ -1323,6 +1323,8 @@ protected:
 		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
 		bool bReflectionCaptureScene);
 
+	void BeginRenderRayTracedDistanceFieldProjections(FRHICommandListImmediate& RHICmdList);
+
 	void RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList);
 	void RenderShadowDepthMapAtlases(FRHICommandListImmediate& RHICmdList);
 

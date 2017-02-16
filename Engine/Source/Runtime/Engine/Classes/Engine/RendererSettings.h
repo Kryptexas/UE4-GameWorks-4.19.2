@@ -227,6 +227,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Whether to generate a low-resolution base color texture for landscapes for rendering real-time global illumination.  This feature requires GenerateMeshDistanceFields is also enabled, and will increase mesh build times and memory usage."))
 	uint32 bGenerateLandscapeGIData : 1;
 
+	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
+		ConsoleVariable="r.CompressMeshDistanceFields",
+		ToolTip="Whether to store mesh distance fields compressed in memory, which reduces how much memory they take, but also causes serious hitches when making new levels visible.  Only enable if your project does not stream levels in-game.  Changing this setting requires restarting the editor.",
+		ConfigRestartRequired=true))
+	uint32 bCompressMeshDistanceFields:1;
+
 	UPROPERTY(config, EditAnywhere, Category=Tessellation, meta=(
 		ConsoleVariable="r.TessellationAdaptivePixelsPerTriangle",DisplayName="Adaptive pixels per triangle",
 		ToolTip="When adaptive tessellation is enabled it will try to tessellate a mesh so that each triangle contains the specified number of pixels. The tessellation multiplier specified in the material can increase or decrease the amount of tessellation."))

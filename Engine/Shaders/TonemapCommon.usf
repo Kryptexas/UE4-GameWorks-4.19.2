@@ -326,7 +326,7 @@ float3 ST2084ToScRGB(float3 Color, uint OutputDevice)
 	float MaxODTNits = 1000.0f;
 	float MinODTNits = 0.0001f;
 
-	if (OutputDevice == 4)
+	if (OutputDevice == 4 || OutputDevice == 6)
 	{
 		// 2000 nit display
 		MaxODTNits = 2000.0f;

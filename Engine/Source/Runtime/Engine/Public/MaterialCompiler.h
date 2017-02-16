@@ -186,6 +186,8 @@ public:
 	virtual int32 PreSkinnedPosition() = 0;
 	virtual int32 PreSkinnedNormal() = 0;
 
+	virtual int32 VertexInterpolator(uint32 InterpolatorIndex) = 0;
+
 #if WITH_EDITOR
 	virtual int32 MaterialBakingWorldPosition() = 0;
 #endif

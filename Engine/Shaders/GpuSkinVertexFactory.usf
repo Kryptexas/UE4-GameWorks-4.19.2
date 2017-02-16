@@ -119,8 +119,8 @@ struct FVertexFactoryInterpolantsVSToPS
 
 	float4 Color : COLOR0;
 
-#if NUM_MATERIAL_TEXCOORDS
-	float2	TexCoords[NUM_MATERIAL_TEXCOORDS]	: TEXCOORD0;
+#if NUM_TEX_COORD_INTERPOLATORS
+	float2	TexCoords[NUM_TEX_COORD_INTERPOLATORS]	: TEXCOORD0;
 #endif
 
 #if INSTANCED_STEREO
@@ -139,9 +139,9 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 	// GetMaterialPixelParameters is responsible for fully initializing the result
 	FMaterialPixelParameters Result = MakeInitializedMaterialPixelParameters();
 
-#if NUM_MATERIAL_TEXCOORDS	
+#if NUM_TEX_COORD_INTERPOLATORS	
 	UNROLL
-	for(int CoordinateIndex = 0;CoordinateIndex < NUM_MATERIAL_TEXCOORDS;CoordinateIndex++)
+	for(int CoordinateIndex = 0;CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS;CoordinateIndex++)
 	{
 		Result.TexCoords[CoordinateIndex] = Interpolants.TexCoords[CoordinateIndex];
 	}
@@ -623,9 +623,9 @@ FVertexFactoryInterpolantsVSToDS VertexFactoryGetInterpolantsVSToDS(FVertexFacto
 FMaterialTessellationParameters GetMaterialTessellationParameters(FVertexFactoryInterpolantsVSToDS Interpolants, float3 CameraLocalWorldPosition)
 {
 	FMaterialTessellationParameters	Result;
-#if NUM_MATERIAL_TEXCOORDS
+#if NUM_TEX_COORD_INTERPOLATORS
 	UNROLL
-	for (int CoordinateIndex = 0;CoordinateIndex < NUM_MATERIAL_TEXCOORDS;CoordinateIndex++)
+	for (int CoordinateIndex = 0;CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS;CoordinateIndex++)
 	{
 		Result.TexCoords[CoordinateIndex] = Interpolants.InterpolantsVSToPS.TexCoords[CoordinateIndex];
 	}
@@ -654,9 +654,9 @@ FVertexFactoryInterpolantsVSToDS VertexFactoryInterpolate(FVertexFactoryInterpol
 	TESSELLATION_INTERPOLATE_MEMBER(InterpolantsVSToPS.TangentToWorld2);
 	TESSELLATION_INTERPOLATE_MEMBER(InterpolantsVSToPS.Color);
 
-#if NUM_MATERIAL_TEXCOORDS
+#if NUM_TEX_COORD_INTERPOLATORS
 	UNROLL
-	for(int tc = 0; tc < NUM_MATERIAL_TEXCOORDS; ++tc)
+	for(int tc = 0; tc < NUM_TEX_COORD_INTERPOLATORS; ++tc)
 	{
 		TESSELLATION_INTERPOLATE_MEMBER(InterpolantsVSToPS.TexCoords[tc]);
 	}

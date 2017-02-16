@@ -19,12 +19,7 @@
 		{
 			"Name" : "PerformanceMonitor",
 			"Type" : "Runtime",
-			"LoadingPhase" : "Default",
-			"WhitelistPlatforms" :
-			[
-				"Win64",
-				"Linux"
-			]
+			"LoadingPhase" : "Default"
 		}
 	]
 }

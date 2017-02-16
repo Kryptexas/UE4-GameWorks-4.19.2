@@ -348,8 +348,8 @@ public:
 		DistanceFieldAtlasTexelSize.Bind(ParameterMap, TEXT("DistanceFieldAtlasTexelSize"));
 	}
 
-	template<typename TParamRef>
-	void Set(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FDistanceFieldCulledObjectBuffers& ObjectBuffers)
+	template<typename TParamRef, typename TRHICommandList>
+	void Set(TRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FDistanceFieldCulledObjectBuffers& ObjectBuffers)
 	{
 		ObjectIndirectArguments.SetBuffer(RHICmdList, ShaderRHI, ObjectBuffers.ObjectIndirectArguments);
 		CulledObjectBounds.SetBuffer(RHICmdList, ShaderRHI, ObjectBuffers.Bounds);
@@ -377,8 +377,8 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, DistanceFieldAtlasTexelSize, InvTextureDim);
 	}
 
-	template<typename TParamRef>
-	void UnsetParameters(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI)
+	template<typename TParamRef, typename TRHICommandList>
+	void UnsetParameters(TRHICommandList& RHICmdList, const TParamRef& ShaderRHI)
 	{
 		ObjectIndirectArguments.UnsetUAV(RHICmdList, ShaderRHI);
 		CulledObjectBounds.UnsetUAV(RHICmdList, ShaderRHI);
@@ -535,8 +535,8 @@ public:
 		return ShadowTileHeadDataUnpacked.IsBound() || ShadowTileArrayData.IsBound() || ShadowTileListGroupSize.IsBound() || ShadowMaxObjectsPerTile.IsBound();
 	}
 
-	template<typename TParamRef>
-	void Set(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FLightTileIntersectionResources& LightTileIntersectionResources)
+	template<typename TParamRef, typename TRHICommandList>
+	void Set(TRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FLightTileIntersectionResources& LightTileIntersectionResources)
 	{
 		ShadowTileHeadDataUnpacked.SetBuffer(RHICmdList, ShaderRHI, LightTileIntersectionResources.TileHeadDataUnpacked);
 

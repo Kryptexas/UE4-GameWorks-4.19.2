@@ -306,6 +306,8 @@ class FMaterialCompilationOutput
 {
 public:
 	FMaterialCompilationOutput() :
+		NumUsedUVScalars(0),
+		NumUsedCustomInterpolatorScalars(0),
 		bRequiresSceneColorCopy(false),
 		bNeedsSceneTextures(false),
 		bUsesEyeAdaptation(false),
@@ -321,9 +323,13 @@ public:
 
 	FUniformExpressionSet UniformExpressionSet;
 
-	/** 
-	 * Indicates whether the material uses scene color. 
-	 */
+	/** Number of used custom UV scalars. */
+	uint8 NumUsedUVScalars;
+
+	/** Number of used custom vertex interpolation scalars. */
+	uint8 NumUsedCustomInterpolatorScalars;
+
+	/** Indicates whether the material uses scene color. */
 	bool bRequiresSceneColorCopy;
 
 	/** true if the material needs the scenetexture lookups. */
@@ -730,6 +736,8 @@ public:
 	bool ModifiesMeshPosition() const { return MaterialCompilationOutput.bModifiesMeshPosition; }
 	bool UsesPixelDepthOffset() const { return MaterialCompilationOutput.bUsesPixelDepthOffset; }
 	bool UsesSceneDepthLookup() const { return MaterialCompilationOutput.bUsesSceneDepthLookup; }
+	uint32 GetNumUsedUVScalars() const { return MaterialCompilationOutput.NumUsedUVScalars; }
+	uint32 GetNumUsedCustomInterpolatorScalars() const { return MaterialCompilationOutput.NumUsedCustomInterpolatorScalars; }
 
 	bool IsValidForRendering() const
 	{
@@ -1239,6 +1247,9 @@ protected:
 	/* Gather any UMaterialExpressionCustomOutput expressions they can be compiled in turn */
 	virtual void GatherCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const {}
 
+	/* Gather any UMaterialExpressionCustomOutput expressions in the material and referenced function calls */
+	virtual void GatherExpressionsForCustomInterpolators(TArray<class UMaterialExpression*>& OutExpressions) const {}
+
 	/** Returns the index to the Expression in the Expressions array, or -1 if not found. */
 	int32 FindExpression(const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >&Expressions, const FMaterialUniformExpressionTexture &Expression);
 
@@ -1606,6 +1617,7 @@ public:
 
 	/** Returns the number of samplers used in this material, or -1 if the material does not have a valid shader map (compile error or still compiling). */
 	ENGINE_API int32 GetSamplerUsage() const;
+	ENGINE_API void GetUserInterpolatorUsage(uint32& NumUsedUVScalars, uint32& NumUsedCustomInterpolatorScalars) const;
 
 	ENGINE_API virtual FString GetMaterialUsageDescription() const override;
 
@@ -1728,6 +1740,7 @@ protected:
 
 	/* Gives the material a chance to compile any custom output nodes it has added */
 	ENGINE_API virtual void GatherCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const override;
+	ENGINE_API virtual void GatherExpressionsForCustomInterpolators(TArray<class UMaterialExpression*>& OutExpressions) const override;
 	ENGINE_API virtual bool HasVertexPositionOffsetConnected() const override;
 	ENGINE_API virtual bool HasPixelDepthOffsetConnected() const override;
 	ENGINE_API virtual bool HasMaterialAttributesConnected() const override;

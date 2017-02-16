@@ -28,6 +28,7 @@
 #include "Materials/MaterialExpressionCustom.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
 #include "Materials/MaterialExpressionVectorNoise.h"
+#include "Materials/MaterialExpressionVertexInterpolator.h"
 #include "Materials/MaterialUniformExpressions.h"
 #include "ParameterCollection.h"
 #include "Materials/MaterialParameterCollection.h"
@@ -178,6 +179,11 @@ protected:
 	/** Any custom output function implementations */
 	TArray<FString> CustomOutputImplementations;
 
+	/** Custom vertex interpolators */
+	TArray<UMaterialExpressionVertexInterpolator*> CustomVertexInterpolators;
+	/** Current float-width offset for custom vertex interpolators */
+	int32 CurrentCustomVertexInterpolatorOffset;
+
 	/** Whether the translation succeeded. */
 	uint32 bSuccess : 1;
 	/** Whether the compute shader material inputs were compiled. */
@@ -251,6 +257,7 @@ public:
 	,	FeatureLevel(InFeatureLevel)
 	,	MaterialTemplateLineNumber(INDEX_NONE)
 	,	NextSymbolIndex(INDEX_NONE)
+	,	CurrentCustomVertexInterpolatorOffset(0)
 	,	bSuccess(false)
 	,	bCompileForComputeShader(false)
 	,	bUsesSceneDepth(false)
@@ -305,6 +312,45 @@ public:
 		const FGuid& MissingAttribute = FMaterialAttributeDefinitionMap::GetID(MP_MAX);
 		MaterialAttributesStack.Add(MissingAttribute);
 	}
+
+	void GatherCustomVertexInterpolators(TArray<UMaterialExpression*> Expressions)
+	{
+		for (UMaterialExpression* Expression : Expressions)
+		{
+			if (UMaterialExpressionVertexInterpolator* Interpolator = Cast<UMaterialExpressionVertexInterpolator>(Expression))
+			{
+				TArray<FShaderCodeChunk> CustomExpressionChunks;
+				CurrentScopeChunks = &CustomExpressionChunks;
+
+				int32 Ret = Interpolator->CompileInput(this, CustomVertexInterpolators.Num());
+				if (Ret != INDEX_NONE)
+				{
+					CustomVertexInterpolators.Add(Interpolator);
+				}
+
+				// Each interpolator chain must be handled as an independent compile
+				for (FMaterialFunctionCompileState& FunctionStack : FunctionStacks[SF_Vertex])
+				{
+					FunctionStack.ExpressionStack.Empty();
+					FunctionStack.ExpressionCodeMap.Empty();
+				}
+			}
+			else if (UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression))
+			{
+				if (FunctionCall->MaterialFunction)
+				{
+					FunctionCall->MaterialFunction->LinkIntoCaller(FunctionCall->FunctionInputs);
+					PushFunction(FMaterialFunctionCompileState(FunctionCall));
+
+					GatherCustomVertexInterpolators(FunctionCall->MaterialFunction->FunctionExpressions);
+
+					const FMaterialFunctionCompileState CompileState = PopFunction();
+					check(CompileState.ExpressionStack.Num() == 0);
+					FunctionCall->MaterialFunction->UnlinkFromCaller();
+				}
+			}
+		}
+	}
  
 	bool Translate()
 	{
@@ -348,13 +394,25 @@ public:
 
 			memset(Chunk, -1, sizeof(Chunk));
 
+			// Translate all custom vertex interpolators before main attributes so type information is available
+			{
+				CustomVertexInterpolators.Empty();
+				CurrentCustomVertexInterpolatorOffset = 0;
+				MaterialProperty = MP_MAX;
+				ShaderFrequency = SF_Vertex;
+
+				TArray<UMaterialExpression*> Expressions;
+				Material->GatherExpressionsForCustomInterpolators(Expressions);
+				GatherCustomVertexInterpolators(Expressions);
+			}
+
 			const EShaderFrequency NormalShaderFrequency = FMaterialAttributeDefinitionMap::GetShaderFrequency(MP_Normal);
 
 			// Normal must always be compiled first; this will ensure its chunk calculations are the first to be added
 			{
 				// Verify that start chunk is 0
 				check(SharedPropertyCodeChunks[NormalShaderFrequency].Num() == 0);
-				Chunk[MP_Normal]						= Material->CompilePropertyAndSetMaterialProperty(MP_Normal, this);
+				Chunk[MP_Normal]					= Material->CompilePropertyAndSetMaterialProperty(MP_Normal, this);
 				NormalCodeChunkEnd = SharedPropertyCodeChunks[NormalShaderFrequency].Num();
 			}
 
@@ -539,6 +597,22 @@ public:
 			// Catch any modifications to NumUserTexCoords that will not seen by customized UVs
 			check(SavedNumUserTexCoords == NumUserTexCoords);
 
+			// Finished compilation, verify final interpolator count restrictions
+			if (CurrentCustomVertexInterpolatorOffset > 0)
+			{
+				const int32 MaxNumScalars = (FeatureLevel == ERHIFeatureLevel::ES2) ? 3 * 2 : 8 * 2;
+				const int32 TotalUsedScalars = CurrentCustomVertexInterpolatorOffset + NumUserTexCoords * 2;
+
+ 				if (TotalUsedScalars > MaxNumScalars)
+				{
+					Errorf(TEXT("Maximum number of custom vertex interpolators exceeded. (%i / %i scalar values) (TexCoord: %i scalars, Custom: %i scalars)"),
+						TotalUsedScalars, MaxNumScalars, NumUserTexCoords * 2, CurrentCustomVertexInterpolatorOffset);
+				}
+			}
+
+			MaterialCompilationOutput.NumUsedUVScalars = NumUserTexCoords * 2;
+			MaterialCompilationOutput.NumUsedCustomInterpolatorScalars = CurrentCustomVertexInterpolatorOffset;
+
 			ResourcesString = TEXT("");
 
 #if HANDLE_CUSTOM_OUTPUTS_AS_MATERIAL_ATTRIBUTES
@@ -614,6 +688,11 @@ public:
 
 				for (UMaterialExpressionCustomOutput* CustomOutput : CustomOutputExpressions)
 				{
+					if (CustomOutput->HasCustomSourceOutput())
+					{
+						continue;
+					}
+
 					if (SeenCustomOutputExpressionsClases.Contains(CustomOutput->GetClass()))
 					{
 						Errorf(TEXT("The material can contain only one %s node"), *CustomOutput->GetDescription());
@@ -932,8 +1011,13 @@ public:
 		// use "MaterialTemplate.usf" to create the functions to get data (e.g. material attributes) and code (e.g. material expressions to create specular color) from C++
 		FLazyPrintf LazyPrintf(*MaterialTemplate);
 
+		const uint32 NumCustomVectors = FMath::DivideAndRoundUp((uint32)CurrentCustomVertexInterpolatorOffset, 2u);
+		const uint32 NumTexCoordVectors = NumUserTexCoords + NumCustomVectors;
+
 		LazyPrintf.PushParam(*FString::Printf(TEXT("%u"),NumUserVertexTexCoords));
 		LazyPrintf.PushParam(*FString::Printf(TEXT("%u"),NumUserTexCoords));
+		LazyPrintf.PushParam(*FString::Printf(TEXT("%u"),NumCustomVectors));
+		LazyPrintf.PushParam(*FString::Printf(TEXT("%u"),NumTexCoordVectors));
 
 		// Stores the shared shader results member declarations
 		FString PixelMembersDeclaration;
@@ -983,28 +1067,66 @@ public:
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_CustomData0));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_CustomData1));
 
+		// Print custom texture coordinate assignments
 		FString CustomUVAssignments;
 
-			int32 LastProperty = -1;
-			for (uint32 CustomUVIndex = 0; CustomUVIndex < NumUserTexCoords; CustomUVIndex++)
+		int32 LastProperty = -1;
+		for (uint32 CustomUVIndex = 0; CustomUVIndex < NumUserTexCoords; CustomUVIndex++)
+		{
+			if (CustomUVIndex == 0)
 			{
-				if (CustomUVIndex == 0)
-				{
-					CustomUVAssignments += TranslatedCodeChunkDefinitions[MP_CustomizedUVs0 + CustomUVIndex];
-				}
-
-				if (TranslatedCodeChunkDefinitions[MP_CustomizedUVs0 + CustomUVIndex].Len() > 0)
-				{
-					if (LastProperty >= 0)
-					{
-						check(TranslatedCodeChunkDefinitions[LastProperty].Len() == TranslatedCodeChunkDefinitions[MP_CustomizedUVs0 + CustomUVIndex].Len());
-					}
-					LastProperty = MP_CustomizedUVs0 + CustomUVIndex;
-				}
-				CustomUVAssignments += FString::Printf(TEXT("\tOutTexCoords[%u] = %s;") LINE_TERMINATOR, CustomUVIndex, *TranslatedCodeChunks[MP_CustomizedUVs0 + CustomUVIndex]);
+				CustomUVAssignments += TranslatedCodeChunkDefinitions[MP_CustomizedUVs0 + CustomUVIndex];
 			}
 
+			if (TranslatedCodeChunkDefinitions[MP_CustomizedUVs0 + CustomUVIndex].Len() > 0)
+			{
+				if (LastProperty >= 0)
+				{
+					check(TranslatedCodeChunkDefinitions[LastProperty].Len() == TranslatedCodeChunkDefinitions[MP_CustomizedUVs0 + CustomUVIndex].Len());
+				}
+				LastProperty = MP_CustomizedUVs0 + CustomUVIndex;
+			}
+			CustomUVAssignments += FString::Printf(TEXT("\tOutTexCoords[%u] = %s;") LINE_TERMINATOR, CustomUVIndex, *TranslatedCodeChunks[MP_CustomizedUVs0 + CustomUVIndex]);
+		}
+
 		LazyPrintf.PushParam(*CustomUVAssignments);
+
+		// Print custom vertex shader interpolator assignments
+		FString CustomInterpolatorAssignments;
+
+		for (int32 Index = 0; Index < CustomVertexInterpolators.Num(); ++Index)
+		{
+			UMaterialExpressionVertexInterpolator* Interpolator = CustomVertexInterpolators[Index];
+			check(Interpolator && Interpolator->InterpolatorIndex != INDEX_NONE);
+			check(Interpolator->InterpolatedType & MCT_Float);
+
+			if (Interpolator->InterpolatorOffset != INDEX_NONE)
+			{
+				const EMaterialValueType Type = Interpolator->InterpolatedType == MCT_Float ? MCT_Float1 : Interpolator->InterpolatedType;
+				const TCHAR* Swizzle[2] = { TEXT("x"), TEXT("y") };
+				const int32 Offset = Interpolator->InterpolatorOffset;
+
+				// Note: We reference the UV define directly to avoid having to pre-accumulate UV counts before property translation
+				CustomInterpolatorAssignments += FString::Printf(TEXT("\tOutTexCoords[%i + NUM_MATERIAL_TEXCOORDS].%s = VertexInterpolator%i(Parameters).x;") LINE_TERMINATOR, Offset/2, Swizzle[Offset%2], Index);
+				
+				if (Type >= MCT_Float2)
+				{
+					CustomInterpolatorAssignments += FString::Printf(TEXT("\tOutTexCoords[%i + NUM_MATERIAL_TEXCOORDS].%s = VertexInterpolator%i(Parameters).y;") LINE_TERMINATOR, (Offset+1)/2, Swizzle[(Offset+1)%2], Index);
+
+					if (Type >= MCT_Float3)
+					{
+						CustomInterpolatorAssignments += FString::Printf(TEXT("\tOutTexCoords[%i + NUM_MATERIAL_TEXCOORDS].%s = VertexInterpolator%i(Parameters).z;") LINE_TERMINATOR, (Offset+2)/2, Swizzle[(Offset+2)%2], Index);
+
+						if (Type == MCT_Float4)
+						{
+							CustomInterpolatorAssignments += FString::Printf(TEXT("\tOutTexCoords[%i + NUM_MATERIAL_TEXCOORDS].%s = VertexInterpolator%i(Parameters).w;") LINE_TERMINATOR, (Offset+3)/2, Swizzle[(Offset+3)%2], Index);
+						}
+					}
+				}
+			}
+		}
+
+		LazyPrintf.PushParam(*CustomInterpolatorAssignments);
 
 		// Initializers required for Normal
 		LazyPrintf.PushParam(*TranslatedCodeChunkDefinitions[MP_Normal]);
@@ -3638,6 +3760,65 @@ protected:
 		}
 
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.PreSkinnedNormal"));
+	}
+
+	virtual int32 VertexInterpolator(uint32 InterpolatorIndex) override
+	{
+		if (ShaderFrequency != SF_Pixel)
+		{
+			return Errorf(TEXT("Custom interpolator outputs only available in pixel shaders."));
+		}
+		else if (InterpolatorIndex >= (uint32)CustomVertexInterpolators.Num())
+		{
+			return Errorf(TEXT("Invalid custom interpolator index."));
+		}
+
+		UMaterialExpressionVertexInterpolator* Interpolator = CustomVertexInterpolators[InterpolatorIndex];
+		check(Interpolator && Interpolator->InterpolatorIndex == InterpolatorIndex);
+		check(Interpolator->InterpolatedType & MCT_Float);
+		check(Interpolator->InterpolatorOffset == INDEX_NONE);
+
+		// Assign interpolator offset and accumulate size
+		int32 InterpolatorSize = 0;
+		switch (Interpolator->InterpolatedType)
+		{
+		case MCT_Float4:	InterpolatorSize = 4; break;
+		case MCT_Float3:	InterpolatorSize = 3; break;
+		case MCT_Float2:	InterpolatorSize = 2; break;
+		default:			InterpolatorSize = 1;
+		};
+
+		Interpolator->InterpolatorOffset = CurrentCustomVertexInterpolatorOffset;
+		CurrentCustomVertexInterpolatorOffset += InterpolatorSize;
+
+		// Copy interpolated data from pixel parameters to local
+		const EMaterialValueType Type = Interpolator->InterpolatedType == MCT_Float ? MCT_Float1 : Interpolator->InterpolatedType;
+		const TCHAR* TypeName = HLSLTypeString(Type);
+		const TCHAR* Swizzle[2] = { TEXT("x"), TEXT("y") };
+		const int32 Offset = Interpolator->InterpolatorOffset;
+	
+		// Note: We reference the UV define directly to avoid having to pre-accumulate UV counts before property translation
+		FString GetValueCode = FString::Printf(TEXT("%s(Parameters.TexCoords[%i + NUM_MATERIAL_TEXCOORDS].%s"), TypeName, (Offset/2), Swizzle[Offset%2]);
+
+		if (Type >= MCT_Float2)
+		{
+			GetValueCode += FString::Printf(TEXT(", Parameters.TexCoords[%i + NUM_MATERIAL_TEXCOORDS].%s"), (Offset+1)/2, Swizzle[(Offset+1)%2]);
+
+			if (Type >= MCT_Float3)
+			{
+				GetValueCode += FString::Printf(TEXT(", Parameters.TexCoords[%i + NUM_MATERIAL_TEXCOORDS].%s"), (Offset+2)/2, Swizzle[(Offset+2)%2]);
+
+				if (Type == MCT_Float4)
+				{
+					GetValueCode += FString::Printf(TEXT(", Parameters.TexCoords[%i + NUM_MATERIAL_TEXCOORDS].%s"), (Offset+3)/2, Swizzle[(Offset+3)%2]);
+				}
+			}
+		}
+
+		GetValueCode.Append(TEXT(")"));
+
+		int32 RetCode = AddCodeChunk(Type, *GetValueCode);
+		return RetCode;
 	}
 
 	virtual int32 Add(int32 A,int32 B) override

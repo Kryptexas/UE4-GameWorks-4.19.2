@@ -993,6 +993,21 @@ namespace VulkanRHI
 		void DestroyFence(FFence* Fence);
 	};
 
+	class FGPUEvent : public FDeviceChild, public FRefCount
+	{
+	public:
+		FGPUEvent(FVulkanDevice* InDevice);
+		virtual ~FGPUEvent();
+
+		inline VkEvent GetHandle() const
+		{
+			return Handle;
+		}
+
+	protected:
+		VkEvent Handle;
+	};
+
 	class FDeferredDeletionQueue : public FDeviceChild
 	{
 		//typedef TPair<FRefCountedObject*, uint64> FFencedObject;

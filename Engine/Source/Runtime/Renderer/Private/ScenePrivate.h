@@ -678,6 +678,7 @@ public:
 	// Temporal AA result for light shafts of last frame
 	TMap<const ULightComponent*, TRefCountPtr<IPooledRenderTarget> > LightShaftBloomHistoryRTs;
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOHistoryRT;
+	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOConfidenceHistoryRT;
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldIrradianceHistoryRT;
 	// Mobile temporal AA surfaces.
 	TRefCountPtr<IPooledRenderTarget> MobileAaBloomSunVignette0;
@@ -984,6 +985,8 @@ public:
 		LightShaftOcclusionHistoryRT.SafeRelease();
 		LightShaftBloomHistoryRTs.Empty();
 		DistanceFieldAOHistoryRT.SafeRelease();
+		DistanceFieldAOConfidenceHistoryRT.SafeRelease();
+		DistanceFieldAOConfidenceHistoryRT.SafeRelease();
 		DistanceFieldIrradianceHistoryRT.SafeRelease();
 		MobileAaBloomSunVignette0.SafeRelease();
 		MobileAaBloomSunVignette1.SafeRelease();

@@ -73,7 +73,7 @@ half3 ColorLookupTable( half3 LinearColor )
 		LUTEncodedColor = LinearToST2084( LinearColor );
 	// Encode as log values
 	else
-		LUTEncodedColor = LinToLog( LinearColor );
+		LUTEncodedColor = LinToLog( LinearColor + LogToLin( 0 ) );
 	
 	float3 UVW = LUTEncodedColor * ((LUTSize - 1) / LUTSize) + (0.5f / LUTSize);
 

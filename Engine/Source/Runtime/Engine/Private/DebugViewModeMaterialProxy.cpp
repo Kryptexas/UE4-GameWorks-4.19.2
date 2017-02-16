@@ -237,4 +237,12 @@ void FDebugViewModeMaterialProxy::GatherCustomOutputExpressions(TArray<class UMa
 	}
 }
 
+void FDebugViewModeMaterialProxy::GatherExpressionsForCustomInterpolators(TArray<class UMaterialExpression*>& OutExpressions) const
+{
+	if (Material)
+	{
+		Material->GetAllExpressionsForCustomInterpolators(OutExpressions);
+	}
+}
+
 #endif

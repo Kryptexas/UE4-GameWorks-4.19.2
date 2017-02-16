@@ -18,6 +18,8 @@
 
 #define NUM_MATERIAL_TEXCOORDS_VERTEX %s
 #define NUM_MATERIAL_TEXCOORDS %s
+#define NUM_CUSTOM_VERTEX_INTERPOLATORS %s
+#define NUM_TEX_COORD_INTERPOLATORS %s
 
 #ifdef MIN_MATERIAL_TEXCOORDS 
 	#include "MinMaterialTexCoords.usf"
@@ -116,8 +118,8 @@ struct FPixelMaterialInputs
  */
 struct FMaterialPixelParameters
 {
-#if NUM_MATERIAL_TEXCOORDS
-	float2 TexCoords[NUM_MATERIAL_TEXCOORDS];
+#if NUM_TEX_COORD_INTERPOLATORS
+	float2 TexCoords[NUM_TEX_COORD_INTERPOLATORS];
 #endif
 
 	/** Interpolated vertex color, in linear color space. */
@@ -233,8 +235,8 @@ struct FMaterialTessellationParameters
 {
 	// Note: Customized UVs are only evaluated in the vertex shader, which is not really what you want with tessellation, but keeps the code simpler 
 	// (tessellation texcoords are the same as pixels shader texcoords)
-#if NUM_MATERIAL_TEXCOORDS
-	float2 TexCoords[NUM_MATERIAL_TEXCOORDS];
+#if NUM_TEX_COORD_INTERPOLATORS
+	float2 TexCoords[NUM_TEX_COORD_INTERPOLATORS];
 #endif
 	float4 VertexColor;
 	// TODO: Non translated world position
@@ -1538,8 +1540,13 @@ half2 GetMaterialRefraction(FPixelMaterialInputs PixelMaterialInputs)
 	return PixelMaterialInputs.Refraction;
 }
 
-#if NUM_MATERIAL_TEXCOORDS
-void GetMaterialCustomizedUVs(FMaterialVertexParameters Parameters, out float2 OutTexCoords[NUM_MATERIAL_TEXCOORDS])
+#if NUM_TEX_COORD_INTERPOLATORS
+void GetMaterialCustomizedUVs(FMaterialVertexParameters Parameters, inout float2 OutTexCoords[NUM_TEX_COORD_INTERPOLATORS])
+{
+%s
+}
+
+void GetCustomInterpolators(FMaterialVertexParameters Parameters, inout float2 OutTexCoords[NUM_TEX_COORD_INTERPOLATORS])
 {
 %s
 }

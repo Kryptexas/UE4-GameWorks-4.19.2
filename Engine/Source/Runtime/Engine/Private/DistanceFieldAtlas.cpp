@@ -38,6 +38,13 @@ static TAutoConsoleVariable<int32> CVarDistField(
 	TEXT("Enabling will increase mesh build times and memory usage.  Changing this value will cause a rebuild of all static meshes."),
 	ECVF_ReadOnly);
 
+static TAutoConsoleVariable<int32> CVarCompressDistField(
+	TEXT("r.CompressMeshDistanceFields"),
+	0,	
+	TEXT("Whether to store mesh distance fields compressed in memory, which reduces how much memory they take, but also causes serious hitches when making new levels visible.  Only enable if your project does not stream levels in-game.\n")
+	TEXT("Changing this regenerates all mesh distance fields."),
+	ECVF_ReadOnly);
+
 static TAutoConsoleVariable<int32> CVarDistFieldRes(
 	TEXT("r.DistanceFields.MaxPerMeshResolution"),
 	128,	
@@ -225,6 +232,9 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 			UE_LOG(LogStaticMesh,Log,TEXT("%s"),*GetSizeString());
 		}
 
+		static const auto CVarCompress = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CompressMeshDistanceFields"));
+		const bool bDataIsCompressed = CVarCompress->GetValueOnAnyThread() != 0;
+
 		for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)
 		{
 			FDistanceFieldVolumeTexture* Texture = PendingAllocations[AllocationIndex];
@@ -244,14 +254,23 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 			const int32 FormatSize = GPixelFormats[Format].BlockBytes;
 			const int32 UncompressedSize = Size.X * Size.Y * Size.Z * FormatSize;
 
-			TArray<FFloat16> UncompressedData;
-			UncompressedData.Empty(Size.X * Size.Y * Size.Z);
-			UncompressedData.AddUninitialized(Size.X * Size.Y * Size.Z);
+			if (bDataIsCompressed)
+			{
+				TArray<FFloat16> UncompressedData;
+				UncompressedData.Empty(Size.X * Size.Y * Size.Z);
+				UncompressedData.AddUninitialized(Size.X * Size.Y * Size.Z);
 
-			verify(FCompression::UncompressMemory((ECompressionFlags)COMPRESS_ZLIB, UncompressedData.GetData(), UncompressedSize, Texture->VolumeData.CompressedDistanceFieldVolume.GetData(), Texture->VolumeData.CompressedDistanceFieldVolume.Num()));
+				verify(FCompression::UncompressMemory((ECompressionFlags)COMPRESS_ZLIB, UncompressedData.GetData(), UncompressedSize, Texture->VolumeData.CompressedDistanceFieldVolume.GetData(), Texture->VolumeData.CompressedDistanceFieldVolume.Num()));
 
-			// Update the volume texture atlas
-			RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Size.X * FormatSize, Size.X * Size.Y * FormatSize, (const uint8*)UncompressedData.GetData());
+				// Update the volume texture atlas
+				RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Size.X * FormatSize, Size.X * Size.Y * FormatSize, (const uint8*)UncompressedData.GetData());
+			}
+			else
+			{
+				// Update the volume texture atlas
+				check(Texture->VolumeData.CompressedDistanceFieldVolume.Num() == Size.X * Size.Y * Size.Z * FormatSize);
+				RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Size.X * FormatSize, Size.X * Size.Y * FormatSize, (const uint8*)Texture->VolumeData.CompressedDistanceFieldVolume.GetData());
+			}
 		}
 
 		CurrentAllocations.Append(PendingAllocations);

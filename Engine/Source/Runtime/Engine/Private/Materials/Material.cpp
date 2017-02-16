@@ -32,6 +32,7 @@
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionVertexInterpolator.h"
 #include "Materials/MaterialExpressionSceneColor.h"
 #include "SceneManagement.h"
 #include "Materials/MaterialUniformExpressions.h"
@@ -152,6 +153,11 @@ int32 FMaterialResource::CompileCustomAttribute(const FGuid& AttributeID, FMater
 void FMaterialResource::GatherCustomOutputExpressions(TArray<UMaterialExpressionCustomOutput*>& OutCustomOutputs) const
 {
 	Material->GetAllCustomOutputExpressions(OutCustomOutputs);
+}
+
+void FMaterialResource::GatherExpressionsForCustomInterpolators(TArray<UMaterialExpression*>& OutExpressions) const
+{
+	Material->GetAllExpressionsForCustomInterpolators(OutExpressions);
 }
 
 void FMaterialResource::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
@@ -3893,6 +3899,19 @@ void UMaterial::GetAllCustomOutputExpressions(TArray<class UMaterialExpressionCu
 		if (CustomOutput)
 		{
 			OutCustomOutputs.Add(CustomOutput);
+		}
+	}
+}
+
+void UMaterial::GetAllExpressionsForCustomInterpolators(TArray<class UMaterialExpression*>& OutExpressions) const
+{
+	for (UMaterialExpression* Expression : Expressions)
+	{
+		if (Expression &&
+			(Expression->IsA(UMaterialExpressionVertexInterpolator::StaticClass()) ||
+			Expression->IsA(UMaterialExpressionMaterialFunctionCall::StaticClass())) )
+		{
+				OutExpressions.Add(Expression);
 		}
 	}
 }

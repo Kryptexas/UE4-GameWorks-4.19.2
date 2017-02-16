@@ -1092,9 +1092,13 @@ static FString BuildDistanceFieldDerivedDataKey(const FString& InMeshKey)
 	const float VoxelDensity = CVarDensity->GetValueOnAnyThread();
 	const FString VoxelDensityString = VoxelDensity == .1f ? TEXT("") : FString(TEXT("_%.3f"), VoxelDensity);
 
+	static const auto CVarCompress = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CompressMeshDistanceFields"));
+	const bool bCompress = CVarCompress->GetValueOnAnyThread() != 0;
+	const FString CompressString = bCompress ? TEXT("") : TEXT("_uc");
+
 	return FDerivedDataCacheInterface::BuildCacheKey(
 		TEXT("DIST"),
-		*FString::Printf(TEXT("%s_%s%s%s"), *InMeshKey, DISTANCEFIELD_DERIVEDDATA_VER, *PerMeshMaxString, *VoxelDensityString),
+		*FString::Printf(TEXT("%s_%s%s%s%s"), *InMeshKey, DISTANCEFIELD_DERIVEDDATA_VER, *PerMeshMaxString, *VoxelDensityString, *CompressString),
 		TEXT(""));
 }
 

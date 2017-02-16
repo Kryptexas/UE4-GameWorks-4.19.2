@@ -635,20 +635,23 @@ void PostProcessBentNormalAOScreenGrid(
 	const bool bUseDistanceFieldGI = IsDistanceFieldGIAllowed(View);
 
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOBentNormal;
+	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOConfidence;
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldIrradiance;
-	AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldAOBentNormal, TEXT("DistanceFieldBentNormalAO"), true);
+	AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldAOBentNormal, TEXT("DistanceFieldBentNormalAO"), PF_FloatRGBA);
+	AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldAOConfidence, TEXT("DistanceFieldConfidence"), PF_G8);
 
 	if (bUseDistanceFieldGI)
 	{
-		AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldIrradiance, TEXT("DistanceFieldIrradiance"), false);
+		AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldIrradiance, TEXT("DistanceFieldIrradiance"), PF_FloatRGB);
 	}
 
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, GeometryAwareUpsample);
 
-		FTextureRHIParamRef RenderTargets[2] =
+		FTextureRHIParamRef RenderTargets[3] =
 		{
 			DistanceFieldAOBentNormal->GetRenderTargetItem().TargetableTexture,
+			DistanceFieldAOConfidence->GetRenderTargetItem().TargetableTexture,
 			bUseDistanceFieldGI ? DistanceFieldIrradiance->GetRenderTargetItem().TargetableTexture : NULL,
 		};
 
@@ -693,6 +696,7 @@ void PostProcessBentNormalAOScreenGrid(
 		}
 
 		RHICmdList.CopyToResolveTarget(DistanceFieldAOBentNormal->GetRenderTargetItem().TargetableTexture, DistanceFieldAOBentNormal->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
+		RHICmdList.CopyToResolveTarget(DistanceFieldAOConfidence->GetRenderTargetItem().TargetableTexture, DistanceFieldAOConfidence->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 			
 		if (bUseDistanceFieldGI)
 		{
@@ -702,6 +706,7 @@ void PostProcessBentNormalAOScreenGrid(
 
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
 	TRefCountPtr<IPooledRenderTarget>* BentNormalHistoryState = ViewState ? &ViewState->DistanceFieldAOHistoryRT : NULL;
+	TRefCountPtr<IPooledRenderTarget>* ConfidenceHistoryState = ViewState ? &ViewState->DistanceFieldAOConfidenceHistoryRT : NULL;
 	TRefCountPtr<IPooledRenderTarget>* IrradianceHistoryState = ViewState ? &ViewState->DistanceFieldIrradianceHistoryRT : NULL;
 	BentNormalOutput = DistanceFieldAOBentNormal;
 	IrradianceOutput = DistanceFieldIrradiance;
@@ -712,12 +717,15 @@ void PostProcessBentNormalAOScreenGrid(
 			RHICmdList,
 			View, 
 			TEXT("DistanceFieldAOHistory"),
+			TEXT("DistanceFieldAOConfidence"),
 			TEXT("DistanceFieldIrradianceHistory"),
 			VelocityTexture,
 			DistanceFieldNormal,
 			BentNormalHistoryState,
+			ConfidenceHistoryState,
 			IrradianceHistoryState,
 			DistanceFieldAOBentNormal, 
+			DistanceFieldAOConfidence,
 			DistanceFieldIrradiance,
 			BentNormalOutput,
 			IrradianceOutput);
