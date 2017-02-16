@@ -40,7 +40,7 @@ TMap<int16, apex::Scene*>				GPhysXSceneMap;
 
 #if WITH_FLEX
 ENGINE_API bool						GFlexIsInitialized = false;
-ENGINE_API FlexLibrary*             GFlexLib = NULL;
+ENGINE_API NvFlexLibrary*           GFlexLib = NULL;
 #endif //WITH_FLEX
 
 FApexNullRenderResourceManager		GApexNullRenderResourceManager;

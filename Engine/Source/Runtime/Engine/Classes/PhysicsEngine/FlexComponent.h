@@ -10,9 +10,9 @@
 struct FFlexContainerInstance;
 class FFlexMeshSceneProxy;
 
-struct FlexExtInstance;
-struct FlexExtMovingFrame;
-struct FlexExtTearingMeshEdit;
+struct NvFlexExtInstance;
+struct NvFlexExtMovingFrame;
+struct NvFlexExtTearingMeshEdit;
 
 UCLASS(Blueprintable, hidecategories = (Object), meta=(BlueprintSpawnableComponent))
 class ENGINE_API UFlexComponent : public UStaticMeshComponent, public IFlexContainerClient
@@ -66,10 +66,10 @@ public:
 	void OnTear();
 	
 	/** Instance of a FlexAsset referencing particles and constraints in a solver */
-	FlexExtInstance* AssetInstance;
+	NvFlexExtInstance* AssetInstance;
 
 	/* Clone of the cloth asset for tearing meshes */
-	FlexExtAsset* TearingAsset;
+	NvFlexExtAsset* TearingAsset;
 
 	/* The simulation container the instance belongs to */
 	FFlexContainerInstance* ContainerInstance; 
@@ -118,7 +118,7 @@ public:
 	FFlexInertialScale InertialScale;
 
 	/* For local space simulation */
-	FlexExtMovingFrame* MovingFrame;
+	NvFlexExtMovingFrame* MovingFrame;
 
 	/* Shape transforms */
 	TArray<FQuat> ShapeRotations;

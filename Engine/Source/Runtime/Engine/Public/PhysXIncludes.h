@@ -73,9 +73,9 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #endif // #if WITH_APEX
 
 #if WITH_FLEX
-#include "flex.h"
-#include "flexExt.h"
-#include "flexDevice.h"
+#include "NvFlex.h"
+#include "NvFlexExt.h"
+#include "NvFlexDevice.h"
 #endif // #if WITH_FLEX
 
 #pragma pack(pop)

@@ -4,8 +4,8 @@
 
 #if WITH_FLEX
 
-#include "flex.h"
-#include "flexExt.h"
+#include "NvFlex.h"
+#include "NvFlexExt.h"
 
 #include "PhysXIncludes.h"
 
@@ -61,16 +61,16 @@ struct FFlexContainerInstance : public PxDeletionListener
 	void CopyParticle(int32 Source, int32 Dest);
 
 	// spawns a new instance of an asset into the container
-	FlexExtInstance* CreateInstance(const FlexExtAsset* Asset, const FMatrix& Mat, const FVector& Velocity, int32 Phase);
-	void DestroyInstance(FlexExtInstance* Asset);
+	NvFlexExtInstance* CreateInstance(const NvFlexExtAsset* Asset, const FMatrix& Mat, const FVector& Velocity, int32 Phase);
+	void DestroyInstance(NvFlexExtInstance* Asset);
 
 	// convert a phase to the solver format, will allocate a new group if requested
 	int32 GetPhase(const FFlexPhase& Phase);
 
 	// returns a cached copy of the PxShape 
-	const FlexTriangleMeshId GetTriangleMesh(const PxTriangleMesh* TriMesh);
-	const FlexTriangleMeshId GetTriangleMesh(const PxHeightField* HeightField);
-	const FlexConvexMeshId GetConvexMesh(const PxConvexMesh* ConvexMesh);
+	const NvFlexTriangleMeshId GetTriangleMesh(const PxTriangleMesh* TriMesh);
+	const NvFlexTriangleMeshId GetTriangleMesh(const PxHeightField* HeightField);
+	const NvFlexConvexMeshId GetConvexMesh(const PxConvexMesh* ConvexMesh);
 
 	// kicks off the simulation update and all compute kernels, unmaps particle data, calls unmap()
 	void Simulate(float DeltaTime);	
@@ -108,16 +108,16 @@ struct FFlexContainerInstance : public PxDeletionListener
 	// PxDeletionListener callback used for invalidating shape cache
 	virtual void onRelease(const PxBase* observed, void* userData, PxDeletionEventFlag::Enum deletionEvent);
 
-	FlexExtContainer* Container;
-	FlexSolver* Solver;
-	FlexExtForceFieldCallback* ForceFieldCallback;
+	NvFlexExtContainer* Container;
+	NvFlexSolver* Solver;
+	NvFlexExtForceFieldCallback* ForceFieldCallback;
 
 	// mapped extensions data
-	FlexExtParticleData MappedData;
+	NvFlexExtParticleData MappedData;
 
 	// cache the converted triangle meshes
-	TMap<void*, FlexTriangleMeshId> TriangleMeshes;
-	TMap<void*, FlexConvexMeshId> ConvexMeshes;
+	TMap<void*, NvFlexTriangleMeshId> TriangleMeshes;
+	TMap<void*, NvFlexConvexMeshId> ConvexMeshes;
 
 	// pointers into the container's mapped memory, only valid during Synchronize(), these are a typed alias for contents of MappedData
 	FVector4* Particles;
@@ -127,16 +127,16 @@ struct FFlexContainerInstance : public PxDeletionListener
 	int* Phases;
 
 	// copy of particle data
-	FlexVector<FVector4> Anisotropy1;
-	FlexVector<FVector4> Anisotropy2;
-	FlexVector<FVector4> Anisotropy3;
-	FlexVector<FVector4> SmoothPositions;
+	NvFlexVector<FVector4> Anisotropy1;
+	NvFlexVector<FVector4> Anisotropy2;
+	NvFlexVector<FVector4> Anisotropy3;
+	NvFlexVector<FVector4> SmoothPositions;
 
 	static const int MaxContactsPerParticle = 6;
 
-	FlexVector<int32> ContactIndices;
-	FlexVector<FVector4> ContactVelocities;
-	FlexVector<uint32> ContactCounts;
+	NvFlexVector<int32> ContactIndices;
+	NvFlexVector<FVector4> ContactVelocities;
+	NvFlexVector<uint32> ContactCounts;
 	TArray<bool> ContactCounted;
 
 	FPhysScene* Owner;
@@ -150,23 +150,23 @@ struct FFlexContainerInstance : public PxDeletionListener
 	// incrementing group counter used to auto-assign unique groups to rigids
 	int GroupCounter;
 
-	FlexVector<FlexCollisionGeometry> ShapeGeometry;
-	FlexVector<int32> ShapeFlags;
-	FlexVector<FVector4> ShapePositions;
-	FlexVector<FQuat> ShapeRotations;
-	FlexVector<FVector4> ShapePositionsPrev;
-	FlexVector<FQuat> ShapeRotationsPrev;
+	NvFlexVector<NvFlexCollisionGeometry> ShapeGeometry;
+	NvFlexVector<int32> ShapeFlags;
+	NvFlexVector<FVector4> ShapePositions;
+	NvFlexVector<FQuat> ShapeRotations;
+	NvFlexVector<FVector4> ShapePositionsPrev;
+	NvFlexVector<FQuat> ShapeRotationsPrev;
 
 
 	TArray<int32> ShapeReportIndices;
 	TArray<TWeakObjectPtr<UPrimitiveComponent>> ShapeReportComponents;
 
 	// temporary buffers used during collision shape building
-	FlexVector<FVector> TriMeshVerts;
-	FlexVector<int32> TriMeshIndices;	
-	FlexVector<FVector4> ConvexMeshPlanes;
+	NvFlexVector<FVector> TriMeshVerts;
+	NvFlexVector<int32> TriMeshIndices;	
+	NvFlexVector<FVector4> ConvexMeshPlanes;
 
-	TArray<FlexExtForceField> ForceFields;
+	TArray<NvFlexExtForceField> ForceFields;
 
 	float LeftOverTime;
 	float AverageDeltaTime;

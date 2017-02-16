@@ -9,8 +9,8 @@
 
 /** Container instance */
 struct FFlexContainerInstance;
-struct FlexExtAsset;
-struct FlexExtInstance;
+struct NvFlexExtAsset;
+struct NvFlexExtInstance;
 class FFlexRopeSceneProxy;
 
 /** Component that allows you to specify custom triangle mesh geometry */
@@ -121,8 +121,8 @@ private:
 	FFlexContainerInstance* ContainerInstance;
 	
 	/** Particle / Constraint definition */
-	FlexExtAsset* Asset;
-	FlexExtInstance* AssetInstance;
+	NvFlexExtAsset* Asset;
+	NvFlexExtInstance* AssetInstance;
 
 	/** Array of Flex particle indices */
 	TArray<FVector4> Particles;	

@@ -235,7 +235,7 @@ void FFlexCPUVertexFactory::SkinCloth(const FVector4* SimulatedPositions, const 
 	RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);		
 }
 
-void FFlexCPUVertexFactory::TearCloth(const FlexExtTearingMeshEdit* Edits, int32 NumEdits, float Alpha)
+void FFlexCPUVertexFactory::TearCloth(const NvFlexExtTearingMeshEdit* Edits, int32 NumEdits, float Alpha)
 {	
 	// resize vertex buffers if necessary
 	if (VertexBuffer.MaxVerts < VertexBuffer.NumVerts + NumEdits)
@@ -566,7 +566,7 @@ void FFlexMeshSceneProxy::UpdateClothTransforms()
 		&FlexComponent->SimNormals[0]);
 }
 
-void FFlexMeshSceneProxy::UpdateClothMesh(const FlexExtTearingMeshEdit* Edits, int32 NumEdits, float Alpha)
+void FFlexMeshSceneProxy::UpdateClothMesh(const NvFlexExtTearingMeshEdit* Edits, int32 NumEdits, float Alpha)
 {
 	VertexFactory->TearCloth(Edits, NumEdits, Alpha);
 

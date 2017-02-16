@@ -36,7 +36,7 @@ void UFlexAsset::PostInitProperties()
 {
 #if WITH_FLEX
 	// allocate an extensions object to represent particles and constraints for this asset
-	Asset = new FlexExtAsset();
+	Asset = new NvFlexExtAsset();
 #endif
 
 	Super::PostInitProperties();
@@ -139,7 +139,7 @@ void UFlexAssetCloth::ReImport(const UStaticMesh* Mesh)
 	VertexToParticleMap.SetNum(NumVertices);
 
 	// render mesh has vertex duplicates (for texture mapping etc), weld mesh and generate particles for unique verts
-	int ParticleCount = flexExtCreateWeldedMeshIndices((float*)&Positions[0], NumVertices, &UniqueVerts[0], &VertexToParticleMap[0], THRESH_POINTS_ARE_SAME);
+	int ParticleCount = NvFlexExtCreateWeldedMeshIndices((float*)&Positions[0], NumVertices, &UniqueVerts[0], &VertexToParticleMap[0], THRESH_POINTS_ARE_SAME);
 
 	FVector Center(0.0f);
 
@@ -170,31 +170,31 @@ void UFlexAssetCloth::ReImport(const UStaticMesh* Mesh)
 		ParticleIndices.Add(VertexToParticleMap[VertexIndices[i]]);
 
 	// create cloth from unique particles
-	FlexExtAsset* NewAsset = flexExtCreateClothFromMesh((float*)&Particles[0], Particles.Num(), (int*)&ParticleIndices[0], ParticleIndices.Num() / 3, StretchStiffness, BendStiffness, TetherStiffness, TetherGive, OverPressure);
+	NvFlexExtAsset* NewAsset = NvFlexExtCreateClothFromMesh((float*)&Particles[0], Particles.Num(), (int*)&ParticleIndices[0], ParticleIndices.Num() / 3, StretchStiffness, BendStiffness, TetherStiffness, TetherGive, OverPressure);
 
 	if (NewAsset)
 	{
 		RigidCenter = Center;
 
 		// copy out spring data
-		for (int i = 0; i < NewAsset->mNumSprings; ++i)
+		for (int i = 0; i < NewAsset->numSprings; ++i)
 		{
-			SpringIndices.Add(NewAsset->mSpringIndices[i * 2 + 0]);
-			SpringIndices.Add(NewAsset->mSpringIndices[i * 2 + 1]);
-			SpringCoefficients.Add(NewAsset->mSpringCoefficients[i]);
-			SpringRestLengths.Add(NewAsset->mSpringRestLengths[i]);
+			SpringIndices.Add(NewAsset->springIndices[i * 2 + 0]);
+			SpringIndices.Add(NewAsset->springIndices[i * 2 + 1]);
+			SpringCoefficients.Add(NewAsset->springCoefficients[i]);
+			SpringRestLengths.Add(NewAsset->springRestLengths[i]);
 		}
 
 		// faces for cloth
-		for (int i = 0; i < NewAsset->mNumTriangles * 3; ++i)
-			Triangles.Add(NewAsset->mTriangleIndices[i]);
+		for (int i = 0; i < NewAsset->numTriangles * 3; ++i)
+			Triangles.Add(NewAsset->triangleIndices[i]);
 
 		// save inflatable properties
-		InflatableVolume = NewAsset->mInflatableVolume;
-		InflatableStiffness = NewAsset->mInflatableStiffness;
+		InflatableVolume = NewAsset->inflatableVolume;
+		InflatableStiffness = NewAsset->inflatableStiffness;
 
 		// discard flex asset, we will recreate it from our internal data
-		flexExtDestroyAsset(NewAsset);
+		NvFlexExtDestroyAsset(NewAsset);
 	}
 
 	UE_LOG(LogFlex, Display, TEXT("Created a FlexAsset with %d Particles, %d Springs, %d Triangles\n"), Particles.Num(), SpringRestLengths.Num(), Triangles.Num() / 3);
@@ -202,43 +202,43 @@ void UFlexAssetCloth::ReImport(const UStaticMesh* Mesh)
 #endif //WITH_FLEX
 }
 
-const FlexExtAsset* UFlexAssetCloth::GetFlexAsset()
+const NvFlexExtAsset* UFlexAssetCloth::GetFlexAsset()
 {
 #if WITH_FLEX
 	// reset Asset
-	FMemory::Memset(Asset, 0, sizeof(FlexExtAsset));
+	FMemory::Memset(Asset, 0, sizeof(NvFlexExtAsset));
 
 	// re-update the Asset each time it is requested, could cache this
-	Asset->mNumParticles = Particles.Num();
-	Asset->mMaxParticles = Particles.Num();
+	Asset->numParticles = Particles.Num();
+	Asset->maxParticles = Particles.Num();
 
 	// particles
-	if (Asset->mNumParticles)
+	if (Asset->numParticles)
 	{
-		Asset->mParticles = (float*)&Particles[0];
+		Asset->particles = (float*)&Particles[0];
 	}
 
 	// distance constraints
-	Asset->mNumSprings = SpringCoefficients.Num();
-	if (Asset->mNumSprings)
+	Asset->numSprings = SpringCoefficients.Num();
+	if (Asset->numSprings)
 	{
-		Asset->mSpringIndices = (int*)&SpringIndices[0];
-		Asset->mSpringCoefficients = (float*)&SpringCoefficients[0];
-		Asset->mSpringRestLengths = (float*)&SpringRestLengths[0];
+		Asset->springIndices = (int*)&SpringIndices[0];
+		Asset->springCoefficients = (float*)&SpringCoefficients[0];
+		Asset->springRestLengths = (float*)&SpringRestLengths[0];
 	}
 
 	// triangles
-	Asset->mNumTriangles = Triangles.Num() / 3;
-	if (Asset->mNumTriangles)
+	Asset->numTriangles = Triangles.Num() / 3;
+	if (Asset->numTriangles)
 	{
-		Asset->mTriangleIndices = (int*)&Triangles[0];
+		Asset->triangleIndices = (int*)&Triangles[0];
 	}
 
 	// inflatables
-	Asset->mInflatable = EnableInflatable;
-	Asset->mInflatablePressure = OverPressure;
-	Asset->mInflatableVolume = InflatableVolume;
-	Asset->mInflatableStiffness = InflatableStiffness;
+	Asset->inflatable = EnableInflatable;
+	Asset->inflatablePressure = OverPressure;
+	Asset->inflatableVolume = InflatableVolume;
+	Asset->inflatableStiffness = InflatableStiffness;
 
 	if (RigidStiffness > 0.0f && ShapeCenters.Num() == 0)
 	{
@@ -255,12 +255,12 @@ const FlexExtAsset* UFlexAssetCloth::GetFlexAsset()
 	if (ShapeCenters.Num())
 	{
 		// soft bodies
-		Asset->mNumShapes = ShapeCenters.Num();
-		Asset->mNumShapeIndices = ShapeIndices.Num();
-		Asset->mShapeOffsets = &ShapeOffsets[0];
-		Asset->mShapeIndices = &ShapeIndices[0];
-		Asset->mShapeCoefficients = &ShapeCoefficients[0];
-		Asset->mShapeCenters = (float*)&ShapeCenters[0];
+		Asset->numShapes = ShapeCenters.Num();
+		Asset->numShapeIndices = ShapeIndices.Num();
+		Asset->shapeOffsets = &ShapeOffsets[0];
+		Asset->shapeIndices = &ShapeIndices[0];
+		Asset->shapeCoefficients = &ShapeCoefficients[0];
+		Asset->shapeCenters = (float*)&ShapeCenters[0];
 	}
 
 	#endif //WITH_FLEX
@@ -315,29 +315,29 @@ void UFlexAssetSolid::ReImport(const UStaticMesh* Mesh)
 
 	UE_LOG(LogFlex, Display, TEXT("Voxelizing Flex rigid body\n"));
 
-	FlexExtAsset* NewAsset = flexExtCreateRigidFromMesh((const float*)&Positions[0], Positions.Num(), (const int*)&VertexIndices[0], VertexIndices.Num(), SamplingDistance, 0.0f);
+	NvFlexExtAsset* NewAsset = NvFlexExtCreateRigidFromMesh((const float*)&Positions[0], Positions.Num(), (const int*)&VertexIndices[0], VertexIndices.Num(), SamplingDistance, 0.0f);
 
 	if (NewAsset )
 	{
-		for (int i = 0; i < NewAsset ->mNumParticles; ++i)
+		for (int i = 0; i < NewAsset ->numParticles; ++i)
 		{
-			FVector4 Particle = ((FVector4*)NewAsset ->mParticles)[i];
+			FVector4 Particle = ((FVector4*)NewAsset ->particles)[i];
 			Particle.W = InvMass;
 
 			Particles.Add(Particle);
 		}
 
-		for (int i=0; i < NewAsset->mNumShapes; ++i)
+		for (int i=0; i < NewAsset->numShapes; ++i)
 		{
-			ShapeCenters.Add(((FVector*)NewAsset->mShapeCenters)[i]);
-			ShapeOffsets.Add(NewAsset->mShapeOffsets[i]);
-			ShapeCoefficients.Add(NewAsset->mShapeCoefficients[i]);
+			ShapeCenters.Add(((FVector*)NewAsset->shapeCenters)[i]);
+			ShapeOffsets.Add(NewAsset->shapeOffsets[i]);
+			ShapeCoefficients.Add(NewAsset->shapeCoefficients[i]);
 		}
 
-		for (int i=0; i < NewAsset->mNumShapeIndices; ++i)
-			ShapeIndices.Add(NewAsset->mShapeIndices[i]);
+		for (int i=0; i < NewAsset->numShapeIndices; ++i)
+			ShapeIndices.Add(NewAsset->shapeIndices[i]);
 
-		flexExtDestroyAsset(NewAsset);
+		NvFlexExtDestroyAsset(NewAsset);
 	}
 	else
 	{
@@ -353,20 +353,20 @@ void UFlexAssetSolid::PostLoad()
 	Super::PostLoad();
 }
 
-const FlexExtAsset* UFlexAssetSolid::GetFlexAsset()
+const NvFlexExtAsset* UFlexAssetSolid::GetFlexAsset()
 {
 #if WITH_FLEX
 	// reset Asset
-	FMemory::Memset(Asset, 0, sizeof(FlexExtAsset));
+	FMemory::Memset(Asset, 0, sizeof(NvFlexExtAsset));
 
 	// re-update the Asset each time it is requested, could cache this
-	Asset->mNumParticles = Particles.Num();
-	Asset->mMaxParticles = Particles.Num();
+	Asset->numParticles = Particles.Num();
+	Asset->maxParticles = Particles.Num();
 
 	// particles
-	if (Asset->mNumParticles)
+	if (Asset->numParticles)
 	{
-		Asset->mParticles = (float*)&Particles[0];
+		Asset->particles = (float*)&Particles[0];
 	}
 
 	if (ShapeCenters.Num() == 0)
@@ -382,12 +382,12 @@ const FlexExtAsset* UFlexAssetSolid::GetFlexAsset()
 	}
 
 	// shapes 
-	Asset->mNumShapes = ShapeCenters.Num();
-	Asset->mNumShapeIndices = ShapeIndices.Num();
-	Asset->mShapeOffsets = &ShapeOffsets[0];
-	Asset->mShapeIndices = &ShapeIndices[0];
-	Asset->mShapeCoefficients = &ShapeCoefficients[0];
-	Asset->mShapeCenters = (float*)&ShapeCenters[0];
+	Asset->numShapes = ShapeCenters.Num();
+	Asset->numShapeIndices = ShapeIndices.Num();
+	Asset->shapeOffsets = &ShapeOffsets[0];
+	Asset->shapeIndices = &ShapeIndices[0];
+	Asset->shapeCoefficients = &ShapeCoefficients[0];
+	Asset->shapeCenters = (float*)&ShapeCenters[0];
 
 #endif //WITH_FLEX
 	return Asset;
@@ -499,7 +499,7 @@ void UFlexAssetSoft::ReImport(const UStaticMesh* Mesh)
 
 	UE_LOG(LogFlex, Display, TEXT("Voxelizing Flex rigid body\n"));
 
-	FlexExtAsset* NewAsset = flexExtCreateSoftFromMesh(
+	NvFlexExtAsset* NewAsset = NvFlexExtCreateSoftFromMesh(
 		(const float*)&Positions[0], 
 		Positions.Num(), 
 		(const int*)&VertexIndices[0], 
@@ -519,11 +519,11 @@ void UFlexAssetSoft::ReImport(const UStaticMesh* Mesh)
 		SkinningIndices.SetNum(Positions.Num()*4);
 
 		// create skinning
-		flexExtCreateSoftMeshSkinning(
+		NvFlexExtCreateSoftMeshSkinning(
 			(const float*)&Positions[0], 
 			Positions.Num(), 
-			NewAsset->mShapeCenters, 
-			NewAsset->mNumShapes, 
+			NewAsset->shapeCenters, 
+			NewAsset->numShapes, 
 			SkinningFalloff, 
 			SkinningMaxDistance, 
 			&SkinningWeights[0],
@@ -532,33 +532,33 @@ void UFlexAssetSoft::ReImport(const UStaticMesh* Mesh)
 		const float InvMass = (Mass > 0.0f) ? (1.0f / Mass) : 0.0f;
 
 		// create particles
-		for (int i = 0; i < NewAsset->mNumParticles; ++i)
+		for (int i = 0; i < NewAsset->numParticles; ++i)
 		{
-			FVector4 Particle = ((FVector4*)NewAsset->mParticles)[i];
+			FVector4 Particle = ((FVector4*)NewAsset->particles)[i];
 			Particle.W = InvMass;
 
 			Particles.Add(Particle);
 		}
 		
 		// create shapes
-		if (NewAsset->mNumShapes)
+		if (NewAsset->numShapes)
 		{
-			ShapeCenters.Append((FVector*)NewAsset->mShapeCenters, NewAsset->mNumShapes);
-			ShapeCoefficients.Append(NewAsset->mShapeCoefficients, NewAsset->mNumShapes);
-			ShapeOffsets.Append(NewAsset->mShapeOffsets, NewAsset->mNumShapes);
-			ShapeIndices.Append(NewAsset->mShapeIndices, NewAsset->mNumShapeIndices);
+			ShapeCenters.Append((FVector*)NewAsset->shapeCenters, NewAsset->numShapes);
+			ShapeCoefficients.Append(NewAsset->shapeCoefficients, NewAsset->numShapes);
+			ShapeOffsets.Append(NewAsset->shapeOffsets, NewAsset->numShapes);
+			ShapeIndices.Append(NewAsset->shapeIndices, NewAsset->numShapeIndices);
 		}
 		
 		// create links
-		if (NewAsset->mNumSprings)
+		if (NewAsset->numSprings)
 		{
-			SpringIndices.Append(NewAsset->mSpringIndices, NewAsset->mNumSprings*2);
-			SpringRestLengths.Append(NewAsset->mSpringRestLengths, NewAsset->mNumSprings);
-			SpringCoefficients.Append(NewAsset->mSpringCoefficients, NewAsset->mNumSprings);
+			SpringIndices.Append(NewAsset->springIndices, NewAsset->numSprings*2);
+			SpringRestLengths.Append(NewAsset->springRestLengths, NewAsset->numSprings);
+			SpringCoefficients.Append(NewAsset->springCoefficients, NewAsset->numSprings);
 		}
 
 		// Destroy the temporary
-		flexExtDestroyAsset(NewAsset);
+		NvFlexExtDestroyAsset(NewAsset);
 	}
 	else
 	{
@@ -605,38 +605,38 @@ void UFlexAssetSoft::BeginDestroy()
 	BeginReleaseResource(&IndicesVertexBuffer);
 }
 
-const FlexExtAsset* UFlexAssetSoft::GetFlexAsset()
+const NvFlexExtAsset* UFlexAssetSoft::GetFlexAsset()
 {
 #if WITH_FLEX
 
 	// reset Asset
-	FMemory::Memset(Asset, 0, sizeof(FlexExtAsset));
+	FMemory::Memset(Asset, 0, sizeof(NvFlexExtAsset));
 
 	// particles
-	Asset->mNumParticles = Particles.Num();	
-	Asset->mMaxParticles = Particles.Num();
+	Asset->numParticles = Particles.Num();	
+	Asset->maxParticles = Particles.Num();
 
-	if (Asset->mNumParticles)
-		Asset->mParticles = (float*)&Particles[0];
+	if (Asset->numParticles)
+		Asset->particles = (float*)&Particles[0];
 
 	// distance constraints
-	Asset->mNumSprings = SpringCoefficients.Num();
-	if (Asset->mNumSprings)
+	Asset->numSprings = SpringCoefficients.Num();
+	if (Asset->numSprings)
 	{
-		Asset->mSpringIndices = (int*)&SpringIndices[0];
-		Asset->mSpringCoefficients = (float*)&SpringCoefficients[0];
-		Asset->mSpringRestLengths = (float*)&SpringRestLengths[0];
+		Asset->springIndices = (int*)&SpringIndices[0];
+		Asset->springCoefficients = (float*)&SpringCoefficients[0];
+		Asset->springRestLengths = (float*)&SpringRestLengths[0];
 	}
 
 	// soft bodies
-	Asset->mNumShapes = ShapeCenters.Num();
-	if (Asset->mNumShapes)
+	Asset->numShapes = ShapeCenters.Num();
+	if (Asset->numShapes)
 	{
-		Asset->mNumShapeIndices = ShapeIndices.Num();
-		Asset->mShapeOffsets = &ShapeOffsets[0];
-		Asset->mShapeIndices = &ShapeIndices[0];
-		Asset->mShapeCoefficients = &ShapeCoefficients[0];
-		Asset->mShapeCenters = (float*)&ShapeCenters[0];
+		Asset->numShapeIndices = ShapeIndices.Num();
+		Asset->shapeOffsets = &ShapeOffsets[0];
+		Asset->shapeIndices = &ShapeIndices[0];
+		Asset->shapeCoefficients = &ShapeCoefficients[0];
+		Asset->shapeCenters = (float*)&ShapeCenters[0];
 	}
 
 #endif //WITH_FLEX

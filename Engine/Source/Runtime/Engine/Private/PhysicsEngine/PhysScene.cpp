@@ -1059,7 +1059,7 @@ void FPhysScene::TickFlexScenesTask(float dt)
 	// this would be done automatically when making a Flex API call
 	// but by acquiring explicitly in advance we save some unnecessary
 	// CUDA calls to repeatedly set/unset the context
-	flexAcquireContext(GFlexLib);
+	NvFlexAcquireContext(GFlexLib);
 
 	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
 	{
@@ -1075,7 +1075,7 @@ void FPhysScene::TickFlexScenesTask(float dt)
 		}
 	}
 
-	flexRestoreContext(GFlexLib);
+	NvFlexRestoreContext(GFlexLib);
 }
 
 void FPhysScene::TickFlexScenes(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, float dt)
@@ -1722,6 +1722,7 @@ FFlexContainerInstance*	FPhysScene::GetFlexContainer(UFlexContainer* Template)
 
 void FPhysScene::StartFlexRecord()
 {
+	/*
 	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
 	{
 		FFlexContainerInstance* Container = It->Value;
@@ -1729,16 +1730,19 @@ void FPhysScene::StartFlexRecord()
 
 		flexStartRecord(Container->Solver, StringCast<ANSICHAR>(*(FString("flexCapture_") + Name + FString(".flx"))).Get());
 	}
+	*/
 }
 
 void FPhysScene::StopFlexRecord()
 {
+	/*
 	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
 	{
 		FFlexContainerInstance* Container = It->Value;
 		
 		flexStopRecord(Container->Solver);
 	}
+	*/
 }
 
 

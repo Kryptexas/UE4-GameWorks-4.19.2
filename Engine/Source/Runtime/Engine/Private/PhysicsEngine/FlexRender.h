@@ -91,7 +91,7 @@ public:
 
 	virtual void SkinSoft(const FPositionVertexBuffer& Positions, const FStaticMeshVertexBuffer& Vertices, const FFlexShapeTransform* Transforms, const FVector* RestPoses, const int16* ClusterIndices, const float* ClusterWeights, int NumClusters) = 0;
 	virtual void SkinCloth(const FVector4* SimulatedPositions, const FVector* SimulatedNormals) = 0;
-	virtual void TearCloth(const FlexExtTearingMeshEdit* Edits, int32 NumEdits, float Alpha) = 0;
+	virtual void TearCloth(const NvFlexExtTearingMeshEdit* Edits, int32 NumEdits, float Alpha) = 0;
 
 	virtual void OverrideMeshElement(FMeshBatchElement& element) {};
 };
@@ -107,7 +107,7 @@ public:
 	virtual void SkinCloth(const FVector4* SimulatedPositions, const FVector* SimulatedNormals) override;
 	virtual void SkinSoft(const FPositionVertexBuffer& Positions, const FStaticMeshVertexBuffer& Vertices, const FFlexShapeTransform* Transforms, const FVector* RestPoses, const int16* ClusterIndices, const float* ClusterWeights, int NumClusters) override;
 
-	virtual void TearCloth(const FlexExtTearingMeshEdit* Edits, int32 NumEdits, float Alpha) override;
+	virtual void TearCloth(const NvFlexExtTearingMeshEdit* Edits, int32 NumEdits, float Alpha) override;
 
 	virtual void OverrideMeshElement(FMeshBatchElement& element);
 
@@ -170,7 +170,7 @@ public:
 	// FFlexVertexFactory methods
 	virtual void SkinCloth(const FVector4* SimulatedPositions, const FVector* SimulatedNormals) override;
 	virtual void SkinSoft(const FPositionVertexBuffer& Positions, const FStaticMeshVertexBuffer& Vertices, const FFlexShapeTransform* Transforms, const FVector* RestPoses, const int16* ClusterIndices, const float* ClusterWeights, int NumClusters) override;
-	virtual void TearCloth(const FlexExtTearingMeshEdit* Edits, int32 NumEdits, float Alpha) override {}
+	virtual void TearCloth(const NvFlexExtTearingMeshEdit* Edits, int32 NumEdits, float Alpha) override {}
 
 	int MaxClusters;
 
@@ -193,7 +193,7 @@ public:
 	int GetLastVisibleFrame();
 
 	void UpdateClothTransforms();
-	void UpdateClothMesh(const FlexExtTearingMeshEdit* Edits, int32 NumEdits, float Alpha);
+	void UpdateClothMesh(const NvFlexExtTearingMeshEdit* Edits, int32 NumEdits, float Alpha);
 
 	void UpdateSoftTransforms(const FFlexShapeTransform* Transforms, int32 NumShapes);
 

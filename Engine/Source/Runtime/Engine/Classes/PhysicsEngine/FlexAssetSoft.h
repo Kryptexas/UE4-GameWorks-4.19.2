@@ -81,7 +81,7 @@ public:
 	float SkinningMaxDistance;
 
 	virtual void ReImport(const UStaticMesh* Parent) override;
-	virtual const FlexExtAsset* GetFlexAsset() override;
+	virtual const NvFlexExtAsset* GetFlexAsset() override;
 
 	virtual void PostLoad() override;
 	virtual void BeginDestroy() override;

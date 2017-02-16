@@ -103,7 +103,7 @@ void UFlexComponent::OnRegister()
 	}
 
 	// initialize moving frame for local space simulation
-	MovingFrame = new FlexExtMovingFrame();
+	MovingFrame = new NvFlexExtMovingFrame();
 	
 	USceneComponent* Parent = GetAttachParent();
 	if (bLocalSpace && Parent)
@@ -113,7 +113,7 @@ void UFlexComponent::OnRegister()
 		const FVector Translation = ParentTransform.GetTranslation();
 		const FQuat Rotation = ParentTransform.GetRotation();
 
-		flexExtMovingFrameInit(MovingFrame, (float*)(&Translation.X), (float*)(&Rotation.X));
+		NvFlexExtMovingFrameInit(MovingFrame, (float*)(&Translation.X), (float*)(&Rotation.X));
 	}
 
 #endif // WITH_FLEX
@@ -127,7 +127,7 @@ void UFlexComponent::OnUnregister()
 
 	if (ContainerInstance && AssetInstance)
 	{
-		DEC_DWORD_STAT_BY(STAT_Flex_ActiveParticleCount, AssetInstance->mNumParticles);
+		DEC_DWORD_STAT_BY(STAT_Flex_ActiveParticleCount, AssetInstance->numParticles);
 		DEC_DWORD_STAT(STAT_Flex_ActiveMeshActorCount);
 
 		ContainerInstance->DestroyInstance(AssetInstance);
@@ -155,20 +155,20 @@ void UFlexComponent::ApplyLocalSpace()
 		FVector Translation = ParentTransform.GetTranslation();
 		FQuat Rotation = ParentTransform.GetRotation();
 		
-		flexExtMovingFrameUpdate(MovingFrame, (float*)(&Translation.X), (float*)(&Rotation.X), ContainerInstance->AverageDeltaTime);
+		NvFlexExtMovingFrameUpdate(MovingFrame, (float*)(&Translation.X), (float*)(&Rotation.X), ContainerInstance->AverageDeltaTime);
 
 		if (AssetInstance)
 		{
 			const FVector4* RESTRICT Particles = ContainerInstance->Particles;
 			const FVector4* RESTRICT Normals = ContainerInstance->Normals;
-			const int* RESTRICT Indices = AssetInstance->mParticleIndices;
+			const int* RESTRICT Indices = AssetInstance->particleIndices;
 
-			for (int ParticleIndex=0; ParticleIndex < AssetInstance->mNumParticles; ++ParticleIndex)
+			for (int ParticleIndex=0; ParticleIndex < AssetInstance->numParticles; ++ParticleIndex)
 			{
 				FVector4* Positions = (FVector4*)&ContainerInstance->Particles[Indices[ParticleIndex]];
 				FVector* Velocities = (FVector*)&ContainerInstance->Velocities[Indices[ParticleIndex]];
 
-				flexExtMovingFrameApply(MovingFrame, (float*)Positions, (float*)Velocities,
+				NvFlexExtMovingFrameApply(MovingFrame, (float*)Positions, (float*)Velocities,
 					1, InertialScale.LinearInertialScale, InertialScale.AngularInertialScale, ContainerInstance->AverageDeltaTime);
 			}
 		}
@@ -195,7 +195,7 @@ void UFlexComponent::Synchronize()
 
 		if (AssetInstance)
 		{
-			Indices = AssetInstance->mParticleIndices;
+			Indices = AssetInstance->particleIndices;
 		}
 
 		const FVector4* RESTRICT SrcParticles = ContainerInstance->Particles;
@@ -214,7 +214,7 @@ void UFlexComponent::Synchronize()
 			if (ClothAsset->TearingEnabled && TearingAsset && AssetInstance)
 			{
 				// update tearing asset inflatable over pressure
-				TearingAsset->mInflatablePressure = ClothAsset->OverPressure*InflatablePressureMultiplier;
+				TearingAsset->inflatablePressure = ClothAsset->OverPressure*InflatablePressureMultiplier;
 
 				// being tearing code
 				const int FreeParticles = ContainerInstance->GetMaxParticleCount() - ContainerInstance->GetActiveParticleCount();
@@ -222,17 +222,17 @@ void UFlexComponent::Synchronize()
 				const int MaxCopies = FreeParticles;
 				const int MaxEdits = 1024;
 
-				FlexExtTearingParticleClone* Copies = new FlexExtTearingParticleClone[MaxCopies];
+				NvFlexExtTearingParticleClone* Copies = new NvFlexExtTearingParticleClone[MaxCopies];
 				int NumCopies;
 
-				FlexExtTearingMeshEdit* Edits = new FlexExtTearingMeshEdit[MaxEdits];
+				NvFlexExtTearingMeshEdit* Edits = new NvFlexExtTearingMeshEdit[MaxEdits];
 				int NumEdits;
 
-				check(TearingAsset->mNumParticles == AssetInstance->mNumParticles);
+				check(TearingAsset->numParticles == AssetInstance->numParticles);
 
 				// update tearing asset memory from simulation
 				// todo: this shouldn't be necessary if we just pass the vertex data straight into tear mesh
-				for (int i=0; i < TearingAsset->mNumParticles; ++i)
+				for (int i=0; i < TearingAsset->numParticles; ++i)
 				{
 					if (Indices != NULL)
 					{
@@ -240,13 +240,13 @@ void UFlexComponent::Synchronize()
 
 						check(ParticleIndex <= ContainerInstance->GetMaxParticleCount());
 
-						((FVector4*)(TearingAsset->mParticles))[i] = SrcParticles[ParticleIndex];						
+						((FVector4*)(TearingAsset->particles))[i] = SrcParticles[ParticleIndex];						
 					}
 				}
 
 				const float MaxStrain = ClothAsset->TearingMaxStrain*TearingMaxStrainMultiplier;
 
-				flexExtTearClothMesh(TearingAsset, MaxStrain, ClothAsset->TearingMaxBreakRate, &Copies[0], &NumCopies, MaxCopies, &Edits[0], &NumEdits, MaxEdits);
+				NvFlexExtTearClothMesh(TearingAsset, MaxStrain, ClothAsset->TearingMaxBreakRate, &Copies[0], &NumCopies, MaxCopies, &Edits[0], &NumEdits, MaxEdits);
 
 				if (NumCopies)
 				{
@@ -254,24 +254,24 @@ void UFlexComponent::Synchronize()
 					check(NumCopies <= MaxCopies);
 
 					// allocate new particles in the container
-					const int Created = flexExtAllocParticles(ContainerInstance->Container, NumCopies, AssetInstance->mParticleIndices + AssetInstance->mNumParticles);
+					const int Created = NvFlexExtAllocParticles(ContainerInstance->Container, NumCopies, AssetInstance->particleIndices + AssetInstance->numParticles);
 				
-					check(TearingAsset->mNumParticles <= TearingAsset->mMaxParticles);
-					check(AssetInstance->mNumParticles + NumCopies <= TearingAsset->mMaxParticles);
+					check(TearingAsset->numParticles <= TearingAsset->maxParticles);
+					check(AssetInstance->numParticles + NumCopies <= TearingAsset->maxParticles);
 					check(Created == NumCopies);
 				
-					flexExtNotifyAssetChanged(ContainerInstance->Container, TearingAsset);
+					NvFlexExtNotifyAssetChanged(ContainerInstance->Container, TearingAsset);
 
 					// create new particles
 					for (int i=0; i < NumCopies; ++i)
 					{
 						// perform copies on particle data
-						ContainerInstance->CopyParticle(AssetInstance->mParticleIndices[Copies[i].srcIndex], AssetInstance->mParticleIndices[Copies[i].destIndex]);
+						ContainerInstance->CopyParticle(AssetInstance->particleIndices[Copies[i].srcIndex], AssetInstance->particleIndices[Copies[i].destIndex]);
 
-						AssetInstance->mNumParticles++;
+						AssetInstance->numParticles++;
 					}
 
-					check(AssetInstance->mNumParticles == TearingAsset->mNumParticles);
+					check(AssetInstance->numParticles == TearingAsset->numParticles);
 				
 					const float NewAlpha = ClothAsset->TearingVertexAlpha;
 
@@ -279,7 +279,7 @@ void UFlexComponent::Synchronize()
 					ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 						FSendFlexClothMeshEdits,
 						FFlexMeshSceneProxy*, SceneProxy, (FFlexMeshSceneProxy*)SceneProxy,
-						FlexExtTearingMeshEdit*, Edits, Edits, 
+						NvFlexExtTearingMeshEdit*, Edits, Edits, 
 						int, NumEdits, NumEdits,
 						float, NewAlpha, NewAlpha,
 						{
@@ -300,7 +300,7 @@ void UFlexComponent::Synchronize()
 
 		if (AssetInstance)
 		{
-			const int NumParticles = AssetInstance->mNumParticles;
+			const int NumParticles = AssetInstance->numParticles;
 
 			SimPositions.SetNum(NumParticles);
 			SimNormals.SetNum(NumParticles);
@@ -324,17 +324,17 @@ void UFlexComponent::Synchronize()
 
 		if (AssetInstance && bFlexSolid)
 		{
-			const int ShapeIndex = AssetInstance->mShapeIndex;
+			const int ShapeIndex = AssetInstance->shapeIndex;
 
 			if (ShapeIndex != -1)
 			{
-				const FQuat Rotation = *(FQuat*)AssetInstance->mShapeRotations;
-				const FVector Translation = *(FVector*)AssetInstance->mShapeTranslations;
+				const FQuat Rotation = *(FQuat*)AssetInstance->shapeRotations;
+				const FVector Translation = *(FVector*)AssetInstance->shapeTranslations;
 
 				const FTransform NewTransform(Rotation, Translation);
 
 				// offset to handle case where object's pivot is not aligned with the object center of mass
-                const FVector Offset = ComponentToWorld.TransformVector(FVector(AssetInstance->mAsset->mShapeCenters[0], AssetInstance->mAsset->mShapeCenters[1], AssetInstance->mAsset->mShapeCenters[2]));
+                const FVector Offset = ComponentToWorld.TransformVector(FVector(AssetInstance->asset->shapeCenters[0], AssetInstance->asset->shapeCenters[1], AssetInstance->asset->shapeCenters[2]));
 				const FVector MoveBy = NewTransform.GetLocation() - ComponentToWorld.GetLocation() - Offset;
 				const FRotator NewRotation = NewTransform.Rotator();
 
@@ -423,8 +423,8 @@ void UFlexComponent::UpdateSceneProxy(FFlexMeshSceneProxy* Proxy)
 			// set transforms based on the simulation object	
 			for (int i=0; i < NumShapes; ++i)
 			{
-				NewTransforms[i].Translation = *(FVector*)&AssetInstance->mShapeTranslations[i*3];
-				NewTransforms[i].Rotation = *(FQuat*)&AssetInstance->mShapeRotations[i*4];
+				NewTransforms[i].Translation = *(FVector*)&AssetInstance->shapeTranslations[i*3];
+				NewTransforms[i].Rotation = *(FQuat*)&AssetInstance->shapeRotations[i*4];
 
 				PreSimShapeTranslations[i] = NewTransforms[i].Translation;
 				PreSimShapeRotations[i] = NewTransforms[i].Rotation;
@@ -558,7 +558,7 @@ void UFlexComponent::DisableSim()
 #if WITH_FLEX
 	if (ContainerInstance && AssetInstance)
 	{
-		DEC_DWORD_STAT_BY(STAT_Flex_ActiveParticleCount, AssetInstance->mNumParticles);
+		DEC_DWORD_STAT_BY(STAT_Flex_ActiveParticleCount, AssetInstance->numParticles);
 		DEC_DWORD_STAT(STAT_Flex_ActiveMeshActorCount);
 
 		ContainerInstance->DestroyInstance(AssetInstance);
@@ -588,7 +588,7 @@ void UFlexComponent::OnTear_Implementation()
 	if (ClothAsset->TearingEnabled && TearingAsset)
 	{
 		// update tearing asset inflatable over pressure
-		TearingAsset->mInflatable = false;
+		TearingAsset->inflatable = false;
 	}
 }
 
@@ -601,7 +601,7 @@ void UFlexComponent::EnableSim()
 		if (SimPositions.Num() == 0)
 			return;
 
-		const FlexExtAsset* Asset = NULL;
+		const NvFlexExtAsset* Asset = NULL;
 
 		if (IsTearingCloth())
 		{
@@ -610,7 +610,7 @@ void UFlexComponent::EnableSim()
 			if (ClothAsset)
 			{
 				// clone asset for 
-				TearingAsset = flexExtCreateTearingClothFromMesh(
+				TearingAsset = NvFlexExtCreateTearingClothFromMesh(
 							(float*)&ClothAsset->Particles[0],
 							ClothAsset->Particles.Num(),
 							ClothAsset->Triangles.Num(),	// TODO: set limits correctly
@@ -639,7 +639,7 @@ void UFlexComponent::EnableSim()
 			// if attach requested then generate attachment points for overlapping shapes
 			if (AttachToRigids)
 			{				
-				for (int ParticleIndex=0; ParticleIndex < AssetInstance->mNumParticles; ++ParticleIndex)
+				for (int ParticleIndex=0; ParticleIndex < AssetInstance->numParticles; ++ParticleIndex)
 				{
 					FVector4 ParticlePos = SimPositions[ParticleIndex];
 
@@ -717,9 +717,9 @@ void UFlexComponent::EnableSim()
 			FBox WorldBounds(0);
 			
 			// apply any existing positions (pre-simulated particles)
-			for (int32 i = 0; i < AssetInstance->mNumParticles; ++i)
+			for (int32 i = 0; i < AssetInstance->numParticles; ++i)
 			{
-				ContainerInstance->Particles[AssetInstance->mParticleIndices[i]] = SimPositions[i];
+				ContainerInstance->Particles[AssetInstance->particleIndices[i]] = SimPositions[i];
 				WorldBounds += FVector(SimPositions[i]);
 			}
 
@@ -918,7 +918,7 @@ void UFlexComponent::SynchronizeAttachments()
 		
 			// index into the simulation data, we need to modify the container's copy
 			// of the data so that the new positions get sent back to the sim
-			const int ParticleIndex = AssetInstance->mParticleIndices[Attachment.ParticleIndex];
+			const int ParticleIndex = AssetInstance->particleIndices[Attachment.ParticleIndex];
 
 			if(SceneComp)
 			{

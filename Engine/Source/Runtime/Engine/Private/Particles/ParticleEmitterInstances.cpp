@@ -287,7 +287,7 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 	float LinearInertialScale;
 	float AngularInertialScale;
 
-	FlexExtMovingFrame MeshFrame;
+	NvFlexExtMovingFrame MeshFrame;
 };
 #endif
 
@@ -630,7 +630,7 @@ void FParticleEmitterInstance::Init()
 				const FVector Translation = ParentTransform.GetTranslation();
 				const FQuat Rotation = ParentTransform.GetRotation();
 
-				flexExtMovingFrameInit(&FlexEmitterInstance->MeshFrame, (float*)(&Translation.X), (float*)(&Rotation.X));
+				NvFlexExtMovingFrameInit(&FlexEmitterInstance->MeshFrame, (float*)(&Translation.X), (float*)(&Rotation.X));
 			}
 		}
 	}
@@ -913,7 +913,7 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 				Translation = ParentTransform.GetTranslation();
 				Rotation = ParentTransform.GetRotation();
 
-				flexExtMovingFrameUpdate(&FlexEmitterInstance->MeshFrame, (float*)(&Translation.X), (float*)(&Rotation.X), DeltaTime);
+				NvFlexExtMovingFrameUpdate(&FlexEmitterInstance->MeshFrame, (float*)(&Translation.X), (float*)(&Rotation.X), DeltaTime);
 			}
 		}
 
@@ -936,7 +936,7 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 				FVector4* Positions = (FVector4*)&Container->Particles[FlexParticleIndex];
 				FVector* Velocities = (FVector*)&Container->Velocities[FlexParticleIndex];
 
-				flexExtMovingFrameApply(&FlexEmitterInstance->MeshFrame, (float*)Positions, (float*)Velocities,
+				NvFlexExtMovingFrameApply(&FlexEmitterInstance->MeshFrame, (float*)Positions, (float*)Velocities,
 					1, FlexEmitterInstance->LinearInertialScale, FlexEmitterInstance->AngularInertialScale, DeltaTime);
 			}
 

@@ -36,27 +36,27 @@ public class FLEX : ModuleRules
         // Libraries and DLLs for windows platform
         if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-            PublicLibraryPaths.Add(FLEXLibDir + "/x64");
+            PublicLibraryPaths.Add(FLEXLibDir + "/win64");
 
             if (UEBuildConfiguration.bCompileFLEX_CUDA)
             {
                 if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
                 {
-                    PublicAdditionalLibraries.Add("flex_cuda_debug_x64.lib");
-                    PublicDelayLoadDLLs.Add("flex_cuda_debug_x64.dll");
-                    PublicAdditionalLibraries.Add("flexExt_cuda_debug_x64.lib");
-                    PublicDelayLoadDLLs.Add("flexExt_cuda_debug_x64.dll");
-                    PublicAdditionalLibraries.Add("flexDevice_debug_x64.lib");
-                    PublicDelayLoadDLLs.Add("flexDevice_debug_x64.dll");
+                    PublicAdditionalLibraries.Add("NvFlexDebugCUDA_x64.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexDebugCUDA_x64.dll");
+                    PublicAdditionalLibraries.Add("NvFlexExtDebugCUDA_x64.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexExtDebugCUDA_x64.dll");
+                    PublicAdditionalLibraries.Add("NvFlexDeviceDebug_x64.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexDeviceDebug_x64.dll");
                 }
                 else
                 {
-                    PublicAdditionalLibraries.Add("flex_cuda_release_x64.lib");
-                    PublicDelayLoadDLLs.Add("flex_cuda_release_x64.dll");
-                    PublicAdditionalLibraries.Add("flexExt_cuda_release_x64.lib");
-                    PublicDelayLoadDLLs.Add("flexExt_cuda_release_x64.dll");
-                    PublicAdditionalLibraries.Add("flexDevice_release_x64.lib");
-                    PublicDelayLoadDLLs.Add("flexDevice_release_x64.dll");
+                    PublicAdditionalLibraries.Add("NvFlexReleaseCUDA_x64.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexReleaseCUDA_x64.dll");
+                    PublicAdditionalLibraries.Add("NvFlexExtReleaseCUDA_x64.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexExtReleaseCUDA_x64.dll");
+                    PublicAdditionalLibraries.Add("NvFlexDeviceRelease_x64.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexDeviceRelease_x64.dll");
                 }
             }
 
@@ -64,17 +64,17 @@ public class FLEX : ModuleRules
             {
                 if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
                 {
-                    PublicAdditionalLibraries.Add("flex_d3d11_debug_x64.lib");
-                    PublicDelayLoadDLLs.Add("flex_d3d11_debug_x64.dll");
-                    PublicAdditionalLibraries.Add("flexExt_d3d11_debug_x64.lib");
-                    PublicDelayLoadDLLs.Add("flexExt_d3d11_debug_x64.dll");
+                    PublicAdditionalLibraries.Add("NvFlexDebugD3D_x64.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexDebugD3D_x64.dll");
+                    PublicAdditionalLibraries.Add("NvFlexExtDebugD3D_x64.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexExtDebugD3D_x64.dll");
                 }
                 else
                 {
-                    PublicAdditionalLibraries.Add("flex_d3d11_release_x64.lib");
-                    PublicDelayLoadDLLs.Add("flex_d3d11_release_x64.dll");
-                    PublicAdditionalLibraries.Add("flexExt_d3d11_release_x64.lib");
-                    PublicDelayLoadDLLs.Add("flexExt_d3d11_release_x64.dll");
+                    PublicAdditionalLibraries.Add("NvFlexReleaseD3D_x64.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexReleaseD3D_x64.dll");
+                    PublicAdditionalLibraries.Add("NvFlexExtReleaseD3D_x64.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexExtReleaseD3D_x64.dll");
                 }
             }
 
@@ -88,11 +88,11 @@ public class FLEX : ModuleRules
                 string[] RuntimeDependenciesX64 =
                 {
                     "cudart64_80.dll",
-                    "flex_cuda_debug_x64.dll",
-                    "flex_cuda_release_x64.dll",
-                    "flexExt_cuda_debug_x64.dll",
-                    "flexExt_cuda_release_x64.dll",
-                    "flexDevice_release_x64.dll",
+                    "NvFlexDebugCUDA_x64.dll",
+                    "NvFlexReleaseCUDA_x64.dll",
+                    "NvFlexExtDebugCUDA_x64.dll",
+                    "NvFlexExtReleaseCUDA_x64.dll",
+                    "NvFlexDeviceRelease_x64.dll",
                 };
 
                 foreach (string RuntimeDependency in RuntimeDependenciesX64)
@@ -105,10 +105,10 @@ public class FLEX : ModuleRules
             {
                 string[] RuntimeDependenciesX64 =
                 {
-                    "flex_d3d11_debug_x64.dll",
-                    "flex_d3d11_release_x64.dll",
-                    "flexExt_d3d11_debug_x64.dll",
-                    "flexExt_d3d11_release_x64.dll",
+                    "NvFlexDebugD3D_x64.dll",
+                    "NvFlexReleaseD3D_x64.dll",
+                    "NvFlexExtDebugD3D_x64.dll",
+                    "NvFlexExtReleaseD3D_x64.dll",
                 };
 
                 foreach (string RuntimeDependency in RuntimeDependenciesX64)
@@ -125,21 +125,21 @@ public class FLEX : ModuleRules
             {
                 if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
                 {
-                    PublicAdditionalLibraries.Add("flex_cuda_debug_x86.lib");
-                    PublicDelayLoadDLLs.Add("flex_cuda_debug_x86.dll");
-                    PublicAdditionalLibraries.Add("flexExt_cuda_debug_x86.lib");
-                    PublicDelayLoadDLLs.Add("flexExt_cuda_debug_x86.dll");
-                    PublicAdditionalLibraries.Add("flexDevice_debug_x86.lib");
-                    PublicDelayLoadDLLs.Add("flexDevice_debug_x86.dll");
+                    PublicAdditionalLibraries.Add("NvFlexDebugCUDA_x86.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexDebugCUDA_x86.dll");
+                    PublicAdditionalLibraries.Add("NvFlexExtDebugCUDA_x86.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexExtDebugCUDA_x86.dll");
+                    PublicAdditionalLibraries.Add("NvFlexDeviceDebug_x86.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexDeviceDebug_x86.dll");
                 }
                 else
                 {
-                    PublicAdditionalLibraries.Add("flex_cuda_release_x86.lib");
-                    PublicDelayLoadDLLs.Add("flex_cuda_release_x86.dll");
-                    PublicAdditionalLibraries.Add("flexExt_cuda_release_x86.lib");
-                    PublicDelayLoadDLLs.Add("flexExt_cuda_release_x86.dll");
-                    PublicAdditionalLibraries.Add("flexDevice_release_x86.lib");
-                    PublicDelayLoadDLLs.Add("flexDevice_release_x86.dll");
+                    PublicAdditionalLibraries.Add("NvFlexReleaseCUDA_x86.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexReleaseCUDA_x86.dll");
+                    PublicAdditionalLibraries.Add("NvFlexExtReleaseCUDA_x86.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexExtReleaseCUDA_x86.dll");
+                    PublicAdditionalLibraries.Add("NvFlexDeviceRelease_x86.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexDeviceRelease_x86.dll");
                 }
             }
 
@@ -147,17 +147,17 @@ public class FLEX : ModuleRules
             {
                 if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
                 {
-                    PublicAdditionalLibraries.Add("flex_d3d11_debug_x86.lib");
-                    PublicDelayLoadDLLs.Add("flex_d3d11_debug_x86.dll");
-                    PublicAdditionalLibraries.Add("flexExt_d3d11_debug_x86.lib");
-                    PublicDelayLoadDLLs.Add("flexExt_d3d11_debug_x86.dll");
+                    PublicAdditionalLibraries.Add("NvFlexDebugD3D_x86.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexDebugD3D_x86.dll");
+                    PublicAdditionalLibraries.Add("NvFlexExtDebugD3D_x86.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexExtDebugD3D_x86.dll");
                 }
                 else
                 {
-                    PublicAdditionalLibraries.Add("flex_d3d11_release_x86.lib");
-                    PublicDelayLoadDLLs.Add("flex_d3d11_release_x86.dll");
-                    PublicAdditionalLibraries.Add("flexExt_d3d11_release_x86.lib");
-                    PublicDelayLoadDLLs.Add("flexExt_d3d11_release_x86.dll");
+                    PublicAdditionalLibraries.Add("NvFlexReleaseD3D_x86.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexReleaseD3D_x86.dll");
+                    PublicAdditionalLibraries.Add("NvFlexExtReleaseD3D_x86.lib");
+                    PublicDelayLoadDLLs.Add("NvFlexExtReleaseD3D_x86.dll");
                 }
             }
 
@@ -171,11 +171,11 @@ public class FLEX : ModuleRules
                 string[] RuntimeDependenciesX86 =
                 {
                     "cudart32_80.dll",
-                    "flex_cuda_debug_x86.dll",
-                    "flexExt_cuda_debug_x86.dll",
-                    "flexExt_cuda_release_x86.dll",
-                    "flex_cuda_release_x86.dll",
-                    "flexDevice_release_x86.dll",
+                    "NvFlexDebugCUDA_x86.dll",
+                    "NvFlexReleaseCUDA_x86.dll",
+                    "NvFlexExtDebugCUDA_x86.dll",
+                    "NvFlexExtReleaseCUDA_x86.dll",
+                    "NvFlexDeviceRelease_x86.dll",
                 };
 
                 foreach (string RuntimeDependency in RuntimeDependenciesX86)
@@ -190,10 +190,10 @@ public class FLEX : ModuleRules
 
                 string[] RuntimeDependenciesX86 =
                 {
-                    "flex_d3d11_debug_x86.dll",
-                    "flexExt_d3d11_debug_x86.dll",
-                    "flexExt_d3d11_release_x86.dll",
-                    "flex_d3d11_release_x86.dll",
+                    "NvFlexDebugD3D_x86.dll",
+                    "NvFlexReleaseD3D_x86.dll",
+                    "NvFlexExtDebugD3D_x86.dll",
+                    "NvFlexExtReleaseD3D_x86.dll",
                 };
 
                 foreach (string RuntimeDependency in RuntimeDependenciesX86)

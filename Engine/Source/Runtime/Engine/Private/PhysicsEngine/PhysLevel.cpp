@@ -20,7 +20,7 @@
 
 #if WITH_FLEX
 // fwd declare error func
-void FlexErrorFunc(FlexErrorSeverity level, const char* msg, const char* file, int line);
+void FlexErrorFunc(NvFlexErrorSeverity level, const char* msg, const char* file, int line);
 #endif
 
 FPhysCommandHandler * GPhysCommandHandler = NULL;
@@ -440,16 +440,16 @@ void InitGamePhysPostRHI()
 
 #if WITH_FLEX_CUDA
 		// query the CUDA device index from the NVIDIA control panel
-		int SuggestedOrdinal = flexDeviceGetSuggestedOrdinal();
+		int SuggestedOrdinal = NvFlexDeviceGetSuggestedOrdinal();
 
 		// create an optimized CUDA context for Flex, the context will
 		// be made current on the calling thread, note that if using
 		// GPU PhysX then it is recommended to skip this step and use
 		// the same CUDA context as PhysX
-		flexDeviceCreateCudaContext(SuggestedOrdinal);
+		NvFlexDeviceCreateCudaContext(SuggestedOrdinal);
 #endif
 
-		GFlexLib = flexInit(FLEX_VERSION, FlexErrorFunc);
+		GFlexLib = NvFlexInit(NV_FLEX_VERSION, FlexErrorFunc);
 	}
 
 	if (GFlexLib != NULL)
@@ -465,7 +465,7 @@ void TermGamePhys()
 #if WITH_FLEX
 	if (GFlexIsInitialized)
 	{
-		flexShutdown(GFlexLib);
+		NvFlexShutdown(GFlexLib);
 
 		GFlexIsInitialized = false;
 	}		

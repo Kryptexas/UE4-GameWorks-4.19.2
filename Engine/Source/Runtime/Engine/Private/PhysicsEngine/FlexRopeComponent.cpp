@@ -501,24 +501,24 @@ void UFlexRopeComponent::OnRegister()
 			ContainerInstance = Container;
 			ContainerInstance->Register(this);
 
-			Asset = new FlexExtAsset();
-			FMemory::Memset(Asset, 0, sizeof(FlexExtAsset));
+			Asset = new NvFlexExtAsset();
+			FMemory::Memset(Asset, 0, sizeof(NvFlexExtAsset));
 
 			// particles
-			Asset->mNumParticles = Particles.Num();
-			Asset->mMaxParticles = Particles.Num();
+			Asset->numParticles = Particles.Num();
+			Asset->maxParticles = Particles.Num();
 
 			// particles
-			if (Asset->mNumParticles)
-				Asset->mParticles = (float*)&Particles[0];
+			if (Asset->numParticles)
+				Asset->particles = (float*)&Particles[0];
 
 			// distance constraints
-			Asset->mNumSprings = SpringCoefficients.Num();
-			if (Asset->mNumSprings)
+			Asset->numSprings = SpringCoefficients.Num();
+			if (Asset->numSprings)
 			{
-				Asset->mSpringIndices = (int*)&SpringIndices[0];
-				Asset->mSpringCoefficients = (float*)&SpringCoefficients[0];
-				Asset->mSpringRestLengths = (float*)&SpringLengths[0];
+				Asset->springIndices = (int*)&SpringIndices[0];
+				Asset->springCoefficients = (float*)&SpringCoefficients[0];
+				Asset->springRestLengths = (float*)&SpringLengths[0];
 			}
 		}
 	}
@@ -623,7 +623,7 @@ void UFlexRopeComponent::Synchronize()
 			// clear out any previous attachments
 			Attachments.SetNum(0);
 
-			for (int ParticleIndex = 0; ParticleIndex < AssetInstance->mNumParticles; ++ParticleIndex)
+			for (int ParticleIndex = 0; ParticleIndex < AssetInstance->numParticles; ++ParticleIndex)
 			{
 				FVector4 ParticlePos = Particles[ParticleIndex];
 
@@ -690,7 +690,7 @@ void UFlexRopeComponent::Synchronize()
 
 			// index into the simulation data, we need to modify the container's copy
 			// of the data so that the new positions get sent back to the sim
-			const int ParticleIndex = AssetInstance->mParticleIndices[Attachment.ParticleIndex];
+			const int ParticleIndex = AssetInstance->particleIndices[Attachment.ParticleIndex];
 
 			if (PrimComp)
 			{
@@ -717,7 +717,7 @@ void UFlexRopeComponent::Synchronize()
 		{
 			for (int i = 0; i < Particles.Num(); ++i)
 			{
-				Particles[i] = ContainerInstance->Particles[AssetInstance->mParticleIndices[i]];
+				Particles[i] = ContainerInstance->Particles[AssetInstance->particleIndices[i]];
 			}
 		}
 	}

@@ -7,8 +7,8 @@
 // Flex extensions types
 struct FlexSolver;
 struct FlexExtContainer;
-struct FlexExtAsset;
-struct FlexExtInstance;
+struct NvFlexExtAsset;
+struct NvFlexExtInstance;
 
 class UFlexContainer;
 
@@ -125,9 +125,9 @@ public:
 	virtual void BeginDestroy() override;
 
 	virtual void ReImport(const UStaticMesh* Parent) {}
-	virtual const FlexExtAsset* GetFlexAsset() { return NULL; }
+	virtual const NvFlexExtAsset* GetFlexAsset() { return NULL; }
 
 	//
-	FlexExtAsset* Asset;
+	NvFlexExtAsset* Asset;
 
 };

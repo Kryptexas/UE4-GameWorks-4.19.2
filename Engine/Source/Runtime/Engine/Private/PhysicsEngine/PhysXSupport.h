@@ -140,7 +140,7 @@ extern ENGINE_API TArray<PxHeightField*>	GPhysXPendingKillHeightfield;
 extern TArray<PxMaterial*>		GPhysXPendingKillMaterial;
 
 #if WITH_FLEX
-extern ENGINE_API FlexLibrary*				GFlexLib;
+extern ENGINE_API NvFlexLibrary*				GFlexLib;
 #endif
 
 #if WITH_PHYSX

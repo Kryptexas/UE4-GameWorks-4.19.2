@@ -98,30 +98,30 @@ void FFlexContainerInstance::onRelease(const PxBase* observed, void* userData, P
 	// note: this is a memory release callback, we can't inspect the type of the observed object (it is deleted)
 	//		 so we must simply check if its value is in the cache
 
-	FlexTriangleMeshId* Mesh = TriangleMeshes.Find(observed);
+	NvFlexTriangleMeshId* Mesh = TriangleMeshes.Find(observed);
 
 	if (Mesh)
 	{
 		// destroy and remove from cache
-		flexDestroyTriangleMesh(GFlexLib, *Mesh);
+		NvFlexDestroyTriangleMesh(GFlexLib, *Mesh);
 		TriangleMeshes.Remove(observed);
 	}
 
-	FlexConvexMeshId* Convex = ConvexMeshes.Find(observed);
+	NvFlexConvexMeshId* Convex = ConvexMeshes.Find(observed);
 
 	if (Convex)
 	{
 		// destroy and remove from cache
-		flexDestroyConvexMesh(GFlexLib, *Convex);
+		NvFlexDestroyConvexMesh(GFlexLib, *Convex);
 		ConvexMeshes.Remove(observed);
 	}
 }
 
-const FlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxHeightField* HeightField)
+const NvFlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxHeightField* HeightField)
 {
 	verify(HeightField)
 
-	FlexTriangleMeshId* Mesh = TriangleMeshes.Find(HeightField);
+	NvFlexTriangleMeshId* Mesh = TriangleMeshes.Find(HeightField);
 
 	if (Mesh)
 	{
@@ -129,11 +129,11 @@ const FlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxHeightF
 	}
 	else
 	{
-		FlexTriangleMeshId NewMesh = flexCreateTriangleMesh(GFlexLib);
+		NvFlexTriangleMeshId NewMesh = NvFlexCreateTriangleMesh(GFlexLib);
 
 		// clear temporary arrays for building trimesh data
-		TriMeshVerts.map(eFlexMapDiscard | eFlexMapWait);
-		TriMeshIndices.map(eFlexMapDiscard | eFlexMapWait);
+		TriMeshVerts.map(eNvFlexMapDiscard | eNvFlexMapWait);
+		TriMeshIndices.map(eNvFlexMapDiscard | eNvFlexMapWait);
 
 		TriMeshVerts.resize(0);
 		TriMeshIndices.resize(0);
@@ -196,7 +196,7 @@ const FlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxHeightF
 		TriMeshVerts.unmap();
 		TriMeshIndices.unmap();
 
-		flexUpdateTriangleMesh(GFlexLib, NewMesh, TriMeshVerts.buffer, TriMeshIndices.buffer, TriMeshVerts.size(), TriMeshIndices.size()/3,  &LocalBounds.minimum.x, &LocalBounds.maximum.x);
+		NvFlexUpdateTriangleMesh(GFlexLib, NewMesh, TriMeshVerts.buffer, TriMeshIndices.buffer, TriMeshVerts.size(), TriMeshIndices.size()/3,  &LocalBounds.minimum.x, &LocalBounds.maximum.x);
 
 		// add to cache
 		TriangleMeshes.Add((void*)HeightField, NewMesh);
@@ -205,11 +205,11 @@ const FlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxHeightF
 	}
 }
 
-const FlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxTriangleMesh* TriMesh)
+const NvFlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxTriangleMesh* TriMesh)
 {
 	verify(TriMesh)
 
-	FlexTriangleMeshId* Mesh = TriangleMeshes.Find(TriMesh);
+	NvFlexTriangleMeshId* Mesh = TriangleMeshes.Find(TriMesh);
 
 	if (Mesh)
 	{
@@ -217,7 +217,7 @@ const FlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxTriangl
 	}
 	else
 	{
-		FlexTriangleMeshId NewMesh = flexCreateTriangleMesh(GFlexLib);
+		NvFlexTriangleMeshId NewMesh = NvFlexCreateTriangleMesh(GFlexLib);
 
 		int32 NumVerts = TriMesh->getNbVertices();
 		int32 NumIndices = TriMesh->getNbTriangles()*3;
@@ -225,8 +225,8 @@ const FlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxTriangl
 		const PxVec3* Verts = TriMesh->getVertices();
 
 		// clear temporary arrays for building trimesh data
-		TriMeshVerts.map(eFlexMapDiscard | eFlexMapWait);
-		TriMeshIndices.map(eFlexMapDiscard | eFlexMapWait);
+		TriMeshVerts.map(eNvFlexMapDiscard | eNvFlexMapWait);
+		TriMeshIndices.map(eNvFlexMapDiscard | eNvFlexMapWait);
 
 		TriMeshVerts.resize(0);
 		TriMeshIndices.resize(0);
@@ -254,7 +254,7 @@ const FlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxTriangl
 
 		PxBounds3 LocalBounds = TriMesh->getLocalBounds();
 
-		flexUpdateTriangleMesh(GFlexLib, NewMesh, TriMeshVerts.buffer, TriMeshIndices.buffer, TriMeshVerts.size(), TriMeshIndices.size()/3,  &LocalBounds.minimum.x, &LocalBounds.maximum.x);
+		NvFlexUpdateTriangleMesh(GFlexLib, NewMesh, TriMeshVerts.buffer, TriMeshIndices.buffer, TriMeshVerts.size(), TriMeshIndices.size()/3,  &LocalBounds.minimum.x, &LocalBounds.maximum.x);
 
 		// add to cache
 		TriangleMeshes.Add((void*)TriMesh, NewMesh);
@@ -264,11 +264,11 @@ const FlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxTriangl
 
 }
 
-const FlexTriangleMeshId FFlexContainerInstance::GetConvexMesh(const PxConvexMesh* ConvexMesh)
+const NvFlexTriangleMeshId FFlexContainerInstance::GetConvexMesh(const PxConvexMesh* ConvexMesh)
 {
 	verify(ConvexMesh)
 
-	FlexTriangleMeshId* Mesh = ConvexMeshes.Find(ConvexMesh);
+	NvFlexTriangleMeshId* Mesh = ConvexMeshes.Find(ConvexMesh);
 
 	if (Mesh)
 	{
@@ -276,9 +276,9 @@ const FlexTriangleMeshId FFlexContainerInstance::GetConvexMesh(const PxConvexMes
 	}
 	else
 	{
-		FlexConvexMeshId NewMesh = flexCreateConvexMesh(GFlexLib);
+		NvFlexConvexMeshId NewMesh = NvFlexCreateConvexMesh(GFlexLib);
 
-		ConvexMeshPlanes.map(eFlexMapDiscard | eFlexMapWait);
+		ConvexMeshPlanes.map(eNvFlexMapDiscard | eNvFlexMapWait);
 		ConvexMeshPlanes.resize(0);
 
 		int32 NumPolygons = ConvexMesh->getNbPolygons();
@@ -297,7 +297,7 @@ const FlexTriangleMeshId FFlexContainerInstance::GetConvexMesh(const PxConvexMes
 
 		PxBounds3 ConvexBounds = ConvexMesh->getLocalBounds();
 		
-		flexUpdateConvexMesh(GFlexLib, NewMesh, ConvexMeshPlanes.buffer, ConvexMeshPlanes.size(), &ConvexBounds.minimum.x, &ConvexBounds.maximum.x);
+		NvFlexUpdateConvexMesh(GFlexLib, NewMesh, ConvexMeshPlanes.buffer, ConvexMeshPlanes.size(), &ConvexBounds.minimum.x, &ConvexBounds.maximum.x);
 
 		ConvexMeshes.Add((void*)ConvexMesh, NewMesh);
 
@@ -309,7 +309,7 @@ const FlexTriangleMeshId FFlexContainerInstance::GetConvexMesh(const PxConvexMes
 void FFlexContainerInstance::UpdateCollisionData()
 {	
 	// skip empty containers
-	int32 NumActive = flexGetActiveCount(Solver);
+	int32 NumActive = NvFlexGetActiveCount(Solver);
 	if (NumActive == 0 && Components.Num() == 0)
 		return;
 
@@ -522,13 +522,13 @@ void FFlexContainerInstance::UpdateCollisionData()
 							PxCapsuleGeometry CapsuleGeometry;
 							Shape->getCapsuleGeometry(CapsuleGeometry);
 
-							FlexCollisionGeometry Geo;
-							Geo.mCapsule.mHalfHeight = CapsuleGeometry.halfHeight;
-							Geo.mCapsule.mRadius = CapsuleGeometry.radius;
+							NvFlexCollisionGeometry Geo;
+							Geo.capsule.halfHeight = CapsuleGeometry.halfHeight;
+							Geo.capsule.radius = CapsuleGeometry.radius;
 
 							ShapeGeometry.push_back(Geo);
 
-							int32 Flags = flexMakeShapeFlags(FlexCollisionShapeType::eFlexShapeCapsule, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eFlexShapeFlagTrigger : 0);
+							int32 Flags = NvFlexMakeShapeFlags(NvFlexCollisionShapeType::eNvFlexShapeCapsule, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eNvFlexShapeFlagTrigger : 0);
 							ShapeFlags.push_back(Flags);
 
 						}
@@ -537,12 +537,12 @@ void FFlexContainerInstance::UpdateCollisionData()
 							PxSphereGeometry SphereGeometry;
 							Shape->getSphereGeometry(SphereGeometry);
 
-							FlexCollisionGeometry Geo;
-							Geo.mSphere.mRadius = SphereGeometry.radius;
+							NvFlexCollisionGeometry Geo;
+							Geo.sphere.radius = SphereGeometry.radius;
 
 							ShapeGeometry.push_back(Geo);
 
-							int32 Flags = flexMakeShapeFlags(FlexCollisionShapeType::eFlexShapeSphere, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eFlexShapeFlagTrigger : 0);
+							int32 Flags = NvFlexMakeShapeFlags(NvFlexCollisionShapeType::eNvFlexShapeSphere, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eNvFlexShapeFlagTrigger : 0);
 							ShapeFlags.push_back(Flags);
 
 						}
@@ -551,14 +551,14 @@ void FFlexContainerInstance::UpdateCollisionData()
 							PxBoxGeometry BoxGeometry;
 							Shape->getBoxGeometry(BoxGeometry);							
 
-							FlexCollisionGeometry Geo;
-							Geo.mBox.mHalfExtents[0] = BoxGeometry.halfExtents.x;
-							Geo.mBox.mHalfExtents[1] = BoxGeometry.halfExtents.y;
-							Geo.mBox.mHalfExtents[2] = BoxGeometry.halfExtents.z;
+							NvFlexCollisionGeometry Geo;
+							Geo.box.halfExtents[0] = BoxGeometry.halfExtents.x;
+							Geo.box.halfExtents[1] = BoxGeometry.halfExtents.y;
+							Geo.box.halfExtents[2] = BoxGeometry.halfExtents.z;
 
 							ShapeGeometry.push_back(Geo);
 
-							int32 Flags = flexMakeShapeFlags(FlexCollisionShapeType::eFlexShapeBox, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eFlexShapeFlagTrigger : 0);
+							int32 Flags = NvFlexMakeShapeFlags(NvFlexCollisionShapeType::eNvFlexShapeBox, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eNvFlexShapeFlagTrigger : 0);
 							ShapeFlags.push_back(Flags);
 						}
 						break;
@@ -590,17 +590,17 @@ void FFlexContainerInstance::UpdateCollisionData()
 							ShapeReportIndices.Push(ShapeReportIndex);
 
 							// look up mesh in cache (or create)
-							FlexConvexMeshId Mesh = GetConvexMesh(ConvexMesh.convexMesh);
+							NvFlexConvexMeshId Mesh = GetConvexMesh(ConvexMesh.convexMesh);
 							
-							FlexCollisionGeometry Geometry;
-							Geometry.mConvex.mMesh= Mesh;
-							Geometry.mConvex.mScale[0] = ConvexMesh.scale.scale.x;
-							Geometry.mConvex.mScale[1] = ConvexMesh.scale.scale.y;
-							Geometry.mConvex.mScale[2] = ConvexMesh.scale.scale.z;
+							NvFlexCollisionGeometry Geometry;
+							Geometry.convexMesh.mesh= Mesh;
+							Geometry.convexMesh.scale[0] = ConvexMesh.scale.scale.x;
+							Geometry.convexMesh.scale[1] = ConvexMesh.scale.scale.y;
+							Geometry.convexMesh.scale[2] = ConvexMesh.scale.scale.z;
 
 							ShapeGeometry.push_back(Geometry);
 														
-							int32 Flags = flexMakeShapeFlags(FlexCollisionShapeType::eFlexShapeConvexMesh, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eFlexShapeFlagTrigger : 0);
+							int32 Flags = NvFlexMakeShapeFlags(NvFlexCollisionShapeType::eNvFlexShapeConvexMesh, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eNvFlexShapeFlagTrigger : 0);
 							ShapeFlags.push_back(Flags);
 						}
 						
@@ -623,17 +623,17 @@ void FFlexContainerInstance::UpdateCollisionData()
 						ShapeRotationsPrev.push_back(FQuat(WorldTransformPrev.q.x, WorldTransformPrev.q.y, WorldTransformPrev.q.z, WorldTransformPrev.q.w));
 
 						// find or convert matching FlexTriangleMesh
-						FlexTriangleMeshId Mesh = GetTriangleMesh(TriMesh.triangleMesh);
+						NvFlexTriangleMeshId Mesh = GetTriangleMesh(TriMesh.triangleMesh);
 
-						FlexCollisionGeometry Geometry;
-						Geometry.mTriMesh.mMesh = Mesh;
-						Geometry.mTriMesh.mScale[0] = TriMesh.scale.scale.x;
-						Geometry.mTriMesh.mScale[1] = TriMesh.scale.scale.y;
-						Geometry.mTriMesh.mScale[2] = TriMesh.scale.scale.z;
+						NvFlexCollisionGeometry Geometry;
+						Geometry.triMesh.mesh = Mesh;
+						Geometry.triMesh.scale[0] = TriMesh.scale.scale.x;
+						Geometry.triMesh.scale[1] = TriMesh.scale.scale.y;
+						Geometry.triMesh.scale[2] = TriMesh.scale.scale.z;
 						
 						ShapeGeometry.push_back(Geometry);
 						
-						int32 Flags = flexMakeShapeFlags(FlexCollisionShapeType::eFlexShapeTriangleMesh, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eFlexShapeFlagTrigger : 0);							
+						int32 Flags = NvFlexMakeShapeFlags(NvFlexCollisionShapeType::eNvFlexShapeTriangleMesh, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eNvFlexShapeFlagTrigger : 0);							
 						ShapeFlags.push_back(Flags);
 
 						int32 ShapeReportIndex = -1;
@@ -666,17 +666,17 @@ void FFlexContainerInstance::UpdateCollisionData()
 						//DrawDebugBox(GWorld, P2UVector(WorldTransform.p), P2UVector(MeshBounds.getExtents()), FColor::Cyan);					
 
 						// find or convert matching FlexTriangleMesh
-						FlexTriangleMeshId Mesh = GetTriangleMesh(HeightFieldGeom.heightField);
+						NvFlexTriangleMeshId Mesh = GetTriangleMesh(HeightFieldGeom.heightField);
 
-						FlexCollisionGeometry Geometry;
-						Geometry.mTriMesh.mMesh = Mesh;
-						Geometry.mTriMesh.mScale[0] = HeightFieldGeom.rowScale;
-						Geometry.mTriMesh.mScale[1] = HeightFieldGeom.heightScale;
-						Geometry.mTriMesh.mScale[2] = HeightFieldGeom.columnScale;
+						NvFlexCollisionGeometry Geometry;
+						Geometry.triMesh.mesh = Mesh;
+						Geometry.triMesh.scale[0] = HeightFieldGeom.rowScale;
+						Geometry.triMesh.scale[1] = HeightFieldGeom.heightScale;
+						Geometry.triMesh.scale[2] = HeightFieldGeom.columnScale;
 
 						ShapeGeometry.push_back(Geometry);
 						
-						int32 Flags = flexMakeShapeFlags(FlexCollisionShapeType::eFlexShapeTriangleMesh, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eFlexShapeFlagTrigger : 0);							
+						int32 Flags = NvFlexMakeShapeFlags(NvFlexCollisionShapeType::eNvFlexShapeTriangleMesh, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eNvFlexShapeFlagTrigger : 0);							
 						ShapeFlags.push_back(Flags);
 
 						int32 ShapeReportIndex = -1;
@@ -709,11 +709,11 @@ void FFlexContainerInstance::UpdateCollisionData()
 
 		if (ShapeFlags.size())
 		{
-			flexSetShapes(Solver, ShapeGeometry.buffer, ShapePositions.buffer, ShapeRotations.buffer, ShapePositionsPrev.buffer, ShapeRotationsPrev.buffer, ShapeFlags.buffer, ShapeFlags.size());
+			NvFlexSetShapes(Solver, ShapeGeometry.buffer, ShapePositions.buffer, ShapeRotations.buffer, ShapePositionsPrev.buffer, ShapeRotationsPrev.buffer, ShapeFlags.buffer, ShapeFlags.size());
 		}
 		else
 		{
-			flexSetShapes(Solver, NULL, NULL, NULL, NULL, NULL, NULL, 0);
+			NvFlexSetShapes(Solver, NULL, NULL, NULL, NULL, NULL, NULL, 0);
 		}
 	}
 
@@ -752,9 +752,9 @@ FFlexContainerInstance::FFlexContainerInstance(UFlexContainer* InTemplate, FPhys
 	TemplateRef = InTemplate;
 	Template = InTemplate;
 
-	Solver = flexCreateSolver(GFlexLib, Template->MaxParticles, 0);
-	Container = flexExtCreateContainer(GFlexLib, Solver, Template->MaxParticles);
-	ForceFieldCallback = flexExtCreateForceFieldCallback(Solver);
+	Solver = NvFlexCreateSolver(GFlexLib, Template->MaxParticles, 0);
+	Container = NvFlexExtCreateContainer(GFlexLib, Solver, Template->MaxParticles);
+	ForceFieldCallback = NvFlexExtCreateForceFieldCallback(Solver);
 	
 	if (Template->AnisotropyScale > 0.0f)
 	{
@@ -808,20 +808,20 @@ FFlexContainerInstance::~FFlexContainerInstance()
 	// destroy all cached triangle meshes
 	for (auto It = TriangleMeshes.CreateIterator(); It; ++It)
 	{
-		flexDestroyTriangleMesh(GFlexLib, It->Value);
+		NvFlexDestroyTriangleMesh(GFlexLib, It->Value);
 	}
 
 	TriangleMeshes.Reset();
 
 
 	if (ForceFieldCallback)
-		flexExtDestroyForceFieldCallback(ForceFieldCallback);
+		NvFlexExtDestroyForceFieldCallback(ForceFieldCallback);
 
 	if (Container)
-		flexExtDestroyContainer(Container);
+		NvFlexExtDestroyContainer(Container);
 
 	if (Solver)
-		flexDestroySolver(Solver);
+		NvFlexDestroySolver(Solver);
 }
 
 int32 FFlexContainerInstance::CreateParticle(const FVector4& Pos, const FVector& Vel, int32 Phase)
@@ -830,7 +830,7 @@ int32 FFlexContainerInstance::CreateParticle(const FVector4& Pos, const FVector&
 	verify(IsMapped());
 
 	int32 index;
-	int32 n = flexExtAllocParticles(Container, 1, &index);
+	int32 n = NvFlexExtAllocParticles(Container, 1, &index);
 
 	if (n == 0)
 	{
@@ -859,7 +859,7 @@ void FFlexContainerInstance::DestroyParticle(int32 Index)
 
 	// destruction is deferred so we do not need to be mapped here
 
-	flexExtFreeParticles(Container, 1, &Index);
+	NvFlexExtFreeParticles(Container, 1, &Index);
 
 	DEC_DWORD_STAT(STAT_Flex_ParticleCount);
 }
@@ -877,20 +877,20 @@ void FFlexContainerInstance::CopyParticle(int32 Source, int32 Dest)
 	Phases[Dest] = Phases[Source];
 }
  
-FlexExtInstance* FFlexContainerInstance::CreateInstance(const FlexExtAsset* Asset, const FMatrix& Mat, const FVector& Velocity, int32 Phase)
+NvFlexExtInstance* FFlexContainerInstance::CreateInstance(const NvFlexExtAsset* Asset, const FMatrix& Mat, const FVector& Velocity, int32 Phase)
 {
 	verify(IsMapped());
 
 	// spawn into the container
-	FlexExtInstance* Inst = flexExtCreateInstance(Container, &MappedData, Asset, (const float*)&Mat, Velocity.X, Velocity.Y, Velocity.Z, Phase, 1.0f);
+	NvFlexExtInstance* Inst = NvFlexExtCreateInstance(Container, &MappedData, Asset, (const float*)&Mat, Velocity.X, Velocity.Y, Velocity.Z, Phase, 1.0f);
 
 	// creation will fail if instance cannot fit inside container
 	if (Inst)
 	{
 		INC_DWORD_STAT(STAT_Flex_InstanceCount);
-		INC_DWORD_STAT_BY(STAT_Flex_ParticleCount, Inst->mAsset->mNumParticles);
-		INC_DWORD_STAT_BY(STAT_Flex_SpringCount, Inst->mAsset->mNumSprings);
-		INC_DWORD_STAT_BY(STAT_Flex_ShapeCount, Inst->mAsset->mNumShapes);
+		INC_DWORD_STAT_BY(STAT_Flex_ParticleCount, Inst->asset->numParticles);
+		INC_DWORD_STAT_BY(STAT_Flex_SpringCount, Inst->asset->numSprings);
+		INC_DWORD_STAT_BY(STAT_Flex_ShapeCount, Inst->asset->numShapes);
 	}
 	else
 	{
@@ -901,16 +901,16 @@ FlexExtInstance* FFlexContainerInstance::CreateInstance(const FlexExtAsset* Asse
 	return Inst;
 }
 
-void FFlexContainerInstance::DestroyInstance(FlexExtInstance* Inst)
+void FFlexContainerInstance::DestroyInstance(NvFlexExtInstance* Inst)
 {
 	// destruction is deferred so we do not need to be mapped here
 
 	DEC_DWORD_STAT(STAT_Flex_InstanceCount);
-	DEC_DWORD_STAT_BY(STAT_Flex_ParticleCount, Inst->mAsset->mNumParticles);
-	DEC_DWORD_STAT_BY(STAT_Flex_SpringCount, Inst->mAsset->mNumSprings);
-	DEC_DWORD_STAT_BY(STAT_Flex_ShapeCount, Inst->mAsset->mNumShapes);
+	DEC_DWORD_STAT_BY(STAT_Flex_ParticleCount, Inst->asset->numParticles);
+	DEC_DWORD_STAT_BY(STAT_Flex_SpringCount, Inst->asset->numSprings);
+	DEC_DWORD_STAT_BY(STAT_Flex_ShapeCount, Inst->asset->numShapes);
 
-	flexExtDestroyInstance(Container, Inst);
+	NvFlexExtDestroyInstance(Container, Inst);
 }
 
 int32 FFlexContainerInstance::GetPhase(const FFlexPhase& Phase)
@@ -923,15 +923,15 @@ int32 FFlexContainerInstance::GetPhase(const FFlexPhase& Phase)
 
 	int Flags = 0;
 	if (Phase.SelfCollide)
-		Flags |= eFlexPhaseSelfCollide;
+		Flags |= eNvFlexPhaseSelfCollide;
 
 	if (Phase.IgnoreRestCollisions)
-		Flags |= eFlexPhaseSelfCollideFilter;
+		Flags |= eNvFlexPhaseSelfCollideFilter;
 
 	if (Phase.Fluid)
-		Flags |= eFlexPhaseFluid;
+		Flags |= eNvFlexPhaseFluid;
 
-	return flexMakePhase(Group, Flags);
+	return NvFlexMakePhase(Group, Flags);
 }
 
 
@@ -971,68 +971,68 @@ void FFlexContainerInstance::UpdateSimData()
 	//map the surface tension to a comfortable scale
 	static float SurfaceTensionFactor = 1e-6f;
 
-	FlexParams params;
+	NvFlexParams params;
 	FMemory::Memset(&params, 0, sizeof(params));
 
-	params.mGravity[0] = Template->Gravity.X;
-	params.mGravity[1] = Template->Gravity.Y;
-	params.mGravity[2] = Template->Gravity.Z;
+	params.gravity[0] = Template->Gravity.X;
+	params.gravity[1] = Template->Gravity.Y;
+	params.gravity[2] = Template->Gravity.Z;
 
-	params.mWind[0] = Template->Wind.X;
-	params.mWind[1] = Template->Wind.Y;
-	params.mWind[2] = Template->Wind.Z;
+	params.wind[0] = Template->Wind.X;
+	params.wind[1] = Template->Wind.Y;
+	params.wind[2] = Template->Wind.Z;
 
-	params.mRadius = Template->Radius;
-	params.mViscosity = Template->Viscosity;
-	params.mDynamicFriction = Template->ShapeFriction;
-	params.mStaticFriction = Template->ShapeFriction;
-	params.mParticleFriction = Template->ParticleFriction;
-	params.mDrag = Template->Drag;	
-	params.mLift = Template->Lift;
-	params.mDamping = Template->Damping;
-	params.mNumIterations = Template->NumIterations;
-	params.mSolidRestDistance = Template->Radius;
-	params.mFluidRestDistance = Template->Radius*Template->RestDistance;
-	params.mDissipation = Template->Dissipation;
-	params.mParticleCollisionMargin = Template->CollisionMarginParticles;
-	params.mShapeCollisionMargin = FMath::Max(Template->CollisionMarginShapes, FMath::Max(Template->CollisionDistance*0.25f, 1.0f)); // ensure a minimum collision distance for generating contacts against shapes, we need some margin to avoid jittering as contacts activate/deactivate
-	params.mCollisionDistance = Template->CollisionDistance;
-	params.mPlasticThreshold = Template->PlasticThreshold;
-	params.mPlasticCreep = Template->PlasticCreep;
-	params.mFluid = Template->Fluid;
-	params.mSleepThreshold = Template->SleepThreshold;
-	params.mShockPropagation = Template->ShockPropagation;
-	params.mRestitution = Template->Restitution;
-	params.mSmoothing = Template->PositionSmoothing;
-	params.mMaxSpeed = Template->MaxVelocity;
-	params.mRelaxationMode = Template->RelaxationMode == EFlexSolverRelaxationMode::Local ? eFlexRelaxationLocal : eFlexRelaxationGlobal;
-	params.mRelaxationFactor = Template->RelaxationFactor;
-	params.mSolidPressure = Template->SolidPressure;
-	params.mAnisotropyScale = Template->AnisotropyScale;
-	params.mAnisotropyMin = Template->AnisotropyMin;
-	params.mAnisotropyMax = Template->AnisotropyMax;
-	params.mAdhesion = Template->Adhesion;
-	params.mCohesion = Template->Cohesion;
-	params.mSurfaceTension = Template->SurfaceTension * SurfaceTensionFactor;
-	params.mVorticityConfinement = Template->VorticityConfinement;
-	params.mDiffuseThreshold = 0.0f;
-	params.mBuoyancy = 1.0f;
-	params.mMaxAcceleration = FLT_MAX;
+	params.radius = Template->Radius;
+	params.viscosity = Template->Viscosity;
+	params.dynamicFriction = Template->ShapeFriction;
+	params.staticFriction = Template->ShapeFriction;
+	params.particleFriction = Template->ParticleFriction;
+	params.drag = Template->Drag;	
+	params.lift = Template->Lift;
+	params.damping = Template->Damping;
+	params.numIterations = Template->NumIterations;
+	params.solidRestDistance = Template->Radius;
+	params.fluidRestDistance = Template->Radius*Template->RestDistance;
+	params.dissipation = Template->Dissipation;
+	params.particleCollisionMargin = Template->CollisionMarginParticles;
+	params.shapeCollisionMargin = FMath::Max(Template->CollisionMarginShapes, FMath::Max(Template->CollisionDistance*0.25f, 1.0f)); // ensure a minimum collision distance for generating contacts against shapes, we need some margin to avoid jittering as contacts activate/deactivate
+	params.collisionDistance = Template->CollisionDistance;
+	params.plasticThreshold = Template->PlasticThreshold;
+	params.plasticCreep = Template->PlasticCreep;
+	params.fluid = Template->Fluid;
+	params.sleepThreshold = Template->SleepThreshold;
+	params.shockPropagation = Template->ShockPropagation;
+	params.restitution = Template->Restitution;
+	params.smoothing = Template->PositionSmoothing;
+	params.maxSpeed = Template->MaxVelocity;
+	params.relaxationMode = Template->RelaxationMode == EFlexSolverRelaxationMode::Local ? eNvFlexRelaxationLocal : eNvFlexRelaxationGlobal;
+	params.relaxationFactor = Template->RelaxationFactor;
+	params.solidPressure = Template->SolidPressure;
+	params.anisotropyScale = Template->AnisotropyScale;
+	params.anisotropyMin = Template->AnisotropyMin;
+	params.anisotropyMax = Template->AnisotropyMax;
+	params.adhesion = Template->Adhesion;
+	params.cohesion = Template->Cohesion;
+	params.surfaceTension = Template->SurfaceTension * SurfaceTensionFactor;
+	params.vorticityConfinement = Template->VorticityConfinement;
+	params.diffuseThreshold = 0.0f;
+	params.buoyancy = 1.0f;
+	params.maxAcceleration = FLT_MAX;
 
-	params.mPlanes[0][0] = 0.0f;
-	params.mPlanes[0][1] = 0.0f;
-	params.mPlanes[0][2] = 1.0f;
-	params.mPlanes[0][3] = 0.0f;
-	params.mNumPlanes = 0;
+	params.planes[0][0] = 0.0f;
+	params.planes[0][1] = 0.0f;
+	params.planes[0][2] = 1.0f;
+	params.planes[0][3] = 0.0f;
+	params.numPlanes = 0;
 
 	// update params
-	flexSetParams(Solver, &params);
+	NvFlexSetParams(Solver, &params);
 
 	// force fields
-	flexExtSetForceFields(ForceFieldCallback, ForceFields.GetData(), ForceFields.Num());
+	NvFlexExtSetForceFields(ForceFieldCallback, ForceFields.GetData(), ForceFields.Num());
 		
 	// move particle data to GPU, async
-	flexExtPushToDevice(Container);
+	NvFlexExtPushToDevice(Container);
 }
 
 void FFlexContainerInstance::Simulate(float DeltaTime)
@@ -1070,28 +1070,28 @@ void FFlexContainerInstance::Simulate(float DeltaTime)
 	// tick container, note that the GPU update happens asynchronously
 	// to the calling thread, FFlexContainerInstance::Synchronize() 
 	// will be called from FPhysScene when the GPU work has completed
-	flexUpdateSolver(Solver, Dt, NumSubsteps, TimerGatherEnable);
+	NvFlexUpdateSolver(Solver, Dt, NumSubsteps, TimerGatherEnable);
 
 	// read back data asynchronously
-	flexExtPullFromDevice(Container);
+	NvFlexExtPullFromDevice(Container);
 	
 	if (Template->AnisotropyScale > 0.0f)
 	{
-		flexGetAnisotropy(Solver, Anisotropy1.buffer, Anisotropy2.buffer, Anisotropy3.buffer);
+		NvFlexGetAnisotropy(Solver, Anisotropy1.buffer, Anisotropy2.buffer, Anisotropy3.buffer);
 	}
 
 	if (Template->PositionSmoothing > 0.0f)
 	{
-		flexGetSmoothParticles(Solver, SmoothPositions.buffer, Template->MaxParticles);
+		NvFlexGetSmoothParticles(Solver, SmoothPositions.buffer, Template->MaxParticles);
 	}
 
 	if (ShapeReportComponents.Num() > 0)
 	{
-		flexGetContacts(Solver, nullptr, ContactVelocities.buffer, ContactIndices.buffer, ContactCounts.buffer);
+		NvFlexGetContacts(Solver, nullptr, ContactVelocities.buffer, ContactIndices.buffer, ContactCounts.buffer);
 	}
 
 	// ensure copies have been kicked off
-	flexFlush(GFlexLib);
+	NvFlexFlush(GFlexLib);
 
 	SET_DWORD_STAT(STAT_Flex_ForceFieldCount, ForceFields.Num());
 
@@ -1114,7 +1114,7 @@ void FFlexContainerInstance::Synchronize()
 
 	Bounds = FBoxSphereBounds(FBox(Lower, Upper));
 
-	flexExtUpdateInstances(Container);
+	NvFlexExtUpdateInstances(Container);
 
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Flex_UpdateActors);
@@ -1129,13 +1129,13 @@ void FFlexContainerInstance::Synchronize()
 void FFlexContainerInstance::Map()
 {
 	// map all data
-	MappedData = flexExtMapParticleData(Container);
+	MappedData = NvFlexExtMapParticleData(Container);
 
 #if STATS
 	// given that we've already waited for the GPU, fetch the GPU timers 
-	FlexTimers Timers;
+	NvFlexTimers Timers;
 	FMemory::Memset(&Timers, 0, sizeof(Timers));
-	flexGetTimers(GFlexLib, &Timers);
+	NvFlexGetTimers(Solver, &Timers);
 #endif
 
 	// pointers into extension managed particle data, only valid during synchronize
@@ -1158,26 +1158,26 @@ void FFlexContainerInstance::Map()
 #if STATS
 	float scale = 0.001f / FPlatformTime::GetSecondsPerCycle();
 
-	SET_CYCLE_COUNTER(STAT_Flex_Predict, FMath::TruncToInt(Timers.mPredict*scale));
-	SET_CYCLE_COUNTER(STAT_Flex_CreateCellIndices, FMath::TruncToInt(Timers.mCreateCellIndices * scale));
-	SET_CYCLE_COUNTER(STAT_Flex_SortCellIndices, FMath::TruncToInt(Timers.mSortCellIndices* scale));
-	SET_CYCLE_COUNTER(STAT_Flex_CreateGrid, FMath::TruncToInt(Timers.mCreateGrid * scale));
-	SET_CYCLE_COUNTER(STAT_Flex_Reorder, FMath::TruncToInt(Timers.mReorder * scale));
-	SET_CYCLE_COUNTER(STAT_Flex_CollideParticles, FMath::TruncToInt(Timers.mCollideParticles* scale));
-	SET_CYCLE_COUNTER(STAT_Flex_CollideConvexes, FMath::TruncToInt(Timers.mCollideShapes * scale));
-	SET_CYCLE_COUNTER(STAT_Flex_CollideTriangles, FMath::TruncToInt(Timers.mCollideTriangles * scale));
-	SET_CYCLE_COUNTER(STAT_Flex_CollideFields, FMath::TruncToInt(Timers.mCollideFields * scale));
-	SET_CYCLE_COUNTER(STAT_Flex_CalculateDensity, FMath::TruncToInt(Timers.mCalculateDensity* scale));
-	SET_CYCLE_COUNTER(STAT_Flex_SolveDensities, FMath::TruncToInt(Timers.mSolveDensities * scale));
-	SET_CYCLE_COUNTER(STAT_Flex_SolveVelocities, FMath::TruncToInt(Timers.mSolveVelocities* scale));
-	SET_CYCLE_COUNTER(STAT_Flex_SolveShapes, FMath::TruncToInt(Timers.mSolveShapes * scale));
-	SET_CYCLE_COUNTER(STAT_Flex_SolveSprings, FMath::TruncToInt(Timers.mSolveSprings * scale));
-	SET_CYCLE_COUNTER(STAT_Flex_SolveContacts, FMath::TruncToInt(Timers.mSolveContacts * scale));
-	SET_CYCLE_COUNTER(STAT_Flex_SolveInflatables, FMath::TruncToInt(Timers.mSolveInflatables * scale));
-	SET_CYCLE_COUNTER(STAT_Flex_CalculateAnisotropy, FMath::TruncToInt(Timers.mCalculateAnisotropy * scale));
-	SET_CYCLE_COUNTER(STAT_Flex_UpdateDiffuse, FMath::TruncToInt(Timers.mUpdateDiffuse * scale));
-	SET_CYCLE_COUNTER(STAT_Flex_Finalize, FMath::TruncToInt(Timers.mFinalize * scale));
-	SET_CYCLE_COUNTER(STAT_Flex_UpdateBounds, FMath::TruncToInt(Timers.mUpdateBounds * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_Predict, FMath::TruncToInt(Timers.predict*scale));
+	SET_CYCLE_COUNTER(STAT_Flex_CreateCellIndices, FMath::TruncToInt(Timers.createCellIndices * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_SortCellIndices, FMath::TruncToInt(Timers.sortCellIndices* scale));
+	SET_CYCLE_COUNTER(STAT_Flex_CreateGrid, FMath::TruncToInt(Timers.createGrid * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_Reorder, FMath::TruncToInt(Timers.reorder * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_CollideParticles, FMath::TruncToInt(Timers.collideParticles* scale));
+	SET_CYCLE_COUNTER(STAT_Flex_CollideConvexes, FMath::TruncToInt(Timers.collideShapes * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_CollideTriangles, FMath::TruncToInt(Timers.collideTriangles * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_CollideFields, FMath::TruncToInt(Timers.collideFields * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_CalculateDensity, FMath::TruncToInt(Timers.calculateDensity* scale));
+	SET_CYCLE_COUNTER(STAT_Flex_SolveDensities, FMath::TruncToInt(Timers.solveDensities * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_SolveVelocities, FMath::TruncToInt(Timers.solveVelocities* scale));
+	SET_CYCLE_COUNTER(STAT_Flex_SolveShapes, FMath::TruncToInt(Timers.solveShapes * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_SolveSprings, FMath::TruncToInt(Timers.solveSprings * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_SolveContacts, FMath::TruncToInt(Timers.solveContacts * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_SolveInflatables, FMath::TruncToInt(Timers.solveInflatables * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_CalculateAnisotropy, FMath::TruncToInt(Timers.calculateAnisotropy * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_UpdateDiffuse, FMath::TruncToInt(Timers.updateDiffuse * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_Finalize, FMath::TruncToInt(Timers.finalize * scale));
+	SET_CYCLE_COUNTER(STAT_Flex_UpdateBounds, FMath::TruncToInt(Timers.updateBounds * scale));
 #endif
 }
 
@@ -1195,7 +1195,7 @@ void FFlexContainerInstance::Unmap()
 	ContactIndices.unmap();
 
 	// unlock extensions data
-	flexExtUnmapParticleData(Container);
+	NvFlexExtUnmapParticleData(Container);
 
 	// reset data pointers to catch any illegal access
 	Particles = NULL;
@@ -1258,17 +1258,17 @@ void FFlexContainerInstance::DebugDraw()
 		TArray<int32> ActiveIndices;
 		ActiveIndices.SetNum(Template->MaxParticles);
 
-		int32 NumActive = flexExtGetActiveList(Container, &ActiveIndices[0]);
+		int32 NumActive = NvFlexExtGetActiveList(Container, &ActiveIndices[0]);
 		
 		// draw particles colored by phase
 		for (int32 i = 0; i < NumActive; ++i)
 			DrawDebugPoint(Owner->GetOwningWorld(), Particles[ActiveIndices[i]], 10.0f, Colors[Phases[ActiveIndices[i]]%8], true);
 
-		FlexVector<FPlane> TmpContactPlanes(GFlexLib, Template->MaxParticles*MaxContactsPerParticle);
-		FlexVector<int32> TmpContactIndices(GFlexLib, Template->MaxParticles);
-		FlexVector<uint32> TmpContactCounts(GFlexLib, Template->MaxParticles);
+		NvFlexVector<FPlane> TmpContactPlanes(GFlexLib, Template->MaxParticles*MaxContactsPerParticle);
+		NvFlexVector<int32> TmpContactIndices(GFlexLib, Template->MaxParticles);
+		NvFlexVector<uint32> TmpContactCounts(GFlexLib, Template->MaxParticles);
 	
-		flexGetContacts(Solver, TmpContactPlanes.buffer, NULL, TmpContactIndices.buffer, TmpContactCounts.buffer);
+		NvFlexGetContacts(Solver, TmpContactPlanes.buffer, NULL, TmpContactIndices.buffer, TmpContactCounts.buffer);
 
 		TmpContactPlanes.map();
 		TmpContactIndices.map();
@@ -1298,30 +1298,30 @@ void FFlexContainerInstance::DebugDraw()
 void FFlexContainerInstance::AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff)
 {
 	ForceFields.AddUninitialized(1);
-	FlexExtForceField& Force = ForceFields.Top();
+	NvFlexExtForceField& Force = ForceFields.Top();
 
 	(FVector&)Force.mPosition = Origin;
 	Force.mRadius = Radius;
 	Force.mStrength = Strength;
 	Force.mLinearFalloff = (Falloff != RIF_Constant);
-	Force.mMode = eFlexExtModeForce;
+	Force.mMode = eNvFlexExtModeForce;
 }
 
 void FFlexContainerInstance::AddRadialImpulse(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange)
 {
 	ForceFields.AddUninitialized(1);
-	FlexExtForceField& Force = ForceFields.Top();
+	NvFlexExtForceField& Force = ForceFields.Top();
 
 	(FVector&)Force.mPosition = Origin;
 	Force.mRadius = Radius;
 	Force.mStrength = Strength;
 	Force.mLinearFalloff = (Falloff != RIF_Constant);
-	Force.mMode = bVelChange ? eFlexExtModeVelocityChange : eFlexExtModeImpulse;
+	Force.mMode = bVelChange ? eNvFlexExtModeVelocityChange : eNvFlexExtModeImpulse;
 }
 
 int FFlexContainerInstance::GetActiveParticleCount()
 {
-	return flexGetActiveCount(Solver);
+	return NvFlexGetActiveCount(Solver);
 }
 
 int FFlexContainerInstance::GetMaxParticleCount()

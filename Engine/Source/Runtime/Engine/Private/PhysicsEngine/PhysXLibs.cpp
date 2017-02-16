@@ -143,15 +143,15 @@ void LoadPhysXModules()
 
 		#if WITH_FLEX_CUDA
 			CudaRtHandle = LoadLibraryW(*(RootFLEXPath + "cudart64_80.dll"));
-			FLEXCoreHandle = LoadLibraryW(*(RootFLEXPath + "flex_cuda_release_x64.dll"));
-			FLEXExtHandle = LoadLibraryW(*(RootFLEXPath + "flexExt_cuda_release_x64.dll"));
-			FLEXDeviceHandle = LoadLibraryW(*(RootFLEXPath + "flexDevice_release_x64.dll"));
+			FLEXCoreHandle = LoadLibraryW(*(RootFLEXPath + "NvFlexReleaseCUDA_x64.dll"));
+			FLEXExtHandle = LoadLibraryW(*(RootFLEXPath + "NvFlexExtReleaseCUDA_x64.dll"));
+			FLEXDeviceHandle = LoadLibraryW(*(RootFLEXPath + "NvFlexDeviceRelease_x64.dll"));
 		#endif // WITH_FLEX_CUDA
 
 		#if WITH_FLEX_DX
 			FPlatformProcess::PushDllDirectory(*RootFLEXPath);
-			FLEXCoreHandle = LoadLibraryW(*(RootFLEXPath + "flex_d3d11_release_x64.dll"));
-			FLEXExtHandle = LoadLibraryW(*(RootFLEXPath + "flexExt_d3d11_release_x64.dll"));
+			FLEXCoreHandle = LoadLibraryW(*(RootFLEXPath + "NvFlexReleaseD3D_x64.dll"));
+			FLEXExtHandle = LoadLibraryW(*(RootFLEXPath + "NvFlexExtReleaseD3D_x64.dll"));
 			FPlatformProcess::PopDllDirectory(*RootFLEXPath);
 		#endif // WITH_FLEX_DX
 
@@ -159,15 +159,15 @@ void LoadPhysXModules()
 
 		#if WITH_FLEX_CUDA
 			CudaRtHandle = LoadLibraryW(*(RootFLEXPath + "cudart32_80.dll"));
-			FLEXCoreHandle = LoadLibraryW(*(RootFLEXPath + "flex_cuda_release_x86.dll"));
-			FLEXExtHandle = LoadLibraryW(*(RootFLEXPath + "flexExt_cuda_release_x86.dll"));
-			FLEXDeviceHandle = LoadLibraryW(*(RootFLEXPath + "flexDevice_release_x86.dll"));
+			FLEXCoreHandle = LoadLibraryW(*(RootFLEXPath + "NvFlexReleaseCUDA_x86.dll"));
+			FLEXExtHandle = LoadLibraryW(*(RootFLEXPath + "NvFlexExtReleaseCUDA_x86.dll"));
+			FLEXDeviceHandle = LoadLibraryW(*(RootFLEXPath + "NvFlexDeviceRelease_x86.dll"));
 		#endif // WITH_FLEX_CUDA
 
 		#if WITH_FLEX_DX
 			FPlatformProcess::PushDllDirectory(*RootFLEXPath);
-			FLEXCoreHandle = LoadLibraryW(*(RootFLEXPath + "flex_d3d11_release_x86.dll"));
-			FLEXExtHandle = LoadLibraryW(*(RootFLEXPath + "flexExt_d3d11_release_x86.dll"));
+			FLEXCoreHandle = LoadLibraryW(*(RootFLEXPath + "NvFlexReleaseD3D_x86.dll"));
+			FLEXExtHandle = LoadLibraryW(*(RootFLEXPath + "NvFlexExtReleaseD3D_x86.dll"));
 			FPlatformProcess::PopDllDirectory();
 		#endif // WITH_FLEX_DX
 
