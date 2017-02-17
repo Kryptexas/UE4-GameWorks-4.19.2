@@ -488,9 +488,10 @@ NV_FLEX_API NvFlexExtAsset* NvFlexExtCreateRigidFromMesh(const float* vertices, 
 * @param[in] clusterStiffness Controls the stiffness of the resulting clusters
 * @param[in] linkRadius Any particles below this distance will have additional distance constraints created between them
 * @param[in] linkStiffness The stiffness of distance links
+* @param[in] globalStiffness If this parameter is > 0.0f, adds an additional global cluster that consists of all particles in the shape. The stiffness of this cluster is the globalStiffness.
 * @return A pointer to an asset structure holding the particles and constraints
 */
-NV_FLEX_API NvFlexExtAsset* NvFlexExtCreateSoftFromMesh(const float* vertices, int numVertices, const int* indices, int numTriangleIndices, float particleSpacing, float volumeSampling, float surfaceSampling, float clusterSpacing, float clusterRadius, float clusterStiffness, float linkRadius, float linkStiffness);
+NV_FLEX_API NvFlexExtAsset* NvFlexExtCreateSoftFromMesh(const float* vertices, int numVertices, const int* indices, int numTriangleIndices, float particleSpacing, float volumeSampling, float surfaceSampling, float clusterSpacing, float clusterRadius, float clusterStiffness, float linkRadius, float linkStiffness, float globalStiffness);
 
 /**
  * Frees all memory associated with an asset created by one of the creation methods
