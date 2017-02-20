@@ -413,7 +413,7 @@ bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& InWorldContext )
 		ovrResult SubmitFrameResult = pCustomPresent->GetLastSubmitFrameResult();
 		if (SubmitFrameResult != LastSubmitFrameResult)
 		{
-			if (SubmitFrameResult == ovrError_DisplayLost && !OCFlags.DisplayLostDetected)
+			if ((SubmitFrameResult == ovrError_DisplayLost || SubmitFrameResult == ovrError_NoHmd) && !OCFlags.DisplayLostDetected)
 			{
 				FCoreDelegates::VRHeadsetLost.Broadcast();
 				OCFlags.DisplayLostDetected = true;
