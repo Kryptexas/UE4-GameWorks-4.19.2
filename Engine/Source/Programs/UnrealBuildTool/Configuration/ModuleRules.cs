@@ -360,7 +360,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Default constructor. Deprecated in 4.15.
 		/// </summary>
-		[Obsolete("Please forward the ReadOnlyTargetRules argument to the base class constructor (eg. \"MyModuleRules(ReadOnlyTargetRules Target) : base(Target)\").")]
+		[Obsolete("Please change your module constructor to take a ReadOnlyTargetRules parameter, and pass it to the base class constructor (eg. \"MyModuleRules(ReadOnlyTargetRules Target) : base(Target)\").")]
 		public ModuleRules()
 		{
 		}

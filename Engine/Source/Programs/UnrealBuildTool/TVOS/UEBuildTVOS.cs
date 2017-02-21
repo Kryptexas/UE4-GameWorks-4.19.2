@@ -41,50 +41,6 @@ namespace UnrealBuildTool
 		}
 	}
 
-	class TVOSPlatformContext : IOSPlatformContext
-	{
-        public TVOSPlatformContext(FileReference InProjectFile)
-            : base(UnrealTargetPlatform.IOS, InProjectFile)
-        {
-        }
-
-		public override string GetXcodeMinVersionParam()
-		{
-			return "tvos-version-min";
-		}
-
-		public override string GetArchitectureArgument(CppConfiguration Configuration, string UBTArchitecture)
-		{
-			// TV is only arm64
-			return " -arch " + (UBTArchitecture == "-simulator" ? "i386" : "arm64");
-		}
-
-		/// <summary>
-		/// Setup the target environment for building
-		/// </summary>
-		/// <param name="Target">Settings for the target being compiled</param>
-		/// <param name="CompileEnvironment">The compile environment for this target</param>
-		/// <param name="LinkEnvironment">The link environment for this target</param>
-		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
-		{
-			base.SetUpEnvironment(Target, CompileEnvironment, LinkEnvironment);
-			CompileEnvironment.Definitions.Add("PLATFORM_TVOS=1");
-			CompileEnvironment.Definitions.Add("__IPHONE_OS_VERSION_MIN_REQUIRED=__APPLETV_OS_VERSION_MIN_REQUIRED");
-		}
-
-		/// <summary>
-		/// Creates a toolchain instance for the given platform.
-		/// </summary>
-		/// <param name="CppPlatform">The platform to create a toolchain for</param>
-		/// <param name="Target">The target being built</param>
-		/// <returns>New toolchain instance.</returns>
-		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
-		{
-			TVOSProjectSettings ProjectSettings = ((TVOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.TVOS)).ReadProjectSettings(Target.ProjectFile);
-			return new TVOSToolChain(ProjectFile, this, ProjectSettings);
-		}
-	}
-
 	class TVOSPlatform : IOSPlatform
     {
 		public TVOSPlatform(IOSPlatformSDK InSDK)
@@ -149,9 +105,29 @@ namespace UnrealBuildTool
 			}
 		}
     
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
+		/// <summary>
+		/// Setup the target environment for building
+		/// </summary>
+		/// <param name="Target">Settings for the target being compiled</param>
+		/// <param name="CompileEnvironment">The compile environment for this target</param>
+		/// <param name="LinkEnvironment">The link environment for this target</param>
+		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
-			return new TVOSPlatformContext(ProjectFile);
+			base.SetUpEnvironment(Target, CompileEnvironment, LinkEnvironment);
+			CompileEnvironment.Definitions.Add("PLATFORM_TVOS=1");
+			CompileEnvironment.Definitions.Add("__IPHONE_OS_VERSION_MIN_REQUIRED=__APPLETV_OS_VERSION_MIN_REQUIRED");
+		}
+
+		/// <summary>
+		/// Creates a toolchain instance for the given platform.
+		/// </summary>
+		/// <param name="CppPlatform">The platform to create a toolchain for</param>
+		/// <param name="Target">The target being built</param>
+		/// <returns>New toolchain instance.</returns>
+		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
+		{
+			TVOSProjectSettings ProjectSettings = ((TVOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.TVOS)).ReadProjectSettings(Target.ProjectFile);
+			return new TVOSToolChain(Target.ProjectFile, ProjectSettings);
 		}
 
 		public override void Deploy(UEBuildDeployTarget Target)

@@ -44,7 +44,7 @@ public:
 	/** Custom serialized - map of track signature to array of track identifiers that it created */
 	TMap<FGuid, TArray<FMovieSceneTrackIdentifier, TInlineAllocator<1>>> TrackSignatureToTrackIdentifier;
 };
-template<> struct TStructOpsTypeTraits<FMovieSceneGenerationLedger> : public TStructOpsTypeTraitsBase { enum { WithSerializer = true, WithCopy = true }; };
+template<> struct TStructOpsTypeTraits<FMovieSceneGenerationLedger> : public TStructOpsTypeTraitsBase2<FMovieSceneGenerationLedger> { enum { WithSerializer = true, WithCopy = true }; };
 
 /**
  * Template that is used for efficient runtime evaluation of a movie scene sequence. Potentially serialized into the asset.
@@ -255,4 +255,4 @@ private:
 #endif
 };
 
-template<> struct TStructOpsTypeTraits<FCachedMovieSceneEvaluationTemplate> : public TStructOpsTypeTraitsBase { enum { WithCopy = false }; };
+template<> struct TStructOpsTypeTraits<FCachedMovieSceneEvaluationTemplate> : public TStructOpsTypeTraitsBase2<FCachedMovieSceneEvaluationTemplate> { enum { WithCopy = false }; };

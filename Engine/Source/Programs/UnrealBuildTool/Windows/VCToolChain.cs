@@ -1257,8 +1257,6 @@ namespace UnrealBuildTool
 				CompileAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
 				CompileAction.CommandPath = EnvVars.CompilerPath.FullName;
 
-				List<string> UnrealCodeAnalyzerArguments = new List<string>();
-
 				string[] AdditionalArguments = String.IsNullOrEmpty(CompileEnvironment.AdditionalArguments)? new string[0] : new string[] { CompileEnvironment.AdditionalArguments };
 
 				if (!ProjectFileGenerator.bGenerateProjectFiles
@@ -1267,13 +1265,13 @@ namespace UnrealBuildTool
 				{
 					FileItem TargetFile = CompileAction.ProducedItems[0];
 					string ResponseFileName = TargetFile.AbsolutePath + ".response";
-					ResponseFile.Create(new FileReference(ResponseFileName), UnrealCodeAnalyzerArguments.Concat(SharedArguments).Concat(FileArguments).Concat(AdditionalArguments).Select(x => ActionThread.ExpandEnvironmentVariables(x)));
+					ResponseFile.Create(new FileReference(ResponseFileName), SharedArguments.Concat(FileArguments).Concat(AdditionalArguments).Select(x => ActionThread.ExpandEnvironmentVariables(x)));
 					CompileAction.CommandArguments = " @\"" + ResponseFileName + "\"";
 					CompileAction.PrerequisiteItems.Add(FileItem.GetExistingItemByPath(ResponseFileName));
 				}
 				else
 				{
-					CompileAction.CommandArguments = String.Join(" ", UnrealCodeAnalyzerArguments.Concat(SharedArguments).Concat(FileArguments).Concat(AdditionalArguments));
+					CompileAction.CommandArguments = String.Join(" ", SharedArguments.Concat(FileArguments).Concat(AdditionalArguments));
 				}
 
 				if (CompileEnvironment.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)

@@ -977,7 +977,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 				return CustomValue;
 			}
 			return FString::Printf(TEXT("%s::%s"), *FEmitHelper::GetCppName(TypeEnum)
-				, CustomValue.IsEmpty() ? *TypeEnum->GetEnumName(0) : *CustomValue);
+				, CustomValue.IsEmpty() ? *TypeEnum->GetNameStringByIndex(0) : *CustomValue);
 		}
 		else
 		{

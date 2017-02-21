@@ -33,7 +33,7 @@ void FD3D12DeferredDeletionQueue::EnqueueResource(FD3D12Resource* pResource)
 	// Useful message for identifying when resources are released on the rendering thread.
 	//UE_CLOG(IsInActualRenderingThread(), LogD3D12RHI, Display, TEXT("Rendering Thread: Deleting %#016llx when done with frame fence %llu"), pResource, CurrentFrameFence);
 
-	const TPairInitializer<FD3D12Resource*, uint64> FencedObject(pResource, CurrentFrameFence);
+	const FencedObjectType FencedObject(pResource, CurrentFrameFence);
 	DeferredReleaseQueue.Enqueue(FencedObject);
 }
 

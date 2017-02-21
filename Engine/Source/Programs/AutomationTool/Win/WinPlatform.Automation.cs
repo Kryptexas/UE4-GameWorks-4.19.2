@@ -335,8 +335,17 @@ public abstract class BaseWinPlatform : Platform
         return true;
     }
 
-	public override void StripSymbols(string SourceFileName, string TargetFileName)
+	public override void StripSymbols(FileReference SourceFile, FileReference TargetFile)
 	{
+		bool bStripInPlace = false;
+
+		if (SourceFile == TargetFile)
+		{
+			// PDBCopy only supports creation of a brand new stripped file so we have to create a temporary filename
+			TargetFile = new FileReference(Path.Combine(TargetFile.Directory.FullName, Guid.NewGuid().ToString() + TargetFile.GetExtension()));
+			bStripInPlace = true;
+		}
+
 		ProcessStartInfo StartInfo = new ProcessStartInfo();
 		string PDBCopyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "MSBuild", "Microsoft", "VisualStudio", "v14.0", "AppxPackage", "PDBCopy.exe");
 		if (!File.Exists(PDBCopyPath))
@@ -345,10 +354,17 @@ public abstract class BaseWinPlatform : Platform
 			PDBCopyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "MSBuild", "Microsoft", "VisualStudio", "v12.0", "AppxPackage", "PDBCopy.exe");
 		}
 		StartInfo.FileName = PDBCopyPath;
-		StartInfo.Arguments = String.Format("\"{0}\" \"{1}\" -p", SourceFileName, TargetFileName);
+		StartInfo.Arguments = String.Format("\"{0}\" \"{1}\" -p", SourceFile.FullName, TargetFile.FullName);
 		StartInfo.UseShellExecute = false;
 		StartInfo.CreateNoWindow = true;
 		Utils.RunLocalProcessAndLogOutput(StartInfo);
+
+		if (bStripInPlace)
+		{
+			// Copy stripped file to original location and delete the temporary file
+			File.Copy(TargetFile.FullName, SourceFile.FullName, true);
+			FileReference.Delete(TargetFile);
+		}
 	}
 
     public override bool PublishSymbols(DirectoryReference SymbolStoreDirectory, List<FileReference> Files, string Product)

@@ -1680,7 +1680,7 @@ FString FPropertyNode::GetDefaultValueAsStringForObject( FPropertyItemValueDataT
 			// The property is a simple field.  Compare it against the enclosing object's default for that property.
 			if ( !bDiffersFromDefaultForObject)
 			{
-				uint32 PortFlags = 0;
+				uint32 PortFlags = PPF_PropertyWindow;
 				UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(InProperty);
 				if (InProperty->ContainsInstancedObjectProperty())
 				{
@@ -1721,22 +1721,8 @@ FString FPropertyNode::GetDefaultValueAsStringForObject( FPropertyItemValueDataT
 				}
 				else
 				{
+					// Port flags will cause enums to display correctly
 					InProperty->ExportTextItem( DefaultValue, ValueTracker.GetPropertyDefaultAddress(), ValueTracker.GetPropertyDefaultAddress(), InObject, PortFlags, NULL );
-
-					UEnum* Enum = nullptr;
-					if (UByteProperty* ByteProperty = Cast<UByteProperty>(InProperty))
-					{
-						Enum = ByteProperty->Enum;
-					}
-					else if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(InProperty))
-					{
-						Enum = EnumProperty->GetEnum();
-					}
-
-					if ( Enum )
-					{
-						AdjustEnumPropDisplayName(Enum, DefaultValue);
-					}
 				}
 			}
 		}

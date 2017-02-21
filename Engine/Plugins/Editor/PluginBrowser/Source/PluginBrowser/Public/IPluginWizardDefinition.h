@@ -80,6 +80,9 @@ public:
 	/** Returns true if the selected template can contain content */
 	virtual bool CanContainContent() const = 0;
 
+	/** Returns true if the plugin is a mod */
+	virtual bool IsMod() const = 0;
+
 	/** Callback for when the 'Show on Startup' checkbox changes in the plugin wizard. Only used if the definition allows for game mod plugins */
 	virtual void OnShowOnStartupCheckboxChanged(ECheckBoxState CheckBoxState) = 0;
 

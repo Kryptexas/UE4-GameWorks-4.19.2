@@ -264,13 +264,13 @@ void FEnvQueryTestDetails::BuildFilterTestValues()
 	{
 		if (EditedTest->GetWorkOnFloatValues())
 		{
-			FilterTestValues.Add(FTextIntPair(TestConditionEnum->GetEnumText(EEnvTestFilterType::Minimum), EEnvTestFilterType::Minimum));
-			FilterTestValues.Add(FTextIntPair(TestConditionEnum->GetEnumText(EEnvTestFilterType::Maximum), EEnvTestFilterType::Maximum));
-			FilterTestValues.Add(FTextIntPair(TestConditionEnum->GetEnumText(EEnvTestFilterType::Range), EEnvTestFilterType::Range));
+			FilterTestValues.Add(FTextIntPair(TestConditionEnum->GetDisplayNameTextByValue(EEnvTestFilterType::Minimum), EEnvTestFilterType::Minimum));
+			FilterTestValues.Add(FTextIntPair(TestConditionEnum->GetDisplayNameTextByValue(EEnvTestFilterType::Maximum), EEnvTestFilterType::Maximum));
+			FilterTestValues.Add(FTextIntPair(TestConditionEnum->GetDisplayNameTextByValue(EEnvTestFilterType::Range), EEnvTestFilterType::Range));
 		}
 		else
 		{
-			FilterTestValues.Add(FTextIntPair(TestConditionEnum->GetEnumText(EEnvTestFilterType::Match), EEnvTestFilterType::Match));
+			FilterTestValues.Add(FTextIntPair(TestConditionEnum->GetDisplayNameTextByValue(EEnvTestFilterType::Match), EEnvTestFilterType::Match));
 		}
 	}
 }
@@ -283,17 +283,17 @@ void FEnvQueryTestDetails::BuildScoreEquationValues()
 	ScoreEquationValues.Reset();
 
 	// Const scoring is always valid.  But other equations are only valid if the score values can be other than boolean values.
-	ScoreEquationValues.Add(FTextIntPair(TestScoreEquationEnum->GetEnumText(EEnvTestScoreEquation::Constant), EEnvTestScoreEquation::Constant));
+	ScoreEquationValues.Add(FTextIntPair(TestScoreEquationEnum->GetDisplayNameTextByValue(EEnvTestScoreEquation::Constant), EEnvTestScoreEquation::Constant));
 
 	const UEnvQueryTest* EditedTest = Cast<const UEnvQueryTest>(MyTest.Get());
 	if (EditedTest)
 	{
 		if (EditedTest->GetWorkOnFloatValues())
 		{
-			ScoreEquationValues.Add(FTextIntPair(TestScoreEquationEnum->GetEnumText(EEnvTestScoreEquation::Linear), EEnvTestScoreEquation::Linear));
-			ScoreEquationValues.Add(FTextIntPair(TestScoreEquationEnum->GetEnumText(EEnvTestScoreEquation::Square), EEnvTestScoreEquation::Square));
-			ScoreEquationValues.Add(FTextIntPair(TestScoreEquationEnum->GetEnumText(EEnvTestScoreEquation::InverseLinear), EEnvTestScoreEquation::InverseLinear));
-			ScoreEquationValues.Add(FTextIntPair(TestScoreEquationEnum->GetEnumText(EEnvTestScoreEquation::SquareRoot), EEnvTestScoreEquation::SquareRoot));
+			ScoreEquationValues.Add(FTextIntPair(TestScoreEquationEnum->GetDisplayNameTextByValue(EEnvTestScoreEquation::Linear), EEnvTestScoreEquation::Linear));
+			ScoreEquationValues.Add(FTextIntPair(TestScoreEquationEnum->GetDisplayNameTextByValue(EEnvTestScoreEquation::Square), EEnvTestScoreEquation::Square));
+			ScoreEquationValues.Add(FTextIntPair(TestScoreEquationEnum->GetDisplayNameTextByValue(EEnvTestScoreEquation::InverseLinear), EEnvTestScoreEquation::InverseLinear));
+			ScoreEquationValues.Add(FTextIntPair(TestScoreEquationEnum->GetDisplayNameTextByValue(EEnvTestScoreEquation::SquareRoot), EEnvTestScoreEquation::SquareRoot));
 		}
 	}
 }
@@ -316,8 +316,8 @@ void FEnvQueryTestDetails::BuildScoreClampingTypeValues(bool bBuildMinValues, TA
 	check(ScoringNormalizationEnum);
 
 	ClampTypeValues.Reset();
-	ClampTypeValues.Add(FTextIntPair(ScoringNormalizationEnum->GetEnumText(EEnvQueryTestClamping::None), EEnvQueryTestClamping::None));
-	ClampTypeValues.Add(FTextIntPair(ScoringNormalizationEnum->GetEnumText(EEnvQueryTestClamping::SpecifiedValue), EEnvQueryTestClamping::SpecifiedValue));
+	ClampTypeValues.Add(FTextIntPair(ScoringNormalizationEnum->GetDisplayNameTextByValue(EEnvQueryTestClamping::None), EEnvQueryTestClamping::None));
+	ClampTypeValues.Add(FTextIntPair(ScoringNormalizationEnum->GetDisplayNameTextByValue(EEnvQueryTestClamping::SpecifiedValue), EEnvQueryTestClamping::SpecifiedValue));
 
 	if (IsFiltering())
 	{
@@ -336,7 +336,7 @@ void FEnvQueryTestDetails::BuildScoreClampingTypeValues(bool bBuildMinValues, TA
 
 		if (bSupportFilterThreshold)
 		{
-			ClampTypeValues.Add(FTextIntPair(ScoringNormalizationEnum->GetEnumText(EEnvQueryTestClamping::FilterThreshold), EEnvQueryTestClamping::FilterThreshold));
+			ClampTypeValues.Add(FTextIntPair(ScoringNormalizationEnum->GetDisplayNameTextByValue(EEnvQueryTestClamping::FilterThreshold), EEnvQueryTestClamping::FilterThreshold));
 		}
 	}
 }

@@ -147,12 +147,34 @@ void FApp::InitializeSession()
 
 bool FApp::IsInstalled()
 {
+	static int32 InstalledState = -1;
+
+	if (InstalledState == -1)
+	{
 #if UE_BUILD_SHIPPING && PLATFORM_DESKTOP && !UE_SERVER
-	static bool bIsInstalled = !FParse::Param(FCommandLine::Get(), TEXT("NotInstalled"));
+		bool bIsInstalled = true;
 #else
-	static bool bIsInstalled = FParse::Param(FCommandLine::Get(), TEXT("Installed"));
+		bool bIsInstalled = false;
 #endif
-	return bIsInstalled;
+
+#if PLATFORM_DESKTOP
+		FString InstalledProjectBuildFile = FPaths::RootDir() / TEXT("Engine/Build/InstalledProjectBuild.txt");
+		FPaths::NormalizeFilename(InstalledProjectBuildFile);
+		bIsInstalled |= IFileManager::Get().FileExists(*InstalledProjectBuildFile);
+#endif
+
+		// Allow commandline options to disable/enable installed engine behavior
+		if (bIsInstalled)
+		{
+			bIsInstalled = !FParse::Param(FCommandLine::Get(), TEXT("NotInstalled"));
+		}
+		else
+		{
+			bIsInstalled = FParse::Param(FCommandLine::Get(), TEXT("Installed"));
+		}
+		InstalledState = bIsInstalled ? 1 : 0;
+	}
+	return InstalledState == 1;
 }
 
 
@@ -163,9 +185,13 @@ bool FApp::IsEngineInstalled()
 	if (EngineInstalledState == -1)
 	{
 		bool bIsInstalledEngine = IsInstalled();
+
+#if PLATFORM_DESKTOP
 		FString InstalledBuildFile = FPaths::RootDir() / TEXT("Engine/Build/InstalledBuild.txt");
 		FPaths::NormalizeFilename(InstalledBuildFile);
 		bIsInstalledEngine |= IFileManager::Get().FileExists(*InstalledBuildFile);
+#endif
+
 		// Allow commandline options to disable/enable installed engine behavior
 		if (bIsInstalledEngine)
 		{

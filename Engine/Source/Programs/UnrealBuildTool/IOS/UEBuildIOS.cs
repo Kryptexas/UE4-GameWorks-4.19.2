@@ -379,145 +379,6 @@ namespace UnrealBuildTool
         }
     }
 
-	class IOSPlatformContext : UEBuildPlatformContext
-	{
-		private IOSProjectSettings ProjectSettings;
-
-		protected FileReference ProjectFile;
-
-        public IOSPlatformContext(FileReference InProjectFile)
-            : this(UnrealTargetPlatform.IOS, InProjectFile)
-        {
-        }
-
-        protected IOSPlatformContext(UnrealTargetPlatform TargetPlatform, FileReference InProjectFile)
-            : base(TargetPlatform)
-		{
-			this.ProjectFile = InProjectFile;
-			this.ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(TargetPlatform)).ReadProjectSettings(InProjectFile);
-        }
-
-		public bool IsBitcodeCompilingEnabled(CppConfiguration Configuration)
-		{
-			return Configuration == CppConfiguration.Shipping && ProjectSettings.bShipForBitcode;
-		}
-
-		public virtual string GetXcodeMinVersionParam()
-		{
-			return "iphoneos-version-min";
-		}
-
-		public virtual string GetArchitectureArgument(CppConfiguration Configuration, string UBTArchitecture)
-		{
-            // get the list of architectures to compile
-            string Archs =
-				UBTArchitecture == "-simulator" ? "i386" :
-				String.Join(",", (Configuration == CppConfiguration.Shipping) ? ProjectSettings.ShippingArchitectures : ProjectSettings.NonShippingArchitectures);
-
-			Log.TraceLogOnce("Compiling with these architectures: " + Archs);
-
-			// parse the string
-			string[] Tokens = Archs.Split(",".ToCharArray());
-
-			string Result = "";
-			foreach (string Token in Tokens)
-			{
-				Result += " -arch " + Token;
-			}
-
-			return Result;
-		}
-		
-		public string GetAdditionalLinkerFlags(CppConfiguration InConfiguration)
-		{
-			if (InConfiguration != CppConfiguration.Shipping)
-			{
-				return ProjectSettings.AdditionalLinkerFlags;
-			}
-			else
-			{
-				return ProjectSettings.AdditionalShippingLinkerFlags;
-			}
-
-		}
-
-
-
-		/// <summary>
-		/// Whether this platform should create debug information or not
-		/// </summary>
-		/// <param name="Target">The target being built</param>
-		/// <returns>bool    true if debug info should be generated, false if not</returns>
-		public override bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target)
-		{
-			return true;
-		}
-
-		/// <summary>
-		/// Setup the target environment for building
-		/// </summary>
-		/// <param name="Target">Settings for the target being compiled</param>
-		/// <param name="CompileEnvironment">The compile environment for this target</param>
-		/// <param name="LinkEnvironment">The link environment for this target</param>
-		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
-		{
-			CompileEnvironment.Definitions.Add("PLATFORM_IOS=1");
-			CompileEnvironment.Definitions.Add("PLATFORM_APPLE=1");
-
-			CompileEnvironment.Definitions.Add("WITH_TTS=0");
-			CompileEnvironment.Definitions.Add("WITH_SPEECH_RECOGNITION=0");
-			CompileEnvironment.Definitions.Add("WITH_DATABASE_SUPPORT=0");
-			CompileEnvironment.Definitions.Add("WITH_EDITOR=0");
-			CompileEnvironment.Definitions.Add("USE_NULL_RHI=0");
-			CompileEnvironment.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
-
-			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProjectSettings(Target.ProjectFile);
-			if (ProjectSettings.bNotificationsEnabled)
-			{
-				CompileEnvironment.Definitions.Add("NOTIFICATIONS_ENABLED=1");
-			}
-			else
-			{
-				CompileEnvironment.Definitions.Add("NOTIFICATIONS_ENABLED=0");
-			}
-
-			if (Target.Architecture == "-simulator")
-			{
-				CompileEnvironment.Definitions.Add("WITH_SIMULATOR=1");
-			}
-			else
-			{
-				CompileEnvironment.Definitions.Add("WITH_SIMULATOR=0");
-			}
-
-			LinkEnvironment.AdditionalFrameworks.Add(new UEBuildFramework("GameKit"));
-			LinkEnvironment.AdditionalFrameworks.Add(new UEBuildFramework("StoreKit"));
-		}
-
-		/// <summary>
-		/// Modify the rules for a newly created module, in a target that's being built for this platform.
-		/// This is not required - but allows for hiding details of a particular platform.
-		/// </summary>
-		/// <param name="ModuleName">The name of the module</param>
-		/// <param name="Rules">The module rules</param>
-		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
-		{
-		}
-
-		/// <summary>
-		/// Creates a toolchain instance for the given platform.
-		/// </summary>
-		/// <param name="CppPlatform">The platform to create a toolchain for</param>
-		/// <param name="Target">The target being built</param>
-		/// <returns>New toolchain instance.</returns>
-		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
-		{
-			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProjectSettings(Target.ProjectFile);
-			return new IOSToolChain(ProjectFile, this, ProjectSettings);
-		}
-	}
-
 	class IOSPlatform : UEBuildPlatform
 	{
 		IOSPlatformSDK SDK;
@@ -801,13 +662,77 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a context for the given target on the current platform.
+		/// Whether this platform should create debug information or not
 		/// </summary>
-		/// <param name="ProjectFile">The project file for the current target</param>
-		/// <returns>New platform context object</returns>
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
+		/// <param name="Target">The target being built</param>
+		/// <returns>bool    true if debug info should be generated, false if not</returns>
+		public override bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target)
 		{
-			return new IOSPlatformContext(ProjectFile);
+			return true;
+		}
+
+		/// <summary>
+		/// Setup the target environment for building
+		/// </summary>
+		/// <param name="Target">Settings for the target being compiled</param>
+		/// <param name="CompileEnvironment">The compile environment for this target</param>
+		/// <param name="LinkEnvironment">The link environment for this target</param>
+		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		{
+			CompileEnvironment.Definitions.Add("PLATFORM_IOS=1");
+			CompileEnvironment.Definitions.Add("PLATFORM_APPLE=1");
+
+			CompileEnvironment.Definitions.Add("WITH_TTS=0");
+			CompileEnvironment.Definitions.Add("WITH_SPEECH_RECOGNITION=0");
+			CompileEnvironment.Definitions.Add("WITH_DATABASE_SUPPORT=0");
+			CompileEnvironment.Definitions.Add("WITH_EDITOR=0");
+			CompileEnvironment.Definitions.Add("USE_NULL_RHI=0");
+			CompileEnvironment.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
+
+			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProjectSettings(Target.ProjectFile);
+			if (ProjectSettings.bNotificationsEnabled)
+			{
+				CompileEnvironment.Definitions.Add("NOTIFICATIONS_ENABLED=1");
+			}
+			else
+			{
+				CompileEnvironment.Definitions.Add("NOTIFICATIONS_ENABLED=0");
+			}
+
+			if (Target.Architecture == "-simulator")
+			{
+				CompileEnvironment.Definitions.Add("WITH_SIMULATOR=1");
+			}
+			else
+			{
+				CompileEnvironment.Definitions.Add("WITH_SIMULATOR=0");
+			}
+
+			LinkEnvironment.AdditionalFrameworks.Add(new UEBuildFramework("GameKit"));
+			LinkEnvironment.AdditionalFrameworks.Add(new UEBuildFramework("StoreKit"));
+		}
+
+		/// <summary>
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
+		{
+		}
+
+		/// <summary>
+		/// Creates a toolchain instance for the given platform.
+		/// </summary>
+		/// <param name="CppPlatform">The platform to create a toolchain for</param>
+		/// <param name="Target">The target being built</param>
+		/// <returns>New toolchain instance.</returns>
+		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
+		{
+			IOSProjectSettings ProjectSettings = ReadProjectSettings(Target.ProjectFile);
+			return new IOSToolChain(Target.ProjectFile, ProjectSettings);
 		}
 
 		/// <summary>

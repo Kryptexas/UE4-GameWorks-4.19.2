@@ -125,7 +125,13 @@ private:
 public:
 
 	static class UDeviceProfileManager* DeviceProfileManagerSingleton;
-	static UDeviceProfileManager& Get();
+	static UDeviceProfileManager& Get(bool bFromPostCDOContruct = false);
+
+	virtual void PostCDOContruct() override
+	{
+		Get(true); // get this taken care of now
+	}
+
 
 public:
 

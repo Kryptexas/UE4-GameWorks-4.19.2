@@ -606,7 +606,7 @@ UClass* FBlueprintNativeCodeGenModule::FindReplacedClassForObject(const UObject*
 			}
 		}
 	}
-	ensure(!Object || !(Object->IsA<UUserDefinedStruct>() || Object->IsA<UUserDefinedEnum>()));
+	ensure(!Object || Object->HasAnyFlags(RF_ClassDefaultObject) || !(Object->IsA<UUserDefinedStruct>() || Object->IsA<UUserDefinedEnum>()));
 	return nullptr;
 }
 

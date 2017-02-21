@@ -161,7 +161,7 @@ unshift @::gMatchers, (
 	},
     {
         id =>               "genericError",
-        pattern =>          q{^(.* )?(ERROR|[Ee]rror)}.q{( (\([^)]+\)|\[[^\]]+\]))?: },
+        pattern =>          q{^(.*[ :])?(ERROR|[Ee]rror)}.q{( (\([^)]+\)|\[[^\]]+\]))?: },
         action =>           q{incValue("errors"); diagnostic("", "error", 0, forwardWhile("^   "))}
     },
     {

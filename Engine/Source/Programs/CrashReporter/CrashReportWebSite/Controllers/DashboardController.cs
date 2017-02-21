@@ -46,7 +46,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	}
 
 	/// <summary>
-	/// The controller to handle graphing of crashes per user group over time.
+	/// The controller to handle graphing of Crashes per user group over time.
 	/// </summary>
 	public class DashboardController : Controller
 	{
@@ -67,11 +67,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	    }
 
 		/// <summary>
-		/// Return a dictionary of crashes per group grouped by week.
+		/// Return a dictionary of Crashes per group grouped by week.
 		/// </summary>
-		/// <param name="Crashes">A set of crashes to interrogate.</param>
+		/// <param name="Crashes">A set of Crashes to interrogate.</param>
 		/// <param name="UserGroupId">The id of the user group to interrogate.</param>
-		/// <returns>A dictionary of week vs. crash count.</returns>
+		/// <returns>A dictionary of week vs. Crash count.</returns>
 		public Dictionary<DateTime, int> GetWeeklyCountsByGroup( List<FCrashMinimal> Crashes, int UserGroupId )
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(UserGroupId=" + UserGroupId + ")" ) )
@@ -80,7 +80,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 			    var UsersIds = new HashSet<int>(_entities.Users.Distinct().Select(data => data.Id));
 
-				// Trim crashes to user group.
+				// Trim Crashes to user group.
 				if( UserGroupId != DashboardController.AllUserGroupId )
 				{
 					Crashes = Crashes.Where( Crash => UsersIds.Contains( Crash.UserId ) ).ToList();
@@ -106,12 +106,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		}
 
 		/// <summary>
-		/// Return a dictionary of crashes per version grouped by week.
+		/// Return a dictionary of Crashes per version grouped by week.
 		/// </summary>
-		/// <param name="Crashes">A set of crashes to interrogate.</param>
+		/// <param name="Crashes">A set of Crashes to interrogate.</param>
 		/// <param name="EngineVersion">Engine version</param>
 		/// <param name="AnonymousID">Anonymous id</param>
-		/// <returns>A dictionary of week vs. crash count.</returns>
+		/// <returns>A dictionary of week vs. Crash count.</returns>
 		public Dictionary<DateTime, int> GetWeeklyCountsByVersion( List<FCrashMinimal> Crashes, string EngineVersion, int AnonymousID )
 		{
 			using (FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(EngineVersion=" + EngineVersion + ")" ))
@@ -143,11 +143,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		}
 
 		/// <summary>
-		/// Return a dictionary of crashes per group grouped by day.
+		/// Return a dictionary of Crashes per group grouped by day.
 		/// </summary>
-		/// <param name="Crashes">A set of crashes to interrogate.</param>
+		/// <param name="Crashes">A set of Crashes to interrogate.</param>
 		/// <param name="UserGroupId">The id of the user group to interrogate.</param>
-		/// <returns>A dictionary of day vs. crash count.</returns>
+		/// <returns>A dictionary of day vs. Crash count.</returns>
 		public Dictionary<DateTime, int> GetDailyCountsByGroup( List<FCrashMinimal> Crashes, int UserGroupId )
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(UserGroupId=" + UserGroupId + ")" ) )
@@ -156,7 +156,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 				var UsersIds = _entities.UserGroups.First(data => data.Id == UserGroupId ).Users.Select(data => data.Id);
 
-				// Trim crashes to user group.
+				// Trim Crashes to user group.
 				if( UserGroupId != DashboardController.AllUserGroupId )
 				{
 					Crashes = Crashes.Where( Crash => UsersIds.Contains( Crash.UserId ) ).ToList();
@@ -182,12 +182,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		}
 
 		/// <summary>
-		/// Return a dictionary of crashes per version grouped by day.
+		/// Return a dictionary of Crashes per version grouped by day.
 		/// </summary>
-		/// <param name="Crashes">A set of crashes to interrogate.</param>
+		/// <param name="Crashes">A set of Crashes to interrogate.</param>
 		/// <param name="EngineVersion">Engine version</param>
 		/// <param name="AnonymousID">Anonymous id</param>
-		/// <returns>A dictionary of day vs. crash count.</returns>
+		/// <returns>A dictionary of day vs. Crash count.</returns>
 		public Dictionary<DateTime, int> GetDailyCountsByVersion( List<FCrashMinimal> Crashes, string EngineVersion, int AnonymousID )
 		{
 			using (FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(EngineVersion=" + EngineVersion + ")" ))
@@ -221,7 +221,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <summary>
 		/// The main view of the dash board.
 		/// </summary>
-		/// <returns>A view showing two charts of crashes over time.</returns>
+		/// <returns>A view showing two charts of Crashes over time.</returns>
 		public ActionResult Index()
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString(), bCreateNewLog: true ) )
@@ -252,8 +252,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				//IEnumerable<Crash> Crashes = FRepository.Get().Crashes.FilterByDate( FRepository.Get().Crashes.ListAll(), AfewMonthsAgo, Today );
 				var VMinimalCrashes = CrashesInTimeFrame.Select( Crash => new 
 				{ 
-					TimeOfCrash = Crash.TimeOfCrash.Value, 
-					UserID = Crash.UserNameId.Value,
+					TimeOfCrash = Crash.TimeOfCrash, 
+					UserID = Crash.UserId,
 					EngineVersion = Crash.BuildVersion,
 				} )
 				.ToList();

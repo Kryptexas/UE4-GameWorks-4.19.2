@@ -64,99 +64,6 @@ namespace UnrealBuildTool
 		#endregion
 	}
 
-	class MacPlatformContext : UEBuildPlatformContext
-	{
-		FileReference ProjectFile;
-
-		public MacPlatformContext(FileReference InProjectFile) : base(UnrealTargetPlatform.Mac)
-		{
-			this.ProjectFile = InProjectFile;
-		}
-
-		/// <summary>
-		/// Modify the rules for a newly created module, in a target that's being built for this platform.
-		/// This is not required - but allows for hiding details of a particular platform.
-		/// </summary>
-		/// <param name="ModuleName">The name of the module</param>
-		/// <param name="Rules">The module rules</param>
-		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
-		{
-			bool bBuildShaderFormats = Target.bForceBuildShaderFormats;
-
-			if (!Target.bBuildRequiresCookedData)
-			{
-				if (ModuleName == "TargetPlatform")
-				{
-					bBuildShaderFormats = true;
-				}
-			}
-
-			// allow standalone tools to use target platform modules, without needing Engine
-			if (ModuleName == "TargetPlatform")
-			{
-				if (Target.bForceBuildTargetPlatforms)
-				{
-					Rules.DynamicallyLoadedModuleNames.Add("MacTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("MacNoEditorTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("MacClientTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("MacServerTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
-				}
-
-				if (bBuildShaderFormats)
-				{
-					// Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
-					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
-					Rules.DynamicallyLoadedModuleNames.Add("MetalShaderFormat");
-
-					Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
-					Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
-				}
-			}
-		}
-
-		/// <summary>
-		/// Setup the target environment for building
-		/// </summary>
-		/// <param name="Target">Settings for the target being compiled</param>
-		/// <param name="CompileEnvironment">The compile environment for this target</param>
-		/// <param name="LinkEnvironment">The link environment for this target</param>
-		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
-		{
-			CompileEnvironment.Definitions.Add("PLATFORM_MAC=1");
-			CompileEnvironment.Definitions.Add("PLATFORM_APPLE=1");
-
-			CompileEnvironment.Definitions.Add("WITH_TTS=0");
-			CompileEnvironment.Definitions.Add("WITH_SPEECH_RECOGNITION=0");
-			if (!CompileEnvironment.Definitions.Contains("WITH_DATABASE_SUPPORT=0") && !CompileEnvironment.Definitions.Contains("WITH_DATABASE_SUPPORT=1"))
-			{
-				CompileEnvironment.Definitions.Add("WITH_DATABASE_SUPPORT=0");
-			}
-		}
-
-		/// <summary>
-		/// Whether this platform should create debug information or not
-		/// </summary>
-		/// <param name="Target">The target being built</param>
-		/// <returns>true if debug info should be generated, false if not</returns>
-		public override bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target)
-		{
-			return true;
-		}
-
-		/// <summary>
-		/// Creates a toolchain instance for the given platform.
-		/// </summary>
-		/// <param name="CppPlatform">The platform to create a toolchain for</param>
-		/// <param name="Target">The target being built</param>
-		/// <returns>New toolchain instance.</returns>
-		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
-		{
-			return new MacToolChain(ProjectFile);
-		}
-	}
-
 	class MacPlatform : UEBuildPlatform
 	{
 		MacPlatformSDK SDK;
@@ -333,13 +240,86 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a context for the given target on the current platform.
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
 		/// </summary>
-		/// <param name="ProjectFile">The project file for the current target</param>
-		/// <returns>New platform context object</returns>
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
 		{
-			return new MacPlatformContext(ProjectFile);
+			bool bBuildShaderFormats = Target.bForceBuildShaderFormats;
+
+			if (!Target.bBuildRequiresCookedData)
+			{
+				if (ModuleName == "TargetPlatform")
+				{
+					bBuildShaderFormats = true;
+				}
+			}
+
+			// allow standalone tools to use target platform modules, without needing Engine
+			if (ModuleName == "TargetPlatform")
+			{
+				if (Target.bForceBuildTargetPlatforms)
+				{
+					Rules.DynamicallyLoadedModuleNames.Add("MacTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("MacNoEditorTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("MacClientTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("MacServerTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
+				}
+
+				if (bBuildShaderFormats)
+				{
+					// Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
+					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
+					Rules.DynamicallyLoadedModuleNames.Add("MetalShaderFormat");
+
+					Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
+					Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
+				}
+			}
+		}
+
+		/// <summary>
+		/// Setup the target environment for building
+		/// </summary>
+		/// <param name="Target">Settings for the target being compiled</param>
+		/// <param name="CompileEnvironment">The compile environment for this target</param>
+		/// <param name="LinkEnvironment">The link environment for this target</param>
+		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		{
+			CompileEnvironment.Definitions.Add("PLATFORM_MAC=1");
+			CompileEnvironment.Definitions.Add("PLATFORM_APPLE=1");
+
+			CompileEnvironment.Definitions.Add("WITH_TTS=0");
+			CompileEnvironment.Definitions.Add("WITH_SPEECH_RECOGNITION=0");
+			if (!CompileEnvironment.Definitions.Contains("WITH_DATABASE_SUPPORT=0") && !CompileEnvironment.Definitions.Contains("WITH_DATABASE_SUPPORT=1"))
+			{
+				CompileEnvironment.Definitions.Add("WITH_DATABASE_SUPPORT=0");
+			}
+		}
+
+		/// <summary>
+		/// Whether this platform should create debug information or not
+		/// </summary>
+		/// <param name="Target">The target being built</param>
+		/// <returns>true if debug info should be generated, false if not</returns>
+		public override bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target)
+		{
+			return true;
+		}
+
+		/// <summary>
+		/// Creates a toolchain instance for the given platform.
+		/// </summary>
+		/// <param name="CppPlatform">The platform to create a toolchain for</param>
+		/// <param name="Target">The target being built</param>
+		/// <returns>New toolchain instance.</returns>
+		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
+		{
+			return new MacToolChain(Target.ProjectFile);
 		}
 
 		/// <summary>

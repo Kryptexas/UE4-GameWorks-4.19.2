@@ -129,7 +129,18 @@ namespace AutomationTool
 			}
 			else
 			{
-				return new FilePattern(BaseDirectory, String.Join("", Tokens) + Path.DirectorySeparatorChar + "...");
+				StringBuilder Pattern = new StringBuilder();
+				foreach(string Token in Tokens)
+				{
+					Pattern.Append(Token);
+				}
+				if(Pattern.Length > 0)
+				{
+					Pattern.Append(Path.DirectorySeparatorChar);
+				}
+				Pattern.Append("...");
+
+				return new FilePattern(BaseDirectory, Pattern.ToString());
 			}
 		}
 

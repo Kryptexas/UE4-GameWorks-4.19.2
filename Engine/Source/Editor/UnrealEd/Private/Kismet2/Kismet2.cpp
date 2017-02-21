@@ -1025,7 +1025,7 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	TSharedPtr<FBlueprintCompileReinstancer> ReinstanceHelper;
 	if(!bSkipReinstancing)
 	{
-		ReinstanceHelper = FBlueprintCompileReinstancer::Create(BlueprintObj->GeneratedClass, true);
+		ReinstanceHelper = FBlueprintCompileReinstancer::Create(BlueprintObj->GeneratedClass, EBlueprintCompileReinstancerFlags::BytecodeOnly | EBlueprintCompileReinstancerFlags::AutoInferSaveOnCompile);
 	}
 
 	FKismetCompilerOptions CompileOptions;

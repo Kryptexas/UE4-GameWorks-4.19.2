@@ -348,23 +348,24 @@ public:
 
 	/**
 	 * Called during saving to determine the load flags to save with the object.
-	 * Upon reload, this object will be discarded on clients
+	 * If false, this object will be discarded on clients
 	 *
-	 * @return	true if this object should not be loaded on clients
+	 * @return	true if this object should be loaded on clients
 	 */
 	virtual bool NeedsLoadForClient() const;
 
 	/**
 	 * Called during saving to determine the load flags to save with the object.
-	 * Upon reload, this object will be discarded on servers
+	 * If false, this object will be discarded on servers
 	 *
-	 * @return	true if this object should not be loaded on servers
+	 * @return	true if this object should be loaded on servers
 	 */
 	virtual bool NeedsLoadForServer() const;
 
 	/**
 	 * Called during saving to determine the load flags to save with the object.
-	 *
+	 * If false, this object will still get loaded if NeedsLoadForServer/Client are true
+	 * 
 	 * @return	true if this object should always be loaded for editor game
 	 */
 	virtual bool NeedsLoadForEditorGame() const

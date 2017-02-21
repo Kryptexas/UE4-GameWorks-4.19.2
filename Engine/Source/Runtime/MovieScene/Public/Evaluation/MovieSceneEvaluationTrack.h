@@ -395,4 +395,4 @@ private:
 	uint32 bEvaluateInPostroll : 1;
 };
 
-template<> struct TStructOpsTypeTraits<FMovieSceneEvaluationTrack> : public TStructOpsTypeTraitsBase { enum { WithPostSerialize = true, WithCopy = false }; };
+template<> struct TStructOpsTypeTraits<FMovieSceneEvaluationTrack> : public TStructOpsTypeTraitsBase2<FMovieSceneEvaluationTrack> { enum { WithPostSerialize = true, WithCopy = false }; };

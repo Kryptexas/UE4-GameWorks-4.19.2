@@ -91,6 +91,11 @@ bool FDefaultPluginWizardDefinition::CanContainContent() const
 	return CurrentTemplateDefinition.IsValid() ? CurrentTemplateDefinition->bCanContainContent : false;
 }
 
+bool FDefaultPluginWizardDefinition::IsMod() const
+{
+	return false;
+}
+
 FText FDefaultPluginWizardDefinition::GetInstructions() const
 {
 	return LOCTEXT("ChoosePluginTemplate", "Choose a template and then specify a name to create a new plugin.");

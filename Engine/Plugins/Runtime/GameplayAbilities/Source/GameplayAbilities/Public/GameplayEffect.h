@@ -1772,11 +1772,12 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits< FActiveGameplayEffectsContainer > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FActiveGameplayEffectsContainer > : public TStructOpsTypeTraitsBase2< FActiveGameplayEffectsContainer >
 {
 	enum
 	{
 		WithNetDeltaSerializer = true,
+		WithCopy = false,
 	};
 };
 

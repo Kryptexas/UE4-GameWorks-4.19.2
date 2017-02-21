@@ -845,10 +845,10 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 			bParseSuccess = (Buffer != nullptr);
 			if (bParseSuccess)
 			{
-				int32 EnumIdx = PinDirectionEnum->GetIndexByName(FName(*DirectionString));
+				int32 EnumIdx = PinDirectionEnum->GetIndexByNameString(DirectionString);
 				if (EnumIdx != INDEX_NONE)
 				{
-					Direction = (EEdGraphPinDirection)EnumIdx;
+					Direction = (EEdGraphPinDirection)PinDirectionEnum->GetValueByIndex(EnumIdx);
 				}
 				else
 				{
@@ -1071,7 +1071,7 @@ UEdGraphPin::UEdGraphPin(UEdGraphNode* InOwningNode, const FGuid& PinIdGuid)
 {
 	PinHelpers::NumPinsInMemory++;
 #ifdef TRACK_PINS
-	PinAllocationTracking.Add(TPairInitializer<UEdGraphPin*, FString>(this, InOwningNode ? InOwningNode->GetName() : FString(TEXT("UNOWNED"))));
+	PinAllocationTracking.Emplace(this, InOwningNode ? InOwningNode->GetName() : FString(TEXT("UNOWNED")));
 #endif //TRACK_PINS
 }
 

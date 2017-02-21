@@ -51,13 +51,13 @@ private:
 protected:
 
 	/** Holds the current suppression state **/
-	uint8 Verbosity;
+	ELogVerbosity::Type Verbosity;
 	/** Holds the break flag **/
 	bool DebugBreakOnLog;
 	/** Holds default suppression **/
 	uint8 DefaultVerbosity;
 	/** Holds compile time suppression **/
-	uint8 CompileTimeVerbosity;
+	ELogVerbosity::Type CompileTimeVerbosity;
 	/** FName for this category **/
 	FName CategoryFName;
 };

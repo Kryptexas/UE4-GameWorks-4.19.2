@@ -448,10 +448,6 @@ FServiceConnection::FServiceConnection()
 { }
 
 
-FServiceConnection::FServiceConnection(const FServiceConnection& InConnnection)
-{ }
-
-
 FServiceConnection::~FServiceConnection()
 {
 	if (StatsReader)

@@ -31,6 +31,7 @@
 #include "AnalyticsEventAttribute.h"
 #include "Interfaces/IAnalyticsProvider.h"
 #include "ProfilingDebugging/ScopedTimers.h"
+#include "IPluginManager.h"
 #include "DesktopPlatformModule.h"
 #if WITH_ENGINE
 #include "Engine/Engine.h"
@@ -164,7 +165,12 @@ private:
 	/**
 	 * Adds a callback to directory watcher for the game binaries folder.
 	 */
-	void InitHotReloadWatcher();
+	void RefreshHotReloadWatcher();
+
+	/**
+	 * Adds a directory watch on the binaries directory under the given folder.
+	 */
+	void AddHotReloadDirectory(IDirectoryWatcher* DirectoryWatcher, const FString& BaseDir);
 
 	/**
 	 * Removes a directory watcher callback
@@ -301,17 +307,17 @@ private:
 	/** Callback registered with ModuleManager to know if any new modules have been loaded */
 	void ModulesChangedCallback(FName ModuleName, EModuleChangeReason ReasonForChange);
 
+	/** Callback registered with PluginManager to know if any new plugins have been created */
+	void PluginMountedCallback(IPlugin& Plugin);
+
 	/** FTicker delegate (hot-reload from IDE) */
 	FTickerDelegate TickerDelegate;
 
 	/** Handle to the registered TickerDelegate */
 	FDelegateHandle TickerDelegateHandle;
 
-	/** Callback when game binaries folder changes */
-	IDirectoryWatcher::FDirectoryChanged BinariesFolderChangedDelegate;
-
 	/** Handle to the registered delegate above */
-	FDelegateHandle BinariesFolderChangedDelegateHandle;
+	TMap<FString, FDelegateHandle> BinariesFolderChangedDelegateHandles;
 
 	/** True if currently hot-reloading from editor (suppresses hot-reload from IDE) */
 	bool bIsHotReloadingFromEditor;
@@ -537,13 +543,15 @@ void FHotReloadModule::StartupModule()
 #endif
 
 	// Register directory watcher delegate
-	InitHotReloadWatcher();
+	RefreshHotReloadWatcher();
 
 	// Register hot-reload from IDE ticker
 	TickerDelegate = FTickerDelegate::CreateRaw(this, &FHotReloadModule::Tick);
 	TickerDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickerDelegate);
 
 	FModuleManager::Get().OnModulesChanged().AddRaw(this, &FHotReloadModule::ModulesChangedCallback);
+
+	IPluginManager::Get().OnNewPluginMounted().AddRaw(this, &FHotReloadModule::PluginMountedCallback);
 }
 
 void FHotReloadModule::ShutdownModule()
@@ -1367,18 +1375,37 @@ void FHotReloadModule::StripModuleSuffixFromFilename(FString& InOutModuleFilenam
 	}
 }
 
-void FHotReloadModule::InitHotReloadWatcher()
+void FHotReloadModule::RefreshHotReloadWatcher()
 {
 	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::Get().LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
 	IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
 	if (DirectoryWatcher)
 	{
-		// Watch the game binaries folder for new files
-		FString BinariesPath = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / TEXT("Binaries") / FPlatformProcess::GetBinariesSubdirectory());
-		if (FPaths::DirectoryExists(BinariesPath))
+		// Watch the game directory
+		AddHotReloadDirectory(DirectoryWatcher, FPaths::GameDir());
+
+		// Also watch all the game plugin directories
+		for(const TSharedRef<IPlugin>& Plugin : IPluginManager::Get().GetEnabledPlugins())
 		{
-			BinariesFolderChangedDelegate = IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FHotReloadModule::OnHotReloadBinariesChanged);
-			bDirectoryWatcherInitialized = DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(BinariesPath, BinariesFolderChangedDelegate, BinariesFolderChangedDelegateHandle);
+			if (Plugin->GetLoadedFrom() == EPluginLoadedFrom::GameProject && Plugin->GetDescriptor().Modules.Num() > 0)
+			{
+				AddHotReloadDirectory(DirectoryWatcher, Plugin->GetBaseDir());
+			}
+		}
+	}
+}
+
+void FHotReloadModule::AddHotReloadDirectory(IDirectoryWatcher* DirectoryWatcher, const FString& BaseDir)
+{
+	FString BinariesPath = FPaths::ConvertRelativePathToFull(BaseDir / TEXT("Binaries") / FPlatformProcess::GetBinariesSubdirectory());
+	if (FPaths::DirectoryExists(BinariesPath) && !BinariesFolderChangedDelegateHandles.Contains(BinariesPath))
+	{
+		IDirectoryWatcher::FDirectoryChanged BinariesFolderChangedDelegate = IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FHotReloadModule::OnHotReloadBinariesChanged);
+
+		FDelegateHandle Handle;
+		if (DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(BinariesPath, BinariesFolderChangedDelegate, Handle))
+		{
+			BinariesFolderChangedDelegateHandles.Add(BinariesPath, Handle);
 		}
 	}
 }
@@ -1391,8 +1418,10 @@ void FHotReloadModule::ShutdownHotReloadWatcher()
 		IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule->Get();
 		if (DirectoryWatcher)
 		{
-			FString BinariesPath = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / TEXT("Binaries") / FPlatformProcess::GetBinariesSubdirectory());
-			DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(BinariesPath, BinariesFolderChangedDelegateHandle);
+			for (const TPair<FString, FDelegateHandle>& Pair : BinariesFolderChangedDelegateHandles)
+			{
+				DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(Pair.Key, Pair.Value);
+			}
 		}
 	}
 }
@@ -2084,7 +2113,22 @@ void FHotReloadModule::ModulesChangedCallback(FName ModuleName, EModuleChangeRea
 	// If the hot reload directory watcher hasn't been initialized yet (because the binaries directory did not exist) try to initialize it now
 	if (!bDirectoryWatcherInitialized)
 	{
-		InitHotReloadWatcher();
+		RefreshHotReloadWatcher();
+		bDirectoryWatcherInitialized = true;
+	}
+}
+
+void FHotReloadModule::PluginMountedCallback(IPlugin& Plugin)
+{
+	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::Get().LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
+
+	IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
+	if (DirectoryWatcher)
+	{
+		if (Plugin.GetLoadedFrom() == EPluginLoadedFrom::GameProject && Plugin.GetDescriptor().Modules.Num() > 0)
+		{
+			AddHotReloadDirectory(DirectoryWatcher, Plugin.GetBaseDir());
+		}
 	}
 }
 

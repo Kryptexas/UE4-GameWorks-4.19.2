@@ -265,7 +265,7 @@ struct ENGINE_API FSmartName
 };
 
 template<>
-struct TStructOpsTypeTraits<FSmartName> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FSmartName> : public TStructOpsTypeTraitsBase2<FSmartName>
 {
 	enum
 	{

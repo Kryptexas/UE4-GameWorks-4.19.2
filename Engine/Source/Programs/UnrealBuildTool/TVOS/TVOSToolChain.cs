@@ -24,9 +24,20 @@ namespace UnrealBuildTool
 
 	class TVOSToolChain : IOSToolChain
 	{
-		public TVOSToolChain(FileReference InProjectFile, IOSPlatformContext InPlatformContext, TVOSProjectSettings InProjectSettings)
-			: base(CppPlatform.TVOS, InProjectFile, InPlatformContext, InProjectSettings, () => new TVOSToolChainSettings())
+		public TVOSToolChain(FileReference InProjectFile, TVOSProjectSettings InProjectSettings)
+			: base(CppPlatform.TVOS, InProjectFile, InProjectSettings, () => new TVOSToolChainSettings())
 		{
 		}
-	};
+
+		public override string GetXcodeMinVersionParam()
+		{
+			return "tvos-version-min";
+		}
+
+		public override string GetArchitectureArgument(CppConfiguration Configuration, string UBTArchitecture)
+		{
+			// TV is only arm64
+			return " -arch " + (UBTArchitecture == "-simulator" ? "i386" : "arm64");
+		}
+	}
 }

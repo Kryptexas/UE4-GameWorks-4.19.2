@@ -19,11 +19,7 @@ template<class TEnum> class TEnumAsByte;
 
 
 // Temporary while we shake out the EDL at boot
-#if PLATFORM_SWITCH
-#define USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME (0)
-#else
 #define USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME (1)
-#endif
 
 #if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
 	#define EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME (1)
@@ -411,7 +407,14 @@ public:
 	 * @param Value The value to serialize.
 	 */
 #if WITH_EDITOR
-	FArchive& operator<<( bool& D );
+private:
+	void SerializeBool( bool& D );
+public:
+	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, bool& D)
+	{
+		Ar.SerializeBool(D);
+		return Ar;
+	}
 #else
 	FORCEINLINE friend FArchive& operator<<( FArchive& Ar, bool& D )
 	{

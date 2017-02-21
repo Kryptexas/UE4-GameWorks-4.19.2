@@ -55,9 +55,6 @@ typedef FStringOutputDeviceCountLines FUHTStringBuilderLineCounter;
 struct FNativeClassHeaderGenerator
 {
 private:
-	/** Stack of currently parsed source files. */
-	TArray<FUnrealSourceFile*> CurrentSourceFile;
-
 	FString API;
 
 	/**
@@ -276,14 +273,14 @@ private:
 	 * 
 	 * @param	Enums	the enums to export
 	 */
-	void ExportGeneratedEnumsInitCode(const TArray<UEnum*>& Enums);
+	void ExportGeneratedEnumsInitCode(FUnrealSourceFile& SourceFile, const TArray<UEnum*>& Enums);
 
 	/**
 	 * Exports the macro declarations for GENERATED_BODY() for each Foo in the list of structs specified
 	 * 
 	 * @param	Structs		the structs to export
 	 */
-	void ExportGeneratedStructBodyMacros(const TArray<UScriptStruct*>& NativeStructs);
+	void ExportGeneratedStructBodyMacros(FUnrealSourceFile& SourceFile, const TArray<UScriptStruct*>& NativeStructs);
 
 	/**
 	 * Exports a local mirror of the specified struct; used to get offsets for noexport structs
@@ -435,10 +432,11 @@ private:
 	/**
 	 * Exports generated singleton functions for UObjects that used to be stored in .u files.
 	 * 
+	 * @param	SourceFile		The source file being processed.
 	 * @param	Class			Class to export
 	 * @param	OutFriendText	(Output parameter) Friend text
 	 */
-	void ExportNativeGeneratedInitCode(FClass* Class, FUHTStringBuilder& OutFriendText);
+	void ExportNativeGeneratedInitCode(FUnrealSourceFile& SourceFile, FClass* Class, FUHTStringBuilder& OutFriendText);
 
 	/**
 	 * Export given function.
@@ -447,7 +445,7 @@ private:
 	 * @param Scope Scope for this function.
 	 * @param bIsNoExport Is in NoExport class.
 	 */
-	void ExportFunction(UFunction* Function, FScope* Scope, bool bIsNoExport);
+	void ExportFunction(FUnrealSourceFile& SourceFile, UFunction* Function, FScope* Scope, bool bIsNoExport);
 
 	/**
 	 * Exports a generated singleton function to setup the package for compiled-in classes.

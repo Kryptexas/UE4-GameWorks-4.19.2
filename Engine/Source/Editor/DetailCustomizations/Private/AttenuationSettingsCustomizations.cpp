@@ -307,7 +307,7 @@ void FForceFeedbackAttenuationSettingsCustomization::CustomizeChildren( TSharedR
 
 	TSharedPtr<FPropertyRestriction> EnumRestriction = MakeShareable(new FPropertyRestriction(NSLOCTEXT("AttenuationSettings", "NoNaturalSound", "Natural Sound is only available for Sound Attenuation")));
 	const UEnum* const AttenuationDistanceModelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAttenuationDistanceModel"));		
-	EnumRestriction->AddHiddenValue(AttenuationDistanceModelEnum->GetEnumNameStringByValue((uint8)EAttenuationDistanceModel::NaturalSound));
+	EnumRestriction->AddHiddenValue(AttenuationDistanceModelEnum->GetNameStringByValue((uint8)EAttenuationDistanceModel::NaturalSound));
 	DistanceAlgorithmHandle->AddRestriction(EnumRestriction.ToSharedRef());
 
 	if (PropertyHandles.Num() != 7)

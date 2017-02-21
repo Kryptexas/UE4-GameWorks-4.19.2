@@ -5,10 +5,6 @@
 #include "Misc/CString.h"
 #include "HAL/UnrealMemory.h"
 
-
-// Uncomment this line to skip encryption
-// #undef AES_KEY
-
 // This is using the reference implementation of rijndael encryption algorithm
 // http://www.efgh.com/software/rijndael.htm
 
@@ -27,11 +23,6 @@
 #define KEYLENGTH( keybits )		( ( keybits ) / 8 )
 #define RKLENGTH( keybits )		( ( keybits ) / 8 + 28 )
 #define NROUNDS( keybits )			( ( keybits ) / 32 + 6 )
-
-// This is quite insecure and could do with some obfuscation work
-#ifdef AES_KEY
-static ANSICHAR* DefinedKey = (ANSICHAR*)AES_KEY;
-#endif
 
 static const uint32 Te0[256] =
 {
@@ -1140,13 +1131,6 @@ static void rijndaelDecrypt( const uint32 *rk, int32 nrounds, const uint8 cipher
 	PUTU32( plaintext + 12, s3 );
 }
 
-void FAES::EncryptData(uint8 *Contents, uint32 NumBytes)
-{
-#ifdef AES_KEY
-	FAES::EncryptData(Contents, NumBytes, DefinedKey);
-#endif
-}
-
 void FAES::EncryptData( uint8 *Contents, uint32 NumBytes, ANSICHAR* Key )
 {
 	uint32 rk[RKLENGTH(AES_KEYBITS)] = { 0 };
@@ -1154,7 +1138,7 @@ void FAES::EncryptData( uint8 *Contents, uint32 NumBytes, ANSICHAR* Key )
 
 	checkf( ( NumBytes & ( AESBlockSize - 1 ) ) == 0, TEXT( "NumBytes needs to be a multiple of 16 bytes" ) );
 	checkf( Key, TEXT("No encryption key specified") );
-	checkf( TCString<ANSICHAR>::Strlen( Key ) >= KEYLENGTH( AES_KEYBITS ), TEXT( "AES_KEY needs to be at least %d characters" ), KEYLENGTH( AES_KEYBITS ) );
+	checkf( TCString<ANSICHAR>::Strlen( Key ) >= KEYLENGTH( AES_KEYBITS ), TEXT( "AES key needs to be at least %d characters" ), KEYLENGTH( AES_KEYBITS ) );
 
 #if TEST_ENCRYPTION
 	TArray<uint8> OriginalBlob;
@@ -1181,13 +1165,6 @@ void FAES::EncryptData( uint8 *Contents, uint32 NumBytes, ANSICHAR* Key )
 #endif
 }
 
-void FAES::DecryptData(uint8 *Contents, uint32 NumBytes)
-{
-#ifdef AES_KEY
-	FAES::DecryptData(Contents, NumBytes, DefinedKey);
-#endif
-}
-
 void FAES::DecryptData( uint8 *Contents, uint32 NumBytes, const ANSICHAR* Key )
 {
 	uint32 rk[RKLENGTH(AES_KEYBITS)] = { 0 };
@@ -1195,7 +1172,7 @@ void FAES::DecryptData( uint8 *Contents, uint32 NumBytes, const ANSICHAR* Key )
 
 	check(Key != nullptr);
 	checkf( ( NumBytes & ( AESBlockSize - 1 ) ) == 0, TEXT( "NumBytes needs to tbe a multiple of 16 bytes" ) );
-	checkf( TCString<ANSICHAR>::Strlen( Key ) >= KEYLENGTH( AES_KEYBITS ), TEXT( "AES_KEY needs to be at least %d characters" ), KEYLENGTH( AES_KEYBITS ) );
+	checkf( TCString<ANSICHAR>::Strlen( Key ) >= KEYLENGTH( AES_KEYBITS ), TEXT( "AES key needs to be at least %d characters" ), KEYLENGTH( AES_KEYBITS ) );
 
 	// Set up the rk buffer
 	nrounds = rijndaelSetupDecrypt( rk, ( const uint8* )Key, AES_KEYBITS );

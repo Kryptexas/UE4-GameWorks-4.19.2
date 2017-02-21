@@ -40,6 +40,11 @@ namespace UnrealBuildTool
 		/// The project file path on disk
 		public FileReference ProjectFilePath;
 
+		/// <summary>
+		/// Path to the .uproject file on disk
+		/// </summary>
+		public FileReference UnrealProjectFilePath;
+
 		/// Optional target rules for this target.  If the target came from a *.Target.cs file on disk, then it will have one of these.
 		/// For targets that are synthetic (like UnrealBuildTool or other manually added project files) we won't have a rules object for those.
 		public TargetRules TargetRules;
@@ -166,6 +171,15 @@ namespace UnrealBuildTool
 		/// Returns true if this is a foreign project, and requires UBT to be passed the path to the .uproject file 
 		/// on the command line.
 		public bool IsForeignProject
+		{
+			get;
+			set;
+		}
+
+		/// <summary>
+		/// For mod projects, contains the path to the plugin file
+		/// </summary>
+		public FileReference PluginFilePath
 		{
 			get;
 			set;

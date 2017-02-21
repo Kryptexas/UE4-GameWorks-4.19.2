@@ -2066,7 +2066,7 @@ struct ENGINE_API FHitResult
 template<> struct TIsPODType<FHitResult> { enum { Value = true }; };
 
 template<>
-struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase2<FHitResult>
 {
 	enum
 	{
@@ -3208,7 +3208,7 @@ private:
 template<> struct TIsPODType<FWalkableSlopeOverride> { enum { Value = true }; };
 
 template<>
-struct TStructOpsTypeTraits<FRepMovement> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FRepMovement> : public TStructOpsTypeTraitsBase2<FRepMovement>
 {
 	enum 
 	{

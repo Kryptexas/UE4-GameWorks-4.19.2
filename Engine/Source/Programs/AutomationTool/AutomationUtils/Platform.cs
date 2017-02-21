@@ -536,10 +536,17 @@ namespace AutomationTool
 			return new List<string>() { CmdLine };
 		}
 
-		public virtual void StripSymbols(string SourceFileName, string TargetFileName)
+		public virtual void StripSymbols(FileReference SourceFile, FileReference TargetFile)
 		{
-			CommandUtils.LogWarning("StripSymbols() has not been implemented for {0}; copying files", PlatformType.ToString());
-			File.Copy(SourceFileName, TargetFileName, true);
+			if (SourceFile == TargetFile)
+			{
+				CommandUtils.LogWarning("StripSymbols() has not been implemented for {0}", PlatformType.ToString());
+			}
+			else
+			{
+				CommandUtils.LogWarning("StripSymbols() has not been implemented for {0}; copying files", PlatformType.ToString());
+				File.Copy(SourceFile.FullName, TargetFile.FullName, true);
+			}
 		}
 
         public virtual bool PublishSymbols(DirectoryReference SymbolStoreDirectory, List<FileReference> Files, string Product)

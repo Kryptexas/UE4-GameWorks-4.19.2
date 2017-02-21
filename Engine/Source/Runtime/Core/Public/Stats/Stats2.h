@@ -1525,7 +1525,7 @@ public:
 	 */
 	FORCEINLINE_STATS void Start( TStatId InStatId, bool bAlways = false )
 	{
-		if( (bAlways && InStatId.IsValidStat()) || FThreadStats::IsCollectingData( InStatId ) )
+		if( (bAlways && FThreadStats::WillEverCollectData() && InStatId.IsValidStat()) || FThreadStats::IsCollectingData( InStatId ) )
 		{
 			StatId = InStatId.GetName();
 			FThreadStats::AddMessage( StatId, EStatOperation::CycleScopeStart );

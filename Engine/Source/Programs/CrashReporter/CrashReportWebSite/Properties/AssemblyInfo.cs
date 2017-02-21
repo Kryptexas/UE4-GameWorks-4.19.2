@@ -3,5 +3,5 @@
 using System.Reflection;
 
 [assembly: AssemblyTitle("CrashReportWebSite")]
-[assembly: AssemblyDescription("A web site to display crashes collected by the crash reporting system")]
+[assembly: AssemblyDescription("A web site to display Crashes collected by the Crash reporting system")]
 [assembly: AssemblyConfiguration("")]

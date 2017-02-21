@@ -1088,11 +1088,12 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 		CmdLineMapEntries += GetSwitchValueElements(TEXT("MAP"));
 
 		// Check for -COOKDIR=<path to directory> entries
-		CmdLineDirEntries += GetSwitchValueElements(TEXT("COOKDIR"));
-		for(FString& Entry : CmdLineDirEntries)
+		const FString CookDirPrefix = TEXT("COOKDIR=");
+		if (Switch.StartsWith(CookDirPrefix))
 		{
-			Entry = Entry.TrimQuotes();
+			FString Entry = Switch.Mid(CookDirPrefix.Len()).TrimQuotes();
 			FPaths::NormalizeDirectoryName(Entry);
+			CmdLineDirEntries.Add(Entry);
 		}
 	}
 
@@ -1414,11 +1415,12 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 		CmdLineMapEntries += GetSwitchValueElements(TEXT("MAP"));
 
 		// Check for -COOKDIR=<path to directory> entries
-		CmdLineDirEntries += GetSwitchValueElements(TEXT("COOKDIR"));
-		for(FString& Entry : CmdLineDirEntries)
+		const FString CookDirPrefix = TEXT("COOKDIR=");
+		if (Switch.StartsWith(CookDirPrefix))
 		{
-			Entry = Entry.TrimQuotes();
+			FString Entry = Switch.Mid(CookDirPrefix.Len()).TrimQuotes();
 			FPaths::NormalizeDirectoryName(Entry);
+			CmdLineDirEntries.Add(Entry);
 		}
 
 		// Check for -COOKCULTURES=<culture name> entries

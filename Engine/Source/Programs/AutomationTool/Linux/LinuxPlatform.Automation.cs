@@ -320,9 +320,9 @@ chmod +x {0}
 
 	public override bool IsSupported { get { return true; } }
 
-	public override void StripSymbols(string SourceFileName, string TargetFileName)
+	public override void StripSymbols(FileReference SourceFile, FileReference TargetFile)
 	{
-		LinuxExports.StripSymbols(SourceFileName, TargetFileName);
+		LinuxExports.StripSymbols(SourceFile, TargetFile);
 	}
 }
 

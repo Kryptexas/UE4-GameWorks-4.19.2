@@ -32,6 +32,11 @@ namespace UnrealBuildTool
 		static private bool? bIsEngineInstalled;
 
 		/// <summary>
+		/// Whether we're running with an installed project
+		/// </summary>
+		static private bool? bIsProjectInstalled;
+
+		/// <summary>
 		/// The full name of the Root UE4 directory
 		/// </summary>
 		public static readonly DirectoryReference RootDirectory = new DirectoryReference(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetOriginalLocation()), "..", "..", ".."));
@@ -179,6 +184,19 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Returns true if UnrealBuildTool is running using an installed project (ie. a mod kit)
+		/// </summary>
+		/// <returns>True if running using an installed project</returns>
+		static public bool IsProjectInstalled()
+		{
+			if(!bIsProjectInstalled.HasValue)
+			{
+				bIsProjectInstalled = FileReference.Exists(FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledProjectBuild.txt"));
+			}
+			return bIsProjectInstalled.Value;
+		}
+
+		/// <summary>
 		/// Gets the absolute path to the UBT assembly.
 		/// </summary>
 		/// <returns>A string containing the path to the UBT assembly.</returns>
@@ -233,15 +251,15 @@ namespace UnrealBuildTool
 				List<System.Type> ProjectGeneratorList = new List<System.Type>();
 				Type[] AllTypes = UBTAssembly.GetTypes();
 
-				// register all build platforms first, since they implement SDK-switching logic that can set environment variables
-				foreach (Type CheckType in AllTypes)
-				{
-					if (CheckType.IsClass && !CheckType.IsAbstract)
+					// register all build platforms first, since they implement SDK-switching logic that can set environment variables
+					foreach (Type CheckType in AllTypes)
 					{
-						if (CheckType.IsSubclassOf(typeof(UEBuildPlatformFactory)))
+						if (CheckType.IsClass && !CheckType.IsAbstract)
 						{
-							Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
-							UEBuildPlatformFactory TempInst = (UEBuildPlatformFactory)(UBTAssembly.CreateInstance(CheckType.FullName, true));
+							if (CheckType.IsSubclassOf(typeof(UEBuildPlatformFactory)))
+							{
+								Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
+								UEBuildPlatformFactory TempInst = (UEBuildPlatformFactory)(UBTAssembly.CreateInstance(CheckType.FullName, true));
 							TempInst.TryRegisterBuildPlatforms(OutputLevel, bValidatingPlatforms);
 						}
 					}
@@ -384,7 +402,7 @@ namespace UnrealBuildTool
 			if(!XmlConfig.ReadConfigFiles())
 			{
 				return 1;
-			}
+		}
 
 			// Create the build configuration object, and read the settings
 			BuildConfiguration BuildConfiguration = new BuildConfiguration();
@@ -432,7 +450,7 @@ namespace UnrealBuildTool
 			if (!bIsEngineInstalled.HasValue)
 			{
 				bIsEngineInstalled = FileReference.Exists(FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledBuild.txt"));
-			}
+		}
 
 			DateTime StartTime = DateTime.UtcNow;
 
@@ -459,6 +477,16 @@ namespace UnrealBuildTool
 					// This is to allow relative paths for the project file
 					Log.TraceVerbose("UBT Running for Rocket: " + ProjectFile);
                     break;
+				}
+			}
+
+			// Read the project file from the installed project text file
+			if(ProjectFile == null)
+			{
+				FileReference InstalledProjectFile = FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledProjectBuild.txt"); 
+				if(FileReference.Exists(InstalledProjectFile))
+				{
+					ProjectFile = FileReference.Combine(UnrealBuildTool.RootDirectory, File.ReadAllText(InstalledProjectFile.FullName).Trim());
 				}
 			}
 
@@ -1526,11 +1554,11 @@ namespace UnrealBuildTool
 							// if the build succeeded, write the receipts and do any needed syncing
 							if (bSuccess)
 							{
-								foreach (UEBuildTarget Target in Targets)
-								{
-									Target.WriteReceipts();
+									foreach (UEBuildTarget Target in Targets)
+									{
+										Target.WriteReceipts();
 									UEBuildPlatform.GetBuildPlatform(Target.Platform).PostBuildSync(Target);
-								}
+									}
 								if (ActionsToExecute.Count == 0 && BuildConfiguration.bSkipLinkingWhenNothingToCompile)
 								{
 									BuildResult = ECompilationResult.UpToDate;
@@ -1596,19 +1624,19 @@ namespace UnrealBuildTool
 
 			// Save the include dependency cache.
 			foreach(CPPHeaders Headers in TargetToHeaders.Values)
-			{
-				// NOTE: It's very important that we save the include cache, even if a build exception was thrown (compile error, etc), because we need to make sure that
-				//    any C++ include dependencies that we computed for out of date source files are saved.  Remember, the build may fail *after* some build products
-				//    are successfully built.  If we didn't save our dependency cache after build failures, source files for those build products that were successsfully
-				//    built before the failure would not be considered out of date on the next run, so this is our only chance to cache C++ includes for those files!
+				{
+					// NOTE: It's very important that we save the include cache, even if a build exception was thrown (compile error, etc), because we need to make sure that
+					//    any C++ include dependencies that we computed for out of date source files are saved.  Remember, the build may fail *after* some build products
+					//    are successfully built.  If we didn't save our dependency cache after build failures, source files for those build products that were successsfully
+					//    built before the failure would not be considered out of date on the next run, so this is our only chance to cache C++ includes for those files!
 
 				if(Headers.IncludeDependencyCache != null)
-				{
+					{
 					Headers.IncludeDependencyCache.Save();
-				}
+					}
 
 				if(Headers.FlatCPPIncludeDependencyCache != null)
-				{
+					{
 					Headers.FlatCPPIncludeDependencyCache.Save();
 				}
 			}
@@ -1903,11 +1931,11 @@ namespace UnrealBuildTool
 			{
 				FileInfo InputFileInfo = new FileInfo(InputFile.Location.FullName);
 				if(InputFileInfo.LastWriteTime > UBTMakefileInfo.LastWriteTime)
-				{
-					Log.TraceVerbose("Makefile is older than BuildConfiguration.xml, ignoring it" );
-					ReasonNotLoaded = "BuildConfiguration.xml is newer";
-					return null;
-				}
+			{
+				Log.TraceVerbose("Makefile is older than BuildConfiguration.xml, ignoring it" );
+				ReasonNotLoaded = "BuildConfiguration.xml is newer";
+				return null;
+			}
 			}
 
 			UBTMakefile LoadedUBTMakefile = null;

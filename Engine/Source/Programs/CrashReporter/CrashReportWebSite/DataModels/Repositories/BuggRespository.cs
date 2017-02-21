@@ -84,7 +84,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         /// <returns>Bugg data model</returns>
         public Bugg GetById(int id)
         {
-            return _entityContext.Buggs.FirstOrDefault(data => data.Id == id);
+            return _entityContext.Buggs.Include(data => data.Crashes).FirstOrDefault(data => data.Id == id);
         }
 
         /// <summary>

@@ -17,7 +17,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         public User()
         {
             this.Buggs_Users = new HashSet<Buggs_Users>();
-            this.Buggs_Users1 = new HashSet<Buggs_Users>();
             this.Crashes = new HashSet<Crash>();
         }
     
@@ -26,7 +25,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         public int UserGroupId { get; set; }
     
         public virtual ICollection<Buggs_Users> Buggs_Users { get; set; }
-        public virtual ICollection<Buggs_Users> Buggs_Users1 { get; set; }
         public virtual ICollection<Crash> Crashes { get; set; }
         public virtual UserGroup UserGroup { get; set; }
     }

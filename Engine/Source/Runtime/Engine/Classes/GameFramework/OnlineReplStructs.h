@@ -89,7 +89,7 @@ protected:
 
 /** Specify type trait support for various low level UPROPERTY overrides */
 template<>
-struct TStructOpsTypeTraits<FUniqueNetIdRepl> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FUniqueNetIdRepl> : public TStructOpsTypeTraitsBase2<FUniqueNetIdRepl>
 {
 	enum 
 	{

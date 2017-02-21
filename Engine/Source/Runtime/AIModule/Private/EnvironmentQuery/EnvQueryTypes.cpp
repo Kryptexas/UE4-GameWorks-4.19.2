@@ -161,7 +161,7 @@ FText FEnvTraceData::ToText(FEnvTraceData::EDescriptionMode DescMode) const
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("ExtentDescription"), Desc);
 			Args.Add(TEXT("ProjectionTraceDesc"), bCanProjectDown ? LOCTEXT("Projection", "projection") : LOCTEXT("Trace", "trace"));
-			Args.Add(TEXT("Channel"), ChannelEnum->GetEnumText(TraceChannel));
+			Args.Add(TEXT("Channel"), ChannelEnum->GetDisplayNameTextByValue(TraceChannel));
 
 			Desc = FText::Format(LOCTEXT("GeometryBriefDescription", "{ExtentDescription} {ProjectionTraceDesc} on {Channel}"), Args);
 		}

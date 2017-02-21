@@ -39,6 +39,15 @@ namespace AutomationTool
 			CommandUtils.CreateDirectory(CommandUtils.GetDirectoryName(InstalledBuildFile));
 			CommandUtils.WriteAllText(InstalledBuildFile, "");
 
+			// Write InstalledBuild.txt to indicate Engine is installed
+			string Project = ParseParamValue("Project");
+			if(Project != null)
+			{
+				string InstalledProjectBuildFile = CommandUtils.CombinePaths(OutputDir, "Engine/Build/InstalledProjectBuild.txt");
+				CommandUtils.CreateDirectory(CommandUtils.GetDirectoryName(InstalledProjectBuildFile));
+				CommandUtils.WriteAllText(InstalledProjectBuildFile, new FileReference(Project).MakeRelativeTo(new DirectoryReference(OutputDir)));
+			}
+
 			string OutputEnginePath = Path.Combine(OutputDir, "Engine");
 			string OutputBaseEnginePath = Path.Combine(OutputEnginePath, "Config", "BaseEngine.ini");
 			FileAttributes OutputAttributes = FileAttributes.ReadOnly;

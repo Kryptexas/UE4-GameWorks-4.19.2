@@ -28,7 +28,7 @@ class ENGINE_API UUserDefinedEnum : public UEnum
 #endif //WITH_EDITORONLY_DATA
 
 	/**
-	 * De-facto display names for enum entries mapped against their raw enum name (UEnum::GetEnumName).
+	 * De-facto display names for enum entries mapped against their raw enum name (UEnum::GetNameByIndex).
 	 * To sync DisplayNameMap use FEnumEditorUtils::EnsureAllDisplayNamesExist.
 	 */
 	UPROPERTY()
@@ -38,6 +38,7 @@ public:
 	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 	//~ End UObject Interface.
+
 	/**
 	 * Generates full enum name give enum name.
 	 * For UUserDefinedEnum full enumerator name has form: '<enumeration path>::<short, user defined enumerator name>'
@@ -47,7 +48,7 @@ public:
 	 */
 	virtual FString GenerateFullEnumName(const TCHAR* InEnumName) const override;
 
-	/*
+	/**
 	 *	Try to update value in enum variable after an enum's change.
 	 *
 	 *	@param EnumeratorIndex	old index
@@ -55,10 +56,8 @@ public:
 	 */
 	virtual int64 ResolveEnumerator(FArchive& Ar, int64 EnumeratorValue) const override;
 
-	/**
-	 * @return	The enum string at the specified index.
-	 */
-	virtual FText GetEnumText(int32 InIndex) const override;
+	/** Overridden to read DisplayNameMap*/
+	virtual FText GetDisplayNameTextByIndex(int32 InIndex) const override;
 
 	virtual bool SetEnums(TArray<TPair<FName, int64>>& InNames, ECppForm InCppForm, bool bAddMaxKeyIfMissing = true) override;
 
@@ -69,8 +68,6 @@ public:
 	virtual void PostLoad() override;
 	virtual void PostEditUndo() override;
 	//~ End UObject Interface
-
-	virtual FText GetDisplayNameText(int32 NameIndex = INDEX_NONE) const;
 
 	FString GenerateNewEnumeratorName();
 #endif	// WITH_EDITOR

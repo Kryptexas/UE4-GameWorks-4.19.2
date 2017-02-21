@@ -1522,7 +1522,7 @@ UEnum* FHeaderParser::CompileEnum()
 			break;
 		}
 
-		TPair<FName, int64> CurrentEnum = TPair<FName, int64>(TPairInitializer<FName, int64>(NewTag, CurrentEnumValue));
+		TPair<FName, int64> CurrentEnum(NewTag, CurrentEnumValue);
 
 		if (EnumNames.Find(CurrentEnum, iFound))
 		{
@@ -1591,7 +1591,7 @@ UEnum* FHeaderParser::CompileEnum()
 	if (!Enum->SetEnums(EnumNames, CppForm, !FClass::IsDynamic(Enum)))
 	{
 		const FName MaxEnumItem      = *(Enum->GenerateEnumPrefix() + TEXT("_MAX"));
-		const int32 MaxEnumItemIndex = Enum->FindEnumIndex(MaxEnumItem);
+		const int32 MaxEnumItemIndex = Enum->GetIndexByName(MaxEnumItem);
 		if (MaxEnumItemIndex != INDEX_NONE)
 		{
 			ReturnToLocation(EnumTagLocations[MaxEnumItemIndex], false, true);
@@ -6966,11 +6966,7 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 	ECompilationResult::Type Result = ECompilationResult::OtherCompilationError;
 
 	// Message.
-	if (FParse::Param(FCommandLine::Get(), TEXT("VERBOSE")))
-	{
-		// Message.
-		Warn->Logf(TEXT("Parsing %s"), *CurrentSrcFile->GetFilename());
-	}
+	UE_LOG(LogCompile, Verbose, TEXT("Parsing %s"), *CurrentSrcFile->GetFilename());
 
 	// Init compiler variables.
 	ResetParser(*CurrentSrcFile->GetContent());
@@ -7291,28 +7287,13 @@ void FHeaderParser::ExportNativeHeaders(
 	auto SourceFiles = GetSourceFilesWithInheritanceOrdering(CurrentPackage, AllClasses);
 	if (SourceFiles.Num() > 0)
 	{
-		const static bool bQuiet = !FParse::Param(FCommandLine::Get(),TEXT("VERBOSE"));
 		if ( CurrentPackage != NULL )
 		{
-			if ( bQuiet )
-			{
-				UE_LOG(LogCompile, Log, TEXT("Exporting native class declarations for %s"), *CurrentPackage->GetName());
-			}
-			else
-			{
-				UE_LOG_WARNING_UHT(TEXT("Exporting native class declarations for %s"), *CurrentPackage->GetName());
-			}
+			UE_LOG(LogCompile, Verbose, TEXT("Exporting native class declarations for %s"), *CurrentPackage->GetName());
 		}
 		else
 		{
-			if ( bQuiet )
-			{
-				UE_LOG(LogCompile, Log, TEXT("Exporting native class declarations"));
-			}
-			else
-			{
-				UE_LOG_WARNING_UHT(TEXT("Exporting native class declarations"));
-			}
+			UE_LOG(LogCompile, Verbose, TEXT("Exporting native class declarations"));
 		}
 		UHTMakefile.StartExporting();
 
@@ -7327,20 +7308,20 @@ void FHeaderParser::ExportNativeHeaders(
 		}
 		else
 		{
-		// Export native class definitions to package header files.
-		FNativeClassHeaderGenerator(
-			CurrentPackage,
-			SourceFiles,
-			AllClasses,
-			bAllowSaveExportedHeaders
+			// Export native class definitions to package header files.
+			FNativeClassHeaderGenerator(
+				CurrentPackage,
+				SourceFiles,
+				AllClasses,
+				bAllowSaveExportedHeaders
 #if WITH_HOT_RELOAD_CTORS
-			, bExportVTableConstructors
+				, bExportVTableConstructors
 #endif // WITH_HOT_RELOAD_CTORS
 				, UHTMakefile
-		);
-	}
+			);
+		}
 		UHTMakefile.StopExporting();
-}
+	}
 }
 
 FHeaderParser::FHeaderParser(FFeedbackContext* InWarn, FUHTMakefile& InUHTMakefile)
@@ -8195,7 +8176,7 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 			if( NULL != Enum )
 			{
 				OutForm = FDefaultValueHelper::GetUnqualifiedEnumValue(FDefaultValueHelper::RemoveWhitespaces(CppForm));
-				return ( INDEX_NONE != Enum->FindEnumIndex( *OutForm ) );
+				return ( INDEX_NONE != Enum->GetIndexByName(*OutForm) );
 			}
 			int32 Value;
 			if( FDefaultValueHelper::ParseInt( CppForm, Value) )
@@ -8210,7 +8191,7 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 			if (const UEnum* Enum = CastChecked<UEnumProperty>(Property)->GetEnum())
 			{
 				OutForm = FDefaultValueHelper::GetUnqualifiedEnumValue(FDefaultValueHelper::RemoveWhitespaces(CppForm));
-				return Enum->FindEnumIndex(*OutForm) != INDEX_NONE;
+				return Enum->GetIndexByName(*OutForm) != INDEX_NONE;
 			}
 
 			int64 Value;

@@ -294,9 +294,13 @@ void FAssetDataDiscovery::EnsureCompletion()
 	}
 
 	Stop();
-	Thread->WaitForCompletion();
-    delete Thread;
-    Thread = nullptr;
+
+	if (Thread != nullptr)
+	{
+		Thread->WaitForCompletion();
+		delete Thread;
+		Thread = nullptr;
+	}
 }
 
 bool FAssetDataDiscovery::GetAndTrimSearchResults(TArray<FString>& OutDiscoveredPaths, TArray<FDiscoveredPackageFile>& OutDiscoveredFiles, int32& OutNumPathsToSearch)
@@ -699,9 +703,13 @@ void FAssetDataGatherer::EnsureCompletion()
 	}
 
 	Stop();
-	Thread->WaitForCompletion();
-    delete Thread;
-    Thread = nullptr;
+
+	if (Thread != nullptr)
+	{
+		Thread->WaitForCompletion();
+		delete Thread;
+		Thread = nullptr;
+	}
 }
 
 bool FAssetDataGatherer::GetAndTrimSearchResults(TArray<FAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<FString>& OutCookedPackageNamesWithoutAssetDataResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch, bool& OutIsDiscoveringFiles)

@@ -380,7 +380,7 @@ struct ENGINE_API FRootMotionSource
 };
 
 template<>
-struct TStructOpsTypeTraits< FRootMotionSource > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FRootMotionSource > : public TStructOpsTypeTraitsBase2< FRootMotionSource >
 {
 	enum
 	{
@@ -430,7 +430,7 @@ struct ENGINE_API FRootMotionSource_ConstantForce : public FRootMotionSource
 };
 
 template<>
-struct TStructOpsTypeTraits< FRootMotionSource_ConstantForce > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FRootMotionSource_ConstantForce > : public TStructOpsTypeTraitsBase2< FRootMotionSource_ConstantForce >
 {
 	enum
 	{
@@ -505,7 +505,7 @@ struct ENGINE_API FRootMotionSource_RadialForce : public FRootMotionSource
 };
 
 template<>
-struct TStructOpsTypeTraits< FRootMotionSource_RadialForce > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FRootMotionSource_RadialForce > : public TStructOpsTypeTraitsBase2< FRootMotionSource_RadialForce >
 {
 	enum
 	{
@@ -566,7 +566,7 @@ struct ENGINE_API FRootMotionSource_MoveToForce : public FRootMotionSource
 };
 
 template<>
-struct TStructOpsTypeTraits< FRootMotionSource_MoveToForce > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FRootMotionSource_MoveToForce > : public TStructOpsTypeTraitsBase2< FRootMotionSource_MoveToForce >
 {
 	enum
 	{
@@ -638,7 +638,7 @@ struct ENGINE_API FRootMotionSource_MoveToDynamicForce : public FRootMotionSourc
 };
 
 template<>
-struct TStructOpsTypeTraits< FRootMotionSource_MoveToDynamicForce > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FRootMotionSource_MoveToDynamicForce > : public TStructOpsTypeTraitsBase2< FRootMotionSource_MoveToDynamicForce >
 {
 	enum
 	{
@@ -709,7 +709,7 @@ struct ENGINE_API FRootMotionSource_JumpForce : public FRootMotionSource
 };
 
 template<>
-struct TStructOpsTypeTraits< FRootMotionSource_JumpForce > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FRootMotionSource_JumpForce > : public TStructOpsTypeTraitsBase2< FRootMotionSource_JumpForce >
 {
 	enum
 	{
@@ -861,7 +861,7 @@ protected:
 };
 
 template<>
-struct TStructOpsTypeTraits<FRootMotionSourceGroup> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FRootMotionSourceGroup> : public TStructOpsTypeTraitsBase2<FRootMotionSourceGroup>
 {
 	enum
 	{

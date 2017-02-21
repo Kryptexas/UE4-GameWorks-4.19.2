@@ -962,6 +962,30 @@ const TCHAR* FWindowsPlatformProcess::GetBinariesSubdirectory()
 	return TEXT("Win32");
 }
 
+const FString FWindowsPlatformProcess::GetModulesDirectory()
+{
+	static FString Result;
+	if(Result.Len() == 0)
+	{
+		// Get the handle to the current module
+		HMODULE hCurrentModule;
+		if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCWSTR)&GetModulesDirectory, &hCurrentModule) == 0)
+		{
+			hCurrentModule = hInstance;
+		}
+
+		// Get the directory for it
+		TCHAR Buffer[MAX_PATH] = TEXT("");
+		GetModuleFileName(hCurrentModule, Buffer, ARRAY_COUNT(Buffer));
+		*FCString::Strrchr(Buffer, '\\') = 0;
+
+		// Normalize the resulting path
+		Result = Buffer;
+		FPaths::MakeStandardFilename(Result);
+	}
+	return Result;
+}
+
 void FWindowsPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms /*= NULL*/, ELaunchVerb::Type Verb /*= ELaunchVerb::Open*/ )
 {
 	const TCHAR* VerbString = Verb == ELaunchVerb::Edit ? TEXT("edit") : TEXT("open");

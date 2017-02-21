@@ -1,6 +1,5 @@
 ﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-using AutomationTool;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,16 +7,22 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using UnrealBuildTool;
 
-namespace AutomationTool
+namespace UnrealBuildTool
 {
 	/// <summary>
 	/// Indicates whether files which match a pattern should be included or excluded
 	/// </summary>
 	public enum FileFilterType
 	{
+		/// <summary>
+		/// Include files matching this pattern
+		/// </summary>
 		Include,
+
+		/// <summary>
+		/// Exclude files matching this pattern
+		/// </summary>
 		Exclude,
 	}
 
@@ -83,7 +88,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Adds an include or exclude rule to the filter
 		/// </summary>
-		/// <param name="Pattern">Pattern to match. See CreateRegex() for details.</param>
+		/// <param name="Rule">Pattern to match. See CreateRegex() for details.</param>
 		public void AddRule(string Rule)
 		{
 			if (Rule.StartsWith("-"))
@@ -99,7 +104,8 @@ namespace AutomationTool
 		/// <summary>
 		/// Adds an include or exclude rule to the filter. The rule may be 
 		/// </summary>
-		/// <param name="Pattern">Pattern to match. See CreateRegex() for details.</param>
+		/// <param name="Rule">Pattern to match. See CreateRegex() for details.</param>
+		/// <param name="AllowTags">If the rule starts with a list of tags {a,b,c}, specifies a list of tags to match against</param>
 		public void AddRule(string Rule, params string[] AllowTags)
 		{
 			string CleanRule = Rule.Trim();
@@ -128,7 +134,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Adds several rules to the filter
 		/// </summary>
-		/// <param name="Patterns">List of patterns to match.</param>
+		/// <param name="Rules">List of patterns to match.</param>
 		public void AddRules(IEnumerable<string> Rules)
 		{
 			foreach(string Rule in Rules)
@@ -154,8 +160,8 @@ namespace AutomationTool
 		/// Adds several rules in the given lines. Rules may be prefixed with conditions of the syntax {Key=Value, Key2=Value2}, which
 		/// will be evaluated using variables in the given dictionary before being added.
 		/// </summary>
-		/// <param name="Lines"></param>
-		/// <param name="Variables">Lookup for variables to test against</param>
+		/// <param name="Rules"></param>
+		/// <param name="Tags">Lookup for variables to test against</param>
 		public void AddRules(IEnumerable<string> Rules, params string[] Tags)
 		{
 			foreach(string Rule in Rules)
@@ -167,49 +173,34 @@ namespace AutomationTool
 		/// <summary>
 		/// Adds a rule which matches a filename relative to a given base directory.
 		/// </summary>
-		/// <param name="FileName">The filename to add a rule for</param>
-		/// <param name="BaseDirectoryName">Base directory for the rule</param>
+		/// <param name="File">The filename to add a rule for</param>
+		/// <param name="BaseDirectory">Base directory for the rule</param>
 		/// <param name="Type">Whether to add an include or exclude rule</param>
-		public void AddRuleForFile(string FileName, string BaseDirectoryName, FileFilterType Type)
+		public void AddRuleForFile(FileReference File, DirectoryReference BaseDirectory, FileFilterType Type)
 		{
-			AddRuleForFiles(new string[]{ FileName }, BaseDirectoryName, Type);
+			AddRule("/" + File.MakeRelativeTo(BaseDirectory), Type);
 		}
 
 		/// <summary>
 		/// Adds rules for files which match the given names
 		/// </summary>
-		/// <param name="FileName">The filenames to rules for</param>
-		/// <param name="BaseDirectoryName">Base directory for the rules</param>
-		/// <param name="Type">Whether to add an include or exclude rule</param>
-		public void AddRuleForFiles(IEnumerable<string> FileNames, string BaseDirectoryName, FileFilterType Type)
-		{
-			string FullBaseDirectoryName = Path.GetFullPath(BaseDirectoryName);
-			foreach (string FileName in FileNames)
-			{
-				AddRule("/" + CommandUtils.StripBaseDirectory(Path.GetFullPath(FileName), FullBaseDirectoryName), Type);
-			}
-		}
-
-		/// <summary>
-		/// Adds rules for files which match the given names
-		/// </summary>
-		/// <param name="FileName">The filenames to rules for</param>
-		/// <param name="BaseDirectoryName">Base directory for the rules</param>
+		/// <param name="Files">The filenames to rules for</param>
+		/// <param name="BaseDirectory">Base directory for the rules</param>
 		/// <param name="Type">Whether to add an include or exclude rule</param>
 		public void AddRuleForFiles(IEnumerable<FileReference> Files, DirectoryReference BaseDirectory, FileFilterType Type)
 		{
 			foreach (FileReference File in Files)
 			{
-				AddRule("/" + File.MakeRelativeTo(BaseDirectory), Type);
+				AddRuleForFile(File, BaseDirectory, Type);
 			}
 		}
 
 		/// <summary>
 		/// Reads a configuration file split into sections
 		/// </summary>
-		/// <param name="Filter"></param>
-		/// <param name="RulesFileName"></param>
-		/// <param name="Conditions"></param>
+		/// <param name="FileName"></param>
+		/// <param name="SectionName"></param>
+		/// <param name="AllowTags"></param>
 		public void ReadRulesFromFile(string FileName, string SectionName, params string[] AllowTags)
 		{
 			bool bInSection = false;
@@ -276,7 +267,7 @@ namespace AutomationTool
 		/// Adds an include or exclude rule to the filter
 		/// </summary>
 		/// <param name="Pattern">The pattern which the rule should match</param>
-		/// <param name="bInclude">Whether to include or exclude files matching this rule</param>
+		/// <param name="Type">Whether to include or exclude files matching this rule</param>
 		public void AddRule(string Pattern, FileFilterType Type)
 		{
 			string NormalizedPattern = Pattern.Replace('\\', '/');
@@ -403,6 +394,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Applies the filter to each element in a sequence, and returns the list of files that match
 		/// </summary>
+		/// <param name="BaseDirectory">The base directory to match files against</param>
 		/// <param name="FileNames">List of filenames</param>
 		/// <returns>List of filenames which match the filter</returns>
 		public IEnumerable<FileReference> ApplyTo(DirectoryReference BaseDirectory, IEnumerable<FileReference> FileNames)
@@ -414,6 +406,7 @@ namespace AutomationTool
 		/// Finds a list of files within a given directory which match the filter.
 		/// </summary>
 		/// <param name="DirectoryName">File to match</param>
+		/// <param name="bIgnoreSymlinks">Whether to ignore symlinks in the output</param>
 		/// <returns>List of files that pass the filter</returns>
 		public List<string> ApplyToDirectory(string DirectoryName, bool bIgnoreSymlinks)
 		{
@@ -426,6 +419,7 @@ namespace AutomationTool
 		/// Finds a list of files within a given directory which match the filter.
 		/// </summary>
 		/// <param name="DirectoryName">File to match</param>
+		/// <param name="bIgnoreSymlinks">Whether to ignore symlinks in the output</param>
 		/// <returns>List of files that pass the filter</returns>
 		public List<FileReference> ApplyToDirectory(DirectoryReference DirectoryName, bool bIgnoreSymlinks)
 		{
@@ -438,6 +432,8 @@ namespace AutomationTool
 		/// Finds a list of files within a given directory which match the filter.
 		/// </summary>
 		/// <param name="DirectoryName">File to match</param>
+		/// <param name="PrefixPath"></param>
+		/// <param name="bIgnoreSymlinks">Whether to ignore symlinks in the output</param>
 		/// <returns>List of files that pass the filter</returns>
 		public List<FileReference> ApplyToDirectory(DirectoryReference DirectoryName, string PrefixPath, bool bIgnoreSymlinks)
 		{
@@ -468,7 +464,10 @@ namespace AutomationTool
 		/// <summary>
 		/// Finds a list of files within a given directory which match the filter.
 		/// </summary>
-		/// <param name="FolderName">File to match</param>
+		/// <param name="CurrentDirectory"></param>
+		/// <param name="NamePrefix"></param>
+		/// <param name="bIgnoreSymlinks">Whether to ignore symlinks in the output</param>
+		/// <param name="MatchingFileNames">Receives a list of matching filenames</param>
 		/// <returns>True if the file passes the filter</returns>
 		void FindMatchesFromDirectory(DirectoryInfo CurrentDirectory, string NamePrefix, bool bIgnoreSymlinks, List<string> MatchingFileNames)
 		{
@@ -493,7 +492,10 @@ namespace AutomationTool
 		/// <summary>
 		/// Finds a list of files within a given directory which match the filter.
 		/// </summary>
-		/// <param name="FolderName">File to match</param>
+		/// <param name="CurrentDirectory">The current directory</param>
+		/// <param name="NamePrefix">Current relative path prefix in the traversed directory tree</param>
+		/// <param name="bIgnoreSymlinks">Whether to ignore symlinks in the output</param>
+		/// <param name="MatchingFileNames">Receives a list of matching files</param>
 		/// <returns>True if the file passes the filter</returns>
 		void FindMatchesFromDirectory(DirectoryInfo CurrentDirectory, string NamePrefix, bool bIgnoreSymlinks, List<FileReference> MatchingFileNames)
 		{
@@ -598,116 +600,6 @@ namespace AutomationTool
 				}
 			}
 			return BestRuleNumber;
-		}
-	}
-
-	/// <summary>
-	/// Node within a filter tree. Each node matches a single path fragment - a folder or file name, with an include or exclude rule consisting of a sequence of nodes. 
-	/// </summary>
-	class FileFilterNode
-	{
-		/// <summary>
-		/// Node which this is parented to. Null for the root node.
-		/// </summary>
-		public readonly FileFilterNode Parent;
-
-		/// <summary>
-		/// Pattern to match for this node. May contain * or ? wildcards.
-		/// </summary>
-		public readonly string Pattern;
-
-		/// <summary>
-		/// Highest include rule number matched by this node or any child nodes.
-		/// </summary>
-		public int MaxIncludeRuleNumber = -1;
-
-		/// <summary>
-		/// Highest exclude rule number matched by this node or any child nodes.
-		/// </summary>
-		public int MaxExcludeRuleNumber = -1;
-
-		/// <summary>
-		/// Child branches of this node, distinct by the the pattern for each.
-		/// </summary>
-		public List<FileFilterNode> Branches = new List<FileFilterNode>();
-
-		/// <summary>
-		/// If a path matches the sequence of nodes ending in this node, the number of the rule which added it. -1 if this was not the last node in a rule.
-		/// </summary>
-		public int RuleNumber;
-
-		/// <summary>
-		/// Whether a rule terminating in this node should include files or exclude files.
-		/// </summary>
-		public FileFilterType Type;
-
-		/// <summary>
-		/// Default constructor.
-		/// </summary>
-		public FileFilterNode(FileFilterNode InParent, string InPattern)
-		{
-			Parent = InParent;
-			Pattern = InPattern;
-			RuleNumber = -1;
-			Type = FileFilterType.Exclude;
-		}
-
-		/// <summary>
-		/// Determine if the given token matches the pattern in this node
-		/// </summary>
-		public bool IsMatch(string Token)
-		{
-			if(Pattern.EndsWith("."))
-			{
-				return !Token.Contains('.') && IsMatch(Token, 0, Pattern.Substring(0, Pattern.Length - 1), 0);
-			}
-			else
-			{
-				return IsMatch(Token, 0, Pattern, 0);
-			}
-		}
-
-		/// <summary>
-		/// Determine if a given token matches a pattern, starting from the given positions within each string.
-		/// </summary>
-		static bool IsMatch(string Token, int TokenIdx, string Pattern, int PatternIdx)
-		{
-			for (; ; )
-			{
-				if (PatternIdx == Pattern.Length)
-				{
-					return (TokenIdx == Token.Length);
-				}
-				else if (Pattern[PatternIdx] == '*')
-				{
-					for (int NextTokenIdx = Token.Length; NextTokenIdx >= TokenIdx; NextTokenIdx--)
-					{
-						if (IsMatch(Token, NextTokenIdx, Pattern, PatternIdx + 1))
-						{
-							return true;
-						}
-					}
-					return false;
-				}
-				else if (TokenIdx < Token.Length && (Char.ToLower(Token[TokenIdx]) == Char.ToLower(Pattern[PatternIdx]) || Pattern[PatternIdx] == '?'))
-				{
-					TokenIdx++;
-					PatternIdx++;
-				}
-				else
-				{
-					return false;
-				}
-			}
-		}
-
-		/// <summary>
-		/// Debugger visualization
-		/// </summary>
-		/// <returns>Path to this node</returns>
-		public override string ToString()
-		{
-			return (Parent == null) ? "/" : Parent.ToString().TrimEnd('/') + "/" + Pattern;
 		}
 	}
 }

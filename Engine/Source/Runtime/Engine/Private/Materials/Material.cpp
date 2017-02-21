@@ -373,6 +373,10 @@ void UMaterialInterface::InitDefaultMaterials()
 	if (!bInitialized)
 	{		
 		check(IsInGameThread());
+		if (!IsInGameThread())
+		{
+			return;
+		}
 		static int32 RecursionLevel = 0;
 		RecursionLevel++;
 
@@ -421,7 +425,6 @@ void UMaterialInterface::PostCDOContruct()
 	if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
 	{
 		UMaterial::StaticClass()->GetDefaultObject();
-		InitializeSharedSamplerStates();
 		UMaterialInterface::InitDefaultMaterials();
 	}
 }
@@ -1055,8 +1058,13 @@ float UMaterial::GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel
 
 void UMaterial::RecacheUniformExpressions() const
 {
+	bool bUsingNewLoader = EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME && GEventDrivenLoaderEnabled;
+
 	// Ensure that default material is available before caching expressions.
-	UMaterial::GetDefaultMaterial(MD_Surface);
+	if (!bUsingNewLoader)
+	{
+		UMaterial::GetDefaultMaterial(MD_Surface);
+	}
 
 	// Only cache the unselected + unhovered material instance. Selection color
 	// can change at runtime and would invalidate the parameter cache.

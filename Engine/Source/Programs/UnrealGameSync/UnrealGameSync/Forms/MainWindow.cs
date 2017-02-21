@@ -995,94 +995,113 @@ namespace UnrealGameSync
 
 		void UpdateBuildFailureNotification()
 		{
+			int LastChangeByCurrentUser = PerforceMonitor.LastChangeByCurrentUser;
 			int LastCodeChangeByCurrentUser = PerforceMonitor.LastCodeChangeByCurrentUser;
-			if(LastCodeChangeByCurrentUser > 0)
+
+			// Find all the badges which should notify users due to content changes
+			HashSet<string> ContentBadges = new HashSet<string>();
+			if(Workspace != null && Workspace.ProjectConfigFile != null)
 			{
-				// Find the most recent build of each type, and the last time it succeeded
-				Dictionary<string, BuildData> TypeToLastBuild = new Dictionary<string,BuildData>();
-				Dictionary<string, BuildData> TypeToLastSucceededBuild = new Dictionary<string,BuildData>();
-				for(int Idx = SortedChangeNumbers.Count - 1; Idx >= 0; Idx--)
+				ContentBadges.UnionWith(Workspace.ProjectConfigFile.GetValues("Notifications.ContentBadges", new string[0]));
+			}
+
+			// Find the most recent build of each type, and the last time it succeeded
+			Dictionary<string, BuildData> TypeToLastBuild = new Dictionary<string,BuildData>();
+			Dictionary<string, BuildData> TypeToLastSucceededBuild = new Dictionary<string,BuildData>();
+			for(int Idx = SortedChangeNumbers.Count - 1; Idx >= 0; Idx--)
+			{
+				EventSummary Summary = EventMonitor.GetSummaryForChange(SortedChangeNumbers[Idx]);
+				if(Summary != null)
 				{
-					EventSummary Summary = EventMonitor.GetSummaryForChange(SortedChangeNumbers[Idx]);
-					if(Summary != null)
+					foreach(BuildData Build in Summary.Builds)
 					{
-						foreach(BuildData Build in Summary.Builds)
+						if(!TypeToLastBuild.ContainsKey(Build.BuildType) && (Build.Result == BuildDataResult.Success || Build.Result == BuildDataResult.Warning || Build.Result == BuildDataResult.Failure))
 						{
-							if(!TypeToLastBuild.ContainsKey(Build.BuildType) && (Build.Result == BuildDataResult.Success || Build.Result == BuildDataResult.Warning || Build.Result == BuildDataResult.Failure))
-							{
-								TypeToLastBuild.Add(Build.BuildType, Build);
-							}
-							if(!TypeToLastSucceededBuild.ContainsKey(Build.BuildType) && Build.Result == BuildDataResult.Success)
-							{
-								TypeToLastSucceededBuild.Add(Build.BuildType, Build);
-							}
+							TypeToLastBuild.Add(Build.BuildType, Build);
+						}
+						if(!TypeToLastSucceededBuild.ContainsKey(Build.BuildType) && Build.Result == BuildDataResult.Success)
+						{
+							TypeToLastSucceededBuild.Add(Build.BuildType, Build);
 						}
 					}
 				}
+			}
 
-				// Find all the build types that the user needs to be notified about.
-				List<BuildData> NotifyBuilds = new List<BuildData>();
-				foreach(BuildData LastBuild in TypeToLastBuild.Values.OrderBy(x => x.BuildType))
+			// Find all the build types that the user needs to be notified about.
+			int RequireNotificationForChange = -1;
+			List<BuildData> NotifyBuilds = new List<BuildData>();
+			foreach(BuildData LastBuild in TypeToLastBuild.Values.OrderBy(x => x.BuildType))
+			{
+				if(LastBuild.Result == BuildDataResult.Failure || LastBuild.Result == BuildDataResult.Warning)
 				{
-					if((LastBuild.Result == BuildDataResult.Failure || LastBuild.Result == BuildDataResult.Warning) && LastBuild.ChangeNumber >= LastCodeChangeByCurrentUser)
+					// Get the last submitted changelist by this user of the correct type
+					int LastChangeByCurrentUserOfType;
+					if(ContentBadges.Contains(LastBuild.BuildType))
 					{
-						BuildData LastSuccessfulBuild;
-						if(!TypeToLastSucceededBuild.TryGetValue(LastBuild.BuildType, out LastSuccessfulBuild) || LastSuccessfulBuild.ChangeNumber < LastCodeChangeByCurrentUser)
-						{
-							NotifyBuilds.Add(LastBuild);
-						}
-					}
-				}
-
-				// Check if there are any failing build types that we haven't notified about
-				bool bRequireNotification = false;
-				foreach(BuildData NotifyBuild in NotifyBuilds)
-				{
-					int NotifiedChangeNumber;
-					if(!NotifiedBuildTypeToChangeNumber.TryGetValue(NotifyBuild.BuildType, out NotifiedChangeNumber) || NotifiedChangeNumber < LastCodeChangeByCurrentUser)
-					{
-						bRequireNotification = true;
-						break;
-					}
-				}
-
-				// If there's anything we haven't already notified the user about, do so now
-				if(bRequireNotification)
-				{
-					// Format the platform list
-					StringBuilder PlatformList = new StringBuilder(NotifyBuilds[0].BuildType);
-					for(int Idx = 1; Idx < NotifyBuilds.Count - 1; Idx++)
-					{
-						PlatformList.AppendFormat(", {0}", NotifyBuilds[Idx].BuildType);
-					}
-					if(NotifyBuilds.Count > 1)
-					{
-						PlatformList.AppendFormat(" and {0}", NotifyBuilds[NotifyBuilds.Count - 1].BuildType);
-					}
-
-					// Show the balloon tooltip
-					if(NotifyBuilds.Any(x => x.Result == BuildDataResult.Failure))
-					{
-						string Title = String.Format("{0} CIS Failure", PlatformList.ToString());
-						string Message = String.Format("{0} failed to compile after your last submitted changelist ({1}).", PlatformList.ToString(), LastCodeChangeByCurrentUser);
-						NotificationWindow.Show(NotificationType.Error, Title, Message);
+						LastChangeByCurrentUserOfType = LastChangeByCurrentUser;
 					}
 					else
 					{
-						string Title = String.Format("{0} CIS Warnings", PlatformList.ToString());
-						string Message = String.Format("{0} compiled with warnings after your last submitted changelist ({1}).", PlatformList.ToString(), LastCodeChangeByCurrentUser);
-						NotificationWindow.Show(NotificationType.Warning, Title, Message);
+						LastChangeByCurrentUserOfType = LastCodeChangeByCurrentUser;
 					}
 
-					// Set the link to open the right build pages
-					int HighlightChange = NotifyBuilds.Max(x => x.ChangeNumber);
-					NotificationWindow.OnMoreInformation = () => { ShowAndActivate(); SelectChange(HighlightChange); };
-				
-					// Don't show messages for this change again
-					foreach(BuildData NotifyBuild in NotifyBuilds)
+					// Check if the failed build was after we submitted
+					if(LastChangeByCurrentUserOfType > 0 && LastBuild.ChangeNumber >= LastChangeByCurrentUserOfType)
 					{
-						NotifiedBuildTypeToChangeNumber[NotifyBuild.BuildType] = LastCodeChangeByCurrentUser;
+						// And check that there wasn't a successful build after we submitted (if there was, we're in the clear)
+						BuildData LastSuccessfulBuild;
+						if(!TypeToLastSucceededBuild.TryGetValue(LastBuild.BuildType, out LastSuccessfulBuild) || LastSuccessfulBuild.ChangeNumber < LastChangeByCurrentUserOfType)
+						{
+							// Add it to the list of notifications
+							NotifyBuilds.Add(LastBuild);
+
+							// Check if this is a new notification, rather than one we've already dismissed
+							int NotifiedChangeNumber;
+							if(!NotifiedBuildTypeToChangeNumber.TryGetValue(LastBuild.BuildType, out NotifiedChangeNumber) || NotifiedChangeNumber < LastChangeByCurrentUserOfType)
+							{
+								RequireNotificationForChange = Math.Max(RequireNotificationForChange, LastChangeByCurrentUserOfType);
+							}
+						}
 					}
+				}
+			}
+
+			// If there's anything we haven't already notified the user about, do so now
+			if(RequireNotificationForChange != -1)
+			{
+				// Format the platform list
+				StringBuilder PlatformList = new StringBuilder(NotifyBuilds[0].BuildType);
+				for(int Idx = 1; Idx < NotifyBuilds.Count - 1; Idx++)
+				{
+					PlatformList.AppendFormat(", {0}", NotifyBuilds[Idx].BuildType);
+				}
+				if(NotifyBuilds.Count > 1)
+				{
+					PlatformList.AppendFormat(" and {0}", NotifyBuilds[NotifyBuilds.Count - 1].BuildType);
+				}
+
+				// Show the balloon tooltip
+				if(NotifyBuilds.Any(x => x.Result == BuildDataResult.Failure))
+				{
+					string Title = String.Format("{0} Errors", PlatformList.ToString());
+					string Message = String.Format("CIS failed after your last submitted changelist ({0}).", RequireNotificationForChange);
+					NotificationWindow.Show(NotificationType.Error, Title, Message);
+				}
+				else
+				{
+					string Title = String.Format("{0} Warnings", PlatformList.ToString());
+					string Message = String.Format("CIS completed with warnings after your last submitted changelist ({0}).", RequireNotificationForChange);
+					NotificationWindow.Show(NotificationType.Warning, Title, Message);
+				}
+
+				// Set the link to open the right build pages
+				int HighlightChange = NotifyBuilds.Max(x => x.ChangeNumber);
+				NotificationWindow.OnMoreInformation = () => { ShowAndActivate(); SelectChange(HighlightChange); };
+				
+				// Don't show messages for this change again
+				foreach(BuildData NotifyBuild in NotifyBuilds)
+				{
+					NotifiedBuildTypeToChangeNumber[NotifyBuild.BuildType] = RequireNotificationForChange;
 				}
 			}
 		}

@@ -1328,40 +1328,44 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public void StripSymbols(string SourceFileName, string TargetFileName)
+		public void StripSymbols(FileReference SourceFile, FileReference TargetFile)
 		{
-			File.Copy(SourceFileName, TargetFileName, true);
+			if (SourceFile != TargetFile)
+			{
+				// Strip command only works in place so we need to copy original if target is different
+				File.Copy(SourceFile.FullName, TargetFile.FullName, true);
+			}
 
 			ProcessStartInfo StartInfo = new ProcessStartInfo();
-			if (SourceFileName.Contains("-armv7"))
+			if (SourceFile.FullName.Contains("-armv7"))
 			{
 				StartInfo.FileName = ArPathArm;
 			}
 			else
-			if (SourceFileName.Contains("-arm64"))
+			if (SourceFile.FullName.Contains("-arm64"))
             {
 				StartInfo.FileName = ArPathArm64;
 			}
 			else
-			if (SourceFileName.Contains("-x86"))
+			if (SourceFile.FullName.Contains("-x86"))
             {
 				StartInfo.FileName = ArPathx86;
 			}
 			else
-			if (SourceFileName.Contains("-x64"))
+			if (SourceFile.FullName.Contains("-x64"))
             {
 				StartInfo.FileName = ArPathx64;
 			}
 			else
 			{
-				throw new BuildException("Couldn't determine Android architecture to strip symbols from {0}", SourceFileName);
+				throw new BuildException("Couldn't determine Android architecture to strip symbols from {0}", SourceFile.FullName);
 			}
 
 			// fix the executable (replace the last -ar with -strip and keep any extension)
 			int ArIndex = StartInfo.FileName.LastIndexOf("-ar");
 			StartInfo.FileName = StartInfo.FileName.Substring(0, ArIndex) + "-strip" + StartInfo.FileName.Substring(ArIndex + 3);
 
-			StartInfo.Arguments = "--strip-debug " + TargetFileName;
+			StartInfo.Arguments = "--strip-debug " + TargetFile.FullName;
 			StartInfo.UseShellExecute = false;
 			StartInfo.CreateNoWindow = true;
 			Utils.RunLocalProcessAndLogOutput(StartInfo);

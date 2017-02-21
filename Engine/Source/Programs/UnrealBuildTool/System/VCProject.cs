@@ -1157,7 +1157,6 @@ namespace UnrealBuildTool
 
 					// Setup output path
 					UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
-					UEBuildPlatformContext BuildPlatformContext = BuildPlatform.CreateContext(Combination.ProjectTarget.ProjectFilePath);
 
 					// Figure out if this is a monolithic build
 					bool bShouldCompileMonolithic = BuildPlatform.ShouldCompileMonolithicBinary(Platform);
@@ -1165,7 +1164,7 @@ namespace UnrealBuildTool
 
 					// Get the output directory
 					DirectoryReference RootDirectory = UnrealBuildTool.EngineDirectory;
-					if (TargetRulesObject.Type != TargetType.Program && bShouldCompileMonolithic && !TargetRulesObject.bOutputToEngineBinaries)
+					if (TargetRulesObject.Type != TargetType.Program && (bShouldCompileMonolithic || TargetRulesObject.BuildEnvironment == TargetBuildEnvironment.Unique) && !TargetRulesObject.bOutputToEngineBinaries)
 					{
 						if (OnlyGameProject != null && TargetFilePath.IsUnderDirectory(OnlyGameProject.Directory))
 						{

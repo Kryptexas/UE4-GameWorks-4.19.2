@@ -1042,7 +1042,7 @@ namespace PropertyEditorHelpers
 			for(auto& Value : ValidEnumValuesAsString)
 			{
 				Value.Trim();
-				ValidEnumValues.Add(*UEnum::GenerateFullEnumName(InEnum, *Value));
+				ValidEnumValues.Add(*InEnum->GenerateFullEnumName(*Value));
 			}
 		}
 

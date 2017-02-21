@@ -29,13 +29,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 	{
 		/// <summary>The raw line of the callstack.</summary>
 		public string RawCallStackLine = "";
-		/// <summary>The module the crash occurred in.</summary>
+		/// <summary>The module the Crash occurred in.</summary>
 		public string ModuleName = "";
 		/// <summary>The full path of the source file.</summary>
 		private string FullFilePath = "";
 		/// <summary>The function name.</summary>
 		public string FunctionName = "";
-		/// <summary>The line number of the crash.</summary>
+		/// <summary>The line number of the Crash.</summary>
 		public int LineNumber;
 
 		/// <summary>
@@ -151,27 +151,27 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 		/// <summary>
 		/// Construct a processed callstack.
 		/// </summary>
-		/// <param name="CurrentCrash"></param>
-		public CallStackContainer( Crash CurrentCrash )
+		/// <param name="currentCrash"></param>
+		public CallStackContainer( Crash currentCrash )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + CurrentCrash.Id + ")" ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + currentCrash.Id + ")" ) )
 			{
-				ParseCallStack( CurrentCrash ); 
+				ParseCallStack( currentCrash ); 
 			}
 		}
 
 		/// <summary>
-		/// Find the module name that was most likely the source of the crash.
+		/// Find the module name that was most likely the source of the Crash.
 		/// </summary>
-		/// <returns>The module name that we detected as the source of the crash.</returns>
+		/// <returns>The module name that we detected as the source of the Crash.</returns>
 		public string GetModuleName()
 		{
 			string ModuleName = "<Unknown>";
 
-			// Find the category of the crash
+			// Find the category of the Crash
 			if( CallStackEntries.Count > 0 )
 			{
-				// Default to the first module. This is valid for crashes
+				// Default to the first module. This is valid for Crashes
 				ModuleName = CallStackEntries[0].ModuleName;
 			}
 
@@ -183,7 +183,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 		static readonly Regex OldCallstackFormat = new Regex(@"([^(]*[(][^)]*[)])([^\[]*([\[][^\]]*[\]]))*", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
 		/// <summary>
-		/// Parse a raw callstack line of a crash submitted before the UE4 upgrade
+		/// Parse a raw callstack line of a Crash submitted before the UE4 upgrade
 		/// </summary>
 		/// <param name="Line">Line of callstack</param>
 		/// <remarks>Code paraphrased from UE3 version of this file</remarks>
@@ -236,8 +236,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 		/// <summary>
 		/// Parse a raw callstack into a pattern
 		/// </summary>
-		/// <param name="CurrentCrash">The crash with a raw callstack to parse.</param>
-		private void ParseCallStack( Crash CurrentCrash )
+		/// <param name="currentCrash">The Crash with a raw callstack to parse.</param>
+		private void ParseCallStack( Crash currentCrash )
 		{
 			// Everything is disabled by default
 			bDisplayUnformattedCallStack = false;
@@ -248,7 +248,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 
 			bool bSkipping = false;
 			string LineToSkipUpto = "";
-			switch( CurrentCrash.CrashType )
+			switch( currentCrash.CrashType )
 			{
 			case 2:
 				bSkipping = false;
@@ -260,7 +260,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 				break;
 			}
 
-			if (string.IsNullOrEmpty(CurrentCrash.RawCallStack))
+			if (string.IsNullOrEmpty(currentCrash.RawCallStack))
 			{
 				return;
 			}
@@ -268,7 +268,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 			CallStackEntries.Clear();
 
 			// Store off a pre split array of call stack lines
-			string[] RawCallStackLines = CurrentCrash.RawCallStack.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+			string[] RawCallStackLines = currentCrash.RawCallStack.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
 			int Middle = RawCallStackLines.Length / 2;
 
@@ -333,9 +333,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 				int MacModuleStart = CurrentLine.IndexOf( "[in " );
 				int MacModuleEnd = MacModuleStart > 0 ? CurrentLine.IndexOf( "]", MacModuleStart ) : 0;
 
-				bool bLinux = CurrentCrash.PlatformName.Contains( "Linux" );
-				bool bMac = CurrentCrash.PlatformName.Contains( "Mac" );
-				bool bWindows = CurrentCrash.PlatformName.Contains( "Windows" );
+				bool bLinux = currentCrash.PlatformName.Contains( "Linux" );
+				bool bMac = currentCrash.PlatformName.Contains( "Mac" );
+				bool bWindows = currentCrash.PlatformName.Contains( "Windows" );
 
 
 				// Parse out the juicy info from the line of the callstack
@@ -401,7 +401,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
                     "FGenericPlatformStackWalk::StackWalkAndDump",
                     "FLinuxCrashContext::CaptureStackTrace",
                     "CommonLinuxCrashHandler",
-                    // Generic crash handler for all platforms
+                    // Generic Crash handler for all platforms
 				} );
 
 				bool Contains = FuncsToRemove.Contains( FuncName, new CustomFuncComparer() );

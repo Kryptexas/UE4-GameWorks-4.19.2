@@ -1102,7 +1102,7 @@ public:
 		Ar.Logf(TEXT("%s, %s, ActualStartTickGroup: %s, Prerequesities: %d"),
 			*Function->DiagnosticMessage(),
 			Function->IsTickFunctionEnabled() ? (RemainingCooldown > 0.f ? *FString::Printf(TEXT("Cooling Down for %.4g seconds"),RemainingCooldown) : TEXT("Enabled")) : TEXT("Disabled"),
-			*TickGroupEnum->GetEnumName(Function->ActualStartTickGroup),			
+			*TickGroupEnum->GetNameStringByValue(Function->ActualStartTickGroup),
 			Function->Prerequisites.Num());
 
 		// List all prerequisities

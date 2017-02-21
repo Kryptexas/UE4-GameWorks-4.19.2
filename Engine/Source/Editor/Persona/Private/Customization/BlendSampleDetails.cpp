@@ -30,12 +30,12 @@ FBlendSampleDetails::FBlendSampleDetails(const UBlendSpaceBase* InBlendSpace, cl
 	// Retrieve the additive animation type enum
 	const UEnum* AdditiveTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAdditiveAnimationType"), true);
 	// For each type check whether or not the blend space is compatible with it and cache the result
-	for (int32 Index = 0; Index < (int32)EAdditiveAnimationType::AAT_MAX; ++Index)
+	for (int32 TypeValue = 0; TypeValue < (int32)EAdditiveAnimationType::AAT_MAX; ++TypeValue)
 	{
-		EAdditiveAnimationType Type = (EAdditiveAnimationType)Index;		
+		EAdditiveAnimationType Type = (EAdditiveAnimationType)TypeValue;
 		// In case of non additive type make sure the blendspace is made up out of non additive samples only
 		const bool bAdditiveFlag = (Type == EAdditiveAnimationType::AAT_None) ? !BlendSpace->IsValidAdditive() : BlendSpace->IsValidAdditive() && BlendSpace->IsValidAdditiveType(Type);		
-		bValidAdditiveTypes.Add(AdditiveTypeEnum->GetNameByIndex(Index).ToString(), bAdditiveFlag);
+		bValidAdditiveTypes.Add(AdditiveTypeEnum->GetNameByValue(TypeValue).ToString(), bAdditiveFlag);
 	}
 }
 

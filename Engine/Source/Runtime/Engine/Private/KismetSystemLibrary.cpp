@@ -3197,7 +3197,7 @@ public:
 
 	virtual void UpdateOperation(FLatentResponse& Response) override
 	{
-		const bool bLoaded = Handle->HasLoadCompleted();
+		const bool bLoaded = !Handle.IsValid() || Handle->HasLoadCompleted() || Handle->WasCanceled();
 		if (bLoaded)
 		{
 			OnLoaded();

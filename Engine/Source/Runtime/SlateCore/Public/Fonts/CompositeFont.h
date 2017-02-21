@@ -252,7 +252,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FFontData> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FFontData> : public TStructOpsTypeTraitsBase2<FFontData>
 {
 	enum
 	{

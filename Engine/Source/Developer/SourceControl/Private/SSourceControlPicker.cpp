@@ -80,7 +80,7 @@ TSharedRef<SWidget> SSourceControlPicker::OnGetMenuContent() const
 	{
 		const FName ProviderName = SourceControlModule.GetSourceControlProviderName(ProviderIndex);
 		int32 ProviderSortKey = ProviderName == FName("None") ? -1 * ProviderIndex : ProviderIndex;
-		SortedProviderNames.Add(TPairInitializer<FName, int32>(ProviderName, ProviderSortKey));
+		SortedProviderNames.Emplace(ProviderName, ProviderSortKey);
 	}
 
 	// Sort based on the provider index

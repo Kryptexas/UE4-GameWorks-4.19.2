@@ -14,12 +14,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Strips symbols from a file
 		/// </summary>
-		/// <param name="SourceFileName">The input file</param>
-		/// <param name="TargetFileName">The output file</param>
-		public static void StripSymbols(string SourceFileName, string TargetFileName)
+		/// <param name="SourceFile">The input file</param>
+		/// <param name="TargetFile">The output file</param>
+		public static void StripSymbols(FileReference SourceFile, FileReference TargetFile)
 		{
 			MacToolChain ToolChain = new MacToolChain(null);
-			ToolChain.StripSymbols(SourceFileName, TargetFileName);
+			ToolChain.StripSymbols(SourceFile, TargetFile);
 		}
 	}
 }

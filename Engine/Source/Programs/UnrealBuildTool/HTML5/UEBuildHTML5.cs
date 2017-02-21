@@ -8,101 +8,6 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
-	class HTML5PlatformContext : UEBuildPlatformContext
-	{
-		public HTML5PlatformContext() : base(UnrealTargetPlatform.HTML5)
-		{
-		}
-
-		/// <summary>
-		/// Modify the rules for a newly created module, in a target that's being built for this platform.
-		/// This is not required - but allows for hiding details of a particular platform.
-		/// </summary>
-		/// <param name="ModuleName">The name of the module</param>
-		/// <param name="Rules">The module rules</param>
-		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
-		{
-			if (ModuleName == "Core")
-			{
-				Rules.PublicIncludePaths.Add("Runtime/Core/Public/HTML5");
-				Rules.PublicDependencyModuleNames.Add("zlib");
-			}
-			else if (ModuleName == "Engine")
-			{
-				Rules.PrivateDependencyModuleNames.Add("zlib");
-				Rules.PrivateDependencyModuleNames.Add("UElibPNG");
-				Rules.PublicDependencyModuleNames.Add("UEOgg");
-				Rules.PublicDependencyModuleNames.Add("Vorbis");
-			}
-		}
-
-		/// <summary>
-		/// Setup the target environment for building
-		/// </summary>
-		/// <param name="Target">Settings for the target being compiled</param>
-		/// <param name="CompileEnvironment">The compile environment for this target</param>
-		/// <param name="LinkEnvironment">The link environment for this target</param>
-		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
-		{
-			if (Target.Architecture == "-win32")
-			{
-				LinkEnvironment.ExcludedLibraries.Add("LIBCMT");
-			}
-
-			CompileEnvironment.Definitions.Add("PLATFORM_HTML5=1");
-			if (CompileEnvironment.Architecture == "-win32")
-			{
-				CompileEnvironment.Definitions.Add("PLATFORM_HTML5_WIN32=1");
-				LinkEnvironment.AdditionalLibraries.Add("delayimp.lib");
-			}
-			else
-			{
-				CompileEnvironment.Definitions.Add("PLATFORM_HTML5_BROWSER=1");
-			}
-
-			// @todo needed?
-			CompileEnvironment.Definitions.Add("UNICODE");
-			CompileEnvironment.Definitions.Add("_UNICODE");
-			CompileEnvironment.Definitions.Add("WITH_AUTOMATION_WORKER=0");
-			CompileEnvironment.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
-			CompileEnvironment.Definitions.Add("WITH_OGGVORBIS=1");
-			CompileEnvironment.Definitions.Add("USE_SCENE_LOCK=0");
-
-		}
-
-		/// <summary>
-		/// Whether this platform should create debug information or not
-		/// </summary>
-		/// <param name="Target">The target being built</param>
-		/// <returns>true if debug info should be generated, false if not</returns>
-		public override bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target)
-		{
-			switch (Target.Configuration)
-			{
-				case UnrealTargetConfiguration.Development:
-				case UnrealTargetConfiguration.Shipping:
-				case UnrealTargetConfiguration.Test:
-					return !Target.bOmitPCDebugInfoInDevelopment;
-				case UnrealTargetConfiguration.Debug:
-				default:
-					// We don't need debug info for Emscripten, and it causes a bunch of issues with linking
-					return true;
-			};
-		}
-
-		/// <summary>
-		/// Creates a toolchain instance for the given platform.
-		/// </summary>
-		/// <param name="CppPlatform">The platform to create a toolchain for</param>
-		/// <param name="Target">The target being built</param>
-		/// <returns>New toolchain instance.</returns>
-		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
-		{
-			return new HTML5ToolChain();
-		}
-	}
-
 	class HTML5Platform : UEBuildPlatform
 	{
 		// use -win32 for win32 builds. ( build html5 platform as a win32 binary for debugging )
@@ -283,15 +188,92 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/// <summary>
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
+		{
+			if (ModuleName == "Core")
+			{
+				Rules.PublicIncludePaths.Add("Runtime/Core/Public/HTML5");
+				Rules.PublicDependencyModuleNames.Add("zlib");
+			}
+			else if (ModuleName == "Engine")
+			{
+				Rules.PrivateDependencyModuleNames.Add("zlib");
+				Rules.PrivateDependencyModuleNames.Add("UElibPNG");
+				Rules.PublicDependencyModuleNames.Add("UEOgg");
+				Rules.PublicDependencyModuleNames.Add("Vorbis");
+			}
+		}
 
 		/// <summary>
-		/// Creates a context for the given target on the current platform.
+		/// Setup the target environment for building
 		/// </summary>
-		/// <param name="ProjectFile">The project file for the current target</param>
-		/// <returns>New platform context object</returns>
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
+		/// <param name="Target">Settings for the target being compiled</param>
+		/// <param name="CompileEnvironment">The compile environment for this target</param>
+		/// <param name="LinkEnvironment">The link environment for this target</param>
+		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
-			return new HTML5PlatformContext();
+			if (Target.Architecture == "-win32")
+			{
+				LinkEnvironment.ExcludedLibraries.Add("LIBCMT");
+			}
+
+			CompileEnvironment.Definitions.Add("PLATFORM_HTML5=1");
+			if (CompileEnvironment.Architecture == "-win32")
+			{
+				CompileEnvironment.Definitions.Add("PLATFORM_HTML5_WIN32=1");
+				LinkEnvironment.AdditionalLibraries.Add("delayimp.lib");
+			}
+			else
+			{
+				CompileEnvironment.Definitions.Add("PLATFORM_HTML5_BROWSER=1");
+			}
+
+			// @todo needed?
+			CompileEnvironment.Definitions.Add("UNICODE");
+			CompileEnvironment.Definitions.Add("_UNICODE");
+			CompileEnvironment.Definitions.Add("WITH_AUTOMATION_WORKER=0");
+			CompileEnvironment.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
+			CompileEnvironment.Definitions.Add("WITH_OGGVORBIS=1");
+			CompileEnvironment.Definitions.Add("USE_SCENE_LOCK=0");
+
+		}
+
+		/// <summary>
+		/// Whether this platform should create debug information or not
+		/// </summary>
+		/// <param name="Target">The target being built</param>
+		/// <returns>true if debug info should be generated, false if not</returns>
+		public override bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target)
+		{
+			switch (Target.Configuration)
+			{
+				case UnrealTargetConfiguration.Development:
+				case UnrealTargetConfiguration.Shipping:
+				case UnrealTargetConfiguration.Test:
+					return !Target.bOmitPCDebugInfoInDevelopment;
+				case UnrealTargetConfiguration.Debug:
+				default:
+					// We don't need debug info for Emscripten, and it causes a bunch of issues with linking
+					return true;
+			};
+		}
+
+		/// <summary>
+		/// Creates a toolchain instance for the given platform.
+		/// </summary>
+		/// <param name="CppPlatform">The platform to create a toolchain for</param>
+		/// <param name="Target">The target being built</param>
+		/// <returns>New toolchain instance.</returns>
+		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
+		{
+			return new HTML5ToolChain();
 		}
 
 		/// <summary>

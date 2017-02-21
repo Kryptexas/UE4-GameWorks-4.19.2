@@ -360,7 +360,7 @@ protected:
 };
 
 template<>
-struct TStructOpsTypeTraits<FInputEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FInputEvent> : public TStructOpsTypeTraitsBase2<FInputEvent>
 {
 	enum
 	{
@@ -453,7 +453,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FKeyEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FKeyEvent> : public TStructOpsTypeTraitsBase2<FKeyEvent>
 {
 	enum
 	{
@@ -535,7 +535,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FAnalogInputEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FAnalogInputEvent> : public TStructOpsTypeTraitsBase2<FAnalogInputEvent>
 {
 	enum
 	{
@@ -587,7 +587,7 @@ private:
 
 
 template<>
-struct TStructOpsTypeTraits<FCharacterEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FCharacterEvent> : public TStructOpsTypeTraitsBase2<FCharacterEvent>
 {
 	enum
 	{
@@ -861,7 +861,7 @@ private:
 
 
 template<>
-struct TStructOpsTypeTraits<FPointerEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FPointerEvent> : public TStructOpsTypeTraitsBase2<FPointerEvent>
 {
 	enum
 	{
@@ -901,7 +901,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FControllerEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FControllerEvent> : public TStructOpsTypeTraitsBase2<FControllerEvent>
 {
 	enum
 	{
@@ -979,7 +979,7 @@ private:
 
 
 template<>
-struct TStructOpsTypeTraits<FMotionEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FMotionEvent> : public TStructOpsTypeTraitsBase2<FMotionEvent>
 {
 	enum
 	{
@@ -1031,7 +1031,7 @@ private:
 
 
 template<>
-struct TStructOpsTypeTraits<FNavigationEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FNavigationEvent> : public TStructOpsTypeTraitsBase2<FNavigationEvent>
 {
 	enum
 	{

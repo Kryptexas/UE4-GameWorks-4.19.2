@@ -13,13 +13,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	/// </summary>
 	public class UsersController : Controller
 	{
-
         /// <summary>
         /// 
         /// </summary>
         /// <param name="unitOfWork"></param>
 	    public UsersController(IUnitOfWork unitOfWork)
 	    {
+
 	    }
 
 	    /// <summary>

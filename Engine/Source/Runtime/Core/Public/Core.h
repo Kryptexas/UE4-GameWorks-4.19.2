@@ -190,7 +190,7 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "Delegates/DelegateBase.h"
 #include "Delegates/MulticastDelegateBase.h"
 #include "Delegates/IntegerSequence.h"
-#include "Delegates/Tuple.h"
+#include "Templates/Tuple.h"
 #include "Delegates/Delegate.h"
 #include "HAL/ThreadingBase.h"
 #include "Internationalization/CulturePointer.h"

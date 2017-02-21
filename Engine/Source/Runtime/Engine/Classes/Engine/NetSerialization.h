@@ -72,7 +72,7 @@ struct FExampleStruct
 }
 
 template<>
-struct TStructOpsTypeTraits< FExampleStruct > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FExampleStruct > : public TStructOpsTypeTraitsBase2< FExampleStruct >
 {
 	enum 
 	{
@@ -144,7 +144,7 @@ struct FExampleArray: public FFastArraySerializer
 
 /** Step 5: Copy and paste this struct trait, replacing FExampleArray with your Step 2 struct. */
 template<>
-struct TStructOpsTypeTraits< FExampleArray > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FExampleArray > : public TStructOpsTypeTraitsBase2< FExampleArray >
 {
        enum 
        {
@@ -1326,7 +1326,7 @@ struct FVector_NetQuantize : public FVector
 };
 
 template<>
-struct TStructOpsTypeTraits< FVector_NetQuantize > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FVector_NetQuantize > : public TStructOpsTypeTraitsBase2< FVector_NetQuantize >
 {
 	enum 
 	{
@@ -1371,7 +1371,7 @@ struct FVector_NetQuantize10 : public FVector
 };
 
 template<>
-struct TStructOpsTypeTraits< FVector_NetQuantize10 > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FVector_NetQuantize10 > : public TStructOpsTypeTraitsBase2< FVector_NetQuantize10 >
 {
 	enum 
 	{
@@ -1416,7 +1416,7 @@ struct FVector_NetQuantize100 : public FVector
 };
 
 template<>
-struct TStructOpsTypeTraits< FVector_NetQuantize100 > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FVector_NetQuantize100 > : public TStructOpsTypeTraitsBase2< FVector_NetQuantize100 >
 {
 	enum 
 	{
@@ -1459,7 +1459,7 @@ struct FVector_NetQuantizeNormal : public FVector
 };
 
 template<>
-struct TStructOpsTypeTraits< FVector_NetQuantizeNormal > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FVector_NetQuantizeNormal > : public TStructOpsTypeTraitsBase2< FVector_NetQuantizeNormal >
 {
 	enum 
 	{

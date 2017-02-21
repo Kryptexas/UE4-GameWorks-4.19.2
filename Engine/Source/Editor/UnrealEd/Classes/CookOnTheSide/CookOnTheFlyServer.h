@@ -291,7 +291,7 @@ public:
 			return false;
 		}
 
-		FORCEINLINE FString &&ToString() const
+		FORCEINLINE FString ToString() const
 		{
 			FString Result = FString::Printf(TEXT("%s;"), *Filename.ToString());
 
@@ -299,7 +299,7 @@ public:
 			{
 				Result += FString::Printf(TEXT("%s,"), *Platform.ToString() );
 			}
-			return MoveTemp(Result);
+			return Result;
 		}
 
 	};

@@ -69,6 +69,9 @@ struct PROJECTS_API FPluginDescriptor
 	/** Support URL/email for this plugin. */
 	FString SupportURL;
 
+	/** For packaged plugins, contains the compatible changelist of the engine that built this plugin */
+	int32 CompatibleChangelist;
+
 	/** List of all modules associated with this plugin */
 	TArray<FModuleDescriptor> Modules;
 
@@ -83,6 +86,9 @@ struct PROJECTS_API FPluginDescriptor
 
 	/** Marks the plugin as beta in the UI */
 	bool bIsBetaVersion;
+
+	/** Indicates that this plugin is a mod */
+	bool bIsMod;
 
 	/** Signifies that the plugin was installed on top of the engine */
 	bool bInstalled;

@@ -354,7 +354,11 @@ namespace UnrealBuildTool
 				// Make sure our RC files have cached includes.  
 				foreach (FileItem RCFile in SourceFilesToBuild.RCFiles)
 				{
-					RCFile.CachedIncludePaths = ModuleCompileEnvironment.IncludePaths;
+					// The default resource file (PCLaunch.rc) is created in a module-agnostic way, so we want to avoid overriding the include paths for it
+					if(RCFile.CachedIncludePaths == null)
+					{
+						RCFile.CachedIncludePaths = ModuleCompileEnvironment.IncludePaths;
+					}
 				}
 			}
 
@@ -659,7 +663,9 @@ namespace UnrealBuildTool
 			List<FileItem> NormalFiles = new List<FileItem>();
 			List<FileItem> AdaptiveFiles = new List<FileItem>();
 
-			if (Target.bAdaptiveUnityDisablesOptimizations && !Target.bStressTestUnity)
+			bool bAdaptiveUnityDisablesPCH = (Target.bAdaptiveUnityDisablesPCH && Rules.PCHUsage == ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs);
+
+			if ((Target.bAdaptiveUnityDisablesOptimizations || bAdaptiveUnityDisablesPCH) && !Target.bStressTestUnity)
 			{
 				foreach (FileItem File in SourceFiles)
 				{
@@ -688,14 +694,16 @@ namespace UnrealBuildTool
 
 			if (AdaptiveFiles.Count > 0)
 			{
-				// Create an unoptmized compilation environment. Need to turn of PCH due to different
-				// compiler settings
-				CppCompileEnvironment UnoptimziedEnvironment = new CppCompileEnvironment(ModuleCompileEnvironment);
-				UnoptimziedEnvironment.bOptimizeCode = false;
-				UnoptimziedEnvironment.PrecompiledHeaderAction = PrecompiledHeaderAction.None;
-
+				// Create the new compile environment. Always turn off PCH due to different compiler settings.
+				CppCompileEnvironment AdaptiveUnityEnvironment = new CppCompileEnvironment(ModuleCompileEnvironment);
+				if(Target.bAdaptiveUnityDisablesOptimizations)
+				{
+					AdaptiveUnityEnvironment.bOptimizeCode = false;
+				}
+				AdaptiveUnityEnvironment.PrecompiledHeaderAction = PrecompiledHeaderAction.None;
+				Console.WriteLine("Compiling {0} without PCH", String.Join(", ", AdaptiveFiles.Select(x => x.AbsolutePath)));
 				// Compile the files
-				CPPOutput AdaptiveOutput = ToolChain.CompileCPPFiles(UnoptimziedEnvironment, AdaptiveFiles, Name, ActionGraph);
+				CPPOutput AdaptiveOutput = ToolChain.CompileCPPFiles(AdaptiveUnityEnvironment, AdaptiveFiles, Name, ActionGraph);
 
 				// Merge output
 				OutputFiles.ObjectFiles.AddRange(AdaptiveOutput.ObjectFiles);

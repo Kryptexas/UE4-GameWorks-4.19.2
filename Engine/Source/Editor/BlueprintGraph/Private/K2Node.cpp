@@ -384,11 +384,11 @@ void UK2Node::PostReconstructNode()
 					if (EnumPtr)
 					{
 						const FString& PinValue = CurrentPin->DefaultValue;
-						// see if this enum is in EnumRedirects
-						int32 EnumIndex = UEnum::FindEnumRedirects(EnumPtr, *PinValue);
+						// Check for redirected enum names
+						int32 EnumIndex = EnumPtr->GetIndexByNameString(PinValue);
 						if (EnumIndex != INDEX_NONE)
 						{
-							FString EnumName = EnumPtr->GetEnumName(EnumIndex);
+							FString EnumName = EnumPtr->GetNameStringByIndex(EnumIndex);
 
 							// if the name does not match with pin value, override pin value
 							if (EnumName != PinValue)

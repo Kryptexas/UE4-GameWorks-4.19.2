@@ -408,7 +408,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FPredictionKey> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FPredictionKey> : public TStructOpsTypeTraitsBase2<FPredictionKey>
 {
 	enum
 	{
@@ -557,7 +557,7 @@ struct FReplicatedPredictionKeyMap : public FFastArraySerializer
 };
 
 template<>
-struct TStructOpsTypeTraits< FReplicatedPredictionKeyMap > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FReplicatedPredictionKeyMap > : public TStructOpsTypeTraitsBase2< FReplicatedPredictionKeyMap >
 {
 	enum
 	{

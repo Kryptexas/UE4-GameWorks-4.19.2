@@ -578,6 +578,12 @@ namespace UnrealBuildTool
 		public bool bAdaptiveUnityDisablesOptimizations = false;
 
 		/// <summary>
+		/// Disables any force-included PCHs for files that are excluded from the unity build.
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		public bool bAdaptiveUnityDisablesPCH = false;
+
+		/// <summary>
 		/// The number of source files in a game module before unity build will be activated for that module.  This
 		/// allows small game modules to have faster iterative compile times for single files, at the expense of slower full
 		/// rebuild times.  This setting can be overridden by the bFasterWithoutUnity option in a module's Build.cs file.
@@ -928,14 +934,24 @@ namespace UnrealBuildTool
 		public MacTargetRules MacPlatform = new MacTargetRules();
 
 		/// <summary>
+		/// PS4-specific target settings
+		/// </summary>
+		public PS4TargetRules PS4Platform = new PS4TargetRules();
+
+		/// <summary>
 		/// Windows-specific target settings
 		/// </summary>
 		public WindowsTargetRules WindowsPlatform = new WindowsTargetRules();
 
 		/// <summary>
+		/// XboxOne-specific target settings
+		/// </summary>
+		public XboxOneTargetRules XboxOnePlatform = new XboxOneTargetRules();
+
+		/// <summary>
 		/// Default constructor (deprecated; use the constructor below instead).
 		/// </summary>
-		[Obsolete("Please forward the TargetInfo argument to the base class constructor (eg. \"MyTargetRules(TargetInfo Target) : base(Target)\").")]
+		[Obsolete("Please pass the TargetInfo parameter to the base class constructor (eg. \"MyTargetRules(TargetInfo Target) : base(Target)\").")]
 		public TargetRules()
 		{
 			InternalConstructor();
@@ -1107,13 +1123,16 @@ namespace UnrealBuildTool
 		{
 			yield return this;
 			yield return AndroidPlatform;
+			yield return MacPlatform;
+			yield return PS4Platform;
 			yield return WindowsPlatform;
+			yield return XboxOnePlatform;
 		}
 
 		/// <summary>
 		/// Replacement for TargetInfo.IsMonolithic during transition from TargetInfo to ReadOnlyTargetRules
 		/// </summary>
-		[Obsolete("IsMonolithic is deprecated in the 4.15 release. Check whether LinkType == TargetRules.TargetLinkType.Monolithic instead.")]
+		[Obsolete("IsMonolithic is deprecated in the 4.16 release. Check whether LinkType == TargetRules.TargetLinkType.Monolithic instead.")]
 		public bool IsMonolithic
 		{
 			get { return LinkType == TargetLinkType.Monolithic; }
@@ -1238,7 +1257,7 @@ namespace UnrealBuildTool
 		/// <param name="Target">The target information - such as platform and configuration</param>
 		/// <param name="OutBuildBinaryConfigurations">Output list of binaries to generated</param>
 		/// <param name="OutExtraModuleNames">Output list of extra modules that this target could utilize</param>
-		[ObsoleteOverride("SetupBinaries() is deprecated in the 4.15 release. From the constructor in your .target.cs file, use ModuleNames.Add(\"Foo\") to add modules to your target, or set LaunchModuleName = \"Foo\" to override the name of the launch module for program targets.")]
+		[ObsoleteOverride("SetupBinaries() is deprecated in the 4.16 release. From the constructor in your .target.cs file, use ExtraModuleNames.Add(\"Foo\") to add modules to your target, or set LaunchModuleName = \"Foo\" to override the name of the launch module for program targets.")]
 		public virtual void SetupBinaries(
 			TargetInfo Target,
 			ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
@@ -1270,7 +1289,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Target">Information about the target</param>
 		/// <returns>True if the target should use the shared build environment</returns>
-		[ObsoleteOverride("ShouldUseSharedBuildEnvironment() is deprecated in the 4.15 release. Set the BuildEnvironment field from the TargetRules constructor instead.")]
+		[ObsoleteOverride("ShouldUseSharedBuildEnvironment() is deprecated in the 4.16 release. Set the BuildEnvironment field from the TargetRules constructor instead.")]
 		public virtual bool ShouldUseSharedBuildEnvironment(TargetInfo Target)
 		{
 			return UnrealBuildTool.IsEngineInstalled() || (Target.Type != global::UnrealBuildTool.TargetType.Program && !Target.IsMonolithic);
@@ -1332,7 +1351,9 @@ namespace UnrealBuildTool
 			this.Inner = Inner;
 			AndroidPlatform = new ReadOnlyAndroidTargetRules(Inner.AndroidPlatform);
 			MacPlatform = new ReadOnlyMacTargetRules(Inner.MacPlatform);
+			PS4Platform = new ReadOnlyPS4TargetRules(Inner.PS4Platform);
 			WindowsPlatform = new ReadOnlyWindowsTargetRules(Inner.WindowsPlatform);
+			XboxOnePlatform = new ReadOnlyXboxOneTargetRules(Inner.XboxOnePlatform);
 		}
 
 		/// <summary>
@@ -1671,6 +1692,11 @@ namespace UnrealBuildTool
 			get { return Inner.bAdaptiveUnityDisablesOptimizations; }
 		}
 
+		public bool bAdaptiveUnityDisablesPCH
+		{
+			get { return Inner.bAdaptiveUnityDisablesPCH; }
+		}
+
 		public int MinGameModuleSourceFilesForUnityBuild
 		{
 			get { return Inner.MinGameModuleSourceFilesForUnityBuild; }
@@ -1881,7 +1907,7 @@ namespace UnrealBuildTool
 			get { return Inner.LinkType; }
 		}
 
-		[Obsolete("IsMonolithic is deprecated in the 4.15 release. Check whether LinkType == TargetRules.TargetLinkType.Monolithic instead.")]
+		[Obsolete("IsMonolithic is deprecated in the 4.16 release. Check whether LinkType == TargetRules.TargetLinkType.Monolithic instead.")]
 		public bool IsMonolithic
 		{
 			get { return LinkType == TargetLinkType.Monolithic; }
@@ -1919,7 +1945,19 @@ namespace UnrealBuildTool
 			private set;
 		}
 
+		public ReadOnlyPS4TargetRules PS4Platform
+		{
+			get;
+			private set;
+		}
+
 		public ReadOnlyWindowsTargetRules WindowsPlatform
+		{
+			get;
+			private set;
+		}
+
+		public ReadOnlyXboxOneTargetRules XboxOnePlatform
 		{
 			get;
 			private set;

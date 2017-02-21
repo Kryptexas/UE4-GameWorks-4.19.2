@@ -416,6 +416,10 @@ namespace AutomationTool
 					{
 						Writer.WriteAttributeString("Project", Badge.Project);
 					}
+					if (Badge.Change != 0)
+					{
+						Writer.WriteAttributeString("Change", Badge.Change.ToString());
+					}
 					Writer.WriteAttributeString("Requires", String.Join(";", Badge.Nodes.Select(x => x.Name)));
 					Writer.WriteEndElement();
 				}
@@ -500,6 +504,10 @@ namespace AutomationTool
 						if (!String.IsNullOrEmpty(Badge.Project))
 						{
 							JsonWriter.WriteValue("Project", Badge.Project);
+						}
+						if(Badge.Change != 0)
+						{
+							JsonWriter.WriteValue("Change", Badge.Change);
 						}
 						JsonWriter.WriteValue("AllDependencies", String.Join(";", Agents.SelectMany(x => x.Nodes).Where(x => Dependencies.Contains(x)).Select(x => x.Name)));
 						JsonWriter.WriteValue("DirectDependencies", String.Join(";", DirectDependencies.Select(x => x.Name)));

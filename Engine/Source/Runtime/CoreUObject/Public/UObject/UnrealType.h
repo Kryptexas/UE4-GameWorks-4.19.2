@@ -4716,8 +4716,6 @@ public:
 	COREUOBJECT_API void GetPropertyChain(TArray<const UProperty*>& PropertyChain) const;
 
 private:
-	typedef TPairInitializer<const UProperty*, const void*> BasePairInitializerType;
-
 	struct FPropertyValueStackEntry
 	{
 		/** Field iterator within a UStruct */

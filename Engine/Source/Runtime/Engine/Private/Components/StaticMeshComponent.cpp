@@ -312,7 +312,7 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 			if (LODData[LODIndex].LegacyMapBuildData)
 			{
 				LODData[LODIndex].LegacyMapBuildData->IrrelevantLights = IrrelevantLights_DEPRECATED;
-				LegacyComponentData.Data.Add(TPairInitializer<FGuid, FMeshMapBuildData*>(LODData[LODIndex].MapBuildDataId, LODData[LODIndex].LegacyMapBuildData));
+				LegacyComponentData.Data.Emplace(LODData[LODIndex].MapBuildDataId, LODData[LODIndex].LegacyMapBuildData);
 				LODData[LODIndex].LegacyMapBuildData = NULL;
 			}
 		}

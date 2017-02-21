@@ -711,7 +711,7 @@ public:
 };
 
 template<>
-struct TStructOpsTypeTraits<FConstraintInstance> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FConstraintInstance> : public TStructOpsTypeTraitsBase2<FConstraintInstance>
 {
 	enum 
 	{

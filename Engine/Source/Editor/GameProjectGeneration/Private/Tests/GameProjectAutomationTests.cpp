@@ -104,7 +104,7 @@ namespace GameProjectAutomationUtils
 			// We didn't match a category
 			if (SourceCategoryEnum != nullptr)
 			{
-				UE_LOG(LogGameProjectGenerationTests, Display, TEXT("Test failed! Unknown category type %d"), *SourceCategoryEnum->GetEnumName(int32(InCategory)));
+				UE_LOG(LogGameProjectGenerationTests, Display, TEXT("Test failed! Unknown category type %s"), *SourceCategoryEnum->GetNameStringByValue(int64(InCategory)));
 			}
 			else
 			{
@@ -172,7 +172,7 @@ namespace GameProjectAutomationUtils
 					if (!GameProjectUtils::CreateProject(ProjectInfo, FailReason, FailLog, &CreatedFiles))
 					{
 						// Failed, report the reason
-						UE_LOG(LogGameProjectGenerationTests, Error, TEXT("Failed to create %s project %s based on %s. Reason: %s\nProject Creation Failure Log:\n%s"), *SourceCategoryEnum->GetEnumName((int32)InCategory), *DesiredProjectFilename, *Item->Name.ToString(), *FailReason.ToString(), *FailLog.ToString());
+						UE_LOG(LogGameProjectGenerationTests, Error, TEXT("Failed to create %s project %s based on %s. Reason: %s\nProject Creation Failure Log:\n%s"), *SourceCategoryEnum->GetNameStringByValue((int64)InCategory), *DesiredProjectFilename, *Item->Name.ToString(), *FailReason.ToString(), *FailLog.ToString());
 					}
 					else
 					{

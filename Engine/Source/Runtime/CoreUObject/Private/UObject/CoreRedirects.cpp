@@ -923,8 +923,7 @@ ECoreRedirectFlags FCoreRedirects::GetFlagsForTypeClass(UClass *TypeClass)
 	return GetFlagsForTypeName(TypeClass->GetOutermost()->GetFName(), TypeClass->GetFName());
 }
 
-#if WITH_EDITORONLY_DATA
-// These redirects are very old, only load them in editor builds
+// We want to only load these redirects in editor builds, but Matinee needs them at runtime still 
 
 PRAGMA_DISABLE_OPTIMIZATION
 
@@ -1731,12 +1730,8 @@ static void RegisterNativeRedirects49(TArray<FCoreRedirect>& Redirects)
 
 PRAGMA_ENABLE_OPTIMIZATION
 
-#endif //WITH_EDITORONLY_DATA
-
 void FCoreRedirects::RegisterNativeRedirects()
 {
-#if WITH_EDITORONLY_DATA
-
 	// Registering redirects here instead of in baseengine.ini is faster to parse and can clean up the ini, but is not required
 	TArray<FCoreRedirect> Redirects;
 
@@ -1747,6 +1742,4 @@ void FCoreRedirects::RegisterNativeRedirects()
 	// 4.10 and later are in baseengine.ini
 
 	AddRedirectList(Redirects, TEXT("RegisterNativeRedirects"));
-
-#endif //WITH_EDITORONLY_DATA
 }

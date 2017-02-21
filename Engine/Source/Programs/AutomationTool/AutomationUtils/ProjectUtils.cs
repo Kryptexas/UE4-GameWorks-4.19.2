@@ -158,6 +158,20 @@ namespace AutomationTool
                 return true;
             }
 
+			if (ClientTargetPlatforms != null)
+			{
+				foreach (UnrealTargetPlatform ClientPlatform in ClientTargetPlatforms)
+				{
+					String EncryptionKey;
+					String[] SigningKeys;
+					EncryptionAndSigning.ParseEncryptionIni(RawProjectPath.Directory, ClientPlatform, out SigningKeys, out EncryptionKey);
+					if (SigningKeys != null || !string.IsNullOrEmpty(EncryptionKey))
+					{
+						return true;
+					}
+				}
+			}
+
 			// no Target file, now check to see if build settings have changed
 			List<UnrealTargetPlatform> TargetPlatforms = ClientTargetPlatforms;
 			if (ClientTargetPlatforms == null || ClientTargetPlatforms.Count < 1)

@@ -207,18 +207,18 @@ namespace {
 					return false;
 				}
 
-				int32 Index = ByteProperty->Enum->FindEnumIndex(*StringValue);
+				int32 Index = ByteProperty->Enum->GetIndexByNameString(StringValue);
 				if (Index == INDEX_NONE)
 				{
 					return false;
 				}
 
-				return SetPropertyValue(ByteProperty, Outer, Data, ArrayIndex, (uint8)Index);
+				return SetPropertyValue(ByteProperty, Outer, Data, ArrayIndex, (uint8)ByteProperty->Enum->GetValueByIndex(Index));
 			}
 
 			if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
 			{
-				int32 Index = EnumProperty->GetEnum()->FindEnumIndex(*StringValue);
+				int32 Index = EnumProperty->GetEnum()->GetIndexByNameString(StringValue);
 				if (Index == INDEX_NONE)
 				{
 					return false;
@@ -226,7 +226,7 @@ namespace {
 
 				if (void* ElementPtr = GetPropertyValuePtr(EnumProperty, Outer, Data, ArrayIndex))
 				{
-					EnumProperty->GetUnderlyingProperty()->SetIntPropertyValue(ElementPtr, (int64)Index);
+					EnumProperty->GetUnderlyingProperty()->SetIntPropertyValue(ElementPtr, EnumProperty->GetEnum()->GetValueByIndex(Index));
 					return true;
 				}
 

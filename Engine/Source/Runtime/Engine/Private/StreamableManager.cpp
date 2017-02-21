@@ -998,6 +998,11 @@ void FStreamableManager::CheckCompletedRequests(const FStringAssetReference& Tar
 
 void FStreamableManager::RemoveReferencedAsset(const FStringAssetReference& Target, TSharedRef<FStreamableHandle> Handle)
 {
+	if (Target.IsNull())
+	{
+		return;
+	}
+
 	FStreamable* Existing = FindStreamable(Target);
 
 	// This should always be in the active handles list

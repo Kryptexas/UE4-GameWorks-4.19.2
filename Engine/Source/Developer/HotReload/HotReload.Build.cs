@@ -18,7 +18,8 @@ public class HotReload : ModuleRules
 				{
 					"Analytics",
 					"DirectoryWatcher",
-					"DesktopPlatform"
+					"DesktopPlatform",
+					"Projects"
 				}
 			);
 

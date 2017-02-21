@@ -217,7 +217,7 @@ bool UObjectLibrary::AddObject(UObject *NewObject)
 
 bool UObjectLibrary::RemoveObject(UObject *ObjectToRemove)
 {
-	if (bUseWeakReferences)
+	if (!bUseWeakReferences)
 	{
 		if (Objects.Remove(ObjectToRemove) != 0)
 		{

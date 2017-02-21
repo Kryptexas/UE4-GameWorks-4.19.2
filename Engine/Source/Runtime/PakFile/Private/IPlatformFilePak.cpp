@@ -90,9 +90,8 @@ inline void DecryptData(uint8* InData, uint32 InDataSize)
 
 #if USE_PAK_PRECACHE
 #include "TaskGraphInterfaces.h"
-
-
-#define PAK_CACHE_GRANULARITY FPakInfo::MaxChunkDataSize
+#define PAK_CACHE_GRANULARITY (64*1024)
+static_assert((PAK_CACHE_GRANULARITY % FPakInfo::MaxChunkDataSize) == 0, "PAK_CACHE_GRANULARITY must be set to a multiple of FPakInfo::MaxChunkDataSize");
 #define PAK_CACHE_MAX_REQUESTS (8)
 #define PAK_CACHE_MAX_PRIORITY_DIFFERENCE_MERGE (AIOP_Normal - AIOP_Precache)
 #define PAK_EXTRA_CHECKS DO_CHECK
@@ -111,19 +110,26 @@ static FAutoConsoleVariableRef CVar_Enable(
 	TEXT("If > 0, then enable the pak cache.")
 	);
 
-static int32 GPakCache_MaxRequestsToLowerLevel = 2;
+int32 GPakCache_MaxRequestsToLowerLevel = 2;
 static FAutoConsoleVariableRef CVar_MaxRequestsToLowerLevel(
 	TEXT("pakcache.MaxRequestsToLowerLevel"),
 	GPakCache_MaxRequestsToLowerLevel,
 	TEXT("Controls the maximum number of IO requests submitted to the OS filesystem at one time. Limited by PAK_CACHE_MAX_REQUESTS.")
 	);
 
-static int32 GPakCache_MaxRequestSizeToLowerLevelKB = 1024;
+int32 GPakCache_MaxRequestSizeToLowerLevelKB = 1024;
 static FAutoConsoleVariableRef CVar_MaxRequestSizeToLowerLevelKB(
 	TEXT("pakcache.MaxRequestSizeToLowerLevellKB"),
 	GPakCache_MaxRequestSizeToLowerLevelKB,
 	TEXT("Controls the maximum size (in KB) of IO requests submitted to the OS filesystem.")
 	);
+
+int32 GPakCache_NumUnreferencedBlocksToCache = 10;
+static FAutoConsoleVariableRef CVar_NumUnreferencedBlocksToCache(
+	TEXT("pakcache.NumUnreferencedBlocksToCache"),
+	GPakCache_NumUnreferencedBlocksToCache,
+	TEXT("Controls the maximum number of unreferenced blocks to keep. This is a classic disk cache and the maxmimum wasted memory is pakcache.MaxRequestSizeToLowerLevellKB * pakcache.NumUnreferencedBlocksToCache.")
+);
 
 class FPakPrecacher;
 
@@ -939,7 +945,7 @@ class FPakPrecacher
 	TIntervalTreeAllocator<FCacheBlock> CacheBlockAllocator;
 	TMap<uint64, TIntervalTreeIndex> OutstandingRequests;
 
-
+	TArray<FJoinedOffsetAndPakIndex> OffsetAndPakIndexOfSavedBlocked;
 
 	struct FRequestToLower
 	{
@@ -984,6 +990,7 @@ public:
 			FPakPrecacher* LocalPakPrecacherSingleton = PakPrecacherSingleton;
 			if (LocalPakPrecacherSingleton && LocalPakPrecacherSingleton == FPlatformAtomics::InterlockedCompareExchangePointer((void**)&PakPrecacherSingleton, nullptr, LocalPakPrecacherSingleton))
 			{
+				LocalPakPrecacherSingleton->TrimCache(true);
 				double StartTime = FPlatformTime::Seconds();
 				while (!LocalPakPrecacherSingleton->IsProbablyIdle())
 				{
@@ -1069,7 +1076,7 @@ public:
 				delete Reader;
 
 				// Check that we have the correct match between signature and pre-cache granularity
-				int64 NumPakChunks = Align(PakFileSize, PAK_CACHE_GRANULARITY) / PAK_CACHE_GRANULARITY;
+				int64 NumPakChunks = Align(PakFileSize, FPakInfo::MaxChunkDataSize) / FPakInfo::MaxChunkDataSize;
 				ensure(NumPakChunks == Pak.ChunkHashes.Num());
 
 				// Decrypt signature hash
@@ -1335,6 +1342,45 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 		verify(OutstandingRequests.Remove(Id) == 1);
 		InRequestAllocator.Free(Index);
 	}
+	void TrimCache(bool bDiscardAll = false)
+	{
+		// CachedFilesScopeLock is locked
+		int32 NumToKeep = bDiscardAll ? 0 : GPakCache_NumUnreferencedBlocksToCache;
+		int32 NumToRemove = FMath::Max<int32>(0, OffsetAndPakIndexOfSavedBlocked.Num() - NumToKeep);
+		if (NumToRemove)
+		{
+			for (int32 Index = 0; Index < NumToRemove; Index++)
+			{
+				FJoinedOffsetAndPakIndex OffsetAndPakIndex = OffsetAndPakIndexOfSavedBlocked[Index];
+				uint16 PakIndex = GetRequestPakIndex(OffsetAndPakIndex);
+				int64 Offset = GetRequestOffset(OffsetAndPakIndex);
+				FPakData& Pak = CachedPakData[PakIndex];
+				MaybeRemoveOverlappingNodesInIntervalTree<FCacheBlock>(
+					&Pak.CacheBlocks[(int32)EBlockStatus::Complete],
+					CacheBlockAllocator,
+					Offset,
+					Offset,
+					0,
+					Pak.MaxNode,
+					Pak.StartShift,
+					Pak.MaxShift,
+					[this](TIntervalTreeIndex BlockIndex) -> bool
+				{
+					FCacheBlock &Block = CacheBlockAllocator.Get(BlockIndex);
+					if (!Block.InRequestRefCount)
+					{
+						ClearBlock(Block);
+						return true;
+					}
+					return false;
+				}
+				);
+
+
+			}
+			OffsetAndPakIndexOfSavedBlocked.RemoveAt(0, NumToRemove, false);
+		}
+	}
 
 	void RemoveRequest(TIntervalTreeIndex Index)
 	{
@@ -1348,28 +1394,35 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 
 		if (RemoveFromIntervalTree<FPakInRequest>(&Pak.InRequests[Request.Priority][(int32)Request.Status], InRequestAllocator, Index, Pak.StartShift, Pak.MaxShift))
 		{
+
+			int64 OffsetOfLastByte = Offset + Size - 1;
 			MaybeRemoveOverlappingNodesInIntervalTree<FCacheBlock>(
 				&Pak.CacheBlocks[(int32)EBlockStatus::Complete],
 				CacheBlockAllocator,
 				Offset,
-				Offset + Size - 1,
+				OffsetOfLastByte,
 				0,
 				Pak.MaxNode,
 				Pak.StartShift,
 				Pak.MaxShift,
-				[this](TIntervalTreeIndex BlockIndex) -> bool
+				[this, OffsetOfLastByte](TIntervalTreeIndex BlockIndex) -> bool
 				{
 					FCacheBlock &Block = CacheBlockAllocator.Get(BlockIndex);
 					check(Block.InRequestRefCount);
 					if (!--Block.InRequestRefCount)
 					{
+						if (GPakCache_NumUnreferencedBlocksToCache && GetRequestOffset(Block.OffsetAndPakIndex) + Block.Size > OffsetOfLastByte) // last block
+						{
+							OffsetAndPakIndexOfSavedBlocked.Add(Block.OffsetAndPakIndex);
+							return false;
+						}
 						ClearBlock(Block);
 						return true;
 					}
 					return false;
 				}
 			);
-
+			TrimCache();
 			OverlappingNodesInIntervalTree<FCacheBlock>(
 				Pak.CacheBlocks[(int32)EBlockStatus::InFlight],
 				CacheBlockAllocator,
@@ -1760,6 +1813,45 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 	void StartBlockTask(FCacheBlock& Block)
 	{
 		// CachedFilesScopeLock is locked
+
+#define CHECK_REDUNDANT_READS (0)
+#if CHECK_REDUNDANT_READS
+		static struct FRedundantReadTracker
+		{
+			TMap<int64, double> LastReadTime;
+			int32 NumRedundant;
+			FRedundantReadTracker()
+				: NumRedundant(0)
+			{
+			}
+
+			void CheckBlock(int64 Offset, int64 Size)
+			{
+				double NowTime = FPlatformTime::Seconds();
+				int64 StartBlock = Offset / PAK_CACHE_GRANULARITY;
+				int64 LastBlock = (Offset + Size - 1) / PAK_CACHE_GRANULARITY;
+				for (int64 CurBlock = StartBlock; CurBlock <= LastBlock; CurBlock++)
+				{
+					double LastTime = LastReadTime.FindRef(CurBlock);
+					if (LastTime > 0.0 && NowTime - LastTime < 3.0)
+					{
+						NumRedundant++;
+						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Redundant read at block %d, %6.1fms ago       (%d total redundant blocks)\r\n"), int32(CurBlock), 1000.0f * float(NowTime - LastTime), NumRedundant);
+					}
+					LastReadTime.Add(CurBlock, NowTime);
+				}
+			}
+		} RedundantReadTracker;
+#else
+		static struct FRedundantReadTracker
+		{
+			FORCEINLINE void CheckBlock(int64 Offset, int64 Size)
+			{
+			}
+		} RedundantReadTracker;
+
+#endif
+
 		int32 IndexToFill = OpenTaskSlot();
 		if (IndexToFill < 0)
 		{
@@ -1790,6 +1882,7 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 		};
 
 		RequestsToLower[IndexToFill].RequestHandle = Pak.Handle->ReadRequest(GetRequestOffset(Block.OffsetAndPakIndex), Block.Size, Priority, &CallbackFromLower);
+		RedundantReadTracker.CheckBlock(GetRequestOffset(Block.OffsetAndPakIndex), Block.Size);
 		LastReadRequest = Block.OffsetAndPakIndex + Block.Size;
 		Loads++;
 		LoadSize += Block.Size;
@@ -1829,10 +1922,11 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 
 #if 0
 				static int64 LastPrint = 0;
-				if (BlockMemoryHighWater / 1024 / 1024 != LastPrint)
+				if (BlockMemoryHighWater / 1024 / 1024 /16 != LastPrint)
 				{
-					LastPrint = BlockMemoryHighWater / 1024 / 1024;
-					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Precache HighWater %dMB\r\n"), int32(LastPrint));
+					LastPrint = BlockMemoryHighWater / 1024 / 1024 / 16;
+					//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Precache HighWater %dMB\r\n"), int32(LastPrint));
+					UE_LOG(LogPakFile, Log, TEXT("Precache HighWater %dMB\r\n"), int32(LastPrint * 16));
 				}
 #endif
 			}
@@ -2084,6 +2178,7 @@ public:
 			UE_LOG(LogPakFile, Log, TEXT("Pak file %s was never used, so nothing to unmount"), *PakFile.ToString());
 			return; // never used for anything, nothing to check or clean up
 		}
+		TrimCache(true);
 		uint16 PakIndex = *PakIndexPtr;
 		FPakData& Pak = CachedPakData[PakIndex];
 		int64 Offset = MakeJoinedRequest(PakIndex, 0);
@@ -2734,17 +2829,17 @@ void FPakPrecacher::DoSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Reque
 		RequestToLower.RequestHandle = Request;
 		RequestToLower.Memory = Request->GetReadResults();
 
-		NumSignaturesToCheck = Align(RequestToLower.RequestSize, PAK_CACHE_GRANULARITY) / PAK_CACHE_GRANULARITY;
+		NumSignaturesToCheck = Align(RequestToLower.RequestSize, FPakInfo::MaxChunkDataSize) / FPakInfo::MaxChunkDataSize;
 		check(NumSignaturesToCheck >= 1);
 
 		FCacheBlock& Block = CacheBlockAllocator.Get(RequestToLower.BlockIndex);
 		RequestOffset = GetRequestOffset(Block.OffsetAndPakIndex);
-		check((RequestOffset % PAK_CACHE_GRANULARITY) == 0);
+		check((RequestOffset % FPakInfo::MaxChunkDataSize) == 0);
 		RequestSize = RequestToLower.RequestSize;
 		int64 PakIndex = GetRequestPakIndex(Block.OffsetAndPakIndex);
 		PakData = &CachedPakData[PakIndex];
 		Data = RequestToLower.Memory;
-		SignatureIndex = RequestOffset / PAK_CACHE_GRANULARITY;
+		SignatureIndex = RequestOffset / FPakInfo::MaxChunkDataSize;
 	}
 
 	check(Data);
@@ -2756,7 +2851,7 @@ void FPakPrecacher::DoSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Reque
 	// Hash the contents of the incoming buffer and check that it matches what we expected
 	for (int64 SignedChunkIndex = 0; SignedChunkIndex < NumSignaturesToCheck; ++SignedChunkIndex, ++SignatureIndex)
 	{
-		int64 Size = FMath::Min(RequestSize, (int64)PAK_CACHE_GRANULARITY);
+		int64 Size = FMath::Min(RequestSize, (int64)FPakInfo::MaxChunkDataSize);
 
 		{
 			SCOPE_SECONDS_ACCUMULATOR(STAT_PakCache_SigningChunkHashTime);
@@ -2771,9 +2866,9 @@ void FPakPrecacher::DoSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Reque
 
 		INC_MEMORY_STAT_BY(STAT_PakCache_SigningChunkHashSize, Size);
 
-		RequestOffset += PAK_CACHE_GRANULARITY;
-		Data += PAK_CACHE_GRANULARITY;
-		RequestSize -= PAK_CACHE_GRANULARITY;
+		RequestOffset += Size;
+		Data += Size;
+		RequestSize -= Size;
 	}
 
 	NewRequestsToLowerComplete(bWasCanceled, Request, Index);
@@ -4029,7 +4124,7 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 void FPakPlatformFile::InitializeNewAsyncIO()
 {
 #if USE_PAK_PRECACHE 
-	if (!WITH_EDITOR && FPlatformProcess::SupportsMultithreading() && GNewAsyncIO)
+	if (!WITH_EDITOR && FPlatformProcess::SupportsMultithreading() && GNewAsyncIO && !FParse::Param(FCommandLine::Get(), TEXT("FileOpenLog")))
 	{
 		FEncryptionKey DecryptionKey;
 		FString PakSigningKeyExponent, PakSigningKeyModulus;
@@ -4041,6 +4136,7 @@ void FPakPlatformFile::InitializeNewAsyncIO()
 	}
 	else
 	{
+		UE_CLOG(FParse::Param(FCommandLine::Get(), TEXT("FileOpenLog")), LogPakFile, Display, TEXT("Disabled pak precacher to get an accurate load order. This should only be used to collect gameopenorder.log, as it is quite slow."));
 		GPakCache_Enable = 0;
 	}
 #endif

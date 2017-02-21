@@ -566,10 +566,13 @@ FSharedSamplerState* Clamp_WorldGroupSettings = NULL;
 
 void InitializeSharedSamplerStates()
 {
-	Wrap_WorldGroupSettings = new FSharedSamplerState(true);
-	Clamp_WorldGroupSettings = new FSharedSamplerState(false);
-	BeginInitResource(Wrap_WorldGroupSettings);
-	BeginInitResource(Clamp_WorldGroupSettings);
+	if (!Wrap_WorldGroupSettings)
+	{
+		Wrap_WorldGroupSettings = new FSharedSamplerState(true);
+		Clamp_WorldGroupSettings = new FSharedSamplerState(false);
+		BeginInitResource(Wrap_WorldGroupSettings);
+		BeginInitResource(Clamp_WorldGroupSettings);
+	}
 }
 
 

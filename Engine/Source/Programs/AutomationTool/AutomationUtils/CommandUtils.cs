@@ -1668,13 +1668,40 @@ namespace AutomationTool
 		{
             try
             {
-                Parallel.ForEach(SourceAndTargetPairs, Pair => File.Move(Pair.Key.FullName, Pair.Value.FullName));
+                Parallel.ForEach(SourceAndTargetPairs, x => MoveFile(x.Key, x.Value));
             }
             catch (AggregateException Ex)
             {
                 throw new AutomationException(Ex, "Failed to thread-copy files.");
             }
         }
+
+		/// <summary>
+		/// Move a file from one place to another 
+		/// </summary>
+		/// <param name="SourceAndTarget">Source and target file</param>
+		public static void MoveFile(FileReference SourceFile, FileReference TargetFile)
+		{
+			// Create the directory for the target file
+			try
+			{
+				Directory.CreateDirectory(TargetFile.Directory.FullName);
+			}
+			catch(Exception Ex)
+			{
+				throw new AutomationException(Ex, "Unable to create directory {0} while moving {1} to {2}", TargetFile.Directory, SourceFile, TargetFile);
+			}
+
+			// Move the file
+			try
+			{
+				File.Move(SourceFile.FullName, TargetFile.FullName);
+			}
+			catch(Exception Ex)
+			{
+				throw new AutomationException(Ex, "Unable to move {0} to {1}", SourceFile, TargetFile);
+			}
+		}
 
 		#endregion
 

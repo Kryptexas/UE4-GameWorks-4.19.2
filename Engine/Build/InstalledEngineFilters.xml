@@ -33,6 +33,7 @@
 
 	<Property Name="WindowsSignFilter" Value="*.exe;*.dll"/>
 	<Property Name="MacSignFilter" Value="*.dylib;*.app"/>
+	<Property Name="SignExceptions" Value=".../ThirdParty/..."/>
 
 	<!-- List of projects to build DDC for -->
 	<Property Name="ProjectsToBuildDDC" Value="Templates/FP_FirstPersonBP/FP_FirstPersonBP.uproject"/>
@@ -53,10 +54,6 @@
 	<!-- Define Filters/Exceptions to make it easy to add to them -->
 	<Property Name="CopyEditorFilter" Value=""/>
 	<Property Name="CopyEditorExceptions" Value=""/>
-
-	<!-- Tool dependencies -->
-	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/DotNET/Ionic.Zip.Reduced.dll"/>
-	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/DotNET/OneSky.dll"/>
 
 	<!-- API docs -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/CHM/API.chm" If="Exists('Engine/Documentation/CHM/API.chm')"/>

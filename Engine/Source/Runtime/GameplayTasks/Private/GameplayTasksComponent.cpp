@@ -17,7 +17,7 @@ namespace
 	FORCEINLINE const TCHAR* GetGameplayTaskEventName(EGameplayTaskEvent Event)
 	{
 		/*static const UEnum* GameplayTaskEventEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayTaskEvent"));
-		return GameplayTaskEventEnum->GetEnumText(static_cast<int32>(Event)).ToString();*/
+		return GameplayTaskEventEnum->GetDisplayNameTextByValue(static_cast<int64>(Event)).ToString();*/
 
 		return Event == EGameplayTaskEvent::Add ? TEXT("Add") : TEXT("Remove");
 	}
@@ -551,7 +551,7 @@ FString UGameplayTasksComponent::GetTaskStateName(EGameplayTaskState Value)
 {
 	static const UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayTaskState"));
 	check(Enum);
-	return Enum->GetEnumName(int32(Value));
+	return Enum->GetNameStringByValue(int64(Value));
 }
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 

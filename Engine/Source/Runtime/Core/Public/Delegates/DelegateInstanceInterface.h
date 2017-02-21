@@ -4,7 +4,7 @@
 
 #include "Misc/AssertionMacros.h"
 #include "Templates/TypeCompatibleBytes.h"
-#include "Delegates/Tuple.h"
+#include "Templates/Tuple.h"
 
 class FDelegateBase;
 class IDelegateInstance;

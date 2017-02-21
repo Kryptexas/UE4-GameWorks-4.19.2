@@ -93,7 +93,7 @@ struct FReverbSettings
 };
 
 template<>
-struct TStructOpsTypeTraits<FReverbSettings> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FReverbSettings> : public TStructOpsTypeTraitsBase2<FReverbSettings>
 {
 	enum 
 	{
@@ -179,7 +179,7 @@ struct FInteriorSettings
 };
 
 template<>
-struct TStructOpsTypeTraits<FInteriorSettings> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FInteriorSettings> : public TStructOpsTypeTraitsBase2<FInteriorSettings>
 {
 	enum
 	{

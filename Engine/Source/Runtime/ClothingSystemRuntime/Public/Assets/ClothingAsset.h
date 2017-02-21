@@ -121,7 +121,7 @@ struct FClothLODData
 };
 
 template<>
-struct TStructOpsTypeTraits<FClothLODData> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FClothLODData> : public TStructOpsTypeTraitsBase2<FClothLODData>
 {
 	enum
 	{

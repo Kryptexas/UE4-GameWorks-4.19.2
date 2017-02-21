@@ -52,9 +52,11 @@ void FAnimGraphModule::ShutdownModule()
 	FEditorModeRegistry::Get().UnregisterMode(AnimNodeEditModes::AnimNode);
 
 	// Unregister details customization
-	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	PropertyModule.UnregisterCustomClassLayout(UAnimGraphNode_PoseDriver::StaticClass()->GetFName());
-
+	if (UObjectInitialized() && FModuleManager::Get().IsModuleLoaded(TEXT("PropertyEditor")))
+	{
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.UnregisterCustomClassLayout(UAnimGraphNode_PoseDriver::StaticClass()->GetFName());
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

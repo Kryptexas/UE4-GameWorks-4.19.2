@@ -232,7 +232,7 @@ class BuildPlugin : BuildCommand
 	{
 		// Set up the default filter
 		FileFilter Filter = new FileFilter();
-		Filter.AddRuleForFile(PluginFile.FullName, PluginFile.Directory.FullName, FileFilterType.Include);
+		Filter.AddRuleForFile(PluginFile, PluginFile.Directory, FileFilterType.Include);
 		Filter.AddRuleForFiles(BuildProducts, PluginFile.Directory, FileFilterType.Include);
 		Filter.Include("/Binaries/ThirdParty/...");
 		Filter.Include("/Resources/...");

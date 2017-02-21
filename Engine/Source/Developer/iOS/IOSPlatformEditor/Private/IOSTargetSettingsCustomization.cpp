@@ -1548,7 +1548,7 @@ TSharedRef<SWidget> FIOSTargetSettingsCustomization::OnGetShaderVersionContent()
 		if (Enum->IsValidEnumValue(i))
 		{
 			FUIAction ItemAction(FExecuteAction::CreateSP(this, &FIOSTargetSettingsCustomization::SetShaderStandard, i));
-			MenuBuilder.AddMenuEntry(Enum->GetEnumTextByValue(i), TAttribute<FText>(), FSlateIcon(), ItemAction);
+			MenuBuilder.AddMenuEntry(Enum->GetDisplayNameTextByValue(i), TAttribute<FText>(), FSlateIcon(), ItemAction);
 		}
 	}
 	
@@ -1564,7 +1564,7 @@ FText FIOSTargetSettingsCustomization::GetShaderVersionDesc() const
 	
 	if (EnumValue < Enum->GetMaxEnumValue() && Enum->IsValidEnumValue(EnumValue))
 	{
-		return Enum->GetEnumTextByValue(EnumValue);
+		return Enum->GetDisplayNameTextByValue(EnumValue);
 	}
 	
 	return FText::GetEmpty();

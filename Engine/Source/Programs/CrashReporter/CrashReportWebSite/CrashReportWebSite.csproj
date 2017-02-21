@@ -337,6 +337,14 @@
       <LastGenOutput>CrashReports.cs</LastGenOutput>
     </Content>
     <Content Include="Global.asax" />
+    <EntityDeploy Include="DataModels\CrashReports.edmx">
+      <Generator>EntityModelCodeGenerator</Generator>
+      <LastGenOutput>CrashReports.Designer.cs</LastGenOutput>
+    </EntityDeploy>
+    <Content Include="DataModels\CrashReports.edmx.diagram">
+      <DependentUpon>CrashReports.edmx</DependentUpon>
+    </Content>
+    <None Include="Properties\PublishProfiles\CRB.pubxml" />
     <None Include="Scripts\jquery-3.1.1.intellisense.js" />
     <Content Include="Scripts\jquery-3.1.1.js" />
     <Content Include="Scripts\jquery-3.1.1.min.js" />
@@ -357,13 +365,6 @@
     <None Include="Views\Dashboard\Index.cshtml" />
     <None Include="Views\Crashes\Show.cshtml" />
     <None Include="Views\Reports\Index.cshtml" />
-    <EntityDeploy Include="DataModels\CrashReports.edmx">
-      <Generator>EntityModelCodeGenerator</Generator>
-      <LastGenOutput>CrashReports.Designer.cs</LastGenOutput>
-    </EntityDeploy>
-    <Content Include="DataModels\CrashReports.edmx.diagram">
-      <DependentUpon>CrashReports.edmx</DependentUpon>
-    </Content>
     <Content Include="Views\Home\Index.cshtml" />
     <Content Include="Views\Crashes\Index.cshtml" />
     <Content Include="Views\Crashes\ViewCrash.cshtml" />

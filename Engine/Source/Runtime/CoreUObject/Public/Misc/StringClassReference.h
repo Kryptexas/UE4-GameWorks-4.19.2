@@ -68,7 +68,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FStringClassReference> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FStringClassReference> : public TStructOpsTypeTraitsBase2<FStringClassReference>
 {
 	enum 
 	{

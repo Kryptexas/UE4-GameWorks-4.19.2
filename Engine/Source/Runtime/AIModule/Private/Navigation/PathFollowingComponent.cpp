@@ -73,7 +73,7 @@ FPathFollowingResult::FPathFollowingResult(EPathFollowingResult::Type ResultCode
 FString FPathFollowingResult::ToString() const
 {
 	static UEnum* ResultEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPathFollowingResult"));
-	return FString::Printf(TEXT("%s[%s]"), ResultEnum ? *ResultEnum->GetEnumName(Code) : TEXT("??"), *FPathFollowingResultFlags::ToString(Flags));
+	return FString::Printf(TEXT("%s[%s]"), ResultEnum ? *ResultEnum->GetNameStringByValue(Code) : TEXT("??"), *FPathFollowingResultFlags::ToString(Flags));
 }
 
 FString FPathFollowingResultFlags::ToString(uint16 Value)
@@ -230,7 +230,7 @@ FString GetPathDescHelper(FNavPathSharedPtr Path)
 void UPathFollowingComponent::OnPathEvent(FNavigationPath* InPath, ENavPathEvent::Type Event)
 {
 	const static UEnum* NavPathEventEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ENavPathEvent"));
-	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("OnPathEvent: %s"), *NavPathEventEnum->GetEnumName(Event));
+	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("OnPathEvent: %s"), *NavPathEventEnum->GetNameStringByValue(Event));
 
 	if (InPath && Path.Get() == InPath)
 	{
@@ -1594,7 +1594,7 @@ FString UPathFollowingComponent::GetStatusDesc() const
 	const static UEnum* StatusEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPathFollowingStatus"));
 	if (StatusEnum)
 	{
-		return StatusEnum->GetEnumName(Status);
+		return StatusEnum->GetNameStringByValue(Status);
 	}
 
 	return TEXT("Unknown");
@@ -1605,7 +1605,7 @@ FString UPathFollowingComponent::GetResultDesc(EPathFollowingResult::Type Result
 	const static UEnum* ResultEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPathFollowingResult"));
 	if (ResultEnum)
 	{
-		return ResultEnum->GetEnumName(Result);
+		return ResultEnum->GetNameStringByValue(Result);
 	}
 
 	return TEXT("Unknown");
@@ -1751,7 +1751,7 @@ void UPathFollowingComponent::LockResource(EAIRequestPriority::Type LockSource)
 	ResourceLock.SetLock(LockSource);
 	if (bWasLocked == false)
 	{
-		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Locking Move by source %s"), SourceEnum ? *SourceEnum->GetEnumName(Status) : TEXT("invalid"));
+		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Locking Move by source %s"), SourceEnum ? *SourceEnum->GetNameStringByValue(Status) : TEXT("invalid"));
 		PauseMove(CurrentRequestId, EPathFollowingVelocityMode::Reset);
 	}
 }

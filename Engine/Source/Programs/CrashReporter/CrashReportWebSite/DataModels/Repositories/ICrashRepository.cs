@@ -8,7 +8,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
     /// <summary>
     /// 
     /// </summary>
-    public interface ICrashRepository: IDataRepository<Crash>
+    public interface ICrashRepository : IDataRepository<Crash>
     {
         List<SelectListItem> GetBranchesAsListItems();
         List<SelectListItem> GetPlatformsAsListItems();

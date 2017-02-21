@@ -16,7 +16,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 	public class BuggsViewModel
 	{
 		/// <summary>Tooltip for "Crash Groups" tab</summary>
-		public const string Tooltip = "Collections of crashes that have the exact same callstack.";
+		public const string Tooltip = "Collections of Crashes that have the exact same callstack.";
 
 		/// <summary>A container of sorted Buggs.</summary>
 		public IEnumerable<Bugg> Results { get; set; }
@@ -39,10 +39,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 		/// <summary>The query that filtered the results.</summary>
 		public string SearchQuery { get; set; }
 		
-		/// <summary>The date of the earliest crash in a Bugg.</summary>
+		/// <summary>The date of the earliest Crash in a Bugg.</summary>
 		public long DateFrom { get; set; }
 		
-		/// <summary>The date of the most recent crash in a Bugg.</summary>
+		/// <summary>The date of the most recent Crash in a Bugg.</summary>
 		public long DateTo { get; set; }
 
         /// <summary>The name of the branch to filter by.</summary>

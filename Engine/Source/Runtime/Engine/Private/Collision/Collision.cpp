@@ -548,14 +548,14 @@ namespace CollisionResponseConsoleCommands
 		return Result;
 	}
 
-	FString GetDisplayNameText(const UEnum* Enum, int32 Index, const FString& Fallback)
+	FString GetDisplayNameText(const UEnum* Enum, int64 Value, const FString& Fallback)
 	{
 		if (Enum)
 		{
 			#if WITH_EDITOR
-				return Enum->GetDisplayNameText(Index).ToString();
+				return Enum->GetDisplayNameTextByValue(Value).ToString();
 			#else
-				return FName::NameToDisplayString(Enum->GetEnumName(Index), false);
+				return FName::NameToDisplayString(Enum->GetNameStringByValue(Value), false);
 			#endif
 		}
 		return Fallback;
@@ -595,11 +595,11 @@ namespace CollisionResponseConsoleCommands
 		const UEnum *ChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECollisionChannel"), true);
 		if (ChannelEnum)
 		{
-			for (int32 ChannelIndex = 0; ChannelIndex < ECollisionChannel::ECC_MAX; ChannelIndex++)
+			for (int32 ChannelValue = 0; ChannelValue < ECollisionChannel::ECC_MAX; ChannelValue++)
 			{
-				const FString ChannelShortName = ChannelEnum->GetEnumName(ChannelIndex);
-				const FString ChannelDisplayName = GetDisplayNameText(ChannelEnum, ChannelIndex, ChannelShortName);
-				UE_LOG(LogCollisionCommands, Log, TEXT("%2d: %s (%s)"), ChannelIndex, *ChannelShortName, *ChannelDisplayName);
+				const FString ChannelShortName = ChannelEnum->GetNameStringByValue(ChannelValue);
+				const FString ChannelDisplayName = GetDisplayNameText(ChannelEnum, ChannelValue, ChannelShortName);
+				UE_LOG(LogCollisionCommands, Log, TEXT("%2d: %s (%s)"), ChannelValue, *ChannelShortName, *ChannelDisplayName);
 			}
 		}
 	}
@@ -680,17 +680,18 @@ namespace CollisionResponseConsoleCommands
 			const FString NullString(TEXT(""));
 			for (int32 ChannelIndex = 0; ChannelIndex < ChannelEnum->NumEnums(); ChannelIndex++)
 			{
-				const FString ChannelDisplayName = GetDisplayNameText(ChannelEnum, ChannelIndex, NullString);
+				int64 ChannelValue = ChannelEnum->GetValueByIndex(ChannelIndex);
+				const FString ChannelDisplayName = GetDisplayNameText(ChannelEnum, ChannelValue, NullString);
 				if (ChannelDisplayName == InString)
 				{
-					return ECollisionChannel(ChannelEnum->GetValueByIndex(ChannelIndex));
+					return ECollisionChannel(ChannelValue);
 				}
 			}
 		}
 
 		// Try parsing a digit, as in from the ListChannels command
-		const int32 ChannelIndex = FCString::IsNumeric(*InString) ? FCString::Atoi(*InString) : INDEX_NONE;
-		return (ChannelIndex >= 0 && ChannelIndex < ECollisionChannel::ECC_MAX) ? ECollisionChannel(ChannelIndex) : ECollisionChannel::ECC_MAX;
+		const int32 ChannelValue = FCString::IsNumeric(*InString) ? FCString::Atoi(*InString) : INDEX_NONE;
+		return (ChannelValue >= 0 && ChannelValue < ECollisionChannel::ECC_MAX) ? ECollisionChannel(ChannelValue) : ECollisionChannel::ECC_MAX;
 	}
 
 	FName StringToCollisionProfile(const FString& InString)
@@ -772,8 +773,8 @@ namespace CollisionResponseConsoleCommands
 
 				if (ChannelEnum)
 				{
-					const FString ChannelName = ChannelEnum->GetNameByIndex((int32)Comp->GetCollisionObjectType()).ToString();
-					const FString ChannelDisplayName = GetDisplayNameText(ChannelEnum, (int32)Comp->GetCollisionObjectType(), ChannelName);
+					const FString ChannelName = ChannelEnum->GetNameByValue((int64)Comp->GetCollisionObjectType()).ToString();
+					const FString ChannelDisplayName = GetDisplayNameText(ChannelEnum, (int64)Comp->GetCollisionObjectType(), ChannelName);
 					MaxChannelWidth = FMath::Max<int32>(MaxChannelWidth, ChannelDisplayName.Len());
 				}
 
@@ -799,8 +800,8 @@ namespace CollisionResponseConsoleCommands
 			int32 Index=0;
 			for (UPrimitiveComponent* Comp : Results)
 			{
-				const FString ChannelName = (ChannelEnum ? ChannelEnum->GetNameByIndex((int32)Comp->GetCollisionObjectType()).ToString() : TEXT("<unknown>"));
-				const FString ChannelDisplayName = GetDisplayNameText(ChannelEnum, (int32)Comp->GetCollisionObjectType(), ChannelName);
+				const FString ChannelName = (ChannelEnum ? ChannelEnum->GetNameByValue((int64)Comp->GetCollisionObjectType()).ToString() : TEXT("<unknown>"));
+				const FString ChannelDisplayName = GetDisplayNameText(ChannelEnum, (int64)Comp->GetCollisionObjectType(), ChannelName);
 				UObject* Outer = Comp->GetOuter();
 				if (Outer)
 				{
@@ -890,7 +891,7 @@ namespace CollisionResponseConsoleCommands
 		}
 		check(RequiredResponse < ECollisionResponse::ECR_MAX);
 		const UEnum *ChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECollisionChannel"), true);
-		const FString ChannelName = (ChannelEnum ? ChannelEnum->GetEnumName(TestChannel) : TEXT("<unknown>"));
+		const FString ChannelName = (ChannelEnum ? ChannelEnum->GetNameStringByValue(TestChannel) : TEXT("<unknown>"));
 		const FString ChannelDisplayName = GetDisplayNameText(ChannelEnum, TestChannel, ChannelName);
 		UE_LOG(LogCollisionCommands, Log, TEXT("----------------------------------------------------------------------"));
 		UE_LOG(LogCollisionCommands, Log, TEXT("Found %d profiles with '%s' response to channel '%s' ('%s')"), Results.Num(), *ResponseStrings[(int32)RequiredResponse], *ChannelName, *ChannelDisplayName);

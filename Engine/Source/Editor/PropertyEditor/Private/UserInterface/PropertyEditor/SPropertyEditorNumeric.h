@@ -83,13 +83,8 @@ public:
 
 							BitmaskFlag->Value = TBitmaskValueHelpers<NumericType>::LeftShift(static_cast<NumericType>(1), static_cast<int32>(BitmaskFlagIndex));
 
-							BitmaskFlag->DisplayName = BitmaskEnum->GetDisplayNameText(BitmaskEnumIndex);
-							if (BitmaskFlag->DisplayName.IsEmpty())
-							{
-								BitmaskFlag->DisplayName = FText::FromString(BitmaskEnum->GetEnumName(BitmaskEnumIndex));
-							}
-
-							BitmaskFlag->ToolTipText = BitmaskEnum->GetToolTipText(BitmaskEnumIndex);
+							BitmaskFlag->DisplayName = BitmaskEnum->GetDisplayNameTextByIndex(BitmaskEnumIndex);
+							BitmaskFlag->ToolTipText = BitmaskEnum->GetToolTipTextByIndex(BitmaskEnumIndex);
 							if (BitmaskFlag->ToolTipText.IsEmpty())
 							{
 								BitmaskFlag->ToolTipText = FText::Format(LOCTEXT("BitmaskDefaultFlagToolTipText", "Toggle {0} on/off"), BitmaskFlag->DisplayName);

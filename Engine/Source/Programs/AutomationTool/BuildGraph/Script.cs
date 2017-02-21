@@ -792,8 +792,9 @@ namespace AutomationTool
 			{
 				string[] RequiredNames = ReadListAttribute(Element, "Requires");
 				string Project = ReadAttribute(Element, "Project");
+				int Change = ReadIntegerAttribute(Element, "Change", 0);
 
-				Badge NewBadge = new Badge(Name, Project);
+				Badge NewBadge = new Badge(Name, Project, Change);
 				foreach (Node ReferencedNode in ResolveReferences(Element, RequiredNames))
 				{
 					NewBadge.Nodes.Add(ReferencedNode);
@@ -1452,6 +1453,33 @@ namespace AutomationTool
 				}
 			}
 			return bResult;
+		}
+
+		/// <summary>
+		/// Reads an attribute from the given XML element, expands any properties in it, and parses it as an integer.
+		/// </summary>
+		/// <param name="Element">Element to read the attribute from</param>
+		/// <param name="Name">Name of the attribute</param>
+		/// <param name="DefaultValue">Default value for the integer, if the attribute is missing</param>
+		/// <returns>The value of the attribute field</returns>
+		int ReadIntegerAttribute(ScriptElement Element, string Name, int DefaultValue)
+		{
+			int Result = DefaultValue;
+			if (Element.HasAttribute(Name))
+			{
+				string Value = ReadAttribute(Element, Name).Trim();
+
+				int IntValue;
+				if (Int32.TryParse(Value, out IntValue))
+				{
+					Result = IntValue;
+				}
+				else
+				{
+					LogError(Element, "Invalid integer value '{0}'", Value);
+				}
+			}
+			return Result;
 		}
 
 		/// <summary>

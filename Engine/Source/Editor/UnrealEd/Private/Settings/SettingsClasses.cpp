@@ -230,7 +230,7 @@ FAutoReimportDirectoryConfig::FParseContext::FParseContext(bool bInEnableLogging
 	for (FString& RootPath : RootContentPaths)
 	{
 		FString ContentFolder = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(RootPath));
-		MountedPaths.Add( TPairInitializer<FString, FString>(MoveTemp(ContentFolder), MoveTemp(RootPath)) );
+		MountedPaths.Emplace( MoveTemp(ContentFolder), MoveTemp(RootPath) );
 	}
 }
 

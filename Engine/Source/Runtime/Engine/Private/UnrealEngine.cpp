@@ -6489,7 +6489,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("CRTINVALID")))
 	{
 		SetCrashType(ECrashType::Debug);
-		FString::Printf(NULL);
+		FString::Printf(TEXT("%s"), (const char*)nullptr);
 		return true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("HITCH")))
@@ -12795,7 +12795,7 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 				{
 					if (WaveInstanceInfo.ActualVolume >= 0.01f)
 					{
-						WaveInstances.Add(TPairInitializer<const FAudioStats::FStatWaveInstanceInfo*, const FAudioStats::FStatSoundInfo*>(&WaveInstanceInfo, &StatSoundInfo));
+						WaveInstances.Emplace(&WaveInstanceInfo, &StatSoundInfo);
 					}
 				}
 			}

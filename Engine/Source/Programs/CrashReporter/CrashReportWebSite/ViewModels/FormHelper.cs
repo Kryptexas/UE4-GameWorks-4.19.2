@@ -23,10 +23,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 		/// <summary>Epic ID or Machine ID as query for filtering.</summary>
 		public string EpicIdOrMachineQuery = "";
 
-		/// <summary>Jira as query for crash filtering.</summary>
+		/// <summary>Jira as query for Crash filtering.</summary>
 		public string JiraQuery = "";
 
-        /// <summary> Jira Id for crash/bugg filtering </summary>
+        /// <summary> Jira Id for Crash/bugg filtering </summary>
 	    public string JiraId = "";
 
 		/// <summary>Message/Summary or Description as query for filtering.</summary>
@@ -47,7 +47,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 		/// <summary>The term to sort by. e.g. Jira.</summary>
 		public string SortTerm = "";
 
-		/// <summary>The types of crashes we wish to see.</summary>
+		/// <summary>The types of Crashes we wish to see.</summary>
 		public string CrashType = "CrashesAsserts";
 
 		/// <summary>Whether to sort ascending or descending.</summary>

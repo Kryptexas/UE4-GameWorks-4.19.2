@@ -586,7 +586,7 @@ void FOpenGLDynamicRHI::CachedSetupTextureStage(FOpenGLContextState& ContextStat
 		}
 		TextureState.NumMips = NumMips;
 		
-		TextureMipLimits.Add(Resource, TPairInitializer<GLenum, GLenum>(BaseMip, MaxMip));
+		TextureMipLimits.Add(Resource, TPair<GLenum, GLenum>(BaseMip, MaxMip));
 	}
 	else
 	{

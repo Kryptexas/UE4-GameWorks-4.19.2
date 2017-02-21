@@ -127,13 +127,15 @@
   </Choose>
   <ItemGroup>
     <Compile Include="Configuration\ModuleRules.cs" />
+    <Compile Include="Configuration\PlatformTargetRules.cs" />
     <Compile Include="Configuration\UEBuildBinaryCPP.cs" />
     <Compile Include="Configuration\UEBuildBinaryCSDLL.cs" />
     <Compile Include="Configuration\UEBuildDeployTarget.cs" />
     <Compile Include="Configuration\UEBuildModuleExternal.cs" />
-    <Compile Include="Configuration\UEBuildPlatformContext.cs" />
     <Compile Include="Configuration\UEBuildPlatformFactory.cs" />
     <Compile Include="Configuration\UEBuildPlatformSDK.cs" />
+    <Compile Include="System\FileFilter.cs" />
+    <Compile Include="System\FileFilterNode.cs" />
     <Compile Include="System\PrecompiledHeaderInstance.cs" />
     <Compile Include="System\PrecompiledHeaderTemplate.cs" />
     <Compile Include="Configuration\TargetInfo.cs" />
@@ -194,6 +196,7 @@
     <Compile Include="ToolChain\RemoteExports.cs" />
     <Compile Include="Utilities\BinaryReaderExtensions.cs" />
     <Compile Include="Utilities\BinaryWriterExtensions.cs" />
+    <Compile Include="Utilities\EncryptionAndSigning.cs" />
     <Compile Include="Utilities\HashSetExtensions.cs" />
     <Compile Include="Windows\WindowsDeploy.cs" />
     <Compile Include="Windows\WinResources.cs" />

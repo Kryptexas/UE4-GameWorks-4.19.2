@@ -1591,7 +1591,7 @@ struct ENGINE_API FTestStruct
 };
 
 template<>
-struct TStructOpsTypeTraits<FTestStruct> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FTestStruct> : public TStructOpsTypeTraitsBase2<FTestStruct>
 {
 	enum 
 	{

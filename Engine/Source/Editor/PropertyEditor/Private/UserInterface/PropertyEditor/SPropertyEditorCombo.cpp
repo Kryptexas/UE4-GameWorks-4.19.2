@@ -14,8 +14,8 @@ static int32 FindEnumValueIndex(UEnum* Enum, FString const& ValueString)
 	int32 Index = INDEX_NONE;
 	for(int32 ValIndex = 0; ValIndex < Enum->NumEnums(); ++ValIndex)
 	{
-		FString const EnumName    = Enum->GetEnumName(ValIndex);
-		FString const DisplayName = Enum->GetDisplayNameText(ValIndex).ToString();
+		FString const EnumName    = Enum->GetNameStringByIndex(ValIndex);
+		FString const DisplayName = Enum->GetDisplayNameTextByIndex(ValIndex).ToString();
 
 		if (DisplayName.Len() > 0)
 		{
@@ -140,19 +140,17 @@ void SPropertyEditorCombo::GenerateComboBoxStrings( TArray< TSharedPtr<FString> 
 
 				for(int32 EnumIdx = 0; EnumIdx < Enum->NumEnums() - 1; ++EnumIdx)
 				{
-					FString Excerpt = Enum->GetEnumName(EnumIdx);
+					FString Excerpt = Enum->GetNameStringByIndex(EnumIdx);
 
 					bool bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIdx) || Enum->HasMetaData(TEXT("Spacer"), EnumIdx);
 					if(!bShouldBeHidden && AllowedPropertyEnums.Num() != 0)
 					{
-						bShouldBeHidden = AllowedPropertyEnums.Find(Enum->GetEnum(EnumIdx)) == INDEX_NONE;
+						bShouldBeHidden = AllowedPropertyEnums.Find(Enum->GetNameByIndex(EnumIdx)) == INDEX_NONE;
 					}
 
 					if (!bShouldBeHidden)
 					{
-						// See if we specified an alternate name for this value using metadata
-						const FString EnumValueName = Enum->GetEnumName(EnumIdx);
-						bShouldBeHidden = PropertyEditor->GetPropertyHandle()->IsHidden(EnumValueName);
+						bShouldBeHidden = PropertyEditor->GetPropertyHandle()->IsHidden(Excerpt);
 					}
 				
 					if(!bShouldBeHidden)
@@ -213,9 +211,9 @@ void SPropertyEditorCombo::SendToObjects( const FString& NewValue )
 		const int32 Index = FindEnumValueIndex(Enum, NewValue);
 		check( Index != INDEX_NONE );
 
-		Value = Enum->GetEnumName(Index);
+		Value = Enum->GetNameStringByIndex(Index);
 
-		FText ToolTipValue = Enum->GetToolTipText(Index);
+		FText ToolTipValue = Enum->GetToolTipTextByIndex(Index);
 		FText ToolTipText = Property->GetToolTipText();
 		if (!ToolTipValue.IsEmpty())
 		{

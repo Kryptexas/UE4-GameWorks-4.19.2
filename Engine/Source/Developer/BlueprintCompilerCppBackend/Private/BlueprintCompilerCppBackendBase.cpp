@@ -886,7 +886,7 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* So
 		{
 			return FString::Printf(TEXT("%s_MAX"), *EnumCppName);
 		}
-		return SourceEnum->GetEnumName(InIndex);
+		return SourceEnum->GetNameStringByIndex(InIndex);
 	};
 
 	for (int32 Index = 0; Index < SourceEnum->NumEnums(); ++Index)
@@ -940,7 +940,7 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* So
 	{
 		const FString ElemName = EnumItemName(Index);
 		FString DisplayNameStr;
-		FTextStringHelper::WriteToString(DisplayNameStr, SourceEnum->GetEnumText(Index));
+		FTextStringHelper::WriteToString(DisplayNameStr, SourceEnum->GetDisplayNameTextByIndex(Index));
 		Body.AddLine(FString::Printf(TEXT("case %s::%s: FTextStringHelper::%s(TEXT(\"%s\"), Text); break;")
 			, *EnumCppName, *ElemName
 			, GET_FUNCTION_NAME_STRING_CHECKED(FTextStringHelper, ReadFromString)

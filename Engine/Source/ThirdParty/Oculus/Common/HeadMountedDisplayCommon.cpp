@@ -1112,7 +1112,7 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 	}
 	else if (FParse::Command(&Cmd, TEXT("HMDVERSION")))
 	{
-		Ar.Logf(*GetVersionString());
+		Ar.Logf(TEXT("%s"), *GetVersionString());
 		return true;
 	}
 	return false;

@@ -1414,7 +1414,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedPackageInitCode(const UPackage*
 
 }
 
-void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, FUHTStringBuilder& OutFriendText)
+void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FUnrealSourceFile& SourceFile, FClass* Class, FUHTStringBuilder& OutFriendText)
 {
 	FUHTStringBuilder& GeneratedFunctionText = GetGeneratedFunctionTextDevice();
 	check(!OutFriendText.Len());
@@ -1455,7 +1455,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 
 		if (!Function->IsA<UDelegateFunction>())
 		{
-			ExportFunction(Function, &FScope::GetTypeScope(Class).Get(), bIsNoExport);
+			ExportFunction(SourceFile, Function, &FScope::GetTypeScope(Class).Get(), bIsNoExport);
 		}
 
 		CallSingletons.Logf(TEXT("\t\t\t\tOuterClass->LinkChild(%s);\r\n"), *GetSingletonName(Function));
@@ -1658,7 +1658,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 		// Calculate generated class initialization code CRC so that we know when it changes after hot-reload
 		uint32 ClassCrc = GenerateTextCRC(*GeneratedClassRegisterFunctionText);
 		GGeneratedCodeCRCs.Add(Class, ClassCrc);
-		UHTMakefile.AddGeneratedCodeCRC(CurrentSourceFile.Top(), Class, ClassCrc);
+		UHTMakefile.AddGeneratedCodeCRC(&SourceFile, Class, ClassCrc);
 		// Emit the IMPLEMENT_CLASS macro to go in the generated cpp file.
 		if (!bIsDynamic)
 		{
@@ -1671,7 +1671,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 	}
 }
 
-void FNativeClassHeaderGenerator::ExportFunction(UFunction* Function, FScope* Scope, bool bIsNoExport)
+void FNativeClassHeaderGenerator::ExportFunction(FUnrealSourceFile& SourceFile, UFunction* Function, FScope* Scope, bool bIsNoExport)
 {
 	UFunction* SuperFunction = Function->GetSuperFunction();
 
@@ -1799,7 +1799,7 @@ void FNativeClassHeaderGenerator::ExportFunction(UFunction* Function, FScope* Sc
 
 	uint32 FunctionCrc = GenerateTextCRC(*CurrentFunctionText);
 	GGeneratedCodeCRCs.Add(Function, FunctionCrc);
-	UHTMakefile.AddGeneratedCodeCRC(CurrentSourceFile.Top(), Function, FunctionCrc);
+	UHTMakefile.AddGeneratedCodeCRC(&SourceFile, Function, FunctionCrc);
 	GetGeneratedFunctionTextDevice() += CurrentFunctionText;
 }
 
@@ -2102,12 +2102,6 @@ static FString PrivatePropertiesOffsetGetters(const UStruct* Struct, const FStri
 
 void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSourceFile& SourceFile)
 {
-	CurrentSourceFile.Push(&SourceFile);
-	ON_SCOPE_EXIT
-	{
-		CurrentSourceFile.Pop();
-	};
-
 	NameLookupCPP.SetCurrentSourceFile(&SourceFile);
 	UHTMakefile.AddToHeaderOrder(&SourceFile);
 	TArray<UEnum*>				Enums;
@@ -2134,10 +2128,10 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 	ExportDelegateDefinitions(SourceFile, DelegateFunctions, false);
 
 	// Export enums declared in non-UClass headers.
-	ExportGeneratedEnumsInitCode(Enums);
+	ExportGeneratedEnumsInitCode(SourceFile, Enums);
 
 	// export boilerplate macros for structs
-	ExportGeneratedStructBodyMacros(Structs);
+	ExportGeneratedStructBodyMacros(SourceFile, Structs);
 
 	// export delegate wrapper function implementations
 	ExportDelegateDefinitions(SourceFile, DelegateFunctions, true);
@@ -2169,7 +2163,7 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 		ExportNatives(Class);
 
 		FUHTStringBuilder FriendText;
-		ExportNativeGeneratedInitCode(Class, FriendText);
+		ExportNativeGeneratedInitCode(SourceFile, Class, FriendText);
 
 		FClass* SuperClass = Class->GetSuperClass();
 
@@ -2727,11 +2721,6 @@ void FNativeClassHeaderGenerator::ExportConstructorsMacros(const FString& Constr
 
 void FNativeClassHeaderGenerator::ExportClassesFromSourceFileWrapper(FUnrealSourceFile& SourceFile)
 {
-	CurrentSourceFile.Push(&SourceFile);
-	ON_SCOPE_EXIT
-	{
-		CurrentSourceFile.Pop();
-	};
 	check(!GeneratedHeaderText.Len());
 	ExportClassesFromSourceFileInner(SourceFile);
 
@@ -2820,12 +2809,6 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileWrapper(FUnrealSour
 
 void FNativeClassHeaderGenerator::ExportSourceFileHeaderRecursive(FClasses& AllClasses, FUnrealSourceFile* SourceFile, TSet<const FUnrealSourceFile*>& VisitedSet, bool bCheckDependenciesOnly)
 {
-	CurrentSourceFile.Push(SourceFile);
-	ON_SCOPE_EXIT
-	{
-		CurrentSourceFile.Pop();
-	};
-
 	bool bIsCorrectHeader = SourceFile->GetPackage() == Package;
 
 	// Check for circular header dependencies between export classes.
@@ -2946,7 +2929,7 @@ void FNativeClassHeaderGenerator::ExportEnums( const TArray<UEnum*>& Enums )
 }
 
 // Exports the header text for the list of structs specified (GENERATED_BODY impls)
-void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<UScriptStruct*>& NativeStructs)
+void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(FUnrealSourceFile& SourceFile, const TArray<UScriptStruct*>& NativeStructs)
 {
 	// reverse the order.
 	for (int32 i = NativeStructs.Num() - 1; i >= 0; --i)
@@ -2978,7 +2961,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<U
 			const FString SuperTypedef = BaseStruct ? FString::Printf(TEXT("\ttypedef %s Super;\r\n"), NameLookupCPP.GetNameCPP(BaseStruct)) : FString();
 
 			const FString CombinedLine = FriendLine + StaticClassLine + PrivatePropertiesOffset + SuperTypedef;
-			const FString MacroName = CurrentSourceFile.Top()->GetGeneratedBodyMacroName(Struct->StructMacroDeclaredLineNumber);
+			const FString MacroName = SourceFile.GetGeneratedBodyMacroName(Struct->StructMacroDeclaredLineNumber);
 
 			const FString Macroized = Macroize(*MacroName, *CombinedLine);
 			GeneratedHeaderText.Log(*Macroized);
@@ -3151,7 +3134,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<U
 
 			uint32 StructCrc = GenerateTextCRC(*GeneratedStructRegisterFunctionText);
 			GGeneratedCodeCRCs.Add(ScriptStruct, StructCrc);
-			UHTMakefile.AddGeneratedCodeCRC(CurrentSourceFile.Top(), ScriptStruct, StructCrc);
+			UHTMakefile.AddGeneratedCodeCRC(&SourceFile, ScriptStruct, StructCrc);
 
 			auto& GeneratedFunctionText = GetGeneratedFunctionTextDevice();
 			GeneratedFunctionText += GeneratedStructRegisterFunctionText;
@@ -3162,7 +3145,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<U
 	}
 }
 
-void FNativeClassHeaderGenerator::ExportGeneratedEnumsInitCode(const TArray<UEnum*>& Enums)
+void FNativeClassHeaderGenerator::ExportGeneratedEnumsInitCode(FUnrealSourceFile& SourceFile, const TArray<UEnum*>& Enums)
 {
 	// reverse the order.
 	for (int32 i = Enums.Num() - 1; i >= 0; --i)
@@ -3267,7 +3250,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedEnumsInitCode(const TArray<UEnu
 			{
 				const TCHAR* OverridenNameMetaDatakey = TEXT("OverrideName");
 				const FString KeyName = Enum->HasMetaData(OverridenNameMetaDatakey, Index) ? Enum->GetMetaData(OverridenNameMetaDatakey, Index) : Enum->GetNameByIndex(Index).ToString();
-				GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tEnumNames.Add(TPairInitializer<FName, int64>(FName(TEXT(\"%s\")), %lld));\r\n"), *KeyName, Enum->GetValueByIndex(Index));
+				GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tEnumNames.Emplace(TEXT(\"%s\"), %lld);\r\n"), *KeyName, Enum->GetValueByIndex(Index));
 			}
 
 			FString EnumTypeStr;
@@ -3305,7 +3288,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedEnumsInitCode(const TArray<UEnu
 
 			uint32 EnumCrc = GenerateTextCRC(*GeneratedEnumRegisterFunctionText);
 			GGeneratedCodeCRCs.Add(Enum, EnumCrc);
-			UHTMakefile.AddGeneratedCodeCRC(CurrentSourceFile.Top(), Enum, EnumCrc);
+			UHTMakefile.AddGeneratedCodeCRC(&SourceFile, Enum, EnumCrc);
 			GeneratedFunctionText.Logf(TEXT("\tuint32 %s() { return %uU; }\r\n"), *CRCFuncName, EnumCrc);
 			// CallSingletons.Logf(TEXT("\t\t\t\tOuterClass->LinkChild(%s); // %u\r\n"), *EnumSingletonName, EnumCrc);
 		}
@@ -3460,7 +3443,7 @@ void FNativeClassHeaderGenerator::ExportDelegateDefinitions(FUnrealSourceFile& S
 			// Only exporting function prototype
 			DelegateOutput.Logf(TEXT(";\r\n"));
 
-			ExportFunction(Function, &CurrentSourceFile.Top()->GetScope().Get(), false);
+			ExportFunction(SourceFile, Function, &SourceFile.GetScope().Get(), false);
 		}
 		else
 		{
@@ -5058,11 +5041,6 @@ bool FNativeClassHeaderGenerator::FindInterDependencyRecursive( TMap<const FStri
 	return false;
 }
 
-bool IsExportClass(FClass* Class)
-{
-	return Class->HasAnyClassFlags(CLASS_Native) && !Class->HasAnyClassFlags(CLASS_NoExport | CLASS_Intrinsic);
-}
-
 FUHTStringBuilder& FNativeClassHeaderGenerator::GetGeneratedFunctionTextDevice()
 {
 	static struct FMaxLinesPerCpp
@@ -5121,8 +5099,6 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator(
 	GeneratedMCPFilenameBase = PackageName + TEXT(".generated");
 	bFailIfGeneratedCodeChanges = FParse::Param(FCommandLine::Get(), TEXT("FailIfGeneratedCodeChanges"));
 
-	bool bPackageHasAnyExportClasses = AllClasses.GetClassesInPackage(Package).ContainsByPredicate(IsExportClass);
-	bool bHasNamesForExport = false;
 	TempHeaderPaths.Reset();
 	PackageHeaderPaths.Reset();
 
@@ -5136,6 +5112,10 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator(
 	GeneratedFunctionBodyTextSplit.Reset();
 	ListOfPublicClassesUObjectHeaderModuleIncludes.Reset();
 
+	const bool bPackageHasAnyExportClasses = AllClasses.GetClassesInPackage(Package).ContainsByPredicate([](FClass* Class)
+	{
+		return Class->HasAnyClassFlags(CLASS_Native) && !Class->HasAnyClassFlags(CLASS_NoExport | CLASS_Intrinsic);
+	});
 	if (bPackageHasAnyExportClasses)
 	{
 		FString PkgDir;
@@ -5218,8 +5198,7 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator(
 			SaveHeaderIfChanged(*ClassesHeaderPath, *FullClassesHeader);
 		}
 	}
-
-	if (!bPackageHasAnyExportClasses)
+	else
 	{
 		// If no headers are generated, check if there's any no export classes that need to have the inl file generated.
 		for (auto* SourceFile : SourceFiles)

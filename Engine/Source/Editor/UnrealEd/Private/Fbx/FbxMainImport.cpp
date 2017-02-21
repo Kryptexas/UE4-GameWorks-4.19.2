@@ -1075,7 +1075,7 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 						Attribs.Add(FAnalyticsEventAttribute(TEXT("FBX Version"), FbxFileVersion));
 						Attribs.Add(FAnalyticsEventAttribute(TEXT("Filename Hash"), FilenameHash));
 
-						Attribs.Add(FAnalyticsEventAttribute(TEXT("Import Type"), FBXImportTypeEnum->GetEnumName(ImportOptions->ImportType)));
+						Attribs.Add(FAnalyticsEventAttribute(TEXT("Import Type"), FBXImportTypeEnum->GetNameStringByValue(ImportOptions->ImportType)));
 
 						FString EventString = FString::Printf(TEXT("Editor.Usage.FBX.Import"));
 						FEngineAnalytics::GetProvider().RecordEvent(EventString, Attribs);

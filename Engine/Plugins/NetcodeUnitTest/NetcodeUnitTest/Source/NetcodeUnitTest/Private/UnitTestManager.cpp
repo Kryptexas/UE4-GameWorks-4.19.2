@@ -765,7 +765,7 @@ void UUnitTestManager::PrintUnitTestResult(UUnitTest* InUnitTest, bool bFinalSum
 	}
 
 	STATUS_LOG_OBJ(InUnitTest, ELogType::StatusImportant,	TEXT("  - Result: %s"),
-					(bUnfinished ? TEXT("Aborted/Unfinished") : *VerificationStateEnum->GetEnumName((uint32)UnitTestResult)));
+					(bUnfinished ? TEXT("Aborted/Unfinished") : *VerificationStateEnum->GetNameStringByValue((int64)UnitTestResult)));
 	STATUS_LOG_OBJ(InUnitTest, ELogType::StatusVerbose,	TEXT("  - Execution Time: %f"), InUnitTest->LastExecutionTime);
 
 

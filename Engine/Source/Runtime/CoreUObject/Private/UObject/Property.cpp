@@ -21,7 +21,7 @@ DEFINE_LOG_CATEGORY(LogProperty);
 
 // List the core ones here as they have already been included (and can be used without CoreUObject!)
 template<>
-struct TStructOpsTypeTraits<FVector> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FVector> : public TStructOpsTypeTraitsBase2<FVector>
 {
 	enum 
 	{
@@ -34,7 +34,7 @@ struct TStructOpsTypeTraits<FVector> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Vector);
 
 template<>
-struct TStructOpsTypeTraits<FIntPoint> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FIntPoint> : public TStructOpsTypeTraitsBase2<FIntPoint>
 {
 	enum 
 	{
@@ -46,7 +46,7 @@ struct TStructOpsTypeTraits<FIntPoint> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(IntPoint);
 
 template<>
-struct TStructOpsTypeTraits<FVector2D> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FVector2D> : public TStructOpsTypeTraitsBase2<FVector2D>
 {
 	enum 
 	{
@@ -59,7 +59,7 @@ struct TStructOpsTypeTraits<FVector2D> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Vector2D);
 
 template<>
-struct TStructOpsTypeTraits<FVector4> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FVector4> : public TStructOpsTypeTraitsBase2<FVector4>
 {
 	enum 
 	{
@@ -71,7 +71,7 @@ struct TStructOpsTypeTraits<FVector4> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Vector4);
 
 template<>
-struct TStructOpsTypeTraits<FPlane> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FPlane> : public TStructOpsTypeTraitsBase2<FPlane>
 {
 	enum 
 	{
@@ -84,7 +84,7 @@ struct TStructOpsTypeTraits<FPlane> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Plane);
 
 template<>
-struct TStructOpsTypeTraits<FRotator> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FRotator> : public TStructOpsTypeTraitsBase2<FRotator>
 {
 	enum 
 	{
@@ -97,7 +97,7 @@ struct TStructOpsTypeTraits<FRotator> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Rotator);
 
 template<>
-struct TStructOpsTypeTraits<FBox> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FBox> : public TStructOpsTypeTraitsBase2<FBox>
 {
 	enum 
 	{
@@ -109,7 +109,7 @@ struct TStructOpsTypeTraits<FBox> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Box);
 
 template<>
-struct TStructOpsTypeTraits<FMatrix> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FMatrix> : public TStructOpsTypeTraitsBase2<FMatrix>
 {
 	enum 
 	{
@@ -121,7 +121,7 @@ struct TStructOpsTypeTraits<FMatrix> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Matrix);
 
 template<>
-struct TStructOpsTypeTraits<FBoxSphereBounds> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FBoxSphereBounds> : public TStructOpsTypeTraitsBase2<FBoxSphereBounds>
 {
 	enum 
 	{
@@ -132,13 +132,13 @@ struct TStructOpsTypeTraits<FBoxSphereBounds> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(BoxSphereBounds);
 
 template<>
-struct TStructOpsTypeTraits<FOrientedBox> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FOrientedBox> : public TStructOpsTypeTraitsBase2<FOrientedBox>
 {
 };
 IMPLEMENT_STRUCT(OrientedBox);
 
 template<>
-struct TStructOpsTypeTraits<FLinearColor> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FLinearColor> : public TStructOpsTypeTraitsBase2<FLinearColor>
 {
 	enum 
 	{
@@ -150,7 +150,7 @@ struct TStructOpsTypeTraits<FLinearColor> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(LinearColor);
 
 template<>
-struct TStructOpsTypeTraits<FColor> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FColor> : public TStructOpsTypeTraitsBase2<FColor>
 {
 	enum 
 	{
@@ -163,7 +163,7 @@ IMPLEMENT_STRUCT(Color);
 
 
 template<>
-struct TStructOpsTypeTraits<FQuat> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FQuat> : public TStructOpsTypeTraitsBase2<FQuat>
 {
 	enum 
 	{
@@ -175,7 +175,7 @@ struct TStructOpsTypeTraits<FQuat> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Quat);
 
 template<>
-struct TStructOpsTypeTraits<FTwoVectors> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FTwoVectors> : public TStructOpsTypeTraitsBase2<FTwoVectors>
 {
 	enum 
 	{
@@ -187,7 +187,7 @@ struct TStructOpsTypeTraits<FTwoVectors> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(TwoVectors);
 
 template<>
-struct TStructOpsTypeTraits<FGuid> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGuid> : public TStructOpsTypeTraitsBase2<FGuid>
 {
 	enum 
 	{
@@ -200,13 +200,13 @@ struct TStructOpsTypeTraits<FGuid> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Guid);
 
 template<>
-struct TStructOpsTypeTraits<FTransform> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FTransform> : public TStructOpsTypeTraitsBase2<FTransform>
 {
 };
 IMPLEMENT_STRUCT(Transform);
 
 template<>
-struct TStructOpsTypeTraits<FRandomStream> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FRandomStream> : public TStructOpsTypeTraitsBase2<FRandomStream>
 {
 	enum 
 	{
@@ -218,7 +218,7 @@ struct TStructOpsTypeTraits<FRandomStream> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(RandomStream);
 
 template<>
-struct TStructOpsTypeTraits<FDateTime> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FDateTime> : public TStructOpsTypeTraitsBase2<FDateTime>
 {
 	enum 
 	{
@@ -233,7 +233,7 @@ struct TStructOpsTypeTraits<FDateTime> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(DateTime);
 
 template<>
-struct TStructOpsTypeTraits<FTimespan> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FTimespan> : public TStructOpsTypeTraitsBase2<FTimespan>
 {
 	enum 
 	{

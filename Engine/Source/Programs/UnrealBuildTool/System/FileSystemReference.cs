@@ -228,7 +228,7 @@ namespace UnrealBuildTool
 		/// <returns>True if this path is under the given directory</returns>
 		public bool IsUnderDirectory(DirectoryReference Other)
 		{
-			return CanonicalName.StartsWith(Other.CanonicalName) && (CanonicalName.Length == Other.CanonicalName.Length || CanonicalName[Other.CanonicalName.Length] == Path.DirectorySeparatorChar);
+			return CanonicalName.StartsWith(Other.CanonicalName) && (CanonicalName.Length == Other.CanonicalName.Length || CanonicalName[Other.CanonicalName.Length] == Path.DirectorySeparatorChar || Other.IsRootDirectory());
 		}
 
 		/// <summary>

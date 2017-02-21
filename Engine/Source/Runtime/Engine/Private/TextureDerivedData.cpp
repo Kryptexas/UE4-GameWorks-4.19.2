@@ -1303,7 +1303,7 @@ static void SerializePlatformData(
 	}
 	else if (Ar.IsSaving())
 	{
-		FString PixelFormatString = PixelFormatEnum->GetEnum(PlatformData->PixelFormat).GetPlainNameString();
+		FString PixelFormatString = PixelFormatEnum->GetNameByValue(PlatformData->PixelFormat).GetPlainNameString();
 		Ar << PixelFormatString;
 	}
 	
@@ -1958,7 +1958,7 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 			{
 				FTexturePlatformData* PlatformDataToSave = PlatformDataToSerialize[i];
 				PlatformDataToSave->FinishCache();
-				FName PixelFormatName = PixelFormatEnum->GetEnum(PlatformDataToSave->PixelFormat);
+				FName PixelFormatName = PixelFormatEnum->GetNameByValue(PlatformDataToSave->PixelFormat);
 				Ar << PixelFormatName;
 				int32 SkipOffsetLoc = Ar.Tell();
 				int32 SkipOffset = 0;

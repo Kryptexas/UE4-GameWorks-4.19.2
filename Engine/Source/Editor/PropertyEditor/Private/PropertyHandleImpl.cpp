@@ -117,7 +117,7 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& Out
 						OutString = Enum->GetDisplayNameTextByValue(EnumValue).ToString();
 						if(!bAllowAlternateDisplayValue || OutString.Len() == 0) 
 						{
-							OutString = Enum->GetEnumNameStringByValue(EnumValue);
+							OutString = Enum->GetNameStringByValue(EnumValue);
 						}
 					}
 					else
@@ -167,28 +167,24 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueText( FText& OutText
 				Property->ExportText_Direct(ExportedTextString, ValueAddress, ValueAddress, nullptr, PPF_PropertyWindow );
 
 				UEnum* Enum = nullptr;
-				int32 EnumeratorValue = 0;
+				int64 EnumValue = 0;
 				if (UByteProperty* ByteProperty = Cast<UByteProperty>(Property))
 				{
 					Enum = ByteProperty->Enum;
-					EnumeratorValue = ByteProperty->GetPropertyValue(ValueAddress);
+					EnumValue = ByteProperty->GetPropertyValue(ValueAddress);
 				}
 				else if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
 				{
 					Enum = EnumProperty->GetEnum();
-					EnumeratorValue = EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(ValueAddress);
+					EnumValue = EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(ValueAddress);
 				}
 
 				if (Enum)
 				{
-					if (EnumeratorValue >= 0 && EnumeratorValue < Enum->NumEnums())
+					if (Enum->IsValidEnumValue(EnumValue))
 					{
-						// See if we specified an alternate name for this value using metadata
-						OutText = Enum->GetDisplayNameText(EnumeratorValue);
-						if(!bAllowAlternateDisplayValue || OutText.IsEmpty()) 
-						{
-							OutText = Enum->GetEnumText(EnumeratorValue);
-						}
+						// Text form is always display name
+						OutText = Enum->GetDisplayNameTextByValue(EnumValue);
 					}
 					else
 					{
@@ -2472,19 +2468,19 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 			bool bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIndex ) || Enum->HasMetaData(TEXT("Spacer"), EnumIndex );
 			if (!bShouldBeHidden && ValidEnumValues.Num() != 0)
 			{
-				bShouldBeHidden = ValidEnumValues.Find(Enum->GetEnum(EnumIndex)) == INDEX_NONE;
+				bShouldBeHidden = ValidEnumValues.Find(Enum->GetNameByIndex(EnumIndex)) == INDEX_NONE;
 			}
 
 			if (!bShouldBeHidden)
 			{
-				bShouldBeHidden = IsHidden(Enum->GetEnumName(EnumIndex));
+				bShouldBeHidden = IsHidden(Enum->GetNameStringByIndex(EnumIndex));
 			}
 
 			if( !bShouldBeHidden )
 			{
 				// See if we specified an alternate name for this value using metadata
-				FString EnumName = Enum->GetEnumName(EnumIndex);
-				FString EnumDisplayName = Enum->GetDisplayNameText(EnumIndex).ToString();
+				FString EnumName = Enum->GetNameStringByIndex(EnumIndex);
+				FString EnumDisplayName = Enum->GetDisplayNameTextByIndex(EnumIndex).ToString();
 
 				FText RestrictionTooltip;
 				const bool bIsRestricted = GenerateRestrictionToolTip(EnumName, RestrictionTooltip);
@@ -2502,7 +2498,7 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 				TSharedPtr< FString > EnumStr(new FString(EnumDisplayName));
 				OutOptionStrings.Add(EnumStr);
 
-				FText EnumValueToolTip = bIsRestricted ? RestrictionTooltip : Enum->GetToolTipText(EnumIndex);
+				FText EnumValueToolTip = bIsRestricted ? RestrictionTooltip : Enum->GetToolTipTextByIndex(EnumIndex);
 				OutToolTips.Add(MoveTemp(EnumValueToolTip));
 			}
 			else
@@ -3146,7 +3142,7 @@ FPropertyAccess::Result FPropertyHandleByte::SetValue( const uint8& NewValue, EP
 	if (Enum)
 	{
 		// Handle Enums using enum names to make sure they're compatible with UByteProperty::ExportText.
-		ValueStr = Enum->GetEnumName(NewValue);
+		ValueStr = Enum->GetNameStringByValue(NewValue);
 	}
 	else
 	{

@@ -102,7 +102,7 @@ struct FMovieSceneSegment
 	TArray<FSectionEvaluationData, TInlineAllocator<4>> Impls;
 };
 
-template<> struct TStructOpsTypeTraits<FMovieSceneSegment> : public TStructOpsTypeTraitsBase
+template<> struct TStructOpsTypeTraits<FMovieSceneSegment> : public TStructOpsTypeTraitsBase2<FMovieSceneSegment>
 {
 	enum { WithSerializer = true, WithCopy = true };
 };

@@ -468,15 +468,23 @@ namespace Tools.CrashReporter.CrashReportProcess
 							CrashReporterResult Result = XmlHandler.FromXmlString<CrashReporterResult>(ResponseString);
 							if (!Result.bSuccess || Result.ID <= 0)
 							{
-								// Website responded - fail condition
-								InRetryState.BadResponses++;
-								CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash response invalid. FailedResponses={1} Response={2}",
-																					  ProcessorIndex, InRetryState.BadResponses, Result.Message));
-								if (InRetryState.BadResponses > Config.Default.AddCrashRejectedRetries)
+								if (Result.bTimeout)
 								{
-									InRetryState.bShouldRetry = false;
-									CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash abandoned. FailedResponses={1}",
-																						  ProcessorIndex, InRetryState.BadResponses));
+									// Website responded - website->DB connection timeout
+									InRetryState.Timeouts++;
+								}
+								else
+								{
+									// Website responded - fail condition
+									InRetryState.BadResponses++;
+									CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash response invalid. FailedResponses={1} Response={2}",
+																						  ProcessorIndex, InRetryState.BadResponses, Result.Message));
+									if (InRetryState.BadResponses > Config.Default.AddCrashRejectedRetries)
+									{
+										InRetryState.bShouldRetry = false;
+										CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash abandoned. FailedResponses={1}",
+																							  ProcessorIndex, InRetryState.BadResponses));
+									}
 								}
 							}
 							else

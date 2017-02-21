@@ -878,7 +878,7 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 	if ((!bAlreadyHasRequest && bSwitchToHigherPriority) ||
 		(ExecutionRequest.SearchEnd.IsSet() && ExecutionRequest.SearchEnd.TakesPriorityOver(SearchEnd)))
 	{
-		UE_CVLOG(bAlreadyHasRequest, GetOwner(), LogBehaviorTree, Log, (SearchEnd.ExecutionIndex < MAX_uint16) ? TEXT("> expanding end of search range!") : TEXT("> removing limit from end of search range!"));
+		UE_CVLOG(bAlreadyHasRequest, GetOwner(), LogBehaviorTree, Log, TEXT("%s"), (SearchEnd.ExecutionIndex < MAX_uint16) ? TEXT("> expanding end of search range!") : TEXT("> removing limit from end of search range!"));
 		ExecutionRequest.SearchEnd = SearchEnd;
 	}
 

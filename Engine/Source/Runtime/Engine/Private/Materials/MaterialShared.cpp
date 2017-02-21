@@ -1912,9 +1912,10 @@ void FMaterialRenderProxy::CacheUniformExpressions()
 	// Register the render proxy's as a render resource so it can receive notifications to free the uniform buffer.
 	InitResource();
 
-	check(UMaterial::GetDefaultMaterial(MD_Surface));
+	bool bUsingNewLoader = EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME && GEventDrivenLoaderEnabled;
 
-	TArray<FMaterialResource*> ResourcesToCache;
+	check((bUsingNewLoader && GIsInitialLoad) || // The EDL at boot time maybe not load the default materials first; we need to intialize materials before the default materials are done
+		UMaterial::GetDefaultMaterial(MD_Surface));
 
 	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel)
 	{
@@ -1922,11 +1923,11 @@ void FMaterialRenderProxy::CacheUniformExpressions()
 
 		if (MaterialNoFallback && MaterialNoFallback->GetRenderingThreadShaderMap())
 		{
-			const FMaterial* Material = GetMaterial(InFeatureLevel);
+			const FMaterial* Material = bUsingNewLoader ? MaterialNoFallback : GetMaterial(InFeatureLevel);
 
 			// Do not cache uniform expressions for fallback materials. This step could
 			// be skipped where we don't allow for asynchronous shader compiling.
-			bool bIsFallbackMaterial = (Material != MaterialNoFallback);
+			bool bIsFallbackMaterial = bUsingNewLoader ? false : (Material != MaterialNoFallback);
 
 			if (!bIsFallbackMaterial)
 			{
@@ -2964,12 +2965,12 @@ void FMaterialAttributeDefinitionMap::GetDisplayNameToIDList(TArray<TPair<FStrin
 	{
 		if (!Attribute.Value.bIsHidden)
 		{
-			NameToIDList.Add(TPairInitializer<FString, FGuid>(Attribute.Value.DisplayName, Attribute.Value.AttributeID));
+			NameToIDList.Emplace(Attribute.Value.DisplayName, Attribute.Value.AttributeID);
 		}
 	}
 
 	for (auto& Attribute : GMaterialPropertyAttributesMap.CustomAttributes)
 	{
-		NameToIDList.Add(TPairInitializer<FString, FGuid>(Attribute.DisplayName, Attribute.AttributeID));
+		NameToIDList.Emplace(Attribute.DisplayName, Attribute.AttributeID);
 	}
 }

@@ -39,9 +39,8 @@ FString UUserDefinedEnum::GenerateFullEnumName(const TCHAR* InEnumName) const
 {
 	check(CppForm == ECppForm::Namespaced);
 
-	FString PathName;
-	GetPathName(NULL, PathName);
-	return UEnum::GenerateFullEnumName(this, InEnumName);
+	// This code used to compute full path but not use it
+	return Super::GenerateFullEnumName(InEnumName);
 }
 
 #if WITH_EDITOR
@@ -102,17 +101,6 @@ FString UUserDefinedEnum::GenerateNewEnumeratorName()
 	return EnumNameString;
 }
 
-FText UUserDefinedEnum::GetDisplayNameText(int32 NameIndex) const
-{
-	FText DisplayName = FEnumEditorUtils::GetEnumeratorDisplayName(this, NameIndex);
-	if (DisplayName.IsEmpty())
-	{
-		DisplayName = Super::GetDisplayNameText(NameIndex);
-	}
-
-	return DisplayName;
-}
-
 #endif	// WITH_EDITOR
 
 int64 UUserDefinedEnum::ResolveEnumerator(FArchive& Ar, int64 EnumeratorValue) const
@@ -125,9 +113,9 @@ int64 UUserDefinedEnum::ResolveEnumerator(FArchive& Ar, int64 EnumeratorValue) c
 #endif // WITH_EDITOR
 }
 
-FText UUserDefinedEnum::GetEnumText(int32 InIndex) const
+FText UUserDefinedEnum::GetDisplayNameTextByIndex(int32 InIndex) const
 {
-	const FName EnumEntryName = *GetEnumName(InIndex);
+	const FName EnumEntryName = *GetNameStringByIndex(InIndex);
 
 	const FText* EnumEntryDisplayName = DisplayNameMap.Find(EnumEntryName);
 	if (EnumEntryDisplayName)
@@ -135,7 +123,7 @@ FText UUserDefinedEnum::GetEnumText(int32 InIndex) const
 		return *EnumEntryDisplayName;
 	}
 
-	return FText::GetEmpty();
+	return Super::GetDisplayNameTextByIndex(InIndex);
 }
 
 bool UUserDefinedEnum::SetEnums(TArray<TPair<FName, int64>>& InNames, ECppForm InCppForm, bool bAddMaxKeyIfMissing)
@@ -160,7 +148,7 @@ bool UUserDefinedEnum::SetEnums(TArray<TPair<FName, int64>>& InNames, ECppForm I
 		if ((MaxEnumItemIndex == INDEX_NONE) && (LookupEnumName(MaxEnumItem) == INDEX_NONE))
 		{
 			int64 MaxEnumValue = (InNames.Num() == 0)? 0 : GetMaxEnumValue() + 1;
-			Names.Add(TPairInitializer<FName, int64>(MaxEnumItem, MaxEnumValue));
+			Names.Emplace(MaxEnumItem, MaxEnumValue);
 			AddNamesToMasterList();
 			return true;
 		}

@@ -10,6 +10,7 @@
 #include "Misc/ScopedSlowTask.h"
 #include "Misc/CoreDelegates.h"
 #include "Misc/App.h"
+#include "Misc/EngineVersion.h"
 #include "ProjectDescriptor.h"
 #include "Interfaces/IProjectManager.h"
 #include "Modules/ModuleManager.h"
@@ -246,7 +247,7 @@ void FPluginManager::ReadPluginsInDirectory(const FString& PluginsDirectory, con
 			if ( Descriptor.Load(FileName, LoadedFrom == EPluginLoadedFrom::GameProject, FailureReason) )
 			{
 				TSharedRef<FPlugin> Plugin = MakeShareable(new FPlugin(FileName, Descriptor, LoadedFrom));
-				
+
 				FString FullPath = FPaths::ConvertRelativePathToFull(FileName);
 				UE_LOG(LogPluginManager, Verbose, TEXT("Read plugin descriptor for %s, from %s"), *Plugin->GetName(), *FullPath);
 
@@ -317,7 +318,10 @@ void FPluginManager::FindPluginsInDirectory(const FString& PluginsDirectory, TAr
 	{
 		for(const FString& PluginDescriptor: Visitor.PluginDescriptors)
 		{
-			FileNames.Add(PluginDescriptor);
+			if (!FileNames.Contains(PluginDescriptor))
+			{
+				FileNames.Add(PluginDescriptor);
+			}
 		}
 	}
 }
@@ -335,7 +339,7 @@ public:
 		if (bIsDirectory == false)
 		{
 			FString Filename(FilenameOrDirectory);
-			if (Filename.MatchesWildcard(TEXT("*.pak")))
+			if (Filename.MatchesWildcard(TEXT("*.pak")) && !FoundFiles.Contains(Filename))
 			{
 				FoundFiles.Add(Filename);
 			}
@@ -421,6 +425,21 @@ bool FPluginManager::ConfigureEnabledPlugins()
 				{
 					Plugin->bEnabled = false;
 					AllEnabledPlugins.Remove(Plugin->Name);
+				}
+
+				if (Plugin->bEnabled && Plugin->Descriptor.CompatibleChangelist != 0 && FEngineVersion::CompatibleWith().HasChangelist() && Plugin->Descriptor.CompatibleChangelist != FEngineVersion::CompatibleWith().GetChangelist())
+				{
+					FText Title = LOCTEXT("IncompatiblePluginTitle", "Incompatible Plugin");
+					if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("IncompatiblePluginMessage", "'{0}' was designed for a different version of the game. Attempt to load it anyway?"), FText::FromString(Plugin->Descriptor.FriendlyName)), &Title) != EAppReturnType::Yes)
+					{
+						Plugin->bEnabled = false;
+						AllEnabledPlugins.Remove(Plugin->Name);
+						UE_LOG(LogPluginManager, Log, TEXT("Disabled plugin '%s' due to incompatibility"), *Plugin->FileName);
+					}
+					else
+					{
+						UE_LOG(LogPluginManager, Log, TEXT("Enabled plugin '%s' despite being built for CL %d"), *Plugin->FileName, Plugin->Descriptor.CompatibleChangelist);
+					}
 				}
 			}
 		}
@@ -571,6 +590,11 @@ bool FPluginManager::ConfigureEnabledPlugins()
 						if (FCoreDelegates::OnMountPak.IsBound())
 						{
 							FCoreDelegates::OnMountPak.Execute(PakPath, 0, nullptr);
+							PluginsWithPakFile.AddUnique(Plugin);
+						}
+						else
+						{
+							UE_LOG(LogPluginManager, Warning, TEXT("PAK file (%s) could not be mounted because OnMountPak is not bound"), *PakPath)
 						}
 					}
 				}
@@ -593,6 +617,59 @@ TSharedPtr<FPlugin> FPluginManager::FindPluginInstance(const FString& Name)
 	}
 }
 
+
+static bool TryLoadModulesForPlugin( const FPlugin& Plugin, const ELoadingPhase::Type LoadingPhase )
+{
+	TMap<FName, EModuleLoadResult> ModuleLoadFailures;
+	FModuleDescriptor::LoadModulesForPhase(LoadingPhase, Plugin.Descriptor.Modules, ModuleLoadFailures);
+
+	FText FailureMessage;
+	for( auto FailureIt( ModuleLoadFailures.CreateConstIterator() ); FailureIt; ++FailureIt )
+	{
+		const FName ModuleNameThatFailedToLoad = FailureIt.Key();
+		const EModuleLoadResult FailureReason = FailureIt.Value();
+
+		if( FailureReason != EModuleLoadResult::Success )
+		{
+			const FText PluginNameText = FText::FromString(Plugin.Name);
+			const FText TextModuleName = FText::FromName(FailureIt.Key());
+
+			if ( FailureReason == EModuleLoadResult::FileNotFound )
+			{
+				FailureMessage = FText::Format( LOCTEXT("PluginModuleNotFound", "Plugin '{0}' failed to load because module '{1}' could not be found.  Please ensure the plugin is properly installed, otherwise consider disabling the plugin for this project."), PluginNameText, TextModuleName );
+			}
+			else if ( FailureReason == EModuleLoadResult::FileIncompatible )
+			{
+				FailureMessage = FText::Format( LOCTEXT("PluginModuleIncompatible", "Plugin '{0}' failed to load because module '{1}' does not appear to be compatible with the current version of the engine.  The plugin may need to be recompiled."), PluginNameText, TextModuleName );
+			}
+			else if ( FailureReason == EModuleLoadResult::CouldNotBeLoadedByOS )
+			{
+				FailureMessage = FText::Format( LOCTEXT("PluginModuleCouldntBeLoaded", "Plugin '{0}' failed to load because module '{1}' could not be loaded.  There may be an operating system error or the module may not be properly set up."), PluginNameText, TextModuleName );
+			}
+			else if ( FailureReason == EModuleLoadResult::FailedToInitialize )
+			{
+				FailureMessage = FText::Format( LOCTEXT("PluginModuleFailedToInitialize", "Plugin '{0}' failed to load because module '{1}' could not be initialized successfully after it was loaded."), PluginNameText, TextModuleName );
+			}
+			else 
+			{
+				ensure(0);	// If this goes off, the error handling code should be updated for the new enum values!
+				FailureMessage = FText::Format( LOCTEXT("PluginGenericLoadFailure", "Plugin '{0}' failed to load because module '{1}' could not be loaded for an unspecified reason.  This plugin's functionality will not be available.  Please report this error."), PluginNameText, TextModuleName );
+			}
+
+			// Don't need to display more than one module load error per plugin that failed to load
+			break;
+		}
+	}
+
+	if( !FailureMessage.IsEmpty() )
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FailureMessage);
+		return false;
+	}
+
+	return true;
+}
+
 bool FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase )
 {
 	// Figure out which plugins are enabled
@@ -611,50 +688,8 @@ bool FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 
 		if ( Plugin->bEnabled )
 		{
-			TMap<FName, EModuleLoadResult> ModuleLoadFailures;
-			FModuleDescriptor::LoadModulesForPhase(LoadingPhase, Plugin->Descriptor.Modules, ModuleLoadFailures);
-
-			FText FailureMessage;
-			for( auto FailureIt( ModuleLoadFailures.CreateConstIterator() ); FailureIt; ++FailureIt )
+			if (!TryLoadModulesForPlugin(Plugin.Get(), LoadingPhase))
 			{
-				const FName ModuleNameThatFailedToLoad = FailureIt.Key();
-				const EModuleLoadResult FailureReason = FailureIt.Value();
-
-				if( FailureReason != EModuleLoadResult::Success )
-				{
-					const FText PluginNameText = FText::FromString(Plugin->Name);
-					const FText TextModuleName = FText::FromName(FailureIt.Key());
-
-					if ( FailureReason == EModuleLoadResult::FileNotFound )
-					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleNotFound", "Plugin '{0}' failed to load because module '{1}' could not be found.  Please ensure the plugin is properly installed, otherwise consider disabling the plugin for this project."), PluginNameText, TextModuleName );
-					}
-					else if ( FailureReason == EModuleLoadResult::FileIncompatible )
-					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleIncompatible", "Plugin '{0}' failed to load because module '{1}' does not appear to be compatible with the current version of the engine.  The plugin may need to be recompiled."), PluginNameText, TextModuleName );
-					}
-					else if ( FailureReason == EModuleLoadResult::CouldNotBeLoadedByOS )
-					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleCouldntBeLoaded", "Plugin '{0}' failed to load because module '{1}' could not be loaded.  There may be an operating system error or the module may not be properly set up."), PluginNameText, TextModuleName );
-					}
-					else if ( FailureReason == EModuleLoadResult::FailedToInitialize )
-					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleFailedToInitialize", "Plugin '{0}' failed to load because module '{1}' could not be initialized successfully after it was loaded."), PluginNameText, TextModuleName );
-					}
-					else 
-					{
-						ensure(0);	// If this goes off, the error handling code should be updated for the new enum values!
-						FailureMessage = FText::Format( LOCTEXT("PluginGenericLoadFailure", "Plugin '{0}' failed to load because module '{1}' could not be loaded for an unspecified reason.  This plugin's functionality will not be available.  Please report this error."), PluginNameText, TextModuleName );
-					}
-
-					// Don't need to display more than one module load error per plugin that failed to load
-					break;
-				}
-			}
-
-			if( !FailureMessage.IsEmpty() )
-			{
-				FMessageDialog::Open(EAppMsgType::Ok, FailureMessage);
 				return false;
 			}
 		}
@@ -794,6 +829,69 @@ void FPluginManager::AddPluginSearchPath(const FString& ExtraDiscoveryPath, bool
 	if (bRefresh)
 	{
 		RefreshPluginsList();
+	}
+}
+
+TArray<TSharedRef<IPlugin>> FPluginManager::GetPluginsWithPakFile() const
+{
+	return PluginsWithPakFile;
+}
+
+IPluginManager::FNewPluginMountedEvent& FPluginManager::OnNewPluginMounted()
+{
+	return NewPluginMountedEvent;
+}
+
+void FPluginManager::MountNewlyCreatedPlugin(const FString& PluginName)
+{
+	for(TMap<FString, TSharedRef<FPlugin>>::TIterator Iter(AllPlugins); Iter; ++Iter)
+	{
+		const TSharedRef<FPlugin>& Plugin = Iter.Value();
+		if (Plugin->Name == PluginName)
+		{
+			// Mark the plugin as enabled
+			Plugin->bEnabled = true;
+
+			// Mount the plugin content directory
+			if (Plugin->CanContainContent() && ensure(RegisterMountPointDelegate.IsBound()))
+			{
+				FString ContentDir = Plugin->GetContentDir();
+				RegisterMountPointDelegate.Execute(Plugin->GetMountedAssetPath(), ContentDir);
+
+				// Register this plugin's path with the list of content directories that the editor will search
+				if (FConfigFile* EngineConfigFile = GConfig->Find(GEngineIni, false))
+				{
+					if (FConfigSection* CoreSystemSection = EngineConfigFile->Find(TEXT("Core.System")))
+					{
+						CoreSystemSection->AddUnique("Paths", Plugin->GetContentDir());
+					}
+				}
+			}
+
+			// If it's a code module, also load the modules for it
+			if (Plugin->Descriptor.Modules.Num() > 0)
+			{
+				// Add the plugin binaries directory
+				const FString PluginBinariesPath = FPaths::Combine(*FPaths::GetPath(Plugin->FileName), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory());
+				FModuleManager::Get().AddBinariesDirectory(*PluginBinariesPath, Plugin->LoadedFrom == EPluginLoadedFrom::GameProject);
+
+				// Load all the plugin modules
+				for (ELoadingPhase::Type LoadingPhase = (ELoadingPhase::Type)0; LoadingPhase < ELoadingPhase::Max; LoadingPhase = (ELoadingPhase::Type)(LoadingPhase + 1))
+				{
+					if (LoadingPhase != ELoadingPhase::None)
+					{
+						TryLoadModulesForPlugin(Plugin.Get(), LoadingPhase);
+					}
+				}
+			}
+
+			// Notify any listeners that a new plugin has been mounted
+			if (NewPluginMountedEvent.IsBound())
+			{
+				NewPluginMountedEvent.Broadcast(*Plugin);
+			}
+			break;
+		}
 	}
 }
 

@@ -1220,7 +1220,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FBodyInstance> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FBodyInstance> : public TStructOpsTypeTraitsBase2<FBodyInstance>
 {
 	enum
 	{

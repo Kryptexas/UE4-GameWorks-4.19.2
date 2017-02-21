@@ -60,11 +60,11 @@ void UFixupNeedsLoadForEditorGameCommandlet::PerformPreloadOperations(FLinkerLoa
 			if (bNeedsLoadForEditorGameValuePtr)
 			{
 				FObjectExport& Export = PackageLinker->ExportMap[ExportIndex];
-				// The condition below may seem confusing because bNotForEditorGame = !bNeedsLoadForEditorGame
-				// At the moment we only update assets that had bNotForEditorGame set to true but NeedsLoadForEditorGame returns true 
+				// The condition below may seem confusing because bNotAlwaysLoadedForEditorGame = !bNeedsLoadForEditorGame
+				// At the moment we only update assets that had bNotAlwaysLoadedForEditorGame set to true but NeedsLoadForEditorGame returns true 
 				// and either bNotForClient or bNotForServer is true. 
-				if (Export.bNotForEditorGame && 
-					  Export.bNotForEditorGame == *bNeedsLoadForEditorGameValuePtr &&
+				if (Export.bNotAlwaysLoadedForEditorGame &&
+					  Export.bNotAlwaysLoadedForEditorGame == *bNeedsLoadForEditorGameValuePtr &&
 						(Export.bNotForClient || Export.bNotForServer))
 				{
 					bSavePackage = true;

@@ -183,6 +183,17 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Clears the cached include paths on every file item
+		/// </summary>
+		public static void ClearCachedIncludePaths()
+		{
+			foreach(FileItem Item in UniqueSourceFileMap.Values)
+			{
+				Item.CachedIncludePaths = null;
+			}
+		}
+
+		/// <summary>
 		/// Resolve any outstanding remote file info lookups
 		/// </summary>
 		private void LookupOutstandingFiles()

@@ -291,13 +291,13 @@ void FUHTMakefile::SetupProxies()
 	ModuleDescriptorsArchiveProxy.Empty(ModuleDescriptors.Num());
 	for (auto& Kvp : ModuleDescriptors)
 	{
-		ModuleDescriptorsArchiveProxy.Add(TPairInitializer<FNameArchiveProxy, FUHTMakefileModuleDescriptor>(FNameArchiveProxy(*this, Kvp.Key), Kvp.Value));
+		ModuleDescriptorsArchiveProxy.Emplace(FNameArchiveProxy(*this, Kvp.Key), Kvp.Value);
 	}
 
 	GeneratedCodeCRCProxies.Empty(GeneratedCodeCRCs.Num());
 	for (auto& Kvp : GeneratedCodeCRCs)
 	{
-		GeneratedCodeCRCProxies.Add(TPairInitializer<FSerializeIndex, uint32>(GetFieldIndex(Kvp.Key), Kvp.Value));
+		GeneratedCodeCRCProxies.Emplace(GetFieldIndex(Kvp.Key), Kvp.Value);
 	}
 
 	TypeDefinitionInfoMapArchiveProxy = FTypeDefinitionInfoMapArchiveProxy(*this, TypeDefinitionInfoMap);
@@ -361,13 +361,13 @@ void FUHTMakefile::SetupProxies()
 	PropertyDataEntryProxies.Empty(PropertyDataEntries.Num());
 	for (auto& PropertyDataEntry : PropertyDataEntries)
 	{
-		PropertyDataEntryProxies.Add(TPairInitializer<int32, int32>(GetPropertyIndex(PropertyDataEntry.Key), GetTokenIndex(&PropertyDataEntry.Value->Token)));
+		PropertyDataEntryProxies.Emplace(GetPropertyIndex(PropertyDataEntry.Key), GetTokenIndex(&PropertyDataEntry.Value->Token));
 	}
 
 	UnrealSourceFilesMapEntryProxies.Empty(UnrealSourceFilesMapEntries.Num());
 	for (auto& Kvp : UnrealSourceFilesMapEntries)
 	{
-		UnrealSourceFilesMapEntryProxies.Add(TPairInitializer<FString, int32>(Kvp.Key, GetUnrealSourceFileIndex(Kvp.Value)));
+		UnrealSourceFilesMapEntryProxies.Emplace(Kvp.Key, GetUnrealSourceFileIndex(Kvp.Value));
 	}
 
 	ClassMetaDataArchiveProxies.Empty(ClassMetaDatas.Num());
@@ -391,13 +391,13 @@ void FUHTMakefile::SetupProxies()
 	EnumUnderlyingTypeProxies.Empty(EnumUnderlyingTypes.Num());
 	for (auto& Kvp : EnumUnderlyingTypes)
 	{
-		EnumUnderlyingTypeProxies.Add(TPairInitializer<int32, EUnderlyingEnumType>(GetEnumIndex(Kvp.Key), Kvp.Value));
+		EnumUnderlyingTypeProxies.Emplace(GetEnumIndex(Kvp.Key), Kvp.Value);
 	}
 
 	StructNameMapEntryProxies.Empty(StructNameMapEntries.Num());
 	for (auto& Kvp : StructNameMapEntries)
 	{
-		StructNameMapEntryProxies.Add(TPairInitializer<FSerializeIndex, FString>(GetStructIndex(Kvp.Key), Kvp.Value));
+		StructNameMapEntryProxies.Emplace(GetStructIndex(Kvp.Key), Kvp.Value);
 	}
 
 	InterfaceAllocationProxies.Empty(InterfaceAllocations.Num());
@@ -1179,7 +1179,7 @@ void FUHTMakefile::ResolvePublicClassSetEntry(int32 Index)
 
 void FUHTMakefile::CreateTypeDefinitionInfoMapEntry(int32 Index)
 {
-	TypeDefinitionInfoMap.Add(TPairInitializer<UField*, FUnrealTypeDefinitionInfo*>(nullptr, nullptr));
+	TypeDefinitionInfoMap.Emplace(nullptr, nullptr);
 }
 
 void FUHTMakefile::ResolveTypeDefinitionInfoMapEntry(int32 Index)

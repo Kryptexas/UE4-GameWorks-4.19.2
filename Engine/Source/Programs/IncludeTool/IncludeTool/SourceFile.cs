@@ -95,6 +95,11 @@ namespace IncludeTool
 		/// This header consists of forward declarations
 		/// </summary>
 		FwdHeader = 0x8000,
+
+		/// <summary>
+		/// This file should be output
+		/// </summary>
+		Output = 0x10000,
 	}
 
 	/// <summary>
@@ -368,7 +373,7 @@ namespace IncludeTool
 		/// <param name="IncludePaths">Base directories for relative include paths</param>
 		/// <param name="SystemIncludePaths">Base directories for system include paths</param>
 		/// <param name="Writer">Writer for the output text</param>
-		public void Write(IEnumerable<DirectoryReference> IncludePaths, IEnumerable<DirectoryReference> SystemIncludePaths, TextWriter Writer, TextWriter Log)
+		public void Write(IEnumerable<DirectoryReference> IncludePaths, IEnumerable<DirectoryReference> SystemIncludePaths, TextWriter Writer, bool bRemoveForwardDeclarations, TextWriter Log)
 		{
 			// Write the file header
 			TextLocation LastLocation = Text.Start;
@@ -437,7 +442,7 @@ namespace IncludeTool
 					}
 
 					// Merge all the existing forward declarations with the new set.
-					bool bSkippedForwardDeclarations = false;
+					HashSet<string> PreviousForwardDeclarations = new HashSet<string>();
 					while(NewLastLocation.LineIdx < Text.Lines.Length)
 					{
 						string TrimLine = Text.Lines[NewLastLocation.LineIdx].Trim();
@@ -456,19 +461,19 @@ namespace IncludeTool
 							// Check it matches the syntax for a forward declaration, and add it to the list if it does
 							if(Tokens.Count == 3 && (Tokens[0].Text == "struct" || Tokens[0].Text == "class") && Tokens[1].Type == TokenType.Identifier && Tokens[2].Text == ";")
 							{
-								bSkippedForwardDeclarations = true;
+								PreviousForwardDeclarations.Add(String.Format("{0} {1};", Tokens[0].Text, Tokens[1].Text));
 							}
 							else if(Tokens.Count == 4 && Tokens[0].Text == "enum" && Tokens[1].Text == "class" && Tokens[2].Type == TokenType.Identifier && Tokens[3].Text == ";")
 							{
-								bSkippedForwardDeclarations = true;
+								PreviousForwardDeclarations.Add(String.Format("enum class {0};", Tokens[2].Text));
 							}
 							else if(Tokens.Count == 6 && Tokens[0].Text == "enum" && Tokens[1].Text == "class" && Tokens[2].Type == TokenType.Identifier && Tokens[3].Text == ":" && Tokens[4].Type == TokenType.Identifier && Tokens[5].Text == ";")
 							{
-								bSkippedForwardDeclarations = true;
+								PreviousForwardDeclarations.Add(String.Format("enum class {0} : {1};", Tokens[2].Text, Tokens[4].Text));
 							}
 							else if(ForwardDeclarations.Contains(Text.Lines[NewLastLocation.LineIdx]))
 							{
-								bSkippedForwardDeclarations = true;
+								PreviousForwardDeclarations.Add(Text.Lines[NewLastLocation.LineIdx]);
 							}
 							else
 							{
@@ -478,19 +483,26 @@ namespace IncludeTool
 						NewLastLocation = new TextLocation(NewLastLocation.LineIdx + 1, 0);
 					}
 
+					// Create a full list of new forward declarations, combining with the ones that are already there. Normally we optimize with the forward declarations present,
+					// so we shouldn't remove any unless running a specific pass designed to do so.
+					HashSet<string> MergedForwardDeclarations = new HashSet<string>(ForwardDeclarations);
+					if(!bRemoveForwardDeclarations)
+					{
+						MergedForwardDeclarations.UnionWith(PreviousForwardDeclarations);
+					}
+
 					// Write them out
-					if(ForwardDeclarations.Count > 0)
+					if(MergedForwardDeclarations.Count > 0)
 					{
 						Writer.WriteLine();
-						//Writer.WriteLine("// Forward declarations");
-						foreach (string ForwardDeclaration in ForwardDeclarations.Distinct().OrderBy(x => GetForwardDeclarationSortKey(x)).ThenBy(x => x))
+						foreach (string ForwardDeclaration in MergedForwardDeclarations.Distinct().OrderBy(x => GetForwardDeclarationSortKey(x)).ThenBy(x => x))
 						{
 							Writer.WriteLine("{0}{1}", GetIndent(MarkupIdx), ForwardDeclaration);
 						}
 						Writer.WriteLine();
 						LastLocation = NewLastLocation;
 					}
-					else if(bSkippedForwardDeclarations)
+					else if(PreviousForwardDeclarations.Count > 0)
 					{
 						Writer.WriteLine();
 						LastLocation = NewLastLocation;

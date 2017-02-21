@@ -262,7 +262,7 @@ void UModelComponent::Serialize(FArchive& Ar)
 
 			if (Element.LegacyMapBuildData)
 			{
-				LegacyComponentData.Data.Add(TPairInitializer<FGuid, FMeshMapBuildData*>(Element.MapBuildDataId, Element.LegacyMapBuildData));
+				LegacyComponentData.Data.Emplace(Element.MapBuildDataId, Element.LegacyMapBuildData);
 				Element.LegacyMapBuildData = NULL;
 			}
 		}

@@ -43,7 +43,7 @@ FPropertyBaseArchiveProxy::FPropertyBaseArchiveProxy(const FUHTMakefile& UHTMake
 	MetaData.Empty(PropertyBase->MetaData.Num());
 	for (auto& Kvp : PropertyBase->MetaData)
 	{
-		MetaData.Add(TPairInitializer<FNameArchiveProxy, FString>(FNameArchiveProxy(UHTMakefile, Kvp.Key), Kvp.Value));
+		MetaData.Emplace(FNameArchiveProxy(UHTMakefile, Kvp.Key), Kvp.Value);
 	}
 	PointerType = PropertyBase->PointerType;
 }

@@ -190,7 +190,7 @@ void FCEFJSStructSerializerBackend::WriteProperty(const FStructSerializerState& 
 	{
 		UEnumProperty* EnumProperty = CastChecked<UEnumProperty>(State.ValueProperty);
 
-		Add(State, EnumProperty->GetEnum()->GetEnumName(EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(EnumProperty->ContainerPtrToValuePtr<void>(State.ValueData, ArrayIndex))));
+		Add(State, EnumProperty->GetEnum()->GetNameStringByValue(EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(EnumProperty->ContainerPtrToValuePtr<void>(State.ValueData, ArrayIndex))));
 	}
 	else if (State.ValueType == UByteProperty::StaticClass())
 	{
@@ -198,7 +198,7 @@ void FCEFJSStructSerializerBackend::WriteProperty(const FStructSerializerState& 
 
 		if (ByteProperty->IsEnum())
 		{
-			Add(State, ByteProperty->Enum->GetEnumName(ByteProperty->GetPropertyValue_InContainer(State.ValueData, ArrayIndex)));
+			Add(State, ByteProperty->Enum->GetNameStringByValue(ByteProperty->GetPropertyValue_InContainer(State.ValueData, ArrayIndex)));
 		}
 		else
 		{

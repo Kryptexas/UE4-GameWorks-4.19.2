@@ -53,7 +53,12 @@ private:
 	 * for passing Slate render draw passes between each other.
 	 */
 	FThreadSafeCounter IsSlateDrawEnqueued;
-	
+
+	/**
+	* This counter is used to generate a unique id for each new instance of the loading thread
+	*/
+	static FThreadSafeCounter LoadingThreadInstanceCounter;
+
 	/** The worker thread that will become the Slate thread */
 	FRunnableThread* SlateLoadingThread;
 	FRunnable* SlateRunnableTask;

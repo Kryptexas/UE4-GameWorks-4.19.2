@@ -13,6 +13,16 @@ class UBlueprint;
 
 DECLARE_STATS_GROUP(TEXT("Kismet Reinstancer"), STATGROUP_KismetReinstancer, STATCAT_Advanced);
 
+enum class EBlueprintCompileReinstancerFlags
+{
+	None = 0x0,
+
+	BytecodeOnly           = 0x1,
+	AutoInferSaveOnCompile = 0x2
+};
+
+ENUM_CLASS_FLAGS(EBlueprintCompileReinstancerFlags)
+
 class FReinstanceFinalizer;
 
 struct UNREALED_API FRecreateUberGraphFrameScope
@@ -103,9 +113,9 @@ public:
 	virtual void EnlistDependentBlueprintToRecompile(UBlueprint* BP, bool bBytecodeOnly);
 	virtual void BlueprintWasRecompiled(UBlueprint* BP, bool bBytecodeOnly);
 
-	static TSharedPtr<FBlueprintCompileReinstancer> Create(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false, bool bAutoInferSaveOnCompile = true)
+	static TSharedPtr<FBlueprintCompileReinstancer> Create(UClass* InClassToReinstance, EBlueprintCompileReinstancerFlags Flags = EBlueprintCompileReinstancerFlags::AutoInferSaveOnCompile)
 	{
-		return MakeShareable(new FBlueprintCompileReinstancer(InClassToReinstance, bIsBytecodeOnly, bSkipGC, bAutoInferSaveOnCompile));
+		return MakeShareable(new FBlueprintCompileReinstancer(InClassToReinstance, Flags));
 	}
 
 	virtual ~FBlueprintCompileReinstancer();
@@ -172,7 +182,7 @@ protected:
 	 * @param bSkipGC					TRUE if garbage collection should be skipped
 	 * @param bAutoInferSaveOnCompile	TRUE if the reinstancer should infer whether or not save on compile should occur, FALSE if it should never save on compile
 	 */
-	FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false, bool bAutoInferSaveOnCompile = true);
+	FBlueprintCompileReinstancer(UClass* InClassToReinstance, EBlueprintCompileReinstancerFlags Flags = EBlueprintCompileReinstancerFlags::AutoInferSaveOnCompile);
 
 	/** Reparents the specified blueprint or class to be the duplicated class in order to allow properties to be copied from the previous CDO to the new one */
 	void ReparentChild(UBlueprint* ChildBP);

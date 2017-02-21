@@ -641,7 +641,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FLevelCollection> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FLevelCollection> : public TStructOpsTypeTraitsBase2<FLevelCollection>
 {
 	enum
 	{

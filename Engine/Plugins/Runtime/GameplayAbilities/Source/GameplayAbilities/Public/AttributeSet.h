@@ -136,7 +136,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits< FGameplayAttribute > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FGameplayAttribute > : public TStructOpsTypeTraitsBase2< FGameplayAttribute >
 {
 	enum
 	{
@@ -321,7 +321,7 @@ private:
 
 template<>
 struct TStructOpsTypeTraits<FScalableFloat>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FScalableFloat>
 {
 	enum
 	{

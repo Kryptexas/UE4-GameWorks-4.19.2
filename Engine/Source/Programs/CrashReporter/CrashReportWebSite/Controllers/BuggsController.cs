@@ -40,7 +40,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		{
 			using (var logTimer = new FAutoScopedLogTimer( this.GetType().ToString(), bCreateNewLog: true ))
 			{
-				var formData = new FormHelper( Request, BuggsForm, "CrashesInTimeFrameGroup" );
+				var formData = new FormHelper( Request, BuggsForm, "CrashInTimeFrameGroup" );
 			    var results = GetResults( formData );
 				results.GenerationTime = logTimer.GetElapsedSeconds().ToString( "F2" );
 				return View( "Index", results );
@@ -82,7 +82,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 }
                 if (buggIdToBeAddedToJira != 0)
                 {
-                   
                     model.Bugg.JiraProject = buggsForm["JiraProject"];
                     model.Bugg.CopyToJira();
                 }
@@ -194,11 +193,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				    using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
 				    {
 				        unitOfWork.BuggRepository.Update(model.Bugg);
+                        foreach (var crash in model.Bugg.Crashes)
+				        {
+				            unitOfWork.CrashRepository.Update(crash);
+				        }
 				        unitOfWork.Save();
 				    }
 				}
 
-				// Set up the view model with the crash data
+				// Set up the view model with the Crash data
 			    int page;
                 int.TryParse(buggsForm["Page"], out page);
 
@@ -294,7 +297,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 // Get every Bugg.
                 var resultsAll = unitOfWork.BuggRepository.ListAll();
 
-                // Look at all Buggs that are still 'open' i.e. the last crash occurred in our date range.
+                // Look at all Buggs that are still 'open' i.e. the last Crash occurred in our date range.
                 results = FilterByDate(resultsAll, FormData.DateFrom, FormData.DateTo);
 
                 // Filter results by build version.
@@ -352,7 +355,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 {
                     switch (FormData.CrashType)
                     {
-                        case "Crashes":
+                        case "Crash":
                             results = results.Where(buggInstance => buggInstance.CrashType == 1);
                             break;
                         case "Assert":
@@ -361,7 +364,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                         case "Ensure":
                             results = results.Where(buggInstance => buggInstance.CrashType == 3);
                             break;
-                        case "CrashesAsserts":
+                        case "CrashAsserts":
                             results =
                                 results.Where(buggInstance => buggInstance.CrashType == 1 || buggInstance.CrashType == 2);
                             break;
@@ -380,7 +383,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 // Grab just the results we want to display on this page
                 totalCountedRecords = results.Count();
 
-                var crashesByUserGroupCounts = unitOfWork.CrashRepository.ListAll().Where(data =>
+                var CrashByUserGroupCounts = unitOfWork.CrashRepository.ListAll().Where(data =>
                     data.User.UserGroupId == userGroupId &&
                     data.TimeOfCrash >= fromDate &&
                     data.TimeOfCrash <= toDate &&
@@ -390,7 +393,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                     .OrderByDescending(data => data.Count)
                     .ToDictionary(data => data.Key, data => data.Count);
 
-                var crashesInTimeFrameCounts = unitOfWork.CrashRepository.ListAll().Where(data =>
+                var CrashInTimeFrameCounts = unitOfWork.CrashRepository.ListAll().Where(data =>
                     data.TimeOfCrash >= fromDate &&
                     data.TimeOfCrash <= toDate
                     && data.PatternId != null)
@@ -428,16 +431,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
                 foreach (var bugg in sortedResultsList)
                 {
-                    if (bugg.PatternId.HasValue && crashesByUserGroupCounts.ContainsKey(bugg.PatternId.Value))
+                    if (bugg.PatternId.HasValue && CrashByUserGroupCounts.ContainsKey(bugg.PatternId.Value))
                     {
-                        bugg.CrashesInTimeFrameGroup = crashesByUserGroupCounts[bugg.PatternId.Value];
+                        bugg.CrashesInTimeFrameGroup = CrashByUserGroupCounts[bugg.PatternId.Value];
                     }
                     else
                         bugg.CrashesInTimeFrameGroup = 0;
 
-                    if (bugg.PatternId.HasValue && crashesInTimeFrameCounts.ContainsKey(bugg.PatternId.Value))
+                    if (bugg.PatternId.HasValue && CrashInTimeFrameCounts.ContainsKey(bugg.PatternId.Value))
                     {
-                        bugg.CrashesInTimeFrameAll = crashesInTimeFrameCounts[bugg.PatternId.Value];
+                        bugg.CrashesInTimeFrameAll = CrashInTimeFrameCounts[bugg.PatternId.Value];
                     }
                     else
                         bugg.CrashesInTimeFrameAll = 0;
@@ -455,9 +458,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
                 foreach (var bugg in sortedResultsList)
                 {
-                    var crash =
+                    var Crash =
                         unitOfWork.CrashRepository.First(data => data.BuggId == bugg.Id);
-                    bugg.FunctionCalls = crash.GetCallStack().GetFunctionCalls();
+                    bugg.FunctionCalls = Crash.GetCallStack().GetFunctionCalls();
                 }
             }
 
@@ -504,7 +507,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
             var model = new BuggViewModel();
             using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
             {
-                // Create a new view and populate with crashes
+                // Create a new view and populate with Crash
                 List<Crash> crashes = null;
                 model.Bugg = unitOfWork.BuggRepository.GetById(id);
 
@@ -513,6 +516,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 model.Bugg.CrashesInTimeFrameGroup = crashes.Count;
                 model.Bugg.NumberOfCrashes = crashes.Count;
                 model.Crashes = crashes;
+                model.CrashData = crashes.Take(50).Select(data => new CrashDataModel()
+                {
+                    Id = data.Id,
+                    ChangelistVersion = data.ChangelistVersion,
+                    GameName = data.GameName,
+                    EngineMode = data.EngineMode,
+                    PlatformName = data.PlatformName,
+                    TimeOfCrash = data.TimeOfCrash,
+                    Description = data.Description,
+                }).ToList();
             }
 
             return model;
@@ -602,7 +615,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                     case "FirstCrash":
                         orderedResults = EnumerableOrderBy(results, buggCrashInstance => buggCrashInstance.TimeOfFirstCrash, bSortDescending);
                         break;
-                    case "NumberOfCrashes":
+                    case "NumberOfCrash":
                         orderedResults = EnumerableOrderBy(results, buggCrashInstance => buggCrashInstance.NumberOfCrashes, bSortDescending);
                         break;
                     case "NumberOfUsers":

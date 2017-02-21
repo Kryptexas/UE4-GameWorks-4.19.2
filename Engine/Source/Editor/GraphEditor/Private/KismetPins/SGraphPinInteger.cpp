@@ -47,13 +47,8 @@ TSharedRef<SWidget>	SGraphPinInteger::GetDefaultValueWidget()
 
 						BitmaskFlag->Value = static_cast<int32>(1 << BitmaskFlagIndex);
 
-						BitmaskFlag->DisplayName = BitmaskEnum->GetDisplayNameText(BitmaskEnumIndex);
-						if(BitmaskFlag->DisplayName.IsEmpty())
-						{
-							BitmaskFlag->DisplayName = FText::FromString(BitmaskEnum->GetEnumName(BitmaskEnumIndex));
-						}
-
-						BitmaskFlag->ToolTipText = BitmaskEnum->GetToolTipText(BitmaskEnumIndex);
+						BitmaskFlag->DisplayName = BitmaskEnum->GetDisplayNameTextByIndex(BitmaskEnumIndex);
+						BitmaskFlag->ToolTipText = BitmaskEnum->GetToolTipTextByIndex(BitmaskEnumIndex);
 						if(BitmaskFlag->ToolTipText.IsEmpty())
 						{
 							BitmaskFlag->ToolTipText = FText::Format(NSLOCTEXT("GraphEditor", "BitmaskDefaultFlagToolTipText", "Toggle {0} on/off"), BitmaskFlag->DisplayName);

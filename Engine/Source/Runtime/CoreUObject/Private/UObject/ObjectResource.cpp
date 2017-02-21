@@ -42,7 +42,7 @@ FObjectExport::FObjectExport()
 , bForcedExport(false)
 , bNotForClient(false)
 , bNotForServer(false)
-, bNotForEditorGame(true)
+, bNotAlwaysLoadedForEditorGame(true)
 , bIsAsset(false)
 , bExportLoadFailed(false)
 , DynamicType(EDynamicType::NotDynamicExport)
@@ -69,7 +69,7 @@ FObjectExport::FObjectExport( UObject* InObject )
 , bForcedExport(false)
 , bNotForClient(false)
 , bNotForServer(false)
-, bNotForEditorGame(true)
+, bNotAlwaysLoadedForEditorGame(true)
 , bIsAsset(false)
 , bExportLoadFailed(false)
 , DynamicType(EDynamicType::NotDynamicExport)
@@ -86,7 +86,7 @@ FObjectExport::FObjectExport( UObject* InObject )
 	{
 		bNotForClient = Object->HasAnyMarks(OBJECTMARK_NotForClient);
 		bNotForServer = Object->HasAnyMarks(OBJECTMARK_NotForServer);
-		bNotForEditorGame = Object->HasAnyMarks(OBJECTMARK_NotForEditorGame);
+		bNotAlwaysLoadedForEditorGame = Object->HasAnyMarks(OBJECTMARK_NotAlwaysLoadedForEditorGame);
 		bIsAsset = Object->IsAsset();
 	}
 }
@@ -135,7 +135,7 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 
 	if (Ar.UE4Ver() >= VER_UE4_LOAD_FOR_EDITOR_GAME)
 	{
-		Ar << E.bNotForEditorGame;
+		Ar << E.bNotAlwaysLoadedForEditorGame;
 	}
 
 	if (Ar.UE4Ver() >= VER_UE4_COOKED_ASSETS_IN_EDITOR_SUPPORT)

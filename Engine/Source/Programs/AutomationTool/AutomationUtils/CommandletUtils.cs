@@ -59,8 +59,10 @@ namespace AutomationTool
 
 			if (!IsNullOrEmpty(Dirs))
 			{
-				string DirsToCookArg = "-CookDir=" + CombineCommandletParams(Dirs).Trim();
-                CommandletArguments += (CommandletArguments.Length > 0 ? " " : "") + DirsToCookArg;
+				foreach(string Dir in Dirs)
+				{
+					CommandletArguments += (CommandletArguments.Length > 0 ? " " : "") + String.Format("-CookDir={0}", CommandUtils.MakePathSafeToUseWithCommandLine(Dir));
+				}
             }
 
             if (!String.IsNullOrEmpty(InternationalizationPreset))

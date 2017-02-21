@@ -18,7 +18,7 @@ FScopeArchiveProxy::FScopeArchiveProxy(const FUHTMakefile& UHTMakefile, const FS
 	ParentIndex = UHTMakefile.GetScopeIndex(Scope->GetParent());
 	for (auto& Kvp : Scope->TypeMap)
 	{
-		TypeMap.Add(TPairInitializer<FNameArchiveProxy, FSerializeIndex>(FNameArchiveProxy(UHTMakefile, Kvp.Key), UHTMakefile.GetFieldIndex(Kvp.Value)));
+		TypeMap.Emplace(FNameArchiveProxy(UHTMakefile, Kvp.Key), UHTMakefile.GetFieldIndex(Kvp.Value));
 	}
 }
 

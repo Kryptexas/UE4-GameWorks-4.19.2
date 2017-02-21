@@ -100,7 +100,7 @@ struct FIOSBuildResourceFilePath
  *	Setup our resource filepath to make it easier to parse in UBT
  */
 template<>
-struct TStructOpsTypeTraits<FIOSBuildResourceFilePath> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FIOSBuildResourceFilePath> : public TStructOpsTypeTraitsBase2<FIOSBuildResourceFilePath>
 {
 	enum
 	{
@@ -153,7 +153,7 @@ struct FIOSBuildResourceDirectory
 *	Setup our resource Directory to make it easier to parse in UBT
 */
 template<>
-struct TStructOpsTypeTraits<FIOSBuildResourceDirectory> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FIOSBuildResourceDirectory> : public TStructOpsTypeTraitsBase2<FIOSBuildResourceDirectory>
 {
 	enum
 	{

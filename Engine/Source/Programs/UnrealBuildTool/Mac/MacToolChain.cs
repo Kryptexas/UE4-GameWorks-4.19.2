@@ -1777,11 +1777,11 @@ namespace UnrealBuildTool
 		private FileItem FixDylibOutputFile = null;
 		private List<FileItem> ExecutablesThatNeedDsyms = new List<FileItem>();
 
-		public void StripSymbols(string SourceFileName, string TargetFileName)
+		public void StripSymbols(FileReference SourceFile, FileReference TargetFile)
 		{
 			SetupXcodePaths(false);
 
-			StripSymbolsWithXcode(SourceFileName, TargetFileName, Settings.ToolchainDir);
+			StripSymbolsWithXcode(SourceFile, TargetFile, Settings.ToolchainDir);
 		}
 	};
 }

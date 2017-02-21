@@ -765,7 +765,7 @@ void UK2Node_CallFunction::CreateExecPinsForFunctionCall(const UFunction* Functi
 					bool const bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), ExecIdx) || Enum->HasMetaData(TEXT("Spacer"), ExecIdx);
 					if (!bShouldBeHidden)
 					{
-						FString ExecName = Enum->GetEnumName(ExecIdx);
+						FString ExecName = Enum->GetNameStringByIndex(ExecIdx);
 						CreatePin(Direction, K2Schema->PC_Exec, TEXT(""), NULL, false, false, ExecName);
 					}
 				}
@@ -975,7 +975,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 		UEdGraphPin* EnumParamPin = FindPin(EnumParamName);
 		if (UEnum* PinEnum = (EnumParamPin ? Cast<UEnum>(EnumParamPin->PinType.PinSubCategoryObject.Get()) : NULL))
 		{
-			EnumParamPin->DefaultValue = PinEnum->GetEnumName(0);
+			EnumParamPin->DefaultValue = PinEnum->GetNameStringByIndex(0);
 		}
 	}
 

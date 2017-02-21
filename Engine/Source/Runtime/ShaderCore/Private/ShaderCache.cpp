@@ -743,7 +743,7 @@ void FShaderCache::InternalLogShader(EShaderPlatform Platform, EShaderFrequency 
 			bool bSubmit = !ShaderCache->bUseShaderBinaryCache || !ShaderCache->bUseAsyncShaderPrecompilation;
 			if(ShaderCache->bUseShaderBinaryCache && !ShaderCache->CodeCache.Shaders.Contains(Key))
 			{
-				ShaderCache->CodeCache.Shaders.Add(Key, TPairInitializer<uint32, TArray<uint8>>(UncompressedSize, Code));
+				ShaderCache->CodeCache.Shaders.Add(Key, TPair<uint32, TArray<uint8>>(UncompressedSize, Code));
 				
 				bSubmit |= true;
 			}
@@ -1508,7 +1508,7 @@ void FShaderCache::CookShader(EShaderPlatform Platform, EShaderFrequency Frequen
 		Key.Platform = Platform;
 		Key.Frequency = Frequency;
 		Key.bActive = true;
-		CookCache->CodeCache.Shaders.Add(Key, TPairInitializer<uint32, TArray<uint8>>(UncompressedSize, Code));
+		CookCache->CodeCache.Shaders.Add(Key, TPair<uint32, TArray<uint8>>(UncompressedSize, Code));
 		
 		if (GShaderCacheBinaryCacheLogging > 0)
 		{

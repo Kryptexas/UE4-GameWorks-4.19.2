@@ -63,7 +63,7 @@ struct TIsPODType<FNameCurveKey>
 
 template<>
 struct TStructOpsTypeTraits<FNameCurveKey>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FNameCurveKey>
 {
 	enum
 	{

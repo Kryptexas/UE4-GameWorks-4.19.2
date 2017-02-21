@@ -21,7 +21,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         public CrashRepository(CrashReportEntities entityContext)
         {
             _entityContext = entityContext;
-            _entityContext.Database.CommandTimeout = 1200;
         }
 
         /// <summary>
@@ -37,11 +36,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         }
 
         /// <summary>
-        /// Get a filtered list of crashes from data storage
+        /// Get a filtered list of Crashes from data storage
         /// Calling this method returns the data directly. It will execute the data retrieval - in this case an sql transaction.
         /// </summary>
-        /// <param name="filter">A linq expression used to filter the crash table</param>
-        /// <returns>Returns a fully filtered enumerated list object of crashes.</returns>
+        /// <param name="filter">A linq expression used to filter the Crash table</param>
+        /// <returns>Returns a fully filtered enumerated list object of Crashes.</returns>
         public IEnumerable<Crash> Get(Expression<Func<Crash, bool>> filter)
         {
             return _entityContext.Crashes.Where(filter).ToList();
@@ -62,8 +61,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         /// <summary>
         /// Return an ordered list of Crashes with data preloading
         /// </summary>
-        /// <param name="filter">A linq expression used to filter the crash table</param>
-        /// <param name="orderBy">A linq expression used to order the results from the crash table</param>
+        /// <param name="filter">A linq expression used to filter the Crash table</param>
+        /// <param name="orderBy">A linq expression used to order the results from the Crash table</param>
         /// <param name="includeProperties">A linq expression indicating properties to dynamically load.</param>
         /// <returns></returns>
         public IEnumerable<Crash> Get(Expression<Func<Crash, bool>> filter,
@@ -80,9 +79,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         }
 
         /// <summary>
-        /// Get a crash from it's id
+        /// Get a Crash from it's id
         /// </summary>
-        /// <param name="id">The id of the crash to retrieve</param>
+        /// <param name="id">The id of the Crash to retrieve</param>
         /// <returns>Crash data model</returns>
         public Crash GetById(int id)
         {
@@ -92,7 +91,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         }
 
         /// <summary>
-        /// Check if there are any crashes matching a specific filter.
+        /// Check if there are any Crashes matching a specific filter.
         /// </summary>
         /// <param name="filter"></param>
         /// <returns></returns>
@@ -102,7 +101,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         }
 
         /// <summary>
-        /// Get the first crash matching a specific filter.
+        /// Get the first Crash matching a specific filter.
         /// </summary>
         /// <param name="filter"></param>
         /// <returns></returns>
@@ -112,7 +111,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         }
 
         /// <summary>
-        /// Add a new crash to the data store
+        /// Add a new Crash to the data store
         /// </summary>
         /// <param name="entity"></param>
         public void Save(Crash entity)
@@ -121,7 +120,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         }
 
         /// <summary>
-        /// Remove a crash from the data store
+        /// Remove a Crash from the data store
         /// </summary>
         /// <param name="entity"></param>
         public void Delete(Crash entity)
@@ -130,7 +129,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         }
 
         /// <summary>
-        /// Update an existing crash
+        /// Update an existing Crash
         /// </summary>
         /// <param name="entity"></param>
         public void Update(Crash entity)
@@ -152,7 +151,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         }
 
         private static DateTime LastBranchesDate = DateTime.UtcNow.AddDays(-1);
-        private static List<SelectListItem>BranchesAsSelectList = null;
+        private static List<SelectListItem> BranchesAsSelectList = null;
         /// <summary>
         /// 
         /// </summary>

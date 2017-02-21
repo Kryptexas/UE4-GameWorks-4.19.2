@@ -2144,7 +2144,7 @@ void UNavigationSystem::DescribeFilterFlags(UEnum* FlagsEnum) const
 	const int32 NumEnums = FMath::Min(16, FlagsEnum->NumEnums() - 1);	// skip _MAX
 	for (int32 FlagIndex = 0; FlagIndex < NumEnums; FlagIndex++)
 	{
-		FlagDesc[FlagIndex] = FlagsEnum->GetEnumText(FlagIndex).ToString();
+		FlagDesc[FlagIndex] = FlagsEnum->GetDisplayNameTextByIndex(FlagIndex).ToString();
 	}
 
 	DescribeFilterFlags(FlagDesc);

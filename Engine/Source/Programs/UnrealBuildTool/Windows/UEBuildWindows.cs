@@ -46,9 +46,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/WindowsTargetPlatform.WindowsTargetSettings", "CompilerVersion")]
 		[XmlConfigFile(Category = "WindowsPlatform")]
-		[CommandLine("-2013", Value ="VisualStudio2013")]
-		[CommandLine("-2015", Value ="VisualStudio2015")]
-		[CommandLine("-2017", Value ="VisualStudio2017")]
+		[CommandLine("-2013", Value = "VisualStudio2013")]
+		[CommandLine("-2015", Value = "VisualStudio2015")]
+		[CommandLine("-2017", Value = "VisualStudio2017")]
 		public WindowsCompiler Compiler = WindowsCompiler.Default;
 
 		/// <summary>
@@ -87,9 +87,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <returns>The Visual Studio compiler version name (e.g. "2015")</returns>
 		public string GetVisualStudioCompilerVersionName()
-			{
+		{
 			switch (Compiler)
-				{
+			{
 				case WindowsCompiler.VisualStudio2013:
 					return "2013";
 				case WindowsCompiler.VisualStudio2015:
@@ -101,13 +101,13 @@ namespace UnrealBuildTool
 					throw new BuildException("Unexpected WindowsCompiler version for GetVisualStudioCompilerVersionName().  Either not using a Visual Studio compiler or switch block needs to be updated");
 			}
 		}
-				}
+	}
 
 	/// <summary>
 	/// Read-only wrapper for Windows-specific target settings
 	/// </summary>
 	public class ReadOnlyWindowsTargetRules
-				{
+	{
 		/// <summary>
 		/// The private mutable settings object
 		/// </summary>
@@ -118,7 +118,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Inner">The settings object to wrap</param>
 		public ReadOnlyWindowsTargetRules(WindowsTargetRules Inner)
-					{
+		{
 			this.Inner = Inner;
 		}
 
@@ -129,387 +129,42 @@ namespace UnrealBuildTool
 		#pragma warning disable CS1591
 
 		public WindowsCompiler Compiler
-						{
+		{
 			get { return Inner.Compiler; }
-						}
+		}
 
 		public bool bPixProfilingEnabled
 		{
 			get { return Inner.bPixProfilingEnabled; }
-					}
+		}
 
 		public string CompanyName
 		{
 			get { return Inner.CompanyName; }
-				}
+		}
 
 		public string CopyrightNotice
 		{
 			get { return Inner.CopyrightNotice; }
-			}
+		}
 
 		public string ProductName
-			{
+		{
 			get { return Inner.ProductName; }
-			}
+		}
 
 		public bool bNeedsLegacyStdioDefinitionsLib
-			{
+		{
 			get { return Inner.bNeedsLegacyStdioDefinitionsLib; }
-			}
+		}
 
 		public string GetVisualStudioCompilerVersionName()
-			{
+		{
 			return Inner.GetVisualStudioCompilerVersionName();
-			}
+		}
 
 		#pragma warning restore CS1591
 		#endregion
-		}
-
-		/// <summary>
-	/// Windows platform instance configured to a specific project and target
-		/// </summary>
-	class WindowsPlatformContext : UEBuildPlatformContext
-	{
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="InPlatform">The platform being targeted (win32 or win64)</param>
-		public WindowsPlatformContext(UnrealTargetPlatform InPlatform) : base(InPlatform)
-		{
-		}
-
-		/// <summary>
-		/// Modify the rules for a newly created module, in a target that's being built for this platform.
-		/// This is not required - but allows for hiding details of a particular platform.
-		/// </summary>
-		/// <param name="ModuleName">The name of the module</param>
-		/// <param name="Rules">The module rules</param>
-		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
-		{
-			bool bBuildShaderFormats = Target.bForceBuildShaderFormats;
-
-			if (!Target.bBuildRequiresCookedData)
-			{
-				if (ModuleName == "TargetPlatform")
-				{
-					bBuildShaderFormats = true;
-				}
-			}
-
-			// allow standalone tools to use target platform modules, without needing Engine
-			if (ModuleName == "TargetPlatform")
-			{
-				if (Target.bForceBuildTargetPlatforms)
-				{
-					Rules.DynamicallyLoadedModuleNames.Add("WindowsTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("WindowsNoEditorTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("WindowsServerTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("WindowsClientTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
-				}
-
-				if (bBuildShaderFormats)
-				{
-						Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
-					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
-
-					Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
-					Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
-				}
-			}
-
-			if (ModuleName == "D3D11RHI")
-			{
-				// To enable platform specific D3D11 RHI Types
-				Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D11RHI/Private/Windows");
-			}
-
-			if (ModuleName == "D3D12RHI")
-			{
-				if (Target.WindowsPlatform.bPixProfilingEnabled && Target.Platform == UnrealTargetPlatform.Win64 && Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test)
-				{
-					// Define to indicate profiling enabled (64-bit only)
-					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=1");
-					Rules.Definitions.Add("PROFILE");
-					Rules.PublicAdditionalLibraries.Add("WinPixEventRuntime.lib");
-
-					Rules.PublicDelayLoadDLLs.Add("WinPixEventRuntime.dll");
-					Rules.RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Windows/DirectX/x64/WinPixEventRuntime.dll"));
-				}
-				else
-				{
-					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=0");
-				}
-
-				// To enable platform specific D3D12 RHI Types
-				Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
-			}
-
-			// Delay-load D3D12 so we can use the latest features and still run on downlevel versions of the OS
-			Rules.PublicDelayLoadDLLs.Add("d3d12.dll");
-		}
-
-		/// <summary>
-		/// Setup the target environment for building
-		/// </summary>
-		/// <param name="Target">Settings for the target being compiled</param>
-		/// <param name="CompileEnvironment">The compile environment for this target</param>
-		/// <param name="LinkEnvironment">The link environment for this target</param>
-		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
-			{
-			CompileEnvironment.Definitions.Add("WIN32=1");
-
-			if (WindowsPlatform.bUseWindowsSDK10)
-			{
-				// Windows 8 or higher required
-				CompileEnvironment.Definitions.Add("_WIN32_WINNT=0x0602");
-				CompileEnvironment.Definitions.Add("WINVER=0x0602");
-				}
-				else
-				{
-					// Windows 7 or higher required
-				CompileEnvironment.Definitions.Add("_WIN32_WINNT=0x0601");
-				CompileEnvironment.Definitions.Add("WINVER=0x0601");
-				}
-			CompileEnvironment.Definitions.Add("PLATFORM_WINDOWS=1");
-
-			CompileEnvironment.Definitions.Add("DEPTH_32_BIT_CONVERSION=0");
-
-			FileReference MorpheusShaderPath = FileReference.Combine(UnrealBuildTool.EngineDirectory, "Shaders", "PS4", "PostProcessHMDMorpheus.usf");
-			if (FileReference.Exists(MorpheusShaderPath))
-			{
-				CompileEnvironment.Definitions.Add("HAS_MORPHEUS=1");
-
-				//on PS4 the SDK now handles distortion correction.  On PC we will still have to handle it manually,				
-				CompileEnvironment.Definitions.Add("MORPHEUS_ENGINE_DISTORTION=1");
-			}
-
-			// Add path to Intel math libraries when using ICL based on target platform
-			if (WindowsPlatform.bCompileWithICL)
-			{
-				var Result = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "IntelSWTools", "compilers_and_libraries", "windows", "compiler", "lib", Target.Platform == UnrealTargetPlatform.Win32 ? "ia32" : "intel64");
-				if (!Directory.Exists(Result))
-				{
-					throw new BuildException("ICL was selected but the required math libraries were not found.  Could not find: " + Result);
-				}
-
-				LinkEnvironment.LibraryPaths.Add(Result);
-			}
-
-				// Explicitly exclude the MS C++ runtime libraries we're not using, to ensure other libraries we link with use the same
-				// runtime library as the engine.
-			bool bUseDebugCRT = Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT;
-			if (!Target.bUseStaticCRT || bUseDebugCRT)
-				{
-				LinkEnvironment.ExcludedLibraries.Add("LIBCMT");
-				LinkEnvironment.ExcludedLibraries.Add("LIBCPMT");
-				}
-			if (!Target.bUseStaticCRT || !bUseDebugCRT)
-				{
-				LinkEnvironment.ExcludedLibraries.Add("LIBCMTD");
-				LinkEnvironment.ExcludedLibraries.Add("LIBCPMTD");
-				}
-			if (Target.bUseStaticCRT || bUseDebugCRT)
-				{
-				LinkEnvironment.ExcludedLibraries.Add("MSVCRT");
-				LinkEnvironment.ExcludedLibraries.Add("MSVCPRT");
-				}
-			if (Target.bUseStaticCRT || !bUseDebugCRT)
-				{
-				LinkEnvironment.ExcludedLibraries.Add("MSVCRTD");
-				LinkEnvironment.ExcludedLibraries.Add("MSVCPRTD");
-				}
-			LinkEnvironment.ExcludedLibraries.Add("LIBC");
-			LinkEnvironment.ExcludedLibraries.Add("LIBCP");
-			LinkEnvironment.ExcludedLibraries.Add("LIBCD");
-			LinkEnvironment.ExcludedLibraries.Add("LIBCPD");
-
-				//@todo ATL: Currently, only VSAccessor requires ATL (which is only used in editor builds)
-				// When compiling games, we do not want to include ATL - and we can't when compiling games
-				// made with Launcher build due to VS 2012 Express not including ATL.
-				// If more modules end up requiring ATL, this should be refactored into a BuildTarget flag (bNeedsATL)
-				// that is set by the modules the target includes to allow for easier tracking.
-				// Alternatively, if VSAccessor is modified to not require ATL than we should always exclude the libraries.
-			if (Target.LinkType == TargetLinkType.Monolithic && 
-				(Target.Type == TargetType.Game || Target.Type == TargetType.Client || Target.Type == TargetType.Server))
-				{
-				LinkEnvironment.ExcludedLibraries.Add("atl");
-				LinkEnvironment.ExcludedLibraries.Add("atls");
-				LinkEnvironment.ExcludedLibraries.Add("atlsd");
-				LinkEnvironment.ExcludedLibraries.Add("atlsn");
-				LinkEnvironment.ExcludedLibraries.Add("atlsnd");
-				}
-
-				// Add the library used for the delayed loading of DLLs.
-			LinkEnvironment.AdditionalLibraries.Add("delayimp.lib");
-
-				//@todo - remove once FB implementation uses Http module
-			if (Target.bCompileAgainstEngine)
-				{
-					// link against wininet (used by FBX and Facebook)
-				LinkEnvironment.AdditionalLibraries.Add("wininet.lib");
-				}
-
-				// Compile and link with Win32 API libraries.
-			LinkEnvironment.AdditionalLibraries.Add("rpcrt4.lib");
-			//LinkEnvironment.AdditionalLibraries.Add("wsock32.lib");
-			LinkEnvironment.AdditionalLibraries.Add("ws2_32.lib");
-			LinkEnvironment.AdditionalLibraries.Add("dbghelp.lib");
-			LinkEnvironment.AdditionalLibraries.Add("comctl32.lib");
-			LinkEnvironment.AdditionalLibraries.Add("Winmm.lib");
-			LinkEnvironment.AdditionalLibraries.Add("kernel32.lib");
-			LinkEnvironment.AdditionalLibraries.Add("user32.lib");
-			LinkEnvironment.AdditionalLibraries.Add("gdi32.lib");
-			LinkEnvironment.AdditionalLibraries.Add("winspool.lib");
-			LinkEnvironment.AdditionalLibraries.Add("comdlg32.lib");
-			LinkEnvironment.AdditionalLibraries.Add("advapi32.lib");
-			LinkEnvironment.AdditionalLibraries.Add("shell32.lib");
-			LinkEnvironment.AdditionalLibraries.Add("ole32.lib");
-			LinkEnvironment.AdditionalLibraries.Add("oleaut32.lib");
-			LinkEnvironment.AdditionalLibraries.Add("uuid.lib");
-			LinkEnvironment.AdditionalLibraries.Add("odbc32.lib");
-			LinkEnvironment.AdditionalLibraries.Add("odbccp32.lib");
-			LinkEnvironment.AdditionalLibraries.Add("netapi32.lib");
-			LinkEnvironment.AdditionalLibraries.Add("iphlpapi.lib");
-			LinkEnvironment.AdditionalLibraries.Add("setupapi.lib"); //  Required for access monitor device enumeration
-
-				// Windows Vista/7 Desktop Windows Manager API for Slate Windows Compliance
-			LinkEnvironment.AdditionalLibraries.Add("dwmapi.lib");
-
-				// IME
-			LinkEnvironment.AdditionalLibraries.Add("imm32.lib");
-
-			// For 64-bit builds, we'll forcibly ignore a linker warning with DirectInput.  This is
-			// Microsoft's recommended solution as they don't have a fixed .lib for us.
-			if (Target.Platform == UnrealTargetPlatform.Win64)
-			{
-				LinkEnvironment.AdditionalArguments += " /ignore:4078";
-			}
-
-			if (Target.Type != TargetType.Editor)
-			{
-				if (!string.IsNullOrEmpty(Target.WindowsPlatform.CompanyName))
-				{
-					CompileEnvironment.Definitions.Add(String.Format("PROJECT_COMPANY_NAME={0}", Target.WindowsPlatform.CompanyName));
-				}
-
-				if (!string.IsNullOrEmpty(Target.WindowsPlatform.CopyrightNotice))
-				{
-					CompileEnvironment.Definitions.Add(String.Format("PROJECT_COPYRIGHT_STRING={0}", Target.WindowsPlatform.CopyrightNotice));
-				}
-
-				if (!string.IsNullOrEmpty(Target.WindowsPlatform.ProductName))
-				{
-					CompileEnvironment.Definitions.Add(String.Format("PROJECT_PRODUCT_NAME={0}", Target.WindowsPlatform.ProductName));
-				}
-
-				if (Target.ProjectFile != null)
-				{
-					CompileEnvironment.Definitions.Add(String.Format("PROJECT_PRODUCT_IDENTIFIER={0}", Target.ProjectFile.GetFileNameWithoutExtension()));
-				}
-			}
-
-			// Set up default stack size
-			ConfigHierarchy EngineIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Target.ProjectFile), UnrealTargetPlatform.Win64);
-			String TargetSettingsIniPath = "/Script/WindowsTargetPlatform.WindowsTargetSettings";
-			int IniDefaultStackSize = 0;
-			String StackSizeName = Target.Type == TargetType.Editor ? "DefaultStackSizeEditor" : "DefaultStackSize";
-			if (EngineIni.GetInt32(TargetSettingsIniPath, StackSizeName, out IniDefaultStackSize))
-			{
-				LinkEnvironment.DefaultStackSize = IniDefaultStackSize;
-			}
-
-			int IniDefaultStackSizeCommit = 0;
-			String StackSizeCommitName = Target.Type == TargetType.Editor ? "DefaultStackSizeCommitEditor" : "DefaultStackSizeCommit";
-			if (EngineIni.GetInt32(TargetSettingsIniPath, StackSizeCommitName, out IniDefaultStackSizeCommit))
-			{
-				LinkEnvironment.DefaultStackSizeCommit = IniDefaultStackSizeCommit;
-			}
-		}
-
-		/// <summary>
-		/// Setup the configuration environment for building
-		/// </summary>
-		/// <param name="Target"> The target being built</param>
-		/// <param name="GlobalCompileEnvironment">The global compile environment</param>
-		/// <param name="GlobalLinkEnvironment">The global link environment</param>
-		public override void SetUpConfigurationEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment GlobalCompileEnvironment, LinkEnvironment GlobalLinkEnvironment)
-		{
-			if (GlobalCompileEnvironment.bUseDebugCRT)
-			{
-				GlobalCompileEnvironment.Definitions.Add("_DEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
-			}
-			else
-		{
-				GlobalCompileEnvironment.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
-			}
-
-			UnrealTargetConfiguration CheckConfig = Target.Configuration;
-			switch (CheckConfig)
-			{
-				default:
-				case UnrealTargetConfiguration.Debug:
-					GlobalCompileEnvironment.Definitions.Add("UE_BUILD_DEBUG=1");
-					break;
-				case UnrealTargetConfiguration.DebugGame:
-				// Default to Development; can be overridden by individual modules.
-				case UnrealTargetConfiguration.Development:
-					GlobalCompileEnvironment.Definitions.Add("UE_BUILD_DEVELOPMENT=1");
-					break;
-				case UnrealTargetConfiguration.Shipping:
-					GlobalCompileEnvironment.Definitions.Add("UE_BUILD_SHIPPING=1");
-					break;
-				case UnrealTargetConfiguration.Test:
-					GlobalCompileEnvironment.Definitions.Add("UE_BUILD_TEST=1");
-					break;
-			}
-
-			// Create debug info based on the heuristics specified by the user.
-			GlobalCompileEnvironment.bCreateDebugInfo =
-				!Target.bDisableDebugInfo && ShouldCreateDebugInfo(Target);
-
-			// NOTE: Even when debug info is turned off, we currently force the linker to generate debug info
-			//       anyway on Visual C++ platforms.  This will cause a PDB file to be generated with symbols
-			//       for most of the classes and function/method names, so that crashes still yield somewhat
-			//       useful call stacks, even though compiler-generate debug info may be disabled.  This gives
-			//       us much of the build-time savings of fully-disabled debug info, without giving up call
-			//       data completely.
-			GlobalLinkEnvironment.bCreateDebugInfo = true;
-		}
-
-		/// <summary>
-		/// Whether this platform should create debug information or not
-		/// </summary>
-		/// <param name="Target">The target being built</param>
-		/// <returns>bool    true if debug info should be generated, false if not</returns>
-		public override bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target)
-		{
-			switch (Target.Configuration)
-			{
-				case UnrealTargetConfiguration.Development:
-				case UnrealTargetConfiguration.Shipping:
-				case UnrealTargetConfiguration.Test:
-					return !Target.bOmitPCDebugInfoInDevelopment;
-				case UnrealTargetConfiguration.DebugGame:
-				case UnrealTargetConfiguration.Debug:
-				default:
-					return true;
-			};
-		}
-
-		/// <summary>
-		/// Creates a toolchain instance for the given platform.
-		/// </summary>
-		/// <param name="CppPlatform">The platform to create a toolchain for</param>
-		/// <param name="Target">The target being built</param>
-		/// <returns>New toolchain instance.</returns>
-		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
-		{
-			return new VCToolChain(CppPlatform, Target.WindowsPlatform.Compiler);
-		}
 	}
 
 	class WindowsPlatform : UEBuildPlatform
@@ -568,22 +223,21 @@ namespace UnrealBuildTool
 		/// Whether the required external SDKs are installed for this platform. Could be either a manual install or an AutoSDK.
 		/// </summary>
 		public override SDKStatus HasRequiredSDKsInstalled()
-			{
+		{
 			return SDK.HasRequiredSDKsInstalled();
-			}
+		}
 
 		/// <summary>
 		/// Validate a target's settings
 		/// </summary>
 		public override void ValidateTarget(TargetRules Target)
-			{
-            Target.bCompileNvCloth = true;
-
+		{
+			Target.bCompileNvCloth = true;
 			// Disable Simplygon support if compiling against the NULL RHI.
 			if (Target.GlobalDefinitions.Contains("USE_NULL_RHI=1"))
 			{
 				Target.bCompileSimplygon = false;
-                Target.bCompileSimplygonSSF = false;
+				Target.bCompileSimplygonSSF = false;
 			}
 
 			// Set the compiler version if necessary
@@ -623,10 +277,10 @@ namespace UnrealBuildTool
 
 			// Incremental linking.
 			if (Target.bUseIncrementalLinking && !Target.bDisableDebugInfo)
-				{
+			{
 				Target.bUsePDBFiles = true;
-				}
 			}
+		}
 
 		/// <summary>
 		/// Gets the default compiler which should be used, if it's not set explicitly by the target, command line, or config file.
@@ -636,45 +290,45 @@ namespace UnrealBuildTool
 		{
 			// If there's no specific compiler set, try to pick the matching compiler for the selected IDE
 			object ProjectFormatObject;
-			if(XmlConfig.TryGetValue(typeof(VCProjectFileGenerator), "Version", out ProjectFormatObject))
+			if (XmlConfig.TryGetValue(typeof(VCProjectFileGenerator), "Version", out ProjectFormatObject))
 			{
 				VCProjectFileFormat ProjectFormat = (VCProjectFileFormat)ProjectFormatObject;
-				if(ProjectFormat == VCProjectFileFormat.VisualStudio2017)
-			{
-				return WindowsCompiler.VisualStudio2017;
-			}
-				else if(ProjectFormat == VCProjectFileFormat.VisualStudio2015)
-			{
-				return WindowsCompiler.VisualStudio2015;
-			}
-				else if(ProjectFormat == VCProjectFileFormat.VisualStudio2013)
-			{
-				return WindowsCompiler.VisualStudio2013;
-			}
+				if (ProjectFormat == VCProjectFileFormat.VisualStudio2017)
+				{
+					return WindowsCompiler.VisualStudio2017;
+				}
+				else if (ProjectFormat == VCProjectFileFormat.VisualStudio2015)
+				{
+					return WindowsCompiler.VisualStudio2015;
+				}
+				else if (ProjectFormat == VCProjectFileFormat.VisualStudio2013)
+				{
+					return WindowsCompiler.VisualStudio2013;
+				}
 			}
 
 			// Second, default based on what's installed, test for 2015 first
 			DirectoryReference VCInstallDir;
-			if(TryGetVCInstallDir(WindowsCompiler.VisualStudio2015, out VCInstallDir))
+			if (TryGetVCInstallDir(WindowsCompiler.VisualStudio2015, out VCInstallDir))
 			{
 				return WindowsCompiler.VisualStudio2015;
 			}
-			if(TryGetVCInstallDir(WindowsCompiler.VisualStudio2013, out VCInstallDir))
+			if (TryGetVCInstallDir(WindowsCompiler.VisualStudio2013, out VCInstallDir))
 			{
 				return WindowsCompiler.VisualStudio2013;
 			}
-			if(TryGetVCInstallDir(WindowsCompiler.VisualStudio2017, out VCInstallDir))
+			if (TryGetVCInstallDir(WindowsCompiler.VisualStudio2017, out VCInstallDir))
 			{
 				return WindowsCompiler.VisualStudio2017;
 			}
 
 			// If we do have a Visual Studio installation, but we're missing just the C++ parts, warn about that.
 			DirectoryReference VSInstallDir;
-			if(TryGetVSInstallDir(WindowsCompiler.VisualStudio2015, out VSInstallDir))
+			if (TryGetVSInstallDir(WindowsCompiler.VisualStudio2015, out VSInstallDir))
 			{
 				Log.TraceWarning("Visual Studio 2015 is installed, but is missing the C++ toolchain. Please verify that \"Common Tools for Visual C++ 2015\" are selected from the Visual Studio 2015 installation options.");
 			}
-			else if(TryGetVSInstallDir(WindowsCompiler.VisualStudio2017, out VSInstallDir))
+			else if (TryGetVSInstallDir(WindowsCompiler.VisualStudio2017, out VSInstallDir))
 			{
 				Log.TraceWarning("Visual Studio 2017 is installed, but is missing the C++ toolchain. Please verify that \"Common Tools for Visual C++ 2015\" are selected from the Visual Studio 2015 installation options.");
 			}
@@ -682,7 +336,7 @@ namespace UnrealBuildTool
 			{
 				Log.TraceWarning("No Visual C++ installation was found. Please download and install Visual Studio 2015 with C++ components.");
 			}
-			
+
 			// Finally, default to VS2015 anyway
 			return WindowsCompiler.VisualStudio2015;
 		}
@@ -694,7 +348,7 @@ namespace UnrealBuildTool
 		/// <returns>Name of the compiler</returns>
 		public static string GetCompilerName(WindowsCompiler Compiler)
 		{
-			switch(Compiler)
+			switch (Compiler)
 			{
 				case WindowsCompiler.VisualStudio2013:
 					return "Visual Studio 2013";
@@ -722,7 +376,7 @@ namespace UnrealBuildTool
 				return false;
 			}
 
-			switch(Compiler)
+			switch (Compiler)
 			{
 				case WindowsCompiler.VisualStudio2013:
 					return TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VS7", "12.0", out InstallDir);
@@ -749,29 +403,29 @@ namespace UnrealBuildTool
 				return false;
 			}
 
-			if(Compiler == WindowsCompiler.VisualStudio2013)
+			if (Compiler == WindowsCompiler.VisualStudio2013)
 			{
 				return TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VC7", "12.0", out InstallDir);
 			}
-			else if(Compiler == WindowsCompiler.VisualStudio2015)
+			else if (Compiler == WindowsCompiler.VisualStudio2015)
 			{
 				return TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VC7", "14.0", out InstallDir);
 			}
-			else if(Compiler == WindowsCompiler.VisualStudio2017)
+			else if (Compiler == WindowsCompiler.VisualStudio2017)
 			{
 				// VS15Preview installs the compiler under the IDE directory, and does not register it as a standalone component. Check just in case this changes 
 				// for compat in future since it's more specific.
-				if(TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VC7", "15.0", out InstallDir))
+				if (TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VC7", "15.0", out InstallDir))
 				{
 					return true;
 				}
 
 				// Otherwise just check under the VS folder...
 				DirectoryReference VSInstallDir;
-				if(TryGetVSInstallDir(Compiler, out VSInstallDir))
+				if (TryGetVSInstallDir(Compiler, out VSInstallDir))
 				{
 					FileReference VersionPath = FileReference.Combine(VSInstallDir, "VC", "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt");
-					if(FileReference.Exists(VersionPath))
+					if (FileReference.Exists(VersionPath))
 					{
 						InstallDir = VersionPath.Directory.ParentDirectory.ParentDirectory;
 						return true;
@@ -794,19 +448,19 @@ namespace UnrealBuildTool
 		/// <returns>True if the key was read, false otherwise.</returns>
 		static bool TryReadInstallDirRegistryKey32(string KeySuffix, string ValueName, out DirectoryReference InstallDir)
 		{
-			if(TryReadDirRegistryKey("HKEY_CURRENT_USER\\SOFTWARE\\" + KeySuffix, ValueName, out InstallDir))
+			if (TryReadDirRegistryKey("HKEY_CURRENT_USER\\SOFTWARE\\" + KeySuffix, ValueName, out InstallDir))
 			{
 				return true;
 			}
-			if(TryReadDirRegistryKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\" + KeySuffix, ValueName, out InstallDir))
+			if (TryReadDirRegistryKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\" + KeySuffix, ValueName, out InstallDir))
 			{
 				return true;
 			}
-			if(TryReadDirRegistryKey("HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\" + KeySuffix, ValueName, out InstallDir))
+			if (TryReadDirRegistryKey("HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\" + KeySuffix, ValueName, out InstallDir))
 			{
 				return true;
 			}
-			if(TryReadDirRegistryKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\" + KeySuffix, ValueName, out InstallDir))
+			if (TryReadDirRegistryKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\" + KeySuffix, ValueName, out InstallDir))
 			{
 				return true;
 			}
@@ -823,7 +477,7 @@ namespace UnrealBuildTool
 		static bool TryReadDirRegistryKey(string KeyName, string ValueName, out DirectoryReference Value)
 		{
 			string StringValue = Registry.GetValue(KeyName, ValueName, null) as string;
-			if(String.IsNullOrEmpty(StringValue))
+			if (String.IsNullOrEmpty(StringValue))
 			{
 				Value = null;
 				return false;
@@ -870,7 +524,7 @@ namespace UnrealBuildTool
 				case UEBuildBinaryType.StaticLibrary:
 					return ".lib";
 				case UEBuildBinaryType.Object:
-						return ".obj";
+					return ".obj";
 				case UEBuildBinaryType.PrecompiledHeader:
 					return ".pch";
 			}
@@ -951,13 +605,334 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a context for the given project on the current platform.
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
 		/// </summary>
-		/// <param name="ProjectFile">The project file for the current target</param>
-		/// <returns>New platform context object</returns>
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
 		{
-			return new WindowsPlatformContext(Platform);
+			bool bBuildShaderFormats = Target.bForceBuildShaderFormats;
+
+			if (!Target.bBuildRequiresCookedData)
+			{
+				if (ModuleName == "TargetPlatform")
+				{
+					bBuildShaderFormats = true;
+				}
+			}
+
+			// allow standalone tools to use target platform modules, without needing Engine
+			if (ModuleName == "TargetPlatform")
+			{
+				if (Target.bForceBuildTargetPlatforms)
+				{
+					Rules.DynamicallyLoadedModuleNames.Add("WindowsTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("WindowsNoEditorTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("WindowsServerTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("WindowsClientTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
+				}
+
+				if (bBuildShaderFormats)
+				{
+					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
+					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
+
+					Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
+					Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
+				}
+			}
+
+			if (ModuleName == "D3D11RHI")
+			{
+				// To enable platform specific D3D11 RHI Types
+				Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D11RHI/Private/Windows");
+			}
+
+			if (ModuleName == "D3D12RHI")
+			{
+				if (Target.WindowsPlatform.bPixProfilingEnabled && Target.Platform == UnrealTargetPlatform.Win64 && Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test)
+				{
+					// Define to indicate profiling enabled (64-bit only)
+					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=1");
+					Rules.Definitions.Add("PROFILE");
+					Rules.PublicAdditionalLibraries.Add("WinPixEventRuntime.lib");
+
+					Rules.PublicDelayLoadDLLs.Add("WinPixEventRuntime.dll");
+					Rules.RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Windows/DirectX/x64/WinPixEventRuntime.dll"));
+				}
+				else
+				{
+					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=0");
+				}
+
+				// To enable platform specific D3D12 RHI Types
+				Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
+			}
+
+			// Delay-load D3D12 so we can use the latest features and still run on downlevel versions of the OS
+			Rules.PublicDelayLoadDLLs.Add("d3d12.dll");
+		}
+
+		/// <summary>
+		/// Setup the target environment for building
+		/// </summary>
+		/// <param name="Target">Settings for the target being compiled</param>
+		/// <param name="CompileEnvironment">The compile environment for this target</param>
+		/// <param name="LinkEnvironment">The link environment for this target</param>
+		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		{
+			CompileEnvironment.Definitions.Add("WIN32=1");
+
+			if (WindowsPlatform.bUseWindowsSDK10)
+			{
+				// Windows 8 or higher required
+				CompileEnvironment.Definitions.Add("_WIN32_WINNT=0x0602");
+				CompileEnvironment.Definitions.Add("WINVER=0x0602");
+			}
+			else
+			{
+				// Windows 7 or higher required
+				CompileEnvironment.Definitions.Add("_WIN32_WINNT=0x0601");
+				CompileEnvironment.Definitions.Add("WINVER=0x0601");
+			}
+			CompileEnvironment.Definitions.Add("PLATFORM_WINDOWS=1");
+
+			CompileEnvironment.Definitions.Add("DEPTH_32_BIT_CONVERSION=0");
+
+			FileReference MorpheusShaderPath = FileReference.Combine(UnrealBuildTool.EngineDirectory, "Shaders", "PS4", "PostProcessHMDMorpheus.usf");
+			if (FileReference.Exists(MorpheusShaderPath))
+			{
+				CompileEnvironment.Definitions.Add("HAS_MORPHEUS=1");
+
+				//on PS4 the SDK now handles distortion correction.  On PC we will still have to handle it manually,				
+				CompileEnvironment.Definitions.Add("MORPHEUS_ENGINE_DISTORTION=1");
+			}
+
+			// Add path to Intel math libraries when using ICL based on target platform
+			if (WindowsPlatform.bCompileWithICL)
+			{
+				var Result = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "IntelSWTools", "compilers_and_libraries", "windows", "compiler", "lib", Target.Platform == UnrealTargetPlatform.Win32 ? "ia32" : "intel64");
+				if (!Directory.Exists(Result))
+				{
+					throw new BuildException("ICL was selected but the required math libraries were not found.  Could not find: " + Result);
+				}
+
+				LinkEnvironment.LibraryPaths.Add(Result);
+			}
+
+			// Explicitly exclude the MS C++ runtime libraries we're not using, to ensure other libraries we link with use the same
+			// runtime library as the engine.
+			bool bUseDebugCRT = Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT;
+			if (!Target.bUseStaticCRT || bUseDebugCRT)
+			{
+				LinkEnvironment.ExcludedLibraries.Add("LIBCMT");
+				LinkEnvironment.ExcludedLibraries.Add("LIBCPMT");
+			}
+			if (!Target.bUseStaticCRT || !bUseDebugCRT)
+			{
+				LinkEnvironment.ExcludedLibraries.Add("LIBCMTD");
+				LinkEnvironment.ExcludedLibraries.Add("LIBCPMTD");
+			}
+			if (Target.bUseStaticCRT || bUseDebugCRT)
+			{
+				LinkEnvironment.ExcludedLibraries.Add("MSVCRT");
+				LinkEnvironment.ExcludedLibraries.Add("MSVCPRT");
+			}
+			if (Target.bUseStaticCRT || !bUseDebugCRT)
+			{
+				LinkEnvironment.ExcludedLibraries.Add("MSVCRTD");
+				LinkEnvironment.ExcludedLibraries.Add("MSVCPRTD");
+			}
+			LinkEnvironment.ExcludedLibraries.Add("LIBC");
+			LinkEnvironment.ExcludedLibraries.Add("LIBCP");
+			LinkEnvironment.ExcludedLibraries.Add("LIBCD");
+			LinkEnvironment.ExcludedLibraries.Add("LIBCPD");
+
+			//@todo ATL: Currently, only VSAccessor requires ATL (which is only used in editor builds)
+			// When compiling games, we do not want to include ATL - and we can't when compiling games
+			// made with Launcher build due to VS 2012 Express not including ATL.
+			// If more modules end up requiring ATL, this should be refactored into a BuildTarget flag (bNeedsATL)
+			// that is set by the modules the target includes to allow for easier tracking.
+			// Alternatively, if VSAccessor is modified to not require ATL than we should always exclude the libraries.
+			if (Target.LinkType == TargetLinkType.Monolithic &&
+				(Target.Type == TargetType.Game || Target.Type == TargetType.Client || Target.Type == TargetType.Server))
+			{
+				LinkEnvironment.ExcludedLibraries.Add("atl");
+				LinkEnvironment.ExcludedLibraries.Add("atls");
+				LinkEnvironment.ExcludedLibraries.Add("atlsd");
+				LinkEnvironment.ExcludedLibraries.Add("atlsn");
+				LinkEnvironment.ExcludedLibraries.Add("atlsnd");
+			}
+
+			// Add the library used for the delayed loading of DLLs.
+			LinkEnvironment.AdditionalLibraries.Add("delayimp.lib");
+
+			//@todo - remove once FB implementation uses Http module
+			if (Target.bCompileAgainstEngine)
+			{
+				// link against wininet (used by FBX and Facebook)
+				LinkEnvironment.AdditionalLibraries.Add("wininet.lib");
+			}
+
+			// Compile and link with Win32 API libraries.
+			LinkEnvironment.AdditionalLibraries.Add("rpcrt4.lib");
+			//LinkEnvironment.AdditionalLibraries.Add("wsock32.lib");
+			LinkEnvironment.AdditionalLibraries.Add("ws2_32.lib");
+			LinkEnvironment.AdditionalLibraries.Add("dbghelp.lib");
+			LinkEnvironment.AdditionalLibraries.Add("comctl32.lib");
+			LinkEnvironment.AdditionalLibraries.Add("Winmm.lib");
+			LinkEnvironment.AdditionalLibraries.Add("kernel32.lib");
+			LinkEnvironment.AdditionalLibraries.Add("user32.lib");
+			LinkEnvironment.AdditionalLibraries.Add("gdi32.lib");
+			LinkEnvironment.AdditionalLibraries.Add("winspool.lib");
+			LinkEnvironment.AdditionalLibraries.Add("comdlg32.lib");
+			LinkEnvironment.AdditionalLibraries.Add("advapi32.lib");
+			LinkEnvironment.AdditionalLibraries.Add("shell32.lib");
+			LinkEnvironment.AdditionalLibraries.Add("ole32.lib");
+			LinkEnvironment.AdditionalLibraries.Add("oleaut32.lib");
+			LinkEnvironment.AdditionalLibraries.Add("uuid.lib");
+			LinkEnvironment.AdditionalLibraries.Add("odbc32.lib");
+			LinkEnvironment.AdditionalLibraries.Add("odbccp32.lib");
+			LinkEnvironment.AdditionalLibraries.Add("netapi32.lib");
+			LinkEnvironment.AdditionalLibraries.Add("iphlpapi.lib");
+			LinkEnvironment.AdditionalLibraries.Add("setupapi.lib"); //  Required for access monitor device enumeration
+
+			// Windows Vista/7 Desktop Windows Manager API for Slate Windows Compliance
+			LinkEnvironment.AdditionalLibraries.Add("dwmapi.lib");
+
+			// IME
+			LinkEnvironment.AdditionalLibraries.Add("imm32.lib");
+
+			// For 64-bit builds, we'll forcibly ignore a linker warning with DirectInput.  This is
+			// Microsoft's recommended solution as they don't have a fixed .lib for us.
+			if (Target.Platform == UnrealTargetPlatform.Win64)
+			{
+				LinkEnvironment.AdditionalArguments += " /ignore:4078";
+			}
+
+			if (Target.Type != TargetType.Editor)
+			{
+				if (!string.IsNullOrEmpty(Target.WindowsPlatform.CompanyName))
+				{
+					CompileEnvironment.Definitions.Add(String.Format("PROJECT_COMPANY_NAME={0}", Target.WindowsPlatform.CompanyName));
+				}
+
+				if (!string.IsNullOrEmpty(Target.WindowsPlatform.CopyrightNotice))
+				{
+					CompileEnvironment.Definitions.Add(String.Format("PROJECT_COPYRIGHT_STRING={0}", Target.WindowsPlatform.CopyrightNotice));
+				}
+
+				if (!string.IsNullOrEmpty(Target.WindowsPlatform.ProductName))
+				{
+					CompileEnvironment.Definitions.Add(String.Format("PROJECT_PRODUCT_NAME={0}", Target.WindowsPlatform.ProductName));
+				}
+
+				if (Target.ProjectFile != null)
+				{
+					CompileEnvironment.Definitions.Add(String.Format("PROJECT_PRODUCT_IDENTIFIER={0}", Target.ProjectFile.GetFileNameWithoutExtension()));
+				}
+			}
+
+			// Set up default stack size
+			ConfigHierarchy EngineIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Target.ProjectFile), UnrealTargetPlatform.Win64);
+			String TargetSettingsIniPath = "/Script/WindowsTargetPlatform.WindowsTargetSettings";
+			int IniDefaultStackSize = 0;
+			String StackSizeName = Target.Type == TargetType.Editor ? "DefaultStackSizeEditor" : "DefaultStackSize";
+			if (EngineIni.GetInt32(TargetSettingsIniPath, StackSizeName, out IniDefaultStackSize))
+			{
+				LinkEnvironment.DefaultStackSize = IniDefaultStackSize;
+			}
+
+			int IniDefaultStackSizeCommit = 0;
+			String StackSizeCommitName = Target.Type == TargetType.Editor ? "DefaultStackSizeCommitEditor" : "DefaultStackSizeCommit";
+			if (EngineIni.GetInt32(TargetSettingsIniPath, StackSizeCommitName, out IniDefaultStackSizeCommit))
+			{
+				LinkEnvironment.DefaultStackSizeCommit = IniDefaultStackSizeCommit;
+			}
+		}
+
+		/// <summary>
+		/// Setup the configuration environment for building
+		/// </summary>
+		/// <param name="Target"> The target being built</param>
+		/// <param name="GlobalCompileEnvironment">The global compile environment</param>
+		/// <param name="GlobalLinkEnvironment">The global link environment</param>
+		public override void SetUpConfigurationEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment GlobalCompileEnvironment, LinkEnvironment GlobalLinkEnvironment)
+		{
+			if (GlobalCompileEnvironment.bUseDebugCRT)
+			{
+				GlobalCompileEnvironment.Definitions.Add("_DEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
+			}
+			else
+			{
+				GlobalCompileEnvironment.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
+			}
+
+			UnrealTargetConfiguration CheckConfig = Target.Configuration;
+			switch (CheckConfig)
+			{
+				default:
+				case UnrealTargetConfiguration.Debug:
+					GlobalCompileEnvironment.Definitions.Add("UE_BUILD_DEBUG=1");
+					break;
+				case UnrealTargetConfiguration.DebugGame:
+				// Default to Development; can be overridden by individual modules.
+				case UnrealTargetConfiguration.Development:
+					GlobalCompileEnvironment.Definitions.Add("UE_BUILD_DEVELOPMENT=1");
+					break;
+				case UnrealTargetConfiguration.Shipping:
+					GlobalCompileEnvironment.Definitions.Add("UE_BUILD_SHIPPING=1");
+					break;
+				case UnrealTargetConfiguration.Test:
+					GlobalCompileEnvironment.Definitions.Add("UE_BUILD_TEST=1");
+					break;
+			}
+
+			// Create debug info based on the heuristics specified by the user.
+			GlobalCompileEnvironment.bCreateDebugInfo =
+				!Target.bDisableDebugInfo && ShouldCreateDebugInfo(Target);
+
+			// NOTE: Even when debug info is turned off, we currently force the linker to generate debug info
+			//       anyway on Visual C++ platforms.  This will cause a PDB file to be generated with symbols
+			//       for most of the classes and function/method names, so that crashes still yield somewhat
+			//       useful call stacks, even though compiler-generate debug info may be disabled.  This gives
+			//       us much of the build-time savings of fully-disabled debug info, without giving up call
+			//       data completely.
+			GlobalLinkEnvironment.bCreateDebugInfo = true;
+		}
+
+		/// <summary>
+		/// Whether this platform should create debug information or not
+		/// </summary>
+		/// <param name="Target">The target being built</param>
+		/// <returns>bool    true if debug info should be generated, false if not</returns>
+		public override bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target)
+		{
+			switch (Target.Configuration)
+			{
+				case UnrealTargetConfiguration.Development:
+				case UnrealTargetConfiguration.Shipping:
+				case UnrealTargetConfiguration.Test:
+					return !Target.bOmitPCDebugInfoInDevelopment;
+				case UnrealTargetConfiguration.DebugGame:
+				case UnrealTargetConfiguration.Debug:
+				default:
+					return true;
+			};
+		}
+
+		/// <summary>
+		/// Creates a toolchain instance for the given platform.
+		/// </summary>
+		/// <param name="CppPlatform">The platform to create a toolchain for</param>
+		/// <param name="Target">The target being built</param>
+		/// <returns>New toolchain instance.</returns>
+		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
+		{
+			return new VCToolChain(CppPlatform, Target.WindowsPlatform.Compiler);
 		}
 
 		/// <summary>

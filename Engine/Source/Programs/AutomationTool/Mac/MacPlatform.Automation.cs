@@ -423,8 +423,8 @@ public class MacPlatform : Platform
 		return true;
 	}
 
-	public override void StripSymbols(string SourceFileName, string TargetFileName)
+	public override void StripSymbols(FileReference SourceFile, FileReference TargetFile)
 	{
-		MacExports.StripSymbols(SourceFileName, TargetFileName);
+		MacExports.StripSymbols(SourceFile, TargetFile);
 	}
 }

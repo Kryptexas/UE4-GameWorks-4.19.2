@@ -156,7 +156,7 @@ private:
 
 /** Specified to allow fast TArray replication */
 template<>
-struct TStructOpsTypeTraits<FLobbyPlayerStateInfoArray> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FLobbyPlayerStateInfoArray> : public TStructOpsTypeTraitsBase2<FLobbyPlayerStateInfoArray>
 {
 	enum
 	{

@@ -87,7 +87,7 @@ struct FExpressionInput
 
 template<>
 struct TStructOpsTypeTraits<FExpressionInput>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FExpressionInput>
 {
 	enum
 	{
@@ -147,7 +147,7 @@ struct FColorMaterialInput : FMaterialInput<FColor>
 
 template<>
 struct TStructOpsTypeTraits<FColorMaterialInput>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FColorMaterialInput>
 {
 	enum
 	{
@@ -166,7 +166,7 @@ struct FScalarMaterialInput : FMaterialInput<float>
 
 template<>
 struct TStructOpsTypeTraits<FScalarMaterialInput>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FScalarMaterialInput>
 {
 	enum
 	{
@@ -185,7 +185,7 @@ struct FVectorMaterialInput : FMaterialInput<FVector>
 
 template<>
 struct TStructOpsTypeTraits<FVectorMaterialInput>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FVectorMaterialInput>
 {
 	enum
 	{
@@ -204,7 +204,7 @@ struct FVector2MaterialInput : FMaterialInput<FVector2D>
 
 template<>
 struct TStructOpsTypeTraits<FVector2MaterialInput>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FVector2MaterialInput>
 {
 	enum
 	{
@@ -240,7 +240,7 @@ struct FMaterialAttributesInput : FExpressionInput
 
 template<>
 struct TStructOpsTypeTraits<FMaterialAttributesInput>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FMaterialAttributesInput>
 {
 	enum
 	{

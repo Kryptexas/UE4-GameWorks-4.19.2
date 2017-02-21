@@ -483,7 +483,7 @@ public:
 			return true;
 		}
 #if WITH_EDITOR
-		if (!Export.bNotForEditorGame)
+		if (!Export.bNotAlwaysLoadedForEditorGame) // Always load, even if is editor only
 		{
 			return false;
 		}

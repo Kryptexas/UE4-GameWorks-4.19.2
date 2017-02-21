@@ -1467,9 +1467,9 @@ public class AndroidPlatform : Platform
 		return new List<string> { };
 	}
 
-	public override void StripSymbols(string SourceFileName, string TargetFileName)
+	public override void StripSymbols(FileReference SourceFile, FileReference TargetFile)
 	{
-		AndroidExports.StripSymbols(SourceFileName, TargetFileName);
+		AndroidExports.StripSymbols(SourceFile, TargetFile);
 	}
 }
 

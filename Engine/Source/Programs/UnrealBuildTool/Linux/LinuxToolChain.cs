@@ -1351,13 +1351,17 @@ namespace UnrealBuildTool
 			return OutputFiles;
 		}
 
-		public void StripSymbols(string SourceFileName, string TargetFileName)
+		public void StripSymbols(FileReference SourceFile, FileReference TargetFile)
 		{
-			File.Copy(SourceFileName, TargetFileName, true);
+			if (SourceFile != TargetFile)
+			{
+				// Strip command only works in place so we need to copy original if target is different
+				File.Copy(SourceFile.FullName, TargetFile.FullName, true);
+			}
 
 			ProcessStartInfo StartInfo = new ProcessStartInfo();
 			StartInfo.FileName = GetStripPath(Architecture);
-			StartInfo.Arguments = "--strip-debug \"" + TargetFileName + "\"";
+			StartInfo.Arguments = "--strip-debug \"" + TargetFile.FullName + "\"";
 			StartInfo.UseShellExecute = false;
 			StartInfo.CreateNoWindow = true;
 			Utils.RunLocalProcessAndLogOutput(StartInfo);

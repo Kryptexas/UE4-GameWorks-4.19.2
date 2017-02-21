@@ -37,7 +37,7 @@ void USoundGroups::Initialize() const
 		{
 			if (SoundGroupEnum->HasMetaData(TEXT("Hidden"), It.Key))
 			{
-				UE_LOG(LogAudio, Warning, TEXT("Custom Game SoundGroup profile for %s defined but no display name supplied."), *SoundGroupEnum->GetEnumText(It.Key).ToString());
+				UE_LOG(LogAudio, Warning, TEXT("Custom Game SoundGroup profile for %s defined but no display name supplied."), *SoundGroupEnum->GetDisplayNameTextByValue(It.Key).ToString());
 			}
 			SoundGroupEnum->RemoveMetaData(TEXT("Hidden"), It.Key);
 		}
@@ -58,7 +58,7 @@ const FSoundGroup& USoundGroups::GetSoundGroup(const ESoundGroup SoundGroup) con
 	{
 		UEnum* SoundGroupEnum = FindObjectChecked<UEnum>(NULL, TEXT("/Script/Engine.ESoundGroup"));
 		
-		UE_LOG(LogAudio, Warning, TEXT("Requested SoundGroup %s does not have defined profile.  Using SOUNDGROUP_Default."), *SoundGroupEnum->GetEnumText(SoundGroup).ToString());
+		UE_LOG(LogAudio, Warning, TEXT("Requested SoundGroup %s does not have defined profile.  Using SOUNDGROUP_Default."), *SoundGroupEnum->GetDisplayNameTextByValue(SoundGroup).ToString());
 		return SoundGroupMap.FindChecked(SOUNDGROUP_Default);
 	}
 

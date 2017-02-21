@@ -2695,7 +2695,7 @@ void SDesignerView::CreateScreenFillEntry(FMenuBuilder& MenuBuilder, EDesignPrev
 		FCanExecuteAction(),
 		FIsActionChecked::CreateRaw(this, &SDesignerView::GetIsScreenFillRuleSelected, SizeMode));
 
-	FText EntryText = PreviewSizeEnum->GetEnumText((int32)SizeMode);
+	FText EntryText = PreviewSizeEnum->GetDisplayNameTextByValue((int64)SizeMode);
 	MenuBuilder.AddMenuEntry(EntryText, FText::GetEmpty(), FSlateIcon(), DesiredSizeAction, NAME_None, EUserInterfaceActionType::Check);
 }
 
@@ -2705,7 +2705,7 @@ FText SDesignerView::GetScreenSizingFillText() const
 
 	if ( UUserWidget* DefaultWidget = GetDefaultWidget() )
 	{
-		return PreviewSizeEnum->GetEnumText((int32)DefaultWidget->DesignSizeMode);
+		return PreviewSizeEnum->GetDisplayNameTextByValue((int64)DefaultWidget->DesignSizeMode);
 	}
 
 	return FText::GetEmpty();

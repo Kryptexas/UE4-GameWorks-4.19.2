@@ -2451,14 +2451,14 @@ void FScene::DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const
 	Ar.Logf( TEXT( "Lights with unbuilt interactions: %d" ), LightsWithUnbuiltInteractions.Num() );
 	for (int Index = 0; Index < LightsWithUnbuiltInteractions.Num(); Index++)
 	{
-		Ar.Logf(*(FString(TEXT("    Light ")) + LightsWithUnbuiltInteractions[Index]));
+		Ar.Logf(TEXT("    Light %s"), *LightsWithUnbuiltInteractions[Index]);
 	}
 
 	Ar.Logf( TEXT( "" ) );
 	Ar.Logf( TEXT( "Primitives with unbuilt interactions: %d" ), PrimitivesWithUnbuiltInteractions.Num() );
 	for (int Index = 0; Index < PrimitivesWithUnbuiltInteractions.Num(); Index++)
 	{
-		Ar.Logf(*(FString(TEXT("    Primitive ")) + PrimitivesWithUnbuiltInteractions[Index]));
+		Ar.Logf(TEXT("    Primitive %s"), *PrimitivesWithUnbuiltInteractions[Index]);
 	}
 }
 

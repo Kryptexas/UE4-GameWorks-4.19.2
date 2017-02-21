@@ -115,6 +115,35 @@ struct FCompressedFileBuffer
 	TUniquePtr<uint8>		     CompressedBuffer;
 };
 
+FKeyPair GPakSigningKeys;
+FString GAESKey;
+ANSICHAR* GAESKeyANSI;
+
+bool PakSigningKeysAreValid()
+{
+	return !GPakSigningKeys.PrivateKey.Exponent.IsZero()
+		&& !GPakSigningKeys.PrivateKey.Modulus.IsZero()
+		&& !GPakSigningKeys.PublicKey.Exponent.IsZero()
+		&& !GPakSigningKeys.PublicKey.Modulus.IsZero();
+}
+
+bool AESKeyIsValid()
+{
+	return GAESKey.Len() > 0;
+}
+
+void PrepareAESKeyANSI()
+{
+	GAESKeyANSI = nullptr;
+	int64 KeyLen = GAESKey.Len();
+	if (KeyLen > 0)
+	{
+		GAESKeyANSI = new ANSICHAR[KeyLen + 1];
+		FCStringAnsi::Strcpy(GAESKeyANSI, KeyLen, TCHAR_TO_ANSI(*GAESKey));
+		GAESKeyANSI[KeyLen] = '\0';
+	}
+}
+
 FString GetLongestPath(TArray<FPakInputPair>& FilesToAdd)
 {
 	FString LongestPath;
@@ -453,9 +482,11 @@ void ProcessCommandLine(int32 ArgC, TCHAR* ArgV[], TArray<FPakInputPair>& Entrie
 		bool bCompress = FParse::Param(FCommandLine::Get(), TEXT("compress"));
 		bool bEncrypt = FParse::Param(FCommandLine::Get(), TEXT("encrypt"));
 
+		bool bParseLines = true;
 		if (IFileManager::Get().DirectoryExists(*ResponseFile))
 		{
 			IFileManager::Get().FindFilesRecursive(Lines, *ResponseFile, TEXT("*"), true, false);
+			bParseLines = false;
 		}
 		else
 		{
@@ -478,7 +509,14 @@ void ProcessCommandLine(int32 ArgC, TCHAR* ArgV[], TArray<FPakInputPair>& Entrie
 		{
 			TArray<FString> SourceAndDest;
 			TArray<FString> Switches;
-			CommandLineParseHelper(*Lines[EntryIndex].Trim(), SourceAndDest, Switches);
+			if (bParseLines)
+			{
+				CommandLineParseHelper(*Lines[EntryIndex].Trim(), SourceAndDest, Switches);
+			}
+			else
+			{
+				SourceAndDest.Add(Lines[EntryIndex]);
+			}
 			if( SourceAndDest.Num() == 0)
 			{
 				continue;
@@ -691,7 +729,7 @@ bool BufferedCopyFile(FArchive& Dest, FArchive& Source, const FPakEntry& Entry, 
 		Source.Serialize(Buffer,SizeToRead);
 		if (Entry.bEncrypted)
 		{
-			FAES::DecryptData((uint8*)Buffer,SizeToRead);
+			FAES::DecryptData((uint8*)Buffer,SizeToRead, GAESKeyANSI);
 		}
 		Dest.Serialize(Buffer, SizeToCopy);
 		RemainingSizeToCopy -= SizeToRead;
@@ -727,7 +765,7 @@ bool UncompressCopyFile(FArchive& Dest, FArchive& Source, const FPakEntry& Entry
 
 		if (Entry.bEncrypted)
 		{
-			FAES::DecryptData(PersistentBuffer, SizeToRead);
+			FAES::DecryptData(PersistentBuffer, SizeToRead, GAESKeyANSI);
 		}
 
 		if(!FCompression::UncompressMemory((ECompressionFlags)Entry.CompressionMethod,UncompressedBuffer,UncompressedBlockSize,PersistentBuffer,CompressedBlockSize))
@@ -740,137 +778,148 @@ bool UncompressCopyFile(FArchive& Dest, FArchive& Source, const FPakEntry& Entry
 	return true;
 }
 
+void PrepareEncryptionAndSigningKeys()
+{
+	bool bSigningEnabled = false;
+
+	GPakSigningKeys.PrivateKey.Exponent.Zero();
+	GPakSigningKeys.PrivateKey.Modulus.Zero();
+	GPakSigningKeys.PublicKey.Exponent.Zero();
+	GPakSigningKeys.PublicKey.Modulus.Zero();
+	GAESKey = TEXT("");
+	GAESKeyANSI = nullptr;
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("encryptionini")))
+	{
+		FString ProjectDir, EngineDir, Platform;
+
+		if (FParse::Value(FCommandLine::Get(), TEXT("projectdir="), ProjectDir, false)
+			&& FParse::Value(FCommandLine::Get(), TEXT("enginedir="), EngineDir, false)
+			&& FParse::Value(FCommandLine::Get(), TEXT("platform="), Platform, false))
+		{
+			static const TCHAR* SectionName = TEXT("Core.Encryption");
+
+			FConfigFile ConfigFile;
+			FConfigCacheIni::LoadExternalIniFile(ConfigFile, TEXT("Encryption"), *FPaths::Combine(EngineDir, TEXT("Config\\")), *FPaths::Combine(ProjectDir, TEXT("Config/")), true, *Platform);
+			bool bSignPak = false;
+			bool bEncryptPak = false;
+
+			ConfigFile.GetBool(SectionName, TEXT("SignPak"), bSignPak);
+			ConfigFile.GetBool(SectionName, TEXT("EncryptPak"), bEncryptPak);
+
+			if (bSignPak)
+			{
+				FString RSAPublicExp, RSAPrivateExp, RSAModulus;
+				ConfigFile.GetString(SectionName, TEXT("rsa.publicexp"), RSAPublicExp);
+				ConfigFile.GetString(SectionName, TEXT("rsa.privateexp"), RSAPrivateExp);
+				ConfigFile.GetString(SectionName, TEXT("rsa.modulus"), RSAModulus);
+
+				GPakSigningKeys.PrivateKey.Exponent.Parse(RSAPrivateExp);
+				GPakSigningKeys.PrivateKey.Modulus.Parse(RSAModulus);
+				GPakSigningKeys.PublicKey.Exponent.Parse(RSAPublicExp);
+				GPakSigningKeys.PublicKey.Modulus = GPakSigningKeys.PrivateKey.Modulus;
+
+				bSigningEnabled = true;
+
+				UE_LOG(LogPakFile, Display, TEXT("Parsed signature keys from config files."));
+			}
+
+			if (bEncryptPak)
+			{
+				ConfigFile.GetString(SectionName, TEXT("aes.key"), GAESKey);
+
+				if (GAESKey.Len() > 0)
+				{
+					UE_LOG(LogPakFile, Display, TEXT("Parsed AES encryption key from config files."));
+				}
+			}
+		}
+	}
+	else
+	{
+		FParse::Value(FCommandLine::Get(), TEXT("aes="), GAESKey, false);
+
+		if (GAESKey.Len() > 0)
+		{
+			UE_LOG(LogPakFile, Display, TEXT("Parsed AES encryption key from command line."));
+		}
+
+		FString KeyFilename;
+		if (FParse::Value(FCommandLine::Get(), TEXT("sign="), KeyFilename, false))
+		{
+			if (KeyFilename.StartsWith(TEXT("0x")))
+			{
+				TArray<FString> KeyValueText;
+				int32 NumParts = KeyFilename.ParseIntoArray(KeyValueText, TEXT("+"), true);
+				if (NumParts == 3)
+				{
+					GPakSigningKeys.PrivateKey.Exponent.Parse(KeyValueText[0]);
+					GPakSigningKeys.PrivateKey.Modulus.Parse(KeyValueText[1]);
+					GPakSigningKeys.PublicKey.Exponent.Parse(KeyValueText[2]);
+					GPakSigningKeys.PublicKey.Modulus = GPakSigningKeys.PrivateKey.Modulus;
+
+					bSigningEnabled = true;
+
+					UE_LOG(LogPakFile, Display, TEXT("Parsed signature keys from command line."));
+				}
+				else
+				{
+					UE_LOG(LogPakFile, Error, TEXT("Expected 3, got %d, when parsing %s"), KeyValueText.Num(), *KeyFilename);
+					GPakSigningKeys.PrivateKey.Exponent.Zero();
+				}
+			}
+			else if (!ReadKeysFromFile(*KeyFilename, GPakSigningKeys))
+			{
+				UE_LOG(LogPakFile, Error, TEXT("Unable to load signature keys %s."), *KeyFilename);
+			}
+			else
+			{
+				bSigningEnabled = true;
+			}
+		}
+	}
+
+	if (GAESKey.Len() > 0 && GAESKey.Len() < 32)
+	{
+		UE_LOG(LogPakFile, Fatal, TEXT("AES encryption key parsed from command line must be at least 32 characters long"));
+	}
+
+	PrepareAESKeyANSI();
+
+	if (bSigningEnabled)
+	{
+		if (PakSigningKeysAreValid())
+		{
+			if (!TestKeys(GPakSigningKeys))
+			{
+				GPakSigningKeys.PrivateKey.Exponent.Zero();
+			}
+		}
+		else
+		{
+			UE_LOG(LogPakFile, Error, TEXT("Supplied pak signing keys were not valid"));
+		}
+	}
+}
+
 /**
  * Creates a pak file writer. This can be a signed writer if the encryption keys are specified in the command line
  */
-FArchive* CreatePakWriter(const TCHAR* Filename, FKeyPair& OutEncryptionKeyPair, FString& OutAESKey)
+FArchive* CreatePakWriter(const TCHAR* Filename)
 {
-	OutEncryptionKeyPair.PrivateKey.Exponent.Zero();
-	OutEncryptionKeyPair.PrivateKey.Modulus.Zero();
-	OutEncryptionKeyPair.PublicKey.Exponent.Zero();
-	OutEncryptionKeyPair.PublicKey.Modulus.Zero();
-	OutAESKey = TEXT("");
-
 	FArchive* Writer = IFileManager::Get().CreateFileWriter(Filename);
 	FString KeyFilename;
 	bool bSigningEnabled = false;
 	
 	if (Writer)
 	{
-		if (FParse::Param(FCommandLine::Get(), TEXT("encryptionini")))
+		if (PakSigningKeysAreValid())
 		{
-			FString ProjectDir, EngineDir, Platform;
-
-			if (FParse::Value(FCommandLine::Get(), TEXT("projectdir="), ProjectDir, false)
-				&& FParse::Value(FCommandLine::Get(), TEXT("enginedir="), EngineDir, false)
-				&& FParse::Value(FCommandLine::Get(), TEXT("platform="), Platform, false))
-			{
-				static const TCHAR* SectionName = TEXT("Core.Encryption");
-
-				FConfigFile ConfigFile;
-				FConfigCacheIni::LoadExternalIniFile(ConfigFile, TEXT("Encryption"), *FPaths::Combine(EngineDir, TEXT("Config\\")), *FPaths::Combine(ProjectDir, TEXT("Config/")), true, *Platform);
-				bool bSignPak = false;
-				bool bEncryptPak = false;
-
-				ConfigFile.GetBool(SectionName, TEXT("SignPak"), bSignPak);
-				ConfigFile.GetBool(SectionName, TEXT("EncryptPak"), bEncryptPak);
-				
-				if (bSignPak)
-				{
-					FString RSAPublicExp, RSAPrivateExp, RSAModulus;
-					ConfigFile.GetString(SectionName, TEXT("rsa.publicexp"), RSAPublicExp);
-					ConfigFile.GetString(SectionName, TEXT("rsa.privateexp"), RSAPrivateExp);
-					ConfigFile.GetString(SectionName, TEXT("rsa.modulus"), RSAModulus);
-
-					OutEncryptionKeyPair.PrivateKey.Exponent.Parse(RSAPrivateExp);
-					OutEncryptionKeyPair.PrivateKey.Modulus.Parse(RSAModulus);
-					OutEncryptionKeyPair.PublicKey.Exponent.Parse(RSAPublicExp);
-					OutEncryptionKeyPair.PublicKey.Modulus = OutEncryptionKeyPair.PrivateKey.Modulus;
-
-					bSigningEnabled = true;
-
-					UE_LOG(LogPakFile, Display, TEXT("Parsed signature keys from config files."));
-				}
-
-				if (bEncryptPak)
-				{
-					ConfigFile.GetString(SectionName, TEXT("aes.key"), OutAESKey);
-
-					if (OutAESKey.Len() > 0)
-					{
-						UE_LOG(LogPakFile, Display, TEXT("Parsed AES encryption key from config files."));
-					}
-				}
-			}
-		}
-		else
-		{
-			FParse::Value(FCommandLine::Get(), TEXT("aes="), OutAESKey, false);
-
-			if (OutAESKey.Len() > 0)
-			{
-				UE_LOG(LogPakFile, Display, TEXT("Parsed AES encryption key from command line."));
-			}
-
-			if (FParse::Value(FCommandLine::Get(), TEXT("sign="), KeyFilename, false))
-			{
-				if (KeyFilename.StartsWith(TEXT("0x")))
-				{
-					TArray<FString> KeyValueText;
-					int32 NumParts = KeyFilename.ParseIntoArray(KeyValueText, TEXT("+"), true);
-					if (NumParts == 3)
-					{
-						OutEncryptionKeyPair.PrivateKey.Exponent.Parse(KeyValueText[0]);
-						OutEncryptionKeyPair.PrivateKey.Modulus.Parse(KeyValueText[1]);
-						OutEncryptionKeyPair.PublicKey.Exponent.Parse(KeyValueText[2]);
-						OutEncryptionKeyPair.PublicKey.Modulus = OutEncryptionKeyPair.PrivateKey.Modulus;
-
-						bSigningEnabled = true;
-
-						UE_LOG(LogPakFile, Display, TEXT("Parsed signature keys from command line."));
-					}
-					else
-					{
-						UE_LOG(LogPakFile, Error, TEXT("Expected 3, got %d, when parsing %s"), KeyValueText.Num(), *KeyFilename);
-						OutEncryptionKeyPair.PrivateKey.Exponent.Zero();
-					}
-				}
-				else if (!ReadKeysFromFile(*KeyFilename, OutEncryptionKeyPair))
-				{
-					UE_LOG(LogPakFile, Error, TEXT("Unable to load signature keys %s."), *KeyFilename);
-				}
-				else
-				{
-					bSigningEnabled = true;
-				}
-			}
-		}
-
-		if (OutAESKey.Len() > 0 && OutAESKey.Len() < 32)
-		{
-			UE_LOG(LogPakFile, Fatal, TEXT("AES encryption key parsed from command line must be at least 32 characters long"));
-		}
-
-		if (bSigningEnabled)
-		{
-			if (!OutEncryptionKeyPair.PrivateKey.Exponent.IsZero())
-			{
-				if (!TestKeys(OutEncryptionKeyPair))
-				{
-					OutEncryptionKeyPair.PrivateKey.Exponent.Zero();
-				}
-
-				UE_LOG(LogPakFile, Display, TEXT("Creating signed pak %s."), Filename);
-				Writer = new FSignedArchiveWriter(*Writer, Filename, OutEncryptionKeyPair.PublicKey, OutEncryptionKeyPair.PrivateKey);
-			}
-			else
-			{
-				UE_LOG(LogPakFile, Error, TEXT("Unable to create a signed pak writer."));
-				delete Writer;
-				Writer = NULL;
-			}
+			UE_LOG(LogPakFile, Display, TEXT("Creating signed pak %s."), Filename);
+			Writer = new FSignedArchiveWriter(*Writer, Filename, GPakSigningKeys.PublicKey, GPakSigningKeys.PrivateKey);
 		}
 	}
+
 	return Writer;
 }
 
@@ -879,20 +928,11 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 	const double StartTime = FPlatformTime::Seconds();
 
 	// Create Pak
-	FKeyPair KeyPair;
-	FString AESKey;
-	TUniquePtr<FArchive> PakFileHandle(CreatePakWriter(Filename, KeyPair, AESKey));
+	TUniquePtr<FArchive> PakFileHandle(CreatePakWriter(Filename));
 	if (!PakFileHandle)
 	{
 		UE_LOG(LogPakFile, Error, TEXT("Unable to create pak file \"%s\"."), Filename);
 		return false;
-	}
-
-	ANSICHAR* EncryptionKeyAnsi = AESKey.Len() ? TCHAR_TO_ANSI(*AESKey) : nullptr;
-
-	if (EncryptionKeyAnsi)
-	{
-		UE_LOG(LogPakFile, Log, TEXT("Valid AES encryption key found - encryption will be enabled when requested!"));
 	}
 
 	FPakInfo Info;
@@ -1029,12 +1069,12 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 		uint8* DataToWrite = nullptr;
 		if (FilesToAdd[FileIndex].bNeedsCompression && CompressionMethod != COMPRESS_None)
 		{
-			bCopiedToPak = PrepareCopyCompressedFileToPak(MountPoint, FilesToAdd[FileIndex], CompressedFileBuffer, NewEntry, DataToWrite, SizeToWrite, EncryptionKeyAnsi);
+			bCopiedToPak = PrepareCopyCompressedFileToPak(MountPoint, FilesToAdd[FileIndex], CompressedFileBuffer, NewEntry, DataToWrite, SizeToWrite, GAESKeyANSI);
 			DataToWrite = CompressedFileBuffer.CompressedBuffer.Get();
 		}
 		else
 		{
-			bCopiedToPak = PrepareCopyFileToPak(MountPoint, FilesToAdd[FileIndex], ReadBuffer, BufferSize, NewEntry, DataToWrite, SizeToWrite, EncryptionKeyAnsi);
+			bCopiedToPak = PrepareCopyFileToPak(MountPoint, FilesToAdd[FileIndex], ReadBuffer, BufferSize, NewEntry, DataToWrite, SizeToWrite, GAESKeyANSI);
 			DataToWrite = ReadBuffer;
 		}		
 
@@ -1119,7 +1159,7 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 			{
 				TotalRequestedEncryptedFiles++;
 
-				if (EncryptionKeyAnsi != nullptr)
+				if (GAESKeyANSI != nullptr)
 				{
 					TotalEncryptedFiles++;
 					EncryptedString = TEXT("encrypted ");
@@ -1769,6 +1809,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 	}
 
 	double StartTime = FPlatformTime::Seconds();
+	PrepareEncryptionAndSigningKeys();
 
 	FPakCommandLineParameters CmdLineParameters;
 	int32 Result = 0;

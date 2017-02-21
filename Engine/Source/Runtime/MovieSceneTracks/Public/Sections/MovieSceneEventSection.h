@@ -104,7 +104,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FMovieSceneEventParameters> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FMovieSceneEventParameters> : public TStructOpsTypeTraitsBase2<FMovieSceneEventParameters>
 {
 	enum 
 	{

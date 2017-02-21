@@ -109,6 +109,11 @@ namespace UnrealBuildTool
 		public string SupportURL;
 
 		/// <summary>
+		/// For packaged plugins, contains the changelist that this plugin is compatible with
+		/// </summary>
+		public int CompatibleChangelist;
+
+		/// <summary>
 		/// List of all modules associated with this plugin
 		/// </summary>
 		public ModuleDescriptor[] Modules;
@@ -132,6 +137,11 @@ namespace UnrealBuildTool
 		/// Marks the plugin as beta in the UI
 		/// </summary>
 		public bool bIsBetaVersion;
+
+		/// <summary>
+		/// Whether this plugin is a mod
+		/// </summary>
+		public bool bIsMod;
 
 		/// <summary>
 		/// Whether this plugin can be used by UnrealHeaderTool
@@ -219,6 +229,7 @@ namespace UnrealBuildTool
 				RawObject.TryGetStringField("DocsURL", out Descriptor.DocsURL);
 				RawObject.TryGetStringField("MarketplaceURL", out Descriptor.MarketplaceURL);
 				RawObject.TryGetStringField("SupportURL", out Descriptor.SupportURL);
+				RawObject.TryGetIntegerField("CompatibleChangelist", out Descriptor.CompatibleChangelist);
 
 				JsonObject[] ModulesArray;
 				if (RawObject.TryGetObjectArrayField("Modules", out ModulesArray))
@@ -239,6 +250,7 @@ namespace UnrealBuildTool
 
 				RawObject.TryGetBoolField("CanContainContent", out Descriptor.bCanContainContent);
 				RawObject.TryGetBoolField("IsBetaVersion", out Descriptor.bIsBetaVersion);
+				RawObject.TryGetBoolField("IsMod", out Descriptor.bIsMod);
 				RawObject.TryGetBoolField("Installed", out Descriptor.bInstalled);
 				RawObject.TryGetBoolField("CanBeUsedWithUnrealHeaderTool", out Descriptor.bCanBeUsedWithUnrealHeaderTool);
 				RawObject.TryGetBoolField("RequiresBuildPlatform", out Descriptor.bRequiresBuildPlatform);
@@ -276,12 +288,20 @@ namespace UnrealBuildTool
 				Writer.WriteValue("DocsURL", DocsURL);
 				Writer.WriteValue("MarketplaceURL", MarketplaceURL);
 				Writer.WriteValue("SupportURL", SupportURL);
+				if(CompatibleChangelist != 0)
+				{
+					Writer.WriteValue("CompatibleChangelist", CompatibleChangelist);
+				}
 				if(bEnabledByDefault != bPluginTypeEnabledByDefault)
 				{
 					Writer.WriteValue("EnabledByDefault", bEnabledByDefault);
 				}
 				Writer.WriteValue("CanContainContent", bCanContainContent);
 				Writer.WriteValue("IsBetaVersion", bIsBetaVersion);
+				if(bIsMod)
+				{
+					Writer.WriteValue("IsMod", bIsMod);
+				}
 				Writer.WriteValue("Installed", bInstalled);
 				Writer.WriteValue("RequiresBuildPlatform", bRequiresBuildPlatform);
 

@@ -177,7 +177,7 @@ void FGenericReadRequestWorker::DoWork()
 }
 
 // @todo switch et al: this is a temporary measure until we can track down some threaded file handling issues on Switch 
-#if (PLATFORM_SWITCH || PLATFORM_LINUX || PLATFORM_PS4 || PLATFORM_IOS || PLATFORM_MAC)
+#if (PLATFORM_LINUX || PLATFORM_IOS || PLATFORM_MAC)
 #define DISABLE_HANDLE_CACHING (1)
 #else
 #define DISABLE_HANDLE_CACHING (0)
@@ -193,12 +193,18 @@ class FGenericAsyncReadFileHandle final : public IAsyncReadFileHandle
 	FCriticalSection HandleCacheCritical;
 	IFileHandle* HandleCache[PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE];
 	bool bOpenFailed;
+	bool bDisableHandleCaching;
 public:
 	FGenericAsyncReadFileHandle(IPlatformFile* InLowerLevel, const TCHAR* InFilename)
 		: LowerLevel(InLowerLevel)
 		, Filename(InFilename)
 		, bOpenFailed(false)
+		, bDisableHandleCaching(!!DISABLE_HANDLE_CACHING)
 	{
+		if (!Filename.EndsWith(TEXT(".pak")))
+		{
+			bDisableHandleCaching = true; // Closing files can be slow, so we want to do that on the thread and not on the calling thread. Pak files are rarely, if ever, closed and that is where the handle caching saves.
+		}
 		for (int32 Index = 0; Index < PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE; Index++)
 		{
 			HandleCache[Index] = nullptr;
@@ -254,7 +260,7 @@ public:
 
 	IFileHandle* GetHandle()
 	{
-		if (DISABLE_HANDLE_CACHING)
+		if (bDisableHandleCaching)
 		{
 			return LowerLevel->OpenRead(*Filename);
 		}
@@ -297,7 +303,7 @@ public:
 
 	void FreeHandle(IFileHandle* Handle)
 	{
-		if (!DISABLE_HANDLE_CACHING)
+		if (!bDisableHandleCaching)
 		{
 			check(!bOpenFailed);
 			if (PLATFORM_FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE)

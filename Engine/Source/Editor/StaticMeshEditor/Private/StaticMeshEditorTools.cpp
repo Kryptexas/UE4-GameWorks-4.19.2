@@ -271,7 +271,7 @@ static void FillEnumOptions(TArray<TSharedPtr<FString> >& OutStrings, UEnum& InE
 {
 	for (int32 EnumIndex = 0; EnumIndex < InEnum.NumEnums() - 1; ++EnumIndex)
 	{
-		OutStrings.Add(MakeShareable(new FString(InEnum.GetEnumName(EnumIndex))));
+		OutStrings.Add(MakeShareable(new FString(InEnum.GetNameStringByIndex(EnumIndex))));
 	}
 }
 

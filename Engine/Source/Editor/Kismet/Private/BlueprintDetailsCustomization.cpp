@@ -670,7 +670,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	{
 		if (!Enum->HasMetaData(TEXT("Hidden"), i))
 		{
-			ReplicationConditionEnumTypeNames.Add(MakeShareable(new FString(Enum->GetDisplayNameText(i).ToString())));
+			ReplicationConditionEnumTypeNames.Add(MakeShareable(new FString(Enum->GetDisplayNameTextByIndex(i).ToString())));
 		}
 	}
 

@@ -275,7 +275,7 @@ FArchive& FArchive::operator<<(struct FWeakObjectPtr& Value)
 }
 
 #if WITH_EDITOR
-FArchive& FArchive::operator<<( bool& D )
+void FArchive::SerializeBool( bool& D )
 {
 	// Serialize bool as if it were UBOOL (legacy, 32 bit int).
 	uint32 OldUBoolValue;
@@ -304,7 +304,6 @@ FArchive& FArchive::operator<<( bool& D )
 		this->ArIsError = true;
 	}
 	D = !!OldUBoolValue;
-	return *this;
 }
 #endif
 

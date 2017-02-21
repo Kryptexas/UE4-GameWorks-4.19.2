@@ -658,7 +658,7 @@ void FAnimationRecorder::RecordNotifies(USkeletalMeshComponent* Component, const
 				else
 				{
 					// add a new active notify with duration
-					ActiveNotifies.Add(TPairInitializer<const FAnimNotifyEvent*, bool>(NotifyEvent, true));
+					ActiveNotifies.Emplace(NotifyEvent, true);
 				}
 			}
 

@@ -3715,7 +3715,7 @@ TArray<TPair<float,float>> FActiveGameplayEffectsContainer::GetActiveEffectsTime
 		float Elapsed = CurrentTime - Effect.StartWorldTime;
 		float Duration = Effect.GetDuration();
 
-		ReturnList.Add(TPairInitializer<float, float>(Duration - Elapsed, Duration));
+		ReturnList.Emplace(Duration - Elapsed, Duration);
 	}
 
 	// Note: keep one return location to avoid copy operation.

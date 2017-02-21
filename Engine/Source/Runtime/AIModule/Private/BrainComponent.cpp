@@ -206,7 +206,7 @@ void UBrainComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 	StatusCategory.Category = FString::Printf(TEXT("Resource lock: %s"), *ResourceLock.GetLockPriorityName());
 	for (int32 LockLevel = 0; LockLevel < int32(EAIRequestPriority::MAX); ++LockLevel)
 	{
-		StatusCategory.Add(*PriorityEnum->GetEnumName(LockLevel), ResourceLock.IsLockedBy(EAIRequestPriority::Type(LockLevel)) ? TEXT("Locked") : TEXT("Unlocked"));
+		StatusCategory.Add(*PriorityEnum->GetNameStringByValue(LockLevel), ResourceLock.IsLockedBy(EAIRequestPriority::Type(LockLevel)) ? TEXT("Locked") : TEXT("Unlocked"));
 	}
 	Snapshot->Status.Add(StatusCategory);
 

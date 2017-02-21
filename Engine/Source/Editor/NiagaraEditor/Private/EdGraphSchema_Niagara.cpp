@@ -225,10 +225,10 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 			FName UsageName;
 			ScriptAsset.GetTagValue(GET_MEMBER_NAME_CHECKED(UNiagaraScript, Usage), UsageName);
 			FString QualifiedUsageName = "ENiagaraScriptUsage::" + UsageName.ToString();
-			int32 UsageIndex = NiagaraScriptUsageEnum->GetIndexByName(*QualifiedUsageName);
+			int32 UsageIndex = NiagaraScriptUsageEnum->GetIndexByNameString(QualifiedUsageName);
 			if (UsageIndex != INDEX_NONE)
 			{
-				ENiagaraScriptUsage Usage = static_cast<ENiagaraScriptUsage>(UsageIndex);
+				ENiagaraScriptUsage Usage = static_cast<ENiagaraScriptUsage>(NiagaraScriptUsageEnum->GetValueByIndex(UsageIndex));
 				if (Usage == ENiagaraScriptUsage::Function)
 				{
 					FString DisplayNameString = FName::NameToDisplayString(ScriptAsset.AssetName.ToString(), false);
@@ -252,10 +252,10 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 			FName UsageName;
 			ScriptAsset.GetTagValue(GET_MEMBER_NAME_CHECKED(UNiagaraScript, Usage), UsageName);
 			FString QualifiedUsageName = "ENiagaraScriptUsage::" + UsageName.ToString();
-			int32 UsageIndex = NiagaraScriptUsageEnum->GetIndexByName(*QualifiedUsageName);
+			int32 UsageIndex = NiagaraScriptUsageEnum->GetIndexByNameString(QualifiedUsageName);
 			if (UsageIndex != INDEX_NONE)
 			{
-				ENiagaraScriptUsage Usage = static_cast<ENiagaraScriptUsage>(UsageIndex);
+				ENiagaraScriptUsage Usage = static_cast<ENiagaraScriptUsage>(NiagaraScriptUsageEnum->GetValueByIndex(UsageIndex));
 				if (Usage == ENiagaraScriptUsage::Module)
 				{
 					FString DisplayNameString = FName::NameToDisplayString(ScriptAsset.AssetName.ToString(), false);

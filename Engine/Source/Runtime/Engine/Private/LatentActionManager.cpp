@@ -155,7 +155,7 @@ void FLatentActionManager::TickLatentActionForObject(float DeltaTime, FActionLis
 
 		if (Response.bRemoveAction)
 		{
-			new (ItemsToRemove) FActionListPair(TPairInitializer<int32, FPendingLatentAction*>(It.Key(), Action));
+			ItemsToRemove.Emplace(It.Key(), Action);
 		}
 	}
 

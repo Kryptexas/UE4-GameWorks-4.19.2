@@ -84,5 +84,8 @@ private:
 
 	/** Category for project plugins */
 	TSharedPtr<FPluginCategory> ProjectCategory;
+
+	/** Category for mods */
+	TSharedPtr<FPluginCategory> ModCategory;
 };
 

@@ -21,112 +21,6 @@ namespace UnrealBuildTool
 		AArch64UnknownLinuxGnueabi
 	}
 
-	class LinuxPlatformContext : UEBuildPlatformContext
-	{
-		public LinuxPlatformContext() : base(UnrealTargetPlatform.Linux)
-		{
-		}
-
-		/// <summary>
-		/// Modify the rules for a newly created module, in a target that's being built for this platform.
-		/// This is not required - but allows for hiding details of a particular platform.
-		/// </summary>
-		/// <param name="ModuleName">The name of the module</param>
-		/// <param name="Rules">The module rules</param>
-		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
-		{
-			bool bBuildShaderFormats = Target.bForceBuildShaderFormats;
-
-			if (!Target.bBuildRequiresCookedData)
-			{
-				if (ModuleName == "TargetPlatform")
-				{
-					bBuildShaderFormats = true;
-				}
-			}
-
-			// allow standalone tools to use target platform modules, without needing Engine
-			if (ModuleName == "TargetPlatform")
-			{
-				if (Target.bForceBuildTargetPlatforms)
-				{
-					Rules.DynamicallyLoadedModuleNames.Add("LinuxTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("LinuxNoEditorTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("LinuxClientTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("LinuxServerTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
-				}
-
-				if (bBuildShaderFormats)
-				{
-					// Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
-					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
-				}
-			}
-			else if (ModuleName == "Launch")
-			{
-				// this is a hack to influence symbol resolution on Linux that results in global delete being called from within CEF
-				if (Target.LinkType != TargetLinkType.Monolithic && Target.bCompileCEF3)
-				{
-					Rules.AddEngineThirdPartyPrivateStaticDependencies(Target, "CEF3");
-				}
-			}
-		}
-
-		/// <summary>
-		/// Setup the target environment for building
-		/// </summary>
-		/// <param name="Target">Settings for the target being compiled</param>
-		/// <param name="CompileEnvironment">The compile environment for this target</param>
-		/// <param name="LinkEnvironment">The link environment for this target</param>
-		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
-		{
-			CompileEnvironment.Definitions.Add("PLATFORM_LINUX=1");
-			CompileEnvironment.Definitions.Add("LINUX=1");
-
-			CompileEnvironment.Definitions.Add("PLATFORM_SUPPORTS_JEMALLOC=1");	// this define does not set jemalloc as default, just indicates its support
-			CompileEnvironment.Definitions.Add("WITH_DATABASE_SUPPORT=0");		//@todo linux: valid?
-
-			if (Target.Architecture.StartsWith("arm"))	// AArch64 doesn't strictly need that - aligned access improves perf, but this will be likely offset by memcpys we're doing to guarantee it.
-			{
-				CompileEnvironment.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
-			}
-
-			// link with Linux libraries.
-			LinkEnvironment.AdditionalLibraries.Add("pthread");
-		}
-
-		/// <summary>
-		/// Whether this platform should create debug information or not
-		/// </summary>
-		/// <param name="Target">The target being built</param>
-		/// <returns>bool    true if debug info should be generated, false if not</returns>
-		public override bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target)
-		{
-			switch (Target.Configuration)
-			{
-				case UnrealTargetConfiguration.Development:
-				case UnrealTargetConfiguration.Shipping:
-				case UnrealTargetConfiguration.Test:
-				case UnrealTargetConfiguration.Debug:
-				default:
-					return true;
-			};
-		}
-
-		/// <summary>
-		/// Creates a toolchain instance for the given platform.
-		/// </summary>
-		/// <param name="CppPlatform">The platform to create a toolchain for</param>
-		/// <param name="Target">The target being built</param>
-		/// <returns>New toolchain instance.</returns>
-		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
-		{
-			return new LinuxToolChain(Target.Architecture);
-		}
-	}
-
 	class LinuxPlatform : UEBuildPlatform
 	{
 		/// <summary>
@@ -348,13 +242,102 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a context for the given target on the current platform.
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
 		/// </summary>
-		/// <param name="ProjectFile">The project file for the current target</param>
-		/// <returns>New platform context object</returns>
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
 		{
-			return new LinuxPlatformContext();
+			bool bBuildShaderFormats = Target.bForceBuildShaderFormats;
+
+			if (!Target.bBuildRequiresCookedData)
+			{
+				if (ModuleName == "TargetPlatform")
+				{
+					bBuildShaderFormats = true;
+				}
+			}
+
+			// allow standalone tools to use target platform modules, without needing Engine
+			if (ModuleName == "TargetPlatform")
+			{
+				if (Target.bForceBuildTargetPlatforms)
+				{
+					Rules.DynamicallyLoadedModuleNames.Add("LinuxTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("LinuxNoEditorTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("LinuxClientTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("LinuxServerTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
+				}
+
+				if (bBuildShaderFormats)
+				{
+					// Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
+					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
+				}
+			}
+			else if (ModuleName == "Launch")
+			{
+				// this is a hack to influence symbol resolution on Linux that results in global delete being called from within CEF
+				if (Target.LinkType != TargetLinkType.Monolithic && Target.bCompileCEF3)
+				{
+					Rules.AddEngineThirdPartyPrivateStaticDependencies(Target, "CEF3");
+				}
+			}
+		}
+
+		/// <summary>
+		/// Setup the target environment for building
+		/// </summary>
+		/// <param name="Target">Settings for the target being compiled</param>
+		/// <param name="CompileEnvironment">The compile environment for this target</param>
+		/// <param name="LinkEnvironment">The link environment for this target</param>
+		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		{
+			CompileEnvironment.Definitions.Add("PLATFORM_LINUX=1");
+			CompileEnvironment.Definitions.Add("LINUX=1");
+
+			CompileEnvironment.Definitions.Add("PLATFORM_SUPPORTS_JEMALLOC=1");	// this define does not set jemalloc as default, just indicates its support
+			CompileEnvironment.Definitions.Add("WITH_DATABASE_SUPPORT=0");		//@todo linux: valid?
+
+			if (Target.Architecture.StartsWith("arm"))	// AArch64 doesn't strictly need that - aligned access improves perf, but this will be likely offset by memcpys we're doing to guarantee it.
+			{
+				CompileEnvironment.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
+			}
+
+			// link with Linux libraries.
+			LinkEnvironment.AdditionalLibraries.Add("pthread");
+		}
+
+		/// <summary>
+		/// Whether this platform should create debug information or not
+		/// </summary>
+		/// <param name="Target">The target being built</param>
+		/// <returns>bool    true if debug info should be generated, false if not</returns>
+		public override bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target)
+		{
+			switch (Target.Configuration)
+			{
+				case UnrealTargetConfiguration.Development:
+				case UnrealTargetConfiguration.Shipping:
+				case UnrealTargetConfiguration.Test:
+				case UnrealTargetConfiguration.Debug:
+				default:
+					return true;
+			};
+		}
+
+		/// <summary>
+		/// Creates a toolchain instance for the given platform.
+		/// </summary>
+		/// <param name="CppPlatform">The platform to create a toolchain for</param>
+		/// <param name="Target">The target being built</param>
+		/// <returns>New toolchain instance.</returns>
+		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
+		{
+			return new LinuxToolChain(Target.Architecture);
 		}
 
 		/// <summary>

@@ -1064,7 +1064,7 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage(const FAutomationW
 		if ( TestResults.State == EAutomationState::Success )
 		{
 			FString SuccessString = FString::Printf(TEXT("...Automation Test Succeeded (%s)"), *Report->GetDisplayName());
-			GLog->Logf(ELogVerbosity::Log, *SuccessString);
+			GLog->Logf(ELogVerbosity::Log, TEXT("%s"), *SuccessString);
 #if WITH_EDITOR
 			AutomationTestingLog.Info(FText::FromString(*SuccessString));
 #endif
@@ -1072,7 +1072,7 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage(const FAutomationW
 		else
 		{
 			FString FailureString = FString::Printf(TEXT("...Automation Test Failed (%s)"), *Report->GetDisplayName());
-			GLog->Logf(ELogVerbosity::Log, *FailureString);
+			GLog->Logf(ELogVerbosity::Log, TEXT("%s"), *FailureString);
 #if WITH_EDITOR
 			AutomationTestingLog.Error(FText::FromString(*FailureString));
 #endif

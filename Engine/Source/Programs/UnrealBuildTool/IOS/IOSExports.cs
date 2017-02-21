@@ -85,14 +85,13 @@ namespace UnrealBuildTool
 		/// 
 		/// </summary>
 		/// <param name="PlatformType"></param>
-		/// <param name="SourceFileName"></param>
-		/// <param name="TargetFileName"></param>
-		public static void StripSymbols(UnrealTargetPlatform PlatformType, string SourceFileName, string TargetFileName)
+		/// <param name="SourceFile"></param>
+		/// <param name="TargetFile"></param>
+		public static void StripSymbols(UnrealTargetPlatform PlatformType, FileReference SourceFile, FileReference TargetFile)
 		{
-			IOSPlatformContext PlatformContext = (IOSPlatformContext)UEBuildPlatform.GetBuildPlatform(PlatformType).CreateContext(null);
 			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProjectSettings(null);
-			IOSToolChain ToolChain = new IOSToolChain(null, PlatformContext, ProjectSettings);
-			ToolChain.StripSymbols(SourceFileName, TargetFileName);
+			IOSToolChain ToolChain = new IOSToolChain(null, ProjectSettings);
+			ToolChain.StripSymbols(SourceFile, TargetFile);
 		}
 	}
 }

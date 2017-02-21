@@ -2760,7 +2760,7 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 	bIsSavingPackage = true;
 	FString Filename(GetCachedPackageFilename(Package));
 
-	//if (IsCookByTheBookMode())
+	if (!CookByTheBookOptions || !CookByTheBookOptions->bDisableUnsolicitedPackages)
 	{
 		GIsCookerLoadingPackage = true;
 
@@ -2785,8 +2785,8 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 		Filename = ConvertToFullSandboxPath(*Filename, true);
 
 		uint32 OriginalPackageFlags = Package->GetPackageFlags();
-		UWorld* World = NULL;
-		EObjectFlags Flags = RF_NoFlags;
+		UWorld* World = nullptr;
+		EObjectFlags FlagsToCook = RF_Public;
 
 
 		bool bShouldCompressPackage = IsCookFlagSet(ECookInitializationFlags::Compressed);
@@ -2865,7 +2865,11 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 
 					// look for a world object in the package (if there is one, there's a map)
 					World = UWorld::FindWorldInPackage(Package);
-					Flags = World ? RF_NoFlags : RF_Standalone;
+
+					if (World)
+					{
+						FlagsToCook = RF_NoFlags;
+					}
 				}
 
 				if (bPackageFullyLoaded)
@@ -2906,7 +2910,7 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 				{
 					SCOPE_TIMER(GEditorSavePackage);
 					GIsCookerLoadingPackage = true;
-					Result = GEditor->Save(Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue(), false);
+					Result = GEditor->Save(Package, World, FlagsToCook, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue(), false);
 					GIsCookerLoadingPackage = false;
 					{
 						SCOPE_TIMER(ConvertingBlueprints);
@@ -3236,20 +3240,21 @@ void GetAdditionalCurrentIniVersionStrings( const ITargetPlatform* TargetPlatfor
 
 	for (int I = 0; I < TextureGroup::TEXTUREGROUP_MAX; ++I)
 	{
+		FString TextureGroupString = TextureGroupEnum->GetNameStringByValue(I);
 		const TextureMipGenSettings& MipGenSettings = LodSettings.GetTextureMipGenSettings((TextureGroup)(I));
-		FString MipGenVersionString = FString::Printf(TEXT("TextureLODGroupMipGenSettings:%s#%s"), *TextureGroupEnum->GetEnumName(I), *TextureMipGenSettingsEnum->GetEnumName((int32)(MipGenSettings)));
+		FString MipGenVersionString = FString::Printf(TEXT("TextureLODGroupMipGenSettings:%s#%s"), *TextureGroupString, *TextureMipGenSettingsEnum->GetNameStringByIndex((int32)(MipGenSettings)));
 		//IniVersionStrings.Emplace(MoveTemp(MipGenVersionString));
-		IniVersionMap.Add(FString::Printf(TEXT("TextureLODGroupMipGenSettings:%s"), *TextureGroupEnum->GetEnumName(I)), *TextureMipGenSettingsEnum->GetEnumName((int32)(MipGenSettings)));
+		IniVersionMap.Add(FString::Printf(TEXT("TextureLODGroupMipGenSettings:%s"), *TextureGroupString), *TextureMipGenSettingsEnum->GetNameStringByIndex((int32)(MipGenSettings)));
 
 		const int32 MinMipCount = LodSettings.GetMinLODMipCount((TextureGroup)(I));
-		// FString MinMipVersionString = FString::Printf(TEXT("TextureLODGroupMinMipCount:%s#%d"), *TextureGroupEnum->GetEnumName(I), MinMipCount);
+		// FString MinMipVersionString = FString::Printf(TEXT("TextureLODGroupMinMipCount:%s#%d"), *TextureGroupEnum->GetNameStringByIndex(I), MinMipCount);
 		//IniVersionStrings.Emplace(MoveTemp(MinMipVersionString));
-		IniVersionMap.Add(FString::Printf(TEXT("TextureLODGroupMinMipCount:%s"), *TextureGroupEnum->GetEnumName(I)), FString::Printf(TEXT("%d"),MinMipCount));
+		IniVersionMap.Add(FString::Printf(TEXT("TextureLODGroupMinMipCount:%s"), *TextureGroupString), FString::Printf(TEXT("%d"), MinMipCount));
 
 		const int32 MaxMipCount = LodSettings.GetMaxLODMipCount((TextureGroup)(I));
-		// FString MaxMipVersionString = FString::Printf(TEXT("TextureLODGroupMaxMipCount:%s#%d"), *TextureGroupEnum->GetEnumName(I), MaxMipCount);
+		// FString MaxMipVersionString = FString::Printf(TEXT("TextureLODGroupMaxMipCount:%s#%d"), *TextureGroupEnum->GetNameStringByIndex(I), MaxMipCount);
 		//IniVersionStrings.Emplace(MoveTemp(MaxMipVersionString));
-		IniVersionMap.Add(FString::Printf(TEXT("TextureLODGroupMaxMipCount:%s"), *TextureGroupEnum->GetEnumName(I)), FString::Printf(TEXT("%d"), MaxMipCount));
+		IniVersionMap.Add(FString::Printf(TEXT("TextureLODGroupMaxMipCount:%s"), *TextureGroupString), FString::Printf(TEXT("%d"), MaxMipCount));
 	}
 
 	// save off the ddc version numbers also
@@ -5205,70 +5210,73 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 		}
 	}
 
-	const FString ExternalMountPointName(TEXT("/Game/"));
-	for ( const auto &CurrEntry : CookDirectories )
+	if (!(FilesToCookFlags & ECookByTheBookOptions::DisableUnsolicitedPackages))
 	{
-		TArray<FString> Files;
-		IFileManager::Get().FindFilesRecursive(Files, *CurrEntry, *(FString(TEXT("*")) + FPackageName::GetAssetPackageExtension()), true, false);
-		for (int32 Index = 0; Index < Files.Num(); Index++)
-		{
-			FString StdFile = Files[Index];
-			FPaths::MakeStandardFilename(StdFile);
-			AddFileToCook( FilesInPath,StdFile);
-
-			// this asset may not be in our currently mounted content directories, so try to mount a new one now
-			FString LongPackageName;
-			if(!FPackageName::IsValidLongPackageName(StdFile) && !FPackageName::TryConvertFilenameToLongPackageName(StdFile, LongPackageName))
-			{
-				FPackageName::RegisterMountPoint(ExternalMountPointName, CurrEntry);
-			}
-		}
-	}
-
-	// Add any files of the desired cultures localized assets to cook.
-	for (const FString& CultureToCookName : CookCultures)
-	{
-		FCulturePtr CultureToCook = FInternationalization::Get().GetCulture(CultureToCookName);
-		if (!CultureToCook.IsValid())
-		{
-			continue;
-		}
-
-		const TArray<FString> CultureNamesToSearchFor = CultureToCook->GetPrioritizedParentCultureNames();
-
-		for (const FString& L10NSubdirectoryName : CultureNamesToSearchFor)
+		const FString ExternalMountPointName(TEXT("/Game/"));
+		for (const auto &CurrEntry : CookDirectories)
 		{
 			TArray<FString> Files;
-			const FString DirectoryToSearch = FPaths::Combine(*FPaths::GameContentDir(), *FString::Printf(TEXT("L10N/%s"), *L10NSubdirectoryName));
-			IFileManager::Get().FindFilesRecursive(Files, *DirectoryToSearch, *(FString(TEXT("*")) + FPackageName::GetAssetPackageExtension()), true, false);
-			for (FString StdFile : Files)
+			IFileManager::Get().FindFilesRecursive(Files, *CurrEntry, *(FString(TEXT("*")) + FPackageName::GetAssetPackageExtension()), true, false);
+			for (int32 Index = 0; Index < Files.Num(); Index++)
 			{
-				UE_LOG(LogCook, Verbose, TEXT("Including culture information %s "), *StdFile);
+				FString StdFile = Files[Index];
 				FPaths::MakeStandardFilename(StdFile);
 				AddFileToCook(FilesInPath, StdFile);
+
+				// this asset may not be in our currently mounted content directories, so try to mount a new one now
+				FString LongPackageName;
+				if (!FPackageName::IsValidLongPackageName(StdFile) && !FPackageName::TryConvertFilenameToLongPackageName(StdFile, LongPackageName))
+				{
+					FPackageName::RegisterMountPoint(ExternalMountPointName, CurrEntry);
+				}
 			}
-		}			
-	}
+		}
 
-	if ( IsCookingDLC() )
-	{
-		// get the dlc and make sure we cook that directory 
-		FString DLCPath = FPaths::GamePluginsDir() / CookByTheBookOptions->DlcName / FString(TEXT("Content"));
-
-		TArray<FString> Files;
-		IFileManager::Get().FindFilesRecursive(Files, *DLCPath, *(FString(TEXT("*")) + FPackageName::GetAssetPackageExtension()), true, false);
-		IFileManager::Get().FindFilesRecursive(Files, *DLCPath, *(FString(TEXT("*")) + FPackageName::GetMapPackageExtension()), true, false);
-		for (int32 Index = 0; Index < Files.Num(); Index++)
+		// Add any files of the desired cultures localized assets to cook.
+		for (const FString& CultureToCookName : CookCultures)
 		{
-			FString StdFile = Files[Index];
-			FPaths::MakeStandardFilename(StdFile);
-			AddFileToCook( FilesInPath,StdFile);
-
-			// this asset may not be in our currently mounted content directories, so try to mount a new one now
-			FString LongPackageName;
-			if(!FPackageName::IsValidLongPackageName(StdFile) && !FPackageName::TryConvertFilenameToLongPackageName(StdFile, LongPackageName))
+			FCulturePtr CultureToCook = FInternationalization::Get().GetCulture(CultureToCookName);
+			if (!CultureToCook.IsValid())
 			{
-				FPackageName::RegisterMountPoint(ExternalMountPointName, DLCPath);
+				continue;
+			}
+
+			const TArray<FString> CultureNamesToSearchFor = CultureToCook->GetPrioritizedParentCultureNames();
+
+			for (const FString& L10NSubdirectoryName : CultureNamesToSearchFor)
+			{
+				TArray<FString> Files;
+				const FString DirectoryToSearch = FPaths::Combine(*FPaths::GameContentDir(), *FString::Printf(TEXT("L10N/%s"), *L10NSubdirectoryName));
+				IFileManager::Get().FindFilesRecursive(Files, *DirectoryToSearch, *(FString(TEXT("*")) + FPackageName::GetAssetPackageExtension()), true, false);
+				for (FString StdFile : Files)
+				{
+					UE_LOG(LogCook, Verbose, TEXT("Including culture information %s "), *StdFile);
+					FPaths::MakeStandardFilename(StdFile);
+					AddFileToCook(FilesInPath, StdFile);
+				}
+			}
+		}
+
+		if (IsCookingDLC())
+		{
+			// get the dlc and make sure we cook that directory 
+			FString DLCPath = FPaths::GamePluginsDir() / CookByTheBookOptions->DlcName / FString(TEXT("Content"));
+
+			TArray<FString> Files;
+			IFileManager::Get().FindFilesRecursive(Files, *DLCPath, *(FString(TEXT("*")) + FPackageName::GetAssetPackageExtension()), true, false, false);
+			IFileManager::Get().FindFilesRecursive(Files, *DLCPath, *(FString(TEXT("*")) + FPackageName::GetMapPackageExtension()), true, false, false);
+			for (int32 Index = 0; Index < Files.Num(); Index++)
+			{
+				FString StdFile = Files[Index];
+				FPaths::MakeStandardFilename(StdFile);
+				AddFileToCook(FilesInPath, StdFile);
+
+				// this asset may not be in our currently mounted content directories, so try to mount a new one now
+				FString LongPackageName;
+				if (!FPackageName::IsValidLongPackageName(StdFile) && !FPackageName::TryConvertFilenameToLongPackageName(StdFile, LongPackageName))
+				{
+					FPackageName::RegisterMountPoint(ExternalMountPointName, DLCPath);
+				}
 			}
 		}
 	}
@@ -6138,6 +6146,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	
 	TArray<FName> FilesInPath;
 
+	if (!CookByTheBookOptions->bDisableUnsolicitedPackages)
 	{
 		GIsCookerLoadingPackage = true;
 #if OUTPUT_TIMING

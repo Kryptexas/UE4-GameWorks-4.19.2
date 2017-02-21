@@ -19,6 +19,5 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         public Nullable<int> UserNameId { get; set; }
     
         public virtual User User { get; set; }
-        public virtual User User1 { get; set; }
     }
 }

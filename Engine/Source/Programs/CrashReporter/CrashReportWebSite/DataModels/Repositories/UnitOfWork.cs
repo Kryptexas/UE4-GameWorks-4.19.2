@@ -20,7 +20,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         void Dispose();
     }
 
-
     /// <summary>
     /// Container for entity framework management. 
     /// </summary>
@@ -30,7 +29,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
 
         private bool _disposed = false;
         private CrashReportEntities _entityContext;
-        private ICrashRepository _crashRepository;
+        private ICrashRepository _CrashRepository;
         private IBuggRepository _buggRepository;
         private IFunctionRepository _functionRepository;
         private IUserRepository _userRepository;
@@ -49,11 +48,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         {
             get 
             {
-                if (this._crashRepository == null)
+                if (this._CrashRepository == null)
                 {
-                    _crashRepository = new CrashRepository(_entityContext);
+                    _CrashRepository = new CrashRepository(_entityContext);
                 } 
-                return _crashRepository;
+                return _CrashRepository;
             }
         }
 
@@ -158,7 +157,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         public UnitOfWork(CrashReportEntities entityContext)
         {
             this._entityContext = entityContext;
-            _entityContext.Database.CommandTimeout = 1200;
+            _entityContext.Database.CommandTimeout = 120;
         }
 
         #region Public Methods
@@ -190,7 +189,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         protected virtual void Dispose(bool disposing)
         {
             _entityContext.Database.Connection.Close();
-            _crashRepository = null;
+            _CrashRepository = null;
             _buggRepository = null;
             _functionRepository = null;
             _userRepository = null;

@@ -2187,6 +2187,11 @@ public:
 
 	/**
 	 * Sorts the array assuming < operator is defined for the item type.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during sorting.
+	 *        Therefore, your array will be sorted by the values being pointed to, rather than the pointers' values.
+	 *        If this is not desirable, please use Algo::Sort(MyArray) instead.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	void Sort()
 	{
@@ -2197,6 +2202,11 @@ public:
 	 * Sorts the array using user define predicate class.
 	 *
 	 * @param Predicate Predicate class instance.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during sorting.
+	 *        Therefore, your predicate will be passed references rather than pointers.
+	 *        If this is not desirable, please use Algo::Sort(MyArray, Predicate) instead.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	template <class PREDICATE_CLASS>
 	void Sort(const PREDICATE_CLASS& Predicate)
@@ -2208,6 +2218,10 @@ public:
 	 * Stable sorts the array assuming < operator is defined for the item type.
 	 *
 	 * Stable sort is slower than non-stable algorithm.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during sorting.
+	 *        Therefore, your array will be sorted by the values being pointed to, rather than the pointers' values.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	void StableSort()
 	{
@@ -2220,6 +2234,10 @@ public:
 	 * Stable sort is slower than non-stable algorithm.
 	 *
 	 * @param Predicate Predicate class instance
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during sorting.
+	 *        Therefore, your predicate will be passed references rather than pointers.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	template <class PREDICATE_CLASS>
 	void StableSort(const PREDICATE_CLASS& Predicate)
@@ -2332,6 +2350,10 @@ public:
 	 * Builds an implicit heap from the array.
 	 *
 	 * @param Predicate Predicate class instance.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heapification.
+	 *        Therefore, your predicate will be passed references rather than pointers.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	template <class PREDICATE_CLASS>
 	FORCEINLINE void Heapify(const PREDICATE_CLASS& Predicate)
@@ -2342,6 +2364,10 @@ public:
 	/**
 	 * Builds an implicit heap from the array. Assumes < operator is defined
 	 * for the template type.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heapification.
+	 *        Therefore, your array will be heapified by the values being pointed to, rather than the pointers' values.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	void Heapify()
 	{
@@ -2354,6 +2380,10 @@ public:
 	 * @param InItem Item to be added.
 	 * @param Predicate Predicate class instance.
 	 * @return The index of the new element.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heapification.
+	 *        Therefore, your predicate will be passed references rather than pointers.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	template <class PREDICATE_CLASS>
 	int32 HeapPush(ElementType&& InItem, const PREDICATE_CLASS& Predicate)
@@ -2376,6 +2406,10 @@ public:
 	 * @param InItem Item to be added.
 	 * @param Predicate Predicate class instance.
 	 * @return The index of the new element.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heapification.
+	 *        Therefore, your predicate will be passed references rather than pointers.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	template <class PREDICATE_CLASS>
 	int32 HeapPush(const ElementType& InItem, const PREDICATE_CLASS& Predicate)
@@ -2398,6 +2432,10 @@ public:
 	 *
 	 * @param InItem Item to be added.
 	 * @return The index of the new element.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heapification.
+	 *        Therefore, your array will be heapified by the values being pointed to, rather than the pointers' values.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	int32 HeapPush(ElementType&& InItem)
 	{
@@ -2410,6 +2448,10 @@ public:
 	 *
 	 * @param InItem Item to be added.
 	 * @return The index of the new element.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heapification.
+	 *        Therefore, your array will be heapified by the values being pointed to, rather than the pointers' values.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	int32 HeapPush(const ElementType& InItem)
 	{
@@ -2421,6 +2463,10 @@ public:
 	 *
 	 * @param OutItem The removed item.
 	 * @param Predicate Predicate class instance.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heapification.
+	 *        Therefore, your predicate will be passed references rather than pointers.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	template <class PREDICATE_CLASS>
 	void HeapPop(ElementType& OutItem, const PREDICATE_CLASS& Predicate, bool bAllowShrinking = true)
@@ -2442,6 +2488,10 @@ public:
 	 *
 	 * @param OutItem The removed item.
 	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array allocation if suitable after the pop. Default is true.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heapification.
+	 *        Therefore, your array will be heapified by the values being pointed to, rather than the pointers' values.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	void HeapPop(ElementType& OutItem, bool bAllowShrinking = true)
 	{
@@ -2452,6 +2502,10 @@ public:
 	 * Verifies the heap.
 	 *
 	 * @param Predicate Predicate class instance.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heap verification.
+	 *        Therefore, your predicate will be passed references rather than pointers.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	template <class PREDICATE_CLASS>
 	void VerifyHeap(const PREDICATE_CLASS& Predicate)
@@ -2473,6 +2527,10 @@ public:
 	 *
 	 * @param Predicate Predicate class instance.
 	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array allocation if suitable after the discard. Default is true.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heapification.
+	 *        Therefore, your predicate will be passed references rather than pointers.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	template <class PREDICATE_CLASS>
 	void HeapPopDiscard(const PREDICATE_CLASS& Predicate, bool bAllowShrinking = true)
@@ -2491,6 +2549,10 @@ public:
 	 *
 	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array
 	 *		allocation if suitable after the discard. Default is true.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heapification.
+	 *        Therefore, your array will be heapified by the values being pointed to, rather than the pointers' values.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	void HeapPopDiscard(bool bAllowShrinking = true)
 	{
@@ -2526,6 +2588,10 @@ public:
 	 * @param Predicate Predicate class instance.
 	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array allocation
 	 *		if suitable after the remove (default = true).
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heapification.
+	 *        Therefore, your predicate will be passed references rather than pointers.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	template <class PREDICATE_CLASS>
 	void HeapRemoveAt(int32 Index, const PREDICATE_CLASS& Predicate, bool bAllowShrinking = true)
@@ -2547,6 +2613,10 @@ public:
 	 * @param Index Position at which to remove item.
 	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array allocation
 	 *		if suitable after the remove (default = true).
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heapification.
+	 *        Therefore, your array will be heapified by the values being pointed to, rather than the pointers' values.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	void HeapRemoveAt(int32 Index, bool bAllowShrinking = true)
 	{
@@ -2557,6 +2627,10 @@ public:
 	 * Performs heap sort on the array.
 	 *
 	 * @param Predicate Predicate class instance.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heapification.
+	 *        Therefore, your predicate will be passed references rather than pointers.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	template <class PREDICATE_CLASS>
 	void HeapSort(const PREDICATE_CLASS& Predicate)
@@ -2591,6 +2665,10 @@ public:
 	/**
 	 * Performs heap sort on the array. Assumes < operator is defined for the
 	 * template type.
+	 *
+	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heapification.
+	 *        Therefore, your array will be heapified by the values being pointed to, rather than the pointers' values.
+	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	void HeapSort()
 	{

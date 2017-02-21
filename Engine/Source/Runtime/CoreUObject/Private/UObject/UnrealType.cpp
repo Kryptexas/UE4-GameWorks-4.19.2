@@ -32,7 +32,7 @@ bool FPropertyValueIterator::NextValue(EPropertyValueIteratorFlags InRecursionFl
 				FScriptArrayHelper Helper(ArrayProperty, PropertyValue);
 				for (int32 DynamicIndex = 0; DynamicIndex < Helper.Num(); ++DynamicIndex)
 				{
-					Entry.ValueArray.EmplaceAt(InsertIndex++, BasePairInitializerType(ArrayProperty->Inner, Helper.GetRawPtr(DynamicIndex)));
+					Entry.ValueArray.EmplaceAt(InsertIndex++, ArrayProperty->Inner, Helper.GetRawPtr(DynamicIndex));
 				}
 			}
 		}
@@ -45,8 +45,8 @@ bool FPropertyValueIterator::NextValue(EPropertyValueIteratorFlags InRecursionFl
 				{
 					if (Helper.IsValidIndex(DynamicIndex))
 					{
-						Entry.ValueArray.EmplaceAt(InsertIndex++, BasePairInitializerType(MapProperty->KeyProp, Helper.GetKeyPtr(DynamicIndex)));
-						Entry.ValueArray.EmplaceAt(InsertIndex++, BasePairInitializerType(MapProperty->ValueProp, Helper.GetValuePtr(DynamicIndex)));
+						Entry.ValueArray.EmplaceAt(InsertIndex++, MapProperty->KeyProp, Helper.GetKeyPtr(DynamicIndex));
+						Entry.ValueArray.EmplaceAt(InsertIndex++, MapProperty->ValueProp, Helper.GetValuePtr(DynamicIndex));
 					}
 				}
 			}
@@ -60,7 +60,7 @@ bool FPropertyValueIterator::NextValue(EPropertyValueIteratorFlags InRecursionFl
 				{
 					if (Helper.IsValidIndex(DynamicIndex))
 					{
-						Entry.ValueArray.EmplaceAt(InsertIndex++, BasePairInitializerType(SetProperty->ElementProp, Helper.GetElementPtr(DynamicIndex)));
+						Entry.ValueArray.EmplaceAt(InsertIndex++, SetProperty->ElementProp, Helper.GetElementPtr(DynamicIndex));
 					}
 				}
 			}
@@ -115,7 +115,7 @@ bool FPropertyValueIterator::NextValue(EPropertyValueIteratorFlags InRecursionFl
 		{
 			const void* PropertyValue = Property->ContainerPtrToValuePtr<void>(Entry.StructValue, StaticIndex);
 
-			Entry.ValueArray.Emplace(BasePairInitializerType(Property, PropertyValue));
+			Entry.ValueArray.Emplace(Property, PropertyValue);
 		}
 		return true;
 	}

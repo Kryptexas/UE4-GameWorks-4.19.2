@@ -80,7 +80,7 @@ class SBlueprintWarningRow : public SMultiColumnTableRow< FBlueprintWarningListE
 				{
 					Behavior = EBlueprintWarningBehavior::Suppress;
 				}
-				return BlueprintWarningBehaviorEnum->GetDisplayNameText(static_cast<int32>(Behavior));
+				return BlueprintWarningBehaviorEnum->GetDisplayNameTextByValue(static_cast<int64>(Behavior));
 			};
 
 			return SNew(FBlueprintWarningBehaviorComboBox)
@@ -105,7 +105,7 @@ class SBlueprintWarningRow : public SMultiColumnTableRow< FBlueprintWarningListE
 						{
 							UEnum* const BlueprintWarningBehaviorEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EBlueprintWarningBehavior"));
 							return SNew(STextBlock)
-								.Text(BlueprintWarningBehaviorEnum->GetDisplayNameText(static_cast<int32>(*Behavior)));
+								.Text(BlueprintWarningBehaviorEnum->GetDisplayNameTextByValue(static_cast<int64>(*Behavior)));
 						}
 					)
 				);

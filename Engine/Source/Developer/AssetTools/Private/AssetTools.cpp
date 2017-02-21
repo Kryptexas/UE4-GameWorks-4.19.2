@@ -689,7 +689,7 @@ void FAssetTools::ExpandDirectories(const TArray<FString>& Files, const FString&
 		else
 		{
 			// Add any files and their destination path.
-			FilesAndDestinations.Add(TPairInitializer<FString, FString>(Filename, DestinationPath));
+			FilesAndDestinations.Emplace(Filename, DestinationPath);
 		}
 	}
 }

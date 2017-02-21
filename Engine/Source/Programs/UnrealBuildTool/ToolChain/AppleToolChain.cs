@@ -168,13 +168,17 @@ namespace UnrealBuildTool
 		{
 		}
 
-		protected void StripSymbolsWithXcode(string SourceFileName, string TargetFileName, string ToolchainDir)
+		protected void StripSymbolsWithXcode(FileReference SourceFile, FileReference TargetFile, string ToolchainDir)
 		{
-			File.Copy(SourceFileName, TargetFileName, true);
+			if (SourceFile != TargetFile)
+			{
+				// Strip command only works in place so we need to copy original if target is different
+				File.Copy(SourceFile.FullName, TargetFile.FullName, true);
+			}
 
 			ProcessStartInfo StartInfo = new ProcessStartInfo();
 			StartInfo.FileName = Path.Combine(ToolchainDir, "strip");
-			StartInfo.Arguments = String.Format("\"{0}\" -S", TargetFileName);
+			StartInfo.Arguments = String.Format("\"{0}\" -S", TargetFile.FullName);
 			StartInfo.UseShellExecute = false;
 			StartInfo.CreateNoWindow = true;
 			Utils.RunLocalProcessAndLogOutput(StartInfo);

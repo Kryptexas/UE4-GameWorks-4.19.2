@@ -115,6 +115,11 @@ namespace IncludeTool
 		public HashSet<SourceFragment> Dependencies;
 
 		/// <summary>
+		/// Symbols which need explicit forward declarations
+		/// </summary>
+		public List<Symbol> ForwardDeclarations;
+
+		/// <summary>
 		/// Fragments which are included through this file
 		/// </summary>
 		public HashSet<SourceFragment> IncludedFragments;
@@ -130,18 +135,207 @@ namespace IncludeTool
 		public HashList<OutputFile> OriginalIncludedFiles;
 
 		/// <summary>
-		/// Symbols which need explicit forward declarations
-		/// </summary>
-		public List<Symbol> ForwardDeclarations = new List<Symbol>();
-
-		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="InputFile">The input file that this output file corresponds to</param>
-		public OutputFile(SourceFile InputFile, OutputFile HeaderFile, List<OutputFile> PreviousFiles, List<OutputFileInclude> Includes, List<SourceFile> InputFileStack, Dictionary<Symbol, OutputFile> FwdSymbolToHeader, bool bMakeStandalone, TextWriter Log)
+		public OutputFile(SourceFile InputFile, List<OutputFileInclude> Includes, HashSet<SourceFragment> Dependencies, List<Symbol> ForwardDeclarations)
 		{
 			this.InputFile = InputFile;
 			this.Includes = Includes;
+			this.Dependencies = Dependencies;
+			this.ForwardDeclarations = ForwardDeclarations;
+
+			// Build the list of satisfied dependencies
+			IncludedFragments = new HashSet<SourceFragment>();
+			IncludedFragments.UnionWith(Includes.SelectMany(x => x.FinalFiles).SelectMany(x => x.IncludedFragments));
+			IncludedFragments.UnionWith(InputFile.Fragments);
+
+			// Build the list of all the included files, so other output files that include it can expand it out.
+			IncludedFiles = new HashList<OutputFile>();
+			IncludedFiles.UnionWith(Includes.SelectMany(x => x.FinalFiles).SelectMany(x => x.IncludedFiles));
+			IncludedFiles.Add(this);
+
+			// Build the list of all the originally included files, so that we can make files that include it standalone
+			OriginalIncludedFiles = new HashList<OutputFile>();
+			OriginalIncludedFiles.UnionWith(Includes.Select(x => x.TargetFile).Where(x => x != null).SelectMany(x => x.OriginalIncludedFiles));
+			OriginalIncludedFiles.Add(this);
+		}
+
+		/// <summary>
+		/// Convert the object to a string for debugging purposes
+		/// </summary>
+		/// <returns>String representation of the object</returns>
+		public override string ToString()
+		{
+			return InputFile.ToString();
+		}
+	}
+
+	/// <summary>
+	/// Class to construct output files from optimized input files
+	/// </summary>
+	static class OutputFileBuilder
+	{
+		/// <summary>
+		/// Create optimized output files from the given input files
+		/// </summary>
+		/// <param name="CppFiles">Input files to optimize</param>
+		/// <param name="Log">Writer for log messages</param>
+		/// <returns>Array of output files</returns>
+		public static void PrepareFilesForOutput(IEnumerable<SourceFile> CppFiles, Dictionary<SourceFile, SourceFile> CppFileToHeaderFile, Dictionary<Symbol, SourceFile> FwdSymbolToInputHeader, bool bMakeStandalone, bool bUseOriginalIncludes, TextWriter Log)
+		{
+			// Cache of all the created output files
+			Dictionary<SourceFile, OutputFile> OutputFileLookup = new Dictionary<SourceFile,OutputFile>();
+
+			// Create output files for all the forward declaration headers
+			Dictionary<Symbol, OutputFile> FwdSymbolToHeader = new Dictionary<Symbol, OutputFile>();
+			foreach(KeyValuePair<Symbol, SourceFile> Pair in FwdSymbolToInputHeader)
+			{
+				List<SourceFile> InputFileStack = new List<SourceFile>();
+				InputFileStack.Add(Pair.Value);
+
+				HashList<OutputFile> IncludedFiles = new HashList<OutputFile>();
+				FwdSymbolToHeader[Pair.Key] = FindOrCreateOutputFile(InputFileStack, CppFileToHeaderFile, IncludedFiles, OutputFileLookup, FwdSymbolToHeader, bMakeStandalone, bUseOriginalIncludes, Log);
+			}
+
+			// Create all the placeholder output files 
+			foreach(SourceFile CppFile in CppFiles)
+			{
+				List<SourceFile> InputFileStack = new List<SourceFile>();
+				InputFileStack.Add(CppFile);
+
+				HashList<OutputFile> IncludedFiles = new HashList<OutputFile>();
+				FindOrCreateOutputFile(InputFileStack, CppFileToHeaderFile, IncludedFiles, OutputFileLookup, FwdSymbolToHeader, bMakeStandalone, bUseOriginalIncludes, Log);
+			}
+
+			// Set the results on the source files
+			foreach(SourceFile File in OutputFileLookup.Keys)
+			{
+				OutputFile OutputFile = OutputFileLookup[File];
+				foreach(OutputFileInclude Include in OutputFile.Includes)
+				{
+					if(Include.MarkupIdx < 0)
+					{
+						File.MissingIncludes.AddRange(Include.FinalFiles.Select(x => x.InputFile));
+					}
+					else
+					{
+						File.Markup[Include.MarkupIdx].OutputIncludedFiles = Include.FinalFiles.Select(x => x.InputFile).ToList();
+					}
+				}
+				foreach(Symbol Symbol in OutputFile.ForwardDeclarations)
+				{
+					if(!String.IsNullOrEmpty(Symbol.ForwardDeclaration))
+					{
+						File.ForwardDeclarations.Add(Symbol.ForwardDeclaration);
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Find or create an output file for a corresponding input file
+		/// </summary>
+		/// <param name="InputFile">The input file</param>
+		/// <param name="IncludeStack">The current include stack</param>
+		/// <param name="OutputFiles">List of output files</param>
+		/// <param name="OutputFileLookup">Mapping from source file to output file</param>
+		/// <returns>The new or existing output file</returns>
+		static OutputFile FindOrCreateOutputFile(List<SourceFile> InputFileStack, Dictionary<SourceFile, SourceFile> CppFileToHeaderFile, HashList<OutputFile> PreviousFiles, Dictionary<SourceFile, OutputFile> OutputFileLookup, Dictionary<Symbol, OutputFile> FwdSymbolToHeader, bool bMakeStandalone, bool bUseOriginalIncludes, TextWriter Log)
+		{
+			// Get the file at the top of the stack
+			SourceFile InputFile = InputFileStack[InputFileStack.Count - 1];
+
+			// Try to find an existing file
+			OutputFile OutputFile;
+			if(OutputFileLookup.TryGetValue(InputFile, out OutputFile))
+			{
+				if(OutputFile == null)
+				{
+					throw new Exception("Circular include dependencies are not allowed.");
+				}
+				foreach(OutputFile IncludedFile in OutputFile.OriginalIncludedFiles.Where(x => !PreviousFiles.Contains(x)))
+				{
+					PreviousFiles.Add(IncludedFile);
+				}
+			}
+			else
+			{
+				// Add a placeholder entry in the output file lookup, so we can detect circular include dependencies
+				OutputFileLookup[InputFile] = null;
+
+				// Duplicate the list of previously included files, so we can construct the 
+				List<OutputFile> PreviousFilesCopy = new List<OutputFile>(PreviousFiles);
+
+				// Build a list of includes for this file. First include is a placeholder for any missing includes that need to be inserted.
+				List<OutputFileInclude> Includes = new List<OutputFileInclude>();
+				if((InputFile.Flags & SourceFileFlags.External) == 0)
+				{
+					for(int MarkupIdx = 0; MarkupIdx < InputFile.Markup.Length; MarkupIdx++)
+					{
+						PreprocessorMarkup Markup = InputFile.Markup[MarkupIdx];
+						if(Markup.IsActive && Markup.IncludedFile != null && (Markup.IncludedFile.Flags & SourceFileFlags.Inline) == 0 && Markup.IncludedFile.Counterpart == null)
+						{
+							InputFileStack.Add(Markup.IncludedFile);
+							OutputFile IncludeFile = FindOrCreateOutputFile(InputFileStack, CppFileToHeaderFile, PreviousFiles, OutputFileLookup, FwdSymbolToHeader, bMakeStandalone, bUseOriginalIncludes, Log);
+							InputFileStack.RemoveAt(InputFileStack.Count - 1);
+							Includes.Add(new OutputFileInclude(MarkupIdx, IncludeFile));
+						}
+					}
+				}
+
+				// Find the matching header file
+				OutputFile HeaderFile = null;
+				if((InputFile.Flags & SourceFileFlags.TranslationUnit) != 0)
+				{
+					SourceFile CandidateHeaderFile;
+					if(CppFileToHeaderFile.TryGetValue(InputFile, out CandidateHeaderFile) && (CandidateHeaderFile.Flags & SourceFileFlags.Standalone) != 0)
+					{
+						OutputFileLookup.TryGetValue(CandidateHeaderFile, out HeaderFile);
+					}
+				}
+
+				// Create the output file.
+				if((InputFile.Flags & SourceFileFlags.Output) != 0 && !bUseOriginalIncludes)
+				{
+					OutputFile = CreateOptimizedOutputFile(InputFile, HeaderFile, PreviousFilesCopy, Includes, InputFileStack, FwdSymbolToHeader, bMakeStandalone, Log);
+				}
+				else
+				{
+					OutputFile = CreatePassthroughOutputFile(InputFile, Includes, Log);
+				}
+
+				// Replace the null entry in the output file lookup that we added earlier
+				OutputFileLookup[InputFile] = OutputFile;
+
+				// Add this file to the list of included files
+				PreviousFiles.Add(OutputFile);
+
+				// If the output file dependends on something on the stack, make sure it's marked as pinned
+				if((InputFile.Flags & SourceFileFlags.Pinned) == 0)
+				{
+					SourceFragment Dependency = OutputFile.Dependencies.FirstOrDefault(x => InputFileStack.Contains(x.File) && x.File != InputFile);
+					if(Dependency != null)
+					{
+						throw new Exception(String.Format("'{0}' is not marked as pinned, but depends on '{1}' which includes it", InputFile.Location.GetFileName(), Dependency.UniqueName));
+					}
+				}
+			}
+			return OutputFile;
+		}
+
+		/// <summary>
+		/// Creates an optimized output file
+		/// </summary>
+		/// <param name="InputFile">The input file that this output file corresponds to</param>
+		/// <param name="HeaderFile">The corresponding header file</param>
+		/// <param name="PreviousFiles">List of files parsed before this one</param>
+		/// <param name="Includes">The active set of includes parsed for this file</param>
+		/// <param name="InputFileStack">The active include stack</param>
+		/// <param name="FwdSymbolToHeader"></param>
+		/// <param name="bMakeStandalone">Whether to make this output file standalone</param>
+		/// <param name="Log">Writer for log messages</param>
+		public static OutputFile CreateOptimizedOutputFile(SourceFile InputFile, OutputFile HeaderFile, List<OutputFile> PreviousFiles, List<OutputFileInclude> Includes, List<SourceFile> InputFileStack, Dictionary<Symbol, OutputFile> FwdSymbolToHeader, bool bMakeStandalone, TextWriter Log)
+		{
 			Debug.Assert(HeaderFile == null || (InputFile.Flags & SourceFileFlags.TranslationUnit) != 0);
 
 			// Write the state
@@ -277,7 +471,8 @@ namespace IncludeTool
 			}
 
 			// Create the list of remaining dependencies for this file, and add any forward declarations
-			Dependencies = new HashSet<SourceFragment>();
+			HashSet<SourceFragment> Dependencies = new HashSet<SourceFragment>();
+			List<Symbol> ForwardDeclarations = new List<Symbol>();
 			AddForwardDeclarations(InputFile, ForwardDeclarations, Dependencies, FwdSymbolToHeader);
 
 			// Reduce the list of includes to those that are required.
@@ -375,27 +570,57 @@ namespace IncludeTool
 				}
 			}
 
-			// Build the list of satisfied dependencies
-			IncludedFragments = new HashSet<SourceFragment>();
-			IncludedFragments.UnionWith(Includes.SelectMany(x => x.FinalFiles).SelectMany(x => x.IncludedFragments));
-			IncludedFragments.UnionWith(InputFile.Fragments);
-
-			// Build the list of all the included files, so other output files that include it can expand it out.
-			IncludedFiles = new HashList<OutputFile>();
-			IncludedFiles.UnionWith(Includes.SelectMany(x => x.FinalFiles).SelectMany(x => x.IncludedFiles));
-			IncludedFiles.Add(this);
-
-			// Build the list of all the originally included files, so that we can make files that include it standalone
-			OriginalIncludedFiles = new HashList<OutputFile>();
-			OriginalIncludedFiles.UnionWith(Includes.Select(x => x.TargetFile).Where(x => x != null).SelectMany(x => x.OriginalIncludedFiles));
-			OriginalIncludedFiles.Add(this);
+			// Create the optimized file
+			OutputFile OptimizedFile = new OutputFile(InputFile, Includes, Dependencies, ForwardDeclarations);
 
 			// Write the verbose log
 			InputFile.LogVerbose("");
-			foreach(OutputFile IncludedFile in IncludedFiles)
+			foreach(OutputFile IncludedFile in OptimizedFile.IncludedFiles)
 			{
 				InputFile.LogVerbose("Output: {0}", IncludedFile.InputFile.Location.FullName);
 			}
+
+			// Return the optimized file
+			return OptimizedFile; 
+		}
+
+		/// <summary>
+		/// Creates an output file which represents the same includes as the inpu tfile
+		/// </summary>
+		/// <param name="InputFile">The input file that this output file corresponds to</param>
+		/// <param name="Includes">The active set of includes parsed for this file</param>
+		/// <param name="Log">Writer for log messages</param>
+		public static OutputFile CreatePassthroughOutputFile(SourceFile InputFile, List<OutputFileInclude> Includes, TextWriter Log)
+		{
+			// Write the state
+			InputFile.LogVerbose("InputFile={0}", InputFile.Location.FullName);
+			InputFile.LogVerbose("Duplicate.");
+
+			// Reduce the list of includes to those that are required.
+			HashSet<SourceFragment> Dependencies = new HashSet<SourceFragment>();
+			for(int FragmentIdx = InputFile.Fragments.Length - 1, IncludeIdx = Includes.Count - 1; FragmentIdx >= 0; FragmentIdx--)
+			{
+				// Update the dependency lists for this fragment
+				SourceFragment InputFragment = InputFile.Fragments[FragmentIdx];
+				if(InputFragment.Dependencies != null)
+				{
+					Dependencies.UnionWith(InputFragment.Dependencies);
+				}
+				Dependencies.Remove(InputFragment);
+
+				// Scan backwards through the list of includes, expanding each include to those which are required
+				int MarkupMin = (FragmentIdx == 0)? -1 : InputFragment.MarkupMin;
+				for(; IncludeIdx >= 0 && Includes[IncludeIdx].MarkupIdx >= MarkupMin; IncludeIdx--)
+				{
+					OutputFileInclude Include = Includes[IncludeIdx];
+					Include.FinalFiles.Add(Include.TargetFile);
+					Dependencies.ExceptWith(Include.TargetFile.IncludedFragments);
+					Dependencies.UnionWith(Include.TargetFile.Dependencies);
+				}
+			}
+
+			// Create the optimized file
+			return new OutputFile(InputFile, Includes, new HashSet<SourceFragment>(), new List<Symbol>());
 		}
 
 		/// <summary>
@@ -467,162 +692,6 @@ namespace IncludeTool
 					VisitedFragments.UnionWith(UniqueFragments);
 				}
 			}
-		}
-
-		/// <summary>
-		/// Convert the object to a string for debugging purposes
-		/// </summary>
-		/// <returns>String representation of the object</returns>
-		public override string ToString()
-		{
-			return InputFile.ToString();
-		}
-	}
-
-	/// <summary>
-	/// Class to construct output files from optimized input files
-	/// </summary>
-	static class OutputFileBuilder
-	{
-		/// <summary>
-		/// Create optimized output files from the given input files
-		/// </summary>
-		/// <param name="CppFiles">Input files to optimize</param>
-		/// <param name="Log">Writer for log messages</param>
-		/// <returns>Array of output files</returns>
-		public static void PrepareFilesForOutput(IEnumerable<SourceFile> CppFiles, Dictionary<SourceFile, SourceFile> CppFileToHeaderFile, Dictionary<Symbol, SourceFile> FwdSymbolToInputHeader, bool bMakeStandalone, TextWriter Log)
-		{
-			// Cache of all the created output files
-			Dictionary<SourceFile, OutputFile> OutputFileLookup = new Dictionary<SourceFile,OutputFile>();
-
-			// Create output files for all the forward declaration headers
-			Dictionary<Symbol, OutputFile> FwdSymbolToHeader = new Dictionary<Symbol, OutputFile>();
-			foreach(KeyValuePair<Symbol, SourceFile> Pair in FwdSymbolToInputHeader)
-			{
-				List<SourceFile> InputFileStack = new List<SourceFile>();
-				InputFileStack.Add(Pair.Value);
-
-				HashList<OutputFile> IncludedFiles = new HashList<OutputFile>();
-				FwdSymbolToHeader[Pair.Key] = FindOrCreateOutputFile(InputFileStack, CppFileToHeaderFile, IncludedFiles, OutputFileLookup, FwdSymbolToHeader, bMakeStandalone, Log);
-			}
-
-			// Create all the placeholder output files 
-			foreach(SourceFile CppFile in CppFiles)
-			{
-				List<SourceFile> InputFileStack = new List<SourceFile>();
-				InputFileStack.Add(CppFile);
-
-				HashList<OutputFile> IncludedFiles = new HashList<OutputFile>();
-				FindOrCreateOutputFile(InputFileStack, CppFileToHeaderFile, IncludedFiles, OutputFileLookup, FwdSymbolToHeader, bMakeStandalone, Log);
-			}
-
-			// Set the results on the source files
-			foreach(SourceFile File in OutputFileLookup.Keys)
-			{
-				OutputFile OutputFile = OutputFileLookup[File];
-				foreach(OutputFileInclude Include in OutputFile.Includes)
-				{
-					if(Include.MarkupIdx < 0)
-					{
-						File.MissingIncludes.AddRange(Include.FinalFiles.Select(x => x.InputFile));
-					}
-					else
-					{
-						File.Markup[Include.MarkupIdx].OutputIncludedFiles = Include.FinalFiles.Select(x => x.InputFile).ToList();
-					}
-				}
-				foreach(Symbol Symbol in OutputFile.ForwardDeclarations)
-				{
-					if(!String.IsNullOrEmpty(Symbol.ForwardDeclaration))
-					{
-						File.ForwardDeclarations.Add(Symbol.ForwardDeclaration);
-					}
-				}
-			}
-		}
-
-		/// <summary>
-		/// Find or create an output file for a corresponding input file
-		/// </summary>
-		/// <param name="InputFile">The input file</param>
-		/// <param name="IncludeStack">The current include stack</param>
-		/// <param name="OutputFiles">List of output files</param>
-		/// <param name="OutputFileLookup">Mapping from source file to output file</param>
-		/// <returns>The new or existing output file</returns>
-		static OutputFile FindOrCreateOutputFile(List<SourceFile> InputFileStack, Dictionary<SourceFile, SourceFile> CppFileToHeaderFile, HashList<OutputFile> PreviousFiles, Dictionary<SourceFile, OutputFile> OutputFileLookup, Dictionary<Symbol, OutputFile> FwdSymbolToHeader, bool bMakeStandalone, TextWriter Log)
-		{
-			// Get the file at the top of the stack
-			SourceFile InputFile = InputFileStack[InputFileStack.Count - 1];
-
-			// Try to find an existing file
-			OutputFile OutputFile;
-			if(OutputFileLookup.TryGetValue(InputFile, out OutputFile))
-			{
-				if(OutputFile == null)
-				{
-					throw new Exception("Circular include dependencies are not allowed.");
-				}
-				foreach(OutputFile IncludedFile in OutputFile.OriginalIncludedFiles.Where(x => !PreviousFiles.Contains(x)))
-				{
-					PreviousFiles.Add(IncludedFile);
-				}
-			}
-			else
-			{
-				// Add a placeholder entry in the output file lookup, so we can detect circular include dependencies
-				OutputFileLookup[InputFile] = null;
-
-				// Duplicate the list of previously included files, so we can construct the 
-				List<OutputFile> PreviousFilesCopy = new List<OutputFile>(PreviousFiles);
-
-				// Build a list of includes for this file. First include is a placeholder for any missing includes that need to be inserted.
-				List<OutputFileInclude> Includes = new List<OutputFileInclude>();
-				if((InputFile.Flags & SourceFileFlags.External) == 0)
-				{
-					for(int MarkupIdx = 0; MarkupIdx < InputFile.Markup.Length; MarkupIdx++)
-					{
-						PreprocessorMarkup Markup = InputFile.Markup[MarkupIdx];
-						if(Markup.IsActive && Markup.IncludedFile != null && (Markup.IncludedFile.Flags & SourceFileFlags.Inline) == 0 && Markup.IncludedFile.Counterpart == null)
-						{
-							InputFileStack.Add(Markup.IncludedFile);
-							OutputFile IncludeFile = FindOrCreateOutputFile(InputFileStack, CppFileToHeaderFile, PreviousFiles, OutputFileLookup, FwdSymbolToHeader, bMakeStandalone, Log);
-							InputFileStack.RemoveAt(InputFileStack.Count - 1);
-							Includes.Add(new OutputFileInclude(MarkupIdx, IncludeFile));
-						}
-					}
-				}
-
-				// Find the matching header file
-				OutputFile HeaderFile = null;
-				if((InputFile.Flags & SourceFileFlags.TranslationUnit) != 0)
-				{
-					SourceFile CandidateHeaderFile;
-					if(CppFileToHeaderFile.TryGetValue(InputFile, out CandidateHeaderFile) && (CandidateHeaderFile.Flags & SourceFileFlags.Standalone) != 0)
-					{
-						OutputFileLookup.TryGetValue(CandidateHeaderFile, out HeaderFile);
-					}
-				}
-
-				// Create the output file.
-				OutputFile = new OutputFile(InputFile, HeaderFile, PreviousFilesCopy, Includes, InputFileStack, FwdSymbolToHeader, bMakeStandalone, Log);
-
-				// Replace the null entry in the output file lookup that we added earlier
-				OutputFileLookup[InputFile] = OutputFile;
-
-				// Add this file to the list of included files
-				PreviousFiles.Add(OutputFile);
-
-				// If the output file dependends on something on the stack, make sure it's marked as pinned
-				if((InputFile.Flags & SourceFileFlags.Pinned) == 0)
-				{
-					SourceFragment Dependency = OutputFile.Dependencies.FirstOrDefault(x => InputFileStack.Contains(x.File) && x.File != InputFile);
-					if(Dependency != null)
-					{
-						throw new Exception(String.Format("'{0}' is not marked as pinned, but depends on '{1}' which includes it", InputFile.Location.GetFileName(), Dependency.UniqueName));
-					}
-				}
-			}
-			return OutputFile;
 		}
 	}
 }

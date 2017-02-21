@@ -1426,8 +1426,8 @@ static bool VerifySamplerType(
 			UEnum* SamplerTypeEnum = UMaterialInterface::GetSamplerTypeEnum();
 			check( SamplerTypeEnum );
 
-			FString SamplerTypeDisplayName = SamplerTypeEnum->GetEnumText(SamplerType).ToString();
-			FString TextureTypeDisplayName = SamplerTypeEnum->GetEnumText(CorrectSamplerType).ToString();
+			FString SamplerTypeDisplayName = SamplerTypeEnum->GetDisplayNameTextByValue(SamplerType).ToString();
+			FString TextureTypeDisplayName = SamplerTypeEnum->GetDisplayNameTextByValue(CorrectSamplerType).ToString();
 
 			Compiler->Errorf( TEXT("%s> Sampler type is %s, should be %s for %s"),
 				ExpressionDesc,
@@ -1441,7 +1441,7 @@ static bool VerifySamplerType(
 			UEnum* SamplerTypeEnum = UMaterialInterface::GetSamplerTypeEnum();
 			check( SamplerTypeEnum );
 
-			FString SamplerTypeDisplayName = SamplerTypeEnum->GetEnumText(SamplerType).ToString();
+			FString SamplerTypeDisplayName = SamplerTypeEnum->GetDisplayNameTextByValue(SamplerType).ToString();
 
 			Compiler->Errorf( TEXT("%s> To use '%s' as sampler type, SRGB must be disabled for %s"),
 				ExpressionDesc,
@@ -2008,7 +2008,7 @@ void UMaterialExpressionTextureProperty::GetCaption(TArray<FString>& OutCaptions
 	const UEnum* TexturePropertyEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExposedTextureProperty"));
 	check(TexturePropertyEnum);
 
-	const FString PropertyDisplayName = TexturePropertyEnum->GetDisplayNameText(Property).ToString();
+	const FString PropertyDisplayName = TexturePropertyEnum->GetDisplayNameTextByValue(Property).ToString();
 #else
 	const FString PropertyDisplayName = TEXT("");
 #endif
@@ -6338,7 +6338,7 @@ void UMaterialExpressionScreenPosition::GetCaption(TArray<FString>& OutCaptions)
 	const UEnum* ScreenPositionMappingEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExpressionScreenPositionMapping"));
 	check(ScreenPositionMappingEnum);
 
-	const FString MappingDisplayName = ScreenPositionMappingEnum->GetDisplayNameText(Mapping).ToString();
+	const FString MappingDisplayName = ScreenPositionMappingEnum->GetDisplayNameTextByValue(Mapping).ToString();
 	OutCaptions.Add(MappingDisplayName);
 #endif
 	OutCaptions.Add(TEXT("ScreenPosition"));
@@ -6385,7 +6385,7 @@ void UMaterialExpressionViewProperty::GetCaption(TArray<FString>& OutCaptions) c
 	const UEnum* ViewPropertyEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExposedViewProperty"));
 	check(ViewPropertyEnum);
 
-	const FString PropertyDisplayName = ViewPropertyEnum->GetDisplayNameText(Property).ToString();
+	const FString PropertyDisplayName = ViewPropertyEnum->GetDisplayNameTextByValue(Property).ToString();
 #else
 	const FString PropertyDisplayName = TEXT("");
 #endif
@@ -6618,7 +6618,7 @@ FString UMaterialExpressionSceneDepth::GetInputName(int32 InputIndex) const
 	{
 		// Display the current InputMode enum's display name.
 		UByteProperty* InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneDepth::StaticClass(), "InputMode" );
-		return InputModeProperty->Enum->GetEnumName((int32)InputMode.GetValue());
+		return InputModeProperty->Enum->GetNameStringByValue((int64)InputMode.GetValue());
 	}
 	return TEXT("");
 }
@@ -6700,15 +6700,7 @@ void UMaterialExpressionSceneTexture::GetCaption(TArray<FString>& OutCaptions) c
 
 	check(Enum);
 
-#if WITH_EDITOR
-	FString Name = Enum->GetDisplayNameText(SceneTextureId).ToString();
-#else
-	FString Name = TEXT("");
-#endif
-	if(Name.IsEmpty())
-	{
-		Name = Enum->GetEnumName(SceneTextureId);
-	}
+	FString Name = Enum->GetDisplayNameTextByValue(SceneTextureId).ToString();
 
 	OutCaptions.Add(FString(TEXT("SceneTexture:")) + Name);
 }
@@ -6882,7 +6874,7 @@ FString UMaterialExpressionSceneColor::GetInputName(int32 InputIndex) const
 	{
 		// Display the current InputMode enum's display name.
 		UByteProperty* InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneColor::StaticClass(), "InputMode" );
-		return InputModeProperty->Enum->GetEnumName((int32)InputMode.GetValue());
+		return InputModeProperty->Enum->GetNameStringByValue((int64)InputMode.GetValue());
 	}
 	return TEXT("");
 }
@@ -7098,15 +7090,15 @@ int32 UMaterialExpressionTransform::Compile(class FMaterialCompiler* Compiler, i
 void UMaterialExpressionTransform::GetCaption(TArray<FString>& OutCaptions) const
 {
 #if WITH_EDITOR
-	const UEnum* MVCTSEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialVectorCoordTransformSource"));
-	const UEnum* MVCTEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialVectorCoordTransform"));
+	const UEnum* MVCTSEnum = FindObject<UEnum>(nullptr, TEXT("Engine.EMaterialVectorCoordTransformSource"));
+	const UEnum* MVCTEnum = FindObject<UEnum>(nullptr, TEXT("Engine.EMaterialVectorCoordTransform"));
 	check(MVCTSEnum);
 	check(MVCTEnum);
 	
 	FString TransformDesc;
-	TransformDesc += MVCTSEnum->GetDisplayNameText(TransformSourceType).ToString();
+	TransformDesc += MVCTSEnum->GetDisplayNameTextByValue(TransformSourceType).ToString();
 	TransformDesc += TEXT(" to ");
-	TransformDesc += MVCTEnum->GetDisplayNameText(TransformType).ToString();
+	TransformDesc += MVCTEnum->GetDisplayNameTextByValue(TransformType).ToString();
 	OutCaptions.Add(TransformDesc);
 #else
 	OutCaptions.Add(TEXT(""));
@@ -7200,13 +7192,13 @@ int32 UMaterialExpressionTransformPosition::Compile(class FMaterialCompiler* Com
 void UMaterialExpressionTransformPosition::GetCaption(TArray<FString>& OutCaptions) const
 {
 #if WITH_EDITOR
-	const UEnum* MPTSEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialPositionTransformSource"));
+	const UEnum* MPTSEnum = FindObject<UEnum>(nullptr, TEXT("Engine.EMaterialPositionTransformSource"));
 	check(MPTSEnum);
 	
 	FString TransformDesc;
-	TransformDesc += MPTSEnum->GetDisplayNameText(TransformSourceType).ToString();
+	TransformDesc += MPTSEnum->GetDisplayNameTextByValue(TransformSourceType).ToString();
 	TransformDesc += TEXT(" to ");
-	TransformDesc += MPTSEnum->GetDisplayNameText(TransformType).ToString();
+	TransformDesc += MPTSEnum->GetDisplayNameTextByValue(TransformType).ToString();
 	OutCaptions.Add(TransformDesc);
 #else
 	OutCaptions.Add(TEXT(""));

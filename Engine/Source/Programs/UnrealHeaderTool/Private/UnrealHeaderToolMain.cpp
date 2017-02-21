@@ -83,6 +83,12 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		ModuleInfoFilename = FParse::Token(CmdLinePtr, false );
 	}
 
+	const static bool bVerbose = FParse::Param(*CmdLine,TEXT("VERBOSE"));
+	if (bVerbose)
+	{
+		LogCompile.SetVerbosity(ELogVerbosity::Verbose);
+	}
+
 	GIsUCCMakeStandaloneHeaderGenerator = true;
 	if (GEngineLoop.PreInit(*ShortCmdLine) != 0)
 	{

@@ -1531,9 +1531,9 @@ public class IOSPlatform : Platform
         }
     }
 
-	public override void StripSymbols(string SourceFileName, string TargetFileName)
+	public override void StripSymbols(FileReference SourceFile, FileReference TargetFile)
 	{
-		IOSExports.StripSymbols(PlatformType, SourceFileName, TargetFileName);
+		IOSExports.StripSymbols(PlatformType, SourceFile, TargetFile);
 	}
 
 	#region Hooks

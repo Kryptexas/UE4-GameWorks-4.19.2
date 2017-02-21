@@ -282,6 +282,8 @@ namespace IncludeTool
 			"/Engine/Source/Runtime/Engine/Public/Animation/AnimMTStats.h",
             "/FortniteGame/Plugins/Online/OnlineSubsystem/Source/Public/OnlineSubsystemPackage.h",
             "/FortniteGame/Plugins/Online/NotForLicensees/OnlineSubsystemMcp/Source/Public/OnlineSubsystemMcpPackage.h",
+			"/FortniteGame/Plugins/Online/OnlineSubsystemNull/Source/Public/OnlineSubsystemNullPackage.h",
+			"/FortniteGame/Plugins/Online/OnlineSubsystemUtils/Source/OnlineSubsystemUtils/Public/OnlineSubsystemUtilsPackage.h"
         };
 
 		/// <summary>
@@ -590,7 +592,7 @@ namespace IncludeTool
         /// <returns></returns>
         public static bool AllowSymbol(string Name)
         {
-            if(Name == "FNode" || Name == "FFunctionExpression")
+            if(Name == "FNode" || Name == "FFunctionExpression" || Name == "ITextData")
             {
                 return false;
             }

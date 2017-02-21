@@ -29,10 +29,16 @@ FString UDeviceProfileManager::DeviceProfileFileName;
 
 UDeviceProfileManager* UDeviceProfileManager::DeviceProfileManagerSingleton = nullptr;
 
-UDeviceProfileManager& UDeviceProfileManager::Get()
+UDeviceProfileManager& UDeviceProfileManager::Get(bool bFromPostCDOContruct)
 {
 	if (DeviceProfileManagerSingleton == nullptr)
 	{
+		static bool bEntered = false;
+		if (bEntered && bFromPostCDOContruct)
+		{
+			return *(UDeviceProfileManager*)0x3; // we know that the return value is never used, linux hates null here, which would be less weird. 
+		}
+		bEntered = true;
 		DeviceProfileManagerSingleton = NewObject<UDeviceProfileManager>();
 
 		DeviceProfileManagerSingleton->AddToRoot();

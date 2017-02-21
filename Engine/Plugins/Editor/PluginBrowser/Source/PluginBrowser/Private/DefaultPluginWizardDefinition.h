@@ -19,6 +19,7 @@ public:
 	virtual bool AllowsEnginePlugins() const override;
 	virtual bool CanShowOnStartup() const override { return false; }
 	virtual bool CanContainContent() const override;
+	virtual bool IsMod() const override;
 	virtual void OnShowOnStartupCheckboxChanged(ECheckBoxState CheckBoxState) override {}
 	virtual ECheckBoxState GetShowOnStartupCheckBoxState() const override { return ECheckBoxState::Undetermined; }
 	virtual FText GetInstructions() const override;

@@ -29,7 +29,7 @@ public:
 };
 
 template<>
-struct TStructOpsTypeTraits<FJsonObjectWrapper> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FJsonObjectWrapper> : public TStructOpsTypeTraitsBase2<FJsonObjectWrapper>
 {
 	enum
 	{

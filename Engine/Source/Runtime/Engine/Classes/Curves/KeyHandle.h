@@ -90,7 +90,7 @@ private:
 
 template<>
 struct TStructOpsTypeTraits<FKeyHandleMap>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FKeyHandleMap>
 {
 	enum 
 	{

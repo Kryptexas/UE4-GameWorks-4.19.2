@@ -346,19 +346,19 @@ bool FGameplayEffectContextHandle::NetSerialize(FArchive& Ar, class UPackageMap*
 FString EGameplayModOpToString(int32 Type)
 {
 	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayModOp"));
-	return e->GetEnumName(Type);
+	return e->GetNameStringByValue(Type);
 }
 
 FString EGameplayModEffectToString(int32 Type)
 {
 	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayModEffect"));
-	return e->GetEnumName(Type);
+	return e->GetNameStringByValue(Type);
 }
 
 FString EGameplayCueEventToString(int32 Type)
 {
 	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayCueEvent"));
-	return e->GetEnumName(Type);
+	return e->GetNameStringByValue(Type);
 }
 
 void FGameplayTagCountContainer::Notify_StackCountChange(const FGameplayTag& Tag)

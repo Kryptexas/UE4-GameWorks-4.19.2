@@ -86,7 +86,7 @@ namespace AutomationTool
 					{
 						string StrippedFileName = CommandUtils.MakeRerootedFilePath(BuildProduct, CommandUtils.CmdEnv.LocalRoot, SymbolsFolder);
 						Directory.CreateDirectory(Path.GetDirectoryName(StrippedFileName));
-						WindowsTargetPlatform.StripSymbols(BuildProduct, StrippedFileName);
+						WindowsTargetPlatform.StripSymbols(new FileReference(BuildProduct), new FileReference(StrippedFileName));
 						Zip.AddFile(StrippedFileName, Path.GetDirectoryName(CommandUtils.StripBaseDirectory(StrippedFileName, SymbolsFolder)));
 					}
 					else

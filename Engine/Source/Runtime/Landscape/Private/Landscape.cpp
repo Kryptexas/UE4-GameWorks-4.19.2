@@ -270,7 +270,7 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 		LegacyMapBuildData->IrrelevantLights = IrrelevantLights_DEPRECATED;
 
 		FMeshMapBuildLegacyData LegacyComponentData;
-		LegacyComponentData.Data.Add(TPairInitializer<FGuid, FMeshMapBuildData*>(MapBuildDataId, LegacyMapBuildData));
+		LegacyComponentData.Data.Emplace(MapBuildDataId, LegacyMapBuildData);
 		GComponentsWithLegacyLightmaps.AddAnnotation(this, LegacyComponentData);
 	}
 

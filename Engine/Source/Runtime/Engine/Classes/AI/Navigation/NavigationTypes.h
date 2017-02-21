@@ -174,7 +174,7 @@ struct ENGINE_API FNavAgentSelector
 };
 
 template<>
-struct TStructOpsTypeTraits< FNavAgentSelector > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FNavAgentSelector > : public TStructOpsTypeTraitsBase2< FNavAgentSelector >
 {
 	enum
 	{

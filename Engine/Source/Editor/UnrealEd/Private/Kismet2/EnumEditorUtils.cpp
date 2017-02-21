@@ -64,9 +64,9 @@ void FEnumEditorUtils::UpdateAfterPathChanged(UEnum* Enum)
 	const int32 EnumeratorsToCopy = Enum->NumEnums() - 1; // skip _MAX
 	for (int32 Index = 0; Index < EnumeratorsToCopy; Index++)
 	{
-		const FString ShortName = Enum->GetEnumName(Index);
+		const FString ShortName = Enum->GetNameStringByIndex(Index);
 		const FString NewFullName = Enum->GenerateFullEnumName(*ShortName);
-		NewEnumeratorsNames.Add(TPairInitializer<FName, int64>(FName(*NewFullName), Index));
+		NewEnumeratorsNames.Emplace(*NewFullName, Index);
 	}
 
 	Enum->SetEnums(NewEnumeratorsNames, UEnum::ECppForm::Namespaced);
@@ -85,7 +85,7 @@ void FEnumEditorUtils::CopyEnumeratorsWithoutMax(const UEnum* Enum, TArray<TPair
 	const int32 EnumeratorsToCopy = Enum->NumEnums() - 1;
 	for	(int32 Index = 0; Index < EnumeratorsToCopy; Index++)
 	{
-		OutEnumNames.Add(TPairInitializer<FName, int64>(Enum->GetNameByIndex(Index), Enum->GetValueByIndex(Index)));
+		OutEnumNames.Emplace(Enum->GetNameByIndex(Index), Enum->GetValueByIndex(Index));
 	}
 }
 
@@ -105,7 +105,7 @@ void FEnumEditorUtils::AddNewEnumeratorForUserDefinedEnum(UUserDefinedEnum* Enum
 
 	FString EnumNameString = Enum->GenerateNewEnumeratorName();
 	const FString FullNameStr = Enum->GenerateFullEnumName(*EnumNameString);
-	Names.Add(TPairInitializer<FName, int64>(FName(*FullNameStr), Enum->GetMaxEnumValue()));
+	Names.Emplace(*FullNameStr, Enum->GetMaxEnumValue());
 
 	// Clean up enum values.
 	for (int32 i = 0; i < Names.Num(); ++i)
@@ -229,7 +229,7 @@ bool FEnumEditorUtils::IsProperNameForUserDefinedEnumerator(const UEnum* Enum, F
 		const FName TrueName(*TrueNameStr);
 		check(!bValidName || TrueName.IsValidXName());
 
-		const bool bNameNotUsed = (INDEX_NONE == Enum->FindEnumIndex(TrueName));
+		const bool bNameNotUsed = (INDEX_NONE == Enum->GetIndexByName(TrueName));
 		return bNameNotUsed && bValidName;
 	}
 	return false;
@@ -345,12 +345,12 @@ void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArr
 				{
 					if (UBlueprint* Blueprint = Node->GetBlueprint())
 					{
-						if (INDEX_NONE == Enum->FindEnumIndex(*Pin->DefaultValue))
+						if (INDEX_NONE == Enum->GetIndexByNameString(Pin->DefaultValue))
 						{
 							Pin->Modify();
 							if (Blueprint->BlueprintType == BPTYPE_Interface)
 							{
-								Pin->DefaultValue = Enum->GetEnumName(0);
+								Pin->DefaultValue = Enum->GetNameStringByIndex(0);
 							}
 							else
 							{
@@ -440,22 +440,6 @@ int64 FEnumEditorUtils::ResolveEnumerator(const UEnum* Enum, FArchive& Ar, int64
 	return EnumeratorValue;
 }
 
-FText FEnumEditorUtils::GetEnumeratorDisplayName(const UUserDefinedEnum* Enum, const int32 EnumeratorIndex)
-{
-	if (Enum)
-	{
-		const FName EnumEntryName = *Enum->GetEnumName(EnumeratorIndex);
-
-		const FText* EnumEntryDisplayName = Enum->DisplayNameMap.Find(EnumEntryName);
-		if (EnumEntryDisplayName)
-		{
-			return *EnumEntryDisplayName;
-		}
-	}
-
-	return FText::GetEmpty();
-}
-
 bool FEnumEditorUtils::SetEnumeratorDisplayName(UUserDefinedEnum* Enum, int32 EnumeratorIndex, FText NewDisplayName)
 {
 	if (Enum && (EnumeratorIndex >= 0) && (EnumeratorIndex < Enum->NumEnums()))
@@ -464,7 +448,7 @@ bool FEnumEditorUtils::SetEnumeratorDisplayName(UUserDefinedEnum* Enum, int32 En
 		{
 			PrepareForChange(Enum);
 			
-			const FName EnumEntryName = *Enum->GetEnumName(EnumeratorIndex);
+			const FName EnumEntryName = *Enum->GetNameStringByIndex(EnumeratorIndex);
 
 			FText DisplayNameToSet = NewDisplayName;
 
@@ -504,7 +488,7 @@ bool FEnumEditorUtils::IsEnumeratorDisplayNameValid(const UUserDefinedEnum* Enum
 
 	for	(int32 Index = 0; Index < Enum->NumEnums(); Index++)
 	{
-		if (Index != EnumeratorIndex && NewDisplayName.ToString() == GetEnumeratorDisplayName(Enum, Index).ToString())
+		if (Index != EnumeratorIndex && NewDisplayName.ToString() == Enum->GetDisplayNameTextByIndex(Index).ToString())
 		{
 			return false;
 		}
@@ -526,7 +510,7 @@ void FEnumEditorUtils::EnsureAllDisplayNamesExist(UUserDefinedEnum* Enum)
 
 			for (int32 Index = 0; Index < EnumeratorsToEnsure; ++Index)
 			{
-				const FName EnumEntryName = *Enum->GetEnumName(Index);
+				const FName EnumEntryName = *Enum->GetNameStringByIndex(Index);
 				KnownEnumEntryNames.Add(EnumEntryName);
 			}
 
@@ -544,7 +528,7 @@ void FEnumEditorUtils::EnsureAllDisplayNamesExist(UUserDefinedEnum* Enum)
 		// Add any missing display names
 		for	(int32 Index = 0; Index < EnumeratorsToEnsure; ++Index)
 		{
-			const FName EnumEntryName = *Enum->GetEnumName(Index);
+			const FName EnumEntryName = *Enum->GetNameStringByIndex(Index);
 
 			if (!Enum->DisplayNameMap.Contains(EnumEntryName))
 			{
@@ -584,7 +568,7 @@ void FEnumEditorUtils::UpgradeDisplayNamesFromMetaData(UUserDefinedEnum* Enum)
 			{
 				bDidUpgradeDisplayNames = true;
 
-				const FName EnumEntryName = *Enum->GetEnumName(Index);
+				const FName EnumEntryName = *Enum->GetNameStringByIndex(Index);
 
 				FText DisplayNameToSet;
 

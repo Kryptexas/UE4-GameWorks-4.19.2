@@ -2236,7 +2236,7 @@ void FAudioDevice::SetDefaultAudioSettings(UWorld* World, const FReverbSettings&
 	const uint32 WorldID = World->GetUniqueID();
 	FAudioThread::RunCommandOnAudioThread([AudioDevice, WorldID, DefaultReverbSettings, DefaultInteriorSettings]()
 	{
-		AudioDevice->WorldIDToDefaultAudioVolumeSettingsMap.Add(WorldID, TPair<FReverbSettings,FInteriorSettings>(TPairInitializer<FReverbSettings,FInteriorSettings>(DefaultReverbSettings,DefaultInteriorSettings)));
+		AudioDevice->WorldIDToDefaultAudioVolumeSettingsMap.Add(WorldID, TPair<FReverbSettings,FInteriorSettings>(DefaultReverbSettings,DefaultInteriorSettings));
 
 	}, GET_STATID(STAT_AudioSetDefaultAudioSettings));
 }

@@ -403,7 +403,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FTickFunction> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FTickFunction> : public TStructOpsTypeTraitsBase2<FTickFunction>
 {
 	enum
 	{
@@ -435,7 +435,7 @@ struct FActorTickFunction : public FTickFunction
 };
 
 template<>
-struct TStructOpsTypeTraits<FActorTickFunction> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FActorTickFunction> : public TStructOpsTypeTraitsBase2<FActorTickFunction>
 {
 	enum
 	{
@@ -483,7 +483,7 @@ struct FActorComponentTickFunction : public FTickFunction
 
 
 template<>
-struct TStructOpsTypeTraits<FActorComponentTickFunction> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FActorComponentTickFunction> : public TStructOpsTypeTraitsBase2<FActorComponentTickFunction>
 {
 	enum
 	{
@@ -516,7 +516,7 @@ struct FPrimitiveComponentPostPhysicsTickFunction : public FTickFunction
 };
 
 template<>
-struct TStructOpsTypeTraits<FPrimitiveComponentPostPhysicsTickFunction> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FPrimitiveComponentPostPhysicsTickFunction> : public TStructOpsTypeTraitsBase2<FPrimitiveComponentPostPhysicsTickFunction>
 {
 	enum
 	{

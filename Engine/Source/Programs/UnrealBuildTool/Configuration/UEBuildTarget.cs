@@ -1418,7 +1418,7 @@ namespace UnrealBuildTool
 
 			// Construct the output paths for this target's executable
 			DirectoryReference OutputDirectory;
-			if ((bCompileMonolithic || TargetType == TargetType.Program) && !Rules.bOutputToEngineBinaries)
+			if (!bUseSharedBuildEnvironment && !Rules.bOutputToEngineBinaries)
 			{
 				OutputDirectory = ProjectDirectory;
 			}
@@ -1674,6 +1674,14 @@ namespace UnrealBuildTool
 			{
 				FilesToDelete.RemoveWhere(x => x.IsUnderDirectory(UnrealBuildTool.EngineDirectory));
 				DirectoriesToDelete.RemoveWhere(x => x.IsUnderDirectory(UnrealBuildTool.EngineDirectory));
+			}
+
+			// If we're in an installed project build, only allow cleaning stuff that's under the mod directories
+			if(UnrealBuildTool.IsProjectInstalled())
+			{
+				List<DirectoryReference> ModDirs = EnabledPlugins.Where(x => x.Descriptor.bIsMod).Select(x => x.Directory).ToList();
+				FilesToDelete.RemoveWhere(x => !ModDirs.Any(y => x.IsUnderDirectory(y)));
+				DirectoriesToDelete.RemoveWhere(x => !ModDirs.Any(y => x.IsUnderDirectory(y)));
 			}
 
 			// Add any additional files which are output on Windows, but aren't listed in the receipt
@@ -2243,7 +2251,7 @@ namespace UnrealBuildTool
 			CppConfiguration CppConfiguration = GetCppConfiguration(Configuration);
 
 			CppCompileEnvironment GlobalCompileEnvironment = new CppCompileEnvironment(CppPlatform, CppConfiguration, Architecture, Headers);
-			UEToolChain TargetToolChain = UEBuildPlatform.GetBuildPlatform(Platform).CreateContext(ProjectFile).CreateToolChain(GlobalCompileEnvironment.Platform, Rules);
+			UEToolChain TargetToolChain = UEBuildPlatform.GetBuildPlatform(Platform).CreateToolChain(GlobalCompileEnvironment.Platform, Rules);
 			LinkEnvironment GlobalLinkEnvironment = new LinkEnvironment(GlobalCompileEnvironment.Platform, GlobalCompileEnvironment.Configuration, GlobalCompileEnvironment.Architecture);
 
 			PreBuildSetup(TargetToolChain, GlobalCompileEnvironment, GlobalLinkEnvironment);
@@ -2264,6 +2272,27 @@ namespace UnrealBuildTool
 				if (AppBinaries.Count == 0)
 				{
 					throw new BuildException("One or more of the modules specified using the '-module' argument could not be found.");
+				}
+			}
+
+			// For installed builds, filter out all the binaries that aren't in mods
+			if (!ProjectFileGenerator.bGenerateProjectFiles && UnrealBuildTool.IsProjectInstalled())
+			{
+				List<DirectoryReference> ModDirectories = EnabledPlugins.Where(x => x.Descriptor.bIsMod).Select(x => x.Directory).ToList();
+
+				List<UEBuildBinary> FilteredBinaries = new List<UEBuildBinary>();
+				foreach (UEBuildBinary DLLBinary in AppBinaries)
+				{
+					if(ModDirectories.Any(x => DLLBinary.Config.OutputFilePath.IsUnderDirectory(x)))
+					{
+						FilteredBinaries.Add(DLLBinary);
+					}
+				}
+				AppBinaries = FilteredBinaries;
+
+				if (AppBinaries.Count == 0)
+				{
+					throw new BuildException("No modules found to build. All requested binaries were already part of the installed data.");
 				}
 			}
 
@@ -2343,6 +2372,12 @@ namespace UnrealBuildTool
 						ExecutableBinary.AddModule(CurModule);
 					}
 				}
+			}
+
+			// Add global definitions for project-specific binaries
+			if(!bUseSharedBuildEnvironment)
+			{
+				UEBuildBinary ExecutableBinary = AppBinaries[0];
 
 				bool IsCurrentPlatform;
 				if (Utils.IsRunningOnMono)
@@ -2611,13 +2646,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		public void PreBuildSetup(UEToolChain TargetToolChain, CppCompileEnvironment GlobalCompileEnvironment, LinkEnvironment GlobalLinkEnvironment)
 		{
-			UEBuildPlatformContext PlatformContext = UEBuildPlatform.GetBuildPlatform(Platform).CreateContext(ProjectFile);
-
 			// Set up the global compile and link environment in GlobalCompileEnvironment and GlobalLinkEnvironment.
-			SetupGlobalEnvironment(PlatformContext, TargetToolChain, GlobalCompileEnvironment, GlobalLinkEnvironment);
+			SetupGlobalEnvironment(TargetToolChain, GlobalCompileEnvironment, GlobalLinkEnvironment);
 
 			// Setup the target's modules.
-			SetupModules(PlatformContext);
+			SetupModules();
 
 			// Setup the target's binaries.
 			SetupBinaries();
@@ -2633,7 +2666,7 @@ namespace UnrealBuildTool
 			{
 				foreach (string ModuleName in Binary.Config.ModuleNames)
 				{
-					UEBuildModule Module = FindOrCreateModuleByName(ModuleName, PlatformContext);
+					UEBuildModule Module = FindOrCreateModuleByName(ModuleName);
 					Module.Binary = Binary;
 					Binary.AddModule(Module);
 				}
@@ -2642,7 +2675,7 @@ namespace UnrealBuildTool
 			// Add the enabled plugins to the build
 			foreach (PluginInfo BuildPlugin in BuildPlugins)
 			{
-				AddPlugin(BuildPlugin, PlatformContext);
+				AddPlugin(BuildPlugin);
 			}
 
 			// Describe what's being built.
@@ -2658,12 +2691,12 @@ namespace UnrealBuildTool
 			// Add all of the extra modules, including game modules, that need to be compiled along
 			// with this app.  These modules are always statically linked in monolithic targets, but not necessarily linked to anything in modular targets,
 			// and may still be required at runtime in order for the application to load and function properly!
-			AddExtraModules(PlatformContext);
+			AddExtraModules();
 
 			// Create all the modules referenced by the existing binaries
 			foreach(UEBuildBinary Binary in AppBinaries)
 			{
-				Binary.CreateAllDependentModules(x => FindOrCreateModuleByName(x, PlatformContext));
+				Binary.CreateAllDependentModules(x => FindOrCreateModuleByName(x));
 			}
 
 			// Bind every referenced C++ module to a binary
@@ -2680,7 +2713,7 @@ namespace UnrealBuildTool
 			}
 
 			// Add all the precompiled modules to the target. In contrast to "Extra Modules", these modules are not compiled into monolithic targets by default.
-			AddPrecompiledModules(PlatformContext);
+			AddPrecompiledModules();
 
 			// Add the external and non-C++ referenced modules to the binaries that reference them.
 			foreach (UEBuildModuleCPP Module in Modules.Values.OfType<UEBuildModuleCPP>())
@@ -2907,7 +2940,7 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		private static List<UEBuildBinary> GetFilteredGameModules(List<UEBuildBinary> Binaries)
+		private List<UEBuildBinary> GetFilteredGameModules(List<UEBuildBinary> Binaries)
 		{
 			List<UEBuildBinary> Result = new List<UEBuildBinary>();
 
@@ -2916,12 +2949,15 @@ namespace UnrealBuildTool
 				List<UEBuildModule> GameModules = DLLBinary.FindGameModules();
 				if (GameModules != null && GameModules.Count > 0)
 				{
-					Result.Add(DLLBinary);
+					if(!UnrealBuildTool.IsProjectInstalled() || EnabledPlugins.Where(x => x.Descriptor.bIsMod).Any(x => DLLBinary.Config.OutputFilePaths[0].IsUnderDirectory(x.Directory)))
+					{
+						Result.Add(DLLBinary);
 
-					string UniqueSuffix = (new Random((int)(DateTime.Now.Ticks % Int32.MaxValue)).Next(10000)).ToString();
+						string UniqueSuffix = (new Random((int)(DateTime.Now.Ticks % Int32.MaxValue)).Next(10000)).ToString();
 
-					DLLBinary.Config.OriginalOutputFilePaths = DLLBinary.Config.OutputFilePaths;
-					DLLBinary.Config.OutputFilePaths = DLLBinary.Config.OutputFilePaths.Select(Path => AddModuleFilenameSuffix(GameModules[0].Name, Path, UniqueSuffix)).ToList();
+						DLLBinary.Config.OriginalOutputFilePaths = DLLBinary.Config.OutputFilePaths;
+						DLLBinary.Config.OutputFilePaths = DLLBinary.Config.OutputFilePaths.Select(Path => AddModuleFilenameSuffix(GameModules[0].Name, Path, UniqueSuffix)).ToList();
+					}
 				}
 			}
 
@@ -2981,7 +3017,7 @@ namespace UnrealBuildTool
 				// Now bind this new module to the executable binary so it will link the plugin libs correctly
 				NewModule.bSkipDefinitionsForCompileEnvironment = true;
 				NewModule.Rules.PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
-				NewModule.RecursivelyCreateModules(x => FindOrCreateModuleByName(x, null));
+				NewModule.RecursivelyCreateModules(x => FindOrCreateModuleByName(x));
 				BindArtificialModuleToBinary(NewModule, ExecutableBinary, GlobalCompileEnvironment);
 
 				// Create the cpp file
@@ -3211,7 +3247,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Include the given plugin in the target. It may be included as a separate binary, or compiled into a monolithic executable.
 		/// </summary>
-		public void AddPlugin(PluginInfo Plugin, UEBuildPlatformContext PlatformContext)
+		public void AddPlugin(PluginInfo Plugin)
 		{
 			UEBuildBinaryType BinaryType = ShouldCompileMonolithic() ? UEBuildBinaryType.StaticLibrary : UEBuildBinaryType.DynamicLinkLibrary;
 			if (Plugin.Descriptor.Modules != null)
@@ -3220,7 +3256,7 @@ namespace UnrealBuildTool
 				{
 					if (Module.IsCompiledInConfiguration(Platform, TargetType, Rules.bBuildDeveloperTools, Rules.bBuildEditor))
 					{
-						UEBuildModule ModuleInstance = FindOrCreateModuleByName(Module.Name, PlatformContext);
+						UEBuildModule ModuleInstance = FindOrCreateModuleByName(Module.Name);
 						if(ModuleInstance.Binary == null)
 						{
 							// Add the corresponding binary for it
@@ -3241,12 +3277,12 @@ namespace UnrealBuildTool
 
 		/// When building a target, this is called to add any additional modules that should be compiled along
 		/// with the main target.  If you override this in a derived class, remember to call the base implementation!
-		protected virtual void AddExtraModules(UEBuildPlatformContext PlatformContext)
+		protected virtual void AddExtraModules()
 		{
 			// Add extra modules that will either link into the main binary (monolithic), or be linked into separate DLL files (modular)
 			foreach (string ModuleName in ExtraModuleNames)
 			{
-				UEBuildModule Module = FindOrCreateModuleByName(ModuleName, PlatformContext);
+				UEBuildModule Module = FindOrCreateModuleByName(ModuleName);
 				AddModuleToBinary(Module, false);
 			}
 		}
@@ -3254,7 +3290,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Adds all the precompiled modules into the target. Precompiled modules are compiled alongside the target, but not linked into it unless directly referenced.
 		/// </summary>
-		protected void AddPrecompiledModules(UEBuildPlatformContext PlatformContext)
+		protected void AddPrecompiledModules()
 		{
 			if (bPrecompile || bUsePrecompiled)
 			{
@@ -3391,8 +3427,8 @@ namespace UnrealBuildTool
 						// Create the module
 						if (bCanPrecompile)
 						{
-							UEBuildModule Module = FindOrCreateModuleByName(FilteredModuleName, PlatformContext);
-							Module.RecursivelyCreateModules(x => FindOrCreateModuleByName(x, PlatformContext));
+							UEBuildModule Module = FindOrCreateModuleByName(FilteredModuleName);
+							Module.RecursivelyCreateModules(x => FindOrCreateModuleByName(x));
 							PrecompiledModules.Add(Module);
 						}
 					}
@@ -3586,11 +3622,10 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Sets up the modules for the target.
 		/// </summary>
-		protected void SetupModules(UEBuildPlatformContext PlatformContext)
+		protected void SetupModules()
 		{
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			List<string> PlatformExtraModules = new List<string>();
-			PlatformContext.AddExtraModules(TargetInfo, PlatformExtraModules);
+			UEBuildPlatform.GetBuildPlatform(Platform).AddExtraModules(Rules, PlatformExtraModules);
 			ExtraModuleNames.AddRange(PlatformExtraModules);
 		}
 
@@ -3776,42 +3811,10 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public static void ParseEncryptionIni(DirectoryReference InDirectory, UnrealTargetPlatform InTargetPlatform, out String[] OutRSAKeys, out String OutAESKey)
-		{
-			OutAESKey = String.Empty;
-			OutRSAKeys = null;
-
-			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Encryption, InDirectory, InTargetPlatform);
-
-			bool bSigningEnabled;
-			Ini.GetBool("Core.Encryption", "SignPak", out bSigningEnabled);
-
-			if (bSigningEnabled)
-			{
-				OutRSAKeys = new string[3];
-				Ini.GetString("Core.Encryption", "rsa.privateexp", out OutRSAKeys[0]);
-				Ini.GetString("Core.Encryption", "rsa.modulus", out OutRSAKeys[1]);
-				Ini.GetString("Core.Encryption", "rsa.publicexp", out OutRSAKeys[2]);
-
-				if (String.IsNullOrEmpty(OutRSAKeys[0]) || String.IsNullOrEmpty(OutRSAKeys[1]) || String.IsNullOrEmpty(OutRSAKeys[2]))
-				{
-					OutRSAKeys = null;
-				}
-			}
-
-			bool bEncryptionEnabled;
-			Ini.GetBool("Core.Encryption", "EncryptPak", out bEncryptionEnabled);
-
-			if (bEncryptionEnabled)
-			{
-				Ini.GetString("Core.Encryption", "aes.key", out OutAESKey);
-			}
-		}
-
 		/// <summary>
 		/// Sets up the global compile and link environment for the target.
 		/// </summary>
-		public virtual void SetupGlobalEnvironment(UEBuildPlatformContext PlatformContext, UEToolChain ToolChain, CppCompileEnvironment GlobalCompileEnvironment, LinkEnvironment GlobalLinkEnvironment)
+		public virtual void SetupGlobalEnvironment(UEToolChain ToolChain, CppCompileEnvironment GlobalCompileEnvironment, LinkEnvironment GlobalLinkEnvironment)
 		{
 			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 
@@ -4062,13 +4065,13 @@ namespace UnrealBuildTool
 			GlobalCompileEnvironment.Definitions.Add("UBT_COMPILED_TARGET=" + TargetType.ToString());
 
 			// Initialize the compile and link environments for the platform, configuration, and project.
-			PlatformContext.SetUpEnvironment(Rules, GlobalCompileEnvironment, GlobalLinkEnvironment);
-			PlatformContext.SetUpConfigurationEnvironment(Rules, GlobalCompileEnvironment, GlobalLinkEnvironment);
+			BuildPlatform.SetUpEnvironment(Rules, GlobalCompileEnvironment, GlobalLinkEnvironment);
+			BuildPlatform.SetUpConfigurationEnvironment(Rules, GlobalCompileEnvironment, GlobalLinkEnvironment);
 		}
 
 		private void GetEncryptionAndSigningKeys(out String AESKey, out String[] PakSigningKeys)
 		{
-			ParseEncryptionIni(ProjectDirectory, Platform, out PakSigningKeys, out AESKey);
+			EncryptionAndSigning.ParseEncryptionIni(ProjectDirectory, Platform, out PakSigningKeys, out AESKey);
 
 			if (!String.IsNullOrEmpty(AESKey))
 			{
@@ -4199,7 +4202,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Finds a module given its name.  Throws an exception if the module couldn't be found.
 		/// </summary>
-		public UEBuildModule FindOrCreateModuleByName(string ModuleName, UEBuildPlatformContext PlatformContext)
+		public UEBuildModule FindOrCreateModuleByName(string ModuleName)
 		{
 			UEBuildModule Module;
 			if (!Modules.TryGetValue(ModuleName, out Module))
@@ -4371,7 +4374,7 @@ namespace UnrealBuildTool
 				}
 
 				// Allow the current platform to modify the module rules
-				PlatformContext.ModifyModuleRulesForActivePlatform(ModuleName, RulesObject, Rules);
+				UEBuildPlatform.GetBuildPlatform(Platform).ModifyModuleRulesForActivePlatform(ModuleName, RulesObject, Rules);
 
 				// Allow all build platforms to 'adjust' the module setting. 
 				// This will allow undisclosed platforms to make changes without 

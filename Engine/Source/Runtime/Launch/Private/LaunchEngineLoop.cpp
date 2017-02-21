@@ -1387,7 +1387,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			{
 				NumThreadsInThreadPool = 2;
 			}
-			verify(GIOThreadPool->Create(NumThreadsInThreadPool, 16 * 1024, TPri_AboveNormal));
+			verify(GIOThreadPool->Create(NumThreadsInThreadPool, 64 * 1024, TPri_AboveNormal));
 		}
 	}
 

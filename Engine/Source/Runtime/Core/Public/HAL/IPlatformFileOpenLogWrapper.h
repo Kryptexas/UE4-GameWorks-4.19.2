@@ -271,7 +271,10 @@ public:
 
 IAsyncReadRequest* FLoggingAsyncReadFileHandle::ReadRequest(int64 Offset, int64 BytesToRead, EAsyncIOPriority Priority, FAsyncFileCallBack* CompleteCallback, uint8* UserSuppliedMemory)
 {
-	Owner->AddToOpenLog(*Filename);
+	if (Priority != AIOP_Precache)
+	{
+		Owner->AddToOpenLog(*Filename);
+	}
 	return ActualRequest->ReadRequest(Offset, BytesToRead, Priority, CompleteCallback, UserSuppliedMemory);
 }
 

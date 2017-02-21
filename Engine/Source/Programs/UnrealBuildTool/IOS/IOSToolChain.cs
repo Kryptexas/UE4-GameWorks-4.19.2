@@ -70,18 +70,16 @@ namespace UnrealBuildTool
 
 	class IOSToolChain : AppleToolChain
 	{
-		protected IOSPlatformContext PlatformContext;
 		protected IOSProjectSettings ProjectSettings;
 
-		public IOSToolChain(FileReference InProjectFile, IOSPlatformContext InPlatformContext, IOSProjectSettings InProjectSettings)
-			: this(CppPlatform.IOS, InProjectFile, InPlatformContext, InProjectSettings, () => new IOSToolChainSettings())
+		public IOSToolChain(FileReference InProjectFile, IOSProjectSettings InProjectSettings)
+			: this(CppPlatform.IOS, InProjectFile, InProjectSettings, () => new IOSToolChainSettings())
 		{
 		}
 
-		protected IOSToolChain(CppPlatform TargetPlatform, FileReference InProjectFile, IOSPlatformContext InPlatformContext, IOSProjectSettings InProjectSettings, Func<IOSToolChainSettings> InCreateSettings)
+		protected IOSToolChain(CppPlatform TargetPlatform, FileReference InProjectFile, IOSProjectSettings InProjectSettings, Func<IOSToolChainSettings> InCreateSettings)
 			: base(TargetPlatform, UnrealTargetPlatform.Mac, InProjectFile)
 		{
-			PlatformContext = InPlatformContext;
 			ProjectSettings = InProjectSettings;
 			Settings = new Lazy<IOSToolChainSettings>(InCreateSettings);
 		}
@@ -213,7 +211,7 @@ namespace UnrealBuildTool
 				Result += " -Wno-unused-local-typedef"; // PhysX has some, hard to remove
 			}
 
-			if (PlatformContext.IsBitcodeCompilingEnabled(CompileEnvironment.Configuration))
+			if (IsBitcodeCompilingEnabled(CompileEnvironment.Configuration))
 			{
 				Result += " -fembed-bitcode";
 			}
@@ -221,7 +219,7 @@ namespace UnrealBuildTool
 			Result += " -c";
 
 			// What architecture(s) to build for
-			Result += PlatformContext.GetArchitectureArgument(CompileEnvironment.Configuration, CompileEnvironment.Architecture);
+			Result += GetArchitectureArgument(CompileEnvironment.Configuration, CompileEnvironment.Architecture);
 
 			if (CompileEnvironment.Architecture == "-simulator")
 			{
@@ -232,7 +230,7 @@ namespace UnrealBuildTool
 				Result += " -isysroot " + Settings.Value.BaseSDKDir + "/" +  Settings.Value.DevicePlatformName + Settings.Value.IOSSDKVersion + ".sdk";
 			}
 
-			Result += " -m" +  PlatformContext.GetXcodeMinVersionParam() + "=" + ProjectSettings.RuntimeVersion;
+			Result += " -m" +  GetXcodeMinVersionParam() + "=" + ProjectSettings.RuntimeVersion;
 
 			// Optimize non- debug builds.
 			if (CompileEnvironment.bOptimizeCode)
@@ -399,17 +397,60 @@ namespace UnrealBuildTool
 			}
 		}
 
+		bool IsBitcodeCompilingEnabled(CppConfiguration Configuration)
+		{
+			return Configuration == CppConfiguration.Shipping && ProjectSettings.bShipForBitcode;
+		}
+
+		public virtual string GetXcodeMinVersionParam()
+		{
+			return "iphoneos-version-min";
+		}
+
+		public virtual string GetArchitectureArgument(CppConfiguration Configuration, string UBTArchitecture)
+		{
+            // get the list of architectures to compile
+            string Archs =
+				UBTArchitecture == "-simulator" ? "i386" :
+				String.Join(",", (Configuration == CppConfiguration.Shipping) ? ProjectSettings.ShippingArchitectures : ProjectSettings.NonShippingArchitectures);
+
+			Log.TraceLogOnce("Compiling with these architectures: " + Archs);
+
+			// parse the string
+			string[] Tokens = Archs.Split(",".ToCharArray());
+
+			string Result = "";
+			foreach (string Token in Tokens)
+			{
+				Result += " -arch " + Token;
+			}
+
+			return Result;
+		}
+
+		public string GetAdditionalLinkerFlags(CppConfiguration InConfiguration)
+		{
+			if (InConfiguration != CppConfiguration.Shipping)
+			{
+				return ProjectSettings.AdditionalLinkerFlags;
+			}
+			else
+			{
+				return ProjectSettings.AdditionalShippingLinkerFlags;
+			}
+		}
+
 		string GetLinkArguments_Global(LinkEnvironment LinkEnvironment)
 		{
             string Result = "";
 
-			Result += PlatformContext.GetArchitectureArgument(LinkEnvironment.Configuration, LinkEnvironment.Architecture);
+			Result += GetArchitectureArgument(LinkEnvironment.Configuration, LinkEnvironment.Architecture);
 
 			bool bIsDevice = (LinkEnvironment.Architecture != "-simulator");
 			Result += String.Format(" -isysroot {0}Platforms/{1}.platform/Developer/SDKs/{1}{2}.sdk",
 				Settings.Value.XcodeDeveloperDir, bIsDevice? Settings.Value.DevicePlatformName : Settings.Value.SimulatorPlatformName, Settings.Value.IOSSDKVersion);
 
-			if(PlatformContext.IsBitcodeCompilingEnabled(LinkEnvironment.Configuration))
+			if(IsBitcodeCompilingEnabled(LinkEnvironment.Configuration))
 			{
 				FileItem OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.OutputFilePath);
 				FileItem RemoteOutputFile = LocalToRemoteFileItem(OutputFile, false);
@@ -419,9 +460,9 @@ namespace UnrealBuildTool
 			}
 
 			Result += " -dead_strip";
-			Result += " -m" + PlatformContext.GetXcodeMinVersionParam() + "=" + ProjectSettings.RuntimeVersion;
+			Result += " -m" + GetXcodeMinVersionParam() + "=" + ProjectSettings.RuntimeVersion;
 			Result += " -Wl";
-			if(!PlatformContext.IsBitcodeCompilingEnabled(LinkEnvironment.Configuration))
+			if(!IsBitcodeCompilingEnabled(LinkEnvironment.Configuration))
 			{
 				Result += "-no_pie";
 			}
@@ -429,7 +470,7 @@ namespace UnrealBuildTool
 			Result += " -ObjC";
 			//			Result += " -v";
 
-			Result += " " + PlatformContext.GetAdditionalLinkerFlags(LinkEnvironment.Configuration);
+			Result += " " + GetAdditionalLinkerFlags(LinkEnvironment.Configuration);
 
 			// link in the frameworks
 			foreach (string Framework in LinkEnvironment.Frameworks)
@@ -1617,9 +1658,9 @@ namespace UnrealBuildTool
 			return NewProcess.ExitCode;
 		}
 
-		public void StripSymbols(string SourceFileName, string TargetFileName)
+		public void StripSymbols(FileReference SourceFile, FileReference TargetFile)
 		{
-			StripSymbolsWithXcode(SourceFileName, TargetFileName, Settings.Value.ToolchainDir);
+			StripSymbolsWithXcode(SourceFile, TargetFile, Settings.Value.ToolchainDir);
 		}
 	};
 }

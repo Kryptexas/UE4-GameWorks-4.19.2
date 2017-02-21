@@ -67,172 +67,6 @@ namespace UnrealBuildTool
 		#endregion
 	}
 
-	class AndroidPlatformContext : UEBuildPlatformContext
-	{
-		FileReference ProjectFile;
-
-		public AndroidPlatformContext(FileReference InProjectFile) : base(UnrealTargetPlatform.Android)
-		{
-			this.ProjectFile = InProjectFile;
-		}
-
-		private bool IsVulkanSDKAvailable()
-		{
-			bool bHaveVulkan = false;
-
-			// First look for VulkanSDK (two possible env variables)
-			string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
-			if (String.IsNullOrEmpty(VulkanSDKPath))
-			{
-				VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
-			}
-
-			// Note: header is the same for all architectures so just use arch-arm
-			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
-			string NDKVulkanIncludePath = NDKPath + "/platforms/android-24/arch-arm/usr/include/vulkan";
-
-			// Use NDK Vulkan header if discovered, or VulkanSDK if available
-			if (File.Exists(NDKVulkanIncludePath + "/vulkan.h"))
-			{
-				bHaveVulkan = true;
-			}
-			else
-			if (!String.IsNullOrEmpty(VulkanSDKPath))
-			{
-				bHaveVulkan = true;
-			}
-			else
-			if (File.Exists("ThirdParty/Vulkan/Windows/Include/vulkan/vulkan.h"))
-			{
-				bHaveVulkan = true;
-			}
-
-			return bHaveVulkan;
-		}
-
-		public override void AddExtraModules(TargetInfo Target, List<string> PlatformExtraModules)
-		{
-			bool bVulkanExists = IsVulkanSDKAvailable();
-			if (bVulkanExists)
-			{
-				PlatformExtraModules.Add("VulkanRHI");
-			}
-		}
-
-		/// <summary>
-		/// Modify the rules for a newly created module, in a target that's being built for this platform.
-		/// This is not required - but allows for hiding details of a particular platform.
-		/// </summary>
-		/// <param name="ModuleName">The name of the module</param>
-		/// <param name="Rules">The module rules</param>
-		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
-		{
-		}
-
-		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
-		{
-			// we want gcc toolchain 4.9, but fall back to 4.8 or 4.6 for now if it doesn't exist
-			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
-			NDKPath = NDKPath.Replace("\"", "");
-
-			AndroidToolChain ToolChain = new AndroidToolChain(Target.ProjectFile, false, Target.AndroidPlatform.Architectures, Target.AndroidPlatform.GPUArchitectures);
-
-			string GccVersion = "4.6";
-			int NDKVersionInt = ToolChain.GetNdkApiLevelInt();
-			if (Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.9")))
-			{
-				GccVersion = "4.9";
-			} else
-			if (Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.8")))
-			{
-				GccVersion = "4.8";
-			}
-
-			Log.TraceInformation("NDK version: {0}, GccVersion: {1}", NDKVersionInt.ToString(), GccVersion);
-
-			CompileEnvironment.Definitions.Add("PLATFORM_DESKTOP=0");
-			CompileEnvironment.Definitions.Add("PLATFORM_CAN_SUPPORT_EDITORONLY_DATA=0");
-
-			CompileEnvironment.Definitions.Add("WITH_OGGVORBIS=1");
-
-			CompileEnvironment.Definitions.Add("UNICODE");
-			CompileEnvironment.Definitions.Add("_UNICODE");
-
-			CompileEnvironment.Definitions.Add("PLATFORM_ANDROID=1");
-			CompileEnvironment.Definitions.Add("ANDROID=1");
-
-			CompileEnvironment.Definitions.Add("WITH_DATABASE_SUPPORT=0");
-			CompileEnvironment.Definitions.Add("WITH_EDITOR=0");
-			CompileEnvironment.Definitions.Add("USE_NULL_RHI=0");
-			CompileEnvironment.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
-
-			CompileEnvironment.IncludePaths.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/include");
-
-			// the toolchain will actually filter these out
-			CompileEnvironment.IncludePaths.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a/include");
-			CompileEnvironment.IncludePaths.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/arm64-v8a/include");
-			CompileEnvironment.IncludePaths.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86/include");
-			CompileEnvironment.IncludePaths.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86_64/include");
-
-			LinkEnvironment.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a");
-			LinkEnvironment.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/arm64-v8a");
-			LinkEnvironment.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86");
-			LinkEnvironment.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86_64");
-
-			CompileEnvironment.IncludePaths.SystemIncludePaths.Add("$(NDKROOT)/sources/android/native_app_glue");
-			CompileEnvironment.IncludePaths.SystemIncludePaths.Add("$(NDKROOT)/sources/android/cpufeatures");
-
-			//@TODO: Tegra Gfx Debugger - standardize locations - for now, change the hardcoded paths and force this to return true to test
-			if (UseTegraGraphicsDebugger(Target))
-			{
-				//LinkEnvironment.LibraryPaths.Add("ThirdParty/NVIDIA/TegraGfxDebugger");
-				//LinkEnvironment.LibraryPaths.Add("F:/NVPACK/android-kk-egl-t124-a32/stub");
-				//LinkEnvironment.AdditionalLibraries.Add("Nvidia_gfx_debugger_stub");
-			}
-
-			LinkEnvironment.AdditionalLibraries.Add("gnustl_shared");
-			LinkEnvironment.AdditionalLibraries.Add("gcc");
-			LinkEnvironment.AdditionalLibraries.Add("z");
-			LinkEnvironment.AdditionalLibraries.Add("c");
-			LinkEnvironment.AdditionalLibraries.Add("m");
-			LinkEnvironment.AdditionalLibraries.Add("log");
-			LinkEnvironment.AdditionalLibraries.Add("dl");
-			if (!UseTegraGraphicsDebugger(Target))
-			{
-				LinkEnvironment.AdditionalLibraries.Add("GLESv2");
-				LinkEnvironment.AdditionalLibraries.Add("EGL");
-			}
-			LinkEnvironment.AdditionalLibraries.Add("OpenSLES");
-			LinkEnvironment.AdditionalLibraries.Add("android");
-		}
-
-		private bool UseTegraGraphicsDebugger(ReadOnlyTargetRules Target)
-		{
-			// Disable for now
-			return false;
-		}
-
-		public override bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target)
-		{
-			switch (Target.Configuration)
-			{
-				case UnrealTargetConfiguration.Development:
-				case UnrealTargetConfiguration.Shipping:
-				case UnrealTargetConfiguration.Test:
-				case UnrealTargetConfiguration.Debug:
-				default:
-					return true;
-			};
-		}
-
-		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
-		{
-			bool bUseLdGold = Target.bUseUnityBuild;
-			return new AndroidToolChain(ProjectFile, bUseLdGold, Target.AndroidPlatform.Architectures, Target.AndroidPlatform.GPUArchitectures);
-		}
-	}
-
 	class AndroidPlatform : UEBuildPlatform
 	{
 		AndroidPlatformSDK SDK;
@@ -421,14 +255,160 @@ namespace UnrealBuildTool
 			return AllBinaries;
 		}
 
-		/// <summary>
-		/// Creates a context for the given target on the current platform.
-		/// </summary>
-		/// <param name="ProjectFile">The project file for the current target</param>
-		/// <returns>New platform context object</returns>
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
+		private bool IsVulkanSDKAvailable()
 		{
-			return new AndroidPlatformContext(ProjectFile);
+			bool bHaveVulkan = false;
+
+			// First look for VulkanSDK (two possible env variables)
+			string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
+			if (String.IsNullOrEmpty(VulkanSDKPath))
+			{
+				VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+			}
+
+			// Note: header is the same for all architectures so just use arch-arm
+			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
+			string NDKVulkanIncludePath = NDKPath + "/platforms/android-24/arch-arm/usr/include/vulkan";
+
+			// Use NDK Vulkan header if discovered, or VulkanSDK if available
+			if (File.Exists(NDKVulkanIncludePath + "/vulkan.h"))
+			{
+				bHaveVulkan = true;
+			}
+			else
+			if (!String.IsNullOrEmpty(VulkanSDKPath))
+			{
+				bHaveVulkan = true;
+			}
+			else
+			if (File.Exists("ThirdParty/Vulkan/Windows/Include/vulkan/vulkan.h"))
+			{
+				bHaveVulkan = true;
+			}
+
+			return bHaveVulkan;
+		}
+
+		public override void AddExtraModules(ReadOnlyTargetRules Target, List<string> PlatformExtraModules)
+		{
+			bool bVulkanExists = IsVulkanSDKAvailable();
+			if (bVulkanExists)
+			{
+				PlatformExtraModules.Add("VulkanRHI");
+			}
+		}
+
+		/// <summary>
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
+		{
+		}
+
+		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		{
+			// we want gcc toolchain 4.9, but fall back to 4.8 or 4.6 for now if it doesn't exist
+			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
+			NDKPath = NDKPath.Replace("\"", "");
+
+			AndroidToolChain ToolChain = new AndroidToolChain(Target.ProjectFile, false, Target.AndroidPlatform.Architectures, Target.AndroidPlatform.GPUArchitectures);
+
+			string GccVersion = "4.6";
+			int NDKVersionInt = ToolChain.GetNdkApiLevelInt();
+			if (Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.9")))
+			{
+				GccVersion = "4.9";
+			} else
+			if (Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.8")))
+			{
+				GccVersion = "4.8";
+			}
+
+			Log.TraceInformation("NDK version: {0}, GccVersion: {1}", NDKVersionInt.ToString(), GccVersion);
+
+			CompileEnvironment.Definitions.Add("PLATFORM_DESKTOP=0");
+			CompileEnvironment.Definitions.Add("PLATFORM_CAN_SUPPORT_EDITORONLY_DATA=0");
+
+			CompileEnvironment.Definitions.Add("WITH_OGGVORBIS=1");
+
+			CompileEnvironment.Definitions.Add("UNICODE");
+			CompileEnvironment.Definitions.Add("_UNICODE");
+
+			CompileEnvironment.Definitions.Add("PLATFORM_ANDROID=1");
+			CompileEnvironment.Definitions.Add("ANDROID=1");
+
+			CompileEnvironment.Definitions.Add("WITH_DATABASE_SUPPORT=0");
+			CompileEnvironment.Definitions.Add("WITH_EDITOR=0");
+			CompileEnvironment.Definitions.Add("USE_NULL_RHI=0");
+			CompileEnvironment.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
+
+			CompileEnvironment.IncludePaths.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/include");
+
+			// the toolchain will actually filter these out
+			CompileEnvironment.IncludePaths.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a/include");
+			CompileEnvironment.IncludePaths.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/arm64-v8a/include");
+			CompileEnvironment.IncludePaths.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86/include");
+			CompileEnvironment.IncludePaths.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86_64/include");
+
+			LinkEnvironment.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a");
+			LinkEnvironment.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/arm64-v8a");
+			LinkEnvironment.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86");
+			LinkEnvironment.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86_64");
+
+			CompileEnvironment.IncludePaths.SystemIncludePaths.Add("$(NDKROOT)/sources/android/native_app_glue");
+			CompileEnvironment.IncludePaths.SystemIncludePaths.Add("$(NDKROOT)/sources/android/cpufeatures");
+
+			//@TODO: Tegra Gfx Debugger - standardize locations - for now, change the hardcoded paths and force this to return true to test
+			if (UseTegraGraphicsDebugger(Target))
+			{
+				//LinkEnvironment.LibraryPaths.Add("ThirdParty/NVIDIA/TegraGfxDebugger");
+				//LinkEnvironment.LibraryPaths.Add("F:/NVPACK/android-kk-egl-t124-a32/stub");
+				//LinkEnvironment.AdditionalLibraries.Add("Nvidia_gfx_debugger_stub");
+			}
+
+			LinkEnvironment.AdditionalLibraries.Add("gnustl_shared");
+			LinkEnvironment.AdditionalLibraries.Add("gcc");
+			LinkEnvironment.AdditionalLibraries.Add("z");
+			LinkEnvironment.AdditionalLibraries.Add("c");
+			LinkEnvironment.AdditionalLibraries.Add("m");
+			LinkEnvironment.AdditionalLibraries.Add("log");
+			LinkEnvironment.AdditionalLibraries.Add("dl");
+			if (!UseTegraGraphicsDebugger(Target))
+			{
+				LinkEnvironment.AdditionalLibraries.Add("GLESv2");
+				LinkEnvironment.AdditionalLibraries.Add("EGL");
+			}
+			LinkEnvironment.AdditionalLibraries.Add("OpenSLES");
+			LinkEnvironment.AdditionalLibraries.Add("android");
+		}
+
+		private bool UseTegraGraphicsDebugger(ReadOnlyTargetRules Target)
+		{
+			// Disable for now
+			return false;
+		}
+
+		public override bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target)
+		{
+			switch (Target.Configuration)
+			{
+				case UnrealTargetConfiguration.Development:
+				case UnrealTargetConfiguration.Shipping:
+				case UnrealTargetConfiguration.Test:
+				case UnrealTargetConfiguration.Debug:
+				default:
+					return true;
+			};
+		}
+
+		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
+		{
+			bool bUseLdGold = Target.bUseUnityBuild;
+			return new AndroidToolChain(Target.ProjectFile, bUseLdGold, Target.AndroidPlatform.Architectures, Target.AndroidPlatform.GPUArchitectures);
 		}
 
 		/// <summary>

@@ -1922,7 +1922,7 @@ void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputCompon
 
 	for(int32 idx=0; idx < EnumBinds->NumEnums(); ++idx)
 	{
-		FString FullStr = EnumBinds->GetEnum(idx).ToString();
+		FString FullStr = EnumBinds->GetNameStringByIndex(idx);
 		FString BindStr;
 
 		FullStr.Split(TEXT("::"), nullptr, &BindStr);

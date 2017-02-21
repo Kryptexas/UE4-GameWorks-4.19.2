@@ -101,8 +101,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         /// <summary>
         /// Prepares Bugg for JIRA
         /// </summary>
-        /// <param name="crashesForBugg"></param>
-        public void PrepareBuggForJira(List<Crash> crashesForBugg)
+        /// <param name="CrashesForBugg"></param>
+        public void PrepareBuggForJira(List<Crash> CrashesForBugg)
         {
             var jiraConnection = JiraConnection.Get();
 
@@ -115,39 +115,39 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             var machineIds = new HashSet<string>();
             var firstClAffected = int.MaxValue;
 
-            foreach (var crash in crashesForBugg)
+            foreach (var Crash in CrashesForBugg)
             {
                 // Only add machine if the number has 32 characters
-                if (crash.ComputerName != null && crash.ComputerName.Length == 32)
+                if (Crash.ComputerName != null && Crash.ComputerName.Length == 32)
                 {
-                    machineIds.Add(crash.ComputerName);
-                    if (crash.Description.Length > 4)
+                    machineIds.Add(Crash.ComputerName);
+                    if (Crash.Description.Length > 4)
                     {
-                        hashSetDescriptions.Add(crash.Description);
+                        hashSetDescriptions.Add(Crash.Description);
                     }
                 }
 
-                if (!string.IsNullOrEmpty(crash.BuildVersion))
+                if (!string.IsNullOrEmpty(Crash.BuildVersion))
                 {
-                    this.AffectedVersions.Add(crash.BuildVersion);
+                    this.AffectedVersions.Add(Crash.BuildVersion);
                 }
                 // Depot || Stream
-                if (!string.IsNullOrEmpty(crash.Branch))
+                if (!string.IsNullOrEmpty(Crash.Branch))
                 {
-                    this.BranchesFoundIn.Add(crash.Branch);
+                    this.BranchesFoundIn.Add(Crash.Branch);
                 }
 
-                var crashBuiltFromCl = 0;
-                int.TryParse(crash.ChangeListVersion, out crashBuiltFromCl);
-                if (crashBuiltFromCl > 0)
+                var CrashBuiltFromCl = 0;
+                int.TryParse(Crash.ChangelistVersion, out CrashBuiltFromCl);
+                if (CrashBuiltFromCl > 0)
                 {
-                    firstClAffected = Math.Min(firstClAffected, crashBuiltFromCl);
+                    firstClAffected = Math.Min(firstClAffected, CrashBuiltFromCl);
                 }
 
-                if (!string.IsNullOrEmpty(crash.PlatformName))
+                if (!string.IsNullOrEmpty(Crash.PlatformName))
                 {
                     // Platform = "Platform [Desc]";
-                    var platSubs = crash.PlatformName.Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+                    var platSubs = Crash.PlatformName.Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
                     if (platSubs.Length >= 1)
                     {
                         this.AffectedPlatforms.Add(platSubs[0]);
@@ -180,19 +180,19 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 
             var bv = this.BuildVersion;
             this.NumberOfUniqueMachines = machineIds.Distinct().Count();// # Affected Users
-            var latestClAffected = crashesForBugg.				// CL of the latest build
-                Where(crash => crash.BuildVersion == bv).
-                Max(crash => crash.ChangeListVersion);
+            var latestClAffected = CrashesForBugg.				// CL of the latest build
+                Where(Crash => Crash.BuildVersion == bv).
+                Max(Crash => Crash.ChangelistVersion);
 
             var ILatestCLAffected = -1;
             int.TryParse(latestClAffected, out ILatestCLAffected);
             this.LatestCLAffected = ILatestCLAffected;			// Latest CL Affected
 
-            var latestOsAffected = crashesForBugg.OrderByDescending(crash => crash.TimeOfCrash).First().PlatformName;
+            var latestOsAffected = CrashesForBugg.OrderByDescending(Crash => Crash.TimeOfCrash).First().PlatformName;
             this.LatestOSAffected = latestOsAffected;			// Latest Environment Affected
 
             // ToJiraSummary
-            var functionCalls = new CallStackContainer(crashesForBugg.First()).GetFunctionCallsForJira();
+            var functionCalls = new CallStackContainer(CrashesForBugg.First()).GetFunctionCallsForJira();
             if (functionCalls.Count > 0)
             {
                 this.ToJiraSummary = functionCalls[0];
@@ -305,7 +305,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             fields.Add("summary", "[CrashReport] " + ToJiraSummary);						// Call Stack, Line 1
             fields.Add("description", string.Join("\r\n", ToJiraDescriptions));			    // Description
             fields.Add("issuetype", new Dictionary<string, object> { { "id", "1" } });	    // Bug
-            fields.Add("labels", new string[] { "crash", "liveissue" });					// <label>crash, live issue</label>
+            fields.Add("labels", new string[] { "Crash", "liveissue" });					// <label>Crash, live issue</label>
             fields.Add("customfield_11500", ToJiraFirstCLAffected);						    // Changelist # / Found Changelist
             fields.Add("environment", LatestOSAffected);		    						// Platform
 
@@ -326,7 +326,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             string JiraCallstack = "{noformat}" + string.Join("\r\n", ToJiraFunctionCalls) + "{noformat}";
             fields.Add("customfield_11807", JiraCallstack);								    // Callstack
 
-            string BuggLink = "http://crashreporter/Buggs/Show/" + Id;
+            string BuggLink = "http://Crashreporter/Buggs/Show/" + Id;
             fields.Add("customfield_11205", BuggLink);
             return fields;
         }
@@ -493,7 +493,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             Tooltip += "Summary: " + ToJiraSummary + NL;
             Tooltip += "Description: " + NL + string.Join(NL, ToJiraDescriptions) + NL;
             Tooltip += "Issuetype: " + "1 (bug)" + NL;
-            Tooltip += "Labels: " + "crash" + NL;
+            Tooltip += "Labels: " + "Crash" + NL;
             Tooltip += "Changelist # / Found Changelist: " + ToJiraFirstCLAffected + NL;
             Tooltip += "LatestOSAffected: " + LatestOSAffected + NL;
 

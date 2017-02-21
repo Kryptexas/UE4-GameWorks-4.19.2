@@ -503,7 +503,7 @@ struct FExposedValueCopyRecord
 };
 
 template<>
-struct TStructOpsTypeTraits< FExposedValueCopyRecord > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FExposedValueCopyRecord > : public TStructOpsTypeTraitsBase2< FExposedValueCopyRecord >
 {
 	enum
 	{

@@ -204,7 +204,7 @@ DEPRECATED(4.15, "FAttenuationSettings has been renamed FAudioAttenuationSetting
 typedef FSoundAttenuationSettings FAttenuationSettings;
 
 template<>
-struct TStructOpsTypeTraits<FSoundAttenuationSettings> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FSoundAttenuationSettings> : public TStructOpsTypeTraitsBase2<FSoundAttenuationSettings>
 {
 	enum 
 	{

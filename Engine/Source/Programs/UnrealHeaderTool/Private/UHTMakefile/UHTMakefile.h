@@ -1024,7 +1024,7 @@ public:
 
 	void AddTypeDefinitionInfoMapEntry(FUnrealSourceFile* SourceFile, UField* Field, FUnrealTypeDefinitionInfo* UnrealTypeDefinitionInfo)
 	{
-		int32 Index = TypeDefinitionInfoMap.Num() + NewTypeDefinitionInfoMap.Add(TPairInitializer<UField*, FUnrealTypeDefinitionInfo*>(Field, UnrealTypeDefinitionInfo));
+		int32 Index = TypeDefinitionInfoMap.Num() + NewTypeDefinitionInfoMap.Emplace(Field, UnrealTypeDefinitionInfo);
 		GetHeaderDescriptor(SourceFile).AddEntry(AddObject(ESerializedObjectType::ETypeDefinitionInfoMapEntry, Index));
 	}
 	void CreateTypeDefinitionInfoMapEntry(int32 Index);
@@ -1037,13 +1037,13 @@ public:
 
 	void AddUnrealSourceFilesMapEntry(FUnrealSourceFile* UnrealSourceFile, const FString& RawFilename)
 	{
-		int32 Index = UnrealSourceFilesMapEntries.Num() + NewUnrealSourceFilesMapEntries.Add(TPairInitializer<FString, FUnrealSourceFile*>(RawFilename, UnrealSourceFile));
+		int32 Index = UnrealSourceFilesMapEntries.Num() + NewUnrealSourceFilesMapEntries.Emplace(RawFilename, UnrealSourceFile);
 		GetHeaderDescriptor(UnrealSourceFile).AddEntry(AddObject(ESerializedObjectType::EUnrealSourceFilesMapEntry, Index));
 	}
 	void CreateUnrealSourceFilesMapEntry(int32 Index)
 	{
 		auto& Kvp = UnrealSourceFilesMapEntryProxies[Index];
-		UnrealSourceFilesMapEntries.Add(TPairInitializer<FString, FUnrealSourceFile*>(Kvp.Key, GetUnrealSourceFileByIndex(Kvp.Value)));
+		UnrealSourceFilesMapEntries.Emplace(Kvp.Key, GetUnrealSourceFileByIndex(Kvp.Value));
 	}
 	void AddPublicClassSetEntry(FUnrealSourceFile* UnrealSourceFile, UClass* Class)
 	{
@@ -1053,12 +1053,12 @@ public:
 
 	void AddGEnumUnderlyingType(FUnrealSourceFile* UnrealSourceFile, UEnum* Enum, EUnderlyingEnumType Type)
 	{
-		int32 Index = EnumUnderlyingTypes.Add(TPairInitializer<UEnum*, EUnderlyingEnumType>(Enum, Type));
+		int32 Index = EnumUnderlyingTypes.Emplace(Enum, Type);
 		GetHeaderDescriptor(UnrealSourceFile).AddEntry(AddObject(ESerializedObjectType::EEnumUnderlyingType, Index));
 	}
 	void CreateGEnumUnderlyingType(int32 Index)
 	{
-		EnumUnderlyingTypes.Add(TPairInitializer<UEnum*, EUnderlyingEnumType>(nullptr, EnumUnderlyingTypeProxies[Index].Value));
+		EnumUnderlyingTypes.Emplace(nullptr, EnumUnderlyingTypeProxies[Index].Value);
 	}
 	void ResolveGEnumUnderlyingType(int32 Index)
 	{
@@ -1102,12 +1102,12 @@ public:
 
 	void AddGScriptHelperEntry(FUnrealSourceFile* UnrealSourceFile, UStruct* Struct, FClassMetaData* ClassMetaData)
 	{
-		int32 Index = GScriptHelperEntries.Add(TPairInitializer<UStruct*, FClassMetaData*>(Struct, ClassMetaData));
+		int32 Index = GScriptHelperEntries.Emplace(Struct, ClassMetaData);
 		GetHeaderDescriptor(UnrealSourceFile).AddEntry(AddObject(ESerializedObjectType::EGScriptHelperEntry, Index));
 	}
 	void CreateGScriptHelperEntry(UStruct* Struct, FClassMetaData* ClassMetaData)
 	{
-		GScriptHelperEntries.Add(TPairInitializer<UStruct*, FClassMetaData*>(Struct, ClassMetaData));
+		GScriptHelperEntries.Emplace(Struct, ClassMetaData);
 	}
 	void ResolveGScriptHelperEntry(int32 Index)
 	{
@@ -1135,13 +1135,13 @@ public:
 
 	void AddGeneratedCodeCRC(FUnrealSourceFile* SourceFile, UField* Field, uint32 CRC)
 	{
-		int32 Index = GeneratedCodeCRCs.Add(TPairInitializer<UField*, uint32>(Field, CRC));
+		int32 Index = GeneratedCodeCRCs.Emplace(Field, CRC);
 		GetHeaderDescriptor(SourceFile).AddEntry(AddObject(ESerializedObjectType::EGeneratedCodeCRC, Index));
 	}
 	void CreateGeneratedCodeCRC(int32 Index)
 	{
 		checkSlow(Index == GeneratedCodeCRCs.Num());
-		GeneratedCodeCRCs.Add(TPairInitializer<UField*, uint32>(nullptr, GeneratedCodeCRCProxies[Index].Value));
+		GeneratedCodeCRCs.Emplace(nullptr, GeneratedCodeCRCProxies[Index].Value);
 	}
 	void ResolveGeneratedCodeCRC(int32 Index)
 	{
@@ -1179,12 +1179,12 @@ public:
 		FUHTMakefileHeaderDescriptor& HeaderDescriptor = GetHeaderDescriptor(UnrealSourceFile);
 		HeaderDescriptor.AddEntry(AddObject(ESerializedObjectType::EToken, TokenIndex));
 
-		int32 PropertyDataEntryIndex = PropertyDataEntries.Add(TPairInitializer<UProperty*, TSharedPtr<FTokenData>>(Property, TokenData));
+		int32 PropertyDataEntryIndex = PropertyDataEntries.Emplace(Property, TokenData);
 		HeaderDescriptor.AddEntry(AddObject(ESerializedObjectType::EPropertyDataEntry, PropertyDataEntryIndex));
 	}
 	void CreatePropertyDataEntry(int32 Index)
 	{
-		PropertyDataEntries.Add(TPairInitializer<UProperty*, TSharedPtr<FTokenData>>(nullptr, TSharedPtr<FTokenData>(nullptr)));
+		PropertyDataEntries.Emplace(nullptr, nullptr);
 	}
 	void ResolvePropertyDataEntry(int32 Index)
 	{
@@ -1240,7 +1240,7 @@ public:
 
 	void AddStructNameMapEntry(FUnrealSourceFile* UnrealSourceFile, UStruct* Struct, TCHAR* NameCPP)
 	{
-		int32 Index = NewStructNameMapEntries.Add(TPairInitializer<UStruct*, TCHAR*>(Struct, NameCPP)) + StructNameMapEntries.Num();
+		int32 Index = NewStructNameMapEntries.Emplace(Struct, NameCPP) + StructNameMapEntries.Num();
 		GetHeaderDescriptor(UnrealSourceFile).AddEntry(AddObject(ESerializedObjectType::EStructNameMapEntry, Index));
 	}
 	void CreateStructNameMapEntry(int32 Index)
@@ -1338,7 +1338,7 @@ public:
 	int32 AddObject(ESerializedObjectType SerializedObjectType, int32 Index)
 	{
 		checkSlow(LoadingPhase != EUHTMakefileLoadingPhase::Max);
-		return InitializationOrder[+LoadingPhase].Add(TPairInitializer<ESerializedObjectType, int32>(SerializedObjectType, Index));
+		return InitializationOrder[+LoadingPhase].Emplace(SerializedObjectType, Index);
 	}
 
 	TPair<ESerializedObjectType, int32> GetFromInitializationOrder(int32 Index, EUHTMakefileLoadingPhase UHTMakefileLoadingPhase)

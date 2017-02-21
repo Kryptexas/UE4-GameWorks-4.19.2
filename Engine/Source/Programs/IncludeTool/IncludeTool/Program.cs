@@ -144,6 +144,12 @@ namespace IncludeTool
 		public bool SkipDiagnostics;
 
 		/// <summary>
+		/// Filters the list of forward declarations in output files to the ones that the tool identifies as dependencies.
+		/// </summary>
+		[CommandLineOption]
+		public bool RemoveForwardDeclarations;
+
+		/// <summary>
 		/// The source files from the target to preprocess and optimize
 		/// </summary>
 		[CommandLineOption]
@@ -156,10 +162,22 @@ namespace IncludeTool
 		public string OptimizeFiles;
 
 		/// <summary>
+		/// Filter for files that can be output. Every other file will be treated as read-only.
+		/// </summary>
+		[CommandLineOption]
+		public string OutputFiles;
+
+		/// <summary>
 		/// Don't rewrite the files being optimized to make them standalone
 		/// </summary>
 		[CommandLineOption]
 		public bool NotStandalone;
+
+		/// <summary>
+		/// Disables code which calculates a new set of includes for each output file.
+		/// </summary>
+		[CommandLineOption]
+		public bool UseOriginalIncludes;
 
 		/// <summary>
 		/// When generating timing data, how many samples to take
@@ -637,11 +655,22 @@ namespace IncludeTool
 					}
 					else
 					{
+						// Flag all the files which should be output
+						FileFilter OutputFilter = CreateFilter(InputDir, Options.OutputFiles);
+						foreach(SourceFile PreprocessedFile in PreprocessedFiles)
+						{
+							string RelativePath = PreprocessedFile.Location.MakeRelativeTo(InputDir);
+							if(OutputFilter == null || OutputFilter.Matches(RelativePath))
+							{
+								PreprocessedFile.Flags |= SourceFileFlags.Output;
+							}
+						}
+
 						// Flag all the files which should be optimized
 						FileFilter OptimizeFilter = CreateFilter(InputDir, Options.OptimizeFiles);
 						foreach(SourceFile PreprocessedFile in PreprocessedFiles)
 						{
-							if((PreprocessedFile.Flags & SourceFileFlags.External) == 0 && (PreprocessedFile.Flags & SourceFileFlags.Aggregate) == 0 && PreprocessedFile.Counterpart == null)
+							if((PreprocessedFile.Flags & SourceFileFlags.External) == 0 && (PreprocessedFile.Flags & SourceFileFlags.Aggregate) == 0 && PreprocessedFile.Counterpart == null && (PreprocessedFile.Flags & SourceFileFlags.Output) != 0)
 							{
 								string RelativePath = PreprocessedFile.Location.MakeRelativeTo(InputDir);
 								if(OptimizeFilter == null || OptimizeFilter.Matches(RelativePath))
@@ -730,7 +759,7 @@ namespace IncludeTool
 
 							// Create the output files
 							Log.WriteLine("Preparing output files...");
-							OutputFileBuilder.PrepareFilesForOutput(SourceFileToCompileEnvironment.Keys, CppFileToHeaderFile, SymbolToFwdHeader, !Options.NotStandalone, Log);
+							OutputFileBuilder.PrepareFilesForOutput(SourceFileToCompileEnvironment.Keys, CppFileToHeaderFile, SymbolToFwdHeader, !Options.NotStandalone, Options.UseOriginalIncludes, Log);
 
 							// Write the output files
 							if(Options.OutputDir != null)
@@ -739,7 +768,7 @@ namespace IncludeTool
 								List<SourceFile> OutputFiles = new List<SourceFile>();
 								foreach(SourceFile PreprocessedFile in PreprocessedFiles.Except(SymbolToFwdHeader.Values))
 								{
-									if(PreprocessedFile.Location.IsUnderDirectory(InputDir) && (PreprocessedFile.Flags & SourceFileFlags.External) == 0 && (PreprocessedFile.Flags & SourceFileFlags.GeneratedHeader) == 0 && (PreprocessedFile.Flags & SourceFileFlags.GeneratedClassesHeader) == 0)
+									if(PreprocessedFile.Location.IsUnderDirectory(InputDir) && (PreprocessedFile.Flags & SourceFileFlags.External) == 0 && (PreprocessedFile.Flags & SourceFileFlags.GeneratedHeader) == 0 && (PreprocessedFile.Flags & SourceFileFlags.GeneratedClassesHeader) == 0 && (PreprocessedFile.Flags & SourceFileFlags.Output) != 0)
 									{
 										OutputFiles.Add(PreprocessedFile);
 									}
@@ -748,7 +777,7 @@ namespace IncludeTool
 
 								// Write all the output files
 								DirectoryReference OutputDir = new DirectoryReference(Options.OutputDir);
-								WriteOptimizedFiles(InputDir, OutputDir, PublicIncludePaths, PrivateIncludePaths, SystemIncludePaths, OutputFiles, Options.P4, Options.VerboseFileLog, Log);
+								WriteOptimizedFiles(InputDir, OutputDir, PublicIncludePaths, PrivateIncludePaths, SystemIncludePaths, OutputFiles, Options.P4, Options.VerboseFileLog, Options.RemoveForwardDeclarations, Log);
 							}
 						}
 					}
@@ -1439,7 +1468,7 @@ namespace IncludeTool
 		/// <param name="bWithP4">If true, read-only files will be checked out of Perforce</param>
 		/// <param name="Log">Log writer</param>
 		/// <returns>True if the files were written successfully</returns>
-		static bool WriteOptimizedFiles(DirectoryReference InputDir, DirectoryReference OutputDir, HashList<DirectoryReference> PublicIncludePaths, Dictionary<BuildModule, HashList<DirectoryReference>> PrivateIncludePaths, HashList<DirectoryReference> SystemIncludePaths, IEnumerable<SourceFile> OutputFiles, bool bWithP4, bool bWithVerboseLog, TextWriter Log)
+		static bool WriteOptimizedFiles(DirectoryReference InputDir, DirectoryReference OutputDir, HashList<DirectoryReference> PublicIncludePaths, Dictionary<BuildModule, HashList<DirectoryReference>> PrivateIncludePaths, HashList<DirectoryReference> SystemIncludePaths, IEnumerable<SourceFile> OutputFiles, bool bWithP4, bool bWithVerboseLog, bool bRemoveForwardDeclarations, TextWriter Log)
 		{
 			// Find all the output files that need to be written
 			Dictionary<FileReference, string> OutputFileContents = new Dictionary<FileReference, string>();
@@ -1452,12 +1481,12 @@ namespace IncludeTool
 				}
 
 				StringWriter Writer = new StringWriter();
-				OutputFile.Write(IncludePaths.OrderByDescending(x => x.FullName.Length), SystemIncludePaths, Writer, Log);
+				OutputFile.Write(IncludePaths.OrderByDescending(x => x.FullName.Length), SystemIncludePaths, Writer, bRemoveForwardDeclarations, Log);
 
 				string Contents = Writer.ToString();
 
 				FileReference NewLocation = FileReference.Combine(OutputDir, OutputFile.Location.MakeRelativeTo(InputDir));
-				if(!NewLocation.Exists() || File.ReadAllText(NewLocation.FullName) != Contents)
+				if(!NewLocation.Exists() || File.ReadAllText(NewLocation.FullName).TrimEnd() != Contents.TrimEnd())
 				{
 					OutputFileContents.Add(NewLocation, Contents);
 				}
