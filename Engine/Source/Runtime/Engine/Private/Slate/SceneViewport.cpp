@@ -280,6 +280,35 @@ void FSceneViewport::ProcessAccumulatedPointerInput()
 		ViewportClient->InputAxis( this, 0, EKeys::MouseY, MouseDelta.Y, DeltaTime, NumMouseSamplesY );
 	}
 
+	if ( bCursorHiddenDueToCapture )
+	{
+		switch ( ViewportClient->CaptureMouseOnClick() )
+		{
+		case EMouseCaptureMode::NoCapture:
+		case EMouseCaptureMode::CaptureDuringMouseDown:
+		case EMouseCaptureMode::CaptureDuringRightMouseDown:
+			if ( !bViewportHasCapture )
+			{
+				bool bShouldMouseBeVisible = ViewportClient->GetCursor(this, GetMouseX(), GetMouseY()) != EMouseCursor::None;
+
+				UWorld* World = ViewportClient->GetWorld();
+				if ( World && World->IsGameWorld() && World->GetGameInstance() )
+				{
+					APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
+					bShouldMouseBeVisible &= PC && PC->ShouldShowMouseCursor();
+				}
+
+				if ( bShouldMouseBeVisible )
+				{
+					bCursorHiddenDueToCapture = false;
+					CurrentReplyState.SetMousePos(MousePosBeforeHiddenDueToCapture);
+					MousePosBeforeHiddenDueToCapture = FIntPoint(-1, -1);
+				}
+			}
+			break;
+		}
+	}
+
 	MouseDelta = FIntPoint::ZeroValue;
 	NumMouseSamplesX = 0;
 	NumMouseSamplesY = 0;
