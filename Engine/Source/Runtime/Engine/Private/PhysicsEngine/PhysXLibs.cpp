@@ -15,6 +15,7 @@
 
 // PhysX library imports
 
+
 #if PLATFORM_WINDOWS || PLATFORM_MAC
 	void* PxFoundationHandle = nullptr;
 	void* PhysX3CommonHandle = nullptr;
