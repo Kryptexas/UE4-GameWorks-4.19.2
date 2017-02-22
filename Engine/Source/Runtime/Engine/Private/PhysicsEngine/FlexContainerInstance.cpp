@@ -45,6 +45,7 @@ DECLARE_CYCLE_STAT(TEXT("Update Collision Shapes Time (CPU)"), STAT_Flex_UpdateC
 DECLARE_CYCLE_STAT(TEXT("Update Actors Time (CPU)"), STAT_Flex_UpdateActors, STATGROUP_Flex);
 DECLARE_CYCLE_STAT(TEXT("Update Data Time (CPU)"), STAT_Flex_DeviceUpdateTime, STATGROUP_Flex);
 DECLARE_CYCLE_STAT(TEXT("Solver Tick Time (CPU)"), STAT_Flex_SolverUpdateTime, STATGROUP_Flex);
+DECLARE_CYCLE_STAT(TEXT("Solve Sync Time (CPU)"), STAT_Flex_SolverSynchronizeTime, STATGROUP_Flex);
 
 // Counters
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Container Count"), STAT_Flex_ContainerCount, STATGROUP_Flex);
@@ -1101,6 +1102,8 @@ void FFlexContainerInstance::Simulate(float DeltaTime)
 
 void FFlexContainerInstance::Synchronize()
 {
+	SCOPE_CYCLE_COUNTER(STAT_Flex_SolverSynchronizeTime);
+
 	// ensure data is mapped, this is a GPU sync point
 	if (!IsMapped())
 		Map();
