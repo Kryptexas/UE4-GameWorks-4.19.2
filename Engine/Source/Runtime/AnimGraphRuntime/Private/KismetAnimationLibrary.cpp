@@ -4,9 +4,9 @@
 #include "AnimationCoreLibrary.h"
 #include "AnimationCoreLibrary.h"
 #include "Blueprint/BlueprintSupport.h"
+#include "TwoBoneIK.h"
 
 #define LOCTEXT_NAMESPACE "UKismetAnimationLibrary"
-#include "TwoBoneIK.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetAnimationLibrary
@@ -56,3 +56,5 @@ FTransform UKismetAnimationLibrary::K2_LookAt(const FTransform& CurrentTransform
 	NewTransform.SetRotation(DiffRotation);
 	return NewTransform;
 }
+
+#undef LOCTEXT_NAMESPACE
