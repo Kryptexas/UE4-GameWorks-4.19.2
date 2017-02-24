@@ -2534,6 +2534,7 @@ void UAnimSequence::RecycleAnimSequence()
 	CompressedTrackOffsets.Empty(0);
 	CompressedByteStream.Empty(0);
 	CompressedScaleOffsets.Empty(0);
+	SourceRawAnimationData.Reset();
 
 #endif // WITH_EDITORONLY_DATA
 }
