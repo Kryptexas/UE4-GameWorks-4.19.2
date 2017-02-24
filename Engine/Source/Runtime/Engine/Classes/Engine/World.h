@@ -375,6 +375,15 @@ struct FStartPhysicsTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
+template<>
+struct TStructOpsTypeTraits<FStartPhysicsTickFunction> : public TStructOpsTypeTraitsBase2<FStartPhysicsTickFunction>
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
+
 /** 
 * Tick function that ends the physics tick
 **/
@@ -396,6 +405,15 @@ struct FEndPhysicsTickFunction : public FTickFunction
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	virtual FString DiagnosticMessage() override;
+};
+
+template<>
+struct TStructOpsTypeTraits<FEndPhysicsTickFunction> : public TStructOpsTypeTraitsBase2<FEndPhysicsTickFunction>
+{
+	enum
+	{
+		WithCopy = false
+	};
 };
 
 /**
@@ -421,6 +439,14 @@ struct FStartAsyncSimulationFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
+template<>
+struct TStructOpsTypeTraits<FStartAsyncSimulationFunction> : public TStructOpsTypeTraitsBase2<FStartAsyncSimulationFunction>
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
 
 /* Struct of optional parameters passed to SpawnActor function(s). */
 PRAGMA_DISABLE_DEPRECATION_WARNINGS // Required for auto-generated functions referencing bNoCollisionFail

@@ -939,7 +939,7 @@ public:
 	float GetSampleRate() const { return AUDIO_SAMPLE_RATE; }
 
 	/** Returns the buffer length of the audio device. */
-	int32 GetBufferLength() const { return BufferLength; }
+	int32 GetBufferLength() const { return DeviceOutputBufferLength; }
 
 	/** Whether or not the spatialization plugin is enabled. */
 	bool IsSpatializationPluginEnabled() const
@@ -1133,11 +1133,6 @@ public:
 	{
 	}
 
-	/** Checks hardware device state changes */
-	virtual void CheckDeviceStateChange()
-	{
-	}
-
 	/** Creates a new platform specific sound source */
 	virtual FAudioEffectsManager* CreateEffectsManager();
 
@@ -1233,8 +1228,14 @@ public:
 	/** The maximum number of concurrent audible sounds */
 	int32 MaxChannels;
 
+	/** The number of worker threads to use to process sources. (audio mixer feature) */
+	int32 NumSourceWorkers;
+
 	/** The sample rate of the audio device */
 	int32 SampleRate;
+
+	/** The length of output callback buffer */
+	int32 DeviceOutputBufferLength;
 
 	/** The length of output callback buffer */
 	int32 BufferLength;

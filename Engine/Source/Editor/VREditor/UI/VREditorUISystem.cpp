@@ -787,11 +787,6 @@ void UVREditorUISystem::Tick( FEditorViewportClient* ViewportClient, const float
 			{
 				if(VRButton.AnimationDirection != EVREditorAnimationState::None)
 				{
-					
-					TSharedRef<SWidget> PlaceholderWidget = (VRButton.BaseSlot->DetachWidget()).ToSharedRef();
-					TSharedRef<SWidget> WidgetToTransfer = (VRButton.HoverSlot->DetachWidget()).ToSharedRef();
-					VRButton.BaseSlot->AttachWidget(WidgetToTransfer);
-					VRButton.HoverSlot->AttachWidget(PlaceholderWidget);
 					VRButton.CurrentScale = VRButton.MinScale;
 					VRButton.ButtonBorder->SetRenderTransform(FSlateRenderTransform::FTransform2D(VRButton.CurrentScale));
 					VRButton.AnimationDirection = EVREditorAnimationState::None;
@@ -1793,23 +1788,13 @@ void UVREditorUISystem::MakeUniformGridMenu(const TSharedRef<FMultiBox>& MultiBo
 TSharedRef<SWidget> UVREditorUISystem::AddHoverableButton(TSharedRef<SWidget>& BlockWidget, FName ButtonType, TSharedRef<SOverlay>& TestOverlay)
 {
 	TSharedPtr<SBorder> ButtonBorder;
-	SOverlay::FOverlaySlot* BaseSlot;
-	SOverlay::FOverlaySlot* HoverSlot;
-	TestOverlay->AddSlot(0)
-	.Expose(BaseSlot)
+	TestOverlay->AddSlot()
 		[
 			SAssignNew(ButtonBorder, SBorder)
 			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 		[
 			BlockWidget
 		]
-		];
-	// Placeholder slot to put the button into when it is hovered
-	TestOverlay->AddSlot(10)
-	.Expose(HoverSlot)
-		[
-			SNew(SOverlay)
-			.Visibility(EVisibility::SelfHitTestInvisible)
 		];
 
 	TSharedRef<SWidget> TestWidget = FindWidgetOfType(BlockWidget, ButtonType);
@@ -1823,7 +1808,7 @@ TSharedRef<SWidget> UVREditorUISystem::AddHoverableButton(TSharedRef<SWidget>& B
 		SlateButtonPressSound.SetResourceObject(ButtonPressSound);
 		Button->SetPressedSound(SlateButtonPressSound);
 		ButtonBorder->SetRenderTransformPivot(FVector2D(0.5, 0.5));
-		FVRButton ButtonToAdd = FVRButton(Button, BaseSlot, HoverSlot, ButtonBorder);
+		FVRButton ButtonToAdd = FVRButton(Button, ButtonBorder);
 		VRButtons.Add(ButtonToAdd);
 	}
 	return BlockWidget;
@@ -2541,12 +2526,6 @@ void UVREditorUISystem::OnHoverBeginEffect(TSharedRef<SButton> Button)
 
 	//Set the newly hovered button's animation state to Forward
 	ButtonToAnimate->AnimationDirection = EVREditorAnimationState::Forward;
-
-	// Put the button in the higher z-order overlay slot
-	const TSharedRef<SWidget>& PlaceholderWidget = ButtonToAnimate->HoverSlot->DetachWidget().ToSharedRef();
-	const TSharedRef<SWidget>& WidgetToTransfer = ButtonToAnimate->BaseSlot->DetachWidget().ToSharedRef();
-	ButtonToAnimate->HoverSlot->AttachWidget(WidgetToTransfer);
-	ButtonToAnimate->BaseSlot->AttachWidget(PlaceholderWidget);
 }
 
 void UVREditorUISystem::OnHoverEndEffect(TSharedRef<SButton> Button)
@@ -2560,11 +2539,6 @@ void UVREditorUISystem::OnHoverEndEffect(TSharedRef<SButton> Button)
 
 	// Set the unhovered button's animation state to Backward
 	ButtonToAnimate->AnimationDirection = EVREditorAnimationState::Backward;
-	// Put the button back in the lower z-order slot
-	TSharedRef<SWidget> PlaceholderWidget = (ButtonToAnimate->BaseSlot->DetachWidget()).ToSharedRef();
-	TSharedRef<SWidget> WidgetToTransfer = (ButtonToAnimate->HoverSlot->DetachWidget()).ToSharedRef();
-	ButtonToAnimate->BaseSlot->AttachWidget(WidgetToTransfer);
-	ButtonToAnimate->HoverSlot->AttachWidget(PlaceholderWidget);
 }
 
 const TSharedPtr<SWidget>& UVREditorUISystem::GetRadialWidget()

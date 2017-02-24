@@ -181,6 +181,16 @@ struct FSkeletalMeshComponentEndPhysicsTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
+template<>
+struct TStructOpsTypeTraits<FSkeletalMeshComponentEndPhysicsTickFunction> : public TStructOpsTypeTraitsBase2<FSkeletalMeshComponentEndPhysicsTickFunction>
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
+
+
 /**
 * Tick function that prepares and simulates cloth
 **/
@@ -202,6 +212,16 @@ struct FSkeletalMeshComponentClothTickFunction : public FTickFunction
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph. */
 	virtual FString DiagnosticMessage() override;
 };
+
+template<>
+struct TStructOpsTypeTraits<FSkeletalMeshComponentClothTickFunction> : public TStructOpsTypeTraitsBase2<FSkeletalMeshComponentClothTickFunction>
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
+
 
 struct ENGINE_API FClosestPointOnPhysicsAsset
 {

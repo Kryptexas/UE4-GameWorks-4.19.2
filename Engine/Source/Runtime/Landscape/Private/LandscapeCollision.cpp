@@ -1140,6 +1140,10 @@ void ULandscapeHeightfieldCollisionComponent::UpdateHeightfieldRegion(int32 Comp
 			return;
 		}
 
+		// We don't lock the async scene as we only set the geometry in the sync scene's RigidActor.
+		// This function is used only during painting for line traces by the painting tools.
+		SCOPED_SCENE_WRITE_LOCK(GetPhysXSceneFromIndex(BodyInstance.SceneIndexSync));
+
 		int32 CollisionSizeVerts = CollisionSizeQuads + 1;
 
 		bool bIsMirrored = GetComponentToWorld().GetDeterminant() < 0.f;
@@ -1195,14 +1199,11 @@ void ULandscapeHeightfieldCollisionComponent::UpdateHeightfieldRegion(int32 Comp
 		// Create the geometry
 		PxHeightFieldGeometry LandscapeComponentGeom(HeightfieldRef->RBHeightfieldEd, PxMeshGeometryFlags(), LandscapeScale.Z * LANDSCAPE_ZSCALE, LandscapeScale.Y * CollisionScale, LandscapeScale.X * CollisionScale);
 
-		if (BodyInstance.RigidActorSync)
+		FInlinePxShapeArray PShapes;
+		const int32 NumShapes = FillInlinePxShapeArray(PShapes, *(BodyInstance.RigidActorSync));
+		if (NumShapes > 1)
 		{
-			FInlinePxShapeArray PShapes;
-			const int32 NumShapes = FillInlinePxShapeArray(PShapes, *(BodyInstance.RigidActorSync));
-			if (NumShapes > 1)
-			{
-				PShapes[1]->setGeometry(LandscapeComponentGeom);
-			}
+			PShapes[1]->setGeometry(LandscapeComponentGeom);
 		}
 	}
 

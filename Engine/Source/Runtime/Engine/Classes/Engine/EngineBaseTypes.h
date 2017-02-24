@@ -400,6 +400,9 @@ private:
 	friend class FTickTaskManager;
 	friend class FTickTaskLevel;
 	friend class FTickFunctionTask;
+
+	// It is unsafe to copy FTickFunctions and any subclasses of FTickFunction should specify the type trait WithCopy = false
+	FTickFunction& operator=(const FTickFunction&) = delete;
 };
 
 template<>

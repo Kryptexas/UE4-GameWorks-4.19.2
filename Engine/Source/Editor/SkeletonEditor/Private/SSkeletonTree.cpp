@@ -1265,7 +1265,10 @@ void SSkeletonTree::AttachAssets(const TSharedRef<ISkeletonTreeItem>& TargetItem
 		UObject* Object = AssetData[AssetIdx].GetAsset();
 		if ( Object != NULL )
 		{
-			DroppedObjects.Add( Object );
+			if (FComponentAssetBrokerage::GetPrimaryComponentForAsset(Object->GetClass()) != nullptr)
+			{
+				DroppedObjects.Add(Object);
+			}
 		}
 		else
 		{

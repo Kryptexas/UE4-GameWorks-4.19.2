@@ -2919,9 +2919,11 @@ void FAssetRegistry::GetSubClasses(const TArray<FName>& InClassNames, const TSet
 			for (int32 i = 0; i < Class->Interfaces.Num(); ++i)
 			{
 				UClass* InterfaceClass = Class->Interfaces[i].Class;
-
-				TSet<FName>& ChildClasses = ReverseInheritanceMap.FindOrAdd(InterfaceClass->GetFName());
-				ChildClasses.Add(Class->GetFName());
+				if (ensureMsgf(InterfaceClass, TEXT("Invalid inteface class (index %d) detected on '%s' - possibly deleted?"), i, *Class->GetName()))
+				{
+					TSet<FName>& ChildClasses = ReverseInheritanceMap.FindOrAdd(InterfaceClass->GetFName());
+					ChildClasses.Add(Class->GetFName());
+				}
 			}
 
 			InMemoryClassNames.Add(Class->GetFName());

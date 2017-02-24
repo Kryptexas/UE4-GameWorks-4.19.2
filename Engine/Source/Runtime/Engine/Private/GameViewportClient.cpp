@@ -2032,6 +2032,8 @@ void UGameViewportClient::NotifyPlayerAdded( int32 PlayerIndex, ULocalPlayer* Ad
 {
 	LayoutPlayers();
 
+	FSlateApplication::Get().SetUserFocusToGameViewport(PlayerIndex);
+
 	TSharedPtr< IGameLayerManager > GameLayerManager(GameLayerManagerPtr.Pin());
 	if ( GameLayerManager.IsValid() )
 	{

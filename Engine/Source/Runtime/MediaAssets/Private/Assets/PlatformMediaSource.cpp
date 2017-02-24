@@ -33,16 +33,9 @@ void UPlatformMediaSource::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	Ar.UsingCustomVersion(FSequencerObjectVersion::GUID);
+	auto CustomVersion = Ar.CustomVer(FSequencerObjectVersion::GUID);
 
-#if WITH_EDITORONLY_DATA
-	if (Ar.IsCooking())
-	{
-		UMediaSource** PlatformMediaSource = PlatformMediaSources.Find(Ar.CookingTarget()->PlatformName());
-		MediaSource = (PlatformMediaSource != nullptr) ? *PlatformMediaSource : nullptr;
-	}
-#endif
-	
-	if (Ar.IsLoading() && (Ar.CustomVer(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::RenameMediaSourcePlatformPlayers))
+	if (Ar.IsLoading() && (CustomVersion < FSequencerObjectVersion::RenameMediaSourcePlatformPlayers))
 	{
 		FString DummyDefaultSource;
 		Ar << DummyDefaultSource;
@@ -54,7 +47,20 @@ void UPlatformMediaSource::Serialize(FArchive& Ar)
 	else
 	{
 #if WITH_EDITORONLY_DATA
-		Ar << PlatformMediaSources;
+		if (Ar.IsFilterEditorOnly())
+		{
+			if (Ar.IsSaving())
+			{
+				UMediaSource** PlatformMediaSource = PlatformMediaSources.Find(Ar.CookingTarget()->IniPlatformName());
+				MediaSource = (PlatformMediaSource != nullptr) ? *PlatformMediaSource : nullptr;
+			}
+
+			Ar << MediaSource;
+		}
+		else
+		{
+			Ar << PlatformMediaSources;
+		}
 #else
 		Ar << MediaSource;
 #endif

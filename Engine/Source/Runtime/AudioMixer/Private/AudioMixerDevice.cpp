@@ -45,32 +45,32 @@ namespace Audio
 		}
 	}
 
-	void FMixerDevice::CheckGameThread()
+	void FMixerDevice::CheckAudioThread()
 	{
-		if (GameOrAudioThreadId == INDEX_NONE)
-		{
-			GameOrAudioThreadId = FPlatformTLS::GetCurrentThreadId();
-		}
-		int32 CurrentThreadId = FPlatformTLS::GetCurrentThreadId();
-		AUDIO_MIXER_CHECK(CurrentThreadId == GameOrAudioThreadId);
+#if AUDIO_MIXER_ENABLE_DEBUG_MODE
+		// "Audio Thread" is the game/audio thread ID used above audio rendering thread.
+		AUDIO_MIXER_CHECK(IsInAudioThread());
+#endif
 	}
 
-	void FMixerDevice::ResetAudioPlatformThreadId()
+	void FMixerDevice::ResetAudioRenderingThreadId()
 	{
 #if AUDIO_MIXER_ENABLE_DEBUG_MODE
 		AudioPlatformThreadId = INDEX_NONE;
-		CheckAudioPlatformThread();
-#endif // AUDIO_MIXER_ENABLE_DEBUG_MODE
+		CheckAudioRenderingThread();
+#endif
 	}
 
-	void FMixerDevice::CheckAudioPlatformThread()
+	void FMixerDevice::CheckAudioRenderingThread()
 	{
+#if AUDIO_MIXER_ENABLE_DEBUG_MODE
 		if (AudioPlatformThreadId == INDEX_NONE)
 		{
 			AudioPlatformThreadId = FPlatformTLS::GetCurrentThreadId();
 		}
 		int32 CurrentThreadId = FPlatformTLS::GetCurrentThreadId();
 		AUDIO_MIXER_CHECK(CurrentThreadId == AudioPlatformThreadId);
+#endif
 	}
 
 	void FMixerDevice::GetAudioDeviceList(TArray<FString>& OutAudioDeviceNames) const
@@ -98,11 +98,12 @@ namespace Audio
 
 		if (AudioMixerPlatform && AudioMixerPlatform->InitializeHardware())
 		{
-			AUDIO_MIXER_CHECK(BufferLength != 0);
+			AUDIO_MIXER_CHECK(SampleRate != 0.0f);
+			AUDIO_MIXER_CHECK(DeviceOutputBufferLength != 0);
 
 			AudioMixerPlatform->RegisterDeviceChangedListener();
 
-			OpenStreamParams.NumFrames = BufferLength;
+			OpenStreamParams.NumFrames = DeviceOutputBufferLength;
 			OpenStreamParams.OutputDeviceIndex = 0; // Default device
 			OpenStreamParams.SampleRate = AUDIO_SAMPLE_RATE;
 			OpenStreamParams.AudioMixer = this;
@@ -145,7 +146,11 @@ namespace Audio
 				// Initialize some data that depends on speaker configuration, etc.
 				InitializeChannelAzimuthMap(PlatformInfo.NumChannels);
 
-				SourceManager.Init(MaxChannels);
+				FSourceManagerInitParams SourceManagerInitParams;
+				SourceManagerInitParams.NumSources = MaxChannels;
+				SourceManagerInitParams.NumSourceWorkers = 4;
+
+				SourceManager.Init(SourceManagerInitParams);
 
 				AudioClock = 0.0;
 				AudioClockDelta = (double)OpenStreamParams.NumFrames / OpenStreamParams.SampleRate;
@@ -239,7 +244,7 @@ namespace Audio
 			// Get the platform device info we're using
 			PlatformInfo = AudioMixerPlatform->GetPlatformDeviceInfo();
 
-			SampleRate = PlatformInfo.SampleRate;
+			SampleRate = AUDIO_SAMPLE_RATE;
 
 			// Initialize some data that depends on speaker configuration, etc.
 			InitializeChannelAzimuthMap(PlatformInfo.NumChannels);
@@ -340,7 +345,7 @@ namespace Audio
 	bool FMixerDevice::OnProcessAudioStream(TArray<float>& Output)
 	{
 		// This function could be called in a task manager, which means the thread ID may change between calls.
-		ResetAudioPlatformThreadId();
+		ResetAudioRenderingThreadId();
 
 		// Compute the next block of audio in the source manager
 		SourceManager.ComputeNextBlockOfSamples();
@@ -618,7 +623,7 @@ namespace Audio
 
 	int32 FMixerDevice::GetDeviceSampleRate() const
 	{
-		return PlatformInfo.SampleRate;
+		return SampleRate;
 	}
 
 	int32 FMixerDevice::GetDeviceOutputChannels() const

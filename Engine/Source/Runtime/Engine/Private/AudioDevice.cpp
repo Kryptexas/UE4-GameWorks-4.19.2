@@ -161,7 +161,27 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 	MaxChannels = InMaxChannels;
 
 	// Setup the desired sample rate and buffer length
-	BufferLength = 1024;
+	DeviceOutputBufferLength = 1024;
+
+	int32 ConfigBufferLength = 0;
+	if (GConfig->GetInt(TEXT("Audio"), TEXT("AudioMixerBufferLength"), ConfigBufferLength, GEngineIni))
+	{
+		// only allow power of 2 buffer size
+		ConfigBufferLength = FMath::RoundUpToPowerOfTwo(ConfigBufferLength);
+
+		// use a min buffer length of 128
+		DeviceOutputBufferLength = FMath::Max(128, ConfigBufferLength);
+	}
+
+	// Setup the number of desired source workers
+	NumSourceWorkers = 4;
+
+	int32 ConfigSourceWorkers = 0;
+	if (GConfig->GetInt(TEXT("Audio"), TEXT("AudioMixerSourceWorkers"), ConfigSourceWorkers, GEngineIni))
+	{
+		// Only allow workers in the range of our channels...
+		NumSourceWorkers = FMath::Clamp(ConfigSourceWorkers, 0, MaxChannels);
+	}
 
 	verify(GConfig->GetInt(TEXT("Audio"), TEXT("CommonAudioPoolSize"), CommonAudioPoolSize, GEngineIni));
 
@@ -3005,9 +3025,6 @@ void FAudioDevice::Update(bool bGameTicking)
 
 	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.AudioUpdateTime"), STAT_AudioUpdateTime, STATGROUP_AudioThreadCommands);
 	FScopeCycleCounter AudioUpdateTimeCounter(GET_STATID(STAT_AudioUpdateTime));
-
-	// Check for any audio device state changes before playing or updating audio
-	CheckDeviceStateChange();
 
 	// Updates the audio device delta time
 	UpdateDeviceDeltaTime();

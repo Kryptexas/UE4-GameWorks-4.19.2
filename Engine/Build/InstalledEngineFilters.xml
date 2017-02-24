@@ -317,6 +317,7 @@
 
 	<Property Name="CopyLinuxFilter" Value="$(CopyLinuxFilter);Engine/Binaries/ThirdParty/OpenAL/..."/>
 	<Property Name="CopyLinuxFilter" Value="$(CopyLinuxFilter);Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/x86_64-unknown-linux-gnu/*.so"/>
+	<Property Name="CopyLinuxFilter" Value="$(CopyLinuxFilter);Engine/Extras/ThirdPartyNotUE/putty/..."/>
 
 	<!-- Win64 specific -->
 	<Do If="'$(HostPlatform)' == 'Win64'">

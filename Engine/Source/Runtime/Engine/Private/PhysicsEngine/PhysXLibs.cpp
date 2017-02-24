@@ -11,7 +11,6 @@
 #include "HAL/PlatformProcess.h"
 #include "EngineLogs.h"
 
-
 #if WITH_PHYSX 
 
 // PhysX library imports

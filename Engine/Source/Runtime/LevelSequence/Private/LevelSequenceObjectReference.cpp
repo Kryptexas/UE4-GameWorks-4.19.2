@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "GameFramework/Actor.h"
 #include "UObject/Package.h"
+#include "UObject/ObjectMacros.h"
 
 FLevelSequenceObjectReference::FLevelSequenceObjectReference(UObject* InObject, UObject* InContext)
 {
@@ -54,7 +55,15 @@ UObject* FLevelSequenceObjectReference::Resolve(UObject* InContext) const
 
 	if (!ObjectPath.IsEmpty())
 	{
-		return FindObject<UObject>(InContext, *ObjectPath, false);
+		if (UObject* FoundObject = FindObject<UObject>(InContext, *ObjectPath, false))
+		{
+			return FoundObject;
+		}
+
+		if (UObject* FoundObject = FindObject<UObject>(ANY_PACKAGE, *ObjectPath, false))
+		{
+			return FoundObject;
+		}
 	}
 
 	return nullptr;

@@ -299,14 +299,14 @@ namespace Audio
 
 		// Setup the format of the output source voice
 		Format.nChannels = AudioStreamInfo.DeviceInfo.NumChannels;
-		Format.nSamplesPerSec = AudioStreamInfo.DeviceInfo.SampleRate;
+		Format.nSamplesPerSec = AUDIO_SAMPLE_RATE;
 		Format.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
 		Format.nAvgBytesPerSec = Format.nSamplesPerSec * sizeof(float) * Format.nChannels;
 		Format.nBlockAlign = sizeof(float) * Format.nChannels;
 		Format.wBitsPerSample = sizeof(float) * 8;
 
 		// Create the output source voice
-		Result = XAudio2System->CreateSourceVoice(&OutputAudioStreamSourceVoice, &Format, XAUDIO2_VOICE_NOSRC | XAUDIO2_VOICE_NOPITCH, 2.0f, &OutputVoiceCallback);
+		Result = XAudio2System->CreateSourceVoice(&OutputAudioStreamSourceVoice, &Format, XAUDIO2_VOICE_NOPITCH, 2.0f, &OutputVoiceCallback);
 		XAUDIO2_RETURN_ON_FAIL(Result);
 		
 		AudioStreamInfo.StreamState = EAudioOutputStreamState::Open;
@@ -502,14 +502,14 @@ namespace Audio
 		// Setup the format of the output source voice
 		WAVEFORMATEX Format = { 0 };
 		Format.nChannels = AudioStreamInfo.DeviceInfo.NumChannels;
-		Format.nSamplesPerSec = AudioStreamInfo.DeviceInfo.SampleRate;
+		Format.nSamplesPerSec = AUDIO_SAMPLE_RATE;
 		Format.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
 		Format.nAvgBytesPerSec = Format.nSamplesPerSec * sizeof(float) * Format.nChannels;
 		Format.nBlockAlign = sizeof(float) * Format.nChannels;
 		Format.wBitsPerSample = sizeof(float) * 8;
 
 		// Create the output source voice
-		XAUDIO2_RETURN_ON_FAIL(XAudio2System->CreateSourceVoice(&OutputAudioStreamSourceVoice, &Format, XAUDIO2_VOICE_NOSRC | XAUDIO2_VOICE_NOPITCH, 2.0f, &OutputVoiceCallback));
+		XAUDIO2_RETURN_ON_FAIL(XAudio2System->CreateSourceVoice(&OutputAudioStreamSourceVoice, &Format, XAUDIO2_VOICE_NOPITCH, 2.0f, &OutputVoiceCallback));
 
 		// Start the xaudio2 system back up
 		XAudio2System->StartEngine();

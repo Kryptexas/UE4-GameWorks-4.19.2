@@ -25,6 +25,7 @@
 #include "ComponentReregisterContext.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Engine/PreviewMeshCollection.h"
+#include "Misc/ScopedSlowTask.h"
 
 #define LOCTEXT_NAMESPACE "Skeleton"
 #define ROOT_BONE_PARENT	INDEX_NONE
@@ -978,11 +979,26 @@ void USkeleton::HandleSkeletonHierarchyChange()
 	ClearCacheData();
 
 	// Fix up loaded animations (any animations that aren't loaded will be fixed on load)
-	for(TObjectIterator<UAnimationAsset> It; It; ++It)
+	int32 NumLoadedAssets = 0;
+	for (TObjectIterator<UAnimationAsset> It; It; ++It)
 	{
 		UAnimationAsset* CurrentAnimation = *It;
 		if (CurrentAnimation->GetSkeleton() == this)
 		{
+			NumLoadedAssets++;
+		}
+	}
+
+	FScopedSlowTask SlowTask((float)NumLoadedAssets, LOCTEXT("HandleSkeletonHierarchyChange", "Rebuilding animations..."));
+	SlowTask.MakeDialog();
+
+	for (TObjectIterator<UAnimationAsset> It; It; ++It)
+	{
+		UAnimationAsset* CurrentAnimation = *It;
+		if (CurrentAnimation->GetSkeleton() == this)
+		{
+			SlowTask.EnterProgressFrame(1.0f, FText::Format(LOCTEXT("HandleSkeletonHierarchyChange_Format", "Rebuilding Animation: {0}"), FText::FromString(CurrentAnimation->GetName())));
+
 			CurrentAnimation->ValidateSkeleton();
 		}
 	}

@@ -43,7 +43,10 @@ namespace Audio
 			{
 				bIsDone = true;
 			}
-			bIsDone = false;
+			else
+			{
+				bIsDone = false;
+			}
 		}
 		else
 		{
@@ -93,23 +96,35 @@ namespace Audio
 		: MixerDevice(InMixerDevice)
 		, NumActiveSources(0)
 		, NumTotalSources(0)
+		, NumSourceWorkers(4)
 		, bInitialized(false)
 	{
 	}
 
 	FMixerSourceManager::~FMixerSourceManager()
 	{
+		if (SourceWorkers.Num() > 0)
+		{
+			for (int32 i = 0; i < SourceWorkers.Num(); ++i)
+			{
+				delete SourceWorkers[i];
+				SourceWorkers[i] = nullptr;
+			}
 
+			SourceWorkers.Reset();
+		}
 	}
 
-	void FMixerSourceManager::Init(const int32 InNumSources)
+	void FMixerSourceManager::Init(const FSourceManagerInitParams& InitParams)
 	{
-		AUDIO_MIXER_CHECK(InNumSources > 0);
+		AUDIO_MIXER_CHECK(InitParams.NumSources > 0);
 
 		if (!MixerDevice || bInitialized)
 		{
 			return;
 		}
+
+		NumTotalSources = InitParams.NumSources;
 
 #if ENABLE_AUDIO_OUTPUT_DEBUGGING
 		for (int32 i = 0; i < InNumSources; ++i)
@@ -118,57 +133,57 @@ namespace Audio
 		}
 #endif
 
-		MixerSources.Init(nullptr, InNumSources);
-		BufferQueue.AddDefaulted(InNumSources);
-		BufferQueueListener.Init(nullptr, InNumSources);
-		NumBuffersQueued.AddDefaulted(InNumSources);
-		CurrentPCMBuffer.Init(nullptr, InNumSources);
-		CurrentAudioChunkNumFrames.AddDefaulted(InNumSources);
-		SourceBuffer.AddDefaulted(InNumSources);
-		HRTFSourceBuffer.AddDefaulted(InNumSources);
-		CurrentFrameValues.AddDefaulted(InNumSources);
-		NextFrameValues.AddDefaulted(InNumSources);
-		CurrentFrameAlpha.AddDefaulted(InNumSources);
-		CurrentFrameIndex.AddDefaulted(InNumSources);
-		NumFramesPlayed.AddDefaulted(InNumSources);
+		MixerSources.Init(nullptr, NumTotalSources);
+		BufferQueue.AddDefaulted(NumTotalSources);
+		BufferQueueListener.Init(nullptr, NumTotalSources);
+		NumBuffersQueued.AddDefaulted(NumTotalSources);
+		CurrentPCMBuffer.Init(nullptr, NumTotalSources);
+		CurrentAudioChunkNumFrames.AddDefaulted(NumTotalSources);
+		SourceBuffer.AddDefaulted(NumTotalSources);
+		HRTFSourceBuffer.AddDefaulted(NumTotalSources);
+		CurrentFrameValues.AddDefaulted(NumTotalSources);
+		NextFrameValues.AddDefaulted(NumTotalSources);
+		CurrentFrameAlpha.AddDefaulted(NumTotalSources);
+		CurrentFrameIndex.AddDefaulted(NumTotalSources);
+		NumFramesPlayed.AddDefaulted(NumTotalSources);
 
-		PitchSourceParam.Init(FSourceParam(128), InNumSources);
-		VolumeSourceParam.Init(FSourceParam(256), InNumSources);
-		LPFCutoffFrequencyParam.Init(FSourceParam(128), InNumSources);
-		ChannelMapParam.Init(FSourceChannelMap(256), InNumSources);
-		SpatParams.AddDefaulted(InNumSources);
-		LowPassFilters.AddDefaulted(InNumSources);
-		SourceEffects.AddDefaulted(InNumSources);
-		SourceEffectPresets.AddDefaulted(InNumSources);
-		SourceEnvelopeFollower.Init(Audio::FEnvelopeFollower(AUDIO_SAMPLE_RATE, 10, 100, Audio::EEnvelopeFollowerMode::Peak), InNumSources);
-		SourceEnvelopeValue.AddDefaulted(InNumSources);
-		bEffectTailsDone.AddDefaulted(InNumSources);
+		PitchSourceParam.Init(FSourceParam(128), NumTotalSources);
+		VolumeSourceParam.Init(FSourceParam(256), NumTotalSources);
+		LPFCutoffFrequencyParam.Init(FSourceParam(128), NumTotalSources);
+		ChannelMapParam.Init(FSourceChannelMap(256), NumTotalSources);
+		SpatParams.AddDefaulted(NumTotalSources);
+		LowPassFilters.AddDefaulted(NumTotalSources);
+		SourceEffects.AddDefaulted(NumTotalSources);
+		SourceEffectPresets.AddDefaulted(NumTotalSources);
+		SourceEnvelopeFollower.Init(Audio::FEnvelopeFollower(AUDIO_SAMPLE_RATE, 10, 100, Audio::EEnvelopeFollowerMode::Peak), NumTotalSources);
+		SourceEnvelopeValue.AddDefaulted(NumTotalSources);
+		bEffectTailsDone.AddDefaulted(NumTotalSources);
 
-		PostEffectBuffers.AddDefaulted(InNumSources);
-		OutputBuffer.AddDefaulted(InNumSources);
-		bIs3D.AddDefaulted(InNumSources);
-		bIsCenterChannelOnly.AddDefaulted(InNumSources);
-		bIsActive.AddDefaulted(InNumSources);
-		bIsPlaying.AddDefaulted(InNumSources);
-		bIsPaused.AddDefaulted(InNumSources);
-		bIsDone.AddDefaulted(InNumSources);
-		bIsBusy.AddDefaulted(InNumSources);
-		bUseHRTFSpatializer.AddDefaulted(InNumSources);
-		bHasStarted.AddDefaulted(InNumSources);
-		bIsDebugMode.AddDefaulted(InNumSources);
-		DebugName.AddDefaulted(InNumSources);
+		PostEffectBuffers.AddDefaulted(NumTotalSources);
+		OutputBuffer.AddDefaulted(NumTotalSources);
+		bIs3D.AddDefaulted(NumTotalSources);
+		bIsCenterChannelOnly.AddDefaulted(NumTotalSources);
+		bIsActive.AddDefaulted(NumTotalSources);
+		bIsPlaying.AddDefaulted(NumTotalSources);
+		bIsPaused.AddDefaulted(NumTotalSources);
+		bIsDone.AddDefaulted(NumTotalSources);
+		bIsBusy.AddDefaulted(NumTotalSources);
+		bUseHRTFSpatializer.AddDefaulted(NumTotalSources);
+		bHasStarted.AddDefaulted(NumTotalSources);
+		bIsDebugMode.AddDefaulted(NumTotalSources);
+		DebugName.AddDefaulted(NumTotalSources);
 
-		NumInputChannels.AddDefaulted(InNumSources);
-		NumPostEffectChannels.AddDefaulted(InNumSources);
-		NumInputFrames.AddDefaulted(InNumSources);
+		NumInputChannels.AddDefaulted(NumTotalSources);
+		NumPostEffectChannels.AddDefaulted(NumTotalSources);
+		NumInputFrames.AddDefaulted(NumTotalSources);
 
-		GameThreadInfo.bIsBusy.AddDefaulted(InNumSources);
-		GameThreadInfo.bIsDone.AddDefaulted(InNumSources);
-		GameThreadInfo.bEffectTailsDone.AddDefaulted(InNumSources);
-		GameThreadInfo.bNeedsSpeakerMap.AddDefaulted(InNumSources);
-		GameThreadInfo.bIsDebugMode.AddDefaulted(InNumSources);
-		GameThreadInfo.FreeSourceIndices.Reset(InNumSources);
-		for (int32 i = InNumSources - 1; i >= 0; --i)
+		GameThreadInfo.bIsBusy.AddDefaulted(NumTotalSources);
+		GameThreadInfo.bIsDone.AddDefaulted(NumTotalSources);
+		GameThreadInfo.bEffectTailsDone.AddDefaulted(NumTotalSources);
+		GameThreadInfo.bNeedsSpeakerMap.AddDefaulted(NumTotalSources);
+		GameThreadInfo.bIsDebugMode.AddDefaulted(NumTotalSources);
+		GameThreadInfo.FreeSourceIndices.Reset(NumTotalSources);
+		for (int32 i = NumTotalSources - 1; i >= 0; --i)
 		{
 			GameThreadInfo.FreeSourceIndices.Add(i);
 		}
@@ -181,7 +196,22 @@ namespace Audio
 			HRTFSourceBuffer[SourceId].Reset(NumFrames * 2);
 		}
 
-		NumTotalSources = InNumSources;
+		// Setup the source workers
+		SourceWorkers.Reset();
+		if (NumSourceWorkers > 0)
+		{
+			const int32 NumSourcesPerWorker = NumTotalSources / NumSourceWorkers;
+			int32 StartId = 0;
+			int32 EndId = 0;
+			while (EndId < NumTotalSources)
+			{
+				EndId = FMath::Min(StartId + NumSourcesPerWorker, NumTotalSources);
+				SourceWorkers.Add(new FAsyncTask<FAudioMixerSourceWorker>(this, StartId, EndId));
+				StartId = EndId;
+			}
+		}
+		AUDIO_MIXER_CHECK(SourceWorkers.Num() == NumSourceWorkers);
+
 		bInitialized = true;
 		bPumpQueue = false;
 	}
@@ -641,7 +671,6 @@ namespace Audio
 	void FMixerSourceManager::SubmitBufferAudioThread(const int32 SourceId, FMixerSourceBufferPtr InSourceVoiceBuffer)
 	{
 		AUDIO_MIXER_CHECK(SourceId < NumTotalSources);
-		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
 		// Immediately push the source buffer onto the audio thread buffer queue.
 		BufferQueue[SourceId].Enqueue(InSourceVoiceBuffer);
@@ -775,10 +804,8 @@ namespace Audio
 		}
 	}
 
-	void FMixerSourceManager::ComputeSourceBuffers()
+	void FMixerSourceManager::ComputeSourceBuffersForIdRange(const int32 SourceIdStart, const int32 SourceIdEnd)
 	{
-		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
-
 		SCOPE_CYCLE_COUNTER(STAT_AudioMixerSourceBuffers);
 
 		const int32 NumFrames = MixerDevice->GetNumOutputFrames();
@@ -786,7 +813,7 @@ namespace Audio
 		// Local variable used for sample values
 		float SampleValue = 0.0f;
 
-		for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
+		for (int32 SourceId = SourceIdStart; SourceId < SourceIdEnd; ++SourceId)
 		{
 			SourceBuffer[SourceId].Reset();
 
@@ -861,20 +888,16 @@ namespace Audio
 		}
 	}
 
-	void FMixerSourceManager::ComputePostSourceEffectBuffers()
+	void FMixerSourceManager::ComputePostSourceEffectBufferForIdRange(const int32 SourceIdStart, const int32 SourceIdEnd)
 	{
-		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
-
 		SCOPE_CYCLE_COUNTER(STAT_AudioMixerSourceEffectBuffers);
-
-		// First run each source buffer through it's default source effects (e.g. LPF)
 
 		const int32 NumFrames = MixerDevice->GetNumOutputFrames();
 		class IAudioSpatializationAlgorithm* SpatializeProcessor = MixerDevice->SpatializeProcessor;
 
 		const bool bIsDebugModeEnabled = DebugSoloSources.Num() > 0;
 
-		for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
+		for (int32 SourceId = SourceIdStart; SourceId < SourceIdEnd; ++SourceId)
 		{
 			if (!bIsBusy[SourceId] || !bIsPlaying[SourceId] || bIsPaused[SourceId])
 			{
@@ -1023,10 +1046,8 @@ namespace Audio
 		}
 	}
 
-	void FMixerSourceManager::ComputeOutputBuffers()
+	void FMixerSourceManager::ComputeOutputBuffersForIdRange(const int32 SourceIdStart, const int32 SourceIdEnd)
 	{
-		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
-
 		SCOPE_CYCLE_COUNTER(STAT_AudioMixerSourceOutputBuffers);
 
 		const int32 NumFrames = MixerDevice->GetNumOutputFrames();
@@ -1035,13 +1056,13 @@ namespace Audio
 		// Reset the dry/wet buffers for all the sources
 		const int32 NumOutputSamples = NumFrames * NumOutputChannels;
 
-		for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
+		for (int32 SourceId = SourceIdStart; SourceId < SourceIdEnd; ++SourceId)
 		{
 			OutputBuffer[SourceId].Reset();
 			OutputBuffer[SourceId].AddZeroed(NumOutputSamples);
 		}
 
-		for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
+		for (int32 SourceId = SourceIdStart; SourceId < SourceIdEnd; ++SourceId)
 		{
 			// Don't need to compute anything if the source is not playing or paused (it will remain at 0.0 volume)
 			// Note that effect chains will still be able to continue to compute audio output. The source output 
@@ -1072,15 +1093,16 @@ namespace Audio
 					SourceSampleValue = (*Buffer)[SourceSampleIndex];
 #endif
 					// Make sure that our channel map is appropriate for the source channel and output channel count!
-					ChannelMapParam[SourceId].GetChannelMap(ScratchChannelMap);
-					AUDIO_MIXER_CHECK(ScratchChannelMap.Num() == PostEffectChannels * NumOutputChannels);
+					TArray<float>& Scratch = ScratchChannelMap[SourceId];
+					ChannelMapParam[SourceId].GetChannelMap(Scratch);
+					AUDIO_MIXER_CHECK(Scratch.Num() == PostEffectChannels * NumOutputChannels);
 
 					for (int32 OutputChannel = 0; OutputChannel < NumOutputChannels; ++OutputChannel)
 					{
 						// Look up the channel map value (maps input channels to output channels) for the source
 						// This is the step that either applies the spatialization algorithm or just maps a 2d sound
 						const int32 ChannelMapIndex = NumOutputChannels * SourceChannel + OutputChannel;
-						const float ChannelMapValue = ScratchChannelMap[ChannelMapIndex];
+						const float ChannelMapValue = Scratch[ChannelMapIndex];
 
 						// If we have a non-zero sample value, write it out. Note that most 3d audio channel maps
 						// for surround sound will result in 0.0 sample values so this branch should save a bunch of multiplies + adds
@@ -1135,7 +1157,7 @@ namespace Audio
 				continue;
 			}
 
-			ScratchChannelMap.Reset();
+			ScratchChannelMap[SourceId].Reset();
 			const int32 NumSoureChannels = bUseHRTFSpatializer[SourceId] ? 2 : NumInputChannels[SourceId];
 
 			// If this is a 3d source, then just zero out the channel map, it'll cause a temporary blip
@@ -1143,15 +1165,15 @@ namespace Audio
 			if (bIs3D[SourceId])
 			{
 				GameThreadInfo.bNeedsSpeakerMap[SourceId] = true;
-				ScratchChannelMap.AddZeroed(NumSoureChannels * InNumOutputChannels);
+				ScratchChannelMap[SourceId].AddZeroed(NumSoureChannels * InNumOutputChannels);
 			}
 			// If it's a 2D sound, then just get a new channel map appropriate for the new device channel count
 			else
 			{
-				ScratchChannelMap.Reset();
-				MixerDevice->Get2DChannelMap(NumSoureChannels, InNumOutputChannels, bIsCenterChannelOnly[SourceId], ScratchChannelMap);
+				ScratchChannelMap[SourceId].Reset();
+				MixerDevice->Get2DChannelMap(NumSoureChannels, InNumOutputChannels, bIsCenterChannelOnly[SourceId], ScratchChannelMap[SourceId]);
 			}
-			ChannelMapParam[SourceId].SetChannelMap(ScratchChannelMap);
+			ChannelMapParam[SourceId].SetChannelMap(ScratchChannelMap[SourceId]);
 		}
 	}
 
@@ -1167,14 +1189,30 @@ namespace Audio
 			PumpCommandQueue();
 		}
 
-		// Get the next block of frames from the source buffers
-		ComputeSourceBuffers();
+		if (NumSourceWorkers > 0)
+		{
+			AUDIO_MIXER_CHECK(SourceWorkers.Num() == NumSourceWorkers);
+			for (int32 i = 0; i < SourceWorkers.Num(); ++i)
+			{
+				SourceWorkers[i]->StartBackgroundTask();
+			}
 
-		// Compute the audio source buffers after their individual effect chain processing
-		ComputePostSourceEffectBuffers();
+			for (int32 i = 0; i < SourceWorkers.Num(); ++i)
+			{
+				SourceWorkers[i]->EnsureCompletion();
+			}
+		}
+		else
+		{
+			// Get the next block of frames from the source buffers
+			ComputeSourceBuffersForIdRange(0, NumTotalSources);
 
-		// Get the audio for the output buffers
-		ComputeOutputBuffers();
+			// Compute the audio source buffers after their individual effect chain processing
+			ComputePostSourceEffectBufferForIdRange(0, NumTotalSources);
+
+			// Get the audio for the output buffers
+			ComputeOutputBuffersForIdRange(0, NumTotalSources);
+		}
 
 		// Update the game thread copy of source doneness
 		for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)

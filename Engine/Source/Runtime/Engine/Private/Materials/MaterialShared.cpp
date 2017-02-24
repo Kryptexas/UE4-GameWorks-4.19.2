@@ -761,7 +761,7 @@ void FMaterialResource::LegacySerialize(FArchive& Ar)
 
 const TArray<UTexture*>& FMaterialResource::GetReferencedTextures() const
 {
-	return Material->ExpressionTextureReferences;
+	return Material ? Material->ExpressionTextureReferences : UMaterial::GetDefaultMaterial(MD_Surface)->ExpressionTextureReferences;
 }
 
 void FMaterialResource::AddReferencedObjects(FReferenceCollector& Collector)

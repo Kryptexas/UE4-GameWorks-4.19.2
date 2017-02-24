@@ -479,8 +479,6 @@ namespace Audio
 
 	void FMixerSource::SubmitRealTimeSourceData(bool bLooped)
 	{
-		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
-
 		// Have we reached the end of the sound
 		if (bLooped)
 		{
@@ -569,8 +567,6 @@ namespace Audio
 
 	void FMixerSource::OnSourceBufferEnd()
 	{
-		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
-
 		FScopeLock Lock(&RenderThreadCritSect);
 
 		if (Playing && MixerSourceVoice)

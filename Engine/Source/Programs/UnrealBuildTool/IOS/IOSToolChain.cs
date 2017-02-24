@@ -211,6 +211,12 @@ namespace UnrealBuildTool
 				Result += " -Wno-unused-local-typedef"; // PhysX has some, hard to remove
 			}
 
+			// fix for Xcode 8.3 enabling nonportable include checks, but p4 has some invalid cases in it
+			if (Settings.Value.IOSSDKVersionFloat >= 10.3)
+			{
+				Result += " -Wno-nonportable-include-path";
+			}
+
 			if (IsBitcodeCompilingEnabled(CompileEnvironment.Configuration))
 			{
 				Result += " -fembed-bitcode";

@@ -122,6 +122,15 @@ struct FCharacterMovementComponentPostPhysicsTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
+template<>
+struct TStructOpsTypeTraits<FCharacterMovementComponentPostPhysicsTickFunction> : public TStructOpsTypeTraitsBase2<FCharacterMovementComponentPostPhysicsTickFunction>
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
+
 /** Shared pointer for easy memory management of FSavedMove_Character, for accumulating and replaying network moves. */
 typedef TSharedPtr<class FSavedMove_Character> FSavedMovePtr;
 

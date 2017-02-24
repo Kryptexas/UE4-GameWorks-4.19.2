@@ -280,10 +280,6 @@ void FXAudio2Device::UpdateHardware()
 {
 }
 
-void FXAudio2Device::CheckDeviceStateChange()
-{
-}
-
 void FXAudio2Device::UpdateAudioClock()
 {
 	// Update the audio clock time

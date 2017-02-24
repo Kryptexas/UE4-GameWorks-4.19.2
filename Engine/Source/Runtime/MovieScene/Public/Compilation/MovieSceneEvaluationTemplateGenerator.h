@@ -71,7 +71,6 @@ private:
 	virtual void AddExternalSegments(TRange<float> RootRange, TArrayView<const FMovieSceneEvaluationFieldSegmentPtr> SegmentPtrs) override;
 	virtual FMovieSceneSequenceTransform GetSequenceTransform(FMovieSceneSequenceIDRef InSequenceID) const override;
 	virtual FMovieSceneSequenceID GenerateSequenceID(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID) override;
-	virtual void FlushGroupImmediately(FName EvaluationGroup) override;
 
 private:
 
@@ -111,6 +110,4 @@ private:
 
 	/** Set of shared track keys that have been added (used to ensure we only add a shared track ID once) */
 	TSet<FSharedPersistentDataKey> AddedSharedTracks;
-	/** Set that defines whether an evaluation group should immediately flush the execution token stack or not */
-	TSet<FName> ImmediateFlushGroups;
 };

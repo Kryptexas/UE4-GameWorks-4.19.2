@@ -134,8 +134,9 @@ struct FSequencerTemplateStore : FMovieSceneSequenceTemplateStore
 
 		if (TUniquePtr<FCachedMovieSceneEvaluationTemplate>* ExistingTemplate = Templates.Find(SequenceKey))
 		{
-			(*ExistingTemplate)->Regenerate(TemplateParameters);
-			return **ExistingTemplate;
+			FCachedMovieSceneEvaluationTemplate* Template = ExistingTemplate->Get();
+			Template->Regenerate(TemplateParameters);
+			return *Template;
 		}
 		else
 		{
