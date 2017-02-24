@@ -111,6 +111,11 @@ void UWidgetAnimation::BindPossessableObject(const FGuid& ObjectId, UObject& Pos
 
 bool UWidgetAnimation::CanPossessObject(UObject& Object, UObject* InPlaybackContext) const
 {
+	if (InPlaybackContext == nullptr)
+	{
+		return false;
+	}
+
 	UUserWidget* PreviewWidget = CastChecked<UUserWidget>(InPlaybackContext);
 
 	if (&Object == PreviewWidget)
