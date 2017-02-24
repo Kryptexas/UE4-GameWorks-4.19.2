@@ -46,6 +46,10 @@ const UStruct* FCanKeyPropertyParams::FindPropertyContainer(const UProperty* For
 		if (!bFoundProperty)
 		{
 			bFoundProperty = Property == ForProperty;
+			if (bFoundProperty)
+			{
+				return ObjectClass;
+			}
 		}
 		else if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Property))
 		{
