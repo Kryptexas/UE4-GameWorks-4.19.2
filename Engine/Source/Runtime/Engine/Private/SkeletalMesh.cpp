@@ -4992,19 +4992,27 @@ public:
 	FORCEINLINE bool NotValidPreviewSection()
 	{
 #if WITH_EDITORONLY_DATA
-
-		int32 ActualPreviewSectionIdx = SectionIndexPreview;
-		if(ActualPreviewSectionIdx != INDEX_NONE && Sections.IsValidIndex(ActualPreviewSectionIdx))
+		int32 ActualPreviewMaterialIdx = SectionIndexPreview;
+		int32 ActualPreviewSectionIdx = INDEX_NONE;
+		if (ActualPreviewMaterialIdx != INDEX_NONE && Sections.IsValidIndex(SectionIndex))
 		{
-			const FSkelMeshSection& PreviewSection = Sections[ActualPreviewSectionIdx];
-			if(PreviewSection.CorrespondClothSectionIndex != INDEX_NONE)
+			const FSkeletalMeshSceneProxy::FSectionElementInfo& SectionInfo = LODSectionElements.SectionElements[SectionIndex];
+			if (SectionInfo.UseMaterialIndex == ActualPreviewMaterialIdx)
 			{
-				ActualPreviewSectionIdx = PreviewSection.CorrespondClothSectionIndex;
+				ActualPreviewSectionIdx = SectionIndex;
+			}
+			if (ActualPreviewSectionIdx != INDEX_NONE)
+			{
+				const FSkelMeshSection& PreviewSection = Sections[ActualPreviewSectionIdx];
+				if (PreviewSection.CorrespondClothSectionIndex != INDEX_NONE)
+				{
+					ActualPreviewSectionIdx = PreviewSection.CorrespondClothSectionIndex;
+				}
 			}
 		}
 
-		return	(SectionIndex < Sections.Num()) && 
-				((ActualPreviewSectionIdx >= 0) && (ActualPreviewSectionIdx != SectionIndex));
+		return	(SectionIndex < Sections.Num()) &&
+			((ActualPreviewMaterialIdx >= 0) && (ActualPreviewSectionIdx != SectionIndex));
 #else
 		return false;
 #endif
@@ -5111,7 +5119,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 
 #if WITH_EDITORONLY_DATA
 			// TODO: This is not threadsafe! A render command should be used to propagate SelectedEditorSection to the scene proxy.
-			bSectionSelected = (SkeletalMeshForDebug->SelectedEditorSection == Iter.GetSectionElementIndex());
+			bSectionSelected = (SkeletalMeshForDebug->SelectedEditorSection == SectionElementInfo.UseMaterialIndex);
 #endif
 			// If hidden skip the draw
 			if (MeshObject->IsMaterialHidden(LODIndex, SectionElementInfo.UseMaterialIndex))

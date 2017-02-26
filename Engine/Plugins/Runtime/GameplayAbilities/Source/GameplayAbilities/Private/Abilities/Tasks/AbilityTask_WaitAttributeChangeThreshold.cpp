@@ -31,7 +31,10 @@ void UAbilityTask_WaitAttributeChangeThreshold::Activate()
 		bMatchedComparisonLastAttributeChange = DoesValuePassComparison(CurrentValue);
 
 		// Broadcast OnChange immediately with current value
-		OnChange.Broadcast(bMatchedComparisonLastAttributeChange, CurrentValue);
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnChange.Broadcast(bMatchedComparisonLastAttributeChange, CurrentValue);
+		}
 
 		OnAttributeChangeDelegateHandle = AbilitySystemComponent->RegisterGameplayAttributeEvent(Attribute).AddUObject(this, &UAbilityTask_WaitAttributeChangeThreshold::OnAttributeChange);
 	}
@@ -43,7 +46,10 @@ void UAbilityTask_WaitAttributeChangeThreshold::OnAttributeChange(float NewValue
 	if (bPassedComparison != bMatchedComparisonLastAttributeChange)
 	{
 		bMatchedComparisonLastAttributeChange = bPassedComparison;
-		OnChange.Broadcast(bPassedComparison, NewValue);
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnChange.Broadcast(bPassedComparison, NewValue);
+		}
 		if (bTriggerOnce)
 		{
 			EndTask();

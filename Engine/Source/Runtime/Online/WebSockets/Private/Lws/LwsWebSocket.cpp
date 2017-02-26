@@ -24,11 +24,12 @@ namespace {
 	};
 }
 
-FLwsWebSocket::FLwsWebSocket(const FString& InUrl, const TArray<FString>& InProtocols, lws_context* Context)
+FLwsWebSocket::FLwsWebSocket(const FString& InUrl, const TArray<FString>& InProtocols, lws_context* Context, const FString& InUpgradeHeader)
 	: LwsContext(Context)
 	, LwsConnection(nullptr)
 	, Url(InUrl)
 	, Protocols(InProtocols)
+	, UpgradeHeader(InUpgradeHeader)
 	, ReceiveBuffer()
 	, CloseCode(0)
 	, CloseReason()
@@ -206,7 +207,7 @@ bool FLwsSendBuffer::Write(struct lws* LwsConnection)
 	return BytesWritten + (int32)(LWS_PRE) >= Payload.Num();
 }
 
-int FLwsWebSocket::LwsCallback(lws* Instance, lws_callback_reasons Reason, const void* Data, size_t Length)
+int FLwsWebSocket::LwsCallback(lws* Instance, lws_callback_reasons Reason, void* Data, size_t Length)
 {
 	switch (Reason)
 	{
@@ -300,6 +301,16 @@ int FLwsWebSocket::LwsCallback(lws* Instance, lws_callback_reasons Reason, const
 		else
 		{
 			SendFromQueue();
+		}
+		break;
+	}
+	case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER:
+	{
+		if (!UpgradeHeader.IsEmpty())
+		{
+			// FIXME: Should probably use strcat but libws suggests snprintf (https://libwebsockets.org/lws-api-doc-master/html/)
+			char** WriteableString = reinterpret_cast<char**>(Data);
+			*WriteableString += FCStringAnsi::Snprintf(*WriteableString, Length, TCHAR_TO_ANSI(*UpgradeHeader));
 		}
 		break;
 	}

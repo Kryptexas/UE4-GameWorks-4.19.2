@@ -166,6 +166,8 @@ protected:
 	virtual void OnConvertToBlendSpacePlayer() override;
 	virtual void OnConvertToPoseBlender() override;
 	virtual void OnConvertToPoseByName() override;
+	virtual void OnConvertToAimOffsetLookAt() override;
+	virtual void OnConvertToAimOffsetSimple() override;
 	virtual bool IsInAScriptingMode() const override { return true; }
 	virtual void OnOpenRelatedAsset() override;
 	virtual void GetCustomDebugObjects(TArray<FCustomDebugObject>& DebugList) const override;

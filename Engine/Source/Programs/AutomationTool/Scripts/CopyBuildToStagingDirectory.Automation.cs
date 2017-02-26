@@ -111,8 +111,9 @@ public partial class Project : CommandUtils
 		var UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/UnrealPak.exe");
 		Log("Running UnrealPak *******");
 		string CmdLine = CommandUtils.MakePathSafeToUseWithCommandLine(OutputLocation) + " -create=" + CommandUtils.MakePathSafeToUseWithCommandLine(UnrealPakResponseFileName);
+		string LogFileName = CombinePaths(CmdEnv.LogFolder, "PakLog_" + PakName + ".log");
 
-		CmdLine += String.Format(" -encryptionini -enginedir=\"{0}\" -projectdir=\"{1}\" -platform={2}", EngineDir, ProjectDir, Platform);
+		CmdLine += String.Format(" -encryptionini -enginedir=\"{0}\" -projectdir=\"{1}\" -platform={2} -abslog=\"{3}\"", EngineDir, ProjectDir, Platform, LogFileName);
 
 		if (GlobalCommandLine.Installed)
 		{
@@ -253,6 +254,14 @@ public partial class Project : CommandUtils
 
 		Log("Creating Staging Manifest...");
 
+		if (Params.IterateSharedCookedBuild)
+		{
+			// can't do shared cooked builds with DLC that's madness!!
+			//check( Params.HasDLCName == false );
+
+			// stage all the previously staged files
+			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Saved", "SharedIterativeBuild", SC.CookPlatform, "StagedBuild"), "*", true, null, "", true); // remap to the root directory
+		}
         if (Params.HasDLCName)
         {
             string DLCName = Params.DLCName;
@@ -269,6 +278,7 @@ public partial class Project : CommandUtils
             string[] ExcludeWildCards = {"AssetRegistry.bin"};
 
             // Stage any loose files in the root folder
+			// TODO: not sure if we should stage the loose files if we have pak files enabled... 
 			SC.StageFiles(StagedFileType.UFS, PlatformCookDir, "*", false, ExcludeWildCards, SC.RelativeProjectRootForStage, true, !Params.UsePak(SC.StageTargetPlatform));
 
 			// Stage each sub directory separately so that we can skip Engine if need be
@@ -583,7 +593,7 @@ public partial class Project : CommandUtils
                 SC.StageRuntimeDependenciesFromReceipt(Receipt, true, Params.UsePak(SC.StageTargetPlatform));
 
 				// Add config files.
-				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Programs/CrashReportClient/Config" ) );
+				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Programs/CrashReportClient/Config" ), bAllowNotForLicenseesFiles:false );
 			}
 
 			// check if the game will be verifying ssl connections - if not, we can skip staging files that won't be needed
@@ -948,6 +958,12 @@ public partial class Project : CommandUtils
         {
             PostFix += "_P";
         }
+		if (Params.IterateSharedCookedBuild)
+		{
+			// shared cooked builds will produce a patch
+			// then be combined with the shared cooked build
+			PostFix += "_S_P";
+		}
 		var OutputRelativeLocation = CombinePaths(SC.RelativeProjectRootForStage, "Content/Paks/", PakName + "-" + SC.FinalCookPlatform + PostFix + ".pak");
 		if (SC.StageTargetPlatform.DeployLowerCaseFilenames(true))
 		{

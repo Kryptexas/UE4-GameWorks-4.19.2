@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTask.h"
-#include "Tests/AITestsCommon.h"
+#include "AITestsCommon.h"
 #include "MockGameplayTasks.h"
 //#include "MockAI_BT.h"
 //#include "BehaviorTree/TestBTDecorator_CantExecute.h"

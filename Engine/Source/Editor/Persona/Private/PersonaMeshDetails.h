@@ -212,6 +212,14 @@ private:
 	FText GetOriginalImportMaterialNameText(int32 MaterialIndex)const;
 
 	/**
+	* Called by the material list widget on generating name side content
+	*
+	* @param Material		The material that is being displayed
+	* @param MaterialIndex	The index of the material slot
+	*/
+	TSharedRef<SWidget> OnGenerateCustomNameWidgetsForMaterialArray(UMaterialInterface* Material, int32 MaterialIndex);
+	
+	/**
 	* Called by the material list widget on generating each thumbnail widget
 	*
 	* @param Material		The material that is being displayed
@@ -229,6 +237,36 @@ private:
 	TSharedRef<SWidget> OnGetMaterialSlotUsedByMenuContent(int32 MaterialIndex);
 
 	FText GetFirstMaterialSlotUsedBySection(int32 MaterialIndex) const;
+
+	bool GetFirstLodSectionUsingMaterial(int32 MaterialIndex, int32 &OutMaterialLODIndex, int32 &OutMaterialSectionIndex) const;
+	/**
+	* Handler for check box display based on whether the material is highlighted
+	*
+	* @param MaterialIndex	The material index that is being selected
+	*/
+	ECheckBoxState IsMaterialSelected(int32 MaterialIndex) const;
+
+	/**
+	* Handler for changing highlight status on a material
+	*
+	* @param MaterialIndex	The material index that is being selected
+	*/
+	void OnMaterialSelectedChanged(ECheckBoxState NewState, int32 MaterialIndex);
+
+	/**
+	* Handler for check box display based on whether the material is isolated
+	*
+	* @param MaterialIndex	The material index that is being isolate
+	*/
+	ECheckBoxState IsIsolateMaterialEnabled(int32 MaterialIndex) const;
+
+	/**
+	* Handler for changing isolated status on a material
+	*
+	* @param MaterialIndex	The material index that is being isolate
+	*/
+	void OnMaterialIsolatedChanged(ECheckBoxState NewState, int32 MaterialIndex);
+
 
 	/**
 	 * Handler for check box display based on whether the material is highlighted

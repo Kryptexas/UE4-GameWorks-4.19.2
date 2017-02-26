@@ -19,6 +19,7 @@
 extern bool D3D11RHI_ShouldCreateWithD3DDebug();
 extern bool D3D11RHI_ShouldAllowAsyncResourceCreation();
 
+
 static TAutoConsoleVariable<int32> CVarGraphicsAdapter(
 	TEXT("r.GraphicsAdapter"),
 	-1,

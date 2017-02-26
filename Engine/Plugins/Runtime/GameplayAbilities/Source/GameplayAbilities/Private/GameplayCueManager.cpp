@@ -166,6 +166,13 @@ void UGameplayCueManager::RouteGameplayCue(AActor* TargetActor, FGameplayTag Gam
 		bAcceptsCue = GameplayCueInterface->ShouldAcceptGameplayCue(TargetActor, GameplayCueTag, EventType, Parameters);
 	}
 
+#if !UE_BUILD_SHIPPING
+	if (OnRouteGameplayCue.IsBound())
+	{
+		OnRouteGameplayCue.Broadcast(TargetActor, GameplayCueTag, EventType, Parameters);
+	}
+#endif // !UE_BUILD_SHIPPING
+
 #if ENABLE_DRAW_DEBUG
 	if (DisplayGameplayCues)
 	{

@@ -17,9 +17,9 @@ public class SSL : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-					"Core",
+				"Core",
 			}
-			);
+		);
 
 		if (bShouldUseModule)
 		{
@@ -29,7 +29,7 @@ public class SSL : ModuleRules
 				new string[] {
 					"Runtime/Online/SSL/Private",
 				}
-				);
+			);
 
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
 		}

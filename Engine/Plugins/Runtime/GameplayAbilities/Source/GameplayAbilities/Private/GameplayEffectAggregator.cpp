@@ -489,16 +489,34 @@ void FAggregator::TakeSnapshotOf(const FAggregator& AggToSnapshot)
 
 void FAggregator::BroadcastOnDirty()
 {
-	// If we are batching on Dirty calls (and we actually have dependents registered with us) then early out.
+	// --------------------------------------------------
+	// If we are batching all on Dirty calls (and we actually have dependents registered with us) then early out.
+	// --------------------------------------------------
 	if (FScopedAggregatorOnDirtyBatch::GlobalBatchCount > 0 && (Dependents.Num() > 0 || OnDirty.IsBound()))
 	{
 		FScopedAggregatorOnDirtyBatch::DirtyAggregators.Add(this);
 		return;
 	}
 
-	if (bIsBroadcastingDirty)
+
+	// --------------------------------------------------
+	//	The code below attempts to avoid recursion issues: an aggregator is dirty and while it is broadcasting this out, someone dirties it again.
+	//	The degenerate case is cyclic attribute dependencies: MaxHealth -> MaxMana -> MaxHealth. This prob can't be fixed. We should instead detect earlier.
+	//
+	//	The less serious case is while doing your broadcast, someone applies a GE that dirties the attribute again. As long as this isn't an infinite loop... it should be ok.
+	//
+	//	This code now allows MAX_BROADCAST_DIRTY recursion calls. This is pretty arbitrary. We are trying to provide a solution that doesn't crash (infinite loop) from bad data
+	//	while not breaking/causing bugs when this is triggered.
+	//
+	// --------------------------------------------------
+
+	const int32 MAX_BROADCAST_DIRTY = 10;
+
+	if (BroadcastingDirtyCount > MAX_BROADCAST_DIRTY)
 	{
-		// Apologies for the vague warning but its very hard from this spot to call out what data has caused this. If this frequently happens we should improve this.
+		// This call will at least update the backing uproperty values so that they don't get stale. We will still skip dependant attribute magnitudes and potential game code listening for attribute changes!
+		OnDirtyRecursive.Broadcast(this);
+		
 		ABILITY_LOG(Warning, TEXT("FAggregator detected cyclic attribute dependencies. We are skipping a recursive dirty call. Its possible the resulting attribute values are not what you expect!"));
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -511,24 +529,28 @@ void FAggregator::BroadcastOnDirty()
 		return;
 	}
 
-	TGuardValue<bool> Guard(bIsBroadcastingDirty, true);
-	
+	BroadcastingDirtyCount++;
 	OnDirty.Broadcast(this);
 
+	// ----------------------------------------------------------
+	//	Lets Dependant GEs know about this too.
+	// ----------------------------------------------------------
 
-	static TArray<FActiveGameplayEffectHandle> ValidDependents;
-	ValidDependents.Reset();
+	// Copy Dependants here to avoid recursive issues if any more Dependants are added while we are broadcasting out
+	TArray<FActiveGameplayEffectHandle> DependantsLocalCopy = Dependents;
+	Dependents.Empty(); // We will add valid handles back as we process the local list
 
-	for (FActiveGameplayEffectHandle Handle : Dependents)
+	for (FActiveGameplayEffectHandle Handle : DependantsLocalCopy)
 	{
 		UAbilitySystemComponent* ASC = Handle.GetOwningAbilitySystemComponent();
 		if (ASC)
 		{
 			ASC->OnMagnitudeDependencyChange(Handle, this);
-			ValidDependents.Add(Handle);
+			Dependents.Add(Handle);
 		}
 	}
-	Dependents = ValidDependents;
+
+	BroadcastingDirtyCount--;
 
 }
 

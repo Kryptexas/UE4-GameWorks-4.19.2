@@ -501,6 +501,11 @@ class ENGINE_API URendererOverrideSettings : public UDeveloperSettings
 		ConfigRestartRequired = true))
 		uint32 bSupportAllShaderPermutations : 1;
 
+	UPROPERTY(config, EditAnywhere, Category = Miscellaneous, meta = (
+		ConsoleVariable = "r.SkinCache.ForceRecomputeTangents", DisplayName = "Force all skinned meshes to recompute tangents (also forces Compute SkinCache)",
+		ConfigRestartRequired = true))
+		uint32 bForceRecomputeTangents : 1;
+
 public:
 
 	//~ Begin UObject Interface

@@ -364,9 +364,6 @@ private:
 	/** Does the actual work of TickFlush, either on the main thread or in a task thread in parallel with Slate. */
 	void TickFlushInternal(float DeltaSeconds);
 
-	/** Returns true if TickFlush can be called in parallel with the Slate tick. */
-	bool ShouldTickFlushAsyncEndOfFrame() const;
-
 	/** Returns either CheckpointSaveMaxMSPerFrame or the value of demo.CheckpointSaveMaxMSPerFrameOverride if it's >= 0. */
 	float GetCheckpointSaveMaxMSPerFrame() const;
 
@@ -509,6 +506,9 @@ public:
 
 	/** Called when the downloading header request from the replay streamer completes. */
 	void OnDownloadHeaderComplete(const bool bWasSuccessful, int32 LevelIndex);
+
+	/** Returns true if TickFlush can be called in parallel with the Slate tick. */
+	bool ShouldTickFlushAsyncEndOfFrame() const;
 
 protected:
 	/** allows subclasses to write game specific data to demo header which is then handled by ProcessGameSpecificDemoHeader */

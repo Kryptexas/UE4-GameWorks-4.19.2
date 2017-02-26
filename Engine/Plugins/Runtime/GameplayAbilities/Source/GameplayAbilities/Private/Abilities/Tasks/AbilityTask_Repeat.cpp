@@ -14,7 +14,10 @@ void UAbilityTask_Repeat::PerformAction()
 	++ActionCounter;
 	if (ActionCounter >= ActionPerformancesDesired)		//Should we allow negative values of ActionPerformancesDesired to mean "unlimited"?
 	{
-		OnFinished.Broadcast(-1);
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnFinished.Broadcast(-1);
+		}
 		EndTask();
 	}
 }
@@ -43,7 +46,10 @@ void UAbilityTask_Repeat::Activate()
 	}
 	else
 	{
-		OnFinished.Broadcast(-1);
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnFinished.Broadcast(-1);
+		}
 		EndTask();
 	}
 }

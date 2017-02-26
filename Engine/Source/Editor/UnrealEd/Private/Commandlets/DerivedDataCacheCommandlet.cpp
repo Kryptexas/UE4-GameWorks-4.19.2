@@ -201,8 +201,8 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 				}
 				if (bDoSubset)
 				{
-					const FString& PackageString = FPackageName::PackageFromPath(*Filename);
-					if (FCrc::StrCrc_DEPRECATED(*PackageString.ToUpper()) % SubsetMod != SubsetTarget)
+					const FString& SubPackageName = FPackageName::PackageFromPath(*Filename);
+					if (FCrc::StrCrc_DEPRECATED(*SubPackageName.ToUpper()) % SubsetMod != SubsetTarget)
 					{
 						continue;
 					}
@@ -226,20 +226,20 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 			GRedirectCollector.ResolveStringAssetReference();
 
 			// cache all the resources for this platform
-			/*for (TObjectIterator<UObject> It; It; ++It)
+			for (TObjectIterator<UObject> It; It; ++It)
 			{
 				if ((PackageFilter&NORMALIZE_ExcludeEnginePackages) == 0 || !It->GetOutermost()->GetName().StartsWith(TEXT("/Engine")))
 				{
 					if (!ProcessedPackages.Contains(It->GetOutermost()->GetFName()))
 					{
-						check( (It->GetOutermost()->GetPackageFlags() & PKG_ReloadingForCooker) == 0 );
+						check((It->GetOutermost()->GetPackageFlags() & PKG_ReloadingForCooker) == 0);
 						for (auto Platform : Platforms)
 						{
 							It->BeginCacheForCookedPlatformData(Platform);
 						}
 					}
 				}
-			}*/
+			}
 
 
 			// Keep track of which packages have already been processed along with the map.
@@ -255,20 +255,20 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 						continue;
 					}
 					if (!ProcessedPackages.Contains(Pkg->GetFName()))
-					{
-						ProcessedPackages.Add(Pkg->GetFName());
-						Pkg->SetPackageFlags(PKG_ReloadingForCooker);
 						{
-							TArray<UObject *> ObjectsInPackage;
-							GetObjectsWithOuter(Pkg, ObjectsInPackage, true);
-							for (int32 IndexPackage = 0; IndexPackage < ObjectsInPackage.Num(); IndexPackage++)
+						ProcessedPackages.Add(Pkg->GetFName());
+							Pkg->SetPackageFlags(PKG_ReloadingForCooker);
 							{
-								ObjectsInPackage[IndexPackage]->WillNeverCacheCookedPlatformDataAgain();
-								ObjectsInPackage[IndexPackage]->ClearAllCachedCookedPlatformData();
+								TArray<UObject *> ObjectsInPackage;
+								GetObjectsWithOuter(Pkg, ObjectsInPackage, true);
+								for (int32 IndexPackage = 0; IndexPackage < ObjectsInPackage.Num(); IndexPackage++)
+								{
+									ObjectsInPackage[IndexPackage]->WillNeverCacheCookedPlatformDataAgain();
+									ObjectsInPackage[IndexPackage]->ClearAllCachedCookedPlatformData();
+								}
 							}
 						}
 					}
-				}
 				FindProcessedPackagesTime += FPlatformTime::Seconds() - FindProcessedPackagesStartTime;
 			}
 

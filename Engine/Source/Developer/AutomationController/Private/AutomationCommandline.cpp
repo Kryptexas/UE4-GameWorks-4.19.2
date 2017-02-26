@@ -10,6 +10,9 @@
 #include "Modules/ModuleManager.h"
 #include "Misc/FilterCollection.h"
 #include "Interfaces/IAutomationControllerModule.h"
+#include "FileManager.h"
+#include "Paths.h"
+#include "FileHelper.h"
 
 
 /** States for running the automation process */
@@ -32,6 +35,7 @@ namespace EAutomationCommand
 		ListAllTests,				//List all tests for the session
 		//RunSingleTest,			//Run one test specified by the commandline
 		RunCommandLineTests,		//Run only tests that are listed on the commandline
+		RunCheckpointTests,			// Run only tests listed on the commandline with checkpoints in case of a crash.
 		RunAll,						//Run all the tests that are supported
 		RunFilter,                  //
 		Quit						//quit the app when tests are done
@@ -118,6 +122,7 @@ public:
 		}
 		return false;
 	}
+
 	
 	void GenerateTestNamesFromCommandLine(const TArray<FString>& AllTestNames, TArray<FString>& OutTestNames)
 	{
@@ -147,6 +152,24 @@ public:
 					TestCount++;
 					break;
 				}
+			}
+		}
+		// If we have the TestsRun array set up and are using the same command as before, clear out already run tests. 
+		if (TestsRun.Num() > 0)
+		{
+			if (TestsRun[0] == StringCommand)
+			{
+				for (int i = 1; i < TestsRun.Num(); i++)	
+				{
+					if (OutTestNames.Remove(TestsRun[i]))
+					{
+						OutputDevice->Logf(TEXT("Skipping %s due to Checkpoint."), *TestsRun[i]);
+					}
+				}
+			}
+			else
+			{
+				AutomationController->CleanUpCheckpointFile();
 			}
 		}
 	}
@@ -196,6 +219,29 @@ public:
 			{
 				AutomationController->StopTests();
 				AutomationController->SetEnabledTests(FilteredTestNames);
+				bRunTests = true;
+			}
+			else
+			{
+				AutomationTestState = EAutomationTestState::Complete;
+			}
+		}
+		else if (AutomationCommand == EAutomationCommand::RunCheckpointTests)
+		{
+			TArray <FString> FilteredTestNames;
+			GenerateTestNamesFromCommandLine(AllTestNames, FilteredTestNames);
+			if (FilteredTestNames.Num())
+			{
+				AutomationController->StopTests();
+				AutomationController->SetEnabledTests(FilteredTestNames);
+				if (TestsRun.Num())
+				{
+					AutomationController->WriteLoadedCheckpointDataToFile();
+				}
+				else
+				{
+					AutomationController->WriteLineToCheckpointFile(StringCommand);
+				}
 				bRunTests = true;
 			}
 			else
@@ -356,6 +402,73 @@ public:
 					Ar.Logf(TEXT("Running all tests matching substring: %s"), *StringCommand);
 					AutomationCommandQueue.Add(EAutomationCommand::RunCommandLineTests);
 				}
+				else if (FParse::Command(&TempCmd, TEXT("RunCheckpointedTests")))
+				{
+					StringCommand = TempCmd;
+					Ar.Logf(TEXT("Running all tests with checkpoints matching substring: %s"), *StringCommand);
+					AutomationCommandQueue.Add(EAutomationCommand::RunCheckpointTests);
+					TestsRun = AutomationController->GetCheckpointFileContents();
+					AutomationController->CleanUpCheckpointFile();
+				}
+				else if (FParse::Command(&TempCmd, TEXT("SetMinimumPriority")))
+				{
+					StringCommand = TempCmd;
+					Ar.Logf(TEXT("Setting minimum priority of cases to run to: %s"), *StringCommand);
+					if (StringCommand.Contains(TEXT("Low")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::PriorityMask);
+					}
+					else if (StringCommand.Contains(TEXT("Medium")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::MediumPriority);
+					}
+					else if (StringCommand.Contains(TEXT("High")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::HighPriorityAndAbove);
+					}
+					else if (StringCommand.Contains(TEXT("Critical")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::ClientContext);
+					}
+					else if (StringCommand.Contains(TEXT("None")))
+					{
+						AutomationController->SetRequestedTestFlags(0);
+					}
+					else
+					{
+						Ar.Logf(TEXT("%s is not a valid priority!\nValid priorities are Critical, High, Medium, Low, None"), *StringCommand);
+					}
+				}
+				else if (FParse::Command(&TempCmd, TEXT("SetPriority")))
+				{
+					StringCommand = TempCmd;
+					Ar.Logf(TEXT("Setting explicit priority of cases to run to: %s"), *StringCommand);
+					if (StringCommand.Contains(TEXT("Low")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::LowPriority);
+					}
+					else if (StringCommand.Contains(TEXT("Medium")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::MediumPriority);
+					}
+					else if (StringCommand.Contains(TEXT("High")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::HighPriority);
+					}
+					else if (StringCommand.Contains(TEXT("Critical")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::CriticalPriority);
+					}
+					else if (StringCommand.Contains(TEXT("None")))
+					{
+						AutomationController->SetRequestedTestFlags(0);
+					}
+
+					else
+					{
+						Ar.Logf(TEXT("%s is not a valid priority!\nValid priorities are Critical, High, Medium, Low, None"), *StringCommand);
+					}
+				}
 				else if (FParse::Command(&TempCmd, TEXT("RunFilter")))
 				{
 					FlagToUse = TempCmd;
@@ -403,6 +516,9 @@ private:
 	/** The current state of the automation process */
 	EAutomationTestState::Type AutomationTestState;
 
+	/** The priority flags we would like to run */
+	EAutomationTestFlags::Type AutomationPriority;
+
 	/** What work was requested */
 	TArray<EAutomationCommand::Type> AutomationCommandQueue;
 
@@ -429,6 +545,13 @@ private:
 
 	//Dictionary that maps flag names to flag values.
 	TMap<FString, int32> FilterMaps;
+
+	//Test pass checkpoint backup file.
+	FArchive* CheckpointFile;
+
+	FString CheckpointCommand;
+
+	TArray<FString> TestsRun;
 };
 
 static FAutomationExecCmd AutomationExecCmd;

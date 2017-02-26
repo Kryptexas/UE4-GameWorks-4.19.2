@@ -245,9 +245,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Settings)
 	virtual void SetToDefaults();
 
-	/** Gets the desired resolution quality based on DesiredScreenHeight and the current screen resolution */
+	/** Gets the desired resolution quality based on DesiredScreenWidth/Height and the current screen resolution */
 	UFUNCTION(BlueprintCallable, Category=Settings)
 	virtual float GetDefaultResolutionScale();
+
+	/** Gets the recommended resolution quality based on LastRecommendedScreenWidth/Height and the current screen resolution */
+	UFUNCTION(BlueprintCallable, Category = Settings)
+	virtual float GetRecommendedResolutionScale();
 
 	/** Loads the resolution settings before is object is available */
 	static void PreloadResolutionSettings();
@@ -283,12 +287,19 @@ public:
 	virtual void ApplyHardwareBenchmarkResults();
 
 	/** Whether the curently running system supports HDR display output */
-	UFUNCTION(BlueprintCallable, Category=Settings)
-	bool SupportsHDRDisplayOutput();
+	UFUNCTION(BlueprintCallable, Category=Settings, meta = (DisplayName = "Supports HDR Display Output"))
+	virtual bool SupportsHDRDisplayOutput() const;
 
 	/** Enables or disables HDR display output. Can be called again to change the desired nit level */
-	UFUNCTION(BlueprintCallable, Category=Settings)
+	UFUNCTION(BlueprintCallable, Category=Settings, meta=(DisplayName = "Enable HDR Display Output"))
 	void EnableHDRDisplayOutput(bool bEnable, int32 DisplayNits = 1000);
+
+	/** Returns 0 if HDR isn't supported or is turned off */
+	UFUNCTION(BlueprintCallable, Category = Settings, meta = (DisplayName = "Get Current HDR Display Nits"))
+	int32 GetCurrentHDRDisplayNits() const;
+
+	UFUNCTION(BlueprintCallable, Category = Settings, meta = (DisplayName = "Is HDR Enabled"))
+	bool IsHDREnabled() const;
 
 	/** Whether to use VSync or not. (public to allow UI to connect to it) */
 	UPROPERTY(config)

@@ -556,7 +556,7 @@ void USkinnedMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Proper
 			GEngine->TriggerStreamingDataRebuild();
 		}
 	}
-}
+} 
 
 bool USkinnedMeshComponent::CanEditChange(const UProperty* InProperty) const
 {

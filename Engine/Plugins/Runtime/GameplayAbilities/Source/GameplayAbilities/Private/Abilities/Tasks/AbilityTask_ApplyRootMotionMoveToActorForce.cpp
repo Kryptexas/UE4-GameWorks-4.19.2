@@ -9,6 +9,9 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Net/UnrealNetwork.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
+
+
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 int32 DebugMoveToActorForce = 0;
@@ -34,6 +37,14 @@ UAbilityTask_ApplyRootMotionMoveToActorForce::UAbilityTask_ApplyRootMotionMoveTo
 	TimeMappingCurve = nullptr;
 	TargetLerpSpeedHorizontalCurve = nullptr;
 	TargetLerpSpeedVerticalCurve = nullptr;
+}
+
+void UAbilityTask_ApplyRootMotionMoveToActorForce::OnTargetActorSwapped(class AActor * OriginalTarget, class AActor* NewTarget)
+{
+	if (OriginalTarget && OriginalTarget == TargetActor)
+	{
+		TargetActor = NewTarget;
+	}
 }
 
 UAbilityTask_ApplyRootMotionMoveToActorForce* UAbilityTask_ApplyRootMotionMoveToActorForce::ApplyRootMotionMoveToActorForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, AActor* TargetActor, FVector TargetLocationOffset, ERootMotionMoveToActorTargetOffsetType OffsetAlignment, float Duration, UCurveFloat* TargetLerpSpeedHorizontal, UCurveFloat* TargetLerpSpeedVertical, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish, float ClampVelocityOnFinish, bool bDisableDestinationReachedInterrupt)
@@ -286,7 +297,10 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::TickTask(float DeltaTime)
 			if (!bIsSimulating)
 			{
 				MyActor->ForceNetUpdate();
-				OnFinished.Broadcast(bReachedDestination, bTimedOut, TargetLocation);
+				if (ShouldBroadcastAbilityTaskDelegates())
+				{
+					OnFinished.Broadcast(bReachedDestination, bTimedOut, TargetLocation);
+				}
 				EndTask();
 			}
 		}
@@ -326,6 +340,11 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::PreDestroyFromReplication()
 
 void UAbilityTask_ApplyRootMotionMoveToActorForce::OnDestroy(bool AbilityIsEnding)
 {
+	if (TargetActorSwapHandle.IsValid())
+	{
+		UAbilityTask_ApplyRootMotion_Base::OnTargetActorSwapped.Remove( TargetActorSwapHandle );
+	}
+
 	if (MovementComponent)
 	{
 		MovementComponent->RemoveRootMotionSourceByID(RootMotionSourceID);
@@ -338,3 +357,34 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::OnDestroy(bool AbilityIsEndin
 
 	Super::OnDestroy(AbilityIsEnding);
 }
+
+UAbilityTask_ApplyRootMotionMoveToActorForce* UAbilityTask_ApplyRootMotionMoveToActorForce::ApplyRootMotionMoveToTargetDataActorForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FGameplayAbilityTargetDataHandle TargetDataHandle, int32 TargetDataIndex, int32 TargetActorIndex, FVector TargetLocationOffset, ERootMotionMoveToActorTargetOffsetType OffsetAlignment, float Duration, UCurveFloat* TargetLerpSpeedHorizontal, UCurveFloat* TargetLerpSpeedVertical, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish, float ClampVelocityOnFinish, bool bDisableDestinationReachedInterrupt)
+{
+	if (TargetDataIndex >= 0 && TargetDataIndex < TargetDataHandle.Num())
+	{
+		FGameplayAbilityTargetData* TargetData = TargetDataHandle.Get(TargetDataIndex);
+		
+		if (TargetData)
+		{
+			TArray<TWeakObjectPtr<AActor> > Actors = TargetData->GetActors();
+
+			if (TargetActorIndex >= 0 && TargetActorIndex < Actors.Num())
+			{
+				if (Actors[TargetActorIndex].IsValid())
+				{
+					AActor* TargetActor = Actors[TargetActorIndex].Get();
+					UAbilityTask_ApplyRootMotionMoveToActorForce* retVal = ApplyRootMotionMoveToActorForce(OwningAbility, TaskInstanceName, TargetActor, TargetLocationOffset, OffsetAlignment, Duration, TargetLerpSpeedHorizontal, TargetLerpSpeedVertical, bSetNewMovementMode, MovementMode, bRestrictSpeedToExpected, PathOffsetCurve, TimeMappingCurve, VelocityOnFinishMode, SetVelocityOnFinish, ClampVelocityOnFinish, bDisableDestinationReachedInterrupt);
+
+					if (TargetData->ShouldCheckForTargetActorSwap())
+					{
+						retVal->TargetActorSwapHandle = UAbilityTask_ApplyRootMotion_Base::OnTargetActorSwapped.AddUObject( retVal, &ThisClass::OnTargetActorSwapped );
+					}
+					return retVal;
+				}
+			}
+		}
+	}
+
+	return nullptr;
+}
+

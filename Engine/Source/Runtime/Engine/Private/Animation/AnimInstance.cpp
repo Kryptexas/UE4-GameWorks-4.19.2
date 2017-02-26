@@ -1132,7 +1132,8 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 		const TArray<SmartName::UID_Type>& UIDList = *InCurve.UIDList;
 		for (int32 CurveId = 0; CurveId < InCurve.UIDList->Num(); ++CurveId)
 		{
-			if (ensureAlwaysMsgf(InCurve.Elements.IsValidIndex(CurveId), TEXT("%s Animation Instance contains out of bound UIDList."), *GetClass()->GetName()))
+			if (ensureAlwaysMsgf(InCurve.Elements.IsValidIndex(CurveId), TEXT("%s Animation Instance contains out of bound UIDList."), *GetClass()->GetName())
+				&& InCurve.Elements[CurveId].IsValid())
 			{
 				// had to add to another data type
 				AddCurveValue(UIDList[CurveId], InCurve.Elements[CurveId].Value);

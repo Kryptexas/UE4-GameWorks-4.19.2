@@ -32,7 +32,10 @@ void UAbilityTask_WaitDelay::Activate()
 
 void UAbilityTask_WaitDelay::OnTimeFinish()
 {
-	OnFinish.Broadcast();
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		OnFinish.Broadcast();
+	}
 	EndTask();
 }
 

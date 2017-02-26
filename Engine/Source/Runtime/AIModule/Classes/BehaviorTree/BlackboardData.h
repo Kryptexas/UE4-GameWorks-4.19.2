@@ -86,6 +86,8 @@ public:
 	/** @return key data */
 	const FBlackboardEntry* GetKey(FBlackboard::FKey KeyID) const;
 
+	const TArray<FBlackboardEntry>& GetKeys() const { return Keys; }
+
 	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;

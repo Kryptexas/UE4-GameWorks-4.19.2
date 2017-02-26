@@ -27,7 +27,7 @@ DEFINE_STAT(STAT_GPUSkinCache_SkippedForOutOfECS);
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkinCache, Log, All);
 
-int32 GEnableGPUSkinCacheShaders = 0;
+static int32 GEnableGPUSkinCacheShaders = 0;
 static FAutoConsoleVariableRef CVarEnableGPUSkinCacheShaders(
 	TEXT("r.SkinCache.CompileShaders"),
 	GEnableGPUSkinCacheShaders,
@@ -73,6 +73,14 @@ TAutoConsoleVariable<int32> CVarGPUSkinCacheRecomputeTangents(
 	ECVF_RenderThreadSafe
 	);
 
+static int32 GForceRecomputeTangents = 0;
+FAutoConsoleVariableRef CVarGPUSkinCacheForceRecomputeTangents(
+	TEXT("r.SkinCache.ForceRecomputeTangents"),
+	GForceRecomputeTangents,
+	TEXT("Forces enabling/using the skincache and forces all skinned object to Recompute Tangents\n"),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly
+);
+
 static int32 GMaxGPUSkinCacheElementsPerFrame = 1000;
 static FAutoConsoleVariableRef CVarMaxGPUSkinCacheElementsPerFrame(
 	TEXT("r.SkinCache.MaxGPUElementsPerFrame"),
@@ -98,19 +106,25 @@ static TAutoConsoleVariable<float> CVarGPUSkinCacheDebug(
 	ECVF_RenderThreadSafe
 	);
 
+
+bool IsGPUSkinCacheAvailable()
+{
+	return GEnableGPUSkinCacheShaders != 0 || GForceRecomputeTangents != 0;
+}
+
 // We don't have it always enabled as it's not clear if this has a performance cost
 // Call on render thread only!
 // Should only be called if SM5 (compute shaders, atomics) are supported.
 ENGINE_API bool DoSkeletalMeshIndexBuffersNeedSRV()
 {
 	// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
-	return (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_METAL_SM5) && GEnableGPUSkinCacheShaders != 0;
+	return (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_METAL_SM5) && IsGPUSkinCacheAvailable();
 }
 
 ENGINE_API bool DoRecomputeSkinTangentsOnGPU_RT()
 {
 	// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
-	return (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_METAL_SM5) && GEnableGPUSkinCacheShaders && GEnableGPUSkinCache && CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread() != 0;
+	return (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_METAL_SM5) && GEnableGPUSkinCacheShaders != 0 && ((GEnableGPUSkinCache && CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread() != 0) || GForceRecomputeTangents != 0);
 }
 
 TGlobalResource<FGPUSkinCache> GGPUSkinCache;
@@ -255,7 +269,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return GEnableGPUSkinCacheShaders && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsGPUSkinCacheAvailable() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -326,7 +340,7 @@ void FGPUSkinCache::Initialize(FRHICommandListImmediate& RHICmdList)
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BasePassOutputsVelocity"));
 	checkf(!CVar || CVar->GetValueOnRenderThread() == 0, TEXT("GPU Skin caching is not allowed with outputting velocity on base pass (r.BasePassOutputsVelocity=1)"));
 
-	checkf(GEnableGPUSkinCacheShaders, TEXT("GPU Skin caching requires the shaders enabled (r.SkinCache.CompileShaders=1)"));
+	checkf(IsGPUSkinCacheAvailable(), TEXT("GPU Skin caching requires the shaders enabled (r.SkinCache.CompileShaders=1)"));
 
 	int32 NumFloatsPerBuffer = GGPUSkinCacheBufferSize / GPUSKINCACHE_FRAMES / sizeof(float);
 	for (int32 Index = 0; Index < GPUSKINCACHE_FRAMES; ++Index)
@@ -589,7 +603,7 @@ int32 FGPUSkinCache::StartCacheMesh(FRHICommandListImmediate& RHICmdList, uint32
 	
 	TargetVertexFactory->UpdateVertexDeclaration(VertexFactory, DispatchData.SkinCacheBuffer);
 
-	int32 RecomputeTangentsMode = CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread();
+	int32 RecomputeTangentsMode = GForceRecomputeTangents > 0 ? 1 : CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread();
 	if (RecomputeTangentsMode > 0)
 	{
 		if (BatchElement.bRecomputeTangent || RecomputeTangentsMode == 1)
@@ -1088,7 +1102,7 @@ void FGPUSkinCache::CVarSinkFunction()
 	// 0/1
 	int32 NewGPUSkinCacheValue = CVarEnableGPUSkinCache.GetValueOnAnyThread() != 0;
 
-	if (!GEnableGPUSkinCacheShaders)
+	if (!IsGPUSkinCacheAvailable())
 	{
 		NewGPUSkinCacheValue = 0;
 	}

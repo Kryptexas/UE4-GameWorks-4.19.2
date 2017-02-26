@@ -530,6 +530,7 @@ public:
 
 	FORCEINLINE bool IsFinished() const { return Status != EEnvQueryStatus::Processing; }
 	FORCEINLINE bool IsAborted() const { return Status == EEnvQueryStatus::Aborted; }
+	FORCEINLINE bool IsSuccsessful() const { return Status == EEnvQueryStatus::Success; }
 	FORCEINLINE void MarkAsMissingParam() { Status = EEnvQueryStatus::MissingParam; }
 	FORCEINLINE void MarkAsAborted() { Status = EEnvQueryStatus::Aborted; }
 	FORCEINLINE void MarkAsFailed() { Status = EEnvQueryStatus::Failed; }
@@ -921,7 +922,7 @@ public:
 #	define  UE_EQS_DBGMSG(Condition, Format, ...) \
 					if (Condition) \
 					{ \
-						Instance->ItemDetails[CurrentItem].FailedDescription = FString::Printf(Format, ##__VA_ARGS__); \
+						Instance.ItemDetails[CurrentItem].FailedDescription = FString::Printf(Format, ##__VA_ARGS__); \
 					}
 
 #	define UE_EQS_LOG(CategoryName, Verbosity, Format, ...) \
@@ -936,13 +937,63 @@ public:
 	FString GetExecutionTimeDescription() const;
 
 #if CPP || UE_BUILD_DOCS
-	struct AIMODULE_API ItemIterator
+	/** Note that this iterator is for read-only purposes. Please use FItemIterator for regular item iteration 
+	 *	while performing EQS testing and scoring */
+	struct AIMODULE_API FConstItemIterator
 	{
-		ItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance, int32 StartingItemIndex = INDEX_NONE);
-
-		~ItemIterator()
+		FConstItemIterator(FEnvQueryInstance& QueryInstance, int32 StartingItemIndex = INDEX_NONE)
+			: Instance(QueryInstance)
+			, CurrentItem(StartingItemIndex != INDEX_NONE ? StartingItemIndex : QueryInstance.CurrentTestStartingItem)
 		{
-			Instance->CurrentTestStartingItem = CurrentItem;
+			if (StartingItemIndex != INDEX_NONE)
+			{
+				CurrentItem = StartingItemIndex;
+			}
+			else
+			{
+				CurrentItem = QueryInstance.CurrentTestStartingItem;
+				if (Instance.Items.IsValidIndex(CurrentItem) == false || Instance.Items[CurrentItem].IsValid() == false)
+				{
+					++(*this);
+				}
+			}
+		}
+
+		uint8* GetItemData()
+		{
+			return Instance.RawData.GetData() + Instance.Items[CurrentItem].DataOffset;
+		}
+
+		int32 GetIndex() const
+		{
+			return CurrentItem;
+		}
+
+		FORCEINLINE explicit operator bool() const
+		{
+			return CurrentItem < Instance.Items.Num();
+		}
+
+		void operator++()
+		{
+			++CurrentItem;
+			for (; CurrentItem < Instance.Items.Num() && !Instance.Items[CurrentItem].IsValid(); ++CurrentItem)
+				;
+		}
+
+	protected:
+
+		FEnvQueryInstance& Instance;
+		int32 CurrentItem;
+	};
+
+	struct AIMODULE_API FItemIterator : public FConstItemIterator
+	{
+		FItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance, int32 StartingItemIndex = INDEX_NONE);
+
+		~FItemIterator()
+		{
+			Instance.CurrentTestStartingItem = CurrentItem;
 		}
 
 		/** Filter and score an item - used by tests working on float values
@@ -1050,11 +1101,6 @@ public:
 			NumTestsForItem++;
 		}
 
-		uint8* GetItemData()
-		{
-			return Instance->RawData.GetData() + Instance->Items[CurrentItem].DataOffset;
-		}
-
 		/** Force state and score of item
 		 *  Any following SetScore calls for current item will be ignored
 		 */
@@ -1066,37 +1112,31 @@ public:
 		}
 
 		/** Disables time slicing for this iterator, use with caution! */
-		void IgnoreTimeLimit()
+		FItemIterator& IgnoreTimeLimit()
 		{
 			Deadline = -1.0f;
-		}
-
-		int32 GetIndex() const
-		{
-			return CurrentItem;
+			return *this;
 		}
 
 		FORCEINLINE explicit operator bool() const
 		{
-			return CurrentItem < Instance->Items.Num() && !Instance->bFoundSingleResult && (Deadline < 0 || FPlatformTime::Seconds() < Deadline);
+			return CurrentItem < Instance.Items.Num() && !Instance.bFoundSingleResult && (Deadline < 0 || FPlatformTime::Seconds() < Deadline);
 		}
 
 		void operator++()
 		{
 			StoreTestResult();
-			if (!Instance->bFoundSingleResult)
+			if (!Instance.bFoundSingleResult)
 			{
 				InitItemScore();
-				FindNextValidIndex();
+				FConstItemIterator::operator++();
 			}
 		}
 
 	protected:
 
-		FEnvQueryInstance* Instance;
 		double Deadline;
 		float ItemScore;
-		int32 CurrentItem;
 		int16 NumPassedForItem;
 		int16 NumTestsForItem;
 		uint8 CachedFilterOp;
@@ -1116,12 +1156,6 @@ public:
 
 		void HandleFailedTestResult();
 		void StoreTestResult();
-
-		FORCEINLINE void FindNextValidIndex()
-		{
-			for (CurrentItem++; CurrentItem < Instance->Items.Num() && !Instance->Items[CurrentItem].IsValid(); CurrentItem++)
-				;
-		}
 
 		FORCEINLINE void SetScoreInternal(float Score)
 		{
@@ -1170,6 +1204,7 @@ public:
 			}
 		}
 	};
+	typedef FItemIterator ItemIterator;
 #endif
 
 #undef UE_EQS_LOG

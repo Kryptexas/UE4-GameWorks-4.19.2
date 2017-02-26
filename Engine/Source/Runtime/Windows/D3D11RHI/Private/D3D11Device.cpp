@@ -214,8 +214,9 @@ FD3D11DynamicRHI::~FD3D11DynamicRHI()
 {
 	UE_LOG(LogD3D11RHI, Log, TEXT("~FD3D11DynamicRHI"));
 
-	check(Direct3DDeviceIMContext == nullptr);
-	check(Direct3DDevice == nullptr);
+	// Removed until shutdown crashes in exception handler are fixed.
+	//check(Direct3DDeviceIMContext == nullptr);
+	//check(Direct3DDevice == nullptr);
 }
 
 void FD3D11DynamicRHI::Shutdown()

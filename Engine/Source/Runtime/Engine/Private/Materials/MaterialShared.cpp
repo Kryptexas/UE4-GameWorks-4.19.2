@@ -1579,8 +1579,13 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 		}
 	}
 
+	UMaterialInterface* MaterialInterface = GetMaterialInterface();
+	const bool bMaterialInstance = MaterialInterface && MaterialInterface->IsA(UMaterialInstance::StaticClass());
+	const bool bSpecialEngineMaterial = !bMaterialInstance && IsSpecialEngineMaterial();
+
 	// Log which shader, pipeline or factory is missing when about to have a fatal error
-	const bool bLogShaderMapFailInfo = IsSpecialEngineMaterial() && (bContainsInlineShaders || FPlatformProperties::RequiresCookedData());
+	const bool bLogShaderMapFailInfo = bSpecialEngineMaterial && (bContainsInlineShaders || FPlatformProperties::RequiresCookedData());
+
 
 	bool bAssumeShaderMapIsComplete = false;
 #if UE_BUILD_SHIPPING || UE_BUILD_TEST
@@ -1603,10 +1608,23 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 	{
 		if (bContainsInlineShaders || FPlatformProperties::RequiresCookedData())
 		{
-			if (IsSpecialEngineMaterial())
+			if (bSpecialEngineMaterial)
 			{
+				UMaterialInterface* Interface = GetMaterialInterface();
+				FString Instance;
+				if (Interface)
+				{
+					Instance = Interface->GetPathName();
+				}
+
 				//assert if the default material's shader map was not found, since it will cause problems later
-				UE_LOG(LogMaterial, Fatal,TEXT("Failed to find shader map for default material %s!  Please make sure cooking was successful."), *GetFriendlyName());
+				UE_LOG(LogMaterial, Fatal,TEXT("Failed to find shader map for default material %s(%s)! Please make sure cooking was successful (%s inline shaders, %s GTSM%s)"),
+					*GetFriendlyName(),
+					*Instance,
+					bContainsInlineShaders ? TEXT("Contains") : TEXT("No"),
+					GameThreadShaderMap ? TEXT("has") : TEXT("null"),
+					bAssumeShaderMapIsComplete ? TEXT(" assumes map complete") : TEXT("")
+				);
 			}
 			else
 			{

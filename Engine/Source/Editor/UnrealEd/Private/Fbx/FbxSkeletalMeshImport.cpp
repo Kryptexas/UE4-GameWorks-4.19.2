@@ -1401,6 +1401,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		ExistSkelMeshDataPtr = SaveExistingSkelMeshData(ExistingSkelMesh, !ImportOptions->bImportMaterials);
 	}
 	
+
 	if (SkeletalMesh == nullptr)
 	{
 		// Create the new mesh after saving the old data, since it will replace the old skeletalmesh
@@ -2097,7 +2098,7 @@ void UnFbx::FFbxImporter::SetMaterialOrderByName(FSkeletalMeshImportData& Import
 	TMap<int32, int32> NameIndexGreaterThenMaterialArraySize;
 	{
 		int32 MaterialCount = ImportData.Materials.Num();
-
+		int32 MaxMaterialOrderedCount = 0;
 		bool bNeedsReorder = false;
 		for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
 		{
@@ -2114,6 +2115,7 @@ void UnFbx::FFbxImporter::SetMaterialOrderByName(FSkeletalMeshImportData& Import
 				{
 					if (OrderedIndex < MaterialCount)
 					{
+						MaxMaterialOrderedCount = FMath::Max(MaxMaterialOrderedCount, OrderedIndex+1);
 						NameIndexToMaterialIndex.Add(OrderedIndex, MaterialIndex);
 					}
 					else
@@ -2128,6 +2130,7 @@ void UnFbx::FFbxImporter::SetMaterialOrderByName(FSkeletalMeshImportData& Import
 			if (!bFoundValidName)
 			{
 				MissingNameSuffixMaterial.Add(MaterialIndex);
+				MaxMaterialOrderedCount = FMath::Max(MaxMaterialOrderedCount, MaterialIndex+1);
 			}
 		}
 
@@ -2135,18 +2138,22 @@ void UnFbx::FFbxImporter::SetMaterialOrderByName(FSkeletalMeshImportData& Import
 		{
 			//Add the missing name material at the end to not disturb the existing order
 			TArray<int32> OrderedListMissing;
-			OrderedListMissing.AddZeroed(NameIndexToMaterialIndex.Num() + MissingNameSuffixMaterial.Num());
+			OrderedListMissing.AddZeroed(MaxMaterialOrderedCount);
 			for (auto Kvp : NameIndexToMaterialIndex)
 			{
 				OrderedListMissing[Kvp.Key] = -1;
 			}
 			for (int32 OrderedListMissingIndex = 0; OrderedListMissingIndex < OrderedListMissing.Num(); ++OrderedListMissingIndex)
 			{
+				if (MissingNameSuffixMaterial.Num() <= 0)
+				{
+					break;
+				}
+
 				if (OrderedListMissing[OrderedListMissingIndex] != 0)
 					continue;
 
 				NameIndexToMaterialIndex.Add(OrderedListMissingIndex, MissingNameSuffixMaterial.Pop());
-				
 			}
 		}
 

@@ -618,6 +618,12 @@ FGameplayEffectSpec::FGameplayEffectSpec(const FGameplayEffectSpec& Other)
 	*this = Other;
 }
 
+FGameplayEffectSpec::FGameplayEffectSpec(const FGameplayEffectSpec& Other, const FGameplayEffectContextHandle& InEffectContext)
+{
+	*this = Other;
+	EffectContext = InEffectContext;
+}
+
 FGameplayEffectSpec::FGameplayEffectSpec(FGameplayEffectSpec&& Other)
 	: Def(Other.Def)
 	, ModifiedAttributes(MoveTemp(Other.ModifiedAttributes))
@@ -1936,13 +1942,14 @@ FAggregatorRef& FActiveGameplayEffectsContainer::FindOrCreateAttributeAggregator
 	
 	if (Attribute.IsSystemAttribute() == false)
 	{
-		NewAttributeAggregator->OnDirty.AddUObject(Owner, &UAbilitySystemComponent::OnAttributeAggregatorDirty, Attribute);
+		NewAttributeAggregator->OnDirty.AddUObject(Owner, &UAbilitySystemComponent::OnAttributeAggregatorDirty, Attribute, false);
+		NewAttributeAggregator->OnDirtyRecursive.AddUObject(Owner, &UAbilitySystemComponent::OnAttributeAggregatorDirty, Attribute, true);
 	}
 
 	return AttributeAggregatorMap.Add(Attribute, FAggregatorRef(NewAttributeAggregator));
 }
 
-void FActiveGameplayEffectsContainer::OnAttributeAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute)
+void FActiveGameplayEffectsContainer::OnAttributeAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute, bool bFromRecursiveCall)
 {
 	check(AttributeAggregatorMap.FindChecked(Attribute).Get() == Aggregator);
 
@@ -2002,7 +2009,7 @@ void FActiveGameplayEffectsContainer::OnAttributeAggregatorDirty(FAggregator* Ag
 		ABILITY_LOG(Log, TEXT("After Prediction, FinalValue: %.2f"), NewValue);
 	}
 
-	InternalUpdateNumericalAttribute(Attribute, NewValue, nullptr);
+	InternalUpdateNumericalAttribute(Attribute, NewValue, nullptr, bFromRecursiveCall);
 }
 
 void FActiveGameplayEffectsContainer::OnMagnitudeDependencyChange(FActiveGameplayEffectHandle Handle, const FAggregator* ChangedAgg)
@@ -2324,22 +2331,25 @@ void FActiveGameplayEffectsContainer::CaptureAttributeForGameplayEffect(OUT FGam
 	}
 }
 
-void FActiveGameplayEffectsContainer::InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData)
+void FActiveGameplayEffectsContainer::InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData, bool bFromRecursiveCall)
 {
 	ABILITY_LOG(Log, TEXT("Property %s new value is: %.2f"), *Attribute.GetName(), NewValue);
 	Owner->SetNumericAttribute_Internal(Attribute, NewValue);
-
-	FOnGameplayAttributeChange* Delegate = AttributeChangeDelegates.Find(Attribute);
-	if (Delegate)
+	
+	if (!bFromRecursiveCall)
 	{
-		// We should only have one: either cached CurrentModcallbackData, or explicit callback data passed directly in.
-		if (ModData && CurrentModcallbackData)
+		FOnGameplayAttributeChange* Delegate = AttributeChangeDelegates.Find(Attribute);
+		if (Delegate)
 		{
-			ABILITY_LOG(Warning, TEXT("Had passed in ModData and cached CurrentModcallbackData in FActiveGameplayEffectsContainer::InternalUpdateNumericalAttribute. For attribute %s on %s."), *Attribute.GetName(), *Owner->GetFullName() );
-		}
+			// We should only have one: either cached CurrentModcallbackData, or explicit callback data passed directly in.
+			if (ModData && CurrentModcallbackData)
+			{
+				ABILITY_LOG(Warning, TEXT("Had passed in ModData and cached CurrentModcallbackData in FActiveGameplayEffectsContainer::InternalUpdateNumericalAttribute. For attribute %s on %s."), *Attribute.GetName(), *Owner->GetFullName() );
+			}
 
-		// Broadcast dirty delegate. If we were given explicit mod data then pass it. 
-		Delegate->Broadcast(NewValue, ModData ? ModData : CurrentModcallbackData);
+			// Broadcast dirty delegate. If we were given explicit mod data then pass it. 
+			Delegate->Broadcast(NewValue, ModData ? ModData : CurrentModcallbackData);
+		}
 	}
 	CurrentModcallbackData = nullptr;
 }
@@ -3971,7 +3981,7 @@ void FActiveGameplayEffectsContainer::DebugCyclicAggregatorBroadcasts(FAggregato
 			{
 				ABILITY_LOG(Warning, TEXT(" Attribute %s was the triggered aggregator (%s)"), *Attribute.GetName(), *Owner->GetPathName());
 			}
-			else if (Aggregator->bIsBroadcastingDirty)
+			else if (Aggregator->BroadcastingDirtyCount > 0)
 			{
 				ABILITY_LOG(Warning, TEXT(" Attribute %s is broadcasting dirty (%s)"), *Attribute.GetName(), *Owner->GetPathName());
 			}

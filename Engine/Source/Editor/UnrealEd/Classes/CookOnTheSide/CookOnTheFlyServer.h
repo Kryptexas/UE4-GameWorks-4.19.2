@@ -26,22 +26,23 @@ enum class ESavePackageResult;
 
 enum class ECookInitializationFlags
 {
-	None =										0x0000, // No flags
-	Compressed =								0x0001, // will save compressed packages
-	Iterative =									0x0002, // use iterative cooking (previous cooks will not be cleaned unless detected out of date, experimental)
-	SkipEditorContent =							0x0004, // do not cook any content in the content\editor directory
-	Unversioned =								0x0008, // save the cooked packages without a version number
-	AutoTick =									0x0010, // enable ticking (only works in the editor)
-	AsyncSave =									0x0020, // save packages async
-	IncludeServerMaps =							0x0080, // should we include the server maps when cooking
-	UseSerializationForPackageDependencies =	0x0100, // should we use the serialization code path for generating package dependencies (old method will be deprecated)
-	BuildDDCInBackground =						0x0200, // build ddc content in background while the editor is running (only valid for modes which are in editor IsCookingInEditor())
-	GeneratedAssetRegistry =					0x0400, // have we generated asset registry yet
-	OutputVerboseCookerWarnings =				0x0800, // output additional cooker warnings about content issues
-	EnablePartialGC =							0x1000, // mark up with an object flag objects which are in packages which we are about to use or in the middle of using, this means we can gc more often but only gc stuff which we have finished with
-	TestCook =									0x2000, // test the cooker garbage collection process and cooking (cooker will never end just keep testing).
-	IterateOnHash =								0x4000, // when using iterative cooking use hashes of original files instead of timestamps
-	LogDebugInfo =								0x8000, // enables additional debug log information
+	None =										0x00000000, // No flags
+	Compressed =								0x00000001, // will save compressed packages
+	Iterative =									0x00000002, // use iterative cooking (previous cooks will not be cleaned unless detected out of date, experimental)
+	SkipEditorContent =							0x00000004, // do not cook any content in the content\editor directory
+	Unversioned =								0x00000008, // save the cooked packages without a version number
+	AutoTick =									0x00000010, // enable ticking (only works in the editor)
+	AsyncSave =									0x00000020, // save packages async
+	IncludeServerMaps =							0x00000080, // should we include the server maps when cooking
+	UseSerializationForPackageDependencies =	0x00000100, // should we use the serialization code path for generating package dependencies (old method will be deprecated)
+	BuildDDCInBackground =						0x00000200, // build ddc content in background while the editor is running (only valid for modes which are in editor IsCookingInEditor())
+	GeneratedAssetRegistry =					0x00000400, // have we generated asset registry yet
+	OutputVerboseCookerWarnings =				0x00000800, // output additional cooker warnings about content issues
+	EnablePartialGC =							0x00001000, // mark up with an object flag objects which are in packages which we are about to use or in the middle of using, this means we can gc more often but only gc stuff which we have finished with
+	TestCook =									0x00002000, // test the cooker garbage collection process and cooking (cooker will never end just keep testing).
+	IterateOnHash =								0x00004000, // when using iterative cooking use hashes of original files instead of timestamps
+	LogDebugInfo =								0x00008000, // enables additional debug log information
+	IterateSharedBuild =								0x00010000,
 };
 ENUM_CLASS_FLAGS(ECookInitializationFlags);
 
@@ -310,15 +311,53 @@ private:
 	struct FFilePlatformCookedPackage : public FFilePlatformRequest
 	{
 	private:
-		bool bSucceededSavePackage;
+		TArray<bool> bSucceededSavePackage; // one bool for each platform
 	public:
-		FFilePlatformCookedPackage(const FFilePlatformRequest& InFilePlatformRequest, bool bInSuccededSavePackage) : FFilePlatformRequest(InFilePlatformRequest.GetFilename(), InFilePlatformRequest.GetPlatformnames()), bSucceededSavePackage(bInSuccededSavePackage) { }
-		FFilePlatformCookedPackage(const FName& InFilename, const TArray<FName>& InPlatformname, bool bInSuccededSavePackage) : FFilePlatformRequest(InFilename, InPlatformname), bSucceededSavePackage(bInSuccededSavePackage) { }
-		FFilePlatformCookedPackage(const FName& InFilename, TArray<FName>&& InPlatformname, bool bInSuccededSavePackage) : FFilePlatformRequest(InFilename, MoveTemp(InPlatformname)), bSucceededSavePackage(bInSuccededSavePackage) { }
-		FFilePlatformCookedPackage(const FFilePlatformCookedPackage& InFilePlatformRequest) : FFilePlatformRequest(InFilePlatformRequest.Filename, InFilePlatformRequest.Platformnames), bSucceededSavePackage(InFilePlatformRequest.bSucceededSavePackage) { }
-		FFilePlatformCookedPackage(FFilePlatformCookedPackage&& InFilePlatformRequest) : FFilePlatformRequest(MoveTemp(InFilePlatformRequest.Filename), MoveTemp(InFilePlatformRequest.Platformnames)), bSucceededSavePackage(InFilePlatformRequest.bSucceededSavePackage) { }
+		FFilePlatformCookedPackage(const FFilePlatformRequest& InFilePlatformRequest, const TArray<bool>& bInSuccededSavePackage) : FFilePlatformRequest(InFilePlatformRequest.GetFilename(), InFilePlatformRequest.GetPlatformnames()), bSucceededSavePackage(bInSuccededSavePackage) { check(Platformnames.Num() == bSucceededSavePackage.Num()); }
+		FFilePlatformCookedPackage(const FName& InFilename, const TArray<FName>& InPlatformname) : FFilePlatformRequest(InFilename, InPlatformname)
+		{ 
+			// only use this constructor to short hand when packages fail
+			for ( int32 I = 0; I < InPlatformname.Num(); ++I )
+			{
+				bSucceededSavePackage.Add(false);
+			}
+			check(Platformnames.Num() == bSucceededSavePackage.Num());
+		}
+		FFilePlatformCookedPackage(const FName& InFilename, const TArray<FName>& InPlatformname, const TArray<bool>& bInSuccededSavePackage) : FFilePlatformRequest(InFilename, InPlatformname), bSucceededSavePackage(bInSuccededSavePackage) { check(Platformnames.Num() == bSucceededSavePackage.Num()); }
+		FFilePlatformCookedPackage(const FName& InFilename, TArray<FName>&& InPlatformname, const TArray<bool>&& bInSuccededSavePackage) : FFilePlatformRequest(InFilename, MoveTemp(InPlatformname)), bSucceededSavePackage(MoveTemp(bInSuccededSavePackage)) { check(Platformnames.Num() == bSucceededSavePackage.Num()); }
+		FFilePlatformCookedPackage(const FFilePlatformCookedPackage& InFilePlatformRequest) : FFilePlatformRequest(InFilePlatformRequest.Filename, InFilePlatformRequest.Platformnames), bSucceededSavePackage(InFilePlatformRequest.bSucceededSavePackage) { check(Platformnames.Num() == bSucceededSavePackage.Num());  }
+		FFilePlatformCookedPackage(FFilePlatformCookedPackage&& InFilePlatformRequest) : FFilePlatformRequest(MoveTemp(InFilePlatformRequest.Filename), MoveTemp(InFilePlatformRequest.Platformnames)), bSucceededSavePackage(InFilePlatformRequest.bSucceededSavePackage) { check(Platformnames.Num() == bSucceededSavePackage.Num()); }
 
-		inline const bool HasSucceededSavePackage() const { return bSucceededSavePackage; }
+		inline const void AddPlatform( const FName& Platform, bool bSucceeded )
+		{
+			check(Platformnames.Num() == bSucceededSavePackage.Num());
+			check(Platform != NAME_None);
+			Platformnames.Add(Platform);
+			bSucceededSavePackage.Add(bSucceeded);
+			check( Platformnames.Num() == bSucceededSavePackage.Num() );
+		}
+
+		inline void RemovePlatform(const FName &Platform)
+		{
+			check(Platformnames.Num() == bSucceededSavePackage.Num());
+			int32 Index = Platformnames.IndexOfByKey(Platform);
+			if (Index != -1)
+			{
+				Platformnames.RemoveAt(Index);
+				bSucceededSavePackage.RemoveAt(Index);
+			}
+			check(Platformnames.Num() == bSucceededSavePackage.Num());
+		}
+
+		inline const bool HasSucceededSavePackage(const FName& PlatformName) const 
+		{ 
+			int32 Index = Platformnames.IndexOfByKey(PlatformName);
+			if ( (Index != -1) && (Index < bSucceededSavePackage.Num()) )
+			{
+				return bSucceededSavePackage[Index]; 
+			}
+			return false;
+		}
 	};
 
 	/** Helper list of all files which have been cooked */
@@ -344,14 +383,15 @@ private:
 			check(Request.IsValid());
 
 			// see if it's already in the requests list
-			FFilePlatformRequest *ExistingRequest = FilesProcessed.Find(Request.GetFilename() );
+			FFilePlatformCookedPackage *ExistingRequest = FilesProcessed.Find(Request.GetFilename() );
 			
 			if ( ExistingRequest )
 			{
 				check( ExistingRequest->GetFilename() == Request.GetFilename() );
 				for ( const auto &Platform : Request.GetPlatformnames() )
 				{
-					ExistingRequest->AddPlatform(Platform);
+					const bool bSucceeded = Request.HasSucceededSavePackage(Platform);
+					ExistingRequest->AddPlatform(Platform, bSucceeded);
 				}
 			}
 			else
@@ -418,7 +458,16 @@ private:
 
 			if (bIncludeFailed == false)
 			{
-				if ( OurRequest->HasSucceededSavePackage() == false )
+				bool allFailed = true;
+				for ( const auto& PlatformName : PlatformNames )
+				{
+					if ( OurRequest->HasSucceededSavePackage(PlatformName) == false )
+					{
+						allFailed = false;
+						break;
+					}
+				}
+				if ( allFailed )
 				{
 					return false;
 				}
@@ -481,7 +530,7 @@ private:
 			{
 				if (CookedFile.Value.HasPlatform(PlatformName))
 				{
-					bool bHasSucceededSavePackage = CookedFile.Value.HasSucceededSavePackage();
+					bool bHasSucceededSavePackage = CookedFile.Value.HasSucceededSavePackage(PlatformName);
 					if ((bHasSucceededSavePackage && bGetSuccessfulCookedPackages) ||
 						((bHasSucceededSavePackage == false) && bGetFailedCookedPackages) )
 					CookedFiles.Add(CookedFile.Value.GetFilename());
@@ -832,6 +881,7 @@ private:
 	ECookInitializationFlags CookFlags;
 	TUniquePtr<class FSandboxPlatformFile> SandboxFile;
 	bool bIsInitializingSandbox; // stop recursion into callbacks when we are initializing sandbox
+	mutable bool bIgnoreMarkupPackageAlreadyLoaded; // avoid marking up packages as already loaded (want to put this around some functionality as we want to load packages fully some times)
 	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1025,6 +1075,12 @@ public:
 	 * look at the cookByTheBookOptions and ensure there isn't any conflicting settings
 	 */
 	void ValidateCookByTheBookSettings() const;
+
+	/**
+	 * ValidateCookOnTheFlySettings
+	 * look at the initialization flags and other cooker settings make sure the programmer that thought of checking them are ok
+	 */
+	void ValidateCookOnTheFlySettings() const;
 
 	/**
 	 * Queue a cook by the book cancel (you might want to do this instead of calling cancel directly so that you don't have to be in the game thread when canceling
@@ -1511,7 +1567,7 @@ private:
 	 *
 	 *	@return	ESavePackageResult::Success if packages was cooked
 	 */
-	ESavePackageResult SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate);
+	void SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<ESavePackageResult>& SavePackageResults);
 	/**
 	 *	Cook (save) the given package
 	 *
@@ -1523,7 +1579,7 @@ private:
 	 *
 	 *	@return	ESavePackageResult::Success if packages was cooked
 	 */
-	ESavePackageResult SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FName> &TargetPlatformNames);
+	void SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FName> &TargetPlatformNames, TArray<ESavePackageResult>& SavePackageResults);
 
 
 	/**
@@ -1549,6 +1605,17 @@ private:
 	 * @param Platforms to process
 	 */
 	void PopulateCookedPackagesFromDisk( const TArray<ITargetPlatform*>& Platforms );
+
+
+
+	/**
+	 * Searches the disk for all the cooked files in the sandbox path provided
+	 * Returns a map of the uncooked file path matches to the cooked file path for each package which exists
+	 *
+	 * @param UncookedpathToCookedPath out Map of the uncooked path matched with the cooked package which exists
+	 * @param SandboxPath path to search for cooked packages in
+	 */
+	void GetAllCookedFiles(TMap<FName, FName>& UncookedPathToCookedPath, const FString& SandboxPath);
 
 	/**
 	 * Verify the cooked package list hasn't got any packages which are out of date in it and remove any which are out of date deleting content from disk

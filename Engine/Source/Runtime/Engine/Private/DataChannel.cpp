@@ -49,6 +49,12 @@ static TAutoConsoleVariable<int> CVarNetProcessQueuedBunchesMillisecondLimit(
 	30,
 	TEXT("Time threshold for processing queued bunches. If it takes longer than this in a single frame, wait until the next frame to continue processing queued bunches. For unlimited time, set to 0."));
 
+static TAutoConsoleVariable<int32> CVarNetInstantReplayProcessQueuedBunchesMillisecondLimit(
+	TEXT("net.InstantReplayProcessQueuedBunchesMillisecondLimit"),
+	8,
+	TEXT("Time threshold for processing queued bunches during instant replays. If it takes longer than this in a single frame, wait until the next frame to continue processing queued bunches. For unlimited time, set to 0."));
+
+
 TAutoConsoleVariable<int32> CVarNetPartialBunchReliableThreshold(
 	TEXT("net.PartialBunchReliableThreshold"),
 	0,
@@ -307,7 +313,9 @@ bool UChannel::ReceivedSequencedBunch( FInBunch& Bunch )
 void UChannel::ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck )
 {
 	// Immediately consume the NetGUID portion of this bunch, regardless if it is partial or reliable.
-	if ( Bunch.bHasPackageMapExports )
+	// NOTE - For replays, we do this even earlier, to try and load this as soon as possible, in case there is an issue creating the channel
+	// If a replay fails to create a channel, we want to salvage as much as possible
+	if ( Bunch.bHasPackageMapExports && !Connection->InternalAck )
 	{
 		Cast<UPackageMapClient>( Connection->PackageMap )->ReceiveNetGUIDBunch( Bunch );
 
@@ -316,6 +324,11 @@ void UChannel::ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck )
 			UE_LOG( LogNetTraffic, Error, TEXT( "UChannel::ReceivedRawBunch: Bunch.IsError() after ReceiveNetGUIDBunch. ChIndex: %i" ), ChIndex );
 			return;
 		}
+	}
+
+	if ( Connection->InternalAck && Broken )
+	{
+		return;
 	}
 
 	check(Connection->Channels[ChIndex]==this);
@@ -618,7 +631,12 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 					return false;
 				}
 
-				check( !Connection->InternalAck );	// Shouldn't be possible for 100% reliable connections
+				if ( !ensure( !Connection->InternalAck ) )
+				{
+					// Shouldn't be possible for 100% reliable connections
+					Broken = 1;
+					return false;
+				}
 
 				// Don't ack this packet (since we won't process all of it)
 				bOutSkipAck = true;
@@ -1929,7 +1947,12 @@ bool UActorChannel::ProcessQueuedBunches()
 		}
 	}
 
-	const int BunchTimeLimit = CVarNetProcessQueuedBunchesMillisecondLimit.GetValueOnGameThread();
+	// Instant replays are played back in a duplicated level collection, so if this is instant replay
+	// playback, the driver's DuplicateLevelID will be something other than INDEX_NONE.
+	const int BunchTimeLimit = Connection->Driver->GetDuplicateLevelID() == INDEX_NONE ?
+		CVarNetProcessQueuedBunchesMillisecondLimit.GetValueOnGameThread() :
+		CVarNetInstantReplayProcessQueuedBunchesMillisecondLimit.GetValueOnGameThread();
+
 	const bool bHasTimeToProcess = BunchTimeLimit == 0 || Connection->Driver->ProcessQueuedBunchesCurrentFrameMilliseconds < BunchTimeLimit;
 
 	// We can process all of the queued up bunches if ALL of these are true:
@@ -2225,6 +2248,7 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 			if ( Connection->InternalAck )
 			{
 				UE_LOG( LogNet, Warning, TEXT( "UActorChannel::ProcessBunch: Replicator.ReceivedBunch failed (Ignoring because of InternalAck). RepObj: %s, Channel: %i" ), RepObj ? *RepObj->GetFullName() : TEXT( "NULL" ), ChIndex );
+				Broken = 1;
 				continue;		// Don't consider this catastrophic in replays
 			}
 

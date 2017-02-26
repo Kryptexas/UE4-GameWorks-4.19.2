@@ -47,6 +47,9 @@ UAbilitySystemComponent::UAbilitySystemComponent(const FObjectInitializer& Objec
 	AbilityLastActivatedTime = 0.f;
 
 	ReplicationMode = EReplicationMode::Full;
+
+	ClientActivateAbilityFailedStartTime = 0.f;
+	ClientActivateAbilityFailedCountRecent = 0;
 }
 
 const UAttributeSet* UAbilitySystemComponent::InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable)
@@ -1408,9 +1411,9 @@ void UAbilitySystemComponent::PrintAllGameplayEffects() const
 
 // ------------------------------------------------------------------------
 
-void UAbilitySystemComponent::OnAttributeAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute)
+void UAbilitySystemComponent::OnAttributeAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute, bool bFromRecursiveCall)
 {
-	ActiveGameplayEffects.OnAttributeAggregatorDirty(Aggregator, Attribute);
+	ActiveGameplayEffects.OnAttributeAggregatorDirty(Aggregator, Attribute, bFromRecursiveCall);
 }
 
 void UAbilitySystemComponent::OnMagnitudeDependencyChange(FActiveGameplayEffectHandle Handle, const FAggregator* ChangedAggregator)

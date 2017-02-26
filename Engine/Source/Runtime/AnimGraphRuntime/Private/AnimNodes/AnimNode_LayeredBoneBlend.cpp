@@ -41,24 +41,27 @@ void FAnimNode_LayeredBoneBlend::PostCompile(const class USkeleton* InSkeleton)
 
 void FAnimNode_LayeredBoneBlend::RebuildCacheData(const USkeleton* InSkeleton)
 {
-		// this shouldn't happen outside of editor
-#if !WITH_EDITOR
-	ensureAlways(false);
-#endif 		
-	if (InSkeleton)
+	// make sure it's inished post load yet, this might cause more things to cache in initialize instead of during cooking
+	if (InSkeleton && !(InSkeleton->GetFlags() & RF_NeedPostLoad))
 	{
 		FAnimationRuntime::CreateMaskWeights(PerBoneBlendWeights, LayerSetup, InSkeleton);
 		SkeletonGuid = InSkeleton->GetGuid();
+		VirtualBoneGuid = InSkeleton->GetVirtualBoneGuid();
 	}
+}
+
+bool FAnimNode_LayeredBoneBlend::IsCacheInvalid(const USkeleton* InSkeleton) const
+{
+	return (InSkeleton->GetGuid() != SkeletonGuid || InSkeleton->GetVirtualBoneGuid() != VirtualBoneGuid);
 }
 
 void FAnimNode_LayeredBoneBlend::ReinitializeBoneBlendWeights(const FBoneContainer& RequiredBones, const USkeleton* Skeleton)
 {
-	if (Skeleton->GetGuid() != SkeletonGuid)
+	if (IsCacheInvalid(Skeleton))
 	{
 		RebuildCacheData(Skeleton);
 	}
-
+	
 	// build desired bone weights
 	const TArray<FBoneIndexType>& RequiredBoneIndices = RequiredBones.GetBoneIndicesArray();
 	DesiredBoneBlendWeights.SetNumZeroed(RequiredBoneIndices.Num());
@@ -67,7 +70,7 @@ void FAnimNode_LayeredBoneBlend::ReinitializeBoneBlendWeights(const FBoneContain
 		int32 SkeletonIndex = RequiredBones.GetSkeletonIndex(FCompactPoseBoneIndex(RequiredBoneIndex));
 		DesiredBoneBlendWeights[RequiredBoneIndex] = PerBoneBlendWeights[SkeletonIndex];
 	}
-
+	
 	CurrentBoneBlendWeights.Reset(DesiredBoneBlendWeights.Num());
 	CurrentBoneBlendWeights.AddZeroed(DesiredBoneBlendWeights.Num());
 
@@ -105,12 +108,16 @@ void FAnimNode_LayeredBoneBlend::ReinitializeBoneBlendWeights(const FBoneContain
 void FAnimNode_LayeredBoneBlend::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	BasePose.CacheBones(Context);
-	for(int32 ChildIndex=0; ChildIndex<BlendPoses.Num(); ChildIndex++)
+	int32 NumPoses = BlendPoses.Num();
+	for(int32 ChildIndex=0; ChildIndex<NumPoses; ChildIndex++)
 	{
 		BlendPoses[ChildIndex].CacheBones(Context);
 	}
 
-	ReinitializeBoneBlendWeights(Context.AnimInstanceProxy->GetRequiredBones(), Context.AnimInstanceProxy->GetSkeleton());
+	if (NumPoses > 0)
+	{
+		ReinitializeBoneBlendWeights(Context.AnimInstanceProxy->GetRequiredBones(), Context.AnimInstanceProxy->GetSkeleton());
+	}
 }
 
 void FAnimNode_LayeredBoneBlend::Update(const FAnimationUpdateContext& Context)

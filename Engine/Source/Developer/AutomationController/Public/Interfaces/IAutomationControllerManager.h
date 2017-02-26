@@ -395,6 +395,16 @@ public:
 	 */
 	virtual const int32 GetNumberHistoryItemsTracking() const = 0;
 
+	virtual TArray<FString> GetCheckpointFileContents() = 0;
+
+	virtual FArchive* GetCheckpointFileForWrite() = 0;
+
+	virtual void CleanUpCheckpointFile() = 0;
+
+	virtual void WriteLoadedCheckpointDataToFile() = 0;
+
+	virtual void WriteLineToCheckpointFile(FString LineToWrite) = 0;
+
 public:
 
 	/**

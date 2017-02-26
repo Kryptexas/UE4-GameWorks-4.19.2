@@ -1032,22 +1032,24 @@ float UMaterialInstance::GetScalarParameterDefault(FName ParameterName, ERHIFeat
 		if (FApp::CanEverRender())
 		{
 			const FMaterialResource* SourceMaterialResource = GetMaterialResource(InFeatureLevel);
-			check(SourceMaterialResource);
-			const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = SourceMaterialResource->GetUniformScalarParameterExpressions();
-
-			// Iterate over each of the material's texture expressions.
-			for (int32 ExpressionIndex = 0; ExpressionIndex < UniformExpressions.Num(); ExpressionIndex++)
+			if (ensureAlways(SourceMaterialResource))
 			{
-				FMaterialUniformExpression* UniformExpression = UniformExpressions[ExpressionIndex];
-				if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
-				{
-					FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+				const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = SourceMaterialResource->GetUniformScalarParameterExpressions();
 
-					if (ScalarExpression->GetParameterName() == ParameterName)
+				// Iterate over each of the material's texture expressions.
+				for (int32 ExpressionIndex = 0; ExpressionIndex < UniformExpressions.Num(); ExpressionIndex++)
+				{
+					FMaterialUniformExpression* UniformExpression = UniformExpressions[ExpressionIndex];
+					if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
 					{
-						float Value = 0.f;
-						ScalarExpression->GetDefaultValue(Value);
-						return Value;
+						FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+
+						if (ScalarExpression->GetParameterName() == ParameterName)
+						{
+							float Value = 0.f;
+							ScalarExpression->GetDefaultValue(Value);
+							return Value;
+						}
 					}
 				}
 			}
@@ -2030,7 +2032,7 @@ void UMaterialInstance::PostLoad()
 	// Ensure that the instance's parent is PostLoaded before the instance.
 	if (Parent)
 	{
-		if (EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+		if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
 		{
 			check(!Parent->HasAnyFlags(RF_NeedLoad));
 		}

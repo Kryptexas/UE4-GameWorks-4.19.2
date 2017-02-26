@@ -517,8 +517,10 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					// MaterialParameterCollections will not be correct for this scene, should they be
 					// used.
 					ActiveSceneIndex = NumScenes - 1;
-#if WITH_EDITOR
+#if UE_BUILD_DEBUG
+	#if WITH_EDITOR
 					UE_LOG(LogSlate, Error, TEXT("Invalid scene index in batch: %d of %d known scenes!"), RenderBatch.SceneIndex, ResourceManager->GetSceneCount());
+	#endif
 #endif
 				}
 

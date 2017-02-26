@@ -22,7 +22,10 @@ void UAbilityTask_WaitGameplayEffectStackChange::Activate()
 {
 	if (Handle.IsValid() == false)
 	{
-		InvalidHandle.Broadcast(Handle, 0, 0);
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			InvalidHandle.Broadcast(Handle, 0, 0);
+		}
 		EndTask();
 		return;;
 	}
@@ -57,5 +60,8 @@ void UAbilityTask_WaitGameplayEffectStackChange::OnDestroy(bool AbilityIsEnding)
 
 void UAbilityTask_WaitGameplayEffectStackChange::OnGameplayEffectStackChange(FActiveGameplayEffectHandle InHandle, int32 NewCount, int32 OldCount)
 {
-	OnChange.Broadcast(InHandle, NewCount, OldCount);
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		OnChange.Broadcast(InHandle, NewCount, OldCount);
+	}
 }

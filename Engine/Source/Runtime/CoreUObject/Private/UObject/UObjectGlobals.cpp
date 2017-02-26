@@ -1035,10 +1035,16 @@ public:
 	{
 		Package->LinkerLoad = this;
 
-		while (CreateLoader(TFunction<void()>([]() {})) == FLinkerLoad::LINKER_TimedOut)
+		/*while (CreateLoader(TFunction<void()>([]() {})) == FLinkerLoad::LINKER_TimedOut)
 		{
-		}
+		}*/
 
+
+		
+
+		while ( Tick(0.0, false, false) == FLinkerLoad::LINKER_TimedOut ) 
+		{ 
+		}
 
 		FArchive* OtherFile = IFileManager::Get().CreateFileReader(DiffFilename);
 		FDiffFileArchive* DiffArchive = new FDiffFileArchive(Loader, OtherFile);

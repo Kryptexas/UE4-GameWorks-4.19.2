@@ -884,6 +884,8 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 
 	FGameplayEffectSpec(const FGameplayEffectSpec& Other);
 
+	FGameplayEffectSpec(const FGameplayEffectSpec& Other, const FGameplayEffectContextHandle& InEffectContext);		//For cloning, copy all attributes, but set a new effectContext.
+
 	FGameplayEffectSpec(FGameplayEffectSpec&& Other);
 
 	FGameplayEffectSpec& operator=(FGameplayEffectSpec&& Other);
@@ -1660,7 +1662,7 @@ private:
 	UPROPERTY()
 	TArray<FActiveGameplayEffect>	GameplayEffects_Internal;
 
-	void InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData);
+	void InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData, bool bFromRecursiveCall=false);
 
 	/** Cached pointer to current mod data needed for callbacks. We cache it in the AGE struct to avoid passing it through all the delegate/aggregator plumbing */
 	const struct FGameplayEffectModCallbackData* CurrentModcallbackData;
@@ -1730,7 +1732,7 @@ private:
 
 	FAggregatorRef& FindOrCreateAttributeAggregator(FGameplayAttribute Attribute);
 
-	void OnAttributeAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute);
+	void OnAttributeAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute, bool FromRecursiveCall=false);
 
 	void OnMagnitudeDependencyChange(FActiveGameplayEffectHandle Handle, const FAggregator* ChangedAgg);
 

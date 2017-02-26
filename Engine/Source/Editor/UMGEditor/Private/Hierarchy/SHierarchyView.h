@@ -9,6 +9,7 @@
 #include "WidgetBlueprintEditor.h"
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
 #include "Misc/TextFilter.h"
 #include "TreeFilterHandler.h"
 

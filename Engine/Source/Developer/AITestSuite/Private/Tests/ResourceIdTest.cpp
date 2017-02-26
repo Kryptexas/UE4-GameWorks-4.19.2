@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "AITypes.h"
-#include "Tests/AITestsCommon.h"
+#include "AITestsCommon.h"
 #include "Actions/TestPawnAction_Log.h"
 
 //----------------------------------------------------------------------//

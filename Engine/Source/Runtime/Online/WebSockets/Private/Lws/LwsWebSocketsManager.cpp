@@ -68,6 +68,7 @@ int FLwsWebSocketsManager::CallbackWrapper(lws* Connection, lws_callback_reasons
 	case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
 	case LWS_CALLBACK_CLIENT_WRITEABLE:
 	case LWS_CALLBACK_SERVER_WRITEABLE:
+	case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER:
 		break;
 	}
 
@@ -101,10 +102,10 @@ bool FLwsWebSocketsManager::Tick(float DeltaTime)
 	return true;
 }
 
-TSharedRef<IWebSocket> FLwsWebSocketsManager::CreateWebSocket(const FString& Url, const TArray<FString>& Protocols)
+TSharedRef<IWebSocket> FLwsWebSocketsManager::CreateWebSocket(const FString& Url, const TArray<FString>& Protocols, const FString& UpgradeHeader)
 {
 	check(LwsContext);
-	TSharedRef<IWebSocket> Socket = MakeShareable(new FLwsWebSocket(Url, Protocols, LwsContext));
+	TSharedRef<IWebSocket> Socket = MakeShareable(new FLwsWebSocket(Url, Protocols, LwsContext, UpgradeHeader));
 	Sockets.Emplace(Socket);
 	return Socket;
 }

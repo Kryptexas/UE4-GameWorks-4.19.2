@@ -308,10 +308,16 @@ void UDemoNetDriver::ClearReplayTasks()
 
 bool UDemoNetDriver::ProcessReplayTasks()
 {
+	// Store a shared pointer to the current task in a local variable so that if
+	// the task itself causes tasks to be cleared (for example, if it calls StopDemo()
+	// in StartTask() or Tick()), the current task won't be destroyed immediately.
+	TSharedPtr<FQueuedReplayTask> LocalActiveTask;
+
 	if ( !ActiveReplayTask.IsValid() && QueuedReplayTasks.Num() > 0 )
 	{
 		// If we don't have an active task, pull one off now
 		ActiveReplayTask = QueuedReplayTasks[0];
+		LocalActiveTask = ActiveReplayTask;
 		QueuedReplayTasks.RemoveAt( 0 );
 
 		UE_LOG( LogDemo, Verbose, TEXT( "UDemoNetDriver::ProcessReplayTasks. Name: %s" ), *ActiveReplayTask->GetName() );

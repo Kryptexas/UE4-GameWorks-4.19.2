@@ -2305,7 +2305,7 @@ void FPacketSimulationSettings::UnregisterCommands()
  */
 bool FPacketSimulationSettings::ParseSettings(const TCHAR* Cmd, const TCHAR* OptionalQualifier)
 {
-	UE_LOG(LogTemp, Warning, TEXT("ParseSettings for %s"), OptionalQualifier);
+	UE_LOG(LogTemp, Display, TEXT("ParseSettings for %s"), OptionalQualifier);
 	// note that each setting is tested.
 	// this is because the same function will be used to parse the command line as well
 	bool bParsed = false;

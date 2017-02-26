@@ -250,9 +250,9 @@ public:
 		if ( (bAllowLogVerbosity && Verbosity <= ELogVerbosity::Log) || (Verbosity <= ELogVerbosity::Display) )
 		{
 #if PLATFORM_USE_LS_SPEC_FOR_WIDECHAR
-			wprintf(TEXT("\n%ls"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
+			wprintf(TEXT("%ls\n"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
 #else
-			wprintf(TEXT("\n%s"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
+			wprintf(TEXT("%s\n"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
 #endif
 			fflush(stdout);
 		}
@@ -1730,6 +1730,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			}
 
 		}
+		else if ( IsRunningCommandlet() )
+		{
+			// Create the engine font services now that the Slate renderer is ready
+			FEngineFontServices::Create();
+		}
 #endif
 
 		// In order to be able to use short script package names get all script
@@ -3078,24 +3083,26 @@ void FEngineLoop::Tick()
 		if (bDoConcurrentSlateTick)
 		{
 			const float DeltaSeconds = FApp::GetDeltaTime();
-			UGameViewportClient* const GameViewport = GEngine->GameViewport;
-			ConcurrentTask = TGraphTask<FExecuteConcurrentWithSlateTickTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
-				[GameViewport, DeltaSeconds]()
-				{
-					if (CVarDoAsyncEndOfFrameTasksRandomize.GetValueOnAnyThread(true) > 0)
+			const UGameViewportClient* const GameViewport = GEngine->GameViewport;
+			const UWorld* const GameViewportWorld = GameViewport ? GameViewport->GetWorld() : nullptr;
+			UDemoNetDriver* const CurrentDemoNetDriver = GameViewportWorld ? GameViewportWorld->DemoNetDriver : nullptr;
+
+			if (CurrentDemoNetDriver && CurrentDemoNetDriver->ShouldTickFlushAsyncEndOfFrame())
+			{
+				ConcurrentTask = TGraphTask<FExecuteConcurrentWithSlateTickTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
+					[CurrentDemoNetDriver, DeltaSeconds]()
 					{
-						FPlatformProcess::Sleep(FMath::RandRange(0.0f, .003f)); // this shakes up the threading to find race conditions
-					}
-					if (GameViewport != nullptr)
-					{
-						UWorld* const World = GameViewport->GetWorld();
-						if (World && World->DemoNetDriver)
+						if (CVarDoAsyncEndOfFrameTasksRandomize.GetValueOnAnyThread(true) > 0)
 						{
-							World->DemoNetDriver->TickFlushAsyncEndOfFrame(DeltaSeconds);
+							FPlatformProcess::Sleep(FMath::RandRange(0.0f, .003f)); // this shakes up the threading to find race conditions
+						}
+						if (CurrentDemoNetDriver != nullptr)
+						{
+							CurrentDemoNetDriver->TickFlushAsyncEndOfFrame(DeltaSeconds);
 						}
 					}
-				}
-			);
+				);
+			}
 		}
 #endif
 

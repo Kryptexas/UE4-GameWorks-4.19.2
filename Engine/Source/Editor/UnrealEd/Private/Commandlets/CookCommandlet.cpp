@@ -1337,6 +1337,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	bool bTestCook = FParse::Param(*Params, TEXT("Testcook"));
 	CookFlags |= bTestCook ? ECookInitializationFlags::TestCook : ECookInitializationFlags::None;
 	CookFlags |= FParse::Param(*Params, TEXT("iteratehash")) ? ECookInitializationFlags::IterateOnHash : ECookInitializationFlags::None;
+	CookFlags |= FParse::Param(*Params, TEXT("iteratesharedbuild")) ? ECookInitializationFlags::IterateSharedBuild : ECookInitializationFlags::None;
 	CookFlags |= FParse::Param(*Params, TEXT("logdebuginfo")) ? ECookInitializationFlags::LogDebugInfo : ECookInitializationFlags::None;
 
 	// shared cooked build flags

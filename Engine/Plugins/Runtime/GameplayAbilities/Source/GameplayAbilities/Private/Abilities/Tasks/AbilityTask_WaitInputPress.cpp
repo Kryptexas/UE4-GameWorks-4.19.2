@@ -34,7 +34,10 @@ void UAbilityTask_WaitInputPress::OnPressCallback()
 	}
 
 	// We are done. Kill us so we don't keep getting broadcast messages
-	OnPress.Broadcast(ElapsedTime);
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		OnPress.Broadcast(ElapsedTime);
+	}
 	EndTask();
 }
 

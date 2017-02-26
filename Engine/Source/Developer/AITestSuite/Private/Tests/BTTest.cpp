@@ -4,7 +4,7 @@
 #include "BehaviorTree/BTCompositeNode.h"
 #include "BehaviorTree/Decorators/BTDecorator_ForceSuccess.h"
 #include "BTBuilder.h"
-#include "Tests/AITestsCommon.h"
+#include "AITestsCommon.h"
 #include "BehaviorTree/TestBTDecorator_CantExecute.h"
 
 #define LOCTEXT_NAMESPACE "AITestSuite_BTTest"

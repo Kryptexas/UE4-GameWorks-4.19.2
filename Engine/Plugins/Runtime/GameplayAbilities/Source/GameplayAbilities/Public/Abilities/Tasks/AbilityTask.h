@@ -115,6 +115,9 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UGameplayTask
 	/** Returns ActivationPredictionKey of owning ability */
 	FPredictionKey GetActivationPredictionKey() const;
 
+	/** This should be called prior to broadcasting delegates back into the ability graph. This makes sure the ability is still active.  */
+	bool ShouldBroadcastAbilityTaskDelegates() const;
+
 	virtual void InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent) override;
 
 	/** Helper function for instantiating and initializing a new task */

@@ -16,6 +16,7 @@
 #include "LevelSequenceSpawnRegister.h"
 #include "Engine/Engine.h"
 #include "Engine/LevelStreaming.h"
+#include "Engine/LocalPlayer.h"
 #include "Tracks/MovieSceneCinematicShotTrack.h"
 #include "Sections/MovieSceneCinematicShotSection.h"
 #include "LevelSequenceActor.h"
@@ -185,6 +186,10 @@ void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* Unloc
 	if (!LastViewTarget.IsValid())
 	{
 		LastViewTarget = ViewTarget;
+		if (PC->GetLocalPlayer())
+		{
+			LastAspectRatioAxisConstraint = PC->GetLocalPlayer()->AspectRatioAxisConstraint;
+		}
 	}
 
 	UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromRuntimeObject(CameraObject);
@@ -228,6 +233,11 @@ void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* Unloc
 
 	FViewTargetTransitionParams TransitionParams;
 	PC->SetViewTarget(CameraActor, TransitionParams);
+
+	if (PC->GetLocalPlayer())
+	{
+		PC->GetLocalPlayer()->AspectRatioAxisConstraint = EAspectRatioAxisConstraint::AspectRatio_MaintainXFOV;
+	}
 
 	if (CameraComponent)
 	{

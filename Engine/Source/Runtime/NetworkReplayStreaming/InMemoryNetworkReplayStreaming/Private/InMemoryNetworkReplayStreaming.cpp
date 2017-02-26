@@ -132,9 +132,7 @@ bool FInMemoryNetworkReplayStreamer::IsDataAvailable() const
 	// Assumptions:
 	// 1. All streamer instances run on the same thread, not simultaneously
 	// 2. A recording DemoNetDriver will write either no frames or entire frames each time it ticks
-	check(StreamerState == EStreamerState::Playback);
-
-	return FileAr.IsValid() && FileAr->Tell() < FileAr->TotalSize();
+	return StreamerState == EStreamerState::Playback && FileAr.IsValid() && FileAr->Tell() < FileAr->TotalSize();
 }
 
 bool FInMemoryNetworkReplayStreamer::IsLive() const
@@ -405,23 +403,27 @@ void FInMemoryNetworkReplayStreamer::GotoTimeInMS(const uint32 TimeInMS, const F
 
 	FInMemoryReplay* FoundReplay = GetCurrentReplayChecked();
 
-	if ( FoundReplay->Checkpoints.Num() > 0 && TimeInMS >= FoundReplay->Checkpoints.Last().TimeInMS )
+	// Checkpoints are sorted by time. Look backwards through the array
+	// to find the one immediately preceding the target time.
+	for (int32 i = FoundReplay->Checkpoints.Num() - 1; i >= 0; --i)
 	{
-		// If we're after the very last checkpoint, that's the one we want
-		CheckpointIndex = FoundReplay->Checkpoints.Num() - 1;
-	}
-	else
-	{
-		// Checkpoints should be sorted by time, return the checkpoint that exists right before the current time
-		// For fine scrubbing, we'll fast forward the rest of the way
-		// NOTE - If we're right before the very first checkpoint, we'll return -1, which is what we want when we want to start from the very beginning
-		for ( int i = 0; i < FoundReplay->Checkpoints.Num(); i++ )
+		if (FoundReplay->Checkpoints[i].TimeInMS <= TimeInMS)
 		{
-			if ( TimeInMS < FoundReplay->Checkpoints[i].TimeInMS )
-			{
-				CheckpointIndex = i - 1;
-				break;
-			}
+			CheckpointIndex = i;
+			break;
+		}
+	}
+
+	if (CheckpointIndex == -1)
+	{
+		// No checkpoint was found. We may be going the beginning of the stream without an explicit
+		// checkpoint, but if the target time is before the start time of the first stream chunk,
+		// the data was likely discarded due to the TimeBufferHintSeconds value and we can't do anything
+		// except report an error.
+		if (FoundReplay->StreamChunks.Num() == 0 || FoundReplay->StreamChunks[0].TimeInMS > TimeInMS)
+		{
+			Delegate.ExecuteIfBound(false, TimeInMS);
+			return;
 		}
 	}
 

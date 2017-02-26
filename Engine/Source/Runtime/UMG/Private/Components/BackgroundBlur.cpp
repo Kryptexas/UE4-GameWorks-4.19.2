@@ -35,8 +35,7 @@ void UBackgroundBlur::ReleaseSlateResources(bool bReleaseChildren)
 
 UClass* UBackgroundBlur::GetSlotClass() const
 {
-	//return UBackgroundBlurSlot::StaticClass();
-	return Super::GetSlotClass();
+	return UBackgroundBlurSlot::StaticClass();
 }
 
 TSharedRef<SWidget> UBackgroundBlur::RebuildWidget()
@@ -45,8 +44,7 @@ TSharedRef<SWidget> UBackgroundBlur::RebuildWidget()
 
 	if ( GetChildrenCount() > 0 )
 	{
-		//Cast<UBackgroundBlurSlot>(GetContentSlot())->BuildSlot(MyBackgroundBlur.ToSharedRef());
-		MyBackgroundBlur->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->TakeWidget() : SNullWidget::NullWidget);
+		Cast<UBackgroundBlurSlot>(GetContentSlot())->BuildSlot(MyBackgroundBlur.ToSharedRef());
 	}
 	
 	return BuildDesignTimeWidget(MyBackgroundBlur.ToSharedRef());
@@ -76,18 +74,12 @@ void UBackgroundBlur::OnSlotAdded(UPanelSlot* InSlot)
 	BackgroundBlurSlot->HorizontalAlignment = HorizontalAlignment;
 	BackgroundBlurSlot->VerticalAlignment = VerticalAlignment;
 
-	//// Add the child to the live slot if it already exists
-	//if (MyBackgroundBlur.IsValid())
-	//{
-	//	// Construct the underlying slot
-	//	BackgroundBlurSlot->BuildSlot(MyBackgroundBlur.ToSharedRef());
-	//}
-
+	// Add the child to the live slot if it already exists
 	if (MyBackgroundBlur.IsValid())
 	{
-		MyBackgroundBlur->SetContent(InSlot->Content ? InSlot->Content->TakeWidget() : SNullWidget::NullWidget);
+		// Construct the underlying slot
+		BackgroundBlurSlot->BuildSlot(MyBackgroundBlur.ToSharedRef());
 	}
-
 }
 	
 void UBackgroundBlur::OnSlotRemoved(UPanelSlot* InSlot)
@@ -97,7 +89,8 @@ void UBackgroundBlur::OnSlotRemoved(UPanelSlot* InSlot)
 	{
 		MyBackgroundBlur->SetContent(SNullWidget::NullWidget);
 	}
-	}
+}
+
 void UBackgroundBlur::SetPadding(FMargin InPadding)
 {
 	Padding = InPadding;

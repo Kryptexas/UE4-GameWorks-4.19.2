@@ -7,6 +7,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Character.h"
 
+FOnTargetActorSwapped UAbilityTask_ApplyRootMotion_Base::OnTargetActorSwapped;
+
 UAbilityTask_ApplyRootMotion_Base::UAbilityTask_ApplyRootMotion_Base(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

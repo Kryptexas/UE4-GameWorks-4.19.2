@@ -113,10 +113,10 @@ public:
 		return RawMessageEvent;
 	}
 
-	int LwsCallback(lws* Instance, lws_callback_reasons Reason, const void* Data, size_t Length);
+	int LwsCallback(lws* Instance, lws_callback_reasons Reason, void* Data, size_t Length);
 private:
 
-	FLwsWebSocket(const FString& Url, const TArray<FString>& Protocols, lws_context* Context);
+	FLwsWebSocket(const FString& Url, const TArray<FString>& Protocols, lws_context* Context, const FString& UpgradeHeader);
 	void SendFromQueue();
 	void FlushQueues();
 	void DelayConnectionError(const FString& Error);
@@ -131,6 +131,7 @@ private:
 	struct lws *LwsConnection;
 	FString Url;
 	TArray<FString> Protocols;
+	FString UpgradeHeader;
 
 	FString ReceiveBuffer;
 	TQueue<TSharedPtr<FLwsSendBuffer>, EQueueMode::Spsc> SendQueue;

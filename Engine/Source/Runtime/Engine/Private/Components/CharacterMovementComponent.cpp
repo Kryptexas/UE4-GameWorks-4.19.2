@@ -1613,7 +1613,10 @@ UPrimitiveComponent* UCharacterMovementComponent::GetMovementBase() const
 
 void UCharacterMovementComponent::SetBase( UPrimitiveComponent* NewBase, FName BoneName, bool bNotifyActor )
 {
-	if (CharacterOwner)
+	// prevent from changing Base while server is NavWalking (no Base in that mode), so both sides are in sync
+	// otherwise it will cause problems with position smoothing
+
+	if (CharacterOwner && !bIsNavWalkingOnServer)
 	{
 		CharacterOwner->SetBase(NewBase, NewBase ? BoneName : NAME_None, bNotifyActor);
 	}
@@ -6704,7 +6707,7 @@ void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation, c
 
 		// Don't let the client fall too far behind or run ahead of new server time.
 		const double ServerDeltaTime = ClientData->SmoothingServerTimeStamp - OldServerTimeStamp;
-		const double MaxDelta = FMath::Max<double>(ClientData->MaxMoveDeltaTime * 2.0, ServerDeltaTime * 1.25);
+		const double MaxDelta = FMath::Clamp(ServerDeltaTime * 1.25, 0.0, ClientData->MaxMoveDeltaTime * 2.0);
 		ClientData->SmoothingClientTimeStamp = FMath::Clamp(ClientData->SmoothingClientTimeStamp, ClientData->SmoothingServerTimeStamp - MaxDelta, ClientData->SmoothingServerTimeStamp);
 
 		// Compute actual delta between new server timestamp and client simulation.
@@ -8230,6 +8233,15 @@ bool UCharacterMovementComponent::ServerCheckClientError(float ClientTimeStamp, 
 	if (!bIgnoreClientMovementErrorChecksAndCorrection)
 	{
 		const FVector LocDiff = UpdatedComponent->GetComponentLocation() - ClientWorldLocation;
+
+#if ROOT_MOTION_DEBUG
+		if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+		{
+			FString AdjustedDebugString = FString::Printf(TEXT("ServerCheckClientError LocDiff(%.1f) ExceedsAllowablePositionError(%d) TimeStamp(%f)"),
+				LocDiff.Size(), GetDefault<AGameNetworkManager>()->ExceedsAllowablePositionError(LocDiff), ClientTimeStamp);
+			RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
+		}
+#endif
 		if (GetDefault<AGameNetworkManager>()->ExceedsAllowablePositionError(LocDiff))
 		{
 			return true;
@@ -8554,12 +8566,9 @@ void UCharacterMovementComponent::ClientAdjustPosition_Implementation
 	if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
 	{
 		const FVector VelocityCorrection = NewVelocity - Velocity;
-		if (!VelocityCorrection.IsNearlyZero())
-		{
-			FString AdjustedDebugString = FString::Printf(TEXT("PerformMovement ClientAdjustPosition_Implementation Velocity(%s) OldVelocity(%s) Correction(%s)"),
-				*NewVelocity.ToCompactString(), *Velocity.ToCompactString(), *VelocityCorrection.ToCompactString());
-			RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
-		}
+		FString AdjustedDebugString = FString::Printf(TEXT("PerformMovement ClientAdjustPosition_Implementation Velocity(%s) OldVelocity(%s) Correction(%s) TimeStamp(%f)"),
+			*NewVelocity.ToCompactString(), *Velocity.ToCompactString(), *VelocityCorrection.ToCompactString(), TimeStamp);
+		RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
 	}
 #endif
 
@@ -8696,6 +8705,15 @@ void UCharacterMovementComponent::ClientAdjustRootMotionSourcePosition_Implement
 		return;
 	}
 
+#if ROOT_MOTION_DEBUG
+	if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+	{
+		FString AdjustedDebugString = FString::Printf(TEXT("ClientAdjustRootMotionSourcePosition_Implementation TimeStamp(%f)"),
+			TimeStamp);
+		RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
+	}
+#endif
+
 	// Call ClientAdjustPosition first. This will Ack the move if it's not outdated.
 	ClientAdjustPosition(TimeStamp, ServerLoc, FVector(0.f, 0.f, ServerVelZ), ServerBase, ServerBaseBoneName, bHasBase, bBaseRelativePosition, ServerMovementMode);
 	
@@ -8775,6 +8793,14 @@ void UCharacterMovementComponent::ClientAckGoodMove_Implementation(float TimeSta
 	FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
 	check(ClientData);
 
+#if ROOT_MOTION_DEBUG
+	if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+	{
+		FString AdjustedDebugString = FString::Printf(TEXT("ClientAckGoodMove_Implementation TimeStamp(%f)"),
+			TimeStamp);
+		RootMotionSourceDebug::PrintOnScreen(*CharacterOwner, AdjustedDebugString);
+	}
+#endif
 
 	// Ack move if it has not expired.
 	int32 MoveIndex = ClientData->GetSavedMoveIndex(TimeStamp);

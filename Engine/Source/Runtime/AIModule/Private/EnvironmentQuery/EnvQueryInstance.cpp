@@ -517,9 +517,8 @@ void FEnvQueryInstance::ReserveItemData(const int32 NumAdditionalItems)
 	INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize());
 }
 
-FEnvQueryInstance::ItemIterator::ItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance, int32 StartingItemIndex)
-	: Instance(&QueryInstance)
-	, CurrentItem(StartingItemIndex != INDEX_NONE ? StartingItemIndex : QueryInstance.CurrentTestStartingItem)
+FEnvQueryInstance::FItemIterator::FItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance, int32 StartingItemIndex)
+	: FConstItemIterator(QueryInstance, StartingItemIndex)
 {
 	check(QueryTest);
 
@@ -528,32 +527,29 @@ FEnvQueryInstance::ItemIterator::ItemIterator(const UEnvQueryTest* QueryTest, FE
 	bIsFiltering = (QueryTest->TestPurpose == EEnvTestPurpose::Filter) || (QueryTest->TestPurpose == EEnvTestPurpose::FilterAndScore);
 
 	Deadline = QueryInstance.CurrentStepTimeLimit > 0.0 ? (FPlatformTime::Seconds() + QueryInstance.CurrentStepTimeLimit) : -1.0;
-	// it's possible item 'CurrentItem' has been already discarded. Find a valid starting index
-	--CurrentItem;
-	FindNextValidIndex();
 	InitItemScore();
 }
 
-void FEnvQueryInstance::ItemIterator::HandleFailedTestResult()
+void FEnvQueryInstance::FItemIterator::HandleFailedTestResult()
 {
 	ItemScore = -1.f;
-	Instance->Items[CurrentItem].Discard();
+	Instance.Items[CurrentItem].Discard();
 #if USE_EQS_DEBUGGER
-	Instance->ItemDetails[CurrentItem].FailedTestIndex = Instance->CurrentTest;
+	Instance.ItemDetails[CurrentItem].FailedTestIndex = Instance.CurrentTest;
 #endif
-	Instance->NumValidItems--;
+	Instance.NumValidItems--;
 }
 
-void FEnvQueryInstance::ItemIterator::StoreTestResult()
+void FEnvQueryInstance::FItemIterator::StoreTestResult()
 {
 	CheckItemPassed();
 	ensureAlways(FMath::IsNaN(ItemScore) == false);
 
 #if USE_EQS_DEBUGGER
-	Instance->NumProcessedItems++;
+	Instance.NumProcessedItems++;
 #endif // USE_EQS_DEBUGGER
 
-	if (Instance->IsInSingleItemFinalSearch())
+	if (Instance.IsInSingleItemFinalSearch())
 	{
 		// handle SingleResult mode
 		if (bPassed)
@@ -561,11 +557,11 @@ void FEnvQueryInstance::ItemIterator::StoreTestResult()
 			if (bForced)
 			{
 				// store item value in case it's using special "skipped" constant
-				Instance->ItemDetails[CurrentItem].TestResults[Instance->CurrentTest] = ItemScore;
+				Instance.ItemDetails[CurrentItem].TestResults[Instance.CurrentTest] = ItemScore;
 			}
 
-			Instance->PickSingleItem(CurrentItem);
-			Instance->bFoundSingleResult = true;
+			Instance.PickSingleItem(CurrentItem);
+			Instance.bFoundSingleResult = true;
 		}
 		else if (!bPassed)
 		{
@@ -584,7 +580,7 @@ void FEnvQueryInstance::ItemIterator::StoreTestResult()
 			ItemScore /= NumPassedForItem;
 		}
 
-		Instance->ItemDetails[CurrentItem].TestResults[Instance->CurrentTest] = ItemScore;
+		Instance.ItemDetails[CurrentItem].TestResults[Instance.CurrentTest] = ItemScore;
 	}
 }
 

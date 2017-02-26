@@ -1,32 +1,31 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
-
+		
 public class WebSockets : ModuleRules
 {
-    public WebSockets(ReadOnlyTargetRules Target) : base(Target)
-    {
-        Definitions.Add("WEBSOCKETS_PACKAGE=1");
+  public WebSockets(ReadOnlyTargetRules Target) : base(Target)
+	{
+			Definitions.Add("WEBSOCKETS_PACKAGE=1");
 
-		PrivateDependencyModuleNames.AddRange(
-			new string[] {
-				"Core",
-			}
-		);
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+					"Core",
+				}
+			);
 
-        bool bPlatformSupportsLibWebsockets =
-            Target.Platform == UnrealTargetPlatform.Win32 ||
-            Target.Platform == UnrealTargetPlatform.Win64 ||
-            Target.Platform == UnrealTargetPlatform.Mac ||
-            Target.Platform == UnrealTargetPlatform.Linux ||
-            Target.Platform == UnrealTargetPlatform.PS4;
+			bool bPlatformSupportsLibWebsockets =
+					Target.Platform == UnrealTargetPlatform.Win32 ||
+					Target.Platform == UnrealTargetPlatform.Win64 ||
+					Target.Platform == UnrealTargetPlatform.Mac ||
+					Target.Platform == UnrealTargetPlatform.Linux ||
+					Target.Platform == UnrealTargetPlatform.PS4;
 
-        bool bPlatformSupportsXboxWebsockets =
-			Target.Platform == UnrealTargetPlatform.XboxOne;
+			bool bPlatformSupportsXboxWebsockets = Target.Platform == UnrealTargetPlatform.XboxOne;
 
-        bool bShouldUseModule = 
-            bPlatformSupportsLibWebsockets || 
-            bPlatformSupportsXboxWebsockets;
+			bool bShouldUseModule = 
+					bPlatformSupportsLibWebsockets || 
+					bPlatformSupportsXboxWebsockets;
 
 		if (bShouldUseModule)
 		{

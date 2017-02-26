@@ -37,7 +37,10 @@ void UAbilityTask_WaitMovementModeChange::OnMovementModeChange(ACharacter * Char
 		{
 			if (RequiredMode == MOVE_None || MoveComp->MovementMode == RequiredMode)
 			{
-				OnChange.Broadcast(MoveComp->MovementMode);
+				if (ShouldBroadcastAbilityTaskDelegates())
+				{
+					OnChange.Broadcast(MoveComp->MovementMode);
+				}
 				EndTask();
 				return;
 			}

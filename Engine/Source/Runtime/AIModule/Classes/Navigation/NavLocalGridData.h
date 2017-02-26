@@ -100,6 +100,7 @@ struct AIMODULE_API FNavLocalGridData : public TSimpleCellGrid<uint8, MAX_uint8>
 protected:
 	friend class UNavLocalGridManager;
 	TArray<float> CellZ;
+	float LastAccessTime;
 
 	/** convert PathIndices into pruned PathCoords */
 	void PostProcessPath(const FIntVector& StartCoords, const FIntVector& EndCoords, const TArray<int32>& PathIndices, TArray<FIntVector>& PathCoords) const;

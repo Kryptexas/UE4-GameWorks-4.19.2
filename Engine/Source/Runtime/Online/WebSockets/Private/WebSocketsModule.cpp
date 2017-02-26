@@ -14,12 +14,22 @@ IMPLEMENT_MODULE(FWebSocketsModule, WebSockets);
 
 FWebSocketsModule* FWebSocketsModule::Singleton = nullptr;
 
+/*static*/ FString FWebSocketsModule::BuildUpgradeHeader(const TMap<FString, FString>& Headers)
+{
+	FString HeaderString;
+	for (const auto& OneHeader : Headers)
+	{
+		HeaderString += FString::Printf(TEXT("%s: %s\r\n"), *OneHeader.Key, *OneHeader.Value);
+	}
+	return HeaderString;
+}
+
 void FWebSocketsModule::StartupModule()
 {
 	Singleton = this;
 
 #if WITH_WEBSOCKETS
-	const FString Protocols[] = {TEXT("v10.stomp"), TEXT("v11.stomp"), TEXT("v12.stomp")};
+	const FString Protocols[] = {TEXT("ws"), TEXT("wss"), TEXT("v10.stomp"), TEXT("v11.stomp"), TEXT("v12.stomp")};
 
 	WebSocketsManager = new FPlatformWebSocketsManager;
 	WebSocketsManager->InitWebSockets(Protocols);
@@ -45,18 +55,18 @@ FWebSocketsModule& FWebSocketsModule::Get()
 }
 
 #if WITH_WEBSOCKETS
-TSharedRef<IWebSocket> FWebSocketsModule::CreateWebSocket(const FString& Url, const TArray<FString>& Protocols)
+TSharedRef<IWebSocket> FWebSocketsModule::CreateWebSocket(const FString& Url, const TArray<FString>& Protocols, const TMap<FString, FString>& UpgradeHeaders)
 {
 	check(WebSocketsManager);
-	return WebSocketsManager->CreateWebSocket(Url, Protocols);
+	return WebSocketsManager->CreateWebSocket(Url, Protocols, BuildUpgradeHeader(UpgradeHeaders));
 }
 
-TSharedRef<IWebSocket> FWebSocketsModule::CreateWebSocket(const FString& Url, const FString& Protocol)
+TSharedRef<IWebSocket> FWebSocketsModule::CreateWebSocket(const FString& Url, const FString& Protocol, const TMap<FString, FString>& UpgradeHeaders)
 {
 	check(WebSocketsManager);
 
 	TArray<FString> Protocols;
 	Protocols.Add(Protocol);
-	return WebSocketsManager->CreateWebSocket(Url, Protocols);
+	return WebSocketsManager->CreateWebSocket(Url, Protocols, BuildUpgradeHeader(UpgradeHeaders));
 }
 #endif // #if WITH_WEBSOCKETS

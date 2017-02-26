@@ -1068,6 +1068,18 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			if ( Bunch.bHasPackageMapExports )
 			{
 				Driver->NetGUIDInBytes += (BunchDataBits + (HeaderPos - IncomingStartPos)) >> 3;
+
+				if ( InternalAck )
+				{
+					// NOTE - For replays, we do this even earlier, to try and load this as soon as possible, in case there is an issue creating the channel
+					// If a replay fails to create a channel, we want to salvage as much as possible
+					Cast<UPackageMapClient>( PackageMap )->ReceiveNetGUIDBunch( Bunch );
+
+					if ( Bunch.IsError() )
+					{
+						UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Bunch.IsError() after ReceiveNetGUIDBunch. ChIndex: %i" ), Bunch.ChIndex );
+					}
+				}
 			}
 
 			if( Bunch.bReliable )
@@ -1600,7 +1612,12 @@ void UNetConnection::Tick()
 			{
 				OutBunch->ReceivedAck = 1;
 			}
-			It->OpenAcked = 1;
+
+			if (Driver->IsServer() || It->OpenedLocally)
+			{
+				It->OpenAcked = 1;
+			}
+
 			It->ReceivedAcks();
 		}
 	}

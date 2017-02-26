@@ -110,7 +110,10 @@ struct FClothLODData
 		UScriptStruct* Struct = FClothLODData::StaticStruct();
 
 		// Serialize normal tagged data
-		Struct->SerializeTaggedProperties(Ar, (uint8*)this, Struct, nullptr);
+		if (!Ar.IsCountingMemory())
+		{
+			Struct->SerializeTaggedProperties(Ar, (uint8*)this, Struct, nullptr);
+		}
 
 		// Serialize the mesh to mesh data (not a USTRUCT)
 		Ar	<< TransitionUpSkinData

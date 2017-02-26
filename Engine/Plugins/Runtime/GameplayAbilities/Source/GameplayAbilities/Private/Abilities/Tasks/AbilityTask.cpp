@@ -46,6 +46,21 @@ FPredictionKey UAbilityTask::GetActivationPredictionKey() const
 	return Ability ? Ability->GetCurrentActivationInfo().GetActivationPredictionKey() : FPredictionKey();
 }
 
+int32 AbilityTaskWarnIfBroadcastSuppress = 0;
+static FAutoConsoleVariableRef CVarAbilityTaskWarnIfBroadcastSuppress(TEXT("AbilitySystem.AbilityTaskWarnIfBroadcastSuppress"), AbilityTaskWarnIfBroadcastSuppress, TEXT("Print warning if an ability task broadcast is suppressed because the ability has ended"), ECVF_Default );
+
+bool UAbilityTask::ShouldBroadcastAbilityTaskDelegates() const
+{
+	bool ShouldBroadcast = (Ability && Ability->IsActive());
+
+	if (!ShouldBroadcast && AbilityTaskWarnIfBroadcastSuppress)
+	{
+		ABILITY_LOG(Warning, TEXT("Suppressing ability task %s broadcsat"), *GetDebugString());
+	}
+
+	return ShouldBroadcast;
+}
+
 bool UAbilityTask::IsPredictingClient() const
 {
 	return Ability && Ability->IsPredictingClient();

@@ -49,7 +49,12 @@ public:
 	{}
 	void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
-		if (Verbosity == ELogVerbosity::Error || Verbosity == ELogVerbosity::Warning || Verbosity == ELogVerbosity::Display)
+		// When -stdout is specified then FOutputDeviceStdOutput will be installed and pipe logging to stdout. 
+		// If so don't use LocalPrint or else duplicate messages will be written to stdout
+		static bool bUsingStdOut = FParse::Param(FCommandLine::Get(), TEXT("stdout"));
+
+		if (bUsingStdOut == false &&
+			(Verbosity == ELogVerbosity::Error || Verbosity == ELogVerbosity::Warning || Verbosity == ELogVerbosity::Display))
 		{
 			if( TreatWarningsAsErrors && Verbosity==ELogVerbosity::Warning )
 			{

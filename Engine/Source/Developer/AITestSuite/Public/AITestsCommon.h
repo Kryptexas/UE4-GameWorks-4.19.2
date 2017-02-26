@@ -38,7 +38,7 @@ namespace FAITestHelpers
 	uint64 FramesCounter();
 }
 
-struct FAITestBase
+struct AITESTSUITE_API FAITestBase
 {
 private:
 	// internals
@@ -83,9 +83,9 @@ public:
 	virtual void TearDown();
 };
 
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FAITestCommand_SetUpTest, FAITestBase*, AITest);
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FAITestCommand_PerformTest, FAITestBase*, AITest);
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FAITestCommand_TearDownTest, FAITestBase*, AITest);
+DEFINE_EXPORTED_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(AITESTSUITE_API, FAITestCommand_SetUpTest, FAITestBase*, AITest);
+DEFINE_EXPORTED_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(AITESTSUITE_API, FAITestCommand_PerformTest, FAITestBase*, AITest);
+DEFINE_EXPORTED_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(AITESTSUITE_API, FAITestCommand_TearDownTest, FAITestBase*, AITest);
 
 // @note that TestClass needs to derive from FAITestBase
 #define IMPLEMENT_AI_LATENT_TEST(TestClass, PrettyName) \

@@ -75,7 +75,10 @@ void UAbilityTask_NetworkSyncPoint::SyncFinished()
 {
 	if (!IsPendingKill())
 	{
-		OnSync.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnSync.Broadcast();
+		}
 		EndTask();
 	}
 }

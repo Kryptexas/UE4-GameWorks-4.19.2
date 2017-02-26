@@ -122,6 +122,7 @@ void UGridPathFollowingComponent::UpdateActiveGrid(const FVector& CurrentLocatio
 				ActiveGridId = GridData.GetGridId();
 				ActiveGridIdx = GridIdx;
 
+				GridManager->UpdateAccessTime(GridIdx);
 				GridData.FindPathForMovingAgent(*Path.Get(), CurrentLocation, MoveSegmentStartIndex, GridPathPoints, MoveSegmentStartIndexOffGrid);
 				
 				bHasGridPath = GridPathPoints.Num() > 1;

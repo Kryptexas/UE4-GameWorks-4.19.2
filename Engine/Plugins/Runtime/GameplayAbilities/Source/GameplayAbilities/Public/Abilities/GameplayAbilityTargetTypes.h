@@ -135,6 +135,14 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 	}
 
 	virtual FString ToString() const;
+
+	// -------------------------------------
+	//..See notes on delegate definition FOnTargetActorSwapped.
+	virtual bool ShouldCheckForTargetActorSwap() const
+	{
+		return false;
+	}
+
 };
 
 

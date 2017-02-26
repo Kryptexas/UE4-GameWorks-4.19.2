@@ -72,7 +72,10 @@ void UAbilityTask_ApplyRootMotionJumpForce::OnLandedCallback(const FHitResult& H
 
 void UAbilityTask_ApplyRootMotionJumpForce::TriggerLanded()
 {
-	OnLanded.Broadcast();
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		OnLanded.Broadcast();
+	}
 
 	if (bFinishOnLanded)
 	{
@@ -132,7 +135,10 @@ void UAbilityTask_ApplyRootMotionJumpForce::Finish()
 		if (MyActor)
 		{
 			MyActor->ForceNetUpdate();
-			OnFinish.Broadcast();
+			if (ShouldBroadcastAbilityTaskDelegates())
+			{
+				OnFinish.Broadcast();
+			}
 		}
 	}
 

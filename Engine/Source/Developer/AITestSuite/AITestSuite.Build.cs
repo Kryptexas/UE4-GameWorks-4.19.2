@@ -27,8 +27,8 @@ namespace UnrealBuildTool.Rules
 					"Engine",
                     "GameplayTasks",
                     "AIModule",
-				}
-				);
+                }
+                );
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[]

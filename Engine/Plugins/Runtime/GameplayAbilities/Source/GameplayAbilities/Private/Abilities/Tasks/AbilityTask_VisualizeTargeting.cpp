@@ -161,6 +161,9 @@ void UAbilityTask_VisualizeTargeting::OnDestroy(bool AbilityEnded)
 
 void UAbilityTask_VisualizeTargeting::OnTimeElapsed()
 {
-	TimeElapsed.Broadcast();
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		TimeElapsed.Broadcast();
+	}
 	EndTask();
 }

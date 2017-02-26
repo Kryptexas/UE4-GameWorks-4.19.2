@@ -15,17 +15,24 @@ UNavLocalGridManager::UNavLocalGridManager(const FObjectInitializer& ObjectIniti
 
 int32 UNavLocalGridManager::AddGridData(const FNavLocalGridData& GridData, bool bUpdate)
 {
+	const float GameTime = HasSourceGridLimit() ? GetWorld()->GetTimeSeconds() : 0;
 	const int32 NewGridIdx = SourceGrids.Add(GridData);
+
 	SourceGrids[NewGridIdx].SetGridId(NextGridId);
+	SourceGrids[NewGridIdx].LastAccessTime = GameTime;
+
+	const int32 UsedId = SourceGrids[NewGridIdx].GetGridId();
 	NextGridId++;
-		
+	
+	UpdateSourceGrids();
+
 	bNeedsRebuilds = true;
 	if (bUpdate)
 	{
 		RebuildGrids();
 	}
 
-	return SourceGrids[NewGridIdx].GetGridId();
+	return UsedId;
 }
 
 void UNavLocalGridManager::RemoveGridData(int32 GridId, bool bUpdate)
@@ -204,6 +211,62 @@ void UNavLocalGridManager::ProjectGrids(const TArray<int32>& GridIndices)
 	}
 }
 
+void UNavLocalGridManager::UpdateAccessTime(int32 CombinedGridIdx)
+{
+	if (CombinedGrids.IsValidIndex(CombinedGridIdx))
+	{
+		const float GameTime = GetWorld()->GetTimeSeconds();
+
+		for (int32 Idx = 0; Idx < CombinedGrids[CombinedGridIdx].SourceIds.Num(); Idx++)
+		{
+			const int32 SourceGridIdx = CombinedGrids[CombinedGridIdx].SourceIds[Idx];
+			if (SourceGrids.IsValidIndex(SourceGridIdx))
+			{
+				SourceGrids[SourceGridIdx].LastAccessTime = GameTime;
+			}
+		}
+	}
+}
+
+void UNavLocalGridManager::SetMaxActiveSources(int32 NumActiveSources)
+{
+	MaxActiveSourceGrids = NumActiveSources;
+	
+	const bool bUpdated = UpdateSourceGrids();
+	if (bUpdated)
+	{
+		RebuildGrids();
+	}
+}
+
+bool UNavLocalGridManager::UpdateSourceGrids()
+{
+	if (SourceGrids.Num() < MaxActiveSourceGrids || !HasSourceGridLimit())
+	{
+		return false;
+	}
+
+	while (SourceGrids.Num() > MaxActiveSourceGrids)
+	{
+		float BestScore = FLT_MAX;
+		int32 BestIdx = 0;
+
+		for (int32 Idx = 0; Idx < SourceGrids.Num(); Idx++)
+		{
+			const FNavLocalGridData& GridData = SourceGrids[Idx];
+			if (BestScore > GridData.LastAccessTime)
+			{
+				BestScore = GridData.LastAccessTime;
+				BestIdx = Idx;
+			}
+		}
+
+		SourceGrids.RemoveAt(BestIdx, 1, false);
+	}
+
+	return true;
+}
+
 int32 UNavLocalGridManager::GetGridIndex(const FVector& WorldLocation) const
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("NavGrid: GetIndex"), STAT_GridFind, STATGROUP_AI);
@@ -217,6 +280,12 @@ int32 UNavLocalGridManager::GetGridIndex(const FVector& WorldLocation) const
 	}
 
 	return INDEX_NONE;
+}
+
+uint8 UNavLocalGridManager::GetGridValueAt(const FVector& WorldLocation) const
+{
+	const int32 GridIndex = GetGridIndex(WorldLocation);
+	return (GridIndex != INDEX_NONE) ? CombinedGrids[GridIndex].GetCellAtWorldLocation(WorldLocation) : 0;
 }
 
 bool UNavLocalGridManager::FindPath(const FVector& Start, const FVector& End, TArray<FVector>& PathPoints) const
@@ -257,6 +326,30 @@ int32 UNavLocalGridManager::AddLocalNavigationGridForPoint(UObject* WorldContext
 		FNavLocalGridData GridData(Location, UNavLocalGridManager::GridCellSize * Radius2D);
 		GridData.SetHeight(Height);
 		GridData.MarkPointObstacle(Location);
+
+		GridId = GridManager->AddGridData(GridData, bRebuildGrids);
+	}
+
+	return GridId;
+}
+
+int32 UNavLocalGridManager::AddLocalNavigationGridForPoints(UObject* WorldContext, const TArray<FVector>& Locations, const int32 Radius2D, const float Height, bool bRebuildGrids)
+{
+	int32 GridId = 0;
+
+	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContext);
+	if (GridManager)
+	{
+		const FBox Bounds(Locations);
+		const float BoundsSize2D = FMath::Max(Bounds.Max.X - Bounds.Min.X, Bounds.Max.Y - Bounds.Min.Y);
+
+		FNavLocalGridData GridData(Bounds.GetCenter(), (UNavLocalGridManager::GridCellSize * Radius2D) + BoundsSize2D);
+		GridData.SetHeight(Height);
+
+		for (int32 Idx = 0; Idx < Locations.Num(); Idx++)
+		{
+			GridData.MarkPointObstacle(Locations[Idx]);
+		}
 
 		GridId = GridManager->AddGridData(GridData, bRebuildGrids);
 	}

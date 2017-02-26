@@ -1927,7 +1927,14 @@ bool FRepLayout::ReceiveProperties( UActorChannel* OwningChannel, UClass * InObj
 
 	if ( OwningChannel->Connection->InternalAck )
 	{
-		TSharedPtr< FNetFieldExportGroup > NetFieldExportGroup = ( ( UPackageMapClient* )OwningChannel->Connection->PackageMap )->GetNetFieldExportGroupChecked( Owner->GetPathName() );
+		TSharedPtr< FNetFieldExportGroup > NetFieldExportGroup = ( ( UPackageMapClient* )OwningChannel->Connection->PackageMap )->GetNetFieldExportGroup( Owner->GetPathName() );
+
+		if ( !ensure( NetFieldExportGroup.IsValid() ) )
+		{
+			UE_LOG( LogRep, Warning, TEXT( "ReceiveProperties_BackwardsCompatible: Invalid path name: %s" ), *Owner->GetPathName() );
+			InBunch.SetError();
+			return false;
+		}
 
 		return ReceiveProperties_BackwardsCompatible_r( RepState, NetFieldExportGroup.Get(), InBunch, 0, Cmds.Num() - 1, bEnableRepNotifies ? RepState->StaticBuffer.GetData() : nullptr, ( uint8* )Data, ( uint8* )Data, &RepState->GuidReferencesMap, bOutHasUnmapped, bOutGuidsChanged );
 	}

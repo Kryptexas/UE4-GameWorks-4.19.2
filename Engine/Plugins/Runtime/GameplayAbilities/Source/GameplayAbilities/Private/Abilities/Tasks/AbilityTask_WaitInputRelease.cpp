@@ -34,7 +34,10 @@ void UAbilityTask_WaitInputRelease::OnReleaseCallback()
 	}
 
 	// We are done. Kill us so we don't keep getting broadcast messages
-	OnRelease.Broadcast(ElapsedTime);
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		OnRelease.Broadcast(ElapsedTime);
+	}
 	EndTask();
 }
 

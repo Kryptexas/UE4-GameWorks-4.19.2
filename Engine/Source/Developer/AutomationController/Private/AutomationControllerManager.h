@@ -274,6 +274,17 @@ public:
 	virtual const bool IsTrackingHistory() const override;
 	virtual const int32 GetNumberHistoryItemsTracking() const override;
 
+	// Checkpoint logic
+	virtual TArray<FString> GetCheckpointFileContents() override;
+
+	virtual FArchive* GetCheckpointFileForWrite() override;
+
+	virtual void CleanUpCheckpointFile() override;
+
+	virtual void WriteLoadedCheckpointDataToFile() override;
+
+	virtual void WriteLineToCheckpointFile(FString LineToWrite) override;
+
 protected:
 
 	/**
@@ -497,6 +508,14 @@ private:
 
 	/** The report folder override path that may have been provided over the commandline, -ReportOutputPath="" */
 	FString ReportOutputPathOverride;
+
+	// Checkpoint variables
+	//Test pass checkpoint backup file.
+	FArchive* CheckpointFile;
+
+	FString CheckpointCommand;
+
+	TArray<FString> TestsRun;
 
 private:
 

@@ -235,7 +235,6 @@ void SRetainerWidget::OnTickRetainers(float DeltaTime)
 	// we should not be added to tick if we're not rendering
 	checkSlow(FApp::CanEverRender());
 
-
 	const bool bShouldRenderAnything = IsAnythingVisibleToRender();
 	if ( bRenderingOffscreen && bShouldRenderAnything )
 	{

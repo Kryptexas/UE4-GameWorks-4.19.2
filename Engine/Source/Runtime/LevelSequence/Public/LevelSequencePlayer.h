@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "UObject/ScriptMacros.h"
@@ -153,6 +154,9 @@ private:
 
 	/** The last view target to reset to when updating camera cuts to null */
 	TWeakObjectPtr<AActor> LastViewTarget;
+
+	/** The last aspect ratio axis constraint to reset to when the camera cut is null */
+	EAspectRatioAxisConstraint LastAspectRatioAxisConstraint;
 
 protected:
 

@@ -109,7 +109,10 @@ void UAbilityTask_ApplyRootMotionRadialForce::TickTask(float DeltaTime)
 			if (!bIsSimulating)
 			{
 				MyActor->ForceNetUpdate();
-				OnFinish.Broadcast();
+				if (ShouldBroadcastAbilityTaskDelegates())
+				{
+					OnFinish.Broadcast();
+				}
 				EndTask();
 			}
 		}

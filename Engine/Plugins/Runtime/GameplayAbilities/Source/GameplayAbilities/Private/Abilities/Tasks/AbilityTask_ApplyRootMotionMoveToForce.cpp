@@ -119,11 +119,17 @@ void UAbilityTask_ApplyRootMotionMoveToForce::TickTask(float DeltaTime)
 				MyActor->ForceNetUpdate();
 				if (bReachedDestination)
 				{
-					OnTimedOutAndDestinationReached.Broadcast();
+					if (ShouldBroadcastAbilityTaskDelegates())
+					{
+						OnTimedOutAndDestinationReached.Broadcast();
+					}
 				}
 				else
 				{
-					OnTimedOut.Broadcast();
+					if (ShouldBroadcastAbilityTaskDelegates())
+					{
+						OnTimedOut.Broadcast();
+					}
 				}
 				EndTask();
 			}

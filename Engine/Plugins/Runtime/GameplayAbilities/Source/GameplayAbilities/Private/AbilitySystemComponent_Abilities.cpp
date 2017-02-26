@@ -1047,9 +1047,8 @@ bool UAbilitySystemComponent::IsAbilityInputBlocked(int32 InputID) const
 bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHandle Handle, FPredictionKey InPredictionKey, UGameplayAbility** OutInstancedAbility, FOnGameplayAbilityEnded::FDelegate* OnGameplayAbilityEndedDelegate, const FGameplayEventData* TriggerEventData)
 {
 	const FGameplayTag& NetworkFailTag = UAbilitySystemGlobals::Get().ActivateFailNetworkingTag;
-
-	static FGameplayTagContainer FailureTags;
-	FailureTags.Reset();
+	
+	InternalTryActivateAbilityFailureTags.Reset();
 
 	if (Handle.IsValid() == false)
 	{
@@ -1112,8 +1111,8 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 
 			if (NetworkFailTag.IsValid())
 			{
-				FailureTags.AddTag(NetworkFailTag);
-				NotifyAbilityFailed(Handle, Ability, FailureTags);
+				InternalTryActivateAbilityFailureTags.AddTag(NetworkFailTag);
+				NotifyAbilityFailed(Handle, Ability, InternalTryActivateAbilityFailureTags);
 			}
 
 			return false;
@@ -1126,8 +1125,8 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 
 		if (NetworkFailTag.IsValid())
 		{
-			FailureTags.AddTag(NetworkFailTag);
-			NotifyAbilityFailed(Handle, Ability, FailureTags);
+			InternalTryActivateAbilityFailureTags.AddTag(NetworkFailTag);
+			NotifyAbilityFailed(Handle, Ability, InternalTryActivateAbilityFailureTags);
 		}
 
 		return false;
@@ -1149,9 +1148,9 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 		// Otherwise we always do a non instanced CanActivateAbility check using the CDO of the Ability.
 		UGameplayAbility* const CanActivateAbilitySource = InstancedAbility ? InstancedAbility : Ability;
 
-		if (!CanActivateAbilitySource->CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, &FailureTags))
+		if (!CanActivateAbilitySource->CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, &InternalTryActivateAbilityFailureTags))
 		{
-			NotifyAbilityFailed(Handle, CanActivateAbilitySource, FailureTags);
+			NotifyAbilityFailed(Handle, CanActivateAbilitySource, InternalTryActivateAbilityFailureTags);
 			return false;
 		}
 	}
@@ -1396,7 +1395,7 @@ void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpe
 	}
 	else
 	{
-		ABILITY_LOG(Display, TEXT("InternalServerTryActiveAbility. Rejecting ClientActivation of %s. InternalTryActivateAbility failed"), *GetNameSafe(Spec->Ability) );
+		ABILITY_LOG(Display, TEXT("InternalServerTryActiveAbility. Rejecting ClientActivation of %s. InternalTryActivateAbility failed: %s"), *GetNameSafe(Spec->Ability), *InternalTryActivateAbilityFailureTags.ToStringSimple() );
 		ClientActivateAbilityFailed(Handle, PredictionKey.Current);
 		Spec->InputPressed = false;
 	}
@@ -1532,6 +1531,13 @@ void UAbilitySystemComponent::ClientCancelAbility_Implementation(FGameplayAbilit
 
 static_assert(sizeof(int16) == sizeof(FPredictionKey::KeyType), "Sizeof PredictionKey::KeyType does not match RPC parameters in AbilitySystemComponent ClientActivateAbilityFailed_Implementation");
 
+
+int32 ClientActivateAbilityFailedPrintDebugThreshhold = -1;
+static FAutoConsoleVariableRef CVarClientActivateAbilityFailedPrintDebugThreshhold(TEXT("AbilitySystem.ClientActivateAbilityFailedPrintDebugThreshhold"), ClientActivateAbilityFailedPrintDebugThreshhold, TEXT(""), ECVF_Default );
+
+float ClientActivateAbilityFailedPrintDebugThreshholdTime = 3.f;
+static FAutoConsoleVariableRef CVarClientActivateAbilityFailedPrintDebugThreshholdTime(TEXT("AbilitySystem.ClientActivateAbilityFailedPrintDebugThreshholdTime"), ClientActivateAbilityFailedPrintDebugThreshholdTime, TEXT(""), ECVF_Default );
+
 void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(FGameplayAbilitySpecHandle Handle, int16 PredictionKey)
 {
 	// Tell anything else listening that this was rejected
@@ -1548,7 +1554,26 @@ void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(FGamepl
 		return;
 	}
 
-	ABILITY_LOG(Display, TEXT("ClientActivateAbilityFailed_Implementation. PredictionKey: %d Ability: %s"), PredictionKey, *GetNameSafe(Spec->Ability));
+	ABILITY_LOG(Display, TEXT("ClientActivateAbilityFailed_Implementation. PredictionKey :%d Ability: %s"), PredictionKey, *GetNameSafe(Spec->Ability));
+	
+	if (ClientActivateAbilityFailedPrintDebugThreshhold > 0)
+	{
+		if ((ClientActivateAbilityFailedStartTime <= 0.f) || ((GetWorld()->GetTimeSeconds() - ClientActivateAbilityFailedStartTime) > ClientActivateAbilityFailedPrintDebugThreshholdTime))
+		{
+			ClientActivateAbilityFailedStartTime = GetWorld()->GetTimeSeconds();
+			ClientActivateAbilityFailedCountRecent = 0;
+		}
+		
+		
+		if (++ClientActivateAbilityFailedCountRecent > ClientActivateAbilityFailedPrintDebugThreshhold)
+		{
+			ABILITY_LOG(Display, TEXT("Threshold hit! Printing debug information"));
+			PrintDebug();
+			ClientActivateAbilityFailedCountRecent = 0;
+			ClientActivateAbilityFailedStartTime = 0.f;
+		}
+	}
+
 
 	// The ability should be either confirmed or rejected by the time we get here
 	if (Spec->ActivationInfo.GetActivationPredictionKey().Current == PredictionKey)

@@ -444,6 +444,8 @@ public:
 	const UAIPerceptionComponent* GetAIPerceptionComponent() const;
 
 	UBrainComponent* GetBrainComponent() { return BrainComponent; }
+	const UBlackboardComponent* GetBlackboardComponent() const { return Blackboard; }
+	UBlackboardComponent* GetBlackboardComponent() { return Blackboard; }
 };
 
 //----------------------------------------------------------------------//

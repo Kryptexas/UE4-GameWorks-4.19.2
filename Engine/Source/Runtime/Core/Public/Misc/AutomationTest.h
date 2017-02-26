@@ -32,25 +32,40 @@ namespace EAutomationTestFlags
 	{
 		//~ Application context required for the test - not specifying means it will be valid for any context
 		// Test is suitable for running within the editor
-		EditorContext				= 0x00000001,
+		EditorContext = 0x00000001,
 		// Test is suitable for running within the client
-		ClientContext				= 0x00000002,
+		ClientContext = 0x00000002,
 		// Test is suitable for running within the server
-		ServerContext				= 0x00000004,
+		ServerContext = 0x00000004,
 		// Test is suitable for running within a commandlet
-		CommandletContext			= 0x00000008,
-		ApplicationContextMask		= EditorContext | ClientContext | ServerContext | CommandletContext,
+		CommandletContext = 0x00000008,
+		ApplicationContextMask = EditorContext | ClientContext | ServerContext | CommandletContext,
 
 		//~ Features required for the test - not specifying means it is valid for any feature combination
 		// Test requires a non-null RHI to run correctly
-		NonNullRHI					= 0x00000100,
+		NonNullRHI = 0x00000100,
 		// Test requires a user instigated session
-		RequiresUser				= 0x00000200,
-		FeatureMask					= NonNullRHI | RequiresUser,
+		RequiresUser = 0x00000200,
+		FeatureMask = NonNullRHI | RequiresUser,
 
 		//~ One-off flag to allow for fast disabling of tests without commenting code out
 		// Temp disabled and never returns for a filter
-		Disabled					= 0x00010000,
+		Disabled = 0x00010000,
+
+		//~ Priority of the test
+		// The highest priority possible. Showstopper/blocker.
+		CriticalPriority			= 0x00100000,
+		// High priority. Major feature functionality etc. 
+		HighPriority				= 0x00200000,
+		// Mask for High on SetMinimumPriority
+		HighPriorityAndAbove		= CriticalPriority | HighPriority,
+		// Medium Priority. Minor feature functionality, major generic content issues.
+		MediumPriority				= 0x00400000,
+		// Mask for Medium on SetMinimumPriority
+		MediumPriorityAndAbove		= CriticalPriority | HighPriority | MediumPriority,
+		// Low Priority. Minor content bugs. String errors. Etc.
+		LowPriority					= 0x00800000,
+		PriorityMask = CriticalPriority | HighPriority | MediumPriority | LowPriority,
 
 		//~ Speed of the test
 		//Super Fast Filter

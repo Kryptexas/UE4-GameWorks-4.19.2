@@ -37,7 +37,7 @@ private:
 
 	virtual void ShutdownWebSockets() override;
 
-	virtual TSharedRef<IWebSocket> CreateWebSocket(const FString& Url, const TArray<FString>& Protocols) override;
+	virtual TSharedRef<IWebSocket> CreateWebSocket(const FString& Url, const TArray<FString>& Protocols, const FString& UpgradeHeader) override;
 	// end IWebSocketsManager overrides
 
 	// TickerObjectBase override

@@ -176,7 +176,6 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 
 	// Will return the Runtime cue set and the EditorCueSet, if the EditorCueSet is available. This is used mainly for handling asset created/deleted in the editor
 	TArray<UGameplayCueSet*> GetGlobalCueSets();
-	
 
 #if WITH_EDITOR
 	/** Called from editor to soft load all gameplay cue notifies for the GameplayCueEditor */
@@ -243,6 +242,9 @@ public:
 	virtual class UWorld* GetWorld() const override;
 
 	static UWorld* GetCachedWorldForGameplayCueNotifies();
+
+	DECLARE_EVENT_FourParams(UGameplayCueManager, FOnRouteGameplayCue, AActor*, FGameplayTag, EGameplayCueEvent::Type, const FGameplayCueParameters&);
+	FOnRouteGameplayCue& OnGameplayCueRouted() { return OnRouteGameplayCue; }
 
 #if WITH_EDITOR
 
@@ -331,4 +333,6 @@ protected:
 
 	UPROPERTY(transient)
 	TArray<FPreallocationInfo>	PreallocationInfoList_Internal;
+
+	FOnRouteGameplayCue OnRouteGameplayCue;
 };

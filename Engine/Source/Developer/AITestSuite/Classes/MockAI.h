@@ -6,7 +6,7 @@
 #include "Stats/Stats.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "Developer/AITestSuite/Private/Tests/AITestsCommon.h"
+#include "AITestsCommon.h"
 #include "Tickable.h"
 
 #include "MockAI.generated.h"

@@ -104,7 +104,10 @@ void UAbilityTask_ApplyRootMotionConstantForce::TickTask(float DeltaTime)
 			if (!bIsSimulating)
 			{
 				MyActor->ForceNetUpdate();
-				OnFinish.Broadcast();
+				if (ShouldBroadcastAbilityTaskDelegates())
+				{
+					OnFinish.Broadcast();
+				}
 				EndTask();
 			}
 		}
