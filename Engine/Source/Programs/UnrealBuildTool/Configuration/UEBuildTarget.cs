@@ -1418,7 +1418,7 @@ namespace UnrealBuildTool
 
 			// Construct the output paths for this target's executable
 			DirectoryReference OutputDirectory;
-			if (!bUseSharedBuildEnvironment && !Rules.bOutputToEngineBinaries)
+			if ((bCompileMonolithic || TargetType == TargetType.Program || !bUseSharedBuildEnvironment) && !Rules.bOutputToEngineBinaries)
 			{
 				OutputDirectory = ProjectDirectory;
 			}
