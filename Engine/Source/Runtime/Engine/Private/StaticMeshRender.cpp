@@ -152,11 +152,12 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	}
 
 	// Build the proxy's LOD data.
+	const bool bForceLODsShareStaticLighting = InComponent->ForceLODsShareStaticLighting();
 	bool bAnySectionCastsShadows = false;
 	LODs.Empty(RenderData->LODResources.Num());
 	for(int32 LODIndex = 0;LODIndex < RenderData->LODResources.Num();LODIndex++)
 	{
-		FLODInfo* NewLODInfo = new(LODs) FLODInfo(InComponent,LODIndex);
+		FLODInfo* NewLODInfo = new(LODs) FLODInfo(InComponent,LODIndex,bForceLODsShareStaticLighting);
 
 		// Under certain error conditions an LOD's material will be set to 
 		// DefaultMaterial. Ensure our material view relevance is set properly.
@@ -1363,7 +1364,7 @@ bool FStaticMeshSceneProxy::HasDynamicIndirectShadowCasterRepresentation() const
 }
 
 /** Initialization constructor. */
-FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent,int32 LODIndex)
+FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent, int32 LODIndex, bool bForceLODsShareStaticLighting)
 	: FLightCacheInterface(nullptr, nullptr)
 	, OverrideColorVertexBuffer(0)
 	, PreCulledIndexBuffer(NULL)
@@ -1408,7 +1409,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		}
 	}
 
-	if (MeshRenderData->bLODsShareStaticLighting && InComponent->LODData.IsValidIndex(0))
+	if ((bForceLODsShareStaticLighting || MeshRenderData->bLODsShareStaticLighting) && InComponent->LODData.IsValidIndex(0))
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[0];
 		const FMeshMapBuildData* MeshMapBuildData = InComponent->GetMeshMapBuildData(ComponentLODInfo);

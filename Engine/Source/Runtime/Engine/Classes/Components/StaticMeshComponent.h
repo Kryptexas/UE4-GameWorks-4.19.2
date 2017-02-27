@@ -540,6 +540,9 @@ public:
 	/** Whether we can support dithered LOD transitions (default behavior checks all materials). Used for HISMC LOD. */
 	virtual bool SupportsDitheredLODTransitions();
 
+	/** Whether we need to force all LODs to share LOD 0's texture lightmaps. Needed for instancing. */
+	virtual bool ForceLODsShareStaticLighting() const { return false; }
+
 private:
 	/** Initializes the resources used by the static mesh component. */
 	void InitResources();

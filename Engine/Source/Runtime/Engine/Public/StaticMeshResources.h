@@ -1099,7 +1099,7 @@ protected:
 		const FRawStaticIndexBuffer* PreCulledIndexBuffer;
 
 		/** Initialization constructor. */
-		FLODInfo(const UStaticMeshComponent* InComponent,int32 InLODIndex);
+		FLODInfo(const UStaticMeshComponent* InComponent, int32 InLODIndex, bool bForceLODsShareStaticLighting);
 
 		bool UsesMeshModifyingMaterials() const { return bUsesMeshModifyingMaterials; }
 
