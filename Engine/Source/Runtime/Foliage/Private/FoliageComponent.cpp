@@ -19,7 +19,7 @@ class FInteractiveFoliageSceneProxy : public FStaticMeshSceneProxy
 public:
 
 	FInteractiveFoliageSceneProxy(UInteractiveFoliageComponent* InComponent) :
-		FStaticMeshSceneProxy(InComponent, false),
+		FStaticMeshSceneProxy(InComponent),
 		FoliageImpluseDirection(0,0,0),
 		FoliageNormalizedRotationAxisAndAngle(0,0,1,0)
 	{}

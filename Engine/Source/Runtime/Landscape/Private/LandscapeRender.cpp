@@ -3178,7 +3178,7 @@ void FLandscapeNeighborInfo::UnregisterNeighbors()
 // FLandscapeMeshProxySceneProxy
 //
 FLandscapeMeshProxySceneProxy::FLandscapeMeshProxySceneProxy(UStaticMeshComponent* InComponent, const FGuid& InGuid, const TArray<FIntPoint>& InProxyComponentBases, int8 InProxyLOD)
-: FStaticMeshSceneProxy(InComponent, false)
+: FStaticMeshSceneProxy(InComponent)
 {
 	if (!IsComponentLevelVisible())
 	{

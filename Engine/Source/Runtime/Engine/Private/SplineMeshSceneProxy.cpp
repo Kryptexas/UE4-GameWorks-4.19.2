@@ -4,7 +4,7 @@
 #include "Materials/Material.h"
 
 FSplineMeshSceneProxy::FSplineMeshSceneProxy(USplineMeshComponent* InComponent) :
-	FStaticMeshSceneProxy(InComponent, false)
+	FStaticMeshSceneProxy(InComponent)
 {
 	bSupportsDistanceFieldRepresentation = false;
 
