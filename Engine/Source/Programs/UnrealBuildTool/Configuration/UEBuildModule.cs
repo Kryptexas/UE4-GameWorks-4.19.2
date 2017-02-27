@@ -1102,7 +1102,11 @@ namespace UnrealBuildTool
 				// Make sure our RC files have cached includes.  
 				foreach (FileItem RCFile in SourceFilesToBuild.RCFiles)
 				{
-					RCFile.CachedCPPIncludeInfo = ModuleCompileEnvironment.Config.CPPIncludeInfo;
+					// The default resource file (PCLaunch.rc) is created in a module-agnostic way, so we want to avoid overriding the include paths for it
+					if(RCFile.CachedCPPIncludeInfo == null)
+					{
+						RCFile.CachedCPPIncludeInfo = ModuleCompileEnvironment.Config.CPPIncludeInfo;
+					}
 				}
 			}
 
