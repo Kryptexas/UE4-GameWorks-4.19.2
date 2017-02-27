@@ -22,7 +22,7 @@ bool ShouldUsePreviewPlayback(IMovieScenePlayer& Player, UObject& RuntimeObject)
 bool CanPlayAnimation(USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequenceBase* AnimAssetBase = nullptr)
 {
 	return (SkeletalMeshComponent->SkeletalMesh && SkeletalMeshComponent->SkeletalMesh->Skeleton && 
-		(!AnimAssetBase || SkeletalMeshComponent->SkeletalMesh->Skeleton->IsCompatible(AnimAssetBase->GetSkeleton())));
+		(AnimAssetBase && !AnimAssetBase->IsA(UAnimMontage::StaticClass()) && SkeletalMeshComponent->SkeletalMesh->Skeleton->IsCompatible(AnimAssetBase->GetSkeleton())));
 }
 
 void FinishAnimControl(USkeletalMeshComponent* SkeletalMeshComponent)
@@ -285,6 +285,8 @@ private:
 	{
 		if(!CanPlayAnimation(SkeletalMeshComponent, InAnimSequence))
 		{
+			UE_LOG(LogAnimation, Warning, TEXT("Sequencer : Can't play this %s(%s) in the sequencer. Make sure it's not AnimMontage or skeleton matches with the mesh."),
+				*GetNameSafe(InAnimSequence), *SlotName.ToString());
 			return;
 		}
 
