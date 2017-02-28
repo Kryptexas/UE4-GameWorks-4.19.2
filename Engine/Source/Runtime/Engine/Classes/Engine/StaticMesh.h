@@ -805,6 +805,12 @@ public:
 	ENGINE_API void CalculateExtendedBounds();
 
 #if WITH_EDITOR
+
+	/**
+	 * Returns true if LODs of this static mesh may share texture lightmaps.
+	 */
+	bool CanLODsShareStaticLighting() const;
+
 	/**
 	 * Retrieves the names of all LOD groups.
 	 */

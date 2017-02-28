@@ -290,6 +290,9 @@ public:
 	/** Bounds of the renderable mesh. */
 	FBoxSphereBounds Bounds;
 
+	/** True if LODs share static lighting data. */
+	bool bLODsShareStaticLighting;
+
 #if WITH_EDITORONLY_DATA
 	/** The derived data key associated with this render data. */
 	FString DerivedDataKey;
@@ -422,7 +425,7 @@ class ENGINE_API FStaticMeshSceneProxy : public FPrimitiveSceneProxy
 public:
 
 	/** Initialization constructor. */
-	FStaticMeshSceneProxy(UStaticMeshComponent* Component, bool bCanLODsShareStaticLighting);
+	FStaticMeshSceneProxy(UStaticMeshComponent* Component, bool bForceLODsShareStaticLighting);
 
 	virtual ~FStaticMeshSceneProxy() {}
 
@@ -540,7 +543,7 @@ protected:
 		const FRawStaticIndexBuffer* PreCulledIndexBuffer;
 
 		/** Initialization constructor. */
-		FLODInfo(const UStaticMeshComponent* InComponent, int32 InLODIndex, bool bCanLODsShareStaticLighting);
+		FLODInfo(const UStaticMeshComponent* InComponent, int32 InLODIndex, bool bLODsShareStaticLighting);
 
 		bool UsesMeshModifyingMaterials() const { return bUsesMeshModifyingMaterials; }
 
