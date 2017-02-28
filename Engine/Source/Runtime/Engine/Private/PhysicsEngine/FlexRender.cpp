@@ -62,11 +62,15 @@ void FFlexAttributeBuffer::Init(const FStaticMeshVertexBuffer& Vertices, const F
 		{
 			Attributes[i].TextureCoordinate = FVector2D(0.0f, 0.0f);
 		}
-	}
 
-	for (uint32 i=0; i < Colors.GetNumVertices(); ++i)
-	{
-		Attributes[i].Color = Colors.VertexColor(i);
+		if (Colors.GetNumVertices())
+		{
+			Attributes[i].Color = Colors.VertexColor(i);
+		}
+		else
+		{
+			Attributes[i].Color = FColor(255,255,255,255);
+		}
 	}
 	   
  	MaxVerts = int(MaxCount);
