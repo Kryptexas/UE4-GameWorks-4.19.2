@@ -399,6 +399,16 @@ struct FMaterialRemapIndex
 };
 
 
+#if WITH_EDITOR
+/**
+ * Returns true if LODs of this static mesh may share texture lightmaps.
+ * Removed from UStaticMesh for 4.15.1 to avoid changing API
+ *
+ * WARNING this function will be removed in 4.16.
+ */
+bool StaticMesh_CanLODsShareStaticLighting(UStaticMesh* Mesh);
+#endif
+
 /**
  * A StaticMesh is a piece of geometry that consists of a static set of polygons.
  * Static Meshes can be translated, rotated, and scaled, but they cannot have their vertices animated in any way. As such, they are more efficient
@@ -801,12 +811,6 @@ public:
 	ENGINE_API void CalculateExtendedBounds();
 
 #if WITH_EDITOR
-
-	/**
-	 * Returns true if LODs of this static mesh may share texture lightmaps.
-	 */
-	bool CanLODsShareStaticLighting() const;
-
 	/**
 	 * Retrieves the names of all LOD groups.
 	 */

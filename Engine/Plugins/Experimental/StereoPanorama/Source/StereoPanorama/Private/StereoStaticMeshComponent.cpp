@@ -12,7 +12,7 @@ class FStereoStaticMeshSceneProxy
 public:
 
     FStereoStaticMeshSceneProxy(UStereoStaticMeshComponent* Component) :
-        FStaticMeshSceneProxy(Component)
+        FStaticMeshSceneProxy(Component, false)
     {
         EyeToRender = Component->EyeToRender;
     }

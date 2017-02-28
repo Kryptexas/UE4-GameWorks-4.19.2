@@ -1264,17 +1264,16 @@ void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimiti
 				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "LargeStaticLightingWarning", "The total lightmap size for this InstancedStaticMeshComponent is large, consider reducing the component's lightmap resolution or number of mesh instances in this component")));
 		}
 
-		// TODO: Support separate static lighting in LODs for instanced meshes.
-
-		if (!GetStaticMesh()->CanLODsShareStaticLighting())
+		if (!StaticMesh_CanLODsShareStaticLighting(GetStaticMesh()))
 		{
 			//TODO: Detect if the UVs for all sub-LODs overlap the base LOD UVs and omit this warning if they do.
 			FMessageLog("LightingResults").Message(EMessageSeverity::Warning)
 				->AddToken(FUObjectToken::Create(this))
-				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "UniqueStaticLightingForLODWarning", "Instanced meshes don't yet support unique static lighting for each LOD, lighting on LOD 1+ may be incorrect")));
+				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "UniqueStaticLightingForLODWarning", "Instanced meshes don't yet support unique static lighting for each LOD. Lighting on LOD 1+ may be incorrect unless lightmap UVs are the same for all LODs.")));
 		}
 
-		// Force sharing LOD 0 lightmaps for now.
+		// TODO: We currently only support one LOD of static lighting in instanced meshes
+		// Need to create per-LOD instance data to fix that
 		int32 NumLODs = 1;
 
 		CachedMappings.Reset(PerInstanceSMData.Num() * NumLODs);

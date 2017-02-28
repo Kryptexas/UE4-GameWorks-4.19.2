@@ -252,8 +252,6 @@ public:
 
 	virtual void PropagateLightingScenarioChange() override;
 
-	virtual bool ForceLODsShareStaticLighting() const override { return true; }
-
 private:
 	/** Creates body instances for all instances owned by this component. */
 	void CreateAllInstanceBodies();
