@@ -214,7 +214,7 @@ void UFlexComponent::Synchronize()
 			if (ClothAsset->TearingEnabled && TearingAsset && AssetInstance)
 			{
 				// update tearing asset inflatable over pressure
-				TearingAsset->inflatablePressure = ClothAsset->OverPressure*InflatablePressureMultiplier;
+				TearingAsset->inflatablePressure = ClothAsset->EnableInflatable?ClothAsset->OverPressure*InflatablePressureMultiplier:0.0f;
 
 				// being tearing code
 				const int FreeParticles = ContainerInstance->GetMaxParticleCount() - ContainerInstance->GetActiveParticleCount();
@@ -618,7 +618,7 @@ void UFlexComponent::EnableSim()
 							ClothAsset->Triangles.Num()/3,
 							ClothAsset->StretchStiffness,
 							ClothAsset->BendStiffness,
-							ClothAsset->OverPressure);
+							ClothAsset->EnableInflatable?ClothAsset->OverPressure:0.0f);
 
 				Asset = TearingAsset;
 			}
