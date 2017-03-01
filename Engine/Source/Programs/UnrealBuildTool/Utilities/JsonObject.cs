@@ -395,6 +395,21 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Gets an object array field by the given name from the object, throwing an exception if it is not there or cannot be parsed.
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <returns>The field value</returns>
+		public JsonObject[] GetObjectArrayField(string FieldName)
+		{
+			JsonObject[] Result;
+			if (!TryGetObjectArrayField(FieldName, out Result))
+			{
+				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
+			}
+			return Result;
+		}
+
+		/// <summary>
 		/// Tries to read an object array field by the given name from the object
 		/// </summary>
 		/// <param name="FieldName">Name of the field to get</param>
