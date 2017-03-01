@@ -19,7 +19,7 @@ FDLLPointers::FDLLPointers()
 	, HidD_GetManufacturerString(nullptr)
 	, HidD_GetProductString(nullptr)
 	, HidP_GetButtonCaps(nullptr)
-	, HidP_GetValueCaps(nullptr)
+	, HidP_GetValueCaps(nullptr) 
 	, HidP_GetCaps(nullptr)
 	, HidP_GetUsages(nullptr)
 	, HidP_GetUsageValue(nullptr)
@@ -449,7 +449,8 @@ bool FRawInputWindows::ProcessMessage(const HWND hwnd, const uint32 Msg, const W
 								if (DLLPointers.HidP_GetCaps((PHIDP_PREPARSED_DATA)PreParsedData.GetData(), &Caps) == HIDP_STATUS_SUCCESS)
 								{
 									FRawInputRegisteredDevice DeviceData(RawInputDataBuffer->header.dwType, Caps.Usage, Caps.UsagePage);
-									if (DeviceData == EachEntry.DeviceData)
+									// Win32 doesn't correctly report the device ID, so at least for now just trust it is from the device we want
+									//if (DeviceData == EachEntry.DeviceData)
 									{
 										bIsRegisteredDevice = true;
 										ParseInputData(DeviceEntryPair.Key, RawInputDataBuffer, (PHIDP_PREPARSED_DATA)PreParsedData.GetData(), Caps);
