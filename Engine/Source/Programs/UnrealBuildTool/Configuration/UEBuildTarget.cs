@@ -2322,7 +2322,15 @@ namespace UnrealBuildTool
 			VersionManifest MainManifest;
 			if(!ExistingFileToManifest.TryGetValue(MainManifestFile, out MainManifest))
 			{
-				return false;
+				// Try to load Main Manifest directly if it wasn't part of file list (true for installed builds)
+				if (MainManifestFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && VersionManifest.TryRead(MainManifestFile.FullName, out MainManifest))
+				{
+					ExistingFileToManifest.Add(MainManifestFile, MainManifest);
+				}
+				else
+				{
+					return false;
+				}
 			}
 
 			// Check if we're modifying any files in an existing valid manifest. If the build id for a manifest doesn't match, we can behave as if it doesn't exist.
