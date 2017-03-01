@@ -6,7 +6,7 @@ Welcome to the NVIDIA UE4 Flex integration!
 Flex is our new GPU-based particle simulation library that supports fluids, clothing, solids, ropes, and more. The UE4 integration adds new actors and components
 to Unreal that can be used add more advanced dynamics to your game.
 
-![Alt text](/FlexProject/Documentation/Images/FlexVisOff.jpg?raw=true "Fluids, soft and rigid bodies interacting.")
+![Alt text](/FlexProject/Documentation/Images/FlexVisOn.jpg?raw=true "Fluids, soft and rigid bodies interacting.")
 
 Locations
 ---------
