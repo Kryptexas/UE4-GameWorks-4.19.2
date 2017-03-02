@@ -368,6 +368,7 @@ UFlexFluidSurfaceComponent
 UFlexFluidSurfaceComponent::UFlexFluidSurfaceComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, FlexFluidSurface(NULL)
+	, bReferenceCountingEnabled(true)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;
@@ -494,7 +495,7 @@ void UFlexFluidSurfaceComponent::UnregisterEmitterInstance(struct FParticleEmitt
 		EmitterInstances.RemoveSingleSwap(EmitterInstance);
 		MarkRenderDynamicDataDirty();
 
-		if (EmitterInstances.Num() == 0 && GetWorld() != NULL)
+		if (bReferenceCountingEnabled && EmitterInstances.Num() == 0 && GetWorld() != NULL)
 		{
 			//this will destroy the actor. 
 			GetWorld()->RemoveFlexFluidSurface(this);
@@ -502,6 +503,24 @@ void UFlexFluidSurfaceComponent::UnregisterEmitterInstance(struct FParticleEmitt
 			//no other operations should go here.
 		}
 	}
+}
+
+void UFlexFluidSurfaceComponent::SetEnabledReferenceCounting(bool bEnable)
+{
+	bReferenceCountingEnabled = bEnable;
+
+	if (bReferenceCountingEnabled && EmitterInstances.Num() == 0 && GetWorld() != NULL)
+	{
+		//this will destroy the actor. 
+		GetWorld()->RemoveFlexFluidSurface(this);
+
+		//no other operations should go here.
+	}
+}
+
+bool UFlexFluidSurfaceComponent::GetEnabledReferenceCounting()
+{
+	return bReferenceCountingEnabled;
 }
 
 /*=============================================================================

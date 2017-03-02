@@ -969,7 +969,7 @@ void UFlexComponent::SynchronizeAttachments()
 				ContainerInstance->Particles[ParticleIndex].W = Attachment.OldMass;
 				ContainerInstance->Velocities[ParticleIndex] = FVector(0.0f);
 				
-				Attachments.RemoveAt(AttachmentIndex);
+				Attachments.RemoveAtSwap(AttachmentIndex);
 			}
 		}
 	}
@@ -977,12 +977,7 @@ void UFlexComponent::SynchronizeAttachments()
 
 UFlexContainer* UFlexComponent::GetContainerTemplate()
 {
-	UFlexContainer* RetContainer = nullptr;
-	if (ContainerInstance)
-	{
-		RetContainer = ContainerInstance->Template;
-	}
-	return RetContainer;
+	return ContainerInstance ? ContainerInstance->Template : nullptr;
 }
 
 void UFlexComponent::SetGravity(FVector Gravity)

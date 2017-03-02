@@ -5258,7 +5258,9 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 			if (FlexFluidSurfaceOverride)
 			{
 				UFlexFluidSurfaceComponent* SurfaceComponent = GetWorld()->GetFlexFluidSurface(FlexFluidSurfaceOverride);
-				SurfaceComponent->RegisterEmitterInstance((FParticleEmitterInstance*)1);
+				
+				// This is necessary because we need to hold the reference to the fluid surface so it doesn't go away with a SetTemplate() call
+				SurfaceComponent->SetEnabledReferenceCounting(false);
 			}
 #endif
 
@@ -5331,7 +5333,9 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 	if (FlexFluidSurfaceOverride)
 	{
 		UFlexFluidSurfaceComponent* SurfaceComponent = GetWorld()->GetFlexFluidSurface(FlexFluidSurfaceOverride);
-		SurfaceComponent->UnregisterEmitterInstance((FParticleEmitterInstance*)1);
+
+		// This is necessary because we need to hold the reference to the fluid surface so it doesn't go away with a SetTemplate() call
+		SurfaceComponent->SetEnabledReferenceCounting(true);
 	}
 #endif
 

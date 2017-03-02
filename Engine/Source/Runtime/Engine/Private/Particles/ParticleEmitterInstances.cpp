@@ -257,6 +257,7 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 		int32 ParticleIndex;
 		float OldMass;
 		FVector LocalPos;
+		FVector Velocity;
 	};
 
 	struct FlexComponentAttachment
@@ -326,7 +327,8 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 
 	void AttachToComponent(USceneComponent* Component, float Radius)
 	{
-		const FTransform Transform = Component->GetComponentTransform();
+		const FTransform ComponentTransform = Component->GetComponentTransform();
+		const FVector ComponentPos = Component->GetComponentTransform().GetTranslation();
 
 		for (int32 i = 0; i < Emitter->ActiveParticles; i++)
 		{
@@ -344,30 +346,32 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 				continue;
 
 			// test distance from component origin
-			FVector Delta = FVector(ParticlePos) - Transform.GetTranslation();
+			//FVector Delta = FVector(ParticlePos) - Transform.GetTranslation();
 
-			if (Delta.Size() < Radius)
+			//if (Delta.Size() < Radius)
+			if (FVector::DistSquared(FVector(ParticlePos), ComponentPos) < Radius * Radius)
 			{
 				// calculate local space position of particle in component
-				FVector LocalPos = Transform.InverseTransformPosition(ParticlePos);
+				FVector LocalPos = ComponentTransform.InverseTransformPosition(ParticlePos);
 
 				FlexParticleAttachment Attachment;
 				Attachment.Primitive = Component;
 				Attachment.ParticleIndex = FlexParticleIndex;
 				Attachment.OldMass = ParticlePos.W;
 				Attachment.LocalPos = LocalPos;
+				Attachment.Velocity = FVector(0.0f);
 
 				Attachments.Add(Attachment);
 			}
 		}
 	}
 
-	void SynchronizeAttachments()
+	void SynchronizeAttachments(float DeltaTime)
 	{
 		// process attachments
 		for (int32 AttachmentIndex = 0; AttachmentIndex < Attachments.Num(); )
 		{
-			const FlexParticleAttachment& Attachment = Attachments[AttachmentIndex];
+			FlexParticleAttachment& Attachment = Attachments[AttachmentIndex];
 			const USceneComponent* SceneComp = Attachment.Primitive.Get();
 
 			// index into the simulation data, we need to modify the container's copy
@@ -393,6 +397,9 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 
 				const FVector AttachedPos = AttachTransform.TransformPosition(Attachment.LocalPos);
 
+				// keep the velocity so the particles can be "thrown" by their attachment 
+				Attachment.Velocity = (AttachedPos - FVector(Container->Particles[ParticleIndex])) / DeltaTime;
+
 				Container->Particles[ParticleIndex] = FVector4(AttachedPos, 0.0f);
 				Container->Velocities[ParticleIndex] = FVector(0.0f);
 
@@ -401,9 +408,10 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 			else // process detachments
 			{
 				Container->Particles[ParticleIndex].W = Attachment.OldMass;
-				Container->Velocities[ParticleIndex] = FVector(0.0f);
+				// Allow the particles to keep their current velocity
+				Container->Velocities[ParticleIndex] = Attachment.Velocity;
 
-				Attachments.RemoveAt(AttachmentIndex);
+				Attachments.RemoveAtSwap(AttachmentIndex);
 			}
 		}
 	}
@@ -425,7 +433,7 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 				Container->Particles[ParticleIndex].W = Attachment.OldMass;
 				Container->Velocities[ParticleIndex] = FVector(0.0f);
 
-				Attachments.RemoveAt(AttachmentIndex);
+				Attachments.RemoveAtSwap(AttachmentIndex);
 				break;
 			}
 		}
@@ -805,6 +813,7 @@ void FParticleEmitterInstance::RegisterNewFlexFluidSurfaceComponent(class UFlexF
 
 void FParticleEmitterInstance::AttachFlexToComponent(USceneComponent* InComponent, float InRadius)
 {
+	check(FlexEmitterInstance != NULL)
 	if (FlexEmitterInstance)
 	{
 		FlexEmitterInstance->AddPendingComponentToAttach(InComponent, InRadius);
@@ -989,7 +998,7 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 	if (FlexEmitterInstance && FlexEmitterInstance->Container && (!GIsEditor || GIsPlayInEditorWorld))
 	{	
 		FlexEmitterInstance->ExecutePendingComponentsToAttach();
-		FlexEmitterInstance->SynchronizeAttachments();
+		FlexEmitterInstance->SynchronizeAttachments(DeltaTime);
 
 		// all Flex components should be ticked during the synchronization 
 		// phase of the Flex update, which corresponds to the EndPhysics tick group
