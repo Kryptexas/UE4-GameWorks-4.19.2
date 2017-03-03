@@ -58,7 +58,10 @@
 #include "Engine/InterpCurveEdSetup.h"
 #include "GameFramework/GameState.h"
 #include "FrameworkObjectVersion.h"
+#if WITH_FLEX
 #include "PhysicsEngine/FlexFluidSurfaceComponent.h"
+#include "PhysicsEngine/FlexContainerInstance.h"
+#endif
 #include "PhysicsPublic.h"
 
 
@@ -4144,7 +4147,9 @@ UFlexContainer* UParticleSystemComponent::GetFirstFlexContainerTemplate()
 		FParticleEmitterInstance* EmitterInstance = EmitterInstances[EmitterIndex];
 		if (EmitterInstance && EmitterInstance->SpriteTemplate && EmitterInstance->SpriteTemplate->FlexContainerTemplate)
 		{
-			return EmitterInstance->SpriteTemplate->FlexContainerTemplate;
+			FPhysScene* Scene = EmitterInstance->Component->GetWorld()->GetPhysicsScene();
+			FFlexContainerInstance* ContainerInstance = Scene->GetFlexContainer(EmitterInstance->SpriteTemplate->FlexContainerTemplate);
+			return ContainerInstance ? ContainerInstance->Template : nullptr;
 		}
 	}
 #endif

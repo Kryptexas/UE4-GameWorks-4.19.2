@@ -1006,7 +1006,7 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 
 		FFlexContainerInstance* Container = FlexEmitterInstance->Container;
 
-		bFlexAnisotropyData = (SpriteTemplate->FlexContainerTemplate->AnisotropyScale > 0.0f);
+		bFlexAnisotropyData = (Container->Template->AnisotropyScale > 0.0f);
 		verify(!bFlexAnisotropyData || Container->Anisotropy1.size() > 0);
 
 		// process report shapes

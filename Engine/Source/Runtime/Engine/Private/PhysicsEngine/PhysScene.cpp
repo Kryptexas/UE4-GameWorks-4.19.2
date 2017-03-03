@@ -1713,7 +1713,10 @@ FFlexContainerInstance*	FPhysScene::GetFlexContainer(UFlexContainer* Template)
 	}
 	else
 	{
-		FFlexContainerInstance* NewInst = new FFlexContainerInstance(Template, this);
+		// Make a copy of the UFlexContainer so that modifying it in blueprint doesn't change the asset
+		auto ContainerCopy = DuplicateObject<UFlexContainer>(Template, nullptr);
+
+		FFlexContainerInstance* NewInst = new FFlexContainerInstance(ContainerCopy, this);
 		FlexContainerMap.Add(Template, NewInst);
 
 		return NewInst;
