@@ -102,8 +102,8 @@ namespace UnrealBuildTool
 				Target.bUsePCHFiles = false;
 			}
 
-			// Needs OS X 10.11 for Metal
-			if (MacToolChain.Settings.MacOSSDKVersionFloat >= 10.11f && Target.bCompileAgainstEngine)
+			// Needs OS X 10.11 for Metal. The remote toolchain has not been initialized yet, so just assume it's a recent SDK.
+			if ((BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac || MacToolChain.Settings.MacOSSDKVersionFloat >= 10.11f) && Target.bCompileAgainstEngine)
 			{
 				Target.GlobalDefinitions.Add("HAS_METAL=1");
 				Target.ExtraModuleNames.Add("MetalRHI");

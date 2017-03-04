@@ -85,7 +85,11 @@ class ListThirdPartySoftware : BuildCommand
 	{
 		FileReference OutputFile = FileReference.Combine(CommandUtils.EngineDirectory, "Intermediate", "Build", "ThirdParty.json");
 
-		Run(UE4Build.GetUBTExecutable(), String.Format("{0} {1} {2} -jsonexport=\"{3}\" -skipbuild", Target, Configuration, Platform, OutputFile.FullName), Options: DebugRun ? ERunOptions.Default : ERunOptions.NoLoggingOfRunCommand);
+		IProcessResult Result = Run(UE4Build.GetUBTExecutable(), String.Format("{0} {1} {2} -jsonexport=\"{3}\" -skipbuild", Target, Configuration, Platform, OutputFile.FullName), Options: DebugRun ? ERunOptions.Default : ERunOptions.NoLoggingOfRunCommand);
+		if(Result.ExitCode != 0)
+		{
+			throw new AutomationException("Failed to run UBT");
+		}
 
 		JsonObject Object = JsonObject.Read(OutputFile.FullName);
 
