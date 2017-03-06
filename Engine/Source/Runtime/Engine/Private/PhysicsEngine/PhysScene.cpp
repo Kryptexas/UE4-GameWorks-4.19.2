@@ -364,8 +364,16 @@ FPhysScene::~FPhysScene()
 	{
 		for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
 		{
+			UFlexContainer* FlexContainerCopy = It->Value->Template;
+
 			delete It->Value;
 			It.RemoveCurrent();
+
+			// Destroy the UFlexContainer copy that was created by GetFlexContainer()
+			if (FlexContainerCopy != nullptr && FlexContainerCopy->IsValidLowLevel())
+			{
+				FlexContainerCopy->ConditionalBeginDestroy();
+			}
 		}
 	}
 #endif
@@ -1714,8 +1722,11 @@ FFlexContainerInstance*	FPhysScene::GetFlexContainer(UFlexContainer* Template)
 	else
 	{
 		// Make a copy of the UFlexContainer so that modifying it in blueprint doesn't change the asset
-		auto ContainerCopy = DuplicateObject<UFlexContainer>(Template, nullptr);
-
+		// The owning object will be the Transient Pacakge
+		auto ContainerCopy = DuplicateObject<UFlexContainer>(Template, GetTransientPackage()); 
+		
+		// no Garbage Collection please, we need this object to last as long as the FFlexContainerInstance
+		ContainerCopy->AddToRoot();
 		FFlexContainerInstance* NewInst = new FFlexContainerInstance(ContainerCopy, this);
 		FlexContainerMap.Add(Template, NewInst);
 
