@@ -55,6 +55,13 @@ private:
 	bool NeedsToAdvertise( FNamedOnlineSession& Session );
 
 	/**
+	* Determines whether this particular session is joinable.
+	*
+	* @return true if yes
+	*/
+	bool IsSessionJoinable(const FNamedOnlineSession& Session) const;
+
+	/**
 	 * Updates the status of LAN session (creates it if needed, shuts down if not)
 	 * 
 	 * @return ERROR_SUCCESS if everything went successful, an error code otherwise
