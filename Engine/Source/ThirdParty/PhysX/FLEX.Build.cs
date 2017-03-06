@@ -105,6 +105,7 @@ public class FLEX : ModuleRules
             {
                 string[] RuntimeDependenciesX64 =
                 {
+                    "amd_ags_x64.dll",
                     "NvFlexDebugD3D_x64.dll",
                     "NvFlexReleaseD3D_x64.dll",
                     "NvFlexExtDebugD3D_x64.dll",
@@ -190,6 +191,7 @@ public class FLEX : ModuleRules
 
                 string[] RuntimeDependenciesX86 =
                 {
+                    "amd_ags_x86.dll",
                     "NvFlexDebugD3D_x86.dll",
                     "NvFlexReleaseD3D_x86.dll",
                     "NvFlexExtDebugD3D_x86.dll",
