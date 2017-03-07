@@ -302,7 +302,7 @@ public abstract class XLocLocalizationProvider : LocalizationProvider
 		Binding.TransferMode = TransferMode.Buffered;
 		Binding.UseDefaultWebProxy = true;
 		Binding.ReaderQuotas.MaxDepth = 32;
-		Binding.ReaderQuotas.MaxStringContentLength = 8192;
+		Binding.ReaderQuotas.MaxStringContentLength = 65536;
 		Binding.ReaderQuotas.MaxArrayLength = 16384;
 		Binding.ReaderQuotas.MaxBytesPerRead = 4096;
 		Binding.ReaderQuotas.MaxNameTableCharCount = 16384;
