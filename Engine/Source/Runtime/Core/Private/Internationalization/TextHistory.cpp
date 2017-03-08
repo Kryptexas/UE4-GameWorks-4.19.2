@@ -196,7 +196,7 @@ void FTextHistory_Base::SerializeForDisplayString(FArchive& Ar, FTextDisplayStri
 					{
 						const FString CurPackageNamespace = TextNamespaceUtil::ExtractPackageNamespace(Namespace);
 						const FString CurCleanNamespace = TextNamespaceUtil::StripPackageNamespace(Namespace);
-						UE_LOG(LogCore, Warning, TEXT("Package localization ID mismatch during cook! Expected '%s', got '%s'. Namespace: '%s', Key: '%s', Source: '%s'."), *PackageNamespace, *CurPackageNamespace, *CurCleanNamespace, *Key, *SourceString);
+						UE_LOG(LogCore, Display, TEXT("Package localization ID mismatch during cook! Expected '%s', got '%s'. Namespace: '%s', Key: '%s', Source: '%s'."), *PackageNamespace, *CurPackageNamespace, *CurCleanNamespace, *Key, *SourceString);
 					}
 					else
 					{
