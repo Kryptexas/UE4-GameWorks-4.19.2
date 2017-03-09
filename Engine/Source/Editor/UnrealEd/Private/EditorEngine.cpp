@@ -898,7 +898,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("UndoHistory"),
 			TEXT("DeviceProfileEditor"),
 			TEXT("SourceCodeAccess"),
-			TEXT("MeshEditor"),
 			TEXT("BehaviorTreeEditor"),
 			TEXT("HardwareTargeting"),
 			TEXT("LocalizationDashboard"),
