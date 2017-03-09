@@ -177,10 +177,6 @@ TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 	Style->Set("VREditorStyle.FoliageMode", new IMAGE_BRUSH("Icons/VREditor/T_Radial_Foliage", Icon512x512));
 	Style->Set("VREditorStyle.LandscapeMode", new IMAGE_BRUSH("Icons/VREditor/T_Radial_Landscape", Icon512x512));
 	Style->Set("VREditorStyle.MeshPaintMode", new IMAGE_BRUSH("Icons/VREditor/T_Radial_Mesh_Paint", Icon512x512));
-	Style->Set("VREditorStyle.MeshEditMode", new IMAGE_BRUSH("Icons/VREditor/T_Radial_Mesh_All", Icon512x512));
-	Style->Set("VREditorStyle.PolygonEditMode", new IMAGE_BRUSH("Icons/VREditor/T_Radial_Mesh_Poly", Icon512x512));
-	Style->Set("VREditorStyle.EdgeEditMode", new IMAGE_BRUSH("Icons/VREditor/T_Radial_Mesh_Edge", Icon512x512));
-	Style->Set("VREditorStyle.VertexEditMode", new IMAGE_BRUSH("Icons/VREditor/T_Radial_Mesh_Vertex", Icon512x512));
 
 	Style->Set("VREditorStyle.Copy", new IMAGE_BRUSH("Icons/VREditor/T_Radial_Copy", Icon512x512));
 	Style->Set("VREditorStyle.Cut", new IMAGE_BRUSH("Icons/VREditor/T_Radial_Cut", Icon512x512));
