@@ -26,7 +26,7 @@ public:
 	 * @param InSequencer The sequencer instance to be used by this tool.
 	 */
 	FBytePropertyTrackEditor(TSharedRef<ISequencer> InSequencer)
-		: FPropertyTrackEditor(InSequencer, NAME_ByteProperty)
+		: FPropertyTrackEditor(InSequencer, NAME_ByteProperty, NAME_EnumProperty)
 	{ }
 
 	/**
